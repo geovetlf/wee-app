@@ -111,19 +111,34 @@ console.log('\n── C · El diálogo de salir y los tres avisos ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   /*
-   * 15 · La pantalla NO usa `confirmAction`: arma su propio `Alert.alert` de
-   * tres botones. Eso no cambia —sería un refactor—; lo que cambia es de dónde
-   * salen sus palabras. `Cancelar` reutiliza `common.cancel`.
+   * 15 · El diálogo de salir era un `Alert.alert` propio con el trabajo dentro
+   * del `onPress` de su botón, y en React Native Web `Alert.alert` no pinta
+   * nada ni llama a ningún botón: en la web no se podía salir, y el indicador
+   * —que se encendía antes del diálogo y solo se apagaba en sus botones— se
+   * quedaba girando. Ahora es `confirmAction` (utils/notify.ts), con LAS MISMAS
+   * claves: el título, el mensaje con el nombre, `communities.leave` como botón
+   * destructivo y `common.cancel` como Cancelar, que pone `confirmAction`. El
+   * indicador se apaga en un `finally`. Lo que pasa de verdad, en la web y en
+   * el teléfono, lo ejecuta `avisos-en-la-web.test.mjs`.
    */
-  check('15) el diálogo de salir usa i18n y conserva su forma',
-    /Alert\.alert\(\s*\n\s*t\('communities\.leaveTitle'\),\s*\n\s*t\('communities\.leaveConfirm', \{ nombre: nombreDeComunidad\(community, t, locale\) \}\),/.test(PANTALLA)
-    && /\{ text: t\('common\.cancel'\), style: 'cancel', onPress: \(\) => setJoiningCommunity\(null\) \}/.test(PANTALLA)
-    && /text: t\('communities\.leave'\),\s*\n\s*style: 'destructive',/.test(PANTALLA));
+  check('15) el diálogo de salir usa i18n, con las mismas claves, por confirmAction',
+    /await confirmAction\(\s*\n\s*t\('communities\.leaveTitle'\),\s*\n\s*t\('communities\.leaveConfirm', \{ nombre: nombreDeComunidad\(community, t, locale\) \}\),\s*\n\s*t\('communities\.leave'\),\s*\n\s*true,\s*\n\s*t,\s*\n\s*\);/.test(PANTALLA)
+    && /if \(!confirmado\) return;/.test(PANTALLA)
+    && /import \{ confirmAction, notify \} from '\.\.\/utils\/notify';/.test(CRUDO)
+    && /\{ text: t\('common\.cancel'\), style: 'cancel', onPress: \(\) => resolve\(false\) \}/.test(leer('utils/notify.ts'))
+    && !/Alert\.alert\(\s*\n?\s*t\('communities\.leaveTitle'\)/.test(PANTALLA));
+  check('15) y el indicador se apaga pase lo que pase',
+    /\} finally \{\s*\n\s*setJoiningCommunity\(null\);\s*\n\s*\}/.test(PANTALLA));
 
+  /*
+   * Los dos avisos de unirse y salir van por `notify`, que también se ve en la
+   * web; el de crear sigue en su `Alert.alert` (otro manejador, fuera de este
+   * arreglo). Los tres siguen reutilizando common.error.
+   */
   check('15) y los tres avisos de error reutilizan common.error',
-    (PANTALLA.match(/Alert\.alert\(t\('common\.error'\)/g) || []).length === 3
-    && /t\('communities\.leaveFailed'\)/.test(PANTALLA)
-    && /t\('communities\.actionFailed'\)/.test(PANTALLA)
+    (PANTALLA.match(/(?:notify|Alert\.alert)\(t\('common\.error'\)/g) || []).length === 3
+    && /notify\(t\('common\.error'\), t\('communities\.leaveFailed'\)\)/.test(PANTALLA)
+    && /notify\(t\('common\.error'\), t\('communities\.actionFailed'\)\)/.test(PANTALLA)
     && /Alert\.alert\(t\('common\.error'\), t\('communities\.createFailed'\)\)/.test(PANTALLA));
 
   /* El error técnico va al registro; la persona ve la frase de Weë (cierre de F11: antes mandaba `e.message`). */

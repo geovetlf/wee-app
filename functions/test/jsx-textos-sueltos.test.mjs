@@ -13,6 +13,7 @@
  * número. Con `!!x`, `x !== ''` o `x ? … : null`, pasa.
  */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -33,7 +34,6 @@ const ARCHIVOS = ['screens', 'components', 'navigation', 'contexts'].flatMap(lis
 const tsconfig = ts.readConfigFile(path.resolve(raiz, 'tsconfig.json'), ts.sys.readFile).config;
 const { options } = ts.parseJsonConfigFileContent(tsconfig, ts.sys, raiz);
 const programa = ts.createProgram(ARCHIVOS.map((f) => path.resolve(raiz, f)), { ...options, noEmit: true, skipLibCheck: true });
-const checker = programa.getTypeChecker();
 
 /* ¿Puede ser texto o número? Recorre las uniones; `any` y los genéricos sin resolver no cuentan (no se sabe). */
 const puedeSerTextoONumero = (tipo) => {
@@ -41,9 +41,12 @@ const puedeSerTextoONumero = (tipo) => {
   return !!(tipo.flags & (ts.TypeFlags.StringLike | ts.TypeFlags.NumberLike | ts.TypeFlags.BigIntLike));
 };
 const TEXTO = /^(Text|Animated\.Text|TextoEnMayusculas|TextInput)$/;
+/* EL DETECTOR, como función: lo usan la comprobación de la app y el control (que lo EJECUTA sobre un caso propio). */
+const buscarSitios = (programa, archivos, base) => {
+const checker = programa.getTypeChecker();
 const sitios = [];
-for (const archivo of ARCHIVOS) {
-  const src = programa.getSourceFile(path.resolve(raiz, archivo));
+for (const archivo of archivos) {
+  const src = programa.getSourceFile(path.resolve(base, archivo));
   if (!src) continue;
   const visitar = (n) => {
     if (ts.isJsxExpression(n) && n.expression && ts.isBinaryExpression(n.expression) && n.expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
@@ -61,12 +64,37 @@ for (const archivo of ARCHIVOS) {
   };
   visitar(src);
 }
+return sitios;
+};
+const sitios = buscarSitios(programa, ARCHIVOS, raiz);
 
 check(`1) ningún «x && <JSX>» deja un texto o un número suelto dentro de una vista (${ARCHIVOS.length} archivos)`, sitios.length === 0,
   sitios.length ? (process.env.DETALLE ? '\n  ' + sitios.join('\n  ') : `${sitios.length}: ${sitios.slice(0, 4).join(' · ')}`) : '');
-/* Control: la guarda de verdad ve el caso del fallo. */
-const control = ts.createSourceFile('c.tsx', 'const q: string = ""; const x = <View>{q.trim() && <View />}</View>;', ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-check('2) control: la guarda reconoce el patrón del fallo', !!control && /q\.trim\(\) && </.test(control.text));
+/*
+ * Control: el detector de verdad, EJECUTADO sobre un archivo propio en un directorio temporal (antes este control
+ * miraba con una regex el texto que él mismo acababa de escribir, y no podía fallar). Tres casos: el del fallo, el
+ * arreglo con `!!` y el que es legítimo dentro de un <Text>.
+ */
+{
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jsx-control-'));
+  try {
+    const archivo = 'control.tsx';
+    fs.writeFileSync(path.join(dir, archivo), [
+      'declare const View: any; declare const Text: any; declare const q: string; declare const n: number; declare const b: boolean;',
+      'export const malo = <View>{q.trim() && <View />}</View>;',
+      'export const numero = <View>{n && <View />}</View>;',
+      'export const arreglado = <View>{!!q.trim() && <View />}</View>;',
+      'export const booleano = <View>{b && <View />}</View>;',
+      'export const enTexto = <Text>{q && <Text />}</Text>;',
+    ].join('\n'));
+    const prog = ts.createProgram([path.join(dir, archivo)], { jsx: ts.JsxEmit.Preserve, noEmit: true, skipLibCheck: true, strict: true, target: ts.ScriptTarget.ES2022 });
+    const vistos = buscarSitios(prog, [archivo], dir).map((x) => x.replace(/^control\.tsx:/, ''));
+    check('2) control EJECUTADO: el detector ve el texto y el número sueltos, y no el `!!`, el booleano ni lo de dentro de <Text>',
+      vistos.length === 2 && vistos.some((x) => /^2 /.test(x)) && vistos.some((x) => /^3 /.test(x)), vistos.join(' · '));
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
 check('3) el buscador ya no deja la cadena vacía: la causa del aviso', !/activeCategory === 'comunidades' && searchQuery\.trim\(\) && \(/.test(leer('screens/SearchScreen.tsx')));
 
 check('esta suite está en la cadena de `npm test`', /jsx-textos-sueltos\.test\.mjs/.test(leer('functions/package.json')));

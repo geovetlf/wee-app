@@ -7,6 +7,14 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // ADMINISTRACIÓN: una sesión con el claim `admin`. El claim lo pone el
+    // servidor con el SDK de administración; ningún cliente puede ponérselo.
+    // Es lo que distingue lo que Weë AFIRMA (oficial, verificado, destacado)
+    // de lo que una persona dice de sí misma.
+    function esAdministracion() {
+      return request.auth != null && request.auth.token.get('admin', false) == true;
+    }
+
     // ─── FRONTERA DE COMPATIBILIDAD CON LA IDENTIDAD HEREDADA ───────────────
     //
     // El `uid` guardado de una cara Weë lleva un prefijo de cuando Weë se
@@ -294,15 +302,36 @@ service cloud.firestore {
       // y nace con los contadores a cero (o con su creador ya dentro). Las
       // oficiales no las crea nadie desde la app: solo una sesión con el claim
       // `admin`, que es quien siembra el catálogo.
+      //
+      // EL NOMBRE DE UNA OFICIAL ESTÁ RESERVADO, AUNQUE LA OFICIAL AÚN NO EXISTA.
+      // La app encuentra una comunidad por su `slug` y la siembra crea cada
+      // oficial con id = slug. Si una persona llegaba antes con ese slug o con
+      // ese id, ocupaba el sitio de la oficial: la app la enseñaba en su lugar
+      // —traducida como si fuera de Weë— y la siembra no podía crearla. Ahora ni
+      // el slug ni el id de una oficial los toma nadie que no sea administración,
+      // ni al crear ni cambiando después el slug de su comunidad.
+      //
+      // La lista es la de `constants/comunidadesOficiales.ts` (una por temática
+      // de `constants/communityCategories.ts`); `functions/test/comunidades-siembra.test.mjs`
+      // falla si las dos dejan de coincidir.
+      function slugsOficiales() {
+        return ['cine-animacion', 'arte-creatividad', 'creadores-influencers', 'negocios-emprendimiento',
+                'tecnologia-ia', 'gaming-mundos-virtuales', 'educacion-aprendizaje', 'futuro-sociedad'];
+      }
+      function ocupaUnNombreOficial() {
+        return communityId in slugsOficiales() ||
+          request.resource.data.get('slug', '') in slugsOficiales();
+      }
       function comunidadDeUsuario() {
         return request.resource.data.createdBy == request.auth.uid &&
           request.resource.data.moderators == [request.auth.uid] &&
           request.resource.data.get('isOfficial', false) == false &&
           request.resource.data.get('memberCount', 0) in [0, 1] &&
-          request.resource.data.get('postCount', 0) == 0;
+          request.resource.data.get('postCount', 0) == 0 &&
+          !ocupaUnNombreOficial();
       }
       function comunidadOficialDeAdministracion() {
-        return request.auth.token.get('admin', false) == true &&
+        return esAdministracion() &&
           request.resource.data.get('isOfficial', false) == true;
       }
       allow create: if isAuthenticated() && (comunidadDeUsuario() || comunidadOficialDeAdministracion());
@@ -314,10 +343,18 @@ service cloud.firestore {
           (request.resource.data.diff(resource.data).affectedKeys().hasAny(['moderators']) &&
            resource.data.get('createdBy', '') != request.auth.uid);
       }
+      // Ni se pasa después a un slug oficial: sería la misma ocupación por la
+      // puerta de la edición. Una comunidad que YA lo tenía puede seguir
+      // editándose; lo que no puede es tomarlo.
+      function tomaUnSlugOficial() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasAny(['slug']) &&
+          request.resource.data.get('slug', '') in slugsOficiales() &&
+          !esAdministracion();
+      }
 
       // Solo moderadores pueden actualizar la comunidad
       // O cualquier usuario autenticado puede actualizar contadores, de uno en uno
-      allow update: if isAuthenticated() && !tocaLaAutoriaDeLaComunidad() &&
+      allow update: if isAuthenticated() && !tocaLaAutoriaDeLaComunidad() && !tomaUnSlugOficial() &&
         (request.auth.uid in resource.data.moderators ||
          resource.data.get('createdBy', '') == request.auth.uid ||
          (request.resource.data.diff(resource.data).affectedKeys()
@@ -730,27 +767,65 @@ service cloud.firestore {
       // Cualquiera puede leer negocios
       allow read: if true;
 
-      // Solo usuarios autenticados pueden crear un negocio
-      allow create: if isAuthenticated() &&
-        request.resource.data.ownerId == request.auth.uid;
-
-      // Solo el dueño puede actualizar su negocio, o cualquiera puede actualizar contadores.
+      // LO QUE WEË DICE DE UN NEGOCIO NO LO ESCRIBE SU DUEÑO.
       //
+      // `verified` es la insignia «Verificado» del perfil del negocio y
+      // `featured` lo pone en Destacados; `status` decide si aparece (una
+      // suspensión la levanta solo administración) y `ownerId` decide quién
+      // manda en él y en su catálogo. Antes el dueño los escribía como cualquier
+      // otro campo —al crear y al editar—, así que cualquiera podía registrarse
+      // un negocio ya verificado y destacado. Ahora nace sin ninguna de las
+      // dos cosas, activo y con los contadores a cero, que es exactamente lo
+      // que crea la app (`weeBizService.createBusiness`); y esos cuatro campos
+      // solo los cambia administración.
+      function camposQueAfirmaWee() {
+        return ['verified', 'featured', 'status', 'ownerId'];
+      }
+      function negocioRecienNacido() {
+        return request.resource.data.get('verified', false) == false &&
+          request.resource.data.get('featured', false) == false &&
+          request.resource.data.get('status', 'active') == 'active' &&
+          request.resource.data.get('followersCount', 0) == 0 &&
+          request.resource.data.get('auraScore', 0) == 0 &&
+          request.resource.data.get('reviewCount', 0) == 0;
+      }
+
+      // Solo usuarios autenticados pueden crear un negocio, a su nombre
+      allow create: if isAuthenticated() &&
+        request.resource.data.ownerId == request.auth.uid &&
+        negocioRecienNacido();
+
       // `followersCount` se acota de uno en uno como los demás. `auraScore` y
       // `reviewCount` NO se pueden acotar así: son un promedio y un recuento
       // que el cliente RECALCULA leyendo hasta mil reseñas, así que saltan a
       // cualquier valor por diseño. Aquí solo se les exige que sean números
       // dentro de su rango; que nadie pueda ponerle un 5 al negocio que quiera
       // exige contar en el servidor, y eso es de la fase de Weë Business.
-      allow update: if isAuthenticated() && (
-        resource.data.ownerId == request.auth.uid ||
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['followersCount', 'auraScore', 'reviewCount'])
-          && contadorSano('followersCount')
+      // Vale igual para el dueño cuando los mueve: su negocio no tiene
+      // contadores aparte. Si no los toca (editar el nombre), no se le miran,
+      // para que un negocio antiguo con un dato raro no quede sin poder editarse.
+      function contadoresDelNegocioSanos() {
+        return contadorSano('followersCount')
           && request.resource.data.get('auraScore', 0) >= 0
           && request.resource.data.get('auraScore', 0) <= 5
           && request.resource.data.get('reviewCount', 0) is int
-          && request.resource.data.get('reviewCount', 0) >= 0
+          && request.resource.data.get('reviewCount', 0) >= 0;
+      }
+      function tocaContadoresDelNegocio() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['followersCount', 'auraScore', 'reviewCount']);
+      }
+
+      // El dueño edita su negocio (nombre, descripción, logo…) pero no lo que
+      // afirma Weë; cualquiera mueve los contadores; administración, todo.
+      allow update: if isAuthenticated() && (
+        esAdministracion() ||
+        (resource.data.ownerId == request.auth.uid &&
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(camposQueAfirmaWee()) &&
+         (!tocaContadoresDelNegocio() || contadoresDelNegocioSanos())) ||
+        (request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['followersCount', 'auraScore', 'reviewCount'])
+          && contadoresDelNegocioSanos())
       );
 
       allow delete: if false;
@@ -759,9 +834,24 @@ service cloud.firestore {
       match /reviews/{reviewId} {
         allow read: if true;
 
-        // Solo usuarios autenticados pueden crear una reseña (no el dueño a sí mismo)
+        // Una reseña es de quien la escribe (la cuenta), puntúa de 1 a 5 en
+        // números enteros —las estrellas de la app— y es de ESTE negocio. Y el
+        // dueño no reseña su propio negocio: el comentario lo prometía y la
+        // regla no lo cumplía, así que un dueño podía subirse la media él solo.
+        //
+        // PENDIENTE: «una reseña por persona» no se puede exigir aquí todavía.
+        // La app crea las reseñas con id automático (`addDoc` en
+        // `weeBizService.createReview`) y solo lo evita en pantalla; para
+        // imponerlo en las reglas, el id tendría que ser el de la cuenta
+        // (`reviews/{uid}`) — es un cambio del cliente y de los datos, no de
+        // una regla, y exigirlo hoy rompería cualquier reseña nueva.
         allow create: if isAuthenticated() &&
-          request.resource.data.userId == request.auth.uid;
+          request.resource.data.userId == request.auth.uid &&
+          request.resource.data.rating is int &&
+          request.resource.data.rating >= 1 &&
+          request.resource.data.rating <= 5 &&
+          request.resource.data.get('businessId', businessId) == businessId &&
+          get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId != request.auth.uid;
 
         // Solo el autor puede eliminar su reseña
         allow delete: if isAuthenticated() &&
@@ -851,14 +941,67 @@ service cloud.firestore {
       //
       // Las dos caras valen, como en posts y comentarios: se avisa desde la
       // identidad con la que se actuó. Lo que no vale es firmar con una ajena.
+      //
+      // Y UN AVISO TIENE LA FORMA DE LOS QUE MANDA LA APP, Y NINGUNA OTRA.
+      // Firmarlo con la cara propia no bastaba: cualquier sesión podía escribir
+      // avisos de cualquier tipo, de cualquier tamaño y con cualquier campo para
+      // cualquier `recipientId`, y cada uno es un push de verdad. Ahora:
+      //   · no se avisa a sí misma, ni a su otra cara (Real ↔ Weë);
+      //   · el tipo es uno de los que crea la app hoy (`notificationService`,
+      //     desde `useLikes`, `useComentarios` y `econtactService`). Los
+      //     históricos (`follow`, `mention`, `repost`, `reply`,
+      //     `community_post`) se siguen LEYENDO, pero ningún cliente los crea;
+      //   · solo los campos que escribe la app, con textos acotados (la app ya
+      //     corta las vistas previas a 100 caracteres), sin leer y con su hora
+      //     (`Timestamp.now()` del aparato: se admite un margen de una hora por
+      //     relojes desajustados).
+      // El nombre del push no sale de `senderName` (lo resuelve el servidor
+      // desde el perfil de `senderId`) y el cupo por remitente es del servidor.
+      function tiposDeAvisoQueCreaLaApp() {
+        return ['like', 'comment', 'econtact_request', 'econtact_accepted'];
+      }
+      function camposDeAvisoDeLaApp() {
+        return ['type', 'recipientId', 'senderId', 'senderName', 'senderAvatar', 'senderAvatarType',
+                'senderAvatarId', 'recipientAccountId', 'senderProfileType', 'postId', 'postContent',
+                'commentId', 'commentContent', 'read', 'createdAt'];
+      }
+      function textoDeAviso(campo, maximo) {
+        return !(campo in request.resource.data) ||
+          (request.resource.data[campo] is string && request.resource.data[campo].size() <= maximo);
+      }
+      function avisoConLaFormaDeLaApp() {
+        let aviso = request.resource.data;
+        return aviso.keys().hasOnly(camposDeAvisoDeLaApp()) &&
+          aviso.keys().hasAll(['type', 'recipientId', 'senderId', 'senderName', 'read', 'createdAt']) &&
+          aviso.type in tiposDeAvisoQueCreaLaApp() &&
+          aviso.recipientId is string && aviso.recipientId.size() > 0 && aviso.recipientId.size() <= 200 &&
+          !(aviso.recipientId in misIdentidadesHeredadas()) &&
+          aviso.senderName is string && aviso.senderName.size() <= 200 &&
+          aviso.read == false &&
+          aviso.createdAt is timestamp &&
+          aviso.createdAt > request.time - duration.value(1, 'h') &&
+          aviso.createdAt < request.time + duration.value(1, 'h') &&
+          (!('senderProfileType' in aviso) || aviso.senderProfileType in ['real', 'wee']) &&
+          textoDeAviso('senderAvatar', 2048) && textoDeAviso('senderAvatarType', 20) &&
+          textoDeAviso('senderAvatarId', 100) && textoDeAviso('recipientAccountId', 128) &&
+          textoDeAviso('postId', 200) && textoDeAviso('commentId', 200) &&
+          textoDeAviso('postContent', 400) && textoDeAviso('commentContent', 400);
+      }
       allow create: if isAuthenticated() &&
         (request.resource.data.senderId == request.auth.uid ||
-         request.resource.data.senderId == ("hidi_" + request.auth.uid));
+         request.resource.data.senderId == ("hidi_" + request.auth.uid)) &&
+        avisoConLaFormaDeLaApp();
 
-      // Solo el destinatario puede actualizar (marcar como leída)
+      // Solo el destinatario puede actualizar, y solo para marcarla como leída
+      // (`markAsRead` / `markAllAsRead`, lo único que hace la app). Antes podía
+      // reescribir el aviso entero —su destinatario, su tipo, su texto—: o sea,
+      // mandarle a otra persona un aviso «de» un tercero sin pasar por el
+      // `create` de arriba.
       allow update: if isAuthenticated() &&
         (resource.data.recipientId == request.auth.uid ||
-         resource.data.recipientId == ("hidi_" + request.auth.uid));
+         resource.data.recipientId == ("hidi_" + request.auth.uid)) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+        request.resource.data.read == true;
 
       // Solo el destinatario puede eliminar sus notificaciones
       allow delete: if isAuthenticated() &&

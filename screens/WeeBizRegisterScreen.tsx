@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,7 @@ import { weeBizService, Business } from '../services/weeBizService';
 import { usersService } from '../services/firestoreService';
 import { uploadImageToCloudinary } from '../services/cloudinaryService';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import { notify } from '../utils/notify';
 
 type RoutePropType = RouteProp<MainStackParamList, 'WeeBizRegister'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
@@ -72,6 +73,16 @@ const WeeBizRegisterScreen: React.FC = () => {
   const [logoUri, setLogoUri] = useState<string | null>(editBusiness?.logo || null);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [saving, setSaving] = useState(false);
+  /*
+   * UN TOQUE, UN NEGOCIO.
+   *
+   * `createBusiness` es un `addDoc`: cada llamada es un negocio nuevo. La navegación vivía en el botón de un
+   * `Alert.alert`, que en la web no se pinta, así que la persona se quedaba en el formulario y un segundo toque creaba
+   * OTRO. Ahora se navega sin esperar a ningún aviso, y la ref cierra la puerta en cuanto empieza el guardado —el
+   * segundo toque puede llegar antes de que se pinte el botón deshabilitado— y la deja cerrada tras el éxito.
+   */
+  const guardando = useRef(false);
+  const [guardado, setGuardado] = useState(false);
 
   // Android back
   useFocusEffect(
@@ -101,22 +112,25 @@ const WeeBizRegisterScreen: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (guardando.current) return;
     if (!activeUid) {
-      Alert.alert(t('common.error'), t('weebiz.signInFirst'));
+      notify(t('common.error'), t('weebiz.signInFirst'));
       return;
     }
     if (!name.trim()) {
-      Alert.alert(t('weebiz.requiredTitle'), t('weebiz.businessNameMissing'));
+      notify(t('weebiz.requiredTitle'), t('weebiz.businessNameMissing'));
       return;
     }
     if (!selectedCategory) {
-      Alert.alert(t('weebiz.requiredTitle'), t('weebiz.categoryMissing'));
+      notify(t('weebiz.requiredTitle'), t('weebiz.categoryMissing'));
       return;
     }
 
+    guardando.current = true;
+    setSaving(true);
+    /* El id del negocio recién creado; `null` si lo que se guardó fue una edición. */
+    let creado: string | null = null;
     try {
-      setSaving(true);
-
       // Upload logo if it's a local URI (not already a URL)
       let logoUrl = editBusiness?.logo || '';
       if (logoUri && !logoUri.startsWith('http')) {
@@ -135,11 +149,8 @@ const WeeBizRegisterScreen: React.FC = () => {
           externalLink: externalLink.trim(),
           logo: logoUrl || undefined,
         });
-        Alert.alert(t('common.done'), t('weebiz.updated'), [
-          { text: t('common.accept'), onPress: () => navigation.goBack() },
-        ]);
       } else {
-        const bizId = await weeBizService.createBusiness({
+        creado = await weeBizService.createBusiness({
           ownerId: activeUid,
           name: name.trim(),
           description: description.trim(),
@@ -149,26 +160,33 @@ const WeeBizRegisterScreen: React.FC = () => {
           externalLink: externalLink.trim(),
           logo: logoUrl || undefined,
         });
-
-        /*
-         * Aquí se creaba además una IDENTIDAD para el negocio —un documento
-         * `users/biz_<negocio>`— y se activaba como una tercera cara de la
-         * cuenta. Ya no: el negocio queda guardado como negocio, que es lo que
-         * es. La entidad que lo representará será una Página de la cuenta, y
-         * las Páginas no son perfiles.
-         */
-        Alert.alert(t('weebiz.createdTitle'), t('weebiz.created'), [
-          { text: t('weebiz.viewProfile'), onPress: () => {
-            navigation.goBack();
-            navigation.navigate('WeeBizProfile', { businessId: bizId });
-          }},
-        ]);
       }
     } catch (e) {
       console.error('Error saving business:', e);
-      Alert.alert(t('common.error'), t('weebiz.saveFailed'));
-    } finally {
+      notify(t('common.error'), t('weebiz.saveFailed'));
+      /* No se guardó nada: se puede volver a intentar. */
+      guardando.current = false;
       setSaving(false);
+      return;
+    }
+
+    /* Guardado. La ref se queda echada: este formulario ya hizo su trabajo y no vuelve a escribir. */
+    setSaving(false);
+    setGuardado(true);
+    if (creado !== null) {
+      /*
+       * Aquí se creaba además una IDENTIDAD para el negocio —un documento
+       * `users/biz_<negocio>`— y se activaba como una tercera cara de la
+       * cuenta. Ya no: el negocio queda guardado como negocio, que es lo que
+       * es. La entidad que lo representará será una Página de la cuenta, y
+       * las Páginas no son perfiles.
+       */
+      notify(t('weebiz.createdTitle'), t('weebiz.created'));
+      navigation.goBack();
+      navigation.navigate('WeeBizProfile', { businessId: creado });
+    } else {
+      notify(t('common.done'), t('weebiz.updated'));
+      navigation.goBack();
     }
   };
 
@@ -327,7 +345,7 @@ const WeeBizRegisterScreen: React.FC = () => {
             },
           ]}
           onPress={handleSave}
-          disabled={saving || !name.trim() || !selectedCategory}
+          disabled={saving || guardado || !name.trim() || !selectedCategory}
           activeOpacity={0.7}
         >
           {saving ? (

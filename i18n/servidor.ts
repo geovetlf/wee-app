@@ -1,5 +1,6 @@
 import { textoDeEmergencia, Traductor, Valores } from './traducir';
 import { formatearFecha } from './formato';
+import { idiomaDe } from './resolver';
 import { servidor as ES } from './textos/es/servidor';
 import { ANTERIORES } from './textos/es/servidor/anteriores';
 
@@ -283,7 +284,7 @@ const resolverHueco = (valor: string, hueco: string, patron: Patron, ctx: Contex
 
   // 4. Unas fechas del encargo. En español ya están escritas como se leen.
   const fechas = leerFraseDeFechas(valor);
-  if (fechas) return /^es(-|$)/.test(ctx.locale) ? valor : fechasEscritas(ctx.t, ctx.locale, fechas.salida, fechas.regreso);
+  if (fechas) return idiomaDe(ctx.locale) === 'es' ? valor : fechasEscritas(ctx.t, ctx.locale, fechas.salida, fechas.regreso);
 
   // 5. Lo que escribió la persona: tal cual.
   crudos.push(valor);
@@ -352,6 +353,21 @@ export const leerDelServidor = (texto: string | null | undefined, ctx: Contexto)
 export const textoDelServidor = (texto: string | null | undefined, ctx: Contexto): string => leerDelServidor(texto, ctx).texto;
 
 /**
+ * Un texto del servidor que se puede ENSEÑAR, o nada. Si se reconoce, en el idioma de quien mira. Si no: tal cual
+ * cuando quien mira lee en español —el idioma en que escribe el servidor—, y `undefined` en cualquier otro idioma,
+ * para que quien pinta ponga su respaldo, que ya está traducido, y nadie lea español por accidente.
+ *
+ * Es la única pregunta «¿se lee en español?» de los textos del servidor: el error de Weë AI, el concepto de un
+ * movimiento de Credits y el mensaje de un error la hacían cada uno con su propia expresión sobre el locale. El
+ * idioma de un locale lo dice `idiomaDe` (resolver.ts).
+ */
+export const textoDelServidorLegible = (texto: string, ctx: Contexto): string | undefined => {
+  const lectura = leerDelServidor(texto, ctx);
+  if (lectura.reconocido) return lectura.texto;
+  return idiomaDe(ctx.locale) === 'es' ? texto : undefined;
+};
+
+/**
  * El mensaje de un error que mandó el servidor (un `HttpsError` de ËContact, de las encuestas…), en el idioma de quien
  * mira. Si no se reconoce: en español, tal cual; en cualquier otro idioma, `undefined`, para que la pantalla diga
  * solo su título, que ya está traducido, y nadie lea español por accidente.
@@ -359,9 +375,7 @@ export const textoDelServidor = (texto: string | null | undefined, ctx: Contexto
 export const mensajeDelServidor = (error: unknown, ctx: Contexto): string | undefined => {
   const mensaje = (error as { message?: unknown } | null)?.message;
   if (typeof mensaje !== 'string' || !mensaje) return undefined;
-  const lectura = leerDelServidor(mensaje, ctx);
-  if (lectura.reconocido) return lectura.texto;
-  return /^es(-|$)/.test(ctx.locale) ? mensaje : undefined;
+  return textoDelServidorLegible(mensaje, ctx);
 };
 
 /** ¿Este texto es uno de los del servidor? Sirve para decidir entre él y un mensaje genérico por código. */

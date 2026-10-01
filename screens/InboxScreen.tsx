@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -15,6 +14,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { paraBuscar } from '../i18n/caja';
+import { confirmAction } from '../utils/notify';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -71,11 +71,14 @@ const InboxScreen = () => {
     });
   };
 
-  const deleteChat = (id: string) => {
-    Alert.alert(t('weetalk.deleteConversation'), t('weetalk.areYouSure'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => messagesService.deleteConversation(id).catch(console.error) },
-    ]);
+  /*
+   * BORRAR UNA CONVERSACIÓN (pulsación larga). Con `Alert.alert` y el borrado en el `onPress` de su botón, en la web
+   * no salía nada y no se borraba: allí `Alert.alert` no pinta ni llama a nadie. `confirmAction` es el mismo diálogo
+   * en el teléfono y `window.confirm` en la web.
+   */
+  const deleteChat = async (id: string) => {
+    if (!(await confirmAction(t('weetalk.deleteConversation'), t('weetalk.areYouSure'), t('common.delete'), true, t))) return;
+    messagesService.deleteConversation(id).catch(console.error);
   };
 
   const filtered = search.trim()

@@ -1,4 +1,5 @@
 import type { Traductor } from '../i18n/traducir';
+import { idiomaDe } from '../i18n/resolver';
 
 /**
  * EL TEXTO DE UN RESULTADO DE WEË AI, COMO SE LEE.
@@ -20,7 +21,8 @@ const ESCENA = /^(\s*(?:[-•*]\s*)?\**\s*)escena\s+(\d+)/i;
 const DIA = /^d[íi]a\s+(\d+)/i;
 const PRESUPUESTO = /^(\s*\**\s*)presupuesto(\s*\**\s*):/i;
 
-const enEspanol = (locale: string): boolean => /^es(-|$)/i.test(locale);
+/* El idioma de un locale lo dice el resolutor de Weë (`idiomaDe`), no una expresión copiada en cada archivo. */
+const enEspanol = (locale: string): boolean => idiomaDe(locale) === 'es';
 
 /** Quita las líneas que el servidor pidió para el paso siguiente. */
 export const sinMarcasInternas = (texto: string): string =>

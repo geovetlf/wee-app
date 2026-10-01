@@ -561,8 +561,123 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
     }
     return '';
   };
+  /*
+   * Y LO AUTORIZADO DESPUÉS: la revisión post-auditoría del 2026-10-01 (hallazgo
+   * money/remigracion-por-segundo-perfil, demostrado por credits-perfil-duplicado.test.mjs). Son bloques EXACTOS
+   * —lo que había y lo que queda, con una línea de contexto—, cada uno único, aplicados encima de la reconstrucción:
+   * la comprobación sigue siendo «el desplegado más esto, byte a byte». Cualquier otro cambio la hace fallar.
+   */
+  const REVISION_POSTAUDITORIA = {
+    "functions/src/credits/creditEngine.ts": [
+      {
+        "eran": [
+          "",
+          "  /** Perfil real de la persona (uid == auth uid). Los Credits son por cuenta, no por identidad. */",
+          "  const findAccount = async (tx: CreditTx, userId: string): Promise<CreditDocSnap> => {",
+          "    const snap = await tx.get(users().where('uid', '==', userId).limit(1));",
+          "    if (snap.empty || !esElPerfilDeLaCuenta(userId, snap.docs[0])) {",
+          "      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });",
+          "    }",
+          "    return snap.docs[0];",
+          "  };"
+        ],
+        "quedan": [
+          "",
+          "  /*",
+          "   * QUÉ PERFIL GUARDA EL SALDO CUANDO HAY MÁS DE UNO (revisión post-auditoría 2026-10-01,",
+          "   * money/remigracion-por-segundo-perfil).",
+          "   *",
+          "   * Una cuenta puede tener más de un Perfil Real: en producción hay cuentas así",
+          "   * (utils/perfilCanonico.ts), y las reglas dejan crear `users/<uid>` aunque ya",
+          "   * exista uno con id automático, porque no pueden consultar. Firestore devuelve",
+          "   * la consulta por `uid` ordenada por id de documento; quedarse con «el primero»",
+          "   * podía saltar a un perfil vacío y dejar el saldo de verdad inalcanzable (y",
+          "   * `ensureAccount` volvía a migrar la billetera antigua). El saldo vive en el",
+          "   * perfil que YA está inicializado: ese manda. Si ninguno lo está, el primero,",
+          "   * como siempre; si varios lo están, el primero de ellos, como siempre.",
+          "   */",
+          "  const PERFILES_POR_CUENTA = 10;",
+          "  const perfilDelSaldo = (userId: string, docs: CreditDocSnap[]): CreditDocSnap | undefined => {",
+          "    const suyos = docs.filter((d) => esElPerfilDeLaCuenta(userId, d));",
+          "    return suyos.find((d) => typeof (d.data() || {}).creditsBalance === 'number') ?? suyos[0];",
+          "  };",
+          "",
+          "  /** Perfil real de la persona (uid == auth uid). Los Credits son por cuenta, no por identidad. */",
+          "  const findAccount = async (tx: CreditTx, userId: string): Promise<CreditDocSnap> => {",
+          "    const snap = await tx.get(users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA));",
+          "    const perfil = perfilDelSaldo(userId, snap.docs);",
+          "    if (!perfil) {",
+          "      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });",
+          "    }",
+          "    return perfil;",
+          "  };"
+        ]
+      },
+      {
+        "eran": [
+          "      const initialized = typeof data.creditsBalance === 'number';",
+          "      const legacy = initialized ? null : await tx.get(db().collection('wallets').doc(userId));",
+          "      const welcomeDoc = welcome > 0 ? await tx.get(transactions().doc(welcomeTransactionId(userId))) : null;"
+        ],
+        "quedan": [
+          "      const initialized = typeof data.creditsBalance === 'number';",
+          "      /*",
+          "       * La billetera antigua se migra UNA vez por cuenta, no una vez por perfil: si",
+          "       * ya hay un `migration_<uid>`, no se vuelve a acreditar (antes se sobrescribía).",
+          "       */",
+          "      const yaMigrada = initialized ? true : (await tx.get(transactions().doc(migrationTransactionId(userId)))).exists;",
+          "      const legacy = initialized || yaMigrada ? null : await tx.get(db().collection('wallets').doc(userId));",
+          "      const welcomeDoc = welcome > 0 ? await tx.get(transactions().doc(welcomeTransactionId(userId))) : null;"
+        ]
+      },
+      {
+        "eran": [
+          "    const userId = assertUserId(rawUserId);",
+          "    const snap = await users().where('uid', '==', userId).limit(1).get();",
+          "    if (snap.empty || !esElPerfilDeLaCuenta(userId, snap.docs[0])) {",
+          "      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });",
+          "    }",
+          "    const data = snap.docs[0].data() || {};",
+          "    if (typeof data.creditsBalance !== 'number') {"
+        ],
+        "quedan": [
+          "    const userId = assertUserId(rawUserId);",
+          "    const snap = await users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA).get();",
+          "    const perfil = perfilDelSaldo(userId, snap.docs);",
+          "    if (!perfil) {",
+          "      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });",
+          "    }",
+          "    const data = perfil.data() || {};",
+          "    if (typeof data.creditsBalance !== 'number') {"
+        ]
+      },
+      {
+        "eran": [
+          "    }",
+          "    return balanceOf(snap.docs[0]);",
+          "  };"
+        ],
+        "quedan": [
+          "    }",
+          "    return balanceOf(perfil);",
+          "  };"
+        ]
+      }
+    ]
+  };
+  const conLaRevision = (p, { anclas, texto }) => {
+    let t = texto;
+    let ok = anclas;
+    for (const b of REVISION_POSTAUDITORIA[p] ?? []) {
+      const era = b.eran.join('\n');
+      const veces = t.split(era).length - 1;
+      ok = ok && veces === 1;
+      if (veces === 1) t = t.replace(era, () => b.quedan.join('\n'));
+    }
+    return { anclas: ok, texto: t };
+  };
   const deLaIdentidad = DE_LA_IDENTIDAD.map((p) => {
-    const { anclas, texto } = reconstruido(p);
+    const { anclas, texto } = conLaRevision(p, reconstruido(p));
     const hoy = leer(p).replace(/\r\n/g, '\n');
     return { archivo: path.basename(p), anclas, exacto: texto === hoy, donde: primeraDistinta(texto, hoy) };
   });

@@ -1,3 +1,5 @@
+> **LEGADO (HideTok) — no describe Weë actual.** Guía del 2025-10-16, de cuando el proyecto se llamaba HideTok: sus ejemplos usan el proyecto de Firebase `hidetok-9a642` y paquetes `com.hidetoksimple.app` que Weë no usa (el de Weë es `zone.wee.app`). Lo vigente es el plugin `@react-native-google-signin/google-signin` declarado en `app.json` contra Firebase Authentication de `get-wee`. Se conserva como historia; **no la sigas**. Inventario del legado: [`docs/LEGADO-HIDETOK.md`](docs/LEGADO-HIDETOK.md).
+
 # Configuración de Google Sign-In
 
 ## ✅ Para Web (Ya está listo)

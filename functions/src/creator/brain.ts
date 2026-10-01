@@ -13,7 +13,7 @@ import { tarifaDeModeloDeTexto } from '../engine/pricing';
 import { DEEPSEEK_TEXT_MODEL } from '../engine/providers/deepseek';
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId, CreditError } from '../credits/creditValidation';
-import { bloqueDe, contarRespuesta, deshacerRespuesta, RESPUESTAS_POR_CREDIT } from './brainUsage';
+import { bloqueDe, contarRespuesta, deshacerRespuesta, queHacerConElCobro, RESPUESTAS_POR_CREDIT } from './brainUsage';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
@@ -375,6 +375,9 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
      * llega a generar algo que luego no puede pagar.
      */
     let spend: { amount: number; duplicate: boolean } | null = null;
+    /* Lo que de verdad pasó en ESTA invocación: el `catch` decide el cobro con esto (`queHacerConElCobro`). */
+    let contadaAqui = false;
+    let entregada = false;
     /*
      * Por qué no pudo el conductor, cuando el camino es el del Core. Vive AQUÍ
      * fuera —y no dentro del `try`— porque quien tiene que leerlo es el `catch`
@@ -695,6 +698,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        */
       if (!webSearch) {
         const consumo = await contarRespuesta(uid, messageId);
+        contadaAqui = true;
         if (consumo.cobrada) {
           try {
             spend = await creditEngine.spendCredits({
@@ -721,6 +725,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       await messages.doc(`${messageId}_wee`).set(
         stripUndefined({ role: 'wee', text: parsed.text, sources, suggestedExperience, credits, generationId: salida.generationId, demo: salida.demo, webSearch, createdAt: now() })
       );
+      entregada = true;
       await chatRef.set(
         { updatedAt: now(), messageCount: FieldValue.increment(2), lastMessage: parsed.text.slice(0, 120), ...(history.length === 0 ? { title: message.slice(0, 60) } : {}) },
         { merge: true }
@@ -769,7 +774,15 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * preguntarle al error que llega sería preguntarle al mensajero.
        */
       const devolverEsSeguro = !falloDelConductor || falloDelConductor.reembolsoSeguro;
-      if (spend && devolverEsSeguro) {
+      const cobro = queHacerConElCobro({ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui });
+      if (cobro.deshacerBloque) {
+        await deshacerRespuesta(uid, messageId).catch((e) => console.error('Weë Brain: no se pudo deshacer el bloque', messageId, e));
+      }
+      if (spend && cobro.completar) {
+        /* La respuesta ya está en la conversación: es de la persona, y lo que se cobró se queda cobrado. */
+        await creditEngine.completeCredits({ userId: uid, requestId, meta: { chatId: chatRef.id } })
+          .catch((e) => console.error('Weë Brain: respuesta entregada y cobro sin cerrar (sigue AUTHORIZED)', requestId, e));
+      } else if (spend && cobro.reembolsar) {
         await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Brain · no pudo responder', source: 'weë-brain' }).catch((refundError) => {
           console.error('Weë Brain: no se pudo reembolsar', requestId, refundError);
         });

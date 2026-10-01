@@ -331,7 +331,10 @@ console.log('\n── H · Lo que es de la persona no se traduce ──');
   const tDa = traducir.crearTraductor('da-DK', DICCIONARIOS, { modoDesarrollo: false });
   const COM = (await cargar('utils/comunidadesDeWee.ts')).ns;
   const { COMMUNITY_CATEGORIES } = (await cargar('constants/communityCategories.ts')).ns;
-  const sembrada = COMMUNITY_CATEGORIES[0];
+  /* Sembrada por Weë = `isOfficial: true` (scripts/sembrar-comunidades.mjs). Desde la revisión post-auditoría, solo esas se traducen. */
+  const sembrada = { ...COMMUNITY_CATEGORIES[0], isOfficial: true };
+  check('32) y una persona que ocupa el slug de una oficial NO recibe su traducción (social/slug-oficial-ocupable)',
+    COM.nombreDeComunidad({ ...COMMUNITY_CATEGORIES[0], isOfficial: false, createdBy: 'u1' }, tDa, 'da-DK') === COMMUNITY_CATEGORIES[0].name);
   check('32) una comunidad que sembró Weë se lee en danés',
     COM.nombreDeComunidad(sembrada, tDa, 'da-DK') !== sembrada.name && !/[¿¡ñ]/.test(COM.nombreDeComunidad(sembrada, tDa, 'da-DK')),
     COM.nombreDeComunidad(sembrada, tDa, 'da-DK'));

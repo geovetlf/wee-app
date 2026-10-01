@@ -745,7 +745,7 @@ export const creatorRun = onCall(
             credits: run.credits,
             durationSec: run.output.durationSec,
             sources: run.output.sources,
-            ...idiomaDeSalida(run.output, job.locale, input.kind),
+            ...idiomaDeSalida(run.output, job.locale, input.kind, { jobId, stepId: next.id }),
           });
           /* Cada archivo del resultado pasa a ser material de la cuenta, con su procedencia. */
           const assetIds = await materialesDeResultado(uid, run, next, jobId, stepCtx.requestId, job.experienceId);

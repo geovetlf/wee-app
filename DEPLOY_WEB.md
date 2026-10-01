@@ -1,3 +1,5 @@
+> **LEGADO (HideTok) — no describe Weë actual.** Guía del 2025-10-16, de cuando el proyecto se llamaba HideTok: habla del proyecto de Firebase `hidetok-9a642` (Weë no lo usa), de Netlify (ningún sitio de Weë lo usa; `netlify.toml` se retiró el 2026-10-01) y de órdenes `firebase deploy` a mano que hoy rechaza el `predeploy` (`scripts/solo-desde-el-workflow.mjs`). Se conserva como historia; **no la sigas**. Lo vigente: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) (producción = `get-wee`, solo por el workflow; `wee.zone` en Vercel) y [`README.md`](README.md) § Entornos. Inventario del legado: [`docs/LEGADO-HIDETOK.md`](docs/LEGADO-HIDETOK.md).
+
 # Guía de Despliegue Web - HideTok
 
 ## 📋 Índice

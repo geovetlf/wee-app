@@ -44,6 +44,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import { confirmAction } from '../utils/notify';
 
 const WeeBizProfileScreen: React.FC = () => {
   const { t, formato, locale } = useIdioma();
@@ -247,28 +248,26 @@ const WeeBizProfileScreen: React.FC = () => {
     }
   };
 
-  const handleDeleteReview = () => {
+  /*
+   * Borrar la reseña propia. Con `Alert.alert` el borrado vivía en el `onPress` de su botón, y en la web no salía ni
+   * se llamaba nada. `confirmAction`: el mismo diálogo en el teléfono, `window.confirm` en la web.
+   */
+  const handleDeleteReview = async () => {
     if (!userReview?.id) return;
-    Alert.alert(t('weebiz.deleteReviewTitle'), t('weebiz.deleteReviewConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'), style: 'destructive',
-        onPress: async () => {
-          try {
-            await weeBizService.deleteReview(businessId, userReview.id!);
-            const [revs, biz] = await Promise.all([
-              weeBizService.getReviews(businessId, 10),
-              weeBizService.getBusinessById(businessId),
-            ]);
-            setReviews(revs);
-            setBusiness(biz);
-            setUserReview(null);
-          } catch (e) {
-            console.error('Error deleting review:', e);
-          }
-        },
-      },
-    ]);
+    const reviewId = userReview.id;
+    if (!(await confirmAction(t('weebiz.deleteReviewTitle'), t('weebiz.deleteReviewConfirm'), t('common.delete'), true, t))) return;
+    try {
+      await weeBizService.deleteReview(businessId, reviewId);
+      const [revs, biz] = await Promise.all([
+        weeBizService.getReviews(businessId, 10),
+        weeBizService.getBusinessById(businessId),
+      ]);
+      setReviews(revs);
+      setBusiness(biz);
+      setUserReview(null);
+    } catch (e) {
+      console.error('Error deleting review:', e);
+    }
   };
 
   const renderStars = (rating: number, interactive = false, onSelect?: (r: number) => void) => (

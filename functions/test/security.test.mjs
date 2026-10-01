@@ -137,6 +137,44 @@ console.log('\n── Fronteras de autorización ──');
     /allow create: if isAuthenticated\(\) &&\s*\n\s*\(request\.resource\.data\.senderId == request\.auth\.uid/.test(reglas),
     'dispara un push de verdad con `senderName` tal cual');
 
+  /*
+   * Y tiene la forma de las que crea la app: ni a sí misma ni a su otra cara, uno de sus cuatro tipos, solo sus
+   * campos, textos acotados, sin leer y con su hora. Después, el destinatario solo la marca como leída: antes podía
+   * reescribirla entera y mandársela a otra persona sin pasar por `create`. Lo ejecuta fronteras-rules.emulator.mjs.
+   */
+  {
+    const avisos = reglas.slice(reglas.indexOf('match /notifications/{notificationId}'), reglas.indexOf('match /creatorInterests/'));
+    check('un aviso tiene la forma de los que manda la app, y ninguna otra (cada uno es un push)',
+      /request\.resource\.data\.senderId == \("hidi_" \+ request\.auth\.uid\)\) &&\s*\n\s*avisoConLaFormaDeLaApp\(\);/.test(avisos)
+      && /return \['like', 'comment', 'econtact_request', 'econtact_accepted'\];/.test(avisos)
+      && /aviso\.keys\(\)\.hasOnly\(camposDeAvisoDeLaApp\(\)\)/.test(avisos)
+      && /!\(aviso\.recipientId in misIdentidadesHeredadas\(\)\)/.test(avisos)
+      && /aviso\.read == false/.test(avisos) && /aviso\.createdAt is timestamp/.test(avisos)
+      && /textoDeAviso\('postContent', 400\) && textoDeAviso\('commentContent', 400\)/.test(avisos));
+    check('y el destinatario solo la marca como leída',
+      /allow update: if isAuthenticated\(\) &&[\s\S]{0,200}?request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasOnly\(\['read'\]\) &&\s*\n\s*request\.resource\.data\.read == true;/.test(avisos));
+  }
+
+  /*
+   * Lo que Weë afirma de un negocio —«Verificado», Destacados, su estado y su dueño— no lo escribe el dueño: el
+   * negocio nace sin ello y solo administración lo cambia. Las reseñas puntúan de 1 a 5 enteros y el dueño no reseña
+   * el suyo. Lo ejecuta fronteras-rules.emulator.mjs.
+   */
+  {
+    const negocios = reglas.slice(reglas.indexOf('match /businesses/{businessId}'), reglas.indexOf('match /products/{productId}'));
+    check('un negocio no nace verificado ni destacado, y su dueño no se lo pone después',
+      /return \['verified', 'featured', 'status', 'ownerId'\];/.test(negocios)
+      && /request\.resource\.data\.ownerId == request\.auth\.uid &&\s*\n\s*negocioRecienNacido\(\);/.test(negocios)
+      && /request\.resource\.data\.get\('verified', false\) == false &&\s*\n\s*request\.resource\.data\.get\('featured', false\) == false/.test(negocios)
+      && /\(resource\.data\.ownerId == request\.auth\.uid &&\s*\n\s*!request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasAny\(camposQueAfirmaWee\(\)\) &&/.test(negocios)
+      && /allow update: if isAuthenticated\(\) && \(\s*\n\s*esAdministracion\(\) \|\|/.test(negocios)
+      && /function esAdministracion\(\) \{\s*\n\s*return request\.auth != null && request\.auth\.token\.get\('admin', false\) == true;/.test(reglas));
+    check('una reseña puntúa de 1 a 5 enteros, es de este negocio y no la escribe su dueño',
+      /request\.resource\.data\.rating is int &&\s*\n\s*request\.resource\.data\.rating >= 1 &&\s*\n\s*request\.resource\.data\.rating <= 5 &&/.test(negocios)
+      && /request\.resource\.data\.get\('businessId', businessId\) == businessId &&/.test(negocios)
+      && /get\(\/databases\/\$\(database\)\/documents\/businesses\/\$\(businessId\)\)\.data\.ownerId != request\.auth\.uid;/.test(negocios));
+  }
+
   check('los contadores solo se mueven de uno en uno',
     /function contadorSano\(campo\)/.test(reglas)
     && /\) in \[1, -1\]/.test(reglas)
@@ -165,7 +203,7 @@ console.log('\n── Fronteras de autorización ──');
   check('avatarReplacement ya no descarga cualquier URL que le manden',
     /assertInputImageUrl\(request\.data\?\.selfieUrl, request\.auth\.uid\)/.test(read('functions/src/generateAvatar.ts'))
     && /assertInputImageUrl\(request\.data\?\.avatarUrl, request\.auth\.uid\)/.test(read('functions/src/generateAvatar.ts')),
-    'el resultado acaba en una ruta de lectura pública');
+    'era una petición del servidor a donde dijera otro, con la respuesta guardada en Storage');
 
   check('las subidas tienen un tope, y está dicho que no es una frontera',
     /const MAXIMO_DE_IMAGEN/.test(read('services/cloudinaryService.ts'))
@@ -189,6 +227,10 @@ console.log('\n── Fronteras de autorización ──');
   check('lo que Weë genera lo lee solo su dueño, como lo que sube',
     /match \/users\/\{userId\}\/ai-generations\/\{fileName\} \{\s*\n\s*allow read: if request\.auth != null && request\.auth\.uid == userId;/.test(storage),
     'antes era `allow read: if true`: público para quien adivinara la ruta');
+  check('y la foto que Weë hace con tu selfie y tu avatar (avatar-replacement), igual: solo su dueño la lee y la lista',
+    /match \/users\/\{userId\}\/avatar-replacement\/\{fileName\} \{\s*\n\s*allow read: if request\.auth != null && request\.auth\.uid == userId;\s*\n\s*allow write: if false;/.test(storage)
+    && /return downloadUrlFor\(bucket\.name, storagePath, downloadToken\);/.test(read('functions/src/vertexAI.ts')),
+    'lo que la app comparte es la URL con token que devuelve la Function, que no pasa por las reglas');
   check('la ficha de un material la lee su dueño y la escribe solo el servidor',
     /match \/assets\/\{assetId\} \{\s*\n\s*allow read: if isAuthenticated\(\) && resource\.data\.ownerAccountId == request\.auth\.uid;\s*\n\s*allow create, update, delete: if false;/.test(reglas));
   check('y existe la forma de borrarlo: el callable que comprueba que es tuyo antes de borrar el objeto',

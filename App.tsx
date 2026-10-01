@@ -137,7 +137,6 @@ const documentTitle = {
 const linking: any = {
   prefixes: [
     prefix,
-    'hidetok://',
     'https://wee.zone',
     'https://www.wee.zone',
     'http://localhost:8082',
@@ -169,7 +168,7 @@ const linking: any = {
    * pantalla no dice cómo escribirlo se quedaba en la URL como «[object Object]»; ahora no sale de la memoria (atrás y
    * adelante lo siguen teniendo) y en desarrollo se avisa de cuál, para que esa pantalla declare su forma.
    */
-  getPathFromState(estado: any, opciones: any) {
+  getPathFromState(estado: Parameters<typeof rutaDesdeEstado>[0], opciones?: Parameters<typeof rutaDesdeEstado>[1]) {
     const { estado: limpio, quitados } = sinObjetosSueltos(estado, opciones?.screens);
     if (__DEV__ && quitados.length) console.warn('🔗 Parámetros que no van a la URL (sin forma declarada):', quitados.join(', '));
     return rutaDesdeEstado(limpio, opciones);

@@ -90,8 +90,10 @@ const COMO_SE_CONSTRUYE = {
 };
 check('14) el freno de Vercel está ACTIVO: un push a main no publica wee.zone',
   JSON.stringify(vercel.git) === JSON.stringify({ deploymentEnabled: { main: false } }));
+/* Las cabeceras de seguridad (revisión post-auditoría 2026-10-01) no cambian cómo se construye ni qué se sirve: las
+   vigila `cabeceras-seguridad.test.mjs`. Todo lo demás, idéntico. */
 check('15) y es lo único que cambia: la web se construye y se sirve igual que la de wee.zone',
-  JSON.stringify({ ...vercel, git: undefined }) === JSON.stringify(COMO_SE_CONSTRUYE));
+  JSON.stringify({ ...vercel, git: undefined, headers: undefined }) === JSON.stringify(COMO_SE_CONSTRUYE));
 
 /* ── D. Ningún atajo despliega ───────────────────────────────────────────── */
 /* `npm run deploy:prod:functions` desplegaba las 34 funciones y Storage desde cualquier carpeta, y `npm --prefix

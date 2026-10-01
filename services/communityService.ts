@@ -73,8 +73,10 @@ export const CATEGORY_TAGS: { [slug: string]: string[] } = {
   'kpop-kdrama': ['Grupos', 'Idols', 'Doramas', 'Comebacks', 'Concerts', 'Noticias', 'Ships', 'Fandom'],
 };
 
-/* Las comunidades oficiales son DATOS (`constants/comunidadesOficiales.ts`); las crea la administración, no la app. */
-export { OFFICIAL_COMMUNITIES } from '../constants/comunidadesOficiales';
+/*
+ * Las comunidades oficiales son DATOS (`constants/comunidadesOficiales.ts`) y las crea la administración
+ * (`scripts/sembrar-comunidades.mjs`), no la app: por eso este servicio no las importa ni las reexporta.
+ */
 
 // Servicio de comunidades
 export const communityService = {

@@ -73,7 +73,8 @@ if (!integrada) {
   check('3c) ya integrada: los rótulos van con TextoEnMayusculas, las guardas de emulador son las estrictas y las cercas llevan el tamaño de b878068',
     componentes.every((c) => /import TextoEnMayusculas/.test(leer(c)) && !/textTransform/.test(leer(c)))
     && guardas.every((g) => /if \(!PROY\.startsWith\('demo-'\)\)/.test(g) && !/get-wee/.test(g))
-    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '14\\t0\\tfunctions\/src\/credits\/index\.ts'/.test(leer(`functions/test/${s}.test.mjs`))));
+    /* Desde la revisión post-auditoría (2026-10-01) la cerca lleva delante la línea del Credit Engine (job-queue 63p): el tamaño de b878068 sigue ahí, exacto. */
+    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '(?:[^'\n]*\\n)?14\\t0\\tfunctions\/src\/credits\/index\.ts'/.test(leer(`functions/test/${s}.test.mjs`))));
 }
 
 const ESPERADOS = [

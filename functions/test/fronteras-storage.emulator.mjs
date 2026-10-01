@@ -9,6 +9,9 @@
  *   B · La foto única de WeeTalk (`users/{uid}/weetalk/{conversationId}/…`)
  *       la sube su dueño y la leen los PARTICIPANTES de la conversación —una
  *       regla del Storage que pregunta a Firestore— y nadie más (C3).
+ *   C · La foto que Weë hace con el selfie y el avatar (`avatar-replacement`)
+ *       la leen y la listan solo su dueño; la URL con token que devuelve la
+ *       Function sigue abriéndose para quien la tenga (post-auditoría).
  *
  * No está en `npm test` a propósito: necesita los emuladores y Java 21.
  * Se lanza así, desde la raíz del proyecto (los dos emuladores a la vez,
@@ -41,11 +44,12 @@ const sesion = (uid) => {
 /* El SDK manda `Authorization: Firebase <token>`; el administrador, `Bearer owner`. */
 const auth = (uid) => (uid === 'owner' ? 'Bearer owner' : uid ? `Firebase ${sesion(uid)}` : null);
 
-/* Subida multipart, tal como la hace `uploadBytes` del SDK. */
-const subir = async (uid, nombre, contentType = 'image/jpeg') => {
+/* Subida multipart, tal como la hace `uploadBytes` del SDK. `metadata` (opcional) es la del objeto: el servidor guarda
+   ahí `firebaseStorageDownloadTokens`, que es lo que hace funcionar una URL de descarga con token. */
+const subir = async (uid, nombre, contentType = 'image/jpeg', metadata = undefined) => {
   const limite = 'wee-frontera';
   const cuerpo = Buffer.concat([
-    Buffer.from(`--${limite}\r\nContent-Type: application/json; charset=utf-8\r\n\r\n${JSON.stringify({ name: nombre, contentType })}\r\n--${limite}\r\nContent-Type: ${contentType}\r\n\r\n`),
+    Buffer.from(`--${limite}\r\nContent-Type: application/json; charset=utf-8\r\n\r\n${JSON.stringify({ name: nombre, contentType, ...(metadata ? { metadata } : {}) })}\r\n--${limite}\r\nContent-Type: ${contentType}\r\n\r\n`),
     Buffer.from('no-es-una-foto-de-verdad'),
     Buffer.from(`\r\n--${limite}--\r\n`),
   ]);
@@ -63,6 +67,20 @@ const subir = async (uid, nombre, contentType = 'image/jpeg') => {
 
 const leerObjeto = async (uid, nombre) => {
   const res = await fetch(`${objetos}/${encodeURIComponent(nombre)}?alt=media`, {
+    headers: auth(uid) ? { Authorization: auth(uid) } : {},
+  });
+  return res.status;
+};
+
+/* Lo que hace cualquiera que tenga la URL que devuelve la Function (`downloadUrlFor`): sin sesión, con su token. */
+const leerConToken = async (nombre, token) => {
+  const res = await fetch(`${objetos}/${encodeURIComponent(nombre)}?alt=media&token=${encodeURIComponent(token)}`);
+  return res.status;
+};
+
+/* Listar una carpeta, como `listAll` del SDK. */
+const listarCarpeta = async (uid, prefijo) => {
+  const res = await fetch(`${objetos}?prefix=${encodeURIComponent(prefijo)}&delimiter=${encodeURIComponent('/')}`, {
     headers: auth(uid) ? { Authorization: auth(uid) } : {},
   });
   return res.status;
@@ -116,6 +134,28 @@ await esperar('B8) la foto de c2 sube', 'PERMITE', subir('uAna', FOTO2));
 await esperar('B9) y la lee uDan, que participa con su Perfil Weë (hidi_uDan)', 'PERMITE', leerObjeto('uDan', FOTO2));
 await esperar('B10) pero no uBea, que participa en c1 y no en c2', 'DENIEGA', leerObjeto('uBea', FOTO2));
 await esperar('B11) una conversación que no existe no da acceso a nadie', 'DENIEGA', leerObjeto('uBea', 'users/uAna/weetalk/c-inexistente/x.jpg'));
+
+console.log('\n── C · La foto con tu avatar (avatar-replacement) es tuya, como el selfie del que sale ──');
+{
+  /*
+   * La escribe `avatarReplacement` con `uploadImageToStorage`: guarda el objeto con un `firebaseStorageDownloadTokens`
+   * y devuelve la URL de descarga CON ese token, que es la que la app adjunta, enseña y comparte. Esa URL no pasa por
+   * las reglas; lo que ya no se puede es leer o listar la ruta con una sesión cualquiera, o sin ninguna.
+   */
+  const FOTO = 'users/uAna/avatar-replacement/result_1700000000000.png';
+  const TOKEN = '6f1c2d4e-0000-4000-8000-a1b2c3d4e5f6';
+  check('una foto con avatar sembrada como servidor, con su token de descarga',
+    (await subir('owner', FOTO, 'image/png', { firebaseStorageDownloadTokens: TOKEN })) < 400);
+  await esperar('C1) la dueña la lee', 'PERMITE', leerObjeto('uAna', FOTO));
+  await esperar('C2) otra persona NO, aunque conozca el uid y la ruta', 'DENIEGA', leerObjeto('uBea', FOTO));
+  await esperar('C3) sin sesión, tampoco', 'DENIEGA', leerObjeto(null, FOTO));
+  await esperar('C4) nadie lista las fotos de otra persona', 'DENIEGA', listarCarpeta('uBea', 'users/uAna/avatar-replacement/'));
+  await esperar('C5) ni sin sesión', 'DENIEGA', listarCarpeta(null, 'users/uAna/avatar-replacement/'));
+  await esperar('C6) CONTROL: la dueña sí lista las suyas', 'PERMITE', listarCarpeta('uAna', 'users/uAna/avatar-replacement/'));
+  await esperar('C7) CONTROL: la URL con token que devuelve la Function la abre cualquiera (lo que la app comparte no se rompe)', 'PERMITE', leerConToken(FOTO, TOKEN));
+  await esperar('C8) pero con un token inventado, no', 'DENIEGA', leerConToken(FOTO, '00000000-0000-4000-8000-000000000000'));
+  await esperar('C9) y nadie la escribe desde la app, ni su dueña', 'DENIEGA', subir('uAna', 'users/uAna/avatar-replacement/colada.png', 'image/png'));
+}
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nStorage: lo generado es de su dueño y la foto única solo la ven los participantes');
 process.exit(failures ? 1 : 0);

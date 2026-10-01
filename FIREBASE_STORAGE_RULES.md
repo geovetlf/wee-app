@@ -1,3 +1,5 @@
+> **LEGADO (HideTok) — no describe Weë actual.** Guía del 2025-10-16, de cuando el proyecto se llamaba HideTok: propone pegar reglas a mano en la consola del proyecto `hidetok-9a642`. Lo vigente son `storage.rules` del repositorio, que solo despliega el workflow ([`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)). Se conserva como historia; **no la sigas**. Inventario del legado: [`docs/LEGADO-HIDETOK.md`](docs/LEGADO-HIDETOK.md).
+
 # Configuración de Reglas de Firebase Storage
 
 ## Problema común: Error al subir imágenes

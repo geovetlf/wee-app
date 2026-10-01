@@ -76,13 +76,28 @@ console.log('\n── B · Darse cuenta, sin tirar respuestas legítimas ──'
   check('14) si sale en otro idioma, el resultado lo lleva apuntado (no se rechaza)', apuntado.idiomaDeSalida?.esperado === 'da-DK' && apuntado.idiomaDeSalida?.detectado === 'es');
   check('15) si sale bien, o no se sabe, no se apunta nada',
     !idiomaDeSalida({ kind: 'text', content: DANES_TECNICO }, 'da-DK', 'copy').idiomaDeSalida && !idiomaDeSalida({ kind: 'text', content: 'Hej!' }, 'da-DK', 'copy').idiomaDeSalida);
-  check('16) traducir, corregir o pulir un texto va en el idioma del contenido: no se mira',
-    ['translate', 'fix', 'polish'].every((k) => !idiomaDeSalida({ kind: 'text', content: INGLES }, 'da-DK', k).idiomaDeSalida));
+  check('16) traducir o corregir un texto de la persona va en el idioma del contenido: no se mira',
+    ['translate', 'fix'].every((k) => !idiomaDeSalida({ kind: 'text', content: INGLES }, 'da-DK', k).idiomaDeSalida));
+  /*
+   * Revisión post-auditoría 2026-10-01: `polish` es el ÚLTIMO paso de Weë Writer y pule el borrador que escribió
+   * Weë, en el idioma de la app (creator/templates.ts). Excluirlo dejaba sin observar justo el texto final.
+   */
+  check('16b) pulir el borrador de Weë SÍ se mira: es el texto final que lee la persona',
+    idiomaDeSalida({ kind: 'text', content: INGLES }, 'da-DK', 'polish').idiomaDeSalida?.detectado === 'en'
+    && /step\('polish', 'text\.generate'[\s\S]{0,200}kind: 'polish'/.test(leer('functions/src/creator/templates.ts')));
+  {
+    const avisos = [];
+    const original = console.warn;
+    console.warn = (...a) => avisos.push(a);
+    try { idiomaDeSalida({ kind: 'text', content: ESPANOL }, 'da-DK', 'recipe', { jobId: 'job_1', stepId: 'paso_2' }); } finally { console.warn = original; }
+    check('16c) el aviso del registro lleva el trabajo y el paso, para poder encontrarlo y medir',
+      avisos.length === 1 && avisos[0][1]?.jobId === 'job_1' && avisos[0][1]?.stepId === 'paso_2');
+  }
   check('17) ni una imagen, ni un vídeo', !idiomaDeSalida({ kind: 'image', content: ESPANOL }, 'da-DK', 'photo').idiomaDeSalida);
   check('18) sin idioma —un cliente antiguo— se esperaba español', !!idiomaDeSalida({ kind: 'text', content: INGLES }, undefined, 'copy').idiomaDeSalida && !idiomaDeSalida({ kind: 'text', content: ESPANOL }, undefined, 'copy').idiomaDeSalida);
   const creator = leer('functions/src/creator/index.ts');
   check('19) creatorRun lo apunta en cada resultado, sin cambiar nada más del paso',
-    /\.\.\.idiomaDeSalida\(run\.output, job\.locale, input\.kind\),/.test(creator) && /idiomaDeSalida\?: \{ esperado: string; detectado: string \};/.test(leer('functions/src/creator/types.ts')));
+    /\.\.\.idiomaDeSalida\(run\.output, job\.locale, input\.kind, \{ jobId, stepId: next\.id \}\),/.test(creator) && /idiomaDeSalida\?: \{ esperado: string; detectado: string \};/.test(leer('functions/src/creator/types.ts')));
 }
 
 console.log('\n── C · Ningún diccionario, en ningún idioma, con frases en otro idioma ──');

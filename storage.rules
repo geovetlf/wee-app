@@ -36,8 +36,16 @@ service firebase.storage {
     }
 
     // === Resultado de avatar-replacement generado por Cloud Function ===
+    // LA FOTO CON TU AVATAR ES TUYA, COMO EL SELFIE DEL QUE SALE.
+    //
+    // Decía `allow read: if true`: el selfie (`face-swap`) estaba protegido y la
+    // foto que Weë hacía con él era de lectura —y de listado— libre para
+    // cualquiera que conociera el uid. Ahora es como `ai-generations`: la lee y
+    // la lista solo su dueño. Nadie más pierde nada: lo que la app enseña y
+    // comparte es la URL de descarga CON TOKEN que devuelve `avatarReplacement`
+    // (`uploadImageToStorage`), y esa URL no pasa por estas reglas.
     match /users/{userId}/avatar-replacement/{fileName} {
-      allow read: if true;
+      allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
     }
 

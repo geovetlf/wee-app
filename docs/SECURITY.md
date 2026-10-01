@@ -236,35 +236,79 @@ aunque el allow venga de un `settings.local.json` personal.
 - desplegar con firebase, npm, Vercel o EAS;
 - `functions:delete` y los `secrets:set/destroy`;
 - `gcloud … delete|deploy|purge|rm` y `gsutil rm|rb`;
-- leer valores de secretos y leer `.env.local`, `.secret.local`,
-  `.env.get-wee`, ADC, el configstore de firebase-tools y las claves retiradas;
-- `gh auth token`;
+- **imprimir el VALOR de un secreto o un token:** `functions:secrets:access`,
+  `apphosting:secrets:access`, `gcloud secrets versions access`,
+  `gh auth token`, `gh auth status --show-token`, `git credential`;
+- leer `.env.local`, `.secret.local`, `.env.get-wee`, ADC, el configstore de
+  firebase-tools, `service-account*.json`, `legacy_credentials`,
+  `access_tokens.db`, `credentials.db` y las claves retiradas —aunque el nombre
+  venga con comodines (`.env.loc*`) o escapes (`.env\.local`)—;
 - aprobarse un despliegue pendiente;
 - pushes forzados o que borran ramas.
 
 **ask — necesita al dueño:**
 - `git push`, merge de PR, lanzar workflows, secretos y variables del repo,
   releases;
-- IAM y cualquier verbo de gcloud que cambie algo;
+- IAM y cualquier verbo de gcloud que cambie o EXPORTE algo;
 - `firebase use`/`init`, y emuladores sin proyecto `demo-*`;
+- **leer datos de personas en producción:** `firebase auth:export`,
+  `functions:log` (y `npm run logs`), `gcloud firestore export`,
+  `ops/reconciliacion/reservas-colgadas.mjs`, `scripts/copias.mjs --crear`;
 - git local destructivo (`reset --hard`, `branch -D`, `worktree remove`…);
-- scripts con `--ejecutar` o `--confirmo-autorizacion`;
-- editar `.claude/**`, `.firebaserc`, `creditEngine.ts` o el Financial Core.
+- scripts con `--ejecutar`, `--confirmo-autorizacion`, `--crear` o
+  `--confirmo-aislado`;
+- editar —o escribir por Bash (redirección, `cp`, `sed -i`, `node fs.write…`)—
+  en `.claude/**`, `.firebaserc`, `creditEngine.ts` o el Financial Core.
 
 **allow — el ciclo local:** pruebas, `tsc`, build, git de lectura, add y commit,
 emuladores `demo-*`, `npm run web:demo`, y crear o ver PR y runs.
 
-**El hook** (`.claude/hooks/guardia.mjs`) es la segunda barrera.
-- Las reglas de texto no ven las variantes. El hook parte el comando de verdad:
-  comillas, heredocs, `&&`/`||`/`;`/`|`, `bash -c`, `cmd /c`,
-  `powershell -Command`, `npx`, `node …/firebase.js`, rutas a `.cmd` y prefijos
-  de variables.
-- Así, un mensaje de commit que *menciona* `firebase deploy` pasa, y
-  `firebase --project prod deploy` no.
+**El hook** (`.claude/hooks/guardia.mjs`) es la segunda barrera y hace un
+análisis **estructural**, no una comparación de texto.
+- Un tokenizador de shell POSIX (y otro para PowerShell) parte el comando en
+  órdenes simples a cualquier profundidad —respetando comillas, escapes,
+  `$( )`, backticks, `<( )`, subshells `( )`, grupos `{ }`, las palabras clave
+  `if/then/for/while/case…`, los separadores `; & && || | |&` y los heredocs— y
+  **desenvuelve los lanzadores e intérpretes** (`npx`, `npm exec`, `env`,
+  `timeout`, `xargs`, `find -exec`, `bash -c`, `eval`, `node -e`, `python -c`,
+  `Invoke-Expression`, `Start-Process`, `powershell -EncodedCommand`, `cmd /c`,
+  el operador `&`/`.` de PowerShell…) para mirar el programa real y su
+  subcomando. Un `node -e`/`python -c` se abre buscando las llamadas a
+  `child_process`/`subprocess`/`os.system` y analizando lo que lanzarían.
+- Así, un mensaje de commit que *menciona* `firebase deploy` pasa, pero
+  `(firebase --project prod deploy)`, `env X=1 firebase deploy` o
+  `echo "firebase deploy" | bash` no.
+- Lo **dinámico** (`firebase $SUB`, `$(…) deploy`) solo se bloquea si el texto
+  completo trae una palabra sensible (deploy, secrets, token, credential,
+  delete, `--force`); una orden dinámica corriente pasa.
+- La herramienta **Monitor** (su `command` es shell de Git Bash) se engancha y
+  se analiza como Bash.
 - Vercel va al revés: solo pasan los subcomandos de lectura, porque cualquier
   otro argumento despliega.
-- Si el hook falla por sí mismo, **falla abierto** y las reglas deny siguen
-  activas.
+- **Falla CERRADO.** Si el analizador no entiende un comando, recibe una entrada
+  ilegible, o encuentra un anidamiento/tamaño desmedido *con* una palabra
+  sensible, responde `deny` y sale con **código 2** (bloqueo en Claude Code). Un
+  exceso de anidamiento o de tamaño *sin* palabra sensible sí pasa, para no
+  bloquear lo inocuo. **El único límite que no cubre:** si `node` no arranca, el
+  hook no corre y no decide; por eso las reglas `permissions.deny` de
+  settings.json son la **segunda capa** y siguen vigentes.
+
+**Resumen de casos:**
+
+| Comando | Antes | Ahora |
+|---|---|---|
+| `(firebase deploy)`, `{ firebase deploy; }`, `if …; then firebase deploy; fi` | pasaba | **deny** |
+| `env X=1 firebase deploy`, `eval "firebase deploy"`, `timeout -s KILL 600 firebase deploy` | pasaba | **deny** |
+| `echo "firebase deploy" \| bash`, `find . -exec firebase deploy \;`, `X=deploy; firebase $X` | pasaba | **deny** |
+| `node -e "…execSync('firebase deploy')"`, `python -c "os.system('firebase deploy')"` | pasaba/ask | **deny** |
+| `Start-Process firebase -ArgumentList deploy`, `powershell -EncodedCommand …` | pasaba | **deny** |
+| `firebase functions:secrets:access`, `gh auth status --show-token`, `git credential fill` | pasaba | **deny** |
+| `cat .env.loc*`, `cat .env\.local`, `service-account*.json`, `access_tokens.db` | pasaba | **deny** |
+| `echo x > .firebaserc`, `cp /dev/null .claude/…`, `sed -i … creditEngine.ts` | pasaba | **ask** |
+| `firebase auth:export`, `functions:log`, `node …/reservas-colgadas.mjs` | pasaba | **ask** |
+| Monitor con `firebase deploy` dentro | sin analizar | **deny** |
+| entrada ilegible / analizador roto | fallaba abierto | **deny (exit 2)** |
+| `git commit -m "…firebase deploy…"`, `grep "firebase deploy" docs`, `firebase $FORMAT` sin palabra sensible | pasaba | pasa |
 
 **Para cambiarla:**
 - edita `.claude/` (Claude pregunta antes de hacerlo);
@@ -278,6 +322,23 @@ para guardar aprobaciones de «permitir siempre». El heredado se retiró el
 `git show dad0ca2:.claude/settings.local.json`. No pongas ahí permisos de
 desplegar ni de push: no pueden ganar a un deny ni a un ask, y la guardia decide
 igual.
+
+## 6b. Cabeceras de seguridad de las webs
+
+Desde la revisión post-auditoría (2026-10-01) los tres sitios reales mandan cabeceras de seguridad; antes no mandaba
+ninguno y la app con la sesión iniciada se podía meter en un `<iframe>` ajeno (las de `netlify.toml` no las usaba ningún
+host y el archivo se retiró). Lo vigila `functions/test/cabeceras-seguridad.test.mjs`.
+
+| Sitio | Qué manda |
+|---|---|
+| wee.zone (Vercel, `vercel.json`) | `nosniff`, `Referrer-Policy`, `Permissions-Policy` (cámara, micrófono y ubicación solo para la propia web), `X-Frame-Options: DENY` y `frame-ancestors 'none'` en todas las rutas; el archivo de Apple como JSON |
+| `wee-app` (Firebase Hosting) | lo mismo, en todas las rutas |
+| `get-wee` (Firebase Hosting) | lo común en todas las rutas; el «no incrustar» SOLO en sus páginas (`/`, legales, `**/*.html`, `/post/**`), porque es el dominio de Firebase Auth y la app incrusta sus rutas reservadas `/__/auth/*` para iniciar sesión |
+
+**Lo que falta, a propósito:** una Content-Security-Policy completa (scripts, estilos, imágenes, conexiones). No se pone
+a ciegas: la web carga Firebase, el inicio de sesión de Google, Cloudinary y R2, y una política equivocada rompería el
+inicio de sesión sin que ninguna prueba local lo viera. El camino es `Content-Security-Policy-Report-Only` contra la
+web viva, leer qué bloquearía, y solo entonces imponerla. Llegan con el próximo despliegue de la web y del hosting.
 
 ## 7. Pendiente (requiere al dueño)
 

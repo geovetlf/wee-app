@@ -280,10 +280,22 @@ const VIDEO = sinComentarios(VIDEO_SRC);
     !/crearJobEngine\(|crearMotorDeTrabajosDeWee\(|crearConductor\(/.test(VIDEO));
   const antes = git(`show ${ANTES}:functions/src/creator/video.ts`);
   const cobros = (s) => (sinComentarios(s).match(/creditEngine\.(spend|complete|refund)Credits\(/g) || []).length;
-  check('A12) ni una llamada nueva al dinero: la puerta cobra, confirma y devuelve con las MISMAS llamadas que antes', cobros(VIDEO_SRC) === cobros(antes), `${cobros(antes)} → ${cobros(VIDEO_SRC)}`);
+  /*
+   * Una sola llamada nueva, y es una DEVOLUCIÓN: `sinReservaHuerfana` (revisión post-auditoría 2026-10-01,
+   * server/reembolso/creator/video.ts#generateVideo) devuelve la reserva cuando el camino del Core falla ANTES
+   * de que exista el trabajo. Ningún cobro ni confirmación nuevos.
+   */
+  const dentroDeLaDevolucion = (s) => {
+    const i = s.indexOf('export const sinReservaHuerfana');
+    return i < 0 ? '' : s.slice(i, s.indexOf('\n};', i));
+  };
+  check('A12) ni una llamada nueva al dinero salvo UNA devolución, la de la reserva sin trabajo', cobros(VIDEO_SRC) === cobros(antes) + 1
+    && (sinComentarios(dentroDeLaDevolucion(VIDEO_SRC)).match(/creditEngine\.refundCredits\(/g) || []).length === 1
+    && !/creditEngine\.(spend|complete)Credits\(/.test(sinComentarios(dentroDeLaDevolucion(VIDEO_SRC))), `${cobros(antes)} → ${cobros(VIDEO_SRC)}`);
 
   /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
-  const CREDITS_DEL_HARNESS = '14\t0\tfunctions/src/credits/index.ts';
+  /* + creditEngine.ts: revisión post-auditoría 2026-10-01 (money/remigracion-por-segundo-perfil), bloques exactos en job-queue 63p. */
+  const CREDITS_DEL_HARNESS = '34\t8\tfunctions/src/credits/creditEngine.ts\n14\t0\tfunctions/src/credits/index.ts';
   check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
     git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
   const medios = sinComentarios(leer('functions/src/runtime/medios.ts'));
@@ -587,7 +599,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    */
   const MOTOR_F1D_Y_HARNESS = {
     'functions/src/creator/credits.ts': '45\t4', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
-    'functions/src/creator/index.ts': '111\t10', // 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida)
+    'functions/src/creator/index.ts': '111\t10', // + revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida // 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida)
     'functions/src/engine/admin.ts': '9\t2', // 0ad8500 (#19) · 5e87b80 (FASE 8)
     'functions/src/engine/config.ts': '36\t1', // 8193184 (#20)
     'functions/src/engine/errors.ts': '1\t1', // i18n da-DK: el rechazo de entrada sin «el proveedor»
@@ -600,7 +612,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     'functions/src/engine/router.ts': '55\t3', // 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK: «no hay una IA disponible» · harness/fase-2 (H0 #22)
     'functions/src/engine/types.ts': '19\t0', // 0ad8500 (#19) · 5e87b80 (FASE 8)
     'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
-    'functions/src/generateAvatar.ts': '52\t13', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6
+    'functions/src/generateAvatar.ts': '129\t12', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar)
   };
   /*
    * Y la integración i18n da-DK (rama i18n/da-dk, 2026-10-01), también por nombre y tamaño: el locale de la app viaja

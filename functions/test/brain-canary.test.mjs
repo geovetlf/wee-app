@@ -239,14 +239,31 @@ console.log('\n── C · CORE o LEGACY, jamás los dos ──');
 /* ── D · Credits ───────────────────────────────────────────────────────────── */
 console.log('\n── D · Credits: la regla nueva, en el sitio exacto ──');
 {
-  check('el `catch` reembolsa lo cobrado SOLO si devolverlo es seguro', /const devolverEsSeguro = !falloDelConductor \|\| falloDelConductor\.reembolsoSeguro;\s*if \(spend && devolverEsSeguro\) \{/.test(BRAIN));
+  /*
+   * Revisión post-auditoría 2026-10-01 (server/credits/creator/brain.ts#brainChat): el `catch` decide con
+   * `queHacerConElCobro`, que además mira si la respuesta ya se ENTREGÓ (entonces se cobra, no se
+   * devuelve) y deshace el bloque de doce si esta invocación lo contó y no entregó. La regla de siempre
+   * —solo se devuelve si devolver es seguro— sigue igual, y ahora se prueba ejecutándola.
+   */
+  check('el `catch` reembolsa lo cobrado SOLO si devolverlo es seguro', /const devolverEsSeguro = !falloDelConductor \|\| falloDelConductor\.reembolsoSeguro;\s*const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui \}\);/.test(BRAIN)
+    && /\} else if \(spend && cobro\.reembolsar\) \{/.test(BRAIN));
+  {
+    const { queHacerConElCobro } = lib('creator/brainUsage.js');
+    const d = (cobrado, entregada, devolverEsSeguro, contadaAqui) => JSON.stringify(queHacerConElCobro({ cobrado, entregada, devolverEsSeguro, contadaAqui }));
+    check('…y ejecutada: sin entregar y con devolución segura, se devuelve y el bloque vuelve a su sitio', d(true, false, true, true) === JSON.stringify({ completar: false, reembolsar: true, deshacerBloque: true }));
+    check('…sin entregar y con devolución NO segura, no se toca nada (lo cierra quien la termine)', d(true, false, false, true) === JSON.stringify({ completar: false, reembolsar: false, deshacerBloque: false }));
+    check('…ENTREGADA: nunca se devuelve (era regalar la respuesta); se completa el cobro', d(true, true, true, true) === JSON.stringify({ completar: true, reembolsar: false, deshacerBloque: false })
+      && d(false, true, true, true) === JSON.stringify({ completar: false, reembolsar: false, deshacerBloque: false }));
+    check('…y entregada se marca justo después de guardar la respuesta, contada justo después de contarla',
+      /\.set\(\s*stripUndefined\(\{ role: 'wee'[\s\S]{0,400}?\);\s*entregada = true;/.test(BRAIN) && /const consumo = await contarRespuesta\(uid, messageId\);\s*contadaAqui = true;/.test(BRAIN));
+  }
   check('y cuando no lo es, no liquida el libro a cero: la reserva se queda autorizada', /\} else if \(spend\) \{[\s\S]{0,260}console\.warn/.test(BRAIN) && !/else if \(spend\) \{[\s\S]{0,260}refundCredits/.test(BRAIN));
   check('un error que no viene del conductor se comporta como siempre', !(new TypeError('x') instanceof FalloDelPensador) && !(new Error('x') instanceof FalloDelPensador));
   check('el conductor dice que devolver es seguro cuando el trabajo terminó mal', new FalloDelPensador('failed', true, { code: 'PROVIDER_ERROR' }).reembolsoSeguro === true);
   check('y que NO lo es cuando salió, lo tiene otro, o ya terminó en otra invocación',
     ['outcome_unknown', 'in_progress_elsewhere', 'completed_elsewhere'].every((mo) => new FalloDelPensador(mo, false, { code: 'PROVIDER_ERROR' }).reembolsoSeguro === false));
   check('el pensador no cobra, no reserva y no reembolsa: solo dice si es seguro', !/spendCredits|completeCredits|refundCredits|creditEngine/.test(sinComentarios(leer('functions/src/runtime/pensador.ts'))));
-  check('el canary NO cambió cuándo se cobra: búsqueda por delante, conversación por bloques de doce', BRAIN.indexOf('if (webSearch) {') < BRAIN.indexOf('engine.generate(') && /const consumo = await contarRespuesta\(uid, messageId\);\s*if \(consumo\.cobrada\)/.test(BRAIN));
+  check('el canary NO cambió cuándo se cobra: búsqueda por delante, conversación por bloques de doce', BRAIN.indexOf('if (webSearch) {') < BRAIN.indexOf('engine.generate(') && /const consumo = await contarRespuesta\(uid, messageId\);\s*contadaAqui = true;\s*if \(consumo\.cobrada\)/.test(BRAIN));
   check('ni el Financial Core, ni el Credit Engine, ni los precios', !/creditEngine\.[a-z]/i.test(sinComentarios(leer('functions/src/runtime/index.ts')) + sinComentarios(leer('functions/src/runtime/conductor.ts'))));
   /* Una sola transacción para los dos caminos: la que abre la fila del libro y la que después se liquida. */
   const enElDeSiempre = BRAIN.slice(BRAIN.indexOf('const pensadorDeSiempre'), BRAIN.indexOf('const pensadorDelConductor'));

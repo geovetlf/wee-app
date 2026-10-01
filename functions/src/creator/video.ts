@@ -304,6 +304,36 @@ const huellaDelVideo = (peticion: VideoRequest): string => {
   return createHash('sha256').update(JSON.stringify(canonico({ operacion: 'video', peticion }))).digest('hex');
 };
 
+/*
+ * UNA RESERVA SIN TRABAJO NO SE QUEDA COLGADA (revisión post-auditoría 2026-10-01,
+ * hallazgo server/reembolso/creator/video.ts#generateVideo).
+ *
+ * En el camino del Core la reserva se hace ANTES de que exista el trabajo. Si algo
+ * falla entre medias —montar el conductor, escribir el trabajo— no hay trabajo que
+ * la liquidación vaya a cerrar, y la reserva se quedaba AUTHORIZED hasta que alguien
+ * repitiera la misma petición pasado el plazo. La regla es la de siempre: si al
+ * fallar NO hay trabajo con este requestId, nada llegó al proveedor y devolver es
+ * seguro; si lo hay, el dinero es suyo y lo cierra su liquidación; y si ni siquiera
+ * se puede saber, NO se devuelve (un desenlace desconocido se reconcilia, no se
+ * reembolsa a ciegas).
+ */
+export const sinReservaHuerfana = async <T>(uid: string, requestId: string, pedir: () => Promise<T>): Promise<T> => {
+  try {
+    return await pedir();
+  } catch (error) {
+    const trabajo = await Promise.resolve().then(() => trabajoDelMedioDeWee(getFirestore(), uid, requestId)).then((t) => t ?? null, () => 'desconocido' as const);
+    if (trabajo === null) {
+      await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el video no se pudo generar', source: 'weë-studio' })
+        .catch((e) => console.error('Weë Studio canary: no se pudo reembolsar una reserva sin trabajo', requestId, e));
+      await firestoreLedger.settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
+        .catch((e) => console.error('Weë Studio canary: no se pudo liquidar el libro', requestId, e));
+    } else {
+      console.warn(`WEË STUDIO CANARY · fallo con trabajo ${trabajo === 'desconocido' ? 'desconocido' : 'existente'}: la reserva la cierra la liquidación · requestId=${requestId}`);
+    }
+    throw error;
+  }
+};
+
 export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, async (request) => {
   const deadlineAt = Date.now() + PLAZO_DE_VIDEO_MS - RESERVA_PARA_LIQUIDAR_MS;
   try {
@@ -545,6 +575,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
        * Aquí NO se cobra y NO se devuelve mientras siga en marcha: el dinero de
        * una tarea que sigue viva en casa de otro no se toca.
        */
+      const desenlace = await sinReservaHuerfana(uid, requestId, async () => {
       const conductor = await conductorDeWee({
         db: getFirestore(),
         /* LO ÚNICO que enciende la aceptación asíncrona en todo Weë. */
@@ -552,7 +583,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
         /* Los relojes del vídeo y UN intento: el trabajo nace con ellos y los lleva dentro hasta que se liquida. */
         politica: POLITICA_DEL_VIDEO,
       });
-      const desenlace = await pedirMedio({
+      return pedirMedio({
         conductor,
         principal: { userId: uid },
         trace: { traceId: requestId, requestId, userId: uid, workplace: EXPERIENCIA_DE_STUDIO },
@@ -588,6 +619,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
          * está en nuestras manos.
          */
         ...(ACEPTA_ASINCRONO ? {} : { timeoutMs: PRESUPUESTO_DEL_SONDEO_MS }),
+      });
       });
 
       if (desenlace.estado === 'en_marcha') {

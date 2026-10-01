@@ -46,12 +46,22 @@ const BANDEJA = soloCodigo(leer('screens/InboxScreen.tsx'));
 console.log('\n── A · El diálogo de borrar una conversación ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
+  /*
+   * El diálogo era un `Alert.alert` con el borrado en el `onPress` de su botón, y en React Native Web `Alert.alert` no
+   * pinta nada ni llama a ningún botón: en la web no se podía borrar. Ahora es `confirmAction` (utils/notify.ts), con
+   * las mismas claves: su Cancelar lo pone `confirmAction` con `common.cancel`, y `common.delete` es el botón
+   * destructivo. Lo que pasa de verdad, en la web y en el teléfono, lo ejecuta `avisos-en-la-web.test.mjs`.
+   */
+  const AVISO = leer('utils/notify.ts');
+  const DIALOGO = /confirmAction\(t\('weetalk\.deleteConversation'\), t\('weetalk\.areYouSure'\), t\('common\.delete'\), true, t\)/;
   check('1) "Cancelar" sale de common.cancel',
-    /\{ text: t\('common\.cancel'\), style: 'cancel' \}/.test(BANDEJA)
+    DIALOGO.test(BANDEJA)
+    && /\{ text: t\('common\.cancel'\), style: 'cancel', onPress: \(\) => resolve\(false\) \}/.test(AVISO)
     && ES('common.cancel') === 'Cancelar' && EN('common.cancel') === 'Cancel',
     ES('common.cancel') + ' / ' + EN('common.cancel'));
   check('2) "Eliminar" sale de common.delete',
-    /\{ text: t\('common\.delete'\), style: 'destructive'/.test(BANDEJA)
+    DIALOGO.test(BANDEJA)
+    && /\{ text: confirmLabel, style: destructive \? 'destructive' : 'default', onPress: \(\) => resolve\(true\) \}/.test(AVISO)
     && ES('common.delete') === 'Eliminar' && EN('common.delete') === 'Delete',
     ES('common.delete') + ' / ' + EN('common.delete'));
   check('3) ninguna de las dos sigue escrita a mano',
@@ -59,8 +69,8 @@ console.log('\n── A · El diálogo de borrar una conversación ──');
 
   /* Y el diálogo hace exactamente lo que hacía. */
   check('3) control: borra la misma conversación, con el mismo estilo',
-    /Alert\.alert\(t\('weetalk\.deleteConversation'\), t\('weetalk\.areYouSure'\)/.test(BANDEJA)
-    && /onPress: \(\) => messagesService\.deleteConversation\(id\)\.catch\(console\.error\)/.test(BANDEJA));
+    /if \(!\(await confirmAction\(t\('weetalk\.deleteConversation'\), t\('weetalk\.areYouSure'\), t\('common\.delete'\), true, t\)\)\) return;\s*\n\s*messagesService\.deleteConversation\(id\)\.catch\(console\.error\);/.test(BANDEJA)
+    && !/Alert\.alert\(/.test(BANDEJA));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -151,7 +161,7 @@ console.log('\n── D · Nada más se movió ──');
     && /const unread = last && !last\.read && last\.senderId !== activeUid;/.test(BANDEJA)
     && /const activeUid = userProfile\?\.uid \|\| user\?\.uid;/.test(BANDEJA));
   check('15) control: borrar sigue siendo el mismo camino',
-    /const deleteChat = \(id: string\) => \{/.test(BANDEJA)
+    /const deleteChat = async \(id: string\) => \{/.test(BANDEJA)
     && /onLongPress=\{\(\) => deleteChat\(item\.id!\)\}/.test(BANDEJA));
   check('16) control: la navegación al chat no cambió',
     /const openChat = \(c: Conversation\) => \{/.test(BANDEJA) && /nav\.navigate\('Conversation'/.test(BANDEJA));

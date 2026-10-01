@@ -16,6 +16,7 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -174,8 +175,15 @@ check('un comando normal no produce salida (sigue el flujo normal)', libre.statu
 const otraHerramienta = correr({ tool_name: 'Read', tool_input: { file_path: 'x' } });
 check('ignora herramientas que no son Bash ni PowerShell', otraHerramienta.status === 0 && otraHerramienta.stdout.trim() === '');
 const roto = spawnSync(process.execPath, [HOOK], { input: '{esto no es json', encoding: 'utf8', timeout: 15000 });
-check('si recibe basura, falla ABIERTO (exit 0, sin decisión) y lo dice por stderr',
-  roto.status === 0 && roto.stdout.trim() === '' && /error interno/.test(roto.stderr));
+let salidaRoto = null;
+try { salidaRoto = JSON.parse(roto.stdout); } catch { salidaRoto = null; }
+/* CAMBIO EXPLÍCITO (endurecimiento): antes esto fallaba ABIERTO (exit 0, sin decisión). Era la
+   puerta de atrás: un comando construido para romper el analizador se ejecutaba igual. Ahora la
+   guardia FALLA CERRADA: una entrada ilegible se deniega y sale con código 2 (bloqueo en Claude Code). */
+check('si recibe basura, falla CERRADO (deny + exit 2)',
+  roto.status === 2 && salidaRoto && salidaRoto.hookSpecificOutput
+  && salidaRoto.hookSpecificOutput.permissionDecision === 'deny',
+  `status=${roto.status} out=${roto.stdout.slice(0, 80)}`);
 
 /* ── F. settings.json ───────────────────────────────────────────────────── */
 const settings = JSON.parse(fs.readFileSync(path.resolve(RAIZ, '.claude/settings.json'), 'utf8'));
@@ -188,10 +196,203 @@ check('settings.json pregunta antes de un push', tiene('ask', 'Bash(git push *)'
 check('settings.json pregunta antes de tocar la guardia de Claude o el motor de Credits',
   tiene('ask', 'Edit(/.claude/**)') && tiene('ask', 'Edit(/functions/src/credits/creditEngine.ts)'));
 const hook = ((settings.hooks || {}).PreToolUse || []).find((h) => /Bash/.test(h.matcher) && /PowerShell/.test(h.matcher));
-check('el hook está enganchado a Bash y PowerShell', Boolean(hook)
+check('el hook está enganchado a Bash, PowerShell y Monitor', Boolean(hook)
+  && /Monitor/.test(hook.matcher)
   && hook.hooks.some((x) => x.type === 'command' && x.command === 'node' && (x.args || []).some((a) => a.endsWith('.claude/hooks/guardia.mjs'))));
 const peligrosas = (perm.allow || []).filter((r) => /deploy|functions:delete|git push|powershell -Command|vercel|eas /i.test(r));
 check('ningún allow preaprueba algo peligroso', peligrosas.length === 0, peligrosas.join(', '));
+check('settings.json deniega imprimir secretos/tokens (segunda capa nativa)',
+  ['Bash(firebase functions:secrets:access *)', 'PowerShell(firebase functions:secrets:access *)',
+    'Bash(firebase apphosting:secrets:access *)', 'Bash(git credential *)',
+    'Bash(gh auth status --show-token*)'].every((r) => tiene('deny', r)));
+check('settings.json deniega leer los nuevos archivos de credenciales',
+  ['Read(**/legacy_credentials/**)', 'Read(**/access_tokens.db)', 'Read(**/credentials.db)'].every((r) => tiene('deny', r)));
+
+/* ── G. Análisis ESTRUCTURAL y lanzadores: casos nuevos (deny) ───────────── */
+/* Cada uno es una variante que una regla por texto no ve y que la guardia ANTERIOR dejaba pasar
+   (o, en los marcados, trataba de forma más débil). La sección I lo demuestra contra cb8d7e6. */
+const NUEVO_DENY = [
+  /* 1) órdenes dentro de subshells, grupos, bucles y fondo */
+  ['Bash', '(firebase deploy)'],
+  ['Bash', '{ firebase deploy; }'],
+  ['Bash', 'if true; then firebase deploy; fi'],
+  ['Bash', 'for i in 1; do firebase deploy; done'],
+  ['Bash', 'while true; do firebase deploy; done'],
+  ['Bash', 'until false; do firebase deploy; done'],
+  ['Bash', 'sleep 1 & firebase deploy'],
+  ['Bash', '(git push --force origin main)'],
+  ['Bash', 'case x in x) firebase deploy ;; esac'],
+  /* 2) comandos que imprimen secretos o tokens */
+  ['Bash', 'firebase functions:secrets:access GEMINI_API_KEY'],
+  ['Bash', 'firebase apphosting:secrets:access ARK_API_KEY'],
+  ['PowerShell', 'firebase functions:secrets:access GEMINI_API_KEY'],
+  ['Bash', 'gh auth status --show-token'],
+  ['Bash', 'gh auth status -t'],
+  ['Bash', 'git credential fill'],
+  /* 3) lanzadores e intérpretes */
+  ['Bash', 'npm exec -- firebase deploy'],
+  ['Bash', 'npm x firebase-tools deploy'],
+  ['Bash', 'pnpm dlx firebase-tools deploy'],
+  ['Bash', 'yarn dlx firebase-tools deploy'],
+  ['Bash', 'env firebase deploy'],
+  ['Bash', 'env GITHUB_TOKEN=x firebase deploy'],
+  ['Bash', 'env X=1 firebase deploy'],
+  ['Bash', 'eval "firebase deploy"'],
+  ['Bash', 'X=deploy; firebase $X'],
+  ['Bash', 'f(){ firebase deploy; }; f'],
+  ['Bash', 'timeout -s KILL 600 firebase deploy'],
+  ['Bash', 'setsid firebase deploy'],
+  ['Bash', 'find . -maxdepth 1 -exec firebase deploy \\;'],
+  ['Bash', 'xargs firebase <<< deploy'],
+  ['Bash', 'echo deploy | xargs firebase'],
+  ['Bash', 'echo "firebase deploy" | bash'],
+  ['Bash', 'printf "firebase deploy" | sh'],
+  ['Bash', 'node -e "require(\'child_process\').execSync(\'firebase deploy\')"'],
+  ['Bash', 'python -c "import os; os.system(\'firebase deploy\')"'],
+  ['Bash', 'python3 -c "import subprocess; subprocess.run([\'firebase\',\'deploy\'])"'],
+  ['Bash', '`firebase deploy`'],
+  ['Bash', '$(firebase deploy)'],
+  ['PowerShell', 'Start-Process firebase -ArgumentList deploy'],
+  ['PowerShell', 'Invoke-Expression "firebase deploy"'],
+  ['PowerShell', 'iex "firebase deploy"'],
+  ['PowerShell', 'powershell -EncodedCommand ' + Buffer.from('firebase deploy', 'utf16le').toString('base64')],
+  /* 4) archivos de secretos con comodines, escapes y nombres nuevos */
+  ['Bash', 'cat functions/.env.loc*'],
+  ['Bash', 'cat functions/.env.l?cal'],
+  ['Bash', 'cat functions/.env\\.local'],
+  ['Bash', 'cat creds/service-account-prod.json'],
+  ['Bash', 'cat ~/.config/gcloud/legacy_credentials/x/adc.json'],
+  ['Bash', 'sqlite3 ~/.config/gcloud/access_tokens.db .dump'],
+  ['Bash', 'cat ~/.config/gcloud/credentials.db'],
+];
+for (const [h, c] of NUEVO_DENY) check(`NUEVO deny (${h}): ${c.slice(0, 64)}`, d(h, c) === 'deny', d(h, c));
+
+/* Endurecido de ASK a DENY: el `node -e` con spawnSync que la guardia anterior solo «preguntaba». */
+const NUEVO_DENY_DESDE_ASK = [
+  ['Bash', 'node -e "require(\'child_process\').spawnSync(\'firebase\',[\'deploy\'])"'],
+];
+for (const [h, c] of NUEVO_DENY_DESDE_ASK) check(`endurecido a deny (${h}): ${c.slice(0, 54)}`, d(h, c) === 'deny', d(h, c));
+
+/* Regresión: envoltorios e intérpretes que la guardia anterior YA cubría. Deben seguir en deny
+   (el rediseño estructural no debe perder lo que la versión por listas ya detectaba). */
+const REGRESION_DENY = [
+  ['Bash', 'bunx firebase-tools deploy'],
+  ['Bash', 'nohup firebase deploy'],
+  ['Bash', 'nice -n 10 firebase deploy'],
+  ['Bash', 'command firebase deploy'],
+  ['Bash', 'exec firebase deploy'],
+  ['Bash', 'stdbuf -oL firebase deploy'],
+  ['Bash', 'time firebase deploy'],
+];
+for (const [h, c] of REGRESION_DENY) check(`regresión deny (${h}): ${c.slice(0, 54)}`, d(h, c) === 'deny', d(h, c));
+
+/* ── H. Casos nuevos que PREGUNTAN (ask) ────────────────────────────────── */
+const NUEVO_ASK = [
+  /* escrituras por Bash en rutas que settings.json protege con `ask` para Edit */
+  ['Bash', "node -e \"fs.writeFileSync('.claude/settings.json','x')\""],
+  ['Bash', 'cp /dev/null .claude/hooks/guardia.mjs'],
+  ['Bash', 'echo x > .firebaserc'],
+  ['Bash', 'sed -i s/a/b/ functions/src/credits/creditEngine.ts'],
+  ['Bash', 'tee functions/src/core/financial/libro.ts < nuevo.ts'],
+  /* lecturas de datos de personas que docs/HARNESS.md asigna al dueño */
+  ['Bash', 'firebase auth:export users.json'],
+  ['Bash', 'firebase functions:log'],
+  ['Bash', 'npm --prefix functions run logs'],
+  ['Bash', 'node ops/reconciliacion/reservas-colgadas.mjs'],
+  ['Bash', 'gcloud firestore export gs://get-wee-backups/x'],
+  ['Bash', 'node scripts/copias.mjs cubo --crear'],
+  ['Bash', 'node scripts/copias.mjs diaria --confirmo-aislado'],
+];
+for (const [h, c] of NUEVO_ASK) check(`NUEVO ask (${h}): ${c.slice(0, 64)}`, d(h, c) === 'ask', d(h, c));
+
+/* ── I. Casos legítimos que NO se deben bloquear (quedan en 'pasa') ──────── */
+const NUEVO_LEGIT = [
+  ['Bash', 'git commit -m "explica por qué firebase deploy queda prohibido"'],
+  ['Bash', 'grep -rn "firebase deploy" docs'],
+  ['Bash', "rg 'secrets:access' functions/src"],
+  ['Bash', 'echo "firebase deploy"'],
+  ['Bash', 'cat docs/SECURITY.md'],
+  ['Bash', 'for f in a b c; do echo $f; done'],
+  ['Bash', 'git commit -m "$(date)"'],
+  ['Bash', 'firebase projects:list --format=$FORMAT'],
+  ['Bash', 'firebase emulators:exec --only firestore --project demo-wee "node functions/test/x.emulator.mjs"'],
+  ['Bash', 'echo hola | cat'],
+  ['Bash', 'xargs firebase'],
+];
+for (const [h, c] of NUEVO_LEGIT) check(`NUEVO pasa (${h}): ${c.slice(0, 64)}`, d(h, c) === 'pasa', d(h, c));
+
+/* ── J. SABOTAJE persistente: la guardia ANTERIOR (cb8d7e6) dejaba pasar lo nuevo ─ */
+/* Se escribe la versión de cb8d7e6 en un temporal, se importa y se compara: demuestra que cada
+   caso nuevo es REAL (la anterior no lo bloqueaba) y que la nueva sí. Si alguien revierte el
+   endurecimiento, este bloque falla. */
+const viejoSrc = spawnSync('git', ['show', 'cb8d7e6:.claude/hooks/guardia.mjs'], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+if (viejoSrc.status !== 0 || !viejoSrc.stdout) {
+  check('sabotaje: se pudo leer la guardia anterior (git show cb8d7e6)', false, (viejoSrc.stderr || '').slice(0, 120));
+} else {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'guardia-vieja-'));
+  const archivoViejo = path.join(dir, 'guardia-cb8d7e6.mjs');
+  fs.writeFileSync(archivoViejo, viejoSrc.stdout);
+  const vieja = await import(pathToFileURL(archivoViejo).href);
+  const dV = (h, c) => vieja.analizarTexto(h, c).decision || 'pasa';
+
+  /* La anterior DEJABA PASAR (null) estos casos que ahora se bloquean. */
+  let colados = 0; let bloqueadosNuevo = 0;
+  for (const [h, c] of [...NUEVO_DENY, ...NUEVO_ASK]) {
+    if (dV(h, c) === 'pasa') colados++;
+    if (d(h, c) !== 'pasa') bloqueadosNuevo++;
+  }
+  const total = NUEVO_DENY.length + NUEVO_ASK.length;
+  check(`sabotaje: la guardia anterior dejaba pasar los casos nuevos (${colados}/${total})`, colados === total,
+    `colados=${colados}, total=${total}`);
+  check(`sabotaje: la guardia nueva bloquea los casos nuevos (${bloqueadosNuevo}/${total})`, bloqueadosNuevo === total);
+
+  /* El `node -e`+spawnSync: la anterior NO lo denegaba (lo preguntaba); la nueva sí. */
+  for (const [h, c] of NUEVO_DENY_DESDE_ASK) {
+    check(`sabotaje: antes ≠ deny, ahora = deny (${c.slice(0, 44)})`, dV(h, c) !== 'deny' && d(h, c) === 'deny',
+      `antes=${dV(h, c)} ahora=${d(h, c)}`);
+  }
+
+  /* Regresión: lo que la anterior YA bloqueaba sigue bloqueado en las dos. */
+  let regOk = 0;
+  for (const [h, c] of REGRESION_DENY) if (dV(h, c) === 'deny' && d(h, c) === 'deny') regOk++;
+  check(`sabotaje: los envoltorios que la anterior ya cubría siguen en deny (${regOk}/${REGRESION_DENY.length})`,
+    regOk === REGRESION_DENY.length);
+
+  /* Las DOS versiones permiten los legítimos (el endurecimiento no rompe el trabajo diario). */
+  let okViejo = 0; let okNuevo = 0;
+  for (const [h, c] of NUEVO_LEGIT) {
+    if (dV(h, c) === 'pasa') okViejo++;
+    if (d(h, c) === 'pasa') okNuevo++;
+  }
+  check(`sabotaje: las dos versiones permiten los legítimos (vieja ${okViejo}/${NUEVO_LEGIT.length}, nueva ${okNuevo}/${NUEVO_LEGIT.length})`,
+    okViejo === NUEVO_LEGIT.length && okNuevo === NUEVO_LEGIT.length);
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* da igual */ }
+}
+
+/* ── K. Falla CERRADA ante una excepción interna ────────────────────────── */
+const conFallo = spawnSync(process.execPath, [HOOK], {
+  input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'git status' } }),
+  encoding: 'utf8', timeout: 15000, env: { ...process.env, GUARDIA_PRUEBA_FALLO: '1' },
+});
+let salidaFallo = null;
+try { salidaFallo = JSON.parse(conFallo.stdout); } catch { salidaFallo = null; }
+check('ante una excepción interna, la guardia DENIEGA y sale con código 2',
+  conFallo.status === 2 && salidaFallo && salidaFallo.hookSpecificOutput
+  && salidaFallo.hookSpecificOutput.permissionDecision === 'deny',
+  `status=${conFallo.status} out=${conFallo.stdout.slice(0, 80)}`);
+check('la función pura también falla cerrada (deny) ante un error',
+  (() => { const g = { ...process.env }; process.env.GUARDIA_PRUEBA_FALLO = '1';
+    const r = analizarTexto('Bash', 'git status'); process.env = g; return r.decision === 'deny'; })());
+
+/* ── L. La herramienta Monitor se analiza como Bash ─────────────────────── */
+const monDeny = correr({ tool_name: 'Monitor', tool_input: { command: 'firebase deploy --only functions', description: 'x', timeout_ms: 1000 } });
+let salidaMon = null;
+try { salidaMon = JSON.parse(monDeny.stdout); } catch { salidaMon = null; }
+check('Monitor con un despliegue dentro se deniega',
+  monDeny.status === 0 && salidaMon && salidaMon.hookSpecificOutput
+  && salidaMon.hookSpecificOutput.permissionDecision === 'deny', monDeny.stdout.slice(0, 80));
+const monLibre = correr({ tool_name: 'Monitor', tool_input: { command: 'npm --prefix functions run build', description: 'x' } });
+check('Monitor con un comando normal no produce salida', monLibre.status === 0 && monLibre.stdout.trim() === '');
 
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

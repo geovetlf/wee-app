@@ -3,7 +3,7 @@ import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } fr
 import { db, functions } from '../config/firebase';
 import { creditsShortfall } from './creditsService';
 import type { Traductor } from '../i18n/traducir';
-import { leerDelServidor } from '../i18n/servidor';
+import { textoDelServidorLegible } from '../i18n/servidor';
 
 /**
  * Weë Creator en la app: habla con Weë Brain (creatorChat), lanza el trabajo
@@ -233,9 +233,8 @@ export const humanizeCreatorError = (error: unknown, t: Traductor | ((clave: str
   const controlled = creatorErrorCode(error);
   // Los errores controlados del servidor ya vienen con una frase amable
   if (controlled && message && !/^[A-Z_]+$/.test(message)) {
-    const lectura = leerDelServidor(message, { t: t as Traductor, locale });
-    if (lectura.reconocido) return lectura.texto;
-    if (/^es(-|$)/.test(locale)) return message;
+    const legible = textoDelServidorLegible(message, { t: t as Traductor, locale });
+    if (legible !== undefined) return legible;
     if (FRASE_DEL_CODIGO[controlled]) return t(FRASE_DEL_CODIGO[controlled]);
   }
   if (controlled === 'RATE_LIMITED') return t('weeai.errRateLimited');

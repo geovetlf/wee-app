@@ -13,19 +13,18 @@ Una app, tres plataformas: **iOS, Android y Web** desde el mismo código (React 
 
 ## Estado actual vs. visión
 
-El código actual nace de una versión anterior del producto (red social anónima). Muchas piezas de la visión ya existen como base; otras todavía no.
+El código actual nace de una versión anterior del producto, HideTok (una red social anónima); lo que queda de aquel nombre y cómo se migra está en [`docs/LEGADO-HIDETOK.md`](docs/LEGADO-HIDETOK.md). Muchas piezas de la visión ya existen como base; otras todavía no.
 
 | Área de la visión | Hoy en el código | Estado |
 |---|---|---|
-| **Home** (feed + comunidades + Weëls) | `LandingScreen` (nativo) / `WebLandingScreen` (web) — banner "Tu creatividad no tiene límites", "Explora comunidades" (8 categorías sociales), fila de Weëls, pestaña **Comunidad** con filtros (Publicaciones · Imágenes · Videos · Preguntas · Tutoriales) | ✅ Implementado según `docs/UX.md` |
-| **Home (solo lo esencial)** | `WebLandingScreen` (web) y `LandingScreen` (nativo): `HeroCarousel` (4 banners de diseño en `assets/images/hero/`), `CommunitiesEntry` (buscar o crear comunidad, sin catálogo), `WeelsRow`, feed "Creado por la comunidad" con `utils/feedFilters.ts` | ✅ Rediseñado 2026-09-06 |
+| **Home** (lo que se monta hoy) | `LandingScreen` (nativo) / `WebLandingScreen` (web), ruta `Landing`: Header → saludo y buscador (`HomeGreeting`) → publicar (`ComposerEntry`) → fila de Weëls (`WeelsRow`) → Wäll con filtros por sección de Weë (`utils/feedFilters.ts`), desde 072d2bf (2026-09-10). `components/HeroCarousel.tsx` no lo monta nadie | ⚠️ **Definición pendiente del dueño**: no coincide con la decisión escrita del 2026-09-06 (`docs/UX.md` §16, carrusel + Comunidades + «Creado por la comunidad»). Ver `CLAUDE.md` § Arquitectura |
 | **Menú ☰ único** | `DrawerMenu` — Perfil Real / Perfil Weë, Comunidades, Weëls, WeeTalk, **WEË AI** (con categorías), Credits, Notificaciones, Guardados, Configuración, Ayuda | ✅ Implementado |
 | **Botón "+" → Crear** | `CreateSheet` — Publicación, Weël, Imagen, Video, Texto, Pregunta + acceso a WEË AI; `CreateScreen` recibe `kind` | ✅ Implementado |
 | **"Cómo lo hice"** (herramientas, prompt, proceso) | `CreateScreen` → `Post.aiTools / aiPrompt / aiProcess` → `HowIMadeIt` dentro de `PostCard` (prompt copiable) | ✅ Implementado |
 | **Credits siempre visibles** | `CreditsPill` en `Header` (`hooks/useWallet.ts`) → `CreditStoreScreen` / `WalletScreen` / `creditsService`; el saldo y el historial los mueve solo el **Credit Engine** (`functions/src/credits`, [`docs/CREDITS.md`](docs/CREDITS.md)) | ✅ Implementado |
-| **WEË AI** (11 experiencias: Weë Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business, Travel, Brain) | `WeeCreatorScreen` + `constants/weeExperiences.ts` — buscador por intención "¿Qué quieres crear?", ejemplos por experiencia; cada especialista con su pantalla (`constants/specialists.ts`). Regla: "El usuario elige el resultado. Weë elige la IA." (`docs/CREATOR.md`) | ✅ 10 secciones conectadas a IA real por el WEË AI ENGINE (Gemini, Seedance, ElevenLabs; modo demo sin claves), Weë Brain como asistente con búsqueda y contexto (`brainChat`), fotos por Storage, Credits por el Credit Engine (precios placeholder), **Mis proyectos** y **Mis documentos** en Firestore. ⚠️ Weë Music intacta en modo demo; Weë Business sin publicar en redes (sin APIs sociales) |
+| **WEË AI** (11 experiencias: Weë Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business, Travel, Brain; 7 visibles como sección —Photo, Beauty, Home y Writer se abren desde Weë Studio o Weë Design, `HIDDEN_AS_SECTION`—) | `WeeCreatorScreen` + `constants/weeExperiences.ts` — buscador por intención "¿Qué quieres crear?", ejemplos por experiencia; cada especialista con su pantalla (`constants/specialists.ts`). Regla: "El usuario elige el resultado. Weë elige la IA." (`docs/CREATOR.md`) | ✅ 10 secciones conectadas a IA real por el WEË AI ENGINE (Gemini, Seedance, ElevenLabs; modo demo sin claves), Weë Brain como asistente con búsqueda y contexto (`brainChat`), fotos por Storage, Credits por el Credit Engine (precios placeholder), **Mis proyectos** y **Mis documentos** en Firestore. ⚠️ Weë Music intacta en modo demo; Weë Business sin publicar en redes (sin APIs sociales) |
 | **Descubrimiento de IA** ("quiero hacer X" → especialista recomendado) | buscador de `WeeCreatorScreen` (`matchExperiences`, por palabras clave; Weë Brain lo hará con un LLM) | ⚠️ Base |
-| **Weëls** (videos cortos) | `ReelsScreen` — feed de video, descarga **con watermark** (`services/videoDownload.ts`); el compositor limita un Weël a **15 s** y lo marca con `Post.isWeel` | ✅ Base existente (falta: watermark de marca Weë al compartir) |
+| **Weëls** (videos cortos) | `ReelsScreen` — feed de video; fuera de Weë se comparte el **enlace** de la publicación (`utils/compartirFuera.ts`, desde 3df8267), no el archivo; el compositor limita un Weël a **15 s** y lo marca con `Post.isWeel`. `services/videoDownload.ts` (descarga con watermark) no lo importa nadie | ✅ Base existente (sin marca de agua: la de `docs/UX.md` §10 no existe hoy) |
 | **Guardados** (🔖) | `bookmarksService` (`users/{uid}/bookmarks`), `hooks/useBookmarks.ts`, botón en `PostCard`, `SavedPostsScreen` desde el menú ☰ | ✅ Implementado |
 | **WeeTalk** (chat) | `InboxScreen` / `ConversationScreen` — mensajes, audio, temas de chat | ✅ Base existente |
 | **Comunidades** (Weë Filmmakers, Weë Influencers, Weë Designers…) | `CommunityScreen`, `CommunitiesManagementScreen`, `communityService`, `constants/communityCategories.ts` | ✅ Base existente; son comunidades, nunca secciones |
@@ -44,7 +43,7 @@ Regla para evaluar cualquier funcionalidad nueva (`docs/VISION.md`, §39):
 ## Stack
 
 - **App:** Expo SDK 54 (managed) · React Native 0.81 · React 19 · TypeScript · React Navigation 7 · React Native Web
-- **Backend:** Firebase — Authentication (anónimo, email/contraseña, Google), Firestore, Storage, Cloud Functions (Node 20)
+- **Backend:** Firebase — Authentication (anónimo, email/contraseña, Google), Firestore, Storage, Cloud Functions (Node 24: `firebase.json` → `runtime: nodejs24`, `functions/package.json` → `engines.node: 24`)
 - **IA:** Cloud Functions que llaman a **Gemini** (`gemini-3-pro-image-preview`) para generar el avatar del perfil Weë y reemplazar personas en fotos (`functions/src/`)
 - **Media:** Cloudinary (transformaciones de imagen por URL), `react-native-compressor`, `expo-av`
 - **Builds:** Gradle local para Android (sin cuenta de Expo, sin EAS, sin Android Studio). `expo-updates` está desactivado en `app.json`; EAS y las actualizaciones OTA quedan como opción futura
@@ -68,7 +67,7 @@ npm run functions:emulator   # los cuatro emuladores con el proyecto demo-wee (J
 npm run web:demo             # la app web (http://localhost:8082) conectada a esos emuladores
 ```
 
-Cuidado: `firebase deploy` sin `--project` cae en **producción**.
+Cuidado: `firebase deploy` sin `--project` cae en **producción**. Por eso ningún despliegue sale de un portátil ni de un worktree: el primer `predeploy` de cada objetivo de `firebase.json` (`scripts/solo-desde-el-workflow.mjs`) lo rechaza fuera del workflow `despliegue.yml` de `main`.
 
 Archivos de configuración de cliente (apuntan a `get-wee`):
 
@@ -80,17 +79,13 @@ Archivos de configuración de cliente (apuntan a `get-wee`):
 
 `app.config.js` permite apuntar los archivos nativos a otra ruta con las variables `GOOGLE_SERVICES_JSON` y `GOOGLE_SERVICES_PLIST` (útil en EAS Build).
 
-En un proyecto de Firebase nuevo hay que activar en la consola: **Authentication** (Anónimo, Email/Contraseña, Google), **Firestore** y **Storage** (los proyectos nuevos requieren plan Blaze para Storage). Reglas e índices se despliegan desde el repo:
-
-```bash
-firebase deploy --only firestore,storage
-```
+En un proyecto de Firebase nuevo hay que activar en la consola: **Authentication** (Anónimo, Email/Contraseña, Google), **Firestore** y **Storage** (los proyectos nuevos requieren plan Blaze para Storage). Reglas, índices, Functions y hosting viven en el repositorio, pero **no hay camino manual para desplegarlos**: producción cambia solo por commit en `main` → CI → aprobación del dueño → workflow ([`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)).
 
 ---
 
 ## Puesta en marcha
 
-Requisitos: Node 20+ y npm. Para Android, además, JDK 17 y el Android SDK (ver más abajo). No hace falta cuenta de Expo.
+Requisitos: Node 24 (el de la CI, `.github/workflows/ci.yml`, y el del runtime de Functions) y npm. Para Android, además, JDK 17 y el Android SDK (ver más abajo). No hace falta cuenta de Expo.
 
 ```bash
 git clone https://github.com/geovetlf/wee-app.git
@@ -135,7 +130,7 @@ Desde Windows no hay compilación local: hace falta una Mac con Xcode, o un serv
 
 ### EAS y actualizaciones OTA (opcional, no configurado)
 
-`expo-updates` está **desactivado** (`app.json` → `updates.enabled: false`): `app.json` y `eas.json` todavía referencian la cuenta de Expo y el Apple ID del desarrollador anterior (`owner`, `extra.eas.projectId`, `submit.production.ios`). Si algún día se usa EAS, hay que reapuntar esos campos a la cuenta actual antes del primer build.
+`expo-updates` está **desactivado** (`app.json` → `updates.enabled: false`): `app.json` y `eas.json` todavía referencian la cuenta de Expo y el Apple ID del desarrollador anterior (`owner`, `extra.eas.projectId`, `submit.production.ios`), y el `slug` sigue siendo el de HideTok (`hidetok-simple`). Si algún día se usa EAS, hay que reapuntar esos campos a la cuenta actual antes del primer build; el orden está en [`docs/LEGADO-HIDETOK.md`](docs/LEGADO-HIDETOK.md).
 
 ---
 
@@ -171,7 +166,7 @@ wee-app/
 ├── services/                # firestoreService, messagesService, communityService, creditsService,
 │                            # avatarGenerationService, storageService, cloudinaryService, videoDownload…
 ├── functions/src/           # Cloud Functions: generateAvatar.ts, vertexAI.ts (Gemini)
-├── public/                  # Landing, app.html, privacy-policy, terms, support (hosting)
+├── public/                  # Landing (raíz de get-wee), privacy-policy, terms, support, .well-known; app.html es legado (docs/LEGADO-HIDETOK.md)
 ├── legal/                   # Textos legales
 └── docs/VISION.md           # Visión del producto
 ```
@@ -182,11 +177,10 @@ wee-app/
 
 - [`docs/UX.md`](./docs/UX.md) — **instrucciones definitivas** de producto, estructura y UX (prevalecen)
 - [`docs/VISION.md`](./docs/VISION.md) — visión y principios del producto
-- [`DEPLOY_WEB.md`](./DEPLOY_WEB.md) — despliegue web (Vercel / Firebase Hosting)
-- [`VERCEL_ENV_SETUP.md`](./VERCEL_ENV_SETUP.md) — variables de entorno en Vercel
-- [`GOOGLE_SIGNIN_SETUP.md`](./GOOGLE_SIGNIN_SETUP.md) · [`GOOGLE_SETUP.md`](./GOOGLE_SETUP.md) — Google Sign-In
-- [`FIREBASE_STORAGE_SETUP.md`](./FIREBASE_STORAGE_SETUP.md) · [`FIREBASE_STORAGE_RULES.md`](./FIREBASE_STORAGE_RULES.md) — Storage
-- [`LIKES_AND_FOLLOWS_GUIDE.md`](./LIKES_AND_FOLLOWS_GUIDE.md) — modelo de likes y follows
+- [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — cómo cambia producción (el único camino) · [`docs/HARNESS.md`](./docs/HARNESS.md) — el mapa del Weë Agent Harness
+- [`docs/DECISIONES-PENDIENTES.md`](./docs/DECISIONES-PENDIENTES.md) — lo que espera al dueño · [`docs/DECISIONES-DELIBERADAS.md`](./docs/DECISIONES-DELIBERADAS.md) — lo que parece un defecto y es una decisión con su razón
+- [`docs/LEGADO-HIDETOK.md`](./docs/LEGADO-HIDETOK.md) — lo que queda del nombre antiguo y su migración
+- **Legado (HideTok), no describen Weë actual** —se conservan como historia, cada una con su aviso—: [`DEPLOY_WEB.md`](./DEPLOY_WEB.md), [`VERCEL_ENV_SETUP.md`](./VERCEL_ENV_SETUP.md), [`GOOGLE_SIGNIN_SETUP.md`](./GOOGLE_SIGNIN_SETUP.md), [`GOOGLE_SETUP.md`](./GOOGLE_SETUP.md), [`FIREBASE_STORAGE_SETUP.md`](./FIREBASE_STORAGE_SETUP.md), [`FIREBASE_STORAGE_RULES.md`](./FIREBASE_STORAGE_RULES.md), [`LIKES_AND_FOLLOWS_GUIDE.md`](./LIKES_AND_FOLLOWS_GUIDE.md)
 
 ---
 
@@ -218,8 +212,12 @@ Qué hace hoy: en cualquier especialista, **Empezar** abre la conversación guia
 
 ## Problemas conocidos
 
-- El chequeo de tipos (`npx tsc --noEmit`) está limpio (0 errores desde el 2026-09-06); mantenerlo así al añadir código. Las pruebas del WEË AI ENGINE se corren con `npm run test:engine`.
-- `PushNotificationProvider` en web: resuelto (se retiran las suscripciones con `remove()`).
+Esta lista ya no se lleva a mano aquí (se quedaba atrás). Lo abierto vive en dos sitios:
+
+- **Lo que espera una decisión del dueño** (producto, cifras, operación): [`docs/DECISIONES-PENDIENTES.md`](docs/DECISIONES-PENDIENTES.md).
+- **Los hallazgos conocidos del revisor**, con su línea base: `ops/revision/baseline.json` (cómo se revisa: [`docs/REVISION.md`](docs/REVISION.md)). Antes de dar algo por defecto nuevo, mira si es una decisión con su razón: [`docs/DECISIONES-DELIBERADAS.md`](docs/DECISIONES-DELIBERADAS.md).
+
+Y dos reglas que siguen: el chequeo de tipos (`npx tsc --noEmit`) está limpio (0 errores desde el 2026-09-06) y se mantiene así; las pruebas del WEË AI ENGINE se corren con `npm run test:engine`.
 
 
 ---

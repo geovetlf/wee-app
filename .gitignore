@@ -95,3 +95,11 @@ functions/lib/
 functions/parche*.txt
 functions/.secret.local
 hs_err_pid*.log
+
+# Revisor de fase (docs/REVISION.md): la caché de revisiones de IA y las salidas intermedias de cada pasada.
+# El informe final (ops/revision/informes/) y la baseline (ops/revision/baseline.json) sí se versionan.
+ops/revision/.cache/
+ops/revision/tmp/
+# Salidas de la CI cuando se ejecuta en local (scripts/ci-local.mjs): el informe de la revisión determinista y los registros de políticas.
+/revision-determinista.md
+/politica-*.log

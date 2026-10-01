@@ -484,7 +484,18 @@ console.log('\n── K · La documentación ──');
   check('56) y que no hay trips, GPS, mapa ni reservas', /colección `trips`/.test(creador) && /GPS, mapa/.test(creador) && /APIs de reservas/.test(creador));
 
   check('57) UX.md incluye Travel en la lista canónica', /✈️ WEE Travel/.test(ux));
-  check('58) CLAUDE.md ya no dice diez', !/10 experiencias visibles/.test(claude) && /11 experiencias visibles/.test(claude));
+  /*
+   * «11 experiencias VISIBLES» era falso desde a08a445 (2026-09-08): Photo, Beauty y Home —y Writer desde
+   * 28215ec— no tienen puerta propia (`HIDDEN_AS_SECTION`). CLAUDE.md cuenta ahora las once y cuántas se ven,
+   * y ese número no se copia a mano: sale del código. Si alguien oculta o enseña otra, esto obliga a
+   * corregir el texto en vez de dejarlo mentir otra vez.
+   */
+  const ocultasEnElCodigo = leerCrudo('constants/weeExperiences.ts').match(/export const HIDDEN_AS_SECTION: string\[\] = \[([^\]]*)\]/);
+  const ocultas = ocultasEnElCodigo ? (ocultasEnElCodigo[1].match(/'[a-z]+'/g) || []).length : -1;
+  check('58) CLAUDE.md ya no dice diez y cuenta once', !/10 experiencias visibles/.test(claude) && /\*\*11 experiencias\*\*/.test(claude));
+  check('58) y no dice que se ven las once: dice cuántas se ven, con el número del código',
+    ocultas >= 0 && !/11 experiencias visibles/.test(claude) && new RegExp(`\\*\\*${11 - ocultas} son visibles como sección\\*\\*`).test(claude),
+    `ocultas en el código: ${ocultas}`);
   check('58) y nombra a Weë Travel entre las de identidad', /✈️ Weë Travel/.test(claude));
   check('59) README.md cuenta once', /11 experiencias:/.test(readme) && /Business, Travel, Brain/.test(readme));
 

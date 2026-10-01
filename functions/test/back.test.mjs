@@ -115,19 +115,21 @@ console.log('\n── B · Ningún "Cancelar" hace de Back ──');
    * lista es cerrada a propósito: un "Cancelar" nuevo en una pantalla tiene que
    * venir aquí a explicarse —o llamarse Back—.
    */
+  /*
+   * Cinco alertas de esta lista —borrar una publicación, una conversación, un producto y una reseña, y salir de una
+   * comunidad— eran un `Alert.alert` con su Cancelar escrito en la pantalla y el trabajo en el `onPress` de su botón,
+   * y en la web no hacían nada. Ahora confirman con `confirmAction` (utils/notify.ts), así que su Cancelar es el de
+   * `confirmAction` —el que vigila la comprobación 6— y esas cinco pantallas salen de la lista: si una vuelve a escribir
+   * su propio Cancelar, tendrá que volver aquí a explicarse.
+   */
   const CONSERVADOS = {
     'components/avatars/AvatarPicker.tsx': 0,
     'components/ChatCamera.tsx': 1, // declina el permiso de cámara y cierra: es el "no" de un permiso
     'components/CommunitySelector.tsx': 1, // confirma antes de unirse a una comunidad sin filtro
-    'components/PostCard.tsx': 1, // alerta: eliminar una publicación. La de reportar se fue en la Fase 12-A/B: era un Alert.alert que no creaba ningún reporte
     'components/ReportSheet.tsx': 2, // UN botón, con su texto y su etiqueta accesible: cierra la hoja de denunciar sin enviar nada. Es el "no" de una denuncia, y no hay pantalla a la que volver
-    'screens/CommunitiesManagementScreen.tsx': 1, // alerta: salir de una comunidad
     'screens/CreateScreen.tsx': 2, // alertas de permisos de galería y cámara
-    'screens/InboxScreen.tsx': 1, // alerta: eliminar una conversación
     'screens/ProjectScreen.tsx': 1, // alerta: eliminar un proyecto
     'screens/ProjectsScreen.tsx': 1, // cierra el formulario de proyecto nuevo (acción de SectionTitle)
-    'screens/WeeBizProductsScreen.tsx': 1, // alerta: eliminar un producto
-    'screens/WeeBizProfileScreen.tsx': 1, // alerta: eliminar una reseña
   };
   const encontrados = {};
   for (const archivo of cliente) {

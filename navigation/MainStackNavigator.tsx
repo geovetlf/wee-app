@@ -52,6 +52,7 @@ import { scale } from '../utils/scale';
 import AgregarUbicacionScreen from '../screens/AgregarUbicacionScreen';
 import type { PostPlace } from '../data/places';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
+import type { ContextoDeExperiencia } from '../constants/weeWorkspaces';
 
 export type MainStackParamList = {
   Main: undefined;
@@ -81,12 +82,20 @@ export type MainStackParamList = {
   /** ËContact: las conexiones de Weë entre personas. */
   EContact: undefined;
   /**
+   * LO QUE LEE EL FLUJO GUIADO, Y NADA MÁS: `ContextoDeExperiencia` (constants/weeWorkspaces.ts), la forma que ya
+   * mandan las portadas —Studio, Writer, Chef…— y que `CreatorFlowScreen` lee sin `as`. Aquí había una copia a mano
+   * que se había quedado atrás (sin `editorDocId`, `creative`, `adjuntos` ni `workspace`), y la pantalla la tapaba
+   * con un `as`.
+   *
    * `presets` lleva VARIAS respuestas ya dadas, no una. Lo usa el puente de
    * "No sé qué hacer": cuando Weë ya miró la foto y la persona elige un camino,
    * el espacio y el estilo que ya dijo viajan con ella y no se le vuelven a
    * preguntar (fase 2E-60). `preset` sigue igual para quien solo lleva una.
+   *
+   * `experienceId` es opcional, como en el contexto: la dirección /weeai/<id> puede traer uno que no vale —el `parse`
+   * de App.tsx lo descarta— y entonces el flujo abre la primera experiencia.
    */
-  CreatorFlow: { experienceId: string; goal?: string; jobId?: string; preset?: { questionId: string; optionId: string }; presets?: { questionId: string; optionId: string }[]; imageUri?: string };
+  CreatorFlow: ContextoDeExperiencia;
   Specialist: { id: string };
   /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
   Studio: undefined;

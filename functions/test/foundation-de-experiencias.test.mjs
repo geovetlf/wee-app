@@ -225,9 +225,17 @@ console.log('\n─── F. El contexto se transporta, no se interpreta ──�
 
 check('24) la forma del contexto se declara una vez', /export interface ContextoDeExperiencia \{/.test(contrato));
 const flujo = leer('screens/CreatorFlowScreen.tsx');
-check('25) y el flujo la lee de ahí en vez de declararla suelta',
-  /route\.params \|\| \{\}\) as ContextoDeExperiencia;/.test(flujo) &&
-  /import \{ ContextoDeExperiencia \} from '\.\.\/constants\/weeWorkspaces';/.test(flujo));
+/*
+ * Y sin `as`: el contexto ES el tipo de la ruta (`MainStackParamList.CreatorFlow`). Antes la ruta declaraba a mano
+ * una forma más pequeña —sin `editorDocId`, `creative`, `adjuntos` ni `workspace`— y la pantalla la tapaba con
+ * `(route.params || {}) as ContextoDeExperiencia`; ahora el compilador comprueba lo que la pantalla lee.
+ */
+check('25) y el flujo la lee de ahí en vez de declararla suelta, sin `as`: es el tipo de la ruta',
+  /const params: ContextoDeExperiencia = route\.params \?\? \{\};/.test(flujo)
+  && /useRoute<RouteProp<MainStackParamList, 'CreatorFlow'>>\(\)/.test(flujo)
+  && !/route\.params[^;\n]*\)\s*as\s/.test(flujo)
+  && /^\s*CreatorFlow: ContextoDeExperiencia;$/m.test(leer('navigation/MainStackNavigator.tsx'))
+  && /import \{ ContextoDeExperiencia \} from '\.\.\/constants\/weeWorkspaces';/.test(flujo));
 check('26) el contrato distingue de qué clase es cada material',
   /export type ClaseDeAdjunto =/.test(contrato) && /'fotoDeLaPersona'/.test(contrato) && /'referencia'/.test(contrato));
 check('27) y no monta un almacén paralelo', !/getDownloadURL|uploadBytes|firebase\/storage/.test(contrato));

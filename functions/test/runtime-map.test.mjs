@@ -36,6 +36,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { hostsDeProveedores, patronDeHosts } from '../../ops/revision/hosts-de-proveedores.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -469,7 +470,14 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
    * ni `recomendaciones`, que siguen sin estar en la ruta—.
    */
   const deFilmmaker = (r) => r.startsWith('productions/') || r.startsWith('filmmaker/');
-  const soloDeProductions = [...quienNombra].filter(([, quien]) => [...quien].every(deFilmmaker)).map(([s]) => s);
+  /*
+   * Uno de los veinte lo nombra ya, a propósito, un módulo más: `normalizarEtiqueta`, que desde la revisión
+   * post-auditoría (2026-10-01, server/sistemas-paralelos-idioma) es también la forma de la etiqueta de idioma del
+   * servidor de la app (`shared/idiomaDelServidor`), para que haya UNA regla y no tres. Se declara por nombre: otro
+   * módulo cualquiera que nombre uno de los veinte sigue haciendo fallar esto.
+   */
+  const COMPARTIDOS_FUERA = { normalizarEtiqueta: ['shared/idiomaDelServidor.js'] };
+  const soloDeProductions = [...quienNombra].filter(([s, quien]) => [...quien].every((r) => deFilmmaker(r) || (COMPARTIDOS_FUERA[s] ?? []).includes(r))).map(([s]) => s);
   const autorizados = Object.values(DE_PRODUCTIONS).flat();
   check(`${n - 1}b) productions: la conexión pone en producción EXACTAMENTE los veinte símbolos autorizados, y ninguno más`,
     autorizados.length === 20 && new Set(autorizados).size === 20 && igual(soloDeProductions, autorizados), diferencia(autorizados, soloDeProductions));
@@ -514,7 +522,8 @@ console.log('\n── D · Un solo motor EN USO por pieza ──');
    * pero es un segundo camino hacia un proveedor. Esta comprobación no lo
    * bendice: lo acota. Un tercero la hace fallar.
    */
-  const fueraDelMotor = donde(/generativelanguage\.googleapis|GoogleGenAI|@google\/genai|api\.elevenlabs|api\.deepseek|api\.openai|bytepluses|volces/i,
+  /* Los hosts salen de los adaptadores (`ops/revision/hosts-de-proveedores.mjs`), no de una lista a mano: así entran BFL, MiniMax y Anthropic. */
+  const fueraDelMotor = donde(new RegExp(`${patronDeHosts(hostsDeProveedores(RAIZ)).source}|GoogleGenAI|@google\\/genai|volces`, 'i'),
     (r) => !r.startsWith('engine/providers/') && !r.startsWith('core/'));
   check('104) fuera de los adaptadores, solo `vertexAI.ts` (avatar) habla con un proveedor — y está registrado como deuda',
     igual(fueraDelMotor.filter((r) => !['engine/registry.ts', 'engine/verification.ts'].includes(r)), ['vertexAI.ts']), fueraDelMotor.join(', '));

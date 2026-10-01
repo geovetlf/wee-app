@@ -34,6 +34,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { hostsDeProveedores, patronDeHosts, SDKS_DE_IA, CARPETA_DE_ADAPTADORES } from '../../ops/revision/hosts-de-proveedores.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -88,8 +89,20 @@ console.log('\n── A · ¿Quién puede llamar a un adaptador? ──');
    * anterior al ENGINE—; está declarado para que un segundo no pueda aparecer
    * sin que esto lo diga.
    */
-  const ENDPOINTS = /api\.(openai|anthropic|deepseek|elevenlabs)\.com|generativelanguage\.googleapis|bytepluses\.com|aiplatform\.googleapis/i;
-  const conEndpoint = TODO.filter(([f, s]) => ENDPOINTS.test(s) && !f.startsWith('functions/src/engine/providers/')).map(([f]) => f);
+  /*
+   * Las direcciones NO se escriben aquí a mano: salen de los propios adaptadores
+   * (`ops/revision/hosts-de-proveedores.mjs`). La lista escrita a mano que había
+   * buscaba `api.elevenlabs.com` cuando el adaptador usa `api.elevenlabs.io`, y no
+   * conocía ni BFL ni MiniMax: una llamada directa a esos tres no la veía nadie.
+   */
+  const HOSTS = hostsDeProveedores(RAIZ);
+  const ENDPOINTS = patronDeHosts(HOSTS);
+  check('A) la lista de proveedores vigilados sale de los adaptadores y los incluye a todos (también .io, bfl y minimax)',
+    ['api.elevenlabs.io', 'api.bfl.ai', 'api.minimax.io', 'api.openai.com', 'api.anthropic.com', 'api.deepseek.com',
+      'ark.ap-southeast.bytepluses.com', 'generativelanguage.googleapis.com'].every((h) => HOSTS.includes(h)), HOSTS.join(' '));
+  check('A) y la vigilancia ve cada uno de ellos escrito fuera de un adaptador (control)',
+    HOSTS.every((h) => ENDPOINTS.test(`const url = 'https://${h}/v1/x';`)) && !ENDPOINTS.test("const url = 'https://wee.zone/post/1';"));
+  const conEndpoint = TODO.filter(([f, s]) => ENDPOINTS.test(s) && !f.startsWith(`${CARPETA_DE_ADAPTADORES}/`)).map(([f]) => f);
   check('A) NADIE fuera de los adaptadores tiene la dirección de un proveedor',
     conEndpoint.length === 0, conEndpoint.join(',') || 'ninguno');
   /*
@@ -97,7 +110,9 @@ console.log('\n── A · ¿Quién puede llamar a un adaptador? ──');
    * para el avatar. Es anterior al ENGINE y se salta el motor entero — queda
    * declarado aquí para que un segundo no pueda aparecer en silencio.
    */
-  const porSdk = TODO.filter(([f, s]) => /@google\/genai|GoogleGenAI/.test(s) && !f.startsWith('functions/src/engine/providers/')).map(([f]) => f);
+  /* Un SDK de IA se usa al IMPORTARLO (el id `'openai'` de un proveedor en una tabla no es usarlo). */
+  const SDK = new RegExp(`(?:from\\s+|import\\(\\s*|require\\(\\s*)['"](?:${SDKS_DE_IA.map((p) => p.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')).join('|')})['"]|GoogleGenAI`);
+  const porSdk = TODO.filter(([f, s]) => SDK.test(s) && !f.startsWith(`${CARPETA_DE_ADAPTADORES}/`)).map(([f]) => f);
   check('A) y por SDK queda UN legacy: `vertexAI.ts`, el del avatar',
     porSdk.join(',') === 'functions/src/vertexAI.ts', porSdk.join(',') || 'ninguno');
   check('A) al que solo llama el avatar: ni Weë Creator, ni Weë Brain, ni el motor',

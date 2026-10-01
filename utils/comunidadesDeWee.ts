@@ -1,4 +1,5 @@
 import type { Traductor } from '../i18n/traducir';
+import { idiomaDe } from '../i18n/resolver';
 import { COMMUNITY_CATEGORIES, POPULAR_COMMUNITIES } from '../constants/communityCategories';
 
 /**
@@ -60,19 +61,36 @@ const SEMILLAS = new Map<string, { name: string; description: string }>([
 ]);
 const NOMBRES_SEMBRADOS = new Map(COMMUNITY_CATEGORIES.map((c) => [c.name, c.slug] as const));
 
-const enEspanol = (locale: string): boolean => /^es(-|$)/i.test(locale);
+/* El idioma del locale, con el ayudante canónico de i18n (revisión post-auditoría 2026-10-01: una sola regla). */
+const enEspanol = (locale: string): boolean => idiomaDe(locale) === 'es';
 
 interface ComunidadPintable {
   slug?: string;
   name?: string;
   description?: string;
+  isOfficial?: boolean;
+  createdBy?: string;
 }
+
+/*
+ * DE WEË ES LO QUE SEMBRÓ WEË, NO LO QUE SE LE PARECE.
+ *
+ * El slug y el texto los puede copiar cualquiera: una persona que llamaba a su comunidad «Cine & Animación» se leía en
+ * danés como la oficial, con la voz de Weë. Lo que no puede copiar es `isOfficial`: solo lo escribe una sesión de
+ * administración (`firestore.rules`) y no cambia nunca. Así que una TEMÁTICA OFICIAL se traduce solo si es oficial.
+ *
+ * Las DESTACADAS de muestra no son oficiales: la app las pinta desde sus constantes (`CommunitiesManagementScreen`) y
+ * no las creó nadie. Toda comunidad que crea una persona lleva su `createdBy` —las reglas lo exigen al crearla y no
+ * dejan cambiarlo—, así que una con autor no es una muestra aunque copie su slug y su texto.
+ */
+const esOficial = (c: ComunidadPintable): boolean => c.isOfficial === true;
+const esDeWee = (c: ComunidadPintable): boolean => esOficial(c) || !c.createdBy;
 
 /** El nombre de una comunidad para pintar. */
 export const nombreDeComunidad = (c: ComunidadPintable | null | undefined, t: Traductor, locale: string): string => {
   const nombre = c?.name || '';
   if (!c?.slug || enEspanol(locale)) return nombre;
-  const clave = OFICIALES[c.slug]?.nombre;
+  const clave = esOficial(c) ? OFICIALES[c.slug]?.nombre : undefined;
   return clave && SEMILLAS.get(c.slug)?.name === nombre ? t(clave) : nombre;
 };
 
@@ -80,7 +98,7 @@ export const nombreDeComunidad = (c: ComunidadPintable | null | undefined, t: Tr
 export const descripcionDeComunidad = (c: ComunidadPintable | null | undefined, t: Traductor, locale: string): string => {
   const descripcion = c?.description || '';
   if (!c?.slug || enEspanol(locale)) return descripcion;
-  const clave = OFICIALES[c.slug]?.descripcion || DESTACADAS[c.slug];
+  const clave = (esOficial(c) ? OFICIALES[c.slug]?.descripcion : undefined) || (esDeWee(c) ? DESTACADAS[c.slug] : undefined);
   return clave && SEMILLAS.get(c.slug)?.description === descripcion ? t(clave) : descripcion;
 };
 

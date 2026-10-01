@@ -215,13 +215,33 @@ export function createCreditEngine(deps: CreditEngineDeps) {
   const esElPerfilDeLaCuenta = (userId: string, account: CreditDocSnap): boolean =>
     cuentaDeIdentidad(userId, (account.data() || {}) as PerfilDeIdentidad) === userId;
 
+  /*
+   * QUÉ PERFIL GUARDA EL SALDO CUANDO HAY MÁS DE UNO (revisión post-auditoría 2026-10-01,
+   * money/remigracion-por-segundo-perfil).
+   *
+   * Una cuenta puede tener más de un Perfil Real: en producción hay cuentas así
+   * (utils/perfilCanonico.ts), y las reglas dejan crear `users/<uid>` aunque ya
+   * exista uno con id automático, porque no pueden consultar. Firestore devuelve
+   * la consulta por `uid` ordenada por id de documento; quedarse con «el primero»
+   * podía saltar a un perfil vacío y dejar el saldo de verdad inalcanzable (y
+   * `ensureAccount` volvía a migrar la billetera antigua). El saldo vive en el
+   * perfil que YA está inicializado: ese manda. Si ninguno lo está, el primero,
+   * como siempre; si varios lo están, el primero de ellos, como siempre.
+   */
+  const PERFILES_POR_CUENTA = 10;
+  const perfilDelSaldo = (userId: string, docs: CreditDocSnap[]): CreditDocSnap | undefined => {
+    const suyos = docs.filter((d) => esElPerfilDeLaCuenta(userId, d));
+    return suyos.find((d) => typeof (d.data() || {}).creditsBalance === 'number') ?? suyos[0];
+  };
+
   /** Perfil real de la persona (uid == auth uid). Los Credits son por cuenta, no por identidad. */
   const findAccount = async (tx: CreditTx, userId: string): Promise<CreditDocSnap> => {
-    const snap = await tx.get(users().where('uid', '==', userId).limit(1));
-    if (snap.empty || !esElPerfilDeLaCuenta(userId, snap.docs[0])) {
+    const snap = await tx.get(users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA));
+    const perfil = perfilDelSaldo(userId, snap.docs);
+    if (!perfil) {
       throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
     }
-    return snap.docs[0];
+    return perfil;
   };
 
   const balanceOf = (account: CreditDocSnap): AccountBalance => {
@@ -257,7 +277,12 @@ export function createCreditEngine(deps: CreditEngineDeps) {
       const account = await findAccount(tx, userId);
       const data = account.data() || {};
       const initialized = typeof data.creditsBalance === 'number';
-      const legacy = initialized ? null : await tx.get(db().collection('wallets').doc(userId));
+      /*
+       * La billetera antigua se migra UNA vez por cuenta, no una vez por perfil: si
+       * ya hay un `migration_<uid>`, no se vuelve a acreditar (antes se sobrescribía).
+       */
+      const yaMigrada = initialized ? true : (await tx.get(transactions().doc(migrationTransactionId(userId)))).exists;
+      const legacy = initialized || yaMigrada ? null : await tx.get(db().collection('wallets').doc(userId));
       const welcomeDoc = welcome > 0 ? await tx.get(transactions().doc(welcomeTransactionId(userId))) : null;
 
       let balance = num(data.creditsBalance);
@@ -324,16 +349,17 @@ export function createCreditEngine(deps: CreditEngineDeps) {
 
   const getBalance = async (rawUserId: string): Promise<AccountBalance> => {
     const userId = assertUserId(rawUserId);
-    const snap = await users().where('uid', '==', userId).limit(1).get();
-    if (snap.empty || !esElPerfilDeLaCuenta(userId, snap.docs[0])) {
+    const snap = await users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA).get();
+    const perfil = perfilDelSaldo(userId, snap.docs);
+    if (!perfil) {
       throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
     }
-    const data = snap.docs[0].data() || {};
+    const data = perfil.data() || {};
     if (typeof data.creditsBalance !== 'number') {
       const created = await ensureAccount(userId);
       return { userId, balance: created.balance, lifetimeEarned: created.lifetimeEarned, lifetimeSpent: created.lifetimeSpent };
     }
-    return balanceOf(snap.docs[0]);
+    return balanceOf(perfil);
   };
 
   /**

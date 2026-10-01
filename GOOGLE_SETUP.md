@@ -1,3 +1,5 @@
+> **LEGADO (HideTok) — no describe Weë actual.** Guía del 2025-10-16, de cuando el proyecto se llamaba HideTok: configura el inicio de sesión con el proxy `auth.expo.io` y el `slug` `hidetok-simple`. Hoy Weë usa el plugin `@react-native-google-signin/google-signin` (`app.json`) y Firebase Authentication de `get-wee`. Se conserva como historia; **no la sigas**. Inventario del legado (y por qué el `slug` sigue llamándose así): [`docs/LEGADO-HIDETOK.md`](docs/LEGADO-HIDETOK.md).
+
 # 🔍 Configuración de Google Sign-In para HideTok
 
 ## ⚠️ Error actual

@@ -547,7 +547,8 @@ console.log('\n── F · Credits, con el Credit Engine DE VERDAD ──');
   /* El modelo de arriba solo vale mientras `creator/brain.ts` tenga esa forma. */
   const BRAIN = sinComentarios(leer('functions/src/creator/brain.ts'));
   check('`creator/brain.ts` sigue reservando la búsqueda ANTES de llamar al modelo', BRAIN.indexOf('if (webSearch) {') < BRAIN.indexOf('engine.generate(') && /if \(webSearch\) \{\s*spend = await creditEngine\.spendCredits\(/.test(BRAIN));
-  check('sigue cobrando la conversación DESPUÉS de responder, por bloques', /const consumo = await contarRespuesta\(uid, messageId\);\s*if \(consumo\.cobrada\)/.test(BRAIN) && BRAIN.indexOf('contarRespuesta(uid, messageId)') > BRAIN.indexOf('engine.generate('));
+  /* + revisión post-auditoría 2026-10-01: entre contar y cobrar se apunta que ESTA invocación contó (queHacerConElCobro). */
+  check('sigue cobrando la conversación DESPUÉS de responder, por bloques', /const consumo = await contarRespuesta\(uid, messageId\);\s*contadaAqui = true;\s*if \(consumo\.cobrada\)/.test(BRAIN) && BRAIN.indexOf('contarRespuesta(uid, messageId)') > BRAIN.indexOf('engine.generate('));
   check('sigue completando solo si hubo cobro', /if \(spend\) \{\s*await creditEngine\.completeCredits\(/.test(BRAIN));
   /*
    * ESTA COMPROBACIÓN CAMBIÓ CON EL CANARY (F12-D), y es el cambio que este
@@ -560,7 +561,12 @@ console.log('\n── F · Credits, con el Credit Engine DE VERDAD ──');
    * sustituye por uno suyo, así que preguntarle al error que llega sería
    * preguntarle al mensajero — y la regla no se activaría nunca.
    */
-  check('y su `catch` reembolsa lo cobrado SOLO cuando devolverlo es seguro', /const devolverEsSeguro = !falloDelConductor \|\| falloDelConductor\.reembolsoSeguro;\s*if \(spend && devolverEsSeguro\) \{\s*await creditEngine\.refundCredits\(/.test(BRAIN));
+  /*
+   * + revisión post-auditoría 2026-10-01: la decisión la toma `queHacerConElCobro` (que además no devuelve una respuesta ya
+   * ENTREGADA). Reembolsar sigue exigiendo que devolver sea seguro: lo prueba ejecutándola brain-canary y reservas-abandonadas.
+   */
+  check('y su `catch` reembolsa lo cobrado SOLO cuando devolverlo es seguro', /const devolverEsSeguro = !falloDelConductor \|\| falloDelConductor\.reembolsoSeguro;\s*const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui \}\);/.test(BRAIN)
+    && /\} else if \(spend && cobro\.reembolsar\) \{\s*await creditEngine\.refundCredits\(/.test(BRAIN));
   check('el fallo del conductor se guarda en el pensador, porque Weë Brain lo tapa', /if \(error instanceof FalloDelPensador\) falloDelConductor = error;/.test(BRAIN) && /catch \(error\) \{\s*return fallar\('PROVIDER_ERROR', 'thinker_failed'/.test(sinComentarios(leer('functions/src/core/brain.ts'))));
   check('un camino que no pasa por el conductor lo deja sin tocar: se reembolsa como siempre', !/falloDelConductor =/.test(BRAIN.slice(BRAIN.indexOf('const pensadorDeSiempre'), BRAIN.indexOf('const pensadorDelConductor'))));
   check('Weë Brain YA ESTÁ CONECTADO al conductor, y solo para el canary de texto', /pensadorSobreConductor|conductorDeWee/.test(BRAIN) && /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(BRAIN));

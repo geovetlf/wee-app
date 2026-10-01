@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { textoDeFechas, textoDelServidor, textoDeObjetivo, textoDeOpcion, textoDePregunta } from '../i18n/servidor';
@@ -20,6 +20,7 @@ import { uploadCreatorImage } from '../services/creatorUploads';
 import { documentsService } from '../services/documentsService';
 import { WEE_EXPERIENCES, EXPERIENCE_AREA, experienceLabel, getExperienceById } from '../constants/weeExperiences';
 import { ContextoDeExperiencia } from '../constants/weeWorkspaces';
+import type { MainStackParamList } from '../navigation/MainStackNavigator';
 import { claveDelValor, filtrarCreativo } from '../constants/camaraCinematica';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -34,20 +35,21 @@ const CreatorFlowScreen: React.FC = () => {
   const { t, formato, locale } = useIdioma();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const route = useRoute<any>();
+  const route = useRoute<RouteProp<MainStackParamList, 'CreatorFlow'>>();
   /*
     * LO QUE EL SITIO DE DONDE SE VIENE YA SABE.
     *
     * La forma no se declara aquí: es `ContextoDeExperiencia`, en
-    * `constants/weeWorkspaces.ts`. Estaba escrita suelta dentro de esta pantalla,
-    * así que cada portada que quisiera mandar algo tenía que adivinarla mirando
-    * este archivo; ahora se lee de un sitio y el compilador avisa si una portada
-    * manda algo que el flujo no espera.
+    * `constants/weeWorkspaces.ts`, y es también el tipo de la ruta
+    * (`MainStackParamList.CreatorFlow`), así que se lee sin `as`. Estaba escrita
+    * suelta dentro de esta pantalla, así que cada portada que quisiera mandar algo
+    * tenía que adivinarla mirando este archivo; ahora se lee de un sitio y el
+    * compilador avisa si una portada manda algo que el flujo no espera.
     *
     * Lo que llega aquí es transporte, no entendimiento: quien entiende es Weë
     * Brain, en el servidor. Esta pantalla lo reúne y lo lleva.
     */
-  const params = (route.params || {}) as ContextoDeExperiencia;
+  const params: ContextoDeExperiencia = route.params ?? {};
 
   const experience = getExperienceById(params.experienceId || '') || WEE_EXPERIENCES[0];
   /*

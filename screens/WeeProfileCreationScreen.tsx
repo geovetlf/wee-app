@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -98,11 +97,12 @@ const WeeProfileCreationScreen: React.FC = () => {
       console.log(creado ? '✅ Perfil Weë creado' : '📥 La cuenta ya tenía Perfil Weë');
       setWeeProfile(weeProfile);
 
-      Alert.alert(
-        t('onboarding.weeCreatedTitle'),
-        t('onboarding.weeCreated'),
-        [{ text: t('common.accept'), onPress: () => navigation.goBack() }]
-      );
+      /*
+       * Volver no depende del botón de un aviso: en la web `Alert.alert` no pinta nada ni llama a ningún botón, y la
+       * persona se quedaba en esta pantalla con su Perfil Weë ya creado. Se avisa y se vuelve.
+       */
+      notify(t('onboarding.weeCreatedTitle'), t('onboarding.weeCreated'));
+      navigation.goBack();
     } catch (error: any) {
       console.error('❌ Error creando el Perfil Weë:', error);
       /* Título traducido y frase de Weë: el detalle técnico se queda en el registro. */

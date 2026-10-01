@@ -1,3 +1,5 @@
+import { normalizarEtiqueta } from '../core/language';
+
 /**
  * EN QUÉ IDIOMA ESCRIBE EL SERVIDOR LO QUE ESCRIBE ÉL SOLO (el push y la página pública).
  *
@@ -11,15 +13,19 @@ export type TablaDeTextos = Readonly<Record<string, string>>;
 
 /**
  * Una etiqueta de idioma en su forma canónica ('da-dk' → 'da-DK', 'zh-hant-tw' → 'zh-Hant-TW'), o null si no lo es.
- * La sabe `Intl.getCanonicalLocales`, sin el Core: lo que llega del cliente o de una cabecera se acepta solo si tiene
- * forma de idioma, y nada más se guarda ni se usa.
+ *
+ * La forma la decide el Core (`normalizarEtiqueta`, core/language.ts), la MISMA que usa Weë Brain (`localeDeBrain`):
+ * antes esto tenía su propia expresión, más permisiva, y una etiqueta que aquí valía allí no —el encargo pedía
+ * «español neutro» y el observador del idioma esperaba otra cosa— (revisión post-auditoría 2026-10-01). Y además
+ * tiene que ser una etiqueta que `Intl` reconozca: lo que llega del cliente o de una cabecera se acepta solo si
+ * tiene forma de idioma, y nada más se guarda ni se usa.
  */
 export const etiquetaDeIdioma = (crudo: unknown): string | null => {
   if (typeof crudo !== 'string') return null;
-  const limpio = crudo.trim();
-  if (!limpio || limpio.length > 35 || !/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{1,8})*$/.test(limpio)) return null;
+  const etiqueta = normalizarEtiqueta(crudo);
+  if (!etiqueta) return null;
   try {
-    return Intl.getCanonicalLocales(limpio)[0] ?? null;
+    return Intl.getCanonicalLocales(etiqueta).length ? etiqueta : null;
   } catch {
     return null;
   }

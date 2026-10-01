@@ -29,7 +29,7 @@ import { esPublicacionDePreview } from '../utils/previewWall';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
-import { notify } from '../utils/notify';
+import { confirmAction, notify } from '../utils/notify';
 import { useIdioma } from '../contexts/IdiomaContext';
 import ShareablePostCard from './ShareablePostCard';
 import { cloudinaryThumb, cloudinaryFeed } from '../services/cloudinaryService';
@@ -722,33 +722,24 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
-  const handleDeletePost = () => {
+  /*
+   * BORRAR LA PUBLICACIÓN PROPIA. Era un `Alert.alert` con el borrado dentro del `onPress` de su botón, y en la web
+   * `Alert.alert` no pinta nada ni llama a ningún botón: no se podía borrar. `confirmAction` es el mismo diálogo en el
+   * teléfono —Cancelar y Eliminar, destructivo— y `window.confirm` en la web.
+   */
+  const handleDeletePost = async () => {
     setMenuVisible(false);
-    Alert.alert(
-      t('wall.deletePost'),
-      t('wall.deletePostConfirm'),
-      [
-        {
-          text: t('common.cancel'),
-          style: 'cancel',
-        },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (post.id) {
-                await postsService.delete(post.id);
-                console.log('✅ Post eliminado exitosamente');
-              }
-            } catch (error) {
-              console.error('❌ Error eliminando post:', error);
-              Alert.alert(t('common.error'), t('wall.deletePostFailed'));
-            }
-          },
-        },
-      ]
-    );
+    const confirmado = await confirmAction(t('wall.deletePost'), t('wall.deletePostConfirm'), t('common.delete'), true, t);
+    if (!confirmado) return;
+    try {
+      if (post.id) {
+        await postsService.delete(post.id);
+        console.log('✅ Post eliminado exitosamente');
+      }
+    } catch (error) {
+      console.error('❌ Error eliminando post:', error);
+      notify(t('common.error'), t('wall.deletePostFailed'));
+    }
   };
 
   /*

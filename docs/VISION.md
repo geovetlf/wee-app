@@ -1,5 +1,7 @@
 # WEE — World Encode Entity
 
+> **Nota (2026-10-01): este es el documento de visión ORIGINAL y no manda.** Donde contradiga a [`UX.md`](UX.md) (instrucciones definitivas de producto, estructura y UX) o a [`CLAUDE.md`](../CLAUDE.md) (decisiones fechadas del dueño y estado real del código), prevalecen esos dos. Se conserva por su porqué, no como especificación.
+
 Documento de visión del producto. Es la referencia para evaluar cualquier decisión de diseño o funcionalidad.
 
 ---

@@ -128,3 +128,34 @@ export const resumenDeRespuestaDeExpo = (respuesta: unknown): { status: string |
     error: typeof data?.details?.error === 'string' ? data.details.error : null,
   };
 };
+
+/**
+ * CUÁNTOS AVISOS PUSH PUEDE DISPARAR UNA CUENTA (revisión post-auditoría 2026-10-01, hallazgo
+ * trust/push-a-cualquiera/firestore.rules#notifications.create).
+ *
+ * Crear un aviso en `notifications` es del cliente —un «me gusta», un comentario, un seguidor nuevo— y cada uno
+ * dispara un push real al teléfono de alguien. Sin cupo, una sesión cualquiera podía mandar avisos sin fin a quien
+ * quisiera. Las reglas acotan la FORMA del aviso; el número lo acota esto, en el servidor, por CUENTA (las dos caras
+ * de una persona comparten cupo). Pasado el cupo el aviso sigue existiendo dentro de la app: solo deja de sonar.
+ *
+ * Pura: recibe el estado guardado y la hora, y devuelve si suena y el estado nuevo.
+ */
+export const CUPO_DE_AVISOS = { maximo: 60, ventanaMs: 60 * 60 * 1000 } as const;
+
+export interface EstadoDelCupo {
+  inicio: number;
+  usados: number;
+}
+
+export const cupoDeAvisos = (
+  guardado: unknown,
+  ahora: number,
+  cupo: { maximo: number; ventanaMs: number } = CUPO_DE_AVISOS
+): { permitido: boolean; estado: EstadoDelCupo } => {
+  const g = (guardado && typeof guardado === 'object' ? guardado : {}) as Partial<EstadoDelCupo>;
+  const vigente = typeof g.inicio === 'number' && Number.isFinite(g.inicio) && ahora >= g.inicio && ahora - g.inicio < cupo.ventanaMs;
+  const usados = vigente && typeof g.usados === 'number' && g.usados > 0 ? Math.floor(g.usados) : 0;
+  const inicio = vigente ? (g.inicio as number) : ahora;
+  if (usados >= cupo.maximo) return { permitido: false, estado: { inicio, usados } };
+  return { permitido: true, estado: { inicio, usados: usados + 1 } };
+};

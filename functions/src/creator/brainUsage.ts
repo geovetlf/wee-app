@@ -133,11 +133,13 @@ async function contarRespuesta(userId: string, messageId: string): Promise<Consu
 /**
  * Deshace lo que apuntó `contarRespuesta`.
  *
- * Solo hay un motivo para llamarla: la respuesta se generó, cerró el bloque, y al
- * ir a cobrar el Credit el saldo no daba. Sin esto la persona se quedaría con el
- * bloque a cero sin haber pagado —doce respuestas gratis— o, peor, atascada.
+ * Dos motivos para llamarla: la respuesta se generó, cerró el bloque, y al ir a
+ * cobrar el Credit el saldo no daba; o algo falló después de contarla y la
+ * respuesta NO llegó a entregarse (`queHacerConElCobro`). Sin esto la persona se
+ * quedaría con el bloque a cero sin haber pagado —doce respuestas gratis— o,
+ * peor, atascada.
  *
- * Es una compensación, no un reembolso: el Credit Engine no llegó a moverse.
+ * Es una compensación, no un reembolso. Idempotente: sin apunte, no hace nada.
  */
 async function deshacerRespuesta(userId: string, messageId: string): Promise<void> {
   const contador = contadorDe(userId);
@@ -180,3 +182,32 @@ export const contadorDeBrain = crearContadorDeBrain({
 export const contarRespuesta = contadorDeBrain.contarRespuesta;
 export const deshacerRespuesta = contadorDeBrain.deshacerRespuesta;
 export const bloqueDe = contadorDeBrain.bloqueDe;
+
+/**
+ * QUÉ SE HACE CON EL COBRO CUANDO ALGO FALLA DESPUÉS DE GENERAR
+ * (revisión post-auditoría 2026-10-01, hallazgo server/credits/creator/brain.ts#brainChat).
+ *
+ * La regla es la de siempre —reservar → ejecutar → si se ENTREGÓ, se cobra; si no,
+ * se devuelve—, contestada con lo que de verdad pasó en esta invocación:
+ *
+ *  · ENTREGADA (la respuesta ya quedó guardada en la conversación): la persona la
+ *    tiene. Devolver aquí era regalarla; lo correcto es completar el cobro.
+ *  · NO ENTREGADA y devolver es seguro: se devuelve. Y si ESTA invocación contó la
+ *    respuesta en el bloque de doce, el bloque vuelve a donde estaba: antes se
+ *    devolvía el Credit pero el bloque se quedaba gastado, y la persona tenía doce
+ *    respuestas por cero.
+ *  · NO ENTREGADA y devolver NO es seguro (otra invocación del mismo mensaje la está
+ *    ejecutando): no se toca nada; la cierra quien la termine.
+ *
+ * Pura: no lee ni escribe. Quien la usa hace lo que dice.
+ */
+export const queHacerConElCobro = (h: {
+  cobrado: boolean;
+  entregada: boolean;
+  devolverEsSeguro: boolean;
+  contadaAqui: boolean;
+}): { completar: boolean; reembolsar: boolean; deshacerBloque: boolean } => {
+  if (h.entregada) return { completar: h.cobrado, reembolsar: false, deshacerBloque: false };
+  if (!h.devolverEsSeguro) return { completar: false, reembolsar: false, deshacerBloque: false };
+  return { completar: false, reembolsar: h.cobrado, deshacerBloque: h.contadaAqui };
+};

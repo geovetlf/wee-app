@@ -1,3 +1,5 @@
+> **LEGADO (HideTok) — no describe Weë actual.** Guía del 2025-10-16, de cuando el proyecto se llamaba HideTok: sus valores son los del proyecto de Firebase `hidetok-9a642`, que Weë no usa. Se conserva como historia; **no la sigas**. Lo vigente: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) (`wee.zone` en Vercel, con el freno de `vercel.json`) y [`README.md`](README.md) § Entornos (la configuración web apunta a `get-wee`). Inventario del legado: [`docs/LEGADO-HIDETOK.md`](docs/LEGADO-HIDETOK.md).
+
 # Configuración de Variables de Entorno en Vercel
 
 ## 🚨 Problema Actual

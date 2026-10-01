@@ -9,6 +9,8 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { AI_SECRETS } from './secrets';
 import { creditEngine } from './credits/creditEngine';
 import { CreditService } from './credits/creditCosts';
+import type { CreditTransaction } from './credits/creditTransactions';
+import { operacionAbandonada } from './core';
 import { assertInputImageUrl } from './creator/inputs';
 import { toHttpsError } from './credits/creditValidation';
 import { loadConfig } from './engine/config';
@@ -39,6 +41,63 @@ const requestIdFrom = (value: unknown): string => {
 };
 
 /*
+ * LAS RESERVAS QUE SE QUEDAN ABIERTAS (revisión post-auditoría 2026-10-01,
+ * hallazgo money/reserva-colgada-avatar).
+ *
+ * Una reserva del avatar sigue en AUTHORIZED cuando el proceso muere a mitad
+ * (tiempo agotado, instancia reciclada) o cuando el reembolso de un fallo
+ * tampoco pudo hacerse. Nadie la cerraba: el barrido programado solo recorre
+ * los trabajos del Core, y la app pide cada avatar con un requestId NUEVO, así
+ * que ningún reintento volvía a pasar por ella. El saldo quedaba mermado.
+ *
+ * Regla, la misma que ya usa el vídeo (`operacionAbandonada`, core/job.ts): lo
+ * que sigue «en marcha» después de lo que puede vivir quien lo ejecuta está
+ * ABANDONADO, y lo retenido se devuelve. Aquí, «lo que puede vivir» es el
+ * tiempo máximo de la función más larga del avatar (300 s) con margen. Se mira
+ * al pedir el siguiente avatar —la próxima vez que la persona pasa por aquí— y
+ * cada devolución es idempotente en el Credit Engine. No es una política nueva:
+ * es cerrar lo que la política de siempre (reservar → generar → completar o
+ * devolver) dejaba abierto.
+ */
+const VIDA_MAXIMA_DEL_AVATAR_MS = 10 * 60 * 1000;
+
+const milisDe = (v: unknown): number | undefined => {
+  if (typeof v === 'number') return v;
+  if (v instanceof Date) return v.getTime();
+  const t = v as { toMillis?: () => number; seconds?: number } | null;
+  if (t && typeof t.toMillis === 'function') return t.toMillis();
+  if (t && typeof t.seconds === 'number') return t.seconds * 1000;
+  return undefined;
+};
+
+/** ¿Esta reserva ya no la puede estar ejecutando nadie? */
+export const reservaAbandonada = (autorizadaEn: number | undefined, ahora: number): boolean =>
+  autorizadaEn !== undefined && operacionAbandonada(true, autorizadaEn + VIDA_MAXIMA_DEL_AVATAR_MS, ahora);
+
+/** De un historial, los requestId de las reservas del avatar abandonadas. Pura: no lee ni escribe. */
+export const reservasDelAvatarAbandonadas = (historial: CreditTransaction[], ahora: number): string[] =>
+  historial
+    .filter((t) => t.type === 'usage' && t.status === 'AUTHORIZED' && t.source === 'wee-avatar' && typeof t.requestId === 'string')
+    .filter((t) => reservaAbandonada(milisDe(t.createdAt), ahora))
+    .map((t) => t.requestId as string);
+
+/** Devuelve, sin bloquear a la persona si algo falla, lo que sus avatares anteriores dejaron retenido. */
+async function devolverReservasAbandonadas(userId: string): Promise<void> {
+  try {
+    const historial = await creditEngine.getCreditHistory(userId, 25);
+    const abandonadas = new Set(reservasDelAvatarAbandonadas(historial, Date.now()));
+    for (const t of historial.filter((x) => abandonadas.has(x.requestId as string))) {
+      /* El concepto, el de su reserva («Avatar Weë», «Foto con tu avatar Weë») con el mismo final de siempre. */
+      const reason = typeof t.reason === 'string' && t.reason ? t.reason : 'Avatar Weë';
+      await creditEngine.refundCredits({ userId, requestId: t.requestId as string, reason: `${reason} · no se pudo terminar`, source: 'wee-avatar' })
+        .catch((error) => console.error('Credit Engine: no se pudo devolver la reserva abandonada', t.requestId, error));
+    }
+  } catch (error) {
+    console.error('Credit Engine: no se pudieron revisar las reservas abandonadas del avatar', userId, error);
+  }
+}
+
+/*
  * Los errores de esta puerta llevan CÓDIGOS, no frases: la pantalla del avatar
  * muestra su propio texto traducido (i18n), y una frase del servidor sería un
  * texto sin traducir —o, peor, el detalle interno de un proveedor— en la red.
@@ -55,6 +114,7 @@ async function withCredits<T extends { imageUrl: string }>(userId: string, servi
   let authorized;
   try {
     await creditEngine.ensureAccount(userId);
+    await devolverReservasAbandonadas(userId);
     authorized = await creditEngine.spendCredits({ userId, service, requestId, reason, source: 'wee-avatar' });
   } catch (error) {
     throw toHttpsError(error);
@@ -78,6 +138,24 @@ async function withCredits<T extends { imageUrl: string }>(userId: string, servi
       const stored = previous.find((t) => t.id === authorized.transactionId)?.meta?.imageUrl;
       if (typeof stored === 'string' && stored) return { imageUrl: stored } as T;
       throw new HttpsError('already-exists', 'result_not_available', { reason: 'result_not_available' });
+    }
+    /*
+     * YA TERMINÓ MAL Y SE DEVOLVIÓ (REFUNDED/FAILED). Contestar «en marcha» era
+     * mentir para siempre: no hay nada en marcha. No se vuelve a generar con el
+     * mismo requestId —el Credit Engine no cobraría otra vez—: se dice que falló.
+     */
+    if (authorized.status === 'REFUNDED' || authorized.status === 'FAILED') {
+      throw new HttpsError('internal', 'generation_failed', { reason: 'generation_failed' });
+    }
+    /*
+     * SIGUE EN AUTHORIZED. ¿En marcha o abandonada? Pasado lo que puede vivir la
+     * función, nadie va a terminarla: se devuelve lo retenido (la misma regla que
+     * el vídeo, `operacionAbandonada`) en vez de contestar «en marcha» para siempre.
+     */
+    if (reservaAbandonada(authorized.authorizedAt, Date.now())) {
+      await creditEngine.refundCredits({ userId, requestId, reason: `${reason} · no se pudo terminar`, source: 'wee-avatar' })
+        .catch((error) => console.error('Credit Engine: no se pudo devolver la reserva abandonada', requestId, error));
+      throw new HttpsError('internal', 'generation_failed', { reason: 'generation_failed' });
     }
     throw new HttpsError('already-exists', 'in_progress', { reason: 'in_progress' });
   }

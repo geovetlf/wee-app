@@ -156,6 +156,10 @@ cuenta: no hay ningún documento compartido entre cuentas.
 - La cara activa es una **pista**: el servidor lee la entidad y, si no es de esa
   cuenta o no está activa, rechaza. No la ignora.
 - Hace falta una cuenta nacida y `ACTIVE`. Lo propio no se denuncia.
+  **Consecuencia conocida (revisión post-auditoría 2026-10-01, `trust/denuncia-sin-cuenta-nacida`):** las cuentas
+  creadas antes de `nacimientoDeCuenta` (2026-09-20) no han nacido —su migración está preparada y no ejecutada—,
+  así que hoy no pueden denunciar y la app les enseña un fallo genérico. La política no se relaja: lo que falta es
+  la migración de esas cuentas, que es de datos de producción y la autoriza el dueño. Cuántas son: por medir.
 - Al cliente viaja un código de gRPC y un motivo corto en `details.reason`. El
   mensaje es siempre el mismo y no cuenta nada: ni rutas, ni el proyecto, ni la cuenta.
 - `moderationAdmin` comprueba administración (`shared/admin.ts`) antes de mirar nada.
@@ -209,5 +213,5 @@ cd functions && npm run build && node test/moderation.test.mjs
 ```
 
 ```bash
-firebase emulators:exec --only firestore --project wee-dev-geovet "node functions/test/moderation.emulator.mjs firestore.rules"
+firebase emulators:exec --only firestore --project demo-wee "node functions/test/moderation.emulator.mjs firestore.rules"
 ```

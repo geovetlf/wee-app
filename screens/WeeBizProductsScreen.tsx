@@ -29,6 +29,7 @@ import { scale } from '../utils/scale';
 import { weeBizService, Product } from '../services/weeBizService';
 import { uploadImageToCloudinary, cloudinaryThumb } from '../services/cloudinaryService';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import { confirmAction } from '../utils/notify';
 
 type RoutePropType = RouteProp<MainStackParamList, 'WeeBizProducts'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
@@ -168,22 +169,25 @@ const WeeBizProductsScreen: React.FC = () => {
     }
   };
 
-  const handleDeleteProduct = (product: Product) => {
-    Alert.alert(t('weebiz.deleteProductTitle'), t('weebiz.deleteProductConfirm', { nombre: product.name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await weeBizService.deleteProduct(businessId, product.id!);
-            loadProducts();
-          } catch (e) {
-            console.error('Error deleting product:', e);
-          }
-        },
-      },
-    ]);
+  /*
+   * Borrar un producto. Con `Alert.alert` el borrado vivía en el `onPress` de su botón, y en la web no salía ni se
+   * llamaba nada. `confirmAction`: el mismo diálogo en el teléfono, `window.confirm` en la web.
+   */
+  const handleDeleteProduct = async (product: Product) => {
+    const confirmado = await confirmAction(
+      t('weebiz.deleteProductTitle'),
+      t('weebiz.deleteProductConfirm', { nombre: product.name }),
+      t('common.delete'),
+      true,
+      t,
+    );
+    if (!confirmado) return;
+    try {
+      await weeBizService.deleteProduct(businessId, product.id!);
+      loadProducts();
+    } catch (e) {
+      console.error('Error deleting product:', e);
+    }
   };
 
   const handleToggleAvailable = async (product: Product) => {

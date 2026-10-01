@@ -11,7 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
-import { leerDelServidor } from '../i18n/servidor';
+import { textoDelServidorLegible } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import { creditsService, describeTransaction, CreditsBalance, CreditTransaction } from '../services/creditsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -26,12 +26,13 @@ const WalletScreen = () => {
   /*
    * El concepto de un movimiento, en el idioma de quien mira. Lo que no se reconoce —un concepto nuevo del servidor,
    * uno que escribió una persona de administración— se enseña tal cual en español y, en cualquier otro idioma, se
-   * dice por su tipo («Credits brugt», «Credits fået tilbage»…): nadie lee español por accidente.
+   * dice por su tipo («Credits brugt», «Credits fået tilbage»…): nadie lee español por accidente. Esa decisión es la de
+   * todos los textos del servidor y vive con ellos (`textoDelServidorLegible`, i18n/servidor.ts): la pantalla no
+   * pregunta en qué idioma está.
    */
   const tituloDe = (view: { title: string | null; tituloClave: string }): string => {
     if (!view.title) return t(view.tituloClave);
-    const lectura = leerDelServidor(view.title, { t, locale });
-    return lectura.reconocido || /^es(-|$)/.test(locale) ? lectura.texto : t(view.tituloClave);
+    return textoDelServidorLegible(view.title, { t, locale }) ?? t(view.tituloClave);
   };
   const { user } = useAuth();
   const nav = useNavigation();

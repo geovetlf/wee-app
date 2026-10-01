@@ -26,7 +26,9 @@ Corazón social de la app. Aquí el usuario descubre contenido, usuarios, comuni
 
 ## 4. "Explora comunidades"
 
-Reemplaza a "Explora por categoría". Pertenece al Home. **No muestra herramientas de IA**: muestra temáticas sociales para descubrir comunidades.
+> **SUSTITUIDO en el Home (decisión del 2026-09-06, §16).** Estas temáticas ya **no se muestran en el Home**: el Home no lleva catálogo ni categorías. Siguen existiendo como temas de las comunidades, tags y explorador (`constants/communityCategories.ts`). Lo que sigue en pie de esta sección es la regla de fondo: son temáticas sociales, nunca categorías de herramientas.
+
+Reemplaza a "Explora por categoría". Pertenece al Home *(hasta el 2026-09-06; ver la nota)*. **No muestra herramientas de IA**: muestra temáticas sociales para descubrir comunidades.
 
 | Categoría | Ejemplos de comunidades |
 |---|---|
@@ -94,6 +96,8 @@ WEË AI    🎬 AI Video · 🖼️ AI Imagen · 🎨 AI Diseño · ✍️ AI Es
 
 No hay dos hamburguesas y no aparece "WEE Social".
 
+> Las categorías de WEË AI de este esquema (AI Video, AI Imagen…) están **sustituidas** por las experiencias de Weë desde el 2026-09-05 (§6); cuáles se ven hoy en el menú, en `CLAUDE.md` § Arquitectura.
+
 ## 13. WeeTalk
 
 Chat de WEE: mensajes privados, conversaciones, grupos, compartir publicaciones, Weëls y trabajos. Sencillo; no convertirlo inicialmente en una mensajería compleja.
@@ -127,13 +131,20 @@ WEË AI no aparece en el Home: es una sección propia (menú ☰) donde la perso
 
 Mantiene el estilo visual actual: fondo blanco, amarillo/dorado como color principal, gris oscuro para textos, tarjetas blancas, bordes suaves, sombras ligeras, diseño limpio, amigable, moderno y con mucho espacio. **No cambiar a una estética oscura/neón** (única excepción: el tema oscuro mientras el Perfil Weë está activo, §14).
 
+El esquema de la decisión del 2026-09-06:
+
 ```
-WEE   ☰   💳 250 Credits   Iniciar sesión
-BANNER  "Tu creatividad no tiene límites."
-EXPLORA COMUNIDADES  (4 × 2)
-WEËLS  videos cortos de usuarios
-CREADO POR LA COMUNIDAD  Publicaciones · Imágenes · Videos · Preguntas · Tutoriales
+WEË   ☰   💳 250 Credits   🔔 / Iniciar sesión
+HERO  carrusel de 4 banners de diseño  ● ○ ○ ○
+COMUNIDADES  "Encuentra las tuyas."  buscador · + Crear comunidad   (sin catálogo, sin categorías)
+WEËLS  videos cortos de la comunidad · Ver todos →
+CREADO POR LA COMUNIDAD  Todo · Imágenes · Videos · Preguntas · Tutoriales
+BARRA INFERIOR  Inicio · Buscar · + · WeeTalk · Perfil
 ```
+
+> **SUSTITUIDO — esquema anterior al 2026-09-06**, que se conserva solo como historia y contradice la lista de arriba: `BANNER "Tu creatividad no tiene límites."` → `EXPLORA COMUNIDADES (4 × 2)` (las ocho temáticas del §4) → `WEËLS` → `CREADO POR LA COMUNIDAD`.
+
+> **Estado del código (2026-10-01): la definición del Home está pendiente del dueño.** Desde 072d2bf (2026-09-10) el código no monta esta estructura: monta saludo y buscador → publicar → fila de Weëls → el Wäll con filtros por sección, y `components/HeroCarousel.tsx` no lo importa nadie. Ni este documento ni el código se cambian para que coincidan sin su decisión; el detalle, en `CLAUDE.md` § Arquitectura.
 
 ## 17. El Home no debe estar sobrecargado
 

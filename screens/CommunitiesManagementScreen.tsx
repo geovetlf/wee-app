@@ -27,6 +27,7 @@ import { scale } from '../utils/scale';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import TextoEnMayusculas from '../components/TextoEnMayusculas';
 import { descripcionDeComunidad, nombreDeComunidad } from '../utils/comunidadesDeWee';
+import { confirmAction, notify } from '../utils/notify';
 
 const CommunitiesManagementScreen: React.FC = () => {
   const { t, locale } = useIdioma();
@@ -111,6 +112,12 @@ const CommunitiesManagementScreen: React.FC = () => {
     }
   };
 
+  /*
+   * UNIRSE Y SALIR. Salir se confirma con `confirmAction` y no con un `Alert.alert` propio: en la web `Alert.alert`
+   * no pinta nada ni llama a ningún botón, así que no se podía salir de una comunidad y el indicador, que se encendía
+   * antes del diálogo y solo se apagaba en sus botones, se quedaba girando para siempre. En el teléfono el diálogo es
+   * el mismo —Cancelar y Salir, destructivo—, y el indicador se apaga en el `finally`, pase lo que pase.
+   */
   const handleToggleCommunity = async (community: Community) => {
     if (!user) { navigateToRegister(); return; }
     if (!community.id) return;
@@ -121,36 +128,29 @@ const CommunitiesManagementScreen: React.FC = () => {
     try {
       if (isJoined) {
         // Confirmar antes de salir
-        Alert.alert(
+        const confirmado = await confirmAction(
           t('communities.leaveTitle'),
           t('communities.leaveConfirm', { nombre: nombreDeComunidad(community, t, locale) }),
-          [
-            { text: t('common.cancel'), style: 'cancel', onPress: () => setJoiningCommunity(null) },
-            {
-              text: t('communities.leave'),
-              style: 'destructive',
-              onPress: async () => {
-                try {
-                  await communityService.leaveCommunity(user.uid, community.id!);
-                  // Actualizar estado local
-                  const newJoinedCommunities = joinedCommunityIds.filter(id => id !== community.id);
-                  updateLocalProfile({ joinedCommunities: newJoinedCommunities });
-                  // Actualizar memberCount en la lista local
-                  setCommunities(prev => prev.map(c =>
-                    c.id === community.id
-                      ? { ...c, memberCount: Math.max(0, c.memberCount - 1) }
-                      : c
-                  ));
-                } catch (error) {
-                  console.error('Error leaving community:', error);
-                  Alert.alert(t('common.error'), t('communities.leaveFailed'));
-                } finally {
-                  setJoiningCommunity(null);
-                }
-              },
-            },
-          ]
+          t('communities.leave'),
+          true,
+          t,
         );
+        if (!confirmado) return;
+        try {
+          await communityService.leaveCommunity(user.uid, community.id!);
+          // Actualizar estado local
+          const newJoinedCommunities = joinedCommunityIds.filter(id => id !== community.id);
+          updateLocalProfile({ joinedCommunities: newJoinedCommunities });
+          // Actualizar memberCount en la lista local
+          setCommunities(prev => prev.map(c =>
+            c.id === community.id
+              ? { ...c, memberCount: Math.max(0, c.memberCount - 1) }
+              : c
+          ));
+        } catch (error) {
+          console.error('Error leaving community:', error);
+          notify(t('common.error'), t('communities.leaveFailed'));
+        }
       } else {
         // Unirse directamente
         await communityService.joinCommunity(user.uid, community.id);
@@ -163,11 +163,11 @@ const CommunitiesManagementScreen: React.FC = () => {
             ? { ...c, memberCount: c.memberCount + 1 }
             : c
         ));
-        setJoiningCommunity(null);
       }
     } catch (error) {
       console.error('Error toggling community:', error);
-      Alert.alert(t('common.error'), t('communities.actionFailed'));
+      notify(t('common.error'), t('communities.actionFailed'));
+    } finally {
       setJoiningCommunity(null);
     }
   };

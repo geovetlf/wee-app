@@ -134,8 +134,13 @@ for (const c of CAPABILITY_CATALOG) for (const v of [progressTextFor(c.id), frie
  */
 const CLASIFICADOS = [
   { archivo: 'engine/admin.ts', tipo: 'administración', porque: 'callable engineAdmin: panel del WEË AI ENGINE', evidencia: () => /assertAdmin|esAdmin|requireAdmin/.test(leer('functions/src/engine/admin.ts')) },
-  { archivo: 'media/canary.ts', tipo: 'administración', porque: 'canario del Media Cloud, solo administración', evidencia: () => /assertAdmin|esAdmin|requireAdmin|admin/.test(leer('functions/src/media/canary.ts')) },
-  { archivo: 'shared/admin.ts', tipo: 'administración', porque: 'la guarda de administración misma', evidencia: () => true },
+  /*
+   * Evidencias de verdad (revisión post-auditoría 2026-10-01, tests/evidencia-vacia): antes la de canary aceptaba la
+   * palabra `admin` —que casa con el import de `firebase-admin`— y la de shared/admin era `() => true`. Ahora cada una
+   * exige la llamada que hace la puerta y quién la usa.
+   */
+  { archivo: 'media/canary.ts', tipo: 'administración', porque: 'canario del Media Cloud, solo administración', evidencia: () => /import \{ assertAdmin \} from '\.\.\/shared\/admin';/.test(leer('functions/src/media/canary.ts')) && /^\s*assertAdmin\(request\.auth\);/m.test(leer('functions/src/media/canary.ts')) },
+  { archivo: 'shared/admin.ts', tipo: 'administración', porque: 'la guarda de administración misma: sus frases solo llegan a quien llama a una callable de administración', evidencia: () => /export const assertAdmin = /.test(leer('functions/src/shared/admin.ts')) && ['credits/index.ts', 'engine/admin.ts', 'media/canary.ts', 'moderation/index.ts'].every((f) => /assertAdmin\(/.test(leer(`functions/src/${f}`))) },
   { archivo: 'credits/index.ts', textos: ['credits inválido', 'Acción desconocida: ‹data.action›'], tipo: 'administración', porque: 'creditsAdmin (setCost y acción desconocida)', evidencia: () => /export const creditsAdmin = onCall\(OPTS, async \(request\) =>\s*\n?[\s\S]{0,120}assertAdmin/.test(leer('functions/src/credits/index.ts')) },
   { archivo: 'elements/puerta.ts', tipo: 'por código', porque: 'Elements de Filmmaker: la app traduce el código (utils/mensajesDeFilmmaker.ts)', evidencia: () => fs.existsSync(path.resolve(raiz, 'utils/mensajesDeFilmmaker.ts')) },
   { archivo: 'shots/puerta.ts', tipo: 'por código', porque: 'tomas de Filmmaker: la app traduce el código (utils/mensajesDeFilmmaker.ts)', evidencia: () => fs.existsSync(path.resolve(raiz, 'utils/mensajesDeFilmmaker.ts')) },
@@ -219,7 +224,10 @@ console.log('\n── C · El servidor recibe y usa el idioma ──');
   check('16) Weë Brain lo recibe en cada mensaje', /instruccionDeIdioma\(locale\)/.test(leer('functions/src/creator/brain.ts')));
   const indice = leer('functions/src/index.ts');
   check('17) el push: el idioma elegido en la cuenta y, si no hay, el de la app del aparato que lo recibe',
-    /const elegido = \(await perfilDeIdentidad\(cuenta\)\)\?\.data\(\)\?\.language;/.test(indice) && /collection\('pushTokens'\)\.doc\(cuenta\)\.get\(\)\)\.data\(\)\?\.locale/.test(indice));
+    /* Desde la revisión post-auditoría, token e idioma salen de UNA lectura de pushTokens (`destinoDelPush`). */
+    /const elegido = \(await perfilDeIdentidad\(cuenta\)\)\?\.data\(\)\?\.language;\s*if \(typeof elegido === 'string' && elegido\) return \{ token, idioma: elegido \};/.test(indice)
+    && /const datos = \(await db\.collection\('pushTokens'\)\.doc\(cuenta\)\.get\(\)\)\.data\(\);/.test(indice)
+    && /idioma: typeof datos\?\.locale === 'string' && datos\.locale \? datos\.locale : null/.test(indice));
   check('18) y la app guarda ese idioma con el token, y lo vuelve a guardar si cambia',
     /savePushToken: async \(accountUid: string, token: string, locale: string\)/.test(leer('services/pushNotificationService.ts'))
     && /savePushToken\(user\.uid, token, locale\)/.test(leer('contexts/PushNotificationContext.tsx'))

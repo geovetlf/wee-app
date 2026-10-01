@@ -3,7 +3,7 @@ import './opciones';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './social/econtact';
-import { avisoPush, cuerpoDelMensaje, datosDelAviso, nombreDeRespaldo, nombreVisible, resumenDeRespuestaDeExpo } from './social/avisos';
+import { avisoPush, cuerpoDelMensaje, cupoDeAvisos, datosDelAviso, nombreDeRespaldo, nombreVisible, resumenDeRespuestaDeExpo } from './social/avisos';
 
 // Inicializar Firebase Admin solo si no está inicializado
 if (admin.apps.length === 0) {
@@ -48,27 +48,45 @@ async function cuentaDeLaIdentidad(identidad: unknown): Promise<string | null> {
 /*
  * EL TOKEN DE PUSH VIVE EN `pushTokens/{cuenta}`, no en el perfil público. Lo
  * escribe solo su dueño y desde el cliente no lo lee nadie: lo lee esto.
- */
-async function tokenDeLaCuenta(cuenta: string | null): Promise<string | null> {
-  if (!cuenta) return null;
-  const token = (await db.collection('pushTokens').doc(cuenta).get()).data()?.token;
-  return typeof token === 'string' && token ? token : null;
-}
-
-/*
- * EN QUÉ IDIOMA LEE UNA CUENTA.
+ *
+ * Y EN QUÉ IDIOMA LEE ESA CUENTA.
  *  1 · El que eligió a mano, en su Perfil Real (`users.language`, `components/SincronizarIdioma.tsx`). Manda siempre.
  *  2 · Si no eligió ninguno, el de la app del aparato que recibe el aviso, que viaja con su token
  *      (`pushTokens/{cuenta}.locale`, `services/pushNotificationService.ts`). Antes de esto, quien usaba Weë en danés
  *      porque su teléfono está en danés recibía los avisos en español.
  *  3 · Sin ninguno de los dos —un token guardado por una app anterior—, null, y el aviso sale en español, como antes.
+ *
+ * El token y el idioma salen de UNA sola lectura de `pushTokens/{cuenta}` (revisión post-auditoría 2026-10-01):
+ * antes se leía dos veces por aviso —una para el token y otra para el locale— y en un mensaje, dos veces por
+ * participante. Sin token no hay a quién avisar y no se lee nada más.
  */
-async function idiomaDeLaCuenta(cuenta: string | null): Promise<string | null> {
+async function destinoDelPush(cuenta: string | null): Promise<{ token: string; idioma: string | null } | null> {
   if (!cuenta) return null;
+  const datos = (await db.collection('pushTokens').doc(cuenta).get()).data();
+  const token = typeof datos?.token === 'string' && datos.token ? datos.token : null;
+  if (!token) return null;
   const elegido = (await perfilDeIdentidad(cuenta))?.data()?.language;
-  if (typeof elegido === 'string' && elegido) return elegido;
-  const delAparato = (await db.collection('pushTokens').doc(cuenta).get()).data()?.locale;
-  return typeof delAparato === 'string' && delAparato ? delAparato : null;
+  if (typeof elegido === 'string' && elegido) return { token, idioma: elegido };
+  return { token, idioma: typeof datos?.locale === 'string' && datos.locale ? datos.locale : null };
+}
+
+/*
+ * EL CUPO DE AVISOS DE UNA CUENTA (`cupoDeAvisos`, social/avisos.ts): una transacción sobre `pushLimits/{cuenta}`,
+ * colección que ningún cliente puede leer ni escribir (no tiene regla). Si no se puede comprobar, no suena: un aviso
+ * de menos es mejor que un teléfono inundado.
+ */
+async function gastarCupoDeAvisos(cuenta: string): Promise<boolean> {
+  try {
+    const ref = db.collection('pushLimits').doc(cuenta);
+    return await db.runTransaction(async (tx) => {
+      const { permitido, estado } = cupoDeAvisos((await tx.get(ref)).data(), Date.now());
+      if (permitido) tx.set(ref, estado);
+      return permitido;
+    });
+  } catch (error) {
+    console.error('Avisos: no se pudo comprobar el cupo', cuenta, error);
+    return false;
+  }
 }
 
 // Re-export avatar generation functions (Gemini only)
@@ -247,15 +265,23 @@ export const sendPushNotification = onDocumentCreated(
         return null;
       }
 
-      const pushToken = await tokenDeLaCuenta(cuenta);
+      const destino = await destinoDelPush(cuenta);
 
-      if (!pushToken) {
+      if (!destino) {
         console.log('El usuario no tiene push token registrado');
+        return null;
+      }
+      const pushToken = destino.token;
+
+      /* El cupo es de la CUENTA que avisa (sus dos caras comparten uno): pasado, el aviso no suena. */
+      const cuentaQueAvisa = await cuentaDeLaIdentidad(senderId);
+      if (!cuentaQueAvisa || !(await gastarCupoDeAvisos(cuentaQueAvisa))) {
+        console.warn('Aviso sin push: remitente sin cuenta o cupo de avisos agotado');
         return null;
       }
 
       const remitente = await perfilDeIdentidad(senderId);
-      const aviso = avisoPush(type, nombreVisible(remitente?.data()), await idiomaDeLaCuenta(cuenta));
+      const aviso = avisoPush(type, nombreVisible(remitente?.data()), destino.idioma);
       if (!aviso) return null;
 
       const data = datosDelAviso(notification, type, event.params.notificationId);
@@ -309,11 +335,12 @@ export const sendMessagePushNotification = onDocumentCreated(
         if (participantId === senderId) continue;
 
         const cuenta = await cuentaDeLaIdentidad(participantId);
-        const pushToken = await tokenDeLaCuenta(cuenta);
+        const destino = await destinoDelPush(cuenta);
 
-        if (pushToken) {
+        if (destino) {
+          const pushToken = destino.token;
           /* En el idioma de quien lo recibe: el respaldo del nombre y lo que la app guarda cuando no hay texto. */
-          const idioma = await idiomaDeLaCuenta(cuenta);
+          const idioma = destino.idioma;
           await sendExpoPush(
             pushToken,
             senderName || nombreDeRespaldo(idioma),

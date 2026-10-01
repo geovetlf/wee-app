@@ -170,7 +170,7 @@ console.log('\n── C · El push lo dice el servidor ──');
   const disparador = indice.slice(indice.indexOf('export const sendPushNotification'), indice.indexOf('export const sendMessagePushNotification'));
   check('27) el disparador ya NO lee `senderName` de la notificación', !/senderName/.test(disparador.replace(/\/\*[\s\S]*?\*\//g, '')));
   check('28) lee el perfil de quien firma y construye el aviso en el servidor',
-    /perfilDeIdentidad\(senderId\)/.test(disparador) && /avisoPush\(type, nombreVisible\(remitente\?\.data\(\)\), await idiomaDeLaCuenta\(cuenta\)\)/.test(disparador) && /datosDelAviso\(notification,/.test(disparador));
+    /perfilDeIdentidad\(senderId\)/.test(disparador) && /avisoPush\(type, nombreVisible\(remitente\?\.data\(\)\), destino\.idioma\)/.test(disparador) && /datosDelAviso\(notification,/.test(disparador));
   check('29) ningún token de push acaba en un log', !/console\.(log|error|warn)\([^)]*pushToken/.test(indice) && !/console\.log\('Expo push response:', result\)/.test(indice));
 }
 

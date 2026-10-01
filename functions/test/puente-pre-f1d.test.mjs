@@ -546,8 +546,14 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     /* La observación del idioma de lo que escribe la IA: se apunta, no se rechaza. */
     'functions/src/creator/idiomaDeSalida.ts', 'functions/src/shared/idiomaDelTexto.ts',
   ];
+  /*
+   * Los de la revisión post-auditoría (2026-10-01), por nombre: el cobro de Weë Brain cuando falla tras generar
+   * (brainUsage), el Credit Engine con dos perfiles (creditEngine), el cupo de avisos (avisos ya estaba; index ya estaba)
+   * y la forma de la etiqueta de idioma desde el Core (idiomaDelServidor ya estaba).
+   */
+  const DE_LA_REVISION = ["functions/src/creator/brain.ts","functions/src/creator/brainUsage.ts","functions/src/credits/creditEngine.ts"];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness y de la integración i18n da-DK',
-    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA,
+    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
@@ -556,7 +562,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     tocados.join(', '));
 
   /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
-  const CREDITS_DEL_HARNESS = '14\t0\tfunctions/src/credits/index.ts';
+  /* + creditEngine.ts: revisión post-auditoría 2026-10-01 (money/remigracion-por-segundo-perfil), bloques exactos en job-queue 63p. */
+  const CREDITS_DEL_HARNESS = '34\t8\tfunctions/src/credits/creditEngine.ts\n14\t0\tfunctions/src/credits/index.ts';
   check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
     git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. */
@@ -571,7 +578,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   check('F4) creatorRun, solo con los arreglos del Harness y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
     git(`diff --numstat ${RUTA} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
       /* creator/index.ts: + 10 de la integración i18n da-DK (el locale) y + 2 de la observación del idioma de salida, ver video-asincrono H2. */
-      === '45\t4\tfunctions/src/creator/credits.ts|111\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
+      === /* + revisión post-auditoría 2026-10-01: el aviso del idioma lleva jobId/stepId (index) y el avatar devuelve sus reservas abandonadas (generateAvatar). */
+      '45\t4\tfunctions/src/creator/credits.ts|111\t10\tfunctions/src/creator/index.ts|129\t12\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 

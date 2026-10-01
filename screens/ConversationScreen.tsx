@@ -268,6 +268,29 @@ const ConversationScreen = () => {
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  /*
+   * SALIR GRABANDO NO DEJA EL MICRÓFONO ABIERTO.
+   *
+   * El contador y la grabación solo se soltaban en `stopRecording`, que llama el botón. Quien salía de la conversación
+   * a mitad de un audio dejaba el intervalo corriendo sobre una pantalla que ya no existe y el micrófono grabando.
+   * Al desmontar se para el contador y se detiene y descarga la grabación —sin enviarla: salir no es enviar—, y el
+   * modo de audio vuelve a reproducir. Las dependencias van vacías a propósito: con cualquier otra, la limpieza se
+   * ejecutaría al cambiar ese valor y cortaría un audio en curso. Si soltarla falla, se registra; no se calla.
+   */
+  useEffect(() => () => {
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
+    const grabacion = recordingRef.current;
+    recordingRef.current = null;
+    if (!grabacion) return;
+    grabacion
+      .stopAndUnloadAsync()
+      .then(() => Audio.setAudioModeAsync({ allowsRecordingIOS: false }))
+      .catch((e) => console.error('Error soltando la grabación al salir de la conversación:', e));
+  }, []);
+
   const startPulse = useCallback(() => {
     const loop = Animated.loop(
       Animated.sequence([
@@ -313,12 +336,17 @@ const ConversationScreen = () => {
     pulseAnim.stopAnimation();
     pulseAnim.setValue(1);
     if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+    /*
+     * La grabación pasa a ser de este envío ANTES de esperar a nada: si la persona sale mientras se detiene, la
+     * limpieza del desmontaje ya no la encuentra en la ref y no la corta a medias —el audio se envía igual—.
+     */
+    const grabacion = recordingRef.current;
+    recordingRef.current = null;
 
     try {
-      await recordingRef.current.stopAndUnloadAsync();
+      await grabacion.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-      const uri = recordingRef.current.getURI();
-      recordingRef.current = null;
+      const uri = grabacion.getURI();
       if (!uri) return;
 
       const durationSec = Math.round((Date.now() - recordStartTime.current) / 1000);

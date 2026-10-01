@@ -1,3 +1,5 @@
+> **LEGADO (HideTok) — no describe Weë actual.** Guía del 2026-01-20, anterior al cambio de nombre a Weë (2026-04-14). Los módulos que cita siguen existiendo (`hooks/useLikes.ts`, `hooks/useFollow.ts`, `services/likesService.ts`, `services/followsService.ts`), pero **las reglas y los índices que propone no son los vigentes**: mandan `firestore.rules` (con los contadores acotados por `contadorSano`) y `firestore.indexes.json`, y solo los despliega el workflow ([`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)). Inventario del legado: [`docs/LEGADO-HIDETOK.md`](docs/LEGADO-HIDETOK.md).
+
 # Guía de Likes y Follows - Arquitectura Escalable
 
 ## 📋 Resumen

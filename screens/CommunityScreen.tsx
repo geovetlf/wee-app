@@ -284,11 +284,14 @@ const CommunityScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Create post prompt */}
+        {/*
+          * Create post prompt. El compositor lee `communitySlug` (CreateScreen, y la dirección /publicar?communitySlug=…):
+          * mandaba `communityId` con un `as any` que tapaba el error, y lo publicado desde aquí no quedaba en la comunidad.
+          */}
         {user && userProfile && (
           <TouchableOpacity
             style={[styles.createPrompt, { backgroundColor: theme.colors.card }]}
-            onPress={() => (navigation as any).navigate('Create', { communityId: community?.slug || communityId })}
+            onPress={() => navigation.navigate('Create', { communitySlug: community.slug })}
             activeOpacity={0.7}
           >
             <AvatarDisplay
@@ -463,7 +466,7 @@ const CommunityScreen: React.FC = () => {
             </Text>
             <TouchableOpacity
               style={[styles.createPostButton, { backgroundColor: theme.colors.accent }]}
-              onPress={() => navigation.navigate('Create')}
+              onPress={() => navigation.navigate('Create', { communitySlug: community.slug })}
             >
               <Text style={styles.createPostButtonText}>{t('communities.createPost')}</Text>
             </TouchableOpacity>

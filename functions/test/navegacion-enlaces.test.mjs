@@ -164,7 +164,7 @@ console.log('\n── Los parámetros: forma estable, recuperable al recargar, y
   const { estado, quitados } = E.sinObjetosSueltos({ routes: [{ name: 'Main' }, { name: 'Reels', params: { initialPost: { id: '1' }, initialVideoPosts: [{ id: '1' }], communitySlug: 'cine' } }], index: 1 }, config.screens);
   const rutaReels = getPathFromState(estado, config);
   check('24) red de seguridad: los objetos de una pantalla que no declara su forma no salen a la dirección', !OBJETO.test(rutaReels) && quitados.join() === 'Reels.initialPost,Reels.initialVideoPosts' && /communitySlug=cine/.test(rutaReels), rutaReels);
-  check('25) y App.tsx la aplica a cada dirección que escribe', /getPathFromState\(estado: any, opciones: any\) \{\s*\n\s*const \{ estado: limpio, quitados \} = sinObjetosSueltos\(estado, opciones\?\.screens\);/.test(app) && /return rutaDesdeEstado\(limpio, opciones\);/.test(app));
+  check('25) y App.tsx la aplica a cada dirección que escribe', /getPathFromState\(estado: Parameters<typeof rutaDesdeEstado>\[0\], opciones\?: Parameters<typeof rutaDesdeEstado>\[1\]\) \{\s*\n\s*const \{ estado: limpio, quitados \} = sinObjetosSueltos\(estado, opciones\?\.screens\);/.test(app) && /return rutaDesdeEstado\(limpio, opciones\);/.test(app));
 
   /* Recargar reconstruye: WEË AI deja su trabajo en la dirección en cuanto existe. */
   check('26) recargar en WEË AI reabre el mismo trabajo: el trabajo queda en la dirección al empezar',
