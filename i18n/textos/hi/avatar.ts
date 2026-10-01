@@ -33,4 +33,8 @@ export const avatar: typeof import('../es/avatar').avatar = {
   cameraPermission: 'फ़ोटो लेने के लिए, Weë को आपके कैमरे का ऐक्सेस चाहिए',
   pickFailed: 'इमेज नहीं चुनी जा सकी. फिर से कोशिश करें.',
   photoFailed: 'फ़ोटो नहीं ली जा सकी',
+  styleAdventurer: 'साहसी',
+  styleRobots: 'रोबोट',
+  styleSmile: 'मुस्कान',
+  stylePeople: 'लोग',
 };

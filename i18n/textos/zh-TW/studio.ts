@@ -394,4 +394,8 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: "Weë 還不會作曲。缺的是音樂，不是影片。",
   pendCompose: "Weë 還不會把多個場景接成一支影片。",
   pendTwoRefs: "Weë 目前只能帶一張參考圖，而這裡需要兩張。",
+  sampleLake: '群山間的湖泊',
+  sampleWarmRoom: '暖色調的客廳',
+  sampleNarration: '中文旁白',
+  sampleDocument: '好想法，成就更好的人',
 };

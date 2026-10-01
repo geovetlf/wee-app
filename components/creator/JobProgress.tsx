@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useT } from '../../contexts/IdiomaContext';
+import { useIdioma } from '../../contexts/IdiomaContext';
+import { textoDelServidor } from '../../i18n/servidor';
 import { CreatorJob } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -29,13 +30,15 @@ interface JobProgressProps {
  */
 const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job }) => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
+  /* El progreso y los pasos los escribe el servidor en español: se pintan en el idioma de quien mira. */
+  const leer = (texto: string): string => textoDelServidor(texto, { t, locale, experiencia: job.experienceId });
   const doneCount = job.steps.filter((s) => s.status === 'done').length;
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
       <TextoEnMayusculas style={[styles.who, { color: theme.colors.accentDark }]}>{t('creaciones.progressWorking', { nombre: experienceName })}</TextoEnMayusculas>
-      <Text style={[styles.title, { color: theme.colors.text }]}>{job.progressText || t('creaciones.progressStarting')}</Text>
+      <Text style={[styles.title, { color: theme.colors.text }]}>{job.progressText ? leer(job.progressText) : t('creaciones.progressStarting')}</Text>
       <Text style={[styles.counter, { color: theme.colors.textSecondary }]}>
         {t('creaciones.progressSteps', { hechos: doneCount, total: job.steps.length })}
       </Text>
@@ -60,7 +63,7 @@ const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job }) => {
                 { color: step.status === 'pending' ? theme.colors.textSecondary : theme.colors.text },
               ]}
             >
-              {step.purpose}
+              {leer(step.purpose)}
             </Text>
           </View>
         ))}

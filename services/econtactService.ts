@@ -50,6 +50,8 @@ import { collection, deleteDoc, doc, getDoc, getDocs, query, where } from 'fireb
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
 import { notificationService } from './notificationService';
+import type { Traductor } from '../i18n/traducir';
+import { mensajeDelServidor } from '../i18n/servidor';
 import {
   EContactDoc,
   EstadoEntre,
@@ -78,8 +80,10 @@ const COLECCION = 'econtacts';
  *
  * Este archivo es un servicio y aquí no hay traductor. El mensaje en español se
  * queda para los registros y las pruebas; lo que ve la persona sale de la
- * clave, en su idioma, con `mensajeDeEContact`. Lo que no sea de aquí —un
- * error del SDK o del servidor— se enseña como llegue.
+ * clave, en su idioma, con `mensajeDeEContact`. Lo que contesta el servidor
+ * (`functions/src/social/econtact.ts`) viene en español y se reconoce contra su
+ * catálogo para decirlo en el idioma de quien mira (`mensajeDelServidor`); lo que
+ * no se reconoce, en otro idioma, no se dice.
  */
 export class ErrorDeEContact extends Error {
   constructor(readonly clave: string, mensaje: string) {
@@ -87,8 +91,11 @@ export class ErrorDeEContact extends Error {
   }
 }
 
-export const mensajeDeEContact = (error: unknown, t: (clave: string) => string): string | undefined =>
-  error instanceof ErrorDeEContact ? t(error.clave) : error instanceof Error ? error.message : undefined;
+export const mensajeDeEContact = (error: unknown, t: Traductor | ((clave: string) => string), locale?: string): string | undefined => {
+  if (error instanceof ErrorDeEContact) return t(error.clave);
+  if (locale) return mensajeDelServidor(error, { t: t as Traductor, locale });
+  return error instanceof Error ? error.message : undefined;
+};
 
 /** La cuenta de quien está usando Weë. null si no hay sesión. */
 const miCuenta = (): string | null => auth?.currentUser?.uid || null;

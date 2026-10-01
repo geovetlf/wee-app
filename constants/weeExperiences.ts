@@ -55,8 +55,9 @@ export interface WeeExperience {
    *
    * NO son interfaz y por eso no se traducen: nadie las lee, se comparan con lo
    * que alguien escribe. Traducirlas sería cambiar a dónde va una búsqueda, que
-   * es lógica y no texto. Que Weë entienda también a quien busca en inglés es
-   * otro trabajo —y otro bloque—, no una traducción de esta lista.
+   * es lógica y no texto. Por eso esta lista se queda como está, y lo que escribe
+   * quien usa Weë en otro idioma se reconoce con `PALABRAS_POR_IDIOMA`, que AÑADE
+   * palabras y nunca quita ni cambia estas.
    */
   keywords: string[];
 }
@@ -237,6 +238,78 @@ export const WEE_EXPERIENCES: WeeExperience[] = (() => {
 })();
 
 /**
+ * Lo que escribe quien usa Weë en otro idioma, por experiencia.
+ *
+ * Sin esto, quien escribe «opskrift» en danés leía «Weë todavía no hace eso»
+ * —falso: Weë Chef lo hace—, porque solo se reconocían palabras en español.
+ *
+ * Reglas, para que nada cambie para nadie más:
+ *  · se SUMAN a `keywords`, nunca las sustituyen; en español la búsqueda es la de siempre;
+ *  · solo cuentan las del idioma de la app de esa persona (`matchExperiences(q, idioma)`);
+ *  · se comparan con más cuidado que las españolas (`encajaEnSuIdioma`): una frase solo cuenta entera y como
+ *    palabras sueltas —«my home» no está dentro de «my homework»—; una palabra cuenta si lo escrito empieza por ella
+ *    («opskrifter»), si va dentro de una palabra compuesta y tiene al menos cuatro letras («aftensmadsopskrift»), o
+ *    si alguien la está tecleando y ya lleva cuatro letras («opsk»). Con tres letras no basta: «lav», «mor» o «mit»
+ *    son palabras de cada día y no el principio de una búsqueda;
+ *  · y aun así no entran palabras que son el principio de otras de uso diario: ni «mad» (sería Madrid), ni «hus»
+ *    (huske), ni «tog» (el pasado de «tage»), ni «look» (looking), ni «train» (training), ni «hjem» (hjemmeside), ni
+ *    «klip» (klipning), ni «bage» (bagefter), ni «kunst» (kunstig intelligens), ni «hair» (chair), ni «work»
+ *    (homework), ni «kok» (kokos). Para esas va la forma larga.
+ */
+export const PALABRAS_POR_IDIOMA: Readonly<Record<'da' | 'en', Readonly<Record<string, readonly string[]>>>> = {
+  da: {
+    design: ['logo', 'design', 'plakat', 'flyer', 'banner', 'forside', 'branding', 'illustration', 'klistermærke', 'visitkort', 'invitation', 'tegning', 'kunstværk', 'grafik', 'sociale medier'],
+    studio: ['video', 'videoer', 'film', 'videoklip', 'reklame', 'reklamefilm', 'animation', 'kortfilm', 'trailer', 'undertekster', 'tiktok', 'youtube', 'reel'],
+    photo: ['foto', 'billede', 'billeder', 'fotografi', 'retouchere', 'retouchering', 'baggrund', 'restaurere', 'portræt', 'filter', 'fjerne', 'avatar', 'selfie', 'profilbillede', 'skarphed', 'kvalitet', 'sløret', 'uskarp'],
+    writer: ['tekst', 'manuskript', 'skrive', 'skriv', 'historie', 'eventyr', 'bog', 'bøger', 'e-bog', 'roman', 'blog', 'artikel', 'billedtekst', 'opslag', 'beskrivelse', 'biografi', 'digt', 'brev', 'mail', 'korrektur', 'ideer'],
+    music: ['musik', 'sang', 'jingle', 'beat', 'melodi', 'instrumental', 'lydfil', 'lydbog', 'stemme', 'speak', 'podcast', 'fortælling', 'oplæsning', 'dubbing'],
+    beauty: ['skønhed', 'makeup', 'make-up', 'frisure', 'klipning', 'hårfarve', 'håret', 'mit hår', 'outfit', 'tøj', 'negle', 'hudpleje', 'skæg', 'briller', 'påklædning'],
+    chef: ['opskrift', 'madlavning', 'lave mad', 'madplan', 'aftensmad', 'morgenmad', 'madpakke', 'menu', 'ingredienser', 'kostplan', 'sund', 'frokost', 'dessert', 'restaurant', 'kage', 'bagning', 'kokken'],
+    home: ['mit hjem', 'hjemmet', 'derhjemme', 'bolig', 'indretning', 'indrette', 'stue', 'værelse', 'soveværelse', 'interiør', 'møbler', 'haven', 'renovere', 'renovering', 'kontor', 'badeværelse', 'køkken', 'udendørs', 'terrasse', 'altan'],
+    business: ['forretning', 'virksomhed', 'iværksætter', 'markedsføring', 'salg', 'sælge', 'præsentation', 'pitch', 'forretningsplan', 'kampagne', 'kunde', 'butik', 'firma', 'strategi', 'annonce', 'pris', 'cv', 'ansøgning', 'dokument', 'analyse', 'job', 'arbejde'],
+    travel: ['rejse', 'ferie', 'rejseplan', 'destination', 'turisme', 'turist', 'flyrejse', 'flybillet', 'hotel', 'strand', 'backpacker', 'rute', 'udflugt', 'kuffert', 'visum', 'lufthavn', 'togrejse', 'krydstogt', 'guide', 'storby', 'udlandet'],
+    brain: ['hjælp', 'spørgsmål', 'tænke', 'lære', 'forklar', 'opsummering', 'opsummere', 'organisere', 'planlægge', 'studere', 'lektier', 'opgave', 'undersøge', 'oversætte', 'oversæt', 'problem', 'råd', 'ved ikke'],
+  },
+  en: {
+    design: ['logo', 'design', 'poster', 'flyer', 'banner', 'book cover', 'album cover', 'brand', 'branding', 'illustration', 'sticker', 'business card', 'invitation', 'drawing', 'artwork', 'graphic', 'social media'],
+    studio: ['video', 'clip', 'reel', 'commercial', 'advert', 'animation', 'short film', 'movie', 'film', 'trailer', 'subtitles', 'tiktok', 'youtube'],
+    photo: ['photo', 'picture', 'image', 'retouch', 'enhance', 'background', 'restore', 'portrait', 'filter', 'remove', 'avatar', 'selfie', 'profile picture', 'sharpen', 'quality', 'blurry'],
+    writer: ['text', 'script', 'write', 'story', 'book', 'ebook', 'novel', 'blog', 'article', 'caption', 'post', 'description', 'biography', 'poem', 'letter', 'email', 'proofread', 'idea'],
+    music: ['music', 'song', 'jingle', 'beat', 'melody', 'instrumental', 'audio', 'sound', 'voice', 'voiceover', 'podcast', 'narration', 'dubbing'],
+    beauty: ['beauty', 'makeup', 'hairstyle', 'haircut', 'hair color', 'my hair', 'outfit', 'clothes', 'nails', 'skin', 'fashion', 'beard', 'glasses'],
+    chef: ['recipe', 'cooking', 'cook', 'food', 'meal', 'menu', 'dish', 'ingredients', 'diet', 'healthy', 'dinner', 'lunch', 'breakfast', 'dessert', 'restaurant', 'substitute', 'chef', 'baking'],
+    home: ['house', 'my home', 'home decor', 'decor', 'decorate', 'living room', 'bedroom', 'interior', 'furniture', 'garden', 'remodel', 'renovate', 'renovation', 'office', 'bathroom', 'kitchen', 'outdoor', 'patio'],
+    business: ['business', 'startup', 'entrepreneur', 'marketing', 'sales', 'sell', 'presentation', 'pitch', 'campaign', 'customer', 'client', 'shop', 'store', 'company', 'strategy', 'advertising', 'price', 'pricing', 'resume', 'cv', 'document', 'analysis', 'job'],
+    travel: ['trip', 'travel', 'vacation', 'holiday', 'itinerary', 'destination', 'tourism', 'tourist', 'flight', 'hotel', 'beach', 'backpacking', 'route', 'excursion', 'suitcase', 'passport', 'visa', 'airport', 'train ride', 'cruise', 'guide', 'city break', 'abroad'],
+    brain: ['help', 'question', 'think', 'learn', 'explain', 'summary', 'summarize', 'organize', 'study', 'homework', 'research', 'translate', 'problem', 'advice', "don't know", 'not sure'],
+  },
+};
+
+/** Una frase de otro idioma, entera y como palabras sueltas. */
+const frasesCompiladas = new Map<string, RegExp>();
+const fraseEntera = (k: string): RegExp => {
+  let re = frasesCompiladas.get(k);
+  if (!re) {
+    re = new RegExp(`(?<![\\p{L}\\p{N}])${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'u');
+    frasesCompiladas.set(k, re);
+  }
+  return re;
+};
+
+/** Si una palabra de `PALABRAS_POR_IDIOMA` encaja con lo escrito (las reglas, arriba de la tabla). */
+const encajaEnSuIdioma = (k: string, q: string, words: string[]): boolean => {
+  if (k.includes(' ')) return fraseEntera(k).test(q);
+  return words.some((w) => w.startsWith(k) || (w.length >= 4 && k.startsWith(w))) || (k.length >= 4 && q.includes(k));
+};
+
+/** Las palabras de un idioma de la app, o ninguna: el español ya está en `keywords`. */
+const palabrasDelIdioma = (idioma?: string): Readonly<Record<string, readonly string[]>> | undefined => {
+  const base = /^(da|en)(?:-|$)/i.exec(idioma ?? '')?.[1];
+  if (!base) return undefined;
+  return PALABRAS_POR_IDIOMA[/^en$/i.test(base) ? 'en' : 'da'];
+};
+
+/**
  * Cómo se presenta una experiencia que vive dentro de otra sección. El
  * identificador no cambia —sigue siendo `photo`, y con él viajan el historial y
  * el servidor—, pero lo que se lee arriba dice dónde está de verdad la persona.
@@ -284,19 +357,24 @@ export const experienceLabel = (
 export const getExperienceById = (id: string): WeeExperience | undefined =>
   ALL_EXPERIENCES.find((e) => e.id === id);
 
+
+
 /**
  * Experiencias cuyo nombre o palabras clave coinciden con lo que la persona
  * quiere lograr. Busca entre todas a propósito: quien escribe "maquillaje" o
  * "retocar" tiene que llegar a esa capacidad aunque su sección ya no esté en el
  * menú. Esconder una sección no es esconder lo que sabe hacer.
  */
-export const matchExperiences = (query: string): WeeExperience[] => {
+export const matchExperiences = (query: string, idioma?: string): WeeExperience[] => {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const words = q.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3);
+  const encaja = (k: string) => q.includes(k) || words.some((w) => k.startsWith(w) || w.startsWith(k));
+  const suyas = palabrasDelIdioma(idioma);
   return ALL_EXPERIENCES.filter(
     (e) =>
       e.name.toLowerCase().includes(q) ||
-      e.keywords.some((k) => q.includes(k) || words.some((w) => k.startsWith(w) || w.startsWith(k)))
+      e.keywords.some(encaja) ||
+      !!suyas?.[e.id]?.some((k) => encajaEnSuIdioma(k, q, words))
   );
 };

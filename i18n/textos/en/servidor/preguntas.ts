@@ -1,0 +1,52 @@
+/*
+ * ENGLISH — Preguntas del flujo guiado de Weë AI (43). Las hace Weë en una burbuja de la conversación; ver
+ * `../../es/servidor/preguntas.ts`.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Y además es el último escalón del respaldo, así que no puede tener huecos.
+ */
+export const preguntas: typeof import('../../es/servidor/preguntas').preguntas = {
+  designWhat: 'Tell me what you need and I’ll suggest where to start',
+  designName: 'What name or text should appear on it?',
+  designFeel: 'What do you want your brand to convey?',
+  designMessage: 'What do you want to announce or share?',
+  designWhere: 'Where are you going to post it?',
+  designItem: 'What product do you want to design?',
+  designLook: 'How do you picture it?',
+  designMachine: 'What vehicle or machine are you picturing?',
+  designEra: 'From what era?',
+  designPlace: 'What place or setting do you want to create?',
+  designInout: 'Is it an indoor or outdoor space?',
+  designWho: 'What kind of character do you want to create?',
+  designDraw: 'What visual style do you want?',
+  studioType: 'What kind of video?',
+  studioStyle: 'What style do you want?',
+  studioWhere: 'Where are you going to post it?',
+  photoAction: 'What shall we do with your photo?',
+  photoDetail: 'How would you like it?',
+  writerWhat: 'What are we writing?',
+  writerTone: 'What tone?',
+  writerLanguage: 'Into which language?',
+  musicWhat: 'What do you want to create?',
+  musicStyle: 'What style?',
+  musicMood: 'What mood?',
+  musicVoice: 'What kind of voice?',
+  beautyWhat: 'What do you want to try?',
+  beautyOccasion: 'What’s the occasion?',
+  chefWhat: 'What do you want to do?',
+  chefChange: 'What do you want to change in the photo?',
+  chefPeople: 'How many people is it for?',
+  chefTime: 'How much time do you have?',
+  chefDays: 'For how many days?',
+  homeWhat: 'What do you want to do?',
+  homeSpace: 'Which space?',
+  homeStyle: 'What style?',
+  businessWhat: 'How can I help you?',
+  businessTone: 'How formal?',
+  travelWhat: 'What do you need?',
+  travelVibe: 'What are you looking for on this trip?',
+  travelDates: 'When are you travelling?',
+  travelInterest: 'What are you most in the mood for?',
+  travelPace: 'At what pace?',
+  brainWhat: 'How can I help you?',
+};

@@ -4,7 +4,8 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useT } from '../../contexts/IdiomaContext';
+import { useIdioma } from '../../contexts/IdiomaContext';
+import { textoDelServidor } from '../../i18n/servidor';
 import { AssetDoc, assetsService } from '../../services/assetsService';
 import { CLAVE_DE_ESTADO, CLAVE_DE_TIPO, vistaDeAsset } from '../../services/vistaDeAsset';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -53,7 +54,9 @@ interface TarjetaProps {
 
 const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDelete }) => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
+  /* El nombre de una creación es el paso del plan que la hizo, escrito por el servidor: en el idioma de quien mira. */
+  const nombreDe = (nombre: string | undefined): string | undefined => (nombre ? textoDelServidor(nombre, { t, locale }) : nombre);
   /*
    * TODO LO QUE SE ENSEÑA SALE DE LA PROYECCIÓN, no del documento.
    *
@@ -79,7 +82,7 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
         activeOpacity={0.85}
         style={[styles.card, { backgroundColor: theme.colors.card, borderColor: fallo ? theme.colors.error : theme.colors.border }]}
         accessibilityRole="button"
-        accessibilityLabel={t('creaciones.openCreation', { nombre: asset.name || t(claveDeTipo) })}
+        accessibilityLabel={t('creaciones.openCreation', { nombre: nombreDe(asset.name) || t(claveDeTipo) })}
         /* El estado también se dice, no solo se pinta: una creación fallida o en proceso no puede sonar igual que una lista. */
         accessibilityHint={claveDeEstado ? t(claveDeEstado) : undefined}
       >
@@ -115,7 +118,7 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
         </View>
         <View style={styles.footer}>
           <Text style={[styles.name, { color: theme.colors.text }]} numberOfLines={2}>
-            {asset.name || t(claveDeTipo)}
+            {nombreDe(asset.name) || t(claveDeTipo)}
           </Text>
           {onDelete && (
             <TouchableOpacity

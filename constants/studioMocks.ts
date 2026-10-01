@@ -22,6 +22,8 @@ export interface CreacionDeMuestra {
   tipo: TipoDeCreacion;
   /** Lo que escribió quien la creó. Contenido, no interfaz. */
   titulo: string;
+  /** Estas son de muestra: su título va como clave (ver `CreacionEnLaFila.claveTitulo`). */
+  claveTitulo?: string;
   /** Solo los videos: cuánto duran, ya formateado. */
   duracion?: string;
   /** El color de la lámina mientras no hay medio real que enseñar. */
@@ -45,10 +47,10 @@ export const ICONO_DEL_TIPO: Record<TipoDeCreacion, string> = {
 };
 
 export const CREACIONES_DE_MUESTRA: CreacionDeMuestra[] = [
-  { id: 'm1', tipo: 'image', titulo: 'Lago entre montañas', tono: '#DCE7F0' },
-  { id: 'm2', tipo: 'video', titulo: 'Salon en calido', duracion: '0:12', tono: '#EFE7DC' },
-  { id: 'm3', tipo: 'audio', titulo: 'Narracion en espanol', tono: '#E8E8EA' },
-  { id: 'm4', tipo: 'document', titulo: 'Good Ideas Better People', tono: '#F1EEE7' },
+  { id: 'm1', tipo: 'image', titulo: 'Lago entre montañas', claveTitulo: 'studio.sampleLake', tono: '#DCE7F0' },
+  { id: 'm2', tipo: 'video', titulo: 'Salón en tonos cálidos', claveTitulo: 'studio.sampleWarmRoom', duracion: '0:12', tono: '#EFE7DC' },
+  { id: 'm3', tipo: 'audio', titulo: 'Narración en español', claveTitulo: 'studio.sampleNarration', tono: '#E8E8EA' },
+  { id: 'm4', tipo: 'document', titulo: 'Buenas ideas, mejores personas', claveTitulo: 'studio.sampleDocument', tono: '#F1EEE7' },
 ];
 
 /**
@@ -68,6 +70,7 @@ export const CREACIONES_DEL_STUDIO = CREACIONES_DE_MUESTRA.map((c) => ({
   claveTipo: CLAVE_DEL_TIPO[c.tipo],
   icono: ICONO_DEL_TIPO[c.tipo],
   titulo: c.titulo,
+  claveTitulo: c.claveTitulo,
   tono: c.tono,
   duracion: c.duracion,
 }));

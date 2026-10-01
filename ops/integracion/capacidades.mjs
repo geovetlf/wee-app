@@ -65,6 +65,8 @@ export const SUSTITUIDAS = {
   'wall.reportSpam': { por: 'moderation.reasonSpam', porque: 'c3515b3: motivos de ReportSheet' },
   'wall.reportThanks': { por: 'moderation.successBody', porque: 'c3515b3: el agradecimiento tras denunciar' },
   'wall.reportWhy': { por: 'moderation.chooseReason', porque: 'c3515b3: «Selecciona un motivo»' },
+  'aiAvatar.generatedWithGemini': { por: 'aiAvatar.generatedWithAi', porque: 'i18n da-DK (2026-10-01): el avatar lo hace «Weë AI»; la persona nunca ve el nombre de un proveedor' },
+  'composer.bizNoAgenda': { por: 'composer.profileNoAgenda', porque: 'i18n da-DK (2026-10-01): el Perfil Biz se eliminó el 2026-09-19; el aviso habla de «este perfil»' },
 };
 
 const faltan = (vivo, propuesto) => [...vivo].filter((x) => !propuesto.has(x) && !(SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por))).sort();

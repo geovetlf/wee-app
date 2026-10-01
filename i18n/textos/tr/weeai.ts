@@ -252,4 +252,5 @@ export const weeai: typeof import('../es/weeai').weeai = {
   imageCount_other: '{{contador}} görsel',
   durationSeconds: '{{segundos}} sn.',
   volumeDiscount: '%{{descuento}} toplu alım indirimi',
+  createWork: 'Oluştur',
 };

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { textoDeObjetivo } from '../../i18n/servidor';
 import { CreatorJob, claveDelEstado } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -65,12 +66,12 @@ const ChefProyectos: React.FC<Props> = ({ proyectos, onAbrir, onVerTodos }) => {
               activeOpacity={0.8}
               accessibilityRole="button"
               /* El objetivo lo escribió la persona: es contenido, no interfaz, y no pasa por el traductor. */
-              accessibilityLabel={job.goal}
+              accessibilityLabel={textoDeObjetivo(t, job.experienceId, job.goal)}
             >
               <View style={[styles.lamina, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
                 <Ionicons name="restaurant-outline" size={scale(28)} color={theme.colors.textSecondary} />
               </View>
-              <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={2}>{job.goal}</Text>
+              <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={2}>{textoDeObjetivo(t, job.experienceId, job.goal)}</Text>
               <Text style={[styles.estado, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                 {t(claveDelEstado[job.status])}
               </Text>

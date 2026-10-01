@@ -224,4 +224,5 @@ export const weeai: typeof import('../es/weeai').weeai = {
   imageCount_other: '이미지 {{contador}}장',
   durationSeconds: '{{segundos}}초',
   volumeDiscount: '수량 할인 −{{descuento}}%',
+  createWork: '만들기',
 };

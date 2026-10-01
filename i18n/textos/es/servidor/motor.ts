@@ -1,0 +1,53 @@
+/*
+ * ESPAÑOL — Los errores controlados que el servidor de Weë AI y de Weë Brain devuelve a la app.
+ *
+ * Salen de `functions/src/engine/errors.ts` (el catálogo por código y `assertText`), `creator/index.ts`,
+ * `creator/inputs.ts`, `creator/brain.ts`, `creator/video.ts`, `engine/router.ts`, `engine/video.ts` y
+ * `content/index.ts`. Son EXACTAMENTE las frases del servidor: la app reconoce la que le llega y la pinta en el idioma
+ * de quien mira. Los huecos `{{campo}}` y `{{archivo}}` se rellenan con las piezas `campo…` y `archivo…`, que son las
+ * que el servidor mete ahí.
+ */
+export const motor = {
+  invalidRequest: 'Falta algo en tu pedido. Revísalo e inténtalo de nuevo.',
+  unauthorized: 'Inicia sesión para crear con Weë.',
+  providerError: 'La IA no pudo completar tu creación esta vez. No te cobré: inténtalo de nuevo en un momento.',
+  generationFailed: 'No pude terminar tu creación. No te cobré: inténtalo de nuevo.',
+  timeout: 'Tardó demasiado y lo detuve. No te cobré: inténtalo de nuevo.',
+  rateLimited: 'Has hecho muchas creaciones seguidas. No te cobré: espera un momento e inténtalo de nuevo.',
+  duplicate: 'Esa creación ya está en marcha.',
+  notAvailable: 'Esta función todavía no está disponible.',
+  inputRejected: 'La foto o el video no se pudieron usar para generar: no se aceptan rostros reales ni ese contenido. Prueba con otra imagen o descripción.',
+  faltaCampo: 'Falta {{campo}}.',
+  revisaCampo: 'Revisa {{campo}}: debe tener entre 1 y {{max}} caracteres.',
+  campoMensaje: 'tu mensaje',
+  campoDescripcionVideo: 'la descripción del video',
+  conversacionNoEncontrada: 'No encontramos esta conversación.',
+  sinPlan: 'Este trabajo todavía no tiene plan.',
+  sinUnPlan: 'Este trabajo todavía no tiene un plan.',
+  yaTienePlan: 'Este trabajo ya tiene un plan.',
+  subeFoto: 'Sube una foto para que Weë pueda trabajar con ella.',
+  trabajoNoEncontrado: 'No encontramos este trabajo.',
+  trabajoAjeno: 'Este trabajo no es tuyo.',
+  experienciaDesconocida: 'Experiencia desconocida.',
+  faltaTrabajo: 'Falta el trabajo.',
+  intentoSinTiempo: 'Ese intento se quedó sin tiempo y te devolví los Credits. Puedes volver a intentarlo.',
+  fotoDireccion: 'La dirección de la foto no es válida.',
+  fotoSubir: 'La foto debe subirse a Weë antes de usarla.',
+  fotoAjena: 'Esa foto no es tuya.',
+  archivoSube: 'Sube el {{archivo}} para que Weë pueda leerlo.',
+  archivoDireccion: 'La dirección del {{archivo}} no es válida.',
+  archivoSubir: 'El {{archivo}} debe subirse a Weë antes de usarlo.',
+  archivoAjeno: 'Ese {{archivo}} no es tuyo.',
+  archivoDocumento: 'documento',
+  archivoAudio: 'audio',
+  sinTiempoAntes: 'Esto se quedó sin tiempo antes de empezar. No te cobré.',
+  sinProveedor: 'Ahora mismo no hay una IA disponible para esto. Inténtalo más tarde.',
+  describeVideo: 'Cuéntame qué video quieres crear.',
+  creacionTerminada: 'Esa creación ya terminó y no se vuelve a hacer. Búscala en tus creaciones.',
+  tomaInvalida: 'Esa toma no tiene forma válida.',
+  planoInvalido: 'Ese plano no tiene forma válida.',
+  produccionNoEncontrada: 'No encontramos esa producción.',
+  tomaNoGenerable: 'Esa toma no se puede generar así.',
+  creacionNoEncontrada: 'No encontramos esa creación.',
+  debesIniciarSesion: 'Debes iniciar sesión',
+};

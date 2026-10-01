@@ -71,7 +71,7 @@ export const weebiz = {
   categoryMissing: 'Selecciona una categoría.',
   updated: 'Tu negocio ha sido actualizado.',
   createdTitle: 'Negocio creado',
-  created: 'Tu negocio ya está en Weë Biz. Ahora puedes cambiar a tu perfil de negocio desde el menú.',
+  created: 'Tu negocio ya está en Weë Business. Abre su perfil para revisarlo y completarlo.',
   viewProfile: 'Ver perfil',
   saveFailed: 'No se pudo guardar el negocio.',
   catProfessionalServices: 'Servicios',

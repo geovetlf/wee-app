@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { textoDeObjetivo } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useWallet } from '../hooks/useWallet';
@@ -37,7 +38,7 @@ const isWeb = Platform.OS === 'web';
  */
 const WeeCreatorScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { t, formato } = useIdioma();
+  const { t, formato, locale } = useIdioma();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile } = useUserProfile();
   const navigation = useNavigation<any>();
@@ -50,7 +51,7 @@ const WeeCreatorScreen: React.FC = () => {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(initialCategory || null);
 
-  const matches = useMemo(() => matchExperiences(query), [query]);
+  const matches = useMemo(() => matchExperiences(query, locale), [query, locale]);
   const selected = WEE_EXPERIENCES.find((c) => c.id === selectedId) || null;
 
   // "Avísame cuando esté": categorías en las que la persona ya se anotó
@@ -273,7 +274,7 @@ const WeeCreatorScreen: React.FC = () => {
                 >
                   <Text style={styles.jobEmoji}>{exp?.emoji ?? '✨'}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{job.goal}</Text>
+                    <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{textoDeObjetivo(t, job.experienceId, job.goal)}</Text>
                     <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
                       {/*
                         El nombre con el que esa experiencia se presenta hoy, no

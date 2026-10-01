@@ -91,4 +91,8 @@ export const design: typeof import('../es/design').design = {
   kindArchitecture: '建築',
   kindBoat: '船',
   kindFurniture: '家具',
+  sampleLivingRoom: '明るいリビング',
+  samplePineHouse: '松林の家',
+  sampleYacht: '15メートルのヨット',
+  sampleArmchair: '木製のアームチェア',
 };

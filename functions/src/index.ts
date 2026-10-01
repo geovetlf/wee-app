@@ -3,7 +3,7 @@ import './opciones';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './social/econtact';
-import { avisoPush, datosDelAviso, nombreVisible, NOMBRE_POR_DEFECTO, resumenDeRespuestaDeExpo } from './social/avisos';
+import { avisoPush, cuerpoDelMensaje, datosDelAviso, nombreDeRespaldo, nombreVisible, resumenDeRespuestaDeExpo } from './social/avisos';
 
 // Inicializar Firebase Admin solo si no está inicializado
 if (admin.apps.length === 0) {
@@ -53,6 +53,17 @@ async function tokenDeLaCuenta(cuenta: string | null): Promise<string | null> {
   if (!cuenta) return null;
   const token = (await db.collection('pushTokens').doc(cuenta).get()).data()?.token;
   return typeof token === 'string' && token ? token : null;
+}
+
+/*
+ * EN QUÉ IDIOMA LEE UNA CUENTA. Lo guarda la app en su Perfil Real (`users.language`, al terminar el alta y cada vez
+ * que la persona lo cambia: `components/SincronizarIdioma.tsx`), que es el perfil cuyo `uid` es la cuenta. Sin él,
+ * null, y el aviso sale en español, como siempre.
+ */
+async function idiomaDeLaCuenta(cuenta: string | null): Promise<string | null> {
+  if (!cuenta) return null;
+  const idioma = (await perfilDeIdentidad(cuenta))?.data()?.language;
+  return typeof idioma === 'string' && idioma ? idioma : null;
 }
 
 // Re-export avatar generation functions (Gemini only)
@@ -239,7 +250,7 @@ export const sendPushNotification = onDocumentCreated(
       }
 
       const remitente = await perfilDeIdentidad(senderId);
-      const aviso = avisoPush(type, nombreVisible(remitente?.data()));
+      const aviso = avisoPush(type, nombreVisible(remitente?.data()), await idiomaDeLaCuenta(cuenta));
       if (!aviso) return null;
 
       const data = datosDelAviso(notification, type, event.params.notificationId);
@@ -287,18 +298,21 @@ export const sendMessagePushNotification = onDocumentCreated(
 
       /* El nombre que se enseña es el de la cara que escribió; el token, el de la cuenta que recibe. */
       const senderDoc = await perfilDeIdentidad(senderId);
-      const senderName = nombreVisible(senderDoc?.data()) || NOMBRE_POR_DEFECTO;
+      const senderName = nombreVisible(senderDoc?.data());
 
       for (const participantId of participants) {
         if (participantId === senderId) continue;
 
-        const pushToken = await tokenDeLaCuenta(await cuentaDeLaIdentidad(participantId));
+        const cuenta = await cuentaDeLaIdentidad(participantId);
+        const pushToken = await tokenDeLaCuenta(cuenta);
 
         if (pushToken) {
+          /* En el idioma de quien lo recibe: el respaldo del nombre y lo que la app guarda cuando no hay texto. */
+          const idioma = await idiomaDeLaCuenta(cuenta);
           await sendExpoPush(
             pushToken,
-            senderName,
-            content?.substring(0, 100) || 'Te envió un mensaje',
+            senderName || nombreDeRespaldo(idioma),
+            cuerpoDelMensaje(content, idioma),
             { type: 'message', conversationId, senderId }
           );
         }

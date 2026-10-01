@@ -881,7 +881,7 @@ const AiAvatarScreen: React.FC = () => {
               </View>
 
               <Text style={[styles.sectionTitle, { color: theme.colors.text, textAlign: 'center', marginBottom: SPACING.sm }]}>
-                {t('aiAvatar.generatedWithGemini')}
+                {t('aiAvatar.generatedWithAi')}
               </Text>
               <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary, textAlign: 'center' }]}>
                 {t('aiAvatar.nowTakeAPhoto')}

@@ -210,4 +210,5 @@ export const weeai = {
   imageCount_other: '{{contador}} imágenes',
   durationSeconds: '{{segundos}} s',
   volumeDiscount: '−{{descuento}}% por cantidad',
+  createWork: 'Crear',
 };

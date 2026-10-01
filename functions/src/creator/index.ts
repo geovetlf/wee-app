@@ -26,6 +26,7 @@ import { serviceForCapability } from '../credits/creditCosts';
 import { imageServiceFor } from '../credits/aiPricing';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { operacionAbandonada } from '../core';
+import { etiquetaDeIdioma } from '../shared/idiomaDelServidor';
 import { crearMaterialDesdeUrl } from '../content';
 
 /**
@@ -200,6 +201,8 @@ interface ChatInput {
   projectId?: string;
   /** Foto subida por la persona a Storage de Weë (users/{uid}/creator-inputs/…). */
   imageUrl?: string;
+  /** El idioma de la app ('da-DK'). Se guarda con el trabajo; sin él, el trabajo sigue en español. */
+  locale?: string;
 }
 
 /** Un resultado del Weë Video Engine con la misma forma que devuelve el gateway. */
@@ -342,6 +345,10 @@ export const creatorChat = onCall(
           if (respuesta) job.answers.push({ questionId: question.id, ...respuesta });
         }
       }
+
+      /* El idioma de quien crea: el último que mandó la app, si tiene forma de idioma (lo demás se descarta). */
+      const idiomaDeLaApp = etiquetaDeIdioma(data.locale);
+      if (idiomaDeLaApp) job.locale = idiomaDeLaApp;
 
       const turn = await getPlanner().next({
         experienceId: job.experienceId,
@@ -565,6 +572,9 @@ export const creatorRun = onCall(
       if (reclamo.estado === 'hecho') return { jobId, status: 'done' };
       /* Desde aquí manda el trabajo leído DENTRO del reclamo (presupuesto, calidad y pasos vigentes). */
       job = { ...job, ...reclamo.trabajo } as CreatorJob;
+      /* Si la app manda su idioma al crear, manda sobre el guardado: la persona pudo cambiarlo después de contestar. */
+      const idiomaDeLaLlamada = etiquetaDeIdioma((request.data || {}).locale);
+      if (idiomaDeLaLlamada) job = { ...job, locale: idiomaDeLaLlamada };
       if (!job.plan) throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
 
       const description = `WEË AI · ${TEMPLATES[job.experienceId].name}`;

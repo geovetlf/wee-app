@@ -1191,7 +1191,11 @@ export const repostsService = {
 // === FUNCIONES DE BÚSQUEDA ===
 
 // Buscar usuarios por displayName (búsqueda simple)
-export const searchUsers = async (searchQuery: string, limitCount = 10): Promise<UserProfile[]> => {
+/**
+ * `locale` ordena los nombres como se ordenan en el idioma de quien busca (en danés, «Å» va al final del alfabeto).
+ * Sin él, el orden del aparato.
+ */
+export const searchUsers = async (searchQuery: string, limitCount = 10, locale?: string): Promise<UserProfile[]> => {
   try {
     if (!searchQuery || searchQuery.trim().length < 2) return [];
 
@@ -1229,7 +1233,7 @@ export const searchUsers = async (searchQuery: string, limitCount = 10): Promise
       const aExact = paraBuscar(a.displayName).startsWith(searchLower) ? 1 : 0;
       const bExact = paraBuscar(b.displayName).startsWith(searchLower) ? 1 : 0;
       if (aExact !== bExact) return bExact - aExact;
-      return (a.displayName || '').localeCompare(b.displayName || '', 'es');
+      return (a.displayName || '').localeCompare(b.displayName || '', locale);
     });
 
     return filtered.slice(0, limitCount);

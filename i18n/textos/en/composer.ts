@@ -59,7 +59,7 @@ export const composer: typeof import('../es/composer').composer = {
   removeMentions_one: 'Remove the mention',
   removeMentions_other: 'Remove the mentions',
   signInToMention: 'Sign in to Weë to mention your ËContact.',
-  bizNoAgenda: 'The Biz profile has no ËContact list. Switch to the Real profile or the Weë profile to mention someone.',
+  profileNoAgenda: 'This profile has no ËContact list. Switch to your Real profile or your Weë profile to mention someone.',
   noContactsYet: 'You don’t have any {{lista}} yet. When you connect with someone from their profile, they’ll show up here so you can mention them.',
   mentionAnyone: 'Mention anyone from your {{lista}}',
   publishIn: 'POST TO',
@@ -134,4 +134,6 @@ export const composer: typeof import('../es/composer').composer = {
   searchPlaceHint: 'Search for a city or a country to tag your post.',
   aiProcessCreatedWith: 'Made with {{nombre}} in Weë AI',
   aiProcessDemoPreview: '{{proceso}} (demo mode preview)',
+  distanceUnder: 'Less than {{distancia}}',
+  distanceOver: 'More than {{distancia}}',
 };

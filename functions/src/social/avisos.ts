@@ -14,6 +14,8 @@
  *
  * Puro a propósito: sin Firebase ni red, para probarlo sin emuladores.
  */
+import { AVISOS } from '../shared/textosDelServidor';
+import { rellenarTexto, tablaDelIdioma } from '../shared/idiomaDelServidor';
 
 /** Si el perfil no se encuentra o no tiene un nombre que se pueda enseñar. */
 export const NOMBRE_POR_DEFECTO = 'Alguien';
@@ -36,34 +38,60 @@ export const nombreVisible = (perfil: unknown): string | null => {
   return limpio.length > MAXIMO_DEL_NOMBRE ? `${limpio.slice(0, MAXIMO_DEL_NOMBRE - 1)}…` : limpio;
 };
 
-type Plantilla = (nombre: string) => { title: string; body: string };
-
-/** Tipos de notificación y sus mensajes. Un tipo que no está aquí no manda push. */
-const PLANTILLAS: Readonly<Record<string, Plantilla>> = Object.freeze({
-  like: (nombre) => ({ title: 'Nuevo like', body: `${nombre} le dio like a tu post` }),
-  comment: (nombre) => ({ title: 'Nuevo comentario', body: `${nombre} comentó en tu post` }),
+/*
+ * Tipos de notificación y las claves de su título y su texto. Un tipo que no está aquí no manda push.
+ *
+ * LOS TEXTOS NO ESTÁN AQUÍ: están en los diccionarios de la app (`i18n/textos/<idioma>/servidor/avisos.ts`) y llegan
+ * copiados a `../shared/textosDelServidor.ts`. Un push lo lee el sistema operativo, sin pasar por la app, así que lo
+ * tiene que escribir el servidor en el idioma de quien lo recibe. Sin idioma, el español de siempre.
+ */
+const CLAVES: Readonly<Record<string, readonly [string, string]>> = Object.freeze({
+  like: ['likeTitulo', 'likeCuerpo'],
+  comment: ['comentarioTitulo', 'comentarioCuerpo'],
   // Histórico: el sistema de seguidores. Se conserva para las notificaciones ya enviadas.
-  follow: (nombre) => ({ title: 'Nuevo seguidor', body: `${nombre} comenzó a seguirte` }),
+  follow: ['seguidorTitulo', 'seguidorCuerpo'],
   // ËContact: las relaciones entre personas. Tipos propios para no confundirlas
   // con las de seguidores que ya están enviadas.
-  econtact_request: (nombre) => ({ title: 'Nueva solicitud de ËContact', body: `${nombre} quiere agregarte a ËContact` }),
-  econtact_accepted: (nombre) => ({ title: 'Nuevo ËContact', body: `${nombre} aceptó tu solicitud de ËContact` }),
-  mention: (nombre) => ({ title: 'Te mencionaron', body: `${nombre} te mencionó en un post` }),
-  repost: (nombre) => ({ title: 'Nuevo repost', body: `${nombre} reposteó tu publicación` }),
-  reply: (nombre) => ({ title: 'Nueva respuesta', body: `${nombre} respondió a tu comentario` }),
-  message: (nombre) => ({ title: 'Nuevo mensaje', body: `${nombre} te envió un mensaje` }),
-});
+  econtact_request: ['solicitudTitulo', 'solicitudCuerpo'],
+  econtact_accepted: ['aceptadaTitulo', 'aceptadaCuerpo'],
+  mention: ['mencionTitulo', 'mencionCuerpo'],
+  repost: ['repostTitulo', 'repostCuerpo'],
+  reply: ['respuestaTitulo', 'respuestaCuerpo'],
+  message: ['mensajeTitulo', 'mensajeCuerpo'],
+} as const);
 
 export const esTipoDeAviso = (tipo: unknown): tipo is string =>
-  typeof tipo === 'string' && Object.prototype.hasOwnProperty.call(PLANTILLAS, tipo);
+  typeof tipo === 'string' && Object.prototype.hasOwnProperty.call(CLAVES, tipo);
+
+/** «Alguien», en el idioma de quien recibe el aviso. */
+export const nombreDeRespaldo = (idioma?: unknown): string => tablaDelIdioma(AVISOS, idioma).alguien || NOMBRE_POR_DEFECTO;
 
 /**
  * El título y el texto de un aviso. Recibe el nombre ya resuelto por el
  * servidor —nunca el que trae la notificación— y null si el tipo no manda push.
+ * `idioma` es el de la cuenta que lo recibe (`users.language` de su Perfil Real).
  */
-export const avisoPush = (tipo: unknown, nombreDelRemitente: string | null): { title: string; body: string } | null => {
+export const avisoPush = (tipo: unknown, nombreDelRemitente: string | null, idioma?: unknown): { title: string; body: string } | null => {
   if (!esTipoDeAviso(tipo)) return null;
-  return PLANTILLAS[tipo](nombreDelRemitente || NOMBRE_POR_DEFECTO);
+  const tabla = tablaDelIdioma(AVISOS, idioma);
+  const [titulo, cuerpo] = CLAVES[tipo];
+  const nombre = nombreDelRemitente || nombreDeRespaldo(idioma);
+  return { title: rellenarTexto(tabla[titulo], { nombre }), body: rellenarTexto(tabla[cuerpo], { nombre }) };
+};
+
+/**
+ * El texto del push de un mensaje de WeeTalk: lo que escribió quien lo manda, o —si es una foto, una imagen o un
+ * audio sin texto— lo que la app guarda en su lugar («Foto única», «📷 Imagen», «🎤 Audio»), dicho en el idioma de
+ * quien lo recibe. Lo que escribió una persona no se traduce.
+ */
+export const cuerpoDelMensaje = (contenido: unknown, idioma?: unknown): string => {
+  const tabla = tablaDelIdioma(AVISOS, idioma);
+  const texto = typeof contenido === 'string' ? contenido.trim() : '';
+  if (!texto) return tabla.teEnvioUnMensaje;
+  for (const marca of ['fotoUnica', 'imagen', 'audio']) {
+    if (texto === AVISOS.es[marca]) return tabla[marca];
+  }
+  return texto.substring(0, 100);
 };
 
 /** Lo que viaja en `data` del push: identificadores para abrir la pantalla, y nada más. */

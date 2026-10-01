@@ -75,7 +75,7 @@ export const composer: typeof import('../es/composer').composer = {
   removeMentions_one: 'メンションを削除',
   removeMentions_other: 'メンションを削除',
   signInToMention: 'ËContactの連絡先をメンションするには、Weëにログインしてください。',
-  bizNoAgenda: 'BizプロフィールにはËContactの連絡先リストがありません。誰かをメンションするには、リアルプロフィールかWeëプロフィールに切り替えてください。',
+  profileNoAgenda: 'このプロフィールにはËContactの連絡先リストがありません。誰かをメンションするには、リアルプロフィールかWeëプロフィールに切り替えてください。',
   noContactsYet: '{{lista}}はまだありません。誰かのプロフィールからつながると、その人がここに表示され、メンションできるようになります。',
   mentionAnyone: '{{lista}}から誰でもメンションできます',
   publishIn: '投稿先',
@@ -150,4 +150,6 @@ export const composer: typeof import('../es/composer').composer = {
   searchPlaceHint: '都市や国を検索して、投稿に場所を追加しましょう。',
   aiProcessCreatedWith: 'Weë AIの{{nombre}}で作成',
   aiProcessDemoPreview: '{{proceso}}（デモモードのプレビュー）',
+  distanceUnder: '{{distancia}}以内',
+  distanceOver: '{{distancia}}以上',
 };

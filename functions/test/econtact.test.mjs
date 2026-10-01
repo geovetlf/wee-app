@@ -828,7 +828,8 @@ check('197) y las históricas se siguen mostrando',
 const avisosFn = read('functions/src/social/avisos.ts');
 check('198) el push del servidor también los conoce', /econtact_request:/.test(avisosFn) && /econtact_accepted:/.test(avisosFn)
   && /from '\.\/social\/avisos'/.test(indiceFn));
-check('199) sin borrar el mensaje histórico', /follow: \(nombre\) =>/.test(avisosFn));
+/* El aviso de «te sigue» sigue entero; ahora sus palabras viven en el diccionario (`avisos.seguidor*`), en cada idioma. */
+check('199) sin borrar el mensaje histórico', /follow: \['seguidorTitulo', 'seguidorCuerpo'\]/.test(avisosFn));
 
 // ═════════════════════════════════════════════════════════════════════════════
 console.log('\n── S) Lo antiguo sigue en pie, pero ya no alimenta nada ──');

@@ -39,7 +39,7 @@ export const business: typeof import('../es/business').business = {
   networkConnected: '{{red}} कनेक्ट है',
   connectAnother: 'कोई और खाता कनेक्ट करें',
   allConnected: 'आपके सभी खाते पहले से कनेक्ट हैं.',
-  simulatedConnection: 'यह डेमो कनेक्शन है: जब प्लेटफ़ॉर्म आधिकारिक अनुमति देंगे, तब Weë सच में पोस्ट करेगा और जवाब देगा.',
+  simulatedConnection: 'यह डेमो कनेक्शन है: Weë अभी आपकी ओर से न पोस्ट करता है, न जवाब देता है. वह हर चीज़ तैयार करता है, ताकि आप उसे जाँचकर खुद पोस्ट कर सकें.',
   postCalendar: 'पोस्ट कैलेंडर',
   seeFullCalendar: 'पूरा कैलेंडर देखें',
   calendarGoal: 'इस हफ़्ते का मेरा पोस्ट कैलेंडर दिखाएँ और उसे व्यवस्थित करें',

@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
@@ -77,7 +77,7 @@ interface MediaItem {
 
 const CreateScreen: React.FC = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const { contentMaxWidth } = useResponsive();
@@ -1190,11 +1190,11 @@ ${message}`);
         {!!place && (
           <View
             style={[styles.chipLugar, { backgroundColor: theme.colors.accent + '1F', borderColor: theme.colors.accent + '66' }]}
-            accessibilityLabel={t('composer.placeIs', { lugar: etiquetaDeLugar({ place }) || '' })}
+            accessibilityLabel={t('composer.placeIs', { lugar: etiquetaDeLugar({ place }, locale) || '' })}
           >
             <Ionicons name="location" size={scale(15)} color={theme.colors.accentDark} />
             <Text style={[styles.chipLugarTexto, { color: theme.colors.text }]} numberOfLines={1}>
-              {etiquetaDeLugar({ place })}
+              {etiquetaDeLugar({ place }, locale)}
             </Text>
             <TouchableOpacity
               onPress={() => setPlace(undefined)}

@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë bruger dit kamera, så du kan tage fotos og optage videoer til dine opslag.",
+    "NSMicrophoneUsageDescription": "Weë bruger din mikrofon til at optage lyd i dine videoer.",
+    "NSPhotoLibraryUsageDescription": "Weë skal have adgang til dine fotos, så du kan vælge billeder og videoer at dele.",
+    "NSPhotoLibraryAddUsageDescription": "Weë skal have tilladelse til at gemme videoer i dine fotos.",
+    "NSLocationWhenInUseUsageDescription": "Weë bruger kun din omtrentlige placering, mens appen er åben, så du kan finde indhold og fællesskaber i nærheden. Din præcise placering vises aldrig offentligt."
+  }
+}

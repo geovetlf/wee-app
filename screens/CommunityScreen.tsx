@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useCommunity } from '../hooks/useCommunities';
@@ -26,12 +26,13 @@ import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
+import { descripcionDeComunidad, nombreDeComunidad, textoDeRegla } from '../utils/comunidadesDeWee';
 
 type CommunityScreenRouteProp = RouteProp<MainStackParamList, 'Community'>;
 type CommunityScreenNavigationProp = StackNavigationProp<MainStackParamList>;
 
 const CommunityScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -184,11 +185,11 @@ const CommunityScreen: React.FC = () => {
           </View>
 
           <Text style={[styles.communityName, { color: theme.colors.text }]}>
-            {community.name}
+            {nombreDeComunidad(community, t, locale)}
           </Text>
 
           <Text style={[styles.communityDescription, { color: theme.colors.textSecondary }]}>
-            {community.description}
+            {descripcionDeComunidad(community, t, locale)}
           </Text>
 
           {/* Stats */}
@@ -274,7 +275,7 @@ const CommunityScreen: React.FC = () => {
                       {index + 1}.
                     </Text>
                     <Text style={[styles.ruleText, { color: theme.colors.text }]}>
-                      {rule.text}
+                      {textoDeRegla(rule.text, t)}
                     </Text>
                   </View>
                 ))}
@@ -413,7 +414,7 @@ const CommunityScreen: React.FC = () => {
         <View style={styles.headerTitleContainer}>
           <Ionicons name={community.icon as any} size={scale(20)} color={theme.colors.accent} />
           <Text style={[styles.headerTitle, { color: theme.colors.text }]} numberOfLines={1}>
-            {community.name}
+            {nombreDeComunidad(community, t, locale)}
           </Text>
         </View>
         <View style={styles.headerRight} />

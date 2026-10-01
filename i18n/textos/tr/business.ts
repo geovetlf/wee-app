@@ -31,7 +31,7 @@ export const business: typeof import('../es/business').business = {
   networkConnected: '{{red}} bağlı',
   connectAnother: 'Başka bir hesap bağla',
   allConnected: 'Tüm hesapların zaten bağlı.',
-  simulatedConnection: 'Bu bağlantı şimdilik bir simülasyon. Platformlar resmî izinleri verdiğinde Weë gerçekten paylaşım yapacak ve yanıt verecek.',
+  simulatedConnection: 'Bu bağlantı bir simülasyon: Weë henüz senin yerine ne paylaşım yapıyor ne de yanıt veriyor. Her içeriği, gözden geçirip paylaşman için hazırlıyor.',
   postCalendar: 'Gönderi takvimi',
   seeFullCalendar: 'Takvimin tamamını gör',
   calendarGoal: 'Bu haftaki gönderi takvimimi göster ve düzenle',

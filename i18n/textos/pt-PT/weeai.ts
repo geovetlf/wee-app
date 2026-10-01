@@ -220,4 +220,5 @@ export const weeai: typeof import('../es/weeai').weeai = {
   imageCount_other: '{{contador}} imagens',
   durationSeconds: '{{segundos}} s',
   volumeDiscount: '−{{descuento}}% por quantidade',
+  createWork: 'Criar',
 };

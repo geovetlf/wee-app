@@ -279,10 +279,10 @@ export const creditsService = new CreditsService();
 // ─── Presentación del historial ───
 
 export interface TransactionView {
-  /** Lo que mandó el servidor, ya escrito. Contenido: se pinta tal cual. */
+  /** El concepto que guardó el servidor (`creditTransactions.reason`), en español; quien pinta lo traduce. */
   title: string | null;
-  /** Qué decir cuando el servidor no mandó nada. Clave de i18n, no frase. */
-  tituloClave: string | null;
+  /** El concepto genérico por tipo de movimiento. Clave de i18n, no frase: se usa cuando no hay otro. */
+  tituloClave: string;
   /** El estado del movimiento —devuelto, en proceso—, también como clave. */
   detalleClave?: string;
   /** Monto con signo tal como se muestra (−10, +40). */
@@ -300,8 +300,11 @@ export interface TransactionView {
  * que lo diga quien pinta, que es el patrón del §8 —el mismo de
  * `constants/specialists.ts`—.
  *
- * `tituloClave` es null cuando el servidor mandó su propia razón en `tx.reason`:
- * eso es contenido, viene ya escrito y no se traduce.
+ * `title` es el concepto que escribió el servidor y GUARDÓ con el movimiento, en español: «Credits de bienvenida»,
+ * «WEË AI · Weë Chef», «Weë Brain · 12 respuestas». Esas frases están en el catálogo del servidor
+ * (`i18n/textos/es/servidor/movimientos.ts`), así que quien pinta las reconoce y las escribe en el idioma de quien
+ * mira, también las de movimientos de hace meses (`i18n/servidor.ts`). `tituloClave` es lo que se dice por tipo
+ * de movimiento, cuando no hay concepto o no se reconoce.
  *
  * No se toca ni un número: `amount`, `positive` y `balanceAfter` salen igual que
  * antes. Lo único que cambia es que el texto deja de estar en español fijo.
@@ -321,9 +324,8 @@ export const describeTransaction = (tx: CreditTransaction): TransactionView => {
       : tx.type === 'refund' ? 'credits.txRefund'
         : 'credits.txUsage';
   return {
-    /** La razón que mandó el servidor, si la mandó. Es contenido: no se traduce. */
     title: tx.reason || null,
-    tituloClave: tx.reason ? null : tituloClave,
+    tituloClave,
     detalleClave,
     amount,
     positive,

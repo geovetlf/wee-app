@@ -587,19 +587,26 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    */
   const MOTOR_F1D_Y_HARNESS = {
     'functions/src/creator/credits.ts': '45\t4', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
-    'functions/src/creator/index.ts': '99\t10', // 0926584 (#9) · 0799ed6
+    'functions/src/creator/index.ts': '109\t10', // 0926584 (#9) · 0799ed6 · i18n da-DK (+10, el locale)
     'functions/src/engine/admin.ts': '9\t2', // 0ad8500 (#19) · 5e87b80 (FASE 8)
     'functions/src/engine/config.ts': '36\t1', // 8193184 (#20)
+    'functions/src/engine/errors.ts': '1\t1', // i18n da-DK: el rechazo de entrada sin «el proveedor»
     'functions/src/engine/gateway.ts': '2\t0', // 0ad8500 (#19)
     'functions/src/engine/http.ts': '26\t1', // 16ca1ae (#3)
     'functions/src/engine/limits.ts': '33\t3', // F1-D (decisión 14) + 5e87b80 (FASE 8)
     'functions/src/engine/providers/seedance.ts': '33\t19', // F1-D (ficha 6) + 8a9f098 (#21)
     'functions/src/engine/registry.ts': '2\t0', // 0ad8500 (#19)
-    'functions/src/engine/router.ts': '21\t1', // 0ad8500 (#19) · 5e87b80 (FASE 8)
+    'functions/src/engine/router.ts': '22\t2', // 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK: «no hay una IA disponible»
     'functions/src/engine/types.ts': '19\t0', // 0ad8500 (#19) · 5e87b80 (FASE 8)
     'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
     'functions/src/generateAvatar.ts': '52\t13', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6
   };
+  /*
+   * Y la integración i18n da-DK (rama i18n/da-dk, 2026-10-01), también por nombre y tamaño: el locale de la app viaja
+   * con creatorChat y creatorRun para que los pasos de texto escriban en el idioma de la persona (+10 en
+   * creator/index.ts, ni una línea del reclamo, del cobro ni del vídeo), y dos errores del motor dejan de nombrar a
+   * «el proveedor» (una línea en errors.ts y otra en router.ts, solo el texto).
+   */
   const movidos = git(`diff --numstat ${ANTES} -- functions/src/engine functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`)
     .trim().split('\n').filter(Boolean).map((l) => l.split('\t')).map(([mas, menos, f]) => [f, `${mas}\t${menos}`]);
   check('H2) y lo que la sostiene tampoco se movió: sondeo, adaptador, router, motor de vídeo, libro, creatorRun — salvo las dos piezas nominales de F1-D y los arreglos del Harness, del tamaño exacto',

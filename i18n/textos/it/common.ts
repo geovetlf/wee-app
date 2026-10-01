@@ -35,4 +35,5 @@ export const common: typeof import('../es/common').common = {
   loadMore: 'Carica altri post',
   postsCount_one: '{{cantidad}} post',
   postsCount_other: '{{cantidad}} post',
+  someone: 'Qualcuno',
 };

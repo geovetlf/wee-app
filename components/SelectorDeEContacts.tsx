@@ -29,8 +29,9 @@ import AvatarDisplay from './avatars/AvatarDisplay';
  *  · quien no tenga perfil que enseñar ya viene descartado, así que nunca se
  *    puede marcar a alguien que no existe.
  *
- * El Perfil Biz no tiene agenda —sus seguidores son otro sistema—, y eso se dice
- * con palabras en vez de con una lista vacía que no se entiende.
+ * Un perfil activo que no es ninguna de las dos caras de la persona no tiene
+ * agenda, y eso se dice con palabras en vez de con una lista vacía que no se
+ * entiende.
  */
 
 interface SelectorDeEContactsProps {
@@ -66,7 +67,7 @@ const SelectorDeEContacts: React.FC<SelectorDeEContactsProps> = ({ elegidos, onC
   if (!hayAgenda) {
     return (
       <Aviso>
-        {t(motivo === 'sin-sesion' ? 'composer.signInToMention' : 'composer.bizNoAgenda')}
+        {t(motivo === 'sin-sesion' ? 'composer.signInToMention' : 'composer.profileNoAgenda')}
       </Aviso>
     );
   }

@@ -66,7 +66,7 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   removeMentions_one: 'Убрать упоминание',
   removeMentions_other: 'Убрать упоминания',
   signInToMention: 'Войдите в Weë, чтобы упоминать свои ËContact.',
-  bizNoAgenda: 'В Профиле Biz нет ËContact. Перейдите в Реальный профиль или в Профиль Weë, чтобы кого-то упомянуть.',
+  profileNoAgenda: 'У этого профиля нет списка ËContact. Перейдите в Реальный профиль или в Профиль Weë, чтобы кого-то упомянуть.',
   noContactsYet: 'У вас пока нет {{lista}}. Как только вы свяжетесь с кем-то из его профиля, этот человек появится здесь, и его можно будет упомянуть.',
   mentionAnyone: 'Упомяните любого из ваших {{lista}}',
   publishIn: 'ОПУБЛИКОВАТЬ В',
@@ -147,4 +147,6 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   searchPlaceHint: 'Найдите город или страну, чтобы отметить публикацию.',
   aiProcessCreatedWith: 'Создано с помощью {{nombre}} в Weë AI',
   aiProcessDemoPreview: '{{proceso}} (предпросмотр в демо-режиме)',
+  distanceUnder: 'Менее {{distancia}}',
+  distanceOver: 'Более {{distancia}}',
 };

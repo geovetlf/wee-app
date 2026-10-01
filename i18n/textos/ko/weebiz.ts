@@ -73,7 +73,7 @@ export const weebiz: typeof import('../es/weebiz').weebiz = {
   categoryMissing: '카테고리를 선택해 주세요.',
   updated: '업체 정보를 업데이트했어요.',
   createdTitle: '업체 등록 완료',
-  created: '이제 Weë Biz에서 업체를 볼 수 있어요. 메뉴에서 업체 프로필로 전환해 보세요.',
+  created: '업체가 Weë Business에 등록됐어요. 프로필을 열어 내용을 확인하고 빠진 정보를 채워 보세요.',
   viewProfile: '프로필 보기',
   saveFailed: '업체를 저장하지 못했어요.',
   catProfessionalServices: '서비스',

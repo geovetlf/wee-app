@@ -40,4 +40,5 @@ export const common: typeof import('../es/common').common = {
   loadMore: 'Visa fler inlägg',
   postsCount_one: '{{cantidad}} inlägg',
   postsCount_other: '{{cantidad}} inlägg',
+  someone: 'Någon',
 };

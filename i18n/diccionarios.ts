@@ -15,6 +15,9 @@ import { tr } from './textos/tr';
 import { sv } from './textos/sv';
 import { da } from './textos/da';
 import { hi } from './textos/hi';
+import { servidor as servidorEs } from './textos/es/servidor';
+import { servidor as servidorEn } from './textos/en/servidor';
+import { servidor as servidorDa } from './textos/da/servidor';
 
 /*
  * EL ÚNICO SITIO QUE SABE QUÉ DICCIONARIOS HAY.
@@ -33,9 +36,13 @@ import { hi } from './textos/hi';
  * otro idioma no puede costar una petición, ni un servicio de traducción, ni un
  * céntimo por persona.
  */
+/*
+ * LOS TEXTOS DEL SERVIDOR van aparte (`textos/<idioma>/servidor/`, ver su índice) porque son una sección opcional:
+ * el idioma que los ha traducido los suma aquí a su diccionario; el que no, cae en el inglés por la cadena de siempre.
+ */
 export const DICCIONARIOS: Diccionarios = {
-  es,
-  en,
+  es: { ...es, ...servidorEs },
+  en: { ...en, ...servidorEn },
   de,
   fr,
   it,
@@ -93,7 +100,7 @@ export const DICCIONARIOS: Diccionarios = {
   ja,
   tr,
   sv,
-  da,
+  da: { ...da, ...servidorDa },
   hi,
 };
 

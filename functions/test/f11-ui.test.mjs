@@ -101,7 +101,7 @@ console.log('\n── D · Sin progreso inventado, sin ids a la vista ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   check('27) el progreso de un trabajo se cuenta en pasos hechos, no en un porcentaje inventado', /t\('creaciones\.progressSteps', \{ hechos/.test(progreso) && !/\d+ ?%/.test(sinComentarios(progreso)));
-  check('28) y su texto pasa por i18n (C12)', /useT\(\)/.test(progreso) && /t\('creaciones\.progressWorking'/.test(progreso) && /t\('creaciones\.progressFindLater'\)/.test(progreso));
+  check('28) y su texto pasa por i18n (C12)', /useIdioma\(\)|useT\(\)/.test(progreso) && /t\('creaciones\.progressWorking'/.test(progreso) && /t\('creaciones\.progressFindLater'\)/.test(progreso));
   check('29) el compositor cuenta archivos, no porcentajes (C11)', /t\('composer\.uploadingFiles', \{ n: subida\.n, total: subida\.total \}\)/.test(crear) && !/uploadProgressFill|porcentaje/.test(sinComentarios(crear)));
   check('30) las subidas a Cloudinary avisan de empezar y terminar, y nada más', !/onProgress\?\.\(\d+\)/.test(leer('services/cloudinaryService.ts')) && /onEstado\?\.\('subiendo'\)/.test(leer('services/cloudinaryService.ts')) && /onEstado\?\.\('terminado'\)/.test(leer('services/cloudinaryService.ts')));
   /* El id solo puede aparecer como `key` de React o como `recyclingKey` de expo-image (reciclado de celdas): ninguno se pinta. */

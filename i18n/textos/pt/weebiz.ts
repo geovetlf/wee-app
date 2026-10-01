@@ -68,7 +68,7 @@ export const weebiz: typeof import('../es/weebiz').weebiz = {
   categoryMissing: 'Escolha uma categoria.',
   updated: 'Seu negócio foi atualizado.',
   createdTitle: 'Negócio criado',
-  created: 'Seu negócio já está no Weë Biz. Agora você pode mudar para o seu perfil de negócio pelo menu.',
+  created: 'Seu negócio já está no Weë Business. Abra o perfil do negócio para revisá-lo e completá-lo.',
   viewProfile: 'Ver perfil',
   saveFailed: 'Não foi possível salvar o negócio.',
   catProfessionalServices: 'Serviços',

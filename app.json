@@ -84,7 +84,8 @@
         "NSMicrophoneUsageDescription": "Weë necesita acceso a tu micrófono para grabar audio en tus videos.",
         "NSPhotoLibraryUsageDescription": "Weë necesita acceso a tu galería para que puedas seleccionar fotos y videos para compartir.",
         "NSPhotoLibraryAddUsageDescription": "Weë necesita permiso para guardar videos en tu galería.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleAllowMixedLocalizations": true
       },
       "buildNumber": "2"
     },
@@ -152,6 +153,11 @@
     "owner": "giacomogonzales20",
     "updates": {
       "enabled": false
+    },
+    "locales": {
+      "es": "./locales/es.json",
+      "en": "./locales/en.json",
+      "da": "./locales/da.json"
     }
   }
 }

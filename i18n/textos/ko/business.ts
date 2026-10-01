@@ -35,7 +35,7 @@ export const business: typeof import('../es/business').business = {
   networkConnected: '{{red}} 연결됨',
   connectAnother: '다른 계정 연결',
   allConnected: '모든 계정이 이미 연결되어 있어요.',
-  simulatedConnection: '시뮬레이션 연결이에요. 각 플랫폼이 공식 권한을 열어 주면 Weë가 실제로 게시하고 답장해요.',
+  simulatedConnection: '시뮬레이션 연결이에요. Weë가 아직 대신 게시하거나 답장하지는 않아요. 콘텐츠를 하나씩 준비해 드리니 직접 확인하고 게시해 주세요.',
   postCalendar: '게시 일정',
   seeFullCalendar: '전체 일정 보기',
   calendarGoal: '이번 주 게시 일정을 보고 정리하기',

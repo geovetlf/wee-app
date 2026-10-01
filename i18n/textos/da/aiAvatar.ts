@@ -25,8 +25,8 @@
  * (coste = pris, glosario § 9.6). «Listo», como título de un aviso, es Færdig;
  * «Entendido» es Forstået. Los permisos los pide Weë con «vi», como en
  * avatar.ts («Vi skal have adgang til dit galleri»). «Foto de perfil» es
- * profilbillede; «foto» es neutro («fotoet»). «Gemini AI» se queda como en el
- * español: es el nombre del proveedor que el español ya enseña.
+ * profilbillede; «foto» es neutro («fotoet»). El avatar lo hace «Weë AI», nunca un
+ * proveedor (`generatedWithAi`).
  */
 export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   gender: 'Køn',
@@ -77,7 +77,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   expMysterious: 'Mystisk',
   currentAvatar: 'Din nuværende AI-avatar',
   swapTitle: 'Udskift person',
-  swapSubtitle: 'Tag eller upload et foto, så udskifter Gemini AI personen på fotoet med din avatar',
+  swapSubtitle: 'Tag eller upload et foto, så bytter Weë AI personen på fotoet ud med din avatar',
   takePhoto: 'Tag et foto',
   gallery: 'Galleri',
   useAsProfilePhoto: 'Brug som profilbillede',
@@ -86,7 +86,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   uploadPhotoAsAvatar: 'Upload foto som avatar',
   nextStep: 'Næste',
   previousStep: 'Forrige trin',
-  generatedWithGemini: 'Avatar genereret med Gemini AI',
+  generatedWithAi: 'Avatar lavet med Weë AI',
   nowTakeAPhoto: 'Tag eller upload nu et foto af dig selv, så sætter vi din avatar ind i stedet for dig',
   skipAndUse: 'Spring over, og brug avataren direkte',
   regenerate: 'Generér ny avatar',

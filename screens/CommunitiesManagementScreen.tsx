@@ -16,7 +16,7 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { paraBuscar } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
@@ -26,9 +26,10 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import TextoEnMayusculas from '../components/TextoEnMayusculas';
+import { descripcionDeComunidad, nombreDeComunidad } from '../utils/comunidadesDeWee';
 
 const CommunitiesManagementScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, updateLocalProfile } = useUserProfile();
@@ -122,7 +123,7 @@ const CommunitiesManagementScreen: React.FC = () => {
         // Confirmar antes de salir
         Alert.alert(
           t('communities.leaveTitle'),
-          t('communities.leaveConfirm', { nombre: community.name }),
+          t('communities.leaveConfirm', { nombre: nombreDeComunidad(community, t, locale) }),
           [
             { text: t('common.cancel'), style: 'cancel', onPress: () => setJoiningCommunity(null) },
             {
@@ -199,7 +200,7 @@ const CommunitiesManagementScreen: React.FC = () => {
         <View style={styles.communityInfo}>
           <View style={styles.communityHeader}>
             <Text style={[styles.communityName, { color: theme.colors.text }]}>
-              {item.name}
+              {nombreDeComunidad(item, t, locale)}
             </Text>
             {item.isOfficial && (
               <View style={[styles.officialBadge, { backgroundColor: theme.colors.accent + '20' }]}>
@@ -212,7 +213,7 @@ const CommunitiesManagementScreen: React.FC = () => {
             style={[styles.communityDescription, { color: theme.colors.textSecondary }]}
             numberOfLines={2}
           >
-            {item.description}
+            {descripcionDeComunidad(item, t, locale)}
           </Text>
           <View style={styles.communityStats}>
             <Ionicons name="people-outline" size={14} color={theme.colors.textSecondary} />

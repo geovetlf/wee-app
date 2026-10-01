@@ -89,7 +89,7 @@ export const composer: typeof import('../es/composer').composer = {
   removeMentions_one: '移除提及',
   removeMentions_other: '移除提及',
   signInToMention: '登入 Weë 才能提及你的 ËContact。',
-  bizNoAgenda: 'Biz 個人檔案沒有 ËContact 通訊錄。切換到真實個人檔案或 Weë 個人檔案就能提及別人。',
+  profileNoAgenda: '這個個人檔案沒有 ËContact 通訊錄。切換到真實個人檔案或 Weë 個人檔案就能提及別人。',
   noContactsYet: '你還沒有 {{lista}}。在別人的個人檔案上建立連結後，對方就會出現在這裡，可以直接提及。',
   mentionAnyone: '從你的 {{lista}} 裡提及任何人',
   publishIn: '發布到',
@@ -164,4 +164,6 @@ export const composer: typeof import('../es/composer').composer = {
   searchPlaceHint: '搜尋一座城市或一個國家，為你的貼文加上地點。',
   aiProcessCreatedWith: '在 Weë AI 中用 {{nombre}} 創作而成',
   aiProcessDemoPreview: '{{proceso}}（示範模式預覽）',
+  distanceUnder: '{{distancia}}以內',
+  distanceOver: '{{distancia}}以上',
 };

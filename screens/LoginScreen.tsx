@@ -14,12 +14,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth, googleSignInDisponible } from '../contexts/AuthContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useNavigation } from '@react-navigation/native';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const LoginScreen: React.FC = () => {
-  const t = useT();
+  const { t, idioma } = useIdioma();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -159,7 +159,8 @@ const LoginScreen: React.FC = () => {
     }
 
     try {
-      await resetPassword(email);
+      /* El correo, en el idioma de la app (Firebase usa su plantilla de ese idioma). */
+      await resetPassword(email, idioma);
       const message = t('auth.resetEmailSent');
       if (Platform.OS === 'web') {
         alert(message);

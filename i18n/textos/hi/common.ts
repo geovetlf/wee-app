@@ -42,4 +42,5 @@ export const common: typeof import('../es/common').common = {
   loadMore: 'और पोस्ट लोड करें',
   postsCount_one: '{{cantidad}} पोस्ट',
   postsCount_other: '{{cantidad}} पोस्ट',
+  someone: 'किसी',
 };

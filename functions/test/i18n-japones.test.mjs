@@ -191,6 +191,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
    * `SIN_TEXTO` con su porqué—.
    */
   const SIN_TEXTO = new Set([
+    /* Un usuario de muestra de una red social («@my_shop»): un @usuario solo admite letras latinas. */
     /*
      * El botón único de un aviso informativo. En las apps japonesas —iOS,
      * Android, las guías de estilo— ese botón es «OK», en latino; no hay nada
@@ -528,6 +529,9 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* «Personas» como estilo de avatar es «人物»; la del Chef cuenta comensales («人数»). */
+    'avatar.stylePeople',
+    /* «Nuevo producto» de muestra en el calendario de un restaurante es un plato nuevo («新メニュー»); el título del formulario de Weë Biz es «商品の追加». */
     /* Weë Filmmaker («Varias escenas»), revisado por un segundo traductor (2026-10-01): la misma frase española, otro sentido. */
     /* «Historias» como formato de redes (ストーリーズ), no los relatos de Writer (物語). */
     'filmmaker.presetStories',

@@ -80,9 +80,10 @@ export const OFFICIAL_COMMUNITIES: Omit<Community, 'id' | 'createdAt' | 'updated
   description: c.description,
   icon: c.icon,
   rules: [
-    { id: '1', text: 'Compartí lo que creaste con IA y contá cómo lo hiciste', order: 1 },
-    { id: '2', text: 'Preguntá y respondé con respeto', order: 2 },
-    { id: '3', text: 'Nada de spam ni contenido que no sea tuyo', order: 3 },
+    /* De tú, como el resto de Weë (estaban en voseo). Se pintan por su clave: `utils/comunidadesDeWee.ts`. */
+    { id: '1', text: 'Comparte lo que creaste con IA y cuenta cómo lo hiciste', order: 1 },
+    { id: '2', text: 'Pregunta y responde con respeto', order: 2 },
+    { id: '3', text: 'Nada de spam ni de contenido que no sea tuyo', order: 3 },
   ],
   memberCount: 0,
   postCount: 0,

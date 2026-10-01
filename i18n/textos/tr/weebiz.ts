@@ -20,9 +20,9 @@
  * pistas de especialidad llevan mayúscula solo en la primera palabra y «…» de un
  * carácter.
  *
- * `created` sigue al español, que aún promete «cambiar a tu perfil de negocio
- * desde el menú» aunque el Perfil Biz se eliminó el 2026-09-19: se tradujo tal
- * cual para no separarse de los demás idiomas, y queda avisado.
+ * `created` dice que el negocio ya está en Weë Business y que se abre su perfil
+ * para completarlo: el «cambia a tu perfil de negocio desde el menú» de antes se
+ * fue con el Perfil Biz (2026-09-19).
  */
 export const weebiz: typeof import('../es/weebiz').weebiz = {
   noBusinesses: 'İşletme bulunamadı',
@@ -87,7 +87,7 @@ export const weebiz: typeof import('../es/weebiz').weebiz = {
   categoryMissing: 'Bir kategori seç.',
   updated: 'İşletmen güncellendi.',
   createdTitle: 'İşletme oluşturuldu',
-  created: 'İşletmen artık Weë Biz rehberinde. Menüden işletme profiline geçebilirsin.',
+  created: 'İşletmen artık Weë Business rehberinde. Gözden geçirip tamamlamak için işletmenin profilini aç.',
   viewProfile: 'Profili gör',
   saveFailed: 'İşletme kaydedilemedi.',
   catProfessionalServices: 'Hizmetler',

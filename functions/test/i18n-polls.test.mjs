@@ -254,9 +254,11 @@ console.log('\n── G · El idioma llega desde donde se pinta ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   /* El traductor sale del contexto de siempre, en cada render: cambia sin reiniciar. */
+  /* Las dos piezas lo piden al contexto; la del voto, también su locale, para el error del servidor (`mensajeDelServidor`). */
   check('32) la encuesta pide el traductor al contexto',
-    /import \{ useT \} from '\.\.\/contexts\/IdiomaContext';/.test(COMPONENTE)
-    && (COMPONENTE.match(/const t = useT\(\);/g) || []).length === 2);
+    /import \{ useIdioma, useT \} from '\.\.\/contexts\/IdiomaContext';/.test(COMPONENTE)
+    && (COMPONENTE.match(/const t = useT\(\);/g) || []).length === 1
+    && (COMPONENTE.match(/const \{ t, locale \} = useIdioma\(\);/g) || []).length === 1);
   check('32) y se lo pasa al ayudante en los tres sitios',
     /textoVotos\(fila\.votos, t\)/.test(COMPONENTE)
     && /textoVotos\(total, t\)/.test(COMPONENTE)

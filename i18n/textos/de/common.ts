@@ -28,10 +28,11 @@ export const common: typeof import('../es/common').common = {
   seeAll: 'Alle ansehen →',
   guest: 'Gast',
   anonymousUser: 'Anonymer Nutzer',
-  user: 'Jemand',
+  user: 'Nutzer',
   yes: 'Ja',
   no: 'Nein',
   loadMore: 'Mehr Beiträge laden',
   postsCount_one: '{{cantidad}} Beitrag',
   postsCount_other: '{{cantidad}} Beiträge',
+  someone: 'Jemand',
 };

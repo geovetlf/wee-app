@@ -48,7 +48,7 @@ if (!hayHistoria) {
     && funciones.nuevas.every((n) => JSON.parse(leer('ops/despliegue/grupos.json')).no_se_despliegan.some((x) => x.funcion === n)), funciones.nuevas.join(', ') || 'nada nuevo');
   const usadas = new Set(filas.flatMap((f) => f.sustituidas));
   check('6) cada sustitución se usa de verdad (la lista no guarda restos) y tiene su porqué',
-    Object.keys(C.SUSTITUIDAS).every((k) => usadas.has(k)) && Object.values(C.SUSTITUIDAS).every((s) => s.porque.length > 20 && /^[a-z]+\.[A-Za-z0-9_]+$/.test(s.por)));
+    Object.keys(C.SUSTITUIDAS).every((k) => usadas.has(k)) && Object.values(C.SUSTITUIDAS).every((s) => s.porque.length > 20 && /^[a-z][A-Za-z]*\.[A-Za-z0-9_]+$/.test(s.por)));
   check('7) y nada se sustituye en las funciones, las reglas ni los índices: ahí solo vale «sigue estando»',
     filas.filter((f) => !/^Textos/.test(f.clase)).every((f) => f.sustituidas.length === 0));
 }

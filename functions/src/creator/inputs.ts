@@ -74,7 +74,7 @@ export const modalityCounts = (steps: { capability: CapabilityId }[]): Partial<R
  * + la foto de la persona cuando el paso la necesita + el texto a narrar.
  * La persona nunca ve nada de esto.
  */
-export function stepInputFor(job: Pick<CreatorJob, 'experienceId' | 'goal' | 'inputImageUrl'>, step: JobStep, previous: string[]): Record<string, unknown> {
+export function stepInputFor(job: Pick<CreatorJob, 'experienceId' | 'goal' | 'inputImageUrl' | 'locale'>, step: JobStep, previous: string[]): Record<string, unknown> {
   const base: Record<string, unknown> = { ...(step.input || {}), purpose: step.purpose, previous };
   const kind = String(base.kind ?? '');
   const brief = String(base.brief ?? '');
@@ -85,7 +85,7 @@ export function stepInputFor(job: Pick<CreatorJob, 'experienceId' | 'goal' | 'in
   if (job.inputImageUrl && (capability === 'video.generate' || capability === 'video.reference') && !base.referenceImages) base.referenceImages = [job.inputImageUrl];
 
   if (TEXT_CAPS.includes(capability) && !base.prompt) {
-    const built = buildTextPrompt(job.experienceId, capability === 'vision.describe' ? 'describe' : kind, brief, job.goal, step.purpose, previous);
+    const built = buildTextPrompt(job.experienceId, capability === 'vision.describe' ? 'describe' : kind, brief, job.goal, step.purpose, previous, job.locale);
     base.system = built.system;
     base.prompt = built.prompt;
   } else if (capability.startsWith('image.') && !base.prompt) {

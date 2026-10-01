@@ -23,9 +23,10 @@
  * fra {{lista}}»), sin un posesivo que tenga que concordar con ella. Donde el
  * español dice «tus ËContact» se dice «dine kontakter i ËContact».
  *
- * `bizNoAgenda` habla de un Perfil Biz que ya no existe (docs/I18N.md): se
- * traduce tal cual para no inventar, con «Biz-profilen» en compuesto con guion.
- * El Perfil Real y el Perfil Weë son «Ægte profil» y «Weë-profil» (§ 9.1).
+ * `profileNoAgenda` habla de «denne profil», sin nombrar una cara que ya no
+ * existe (el Perfil Biz se eliminó el 2026-09-19), y la agenda es la
+ * «kontaktliste i ËContact», como en `econtact.noAgenda`. El Perfil Real y el
+ * Perfil Weë son «Ægte profil» y «Weë-profil» (§ 9.1).
  *
  * `multimedia` es «Galleri»: el botón abre la galería de fotos y vídeos. Los
  * avisos de permiso dicen «Vi skal have adgang til …» («vi» = Weë, guía § 2).
@@ -94,7 +95,7 @@ export const composer: typeof import('../es/composer').composer = {
   removeMentions_one: 'Fjern omtalen',
   removeMentions_other: 'Fjern omtalerne',
   signInToMention: 'Log ind på Weë for at nævne dine kontakter i ËContact.',
-  bizNoAgenda: 'Biz-profilen har ingen ËContact-liste. Skift til din ægte profil eller din Weë-profil for at nævne nogen.',
+  profileNoAgenda: 'Denne profil har ingen kontaktliste i ËContact. Skift til din ægte profil eller din Weë-profil for at nævne nogen.',
   noContactsYet: 'Du har ingen {{lista}} endnu. Personer, du opretter forbindelse til via deres profil, vises her, så du kan nævne dem.',
   mentionAnyone: 'Nævn hvem som helst fra {{lista}}',
   publishIn: 'SLÅ OP I',
@@ -169,4 +170,6 @@ export const composer: typeof import('../es/composer').composer = {
   searchPlaceHint: 'Søg efter en by eller et land for at tilføje et sted til dit opslag.',
   aiProcessCreatedWith: 'Lavet med {{nombre}} i Weë AI',
   aiProcessDemoPreview: '{{proceso}} (forhåndsvisning i demotilstand)',
+  distanceUnder: 'Under {{distancia}}',
+  distanceOver: 'Over {{distancia}}',
 };

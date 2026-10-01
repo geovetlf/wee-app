@@ -39,4 +39,5 @@ export const common: typeof import('../es/common').common = {
   loadMore: 'Daha fazla gönderi yükle',
   postsCount_one: '{{cantidad}} gönderi',
   postsCount_other: '{{cantidad}} gönderi',
+  someone: 'Biri',
 };

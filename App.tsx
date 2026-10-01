@@ -122,9 +122,12 @@ const shouldHandleUrl = (url: string) => {
  */
 const tituloDeWee = (): string => crearTraductor(localeDeEmergencia(), DICCIONARIOS)('nav.documentTitle');
 
+/*
+ * El nombre de la RUTA no se enseña nunca: es un identificador interno en inglés («Settings», «CreatorFlow»,
+ * «WeeBizRegister») y una persona danesa lo leía en la pestaña. Sin título propio, la pestaña dice «Weë» en su idioma.
+ */
 const documentTitle = {
-  formatter: (options?: { title?: string }, route?: { name?: string }): string =>
-    options?.title ?? route?.name ?? tituloDeWee(),
+  formatter: (options?: { title?: string }): string => options?.title ?? tituloDeWee(),
 };
 
 // Configuración de linking para deep links y universal links

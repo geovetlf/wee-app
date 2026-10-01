@@ -71,7 +71,7 @@ interface ReelItemProps {
 
 const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, initialPositionMillis }) => {
   const t = useT();
-  const { locale } = useIdioma();
+  const { locale, idioma } = useIdioma();
   const { user } = useAuth();
   const { userProfile: activeProfile } = useUserProfile();
   const { userProfile: postAuthor } = useUserById(post.userId);
@@ -364,7 +364,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
             <TouchableOpacity
               style={styles.sidebarBtn}
               accessibilityLabel={t('weels.shareWeel')}
-              onPress={() => { void compartirFueraDeWee(post.id, t('common.share')); }}
+              onPress={() => { void compartirFueraDeWee(post.id, t('common.share'), idioma); }}
             >
               <Ionicons name="share-social-outline" size={scale(26)} color="white" />
               <Text style={styles.sidebarCount}>

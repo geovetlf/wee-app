@@ -19,9 +19,8 @@
  * {{lista}}»), sin un posesivo que tenga que concordar con ella. Donde el
  * español dice «tus ËContact» se dice «dina kontakter i ËContact».
  *
- * `bizNoAgenda` habla de un Perfil Biz que ya no existe (docs/I18N.md, «textos
- * del español que ya no describen el producto»): se traduce tal cual para no
- * inventar, con «Biz-profilen» en compuesto con guion. El Perfil Real y el
+ * `profileNoAgenda` habla de «den här profilen», sin nombrar una cara que ya
+ * no existe (el Perfil Biz se eliminó el 2026-09-19). El Perfil Real y el
  * Perfil Weë son «Riktig profil» y «Weë-profil» (glosario § 9.1); dentro de
  * una frase, «din riktiga profil».
  *
@@ -102,7 +101,7 @@ export const composer: typeof import('../es/composer').composer = {
   removeMentions_one: 'Ta bort omnämnandet',
   removeMentions_other: 'Ta bort omnämnandena',
   signInToMention: 'Logga in på Weë om du vill nämna dina kontakter i ËContact.',
-  bizNoAgenda: 'Biz-profilen har ingen ËContact-lista. Byt till din riktiga profil eller din Weë-profil om du vill nämna någon.',
+  profileNoAgenda: 'Den här profilen har ingen ËContact-lista. Byt till din riktiga profil eller din Weë-profil om du vill nämna någon.',
   noContactsYet: 'Du har inga {{lista}} ännu. Personer som du skapar kontakt med via deras profil visas här, så att du kan nämna dem.',
   mentionAnyone: 'Nämn vem du vill i {{lista}}',
   publishIn: 'PUBLICERA I',
@@ -177,4 +176,6 @@ export const composer: typeof import('../es/composer').composer = {
   searchPlaceHint: 'Sök efter en stad eller ett land om du vill lägga till en plats i inlägget.',
   aiProcessCreatedWith: 'Skapat med {{nombre}} i Weë AI',
   aiProcessDemoPreview: '{{proceso}} (förhandsvisning i demoläge)',
+  distanceUnder: 'Under {{distancia}}',
+  distanceOver: 'Över {{distancia}}',
 };

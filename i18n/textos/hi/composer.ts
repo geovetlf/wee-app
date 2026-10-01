@@ -23,10 +23,9 @@
  * `placesIn` («📍 {{pais}} में जगहें»), delante de «में», y por eso va en
  * oblicuo: «आपके देश». Lo que la persona escribió como lugar va entre comillas “…”.
  *
- * `bizNoAgenda` habla de un Perfil Biz que ya no existe (docs/I18N.md, «Textos
- * del español que ya no describen el producto»): se traduce tal cual para no
- * inventar, con «Biz» en latino porque era un nombre. El Perfil Real y el
- * Perfil Weë son «असली प्रोफ़ाइल» y «Weë प्रोफ़ाइल» (glosario § 11.1).
+ * `profileNoAgenda` habla de «इस प्रोफ़ाइल», sin nombrar una cara que ya no
+ * existe (el Perfil Biz se eliminó el 2026-09-19). El Perfil Real y el Perfil
+ * Weë son «असली प्रोफ़ाइल» y «Weë प्रोफ़ाइल» (glosario § 11.1).
  *
  * Los títulos de error son sintagmas («वीडियो अपलोड करने में गड़बड़ी») y los
  * cuerpos dicen qué pasó, en pasiva, y qué hacer. Los avisos de permiso dicen
@@ -104,7 +103,7 @@ export const composer: typeof import('../es/composer').composer = {
   removeMentions_one: 'मेंशन हटाएँ',
   removeMentions_other: 'सभी मेंशन हटाएँ',
   signInToMention: 'अपने ËContact संपर्कों को मेंशन करने के लिए, Weë में साइन इन करें.',
-  bizNoAgenda: 'Biz प्रोफ़ाइल में ËContact सूची नहीं होती. किसी को मेंशन करने के लिए, असली प्रोफ़ाइल या Weë प्रोफ़ाइल पर जाएँ.',
+  profileNoAgenda: 'इस प्रोफ़ाइल में ËContact सूची नहीं है. किसी को मेंशन करने के लिए, अपनी असली प्रोफ़ाइल या Weë प्रोफ़ाइल पर जाएँ.',
   noContactsYet: 'अभी तक आपके कोई {{lista}} नहीं हैं. किसी की प्रोफ़ाइल से उनसे जुड़ने पर उनका नाम यहाँ दिखेगा, ताकि आप उन्हें मेंशन कर सकें.',
   mentionAnyone: 'अपने {{lista}} में से किसी को भी मेंशन करें',
   publishIn: 'कहाँ पोस्ट करें',
@@ -179,4 +178,6 @@ export const composer: typeof import('../es/composer').composer = {
   searchPlaceHint: 'अपनी पोस्ट में जगह जोड़ने के लिए, कोई शहर या देश खोजें.',
   aiProcessCreatedWith: 'Weë AI में {{nombre}} से बनाया गया',
   aiProcessDemoPreview: '{{proceso}} (डेमो मोड में झलक)',
+  distanceUnder: '{{distancia}} से कम',
+  distanceOver: '{{distancia}} से ज़्यादा',
 };

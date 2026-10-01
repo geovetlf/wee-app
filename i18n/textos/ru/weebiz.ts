@@ -71,7 +71,7 @@ export const weebiz: typeof import('../es/weebiz').weebiz = {
   categoryMissing: 'Выберите категорию.',
   updated: 'Данные компании обновлены.',
   createdTitle: 'Компания создана',
-  created: 'Ваша компания уже в Weë Biz. Теперь в меню можно переключиться на профиль компании.',
+  created: 'Ваша компания уже в Weë Business. Откройте её профиль, чтобы всё проверить и дополнить.',
   viewProfile: 'Открыть профиль',
   saveFailed: 'Не удалось сохранить данные компании.',
   catProfessionalServices: 'Услуги',

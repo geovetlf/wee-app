@@ -9,7 +9,12 @@ import { DESCRIPCIONES_PARA_DERIVAR, EXPERIENCIAS_PARA_DERIVAR } from './experie
  */
 export const BRAIN_SYSTEM = [
   'Eres Weë, el asistente de WEË AI. Ayudas a personas que no saben nada de inteligencia artificial.',
-  'Hablas en español neutro, claro, cálido y directo, de tú.',
+  /*
+   * El TONO vive aquí; el IDIOMA no, igual que en `BRAIN_CHAT_SYSTEM`. Decía "hablas en español neutro": con la app en
+   * danés, el resultado de cada especialista salía en español. El idioma lo pone `instruccionDeSalida()` en cada paso,
+   * con el del trabajo; sin él, español neutro, que es lo que decía esta línea.
+   */
+  'Hablas claro, cálido y directo, de tú.',
   'Nunca mencionas modelos, proveedores, prompts, parámetros ni términos técnicos.',
   'Entregas resultados completos y listos para usar; no pides más información ni haces preguntas.',
 ].join(' ');
@@ -346,6 +351,31 @@ export const instruccionDeIdioma = (locale?: unknown): string => {
   ].join(' ');
 };
 
+/**
+ * EN QUÉ IDIOMA ESCRIBE UN ESPECIALISTA.
+ *
+ * No es la misma regla que la de Weë Brain conversando (`instruccionDeIdioma`, que no cambia de idioma aunque le
+ * escriban en otro): aquí la persona puede pedir el CONTENIDO en otro idioma —una traducción, un texto para otro
+ * público— y entonces manda lo que pidió (`core/language.ts`: appLanguage ≠ contentLanguage). Todo lo demás, en el
+ * idioma de su app.
+ *
+ * LAS MARCAS NO SE TRADUCEN. Algunos pasos piden líneas que lee el código —«IMAGEN:», «PROBAR:» y «NARRACIÓN:» encadenan
+ * un paso con el siguiente, «Escena 1» da la primera escena del vídeo, la app pliega un itinerario por sus «DÍA 1 ·» y
+ * deja abierto su «PRESUPUESTO:»—. Esas marcas son el contrato entre el servidor y la app: se piden en español, la app
+ * las esconde o las pinta en el idioma de quien mira (`utils/textoDeResultado.ts`) y aquí se pide copiarlas tal cual.
+ *
+ * Sin idioma —un cliente que no lo manda— o en español: español neutro, que es lo que decía `BRAIN_SYSTEM`.
+ */
+export const instruccionDeSalida = (locale?: unknown): string => {
+  if (locale === undefined || locale === null || locale === '') return 'Escribe en español neutro.';
+  const codigo = localeDeBrain(locale);
+  if (/^es(-|$)/i.test(codigo)) return 'Escribe en español neutro.';
+  return [
+    `La persona usa Weë en ${nombreDelIdioma(codigo)} (código ${codigo}): escribe en ese idioma todo lo que va a leer, títulos y avisos incluidos, salvo que haya pedido el contenido en otro idioma (una traducción, un texto para otro público); entonces ese contenido va en el idioma que pidió.`,
+    'Las marcas que piden estas instrucciones se copian EXACTAMENTE así, en español, porque la app las reconoce y las traduce: «IMAGEN:», «PROBAR:», «NARRACIÓN:», «Escena 1» (y las siguientes), «DÍA 1 ·» (y los siguientes) y «PRESUPUESTO:». Lo que va detrás de «IMAGEN:» y «PROBAR:» sigue en inglés.',
+  ].join(' ');
+};
+
 const EXPERIENCE_ROLE: Record<ExperienceId, string> = {
   travel:
     'Ahora eres Weë Travel, alguien que ha viajado mucho y ayuda a preparar un viaje con los pies en la tierra. No vendes nada ni reservas nada: ordenas la idea, propones lo que de verdad merece la pena y avisas de lo que conviene comprobar antes de ir.',
@@ -437,9 +467,11 @@ export const buildTextPrompt = (
   brief: string,
   goal: string,
   purpose: string,
-  previous: string[]
+  previous: string[],
+  /** El idioma del trabajo (`CreatorJob.locale`); sin él, español neutro. */
+  locale?: string
 ): BuiltPrompt => ({
-  system: `${BRAIN_SYSTEM}\n\n${EXPERIENCE_ROLE[experienceId]}\n\n${FORMAT_RULES}`,
+  system: `${BRAIN_SYSTEM} ${instruccionDeSalida(locale)}\n\n${EXPERIENCE_ROLE[experienceId]}\n\n${FORMAT_RULES}`,
   prompt: [
     `Objetivo de la persona: "${goal}".`,
     brief ? `Lo que eligió: ${brief}.` : '',

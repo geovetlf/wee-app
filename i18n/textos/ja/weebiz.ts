@@ -73,7 +73,7 @@ export const weebiz: typeof import('../es/weebiz').weebiz = {
   categoryMissing: 'カテゴリを選んでください。',
   updated: 'ビジネス情報を更新しました。',
   createdTitle: 'ビジネスを登録しました',
-  created: 'Weë Bizに掲載されました。メニューからビジネスプロフィールに切り替えられます。',
+  created: 'ビジネスがWeë Businessに掲載されました。プロフィールを開いて内容を確認し、足りない情報を追加しましょう。',
   viewProfile: 'プロフィールを表示',
   saveFailed: 'ビジネスを保存できませんでした。',
   catProfessionalServices: '専門サービス',

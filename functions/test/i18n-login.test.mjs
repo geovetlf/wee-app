@@ -74,8 +74,8 @@ console.log('\n── A · Ya no queda español escrito a mano ──');
 
   check('1) y no se coló un traductor propio ni un ternario de idioma',
     !/i18next|react-intl|idioma === 'en'|locale === 'en'|TEXTOS\s*=/.test(LOGIN)
-    && /import \{ useT \} from '\.\.\/contexts\/IdiomaContext';/.test(CRUDO)
-    && /const t = useT\(\);/.test(LOGIN));
+    && /import \{ useIdioma \} from '\.\.\/contexts\/IdiomaContext';/.test(CRUDO)
+    && /const \{ t, idioma \} = useIdioma\(\);/.test(LOGIN));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -244,7 +244,7 @@ console.log('\n── F · Ni el diseño, ni el teclado, ni la autenticación �
   check('18) los caminos de autenticación son los de siempre',
     /const \{ user, signIn, signInWithGoogle, signInAnonymously, resetPassword \} = useAuth\(\);/.test(LOGIN)
     && /await signIn\(email, password\);/.test(LOGIN) && /await signInWithGoogle\(\);/.test(LOGIN)
-    && /await signInAnonymously\(\);/.test(LOGIN) && /await resetPassword\(email\);/.test(LOGIN));
+    && /await signInAnonymously\(\);/.test(LOGIN) && /await resetPassword\(email, idioma\);/.test(LOGIN));
   check('18) y el botón de Google sigue apareciendo solo si puede funcionar',
     /const conGoogle = googleSignInDisponible\(\);/.test(LOGIN) && /\{conGoogle && \(/.test(LOGIN));
 

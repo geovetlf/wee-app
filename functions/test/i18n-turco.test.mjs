@@ -287,7 +287,7 @@ console.log('\n── F · La caja: mayúsculas, minúsculas y búsqueda con las
     ['services/projectsService.ts', 'la heurística española «mi …» de la sugerencia de nombre'],
     ['services/weeBizService.ts', 'el campo guardado `nameLower` y su búsqueda por prefijo: cambiarlo exige migrar los negocios guardados'],
     ['constants/camaraCinematica.ts', 'el alias técnico de un comando de cámara'],
-    ['constants/weeExperiences.ts', 'las palabras clave de las experiencias, que solo existen en español e inglés (limitación documentada)'],
+    ['constants/weeExperiences.ts', 'las palabras clave de las experiencias: se comparan con lo que se escribe, no se enseñan'],
     ['utils/mensajesDeFilmmaker.ts', 'convierte el código de error del servidor (ASCII, snake_case) en el sufijo de su clave i18n: no se enseña'],
     ['services/filmmaker/espejo/core/continuity.ts', 'espejo generado del dominio: normaliza claves técnicas prohibidas (ASCII), no texto visible'],
     ['services/filmmaker/espejo/core/language.ts', 'espejo generado del dominio: canonicaliza etiquetas de idioma BCP-47 (identificadores ASCII)'],
@@ -439,6 +439,8 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* «Personas» como estilo de avatar son personas; en el Chef, «Personas» es cuántos comen. */
+    'avatar.stylePeople',
     /* «Subir»/«Bajar» en Filmmaker reordenan escenas y planos (Yukarı/Aşağı taşı); en Studio son la grúa de la cámara (Yükselme/Alçalma). */
     'filmmaker.moveUp', 'filmmaker.moveDown',
     /* «Voz» en Filmmaker es la pista del narrador dentro del bloque «Ses»: «Seslendirme», para no tener «Ses» dentro de «Ses». */

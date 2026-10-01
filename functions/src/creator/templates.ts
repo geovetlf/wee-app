@@ -1524,7 +1524,7 @@ const business: ExperienceTemplate = {
       opt('idea', '💡 Ideas y estrategia'),
       opt('content', '✨ Crear contenido para mis redes'),
       opt('schedule', '📅 Programar publicaciones'),
-      opt('publish', '🚀 Publicar en mis redes'),
+      opt('publish', '🚀 Preparar para publicar'),
       opt('reply', '💬 Responder a clientes'),
       opt('analyze', '📊 Analizar resultados'),
       opt('marketing', '📣 Una campaña o publicidad'),
@@ -1585,9 +1585,9 @@ const business: ExperienceTemplate = {
       case 'publish':
         steps = [
           step('copy', 'text.generate', 'Preparar la publicación', { input: { kind: 'copy', brief: 'lista para publicar' } }),
-          step('publish', 'text.generate', 'Dejarla lista en tus redes', { dependsOn: ['copy'], input: { kind: 'published', brief: goal } }),
+          step('publish', 'text.generate', 'Adaptarla a cada red', { dependsOn: ['copy'], input: { kind: 'published', brief: goal } }),
         ];
-        explain = 'Voy a preparar la publicación y dejarla lista en tus redes. Mientras las redes no habiliten sus permisos oficiales, la publicación es simulada.';
+        explain = 'Voy a preparar la publicación y adaptarla a cada red, lista para que la copies y la publiques tú. Weë todavía no está conectado a tus redes, así que no publica por ti.';
         break;
       case 'reply':
         steps = [step('reply', 'text.generate', 'Escribir la respuesta para tu cliente', { input: { kind: 'reply', brief: `tono ${voice}`, quality: 'standard' } })];

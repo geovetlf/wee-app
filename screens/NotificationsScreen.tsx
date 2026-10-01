@@ -24,6 +24,7 @@ import Header from '../components/Header';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { referenciaPublicaDe } from '../utils/identidadPublica';
+import { nombreGuardadoDeComunidad } from '../utils/comunidadesDeWee';
 
 /*
  * Cuánto hace. Vive fuera del componente, así que el idioma le llega como
@@ -127,7 +128,7 @@ interface PropsDeFilaDeAviso {
 
 const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }: PropsDeFilaDeAviso) {
   const { theme } = useTheme();
-  const { t, formato } = useIdioma();
+  const { t, formato, locale } = useIdioma();
   const icon = getNotificationIcon(item.type);
   /*
    * El nombre va en negrita DENTRO de la frase, y la frase puede ponerlo en
@@ -136,10 +137,11 @@ const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }
    * medio con su peso. Así se conserva el diseño y se gana el orden libre.
    */
   const MARCA = '\u0000';
-  const nombre = remitente?.displayName || t('common.user');
+  /* Dentro de una frase («… comentó tu publicación») el respaldo es un pronombre, no el sustantivo de un nombre. */
+  const nombre = remitente?.displayName || t('common.someone');
   const [antesDelNombre, despuesDelNombre] = t(claveDeLaNotificacion(item), {
     nombre: MARCA,
-    comunidad: item.communityName || t('notifications.aCommunity'),
+    comunidad: nombreGuardadoDeComunidad(item.communityName, t, locale) || t('notifications.aCommunity'),
   }).split(MARCA);
 
   return (

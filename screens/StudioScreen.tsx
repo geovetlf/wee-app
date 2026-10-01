@@ -147,7 +147,7 @@ const StudioScreen: React.FC = () => {
    * Todo aquí, sin llamar a nadie: abrir los ajustes o tocar una píldora no
    * cuesta un Credit. Cuando Weë Brain decida de verdad, entrará por aquí.
    */
-  const contexto = useMemo(() => contextoDeCreacion(area, prompt), [area, prompt]);
+  const contexto = useMemo(() => contextoDeCreacion(area, prompt, locale), [area, prompt, locale]);
 
   /*
    * "Un video de 10 segundos" deja la duración puesta en 10 s. Es una sugerencia
@@ -155,9 +155,9 @@ const StudioScreen: React.FC = () => {
    */
   const sugerido = useMemo(() => {
     if (contexto !== 'video') return undefined;
-    const duracion = duracionEnElTexto(prompt);
+    const duracion = duracionEnElTexto(prompt, locale);
     return duracion ? { duration: duracion } : undefined;
-  }, [contexto, prompt]);
+  }, [contexto, prompt, locale]);
 
   /**
    * CREAR EN EL STUDIO ES IRSE A CREAR, NO CREAR AQUÍ.
@@ -208,6 +208,7 @@ const StudioScreen: React.FC = () => {
        */
       declaradaPorLaPuerta: experiencia?.experienceId ?? (entrada ? entradaPorId(entrada)?.experienceId : undefined),
       dentroDe: 'studio',
+      idioma: locale,
     });
 
     if (destino) {

@@ -359,4 +359,8 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: 'Weë henüz müzik besteleyemiyor. Eksik olan parça müzik, video değil.',
   pendCompose: 'Weë henüz birden çok sahneyi tek bir videoda birleştiremiyor.',
   pendTwoRefs: 'Weë şimdilik yalnızca bir referans görsel kullanabiliyor; bunun için iki tane gerekiyor.',
+  sampleLake: 'Dağlar arasında göl',
+  sampleWarmRoom: 'Sıcak tonlarda salon',
+  sampleNarration: 'Türkçe sesli anlatım',
+  sampleDocument: 'İyi fikirler, daha iyi insanlar',
 };

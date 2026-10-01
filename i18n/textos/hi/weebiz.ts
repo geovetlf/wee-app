@@ -44,11 +44,11 @@
  * (§ 3 (c)). «Link externo» es «वेबसाइट या लिंक»: así lo pide un formulario
  * indio, y es lo que enseña su ejemplo.
  *
- * `created` sigue al español, que aún promete «cambiar a tu perfil de negocio
- * desde el menú» aunque el Perfil Biz se eliminó el 2026-09-19: se tradujo tal
- * cual para no separarse de los demás idiomas, y queda avisado. Ese perfil se
- * escribe «अपने बिज़नेस की प्रोफ़ाइल», y no «बिज़नेस प्रोफ़ाइल», para que no se
- * lea como el módulo Business Profile de Weë Business, que no se traduce.
+ * `created` dice que el negocio ya está en Weë Business y que se abre su perfil
+ * para completarlo: el «cambia a tu perfil de negocio desde el menú» de antes se
+ * fue con el Perfil Biz (2026-09-19). El perfil del
+ * negocio se escribe «उसकी प्रोफ़ाइल», y no «बिज़नेस प्रोफ़ाइल», para que no se lea
+ * como el módulo Business Profile de Weë Business, que no se traduce.
  */
 export const weebiz: typeof import('../es/weebiz').weebiz = {
   noBusinesses: 'कोई बिज़नेस नहीं मिला',
@@ -113,7 +113,7 @@ export const weebiz: typeof import('../es/weebiz').weebiz = {
   categoryMissing: 'कोई कैटगरी चुनें.',
   updated: 'आपके बिज़नेस की जानकारी अपडेट हो गई है.',
   createdTitle: 'बिज़नेस जोड़ा गया',
-  created: 'आपका बिज़नेस अब Weë Biz पर है. मेन्यू से आप अपने बिज़नेस की प्रोफ़ाइल पर स्विच कर सकते हैं.',
+  created: 'आपका बिज़नेस अब Weë Business पर है. उसकी प्रोफ़ाइल खोलें, जानकारी जाँचें और पूरी करें.',
   viewProfile: 'प्रोफ़ाइल देखें',
   saveFailed: 'बिज़नेस सेव नहीं किया जा सका.',
   catProfessionalServices: 'सेवाएँ',

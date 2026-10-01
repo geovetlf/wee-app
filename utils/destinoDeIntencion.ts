@@ -71,6 +71,8 @@ export interface OpcionesDeDestino {
    * quien ha leído la frase entera es el único que puede notarlo.
    */
   declaradaPorLaPuerta?: string | null;
+  /** El idioma de la app: las palabras se reconocen también en él (`matchExperiences`). */
+  idioma?: string;
   /**
    * Quedarse dentro de un lugar de trabajo. Weë Studio lo usa para no mandar a
    * alguien a Weë Chef desde su portada: allí no se enseñan los otros sitios y
@@ -95,7 +97,7 @@ export const destinoDeIntencion = (
   texto: string,
   opciones: OpcionesDeDestino = {}
 ): Destino | null => {
-  const { sugeridaPorBrain, declaradaPorLaPuerta, dentroDe, contexto } = opciones;
+  const { sugeridaPorBrain, declaradaPorLaPuerta, dentroDe, contexto, idioma } = opciones;
   const goal = texto.trim();
 
   const llevar = (experienceId: string, origen: OrigenDelDestino): Destino => ({
@@ -135,7 +137,7 @@ export const destinoDeIntencion = (
 
   if (!goal) return null;
 
-  const candidatas: WeeExperience[] = matchExperiences(goal).filter((e) => cabeEn(e.id, dentroDe));
+  const candidatas: WeeExperience[] = matchExperiences(goal, idioma).filter((e) => cabeEn(e.id, dentroDe));
   if (candidatas.length === 0) return null;
 
   /*

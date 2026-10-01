@@ -368,4 +368,8 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: "Weë 还不会作曲。缺的是音乐，不是视频。",
   pendCompose: "Weë 还不会把多个场景连成一支视频。",
   pendTwoRefs: "Weë 目前只能带一张参考图，而这里需要两张。",
+  sampleLake: '群山间的湖泊',
+  sampleWarmRoom: '暖色调的客厅',
+  sampleNarration: '中文旁白',
+  sampleDocument: '好想法，成就更好的人',
 };

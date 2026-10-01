@@ -284,7 +284,7 @@ const UserProfileScreen: React.FC = () => {
       try {
         await hacer();
       } catch (error) {
-        notify(t('profile.actionFailed'), mensajeDeEContact(error, t));
+        notify(t('profile.actionFailed'), mensajeDeEContact(error, t, locale));
       }
     }
   };
@@ -293,7 +293,7 @@ const UserProfileScreen: React.FC = () => {
     try {
       await hacer();
     } catch (error) {
-      notify(t('profile.actionFailed'), mensajeDeEContact(error, t));
+      notify(t('profile.actionFailed'), mensajeDeEContact(error, t, locale));
     }
   };
 

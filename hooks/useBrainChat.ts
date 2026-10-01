@@ -129,7 +129,7 @@ export const useBrainChat = () => {
       } catch (e) {
         const short = creditsShortfall(e);
         setShortfall(short);
-        if (!short) setError(humanizeCreatorError(e, t));
+        if (!short) setError(humanizeCreatorError(e, t, locale));
         return false;
       } finally {
         setUploading(false);

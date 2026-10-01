@@ -62,15 +62,16 @@ const soloCodigo = (texto) => texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/
 /**
  * La capa de lugares, ejecutable.
  *
- * `places.ts` importa dos catálogos —países y ciudades—, y un módulo cargado
- * desde una URL de datos no sabe resolver rutas relativas. Así que los dos
- * archivos se pegan dentro antes de transpilar: lo que se ejecuta después es el
+ * `places.ts` importa tres catálogos —países, ciudades y cómo se llaman las
+ * ciudades en otros idiomas—, y un módulo cargado desde una URL de datos no sabe
+ * resolver rutas relativas. Así que los tres archivos se pegan dentro antes de transpilar: lo que se ejecuta después es el
  * código real, con sus datos reales.
  */
 const cargarLugares = async () => {
   const fuente = leer('data/places.ts')
     .replace("import { COUNTRIES, Country } from './countries';", leer('data/countries.ts').replace(/export /g, ''))
     .replace("import { CITIES, City } from './cities';", leer('data/cities.ts').replace(/export /g, ''))
+    .replace("import { CIUDADES_POR_IDIOMA } from './ciudadesPorIdioma';", leer('data/ciudadesPorIdioma.ts').replace(/export /g, ''))
     // El catálogo mundial se carga con un import dinámico, que una URL de datos no
     // sabe resolver. Se le da ya cargado, que es lo mismo que hace la aplicación.
     .replace(
@@ -703,7 +704,7 @@ console.log('\n── Q · una publicación es del muro, venga de donde venga �
 
   // 4) El contexto se dice con una etiqueta, no mudando la publicación.
   check('Q) la tarjeta pinta el contexto con un WeeTag', /<WeeTag/.test(tarjeta) && /import WeeTag from '\.\/WeeTag'/.test(tarjeta));
-  check('Q) la comunidad lleva al sitio; la sección solo etiqueta', /<WeeTag nombre=\{community\.name\} icono=\{community\.icon\} onPress=\{handleCommunityPress\} \/>/.test(tarjeta) && /<WeeTag nombre=\{seccion\.nombre\} icono="sparkles-outline" \/>/.test(tarjeta));
+  check('Q) la comunidad lleva al sitio; la sección solo etiqueta', /<WeeTag nombre=\{nombreDeComunidad\(community, t, locale\)\} icono=\{community\.icon\} onPress=\{handleCommunityPress\} \/>/.test(tarjeta) && /<WeeTag nombre=\{seccion\.nombre\} icono="sparkles-outline" \/>/.test(tarjeta));
   check('Q) y va detrás de la hora, en el mismo renglón', tarjeta.indexOf('getRelativeTime(post.createdAt') < tarjeta.indexOf('<WeeTag'));
   check('Q) una publicación sin contexto no pinta nada', /\{community && \(/.test(tarjeta) && /\{!community && seccion && \(/.test(tarjeta));
 
@@ -851,7 +852,7 @@ console.log('\n── U · el lugar del contenido no es dónde está el teléfon
   check('U) no hay sugerencia automática que rellene el campo', !/setPlaceLabel\((?!''\))[^)]*(zona|lectura|publica)/i.test(crear));
   /* Ya no hay un texto explicando que el lugar se verá: se VE, como un chip
      dentro de la publicación antes de publicarla, y se quita con su aspa. */
-  check('U) el lugar se enseña en la publicación antes de publicar, con su aspa', /etiquetaDeLugar\(\{ place \}\)/.test(crear) && /accessibilityLabel="Quitar el lugar"/.test(crear) && !/El lugar se verá en tu publicación/.test(crear));
+  check('U) el lugar se enseña en la publicación antes de publicar, con su aspa', /etiquetaDeLugar\(\{ place \}, locale\)/.test(crear) && /accessibilityLabel="Quitar el lugar"/.test(crear) && !/El lugar se verá en tu publicación/.test(crear));
   check('U) y se puede quitar antes de publicar', /Quitar el lugar/.test(crear) && /setPlace\(undefined\)/.test(crear));
 
   // 9–15) Lo que NUNCA entra en una publicación.
@@ -984,7 +985,7 @@ console.log('\n── X · un lugar es una identidad, no una posición ──');
   check('X) nadie reescribe publicaciones antiguas', !/migrat|backfill|forEach\(.*updateDoc/i.test(crear + almacen));
 
   // 6–7) Prioridad determinista.
-  check('X) la prioridad está escrita en un solo sitio', /export const etiquetaDeLugar/.test(lugares) && /etiquetaDeLugar\(post\)/.test(tarjeta));
+  check('X) la prioridad está escrita en un solo sitio', /export const etiquetaDeLugar/.test(lugares) && /etiquetaDeLugar\(post, locale\)/.test(tarjeta));
   check('X) y el Wall no la reinventa', !/post\.place\?\.label \|\| post\.placeLabel/.test(tarjeta));
 
   // 8–15) Lo que nunca hay.
@@ -1204,9 +1205,9 @@ console.log('\n── AC · las tres formas de decir dónde ──');
   // La etiqueta se compone en un solo sitio.
   const tarjeta = leer('components/PostCard.tsx');
   const crear = leer('screens/CreateScreen.tsx');
-  check('AC) el Wall no compone la etiqueta por su cuenta', /etiquetaDeLugar\(post\)/.test(tarjeta) && !/place\.countryCode/.test(tarjeta));
-  check('AC) ni el compositor', /etiquetaDeLugar\(\{ place \}\)/.test(crear) && !/, \$\{pais/.test(crear));
-  check('AC) la pantalla enseña el país al elegir, para no confundirse', /opcion\.sublabel/.test(leer('screens/AgregarUbicacionScreen.tsx')));
+  check('AC) el Wall no compone la etiqueta por su cuenta', /etiquetaDeLugar\(post, locale\)/.test(tarjeta) && !/place\.countryCode/.test(tarjeta));
+  check('AC) ni el compositor', /etiquetaDeLugar\(\{ place \}, locale\)/.test(crear) && !/, \$\{pais/.test(crear));
+  check('AC) la pantalla enseña el país al elegir, para no confundirse', /visible\.sublabel/.test(leer('screens/AgregarUbicacionScreen.tsx')));
 }
 
 // ════════════════════════════════════════════════════════════════════════════

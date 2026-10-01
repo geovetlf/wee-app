@@ -65,6 +65,7 @@ const cargarLugares = async () => {
   const fuente = leer('data/places.ts')
     .replace("import { COUNTRIES, Country } from './countries';", leer('data/countries.ts').replace(/export /g, ''))
     .replace("import { CITIES, City } from './cities';", leer('data/cities.ts').replace(/export /g, ''))
+    .replace("import { CIUDADES_POR_IDIOMA } from './ciudadesPorIdioma';", leer('data/ciudadesPorIdioma.ts').replace(/export /g, ''))
     .replace("require('./citiesWorld') as { WORLD_PLACES: string }", '{ WORLD_PLACES: "" }');
   const js = ts.transpileModule(fuente, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
@@ -269,8 +270,9 @@ check(
   'el vacío es un estado, no un error'
 );
 check(
-  'y el Perfil Biz tiene su propia explicación',
-  /hayAgenda/.test(selectorCodigo) && /Perfil Biz no tiene agenda de ËContact/.test(selector)
+  /* El Perfil Biz ya no existe (decisión del 2026-09-19): el aviso habla de «este perfil», sin nombrar una cara que no hay. */
+  'y un perfil sin agenda tiene su propia explicación',
+  /hayAgenda/.test(selectorCodigo) && /Este perfil no tiene agenda de ËContact/.test(selector) && !/Perfil Biz/.test(selector)
 );
 /* El uid vale como clave de lista; lo que NO puede es acabar en pantalla. */
 check(
@@ -449,7 +451,7 @@ check(
     /setPlace\(/.test(efectoVuelta) &&
     /setUbicacion\(/.test(efectoVuelta)
 );
-check('el compositor enseña el lugar elegido como un chip con su aspa', /etiquetaDeLugar\(\{ place \}\)/.test(crear) && /accessibilityLabel="Quitar el lugar"/.test(crear) && !/>Cambiar</.test(crear));
+check('el compositor enseña el lugar elegido como un chip con su aspa', /etiquetaDeLugar\(\{ place \}, locale\)/.test(crear) && /accessibilityLabel="Quitar el lugar"/.test(crear) && !/>Cambiar</.test(crear));
 check('el volver vuelve sin tocar nada', /onPress=\{\(\) => navigation\.goBack\(\)\}[\s\S]{0,200}accessibilityLabel="Volver"/.test(ubic));
 
 /* ── Las dos capacidades siguen separadas ── */

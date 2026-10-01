@@ -26,6 +26,7 @@ import { cloudinaryThumb, cloudinaryVideoThumb } from '../services/cloudinarySer
 import { LinearGradient } from 'expo-linear-gradient';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { nombreDeComunidad } from '../utils/comunidadesDeWee';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -729,7 +730,7 @@ const HomeScreen: React.FC = () => {
               ]}
               numberOfLines={1}
             >
-              {community.name}
+              {nombreDeComunidad(community, t, locale)}
             </Text>
           </>
         ) : (
@@ -831,7 +832,7 @@ const HomeScreen: React.FC = () => {
   const getSelectedCommunityName = () => {
     if (!selectedCommunitySlug) return t('home.allCommunities');
     const community = getCommunityBySlug(selectedCommunitySlug);
-    return community?.name || selectedCommunitySlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return community ? nombreDeComunidad(community, t, locale) : selectedCommunitySlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   // Determinar si la comunidad seleccionada es de usuario (no oficial)

@@ -111,4 +111,8 @@ export const design: typeof import('../es/design').design = {
   kindArchitecture: 'Arkitektur',
   kindBoat: 'Båt',
   kindFurniture: 'Möbler',
+  sampleLivingRoom: 'Ljust vardagsrum',
+  samplePineHouse: 'Hus bland tallar',
+  sampleYacht: '15 meter lång yacht',
+  sampleArmchair: 'Fåtölj i trä',
 };

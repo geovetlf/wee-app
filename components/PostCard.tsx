@@ -58,6 +58,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { alturaVisibleDelMuro, medidaDelMedio, topeDeLaFoto, topeDelMedio, ventanaDelPreview } from '../utils/medidaDelMedio';
 import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } from '../utils/imageDimensionCache';
 import { getCachedVideoAspectRatio, setCachedVideoAspectRatio, fetchAndCacheVideoAspectRatio, proporcionDeLaMedida } from '../utils/videoDimensionCache';
+import { nombreDeComunidad } from '../utils/comunidadesDeWee';
 
 // Enable LayoutAnimation on Android (not on web)
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -179,7 +180,7 @@ const PostCard: React.FC<PostCardProps> = ({
   alturaVisible,
   variante = 'tarjeta',
 }) => {
-  const { t, locale } = useIdioma();
+  const { t, locale, idioma } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile: activeProfile, realProfile, weeProfile } = useUserProfile();
@@ -244,7 +245,7 @@ const PostCard: React.FC<PostCardProps> = ({
    * etiqueta. La bandera solo aparece cuando el lugar viene del catálogo, porque
    * es lo único de lo que Weë tiene certeza.
    */
-  const lugar = useMemo(() => etiquetaDeLugar(post), [post]);
+  const lugar = useMemo(() => etiquetaDeLugar(post, locale), [post, locale]);
   const bandera = useMemo(() => banderaDe(post.place), [post.place]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -652,7 +653,7 @@ const PostCard: React.FC<PostCardProps> = ({
      * no es lo que la persona quiso mandar.
      */
     if (postToShare.videoUrl) {
-      const compartido = await compartirFueraDeWee(postToShare.id, t('common.share'));
+      const compartido = await compartirFueraDeWee(postToShare.id, t('common.share'), idioma);
       if (!compartido) {
         notify(t('wall.shareFailed'));
       }
@@ -1356,7 +1357,7 @@ const PostCard: React.FC<PostCardProps> = ({
               {community && (
                 <>
                   <Text style={[styles.metaSeparator, { color: theme.colors.textSecondary }]}>•</Text>
-                  <WeeTag nombre={community.name} icono={community.icon} onPress={handleCommunityPress} />
+                  <WeeTag nombre={nombreDeComunidad(community, t, locale)} icono={community.icon} onPress={handleCommunityPress} />
                 </>
               )}
               {!community && seccion && (

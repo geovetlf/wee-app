@@ -507,7 +507,8 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
   check('E4) Seedance, y solo Seedance: ni un proveedor nuevo, ni una cadena nueva',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
     && git(`diff --numstat ${RUTA} -- functions/src/engine`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
-      === '9\t2\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|33\t3\tfunctions/src/engine/limits.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|21\t1\tfunctions/src/engine/router.ts|19\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
+      /* i18n da-DK: errors.ts y router.ts, una línea de texto cada uno (ver video-asincrono H2). */
+      === '9\t2\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|1\t1\tfunctions/src/engine/errors.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|33\t3\tfunctions/src/engine/limits.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|22\t2\tfunctions/src/engine/router.ts|19\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */
@@ -530,8 +531,20 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     'functions/src/gateway/index.ts', 'functions/src/gateway/types.ts', 'functions/src/generateAvatar.ts', 'functions/src/index.ts',
     'functions/src/opciones.ts', 'functions/src/secrets.ts',
   ];
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D y del Harness',
-    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS,
+  /*
+   * Los de la integración i18n da-DK (rama i18n/da-dk, 2026-10-01), por nombre: el idioma de quien crea llega a los
+   * pasos de texto (inputs, prompts), Weë Business deja de prometer que publica (templates y el texto de la demo), dos
+   * errores del motor dejan de nombrar al proveedor, y el push y la página pública se escriben en el idioma de quien
+   * los lee (avisos, la página y sus dos piezas compartidas, una de ellas GENERADA desde los diccionarios).
+   */
+  const DE_I18N_DA = [
+    'functions/src/creator/inputs.ts', 'functions/src/creator/prompts.ts', 'functions/src/creator/templates.ts',
+    'functions/src/engine/errors.ts', 'functions/src/gateway/providers/mock.ts',
+    'functions/src/public/postPage.ts', 'functions/src/public/postPageHtml.ts', 'functions/src/social/avisos.ts',
+    'functions/src/shared/idiomaDelServidor.ts', 'functions/src/shared/textosDelServidor.ts',
+  ];
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness y de la integración i18n da-DK',
+    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
@@ -554,7 +567,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   /* creatorRun y el avatar solo con los arreglos de la FASE 1 del Harness (H0 #9, #11, #15a), por tamaño. */
   check('F4) creatorRun, solo con los arreglos del Harness y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
     git(`diff --numstat ${RUTA} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
-      === '45\t4\tfunctions/src/creator/credits.ts|99\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
+      /* creator/index.ts: + 10 de la integración i18n da-DK (el locale), ver video-asincrono H2. */
+      === '45\t4\tfunctions/src/creator/credits.ts|109\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 

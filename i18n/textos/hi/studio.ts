@@ -371,4 +371,8 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: 'Weë अभी संगीत नहीं बना सकता. कमी संगीत की है, वीडियो की नहीं.',
   pendCompose: 'Weë अभी कई सीन जोड़कर एक वीडियो नहीं बना सकता.',
   pendTwoRefs: 'अभी Weë सिर्फ़ एक रेफ़रेंस इमेज इस्तेमाल कर सकता है, और इसके लिए दो चाहिए.',
+  sampleLake: 'पहाड़ों के बीच झील',
+  sampleWarmRoom: 'गर्म रंगों वाला लिविंग रूम',
+  sampleNarration: 'हिंदी में नैरेशन',
+  sampleDocument: 'अच्छे विचार, बेहतर इंसान',
 };

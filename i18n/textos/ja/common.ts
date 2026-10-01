@@ -39,4 +39,5 @@ export const common: typeof import('../es/common').common = {
   loadMore: '投稿をもっと見る',
   postsCount_one: '投稿{{cantidad}}件',
   postsCount_other: '投稿{{cantidad}}件',
+  someone: '誰か',
 };

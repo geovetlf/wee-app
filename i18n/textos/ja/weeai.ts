@@ -224,4 +224,5 @@ export const weeai: typeof import('../es/weeai').weeai = {
   imageCount_other: '画像{{contador}}枚',
   durationSeconds: '{{segundos}}秒',
   volumeDiscount: 'まとめ割{{descuento}}%オフ',
+  createWork: '作成',
 };

@@ -59,7 +59,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signInAnonymously: () => Promise<void>;
   logout: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, idioma?: string) => Promise<void>;
   updateUserProfile: (displayName: string, photoURL?: string) => Promise<void>;
   registerCleanup: (cleanup: () => void) => () => void;
 }
@@ -171,8 +171,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const resetPassword = async (email: string): Promise<void> => {
+  /**
+   * `idioma` es el de la app: Firebase escribe el correo con su plantilla en ese idioma (`auth.languageCode`).
+   * Sin él, el idioma por defecto del proyecto.
+   */
+  const resetPassword = async (email: string, idioma?: string): Promise<void> => {
     try {
+      if (idioma) auth.languageCode = idioma;
       await sendPasswordResetEmail(auth, email);
     } catch (error) {
       throw error;

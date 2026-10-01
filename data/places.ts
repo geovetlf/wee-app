@@ -1,5 +1,6 @@
 import { COUNTRIES, Country } from './countries';
 import { CITIES, City } from './cities';
+import { CIUDADES_POR_IDIOMA } from './ciudadesPorIdioma';
 
 /**
  * Los lugares de Weë.
@@ -77,6 +78,12 @@ export interface ContextoDeBusqueda {
   lon?: number;
   /** El país de quien busca, que Weë sabe desde el registro. */
   pais?: string | null;
+  /**
+   * El idioma de la app ('da'). Con él se encuentra también lo que la persona escribe en SU idioma —«København»,
+   * «Tyskland»—, además de los nombres del catálogo. Lo que se devuelve sigue siendo el catálogo; lo escribe en su
+   * idioma `opcionEnSuIdioma`.
+   */
+  idioma?: string;
 }
 
 /** Un resultado de búsqueda: un país o una ciudad, listo para enseñar. */
@@ -145,6 +152,60 @@ const normalizarAlineado = (texto: string): string => {
 };
 
 const comoOpcion = (pais: Country): PlaceOption => ({ id: pais.code, label: pais.name, flag: pais.flag });
+
+/*
+ * ─── EN EL IDIOMA DE QUIEN MIRA ─────────────────────────────────────────────
+ *
+ * El catálogo guarda un nombre por lugar, en español, y el identificador es su identidad ('DK-CPH', 'DK'). Una
+ * publicación guarda ese nombre y ese identificador, y así se queda: lo que cambia es cómo se ESCRIBE al enseñarlo.
+ *
+ *  · Una ciudad del catálogo se escribe como se llama en el idioma de quien mira (`ciudadesPorIdioma.ts`: «København»,
+ *    «München»), o en inglés, que es el respaldo de Weë, o como está. Solo si lo guardado sigue siendo el nombre del
+ *    catálogo: lo que escribió una persona («lugar propio») no se toca.
+ *  · Un país, con `Intl.DisplayNames`, que sabe el nombre de cada país en cada idioma.
+ *  · En español, lo de siempre.
+ */
+const CIUDAD_POR_ID = new Map(CITIES.map((c) => [c.id, c] as const));
+const enEspanol = (idioma?: string): boolean => !idioma || /^es(-|$)/i.test(idioma);
+
+const nombreDeCiudadEn = (id: string, nombre: string, idioma?: string): string => {
+  if (enEspanol(idioma)) return nombre;
+  if (CIUDAD_POR_ID.get(id)?.name !== nombre) return nombre;
+  return nombreEnLaTabla(id, idioma) ?? nombre;
+};
+
+/*
+ * La tabla solo guarda DIFERENCIAS: el danés que falta es el del catálogo («Sevilla»), no el inglés; un idioma sin
+ * columna propia lee la inglesa, que es el respaldo de Weë.
+ */
+const nombreEnLaTabla = (id: string, idioma?: string): string | undefined => {
+  if (enEspanol(idioma)) return undefined;
+  const otros = CIUDADES_POR_IDIOMA[id];
+  if (!otros) return undefined;
+  const base = idioma!.split('-')[0].toLowerCase();
+  return base === 'da' || base === 'en' ? otros[base] : otros.en;
+};
+
+const nombreDePaisEn = (codigo: string, nombre: string, idioma?: string): string => {
+  if (enEspanol(idioma)) return nombre;
+  try {
+    return new Intl.DisplayNames([idioma!], { type: 'region' }).of(codigo) || nombre;
+  } catch {
+    return nombre;
+  }
+};
+
+/** Una opción del selector de lugar, escrita en el idioma de quien la mira. Se elige la original, no esta. */
+export const opcionEnSuIdioma = (opcion: PlaceOption, idioma?: string): PlaceOption => {
+  if (enEspanol(idioma)) return opcion;
+  if (!opcion.countryCode) return { ...opcion, label: nombreDePaisEn(opcion.id, opcion.label, idioma) };
+  const pais = paisDe(opcion.countryCode);
+  const suPais = pais ? nombreDePaisEn(pais.code, pais.name, idioma) : undefined;
+  const sublabel = pais && suPais && opcion.sublabel?.endsWith(pais.name)
+    ? opcion.sublabel.slice(0, opcion.sublabel.length - pais.name.length) + suPais
+    : opcion.sublabel;
+  return { ...opcion, label: nombreDeCiudadEn(opcion.id, opcion.label, idioma), sublabel };
+};
 
 // ─── El catálogo mundial ────────────────────────────────────────────────────
 
@@ -335,8 +396,11 @@ export const buscarLugares = (texto: string, limite = 6, contexto?: ContextoDeBu
    * las "secundarias", y eso decidía antes de tiempo lo que le corresponde
    * decidir a la cercanía y a la importancia.
    */
+  const suIdioma = contexto?.idioma && !enEspanol(contexto.idioma) ? contexto.idioma : undefined;
   for (const ciudad of CITIES) {
-    const nombre = normalize(ciudad.name);
+    /* El nombre del catálogo y, si se busca en otro idioma, el que tiene en ese idioma («København»). */
+    const otro = nombreEnLaTabla(ciudad.id, suIdioma);
+    const nombre = otro && normalize(otro).includes(q) ? normalize(otro) : normalize(ciudad.name);
     if (!nombre.includes(q) && normalize(ciudad.id) !== q) continue;
     const opcion = ciudadComoOpcion(ciudad);
     if (!opcion) continue;
@@ -353,7 +417,8 @@ export const buscarLugares = (texto: string, limite = 6, contexto?: ContextoDeBu
    */
   const IMPORTANCIA_DE_UN_PAIS = 4;
   for (const pais of COUNTRIES) {
-    const nombre = normalize(pais.name);
+    const suNombre = suIdioma ? normalize(nombreDePaisEn(pais.code, pais.name, contexto?.idioma)) : '';
+    const nombre = suNombre && suNombre.includes(q) ? suNombre : normalize(pais.name);
     const exacto = nombre === q || normalize(pais.code) === q;
     if (!exacto && !nombre.includes(q)) continue;
     resultados.push({
@@ -454,7 +519,7 @@ const kmEntre = (aLat: number, aLon: number, bLat: number, bLon: number): number
 };
 
 /** Hasta dónde se considera "cerca". Más allá, el sitio ya no es tu barrio. */
-const RADIO_CERCANIA_KM = 60;
+export const RADIO_CERCANIA_KM = 60;
 
 export interface LugarCercano {
   opcion: PlaceOption;
@@ -657,7 +722,7 @@ export const banderaDe = (place?: PostPlace): string | undefined => {
  * publicación nueva escribe solo lo primero, así que las dos cosas no coexisten y
  * no hay ninguna contradicción que resolver.
  */
-export const etiquetaDeLugar = (post: { place?: PostPlace; placeLabel?: string }): string | undefined => {
+export const etiquetaDeLugar = (post: { place?: PostPlace; placeLabel?: string }, idioma?: string): string | undefined => {
   const place = post.place;
   if (!place) return post.placeLabel || undefined;
 
@@ -668,5 +733,8 @@ export const etiquetaDeLugar = (post: { place?: PostPlace; placeLabel?: string }
    * es el único sitio donde vive.
    */
   const pais = place.countryCode ? paisDe(place.countryCode) : undefined;
-  return pais ? `${place.label}, ${pais.name}` : place.label || undefined;
+  /* En el idioma de quien mira (ver `opcionEnSuIdioma`). Un lugar propio se queda como lo escribió su autor. */
+  if (place.kind === 'catalog' && !pais) return place.id && paisDe(place.id) ? nombreDePaisEn(place.id, place.label, idioma) : place.label || undefined;
+  const ciudad = place.kind === 'catalog' && place.id ? nombreDeCiudadEn(place.id, place.label, idioma) : place.label;
+  return pais ? `${ciudad}, ${nombreDePaisEn(pais.code, pais.name, idioma)}` : ciudad || undefined;
 };

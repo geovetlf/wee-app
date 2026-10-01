@@ -63,9 +63,18 @@ const traducir = (await cargar('i18n/traducir.ts')).ns;
 const formato = (await cargar('i18n/formato.ts')).ns;
 const caja = (await cargar('i18n/caja.ts')).ns;
 const registro = (await cargar('i18n/diccionarios.ts')).ns;
-const es = (await cargar('i18n/textos/es/index.ts')).ns.es;
-const en = (await cargar('i18n/textos/en/index.ts')).ns.en;
-const da = (await cargar('i18n/textos/da/index.ts')).ns.da;
+/*
+ * Con los textos del servidor dentro (`textos/<idioma>/servidor/`): las preguntas y el plan de Weë AI, los errores,
+ * el historial de Credits, los push y la página pública también los lee una persona danesa, así que todas las reglas
+ * de abajo valen para ellos igual.
+ */
+const conServidor = async (codigo) => ({
+  ...(await cargar(`i18n/textos/${codigo}/index.ts`)).ns[codigo],
+  ...(await cargar(`i18n/textos/${codigo}/servidor/index.ts`)).ns.servidor,
+});
+const es = await conServidor('es');
+const en = await conServidor('en');
+const da = await conServidor('da');
 
 const aplanar = (o, pre = '') => Object.entries(o).flatMap(([k, v]) =>
   typeof v === 'object' ? aplanar(v, pre + k + '.') : [[pre + k, v]]);
@@ -75,7 +84,7 @@ const EN = Object.fromEntries(aplanar(en));
 
 const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira|Filmmaker)|WeeTalk|Weëls?|Wäll|ËContact|ẄContact|Credits|Weë/gu;
 /* Lo que no es danés y está bien que esté: marcas, huecos y los nombres de función de Weë Business. */
-const NOMBRES_DE_PRODUCTO = /Business Plan|Business Coach|Pricing Assistant|Brand Kit|Customer Insights|Business Ideas|Business Profile|My Business|Products & Catalog|YouTube Shorts|YouTube|TikTok|Instagram|Facebook|LinkedIn|Pinterest|Spotify|Google|Apple|World Encode Entity/g;
+const NOMBRES_DE_PRODUCTO = /WhatsApp|Business Plan|Business Coach|Pricing Assistant|Brand Kit|Customer Insights|Business Ideas|Business Profile|My Business|Products & Catalog|YouTube Shorts|YouTube|TikTok|Instagram|Facebook|LinkedIn|Pinterest|Spotify|Google|Apple|World Encode Entity/g;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -93,8 +102,13 @@ console.log('\n── A · `da-DK` de punta a punta, sin lógica para el danés 
     && idiomas.filasDeIdioma().filter((f) => f.idioma === 'da').length === 1,
     JSON.stringify(cat));
   check('2) y su locale principal, `da-DK`, está entre los contemplados', idiomas.LOCALES_CONTEMPLADOS.includes('da-DK'));
+  /*
+   * Su propio diccionario: cada sección de `da` está tal cual en el registro. El registro le suma además los textos del
+   * servidor (`textos/da/servidor/`), así que el objeto ya no es el mismo; las secciones sí.
+   */
   check('3) el registro lo sirve con su propio diccionario, no por un alias',
-    registro.DICCIONARIOS.da === da && registro.idiomasConDiccionario().includes('da'));
+    Object.keys(da).every((s) => registro.DICCIONARIOS.da[s] === da[s]) && !!registro.DICCIONARIOS.da.preguntas
+    && registro.idiomasConDiccionario().includes('da'));
 
   const disponibles = registro.idiomasConDiccionario();
   const elegir = (elegido, aparato) => resolver.elegirIdioma(elegido, aparato, disponibles);
@@ -225,8 +239,18 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['studio.camDrone', '«Drone» es la palabra danesa'],
     ['studio.mvTilt', '«Tilt», el término danés del movimiento de cámara'],
     ['weebiz.logo', '«Logo» es la palabra danesa'],
+    /* Los textos del servidor. */
+    ['opciones.studioStyleElegant', '«Elegant» es la palabra danesa'],
+    ['opciones.musicStylePop', '«Pop», nombre del género musical'],
+    ['opciones.musicStyleRock', '«Rock», nombre del género musical'],
+    ['plan.calidadEstandar', '«Standard» es la palabra danesa'],
+    ['movimientos.studioVideo', 'la marca y «video», que es la palabra danesa'],
+    ['resultado.presupuesto', '«Budget» es la palabra danesa (DDO)'],
+    ['resultado.presupuestoPalabra', '«budget» es la palabra danesa (DDO)'],
+    ['resultado.escena', '«Scene» es la palabra danesa'],
   ]);
   const copiadas = DA.filter(([k, v]) => !IGUALES.has(k) && /\p{L}{3,}/u.test(sinLoAjeno(v)) && (ES[k] === v || EN[k] === v));
+  if (process.env.DETALLE) console.log(copiadas.map(([k, v]) => `${k} = ${v}`).join('\n'));
   check('20) ninguna cadena copiada tal cual del español o del inglés, salvo las que se escriben igual con su porqué',
     copiadas.length === 0, muestra(copiadas) || `${IGUALES.size} iguales a propósito`);
   const sobranIguales = [...IGUALES.keys()].filter((k) => !(k in Object.fromEntries(DA)));
@@ -479,13 +503,27 @@ console.log('\n── K · Traducciones defectuosas ──');
     'studio.sendLabel', 'studio.create',
     /* «Mejorar» un texto es «Gør bedre»; una imagen o un vídeo, «Optimer». */
     'writer.improve',
+    /* El botón del plan de Weë AI crea una OBRA: «Lav» (§ 9.1); el + y los proyectos crean objetos: «Opret». */
+    'weeai.createWork',
+    /* «Sonrisa» como estilo de avatar es un nombre («Smil»); como gesto de la cara, un adjetivo («Smilende»). */
+    'avatar.styleSmile',
+    /* «¿Qué quieres hacer?» en Chef y en Travel es qué preparar o qué actividades («Hvad vil du lave?»); la pregunta
+       de Weë Home es qué hacer CON el espacio que se ve en la foto («Hvad vil du gøre?»). */
+    'preguntas.homeWhat',
   ]);
+  /*
+   * Los PASOS de un plan de Weë AI (`plan.<experiencia>Paso…`) se escriben en infinitivo sin «at» («Forbedre fotoet»),
+   * y los botones y objetivos de la app en imperativo («Optimer fotoet», guía § 3): el español usa el infinitivo para
+   * las dos cosas. Se comparan entre ellos, cada grupo con el suyo.
+   */
+  const grupoDe = (k) => (/^plan\.[a-z]+Paso/.test(k) ? 'paso' : 'app');
   const porFrase = new Map();
   for (const [k, v] of DA) {
     const e = ES[k];
     if (typeof e !== 'string' || /_one$/.test(k) || DISTINTAS_A_PROPOSITO.has(k)) continue;
-    if (!porFrase.has(e)) porFrase.set(e, new Map());
-    const m = porFrase.get(e);
+    const frase = `${grupoDe(k)}|${e}`;
+    if (!porFrase.has(frase)) porFrase.set(frase, new Map());
+    const m = porFrase.get(frase);
     m.set(v, [...(m.get(v) || []), k]);
   }
   const inconsistentes = [...porFrase].filter(([, m]) => m.size > 1);

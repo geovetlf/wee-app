@@ -21,9 +21,9 @@
  * Stockholm, www.exempel.se); cada uno lleva alguna palabra en minúscula, porque
  * un rótulo que fuera todo Nombres Propios pasaría por Mayúscula En Cada Palabra.
  *
- * `created` sigue al español, que aún promete «cambiar a tu perfil de negocio
- * desde el menú» aunque el Perfil Biz se eliminó el 2026-09-19: se tradujo tal
- * cual para no separarse de los demás idiomas, y queda avisado.
+ * `created` dice que el negocio ya está en Weë Business y que se abre su perfil
+ * para completarlo: el «cambia a tu perfil de negocio desde el menú» de antes se
+ * fue con el Perfil Biz (2026-09-19).
  */
 export const weebiz: typeof import('../es/weebiz').weebiz = {
   noBusinesses: 'Inga företag hittades',
@@ -88,7 +88,7 @@ export const weebiz: typeof import('../es/weebiz').weebiz = {
   categoryMissing: 'Välj en kategori.',
   updated: 'Företaget har uppdaterats.',
   createdTitle: 'Företaget har skapats',
-  created: 'Ditt företag finns nu på Weë Biz. Du kan byta till företagsprofilen i menyn.',
+  created: 'Ditt företag finns nu på Weë Business. Öppna profilen om du vill se över den och fylla i det som saknas.',
   viewProfile: 'Visa profil',
   saveFailed: 'Det gick inte att spara företaget.',
   catProfessionalServices: 'Tjänster',

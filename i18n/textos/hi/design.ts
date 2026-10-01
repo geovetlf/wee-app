@@ -118,4 +118,8 @@ export const design: typeof import('../es/design').design = {
   kindArchitecture: 'आर्किटेक्चर',
   kindBoat: 'नाव',
   kindFurniture: 'फ़र्नीचर',
+  sampleLivingRoom: 'रोशनी से भरा लिविंग रूम',
+  samplePineHouse: 'चीड़ के पेड़ों के बीच घर',
+  sampleYacht: '15 मीटर यॉट',
+  sampleArmchair: 'लकड़ी की आरामकुर्सी',
 };

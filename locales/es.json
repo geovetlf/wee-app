@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë necesita acceso a tu cámara para que puedas tomar fotos y videos para compartir en tus publicaciones.",
+    "NSMicrophoneUsageDescription": "Weë necesita acceso a tu micrófono para grabar audio en tus videos.",
+    "NSPhotoLibraryUsageDescription": "Weë necesita acceso a tu galería para que puedas seleccionar fotos y videos para compartir.",
+    "NSPhotoLibraryAddUsageDescription": "Weë necesita permiso para guardar videos en tu galería.",
+    "NSLocationWhenInUseUsageDescription": "Weë usa tu ubicación aproximada solo mientras la tienes abierta, para ayudarte a descubrir contenido y comunidades cercanas. Tu ubicación exacta no se muestra públicamente."
+  }
+}

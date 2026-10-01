@@ -67,7 +67,11 @@ export interface PushNotificationData {
 
 export const pushNotificationService = {
   // Registrar para push notifications y obtener el token
-  registerForPushNotifications: async (): Promise<string | null> => {
+  /**
+   * `nombreDelCanal` es como se llama el canal de avisos en los ajustes de Android, en el idioma de quien usa Weë
+   * (lo pone quien llama, con su traductor). Sin él, «Weë».
+   */
+  registerForPushNotifications: async (nombreDelCanal = 'Weë'): Promise<string | null> => {
     try {
       // Solo funciona en dispositivos físicos
       if (!Device.isDevice) {
@@ -101,7 +105,7 @@ export const pushNotificationService = {
       // Configuración específica de Android
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
+          name: nombreDelCanal,
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#F5B731',

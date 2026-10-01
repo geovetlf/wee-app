@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { textoDeFechas, textoDelServidor, textoDeObjetivo, textoDeOpcion, textoDePregunta } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorShell from '../components/creator/CreatorShell';
 import UploadBox from '../components/creator/UploadBox';
@@ -30,7 +31,7 @@ import { scale } from '../utils/scale';
  */
 const CreatorFlowScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { t, formato } = useIdioma();
+  const { t, formato, locale } = useIdioma();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -145,13 +146,13 @@ const CreatorFlowScreen: React.FC = () => {
       setQuestion(null);
       try {
         const imageUrl = imageUri ? await uploadPhoto(imageUri) : undefined;
-        const response = await creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl);
+        const response = await creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl, locale);
         setJobId(response.jobId);
         setQuestion(response.question);
         setPricing(response.pricing ?? null);
         setQuality(null);
       } catch (e) {
-        setError(humanizeCreatorError(e, t));
+        setError(humanizeCreatorError(e, t, locale));
       } finally {
         setBusy(false);
       }
@@ -171,7 +172,7 @@ const CreatorFlowScreen: React.FC = () => {
         uploadedUrl.current = url;
         await creatorService.attachImage(jobId, url);
       } catch (e) {
-        setError(humanizeCreatorError(e, t));
+        setError(humanizeCreatorError(e, t, locale));
       }
     },
     [jobId, user, t]
@@ -183,8 +184,8 @@ const CreatorFlowScreen: React.FC = () => {
     const text = job.results.filter((r) => r.content && r.kind !== 'audio' && !r.url).map((r) => r.content).join('\n\n').trim();
     if (!text) return;
     savedDocFor.current = job.id;
-    documentsService.save({ id: `job_${job.id}`, title: job.goal, text, jobId: job.id }).catch((e) => console.warn('No se pudo guardar en Mis documentos:', e));
-  }, [job, experience.id]);
+    documentsService.save({ id: `job_${job.id}`, title: textoDeObjetivo(t, experience.id, job.goal), text, jobId: job.id }).catch((e) => console.warn('No se pudo guardar en Mis documentos:', e));
+  }, [job, experience.id, t]);
 
   // Sin sesión no hay trabajos; sin jobId, se empieza la conversación
   useEffect(() => {
@@ -238,22 +239,33 @@ const CreatorFlowScreen: React.FC = () => {
         const q = job.questions.find((item) => item.id === answer.questionId);
         if (!q) return null;
         const option = q.options.find((o) => o.id === answer.optionId);
-        const label = option ? option.label : answer.text || '';
-        return { question: q.text, answer: answer.inferred ? t('weeai.inferredAnswer', { respuesta: label }) : label };
+        /*
+         * Lo escribe el servidor en español: se pinta por su id en el idioma de quien mira. Unas fechas viajan como
+         * frase del encargo («del 12 al 22 de octubre de 2026») y aquí se escriben otra vez como se leen en su idioma.
+         */
+        const label = option
+          ? textoDeOpcion(t, experience.id, q.id, option)
+          : q.kind === 'dates'
+            ? textoDeFechas(t, locale, answer.text || '')
+            : answer.text || '';
+        return {
+          question: textoDePregunta(t, experience.id, q),
+          answer: answer.inferred ? t('weeai.inferredAnswer', { respuesta: label }) : label,
+        };
       })
       .filter((item): item is QaHistoryItem => !!item);
-  }, [job, t]);
+  }, [job, t, locale, experience.id]);
 
   const handleAnswer = async (optionId?: string, text?: string) => {
     if (!jobId || !question) return;
     setBusy(true);
     setError(null);
     try {
-      const response = await creatorService.answer(jobId, { questionId: question.id, optionId, text });
+      const response = await creatorService.answer(jobId, { questionId: question.id, optionId, text }, undefined, locale);
       setQuestion(response.question);
       setPricing(response.pricing ?? null);
     } catch (e) {
-      setError(humanizeCreatorError(e, t));
+      setError(humanizeCreatorError(e, t, locale));
     } finally {
       setBusy(false);
     }
@@ -271,7 +283,7 @@ const CreatorFlowScreen: React.FC = () => {
         setPricing(response.pricing ?? null);
         setJob((current) => (current ? { ...current, creditsEstimated: response.creditsEstimated } : current));
       } catch (e) {
-        setError(humanizeCreatorError(e, t));
+        setError(humanizeCreatorError(e, t, locale));
       } finally {
         setQuoting(false);
       }
@@ -294,13 +306,13 @@ const CreatorFlowScreen: React.FC = () => {
         const url = await uploadPhoto(imageUri);
         if (url) await creatorService.attachImage(jobId, url);
       }
-      await creatorService.run(jobId);
+      await creatorService.run(jobId, locale);
     } catch (e) {
       // La app se cansó de esperar, pero el trabajo sigue en el servidor y llega por Firestore
       if (isClientTimeout(e)) return;
       const short = creditsShortfall(e);
       setShortfall(short);
-      if (!short) setError(humanizeCreatorError(e, t));
+      if (!short) setError(humanizeCreatorError(e, t, locale));
     } finally {
       setBusy(false);
     }
@@ -392,7 +404,9 @@ const CreatorFlowScreen: React.FC = () => {
      * El "cómo lo hice" que queda guardado en la publicación: lo explica el plan
      * y, si no, lo escribe Weë por la persona, en el idioma en que publica.
      */
-    const proceso = job.plan?.explainToUser || t('composer.aiProcessCreatedWith', { nombre });
+    const proceso = job.plan?.explainToUser
+      ? textoDelServidor(job.plan.explainToUser, { t, locale, experiencia: experience.id })
+      : t('composer.aiProcessCreatedWith', { nombre });
     navigation.navigate('Create', {
       kind: media ? media.type : 'post',
       /*
@@ -403,7 +417,7 @@ const CreatorFlowScreen: React.FC = () => {
        */
       sourceSection: EXPERIENCE_AREA[experience.id]?.section ?? experience.id,
       prefill: {
-        content: content || job.goal,
+        content: content || textoDeObjetivo(t, experience.id, job.goal),
         aiTools: [nombre],
         aiProcess: job.demo ? t('composer.aiProcessDemoPreview', { proceso }) : proceso,
         ...(media ? { media: [{ type: media.type, uri: media.uri, ...(media.assetId ? { assetId: media.assetId } : {}) }] } : {}),
@@ -641,7 +655,7 @@ const CreatorFlowScreen: React.FC = () => {
 
         {status === 'failed' && job && !error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText || t('weeai.itDidNotWork')}</Text>
+            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText ? textoDelServidor(job.progressText, { t, locale, experiencia: experience.id }) : t('weeai.itDidNotWork')}</Text>
             <TouchableOpacity
               onPress={() => start(job.goal)}
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
@@ -656,7 +670,8 @@ const CreatorFlowScreen: React.FC = () => {
           <>
             <GuidedQuestion
               experienceName={nombre}
-              goal={job.goal}
+              experienceId={experience.id}
+              goal={textoDeObjetivo(t, experience.id, job.goal)}
               history={history}
               question={null}
               busy={false}
@@ -665,6 +680,7 @@ const CreatorFlowScreen: React.FC = () => {
             />
             <PlanCard
               experienceName={nombre}
+              experienceId={experience.id}
               plan={job.plan}
               creditsEstimated={pricing ? pricing.total : job.creditsEstimated}
               demo={job.demo}
@@ -683,7 +699,8 @@ const CreatorFlowScreen: React.FC = () => {
         {(!status || status === 'asking') && !error && (
           <GuidedQuestion
             experienceName={nombre}
-            goal={job?.goal || params.goal || t(experience.examples[0])}
+            experienceId={experience.id}
+            goal={job?.goal ? textoDeObjetivo(t, experience.id, job.goal) : params.goal || t(experience.examples[0])}
             history={history}
             question={question}
             busy={busy}

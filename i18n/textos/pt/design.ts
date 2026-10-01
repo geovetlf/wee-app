@@ -94,4 +94,8 @@ export const design: typeof import('../es/design').design = {
   kindArchitecture: 'Arquitetura',
   kindBoat: 'Barco',
   kindFurniture: 'Mobiliário',
+  sampleLivingRoom: 'Sala de estar iluminada',
+  samplePineHouse: 'Casa entre pinheiros',
+  sampleYacht: 'Iate de 15 metros',
+  sampleArmchair: 'Poltrona de madeira',
 };

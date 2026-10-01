@@ -150,12 +150,12 @@ const demoText = (kind: string, purpose: string, brief: string, ctx: GatewayCont
         'Sáb 18:00 · TikTok · Reseña de un cliente',
         'Dom 17:00 · Instagram · Resumen de la semana',
         '',
-        'Todo queda programado; solo tienes que aprobar cada pieza.',
+        'Weë todavía no publica por ti: revisa cada pieza y publícala tú.',
         '',
         DEMO_NOTE,
       ].join('\n');
     case 'published':
-      return `🚀 Publicación lista\n\nRedes: Instagram · Facebook · TikTok\nProgramada para hoy a las 19:00\n\nCuando tus redes habiliten sus permisos oficiales, Weë la publicará de verdad desde aquí.\n\n${DEMO_NOTE}`;
+      return `🚀 Publicación lista para copiar\n\nRedes: Instagram · Facebook · TikTok\nTodavía no se ha publicado: cópiala y publícala tú en cada red.\n\n${DEMO_NOTE}`;
     case 'metrics':
       return [
         `📊 Resultados de la semana · ${goal}`,

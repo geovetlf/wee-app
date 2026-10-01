@@ -337,4 +337,8 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: "Weë can’t compose music yet. That’s the missing piece, not the video.",
   pendCompose: "Weë can’t stitch several scenes into one video yet.",
   pendTwoRefs: "Weë can carry only one reference image today, and this needs two.",
+  sampleLake: 'Lake among the mountains',
+  sampleWarmRoom: 'Living room in warm tones',
+  sampleNarration: 'Narration in English',
+  sampleDocument: 'Good ideas, better people',
 };

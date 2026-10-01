@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useMisEContacts, PersonaEnAgenda, mensajeDeEContact } from '../hooks/useEContact';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { confirmAction, notify } from '../utils/notify';
@@ -62,7 +62,7 @@ interface Fila {
 
 const EContactScreen: React.FC = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const navigation = useNavigation<any>();
   /* Toda la agenda del perfil activo, con las acciones ya atadas a él. */
   const {
@@ -109,7 +109,7 @@ const EContactScreen: React.FC = () => {
     try {
       await hacer();
     } catch (error) {
-      notify(t('econtact.failed'), mensajeDeEContact(error, t));
+      notify(t('econtact.failed'), mensajeDeEContact(error, t, locale));
     } finally {
       await recargar();
       setOcupado(null);

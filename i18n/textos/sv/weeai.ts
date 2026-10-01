@@ -263,4 +263,5 @@ export const weeai: typeof import('../es/weeai').weeai = {
   imageCount_other: '{{contador}} bilder',
   durationSeconds: '{{segundos}} s',
   volumeDiscount: '−{{descuento}} % mängdrabatt',
+  createWork: 'Skapa',
 };

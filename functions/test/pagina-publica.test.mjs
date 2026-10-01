@@ -83,9 +83,14 @@ const dobleDeFunciones = comoModulo(`export const onRequest = (opciones, manejad
 
 globalThis.__weeBaseDeDatos = baseDeDatos;
 
+/* Los textos de la página en cada idioma y quién elige la tabla: dos módulos sin imports, ejecutados tal cual. */
+const urlDeLosTextos = comoModulo(aJs('functions/src/shared/textosDelServidor.ts'));
+const urlDelIdioma = comoModulo(aJs('functions/src/shared/idiomaDelServidor.ts'));
 const jsDeLaFuncion = aJs('functions/src/public/postPage.ts')
   .replace(/from ['"]firebase-admin\/firestore['"]/, `from '${dobleDeFirestore}'`)
   .replace(/from ['"]firebase-functions\/v2\/https['"]/, `from '${dobleDeFunciones}'`)
+  .replace(/from ['"]\.\.\/shared\/textosDelServidor['"]/, `from '${urlDeLosTextos}'`)
+  .replace(/from ['"]\.\.\/shared\/idiomaDelServidor['"]/, `from '${urlDelIdioma}'`)
   .replace(/from ['"]\.\/postPageHtml['"]/, `from '${urlDelHtml}'`);
 const funcion = await import(comoModulo(jsDeLaFuncion));
 const pagina = funcion.publicPostPage;

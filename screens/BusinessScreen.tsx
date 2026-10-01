@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
-import { formatearNumero, formatearPorcentaje } from '../i18n/formato';
+import { formatearHora, formatearNumero, formatearPorcentaje } from '../i18n/formato';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { SpecialistAction } from '../constants/specialists';
@@ -86,6 +86,11 @@ const NETWORK_ICON: Record<string, string> = {
 const BusinessScreen: React.FC = () => {
   const { theme } = useTheme();
   const { t, locale } = useIdioma();
+  /* Las horas de muestra («12:00») son del reloj: se escriben como en el idioma de quien mira («12.00» en danés). */
+  const hora = (hhmm: string): string => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
+    return m ? formatearHora(new Date(2026, 0, 1, Number(m[1]), Number(m[2])), locale) : hhmm;
+  };
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { isMobile, isDesktop } = useResponsive();
@@ -541,7 +546,7 @@ const BusinessScreen: React.FC = () => {
                 </View>
                 <View style={styles.dayMeta}>
                   <Ionicons name={NETWORK_ICON[day.post.network] as any} size={scale(12)} color={theme.colors.textSecondary} />
-                  <Text style={[styles.dayTime, { color: theme.colors.textSecondary }]}>{day.post.time}</Text>
+                  <Text style={[styles.dayTime, { color: theme.colors.textSecondary }]}>{hora(day.post.time)}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -563,7 +568,7 @@ const BusinessScreen: React.FC = () => {
                 <View style={{ flex: 1 }}>
                   <View style={styles.messageHead}>
                     <Text style={[styles.messageName, { color: theme.colors.text }]} numberOfLines={1}>{m.name}</Text>
-                    <Text style={[styles.messageTime, { color: theme.colors.textSecondary }]}>{m.claveHora ? t(m.claveHora) : m.time}</Text>
+                    <Text style={[styles.messageTime, { color: theme.colors.textSecondary }]}>{m.claveHora ? t(m.claveHora) : hora(m.time)}</Text>
                   </View>
                   <Text style={[styles.messageText, { color: theme.colors.textSecondary }]} numberOfLines={2}>{m.text}</Text>
                 </View>

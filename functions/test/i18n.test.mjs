@@ -282,23 +282,47 @@ console.log('\n── E · Traducir, y no romperse nunca ──');
    * de plural de una clave que ya existe. Un `pollVotes_fwe` mal escrito no
    * tiene `_one` ni `_other` que lo respalden y sigue cayendo aquí.
    */
+  /*
+   * Y LA SECCIÓN DEL SERVIDOR, que es OPCIONAL (`i18n/textos/<idioma>/servidor/`). Lo de la app se calca entero en
+   * todos; lo del servidor, o no se declara —y ese idioma cae al inglés por la cadena de respaldo—, o se declara
+   * ENTERO: ni media sección ni una clave suelta, con el mismo margen para las formas de plural propias.
+   */
+  const servidorEs = (await cargar('i18n/textos/es/servidor/index.ts')).ns.servidor;
+  const SECCIONES_DEL_SERVIDOR = new Set(Object.keys(servidorEs));
+  const delServidor = (k) => SECCIONES_DEL_SERVIDOR.has(k.split('.')[0]);
   const cEs = new Set(aplanar(es));
+  const cServidor = new Set(aplanar(servidorEs));
   const PLURAL_EXTRA = /_(few|many|zero|two)$/;
-  for (const [diccionario, codigo] of diccionariosUnicos) {
-    if (diccionario === es) continue;
-    const suyas = new Set(aplanar(diccionario));
-    const faltan = [...cEs].filter((k) => !suyas.has(k));
-    const sobran = [...suyas].filter((k) => !cEs.has(k)).filter((k) => {
+  const compararCon = (molde, suyas) => ({
+    faltan: [...molde].filter((k) => !suyas.has(k)),
+    sobran: [...suyas].filter((k) => !molde.has(k)).filter((k) => {
       const raiz = k.replace(PLURAL_EXTRA, '');
-      return !(PLURAL_EXTRA.test(k) && cEs.has(`${raiz}_one`) && cEs.has(`${raiz}_other`));
-    });
-    const propias = suyas.size - cEs.size;
-    check(`24) control: ${codigo} tiene todas las claves del español`,
+      return !(PLURAL_EXTRA.test(k) && molde.has(`${raiz}_one`) && molde.has(`${raiz}_other`));
+    }),
+  });
+  for (const [diccionario, codigo] of diccionariosUnicos) {
+    const todas = aplanar(diccionario);
+    const suyas = new Set(todas.filter((k) => !delServidor(k)));
+    if (codigo !== 'es') {
+      const { faltan, sobran } = compararCon(cEs, suyas);
+      const propias = suyas.size - cEs.size;
+      check(`24) control: ${codigo} tiene todas las claves del español`,
+        faltan.length === 0 && sobran.length === 0,
+        faltan.length || sobran.length
+          ? `faltan ${faltan.length} [${faltan.slice(0, 3).join(' ')}] · sobran ${sobran.length} [${sobran.slice(0, 3).join(' ')}]`
+          : `${cEs.size} claves${propias ? ` + ${propias} formas de plural propias del idioma` : ''}`);
+    }
+    const suyasDelServidor = new Set(todas.filter(delServidor));
+    if (suyasDelServidor.size === 0) continue;
+    const { faltan, sobran } = compararCon(cServidor, suyasDelServidor);
+    check(`24) control: ${codigo} declara la sección del servidor entera`,
       faltan.length === 0 && sobran.length === 0,
       faltan.length || sobran.length
         ? `faltan ${faltan.length} [${faltan.slice(0, 3).join(' ')}] · sobran ${sobran.length} [${sobran.slice(0, 3).join(' ')}]`
-        : `${cEs.size} claves${propias ? ` + ${propias} formas de plural propias del idioma` : ''}`);
+        : `${cServidor.size} claves`);
   }
+  check('24) control: el español declara la sección del servidor, que es el molde',
+    [...diccionariosUnicos].some(([d, c]) => c === 'es' && aplanar(d).filter(delServidor).length === cServidor.size));
 
   /*
    * LAS FORMAS DE PLURAL QUE CADA IDIOMA TIENE DE VERDAD.

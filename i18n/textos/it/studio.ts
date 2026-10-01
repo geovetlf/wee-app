@@ -339,4 +339,8 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: "Weë non compone ancora musica. Manca quello, non il video.",
   pendCompose: "Weë non sa ancora unire più scene in un solo video.",
   pendTwoRefs: "Oggi Weë porta una sola immagine di riferimento, e qui ne servono due.",
+  sampleLake: 'Lago tra le montagne',
+  sampleWarmRoom: 'Soggiorno dai toni caldi',
+  sampleNarration: 'Narrazione in italiano',
+  sampleDocument: 'Buone idee, persone migliori',
 };

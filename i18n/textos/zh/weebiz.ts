@@ -76,7 +76,7 @@ export const weebiz: typeof import('../es/weebiz').weebiz = {
   categoryMissing: '请选择一个分类。',
   updated: '你的商家信息已更新。',
   createdTitle: '商家已创建',
-  created: '你的商家已经在 Weë Biz 上线了。现在可以从菜单切换到商家资料。',
+  created: '你的商家已经在 Weë Business 上线了。打开商家资料，检查一下并把信息补充完整。',
   viewProfile: '查看资料',
   saveFailed: '商家保存失败。',
   catProfessionalServices: '服务',

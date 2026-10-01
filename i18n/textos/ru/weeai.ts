@@ -230,4 +230,5 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   imageCount_other: '{{contador}} изображений',
   durationSeconds: '{{segundos}} с',
   volumeDiscount: '−{{descuento}}% за объём',
+  createWork: 'Создать',
 };

@@ -18,7 +18,7 @@ export const business: typeof import('../es/business').business = {
   networkConnected: '{{red}} connecté',
   connectAnother: 'Connecter un autre réseau',
   allConnected: 'Tous tes réseaux sont déjà connectés.',
-  simulatedConnection: 'Connexion simulée : Weë publiera et répondra pour de vrai quand les réseaux activeront leurs autorisations officielles.',
+  simulatedConnection: 'Connexion simulée : Weë ne publie ni ne répond encore à ta place. Il prépare chaque contenu pour que tu le vérifies et le publies.',
   postCalendar: 'Calendrier de publications',
   seeFullCalendar: 'Voir le calendrier complet',
   calendarGoal: 'Voir et organiser mon calendrier de publications de la semaine',

@@ -51,4 +51,5 @@ export const common: typeof import('../es/common').common = {
   loadMore: '載入更多貼文',
   postsCount_one: '{{cantidad}} 則貼文',
   postsCount_other: '{{cantidad}} 則貼文',
+  someone: '有人',
 };

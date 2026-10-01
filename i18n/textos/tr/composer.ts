@@ -25,10 +25,8 @@
  * («Şunu kullan: “{{texto}}”»). Poner un lugar en la publicación es «konum
  * eklemek»: «etiket» es el hashtag en el glosario y aquí confundiría.
  *
- * `bizNoAgenda` habla de un Perfil Biz que ya no existe (docs/I18N.md, «textos
- * del español que ya no describen el producto»): se traduce tal cual para no
- * inventar. «Biz profili» va con mayúscula para que se lea como nombre y no
- * como «biz», nosotros.
+ * `profileNoAgenda` habla de «bu profil», sin nombrar una cara que ya no
+ * existe (el Perfil Biz se eliminó el 2026-09-19).
  *
  * Los títulos de error son sintagmas («Video yükleme hatası») y los cuerpos,
  * frases con qué pasó y qué hacer. «Ir a Configuración» es «Ayarları aç». Los
@@ -94,7 +92,7 @@ export const composer: typeof import('../es/composer').composer = {
   removeMentions_one: 'Bahsetmeyi kaldır',
   removeMentions_other: 'Bahsetmeleri kaldır',
   signInToMention: 'ËContact kişilerinden bahsetmek için Weë\'ye giriş yap.',
-  bizNoAgenda: 'Biz profilinde ËContact listesi yok. Birinden bahsetmek için Gerçek profile ya da Weë profiline geç.',
+  profileNoAgenda: 'Bu profilde ËContact listesi yok. Birinden bahsetmek için Gerçek profile ya da Weë profiline geç.',
   noContactsYet: 'Henüz {{lista}} listende kimse yok. Birinin profilinden bağlantı kurduğunda burada görünür ve ondan bahsedebilirsin.',
   mentionAnyone: '{{lista}} listenden istediğin kişiden bahset',
   publishIn: 'Paylaşım yerleri',
@@ -169,4 +167,6 @@ export const composer: typeof import('../es/composer').composer = {
   searchPlaceHint: 'Gönderine konum eklemek için bir şehir ya da ülke ara.',
   aiProcessCreatedWith: 'Weë AI\'da {{nombre}} ile oluşturuldu',
   aiProcessDemoPreview: '{{proceso}} (demo modu önizlemesi)',
+  distanceUnder: '{{distancia}} içinde',
+  distanceOver: '{{distancia}} üzeri',
 };

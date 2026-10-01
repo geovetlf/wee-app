@@ -30,4 +30,8 @@ export const avatar: typeof import('../es/avatar').avatar = {
   cameraPermission: 'Weë behöver åtkomst till kameran så att du kan ta ett foto',
   pickFailed: 'Det gick inte att välja bilden. Försök igen.',
   photoFailed: 'Det gick inte att ta fotot',
+  styleAdventurer: 'Äventyrare',
+  styleRobots: 'Robotar',
+  styleSmile: 'Leende',
+  stylePeople: 'Personer',
 };

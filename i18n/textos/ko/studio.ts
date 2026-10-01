@@ -359,4 +359,8 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: "Weë는 아직 음악을 만들지 못해요. 영상이 아니라 음악이 빠져 있어요.",
   pendCompose: "Weë는 아직 여러 장면을 하나의 영상으로 잇지 못해요.",
   pendTwoRefs: "지금 Weë는 레퍼런스 이미지를 하나만 가져갈 수 있는데, 여기엔 두 장이 필요해요.",
+  sampleLake: '산으로 둘러싸인 호수',
+  sampleWarmRoom: '따뜻한 톤의 거실',
+  sampleNarration: '한국어 내레이션',
+  sampleDocument: '좋은 아이디어, 더 나은 사람들',
 };

@@ -111,4 +111,8 @@ export const design: typeof import('../es/design').design = {
   kindArchitecture: 'Mimari',
   kindBoat: 'Tekne',
   kindFurniture: 'Mobilya',
+  sampleLivingRoom: 'Aydınlık salon',
+  samplePineHouse: 'Çamlar arasında ev',
+  sampleYacht: '15 metrelik yat',
+  sampleArmchair: 'Ahşap koltuk',
 };

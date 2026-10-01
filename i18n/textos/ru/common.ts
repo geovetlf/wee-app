@@ -43,4 +43,5 @@ export const common: ConPlurales<typeof import('../es/common').common> = {
   postsCount_few: '{{cantidad}} публикации',
   postsCount_many: '{{cantidad}} публикаций',
   postsCount_other: '{{cantidad}} публикаций',
+  someone: 'Кто-то',
 };

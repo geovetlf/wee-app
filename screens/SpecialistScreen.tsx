@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { textoDeObjetivo } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import { SpecialistAction, SpecialistExample } from '../constants/specialists';
 import { useEspecialista } from '../hooks/useEspecialista';
@@ -247,7 +248,7 @@ const SpecialistScreen: React.FC = () => {
             >
               <Text style={styles.jobEmoji}>{spec.experience.emoji}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{job.goal}</Text>
+                <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{textoDeObjetivo(t, job.experienceId, job.goal)}</Text>
                 <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
                   {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                 </Text>

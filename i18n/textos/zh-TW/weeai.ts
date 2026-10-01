@@ -239,4 +239,5 @@ export const weeai: typeof import('../es/weeai').weeai = {
   imageCount_other: '{{contador}} 張圖片',
   durationSeconds: '{{segundos}} 秒',
   volumeDiscount: '數量優惠 −{{descuento}}%',
+  createWork: '開始創作',
 };

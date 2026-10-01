@@ -116,7 +116,7 @@ console.log('\n── C · El diálogo de salir y los tres avisos ──');
    * salen sus palabras. `Cancelar` reutiliza `common.cancel`.
    */
   check('15) el diálogo de salir usa i18n y conserva su forma',
-    /Alert\.alert\(\s*\n\s*t\('communities\.leaveTitle'\),\s*\n\s*t\('communities\.leaveConfirm', \{ nombre: community\.name \}\),/.test(PANTALLA)
+    /Alert\.alert\(\s*\n\s*t\('communities\.leaveTitle'\),\s*\n\s*t\('communities\.leaveConfirm', \{ nombre: nombreDeComunidad\(community, t, locale\) \}\),/.test(PANTALLA)
     && /\{ text: t\('common\.cancel'\), style: 'cancel', onPress: \(\) => setJoiningCommunity\(null\) \}/.test(PANTALLA)
     && /text: t\('communities\.leave'\),\s*\n\s*style: 'destructive',/.test(PANTALLA));
 
@@ -158,8 +158,13 @@ console.log('\n── D · Los nombres de las comunidades no se traducen ──'
     EN('communities.leaveConfirm', { nombre: 'Weë Filmmakers' }) === 'Are you sure you want to leave "Weë Filmmakers"?');
 
   /* Y la pantalla los pinta crudos. */
-  check('11) el nombre y la descripción de cada comunidad se pintan crudos',
-    /\{item\.name\}/.test(PANTALLA) && /\{item\.description\}/.test(PANTALLA)
+  /*
+   * Lo que escribió una persona —el nombre y la descripción de SU comunidad— nunca pasa por el traductor. Solo las
+   * comunidades que siembra Weë, mientras sigan diciendo lo sembrado, se escriben en el idioma de quien mira
+   * (`utils/comunidadesDeWee.ts`); cualquier otra sale tal cual.
+   */
+  check('11) el nombre y la descripción de cada comunidad no pasan por el traductor',
+    /\{nombreDeComunidad\(item, t, locale\)\}/.test(PANTALLA) && /\{descripcionDeComunidad\(item, t, locale\)\}/.test(PANTALLA)
     && !/t\(item\.name\)|t\(item\.description\)/.test(PANTALLA));
 
   /* 13 · Las rutas y los registros técnicos, intactos. */
@@ -207,7 +212,7 @@ console.log('\n── E · Plurales, accesibilidad y lo que no se movió ──'
   /* 18 · Un solo sistema de traducción. */
   check('18) sin traductores propios ni ternarios de idioma',
     !/i18next|react-intl|idioma === 'en'|locale === 'en'/.test(PANTALLA)
-    && /import \{ useT \} from '\.\.\/contexts\/IdiomaContext';/.test(CRUDO) && /const t = useT\(\);/.test(PANTALLA));
+    && /import \{ useIdioma \} from '\.\.\/contexts\/IdiomaContext';/.test(CRUDO) && /const \{ t, locale \} = useIdioma\(\);/.test(PANTALLA));
   check('18) y el módulo está registrado en los dos índices',
     /import \{ communities \} from '\.\/communities';/.test(leer('i18n/textos/es/index.ts'))
     && /import \{ communities \} from '\.\/communities';/.test(leer('i18n/textos/en/index.ts'))

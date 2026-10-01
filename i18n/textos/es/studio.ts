@@ -344,4 +344,8 @@ export const studio = {
   pendMusic: "Weë todavía no compone música. Falta esa pieza, no el vídeo.",
   pendCompose: "Weë todavía no sabe unir varias escenas en un solo vídeo.",
   pendTwoRefs: "Hoy Weë solo puede llevar una imagen de referencia, y esto necesita dos.",
+  sampleLake: 'Lago entre montañas',
+  sampleWarmRoom: 'Salón en tonos cálidos',
+  sampleNarration: 'Narración en español',
+  sampleDocument: 'Buenas ideas, mejores personas',
 };

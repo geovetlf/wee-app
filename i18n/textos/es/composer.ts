@@ -59,7 +59,7 @@ export const composer = {
   removeMentions_one: 'Quitar la mención',
   removeMentions_other: 'Quitar las menciones',
   signInToMention: 'Entra en Weë para mencionar a tus ËContact.',
-  bizNoAgenda: 'El Perfil Biz no tiene agenda de ËContact. Cambia al Perfil Real o al Perfil Weë para mencionar a alguien.',
+  profileNoAgenda: 'Este perfil no tiene agenda de ËContact. Cambia al Perfil Real o al Perfil Weë para mencionar a alguien.',
   noContactsYet: 'Todavía no tienes {{lista}}. Cuando conectes con alguien desde su perfil, aparecerá aquí para que puedas mencionarlo.',
   mentionAnyone: 'Menciona a quien quieras de tu {{lista}}',
   publishIn: 'PUBLICAR EN',
@@ -134,4 +134,6 @@ export const composer = {
   searchPlaceHint: 'Busca una ciudad o un país para etiquetar tu publicación.',
   aiProcessCreatedWith: 'Creado con {{nombre}} en Weë AI',
   aiProcessDemoPreview: '{{proceso}} (vista previa en modo demo)',
+  distanceUnder: 'A menos de {{distancia}}',
+  distanceOver: 'A más de {{distancia}}',
 };

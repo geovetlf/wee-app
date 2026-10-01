@@ -108,4 +108,8 @@ export const design: typeof import('../es/design').design = {
   kindArchitecture: '建築',
   kindBoat: '船',
   kindFurniture: '家具',
+  sampleLivingRoom: '明亮的客廳',
+  samplePineHouse: '松林間的房子',
+  sampleYacht: '15 公尺遊艇',
+  sampleArmchair: '木製扶手椅',
 };

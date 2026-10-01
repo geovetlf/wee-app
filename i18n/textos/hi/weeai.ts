@@ -264,4 +264,5 @@ export const weeai: typeof import('../es/weeai').weeai = {
   imageCount_other: '{{contador}} इमेज',
   durationSeconds: '{{segundos}} सेकंड',
   volumeDiscount: '{{descuento}}% थोक छूट',
+  createWork: 'बनाएँ',
 };

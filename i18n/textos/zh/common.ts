@@ -41,4 +41,5 @@ export const common: typeof import('../es/common').common = {
   loadMore: '加载更多动态',
   postsCount_one: '{{cantidad}} 条动态',
   postsCount_other: '{{cantidad}} 条动态',
+  someone: '有人',
 };

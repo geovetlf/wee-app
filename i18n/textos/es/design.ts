@@ -99,4 +99,8 @@ export const design = {
   kindArchitecture: 'Arquitectura',
   kindBoat: 'Barco',
   kindFurniture: 'Mobiliario',
+  sampleLivingRoom: 'Salón luminoso',
+  samplePineHouse: 'Casa entre pinos',
+  sampleYacht: 'Yate de 15 metros',
+  sampleArmchair: 'Butaca de madera',
 };

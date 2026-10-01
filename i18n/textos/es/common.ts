@@ -33,4 +33,5 @@ export const common = {
   loadMore: 'Cargar más publicaciones',
   postsCount_one: '{{cantidad}} publicación',
   postsCount_other: '{{cantidad}} publicaciones',
+  someone: 'Alguien',
 };

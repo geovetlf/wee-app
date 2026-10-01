@@ -342,7 +342,7 @@ export function createRouter(deps: RouterDeps) {
     if (!decision.candidates.length) {
       const why = decision.skipped.map((s) => `${s.provider}: ${s.reason}`).join('; ');
       console.warn(`WEË AI ENGINE: ningún proveedor disponible para ${capability} (${why})`);
-      throw new EngineError('NOT_AVAILABLE', 'Ahora mismo no hay un proveedor disponible para esto. Inténtalo más tarde.', { capability });
+      throw new EngineError('NOT_AVAILABLE', 'Ahora mismo no hay una IA disponible para esto. Inténtalo más tarde.', { capability });
     }
 
     let lastError: unknown = null;

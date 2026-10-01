@@ -25,4 +25,8 @@ export const avatar: typeof import('../es/avatar').avatar = {
   cameraPermission: '写真を撮るには、カメラへのアクセスを許可してください。',
   pickFailed: '画像を選択できませんでした。もう一度お試しください。',
   photoFailed: '写真を撮影できませんでした',
+  styleAdventurer: '冒険者',
+  styleRobots: 'ロボット',
+  styleSmile: '笑顔',
+  stylePeople: '人物',
 };

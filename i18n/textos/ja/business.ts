@@ -21,7 +21,7 @@ export const business: typeof import('../es/business').business = {
   networkConnected: '{{red}}と連携済み',
   connectAnother: '別のSNSを連携',
   allConnected: 'すべてのSNSと連携済みです。',
-  simulatedConnection: '現在の連携はシミュレーションです。各SNSから正式な許可が下りたら、Weëが実際に投稿や返信をします。',
+  simulatedConnection: '現在の連携はシミュレーションです。Weëが代わりに投稿や返信をすることはまだありません。コンテンツを1つずつ準備するので、内容を確認してから投稿してください。',
   postCalendar: '投稿カレンダー',
   seeFullCalendar: 'カレンダー全体を表示',
   calendarGoal: '今週の投稿カレンダーを確認して整理する',

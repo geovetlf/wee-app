@@ -319,6 +319,35 @@ prompts—; identificadores, rutas, emojis y los valores que viajan al servidor.
 | Abreviatura de «por ejemplo» | fx / f.eks. | **fx** | borger.dk 2026 |
 | Rótulos del menú en mayúsculas | Mayúsculas del diseño / nunca mayúsculas | **Las del diseño** | Es estilo visual de Weë en todos los idiomas; en las frases, nunca |
 | Currículum | cv / CV | **CV** | Den Danske Ordbog admite las dos; en un título o un chip suelto «cv» parece un error, y la app ya decía «CV» en la mayoría de los sitios |
+| Pasos de un plan | imperativo / infinitivo | **Infinitivo sin «at»** («Forbedre fotoet») | Son lo que Weë VA a hacer, no una orden a la persona; los botones y los objetivos de la app siguen en imperativo («Optimer fotoet») |
+| La IA de Weë en una frase | Weës AI / Weë’s AI / Weë AI | **Weë AI** | Es la marca: no se declina (§ 4) |
+| Ciudades | el nombre del catálogo / el danés | **El danés** («København», «München», «Rom») | `data/ciudadesPorIdioma.ts`; los países los nombra `Intl.DisplayNames` («Tyskland») |
+
+## 11b. Lo que escribe el servidor, en danés
+
+Desde la segunda integración (2026-10-01) el danés declara la sección entera de textos del servidor
+(`i18n/textos/da/servidor/`, ver `docs/I18N.md` § 9b): las 43 preguntas, las 233 opciones y los 11 objetivos del flujo
+guiado de Weë AI, las explicaciones y los pasos del plan (con sus piezas), el progreso, los errores del motor, los
+conceptos del historial de Credits, lo que contestan ËContact y las encuestas, los push y la página pública. Todas las
+reglas de esta guía valen para ellos: `i18n-danes.test.mjs` los recorre con las del diccionario de la app.
+
+Lo propio de esta sección:
+
+- **Las piezas se componen.** Una explicación del plan recibe otras piezas en sus huecos (`{{como}}`, `{{decision}}`) o
+  la etiqueta de una opción sin su emoji y en minúscula. Se escriben para que la frase entera sea danesa: la pieza que
+  va tras una coma o un «så» respeta el orden V2, y las etiquetas de opción que hablan en primera persona de la persona
+  («👤 Kun til mig») tienen su pieza propia cuando Weë las repite con su voz («kun til dig»).
+- **Las opciones son lo que la persona elige**, en su voz; las preguntas, lo que Weë le pregunta, con «du».
+- **Iguales al español a propósito**: «Pop», «Rock», «Elegant», «Standard», «Budget», «Scene {{numero}}» y
+  «Weë Studio · video» son palabras danesas; están con su porqué en la prueba 20.
+- **Las marcas de los resultados** (`DÍA 1 ·`, `Escena 1`, `PRESUPUESTO:`) llegan en español porque son el contrato
+  con el servidor; la app las escribe «Dag 1 ·», «Scene 1» y «Budget:». Las líneas internas (`IMAGEN:`, `PROBAR:`,
+  `NARRACIÓN:`) no se enseñan.
+- **El push** se escribe en el idioma guardado en la cuenta de quien lo recibe; **la página pública**, en el del enlace
+  (`?hl=da`, que pone la app al compartir) o en el del navegador.
+- **Lo que se escribe en danés también se entiende**: «opskrift» lleva a Weë Chef, «rejse» a Weë Travel, «en video på
+  10 sekunder» deja la duración en 10 s, y «København» encuentra Copenhague (`PALABRAS_POR_IDIOMA`,
+  `utils/contextoDeCreacion.ts`, `data/places.ts`).
 
 ## 12. Cómo se revisa
 
@@ -329,6 +358,11 @@ prompts—; identificadores, rutas, emojis y los valores que viajan al servidor.
 4. `functions/test/i18n-cobertura.test.mjs`: huecos, vacíos, bordes y emojis de TODOS los idiomas.
 5. Revisión humana de lo que no se prueba —naturalidad, tono, contexto— en una segunda pasada independiente, y capturas
    de las pantallas en escritorio y móvil.
+
+La segunda integración (2026-10-01, textos del servidor y experiencia de punta a punta) añadió
+`functions/test/i18n-servidor.test.mjs` (los 1.403 planes posibles, armados con el servidor de verdad, sin un texto
+español en danés) y `functions/test/i18n-auditoria.test.mjs` (todos los idiomas: completos, huecos, plurales, ni
+proveedores ni otro idioma colado, push, página pública, búsqueda, lugares).
 
 La primera integración (2026-10-01) se revisó así: cinco revisores nativos independientes por áreas (0 CRÍTICO; todos
 los ALTO corregidos) y una campaña de capturas sobre la demo local con emuladores, en `da-DK`, `es-ES` y `en-US` lado a

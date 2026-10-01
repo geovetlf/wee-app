@@ -29,4 +29,8 @@ export const avatar: typeof import('../es/avatar').avatar = {
   cameraPermission: 'Fotoğraf çekebilmek için kamerana erişmemiz gerekiyor',
   pickFailed: 'Görsel seçilemedi. Yeniden dene.',
   photoFailed: 'Fotoğraf çekilemedi',
+  styleAdventurer: 'Maceracı',
+  styleRobots: 'Robotlar',
+  styleSmile: 'Gülümseyen',
+  stylePeople: 'İnsanlar',
 };

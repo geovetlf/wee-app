@@ -37,4 +37,5 @@ export const common: typeof import('../es/common').common = {
   loadMore: '게시물 더 보기',
   postsCount_one: '게시물 {{cantidad}}개',
   postsCount_other: '게시물 {{cantidad}}개',
+  someone: '사용자',
 };

@@ -12,7 +12,7 @@ export const business: typeof import('../es/business').business = {
   networkConnected: '{{red}} connected',
   connectAnother: 'Connect another account',
   allConnected: 'All your accounts are already connected.',
-  simulatedConnection: 'Simulated connection: Weë will post and reply for real once the platforms grant their official permissions.',
+  simulatedConnection: 'Simulated connection: Weë doesn’t post or reply for you yet. It gets each piece ready for you to review and publish.',
   postCalendar: 'Post calendar',
   seeFullCalendar: 'See full calendar',
   calendarGoal: 'See and organise my post calendar for the week',

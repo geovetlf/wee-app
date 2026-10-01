@@ -37,4 +37,8 @@ export const avatar: typeof import('../es/avatar').avatar = {
   cameraPermission: '需要存取相機才能拍照',
   pickFailed: '無法選擇圖片。請再試一次。',
   photoFailed: '拍照失敗',
+  styleAdventurer: '冒險家',
+  styleRobots: '機器人',
+  styleSmile: '笑臉',
+  stylePeople: '人物',
 };

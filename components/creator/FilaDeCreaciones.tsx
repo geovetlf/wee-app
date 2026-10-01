@@ -27,6 +27,11 @@ export interface CreacionEnLaFila {
   icono: string;
   /** Lo que escribió quien la creó. Contenido, no interfaz: no se traduce. */
   titulo: string;
+  /**
+   * Una creación de MUESTRA —las que ve todo el mundo mientras no tiene ninguna suya— no la escribió nadie: es
+   * interfaz, y su título viaja como clave. Si la lleva, manda sobre `titulo`.
+   */
+  claveTitulo?: string;
   /** El color de la lámina mientras no haya un medio real que enseñar. */
   tono: string;
   /** Solo lo que dura algo: un video. Ya formateado. */
@@ -124,7 +129,7 @@ const FilaDeCreaciones: React.FC<Props> = ({
               </View>
             </View>
             {/* El título es de quien lo creó: contenido, no interfaz. */}
-            <Text style={[styles.titulo, { color: theme.colors.textSecondary }]} numberOfLines={1}>{c.titulo}</Text>
+            <Text style={[styles.titulo, { color: theme.colors.textSecondary }]} numberOfLines={1}>{c.claveTitulo ? t(c.claveTitulo) : c.titulo}</Text>
           </View>
         ))}
       </ScrollView>

@@ -438,6 +438,8 @@ console.log('\n── J · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* «Personas» como estilo de avatar son personas; en el Chef, «Personas» es cuántos comen. */
+    'avatar.stylePeople',
     /* Weë Filmmaker, revisado por un segundo traductor (2026-10-01): la misma frase española, otro sentido. */
     /* «Historias» como formato de redes (स्टोरी, como business.formatStory), no los relatos de Writer (कहानियाँ). */
     'filmmaker.presetStories',

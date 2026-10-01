@@ -820,7 +820,8 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
   const legacy = (s) => { const a = s.indexOf('    try {\n      const result = await videoEngine.generate('); return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a)); };
   check('creatorRun, solo con los arreglos del Harness (H0 #9, #11, #15a) y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
     git(`diff --numstat ${PUENTE} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
-      === '45\t4\tfunctions/src/creator/credits.ts|99\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
+      /* creator/index.ts: + 10 de la integración i18n da-DK (el locale), ver video-asincrono H2. */
+      === '45\t4\tfunctions/src/creator/credits.ts|109\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
 }
 

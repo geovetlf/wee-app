@@ -186,6 +186,12 @@ export interface CreatorJob {
   /** Foto que subió la persona (Storage de Weë) para trabajar sobre ella. */
   inputImageUrl?: string;
   /**
+   * EL IDIOMA DE QUIEN CREA ('da-DK'), tal como lo resuelve la app. Lo manda el cliente al crear el trabajo y al
+   * contestar, y los pasos de texto escriben en él (`instruccionDeSalida`, en prompts.ts). Ausente en los trabajos de
+   * un cliente que no lo manda: esos siguen en español, como siempre.
+   */
+  locale?: string;
+  /**
    * HASTA CUÁNDO PUEDE DURAR ESTA EJECUCIÓN. Milisegundos, absoluto.
    *
    * Se escribe al pasar a `running` y sirve para dos cosas distintas: dentro,

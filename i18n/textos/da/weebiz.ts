@@ -24,9 +24,9 @@
  * www.eksempel.dk). «Precio a consultar» es «Pris efter aftale». Los fallos
  * llevan el paso siguiente (guía § 8) aunque el español no lo escriba.
  *
- * `created` sigue al español, que aún promete «cambiar a tu perfil de negocio
- * desde el menú» aunque el Perfil Biz se eliminó el 2026-09-19: se tradujo tal
- * cual para no separarse de los demás idiomas, y queda avisado.
+ * `created` dice que el negocio ya está en Weë Business y que se abre su perfil
+ * para completarlo: el «cambia a tu perfil de negocio desde el menú» de antes se
+ * fue con el Perfil Biz (2026-09-19).
  */
 export const weebiz: typeof import('../es/weebiz').weebiz = {
   noBusinesses: 'Ingen virksomheder fundet',
@@ -91,7 +91,7 @@ export const weebiz: typeof import('../es/weebiz').weebiz = {
   categoryMissing: 'Vælg en kategori.',
   updated: 'Din virksomhed er opdateret.',
   createdTitle: 'Virksomheden er oprettet',
-  created: 'Din virksomhed er nu på Weë Biz. Du kan skifte til din virksomhedsprofil i menuen.',
+  created: 'Din virksomhed er nu på Weë Business. Åbn profilen for at gennemgå og udfylde den.',
   viewProfile: 'Se profil',
   saveFailed: 'Virksomheden kunne ikke gemmes. Prøv igen.',
   catProfessionalServices: 'Ydelser',

@@ -17,7 +17,7 @@ export const business = {
   networkConnected: '{{red}} conectado',
   connectAnother: 'Conectar otra red',
   allConnected: 'Ya tienes todas tus redes conectadas.',
-  simulatedConnection: 'Conexión simulada: Weë publicará y responderá de verdad cuando las redes habiliten sus permisos oficiales.',
+  simulatedConnection: 'Conexión simulada: Weë todavía no publica ni responde por ti. Prepara cada pieza para que tú la revises y la publiques.',
   postCalendar: 'Calendario de publicaciones',
   seeFullCalendar: 'Ver calendario completo',
   calendarGoal: 'Ver y organizar mi calendario de publicaciones de la semana',

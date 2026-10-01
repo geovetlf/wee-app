@@ -368,4 +368,8 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: 'Weë kan inte komponera musik ännu. Det är musiken som saknas, inte videon.',
   pendCompose: 'Weë kan ännu inte sätta ihop flera scener till en video.',
   pendTwoRefs: 'Weë kan bara ta med en referensbild i dag, och det här behöver två.',
+  sampleLake: 'Sjö bland bergen',
+  sampleWarmRoom: 'Vardagsrum i varma toner',
+  sampleNarration: 'Berättarröst på svenska',
+  sampleDocument: 'Goda idéer, bättre människor',
 };

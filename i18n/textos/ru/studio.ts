@@ -357,4 +357,8 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   pendMusic: "Weë пока не сочиняет музыку. Не хватает именно её, а не видео.",
   pendCompose: "Weë пока не умеет соединять несколько сцен в одно видео.",
   pendTwoRefs: "Сейчас Weë переносит только один референс, а здесь нужны два.",
+  sampleLake: 'Озеро среди гор',
+  sampleWarmRoom: 'Гостиная в тёплых тонах',
+  sampleNarration: 'Озвучка на русском',
+  sampleDocument: 'Хорошие идеи делают людей лучше',
 };

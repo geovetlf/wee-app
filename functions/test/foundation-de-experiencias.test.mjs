@@ -211,9 +211,9 @@ check('23) se guarda quién decidió, para poder medir si acierta',
  */
 check('23) y Brain le gana a la puerta, que le gana a las palabras',
   destino.indexOf('sugeridaPorBrain && cabeEn') < destino.indexOf('declaradaPorLaPuerta && workspaceDe')
-  && destino.indexOf('declaradaPorLaPuerta && workspaceDe') < destino.indexOf('matchExperiences(goal)'));
+  && destino.indexOf('declaradaPorLaPuerta && workspaceDe') < destino.indexOf('matchExperiences(goal, idioma)'));
 check('23) el filtro de sitio protege a las palabras, no a la declaración',
-  /candidatas: WeeExperience\[\] = matchExperiences\(goal\)\.filter\(\(e\) => cabeEn\(e\.id, dentroDe\)\)/.test(destino)
+  /candidatas: WeeExperience\[\] = matchExperiences\(goal, idioma\)\.filter\(\(e\) => cabeEn\(e\.id, dentroDe\)\)/.test(destino)
   && /if \(declaradaPorLaPuerta && workspaceDe\(declaradaPorLaPuerta\)\)/.test(destino));
 
 /* CONTROL: una lista de palabras propia sería un segundo router. */

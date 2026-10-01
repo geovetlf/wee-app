@@ -99,4 +99,8 @@ export const design: typeof import('../es/design').design = {
   kindArchitecture: '건축',
   kindBoat: '배',
   kindFurniture: '가구',
+  sampleLivingRoom: '밝은 거실',
+  samplePineHouse: '소나무 숲속의 집',
+  sampleYacht: '15미터 요트',
+  sampleArmchair: '원목 안락의자',
 };

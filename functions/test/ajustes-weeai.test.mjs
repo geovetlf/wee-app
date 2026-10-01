@@ -134,11 +134,11 @@ console.log('\n─── D. Lo usa el Studio; las demás, sin tocar ───');
 
 const studio = leer('screens/StudioScreen.tsx');
 check('20) Weë Studio abre sus ajustes con el contexto', /<AjustesContextuales/.test(studio) && /contexto=\{contexto\}/.test(studio));
-check('20) que sale de la puerta y de lo escrito', /contextoDeCreacion\(area, prompt\)/.test(studio));
+check('20) que sale de la puerta y de lo escrito', /contextoDeCreacion\(area, prompt, locale\)/.test(studio));
 check('21) y al entrar no se da por hecho que sea una imagen',
   /useState<AreaDeStudio \| null>\(null\)/.test(studio) && !/useState<AreaDeStudio>\('images'\)/.test(studio));
 check('22) la sugerencia de duración solo existe en video',
-  /if \(contexto !== 'video'\) return undefined;/.test(studio) && /duracionEnElTexto\(prompt\)/.test(studio));
+  /if \(contexto !== 'video'\) return undefined;/.test(studio) && /duracionEnElTexto\(prompt, locale\)/.test(studio));
 /*
  * Y el panel dice cuántas referencias van — contando LA MISMA lista que viaja.
  *

@@ -25,16 +25,17 @@ import {
   PostPlace,
   buscarLugares,
   cargarMundo,
-  distanciaAproximada,
   lugarDelCatalogo,
   lugarPropio,
   lugaresCercanos,
   lugaresDelPais,
+  opcionEnSuIdioma,
 } from '../data/places';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import TextoEnMayusculas from '../components/TextoEnMayusculas';
+import { distanciaParaLeer } from '../utils/distanciaParaLeer';
 
 /**
  * AGREGAR UBICACIÓN.
@@ -162,8 +163,8 @@ const AgregarUbicacionScreen: React.FC = () => {
    * Los resultados de otros países siguen saliendo: solo van después.
    */
   const contextoBusqueda = useMemo(
-    () => ({ lat: lecturaActual?.latitude, lon: lecturaActual?.longitude, pais: userProfile?.country }),
-    [lecturaActual?.latitude, lecturaActual?.longitude, userProfile?.country]
+    () => ({ lat: lecturaActual?.latitude, lon: lecturaActual?.longitude, pais: userProfile?.country, idioma: locale }),
+    [lecturaActual?.latitude, lecturaActual?.longitude, userProfile?.country, locale]
   );
 
   // `mundoCargado` entra a propósito: cuando el catálogo llega, lo ya escrito se
@@ -248,6 +249,8 @@ const AgregarUbicacionScreen: React.FC = () => {
    * dorado y pequeña: es un dato, no un adorno.
    */
   const Fila: React.FC<{ opcion: PlaceOption; km?: number; ultima?: boolean }> = ({ opcion, km, ultima }) => {
+    /* Se ENSEÑA en el idioma de quien mira; se ELIGE la del catálogo, que es la que se guarda. */
+    const visible = opcionEnSuIdioma(opcion, locale);
     const esPais = !opcion.countryCode;
     return (
       <TouchableOpacity
@@ -255,7 +258,7 @@ const AgregarUbicacionScreen: React.FC = () => {
         activeOpacity={0.6}
         style={[styles.fila, !ultima && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }]}
         accessibilityRole="button"
-        accessibilityLabel={opcion.sublabel ? t('composer.placeOption', { lugar: opcion.label, detalle: opcion.sublabel }) : opcion.label}
+        accessibilityLabel={visible.sublabel ? t('composer.placeOption', { lugar: visible.label, detalle: visible.sublabel }) : visible.label}
         accessibilityHint={t('composer.chooseThisPlace')}
       >
         <View style={[styles.iconoCirculo, { backgroundColor: theme.colors.accent + '1A' }]}>
@@ -267,20 +270,20 @@ const AgregarUbicacionScreen: React.FC = () => {
         </View>
         <View style={styles.filaDatos}>
           <Text style={[styles.filaNombre, { color: theme.colors.text }]} numberOfLines={1}>
-            {opcion.label}
+            {visible.label}
           </Text>
           {/*
             Texto limpio, sin bandera: "Lima, Perú". El emoji no añadía nada que
             el nombre del sitio no dijera ya, y ensuciaba la línea.
           */}
           <Text style={[styles.filaSub, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-            {opcion.sublabel || t('composer.country')}
+            {visible.sublabel || t('composer.country')}
           </Text>
         </View>
         {/* La distancia solo cuando se ha podido calcular de verdad. */}
         {km !== undefined && (
           <Text style={[styles.filaDistancia, { color: theme.colors.accentDark }]} numberOfLines={1}>
-            {distanciaAproximada(km)}
+            {distanciaParaLeer(km, t, locale)}
           </Text>
         )}
       </TouchableOpacity>

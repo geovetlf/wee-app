@@ -29,6 +29,7 @@ import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { formatNumber } from '../data/mockData';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
+import { descripcionDeComunidad, nombreDeComunidad } from '../utils/comunidadesDeWee';
 
 type SearchCategory = 'comunidades' | 'usuarios' | 'posts';
 
@@ -111,16 +112,19 @@ const SearchScreen: React.FC = () => {
       if (searchQuery.trim().length >= 2) {
         setSearching(true);
         try {
-          // Filtrar comunidades localmente («ibrahim» encuentra «İbrahim»: i18n/caja.ts)
+          // Filtrar comunidades localmente («ibrahim» encuentra «İbrahim»: i18n/caja.ts). Por lo guardado y por lo que
+          // se LEE: una comunidad de Weë se encuentra también por su nombre en el idioma de quien busca («Film og animation»).
           const buscado = paraBuscar(searchQuery);
           const filtered = communities.filter(c =>
             paraBuscar(c.name).includes(buscado) ||
-            paraBuscar(c.description).includes(buscado)
+            paraBuscar(c.description).includes(buscado) ||
+            paraBuscar(nombreDeComunidad(c, t, locale)).includes(buscado) ||
+            paraBuscar(descripcionDeComunidad(c, t, locale)).includes(buscado)
           );
           setFilteredCommunities(filtered);
 
           // Buscar usuarios en Firebase
-          const users = await searchUsers(searchQuery, 10);
+          const users = await searchUsers(searchQuery, 10, locale);
           setSearchedUsers(users);
 
           // Buscar posts en Firebase
@@ -139,7 +143,7 @@ const SearchScreen: React.FC = () => {
     }, 300); // Debounce de 300ms
 
     return () => clearTimeout(searchTimeout);
-  }, [searchQuery, communities]);
+  }, [searchQuery, communities, t, locale]);
 
   const handleClearSearch = () => {
     setSearchQuery('');
@@ -526,10 +530,10 @@ const SearchScreen: React.FC = () => {
                       </View>
                       <View style={styles.communityInfo}>
                         <Text style={[styles.communityName, { color: theme.colors.text }]}>
-                          {community.name}
+                          {nombreDeComunidad(community, t, locale)}
                         </Text>
                         <Text style={[styles.communityDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>
-                          {community.description}
+                          {descripcionDeComunidad(community, t, locale)}
                         </Text>
                         {/* El plural lo elige el número; la cifra se escribe como siempre, con formatNumber. */}
                         <View style={styles.communityStats}>

@@ -352,4 +352,8 @@ export const studio: typeof import('../es/studio').studio = {
   pendMusic: 'Weëはまだ音楽を作れません。足りないのは動画ではなく、音楽のほうです。',
   pendCompose: 'Weëはまだ、複数のシーンを1本の動画につなげられません。',
   pendTwoRefs: '現在、Weëで使える参考画像は1枚までですが、これには2枚必要です。',
+  sampleLake: '山あいの湖',
+  sampleWarmRoom: '暖色系のリビング',
+  sampleNarration: '日本語のナレーション',
+  sampleDocument: '良いアイデア、より良い私たち',
 };

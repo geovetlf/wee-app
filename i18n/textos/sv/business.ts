@@ -34,7 +34,7 @@ export const business: typeof import('../es/business').business = {
   networkConnected: 'Ansluten till {{red}}',
   connectAnother: 'Anslut ett konto till',
   allConnected: 'Alla dina konton är redan anslutna.',
-  simulatedConnection: 'Simulerad anslutning: Weë publicerar och svarar på riktigt när plattformarna ger sina officiella behörigheter.',
+  simulatedConnection: 'Simulerad anslutning: Weë varken publicerar eller svarar åt dig än. I stället gör Weë allt klart så att du kan granska och publicera det.',
   postCalendar: 'Publiceringskalender',
   seeFullCalendar: 'Visa hela kalendern',
   calendarGoal: 'Visa och organisera min publiceringskalender för veckan',

@@ -17,7 +17,7 @@
  *     barba lleva 鬍: 鬍鬚, 鬍渣, 落腮鬍.
  *
  * Lo demás se mantiene como en el simplificado, porque es lo mismo en las dos
- * escrituras: «Weë», «Credits» y «Gemini AI» se quedan en alfabeto latino
+ * escrituras: «Weë», «Credits» y «Weë AI» se quedan en alfabeto latino
  * —nunca 積分 por Credits—, entre hanzi y latín o cifras va UN espacio, la
  * puntuación es de ancho completo, y «頭像» es el avatar mientras que la foto de
  * la cuenta es «個人資料照片», para que la pantalla siga distinguiendo las dos.
@@ -72,7 +72,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   expMysterious: '神祕',
   currentAvatar: '你目前的 AI 頭像',
   swapTitle: '人物替換',
-  swapSubtitle: '拍一張或上傳一張照片，Gemini AI 會把照片裡的人換成你的頭像',
+  swapSubtitle: '拍一張或上傳一張照片，Weë AI 會把照片裡的人換成你的頭像',
   takePhoto: '拍照',
   gallery: '相簿',
   useAsProfilePhoto: '設為個人資料照片',
@@ -81,7 +81,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   uploadPhotoAsAvatar: '上傳照片作為頭像',
   nextStep: '下一步',
   previousStep: '上一步',
-  generatedWithGemini: '由 Gemini AI 生成的頭像',
+  generatedWithAi: '由 Weë AI 製作的頭像',
   nowTakeAPhoto: '現在拍一張或上傳一張你的照片，把照片裡的人換成你的頭像',
   skipAndUse: '跳過，直接使用頭像',
   regenerate: '重新生成頭像',
