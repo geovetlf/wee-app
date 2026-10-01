@@ -1,1 +1,0 @@
-{"version":3,"file":"apple.js","sourceRoot":"","sources":["../../../src/payments/providers/apple.ts"],"names":[],"mappings":";;;AAAA,qEAA6D;AAG7D;;;;;;;GAOG;AACU,QAAA,aAAa,GAAqB;IAC7C,EAAE,EAAE,OAAO;IACX,KAAK,CAAC,MAAM;QACV,MAAM,IAAI,8BAAW,CAAC,iBAAiB,EAAE,sDAAsD,CAAC,CAAC;IACnG,CAAC;IACD,KAAK,CAAC,OAAO;QACX,MAAM,IAAI,8BAAW,CAAC,iBAAiB,EAAE,2DAA2D,CAAC,CAAC;IACxG,CAAC;CACF,CAAC"}

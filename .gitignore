@@ -82,3 +82,16 @@ design/canvas/propuesta-diseno-wee.html
 # Secretos de producción de Cloud Functions (claves de IA, uids de administración): nunca versionar
 functions/.env.get-wee
 functions/.env.prod
+
+# Compilado de Cloud Functions: sale de `npm --prefix functions run build` (predeploy y CI).
+# Versionado se quedaba congelado (76ca834) y viajaba a producción con archivos huérfanos (auditoría H0).
+functions/lib/
+
+# Copias locales de entornos y configuración: nunca se versionan (auditoría H0).
+.env.*
+!.env.example
+*.bak-*
+*.antes-*
+functions/parche*.txt
+functions/.secret.local
+hs_err_pid*.log
