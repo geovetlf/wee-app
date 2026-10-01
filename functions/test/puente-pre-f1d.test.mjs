@@ -522,13 +522,14 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    */
   const nuevos = git('ls-files --others --exclude-standard functions/src').trim().split('\n').filter(Boolean);
   const tocados = [...git(`diff --name-only ${RUTA} -- functions/src`).trim().split('\n').filter(Boolean), ...nuevos].sort();
-  /* Los de la FASE 1 del Harness (auditoría H0), por nombre: H0 #9, #11, #15a, #16, #19, #20, #21, #24, §27 y FASE 8. */
+  /* Los de la FASE 1 del Harness (auditoría H0), por nombre: H0 #9, #11, #15a, #16, #18, #19, #20, #21, #24, §27 y FASE 8.
+     #18 (harness/fase-2): el barrido, una pasada a la vez — solo sus opciones de despliegue (settlement/programado.ts). */
   const DEL_HARNESS = [
     'functions/src/creator/credits.ts', 'functions/src/creator/index.ts', 'functions/src/creator/types.ts', 'functions/src/credits/index.ts',
     'functions/src/engine/admin.ts', 'functions/src/engine/config.ts', 'functions/src/engine/gateway.ts', 'functions/src/engine/http.ts',
     'functions/src/engine/registry.ts', 'functions/src/engine/router.ts', 'functions/src/engine/types.ts', 'functions/src/engine/webhooks.ts',
     'functions/src/gateway/index.ts', 'functions/src/gateway/types.ts', 'functions/src/generateAvatar.ts', 'functions/src/index.ts',
-    'functions/src/opciones.ts', 'functions/src/secrets.ts',
+    'functions/src/opciones.ts', 'functions/src/secrets.ts', 'functions/src/settlement/programado.ts',
   ];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D y del Harness',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS,
