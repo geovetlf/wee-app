@@ -163,6 +163,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en hindi que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['filmmaker.presetShorts', '«YouTube Shorts» es el nombre del producto de la plataforma, en latino como las marcas; los Shorts ya son vídeos'],
     ['business.formatTikTok', 'el nombre de la red'],
     ['business.shareProfile', '«Business Profile» es nombre de producto (decisión del usuario, 2026-09-16)'],
     ['business.businessPlan', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
@@ -437,6 +438,11 @@ console.log('\n── J · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* Weë Filmmaker, revisado por un segundo traductor (2026-10-01): la misma frase española, otro sentido. */
+    /* «Historias» como formato de redes (स्टोरी, como business.formatStory), no los relatos de Writer (कहानियाँ). */
+    'filmmaker.presetStories',
+    /* «Subir»/«Bajar» reordenan la lista (ऊपर/नीचे ले जाएँ); en Studio son la grúa de la cámara (ऊपर उठना / नीचे आना). */
+    'filmmaker.moveUp', 'filmmaker.moveDown',
     /* «Corto», «Medio», «Largo» del pelo: el adjetivo concuerda con «बाल» (plural), no con la duración de un vídeo («छोटा»). */
     'aiAvatar.hairShort', 'aiAvatar.hairMedium', 'aiAvatar.hairLong',
     /* «Listo»: el estado de una creación terminada es «तैयार»; el botón que cierra un paso, «हो गया» (guía § 11.5). */

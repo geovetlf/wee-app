@@ -11,19 +11,25 @@
  * la llama テイク (テイク1, テイク2), aunque el glosario junte «toma, plano» en ショット. El panel Director es 監督, y
  * «dirigir» una escena o un plano es 演出 (「シーン1を演出」).
  *
- * «Formato» es アスペクト比, como en Weë Studio: en esa sección se elige una plataforma con su proporción o una
- * proporción suelta. Donde el dominio dice «formato» y abarca también la resolución (la validación, una entrega que
- * no cuadra), フォーマット. Las referencias de una producción no son solo imágenes —pueden ser vídeo, audio o
+ * «Formato» de la producción es フォーマット, en el panel y en los mensajes del dominio por igual: no es solo una
+ * proporción, es un destino —TikTok動画, Instagram動画…— con su proporción, su resolución y su duración recomendada,
+ * lo mismo que Weë Business llama フォーマット al elegir entre TikTok動画, Instagram動画 y ストーリーズ. アスペクト比
+ * queda para lo que es literalmente la proporción (las fichas 9:16, 4:5… de «Otro formato» y el motivo de una toma que
+ * no se puede generar en esa proporción), como en Weë Studio, donde «Formato» es solo cuadrado / vertical / horizontal.
+ * Las referencias de una producción no son solo imágenes —pueden ser vídeo, audio o
  * movimiento—, así que son 参考素材 y se cuentan con 件, no el 参考画像〜枚 de Studio. «Historias» como formato de
  * redes es ストーリーズ, como lo llama Instagram en Japón, no el 物語 de Writer. «Subir» y «Bajar» reordenan escenas y
  * planos: 上へ移動 / 下へ移動, no el 上昇 / 下降 de la grúa. «Resumen» son cifras (3シーン、8ショット): 概要, no el 要約
  * de resumir un texto. Dentro de la sección 音声 (Audio), la fila «Voz» —la del narrador— es 声, para no repetir
  * 音声 en su propia lista. Coste = 必要なCredits; cobrar = Creditsを消費; devolver = 返還 (§ 10.5). Lo que ya tenía
  * traducción en otro módulo con el mismo sentido se reutiliza tal cual: 複数シーン, もっと見る, アイデア, 保存中…,
- * わかりました, 削除, 説明, 長さ, 全身, キャラクター, 音声, 品質 (標準 / 高), y «Atardecer», サンセット como en WeeTalk.
+ * わかりました, 削除, 説明, 長さ, 全身, キャラクター, 音声, 品質 (標準 / 高). «Atardecer» como momento del día es
+ * 夕暮れ, en pareja con 夜明け; la サンセット de WeeTalk es el nombre de un tema de color, no una hora.
  *
- * Los destinos dejan la plataforma en latino y llevan 動画 detrás: TikTok動画, Instagram動画, YouTube動画,
- * YouTube Shorts動画. Las cifras van pegadas a su contador: 15秒, 3シーン, 2件.
+ * Los destinos dejan la plataforma en latino y llevan 動画 detrás, como en Weë Business: TikTok動画, Instagram動画,
+ * YouTube動画. Lo que es una función de la plataforma va con el nombre que esa plataforma le da en Japón, igual que
+ * Instagramストーリーズ en Weë Business: YouTubeショート (no «YouTube Shorts動画», que dice dos veces «vídeo corto»)
+ * y ストーリーズ. Las cifras van pegadas a su contador: 15秒, 3シーン, 2件.
  *
  * PLURALES: el japonés solo tiene `other`; cada `_one` dice exactamente lo mismo que su `_other`.
  */
@@ -37,13 +43,13 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'プロダクションを作成',
   creatingProduction: 'プロダクションを作成中…',
   openProduction: '{{titulo}}を開く',
-  goToStudio: 'Weë Studioへ移動',
+  goToStudio: 'Weë Studioに移動',
   loadMore: 'もっと見る',
   backToList: 'マイプロダクションに戻る',
   updatedAgo: '更新：{{cuando}}',
 
   emptyListTitle: 'プロダクションはまだありません',
-  emptyListText: 'Weë Studioで始めましょう。「動画」を開いて「複数シーン」を選び、伝えたいことをWeëに話してください。',
+  emptyListText: 'Weë Studioで始めましょう。「動画」を開いて「複数シーン」を選び、描きたいストーリーをWeëに伝えてください。',
   emptyArchived: 'アーカイブ済みのプロダクションはありません。',
   emptyStoryboardTitle: 'このプロダクションにはまだシーンがありません',
   emptyStoryboardText: '最初のシーンを追加して、ショットを1つずつ重ねながら物語を組み立てましょう。',
@@ -53,15 +59,15 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   ideaFromStudio: 'アイデアはWeë Studioで書きます。変更するときは、そちらに戻ってください。',
   whereWillItPlay: 'どこで公開しますか？',
   otherFormat: 'その他のアスペクト比',
-  continueOne: 'または、既存のプロダクションの続きから',
+  continueOne: 'または、マイプロダクションから続ける',
 
   presetTiktok: 'TikTok動画',
   presetInstagram: 'Instagram動画',
-  presetShorts: 'YouTube Shorts動画',
+  presetShorts: 'YouTubeショート',
   presetYoutube: 'YouTube動画',
   presetAds: '広告',
   presetStories: 'ストーリーズ',
-  format: 'アスペクト比',
+  format: 'フォーマット',
   ownFormat: 'カスタム',
   aspectRatio: 'アスペクト比',
   presetRecommends: 'おすすめの長さ：{{segundos}}秒',
@@ -77,8 +83,8 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   saveNow: '今すぐ保存',
   conflictTitle: '別のバージョンが同時に保存されました',
   conflictText: 'Weëが最新のバージョンを取得し、その上に変更を適用し直しました。上書きされたものはありません。',
-  droppedTitle_one: '{{contador}}件の変更が、適用できなくなりました：',
-  droppedTitle_other: '{{contador}}件の変更が、適用できなくなりました：',
+  droppedTitle_one: '適用できなくなった変更が{{contador}}件あります：',
+  droppedTitle_other: '適用できなくなった変更が{{contador}}件あります：',
   understood: 'わかりました',
   gestureRejected: 'この変更は適用されませんでした：',
   archivedBanner: 'このプロダクションはアーカイブされています。編集を続けるには、アーカイブを解除してください。',
@@ -159,7 +165,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   timeMorning: '朝',
   timeMidday: '昼',
   timeAfternoon: '午後',
-  timeDusk: 'サンセット',
+  timeDusk: '夕暮れ',
   timeNight: '夜',
   focusFace: '顔',
   focusEyes: '目',
@@ -173,7 +179,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
 
   intent: '制作意図',
   creativeDirection: 'クリエイティブの方向性',
-  noCreativeDirection: 'クリエイティブの方向性はまだありません。',
+  noCreativeDirection: 'クリエイティブの方向性はまだ決まっていません。',
   durationTarget: '目標の長さ',
   durationTotal: '合計の長さ',
   noTarget: '目標なし',
@@ -193,7 +199,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   nothingPending: '作り直しが必要なものはありません。',
   actions: '操作',
   generate: '生成',
-  generateUnavailable: 'まだ利用できません。Weëはまだ、複数のシーンから1本の動画を生成できません。',
+  generateUnavailable: 'まだ利用できません。現在、Weëは複数のシーンを1本の動画として生成できません。',
   cost: '必要なCredits',
   costPending: '見積もり待ち',
   characters: 'キャラクター',
@@ -222,7 +228,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   propExtend: '{{segundos}}秒延長',
   propAddShot: 'ショットを1つ追加',
   propAdjustAudio: 'サウンドを区間の長さに合わせる',
-  propKeepWardrobe: '衣装を維持',
+  propKeepWardrobe: '衣装をそろえる',
   propAdjustExport: '書き出し設定をフォーマットに合わせる',
   propMatchSetting: 'つながる元のシーンに合わせる',
 
@@ -235,7 +241,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   valOrderMismatch: '順序が合っていません。',
   valReferenceDangling: 'すでに存在しない要素を参照している箇所があります。',
   valReferenceDuplicated: '重複している参考素材があります。',
-  valReferenceSourceMissing: '出典が指定されていない参考素材があります。',
+  valReferenceSourceMissing: '参照元が指定されていない参考素材があります。',
   valRelationMissing: '要素どうしの関係が欠けています。',
   valDependencyCycle: '循環している依存関係があります。',
   valDependencyInvalid: '無効な依存関係があります。',
@@ -253,7 +259,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   opOperationTargetMissing: '変更しようとしたものは、すでに存在しません。',
   opOperationNotApplicable: 'この変更はここには適用できません。',
   opOperationBlocked: 'この変更を適用すると、ほかのものも一緒に削除されます。',
-  opOperationWouldBreakIntegrity: 'この変更を適用すると、プロダクションの整合性が崩れます。',
+  opOperationWouldBreakIntegrity: 'この変更を適用すると、プロダクションが壊れてしまいます。',
   opProductionInvalid: 'プロダクションに問題があるため、変更できません。',
 
   recTooManyScenesForDuration: '{{targetSec}}秒に対して{{scenes}}シーンあります。収まるのは最大{{maxScenes}}シーンです。',
@@ -281,7 +287,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   perOperationsInvalid: '変更の1つを適用できませんでした。',
   perOperationsEmpty: '変更する内容がありませんでした。',
   perOperationsTooMany: '一度に変更する数が多すぎます。',
-  perElementBindingNotSupported: 'Weëでは、まだここで要素を関連付けできません。',
+  perElementBindingNotSupported: 'Weëでは、ここで要素を関連付けることはまだできません。',
   perReferenceRejected: '使用できない参考素材があります。',
   perIdNotStorable: '保存できないIDがあります。',
   perDocumentTooLarge: '大きすぎて保存できないシーンがあります。',
@@ -335,16 +341,16 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeReasonDialogue: 'セリフがありますが、動画はまだ声の同期に対応していません。',
   takeReasonDescription: '生成するには、何が起きるかを説明してください。',
   takeReasonTooLong: '長さが{{segundos}}秒ですが、最大は{{maximo}}秒です。もっと短いショットに分割してください。',
-  takeReasonAspect: 'アスペクト比{{formato}}は、変換しないと生成できません。プロダクションを{{lista}}に変更してください。',
+  takeReasonAspect: 'アスペクト比{{formato}}は、変換しないと生成できません。プロダクションのアスペクト比を{{lista}}に変更してください。',
   takeReasonQuality: '品質「{{calidad}}」は{{alcanza}}までしか対応していませんが、プロダクションは{{resolucion}}です。別の品質を選んでください。',
-  takeReasonSound: '音が必要ですが、プロダクションでは音楽またはセリフなしが指定されています。これは保証できません。',
+  takeReasonSound: '音ありが指定されていますが、プロダクションでは音楽またはセリフを入れないよう指定されています。音ありで生成すると、その指定は保証できません。',
   takeReasonInFlight: 'すでに処理中のテイクがあります。',
   takeReasonChanged: 'プロダクションが変更されました。最後に保存した内容で、もう一度お試しください。',
   takeReasonNotFound: '保存済みのプロダクションにありません。',
   takeReasonLimit: 'テイク数が上限に達しました。',
   takeReasonRoute: 'ショットごとの生成は、このアカウントではまだ利用できません。',
   takeReasonCredits: 'このテイクに必要なCreditsが不足しています。',
-  takeReasonDaily: '今日の動画の上限に達しました。明日になると、また生成できます。',
+  takeReasonDaily: '今日の動画生成数が上限に達しました。明日になると、また生成できます。',
   takeReasonConflict: 'このテイクは、すでに別の方法でリクエストされています。',
   takeReasonDone: 'このテイクはすでに完了しています。「マイ作品」で確認してください。',
   takeReasonInvalid: '生成の準備ができませんでした。',

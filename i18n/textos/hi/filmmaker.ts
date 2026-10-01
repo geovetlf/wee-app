@@ -32,6 +32,11 @@
  * कीमत, सीमा y टाइमलाइन en femenino. Weë, en masculino singular (guía § 5.3).
  *
  * LOS SEGUNDOS van enteros (सेकंड), como en Studio, y «Mis creaciones» es “मेरी रचनाएँ”, con comillas “…”.
+ *
+ * REVISIÓN NATIVA. «Unos N s» es लगभग (como `weeai.approxUsd`) y «alrededor», आस-पास con guion (como
+ * `composer.placesNearYou`). «Sujeto» es फ़ोकस —lo que el plano enfoca: personaje, objeto y encuadre—, no सब्जेक्ट,
+ * que se lee «asunto». «Rechazar» una recomendación es खारिज करें, el «Dismiss» de Android; अस्वीकार करें queda
+ * para las solicitudes de ËContact. «Activas» es चालू, como «activo» en `engine.active`.
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   sectionName: 'कई सीन',
@@ -175,7 +180,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   focusGroup: 'ग्रुप',
   focusObject: 'चीज़',
   focusDetail: 'डिटेल',
-  focusEnvironment: 'आसपास का माहौल',
+  focusEnvironment: 'आस-पास का माहौल',
 
   intent: 'मकसद',
   creativeDirection: 'क्रिएटिव डायरेक्शन',
@@ -210,7 +215,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   audioDialogue: 'डायलॉग',
   audioMusic: 'संगीत',
   audioSfx: 'साउंड इफ़ेक्ट',
-  audioAmbience: 'आसपास की आवाज़ें',
+  audioAmbience: 'आस-पास की आवाज़ें',
   audioNarrator: 'नैरेटर',
   audioNone: 'अभी तक कुछ नहीं',
   audioUnavailable: 'अभी उपलब्ध नहीं है',
@@ -263,11 +268,11 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   opProductionInvalid: 'प्रोडक्शन में कोई गड़बड़ी है, इसलिए इसे बदला नहीं जा सकता.',
 
   recTooManyScenesForDuration: '{{targetSec}} सेकंड के लिए आपके पास {{scenes}} सीन हैं: इसमें ज़्यादा से ज़्यादा {{maxScenes}} सीन आ सकते हैं.',
-  recDialogueExceedsDuration: 'डायलॉग के लिए करीब {{estimatedSec}} सेकंड चाहिए, लेकिन सिर्फ़ {{availableSec}} सेकंड हैं.',
+  recDialogueExceedsDuration: 'डायलॉग के लिए लगभग {{estimatedSec}} सेकंड चाहिए, लेकिन सिर्फ़ {{availableSec}} सेकंड हैं.',
   recAudioLongerThanVideo: 'एक साउंड {{cueSec}} सेकंड का है, लेकिन उसका हिस्सा सिर्फ़ {{availableSec}} सेकंड का है.',
   recCharacterContinuityInconsistent: 'एक किरदार के कपड़े अलग-अलग शॉट में बदल जाते हैं.',
   recSceneWithoutShots: 'इस सीन में अभी तक कोई शॉट नहीं है.',
-  recShotTooShortForActions: 'इस शॉट में {{availableSec}} सेकंड में {{actions}} एक्शन हैं; इसके लिए करीब {{neededSec}} सेकंड चाहिए.',
+  recShotTooShortForActions: 'इस शॉट में {{availableSec}} सेकंड में {{actions}} एक्शन हैं; इसके लिए लगभग {{neededSec}} सेकंड चाहिए.',
   recRequirementsIncompatible: 'एक एक्सपोर्ट प्रोडक्शन के फ़ॉर्मैट से कुछ अलग माँगता है.',
   recSettingChangesInContinuation: 'यह सीन किसी दूसरे सीन को आगे बढ़ाता है, लेकिन इसमें जगह, समय या मौसम बदल जाता है.',
   recDurationOffTarget: 'प्रोडक्शन {{totalSec}} सेकंड का है और टारगेट {{targetSec}} सेकंड है.',
@@ -286,7 +291,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   perOperationIdReused: 'यह बदलाव पहले ही किसी दूसरे कॉन्टेंट के साथ इस्तेमाल हो चुका है.',
   perOperationsInvalid: 'बदलावों में से एक लागू नहीं किया जा सका.',
   perOperationsEmpty: 'बदलने के लिए कुछ नहीं था.',
-  perOperationsTooMany: 'एक साथ बहुत ज़्यादा बदलाव.',
+  perOperationsTooMany: 'एक साथ बहुत ज़्यादा बदलाव हैं.',
   perElementBindingNotSupported: 'Weë अभी यहाँ एलिमेंट लिंक नहीं कर सकता.',
   perReferenceRejected: 'एक रेफ़रेंस इस्तेमाल नहीं किया जा सकता.',
   perIdNotStorable: 'एक ID को सेव नहीं किया जा सकता.',
@@ -321,7 +326,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeWillGenerate: 'यह जनरेट होगा: {{segundos}} सेकंड · {{formato}} · {{resolucion}}',
   takeWithSound: 'साउंड के साथ',
   takeWithoutSound: 'बिना साउंड के',
-  takeDurationAdjusted: 'शॉट {{segundos}} सेकंड का है; सबसे छोटा वीडियो, जो जनरेट हो सकता है, {{minimo}} सेकंड का होता है.',
+  takeDurationAdjusted: 'शॉट {{segundos}} सेकंड का है; कम से कम {{minimo}} सेकंड का वीडियो ही जनरेट हो सकता है.',
   takeGenerateShot: 'यह शॉट जनरेट करें',
   takeGenerateScene: 'यह सीन जनरेट करें',
   takeGenerateAgain: 'एक और टेक जनरेट करें',

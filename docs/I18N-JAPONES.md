@@ -273,7 +273,9 @@ Un concepto, una palabra. Donde el contexto de la interfaz pide otra, la excepci
 |---|---|---|
 | producción (el proyecto de película) | プロダクション | La actividad: 制作 (動画制作) |
 | escena | シーン | |
-| toma, plano | ショット | «corte» → カット |
+| plano | ショット | «corte» → カット |
+| toma (cada intento de generar el vídeo de un plano, Weë Filmmaker) | テイク | テイク1、テイク2, como en un rodaje |
+| formato de destino (TikTok, Instagram… con su proporción) | フォーマット | la proporción sola sigue siendo アスペクト比 |
 | personaje | キャラクター | |
 | guion | 脚本 | |
 | storyboard | 絵コンテ | |

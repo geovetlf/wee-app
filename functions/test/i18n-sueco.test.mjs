@@ -151,6 +151,10 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en sueco que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['filmmaker.presetTiktok', 'TikTok es el nombre de la plataforma'],
+    ['filmmaker.presetYoutube', 'YouTube es el nombre de la plataforma'],
+    ['filmmaker.presetShorts', 'YouTube Shorts es el nombre del producto de la plataforma'],
+    ['filmmaker.format', '«Format» es la palabra sueca, la misma de studio.optFormat'],
     ['profile.tabMedia', '«Media» es la palabra sueca de la pestaña (X y Bluesky en sueco)'],
     ['onboarding.genderMale', '«Man» es la palabra sueca (coincide con el inglés)'],
     ['engine.modalityText', '«text» es la palabra sueca'],
@@ -280,7 +284,7 @@ console.log('\n── E · Sueco escrito como sueco ──');
     conNi.slice(0, 4).map(([k, v]) => `${k}: «${v.slice(0, 40)}»`).join(' | ') || 'du');
   /* Mayúscula de frase: nada de «Redigera Profil» con Cada Palabra En Mayúscula. */
   /* Los nombres de producto de Weë Business se escriben con sus mayúsculas (decisión del usuario, 2026-09-16). */
-  const MAYUSCULAS_A_PROPOSITO = new Set(['business.shareProfile', 'business.businessPlan', 'business.businessCoach',
+  const MAYUSCULAS_A_PROPOSITO = new Set(['filmmaker.presetShorts' /* «YouTube Shorts»: nombre de producto */, 'business.shareProfile', 'business.businessPlan', 'business.businessCoach',
     'business.pricing', 'business.brandKit', 'business.customerInsights', 'business.businessIdeas']);
   const tituloIngles = SV.filter(([k, v]) => {
     if (MAYUSCULAS_A_PROPOSITO.has(k)) return false;
@@ -403,6 +407,11 @@ console.log('\n── J · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* Weë Filmmaker, revisado por un segundo traductor (2026-10-01): la misma frase española, otro sentido. */
+    /* «Subir»/«Bajar» reordenan escenas y planos (Flytta upp/ner); en Studio son la grúa de la cámara (Kran upp/ner). */
+    'filmmaker.moveUp', 'filmmaker.moveDown',
+    /* «Historias» como formato de redes es «Story», como business.formatStory; studio.wrStories («Berättelser») son relatos escritos. */
+    'filmmaker.presetStories',
     /* «Todo»: todos los valores nutricionales de Chef (Alla värden), no el filtro «Alla». */
     'chef.nuAll',
     /* «Media»: la dificultad media de Chef (Medelsvår), no la pestaña de fotos y vídeos del perfil (Media). */

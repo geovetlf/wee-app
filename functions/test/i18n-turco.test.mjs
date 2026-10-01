@@ -154,6 +154,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en turco que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['filmmaker.presetShorts', '«YouTube Shorts» es el nombre de la plataforma, que no se traduce, y ya dice que es vídeo (con «videosu» se corta en su casilla)'],
     ['composer.kindVideo', '«Video» es la palabra turca (glosario § 10.1)'],
     ['engine.modalityVideo', '«video» es la palabra turca (glosario § 10.1)'],
     ['studio.grpVideo', '«Video» es la palabra turca (glosario § 10.1)'],
@@ -438,6 +439,10 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* «Subir»/«Bajar» en Filmmaker reordenan escenas y planos (Yukarı/Aşağı taşı); en Studio son la grúa de la cámara (Yükselme/Alçalma). */
+    'filmmaker.moveUp', 'filmmaker.moveDown',
+    /* «Voz» en Filmmaker es la pista del narrador dentro del bloque «Ses»: «Seslendirme», para no tener «Ses» dentro de «Ses». */
+    'filmmaker.audioVoice',
     /* «Medio»: el largo del pelo (Orta boy), no un nivel (Orta). */
     'aiAvatar.hairMedium',
     /* «Listo»: el botón es «Bitti»; el título de un aviso, «Tamamlandı»; el estado de una creación, «Hazır» (glosario § 10.6). */

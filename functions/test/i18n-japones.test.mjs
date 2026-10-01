@@ -528,6 +528,21 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* Weë Filmmaker («Varias escenas»), revisado por un segundo traductor (2026-10-01): la misma frase española, otro sentido. */
+    /* «Historias» como formato de redes (ストーリーズ), no los relatos de Writer (物語). */
+    'filmmaker.presetStories',
+    /* «Subir»/«Bajar» reordenan escenas y planos (上へ移動/下へ移動); en Studio son la grúa de la cámara (上昇/下降). */
+    'filmmaker.moveUp', 'filmmaker.moveDown',
+    /* «referencias»: cualquier material (imagen, vídeo, audio, movimiento), contado con 件; no el 参考画像〜枚 de Studio. */
+    'filmmaker.references_other',
+    /* «Resumen»: cifras (3シーン、8ショット), no el 要約 de un texto. */
+    'filmmaker.summary',
+    /* «Voz» dentro de la sección «Audio» (音声): 声, para no repetir 音声 en su propia lista. */
+    'filmmaker.audioVoice',
+    /* «Formato»: el destino con su proporción, resolución y duración (フォーマット, como business.formats); no solo la proporción de studio.optFormat. */
+    'filmmaker.format',
+    /* «Atardecer»: la hora del día de una escena (夕暮れ, en pareja con 夜明け); no el tema de color サンセット de WeeTalk. */
+    'filmmaker.timeDusk',
     /* «Próximamente»: una función que llega (近日公開) no es un idioma que llega (近日対応). Glosario § 10.6. */
     'language.comingSoon',
     /* «Contacto»: los datos de contacto de un negocio (連絡先), no el canal de soporte de Ayuda (お問い合わせ). */

@@ -20,12 +20,24 @@
  * escena o un plano, «Regissera». La duración es «Längd» como en Weë Studio (`studio.optDuration`): «Mållängd»,
  * «Total längd». La proporción es «Bildförhållande» y «Formato», «Format», como `studio.optFormat`. Los personajes son
  * «Karaktärer» (`studio.charactersTitle`), su vestuario, «klädsel», y una línea de diálogo, «replik». «Atardecer» es
- * «Solnedgång», como el tema de WeeTalk, y por eso «Amanecer» es «Soluppgång». «Medio cuerpo» y «Cuerpo entero» son
- * «Halvfigur» y «Helfigur», la pareja de la fotografía sueca. El tiempo, como lo escribe SMHI: «Klart», «Molnigt»,
+ * «Solnedgång», como el tema de WeeTalk, y «Amanecer», «Soluppgång»: es la pareja exacta del español. «Gryning»
+ * y «Skymning» se descartaron porque «skymning» ya es el anochecer, no el atardecer. «Medio cuerpo» y «Cuerpo
+ * entero» son «Halvfigur» y «Helfigur», la pareja de la fotografía sueca. El tiempo, como lo escribe SMHI: «Klart», «Molnigt»,
  * «Mulet», «Åska», «Blåsigt». «Narrador» es «Berättarröst» (`studio.voxNarration`) y «Ambiente», «Miljöljud».
- * «Historias» (el formato de las redes) es «Berättelser», que es como Instagram y Facebook en sueco llaman a las
- * Stories («din berättelse»), y la misma palabra que `studio.wrStories`. Archivar y desarchivar, «Arkivera» y
- * «Avarkivera»; cobrar una toma, «debiteras».
+ * «Historias» (el formato de las redes, junto a TikTok y YouTube Shorts) es «Story», como `business.formatStory`
+ * («Instagram-story») y como lo dice quien publica en sueco; DISTINTO a propósito de `studio.wrStories`
+ * («Berättelser»), que son relatos escritos con Weë Writer. Archivar y desarchivar, «Arkivera» y «Avarkivera» (como
+ * WhatsApp y Google en sueco). Cobrar es «dra» Credits, el verbo de `weeai` («Inga Credits har dragits»), y la
+ * devolución, «få tillbaka» (`weeai.creditsNote`).
+ *
+ * REVISIÓN (nativa). Se confirma «tagning» para el plano y «version» para la toma: «bild» chocaría de frente con la
+ * «bild» de Weë Studio («Bilder», «Bild till video», donde es la imagen de partida), y en la escuela sueca de cine
+ * la cadena es «bildruta, tagning, scen, sekvens». Los tipos de plano de Studio («Närbild», «Halvbild») son tamaños
+ * de encuadre («bildutsnitt»), no la unidad: «Tagning 2 · Närbild» se lee bien. «Version» vale para la toma y para la versión
+ * guardada de la producción porque nunca comparten pantalla: la toma vive en el panel de generación y la otra en el
+ * aviso de conflicto. «Con dependencias pendientes» es «Beroenden som inte är klara»: «olösta» sonaba a gestor de
+ * paquetes. «Resumen» se queda en «Sammanfattning» (como `catalogo.writerAcSummaryTitle`): lo que hay debajo es una
+ * frase, «3 scener och 7 tagningar».
  *
  * «Subir» y «Bajar» reordenan escenas y planos: «Flytta upp» y «Flytta ner». NO son «Kran upp» / «Kran ner», que es
  * como `studio.mvCraneUp` y `studio.mvCraneDown` traducen la misma palabra española cuando es un movimiento de grúa.
@@ -68,7 +80,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   presetShorts: 'YouTube Shorts',
   presetYoutube: 'YouTube',
   presetAds: 'Annonser',
-  presetStories: 'Berättelser',
+  presetStories: 'Story',
   format: 'Format',
   ownFormat: 'Eget format',
   aspectRatio: 'Bildförhållande',
@@ -77,7 +89,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   statusDraft: 'Utkast',
   statusReady: 'Redo att genereras',
   statusArchived: 'Arkiverad',
-  statusDependencies: 'Olösta beroenden',
+  statusDependencies: 'Beroenden som inte är klara',
   saveSaved: 'Sparat',
   saveSaving: 'Sparar…',
   savePending: 'Osparade ändringar',
@@ -120,12 +132,12 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   mergeNextShot: 'Slå ihop med nästa tagning',
   removeScene: 'Ta bort scenen',
   removeShot: 'Ta bort tagningen',
-  removeSceneConfirm: 'Vill du ta bort scen {{numero}} och dess tagningar?',
+  removeSceneConfirm: 'Vill du ta bort scen {{numero}} och tagningarna i den?',
   removeShotConfirm: 'Vill du ta bort tagning {{numero}}?',
-  removeAlsoLinked: 'Ljud och markeringar som beror på den tas också bort.',
+  removeAlsoLinked: 'Ljud och markeringar som är kopplade till den tas också bort.',
   remove: 'Ta bort',
   longerBy: 'Förläng med {{segundos}} s',
-  shorterBy: 'Korta med {{segundos}} s',
+  shorterBy: 'Förkorta med {{segundos}} s',
   noPreview: 'Ingen förhandsvisning',
   complete: 'Komplett',
   missing: 'Saknas: {{lista}}',
@@ -147,7 +159,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
 
   directing: 'Regissera',
   selectSomething: 'Tryck på en scen eller en tagning om du vill regissera den.',
-  notEditableYet: 'Du kan inte redigera karaktärer, platser, referenser och avsikten här ännu.',
+  notEditableYet: 'Karaktärer, platser, referenser och avsikt går inte att redigera här ännu.',
   sceneTitle: 'Scenens titel',
   description: 'Beskrivning',
   describeScene: 'Vad scenen handlar om',
@@ -180,8 +192,8 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   focusEnvironment: 'Omgivning',
 
   intent: 'Avsikt',
-  creativeDirection: 'Kreativ inriktning',
-  noCreativeDirection: 'Ingen kreativ inriktning ännu.',
+  creativeDirection: 'Kreativ riktning',
+  noCreativeDirection: 'Ingen kreativ riktning ännu.',
   durationTarget: 'Mållängd',
   durationTotal: 'Total längd',
   noTarget: 'Inget mål',
@@ -197,11 +209,11 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   warnings: 'Varningar',
   noWarnings: 'Inget hindrar att den genereras.',
   pendingChanges: 'Behöver göras om',
-  pendingChangesText: 'Det som har ändrats sedan du öppnade produktionen. När Weë genererar är det det här som måste göras om.',
+  pendingChangesText: 'Det som har ändrats sedan du öppnade produktionen. Det är det som måste göras om när Weë genererar.',
   nothingPending: 'Inget behöver göras om.',
   actions: 'Åtgärder',
   generate: 'Generera',
-  generateUnavailable: 'Inte tillgängligt ännu: Weë kan ännu inte generera flera scener i en och samma video.',
+  generateUnavailable: 'Inte tillgängligt ännu: Weë kan inte generera flera scener i en och samma video än.',
   cost: 'Kostnad',
   costPending: 'Inte beräknad ännu',
   characters: 'Karaktärer',
@@ -229,14 +241,14 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   propMergeScenes: 'Slå ihop scener tills de får plats',
   propExtend: 'Förläng med {{segundos}} s',
   propAddShot: 'Lägg till en tagning',
-  propAdjustAudio: 'Anpassa ljudet till sitt avsnitt',
+  propAdjustAudio: 'Anpassa ljudet efter avsnittet det hör till',
   propKeepWardrobe: 'Behåll klädseln',
   propAdjustExport: 'Anpassa leveransen till formatet',
   propMatchSetting: 'Anpassa den efter scenen den fortsätter',
 
   valShapeInvalid: 'Något har inte den förväntade formen.',
-  valFieldUnknown: 'Det finns en uppgift som Weë inte känner till.',
-  valFieldForbidden: 'Det finns en uppgift som inte får finnas här.',
+  valFieldUnknown: 'Det finns ett fält som Weë inte känner igen.',
+  valFieldForbidden: 'Det finns ett fält som inte får finnas här.',
   valValueInvalid: 'Ett värde är ogiltigt.',
   valIdInvalid: 'En identifierare är ogiltig.',
   valIdDuplicated: 'En identifierare förekommer flera gånger.',
@@ -245,7 +257,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   valReferenceDuplicated: 'En referens förekommer flera gånger.',
   valReferenceSourceMissing: 'Det saknas uppgift om var en referens kommer ifrån.',
   valRelationMissing: 'Det saknas en relation mellan element.',
-  valDependencyCycle: 'Några beroenden går runt i en cirkel.',
+  valDependencyCycle: 'Några beroenden bildar en cirkel.',
   valDependencyInvalid: 'Ett beroende är ogiltigt.',
   valFormatInvalid: 'Formatet är ogiltigt.',
   valDurationInvalid: 'En längd är ogiltig.',
@@ -266,10 +278,10 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
 
   recTooManyScenesForDuration: 'Du har {{scenes}} scener för {{targetSec}} s: högst {{maxScenes}} får plats.',
   recDialogueExceedsDuration: 'Dialogen behöver cirka {{estimatedSec}} s och det finns bara {{availableSec}} s.',
-  recAudioLongerThanVideo: 'Ett ljud är {{cueSec}} s långt och dess avsnitt bara {{availableSec}} s.',
+  recAudioLongerThanVideo: 'Ett ljud är {{cueSec}} s långt, men avsnittet det hör till är bara {{availableSec}} s.',
   recCharacterContinuityInconsistent: 'En karaktärs klädsel ändras mellan tagningarna.',
   recSceneWithoutShots: 'Den här scenen har inga tagningar ännu.',
-  recShotTooShortForActions: 'Den här tagningen har {{actions}} handlingar på {{availableSec}} s; den skulle behöva cirka {{neededSec}} s.',
+  recShotTooShortForActions: 'Den här tagningen har {{actions}} händelser på {{availableSec}} s; den skulle behöva cirka {{neededSec}} s.',
   recRequirementsIncompatible: 'En leverans kräver något annat än produktionens format.',
   recSettingChangesInContinuation: 'Den här scenen fortsätter en annan men byter plats, tid eller väder.',
   recDurationOffTarget: 'Produktionen är {{totalSec}} s lång och målet är {{targetSec}} s.',
@@ -294,7 +306,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   perIdNotStorable: 'En identifierare kan inte sparas.',
   perDocumentTooLarge: 'En scen är för stor för att sparas.',
   perProductionTooLarge: 'Produktionen är för stor.',
-  perTransactionTooLarge: 'För många ändringar för att spara på en gång.',
+  perTransactionTooLarge: 'För många ändringar för att sparas på en gång.',
   perListQueryInvalid: 'Det gick inte att hämta listan.',
   perHistoryTooLong: 'Produktionens historik är för lång.',
   perHistoryBroken: 'Produktionens historik är skadad.',
@@ -302,7 +314,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   perSessionRequired: 'Logga in om du vill se dina produktioner.',
   perAccountNotFound: 'Vi hittade inte ditt Weë-konto.',
   perNetwork: 'Ingen anslutning: det gick inte att nå Weë. Försök igen.',
-  perUnavailable: 'Produktionerna är inte tillgängliga ännu.',
+  perUnavailable: 'Produktioner är inte tillgängliga ännu.',
   perUnknown: 'Något gick fel.',
   perResponseInvalid: 'Det gick inte att läsa svaret.',
   /* ── F1-D · la toma de un plano: su vídeo, su calidad, su precio y por qué no ── */
@@ -317,7 +329,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeQualityStandard: 'Normal',
   takeQualityHigh: 'Hög',
   takeQualityMax: 'Högsta',
-  takeChooseQuality: 'Välj en kvalitet så ser du priset. Inget genereras eller debiteras förrän du bekräftar.',
+  takeChooseQuality: 'Välj en kvalitet så ser du priset. Inget genereras och inga Credits dras förrän du bekräftar.',
   takeQuoting: 'Beräknar priset…',
   takePrice: '{{credits}} Credits',
   takeWillGenerate: 'Det här genereras: {{segundos}} s · {{formato}} · {{resolucion}}',
@@ -327,15 +339,15 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeGenerateShot: 'Generera den här tagningen',
   takeGenerateScene: 'Generera den här scenen',
   takeGenerateAgain: 'Generera en ny version',
-  takeAgainNote: 'Varje ny version genereras och debiteras separat.',
+  takeAgainNote: 'Varje ny version genereras och kostar Credits för sig.',
   takeSending: 'Skickar…',
   takeWorking: 'Pågår. Videon visas här och i ”Mina skapelser” när den är klar. Du kan lämna den här skärmen.',
-  takeLinking: 'Lägger in videon på sin plats…',
+  takeLinking: 'Lägger in videon på rätt plats…',
   takeReady: 'Version {{numero}} är klar.',
-  takeHasVideo: 'Den har redan sin video.',
+  takeHasVideo: 'Den har redan en video.',
   takeOpen: 'Visa videon',
-  takeFailed: 'Det gick inte att generera version {{numero}}. Du har fått tillbaka dess Credits.',
-  takeStale: 'Version {{numero}} finns i ”Mina skapelser”, men den lades inte in här: tagningen ändrades medan den skapades.',
+  takeFailed: 'Det gick inte att generera version {{numero}}. Du har fått tillbaka dina Credits.',
+  takeStale: 'Version {{numero}} finns i ”Mina skapelser”, men den lades inte in här: tagningen ändrades medan videon skapades.',
   takeNotLinked: 'Version {{numero}} finns i ”Mina skapelser”, men den kunde inte läggas in här.',
   takePriceChanged: 'Priset har ändrats sedan du såg det. Det här är det aktuella priset.',
   takeReasonReferences: 'Den använder referenser eller en startbild, och det går inte att generera här ännu.',
@@ -343,7 +355,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeReasonDialogue: 'Den har dialog, och videon synkar inte röster ännu.',
   takeReasonDescription: 'Beskriv vad som händer så att den kan genereras.',
   takeReasonTooLong: 'Den är {{segundos}} s lång och får vara högst {{maximo}} s: dela upp den i kortare tagningar.',
-  takeReasonAspect: 'Formatet {{formato}} går inte att generera utan att konverteras. Ändra produktionen till {{lista}}.',
+  takeReasonAspect: 'Formatet {{formato}} går inte att generera utan konvertering. Ändra produktionen till {{lista}}.',
   takeReasonQuality: 'Kvaliteten ”{{calidad}}” går upp till {{alcanza}} och produktionen är i {{resolucion}}: välj en annan kvalitet.',
   takeReasonSound: 'Den begär ljud, och produktionen kräver att det inte finns någon musik eller dialog: det går inte att garantera.',
   takeReasonInFlight: 'En version håller redan på att skapas.',

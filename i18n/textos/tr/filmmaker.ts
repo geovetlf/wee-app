@@ -11,11 +11,14 @@
  * es «çekim», como en la claqueta («Sahne 3, plan 2, çekim 1»). El storyboard es «Görsel senaryo», el nombre turco
  * del oficio; el panel Director, «Yönetmen», y dirigir una escena o un plano, «yönet».
  *
- * «Formato» es «Biçim», como en Weë Studio: aquí es la proporción y su resolución, y los seis formatos de destino se
- * leen como en Weë Business, «TikTok videosu», «Instagram videosu», «YouTube videosu»… («Video de Instagram» y no
- * «Reels»: en Weë los vídeos cortos son Weëls). La proporción es «En boy oranı». Los segundos son «sn.», como en
- * Studio y como los abrevia `Intl`. «Vestuario» es «kostüm», «entrega» es «dışa aktarım» y una línea de diálogo es una
- * «replik», la palabra del teatro y el cine.
+ * «Formato» es «Biçim», como en Weë Studio: aquí es la proporción y su resolución, y los formatos de destino se
+ * leen como en Weë Business, «TikTok videosu», «Instagram videosu», «YouTube videosu» («Video de Instagram» y no
+ * «Reels»: en Weë los vídeos cortos son Weëls). «YouTube Shorts» se queda sin «videosu», como en español: es el nombre
+ * del formato de la plataforma, ya dice que es un vídeo, y con la coletilla sería la casilla más larga de una rejilla
+ * de tres columnas que corta en una línea. La proporción es «En boy oranı». Los segundos son «sn.», como en Studio y
+ * como los abrevia `Intl`. «Vestuario» es «kostüm», «entrega» es «dışa aktarım» y una línea de diálogo es una
+ * «replik», la palabra del teatro y el cine. «Activas» es «Aktif», como el perfil activo del menú; el momento del día,
+ * «Günün saati» («saati değişiyor» en la recomendación de continuidad), y «Detalle», «Ayrıntı», la palabra de la casa.
  *
  * Dos palabras se separan de la misma frase española en otros módulos porque aquí dicen otra cosa: «Subir» y «Bajar»
  * mueven una tarjeta en el orden («Yukarı taşı», «Aşağı taşı») y no son el movimiento de grúa de la cámara
@@ -36,7 +39,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   sectionName: 'Birden çok sahne',
   director: 'Yönetmen',
   myProductions: 'Yapımların',
-  tabActive: 'Etkin',
+  tabActive: 'Aktif',
   tabArchived: 'Arşivlenmiş',
   newProduction: 'Yeni yapım',
   createProduction: 'Yapım oluştur',
@@ -62,7 +65,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
 
   presetTiktok: 'TikTok videosu',
   presetInstagram: 'Instagram videosu',
-  presetShorts: 'YouTube Shorts videosu',
+  presetShorts: 'YouTube Shorts',
   presetYoutube: 'YouTube videosu',
   presetAds: 'Reklamlar',
   presetStories: 'Hikâyeler',
@@ -81,7 +84,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   saveError: 'Kaydedilemedi',
   saveNow: 'Şimdi kaydet',
   conflictTitle: 'Aynı anda başka bir sürüm kaydedildi',
-  conflictText: 'Weë en son sürümü getirdi ve hiçbir şeyin üzerine yazmadan değişikliklerini yeniden uyguladı.',
+  conflictText: 'Weë en son sürümü getirdi ve değişikliklerini, hiçbir şeyin üzerine yazmadan, bu sürüme yeniden uyguladı.',
   droppedTitle_one: '{{contador}} değişikliğin artık uygulanamadı:',
   droppedTitle_other: '{{contador}} değişikliğin artık uygulanamadı:',
   understood: 'Anladım',
@@ -151,7 +154,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   describeShot: 'Bu planda ne görünüyor?',
   duration: 'Süre',
   weather: 'Hava',
-  timeOfDay: 'Günün zamanı',
+  timeOfDay: 'Günün saati',
   weatherClear: 'Açık',
   weatherCloudy: 'Bulutlu',
   weatherOvercast: 'Kapalı',
@@ -173,7 +176,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   focusFullBody: 'Tüm vücut',
   focusGroup: 'Grup',
   focusObject: 'Nesne',
-  focusDetail: 'Detay',
+  focusDetail: 'Ayrıntı',
   focusEnvironment: 'Çevre',
 
   intent: 'Amaç',
@@ -324,7 +327,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeGenerateShot: 'Bu planı oluştur',
   takeGenerateScene: 'Bu sahneyi oluştur',
   takeGenerateAgain: 'Başka bir çekim oluştur',
-  takeAgainNote: 'Her yeni çekim ayrı oluşturulur ve ayrı ücretlendirilir.',
+  takeAgainNote: 'Her yeni çekim ayrı oluşturulur ve ücreti bakiyenden ayrıca düşülür.',
   takeSending: 'Gönderiliyor…',
   takeWorking: 'İşleniyor. Video hazır olduğunda burada ve “Oluşturduklarım” bölümünde görünecek; bu ekrandan çıkabilirsin.',
   takeLinking: 'Video yerine yerleştiriliyor…',
@@ -338,10 +341,10 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeReasonReferences: 'Referans ya da başlangıç karesi kullanıyor; bu henüz burada oluşturulamıyor.',
   takeReasonAdvanced: 'Gelişmiş bir prompt içeriyor; bu henüz burada oluşturulamıyor.',
   takeReasonDialogue: 'Diyalog içeriyor ve video henüz sesleri senkronize edemiyor.',
-  takeReasonDescription: 'Oluşturabilmek için ne olduğunu anlat.',
+  takeReasonDescription: 'Oluşturabilmek için neler olduğunu anlat.',
   takeReasonTooLong: '{{segundos}} sn. sürüyor, en fazla {{maximo}} sn. olabilir: Daha kısa planlara böl.',
   takeReasonAspect: '{{formato}} biçimi dönüştürülmeden oluşturulamıyor. Yapımı {{lista}} biçimine geçir.',
-  takeReasonQuality: '“{{calidad}}” kalitesi en fazla {{alcanza}} çözünürlüğe çıkıyor, yapım ise {{resolucion}}: Başka bir kalite seç.',
+  takeReasonQuality: '{{calidad}} kalite en fazla {{alcanza}} çözünürlüğe çıkıyor, yapım ise {{resolucion}}: Başka bir kalite seç.',
   takeReasonSound: 'Ses istiyor ama yapım müzik ya da diyalog olmamasını istiyor: Bu garanti edilemez.',
   takeReasonInFlight: 'Zaten işlenen bir çekim var.',
   takeReasonChanged: 'Yapım değişti. Son kaydedilen hâliyle yeniden dene.',
