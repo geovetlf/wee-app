@@ -29,6 +29,12 @@ proveedores configurados pero todos quedan fuera
 La demo (`mock`) solo entra cuando no hay **ningún** proveedor real
 configurado. Por eso este caso no se ve en desarrollo.
 
+**Hoy en producción no pasa.** La auditoría H0 leyó que `aiSettings/global` no
+existe en `get-wee`, así que manda el valor por defecto del código:
+`pricingMode: 'simulated'`, y se cotiza con el catálogo. El 0 aparecería el día
+que se active el modo real. Por eso la decisión tiene que estar tomada antes de
+activarlo, no antes de integrar.
+
 **Qué es hoy una decisión fijada.** `functions/test/estimate-plan.test.mjs`
 lo fija así: «sin candidatos el paso de texto cuesta 0, no un valor
 inventado».
