@@ -83,7 +83,8 @@ const principal = async () => {
     const fallos = lineas.filter((l) => /^\s*✘/.test(l));
     console.log((fallos.length ? fallos : lineas.slice(-40)).join('\n'));
   }
-  const comprobaciones = resultados.reduce((n, r) => n + (r.salida.match(/^\s*✔/gm) || []).length, 0);
+  /* Las líneas ✔ de cada suite, sin su línea de cierre («✔ todo bien», «✔ Todo en orden»…). */
+  const comprobaciones = resultados.reduce((n, r) => n + (r.salida.match(/^\s*✔(?!\s*todo (bien|en orden))/gim) || []).length, 0);
   console.log(`\n${fallidas.length ? '✘' : '✔'} ${resultados.length - fallidas.length}/${resultados.length} suites`
     + ` · ${comprobaciones} comprobaciones ✔ · ${((Date.now() - inicio) / 1000).toFixed(0)} s`);
   process.exit(fallidas.length ? 1 : 0);
