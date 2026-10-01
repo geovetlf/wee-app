@@ -1,0 +1,116 @@
+# CI de Weë — Weë Agent Harness, FASE 5 (docs/DEPLOYMENT.md §6).
+#
+# Tres niveles; si el 1 falla, los otros no arrancan:
+#   1 · TypeScript de la app (0 errores) y build de las Functions.
+#   2 · Todas las suites de functions/test (la misma lista que `npm test`), sin parar en el primer fallo.
+#   3 · Las suites de emulador, cada una en su sesión, solo con proyectos demo-* (Auth, Firestore, Storage).
+#
+# Nada real: sin secretos, sin credenciales de Google, sin proyecto real. Sin claves, cada proveedor de IA
+# "no existe" para el router y todo va en modo demo: ni llamadas a APIs de IA, ni Credits reales, ni gasto.
+# Las acciones van fijadas por SHA (Dependabot las actualiza).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  nivel-1:
+    name: Nivel 1 · tipos y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - name: Sin claves ni credenciales en el entorno
+        run: node scripts/ci-sin-secretos.mjs
+      - name: Dependencias
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix functions --no-audit --no-fund
+      - name: TypeScript de la app (0 errores)
+        run: npx tsc --noEmit
+      - name: Build de las Functions
+        run: npm run build --prefix functions
+
+  nivel-2:
+    name: Nivel 2 · suites, seguridad y configuración
+    needs: nivel-1
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # job-queue compara con c3515b3; produccion-mapa mira los tags si los hay
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - name: Sin claves ni credenciales en el entorno
+        run: node scripts/ci-sin-secretos.mjs
+      - name: Dependencias y build
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix functions --no-audit --no-fund
+          npm run build --prefix functions
+      - name: Todas las suites
+        run: npm run test:todas --prefix functions
+
+  nivel-3:
+    name: Nivel 3 · emuladores demo-*
+    needs: nivel-1
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/firebase/emulators
+          key: emuladores-firebase-tools-15.29.0
+      - name: Sin claves ni credenciales en el entorno
+        run: node scripts/ci-sin-secretos.mjs
+      - name: Dependencias, build y firebase-tools
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix functions --no-audit --no-fund
+          npm run build --prefix functions
+          npm install --global firebase-tools@15.29.0 --no-audit --no-fund
+      - name: Suites de emulador
+        run: node functions/test/_emuladores.mjs

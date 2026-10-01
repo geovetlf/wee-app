@@ -90,7 +90,7 @@ const javaMajor = (javaBin) => {
   return major === 1 ? Number(match[2] || 0) : major;
 };
 
-const buscarJava21 = (isWindows) => {
+export const buscarJava21 = (isWindows) => {
   if (javaMajor('java') >= 21) return { listo: true, home: null };
   const candidates = [];
   if (process.env.JAVA21_HOME) candidates.push(process.env.JAVA21_HOME);
