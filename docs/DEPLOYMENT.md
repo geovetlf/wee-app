@@ -142,24 +142,54 @@ fija el mapa y la regla.
 - **Hosting:** en la consola, historial de versiones → revertir.
 - **Vercel:** en el panel, *Promote* de un despliegue anterior.
 
-## 6. Lo que viene (FASE 5–6 del Harness)
+## 6. CI y el workflow de producción (FASE 5–6 del Harness)
 
-- **CI por niveles** en GitHub Actions:
-  1. TypeScript y build;
-  2. las suites, seguridad y configuración;
-  3. emuladores `demo-*`.
+**CI** (`.github/workflows/ci.yml`), en cada PR y en cada push a `main`. Tiene
+tres niveles, y si falla el 1 los otros no arrancan:
+1. TypeScript de la app y build de las Functions;
+2. todas las suites (`npm --prefix functions run test:todas`), sin parar en la
+   primera que falla;
+3. las suites de emulador con proyectos `demo-*`.
 
-  Sin APIs reales de IA, sin Credits reales y sin gasto de proveedores.
-- **Un solo workflow de producción:**
-  1. tag `prod/…` sobre un commit de `main`;
-  2. CI en verde;
-  3. aprobación del dueño en un entorno de GitHub. No puede llamarse
-     `production`, porque choca con el `Production` de Vercel;
-  4. identidad sin claves (Workload Identity Federation) con permisos mínimos
-     de despliegue;
-  5. `ops/permitido.mjs`;
-  6. despliegue;
-  7. humo sin gasto, revisión y hash;
-  8. mapa actualizado.
-- Todo lo que toca IAM, GitHub o la visibilidad del repo espera la aprobación
-  explícita del dueño.
+Sin secretos, sin credenciales de Google y sin gasto (`scripts/ci-sin-secretos.mjs`).
+
+**Producción** (`.github/workflows/despliegue.yml`) es **el único camino**, y se
+lanza a mano desde Actions con un commit y un objetivo:
+1. **Verificar**, sin credenciales de Google:
+   - SHA completo, en `main`;
+   - los tres niveles de la CI en verde en ESE commit;
+   - y `ops/permitido.mjs`, que impide pisar lo que funciona.
+2. **Aprobación del dueño** en el entorno de GitHub `get-wee`. No se llama
+   `production`, porque choca con el `Production` de Vercel.
+3. **Desplegar** con una identidad sin claves (Workload Identity Federation).
+   - Antes, se anotan las revisiones vivas.
+   - Después, humo sin gasto: una petición sin sesión por función. 401/403
+     significa viva y cerrada; 5xx o no responder es fallo.
+   - Si algo falla, el tráfico vuelve solo a las revisiones de antes.
+4. **Registrar** un tag inmutable `prod/<qué>/<cuándo>` sobre el commit.
+
+El objetivo se escribe separado por comas:
+- `functions:nombre`, nunca `functions` a secas, que serían todas;
+- `firestore:rules`, `firestore:indexes`, `storage`;
+- `hosting:get-wee`, `hosting:wee-app`.
+
+La lógica está en `ops/despliegue/plan.mjs` (pura). Los pasos están en
+`ops/despliegue/cli.mjs`. Lo fija `functions/test/despliegue-workflow.test.mjs`.
+
+**Está INACTIVO hasta que el dueño lo active** (IAM y GitHub son suyos):
+1. Ejecutar, línea a línea, lo que imprime `node ops/iam/wif.mjs`:
+   - el pool y el proveedor de WIF, que solo aceptan este workflow, de `main`,
+     en el entorno `get-wee`;
+   - la cuenta `despliegue-github@get-wee.iam.gserviceaccount.com`, con roles
+     mínimos: sin Owner, sin leer secretos y sin IAM.
+2. Crear en GitHub el entorno `get-wee`:
+   - revisor obligatorio, el dueño;
+   - solo la rama `main`;
+   - sus variables: `WIF_PROVEEDOR`, `CUENTA_DE_DESPLIEGUE`, `WEE_ADMIN_UIDS`,
+     `R2_ACCOUNT_ID`, `R2_BUCKET` y, para `hosting:wee-app`, las
+     `EXPO_PUBLIC_FIREBASE_*`. Ningún secreto.
+3. Antes del primer despliegue desde `main`, integrar en `main` el código que
+   ya corre en producción (§2). Hasta entonces, `ops/permitido.mjs` lo impide.
+
+Todo lo que toca IAM, GitHub o la visibilidad del repo espera la aprobación
+explícita del dueño.
