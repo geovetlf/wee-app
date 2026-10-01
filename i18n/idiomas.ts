@@ -20,7 +20,7 @@
 
 /** Los idiomas que Weë contempla. Añadir uno es añadirlo a esta lista. */
 export type CodigoDeIdioma =
-  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar' | 'tr' | 'sv' | 'hi';
+  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar' | 'tr' | 'sv' | 'hi' | 'da';
 
 /**
  * UNA ESCRITURA O REGIÓN QUE SE OFRECE POR SEPARADO DENTRO DEL MISMO IDIOMA.
@@ -140,6 +140,16 @@ export const IDIOMAS: readonly Idioma[] = [
    */
   { codigo: 'sv', nombreNativo: 'Svenska', direccion: 'ltr', listo: true },
   /*
+   * El danés también se tutea («du») y escribe junto lo que es una sola palabra
+   * («profilbillede», nunca «profil billede»). Tiene `one` y `other`, pero su
+   * `one` NO es solo el 1: `Intl.PluralRules('da')` da `one` también a 1,5 y a
+   * 0,5, así que ningún `_one` escribe un «1» a mano. Las marcas no se declinan
+   * («på Weë», «din Weë-profil»). La hora se escribe con punto (14.30) y la
+   * moneda como `1.234,50 kr.`: lo da `Intl` con `da-DK`. Todo eso está en
+   * `docs/I18N-DANES.md` y lo vigila `functions/test/i18n-danes.test.mjs`.
+   */
+  { codigo: 'da', nombreNativo: 'Dansk', direccion: 'ltr', listo: true },
+  /*
    * Lo propio del turco no es el plural —`Intl.PluralRules('tr')` tiene `one` y
    * `other`, y tras una cifra el sustantivo va en singular, así que las dos
    * formas suelen decir lo mismo— sino la CAJA y los SUFIJOS: la mayúscula de
@@ -244,6 +254,7 @@ export const LOCALES_CONTEMPLADOS: readonly string[] = [
   'de-DE',
   'pt-BR', 'pt-PT',
   'sv-SE',
+  'da-DK',
   'tr-TR',
   'ja-JP',
   'zh-CN', 'zh-TW',

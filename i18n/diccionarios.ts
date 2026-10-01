@@ -13,6 +13,7 @@ import { zhTW } from './textos/zh-TW';
 import { ja } from './textos/ja';
 import { tr } from './textos/tr';
 import { sv } from './textos/sv';
+import { da } from './textos/da';
 import { hi } from './textos/hi';
 
 /*
@@ -92,6 +93,7 @@ export const DICCIONARIOS: Diccionarios = {
   ja,
   tr,
   sv,
+  da,
   hi,
 };
 

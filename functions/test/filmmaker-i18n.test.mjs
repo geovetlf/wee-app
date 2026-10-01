@@ -24,7 +24,7 @@ const check = (name, cond, extra = '') => {
   if (!cond) failures++;
 };
 
-const IDIOMAS = ['es', 'en', 'de', 'fr', 'it', 'pt', 'pt-PT', 'ru', 'ko', 'zh', 'zh-TW', 'ja', 'tr', 'sv', 'hi'];
+const IDIOMAS = ['es', 'en', 'de', 'fr', 'it', 'pt', 'pt-PT', 'ru', 'ko', 'zh', 'zh-TW', 'ja', 'tr', 'sv', 'hi', 'da'];
 const TODOS = `los ${IDIOMAS.length}`;
 const existe = (p) => fs.existsSync(path.resolve(RAIZ, p));
 /** Las claves y los valores de un archivo de textos, como los leen las demás suites de i18n: una por línea, comillas simples. */

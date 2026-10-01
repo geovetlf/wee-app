@@ -184,6 +184,15 @@ const DEFORMES = [
   [/Weë (?:Musik|Resa|Resor|Kock|Företag|Hjärna|Skribent|Skönhet|Hem)(?![\p{L}])/u, 'experiencia de Weë traducida al sueco'],
   [/(?:WeeTalk|Credits|Wäll|ËContact|ẄContact)(?:en|et|s|ens|ets)(?![\p{L}])|(?<![\p{L}])Weës(?![\p{L}])/u, 'marca declinada en sueco'],
   /*
+   * DANÉS. Traducir la moneda —«kreditter»— o la experiencia —«Weë Musik», «Weë Rejser», «Weë Kok»—; y declinar la
+   * marca: la forma definida plural («ËContactene») o un genitivo pegado («Weës», que ya caza la regla sueca). La
+   * marca va con preposición («på Weë») o en un compuesto con guion («din Weë-profil»). «kreditkort», la tarjeta,
+   * sí es danés corriente.
+   */
+  [/(?<![\p{L}])[Kk]redit(?:ter|terne|ten)(?![\p{L}])/u, 'Credits en danés'],
+  [/Weë (?:Musik|Rejse|Rejser|Kok|Virksomhed|Forretning|Hjerne|Forfatter|Skribent|Skønhed|Hjem)(?![\p{L}])/u, 'experiencia de Weë traducida al danés'],
+  [/(?:WeeTalk|Credits|Wäll|ËContact|ẄContact|Weëls)(?:ene|erne)(?![\p{L}])/u, 'marca declinada en danés'],
+  /*
    * HINDI. Las marcas van en latino dentro de la frase: la tentación es
    * transliterarlas en devanagari —«क्रेडिट्स», «वीटॉक», «वील्स», «वी»— o
    * traducir la experiencia —«Weë संगीत», «Weë यात्रा»—. «क्रेडिट कार्ड», la
@@ -247,6 +256,10 @@ const TRAMPAS = [
   ['Öppna Weë Musik', 'sueco · experiencia traducida'],
   ['Skriv i WeeTalken', 'sueco · marca en forma definida'],
   ['Läs Weës villkor', 'sueco · genitivo pegado a la marca'],
+  ['Du har 12 kreditter tilbage', 'danés · moneda traducida'],
+  ['Åbn Weë Rejser', 'danés · experiencia traducida'],
+  ['Alle dine ËContactene', 'danés · marca en forma definida plural'],
+  ['Læs Weës vilkår', 'danés · genitivo pegado a la marca'],
   ['आपके पास 12 क्रेडिट्स बचे हैं', 'hindi · moneda transliterada'],
   ['वीटॉक में लिखें', 'hindi · WeeTalk transliterado'],
   ['वील्स देखें', 'hindi · Weëls transliterado'],
@@ -273,7 +286,9 @@ const BUENAS = ['Tu as 12 Credits', 'Öffne Weë Studio', 'ËContact', 'Weëls',
   'Du har 12 Credits kvar', 'Öppna Weë Music', 'Skriv i WeeTalk', 'Villkor för Weë', 'ditt Weë-konto', 'Betala med kreditkort',
   /* Hindi: la marca en latino con su posposición, y las palabras corrientes que empiezan igual. */
   'आपके पास 12 Credits बचे हैं', 'WeeTalk में लिखें', 'Weëls देखें', 'Weë में आपका स्वागत है', 'Weë Music खोलें',
-  'आपकी Weë प्रोफ़ाइल', 'क्रेडिट कार्ड से भुगतान करें', 'वीडियो देखें', 'वॉलपेपर बदलें'];
+  'आपकी Weë प्रोफ़ाइल', 'क्रेडिट कार्ड से भुगतान करें', 'वीडियो देखें', 'वॉलपेपर बदलें',
+  /* Danés: la marca con preposición o en un compuesto con guion, y la tarjeta de crédito. */
+  'Du har 12 Credits tilbage', 'Åbn Weë Music', 'Skriv i WeeTalk', 'Vilkår for Weë', 'din Weë-profil', 'Et Weë Studio-projekt', 'Betal med kreditkort'];
 const falsosPositivos = BUENAS.filter((t) => pillada(t));
 check('7) control: y no molesta con los nombres bien escritos', falsosPositivos.length === 0,
   falsosPositivos.join(' | ') || 'ninguno');
