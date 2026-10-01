@@ -29,7 +29,7 @@ const check = (name, cond, extra = '') => {
   if (!cond) failures++;
 };
 
-const { analizarTexto, ordenes, palabras } = await import(pathToFileURL(HOOK).href);
+const { analizarTexto, ordenes, palabras, sinPatron } = await import(pathToFileURL(HOOK).href);
 const d = (herr, cmd) => analizarTexto(herr, cmd).decision || 'pasa';
 
 /* ── A. Lo que Claude hace solo (nivel 0–1) ─────────────────────────────── */
@@ -56,6 +56,13 @@ const PASAN = [
   ['Bash', 'npx vercel inspect wee-app-git-main.vercel.app'],
   ['Bash', 'eas whoami'],
   ['Bash', 'npx eas-cli build:list --limit 5'],
+  /* Buscar el TEXTO «.env.local» en la documentación no lee el archivo de claves. */
+  ['Bash', 'grep -n "\\.env.local" README.md CLAUDE.md'],
+  ['Bash', 'rg -n "env.local|secret.local" docs/'],
+  ['Bash', 'git grep -n ".env.local" -- docs'],
+  ['Bash', 'grep -A 2 -n "secret.local" .gitignore'],
+  ['Bash', 'grep -rn "print-access-token" docs/'],
+  ['PowerShell', "Select-String -Pattern '.env.local' -Path README.md"],
 ];
 for (const [h, c] of PASAN) check(`pasa (${h}): ${c.split('\n')[0].slice(0, 70)}`, d(h, c) === 'pasa', d(h, c));
 
@@ -103,6 +110,13 @@ const NUNCA = [
   ['Bash', 'eas submit -p android --latest'],
   ['Bash', 'npx eas-cli update --branch production'],
   ['Bash', 'eas env:delete --variable-name X'],
+  /* …pero buscar DENTRO del archivo de claves, o leer los patrones DE él, sí lo lee. */
+  ['Bash', 'grep -r ARK functions/.env.local'],
+  ['Bash', 'grep -f functions/.env.local README.md'],
+  ['Bash', 'grep -e x functions/.secret.local'],
+  ['Bash', 'rg -A 2 ARK functions/.env.local'],
+  ['Bash', 'git grep -n KEY -- functions/.env.local'],
+  ['PowerShell', 'Select-String -Path functions/.env.local -Pattern KEY'],
 ];
 for (const [h, c] of NUNCA) check(`deniega (${h}): ${c.slice(0, 70)}`, d(h, c) === 'deny', d(h, c));
 
@@ -143,6 +157,8 @@ for (const [h, c] of PREGUNTA) check(`pregunta (${h}): ${c.slice(0, 70)}`, d(h, 
 check('el heredoc no cuenta como orden', ordenes("git commit -F - <<'EOF'\nfirebase deploy\nEOF").length === 1);
 check('una frase entre comillas es UNA palabra', palabras('git commit -m "firebase deploy ya no"').length === 4);
 check('separa órdenes por && || ; | y saltos de línea', ordenes('a && b || c ; d | e\nf').length === 6);
+check('el patrón de un buscador se aparta; dónde busca, no',
+  sinPatron('grep', palabras('grep -n "\\.env.local" README.md')).join(' ') === 'grep -n README.md');
 
 /* ── E. El protocolo del hook, de verdad: JSON por stdin, JSON por stdout ─ */
 const correr = (entrada) => spawnSync(process.execPath, [HOOK], { input: JSON.stringify(entrada), encoding: 'utf8', timeout: 15000 });

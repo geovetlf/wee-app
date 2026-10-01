@@ -157,6 +157,30 @@ const VERCEL_LOCAL = new Set(['link', 'build', 'dev', 'init']);
 const EAS_LEE = new Set(['whoami', 'config', 'diagnostics', 'help', 'build:inspect']);
 const GH_SENSIBLE = /pending_deployments|\/rulesets|\/environments|\/protection|\/actions\/(secrets|variables|permissions)|\/hooks|\/keys|\/collaborators|\/dependabot|secret-scanning|vulnerability-alerts|automated-security-fixes|\/branches\/[^/]+\/protection|\/actions\/oidc/;
 
+/* Buscadores: su PATRÓN es texto, no un archivo. `grep -n "\.env.local" README.md` busca en README.md. */
+const BUSCADORES = new Set(['grep', 'egrep', 'fgrep', 'rg', 'select-string', 'sls']);
+/** Opciones que llevan un valor detrás (ese valor no es el patrón: se queda y se mira). */
+const CON_VALOR = /^(-[ABCmdDgtTjM]|--(include|exclude|exclude-dir|glob|type|type-not|max-count|context|after-context|before-context|max-depth)|-(path|literalpath|include|exclude|encoding|context))$/i;
+
+/** Las palabras de una orden sin el patrón de un buscador. Si el patrón se lee de un archivo (`-f`), no se quita nada. */
+export const sinPatron = (p, w) => {
+  const esGitGrep = p === 'git' && (w[1] || '').toLowerCase() === 'grep';
+  if (!BUSCADORES.has(p) && !esGitGrep) return w;
+  const desde = esGitGrep ? 2 : 1;
+  if (w.slice(desde).some((x) => /^(-f|--file(=.*)?)$/.test(x) || /^-f\S/.test(x))) return w;
+  const fuera = new Set();
+  let hayPatron = false;
+  for (let i = desde; i < w.length; i++) {
+    const x = w[i];
+    if (/^(-e|--regexp|-pattern)$/i.test(x)) { fuera.add(i + 1); i++; hayPatron = true; continue; }
+    if (/^--regexp=/.test(x) || /^-e\S/.test(x)) { fuera.add(i); hayPatron = true; continue; }
+    if (CON_VALOR.test(x)) { i++; continue; }
+    if (x.startsWith('-')) continue;
+    if (!hayPatron) { fuera.add(i); hayPatron = true; }
+  }
+  return w.filter((_, i) => !fuera.has(i));
+};
+
 const decision = (d, motivo) => ({ decision: d, motivo });
 const PASA = { decision: null, motivo: '' };
 
@@ -181,8 +205,8 @@ const analizarOrden = (herramienta, crudo, w0, profundidad) => {
     if (interior) return analizarTexto(herramienta, interior, profundidad + 1);
   }
 
-  /* Archivos de secretos y credenciales: nunca se leen ni se tocan desde un comando. */
-  const todo = w.join(' ').replace(/\\/g, '/').toLowerCase();
+  /* Archivos de secretos y credenciales: nunca se leen ni se tocan desde un comando (el patrón de un buscador no cuenta). */
+  const todo = sinPatron(p, w).join(' ').replace(/\\/g, '/').toLowerCase();
   const secreto = ARCHIVOS_SECRETOS.find((a) => todo.includes(a));
   if (secreto) return decision('deny', `El comando toca ${secreto}: los secretos y credenciales no se leen ni se mueven desde Claude (docs/SECURITY.md).`);
   if (p === 'gh' && resto[0] === 'auth' && resto[1] === 'token') return decision('deny', '`gh auth token` imprime el token de GitHub.');
