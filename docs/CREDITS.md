@@ -186,7 +186,7 @@ Errores: `HttpsError` con `details.code` (`INSUFFICIENT_CREDITS` trae `required`
 
 ## 10. Configuración pendiente (lo que debe completar la persona dueña)
 
-1. **Producción (`get-wee`)**: activar el plan Blaze y desplegar Functions (`npm run deploy:prod:functions`) y reglas/índices (`npm run deploy:prod:firestore`). Sin Functions en producción la app muestra el saldo que haya y no puede iniciar cuentas ni cobrar.
+1. **Producción (`get-wee`)**: activar el plan Blaze y desplegar Functions y reglas/índices por el único camino de [`DEPLOYMENT.md`](DEPLOYMENT.md). Los atajos `npm run deploy:prod:*` se retiraron: desplegaban todo desde cualquier carpeta. Sin Functions en producción la app muestra el saldo que haya y no puede iniciar cuentas ni cobrar.
 2. `functions/.env.get-wee` (no versionado): `WEE_ADMIN_UIDS=<tu uid>`, `CREDITS_TEST_PURCHASES=false`, `CREDITS_WELCOME=<bienvenida definitiva>`.
 3. **Precios definitivos**: medir costes reales y ajustar `creditCosts.ts` o `creditCosts/{servicio}`.
 4. **Pagos**: crear los productos `zone.wee.credits.*` en App Store Connect / Google Play / Stripe, poner las claves en `functions/.env.local` y `.env.get-wee`, e implementar `verify` en cada proveedor.

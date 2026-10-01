@@ -13,7 +13,14 @@ Documento operativo del **Weë Agent Harness** (FASE 3, 4 y 6). Producción es
 2. **No se pisa lo que funciona.** No se despliega un commit que no CONTIENE el
    código que hoy corre en cada función, ni uno que no lleva un arreglo de
    seguridad pendiente. Lo decide `ops/permitido.mjs` (§3).
-3. **Nada sale de una carpeta con cambios sin commitear.**
+3. **Ningún atajo despliega.**
+   - `npm run deploy:prod:functions`, `deploy:prod:firestore` y
+     `npm --prefix functions run deploy` desplegaban todo desde cualquier
+     carpeta. Ahora dicen por dónde se despliega y salen con error
+     (`scripts/no-desplegar.mjs`).
+   - `npm --prefix functions run shell` corre con `demo-wee`.
+   - Lo fija `entrega-configuracion` (16–17).
+4. **Nada sale de una carpeta con cambios sin commitear.**
    - Dos despliegues de septiembre (zips Z10 y Z11 de la auditoría H0) salieron
      de árboles sucios, sin commit.
      - Z11 (`brainChat`) resultó idéntico al commit que se creó nueve minutos

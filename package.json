@@ -13,8 +13,8 @@
     "functions:install": "npm --prefix functions install",
     "functions:build": "npm --prefix functions run build",
     "functions:emulator": "npm --prefix functions run build && node scripts/emulators.mjs",
-    "deploy:prod:functions": "firebase deploy --only functions,storage --project prod",
-    "deploy:prod:firestore": "firebase deploy --only firestore --project prod",
+    "deploy:prod:functions": "node scripts/no-desplegar.mjs deploy:prod:functions",
+    "deploy:prod:firestore": "node scripts/no-desplegar.mjs deploy:prod:firestore",
     "test:engine": "npm --prefix functions run build && npm --prefix functions test",
     "web:demo": "node scripts/web-demo.mjs"
   },

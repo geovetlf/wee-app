@@ -84,5 +84,19 @@ check('15) el freno está preparado aparte: el mismo vercel.json más git.deploy
   conFreno.git && conFreno.git.deploymentEnabled && conFreno.git.deploymentEnabled.main === false
   && JSON.stringify({ ...conFreno, git: undefined }) === JSON.stringify({ ...vercel, git: undefined }));
 
+/* ── D. Ningún atajo despliega ───────────────────────────────────────────── */
+/* `npm run deploy:prod:functions` desplegaba las 34 funciones y Storage desde cualquier carpeta, y `npm --prefix
+   functions run deploy`, al proyecto por defecto (producción). Desde un main que no tiene el código vivo de cuatro
+   funciones, eso borraba lo que funciona. Producción tiene UN camino (docs/DEPLOYMENT.md). */
+const scriptsDe = (p) => Object.entries(JSON.parse(leer(p)).scripts || {});
+const DESPLIEGA = /firebase(?:\s+--?[\w-]+(?:[= ]\S+)?)*\s+(?:deploy\b|functions:delete|hosting:channel:deploy)/;
+const atajos = [...scriptsDe('package.json').map(([k, v]) => [`raíz:${k}`, v]), ...scriptsDe('functions/package.json').map(([k, v]) => [`functions:${k}`, v])]
+  .filter(([, v]) => DESPLIEGA.test(v)).map(([k]) => k);
+check('16) ningún script de npm despliega ni borra funciones: los atajos dicen por dónde se despliega y salen con error', atajos.length === 0
+  && /no-desplegar\.mjs/.test(JSON.parse(leer('package.json')).scripts['deploy:prod:functions'] || '')
+  && /no-desplegar\.mjs/.test(JSON.parse(leer('functions/package.json')).scripts.deploy || ''), atajos.join(', '));
+check('17) el shell de Functions solo corre con un proyecto demo-* (como los emuladores)',
+  /firebase functions:shell --project demo-/.test(JSON.parse(leer('functions/package.json')).scripts.shell || ''));
+
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);
