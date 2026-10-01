@@ -30,6 +30,13 @@ export interface GatewayContext {
   service?: string;
   /** Transacción de Credits que autorizó el cobro del trabajo. */
   creditTransactionId?: string;
+  /**
+   * Hasta cuándo puede durar el trabajo (milisegundos, absoluto). El router da a
+   * cada intento lo más corto entre su tabla y lo que QUEDA (H0 #16): sin esto,
+   * un paso podía recibir más tiempo del que le quedaba a `creatorRun`, y la
+   * plataforma lo mataba sin pasar por la liquidación.
+   */
+  deadlineAt?: number;
 }
 
 export interface ProviderOutput {

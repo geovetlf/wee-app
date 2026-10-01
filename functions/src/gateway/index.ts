@@ -38,6 +38,7 @@ export async function runCapability(
     requestId: ctx.requestId,
     service: ctx.service,
     creditTransactionId: ctx.creditTransactionId,
+    deadlineAt: ctx.deadlineAt,
   });
   return {
     output: result.output,
