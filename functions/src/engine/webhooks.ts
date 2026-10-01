@@ -8,36 +8,60 @@ import { leerAvisoDeSeedance } from './providers/seedance';
 import { sanitizeForLog } from './sanitize';
 
 /**
- * Webhook preparado para Seedance (BytePlus ModelArk `callback_url`).
+ * Webhook de Seedance (BytePlus ModelArk `callback_url`), el que está desplegado.
  *
- * Cuando SEEDANCE_CALLBACK_URL apunta a esta función (URL pública en producción)
- * y SEEDANCE_CALLBACK_TOKEN protege la llamada, ModelArk avisa aquí al terminar
- * cada tarea; el aviso se guarda en aiProviderCallbacks/{taskId} y el adaptador
- * lo usa para terminar antes su sondeo. Sin webhook, el sondeo a la API basta.
- * El cuerpo llega tal cual lo manda el proveedor (id, status, content, usage, error).
+ * Cuando SEEDANCE_CALLBACK_URL apunta a esta función y SEEDANCE_CALLBACK_TOKEN
+ * protege la llamada, ModelArk avisa aquí al terminar cada tarea. Hoy en get-wee
+ * no hay SEEDANCE_CALLBACK_URL: el endpoint existe y nadie lo usa.
+ *
+ * ENDURECIDO (auditoría H0, escenario #21, paso 1) con las piezas del receptor
+ * de abajo. Antes comparaba el testigo con `!==` (se filtra por tiempo), no
+ * medía el cuerpo, usaba un id sin validar como id de documento y guardaba el
+ * cuerpo ENTERO, URL firmada incluida: quien tuviera el testigo podía dejar
+ * escrito un «resultado». Ahora solo se guarda que hubo aviso —proveedor,
+ * estado y cuándo— y el resultado de una tarea solo lo da el GET a ModelArk
+ * (el sondeo de `seedance.ts`), nunca este aviso.
+ *
+ * El paso 2 —que el aviso mueva trabajos (`avisoDeProveedor`, abajo)— espera
+ * autorización: toca el Core Runtime.
  */
 export const seedanceCallback = onRequest({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: CALLBACK_SECRETS }, async (request, response) => {
   if (request.method !== 'POST') {
     response.status(405).send('POST only');
     return;
   }
-  const expected = process.env.SEEDANCE_CALLBACK_TOKEN;
-  if (!expected || String(request.query.token || '') !== expected) {
+  const declarado = Number(request.get('content-length') ?? 0);
+  if (Number.isFinite(declarado) && declarado > MAX_CUERPO_DE_AVISO) {
+    response.status(413).send('too large');
+    return;
+  }
+  if (!mismoTestigo(request.query.token, process.env.SEEDANCE_CALLBACK_TOKEN)) {
     response.status(401).send('unauthorized');
     return;
   }
-  const body = (request.body || {}) as Record<string, unknown>;
-  const taskId = String(body.id ?? body.task_id ?? '');
-  if (!taskId) {
-    response.status(400).send('missing task id');
+  const cuerpo = request.body;
+  if (!cuerpo || typeof cuerpo !== 'object') {
+    response.status(400).send('bad request');
+    return;
+  }
+  if (Buffer.byteLength(JSON.stringify(cuerpo)) > MAX_CUERPO_DE_AVISO) {
+    response.status(413).send('too large');
+    return;
+  }
+  const aviso = leerAvisoDeSeedance(cuerpo);
+  if (!aviso || !ID_DE_TAREA.test(aviso.operationId)) {
+    response.status(400).send('bad request');
     return;
   }
   await getFirestore()
     .collection('aiProviderCallbacks')
-    .doc(taskId)
-    .set({ provider: 'seedance', status: String(body.status ?? ''), payload: body, receivedAt: Timestamp.now() }, { merge: true });
+    .doc(aviso.operationId)
+    .set({ provider: 'seedance', status: aviso.providerStatus, receivedAt: Timestamp.now() });
   response.status(200).json({ ok: true });
 });
+
+/** Un id de tarea de ModelArk usable como id de documento (sin `/`, acotado). */
+const ID_DE_TAREA = /^[A-Za-z0-9_.:-]{1,128}$/;
 
 /* ── El receptor que mueve trabajos ────────────────────────────────────────── */
 

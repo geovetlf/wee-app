@@ -1,4 +1,3 @@
-import { getFirestore } from 'firebase-admin/firestore';
 import { CapabilityId } from '../../creator/types';
 import { ModelSpec, ProviderAdapter, ProviderOutcome, ProviderRunRequest } from '../types';
 import { env, fetchJson, persistRemoteFile, pollUntil, ProviderError, readImage, toDataUri } from '../http';
@@ -264,18 +263,6 @@ export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ 
   return { body, estimatedTokens, rate, withVideoInput };
 }
 
-/** Si un webhook ya dejó el resultado en Firestore, no hace falta seguir preguntando a la API. */
-const callbackResult = async (taskId: string): Promise<Record<string, any> | null> => {
-  if (!env('SEEDANCE_CALLBACK_URL')) return null;
-  try {
-    const snap = await getFirestore().collection('aiProviderCallbacks').doc(taskId).get();
-    const data = snap.data();
-    return data && (data.status === 'succeeded' || data.status === 'failed') ? data : null;
-  } catch {
-    return null;
-  }
-};
-
 export const seedanceAdapter: ProviderAdapter = {
   continuidad: (capability, modelId) => mecanismoDeContinuidad(capability, modelId),
   id: 'seedance',
@@ -350,11 +337,19 @@ export const seedanceAdapter: ProviderAdapter = {
       };
     }
 
-    // QUEUED → PROCESSING → COMPLETED | FAILED: sondeo cada 10 s (o el webhook si está configurado)
+    /*
+     * QUEUED → PROCESSING → COMPLETED | FAILED: sondeo cada 10 s.
+     *
+     * El estado y el vídeo los da SIEMPRE el GET a ModelArk, nunca el aviso del
+     * webhook (auditoría H0, escenario #21). Antes, con SEEDANCE_CALLBACK_URL
+     * puesto, se aceptaba como resultado lo que hubiera escrito el aviso: un
+     * «failed» falsificado hacía abandonar —y reembolsar— una tarea que el
+     * proveedor seguía haciendo y cobrando. En get-wee no hay
+     * SEEDANCE_CALLBACK_URL, así que en producción esto no cambia nada.
+     */
     const finished = await pollUntil<Record<string, any>>(
       async () => {
-        const fromCallback = await callbackResult(taskId);
-        const state = fromCallback || (await fetchJson<any>(`${arkBase()}/contents/generations/tasks/${taskId}`, { provider: 'seedance', headers, timeoutMs: 30_000 }));
+        const state = await fetchJson<any>(`${arkBase()}/contents/generations/tasks/${taskId}`, { provider: 'seedance', headers, timeoutMs: 30_000 });
         const status = String(state.status ?? '');
         if (status === 'failed' || status === 'cancelled' || status === 'expired') {
           const message = String(state.error?.message ?? state.error?.code ?? `la tarea terminó en estado ${status}`);
