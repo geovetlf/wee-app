@@ -211,6 +211,13 @@ export interface CreatorJob {
   runId?: string | null;
   /** Cuándo se reclamó (milisegundos). Ver `runId`. */
   claimedAt?: number | null;
+  /**
+   * Una liquidación de Credits que falló y queda por cerrar (auditoría H0,
+   * escenario #15a). La escribe `settleCredits` en vez de tragarse el error;
+   * antes de actuar hay que mirar la transacción en el Credit Engine, que es
+   * idempotente (repetir el ajuste no cobra ni devuelve dos veces).
+   */
+  liquidacionPendiente?: { accion: 'completar' | 'reembolsar'; retenido: number; usado: number; motivo: string; at: Timestamp };
   createdAt: Timestamp;
   updatedAt: Timestamp;
   finishedAt?: Timestamp;
