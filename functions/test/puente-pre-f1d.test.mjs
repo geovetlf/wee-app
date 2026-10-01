@@ -503,11 +503,11 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
   await pasada();
   check('E3) ninguna reconciliación hace un POST: solo el que pide la persona sale hacia ModelArk',
     posts.length === postsAntes && posts.every((p) => p.acceptAsync === true));
-  /* F1-D toca dos piezas del motor, nominales y de tamaño fijo (ver video-asincrono H2): ni un proveedor ni una cadena. Los arreglos de la FASE 1 del Harness, tampoco: también van por nombre y tamaño. */
+  /* F1-D toca dos piezas del motor, nominales y de tamaño fijo (ver video-asincrono H2): ni un proveedor ni una cadena. Los arreglos de la FASE 1 del Harness, tampoco: también van por nombre y tamaño (harness/fase-2 añade H0 #22: ledger, limits y router). */
   check('E4) Seedance, y solo Seedance: ni un proveedor nuevo, ni una cadena nueva',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
     && git(`diff --numstat ${RUTA} -- functions/src/engine`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
-      === '9\t2\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|33\t3\tfunctions/src/engine/limits.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|21\t1\tfunctions/src/engine/router.ts|19\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
+      === '9\t2\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|12\t1\tfunctions/src/engine/ledger.ts|38\t3\tfunctions/src/engine/limits.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|54\t2\tfunctions/src/engine/router.ts|19\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */
@@ -526,7 +526,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
      #18 (harness/fase-2): el barrido, una pasada a la vez — solo sus opciones de despliegue (settlement/programado.ts). */
   const DEL_HARNESS = [
     'functions/src/creator/credits.ts', 'functions/src/creator/index.ts', 'functions/src/creator/types.ts', 'functions/src/credits/index.ts',
-    'functions/src/engine/admin.ts', 'functions/src/engine/config.ts', 'functions/src/engine/gateway.ts', 'functions/src/engine/http.ts',
+    'functions/src/engine/admin.ts', 'functions/src/engine/config.ts', 'functions/src/engine/gateway.ts', 'functions/src/engine/http.ts', 'functions/src/engine/ledger.ts',
     'functions/src/engine/registry.ts', 'functions/src/engine/router.ts', 'functions/src/engine/types.ts', 'functions/src/engine/webhooks.ts',
     'functions/src/gateway/index.ts', 'functions/src/gateway/types.ts', 'functions/src/generateAvatar.ts', 'functions/src/index.ts',
     'functions/src/opciones.ts', 'functions/src/secrets.ts', 'functions/src/settlement/programado.ts',

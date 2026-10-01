@@ -126,6 +126,27 @@ interface InternalCandidate extends RouteCandidate {
   meetsQuality: boolean;
 }
 
+/**
+ * ¿PUDO COBRAR EL PROVEEDOR UNA GENERACIÓN QUE FALLÓ? (auditoría H0, #22)
+ *
+ * El libro cerraba todo fallo con `providerCost: 0`, así que `aiUsage/{día}` —de donde salen los topes de
+ * gasto diario— no veía el dinero de lo que sí llegó al proveedor: una tarea de vídeo aceptada cuyo sondeo
+ * falla, o una petición que se queda sin respuesta. Se distingue con lo que se sabe, sin adivinar:
+ *  · 'cero': no salió nada (el proveedor no está configurado, o Weë rechazó la entrada antes de mandarla),
+ *    o el proveedor la rechazó al recibirla (4xx);
+ *  · 'desconocido': la tarea ya estaba aceptada (hay `providerTaskId`), se agotó el tiempo, no hubo
+ *    respuesta o el proveedor falló (5xx), o algo se rompió después de una respuesta.
+ * Lo desconocido se anota con su coste ESTIMADO como «en riesgo»; el coste medido sigue en 0, y los topes
+ * cuentan los dos: mejor parar un poco antes que gastar de más sin verlo.
+ */
+export const costeTrasUnFallo = (error: unknown, despachado: boolean): 'cero' | 'desconocido' => {
+  if (error instanceof NotConfiguredError) return 'cero';
+  if (despachado) return 'desconocido';
+  if (error instanceof EngineError) return error.code === 'INVALID_REQUEST' ? 'cero' : 'desconocido';
+  if (error instanceof ProviderError && typeof error.status === 'number' && error.status >= 400 && error.status < 500) return 'cero';
+  return 'desconocido';
+};
+
 const withTimeout = <T>(promise: Promise<T>, ms: number, provider: string): Promise<T> =>
   new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new ProviderError(`${provider}: tardó más de ${Math.round(ms / 1000)} s`, provider)), ms);
@@ -362,7 +383,10 @@ export function createRouter(deps: RouterDeps) {
         inputType: inputTypeOf(capability, input),
       });
       const start = now();
+      /* El proveedor ya tiene la tarea: si después falla, pudo costar dinero (ver costeTrasUnFallo). */
+      let despachado = false;
       const onStatus = async (status: 'PROCESSING', meta: Record<string, unknown>) => {
+        if (typeof meta.providerTaskId === 'string' && meta.providerTaskId) despachado = true;
         await deps.ledger.progress(generationId, {
           status,
           providerTaskId: typeof meta.providerTaskId === 'string' ? meta.providerTaskId : undefined,
@@ -442,7 +466,15 @@ export function createRouter(deps: RouterDeps) {
       } catch (error) {
         lastError = error;
         const message = error instanceof Error ? error.message : String(error);
-        await deps.ledger.close(generationId, { status: 'FAILED', providerCost: 0, creditsEstimated: 0, durationMs: now() - start, error: sanitizeForLog(message, 300) });
+        const coste = costeTrasUnFallo(error, despachado);
+        await deps.ledger.close(generationId, {
+          status: 'FAILED',
+          providerCost: 0,
+          ...(coste === 'desconocido' ? { providerCostStatus: 'desconocido' as const, providerCostEstimated: candidate.estimatedUsd } : {}),
+          creditsEstimated: 0,
+          durationMs: now() - start,
+          error: sanitizeForLog(message, 300),
+        });
         const countsAsFailure = !(error instanceof NotConfiguredError) && (!(error instanceof ProviderError) || error.retryable);
         if (countsAsFailure) deps.health.failure(candidate.provider, settings);
         console.warn(`WEË AI ENGINE: ${candidate.provider}/${candidate.model.id} falló en ${capability} (intento ${attempt}): ${message}`);
