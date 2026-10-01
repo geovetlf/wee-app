@@ -150,6 +150,15 @@ const roles = wif.ROLES.map(([r]) => r);
 check('27) la cuenta de despliegue no tiene ningún rol de los prohibidos (Owner, Editor, IAM, leer secretos, facturación…)',
   roles.length >= 5 && roles.every((r) => !wif.NUNCA.includes(r)) && !roles.some((r) => /owner|editor|secretAccessor|billing|projectIamAdmin/i.test(r)), roles.join(', '));
 check('28) el script solo imprime: no ejecuta nada', !/child_process|execSync|spawn|execFile/.test(leer('ops/iam/wif.mjs')));
+const mapeo = wif.MAPEO.split(',');
+const sujetoMasLargo = `gh:${wif.REPOSITORIO}:run:${'9'.repeat(12)}:${'9'.repeat(3)}:actor:${'a'.repeat(39)}`;
+check('28c) cada identidad obtenida dice quién y qué ejecución: el sujeto lleva repositorio, ejecución, intento y persona, y cabe en 127 bytes',
+  mapeo[0].startsWith('google.subject=') && /assertion\.run_id/.test(mapeo[0]) && /assertion\.actor/.test(mapeo[0]) && /assertion\.run_attempt/.test(mapeo[0])
+  && Buffer.byteLength(sujetoMasLargo) <= 127
+  && ['attribute.actor=assertion.actor', 'attribute.workflow_ref=assertion.workflow_ref', 'attribute.workflow_sha=assertion.workflow_sha', 'attribute.ref=assertion.ref']
+    .every((a) => mapeo.includes(a)) && wif.comandos().some((l) => l.includes(`--attribute-mapping="${wif.MAPEO}"`)));
+check('28d) y la condición de acceso no cambia: este repositorio, este dueño, despliegue.yml de main y el entorno aprobado',
+  wif.CONDICION.split(' && ').length === 4);
 
 check('28b) observar los 5xx es solo LEER métricas: monitoring.viewer, nunca un rol que escriba alertas o políticas',
   roles.includes('roles/monitoring.viewer') && !roles.some((r) => /monitoring\.(editor|admin|alertPolicyEditor)/.test(r)));
@@ -219,6 +228,9 @@ check('41) la consulta suma los 5xx de la ventana entera, solo de los servicios 
 check('42) un digest solo vale si es un sha256 completo', plan.digestDeImagen(`x/y@sha256:${'c'.repeat(64)}`) === `sha256:${'c'.repeat(64)}` && plan.digestDeImagen('x/y:latest') === null && plan.digestDeImagen(null) === null);
 const reg = plan.mensajeDelRegistro({ commit: SHA, objetivo: 'functions:brainChat,hosting:wee-app', run: 'https://github.com/x/y/actions/runs/1',
   funciones: [{ funcion: 'brainChat', revision: 'brainchat-00013-xyz', digest: 'repo@sha256:abc' }], sitios: [{ sitio: 'wee-app', version: 'v1', comparados: 140 }] });
+const regQuien = plan.mensajeDelRegistro({ commit: SHA, objetivo: 'functions:brainChat', run: 'r', quien: 'geovetlf', workflow: 'geovetlf/wee-app/.github/workflows/despliegue.yml@refs/heads/main' });
+check('43b) y quién lo lanzó y con qué workflow', /Lanzado por: geovetlf · geovetlf\/wee-app\/\.github\/workflows\/despliegue\.yml@refs\/heads\/main/.test(regQuien)
+  && /process\.env\.GITHUB_ACTOR/.test(leer('ops/despliegue/cli.mjs')) && /process\.env\.GITHUB_WORKFLOW_REF/.test(leer('ops/despliegue/cli.mjs')));
 check('43) el registro dice qué commit, qué revisión y qué imagen exacta quedaron sirviendo, y qué versión de cada sitio',
   reg.includes(`Commit: ${SHA}`) && reg.includes('función brainChat: revisión brainchat-00013-xyz · imagen repo@sha256:abc') && reg.includes('hosting wee-app: versión v1 · 140 archivos'));
 check('44) el workflow compara la web, observa 10 min, registra y etiqueta con ese registro',

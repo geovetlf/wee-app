@@ -39,6 +39,28 @@ export const CONDICION = [
 ].join(' && ');
 
 /**
+ * QUIÉN Y QUÉ WORKFLOW OBTUVO LA IDENTIDAD. El `sub` de GitHub para un job con
+ * entorno es `repo:geovetlf/wee-app:environment:get-wee`: dice el repositorio,
+ * no quién lanzó el despliegue ni qué ejecución fue. Cloud Audit Logs guarda
+ * `google.subject` en cada acción de la cuenta de despliegue (desplegar una
+ * función, mover tráfico), así que se compone con el repositorio, la ejecución,
+ * su intento y la persona. Cabe de sobra en los 127 bytes que admite Google.
+ * Los atributos guardan además la rama, el workflow y su commit.
+ */
+export const SUJETO = "'gh:' + assertion.repository + ':run:' + assertion.run_id + ':' + assertion.run_attempt + ':actor:' + assertion.actor";
+export const MAPEO = [
+  `google.subject=${SUJETO}`,
+  'attribute.repository_id=assertion.repository_id',
+  'attribute.repository_owner_id=assertion.repository_owner_id',
+  'attribute.workflow_ref=assertion.workflow_ref',
+  'attribute.workflow_sha=assertion.workflow_sha',
+  'attribute.environment=assertion.environment',
+  'attribute.ref=assertion.ref',
+  'attribute.actor=assertion.actor',
+  'attribute.run_id=assertion.run_id',
+].join(',');
+
+/**
  * Roles de proyecto de la cuenta de despliegue: propuesta MÍNIMA. Si en el primer
  * despliegue falta un permiso, el despliegue FALLA (nunca abre más de la cuenta):
  * se añade el rol concreto que nombre el error, y se anota aquí.
@@ -65,7 +87,7 @@ export const comandos = () => {
   return [
     '# 1 · Pool y proveedor de Workload Identity Federation (solo el workflow despliegue.yml de main, en el entorno get-wee)',
     `gcloud iam workload-identity-pools create github --project=${PROYECTO} --location=global --display-name="GitHub (despliegue de Weë)"`,
-    `gcloud iam workload-identity-pools providers create-oidc wee-app --project=${PROYECTO} --location=global --workload-identity-pool=github --display-name="geovetlf/wee-app" --issuer-uri="https://token.actions.githubusercontent.com" --attribute-mapping="google.subject=assertion.sub,attribute.repository_id=assertion.repository_id,attribute.workflow_ref=assertion.workflow_ref,attribute.environment=assertion.environment" --attribute-condition="${CONDICION}"`,
+    `gcloud iam workload-identity-pools providers create-oidc wee-app --project=${PROYECTO} --location=global --workload-identity-pool=github --display-name="geovetlf/wee-app" --issuer-uri="https://token.actions.githubusercontent.com" --attribute-mapping="${MAPEO}" --attribute-condition="${CONDICION}"`,
     '',
     '# 2 · Cuenta de servicio de despliegue',
     `gcloud iam service-accounts create despliegue-github --project=${PROYECTO} --display-name="Despliegue desde GitHub (workflow aprobado)"`,
@@ -81,6 +103,13 @@ export const comandos = () => {
     `#       CUENTA_DE_DESPLIEGUE = ${CUENTA}`,
     '#       WEE_ADMIN_UIDS, R2_ACCOUNT_ID, R2_BUCKET = los de functions/.env.get-wee',
     '#       EXPO_PUBLIC_FIREBASE_* = la configuración web pública de get-wee (solo para hosting:wee-app)',
+    '',
+    '# 5 · (Opcional, recomendado) Que quede escrito también CADA canje del token de GitHub por la identidad.',
+    '#     Las acciones de la cuenta (desplegar, mover tráfico) ya quedan en Cloud Audit Logs (Admin Activity, siempre activo y',
+    '#     gratis) con el sujeto de arriba. El canje en sí es un registro de «acceso a datos» de STS, apagado por defecto.',
+    '#     Son unas pocas líneas por despliegue: caben de sobra en la cuota gratuita de Cloud Logging. Se activa en la consola:',
+    '#     IAM y administración → Registros de auditoría → «Security Token Service API» y «IAM Service Account Credentials API»',
+    '#     → marcar «Lectura de datos» y «Escritura de datos». (Es un cambio de la política del proyecto: lo hace el dueño.)',
   ];
 };
 

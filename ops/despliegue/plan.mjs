@@ -287,10 +287,11 @@ export const sumarSeries = (respuesta) => ((respuesta && respuesta.timeSeries) |
  * para cada sitio, la versión publicada y cuántos archivos se compararon. Es lo
  * que la auditoría H0 tuvo que reconstruir a mano.
  */
-export const mensajeDelRegistro = ({ commit, objetivo, run, funciones = [], sitios = [] }) => [
+export const mensajeDelRegistro = ({ commit, objetivo, run, quien, workflow, funciones = [], sitios = [] }) => [
   `Desplegado en get-wee: ${objetivo}`,
   `Commit: ${commit}`,
   `Workflow: ${run}`,
+  `Lanzado por: ${quien || '¿?'} · ${workflow || '¿?'} (la aprobación queda en el entorno get-wee de GitHub)`,
   ...funciones.map((f) => `función ${f.funcion}: revisión ${f.revision || '¿?'} · imagen ${f.digest || 'sin digest'}`),
   ...sitios.map((s) => `hosting ${s.sitio}: versión ${s.version || '¿?'} · ${s.comparados} archivos con el mismo sha256 que el commit`),
 ].join('\n');
