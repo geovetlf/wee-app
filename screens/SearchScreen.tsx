@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { paraBuscar } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
@@ -33,7 +33,7 @@ import { MainStackParamList } from '../navigation/MainStackNavigator';
 type SearchCategory = 'comunidades' | 'usuarios' | 'posts';
 
 const SearchScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -480,13 +480,13 @@ const SearchScreen: React.FC = () => {
                         <View style={styles.postStat}>
                           <Ionicons name="heart" size={14} color={theme.colors.like} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(post.likes || 0)}
+                            {formatNumber(post.likes || 0, locale)}
                           </Text>
                         </View>
                         <View style={styles.postStat}>
                           <Ionicons name="chatbubble" size={14} color={theme.colors.textSecondary} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(post.comments || 0)}
+                            {formatNumber(post.comments || 0, locale)}
                           </Text>
                         </View>
                       </View>
@@ -535,11 +535,11 @@ const SearchScreen: React.FC = () => {
                         <View style={styles.communityStats}>
                           <Ionicons name="people" size={12} color={theme.colors.textSecondary} />
                           <Text style={[styles.communityStat, { color: theme.colors.textSecondary }]}>
-                            {t('communities.memberCount', { contador: community.memberCount || 0, cantidad: formatNumber(community.memberCount) })}
+                            {t('communities.memberCount', { contador: community.memberCount || 0, cantidad: formatNumber(community.memberCount, locale) })}
                           </Text>
                           <Ionicons name="document-text" size={12} color={theme.colors.textSecondary} style={{ marginLeft: 12 }} />
                           <Text style={[styles.communityStat, { color: theme.colors.textSecondary }]}>
-                            {t('common.postsCount', { contador: community.postCount || 0, cantidad: formatNumber(community.postCount) })}
+                            {t('common.postsCount', { contador: community.postCount || 0, cantidad: formatNumber(community.postCount, locale) })}
                           </Text>
                         </View>
                       </View>
@@ -638,7 +638,7 @@ const SearchScreen: React.FC = () => {
                         */}
                         <View style={styles.userStats}>
                           <Text style={[styles.userStat, { color: theme.colors.textSecondary }]}>
-                            {t('common.postsCount', { contador: user.posts || 0, cantidad: formatNumber(user.posts || 0) })}
+                            {t('common.postsCount', { contador: user.posts || 0, cantidad: formatNumber(user.posts || 0, locale) })}
                           </Text>
                         </View>
                       </View>
@@ -696,13 +696,13 @@ const SearchScreen: React.FC = () => {
                         <View style={styles.postStat}>
                           <Ionicons name="heart" size={14} color={theme.colors.like} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(post.likes || 0)}
+                            {formatNumber(post.likes || 0, locale)}
                           </Text>
                         </View>
                         <View style={styles.postStat}>
                           <Ionicons name="chatbubble" size={14} color={theme.colors.textSecondary} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(post.comments || 0)}
+                            {formatNumber(post.comments || 0, locale)}
                           </Text>
                         </View>
                       </View>

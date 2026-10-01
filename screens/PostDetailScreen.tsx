@@ -480,7 +480,7 @@ const PostDetailContent: React.FC = () => {
             <Ionicons name="eye-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
-                {formatNumber(post.views || 0)}
+                {formatNumber(post.views || 0, locale)}
               </Text> {t('wall.statViews')}
             </Text>
           </View>
@@ -488,7 +488,7 @@ const PostDetailContent: React.FC = () => {
             <Ionicons name="thumbs-up-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
-                {formatNumber(voteStats.agreementCount)}
+                {formatNumber(voteStats.agreementCount, locale)}
               </Text> {t('wall.statAgree')}
             </Text>
           </View>
@@ -496,7 +496,7 @@ const PostDetailContent: React.FC = () => {
             <Ionicons name="chatbubble-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
-                {formatNumber(post.comments)}
+                {formatNumber(post.comments, locale)}
               </Text> {t('wall.statComments')}
             </Text>
           </View>
@@ -518,7 +518,7 @@ const PostDetailContent: React.FC = () => {
             <Text style={[styles.actionText, {
               color: voteStats.userVote === 'agree' ? '#22C55E' : theme.colors.textSecondary
             }]}>
-              {formatNumber(voteStats.agreementCount)}
+              {formatNumber(voteStats.agreementCount, locale)}
             </Text>
           </TouchableOpacity>
 
@@ -536,7 +536,7 @@ const PostDetailContent: React.FC = () => {
             <Text style={[styles.actionText, {
               color: voteStats.userVote === 'disagree' ? '#EF4444' : theme.colors.textSecondary
             }]}>
-              {formatNumber(voteStats.disagreementCount)}
+              {formatNumber(voteStats.disagreementCount, locale)}
             </Text>
           </TouchableOpacity>
 
@@ -548,7 +548,7 @@ const PostDetailContent: React.FC = () => {
               color={theme.colors.textSecondary}
             />
             <Text style={[styles.actionText, { color: theme.colors.textSecondary }]}>
-              {formatNumber(post.comments)}
+              {formatNumber(post.comments, locale)}
             </Text>
           </TouchableOpacity>
 
@@ -566,7 +566,7 @@ const PostDetailContent: React.FC = () => {
             <Text style={[styles.actionText, {
               color: hasReposted ? theme.colors.accent : theme.colors.textSecondary
             }]}>
-              {formatNumber(repostsCount)}
+              {formatNumber(repostsCount, locale)}
             </Text>
           </TouchableOpacity>
 

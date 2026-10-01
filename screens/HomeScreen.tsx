@@ -6,7 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { formatNumber } from '../data/mockData';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -319,7 +320,7 @@ type HomeScreenNavigationProp = StackNavigationProp<HomeStackParamList>;
 type HomeScreenRouteProp = RouteProp<HomeStackParamList, 'Feed'>;
 
 const HomeScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
@@ -915,11 +916,11 @@ const HomeScreen: React.FC = () => {
             {memberCount > 0 && (
               <View style={styles.heroStat}>
                 <Ionicons name="people" size={scale(13)} color="rgba(255,255,255,0.8)" />
-                {/* El plural lo elige el número; la cifra se escribe como siempre, con su «K». */}
+                {/* El plural lo elige el número; la cifra, abreviada como en el idioma («1,2 mil», «1.2K», «1,2 t»). */}
                 <Text style={styles.heroStatText}>
                   {t('communities.memberCount', {
                     contador: memberCount,
-                    cantidad: memberCount >= 1000 ? (memberCount / 1000).toFixed(1) + 'K' : String(memberCount),
+                    cantidad: formatNumber(memberCount, locale),
                   })}
                 </Text>
               </View>

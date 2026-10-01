@@ -326,7 +326,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
                 color={voteStats.userVote === 'agree' ? '#22C55E' : 'white'}
               />
               <Text style={styles.sidebarCount}>
-                {formatNumber(voteStats.agreementCount)}
+                {formatNumber(voteStats.agreementCount, locale)}
               </Text>
             </TouchableOpacity>
 
@@ -338,7 +338,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
                 color={voteStats.userVote === 'disagree' ? '#EF4444' : 'white'}
               />
               <Text style={styles.sidebarCount}>
-                {formatNumber(voteStats.disagreementCount)}
+                {formatNumber(voteStats.disagreementCount, locale)}
               </Text>
             </TouchableOpacity>
 
@@ -346,7 +346,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
             <TouchableOpacity style={styles.sidebarBtn} onPress={() => onComment(post.id!)}>
               <Ionicons name="chatbubble-outline" size={scale(26)} color="white" />
               <Text style={styles.sidebarCount}>
-                {formatNumber(post.comments)}
+                {formatNumber(post.comments, locale)}
               </Text>
             </TouchableOpacity>
 
@@ -368,7 +368,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
             >
               <Ionicons name="share-social-outline" size={scale(26)} color="white" />
               <Text style={styles.sidebarCount}>
-                {formatNumber(post.shares)}
+                {formatNumber(post.shares, locale)}
               </Text>
             </TouchableOpacity>
           </View>

@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -27,7 +27,7 @@ type RoutePropType = RouteProp<MainStackParamList, 'WeeBizCategory'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 const WeeBizCategoryScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { theme } = useTheme();
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RoutePropType>();
@@ -123,7 +123,7 @@ const WeeBizCategoryScreen: React.FC = () => {
         <View style={styles.bizAura}>
           <Ionicons name="star" size={scale(14)} color="#F5B731" />
           <Text style={[styles.bizAuraText, { color: theme.colors.text }]}>
-            {item.auraScore.toFixed(1)}
+            {formato.numero(item.auraScore, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
           </Text>
         </View>
       )}

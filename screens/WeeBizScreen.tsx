@@ -18,7 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -33,7 +33,7 @@ import { weeBizService, Business } from '../services/weeBizService';
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 const WeeBizScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { theme } = useTheme();
   const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
@@ -165,7 +165,7 @@ const WeeBizScreen: React.FC = () => {
           <View style={styles.bizAura}>
             <Ionicons name="star" size={scale(14)} color="#F5B731" />
             <Text style={[styles.bizAuraText, { color: theme.colors.text }]}>
-              {biz.auraScore.toFixed(1)}
+              {formato.numero(biz.auraScore, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
             </Text>
           </View>
         )}

@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ALTO_DE_LA_BARRA_INFERIOR } from '../utils/medidaDelMedio';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
@@ -49,7 +49,7 @@ const isWeb = Platform.OS === 'web';
 type LandingScreenNavigationProp = StackNavigationProp<any>;
 
 const LandingScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile } = useUserProfile();
@@ -479,7 +479,7 @@ const LandingScreen: React.FC = () => {
               <View style={styles.trendingStats}>
                 {/* El plural lo elige el número; la cifra se escribe como siempre, con formatNumber. */}
                 <Text style={[styles.trendingStatText, { color: theme.colors.textSecondary }]}>
-                  {t('home.answersCount', { contador: total || 0, cantidad: formatNumber(total) })}
+                  {t('home.answersCount', { contador: total || 0, cantidad: formatNumber(total, locale) })}
                 </Text>
                 <Text style={[styles.trendingDot, { color: theme.colors.textSecondary }]}>•</Text>
                 <Text style={[styles.trendingStatText, { color: theme.colors.accent }]}>
@@ -580,11 +580,11 @@ const LandingScreen: React.FC = () => {
             </Text>
             <View style={styles.featuredStats}>
               <Text style={[styles.featuredStatText, { color: theme.colors.textSecondary }]}>
-                {t('home.likesCount', { contador: post.agreementCount || 0, cantidad: formatNumber(post.agreementCount) })}
+                {t('home.likesCount', { contador: post.agreementCount || 0, cantidad: formatNumber(post.agreementCount, locale) })}
               </Text>
               <Text style={[styles.featuredDot, { color: theme.colors.textSecondary }]}>•</Text>
               <Text style={[styles.featuredStatText, { color: theme.colors.textSecondary }]}>
-                {t('home.commentsCount', { contador: post.comments || 0, cantidad: formatNumber(post.comments) })}
+                {t('home.commentsCount', { contador: post.comments || 0, cantidad: formatNumber(post.comments, locale) })}
               </Text>
             </View>
           </View>

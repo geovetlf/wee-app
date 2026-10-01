@@ -20,7 +20,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
@@ -34,7 +34,7 @@ type RoutePropType = RouteProp<MainStackParamList, 'WeeBizProducts'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 const WeeBizProductsScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -199,7 +199,7 @@ const WeeBizProductsScreen: React.FC = () => {
 
   const formatPrice = (price: number, currency: string) => {
     if (price <= 0) return t('weebiz.priceOnRequest');
-    return `${currency} ${price.toFixed(2)}`;
+    return `${currency} ${formato.numero(price, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const renderProduct = ({ item }: { item: Product }) => {

@@ -1,4 +1,4 @@
-import { formatearFecha, formatearTiempoRelativo } from '../i18n/formato';
+import { formatearFecha, formatearNumero, formatearTiempoRelativo } from '../i18n/formato';
 export interface User {
   id: string;
   username: string;
@@ -395,8 +395,16 @@ export const getRelativeTime = (date: Date, locale: string, ahora: number = Date
   return formatearTiempoRelativo(date, locale, ahora, { style: 'narrow' });
 };
 
-// Función para formatear números
-export const formatNumber = (num: number | undefined | null): string => {
+/**
+ * LOS CONTADORES ABREVIADOS (me gusta, comentarios, vistas, miembros…), como los escribe cada idioma.
+ *
+ * Antes salían «12.4k» en todos los idiomas: con la coma decimal del inglés y su «k». En danés o en alemán, donde
+ * el punto separa los miles, «12.4k» se lee mal. Con el `locale`, `Intl` escribe la forma corta de cada idioma
+ * («12,4 t», «12,4 mil», «12.4K», «1,2万») y la cifra pequeña con su separador. Sin `locale` —quien todavía no lo
+ * pase— se comporta como siempre.
+ */
+export const formatNumber = (num: number | undefined | null, locale?: string): string => {
+  if (locale) return formatearNumero(num == null || isNaN(num) ? 0 : num, locale, { notation: 'compact', maximumFractionDigits: 1 });
   if (num == null || isNaN(num)) return '0';
   if (num < 1000) return num.toString();
   if (num < 1000000) return `${(num / 1000).toFixed(1)}k`;

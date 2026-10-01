@@ -1,5 +1,5 @@
 import React from 'react';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -61,7 +61,7 @@ const SAMPLES: { colors: [string, string, string]; emoji: string; clave: string 
  */
 const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, compacta }) => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const hasPosts = posts.length > 0;
 
   return (
@@ -162,7 +162,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
                     decidir: solo ensucia la imagen, que es lo que sí decide.
                   */}
                   {!compacta && typeof post.views === 'number' && post.views > 0 && (
-                    <Text style={styles.views}>▶ {formatNumber(post.views)}</Text>
+                    <Text style={styles.views}>▶ {formatNumber(post.views, locale)}</Text>
                   )}
                 </TouchableOpacity>
               );

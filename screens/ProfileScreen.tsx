@@ -797,7 +797,7 @@ const ProfileScreen: React.FC = () => {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {formatNumber(userProfile.posts)}
+                {formatNumber(userProfile.posts, locale)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('profile.posts')}</Text>
             </View>
@@ -823,7 +823,7 @@ const ProfileScreen: React.FC = () => {
               accessibilityLabel={t('profile.viewMyEcontacts', { nombre: misEcontacts.nombrePlural, total: misEcontacts.total })}
             >
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {misEcontacts.cargando ? '…' : formatNumber(misEcontacts.total)}
+                {misEcontacts.cargando ? '…' : formatNumber(misEcontacts.total, locale)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.accentDark }]}>
                 {misEcontacts.nombrePlural}

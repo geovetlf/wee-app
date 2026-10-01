@@ -43,7 +43,7 @@ type UserProfileScreenRouteProp = RouteProp<MainStackParamList, 'UserProfile'>;
 type UserProfileScreenNavigationProp = StackNavigationProp<MainStackParamList, 'UserProfile'>;
 
 const UserProfileScreen: React.FC = () => {
-  const { t, formato } = useIdioma();
+  const { t, formato, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile: currentUserProfile, updateLocalProfile } = useUserProfile();
@@ -588,7 +588,7 @@ const UserProfileScreen: React.FC = () => {
           <View style={[styles.statsRow, { borderColor: theme.colors.border }]}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {formatNumber(userProfile.posts)}
+                {formatNumber(userProfile.posts, locale)}
               </Text>
               <TextoEnMayusculas style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('profile.posts')}</TextoEnMayusculas>
             </View>

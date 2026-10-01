@@ -1205,7 +1205,7 @@ const PostCard: React.FC<PostCardProps> = ({
         <Ionicons name="repeat" size={20} color={hasReposted ? theme.colors.accent : theme.colors.textSecondary} />
         <Text style={[styles.menuOptionText, { color: hasReposted ? theme.colors.accent : theme.colors.text }]}>
           {hasReposted ? t('wall.undoRepost') : t('wall.repost')}
-          {repostsCount > 0 ? `  ·  ${formatNumber(repostsCount)}` : ''}
+          {repostsCount > 0 ? `  ·  ${formatNumber(repostsCount, locale)}` : ''}
         </Text>
       </TouchableOpacity>
 
@@ -1456,7 +1456,7 @@ const PostCard: React.FC<PostCardProps> = ({
           <Text style={[styles.actionText, {
             color: voteStats.userVote === 'agree' ? '#22C55E' : theme.colors.textSecondary
           }]}>
-            {formatNumber(voteStats.agreementCount)}
+            {formatNumber(voteStats.agreementCount, locale)}
           </Text>
         </TouchableOpacity>
 
@@ -1475,7 +1475,7 @@ const PostCard: React.FC<PostCardProps> = ({
           <Text style={[styles.actionText, {
             color: voteStats.userVote === 'disagree' ? '#EF4444' : theme.colors.textSecondary
           }]}>
-            {formatNumber(voteStats.disagreementCount)}
+            {formatNumber(voteStats.disagreementCount, locale)}
           </Text>
         </TouchableOpacity>
 
@@ -1492,7 +1492,7 @@ const PostCard: React.FC<PostCardProps> = ({
             color={theme.colors.textSecondary}
           />
           <Text style={[styles.actionText, { color: theme.colors.textSecondary }]}>
-            {formatNumber(post.comments)}
+            {formatNumber(post.comments, locale)}
           </Text>
         </TouchableOpacity>
 

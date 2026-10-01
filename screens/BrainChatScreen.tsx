@@ -415,7 +415,7 @@ const BrainChatScreen: React.FC = () => {
                   {t('brain.blockLeft', { restantes: chat.bloque.restantes, total: chat.bloque.total })}
                 </Text>
               )}
-              {chat.quote.usd > 0 ? ' · ' + t('weeai.approxUsd', { usd: chat.quote.usd < 0.01 ? '<0.01' : chat.quote.usd.toFixed(2) }) : ''}
+              {chat.quote.usd > 0 ? ' · ' + t('weeai.approxUsd', { usd: chat.quote.usd < 0.01 ? '<' + formato.numero(0.01, { minimumFractionDigits: 2 }) : formato.numero(chat.quote.usd, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }) : ''}
               {typeof wallet.balance === 'number' ? ' · ' + t('weeai.creditsLeft', { saldo: formato.numero(wallet.balance) }) : ''}
             </Text>
           )}

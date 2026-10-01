@@ -46,7 +46,7 @@ import { db } from '../config/firebase';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 const WeeBizProfileScreen: React.FC = () => {
-  const { t, formato } = useIdioma();
+  const { t, formato, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -380,7 +380,7 @@ const WeeBizProfileScreen: React.FC = () => {
               <View style={styles.metaItem}>
                 <Ionicons name="star" size={scale(14)} color="#F5B731" />
                 <Text style={[styles.metaText, { color: theme.colors.text }]}>
-                  {business.auraScore.toFixed(1)} Aura
+                  {formato.numero(business.auraScore, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Aura
                 </Text>
               </View>
             )}
@@ -398,7 +398,7 @@ const WeeBizProfileScreen: React.FC = () => {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {formatNumber(business.followersCount)}
+                {formatNumber(business.followersCount, locale)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
                 {t('weebiz.followers')}
@@ -407,7 +407,7 @@ const WeeBizProfileScreen: React.FC = () => {
             {business.reviewCount > 0 && (
               <View style={styles.statItem}>
                 <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                  {formatNumber(business.reviewCount)}
+                  {formatNumber(business.reviewCount, locale)}
                 </Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
                   {t('weebiz.reviews')}
@@ -517,7 +517,7 @@ const WeeBizProfileScreen: React.FC = () => {
                     )}
                     <Text style={[styles.productMiniName, { color: theme.colors.text }]} numberOfLines={1}>{prod.name}</Text>
                     <Text style={[styles.productMiniPrice, { color: theme.colors.primary }]}>
-                      {prod.price > 0 ? `${prod.currency} ${prod.price.toFixed(2)}` : t('weebiz.priceOnRequest')}
+                      {prod.price > 0 ? `${prod.currency} ${formato.numero(prod.price, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : t('weebiz.priceOnRequest')}
                     </Text>
                   </View>
                 );
