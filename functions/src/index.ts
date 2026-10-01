@@ -1,3 +1,5 @@
+// PRIMERO: las opciones globales se leen al definir cada función (ver opciones.ts).
+import './opciones';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './social/econtact';
