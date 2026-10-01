@@ -2,8 +2,10 @@
 #
 # EL ÚNICO camino a producción: un commit de main, con los tres niveles de la CI en verde, que no pisa
 # lo que funciona (ops/permitido.mjs), APROBADO por el dueño en el entorno `get-wee`, desplegado con una
-# identidad sin claves (Workload Identity Federation) y comprobado con humo sin gasto. Si algo falla
-# después de desplegar, el tráfico vuelve solo a las revisiones de antes. Queda un tag inmutable.
+# identidad sin claves (Workload Identity Federation), comprobado con humo sin gasto, con la web
+# comparada archivo a archivo por sha256 y diez minutos de observación de los 5xx. Si algo falla
+# después de desplegar, el tráfico vuelve solo a las revisiones de antes. Queda un tag inmutable con
+# el registro: revisión y digest de imagen de cada función, versión de cada sitio.
 #
 # INACTIVO hasta que el dueño cree el entorno `get-wee` (con él como revisor obligatorio), el proveedor de
 # WIF y la cuenta de despliegue (`node ops/iam/wif.mjs` imprime los comandos) y las variables del entorno:
@@ -42,6 +44,7 @@ jobs:
       solo: ${{ steps.plan.outputs.solo }}
       funciones: ${{ steps.plan.outputs.funciones }}
       wee_app: ${{ steps.plan.outputs.wee_app }}
+      sitios: ${{ steps.plan.outputs.sitios }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -63,11 +66,13 @@ jobs:
     name: Desplegar en get-wee
     needs: verificar
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     environment: get-wee
     permissions:
       contents: read
       id-token: write
+    outputs:
+      registro: ${{ steps.registro.outputs.registro }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -110,12 +115,16 @@ jobs:
           R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
           R2_BUCKET: ${{ vars.R2_BUCKET }}
         run: printf 'WEE_ADMIN_UIDS=%s\nR2_ACCOUNT_ID=%s\nR2_BUCKET=%s\n' "$WEE_ADMIN_UIDS" "$R2_ACCOUNT_ID" "$R2_BUCKET" > functions/.env.get-wee
-      - name: Revisiones de antes (para la marcha atrás)
+      - id: antes
+        name: Revisiones de antes (para la marcha atrás)
         if: needs.verificar.outputs.funciones != ''
         env:
           GCP_TOKEN: ${{ steps.auth.outputs.access_token }}
           FUNCIONES: ${{ needs.verificar.outputs.funciones }}
-        run: node ops/despliegue/cli.mjs revisiones --funciones "$FUNCIONES" > antes.json
+        run: |
+          node ops/despliegue/cli.mjs revisiones --funciones "$FUNCIONES" > antes.json
+          echo "Revisiones que servían antes (si la marcha atrás automática no pudiera, se vuelve a estas a mano):"
+          cat antes.json
       - name: Desplegar
         env:
           SOLO: ${{ needs.verificar.outputs.solo }}
@@ -126,10 +135,56 @@ jobs:
           GCP_TOKEN: ${{ steps.auth.outputs.access_token }}
           FUNCIONES: ${{ needs.verificar.outputs.funciones }}
         run: node ops/despliegue/cli.mjs humo --funciones "$FUNCIONES"
+      - name: La web publicada es la de este commit (sha256 archivo a archivo)
+        if: needs.verificar.outputs.sitios != ''
+        env:
+          SITIOS: ${{ needs.verificar.outputs.sitios }}
+        run: |
+          for SITIO in ${SITIOS//,/ }; do
+            node ops/despliegue/cli.mjs hashes --sitio "$SITIO" --salida "hashes-$SITIO.json"
+          done
+      # El token de acceso dura una hora: los pasos largos piden uno nuevo para no quedarse sin él.
+      - id: auth-observar
+        name: Identidad de despliegue (renovada para observar y registrar)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVEEDOR }}
+          service_account: ${{ vars.CUENTA_DE_DESPLIEGUE }}
+          token_format: access_token
+      - name: Observación posterior (10 min de 5xx contra los de antes)
+        if: needs.verificar.outputs.funciones != ''
+        env:
+          GCP_TOKEN: ${{ steps.auth-observar.outputs.access_token }}
+          FUNCIONES: ${{ needs.verificar.outputs.funciones }}
+          INICIO: ${{ steps.antes.outputs.inicio }}
+        run: node ops/despliegue/cli.mjs observar --funciones "$FUNCIONES" --inicio "$INICIO"
+      - id: registro
+        name: Registro del despliegue (revisión y digest de cada función, versión de cada sitio)
+        env:
+          GCP_TOKEN: ${{ steps.auth-observar.outputs.access_token }}
+          FUNCIONES: ${{ needs.verificar.outputs.funciones }}
+          SITIOS: ${{ needs.verificar.outputs.sitios }}
+          OBJETIVO: ${{ needs.verificar.outputs.solo }}
+          COMMIT: ${{ inputs.commit }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          HASHES=""
+          for SITIO in ${SITIOS//,/ }; do HASHES="$HASHES${HASHES:+,}hashes-$SITIO.json"; done
+          node ops/despliegue/cli.mjs registro --commit "$COMMIT" --objetivo "$OBJETIVO" --run "$RUN_URL" --funciones "$FUNCIONES" --hashes "$HASHES" > registro.txt
+          FIN="FIN_REGISTRO_$(date +%s%N)"
+          { echo "registro<<$FIN"; cat registro.txt; echo "$FIN"; } >> "$GITHUB_OUTPUT"
+      - id: auth-marcha-atras
+        name: Identidad de despliegue (renovada para la marcha atrás)
+        if: failure() && needs.verificar.outputs.funciones != ''
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVEEDOR }}
+          service_account: ${{ vars.CUENTA_DE_DESPLIEGUE }}
+          token_format: access_token
       - name: Marcha atrás (si algo falló después de desplegar)
         if: failure() && needs.verificar.outputs.funciones != ''
         env:
-          GCP_TOKEN: ${{ steps.auth.outputs.access_token }}
+          GCP_TOKEN: ${{ steps.auth-marcha-atras.outputs.access_token }}
         run: node ops/despliegue/cli.mjs marcha-atras --desde antes.json --ejecutar
 
   registrar:
@@ -146,14 +201,15 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-      - name: Tag del despliegue
+      - name: Tag del despliegue, con el registro como mensaje
         env:
           OBJETIVO: ${{ needs.verificar.outputs.solo }}
           COMMIT: ${{ inputs.commit }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REGISTRO: ${{ needs.desplegar.outputs.registro }}
         run: |
           TAG="$(node ops/despliegue/cli.mjs tag --objetivo "$OBJETIVO")"
+          printf '%s\n' "$REGISTRO" > registro.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" "$COMMIT" -m "Desplegado en get-wee: $OBJETIVO" -m "Workflow: $RUN_URL"
+          git tag -a "$TAG" "$COMMIT" -F registro.txt
           git push origin "refs/tags/$TAG"

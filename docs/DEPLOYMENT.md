@@ -118,7 +118,21 @@ fija el mapa y la regla.
 5. **Si era un callable cerrado a mano, vuelve a cerrarlo.** El despliegue le
    devuelve el invocador público. Cuando el código ya lleva `assertAdmin`, eso
    no abre nada, pero conviene repetirlo.
-6. **Etiqueta y anota:**
+6. **Comprueba, sin credenciales:**
+
+   ```
+   node ops/despliegue/cli.mjs humo --funciones a,b --sin-credenciales
+   node ops/despliegue/cli.mjs hashes --sitio wee-app
+   ```
+
+   - El humo hace una petición sin sesión a la URL pública de cada función:
+     401/403 es «viva y cerrada»; 5xx o no responder es fallo. Las programadas
+     y las de eventos no se pueden llamar: el script lo dice, y se miran en la
+     consola de Cloud Run.
+   - `hashes` compara por sha256 cada archivo que publica el sitio con el de la
+     carpeta local (`dist/` o `public/`). Un 200 no basta: la reescritura de la
+     SPA devuelve `index.html` con 200 para un archivo que falta.
+7. **Etiqueta y anota:**
 
    ```
    git tag -a prod/functions/<fn>/<AAAA-MM-DDTHHMMZ> <commit>
@@ -137,8 +151,22 @@ fija el mapa y la regla.
   gcloud run services update-traffic <servicio> --region us-central1 --project get-wee --to-revisions <revisión>=100
   ```
 
-  Excepción: `spendCredits` no vuelve a una revisión sin `assertAdmin` mientras
-  su invocador sea público (§2).
+  - **Volver al estado conocido** (el de `ops/produccion.json`), sin
+    credenciales: `node ops/despliegue/cli.mjs marcha-atras --al-mapa --funciones a,b`
+    imprime el comando exacto de cada función. No ejecuta nada.
+  - **Excepción: `spendCredits`.** No vuelve a una revisión sin `assertAdmin`:
+    `firebase deploy` le devuelve el invocador público y reabriría H0 #24.
+    - `--al-mapa` se niega a darle comando.
+    - La marcha atrás automática del workflow la deja **bloqueada**: el tráfico
+      se queda en la revisión nueva, cerrada en el código.
+    - Lo vigila `revisionesSinArreglo`: toda función del mapa con `requiere`
+      pendiente.
+  - **El workflow devuelve el tráfico a la revisión que SERVÍA**, que no
+    siempre es la última lista. Tras una marcha atrás el tráfico queda fijado a
+    una revisión vieja; si se anotara la última lista, una segunda marcha atrás
+    volvería a la mala.
+  - **Si el tráfico estaba repartido** entre varias revisiones, el workflow no
+    despliega: no hay UNA revisión a la que volver.
 - **Reglas de Firestore y Storage:** se vuelve al conjunto anterior desde la
   consola, en el historial de reglas. También se puede desplegar desde el tag
   `prod/firestore/…` o `prod/storage-rules/…`.
@@ -165,11 +193,35 @@ lanza a mano desde Actions con un commit y un objetivo:
 2. **Aprobación del dueño** en el entorno de GitHub `get-wee`. No se llama
    `production`, porque choca con el `Production` de Vercel.
 3. **Desplegar** con una identidad sin claves (Workload Identity Federation).
-   - Antes, se anotan las revisiones vivas.
-   - Después, humo sin gasto: una petición sin sesión por función. 401/403
-     significa viva y cerrada; 5xx o no responder es fallo.
-   - Si algo falla, el tráfico vuelve solo a las revisiones de antes.
-4. **Registrar** un tag inmutable `prod/<qué>/<cuándo>` sobre el commit.
+   - Antes, se anotan las revisiones que sirven (en el log del run, por si la
+     marcha atrás automática no pudiera).
+   - Después, **humo sin gasto**: una petición sin sesión por función. 401/403
+     significa viva y cerrada; 5xx o no responder es fallo. La revisión nueva
+     tiene que estar lista **y ser la que sirve**.
+   - **La web, por sha256**: cada archivo que publica el sitio se compara con
+     el del build de ese commit (`hashes`).
+   - **Observación posterior, 10 minutos** (`OBSERVACION` en `plan.mjs`):
+     - se cuentan los 5xx de las funciones desplegadas y se comparan con los de
+       los 10 minutos anteriores al despliegue;
+     - si suben más de 5, el despliegue falla;
+     - si no se pueden medir, también.
+
+     Un proveedor caído ya da 503 controlados sin que nadie despliegue nada:
+     por eso cuenta la subida y no el total. La regla es código con cifras
+     escritas, nunca una IA.
+   - Si algo falla, el tráfico vuelve solo a las revisiones de antes, salvo las
+     prohibidas (§5).
+   - El token de acceso dura una hora: la observación y la marcha atrás piden
+     uno nuevo.
+4. **Registrar** un tag inmutable `prod/<qué>/<cuándo>` sobre el commit. Su
+   mensaje es el **registro del despliegue**:
+   - commit y run;
+   - la revisión que quedó sirviendo y el **digest exacto de su imagen**
+     (`status.imageDigest` de Cloud Run) para cada función;
+   - la versión publicada y los archivos comparados para cada sitio.
+
+   Es lo que la auditoría H0 tuvo que reconstruir a mano. Sale también en el
+   resumen del run.
 
 El objetivo se escribe separado por comas:
 - `functions:nombre`, nunca `functions` a secas, que serían todas;
@@ -184,7 +236,8 @@ La lógica está en `ops/despliegue/plan.mjs` (pura). Los pasos están en
    - el pool y el proveedor de WIF, que solo aceptan este workflow, de `main`,
      en el entorno `get-wee`;
    - la cuenta `despliegue-github@get-wee.iam.gserviceaccount.com`, con roles
-     mínimos: sin Owner, sin leer secretos y sin IAM.
+     mínimos: sin Owner, sin leer secretos y sin IAM. Para observar solo lee
+     métricas (`roles/monitoring.viewer`).
 2. Crear en GitHub el entorno `get-wee`:
    - revisor obligatorio, el dueño;
    - solo la rama `main`;

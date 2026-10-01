@@ -53,6 +53,7 @@ export const ROLES = [
   ['roles/eventarc.developer', 'los disparadores de Firestore (nacimientoDeCuenta, avisos)'],
   ['roles/secretmanager.viewer', 'comprobar las versiones de los secretos que monta cada función, sin leer valores'],
   ['roles/serviceusage.serviceUsageConsumer', 'usar las APIs del proyecto'],
+  ['roles/monitoring.viewer', 'contar los 5xx en la observación posterior al despliegue (solo lectura de métricas)'],
 ];
 
 /* Lo que NO tiene, a propósito. */

@@ -21,6 +21,12 @@ qué mirar.
 
 Más el presupuesto: al aviso de 100 PEN se le añaden umbrales al 50 %, 90 % y 100 %.
 
+**Después de cada despliegue** hay además una ventana de observación propia,
+que no es una alerta: el workflow cuenta durante 10 minutos los 5xx de las
+funciones que acaba de desplegar y, si suben más de 5 sobre los de antes,
+devuelve el tráfico solo ([DEPLOYMENT.md](DEPLOYMENT.md) §6). La alerta de
+5xx sigue vigilando a todas las funciones, siempre.
+
 ## Cómo está hecho
 
 **Una sola fuente.** Todo está en `ops/observabilidad/alertas.mjs`: los
