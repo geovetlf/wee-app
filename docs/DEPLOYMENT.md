@@ -262,8 +262,11 @@ La lógica está en `ops/despliegue/plan.mjs` (pura). Los pasos están en
 
 **Está INACTIVO hasta que el dueño lo active** (IAM y GitHub son suyos):
 1. Ejecutar, línea a línea, lo que imprime `node ops/iam/wif.mjs`:
-   - el pool y el proveedor de WIF, que solo aceptan este workflow, de `main`,
-     en el entorno `get-wee`;
+   - el pool y el proveedor de WIF. Su condición exige, **siempre con igualdad
+     exacta**: este repositorio y este dueño (por id), el workflow
+     `despliegue.yml@refs/heads/main`, lanzado desde `refs/heads/main`, a mano
+     (`workflow_dispatch`) y en el entorno `get-wee`. Con un prefijo, una rama
+     `main-x` también habría pasado (`despliegue-workflow` 26b lo prueba);
    - la cuenta `despliegue-github@get-wee.iam.gserviceaccount.com`, con roles
      mínimos: sin Owner, sin leer secretos y sin IAM. Para observar solo lee
      métricas (`roles/monitoring.viewer`).
@@ -273,7 +276,13 @@ La lógica está en `ops/despliegue/plan.mjs` (pura). Los pasos están en
    - sus variables: `WIF_PROVEEDOR`, `CUENTA_DE_DESPLIEGUE`, `WEE_ADMIN_UIDS`,
      `R2_ACCOUNT_ID`, `R2_BUCKET` y, para `hosting:wee-app`, las
      `EXPO_PUBLIC_FIREBASE_*`. Ningún secreto.
-3. Antes del primer despliegue desde `main`, integrar en `main` el código que
+3. Comprobar que lo creado es exactamente eso: `node ops/iam/wif-verificar.mjs`.
+   Solo lee (`describe`, `get-iam-policy`, `list`) y dice ✔ o qué sobra:
+   la condición y el mapeo de `wif.mjs`, los roles justos y ninguno prohibido,
+   solo este repositorio puede hacerse pasar por la cuenta, solo «actuar como»
+   sobre la cuenta de ejecución y ninguna clave descargable
+   (`functions/test/wif-verificar.test.mjs`).
+4. Antes del primer despliegue desde `main`, integrar en `main` el código que
    ya corre en producción (§2). Hasta entonces, `ops/permitido.mjs` lo impide.
 
 Todo lo que toca IAM, GitHub o la visibilidad del repo espera la aprobación

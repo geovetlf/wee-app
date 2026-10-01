@@ -28,8 +28,10 @@ export const motivos = (env) => {
   const m = [];
   if (env.GITHUB_ACTIONS !== 'true') m.push('no corre en GitHub Actions (un portátil o un worktree no despliegan)');
   if (env.GITHUB_REPOSITORY !== REPOSITORIO) m.push(`el repositorio no es ${REPOSITORIO}`);
-  if (!String(env.GITHUB_WORKFLOW_REF || '').startsWith(WORKFLOW)) m.push('no es el workflow despliegue.yml de main');
+  /* Igualdad exacta: con un prefijo, `…despliegue.yml@refs/heads/main-x` también pasaría. */
+  if (env.GITHUB_WORKFLOW_REF !== WORKFLOW) m.push('no es el workflow despliegue.yml de main');
   if (env.GITHUB_REF !== 'refs/heads/main') m.push('no se lanzó desde main');
+  if (env.GITHUB_EVENT_NAME !== 'workflow_dispatch') m.push('no lo lanzó una persona a mano (workflow_dispatch)');
   if (env.GCLOUD_PROJECT && env.GCLOUD_PROJECT !== 'get-wee') m.push(`el proyecto es ${env.GCLOUD_PROJECT}, no get-wee`);
   return m;
 };
