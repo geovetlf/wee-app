@@ -213,6 +213,12 @@ la protección de `main` (PR obligatorio con los cuatro checks en verde).
 
 Sin secretos, sin credenciales de Google y sin gasto (`scripts/ci-sin-secretos.mjs`).
 
+**La misma CI, en local:** `node scripts/ci-local.mjs` (`--plan` para verla sin correr nada,
+`--nivel 1|2|3` para uno solo). No es otra CI: lee `ci.yml` y ejecuta sus pasos, en su
+orden, con su `env` y con `bash -eo pipefail` como GitHub; solo se salta las
+instalaciones. Si la CI cambia, la local cambia con ella (`functions/test/ci-local.test.mjs`).
+Sirve para arreglar la CI antes de subir nada.
+
 **Producción** (`.github/workflows/despliegue.yml`) es **el único camino**, y se
 lanza a mano desde Actions con un commit y un objetivo:
 1. **Verificar**, sin credenciales de Google:
