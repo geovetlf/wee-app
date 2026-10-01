@@ -71,5 +71,11 @@ if (versionados) {
   console.log('· sin git: se saltan las comprobaciones del índice (10–13)');
 }
 
+/* Vercel publicaba wee.zone en CADA push a main, saltándose CI, tag y aprobación (H0). La web sale por el mismo
+   camino que el resto de producción (docs/DEPLOYMENT.md §2); las ramas siguen teniendo previsualizaciones. */
+const vercel = JSON.parse(leer('vercel.json'));
+check('14) un push a main no publica la web por su cuenta (vercel.json: git.deploymentEnabled.main = false)',
+  vercel.git && vercel.git.deploymentEnabled && vercel.git.deploymentEnabled.main === false);
+
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);
