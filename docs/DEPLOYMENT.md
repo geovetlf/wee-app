@@ -208,11 +208,19 @@ fija el mapa y la regla.
 ## 6. CI y el workflow de producción (FASE 5–6 del Harness)
 
 **CI** (`.github/workflows/ci.yml`), en cada PR y en cada push a `main`. Tiene
-tres niveles, y si falla el 1 los otros no arrancan:
-1. TypeScript de la app y build de las Functions;
-2. todas las suites (`npm --prefix functions run test:todas`), sin parar en la
-   primera que falla;
-3. las suites de emulador con proyectos `demo-*`.
+tres niveles, en el orden que pidió el dueño; si uno falla, el siguiente no
+arranca:
+1. **TypeScript y build**: la app con 0 errores, las Functions y la web (lo
+   mismo que construye Vercel);
+2. **pruebas**: todas las suites (`npm --prefix functions run test:todas`), sin
+   parar en la primera que falla, y las de emulador con proyectos `demo-*`;
+3. **seguridad y políticas**: ningún secreto en el repositorio
+   (`scripts/escaneo-secretos.mjs`, sin herramientas externas) y las suites de
+   la guardia, la entrega, el mapa de producción, el despliegue, la rotación y
+   los emuladores aislados.
+
+Para que la CI se ejecute ANTES de entrar en `main`, el dueño activa en GitHub
+la protección de `main` (PR obligatorio con los cuatro checks en verde).
 
 Sin secretos, sin credenciales de Google y sin gasto (`scripts/ci-sin-secretos.mjs`).
 
@@ -220,7 +228,7 @@ Sin secretos, sin credenciales de Google y sin gasto (`scripts/ci-sin-secretos.m
 lanza a mano desde Actions con un commit y un objetivo:
 1. **Verificar**, sin credenciales de Google:
    - SHA completo, en `main`;
-   - los tres niveles de la CI en verde en ESE commit;
+   - los tres niveles de la CI (sus cuatro checks) en verde en ESE commit;
    - y `ops/permitido.mjs`, que impide pisar lo que funciona.
 2. **Aprobación del dueño** en el entorno de GitHub `get-wee`. No se llama
    `production`, porque choca con el `Production` de Vercel.

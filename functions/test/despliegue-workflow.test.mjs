@@ -76,11 +76,11 @@ check('14) un objetivo desconocido o un nombre raro, también',
   plan.leerObjetivo('database').errores.length === 1 && plan.leerObjetivo('functions:a;rm -rf').errores.length === 1);
 const SHA = 'a'.repeat(40);
 const verde = plan.NIVELES_DE_CI.map((name) => ({ name, status: 'completed', conclusion: 'success' }));
-check('15) commit de main con los tres niveles en verde: se puede', plan.motivosContraElCommit({ sha: SHA, enMain: true, checkRuns: verde }).length === 0);
-check('16) un SHA corto, uno fuera de main o un nivel sin pasar: no',
+check('15) commit de main con los niveles de la CI en verde: se puede', plan.motivosContraElCommit({ sha: SHA, enMain: true, checkRuns: verde }).length === 0);
+check('16) un SHA corto, uno fuera de main o un nivel sin pasar (o sin correr): no',
   plan.motivosContraElCommit({ sha: 'abc1234', enMain: true, checkRuns: verde }).length === 1
   && plan.motivosContraElCommit({ sha: SHA, enMain: false, checkRuns: verde }).length === 1
-  && plan.motivosContraElCommit({ sha: SHA, enMain: true, checkRuns: [{ ...verde[0] }, { ...verde[1], conclusion: 'failure' }] }).length === 2);
+  && plan.motivosContraElCommit({ sha: SHA, enMain: true, checkRuns: [{ ...verde[0] }, { ...verde[1], conclusion: 'failure' }] }).length === 1 + (plan.NIVELES_DE_CI.length - 2));
 const ci = leer('.github/workflows/ci.yml');
 check('17) los niveles que exige son exactamente los nombres de los jobs de ci.yml', plan.NIVELES_DE_CI.every((n) => ci.includes(`name: ${n}`)));
 check('18) humo: 401/403 = viva y cerrada; 5xx o sin respuesta = fallo; programadas y eventos no se llaman',

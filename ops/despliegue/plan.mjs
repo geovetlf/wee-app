@@ -32,8 +32,8 @@ export const leerObjetivo = (texto) => {
   return { funciones, otros, errores, solo: [...funciones.map((f) => `functions:${f}`), ...otros].join(',') };
 };
 
-/** Los tres niveles de la CI (los `name` de los jobs de ci.yml). */
-export const NIVELES_DE_CI = ['Nivel 1 · tipos y build', 'Nivel 2 · suites, seguridad y configuración', 'Nivel 3 · emuladores demo-*'];
+/** Los tres niveles de la CI (los `name` de sus cuatro jobs en ci.yml: el nivel 2 son dos, suites y emuladores). */
+export const NIVELES_DE_CI = ['Nivel 1 · TypeScript y build', 'Nivel 2 · suites', 'Nivel 2 · emuladores demo-*', 'Nivel 3 · seguridad y políticas'];
 
 /**
  * ¿Se puede desplegar este commit? Tiene que ser un SHA completo, estar en main
