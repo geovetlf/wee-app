@@ -7,7 +7,6 @@
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { AI_SECRETS } from './secrets';
-import { randomUUID } from 'crypto';
 import { creditEngine } from './credits/creditEngine';
 import { CreditService } from './credits/creditCosts';
 import { assertInputImageUrl } from './creator/inputs';
@@ -27,8 +26,16 @@ import {
 //   que un reintento de la misma operación no cobre dos veces.
 // ============================================
 
-const requestIdFrom = (value: unknown, prefix: string): string =>
-  typeof value === 'string' && /^[A-Za-z0-9_.:-]{4,160}$/.test(value) ? value : `${prefix}_${randomUUID()}`;
+/*
+ * El requestId es OBLIGATORIO (auditoría H0, escenario #11): es lo único que hace
+ * que repetir una operación no cobre ni genere dos veces. Antes, si faltaba, se
+ * inventaba uno aleatorio y la operación quedaba sin protección. La app lo manda
+ * siempre (`newRequestId` en services/creditsService.ts).
+ */
+const requestIdFrom = (value: unknown): string => {
+  if (typeof value === 'string' && /^[A-Za-z0-9_.:-]{4,160}$/.test(value)) return value;
+  throw new HttpsError('invalid-argument', 'Falta el identificador de la operación.', { reason: 'request_id_required' });
+};
 
 async function withCredits<T extends { imageUrl: string }>(userId: string, service: CreditService, requestId: string, reason: string, work: () => Promise<T>): Promise<T> {
   let authorized;
@@ -38,11 +45,27 @@ async function withCredits<T extends { imageUrl: string }>(userId: string, servi
   } catch (error) {
     throw toHttpsError(error);
   }
-  if (authorized.duplicate && authorized.status === 'COMPLETED') {
-    // Misma operación repetida y ya terminada: se devuelve el mismo resultado sin volver a cobrar
-    const previous = await creditEngine.getCreditHistory(userId, 200);
-    const stored = previous.find((t) => t.id === authorized.transactionId)?.meta?.imageUrl;
-    if (typeof stored === 'string' && stored) return { imageUrl: stored } as T;
+  /*
+   * LA MISMA OPERACIÓN OTRA VEZ (mismo requestId) NUNCA SE EJECUTA DOS VECES (H0 #11).
+   *
+   * Antes, un duplicado en AUTHORIZED —la primera llamada todavía generando—
+   * volvía a generar, y si esta segunda fallaba REEMBOLSABA la reserva de la
+   * primera, que seguía en marcha: Weë pagaba dos generaciones y la persona
+   * ninguna. Y un duplicado COMPLETED que no aparecía entre las 200 últimas
+   * transacciones se generaba gratis otra vez.
+   *
+   * Ahora: si ya terminó, se devuelve su resultado; si no se encuentra, se dice
+   * que ya terminó (sin generar). Si sigue en marcha, «ya está en marcha», sin
+   * generar ni tocar su reserva.
+   */
+  if (authorized.duplicate) {
+    if (authorized.status === 'COMPLETED') {
+      const previous = await creditEngine.getCreditHistory(userId, 200);
+      const stored = previous.find((t) => t.id === authorized.transactionId)?.meta?.imageUrl;
+      if (typeof stored === 'string' && stored) return { imageUrl: stored } as T;
+      throw new HttpsError('already-exists', 'Esa creación ya terminó y no se vuelve a hacer. Búscala en tus creaciones.', { reason: 'result_not_available' });
+    }
+    throw new HttpsError('already-exists', 'Esa creación ya está en marcha.', { reason: 'in_progress' });
   }
   try {
     const result = await work();
@@ -82,7 +105,7 @@ export const generateAvatarWithGemini = onCall(
     }
 
     const { prompt, selections } = request.data;
-    const requestId = requestIdFrom(request.data?.requestId, 'avatar');
+    const requestId = requestIdFrom(request.data?.requestId);
 
     // Support both legacy prompt and new selections format
     let avatarConfig: AvatarConfig;
@@ -158,7 +181,7 @@ export const avatarReplacement = onCall(
       throw new HttpsError('unauthenticated', 'Must be authenticated');
     }
 
-    const requestId = requestIdFrom(request.data?.requestId, 'swap');
+    const requestId = requestIdFrom(request.data?.requestId);
 
     /*
      * LAS DOS FOTOS TIENEN QUE SER SUYAS, Y DE WEË.
