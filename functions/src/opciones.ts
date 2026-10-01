@@ -18,4 +18,12 @@ import { setGlobalOptions } from 'firebase-functions/v2/options';
  * Bajar el techo de una función concreta (fase 2: administración, barrido,
  * webhooks…) es decisión del dueño y va en su propio `onCall`/`onSchedule`.
  */
-setGlobalOptions({ maxInstances: 20 });
+/**
+ * APP CHECK: EL ÚNICO INTERRUPTOR (apagado). Cada callable lee `enforceAppCheck` de aquí al definirse, así que
+ * exigir App Check a todas es cambiar esta línea en un PR y desplegar; ninguna función lo fija por su cuenta
+ * (functions/test/app-check.test.mjs). Encenderlo ANTES de que la web y las apps manden su token dejaría a todo
+ * el mundo fuera: el orden está en docs/SECURITY.md § App Check. Apagado no cambia nada de lo que se despliega.
+ */
+export const APP_CHECK_OBLIGATORIO = false;
+
+setGlobalOptions({ maxInstances: 20, enforceAppCheck: APP_CHECK_OBLIGATORIO });

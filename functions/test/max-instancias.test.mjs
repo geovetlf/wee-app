@@ -52,7 +52,8 @@ recorrer(path.resolve(here, '../src'));
 const llamadas = fuentes.filter((f) => /setGlobalOptions\s*\(/.test(sinComentarios(fs.readFileSync(f, 'utf8'))));
 check('2) hay exactamente UNA llamada a setGlobalOptions, en opciones.ts (dos llamadas son comportamiento indefinido)',
   llamadas.length === 1 && llamadas[0].endsWith(path.join('src', 'opciones.ts')), llamadas.map((f) => path.basename(f)).join(', '));
-check('3) y fija el techo global en 20', /setGlobalOptions\(\{\s*maxInstances:\s*20\s*\}\)/.test(sinComentarios(leer('functions/src/opciones.ts'))));
+check('3) y fija el techo global en 20 (junto al interruptor de App Check, apagado: functions/test/app-check.test.mjs)',
+  /setGlobalOptions\(\{\s*maxInstances:\s*20\s*(,\s*enforceAppCheck:\s*APP_CHECK_OBLIGATORIO\s*)?\}\)/.test(sinComentarios(leer('functions/src/opciones.ts'))));
 
 /* ── B. Cada función exportada, cargada de verdad ───────────────────────── */
 const exportado = require(path.join(LIB, 'index.js'));

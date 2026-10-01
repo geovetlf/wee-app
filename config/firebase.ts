@@ -8,6 +8,7 @@ import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { activarAppCheck } from './appCheck';
 
 console.log('🔥 Starting Firebase initialization...');
 
@@ -70,6 +71,8 @@ try {
   // Inicializar Firebase
   app = initializeApp(firebaseConfig);
   console.log('✅ Firebase app initialized');
+  // App Check: solo en la web y solo si el build trae su clave pública (config/appCheck.web.ts). Sin clave, nada.
+  if (activarAppCheck(app)) console.log('✅ App Check (web) activo');
 
   // Inicializar servicios de Firebase con persistencia según la plataforma
   if (Platform.OS === 'web') {
