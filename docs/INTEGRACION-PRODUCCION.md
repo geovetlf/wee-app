@@ -261,3 +261,34 @@ DEPLOY con humo, observación, registro y tag
 - repetir este ensayo;
 - preparar las traducciones en una rama propia sin fusionar;
 - preparar los arreglos de §4 b–e como parche.
+
+## 10. Los comandos exactos (cuando esté autorizado)
+
+Los dos parches están en `ops/integracion/`.
+`functions/test/integracion-preparada.test.mjs` fija qué tocan:
+- `conflictos.patch`: solo la cadena de `npm test` y la prueba #63 de
+  job-queue;
+- `semantica.patch`: sus 13 archivos, nada de `functions/src`.
+
+Así se ensayó, y así se ejecuta:
+
+```
+git switch -c integracion/produccion harness/fase-1
+git merge --no-ff hotfix/r22-generatevideo           # 3 conflictos, los de §3
+git checkout --ours functions/package.json functions/test/job-queue.test.mjs functions/test/i18n-preferencia-usuario.test.mjs
+git apply ops/integracion/conflictos.patch
+git add functions/package.json functions/test/job-queue.test.mjs functions/test/i18n-preferencia-usuario.test.mjs
+git commit                                           # el merge, con su mensaje
+git apply ops/integracion/semantica.patch && git commit -am "…§4 b–d…"
+```
+
+- **Si `functions/package.json` ha cambiado desde que se generó el parche**, la
+  prueba 3b falla. En ese caso se regenera:
+  - `node ops/integracion/unir-cadena.mjs <ours> <theirs> functions/package.json`
+    sobre el merge;
+  - `git diff HEAD --` de los dos archivos.
+- **Después del merge:**
+  - las traducciones (§4 a), en su propio commit;
+  - la puerta de Filmmaker (§7 B), en el suyo;
+  - la verificación completa.
+- **Antes de cualquier push**, el freno de Vercel (§6).
