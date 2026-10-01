@@ -50,7 +50,7 @@ el interruptor (tras el despliegue) y las alertas (al activarlas).
 | CI (GitHub Actions) | 0: repositorio público, minutos sin límite |
 | Workflow de despliegue | 0 en GitHub. Cada despliegue usa Cloud Build y Artifact Registry como cualquier `firebase deploy` |
 | Observación posterior | 0: lecturas de Cloud Monitoring dentro de la capa gratuita; unos 13 minutos más de runner |
-| Alertas | 4 métricas basadas en logs, 7 condiciones y 1 comprobación de salud. Las de Cloud Run son gratuitas; el precio por condición se confirma en la consola antes de activarlas |
+| Alertas | 4 métricas basadas en logs, 7 condiciones, 2 comprobaciones de salud (get-wee.web.app y www.wee.zone, unas 100 000 ejecuciones al mes, por debajo del millón gratuito) y 1 panel (gratis). Las de Cloud Run son gratuitas; el precio por condición se confirma en la consola antes de activarlas |
 | Auditoría del canje de WIF (opcional) | Unas líneas por despliegue, dentro de la cuota gratuita de Cloud Logging |
 | Escaneo de secretos | 0: script propio, sin servicios |
 
