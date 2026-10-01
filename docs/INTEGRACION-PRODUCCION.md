@@ -19,7 +19,7 @@ origin/main (GitHub) ── bfc622d ── lo que publica Vercel en wee.zone
                            ▼
 main (local) ─────────── dad0ca2
                            ├── +7 ── i18n/hi-in d731b6d (ja, tr, sv, hi)
-                           │           └── +35 ── harness/fase-1 (este trabajo)
+                           │           └── harness/fase-1 (este trabajo)
                            └── +43 ── hotfix/r22-generatevideo 7f11d51   ← CORRE EN PRODUCCIÓN
                                          │ (96b3f7a es su penúltimo commit)
                                          └─ 96b3f7a ── +59 ── filmmaker/core e00d144 (NO desplegado)
