@@ -71,11 +71,18 @@ if (versionados) {
   console.log('· sin git: se saltan las comprobaciones del índice (10–13)');
 }
 
-/* Vercel publicaba wee.zone en CADA push a main, saltándose CI, tag y aprobación (H0). La web sale por el mismo
-   camino que el resto de producción (docs/DEPLOYMENT.md §2); las ramas siguen teniendo previsualizaciones. */
+/* Vercel publica wee.zone en CADA push a main, saltándose CI, tag y aprobación (H0). El freno está PREPARADO y SIN
+   ACTIVAR (decisión del dueño, 2026-09-30: «No desactives todavía el deploy automático»): el vercel.json activo es el de
+   siempre y el freno vive aparte, para aplicarlo cuando lo autorice (docs/DEPLOYMENT.md §2). Así un push a main no lo
+   activa por sorpresa. */
 const vercel = JSON.parse(leer('vercel.json'));
-check('14) un push a main no publica la web por su cuenta (vercel.json: git.deploymentEnabled.main = false)',
-  vercel.git && vercel.git.deploymentEnabled && vercel.git.deploymentEnabled.main === false);
+const preparado = leer('ops/vercel/vercel.sin-despliegue-automatico.json');
+const conFreno = JSON.parse(preparado);
+check('14) el vercel.json activo NO lleva el freno: el despliegue automático sigue como estaba hasta que el dueño lo autorice',
+  !(vercel.git && vercel.git.deploymentEnabled));
+check('15) el freno está preparado aparte: el mismo vercel.json más git.deploymentEnabled.main = false, y nada más',
+  conFreno.git && conFreno.git.deploymentEnabled && conFreno.git.deploymentEnabled.main === false
+  && JSON.stringify({ ...conFreno, git: undefined }) === JSON.stringify({ ...vercel, git: undefined }));
 
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

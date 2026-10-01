@@ -1,4 +1,5 @@
 {
+  "git": { "deploymentEnabled": { "main": false } },
   "buildCommand": "npx expo export -p web && cp public/privacy-policy.html public/support.html public/terms.html dist/",
   "outputDirectory": "dist",
   "framework": null,

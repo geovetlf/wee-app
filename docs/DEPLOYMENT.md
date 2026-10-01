@@ -64,15 +64,18 @@ Documento operativo del **Weë Agent Harness** (FASE 3, 4 y 6). Producción es
     despliegue tiene que llevar el arreglo del código (`b878068`, `assertAdmin`);
   - su tag **no** se vuelve a desplegar.
 - **La web.**
-  - `wee.zone` la sirve Vercel desde GitHub.
-  - Hasta ahora, **cada push a `main` la publicaba**, saltándose CI, tag y
-    aprobación.
-  - `vercel.json` lleva desde el Harness `git.deploymentEnabled.main: false`.
-    Al llegar a GitHub, un push a `main` deja de publicar.
+  - `wee.zone` la sirve Vercel desde GitHub, y **cada push a `main` la
+    publica**, saltándose CI, tag y aprobación.
+  - El freno está **preparado y sin activar** (decisión del dueño, 2026-09-30):
+    `ops/vercel/vercel.sin-despliegue-automatico.json` es el `vercel.json` de
+    siempre más `git.deploymentEnabled.main: false`.
+  - El `vercel.json` activo no cambia, así que un push a `main` no lo activa
+    por sorpresa.
+  - Para activarlo, con autorización, se copia ese archivo sobre `vercel.json`
+    en un PR. Desde entonces la web se publica a propósito: desde el panel de
+    Vercel o desde el workflow (§6).
   - Las ramas siguen generando previsualizaciones, que usan la configuración de
     Firebase de producción.
-  - La web se publica a propósito, desde el panel de Vercel o desde el workflow
-    (§6).
 
 ## 3. Antes de desplegar cualquier cosa
 
