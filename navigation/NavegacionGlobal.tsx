@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { refNavegacion } from './refNavegacion';
+import { navegarEnLaRaiz, refNavegacion } from './refNavegacion';
 import BarraInferior, { ALTO_BARRA, DestinoId } from '../components/BarraInferior';
 import CreateSheet, { CreateKind } from '../components/CreateSheet';
 import { useAuth } from '../contexts/AuthContext';
@@ -215,8 +215,9 @@ const NavegacionGlobal: React.FC = () => {
     ? 'Notifications'
     : pestanaPuesta(estado) || DESTINO_DE_RUTA[rutaRaiz] || 'Home';
 
+  /* Siempre a la pila principal: ver `navegarEnLaRaiz` (la pestaña «Create» se quedaba el compositor). */
   const irARaiz = (pantalla: string, params?: object) => {
-    if (refNavegacion.isReady()) (refNavegacion as any).navigate(pantalla, params);
+    navegarEnLaRaiz(pantalla, params);
   };
 
   const elegir = (destino: DestinoId) => {

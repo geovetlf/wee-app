@@ -183,7 +183,7 @@ const SettingsScreen: React.FC = () => {
           <Text style={[styles.settingTitle, { color: theme.colors.text }]}>
             {title}
           </Text>
-          {subtitle && (
+          {!!subtitle && (
             <Text style={[styles.settingSubtitle, { color: theme.colors.textSecondary }]}>
               {subtitle}
             </Text>

@@ -268,7 +268,9 @@ console.log('\n── Lo de la cuenta, fuera del perfil público ──');
 
   check('el token de push tiene su colección, y desde el cliente no la lee nadie',
     /match \/pushTokens\/\{uid\} \{\s*\n\s*allow read: if false;/.test(reglas)
-    && /request\.auth\.uid == uid &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(\['token', 'platform', 'updatedAt'\]\)/.test(reglas));
+    && /request\.auth\.uid == uid &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(\['token', 'platform', 'updatedAt', 'locale'\]\)/.test(reglas)
+    /* El idioma del aparato: solo una etiqueta corta con forma de idioma. */
+    && /request\.resource\.data\.locale\.matches\('\^\[A-Za-z\]\{2,3\}\(-\[A-Za-z0-9\]\{1,8\}\)\*\$'\)/.test(reglas));
   check('el cliente escribe el token en pushTokens/{cuenta} y nunca en el perfil',
     /doc\(db, 'pushTokens', accountUid\)/.test(push) && !/'users'/.test(push) && !/pushToken:/.test(push)
     /* El VALOR del token no se escribe en el registro (un aviso de estado sin el token sí puede). */

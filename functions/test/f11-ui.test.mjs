@@ -88,7 +88,7 @@ console.log('\n── C · La tarjeta de resultado: descargar, y «ya está guar
 // ════════════════════════════════════════════════════════════════════════════
 {
   check('20) hay descarga del archivo, con el servicio de descargas', /descargarCreacion\(publicable\.uri, publicable\.type\)/.test(tarjeta) && /t\('creaciones\.download'\)/.test(tarjeta));
-  check('21) y la constancia de que ya está en «Mis creaciones», que lleva allí', /publicable\.assetId && onOpenCreations && \(/.test(tarjeta) && /t\('creaciones\.savedInCreations'\)/.test(tarjeta) && /onOpenCreations=\{\(\) => navigation\.navigate\('MisCreaciones'\)\}/.test(flujo));
+  check('21) y la constancia de que ya está en «Mis creaciones», que lleva allí', /!!\(publicable\.assetId && onOpenCreations\) && \(/.test(tarjeta) && /t\('creaciones\.savedInCreations'\)/.test(tarjeta) && /onOpenCreations=\{\(\) => navigation\.navigate\('MisCreaciones'\)\}/.test(flujo));
   check('22) NO hay un botón que guarde una segunda copia', !/t\('creaciones\.save'\)/.test(tarjeta) && !/crearMaterial|createAsset|saveAsset/.test(tarjeta));
   check('23) «Usar en proyecto» sigue siendo el selector de proyectos que ya existía', /onSaveToProject=\{\(\) => setPickerVisible\(true\)\}/.test(flujo) && /t\('weeai\.saveToProject'\)/.test(tarjeta));
   check('24) lo que pasa al descargar se dice con sus textos, no con un porcentaje', /notify\(t\('creaciones\.downloaded'\)\)/.test(tarjeta) && /notify\(t\('creaciones\.downloadPermission'\)\)/.test(tarjeta) && /notify\(t\('creaciones\.downloadFailed'\)\)/.test(tarjeta));

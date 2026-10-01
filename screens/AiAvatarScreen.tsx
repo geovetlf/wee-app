@@ -588,7 +588,7 @@ const AiAvatarScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {swapResultUrl && (
+        {!!swapResultUrl && (
           <View style={styles.swapPreviewContainer}>
             <Image source={{ uri: swapResultUrl }} style={styles.swapResultImage} resizeMode="contain" />
             <TouchableOpacity
@@ -871,7 +871,7 @@ const AiAvatarScreen: React.FC = () => {
             <>
               {/* Avatar preview - single image from Gemini */}
               <View style={styles.previewContainer}>
-                {generatedAvatarUrl && (
+                {!!generatedAvatarUrl && (
                   <Image
                     source={{ uri: generatedAvatarUrl }}
                     style={styles.previewImagePortrait}

@@ -326,7 +326,7 @@ const LandingScreen: React.FC = () => {
     const tabNavigation = navigation.getParent();
     const mainNavigation = tabNavigation?.getParent();
     if (mainNavigation) {
-      (mainNavigation as any).navigate('PostDetail', { post });
+      (mainNavigation as any).navigate('PostDetail', { postId: post.id, post });
     }
   }, [navigation]);
 
@@ -487,7 +487,7 @@ const LandingScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-            {(post.imageUrls?.[0] || post.videoUrl) && (
+            {!!(post.imageUrls?.[0] || post.videoUrl) && (
               <View style={[styles.cardThumb, { backgroundColor: theme.colors.surface }]}>
                 {post.videoUrl ? (
                   <Video
@@ -588,7 +588,7 @@ const LandingScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-          {(post.imageUrls?.[0] || post.videoUrl) && (
+          {!!(post.imageUrls?.[0] || post.videoUrl) && (
             <View style={[styles.cardThumb, { backgroundColor: theme.colors.surface }]}>
               {post.videoUrl ? (
                 <Video

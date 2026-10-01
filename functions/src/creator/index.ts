@@ -27,6 +27,7 @@ import { imageServiceFor } from '../credits/aiPricing';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { operacionAbandonada } from '../core';
 import { etiquetaDeIdioma } from '../shared/idiomaDelServidor';
+import { idiomaDeSalida } from './idiomaDeSalida';
 import { crearMaterialDesdeUrl } from '../content';
 
 /**
@@ -744,6 +745,7 @@ export const creatorRun = onCall(
             credits: run.credits,
             durationSec: run.output.durationSec,
             sources: run.output.sources,
+            ...idiomaDeSalida(run.output, job.locale, input.kind),
           });
           /* Cada archivo del resultado pasa a ser material de la cuenta, con su procedencia. */
           const assetIds = await materialesDeResultado(uid, run, next, jobId, stepCtx.requestId, job.experienceId);

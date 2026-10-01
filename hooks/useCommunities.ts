@@ -76,15 +76,9 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
     setError(null);
 
     try {
-      // Cargar todas las comunidades
+      // Cargar todas las comunidades. Una lista vacía es un estado válido: las oficiales las crea la administración
+      // (`scripts/sembrar-comunidades.mjs`), nunca la app —las reglas no la dejan, y no debe—.
       let allCommunities = await communityService.getCommunities();
-
-      // Si no hay comunidades, hacer seed de las oficiales
-      if (allCommunities.length === 0) {
-        console.log('🌱 No hay comunidades, ejecutando seed...');
-        await communityService.seedOfficialCommunities();
-        allCommunities = await communityService.getCommunities();
-      }
 
       // Corregir iconos emoji a Ionicons (fix del lado cliente)
       allCommunities = allCommunities.map(fixCommunityIcon);

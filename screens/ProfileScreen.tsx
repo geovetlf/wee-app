@@ -406,7 +406,7 @@ const ProfileScreen: React.FC = () => {
   const handleComment = (postId: string) => {
     const post = userPosts.find(p => p.id === postId);
     if (post) {
-      (navigation as any).navigate('PostDetail', { post });
+      (navigation as any).navigate('PostDetail', { postId: post.id, post });
     }
   };
 
@@ -426,7 +426,7 @@ const ProfileScreen: React.FC = () => {
 
   const handlePostPress = (post: Post) => {
     // Navegar al detalle del post
-    (navigation as any).navigate('PostDetail', { post });
+    (navigation as any).navigate('PostDetail', { postId: post.id, post });
   };
 
   // Abrir visor de foto de perfil
@@ -967,7 +967,7 @@ const ProfileScreen: React.FC = () => {
       {renderEditModal()}
 
       {/* Visor de foto de perfil */}
-      {userProfile?.photoURL && (
+      {!!userProfile?.photoURL && (
         <ImageViewer
           visible={showAvatarViewer}
           imageUrls={[userProfile.photoURL]}
@@ -976,7 +976,7 @@ const ProfileScreen: React.FC = () => {
       )}
 
       {/* Visor de banner */}
-      {userProfile?.bannerURL && (
+      {!!userProfile?.bannerURL && (
         <ImageViewer
           visible={showBannerViewer}
           imageUrls={[userProfile.bannerURL]}

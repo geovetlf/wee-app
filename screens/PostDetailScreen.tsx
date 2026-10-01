@@ -45,6 +45,7 @@ import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } 
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
+import { esPublicacion } from '../navigation/enlaces';
 
 type PostDetailScreenNavigationProp = StackNavigationProp<MainStackParamList, 'PostDetail'>;
 
@@ -79,7 +80,8 @@ const PostDetailContent: React.FC = () => {
   const route = useRoute<PostDetailScreenRouteProp>();
   const navigation = useNavigation<PostDetailScreenNavigationProp>();
   const insets = useSafeAreaInsets();
-  const { post } = route.params;
+  /* Este contenido solo se pinta con una publicación de verdad (`esPublicacion`, en PostDetailScreen): ya está comprobada. */
+  const post = route.params.post as Post;
   const { userProfile: postAuthor, loading: loadingAuthor } = useUserById(post.userId);
 
   // Capturar el inset de safe area inicial para evitar fluctuaciones cuando el teclado
@@ -649,7 +651,7 @@ const PostDetailContent: React.FC = () => {
       </ScrollView>
 
       {/* Comment image preview */}
-      {commentImage && (
+      {!!commentImage && (
         <View style={[styles.commentImagePreview, { backgroundColor: theme.colors.surface }]}>
           <Image source={{ uri: commentImage }} style={styles.commentImageThumbnail} />
           <TouchableOpacity
@@ -1040,7 +1042,8 @@ const PostDetailScreen: React.FC = () => {
   const { theme } = useTheme();
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const hasPost = !!route.params?.post;
+  /* Una publicación de verdad —un objeto con su id—, no la cadena que dejaba una recarga (navigation/enlaces.ts). */
+  const hasPost = esPublicacion(route.params?.post);
   const postId: string | undefined = route.params?.postId;
   const [failed, setFailed] = useState(false);
 

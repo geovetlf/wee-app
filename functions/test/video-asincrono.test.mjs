@@ -587,7 +587,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    */
   const MOTOR_F1D_Y_HARNESS = {
     'functions/src/creator/credits.ts': '45\t4', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
-    'functions/src/creator/index.ts': '109\t10', // 0926584 (#9) · 0799ed6 · i18n da-DK (+10, el locale)
+    'functions/src/creator/index.ts': '111\t10', // 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida)
     'functions/src/engine/admin.ts': '9\t2', // 0ad8500 (#19) · 5e87b80 (FASE 8)
     'functions/src/engine/config.ts': '36\t1', // 8193184 (#20)
     'functions/src/engine/errors.ts': '1\t1', // i18n da-DK: el rechazo de entrada sin «el proveedor»

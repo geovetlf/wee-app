@@ -164,7 +164,7 @@ const UserProfileScreen: React.FC = () => {
   };
 
   const handlePostPress = (post: Post) => {
-    navigation.navigate('PostDetail', { post });
+    navigation.navigate('PostDetail', { postId: post.id, post });
   };
 
   const handleVideoPress = useCallback((post: Post, positionMillis?: number) => {
@@ -187,7 +187,7 @@ const UserProfileScreen: React.FC = () => {
   const handleComment = (postId: string) => {
     const post = [...userPosts, ...userReposts, ...userLikedPosts].find(p => p.id === postId);
     if (post) {
-      navigation.navigate('PostDetail', { post });
+      navigation.navigate('PostDetail', { postId: post.id, post });
     }
   };
 
@@ -551,7 +551,7 @@ const UserProfileScreen: React.FC = () => {
             {userProfile.displayName}
           </Text>
 
-          {userProfile.bio && (
+          {!!userProfile.bio && (
             <Text style={[styles.bio, { color: theme.colors.text }]}>
               {userProfile.bio}
             </Text>
@@ -559,7 +559,7 @@ const UserProfileScreen: React.FC = () => {
 
           {/* Info adicional */}
           <View style={styles.infoSection}>
-            {userProfile.website && (
+            {!!userProfile.website && (
               <TouchableOpacity
                 style={styles.infoRow}
                 onPress={() => {
@@ -674,7 +674,7 @@ const UserProfileScreen: React.FC = () => {
       </ScrollView>
 
       {/* Visor de foto de perfil */}
-      {userProfile?.photoURL && (
+      {!!userProfile?.photoURL && (
         <ImageViewer
           visible={showAvatarViewer}
           imageUrls={[userProfile.photoURL]}
@@ -683,7 +683,7 @@ const UserProfileScreen: React.FC = () => {
       )}
 
       {/* Visor de banner */}
-      {userProfile?.bannerURL && (
+      {!!userProfile?.bannerURL && (
         <ImageViewer
           visible={showBannerViewer}
           imageUrls={[userProfile.bannerURL]}

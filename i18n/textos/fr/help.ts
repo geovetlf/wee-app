@@ -5,7 +5,7 @@
  *
  * Tratamiento informal (tu). Lo legal va con el término exacto
  * ("Conditions d’utilisation", "Politique de confidentialité"); los nombres de
- * Weë, los diez especialistas y el símbolo ☰ se copian tal cual. "Cómo lo hice"
+ * Weë, los especialistas y el símbolo ☰ se copian tal cual. "Cómo lo hice"
  * se dice como en el Wäll: "Comment j’ai fait".
  */
 export const help: typeof import('../es/help').help = {
@@ -24,7 +24,8 @@ export const help: typeof import('../es/help').help = {
   q2: 'Quelle est la différence entre le Profil Réel et le Profil Weë ?',
   a2: 'Ton Profil Réel est ton identité de toujours, et l’application est blanche. Ton Profil Weë est ton identité pour créer avec l’IA : un avatar et un nom bien à toi pour publier tes créations, et avec lui l’application passe en sombre pour que tu saches toujours avec qui tu participes. Tu passes de l’un à l’autre depuis le menu ☰ ou le bouton de l’en-tête.',
   q3: 'Comment fonctionne Weë AI ?',
-  a3: 'Dis à Weë ce que tu veux obtenir, avec tes mots. Weë te pose quelques questions simples (tu peux toujours répondre "Je ne sais pas"), prépare un plan et crée le résultat. Tu choisis le résultat ; Weë choisit l’IA. Il y a dix spécialistes : Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business et Brain.',
+  a3_one: 'Dis à Weë ce que tu veux obtenir, avec tes mots. Weë te pose quelques questions simples (tu peux toujours répondre "Je ne sais pas"), prépare un plan et crée le résultat. Tu choisis le résultat ; Weë choisit l’IA. Weë AI compte {{contador}} spécialiste : {{lista}}.',
+  a3_other: 'Dis à Weë ce que tu veux obtenir, avec tes mots. Weë te pose quelques questions simples (tu peux toujours répondre "Je ne sais pas"), prépare un plan et crée le résultat. Tu choisis le résultat ; Weë choisit l’IA. Weë AI compte {{contador}} spécialistes : {{lista}}.',
   q4: 'Que sont les Credits ?',
   a4: 'Chaque création avec Weë AI consomme des Credits. Avant de créer, tu vois ce que ça va coûter et, si quelque chose échoue, ils te sont rendus. Pendant que nous construisons Weë AI, les prix sont des prix de test et les recharges ne coûtent rien : les prix définitifs arriveront avec les vraies IA.',
   q5: 'À quoi servent les projets ?',

@@ -120,6 +120,11 @@ export interface JobResult {
   demo?: boolean;
   /** Credits que costó este resultado. */
   credits?: number;
+  /**
+   * Solo cuando un texto para la persona salió, con seguridad, en otro idioma que el pedido. Se observa y no se
+   * rechaza (`creator/idiomaDeSalida.ts`).
+   */
+  idiomaDeSalida?: { esperado: string; detectado: string };
   /** Duración real (video/audio) cuando se conoce. */
   durationSec?: number;
   /** Fuentes citadas cuando el paso usó búsqueda web. */

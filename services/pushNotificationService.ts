@@ -119,12 +119,16 @@ export const pushNotificationService = {
     }
   },
 
-  // Guardar el token de la CUENTA en su documento privado
-  savePushToken: async (accountUid: string, token: string): Promise<void> => {
+  /*
+   * Guardar el token de la CUENTA en su documento privado, con el idioma en el que funciona la app de este aparato:
+   * el aviso se escribe en él cuando la cuenta no tiene un idioma elegido a mano (`users.language`).
+   */
+  savePushToken: async (accountUid: string, token: string, locale: string): Promise<void> => {
     try {
       await setDoc(tokenDeLaCuenta(accountUid), {
         token,
         platform: Platform.OS,
+        locale,
         updatedAt: serverTimestamp(),
       }, { merge: true });
     } catch (error) {

@@ -70,7 +70,7 @@ const ProductionSceneCard: React.FC<{
         </View>
       </TouchableOpacity>
 
-      {(escena.weather || escena.timeOfDay || continua.length > 0 || porRehacer.has(escena.id)) && (
+      {!!(escena.weather || escena.timeOfDay || continua.length > 0 || porRehacer.has(escena.id)) && (
         <View style={styles.chips}>
           {!!escena.timeOfDay && <Chip texto={t(CLAVE_DEL_MOMENTO[escena.timeOfDay])} icono="time-outline" />}
           {!!escena.weather && <Chip texto={t(CLAVE_DEL_CLIMA[escena.weather])} icono="partly-sunny-outline" />}

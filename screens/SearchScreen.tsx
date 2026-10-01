@@ -165,7 +165,7 @@ const SearchScreen: React.FC = () => {
   };
 
   const handlePostPress = (post: Post) => {
-    navigation.navigate('PostDetail', { post });
+    navigation.navigate('PostDetail', { postId: post.id, post });
   };
 
   const handleHashtagPress = async (hashtag: string) => {
@@ -262,7 +262,7 @@ const SearchScreen: React.FC = () => {
         </View>
 
         {/* Categorías - solo mostrar cuando hay búsqueda */}
-        {(searchQuery.trim() || selectedHashtag) && (
+        {!!(searchQuery.trim() || selectedHashtag) && (
         <View style={styles.categories}>
           <TouchableOpacity
             style={[styles.categoryButton, {
@@ -438,7 +438,7 @@ const SearchScreen: React.FC = () => {
             )}
 
             {/* Posts de hashtag seleccionado */}
-            {selectedHashtag && (
+            {!!selectedHashtag && (
               <View>
                 <View style={styles.hashtagHeader}>
                   <TouchableOpacity onPress={clearHashtagSelection} style={styles.backButton}>
@@ -501,7 +501,7 @@ const SearchScreen: React.FC = () => {
             )}
 
             {/* Comunidades - solo mostrar si hay búsqueda o no hay hashtag seleccionado */}
-            {activeCategory === 'comunidades' && searchQuery.trim() && (
+            {!!(activeCategory === 'comunidades' && searchQuery.trim()) && (
               <View>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                   {t('search.results')}
@@ -547,7 +547,7 @@ const SearchScreen: React.FC = () => {
                           </Text>
                         </View>
                       </View>
-                      {user && community.id && (
+                      {!!(user && community.id) && (
                         joiningId === community.id ? (
                           <ActivityIndicator size="small" color={theme.colors.accent} style={{ marginLeft: 8 }} />
                         ) : isMember(community.id) ? (
@@ -584,7 +584,7 @@ const SearchScreen: React.FC = () => {
             )}
 
             {/* Usuarios - solo mostrar si hay búsqueda */}
-            {activeCategory === 'usuarios' && searchQuery.trim() && !selectedHashtag && (
+            {!!(activeCategory === 'usuarios' && searchQuery.trim() && !selectedHashtag) && (
               <View>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                   {searchQuery.trim().length >= 2 ? t('search.peopleFound') : t('search.searchPeople')}
@@ -625,7 +625,7 @@ const SearchScreen: React.FC = () => {
                         <Text style={[styles.userName, { color: theme.colors.text }]}>
                           {user.displayName || t('common.anonymousUser')}
                         </Text>
-                        {user.bio && (
+                        {!!user.bio && (
                           <Text style={[styles.userBio, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                             {user.bio}
                           </Text>
@@ -654,7 +654,7 @@ const SearchScreen: React.FC = () => {
             )}
 
             {/* Posts - solo mostrar si hay búsqueda */}
-            {activeCategory === 'posts' && searchQuery.trim() && !selectedHashtag && (
+            {!!(activeCategory === 'posts' && searchQuery.trim() && !selectedHashtag) && (
               <View>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                   {searchQuery.trim().length >= 2 ? t('search.postsFound') : t('search.searchPosts')}

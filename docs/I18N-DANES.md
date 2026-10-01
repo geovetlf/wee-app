@@ -359,6 +359,11 @@ Lo propio de esta sección:
 5. Revisión humana de lo que no se prueba —naturalidad, tono, contexto— en una segunda pasada independiente, y capturas
    de las pantallas en escritorio y móvil.
 
+**Revisión humana nativa: pendiente.** El danés tiene hoy 0 textos con revisión humana; 781 los revisó un agente de IA
+(apuntado como `agente` en `i18n/revision/da/registro.json`, que nunca cuenta como humano). El procedimiento para que
+una persona danesa lo revise —exportar, corregir, importar, registrar quién y cuándo— está en
+`docs/I18N-REVISION.md`.
+
 La segunda integración (2026-10-01, textos del servidor y experiencia de punta a punta) añadió
 `functions/test/i18n-servidor.test.mjs` (los 1.403 planes posibles, armados con el servidor de verdad, sin un texto
 español en danés) y `functions/test/i18n-auditoria.test.mjs` (todos los idiomas: completos, huecos, plurales, ni

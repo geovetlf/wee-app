@@ -497,7 +497,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                       propuestas son dos habitaciones bonitas que podrían ser de
                       cualquiera. Cambia con la propuesta elegida.
                     */}
-                    {transforma && beforeImageUri && (
+                    {!!(transforma && beforeImageUri) && (
                       <View style={[styles.pair, apilar && styles.pairStacked]}>
                         <View style={styles.pairItem}>
                           <Image source={{ uri: beforeImageUri }} style={[styles.pairImage, styles.pairImageWide]} contentFit="contain" />
@@ -694,7 +694,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             <Ionicons name="download-outline" size={scale(16)} color={theme.colors.text} />
             <Text style={[styles.creacionTexto, { color: theme.colors.text }]}>{t('creaciones.download')}</Text>
           </TouchableOpacity>
-          {publicable.assetId && onOpenCreations && (
+          {!!(publicable.assetId && onOpenCreations) && (
             <TouchableOpacity
               onPress={onOpenCreations}
               disabled={busy}

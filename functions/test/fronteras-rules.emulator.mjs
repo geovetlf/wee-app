@@ -272,6 +272,10 @@ console.log('\n── H · Lo de la cuenta, fuera del perfil público (cierre de
   await esperar('44) ni la propia Ana desde el cliente: lo lee el servidor al enviar', 'DENIEGA', 'GET', `/pushTokens/${ANA}`, { uid: ANA });
   await esperar('45) Beto no puede escribir el de Ana', 'DENIEGA', 'PATCH', `/pushTokens/${ANA}`, { uid: BETO, body: doc(token('ExponentPushToken[beto]')) });
   await esperar('46) y un campo de más no entra', 'DENIEGA', 'PATCH', `/pushTokens/${ANA}`, { uid: ANA, body: doc({ ...token('ExponentPushToken[ana]'), extra: 'x' }) });
+  /* 46b–46d · Con el idioma de la app del aparato, para escribir el aviso en él: solo una etiqueta de idioma. */
+  await esperar('46b) Ana guarda el idioma de su app con el token', 'PERMITE', 'PATCH', `/pushTokens/${ANA}`, { uid: ANA, body: doc({ ...token('ExponentPushToken[ana]'), locale: 'da-DK' }) });
+  await esperar('46c) pero no cualquier texto como idioma', 'DENIEGA', 'PATCH', `/pushTokens/${ANA}`, { uid: ANA, body: doc({ ...token('ExponentPushToken[ana]'), locale: '<script>alert(1)</script>' }) });
+  await esperar('46d) ni uno larguísimo', 'DENIEGA', 'PATCH', `/pushTokens/${ANA}`, { uid: ANA, body: doc({ ...token('ExponentPushToken[ana]'), locale: 'da-' + 'x'.repeat(60) }) });
 
   /* 47–50 · Ningún campo de cuenta vuelve al perfil público, ni por su dueña. */
   check('47) Ana no puede escribir su email en el perfil público', (await escribir('/users/perfilAna', ANA, { email: 'ana@wee.zone' })) >= 400);

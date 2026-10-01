@@ -185,7 +185,7 @@ const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }
           </Text>
 
           {/* Preview del contenido */}
-          {(item.postContent || item.commentContent) && (
+          {!!(item.postContent || item.commentContent) && (
             <Text
               style={[styles.previewText, { color: theme.colors.textSecondary }]}
               numberOfLines={1}

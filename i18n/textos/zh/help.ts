@@ -6,7 +6,7 @@
  *
  * EL CONTENIDO DE LA AYUDA ES INTERFAZ, no algo que escriba una persona: por
  * eso vive aquí y se traduce entero. Los emojis, el símbolo ☰ y los nombres de
- * Weë y de los diez especialistas se copian tal cual, sin pasarlos a hanzi.
+ * Weë y de los especialistas se copian tal cual, sin pasarlos a hanzi.
  *
  * ── LAS PREGUNTAS USAN «…是什么？» ─────────────────────────────────────────
  *
@@ -40,7 +40,8 @@ export const help: typeof import('../es/help').help = {
   q2: '真实主页和 Weë 主页有什么区别？',
   a2: '真实主页是你一直以来的身份，应用是浅色的。Weë 主页是你用 AI 创作时的身份：用专属的头像和名字发布作品，这时应用会变成深色，让你随时知道自己正在用哪个身份参与。在菜单 ☰ 或顶栏的按钮里切换。',
   q3: 'Weë AI 是怎么工作的？',
-  a3: '用你自己的话告诉 Weë 你想做成什么。Weë 会问几个简单的问题（随时可以回答“不知道”），给出方案，然后做出结果。结果你来选，AI 由 Weë 来选。这里有十位专家：Design、Studio、Photo、Writer、Music、Beauty、Chef、Home、Business 和 Brain。',
+  a3_one: '用你自己的话告诉 Weë 你想做成什么。Weë 会问几个简单的问题（随时可以回答“不知道”），给出方案，然后做出结果。结果你来选，AI 由 Weë 来选。Weë AI 有 {{contador}} 位专家：{{lista}}。',
+  a3_other: '用你自己的话告诉 Weë 你想做成什么。Weë 会问几个简单的问题（随时可以回答“不知道”），给出方案，然后做出结果。结果你来选，AI 由 Weë 来选。Weë AI 有 {{contador}} 位专家：{{lista}}。',
   q4: 'Credits 是什么？',
   a4: '用 Weë AI 创作的每一次都会消耗 Credits。开始之前你会看到要花多少，如果出了问题会退还。在我们建设 Weë AI 的这段时间里，价格是测试价，充值也不花钱：正式价格会跟真实的 AI 一起到来。',
   q5: '项目是用来做什么的？',

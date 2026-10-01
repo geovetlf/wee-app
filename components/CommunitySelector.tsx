@@ -42,14 +42,8 @@ const CommunitySelector: React.FC<CommunitySelectorProps> = ({
   const loadCommunities = async () => {
     try {
       setLoading(true);
-      let comms = await communityService.getOfficialCommunities();
-
-      // Si no hay comunidades, intentar hacer seed
-      if (comms.length === 0) {
-        console.log('No hay comunidades, ejecutando seed...');
-        await communityService.seedOfficialCommunities();
-        comms = await communityService.getOfficialCommunities();
-      }
+      /* Sin oficiales, la lista va vacía: crearlas es cosa de la administración (`scripts/sembrar-comunidades.mjs`). */
+      const comms = await communityService.getOfficialCommunities();
 
       setCommunities(comms);
     } catch (err) {
@@ -162,7 +156,7 @@ const CommunitySelector: React.FC<CommunitySelectorProps> = ({
         </TouchableOpacity>
 
         {/* Warning Modal */}
-        {showingWarning && item.warningMessage && (
+        {!!(showingWarning && item.warningMessage) && (
           <View style={[styles.warningContainer, { backgroundColor: `${theme.colors.warning || '#f59e0b'}15`, borderColor: theme.colors.warning || '#f59e0b' }]}>
             <View style={styles.warningContent}>
               <Ionicons name="warning" size={scale(20)} color={theme.colors.warning || '#f59e0b'} />

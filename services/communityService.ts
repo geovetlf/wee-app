@@ -73,24 +73,8 @@ export const CATEGORY_TAGS: { [slug: string]: string[] } = {
   'kpop-kdrama': ['Grupos', 'Idols', 'Doramas', 'Comebacks', 'Concerts', 'Noticias', 'Ships', 'Fandom'],
 };
 
-// Comunidades oficiales iniciales
-export const OFFICIAL_COMMUNITIES: Omit<Community, 'id' | 'createdAt' | 'updatedAt'>[] = COMMUNITY_CATEGORIES.map((c) => ({
-  name: c.name,
-  slug: c.slug,
-  description: c.description,
-  icon: c.icon,
-  rules: [
-    /* De tú, como el resto de Weë (estaban en voseo). Se pintan por su clave: `utils/comunidadesDeWee.ts`. */
-    { id: '1', text: 'Comparte lo que creaste con IA y cuenta cómo lo hiciste', order: 1 },
-    { id: '2', text: 'Pregunta y responde con respeto', order: 2 },
-    { id: '3', text: 'Nada de spam ni de contenido que no sea tuyo', order: 3 },
-  ],
-  memberCount: 0,
-  postCount: 0,
-  isOfficial: true,
-  moderators: [],
-  status: 'active' as const,
-}));
+/* Las comunidades oficiales son DATOS (`constants/comunidadesOficiales.ts`); las crea la administración, no la app. */
+export { OFFICIAL_COMMUNITIES } from '../constants/comunidadesOficiales';
 
 // Servicio de comunidades
 export const communityService = {
@@ -477,78 +461,6 @@ export const communityService = {
       });
     } catch (error) {
       console.error('Error decrementing post count:', error);
-    }
-  },
-
-  // Seed de comunidades oficiales (solo ejecutar una vez)
-  seedOfficialCommunities: async (): Promise<void> => {
-    try {
-      console.log('🌱 Iniciando seed de comunidades oficiales...');
-
-      for (const community of OFFICIAL_COMMUNITIES) {
-        // Verificar si ya existe
-        const existing = await communityService.getCommunityBySlug(community.slug);
-        if (existing) {
-          console.log(`⏭️ Comunidad "${community.name}" ya existe, saltando...`);
-          continue;
-        }
-
-        // Crear la comunidad
-        const docRef = await addDoc(collection(db, 'communities'), {
-          ...community,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
-
-        console.log(`✅ Comunidad "${community.name}" creada con ID: ${docRef.id}`);
-      }
-
-      console.log('🎉 Seed completado!');
-    } catch (error) {
-      console.error('❌ Error en seed:', error);
-      throw error;
-    }
-  },
-
-  // Migrar iconos de emojis a Ionicons
-  migrateIcons: async (): Promise<void> => {
-    try {
-      console.log('🔄 Migrando iconos de comunidades...');
-
-      // Mapa de slug a nuevo icono
-      const iconMap: Record<string, string> = {
-        'gamers': 'game-controller',
-        'politica': 'business',
-        'deportes': 'football',
-        'religion-filosofia': 'book',
-        'recreacion': 'color-palette',
-        'denuncias-injusticias': 'megaphone',
-        'consejos-psicologia': 'heart',
-        'gastronomia': 'restaurant',
-        'haters': 'flame',
-      };
-
-      // Obtener todas las comunidades oficiales
-      const communities = await communityService.getOfficialCommunities();
-
-      for (const community of communities) {
-        if (!community.id) continue;
-
-        const newIcon = iconMap[community.slug];
-        if (newIcon && community.icon !== newIcon) {
-          const communityRef = doc(db, 'communities', community.id);
-          await updateDoc(communityRef, {
-            icon: newIcon,
-            updatedAt: Timestamp.now(),
-          });
-          console.log(`✅ Icono actualizado para "${community.name}": ${community.icon} -> ${newIcon}`);
-        }
-      }
-
-      console.log('🎉 Migración de iconos completada!');
-    } catch (error) {
-      console.error('❌ Error en migración:', error);
-      throw error;
     }
   },
 };

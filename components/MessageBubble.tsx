@@ -38,7 +38,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrentUser })
           },
         ]}
       >
-        {message.type === 'image' && message.imageUrl && (
+        {!!(message.type === 'image' && message.imageUrl) && (
           <Image
             source={{ uri: message.imageUrl }}
             style={[styles.messageImage, { backgroundColor: theme.colors.background }]}
@@ -48,7 +48,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrentUser })
           />
         )}
 
-        {message.content && (
+        {!!message.content && (
           <Text
             style={[
               styles.messageText,

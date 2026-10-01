@@ -56,14 +56,19 @@ async function tokenDeLaCuenta(cuenta: string | null): Promise<string | null> {
 }
 
 /*
- * EN QUÉ IDIOMA LEE UNA CUENTA. Lo guarda la app en su Perfil Real (`users.language`, al terminar el alta y cada vez
- * que la persona lo cambia: `components/SincronizarIdioma.tsx`), que es el perfil cuyo `uid` es la cuenta. Sin él,
- * null, y el aviso sale en español, como siempre.
+ * EN QUÉ IDIOMA LEE UNA CUENTA.
+ *  1 · El que eligió a mano, en su Perfil Real (`users.language`, `components/SincronizarIdioma.tsx`). Manda siempre.
+ *  2 · Si no eligió ninguno, el de la app del aparato que recibe el aviso, que viaja con su token
+ *      (`pushTokens/{cuenta}.locale`, `services/pushNotificationService.ts`). Antes de esto, quien usaba Weë en danés
+ *      porque su teléfono está en danés recibía los avisos en español.
+ *  3 · Sin ninguno de los dos —un token guardado por una app anterior—, null, y el aviso sale en español, como antes.
  */
 async function idiomaDeLaCuenta(cuenta: string | null): Promise<string | null> {
   if (!cuenta) return null;
-  const idioma = (await perfilDeIdentidad(cuenta))?.data()?.language;
-  return typeof idioma === 'string' && idioma ? idioma : null;
+  const elegido = (await perfilDeIdentidad(cuenta))?.data()?.language;
+  if (typeof elegido === 'string' && elegido) return elegido;
+  const delAparato = (await db.collection('pushTokens').doc(cuenta).get()).data()?.locale;
+  return typeof delAparato === 'string' && delAparato ? delAparato : null;
 }
 
 // Re-export avatar generation functions (Gemini only)

@@ -128,7 +128,7 @@ const CommunityScreen: React.FC = () => {
   const handleComment = (postId: string) => {
     const post = posts.find(p => p.id === postId);
     if (post) {
-      navigation.navigate('PostDetail', { post });
+      navigation.navigate('PostDetail', { postId: post.id, post });
     }
   };
 
@@ -144,7 +144,7 @@ const CommunityScreen: React.FC = () => {
   };
 
   const handlePostPress = (post: Post) => {
-    navigation.navigate('PostDetail', { post });
+    navigation.navigate('PostDetail', { postId: post.id, post });
   };
 
   const handleVideoPress = useCallback((post: Post, positionMillis?: number) => {

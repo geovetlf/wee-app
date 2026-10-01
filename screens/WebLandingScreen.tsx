@@ -168,7 +168,7 @@ const WebLandingScreen: React.FC = () => {
   }, [route.params?.openWeels]);
 
   // ── Feed ──
-  const handlePostPress = (post: Post) => navigation.navigate('PostDetail', { post });
+  const handlePostPress = (post: Post) => navigation.navigate('PostDetail', { postId: post.id, post });
   /* Comentar abre la conversación en una hoja, no la pantalla de la publicación. */
   const handleComment = (postId: string) => {
     const post = posts.find((p) => p.id === postId);

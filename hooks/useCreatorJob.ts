@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { creatorService, CreatorJob, Question, Answer, humanizeCreatorError } from '../services/creatorService';
 
 export interface QaItem {
@@ -14,7 +14,8 @@ export interface QaItem {
  */
 export const useCreatorJob = (experienceId: string, initialJobId?: string) => {
   const { user } = useAuth();
-  const t = useT();
+  /* El idioma viaja con cada llamada y traduce cada error: sin él, el servidor escribe y se lee en español. */
+  const { t, locale } = useIdioma();
   const [jobId, setJobId] = useState<string | null>(initialJobId || null);
   const [job, setJob] = useState<CreatorJob | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
@@ -44,18 +45,18 @@ export const useCreatorJob = (experienceId: string, initialJobId?: string) => {
       setQuestion(null);
       setPendingGoal(goal);
       try {
-        const response = await creatorService.start(experienceId, goal, presets);
+        const response = await creatorService.start(experienceId, goal, presets, undefined, locale);
         setJobId(response.jobId);
         setQuestion(response.question);
         return true;
       } catch (e) {
-        setError(humanizeCreatorError(e, t));
+        setError(humanizeCreatorError(e, t, locale));
         return false;
       } finally {
         setBusy(false);
       }
     },
-    [experienceId, user]
+    [experienceId, user, locale, t]
   );
 
   const answer = useCallback(
@@ -64,15 +65,15 @@ export const useCreatorJob = (experienceId: string, initialJobId?: string) => {
       setBusy(true);
       setError(null);
       try {
-        const response = await creatorService.answer(jobId, { questionId: question.id, optionId, text });
+        const response = await creatorService.answer(jobId, { questionId: question.id, optionId, text }, undefined, locale);
         setQuestion(response.question);
       } catch (e) {
-        setError(humanizeCreatorError(e, t));
+        setError(humanizeCreatorError(e, t, locale));
       } finally {
         setBusy(false);
       }
     },
-    [jobId, question]
+    [jobId, question, locale, t]
   );
 
   const create = useCallback(async () => {
@@ -80,13 +81,13 @@ export const useCreatorJob = (experienceId: string, initialJobId?: string) => {
     setBusy(true);
     setError(null);
     try {
-      await creatorService.run(jobId);
+      await creatorService.run(jobId, locale);
     } catch (e) {
-      setError(humanizeCreatorError(e, t));
+      setError(humanizeCreatorError(e, t, locale));
     } finally {
       setBusy(false);
     }
-  }, [jobId]);
+  }, [jobId, locale, t]);
 
   const reset = useCallback(() => {
     setJobId(null);

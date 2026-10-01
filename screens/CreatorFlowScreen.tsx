@@ -148,6 +148,8 @@ const CreatorFlowScreen: React.FC = () => {
         const imageUrl = imageUri ? await uploadPhoto(imageUri) : undefined;
         const response = await creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl, locale);
         setJobId(response.jobId);
+        /* El trabajo ya existe: queda en la dirección, y recargar la página lo reabre en vez de empezar otro. */
+        (navigation as any).setParams({ jobId: response.jobId });
         setQuestion(response.question);
         setPricing(response.pricing ?? null);
         setQuality(null);
@@ -608,7 +610,7 @@ const CreatorFlowScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         )}
-        {error && (
+        {!!error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={[styles.errorText, { color: theme.colors.text }]}>{error}</Text>
             <TouchableOpacity

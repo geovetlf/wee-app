@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { useResponsive } from '../hooks/useResponsive';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -66,7 +67,12 @@ const FAQ: FaqItem[] = [
 
 /** Ayuda: preguntas frecuentes, términos y privacidad, contacto. */
 const HelpScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato } = useIdioma();
+  /*
+   * CUÁNTOS ESPECIALISTAS HAY, Y CUÁLES: los que enseña el menú (`WEE_EXPERIENCES`, la única fuente). La Ayuda decía
+   * «diez» y nombraba secciones que ya son áreas de Weë Studio; ahora no puede volver a separarse del menú.
+   */
+  const especialistas = { contador: WEE_EXPERIENCES.length, lista: formato.lista(WEE_EXPERIENCES.map((e) => e.name)) };
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -119,7 +125,7 @@ const HelpScreen: React.FC = () => {
               <Text style={[styles.question, { color: theme.colors.text }]}>
                 {item.emoji} {t(item.question)}
               </Text>
-              <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>{t(item.answer)}</Text>
+              <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>{t(item.answer, item.answer === 'help.a3' ? especialistas : undefined)}</Text>
             </View>
           ))}
         </View>

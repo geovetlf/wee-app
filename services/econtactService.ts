@@ -91,10 +91,10 @@ export class ErrorDeEContact extends Error {
   }
 }
 
-export const mensajeDeEContact = (error: unknown, t: Traductor | ((clave: string) => string), locale?: string): string | undefined => {
+export const mensajeDeEContact = (error: unknown, t: Traductor | ((clave: string) => string), locale: string): string | undefined => {
   if (error instanceof ErrorDeEContact) return t(error.clave);
-  if (locale) return mensajeDelServidor(error, { t: t as Traductor, locale });
-  return error instanceof Error ? error.message : undefined;
+  /* El idioma es obligatorio: sin él, lo que se enseñaba era el `error.message` del servidor, en español. */
+  return mensajeDelServidor(error, { t: t as Traductor, locale });
 };
 
 /** La cuenta de quien está usando Weë. null si no hay sesión. */

@@ -336,6 +336,22 @@ export const nombreDelIdioma = (locale: string): string => {
   }
 };
 
+/** El nombre del idioma en inglés («Danish (Denmark)»): los modelos lo reconocen siempre, junto al propio y al código. */
+export const nombreDelIdiomaEnIngles = (locale: string): string => {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'language' }).of(locale) || locale;
+  } catch {
+    return locale;
+  }
+};
+
+/**
+ * EL IDIOMA, DICHO DE TRES MANERAS: el nombre propio, el inglés y el código («dansk (Danmark) · Danish (Denmark) ·
+ * código da-DK»). Una sola forma, la misma en la instrucción del sistema y en el recordatorio del final.
+ */
+const idiomaParaElModelo = (codigo: string): string =>
+  `${nombreDelIdioma(codigo)} · ${nombreDelIdiomaEnIngles(codigo)} · código ${codigo}`;
+
 /**
  * La frase que se le añade al prompt del sistema en cada petición.
  *
@@ -371,9 +387,24 @@ export const instruccionDeSalida = (locale?: unknown): string => {
   const codigo = localeDeBrain(locale);
   if (/^es(-|$)/i.test(codigo)) return 'Escribe en español neutro.';
   return [
-    `La persona usa Weë en ${nombreDelIdioma(codigo)} (código ${codigo}): escribe en ese idioma todo lo que va a leer, títulos y avisos incluidos, salvo que haya pedido el contenido en otro idioma (una traducción, un texto para otro público); entonces ese contenido va en el idioma que pidió.`,
+    `La persona usa Weë en ${idiomaParaElModelo(codigo)}: escribe en ese idioma todo lo que va a leer, títulos y avisos incluidos, aunque estas instrucciones y el objetivo estén en español, salvo que haya pedido el contenido en otro idioma (una traducción, un texto para otro público); entonces ese contenido va en el idioma que pidió.`,
     'Las marcas que piden estas instrucciones se copian EXACTAMENTE así, en español, porque la app las reconoce y las traduce: «IMAGEN:», «PROBAR:», «NARRACIÓN:», «Escena 1» (y las siguientes), «DÍA 1 ·» (y los siguientes) y «PRESUPUESTO:». Lo que va detrás de «IMAGEN:» y «PROBAR:» sigue en inglés.',
   ].join(' ');
+};
+
+/**
+ * LO ÚLTIMO QUE LEE EL MODELO: el idioma, otra vez.
+ *
+ * Las instrucciones de Weë están en español y el objetivo por defecto también («Algo rico para comer hoy»): todo
+ * empuja al modelo a contestar en español aunque el sistema le haya pedido danés. Lo que más pesa en un modelo es lo
+ * último que lee, así que el idioma se repite al FINAL del encargo, con la misma forma que en el sistema. En español,
+ * o sin idioma, no se añade nada: no hay nada contra lo que empujar.
+ */
+export const recordatorioDeIdioma = (locale?: unknown): string => {
+  if (locale === undefined || locale === null || locale === '') return '';
+  const codigo = localeDeBrain(locale);
+  if (/^es(-|$)/i.test(codigo)) return '';
+  return `IDIOMA DE LA RESPUESTA: ${idiomaParaElModelo(codigo)}. Todo lo que la persona va a leer va en ese idioma, salvo el contenido que pidió en otro; las marcas «IMAGEN:», «PROBAR:», «NARRACIÓN:», «Escena», «DÍA» y «PRESUPUESTO:» se copian tal cual.`;
 };
 
 const EXPERIENCE_ROLE: Record<ExperienceId, string> = {
@@ -480,6 +511,7 @@ export const buildTextPrompt = (
     previous.length > 0
       ? `Material de los pasos anteriores (úsalo, no lo repitas):\n${previous.map((p, i) => `[${i + 1}] ${p}`).join('\n\n')}`
       : '',
+    recordatorioDeIdioma(locale),
   ]
     .filter(Boolean)
     .join('\n\n'),

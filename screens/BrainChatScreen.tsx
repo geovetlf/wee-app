@@ -342,7 +342,7 @@ const BrainChatScreen: React.FC = () => {
    */
   const compositor = (
     <View style={styles.compositor}>
-      {attachment && (
+      {!!attachment && (
         <View style={styles.attachmentRow}>
           <Image source={{ uri: attachment }} style={styles.attachmentImage} contentFit="cover" />
           <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>{t('weeai.photoAttached')}</Text>
@@ -552,7 +552,7 @@ const BrainChatScreen: React.FC = () => {
             </View>
           )}
 
-          {chat.error && (
+          {!!chat.error && (
             <View style={[styles.bubbleRow, styles.bubbleRowWee]}>
               <View style={styles.avatar}>
                 <Image source={CEREBRO_DE_WEE} style={styles.avatarDibujo} contentFit="contain" transition={0} accessible={false} />

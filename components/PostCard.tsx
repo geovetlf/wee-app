@@ -1278,7 +1278,7 @@ const PostCard: React.FC<PostCardProps> = ({
       )}
 
       {/* Comentario del repost (si existe) */}
-      {isRepost && post.repostComment && (
+      {!!(isRepost && post.repostComment) && (
         <View style={styles.repostCommentContainer}>
           <Text style={[styles.repostComment, { color: theme.colors.text }]}>
             {post.repostComment}
@@ -1430,7 +1430,7 @@ const PostCard: React.FC<PostCardProps> = ({
           <HowIMadeIt post={displayPost} />
         </TouchableOpacity>
         {/* Video rendered outside the content TouchableOpacity so taps reach onVideoPress */}
-        {displayPost.videoUrl && onVideoPress && renderMedia()}
+        {!!(displayPost.videoUrl && onVideoPress) && renderMedia()}
       </View>
 
       {/*

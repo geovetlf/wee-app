@@ -103,8 +103,13 @@ export type MainStackParamList = {
   Project: { id: string };
   /* Mis creaciones: la biblioteca de material de la cuenta (Fase 11). */
   MisCreaciones: undefined;
+  /*
+   * La dirección es /post/<postId>: el id va siempre. La publicación entera, si ya se tiene, viaja en memoria para no
+   * volver a leerla, pero no sale a la URL (navigation/enlaces.ts); al recargar se lee por su id.
+   */
   PostDetail: {
-    post: Post;
+    postId?: string;
+    post?: Post;
   };
   UserProfile: {
     userId: string;

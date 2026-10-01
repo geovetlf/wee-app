@@ -136,7 +136,7 @@ const CreditStoreScreen = () => {
               onPress={() => setSelectedPkg(pkg.id)}
               activeOpacity={0.8}
             >
-              {pkg.badgeClave && (
+              {!!pkg.badgeClave && (
                 <View style={[styles.badge, { backgroundColor: pkg.popular ? '#F5B731' : '#22C55E' }]}>
                   <Text style={styles.badgeText}>{t(pkg.badgeClave)}</Text>
                 </View>

@@ -797,12 +797,19 @@ service cloud.firestore {
     // que no puede vivir en `users`, que lo lee todo el mundo. El documento se
     // llama como la CUENTA (uid de Firebase Auth): lo escribe solo su dueño y
     // no lo lee nadie desde el cliente; lo lee el servidor al enviar.
+    //
+    // `locale` es el idioma con el que la app de ese aparato está funcionando
+    // («da-DK»): el aviso se escribe en él cuando la cuenta no tiene un idioma
+    // elegido a mano. Solo una etiqueta de idioma corta; nada más entra.
     match /pushTokens/{uid} {
       allow read: if false;
       allow create, update: if isAuthenticated() && request.auth.uid == uid &&
-        request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt']) &&
+        request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt', 'locale']) &&
         request.resource.data.token is string &&
-        request.resource.data.token.size() > 0 && request.resource.data.token.size() <= 300;
+        request.resource.data.token.size() > 0 && request.resource.data.token.size() <= 300 &&
+        (!('locale' in request.resource.data) ||
+          (request.resource.data.locale is string && request.resource.data.locale.size() <= 35 &&
+           request.resource.data.locale.matches('^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$')));
       allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
     // Acumulados para administración: solo servidor / consola

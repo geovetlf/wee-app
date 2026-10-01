@@ -110,7 +110,7 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
           <View style={[styles.kindBadge, { backgroundColor: 'rgba(31, 41, 55, 0.72)' }]}>
             <Text style={styles.kindText}>{t(claveDeTipo)}</Text>
           </View>
-          {claveDeEstado && (
+          {!!claveDeEstado && (
             <View style={[styles.statusBadge, { backgroundColor: fallo ? theme.colors.error : theme.colors.accent }]}>
               <Text style={[styles.statusText, { color: fallo ? '#FFFFFF' : '#1F2937' }]}>{t(claveDeEstado)}</Text>
             </View>

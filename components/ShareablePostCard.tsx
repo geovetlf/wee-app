@@ -79,7 +79,7 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
               />
               <Text style={styles.brandName}>Weë</Text>
             </View>
-            {communityName && (
+            {!!communityName && (
               <View style={styles.communityBadge}>
                 <Text style={styles.communityText}>{communityName}</Text>
               </View>
@@ -117,7 +117,7 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
           )}
 
           {/* Video thumbnail */}
-          {!post.imageUrls?.length && post.videoUrl && (
+          {!!(!post.imageUrls?.length && post.videoUrl) && (
             <View style={styles.videoThumbWrap}>
               <Image
                 source={{ uri: cloudinaryVideoThumb(post.videoUrl) }}

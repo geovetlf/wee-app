@@ -69,7 +69,7 @@ const SavedPostsScreen: React.FC = () => {
   );
 
   const handlePostPress = (post: Post) => {
-    navigation.navigate('PostDetail', { post });
+    navigation.navigate('PostDetail', { postId: post.id, post });
   };
 
   const handleComment = (postId: string) => {

@@ -548,7 +548,7 @@ const WeeBizProfileScreen: React.FC = () => {
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               {reviews.length > 0 ? t('weebiz.reviewsCount', { cantidad: reviews.length }) : t('weebiz.reviews')}
             </Text>
-            {!isOwner && !userReview && activeUid && (
+            {!!(!isOwner && !userReview && activeUid) && (
               <TouchableOpacity onPress={() => setReviewModalVisible(true)}>
                 <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>{t('weebiz.writeReview')}</Text>
               </TouchableOpacity>
@@ -580,7 +580,7 @@ const WeeBizProfileScreen: React.FC = () => {
               <Text style={[styles.placeholderText, { color: theme.colors.textSecondary }]}>
                 {t('weebiz.noReviewsYet')}
               </Text>
-              {!isOwner && activeUid && (
+              {!!(!isOwner && activeUid) && (
                 <TouchableOpacity
                   style={[styles.addProductBtn, { borderColor: theme.colors.primary }]}
                   onPress={() => setReviewModalVisible(true)}

@@ -3,7 +3,7 @@ import { useNavigation, useNavigationState } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { pushNotificationService, PushNotificationData } from '../services/pushNotificationService';
 import { useAuth } from './AuthContext';
-import { useT } from './IdiomaContext';
+import { useIdioma } from './IdiomaContext';
 
 interface PushNotificationContextType {
   expoPushToken: string | null;
@@ -21,7 +21,7 @@ export const usePushNotifications = () => useContext(PushNotificationContext);
 
 export const PushNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const navigation = useNavigation<any>();
 
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
@@ -38,17 +38,18 @@ export const PushNotificationProvider: React.FC<{ children: React.ReactNode }> =
       setExpoPushToken(token);
       // Guardar token en Firestore si hay usuario
       if (user?.uid) {
-        await pushNotificationService.savePushToken(user.uid, token);
+        await pushNotificationService.savePushToken(user.uid, token, locale);
       }
     }
   };
 
-  // Registrar automáticamente cuando el usuario está autenticado
+  // Registrar automáticamente cuando el usuario está autenticado, y otra vez si cambia el idioma de la app:
+  // el aviso tiene que llegar en el idioma que la persona tiene puesto.
   useEffect(() => {
     if (user?.uid) {
       registerForPush();
     }
-  }, [user?.uid]);
+  }, [user?.uid, locale]);
 
   // Configurar listeners
   useEffect(() => {

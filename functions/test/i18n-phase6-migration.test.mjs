@@ -164,7 +164,7 @@ console.log('\n── C · Los catálogos guardan claves, no frases ──');
     (AYUDA.match(/question: 'help\.q\d'/g) || []).length === 9
     && (AYUDA.match(/answer: 'help\.a\d'/g) || []).length === 9);
   check('5) y quien pinta las resuelve',
-    /\{t\(item\.question\)\}/.test(AYUDA) && /\{t\(item\.answer\)\}/.test(AYUDA));
+    /\{t\(item\.question\)\}/.test(AYUDA) && /\{t\(item\.answer[,)]/.test(AYUDA));
   check('5) el emoji de cada pregunta se copia tal cual', /\{item\.emoji\} \{t\(item\.question\)\}/.test(AYUDA));
 }
 

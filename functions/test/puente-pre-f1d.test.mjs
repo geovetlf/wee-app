@@ -542,6 +542,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     'functions/src/engine/errors.ts', 'functions/src/gateway/providers/mock.ts',
     'functions/src/public/postPage.ts', 'functions/src/public/postPageHtml.ts', 'functions/src/social/avisos.ts',
     'functions/src/shared/idiomaDelServidor.ts', 'functions/src/shared/textosDelServidor.ts',
+    /* La observación del idioma de lo que escribe la IA: se apunta, no se rechaza. */
+    'functions/src/creator/idiomaDeSalida.ts', 'functions/src/shared/idiomaDelTexto.ts',
   ];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness y de la integración i18n da-DK',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA,
@@ -567,8 +569,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   /* creatorRun y el avatar solo con los arreglos de la FASE 1 del Harness (H0 #9, #11, #15a), por tamaño. */
   check('F4) creatorRun, solo con los arreglos del Harness y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
     git(`diff --numstat ${RUTA} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
-      /* creator/index.ts: + 10 de la integración i18n da-DK (el locale), ver video-asincrono H2. */
-      === '45\t4\tfunctions/src/creator/credits.ts|109\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
+      /* creator/index.ts: + 10 de la integración i18n da-DK (el locale) y + 2 de la observación del idioma de salida, ver video-asincrono H2. */
+      === '45\t4\tfunctions/src/creator/credits.ts|111\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 

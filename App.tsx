@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, getPathFromState as rutaDesdeEstado } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Alert, Platform, View } from 'react-native';
 import * as Linking from 'expo-linking';
@@ -55,6 +55,9 @@ import { TabBarProvider } from './contexts/TabBarContext';
 import { ComentariosProvider } from './contexts/ComentariosContext';
 import MainStackNavigator from './navigation/MainStackNavigator';
 import { refNavegacion } from './navigation/refNavegacion';
+import {
+  TIPOS_DE_PUBLICACION, esCreativo, esId, esLugar, esRespuesta, esRespuestas, escribirJson, leerJson, nuncaEnLaUrl, sinObjetosSueltos,
+} from './navigation/enlaces';
 import ErrorBoundary from './components/ErrorBoundary';
 import { crearTraductor } from './i18n/traducir';
 import { DICCIONARIOS } from './i18n/diccionarios';
@@ -161,7 +164,22 @@ const linking: any = {
     });
     return () => subscription.remove();
   },
+  /*
+   * LA RED DE SEGURIDAD DE LA BARRA DE DIRECCIONES (navigation/enlaces.ts). Un parámetro que es un objeto y cuya
+   * pantalla no dice cómo escribirlo se quedaba en la URL como «[object Object]»; ahora no sale de la memoria (atrás y
+   * adelante lo siguen teniendo) y en desarrollo se avisa de cuál, para que esa pantalla declare su forma.
+   */
+  getPathFromState(estado: any, opciones: any) {
+    const { estado: limpio, quitados } = sinObjetosSueltos(estado, opciones?.screens);
+    if (__DEV__ && quitados.length) console.warn('🔗 Parámetros que no van a la URL (sin forma declarada):', quitados.join(', '));
+    return rutaDesdeEstado(limpio, opciones);
+  },
   config: {
+    /*
+     * La pila principal SIEMPRE debajo de lo que se abre por enlace: quien abre /wallet o /post/… en frío puede
+     * volver atrás (al Inicio) en vez de quedarse sin salida.
+     */
+    initialRouteName: 'Main',
     screens: {
       Main: {
         path: '',
@@ -178,7 +196,8 @@ const linking: any = {
           Inbox: {
             path: 'inbox',
             screens: {
-              InboxMain: 'messages',
+              /* La ruta se llama InboxList (navigation/InboxStackNavigator.tsx): con «InboxMain», recargar WeeTalk llevaba al Inicio. */
+              InboxList: 'messages',
             },
           },
           Profile: {
@@ -217,6 +236,8 @@ const linking: any = {
         parse: {
           postId: (postId: string) => postId,
         },
+        /* La publicación entera no viaja: es de otra persona, caduca, y al recargar se lee por su id. */
+        stringify: { post: nuncaEnLaUrl },
       },
       UserProfile: {
         path: 'user/:userId',
@@ -229,6 +250,63 @@ const linking: any = {
         parse: {
           communityId: (communityId: string) => communityId,
         },
+      },
+      /*
+       * CREDITS Y LA BILLETERA. Sin estas dos líneas la app escribía /CreditStore y /Wallet en la barra de direcciones
+       * (React Navigation usa el nombre de la ruta cuando no hay configuración) pero no sabía leerlas: abrir el
+       * enlace, o recargar, llevaba al Inicio. Las direcciones nuevas son en minúscula, como las demás; los alias
+       * mantienen vivas las que ya se escribieron y quizá se guardaron.
+       */
+      CreditStore: { path: 'credits', alias: ['CreditStore'] },
+      Wallet: { path: 'wallet', alias: ['Wallet'] },
+      /*
+       * WEË AI, EL FLUJO GUIADO. La experiencia va en la ruta; el trabajo (`jobId`), en cuanto existe —al recargar se
+       * reabre ESE trabajo en vez de empezar otro—; las respuestas ya elegidas y las elecciones creativas, como JSON
+       * validado. El objetivo escrito, la foto (`blob:` o con su token de descarga) y los adjuntos no salen nunca.
+       */
+      CreatorFlow: {
+        path: 'weeai/:experienceId',
+        parse: {
+          experienceId: (v: string) => (esId(v) ? v : undefined),
+          jobId: (v: string) => (esId(v) ? v : undefined),
+          workspace: (v: string) => (esId(v) ? v : undefined),
+          editorDocId: (v: string) => (esId(v) ? v : undefined),
+          preset: (v: string) => leerJson(v, esRespuesta),
+          presets: (v: string) => leerJson(v, esRespuestas),
+          creative: (v: string) => leerJson(v, esCreativo),
+        },
+        stringify: {
+          preset: escribirJson,
+          presets: escribirJson,
+          creative: escribirJson,
+          goal: nuncaEnLaUrl,
+          imageUri: nuncaEnLaUrl,
+          adjuntos: nuncaEnLaUrl,
+        },
+      },
+      /*
+       * EL COMPOSITOR (la pantalla de la pila principal; la pestaña «create» es el marcador del botón +). El tipo, la
+       * comunidad y el lugar elegido —que es público: es lo que se lee en la publicación— viajan; el borrador
+       * (`prefill`, con lo escrito y los archivos) y la zona de la ubicación no salen nunca.
+       */
+      Create: {
+        path: 'publicar',
+        parse: {
+          kind: (v: string) => ((TIPOS_DE_PUBLICACION as readonly string[]).includes(v) ? v : undefined),
+          communitySlug: (v: string) => (esId(v) ? v : undefined),
+          sourceSection: (v: string) => (esId(v) ? v : undefined),
+          lugarElegido: (v: string) => leerJson(v, esLugar),
+        },
+        stringify: {
+          lugarElegido: escribirJson,
+          prefill: nuncaEnLaUrl,
+          ubicacionElegida: nuncaEnLaUrl,
+        },
+      },
+      AgregarUbicacion: {
+        path: 'publicar/lugar',
+        parse: { place: (v: string) => leerJson(v, esLugar) },
+        stringify: { place: escribirJson, ubicacion: nuncaEnLaUrl },
       },
     },
   },

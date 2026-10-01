@@ -5,7 +5,7 @@ import { COMMUNITY_CATEGORIES, POPULAR_COMMUNITIES } from '../constants/communit
  * LAS COMUNIDADES QUE CREÓ WEË, EN EL IDIOMA DE QUIEN MIRA.
  *
  * Las comunidades oficiales se siembran en la base de datos desde las temáticas de `constants/communityCategories.ts`
- * (`OFFICIAL_COMMUNITIES` en `services/communityService.ts`), con su nombre, su descripción y sus reglas en español; y
+ * (`OFFICIAL_COMMUNITIES` en `constants/comunidadesOficiales.ts`), con su nombre, su descripción y sus reglas en español; y
  * las comunidades destacadas de muestra (`POPULAR_COMMUNITIES`) llevan su descripción en español. Una persona danesa
  * leía «Cine & Animación» y «Compartí lo que creaste…».
  *

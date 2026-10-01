@@ -560,7 +560,7 @@ const ConversationScreen = () => {
       )}
 
       {/* Chat background wallpaper */}
-      {chatWallpaper && (
+      {!!chatWallpaper && (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           <Image
             source={{ uri: chatWallpaper }}

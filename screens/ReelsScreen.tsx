@@ -208,7 +208,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
       />
 
       {/* Poster image — visible until video plays */}
-      {post.imageUrls?.[0] && !hasStartedPlaying && (
+      {!!(post.imageUrls?.[0] && !hasStartedPlaying) && (
         <Image
           source={{ uri: post.imageUrls[0] }}
           style={StyleSheet.absoluteFill}
@@ -476,7 +476,7 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
   const handleComment = useCallback((postId: string) => {
     const post = videoPosts.find(p => p.id === postId);
     if (post) {
-      (navigation as any).navigate('PostDetail', { post });
+      (navigation as any).navigate('PostDetail', { postId: post.id, post });
     }
   }, [videoPosts, navigation]);
 

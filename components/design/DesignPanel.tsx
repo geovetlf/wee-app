@@ -51,14 +51,14 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
       accessibilityRole="button"
       accessibilityLabel={t(clave)}
     >
-      {icono && (
+      {!!icono && (
         <View style={[styles.icono, { backgroundColor: theme.colors.surface }]}>
           <Ionicons name={icono as any} size={scale(20)} color={theme.colors.text} />
         </View>
       )}
       <View style={styles.filaTexto}>
         <Text style={[styles.filaTitulo, { color: theme.colors.text }]}>{t(clave)}</Text>
-        {pista && <Text style={[styles.filaPista, { color: theme.colors.textSecondary }]}>{t(pista)}</Text>}
+        {!!pista && <Text style={[styles.filaPista, { color: theme.colors.textSecondary }]}>{t(pista)}</Text>}
       </View>
       <Ionicons name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
     </TouchableOpacity>

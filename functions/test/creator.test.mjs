@@ -1658,7 +1658,7 @@ console.log('\n── Hogar & Diseño · seis caminos, una foto, un antes y un d
   {
     check('7) la comparación se activa por el plan, no por la sección', /s\.capability === 'image\.space_restyle'/.test(tarjeta) && /const transformaTuFoto/.test(tarjeta));
     check('7) y solo si hay foto original que comparar', /const transformaTuFoto = \(stepId: string\): boolean => !!beforeImageUri && esEspacio\(stepId\);/.test(tarjeta));
-    check('7) el antes/después vive dentro de las propuestas', /transforma && beforeImageUri && \(/.test(tarjeta));
+    check('7) el antes/después vive dentro de las propuestas', /!!\(transforma && beforeImageUri\) && \(/.test(tarjeta));
     check('7) el "después" es la propuesta elegida', /uri: result\.urls!\[elegida\] \}\} style=\{\[styles\.pairImage, styles\.pairImageWide\]\}/.test(tarjeta));
     check('7) y el "antes", la foto que trajo la persona', /uri: beforeImageUri \}\} style=\{styles\.pairImage\}/.test(tarjeta));
     check('7) las dos propuestas siguen ahí y se pueden elegir', /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));

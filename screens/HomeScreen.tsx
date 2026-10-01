@@ -632,7 +632,7 @@ const HomeScreen: React.FC = () => {
     if (post) {
       const parentNavigation = navigation.getParent();
       if (parentNavigation) {
-        (parentNavigation as any).navigate('PostDetail', { post });
+        (parentNavigation as any).navigate('PostDetail', { postId: post.id, post });
       }
     }
   };
@@ -657,7 +657,7 @@ const HomeScreen: React.FC = () => {
     // Navegar al detalle del post
     const parentNavigation = navigation.getParent();
     if (parentNavigation) {
-      (parentNavigation as any).navigate('PostDetail', { post });
+      (parentNavigation as any).navigate('PostDetail', { postId: post.id, post });
     }
   };
 
@@ -947,7 +947,7 @@ const HomeScreen: React.FC = () => {
         </View>
       )}
       {/* Create post prompt */}
-      {user && userProfile && selectedCommunitySlug && (
+      {!!(user && userProfile && selectedCommunitySlug) && (
         <TouchableOpacity
           style={[styles.createPrompt, { backgroundColor: theme.colors.card }]}
           onPress={() => {
@@ -1020,7 +1020,7 @@ const HomeScreen: React.FC = () => {
                     >
                       {post.content}
                     </Text>
-                    {(post.imageUrls?.[0] || post.videoUrl) && (
+                    {!!(post.imageUrls?.[0] || post.videoUrl) && (
                       <View style={[styles.highlightThumb, { backgroundColor: theme.colors.surface }]}>
                         {/*
                           Miniaturas, no reproductores. Aquí había hasta cinco
