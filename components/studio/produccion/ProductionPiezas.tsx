@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
+import TextoEnMayusculas from '../../TextoEnMayusculas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
 
@@ -21,7 +22,7 @@ export const Seccion: React.FC<{ titulo: string; derecha?: React.ReactNode; chil
   return (
     <View style={styles.seccion}>
       <View style={styles.seccionCabecera}>
-        <Text style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{titulo}</Text>
+        <TextoEnMayusculas style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{titulo}</TextoEnMayusculas>
         {derecha}
       </View>
       {children}
@@ -80,7 +81,7 @@ export const BotonPequeno: React.FC<{
 const styles = StyleSheet.create({
   seccion: { gap: SPACING.sm },
   seccionCabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.sm },
-  seccionTitulo: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, textTransform: 'uppercase', letterSpacing: 0.6 },
+  seccionTitulo: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, letterSpacing: 0.6 },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, borderWidth: 1, borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: SPACING.sm, paddingVertical: scale(3), alignSelf: 'flex-start', maxWidth: '100%',

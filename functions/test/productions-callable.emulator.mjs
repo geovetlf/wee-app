@@ -24,7 +24,7 @@ import { createRequire } from 'node:module';
 const PROY = process.env.GCLOUD_PROJECT || 'demo-wee-filmmaker';
 const hub = process.env.FIREBASE_EMULATOR_HUB;
 if (!process.env.FIRESTORE_EMULATOR_HOST || !hub) { console.log('✘ sin emuladores no se corre: faltan FIRESTORE_EMULATOR_HOST o FIREBASE_EMULATOR_HUB'); process.exit(1); }
-if (PROY === 'get-wee' || !PROY.startsWith('demo-')) { console.log(`✘ solo contra un proyecto de demostración, nunca contra «${PROY}»`); process.exit(1); }
+if (!PROY.startsWith('demo-')) { console.log(`✘ solo contra un proyecto de demostración, nunca contra «${PROY}»`); process.exit(1); }
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const require = createRequire(import.meta.url);

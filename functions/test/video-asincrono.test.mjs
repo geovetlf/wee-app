@@ -281,7 +281,11 @@ const VIDEO = sinComentarios(VIDEO_SRC);
   const antes = git(`show ${ANTES}:functions/src/creator/video.ts`);
   const cobros = (s) => (sinComentarios(s).match(/creditEngine\.(spend|complete|refund)Credits\(/g) || []).length;
   check('A12) ni una llamada nueva al dinero: la puerta cobra, confirma y devuelve con las MISMAS llamadas que antes', cobros(VIDEO_SRC) === cobros(antes), `${cobros(antes)} → ${cobros(VIDEO_SRC)}`);
-  check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar', git(`diff --name-only ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim() === '');
+
+  /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
+  const CREDITS_DEL_HARNESS = '14\t0\tfunctions/src/credits/index.ts';
+  check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
+    git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
   const medios = sinComentarios(leer('functions/src/runtime/medios.ts'));
   const ayudante = medios.slice(medios.indexOf('export const trabajoDelMedio'), medios.indexOf('const sinNada'));
   check('A14) la pregunta nueva de la puerta es de SOLO lectura: `porIdempotencia`, y nada más',
@@ -575,10 +579,32 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * línea más en cualquiera de las dos, o un archivo más, y esto falla.
    */
   const MOTOR_F1D = { 'functions/src/engine/limits.ts': '15\t3', 'functions/src/engine/providers/seedance.ts': '10\t0' };
+  /*
+   * Y los arreglos de la FASE 1 del Harness (auditoría H0), también por nombre y
+   * tamaño, re-anclados al integrar producción en main como hizo 88fa34d: ninguna
+   * cerca se quita ni se afloja. limits.ts y providers/seedance.ts los mueven F1-D
+   * Y el Harness: su tamaño es el del diff combinado.
+   */
+  const MOTOR_F1D_Y_HARNESS = {
+    'functions/src/creator/credits.ts': '45\t4', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
+    'functions/src/creator/index.ts': '99\t10', // 0926584 (#9) · 0799ed6
+    'functions/src/engine/admin.ts': '9\t2', // 0ad8500 (#19) · 5e87b80 (FASE 8)
+    'functions/src/engine/config.ts': '36\t1', // 8193184 (#20)
+    'functions/src/engine/gateway.ts': '2\t0', // 0ad8500 (#19)
+    'functions/src/engine/http.ts': '26\t1', // 16ca1ae (#3)
+    'functions/src/engine/limits.ts': '33\t3', // F1-D (decisión 14) + 5e87b80 (FASE 8)
+    'functions/src/engine/providers/seedance.ts': '33\t19', // F1-D (ficha 6) + 8a9f098 (#21)
+    'functions/src/engine/registry.ts': '2\t0', // 0ad8500 (#19)
+    'functions/src/engine/router.ts': '21\t1', // 0ad8500 (#19) · 5e87b80 (FASE 8)
+    'functions/src/engine/types.ts': '19\t0', // 0ad8500 (#19) · 5e87b80 (FASE 8)
+    'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
+    'functions/src/generateAvatar.ts': '52\t13', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6
+  };
   const movidos = git(`diff --numstat ${ANTES} -- functions/src/engine functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`)
     .trim().split('\n').filter(Boolean).map((l) => l.split('\t')).map(([mas, menos, f]) => [f, `${mas}\t${menos}`]);
-  check('H2) y lo que la sostiene tampoco se movió: sondeo, adaptador, router, motor de vídeo, libro, creatorRun — salvo las dos piezas nominales de F1-D, del tamaño exacto',
-    JSON.stringify(Object.fromEntries(movidos)) === JSON.stringify(MOTOR_F1D), JSON.stringify(Object.fromEntries(movidos)));
+  check('H2) y lo que la sostiene tampoco se movió: sondeo, adaptador, router, motor de vídeo, libro, creatorRun — salvo las dos piezas nominales de F1-D y los arreglos del Harness, del tamaño exacto',
+    JSON.stringify(Object.fromEntries(movidos)) === JSON.stringify(MOTOR_F1D_Y_HARNESS) && Object.keys(MOTOR_F1D).every((f) => f in MOTOR_F1D_Y_HARNESS),
+    JSON.stringify(Object.fromEntries(movidos)));
   check('H3) F1-A y productions, sin tocar', git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions functions/src/core`).trim() === '');
 }
 

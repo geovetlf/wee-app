@@ -29,7 +29,7 @@ import { createRequire } from 'node:module';
 const host = process.env.FIRESTORE_EMULATOR_HOST;
 const PROY = process.env.GCLOUD_PROJECT || 'demo-wee-filmmaker';
 if (!host) { console.log('✘ sin emulador no se corre: falta FIRESTORE_EMULATOR_HOST'); process.exit(1); }
-if (PROY === 'get-wee') { console.log('✘ nunca contra producción'); process.exit(1); }
+if (!PROY.startsWith('demo-')) { console.log(`✘ solo contra un proyecto de demostración, nunca contra «${PROY}»`); process.exit(1); }
 
 const base = `http://${host}/v1/projects/${PROY}/databases/(default)/documents`;
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');

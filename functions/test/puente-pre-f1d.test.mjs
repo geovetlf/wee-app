@@ -503,11 +503,11 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
   await pasada();
   check('E3) ninguna reconciliación hace un POST: solo el que pide la persona sale hacia ModelArk',
     posts.length === postsAntes && posts.every((p) => p.acceptAsync === true));
-  /* F1-D toca dos piezas del motor, nominales y de tamaño fijo (ver video-asincrono H2): ni un proveedor ni una cadena. */
+  /* F1-D toca dos piezas del motor, nominales y de tamaño fijo (ver video-asincrono H2): ni un proveedor ni una cadena. Los arreglos de la FASE 1 del Harness, tampoco: también van por nombre y tamaño. */
   check('E4) Seedance, y solo Seedance: ni un proveedor nuevo, ni una cadena nueva',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
     && git(`diff --numstat ${RUTA} -- functions/src/engine`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
-      === '15\t3\tfunctions/src/engine/limits.ts|10\t0\tfunctions/src/engine/providers/seedance.ts');
+      === '9\t2\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|33\t3\tfunctions/src/engine/limits.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|21\t1\tfunctions/src/engine/router.ts|19\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */
@@ -522,16 +522,27 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    */
   const nuevos = git('ls-files --others --exclude-standard functions/src').trim().split('\n').filter(Boolean);
   const tocados = [...git(`diff --name-only ${RUTA} -- functions/src`).trim().split('\n').filter(Boolean), ...nuevos].sort();
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D',
-    JSON.stringify(tocados) === JSON.stringify([
+  /* Los de la FASE 1 del Harness (auditoría H0), por nombre: H0 #9, #11, #15a, #16, #19, #20, #21, #24, §27 y FASE 8. */
+  const DEL_HARNESS = [
+    'functions/src/creator/credits.ts', 'functions/src/creator/index.ts', 'functions/src/creator/types.ts', 'functions/src/credits/index.ts',
+    'functions/src/engine/admin.ts', 'functions/src/engine/config.ts', 'functions/src/engine/gateway.ts', 'functions/src/engine/http.ts',
+    'functions/src/engine/registry.ts', 'functions/src/engine/router.ts', 'functions/src/engine/types.ts', 'functions/src/engine/webhooks.ts',
+    'functions/src/gateway/index.ts', 'functions/src/gateway/types.ts', 'functions/src/generateAvatar.ts', 'functions/src/index.ts',
+    'functions/src/opciones.ts', 'functions/src/secrets.ts',
+  ];
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D y del Harness',
+    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-    ]),
+    ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
-  check('F2) el Credit Engine, el Financial Core, el Router, creditCosts y credits/index: sin tocar',
-    git(`diff --name-only ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim() === '');
+
+  /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
+  const CREDITS_DEL_HARNESS = '14\t0\tfunctions/src/credits/index.ts';
+  check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
+    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. */
   check('F3) ni el Core, ni F1-A, ni productions; del contenido, solo la adopción de F1-D',
     git(`diff --name-only ${RUTA} -- functions/src/core functions/src/filmmaker functions/src/productions`).trim() === ''
@@ -540,8 +551,10 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');
     return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a));
   };
-  check('F4) creatorRun y la rama legacy de generateVideo, byte a byte',
-    git(`diff --name-only ${RUTA} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim() === ''
+  /* creatorRun y el avatar solo con los arreglos de la FASE 1 del Harness (H0 #9, #11, #15a), por tamaño. */
+  check('F4) creatorRun, solo con los arreglos del Harness y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
+    git(`diff --numstat ${RUTA} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
+      === '45\t4\tfunctions/src/creator/credits.ts|99\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 

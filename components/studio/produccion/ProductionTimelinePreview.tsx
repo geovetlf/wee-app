@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
+import TextoEnMayusculas from '../../TextoEnMayusculas';
 import { useT } from '../../../contexts/IdiomaContext';
 import { useSegundos } from './ProductionDurationSummary';
 import { aSec, duracionDeUnidadMs, unidades } from '../../../services/filmmaker/dominio';
@@ -43,7 +44,7 @@ const ProductionTimelinePreview: React.FC<{
   return (
     <View style={styles.bloque}>
       <View style={styles.cabecera}>
-        <Text style={[styles.titulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{t('filmmaker.timeline')}</Text>
+        <TextoEnMayusculas style={[styles.titulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{t('filmmaker.timeline')}</TextoEnMayusculas>
         {!!linea && <Text style={[styles.total, { color: theme.colors.text }]}>{t('filmmaker.timelineTotal', { duracion: segundos(linea.totalSec) })}</Text>}
       </View>
       <View style={styles.pista}>
@@ -91,7 +92,7 @@ const ProductionTimelinePreview: React.FC<{
 const styles = StyleSheet.create({
   bloque: { gap: SPACING.sm },
   cabecera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: SPACING.sm },
-  titulo: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, textTransform: 'uppercase', letterSpacing: 0.6 },
+  titulo: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, letterSpacing: 0.6 },
   total: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold as any, fontVariant: ['tabular-nums'] },
   pista: { flexDirection: 'row', alignItems: 'stretch', minHeight: 44 },
   tramo: {

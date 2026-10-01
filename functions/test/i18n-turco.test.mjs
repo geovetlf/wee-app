@@ -287,6 +287,10 @@ console.log('\n── F · La caja: mayúsculas, minúsculas y búsqueda con las
     ['services/weeBizService.ts', 'el campo guardado `nameLower` y su búsqueda por prefijo: cambiarlo exige migrar los negocios guardados'],
     ['constants/camaraCinematica.ts', 'el alias técnico de un comando de cámara'],
     ['constants/weeExperiences.ts', 'las palabras clave de las experiencias, que solo existen en español e inglés (limitación documentada)'],
+    ['utils/mensajesDeFilmmaker.ts', 'convierte el código de error del servidor (ASCII, snake_case) en el sufijo de su clave i18n: no se enseña'],
+    ['services/filmmaker/espejo/core/continuity.ts', 'espejo generado del dominio: normaliza claves técnicas prohibidas (ASCII), no texto visible'],
+    ['services/filmmaker/espejo/core/language.ts', 'espejo generado del dominio: canonicaliza etiquetas de idioma BCP-47 (identificadores ASCII)'],
+    ['services/filmmaker/espejo/core/shot.ts', 'espejo generado del dominio: normaliza claves técnicas prohibidas (ASCII), no texto visible'],
   ]);
   const listar = (d, r = []) => {
     for (const e of fs.readdirSync(path.resolve(raiz, d), { withFileTypes: true })) {

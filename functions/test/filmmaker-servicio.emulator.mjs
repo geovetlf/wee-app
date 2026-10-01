@@ -27,7 +27,7 @@ const hub = process.env.FIREBASE_EMULATOR_HUB;
 if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST || !hub) {
   console.log('✘ sin emuladores no se corre: faltan FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST o FIREBASE_EMULATOR_HUB'); process.exit(1);
 }
-if (PROY === 'get-wee' || !PROY.startsWith('demo-')) { console.log(`✘ solo contra un proyecto de demostración, nunca contra «${PROY}»`); process.exit(1); }
+if (!PROY.startsWith('demo-')) { console.log(`✘ solo contra un proyecto de demostración, nunca contra «${PROY}»`); process.exit(1); }
 
 let failures = 0; let n = 0;
 const check = (name, cond, extra = '') => {

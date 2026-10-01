@@ -85,6 +85,9 @@ const dobles = {
   '../../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
   '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }) },
   '../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
+  /* Los rótulos en mayúsculas: la caja la decide TextoEnMayusculas (lo prueba i18n-turco 34–36c); aquí, el mismo texto, como hacía el estilo. */
+  '../../TextoEnMayusculas': ({ children, ...p }) => reactNative.Text({ ...p, children }),
+  '../TextoEnMayusculas': ({ children, ...p }) => reactNative.Text({ ...p, children }),
   '../utils/scale': { scale: (x) => x },
   '../../utils/scale': { scale: (x) => x },
   '../../../utils/scale': { scale: (x) => x },

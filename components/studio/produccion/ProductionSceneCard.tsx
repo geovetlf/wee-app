@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
+import TextoEnMayusculas from '../../TextoEnMayusculas';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import { BotonPequeno, Chip } from './ProductionPiezas';
 import ProductionShotCard, { IdsNuevos } from './ProductionShotCard';
@@ -58,7 +59,7 @@ const ProductionSceneCard: React.FC<{
         style={[styles.cabecera, isWeb && ({ cursor: 'pointer' } as any)]}
       >
         <View style={styles.titulos}>
-          <Text style={[styles.numero, { color: theme.colors.accentDark }]}>{nombre}</Text>
+          <TextoEnMayusculas style={[styles.numero, { color: theme.colors.accentDark }]}>{nombre}</TextoEnMayusculas>
           <Text style={[styles.titulo, { color: escena.title ? theme.colors.text : theme.colors.textSecondary }]} numberOfLines={1}>
             {escena.title ?? t('filmmaker.untitledScene')}
           </Text>
@@ -130,7 +131,7 @@ const styles = StyleSheet.create({
   escena: { borderWidth: 1, borderRadius: BORDER_RADIUS.lg, padding: SPACING.md, gap: SPACING.sm },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.md, minHeight: 44 },
   titulos: { flex: 1, minWidth: 0, gap: 2 },
-  numero: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, textTransform: 'uppercase', letterSpacing: 0.6 },
+  numero: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, letterSpacing: 0.6 },
   titulo: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.bold as any },
   resumen: { alignItems: 'flex-end', gap: 2 },
   duracion: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold as any, fontVariant: ['tabular-nums'] },

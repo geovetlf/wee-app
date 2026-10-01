@@ -812,11 +812,15 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
 {
   check('AG) F1-A intacto', git(`diff --name-only ${PUENTE} -- functions/src/filmmaker`).trim() === '');
   check('AH) productions intacto', git(`diff --name-only ${PUENTE} -- functions/src/productions`).trim() === '');
-  check('AI) Credits intactos: el Credit Engine, creditCosts, credits/index, el Financial Core y el Router',
-    git(`diff --name-only ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim() === '');
+
+  /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
+  const CREDITS_DEL_HARNESS = '14\t0\tfunctions/src/credits/index.ts';
+  check('AI) Credits intactos: el Credit Engine, creditCosts, el Financial Core y el Router; credits/index, solo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
+    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
   const legacy = (s) => { const a = s.indexOf('    try {\n      const result = await videoEngine.generate('); return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a)); };
-  check('creatorRun y la rama legacy de generateVideo, byte a byte',
-    git(`diff --name-only ${PUENTE} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim() === ''
+  check('creatorRun, solo con los arreglos del Harness (H0 #9, #11, #15a) y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
+    git(`diff --numstat ${PUENTE} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
+      === '45\t4\tfunctions/src/creator/credits.ts|99\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
 }
 

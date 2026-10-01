@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCajaQueCrece } from './CajaQueCrece';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -52,7 +53,7 @@ const CampoQueCrece: React.FC<Props> = ({ etiqueta, valor, placeholder, maximo, 
 
   return (
     <View style={styles.bloque}>
-      <Text style={[styles.etiqueta, { color: theme.colors.textSecondary }]}>{etiqueta}</Text>
+      <TextoEnMayusculas style={[styles.etiqueta, { color: theme.colors.textSecondary }]}>{etiqueta}</TextoEnMayusculas>
       <View
         ref={caja.refCaja}
         onLayout={caja.alMedirCaja}
@@ -90,7 +91,7 @@ const CampoQueCrece: React.FC<Props> = ({ etiqueta, valor, placeholder, maximo, 
 
 const styles = StyleSheet.create({
   bloque: { gap: SPACING.xs },
-  etiqueta: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold as any, textTransform: 'uppercase', letterSpacing: 0.4 },
+  etiqueta: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold as any, letterSpacing: 0.4 },
   caja: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.sm, gap: SPACING.xs },
   campo: { fontSize: FONT_SIZE.base, lineHeight: FONT_SIZE.base * 1.4, padding: 0 },
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
