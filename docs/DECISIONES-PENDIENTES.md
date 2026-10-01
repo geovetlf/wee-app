@@ -1,0 +1,44 @@
+# Decisiones pendientes del dueño
+
+Weë Agent Harness, FASE 13 (2026-10-01).
+
+Orden del dueño: «NO decidir todavía: precio cuando no existe proveedor;
+bienvenida de cuentas anónimas; cobro proporcional D9; staging A/B; cambios de
+producto; nuevas experiencias. Solo documenta esas decisiones pendientes.»
+
+Aquí solo se documentan. **Ninguna está tomada ni preparada como cambio.**
+
+## De producto (no se tocan sin el dueño)
+
+| Decisión | Qué hay hoy | Dónde está el análisis | Qué la hace urgente |
+|---|---|---|---|
+| **Precio cuando no hay proveedor** (A · 0, B · tarifa oficial, C · «No disponible») | A, fijado por `estimate-plan`. Producción cotiza en modo simulado, así que hoy no pasa | [PRECIO-SIN-PROVEEDOR.md](PRECIO-SIN-PROVEEDOR.md) | Activar `pricingMode: 'real'` |
+| **Bienvenida de cuentas anónimas** | 240 Credits a cada cuenta nueva, también a las de invitado, con App Check apagado. Es el vector de abuso más barato: muchas cuentas, 240 cada una | Auditoría H0; [SECURITY.md](SECURITY.md) §7 (App Check) | Cualquier tráfico real de abuso. La alerta «Uso de IA anómalo» lo enseñaría |
+| **Cobro proporcional (D9)** | Aplazado en S2-C.1 («la política de Credits») | Memoria de la fase S2 | Que un trabajo parcial deba cobrar lo entregado |
+| **Staging A/B** | Todo corre en `get-wee` (decisión del 2026-09-13); `wee-dev-geovet` existe y no se usa | — | Antes de probar algo con riesgo que el emulador no cubra |
+| **Lanzar Weë Filmmaker** («Varias escenas» → la pantalla de producción) | Integrado detrás de una puerta que deja «Varias escenas» como en `main` ([INTEGRACION-PRODUCCION.md](INTEGRACION-PRODUCCION.md) §7 B). Sus reglas e índices no están vivos | INTEGRACION-PRODUCCION.md | Que el dueño quiera enseñarlo |
+| **Publicar la web (`wee.zone`)** | Vercel sirve `bfc622d`. `main` lleva identidad, Denunciar, Weë Studio B3 y 4 idiomas que la web no tiene | [INTEGRACION-PRODUCCION.md](INTEGRACION-PRODUCCION.md) §6 | Con el freno de Vercel, publicar es una acción deliberada desde el panel |
+| **`elements`** | En el código de `main`, nunca desplegada | `ops/despliegue/grupos.json` → `no_se_despliegan` | Que Elements tenga que estar en producción |
+| **Nuevas experiencias** | Las 11 de Weë AI; Weë Music sin conectar | CLAUDE.md | — |
+
+## De operación (cifras y ajustes que son del dueño)
+
+| Decisión | Por qué es suya | Dónde |
+|---|---|---|
+| La cifra del tope de gasto diario (global y por proveedor) | Es cuánto dinero acepta gastar en IA en un día | [COSTES.md](COSTES.md), método con datos de una semana |
+| El umbral de «Uso de IA anómalo» | Depende del tráfico real | `UMBRAL_DE_USO_ANOMALO` (300 en 15 min) |
+| Retirar otra vez el invocador público de `spendCredits` tras desplegarla | Es IAM | [PRIMER-DESPLIEGUE.md](PRIMER-DESPLIEGUE.md) |
+| Activar los registros de auditoría del canje de WIF | Es la política del proyecto | `ops/iam/wif.mjs`, paso 5 |
+| Protección de `main` en GitHub (PR + los 4 checks) | Es configuración del repositorio | [DEPLOYMENT.md](DEPLOYMENT.md) §6 |
+| *Deployment Protection* de las previews de Vercel | Las previews usan la configuración de Firebase de producción | [DEPLOYMENT.md](DEPLOYMENT.md) §2 |
+
+## Hallazgos del inventario de IA que también esperan al dueño
+
+([INVENTARIO-IA.md](INVENTARIO-IA.md))
+
+- La puerta `aiSettings/runtime` sin `cuentas` abre el conductor a todo el
+  mundo, y CLAUDE.md dice «por cuenta».
+- La sombra abierta sin `caminos` llama a DeepSeek de verdad, a 0 Credits.
+- El cortacircuitos de proveedores vive en la memoria de cada instancia.
+- El cupo de texto de `creatorChat` (H0 #12): cortar en seco interrumpe la
+  conversación.
