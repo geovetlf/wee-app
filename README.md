@@ -56,20 +56,21 @@ Regla para evaluar cualquier funcionalidad nueva (`docs/VISION.md`, §39):
 
 ## Entornos de Firebase
 
-Hay **dos proyectos** de Firebase. Nunca desarrolles contra producción.
+Hay **un solo proyecto real**: `get-wee` (alias `default` y `prod` en `.firebaserc`). Es producción: la app publicada, con usuarios reales. Desde el 2026-09-13 no se separa dev/prod; `wee-dev-geovet` existe pero no se usa (el alias `dev` es un resto). Para trabajar en local se usan los emuladores con un proyecto `demo-*`, que no puede tocar nada real.
 
-| Alias | Proyecto | Uso |
+| Dónde | Proyecto | Uso |
 |---|---|---|
-| `dev` (y `default`) | `wee-dev-geovet` | Desarrollo. Base limpia. |
-| `prod` | `get-wee` | **Producción.** App publicada, usuarios reales. |
-
-Los alias viven en `.firebaserc`. Como `default` apunta a dev, cualquier `firebase deploy` sin `--project` cae en dev. Producción hay que pedirla explícitamente:
+| Producción | `get-wee` | La app publicada. Solo cambia por el despliegue ([`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)); Claude no despliega ([`docs/SECURITY.md`](docs/SECURITY.md)). |
+| Local | `demo-wee` (emuladores) | Desarrollo y pruebas: Auth, Firestore, Functions y Storage emulados en 127.0.0.1, sin claves, todo en modo demo. |
 
 ```bash
-firebase deploy --only firestore --project prod
+npm run functions:emulator   # los cuatro emuladores con el proyecto demo-wee (Java 21+)
+npm run web:demo             # la app web (http://localhost:8082) conectada a esos emuladores
 ```
 
-Cada entorno tiene sus propios archivos de configuración de cliente:
+Cuidado: `firebase deploy` sin `--project` cae en **producción**.
+
+Archivos de configuración de cliente (apuntan a `get-wee`):
 
 | Archivo | Qué es | Generar con |
 |---|---|---|
@@ -95,7 +96,7 @@ Requisitos: Node 20+ y npm. Para Android, además, JDK 17 y el Android SDK (ver 
 git clone https://github.com/geovetlf/wee-app.git
 cd wee-app
 npm install
-cp .env.example .env        # completar con las claves del proyecto dev
+cp .env.example .env        # configuración web de Firebase (get-wee); para local sin tocarlo: npm run web:demo
 ```
 
 ### Web (el ciclo más rápido)
@@ -201,16 +202,17 @@ Los Credits los mueve únicamente el servidor: `Cliente → Firebase Auth → Cl
 
 Las interfaces de las 11 secciones no cambian: **la misma Weë, pero ahora funciona**. Weë Brain, Design, Photo, Studio, Business, Home, Beauty, Writer, Chef y Travel llaman a Cloud Functions (`functions/src/creator`: `creatorChat` / `creatorRun` para los especialistas, `brainChat` para Weë Brain), que pasan por Auth → Credit Engine → WEË AI ENGINE → proveedor. Cada sección usa los servicios que le corresponden: Brain (texto con contexto, búsqueda con fuentes, foto adjunta, derivación), Design (concepto + imágenes), Photo (visión + edición multimodal: mejorar, quitar objetos, fondo, restaurar, retoque, transformar, colorizar, crear), Studio (guion → video con Seedance → narración con ElevenLabs; animar una foto), Business (ideas, contenido, respuestas, análisis y documentos con Gemini; sin publicar en redes hasta tener sus APIs), Home (visión + rediseño del espacio + lista de compras), Beauty (visión + cambio de look sobre la foto), Writer (textos que quedan en "Mis documentos", `users/{uid}/writerDocuments`) y Chef (foto de ingredientes → receta → foto del plato). Weë Music sigue intacta en modo demo.
 
-El proyecto **dev** está en el plan Spark, así que en desarrollo las Functions y el Storage corren en el **emulador local** (Java 21 o superior):
+En local, las Functions corren en el **emulador** con el proyecto `demo-wee` (Java 21 o superior), junto con Auth, Firestore y Storage:
 
 ```bash
 npm run functions:install   # una vez
-npm run functions:emulator  # compila y levanta functions (http://localhost:5001) + storage (http://localhost:9199)
+npm run functions:emulator  # Auth :9099, Firestore :8080, Functions :5001 y Storage :9199, solo en 127.0.0.1
+npm run web:demo            # la app web conectada a los cuatro (http://localhost:8082)
 ```
 
-La app apunta a los emuladores cuando `.env` tiene `EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST=localhost` y `EXPO_PUBLIC_STORAGE_EMULATOR_HOST=localhost` (reinicia Metro al cambiarlo). En el celular, además: `adb reverse tcp:5001 tcp:5001` y `adb reverse tcp:9199 tcp:9199`. Sin esas variables, la app usa las Functions y el Storage del proyecto.
+`npm run web:demo` pone a la app en el proyecto `demo-wee` y le da las cuatro variables `EXPO_PUBLIC_{AUTH,FIRESTORE,FUNCTIONS,STORAGE}_EMULATOR_HOST`. En el celular (dev build por USB) hacen falta las mismas variables al arrancar Metro y `adb reverse` de los puertos 9099, 8080, 5001 y 9199. Sin esas variables, la app usa el proyecto real.
 
-**Claves (solo backend, `functions/.env.local`, no se versiona; ver `functions/.env.example`):** `GEMINI_API_KEY` (Google AI Studio: texto, búsqueda, visión, imagen), `ARK_API_KEY` (BytePlus ModelArk: video con Seedance 2.5 / 2.0) y `ELEVENLABS_API_KEY` (voz). Sin claves, cada proveedor no existe para el router y la sección responde en modo demo con resultados de muestra. El coste real de cada llamada queda en `aiGenerations` (`providerCost`) y acumulado en `aiUsage/{día}` y `creatorUsage/{día}`; los Credits que se cobran salen del catálogo placeholder del Credit Engine hasta fijar precios definitivos.
+**Claves:** viven solo en Cloud Secret Manager de producción (`functions/src/secrets.ts`), nunca en el portátil ni en el repo; custodia y rotación en [`docs/SECURITY.md`](docs/SECURITY.md). En local no hacen falta: sin claves, cada proveedor no existe para el router y la sección responde en modo demo con resultados de muestra. El emulador se niega a arrancar si encuentra una clave de proveedor en `functions/.env.local`. El coste real de cada llamada queda en `aiGenerations` (`providerCost`) y acumulado en `aiUsage/{día}` y `creatorUsage/{día}`; los Credits que se cobran salen del catálogo placeholder del Credit Engine hasta fijar precios definitivos.
 
 Qué hace hoy: en cualquier especialista, **Empezar** abre la conversación guiada (2–3 preguntas con opciones, siempre con "🤷 No sé"), muestra el plan y su coste ("Gratis en modo demo"), ejecuta los pasos por el AI Gateway con el proveedor de prueba `mock` (sin gastar dinero) y devuelve un resultado de muestra con **Crear otra versión / Editar / Publicar en mi comunidad**. Los trabajos se guardan en `creatorJobs` ("Mis creaciones"). Los precios (`pricing/{capacidad}`) siguen vacíos a propósito: se llenan cuando se midan los costes reales de cada API.
 

@@ -10,12 +10,14 @@ import { defineSecret } from 'firebase-functions/params';
  * variables de entorno con el MISMO nombre de siempre, así que los adaptadores
  * no cambian: siguen leyendo GEMINI_API_KEY, ARK_API_KEY, etc.
  *
- * Guardar o rotar una clave:
- *   firebase functions:secrets:set ARK_API_KEY --project prod
- *   firebase functions:secrets:access ARK_API_KEY --project prod
+ * Guardar o rotar una clave lo hace el dueño, siguiendo docs/SECURITY.md §4.
+ * Cuidado: `firebase functions:secrets:set` sobre un secreto gestionado por
+ * Firebase ofrece redesplegar y DESTRUYE la versión anterior en el acto; ese
+ * paso no se acepta sin haber verificado la versión nueva.
  *
- * En desarrollo local se sigue usando functions/.env.local, que no se versiona.
- * `functions.config()` está obsoleto desde la versión 6 y no se usa en Weë.
+ * En local no hay claves: el emulador corre con el proyecto `demo-wee` y un
+ * `functions/.secret.local` vacío (scripts/emulators.mjs), así que todo va en
+ * modo demo. `functions.config()` está obsoleto desde la versión 6 y no se usa en Weë.
  */
 
 /** Claves de proveedores de IA. El nombre es el mismo que espera cada adaptador. */
