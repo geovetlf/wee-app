@@ -29,7 +29,8 @@ Aquí solo se documentan. **Ninguna está tomada ni preparada como cambio.**
 | El umbral de «Uso de IA anómalo» | Depende del tráfico real | `UMBRAL_DE_USO_ANOMALO` (300 en 15 min) |
 | Retirar otra vez el invocador público de `spendCredits` tras desplegarla | Es IAM | [PRIMER-DESPLIEGUE.md](PRIMER-DESPLIEGUE.md) |
 | Activar los registros de auditoría del canje de WIF | Es la política del proyecto | `ops/iam/wif.mjs`, paso 5 |
-| Protección de `main` en GitHub (PR + los 4 checks) | Es configuración del repositorio | [DEPLOYMENT.md](DEPLOYMENT.md) §6 |
+| Protección de `main` en GitHub (PR + los 4 checks, solo merge commits, acciones fijadas por SHA, entorno `get-wee`) | Es configuración del repositorio | [DEPLOYMENT.md](DEPLOYMENT.md) §6, `node ops/github/proteccion.mjs` |
+| Una identidad de GitHub propia para Claude (hoy usa la del dueño en el portátil) | Son credenciales del dueño | [SECURITY.md](SECURITY.md) §7 |
 | *Deployment Protection* de las previews de Vercel | Las previews usan la configuración de Firebase de producción | [DEPLOYMENT.md](DEPLOYMENT.md) §2 |
 
 ## Hallazgos del inventario de IA que también esperan al dueño

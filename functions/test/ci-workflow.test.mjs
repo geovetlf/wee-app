@@ -52,7 +52,7 @@ check('8) nivel 3: las suites de emulador con Java 21', /node functions\/test\/_
 check('9) cada job comprueba primero que el entorno no trae nada real',
   (sinComentarios.match(/node scripts\/ci-sin-secretos\.mjs/g) || []).length === 4);
 const nivel3 = sinComentarios.slice(sinComentarios.indexOf('nivel-3:'));
-const POLITICAS = ['escaneo-secretos', 'guardia-claude', 'entrega-configuracion', 'produccion-mapa', 'despliegue-workflow', 'rotacion-secretos', 'emulador-aislado', 'ci-workflow', 'credits-cliente-cerrado', 'integracion-preparada', 'wif-verificar'];
+const POLITICAS = ['escaneo-secretos', 'guardia-claude', 'entrega-configuracion', 'produccion-mapa', 'despliegue-workflow', 'rotacion-secretos', 'emulador-aislado', 'ci-workflow', 'credits-cliente-cerrado', 'integracion-preparada', 'wif-verificar', 'proteccion-github'];
 check('9b) nivel 3: ningún secreto en el repositorio y las suites de seguridad y políticas, todas',
   /node scripts\/escaneo-secretos\.mjs/.test(nivel3) && POLITICAS.every((s) => nivel3.includes(` ${s} `) || nivel3.includes(` ${s};`)), POLITICAS.filter((s) => !nivel3.includes(` ${s} `) && !nivel3.includes(` ${s};`)).join(', '));
 const { NIVELES_DE_CI } = await importar('ops/despliegue/plan.mjs');

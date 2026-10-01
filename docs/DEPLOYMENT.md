@@ -209,7 +209,23 @@ arranca:
    los emuladores aislados.
 
 Para que la CI se ejecute ANTES de entrar en `main`, el dueño activa en GitHub
-la protección de `main` (PR obligatorio con los cuatro checks en verde).
+la protección de `main`. Está escrita en `ops/github/` (lo que se envía, tal cual)
+y `node ops/github/proteccion.mjs` imprime los comandos, en orden:
+- **main**: no se borra, no se reescribe, solo cambia por PR con los cuatro checks
+  de la CI en verde, emitidos por GitHub Actions y con la rama al día; sin
+  excepciones. Sin revisores obligatorios: el dueño trabaja solo y GitHub no deja
+  aprobar tu propio PR.
+- **Solo merge commits.** `ops/permitido.mjs` comprueba por ascendencia que `main`
+  contiene lo que está vivo; un squash o un rebase reescriben los commits y
+  bloquearían todos los despliegues.
+- **Acciones**: solo las de GitHub y `google-github-actions/auth`, siempre fijadas
+  por SHA (todas lo están ya); el token de los workflows, de lectura.
+- **Entorno `get-wee`**: el dueño aprueba cada despliegue, y solo desde `main`.
+
+`node ops/github/proteccion.mjs verificar` solo LEE y dice qué falta. El
+2026-10-01 dio seis diferencias: `main` sin ninguna protección, squash y rebase
+admitidos, cualquier acción admitida, sin exigir SHA y sin entorno `get-wee`
+(`functions/test/proteccion-github.test.mjs`).
 
 Sin secretos, sin credenciales de Google y sin gasto (`scripts/ci-sin-secretos.mjs`).
 

@@ -283,6 +283,12 @@ igual.
 
 - **Identidad propia de Claude**, sin Owner, sin facturación, sin IAM y sin
   secretos. La autonomía crece por automatización, no por privilegios.
+  - **En GitHub, hoy Claude actúa como el dueño** (2026-10-01): `gh` y `git` en
+    el portátil usan la cuenta `geovetlf`. Lo que lo frena es la guardia de
+    Claude y, cuando el dueño la active, la protección de `main`
+    (`ops/github/`), que ya no admitiría un push directo ni de él. Lo limpio es
+    un token de grano fino para Claude: escribir solo en ramas y abrir PRs, sin
+    administración del repositorio.
 - **IAM de secretos.** Quitar `roles/secretmanager.secretAccessor` a nivel de
   proyecto a la SA de cómputo, porque cada secreto en uso ya tiene su binding.
   Después, cuentas de servicio por grupo de funciones (IA, medios, básicas).
