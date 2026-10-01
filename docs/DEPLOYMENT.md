@@ -15,7 +15,11 @@ Documento operativo del **Weë Agent Harness** (FASE 3, 4 y 6). Producción es
    seguridad pendiente. Lo decide `ops/permitido.mjs` (§3).
 3. **Nada sale de una carpeta con cambios sin commitear.**
    - Dos despliegues de septiembre (zips Z10 y Z11 de la auditoría H0) salieron
-     de árboles sucios, y su código no se puede reconstruir.
+     de árboles sucios, sin commit.
+     - Z11 (`brainChat`) resultó idéntico al commit que se creó nueve minutos
+       después (`2da2881`).
+     - Z10 ya no sirve a ninguna función.
+     - Saberlo costó comparar zips a mano.
    - Se despliega desde un worktree limpio en el commit exacto, y ese commit
      queda etiquetado.
 

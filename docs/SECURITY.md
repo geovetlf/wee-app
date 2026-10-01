@@ -110,9 +110,12 @@ ese grupo, los comandos fase a fase con el nombre de cada servicio.
   con las revisiones nuevas, para que `marcha-atras --al-mapa` vuelva a una
   posterior.
 - **Por qué `gcloud run services update`.** Google documenta que una función
-  gen2 se puede editar con la API de Cloud Run. Además, no reconstruye el código
-  y deja intactas las cuatro funciones cuyo código no está en `main` y las de
-  los zips Z10 y Z11, que no se pueden reconstruir.
+  gen2 se puede editar con la API de Cloud Run. Además:
+  - no reconstruye el código: la imagen que sirve es la misma, solo cambia la
+    versión del secreto;
+  - no exige desplegar desde `main`, que hoy no tiene el código vivo de cuatro
+    de esas funciones ([INTEGRACION-PRODUCCION.md](INTEGRACION-PRODUCCION.md)).
+    Redesplegarlas para rotar borraría lo que funciona.
 
 > **La trampa de `firebase functions:secrets:set`.** Con un secreto que gestiona
 > Firebase (hoy, DEEPSEEK), al terminar pregunta *«Do you want to re-deploy the
