@@ -82,7 +82,7 @@ export const POLITICAS = {
     alertStrategy: { notificationRateLimit: { period: '1800s' }, autoClose: '604800s' },
   },
   'ia-no-disponible': umbral('Weë · IA no disponible', 'logging.googleapis.com/user/wee_ia_no_disponible', 5, '600s',
-    'Más de 5 peticiones de IA en 10 minutos sin proveedor: un proveedor caído, una clave mal rotada, o el interruptor `aiSettings/global.iaDetenida` encendido. docs/AI-ENGINE.md § Límites.'),
+    'Más de 5 peticiones de IA en 10 minutos sin proveedor: un proveedor caído, una clave mal rotada, el interruptor `aiSettings/global.iaDetenida` encendido o el tope de gasto diario `maxUsdPerDay` alcanzado. docs/AI-ENGINE.md § Límites.'),
   'barrido-fallando': umbral('Weë · el barrido no termina', 'logging.googleapis.com/user/wee_barrido_incompleto', 1, '900s',
     'Dos o más pasadas seguidas de la reconciliación (cada 5 min) sin terminar: el dinero de tareas ya lanzadas no se está cerrando. docs/RUNTIME.md.'),
   'errores-5xx': umbral('Weë · errores 5xx en las Functions', 'run.googleapis.com/request_count', 10, '600s',

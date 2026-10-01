@@ -14,7 +14,7 @@ qué mirar.
 | Alerta | Cuándo salta | Qué hacer |
 |---|---|---|
 | **Dinero sin cerrar** | Un reembolso o una liquidación de Credits falló. Salta en el primer caso, como mucho una vez cada 30 min | Buscar el trabajo (`creatorJobs` con `liquidacionPendiente`) o la operación (`creditTransactions`) y cerrarla. El Credit Engine es idempotente |
-| **IA no disponible** | Más de 5 peticiones de IA en 10 min sin proveedor | Un proveedor caído, una clave mal rotada ([SECURITY.md](SECURITY.md) §4) o el interruptor `iaDetenida` encendido ([AI-ENGINE.md](AI-ENGINE.md) § Límites) |
+| **IA no disponible** | Más de 5 peticiones de IA en 10 min sin proveedor | Un proveedor caído, una clave mal rotada ([SECURITY.md](SECURITY.md) §4), el interruptor `iaDetenida` encendido o el tope de gasto diario alcanzado ([AI-ENGINE.md](AI-ENGINE.md) § Límites) |
 | **El barrido no termina** | Dos o más pasadas de la reconciliación seguidas sin terminar | El dinero de tareas ya lanzadas no se está cerrando ([RUNTIME.md](RUNTIME.md)) |
 | **Errores 5xx** | Más de 10 respuestas 5xx en 10 min en las Functions | Logs del servicio. Si vino de un despliegue, marcha atrás ([DEPLOYMENT.md](DEPLOYMENT.md) §5) |
 | **Weë caído** | La comprobación externa (cada 5 min, desde varias regiones) falla | Primero, la cuenta de facturación (así fue la caída de H0). Después, los logs |

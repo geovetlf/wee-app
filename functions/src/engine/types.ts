@@ -368,6 +368,15 @@ export interface EngineSettings {
    * para). Se cambia con engineAdmin → setSettings y queda quién lo hizo.
    */
   iaDetenida?: boolean;
+  /**
+   * TOPE DE GASTO DIARIO EN PROVEEDORES, en USD, para todo Weë (FASE 8). Sin
+   * valor —o 0— no hay tope. Al alcanzarlo, el router deja de proponer
+   * candidatos —ni otro proveedor ni el demo— y la persona ve «no disponible»
+   * sin que se le cobre (su reserva se reembolsa). Es un tope blando: se mide
+   * con aiUsage/{día}, que suma al cerrar cada generación y se lee con un
+   * minuto de caché. Lo decide código, nunca una IA.
+   */
+  maxUsdPerDay?: number;
 }
 
 export interface RouteCandidate {

@@ -7,7 +7,7 @@ import { recordRealSuccess } from './verification';
 import { sanitizeForLog } from './sanitize';
 import { NotConfiguredError, ProviderError } from './http';
 import { classifyError, EngineError } from './errors';
-import { providerCallsToday } from './limits';
+import { providerCallsToday, providerUsdToday, usdToday } from './limits';
 import {
   ChainLink,
   EngineRequest,
@@ -214,6 +214,15 @@ export function createRouter(deps: RouterDeps) {
       return adapter.isConfigured() && adapter.supports(capability);
     });
     const usage = deps.usageToday ? await deps.usageToday().catch(() => undefined) : undefined;
+    /*
+     * EL TOPE DE GASTO DIARIO (FASE 8). Alcanzado, no hay candidatos: ni otro
+     * proveedor ni el demo. `execute` contesta NOT_AVAILABLE antes de abrir el
+     * libro y quien llamó reembolsa su reserva. Sin tope configurado, nada cambia.
+     */
+    const tope = settings.maxUsdPerDay;
+    if (typeof tope === 'number' && tope > 0 && usdToday(usage) >= tope) {
+      return { capability, quality, policy, candidates: [], skipped: [{ provider: '*', reason: 'presupuesto_diario_agotado' }], realProviderAvailable };
+    }
 
     links.forEach((link, index) => {
       const skip = (reason: string): void => {
@@ -230,6 +239,9 @@ export function createRouter(deps: RouterDeps) {
       if (deps.health.isOpen(link.provider)) return skip('en pausa por fallos recientes');
       const maxCalls = providerConfig.limits?.maxCallsPerDay;
       if (maxCalls && maxCalls > 0 && providerCallsToday(usage, link.provider) >= maxCalls) return skip('límite diario del proveedor alcanzado');
+      /* Declarado desde siempre en ProviderConfig y nunca aplicado hasta ahora (inventario FASE 13). */
+      const maxUsd = providerConfig.limits?.maxUsdPerDay;
+      if (maxUsd && maxUsd > 0 && providerUsdToday(usage, link.provider) >= maxUsd) return skip('presupuesto diario del proveedor alcanzado');
       if (link.minQuality && QUALITY_RANK[quality] < QUALITY_RANK[link.minQuality]) return skip('reservado para tareas de más calidad');
       if (link.maxQuality && QUALITY_RANK[quality] > QUALITY_RANK[link.maxQuality]) return skip('no alcanza la calidad que pide la tarea');
       const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model || prefs.modelId);

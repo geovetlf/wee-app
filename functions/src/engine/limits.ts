@@ -59,6 +59,24 @@ export function createLimiter(deps: { db: () => LimiterDb; now?: () => unknown }
 
 export const limiter = createLimiter({ db: () => getFirestore() as unknown as LimiterDb });
 
+/**
+ * Dólares de coste real de proveedor gastados hoy, según aiUsage/{día}.byProvider
+ * (el libro los suma al CERRAR cada generación). Es una cuenta aproximada: lo que
+ * está en marcha todavía no cuenta y la lectura se cachea un minuto, así que un
+ * tope basado en esto es blando: corta en cuanto lo ve, no al céntimo.
+ */
+export function providerUsdToday(usage: Record<string, any> | undefined, provider: string): number {
+  const usd = usage?.byProvider?.[provider]?.usd;
+  return typeof usd === 'number' && Number.isFinite(usd) ? usd : 0;
+}
+
+/** Dólares gastados hoy en todos los proveedores juntos (ver `providerUsdToday`). */
+export function usdToday(usage: Record<string, any> | undefined): number {
+  const porProveedor = usage?.byProvider;
+  if (!porProveedor || typeof porProveedor !== 'object') return 0;
+  return Object.keys(porProveedor).reduce((total, p) => total + providerUsdToday(usage, p), 0);
+}
+
 /** Llamadas hechas hoy por un proveedor según aiUsage/{día}. */
 export function providerCallsToday(usage: Record<string, any> | undefined, provider: string): number {
   if (!usage) return 0;
