@@ -47,7 +47,8 @@ check('4) cada alerta dice qué mirar', sinDoc.length === 0, sinDoc.join(', '));
 const deLog = Object.entries(POLITICAS).filter(([, p]) => p.conditions.some((c) => c.conditionMatchedLog));
 check('5) las alertas por mensaje de log tienen límite de avisos (no inundan el correo)',
   deLog.length >= 1 && deLog.every(([, p]) => p.alertStrategy && p.alertStrategy.notificationRateLimit));
-check('6) son pocas: cinco políticas y dos métricas', Object.keys(POLITICAS).length === 5 && METRICAS.length === 2);
+check('6) son pocas: siete políticas y cuatro métricas (las cinco de H0, más el tope diario y el uso anómalo que pidió el dueño)',
+  Object.keys(POLITICAS).length === 7 && METRICAS.length === 4);
 check('7) el dinero sin cerrar salta con severidad de error, en el primer caso',
   /severity>=ERROR/.test(POLITICAS['dinero-sin-cerrar'].conditions[0].conditionMatchedLog.filter));
 
@@ -65,7 +66,7 @@ const r = spawnSync(process.execPath, [path.resolve(RAIZ, ALERTAS), '--json', tm
 const archivos = fs.readdirSync(tmp).filter((f) => f.endsWith('.json'));
 let validos = 0;
 for (const f of archivos) { try { const p = JSON.parse(fs.readFileSync(path.join(tmp, f), 'utf8')); if (p.displayName && p.conditions) validos++; } catch { /* inválido */ } }
-check('12) --json escribe las cinco políticas como JSON válido, con nombres ASCII', r.status === 0 && archivos.length === 5 && validos === 5 && archivos.every((f) => /^[a-z0-9-]+\.json$/.test(f)), archivos.join(', '));
+check('12) --json escribe las siete políticas como JSON válido, con nombres ASCII', r.status === 0 && archivos.length === 7 && validos === 7 && archivos.every((f) => /^[a-z0-9-]+\.json$/.test(f)), archivos.join(', '));
 fs.rmSync(tmp, { recursive: true, force: true });
 check('13) docs/OBSERVABILITY.md explica las alertas y cómo se activan', /alertas\.mjs/.test(leer('docs/OBSERVABILITY.md')));
 

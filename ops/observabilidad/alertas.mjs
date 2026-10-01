@@ -10,6 +10,10 @@
  *  · dinero sin cerrar: un reembolso o una liquidación de Credits falló;
  *  · IA no disponible: muchas peticiones sin proveedor (caída, claves, o el
  *    interruptor `iaDetenida` encendido);
+ *  · tope de gasto diario alcanzado: la IA se detuvo sin cobrar porque llegó al
+ *    `maxUsdPerDay` global o al de un proveedor (decisión: subirlo o esperar);
+ *  · uso de IA anómalo: muchas más generaciones de lo normal en 15 minutos
+ *    (abuso, un bucle, un cliente que reintenta sin parar);
  *  · barrido fallando: la reconciliación de tareas no termina;
  *  · errores 5xx en las Functions;
  *  · Weë caído: una comprobación externa cada 5 minutos (la caída de H0).
@@ -39,13 +43,22 @@ export const MENSAJES = {
   'tampoco se pudo anotar la liquidación pendiente': ['functions/src/creator/credits.ts'],
   'WEË AI ENGINE: ningún proveedor disponible': ['functions/src/engine/router.ts'],
   'WEË RECONCILIACIÓN · la pasada no se pudo completar': ['functions/src/settlement/programado.ts'],
+  'presupuesto_diario_agotado': ['functions/src/engine/router.ts'],
+  'presupuesto diario del proveedor alcanzado': ['functions/src/engine/router.ts'],
+  'WEË AI ENGINE: ': ['functions/src/engine/router.ts'],
+  ' atendió ': ['functions/src/engine/router.ts'],
 };
 
 /** Métricas basadas en logs (contadores). */
 export const METRICAS = [
   { nombre: 'wee_ia_no_disponible', descripcion: 'Peticiones de IA sin ningún proveedor disponible', filtro: `resource.type="cloud_run_revision" AND ${texto('WEË AI ENGINE: ningún proveedor disponible')}` },
   { nombre: 'wee_barrido_incompleto', descripcion: 'Pasadas de la reconciliación que no terminaron', filtro: `resource.type="cloud_run_revision" AND ${texto('WEË RECONCILIACIÓN · la pasada no se pudo completar')}` },
+  { nombre: 'wee_ia_tope_diario', descripcion: 'Peticiones de IA paradas por el tope de gasto diario', filtro: `resource.type="cloud_run_revision" AND (${texto('presupuesto_diario_agotado')} OR ${texto('presupuesto diario del proveedor alcanzado')})` },
+  { nombre: 'wee_ia_generaciones', descripcion: 'Generaciones de IA atendidas (una línea del motor por cada una)', filtro: `resource.type="cloud_run_revision" AND ${texto('WEË AI ENGINE: ')} AND ${texto(' atendió ')}` },
 ];
+
+/** Generaciones en 15 minutos a partir de las cuales el uso se considera anómalo. Ajustable tras una semana de datos reales. */
+export const UMBRAL_DE_USO_ANOMALO = 300;
 
 const umbral = (nombre, metrica, valor, ventana, doc, extraFiltro = '') => ({
   displayName: nombre,
@@ -83,6 +96,10 @@ export const POLITICAS = {
   },
   'ia-no-disponible': umbral('Weë · IA no disponible', 'logging.googleapis.com/user/wee_ia_no_disponible', 5, '600s',
     'Más de 5 peticiones de IA en 10 minutos sin proveedor: un proveedor caído, una clave mal rotada, el interruptor `aiSettings/global.iaDetenida` encendido o el tope de gasto diario `maxUsdPerDay` alcanzado. docs/AI-ENGINE.md § Límites.'),
+  'tope-diario': umbral('Weë · tope de gasto diario de IA alcanzado', 'logging.googleapis.com/user/wee_ia_tope_diario', 0, '600s',
+    'La IA se ha detenido sin cobrar porque llegó al `maxUsdPerDay` global o al de un proveedor (`aiSettings/global`, `aiProviders/{id}.limits`). Hasta medianoche UTC no vuelve sola. Decide si el gasto es legítimo (subir el tope con engineAdmin) o un abuso (mira `aiGenerations` de hoy). docs/COSTES.md.'),
+  'uso-ia-anomalo': umbral('Weë · uso de IA anómalo', 'logging.googleapis.com/user/wee_ia_generaciones', UMBRAL_DE_USO_ANOMALO, '900s',
+    `Más de ${UMBRAL_DE_USO_ANOMALO} generaciones de IA en 15 minutos. Puede ser abuso (cuentas nuevas, un cliente en bucle) o éxito: mira \`aiGenerations\` por persona y por proveedor. Si es abuso, el interruptor \`iaDetenida\` lo para todo sin cobrar. docs/COSTES.md.`),
   'barrido-fallando': umbral('Weë · el barrido no termina', 'logging.googleapis.com/user/wee_barrido_incompleto', 1, '900s',
     'Dos o más pasadas seguidas de la reconciliación (cada 5 min) sin terminar: el dinero de tareas ya lanzadas no se está cerrando. docs/RUNTIME.md.'),
   'errores-5xx': umbral('Weë · errores 5xx en las Functions', 'run.googleapis.com/request_count', 10, '600s',
