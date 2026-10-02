@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "投稿、プロフィール、WeeTalk、Weë AIで使う写真を撮影するには、Weëにカメラへのアクセスを許可してください。",
+    "NSMicrophoneUsageDescription": "WeeTalkでボイスメッセージを録音して送信するには、Weëにマイクへのアクセスを許可してください。",
+    "NSPhotoLibraryUsageDescription": "投稿、プロフィール、WeeTalk、Weë AIで使う写真や動画を選ぶには、Weëに写真ライブラリへのアクセスを許可してください。",
+    "NSPhotoLibraryAddUsageDescription": "Weë AIからダウンロードした画像や動画を写真ライブラリに保存するには、Weëにアクセスを許可してください。",
+    "NSLocationWhenInUseUsageDescription": "Weëは、アプリを開いている間だけおおよその位置情報を使用し、投稿に場所を追加するときに近くの場所や今いる地域を提案します。正確な位置情報が公開されることはありません。"
+  }
+}

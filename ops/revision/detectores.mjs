@@ -321,6 +321,10 @@ const revisarArchivo = (sf, info, ctx) => {
       if (cliente && !esSoloNativo(ruta) && nombre === 'Alert.alert' && n.arguments.length >= 3 && !soloFueraDeLaWeb(n, sf)) {
         anadir('web/alert-con-botones', n, 'Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)');
       }
+      /* Sin lista de botones: no hay trabajo que se pierda, pero el aviso tampoco se ve en la web (cierre 2026-10-01). */
+      if (cliente && !esSoloNativo(ruta) && nombre === 'Alert.alert' && n.arguments.length < 3 && !soloFueraDeLaWeb(n, sf)) {
+        anadir('web/alert-sin-boton', n, 'Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)');
+      }
 
       if (zonaI18n && nombre && (/^set[A-Z]/.test(nombre) || nombre === 'Alert.alert' || nombre === 'notify')) {
         for (const frase of frasesEn(n.arguments, sf)) {

@@ -105,7 +105,7 @@ console.log('\n── A · Ni un texto de interfaz escrito a mano ──');
   const AVATAR = leer('components/avatars/AvatarPicker.tsx');
   check('2) el parser no confunde una cadena con un comentario',
     /input\.accept = 'image\/\*'/.test(AVATAR)
-    && /Alert\.alert\(t\('common\.error'\), t\('avatar\.pickFailed'/.test(soloCodigo(AVATAR)));
+    && /notify\(t\('common\.error'\), t\('avatar\.pickFailed'/.test(soloCodigo(AVATAR))); /* + cierre 2026-10-01: notify */
   check('2) ni un genérico de TypeScript con un texto',
     !/Promise/.test([...soloCodigo(leer('screens/PostDetailScreen.tsx'))
       .matchAll(/>\s*([A-Za-zÀ-ÿ][^<>{}();=]{1,80})\s*</g)].map((m) => m[1]).join(' ')));
@@ -130,7 +130,9 @@ console.log('\n── B · Las once áreas grandes, una por una ──');
     ['la publicación', 'screens/PostDetailScreen.tsx', /t\('wall\./],
     ['el Home', 'screens/LandingScreen.tsx', /t\('home\./],
     ['la Ayuda', 'screens/HelpScreen.tsx', /t\('help\./],
-    ['el chat', 'screens/ChatScreen.tsx', /t\('weetalk\./],
+    /* `screens/ChatScreen.tsx` ('el chat') ya no está: era una pantalla sin ruta y se retiró como código muerto
+       (cierre post-auditoría, 2026-10-01). El chat de verdad es WeeTalk (`ConversationScreen`), que ocupa su sitio. */
+    ['WeeTalk', 'screens/ConversationScreen.tsx', /t\('weetalk\./],
     ['el editor', 'screens/WriterEditorScreen.tsx', /t\('writer\./],
   ];
   for (const [nombre, ruta, patron] of AREAS) {

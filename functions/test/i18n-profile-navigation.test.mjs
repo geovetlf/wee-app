@@ -103,12 +103,12 @@ console.log('\n── B · Lo que ESE MISMO toque contesta cuando no puede ─�
   check('8) el permiso de la galería ya no está escrito a mano',
     !/'Permisos'/.test(PERFIL) && !/Se necesitan permisos para acceder a la galería/.test(PERFIL));
   check('9) lo pide por clave, título y cuerpo',
-    /Alert\.alert\(t\('profile\.permissionsTitle'\), t\('profile\.galleryPermission'\)\)/.test(PERFIL));
+    /notify\(t\('profile\.permissionsTitle'\), t\('profile\.galleryPermission'\)\)/.test(PERFIL)); /* + cierre 2026-10-01: notify */
 
   check('10) la subida fallida ya no está escrita a mano',
     !/No se pudo subir la imagen de portada/.test(PERFIL));
   check('11) y reutiliza common.error, que ya existía',
-    /Alert\.alert\(t\('common\.error'\), t\('profile\.coverUploadFailed'\)\)/.test(PERFIL));
+    /notify\(t\('common\.error'\), t\('profile\.coverUploadFailed'\)\)/.test(PERFIL)); /* + cierre 2026-10-01: notify */
 
   /* 12 y 13 · Las tres frases, en los dos idiomas. */
   for (const [clave, es, en] of [

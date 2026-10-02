@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { Post } from '../services/firestoreService';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 

@@ -297,8 +297,8 @@ console.log('\n── D · seguimiento, coordenadas guardadas y consultas geogr�
   check('D) solo se pide el permiso de primer plano', /requestForegroundPermissionsAsync/.test(servicio) && !/requestBackgroundPermissionsAsync/.test(todo));
   check('D) ninguna coordenada se guarda', !/setDoc|updateDoc|addDoc|collection\(/.test(todo));
   check('D) no hay geohash', !/geohash|geoHash|geopoint|GeoPoint/i.test(todo));
-  // La comprobación busca CONSULTAS, no las palabras: el texto de Settings dice
-  // "cerca de ti" a propósito, y eso es una explicación para una persona.
+  // La comprobación busca CONSULTAS, no las palabras: el texto de Settings habla
+  // de "lugares cercanos" a propósito, y eso es una explicación para una persona.
   check('D) ni consultas geográficas', !/nearBy\(|withinRadius|boundingBox|bbox|orderBy\(['"`](lat|lng|geo)/i.test(todo));
   check('D) ni mapas, rutas o proveedores externos', !/mapbox|googlemaps|places|leaflet|openstreetmap/i.test(todo));
   check('D) lo único que se guarda es la preferencia, en el aparato', /AsyncStorage\.setItem\(CLAVE, preferencia\)/.test(servicio) && (servicio.match(/setItem\(/g) || []).length === 1);
@@ -349,7 +349,14 @@ const diccionarioEs = fs.readFileSync(new URL('../../i18n/textos/es/settings.ts'
     && /locationApproximate: 'Weë sabe tu zona, no el punto exacto\.'/.test(diccionarioEs)
     && /locationPrecise: '[^']*con detalle cuando una función lo necesite\.'/.test(diccionarioEs)
     && /locationOff: 'Off\./.test(diccionarioEn));
-  check('F) y el texto acordado', /Permite que Weë use tu ubicación aproximada para mostrarte contenido y experiencias cerca de ti\./.test(ajustes) && /Tu ubicación exacta nunca se muestra públicamente\./.test(ajustes));
+  /*
+   * El texto dice lo que la ubicación HACE hoy: sugerir lugares cercanos y la zona cuando se agrega una ubicación a
+   * una publicación (AgregarUbicacionScreen), lo mismo que el permiso del sistema en app.json. Prometía «contenido y
+   * experiencias cerca de ti», que Weë no tiene; esa promesa no vuelve en ningún idioma (i18n-cierre-textos.test.mjs).
+   */
+  check('F) y el texto acordado', /Permite que Weë use tu ubicación aproximada para sugerirte lugares cercanos y tu zona cuando agregas una ubicación a una publicación\./.test(ajustes) && /Tu ubicación exacta nunca se muestra públicamente\./.test(ajustes));
+  check('F) sin prometer contenido ni experiencias cerca', !/contenido y experiencias cerca de ti/.test(ajustes) && !/content and experiences near you/.test(diccionarioEn)
+    && /suggest nearby places and your area when you add a location to a post\./.test(diccionarioEn));
   check('F) el interruptor no abre ninguna función: es solo el control', !/navigate\('(Map|Nearby|Places|Travel)/i.test(ajustes) && !/MapView|WeeTravel|distancia|km de ti|a \${.*} km/i.test(ajustes));
   check('F) encender desde Settings pide la zona, nunca el detalle', /ubicacion\.activar\('aproximada'\)/.test(ajustes) && !/activar\('precisa'\)/.test(ajustes));
 }
@@ -450,12 +457,18 @@ console.log('\n── H · una sola puerta, y está vigilada ──');
 // ════════════════════════════════════════════════════════════════════════════
 console.log('\n── I · nada de lo que ya funcionaba se ha roto ──');
 {
-  const utiles = leer('utils/imageUtils.ts');
   const avatar = leer('components/avatars/AvatarPicker.tsx');
   const crear = leer('screens/CreateScreen.tsx');
 
-  check('I) la compresión de siempre sigue donde estaba', /export const compressImage/.test(utiles) && /export const compressPostImage/.test(utiles) && /export const compressProfileImage/.test(utiles));
-  check('I) y no se ha metido la limpieza dentro de ella', !/publicImage|SinMetadatos/.test(utiles));
+  /*
+   * Aquí se exigía que `utils/imageUtils.ts` (compressImage, compressPostImage, compressProfileImage) siguiera
+   * donde estaba y sin la limpieza dentro. No lo importaba NADIE —ninguna subida comprimía por ahí— y se retiró
+   * como código muerto en el cierre post-auditoría (2026-10-01). Lo que sigue importando es que la limpieza de
+   * metadatos no se cuele en otra utilidad paralela: tiene una sola casa, `utils/publicImage.ts`.
+   */
+  check('I) la compresión muerta se retiró y nadie la importa',
+    !fs.existsSync(new URL('../../utils/imageUtils.ts', import.meta.url))
+    && !/from ['"][./]+(?:[\w/]+\/)?imageUtils['"]/.test(avatar + crear + leer('services/storageService.ts')));
   check('I) el selector de avatar sigue igual', /ImageManipulator|manipulateAsync/.test(avatar));
   check('I) publicar sigue subiendo por storageService', /uploadPostImage/.test(crear) && /storageService/.test(crear));
   check('I) sin librería nueva: se reutiliza expo-image-manipulator', /expo-image-manipulator/.test(leer('utils/publicImage.ts')));
@@ -485,12 +498,23 @@ console.log('\n── J · permisos nativos: los justos ──');
    * a la ubicación de las fotos, para una función que solo guarda un video.
    */
   const media = app.expo.plugins.find((x) => Array.isArray(x) && x[0] === 'expo-media-library');
-  const guardarVideo = leer('services/videoDownload.ts');
+  /*
+   * Estas comprobaciones miraban `services/videoDownload.ts` (guardar un Weël). Ese servicio no lo importaba nadie y
+   * se retiró como código muerto en el cierre post-auditoría (2026-10-01). Las mismas exigencias pasan al flujo VIVO
+   * que guarda en la galería —`services/assetDownload.ts`, «Descargar» de Mis creaciones—, y se comprueba que no hay
+   * otro: todo archivo del cliente que importe expo-media-library entra en la lista y tiene que cumplirlas.
+   */
+  const listarCliente = (d) => fs.readdirSync(new URL('../../' + d + '/', import.meta.url), { withFileTypes: true })
+    .flatMap((e) => (e.isDirectory() ? listarCliente(`${d}/${e.name}`) : /\.tsx?$/.test(e.name) ? [`${d}/${e.name}`] : []));
+  const usanGaleria = ['screens', 'components', 'hooks', 'contexts', 'services', 'utils']
+    .flatMap(listarCliente).filter((f) => /from 'expo-media-library'/.test(leerCrudo(f)));
+  const guardarEnGaleria = usanGaleria.map(leerCrudo).join('\n');
   check('K) Weë no pide acceso a la ubicación de las fotos', !!media && media[1].isAccessMediaLocationEnabled === false);
-  check('K) y nadie la lee: ni getAssetInfoAsync ni exif', !/getAssetInfoAsync|resolveWithFullInfo|exif/i.test(guardarVideo));
-  check('K) guardar un Weël pide solo escritura', /requestPermissionsAsync\(true\)/.test(guardarVideo));
-  check('K) que es lo único que ese flujo hace', /saveToLibraryAsync/.test(guardarVideo) && !/getAssetsAsync|getAlbum|deleteAssets/.test(guardarVideo));
-  check('K) expo-media-library sigue usándose en un solo sitio', (leer('package.json').includes('expo-media-library')));
+  check('K) la galería se usa en un solo sitio: guardar una creación', usanGaleria.length === 1 && usanGaleria[0] === 'services/assetDownload.ts', usanGaleria.join(' '));
+  check('K) y nadie la lee: ni getAssetInfoAsync ni exif', !/getAssetInfoAsync|resolveWithFullInfo|exif/i.test(guardarEnGaleria));
+  check('K) guardar pide solo escritura', /requestPermissionsAsync\(true\)/.test(guardarEnGaleria));
+  check('K) que es lo único que ese flujo hace', /saveToLibraryAsync/.test(guardarEnGaleria) && !/getAssetsAsync|getAlbum|deleteAssets/.test(guardarEnGaleria));
+  check('K) expo-media-library sigue instalado', (leer('package.json').includes('expo-media-library')));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -594,7 +618,13 @@ console.log('\n── N · una capacidad del sistema, no una función de pantall
   check('N) y la marca se suelta al terminar', /finally \{\s*enMarcha\.current = null;/.test(contexto));
   check('N) con la preferencia apagada no se lee nada', /if \(preferencia === 'off'\) return null;/.test(contexto));
   check('N) ni sin permiso utilizable', /if \(ahora !== 'approximate' && ahora !== 'precise'\) \{/.test(contexto));
-  check('N) el fallo se cuenta en una frase, no se traga', /setError\('No se pudo obtener tu ubicación/.test(contexto));
+  /*
+   * El fallo se contaba con una frase en español escrita a mano dentro del contexto, que nadie pinta. Desde el cierre
+   * post-auditoría (2026-10-01) se cuenta con un CÓDIGO (CLAUDE.md §8: un contexto no sabe el idioma de quien mira):
+   * sigue sin tragarse, y ya no hay frase que congelar en español.
+   */
+  check('N) el fallo se cuenta con un código, no se traga', /setError\('lectura-fallida'\)/.test(contexto)
+    && /error: 'lectura-fallida' \| null;/.test(contexto) && !/setError\('[^']*\s[^']*'\)/.test(contexto));
 
   // 3) Revocar limpia lo que quedaba en memoria.
   check('N) al revocar se olvida la lectura', /const olvidarLectura = useCallback/.test(contexto) && (contexto.match(/olvidarLectura\(\)/g) || []).length >= 3);

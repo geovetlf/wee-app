@@ -508,7 +508,14 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
     && git(`diff --numstat ${RUTA} -- functions/src/engine`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
       /* i18n da-DK: errors.ts y router.ts, una línea de texto cada uno; harness/fase-2 (H0 #22): ledger, limits y router. Cifras de `git diff --numstat b023f24` sobre el árbol consolidado. */
-      === '9\t2\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|1\t1\tfunctions/src/engine/errors.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|12\t1\tfunctions/src/engine/ledger.ts|38\t3\tfunctions/src/engine/limits.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|55\t3\tfunctions/src/engine/router.ts|19\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
+      /*
+       * + cierre post-auditoría 2026-10-01 (cifras reales de `git diff --numstat b023f24` sobre el árbol): admin.ts +2 −2
+       * (engineAdmin monta MODEL_SECRETS, sin el token del webhook); promptLanguage.ts +21 (SISTEMA_POR_DEFECTO neutro y
+       * `pideTextoPlano`); los adaptadores de TEXTO claude/deepseek/openai +3 −2 y gemini +4 −2 (ese sistema y `format: 'text'`
+       * respetado); router.ts +2 −1 (el aviso de fallo, saneado). Ningún proveedor nuevo y ninguna cadena nueva: seedance,
+       * registry y la cadena de `video.generate` quedan como estaban.
+       */
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|1\t1\tfunctions/src/engine/errors.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|12\t1\tfunctions/src/engine/ledger.ts|38\t3\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|57\t4\tfunctions/src/engine/router.ts|19\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */
@@ -552,8 +559,20 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * y la forma de la etiqueta de idioma desde el Core (idiomaDelServidor ya estaba).
    */
   const DE_LA_REVISION = ["functions/src/creator/brain.ts","functions/src/creator/brainUsage.ts","functions/src/credits/creditEngine.ts"];
+  /*
+   * Los del cierre post-auditoría (2026-10-01), por nombre. Los que ya estaban declarados (brain, brainUsage, index y
+   * prompts de creator; creditEngine y credits/index; admin y router del motor; generateAvatar, runtime/index y secrets)
+   * siguen en sus listas; estos son los que el cierre toca por primera vez desde b023f24:
+   *  · content/index.ts — `yaExistia`: solo el código 6 (ALREADY_EXISTS) es «ya existía»; lo demás se registra (server/errores-tragados);
+   *  · credits/creditValidation.ts — `toHttpsError` genérico y la causa saneada (money/error-interno-al-cliente; exacto en job-queue 63p);
+   *  · engine/promptLanguage.ts y los cuatro adaptadores de texto — el sistema por defecto neutro y `format: 'text'` (server/prompts-internos);
+   *  · identity/nacimiento.ts — la consulta de perfiles acotada con `.limit(10)` (escala/consulta-sin-limite).
+   */
+  const DEL_CIERRE = ["functions/src/content/index.ts","functions/src/credits/creditValidation.ts","functions/src/engine/promptLanguage.ts","functions/src/engine/providers/claude.ts","functions/src/engine/providers/deepseek.ts","functions/src/engine/providers/gemini.ts","functions/src/engine/providers/openai.ts","functions/src/identity/nacimiento.ts",
+    /* + cierre: solo el COMENTARIO de isAdmin (dónde vive hoy WEE_ADMIN_UIDS: el entorno get-wee de GitHub); el código no cambia. */
+    "functions/src/shared/admin.ts"];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness y de la integración i18n da-DK',
-    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION,
+    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
@@ -563,13 +582,21 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
 
   /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
   /* + creditEngine.ts: revisión post-auditoría 2026-10-01 (money/remigracion-por-segundo-perfil), bloques exactos en job-queue 63p. */
-  const CREDITS_DEL_HARNESS = '34\t8\tfunctions/src/credits/creditEngine.ts\n14\t0\tfunctions/src/credits/index.ts';
+  /*
+   * + cierre post-auditoría 2026-10-01 (cifras de `git diff --numstat` sobre el árbol; antes 34/8, —, 14/0):
+   *   creditEngine.ts +23 −1: `readBalance`, el saldo SOLO LEYENDO para `creditsAdmin` · `balance`, y su nombre en lo
+   *   que devuelve el motor (money/admin-balance-con-efecto); creditValidation.ts +10 −2: `toHttpsError` genérico para
+   *   lo que no es un CreditError y su causa al registro con `sanitizeForLog` (money/error-interno-al-cliente);
+   *   credits/index.ts +5 −3: `balance` → `readBalance` y `failed` → `assertLimit`. Bloques exactos en job-queue 63k/63p.
+   */
+  const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
   check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
     git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. */
   check('F3) ni el Core, ni F1-A, ni productions; del contenido, solo la adopción de F1-D',
     git(`diff --name-only ${RUTA} -- functions/src/core functions/src/filmmaker functions/src/productions`).trim() === ''
-    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '62\t2\tfunctions/src/content/materializador.ts');
+    /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
+    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '32\t3\tfunctions/src/content/index.ts\n62\t2\tfunctions/src/content/materializador.ts');
   const legacy = (s) => {
     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');
     return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a));
@@ -579,7 +606,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     git(`diff --numstat ${RUTA} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
       /* creator/index.ts: + 10 de la integración i18n da-DK (el locale) y + 2 de la observación del idioma de salida, ver video-asincrono H2. */
       === /* + revisión post-auditoría 2026-10-01: el aviso del idioma lleva jobId/stepId (index) y el avatar devuelve sus reservas abandonadas (generateAvatar). */
-      '45\t4\tfunctions/src/creator/credits.ts|111\t10\tfunctions/src/creator/index.ts|129\t12\tfunctions/src/generateAvatar.ts'
+      /* + cierre post-auditoría 2026-10-01: index +6 −5 (creatorChat/creatorQuote con MODEL_SECRETS; la adaptación de idioma de creatorRun con su sistema y `format: 'text'`) y generateAvatar +3 −3 (AVATAR_SECRETS, solo Gemini); creator/credits.ts sin tocar. */
+      '45\t4\tfunctions/src/creator/credits.ts|117\t15\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 

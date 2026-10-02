@@ -50,6 +50,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: 'Logga in för att använda ËContact.',
   errNotYours: 'Den profilen är inte din.',
   errNotAPerson: 'Den profilen kan inte använda ËContact.',
+  errSameProfile: 'En profil kan inte lägga till sig själv som kontakt.',
   errOffline: 'Det gick inte att ansluta till Weë.',
   errNoRequestToReject: 'Det finns ingen förfrågan att avböja.',
   errNoPendingRequest: 'Du har ingen väntande förfrågan till den här profilen.',

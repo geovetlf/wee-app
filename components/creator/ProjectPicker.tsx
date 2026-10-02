@@ -30,13 +30,22 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
 
   useEffect(() => {
     if (!visible || !user) return;
+    /* Si cambia la cuenta (o se cierra y se vuelve a abrir) antes de que llegue la lista, la de antes no la pisa. */
+    let vivo = true;
     setLoading(true);
     setName(suggestProjectName(goal, locale));
     projectsService
       .list(user.uid)
-      .then(setProjects)
+      .then((lista) => {
+        if (vivo) setProjects(lista);
+      })
       .catch((error) => console.warn('No se pudieron cargar los proyectos:', error))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (vivo) setLoading(false);
+      });
+    return () => {
+      vivo = false;
+    };
   }, [visible, user, goal, locale]);
 
   const create = async () => {

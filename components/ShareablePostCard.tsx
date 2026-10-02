@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { Post } from '../services/firestoreService';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
-import { formatNumber, getRelativeTime } from '../data/mockData';
+import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import { Timestamp } from 'firebase/firestore';
 

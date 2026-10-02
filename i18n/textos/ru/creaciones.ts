@@ -1,7 +1,11 @@
-/* Мои творения: медиатека аккаунта и ход выполнения задания Weë AI. См. es/creaciones.ts. Формы множественного числа для русского: one / few / many / other. */
+/*
+ * Мои работы: медиатека аккаунта и ход выполнения задания Weë AI. См. es/creaciones.ts. Формы множественного числа для
+ * русского: one / few / many / other. Обращение — «вы», как во всём каталоге; «работы» — как в weeai.myCreations и
+ * studio.creationsTitle: это один и тот же экран.
+ */
 export const creaciones = {
-  title: 'Мои творения',
-  intro: 'Всё, что ты создал(а) с Weë AI, в одном месте. Это принадлежит твоему аккаунту: ты видишь одно и то же из Реального профиля и из профиля Weë.',
+  title: 'Мои работы',
+  intro: 'Всё, что вы создали в Weë AI, — в одном месте. Это принадлежит вашему аккаунту: и в Реальном профиле, и в Профиле Weë вы видите одно и то же.',
 
   filterAll: 'Всё',
   filterImages: 'Изображения',
@@ -11,22 +15,22 @@ export const creaciones = {
   filterModel3d: '3D',
   filterLabel: 'Фильтр по типу',
 
-  sortRecent: 'Недавние',
-  sortOldest: 'Самые старые',
+  sortRecent: 'Сначала новые',
+  sortOldest: 'Сначала старые',
   sortLabel: 'Сортировать',
 
-  loading: 'Загружаем твои творения…',
-  loadFailed: 'Не удалось загрузить твои творения.',
+  loading: 'Загружаем ваши работы…',
+  loadFailed: 'Не удалось загрузить ваши работы.',
   retry: 'Повторить',
   loadMore: 'Загрузить ещё',
-  emptyTitle: 'Пока нет творений',
-  emptyText: 'Всё, что ты сделаешь с Weë AI, появится здесь — с изображением, видео или аудио.',
-  emptyAction: 'Создать что-нибудь с Weë AI',
-  emptyFiltered: 'Творений этого типа нет.',
-  count_one: '{{contador}} творение',
-  count_few: '{{contador}} творения',
-  count_many: '{{contador}} творений',
-  count_other: '{{contador}} творения',
+  emptyTitle: 'Пока нет работ',
+  emptyText: 'Всё, что вы создадите в Weë AI, появится здесь — с изображением, видео или аудио.',
+  emptyAction: 'Создать что-нибудь в Weë AI',
+  emptyFiltered: 'Работ этого типа нет.',
+  count_one: '{{contador}} работа',
+  count_few: '{{contador}} работы',
+  count_many: '{{contador}} работ',
+  count_other: '{{contador}} работы',
 
   statusUploading: 'Загрузка',
   statusProcessing: 'Обработка',
@@ -43,27 +47,27 @@ export const creaciones = {
   kindText: 'Текст',
 
   open: 'Открыть',
-  openCreation: 'Открыть творение: {{nombre}}',
+  openCreation: 'Открыть работу: {{nombre}}',
   download: 'Скачать',
-  downloaded: 'Сохранено в галерею.',
+  downloaded: 'Сохранено в галерее.',
   downloadFailed: 'Не удалось скачать. Попробуйте ещё раз.',
   downloadPermission: 'Weë нужно разрешение, чтобы сохранять в галерею.',
-  savedInCreations: 'Сохранено в ваших творениях',
+  savedInCreations: 'Сохранено в ваших работах',
   save: 'Сохранить',
   saved: 'Сохранено',
   useInProject: 'Использовать в проекте',
   publish: 'Опубликовать',
   share: 'Поделиться',
   delete: 'Удалить',
-  deleteConfirm: 'Удалить это творение? Файл будет стёрт. То, что ты уже опубликовал(а), не изменится.',
-  deleteConfirmWeb: 'Удалить это творение? Файл будет стёрт. То, что ты уже опубликовал(а), не изменится.',
-  deleted: 'Творение удалено.',
-  deleteFailed: 'Не удалось удалить. Попробуй ещё раз.',
-  createdWith: 'Создано с {{nombre}}',
+  deleteConfirm: 'Удалить эту работу? Файл будет удалён. То, что вы уже опубликовали, не изменится.',
+  deleteConfirmWeb: 'Удалить эту работу? Файл будет удалён. То, что вы уже опубликовали, не изменится.',
+  deleted: 'Работа удалена.',
+  deleteFailed: 'Не удалось удалить. Попробуйте ещё раз.',
+  createdWith: 'Создано с помощью {{nombre}}',
   createdOn: 'Создано {{fecha}}',
 
-  progressWorking: '{{nombre}} работает',
+  progressWorking: '{{nombre}} работает над заданием',
   progressStarting: 'Начинаем…',
-  progressSteps: 'Готово {{hechos}} из {{total}} шагов',
-  progressFindLater: 'Можно уйти с этого экрана; когда всё будет готово, ты найдёшь это в «Моих творениях».',
+  progressSteps: 'Готово шагов: {{hechos}} из {{total}}',
+  progressFindLater: 'Можно уйти с этого экрана: когда всё будет готово, вы найдёте результат в «Моих работах».',
 };

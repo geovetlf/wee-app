@@ -117,7 +117,7 @@ export async function generateAvatarWithGemini(
   requestId: string = newRequestId('avatar')
 ): Promise<string> {
   if (!functions) {
-    throw new Error('Firebase functions not initialized');
+    throw new Error('functions-sin-inicializar');
   }
   const prompt = buildPortraitPrompt(selections);
   console.log('Calling generateAvatarWithGemini with selections:', JSON.stringify(selections).substring(0, 100));
@@ -140,7 +140,7 @@ export async function performAvatarReplacement(
   requestId: string = newRequestId('swap'),
 ): Promise<string> {
   if (!functions) {
-    throw new Error('Firebase functions not initialized');
+    throw new Error('functions-sin-inicializar');
   }
   console.log('Calling avatarReplacement cloud function...');
   const callable = httpsCallable<

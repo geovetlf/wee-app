@@ -5,6 +5,7 @@ import { env, NotConfiguredError, persistBase64, ProviderError, readImage } from
 import { MecanismoDeContinuidad, materialDeLaEntrada, traducirContinuidad } from '../continuidad';
 import { estimateInputTokens } from '../../credits/aiPricing';
 import { aspectOf, nearestAspectLabel } from '../resolutionPolicy';
+import { pideTextoPlano, SISTEMA_POR_DEFECTO } from '../promptLanguage';
 
 /**
  * Google Gemini (clave GEMINI_API_KEY, SDK @google/genai, método generateContent).
@@ -165,7 +166,8 @@ const getClient = async () => {
   return client;
 };
 
-const DEFAULT_SYSTEM = 'Eres Weë. Respondes en español, claro, cálido y directo. Nunca mencionas modelos, proveedores ni términos técnicos.';
+/* Sin idioma impuesto: cada llamada pasa su sistema; este es el respaldo neutro (engine/promptLanguage.ts). */
+const DEFAULT_SYSTEM = SISTEMA_POR_DEFECTO;
 
 /**
  * Cualquier archivo de la persona viaja en línea (base64). Gemini entiende de
@@ -273,7 +275,7 @@ const groundingSources = (response: any): { sources: SourceRef[]; queries: numbe
 
 async function runText(ai: any, request: ProviderRunRequest, start: number): Promise<ProviderResult> {
   const { capability, input, model } = request;
-  const wantJson = capability === 'text.structure' || capability === 'scene.split' || input.format === 'json';
+  const wantJson = input.format === 'json' || (!pideTextoPlano(input) && (capability === 'text.structure' || capability === 'scene.split'));
   const search = capability === 'text.search';
   const vision = capability === 'vision.describe';
   const system = String(input.system ?? DEFAULT_SYSTEM);

@@ -53,6 +53,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: 'ËContact इस्तेमाल करने के लिए, साइन इन करें.',
   errNotYours: 'यह प्रोफ़ाइल आपकी नहीं है.',
   errNotAPerson: 'इस प्रोफ़ाइल से ËContact इस्तेमाल नहीं किया जा सकता.',
+  errSameProfile: 'कोई प्रोफ़ाइल खुद को अपने संपर्कों में नहीं जोड़ सकती.',
   errOffline: 'Weë से कनेक्ट नहीं किया जा सका.',
   errNoRequestToReject: 'अस्वीकार करने के लिए कोई अनुरोध नहीं है.',
   errNoPendingRequest: 'इस प्रोफ़ाइल के साथ आपका कोई अनुरोध बाकी नहीं है.',

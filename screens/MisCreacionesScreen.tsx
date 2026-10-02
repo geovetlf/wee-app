@@ -147,7 +147,7 @@ const MisCreacionesScreen: React.FC = () => {
 
       <View style={styles.section}>
         <SectionTitle
-          title={estado.fase === 'lista' ? t(estado.items.length === 1 ? 'creaciones.count_one' : 'creaciones.count_other', { contador: estado.items.length }) : t('creaciones.title')}
+          title={estado.fase === 'lista' ? t('creaciones.count', { contador: estado.items.length }) : t('creaciones.title')}
           action={t(orden === 'recent' ? 'creaciones.sortOldest' : 'creaciones.sortRecent')}
           onAction={() => setOrden((o) => (o === 'recent' ? 'oldest' : 'recent'))}
         />

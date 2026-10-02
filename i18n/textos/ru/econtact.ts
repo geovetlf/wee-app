@@ -50,6 +50,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: 'Войдите, чтобы пользоваться ËContact.',
   errNotYours: 'Это не ваш профиль.',
   errNotAPerson: 'Этот профиль не может пользоваться ËContact.',
+  errSameProfile: 'Профиль не может связаться сам с собой.',
   errOffline: 'Не удалось связаться с Weë.',
   errNoRequestToReject: 'У вас нет заявки, которую можно отклонить.',
   errNoPendingRequest: 'У вас нет активной заявки к этому профилю.',

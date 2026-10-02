@@ -124,7 +124,7 @@ console.log('── A · Una notificación se firma con la identidad de quien es
   /*
    * Los avisos con la forma EXACTA que escribe la app (`notificationService.createNotification`: `addDoc` con
    * `read: false` y `createdAt: Timestamp.now()`, sin los campos `undefined`), uno por cada creador que la usa hoy:
-   * `useLikes` (like), `useComentarios` (comment) y `econtactService` (econtact_request / econtact_accepted).
+   * el like (antes `useLikes`, retirado el 2026-10-01 sin uso), `useComentarios` (comment) y `econtactService` (econtact_request / econtact_accepted).
    */
   const ahora = () => new Date();
   const avatar = { senderAvatar: 'https://res.cloudinary.com/wee/image/upload/v1/avatars/ana.jpg', senderAvatarType: 'custom' };
@@ -308,18 +308,24 @@ console.log('\n── D · Weë Business y comunidades, desde la cuenta ──')
 
   /* Reseñas: de 1 a 5 enteros, de quien la escribe, de ESTE negocio, y el dueño no reseña el suyo. */
   const resena = (userId, extra = {}) => ({ userId, userName: 'Beto', userAvatar: 'https://res.cloudinary.com/wee/beto.jpg', rating: 4, text: 'Muy buen café', businessId: 'bApp', createdAt: new Date(), ...extra });
-  await esperar('26r) CONTROL: Beto reseña el negocio de Ana, como createReview', 'PERMITE', 'PATCH', '/businesses/bApp/reviews/r1', { uid: BETO, body: doc(resena(BETO)) });
+  /*
+   * + cierre post-auditoría 2026-10-01 (trust/resena-por-persona): la reseña vive en `reviews/{uid}` de quien la
+   * escribe. Cada negativo va ahora AL ID DE QUIEN ESCRIBE —si fuera a un id cualquiera, lo denegaría el id y no
+   * probaría su motivo— y ANTES de que exista la de Beto, así que siguen probando la CREACIÓN con la misma fuerza.
+   * La actualización (la segunda reseña de la misma persona) y el id ajeno los prueba cierre-reglas.emulator.
+   */
+  await esperar('26t) la dueña NO reseña su propio negocio', 'DENIEGA', 'PATCH', `/businesses/bApp/reviews/${ANA}`, { uid: ANA, body: doc(resena(ANA, { userName: 'Ana', rating: 5 })) });
+  await esperar('26u) ni con un 6', 'DENIEGA', 'PATCH', `/businesses/bApp/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO, { rating: 6 })) });
+  await esperar('26v) ni con un 0', 'DENIEGA', 'PATCH', `/businesses/bApp/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO, { rating: 0 })) });
+  await esperar('26w) ni con un 4,5 (las estrellas son enteras)', 'DENIEGA', 'PATCH', `/businesses/bApp/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO, { rating: 4.5 })) });
+  await esperar('26x) ni con un «5» de texto', 'DENIEGA', 'PATCH', `/businesses/bApp/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO, { rating: '5' })) });
+  await esperar('26y) ni sin puntuación', 'DENIEGA', 'PATCH', `/businesses/bApp/reviews/${BETO}`, { uid: BETO, body: doc((({ rating, ...r }) => r)(resena(BETO))) });
+  await esperar('26z) ni a nombre de otra persona', 'DENIEGA', 'PATCH', `/businesses/bApp/reviews/${BETO}`, { uid: BETO, body: doc(resena('carla00000000000000000003')) });
+  await esperar('26aa) ni diciendo que es de otro negocio', 'DENIEGA', 'PATCH', `/businesses/bApp/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO, { businessId: 'b1' })) });
+  await esperar('26ab) ni en un negocio que no existe', 'DENIEGA', 'PATCH', `/businesses/noExiste/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO, { businessId: 'noExiste' })) });
+  await esperar('26r) CONTROL: Beto reseña el negocio de Ana, como createReview (en su id)', 'PERMITE', 'PATCH', `/businesses/bApp/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO)) });
   check('26s) CONTROL: y la media se recalcula desde el cliente (recalculateAura)', (await escribir('/businesses/bApp', BETO, { auraScore: 4, reviewCount: 1 })) < 400);
-  await esperar('26t) la dueña NO reseña su propio negocio', 'DENIEGA', 'PATCH', '/businesses/bApp/reviews/r2', { uid: ANA, body: doc(resena(ANA, { userName: 'Ana', rating: 5 })) });
-  await esperar('26u) ni con un 6', 'DENIEGA', 'PATCH', '/businesses/bApp/reviews/r3', { uid: BETO, body: doc(resena(BETO, { rating: 6 })) });
-  await esperar('26v) ni con un 0', 'DENIEGA', 'PATCH', '/businesses/bApp/reviews/r4', { uid: BETO, body: doc(resena(BETO, { rating: 0 })) });
-  await esperar('26w) ni con un 4,5 (las estrellas son enteras)', 'DENIEGA', 'PATCH', '/businesses/bApp/reviews/r5', { uid: BETO, body: doc(resena(BETO, { rating: 4.5 })) });
-  await esperar('26x) ni con un «5» de texto', 'DENIEGA', 'PATCH', '/businesses/bApp/reviews/r6', { uid: BETO, body: doc(resena(BETO, { rating: '5' })) });
-  await esperar('26y) ni sin puntuación', 'DENIEGA', 'PATCH', '/businesses/bApp/reviews/r7', { uid: BETO, body: doc((({ rating, ...r }) => r)(resena(BETO))) });
-  await esperar('26z) ni a nombre de otra persona', 'DENIEGA', 'PATCH', '/businesses/bApp/reviews/r8', { uid: BETO, body: doc(resena('carla00000000000000000003')) });
-  await esperar('26aa) ni diciendo que es de otro negocio', 'DENIEGA', 'PATCH', '/businesses/bApp/reviews/r9', { uid: BETO, body: doc(resena(BETO, { businessId: 'b1' })) });
-  await esperar('26ab) ni en un negocio que no existe', 'DENIEGA', 'PATCH', '/businesses/noExiste/reviews/r10', { uid: BETO, body: doc(resena(BETO, { businessId: 'noExiste' })) });
-  await esperar('26ac) CONTROL: Beto borra la suya', 'PERMITE', 'DELETE', '/businesses/bApp/reviews/r1', { uid: BETO });
+  await esperar('26ac) CONTROL: Beto borra la suya', 'PERMITE', 'DELETE', `/businesses/bApp/reviews/${BETO}`, { uid: BETO });
 
   await esperar('27) una comunidad se crea con la CUENTA como dueña', 'PERMITE', 'PATCH', '/communities/c1', {
     uid: ANA, body: doc({ name: 'Weë Devs', slug: 'devs', createdBy: ANA, moderators: [ANA], memberCount: 0, postCount: 0, status: 'active' }),

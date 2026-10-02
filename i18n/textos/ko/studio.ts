@@ -225,7 +225,7 @@ export const studio: typeof import('../es/studio').studio = {
   tlFileConvert: '문서 변환',
 
   /* ── Mis creaciones ───────────────────────────────────────────────────── */
-  creationsTitle: '내 작업물',
+  creationsTitle: '내 창작물',
   seeAll: '전체 보기',
   creationsEmpty: '만든 것이 여기에 나타나요',
   kindImage: '이미지',

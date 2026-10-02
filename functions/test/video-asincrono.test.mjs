@@ -34,6 +34,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { crearCargador } from './filmmaker-cliente.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -295,7 +296,14 @@ const VIDEO = sinComentarios(VIDEO_SRC);
 
   /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
   /* + creditEngine.ts: revisión post-auditoría 2026-10-01 (money/remigracion-por-segundo-perfil), bloques exactos en job-queue 63p. */
-  const CREDITS_DEL_HARNESS = '34\t8\tfunctions/src/credits/creditEngine.ts\n14\t0\tfunctions/src/credits/index.ts';
+  /*
+   * + cierre post-auditoría 2026-10-01 (cifras de `git diff --numstat` sobre el árbol; antes 34/8, —, 14/0):
+   *   creditEngine.ts +23 −1: `readBalance`, el saldo SOLO LEYENDO para `creditsAdmin` · `balance`, y su nombre en lo
+   *   que devuelve el motor (money/admin-balance-con-efecto); creditValidation.ts +10 −2: `toHttpsError` genérico para
+   *   lo que no es un CreditError y su causa al registro con `sanitizeForLog` (money/error-interno-al-cliente);
+   *   credits/index.ts +5 −3: `balance` → `readBalance` y `failed` → `assertLimit`. Bloques exactos en job-queue 63k/63p.
+   */
+  const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
   check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
     git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
   const medios = sinComentarios(leer('functions/src/runtime/medios.ts'));
@@ -599,20 +607,25 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    */
   const MOTOR_F1D_Y_HARNESS = {
     'functions/src/creator/credits.ts': '45\t4', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
-    'functions/src/creator/index.ts': '111\t10', // + revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida // 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida)
-    'functions/src/engine/admin.ts': '9\t2', // 0ad8500 (#19) · 5e87b80 (FASE 8)
+    'functions/src/creator/index.ts': '117\t15', // 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
+    'functions/src/engine/admin.ts': '11\t4', // 0ad8500 (#19) · 5e87b80 (FASE 8) · cierre post-auditoría 2026-10-01 (+2 −2, antes 9/2): engineAdmin monta MODEL_SECRETS
     'functions/src/engine/config.ts': '36\t1', // 8193184 (#20)
     'functions/src/engine/errors.ts': '1\t1', // i18n da-DK: el rechazo de entrada sin «el proveedor»
     'functions/src/engine/gateway.ts': '2\t0', // 0ad8500 (#19)
     'functions/src/engine/http.ts': '26\t1', // 16ca1ae (#3)
     'functions/src/engine/ledger.ts': '12\t1', // harness/fase-2 (H0 #22): el coste en riesgo de un fallo despachado
     'functions/src/engine/limits.ts': '38\t3', // F1-D (decisión 14) + 5e87b80 (FASE 8) + harness/fase-2 (H0 #22)
+    'functions/src/engine/promptLanguage.ts': '21\t0', // cierre post-auditoría 2026-10-01 (nuevo en el mapa, +21): SISTEMA_POR_DEFECTO neutro y `pideTextoPlano` (server/prompts-internos)
+    'functions/src/engine/providers/claude.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
+    'functions/src/engine/providers/deepseek.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
+    'functions/src/engine/providers/gemini.ts': '4\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
+    'functions/src/engine/providers/openai.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/seedance.ts': '33\t19', // F1-D (ficha 6) + 8a9f098 (#21)
     'functions/src/engine/registry.ts': '2\t0', // 0ad8500 (#19)
-    'functions/src/engine/router.ts': '55\t3', // 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK: «no hay una IA disponible» · harness/fase-2 (H0 #22)
+    'functions/src/engine/router.ts': '57\t4', // 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK: «no hay una IA disponible» · harness/fase-2 (H0 #22) · cierre post-auditoría 2026-10-01 (+2 −1, antes 55/3): el aviso de fallo de un candidato, saneado con sanitizeForLog
     'functions/src/engine/types.ts': '19\t0', // 0ad8500 (#19) · 5e87b80 (FASE 8)
     'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
-    'functions/src/generateAvatar.ts': '129\t12', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar)
+    'functions/src/generateAvatar.ts': '132\t15', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar) · cierre post-auditoría 2026-10-01 (+3 −3, antes 129/12): el avatar monta AVATAR_SECRETS (solo Gemini)
   };
   /*
    * Y la integración i18n da-DK (rama i18n/da-dk, 2026-10-01), también por nombre y tamaño: el locale de la app viaja
@@ -635,10 +648,24 @@ console.log('\n── I · El cliente: ACCEPTED, con claves que ya existen ─�
     /status: 'ACCEPTED';/.test(SERVICIO) && /jobId: string \| null;/.test(SERVICIO) && /requestId: string;/.test(SERVICIO) && /url: null;/.test(SERVICIO)
     && !/progress|porcentaje|percent/i.test(sinComentarios(SERVICIO)));
   check('I2) y devuelve la petición con la que se pidió, no una inventada', /return result\.data\.status === 'ACCEPTED' \? \{ \.\.\.result\.data, requestId \} : result\.data;/.test(SERVICIO));
-  const IDIOMAS = ['es', 'en', 'pt', 'pt-PT', 'de', 'fr', 'it', 'ko', 'ru', 'zh', 'zh-TW'];
+  /*
+   * Los diccionarios salen del REGISTRO (`i18n/idiomas.ts`), como en f1d-cliente M3b, y no de una lista escrita aquí
+   * (cierre post-auditoría 2026-10-01): la lista a mano eran los once de cuando se escribió y el registro ya tiene
+   * dieciséis. Uno por idioma ofrecido (`listo`) y uno más por cada variante con diccionario propio (la que cubre el
+   * código base del idioma ES ese diccionario). Tienen que ser EXACTAMENTE las carpetas de `i18n/textos`, y los once
+   * de antes siguen dentro: la lista solo puede crecer con el registro, nunca quedarse corta ni encoger.
+   */
+  const { IDIOMAS: REGISTRO } = crearCargador()('i18n/idiomas.ts');
+  const IDIOMAS = REGISTRO.filter((i) => i.listo)
+    .flatMap((i) => [i.codigo, ...(i.variantes || []).filter((v) => !v.cubre.includes(i.codigo)).map((v) => v.locale)]);
+  const LOS_ONCE_DE_ANTES = ['es', 'en', 'pt', 'pt-PT', 'de', 'fr', 'it', 'ko', 'ru', 'zh', 'zh-TW'];
+  const carpetas = fs.readdirSync(path.resolve(RAIZ, 'i18n/textos'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+  check('I3a) los diccionarios, contados del registro, son exactamente las carpetas de i18n/textos, y los once de antes siguen ahí',
+    JSON.stringify([...IDIOMAS].sort()) === JSON.stringify([...carpetas].sort()) && LOS_ONCE_DE_ANTES.every((l) => IDIOMAS.includes(l)),
+    `registro: ${IDIOMAS.join(',')} · carpetas: ${carpetas.join(',')}`);
   const faltan = IDIOMAS.filter((l) => !/progressWorking:/.test(leer(`i18n/textos/${l}/creaciones.ts`)) || !/progressFindLater:/.test(leer(`i18n/textos/${l}/creaciones.ts`)));
-  check('I3) «en proceso» se dice con las claves del progreso que ya están en los once idiomas: ninguna nueva, ninguna duplicada',
-    faltan.length === 0 && /creaciones\.progressWorking/.test(SERVICIO) && /creaciones\.progressFindLater/.test(SERVICIO), faltan.join(', ') || 'los once');
+  check(`I3) «en proceso» se dice con las claves del progreso que ya están en los ${IDIOMAS.length} diccionarios del registro: ninguna nueva, ninguna duplicada`,
+    faltan.length === 0 && /creaciones\.progressWorking/.test(SERVICIO) && /creaciones\.progressFindLater/.test(SERVICIO), faltan.join(', ') || `los ${IDIOMAS.length}`);
 }
 
 check('esta suite está en la cadena de `npm test`', /video-asincrono\.test\.mjs/.test(leer('functions/package.json')));

@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "O Weë precisa de acesso à tua câmara para poderes tirar fotos e usá-las nas tuas publicações, no teu perfil, no WeeTalk e no Weë AI.",
+    "NSMicrophoneUsageDescription": "O Weë precisa de acesso ao teu microfone para poderes gravar e enviar mensagens de voz no WeeTalk.",
+    "NSPhotoLibraryUsageDescription": "O Weë precisa de acesso à tua galeria para poderes escolher fotos e vídeos e usá-los nas tuas publicações, no teu perfil, no WeeTalk e no Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "O Weë precisa de permissão para guardar na tua galeria as imagens e os vídeos que transferires do Weë AI.",
+    "NSLocationWhenInUseUsageDescription": "O Weë usa a tua localização aproximada só enquanto a app estiver aberta, para te sugerir lugares perto de ti e a tua zona quando adicionas uma localização a uma publicação. A tua localização exata nunca é mostrada publicamente."
+  }
+}

@@ -14,13 +14,17 @@ type Traducir = (clave: string, valores?: Record<string, string | number>) => st
 /**
  * Avisos que funcionan igual en web y en nativo.
  * En React Native Web, Alert.alert no muestra nada: por eso usamos window.alert / window.confirm.
+ *
+ * `etiqueta`: el texto del único botón en nativo, para el aviso que ya decía el suyo («Entendido») y no debe pasar
+ * a decir «OK». En web no se usa: `window.alert` pone su propio botón, como en `confirmAction`.
  */
-export const notify = (title: string, message?: string): void => {
+export const notify = (title: string, message?: string, etiqueta?: string): void => {
   if (isWeb) {
     window.alert(message ? `${title}\n\n${message}` : title);
     return;
   }
-  Alert.alert(title, message);
+  if (etiqueta) Alert.alert(title, message, [{ text: etiqueta }]);
+  else Alert.alert(title, message);
 };
 
 /**

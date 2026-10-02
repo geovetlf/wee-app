@@ -608,14 +608,31 @@ service cloud.firestore {
     }
 
     // === FOLLOWS ===
+    //
+    // ATADA (cierre post-auditoría 2026-10-01). El cliente que la usaba
+    // (followsService/useFollow) era código muerto y se retiró; la regla
+    // quedaba abierta: se podía crear un follow con cualquier id, de uno mismo
+    // a uno mismo o con campos de más. Ahora el id ES el par
+    // `{followerId}_{followingId}` —la misma forma que escribía aquel cliente—,
+    // el seguidor es una de las DOS caras de quien escribe (la real o
+    // `hidi_<uid>`, nunca la de otro), no se sigue a uno mismo, y el documento
+    // lleva exactamente lo que escribía: los dos ids y la fecha.
     match /follows/{followId} {
+      function seguidorDeQuienEscribe(followerId) {
+        return followerId == request.auth.uid || followerId == ("hidi_" + request.auth.uid);
+      }
       allow read: if true;
       allow create: if isAuthenticated() &&
-        (request.resource.data.followerId == request.auth.uid ||
-         request.resource.data.followerId == ("hidi_" + request.auth.uid));
+        request.resource.data.keys().hasOnly(['followerId', 'followingId', 'createdAt']) &&
+        request.resource.data.followerId is string &&
+        request.resource.data.followingId is string &&
+        request.resource.data.followingId.size() > 0 &&
+        seguidorDeQuienEscribe(request.resource.data.followerId) &&
+        request.resource.data.followingId != request.resource.data.followerId &&
+        followId == request.resource.data.followerId + '_' + request.resource.data.followingId;
+      allow update: if false;
       allow delete: if isAuthenticated() &&
-        (resource.data.followerId == request.auth.uid ||
-         resource.data.followerId == ("hidi_" + request.auth.uid));
+        seguidorDeQuienEscribe(resource.data.followerId);
     }
 
     // === CONVERSACIONES ===
@@ -839,25 +856,35 @@ service cloud.firestore {
         // dueño no reseña su propio negocio: el comentario lo prometía y la
         // regla no lo cumplía, así que un dueño podía subirse la media él solo.
         //
-        // PENDIENTE: «una reseña por persona» no se puede exigir aquí todavía.
-        // La app crea las reseñas con id automático (`addDoc` en
-        // `weeBizService.createReview`) y solo lo evita en pantalla; para
-        // imponerlo en las reglas, el id tendría que ser el de la cuenta
-        // (`reviews/{uid}`) — es un cambio del cliente y de los datos, no de
-        // una regla, y exigirlo hoy rompería cualquier reseña nueva.
+        // UNA RESEÑA POR PERSONA (cierre post-auditoría 2026-10-01,
+        // trust/resena-por-persona). El id de la reseña ES la cuenta que la
+        // escribe: `reviews/{uid}`. Así una persona no puede tener dos reseñas
+        // nuevas del mismo negocio —la segunda cae en el mismo documento y lo
+        // ACTUALIZA— y nadie puede escribir la de otro. La app la escribe con
+        // `setDoc` en ese id (`weeBizService.createReview`). Las antiguas, con id
+        // automático, se siguen leyendo y borrando, pero no se crean más así.
+        function resenaValida() {
+          return request.resource.data.userId == request.auth.uid &&
+            request.resource.data.rating is int &&
+            request.resource.data.rating >= 1 &&
+            request.resource.data.rating <= 5 &&
+            request.resource.data.get('businessId', businessId) == businessId &&
+            get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId != request.auth.uid;
+        }
         allow create: if isAuthenticated() &&
-          request.resource.data.userId == request.auth.uid &&
-          request.resource.data.rating is int &&
-          request.resource.data.rating >= 1 &&
-          request.resource.data.rating <= 5 &&
-          request.resource.data.get('businessId', businessId) == businessId &&
-          get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId != request.auth.uid;
+          reviewId == request.auth.uid &&
+          resenaValida();
 
         // Solo el autor puede eliminar su reseña
         allow delete: if isAuthenticated() &&
           resource.data.userId == request.auth.uid;
 
-        allow update: if false;
+        // Y solo el autor cambia la SUYA, en su id: es la segunda reseña de la
+        // misma persona, que sustituye a la primera en vez de sumarse.
+        allow update: if isAuthenticated() &&
+          reviewId == request.auth.uid &&
+          resource.data.userId == request.auth.uid &&
+          resenaValida();
       }
 
       // Productos del negocio

@@ -184,6 +184,41 @@ El Financial Core no cambió: toma el número de `NumeroDeCuenta` y sigue sin ge
 
 Dos cerraduras lo mantienen fuera de la migración: un disparador de creación no despierta con lo ya escrito, y una cara Weë nunca hace nacer una cuenta. Ningún valor llega del cliente: lo único que entra es el documento recién escrito.
 
+### 12.1 Las cuentas que no han nacido, y la migración que falta
+
+Documentado en el cierre post-auditoría 2026-10-01 (`trust/denuncia-sin-cuenta-nacida`). **Nada de esto se ha ejecutado, y la política no cambia:** denunciar exige una cuenta nacida y `ACTIVE` (`docs/MODERATION.md` § 7).
+
+**Qué cuentas están afectadas.** Las de toda persona cuyo Perfil Real se creó **antes** de que `nacimientoDeCuenta` entrara en producción —revisión `nacimientodecuenta-00002-yaz`, desde 2026-09-20T00:54Z (`ops/produccion.json`)—: el disparador es de creación y no despierta con lo ya escrito. Se identifican así, solo leyendo:
+
+1. Un documento de `users` cuya cara, según `caraDelPerfilGuardado` (`identity/compatibilidad.ts`), es `REAL_PROFILE` —`profileType` `real` o ausente, `uid` válido y la cuenta (`cuentaDeIdentidad`) igual a ese `uid`—.
+2. Y `accounts/{uid}` **no existe** (`cuentaDeWee` devuelve `null`) o no está `ACTIVE`.
+
+Sus caras Weë (`hidi_<uid>`, `profileType: 'hidi'`) tampoco tienen entidad: `nacerLoQueTocaDeUnPerfilNuevo` las deja en «la cuenta no ha nacido: eso es la migración». Quedan fuera, y hay que informarlas aparte: los documentos cuya cara no se puede leer (sin `uid` válido, `profileType` desconocido, vínculo contradictorio) y las cuentas con **varios** documentos de `users` que se contradicen (`docs/F11-MIGRACION.md` § 3.1 y § 6: en producción hay `uid` con 2 y 3 documentos, algunos sin `linkedAccountId`).
+
+**Qué migración hace falta.** No existe: no hay script, ni callable, ni backfill (`functions/src/identity/cuentas.ts`, cabecera). Lo que sí existe son las piezas, idempotentes y probadas contra el emulador (`functions/test/cuenta-identidad.emulator.mjs`):
+
+- `asegurarCuentaEnWee(db, uid, at, perfilUid)` — una transacción: si `accounts/{uid}` ya está, la devuelve sin sortear nada; si no, escribe la cuenta, su número (`accountNumbers`, con `create`: nunca dos cuentas con el mismo), la membresía del dueño y la entidad 1 (Perfil Real).
+- `asegurarCaraWeeEnWee(db, uid, perfilUid, at)` — la entidad 2 de la cara Weë, en una transacción: si la cuenta ya tiene `weeProfileEntityId`, devuelve esa entidad y no crea otra.
+- `nacerLoQueTocaDeUnPerfilNuevo(db, perfil, at)` — decide con `decisionDeNacimiento` y llama a las dos anteriores, y anota `entityId` en el perfil (`anotarLaEntidadEnElPerfil`, que no pisa una entidad distinta).
+
+La migración sería un script nuevo con la forma de los que ya hay para datos de producción (`scripts/limpiar-cuenta-en-users.mjs`, `scripts/migrar-media.mjs`): recorrer `users` **por páginas**, agrupar por cuenta, y para cada cuenta sin nacer llamar primero a `nacerLoQueTocaDeUnPerfilNuevo` con su Perfil Real y después con su cara Weë, si existe.
+
+**Cómo se ejecutaría.** Igual que esos scripts:
+
+- Sin banderas, **dry-run**: no escribe; imprime cuántas cuentas nacerían, cuántas caras Weë recibirían su entidad y la lista de ambiguas y no legibles, con su motivo. Es lo que contesta «cuántas son».
+- Escribir exige **las dos banderas** (`--ejecutar --confirmo-autorizacion`) y la autorización explícita del dueño, dada después de ver el dry-run; `--project get-wee` explícito.
+- **Idempotente**: repetirlo, o cortarlo a la mitad y relanzarlo, no crea nada dos veces —la cuenta se busca por su id, el número se reserva con `create` dentro de la misma transacción y la cara Weë se reconoce por el `weeProfileEntityId` de la cuenta, leído en la misma transacción—.
+
+**Riesgos.**
+
+- **Perfiles duplicados**: una cuenta con varios documentos de `users`. La cuenta nace una sola vez (su id es el `uid`), pero `entityId` se anota en el de id más bajo; los ambiguos no se migran y se informan.
+- **La fecha**: `at` es la de la migración, no la del alta original. Usar `createdAt` del perfil es una decisión del dueño.
+- **Concurrencia con la app**: si la persona crea su cara Weë durante la migración, el disparador y el script llaman a las mismas operaciones idempotentes; no se duplica nada.
+- **Efectos**: escribir `entityId` en `users` no dispara nada (el único disparador sobre `users` es de creación). No toca Credits, publicaciones ni conversaciones.
+- **Irreversible a efectos prácticos**: un número de cuenta repartido no se devuelve; por eso el dry-run va primero y la escritura solo con autorización.
+
+**¿Se puede automatizar?** Sí, como script de ejecución única con dry-run; no como disparador ni como tarea programada, porque escribe datos de producción y necesita autorización. Una vez ejecutada, no hace falta nada continuo: las cuentas nuevas ya nacen con `nacimientoDeCuenta`.
+
 ## 13. La frontera con la identidad heredada
 
 El concepto se llama **Perfil Weë** y el tipo de entidad es `WEE_PROFILE`. El prefijo heredado de HideTok que llevan los `uid` guardados es **dato histórico**, y vive encapsulado en `functions/src/identity/compatibilidad.ts`, que es el único archivo del servidor nuevo que lo nombra.

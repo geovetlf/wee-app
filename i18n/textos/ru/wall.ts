@@ -53,6 +53,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   pollLessThanAnHour: 'Меньше часа',
   pollLegacy: 'Этот опрос остался от прежней версии Weë и больше не принимает голоса.',
   pollVoteFailed: 'Не удалось засчитать ваш голос',
+  pollVoteOffline: 'Не удалось связаться с Weë. Попробуйте позже.',
   closeComments: 'Закрыть комментарии',
   removeImage: 'Убрать изображение',
   attachImage: 'Прикрепить изображение',

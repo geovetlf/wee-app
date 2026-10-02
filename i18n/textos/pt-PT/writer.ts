@@ -26,7 +26,7 @@
  * pide la preposición; «em Os meus documentos» no se escribe en portugués.
  */
 export const writer: typeof import('../es/writer').writer = {
-  askWee: 'Pede a Weë',
+  askWee: 'Pede ao Weë',
   writeSomethingFirst: 'Escreve algo primeiro',
   writeSomethingHint: 'Escreve algo primeiro e Weë trabalha nisso contigo.',
   save: 'Guardar',
@@ -52,13 +52,13 @@ export const writer: typeof import('../es/writer').writer = {
   couldNotSaveToDocuments: 'Não foi possível guardar nos meus documentos',
   myDocuments: 'Os meus documentos',
   newDocument: 'Novo documento',
-  noDocumentsYet: 'Ainda não tens documentos. Escreve um novo ou pede a Weë que comece por ti.',
+  noDocumentsYet: 'Ainda não tens documentos. Escreve um novo ou pede ao Weë que comece por ti.',
   editedWhen: 'Editado {{cuando}}',
   titleLabel: 'Título do documento',
   bodyLabel: 'Texto do documento',
   editorTitle: '✍️ Editor',
   docTitlePlaceholder: 'Título do documento',
-  bodyPlaceholder: 'Escreve aqui. Quando quiseres, pede a Weë que o melhore, o corrija ou o traduza.',
+  bodyPlaceholder: 'Escreve aqui. Quando quiseres, pede ao Weë que o melhore, o corrija ou o traduza.',
   resultHint: 'Weë trabalha sobre o que escreveste e devolve-te o resultado aqui, pronto para continuares a editar.',
   weeWorksWithYou: 'Weë trabalha nisso contigo.',
   saved: '✓ Guardado',

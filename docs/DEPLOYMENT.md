@@ -26,8 +26,9 @@ Documento operativo del **Weë Agent Harness** (FASE 3, 4 y 6). Producción es
        después (`2da2881`).
      - Z10 ya no sirve a ninguna función.
      - Saberlo costó comparar zips a mano.
-   - Se despliega desde un worktree limpio en el commit exacto, y ese commit
-     queda etiquetado.
+   - Ahora despliega solo el workflow (§6), desde un checkout limpio del commit
+     exacto de `main`, y ese commit queda etiquetado. Ni un worktree ni el
+     portátil despliegan (§4).
 
 ## 2. Qué corre hoy
 
@@ -201,12 +202,23 @@ tres niveles, en el orden que pidió el dueño; si uno falla, el siguiente no
 arranca:
 1. **TypeScript y build**: la app con 0 errores, las Functions y la web (lo
    mismo que construye Vercel);
-2. **pruebas**: todas las suites (`npm --prefix functions run test:todas`), sin
-   parar en la primera que falla, y las de emulador con proyectos `demo-*`;
+2. **pruebas**, en dos jobs a la vez: todas las suites
+   (`npm --prefix functions run test:todas`, sin parar en la primera que falla;
+   `_cadena.mjs` no corre ninguna si `functions/lib` no está al día con
+   `functions/src`) y, en el otro, las de emulador con proyectos `demo-*`
+   (`functions/test/_emuladores.mjs`, con Java 21);
 3. **seguridad y políticas**: ningún secreto en el repositorio
-   (`scripts/escaneo-secretos.mjs`, sin herramientas externas) y las suites de
-   la guardia, la entrega, el mapa de producción, el despliegue, la rotación y
-   los emuladores aislados.
+   (`scripts/escaneo-secretos.mjs`, sin herramientas externas), la revisión
+   determinista contra la baseline (`ops/revision/baseline.mjs`, puertas G0 y
+   G3) y las suites de políticas. Su lista es la del bucle de ese nivel en
+   `ci.yml`, y `ci-workflow` comprueba que coincide con la suya en las dos
+   direcciones.
+
+**En `main` no se cancela ninguna ejecución.** El despliegue exige los cuatro
+checks en verde en el commit EXACTO, así que cada commit de `main` lleva su
+propio grupo de concurrencia: con uno compartido, GitHub cancela la ejecución
+pendiente cuando llega la siguiente, y ese commit se quedaría sin checks. En un
+PR, en cambio, un push nuevo cancela el anterior (`ci-workflow` 10b–10c).
 
 Para que la CI se ejecute ANTES de entrar en `main`, el dueño activa en GitHub
 la protección de `main`. Está escrita en `ops/github/` (lo que se envía, tal cual)

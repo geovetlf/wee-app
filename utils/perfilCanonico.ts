@@ -98,7 +98,7 @@ const asegurar = async <T extends { uid: string }>(
     const yaCreado = await tx.leer(id);
     if (yaCreado) return { perfil: yaCreado, creado: false };
     const datos = nuevo();
-    if (datos.uid !== identidad) throw new Error('perfilCanonico: el perfil nuevo no es de esta identidad');
+    if (datos.uid !== identidad) throw new Error('perfilCanonico:perfil-de-otra-identidad');
     tx.crear(id, datos);
     if (alCrear) alCrear(tx, datos);
     return { perfil: datos, creado: true };
@@ -114,7 +114,7 @@ export const asegurarPerfilReal = async <T extends { uid: string }>(
   uid: string,
   nuevo: () => T,
 ): Promise<PerfilAsegurado<T>> => {
-  if (!esUidDeCuenta(uid)) throw new Error('asegurarPerfilReal: uid de cuenta inválido');
+  if (!esUidDeCuenta(uid)) throw new Error('asegurarPerfilReal:uid-de-cuenta-invalido');
   return asegurar(puertos, uid, idDelPerfilReal(uid), nuevo);
 };
 
@@ -139,16 +139,16 @@ export const asegurarPerfilWee = async <T extends { uid: string; linkedAccountId
   nuevo: () => T,
 ): Promise<PerfilAsegurado<T>> => {
   const { cuenta, identidadWee, idDelPerfilReal: idReal } = vinculo;
-  if (!esUidDeCuenta(cuenta)) throw new Error('asegurarPerfilWee: cuenta inválida');
-  if (!esIdDeDocumento(identidadWee) || identidadWee === cuenta) throw new Error('asegurarPerfilWee: identidad del Perfil Weë inválida');
-  if (!esIdDeDocumento(idReal)) throw new Error('asegurarPerfilWee: falta el Perfil Real al que enlazar');
+  if (!esUidDeCuenta(cuenta)) throw new Error('asegurarPerfilWee:cuenta-invalida');
+  if (!esIdDeDocumento(identidadWee) || identidadWee === cuenta) throw new Error('asegurarPerfilWee:identidad-wee-invalida');
+  if (!esIdDeDocumento(idReal)) throw new Error('asegurarPerfilWee:sin-perfil-real');
   return asegurar(
     puertos,
     identidadWee,
     idDelPerfilWee(identidadWee),
     () => {
       const datos = nuevo();
-      if (datos.linkedAccountId !== cuenta) throw new Error('asegurarPerfilWee: el Perfil Weë nuevo no declara su cuenta');
+      if (datos.linkedAccountId !== cuenta) throw new Error('asegurarPerfilWee:perfil-wee-sin-cuenta');
       return datos;
     },
     (tx) => tx.actualizar(idReal, { linkedAccountId: identidadWee } as Partial<T>),

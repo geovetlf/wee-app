@@ -37,6 +37,10 @@ export const REGLAS = [
     descripcion: '`Alert.alert` con lista de botones fuera de un archivo .native/.ios/.android: en la web no muestra nada y los botones no corren nunca (usar utils/notify.ts).',
   },
   {
+    id: 'web/alert-sin-boton', version: 1, desde: '2026-10-01', severidad: 'media', zona: 'codigo',
+    descripcion: '`Alert.alert` sin lista de botones en un camino que corre en la web: React Native Web lo deja en una función vacía y el aviso no se ve (usar notify de utils/notify.ts). Con lista de botones es `web/alert-con-botones`.',
+  },
+  {
     id: 'ia/host-fuera-de-adaptador', version: 1, desde: '2026-10-01', severidad: 'alta', zona: 'ia',
     descripcion: 'Host de un proveedor de IA o SDK de IA fuera de functions/src/engine/providers (CLAUDE.md §6: una IA, un adaptador).',
   },

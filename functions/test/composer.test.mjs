@@ -135,7 +135,18 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
    * correcta y que el diccionario le pone "Volver".
    */
   /* Sobre el fuente crudo: `soloCodigo` se traga esos bloques (ver cabecera). */
-  check('110) y las alertas de permisos conservan su Cancelar', (leer('screens/CreateScreen.tsx').match(/text: 'Cancelar', style: 'cancel'/g) || []).length === 2);
+  /*
+   * Eran dos `Alert.alert` con su Cancelar (galería y cámara). La de la cámara confirma desde el cierre post-auditoría
+   * (2026-10-01) con `confirmAction`, porque la cámara también se abre en la web y ahí un `Alert.alert` con botones no
+   * hace nada; su Cancelar es el de `confirmAction` (`t('common.cancel')`, el de back.test 6). Las dos lo conservan.
+   */
+  /* Crudo de verdad (sin comoSeLee, que resuelve las claves): la llamada se mira con sus claves. */
+  const crearSinResolver = fs.readFileSync(path.resolve(here, '../../screens/CreateScreen.tsx'), 'utf8');
+  const notifySinResolver = fs.readFileSync(path.resolve(here, '../../utils/notify.ts'), 'utf8');
+  check('110) y las alertas de permisos conservan su Cancelar',
+    (leer('screens/CreateScreen.tsx').match(/text: 'Cancelar', style: 'cancel'/g) || []).length === 1
+    && /confirmAction\(\s*t\('composer\.permissionsNeeded'\),\s*t\('composer\.cameraForPhotos'\),\s*t\('composer\.goToSettings'\),/.test(crearSinResolver)
+    && /\{ text: t\('common\.cancel'\), style: 'cancel', onPress: \(\) => resolve\(false\) \}/.test(notifySinResolver));
   /* El lugar elegido es un chip bajo el texto, parte de la publicación; y si
      no hay nada, no se pinta nada. */
   check('110) el lugar elegido es un chip, y solo sale si hay algo', /const renderLugar = \(\) =>\s*\n?\s*place \|\| ubicacion \? \(/.test(crear) && /styles\.chipLugar/.test(crear));
@@ -382,7 +393,9 @@ console.log('\n── 127 · El workspace "Nueva publicación", rediseñado ─�
 
   /* La cabecera: aspa de Back, "Nueva publicación" y un Publicar rápido que se apaga. */
   check('127b) Back es el aspa, con el cierre de siempre: goBack', /const handleClose = \(\) => \{\s*navigation\.goBack\(\);/.test(crudo) && /onPress=\{handleClose\}[\s\S]{0,300}accessibilityLabel="Volver"[\s\S]{0,120}name="close"/.test(crudo));
-  check('127b) y no volvió Cancelar a la cabecera', !/>Cancelar<\/Text>/.test(crudo) && (crudo.match(/text: 'Cancelar', style: 'cancel'/g) || []).length === 2);
+  /* Los Cancelar que quedan son los de los permisos: uno en su Alert (galería) y el de la cámara, dentro de confirmAction (ver 110). */
+  check('127b) y no volvió Cancelar a la cabecera', !/>Cancelar<\/Text>/.test(crudo) && (crudo.match(/text: 'Cancelar', style: 'cancel'/g) || []).length === 1
+    && /confirmAction\(\s*t\('composer\.permissionsNeeded'\),\s*t\('composer\.cameraForPhotos'\)/.test(fs.readFileSync(path.resolve(here, '../../screens/CreateScreen.tsx'), 'utf8')));
   check('127b) el título es Nueva publicación', /headerTitulo[\s\S]{0,80}>Nueva publicación<\/Text>/.test(crudo) && !/Crear publicación<\/Text>/.test(crudo));
   check('127b) el Publicar de arriba se apaga sin contenido y lo anuncia',
     /styles\.postButton, \{ backgroundColor: canPublish \? theme\.colors\.accent : theme\.colors\.accent \+ '24' \}/.test(crudo) && /disabled=\{!canPublish\}[\s\S]{0,200}accessibilityState=\{\{ disabled: !canPublish, busy: isPublishing \}\}/.test(crudo));

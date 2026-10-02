@@ -1,5 +1,6 @@
 /*
- * LAS SUITES DE EMULADOR, TODAS, CADA UNA EN SU PROPIA SESIÓN — nivel 3 de la CI.
+ * LAS SUITES DE EMULADOR, TODAS, CADA UNA EN SU PROPIA SESIÓN — nivel 2 de la CI
+ * (el job «Nivel 2 · emuladores demo-*», en paralelo con el de las suites).
  *
  * Cada `*.emulator.mjs` documenta en su cabecera cómo se lanza
  * (`firebase emulators:exec --only … --project demo-… "node …"`). Este
@@ -15,7 +16,7 @@
  * motor de IA cae en `mock`. En CI nunca hay secretos locales. No llama a
  * nada real.
  *
- *   node functions/test/_emuladores.mjs              # las 14
+ *   node functions/test/_emuladores.mjs              # todas las `*.emulator.mjs` (al final dice cuántas)
  *   node functions/test/_emuladores.mjs --solo rules # solo las que contienen «rules»
  *
  * Necesita Java 21 (en el PATH, en JAVA21_HOME o el portable de wee-tools) y

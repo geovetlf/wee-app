@@ -81,6 +81,27 @@ export function hasRelevantFreeText(text: string, structured = ''): boolean {
 }
 
 /**
+ * EL SISTEMA DE UN ADAPTADOR DE TEXTO CUANDO QUIEN LLAMA NO PASA NINGUNO
+ * (cierre post-auditoría 2026-10-01, server/prompts-internos).
+ *
+ * Los cuatro adaptadores de texto (Gemini, OpenAI, DeepSeek, Claude) tenían el suyo, y los
+ * cuatro decían «responde en español». Eso no es neutro: una llamada sin `system` que pedía
+ * otra cosa —la adaptación de idioma de abajo pide INGLÉS— recibía dos instrucciones que se
+ * contradicen. Los prompts internos de Weë viven en `creator/prompts.ts` y cada llamada pasa el
+ * suyo; este es solo el respaldo, y no impone idioma: manda lo que digan las instrucciones.
+ */
+export const SISTEMA_POR_DEFECTO =
+  'Eres Weë: claro, cálido y directo. Responde en el idioma que pidan las instrucciones; si no piden ninguno, en el del mensaje. Nunca mencionas modelos, proveedores ni términos técnicos.';
+
+/**
+ * ¿Pide esta llamada TEXTO plano? Las capacidades estructuradas (`text.structure`…) activan el
+ * modo JSON del proveedor por defecto; una llamada que necesita texto plano por una de ellas
+ * —la adaptación de idioma va por `text.structure`— lo dice con `format: 'text'`, y entonces el
+ * adaptador no activa el modo JSON, que contradiría «contesta solo con la instrucción».
+ */
+export const pideTextoPlano = (input: Record<string, unknown>): boolean => input.format === 'text';
+
+/**
  * Instrucción con la que se pide la adaptación. Es explícita a propósito: el
  * riesgo de traducir no es el idioma, es perder un detalle por el camino.
  */

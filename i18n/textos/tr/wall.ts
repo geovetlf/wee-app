@@ -49,6 +49,7 @@ export const wall: typeof import('../es/wall').wall = {
   pollLessThanAnHour: '1 saatten az kaldı',
   pollLegacy: 'Bu anket Weë\'nin eski bir sürümüne ait ve artık oy kabul etmiyor.',
   pollVoteFailed: 'Oy verilemedi',
+  pollVoteOffline: 'Weë\'ye bağlanılamadı. Daha sonra yeniden dene.',
   closeComments: 'Yorumları kapat',
   removeImage: 'Görseli kaldır',
   attachImage: 'Görsel ekle',

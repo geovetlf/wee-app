@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getFirestore, Timestamp, FieldValue, DocumentReference } from 'firebase-admin/firestore';
-import { AI_SECRETS } from '../secrets';
+import { AI_SECRETS, MODEL_SECRETS } from '../secrets';
 import { onCall } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep, Question } from './types';
 import { PlannerInput, getPlanner, respuestaPara } from './planner';
@@ -19,7 +19,7 @@ import { planImage } from '../engine/image';
 import { imageDimensions } from '../engine/imageMeta';
 import { resolveForModel } from '../engine/resolutionPolicy';
 import { adaptPromptForProvider } from '../engine/promptLanguage';
-import { imageEnglishPart } from './prompts';
+import { entradaDeAdaptacion, imageEnglishPart } from './prompts';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
 import { serviceForCapability } from '../credits/creditCosts';
@@ -259,7 +259,7 @@ const pricingFor = async (job: CreatorJob, uid: string, quality?: QualityChoice)
 };
 
 export const creatorChat = onCall(
-  { region: 'us-central1', timeoutSeconds: 60, memory: '256MiB', secrets: AI_SECRETS },
+  { region: 'us-central1', timeoutSeconds: 60, memory: '256MiB', secrets: MODEL_SECRETS },
   async (request) => {
     try {
       if (!request.auth) throw new EngineError('UNAUTHORIZED');
@@ -438,7 +438,7 @@ export const creatorChat = onCall(
  * Cambiar el nivel de calidad de un plan antes de crearlo. Devuelve el nuevo
  * presupuesto para que la persona vea al momento cuánto va a gastar.
  */
-export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: AI_SECRETS }, async (request) => {
+export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: MODEL_SECRETS }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
@@ -702,7 +702,8 @@ export const creatorRun = onCall(
               translate: async (texto) => {
                 const t = await runCapability(
                   'text.structure',
-                  { prompt: texto, maxOutputTokens: 400, quality: 'standard' },
+                  /* Su sistema y texto plano, desde creator/prompts.ts: nada de «responde en español» ni modo JSON. */
+                  entradaDeAdaptacion(texto),
                   { ...ctx, stepId: `${next.id}:idioma`, prefs: undefined, service: undefined, creditTransactionId: undefined },
                 );
                 return t.output.content || '';

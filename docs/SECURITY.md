@@ -104,6 +104,16 @@ ese grupo, los comandos fase a fase con el nombre de cada servicio.
 - **No se rotan** ELEVENLABS, ANTHROPIC, OPENAI, MINIMAX ni
   SEEDANCE_CALLBACK_TOKEN: no estaban en el portátil (H0) y solo viven en
   Secret Manager.
+- **Cierre del 2026-10-01: el mapa de montajes cambió en el código.** Cada
+  función monta ya solo lo que lee: `MODEL_SECRETS` (las 8 claves de modelo,
+  sin el testigo del webhook) en brainChat, brainQuote, creatorChat,
+  creatorQuote y engineAdmin; `AVATAR_SECRETS` (solo Gemini) en los dos avatares;
+  `AI_SECRETS` completo solo en creatorRun y generateVideo. `rotacion.mjs` lee el
+  mapa del código compilado, así que **no se rota ninguna clave entre ese cambio
+  y su despliegue**: la rotación iría a revisiones nuevas de funciones que, vivas,
+  todavía montan el mapa viejo. Primero se despliega (los grupos de
+  `ops/despliegue/grupos.json`) y después se rota con el mapa vivo
+  (`rotacion-secretos` 1b compara los dos).
 - **Después de cada rotación, `ops/produccion.json`.** Las revisiones de antes
   montan la versión vieja: tras revocarla, volver a ellas deja la función sin
   proveedor, y tras deshabilitarla, sin arrancar. El mapa se actualiza en un PR

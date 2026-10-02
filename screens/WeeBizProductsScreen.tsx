@@ -29,7 +29,7 @@ import { scale } from '../utils/scale';
 import { weeBizService, Product } from '../services/weeBizService';
 import { uploadImageToCloudinary, cloudinaryThumb } from '../services/cloudinaryService';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
-import { confirmAction } from '../utils/notify';
+import { confirmAction, notify } from '../utils/notify';
 
 type RoutePropType = RouteProp<MainStackParamList, 'WeeBizProducts'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
@@ -108,7 +108,7 @@ const WeeBizProductsScreen: React.FC = () => {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(t('weebiz.permissionTitle'), t('weebiz.galleryPermission'));
+      notify(t('weebiz.permissionTitle'), t('weebiz.galleryPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -124,7 +124,7 @@ const WeeBizProductsScreen: React.FC = () => {
 
   const handleSaveProduct = async () => {
     if (!formName.trim()) {
-      Alert.alert(t('weebiz.requiredTitle'), t('weebiz.productNameRequired'));
+      notify(t('weebiz.requiredTitle'), t('weebiz.productNameRequired'));
       return;
     }
     try {
@@ -163,7 +163,7 @@ const WeeBizProductsScreen: React.FC = () => {
       loadProducts();
     } catch (e) {
       console.error('Error saving product:', e);
-      Alert.alert(t('common.error'), t('weebiz.productSaveFailed'));
+      notify(t('common.error'), t('weebiz.productSaveFailed'));
     } finally {
       setSaving(false);
     }

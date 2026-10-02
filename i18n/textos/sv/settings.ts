@@ -51,7 +51,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutBody: 'Weë (World Encode Entity) är det sociala nätverket för människor som skapar med artificiell intelligens.\n\nVersion 1.0.0 · © {{anio}} Weë. Med ensamrätt.\n\nGeografiska data: GeoNames (geonames.org), CC BY 4.0.',
   location: '📍 Plats',
   locationLine: '{{estado}} Din exakta plats visas aldrig offentligt.',
-  locationOff: 'Avstängd. Låt Weë använda din ungefärliga plats för att visa innehåll och upplevelser nära dig. Din exakta plats visas aldrig offentligt.',
+  locationOff: 'Avstängd. Låt Weë använda din ungefärliga plats för att föreslå ditt område och platser nära dig när du lägger till en plats i ett inlägg. Din exakta plats visas aldrig offentligt.',
   locationUnavailable: 'Den här enheten kan inte ge oss din plats.',
   locationDisabled: 'Platstjänster är avstängda i enhetens inställningar.',
   locationPermissionDenied: 'Du har nekat åtkomst till platsen. Tryck här om du vill ändra det i enhetens inställningar.',

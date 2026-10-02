@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë 需要访问你的相机，这样你就可以拍摄照片，用于动态、主页、WeeTalk 和 Weë AI。",
+    "NSMicrophoneUsageDescription": "Weë 需要访问你的麦克风，这样你就可以在 WeeTalk 中录制和发送语音。",
+    "NSPhotoLibraryUsageDescription": "Weë 需要访问你的相册，这样你就可以选择照片和视频，用于动态、主页、WeeTalk 和 Weë AI。",
+    "NSPhotoLibraryAddUsageDescription": "Weë 需要权限才能将你从 Weë AI 下载的图片和视频保存到相册。",
+    "NSLocationWhenInUseUsageDescription": "Weë 仅在应用打开时使用你的大致位置，以便在你为动态添加位置时推荐附近的地点和你所在的区域。你的精确位置永远不会公开显示。"
+  }
+}

@@ -166,14 +166,15 @@ console.log('\n── C · El selector de avatar, el mismo en cuatro pantallas �
   check('15) lo abren tres pantallas, y por eso el texto vive en su módulo',
     QUIENES.every((p) => /AvatarPicker/.test(leer(p))) && !!esT.avatar && !!enT.avatar);
 
-  check('16) las dos alertas piden clave', /Alert\.alert\(t\('common\.error'\), t\('avatar\.pickFailed'\)\)/.test(AVATAR)
-    && /Alert\.alert\(t\('common\.error'\), t\('avatar\.photoFailed'\)\)/.test(AVATAR));
+/* + cierre 2026-10-01: estos avisos pasan de Alert.alert (vacío en la web) a notify; mismas claves. */
+  check('16) las dos alertas piden clave', /notify\(t\('common\.error'\), t\('avatar\.pickFailed'\)\)/.test(AVATAR)
+    && /notify\(t\('common\.error'\), t\('avatar\.photoFailed'\)\)/.test(AVATAR) && !/Alert\.alert\(/.test(AVATAR));
   /* El motivo técnico va al registro (`console.error`), no a la persona: cierre de F11. */
   check('16) y el motivo del sistema queda en el registro, no en la frase',
     !/motivo: error\?\.message/.test(AVATAR) && /console\.error\('Error picking image:', error\)/.test(leer('components/avatars/AvatarPicker.tsx'))
     && !/\{\{/.test(esT.avatar.pickFailed) && !/\{\{/.test(enT.avatar.pickFailed));
   check('17) los dos permisos reutilizan composer.permissionsNeeded',
-    (AVATAR.match(/Alert\.alert\(t\('composer\.permissionsNeeded'\)/g) || []).length === 2
+    (AVATAR.match(/notify\(t\('composer\.permissionsNeeded'\)/g) || []).length === 2
     && !('permissionsNeeded' in esT.avatar));
   check('18) el "volver" es el común, en el texto y en la etiqueta',
     (AVATAR.match(/t\('common\.back'\)/g) || []).length === 2);

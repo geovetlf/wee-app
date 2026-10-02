@@ -13,14 +13,14 @@ import { tarifaDeModeloDeTexto } from '../engine/pricing';
 import { DEEPSEEK_TEXT_MODEL } from '../engine/providers/deepseek';
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId, CreditError } from '../credits/creditValidation';
-import { bloqueDe, contarRespuesta, deshacerRespuesta, queHacerConElCobro, RESPUESTAS_POR_CREDIT } from './brainUsage';
+import { bloqueDe, cobroYaCerradoSinCobro, contarRespuesta, deshacerRespuesta, queHacerConElCobro, RESPUESTAS_POR_CREDIT } from './brainUsage';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertAttachmentUrl, assertInputImageUrl } from './inputs';
 import { BRAIN_CHAT_SYSTEM, entradaDeEntender, instruccionDeIdioma, localeDeBrain } from './prompts';
 import { EXPERIENCIAS_PARA_DERIVAR } from './experiencias';
-import { AI_SECRETS } from '../secrets';
+import { MODEL_SECRETS } from '../secrets';
 import { BRAIN_CONTRACT_VERSION, BrainAttachment, LIMITES_DE_CONTEXTO, Thinker, ThoughtRequest, contextoDeIdioma, interpretarMarca } from '../core';
 import { crearBrainDeWee, pensamientoDesde } from '../brain';
 import {
@@ -263,7 +263,7 @@ async function priceBrainMessage(input: Record<string, unknown>, webSearch: bool
  * Cuánto costaría el siguiente mensaje, antes de enviarlo. La app lo llama para
  * enseñar el precio junto al botón de enviar; no cobra ni escribe nada.
  */
-export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: AI_SECRETS }, async (request) => {
+export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: MODEL_SECRETS }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
@@ -310,7 +310,7 @@ export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, me
   }
 });
 
-export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, memory: '512MiB', secrets: AI_SECRETS }, async (request) => {
+export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, memory: '512MiB', secrets: MODEL_SECRETS }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
@@ -374,10 +374,12 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
      * comprueba ANTES de llamar al modelo, con el mismo error de siempre. Así nadie
      * llega a generar algo que luego no puede pagar.
      */
-    let spend: { amount: number; duplicate: boolean } | null = null;
+    let spend: { amount: number; duplicate: boolean; status?: string } | null = null;
     /* Lo que de verdad pasó en ESTA invocación: el `catch` decide el cobro con esto (`queHacerConElCobro`). */
     let contadaAqui = false;
     let entregada = false;
+    /* El cobro de este mensaje ya había terminado SIN cobrar (reembolsado o fallido): no hay nada que cerrar. */
+    let cerradoSinCobro = false;
     /*
      * Por qué no pudo el conductor, cuando el camino es el del Core. Vive AQUÍ
      * fuera —y no dentro del `try`— porque quien tiene que leerlo es el `catch`
@@ -405,6 +407,12 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
         source: 'weë-brain',
         meta: { chatId: chatRef.id, estimatedUsd: price.usd, ...price.detail },
       });
+      /*
+       * Este mensaje ya se cobró una vez y se DEVOLVIÓ: esa operación terminó sin cobro.
+       * Se rechaza aquí, ANTES de llamar al modelo: ni respuesta gratis ni coste del proveedor.
+       * Fuera del `try` de abajo a propósito: no hay nada que completar ni que devolver.
+       */
+      if (cobroYaCerradoSinCobro(spend)) throw new EngineError('DUPLICATE_REQUEST');
     } else if (cierraElBloque) {
       const saldo = await creditEngine.getBalance(uid);
       if (saldo.balance < price.credits) {
@@ -700,8 +708,9 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
         const consumo = await contarRespuesta(uid, messageId);
         contadaAqui = true;
         if (consumo.cobrada) {
+          let cobroDelBloque: { amount: number; duplicate: boolean; status?: string };
           try {
-            spend = await creditEngine.spendCredits({
+            cobroDelBloque = await creditEngine.spendCredits({
               userId: uid,
               service,
               amount: price.credits,
@@ -719,6 +728,17 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
             await deshacerRespuesta(uid, messageId).catch((e) => console.error('Weë Brain: no se pudo deshacer el bloque', messageId, e));
             throw error;
           }
+          /*
+           * El cobro de este mensaje ya se había DEVUELTO (o falló): esa operación terminó
+           * sin cobro y nadie va a pagar esta respuesta. No se guarda, el bloque que acaba
+           * de contarse vuelve a su sitio (lo hace el `catch`, con `queHacerConElCobro`) y
+           * se dice con el vocabulario de siempre.
+           */
+          if (cobroYaCerradoSinCobro(cobroDelBloque)) {
+            cerradoSinCobro = true;
+            throw new EngineError('DUPLICATE_REQUEST');
+          }
+          spend = cobroDelBloque;
         }
       }
       const credits = !spend || spend.duplicate ? 0 : spend.amount;
@@ -774,7 +794,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * preguntarle al error que llega sería preguntarle al mensajero.
        */
       const devolverEsSeguro = !falloDelConductor || falloDelConductor.reembolsoSeguro;
-      const cobro = queHacerConElCobro({ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui });
+      const cobro = queHacerConElCobro({ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui, cerradoSinCobro });
       if (cobro.deshacerBloque) {
         await deshacerRespuesta(uid, messageId).catch((e) => console.error('Weë Brain: no se pudo deshacer el bloque', messageId, e));
       }

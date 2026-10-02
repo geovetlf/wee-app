@@ -48,6 +48,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: '登录后才能使用 ËContact。',
   errNotYours: '这不是你的主页。',
   errNotAPerson: '这个主页不能使用 ËContact。',
+  errSameProfile: '主页不能和自己建立连接。',
   errOffline: '没能连上 Weë。',
   errNoRequestToReject: '没有可以拒绝的请求。',
   errNoPendingRequest: '你和这个主页之间没有待处理的请求。',

@@ -212,7 +212,15 @@ console.log('\n── B · En la app: nada del servidor se enseña sin pasar por
   check('12) y al traducir lo que contesta ËContact', /export const mensajeDeEContact = \(error: unknown, t: .*?, locale: string\)/.test(leer('services/econtactService.ts'))
     && !/error instanceof Error \? error\.message/.test(leer('services/econtactService.ts')));
   const llamadas = app.flatMap((f) => [...leer(f).matchAll(/creatorService\.(start|answer|run)\(([^;]*?)\);/g)].map((m) => ({ f, m: m[0] })));
-  check('13) control: cada llamada de la app a Weë AI pasa el idioma', llamadas.length >= 6 && llamadas.every(({ m }) => /locale\)/.test(m)), muestra(llamadas.filter(({ m }) => !/locale\)/.test(m)).map(({ f }) => f)));
+  /*
+   * Eran seis llamadas: las tres del flujo guiado y otras tres en `hooks/useCreatorJob.ts`, que no importaba nadie y
+   * se retiró como código muerto en el cierre post-auditoría (2026-10-01). Quedan las tres del flujo —crear, contestar
+   * y ejecutar—, y se exige que estén las tres, no solo un número.
+   */
+  const delFlujo = llamadas.filter(({ f }) => f === 'screens/CreatorFlowScreen.tsx').map(({ m }) => m.match(/creatorService\.(\w+)/)[1]);
+  check('13) control: cada llamada de la app a Weë AI pasa el idioma', llamadas.length >= 3
+    && ['start', 'answer', 'run'].every((n) => delFlujo.includes(n)) && llamadas.every(({ m }) => /locale\)/.test(m)),
+    muestra(llamadas.filter(({ m }) => !/locale\)/.test(m)).map(({ f }) => f)) || `${llamadas.length} llamadas: ${delFlujo.join(', ')}`);
 }
 
 console.log('\n── C · El servidor recibe y usa el idioma ──');

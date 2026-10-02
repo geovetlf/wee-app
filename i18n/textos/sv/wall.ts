@@ -51,6 +51,7 @@ export const wall: typeof import('../es/wall').wall = {
   pollLessThanAnHour: 'Mindre än 1 timme kvar',
   pollLegacy: 'Den här omröstningen kommer från en tidigare version av Weë och tar inte längre emot röster.',
   pollVoteFailed: 'Det gick inte att registrera rösten',
+  pollVoteOffline: 'Det gick inte att ansluta till Weë. Försök igen senare.',
   closeComments: 'Stäng kommentarerna',
   removeImage: 'Ta bort bilden',
   attachImage: 'Bifoga en bild',

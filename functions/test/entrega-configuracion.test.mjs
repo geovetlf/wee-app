@@ -62,9 +62,11 @@ if (versionados) {
   const lib = versionados.filter((f) => f.startsWith('functions/lib/'));
   check('10) functions/lib no está versionado', lib.length === 0, lib.length ? `${lib.length} archivos` : '');
   check('11) .claude/settings.local.json no está versionado', !versionados.includes('.claude/settings.local.json'));
-  const PERMITIDOS = new Set(['.env.example', 'functions/.env.example', 'functions/.env.wee-dev-geovet']);
+  /* `functions/.env.wee-dev-geovet` (un uid de prueba del proyecto dev, que no se usa) salió del índice el 2026-10-01:
+     .gitignore ya lo ignoraba (`.env.*`). Desde entonces solo los dos ejemplos. */
+  const PERMITIDOS = new Set(['.env.example', 'functions/.env.example']);
   const envs = versionados.filter((f) => /(^|\/)\.env(\.|$)/.test(f) && !PERMITIDOS.has(f));
-  check('12) ningún .env versionado salvo los ejemplos y el de dev ya público', envs.length === 0, envs.join(', '));
+  check('12) ningún .env versionado salvo los dos ejemplos', envs.length === 0, envs.join(', '));
   const locales = versionados.filter((f) => /\.local$|\.secret\.local$|application_default_credentials|service-account.*\.json$/i.test(f));
   check('13) ningún archivo *.local, de credenciales ADC o de cuenta de servicio versionado', locales.length === 0, locales.join(', '));
 } else {

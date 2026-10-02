@@ -6,8 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,8 +22,7 @@ import { WEE_EXPERIENCES, WeeExperience, matchExperiences, getExperienceById, ex
 import { creatorService, CreatorJob, claveDelEstado } from '../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-
-const isWeb = Platform.OS === 'web';
+import { notify } from '../utils/notify';
 
 /**
  * Weë Creator — "El usuario elige el resultado. Weë elige la IA." (docs/CREATOR.md)
@@ -75,14 +72,6 @@ const WeeCreatorScreen: React.FC = () => {
       cancelled = true;
     };
   }, [user]);
-
-  const notify = (title: string, message: string) => {
-    if (isWeb) {
-      window.alert(`${title}\n\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
 
   const handleCategoryPress = (cat: WeeExperience) => {
     navigation.navigate('Specialist', { id: cat.id });

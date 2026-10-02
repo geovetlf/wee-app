@@ -49,6 +49,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: 'ËContact kullanmak için giriş yap.',
   errNotYours: 'Bu profil senin değil.',
   errNotAPerson: 'Bu profilde ËContact kullanılamaz.',
+  errSameProfile: 'Bir profil kendisiyle bağlantı kuramaz.',
   errOffline: 'Weë\'ye bağlanılamadı.',
   errNoRequestToReject: 'Reddedilecek bir istek yok.',
   errNoPendingRequest: 'Bu profille bekleyen bir isteğin yok.',

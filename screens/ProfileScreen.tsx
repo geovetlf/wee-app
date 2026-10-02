@@ -29,7 +29,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { uploadProfileImageFromUri, uploadBannerImageFromUri } from '../services/storageService';
 import { postsService, Post, repostsService } from '../services/firestoreService';
 import { voteService } from '../services/voteService';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 import { ProfileStackParamList } from '../navigation/ProfileStackNavigator';
 import DrawerMenu from '../components/DrawerMenu';
 import AvatarPicker, { isDiceBearUrl } from '../components/avatars/AvatarPicker';
@@ -105,8 +105,10 @@ const ProfileScreen: React.FC = () => {
     }
   }, [userProfile]);
 
-  // Cargar posts del usuario (usando uid del perfil activo)
+  // Cargar posts del usuario (usando uid del perfil activo). Cambiar de cara (Real ↔ Weë) pide otra carga: lo que
+  // llegue tarde de la cara de antes no puede pintar sus publicaciones en la nueva.
   useEffect(() => {
+    let vivo = true;
     const loadUserPosts = async () => {
       if (!user || !userProfile) return;
 
@@ -126,6 +128,7 @@ const ProfileScreen: React.FC = () => {
           repostsService.getUserReposts(activeUid),
           voteService.getUserAgreedPosts(authUid) // Usar voteService para obtener posts con "agree"
         ]);
+        if (!vivo) return;
 
         console.log('📋 Posts encontrados:', posts.length);
         console.log('🔄 Reposts encontrados:', reposts.length);
@@ -141,13 +144,16 @@ const ProfileScreen: React.FC = () => {
         }
       } catch (error) {
         console.error('Error loading user posts:', error);
-        setPostsError('profile.postsFailed');
+        if (vivo) setPostsError('profile.postsFailed');
       } finally {
-        setLoadingPosts(false);
+        if (vivo) setLoadingPosts(false);
       }
     };
 
     loadUserPosts();
+    return () => {
+      vivo = false;
+    };
   }, [user, userProfile?.id, userProfile?.uid]); // Recargar cuando cambie el usuario, perfil o identidad activa
 
   // Scroll to top cuando se toca el tab de Profile estando ya en Profile
@@ -265,7 +271,7 @@ const ProfileScreen: React.FC = () => {
       await logout();
     } catch (error) {
       console.error('Error logging out:', error);
-      Alert.alert(t('common.error'), t('profile.signOutFailed'));
+      notify(t('common.error'), t('profile.signOutFailed'));
     }
   };
 
@@ -309,7 +315,7 @@ const ProfileScreen: React.FC = () => {
 
   const handleSaveProfile = async () => {
     if (!tempDisplayName.trim()) {
-      Alert.alert(t('common.error'), t('profile.nameRequired'));
+      notify(t('common.error'), t('profile.nameRequired'));
       return;
     }
 
@@ -323,7 +329,7 @@ const ProfileScreen: React.FC = () => {
       setShowEditModal(false);
       // No mostrar Alert para evitar interferencias con la navegación
     } catch (error) {
-      Alert.alert(t('common.error'), t('profile.updateFailed'));
+      notify(t('common.error'), t('profile.updateFailed'));
     } finally {
       setUpdating(false);
     }
@@ -347,7 +353,7 @@ const ProfileScreen: React.FC = () => {
 
     if (!user || !userProfile?.id) {
       console.error('❌ No hay usuario o perfil:', { user: !!user, profileId: userProfile?.id });
-      Alert.alert(t('common.error'), t('profile.noSession'));
+      notify(t('common.error'), t('profile.noSession'));
       return;
     }
 
@@ -444,7 +450,7 @@ const ProfileScreen: React.FC = () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(t('profile.permissionsTitle'), t('profile.galleryPermission'));
+        notify(t('profile.permissionsTitle'), t('profile.galleryPermission'));
         return;
       }
 
@@ -462,7 +468,7 @@ const ProfileScreen: React.FC = () => {
       await updateProfile({ bannerURL: fullSize });
     } catch (error) {
       console.error('Error uploading banner:', error);
-      Alert.alert(t('common.error'), t('profile.coverUploadFailed'));
+      notify(t('common.error'), t('profile.coverUploadFailed'));
     } finally {
       setUploadingBanner(false);
     }

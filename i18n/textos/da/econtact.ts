@@ -51,6 +51,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: 'Log ind for at bruge ËContact.',
   errNotYours: 'Den profil er ikke din.',
   errNotAPerson: 'Den profil kan ikke bruge ËContact.',
+  errSameProfile: 'En profil kan ikke oprette forbindelse til sig selv.',
   errOffline: 'Der kunne ikke oprettes forbindelse til Weë. Prøv igen.',
   errNoRequestToReject: 'Der er ingen anmodning at afvise.',
   errNoPendingRequest: 'Du har ingen ventende anmodning til denne profil.',

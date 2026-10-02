@@ -148,7 +148,7 @@ export const business: typeof import('../es/business').business = {
 
   askInvite: 'Conte com suas palavras e eu cuido do resto.',
   askPlaceholder: 'Escreva aqui a sua ideia…',
-  askSend: 'Perguntar a Weë',
+  askSend: 'Perguntar ao Weë',
 
   productCreate: 'Criar conteúdo',
   goalWithProduct: '{{idea}} — produto: {{producto}}',

@@ -20,7 +20,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { messagesService, Conversation, claveDeAvisoGuardado } from '../services/messagesService';
 import { useConversaciones } from '../hooks/useConversaciones';
-import { getRelativeTime } from '../data/mockData';
+import { getRelativeTime } from '../utils/formatoCorto';
 import { InboxStackParamList } from '../navigation/InboxStackNavigator';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';

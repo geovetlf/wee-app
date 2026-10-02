@@ -6,7 +6,7 @@
  */
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { AI_SECRETS } from './secrets';
+import { AVATAR_SECRETS } from './secrets';
 import { creditEngine } from './credits/creditEngine';
 import { CreditService } from './credits/creditCosts';
 import type { CreditTransaction } from './credits/creditTransactions';
@@ -188,7 +188,7 @@ export const generateAvatarWithGemini = onCall(
     region: 'us-central1',
     timeoutSeconds: 120,
     memory: '512MiB',
-    secrets: AI_SECRETS,
+    secrets: AVATAR_SECRETS,
   },
   async (request) => {
     // Validate authentication
@@ -266,7 +266,7 @@ export const avatarReplacement = onCall(
     region: 'us-central1',
     timeoutSeconds: 300,
     memory: '1GiB',
-    secrets: AI_SECRETS,
+    secrets: AVATAR_SECRETS,
   },
   async (request) => {
     // Validate authentication

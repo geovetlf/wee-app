@@ -61,6 +61,7 @@ export const wall: typeof import('../es/wall').wall = {
   pollLessThanAnHour: 'Menos de 1 hora',
   pollLegacy: 'Esta sondagem é de uma versão anterior do Weë e já não aceita votos.',
   pollVoteFailed: 'Não foi possível registar o teu voto',
+  pollVoteOffline: 'Não foi possível estabelecer ligação com o Weë. Tenta mais tarde.',
   closeComments: 'Fechar os comentários',
   removeImage: 'Remover a imagem',
   attachImage: 'Anexar uma imagem',

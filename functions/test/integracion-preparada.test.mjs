@@ -74,7 +74,14 @@ if (!integrada) {
     componentes.every((c) => /import TextoEnMayusculas/.test(leer(c)) && !/textTransform/.test(leer(c)))
     && guardas.every((g) => /if \(!PROY\.startsWith\('demo-'\)\)/.test(g) && !/get-wee/.test(g))
     /* Desde la revisión post-auditoría (2026-10-01) la cerca lleva delante la línea del Credit Engine (job-queue 63p): el tamaño de b878068 sigue ahí, exacto. */
-    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '(?:[^'\n]*\\n)?14\\t0\\tfunctions\/src\/credits\/index\.ts'/.test(leer(`functions/test/${s}.test.mjs`))));
+    /*
+     * Y desde el cierre post-auditoría (2026-10-01) credits/index.ts ya no mide lo de b878068 a secas: 19/3 = los 14/0 del
+     * candado de spendCredits (b878068, H0 #24) + los 5/3 de `creditsAdmin` (`balance` → `readBalance`, `failed` →
+     * `assertLimit`), y entra creditValidation.ts (10/2, `toHttpsError`). Que el candado sigue siendo EXACTAMENTE la línea de
+     * b878068 lo fija job-queue 63k línea a línea; aquí se exige que las tres cercas lleven, exacta y la misma, la cifra
+     * real de hoy (`git diff --numstat 8e91daa` sobre el árbol).
+     */
+    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '57\\t9\\tfunctions\/src\/credits\/creditEngine\.ts\\n10\\t2\\tfunctions\/src\/credits\/creditValidation\.ts\\n19\\t3\\tfunctions\/src\/credits\/index\.ts';/.test(leer(`functions/test/${s}.test.mjs`))));
 }
 
 const ESPERADOS = [

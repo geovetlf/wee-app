@@ -131,7 +131,7 @@ export const composer: typeof import('../es/composer').composer = {
   askCommunity: 'Fazer uma pergunta para a comunidade',
   applyingFaceSwap: 'Aplicando o face swap...',
   searchPlaceHint: 'Busque uma cidade ou um país para marcar sua publicação.',
-  aiProcessCreatedWith: 'Criado com {{nombre}} na Weë AI',
+  aiProcessCreatedWith: 'Criado com {{nombre}} no Weë AI',
   aiProcessDemoPreview: '{{proceso}} (prévia em modo demo)',
   distanceUnder: 'A menos de {{distancia}}',
   distanceOver: 'A mais de {{distancia}}',

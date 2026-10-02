@@ -23,8 +23,15 @@
 import fs from 'node:fs';
 import { traductorDe } from './i18n-ayuda.mjs';
 
+/*
+ * Un archivo que falta es un ERROR, no un texto vacío (revisión de cierre 2026-10-01, `tests/lector-tolerante`):
+ * con `''` las comprobaciones negadas —«ninguna superficie dice WEË AI»— pasaban en verde si alguien renombraba o
+ * borraba la superficie. Si una superficie desaparece de verdad, se quita de SUPERFICIES a propósito.
+ */
 const leer = (p) => {
-  try { return fs.readFileSync(new URL('../../' + p, import.meta.url), 'utf8'); } catch { return ''; }
+  const url = new URL('../../' + p, import.meta.url);
+  if (!fs.existsSync(url)) throw new Error(`i18n-wee-ai-brand: no existe ${p} (¿se renombró? actualiza la suite)`);
+  return fs.readFileSync(url, 'utf8');
 };
 const soloCodigo = (t) => t
   .replace(/\/\*[\s\S]*?\*\//g, '')

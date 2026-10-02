@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë 需要取用你的相機，讓你可以拍攝照片，用於貼文、個人檔案、WeeTalk 和 Weë AI。",
+    "NSMicrophoneUsageDescription": "Weë 需要取用你的麥克風，讓你可以在 WeeTalk 中錄製和傳送語音訊息。",
+    "NSPhotoLibraryUsageDescription": "Weë 需要取用你的相簿，讓你可以選取照片和影片，用於貼文、個人檔案、WeeTalk 和 Weë AI。",
+    "NSPhotoLibraryAddUsageDescription": "Weë 需要權限才能將你從 Weë AI 下載的圖片和影片儲存到相簿。",
+    "NSLocationWhenInUseUsageDescription": "Weë 只會在應用程式開啟時使用你的大致位置，以便在你為貼文新增地點時，推薦附近的地點和你所在的區域。你的精確位置永遠不會公開顯示。"
+  }
+}

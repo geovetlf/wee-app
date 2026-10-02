@@ -45,18 +45,25 @@ export const useBrainChat = () => {
   const resumed = useRef(false);
   const quoteRun = useRef(0);
 
-  // Retomar la última conversación reciente
+  // Retomar la última conversación reciente. Si la sesión cambia (salir, entrar con otra cuenta) antes de que llegue la
+  // respuesta, la conversación de la cuenta de antes no se abre en esta; por eso «ya retomada» se marca al APLICAR la
+  // respuesta y no al pedirla: una respuesta descartada no deja la conversación sin retomar.
   useEffect(() => {
     if (!user || resumed.current) return;
-    resumed.current = true;
+    let vivo = true;
     brainService
       .getLatestChat(user.uid)
       .then((chat) => {
+        if (!vivo) return;
+        resumed.current = true;
         if (!chat) return;
         const updated = chat.updatedAt?.toDate ? chat.updatedAt.toDate().getTime() : 0;
         if (Date.now() - updated < RESUME_WINDOW_MS) setChatId(chat.id);
       })
       .catch((e) => console.warn('Weë Brain: no se pudo retomar la conversación:', e));
+    return () => {
+      vivo = false;
+    };
   }, [user]);
 
   useEffect(() => {

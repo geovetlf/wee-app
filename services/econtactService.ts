@@ -44,9 +44,10 @@
  * No escribe `econtactsCount` en el perfil. Ese contador lo prohíben las reglas
  * al cliente a propósito: cuando haga falta guardarlo, lo escribirá el servidor.
  *
- * `followsService` sigue existiendo y no se toca: son sistemas distintos.
+ * Los seguimientos (`follows`) son otro sistema: su cliente (`followsService`/`useFollow`) no lo usaba nadie y se
+ * retiró en el cierre del 2026-10-01; la colección y su regla siguen (firestore.rules → follows).
  */
-import { collection, deleteDoc, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
 import { notificationService } from './notificationService';
@@ -54,6 +55,7 @@ import type { Traductor } from '../i18n/traducir';
 import { mensajeDelServidor } from '../i18n/servidor';
 import {
   EContactDoc,
+  ErrorDeEContact,
   EstadoEntre,
   PerfilDeIdentidad,
   contactosDe,
@@ -84,12 +86,11 @@ const COLECCION = 'econtacts';
  * (`functions/src/social/econtact.ts`) viene en español y se reconoce contra su
  * catálogo para decirlo en el idioma de quien mira (`mensajeDelServidor`); lo que
  * no se reconoce, en otro idioma, no se dice.
+ *
+ * La clase vive en el modelo (`utils/econtactModel.ts`), que también lanza los
+ * suyos —una pareja que no vale— y no puede importar nada.
  */
-export class ErrorDeEContact extends Error {
-  constructor(readonly clave: string, mensaje: string) {
-    super(mensaje);
-  }
-}
+export { ErrorDeEContact };
 
 export const mensajeDeEContact = (error: unknown, t: Traductor | ((clave: string) => string), locale: string): string | undefined => {
   if (error instanceof ErrorDeEContact) return t(error.clave);
@@ -169,9 +170,14 @@ type PerfilLeido = PerfilDeIdentidad & {
   photoURL?: string;
 };
 
-/** El documento de `users` de una identidad. Se busca por el campo `uid`. */
+/**
+ * El documento de `users` de una identidad. Se busca por el campo `uid`.
+ *
+ * Se usa el primero y solo el primero, así que se pide uno: sin `orderBy`, Firestore ordena por el id del documento
+ * con y sin `limit`, de modo que `limit(1)` devuelve exactamente el mismo que antes era `docs[0]`.
+ */
 const perfilDe = async (identidad: string): Promise<PerfilLeido | null> => {
-  const snap = await getDocs(query(collection(db, 'users'), where('uid', '==', identidad)));
+  const snap = await getDocs(query(collection(db, 'users'), where('uid', '==', identidad), limit(1)));
   return (snap.docs[0]?.data() as PerfilLeido | undefined) || null;
 };
 

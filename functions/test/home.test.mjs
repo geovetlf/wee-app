@@ -591,9 +591,11 @@ console.log('\n── I · El refinamiento visual ──');
   check('58) el título y las visitas siguen igual',
     alturaDe('sampleLabel') === 24 && alturaDe('views') === 24,
     `título a ${alturaDe('sampleLabel')}, visitas a ${alturaDe('views')}`);
-  /* Control: la marca de agua del vídeo compartido sigue existiendo, aparte de esto. */
-  check('58) control: la marca de agua del vídeo compartido no se tocó',
-    /watermark/i.test(leer('services/videoDownload.ts')));
+  /*
+   * Aquí había un control: «la marca de agua del vídeo compartido no se tocó», leyendo
+   * `services/videoDownload.ts`. Ese bajador con marca de agua no lo importaba nadie —compartir fuera manda el
+   * enlace— y se retiró como código muerto en el cierre post-auditoría (2026-10-01); lo vigila la 69 de abajo.
+   */
 
   /*
    * PASTILLAS: bajas de altura, cómodas de tocar.
@@ -827,58 +829,29 @@ console.log('\n── I · El refinamiento visual ──');
     && /useReposts/.test(publicacion));
 
   {
-    const compartir = leer('services/videoDownload.ts');
     /*
-     * ESTE SERVICIO YA NO COMPARTE NADA.
+     * EL BAJADOR DE VÍDEOS YA NO EXISTE.
      *
-     * Compartir fuera de Weë manda el enlace, así que aquí no pasa. Lo que se
-     * vigila es lo único que sigue importando de él mientras exista: que su
-     * copia viva en el caché y se borre, y que no suba nada a Storage. Si
-     * algún día alguien lo vuelve a enchufar a compartir, la comprobación de
-     * arriba —"PostCard ya no usa videoDownload"— lo cazará.
+     * Aquí se vigilaba `services/videoDownload.ts` "mientras exista": que su copia
+     * viviera en el caché y se borrara, que no subiera nada a Storage y, ejecutada,
+     * la regla que decidía el tipo MIME del vídeo compartido (69b). Compartir fuera
+     * de Weë manda el ENLACE desde hace tiempo (la 69 de arriba) y nadie importaba
+     * ya ese servicio, así que se retiró como código muerto en el cierre
+     * post-auditoría (2026-10-01): probar un módulo que ninguna pantalla puede
+     * alcanzar no protege a nadie. Lo que se exige ahora es que siga fuera: ni el
+     * archivo ni un import suyo, en ningún sitio del cliente.
      */
-    check('69) el bajador que queda usa el caché y borra su copia',
-      /FileSystem\.cacheDirectory\}wee_downloads\//.test(compartir)
-      && /await Sharing\.shareAsync\(destino, \{/.test(compartir)
-      && /FileSystem\.deleteAsync\(destino, \{ idempotent: true \}\)/.test(compartir));
-    check('69) control: y no sube ninguna copia a Storage',
-      !/storageService|uploadBytes|getDownloadURL|firebase\/storage/.test(compartir));
-
-    /*
-     * LA REGLA DEL TIPO, EJECUTADA. Es lo único que decide si Android ve un
-     * vídeo o una imagen, así que se comprueba con direcciones de verdad y no
-     * mirando si una constante existe.
-     */
-    const ts = require('typescript');
-    const desde = compartir.indexOf('const TIPOS_DE_VIDEO');
-    const hasta = compartir.indexOf('export async function compartirVideo');
-    const trozo = compartir.slice(desde, hasta).replace('const TIPOS_DE_VIDEO', 'export const TIPOS_DE_VIDEO');
-    const js = ts.transpileModule(trozo, {
-      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
-    }).outputText;
-    const { tipoDelVideo } = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
-
-    check('69b) un mp4 de Cloudinary sale como video/mp4',
-      tipoDelVideo('https://res.cloudinary.com/x/video/upload/v1/wee/abc.mp4').mime === 'video/mp4');
-    /* Cloudinary añade transformaciones y parámetros detrás; no deben confundir. */
-    check('69b) y también con parámetros detrás',
-      tipoDelVideo('https://res.cloudinary.com/x/video/upload/q_auto/v1/wee/abc.mp4?_a=BAA').mime === 'video/mp4'
-      && tipoDelVideo('https://ejemplo.com/a.mp4#t=3').mime === 'video/mp4');
-    check('69b) un .MOV en mayúsculas también se reconoce',
-      tipoDelVideo('https://ejemplo.com/clip.MOV').mime === 'video/quicktime');
-    check('69b) webm y 3gp conservan el suyo',
-      tipoDelVideo('https://ejemplo.com/c.webm').mime === 'video/webm'
-      && tipoDelVideo('https://ejemplo.com/c.3gp').mime === 'video/3gpp');
-    /* Sin extensión reconocible se usa MP4, que es lo que Weë sube. */
-    check('69b) sin extensión, mp4 y no una imagen',
-      tipoDelVideo('https://ejemplo.com/sin-extension').mime === 'video/mp4');
-    /*
-     * Y LO QUE DE VERDAD IMPORTA: pase lo que pase, nunca sale un tipo de
-     * imagen. Ese era el fallo.
-     */
-    check('69b) ninguna dirección devuelve jamás un tipo de imagen',
-      ['https://a.com/x.mp4', 'https://a.com/x.jpg', 'https://a.com/x', 'https://a.com/x.png?y=1', '']
-        .every((u) => tipoDelVideo(u).mime.startsWith('video/')));
+    const listarCliente = (d) => fs.readdirSync(path.resolve(here, '../../' + d), { withFileTypes: true })
+      .flatMap((e) => (e.isDirectory() ? listarCliente(`${d}/${e.name}`) : /\.tsx?$/.test(e.name) ? [`${d}/${e.name}`] : []));
+    const cliente = ['screens', 'components', 'hooks', 'contexts', 'services', 'utils', 'navigation']
+      .flatMap(listarCliente).concat(['App.tsx']);
+    const loImportan = cliente.filter((f) => /from ['"][./]+(?:[\w/]+\/)?videoDownload['"]/.test(leer(f)));
+    check('69) el bajador de vídeos se retiró y nadie lo trae de vuelta',
+      !fs.existsSync(path.resolve(here, '../../services/videoDownload.ts')) && loImportan.length === 0,
+      loImportan.join(' '));
+    /* CONTROL: la búsqueda de imports encuentra uno cuando lo hay (si no, la de arriba pasaría siempre). */
+    check('69) control: un import del bajador se vería',
+      /from ['"][./]+(?:[\w/]+\/)?videoDownload['"]/.test("import { compartirVideo } from '../services/videoDownload';"));
   }
 
   /*

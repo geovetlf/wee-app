@@ -363,6 +363,28 @@ export function createCreditEngine(deps: CreditEngineDeps) {
   };
 
   /**
+   * EL SALDO, SOLO LEYENDO (cierre post-auditoría 2026-10-01, money/admin-balance-con-efecto).
+   *
+   * `getBalance` es la puerta de la app: si la cuenta no está inicializada, la inicializa
+   * (`ensureAccount`: migra la billetera antigua y da la bienvenida). Eso está bien cuando
+   * es la persona quien abre su saldo, y mal cuando es una CONSULTA de administración: mirar
+   * el saldo de alguien no puede regalarle la bienvenida ni migrarle nada. Esta lectura no
+   * escribe nunca: una cuenta sin inicializar se contesta con 0 y `initialized: false`.
+   */
+  const readBalance = async (rawUserId: string): Promise<AccountBalance & { initialized: boolean }> => {
+    const userId = assertUserId(rawUserId);
+    const snap = await users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA).get();
+    const perfil = perfilDelSaldo(userId, snap.docs);
+    if (!perfil) {
+      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
+    }
+    if (typeof (perfil.data() || {}).creditsBalance !== 'number') {
+      return { userId, balance: 0, lifetimeEarned: 0, lifetimeSpent: 0, initialized: false };
+    }
+    return { ...balanceOf(perfil), initialized: true };
+  };
+
+  /**
    * ¿ES LA RESERVA GUARDADA LA DE ESTA OPERACIÓN?
    *
    * El mismo servicio, siempre. Y si alguno de los dos lados trae huella, la
@@ -627,7 +649,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
     return getCreditCost(assertService(service));
   };
 
-  return { ensureAccount, getBalance, spendCredits, completeCredits, refundCredits, grantCredits, getCreditHistory, getCreditCost: getCost, CREDIT_FIELDS };
+  return { ensureAccount, getBalance, readBalance, spendCredits, completeCredits, refundCredits, grantCredits, getCreditHistory, getCreditCost: getCost, CREDIT_FIELDS };
 }
 
 export type CreditEngine = ReturnType<typeof createCreditEngine>;

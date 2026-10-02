@@ -26,6 +26,7 @@ import { auth, db, functions } from '../config/firebase';
 import { asegurarPerfilReal, asegurarPerfilWee, conUnaSolaEnVuelo, idDelPerfilReal, idDelPerfilWee, PerfilAsegurado, PuertosDeCreacion } from '../utils/perfilCanonico';
 import { identidadWeeDe } from '../utils/econtactModel';
 import { campoQueResuelve } from '../utils/identidadPublica';
+import { ErrorConClave } from '../i18n/servidor';
 
 // Tipos para las colecciones principales
 /*
@@ -662,8 +663,12 @@ export const postsService = {
     }
   },
 
+  /*
+   * Sin Functions no hay voto. El aviso lo pinta `Poll` con `mensajeDelServidor`, que dice este error por su CLAVE en
+   * el idioma de quien vota; la frase española es solo para los registros.
+   */
   voteInPollById: async (postId: string, optionId: string): Promise<PollVoteResult> => {
-    if (!functions) throw new Error('No se pudo conectar con Weë para registrar tu voto.');
+    if (!functions) throw new ErrorConClave('wall.pollVoteOffline', 'No se pudo conectar con Weë para registrar tu voto.');
     const fn = httpsCallable<{ postId: string; optionId: string }, PollVoteResult>(functions, 'votePoll', {
       timeout: 30_000,
     });
@@ -672,31 +677,10 @@ export const postsService = {
   },
 
   /*
-   * La misma puerta, con la firma de siempre: `PostCard` y `PostDetailScreen`
-   * conocen la posición de la opción que se tocó, no su id. La posición se
-   * traduce aquí y lo que viaja al servidor es siempre un id.
-   *
-   * `userId` se conserva por compatibilidad y se ignora a propósito: el servidor
-   * nunca acepta una identidad que venga del cliente.
+   * Aquí estaba `voteInPoll`, que votaba por POSICIÓN de la opción y la traducía a id. Ya no lo llamaba nadie: la
+   * única encuesta que vota es `components/Poll.tsx`, por id y con `voteInPollById`, y ahí una encuesta histórica
+   * no es pulsable. Se retiró como código muerto en el cierre post-auditoría (2026-10-01).
    */
-  voteInPoll: async (postId: string, optionIndex: number, _userId?: string): Promise<PollVoteResult> => {
-    const postSnap = await getDoc(doc(db, 'posts', postId));
-    if (!postSnap.exists()) throw new Error('Esta publicación ya no existe.');
-
-    const poll = (postSnap.data() as Post).poll;
-    if (!poll || !Array.isArray(poll.options) || poll.options.length === 0) {
-      throw new Error('Esta publicación no tiene encuesta.');
-    }
-
-    const opcion = poll.options[optionIndex];
-    if (!opcion) throw new Error('Esa opción no existe en esta encuesta.');
-    if (!opcion.id) {
-      // Encuesta histórica: se lee, no se vota. No se migra ni se modifica.
-      throw new Error('Esta encuesta es de una versión anterior de Weë y ya no admite votos.');
-    }
-
-    return postsService.voteInPollById(postId, opcion.id);
-  },
   /*
    * Contar una vista es UNA escritura atómica, no leer-y-entonces-escribir.
    * Antes cada tarjeta visible leía el post entero y escribía `views + 1` con
@@ -1078,7 +1062,7 @@ export const repostsService = {
       // Verificar que el post original existe
       const originalPost = await postsService.getById(originalPostId);
       if (!originalPost) {
-        throw new Error('Post original no encontrado');
+        throw new Error('publicacion-original-no-encontrada');
       }
 
       // Crear el repost como una REFERENCIA al post original

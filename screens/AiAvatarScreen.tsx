@@ -25,6 +25,7 @@ import { usersService } from '../services/firestoreService';
 import { creditsService, creditsShortfall } from '../services/creditsService';
 import { useWallet } from '../hooks/useWallet';
 
+import { notify } from '../utils/notify';
 // --- Option data ---
 const GENDER_OPTIONS = [
   { id: 'male', clave: 'aiAvatar.genderMale' },
@@ -113,7 +114,7 @@ const AiAvatarScreen: React.FC = () => {
   const showGenerationError = (error: unknown, fallback: string) => {
     const short = creditsShortfall(error);
     if (!short) {
-      Alert.alert(t('common.error'), fallback);
+      notify(t('common.error'), fallback);
       return;
     }
     const message = t('aiAvatar.creditsDetail', { saldo: formato.numero(short.available), coste: formato.numero(short.required) });
@@ -198,17 +199,13 @@ const AiAvatarScreen: React.FC = () => {
   const handleGenerate = async () => {
     if (!step1Complete || !step2Complete) return;
     if (!user?.uid) {
-      Alert.alert(t('common.error'), t('aiAvatar.signInFirst'));
+      notify(t('common.error'), t('aiAvatar.signInFirst'));
       return;
     }
 
     // Verificar límite de generaciones
     if (hasReachedLimit) {
-      Alert.alert(
-        t('aiAvatar.limitTitle'),
-        t('aiAvatar.limitBody', { contador: MAX_AI_AVATAR_GENERATIONS }),
-        [{ text: t('aiAvatar.understood') }]
-      );
+      notify(t('aiAvatar.limitTitle'), t('aiAvatar.limitBody', { contador: MAX_AI_AVATAR_GENERATIONS }), t('aiAvatar.understood'));
       return;
     }
 
@@ -239,11 +236,7 @@ const AiAvatarScreen: React.FC = () => {
   const handleStartRegenerate = () => {
     // Verificar límite antes de mostrar el wizard
     if (hasReachedLimit) {
-      Alert.alert(
-        t('aiAvatar.limitTitle'),
-        t('aiAvatar.limitBody', { contador: MAX_AI_AVATAR_GENERATIONS }),
-        [{ text: t('aiAvatar.understood') }]
-      );
+      notify(t('aiAvatar.limitTitle'), t('aiAvatar.limitBody', { contador: MAX_AI_AVATAR_GENERATIONS }), t('aiAvatar.understood'));
       return;
     }
     setGenerated(false);
@@ -258,7 +251,7 @@ const AiAvatarScreen: React.FC = () => {
 
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(t('aiAvatar.permissionTitle'), t('aiAvatar.galleryPermission'));
+      notify(t('aiAvatar.permissionTitle'), t('aiAvatar.galleryPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -291,7 +284,7 @@ const AiAvatarScreen: React.FC = () => {
       setShowWizard(false);
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      Alert.alert(t('common.error'), t('aiAvatar.uploadFailed'));
+      notify(t('common.error'), t('aiAvatar.uploadFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -308,11 +301,7 @@ const AiAvatarScreen: React.FC = () => {
 
     // Verificar límite de generaciones
     if (hasReachedLimit) {
-      Alert.alert(
-        t('aiAvatar.limitTitle'),
-        t('aiAvatar.limitBody', { contador: MAX_AI_AVATAR_GENERATIONS }),
-        [{ text: t('aiAvatar.understood') }]
-      );
+      notify(t('aiAvatar.limitTitle'), t('aiAvatar.limitBody', { contador: MAX_AI_AVATAR_GENERATIONS }), t('aiAvatar.understood'));
       return;
     }
 
@@ -362,7 +351,7 @@ const AiAvatarScreen: React.FC = () => {
       navigation.goBack();
     } catch (error: any) {
       console.error('Error saving avatar:', error);
-      Alert.alert(t('common.error'), t('aiAvatar.saveAvatarFailed'));
+      notify(t('common.error'), t('aiAvatar.saveAvatarFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -380,7 +369,7 @@ const AiAvatarScreen: React.FC = () => {
     if (fromCamera) {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert(t('aiAvatar.permissionTitle'), t('aiAvatar.cameraPermission'));
+        notify(t('aiAvatar.permissionTitle'), t('aiAvatar.cameraPermission'));
         return;
       }
       result = await ImagePicker.launchCameraAsync({
@@ -393,7 +382,7 @@ const AiAvatarScreen: React.FC = () => {
     } else {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert(t('aiAvatar.permissionTitle'), t('aiAvatar.galleryPermission'));
+        notify(t('aiAvatar.permissionTitle'), t('aiAvatar.galleryPermission'));
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -455,7 +444,7 @@ const AiAvatarScreen: React.FC = () => {
       navigation.goBack();
     } catch (error: any) {
       console.error('Error saving profile:', error);
-      Alert.alert(t('common.error'), t('aiAvatar.saveFailed'));
+      notify(t('common.error'), t('aiAvatar.saveFailed'));
     } finally {
       setLoading(false);
       setLoadingMessage('');
@@ -601,9 +590,9 @@ const AiAvatarScreen: React.FC = () => {
                   await usersService.update(userProfile.id, { photoURL: swapResultUrl, photoURLThumbnail: swapResultUrl });
                   updateLocalProfile({ photoURL: swapResultUrl, photoURLThumbnail: swapResultUrl });
                   setSwapResultUrl(null);
-                  Alert.alert(t('aiAvatar.doneTitle'), t('aiAvatar.photoUpdated'));
+                  notify(t('aiAvatar.doneTitle'), t('aiAvatar.photoUpdated'));
                 } catch (e: any) {
-                  Alert.alert(t('common.error'), t('aiAvatar.photoUpdateFailed'));
+                  notify(t('common.error'), t('aiAvatar.photoUpdateFailed'));
                 } finally {
                   setLoading(false);
                   setLoadingMessage('');

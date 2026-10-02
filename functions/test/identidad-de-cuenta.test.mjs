@@ -67,19 +67,29 @@ class FirestoreDeMentira {
     const bd = this;
     return {
       doc: (id) => bd.#ref(`${n}/${id}`),
-      where: (campo, op, valor) => ({
-        get: async () => {
-          const coincide = [...bd.docs.entries()]
-            .filter(([ruta, datos]) => ruta.startsWith(n + '/') && ruta.split('/').length === 2
-              && op === '==' && datos && datos[campo] === valor)
-            .map(([ruta, datos]) => ({
-              id: ruta.split('/').pop(),
-              data: () => datos,
-              ref: { path: ruta, update: async (campos) => { bd.docs.set(ruta, { ...bd.docs.get(ruta), ...campos }); bd.escrituras.push(['update', ruta]); } },
-            }));
-          return { empty: coincide.length === 0, size: coincide.length, docs: coincide };
-        },
-      }),
+      /*
+       * + cierre post-auditoría 2026-10-01: la consulta de `anotarLaEntidadEnElPerfil` va acotada con
+       * `.limit(…)`. Como Firestore, el resultado sale ordenado por id de documento y el límite corta por ahí.
+       */
+      where: (campo, op, valor) => {
+        const consulta = (tope) => ({
+          limit: (n) => consulta(n),
+          get: async () => {
+            const coincide = [...bd.docs.entries()]
+              .filter(([ruta, datos]) => ruta.startsWith(n + '/') && ruta.split('/').length === 2
+                && op === '==' && datos && datos[campo] === valor)
+              .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+              .slice(0, tope ?? Infinity)
+              .map(([ruta, datos]) => ({
+                id: ruta.split('/').pop(),
+                data: () => datos,
+                ref: { path: ruta, update: async (campos) => { bd.docs.set(ruta, { ...bd.docs.get(ruta), ...campos }); bd.escrituras.push(['update', ruta]); } },
+              }));
+            return { empty: coincide.length === 0, size: coincide.length, docs: coincide };
+          },
+        });
+        return consulta(undefined);
+      },
     };
   }
   doc(ruta) { return this.#ref(ruta); }

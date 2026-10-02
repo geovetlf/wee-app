@@ -36,6 +36,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: 'Sign in to use ËContact.',
   errNotYours: 'That profile isn\'t yours.',
   errNotAPerson: 'That profile can\'t use ËContact.',
+  errSameProfile: 'A profile can\'t connect with itself.',
   errOffline: 'Couldn\'t connect to Weë.',
   errNoRequestToReject: 'There\'s no request of yours to decline.',
   errNoPendingRequest: 'You don\'t have a pending request with this profile.',

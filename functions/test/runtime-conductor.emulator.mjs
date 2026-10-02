@@ -381,7 +381,31 @@ console.log('\n── K · Lo que se quedó sin cerrar, contra Firestore ──'
 
   const pendientes = await store.porLiquidar({ limit: 50 });
   check('la consulta encuentra SOLO los trabajos que declaran dinero reservado', pendientes.jobs.length === 2 && pendientes.jobs.every((j) => !!j.metadata?.creditRequestId), String(pendientes.jobs.length));
-  check('y no necesita índice compuesto: campo único más orden por identificador', true);
+  /*
+   * El emulador NO exige índices compuestos: aquí no se puede demostrar que producción no lo pida (eso se verificó
+   * allí, en solo lectura: docs/RUNTIME.md § 12.2). Lo que sí se comprueba es la FORMA de la consulta que construye
+   * `porLiquidar`, espiando la colección que recibe el almacén: UNA igualdad sobre un campo y el orden por
+   * identificador, que es lo que sirve el índice automático de un campo. Y el espía devuelve lo mismo que el almacén.
+   */
+  const forma = [];
+  const espiar = (q) => new Proxy(q, {
+    get(objetivo, clave) {
+      const v = Reflect.get(objetivo, clave);
+      if (typeof v !== 'function') return v;
+      if (!['where', 'orderBy', 'limit', 'startAfter'].includes(clave)) return v.bind(objetivo);
+      return (...args) => {
+        forma.push([clave, ...args.map((a) => (a instanceof admin.firestore.FieldPath ? `FieldPath(${a.toString()})` : a))]);
+        return espiar(v.apply(objetivo, args));
+      };
+    },
+  });
+  const espiada = await almacenDeTrabajos({ collection: (nombre) => espiar(db.collection(nombre)) }).porLiquidar({ limit: 50 });
+  const filtros = forma.filter(([op]) => op === 'where');
+  const ordenes = forma.filter(([op]) => op === 'orderBy');
+  check('y su forma es la que sirve un índice de un solo campo: UNA igualdad y el orden por identificador (el emulador no exige índices: se mira la forma)',
+    filtros.length === 1 && filtros[0][2] === '==' && typeof filtros[0][1] === 'string'
+    && ordenes.length === 1 && ordenes[0][1] === 'FieldPath(__name__)' && espiada.jobs.length === pendientes.jobs.length,
+    JSON.stringify(forma));
 
   /* Uno terminado bien y otro que nunca salió, aplicados de verdad por el motor. */
   const terminar = async (job, bien, worker = 'w-emu') => {

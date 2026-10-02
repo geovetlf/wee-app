@@ -36,6 +36,7 @@ export const econtact = {
   errSignIn: 'Inicia sesión para usar ËContact.',
   errNotYours: 'Ese perfil no es tuyo.',
   errNotAPerson: 'Ese perfil no puede usar ËContact.',
+  errSameProfile: 'Un perfil no puede conectarse consigo mismo.',
   errOffline: 'No se pudo conectar con Weë.',
   errNoRequestToReject: 'No hay ninguna solicitud tuya que rechazar.',
   errNoPendingRequest: 'No tienes ninguna solicitud pendiente con este perfil.',

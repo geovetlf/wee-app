@@ -144,9 +144,10 @@ const linking: any = {
   // Interceptar la URL inicial para filtrar URLs del dev client
   async getInitialURL() {
     const url = await Linking.getInitialURL();
-    console.log('🔗 getInitialURL:', url);
+    /* Las URLs pueden llevar ids y parámetros de la persona: al registro solo en desarrollo, nunca en producción. */
+    if (__DEV__) console.log('🔗 getInitialURL:', url);
     if (url && !shouldHandleUrl(url)) {
-      console.log('🔗 URL filtrada (dev client), retornando null');
+      if (__DEV__) console.log('🔗 URL filtrada (dev client), retornando null');
       return null;
     }
     return url;
@@ -154,10 +155,10 @@ const linking: any = {
   // Interceptar URLs entrantes para filtrar URLs del dev client
   subscribe(listener: (url: string) => void) {
     const subscription = Linking.addEventListener('url', ({ url }) => {
-      console.log('🔗 URL entrante:', url);
+      if (__DEV__) console.log('🔗 URL entrante:', url);
       if (shouldHandleUrl(url)) {
         listener(url);
-      } else {
+      } else if (__DEV__) {
         console.log('🔗 URL filtrada (dev client)');
       }
     });

@@ -4,6 +4,7 @@ import {
   addDoc,
   getDoc,
   getDocs,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -13,7 +14,6 @@ import {
   startAfter,
   Timestamp,
   DocumentSnapshot,
-  increment,
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -166,12 +166,6 @@ export const updateBusiness = async (
   await updateDoc(doc(db, BUSINESSES_COL, id), update);
 };
 
-export const incrementFollowers = async (id: string, delta: 1 | -1): Promise<void> => {
-  await updateDoc(doc(db, BUSINESSES_COL, id), {
-    followersCount: increment(delta),
-  });
-};
-
 // --- Products ---
 
 export interface Product {
@@ -262,18 +256,25 @@ export const getUserReview = async (businessId: string, userId: string): Promise
   return { id: snap.docs[0].id, ...snap.docs[0].data() } as Review;
 };
 
+/*
+ * UNA RESEÑA POR PERSONA (cierre post-auditoría 2026-10-01, trust/resena-por-persona). La reseña vive en
+ * `reviews/{uid}`, con el id de la cuenta que la escribe, y las reglas lo exigen a las nuevas. Así una segunda
+ * reseña de la misma persona no se suma a la media: ACTUALIZA la suya. Las antiguas, con id automático, se
+ * siguen leyendo y siguen contando en el recálculo.
+ */
 export const createReview = async (
   businessId: string,
   data: Omit<Review, 'id' | 'businessId' | 'createdAt'>,
 ): Promise<string> => {
-  const docRef = await addDoc(reviewsCol(businessId), {
+  const reviewRef = doc(reviewsCol(businessId), data.userId);
+  await setDoc(reviewRef, {
     ...data,
     businessId,
     createdAt: Timestamp.now(),
   });
   // Recalculate aura score
   await recalculateAura(businessId);
-  return docRef.id;
+  return reviewRef.id;
 };
 
 export const deleteReview = async (businessId: string, reviewId: string): Promise<void> => {
@@ -303,7 +304,6 @@ export const weeBizService = {
   subscribeToBusiness,
   createBusiness,
   updateBusiness,
-  incrementFollowers,
   // Products
   getProducts,
   getProductById,

@@ -135,11 +135,13 @@ console.log('\n── C · El diálogo de salir y los tres avisos ──');
    * web; el de crear sigue en su `Alert.alert` (otro manejador, fuera de este
    * arreglo). Los tres siguen reutilizando common.error.
    */
+  /* + cierre 2026-10-01: el de crear también pasa a `notify` (Alert.alert no se ve en la web); mismas claves. */
   check('15) y los tres avisos de error reutilizan common.error',
     (PANTALLA.match(/(?:notify|Alert\.alert)\(t\('common\.error'\)/g) || []).length === 3
     && /notify\(t\('common\.error'\), t\('communities\.leaveFailed'\)\)/.test(PANTALLA)
     && /notify\(t\('common\.error'\), t\('communities\.actionFailed'\)\)/.test(PANTALLA)
-    && /Alert\.alert\(t\('common\.error'\), t\('communities\.createFailed'\)\)/.test(PANTALLA));
+    && /notify\(t\('common\.error'\), t\('communities\.createFailed'\)\)/.test(PANTALLA)
+    && !/Alert\.alert\(/.test(PANTALLA));
 
   /* El error técnico va al registro; la persona ve la frase de Weë (cierre de F11: antes mandaba `e.message`). */
   check('15) el error técnico queda en el registro y la persona ve la frase de Weë',

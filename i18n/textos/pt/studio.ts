@@ -343,9 +343,9 @@ export const studio: typeof import('../es/studio').studio = {
   reference: 'Referência',
 
   /* Por qué una experiencia todavía no se puede hacer (B3.14). Medido, no «pronto». */
-  pendMusic: "A Weë ainda não compõe música. Falta essa peça, não o vídeo.",
-  pendCompose: "A Weë ainda não sabe juntar várias cenas em um só vídeo.",
-  pendTwoRefs: "Hoje a Weë só leva uma imagem de referência, e isto precisa de duas.",
+  pendMusic: "O Weë ainda não compõe música. Falta essa peça, não o vídeo.",
+  pendCompose: "O Weë ainda não sabe juntar várias cenas em um só vídeo.",
+  pendTwoRefs: "Por enquanto, o Weë só aceita uma imagem de referência, e aqui são necessárias duas.",
   sampleLake: 'Lago entre montanhas',
   sampleWarmRoom: 'Sala em tons quentes',
   sampleNarration: 'Narração em português',

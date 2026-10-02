@@ -39,6 +39,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: 'Melde dich an, um ËContact zu nutzen.',
   errNotYours: 'Dieses Profil gehört nicht dir.',
   errNotAPerson: 'Dieses Profil kann ËContact nicht nutzen.',
+  errSameProfile: 'Ein Profil kann sich nicht mit sich selbst verbinden.',
   errOffline: 'Keine Verbindung zu Weë möglich.',
   errNoRequestToReject: 'Es gibt keine Anfrage, die du ablehnen kannst.',
   errNoPendingRequest: 'Du hast keine offene Anfrage bei diesem Profil.',

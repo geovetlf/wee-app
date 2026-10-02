@@ -51,6 +51,7 @@ export const wall: typeof import('../es/wall').wall = {
   pollLessThanAnHour: '1시간 미만',
   pollLegacy: '이 투표는 이전 버전 Weë의 투표라 더 이상 참여할 수 없어요.',
   pollVoteFailed: '투표를 등록하지 못했어요',
+  pollVoteOffline: 'Weë에 연결하지 못했어요. 나중에 다시 시도해 주세요.',
   closeComments: '댓글 닫기',
   removeImage: '이미지 제거',
   attachImage: '이미지 첨부',

@@ -574,6 +574,28 @@ export const imageEnglishPart = (kind: string, previous: string[] = []): string 
   extractMarker(previous, 'IMAGEN') || extractMarker(previous, 'PROBAR') || IMAGE_TASK_EN[kind] || '';
 
 /**
+ * EL SISTEMA DE LA ADAPTACIÓN DE IDIOMA (capa 3 de `engine/promptLanguage.ts`; cierre post-auditoría
+ * 2026-10-01, server/prompts-internos).
+ *
+ * La llamada que reescribe en inglés el texto de una imagen para un proveedor que solo admite ciertos
+ * idiomas (hoy Seedream) no pasaba sistema: el adaptador ponía el suyo —«responde en español»— mientras
+ * `ADAPT_INSTRUCTION` pedía inglés. Y va por `text.structure`, que en los cuatro adaptadores encendía el
+ * modo JSON, contra «contesta solo con la instrucción». Ahora lleva SU sistema, que dice lo mismo que la
+ * instrucción, y pide texto plano (`format: 'text'`).
+ */
+export const SISTEMA_DE_ADAPTACION =
+  'You are an internal step of Weë. You rewrite image instructions in English for an image model, exactly as the message asks: same meaning, every detail, nothing added and nothing removed. Answer in English with plain text only: the rewritten instruction, without JSON, quotes or explanations.';
+
+/** La entrada de esa llamada: el texto con la instrucción, su sistema y texto plano. Trabajo interno: no se cobra. */
+export const entradaDeAdaptacion = (texto: string): Record<string, unknown> => ({
+  prompt: texto,
+  system: SISTEMA_DE_ADAPTACION,
+  format: 'text',
+  maxOutputTokens: 400,
+  quality: 'standard',
+});
+
+/**
  * DIRECCIÓN FOTOGRÁFICA — de momento solo Weë Chef.
  *
  * La primera imagen real de Chef salió técnicamente correcta pero se notaba
@@ -680,23 +702,112 @@ export const buildImagePrompt = (experienceId: ExperienceId, kind: string, brief
     .join(' ');
 };
 
+/*
+ * ── LAS MARCAS DEL GUION, LEÍDAS CON TOLERANCIA (cierre post-auditoría 2026-10-01) ──
+ *
+ * El guion (`KIND_INSTRUCTIONS.script`) pide «Escena 1…», los tiempos «0–3 s, 3–7 s, 7–10 s» y una línea final
+ * que EMPIECE con «NARRACIÓN:», y `instruccionDeSalida` / `recordatorioDeIdioma` piden copiar esas marcas tal cual.
+ * Un modelo que escribe en otro idioma a veces las escribe con otra caja, sin el acento, con espacios de más, en
+ * negrita, con viñeta o con los dos puntos de ancho completo. Eso sigue siendo la MISMA marca y se reconoce.
+ * Una marca TRADUCIDA ya no es la marca y no se adivina: no se inventa un diccionario de «narración» en cada idioma.
+ *
+ * Lo que cambia de verdad es qué pasa cuando la marca no aparece:
+ *  · la VOZ no lee el guion entero (antes leía sus primeros 400 caracteres: tiempos, planos y cámara en voz alta).
+ *    Si el texto es un guion —tiene escenas o los tiempos que el guion pide— y no trae su narración marcada, no hay
+ *    nada inequívocamente narrable y se devuelve vacío: el paso de voz falla y se ve, en vez de leer otra cosa.
+ *    Un texto que NO es un guion (Weë Music «Una voz o narración»: el texto entero ES la narración) se lee como siempre.
+ *  · el VÍDEO, si no encuentra «Escena 1», busca la línea de la primera escena por el tiempo que el mismo guion pidió
+ *    («0–3 s»), que no se traduce. Si tampoco está, el prompt se queda sin escena, como antes: nada inventado.
+ */
+
+/** Lo que puede preceder a la marca de narración al principio de la línea: espacios, viñetas, citas, negritas, número. */
+const ANTES_DE_LA_MARCA = String.raw`^[\s>*_#•·\-–—]*(?:\d+[.)]\s*)?[\s*_]*`;
+/** La marca de narración, con o sin acento y con cualquier caja; los dos puntos, normales o de ancho completo. */
+const MARCA_DE_NARRACION = new RegExp(`${ANTES_DE_LA_MARCA}(narraci[oó]n)[\\s*_]*[:：][\\s*_]*(.*)$`, 'i');
+/** «Escena 1», «ESCENA 1», «escena  1», «**Escena 1**»… en cualquier punto de la línea, como antes; pero no «Escena 10». */
+const MARCA_DE_PRIMERA_ESCENA = /escena\s*#?\s*1(?!\d)/i;
+/** Cualquier escena numerada: para saber si un texto es un guion. */
+const MARCA_DE_ESCENA = /escena\s*#?\s*\d/i;
+/** El tiempo que el guion pide para la primera escena, «0–3 s», en cualquier idioma: los números no se traducen. */
+const TIEMPO_DE_PRIMERA_ESCENA = /(^|[^\d])0\s*[–—-]\s*3(?!\d)/;
+const TIEMPO_DE_SEGUNDA_ESCENA = /(^|[^\d])3\s*[–—-]\s*7(?!\d)/;
+
+const lineasDe = (texto: string): string[] => texto.normalize('NFC').split(/\r?\n/);
+/** Quita la negrita/cursiva de markdown que rodea a lo marcado; el contenido no se toca. */
+const sinAdornos = (s: string): string => s.replace(/^[\s*_]+|[\s*_]+$/g, '').trim();
+
+/** ¿Este texto es un guion por escenas? Por sus escenas o por los tiempos que el guion pide. */
+export const esUnGuion = (texto: string): boolean => {
+  const lineas = lineasDe(texto);
+  return lineas.some((l) => MARCA_DE_ESCENA.test(l)) || (TIEMPO_DE_PRIMERA_ESCENA.test(texto) && TIEMPO_DE_SEGUNDA_ESCENA.test(texto));
+};
+
+/**
+ * La narración marcada de un texto, o vacío. Si hay varias líneas con la marca, manda la escrita como la pide el
+ * contrato (en mayúsculas) y, entre iguales, la ÚLTIMA: el guion la pide «al final». Si el texto va en la línea
+ * siguiente a la marca, se toma hasta la primera línea en blanco.
+ */
+export const narracionMarcada = (texto: string): string => {
+  const lineas = lineasDe(texto);
+  const marcas = lineas.map((l, i) => ({ i, m: l.match(MARCA_DE_NARRACION) })).filter((x) => x.m);
+  if (marcas.length === 0) return '';
+  const delContrato = marcas.filter((x) => /^NARRACI[OÓ]N$/.test(x.m![1]));
+  const elegida = (delContrato.length ? delContrato : marcas)[(delContrato.length ? delContrato : marcas).length - 1];
+  let contenido = sinAdornos(elegida.m![2] ?? '');
+  if (!contenido) {
+    const siguientes: string[] = [];
+    for (const l of lineas.slice(elegida.i + 1)) {
+      if (!l.trim()) {
+        if (siguientes.length) break;
+        continue;
+      }
+      if (MARCA_DE_ESCENA.test(l) || MARCA_DE_NARRACION.test(l)) break;
+      siguientes.push(l.trim());
+    }
+    contenido = sinAdornos(siguientes.join(' '));
+  }
+  return contenido.replace(/\s+/g, ' ').slice(0, 600);
+};
+
 /** Prompt interno para un clip de video a partir del guion. */
 export const buildVideoPrompt = (goal: string, brief: string, previous: string[]): string => {
-  const script = previous.find((p) => /Escena 1/i.test(p)) || previous[0] || '';
-  // "Escena 1 (0–3 s): lo que se ve…" → lo que se ve (o la línea siguiente si la descripción va aparte)
-  const sameLine = script.match(/Escena 1[^:\n]*:\s*([^\n]+)/i)?.[1]?.trim() || '';
-  const nextLine = script.match(/Escena 1[^\n]*\n\s*([^\n]+)/i)?.[1]?.trim() || '';
-  const scene = sameLine || nextLine;
+  const script = previous.find((p) => lineasDe(p).some((l) => MARCA_DE_PRIMERA_ESCENA.test(l)))
+    || previous.find((p) => TIEMPO_DE_PRIMERA_ESCENA.test(p))
+    || previous[0] || '';
+  const lineas = lineasDe(script);
+  // "Escena 1 (0–3 s): lo que se ve…" → lo que se ve (o la línea siguiente si la descripción va aparte).
+  // Sin «Escena 1» reconocible, la línea de la primera escena es la de su tiempo, «0–3 s».
+  let at = lineas.findIndex((l) => MARCA_DE_PRIMERA_ESCENA.test(l));
+  let desde = at >= 0 ? lineas[at].search(MARCA_DE_PRIMERA_ESCENA) : -1;
+  if (at < 0) {
+    at = lineas.findIndex((l) => TIEMPO_DE_PRIMERA_ESCENA.test(l) && !MARCA_DE_NARRACION.test(l));
+    desde = at >= 0 ? lineas[at].search(TIEMPO_DE_PRIMERA_ESCENA) : -1;
+  }
+  let scene = '';
+  if (at >= 0) {
+    const linea = lineas[at].slice(Math.max(0, desde));
+    const dosPuntos = linea.search(/[:：]/);
+    const sameLine = dosPuntos >= 0 ? sinAdornos(linea.slice(dosPuntos + 1)) : '';
+    const nextLine = sinAdornos(lineas.slice(at + 1).find((l) => l.trim()) ?? '');
+    scene = sameLine || (MARCA_DE_NARRACION.test(nextLine) ? '' : nextLine);
+  }
   return [`${goal}.`, scene ? `Opening scene: ${scene}` : '', brief ? `Style: ${brief}.` : '', 'Smooth camera movement, natural motion, high detail, no text on screen.']
     .filter(Boolean)
     .join(' ')
     .slice(0, 1500);
 };
 
-/** Texto que se lee en voz alta: la línea NARRACIÓN del guion o un resumen breve. */
+/**
+ * Texto que se lee en voz alta: la línea NARRACIÓN del guion. Sin ella, un texto que NO es un guion se lee tal cual
+ * (es la narración misma); un guion sin su narración marcada NO se lee entero: se devuelve vacío.
+ */
 export const narrationFrom = (previous: string[], goal: string): string => {
-  const marked = extractMarker(previous, 'NARRACIÓN') || extractMarker(previous, 'NARRACION');
-  if (marked) return marked;
-  const text = previous.find((p) => p.trim().length > 0) || goal;
+  for (const texto of previous) {
+    const marcada = narracionMarcada(texto);
+    if (marcada) return marcada;
+  }
+  const text = previous.find((p) => p.trim().length > 0);
+  if (text === undefined) return goal.replace(/\s+/g, ' ').slice(0, 400);
+  if (esUnGuion(text)) return '';
   return text.replace(/\s+/g, ' ').slice(0, 400);
 };

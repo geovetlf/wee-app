@@ -47,7 +47,7 @@ import { useCommunityById } from '../hooks/useCommunityById';
 import { Post, postsService } from '../services/firestoreService';
 import { Timestamp } from 'firebase/firestore';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
-import { formatNumber, getRelativeTime } from '../data/mockData';
+import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import ImageViewer from './ImageViewer';
 import ReportSheet from './ReportSheet';
@@ -431,8 +431,10 @@ const PostCard: React.FC<PostCardProps> = ({
   const menuOpacity = useRef(new Animated.Value(0)).current;
   const menuScale = useRef(new Animated.Value(0.9)).current;
 
-  // Cargar post original si es un repost
+  // Cargar post original si es un repost. La lista recicla la tarjeta con otra publicación: el original que llegue
+  // tarde de la de antes no se pinta dentro de la nueva.
   useEffect(() => {
+    let vivo = true;
     const loadOriginalPost = async () => {
       if (!isRepost || !post.originalPostId) {
         setLoadingOriginal(false);
@@ -442,16 +444,19 @@ const PostCard: React.FC<PostCardProps> = ({
       try {
         setLoadingOriginal(true);
         const original = await postsService.getById(post.originalPostId);
-        setOriginalPost(original);
+        if (vivo) setOriginalPost(original);
       } catch (error) {
         console.error('Error loading original post:', error);
-        setOriginalPost(null);
+        if (vivo) setOriginalPost(null);
       } finally {
-        setLoadingOriginal(false);
+        if (vivo) setLoadingOriginal(false);
       }
     };
 
     loadOriginalPost();
+    return () => {
+      vivo = false;
+    };
   }, [isRepost, post.originalPostId]);
 
   // Verificar si el post pertenece al usuario actual (comparar con perfil activo)
@@ -714,7 +719,7 @@ const PostCard: React.FC<PostCardProps> = ({
           message: `${postToShare.content}\n\n- ${t('wall.publishedOnWee')}`,
         });
       } catch (e) {
-        Alert.alert(t('common.error'), t('wall.shareFailed'));
+        notify(t('common.error'), t('wall.shareFailed'));
       }
     } finally {
       setIsSharing(false);

@@ -31,6 +31,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { REVISION_POSTAUDITORIA, REVISION_CIERRE } from './_bloques-autorizados.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -428,10 +429,36 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
       .map((l) => l.slice(1).trim()).filter((l) => l && !/^(\*|\/\*|\/\/)/.test(l));
     const fuente = leer(CALLABLES_DE_CREDITS);
     const cuerpoSpend = fuente.slice(fuente.indexOf('export const spendCredits'), fuente.indexOf('export const grantCredits'));
-    check('63k) y en los callables de Credits lo único nuevo es el candado de administración de spendCredits (#24): nada quitado',
-      quitadas.length === 0
-      && (codigoNuevo.length === 0 || (codigoNuevo.length === 1 && codigoNuevo[0] === 'assertAdmin(request.auth as any);'
-        && cuerpoSpend.includes('assertAdmin(request.auth as any);'))),
+    /*
+     * Y el cierre post-auditoría del 2026-10-01 toca, con autorización, DOS casos de `creditsAdmin` (solo
+     * administración) y el import que lo permite:
+     *  · `balance` lee con `readBalance` (money/admin-balance-con-efecto): consultar el saldo de alguien ya no le
+     *    inicializa la cuenta, ni le migra la billetera, ni le da la bienvenida;
+     *  · `failed` pasa su `limit` por `assertLimit` (50 por defecto, 200 como mucho), el techo que ya usaba el
+     *    historial: un número cualquiera del panel no lee la colección entera.
+     * Por eso esto ya no dice «nada quitado»: dice QUÉ se quitó y QUÉ código entró, exacto y en su orden (las tres
+     * líneas que se sustituyen; el import, el candado de #24 y las dos líneas nuevas). Ni gasto, ni reembolso, ni
+     * `grantCredits`, ni `refundCredits` se mueven; una línea más, una menos o una distinta, y 63k cae.
+     */
+    const QUITADAS_AUTORIZADAS = [
+      "import { assertRequestId, cleanText, toHttpsError } from './creditValidation';",
+      "        return creditEngine.getBalance(String(data.userId || ''));",
+      "        const snap = await db.collection('creditTransactions').where('status', '==', 'REFUNDED').orderBy('createdAt', 'desc').limit(Number(data.limit) || 50).get();",
+    ];
+    const CODIGO_NUEVO_AUTORIZADO = [
+      "import { assertLimit, assertRequestId, cleanText, toHttpsError } from './creditValidation';",
+      "assertAdmin(request.auth as any);",
+      "return creditEngine.readBalance(String(data.userId || ''));",
+      "const snap = await db.collection('creditTransactions').where('status', '==', 'REFUNDED').orderBy('createdAt', 'desc').limit(assertLimit(data.limit)).get();",
+    ];
+    const cuerpoAdmin = fuente.slice(fuente.indexOf('export const creditsAdmin'));
+    const caso = (nombre) => cuerpoAdmin.slice(cuerpoAdmin.indexOf(`case '${nombre}':`), cuerpoAdmin.indexOf('case ', cuerpoAdmin.indexOf(`case '${nombre}':`) + 5));
+    check('63k) y en los callables de Credits lo único nuevo es el candado de administración de spendCredits (#24) y los dos casos del cierre en creditsAdmin: quitadas y nuevas, exactas',
+      JSON.stringify(quitadas.map((l) => l.slice(1))) === JSON.stringify(QUITADAS_AUTORIZADAS)
+      && JSON.stringify(codigoNuevo) === JSON.stringify(CODIGO_NUEVO_AUTORIZADO)
+      && cuerpoSpend.includes('assertAdmin(request.auth as any);')
+      && caso('balance').includes('return creditEngine.readBalance(String(data.userId || \'\'));')
+      && caso('failed').includes('.limit(assertLimit(data.limit)).get();'),
       `${quitadas.length} líneas quitadas · código nuevo: ${codigoNuevo.join(' | ') || 'ninguno'}`);
   }
   const PRECIO = sinComentarios(leer(AI_PRICING));
@@ -562,113 +589,13 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
     return '';
   };
   /*
-   * Y LO AUTORIZADO DESPUÉS: la revisión post-auditoría del 2026-10-01 (hallazgo
-   * money/remigracion-por-segundo-perfil, demostrado por credits-perfil-duplicado.test.mjs). Son bloques EXACTOS
-   * —lo que había y lo que queda, con una línea de contexto—, cada uno único, aplicados encima de la reconstrucción:
-   * la comprobación sigue siendo «el desplegado más esto, byte a byte». Cualquier otro cambio la hace fallar.
+   * Y LO AUTORIZADO DESPUÉS —la revisión post-auditoría y el cierre del 2026-10-01—: bloques EXACTOS que se aplican
+   * encima de la reconstrucción, en ese orden. Viven en `_bloques-autorizados.mjs` (solo datos, con su porqué).
    */
-  const REVISION_POSTAUDITORIA = {
-    "functions/src/credits/creditEngine.ts": [
-      {
-        "eran": [
-          "",
-          "  /** Perfil real de la persona (uid == auth uid). Los Credits son por cuenta, no por identidad. */",
-          "  const findAccount = async (tx: CreditTx, userId: string): Promise<CreditDocSnap> => {",
-          "    const snap = await tx.get(users().where('uid', '==', userId).limit(1));",
-          "    if (snap.empty || !esElPerfilDeLaCuenta(userId, snap.docs[0])) {",
-          "      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });",
-          "    }",
-          "    return snap.docs[0];",
-          "  };"
-        ],
-        "quedan": [
-          "",
-          "  /*",
-          "   * QUÉ PERFIL GUARDA EL SALDO CUANDO HAY MÁS DE UNO (revisión post-auditoría 2026-10-01,",
-          "   * money/remigracion-por-segundo-perfil).",
-          "   *",
-          "   * Una cuenta puede tener más de un Perfil Real: en producción hay cuentas así",
-          "   * (utils/perfilCanonico.ts), y las reglas dejan crear `users/<uid>` aunque ya",
-          "   * exista uno con id automático, porque no pueden consultar. Firestore devuelve",
-          "   * la consulta por `uid` ordenada por id de documento; quedarse con «el primero»",
-          "   * podía saltar a un perfil vacío y dejar el saldo de verdad inalcanzable (y",
-          "   * `ensureAccount` volvía a migrar la billetera antigua). El saldo vive en el",
-          "   * perfil que YA está inicializado: ese manda. Si ninguno lo está, el primero,",
-          "   * como siempre; si varios lo están, el primero de ellos, como siempre.",
-          "   */",
-          "  const PERFILES_POR_CUENTA = 10;",
-          "  const perfilDelSaldo = (userId: string, docs: CreditDocSnap[]): CreditDocSnap | undefined => {",
-          "    const suyos = docs.filter((d) => esElPerfilDeLaCuenta(userId, d));",
-          "    return suyos.find((d) => typeof (d.data() || {}).creditsBalance === 'number') ?? suyos[0];",
-          "  };",
-          "",
-          "  /** Perfil real de la persona (uid == auth uid). Los Credits son por cuenta, no por identidad. */",
-          "  const findAccount = async (tx: CreditTx, userId: string): Promise<CreditDocSnap> => {",
-          "    const snap = await tx.get(users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA));",
-          "    const perfil = perfilDelSaldo(userId, snap.docs);",
-          "    if (!perfil) {",
-          "      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });",
-          "    }",
-          "    return perfil;",
-          "  };"
-        ]
-      },
-      {
-        "eran": [
-          "      const initialized = typeof data.creditsBalance === 'number';",
-          "      const legacy = initialized ? null : await tx.get(db().collection('wallets').doc(userId));",
-          "      const welcomeDoc = welcome > 0 ? await tx.get(transactions().doc(welcomeTransactionId(userId))) : null;"
-        ],
-        "quedan": [
-          "      const initialized = typeof data.creditsBalance === 'number';",
-          "      /*",
-          "       * La billetera antigua se migra UNA vez por cuenta, no una vez por perfil: si",
-          "       * ya hay un `migration_<uid>`, no se vuelve a acreditar (antes se sobrescribía).",
-          "       */",
-          "      const yaMigrada = initialized ? true : (await tx.get(transactions().doc(migrationTransactionId(userId)))).exists;",
-          "      const legacy = initialized || yaMigrada ? null : await tx.get(db().collection('wallets').doc(userId));",
-          "      const welcomeDoc = welcome > 0 ? await tx.get(transactions().doc(welcomeTransactionId(userId))) : null;"
-        ]
-      },
-      {
-        "eran": [
-          "    const userId = assertUserId(rawUserId);",
-          "    const snap = await users().where('uid', '==', userId).limit(1).get();",
-          "    if (snap.empty || !esElPerfilDeLaCuenta(userId, snap.docs[0])) {",
-          "      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });",
-          "    }",
-          "    const data = snap.docs[0].data() || {};",
-          "    if (typeof data.creditsBalance !== 'number') {"
-        ],
-        "quedan": [
-          "    const userId = assertUserId(rawUserId);",
-          "    const snap = await users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA).get();",
-          "    const perfil = perfilDelSaldo(userId, snap.docs);",
-          "    if (!perfil) {",
-          "      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });",
-          "    }",
-          "    const data = perfil.data() || {};",
-          "    if (typeof data.creditsBalance !== 'number') {"
-        ]
-      },
-      {
-        "eran": [
-          "    }",
-          "    return balanceOf(snap.docs[0]);",
-          "  };"
-        ],
-        "quedan": [
-          "    }",
-          "    return balanceOf(perfil);",
-          "  };"
-        ]
-      }
-    ]
-  };
   const conLaRevision = (p, { anclas, texto }) => {
     let t = texto;
     let ok = anclas;
-    for (const b of REVISION_POSTAUDITORIA[p] ?? []) {
+    for (const b of [...(REVISION_POSTAUDITORIA[p] ?? []), ...(REVISION_CIERRE[p] ?? [])]) {
       const era = b.eran.join('\n');
       const veces = t.split(era).length - 1;
       ok = ok && veces === 1;

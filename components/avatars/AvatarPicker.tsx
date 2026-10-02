@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Platform,
   Dimensions,
@@ -22,6 +21,7 @@ import { useResponsive } from '../../hooks/useResponsive';
 import { predefinedAvatars } from './AvatarSVGs';
 import TextoEnMayusculas from '../TextoEnMayusculas';
 
+import { notify } from '../../utils/notify';
 const { width: screenWidth } = Dimensions.get('window');
 
 // --- DiceBear ---
@@ -158,7 +158,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permissionResult.granted) {
-        Alert.alert(t('composer.permissionsNeeded'), t('avatar.galleryPermission'));
+        notify(t('composer.permissionsNeeded'), t('avatar.galleryPermission'));
         return;
       }
 
@@ -187,7 +187,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       console.error('Error picking image:', error);
       setUploading(false);
       /* El motivo técnico ya está en el registro (arriba); la persona ve una frase de Weë. */
-      Alert.alert(t('common.error'), t('avatar.pickFailed'));
+      notify(t('common.error'), t('avatar.pickFailed'));
     }
   };
 
@@ -196,7 +196,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
       if (!permissionResult.granted) {
-        Alert.alert(t('composer.permissionsNeeded'), t('avatar.cameraPermission'));
+        notify(t('composer.permissionsNeeded'), t('avatar.cameraPermission'));
         return;
       }
 
@@ -222,7 +222,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       }
     } catch (error) {
       setUploading(false);
-      Alert.alert(t('common.error'), t('avatar.photoFailed'));
+      notify(t('common.error'), t('avatar.photoFailed'));
     }
   };
 

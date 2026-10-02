@@ -40,9 +40,10 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: 'Connecte-toi pour utiliser ËContact.',
   errNotYours: 'Ce profil n’est pas à toi.',
   errNotAPerson: 'Ce profil ne peut pas utiliser ËContact.',
+  errSameProfile: 'Un profil ne peut pas se connecter avec lui-même.',
   errOffline: 'Impossible de se connecter à Weë.',
   errNoRequestToReject: 'Il n’y a aucune demande à refuser.',
   errNoPendingRequest: 'Tu n’as aucune demande en attente avec ce profil.',
-  errNotConnected: 'Tu n’es pas connecté à ce profil.',
+  errNotConnected: 'Tu n’es pas connecté avec ce profil.',
   errNoActiveProfile: 'Aucun profil actif pour faire ça.',
 };

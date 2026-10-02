@@ -53,7 +53,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutBody: 'Weë (World Encode Entity) er det sociale netværk for mennesker, der skaber med kunstig intelligens.\n\nVersion 1.0.0 · © {{anio}} Weë. Alle rettigheder forbeholdes.\n\nGeografiske data: GeoNames (geonames.org), CC BY 4.0.',
   location: '📍 Placering',
   locationLine: '{{estado}} Din nøjagtige placering vises aldrig offentligt.',
-  locationOff: 'Slået fra. Lad Weë bruge din omtrentlige placering til at vise dig indhold og oplevelser i nærheden. Din nøjagtige placering vises aldrig offentligt.',
+  locationOff: 'Slået fra. Lad Weë bruge din omtrentlige placering til at foreslå dit område og steder i nærheden, når du tilføjer en placering til et opslag. Din nøjagtige placering vises aldrig offentligt.',
   locationUnavailable: 'Denne enhed kan ikke give os din placering.',
   locationDisabled: 'Placering er slået fra i indstillingerne på din enhed.',
   locationPermissionDenied: 'Du har afvist adgang til din placering. Tryk her for at ændre det i indstillingerne på din enhed.',

@@ -38,7 +38,7 @@ export const settings = {
   aboutBody: 'Weë (World Encode Entity) es la red social de las personas que crean con Inteligencia Artificial.\n\nVersión 1.0.0 · © {{anio}} Weë. Todos los derechos reservados.\n\nDatos geográficos: GeoNames (geonames.org), CC BY 4.0.',
   location: '📍 Ubicación',
   locationLine: '{{estado}} Tu ubicación exacta nunca se muestra públicamente.',
-  locationOff: 'Desactivada. Permite que Weë use tu ubicación aproximada para mostrarte contenido y experiencias cerca de ti. Tu ubicación exacta nunca se muestra públicamente.',
+  locationOff: 'Desactivada. Permite que Weë use tu ubicación aproximada para sugerirte lugares cercanos y tu zona cuando agregas una ubicación a una publicación. Tu ubicación exacta nunca se muestra públicamente.',
   locationUnavailable: 'Este dispositivo no puede darnos tu ubicación.',
   locationDisabled: 'La ubicación está apagada en los ajustes de tu dispositivo.',
   locationPermissionDenied: 'Le dijiste que no al sistema. Toca aquí para cambiarlo en los ajustes de tu dispositivo.',

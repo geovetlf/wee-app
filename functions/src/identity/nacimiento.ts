@@ -147,7 +147,12 @@ const anotarLaEntidadEnElPerfil = async (
   perfilUid: string,
   entityId: string,
 ): Promise<void> => {
-  const encontrados = await db.collection('users').where('uid', '==', perfilUid).get();
+  /*
+   * Acotada (cierre post-auditoría 2026-10-01, escala/consulta-sin-limite). Firestore devuelve esta consulta
+   * ordenada por id de documento, así que el de id más bajo —el que se busca— siempre está en la primera
+   * página; diez es el mismo techo de perfiles por cuenta que usa el Credit Engine (PERFILES_POR_CUENTA).
+   */
+  const encontrados = await db.collection('users').where('uid', '==', perfilUid).limit(10).get();
   if (encontrados.empty) return;
   const activo = encontrados.docs.slice().sort((a, b) => (a.id < b.id ? -1 : 1))[0];
   const yaTiene = activo.data().entityId;

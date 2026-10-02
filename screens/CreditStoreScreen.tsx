@@ -5,8 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +14,7 @@ import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { creditsService, CREDIT_PACKAGES, CreditsBalance, CreditPackage } from '../services/creditsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { notify } from '../utils/notify';
 
 /**
  * Tienda de Credits (docs/CREDITS.md §10). La app solo elige el paquete: el
@@ -55,11 +54,6 @@ const CreditStoreScreen = () => {
       cancelled = true;
     };
   }, []);
-
-  const notify = (title: string, message: string) => {
-    if (Platform.OS === 'web') window.alert(message);
-    else Alert.alert(title, message);
-  };
 
   const handlePurchase = async (pkg: CreditPackage) => {
     if (!accountUid || purchasing) return;

@@ -113,11 +113,11 @@ export const uploadViewOncePhoto = async (
   userId: string,
   conversationId: string,
 ): Promise<string> => {
-  if (!storage) throw new Error('Storage no está inicializado');
+  if (!storage) throw new Error('storage-sin-inicializar');
   const limpia = Platform.OS === 'web' ? imageUri : await uriSinMetadatos(imageUri);
   const response = await fetch(limpia);
   const original = await response.blob();
-  if (original.size > MAXIMO_DE_FOTO_UNICA) throw new Error('view-once photo over 10 MB');
+  if (original.size > MAXIMO_DE_FOTO_UNICA) throw new Error('foto-ver-una-vez-demasiado-grande');
   const blob = Platform.OS === 'web' ? await blobSinMetadatos(original) : original;
   const contentType = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
   const extension = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';

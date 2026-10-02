@@ -1,12 +1,13 @@
 {
   "version": 1,
   "corte": "5be63ff",
-  "generado": "2026-10-01T22:16:43.135Z",
-  "nota": "Corte = base común de i18n/da-dk y harness/fase-2. Las entradas de los detectores son el estado EN EL CORTE (todas PREEXISTENTE): al pasar la puerta sobre el árbol de hoy, lo que esta rama introdujo sale como NUEVO y lo que arregló como CORREGIDO. Las de la auditoría del 2026-10-01 llevan su estado decidido a mano (introducidoTrasElCorte = apareció en las fases posteriores al corte). Tras integrar en main, el corte pasa al commit de merge (docs/REVISION.md).",
+  "generado": "2026-10-02T00:31:07.149Z",
+  "nota": "Corte = base común de i18n/da-dk y harness/fase-2. Las entradas de los detectores son el estado EN EL CORTE (todas PREEXISTENTE): al pasar la puerta sobre el árbol de hoy, lo que esta rama introdujo sale como NUEVO y lo que arregló como CORREGIDO. Las de la auditoría del 2026-10-01 llevan su estado decidido a mano (introducidoTrasElCorte = apareció en las fases posteriores al corte). Tras integrar en main, el corte pasa al commit de merge (docs/REVISION.md). Cierre del 2026-10-01: los estados de la auditoría se actualizaron con su prueba (encontradoEnElCierre = apareció durante el cierre) y la regla web/alert-sin-boton se pasó también sobre el corte.",
   "reglas": {
     "tamano/archivo-mil-lineas": 1,
     "tipos/any": 1,
     "web/alert-con-botones": 1,
+    "web/alert-sin-boton": 1,
     "ia/host-fuera-de-adaptador": 1,
     "higiene/import-sin-seguimiento": 1,
     "muerto/modulo-sin-importador": 1,
@@ -30,14 +31,25 @@
       "prueba": "functions/test/avisos-en-la-web.test.mjs"
     },
     {
+      "id": "client/alert-sin-boton/screens/AiAvatarScreen.tsx#avisos",
+      "regla": "client/alert-sin-boton",
+      "severidad": "media",
+      "titulo": "Los avisos de Alert.alert sin manejadores tampoco se veían en la web (52 en 13 archivos)",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "regla web/alert-sin-boton (revision-detectores 3b) + 7 suites i18n con notify (cierre 2026-10-01)"
+    },
+    {
       "id": "client/capas/screens/WeeBizProfileScreen.tsx#handleToggleFollow",
       "regla": "client/capas",
       "severidad": "baja",
       "titulo": "Seguir un negocio no es atómico",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-cliente 14: un writeBatch (cierre 2026-10-01)"
     },
     {
       "id": "client/ciclos/navigation",
@@ -56,8 +68,8 @@
       "titulo": "17 archivos (3 658 líneas) sin importador; tres se editaron en la fase da-DK",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "detector muerto/modulo-sin-importador; borrarlos es decisión del dueño"
+      "estado": "CORREGIDO",
+      "prueba": "16 archivos y los exports muertos retirados (cierre-cliente); HeroCarousel y SpecialistHero se quedan a propósito (cierre 2026-10-01)"
     },
     {
       "id": "client/consulta-sin-limite/services/communityService.ts#getUserCommunities",
@@ -66,8 +78,8 @@
       "titulo": "Lee la colección entera de comunidades",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "detector escala/consulta-sin-limite"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-cliente: solo las activas (where status == active) (cierre 2026-10-01)"
     },
     {
       "id": "client/consulta-sin-limite/services/firestoreService.ts#searchUsers",
@@ -77,7 +89,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "el propio código dice «En producción se usaría Algolia»"
+      "nota": "DECISIÓN DEL DUEÑO: buscar en toda la base exige un índice de búsqueda (Algolia, Typesense o la extensión de Firebase): coste y proveedor"
     },
     {
       "id": "client/datos-inventados/screens/CommunitiesManagementScreen.tsx#EXAMPLE_COMMUNITIES",
@@ -87,7 +99,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "decisión de producto"
+      "nota": "DECISIÓN DEL DUEÑO: quitar las comunidades de ejemplo cambia lo que ve una cuenta nueva"
     },
     {
       "id": "client/duplicacion/screens#manejadores-del-muro",
@@ -97,7 +109,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "nota": "DEUDA DELIBERADA: unificar los manejadores de 8 pantallas es una refactorización del muro sin fallo observado; se hace con el rediseño del Home (pendiente del dueño)"
     },
     {
       "id": "client/duplicacion/screens#notify-local",
@@ -106,8 +118,8 @@
       "titulo": "Copias locales de utils/notify",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-cliente + regla web/alert-sin-boton: un solo notify (cierre 2026-10-01)"
     },
     {
       "id": "client/estado-tras-desmontar/hooks",
@@ -116,8 +128,8 @@
       "titulo": "Efectos asíncronos sin bandera de cancelación",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "efectos-vigentes.test.mjs (cierre 2026-10-01)"
     },
     {
       "id": "client/helpers-canonicos/data/mockData.ts#formatNumber",
@@ -126,8 +138,8 @@
       "titulo": "Ayudas reales viviendo en un archivo de maqueta",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "utils/formatoCorto.ts; data/mockData.ts retirado (cierre 2026-10-01)"
     },
     {
       "id": "client/i18n-fuera-de-guarda/contexts",
@@ -136,8 +148,8 @@
       "titulo": "Errores en español guardados en el estado de hooks y contexts",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "detector i18n/texto-a-mano-fuera-de-pantallas"
+      "estado": "CORREGIDO",
+      "prueba": "detector i18n/texto-a-mano-fuera-de-pantallas: los textos de hooks/contexts pasan a códigos o a claves (cierre 2026-10-01)"
     },
     {
       "id": "client/lista-sin-virtualizar/screens/PostDetailScreen.tsx#comments",
@@ -147,7 +159,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "nota": "DECISIÓN DEL DUEÑO: acotar exige UI nueva («ver más»), que es Weë Design"
     },
     {
       "id": "client/listener-sin-cleanup/screens/ConversationScreen.tsx#startRecording",
@@ -197,8 +209,8 @@
       "titulo": "Dependencias declaradas sin uso",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "package.json sin las 7 sin uso ni browser-image-compression (solo lock); functions sin 3 (cierre 2026-10-01)"
     },
     {
       "id": "deps/deprecado/package.json#expo-av",
@@ -208,7 +220,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "migración con la subida de SDK"
+      "nota": "DEUDA DELIBERADA: expo-av funciona en el SDK 54; migrar a expo-audio/expo-video (8 archivos de reproducción y grabación) se hace con la subida de SDK y prueba en teléfono"
     },
     {
       "id": "deps/sin-declarar/App.tsx#expo-linking",
@@ -217,8 +229,8 @@
       "titulo": "expo-linking se usa sin declararse",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "expo-linking 8.0.12 declarada (cierre 2026-10-01)"
     },
     {
       "id": "docs/contradiccion/docs/UX.md#home",
@@ -238,7 +250,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "no creados en esta misión"
+      "nota": "DEUDA DELIBERADA: docs/MAPA-DE-FRONTERAS.md cubre Social Graph, Payment Router, Media y Studio; faltan modelo de amenazas, estrategia de pruebas y convenciones"
     },
     {
       "id": "docs/obsoleto/CLAUDE.md#11-experiencias",
@@ -268,7 +280,7 @@
       "huella": "312fa191031e23cd58ee06b5010e779a824cdc565638279938822df5e9120a0f",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/components/Poll.tsx#usePrefiereQuietud",
@@ -278,7 +290,7 @@
       "huella": "6d5c55f94ea397f2d310680f0c8c01807720e2a5203ef40222d0a9c222a56ffa",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/components/PostCard.tsx#PostCard.navigateToRegister",
@@ -288,7 +300,7 @@
       "huella": "84b97fe90f0d998569c79eef35f7572f3b19b6dcec0299657bfee2ee0bd94d38",
       "origen": "detector",
       "titulo": "catch vacío (solo un comentario): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/components/ReportSheet.tsx#ReportSheet",
@@ -298,7 +310,7 @@
       "huella": "2516d00ec0986d0fdc3d4b8c6557ff63f3c6980ed6e778244e17c27734fcb0f9",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/components/brain/SistemaDeWeeBrain.tsx#SistemaDeWeeBrain",
@@ -308,7 +320,7 @@
       "huella": "45574cebc0ac12e8da11e20d34bd8544239b2b5cd6ae0915c65980153ff15035",
       "origen": "detector",
       "titulo": ".catch(() => undefined): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/components/creator/ResultCard.tsx#ResultCard.stopSound",
@@ -318,7 +330,7 @@
       "huella": "0aac0bf59fdfb8bc5c95e60c2973bc98bebff2fe5827c96bcf3adae91afc5af8",
       "origen": "detector",
       "titulo": "catch vacío (solo un comentario): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/contexts/LocationContext.tsx#LocationProvider.alCambiar",
@@ -328,7 +340,7 @@
       "huella": "904f5ab258f152f6557902d5f50f63d54678bd31bf31967430b5e0f819161ab1",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/contexts/UserProfileContext.tsx#UserProfileProvider.loadUserProfiles",
@@ -338,7 +350,7 @@
       "huella": "fcd742dac7bc9a83ada7cc2a2f2ca05a722569e973bb848897d815764ea92442",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/content/materializador.ts#materializadorDeWee.guardar@6dd1f18ed0",
@@ -348,7 +360,7 @@
       "huella": "6dd1f18ed0c5a76da4d98ee127fc3b16dc53cdc0d93f33892185693a5b915a70",
       "origen": "detector",
       "titulo": ".catch(() => null): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/content/materializador.ts#materializadorDeWee.guardar@6dd1f18ed0~2",
@@ -358,7 +370,7 @@
       "huella": "6dd1f18ed0c5a76da4d98ee127fc3b16dc53cdc0d93f33892185693a5b915a70",
       "origen": "detector",
       "titulo": ".catch(() => null): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/creator/sombra.ts#valoresDeLaRestriccion",
@@ -368,7 +380,7 @@
       "huella": "0aac0bf59fdfb8bc5c95e60c2973bc98bebff2fe5827c96bcf3adae91afc5af8",
       "origen": "detector",
       "titulo": "catch vacío (solo un comentario): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/engine/imageMeta.ts#imageDimensions",
@@ -378,7 +390,7 @@
       "huella": "0aac0bf59fdfb8bc5c95e60c2973bc98bebff2fe5827c96bcf3adae91afc5af8",
       "origen": "detector",
       "titulo": "catch vacío (solo un comentario): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/engine/router.ts#createRouter.route",
@@ -388,7 +400,7 @@
       "huella": "578d469b6c80d7ab01380c9debf72ac17d3f20dcbb3e84a59a4c803829d03473",
       "origen": "detector",
       "titulo": ".catch(() => undefined): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/media/almacen.ts#almacenDeObjetosDeMedios.registrar",
@@ -398,7 +410,7 @@
       "huella": "9ad6c33072c9cf286e2e6dd4206112efa2629022d1e397e517512c67d9f8c193",
       "origen": "detector",
       "titulo": ".catch(() => undefined): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/media/subida.ts#solicitarSubida",
@@ -408,7 +420,7 @@
       "huella": "0aac0bf59fdfb8bc5c95e60c2973bc98bebff2fe5827c96bcf3adae91afc5af8",
       "origen": "detector",
       "titulo": "catch vacío (solo un comentario): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/runtime/almacen.ts#almacenDeTrabajos.marcarLiquidado",
@@ -418,7 +430,7 @@
       "huella": "d0e6a6cb9b9ab526c14889cf5268723428fab0936f2f9fe0d3ecc4136ff4d010",
       "origen": "detector",
       "titulo": ".catch(() => undefined): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/runtime/barrendero.ts#barrerLiquidaciones@dbbc8aad37",
@@ -428,7 +440,7 @@
       "huella": "dbbc8aad3782a0215613009425183d98e9747234d3c38af084877b2992268bde",
       "origen": "detector",
       "titulo": ".catch(() => undefined): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/runtime/barrendero.ts#barrerLiquidaciones@dbbc8aad37~2",
@@ -438,7 +450,7 @@
       "huella": "dbbc8aad3782a0215613009425183d98e9747234d3c38af084877b2992268bde",
       "origen": "detector",
       "titulo": ".catch(() => undefined): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/runtime/barrendero.ts#barrerLiquidaciones@dbbc8aad37~3",
@@ -448,7 +460,7 @@
       "huella": "dbbc8aad3782a0215613009425183d98e9747234d3c38af084877b2992268bde",
       "origen": "detector",
       "titulo": ".catch(() => undefined): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/functions/src/runtime/index.ts#liquidacionDeWee.cerrarFila",
@@ -458,7 +470,7 @@
       "huella": "9e0d5b63c134118fb86c8666df4b7d92142c744050c228204418a47bec187c10",
       "origen": "detector",
       "titulo": ".catch(() => undefined): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/i18n/aparato.ts#localesDelAparato",
@@ -468,7 +480,7 @@
       "huella": "0aac0bf59fdfb8bc5c95e60c2973bc98bebff2fe5827c96bcf3adae91afc5af8",
       "origen": "detector",
       "titulo": "catch vacío (solo un comentario): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/screens/AgregarUbicacionScreen.tsx#AgregarUbicacionScreen",
@@ -478,7 +490,7 @@
       "huella": "3cc1b1d20e8e7a17585e0c10bf95129b251a344f141bdaf757e89366b824dedc",
       "origen": "detector",
       "titulo": ".catch(() => { /* Sin ubicación se sigue igual…): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/screens/ConversationScreen.tsx#ConversationScreen.startRecording",
@@ -488,7 +500,7 @@
       "huella": "0aac0bf59fdfb8bc5c95e60c2973bc98bebff2fe5827c96bcf3adae91afc5af8",
       "origen": "detector",
       "titulo": "catch vacío: el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/screens/ConversationScreen.tsx#ConversationScreen@52acec3e12",
@@ -498,7 +510,7 @@
       "huella": "52acec3e1276c431f17cf07394f04297411e832bfeacd6ddab285ada7006e724",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/screens/ConversationScreen.tsx#ConversationScreen@af52965c9a",
@@ -508,7 +520,7 @@
       "huella": "af52965c9ab236ad3b4275e72391359e34761bee7ebda32a433dab0165dd41a6",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/screens/CreditStoreScreen.tsx#CreditStoreScreen",
@@ -518,7 +530,7 @@
       "huella": "4d66eb5d8228f253fbd39c2bf173f5254e6e06446a8b3d612fdb012894ab7d59",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/screens/EngineAdminScreen.tsx#EngineAdminScreen.load",
@@ -528,7 +540,7 @@
       "huella": "0aac0bf59fdfb8bc5c95e60c2973bc98bebff2fe5827c96bcf3adae91afc5af8",
       "origen": "detector",
       "titulo": "catch vacío: el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/screens/ReelsScreen.tsx#ReelItem.handlePlaybackStatus",
@@ -538,7 +550,7 @@
       "huella": "699456a3f8490e8bde1c7c464bf476d0f0015e390d65823a45984b25eeec163f",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/screens/SettingsScreen.tsx#SettingsScreen",
@@ -548,7 +560,7 @@
       "huella": "893995b680101a14aec323c5fe6d3e592d965d4156bd5800629aa4f0544c8149",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/services/assetDownload.ts#descargarCreacion.limpiar",
@@ -558,7 +570,7 @@
       "huella": "1cde468d5b4eba306e1d3f84f3f6de0012e1e71a1377576e5797116191bc0692",
       "origen": "detector",
       "titulo": ".catch(() => undefined): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/services/messagesService.ts#MessagesService.cleanupEphemeralMessages",
@@ -568,7 +580,7 @@
       "huella": "c064aa61d707c41e18cc27c97c79d4e542952051c05c6eadb0012df298b0dbd4",
       "origen": "detector",
       "titulo": "catch vacío (solo un comentario): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "errores/catch-traga/services/videoDownload.ts#compartirVideo",
@@ -578,7 +590,7 @@
       "huella": "602adfb460ad1a5c4c9873baeae43148e0fa7d8483f41e89f7e3e33b62c33fee",
       "origen": "detector",
       "titulo": ".catch(() => {}): el error desaparece",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/functions/src/credits/creditCosts.ts#loadCostOverrides",
@@ -588,7 +600,7 @@
       "huella": "f06fb448ffcd945b27f99b870fbcf783dbbac032f79443764829722cb0a921a2",
       "origen": "detector",
       "titulo": ".collection(…).get() sin .limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/functions/src/engine/config.ts#loadConfig@c28f581758",
@@ -598,7 +610,7 @@
       "huella": "c28f581758f3ea7b38fd7b4401cc944f56bdda27059bb6fdbfbcec9bb6af71d1",
       "origen": "detector",
       "titulo": ".collection(…).get() sin .limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/functions/src/engine/config.ts#loadConfig@d05b981dc8",
@@ -608,7 +620,7 @@
       "huella": "d05b981dc88532f60a15ef26997dc4647895fa1d89bbe91713d60be1de209b4b",
       "origen": "detector",
       "titulo": ".collection(…).get() sin .limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/functions/src/engine/ledger.ts#settleFirestore",
@@ -618,7 +630,7 @@
       "huella": "af86a632dd37c7c33244fb1fd6f3ba7e7681bd80d521c6fb36f6bc0557ddd89f",
       "origen": "detector",
       "titulo": ".collection(…).where(…).get() sin .limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/functions/src/identity/cuentas.ts#entidadesDeLaCuenta",
@@ -628,7 +640,7 @@
       "huella": "6cc56a7a62190f1f006e8adfe389175c267d846d4e332b4237792e942ad27825",
       "origen": "detector",
       "titulo": ".collection(…).where(…).orderBy(…).get() sin .limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/functions/src/identity/nacimiento.ts#anotarLaEntidadEnElPerfil",
@@ -638,7 +650,7 @@
       "huella": "db658b5f00edda36bf733f1e395dd3569acd8bb7056d60ae3506c3228a5dbc63",
       "origen": "detector",
       "titulo": ".collection(…).where(…).get() sin .limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/services/assetsService.ts#assetsService.listar",
@@ -648,7 +660,7 @@
       "huella": "2ed3c478a13d0e68dad133f716995ebbb72cc38b7466c2a6865cbbbeb990e2f0",
       "origen": "detector",
       "titulo": "getDocs(query(…)) sin limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/services/communityService.ts#communityService.getAllCommunitiesFallback",
@@ -658,7 +670,7 @@
       "huella": "4271b97984622a01009c596097f48b3e90d80ff42906b8ee76638d3167015613",
       "origen": "detector",
       "titulo": "getDocs(collection(…)) sin limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/services/communityService.ts#communityService.getCommunities",
@@ -668,7 +680,7 @@
       "huella": "4271b97984622a01009c596097f48b3e90d80ff42906b8ee76638d3167015613",
       "origen": "detector",
       "titulo": "getDocs(collection(…)) sin limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/services/communityService.ts#communityService.getPendingCommunities",
@@ -678,7 +690,7 @@
       "huella": "4271b97984622a01009c596097f48b3e90d80ff42906b8ee76638d3167015613",
       "origen": "detector",
       "titulo": "getDocs(collection(…)) sin limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/services/communityService.ts#communityService.getUserCommunities",
@@ -688,7 +700,7 @@
       "huella": "4271b97984622a01009c596097f48b3e90d80ff42906b8ee76638d3167015613",
       "origen": "detector",
       "titulo": "getDocs(collection(…)) sin limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/services/creatorInterestService.ts#creatorInterestService.getMyCategoryIds",
@@ -698,7 +710,7 @@
       "huella": "ecfa91c1ec98eb4e7bfabaa8ccd071a6ba004cf72d4df52cd055eff295c8fa2a",
       "origen": "detector",
       "titulo": "getDocs(query(…)) sin limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/services/econtactService.ts#perfilDe",
@@ -708,7 +720,7 @@
       "huella": "f29b163f57aedd66cf6b72777c48f6ce5bec27f13fcc4aef87b011cc5dd3b51a",
       "origen": "detector",
       "titulo": "getDocs(query(…)) sin limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "escala/consulta-sin-limite/services/econtactService.ts#relacionesDe",
@@ -718,7 +730,7 @@
       "huella": "420143c64d8779428980fe6b6642272c4dc609ad8644597683a74f3e76ce278c",
       "origen": "detector",
       "titulo": "getDocs(query(…)) sin limit(): lee la colección entera",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "harness/aprobacion-propia/ops/github/entorno-get-wee.json#prevent_self_review",
@@ -742,7 +754,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "se cierra al integrar esta rama en main (autorización del dueño)"
+      "nota": "ACCIÓN DEL DUEÑO: la cerradura llega a GitHub main con el merge del cierre; el checkout local de main (Desktop/wee, con cambios propios sin commit) se actualiza cuando el dueño decida qué hacer con esos cambios"
     },
     {
       "id": "harness/ci-cancela-main/.github/workflows/ci.yml#concurrency",
@@ -751,8 +763,8 @@
       "titulo": "cancel-in-progress cancelaría ejecuciones de main adelantadas (inferido, no ejecutado)",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "INCIERTO",
-      "pregunta": "¿GitHub cancela de verdad la ejecución de un commit de main adelantado? Solo se sabrá con la CI activa"
+      "estado": "CORREGIDO",
+      "prueba": "functions/test/ci-workflow.test.mjs 10b/10c: en main un grupo por commit y sin cancelar (cierre 2026-10-01)"
     },
     {
       "id": "harness/ci-sin-analisis/.github/workflows/ci.yml#nivel-1",
@@ -762,7 +774,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "los detectores deterministas y la puerta de la baseline entran en la CI en esta misión; lint y auditoría de dependencias siguen fuera"
+      "nota": "DEUDA DELIBERADA: la puerta determinista corre en el nivel 3; lint y `npm audit` en la CI quedan fuera hasta fijar un umbral que no bloquee por avisos de herramientas de desarrollo (ver informe de cierre, npm audit)"
     },
     {
       "id": "harness/contexto/CLAUDE.md#forma-de-trabajar",
@@ -781,8 +793,8 @@
       "titulo": "Documentación del Harness desajustada (no-desplegar remite a un camino retirado; niveles de CI)",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "functions/test/ci-workflow.test.mjs 20d y 32; docs/DEPLOYMENT.md; scripts/no-desplegar.mjs (cierre 2026-10-01)"
     },
     {
       "id": "harness/estado-solo-local/refs#harness/fase-2",
@@ -792,7 +804,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "push y copia: decisión del dueño"
+      "nota": "ACCIÓN DEL DUEÑO: la historia de harness/fase-2 llega a GitHub con el PR del cierre; los tags prod/* siguen solo en el portátil (publicarlos lo decide el dueño)"
     },
     {
       "id": "harness/fusion-cercas/functions/test/video-asincrono.test.mjs#movidos",
@@ -900,6 +912,17 @@
       "prueba": "functions/test/guardia-claude.test.mjs"
     },
     {
+      "id": "i18n/permiso-falso/app.json#NSMicrophoneUsageDescription",
+      "regla": "i18n/permiso-falso",
+      "severidad": "media",
+      "titulo": "Las frases de permiso de iOS prometían usos que no existen (audio en vídeos, contenido cercano)",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "i18n-permisos-ios F1–F5: cada frase atada al uso real (cierre 2026-10-01)"
+    },
+    {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/contexts/AuthContext.tsx#AuthProvider.signInWithGoogle@18eb36f4ed",
       "regla": "i18n/texto-a-mano-fuera-de-pantallas",
       "estado": "PREEXISTENTE",
@@ -907,7 +930,7 @@
       "huella": "18eb36f4ed01f53e405f27c692604e4b700f32e0fbd00327a0a8623a157f3d88",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «No se pudo obtener el token de Google»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/contexts/AuthContext.tsx#AuthProvider.signInWithGoogle@48985940d5",
@@ -917,7 +940,7 @@
       "huella": "48985940d5a081d24369574cc855f505bfa30abf4511635ec7589420f9e46e57",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Iniciar sesión con Google no está disponible ahora mismo. E…»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/contexts/AuthContext.tsx#useAuth",
@@ -927,7 +950,7 @@
       "huella": "f82ff15ba2acc4bff3bf756fc79d59b1ef873aae16e76a0d7bf0b33a7a0d1482",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «useAuth debe ser usado dentro de un AuthProvider»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/contexts/ComentariosContext.tsx#useComentariosDeLaPublicacion",
@@ -937,7 +960,7 @@
       "huella": "969c877d52ecf050b72bcaa6371905fdefa979913a51ea66c885b7350d5d6a7c",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «useComentariosDeLaPublicacion necesita estar dentro de Come…»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/contexts/LocationContext.tsx#LocationProvider.refrescar",
@@ -947,7 +970,7 @@
       "huella": "a4f281cac39844e9b0438f163a3b3b2f83dcebe225daa0b47553ddcdc3b99043",
       "origen": "detector",
       "titulo": "frase escrita a mano en setError(…): «No se pudo obtener tu ubicación. Inténtalo de nuevo en un m…»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/contexts/ScrollContext.tsx#useScroll",
@@ -957,7 +980,7 @@
       "huella": "45dfa9a3ec48bb52a876b27050732fd251d36a75eee3e07d3c381e54653fe42a",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «useScroll must be used within a ScrollProvider»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/contexts/ThemeContext.tsx#useTheme",
@@ -967,7 +990,7 @@
       "huella": "44f0b9896b15b05265d8168cf1cde7b9e5c370bf46928c8dbfc373dafc624f1b",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «useTheme must be used within a ThemeProvider»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/contexts/UserProfileContext.tsx#UserProfileProvider.updateProfile",
@@ -977,7 +1000,7 @@
       "huella": "62ab3d457a3191cb183d5fb5c72363cceb11ef585d408d2c8b5f4e968c98db1b",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Error al actualizar el perfil»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/contexts/UserProfileContext.tsx#useUserProfile",
@@ -987,7 +1010,7 @@
       "huella": "f20971f0757664ad6d9d13c3e97e59e160dcdbc6ad0202ba849d9e2bbf986c84",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «useUserProfile debe ser usado dentro de un UserProfileProvi…»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/hooks/useCommunities.ts#useCommunities.joinCommunity@6f9f7349d1",
@@ -997,7 +1020,7 @@
       "huella": "6f9f7349d1d90f79c0cd8b31730d19ee158e281379308ce76d0fd8e4083b9e2b",
       "origen": "detector",
       "titulo": "frase escrita a mano en setError(…): «Error al unirse a la comunidad»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/hooks/useCommunities.ts#useCommunities.joinCommunity@f109808e92",
@@ -1007,7 +1030,7 @@
       "huella": "f109808e92c4b53619eccde8fdfe256e8b0210dc6c64ad5982c279939527de8a",
       "origen": "detector",
       "titulo": "frase escrita a mano en setError(…): «Debes iniciar sesión»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/hooks/useCommunities.ts#useCommunities.leaveCommunity",
@@ -1017,7 +1040,7 @@
       "huella": "cc17406246a7faee30f9bce4f63e6c3011dc6c6fc5f87057768a5b31728e0b17",
       "origen": "detector",
       "titulo": "frase escrita a mano en setError(…): «Error al salir de la comunidad»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/hooks/useCommunities.ts#useCommunities.refreshCommunities",
@@ -1027,7 +1050,7 @@
       "huella": "e4af2b22103e64e0a9fccad885d5d76e8bb964d7be83a28954e0371981065277",
       "origen": "detector",
       "titulo": "frase escrita a mano en setError(…): «Error al cargar comunidades»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/hooks/useCommunities.ts#useCommunity.loadCommunity",
@@ -1037,7 +1060,7 @@
       "huella": "636d883b0c0a938c26ed5d48a08ebc66b39af653a65c83c524799cde0740c6ff",
       "origen": "detector",
       "titulo": "frase escrita a mano en setError(…): «Error al cargar la comunidad»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/hooks/useVote.ts#useVote.handleVote@85cf60d79a",
@@ -1047,7 +1070,7 @@
       "huella": "85cf60d79afb64f21fae33ac0ffa19753c61c27ee7e49cd0ec17016a6c6d39f6",
       "origen": "detector",
       "titulo": "frase escrita a mano en setError(…): «Debes iniciar sesión para votar»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/hooks/useVote.ts#useVote.handleVote@e6059ceb38",
@@ -1057,7 +1080,7 @@
       "huella": "e6059ceb3837b364ad3a689b70ba8a2bed970515a8e85f331f865fa25b2c8a96",
       "origen": "detector",
       "titulo": "frase escrita a mano en setError(…): «Error al votar. Intenta de nuevo.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/hooks/useVote.ts#useVote.removeVote",
@@ -1067,7 +1090,7 @@
       "huella": "3dc5cd3663661a38c612a3a7be1984f56d49374db9ecb2be0ad3bd1c67932827",
       "origen": "detector",
       "titulo": "frase escrita a mano en setError(…): «Error al quitar voto»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/avatarGenerationService.ts#generateAvatarWithGemini",
@@ -1077,7 +1100,7 @@
       "huella": "3972d5a2032e0c936ae478d66d299bea84eb3b2b466430d258521e0cf780b2b0",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Firebase functions not initialized»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/avatarGenerationService.ts#performAvatarReplacement",
@@ -1087,7 +1110,7 @@
       "huella": "3972d5a2032e0c936ae478d66d299bea84eb3b2b466430d258521e0cf780b2b0",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Firebase functions not initialized»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/cloudinaryService.ts#uploadAudioToCloudinary",
@@ -1097,7 +1120,7 @@
       "huella": "5fade3f4620e3eac89c724db4728fb7b8b56985e926ec69772bdb40e4d4963c8",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Cloudinary audio upload failed: … …»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/cloudinaryService.ts#uploadBlobToCloudinary",
@@ -1107,7 +1130,7 @@
       "huella": "8f41bbff56bd99ef739d05cf603fc88be37aa7cab449ee1022cce44a4d00916d",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Cloudinary blob upload failed: … …»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/cloudinaryService.ts#uploadImageToCloudinary",
@@ -1117,7 +1140,7 @@
       "huella": "659597710adf142a30f07cb86a163b9f2de126c036ac025c55eecde45214ac99",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Cloudinary image upload failed: … …»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/cloudinaryService.ts#uploadVideoToCloudinary",
@@ -1127,7 +1150,7 @@
       "huella": "b1b80f27d601fc104d7f9593823b9d812af949f993d8d8fda177bef50e5748d1",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Cloudinary video upload failed: … …»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/communityService.ts#communityService.createCommunity",
@@ -1137,7 +1160,7 @@
       "huella": "a13bd319351d3112a2daf7e15b64706a783377b22a3cf888691b51ef91d7972d",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Ya existe una comunidad con ese nombre»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/creatorUploads.ts#uploadCreatorImage@5c5b7398b0",
@@ -1147,7 +1170,7 @@
       "huella": "5c5b7398b070595f5b0a651697a7e68c457fbf8d8c99c6ba78af75f4daf74e13",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «La foto pesa más de 10 MB. Elige una más liviana.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/creatorUploads.ts#uploadCreatorImage@9ee1ee462e",
@@ -1157,7 +1180,7 @@
       "huella": "9ee1ee462e493f911cd6016b27b4e94674d0454b8d16da80eda6ef75a5cef1b6",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Storage no está inicializado»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/creditsService.ts#call",
@@ -1167,7 +1190,7 @@
       "huella": "c9f8096879541d2b7b8bda0059e3d4f9032d5e2b6e681911cb9399768d7cb6e9",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Firebase Functions no está inicializado»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/firestoreService.ts#postsService.voteInPoll@39c679af76",
@@ -1177,7 +1200,7 @@
       "huella": "39c679af767f61230956bc09e979164305d4910bb1b5e9d71982a1fc463a7ed3",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Esta encuesta es de una versión anterior de Weë y ya no adm…»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/firestoreService.ts#postsService.voteInPoll@5a440d5424",
@@ -1187,7 +1210,7 @@
       "huella": "5a440d5424d00b4cb4904344f3147c7ea4fff3f0cbb410caddf2099345d8bf27",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Esa opción no existe en esta encuesta.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/firestoreService.ts#postsService.voteInPoll@b72e4bc180",
@@ -1197,7 +1220,7 @@
       "huella": "b72e4bc1804508508e68ef3c5f1861564b2264fcd7a4a917da96ae8d0f6b9069",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Esta publicación no tiene encuesta.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/firestoreService.ts#postsService.voteInPoll@dd26068a02",
@@ -1207,7 +1230,7 @@
       "huella": "dd26068a026af718db1876275cc5a72e1955aa35f66068cb0cdbf883af4ef165",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Esta publicación ya no existe.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/firestoreService.ts#postsService.voteInPollById",
@@ -1217,7 +1240,7 @@
       "huella": "f8ebee08c3be28999263f14ca48a0b83d1272c734f92c6a9e5073647be88be56",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «No se pudo conectar con Weë para registrar tu voto.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/firestoreService.ts#repostsService.createRepost",
@@ -1227,7 +1250,7 @@
       "huella": "43d502a466397ea4f807eb20ba8342732b666fc33c53c7115d13343bc15bd326",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Post original no encontrado»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/followsService.ts#FollowsService.followUser@503831851d",
@@ -1237,7 +1260,7 @@
       "huella": "503831851da1594520ff09597f9a6724e1c15e9c723cb7e63bc97e54334f27cd",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «No puedes seguirte a ti mismo»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/followsService.ts#FollowsService.followUser@fe02473da5",
@@ -1247,7 +1270,7 @@
       "huella": "fe02473da5d5d8a9f32dae9d8afcd1fefa0cbb283d0f86d4aceca1a6e4fe1e8b",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «followerId y followingId son requeridos»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/followsService.ts#FollowsService.unfollowUser",
@@ -1257,7 +1280,7 @@
       "huella": "fe02473da5d5d8a9f32dae9d8afcd1fefa0cbb283d0f86d4aceca1a6e4fe1e8b",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «followerId y followingId son requeridos»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/likesService.ts#LikesService.likePost",
@@ -1267,7 +1290,7 @@
       "huella": "2ac08859e1e42fad51b8c5372040af6626d6655d925c0cc7a845c30b08dfef31",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «userId y postId son requeridos»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/likesService.ts#LikesService.unlikePost",
@@ -1277,7 +1300,7 @@
       "huella": "2ac08859e1e42fad51b8c5372040af6626d6655d925c0cc7a845c30b08dfef31",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «userId y postId son requeridos»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/storageService.ts#uploadViewOncePhoto@49a562caf9",
@@ -1287,7 +1310,7 @@
       "huella": "49a562caf9d72ab0532e584edcc65cf9fc6efebcea3c209cbba12b5eefc59e07",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «view-once photo over 10 MB»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/storageService.ts#uploadViewOncePhoto@9ee1ee462e",
@@ -1297,7 +1320,7 @@
       "huella": "9ee1ee462e493f911cd6016b27b4e94674d0454b8d16da80eda6ef75a5cef1b6",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Storage no está inicializado»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/videoDownload.ts#compartirVideo",
@@ -1307,7 +1330,7 @@
       "huella": "e336b6406c37765d6429d0c771742346bc2e84d2a78f6c2ea214e3dfbd78ce2a",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «el vídeo no se pudo bajar ( … )»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/videoDownload.ts#downloadVideoWithWatermark@1c6fa131ca",
@@ -1317,7 +1340,7 @@
       "huella": "1c6fa131caa96ac7d9e9ec11d70790a64c6fd3b485b919b1386068491e2f09d3",
       "origen": "detector",
       "titulo": "frase escrita a mano en Alert.alert(…): «Video guardado en tu galería.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/videoDownload.ts#downloadVideoWithWatermark@a7bae6a5d3",
@@ -1327,7 +1350,7 @@
       "huella": "a7bae6a5d33ade1618cc007a4dd9e4714e2751d5f4ee6f0060b640dde9acd3bd",
       "origen": "detector",
       "titulo": "frase escrita a mano en Alert.alert(…): «Necesitamos acceso a tu galería para guardar el video.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/videoDownload.ts#downloadVideoWithWatermark@b2bca89c93",
@@ -1337,7 +1360,7 @@
       "huella": "b2bca89c9353eecdcfe49bfc12ac850e0ae2f2f49f20133722ed23d3a33cf9e3",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Error al descargar el video»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/videoDownload.ts#downloadVideoWithWatermark@ce345b338a",
@@ -1347,7 +1370,7 @@
       "huella": "ce345b338abb42ad5647e43cacdc1c0f4d05847fc3ed66150d3aac405cb4aa82",
       "origen": "detector",
       "titulo": "frase escrita a mano en Alert.alert(…): «Permiso requerido»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/services/videoDownload.ts#downloadVideoWithWatermark@de1d84bed3",
@@ -1357,7 +1380,7 @@
       "huella": "de1d84bed3f2fb7d84a3216c5bb4707cef1ffdb513fa2667df658ba123a792a0",
       "origen": "detector",
       "titulo": "frase escrita a mano en Alert.alert(…): «No se pudo descargar el video. Intenta de nuevo.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/utils/econtactModel.ts#idDeContacto",
@@ -1367,7 +1390,7 @@
       "huella": "376f82548b0f2b3da7dc391b93fa354ac005d0eecb972e982dcf49629f747b83",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Un ËContact necesita dos identidades de persona distintas.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/utils/econtactModel.ts#nuevaSolicitud",
@@ -1377,7 +1400,7 @@
       "huella": "376f82548b0f2b3da7dc391b93fa354ac005d0eecb972e982dcf49629f747b83",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «Un ËContact necesita dos identidades de persona distintas.»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/utils/perfilCanonico.ts#asegurar",
@@ -1387,7 +1410,7 @@
       "huella": "ccc4e040b15971b71585156a510e1c029563d9b1095da297f3b81a8433abb6a9",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «perfilCanonico: el perfil nuevo no es de esta identidad»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/utils/perfilCanonico.ts#asegurarPerfilReal",
@@ -1397,7 +1420,7 @@
       "huella": "5a06cac4be3a5d3b4857e20335713fed5b2f927083b3c1273d83deaf81640c2c",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «asegurarPerfilReal: uid de cuenta inválido»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/utils/perfilCanonico.ts#asegurarPerfilWee@0bc48c4cb6",
@@ -1407,7 +1430,7 @@
       "huella": "0bc48c4cb676f6e3bc2939aa1ae239b89ffc05a3cb8860bd329553dfbfef4707",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «asegurarPerfilWee: identidad del Perfil Weë inválida»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/utils/perfilCanonico.ts#asegurarPerfilWee@9f5b24661d",
@@ -1417,7 +1440,7 @@
       "huella": "9f5b24661d1f50dc0b2ba087d43823a70ab9205191e8e1491bac00d566701314",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «asegurarPerfilWee: el Perfil Weë nuevo no declara su cuenta»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/utils/perfilCanonico.ts#asegurarPerfilWee@d9534bca46",
@@ -1427,7 +1450,7 @@
       "huella": "d9534bca46d7ff7edad3ec5a49339d0b96370a9d65000dcb41aba9d9ce28a91e",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «asegurarPerfilWee: falta el Perfil Real al que enlazar»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/utils/perfilCanonico.ts#asegurarPerfilWee@e28056d270",
@@ -1437,7 +1460,7 @@
       "huella": "e28056d2704d04f2442b9030dc059472b79e17cff813fa6f5b8a2e3edeaa5f6e",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «asegurarPerfilWee: cuenta inválida»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/utils/publicImage.ts#limpiarEnWeb@0dc624b668",
@@ -1447,7 +1470,7 @@
       "huella": "0dc624b668b57fe6b83a88428b867a2a25799108db7f74d247195f998825be39",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «El navegador no dio un contexto 2D»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "i18n/texto-a-mano-fuera-de-pantallas/utils/publicImage.ts#limpiarEnWeb@d093d0e8c3",
@@ -1457,7 +1480,18 @@
       "huella": "d093d0e8c301e8f2bc89bb7d82bc070a0049f1ac5f711477337bbc6aa0dfa7ed",
       "origen": "detector",
       "titulo": "frase escrita a mano en throw new Error: «El canvas no devolvió ninguna imagen»",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "identity/entidades-sin-tope/functions/src/identity/cuentas.ts#entidadesDeLaCuenta",
+      "regla": "identity/entidades-sin-tope",
+      "severidad": "baja",
+      "titulo": "Lista todas las entidades de una cuenta sin límite: las Páginas no tienen tope por contrato",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "PREEXISTENTE",
+      "nota": "DECISIÓN DEL DUEÑO: un máximo de Páginas por cuenta (y entonces se acota) o paginar; hoy solo la llama una prueba"
     },
     {
       "id": "identity/prefijo-compuesto-en-linea/contexts/UserProfileContext.tsx#updateUserCache",
@@ -1466,8 +1500,8 @@
       "titulo": "hidi_${uid} escrito en línea en vez de identidadWeeDe",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-cliente: identidadWeeDe (cierre 2026-10-01)"
     },
     {
       "id": "infra/app-links/public/.well-known/assetlinks.json",
@@ -1477,7 +1511,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "paquete corregido; la huella del certificado y el Team ID los aporta el dueño (docs/LEGADO-HIDETOK.md)"
+      "nota": "ACCIÓN DEL DUEÑO: la huella SHA-256 de firma (Play Console) y el Team ID de Apple (docs/LEGADO-HIDETOK.md §6)"
     },
     {
       "id": "infra/binarios-sin-uso/assets/wallpaper.mp4",
@@ -1486,8 +1520,8 @@
       "titulo": "Binarios versionados sin referencias",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "tres binarios sin referencias retirados (cierre 2026-10-01)"
     },
     {
       "id": "infra/cabeceras-seguridad/vercel.json#headers",
@@ -1506,8 +1540,8 @@
       "titulo": "Mini-cliente heredado que escribe en producción fuera de la capa de servicios",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "ver docs/LEGADO-HIDETOK.md: retirada propuesta, decide el dueño"
+      "estado": "CORREGIDO",
+      "prueba": "public/app.html retirado; escaneo-secretos sin su excepción (sigue servido en get-wee hasta el próximo despliegue de hosting) (cierre 2026-10-01)"
     },
     {
       "id": "infra/config-muerta/netlify.toml",
@@ -1526,8 +1560,8 @@
       "titulo": "Clave pública de Firebase: el riesgo es que no esté restringida",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "INCIERTO",
-      "pregunta": "¿está restringida la clave en GCP? Lo comprueba el dueño en la consola"
+      "estado": "PREEXISTENTE",
+      "nota": "ACCIÓN DEL DUEÑO: comprobado en solo lectura el 2026-10-01 — las cuatro claves de get-wee tienen restricción de API (las de Firebase, 27 APIs sin Gemini; la de Gemini, 1) y NINGUNA restricción de aplicación; propuesta exacta en el informe de cierre"
     },
     {
       "id": "infra/csp-completa/vercel.json#headers",
@@ -1548,10 +1582,10 @@
       "desde": "2026-10-01",
       "estado": "ACEPTADO COMO DEUDA",
       "motivo": "migración de EAS pendiente del dueño",
-      "responsable": "dueño (geovetlf) — decisión registrada en README.md (Problemas conocidos / EAS)",
+      "responsable": "dueño (geovetlf) — decisión registrada en README.md (EAS y actualizaciones OTA) y docs/LEGADO-HIDETOK.md §5.1",
       "fecha": "2026-10-01",
       "revisar_en": "2026-12-31",
-      "referencia": "README.md (Problemas conocidos / EAS)"
+      "referencia": "README.md (EAS y actualizaciones OTA) y docs/LEGADO-HIDETOK.md §5.1"
     },
     {
       "id": "infra/gitignore/functions/.env.wee-dev-geovet",
@@ -1560,8 +1594,8 @@
       "titulo": "Un .env versionado pese a la regla de ignorar (solo un uid de prueba)",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "fuera del índice; entrega-configuracion 12 (cierre 2026-10-01)"
     },
     {
       "id": "infra/guardia-despliegue/scripts/solo-desde-el-workflow.mjs#motivos",
@@ -1581,8 +1615,8 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "introducidoTrasElCorte": true,
-      "estado": "PREEXISTENTE",
-      "nota": "necesita traducir los permisos a los idiomas listos con revisión nativa"
+      "estado": "CORREGIDO",
+      "prueba": "functions/test/i18n-permisos-ios.test.mjs: 16 idiomas con revisión nativa, y las frases dicen el uso real (cierre 2026-10-01)"
     },
     {
       "id": "infra/tsc-alcance/tsconfig.json#include",
@@ -1591,8 +1625,8 @@
       "titulo": "El tsc de la raíz revisa functions/lib en local y no en CI",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "tsconfig.json exclude; functions/test/tsconfig-alcance.test.mjs (cierre 2026-10-01)"
     },
     {
       "id": "money/acoplamiento-identidad-social/functions/src/credits/creditEngine.ts#findAccount",
@@ -1602,7 +1636,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "nota": "DEUDA DELIBERADA: mover el resolutor de identidad fuera de social/econtact toca el Credit Engine (cercas 63p) sin fallo observado"
     },
     {
       "id": "money/admin-balance-con-efecto/functions/src/credits/index.ts#creditsAdmin",
@@ -1611,8 +1645,19 @@
       "titulo": "Consultar un saldo de administración puede dar la bienvenida",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
+      "estado": "CORREGIDO",
+      "prueba": "cierre-servidor: creditEngine.readBalance de solo lectura (cierre 2026-10-01)"
+    },
+    {
+      "id": "money/coste-de-duplicado-en-conversacion/functions/src/creator/brain.ts#brainChat",
+      "regla": "money/coste-de-duplicado-en-conversacion",
+      "severidad": "baja",
+      "titulo": "En conversación, un duplicado ya cerrado se descubre después de llamar al proveedor (coste sin cobro; solo con un cliente modificado o una repetición de red)",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
       "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "nota": "DEUDA DELIBERADA: evitarlo exige leer la transacción antes de generar, que cambia el orden del cobro por bloques; la app no reutiliza messageId"
     },
     {
       "id": "money/error-interno-al-cliente/functions/src/credits/creditValidation.ts#toHttpsError",
@@ -1621,8 +1666,8 @@
       "titulo": "Un error interno viaja crudo al cliente",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-servidor: internal genérico, causa saneada en el registro (cierre 2026-10-01)"
     },
     {
       "id": "money/remigracion-por-segundo-perfil/functions/src/credits/creditEngine.ts#ensureAccount",
@@ -1651,8 +1696,8 @@
       "titulo": "Funciones que montan secretos que no usan",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "rotacion-secretos 1/1b + cierre-servidor: MODEL_SECRETS y AVATAR_SECRETS (efectivo al desplegar) (cierre 2026-10-01)"
     },
     {
       "id": "money/spendCredits-abierto/functions/src/credits/index.ts#spendCredits",
@@ -1672,7 +1717,7 @@
       "huella": "cdbcebcb89f41d049a49a6f372eaa43ff6979327bea872c0b7ec0e72a3080cd8",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/components/CustomTabBar.tsx#(archivo)",
@@ -1682,7 +1727,7 @@
       "huella": "f614188af7ad8adec39e6d9cae4686d0abc1222c910387481701029788d8d34d",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/components/HeroCarousel.tsx#(archivo)",
@@ -1692,7 +1737,7 @@
       "huella": "0b1fa49f634f00788e78232fbe26dca5572b73d660b43570ad74c3b017bd4b82",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/components/Icon.tsx#(archivo)",
@@ -1702,7 +1747,7 @@
       "huella": "1a9430e87526ba32d5666a8f555688d8bc38fd697a99a82468f7c635b96a0abd",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/components/MessageBubble.tsx#(archivo)",
@@ -1712,7 +1757,7 @@
       "huella": "b0a03973277ef590931e64b2979d51018fcbdc289b46ecd105458494f528ce7d",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/components/MessageInput.tsx#(archivo)",
@@ -1722,7 +1767,7 @@
       "huella": "33ffa71c64d7020353cd3996e7895a0b8ce9c39ebae50551b10a8c2c842b8077",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/components/SplashScreen.tsx#(archivo)",
@@ -1732,7 +1777,7 @@
       "huella": "dbd0960b261a96985573188b9756192b977267bb150f7eece113e083dff62b4e",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/components/creator/SpecialistHero.tsx#(archivo)",
@@ -1742,7 +1787,7 @@
       "huella": "2c4215fb251a540644e347b9e5ba9b083223d09cb850a0ff62437cf9ebe54e09",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/components/studio/PromptEditor.tsx#(archivo)",
@@ -1752,7 +1797,7 @@
       "huella": "fc7752fe9a5821db4705de44ac6f2fe280a011d3f82d264d7b537d261b6a2085",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/constants/comunidadesOficiales.ts#(archivo)",
@@ -1772,7 +1817,7 @@
       "huella": "ec710e793d99f98af8a09ed5e6910ae00cc010eb258624c0a9c3acaddf891bc7",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/filmmaker/recomendaciones.ts#(archivo)",
@@ -1782,7 +1827,7 @@
       "huella": "b69811fa4473cee4af936d9d33b4ac0292106f43ce81010a6f0f376b041a7872",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/filmmaker/requisitos.ts#(archivo)",
@@ -1792,7 +1837,7 @@
       "huella": "7c0a8709baccaa723c3eb73a5299043bef1cf5d809f5fd3df515a209402d345f",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/financial/index.ts#(archivo)",
@@ -1802,7 +1847,7 @@
       "huella": "d0d4940e71442b8731d0fbc0f5fa5a2e6077f70b2e8ee50ffb3a8978bd19f224",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/media/cloudinary.ts#(archivo)",
@@ -1812,7 +1857,7 @@
       "huella": "d3959a92c012fd19596a3e3d4149033108ef17011e8d6b3b23661083ba3a43ab",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/media/falso.ts#(archivo)",
@@ -1822,7 +1867,7 @@
       "huella": "ed5d1f41f84144057e2505f59bdedc839b688d76b5b2f3d9935fa4f2e3a481da",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/media/fuente-falsa.ts#(archivo)",
@@ -1832,7 +1877,7 @@
       "huella": "3ca73f17c40caaef9f2b0e43357a7ca64f3af7316dfa30be1b26bd4d845284e4",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/media/index.ts#(archivo)",
@@ -1842,7 +1887,7 @@
       "huella": "2fd0cb02320c6e7f198e5b68de2e038b06ff2a9b02b4e7865772d6eb417146f6",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/media/migracion.ts#(archivo)",
@@ -1852,7 +1897,7 @@
       "huella": "c745171a9a6d5f9509a320608c5ee2f8d7bed98b330415e7dba6b4085bbfa82c",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/media/procesador-falso.ts#(archivo)",
@@ -1862,7 +1907,7 @@
       "huella": "d13e2ac81e59d3686e4537c17f79e15e13307ad23cc08b0aa444baa3451e2229",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/media/recoleccion.ts#(archivo)",
@@ -1872,7 +1917,7 @@
       "huella": "6c57ecd9419f234fbebf5b14f0576896eef4a9b8eb5cb0140575b3cefb2b4580",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/media/reconciliacion.ts#(archivo)",
@@ -1882,7 +1927,7 @@
       "huella": "1a1b8ce3f2fc6d86b23546a65d02845eb0fe6facdec0f3cd167c3d7078593f20",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/media/uso.ts#(archivo)",
@@ -1892,7 +1937,7 @@
       "huella": "519bf616b67c70b6b0d341bba73aed58e6a7c0a32c7ee4191b2297eab61f3bfb",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/router/index.ts#(archivo)",
@@ -1902,7 +1947,7 @@
       "huella": "143f9dd5430730246549354be71d9dcb3517f069ffa5791ab97867babcd1d79f",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/router/politica.ts#(archivo)",
@@ -1912,7 +1957,7 @@
       "huella": "cebf7482e0ba92b76c2cc4c91d9879bc5dcba57ca5a69ff46cc9b6f00e7ad390",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/runtime/cola-durable.ts#(archivo)",
@@ -1922,7 +1967,7 @@
       "huella": "49d55196e969e3d40510c83fc830b4b5c1f7f6465d1baf0baf1446bcd51d5d75",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/skills/index.ts#(archivo)",
@@ -1932,7 +1977,7 @@
       "huella": "ca99f02109d6312a70d495c8672925b348925d50ff0ac86f8a09c36d5d4ff268",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/functions/src/workflow/index.ts#(archivo)",
@@ -1942,7 +1987,7 @@
       "huella": "4729c990d2cd97258d80ed2f28aa417a6abbe3abb1040a22c885cabc2f14b2fd",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde functions/src/index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/hooks/useCreatorJob.ts#(archivo)",
@@ -1952,7 +1997,7 @@
       "huella": "6857de0d5c1b7b2f15f056bc32dac9ced2af4b96a078e7119cd220753ae16269",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/hooks/useFollow.ts#(archivo)",
@@ -1962,7 +2007,7 @@
       "huella": "6fe0900c690b42ad569fb3f8d14e2b3d031e3781f66e3bf37ffc2ff1b1be7431",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/hooks/useLikes.ts#(archivo)",
@@ -1972,7 +2017,7 @@
       "huella": "94e933174a23da0c0ccb66e48161090b3b6ff1bfba7d6f02730fec9995eadb8a",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/screens/ChatScreen.tsx#(archivo)",
@@ -1982,7 +2027,7 @@
       "huella": "e39e1f7bfe3fd11170b949e9ba955bb357038108cd4e0970f8c4faa9256cd5c5",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/services/followsService.ts#(archivo)",
@@ -1992,7 +2037,7 @@
       "huella": "64e12fb6fb17e713ac881513c167dc5246b607861b0ccb78b7fc8d2362bf6cc5",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/services/videoDownload.ts#(archivo)",
@@ -2002,7 +2047,7 @@
       "huella": "97688cf35c367a97d8c6942fdefe3d03749a5556ea02f47b66a4218ab4c2e241",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/utils/imageUtils.ts#(archivo)",
@@ -2012,7 +2057,7 @@
       "huella": "e24b05905a0d8bf79a30840c3a744d23026cc15edff7b40250fdf169f7a158a7",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "muerto/modulo-sin-importador/utils/webStyles.ts#(archivo)",
@@ -2022,7 +2067,7 @@
       "huella": "5c6a1b93efa386b8f85745ee04922ddeefb60d2a5808fc3f744f4cbccfca3e21",
       "origen": "detector",
       "titulo": "nadie llega a este módulo desde App.tsx / index.ts",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "payments/compras-de-prueba/functions/src/payments/providers/test.ts",
@@ -2031,8 +2076,8 @@
       "titulo": "El proveedor de compras de prueba depende de una variable de producción que no se pudo leer",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "INCIERTO",
-      "pregunta": "¿CREDITS_TEST_PURCHASES está apagada en get-wee? Lo comprueba el dueño"
+      "estado": "FALSO POSITIVO",
+      "motivo": "Comprobado en solo lectura el 2026-10-01: la revisión viva validatepurchase-00005-fud no define CREDITS_TEST_PURCHASES, así que el proveedor de compras de prueba está cerrado en producción"
     },
     {
       "id": "react/intervalo-sin-limpieza/screens/ConversationScreen.tsx#ConversationScreen.startRecording",
@@ -2042,7 +2087,7 @@
       "huella": "3b441bb284157d7fe4d67c748cd38c7c5e42d676083b7cc65de8dc4ba652c0d3",
       "origen": "detector",
       "titulo": "setInterval guardado en «recordTimerRef.current» que no llega a clearInterval en la limpieza de un useEffect",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "rules/admin-claim-vs-lista/firestore.rules#esAdministracion",
@@ -2052,7 +2097,18 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "unificar es decisión del dueño (nadie asigna claims hoy)"
+      "nota": "DECISIÓN DEL DUEÑO: o se asigna el claim admin a los uids de WEE_ADMIN_UIDS (acción sobre cuentas de producción) o las reglas siguen sin administración por lista"
+    },
+    {
+      "id": "secrets/rotacion-antes-del-despliegue/ops/secretos/rotacion.mjs",
+      "regla": "secrets/rotacion-antes-del-despliegue",
+      "severidad": "baja",
+      "titulo": "El mapa de montajes cambia con el cierre: rotar claves antes de desplegarlo dejaría el avatar y Brain con versiones que su código ya no lista",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "PREEXISTENTE",
+      "nota": "ACCIÓN DEL DUEÑO: rotar después del despliegue o con el mapa vivo (docs/SECURITY.md)"
     },
     {
       "id": "server/acoplamiento/functions/src",
@@ -2071,8 +2127,8 @@
       "titulo": "9 módulos de media/ y runtime/cola-durable.ts sin importador",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "INCIERTO",
-      "pregunta": "¿están preparados a propósito (F11) o sobran? No consta en los documentos leídos"
+      "estado": "FALSO POSITIVO",
+      "motivo": "No es código muerto: piezas preparadas a propósito y sin conectar (commits 53d56ea, 1e26ac0, f0743a2, 85fca5f, d19f3c8: «Nada conectado…»), ejecutadas por la cadena (media-*, cola-durable, camino-durable). Escrito en docs/DECISIONES-DELIBERADAS.md DD-03 y docs/MAPA-DE-FRONTERAS.md"
     },
     {
       "id": "server/codigo-muerto/functions/src/router",
@@ -2116,7 +2172,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "nota": "DEUDA DELIBERADA: el planner lee el registro al arrancar la instancia; cambiarlo afecta a todos los planes y no hay un fallo observado"
     },
     {
       "id": "server/credits/functions/src/creator/brain.ts#brainChat",
@@ -2135,8 +2191,8 @@
       "titulo": "Repetir el MISMO mensaje después de que se le devolvió el Credit lo contesta gratis (el requestId reembolsado no se puede volver a cobrar)",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "INCIERTO",
-      "pregunta": "¿se quiere re-cobrar un mensaje reembolsado (requestId nuevo) o fallar? Es política de Credits: decide el dueño"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-servidor + brain-canary: un duplicado ya REEMBOLSADO o FALLIDO se rechaza con DUPLICATE_REQUEST y no se contesta gratis; la app nunca reutiliza un messageId (useBrainChat.newMessageId) (cierre 2026-10-01)"
     },
     {
       "id": "server/doc-drift/functions/src/runtime/index.ts",
@@ -2145,8 +2201,8 @@
       "titulo": "Comentarios y documentos que el código ya contradice",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "runtime/index.ts; docs/RUNTIME.md §5, §11, §21.5; docs/CAPABILITY-MAP.md (cierre 2026-10-01)"
     },
     {
       "id": "server/duplicacion/functions/src/public/postPageHtml.ts#rellenarTexto",
@@ -2166,8 +2222,8 @@
       "titulo": "catch {} trata cualquier error como «ya existía»",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "detector errores/catch-traga"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-servidor: yaExistia solo con ALREADY_EXISTS (6) (cierre 2026-10-01)"
     },
     {
       "id": "server/errores-tragados/functions/src/runtime/index.ts#mantenimientoDeWee",
@@ -2176,8 +2232,8 @@
       "titulo": "Fallos de reconciliación y libro tragados sin causa",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "detector errores/catch-traga"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-servidor: la causa se registra (cierre 2026-10-01)"
     },
     {
       "id": "server/escalabilidad/functions/src/index.ts#idiomaDeLaCuenta",
@@ -2198,7 +2254,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "nota": "DEUDA DELIBERADA: mover la lectura al Content Core toca un camino desplegado de Weë Studio sin un fallo visible; se hace cuando se conecte el Content Core a ese flujo"
     },
     {
       "id": "server/i18n-marcas/functions/src/creator/prompts.ts#narrationFrom",
@@ -2208,8 +2264,8 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "introducidoTrasElCorte": true,
-      "estado": "INCIERTO",
-      "pregunta": "¿con qué frecuencia traduce el modelo «NARRACIÓN:» en da-DK? Solo se mide con uso real"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-servidor: variantes de la misma marca, sin leer el guion entero si no hay marca; guiones en danés con y sin marca (cierre 2026-10-01)"
     },
     {
       "id": "server/i18n/functions/src/creator/idiomaDeSalida.ts#IDIOMA_DEL_CONTENIDO",
@@ -2251,8 +2307,8 @@
       "titulo": "Prompts internos fuera de creator/prompts.ts, fijados en español",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-servidor: SISTEMA_DE_ADAPTACION en creator/prompts.ts y SISTEMA_POR_DEFECTO neutro en los adaptadores (cierre 2026-10-01)"
     },
     {
       "id": "server/reembolso/functions/src/creator/video.ts#generateVideo",
@@ -2271,8 +2327,8 @@
       "titulo": "Un console.warn sin sanear",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-servidor: el aviso pasa por sanitizeForLog (cierre 2026-10-01)"
     },
     {
       "id": "server/segunda-capa-routing/functions/src/router/politica.ts#registroConPolitica",
@@ -2312,8 +2368,8 @@
       "titulo": "followsService y useFollow muertos; la regla follows sigue abierta",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "detector muerto/modulo-sin-importador"
+      "estado": "CORREGIDO",
+      "prueba": "followsService y useFollow retirados (econtact 56/96); la regla follows atada al par y a la identidad de quien escribe (cierre-reglas.emulator B) (cierre 2026-10-01)"
     },
     {
       "id": "social/slug-oficial-ocupable/scripts/sembrar-comunidades.mjs#plan",
@@ -2334,7 +2390,7 @@
       "huella": "65bded79d5b4cfd3a2245e76641f33ad1d90b634df743aca697802713ce16e6b",
       "origen": "detector",
       "titulo": "2063 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/components/creator/ResultCard.tsx#(archivo)",
@@ -2344,7 +2400,7 @@
       "huella": "a044de2574c5ad39a884dd69ea7a9ad6f1349a608c69191bd834adcbb6e58d9e",
       "origen": "detector",
       "titulo": "1094 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/core/algorithm/decision-engine.ts#(archivo)",
@@ -2354,7 +2410,7 @@
       "huella": "32fdb6e8cba9cd55c521b5dbf884a8a7bb89abdf450958df0292a9c35521e11d",
       "origen": "detector",
       "titulo": "1155 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/core/brain.ts#(archivo)",
@@ -2364,7 +2420,7 @@
       "huella": "9894f4b390fe65c7f45727ab9f9288a268e463d39326443dc60f8e38112c3b1b",
       "origen": "detector",
       "titulo": "1633 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/core/financial/payment.ts#(archivo)",
@@ -2374,7 +2430,7 @@
       "huella": "b7bbc723fca8563a798e69cce15dc28985e2ceff48cf4da9614f245d4ebbb80e",
       "origen": "detector",
       "titulo": "1229 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/core/gateway.ts#(archivo)",
@@ -2384,7 +2440,7 @@
       "huella": "deca60d8303eb2943a63ac5306823f7c1e8648d1fa306438703d8b61b45bf0cf",
       "origen": "detector",
       "titulo": "1163 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/core/job.ts#(archivo)",
@@ -2394,7 +2450,7 @@
       "huella": "ef46252c36068f4b1ce724fc55f857e661628dd97e7afc3a34925b278bd498a8",
       "origen": "detector",
       "titulo": "2702 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/core/planner.ts#(archivo)",
@@ -2404,7 +2460,7 @@
       "huella": "b8adb11c7f8a6e841b57a363176a5787fa5f7e97a2051779785b52164f656ce5",
       "origen": "detector",
       "titulo": "1274 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/core/router.ts#(archivo)",
@@ -2414,7 +2470,7 @@
       "huella": "6e5e33d20f0f48db438159ffb03ae9d7b1c878e875f11cbd804c6b52017d9fe9",
       "origen": "detector",
       "titulo": "1059 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/core/workflow.ts#(archivo)",
@@ -2424,7 +2480,7 @@
       "huella": "54a5619869048aa5486547cf2e7f7479001cec1ec662fde054367e0c2c0b052e",
       "origen": "detector",
       "titulo": "1833 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/creator/sombra.ts#(archivo)",
@@ -2434,7 +2490,7 @@
       "huella": "ac86f2f49eb38ff9fdfdf53a1d89b68a4ffa489532d808bbc9acd5c5650253cc",
       "origen": "detector",
       "titulo": "1274 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/creator/templates.ts#(archivo)",
@@ -2444,7 +2500,7 @@
       "huella": "dc986567594f3de0cb6cf2b752ab95aa83d310a4ae910b6e829b41d527531c2d",
       "origen": "detector",
       "titulo": "1925 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/filmmaker/modelo.ts#(archivo)",
@@ -2454,7 +2510,7 @@
       "huella": "522ed80baeac8692e64b2bdc9df7593e3dad828e4109a031acb2bef939b9c790",
       "origen": "detector",
       "titulo": "1007 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/filmmaker/operaciones.ts#(archivo)",
@@ -2464,7 +2520,7 @@
       "huella": "c91568c5cb5f1635da7da7b7febb848bd3e794c3e9cf0b05f3eae7dbce53a5fc",
       "origen": "detector",
       "titulo": "1210 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/src/filmmaker/validacion.ts#(archivo)",
@@ -2474,7 +2530,7 @@
       "huella": "c5e75ec265f298165f1d650fc9443a7bcebbd1e7931f87de2cea7172903661a1",
       "origen": "detector",
       "titulo": "1129 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/algorithm-feedback.test.mjs#(archivo)",
@@ -2484,7 +2540,7 @@
       "huella": "7a9c14b94b0a6190129a2468803de7f1570e1e4bec271b33c42d500aa19b8ca7",
       "origen": "detector",
       "titulo": "1510 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/algorithm-quality.test.mjs#(archivo)",
@@ -2494,7 +2550,7 @@
       "huella": "277f33af00a6dafb3a65e703545c52f3b243692f0b6a5e26dd33d190f702e4b6",
       "origen": "detector",
       "titulo": "3473 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/core-financial.test.mjs#(archivo)",
@@ -2504,7 +2560,7 @@
       "huella": "335ecc762670e58cffb430c13d87afb6dcef458915409687605d94ab5ec99cbd",
       "origen": "detector",
       "titulo": "1272 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/core-job.test.mjs#(archivo)",
@@ -2514,7 +2570,7 @@
       "huella": "ff0ea90dadcd38da34a715a081782dd2946e0721f464fa97948e114158387973",
       "origen": "detector",
       "titulo": "1484 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/creator.test.mjs#(archivo)",
@@ -2524,7 +2580,7 @@
       "huella": "3b67a79f5e6122da5772135ac701903661940bd14bd546a6b3d771163346c0e7",
       "origen": "detector",
       "titulo": "2298 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/econtact.test.mjs#(archivo)",
@@ -2534,7 +2590,7 @@
       "huella": "6c9ae83936a754fd82bb94d4ffab56cea8725ec1f9494fee39ddb513a0fc1182",
       "origen": "detector",
       "titulo": "1697 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/encuestas.test.mjs#(archivo)",
@@ -2544,7 +2600,7 @@
       "huella": "69b0effc1782dbcfda22116a482d52e98a1ba8b834dfc6a07798d5e509cdc0b9",
       "origen": "detector",
       "titulo": "1069 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/filmmaker-modelo.test.mjs#(archivo)",
@@ -2554,7 +2610,7 @@
       "huella": "142f1b0313b29946167f648d263cb6580856cc213cf70fa169e0ca44c55d8086",
       "origen": "detector",
       "titulo": "1010 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/home.test.mjs#(archivo)",
@@ -2564,7 +2620,7 @@
       "huella": "b0f49a103d48a3ba099589c67c8a05318707d20a67900805c68ae4ddb9bfea59",
       "origen": "detector",
       "titulo": "2165 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/location.test.mjs#(archivo)",
@@ -2574,7 +2630,7 @@
       "huella": "ea7d63c76c0761bb2aa4ec99684358afa7e53b6725f9b95eec825e47a4bc17f7",
       "origen": "detector",
       "titulo": "1514 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/productions-runtime.test.mjs#(archivo)",
@@ -2584,7 +2640,7 @@
       "huella": "6eb8ae896111aadd3f119dfb363059555ffcb5bb0fb63d2d0b6e3e254b861b3c",
       "origen": "detector",
       "titulo": "1149 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/sombra-experiencia.test.mjs#(archivo)",
@@ -2594,7 +2650,7 @@
       "huella": "fcc3bf458107d28774db3d8d9e7635c2c809ec30b2f3ab1b53e62263780efe97",
       "origen": "detector",
       "titulo": "1212 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/functions/test/travel.test.mjs#(archivo)",
@@ -2604,7 +2660,7 @@
       "huella": "57f107d456fc9223b8d400eafbd2ab28a709a68035b85e9900abe7175536b0f5",
       "origen": "detector",
       "titulo": "1210 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/screens/AiAvatarScreen.tsx#(archivo)",
@@ -2614,7 +2670,7 @@
       "huella": "3500b49071cd2a036d7b9a159584447fcba41521eb1da56dafe13d4036cb5f81",
       "origen": "detector",
       "titulo": "1319 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/screens/CreateScreen.tsx#(archivo)",
@@ -2624,7 +2680,7 @@
       "huella": "b9f08f24e21e86e87c302ed8e745a9449e4eaefbe4d16dc141e82cbe35d20685",
       "origen": "detector",
       "titulo": "2282 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/screens/HomeScreen.tsx#(archivo)",
@@ -2634,7 +2690,7 @@
       "huella": "753f37d84af8776802fda5189e0a7de9d59c66cd4031be70a00649cdbe670623",
       "origen": "detector",
       "titulo": "1536 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/screens/LandingScreen.tsx#(archivo)",
@@ -2644,7 +2700,7 @@
       "huella": "0b97b14820a9172efab70c49a2dbee98a7c140adff56e4b646b17640ececd4c6",
       "origen": "detector",
       "titulo": "1171 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/screens/OnboardingScreen.tsx#(archivo)",
@@ -2654,7 +2710,7 @@
       "huella": "01f5d995b16754b57e4348b36a4b8a0ca54689a3ccd65664310245e644945060",
       "origen": "detector",
       "titulo": "1296 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/screens/PostDetailScreen.tsx#(archivo)",
@@ -2664,7 +2720,7 @@
       "huella": "217fbbaed7462e6649bd3f7a1c6fd3abb78be070bf3d6286092e9873dcb32896",
       "origen": "detector",
       "titulo": "1090 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/screens/ProfileScreen.tsx#(archivo)",
@@ -2674,7 +2730,7 @@
       "huella": "6e5bf474ed3038023a2d85be98ac2be88dfd4cb2b6fb12d9ed070325b90d1c77",
       "origen": "detector",
       "titulo": "1345 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/screens/SearchScreen.tsx#(archivo)",
@@ -2684,7 +2740,7 @@
       "huella": "e27ee56ace4ab2cf72121dcb200e13da72d2bfa6c82c6f830c73000e7e4b7811",
       "origen": "detector",
       "titulo": "1025 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tamano/archivo-mil-lineas/services/firestoreService.ts#(archivo)",
@@ -2694,7 +2750,7 @@
       "huella": "1892ccf95688c4b2f26b60e9be2caba4f332f535e9ccff71154acaf79c944fea",
       "origen": "detector",
       "titulo": "1381 líneas (límite 1000)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tests/aserto-siempre-verdadero/functions/test/callback-m2.emulator.mjs#(modulo)",
@@ -2704,7 +2760,7 @@
       "huella": "0ec709107aff4f9788a07ab02ebb4aaa40abdfbd9a4cd89f9bf19fd181617f63",
       "origen": "detector",
       "titulo": "check(…, true) con `true` literal: la comprobación no puede fallar",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tests/aserto-siempre-verdadero/functions/test/media-upload-core.test.mjs#(modulo)",
@@ -2714,7 +2770,7 @@
       "huella": "9284d46fb22102ea4d6feb64d0a72ab29a6ab9a7746cfe1e107c446774333440",
       "origen": "detector",
       "titulo": "check(…, true) con `true` literal: la comprobación no puede fallar",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tests/aserto-siempre-verdadero/functions/test/runtime-conductor.emulator.mjs#(modulo)",
@@ -2724,7 +2780,7 @@
       "huella": "37bc1e7872dce9ab02e843ce9f5ef95a892f38694c68863f62c1f897dbf2e55d",
       "origen": "detector",
       "titulo": "check(…, true) con `true` literal: la comprobación no puede fallar",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "tests/aserto-vacio/functions/test/media-upload-core.test.mjs#AE",
@@ -2733,8 +2789,8 @@
       "titulo": "Aserciones siempre verdaderas (check(..., true))",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "las vigila el detector tests/aserto-siempre-verdadero"
+      "estado": "CORREGIDO",
+      "prueba": "media-upload-core (doble de fetch que cuenta), callback-m2 y runtime-conductor (comprobaciones reales) (cierre 2026-10-01)"
     },
     {
       "id": "tests/cerca-numstat/functions/test/puente-pre-f1d.test.mjs#F1-F4",
@@ -2774,8 +2830,8 @@
       "titulo": "Dependencia de desarrollo sin uso que arrastra jest",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "functions/package.json sin firebase-functions-test, @types/sharp ni @types/uuid; ci-workflow 29–31 (cierre 2026-10-01)"
     },
     {
       "id": "tests/docs-desfasadas/functions/test/_emuladores.mjs#cabecera",
@@ -2784,8 +2840,8 @@
       "titulo": "Cabeceras de los corredores con cifras viejas",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "functions/test/_emuladores.mjs; ci-workflow 20d (cierre 2026-10-01)"
     },
     {
       "id": "tests/evidencia-vacia/functions/test/i18n-servidor-fuentes.test.mjs#CLASIFICADOS",
@@ -2805,8 +2861,8 @@
       "titulo": "Nada vigilaba que functions/lib estuviera al día",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "la puerta G0 lo comprueba en el cierre de fase (docs/REVISION.md)"
+      "estado": "CORREGIDO",
+      "prueba": "functions/test/_cadena.mjs (libDesfasado) + pretest; ci-workflow 23–28 (cierre 2026-10-01)"
     },
     {
       "id": "tests/frontera-endpoints/functions/test/gateway-autoridad.test.mjs#A",
@@ -2845,8 +2901,8 @@
       "titulo": "Listas de idiomas escritas a mano (11 de 16)",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "lo atenúa i18n #24"
+      "estado": "CORREGIDO",
+      "prueba": "f1d-cliente M3/M3b y video-asincrono: la lista sale de i18n/idiomas.ts (cierre 2026-10-01)"
     },
     {
       "id": "tests/lector-tolerante/functions/test/security.test.mjs#read",
@@ -2855,8 +2911,8 @@
       "titulo": "Lectores que devuelven \"\" si el archivo no existe: un renombrado pone negaciones en verde",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "security, econtact, encuestas e i18n-wee-ai-brand: leer un archivo que no existe falla (cierre 2026-10-01)"
     },
     {
       "id": "tests/prosa-docs/functions/test/algorithm-quality.test.mjs#111-112",
@@ -2896,8 +2952,8 @@
       "titulo": "El quitacomentarios por regex se come código real (CreateScreen 441-534)",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "no corregido en esta misión"
+      "estado": "CORREGIDO",
+      "prueba": "econtact.test 0b/0c: escáner de TypeScript (cierre 2026-10-01)"
     },
     {
       "id": "tests/tiempos/functions/test/_cadena.mjs#correr",
@@ -2921,7 +2977,7 @@
       "huella": "a369d17a5dcc6a08663afe8ec644ed0ebc2624f39b704924078c01fd52c58fa3",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -2932,7 +2988,7 @@
       "huella": "1965b6d3dc8c270fc41e4af15444ce453d4cacad9730e6f62a4098d66b391751",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -2943,7 +2999,7 @@
       "huella": "7d46d9da44dc0bae43aad19e2798a152ac2f31c04410f68ee81ef458e2aa0d51",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -2954,7 +3010,7 @@
       "huella": "cdbcebcb89f41d049a49a6f372eaa43ff6979327bea872c0b7ec0e72a3080cd8",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -2965,7 +3021,7 @@
       "huella": "32bdce82f4e9cfdf769fa67b001c9e0b5bed52513a047d3de8d2427a05c08204",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -2976,7 +3032,7 @@
       "huella": "8f9579e619fa383e51d698fea325a174ce3e8a0509fc023b4f9bb295c6e92fb8",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -2987,7 +3043,7 @@
       "huella": "a705902108330efeeffcb3ff25696c3982c311b332b1a3d1007b70468080b5f0",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -2998,7 +3054,7 @@
       "huella": "0b1fa49f634f00788e78232fbe26dca5572b73d660b43570ad74c3b017bd4b82",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3009,7 +3065,7 @@
       "huella": "a294706328e60798fadd34a187215470b6b5e4c9383120e8f2ecbd12cf5d23fe",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3020,7 +3076,7 @@
       "huella": "1a9430e87526ba32d5666a8f555688d8bc38fd697a99a82468f7c635b96a0abd",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3031,7 +3087,7 @@
       "huella": "b0a03973277ef590931e64b2979d51018fcbdc289b46ecd105458494f528ce7d",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3042,7 +3098,7 @@
       "huella": "65bded79d5b4cfd3a2245e76641f33ad1d90b634df743aca697802713ce16e6b",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3053,7 +3109,7 @@
       "huella": "3e127fb6a42405169afebd48249b50367fe980cc913ed8235524001b746a62dc",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3064,7 +3120,7 @@
       "huella": "e2f8213fd2e8b94b3814870e6927ce75bdbff45538fc44eafd63e150fc8c2b17",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3075,7 +3131,7 @@
       "huella": "c167446e1835b2acfce0e9b5abda1a3ce59ca84f26cbb0ad20e75d2eceac076a",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -3086,7 +3142,7 @@
       "huella": "dc10320fb11f5ff2e41a3f57833bb31cd8b3924d4898e43f3cc233570dd3c2bc",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3097,7 +3153,7 @@
       "huella": "50a6e91ca8edc6aea0cd8151ead7fc01a55fa725e2d67943b1fe96bbf5a1b2f2",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3108,7 +3164,7 @@
       "huella": "066af08f5d37c9e455a8be6c684dcf678d1f69ed66ebe761c1cdb7079c5ba24e",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3119,7 +3175,7 @@
       "huella": "25c48a5c239884b8e1dc7ffb279069f84f4681a6ed9e331832d8c9c31799c478",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -3130,7 +3186,7 @@
       "huella": "de6ee0da75dd9512a4231223a7dda3ef0ba5a0808272ad0e74603815e4821f77",
       "origen": "detector",
       "titulo": "6 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 6
     },
     {
@@ -3141,7 +3197,7 @@
       "huella": "d52bb5b96ff221e2c511856618039b04d2b72af894adc5e291c3f1ffcab8dd79",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3152,7 +3208,7 @@
       "huella": "3a1cd7c33fafc79fe45e277cf542efcbf1d742b11f1449dd74e1a443dea28869",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -3163,7 +3219,7 @@
       "huella": "13a03ab373222fa3daee169a9731b6faa24f6c0a7d3abad4ba5f22e13397d6e5",
       "origen": "detector",
       "titulo": "4 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 4
     },
     {
@@ -3174,7 +3230,7 @@
       "huella": "2cfd8a9dce0577d827bad9b4eed5496091e3302aeaf00d7404d83abc413a8e41",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3185,7 +3241,7 @@
       "huella": "2b020c15f5ee7c440bd0d75f453bfb705437198704f211d253c05709cfba1365",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -3196,7 +3252,7 @@
       "huella": "ee196daccededa3feb606f4e970b4055553b9c4256bb8a2984d7d1bac9b3fab8",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3207,7 +3263,7 @@
       "huella": "981a3242b98ebf5d793ad06cea9a7a1bdd42880569a57618bbfb66aa0680c197",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3218,7 +3274,7 @@
       "huella": "3a6ec2b12795ae80e176e6e0e0659b0bfa83b416289872d1289bdd14eeedf073",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -3229,7 +3285,7 @@
       "huella": "a83721b8112475f58f249df8a6ea38ac550892e7787617426b883bd35289f197",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -3240,7 +3296,7 @@
       "huella": "5af7d4043d6a9d4a75d5bc19793dd4ca164c0e9b12d71e50a1678ca052145749",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3251,7 +3307,7 @@
       "huella": "dde4dec43c2604237d05dee5eb1c1bb24a199c40b01dc682efda3c15fd3f9432",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3262,7 +3318,7 @@
       "huella": "f9ca9d0ae5fed98b4e1f31ba2360df06e6bc67b4eeaa652d46154aa0e980496a",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3273,7 +3329,7 @@
       "huella": "cd454aaf82b8e2c68fe1687d437103b8a0b6c966e21887807572003032a583de",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3284,7 +3340,7 @@
       "huella": "e8e298ea75a029f8c38f11d5aea69e676af613eb6793b539cc95a4053f28040f",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3295,7 +3351,7 @@
       "huella": "2e6f3b4994f32a82bb666258e8ba4a461e57085e318a184bd5178e433377eff0",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3306,7 +3362,7 @@
       "huella": "ccb7686ad0315d0606c4b9ccd4c0b48c4683a65ad04155caced643513bd88bac",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3317,7 +3373,7 @@
       "huella": "ff9ffac6228aa93b5d90c7b421830770a71ea707575fe2df2aec9186165c0520",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3328,7 +3384,7 @@
       "huella": "3db3ca95bf272608dd5c87623c502a4f939f7393c9a4b1d5f93d646ec10af33f",
       "origen": "detector",
       "titulo": "4 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 4
     },
     {
@@ -3339,7 +3395,7 @@
       "huella": "7485edc377e6e3844252e5d52b82ed0a0b7d8c229fd12db51582d7269ccd95a8",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -3350,7 +3406,7 @@
       "huella": "fc7752fe9a5821db4705de44ac6f2fe280a011d3f82d264d7b537d261b6a2085",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3361,7 +3417,7 @@
       "huella": "b1aac45a257a4894da2607ec22ad108a3513e159c04e4953bdc8e23b89c1895f",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3372,7 +3428,7 @@
       "huella": "855b0b7a1001df1f996551457a03e8f35a4e573499fa4fb328df83912b065ccb",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -3383,7 +3439,7 @@
       "huella": "da868be195bf1a882866906a375a6b734085388cf12052539c886d220527059a",
       "origen": "detector",
       "titulo": "6 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 6
     },
     {
@@ -3394,7 +3450,7 @@
       "huella": "9dfa1422f69d742612f3b5f014fe6953fb9ee5d1b38a8f5798c21a4efa4940b8",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3405,7 +3461,7 @@
       "huella": "be36dfdb44aa20c240c180e3f574fd6add767cd04a1a821ef78f2969b9c8425a",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3416,7 +3472,7 @@
       "huella": "4b7c9fe7a5af01f019343731fdb3398300027b49ed32d5bb8a3bd3c618262b22",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3427,7 +3483,7 @@
       "huella": "286eaa76e44bf4a9cce5fdfa63363f93c42cb6c774081ec15e4cc1a145b0832b",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3438,7 +3494,7 @@
       "huella": "62170ecf622dfe8d5ad491feedd9127a5bc8c2e230d4cdff1654b3d5235a7a95",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3449,7 +3505,7 @@
       "huella": "dc6d43302940425ce6bf0f10e7844ee64b0422a18f65100bfd7c8f219c119a05",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -3460,7 +3516,7 @@
       "huella": "9176020429fc1e10918451b52f15a937f1d7dee860f379aa5f72fdfdbafd5e04",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3471,7 +3527,7 @@
       "huella": "9cbef82732f2281228619ca875e8c264c167f3d32d54ea9357cbda6bcbe2c872",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3482,7 +3538,7 @@
       "huella": "b223cddf6242193a2ce5389bc94e2339d18cfa8c3fbd12cb6dcec0a6d42f6a9b",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -3493,7 +3549,7 @@
       "huella": "8589fc6d52352f1da45a38f5814a673f156b110a373bbbd3f4025716d782cb00",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3504,7 +3560,7 @@
       "huella": "e98836aae13de573146f679753b01c401c94f25103a1f63837f0ca7d5adae6da",
       "origen": "detector",
       "titulo": "6 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 6
     },
     {
@@ -3515,7 +3571,7 @@
       "huella": "e7ee534e43dea0ed33d04fcc2538f1cd6e36cc1f26cb3a9942b0d124ccb9ebd8",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3526,7 +3582,7 @@
       "huella": "e7f0edfc86485d6b2015d4f5fe55352c2ca02f6d2980841bb5f153483745c069",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3537,7 +3593,7 @@
       "huella": "f974d7a7f7b614a4fef1944afb37fe1f2cea0484184d297afd958f62f34bc52b",
       "origen": "detector",
       "titulo": "4 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 4
     },
     {
@@ -3548,7 +3604,7 @@
       "huella": "70f26a6e8a01dbdf8ebb425d872592befa0187137d5aab14c3a7de047b6c193a",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -3559,7 +3615,7 @@
       "huella": "5fd71d96ecba151f80304956c4dbf47f825105a3bacfa25b7af7847c6f038663",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -3570,7 +3626,7 @@
       "huella": "12370eb97951d517118a4371eb9d58ea4dfab4480808a5011b3d9673b69de2c6",
       "origen": "detector",
       "titulo": "4 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 4
     },
     {
@@ -3581,7 +3637,7 @@
       "huella": "821810a6a1a071831a918d977ff43a95d7a8aafe0268162604e834205e473775",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -3592,7 +3648,7 @@
       "huella": "41024393e31881c7e25aaceaa99266ecadcb2f3a3f1e6c5e5ac7dbf3e4f9d5e9",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3603,7 +3659,7 @@
       "huella": "9f7b660e982d9c79f0ecf5ea2dc78ac945e39f79954fb1c3f76ba23137dd457d",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3614,7 +3670,7 @@
       "huella": "bf77409e5266f16003e07c01e5294e9846f0848b001d8706f3bcedeb119e378c",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3625,7 +3681,7 @@
       "huella": "64e63123dd8012187f46f2857221c69d7b9ed1f480593ab906c31e790704c5ed",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3636,7 +3692,7 @@
       "huella": "1303fe6c84a7816780198428162be236233e0b75df45f383aaa4399cd502c5e7",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3647,7 +3703,7 @@
       "huella": "70e7d8caa4c04f67733092b52c751a44966e3fe956d994149af24c681c31029a",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3658,7 +3714,7 @@
       "huella": "2fbee496cec945087d40a7dd4a4bd79daeae6720b4a0198ff80f3f34b7536de1",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3669,7 +3725,7 @@
       "huella": "d7d7248564a9989b496de075ee7643b1c72b020d70166cd87c30787a19792ab1",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3680,7 +3736,7 @@
       "huella": "aacad5b44c4a577db1ffc03b6d01c99bf85be8a5f0c1e507a52a07af139c294d",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -3691,7 +3747,7 @@
       "huella": "cc1be24e2300d5490a4bf5ca4751364d0a758f943fe42597d0ad9f600218c80d",
       "origen": "detector",
       "titulo": "9 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 9
     },
     {
@@ -3702,7 +3758,7 @@
       "huella": "35bdf46caa1df0cacbe4021b03435e57e0b77954e65184f08e6f798f6bce4c68",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3713,7 +3769,7 @@
       "huella": "e6f1c7ca28c492538ca350461ebb1410b5c52a43a87f9f5fc8e4201f93d29bfa",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3724,7 +3780,7 @@
       "huella": "9dc9dbf5bb4a379eafde9fb5c7140f266787194a4f119b5f9f1bf2df8ea4d72e",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -3735,7 +3791,7 @@
       "huella": "d190a5843ec9bba1ea273a9b6798763bdb9cc51d912ea82d6cd69aa98cca32e8",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -3746,7 +3802,7 @@
       "huella": "c7e1a35ba349fb94e7ff6710936df595f66a35cd089eb0f45bc31fe4d0cd7da5",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -3757,7 +3813,7 @@
       "huella": "0d269327f4c0a836ee99b0fa4f2c326418f0d60bc9a82f82cf7411c51143d625",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3768,7 +3824,7 @@
       "huella": "270952b4b0cea294fc2c26efc5a9cd4127fc667f80a4d54eb086242bdcd66f3c",
       "origen": "detector",
       "titulo": "14 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 14
     },
     {
@@ -3779,7 +3835,7 @@
       "huella": "c03c8edfef2fc98060c8136bd7d907367bc3d5004ae8ba9bc349e35ec63aef2f",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3790,7 +3846,7 @@
       "huella": "46017826ea0440f39a3482032f52e2f1cf311e173ebf29178046aa107a4f398c",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3801,7 +3857,7 @@
       "huella": "27660bf34290f1010eaa490f7486c4f663700f463c52c8c97898f1102e7f8eb1",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3812,7 +3868,7 @@
       "huella": "44e7ace2e61dbbff0a72eef56f29d0a18d7b1d9f09f75861215281e6e42e4125",
       "origen": "detector",
       "titulo": "10 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 10
     },
     {
@@ -3823,7 +3879,7 @@
       "huella": "ab2f15a6e645b89577fb9c7465a1a127a43b0a4c807fab85cea342de81ba0bd5",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3834,7 +3890,7 @@
       "huella": "10d0e6fef81be81e189f4a231b6d594063e7baee7746c64041c52fdf074b758f",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3845,7 +3901,7 @@
       "huella": "de74496563016b9d7a13b245b52230abdec02eeb08a17599ef7e2beaaf13c3bc",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3856,7 +3912,7 @@
       "huella": "fef77bafd1d01243d48c34ef83325a2df307f80a9c3e5ffa6e5dbaf8f63d53fb",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -3867,7 +3923,7 @@
       "huella": "d2bd20c3f5aefe2524f489f43bb408dd74c2059d5b8c6db6dc167344f48ffc7a",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3878,7 +3934,7 @@
       "huella": "e6a35fcf3c90f75b27c14eb559ddcf8cd259b4e1a2cf49f73d3ed9f91229fccd",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3889,7 +3945,7 @@
       "huella": "fe1b08b76ee65ae1df75e617f84ec0ea06ff7f06ea3c7a8b0a2f8e60950489fb",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -3900,7 +3956,7 @@
       "huella": "7951eeba190733f22ce2687651324ae4d9983246138e8d950492e90db661f1fe",
       "origen": "detector",
       "titulo": "4 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 4
     },
     {
@@ -3911,7 +3967,7 @@
       "huella": "961a6b136d374cadec575eed37edd143c1b2eb679ddb37519d3b233b717c78a4",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -3922,7 +3978,7 @@
       "huella": "cc08404519b000828e36149ac53d85d7d46c983ed1bff8de3fe75fda6b82c3a6",
       "origen": "detector",
       "titulo": "6 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 6
     },
     {
@@ -3933,7 +3989,7 @@
       "huella": "959d3d0829c9a4d1f589195c96a2079be37024e0882dece9a5aad8e6b33de27f",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3944,7 +4000,7 @@
       "huella": "3cb076ed884b6b74df60f6be6c1b4c179986a6ddf1c6e36b875c85de2cec4aa4",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3955,7 +4011,7 @@
       "huella": "a3ef16fe522981f90462c1c773bd8f0755c0e68ea1f927d531dfe05d28eb69b8",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -3966,7 +4022,7 @@
       "huella": "e35be99ae0704164c2c7737f8ca85fd72339f335098c23568decadc88f8f4dc1",
       "origen": "detector",
       "titulo": "4 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 4
     },
     {
@@ -3977,7 +4033,7 @@
       "huella": "2ef9a1cd435c2aa319ebf5bf472c215edcaf3192893ae13317dc1aab8c260953",
       "origen": "detector",
       "titulo": "7 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 7
     },
     {
@@ -3988,7 +4044,7 @@
       "huella": "3500b49071cd2a036d7b9a159584447fcba41521eb1da56dafe13d4036cb5f81",
       "origen": "detector",
       "titulo": "9 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 9
     },
     {
@@ -3999,7 +4055,7 @@
       "huella": "cc2555ed4f46149f10fa3391b496ee972a0bc1455d3cc6813756e88494abc87b",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -4010,7 +4066,7 @@
       "huella": "b434a9c63f3cebc953c5ff1c781e36ee0ce811c313eea25e386e798c9903351b",
       "origen": "detector",
       "titulo": "6 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 6
     },
     {
@@ -4021,7 +4077,7 @@
       "huella": "72c891dfb9b93e314cfe6e09ff383b98090a9ff8f90d11a7ea3316bd17a2f4cd",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4032,7 +4088,7 @@
       "huella": "057a43ed7240f6dfc7902719860a443c0b3d41fd70f6355a22bd453d997a41c6",
       "origen": "detector",
       "titulo": "15 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 15
     },
     {
@@ -4043,7 +4099,7 @@
       "huella": "667d69b6e3dc4663830b2c1b49c7a708764186ad9014d45a91eaabd4b8d84c1b",
       "origen": "detector",
       "titulo": "6 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 6
     },
     {
@@ -4054,7 +4110,7 @@
       "huella": "593160649e6e7436a82ec62467d7ecd02766931446b958731982214148f35449",
       "origen": "detector",
       "titulo": "6 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 6
     },
     {
@@ -4065,7 +4121,7 @@
       "huella": "b9f08f24e21e86e87c302ed8e745a9449e4eaefbe4d16dc141e82cbe35d20685",
       "origen": "detector",
       "titulo": "7 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 7
     },
     {
@@ -4076,7 +4132,7 @@
       "huella": "5a9f49ea42da311c752cceea74045a756df9672c62555e20ece2654eaf40aac3",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4087,7 +4143,7 @@
       "huella": "f42487ab7e98126da3b85578c8f815d7582e59d480f0cac70280f153d54c5238",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -4098,7 +4154,7 @@
       "huella": "d53ea952e03672eaa38136ab9c90f828e07d085f57c8ca7e4064d7bf391b4689",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4109,7 +4165,7 @@
       "huella": "9f19d1e0da142094b8cf42984ec54e16540673325274b33101a7c4445bfb5d4f",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4120,7 +4176,7 @@
       "huella": "cbeb4e579f4fa28159a15c25c0947182cf46661eea3233c064e6136f3014b228",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4131,7 +4187,7 @@
       "huella": "b660133fe1b5f2e3afbae78abeffa94a19093b641395b18b9035ea0e2e0ffe86",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4142,7 +4198,7 @@
       "huella": "753f37d84af8776802fda5189e0a7de9d59c66cd4031be70a00649cdbe670623",
       "origen": "detector",
       "titulo": "19 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 19
     },
     {
@@ -4153,7 +4209,7 @@
       "huella": "4080734d856eca0c30ceb6d1ec74208cc1ccfc93c96f0e23c1da45899dcc7b7f",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4164,7 +4220,7 @@
       "huella": "0b97b14820a9172efab70c49a2dbee98a7c140adff56e4b646b17640ececd4c6",
       "origen": "detector",
       "titulo": "18 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 18
     },
     {
@@ -4175,7 +4231,7 @@
       "huella": "a7432981cb5fe169e47a88c173e595b359ec20399b6c218bcad7858b40608001",
       "origen": "detector",
       "titulo": "7 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 7
     },
     {
@@ -4186,7 +4242,7 @@
       "huella": "82adf2d9648209f9078de208e53819b27b831a810c07af68069411d17ff1728c",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4197,7 +4253,7 @@
       "huella": "5f4bc64a9feb651b4bf6e70e2ef4170445809dc9d019465d645e3412bbdd1ef1",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -4208,7 +4264,7 @@
       "huella": "01f5d995b16754b57e4348b36a4b8a0ca54689a3ccd65664310245e644945060",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4219,7 +4275,7 @@
       "huella": "217fbbaed7462e6649bd3f7a1c6fd3abb78be070bf3d6286092e9873dcb32896",
       "origen": "detector",
       "titulo": "4 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 4
     },
     {
@@ -4230,7 +4286,7 @@
       "huella": "c11c209b0eb5509905e729b7e3b80e0ca371dfb62983984c6c945784371623e7",
       "origen": "detector",
       "titulo": "4 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 4
     },
     {
@@ -4241,7 +4297,7 @@
       "huella": "6e5bf474ed3038023a2d85be98ac2be88dfd4cb2b6fb12d9ed070325b90d1c77",
       "origen": "detector",
       "titulo": "13 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 13
     },
     {
@@ -4252,7 +4308,7 @@
       "huella": "3cb198e4453e577c327661d007bcc83c241402daefb726df003e92628ca7aecf",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -4263,7 +4319,7 @@
       "huella": "357177c049f51dd4e5a033377dd2cd2c89511dabafb3f5d0fcfed0a39139dbcb",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4274,7 +4330,7 @@
       "huella": "12fd88150d4d5898e251d4a3606de7440d808829fc3782a0750551fa9bdbbd3f",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -4285,7 +4341,7 @@
       "huella": "2f70aa280d8cad9ca7bba73bbd2d44637b91d28cb5d94d0e6cd9c34e831e0401",
       "origen": "detector",
       "titulo": "4 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 4
     },
     {
@@ -4296,7 +4352,7 @@
       "huella": "851f6e0200e93e83de96c79db23cd7504b95f53ab4639eb1241f0b30476ac4d5",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4307,7 +4363,7 @@
       "huella": "e27ee56ace4ab2cf72121dcb200e13da72d2bfa6c82c6f830c73000e7e4b7811",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4318,7 +4374,7 @@
       "huella": "2aad932a09bb50113b026eae0191c67ade51f17c152faa8ccc29ff1c8a213aab",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -4329,7 +4385,7 @@
       "huella": "756faa7b168e4c71a4b2ff9c50aa88e29c70945fc3dad5432da3c104ec3a0380",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4340,7 +4396,7 @@
       "huella": "42192e8aab80679d1273e597b147a9d9ab395d8914b2ac993527647350bf6f18",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4351,7 +4407,7 @@
       "huella": "b4f556815c62c3043eb01e475b275591d0e0267c9d572c4d2aee2f2ccda811c3",
       "origen": "detector",
       "titulo": "5 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 5
     },
     {
@@ -4362,7 +4418,7 @@
       "huella": "6b0c813350b415bc806d00545887ed64ad56ebf5d38e1f7b9e55ef33e3f50ce5",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4373,7 +4429,7 @@
       "huella": "c358b5454a83b23e51b71672b2ab83d69f2610551768144a6d0fe1173c937e32",
       "origen": "detector",
       "titulo": "6 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 6
     },
     {
@@ -4384,7 +4440,7 @@
       "huella": "48bd81976ac363fdf42bedc3887f363a8f907c8571a37afffa01deba83571799",
       "origen": "detector",
       "titulo": "6 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 6
     },
     {
@@ -4395,7 +4451,7 @@
       "huella": "45d63ad7cb02af3f8ddc76cca48fa7d11ff7f774da5331120474dfa0b306f69f",
       "origen": "detector",
       "titulo": "10 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 10
     },
     {
@@ -4406,7 +4462,7 @@
       "huella": "adf8661c0d41bcf16f461364a6e4f90205cb794c149883654a4ef81606f59a75",
       "origen": "detector",
       "titulo": "24 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 24
     },
     {
@@ -4417,7 +4473,7 @@
       "huella": "02285f42211c4159e32229e5d96527513be2bfa4b205bb9f43f7631889f70cd6",
       "origen": "detector",
       "titulo": "7 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 7
     },
     {
@@ -4428,7 +4484,7 @@
       "huella": "152a543d734af245c7bcf3fd359e7e1fc1dbfe4a441711d2bb1196b400431ffc",
       "origen": "detector",
       "titulo": "10 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 10
     },
     {
@@ -4439,7 +4495,7 @@
       "huella": "77b3571c94ae36b9857b1c2f6e24355dce41b11e0bf8b22a6bb99e8cc4a0c4de",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4450,7 +4506,7 @@
       "huella": "0bb0fc90e6074987cc865d248b7dd297557cf231093e5ca1c4e4f26516c3c7ee",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4461,7 +4517,7 @@
       "huella": "f5cc5cb13f20f85e20dd3060f6a9c8fbf891a15684513933ba7a818202d23b30",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4472,7 +4528,7 @@
       "huella": "cd9700ee2ee633652225d99793f34bf893eb49957edd16e72992a886f3a30a87",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4483,7 +4539,7 @@
       "huella": "23e0dfc5732307a3a3cd1ac28842995d77bbcd22c818300acf983895ec0d44cc",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4494,7 +4550,7 @@
       "huella": "adee04fae906b9b14fc3a586353399b128770986fb3f2582487caee4e3859a9e",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4505,7 +4561,7 @@
       "huella": "86c14e5eeee45309780f753beaa15931dd05d884f60ebde892a4b12409fc5fcb",
       "origen": "detector",
       "titulo": "8 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 8
     },
     {
@@ -4516,7 +4572,7 @@
       "huella": "2e7cf3014500622bd7b602c56e9ad9c7e5e86d687d4336bdc89b872e9f9aff7e",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4527,7 +4583,7 @@
       "huella": "1892ccf95688c4b2f26b60e9be2caba4f332f535e9ccff71154acaf79c944fea",
       "origen": "detector",
       "titulo": "10 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 10
     },
     {
@@ -4538,7 +4594,7 @@
       "huella": "5dccd466f7353ba46b2c30cc5415b6909c7d86ce4a0f2d65a9f21b75f150d510",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4549,7 +4605,7 @@
       "huella": "8d560d2f4f3daddc1f32cfe3548071a5e253a6bc2e8db85ce628c42876499dc0",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4560,7 +4616,7 @@
       "huella": "e1c466e2a8c9f73aca7ff6698c67fc7ec7dae1895704e8646a5d5db148436b87",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4571,7 +4627,7 @@
       "huella": "7bf59cede2bf760f4efa6815397aaa50307fb6968fbdfacdc24301dc93d0c942",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4582,7 +4638,7 @@
       "huella": "5a5852af27f082bb186ad6f4daed20e38a00691a21821c58bcbb721250a958c1",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4593,7 +4649,7 @@
       "huella": "5b62df2f6d827c6886a241f1d498972f06350dedc65eb20e25a3e7213664e485",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4604,7 +4660,7 @@
       "huella": "2c82e95c22cbc07d6307607ab07df10e05334361ef25dab1a4dd8a142aa96cda",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4615,7 +4671,7 @@
       "huella": "e24b05905a0d8bf79a30840c3a744d23026cc15edff7b40250fdf169f7a158a7",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4626,7 +4682,7 @@
       "huella": "8c82efa25889ccb0a12ae82d04d9a8cf000cc76d423c5314f72c75c20e8729fc",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -4637,7 +4693,7 @@
       "huella": "5b36e7ed4ec4fc4cdf4c42f84a6efca8e4645925b6808dc1b55ca936f4d19aff",
       "origen": "detector",
       "titulo": "1 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 1
     },
     {
@@ -4648,7 +4704,7 @@
       "huella": "5ea89643875c3ba7e06166d1f71d2ee119755384b51b9e429d411bf2d1bf00f5",
       "origen": "detector",
       "titulo": "2 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 2
     },
     {
@@ -4659,7 +4715,7 @@
       "huella": "5c6a1b93efa386b8f85745ee04922ddeefb60d2a5808fc3f744f4cbccfca3e21",
       "origen": "detector",
       "titulo": "3 `any` en el archivo",
-      "desde": "2026-10-01",
+      "desde": "2026-10-02",
       "cuenta": 3
     },
     {
@@ -4680,7 +4736,7 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "PREEXISTENTE",
-      "nota": "la política (cuenta nacida y ACTIVE) es deliberada (docs/MODERATION.md §7); falta la migración de las cuentas antiguas: autorización del dueño"
+      "nota": "ACCIÓN DEL DUEÑO: la migración de nacimiento de las cuentas antiguas no existe todavía (docs/IDENTITY.md §12.1 dice qué cuentas, qué script y qué riesgos); escribirla y ejecutarla contra producción necesita su autorización"
     },
     {
       "id": "trust/foto-con-avatar-publica/storage.rules#avatar-replacement",
@@ -4699,8 +4755,8 @@
       "titulo": "Un perfil puede llamarse «Weë Soporte» y su nombre sale en el push",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "INCIERTO",
-      "pregunta": "¿nombres reservados? Decisión de producto"
+      "estado": "PREEXISTENTE",
+      "nota": "DECISIÓN DEL DUEÑO: lista de nombres reservados («Weë», «Soporte», «Equipo Weë»…) o insignia de cuenta oficial; las dos opciones están en el informe de cierre"
     },
     {
       "id": "trust/push-a-cualquiera/firestore.rules#notifications.create",
@@ -4719,8 +4775,8 @@
       "titulo": "Una persona puede dejar varias reseñas al mismo negocio",
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
-      "estado": "PREEXISTENTE",
-      "nota": "exige id determinista en el cliente (reviews/{uid}): cambio de cliente y de datos"
+      "estado": "CORREGIDO",
+      "prueba": "cierre-reglas.emulator A + fronteras-rules: reviews/{uid}; residual: quien ya tenga una reseña antigua con id automático puede tener una más en su id (cierre 2026-10-01)"
     },
     {
       "id": "trust/verificado-autoasignado/firestore.rules#businesses",
@@ -4740,7 +4796,7 @@
       "huella": "2db7be51a74287b830b0afaeed52db3082ef037e2f3d1abb66f24bda03cac094",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/AiAvatarScreen.tsx#AiAvatarScreen.handleGenerate",
@@ -4750,7 +4806,7 @@
       "huella": "ae0f4a8f5500272780891205a6f8e86a4c9b80f3f9fe57a717fd1b48db702878",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/AiAvatarScreen.tsx#AiAvatarScreen.handleRegenerate",
@@ -4760,7 +4816,7 @@
       "huella": "ae0f4a8f5500272780891205a6f8e86a4c9b80f3f9fe57a717fd1b48db702878",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/AiAvatarScreen.tsx#AiAvatarScreen.handleStartRegenerate",
@@ -4770,7 +4826,7 @@
       "huella": "ae0f4a8f5500272780891205a6f8e86a4c9b80f3f9fe57a717fd1b48db702878",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/CommunitiesManagementScreen.tsx#CommunitiesManagementScreen.handleToggleCommunity",
@@ -4780,7 +4836,7 @@
       "huella": "6606f9deaa378dd85a29e1ff0835bbc6c5b26e25539edba5fc310a8dd72f567e",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/CreateScreen.tsx#CreateScreen.takePhoto",
@@ -4790,7 +4846,7 @@
       "huella": "0361d7596880d996f9cd8ee82a0d5c1e5ef7a2a463edbf13a0d478fa307c7259",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/InboxScreen.tsx#InboxScreen.deleteChat",
@@ -4800,7 +4856,7 @@
       "huella": "94a5f4c7898dbfa8f3271edb6ffb5f0fcadbaa079ccd6853fc5f9a92f1758c3b",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/WeeBizProductsScreen.tsx#WeeBizProductsScreen.handleDeleteProduct",
@@ -4810,7 +4866,7 @@
       "huella": "b0593dc772a08cfc9145b49d42b27948ad46bc5029bca70b09fe304816e6d701",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/WeeBizProfileScreen.tsx#WeeBizProfileScreen.handleDeleteReview",
@@ -4820,7 +4876,7 @@
       "huella": "33f472aa67061ce744dc71c4872bd7c0892c3bf37b2df1472772feb5ad2ef227",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/WeeBizRegisterScreen.tsx#WeeBizRegisterScreen.handleSave@38264312aa",
@@ -4830,7 +4886,7 @@
       "huella": "38264312aa1e784226136e53222bbd88b459a4dda721fe0a45d124a754625f9f",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/WeeBizRegisterScreen.tsx#WeeBizRegisterScreen.handleSave@ce0c375ef9",
@@ -4840,7 +4896,7 @@
       "huella": "ce0c375ef9e6db912b8f2d69b2e1a54958bc657d804cc55929d2a050406d69f5",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
     },
     {
       "id": "web/alert-con-botones/screens/WeeProfileCreationScreen.tsx#WeeProfileCreationScreen.handleCreate",
@@ -4850,7 +4906,527 @@
       "huella": "5ecc5789362c8467ee90bfc1d2b3a451f31ae5370a8de8bc996e91e8f32374ef",
       "origen": "detector",
       "titulo": "Alert.alert con botones: en la web no muestra nada y los botones no corren (usar notify/confirmAction de utils/notify.ts)",
-      "desde": "2026-10-01"
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/components/PostCard.tsx#PostCard.handleDeletePost.onPress",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "958179bf3aaa6a18ff5a8eaa5e30a2ffb7a3e5056d575bec873f0acd3efed4c7",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/components/avatars/AvatarPicker.tsx#AvatarPicker.pickImageFromGallery",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "b057d2ce50492209d41360ad0797f4e7d2cdd5167b36587b713bec4213f91d31",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/components/avatars/AvatarPicker.tsx#AvatarPicker.takePhoto@d2abdc4c0c",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "d2abdc4c0ceb49f2e5ace8257678139b076506b18e142aed3602d135e227a850",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/components/avatars/AvatarPicker.tsx#AvatarPicker.takePhoto@dcf734b413",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "dcf734b413724a82ad14c60a5a3da43b37f464e0e76fd10d00a99698527f282b",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/AiAvatarScreen.tsx#AiAvatarScreen.handleGenerate",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "0b1e9160f62808c3e561fa7a4e3c5fec52ff781284468b90c7e49ac5aead68fd",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/AiAvatarScreen.tsx#AiAvatarScreen.handleUploadAvatar@18a98806a7",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "18a98806a77628bc9e163346ce61408bd6c4de2f5699f411833e4576893c4a70",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/AiAvatarScreen.tsx#AiAvatarScreen.handleUploadAvatar@4af579856a",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "4af579856a291c6f5cc0bb446c40419aa574a1104b899b25ccf279967fee32e3",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/AiAvatarScreen.tsx#AiAvatarScreen.handleUseAsAvatar",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "9ccadf069817576fdd0829d1c116a14c9c317c73d70401d767c01079ccccafd7",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/AiAvatarScreen.tsx#AiAvatarScreen.handleUseSwapAsProfile",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "d59b0f6f52ac5024df84f49ae996d6f91e7f170eee77e957733b16166d36839d",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/AiAvatarScreen.tsx#AiAvatarScreen.pickImageForSwap@18a98806a7",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "18a98806a77628bc9e163346ce61408bd6c4de2f5699f411833e4576893c4a70",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/AiAvatarScreen.tsx#AiAvatarScreen.pickImageForSwap@22cace9abc",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "22cace9abca78168e124e97ea26039e803024f90e77ddbe645f907681adda5d0",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/AiAvatarScreen.tsx#AiAvatarScreen.renderExistingAvatar@bb26c17157",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "bb26c17157dffe05707b0c480cf1fe892712546db4533a09e4f8aed901726ac6",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/AiAvatarScreen.tsx#AiAvatarScreen.renderExistingAvatar@ec871a2809",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "ec871a2809355fb3334ff3b8b1ac60215c88c3a2b1d0e746cbc9a49cdf400fb8",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/AiAvatarScreen.tsx#AiAvatarScreen.showGenerationError",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "cf332028d0ccb6db128509b28e6c284e7d6eef72150c32625b30c4c72043c9a7",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CommunitiesManagementScreen.tsx#CommunitiesManagementScreen",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "748f328b440a54c44d92fae0879d0167cea24f63c4b65333967b2e8623986116",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CommunitiesManagementScreen.tsx#CommunitiesManagementScreen.handleToggleCommunity",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "ce20f6e168f5ab448ef589c6b1acff589c1672f09b8107dd169ef9b86bd55660",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CommunitiesManagementScreen.tsx#CommunitiesManagementScreen.handleToggleCommunity.onPress",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "bc6fe8e0b3b5bcf3afc26b4af7c83a285beaa855a0b0208a4924327d384d82c6",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/ConversationScreen.tsx#ConversationScreen.pickCustomWallpaper",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "5f00f09fc4efbc044c082965412f1b6d245b9475317cb5c313ffb078865823e5",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/ConversationScreen.tsx#ConversationScreen.pickImage",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "5f00f09fc4efbc044c082965412f1b6d245b9475317cb5c313ffb078865823e5",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/ConversationScreen.tsx#ConversationScreen.startRecording",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "cabedfff78493e99aae3e133f9e7d18f648f287057038b518d9524979f160ffb",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.handlePollPress",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "0d61353bfb163750a2757a543b269b9799680317dbe2f872285e42dca284359d",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.handlePublish",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "94fe174635261c25b4444fd4fc71e39d0ff91c6969c471b404baab0401f115ff",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.notifyVideoTooLong",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "a23a7d1d9c12fcb4bf38c5edf98ca6ee23bb5f6f7f499a01e1a6adcae727fd40",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.pickImageFromGallery@06df3b2032",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "06df3b2032cba62d005d215a17028edc47088d863c6765ed10476ecb04d5924b",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.pickImageFromGallery@7901726f86",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "7901726f860001ce04577e9a2d183fd8b790d3bab33c0eab369915ab5f68a8e7",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.pickImageFromGallery@e99c611988",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "e99c611988648df9ecd3e6320c144ed295fe510bfe10f36cfce7968d497bad7a",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.pickImageFromGallery@f796ce9cee",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "f796ce9ceef09eefd31b1b8dae36cf9b4d401c513fe9f231a82d9f4fda2b88e7",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.takePhoto",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "a8cf542cb5fc1d36d89fa10d1c9dbde9df1f2bb2bd9621f5bd797fa8129f6eb8",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.takePhotoWithFaceSwap@0ae762be07",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "0ae762be072f56e3efc4d928d9c7740cf53a5ffc1ec8e6bd81499b8a2b91ada6",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.takePhotoWithFaceSwap@2235c5f37c",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "2235c5f37cd2b28b10811f7a5ad0ab8c951134ddea781ef33e2e2a163d10f2be",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/CreateScreen.tsx#CreateScreen.takePhotoWithFaceSwap@b7a0e21bd4",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "b7a0e21bd487df81f0e8db5eac45e77c91bd47ba7682eedb4ed6455d4371e9b4",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/ProfileScreen.tsx#ProfileScreen.handleAvatarSelect",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "e05f6a19ab95140510187540ed97745623752c3730eb678f87ae0b776c3a9fd7",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/ProfileScreen.tsx#ProfileScreen.handleBannerSelect@0342c63aca",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "0342c63aca880076ff147eab8392e4d5a69f97f069c408c307065de822ea9ac6",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/ProfileScreen.tsx#ProfileScreen.handleBannerSelect@bfc012d8da",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "bfc012d8dadc41e70f0a4e6025f76dcee0edce0d99891abdf0517a4bbfcad23e",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/ProfileScreen.tsx#ProfileScreen.handleLogout",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "9da5826e3bd9144ff4ebf473004da9f46964eb5fd8ad74f8a18e8fd76d542348",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/ProfileScreen.tsx#ProfileScreen.handleSaveProfile@bef0df791a",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "bef0df791a96611a8e7b71531a58bf3501ed525282687bdf46393bb30a42dd44",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/ProfileScreen.tsx#ProfileScreen.handleSaveProfile@df2371efcd",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "df2371efcd56907964937282dd826a1da9711445cb1dcf515eed9f1ec3681ab0",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizProductsScreen.tsx#WeeBizProductsScreen.handleSaveProduct@0969253461",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "096925346105349bd2eb6c990f7d3d0f731a1599bcf7b1e567dc7c10f1a1e22e",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizProductsScreen.tsx#WeeBizProductsScreen.handleSaveProduct@5b0335621c",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "5b0335621cef522b33c17f09ec1dbb5af4b2aed2ac9752715721c5a6458a33b9",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizProductsScreen.tsx#WeeBizProductsScreen.pickImage",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "a0d5fe6ab2e26ad644be393fb47bc817295d30d6815708cc9c63d4de6a6ca49b",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizProfileScreen.tsx#WeeBizProfileScreen.handleContact",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "656335df9fc5959e62ede1e7ddd6e620914a808107d30b54e70eebab6cff0bf9",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizProfileScreen.tsx#WeeBizProfileScreen.handleExternalLink",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "6e2fc3ff3cdd295bb99eb510e321bd14f5a7ec5a5102850ef8c1dc7b5a270ee4",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizProfileScreen.tsx#WeeBizProfileScreen.handleSubmitReview@3fcedd01c2",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "3fcedd01c2ceb46a2353683231cad6e851d26dd4b0cba3600952b9332aaa61c3",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizProfileScreen.tsx#WeeBizProfileScreen.handleSubmitReview@b9c735c2bd",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "b9c735c2bd107ab1c46fc1478f83fe775d33a5365388df670b1e37fc039cf977",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizRegisterScreen.tsx#WeeBizRegisterScreen.handleSave@232a2fd5e0",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "232a2fd5e08139d236e0d63a9c9c12bcf672227f93e0373e15998ff1ced30de9",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizRegisterScreen.tsx#WeeBizRegisterScreen.handleSave@3fabd1a522",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "3fabd1a5226b21b7ffd1da5663be50fb9230ee43be4835747ce6480bac9505ab",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizRegisterScreen.tsx#WeeBizRegisterScreen.handleSave@57fc7a2f68",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "57fc7a2f6878a1be062eed85a3d5492d9bc3ac7ffd50459a5f87ddd7c47e1c70",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizRegisterScreen.tsx#WeeBizRegisterScreen.handleSave@c89412f685",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "c89412f68594c3318fc3b38a4eb2ff29b05eccb0e4297db6dc8ecf6a6abbe974",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/screens/WeeBizRegisterScreen.tsx#WeeBizRegisterScreen.pickLogo",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "a0d5fe6ab2e26ad644be393fb47bc817295d30d6815708cc9c63d4de6a6ca49b",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/services/videoDownload.ts#downloadVideoWithWatermark@07c7c8cf89",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "07c7c8cf89335b7cbea0a1c87b93dfbea10348f7877ab8a88f187eeae4d0fc2b",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/services/videoDownload.ts#downloadVideoWithWatermark@1d5bd832c7",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "1d5bd832c738980ee157b4d362db21c9285d547b7a9bc58408024d5b9632b995",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
+    },
+    {
+      "id": "web/alert-sin-boton/services/videoDownload.ts#downloadVideoWithWatermark@5b8ff48e18",
+      "regla": "web/alert-sin-boton",
+      "estado": "PREEXISTENTE",
+      "severidad": "media",
+      "huella": "5b8ff48e18057589d548f68e3096be6d6124b4af4963d695612fd98fb3715fc0",
+      "origen": "detector",
+      "titulo": "Alert.alert sin manejadores: en la web es una función vacía y el aviso no se ve (usar notify de utils/notify.ts)",
+      "desde": "2026-10-02"
     }
   ]
 }

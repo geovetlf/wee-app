@@ -125,9 +125,14 @@ console.log('\n── B · Ningún "Cancelar" hace de Back ──');
   const CONSERVADOS = {
     'components/avatars/AvatarPicker.tsx': 0,
     'components/ChatCamera.tsx': 1, // declina el permiso de cámara y cierra: es el "no" de un permiso
-    'components/CommunitySelector.tsx': 1, // confirma antes de unirse a una comunidad sin filtro
+    // `components/CommunitySelector.tsx` (confirmaba antes de unirse a una comunidad sin filtro) salió de la lista al
+    // retirarse como código muerto (cierre post-auditoría, 2026-10-01): nadie lo importaba. Si vuelve con su Cancelar,
+    // la comprobación 5 lo pillará fuera de lista y tendrá que volver aquí a explicarse.
     'components/ReportSheet.tsx': 2, // UN botón, con su texto y su etiqueta accesible: cierra la hoja de denunciar sin enviar nada. Es el "no" de una denuncia, y no hay pantalla a la que volver
-    'screens/CreateScreen.tsx': 2, // alertas de permisos de galería y cámara
+    // Eran 2 (permisos de galería y de cámara). La de la cámara confirma ahora con `confirmAction` —la cámara también
+    // se abre en la web, donde un `Alert.alert` con botones no hace nada— y su Cancelar es el de la 6 (cierre
+    // post-auditoría, 2026-10-01). Queda la de la galería, que solo corre en el teléfono.
+    'screens/CreateScreen.tsx': 1, // alerta de permisos de galería (solo nativo)
     'screens/ProjectScreen.tsx': 1, // alerta: eliminar un proyecto
     'screens/ProjectsScreen.tsx': 1, // cierra el formulario de proyecto nuevo (acción de SectionTitle)
   };

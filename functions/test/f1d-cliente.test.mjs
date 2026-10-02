@@ -8,7 +8,7 @@
  *       NO hace —ni un segundo pedido, ni un id propio, ni reloj—.
  *   S · Los servicios, con Firebase doblado: qué se manda y qué no.
  *   R · Lo que se ve, dibujado con el español de verdad.
- *   M · Cada motivo del servidor tiene su frase en los once idiomas.
+ *   M · Cada motivo del servidor tiene su frase en cada diccionario del registro de idiomas.
  *   G · Nadie más llama, nadie cobra ni compone nada en la app.
  */
 import path from 'node:path';
@@ -414,7 +414,7 @@ await seccion('R2', async () => {
 });
 
 /* ═══ M · CADA MOTIVO, SU FRASE ══════════════════════════════════════════ */
-console.log('\n── M · Cada motivo del servidor tiene su frase en los once idiomas ──');
+console.log('\n── M · Cada motivo del servidor tiene su frase en cada diccionario del registro ──');
 await seccion('M', async () => {
   const union = (archivo, tipo) => { const s = leer(archivo); const i = s.indexOf(`export type ${tipo}`); return [...s.slice(i, s.indexOf(';', i)).matchAll(/'([a-z_]+)'/g)].map((m) => m[1]); };
   const DEL_PLANO = union('functions/src/creator/plano.ts', 'MotivoDePlano');
@@ -428,14 +428,27 @@ await seccion('M', async () => {
   const tabla = leer('utils/mensajesDeFilmmaker.ts');
   const sinEntrada = TODOS.filter((m) => !new RegExp(`\\n  ${m}: 'filmmaker\\.`).test(tabla));
   check('M3) cada uno tiene su entrada en la tabla, no la frase de reserva', sinEntrada.length === 0, sinEntrada.join(', '));
-  const IDIOMAS = ['es', 'en', 'de', 'fr', 'it', 'pt', 'pt-PT', 'ru', 'ko', 'zh', 'zh-TW'];
+  /*
+   * Los diccionarios salen del REGISTRO (`i18n/idiomas.ts`), no de una lista escrita aquí: antes eran once a mano y el
+   * registro ya tenía dieciséis. Uno por idioma ofrecido (`listo`) y uno más por cada variante con diccionario propio;
+   * la variante que cubre el código base del idioma (pt-BR, zh-CN) ES ese diccionario. La carpeta de cada uno tiene
+   * que existir, y ninguna carpeta de `i18n/textos` queda fuera.
+   */
+  const { IDIOMAS: REGISTRO } = crearCargador()('i18n/idiomas.ts');
+  const IDIOMAS = REGISTRO.filter((i) => i.listo)
+    .flatMap((i) => [i.codigo, ...(i.variantes || []).filter((v) => !v.cubre.includes(i.codigo)).map((v) => v.locale)]);
+  const carpetas = fs.readdirSync(path.resolve(RAIZ, 'i18n/textos'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+  check('M3b) los diccionarios, contados del registro, son exactamente las carpetas de i18n/textos',
+    IDIOMAS.length >= 11 && JSON.stringify([...IDIOMAS].sort()) === JSON.stringify([...carpetas].sort()), `registro: ${IDIOMAS.join(',')} · carpetas: ${carpetas.join(',')}`);
   const claves = (l) => new Set([...leer(`i18n/textos/${l}/filmmaker.ts`).matchAll(/^ {2}([A-Za-z][A-Za-z0-9_]*): '/gm)].map((m) => m[1]));
   const sinFrase = IDIOMAS.flatMap((l) => { const c = claves(l); return TODOS.map((m) => MSJ.claveDelMotivoDeToma(m).replace('filmmaker.', '')).filter((k) => !c.has(k)).map((k) => `${l}:${k}`); });
-  check('M4) y esa frase existe en los once diccionarios', sinFrase.length === 0, sinFrase.slice(0, 6).join(', '));
+  check(`M4) y esa frase existe en los ${IDIOMAS.length} diccionarios del registro`, sinFrase.length === 0, sinFrase.slice(0, 6).join(', '));
   const nuevas = [...leer('i18n/textos/es/filmmaker.ts').matchAll(/^ {2}(take[A-Za-z]+): '/gm)].map((m) => m[1]);
   check('M5) las claves de la toma son 50, y ninguna pide un plural', nuevas.length === 50 && nuevas.every((k) => !/_(one|other)$/.test(k)), `${nuevas.length}`);
-  const precio = IDIOMAS.filter((l) => !/^ {2}takePrice: '\{\{credits\}\} Credits',$/m.test(leer(`i18n/textos/${l}/filmmaker.ts`)));
-  check('M6) el precio dice «Credits» en los once, sin traducir', precio.length === 0, precio.join(', '));
+  /* Entre la cifra y la marca, un espacio o el espacio FIJO (U+00A0) que pide la tipografía del idioma (el danés lo
+     exige entre cifra y unidad: docs/I18N-DANES.md); lo que se exige igual en todos es «Credits», sin traducir. */
+  const precio = IDIOMAS.filter((l) => !/^ {2}takePrice: '\{\{credits\}\}[  ]Credits',$/m.test(leer(`i18n/textos/${l}/filmmaker.ts`)));
+  check(`M6) el precio dice «Credits» en los ${IDIOMAS.length}, sin traducir`, precio.length === 0, precio.join(', '));
 });
 
 /* ═══ G · NADIE MÁS LLAMA, NADIE COBRA NI COMPONE NADA ═══════════════════ */

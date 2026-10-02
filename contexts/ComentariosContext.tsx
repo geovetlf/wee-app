@@ -52,6 +52,6 @@ export const ComentariosProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
 export const useComentariosDeLaPublicacion = (): Comentarios => {
   const valor = useContext(ComentariosContext);
-  if (!valor) throw new Error('useComentariosDeLaPublicacion necesita estar dentro de ComentariosProvider');
+  if (!valor) throw new Error('useComentariosDeLaPublicacion-fuera-de-ComentariosProvider');
   return valor;
 };

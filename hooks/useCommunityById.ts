@@ -39,6 +39,8 @@ export function useCommunityById(communityId: string | undefined) {
       return;
     }
 
+    /* La tarjeta se recicla con otra comunidad: la que llegue tarde de antes va a la caché, pero no se pinta aquí. */
+    let vivo = true;
     const fetchCommunity = async () => {
       setIsLoading(true);
       try {
@@ -46,16 +48,19 @@ export function useCommunityById(communityId: string | undefined) {
         if (result) {
           const fixedCommunity = fixCommunityIcon(result);
           communityCache.set(communityId, fixedCommunity);
-          setCommunity(fixedCommunity);
+          if (vivo) setCommunity(fixedCommunity);
         }
       } catch (error) {
         console.error('Error fetching community:', error);
       } finally {
-        setIsLoading(false);
+        if (vivo) setIsLoading(false);
       }
     };
 
     fetchCommunity();
+    return () => {
+      vivo = false;
+    };
   }, [communityId]);
 
   return { community, isLoading };

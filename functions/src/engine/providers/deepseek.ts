@@ -1,5 +1,6 @@
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
 import { env, fetchJson, NotConfiguredError, ProviderError, readImage, toDataUri } from '../http';
+import { pideTextoPlano, SISTEMA_POR_DEFECTO } from '../promptLanguage';
 
 /**
  * DEEPSEEK — API OFICIAL (api.deepseek.com), clave DEEPSEEK_API_KEY.
@@ -136,8 +137,8 @@ export const deepseekAdapter: ProviderAdapter = {
     if (!apiKey) throw new NotConfiguredError('deepseek', KEY);
     const { input, model, capability } = request;
     const start = Date.now();
-    const wantJson = capability === 'text.structure';
-    const system = String(input.system ?? 'Eres Weë. Responde en español, claro y breve.');
+    const wantJson = !pideTextoPlano(input) && capability === 'text.structure';
+    const system = String(input.system ?? SISTEMA_POR_DEFECTO);
     const anterior = loQueEscribieronAntes(input.upstream);
     const prompt = [String(input.prompt ?? input.purpose ?? ''), anterior].filter(Boolean).join('\n\n');
 

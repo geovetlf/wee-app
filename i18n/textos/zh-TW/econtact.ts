@@ -56,6 +56,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: '登入後才能使用 ËContact。',
   errNotYours: '這不是你的個人檔案。',
   errNotAPerson: '這個個人檔案不能使用 ËContact。',
+  errSameProfile: '個人檔案不能和自己建立連結。',
   errOffline: '無法連上 Weë。',
   errNoRequestToReject: '沒有可以拒絕的邀請。',
   errNoPendingRequest: '你和這個個人檔案之間沒有待處理的邀請。',

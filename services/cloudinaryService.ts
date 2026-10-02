@@ -169,7 +169,7 @@ export const uploadImageToCloudinary = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Cloudinary image upload failed: ${response.status} ${errorText}`);
+      throw new Error(`cloudinary-imagen-fallida:${response.status}:${errorText}`);
     }
 
     const result = await response.json();
@@ -220,7 +220,7 @@ export const uploadBlobToCloudinary = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Cloudinary blob upload failed: ${response.status} ${errorText}`);
+      throw new Error(`cloudinary-blob-fallido:${response.status}:${errorText}`);
     }
 
     const result = await response.json();
@@ -254,7 +254,7 @@ export const uploadAudioToCloudinary = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Cloudinary audio upload failed: ${response.status} ${errorText}`);
+      throw new Error(`cloudinary-audio-fallido:${response.status}:${errorText}`);
     }
 
     const result = await response.json();
@@ -283,7 +283,7 @@ export const uploadVideoToCloudinary = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Cloudinary video upload failed: ${response.status} ${errorText}`);
+      throw new Error(`cloudinary-video-fallido:${response.status}:${errorText}`);
     }
 
     const result = await response.json();

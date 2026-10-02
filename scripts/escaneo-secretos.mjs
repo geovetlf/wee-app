@@ -36,7 +36,6 @@ export const FORMAS = [
 export const ADMITIDOS = {
   'GoogleService-Info.plist': { formas: ['clave de Google (API key)'], porque: 'configuración web de Firebase de iOS: identificador público' },
   'google-services.json': { formas: ['clave de Google (API key)'], porque: 'configuración de Firebase de Android: identificador público' },
-  'public/app.html': { formas: ['clave de Google (API key)'], porque: 'configuración web de Firebase de la página pública: identificador público' },
   'functions/test/core-brain.test.mjs': { formas: ['clave de OpenAI o similar (sk-…)'], porque: 'clave FALSA para probar que un error no la filtra' },
   'functions/test/core-gateway.test.mjs': { formas: ['clave de Anthropic', 'clave de OpenAI o similar (sk-…)'], porque: 'claves FALSAS para probar la censura del gateway' },
   'functions/test/core-registry.test.mjs': { formas: ['clave de OpenAI o similar (sk-…)'], porque: 'clave FALSA para probar el registro de proveedores' },

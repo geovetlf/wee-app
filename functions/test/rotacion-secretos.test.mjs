@@ -45,10 +45,39 @@ const VIVO_H0 = {
   SEEDANCE_CALLBACK_TOKEN: [...NUEVE, 'seedanceCallback'].sort(),
   R2_ACCESS_KEY_ID: ['mediaCanary'], R2_SECRET_ACCESS_KEY: ['mediaCanary'],
 };
+/*
+ * ── EL MAPA DEL CÓDIGO YA NO ES EL VIVO (cierre post-auditoría 2026-10-01, money/secretos-de-mas) ──
+ *
+ * Cada función monta ahora SOLO lo que lee (functions/src/secrets.ts): el avatar, solo Gemini
+ * (`AVATAR_SECRETS`); las que llaman al Router sin crear vídeo, las ocho de modelo sin el token del
+ * webhook (`MODEL_SECRETS`); y el token se queda en las dos que crean tareas de Seedance
+ * (`creatorRun`, `generateVideo`) y en el webhook. VIVO_H0 sigue siendo lo que Cloud Run monta HOY;
+ * cambiará en el próximo despliegue de esas funciones. Hasta entonces el mapa vivo es un SUPERCONJUNTO
+ * del código: una rotación hecha ANTES de desplegar dejaría servicios montando la versión vieja de una
+ * clave que su código ya no lista. Por eso (1) fija el mapa del código con la misma exactitud que antes
+ * y (1b) fija que la diferencia con lo vivo es EXACTAMENTE la retirada prevista y nada más.
+ */
+const AVATAR = ['avatarReplacement', 'generateAvatarWithGemini'];
+const SIETE = NUEVE.filter((f) => !AVATAR.includes(f));
+const CODIGO = {
+  ANTHROPIC_API_KEY: SIETE, BFL_API_KEY: SIETE, DEEPSEEK_API_KEY: SIETE, ELEVENLABS_API_KEY: SIETE, MINIMAX_API_KEY: SIETE, OPENAI_API_KEY: SIETE,
+  GEMINI_API_KEY: NUEVE,
+  ARK_API_KEY: [...SIETE, 'barridoDeLiquidacion'].sort(),
+  SEEDANCE_CALLBACK_TOKEN: ['creatorRun', 'generateVideo', 'seedanceCallback'],
+  R2_ACCESS_KEY_ID: ['mediaCanary'], R2_SECRET_ACCESS_KEY: ['mediaCanary'],
+};
 const montajes = rot.montajes(compilado);
-const distintos = Object.keys({ ...VIVO_H0, ...montajes }).filter((k) => JSON.stringify(montajes[k] || []) !== JSON.stringify(VIVO_H0[k] || []));
-check('1) quién monta cada secreto en el código compilado es exactamente lo que H0 vio vivo (si cambia, revisa la rotación antes de hacerla)',
+const distintos = Object.keys({ ...CODIGO, ...montajes }).filter((k) => JSON.stringify(montajes[k] || []) !== JSON.stringify(CODIGO[k] || []));
+check('1) quién monta cada secreto en el código compilado es exactamente el mapa previsto (si cambia, revisa la rotación antes de hacerla)',
   distintos.length === 0, distintos.map((k) => `${k}: ${JSON.stringify(montajes[k] || [])}`).join(' | ') || `${Object.keys(montajes).length} secretos`);
+const retirados = Object.fromEntries(Object.keys(VIVO_H0).map((k) => [k, VIVO_H0[k].filter((f) => !(CODIGO[k] || []).includes(f))]).filter(([, l]) => l.length));
+const anadidos = Object.keys(CODIGO).flatMap((k) => CODIGO[k].filter((f) => !(VIVO_H0[k] || []).includes(f)).map((f) => `${k}→${f}`));
+check('1b) frente a lo vivo (H0) solo se RETIRA: el token sale de las cinco que no crean vídeo y el avatar se queda con Gemini; nada se añade',
+  anadidos.length === 0
+  && JSON.stringify(retirados.SEEDANCE_CALLBACK_TOKEN) === JSON.stringify(['avatarReplacement', 'brainChat', 'brainQuote', 'creatorChat', 'creatorQuote', 'engineAdmin', 'generateAvatarWithGemini'])
+  && ['ANTHROPIC_API_KEY', 'ARK_API_KEY', 'BFL_API_KEY', 'DEEPSEEK_API_KEY', 'ELEVENLABS_API_KEY', 'MINIMAX_API_KEY', 'OPENAI_API_KEY'].every((k) => JSON.stringify(retirados[k]) === JSON.stringify(AVATAR))
+  && Object.keys(retirados).length === 8,
+  JSON.stringify({ retirados, anadidos }));
 const seguridad = leer('docs/SECURITY.md');
 const servicios = [...new Set(Object.values(VIVO_H0).flat())].map((f) => f.toLowerCase());
 check('2) docs/SECURITY.md §2 nombra los 12 servicios que montan secretos', servicios.length === 12 && servicios.every((s) => seguridad.includes(s)),

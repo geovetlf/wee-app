@@ -6,22 +6,23 @@ const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
+/*
+ * El lector NO perdona. Antes devolvía '' si el archivo no existía, y entonces cada comprobación negada de esta suite
+ * («no aparece…», «no hay ninguna…») pasaba en verde con el archivo renombrado o borrado. Ahora un archivo o una
+ * carpeta que falta es un error con su ruta, y la suite sale en rojo.
+ */
 const read = (p) => {
-  try {
-    return fs.readFileSync(path.resolve(root, p), 'utf8');
-  } catch {
-    return '';
-  }
+  const ruta = path.resolve(root, p);
+  if (!fs.existsSync(ruta)) throw new Error(`security.test: no existe ${p} (¿se renombró? actualiza la suite, no la debilites)`);
+  return fs.readFileSync(ruta, 'utf8');
 };
 const readDir = (dir, exts = ['.ts', '.tsx']) => {
+  if (!fs.statSync(path.resolve(root, dir), { throwIfNoEntry: false })?.isDirectory()) {
+    throw new Error(`security.test: no existe la carpeta ${dir} (¿se renombró? actualiza la suite, no la debilites)`);
+  }
   const out = [];
   const walk = (d) => {
-    let entries = [];
-    try {
-      entries = fs.readdirSync(path.resolve(root, d), { withFileTypes: true });
-    } catch {
-      return;
-    }
+    const entries = fs.readdirSync(path.resolve(root, d), { withFileTypes: true });
     for (const e of entries) {
       const rel = `${d}/${e.name}`;
       if (e.isDirectory()) {
@@ -41,6 +42,9 @@ const check = (name, cond, extra = '') => {
   console.log((cond ? '✔ ' : '✘ ') + name + (extra ? ' — ' + extra : ''));
   if (!cond) failures++;
 };
+const lanza = (fn) => { try { fn(); return false; } catch { return true; } };
+check('el lector de esta suite no perdona: un archivo o una carpeta que no existe es un error, no un texto vacío',
+  lanza(() => read('functions/src/no-existe-esto.ts')) && lanza(() => readDir('no-existe-esta-carpeta')));
 
 console.log('── Seguridad: ningún secreto sale de las Functions ──');
 
@@ -75,10 +79,29 @@ check('ninguna clave está escrita a mano en el código', hardcoded.length === 0
 const secretsSrc = read('functions/src/secrets.ts');
 check('existe el módulo de secretos con defineSecret de firebase-functions/params', /defineSecret/.test(secretsSrc) && /firebase-functions\/params/.test(secretsSrc));
 check('las ocho credenciales están declaradas como secretos', PROVIDER_KEYS.every((k) => secretsSrc.includes(`'${k}'`)), PROVIDER_KEYS.filter((k) => !secretsSrc.includes(`'${k}'`)).join(', '));
-const bound = serverFiles.filter((f) => /secrets: (AI_SECRETS|CALLBACK_SECRETS)/.test(f.text));
+/*
+ * + cierre post-auditoría 2026-10-01 (money/secretos-de-mas): cada función monta lo que lee. Las que
+ * crean vídeo (creatorRun, generateVideo) siguen con AI_SECRETS; las del Router sin vídeo, MODEL_SECRETS
+ * (las ocho de modelo, sin el token del webhook); el avatar, AVATAR_SECRETS (solo Gemini). La fuerza es
+ * la misma: cada llamador declara una lista, y ahora además la correcta.
+ */
+const bound = serverFiles.filter((f) => /secrets: (AI_SECRETS|MODEL_SECRETS|AVATAR_SECRETS|CALLBACK_SECRETS)/.test(f.text));
 check('las funciones que llaman a un proveedor declaran sus secretos', bound.length >= 6, bound.map((f) => f.file.split('/').pop()).join(', '));
-const engineCallers = ['functions/src/creator/brain.ts', 'functions/src/creator/index.ts', 'functions/src/creator/video.ts', 'functions/src/generateAvatar.ts'];
-check('brain, creator, video y avatar están entre ellas', engineCallers.every((f) => /secrets: AI_SECRETS/.test(read(f))));
+check('brain, creator, video y avatar están entre ellas, cada una con SU lista',
+  (read('functions/src/creator/brain.ts').match(/secrets: MODEL_SECRETS/g) || []).length === 2 && !/secrets: AI_SECRETS/.test(read('functions/src/creator/brain.ts'))
+  && (read('functions/src/creator/index.ts').match(/secrets: MODEL_SECRETS/g) || []).length === 2 && (read('functions/src/creator/index.ts').match(/secrets: AI_SECRETS/g) || []).length === 1
+  && /secrets: AI_SECRETS/.test(read('functions/src/creator/video.ts'))
+  && (read('functions/src/generateAvatar.ts').match(/secrets: AVATAR_SECRETS/g) || []).length === 2 && !/AI_SECRETS|MODEL_SECRETS/.test(read('functions/src/generateAvatar.ts')));
+{
+  const { AI_SECRETS, MODEL_SECRETS, AVATAR_SECRETS } = lib('secrets.js');
+  const nombres = (l) => l.map((s) => s.name).sort();
+  check('MODEL_SECRETS son las ocho claves de modelo, sin el token del webhook; AVATAR_SECRETS solo Gemini',
+    JSON.stringify(nombres(MODEL_SECRETS)) === JSON.stringify(nombres(AI_SECRETS).filter((n) => n !== 'SEEDANCE_CALLBACK_TOKEN')) && MODEL_SECRETS.length === 8
+    && JSON.stringify(nombres(AVATAR_SECRETS)) === '["GEMINI_API_KEY"]');
+  check('y el avatar de verdad solo lee Gemini (no pasa por el Router)', /process\.env\.GEMINI_API_KEY/.test(read('functions/src/vertexAI.ts'))
+    && !/from '\.\/engine'|engine\.generate|runCapability/.test(read('functions/src/generateAvatar.ts') + read('functions/src/vertexAI.ts')));
+  check('el token del webhook lo lee quien crea la tarea de Seedance', /env\('SEEDANCE_CALLBACK_TOKEN'\)/.test(read('functions/src/engine/providers/seedance.ts')));
+}
 // Se busca la llamada real, no la mención en un comentario
 const codeLines = (text) => text.split('\n').filter((l) => !/^\s*(\*|\/\/)/.test(l));
 check('functions.config(), obsoleto desde la versión 6, no se usa en ningún sitio', !serverFiles.some((f) => codeLines(f.text).some((l) => /functions\.config\(/.test(l))));

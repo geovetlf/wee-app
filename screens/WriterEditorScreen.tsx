@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
@@ -12,6 +12,7 @@ import { Chip } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
+import { notify } from '../utils/notify';
 const isWeb = Platform.OS === 'web';
 
 /**
@@ -51,17 +52,24 @@ const WriterEditorScreen: React.FC = () => {
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle');
   const loadedFor = useRef<string | undefined>(undefined);
 
-  // Documento existente
+  // Documento existente. Si se abre otro antes de que llegue este, el de antes ya no escribe en el editor: la marca de
+  // «cargado» se pone al APLICAR la respuesta (no al pedirla), para que una carga descartada no deje el editor vacío.
   useEffect(() => {
     if (!params.docId || loadedFor.current === params.docId) return;
-    loadedFor.current = params.docId;
-    documentsService.get(params.docId).then((found) => {
+    let vivo = true;
+    const docId = params.docId;
+    documentsService.get(docId).then((found) => {
+      if (!vivo) return;
+      loadedFor.current = docId;
       if (found) {
         setDoc(found);
         setTitle(found.title);
         setText(found.text);
       }
     });
+    return () => {
+      vivo = false;
+    };
   }, [params.docId]);
 
   // Texto que vuelve de Weë Writer ("Usar en el editor")
@@ -94,7 +102,7 @@ const WriterEditorScreen: React.FC = () => {
     const excerpt = text.trim().slice(0, 600);
     if (!excerpt) {
       if (isWeb) window.alert(t('writer.writeSomethingHint'));
-      else Alert.alert(t('writer.writeSomethingFirst'), t('writer.weeWorksWithYou'));
+      else notify(t('writer.writeSomethingFirst'), t('writer.weeWorksWithYou'));
       return;
     }
     // Se guarda antes de pedir ayuda para que el resultado vuelva a este mismo documento

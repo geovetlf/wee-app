@@ -2,7 +2,7 @@
 /*
  * LA CI DE GITHUB, AQUÍ — Weë Agent Harness, FASE 5.
  *
- *   node scripts/ci-local.mjs            corre los cuatro niveles, en orden, y para en el primero que falle
+ *   node scripts/ci-local.mjs            corre los tres niveles (cuatro trabajos), en orden, y para en el primero que falle
  *   node scripts/ci-local.mjs --plan     solo enseña qué correría
  *   node scripts/ci-local.mjs --nivel 3  solo un nivel (1, 2 o 3)
  *

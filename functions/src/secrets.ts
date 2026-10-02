@@ -50,6 +50,31 @@ export const SECRETS: Record<ProviderSecretName, ReturnType<typeof defineSecret>
  */
 export const AI_SECRETS = declared.map(([, secret]) => secret);
 
+/*
+ * ── CADA FUNCIÓN MONTA LO QUE LEE (cierre post-auditoría 2026-10-01, money/secretos-de-mas) ──
+ *
+ * `AI_SECRETS` lleva las ocho claves de modelo MÁS `SEEDANCE_CALLBACK_TOKEN`. Ese token solo
+ * lo lee quien CREA una tarea de vídeo de Seedance (`providers/seedance.ts`, cuando hay
+ * `SEEDANCE_CALLBACK_URL`: se lo pega a la URL del aviso) y quien recibe el aviso
+ * (`seedanceCallback`, con `CALLBACK_SECRETS`). Por eso:
+ *
+ *  · `AI_SECRETS` (las nueve) se queda SOLO en las dos funciones que pueden crear una tarea
+ *    de vídeo: `creatorRun` (Weë Studio) y `generateVideo`.
+ *  · `MODEL_SECRETS` (las ocho de modelo, sin el token) va en las que llaman al Router o
+ *    cotizan con él —`brainChat`, `brainQuote`, `creatorChat`, `creatorQuote`, `engineAdmin`—:
+ *    el Router decide en tiempo de ejecución a qué proveedor llama y las cadenas se cambian en
+ *    Firestore, así que su conjunto de claves de modelo NO se recorta.
+ *  · `AVATAR_SECRETS` (solo Gemini) va en el avatar, que no pasa por el Router: llama a Gemini
+ *    directamente (`vertexAI.ts`, `process.env.GEMINI_API_KEY`) y no lee nada más.
+ *
+ * El mapa VIVO (lo que Cloud Run monta hoy, auditoría H0) cambiará en el próximo despliegue
+ * de esas funciones; `functions/test/rotacion-secretos.test.mjs` fija el mapa del código.
+ */
+export const MODEL_SECRETS = declared.filter(([name]) => name !== 'SEEDANCE_CALLBACK_TOKEN').map(([, secret]) => secret);
+
+/** El avatar solo habla con Gemini, y directamente (sin el Router). */
+export const AVATAR_SECRETS = [SECRETS.GEMINI_API_KEY];
+
 /** Solo el token del webhook de Seedance: la función que lo recibe no llama a ningún modelo. */
 export const CALLBACK_SECRETS = [SECRETS.SEEDANCE_CALLBACK_TOKEN];
 
@@ -126,6 +151,13 @@ export function secretValue(name: string): string | undefined {
   const secret = (SECRETS as Record<string, ReturnType<typeof defineSecret> | undefined>)[name]
     ?? (MEDIA_SECRET_REFS as Record<string, ReturnType<typeof defineSecret> | undefined>)[name];
   if (!secret) return undefined;
+  /*
+   * Un secreto que ESTA función no monta no está en su entorno: `value()` devolvería '' y,
+   * además, escribiría un aviso en el registro por cada uno. Con cada función montando solo
+   * lo suyo, el saneador (`knownSecretValues`) llenaría el registro de avisos. Mismo
+   * resultado (undefined), sin ruido.
+   */
+  if (process.env[name] === undefined) return undefined;
   try {
     const value = secret.value();
     return value && value.trim() ? value.trim() : undefined;

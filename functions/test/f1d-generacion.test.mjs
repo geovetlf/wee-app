@@ -815,7 +815,14 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
 
   /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
   /* + creditEngine.ts: revisión post-auditoría 2026-10-01 (money/remigracion-por-segundo-perfil), bloques exactos en job-queue 63p. */
-  const CREDITS_DEL_HARNESS = '34\t8\tfunctions/src/credits/creditEngine.ts\n14\t0\tfunctions/src/credits/index.ts';
+  /*
+   * + cierre post-auditoría 2026-10-01 (cifras de `git diff --numstat` sobre el árbol; antes 34/8, —, 14/0):
+   *   creditEngine.ts +23 −1: `readBalance`, el saldo SOLO LEYENDO para `creditsAdmin` · `balance`, y su nombre en lo
+   *   que devuelve el motor (money/admin-balance-con-efecto); creditValidation.ts +10 −2: `toHttpsError` genérico para
+   *   lo que no es un CreditError y su causa al registro con `sanitizeForLog` (money/error-interno-al-cliente);
+   *   credits/index.ts +5 −3: `balance` → `readBalance` y `failed` → `assertLimit`. Bloques exactos en job-queue 63k/63p.
+   */
+  const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
   check('AI) Credits intactos: el Credit Engine, creditCosts, el Financial Core y el Router; credits/index, solo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
     git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
   const legacy = (s) => { const a = s.indexOf('    try {\n      const result = await videoEngine.generate('); return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a)); };
@@ -823,7 +830,8 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
     git(`diff --numstat ${PUENTE} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
       /* creator/index.ts: + 10 de la integración i18n da-DK (el locale) y + 2 de la observación del idioma de salida, ver video-asincrono H2. */
       === /* + revisión post-auditoría 2026-10-01: el aviso del idioma lleva jobId/stepId (index) y el avatar devuelve sus reservas abandonadas (generateAvatar). */
-      '45\t4\tfunctions/src/creator/credits.ts|111\t10\tfunctions/src/creator/index.ts|129\t12\tfunctions/src/generateAvatar.ts'
+      /* + cierre post-auditoría 2026-10-01: index +6 −5 (creatorChat/creatorQuote con MODEL_SECRETS; la adaptación de idioma de creatorRun con su sistema y `format: 'text'`) y generateAvatar +3 −3 (AVATAR_SECRETS, solo Gemini); creator/credits.ts sin tocar. */
+      '45\t4\tfunctions/src/creator/credits.ts|117\t15\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
 }
 

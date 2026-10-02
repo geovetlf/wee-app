@@ -34,7 +34,7 @@ import { DocumentSnapshot } from 'firebase/firestore';
 import PostCard from '../components/PostCard';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import WeelsRow from '../components/WeelsRow';

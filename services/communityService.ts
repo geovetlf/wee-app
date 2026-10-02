@@ -95,10 +95,11 @@ export const communityService = {
       } as Community));
     } catch (error) {
       console.error('Error getting communities:', error);
-      // Fallback: obtener todas y filtrar en JS (no requiere índice)
+      // Fallback sin índice compuesto: solo las activas (un filtro de igualdad no lo necesita) y se ordenan aquí.
+      // Antes leía la colección ENTERA —pendientes y rechazadas incluidas— para tirarlas después en JS.
       console.log('🔄 Usando fallback sin índice compuesto...');
       try {
-        const snapshot = await getDocs(collection(db, 'communities'));
+        const snapshot = await getDocs(query(collection(db, 'communities'), where('status', '==', 'active')));
         const allCommunities = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -113,31 +114,12 @@ export const communityService = {
     }
   },
 
-  // Obtener comunidades oficiales
-  getOfficialCommunities: async (): Promise<Community[]> => {
-    try {
-      const q = query(
-        collection(db, 'communities'),
-        where('isOfficial', '==', true),
-        where('status', '==', 'active')
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Community));
-    } catch (error) {
-      console.error('Error getting official communities:', error);
-      // Fallback: obtener todas y filtrar en JS (no requiere índice)
-      console.log('🔄 Usando fallback sin índice compuesto...');
-      return communityService.getAllCommunitiesFallback();
-    }
-  },
-
   // Obtener comunidades creadas por usuarios (no oficiales, activas)
+  // La pantalla las enseña TODAS (las mías, a las que pertenezco y las que puedo descubrir), así que no se acota con
+  // un `limit`: se piden solo las activas en vez de la colección entera, y el resto se filtra y ordena como siempre.
   getUserCommunities: async (): Promise<Community[]> => {
     try {
-      const snapshot = await getDocs(collection(db, 'communities'));
+      const snapshot = await getDocs(query(collection(db, 'communities'), where('status', '==', 'active')));
       const allCommunities = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -150,75 +132,6 @@ export const communityService = {
     } catch (error) {
       console.error('Error getting user communities:', error);
       return [];
-    }
-  },
-
-  // Obtener comunidades pendientes de aprobación (para admin)
-  getPendingCommunities: async (): Promise<Community[]> => {
-    try {
-      const snapshot = await getDocs(collection(db, 'communities'));
-      const allCommunities = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Community));
-
-      return allCommunities
-        .filter(c => c.status === 'pending')
-        .sort((a, b) => {
-          const aTime = a.createdAt?.toMillis?.() || 0;
-          const bTime = b.createdAt?.toMillis?.() || 0;
-          return bTime - aTime;
-        });
-    } catch (error) {
-      console.error('Error getting pending communities:', error);
-      return [];
-    }
-  },
-
-  // Aprobar una comunidad (para admin)
-  approveCommunity: async (communityId: string): Promise<void> => {
-    try {
-      const communityRef = doc(db, 'communities', communityId);
-      await updateDoc(communityRef, {
-        status: 'active',
-        updatedAt: Timestamp.now(),
-      });
-    } catch (error) {
-      console.error('Error approving community:', error);
-      throw error;
-    }
-  },
-
-  // Rechazar una comunidad (para admin)
-  rejectCommunity: async (communityId: string): Promise<void> => {
-    try {
-      const communityRef = doc(db, 'communities', communityId);
-      await updateDoc(communityRef, {
-        status: 'rejected',
-        updatedAt: Timestamp.now(),
-      });
-    } catch (error) {
-      console.error('Error rejecting community:', error);
-      throw error;
-    }
-  },
-
-  // Fallback que no requiere índices compuestos
-  getAllCommunitiesFallback: async (): Promise<Community[]> => {
-    try {
-      const snapshot = await getDocs(collection(db, 'communities'));
-      const allCommunities = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Community));
-
-      // Filtrar en JavaScript
-      return allCommunities
-        .filter(c => c.isOfficial && c.status === 'active')
-        .sort((a, b) => b.memberCount - a.memberCount);
-    } catch (error) {
-      console.error('Error in fallback communities:', error);
-      throw error;
     }
   },
 
@@ -403,7 +316,7 @@ export const communityService = {
       // Verificar que el slug no exista
       const existing = await communityService.getCommunityBySlug(slug);
       if (existing) {
-        throw new Error('Ya existe una comunidad con ese nombre');
+        throw new Error('comunidad-ya-existe');
       }
 
       const communityData: Omit<Community, 'id'> = {

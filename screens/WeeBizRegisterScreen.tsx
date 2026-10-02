@@ -97,7 +97,7 @@ const WeeBizRegisterScreen: React.FC = () => {
   const pickLogo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(t('weebiz.permissionTitle'), t('weebiz.galleryPermission'));
+      notify(t('weebiz.permissionTitle'), t('weebiz.galleryPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({

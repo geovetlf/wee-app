@@ -368,11 +368,35 @@ export const textoDelServidorLegible = (texto: string, ctx: Contexto): string | 
 };
 
 /**
+ * UN ERROR QUE LEVANTA LA APP Y YA SABE CÓMO SE DICE.
+ *
+ * Un servicio no tiene traductor: no puede escribir la frase en el idioma de quien mira, pero sí decir CUÁL es, con su
+ * clave del catálogo. El `message` en español se queda para los registros y las pruebas; a la pantalla llega
+ * `t(clave)` por `mensajeDelServidor`. Es la misma forma que `ErrorDeEContact` (utils/econtactModel.ts), y se
+ * reconoce igual: cuenta que el error traiga su `clave`, no de qué clase sea.
+ */
+export class ErrorConClave extends Error {
+  constructor(readonly clave: string, mensaje: string) {
+    super(mensaje);
+  }
+}
+
+/** La clave de un error que la trae (`ErrorConClave`, `ErrorDeEContact`), o nada. */
+const claveDelError = (error: unknown): string | undefined => {
+  const clave = (error as { clave?: unknown } | null)?.clave;
+  return error instanceof Error && typeof clave === 'string' && clave ? clave : undefined;
+};
+
+/**
  * El mensaje de un error que mandó el servidor (un `HttpsError` de ËContact, de las encuestas…), en el idioma de quien
  * mira. Si no se reconoce: en español, tal cual; en cualquier otro idioma, `undefined`, para que la pantalla diga
  * solo su título, que ya está traducido, y nadie lea español por accidente.
+ *
+ * Y si el error lo levantó la app con su clave (`ErrorConClave`), se dice con ella, en todos los idiomas.
  */
 export const mensajeDelServidor = (error: unknown, ctx: Contexto): string | undefined => {
+  const clave = claveDelError(error);
+  if (clave) return traducida(ctx.t, clave) ?? undefined;
   const mensaje = (error as { message?: unknown } | null)?.message;
   if (typeof mensaje !== 'string' || !mensaje) return undefined;
   return textoDelServidorLegible(mensaje, ctx);

@@ -477,7 +477,8 @@ export function createRouter(deps: RouterDeps) {
         });
         const countsAsFailure = !(error instanceof NotConfiguredError) && (!(error instanceof ProviderError) || error.retryable);
         if (countsAsFailure) deps.health.failure(candidate.provider, settings);
-        console.warn(`WEË AI ENGINE: ${candidate.provider}/${candidate.model.id} falló en ${capability} (intento ${attempt}): ${message}`);
+        /* Saneado como el libro de arriba: el mensaje de un proveedor puede traer la cabecera que se le envió (cierre 2026-10-01, server/sanitize). */
+        console.warn(`WEË AI ENGINE: ${candidate.provider}/${candidate.model.id} falló en ${capability} (intento ${attempt}): ${sanitizeForLog(message, 300)}`);
       }
     }
     throw classifyError(lastError);

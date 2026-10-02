@@ -82,6 +82,11 @@ export const useUserById = (userId: string | undefined) => {
   }, [userId]);
 
   useEffect(() => {
+    /*
+     * La lista recicla la tarjeta con OTRA persona (o se pide refrescar): el perfil que llegue tarde de la de antes va
+     * a la caché, pero no se pinta con el nombre y la foto de alguien que ya no es quien está en la tarjeta.
+     */
+    let vivo = true;
     const loadUser = async () => {
       if (!userId) {
         setUserProfile(null);
@@ -118,18 +123,22 @@ export const useUserById = (userId: string | undefined) => {
           console.log('❌ Usuario no encontrado:', userId.substring(0, 8));
         }
 
-        setUserProfile(user);
+        if (vivo) setUserProfile(user);
       } catch (err) {
         console.error('Error loading user by ID:', err);
+        if (!vivo) return;
         /* Un código, no una frase: quien lo pinta elige el texto en su idioma. */
         setError('carga-fallida');
         setUserProfile(null);
       } finally {
-        setLoading(false);
+        if (vivo) setLoading(false);
       }
     };
 
     loadUser();
+    return () => {
+      vivo = false;
+    };
   }, [userId, refreshKey]);
 
   return { userProfile, loading, error, refresh };

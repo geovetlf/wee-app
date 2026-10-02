@@ -245,7 +245,11 @@ console.log('\n── D · Credits: la regla nueva, en el sitio exacto ──');
    * devuelve) y deshace el bloque de doce si esta invocación lo contó y no entregó. La regla de siempre
    * —solo se devuelve si devolver es seguro— sigue igual, y ahora se prueba ejecutándola.
    */
-  check('el `catch` reembolsa lo cobrado SOLO si devolverlo es seguro', /const devolverEsSeguro = !falloDelConductor \|\| falloDelConductor\.reembolsoSeguro;\s*const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui \}\);/.test(BRAIN)
+  /*
+   * + cierre post-auditoría 2026-10-01 («repetir un mensaje ya REEMBOLSADO»): la llamada añade `cerradoSinCobro`,
+   * que solo puede QUITAR completar/reembolsar (lo prueba ejecutándola cierre-servidor). Misma forma exacta.
+   */
+  check('el `catch` reembolsa lo cobrado SOLO si devolverlo es seguro', /const devolverEsSeguro = !falloDelConductor \|\| falloDelConductor\.reembolsoSeguro;\s*const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui, cerradoSinCobro \}\);/.test(BRAIN)
     && /\} else if \(spend && cobro\.reembolsar\) \{/.test(BRAIN));
   {
     const { queHacerConElCobro } = lib('creator/brainUsage.js');

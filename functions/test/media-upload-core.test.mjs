@@ -454,8 +454,17 @@ console.log('\n── F2 · Al confirmar, el status del proveedor no se pierde �
 
 /* ═══ G · LA FIRMA DE R2 ══════════════════════════════════════════════════ */
 console.log('\n── G · PUT prefirmado, contra el protocolo oficial ──');
-{
-  const adaptador = crearAdaptadorDeR2({ config: () => CONFIG_R2, ahora: () => T0 });
+/*
+ * «Firmar es local» se COMPRUEBA: un doble de `fetch` que cuenta, inyectado en el adaptador y puesto también en el
+ * `fetch` global mientras dura la sección (el adaptador sin configuración de abajo no recibe el suyo). Al final de la
+ * sección tiene que seguir a cero. Y el doble se prueba a sí mismo: un HEAD (`mirar`) sí llama.
+ */
+const redDeG = { llamadas: [] };
+const fetchQueCuenta = async (url, init = {}) => { redDeG.llamadas.push(`${init.method || 'GET'} ${String(url).split('?')[0]}`); return new Response(null, { status: 404 }); };
+const fetchGlobalDeVerdad = globalThis.fetch;
+globalThis.fetch = fetchQueCuenta;
+try {
+  const adaptador = crearAdaptadorDeR2({ config: () => CONFIG_R2, ahora: () => T0, fetch: fetchQueCuenta });
   const clave = claveDelObjeto(ANA, 'asset_abc123');
   const destino = { provider: R2_PROVIDER_ID, bucket: CONFIG_R2.bucket, objectKey: clave };
   const r = await adaptador.urlDeSubida({ destino, contentType: 'video/mp4', vigenciaSegundos: 900, maxBytes: 5000, siNoExiste: true });
@@ -488,7 +497,6 @@ console.log('\n── G · PUT prefirmado, contra el protocolo oficial ──');
   check('S/T · el secreto no viaja en la URL, ni ninguna autorización',
     !r.url.includes(CONFIG_R2.secretAccessKey) && !/authorization/i.test(r.url));
 
-  check('AE · nada de esto tocó la red: firmar es local y determinista', true);
   check('el adaptador rechaza lo que su proveedor no admite',
     (await adaptador.urlDeSubida({ destino, contentType: 'video/mp4', vigenciaSegundos: MAX_VIGENCIA_DE_R2 + 1, maxBytes: 5000 })).ok === false
     && (await adaptador.urlDeSubida({ destino, contentType: 'video/mp4', vigenciaSegundos: 900, maxBytes: 6 * 1024 ** 3 })).ok === false);
@@ -497,6 +505,15 @@ console.log('\n── G · PUT prefirmado, contra el protocolo oficial ──');
   check('sin configuración no firma nada', (await crearAdaptadorDeR2({ config: () => ({}) }).urlDeSubida({ destino, contentType: 'video/mp4', vigenciaSegundos: 900, maxBytes: 100 })).ok === false);
   check('AC · y una clave que no se puede transmitir con fidelidad se rechaza también aquí',
     (await adaptador.urlDeSubida({ destino: { ...destino, objectKey: 'a/./b' }, contentType: 'video/mp4', vigenciaSegundos: 900, maxBytes: 100 })).error.details.field === 'destino.objectKey');
+
+  check('AE · nada de esto tocó la red: firmar es local y determinista (el doble de fetch sigue a cero)',
+    redDeG.llamadas.length === 0, redDeG.llamadas.join(', '));
+  /* El doble cuenta de verdad: mirar un objeto ES una petición, y la ve. */
+  await adaptador.mirar(destino);
+  check('AE · …y el doble no está sordo: un HEAD del mismo adaptador sí se cuenta',
+    redDeG.llamadas.length === 1 && /^HEAD https:\/\//.test(redDeG.llamadas[0]), redDeG.llamadas.join(', '));
+} finally {
+  globalThis.fetch = fetchGlobalDeVerdad;
 }
 
 /* ═══ H · EL PROVEEDOR DE MENTIRA ═════════════════════════════════════════ */

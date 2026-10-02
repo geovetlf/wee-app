@@ -281,7 +281,8 @@ console.log('\n── F · La caja: mayúsculas, minúsculas y búsqueda con las
     ['utils/pollDraft.ts', 'compara dos opciones de la misma encuesta; se compila sola en encuestas.test y no puede importar'],
     ['utils/sectionFeed.ts', 'normaliza con NFD para comparar con palabras clave técnicas en ASCII'],
     ['services/assetDownload.ts', 'la extensión de un archivo'],
-    ['services/videoDownload.ts', 'la extensión de un archivo'],
+    // `services/videoDownload.ts` (la extensión de un archivo) se retiró como código muerto en el cierre
+    // post-auditoría (2026-10-01); la 36b exige que la lista no guarde excepciones de archivos que ya no existen.
     ['services/communityService.ts', 'el slug ASCII de una comunidad'],
     ['services/firestoreService.ts', 'la clave del recuento de hashtags populares, que es también lo que se enseña: plegarla cambiaría cómo se escribe'],
     ['services/projectsService.ts', 'la heurística española «mi …» de la sugerencia de nombre'],

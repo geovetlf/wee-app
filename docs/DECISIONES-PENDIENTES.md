@@ -33,6 +33,19 @@ Aquí solo se documentan. **Ninguna está tomada ni preparada como cambio.**
 | Una identidad de GitHub propia para Claude (hoy usa la del dueño en el portátil) | Son credenciales del dueño | [SECURITY.md](SECURITY.md) §7 |
 | *Deployment Protection* de las previews de Vercel | Las previews usan la configuración de Firebase de producción | [DEPLOYMENT.md](DEPLOYMENT.md) §2 |
 
+## Recursos externos heredados y lo nativo de iOS (cierre del legado, 2026-10-01)
+
+Lo que queda del nombre antiguo está atado a cuentas del dueño o de terceros; el código no puede moverlo solo.
+
+| Qué | Recurso externo | Dónde están los pasos |
+|---|---|---|
+| `slug` `hidetok-simple`, `owner`, `projectId` de EAS y Apple ID de `eas.json` | Cuenta de Expo (EAS) y de Apple del desarrollador anterior | [LEGADO-HIDETOK.md](LEGADO-HIDETOK.md) § 5.1 |
+| Preset de subida `hidetok-simple` | Cuenta de Cloudinary `dnrj1guvs` | [LEGADO-HIDETOK.md](LEGADO-HIDETOK.md) § 5.2 |
+| Huella SHA-256 de firma y Team ID de Apple en `/.well-known/` | Play Console y Apple Developer | [LEGADO-HIDETOK.md](LEGADO-HIDETOK.md) § 6 |
+| ¿Existe todavía el proyecto de Firebase `hidetok-9a642`, y se cierra? | Consola de Firebase | [LEGADO-HIDETOK.md](LEGADO-HIDETOK.md) § 5.4 |
+| «/» de `get-wee.web.app`: redirigir a `wee.zone` o mantener la landing con textos aprobados | Hosting `get-wee` | [LEGADO-HIDETOK.md](LEGADO-HIDETOK.md) § 7 |
+| Las frases de permiso de iOS en los 13 idiomas listos que no las tienen | Proceso de idioma (traducción y revisión nativa) | [I18N.md](I18N.md) § 10 |
+
 ## Cancelación, idempotencia y reconciliación que esperan al dueño (harness/fase-2)
 
 Lo que la auditoría H0 dejó abierto en este frente y **no** se ha tocado, con su

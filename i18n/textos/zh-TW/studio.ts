@@ -259,7 +259,7 @@ export const studio: typeof import('../es/studio').studio = {
   tlFileConvert: '轉換文件格式',
 
   /* ── Mis creaciones ───────────────────────────────────────────────────── */
-  creationsTitle: '我的創作',
+  creationsTitle: '我的作品',
   seeAll: '查看全部',
   creationsEmpty: '你創作的內容會出現在這裡',
   kindImage: '圖片',

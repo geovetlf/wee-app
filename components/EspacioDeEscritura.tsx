@@ -36,7 +36,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, StyleProp, View, ViewStyle } 
  *   Web      → nada, el navegador ya se encarga
  *
  * Tres pantallas de Weë ya lo habían resuelto a mano, cada una a su manera
- * (`ConversationScreen`, `PostDetailScreen`, `ChatScreen`). Esta pieza recoge
+ * (`ConversationScreen`, `PostDetailScreen` y el antiguo `ChatScreen`, retirado). Esta pieza recoge
  * ese patrón ya probado en teléfono y lo deja en un solo sitio.
  */
 

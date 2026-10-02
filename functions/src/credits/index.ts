@@ -2,7 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { creditEngine } from './creditEngine';
 import { allCreditCosts, CREDIT_PACKAGES, invalidateCostOverrides, isCreditService, loadCostOverrides } from './creditCosts';
-import { assertRequestId, cleanText, toHttpsError } from './creditValidation';
+import { assertLimit, assertRequestId, cleanText, toHttpsError } from './creditValidation';
 import { assertAdmin } from '../shared/admin';
 import { PaymentProvider, restorePurchases, validatePurchase } from '../payments/purchaseValidation';
 
@@ -178,9 +178,11 @@ export const creditsAdmin = onCall(OPTS, async (request) =>
       case 'userHistory':
         return { items: await creditEngine.getCreditHistory(String(data.userId || ''), data.limit) };
       case 'balance':
-        return creditEngine.getBalance(String(data.userId || ''));
+        /* Una consulta de administración no escribe: sin inicializar, 0 y `initialized: false` (nada de bienvenida). */
+        return creditEngine.readBalance(String(data.userId || ''));
       case 'failed': {
-        const snap = await db.collection('creditTransactions').where('status', '==', 'REFUNDED').orderBy('createdAt', 'desc').limit(Number(data.limit) || 50).get();
+        /* El techo de siempre (`assertLimit`: 50 por defecto, 200 como mucho): un número cualquiera del panel no lee la colección entera. */
+        const snap = await db.collection('creditTransactions').where('status', '==', 'REFUNDED').orderBy('createdAt', 'desc').limit(assertLimit(data.limit)).get();
         return { items: snap.docs.map((d) => ({ id: d.id, ...d.data() })) };
       }
       case 'costs': {

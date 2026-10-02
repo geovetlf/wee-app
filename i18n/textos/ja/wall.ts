@@ -40,6 +40,7 @@ export const wall: typeof import('../es/wall').wall = {
   pollLessThanAnHour: '残り1時間未満',
   pollLegacy: 'このアンケートは以前のバージョンのWeëで作成されたため、投票を受け付けていません。',
   pollVoteFailed: '投票できませんでした',
+  pollVoteOffline: 'Weëにつながりませんでした。しばらくしてから、もう一度お試しください。',
   closeComments: 'コメントを閉じる',
   removeImage: '画像を削除',
   attachImage: '画像を添付',

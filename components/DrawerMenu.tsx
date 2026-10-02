@@ -129,14 +129,20 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const realUid = user?.uid;
   useEffect(() => {
     if (!realUid) return;
+    /* Si se cambia de cuenta antes de que llegue la respuesta, el negocio de la cuenta de antes no se ofrece en esta. */
+    let vivo = true;
     const loadBiz = async () => {
       try {
-        setMyBusiness(await weeBizService.getBusinessByOwner(realUid));
+        const negocio = await weeBizService.getBusinessByOwner(realUid);
+        if (vivo) setMyBusiness(negocio);
       } catch (e) {
         console.error('Error loading business:', e);
       }
     };
     loadBiz();
+    return () => {
+      vivo = false;
+    };
   }, [realUid]);
 
   useEffect(() => {

@@ -26,7 +26,7 @@ import { useUserById } from '../hooks/useUserById';
 import { useVote } from '../hooks/useVote';
 import { Post, postsService } from '../services/firestoreService';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
-import { formatNumber, getRelativeTime } from '../data/mockData';
+import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
 import { compartirFueraDeWee } from '../utils/compartirFuera';

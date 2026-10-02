@@ -199,6 +199,10 @@ export const bloqueDe = contadorDeBrain.bloqueDe;
  *  · NO ENTREGADA y devolver NO es seguro (otra invocación del mismo mensaje la está
  *    ejecutando): no se toca nada; la cierra quien la termine.
  *
+ *  · La operación YA TERMINÓ SIN COBRO (`cerradoSinCobro`, ver `cobroYaCerradoSinCobro`):
+ *    no hay nada que completar ni que devolver —ya se devolvió—; solo se devuelve el
+ *    bloque si ESTA invocación lo contó, porque esta respuesta no se entrega.
+ *
  * Pura: no lee ni escribe. Quien la usa hace lo que dice.
  */
 export const queHacerConElCobro = (h: {
@@ -206,8 +210,29 @@ export const queHacerConElCobro = (h: {
   entregada: boolean;
   devolverEsSeguro: boolean;
   contadaAqui: boolean;
+  cerradoSinCobro?: boolean;
 }): { completar: boolean; reembolsar: boolean; deshacerBloque: boolean } => {
+  if (h.cerradoSinCobro === true) return { completar: false, reembolsar: false, deshacerBloque: h.contadaAqui && !h.entregada };
   if (h.entregada) return { completar: h.cobrado, reembolsar: false, deshacerBloque: false };
   if (!h.devolverEsSeguro) return { completar: false, reembolsar: false, deshacerBloque: false };
   return { completar: false, reembolsar: h.cobrado, deshacerBloque: h.contadaAqui };
 };
+
+/**
+ * ¿EL COBRO DE ESTE MENSAJE YA TERMINÓ SIN COBRAR? (revisión post-auditoría 2026-10-01,
+ * «Brain: repetir un mensaje ya REEMBOLSADO lo contesta gratis»).
+ *
+ * `spendCredits` es idempotente por `requestId` (`brain_<messageId>`): repetir el mismo
+ * mensaje no cobra dos veces, devuelve la operación de antes con `duplicate: true`. Si esa
+ * operación ya está REEMBOLSADA (o FALLIDA), terminó sin cobro: quien la repite NO puede
+ * llevarse la respuesta con ella, porque nadie la va a pagar.
+ *
+ * El Credit Engine de hoy ya lanza `ALREADY_REFUNDED` en ese caso (creditEngine.ts,
+ * `spendCredits`), así que por él esta rama no se recorre; existe para que la regla de Brain
+ * no dependa de un detalle del motor: si un día ese duplicado se DEVUELVE en vez de lanzarse,
+ * Brain sigue sin regalar la respuesta.
+ *
+ * Pura: solo mira lo que devolvió el cobro.
+ */
+export const cobroYaCerradoSinCobro = (cobro: { duplicate?: boolean; status?: string } | null | undefined): boolean =>
+  !!cobro && cobro.duplicate === true && (cobro.status === 'REFUNDED' || cobro.status === 'FAILED');

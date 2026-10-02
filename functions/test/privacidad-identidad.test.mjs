@@ -159,20 +159,32 @@ console.log('\n── D · Lo que ya no existe ──');
    * anónimo delante y el identificador de la cuenta dentro, y quien lo
    * recibiera habría aterrizado en el Perfil Real.
    *
-   * Están MUERTOS —nadie los importa— y NO se borran: tres contratos cerrados
-   * de la migración a ËContact afirman que el sistema antiguo sigue en pie sin
-   * tocar. Se CORRIGEN, que es mejor: así no traen el fallo puesto el día que
-   * alguien los enchufe.
+   * Estaban MUERTOS —nadie los importaba— y se habían CORREGIDO en vez de
+   * borrarse porque tres contratos de la migración a ËContact pedían el sistema
+   * antiguo en pie. En el cierre post-auditoría (2026-10-01) se retiraron como
+   * código muerto (y `econtact.test` exige ya que no vuelvan). Lo que se vigila
+   * ahora es más amplio que esos dos archivos: que NINGÚN archivo del cliente
+   * avise de un «me gusta» ni siga a alguien firmando con la cuenta.
    */
-  check('24) el aviso de un «me gusta» se firma con la cara activa, no con la cuenta',
-    /identidadQueAvisa/.test(leer('hooks/useLikes.ts'))
-    && !/createLikeNotification\([\s\S]{0,120}user\.uid/.test(leer('hooks/useLikes.ts')));
-  check('25) y seguir se firma con la cara: son dos relaciones distintas',
-    /identidadQueSigue/.test(leer('hooks/useFollow.ts'))
-    && !/toggleFollow\(user\.uid/.test(leer('hooks/useFollow.ts'))
-    && S.ALCANCE.follow === 'POR_CARA');
-  check('25b) el «me gusta» en sí se sigue contando por CUENTA: una persona, un aplauso',
-    /toggleLike\(user\.uid/.test(leer('hooks/useLikes.ts')) && S.ALCANCE.like === 'POR_CUENTA');
+  const listarCliente = (d) => fs.readdirSync(path.resolve(RAIZ, d), { withFileTypes: true })
+    .flatMap((e) => (e.isDirectory() ? listarCliente(`${d}/${e.name}`) : /\.tsx?$/.test(e.name) ? [`${d}/${e.name}`] : []));
+  const cliente = ['screens', 'components', 'hooks', 'contexts', 'services', 'utils', 'navigation'].flatMap(listarCliente);
+  const RE_LIKE_CON_CUENTA = /createLikeNotification\([\s\S]{0,120}user\.uid/;
+  const RE_SEGUIR_CON_CUENTA = /toggleFollow\(user\.uid/;
+  const firmanConLaCuenta = cliente.filter((f) => {
+    const codigo = sinComentarios(leer(f));
+    return RE_LIKE_CON_CUENTA.test(codigo) || RE_SEGUIR_CON_CUENTA.test(codigo);
+  });
+  check('24) useLikes y useFollow, que firmaban con la cuenta, se retiraron',
+    !existe('hooks/useLikes.ts') && !existe('hooks/useFollow.ts'));
+  check('24b) y ningún archivo del cliente avisa de un «me gusta» ni sigue firmando con la cuenta',
+    firmanConLaCuenta.length === 0, firmanConLaCuenta.join(' ') || `${cliente.length} archivos mirados`);
+  /* CONTROL: las dos formas prohibidas se reconocen cuando aparecen (si no, la 24b pasaría siempre). */
+  check('24c) control: firmar con la cuenta se vería',
+    RE_LIKE_CON_CUENTA.test('notificationService.createLikeNotification(post.userId, user.uid, nombre)')
+    && RE_SEGUIR_CON_CUENTA.test('await followsService.toggleFollow(user.uid, destino)'));
+  check('25) seguir es una relación de la CARA: el modelo lo dice', S.ALCANCE.follow === 'POR_CARA');
+  check('25b) el «me gusta» en sí se cuenta por CUENTA: una persona, un aplauso', S.ALCANCE.like === 'POR_CUENTA');
   check('26) el voto sigue contándose por CUENTA a propósito, y no enseña quién votó',
     /voteId == request\.auth\.uid \+ '_' \+ request\.resource\.data\.postId/.test(leer('firestore.rules'))
     && S.ALCANCE.vote === 'POR_CUENTA');

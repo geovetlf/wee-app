@@ -1,5 +1,6 @@
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
 import { env, fetchJson, NotConfiguredError } from '../http';
+import { pideTextoPlano, SISTEMA_POR_DEFECTO } from '../promptLanguage';
 
 /**
  * Anthropic Claude (clave ANTHROPIC_API_KEY). LLM para guiones, planes y
@@ -27,8 +28,8 @@ export const claudeAdapter: ProviderAdapter = {
     if (!apiKey) throw new NotConfiguredError('claude', KEY);
     const { input, model, capability } = request;
     const start = Date.now();
-    const wantJson = capability === 'text.structure' || capability === 'scene.split';
-    const system = String(input.system ?? 'Eres Weë. Responde en español, claro y breve.') + (wantJson ? '\nResponde SOLO con JSON válido, sin texto alrededor.' : '');
+    const wantJson = !pideTextoPlano(input) && (capability === 'text.structure' || capability === 'scene.split');
+    const system = String(input.system ?? SISTEMA_POR_DEFECTO) + (wantJson ? '\nResponde SOLO con JSON válido, sin texto alrededor.' : '');
     const prompt = String(input.prompt ?? input.purpose ?? '');
 
     const data = await fetchJson<any>(API, {

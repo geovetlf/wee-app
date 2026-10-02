@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Platform, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,8 +22,7 @@ import { Chip } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { useWallet } from '../hooks/useWallet';
 import { scale } from '../utils/scale';
-
-const isWeb = Platform.OS === 'web';
+import { notify } from '../utils/notify';
 
 /*
  * El saludo vive en el diccionario, no aquí: una constante de módulo se evalúa
@@ -192,11 +191,6 @@ const BrainChatScreen: React.FC = () => {
    * misma en los dos casos.
    */
   const enBlanco = bubbles.length === 0;
-
-  const notify = (title: string, message: string) => {
-    if (isWeb) window.alert(`${title}\n\n${message}`);
-    else Alert.alert(title, message);
-  };
 
   const requireLogin = () => {
     if (chat.user) return true;

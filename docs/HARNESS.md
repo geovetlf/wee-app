@@ -9,7 +9,7 @@ las personas que usan Weë no lo ven nunca: no tiene interfaz.
 producción), [SECURITY.md](SECURITY.md) (secretos, identidades, App Check),
 [OBSERVABILITY.md](OBSERVABILITY.md) (alertas), [COSTES.md](COSTES.md) (topes y
 coste del Harness) y [DECISIONES-PENDIENTES.md](DECISIONES-PENDIENTES.md) (lo que
-espera al dueño).
+espera al dueño). Qué frontera del código vive dónde y si está conectada: [MAPA-DE-FRONTERAS.md](MAPA-DE-FRONTERAS.md).
 
 ## Cómo leer la tabla
 

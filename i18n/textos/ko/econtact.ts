@@ -55,6 +55,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: 'ËContact 기능을 사용하려면 로그인해 주세요.',
   errNotYours: '내 프로필이 아니에요.',
   errNotAPerson: '이 프로필은 ËContact 기능을 사용할 수 없어요.',
+  errSameProfile: '프로필은 자기 자신과 연결할 수 없어요.',
   errOffline: 'Weë에 연결하지 못했어요.',
   errNoRequestToReject: '거절할 요청이 없어요.',
   errNoPendingRequest: '이 프로필과 대기 중인 요청이 없어요.',

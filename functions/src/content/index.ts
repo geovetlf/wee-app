@@ -18,6 +18,18 @@ import {
   retirar,
 } from '../core';
 import { parseStorageUrl, storageBucket } from '../engine/http';
+import { sanitizeForLog } from '../engine/sanitize';
+
+/**
+ * ¿ESTE FALLO DE `create` DICE QUE EL DOCUMENTO YA EXISTÍA? (cierre post-auditoría 2026-10-01,
+ * server/errores-tragados). Solo `ALREADY_EXISTS` —el código 6 de gRPC con el que contesta Firestore,
+ * o su nombre—. Antes cualquier error se trataba como «ya existía»: un permiso denegado o una caída de
+ * red se leían como un duplicado y se callaban.
+ */
+export const yaExistia = (error: unknown): boolean => {
+  const code = (error as { code?: unknown } | null | undefined)?.code;
+  return code === 6 || code === 'already-exists' || code === 'ALREADY_EXISTS';
+};
 
 /**
  * WEE CONTENT — LA COMPOSICIÓN DEL MATERIAL.
@@ -281,7 +293,12 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
     try {
       await assets().doc(assetId).create(doc);
       return doc;
-    } catch {
+    } catch (error) {
+      /* Solo «ya existía» es «ya existía». Cualquier otro fallo es un fallo: se registra y no se crea nada. */
+      if (!yaExistia(error)) {
+        console.error('Content: no se pudo crear la ficha del material', assetId, sanitizeForLog(error, 300));
+        return null;
+      }
       const yaEstaba = await leerMaterial(assetId);
       /* Existe pero es de otra cuenta: no se devuelve. Un identificador no da acceso a nada. */
       return yaEstaba && yaEstaba.ownerAccountId === datos.ownerAccountId ? yaEstaba : null;
@@ -383,7 +400,15 @@ export const crearMaterialParaSubida = async (datos: NuevoMaterialParaSubida): P
   try {
     await assets().doc(datos.assetId).create(doc);
     return { status: 'creado', material: doc };
-  } catch {
+  } catch (error) {
+    /*
+     * Solo «ya existía» se resuelve leyendo la que estaba. Otro fallo (red, permisos, cuota) no es «inválido»
+     * ni «ya estaba»: se registra y se lanza, y la subida contesta un error que se puede reintentar.
+     */
+    if (!yaExistia(error)) {
+      console.error('Content: no se pudo crear la ficha para la subida', datos.assetId, sanitizeForLog(error, 300));
+      throw error;
+    }
     const yaEstaba = await leerMaterial(datos.assetId);
     if (!yaEstaba) return { status: 'invalido' };
     return materialEsDeLaCuenta(yaEstaba, datos.ownerAccountId)
@@ -665,7 +690,11 @@ export const crearMaterialDeTexto = async (datos: NuevoMaterialDeTexto): Promise
   try {
     await ref.create({ ...doc, contenido: datos.contenido });
     return doc;
-  } catch {
+  } catch (error) {
+    if (!yaExistia(error)) {
+      console.error('Content: no se pudo crear el material de texto', datos.assetId, sanitizeForLog(error, 300));
+      return null;
+    }
     /* Ya estaba: otra llegada se adelantó. Su ficha es la buena. */
     const ya = await leerMaterial(datos.assetId);
     return ya && ya.ownerAccountId === datos.ownerAccountId ? ya : null;

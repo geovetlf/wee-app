@@ -189,7 +189,8 @@ const ARRIBA_DEL_TECLADO = {
   'screens/InboxScreen.tsx': 'buscador en la cabecera de WeeTalk',
   'screens/SearchScreen.tsx': 'buscador en la cabecera',
   'screens/WeeBizScreen.tsx': 'buscador en la cabecera de Weë Biz',
-  'screens/ChatScreen.tsx': 'pantalla sin ruta: no está enlazada en la navegación',
+  // `screens/ChatScreen.tsx` estaba aquí como «pantalla sin ruta»: se retiró como código muerto (cierre
+  // post-auditoría, 2026-10-01), así que ya no hay campo que eximir.
 };
 
 /*

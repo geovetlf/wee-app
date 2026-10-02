@@ -29,7 +29,7 @@ import { getCategoryById } from '../constants/weebizCategories';
 import { weeBizService, Business, Product, Review } from '../services/weeBizService';
 import { messagesService, ParticipantData } from '../services/messagesService';
 import { cloudinaryThumb } from '../services/cloudinaryService';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 
 type RoutePropType = RouteProp<MainStackParamList, 'WeeBizProfile'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
@@ -38,13 +38,13 @@ type NavProp = StackNavigationProp<MainStackParamList>;
 import {
   doc,
   getDoc,
-  setDoc,
-  deleteDoc,
+  increment,
+  writeBatch,
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
-import { confirmAction } from '../utils/notify';
+import { confirmAction, notify } from '../utils/notify';
 
 const WeeBizProfileScreen: React.FC = () => {
   const { t, formato, locale } = useIdioma();
@@ -138,19 +138,31 @@ const WeeBizProfileScreen: React.FC = () => {
       setFollowLoading(true);
       const followId = `${activeUid}_biz_${businessId}`;
       const followRef = doc(db, 'businessFollows', followId);
+      const negocioRef = doc(db, 'businesses', businessId);
+      /*
+       * SEGUIR Y SU CONTADOR, EN UNA SOLA ESCRITURA. Antes eran dos: el documento de `businessFollows` y, después,
+       * `followersCount` del negocio. Si la segunda fallaba, el seguimiento quedaba hecho (o deshecho) con el contador
+       * sin mover, y la pantalla ni siquiera se enteraba. Ahora van en un `writeBatch`: o las dos, o ninguna.
+       * El contador se mueve de uno en uno, que es lo que exige `contadorSano('followersCount')` en firestore.rules,
+       * y nunca baja de cero: con un contador ya en cero (un desfase heredado de cuando eran dos escrituras), dejar de
+       * seguir borra el seguimiento sin restar, en vez de que la regla tumbe el lote entero y no se pueda dejar de seguir.
+       */
+      const lote = writeBatch(db);
 
       if (isFollowing) {
-        await deleteDoc(followRef);
-        await weeBizService.incrementFollowers(businessId, -1);
+        lote.delete(followRef);
+        if ((business?.followersCount ?? 0) > 0) lote.update(negocioRef, { followersCount: increment(-1) });
+        await lote.commit();
         setIsFollowing(false);
         setBusiness(prev => prev ? { ...prev, followersCount: Math.max(0, prev.followersCount - 1) } : prev);
       } else {
-        await setDoc(followRef, {
+        lote.set(followRef, {
           userId: activeUid,
           businessId,
           createdAt: Timestamp.now(),
         });
-        await weeBizService.incrementFollowers(businessId, 1);
+        lote.update(negocioRef, { followersCount: increment(1) });
+        await lote.commit();
         setIsFollowing(true);
         setBusiness(prev => prev ? { ...prev, followersCount: prev.followersCount + 1 } : prev);
       }
@@ -200,7 +212,7 @@ const WeeBizProfileScreen: React.FC = () => {
       });
     } catch (e) {
       console.error('Error opening conversation:', e);
-      Alert.alert(t('common.error'), t('weebiz.chatFailed'));
+      notify(t('common.error'), t('weebiz.chatFailed'));
     }
   };
 
@@ -209,14 +221,14 @@ const WeeBizProfileScreen: React.FC = () => {
     let url = business.externalLink;
     if (!url.startsWith('http')) url = 'https://' + url;
     Linking.openURL(url).catch(() => {
-      Alert.alert(t('common.error'), t('weebiz.linkFailed'));
+      notify(t('common.error'), t('weebiz.linkFailed'));
     });
   };
 
   const handleSubmitReview = async () => {
     if (!activeUid || !business) return;
     if (!reviewText.trim()) {
-      Alert.alert(t('weebiz.requiredTitle'), t('weebiz.opinionRequired'));
+      notify(t('weebiz.requiredTitle'), t('weebiz.opinionRequired'));
       return;
     }
     try {
@@ -242,7 +254,7 @@ const WeeBizProfileScreen: React.FC = () => {
       setUserReview(revs.find(r => r.userId === activeUid) || null);
     } catch (e) {
       console.error('Error submitting review:', e);
-      Alert.alert(t('common.error'), t('weebiz.reviewFailed'));
+      notify(t('common.error'), t('weebiz.reviewFailed'));
     } finally {
       setSavingReview(false);
     }

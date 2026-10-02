@@ -157,9 +157,14 @@ cuenta: no hay ningún documento compartido entre cuentas.
   cuenta o no está activa, rechaza. No la ignora.
 - Hace falta una cuenta nacida y `ACTIVE`. Lo propio no se denuncia.
   **Consecuencia conocida (revisión post-auditoría 2026-10-01, `trust/denuncia-sin-cuenta-nacida`):** las cuentas
-  creadas antes de `nacimientoDeCuenta` (2026-09-20) no han nacido —su migración está preparada y no ejecutada—,
-  así que hoy no pueden denunciar y la app les enseña un fallo genérico. La política no se relaja: lo que falta es
-  la migración de esas cuentas, que es de datos de producción y la autoriza el dueño. Cuántas son: por medir.
+  cuyo Perfil Real se creó antes de que `nacimientoDeCuenta` entrara en producción (revisión
+  `nacimientodecuenta-00002-yaz`, 2026-09-20T00:54Z, `ops/produccion.json`) no han nacido, así que hoy no pueden
+  denunciar: `reportar` contesta `account_required` (`moderation/index.ts`, «La cuenta tiene que haber nacido y estar
+  activa») y la app les enseña un fallo genérico. **La política no se relaja.** Lo que falta es numerar esas cuentas,
+  y esa migración **no está preparada**: no hay script, ni callable, ni backfill
+  (`functions/src/identity/cuentas.ts`, cabecera: «No hay callable, no hay script y no hay backfill»). Qué cuentas
+  son, qué haría la migración, cómo se ejecutaría y sus riesgos están en `docs/IDENTITY.md` § 12.1. Cuántas son: por
+  medir, con el dry-run que allí se describe; nada se ha ejecutado contra producción.
 - Al cliente viaja un código de gRPC y un motivo corto en `details.reason`. El
   mensaje es siempre el mismo y no cuenta nada: ni rutas, ni el proyecto, ni la cuenta.
 - `moderationAdmin` comprueba administración (`shared/admin.ts`) antes de mirar nada.

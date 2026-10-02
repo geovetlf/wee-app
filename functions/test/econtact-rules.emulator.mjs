@@ -412,15 +412,21 @@ await esperar('editar el propio nombre sigue funcionando', 'PERMITE', 'PATCH', `
 // ═════════════════════════════════════════════════════════════════════════════
 console.log('\n── K · Lo que no se ha tocado ──');
 // ═════════════════════════════════════════════════════════════════════════════
-await pedir('DELETE', '/follows/f1');
-await esperar('follows sigue aceptando el uid de la cuenta', 'PERMITE', 'POST', '/follows?documentId=f1', { uid: ANA, body: { fields: { followerId: str(ANA), followingId: str(BETO) } } });
-await pedir('DELETE', '/follows/f2');
-await esperar('y también el Perfil Weë, como siempre', 'PERMITE', 'POST', '/follows?documentId=f2', { uid: ANA, body: { fields: { followerId: str(WEE_ANA), followingId: str(BETO) } } });
+/*
+ * + cierre post-auditoría 2026-10-01: `follows` ata el id al par `{followerId}_{followingId}` (la forma que escribía
+ * el cliente retirado). Los dos controles siguen probando lo mismo —la cara real y la Weë de quien escribe— en su id.
+ */
+const F1 = `${ANA}_${BETO}`;
+const F2 = `${WEE_ANA}_${BETO}`;
+await pedir('DELETE', `/follows/${F1}`);
+await esperar('follows sigue aceptando el uid de la cuenta', 'PERMITE', 'POST', `/follows?documentId=${F1}`, { uid: ANA, body: { fields: { followerId: str(ANA), followingId: str(BETO) } } });
+await pedir('DELETE', `/follows/${F2}`);
+await esperar('y también el Perfil Weë, como siempre', 'PERMITE', 'POST', `/follows?documentId=${F2}`, { uid: ANA, body: { fields: { followerId: str(WEE_ANA), followingId: str(BETO) } } });
 await pedir('DELETE', '/businessFollows/bf1');
 await esperar('businessFollows sigue siendo de su dueña', 'PERMITE', 'POST', '/businessFollows?documentId=bf1', { uid: ANA, body: { fields: { userId: str(ANA), businessId: str('n1') } } });
 await esperar('y ajeno a nadie más', 'DENIEGA', 'POST', '/businessFollows?documentId=bf2', { uid: CARO, body: { fields: { userId: str(ANA), businessId: str('n1') } } });
 
-for (const p of ['/follows/f1', '/follows/f2', '/businessFollows/bf1', `/users/${ANA}`]) await pedir('DELETE', p);
+for (const p of [`/follows/${F1}`, `/follows/${F2}`, '/businessFollows/bf1', `/users/${ANA}`]) await pedir('DELETE', p);
 await limpiar();
 
 console.log(fallos === 0 ? '\n✅ Reglas de ËContact: comportamiento verificado en el emulador' : `\n❌ ${fallos} fallos`);

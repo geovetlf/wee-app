@@ -9,7 +9,7 @@ import { useUserById } from '../hooks/useUserById';
 import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { Comment } from '../services/firestoreService';
 import { voteService, VoteType } from '../services/voteService';
-import { getRelativeTime } from '../data/mockData';
+import { getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';

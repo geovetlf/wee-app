@@ -565,7 +565,8 @@ console.log('\n── F · Credits, con el Credit Engine DE VERDAD ──');
    * + revisión post-auditoría 2026-10-01: la decisión la toma `queHacerConElCobro` (que además no devuelve una respuesta ya
    * ENTREGADA). Reembolsar sigue exigiendo que devolver sea seguro: lo prueba ejecutándola brain-canary y reservas-abandonadas.
    */
-  check('y su `catch` reembolsa lo cobrado SOLO cuando devolverlo es seguro', /const devolverEsSeguro = !falloDelConductor \|\| falloDelConductor\.reembolsoSeguro;\s*const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui \}\);/.test(BRAIN)
+  /* + cierre post-auditoría 2026-10-01: la llamada añade `cerradoSinCobro` (solo puede QUITAR completar/reembolsar; lo ejecuta cierre-servidor). */
+  check('y su `catch` reembolsa lo cobrado SOLO cuando devolverlo es seguro', /const devolverEsSeguro = !falloDelConductor \|\| falloDelConductor\.reembolsoSeguro;\s*const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui, cerradoSinCobro \}\);/.test(BRAIN)
     && /\} else if \(spend && cobro\.reembolsar\) \{\s*await creditEngine\.refundCredits\(/.test(BRAIN));
   check('el fallo del conductor se guarda en el pensador, porque Weë Brain lo tapa', /if \(error instanceof FalloDelPensador\) falloDelConductor = error;/.test(BRAIN) && /catch \(error\) \{\s*return fallar\('PROVIDER_ERROR', 'thinker_failed'/.test(sinComentarios(leer('functions/src/core/brain.ts'))));
   check('un camino que no pasa por el conductor lo deja sin tocar: se reembolsa como siempre', !/falloDelConductor =/.test(BRAIN.slice(BRAIN.indexOf('const pensadorDeSiempre'), BRAIN.indexOf('const pensadorDelConductor'))));

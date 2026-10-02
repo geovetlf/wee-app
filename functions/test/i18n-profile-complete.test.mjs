@@ -121,19 +121,23 @@ console.log('\n── B · Los dos estados con los que puede abrirse ──');
 console.log('\n── C · Las siete alertas ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  const alertas = PERFIL.match(/Alert\.alert\([^;]*\);/g) || [];
-  /* Seis con `Alert.alert` y una —la del avatar— con `notify`, que también se ve en web. */
-  check('10) hay siete, ni una más', alertas.length === 6 && (PERFIL.match(/notify\(t\('common\.error'\), t\('profile\.avatarUpdateFailed'\)\)/g) || []).length === 1, String(alertas.length));
+  /*
+   * + cierre 2026-10-01: las seis que eran `Alert.alert` pasan a `notify` —en React Native Web `Alert.alert` es una
+   * función vacía y la persona no veía ninguna—. Mismas claves, mismo número, ninguna `Alert.alert` de vuelta.
+   */
+  const alertas = PERFIL.match(/\bnotify\([^;]*\);/g) || [];
+  check('10) hay siete, ni una más', alertas.length === 7 && !/Alert\.alert\(/.test(PERFIL)
+    && (PERFIL.match(/notify\(t\('common\.error'\), t\('profile\.avatarUpdateFailed'\)\)/g) || []).length === 1, String(alertas.length));
   check('10) y ninguna lleva una frase escrita a mano',
     alertas.every((a) => !/'[^']*[a-záéíóúñ]{4,}[^']*'/.test(a.replace(/t\('[^']*'/g, 't('))),
     alertas.filter((a) => /'[^']*[a-záéíóúñ]{4,}[^']*'/.test(a.replace(/t\('[^']*'/g, 't('))).join(' · '));
 
-  check('11) el nombre vacío', /Alert\.alert\(t\('common\.error'\), t\('profile\.nameRequired'\)\)/.test(PERFIL));
-  check('12) el perfil que no se actualiza', /Alert\.alert\(t\('common\.error'\), t\('profile\.updateFailed'\)\)/.test(PERFIL));
-  check('13) la sesión que no se cierra', /Alert\.alert\(t\('common\.error'\), t\('profile\.signOutFailed'\)\)/.test(PERFIL));
-  check('14) la sesión que no hay', /Alert\.alert\(t\('common\.error'\), t\('profile\.noSession'\)\)/.test(PERFIL));
-  check('15) la portada que no sube', /Alert\.alert\(t\('common\.error'\), t\('profile\.coverUploadFailed'\)\)/.test(PERFIL));
-  check('16) el permiso de la galería', /Alert\.alert\(t\('profile\.permissionsTitle'\), t\('profile\.galleryPermission'\)\)/.test(PERFIL));
+  check('11) el nombre vacío', /notify\(t\('common\.error'\), t\('profile\.nameRequired'\)\)/.test(PERFIL));
+  check('12) el perfil que no se actualiza', /notify\(t\('common\.error'\), t\('profile\.updateFailed'\)\)/.test(PERFIL));
+  check('13) la sesión que no se cierra', /notify\(t\('common\.error'\), t\('profile\.signOutFailed'\)\)/.test(PERFIL));
+  check('14) la sesión que no hay', /notify\(t\('common\.error'\), t\('profile\.noSession'\)\)/.test(PERFIL));
+  check('15) la portada que no sube', /notify\(t\('common\.error'\), t\('profile\.coverUploadFailed'\)\)/.test(PERFIL));
+  check('16) el permiso de la galería', /notify\(t\('profile\.permissionsTitle'\), t\('profile\.galleryPermission'\)\)/.test(PERFIL));
 
   /*
    * 17 · EL AVATAR. El motivo técnico —el almacén, la red— va al registro; la

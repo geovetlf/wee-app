@@ -25,7 +25,7 @@ import { useUserById, updateUserCache } from '../hooks/useUserById';
 import { useEContact, mensajeDeEContact } from '../hooks/useEContact';
 import { postsService, Post, repostsService } from '../services/firestoreService';
 import { likesService } from '../services/likesService';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import PostCard from '../components/PostCard';
@@ -74,8 +74,10 @@ const UserProfileScreen: React.FC = () => {
   const [showAvatarViewer, setShowAvatarViewer] = useState(false);
   const [showBannerViewer, setShowBannerViewer] = useState(false);
 
-  // Cargar posts del usuario
+  // Cargar posts del usuario. Ir de un perfil a otro reutiliza la pantalla: lo que llegue tarde del perfil de antes
+  // no puede pintar sus publicaciones en el nuevo.
   useEffect(() => {
+    let vivo = true;
     const loadUserPosts = async () => {
       if (!userId) return;
 
@@ -112,19 +114,24 @@ const UserProfileScreen: React.FC = () => {
           console.error('❌ Error cargando liked posts:', e);
         }
 
+        if (!vivo) return;
         setUserPosts(posts);
         setUserReposts(reposts);
         setUserLikedPosts(likedPosts);
       } catch (error) {
         console.error('Error loading user posts:', error);
+        if (!vivo) return;
         /* Se guarda la clave, no la frase: se traduce al pintarla, con el idioma de ese momento. */
         setPostsError('profile.postsFailed');
       } finally {
-        setLoadingPosts(false);
+        if (vivo) setLoadingPosts(false);
       }
     };
 
     loadUserPosts();
+    return () => {
+      vivo = false;
+    };
   }, [userId]);
 
   const handleShareProfile = async () => {

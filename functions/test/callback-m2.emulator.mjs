@@ -244,7 +244,8 @@ await vaciar();
   check('`cancelled` → lo mismo, sin abrir un estado nuevo en el Core', can.intento.outcome === 'failed' && can.estado === 'queued');
   check('y en los tres queda escrito lo que dijo ÉL, palabra por palabra',
     ['failed', 'expired', 'cancelled'].every((s) => leerAvisoDeSeedance(con({ status: s })).providerStatus === s));
-  check('ninguno de los tres descarga nada: no hay resultado que traer', true);
+  check('ninguno de los tres llama al materializador (no descarga ni guarda nada): no hay resultado que traer',
+    mal.guardados === 0 && cad.guardados === 0 && can.guardados === 0, `${mal.guardados}/${cad.guardados}/${can.guardados}`);
 
   /* EL DINERO, que es lo que no puede fallar. */
   const conReintento = await almacen.obtener((await db.collection(COLECCION_DE_TRABAJOS).get()).docs

@@ -22,9 +22,13 @@ on:
 permissions:
   contents: read
 
+# En un PR, un push nuevo deja viejo al anterior: se cancela. En main, NUNCA: el despliegue exige los cuatro checks en
+# verde en el commit EXACTO (ops/despliegue/plan.mjs, motivosContraElCommit), y un commit de main adelantado por otro
+# quedaría sin ellos. Por eso cada commit de main lleva su propio grupo: compartirlo no bastaría ni sin cancelar, porque
+# GitHub sustituye la ejecución PENDIENTE de un grupo por la siguiente que llega (la de en medio se cancela).
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096

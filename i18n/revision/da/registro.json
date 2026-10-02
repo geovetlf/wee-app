@@ -8589,5 +8589,38 @@
     "tipo": "agente",
     "fecha": "2026-10-01",
     "nota": ""
+  },
+  {
+    "clave": "settings.locationOff",
+    "antes": "Slået fra. Lad Weë bruge din omtrentlige placering til at foreslå steder i nærheden og dit område, når du tilføjer en placering til et opslag. Din nøjagtige placering vises aldrig offentligt.",
+    "despues": "Slået fra. Lad Weë bruge din omtrentlige placering til at foreslå dit område og steder i nærheden, når du tilføjer en placering til et opslag. Din nøjagtige placering vises aldrig offentligt.",
+    "revisada": true,
+    "huella": "45b8cfead396def4",
+    "revisor": "Claude (agente de IA), revisión nativa simulada — NO es una revisión humana",
+    "tipo": "agente",
+    "fecha": "2026-10-02",
+    "nota": "«steder i nærheden og dit område» se leía «steder i [dit område]»; primero la zona. El texto ya no promete contenido cercano: solo lugares y zona al añadir una ubicación a un opslag."
+  },
+  {
+    "clave": "econtact.errSameProfile",
+    "antes": "En profil kan ikke forbinde sig med sig selv.",
+    "despues": "En profil kan ikke oprette forbindelse til sig selv.",
+    "revisada": true,
+    "huella": "7f51be204116f73a",
+    "revisor": "Claude (agente de IA), revisión nativa simulada — NO es una revisión humana",
+    "tipo": "agente",
+    "fecha": "2026-10-02",
+    "nota": "«forbinde sig med sig selv» torpe (doble «sig»); el catálogo dice «oprette forbindelse til … selv» (servidor/social.ecMismaPersona)."
+  },
+  {
+    "clave": "wall.pollVoteOffline",
+    "antes": "Der kunne ikke oprettes forbindelse til Weë. Prøv igen senere.",
+    "despues": "Der kunne ikke oprettes forbindelse til Weë. Prøv igen senere.",
+    "revisada": true,
+    "huella": "bf56c94d265ddda1",
+    "revisor": "Claude (agente de IA), revisión nativa simulada — NO es una revisión humana",
+    "tipo": "agente",
+    "fecha": "2026-10-02",
+    "nota": "nueva; igual que econtact.errOffline + «Prøv igen senere.»"
   }
 ]

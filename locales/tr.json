@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Fotoğraf çekip gönderilerinde, profilinde, WeeTalk'ta ve Weë AI'da kullanabilmen için Weë'nin kamerana erişmesi gerekiyor.",
+    "NSMicrophoneUsageDescription": "WeeTalk'ta sesli mesaj kaydedip gönderebilmen için Weë'nin mikrofona erişmesi gerekiyor.",
+    "NSPhotoLibraryUsageDescription": "Fotoğraf ve video seçip gönderilerinde, profilinde, WeeTalk'ta ve Weë AI'da kullanabilmen için Weë'nin galerine erişmesi gerekiyor.",
+    "NSPhotoLibraryAddUsageDescription": "Weë AI'dan indirdiğin görselleri ve videoları galerine kaydetmek için Weë'nin izne ihtiyacı var.",
+    "NSLocationWhenInUseUsageDescription": "Weë, bir gönderiye konum eklediğinde yakınındaki yerleri ve bulunduğun bölgeyi önerebilmek için yaklaşık konumunu yalnızca uygulama açıkken kullanır. Tam konumun hiçbir zaman herkese açık olarak gösterilmez."
+  }
+}

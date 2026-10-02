@@ -61,7 +61,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutBody: 'Weë(World Encode Entity)는 인공지능으로 창작하는 사람들의 소셜 네트워크입니다.\n\n버전 1.0.0 · © {{anio}} Weë. 모든 권리 보유.\n\n지리 데이터: GeoNames (geonames.org), CC BY 4.0.',
   location: '📍 위치',
   locationLine: '{{estado}} 정확한 위치는 공개적으로 표시되지 않습니다.',
-  locationOff: '꺼짐. 가까운 콘텐츠와 경험을 보여 드릴 수 있도록 Weë가 대략적인 위치를 사용하도록 허용해 주세요. 정확한 위치는 공개적으로 표시되지 않습니다.',
+  locationOff: '꺼짐. 켜면 게시물에 위치를 추가할 때 Weë가 대략적인 위치를 사용해 주변 장소와 현재 지역을 추천해 드립니다. 정확한 위치는 공개적으로 표시되지 않습니다.',
   locationUnavailable: '이 기기에서는 위치를 확인할 수 없습니다.',
   locationDisabled: '기기 설정에서 위치가 꺼져 있습니다.',
   locationPermissionDenied: '시스템 요청을 거부하셨습니다. 여기를 눌러 기기 설정에서 변경하세요.',

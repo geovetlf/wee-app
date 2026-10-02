@@ -56,6 +56,7 @@ export const wall: typeof import('../es/wall').wall = {
   pollLessThanAnHour: '1 घंटे से कम बाकी',
   pollLegacy: 'यह पोल Weë के पुराने वर्शन का है, इसलिए अब इसमें वोट नहीं दिए जा सकते.',
   pollVoteFailed: 'आपका वोट दर्ज नहीं हो सका',
+  pollVoteOffline: 'Weë से कनेक्ट नहीं किया जा सका. कुछ देर बाद फिर से कोशिश करें.',
   closeComments: 'टिप्पणियाँ बंद करें',
   removeImage: 'इमेज हटाएँ',
   attachImage: 'इमेज अटैच करें',

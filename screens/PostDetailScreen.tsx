@@ -32,7 +32,7 @@ import { useComentarios } from '../hooks/useComentarios';
 import { useReposts } from '../hooks/useReposts';
 import { Post } from '../services/firestoreService';
 import Poll from '../components/Poll';
-import { formatNumber, getRelativeTime } from '../data/mockData';
+import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import { Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Video, ResizeMode, Audio } from 'expo-av';

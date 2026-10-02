@@ -155,16 +155,17 @@ console.log('\n── D · Los errores: la frase sí, el código no ──');
     && /case 'auth\/invalid-email':\s*\n\s*errorMessage = t\('auth\.errInvalidEmail'\);/.test(LOGIN)
     && /case 'auth\/user-disabled':\s*\n\s*errorMessage = t\('auth\.errUserDisabled'\);/.test(LOGIN));
 
+/* + cierre 2026-10-01: estos avisos pasan de Alert.alert (vacío en la web) a notify; mismas claves. */
   check('8) y los avisos de campos, correo pedido y correo enviado',
     /alert\(t\('auth\.fillAllFields'\)\)/.test(LOGIN)
     && /t\('auth\.emailRequired'\)/.test(LOGIN) && /t\('auth\.emailRequiredTitle'\)/.test(LOGIN)
     && /t\('auth\.resetEmailSent'\)/.test(LOGIN) && /t\('auth\.emailSentTitle'\)/.test(LOGIN)
-    && /Alert\.alert\(t\('auth\.authErrorTitle'\), errorMessage\)/.test(LOGIN));
+    && /notify\(t\('auth\.authErrorTitle'\), errorMessage\)/.test(LOGIN));
 
   /* Cuatro avisos usan el título genérico: campos, Google, invitado y reenvío. */
   check('8) el título genérico reutiliza common.error',
-    (LOGIN.match(/Alert\.alert\(t\('common\.error'\)/g) || []).length === 4
-    && !/Alert\.alert\('Error'/.test(LOGIN));
+    (LOGIN.match(/notify\(t\('common\.error'\)/g) || []).length === 4
+    && !/(?:Alert\.alert|notify)\('Error'/.test(LOGIN) && !/Alert\.alert\(/.test(LOGIN));
 
   /*
    * 17 · LOS CÓDIGOS SIGUEN SIENDO LOS MISMOS CUATRO, escritos igual. Si alguien

@@ -26,7 +26,7 @@ import { communityService, Community } from '../services/communityService';
 import { searchUsers, searchPosts, getTrendingPosts, getPopularHashtags, getPostsByHashtag, Post, UserProfile, PopularHashtag } from '../services/firestoreService';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { referenciaPublicaDe } from '../utils/identidadPublica';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { descripcionDeComunidad, nombreDeComunidad } from '../utils/comunidadesDeWee';
@@ -106,8 +106,10 @@ const SearchScreen: React.FC = () => {
     loadInitialData();
   }, []);
 
-  // Buscar cuando cambia la query
+  // Buscar cuando cambia la query. El `clearTimeout` solo para la búsqueda que no ha EMPEZADO; la que ya está en
+  // camino podía volver después de la nueva («ca» después de «casa») y dejar en pantalla los resultados de antes.
   useEffect(() => {
+    let vigente = true;
     const searchTimeout = setTimeout(async () => {
       if (searchQuery.trim().length >= 2) {
         setSearching(true);
@@ -125,15 +127,17 @@ const SearchScreen: React.FC = () => {
 
           // Buscar usuarios en Firebase
           const users = await searchUsers(searchQuery, 10, locale);
+          if (!vigente) return;
           setSearchedUsers(users);
 
           // Buscar posts en Firebase
           const posts = await searchPosts(searchQuery, 10);
+          if (!vigente) return;
           setSearchedPosts(posts);
         } catch (error) {
           console.error('Error searching:', error);
         } finally {
-          setSearching(false);
+          if (vigente) setSearching(false);
         }
       } else {
         setFilteredCommunities(communities);
@@ -142,7 +146,10 @@ const SearchScreen: React.FC = () => {
       }
     }, 300); // Debounce de 300ms
 
-    return () => clearTimeout(searchTimeout);
+    return () => {
+      vigente = false;
+      clearTimeout(searchTimeout);
+    };
   }, [searchQuery, communities, t, locale]);
 
   const handleClearSearch = () => {

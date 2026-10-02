@@ -28,12 +28,20 @@ const fixCommunityIcon = (community: Community): Community => {
   return community;
 };
 
+/*
+ * Qué salió mal, como CÓDIGO y no como frase. Esto es un hook: no sabe en qué idioma se mira, y hoy nadie pinta este
+ * error (Home, Buscar y la comunidad usan las listas y `isMember`; la comunidad solo pregunta SI hubo error al
+ * cargarla). Antes guardaba frases en español escritas a mano; quien lo enseñe elegirá la clave i18n por el código.
+ */
+export type ErrorDeComunidades = 'carga-fallida' | 'sin-sesion' | 'union-fallida' | 'salida-fallida';
+export type ErrorDeComunidad = 'carga-fallida';
+
 interface UseCommunitiesReturn {
   communities: Community[];
   officialCommunities: Community[];
   userCommunities: Community[];
   isLoading: boolean;
-  error: string | null;
+  error: ErrorDeComunidades | null;
   refreshCommunities: () => Promise<void>;
   joinCommunity: (communityId: string) => Promise<void>;
   leaveCommunity: (communityId: string) => Promise<void>;
@@ -52,7 +60,13 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
     () => (userId ? userCommunitiesCache.get(userId) || [] : [])
   );
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorDeComunidades | null>(null);
+  /*
+   * LA CARGA VIGENTE. Al cambiar de cara (Perfil Real ↔ Perfil Weë) cambia `userId` y se pide otra carga; si la de
+   * antes vuelve después, traía las comunidades de la OTRA cara y las dejaba como si fueran de esta. Cada carga se
+   * numera y solo la última escribe. (Es una función que también se llama a mano, así que la bandera vive en un ref.)
+   */
+  const cargaVigente = useRef(0);
 
   // Wrapper que actualiza estado + caché
   const updateUserCommunities = useCallback((updater: Community[] | ((prev: Community[]) => Community[])) => {
@@ -72,6 +86,8 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
   }, [userId]);
 
   const refreshCommunities = useCallback(async () => {
+    const esta = ++cargaVigente.current;
+    const vigente = () => esta === cargaVigente.current;
     setIsLoading(true);
     setError(null);
 
@@ -79,6 +95,7 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
       // Cargar todas las comunidades. Una lista vacía es un estado válido: las oficiales las crea la administración
       // (`scripts/sembrar-comunidades.mjs`), nunca la app —las reglas no la dejan, y no debe—.
       let allCommunities = await communityService.getCommunities();
+      if (!vigente()) return;
 
       // Corregir iconos emoji a Ionicons (fix del lado cliente)
       allCommunities = allCommunities.map(fixCommunityIcon);
@@ -92,15 +109,16 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
       // Cargar comunidades a las que el usuario se ha unido
       if (userId) {
         const userComms = await communityService.getJoinedCommunities(userId);
+        if (!vigente()) return;
         updateUserCommunities(userComms);
       } else {
         updateUserCommunities([]);
       }
     } catch (err) {
       console.error('Error loading communities:', err);
-      setError('Error al cargar comunidades');
+      if (vigente()) setError('carga-fallida');
     } finally {
-      setIsLoading(false);
+      if (vigente()) setIsLoading(false);
     }
   }, [userId, updateUserCommunities]);
 
@@ -111,7 +129,7 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
 
   const joinCommunity = useCallback(async (communityId: string) => {
     if (!userId) {
-      setError('Debes iniciar sesión');
+      setError('sin-sesion');
       return;
     }
 
@@ -128,7 +146,7 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
       }
     } catch (err) {
       console.error('Error joining community:', err);
-      setError('Error al unirse a la comunidad');
+      setError('union-fallida');
       throw err;
     }
   }, [userId, communities, updateUserCommunities]);
@@ -146,7 +164,7 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
       );
     } catch (err) {
       console.error('Error leaving community:', err);
-      setError('Error al salir de la comunidad');
+      setError('salida-fallida');
       throw err;
     }
   }, [userId, updateUserCommunities]);
@@ -182,29 +200,34 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
 export function useCommunity(communityIdOrSlug: string) {
   const [community, setCommunity] = useState<Community | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorDeComunidad | null>(null);
 
   useEffect(() => {
+    /* Ir de una comunidad a otra reutiliza la pantalla: la respuesta de la de antes no puede pintar la nueva. */
+    let vivo = true;
     const loadCommunity = async () => {
       setIsLoading(true);
       try {
         // Intentar primero por ID, luego por slug
         let comm = await communityService.getCommunityById(communityIdOrSlug);
-        if (!comm) {
+        if (!comm && vivo) {
           comm = await communityService.getCommunityBySlug(communityIdOrSlug);
         }
-        setCommunity(comm);
+        if (vivo) setCommunity(comm);
       } catch (err) {
         console.error('Error loading community:', err);
-        setError('Error al cargar la comunidad');
+        if (vivo) setError('carga-fallida');
       } finally {
-        setIsLoading(false);
+        if (vivo) setIsLoading(false);
       }
     };
 
     if (communityIdOrSlug) {
       loadCommunity();
     }
+    return () => {
+      vivo = false;
+    };
   }, [communityIdOrSlug]);
 
   return { community, isLoading, error };

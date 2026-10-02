@@ -187,6 +187,15 @@ check('2) un archivo marcado con `git add -N` cuenta como seguido, y lo que sale
 check('3) web/alert-con-botones: solo el Alert con botones que corre en la web (no el nativo, ni el de Platform.OS, ni tras la salida web, ni sin botones)',
   JSON.stringify(de(rA, 'web/alert-con-botones').map((h) => h.id)) === JSON.stringify(['web/alert-con-botones/components/Aviso.tsx#Aviso']),
   JSON.stringify(de(rA, 'web/alert-con-botones').map((h) => h.id)));
+/*
+ * + cierre 2026-10-01: un aviso SIN manejadores tampoco se ve en la web (Alert.alert es una función vacía en
+ * react-native-web). Lo caza su propia regla —la de botones habla de trabajo que no corre y no cambia de significado—,
+ * con las mismas excepciones: el archivo .native, el `if (Platform.OS !== 'web')` y lo que va tras la salida web.
+ */
+const sinBoton = de(rA, 'web/alert-sin-boton').map((h) => h.id).sort();
+check('3b) web/alert-sin-boton: el aviso sin botones que corre en la web; ni el nativo, ni el guardado, ni el que tiene botones',
+  JSON.stringify(sinBoton) === JSON.stringify(['web/alert-sin-boton/components/Aviso.tsx#SinBotones']),
+  JSON.stringify(sinBoton));
 const anyTipos = de(rA, 'tipos/any');
 const anyDe = (ruta) => anyTipos.find((h) => h.evidencia.ruta === ruta);
 check('4) tipos/any cuenta por archivo (2 en utils/tipos.ts, 1 en functions/src/admin.ts) y no aparece en un archivo sin any',

@@ -46,7 +46,7 @@ export const ScrollProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 export const useScroll = () => {
   const context = useContext(ScrollContext);
   if (!context) {
-    throw new Error('useScroll must be used within a ScrollProvider');
+    throw new Error('useScroll-fuera-de-ScrollProvider');
   }
   return context;
 };

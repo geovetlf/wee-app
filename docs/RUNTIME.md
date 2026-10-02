@@ -257,7 +257,11 @@ BrainChatScreen → useBrainChat → services/brainService.ts
                                            engine.generate()              → aiGenerations
 ```
 
-Un solo embudo hacia los proveedores (`engine.generate`, tres llamadores), un solo
+Un solo embudo hacia los proveedores (`engine.generate`, **cuatro** llamadores: `runCapability`
+en `gateway/index.ts` —los pasos de `creatorRun`—, el pensador de siempre de `brainChat` en
+`creator/brain.ts`, el Weë Video Engine en `engine/video.ts` —`generateVideo`— y el entendimiento
+en sombra de `creatorChat` en `creator/index.ts`, que llegó con S1; corregido en el cierre
+post-auditoría 2026-10-01, antes decía «tres»), un solo
 router instanciado, un solo bucle de ejecución. **En ejecución no hay dos motores
 de nada**, salvo el camino del avatar descrito arriba. La duplicación está en el
 árbol, no en el proceso.
@@ -502,7 +506,7 @@ Seguido por imports y llamadas, no por comentarios. `archivo:línea` en cada sal
 | **`aiGenerations`** | una fila por intento, la escribe `engine/router.ts` | **las mismas filas**, por el puerto del ejecutor | ninguna en la forma | BAJO | hecho en el tramo 1 |
 | **Cobro de Credits** | reserva (débito real, `AUTHORIZED`) → proveedor → `completeCredits` / `refundCredits`, todo en la misma invocación | **igual, sin tocar** | ninguna | **P0** | § 11.9 |
 
-Un solo embudo hacia los proveedores (`engine.generate`, tres llamadores) más el avatar.
+Un solo embudo hacia los proveedores (`engine.generate`, cuatro llamadores hoy —ver § 5—) más el avatar.
 Las 30 Functions desplegadas son las 30 que exporta `index.ts`; seis tocan IA.
 
 ### 11.2 Contrato frente a implementación frente a producción
@@ -2035,9 +2039,12 @@ que falla se reintenta o no— disfrazada de detalle técnico, y merece decidirs
 
 ### 21.5 Lo demás que queda anotado y sin arreglar
 
-- El `seedanceCallback` **legacy** sigue guardando su payload entero en
-  `aiProviderCallbacks`, con la URL firmada dentro. Es del camino de sondeo; el camino
-  nuevo no lo usa.
+- ~~El `seedanceCallback` **legacy** sigue guardando su payload entero en
+  `aiProviderCallbacks`, con la URL firmada dentro.~~ **Corregido en `8a9f098`** (H0 #21):
+  el webhook guarda solo `{ provider, status, receivedAt }` —nunca el cuerpo ni la URL
+  firmada—, compara el testigo en tiempo constante, limita el cuerpo y valida el id de la
+  tarea; y el sondeo de `seedance.ts` toma el estado y el vídeo SOLO del GET a ModelArk, nunca
+  del aviso guardado.
 - En modo **síncrono** el trabajo guarda la URL de descarga como `outputRefs`; el
   asíncrono guarda el `assetId`.
 - `estimatedUsd` en el trabajo es la estimación **gruesa del Router** (coste por segundo),

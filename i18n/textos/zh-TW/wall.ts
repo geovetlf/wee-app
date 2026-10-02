@@ -53,6 +53,7 @@ export const wall: typeof import('../es/wall').wall = {
   pollLessThanAnHour: '不到 1 小時',
   pollLegacy: '這個投票來自舊版 Weë，已經不能再投票了。',
   pollVoteFailed: '無法記錄你的投票',
+  pollVoteOffline: '無法連上 Weë，請稍後再試。',
   closeComments: '收起留言',
   removeImage: '移除圖片',
   attachImage: '新增圖片',

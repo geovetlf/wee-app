@@ -2,7 +2,8 @@ import { HttpsError } from 'firebase-functions/v2/https';
 
 /**
  * Administración: custom claim `admin: true` o uid listado en WEE_ADMIN_UIDS
- * (functions/.env.wee-dev-geovet en dev; functions/.env.get-wee en producción, no versionado).
+ * (en producción: functions/.env.get-wee, no versionado, que escribe despliegue.yml desde la variable WEE_ADMIN_UIDS
+ * del entorno get-wee de GitHub).
  */
 export const isAdmin = (auth: { uid: string; token?: Record<string, unknown> } | undefined): boolean => {
   if (!auth) return false;

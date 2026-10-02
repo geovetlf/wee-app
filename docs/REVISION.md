@@ -9,6 +9,8 @@ El procedimiento ejecutable es [`/revision-de-fase`](../.claude/commands/revisio
 inspira en el plugin Thermos de Cursor (ver [ATRIBUCION](../ops/revision/rubricas/ATRIBUCION.md)); Weë no lo
 instala ni lo ejecuta, y todo el texto y el código son propios.
 
+Contexto que todo revisor recibe además de CLAUDE.md: el [mapa de fronteras](MAPA-DE-FRONTERAS.md) (dónde vive cada frontera, qué la define, qué la vigila y si está conectada).
+
 ## Las capas
 
 | Capa | Qué es | Dónde | IA |

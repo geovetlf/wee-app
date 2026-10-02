@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useScroll } from '../contexts/ScrollContext';
@@ -465,7 +465,16 @@ const HomeScreen: React.FC = () => {
     return unsubscribe;
   }, [navigation]);
 
+  /*
+   * LA CARGA VIGENTE DEL MURO. Cambiar de comunidad en las pastillas pide otra carga; si la de la comunidad de antes
+   * volvía después, pintaba sus publicaciones bajo la pastilla nueva. Cada carga se numera y solo la última pinta (la
+   * caché sí se guarda siempre: es de su comunidad, sea cual sea la que se mira ahora).
+   */
+  const cargaDelMuro = useRef(0);
+
   const loadPosts = async (isInitial = false, forceRefresh = false) => {
+    const esta = ++cargaDelMuro.current;
+    const vigente = () => esta === cargaDelMuro.current;
     console.log('📝 loadPosts called:', { isInitial, forceRefresh, selectedCommunitySlug });
     const cacheKey = selectedCommunitySlug || 'all';
     const cached = postsCache.current.get(cacheKey);
@@ -522,6 +531,7 @@ const HomeScreen: React.FC = () => {
         timestamp: now,
         hayMas: (result as any)?.hayMas,
       });
+      if (!vigente()) return;
 
       setPosts(documents);
       setLastDoc(result?.lastDoc || null);
@@ -531,12 +541,14 @@ const HomeScreen: React.FC = () => {
     } catch (err) {
       console.error('❌ Error loading posts:', err);
       // Solo mostrar error si no hay cache
-      if (!cached) {
+      if (!cached && vigente()) {
         setError('carga-fallida');
       }
     } finally {
-      setLoading(false);
-      setFiltering(false);
+      if (vigente()) {
+        setLoading(false);
+        setFiltering(false);
+      }
     }
   };
 

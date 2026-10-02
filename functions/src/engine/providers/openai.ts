@@ -1,5 +1,6 @@
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
 import { env, fetchJson, NotConfiguredError } from '../http';
+import { pideTextoPlano, SISTEMA_POR_DEFECTO } from '../promptLanguage';
 
 /**
  * OpenAI (clave OPENAI_API_KEY). LLM alternativo para texto y JSON.
@@ -28,8 +29,8 @@ export const openaiAdapter: ProviderAdapter = {
     if (!apiKey) throw new NotConfiguredError('openai', KEY);
     const { input, model, capability } = request;
     const start = Date.now();
-    const wantJson = capability === 'text.structure' || capability === 'scene.split';
-    const system = String(input.system ?? 'Eres Weë. Responde en español, claro y breve.');
+    const wantJson = !pideTextoPlano(input) && (capability === 'text.structure' || capability === 'scene.split');
+    const system = String(input.system ?? SISTEMA_POR_DEFECTO);
     const prompt = String(input.prompt ?? input.purpose ?? '');
 
     const data = await fetchJson<any>(API, {

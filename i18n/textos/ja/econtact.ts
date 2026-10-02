@@ -43,6 +43,7 @@ export const econtact: typeof import('../es/econtact').econtact = {
   errSignIn: 'ËContactを使うには、ログインしてください。',
   errNotYours: '自分のプロフィールではありません。',
   errNotAPerson: 'このプロフィールではËContactを使えません。',
+  errSameProfile: 'プロフィールは自分自身とはつながれません。',
   errOffline: 'Weëにつながりませんでした。',
   errNoRequestToReject: '拒否できるリクエストはありません。',
   errNoPendingRequest: 'このプロフィールへの承認待ちのリクエストはありません。',

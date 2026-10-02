@@ -101,9 +101,15 @@ console.log('\n── A · La utilidad sigue siendo pura ──');
     (AVISO.match(/resolve\(false\)/g) || []).length === 1 && (AVISO.match(/resolve\(true\)/g) || []).length === 1);
   check('12) y la rama de web sigue siendo window.confirm, intacta',
     /if \(isWeb\) \{\s*\n\s*return Promise\.resolve\(window\.confirm\(`\$\{title\}\\n\\n\$\{message\}`\)\);/.test(AVISO));
-  check('12) notify() tampoco cambió',
-    /export const notify = \(title: string, message\?: string\): void => \{/.test(AVISO)
-    && /window\.alert\(message \? `\$\{title\}\\n\\n\$\{message\}` : title\)/.test(AVISO));
+  /*
+   * + cierre 2026-10-01: `notify` gana un tercer parámetro opcional, la etiqueta del ÚNICO botón en nativo, para los
+   * avisos que ya decían el suyo («Entendido») y pasaron de `Alert.alert` —que en la web no muestra nada— a `notify`.
+   * Lo demás no cambia: la web sigue en `window.alert` y, sin etiqueta, nativo sigue llamando a Alert.alert(título, mensaje).
+   */
+  check('12) notify() tampoco cambió (salvo la etiqueta opcional del botón nativo)',
+    /export const notify = \(title: string, message\?: string, etiqueta\?: string\): void => \{/.test(AVISO)
+    && /window\.alert\(message \? `\$\{title\}\\n\\n\$\{message\}` : title\)/.test(AVISO)
+    && /if \(etiqueta\) Alert\.alert\(title, message, \[\{ text: etiqueta \}\]\);\s*else Alert\.alert\(title, message\);/.test(AVISO));
 }
 
 // ════════════════════════════════════════════════════════════════════════════

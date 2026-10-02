@@ -21,6 +21,7 @@ import { engine } from '../engine';
 import { loadConfig } from '../engine/config';
 import { crearGatewayDelMotor, trazaDeConsola } from '../engine/gateway';
 import { Ledger, firestoreLedger } from '../engine/ledger';
+import { sanitizeForLog } from '../engine/sanitize';
 import { esExitoRealDeProveedor, recordRealSuccess } from '../engine/verification';
 import { ADAPTERS, DEFAULT_ROUTING } from '../engine/registry';
 import { crearMotorDeTrabajosDeWee } from '../job';
@@ -228,9 +229,9 @@ export const materialDeWee: PuertoDeMaterial = {
           },
         });
         if (material) ids.push(material.assetId);
-      } catch {
-        /* Un paso que salió bien no se tira por un problema de catalogación: se queda sin ficha, y se ve. */
-        console.error(`WEË RUNTIME: no se pudo crear el material del paso ${dispatch.stepId} (${dispatch.trace.requestId})`);
+      } catch (e) {
+        /* Un paso que salió bien no se tira por un problema de catalogación: se queda sin ficha, y se ve —con su causa, saneada—. */
+        console.error(`WEË RUNTIME: no se pudo crear el material del paso ${dispatch.stepId} (${dispatch.trace.requestId})`, sanitizeForLog(e, 300));
       }
     }
     return ids;
@@ -257,7 +258,14 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
   const credits = deps.credits ?? creditEngine;
   const ledger = deps.ledger ?? firestoreLedger;
   const cerrarFila = async (creditTransactionId: string, finalAmount: number) => {
-    await ledger.settle({ creditTransactionId, finalAmount }).catch(() => undefined);
+    /*
+     * El dinero ya se cerró en el Credit Engine; la fila del libro es la contabilidad del coste. Si no se
+     * puede liquidar, no se deshace nada, pero NO se calla: se registra la causa, saneada
+     * (cierre post-auditoría 2026-10-01, server/errores-tragados).
+     */
+    await ledger.settle({ creditTransactionId, finalAmount }).catch((e) => {
+      console.error(`WEË RUNTIME: no se pudo liquidar la fila del libro ${creditTransactionId}`, sanitizeForLog(e, 300));
+    });
   };
   return {
     async liquidar({ userId, reserva, importe, jobId }) {
@@ -303,7 +311,8 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
  * Engine de verdad, y el barrendero que ya existe. Una función sin argumentos
  * que se puede llamar desde una prueba igual que desde un programador de tareas.
  *
- * NADIE LA LLAMA TODAVÍA: no se exporta como Function y no hay nada programado.
+ * LA LLAMA EL BARRIDO DESPLEGADO: `barridoDeLiquidacion` (settlement/programado.ts, cada 5 min)
+ * la pasa como `liquidacion` a `mantenimientoDeWee`.
  */
 export const barridoDeLiquidacionDeWee = (deps: {
   db: Firestore;
@@ -339,7 +348,8 @@ export const barridoDeLiquidacionDeWee = (deps: {
  * distinto sobre el mismo hecho sería tener dos motores discutiendo por el
  * mismo trabajo.
  *
- * NADIE LA LLAMA TODAVÍA: el receptor no se exporta como Function.
+ * La usa el reconciliador, que corre DENTRO del barrido desplegado (`barridoDeLiquidacion`, vía
+ * `reconciliacionDeWee`). El receptor de avisos (`avisoDeProveedor`) sigue sin exportarse como Function.
  */
 export const atencionDeWee = (deps: { db?: Firestore; ahora?: () => number; materializar?: PuertoDeMaterializacion; observar?: (v: VistoAlAtender) => void } = {}): AtencionDeps => {
   const db = deps.db ?? getFirestore();
@@ -360,7 +370,8 @@ export const atencionDeWee = (deps: { db?: Firestore; ahora?: () => number; mate
  * hay uno —Seedance—, y se declara aquí y no dentro del runtime: el runtime no
  * conoce proveedores.
  *
- * NADIE LA LLAMA TODAVÍA: no se exporta como Function y no hay nada programado.
+ * LA LLAMA EL BARRIDO DESPLEGADO: `mantenimientoDeWee` la usa cuando no le pasan otra, y
+ * `barridoDeLiquidacion` (settlement/programado.ts, cada 5 min) no le pasa otra.
  */
 export const reconciliacionDeWee = (deps: {
   db?: Firestore;
@@ -447,9 +458,10 @@ export const mantenimientoDeWee = (deps: {
     let falloAlPreguntar = false;
     try {
       reconciliacion = await preguntar();
-    } catch {
-      /* Preguntar salió mal. NO impide liquidar lo que ya estaba resuelto, y no cierra ni devuelve nada. */
+    } catch (e) {
+      /* Preguntar salió mal. NO impide liquidar lo que ya estaba resuelto, y no cierra ni devuelve nada. Pero se dice por qué. */
       falloAlPreguntar = true;
+      console.error('WEË RUNTIME: la reconciliación falló', sanitizeForLog(e, 300));
     }
     /* Aquí, antes de liquidar: lo que se lee tiene que ir en el orden en que pasó. */
     deps.anotarPregunta?.(reconciliacion, falloAlPreguntar);

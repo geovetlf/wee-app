@@ -114,7 +114,9 @@ const NO_SON_PROMPT = {
   'screens/ProjectScreen.tsx': 'renombrar un proyecto: una línea, no un prompt',
   'screens/WeeCreatorScreen.tsx': 'buscador de la portada de Weë AI: filtra experiencias mientras se escribe',
   'screens/WriterEditorScreen.tsx': 'editor de documentos de Weë Writer: el documento ya es la pantalla entera',
-  'components/studio/PromptEditor.tsx': 'editor a pantalla completa retirado: no se monta en ninguna pantalla',
+  // `components/studio/PromptEditor.tsx` estaba aquí como «editor a pantalla completa retirado: no se monta en ninguna
+  // pantalla». Retirado del todo como código muerto en el cierre post-auditoría (2026-10-01): sin archivo no hay campo
+  // que eximir, y la 18 sigue impidiendo que una pantalla vuelva a montar un editor así (CLAUDE.md §9).
 };
 
 /* La caja del diseño común, o el hook entero para quien todavía pinta la suya. */
