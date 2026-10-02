@@ -1,4 +1,6 @@
+import { MecanismoDeContinuidad, materialDeLaEntrada, traducirContinuidad } from '../continuidad';
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
+import { MAX_PROPUESTAS_POR_PASO } from '../types';
 import { env, fetchJson, NotConfiguredError, persistRemoteFile, pollUntil, ProviderError, readImage } from '../http';
 import { IMAGE_MODELS, usdFor } from '../imageModels';
 import { dimensionsOf } from '../imageMeta';
@@ -22,6 +24,25 @@ const base = () => env('BFL_BASE_URL') || 'https://api.bfl.ai';
 
 /** Máximo de imágenes de referencia que acepta la familia FLUX.2 (input_image … input_image_8). */
 const MAX_REFERENCES = 8;
+
+/**
+ * LO QUE ESTA IMPLEMENTACIÓN SABE HACER DE VERDAD con un requisito de
+ * continuidad, declarado desde su propio código y no desde el catálogo.
+ *
+ * Condicionamiento por referencia y nada más: se le pasan imágenes y el
+ * resultado se parece a ellas. NO hay un control que conserve un rostro, ni una
+ * geometría, ni una etiqueta; no hay forma de traducir `strict`; y por eso no
+ * se declara ni un solo control dedicado. Declarar uno sin tenerlo sería
+ * prometer arriba lo que aquí no existe.
+ *
+ * El número de huecos depende del modelo, así que se calcula por petición.
+ */
+const mecanismoDeContinuidad = (modelId: string): MecanismoDeContinuidad => ({
+  referenciasDeImagen: isFlux2(modelId) || TOOL_MODELS.has(modelId) ? MAX_REFERENCES : 1,
+  referenciasDeVideo: 0,
+  controlesDedicados: [],
+  admiteFuerza: false,
+});
 
 /** Precios de lista oficiales (docs.bfl.ai/quick_start/pricing): USD por imagen. */
 interface FluxPrice {
@@ -136,6 +157,7 @@ const asBase64 = async (url: string): Promise<{ base64: string; size?: { width: 
 };
 
 export const fluxAdapter: ProviderAdapter = {
+  continuidad: (_capability, modelId) => mecanismoDeContinuidad(modelId),
   id: 'flux',
   name: 'FLUX (Black Forest Labs)',
   modalities: ['image'],
@@ -148,11 +170,27 @@ export const fluxAdapter: ProviderAdapter = {
     const { input, model, ctx } = request;
     const start = Date.now();
     const headers = { 'x-key': apiKey };
-    const count = Math.max(1, Math.min(4, Number(input.count ?? 1)));
+    const count = Math.max(1, Math.min(MAX_PROPUESTAS_POR_PASO, Number(input.count ?? 1)));
     const prompt = [String(input.prompt ?? input.purpose ?? ''), String(input.brief ?? '')].filter(Boolean).join('\n');
     if (!prompt.trim()) throw new ProviderError('flux: falta la descripción de la imagen', 'flux', undefined, false);
 
     const references = referencesOf(input);
+    /*
+     * ── C7 · QUÉ SE PUEDE HACER CON LO QUE PIDIERON ───────────────────────
+     *
+     * Se traduce el requisito abstracto contra el mecanismo REAL de esta
+     * implementación. No cambia el cuerpo de la petición —las referencias son
+     * las que ya venían en la entrada— y no decide nada: deja dicho qué se
+     * puede sostener y qué no, para que quien tenga la autoridad lo lea.
+     *
+     * Y no se toca el prompt. Pegarle «conserva el rostro» sería convertir un
+     * requisito en una esperanza y apuntarlo como cumplido.
+     */
+    const continuidad = traducirContinuidad(
+      request.hints?.continuity,
+      mecanismoDeContinuidad(model.id),
+      materialDeLaEntrada(input),
+    );
     const body: Record<string, unknown> = { prompt, output_format: 'png' };
 
     // Lo que mide cada referencia que de verdad se envía; alimenta el coste.
@@ -241,7 +279,18 @@ export const fluxAdapter: ProviderAdapter = {
       model: model.id,
       // `medidas` es exactamente lo que se envió a BFL. Si la política no decidió
       // dimensiones no se manda nada y decide BFL, y entonces tampoco se declaran.
-      meta: { references: references.length, usdPerImage, edited: references.length > 0, settledUsd: settledUsd || undefined, ...(medidas || {}) },
+      meta: {
+        references: references.length, usdPerImage, edited: references.length > 0,
+        settledUsd: settledUsd || undefined, ...(medidas || {}),
+        /* Solo cuando hubo requisito: sin él, la ficha es exactamente la de antes. */
+        ...(continuidad
+          ? {
+            continuityUncovered: continuidad.noCubiertos.length,
+            continuityReferences: continuidad.referenciasUsadas,
+            continuityDropped: continuidad.referenciasDescartadas,
+          }
+          : {}),
+      },
     };
   },
 };

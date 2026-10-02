@@ -5,8 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +14,7 @@ import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { creditsService, CREDIT_PACKAGES, CreditsBalance, CreditPackage } from '../services/creditsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { notify } from '../utils/notify';
 
 /**
  * Tienda de Credits (docs/CREDITS.md §10). La app solo elige el paquete: el
@@ -56,11 +55,6 @@ const CreditStoreScreen = () => {
     };
   }, []);
 
-  const notify = (title: string, message: string) => {
-    if (Platform.OS === 'web') window.alert(message);
-    else Alert.alert(title, message);
-  };
-
   const handlePurchase = async (pkg: CreditPackage) => {
     if (!accountUid || purchasing) return;
     setPurchasing(true);
@@ -71,9 +65,9 @@ const CreditStoreScreen = () => {
     } catch (e) {
       const code = String((e as any)?.details?.code || (e as any)?.code || '');
       const message = code.includes('PURCHASE_INVALID') || code.includes('unimplemented') || code.includes('NOT_IMPLEMENTED')
-        ? 'Las compras de Credits llegarán pronto. Por ahora no se pueden hacer recargas aquí.'
+        ? t('credits.purchasesComingSoon')
         : t('credits.topUpFailed');
-      notify('Ups', message);
+      notify(t('credits.topUpFailedTitle'), message);
     }
     setPurchasing(false);
   };
@@ -136,7 +130,7 @@ const CreditStoreScreen = () => {
               onPress={() => setSelectedPkg(pkg.id)}
               activeOpacity={0.8}
             >
-              {pkg.badgeClave && (
+              {!!pkg.badgeClave && (
                 <View style={[styles.badge, { backgroundColor: pkg.popular ? '#F5B731' : '#22C55E' }]}>
                   <Text style={styles.badgeText}>{t(pkg.badgeClave)}</Text>
                 </View>

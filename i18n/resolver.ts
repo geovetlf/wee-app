@@ -1,4 +1,4 @@
-import { CodigoDeIdioma, IDIOMA_DE_RESERVA, idiomaDelCatalogo } from './idiomas';
+import { CodigoDeIdioma, IDIOMA_DE_RESERVA, idiomaDelCatalogo, varianteDelLocale } from './idiomas';
 
 /*
  * DE LO QUE DICE EL APARATO A LO QUE ENSEÑA WEË.
@@ -80,6 +80,32 @@ export const cadenaDeRespaldo = (crudo: string): string[] => {
   if (idioma) cadena.push(idioma);
   if (!cadena.includes(IDIOMA_DE_RESERVA)) cadena.push(IDIOMA_DE_RESERVA);
   return cadena;
+};
+
+/**
+ * EN QUÉ LENGUA ESTÁ ESCRITO LO QUE SE VE: el idioma de la interfaz, con su
+ * variante cuando la tiene.
+ *
+ *   ('ja', 'ja-JP')       →  'ja'
+ *   ('es', 'es-PE')       →  'es'
+ *   ('zh', 'zh-Hant-TW')  →  'zh-TW'
+ *   ('pt', 'pt-AO')       →  'pt-PT'
+ *   ('en', 'ja-JP')       →  'en'     interfaz en inglés, formatos de Japón
+ *
+ * NO ES EL LOCALE. El locale decide los formatos y puede ser de otra lengua: el
+ * tercer escalón de `elegirIdioma` deja la interfaz en inglés y conserva el
+ * locale del aparato para las fechas. Esto dice en qué lengua está escrita la
+ * interfaz, que es lo que necesitan dos sitios que no pueden preguntarle al
+ * traductor: la pantalla de error, que tiene que sobrevivir a que el proveedor
+ * de idioma reviente, y el `lang` de la página web, con el que los lectores de
+ * pantalla eligen la voz y el navegador los glifos —el mismo carácter de Han se
+ * dibuja distinto en japonés y en chino—.
+ *
+ * Sale del catálogo y no de una tabla: una variante nueva entra sola.
+ */
+export const etiquetaDelTexto = (idioma: string, locale: string): string => {
+  const variante = varianteDelLocale(locale);
+  return variante && idiomaDe(variante.locale) === idioma ? variante.locale : idioma;
 };
 
 /** De dónde salió el idioma que se está usando. Se guarda para poder explicarlo. */

@@ -29,4 +29,5 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: '前往 Weë AI',
   weeAiQuestion: '今天想创建点什么？',
   weeAiPitch: '告诉 Weë 你想要什么，AI 的事交给 Weë。',
+  documentTitle: 'Weë - 未来的社区',
 };

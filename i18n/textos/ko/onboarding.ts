@@ -61,4 +61,12 @@ export const onboarding: typeof import('../es/onboarding').onboarding = {
   weeCreatedTitle: 'Weë 프로필을 만들었어요',
   weeCreated: '익명 정체성이 준비됐어요. 헤더에서 프로필을 바꿀 수 있어요.',
   weeCreateFailed: 'Weë 프로필을 만들지 못했어요',
+  birthDay: '일',
+  birthMonth: '월',
+  birthYear: '연도',
+  stepOf: '{{total}}단계 중 {{paso}}단계',
+  customiseProfileHint: '아바타를 고르고 소개를 추가해 보세요 (선택)',
+  bioLabel: '소개 (선택)',
+  weeNameCounter: '{{usados}}/{{maximo}} - 최소 {{minimo}}자',
+  weeBio: '소개글 (선택)',
 };

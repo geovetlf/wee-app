@@ -22,7 +22,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
+import { mensajeDelServidor } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import { PostPoll, postsService } from '../services/firestoreService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -178,7 +179,7 @@ interface PollProps {
 
 const Poll: React.FC<PollProps> = ({ postId, poll, onRequireAuth }) => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { user } = useAuth();
   const quieto = usePrefiereQuietud();
 
@@ -261,7 +262,7 @@ const Poll: React.FC<PollProps> = ({ postId, poll, onRequireAuth }) => {
       setConteos(antes.conteos);
       setTotal(antes.total);
       setMiVoto(antes.miVoto);
-      notify(t('wall.pollVoteFailed'), error instanceof Error ? error.message : undefined);
+      notify(t('wall.pollVoteFailed'), mensajeDelServidor(error, { t, locale }));
     } finally {
       setEnviando(false);
     }

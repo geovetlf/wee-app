@@ -53,14 +53,44 @@ const PISTAS: { contexto: ContextoDeCreacion; palabras: RegExp }[] = [
   { contexto: 'texto', palabras: /\b(textos?|art[ií]culos?|gui[oó]n(?:es)?|posts?|correos?|cartas?|descripci[oó]n)\b/i },
 ];
 
+/*
+ * Las mismas pistas en el idioma de quien escribe. Se SUMAN a las de arriba —en español no cambia nada— y se miran en
+ * el mismo orden de medios. Los límites de palabra son los de Unicode y no `\b`, que no sabe que «æ», «ø» y «å»
+ * son letras.
+ */
+const PISTAS_POR_IDIOMA: Readonly<Record<'da' | 'en', Partial<Record<ContextoDeCreacion, RegExp>>>> = {
+  da: {
+    video: /(?<!\p{L})(videoer?|videoen|klip|we[eë]ls?|reels?|animation(?:er)?|animeret|optagelser?|trailer(?:e|en)?)(?!\p{L})/iu,
+    imagen: /(?<!\p{L})(billeder?|billedet|fotos?|fotografi(?:er)?|illustration(?:er)?|tegning(?:er)?|plakat(?:er)?|logo(?:er|et)?|thumbnails?|miniaturer?)(?!\p{L})/iu,
+    voz: /(?<!\p{L})(stemmer?|speak|voiceover|fortælling|oplæsning|lydfil(?:er)?|podcasts?|dubbing)(?!\p{L})/iu,
+    documento: /(?<!\p{L})(pdf|dokument(?:er|et)?|rapport(?:er)?|præsentation(?:er)?|cv|ansøgning(?:er)?|kontrakt(?:er)?)(?!\p{L})/iu,
+    texto: /(?<!\p{L})(tekst(?:er)?|artikel|artikler|manuskript(?:er)?|opslag|e-?mails?|breve?|beskrivelse(?:r)?)(?!\p{L})/iu,
+  },
+  en: {
+    video: /(?<!\p{L})(videos?|clips?|we[eë]ls?|reels?|animation|animated|footage|trailers?)(?!\p{L})/iu,
+    imagen: /(?<!\p{L})(images?|pictures?|photos?|photographs?|illustrations?|drawings?|posters?|logos?|thumbnails?)(?!\p{L})/iu,
+    voz: /(?<!\p{L})(voices?|voice-?over|narration|audio|podcasts?|dubbing)(?!\p{L})/iu,
+    documento: /(?<!\p{L})(pdf|documents?|reports?|presentations?|résumé|resume|cv|contracts?)(?!\p{L})/iu,
+    texto: /(?<!\p{L})(texts?|articles?|scripts?|posts?|e-?mails?|letters?|descriptions?)(?!\p{L})/iu,
+  },
+};
+
+const baseDe = (idioma?: string): 'da' | 'en' | undefined => {
+  if (/^da(?:-|$)/i.test(idioma ?? '')) return 'da';
+  if (/^en(?:-|$)/i.test(idioma ?? '')) return 'en';
+  return undefined;
+};
+
 /**
  * El contexto de lo que se está creando. `general` mientras no se sepa.
  *
- * `puerta` es lo que se eligió en el Studio; `texto`, lo que se lleva escrito.
+ * `puerta` es lo que se eligió en el Studio; `texto`, lo que se lleva escrito; `idioma`, el de la app, para
+ * reconocer también lo que se escribe en él.
  */
 export const contextoDeCreacion = (
   puerta?: string | null,
-  texto?: string
+  texto?: string,
+  idioma?: string
 ): ContextoDeCreacion => {
   if (puerta && puerta in POR_PUERTA) {
     const porPuerta = POR_PUERTA[puerta as Puerta];
@@ -68,8 +98,10 @@ export const contextoDeCreacion = (
   }
   const escrito = texto?.trim();
   if (escrito) {
+    const base = baseDe(idioma);
+    const suyas = base ? PISTAS_POR_IDIOMA[base] : undefined;
     for (const pista of PISTAS) {
-      if (pista.palabras.test(escrito)) return pista.contexto;
+      if (pista.palabras.test(escrito) || suyas?.[pista.contexto]?.test(escrito)) return pista.contexto;
     }
   }
   return 'general';
@@ -89,8 +121,12 @@ const DURACIONES = [5, 10, 15];
  * Solo tiene sentido preguntarlo cuando ya se sabe que es un video; quien llama
  * lo comprueba antes.
  */
-export const duracionEnElTexto = (texto?: string): string | null => {
-  const encontrado = texto?.match(/(\d{1,3})\s*(?:s\b|segs?\b|segundos?\b)/i);
+export const duracionEnElTexto = (texto?: string, idioma?: string): string | null => {
+  /* «10 sek», «10 sekunder», «a 10-second video»: lo mismo dicho en el idioma de la app. */
+  const otra = baseDe(idioma) === 'da' ? /(\d{1,3})[\s-]*sek(?:\.|under|unders)?(?!\p{L})/iu
+    : baseDe(idioma) === 'en' ? /(\d{1,3})[\s-]*sec(?:s|onds?)?(?!\p{L})/iu
+    : undefined;
+  const encontrado = texto?.match(/(\d{1,3})\s*(?:s\b|segs?\b|segundos?\b)/i) ?? (otra ? texto?.match(otra) : null);
   if (!encontrado) return null;
   const numero = Number(encontrado[1]);
   if (!Number.isFinite(numero) || numero <= 0) return null;

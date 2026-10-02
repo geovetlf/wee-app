@@ -9,4 +9,5 @@ export const saved = {
   empty: 'Aún no guardaste nada',
   exploreHome: 'Explorar el Home',
   loadFailed: 'No se pudieron cargar tus Guardados',
+  emptyHint: 'Toca el marcador de una publicación para guardar prompts, tutoriales y trabajos que quieras volver a ver.',
 };

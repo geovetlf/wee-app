@@ -1,11 +1,14 @@
+import { randomUUID } from 'node:crypto';
 import { getFirestore, Timestamp, FieldValue, DocumentReference } from 'firebase-admin/firestore';
-import { AI_SECRETS } from '../secrets';
+import { AI_SECRETS, MODEL_SECRETS } from '../secrets';
 import { onCall } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep, Question } from './types';
 import { PlannerInput, getPlanner, respuestaPara } from './planner';
+import { configuracionDeLaSombra, entendimientoRealDelBrain, sombraDelPlan } from './sombra';
 import { TEMPLATES, plainQuestion } from './templates';
 import { PlanEstimate, QualityChoice, estimatePlan, estimatePlanCredits, holdCredits, settleCredits, ensureAccount, planOptions, pricingMode } from './credits';
-import { assertInputImageUrl, modalityCounts, needsInputImage, stepInputFor } from './inputs';
+import { assertInputImageUrl, modalityCounts, needsInputImage, stepInputFor, vozSinNarracion } from './inputs';
+import { engine } from '../engine';
 import { GatewayRun, runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
 import { progressTextFor, friendlyFailure } from '../engine/humanize';
@@ -16,13 +19,15 @@ import { planImage } from '../engine/image';
 import { imageDimensions } from '../engine/imageMeta';
 import { resolveForModel } from '../engine/resolutionPolicy';
 import { adaptPromptForProvider } from '../engine/promptLanguage';
-import { imageEnglishPart } from './prompts';
+import { entradaDeAdaptacion, imageEnglishPart } from './prompts';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
 import { serviceForCapability } from '../credits/creditCosts';
 import { imageServiceFor } from '../credits/aiPricing';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { operacionAbandonada } from '../core';
+import { etiquetaDeIdioma } from '../shared/idiomaDelServidor';
+import { idiomaDeSalida } from './idiomaDeSalida';
 import { crearMaterialDesdeUrl } from '../content';
 
 /**
@@ -68,6 +73,74 @@ const EXPERIENCES = new Set<string>(Object.keys(TEMPLATES));
 const db = () => getFirestore();
 const jobs = () => db().collection('creatorJobs');
 const now = () => Timestamp.now();
+
+/**
+ * ── UN TRABAJO SE ARRANCA UNA SOLA VEZ (auditoría H0, escenario #9) ────────
+ *
+ * Dos llamadas a la vez con el mismo trabajo leían las dos `planned`, las dos
+ * consumían cupo, las dos reservaban —el Credit Engine solo cobraba una, pero
+ * la respuesta `duplicate` se tiraba— y las dos ejecutaban el plan entero: la
+ * persona pagaba una vez y Weë pagaba dos veces al proveedor.
+ *
+ * Ahora la llamada RECLAMA el trabajo en una transacción antes de tocar el
+ * cupo, el dinero o el proveedor. La otra contesta «ya está en marcha» —el
+ * mismo mensaje de siempre— sin gastar nada. El reclamo es un campo aparte
+ * (`runId`), no el `status`: la pantalla no ve `running` hasta que la reserva
+ * está hecha, igual que antes, así que un «no te alcanzan los Credits» no hace
+ * parpadear la vista de progreso.
+ */
+const RECLAMO_VIGENTE_MS = 60_000;
+
+/**
+ * Reclama un trabajo `planned`. 'hecho' si otra llamada ya lo terminó; DUPLICATE_REQUEST si alguien lo tiene.
+ *
+ * Devuelve el trabajo tal como se leyó DENTRO del reclamo: si entre la primera
+ * lectura y el reclamo cambió el presupuesto (la persona eligió otra calidad y
+ * tocó «Crear» enseguida), se reserva y se ejecuta lo vigente, no lo de antes.
+ */
+type Reclamo = { estado: 'hecho' } | { estado: 'reclamado'; trabajo: Partial<CreatorJob> };
+const reclamarTrabajo = (ref: DocumentReference, runId: string, ahora: number): Promise<Reclamo> =>
+  db().runTransaction(async (tx): Promise<Reclamo> => {
+    const actual = ((await tx.get(ref)).data() || {}) as Partial<CreatorJob>;
+    if (actual.status === 'done') return { estado: 'hecho' };
+    if (actual.status === 'running') throw new EngineError('DUPLICATE_REQUEST');
+    if (actual.status !== 'planned' || !actual.plan) throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
+    /* Un reclamo viejo sin pasar a `running` es de un proceso que murió antes de reservar: se retoma. */
+    if (actual.runId && typeof actual.claimedAt === 'number' && ahora - actual.claimedAt < RECLAMO_VIGENTE_MS) {
+      throw new EngineError('DUPLICATE_REQUEST');
+    }
+    tx.update(ref, { runId, claimedAt: ahora });
+    return { estado: 'reclamado', trabajo: actual };
+  });
+
+/** Un trabajo que trabaja sobre una foto no arranca sin ella. */
+const exigirFotoSiHaceFalta = (job: CreatorJob): void => {
+  if (needsInputImage(job.steps) && !job.inputImageUrl) {
+    throw new EngineError('INVALID_REQUEST', 'Sube una foto para que Weë pueda trabajar con ella.', { reason: 'needs_image' });
+  }
+};
+
+/** Con el cupo y la reserva hechos: `planned → running`, solo si el reclamo sigue siendo de esta llamada. */
+const arrancarTrabajo = (ref: DocumentReference, runId: string, deadlineAt: number): Promise<void> =>
+  db().runTransaction(async (tx) => {
+    const actual = ((await tx.get(ref)).data() || {}) as Partial<CreatorJob>;
+    if (actual.status !== 'planned' || actual.runId !== runId) throw new EngineError('DUPLICATE_REQUEST');
+    /* El plazo se GUARDA: es lo que permite saber después si esto se abandonó. */
+    tx.update(ref, { status: 'running', progressText: 'Empezando…', deadlineAt, updatedAt: now() });
+  });
+
+/** Si el cupo o la reserva fallan, se suelta el reclamo (solo el propio) y el trabajo sigue `planned`, como antes. */
+const soltarReclamo = async (ref: DocumentReference, runId: string): Promise<void> => {
+  try {
+    await db().runTransaction(async (tx) => {
+      const actual = ((await tx.get(ref)).data() || {}) as Partial<CreatorJob>;
+      if (actual.status === 'planned' && actual.runId === runId) tx.update(ref, { runId: null, claimedAt: null });
+    });
+  } catch (error) {
+    /* Si no se puede soltar, el reclamo caduca solo en RECLAMO_VIGENTE_MS. */
+    console.error(`No se pudo soltar el reclamo del trabajo ${ref.id}:`, error);
+  }
+};
 
 /** Firestore rechaza `undefined`: se quitan las claves vacías conservando los Timestamps. */
 const clean = <T>(value: T): T => {
@@ -129,6 +202,8 @@ interface ChatInput {
   projectId?: string;
   /** Foto subida por la persona a Storage de Weë (users/{uid}/creator-inputs/…). */
   imageUrl?: string;
+  /** El idioma de la app ('da-DK'). Se guarda con el trabajo; sin él, el trabajo sigue en español. */
+  locale?: string;
 }
 
 /** Un resultado del Weë Video Engine con la misma forma que devuelve el gateway. */
@@ -184,7 +259,7 @@ const pricingFor = async (job: CreatorJob, uid: string, quality?: QualityChoice)
 };
 
 export const creatorChat = onCall(
-  { region: 'us-central1', timeoutSeconds: 60, memory: '256MiB', secrets: AI_SECRETS },
+  { region: 'us-central1', timeoutSeconds: 60, memory: '256MiB', secrets: MODEL_SECRETS },
   async (request) => {
     try {
       if (!request.auth) throw new EngineError('UNAUTHORIZED');
@@ -272,6 +347,10 @@ export const creatorChat = onCall(
         }
       }
 
+      /* El idioma de quien crea: el último que mandó la app, si tiene forma de idioma (lo demás se descarta). */
+      const idiomaDeLaApp = etiquetaDeIdioma(data.locale);
+      if (idiomaDeLaApp) job.locale = idiomaDeLaApp;
+
       const turn = await getPlanner().next({
         experienceId: job.experienceId,
         goal: job.goal,
@@ -302,6 +381,52 @@ export const creatorChat = onCall(
       job.updatedAt = now();
       await ref.set(clean(job));
 
+      /*
+       * ── LA SOMBRA DEL CORE ──────────────────────────────────────────────────
+       *
+       * Legacy ya terminó: el plan está hecho, el trabajo guardado y nada de lo
+       * que venga puede cambiarlo. Solo entonces el Core piensa en paralelo, se
+       * compara y se guarda en `private/sombra`, donde ningún cliente llega. Qué
+       * caminos corren —el del Brain, el del puente y, desde S1, el del
+       * Algorithm Engine, que decide sobre el plan del puente y se tira— lo dice
+       * la puerta, no este código: aquí no cambia nada.
+       *
+       * CERRADA POR DEFECTO y solo para cuentas nombradas una a una.
+       *
+       * Se ESPERA a propósito. Este proyecto no tiene ninguna convención de
+       * tarea en segundo plano —todo se espera, y lo que puede fallar se traga
+       * con un `catch`—, y una promesa suelta después de contestar no está
+       * garantizada en un callable: la sombra se cortaría a medias unas veces sí
+       * y otras no, que es la peor forma de medir. `sombraDelPlan` no lanza
+       * nunca, así que esperarla no puede romper esto.
+       */
+      if (job.status === 'planned' && job.plan) {
+        await sombraDelPlan({
+          jobRef: ref,
+          jobId: job.id,
+          userId: uid,
+          experienceId: job.experienceId,
+          goal: job.goal,
+          legacyPlan: job.plan,
+          puerta: await configuracionDeLaSombra(db()),
+          /*
+           * El Brain de VERDAD, por el camino de siempre: `engine.generate` →
+           * Router → libro → adaptador → proveedor. Aquí acaba el andamio del
+           * Tramo 1; era esta línea y nada más.
+           *
+           * Le cuesta 0 Credits a la persona y no lleva transacción, así que el
+           * coste del proveedor se apunta y no se cobra nada (el porqué está en
+           * `entendimientoRealDelBrain`). Y sigue sin poder pasar nada: la
+           * puerta de arriba está cerrada salvo para cuentas nombradas una a una.
+           */
+          entendimientoDe: entendimientoRealDelBrain({
+            userId: uid,
+            jobId: job.id,
+            generar: (peticion) => engine.generate(peticion),
+          }),
+        });
+      }
+
       return chatResponse(job, turn.question ?? null, job.status === 'planned' ? await pricingFor(job, uid) : null);
     } catch (error) {
       throw toEngineHttpsError(error);
@@ -313,7 +438,7 @@ export const creatorChat = onCall(
  * Cambiar el nivel de calidad de un plan antes de crearlo. Devuelve el nuevo
  * presupuesto para que la persona vea al momento cuánto va a gastar.
  */
-export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: AI_SECRETS }, async (request) => {
+export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: MODEL_SECRETS }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
@@ -412,7 +537,7 @@ export const creatorRun = onCall(
       const ref = jobs().doc(jobId);
       const snap = await ref.get();
       if (!snap.exists) throw new EngineError('INVALID_REQUEST', 'No encontramos este trabajo.');
-      const job = snap.data() as CreatorJob;
+      let job = snap.data() as CreatorJob;
       if (job.userId !== uid) throw new EngineError('UNAUTHORIZED', 'Este trabajo no es tuyo.');
       /*
        * «EN MARCHA» Y «ABANDONADO» SE VEN IGUAL Y SE TRATAN AL REVÉS.
@@ -440,18 +565,41 @@ export const creatorRun = onCall(
       if (job.status === 'running') throw new EngineError('DUPLICATE_REQUEST');
       if (job.status === 'done') return { jobId, status: 'done' };
       if (job.status !== 'planned' || !job.plan) throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
-      if (needsInputImage(job.steps) && !job.inputImageUrl) {
-        throw new EngineError('INVALID_REQUEST', 'Sube una foto para que Weë pueda trabajar con ella.', { reason: 'needs_image' });
-      }
+      exigirFotoSiHaceFalta(job);
 
-      // Límites de uso por persona (antes de cobrar y de llamar a la IA)
-      const { settings } = await loadConfig();
-      await limiter.reserve(uid, modalityCounts(job.steps), settings.limits);
+      /* Reclamar ANTES de gastar nada: solo una llamada arranca el trabajo (ver `reclamarTrabajo`). */
+      const runId = randomUUID();
+      const reclamo = await reclamarTrabajo(ref, runId, empezado);
+      if (reclamo.estado === 'hecho') return { jobId, status: 'done' };
+      /* Desde aquí manda el trabajo leído DENTRO del reclamo (presupuesto, calidad y pasos vigentes). */
+      job = { ...job, ...reclamo.trabajo } as CreatorJob;
+      /* Si la app manda su idioma al crear, manda sobre el guardado: la persona pudo cambiarlo después de contestar. */
+      const idiomaDeLaLlamada = etiquetaDeIdioma((request.data || {}).locale);
+      if (idiomaDeLaLlamada) job = { ...job, locale: idiomaDeLaLlamada };
+      if (!job.plan) throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
 
       const description = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
-      await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
-      /* El plazo se GUARDA: es lo que permite saber después si esto se abandonó. */
-      await ref.update({ status: 'running', progressText: 'Empezando…', deadlineAt, updatedAt: now() });
+      try {
+        exigirFotoSiHaceFalta(job);
+        // Límites de uso por persona (antes de cobrar y de llamar a la IA)
+        const { settings } = await loadConfig();
+        await limiter.reserve(uid, modalityCounts(job.steps), settings.limits);
+        const reserva = await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
+        /*
+         * Una reserva que ya existía, con el trabajo reclamado por esta llamada, es
+         * de un intento anterior que no llegó a ejecutar (p. ej. una reserva que se
+         * confirmó aunque su llamada fallara). Si sigue AUTHORIZED y por lo mismo,
+         * este intento la usa y la liquida al final. Si ya se cobró, ejecutar otra
+         * vez sería entregar gratis: duplicado.
+         */
+        if (reserva.duplicate && !(reserva.status === 'AUTHORIZED' && reserva.amount === job.creditsEstimated)) {
+          throw new EngineError('DUPLICATE_REQUEST');
+        }
+        await arrancarTrabajo(ref, runId, deadlineAt);
+      } catch (error) {
+        await soltarReclamo(ref, runId);
+        throw error;
+      }
 
       const steps: JobStep[] = job.steps.map((s) => ({ ...s }));
       const results: JobResult[] = [];
@@ -462,6 +610,12 @@ export const creatorRun = onCall(
         let guard = 0;
         while (done.size < steps.length) {
           if (guard++ > steps.length * 2) throw new Error('El plan tiene dependencias circulares');
+          /* Una voz que no tendría nada que leer para el trabajo AQUÍ, antes de pagar el siguiente paso (el vídeo). */
+          const vozVacia = vozSinNarracion(job, steps, results);
+          if (vozVacia) {
+            vozVacia.status = 'running';
+            throw new Error('El guion no trae una narración que leer');
+          }
           const next = steps.find((s) => s.status === 'pending' && (s.dependsOn || []).every((d) => done.has(d)));
           if (!next) throw new Error('No hay pasos ejecutables');
 
@@ -476,9 +630,45 @@ export const creatorRun = onCall(
           // El nivel que la persona eligió en el presupuesto manda sobre el de la plantilla
           if (job.quality) input.quality = job.quality;
           const stepInput = next.input || {};
+          /*
+           * QUÉ FAMILIA DE PROVEEDORES ADMITE ESTE PASO, SI LO DICE.
+           *
+           * El Router lleva desde siempre obedeciendo `prefs.allowedProviders`
+           * —salta cualquier eslabón que no esté en la lista— y tres sitios de
+           * producción ya lo usan: el Weë Video Engine fija la familia Seedance,
+           * el Weë Image Engine fija el proveedor del modelo elegido, y Weë
+           * Brain fija DeepSeek. Lo que faltaba no era el mecanismo: era que un
+           * paso del plan pudiera declararlo.
+           *
+           * Sin esto, un paso que cae en la rama genérica —voz, texto— no puede
+           * acotar su cadena, así que si el primer proveedor falla el Router
+           * prueba el siguiente. Para casi todo eso es lo que se quiere; para
+           * medir si UN proveedor concreto funciona, no: el respaldo esconde
+           * justo lo que se está midiendo.
+           *
+           * ── Lo que NO hace ────────────────────────────────────────────────
+           *
+           * No decide nada. No conoce ninguna capacidad ni ningún proveedor: si
+           * el paso no lo declara, `prefs` sale exactamente igual que antes y el
+           * enrutamiento no cambia para nadie. Y el vídeo y la imagen siguen
+           * poniendo la suya después, que es la que manda para ellos.
+           *
+           * ── Una lista vacía ───────────────────────────────────────────────
+           *
+           * Se transporta tal cual, porque el Router ya tiene una respuesta para
+           * ella: con `[]` no hay eslabón que pase el filtro y la petición acaba
+           * en NOT_AVAILABLE. Inventar aquí que «vacía significa sin
+           * restricción» sería darle un segundo significado a un dato que ya
+           * tiene uno.
+           */
+          const familiaDelPaso = stepInput.allowedProviders;
+          const soloEstos = Array.isArray(familiaDelPaso) && familiaDelPaso.every((p) => typeof p === 'string')
+            ? (familiaDelPaso as string[])
+            : undefined;
           const prefs: RoutingPrefs = {
             quality: (stepInput.quality as RoutingPrefs['quality']) || 'auto',
             durationSec: stepInput.durationSec ? Number(stepInput.durationSec) : undefined,
+            ...(soloEstos ? { allowedProviders: soloEstos } : {}),
           };
           const stepCtx = { ...ctx, stepId: next.id, prefs, requestId: `${jobId}:${next.id}`, service: serviceForCapability(next.capability, stepInput) };
           // Video (Weë Studio): pasa por el Weë Video Engine, que solo usa la familia Seedance
@@ -518,7 +708,8 @@ export const creatorRun = onCall(
               translate: async (texto) => {
                 const t = await runCapability(
                   'text.structure',
-                  { prompt: texto, maxOutputTokens: 400, quality: 'standard' },
+                  /* Su sistema y texto plano, desde creator/prompts.ts: nada de «responde en español» ni modo JSON. */
+                  entradaDeAdaptacion(texto),
                   { ...ctx, stepId: `${next.id}:idioma`, prefs: undefined, service: undefined, creditTransactionId: undefined },
                 );
                 return t.output.content || '';
@@ -561,6 +752,7 @@ export const creatorRun = onCall(
             credits: run.credits,
             durationSec: run.output.durationSec,
             sources: run.output.sources,
+            ...idiomaDeSalida(run.output, job.locale, input.kind, { jobId, stepId: next.id }),
           });
           /* Cada archivo del resultado pasa a ser material de la cuenta, con su procedencia. */
           const assetIds = await materialesDeResultado(uid, run, next, jobId, stepCtx.requestId, job.experienceId);

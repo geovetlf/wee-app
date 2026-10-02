@@ -117,7 +117,15 @@ console.log('\n── B · El botón de aceptar del perfil ajeno ──');
    * que sigue sin poder pasar es que alguien invente una clave para ESTE botón.
    */
   const DEL_PERFIL_AJENO = ['profile.otherTitle', 'profile.otherLoadFailed', 'profile.seeFullProfile',
-    'profile.emptyCategory', 'profile.actionFailed', 'profile.loading', 'profile.posts', 'profile.loadingPosts'];
+    'profile.emptyCategory', 'profile.actionFailed', 'profile.loading', 'profile.posts', 'profile.loadingPosts',
+    /*
+     * Las que entraron al pasar por i18n el español que quedaba escrito a mano
+     * en esta pantalla (al llegar el japonés): el error de carga, el mensaje de
+     * compartir, la fecha de alta y las pestañas, que reutilizan las del perfil
+     * propio. Ninguna es para el botón de aceptar.
+     */
+    'profile.loadFailedDetail', 'profile.userNotFound', 'profile.shareOtherMessage', 'profile.shareOtherNoBio',
+    'profile.joinedOn', 'profile.tabReposts', 'profile.tabMedia', 'profile.tabPolls', 'profile.tabLikes'];
   const deMas = [...PERFIL.matchAll(/t\('(profile\.[A-Za-z0-9_]+)'/g)]
     .map((m) => m[1]).filter((c) => !DEL_PERFIL_AJENO.includes(c));
   check('9) y no se creó ninguna clave nueva para esto',

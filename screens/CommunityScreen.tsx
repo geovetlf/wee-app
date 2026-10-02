@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useCommunity } from '../hooks/useCommunities';
@@ -26,12 +26,13 @@ import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
+import { descripcionDeComunidad, nombreDeComunidad, textoDeRegla } from '../utils/comunidadesDeWee';
 
 type CommunityScreenRouteProp = RouteProp<MainStackParamList, 'Community'>;
 type CommunityScreenNavigationProp = StackNavigationProp<MainStackParamList>;
 
 const CommunityScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -127,7 +128,7 @@ const CommunityScreen: React.FC = () => {
   const handleComment = (postId: string) => {
     const post = posts.find(p => p.id === postId);
     if (post) {
-      navigation.navigate('PostDetail', { post });
+      navigation.navigate('PostDetail', { postId: post.id, post });
     }
   };
 
@@ -143,7 +144,7 @@ const CommunityScreen: React.FC = () => {
   };
 
   const handlePostPress = (post: Post) => {
-    navigation.navigate('PostDetail', { post });
+    navigation.navigate('PostDetail', { postId: post.id, post });
   };
 
   const handleVideoPress = useCallback((post: Post, positionMillis?: number) => {
@@ -184,11 +185,11 @@ const CommunityScreen: React.FC = () => {
           </View>
 
           <Text style={[styles.communityName, { color: theme.colors.text }]}>
-            {community.name}
+            {nombreDeComunidad(community, t, locale)}
           </Text>
 
           <Text style={[styles.communityDescription, { color: theme.colors.textSecondary }]}>
-            {community.description}
+            {descripcionDeComunidad(community, t, locale)}
           </Text>
 
           {/* Stats */}
@@ -238,7 +239,7 @@ const CommunityScreen: React.FC = () => {
                   styles.joinButtonText,
                   { color: isUserMember ? theme.colors.text : 'white' }
                 ]}>
-                  {isUserMember ? 'Miembro' : 'Unirse'}
+                  {isUserMember ? t('search.member') : t('communities.join')}
                 </Text>
               </>
             )}
@@ -274,7 +275,7 @@ const CommunityScreen: React.FC = () => {
                       {index + 1}.
                     </Text>
                     <Text style={[styles.ruleText, { color: theme.colors.text }]}>
-                      {rule.text}
+                      {textoDeRegla(rule.text, t)}
                     </Text>
                   </View>
                 ))}
@@ -283,11 +284,14 @@ const CommunityScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Create post prompt */}
+        {/*
+          * Create post prompt. El compositor lee `communitySlug` (CreateScreen, y la dirección /publicar?communitySlug=…):
+          * mandaba `communityId` con un `as any` que tapaba el error, y lo publicado desde aquí no quedaba en la comunidad.
+          */}
         {user && userProfile && (
           <TouchableOpacity
             style={[styles.createPrompt, { backgroundColor: theme.colors.card }]}
-            onPress={() => (navigation as any).navigate('Create', { communityId: community?.slug || communityId })}
+            onPress={() => navigation.navigate('Create', { communitySlug: community.slug })}
             activeOpacity={0.7}
           >
             <AvatarDisplay
@@ -300,7 +304,7 @@ const CommunityScreen: React.FC = () => {
             />
             <View style={[styles.createInput, { backgroundColor: theme.colors.surface }]}>
               <Text style={[styles.createPlaceholder, { color: theme.colors.textSecondary }]}>
-                ¿Qué quieres compartir?
+                {t('home.composerPlaceholder')}
               </Text>
             </View>
             <View style={styles.createActions}>
@@ -413,7 +417,7 @@ const CommunityScreen: React.FC = () => {
         <View style={styles.headerTitleContainer}>
           <Ionicons name={community.icon as any} size={scale(20)} color={theme.colors.accent} />
           <Text style={[styles.headerTitle, { color: theme.colors.text }]} numberOfLines={1}>
-            {community.name}
+            {nombreDeComunidad(community, t, locale)}
           </Text>
         </View>
         <View style={styles.headerRight} />
@@ -462,7 +466,7 @@ const CommunityScreen: React.FC = () => {
             </Text>
             <TouchableOpacity
               style={[styles.createPostButton, { backgroundColor: theme.colors.accent }]}
-              onPress={() => navigation.navigate('Create')}
+              onPress={() => navigation.navigate('Create', { communitySlug: community.slug })}
             >
               <Text style={styles.createPostButtonText}>{t('communities.createPost')}</Text>
             </TouchableOpacity>

@@ -2,10 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { textoDeOpcion, textoDePregunta } from '../../i18n/servidor';
 import { Question } from '../../services/creatorService';
 import DateRangePicker from './DateRangePicker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 export interface QaHistoryItem {
   question: string;
@@ -14,6 +16,11 @@ export interface QaHistoryItem {
 
 interface GuidedQuestionProps {
   experienceName: string;
+  /**
+   * De qué experiencia es la pregunta. Las preguntas y sus opciones las escribe el servidor en español; con la
+   * experiencia se reconocen por su id y se pintan en el idioma de quien mira (`i18n/servidor.ts`). Sin ella, tal cual.
+   */
+  experienceId?: string;
   goal: string;
   history: QaHistoryItem[];
   question: Question | null;
@@ -30,9 +37,12 @@ interface GuidedQuestionProps {
  * "🤷 No sé" no necesita que nadie redacte; lo que se cuenta con palabras se
  * cuenta en la caja de la sección, antes de empezar.
  */
-const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, history, question, busy, onAnswer, hideThinking }) => {
+const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experienceId, goal, history, question, busy, onAnswer, hideThinking }) => {
   const { theme } = useTheme();
   const t = useT();
+  const pregunta = question && experienceId ? textoDePregunta(t, experienceId, question) : question?.text;
+  const etiqueta = (option: { id: string; label: string }): string =>
+    question && experienceId ? textoDeOpcion(t, experienceId, question.id, option) : option.label;
   return (
     <View style={styles.container}>
       {/* Lo que la persona pidió */}
@@ -46,7 +56,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
       {history.map((item, index) => (
         <View key={`${index}-${item.question}`}>
           <View style={styles.bubbleRowLeft}>
-            <Text style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</Text>
+            <TextoEnMayusculas style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</TextoEnMayusculas>
             <View style={[styles.bubbleWee, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
               <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{item.question}</Text>
             </View>
@@ -62,8 +72,8 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
       {/* Pregunta actual */}
       {question ? (
         <View style={styles.current}>
-          <Text style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</Text>
-          <Text style={[styles.questionText, { color: theme.colors.text }]}>{question.text}</Text>
+          <TextoEnMayusculas style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</TextoEnMayusculas>
+          <Text style={[styles.questionText, { color: theme.colors.text }]}>{pregunta}</Text>
           {question.kind === 'dates' ? (
             /*
              * El calendario devuelve la frase que cualquiera escribiría —"del 12
@@ -93,9 +103,9 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
                   onPress={() => onAnswer(option.id)}
                   disabled={busy}
                   activeOpacity={0.8}
-                  accessibilityLabel={option.label}
+                  accessibilityLabel={etiqueta(option)}
                 >
-                  <Text style={[styles.optionText, { color: theme.colors.text }]}>{option.label}</Text>
+                  <Text style={[styles.optionText, { color: theme.colors.text }]}>{etiqueta(option)}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -105,7 +115,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, goal, h
       ) : hideThinking ? null : (
         <View style={styles.thinking}>
           <ActivityIndicator color={theme.colors.accent} />
-          <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>{experienceName} está pensando…</Text>
+          <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>{t('weeai.nameThinking', { nombre: experienceName })}</Text>
         </View>
       )}
 
@@ -135,7 +145,6 @@ const styles = StyleSheet.create({
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   bubbleWee: {
     alignSelf: 'flex-start',

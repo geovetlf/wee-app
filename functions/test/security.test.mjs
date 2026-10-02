@@ -6,22 +6,23 @@ const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
+/*
+ * El lector NO perdona. Antes devolvía '' si el archivo no existía, y entonces cada comprobación negada de esta suite
+ * («no aparece…», «no hay ninguna…») pasaba en verde con el archivo renombrado o borrado. Ahora un archivo o una
+ * carpeta que falta es un error con su ruta, y la suite sale en rojo.
+ */
 const read = (p) => {
-  try {
-    return fs.readFileSync(path.resolve(root, p), 'utf8');
-  } catch {
-    return '';
-  }
+  const ruta = path.resolve(root, p);
+  if (!fs.existsSync(ruta)) throw new Error(`security.test: no existe ${p} (¿se renombró? actualiza la suite, no la debilites)`);
+  return fs.readFileSync(ruta, 'utf8');
 };
 const readDir = (dir, exts = ['.ts', '.tsx']) => {
+  if (!fs.statSync(path.resolve(root, dir), { throwIfNoEntry: false })?.isDirectory()) {
+    throw new Error(`security.test: no existe la carpeta ${dir} (¿se renombró? actualiza la suite, no la debilites)`);
+  }
   const out = [];
   const walk = (d) => {
-    let entries = [];
-    try {
-      entries = fs.readdirSync(path.resolve(root, d), { withFileTypes: true });
-    } catch {
-      return;
-    }
+    const entries = fs.readdirSync(path.resolve(root, d), { withFileTypes: true });
     for (const e of entries) {
       const rel = `${d}/${e.name}`;
       if (e.isDirectory()) {
@@ -41,6 +42,9 @@ const check = (name, cond, extra = '') => {
   console.log((cond ? '✔ ' : '✘ ') + name + (extra ? ' — ' + extra : ''));
   if (!cond) failures++;
 };
+const lanza = (fn) => { try { fn(); return false; } catch { return true; } };
+check('el lector de esta suite no perdona: un archivo o una carpeta que no existe es un error, no un texto vacío',
+  lanza(() => read('functions/src/no-existe-esto.ts')) && lanza(() => readDir('no-existe-esta-carpeta')));
 
 console.log('── Seguridad: ningún secreto sale de las Functions ──');
 
@@ -58,8 +62,12 @@ check('ninguna clave de proveedor aparece en el código del cliente', leaked.len
  * WALL_PREVIEW es un interruptor: enciende el muro de mentira que sirve para
  * juzgar el diseño (utils/previewWall.ts). No es una credencial, no abre nada y
  * apagado no hace absolutamente nada (fase 2E-73).
+ *
+ * EXPO_PUBLIC_APP_CHECK_SITE_KEY es la clave de SITIO de reCAPTCHA Enterprise para
+ * App Check en la web (config/appCheck.web.ts): pública por diseño, va en la página.
+ * Se admite ese nombre exacto, no un patrón: un «…APP_CHECK_SECRET» no pasaría.
  */
-check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v))));
+check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview, la clave de sitio de App Check)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v) || v === 'EXPO_PUBLIC_APP_CHECK_SITE_KEY')));
 
 // 2) Nada de claves con valor en el código fuente
 const serverFiles = readDir('functions/src');
@@ -71,10 +79,29 @@ check('ninguna clave está escrita a mano en el código', hardcoded.length === 0
 const secretsSrc = read('functions/src/secrets.ts');
 check('existe el módulo de secretos con defineSecret de firebase-functions/params', /defineSecret/.test(secretsSrc) && /firebase-functions\/params/.test(secretsSrc));
 check('las ocho credenciales están declaradas como secretos', PROVIDER_KEYS.every((k) => secretsSrc.includes(`'${k}'`)), PROVIDER_KEYS.filter((k) => !secretsSrc.includes(`'${k}'`)).join(', '));
-const bound = serverFiles.filter((f) => /secrets: (AI_SECRETS|CALLBACK_SECRETS)/.test(f.text));
+/*
+ * + cierre post-auditoría 2026-10-01 (money/secretos-de-mas): cada función monta lo que lee. Las que
+ * crean vídeo (creatorRun, generateVideo) siguen con AI_SECRETS; las del Router sin vídeo, MODEL_SECRETS
+ * (las ocho de modelo, sin el token del webhook); el avatar, AVATAR_SECRETS (solo Gemini). La fuerza es
+ * la misma: cada llamador declara una lista, y ahora además la correcta.
+ */
+const bound = serverFiles.filter((f) => /secrets: (AI_SECRETS|MODEL_SECRETS|AVATAR_SECRETS|CALLBACK_SECRETS)/.test(f.text));
 check('las funciones que llaman a un proveedor declaran sus secretos', bound.length >= 6, bound.map((f) => f.file.split('/').pop()).join(', '));
-const engineCallers = ['functions/src/creator/brain.ts', 'functions/src/creator/index.ts', 'functions/src/creator/video.ts', 'functions/src/generateAvatar.ts'];
-check('brain, creator, video y avatar están entre ellas', engineCallers.every((f) => /secrets: AI_SECRETS/.test(read(f))));
+check('brain, creator, video y avatar están entre ellas, cada una con SU lista',
+  (read('functions/src/creator/brain.ts').match(/secrets: MODEL_SECRETS/g) || []).length === 2 && !/secrets: AI_SECRETS/.test(read('functions/src/creator/brain.ts'))
+  && (read('functions/src/creator/index.ts').match(/secrets: MODEL_SECRETS/g) || []).length === 2 && (read('functions/src/creator/index.ts').match(/secrets: AI_SECRETS/g) || []).length === 1
+  && /secrets: AI_SECRETS/.test(read('functions/src/creator/video.ts'))
+  && (read('functions/src/generateAvatar.ts').match(/secrets: AVATAR_SECRETS/g) || []).length === 2 && !/AI_SECRETS|MODEL_SECRETS/.test(read('functions/src/generateAvatar.ts')));
+{
+  const { AI_SECRETS, MODEL_SECRETS, AVATAR_SECRETS } = lib('secrets.js');
+  const nombres = (l) => l.map((s) => s.name).sort();
+  check('MODEL_SECRETS son las ocho claves de modelo, sin el token del webhook; AVATAR_SECRETS solo Gemini',
+    JSON.stringify(nombres(MODEL_SECRETS)) === JSON.stringify(nombres(AI_SECRETS).filter((n) => n !== 'SEEDANCE_CALLBACK_TOKEN')) && MODEL_SECRETS.length === 8
+    && JSON.stringify(nombres(AVATAR_SECRETS)) === '["GEMINI_API_KEY"]');
+  check('y el avatar de verdad solo lee Gemini (no pasa por el Router)', /process\.env\.GEMINI_API_KEY/.test(read('functions/src/vertexAI.ts'))
+    && !/from '\.\/engine'|engine\.generate|runCapability/.test(read('functions/src/generateAvatar.ts') + read('functions/src/vertexAI.ts')));
+  check('el token del webhook lo lee quien crea la tarea de Seedance', /env\('SEEDANCE_CALLBACK_TOKEN'\)/.test(read('functions/src/engine/providers/seedance.ts')));
+}
 // Se busca la llamada real, no la mención en un comentario
 const codeLines = (text) => text.split('\n').filter((l) => !/^\s*(\*|\/\/)/.test(l));
 check('functions.config(), obsoleto desde la versión 6, no se usa en ningún sitio', !serverFiles.some((f) => codeLines(f.text).some((l) => /functions\.config\(/.test(l))));
@@ -133,6 +160,44 @@ console.log('\n── Fronteras de autorización ──');
     /allow create: if isAuthenticated\(\) &&\s*\n\s*\(request\.resource\.data\.senderId == request\.auth\.uid/.test(reglas),
     'dispara un push de verdad con `senderName` tal cual');
 
+  /*
+   * Y tiene la forma de las que crea la app: ni a sí misma ni a su otra cara, uno de sus cuatro tipos, solo sus
+   * campos, textos acotados, sin leer y con su hora. Después, el destinatario solo la marca como leída: antes podía
+   * reescribirla entera y mandársela a otra persona sin pasar por `create`. Lo ejecuta fronteras-rules.emulator.mjs.
+   */
+  {
+    const avisos = reglas.slice(reglas.indexOf('match /notifications/{notificationId}'), reglas.indexOf('match /creatorInterests/'));
+    check('un aviso tiene la forma de los que manda la app, y ninguna otra (cada uno es un push)',
+      /request\.resource\.data\.senderId == \("hidi_" \+ request\.auth\.uid\)\) &&\s*\n\s*avisoConLaFormaDeLaApp\(\);/.test(avisos)
+      && /return \['like', 'comment', 'econtact_request', 'econtact_accepted'\];/.test(avisos)
+      && /aviso\.keys\(\)\.hasOnly\(camposDeAvisoDeLaApp\(\)\)/.test(avisos)
+      && /!\(aviso\.recipientId in misIdentidadesHeredadas\(\)\)/.test(avisos)
+      && /aviso\.read == false/.test(avisos) && /aviso\.createdAt is timestamp/.test(avisos)
+      && /textoDeAviso\('postContent', 400\) && textoDeAviso\('commentContent', 400\)/.test(avisos));
+    check('y el destinatario solo la marca como leída',
+      /allow update: if isAuthenticated\(\) &&[\s\S]{0,200}?request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasOnly\(\['read'\]\) &&\s*\n\s*request\.resource\.data\.read == true;/.test(avisos));
+  }
+
+  /*
+   * Lo que Weë afirma de un negocio —«Verificado», Destacados, su estado y su dueño— no lo escribe el dueño: el
+   * negocio nace sin ello y solo administración lo cambia. Las reseñas puntúan de 1 a 5 enteros y el dueño no reseña
+   * el suyo. Lo ejecuta fronteras-rules.emulator.mjs.
+   */
+  {
+    const negocios = reglas.slice(reglas.indexOf('match /businesses/{businessId}'), reglas.indexOf('match /products/{productId}'));
+    check('un negocio no nace verificado ni destacado, y su dueño no se lo pone después',
+      /return \['verified', 'featured', 'status', 'ownerId'\];/.test(negocios)
+      && /request\.resource\.data\.ownerId == request\.auth\.uid &&\s*\n\s*negocioRecienNacido\(\);/.test(negocios)
+      && /request\.resource\.data\.get\('verified', false\) == false &&\s*\n\s*request\.resource\.data\.get\('featured', false\) == false/.test(negocios)
+      && /\(resource\.data\.ownerId == request\.auth\.uid &&\s*\n\s*!request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasAny\(camposQueAfirmaWee\(\)\) &&/.test(negocios)
+      && /allow update: if isAuthenticated\(\) && \(\s*\n\s*esAdministracion\(\) \|\|/.test(negocios)
+      && /function esAdministracion\(\) \{\s*\n\s*return request\.auth != null && request\.auth\.token\.get\('admin', false\) == true;/.test(reglas));
+    check('una reseña puntúa de 1 a 5 enteros, es de este negocio y no la escribe su dueño',
+      /request\.resource\.data\.rating is int &&\s*\n\s*request\.resource\.data\.rating >= 1 &&\s*\n\s*request\.resource\.data\.rating <= 5 &&/.test(negocios)
+      && /request\.resource\.data\.get\('businessId', businessId\) == businessId &&/.test(negocios)
+      && /get\(\/databases\/\$\(database\)\/documents\/businesses\/\$\(businessId\)\)\.data\.ownerId != request\.auth\.uid;/.test(negocios));
+  }
+
   check('los contadores solo se mueven de uno en uno',
     /function contadorSano\(campo\)/.test(reglas)
     && /\) in \[1, -1\]/.test(reglas)
@@ -161,7 +226,7 @@ console.log('\n── Fronteras de autorización ──');
   check('avatarReplacement ya no descarga cualquier URL que le manden',
     /assertInputImageUrl\(request\.data\?\.selfieUrl, request\.auth\.uid\)/.test(read('functions/src/generateAvatar.ts'))
     && /assertInputImageUrl\(request\.data\?\.avatarUrl, request\.auth\.uid\)/.test(read('functions/src/generateAvatar.ts')),
-    'el resultado acaba en una ruta de lectura pública');
+    'era una petición del servidor a donde dijera otro, con la respuesta guardada en Storage');
 
   check('las subidas tienen un tope, y está dicho que no es una frontera',
     /const MAXIMO_DE_IMAGEN/.test(read('services/cloudinaryService.ts'))
@@ -185,6 +250,10 @@ console.log('\n── Fronteras de autorización ──');
   check('lo que Weë genera lo lee solo su dueño, como lo que sube',
     /match \/users\/\{userId\}\/ai-generations\/\{fileName\} \{\s*\n\s*allow read: if request\.auth != null && request\.auth\.uid == userId;/.test(storage),
     'antes era `allow read: if true`: público para quien adivinara la ruta');
+  check('y la foto que Weë hace con tu selfie y tu avatar (avatar-replacement), igual: solo su dueño la lee y la lista',
+    /match \/users\/\{userId\}\/avatar-replacement\/\{fileName\} \{\s*\n\s*allow read: if request\.auth != null && request\.auth\.uid == userId;\s*\n\s*allow write: if false;/.test(storage)
+    && /return downloadUrlFor\(bucket\.name, storagePath, downloadToken\);/.test(read('functions/src/vertexAI.ts')),
+    'lo que la app comparte es la URL con token que devuelve la Function, que no pasa por las reglas');
   check('la ficha de un material la lee su dueño y la escribe solo el servidor',
     /match \/assets\/\{assetId\} \{\s*\n\s*allow read: if isAuthenticated\(\) && resource\.data\.ownerAccountId == request\.auth\.uid;\s*\n\s*allow create, update, delete: if false;/.test(reglas));
   check('y existe la forma de borrarlo: el callable que comprueba que es tuyo antes de borrar el objeto',
@@ -268,7 +337,9 @@ console.log('\n── Lo de la cuenta, fuera del perfil público ──');
 
   check('el token de push tiene su colección, y desde el cliente no la lee nadie',
     /match \/pushTokens\/\{uid\} \{\s*\n\s*allow read: if false;/.test(reglas)
-    && /request\.auth\.uid == uid &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(\['token', 'platform', 'updatedAt'\]\)/.test(reglas));
+    && /request\.auth\.uid == uid &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(\['token', 'platform', 'updatedAt', 'locale'\]\)/.test(reglas)
+    /* El idioma del aparato: solo una etiqueta corta con forma de idioma. */
+    && /request\.resource\.data\.locale\.matches\('\^\[A-Za-z\]\{2,3\}\(-\[A-Za-z0-9\]\{1,8\}\)\*\$'\)/.test(reglas));
   check('el cliente escribe el token en pushTokens/{cuenta} y nunca en el perfil',
     /doc\(db, 'pushTokens', accountUid\)/.test(push) && !/'users'/.test(push) && !/pushToken:/.test(push)
     /* El VALOR del token no se escribe en el registro (un aviso de estado sin el token sí puede). */

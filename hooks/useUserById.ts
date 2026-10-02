@@ -82,6 +82,11 @@ export const useUserById = (userId: string | undefined) => {
   }, [userId]);
 
   useEffect(() => {
+    /*
+     * La lista recicla la tarjeta con OTRA persona (o se pide refrescar): el perfil que llegue tarde de la de antes va
+     * a la caché, pero no se pinta con el nombre y la foto de alguien que ya no es quien está en la tarjeta.
+     */
+    let vivo = true;
     const loadUser = async () => {
       if (!userId) {
         setUserProfile(null);
@@ -102,9 +107,13 @@ export const useUserById = (userId: string | undefined) => {
         setLoading(true);
         setError(null);
 
-        console.log('🔍 Cargando usuario desde Firestore:', userId.substring(0, 8));
-        // Buscar usuario por UID
-        const user = await usersService.getByUid(userId);
+        /*
+         * Se resuelve por la REFERENCIA PÚBLICA, que desde la Fase 11.x-6 es la
+         * entidad (`ent_…`) cuando existe, y el `uid` de siempre para lo
+         * heredado. El hook no necesita saber cuál le ha tocado: el servicio
+         * mira la forma y busca por el campo que corresponda.
+         */
+        const user = await usersService.getByPublicRef(userId);
 
         if (user) {
           // Guardar en cache
@@ -114,17 +123,22 @@ export const useUserById = (userId: string | undefined) => {
           console.log('❌ Usuario no encontrado:', userId.substring(0, 8));
         }
 
-        setUserProfile(user);
+        if (vivo) setUserProfile(user);
       } catch (err) {
         console.error('Error loading user by ID:', err);
-        setError('Error al cargar usuario');
+        if (!vivo) return;
+        /* Un código, no una frase: quien lo pinta elige el texto en su idioma. */
+        setError('carga-fallida');
         setUserProfile(null);
       } finally {
-        setLoading(false);
+        if (vivo) setLoading(false);
       }
     };
 
     loadUser();
+    return () => {
+      vivo = false;
+    };
   }, [userId, refreshKey]);
 
   return { userProfile, loading, error, refresh };

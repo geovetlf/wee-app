@@ -46,14 +46,15 @@ const EN = textosDe('en');
  * La utilidad de tiempo, con su formateador de verdad detrás.
  *
  * Se juntan los dos en un solo módulo —el de formatos, con su única dependencia
- * sustituida, y la función de `mockData` sin su import— porque un módulo cargado
+ * sustituida, y la función de `utils/formatoCorto.ts` sin su import— porque un módulo cargado
  * desde una URL `data:` no puede resolver rutas relativas. Lo que se ejecuta es
  * el código real de los dos, sin imitaciones.
  */
 const fuenteFormato = leer('i18n/formato.ts').replace(
   "import { partesDelLocale } from './resolver';",
   "const partesDelLocale = (l) => ({ region: (l.split('-')[1] || '').toUpperCase() || undefined });");
-const fuenteTiempo = leer('data/mockData.ts')
+/* Vivía en `data/mockData.ts`, la maqueta; se mudó tal cual a `utils/formatoCorto.ts` cuando la maqueta se retiró. */
+const fuenteTiempo = leer('utils/formatoCorto.ts')
   .split('\n')
   .filter((l) => !/from '\.\.\/i18n\/formato'/.test(l))
   .join('\n');
@@ -211,7 +212,7 @@ console.log('\n── D · La hora, en el idioma de quien mira ──');
     es(hace(2 * HORA)) + ' / ' + en(hace(2 * HORA)));
 
   /* Nada clavado al español, ni un `if` decidiendo el plural. */
-  const fuente = leer('data/mockData.ts');
+  const fuente = leer('utils/formatoCorto.ts');
   check('17) ni un formato clavado al español',
     !/toLocale(String|DateString|TimeString)\('es/.test(fuente)
     && !/'es-ES'/.test(fuente));
@@ -225,12 +226,26 @@ console.log('\n── D · La hora, en el idioma de quien mira ──');
     FORMATO.formatearTiempoRelativo(hace(5 * MIN), 'es', AHORA) === 'hace 5 minutos'
     && FORMATO.formatearTiempoRelativo(hace(5 * MIN), 'en', AHORA) === '5 minutes ago');
 
-  /* Los seis sitios que la piden le pasan el locale. */
-  const SITIOS = ['components/PostCard.tsx', 'components/CommentCard.tsx', 'screens/ChatScreen.tsx',
+  /*
+   * Los sitios que la piden le pasan el locale. Eran seis, escritos a mano; uno —`screens/ChatScreen.tsx`— se
+   * retiró como código muerto (cierre post-auditoría, 2026-10-01). Ahora la lista NO se escribe a mano: es todo
+   * archivo de pantallas y componentes que llama a `getRelativeTime(`, así que un sitio nuevo entra solo (y la
+   * tarjeta compartible, que la usaba y no estaba en la lista, entra también). Los cinco de antes siguen exigidos.
+   */
+  const listarTsx = (d) => fs.readdirSync(new URL('../../' + d + '/', import.meta.url), { withFileTypes: true })
+    .flatMap((e) => (e.isDirectory() ? listarTsx(`${d}/${e.name}`) : /\.tsx?$/.test(e.name) ? [`${d}/${e.name}`] : []));
+  const SITIOS = [...listarTsx('screens'), ...listarTsx('components')]
+    .filter((p) => /getRelativeTime\(/.test(soloCodigo(leer(p))));
+  const DE_SIEMPRE = ['components/PostCard.tsx', 'components/CommentCard.tsx',
     'screens/PostDetailScreen.tsx', 'screens/ReelsScreen.tsx', 'screens/InboxScreen.tsx'];
-  /* El argumento puede llevar paréntesis dentro —`post.createdAt.toDate()`—. */
-  const sinLocale = SITIOS.filter((p) => !/getRelativeTime\([^;\n]*,\s*locale\)/.test(soloCodigo(leer(p))));
-  check('19) los seis sitios que la piden le dan el locale', sinLocale.length === 0, sinLocale.join(' '));
+  check('19) el inventario encuentra a todos los de siempre', DE_SIEMPRE.every((p) => SITIOS.includes(p)),
+    DE_SIEMPRE.filter((p) => !SITIOS.includes(p)).join(' '));
+  /* El argumento puede llevar paréntesis dentro —`post.createdAt.toDate()`—. Cada llamada, no una por archivo. */
+  const sinLocale = SITIOS.filter((p) => {
+    const llamadas = soloCodigo(leer(p)).match(/getRelativeTime\([^;\n]*/g) || [];
+    return llamadas.some((l) => !/getRelativeTime\([^;\n]*,\s*locale\)/.test(l));
+  });
+  check('19) todos los sitios que la piden le dan el locale', sinLocale.length === 0, sinLocale.join(' ') || `${SITIOS.length} sitios`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -267,9 +282,10 @@ console.log('\n── F · El idioma cambia sin reiniciar ──');
   check('23) ninguna etiqueta se congela en el estado',
     !/useState\([^)]*\bt\('/.test(C[MURO] + C[CABECERA])
     && !/useMemo\(\(\) => t\(/.test(C[MURO] + C[CABECERA]));
+  /* CommentCard pide también t: su nombre de respaldo («Usuario») pasó a common.user al entrar el japonés. */
   check('23) y la hora se recalcula al pintar, con el locale del momento',
-    /const \{ locale \} = useIdioma\(\)/.test(soloCodigo(leer('components/CommentCard.tsx')))
-    && /const \{ t, locale \} = useIdioma\(\)/.test(C[MURO]));
+    /const \{ t, locale \} = useIdioma\(\)/.test(soloCodigo(leer('components/CommentCard.tsx')))
+    && /const \{ t, locale(?:, idioma)? \} = useIdioma\(\)/.test(C[MURO]));
 
   /* CONTROL: no se tocó nada de lo que esta fase no toca. */
   check('24) control: ni Composer, ni Credits, ni el motor de IA',
@@ -300,7 +316,7 @@ console.log('\n── G · La bandeja de WeeTalk dice la hora como los demás �
 
   /* Usa el de todos, importado, no copiado. */
   check('26) usa el getRelativeTime internacionalizado de siempre',
-    /import \{ getRelativeTime \} from '\.\.\/data\/mockData'/.test(bandeja));
+    /import \{ getRelativeTime \} from '\.\.\/utils\/formatoCorto'/.test(bandeja));
   check('26) y no duplica la lógica de fechas',
     !/toLocaleDateString|Intl\.(RelativeTimeFormat|DateTimeFormat)/.test(bandeja));
 

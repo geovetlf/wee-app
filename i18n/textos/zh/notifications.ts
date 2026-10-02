@@ -32,4 +32,6 @@ export const notifications: typeof import('../es/notifications').notifications =
   now: '刚刚',
   markAllRead: '全部标为已读',
   all: '全部',
+  unread: '未读',
+  unreadWithCount: '未读（{{total}}）',
 };

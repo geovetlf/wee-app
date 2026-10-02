@@ -151,7 +151,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
                 activeOpacity={0.7}
                 style={[styles.funcion, { borderColor: theme.colors.border }]}
                 accessibilityRole="button"
-                accessibilityLabel={`${action.title}. ${action.subtitle ?? ''}`}
+                accessibilityLabel={action.subtitle ? t('weeai.titleWithDetail', { titulo: action.title, detalle: action.subtitle }) : action.title}
               >
                 <View style={[styles.funcionIcono, { backgroundColor: theme.colors.accent + '24' }]}>
                   <Ionicons name={action.icon as any} size={scale(19)} color={theme.colors.accentDark} />

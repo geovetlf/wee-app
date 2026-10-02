@@ -37,4 +37,6 @@ export const credits: typeof import('../es/credits').credits = {
   pkgBasic: 'Basique',
   badgePopular: 'Populaire',
   badgeBestValue: 'Meilleur prix',
+  purchasesComingSoon: 'Les achats de Credits arrivent bientôt. Pour l’instant, les recharges ne sont pas possibles ici.',
+  topUpFailedTitle: 'Oups',
 };

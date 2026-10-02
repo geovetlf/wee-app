@@ -105,25 +105,31 @@ const IdiomaScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Los que vienen. Se ven, no se tocan. */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            {t('language.comingSoonTitle')}
-          </Text>
-          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
-            {IDIOMAS.filter((i) => !i.listo).map((i) => (
-              <View
-                key={i.codigo}
-                style={[styles.fila, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}
-              >
-                <Text style={[styles.nombre, { color: theme.colors.textSecondary }]}>{i.nombreNativo}</Text>
-                <Text style={[styles.pronto, { color: theme.colors.textSecondary }]}>
-                  {t('language.comingSoon')}
-                </Text>
-              </View>
-            ))}
+        {/*
+          * Los que vienen. Se ven, no se tocan. Y si un día no queda ninguno,
+          * la sección desaparece entera: un título sobre una tarjeta vacía no
+          * le dice nada a nadie.
+          */}
+        {IDIOMAS.some((i) => !i.listo) && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+              {t('language.comingSoonTitle')}
+            </Text>
+            <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+              {IDIOMAS.filter((i) => !i.listo).map((i) => (
+                <View
+                  key={i.codigo}
+                  style={[styles.fila, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}
+                >
+                  <Text style={[styles.nombre, { color: theme.colors.textSecondary }]}>{i.nombreNativo}</Text>
+                  <Text style={[styles.pronto, { color: theme.colors.textSecondary }]}>
+                    {t('language.comingSoon')}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         <View style={{ height: insets.bottom + 24 }} />
       </ScrollView>

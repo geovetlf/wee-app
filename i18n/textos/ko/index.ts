@@ -67,6 +67,8 @@ import { search } from './search';
 import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
 import { weebiz } from './weebiz';
+import { moderation } from './moderation';
+import { filmmaker } from './filmmaker';
 import { FormaDelDiccionario } from '../es';
 
 export const ko: FormaDelDiccionario = {
@@ -105,4 +107,6 @@ export const ko: FormaDelDiccionario = {
   design,
   chef,
   brain,
+  moderation,
+  filmmaker,
 };

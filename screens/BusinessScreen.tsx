@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { formatearHora, formatearNumero, formatearPorcentaje } from '../i18n/formato';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { SpecialistAction } from '../constants/specialists';
@@ -85,6 +86,11 @@ const NETWORK_ICON: Record<string, string> = {
 const BusinessScreen: React.FC = () => {
   const { theme } = useTheme();
   const { t, locale } = useIdioma();
+  /* Las horas de muestra («12:00») son del reloj: se escriben como en el idioma de quien mira («12.00» en danés). */
+  const hora = (hhmm: string): string => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
+    return m ? formatearHora(new Date(2026, 0, 1, Number(m[1]), Number(m[2])), locale) : hhmm;
+  };
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { isMobile, isDesktop } = useResponsive();
@@ -195,7 +201,11 @@ const BusinessScreen: React.FC = () => {
     if (idea) startFlow(idea);
   };
 
-  const anadirProducto = () => setProductos((antes) => [...antes, `Producto ${antes.length + 1}`]);
+  /*
+   * Sin ficha de producto todavía, el nombre de muestra lo pone Weë en el idioma
+   * de la pantalla. Una vez puesto es el nombre del producto: ya no se traduce.
+   */
+  const anadirProducto = () => setProductos((antes) => [...antes, t('business.sampleProductName', { numero: antes.length + 1 })]);
 
   /*
    * Elegir qué crear es decirle a Weë qué pieza quieres de lo que ya escribiste.
@@ -536,7 +546,7 @@ const BusinessScreen: React.FC = () => {
                 </View>
                 <View style={styles.dayMeta}>
                   <Ionicons name={NETWORK_ICON[day.post.network] as any} size={scale(12)} color={theme.colors.textSecondary} />
-                  <Text style={[styles.dayTime, { color: theme.colors.textSecondary }]}>{day.post.time}</Text>
+                  <Text style={[styles.dayTime, { color: theme.colors.textSecondary }]}>{hora(day.post.time)}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -558,7 +568,7 @@ const BusinessScreen: React.FC = () => {
                 <View style={{ flex: 1 }}>
                   <View style={styles.messageHead}>
                     <Text style={[styles.messageName, { color: theme.colors.text }]} numberOfLines={1}>{m.name}</Text>
-                    <Text style={[styles.messageTime, { color: theme.colors.textSecondary }]}>{m.claveHora ? t(m.claveHora) : m.time}</Text>
+                    <Text style={[styles.messageTime, { color: theme.colors.textSecondary }]}>{m.claveHora ? t(m.claveHora) : hora(m.time)}</Text>
                   </View>
                   <Text style={[styles.messageText, { color: theme.colors.textSecondary }]} numberOfLines={2}>{m.text}</Text>
                 </View>
@@ -585,9 +595,12 @@ const BusinessScreen: React.FC = () => {
           <View style={styles.stats}>
             {BUSINESS_STATS.map((stat) => (
               <View key={stat.id} style={[styles.stat, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-                <Text style={[styles.statValue, { color: theme.colors.text }]}>{stat.value}</Text>
+                {/* Las cifras las escribe Intl con el locale: «125,4 B» y «%40» en turco, «125.4K» y «40%» en inglés. */}
+                <Text style={[styles.statValue, { color: theme.colors.text }]}>
+                  {formatearNumero(stat.valor, locale, { notation: 'compact', maximumFractionDigits: 1 })}
+                </Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t(stat.clave)}</Text>
-                <Text style={styles.statDelta}>{stat.delta}</Text>
+                <Text style={styles.statDelta}>{`↑ ${formatearPorcentaje(stat.subida, locale)}`}</Text>
               </View>
             ))}
           </View>

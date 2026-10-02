@@ -50,4 +50,13 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   recordAudio: '录制语音',
   viewOnceOn: '仅查看一次',
   keepInChat: '保留在聊天中',
+  themeClassic: '经典',
+  themeMidnight: '午夜',
+  themeForest: '森林',
+  themeSunset: '日落',
+  themeOcean: '海洋',
+  themePurple: '紫色',
+  imagePreview: '📷 图片',
+  audioPreview: '🎤 语音',
+  today: '今天',
 };

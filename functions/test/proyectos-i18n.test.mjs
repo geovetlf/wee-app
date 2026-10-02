@@ -200,8 +200,9 @@ console.log('\n── E · Lo que es de la persona sigue siendo suyo ──');
   check('20) el nombre del proyecto se pinta tal cual, sin traductor',
     /\{project\.name\}/.test(CODIGO[DETALLE]) && /\{project\.name\}/.test(CODIGO[LISTA])
     && !/t\(project\.name\)|t\(\{?\s*project\.name/.test(TODO));
+  /* La meta que escribió la persona sale tal cual; solo la meta POR DEFECTO de una experiencia se lee en su idioma (`textoDeObjetivo`). */
   check('20) y la meta de cada creación también',
-    /\{job\.goal\}/.test(CODIGO[DETALLE]) && !/t\(job\.goal\)/.test(TODO));
+    /\{textoDeObjetivo\(t, job\.experienceId, job\.goal\)\}/.test(CODIGO[DETALLE]) && !/t\(job\.goal\)/.test(TODO));
   check('20) igual que el emoji que eligió', /\{project\.emoji\}/.test(CODIGO[DETALLE]) && !/t\(project\.emoji\)/.test(TODO));
 
   /* Y no se han colado en el diccionario. */

@@ -16,6 +16,7 @@ export const design: typeof import('../es/design').design = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'Что хотите спроектировать сегодня?',
+  settingsHint: 'Как это должно выглядеть',
 
   /* ── Explora ──────────────────────────────────────────────────────────── */
   exploreTitle: 'Обзор',
@@ -97,4 +98,8 @@ export const design: typeof import('../es/design').design = {
   kindArchitecture: 'Архитектура',
   kindBoat: 'Лодка',
   kindFurniture: 'Мебель',
+  sampleLivingRoom: 'Светлая гостиная',
+  samplePineHouse: 'Дом среди сосен',
+  sampleYacht: '15-метровая яхта',
+  sampleArmchair: 'Деревянное кресло',
 };

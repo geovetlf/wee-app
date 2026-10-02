@@ -6,10 +6,12 @@
  * Los identificadores de cada opción —'male', 'tone3', 'goatee'…— no están
  * aquí: viajan al servidor y ya están guardados en los perfiles de la gente.
  *
- * Los nombres de Weë y "Gemini AI" van en alfabeto latino dentro del cirílico:
+ * Los nombres de Weë y "Weë AI" van en alfabeto latino dentro del cirílico:
  * son marca e identificador, no texto que se traduzca ni se translitere.
  */
-export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
+import { ConPlurales } from './plurales';
+
+export const aiAvatar: ConPlurales<typeof import('../es/aiAvatar').aiAvatar> = {
   gender: 'Пол',
   genderMale: 'Мужской',
   genderFemale: 'Женский',
@@ -58,7 +60,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   expMysterious: 'Загадочное',
   currentAvatar: 'Ваш текущий ИИ-аватар',
   swapTitle: 'Замена человека',
-  swapSubtitle: 'Сделайте или загрузите фото — Gemini AI заменит человека на нём вашим аватаром',
+  swapSubtitle: 'Сделайте или загрузите фото — Weë AI заменит человека на нём вашим аватаром',
   takePhoto: 'Сделать фото',
   gallery: 'Галерея',
   useAsProfilePhoto: 'Поставить как фото профиля',
@@ -67,7 +69,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   uploadPhotoAsAvatar: 'Загрузить фото как аватар',
   nextStep: 'Далее',
   previousStep: 'Назад',
-  generatedWithGemini: 'Аватар создан с помощью Gemini AI',
+  generatedWithAi: 'Аватар создан с помощью Weë AI',
   nowTakeAPhoto: 'Теперь сделайте или загрузите своё фото, чтобы заменить человека на нём вашим аватаром',
   skipAndUse: 'Пропустить и взять аватар как есть',
   regenerate: 'Создать другой аватар',
@@ -101,4 +103,18 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   savingProfilePhoto: 'Сохранение фото профиля...',
   updatingProfilePhoto: 'Обновление фото профиля...',
   swapping: 'Weë переносит ваш аватар на фото…\n(это может занять от 30 до 60 секунд)',
+  generateFailed: 'Не удалось создать аватар. Попробуйте ещё раз.',
+  regenerateFailed: 'Не удалось пересоздать аватар. Попробуйте ещё раз.',
+  replaceFailed: 'Не удалось заменить аватар. Попробуйте ещё раз.',
+  stepBase: 'Основа',
+  stepDetails: 'Детали',
+  limitReachedCount: 'Лимит исчерпан ({{usadas}}/{{maximo}})',
+  regenerateWithAi: 'Пересоздать аватар с ИИ',
+  allGenerationsUsed_one: 'Вы израсходовали свою {{contador}} генерацию с ИИ.',
+  allGenerationsUsed_few: 'Вы израсходовали свои {{contador}} генерации с ИИ.',
+  allGenerationsUsed_many: 'Вы израсходовали свои {{contador}} генераций с ИИ.',
+  allGenerationsUsed_other: 'Вы израсходовали свои {{contador}} генераций с ИИ.',
+  generationsCount: 'Генерации с ИИ: {{usadas}}/{{maximo}}',
+  generateForCredits: 'Создать аватар за {{credits}} Credits',
+  generateButton: 'Создать аватар · {{credits}} Credits',
 };

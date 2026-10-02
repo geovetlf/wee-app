@@ -8,4 +8,5 @@ export const saved: typeof import('../es/saved').saved = {
   empty: 'Você ainda não salvou nada',
   exploreHome: 'Explorar o Home',
   loadFailed: 'Não foi possível carregar seus Salvos',
+  emptyHint: 'Toque no marcador de uma publicação para salvar prompts, tutoriais e trabalhos que você queira ver de novo.',
 };

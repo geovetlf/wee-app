@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { textoDeObjetivo } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import { projectsService, WeeProject } from '../services/projectsService';
 import { CreatorJob, claveDelEstado } from '../services/creatorService';
@@ -160,7 +161,7 @@ const ProjectScreen: React.FC = () => {
                       <Ionicons name={(KIND_ICON[job.experienceId] || 'sparkles-outline') as any} size={scale(18)} color={theme.colors.accentDark} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{job.goal}</Text>
+                      <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{textoDeObjetivo(t, job.experienceId, job.goal)}</Text>
                       <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
                         {exp?.name ?? 'Weë'} · {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                       </Text>

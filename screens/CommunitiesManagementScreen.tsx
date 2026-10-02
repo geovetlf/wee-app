@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert,
   TextInput,
   Modal,
 } from 'react-native';
@@ -16,7 +15,8 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { paraBuscar } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { communityService, Community } from '../services/communityService';
@@ -24,9 +24,12 @@ import { POPULAR_COMMUNITIES } from '../constants/communityCategories';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import TextoEnMayusculas from '../components/TextoEnMayusculas';
+import { descripcionDeComunidad, nombreDeComunidad } from '../utils/comunidadesDeWee';
+import { confirmAction, notify } from '../utils/notify';
 
 const CommunitiesManagementScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, updateLocalProfile } = useUserProfile();
@@ -108,6 +111,12 @@ const CommunitiesManagementScreen: React.FC = () => {
     }
   };
 
+  /*
+   * UNIRSE Y SALIR. Salir se confirma con `confirmAction` y no con un `Alert.alert` propio: en la web `Alert.alert`
+   * no pinta nada ni llama a ningún botón, así que no se podía salir de una comunidad y el indicador, que se encendía
+   * antes del diálogo y solo se apagaba en sus botones, se quedaba girando para siempre. En el teléfono el diálogo es
+   * el mismo —Cancelar y Salir, destructivo—, y el indicador se apaga en el `finally`, pase lo que pase.
+   */
   const handleToggleCommunity = async (community: Community) => {
     if (!user) { navigateToRegister(); return; }
     if (!community.id) return;
@@ -118,36 +127,29 @@ const CommunitiesManagementScreen: React.FC = () => {
     try {
       if (isJoined) {
         // Confirmar antes de salir
-        Alert.alert(
+        const confirmado = await confirmAction(
           t('communities.leaveTitle'),
-          t('communities.leaveConfirm', { nombre: community.name }),
-          [
-            { text: t('common.cancel'), style: 'cancel', onPress: () => setJoiningCommunity(null) },
-            {
-              text: t('communities.leave'),
-              style: 'destructive',
-              onPress: async () => {
-                try {
-                  await communityService.leaveCommunity(user.uid, community.id!);
-                  // Actualizar estado local
-                  const newJoinedCommunities = joinedCommunityIds.filter(id => id !== community.id);
-                  updateLocalProfile({ joinedCommunities: newJoinedCommunities });
-                  // Actualizar memberCount en la lista local
-                  setCommunities(prev => prev.map(c =>
-                    c.id === community.id
-                      ? { ...c, memberCount: Math.max(0, c.memberCount - 1) }
-                      : c
-                  ));
-                } catch (error) {
-                  console.error('Error leaving community:', error);
-                  Alert.alert(t('common.error'), t('communities.leaveFailed'));
-                } finally {
-                  setJoiningCommunity(null);
-                }
-              },
-            },
-          ]
+          t('communities.leaveConfirm', { nombre: nombreDeComunidad(community, t, locale) }),
+          t('communities.leave'),
+          true,
+          t,
         );
+        if (!confirmado) return;
+        try {
+          await communityService.leaveCommunity(user.uid, community.id!);
+          // Actualizar estado local
+          const newJoinedCommunities = joinedCommunityIds.filter(id => id !== community.id);
+          updateLocalProfile({ joinedCommunities: newJoinedCommunities });
+          // Actualizar memberCount en la lista local
+          setCommunities(prev => prev.map(c =>
+            c.id === community.id
+              ? { ...c, memberCount: Math.max(0, c.memberCount - 1) }
+              : c
+          ));
+        } catch (error) {
+          console.error('Error leaving community:', error);
+          notify(t('common.error'), t('communities.leaveFailed'));
+        }
       } else {
         // Unirse directamente
         await communityService.joinCommunity(user.uid, community.id);
@@ -160,11 +162,11 @@ const CommunitiesManagementScreen: React.FC = () => {
             ? { ...c, memberCount: c.memberCount + 1 }
             : c
         ));
-        setJoiningCommunity(null);
       }
     } catch (error) {
       console.error('Error toggling community:', error);
-      Alert.alert(t('common.error'), t('communities.actionFailed'));
+      notify(t('common.error'), t('communities.actionFailed'));
+    } finally {
       setJoiningCommunity(null);
     }
   };
@@ -197,7 +199,7 @@ const CommunitiesManagementScreen: React.FC = () => {
         <View style={styles.communityInfo}>
           <View style={styles.communityHeader}>
             <Text style={[styles.communityName, { color: theme.colors.text }]}>
-              {item.name}
+              {nombreDeComunidad(item, t, locale)}
             </Text>
             {item.isOfficial && (
               <View style={[styles.officialBadge, { backgroundColor: theme.colors.accent + '20' }]}>
@@ -210,7 +212,7 @@ const CommunitiesManagementScreen: React.FC = () => {
             style={[styles.communityDescription, { color: theme.colors.textSecondary }]}
             numberOfLines={2}
           >
-            {item.description}
+            {descripcionDeComunidad(item, t, locale)}
           </Text>
           <View style={styles.communityStats}>
             <Ionicons name="people-outline" size={14} color={theme.colors.textSecondary} />
@@ -255,9 +257,9 @@ const CommunitiesManagementScreen: React.FC = () => {
 
   const renderSectionHeader = (title: string, count: number) => (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+      <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
         {title}
-      </Text>
+      </TextoEnMayusculas>
       <View style={[styles.countBadge, { backgroundColor: theme.colors.surface }]}>
         <Text style={[styles.countText, { color: theme.colors.textSecondary }]}>
           {count}
@@ -267,11 +269,11 @@ const CommunitiesManagementScreen: React.FC = () => {
   );
 
   // Filtrar por búsqueda
-  const normalizedQuery = searchQuery.toLowerCase().trim();
+  const normalizedQuery = paraBuscar(searchQuery).trim();
   const filtered = normalizedQuery
     ? communities.filter(c =>
-        c.name.toLowerCase().includes(normalizedQuery) ||
-        c.description.toLowerCase().includes(normalizedQuery)
+        paraBuscar(c.name).includes(normalizedQuery) ||
+        paraBuscar(c.description).includes(normalizedQuery)
       )
     : communities;
 
@@ -436,7 +438,7 @@ const CommunitiesManagementScreen: React.FC = () => {
                 } catch (e: any) {
                   /* El error técnico va al registro; la persona ve una frase de Weë. */
                   console.error('Error creando la comunidad:', e);
-                  Alert.alert(t('common.error'), t('communities.createFailed'));
+                  notify(t('common.error'), t('communities.createFailed'));
                 }
                 setCreating(false);
               }}
@@ -598,7 +600,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   countBadge: {

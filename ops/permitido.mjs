@@ -1,0 +1,115 @@
+#!/usr/bin/env node
+/*
+ * ¿SE PUEDE DESPLEGAR ESTO SIN PISAR LO QUE YA FUNCIONA EN PRODUCCIÓN?
+ *
+ * Regla (misión del Harness, FASE 4): no se sobrescribe producción con un
+ * commit que no CONTIENE el código que hoy corre. Para cada función a
+ * desplegar se mira en `ops/produccion.json` qué commit está vivo; el commit
+ * que se quiere desplegar tiene que descender de él. Si no, desplegarlo
+ * borraría cambios que están funcionando (hoy: generateVideo, productions,
+ * shots y barridoDeLiquidacion viven en commits que main no tiene).
+ *
+ * Una función que no está en el mapa es nueva: no pisa nada, pero se avisa.
+ * Los avisos del mapa (p. ej. spendCredits) se repiten siempre.
+ *
+ * Lo mismo vale para las reglas, los índices, Storage y los dos Hosting: el
+ * commit tiene que contener el que está vivo. Mientras el `main` de GitHub
+ * (bfc622d) no tenga las reglas de moderación (c3515b3), desplegar reglas desde
+ * él las borraría de producción.
+ *
+ *   node ops/permitido.mjs --commit <sha|ref> --funciones generateVideo,spendCredits
+ *   node ops/permitido.mjs --commit <sha|ref> --otros firestore:rules,hosting:wee-app
+ *
+ * Sale con 0 si se puede, 1 si no, 2 si falta algo para decidirlo. Solo lee
+ * git y el mapa: no llama a Google Cloud ni a nada externo.
+ */
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+/** Qué entrada de `ops/produccion.json` → `otros` corresponde a cada objetivo que no es una función. */
+export const DESPLEGABLE_DE = {
+  'firestore:rules': 'firestore',
+  'firestore:indexes': 'firestore',
+  storage: 'storage-rules',
+  'hosting:get-wee': 'hosting:get-wee',
+  'hosting:wee-app': 'hosting:wee-app',
+};
+
+/**
+ * Decisión pura. `contiene(vivo, candidato)` dice si el commit candidato contiene al vivo
+ * (git: `merge-base --is-ancestor vivo candidato`); devuelve null si no se puede saber.
+ */
+export const decidir = ({ manifiesto, funciones = [], otros = [], contiene, candidato }) => {
+  const porNombre = new Map((manifiesto.funciones || []).map((f) => [f.funcion, f]));
+  const bloqueos = [];
+  const avisos = [];
+  const desconocido = [];
+  for (const nombre of funciones) {
+    const viva = porNombre.get(nombre);
+    if (!viva) { avisos.push(`${nombre}: no está en producción; se desplegaría por primera vez.`); continue; }
+    if (viva.aviso) avisos.push(`${nombre}: ${viva.aviso}`);
+    const si = contiene(viva.commit, candidato);
+    if (si === null) desconocido.push(`${nombre}: no se puede comprobar si ${candidato} contiene ${viva.commit.slice(0, 7)} (¿falta historia o el commit?).`);
+    else if (!si) {
+      bloqueos.push(`${nombre}: en producción corre ${viva.commit.slice(0, 7)} (${viva.tag}) y ${candidato} no lo contiene. `
+        + `Desplegarlo borraría lo que funciona: integra antes ${viva.ramas ? `la rama ${viva.ramas.join(' o ')}` : 'ese commit'}.`);
+    }
+    /* Arreglos de seguridad aún no desplegados: cualquier despliegue de la función tiene que llevarlos. */
+    for (const r of viva.requiere || []) {
+      const lleva = contiene(r.commit, candidato);
+      if (lleva === null) desconocido.push(`${nombre}: no se puede comprobar si ${candidato} lleva ${r.commit.slice(0, 7)} (${r.motivo}).`);
+      else if (!lleva) bloqueos.push(`${nombre}: ${candidato} no lleva ${r.commit.slice(0, 7)} (${r.motivo}); desplegarlo desharía ese arreglo.`);
+    }
+  }
+  for (const objetivo of otros) {
+    const vivo = (manifiesto.otros || []).find((o) => o.desplegable === DESPLEGABLE_DE[objetivo]);
+    if (!vivo) { avisos.push(`${objetivo}: no está en el mapa; no se puede saber qué hay vivo.`); continue; }
+    const si = contiene(vivo.commit, candidato);
+    if (si === null) desconocido.push(`${objetivo}: no se puede comprobar si ${candidato} contiene ${vivo.commit.slice(0, 7)}.`);
+    else if (!si) {
+      bloqueos.push(`${objetivo}: en producción está ${vivo.commit.slice(0, 7)} (${vivo.tag}) y ${candidato} no lo contiene: publicaría una versión anterior.`);
+    }
+    if (DESPLEGABLE_DE[objetivo] === 'firestore') {
+      avisos.push(`${objetivo}: revisa lo que se publicaría además de lo vivo: git diff ${vivo.commit.slice(0, 7)} ${candidato} -- firestore.rules firestore.indexes.json`);
+    }
+  }
+  return { permitido: bloqueos.length === 0 && desconocido.length === 0, bloqueos, avisos, desconocido };
+};
+
+const contieneSegunGit = (cwd) => (vivo, candidato) => {
+  try {
+    execFileSync('git', ['cat-file', '-e', `${vivo}^{commit}`], { cwd, stdio: 'ignore' });
+  } catch { return null; }
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', vivo, candidato], { cwd, stdio: 'ignore' });
+    return true;
+  } catch (e) {
+    return e.status === 1 ? false : null;
+  }
+};
+
+const principal = () => {
+  const args = process.argv.slice(2);
+  const valor = (op) => { const i = args.indexOf(op); return i >= 0 ? args[i + 1] : undefined; };
+  const candidato = valor('--commit');
+  const funciones = String(valor('--funciones') || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const otros = String(valor('--otros') || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const raros = otros.filter((o) => !DESPLEGABLE_DE[o]);
+  if (!candidato || (!funciones.length && !otros.length) || raros.length) {
+    console.error(`uso: node ops/permitido.mjs --commit <sha|ref> [--funciones a,b] [--otros ${Object.keys(DESPLEGABLE_DE).join(',')}]${raros.length ? ` (desconocido: ${raros.join(', ')})` : ''}`);
+    process.exit(2);
+  }
+  const manifiesto = JSON.parse(fs.readFileSync(path.join(RAIZ, 'ops/produccion.json'), 'utf8'));
+  const r = decidir({ manifiesto, funciones, otros, contiene: contieneSegunGit(RAIZ), candidato });
+  for (const b of r.bloqueos) console.log(`✘ ${b}`);
+  for (const d of r.desconocido) console.log(`? ${d}`);
+  for (const a of r.avisos) console.log(`! ${a}`);
+  console.log(r.permitido ? `✔ ${candidato} contiene lo que está vivo de: ${[...funciones, ...otros].join(', ')}` : '✘ no se despliega');
+  process.exit(r.permitido ? 0 : r.bloqueos.length ? 1 : 2);
+};
+
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) principal();

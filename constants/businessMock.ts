@@ -103,17 +103,19 @@ export const BUSINESS_MESSAGES: CustomerMessage[] = [
 export interface BusinessStat {
   /** Identificador estable de la métrica; no se enseña. */
   id: string;
-  value: string;
+  /** La cifra. La escribe `Intl` al pintarla: «125.4K» en inglés, «125,4 mil» en español, «125,4 B» en turco. */
+  valor: number;
   /** La clave del rótulo: "Publicaciones", "People reached"… */
   clave: string;
-  delta: string;
+  /** La subida frente a la semana anterior, en tanto por uno (0.4 = 40 %): «40 %», «%40»… según el locale. */
+  subida: number;
 }
 
 export const BUSINESS_STATS: BusinessStat[] = [
-  { id: 'posts', value: '24', clave: 'business.statPosts', delta: '↑ 40%' },
-  { id: 'reach', value: '125.4K', clave: 'business.statReach', delta: '↑ 60%' },
-  { id: 'interactions', value: '2.8K', clave: 'business.statInteractions', delta: '↑ 35%' },
-  { id: 'messages', value: '186', clave: 'business.statMessages', delta: '↑ 70%' },
+  { id: 'posts', valor: 24, clave: 'business.statPosts', subida: 0.4 },
+  { id: 'reach', valor: 125400, clave: 'business.statReach', subida: 0.6 },
+  { id: 'interactions', valor: 2800, clave: 'business.statInteractions', subida: 0.35 },
+  { id: 'messages', valor: 186, clave: 'business.statMessages', subida: 0.7 },
 ];
 
 /** Atajos de la barra de Weë Business (referencia): objetivo + respuesta preelegida. */

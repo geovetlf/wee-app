@@ -2,10 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { Post } from '../services/firestoreService';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
-import { formatNumber } from '../data/mockData';
+import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import { Timestamp } from 'firebase/firestore';
 
@@ -21,8 +21,12 @@ interface ShareablePostCardProps {
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = Math.min(screenWidth - 40, 400);
 
-// Función para obtener tiempo relativo de forma segura
-const getTimeAgo = (createdAt: any): string => {
+/*
+ * Cuánto hace, como en el muro (`getRelativeTime`, la misma función que usa PostCard): hasta una semana, el tiempo
+ * relativo corto del idioma; después, la fecha. Antes estaba escrito a mano en español —«ahora», «hace 3m», y la
+ * fecha en `es-ES`— y la tarjeta que se comparte salía en español en cualquier idioma.
+ */
+const getTimeAgo = (createdAt: any, locale: string): string => {
   try {
     let date: Date;
 
@@ -41,18 +45,7 @@ const getTimeAgo = (createdAt: any): string => {
       return '';
     }
 
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'ahora';
-    if (diffMins < 60) return `hace ${diffMins}m`;
-    if (diffHours < 24) return `hace ${diffHours}h`;
-    if (diffDays < 7) return `hace ${diffDays}d`;
-
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    return getRelativeTime(date, locale);
   } catch (error) {
     console.error('Error parsing date:', error);
     return '';
@@ -67,8 +60,8 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
   authorPhotoURL,
   communityName,
 }) => {
-  const t = useT();
-  const timeAgo = getTimeAgo(post.createdAt);
+  const { t, locale } = useIdioma();
+  const timeAgo = getTimeAgo(post.createdAt, locale);
 
   return (
     <View style={styles.container}>
@@ -86,7 +79,7 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
               />
               <Text style={styles.brandName}>Weë</Text>
             </View>
-            {communityName && (
+            {!!communityName && (
               <View style={styles.communityBadge}>
                 <Text style={styles.communityText}>{communityName}</Text>
               </View>
@@ -124,7 +117,7 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
           )}
 
           {/* Video thumbnail */}
-          {!post.imageUrls?.length && post.videoUrl && (
+          {!!(!post.imageUrls?.length && post.videoUrl) && (
             <View style={styles.videoThumbWrap}>
               <Image
                 source={{ uri: cloudinaryVideoThumb(post.videoUrl) }}
@@ -154,15 +147,15 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
           <View style={styles.statsContainer}>
             <View style={styles.stat}>
               <Ionicons name="thumbs-up" size={16} color="#22C55E" />
-              <Text style={styles.statText}>{formatNumber(post.agreementCount || 0)}</Text>
+              <Text style={styles.statText}>{formatNumber(post.agreementCount || 0, locale)}</Text>
             </View>
             <View style={styles.stat}>
               <Ionicons name="thumbs-down" size={16} color="#EF4444" />
-              <Text style={styles.statText}>{formatNumber(post.disagreementCount || 0)}</Text>
+              <Text style={styles.statText}>{formatNumber(post.disagreementCount || 0, locale)}</Text>
             </View>
             <View style={styles.stat}>
               <Ionicons name="chatbubble" size={16} color="#6B7280" />
-              <Text style={styles.statText}>{formatNumber(post.comments || 0)}</Text>
+              <Text style={styles.statText}>{formatNumber(post.comments || 0, locale)}</Text>
             </View>
           </View>
 

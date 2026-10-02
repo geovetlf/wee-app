@@ -22,4 +22,8 @@ export const avatar: typeof import('../es/avatar').avatar = {
   cameraPermission: 'Нужен доступ к камере, чтобы сделать фото',
   pickFailed: 'Не удалось выбрать изображение. Попробуйте ещё раз.',
   photoFailed: 'Не удалось сделать фото',
+  styleAdventurer: 'Искатель приключений',
+  styleRobots: 'Роботы',
+  styleSmile: 'Улыбка',
+  stylePeople: 'Люди',
 };

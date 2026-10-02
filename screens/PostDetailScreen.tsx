@@ -26,12 +26,13 @@ import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById } from '../hooks/useUserById';
+import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { useVote } from '../hooks/useVote';
 import { useComentarios } from '../hooks/useComentarios';
 import { useReposts } from '../hooks/useReposts';
 import { Post } from '../services/firestoreService';
 import Poll from '../components/Poll';
-import { formatNumber, getRelativeTime } from '../data/mockData';
+import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import { Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Video, ResizeMode, Audio } from 'expo-av';
@@ -44,6 +45,7 @@ import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } 
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
+import { esPublicacion } from '../navigation/enlaces';
 
 type PostDetailScreenNavigationProp = StackNavigationProp<MainStackParamList, 'PostDetail'>;
 
@@ -78,7 +80,8 @@ const PostDetailContent: React.FC = () => {
   const route = useRoute<PostDetailScreenRouteProp>();
   const navigation = useNavigation<PostDetailScreenNavigationProp>();
   const insets = useSafeAreaInsets();
-  const { post } = route.params;
+  /* Este contenido solo se pinta con una publicación de verdad (`esPublicacion`, en PostDetailScreen): ya está comprobada. */
+  const post = route.params.post as Post;
   const { userProfile: postAuthor, loading: loadingAuthor } = useUserById(post.userId);
 
   // Capturar el inset de safe area inicial para evitar fluctuaciones cuando el teclado
@@ -201,7 +204,7 @@ const PostDetailContent: React.FC = () => {
 
   const handleProfilePress = () => {
     if (post.userId) {
-      navigation.navigate('UserProfile', { userId: post.userId });
+      navigation.navigate('UserProfile', { userId: referenciaPublicaDe(postAuthor) ?? post.userId });
     }
   };
 
@@ -218,11 +221,11 @@ const PostDetailContent: React.FC = () => {
 
   const commentInputRef = useRef<TextInput>(null);
 
-  // Compartir la publicación fuera de Weë
+  // Compartir la publicación fuera de Weë. El texto de la persona entra por hueco, tal cual.
   const handleSharePost = async () => {
     if (!post) return;
     try {
-      await Share.share({ message: `${post.content || 'Mira esta publicación en Weë'}\n\nCreado en Weë · World Encode Entity` });
+      await Share.share({ message: t('wall.shareText', { contenido: post.content || t('wall.shareTextEmpty') }) });
     } catch (error) {
       console.warn('No se pudo compartir:', error);
     }
@@ -445,7 +448,7 @@ const PostDetailContent: React.FC = () => {
             )}
             <View style={styles.authorText}>
               <Text style={[styles.authorName, { color: theme.colors.text }]}>
-                {loadingAuthor ? 'Cargando...' : postAuthor?.displayName || 'Usuario Anónimo'}
+                {loadingAuthor ? t('common.loading') : postAuthor?.displayName || t('common.anonymousUser')}
               </Text>
               <Text style={[styles.timestamp, { color: theme.colors.textSecondary }]}>
                 {getRelativeTime(getPostDate(), locale)}
@@ -479,7 +482,7 @@ const PostDetailContent: React.FC = () => {
             <Ionicons name="eye-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
-                {formatNumber(post.views || 0)}
+                {formatNumber(post.views || 0, locale)}
               </Text> {t('wall.statViews')}
             </Text>
           </View>
@@ -487,7 +490,7 @@ const PostDetailContent: React.FC = () => {
             <Ionicons name="thumbs-up-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
-                {formatNumber(voteStats.agreementCount)}
+                {formatNumber(voteStats.agreementCount, locale)}
               </Text> {t('wall.statAgree')}
             </Text>
           </View>
@@ -495,7 +498,7 @@ const PostDetailContent: React.FC = () => {
             <Ionicons name="chatbubble-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
-                {formatNumber(post.comments)}
+                {formatNumber(post.comments, locale)}
               </Text> {t('wall.statComments')}
             </Text>
           </View>
@@ -517,7 +520,7 @@ const PostDetailContent: React.FC = () => {
             <Text style={[styles.actionText, {
               color: voteStats.userVote === 'agree' ? '#22C55E' : theme.colors.textSecondary
             }]}>
-              {formatNumber(voteStats.agreementCount)}
+              {formatNumber(voteStats.agreementCount, locale)}
             </Text>
           </TouchableOpacity>
 
@@ -535,7 +538,7 @@ const PostDetailContent: React.FC = () => {
             <Text style={[styles.actionText, {
               color: voteStats.userVote === 'disagree' ? '#EF4444' : theme.colors.textSecondary
             }]}>
-              {formatNumber(voteStats.disagreementCount)}
+              {formatNumber(voteStats.disagreementCount, locale)}
             </Text>
           </TouchableOpacity>
 
@@ -547,7 +550,7 @@ const PostDetailContent: React.FC = () => {
               color={theme.colors.textSecondary}
             />
             <Text style={[styles.actionText, { color: theme.colors.textSecondary }]}>
-              {formatNumber(post.comments)}
+              {formatNumber(post.comments, locale)}
             </Text>
           </TouchableOpacity>
 
@@ -565,7 +568,7 @@ const PostDetailContent: React.FC = () => {
             <Text style={[styles.actionText, {
               color: hasReposted ? theme.colors.accent : theme.colors.textSecondary
             }]}>
-              {formatNumber(repostsCount)}
+              {formatNumber(repostsCount, locale)}
             </Text>
           </TouchableOpacity>
 
@@ -582,7 +585,7 @@ const PostDetailContent: React.FC = () => {
                       params: {
                         otherUserId: post.userId,
                         otherUserData: {
-                          displayName: postAuthor.displayName || 'Usuario',
+                          displayName: postAuthor.displayName || t('common.user'),
                           avatarType: postAuthor.avatarType,
                           avatarId: postAuthor.avatarId,
                           photoURL: postAuthor.photoURL,
@@ -614,7 +617,7 @@ const PostDetailContent: React.FC = () => {
         {/* Comments section */}
         <View style={styles.commentsSection}>
           <Text style={[styles.commentsTitle, { color: theme.colors.text }]}>
-            Comentarios {comments.length > 0 && `(${comments.length})`}
+            {comments.length > 0 ? t('wall.commentsWithCount', { total: comments.length }) : t('wall.comments')}
           </Text>
 
           {loadingComments ? (
@@ -648,7 +651,7 @@ const PostDetailContent: React.FC = () => {
       </ScrollView>
 
       {/* Comment image preview */}
-      {commentImage && (
+      {!!commentImage && (
         <View style={[styles.commentImagePreview, { backgroundColor: theme.colors.surface }]}>
           <Image source={{ uri: commentImage }} style={styles.commentImageThumbnail} />
           <TouchableOpacity
@@ -1039,7 +1042,8 @@ const PostDetailScreen: React.FC = () => {
   const { theme } = useTheme();
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const hasPost = !!route.params?.post;
+  /* Una publicación de verdad —un objeto con su id—, no la cadena que dejaba una recarga (navigation/enlaces.ts). */
+  const hasPost = esPublicacion(route.params?.post);
   const postId: string | undefined = route.params?.postId;
   const [failed, setFailed] = useState(false);
 

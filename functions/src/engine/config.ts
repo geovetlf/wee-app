@@ -1,7 +1,38 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { CapabilityId } from '../creator/types';
-import { CapabilityRouting, EngineSettings, ProviderConfig } from './types';
+import { CapabilityRouting, EngineSettings, Modality, ProviderConfig } from './types';
 import { DEFAULT_PROVIDERS, DEFAULT_ROUTING, DEFAULT_SETTINGS } from './registry';
+
+/**
+ * LOS CUPOS POR PERSONA SE FUSIONAN, NO SE SUSTITUYEN (auditoría H0, escenario #20).
+ *
+ * `aiSettings/global.limits = { perUserPerDay: { video: 5 } }` dejaba SIN límite
+ * el texto, la imagen, la voz… porque la mezcla era plana; y `limits: {}` hacía
+ * fallar todas las IA con un TypeError en el limitador. Ahora un ajuste toca solo
+ * las modalidades que nombra, y solo con un entero ≥ 0 (0 sigue siendo «sin
+ * límite», como fija creator.test.mjs). Lo demás se ignora y se avisa.
+ */
+const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc'] as const;
+/* Si `Modality` gana una modalidad, esto deja de compilar hasta añadirla arriba. */
+const _todasLasModalidades: Exclude<Modality, (typeof MODALIDADES)[number]> extends never ? true : never = true;
+void _todasLasModalidades;
+
+export const cuposLimpios = (raw: unknown): Partial<Record<Modality, number>> => {
+  const cupos: Partial<Record<Modality, number>> = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return cupos;
+  for (const [modalidad, valor] of Object.entries(raw as Record<string, unknown>)) {
+    if (!(MODALIDADES as readonly string[]).includes(modalidad)) {
+      console.warn(`WEË AI ENGINE: cupo de una modalidad desconocida ignorado (${modalidad}).`);
+      continue;
+    }
+    if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 0) {
+      console.warn(`WEË AI ENGINE: cupo de ${modalidad} ignorado: tiene que ser un entero ≥ 0.`);
+      continue;
+    }
+    cupos[modalidad as Modality] = valor;
+  }
+  return cupos;
+};
 
 /**
  * Configuración viva del engine: valores por defecto del registro + lo que el
@@ -58,6 +89,10 @@ export async function loadConfig(force = false): Promise<EngineConfig> {
         ...data,
         timeoutsMs: { ...config.settings.timeoutsMs, ...(data.timeoutsMs || {}) },
         circuitBreaker: { ...config.settings.circuitBreaker, ...(data.circuitBreaker || {}) },
+        limits: {
+          ...config.settings.limits,
+          perUserPerDay: { ...config.settings.limits.perUserPerDay, ...cuposLimpios(data.limits?.perUserPerDay) },
+        },
       };
     }
     // Solo cuenta como Firestore si hay algo guardado allí

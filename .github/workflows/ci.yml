@@ -1,0 +1,164 @@
+# CI de Weë — Weë Agent Harness, FASE 5 (docs/DEPLOYMENT.md §6).
+#
+# Tres niveles, en este orden (lo pidió el dueño el 2026-10-01); si uno falla, el siguiente no arranca:
+#   1 · TypeScript y build: la app con 0 errores, las Functions y la web (lo mismo que construye Vercel).
+#   2 · Pruebas: todas las suites de functions/test (la misma lista que `npm test`, sin parar en el primer
+#       fallo) y las de emulador, cada una en su sesión y solo con proyectos demo-*.
+#   3 · Seguridad y políticas: ningún secreto en el repositorio, nada real en el entorno, la guardia de
+#       Claude, la entrega (qué sube un despliegue, el freno de Vercel), el mapa de producción y la regla de
+#       no pisarla, el workflow de despliegue, la rotación y los emuladores aislados.
+#
+# Nada real: sin secretos, sin credenciales de Google, sin proyecto real. Sin claves, cada proveedor de IA
+# "no existe" para el router y todo va en modo demo: ni llamadas a APIs de IA, ni Credits reales, ni gasto.
+# Las acciones van fijadas por SHA (Dependabot las actualiza). En un repositorio público, sin coste.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# En un PR, un push nuevo deja viejo al anterior: se cancela. En main, NUNCA: el despliegue exige los cuatro checks en
+# verde en el commit EXACTO (ops/despliegue/plan.mjs, motivosContraElCommit), y un commit de main adelantado por otro
+# quedaría sin ellos. Por eso cada commit de main lleva su propio grupo: compartirlo no bastaría ni sin cancelar, porque
+# GitHub sustituye la ejecución PENDIENTE de un grupo por la siguiente que llega (la de en medio se cancela).
+concurrency:
+  group: ci-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  nivel-1:
+    name: Nivel 1 · TypeScript y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - name: Sin claves ni credenciales en el entorno
+        run: node scripts/ci-sin-secretos.mjs
+      - name: Dependencias
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix functions --no-audit --no-fund
+      - name: TypeScript de la app (0 errores)
+        run: npx tsc --noEmit
+      - name: Build de las Functions
+        run: npm run build --prefix functions
+      - name: Build de la web (sin configuración de Firebase; solo comprueba que se construye)
+        run: npx expo export -p web --output-dir dist-ci
+
+  nivel-2-suites:
+    name: Nivel 2 · suites
+    needs: nivel-1
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # job-queue compara con c3515b3; produccion-mapa mira los tags si los hay
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - name: Sin claves ni credenciales en el entorno
+        run: node scripts/ci-sin-secretos.mjs
+      - name: Dependencias y build
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix functions --no-audit --no-fund
+          npm run build --prefix functions
+      - name: Todas las suites
+        run: npm run test:todas --prefix functions
+
+  nivel-2-emuladores:
+    name: Nivel 2 · emuladores demo-*
+    needs: nivel-1
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/firebase/emulators
+          key: emuladores-firebase-tools-15.29.0
+      - name: Sin claves ni credenciales en el entorno
+        run: node scripts/ci-sin-secretos.mjs
+      - name: Dependencias, build y firebase-tools
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix functions --no-audit --no-fund
+          npm run build --prefix functions
+          npm install --global firebase-tools@15.29.0 --no-audit --no-fund
+      - name: Suites de emulador
+        run: node functions/test/_emuladores.mjs
+
+  nivel-3:
+    name: Nivel 3 · seguridad y políticas
+    needs: [nivel-2-suites, nivel-2-emuladores]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # el mapa de producción y la regla de no pisarla leen la historia
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - name: Sin claves ni credenciales en el entorno
+        run: node scripts/ci-sin-secretos.mjs
+      - name: Ningún secreto en el repositorio
+        run: node scripts/escaneo-secretos.mjs
+      - name: Dependencias y build
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix functions --no-audit --no-fund
+          npm run build --prefix functions
+      # Revisión determinista (docs/REVISION.md, capa 1): detectores sobre todo el repositorio y comparación con
+      # ops/revision/baseline.json. Falla con un import a un archivo que git no sigue (G0), con lo NUEVO de severidad
+      # alta o bloqueante y con lo REAPARECIDO (G3). Sin IA, sin red, unos segundos.
+      - name: Revisión determinista (puertas G0 y G3)
+        run: node ops/revision/baseline.mjs --md revision-determinista.md
+      - name: Políticas
+        run: |
+          fallos=0
+          for suite in escaneo-secretos guardia-claude entrega-configuracion produccion-mapa despliegue-workflow rotacion-secretos emulador-aislado ci-workflow credits-cliente-cerrado integracion-preparada capacidades-conservadas wif-verificar proteccion-github app-check cabeceras-seguridad revision-detectores revision-baseline revision-revisores; do
+            node "functions/test/$suite.test.mjs" > "politica-$suite.log" 2>&1 && echo "✔ $suite" || { echo "✘ $suite"; tail -20 "politica-$suite.log"; fallos=1; }
+          done
+          exit $fallos

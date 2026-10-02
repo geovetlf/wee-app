@@ -1,5 +1,6 @@
 import { CapabilityId } from '../creator/types';
 import { EngineSettings, ModelSpec, RoutingPrefs, modalityOf } from './types';
+import { MAX_PROPUESTAS_POR_PASO } from '../core/contracts';
 import { serviceForCapability } from '../credits/creditCosts';
 import { ModeloDeTexto, priceImage, priceOperation, usdToCredits } from '../credits/aiPricing';
 import { providerReady } from './image';
@@ -59,7 +60,7 @@ export function estimateUsd(model: ModelSpec, capability: CapabilityId, input: R
       return (wanted / 60) * cost.usd;
     }
     case 'image':
-      return Math.max(1, Math.min(4, Number(input.count ?? 1))) * cost.usd;
+      return Math.max(1, Math.min(MAX_PROPUESTAS_POR_PASO, Number(input.count ?? 1))) * cost.usd;
     case 'kchar': {
       const text = String(input.text ?? input.prompt ?? input.content ?? '');
       return (Math.max(text.length, 200) / 1000) * cost.usd;

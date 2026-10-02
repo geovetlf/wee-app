@@ -23,6 +23,44 @@
  * Storage: una dirección derivada no ocupa un byte.
  */
 
+/*
+ * EL IDIOMA DE LA PÁGINA. Los textos salen de los diccionarios de la app (`i18n/textos/<idioma>/servidor/publica.ts`,
+ * copiados a `../shared/textosDelServidor.ts`), y `postPage.ts` elige la tabla con el idioma de quien abre el
+ * enlace y se la pasa a cada función de abajo. Sin tabla, la española: la página de siempre.
+ *
+ * La española va ESCRITA AQUÍ y no importada porque este archivo no importa nada (ver arriba); es la misma que la
+ * del diccionario, y `functions/test/i18n-servidor.test.mjs` comprueba que no se separen.
+ */
+export type TablaDeTextos = Readonly<Record<string, string>>;
+
+export const TEXTOS_ES: TablaDeTextos = {
+  codigo: 'es',
+  locale: 'es_ES',
+  alguien: 'Alguien',
+  tituloDelEnlace: '{{nombre}} en Weë',
+  descripcionWeel: 'Un Weël en Weë.',
+  descripcionVideo: 'Un video en Weë.',
+  descripcionImagen: 'Una imagen en Weë.',
+  descripcionEncuesta: 'Una encuesta en Weë.',
+  descripcionPublicacion: 'Una publicación en Weë.',
+  explorar: 'Explorar Weë',
+  privacidad: 'Privacidad',
+  terminos: 'Términos',
+  ayuda: 'Ayuda',
+  yaNoDisponible: 'Esta publicación ya no está disponible.',
+  noDisponible: 'Esta publicación no está disponible.',
+  masEnWee: 'y {{contador}} más en Weë',
+  hechoCon: 'Hecho con',
+  reposteo: '{{nombre}} reposteó',
+  perfilWee: 'Perfil Weë',
+  estoEsWee: 'Esto es Weë',
+  lema: 'La red de quienes crean con Inteligencia Artificial. Descubre, aprende y comparte.',
+};
+
+/** Mete los valores en el texto: '{{nombre}} en Weë' + {nombre:'Ana'}. Lo que no viene se queda como está. */
+const rellenarTexto = (texto: string, valores: Record<string, string | number | undefined>): string =>
+  texto.replace(/\{\{\s*(\w+)\s*\}\}/g, (entero, nombre: string) => (valores[nombre] === undefined ? entero : String(valores[nombre])));
+
 /** Lo público de quien publica. Nada más entra aquí: ni correo, ni cuenta enlazada. */
 export interface AutorPublico {
   displayName?: string;
@@ -143,25 +181,25 @@ export const portadaDelEnlace = (post: PublicacionPublica): string => {
 /* ── El texto de la tarjeta del enlace ──────────────────────────────────── */
 
 /** Cómo se llama quien publica, con el respaldo que ya usa la app. */
-export const nombreDelAutor = (post: PublicacionPublica): string =>
-  (post.autor && post.autor.displayName) || 'Alguien';
+export const nombreDelAutor = (post: PublicacionPublica, textos: TablaDeTextos = TEXTOS_ES): string =>
+  (post.autor && post.autor.displayName) || textos.alguien;
 
 /** La línea en negrita de la tarjeta de WhatsApp. */
-export const tituloDelEnlace = (post: PublicacionPublica): string =>
-  nombreDelAutor(post) + ' en Weë';
+export const tituloDelEnlace = (post: PublicacionPublica, textos: TablaDeTextos = TEXTOS_ES): string =>
+  rellenarTexto(textos.tituloDelEnlace, { nombre: nombreDelAutor(post, textos) });
 
 /**
  * La línea gris de debajo. Si no hay texto, se dice qué hay, porque una
  * descripción vacía deja la tarjeta a medias.
  */
-export const descripcionDelEnlace = (post: PublicacionPublica): string => {
+export const descripcionDelEnlace = (post: PublicacionPublica, textos: TablaDeTextos = TEXTOS_ES): string => {
   const texto = resumir(post.content || post.repostComment || '');
   if (texto) return texto;
-  if (post.isWeel) return 'Un Weël en Weë.';
-  if (post.videoUrl) return 'Un video en Weë.';
-  if (post.imageUrl || (post.imageUrls && post.imageUrls.length)) return 'Una imagen en Weë.';
-  if (post.encuesta) return 'Una encuesta en Weë.';
-  return 'Una publicación en Weë.';
+  if (post.isWeel) return textos.descripcionWeel;
+  if (post.videoUrl) return textos.descripcionVideo;
+  if (post.imageUrl || (post.imageUrls && post.imageUrls.length)) return textos.descripcionImagen;
+  if (post.encuesta) return textos.descripcionEncuesta;
+  return textos.descripcionPublicacion;
 };
 
 /* ── De dónde cuelga la página ──────────────────────────────────────────── */
@@ -324,20 +362,21 @@ a{color:inherit;text-decoration:none}
 }
 `.trim();
 
-const CABECERA_DEL_SITIO = `
+const cabeceraDelSitio = (textos: TablaDeTextos): string => `
   <header class="barra">
     <a class="marca" href="/">We<span>ë</span></a>
-    <a class="abrir" href="/">Explorar Weë</a>
+    <a class="abrir" href="/">${escapar(textos.explorar)}</a>
   </header>`;
 
-const PIE_DEL_SITIO = `
+/* Las páginas de privacidad, términos y ayuda del sitio están en español; los enlaces se llaman en el idioma de la página. */
+const pieDelSitio = (textos: TablaDeTextos): string => `
   <footer class="pie">
-    <a href="/privacy">Privacidad</a><a href="/terms">Términos</a><a href="/support">Ayuda</a>
+    <a href="/privacy">${escapar(textos.privacidad)}</a><a href="/terms">${escapar(textos.terminos)}</a><a href="/support">${escapar(textos.ayuda)}</a>
   </footer>`;
 
 /** El armazón común. `cabeza` son las etiquetas propias de cada página. */
-const documento = (titulo: string, cabeza: string, cuerpo: string): string => `<!DOCTYPE html>
-<html lang="es">
+const documento = (titulo: string, cabeza: string, cuerpo: string, textos: TablaDeTextos = TEXTOS_ES): string => `<!DOCTYPE html>
+<html lang="${escapar(textos.codigo)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -351,8 +390,8 @@ ${cabeza}
 <style>${ESTILOS}</style>
 </head>
 <body>
-<div class="envoltura">${CABECERA_DEL_SITIO}
-${cuerpo}${PIE_DEL_SITIO}
+<div class="envoltura">${cabeceraDelSitio(textos)}
+${cuerpo}${pieDelSitio(textos)}
 </div>
 </body>
 </html>
@@ -368,10 +407,8 @@ ${cuerpo}${PIE_DEL_SITIO}
  * dos enseña nada de la publicación —ni autor, ni texto, ni portada— y las dos
  * llevan `noindex`, para que un buscador no se guarde la ausencia.
  */
-export const paginaSinPublicacion = (motivo: 'privada' | 'borrada'): string => {
-  const mensaje = motivo === 'borrada'
-    ? 'Esta publicación ya no está disponible.'
-    : 'Esta publicación no está disponible.';
+export const paginaSinPublicacion = (motivo: 'privada' | 'borrada', textos: TablaDeTextos = TEXTOS_ES): string => {
+  const mensaje = motivo === 'borrada' ? textos.yaNoDisponible : textos.noDisponible;
   const cabeza = `<meta name="robots" content="noindex">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Weë">
@@ -381,24 +418,24 @@ export const paginaSinPublicacion = (motivo: 'privada' | 'borrada'): string => {
   <main class="vacio">
     <div class="marca">We<span>ë</span></div>
     <p>${escapar(mensaje)}</p>
-    <a class="boton" href="/">Explorar Weë</a>
+    <a class="boton" href="/">${escapar(textos.explorar)}</a>
   </main>`;
-  return documento('Weë', cabeza, cuerpo);
+  return documento('Weë', cabeza, cuerpo, textos);
 };
 
 /** El avatar: la foto de quien publica, o sus iniciales sobre dorado. */
-const bloqueDeAvatar = (post: PublicacionPublica): string => {
+const bloqueDeAvatar = (post: PublicacionPublica, textos: TablaDeTextos): string => {
   const autor = post.autor;
   const foto = direccionSegura(
     imagenDeAvatar(String((autor && (autor.photoURLThumbnail || autor.photoURL)) || ''), 96),
   );
   if (foto) return `<img class="avatar" src="${foto}" alt="" width="44" height="44">`;
-  const inicial = nombreDelAutor(post).trim().charAt(0).toUpperCase() || 'W';
+  const inicial = nombreDelAutor(post, textos).trim().charAt(0).toUpperCase() || 'W';
   return `<div class="avatar" aria-hidden="true">${escapar(inicial)}</div>`;
 };
 
 /** Las imágenes y el vídeo. Nada se re-sube: son direcciones derivadas. */
-const bloqueDeMedios = (post: PublicacionPublica): string => {
+const bloqueDeMedios = (post: PublicacionPublica, textos: TablaDeTextos): string => {
   if (post.videoUrl) {
     const video = direccionSegura(post.videoUrl);
     if (!video) return '';
@@ -437,7 +474,7 @@ const bloqueDeMedios = (post: PublicacionPublica): string => {
   const total = post.imageUrls ? post.imageUrls.length : 1;
   const resto = total > 4
     ? `
-    <p class="pie-medio">y ${total - 4} más en Weë</p>`
+    <p class="pie-medio">${escapar(rellenarTexto(textos.masEnWee, { contador: total - 4 }))}</p>`
     : '';
   return enseñadas + resto;
 };
@@ -461,12 +498,12 @@ const bloqueDeEncuesta = (post: PublicacionPublica): string => {
 };
 
 /** "Hecho con": las herramientas de IA que declaró quien publica. */
-const bloqueDeHerramientas = (post: PublicacionPublica): string => {
+const bloqueDeHerramientas = (post: PublicacionPublica, textos: TablaDeTextos): string => {
   const herramientas = (post.aiTools || []).filter((t) => !!t).slice(0, 6);
   if (!herramientas.length) return '';
   const chips = herramientas.map((t) => `<span class="chip">${escapar(t)}</span>`).join('');
   return `
-  <div class="herramientas"><b>Hecho con</b>${chips}</div>`;
+  <div class="herramientas"><b>${escapar(textos.hechoCon)}</b>${chips}</div>`;
 };
 
 /**
@@ -476,9 +513,9 @@ const bloqueDeHerramientas = (post: PublicacionPublica): string => {
  * cuenta, sin registrarse y sin que se le pida nada. Y el rastreador que solo
  * mira la cabeza encuentra ahí el título, la descripción y la portada.
  */
-export const paginaDeLaPublicacion = (post: PublicacionPublica, base = BASE_CANONICA): string => {
-  const titulo = tituloDelEnlace(post);
-  const descripcion = descripcionDelEnlace(post);
+export const paginaDeLaPublicacion = (post: PublicacionPublica, base = BASE_CANONICA, textos: TablaDeTextos = TEXTOS_ES): string => {
+  const titulo = tituloDelEnlace(post, textos);
+  const descripcion = descripcionDelEnlace(post, textos);
   const portada = direccionSegura(portadaDelEnlace(post)) || escapar(PORTADA_DE_RESERVA);
   const enlace = enlaceDeLaPublicacion(post.id, base);
   const video = post.videoUrl ? direccionSegura(post.videoUrl) : '';
@@ -487,7 +524,7 @@ export const paginaDeLaPublicacion = (post: PublicacionPublica, base = BASE_CANO
 <link rel="canonical" href="${escapar(enlace)}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Weë">
-<meta property="og:locale" content="es_ES">
+<meta property="og:locale" content="${escapar(textos.locale)}">
 <meta property="og:url" content="${escapar(enlace)}">
 <meta property="og:title" content="${escapar(titulo)}">
 <meta property="og:description" content="${escapar(descripcion)}">
@@ -505,7 +542,7 @@ export const paginaDeLaPublicacion = (post: PublicacionPublica, base = BASE_CANO
   const esPerfilWee = !!autor && autor.profileType === 'hidi';
   const reposteo = post.reposteadaPor
     ? `
-    <div class="reposteo">${escapar(post.reposteadaPor)} reposteó</div>`
+    <div class="reposteo">${escapar(rellenarTexto(textos.reposteo, { nombre: post.reposteadaPor }))}</div>`
     : '';
   const comentarioDelRepost = post.repostComment
     ? `
@@ -524,19 +561,19 @@ export const paginaDeLaPublicacion = (post: PublicacionPublica, base = BASE_CANO
   <main>
     <article class="tarjeta">${reposteo}${comentarioDelRepost}
       <div class="cabecera">
-        ${bloqueDeAvatar(post)}
+        ${bloqueDeAvatar(post, textos)}
         <div class="quien">
-          <div class="nombre">${escapar(nombreDelAutor(post))}${esPerfilWee ? '<span class="insignia">Perfil Weë</span>' : ''}</div>${fecha}
+          <div class="nombre">${escapar(nombreDelAutor(post, textos))}${esPerfilWee ? `<span class="insignia">${escapar(textos.perfilWee)}</span>` : ''}</div>${fecha}
         </div>
-      </div>${texto}${bloqueDeMedios(post)}${bloqueDeEncuesta(post)}${bloqueDeHerramientas(post)}
+      </div>${texto}${bloqueDeMedios(post, textos)}${bloqueDeEncuesta(post)}${bloqueDeHerramientas(post, textos)}
     </article>
 
     <section class="llamada">
-      <h2>Esto es Weë</h2>
-      <p>La red de quienes crean con Inteligencia Artificial. Descubre, aprende y comparte.</p>
-      <a class="boton" href="/">Explorar Weë</a>
+      <h2>${escapar(textos.estoEsWee)}</h2>
+      <p>${escapar(textos.lema)}</p>
+      <a class="boton" href="/">${escapar(textos.explorar)}</a>
     </section>
   </main>`;
 
-  return documento(titulo, cabeza, cuerpo);
+  return documento(titulo, cabeza, cuerpo, textos);
 };

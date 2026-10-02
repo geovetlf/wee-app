@@ -18,7 +18,8 @@ import * as Sharing from 'expo-sharing';
  *
  * Devuelve QUÉ pasó, no un porcentaje: `FileSystem.downloadAsync` no informa
  * del progreso y aquí no se inventa ninguno. Quien pinta traduce el resultado.
- * Es el mismo patrón que `services/videoDownload.ts` usa para los Weëls.
+ * Era el patrón de `services/videoDownload.ts` (la descarga de Weëls con marca de agua, que nunca se conectó y se
+ * retiró el 2026-10-01); hoy este es el único flujo que guarda en la galería.
  */
 export type TipoDescargable = 'image' | 'video' | 'audio' | 'document' | 'model3d' | 'text';
 export type ResultadoDeDescarga = 'guardado' | 'compartido' | 'abierto' | 'sin_permiso' | 'error';

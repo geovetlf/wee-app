@@ -32,4 +32,8 @@ export const avatar: typeof import('../es/avatar').avatar = {
   cameraPermission: '需要访问相机才能拍照',
   pickFailed: '无法选择图片。请再试一次。',
   photoFailed: '拍照失败',
+  styleAdventurer: '冒险家',
+  styleRobots: '机器人',
+  styleSmile: '笑脸',
+  stylePeople: '人物',
 };

@@ -25,6 +25,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocation } from '../contexts/LocationContext';
 import { abrirAjustesDelSistema, hayAjustesDelSistema } from '../utils/ajustesDelSistema';
 import { ENGINE_ADMIN_FLAG } from './EngineAdminScreen';
+import TextoEnMayusculas from '../components/TextoEnMayusculas';
 
 type SettingsNavigationProp = StackNavigationProp<ProfileStackParamList, 'Settings'>;
 
@@ -182,7 +183,7 @@ const SettingsScreen: React.FC = () => {
           <Text style={[styles.settingTitle, { color: theme.colors.text }]}>
             {title}
           </Text>
-          {subtitle && (
+          {!!subtitle && (
             <Text style={[styles.settingSubtitle, { color: theme.colors.textSecondary }]}>
               {subtitle}
             </Text>
@@ -227,9 +228,9 @@ const SettingsScreen: React.FC = () => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Contenido */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
             {t('settings.sectionContent')}
-          </Text>
+          </TextoEnMayusculas>
 
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {renderSettingItem(
@@ -248,9 +249,9 @@ const SettingsScreen: React.FC = () => {
           significaba otra cosa.
         */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
             {t('settings.sectionPreferences')}
-          </Text>
+          </TextoEnMayusculas>
 
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {/*
@@ -273,9 +274,9 @@ const SettingsScreen: React.FC = () => {
 
         {/* Privacidad */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
             {t('settings.sectionPrivacy')}
-          </Text>
+          </TextoEnMayusculas>
           
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {renderSettingItem(
@@ -318,9 +319,9 @@ const SettingsScreen: React.FC = () => {
 
         {/* Notificaciones */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
             {t('settings.sectionNotifications')}
-          </Text>
+          </TextoEnMayusculas>
           
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {renderSettingItem(
@@ -341,9 +342,9 @@ const SettingsScreen: React.FC = () => {
 
         {/* Información */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
             {t('settings.sectionInfo')}
-          </Text>
+          </TextoEnMayusculas>
           
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {renderSettingItem(
@@ -372,9 +373,9 @@ const SettingsScreen: React.FC = () => {
 
         {/* Cuenta */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
             {t('settings.sectionAccount')}
-          </Text>
+          </TextoEnMayusculas>
 
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             <TouchableOpacity
@@ -452,7 +453,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   card: {

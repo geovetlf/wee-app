@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -98,11 +97,12 @@ const WeeProfileCreationScreen: React.FC = () => {
       console.log(creado ? '✅ Perfil Weë creado' : '📥 La cuenta ya tenía Perfil Weë');
       setWeeProfile(weeProfile);
 
-      Alert.alert(
-        t('onboarding.weeCreatedTitle'),
-        t('onboarding.weeCreated'),
-        [{ text: t('common.accept'), onPress: () => navigation.goBack() }]
-      );
+      /*
+       * Volver no depende del botón de un aviso: en la web `Alert.alert` no pinta nada ni llama a ningún botón, y la
+       * persona se quedaba en esta pantalla con su Perfil Weë ya creado. Se avisa y se vuelve.
+       */
+      notify(t('onboarding.weeCreatedTitle'), t('onboarding.weeCreated'));
+      navigation.goBack();
     } catch (error: any) {
       console.error('❌ Error creando el Perfil Weë:', error);
       /* Título traducido y frase de Weë: el detalle técnico se queda en el registro. */
@@ -173,11 +173,11 @@ const WeeProfileCreationScreen: React.FC = () => {
           autoCapitalize="none"
         />
         <Text style={[styles.inputHint, { color: theme.colors.textSecondary }]}>
-          {displayName.length}/20 - Mínimo 3 caracteres
+          {t('onboarding.weeNameCounter', { usados: displayName.length, maximo: 20, minimo: 3 })}
         </Text>
 
         {/* Bio */}
-        <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>Bio (opcional)</Text>
+        <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>{t('onboarding.weeBio')}</Text>
         <TextInput
           style={[styles.input, styles.bioInput, {
             backgroundColor: theme.colors.surface,
@@ -197,7 +197,7 @@ const WeeProfileCreationScreen: React.FC = () => {
           }}
         />
         <Text style={[styles.inputHint, { color: theme.colors.textSecondary }]}>
-          {bio.length}/100 caracteres
+          {t('profile.charCount', { usados: bio.length, maximo: 100 })}
         </Text>
 
         {/* Create Button */}

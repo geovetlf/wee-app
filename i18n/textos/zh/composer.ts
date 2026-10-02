@@ -76,7 +76,7 @@ export const composer: typeof import('../es/composer').composer = {
   removeMentions_one: '移除提及',
   removeMentions_other: '移除提及',
   signInToMention: '登录 Weë 才能提及你的 ËContact。',
-  bizNoAgenda: 'Biz 主页没有 ËContact 通讯录。换成真实主页或 Weë 主页就能提及别人。',
+  profileNoAgenda: '这个主页没有 ËContact 通讯录。切换到真实主页或 Weë 主页就能提及别人。',
   noContactsYet: '你还没有 {{lista}}。在别人的主页上建立连接后，对方就会出现在这里，可以直接提及。',
   mentionAnyone: '从你的 {{lista}} 里提及任何人',
   publishIn: '发布到',
@@ -149,4 +149,8 @@ export const composer: typeof import('../es/composer').composer = {
   askCommunity: '向社区提问',
   applyingFaceSwap: '正在应用 face swap…',
   searchPlaceHint: '搜索一座城市或一个国家，给你的动态加上地点。',
+  aiProcessCreatedWith: '在 Weë AI 中用 {{nombre}} 创作而成',
+  aiProcessDemoPreview: '{{proceso}}（演示模式预览）',
+  distanceUnder: '{{distancia}}以内',
+  distanceOver: '{{distancia}}以上',
 };

@@ -37,8 +37,15 @@ import { generatePostUrl } from '../config/linking';
  * nombrar lo mismo.
  */
 
-/** La dirección pública de una publicación. Sirve igual para un Weël. */
-export const enlaceParaCompartir = (postId: string): string => generatePostUrl(postId);
+/**
+ * La dirección pública de una publicación. Sirve igual para un Weël.
+ *
+ * Con el idioma de quien comparte (`?hl=da`), la página pública y la tarjeta de WhatsApp salen en ese idioma: el
+ * rastreador que arma la tarjeta no dice el suyo, y quien recibe un enlace de una persona danesa casi siempre lee
+ * danés (`functions/src/public/postPage.ts`). Sin idioma, la dirección de siempre.
+ */
+export const enlaceParaCompartir = (postId: string, idioma?: string): string =>
+  idioma && /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(idioma) ? `${generatePostUrl(postId)}?hl=${idioma}` : generatePostUrl(postId);
 
 /**
  * Abre la hoja del sistema con el enlace de la publicación.
@@ -50,14 +57,18 @@ export const enlaceParaCompartir = (postId: string): string => generatePostUrl(p
  * completo, así que el enlace tiene que ir dentro de `message` o no viaja. En
  * iOS `url` entrega una dirección de verdad a la hoja, que es lo que hace que
  * las apps de destino la traten como enlace y no como un trozo de texto.
+ *
+ * El título de la hoja —solo lo enseña Android— lo pone quien llama, ya en el
+ * idioma de la interfaz: este archivo no tiene traductor. Sin título, Android
+ * pone el suyo, que también sale en el idioma del teléfono.
  */
-export async function compartirFueraDeWee(postId?: string): Promise<boolean> {
+export async function compartirFueraDeWee(postId?: string, titulo?: string, idioma?: string): Promise<boolean> {
   if (!postId) return false;
-  const url = enlaceParaCompartir(postId);
+  const url = enlaceParaCompartir(postId, idioma);
   try {
     await Share.share(
       Platform.OS === 'ios' ? { url } : { message: url },
-      { dialogTitle: 'Compartir' },
+      titulo ? { dialogTitle: titulo } : undefined,
     );
     return true;
   } catch (error) {

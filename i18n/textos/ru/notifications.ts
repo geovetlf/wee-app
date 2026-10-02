@@ -39,4 +39,6 @@ export const notifications: typeof import('../es/notifications').notifications =
   now: 'сейчас',
   markAllRead: 'Отметить все как прочитанные',
   all: 'Все',
+  unread: 'Непрочитанные',
+  unreadWithCount: 'Непрочитанные ({{total}})',
 };

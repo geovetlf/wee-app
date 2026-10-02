@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Modal,
   TextInput,
   ScrollView,
@@ -20,7 +19,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
@@ -29,12 +28,13 @@ import { scale } from '../utils/scale';
 import { weeBizService, Product } from '../services/weeBizService';
 import { uploadImageToCloudinary, cloudinaryThumb } from '../services/cloudinaryService';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import { confirmAction, notify } from '../utils/notify';
 
 type RoutePropType = RouteProp<MainStackParamList, 'WeeBizProducts'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 const WeeBizProductsScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -107,7 +107,7 @@ const WeeBizProductsScreen: React.FC = () => {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(t('weebiz.permissionTitle'), t('weebiz.galleryPermission'));
+      notify(t('weebiz.permissionTitle'), t('weebiz.galleryPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -123,7 +123,7 @@ const WeeBizProductsScreen: React.FC = () => {
 
   const handleSaveProduct = async () => {
     if (!formName.trim()) {
-      Alert.alert(t('weebiz.requiredTitle'), t('weebiz.productNameRequired'));
+      notify(t('weebiz.requiredTitle'), t('weebiz.productNameRequired'));
       return;
     }
     try {
@@ -162,28 +162,31 @@ const WeeBizProductsScreen: React.FC = () => {
       loadProducts();
     } catch (e) {
       console.error('Error saving product:', e);
-      Alert.alert('Error', t('weebiz.productSaveFailed'));
+      notify(t('common.error'), t('weebiz.productSaveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDeleteProduct = (product: Product) => {
-    Alert.alert(t('weebiz.deleteProductTitle'), t('weebiz.deleteProductConfirm', { nombre: product.name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await weeBizService.deleteProduct(businessId, product.id!);
-            loadProducts();
-          } catch (e) {
-            console.error('Error deleting product:', e);
-          }
-        },
-      },
-    ]);
+  /*
+   * Borrar un producto. Con `Alert.alert` el borrado vivía en el `onPress` de su botón, y en la web no salía ni se
+   * llamaba nada. `confirmAction`: el mismo diálogo en el teléfono, `window.confirm` en la web.
+   */
+  const handleDeleteProduct = async (product: Product) => {
+    const confirmado = await confirmAction(
+      t('weebiz.deleteProductTitle'),
+      t('weebiz.deleteProductConfirm', { nombre: product.name }),
+      t('common.delete'),
+      true,
+      t,
+    );
+    if (!confirmado) return;
+    try {
+      await weeBizService.deleteProduct(businessId, product.id!);
+      loadProducts();
+    } catch (e) {
+      console.error('Error deleting product:', e);
+    }
   };
 
   const handleToggleAvailable = async (product: Product) => {
@@ -198,8 +201,8 @@ const WeeBizProductsScreen: React.FC = () => {
   };
 
   const formatPrice = (price: number, currency: string) => {
-    if (price <= 0) return 'Consultar';
-    return `${currency} ${price.toFixed(2)}`;
+    if (price <= 0) return t('weebiz.priceOnRequest');
+    return `${currency} ${formato.numero(price, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const renderProduct = ({ item }: { item: Product }) => {
@@ -308,7 +311,7 @@ const WeeBizProductsScreen: React.FC = () => {
         <View style={[styles.formModal, { backgroundColor: theme.colors.background }]}>
           <View style={styles.formHeader}>
             <Text style={[styles.formTitle, { color: theme.colors.text }]}>
-              {editingProduct ? 'Editar producto' : 'Nuevo producto'}
+              {editingProduct ? t('weebiz.editProductTitle') : t('weebiz.newProductTitle')}
             </Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Ionicons name="close" size={scale(24)} color={theme.colors.text} />
@@ -392,7 +395,7 @@ const WeeBizProductsScreen: React.FC = () => {
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <Text style={styles.formSaveBtnText}>
-                  {editingProduct ? 'Guardar cambios' : t('weebiz.addProduct')}
+                  {editingProduct ? t('weebiz.saveChanges') : t('weebiz.addProduct')}
                 </Text>
               )}
             </TouchableOpacity>

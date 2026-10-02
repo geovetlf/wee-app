@@ -1,5 +1,5 @@
 import React from 'react';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { Post } from '../services/firestoreService';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -25,12 +25,15 @@ interface WeelsRowProps {
   compacta?: boolean;
 }
 
-/** Ejemplos de la referencia (design/canvas/Wave.dc.html): degradados oscuro, rosa, ámbar y azul. */
-const SAMPLES: { colors: [string, string, string]; emoji: string; label: string }[] = [
-  { colors: ['#6B7280', '#1F2937', '#0A0A0A'], emoji: '🎬', label: 'Escena con IA' },
-  { colors: ['#FBCFE8', '#BE185D', '#3B0764'], emoji: '💃', label: 'Baile' },
-  { colors: ['#FDE68A', '#D97706', '#1F2937'], emoji: '🍔', label: 'Receta' },
-  { colors: ['#BAE6FD', '#0284C7', '#0C4A6E'], emoji: '🌊', label: 'Viaje' },
+/**
+ * Ejemplos de la referencia (design/canvas/Wave.dc.html): degradados oscuro, rosa, ámbar y azul.
+ * El título de cada ejemplo lo escribe Weë, así que se guarda como CLAVE y se traduce al pintarlo.
+ */
+const SAMPLES: { colors: [string, string, string]; emoji: string; clave: string }[] = [
+  { colors: ['#6B7280', '#1F2937', '#0A0A0A'], emoji: '🎬', clave: 'weels.sampleAiScene' },
+  { colors: ['#FBCFE8', '#BE185D', '#3B0764'], emoji: '💃', clave: 'weels.sampleDance' },
+  { colors: ['#FDE68A', '#D97706', '#1F2937'], emoji: '🍔', clave: 'weels.sampleRecipe' },
+  { colors: ['#BAE6FD', '#0284C7', '#0C4A6E'], emoji: '🌊', clave: 'weels.sampleTrip' },
 ];
 
 /*
@@ -58,7 +61,7 @@ const SAMPLES: { colors: [string, string, string]; emoji: string; label: string 
  */
 const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, compacta }) => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const hasPosts = posts.length > 0;
 
   return (
@@ -159,13 +162,13 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
                     decidir: solo ensucia la imagen, que es lo que sí decide.
                   */}
                   {!compacta && typeof post.views === 'number' && post.views > 0 && (
-                    <Text style={styles.views}>▶ {formatNumber(post.views)}</Text>
+                    <Text style={styles.views}>▶ {formatNumber(post.views, locale)}</Text>
                   )}
                 </TouchableOpacity>
               );
             })
           : SAMPLES.map((sample) => (
-              <TouchableOpacity key={sample.label} style={[styles.card, compacta && styles.cardCompacta]} onPress={onOpenWeels} activeOpacity={0.85} accessibilityLabel={t('home.weelSample', { titulo: sample.label })}>
+              <TouchableOpacity key={sample.clave} style={[styles.card, compacta && styles.cardCompacta]} onPress={onOpenWeels} activeOpacity={0.85} accessibilityLabel={t('home.weelSample', { titulo: t(sample.clave) })}>
                 <LinearGradient colors={sample.colors} style={StyleSheet.absoluteFill} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 1 }} />
                 {/*
                   Compacta se queda con lo imprescindible: imagen y título
@@ -173,7 +176,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
                   eran varias cosas superpuestas y ninguna se leía bien.
                 */}
                 {!compacta && <Text style={styles.sampleEmoji}>{sample.emoji}</Text>}
-                <Text style={styles.sampleLabel} numberOfLines={1}>{sample.label}</Text>
+                <Text style={styles.sampleLabel} numberOfLines={1}>{t(sample.clave)}</Text>
                 {!compacta && <Text style={styles.duration}>0:15</Text>}
               </TouchableOpacity>
             ))}

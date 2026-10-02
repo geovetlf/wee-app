@@ -66,20 +66,28 @@ const traducir = (await cargar('i18n/traducir.ts')).ns;
 const formato = (await cargar('i18n/formato.ts')).ns;
 const es = (await cargar('i18n/textos/es/index.ts')).ns.es;
 const en = (await cargar('i18n/textos/en/index.ts')).ns.en;
-const de = (await cargar('i18n/textos/de/index.ts')).ns.de;
-const fr = (await cargar('i18n/textos/fr/index.ts')).ns.fr;
-const it = (await cargar('i18n/textos/it/index.ts')).ns.it;
-const pt = (await cargar('i18n/textos/pt/index.ts')).ns.pt;
-const ru = (await cargar('i18n/textos/ru/index.ts')).ns.ru;
-const ko = (await cargar('i18n/textos/ko/index.ts')).ns.ko;
-const zh = (await cargar('i18n/textos/zh/index.ts')).ns.zh;
-const zhTW = (await cargar('i18n/textos/zh-TW/index.ts')).ns.zhTW;
+/*
+ * EL REGISTRO DE VERDAD, y no una lista de diccionarios escrita aquí. Todo lo
+ * que en este archivo recorre «todos los idiomas» lo lee a él: una lista a mano
+ * se queda vieja sola —a la de la prueba 24 se le había quedado fuera el
+ * portugués europeo— y el idioma que entre mañana quedaría sin vigilar.
+ */
+const registro = (await cargar('i18n/diccionarios.ts')).ns;
+/*
+ * Cada diccionario UNA vez. Varias claves pueden apuntar al mismo objeto —los
+ * alias del portugués europeo y del chino tradicional—, y se le llama por la
+ * primera clave que lo registra: `pt-PT`, no `pt-AO`; `zh-TW`, no `zh-HK`.
+ */
+const diccionariosUnicos = new Map();
+for (const [codigo, diccionario] of Object.entries(registro.DICCIONARIOS)) {
+  if (!diccionariosUnicos.has(diccionario)) diccionariosUnicos.set(diccionario, codigo);
+}
 const aparato = (await cargar('i18n/aparato.ts')).ns;
 
 /**
  * El banco de pruebas del resolutor, no el catálogo real.
  *
- * Se deja a propósito en dos idiomas aunque la app ya tenga ocho: lo que estos
+ * Se deja a propósito en dos idiomas aunque la app tenga muchos más: lo que estos
  * casos comprueban es qué pasa cuando el idioma del aparato NO está disponible
  * —un idioma ausente cayendo a inglés, el caso 3—, y para eso hace falta una lista
  * corta y fija. Ampliarla al catálogo real dejaría esos casos sin comprobar nada.
@@ -117,6 +125,21 @@ console.log('\n── B · La cadena de respaldo ──');
     mal.map(([e]) => e + '=' + resolver.cadenaDeRespaldo(e).join('>')).join(' '));
   check('5) inglés no se repite a sí mismo',
     resolver.cadenaDeRespaldo('en').join('>') === 'en');
+
+  /*
+   * La lengua del TEXTO, que no es el locale: la variante cuando la hay, y la
+   * lengua de la interfaz aunque el locale de los formatos sea de otra —el
+   * último caso es el del tercer escalón de `elegirIdioma`—.
+   */
+  const etiquetas = [
+    [['ja', 'ja-JP'], 'ja'], [['es', 'es-PE'], 'es'], [['zh', 'zh-Hant-TW'], 'zh-TW'],
+    [['zh', 'zh-CN'], 'zh-CN'], [['pt', 'pt-AO'], 'pt-PT'], [['pt', 'pt-BR'], 'pt-BR'],
+    [['en', 'ja-JP'], 'en'], [['en', 'zh-Hant-TW'], 'en'],
+  ];
+  const malEtiquetadas = etiquetas.filter(([[i, l], sale]) => resolver.etiquetaDelTexto(i, l) !== sale);
+  check('5b) la lengua del texto sale del idioma y su variante, nunca del locale de los formatos',
+    malEtiquetadas.length === 0,
+    malEtiquetadas.map(([[i, l]]) => `${i}+${l}=${resolver.etiquetaDelTexto(i, l)}`).join(' '));
 }
 
 console.log('\n── C · Los siete casos acordados ──');
@@ -259,22 +282,102 @@ console.log('\n── E · Traducir, y no romperse nunca ──');
    * de plural de una clave que ya existe. Un `pollVotes_fwe` mal escrito no
    * tiene `_one` ni `_other` que lo respalden y sigue cayendo aquí.
    */
+  /*
+   * Y LA SECCIÓN DEL SERVIDOR, que es OPCIONAL (`i18n/textos/<idioma>/servidor/`). Lo de la app se calca entero en
+   * todos; lo del servidor, o no se declara —y ese idioma cae al inglés por la cadena de respaldo—, o se declara
+   * ENTERO: ni media sección ni una clave suelta, con el mismo margen para las formas de plural propias.
+   */
+  const servidorEs = (await cargar('i18n/textos/es/servidor/index.ts')).ns.servidor;
+  const SECCIONES_DEL_SERVIDOR = new Set(Object.keys(servidorEs));
+  const delServidor = (k) => SECCIONES_DEL_SERVIDOR.has(k.split('.')[0]);
   const cEs = new Set(aplanar(es));
+  const cServidor = new Set(aplanar(servidorEs));
   const PLURAL_EXTRA = /_(few|many|zero|two)$/;
-  for (const [codigo, diccionario] of [['en', en], ['de', de], ['fr', fr], ['it', it], ['pt', pt], ['ru', ru], ['ko', ko], ['zh', zh], ['zh-TW', zhTW]]) {
-    const suyas = new Set(aplanar(diccionario));
-    const faltan = [...cEs].filter((k) => !suyas.has(k));
-    const sobran = [...suyas].filter((k) => !cEs.has(k)).filter((k) => {
+  const compararCon = (molde, suyas) => ({
+    faltan: [...molde].filter((k) => !suyas.has(k)),
+    sobran: [...suyas].filter((k) => !molde.has(k)).filter((k) => {
       const raiz = k.replace(PLURAL_EXTRA, '');
-      return !(PLURAL_EXTRA.test(k) && cEs.has(`${raiz}_one`) && cEs.has(`${raiz}_other`));
-    });
-    const propias = suyas.size - cEs.size;
-    check(`24) control: ${codigo} tiene todas las claves del español`,
+      return !(PLURAL_EXTRA.test(k) && molde.has(`${raiz}_one`) && molde.has(`${raiz}_other`));
+    }),
+  });
+  for (const [diccionario, codigo] of diccionariosUnicos) {
+    const todas = aplanar(diccionario);
+    const suyas = new Set(todas.filter((k) => !delServidor(k)));
+    if (codigo !== 'es') {
+      const { faltan, sobran } = compararCon(cEs, suyas);
+      const propias = suyas.size - cEs.size;
+      check(`24) control: ${codigo} tiene todas las claves del español`,
+        faltan.length === 0 && sobran.length === 0,
+        faltan.length || sobran.length
+          ? `faltan ${faltan.length} [${faltan.slice(0, 3).join(' ')}] · sobran ${sobran.length} [${sobran.slice(0, 3).join(' ')}]`
+          : `${cEs.size} claves${propias ? ` + ${propias} formas de plural propias del idioma` : ''}`);
+    }
+    const suyasDelServidor = new Set(todas.filter(delServidor));
+    if (suyasDelServidor.size === 0) continue;
+    const { faltan, sobran } = compararCon(cServidor, suyasDelServidor);
+    check(`24) control: ${codigo} declara la sección del servidor entera`,
       faltan.length === 0 && sobran.length === 0,
       faltan.length || sobran.length
         ? `faltan ${faltan.length} [${faltan.slice(0, 3).join(' ')}] · sobran ${sobran.length} [${sobran.slice(0, 3).join(' ')}]`
-        : `${cEs.size} claves${propias ? ` + ${propias} formas de plural propias del idioma` : ''}`);
+        : `${cServidor.size} claves`);
   }
+  check('24) control: el español declara la sección del servidor, que es el molde',
+    [...diccionariosUnicos].some(([d, c]) => c === 'es' && aplanar(d).filter(delServidor).length === cServidor.size));
+
+  /*
+   * LAS FORMAS DE PLURAL QUE CADA IDIOMA TIENE DE VERDAD.
+   *
+   * El traductor pide `clave_<categoría>` con la categoría que diga
+   * `Intl.PluralRules` para ese locale. De ahí salen dos errores que no rompen
+   * nada y que por eso nadie ve:
+   *
+   *  · una forma que el idioma NO tiene —un `_few` en japonés— no se lee jamás;
+   *  · en un idioma sin `one` —japonés, chino, coreano—, `_one` existe porque el
+   *    español obliga a declararla, pero tampoco se lee nunca. Si dice algo
+   *    distinto de `_other`, ese texto no aparecerá en ninguna pantalla y el
+   *    archivo miente sobre lo que hace.
+   *
+   * Se mira cada diccionario registrado con las reglas de SU idioma, así que el
+   * que entre mañana queda vigilado sin tocar esta prueba.
+   */
+  const conValores = (o, pre = '') => Object.entries(o).flatMap(([k, v]) =>
+    typeof v === 'object' ? conValores(v, pre + k + '.') : [[pre + k, v]]);
+  const inventadas = [];
+  const mudas = [];
+  let sinOne = 0;
+  for (const [diccionario, codigo] of diccionariosUnicos) {
+    const categorias = new Intl.PluralRules(codigo).resolvedOptions().pluralCategories;
+    const plano = Object.fromEntries(conValores(diccionario));
+    for (const k of Object.keys(plano)) {
+      const forma = (k.match(/_(zero|one|two|few|many)$/) || [])[1];
+      if (forma && forma !== 'one' && !categorias.includes(forma)) inventadas.push(`${codigo} ${k}`);
+      const otra = k.replace(/_one$/, '_other');
+      if (forma === 'one' && !categorias.includes('one') && otra in plano) {
+        sinOne++;
+        if (plano[k] !== plano[otra]) mudas.push(`${codigo} ${k}: «${plano[k]}» ≠ «${plano[otra]}»`);
+      }
+    }
+  }
+  check('24b) ningún diccionario declara formas de plural que su idioma no tiene',
+    inventadas.length === 0, inventadas.slice(0, 4).join(' | ') || `${diccionariosUnicos.size} diccionarios`);
+  check('24c) y donde no existe `one`, `_one` dice lo mismo que `_other`',
+    mudas.length === 0, mudas.slice(0, 3).join(' | ') || `${sinOne} pares en idiomas sin singular`);
+
+  /*
+   * TODO EL TEXTO EN NFC. «Weë» se puede escribir con una ë de un carácter o con
+   * una e seguida de la diéresis suelta (U+0308): se VEN iguales, pero no son la
+   * misma cadena, así que la segunda no la encuentra quien busque «Weë» —ni la
+   * prueba de las marcas ni el buscador—. En japonés pasa lo mismo con el
+   * dakuten suelto: «か» + U+3099 se ve como «が» y no lo es.
+   */
+  const descompuestas = [];
+  for (const [diccionario, codigo] of diccionariosUnicos) {
+    for (const [k, v] of conValores(diccionario)) {
+      if (typeof v === 'string' && v !== v.normalize('NFC')) descompuestas.push(`${codigo} ${k}`);
+    }
+  }
+  check('24d) todo el texto de todos los diccionarios está en NFC',
+    descompuestas.length === 0, descompuestas.slice(0, 4).join(' | ') || 'limpio');
 }
 
 console.log('\n── F · Los formatos son del locale, no del idioma ──');
@@ -324,12 +427,13 @@ console.log('\n── F · Los formatos son del locale, no del idioma ──');
     formato.formatearLista(['a', 'b', 'c'], 'es') !== formato.formatearLista(['a', 'b', 'c'], 'en'),
     `${formato.formatearLista(['a', 'b', 'c'], 'es')} · ${formato.formatearLista(['a', 'b', 'c'], 'en')}`);
 
-  /* Los diecisiete locales contemplados se formatean todos sin reventar. */
+  /* Todos los locales contemplados se formatean sin reventar, sean los que sean. */
   const rotos = idiomas.LOCALES_CONTEMPLADOS.filter((l) => {
     try { return !formato.formatearNumero(1234.5, l) || !formato.formatearFecha(0, l); }
     catch { return true; }
   });
-  check('32) los 17 locales contemplados formatean sin caerse', rotos.length === 0, rotos.join(' '));
+  check(`32) los ${idiomas.LOCALES_CONTEMPLADOS.length} locales contemplados formatean sin caerse`,
+    rotos.length === 0, rotos.join(' '));
 }
 
 console.log('\n── G · El aparato, la persistencia y el catálogo ──');
@@ -356,21 +460,38 @@ console.log('\n── G · El aparato, la persistencia y el catálogo ──');
   check('37) y no se guarda nada que se pueda calcular',
     (pref.match(/setItem\(/g) || []).length === 1);
 
-  /* El catálogo: once idiomas, ocho listos, cada uno en su lengua. */
-  check('38) once idiomas contemplados y nueve con diccionario',
-    idiomas.IDIOMAS.length === 11 && idiomas.idiomasDisponibles().length === 9);
   /*
-   * El chino es UN idioma con DOS escrituras, así que la pantalla pinta una
-   * fila más que idiomas hay. Esto vigila que la cuenta siga cuadrando el día
-   * que alguien añada otra variante —o la quite—.
+   * EL CATÁLOGO, SIN CONTARLO A MANO.
+   *
+   * Lo que importa no es CUÁNTOS idiomas hay —eso cambia cada vez que entra
+   * uno, y una prueba con el número dentro obliga a tocarla sin que nada se
+   * haya roto— sino que la lista se sostenga: códigos sin repetir y sin región,
+   * los disponibles son exactamente los listos, el de reserva está entre ellos,
+   * y cada idioma tiene al menos un locale contemplado del que salen sus formatos.
    */
+  const codigos = idiomas.IDIOMAS.map((i) => i.codigo);
+  const disponibles = idiomas.idiomasDisponibles().map((i) => i.codigo);
+  const sinLocale = codigos.filter((c) => !idiomas.LOCALES_CONTEMPLADOS.some((l) => resolver.idiomaDe(l) === c));
+  check('38) el catálogo se sostiene: sin repetidos, sin región, y los disponibles son los listos',
+    new Set(codigos).size === codigos.length
+    && codigos.every((c) => /^[a-z]{2,3}$/.test(c))
+    && disponibles.join(',') === idiomas.IDIOMAS.filter((i) => i.listo).map((i) => i.codigo).join(',')
+    && disponibles.includes(idiomas.IDIOMA_DE_RESERVA) && disponibles.includes('es')
+    && sinLocale.length === 0,
+    `${codigos.length} contemplados · ${disponibles.length} disponibles${sinLocale.length ? ` · sin locale: ${sinLocale.join(' ')}` : ''}`);
   /*
-   * Nueve idiomas, once filas: el chino ofrece dos escrituras y el portugués
-   * dos normas. Cada variante suma una fila sin sumar un idioma.
+   * Una fila por idioma, y una por VARIANTE en los que las tienen: el chino
+   * ofrece dos escrituras y el portugués dos normas. Cada variante suma una fila
+   * sin sumar un idioma. La cuenta sale del catálogo, así que sigue cuadrando el
+   * día que alguien añada un idioma o una variante —o la quite—.
    */
-  check('38b) y el selector pinta once filas: el chino y el portugués tienen dos cada uno',
-    idiomas.filasDeIdioma().length === 11,
-    idiomas.filasDeIdioma().map((f) => f.clave).join(' '));
+  const filas = idiomas.filasDeIdioma();
+  const filasEsperadas = idiomas.idiomasDisponibles().reduce((n, i) => n + (i.variantes?.length || 1), 0);
+  check('38b) el selector pinta una fila por idioma y una por variante, sin repetir ninguna',
+    filas.length === filasEsperadas
+    && new Set(filas.map((f) => f.clave)).size === filas.length
+    && disponibles.every((c) => filas.some((f) => f.idioma === c)),
+    filas.map((f) => f.clave).join(' '));
   check('39) cada idioma se llama como se llama en su idioma',
     idiomas.idiomaDelCatalogo('de').nombreNativo === 'Deutsch'
     && idiomas.idiomaDelCatalogo('ja').nombreNativo === '日本語'
@@ -384,20 +505,56 @@ console.log('\n── G · El aparato, la persistencia y el catálogo ──');
    * registrarlo sin marcarlo lo esconde del selector. Se comparan las dos.
    */
   /*
-   * Se leen las LÍNEAS que declaran una entrada, no el bloque partido por
-   * comas: dentro del objeto hay comentarios que explican los alias del chino,
-   * y esos comentarios llevan comas. Partir por comas metía trozos de prosa en
-   * la lista de idiomas registrados.
-   *
-   * Una entrada es `  es,` o `  'zh-TW': zhTW,`. Cualquiera de las dos formas.
+   * Se compara el catálogo con el REGISTRO cargado de verdad, no con una lista
+   * escrita aquí: la lista vieja obligaba a tocar la prueba cada vez que entraba
+   * un idioma, y en ese toque es donde se cuelan los descuidos.
    */
-  const bloque = (leer('i18n/diccionarios.ts').match(/DICCIONARIOS: Diccionarios = \{([\s\S]*?)\n\};/) || [, ''])[1];
-  const registrados = [...bloque.matchAll(/^ {2}'?([a-zA-Z-]+)'?(?::\s*\w+)?,$/gm)]
-    .map((m) => m[1]).sort().join(',');
+  const listos = disponibles.slice().sort().join(',');
+  const conDiccionario = registro.idiomasConDiccionario().slice().sort().join(',');
   check('41) los idiomas con diccionario son justo los marcados como listos',
-    idiomas.idiomasDisponibles().map((i) => i.codigo).sort().join(',') === 'de,en,es,fr,it,ko,pt,ru,zh'
-    && registrados.split(',').filter((c) => !c.includes('-')).sort().join(',') === 'de,en,es,fr,it,ko,pt,ru,zh',
-    registrados);
+    listos === conDiccionario && disponibles.includes('es') && disponibles.includes('en'),
+    `listos ${listos} · registrados ${conDiccionario}`);
+
+  /*
+   * Y lo que hay ESCRITO es lo que hay REGISTRADO. Una carpeta de `textos/` sin
+   * su línea en `DICCIONARIOS` es un idioma entero que nadie va a ver; una línea
+   * sin carpeta, una importación rota. Los alias no cuentan: apuntan a un
+   * diccionario que ya tiene su carpeta.
+   */
+  const TEXTOS_DIR = path.resolve(raiz, 'i18n/textos');
+  const carpetas = fs.readdirSync(TEXTOS_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && fs.existsSync(path.join(TEXTOS_DIR, e.name, 'index.ts')))
+    .map((e) => e.name).sort().join(',');
+  const registradosUnicos = [...diccionariosUnicos.values()].sort().join(',');
+  check('41b) cada diccionario escrito está registrado, y cada registrado está escrito',
+    carpetas === registradosUnicos, `carpetas ${carpetas} · registro ${registradosUnicos}`);
+
+  /*
+   * LA PANTALLA DE ERROR HABLA TODOS LOS DICCIONARIOS.
+   *
+   * Sus tres frases viven fuera de i18n a propósito —tiene que sobrevivir a que
+   * reviente el proveedor de idioma—, y por eso nadie se acuerda de ella cuando
+   * entra un idioma: alguien con Weë en japonés se encontraba el error en inglés.
+   *
+   * Se comprueban las dos cosas: que haya una fila por diccionario registrado, y
+   * que cada clave del registro —alias incluidos— acabe en la fila de SU
+   * diccionario siguiendo el mismo camino que la pantalla: `etiquetaDelTexto`
+   * y luego la búsqueda de `ErrorBoundary`. Un teléfono `zh-Hant-HK` tiene que
+   * leer tradicional, y uno `pt-AO` portugués europeo.
+   */
+  const pantallaDeError = leer('components/ErrorBoundary.tsx');
+  const filasDeError = new Set([...((pantallaDeError.match(/const TEXTOS[^=]*= \{([\s\S]*?)\n\};/) || [, ''])[1])
+    .matchAll(/^ {2}'?([a-zA-Z-]+)'?: \{ titulo:/gm)].map((m) => m[1]));
+  const sinFila = [...diccionariosUnicos.values()].filter((c) => !filasDeError.has(c));
+  const extraviadas = Object.entries(registro.DICCIONARIOS).filter(([clave, diccionario]) => {
+    const etiqueta = resolver.etiquetaDelTexto(resolver.idiomaDe(clave), clave);
+    const fila = filasDeError.has(etiqueta) ? etiqueta : etiqueta.split('-')[0];
+    return fila !== diccionariosUnicos.get(diccionario);
+  }).map(([clave]) => clave);
+  check('41c) la pantalla de error tiene una fila por diccionario registrado',
+    sinFila.length === 0, sinFila.join(' ') || `${filasDeError.size} filas`);
+  check('41d) y cada locale registrado, alias incluidos, cae en la fila de su diccionario',
+    extraviadas.length === 0, extraviadas.join(' ') || `${Object.keys(registro.DICCIONARIOS).length} claves`);
 }
 
 console.log('\n── H · Nada de esto cuesta dinero ──');
@@ -432,6 +589,20 @@ console.log('\n── I · Enchufado en Weë ──');
   check('46) el proveedor envuelve la app entera',
     /<IdiomaProvider>/.test(app) && /<\/IdiomaProvider>/.test(app)
     && app.indexOf('<IdiomaProvider>') < app.indexOf('<ThemeProvider>'));
+
+  /*
+   * La lengua de la página y la de la pantalla de error salen del mismo sitio:
+   * `etiquetaDelTexto`. En la web, el `<html lang>` de la plantilla es fijo y
+   * no sabe de nadie; si nadie lo reescribe, Weë en japonés se anuncia como
+   * inglés a los lectores de pantalla y el navegador dibuja los kanji con los
+   * glifos de otro idioma.
+   */
+  const contexto = leer('contexts/IdiomaContext.tsx');
+  check('46b) el <html lang> de la web y la pantalla de error siguen la lengua del texto',
+    /const etiqueta = etiquetaDelTexto\(resuelto\.idioma, resuelto\.locale\)/.test(contexto)
+    && /document\.documentElement\.lang = etiqueta/.test(contexto)
+    && /Platform\.OS !== 'web'/.test(contexto)
+    && /recordarLocale\(etiqueta\)/.test(contexto) && !/recordarLocale\(locale\)/.test(contexto));
 
   const ajustes = leer('screens/SettingsScreen.tsx');
   check('47) Configuración tiene su fila de Idioma',

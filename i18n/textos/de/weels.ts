@@ -20,4 +20,8 @@ export const weels: typeof import('../es/weels').weels = {
   open: 'Weël ansehen',
   upTo15s: 'bis zu 15 s',
   noneYetHint: 'Es gibt noch keine Weëls aus der Community. Die Beispiele zeigen, wie sie aussehen werden.',
+  sampleAiScene: 'KI-Szene',
+  sampleDance: 'Tanz',
+  sampleRecipe: 'Rezept',
+  sampleTrip: 'Reise',
 };

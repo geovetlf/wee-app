@@ -1,4 +1,6 @@
+import { ExecutionHints } from '../core';
 import { CapabilityId, ResultKind } from '../creator/types';
+import { MecanismoDeContinuidad } from './continuidad';
 
 /**
  * WEË AI ENGINE — tipos (docs/AI-ENGINE.md).
@@ -147,11 +149,48 @@ export interface SourceRef {
   title?: string;
 }
 
+/*
+ * ── DÓNDE ESTÁ EL TECHO DE PROPUESTAS POR PASO ──────────────────────────────
+ *
+ * En `core/planner.ts`, que es quien rechaza una cantidad imposible, y de ahí
+ * lo leen los seis sitios que además lo aplican como segunda barrera.
+ *
+ * AQUÍ NO ESTÁ, y no es un descuido. Este archivo lo importa medio motor, y
+ * todo lo que le pedía al Core eran TIPOS, que el compilador borra al emitir.
+ * Colgarle un valor le daba al módulo más compartido del motor una dependencia
+ * de EJECUCIÓN con el Core entero. Medido con el arnés de pureza del Core, el
+ * grafo pasaba de 6,9 MB a 37,3 MB y lo tumbaba por falta de memoria — que es
+ * la forma ruidosa de avisar de un acoplamiento que no se veía.
+ *
+ * Así que cada consumidor lo pide donde vive. Una línea más en cada uno, una
+ * dependencia menos en el sitio por el que pasa todo.
+ */
+
+/**
+ * EL TECHO DE PROPUESTAS POR PASO, reexportado para el motor.
+ *
+ * Se DECLARA en `core/contracts.ts`, porque quien rechaza una cantidad
+ * imposible es el Planner y el Core no importa del motor: la direccion es de
+ * ida. Aqui solo se reexporta, y por dos motivos que no son de comodidad.
+ *
+ * Uno: los adaptadores de proveedor tienen prohibido nombrar al Core —lo vigila
+ * `gateway-autoridad`— y con razon, porque un adaptador traduce para una API y
+ * no tiene por que saber que hay un Core detras. Leen de su propia capa.
+ *
+ * Dos: se reexporta desde `core/contracts`, que no importa nada, y NO desde el
+ * barril `../core`. La diferencia no es de estilo. Este archivo lo importa
+ * medio motor y todo lo que le pedia al Core eran TIPOS, que el compilador
+ * borra al emitir; colgarle el barril entero le daba una dependencia de
+ * EJECUCION con todo el Core. Medido con el arnes de pureza, que incrusta cada
+ * modulo dentro de sus dependientes: 6,9 MB -> 37,3 MB y sin memoria. Con la
+ * hoja, cuesta lo que ocupa la hoja.
+ */
+export { MAX_PROPUESTAS_POR_PASO } from '../core/contracts';
 export interface ProviderOutput {
   kind: ResultKind;
   content?: string;
   url?: string;
-  /** Varias propuestas cuando el paso pide count > 1. */
+  /** Varias propuestas cuando el paso pide count > 1. Nunca más de `MAX_PROPUESTAS_POR_PASO` (`core/planner.ts`). */
   urls?: string[];
   /** Duración real (audio/video) cuando se conoce. */
   durationSec?: number;
@@ -160,6 +199,12 @@ export interface ProviderOutput {
 }
 
 export interface ProviderResult {
+  /*
+   * El discriminante, AUSENTE. Está aquí para que distinguir «terminó» de
+   * «la cogió» lo haga el tipo, y no una comprobación a mano en cada consumidor.
+   * Mismo patrón que `ExecutorOutcome` en `core/gateway.ts`.
+   */
+  accepted?: undefined;
   output: ProviderOutput;
   usage?: Record<string, number>;
   /** Coste medido o estimado por el adaptador en USD (0 en demo). */
@@ -170,6 +215,31 @@ export interface ProviderResult {
   /** Datos del proveedor para el libro (id de tarea, resolución, tokens estimados y reales…). */
   meta?: Record<string, unknown>;
 }
+
+/**
+ * EL PROVEEDOR COGIÓ LA TAREA Y SIGUE CON ELLA.
+ *
+ * No hay salida todavía, y puede que tarde horas. Lo único que queda de la
+ * tarea es cómo la llama él: sin `operationId` esto sería un callejón sin
+ * salida, porque no habría a quién preguntarle después.
+ *
+ * NO es un modo de ejecución nuevo: la llamada a la API se hace y se espera,
+ * como siempre, y dura segundos. Lo que cambia es que lo que contesta el
+ * proveedor no es un resultado sino un acuse con su nombre para la operación.
+ * Un adaptador que nunca devuelva esto se comporta exactamente igual que antes.
+ */
+export interface ProviderAccepted {
+  accepted: { operationId: string };
+  usage?: Record<string, number>;
+  /** Lo que ya se sabe que va a costar. El real llega con el desenlace. */
+  costUSD: number;
+  latencyMs: number;
+  model?: string;
+  meta?: Record<string, unknown>;
+}
+
+/** Lo que contesta un adaptador: terminó, o el proveedor la cogió. */
+export type ProviderOutcome = ProviderResult | ProviderAccepted;
 
 /** Avance de una generación asíncrona (la tarea ya está en el proveedor). */
 export type ProviderStatusHook = (status: 'PROCESSING', meta: Record<string, unknown>) => Promise<void> | void;
@@ -182,6 +252,34 @@ export interface ProviderRunRequest {
   prefs: RoutingPrefs;
   timeoutMs: number;
   onStatus?: ProviderStatusHook;
+  /**
+   * QUIEN LLAMA SABE ESPERAR SIN OCUPAR EL PROCESO.
+   *
+   * Por defecto, ausente: el adaptador se comporta como siempre y devuelve el
+   * resultado terminado, sondeando por dentro si hace falta. Solo lo pone quien
+   * tiene dónde guardar la tarea a medias —el Job Engine— y quien después sabrá
+   * preguntar por ella: el callback o la reconciliación.
+   *
+   * Pedirlo no obliga a nadie. Un adaptador síncrono lo ignora y termina la
+   * tarea; el que sepa, contesta `ProviderAccepted` y suelta el proceso.
+   */
+  acceptAsync?: boolean;
+  /**
+   * LOS REQUISITOS ABSTRACTOS DEL RESULTADO, tal y como salieron de Weë.
+   *
+   * `prefs` es del ENRUTADO —qué calidad, cuántos segundos, qué se puede
+   * elegir— y por eso lleva años siendo dos escalares. Esto es otra cosa: lo
+   * que la persona pidió del resultado. La intención creativa (S2) y lo que
+   * tiene que quedarse igual (C2) viajaban por todo el sistema y se perdían
+   * justo aquí, en la última línea, porque la composición solo copiaba esos
+   * dos escalares. Se medía en las pruebas de transporte y no lo veía nadie:
+   * el adaptador nunca supo que existían.
+   *
+   * Opcional, y ningún adaptador está obligado a leerla. Traducir un requisito
+   * a los mandos de un proveedor concreto es trabajo SUYO y de nadie más: aquí
+   * solo se le entrega, intacto y en el vocabulario del Core.
+   */
+  hints?: ExecutionHints;
 }
 
 /** Contrato que implementa cada adaptador (video, imagen, voz, música, LLM…). */
@@ -193,9 +291,26 @@ export interface ProviderAdapter {
   /** Hay clave/credenciales: sin esto el router ni lo considera. */
   isConfigured(): boolean;
   supports(capability: CapabilityId): boolean;
-  run(request: ProviderRunRequest): Promise<ProviderResult>;
+  /**
+   * Devolver `ProviderAccepted` solo está permitido cuando la petición trae
+   * `acceptAsync`. Sin eso, quien llama no tiene dónde guardar una tarea a
+   * medias y la aceptación sería una pérdida silenciosa.
+   */
+  run(request: ProviderRunRequest): Promise<ProviderOutcome>;
   /** Hasta dónde está comprobada esta integración (ver VerificationState). */
   verification?: ProviderVerification;
+  /**
+   * QUÉ SABE HACER ESTA IMPLEMENTACIÓN CON LA CONTINUIDAD. Lo declara ella.
+   *
+   * Existe para que el Gateway pueda RECHAZAR ANTES de ejecutar —si lo que se
+   * exigió conservar no cabe en el mecanismo, no se llama a nadie y no se paga
+   * nada—, y para que esa decisión no viva dentro del adaptador: un adaptador
+   * traduce, no decide si una generación puede ocurrir.
+   *
+   * Opcional a propósito. Un adaptador que no lo declara es uno que no tiene
+   * mecanismo, y eso ya es la respuesta correcta: no se le supone ninguno.
+   */
+  continuidad?(capability: CapabilityId, modelId: string): MecanismoDeContinuidad;
 }
 
 /** Un eslabón de la cadena de enrutamiento de una capacidad. */
@@ -243,6 +358,25 @@ export interface EngineSettings {
   limits: UsageLimits;
   /** Weë Video Engine: versión de Seedance por defecto (auto | SEEDANCE_2_5 | SEEDANCE_2_0 | SEEDANCE_2_0_FAST | SEEDANCE_2_0_MINI). */
   video?: { defaultModel?: string };
+  /**
+   * EL INTERRUPTOR DE LA IA (auditoría H0, escenario #19). Apagado por defecto.
+   *
+   * Encendido, ninguna generación NUEVA llama a un proveedor —ni real ni demo—
+   * por ninguna de las puertas (router del motor, ejecutor del Core, avatar): se
+   * contesta «no disponible» antes de abrir el libro, y el llamador reembolsa su
+   * reserva como siempre. Lo ya lanzado sigue liquidándose (el barrido no se
+   * para). Se cambia con engineAdmin → setSettings y queda quién lo hizo.
+   */
+  iaDetenida?: boolean;
+  /**
+   * TOPE DE GASTO DIARIO EN PROVEEDORES, en USD, para todo Weë (FASE 8). Sin
+   * valor —o 0— no hay tope. Al alcanzarlo, el router deja de proponer
+   * candidatos —ni otro proveedor ni el demo— y la persona ve «no disponible»
+   * sin que se le cobre (su reserva se reembolsa). Es un tope blando: se mide
+   * con aiUsage/{día}, que suma al cerrar cada generación y se lee con un
+   * minuto de caché. Lo decide código, nunca una IA.
+   */
+  maxUsdPerDay?: number;
 }
 
 export interface RouteCandidate {

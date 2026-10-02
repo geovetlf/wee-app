@@ -45,4 +45,13 @@ export const econtact: typeof import('../es/econtact').econtact = {
   acceptLabel: '接受 {{lista}}',
   rejectRequestLabel: '拒绝 {{lista}} 请求',
   requestSent: '请求已发送',
+  errSignIn: '登录后才能使用 ËContact。',
+  errNotYours: '这不是你的主页。',
+  errNotAPerson: '这个主页不能使用 ËContact。',
+  errSameProfile: '主页不能和自己建立连接。',
+  errOffline: '没能连上 Weë。',
+  errNoRequestToReject: '没有可以拒绝的请求。',
+  errNoPendingRequest: '你和这个主页之间没有待处理的请求。',
+  errNotConnected: '你还没有和这个主页建立连接。',
+  errNoActiveProfile: '当前没有可以用来执行这个操作的主页。',
 };

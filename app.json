@@ -80,11 +80,12 @@
       "infoPlist": {
         "UIViewControllerBasedStatusBarAppearance": false,
         "UIStatusBarStyle": "UIStatusBarStyleLightContent",
-        "NSCameraUsageDescription": "Weë necesita acceso a tu cámara para que puedas tomar fotos y videos para compartir en tus publicaciones.",
-        "NSMicrophoneUsageDescription": "Weë necesita acceso a tu micrófono para grabar audio en tus videos.",
-        "NSPhotoLibraryUsageDescription": "Weë necesita acceso a tu galería para que puedas seleccionar fotos y videos para compartir.",
-        "NSPhotoLibraryAddUsageDescription": "Weë necesita permiso para guardar videos en tu galería.",
-        "ITSAppUsesNonExemptEncryption": false
+        "NSCameraUsageDescription": "Weë necesita acceso a tu cámara para que puedas tomar fotos y usarlas en tus publicaciones, tu perfil, WeeTalk y Weë AI.",
+        "NSMicrophoneUsageDescription": "Weë necesita acceso a tu micrófono para que puedas grabar y enviar audios en WeeTalk.",
+        "NSPhotoLibraryUsageDescription": "Weë necesita acceso a tu galería para que puedas seleccionar fotos y videos para tus publicaciones, tu perfil, WeeTalk y Weë AI.",
+        "NSPhotoLibraryAddUsageDescription": "Weë necesita permiso para guardar en tu galería las imágenes y los videos que descargas de Weë AI.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleAllowMixedLocalizations": true
       },
       "buildNumber": "2"
     },
@@ -93,7 +94,7 @@
       "favicon": "./assets/favicon.png",
       "name": "Weë - La comunidad del futuro",
       "shortName": "Weë",
-      "description": "Comparte de forma real y anónima con Weë. Crea tu alter ego digital, opina libremente y conecta con una comunidad sin filtros.",
+      "description": "Weë es la red social de las personas que crean con Inteligencia Artificial: descubre, aprende, crea, comparte y conecta.",
       "backgroundColor": "#0A0A0A",
       "themeColor": "#F5B731",
       "orientation": "portrait-primary"
@@ -108,8 +109,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Weë necesita acceso a tu galería para guardar videos.",
-          "savePhotosPermission": "Weë necesita permiso para guardar videos en tu galería.",
+          "photosPermission": "Weë necesita acceso a tu galería para que puedas seleccionar fotos y videos para tus publicaciones, tu perfil, WeeTalk y Weë AI.",
+          "savePhotosPermission": "Weë necesita permiso para guardar en tu galería las imágenes y los videos que descargas de Weë AI.",
           "isAccessMediaLocationEnabled": false
         }
       ],
@@ -140,7 +141,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Weë usa tu ubicación aproximada solo mientras la tienes abierta, para ayudarte a descubrir contenido y comunidades cercanas. Tu ubicación exacta no se muestra públicamente.",
+          "locationWhenInUsePermission": "Weë usa tu ubicación aproximada solo mientras la tienes abierta, para sugerirte lugares cercanos y tu zona cuando agregas una ubicación a una publicación. Tu ubicación exacta no se muestra públicamente.",
           "locationAlwaysPermission": false,
           "locationAlwaysAndWhenInUsePermission": false,
           "isIosBackgroundLocationEnabled": false,
@@ -152,6 +153,24 @@
     "owner": "giacomogonzales20",
     "updates": {
       "enabled": false
+    },
+    "locales": {
+      "es": "./locales/es.json",
+      "en": "./locales/en.json",
+      "da": "./locales/da.json",
+      "de": "./locales/de.json",
+      "fr": "./locales/fr.json",
+      "it": "./locales/it.json",
+      "pt-BR": "./locales/pt-BR.json",
+      "pt-PT": "./locales/pt-PT.json",
+      "sv": "./locales/sv.json",
+      "tr": "./locales/tr.json",
+      "ru": "./locales/ru.json",
+      "hi": "./locales/hi.json",
+      "ko": "./locales/ko.json",
+      "zh-Hans": "./locales/zh-Hans.json",
+      "zh-Hant": "./locales/zh-Hant.json",
+      "ja": "./locales/ja.json"
     }
   }
 }

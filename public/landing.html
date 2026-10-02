@@ -1,10 +1,18 @@
 <!DOCTYPE html>
+<!--
+  Página de presentación del hosting `get-wee` (la raíz «/» de firebase.json). Expo
+  también la copia de `public/` a la web de wee.zone, donde se sirve como /landing.html.
+  El 2026-10-01 dejó de presentar el posicionamiento de HideTok (red «anónima», «Hids»,
+  tres identidades con Biz, botones a una ficha de Google Play que no existe): los textos
+  salen de la Ayuda de la app (i18n/textos/es/help.ts). Inventario y lo que queda
+  pendiente del dueño: docs/LEGADO-HIDETOK.md.
+-->
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Weë - La comunidad del futuro</title>
-  <meta name="description" content="Comparte de forma real y anónima con Weë. Crea tu alter ego digital, opina libremente y conecta con una comunidad sin filtros.">
+  <meta name="description" content="Weë es la red social de las personas que crean con Inteligencia Artificial: descubre, aprende, crea, comparte y conecta.">
   <meta name="theme-color" content="#F5B731">
   <link rel="icon" type="image/png" href="/img/icon.png">
 
@@ -12,13 +20,13 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://wee.zone/">
   <meta property="og:title" content="Weë - La comunidad del futuro">
-  <meta property="og:description" content="Comparte de forma real y anónima con Weë. Crea tu alter ego digital, opina libremente y conecta con una comunidad sin filtros.">
+  <meta property="og:description" content="Weë es la red social de las personas que crean con Inteligencia Artificial: descubre, aprende, crea, comparte y conecta.">
   <meta property="og:image" content="https://wee.zone/img/icon.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Weë - La comunidad del futuro">
-  <meta name="twitter:description" content="Comparte de forma real y anónima. Crea tu alter ego, opina libremente.">
+  <meta name="twitter:description" content="La red social de las personas que crean con Inteligencia Artificial.">
 
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://wee.zone/">
@@ -243,9 +251,9 @@
       <img src="/img/logo-dark.png" alt="Weë" class="nav-logo">
       <div class="nav-links">
         <a href="#features">Funciones</a>
-        <a href="#weebiz">Weë Biz</a>
-        <a href="#identities">Identidades</a>
-        <a href="/app" class="nav-cta">Entrar</a>
+        <a href="#weebiz">Weë Business</a>
+        <a href="#identities">Perfiles</a>
+        <a href="https://wee.zone/" class="nav-cta">Entrar</a>
       </div>
     </div>
   </nav>
@@ -255,14 +263,10 @@
     <div class="hero-content">
       <img src="/img/icon.png" alt="Weë" class="hero-icon">
       <h1>La comunidad del futuro</h1>
-      <p>Sé real. Sé anónimo. Sé tú. Weë es la red social donde puedes expresarte con tu identidad real, tu alter ego o tu negocio.</p>
+      <p>Weë es la red social de las personas que crean con Inteligencia Artificial: aquí descubres, aprendes, creas, compartes y conectas. La IA es el motor; la comunidad es el corazón.</p>
       <div class="hero-buttons">
-        <a href="https://play.google.com/store/apps/details?id=com.hidetok.app" class="btn-primary">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.61 1.814L13.793 12 3.61 22.186a.996.996 0 01-.61-.92V2.734c0-.382.218-.718.61-.92zm.56-.372l11.07 6.39L12.88 10.2 4.17 1.442zM16.288 8.88L19.13 10.52c.61.352.93.804.93 1.48s-.32 1.128-.93 1.48l-2.843 1.64-3.03-3.12 3.03-3.12zM4.17 22.558l8.71-8.758 2.36 2.368L4.17 22.558z"/></svg>
-          Google Play
-        </a>
-        <a href="/app" class="btn-secondary">
-          Entrar a Weë Web
+        <a href="https://wee.zone/" class="btn-primary">
+          Entrar a Weë
         </a>
       </div>
     </div>
@@ -271,37 +275,37 @@
   <!-- FEATURES -->
   <section class="features" id="features">
     <h2 class="features-title">Todo en una sola app</h2>
-    <p class="features-sub">Comunidades, negocios y contenido sin filtros.</p>
+    <p class="features-sub">Comunidades, creación con IA y conversación, en un solo lugar.</p>
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon icon-gold">&#127758;</div>
         <h3>Comunidades</h3>
-        <p>Únete a comunidades de temas que te apasionan. Noticias, gaming, deportes, confesiones y mucho más.</p>
+        <p>Grupos de personas con un mismo interés: Cine &amp; Animación, Arte &amp; Creatividad, Negocios &amp; Emprendimiento, Tecnología &amp; IA y más.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon icon-green">&#127917;</div>
-        <h3>Hids (Reels)</h3>
-        <p>Crea y descubre videos cortos. Comparte momentos con tu identidad real o anónima.</p>
+        <h3>Weëls</h3>
+        <p>Videos de hasta 15 segundos para mostrar lo que creas, que se pueden compartir fuera de Weë.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon icon-purple">&#128172;</div>
-        <h3>WeëTalk</h3>
-        <p>Mensajería directa con modo efímero. Chatea con amigos, negocios o de forma anónima.</p>
+        <h3>WeeTalk</h3>
+        <p>El chat de Weë: conversaciones privadas con otras personas de la comunidad, con texto, fotos y notas de voz.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon icon-red">&#128293;</div>
-        <h3>Opiniones reales</h3>
-        <p>Vota si estás de acuerdo o no. Sin likes falsos, solo opiniones honestas de la comunidad.</p>
+        <div class="feature-icon icon-red">&#10024;</div>
+        <h3>Weë AI</h3>
+        <p>Cuéntale a Weë lo que quieres lograr con tus palabras: te hace pocas preguntas sencillas, prepara un plan y crea el resultado. Tú eliges el resultado; Weë elige la IA.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon icon-blue">&#129302;</div>
         <h3>Avatares IA</h3>
-        <p>Genera tu alter ego digital con inteligencia artificial. Único, creativo y totalmente tuyo.</p>
+        <p>Crea tu alter ego digital y genera su avatar con IA.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon icon-pink">&#128176;</div>
-        <h3>Créditos Weë</h3>
-        <p>Sistema de créditos para funciones premium, avatares IA y destacar tu contenido.</p>
+        <h3>Credits</h3>
+        <p>Cada creación con Weë AI usa Credits. Antes de crear ves cuánto costará y, si algo falla, se devuelven.</p>
       </div>
     </div>
   </section>
@@ -310,8 +314,8 @@
   <section class="weebiz" id="weebiz">
     <div class="weebiz-inner">
       <div class="weebiz-content">
-        <h2>Impulsa tu negocio con <span>Weë Biz</span></h2>
-        <p>Registra tu negocio, muestra tus productos, recibe reseñas y conecta directamente con clientes a través de WeëTalk. Todo desde la misma app.</p>
+        <h2>Impulsa tu negocio con <span>Weë Business</span></h2>
+        <p>Registra tu negocio, muestra tus productos, recibe reseñas y conecta directamente con clientes a través de WeeTalk. Todo desde la misma app.</p>
         <div class="weebiz-tags">
           <span class="weebiz-tag">Comida</span>
           <span class="weebiz-tag">Belleza</span>
@@ -322,7 +326,7 @@
           <span class="weebiz-tag">Creadores</span>
           <span class="weebiz-tag">+12 más</span>
         </div>
-        <a href="https://play.google.com/store/apps/details?id=com.hidetok.app" class="btn-primary">
+        <a href="https://wee.zone/" class="btn-primary">
           Registra tu negocio
         </a>
       </div>
@@ -353,23 +357,18 @@
 
   <!-- IDENTITIES -->
   <section class="identities" id="identities">
-    <h2>Tres identidades, una app</h2>
+    <h2>Dos perfiles, una cuenta</h2>
     <p>Cambia entre tus perfiles con un toque.</p>
     <div class="id-cards">
       <div class="id-card gold">
         <div class="id-emoji">&#128100;</div>
-        <h3>Real</h3>
-        <p>Tu perfil público. Comparte con tu nombre real, construye tu reputación y conecta.</p>
+        <h3>Perfil Real</h3>
+        <p>Tu identidad de siempre. Con él, la app se ve blanca.</p>
       </div>
       <div class="id-card green">
         <div class="id-emoji">&#128126;</div>
-        <h3>Weë</h3>
-        <p>Tu alter ego anónimo. Opina sin filtros, confiesa secretos y sé libre.</p>
-      </div>
-      <div class="id-card purple">
-        <div class="id-emoji">&#127970;</div>
-        <h3>Biz</h3>
-        <p>Tu negocio. Publica como empresa, responde clientes y vende productos.</p>
+        <h3>Perfil Weë</h3>
+        <p>Tu identidad para crear con IA: un avatar y un nombre propios para publicar tus creaciones. Con él, la app se viste de oscuro.</p>
       </div>
     </div>
   </section>
@@ -377,14 +376,10 @@
   <!-- CTA -->
   <section class="cta-section">
     <h2>Únete a Weë</h2>
-    <p>Descarga gratis y empieza a expresarte.</p>
+    <p>Entra desde el navegador y empieza a crear.</p>
     <div class="hero-buttons">
-      <a href="https://play.google.com/store/apps/details?id=com.hidetok.app" class="btn-primary">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.61 1.814L13.793 12 3.61 22.186a.996.996 0 01-.61-.92V2.734c0-.382.218-.718.61-.92zm.56-.372l11.07 6.39L12.88 10.2 4.17 1.442zM16.288 8.88L19.13 10.52c.61.352.93.804.93 1.48s-.32 1.128-.93 1.48l-2.843 1.64-3.03-3.12 3.03-3.12zM4.17 22.558l8.71-8.758 2.36 2.368L4.17 22.558z"/></svg>
-        Descargar para Android
-      </a>
-      <a href="#" class="btn-secondary">
-        App Store (pronto)
+      <a href="https://wee.zone/" class="btn-primary">
+        Entrar a Weë
       </a>
     </div>
   </section>

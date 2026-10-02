@@ -249,6 +249,23 @@ export interface Asset extends OwnedByAccount {
   updatedAt: number;
   /** Solo cuando `status` es `deleted`. Se guarda la ficha; el objeto ya no está. */
   deletedAt?: number;
+  /**
+   * MC-9 · HASTA CUÁNDO VALE EL PERMISO DE SUBIDA QUE SE CONCEDIÓ.
+   *
+   * Un material en `uploading` está esperando bytes que escribe otro —el
+   * cliente, directamente contra el proveedor—, y si esa escritura no llega
+   * nunca, nada lo saca de ahí. Este número es la ÚNICA autoridad para decir
+   * que ya no va a llegar: no la antigüedad del material, que no dice nada
+   * sobre cuándo se concedió el último permiso.
+   *
+   * Se guarda aquí y no en un registro aparte porque el permiso no tiene vida
+   * propia: existe para que este material se complete, y muere con él. Ausente
+   * significa «no se sabe», y no se sabe **protege**.
+   */
+  uploadExpiresAt?: number;
+  /** MC-9 · Por qué un material quedó en `failed`. Un literal del Core, nunca una frase. */
+  failedReason?: string;
+  failedAt?: number;
 }
 
 export const FORMA_DE_ID_DE_MATERIAL = /^[A-Za-z0-9_-]{4,128}$/;

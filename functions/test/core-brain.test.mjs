@@ -146,8 +146,19 @@ console.log('\n── A · Pureza: Brain no sabe de nadie ──');
 
   check('6) sin lógica de Router: ni cadenas, ni candidatos, ni política, ni fallback',
     !/createRouter|pickModel|resolveQuality|candidates|fallback|linksFor|allowedProviders|excludeProviders/.test(codigoCore + codigoComp));
-  check('7) sin Planner ni Workflow: no monta pasos ni dependencias',
-    !/dependsOn|buildPlan|PlanStep|WorkflowStep|pasosListos|steps:/.test(codigoCore));
+  /*
+   * ── AFINADO EN C19, Y NO AFLOJADO ─────────────────────────────────────────
+   *
+   * Prohibía la palabra `steps:`. Era buena aproximación mientras Brain no
+   * supiera decir los pasos, y dejó de serlo cuando aprendió: ahora emite
+   * `{key, capability, input}` — QUÉ hay que hacer y de qué clase es.
+   *
+   * Lo que este guard protege no es la palabra: es que Brain no MONTE un plan.
+   * Ni orden de ejecución, ni dependencias, ni estructura de Workflow. Eso es
+   * lo que se comprueba ahora, y es más difícil de pasar.
+   */
+  check('7) sin Planner ni Workflow: dice qué pasos hay, no cómo se ejecutan',
+    !/dependsOn|buildPlan|PlanStep|WorkflowStep|pasosListos|ordenar|uses/.test(codigoCore));
   check('8) sin Job Engine: no inventa estados de trabajo', !/JobStatus|createJob|queue|enqueue|poll/i.test(codigoCore));
   check('9) sin Credits: no cobra, no reserva, no escribe libro',
     !/spendCredits|refundCredits|creditEngine|creditsCharged|creditsPerUsd|ledger|aiGenerations/.test(codigoCore + codigoComp));
@@ -561,7 +572,15 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
   check('92) el input enviado es EXACTAMENTE el que se cotizó: mismo objeto, una sola fuente',
     typeof inputVisto.input.system === 'string' && inputVisto.input.prompt === 'quiero un logo' && inputVisto.input.kind === 'answer'
     && Array.isArray(inputVisto.input.history) && inputVisto.input.maxOutputTokens === 1400 && inputVisto.input.temperature === 0.7
-    && /input: engineInput,/.test(leer(CALLABLE)), Object.keys(inputVisto.input).join(','));
+    /*
+     * C21 afinó esta línea. Exigía el texto `input: engineInput,`, y desde que
+     * el pensador distingue «entender» de «conversar» el texto es una llamada.
+     * Lo que protege NO es la forma de escribirlo: es que conversar mande el
+     * MISMO OBJETO que se cotizó. Eso es lo que se comprueba ahora, y sigue
+     * siendo identidad y no parecido.
+     */
+    && /[?] engineInput/.test(leer(CALLABLE)) && !/[{] [.][.][.]engineInput [}]/.test(leer(CALLABLE)),
+    Object.keys(inputVisto.input).join(','));
   check('93) y el idioma de la interfaz va dentro, con la reserva de siempre para un cliente viejo',
     /código es/.test(inputVisto.input.system));
   engineMod.engine.generate = async (req) => { inputVisto = req; return { output: { kind: 'text', content: 'はい' }, usage: {}, costUSD: 0.001, latencyMs: 3, provider: 'x', modelId: 'm', credits: 0, generationId: 'g2', attempts: 1, demo: false, decision: {} }; };

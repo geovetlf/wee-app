@@ -120,6 +120,11 @@ export interface JobResult {
   demo?: boolean;
   /** Credits que costó este resultado. */
   credits?: number;
+  /**
+   * Solo cuando un texto para la persona salió, con seguridad, en otro idioma que el pedido. Se observa y no se
+   * rechaza (`creator/idiomaDeSalida.ts`).
+   */
+  idiomaDeSalida?: { esperado: string; detectado: string };
   /** Duración real (video/audio) cuando se conoce. */
   durationSec?: number;
   /** Fuentes citadas cuando el paso usó búsqueda web. */
@@ -186,6 +191,12 @@ export interface CreatorJob {
   /** Foto que subió la persona (Storage de Weë) para trabajar sobre ella. */
   inputImageUrl?: string;
   /**
+   * EL IDIOMA DE QUIEN CREA ('da-DK'), tal como lo resuelve la app. Lo manda el cliente al crear el trabajo y al
+   * contestar, y los pasos de texto escriben en él (`instruccionDeSalida`, en prompts.ts). Ausente en los trabajos de
+   * un cliente que no lo manda: esos siguen en español, como siempre.
+   */
+  locale?: string;
+  /**
    * HASTA CUÁNDO PUEDE DURAR ESTA EJECUCIÓN. Milisegundos, absoluto.
    *
    * Se escribe al pasar a `running` y sirve para dos cosas distintas: dentro,
@@ -198,6 +209,26 @@ export interface CreatorJob {
    * para ellos el comportamiento es el de siempre.
    */
   deadlineAt?: number;
+  /**
+   * QUIÉN ESTÁ ARRANCANDO ESTE TRABAJO (auditoría H0, escenario #9).
+   *
+   * `creatorRun` lo reclama en una transacción ANTES de tocar el cupo, el
+   * dinero o el proveedor, así que dos llamadas a la vez no pueden arrancarlo
+   * las dos. Es un campo aparte —no un `status`— para que la pantalla no vea
+   * `running` hasta que la reserva de Credits está hecha, igual que antes.
+   * Se suelta si el cupo o la reserva fallan; un reclamo de más de un minuto
+   * sin pasar a `running` es de un proceso que murió y se puede retomar.
+   */
+  runId?: string | null;
+  /** Cuándo se reclamó (milisegundos). Ver `runId`. */
+  claimedAt?: number | null;
+  /**
+   * Una liquidación de Credits que falló y queda por cerrar (auditoría H0,
+   * escenario #15a). La escribe `settleCredits` en vez de tragarse el error;
+   * antes de actuar hay que mirar la transacción en el Credit Engine, que es
+   * idempotente (repetir el ajuste no cobra ni devuelve dos veces).
+   */
+  liquidacionPendiente?: { accion: 'completar' | 'reembolsar'; retenido: number; usado: number; motivo: string; at: Timestamp };
   createdAt: Timestamp;
   updatedAt: Timestamp;
   finishedAt?: Timestamp;

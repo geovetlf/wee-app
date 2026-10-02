@@ -7,7 +7,7 @@
  * aquí: viajan al servidor y ya están guardados en los perfiles de la gente.
  *
  * Tres cosas del chino que se ven en este archivo:
- *   · «Weë», «Credits» y «Gemini AI» se quedan en alfabeto latino dentro del
+ *   · «Weë», «Credits» y «Weë AI» se quedan en alfabeto latino dentro del
  *     hanzi: son marca e identificador, no texto que se traduzca ni se pase a
  *     caracteres. Nunca 积分 por Credits;
  *   · entre hanzi y latín o cifras va UN espacio —«可用 Credits：{{saldo}}»,
@@ -66,7 +66,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   expMysterious: '神秘',
   currentAvatar: '你当前的 AI 头像',
   swapTitle: '人物替换',
-  swapSubtitle: '拍一张或上传一张照片，Gemini AI 会把照片里的人换成你的头像',
+  swapSubtitle: '拍一张或上传一张照片，Weë AI 会把照片里的人换成你的头像',
   takePhoto: '拍照',
   gallery: '相册',
   useAsProfilePhoto: '用作个人资料照片',
@@ -75,7 +75,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   uploadPhotoAsAvatar: '上传照片作为头像',
   nextStep: '下一步',
   previousStep: '上一步',
-  generatedWithGemini: '由 Gemini AI 生成的头像',
+  generatedWithAi: '由 Weë AI 制作的头像',
   nowTakeAPhoto: '现在拍一张或上传一张你的照片，把照片里的人换成你的头像',
   skipAndUse: '跳过，直接使用头像',
   regenerate: '重新生成头像',
@@ -109,4 +109,16 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   savingProfilePhoto: '正在保存个人资料照片…',
   updatingProfilePhoto: '正在更新个人资料照片…',
   swapping: 'Weë 正在把你的头像放进照片里…\n（大约需要 30 到 60 秒）',
+  generateFailed: '头像生成失败，请重试。',
+  regenerateFailed: '头像重新生成失败，请重试。',
+  replaceFailed: '头像替换失败，请重试。',
+  stepBase: '基础',
+  stepDetails: '细节',
+  limitReachedCount: '已达上限（{{usadas}}/{{maximo}}）',
+  regenerateWithAi: '用 AI 重新生成头像',
+  allGenerationsUsed_one: '你已用完全部 {{contador}} 次 AI 生成。',
+  allGenerationsUsed_other: '你已用完全部 {{contador}} 次 AI 生成。',
+  generationsCount: 'AI 生成次数：{{usadas}}/{{maximo}}',
+  generateForCredits: '用 {{credits}} Credits 生成头像',
+  generateButton: '生成头像 · {{credits}} Credits',
 };

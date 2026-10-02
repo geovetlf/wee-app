@@ -64,6 +64,7 @@ const REGIONS = entre('export const REGIONS');
 const fuente = leer('data/places.ts')
   .replace("import { COUNTRIES, Country } from './countries';", leer('data/countries.ts').replace(/export /g, ''))
   .replace("import { CITIES, City } from './cities';", leer('data/cities.ts').replace(/export /g, ''))
+    .replace("import { CIUDADES_POR_IDIOMA } from './ciudadesPorIdioma';", leer('data/ciudadesPorIdioma.ts').replace(/export /g, ''))
   .replace(
     "require('./citiesWorld') as { WORLD_PLACES: string; HAND_COORDS: string; REGIONS: string }",
     'globalThis.__CAT'
@@ -189,10 +190,14 @@ check(
 // ═══════════════════════════════════════════════════════════════════════════
 console.log('\n─── D. Lo que la pantalla enseña, según lo que sabe ───');
 
+/*
+ * El país se dice en el idioma de la interfaz a partir de su código ISO
+ * (Intl); el nombre guardado —en español— queda de respaldo.
+ */
 check(
   'sin permiso: "Lugares en <tu país>"',
   /Lugares en \{\{pais\}\}/.test(pantalla)
-  && /pais: userProfile\?\.countryName \|\| t\('composer\.yourCountry'\)/.test(leerCrudo('screens/AgregarUbicacionScreen.tsx'))
+  && /pais: \(userProfile\?\.country \? nombreDeLaRegion\(userProfile\.country, locale\) : ''\) \|\| userProfile\?\.countryName \|\| t\('composer\.yourCountry'\)/.test(leerCrudo('screens/AgregarUbicacionScreen.tsx'))
 );
 check('con ubicación fiable: "Lugares cerca de ti"', /📍 Lugares cerca de ti/.test(pantalla));
 check(
@@ -444,11 +449,13 @@ check('entre fila y fila, un separador de un pelo; la última, sin él', /!ultim
 check('la fila entera se toca, y mide al menos 56', /minHeight: 56,/.test(filaEstilo) && /onPress=\{\(\) => elegir\(opcion\)\}/.test(codigoPantalla));
 check('el icono es pequeño, outline y en un círculo crema de 32', /iconoCirculo: \{\s*width: scale\(32\),\s*height: scale\(32\),/.test(estilos) && /name=\{esPais \? 'earth-outline' : 'location-outline'\}\s*size=\{scale\(16\)\}/.test(codigoPantalla) && /theme\.colors\.accent \+ '1A'/.test(codigoPantalla));
 check('el nombre manda y la región acompaña en gris', /filaNombre: \{\s*fontSize: FONT_SIZE\.base,\s*fontWeight: FONT_WEIGHT\.semibold,/.test(estilos) && /filaSub: \{\s*fontSize: FONT_SIZE\.sm,/.test(estilos) && /styles\.filaSub, \{ color: theme\.colors\.textSecondary \}/.test(codigoPantalla));
-check('la distancia medida va al final de la línea, en dorado', codigoPantalla.indexOf('styles.filaDistancia') > codigoPantalla.indexOf('styles.filaSub') && /styles\.filaDistancia, \{ color: theme\.colors\.accentDark \}/.test(codigoPantalla) && /distanciaAproximada\(km\)/.test(codigoPantalla));
+check('la distancia medida va al final de la línea, en dorado', codigoPantalla.indexOf('styles.filaDistancia') > codigoPantalla.indexOf('styles.filaSub') && /styles\.filaDistancia, \{ color: theme\.colors\.accentDark \}/.test(codigoPantalla) && /distanciaParaLeer\(km, t, locale\)/.test(codigoPantalla));
 check('"Usar lo que escribiste" sigue, apenas distinta: su icono, fondo casi nulo y aire encima', /styles\.fila, styles\.filaPropia, \{ backgroundColor: theme\.colors\.accent \+ '0F' \}/.test(codigoPantalla) && /name="create-outline"/.test(codigoPantalla) && /filaPropia: \{\s*marginTop: SPACING\.md,\s*borderRadius: BORDER_RADIUS\.lg,/.test(estilos) && /onPress=\{elegirEscrito\}/.test(codigoPantalla));
-check('los rótulos son pequeños y en mayúsculas, como "PUBLICAR EN"', /seccionTitulo: \{\s*fontSize: FONT_SIZE\.xs,[\s\S]{0,80}textTransform: 'uppercase',/.test(estilos) && /<Seccion titulo="Resultados" \/>/.test(codigoPantalla));
+/* La mayúscula la pone `TextoEnMayusculas` con el locale (en iOS `textTransform` no lo conoce: «İ» en turco). */
+check('los rótulos son pequeños y en mayúsculas, como "PUBLICAR EN"', /seccionTitulo: \{\s*fontSize: FONT_SIZE\.xs,/.test(estilos)
+  && /<TextoEnMayusculas style=\{\[styles\.seccionTitulo,/.test(codigoPantalla) && /<Seccion titulo="Resultados" \/>/.test(codigoPantalla));
 check('cada fila se anuncia entera y dice qué pasa al tocarla',
-  /accessibilityRole="button"\s*accessibilityLabel=\{opcion\.sublabel \? '\{\{lugar\}\}, \{\{detalle\}\}' : opcion\.label\}\s*accessibilityHint=/.test(codigoPantalla)
+  /accessibilityRole="button"\s*accessibilityLabel=\{visible\.sublabel \? '\{\{lugar\}\}, \{\{detalle\}\}' : visible\.label\}\s*accessibilityHint=/.test(codigoPantalla)
   && ES_C.composer.placeOption === '{{lugar}}, {{detalle}}'
   && /accessibilityHint="Etiqueta la publicación con lo que escribiste/.test(codigoPantalla));
 /* CONTROL: la lógica no se movió. La búsqueda, la vuelta y el buscador son los mismos. */

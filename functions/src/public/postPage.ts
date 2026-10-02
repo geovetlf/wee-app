@@ -21,6 +21,8 @@
  */
 import { getFirestore } from 'firebase-admin/firestore';
 import { onRequest } from 'firebase-functions/v2/https';
+import { PAGINA_PUBLICA } from '../shared/textosDelServidor';
+import { TablaDeTextos, idiomaDelNavegador, tablaDelIdioma } from '../shared/idiomaDelServidor';
 import {
   AutorPublico,
   PublicacionPublica,
@@ -53,12 +55,15 @@ type Documento = Record<string, unknown>;
  */
 const sePuedeEnseñar = (post: Documento): boolean => post.isPrivate === false;
 
-/** La fecha, en español y sin hora: una publicación no se fecha al minuto. */
-export const fechaEnEspanol = (valor: unknown): string | undefined => {
+/**
+ * La fecha, sin hora —una publicación no se fecha al minuto— y escrita como se escribe en el idioma de la página
+ * («30 de septiembre de 2026», «30. september 2026»). Sin idioma, en español.
+ */
+export const fechaEnEspanol = (valor: unknown, locale = 'es-ES'): string | undefined => {
   const conFecha = valor as { toDate?: () => Date } | undefined;
   const fecha = conFecha && typeof conFecha.toDate === 'function' ? conFecha.toDate() : undefined;
   if (!fecha || Number.isNaN(fecha.getTime())) return undefined;
-  return new Intl.DateTimeFormat('es-ES', {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -107,6 +112,7 @@ const publicacionPublica = (
   id: string,
   post: Documento,
   autor: Documento | null,
+  locale = 'es-ES',
 ): PublicacionPublica => ({
   id,
   content: texto(post.content),
@@ -118,7 +124,7 @@ const publicacionPublica = (
   videoUrl: texto(post.videoUrl),
   isWeel: post.isWeel === true,
   aiTools: textos(post.aiTools),
-  fecha: fechaEnEspanol(post.createdAt),
+  fecha: fechaEnEspanol(post.createdAt, locale),
   encuesta: encuestaPublica(post.poll),
   autor: autorPublico(autor),
 });
@@ -142,13 +148,25 @@ export const publicPostPage = onRequest(
       String(request.headers['x-forwarded-host'] || request.headers.host || ''),
     );
 
+    /*
+     * EN QUÉ IDIOMA SE ESCRIBE. Primero el del enlace (`?hl=da`): lo pone la app al compartir, y es el que importa
+     * para la tarjeta de WhatsApp, cuyo rastreador no dice su idioma. Si no, el del navegador de quien la abre. Sin
+     * ninguno, la página de siempre, en español. Como la misma dirección puede salir en varios idiomas, la respuesta
+     * dice `Vary: Accept-Language` para que ninguna caché le sirva a alguien la de otro.
+     */
+    const consulta = request.query as Record<string, unknown> | undefined;
+    const pedido = typeof consulta?.hl === 'string' ? consulta.hl : idiomaDelNavegador(request.headers['accept-language']);
+    const tabla: TablaDeTextos = tablaDelIdioma(PAGINA_PUBLICA, pedido);
+    const locale = tabla.locale.replace('_', '-');
+    response.set('Vary', 'Accept-Language');
+
     /* Una página que no se puede enseñar: 404 con cara amable y sin datos. */
     const sinPublicacion = (motivo: 'privada' | 'borrada') => {
       response
         .status(404)
         .set('Content-Type', 'text/html; charset=utf-8')
         .set('Cache-Control', 'public, max-age=60')
-        .send(paginaSinPublicacion(motivo));
+        .send(paginaSinPublicacion(motivo, tabla));
     };
 
     const postId = idDeLaRuta(request.path);
@@ -183,7 +201,7 @@ export const publicPostPage = onRequest(
       let autorId = texto(post.userId);
       if (post.isRepost === true && texto(post.originalPostId)) {
         const quienReposteo = await usuario(autorId);
-        reposteadaPor = texto(quienReposteo?.displayName) || 'Alguien';
+        reposteadaPor = texto(quienReposteo?.displayName) || tabla.alguien;
         repostComment = texto(post.repostComment);
         const original = await db
           .collection('posts')
@@ -203,7 +221,7 @@ export const publicPostPage = onRequest(
       }
 
       const autor = await usuario(autorId);
-      const publica = publicacionPublica(postId, post, autor);
+      const publica = publicacionPublica(postId, post, autor, locale);
       publica.reposteadaPor = reposteadaPor;
       publica.repostComment = repostComment;
 
@@ -212,7 +230,7 @@ export const publicPostPage = onRequest(
         .set('Content-Type', 'text/html; charset=utf-8')
         .set('Cache-Control', 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400')
         .set('X-Content-Type-Options', 'nosniff')
-        .send(paginaDeLaPublicacion(publica, base));
+        .send(paginaDeLaPublicacion(publica, base, tabla));
     } catch (error) {
       /*
        * Si Firestore falla, quien abrió el enlace no tiene por qué ver una
@@ -223,7 +241,7 @@ export const publicPostPage = onRequest(
         .status(500)
         .set('Content-Type', 'text/html; charset=utf-8')
         .set('Cache-Control', 'no-store')
-        .send(paginaSinPublicacion('borrada'));
+        .send(paginaSinPublicacion('borrada', tabla));
     }
   },
 );

@@ -7,10 +7,17 @@ interface UseVoteOptions {
   initialStats?: Partial<VoteStats>;
 }
 
+/*
+ * Qué salió mal, como CÓDIGO y no como frase: esto es un hook, no sabe en qué idioma se mira, y hoy nadie lo pinta
+ * (PostCard, el detalle y los Weëls solo leen `stats`). Antes guardaba frases en español escritas a mano; si algún día
+ * se enseña, quien lo pinte elige la clave i18n según el código.
+ */
+export type ErrorDeVoto = 'sin-sesion' | 'voto-fallido' | 'quitar-voto-fallido';
+
 interface UseVoteReturn {
   stats: VoteStats;
   isLoading: boolean;
-  error: string | null;
+  error: ErrorDeVoto | null;
   voteAgree: () => Promise<void>;
   voteDisagree: () => Promise<void>;
   removeVote: () => Promise<void>;
@@ -27,7 +34,7 @@ export function useVote({ postId, userId, initialStats }: UseVoteOptions): UseVo
     userVote: initialStats?.userVote ?? null,
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorDeVoto | null>(null);
 
   // Calcular porcentaje cuando cambian los contadores
   useEffect(() => {
@@ -38,13 +45,18 @@ export function useVote({ postId, userId, initialStats }: UseVoteOptions): UseVo
     }
   }, [stats.agreementCount, stats.disagreementCount]);
 
-  // Cargar voto del usuario al montar
+  // Cargar voto del usuario al montar. Una lista recicla la tarjeta con OTRA publicación (o cambia la cara activa):
+  // la respuesta que llega tarde es de la publicación de antes y no puede marcar el voto de la nueva.
   useEffect(() => {
+    let vivo = true;
     if (userId && postId) {
       voteService.getUserVote(postId, userId).then(vote => {
-        setStats(prev => ({ ...prev, userVote: vote }));
+        if (vivo) setStats(prev => ({ ...prev, userVote: vote }));
       });
     }
+    return () => {
+      vivo = false;
+    };
   }, [postId, userId]);
 
   const refreshStats = useCallback(async () => {
@@ -59,7 +71,7 @@ export function useVote({ postId, userId, initialStats }: UseVoteOptions): UseVo
 
   const handleVote = useCallback(async (type: VoteType) => {
     if (!userId) {
-      setError('Debes iniciar sesión para votar');
+      setError('sin-sesion');
       return;
     }
 
@@ -113,7 +125,7 @@ export function useVote({ postId, userId, initialStats }: UseVoteOptions): UseVo
     } catch (err) {
       // Revertir en caso de error
       setStats(previousStats);
-      setError('Error al votar. Intenta de nuevo.');
+      setError('voto-fallido');
       console.error('Error voting:', err);
     } finally {
       setIsLoading(false);
@@ -148,7 +160,7 @@ export function useVote({ postId, userId, initialStats }: UseVoteOptions): UseVo
       await voteService.removeVote(postId, userId);
     } catch (err) {
       setStats(previousStats);
-      setError('Error al quitar voto');
+      setError('quitar-voto-fallido');
       console.error('Error removing vote:', err);
     } finally {
       setIsLoading(false);

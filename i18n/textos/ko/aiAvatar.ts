@@ -7,7 +7,7 @@
  * aquí: viajan al servidor y ya están guardados en los perfiles de la gente.
  *
  * Dos cosas del coreano que se ven en este archivo:
- *   · «Credits» y «Gemini AI» se quedan en alfabeto latino dentro del hangul;
+ *   · «Credits» y «Weë AI» se quedan en alfabeto latino dentro del hangul;
  *   · detrás de «Credits» no va ninguna partícula variable (은/는, 이/가,
  *     을/를…): las frases están escritas como etiqueta —«사용 가능한 Credits:
  *     {{saldo}}»— o con el sustantivo delante —«Credits 잔액이»—, que es como se
@@ -62,7 +62,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   expMysterious: '신비로움',
   currentAvatar: '현재 AI 아바타',
   swapTitle: '인물 교체',
-  swapSubtitle: '사진을 찍거나 올리면 Gemini AI가 사진 속 인물을 내 아바타로 바꿔요',
+  swapSubtitle: '사진을 찍거나 올리면 Weë AI가 사진 속 인물을 내 아바타로 바꿔요',
   takePhoto: '사진 찍기',
   gallery: '갤러리',
   useAsProfilePhoto: '프로필 사진으로 사용',
@@ -71,7 +71,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   uploadPhotoAsAvatar: '사진을 아바타로 올리기',
   nextStep: '다음',
   previousStep: '이전 단계',
-  generatedWithGemini: 'Gemini AI로 만든 아바타',
+  generatedWithAi: 'Weë AI로 만든 아바타',
   nowTakeAPhoto: '이제 본인 사진을 찍거나 올리면 사진 속 인물을 내 아바타로 바꿔요',
   skipAndUse: '건너뛰고 아바타 그대로 사용',
   regenerate: '아바타 다시 만들기',
@@ -105,4 +105,16 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   savingProfilePhoto: '프로필 사진 저장 중...',
   updatingProfilePhoto: '프로필 사진 업데이트 중...',
   swapping: 'Weë가 사진에 내 아바타를 넣고 있어요…\n(30~60초 정도 걸려요)',
+  generateFailed: '아바타를 만들지 못했어요. 다시 시도해 주세요.',
+  regenerateFailed: '아바타를 다시 만들지 못했어요. 다시 시도해 주세요.',
+  replaceFailed: '아바타를 교체하지 못했어요. 다시 시도해 주세요.',
+  stepBase: '기본',
+  stepDetails: '세부 사항',
+  limitReachedCount: '한도 도달 ({{usadas}}/{{maximo}})',
+  regenerateWithAi: 'AI로 아바타 다시 만들기',
+  allGenerationsUsed_one: 'AI 생성 {{contador}}회를 모두 사용했어요.',
+  allGenerationsUsed_other: 'AI 생성 {{contador}}회를 모두 사용했어요.',
+  generationsCount: 'AI 생성: {{usadas}}/{{maximo}}',
+  generateForCredits: '{{credits}} Credits로 아바타 만들기',
+  generateButton: '아바타 만들기 · {{credits}} Credits',
 };

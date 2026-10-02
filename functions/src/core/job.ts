@@ -1,6 +1,7 @@
+import { BrainAttachment } from './brain';
 import { JOB_ENGINE_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
-import {
+import { MaterialDeUpstream,
   ExecutionHints,
   ExecutionMode,
   FORMA_DE_ETIQUETA_DE_TRAZA,
@@ -432,6 +433,10 @@ export interface Job {
   /** Tarea general: qué hay que hacer, sin proveedor ni modelo. Ausente en una operación de IA. */
   task?: JobTask;
   input: Readonly<Record<string, unknown>>;
+  /** Lo que produjeron sus dependencias. Referencias, nunca contenido. */
+  upstream?: readonly MaterialDeUpstream[];
+  /** Los recursos del paso, tal como los eligió el Orchestrator. Solo se transportan. */
+  references?: readonly BrainAttachment[];
   trace: TraceContext;
   language?: LanguageContext;
   hints?: ExecutionHints;
@@ -459,6 +464,15 @@ export interface Job {
 
 /* ── La petición ──────────────────────────────────────────────────────────── */
 
+/**
+ * CUÁNTOS RECURSOS COMO MUCHO TRANSPORTA UN TRABAJO.
+ *
+ * El mismo tope que el plan, y por el mismo motivo: lo que cabe aquí es lo que
+ * una persona adjuntó a un mensaje. El trabajo se guarda y se lee muchas veces;
+ * una lista sin fin la pagaría cada lectura.
+ */
+export const MAX_RECURSOS_DEL_TRABAJO = 8;
+
 export interface JobRequest {
   contract: string;
   /** Quién lo pide de verdad. No es lo que diga el contexto. */
@@ -472,6 +486,32 @@ export interface JobRequest {
   /** Tarea general. Con `capability`/`implementation`, no se manda: es una u otra. */
   task?: JobTask;
   input: Readonly<Record<string, unknown>>;
+  /**
+   * LO QUE PRODUJERON LOS PASOS DE LOS QUE ESTE DEPENDE.
+   *
+   * No es lo mismo que `references`, y mezclarlos habría sido el error caro:
+   * `references` es lo que APORTÓ la persona —su foto, con su `assetId`— y esto
+   * es lo que PRODUJO otro paso del mismo plan. Uno entra por la puerta y el
+   * otro nace dentro.
+   *
+   * Viaja como REFERENCIA, igual que todo lo demás: el trabajo lleva el
+   * identificador del material y no su contenido. Resolverlo es de la puerta de
+   * C8/C13, que es quien sabe de quién es cada cosa.
+   */
+  upstream?: readonly MaterialDeUpstream[];
+  /**
+   * LOS RECURSOS QUE ESTE PASO NECESITA, ya elegidos por el Orchestrator.
+   *
+   * El mismo `BrainAttachment` que viene del entendimiento, con su `assetId`.
+   * Va por su propio canal y NO dentro de `input` a propósito: `input` son
+   * parámetros de la tarea y esto es material del que alguien es dueño, y
+   * mezclarlos habría hecho que la autorización dependiera de mirar las claves
+   * de un objeto libre.
+   *
+   * El trabajo solo lo TRANSPORTA. No lo elige, no lo resuelve, no lo firma y
+   * no sabe de quién es: eso sigue siendo de la puerta de C8.
+   */
+  references?: readonly BrainAttachment[];
   trace: TraceContext;
   language?: LanguageContext;
   hints?: ExecutionHints;
@@ -567,6 +607,10 @@ export interface JobDispatch {
   implementation?: ImplementationRef;
   task?: JobTask;
   input: Readonly<Record<string, unknown>>;
+  /** Lo que produjeron sus dependencias. Se transporta; aquí no se resuelve. */
+  upstream?: readonly MaterialDeUpstream[];
+  /** Los recursos del paso. Se transportan tal cual; aquí no se resuelve ninguno. */
+  references?: readonly BrainAttachment[];
   trace: TraceContext;
   language?: LanguageContext;
   hints?: ExecutionHints;
@@ -781,6 +825,18 @@ const CLAVES_DE_PETICION = [
   'contract', 'principal', 'at', 'capability', 'implementation', 'input', 'trace', 'language',
   'hints', 'metadata', 'mode', 'idempotencyKey', 'jobId', 'deadlineAt', 'policy', 'context',
   'capacity', 'limits', 'task',
+  /*
+   * LOS DOS TRANSPORTES DE MATERIAL, y faltaban los dos.
+   *
+   * `references` lo añadió C11.4 al contrato y a la creación del trabajo, pero
+   * NO a esta lista: la prueba de aquella fase construía la petición del
+   * Gateway directamente y nunca pasaba por aquí, así que nadie lo notó. Un
+   * trabajo creado de verdad con recursos habría sido rechazado por
+   * `unknown_field`. Lo descubrió la prueba de dos pasos dependientes de G8.
+   *
+   * `upstream` es el de G8: lo que produjeron los pasos de los que este depende.
+   */
+  'references', 'upstream',
 ];
 const CLAVES_DE_PRINCIPAL = ['userId', 'appId'];
 const CLAVES_DE_REFERENCIA = ['providerId', 'modelId', 'adapterId'];
@@ -1435,6 +1491,8 @@ const congelarTrabajo = (job: Job): Job => Object.freeze({
   attempts: Object.freeze(job.attempts.map(congelarIntento)),
   seenEvents: Object.freeze([...job.seenEvents]),
   input: congelarHondo(job.input),
+  ...(job.upstream?.length ? { upstream: Object.freeze(job.upstream.map((u) => Object.freeze({ ...u, outputRefs: Object.freeze([...u.outputRefs]) }))) } : {}),
+  ...(job.references?.length ? { references: Object.freeze(job.references.map((r) => Object.freeze({ ...r }))) } : {}),
   ...(job.hints ? { hints: Object.freeze({ ...job.hints }) } : {}),
   ...(job.language ? { language: Object.freeze({ ...job.language }) } : {}),
   ...(job.metadata ? { metadata: congelarHondo(job.metadata) } : {}),
@@ -1779,6 +1837,28 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
      * Un trabajo de diez minutos con tres reintentos de diez minutos cada uno
      * son treinta minutos, y entonces el plazo no era un plazo.
      */
+    /*
+     * LOS RECURSOS, REVISADOS COMO TODO LO QUE ENTRA.
+     *
+     * La FORMA, no la propiedad: de quién es cada material lo dirá quien tenga
+     * permiso para leerlo, y eso no pasa en el Job Engine, que no lee nada. Lo
+     * que sí se exige es que no llegue un objeto con claves de más disfrazado
+     * de adjunto, ni una lista sin fin.
+     */
+    const recursos: BrainAttachment[] = [];
+    if (request.references !== undefined) {
+      if (!Array.isArray(request.references) || request.references.length > MAX_RECURSOS_DEL_TRABAJO) {
+        return invalido('invalid_request', 'references');
+      }
+      for (const [i, ref] of request.references.entries()) {
+        if (!esObjetoPlano(ref) || !esTexto((ref as Record<string, unknown>).kind)) return invalido('invalid_request', `references[${i}]`);
+        for (const clave of Object.keys(ref)) {
+          if (!['kind', 'url', 'assetId', 'name'].includes(clave)) return invalido('invalid_request', `references[${i}]`);
+        }
+        recursos.push(Object.freeze({ ...ref } as unknown as BrainAttachment));
+      }
+    }
+
     const porPolitica = at + policy.maxLifetimeMs;
     const pedido = esNumero(request.deadlineAt) ? request.deadlineAt : undefined;
     const deadlineAt = pedido !== undefined ? Math.min(pedido, porPolitica) : porPolitica;
@@ -1795,6 +1875,10 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
         ? { task: tarea }
         : { capability: request.capability as CoreCapabilityId, implementation: implementation as ImplementationRef }),
       input: entrada.input,
+      ...(Array.isArray(request.upstream) && request.upstream.length
+        ? { upstream: Object.freeze(request.upstream.map((u) => Object.freeze({ ...u, outputRefs: Object.freeze([...u.outputRefs]) }))) }
+        : {}),
+      ...(recursos.length ? { references: recursos } : {}),
       trace,
       ...(idioma.language ? { language: idioma.language } : {}),
       ...(pistas.hints ? { hints: pistas.hints } : {}),
@@ -1965,6 +2049,8 @@ export const crearJobEngine = (porDefecto: JobPolicy = POLITICA_DE_TRABAJO): Job
         ? { task: job.task }
         : { capability: job.capability as CoreCapabilityId, implementation: job.implementation as ImplementationRef }),
       input: job.input,
+      ...(job.upstream?.length ? { upstream: job.upstream } : {}),
+      ...(job.references?.length ? { references: job.references } : {}),
       trace: job.trace,
       ...(job.language ? { language: job.language } : {}),
       ...(job.hints ? { hints: job.hints } : {}),

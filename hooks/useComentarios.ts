@@ -7,6 +7,7 @@ import { uploadCommentImage } from '../services/storageService';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { notify } from '../utils/notify';
+import { useT } from '../contexts/IdiomaContext';
 
 /**
  * LA CONVERSACIÓN DE UNA PUBLICACIÓN, EN UN SOLO SITIO.
@@ -27,6 +28,7 @@ import { notify } from '../utils/notify';
 export const useComentarios = (post: Post | null) => {
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
+  const t = useT();
 
   const [comentarios, setComentarios] = useState<Comment[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -60,7 +62,7 @@ export const useComentarios = (post: Post | null) => {
     try {
       const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permiso.granted) {
-        notify('Permisos necesarios', 'Necesitamos acceso a tu galería para seleccionar imágenes');
+        notify(t('composer.permissionsNeeded'), t('composer.galleryForImages'));
         return;
       }
       const elegido = await ImagePicker.launchImageLibraryAsync({
@@ -72,9 +74,9 @@ export const useComentarios = (post: Post | null) => {
       if (!elegido.canceled && elegido.assets[0]) setAdjunto(elegido.assets[0].uri);
     } catch (error) {
       console.error('Error picking image:', error);
-      notify('Error', 'No se pudo seleccionar la imagen');
+      notify(t('common.error'), t('avatar.pickFailed'));
     }
-  }, []);
+  }, [t]);
 
   const quitarAdjunto = useCallback(() => setAdjunto(null), []);
 
@@ -103,7 +105,7 @@ export const useComentarios = (post: Post | null) => {
           imageUrl = await uploadCommentImage(blob, user.uid);
         } catch (errorDeSubida) {
           console.error('Error uploading comment image:', errorDeSubida);
-          notify('Error', 'No se pudo subir la imagen');
+          notify(t('common.error'), t('wall.commentImageFailed'));
           setTexto(contenido);
           setAdjunto(imagen);
           setEnviando(false);
@@ -148,11 +150,11 @@ export const useComentarios = (post: Post | null) => {
       console.error('❌ Error enviando comentario:', error);
       setTexto(contenido);
       if (imagen) setAdjunto(imagen);
-      notify('Error', 'No se pudo enviar el comentario. Inténtalo de nuevo.');
+      notify(t('common.error'), t('wall.commentSendFailed'));
     } finally {
       setEnviando(false);
     }
-  }, [texto, adjunto, user, postId, enviando, userProfile, post]);
+  }, [texto, adjunto, user, postId, enviando, userProfile, post, t]);
 
   return {
     comentarios,

@@ -39,7 +39,7 @@ export const business: typeof import('../es/business').business = {
   networkConnected: '{{red}} 已连接',
   connectAnother: '连接其他平台',
   allConnected: '你的社交账号都已经连接好了。',
-  simulatedConnection: '模拟连接：等各平台开放官方权限后，Weë 就会真正帮你发布和回复。',
+  simulatedConnection: '模拟连接：Weë 暂时还不会替你发布或回复。它会把每份内容准备好，由你检查后再发布。',
   postCalendar: '发布日历',
   seeFullCalendar: '查看完整日历',
   calendarGoal: '查看并安排我本周的发布日历',
@@ -241,4 +241,5 @@ export const business: typeof import('../es/business').business = {
   promoteHint: '你的内容会在 Weë 里展示给更多人。花掉任何 Credits 之前，你都会先看到要花多少。',
   promoteSoon: '在 Weë 里推广还没有开放。开放之后会用你的 Credits 支付，你在这里就能看到。',
   promoteCredits: '查看我的 Credits',
+  sampleProductName: '产品 {{numero}}',
 };

@@ -36,4 +36,6 @@ export const credits = {
   pkgBasic: 'Básico',
   badgePopular: 'Popular',
   badgeBestValue: 'Mejor valor',
+  purchasesComingSoon: 'Las compras de Credits llegarán pronto. Por ahora no se pueden hacer recargas aquí.',
+  topUpFailedTitle: 'Ups',
 };

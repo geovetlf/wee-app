@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import { usersService, UserProfile } from '../services/firestoreService';
 import { Timestamp } from 'firebase/firestore';
 import { updateUserCache } from '../hooks/useUserById';
+import { identidadWeeDe } from '../utils/econtactModel';
 
 /*
  * LAS DOS CARAS DE UNA CUENTA: Perfil Real y Perfil Weë.
@@ -39,7 +40,7 @@ const UserProfileContext = createContext<UserProfileContextType | undefined>(und
 export const useUserProfile = () => {
   const context = useContext(UserProfileContext);
   if (!context) {
-    throw new Error('useUserProfile debe ser usado dentro de un UserProfileProvider');
+    throw new Error('useUserProfile-fuera-de-UserProfileProvider');
   }
   return context;
 };
@@ -61,6 +62,12 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
   const userProfile = activeProfileType === 'hidi' && weeProfile ? weeProfile : realProfile;
 
   useEffect(() => {
+    /*
+     * UNA CARGA VIEJA NO PISA A LA NUEVA. Si mientras vuelven las dos caras cambia la sesión (salir, entrar con otra
+     * cuenta) o se pide otra carga, la respuesta que llega tarde ya no es la de nadie: sin esta bandera dejaba en la
+     * app los perfiles de la cuenta anterior encima de los de la actual.
+     */
+    let vivo = true;
     const loadUserProfiles = async () => {
       if (!user) {
         setRealProfile(null);
@@ -116,6 +123,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
             return null;
           }),
         ]);
+        if (!vivo) return;
 
         let profile: UserProfile | null = asegurado.perfil;
         if (asegurado.creado) {
@@ -143,7 +151,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
         if (perfilWee) {
           console.log('🎭 [UserProfileContext] Perfil Weë cargado:', perfilWee.displayName);
           setWeeProfileState(perfilWee);
-          updateUserCache(`hidi_${user.uid}`, perfilWee);
+          updateUserCache(identidadWeeDe(user.uid), perfilWee);
         } else {
           console.log('🎭 [UserProfileContext] No hay Perfil Weë');
           setWeeProfileState(null);
@@ -157,16 +165,20 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
          */
       } catch (err) {
         console.error('❌ [UserProfileContext] Error loading user profile:', err);
+        if (!vivo) return;
         /* Una CLAVE, no una frase: la traduce quien la pinta, con el idioma de ese momento. */
         setError('profile.loadFailedDetail');
         setRealProfile(null);
         setWeeProfileState(null);
       } finally {
-        setLoading(false);
+        if (vivo) setLoading(false);
       }
     };
 
     loadUserProfiles();
+    return () => {
+      vivo = false;
+    };
   }, [user, refreshTrigger]);
 
   const updateProfile = async (updates: Partial<Omit<UserProfile, 'id' | 'uid' | 'createdAt'>>) => {
@@ -193,7 +205,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
       const newProfile = { ...currentProfile, ...updatesWithTimestamp };
       if (activeProfileType === 'hidi') {
         setWeeProfileState(newProfile);
-        updateUserCache(`hidi_${user.uid}`, newProfile);
+        updateUserCache(identidadWeeDe(user.uid), newProfile);
       } else {
         setRealProfile(newProfile);
         updateUserCache(user.uid, newProfile);
@@ -204,7 +216,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
       console.log('✅ [UserProfileContext] Perfil actualizado en Firestore');
     } catch (err) {
       console.error('❌ [UserProfileContext] Error updating profile:', err);
-      throw new Error('Error al actualizar el perfil');
+      throw new Error('perfil-no-actualizado');
     }
   };
 
@@ -222,7 +234,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
     const newProfile = { ...userProfile, ...updates };
     if (activeProfileType === 'hidi') {
       setWeeProfileState(newProfile);
-      updateUserCache(`hidi_${user.uid}`, updates);
+      updateUserCache(identidadWeeDe(user.uid), updates);
     } else {
       setRealProfile(newProfile);
       updateUserCache(user.uid, updates);
@@ -250,7 +262,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
   const setWeeProfile = useCallback((profile: UserProfile) => {
     setWeeProfileState(profile);
     if (user) {
-      updateUserCache(`hidi_${user.uid}`, profile);
+      updateUserCache(identidadWeeDe(user.uid), profile);
     }
   }, [user]);
 

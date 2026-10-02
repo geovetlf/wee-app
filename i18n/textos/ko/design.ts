@@ -16,6 +16,7 @@ export const design: typeof import('../es/design').design = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: '오늘은 무엇을 디자인할까요?',
+  settingsHint: '어떤 느낌으로 만들지',
 
   /* ── Explora ──────────────────────────────────────────────────────────── */
   exploreTitle: '둘러보기',
@@ -98,4 +99,8 @@ export const design: typeof import('../es/design').design = {
   kindArchitecture: '건축',
   kindBoat: '배',
   kindFurniture: '가구',
+  sampleLivingRoom: '밝은 거실',
+  samplePineHouse: '소나무 숲속의 집',
+  sampleYacht: '15미터 요트',
+  sampleArmchair: '원목 안락의자',
 };

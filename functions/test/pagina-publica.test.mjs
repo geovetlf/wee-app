@@ -83,9 +83,19 @@ const dobleDeFunciones = comoModulo(`export const onRequest = (opciones, manejad
 
 globalThis.__weeBaseDeDatos = baseDeDatos;
 
+/*
+ * Los textos de la página en cada idioma y quién elige la tabla, ejecutados tal cual. Quien elige la tabla toma la
+ * forma de la etiqueta del Core (`core/language.ts`, un módulo sin imports): se ejecuta también, no se sustituye.
+ */
+const urlDeLosTextos = comoModulo(aJs('functions/src/shared/textosDelServidor.ts'));
+const urlDelLenguaje = comoModulo(aJs('functions/src/core/language.ts'));
+const urlDelIdioma = comoModulo(aJs('functions/src/shared/idiomaDelServidor.ts')
+  .replace(/from ['"]\.\.\/core\/language['"]/, `from '${urlDelLenguaje}'`));
 const jsDeLaFuncion = aJs('functions/src/public/postPage.ts')
   .replace(/from ['"]firebase-admin\/firestore['"]/, `from '${dobleDeFirestore}'`)
   .replace(/from ['"]firebase-functions\/v2\/https['"]/, `from '${dobleDeFunciones}'`)
+  .replace(/from ['"]\.\.\/shared\/textosDelServidor['"]/, `from '${urlDeLosTextos}'`)
+  .replace(/from ['"]\.\.\/shared\/idiomaDelServidor['"]/, `from '${urlDelIdioma}'`)
   .replace(/from ['"]\.\/postPageHtml['"]/, `from '${urlDelHtml}'`);
 const funcion = await import(comoModulo(jsDeLaFuncion));
 const pagina = funcion.publicPostPage;

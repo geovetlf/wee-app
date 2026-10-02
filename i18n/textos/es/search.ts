@@ -22,4 +22,10 @@ export const search = {
   member: 'Miembro',
   typeTwoForPeople: 'Escribe al menos 2 caracteres para buscar usuarios',
   typeTwoForPosts: 'Escribe al menos 2 letras para buscar publicaciones',
+  peopleFound: 'Usuarios encontrados',
+  searchPeople: 'Busca usuarios',
+  noPeopleFor: 'No se encontraron usuarios para "{{busqueda}}"',
+  postsFound: 'Publicaciones encontradas',
+  searchPosts: 'Busca publicaciones',
+  noPostsFor: 'No encontramos publicaciones para "{{busqueda}}"',
 };

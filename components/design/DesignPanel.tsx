@@ -6,6 +6,7 @@ import { useT } from '../../contexts/IdiomaContext';
 import { PUERTAS_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../../constants/designTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 const isWeb = Platform.OS === 'web';
 
@@ -50,14 +51,14 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
       accessibilityRole="button"
       accessibilityLabel={t(clave)}
     >
-      {icono && (
+      {!!icono && (
         <View style={[styles.icono, { backgroundColor: theme.colors.surface }]}>
           <Ionicons name={icono as any} size={scale(20)} color={theme.colors.text} />
         </View>
       )}
       <View style={styles.filaTexto}>
         <Text style={[styles.filaTitulo, { color: theme.colors.text }]}>{t(clave)}</Text>
-        {pista && <Text style={[styles.filaPista, { color: theme.colors.textSecondary }]}>{t(pista)}</Text>}
+        {!!pista && <Text style={[styles.filaPista, { color: theme.colors.textSecondary }]}>{t(pista)}</Text>}
       </View>
       <Ionicons name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
     </TouchableOpacity>
@@ -87,7 +88,7 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
         </Text>
 
         {!esTodas && (
-          <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('design.startWith')}</Text>
+          <TextoEnMayusculas style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('design.startWith')}</TextoEnMayusculas>
         )}
 
         <View style={styles.lista}>
@@ -109,7 +110,6 @@ const styles = StyleSheet.create({
   grupo: {
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
-    textTransform: 'uppercase',
     letterSpacing: scale(0.5),
     marginTop: SPACING.xxl,
   },

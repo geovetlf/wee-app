@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Platform,
   Dimensions,
@@ -20,18 +19,24 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { predefinedAvatars } from './AvatarSVGs';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
+import { notify } from '../../utils/notify';
 const { width: screenWidth } = Dimensions.get('window');
 
 // --- DiceBear ---
-const DICEBEAR_STYLES = [
-  { id: 'adventurer', name: 'Aventurero' },
+/*
+ * Los estilos de DiceBear. Los que tienen nombre propio (Lorelei, Notion, Micah, Emoji) se llaman así en todos los
+ * idiomas; los que describen algo llevan su CLAVE, que traduce quien pinta.
+ */
+const DICEBEAR_STYLES: { id: string; name: string; clave?: string }[] = [
+  { id: 'adventurer', name: 'Aventurero', clave: 'avatar.styleAdventurer' },
   { id: 'lorelei', name: 'Lorelei' },
-  { id: 'bottts', name: 'Robots' },
+  { id: 'bottts', name: 'Robots', clave: 'avatar.styleRobots' },
   { id: 'fun-emoji', name: 'Emoji' },
   { id: 'notionists', name: 'Notion' },
-  { id: 'big-smile', name: 'Sonrisa' },
-  { id: 'personas', name: 'Personas' },
+  { id: 'big-smile', name: 'Sonrisa', clave: 'avatar.styleSmile' },
+  { id: 'personas', name: 'Personas', clave: 'avatar.stylePeople' },
   { id: 'micah', name: 'Micah' },
 ];
 
@@ -153,7 +158,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permissionResult.granted) {
-        Alert.alert(t('composer.permissionsNeeded'), t('avatar.galleryPermission'));
+        notify(t('composer.permissionsNeeded'), t('avatar.galleryPermission'));
         return;
       }
 
@@ -182,7 +187,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       console.error('Error picking image:', error);
       setUploading(false);
       /* El motivo técnico ya está en el registro (arriba); la persona ve una frase de Weë. */
-      Alert.alert(t('common.error'), t('avatar.pickFailed'));
+      notify(t('common.error'), t('avatar.pickFailed'));
     }
   };
 
@@ -191,7 +196,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
       if (!permissionResult.granted) {
-        Alert.alert(t('composer.permissionsNeeded'), t('avatar.cameraPermission'));
+        notify(t('composer.permissionsNeeded'), t('avatar.cameraPermission'));
         return;
       }
 
@@ -217,7 +222,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       }
     } catch (error) {
       setUploading(false);
-      Alert.alert(t('common.error'), t('avatar.photoFailed'));
+      notify(t('common.error'), t('avatar.photoFailed'));
     }
   };
 
@@ -379,9 +384,9 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
 
                 {DICEBEAR_STYLES.map((style) => (
                   <View key={style.id} style={styles.dicebearStyleSection}>
-                    <Text style={[styles.dicebearStyleName, { color: theme.colors.textSecondary }]}>
-                      {style.name}
-                    </Text>
+                    <TextoEnMayusculas style={[styles.dicebearStyleName, { color: theme.colors.textSecondary }]}>
+                      {style.clave ? t(style.clave) : style.name}
+                    </TextoEnMayusculas>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
@@ -542,7 +547,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   dicebearRow: {

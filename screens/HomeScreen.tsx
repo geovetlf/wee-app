@@ -6,7 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { formatNumber } from '../utils/formatoCorto';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -25,6 +26,7 @@ import { cloudinaryThumb, cloudinaryVideoThumb } from '../services/cloudinarySer
 import { LinearGradient } from 'expo-linear-gradient';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { nombreDeComunidad } from '../utils/comunidadesDeWee';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -58,252 +60,257 @@ const CATEGORY_CUSTOM_ICONS: Record<string, any> = {
   'bares-restaurantes': require('../assets/icons/category-bares.png'),
 };
 
-const COMMUNITY_HERO_DATA: Record<string, { description: string; image: string; color: string; icon: string }> = {
+/*
+ * La descripción de cada comunidad de Weë se guarda como CLAVE, no como frase:
+ * este catálogo se construye fuera de React, donde no hay traductor. La traduce
+ * `getHeroData` al pintar, con el idioma de ese momento.
+ */
+const COMMUNITY_HERO_DATA: Record<string, { claveDescripcion: string; image: string; color: string; icon: string }> = {
   // === Categorías sociales actuales (constants/communityCategories.ts) ===
   'cine-animacion': {
-    description: 'Filmmaking, cortometrajes, animación y personajes creados con IA. Muestra tu proceso y aprende del de otros.',
+    claveDescripcion: 'home.communityDescFilmAnimation',
     image: 'https://images.unsplash.com/photo-1603190287605-e6ade32fa852?w=800&h=400&fit=crop&q=80',
     color: '#EF4444',
     icon: 'film-outline',
   },
   'arte-creatividad': {
-    description: 'Arte digital, ilustración, fotografía y diseño potenciados con IA. Comparte prompts, estilos y resultados.',
+    claveDescripcion: 'home.communityDescArtCreativity',
     image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&h=400&fit=crop&q=80',
     color: '#EC4899',
     icon: 'color-palette-outline',
   },
   'creadores-influencers': {
-    description: 'Creadores de contenido, YouTubers, TikTokers e Instagramers que producen con IA.',
+    claveDescripcion: 'home.communityDescCreatorsInfluencers',
     image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=400&fit=crop&q=80',
     color: '#F5B731',
     icon: 'phone-portrait-outline',
   },
   'negocios-emprendimiento': {
-    description: 'Emprendedores, startups, marketing y oportunidades de negocio con IA.',
+    claveDescripcion: 'home.communityDescBusinessEntrepreneurship',
     image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=400&fit=crop&q=80',
     color: '#059669',
     icon: 'briefcase-outline',
   },
   'tecnologia-ia': {
-    description: 'Noticias, modelos, herramientas y discusión sobre Inteligencia Artificial.',
+    claveDescripcion: 'home.communityDescTechAi',
     image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=400&fit=crop&q=80',
     color: '#06B6D4',
     icon: 'hardware-chip-outline',
   },
   'gaming-mundos-virtuales': {
-    description: 'Videojuegos, personajes, mundos virtuales y experiencias digitales creadas con IA.',
+    claveDescripcion: 'home.communityDescGamingVirtualWorlds',
     image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=400&fit=crop&q=80',
     color: '#7C3AED',
     icon: 'game-controller-outline',
   },
   'educacion-aprendizaje': {
-    description: 'Estudiantes, profesores e investigadores que usan IA para aprender y enseñar.',
+    claveDescripcion: 'home.communityDescEducationLearning',
     image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=400&fit=crop&q=80',
     color: '#0EA5E9',
     icon: 'school-outline',
   },
   'futuro-sociedad': {
-    description: 'El futuro del trabajo, las profesiones y la sociedad en la era de la IA. Debate abierto.',
+    claveDescripcion: 'home.communityDescFutureSociety',
     image: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&h=400&fit=crop&q=80',
     color: '#6366F1',
     icon: 'rocket-outline',
   },
   // === Slugs heredados del concepto anterior (aún presentes en producción) ===
   'noticias': {
-    description: 'Lo que está pasando en el mundo, contado por la comunidad. Debates, análisis y opiniones en tiempo real.',
+    claveDescripcion: 'home.communityDescNews',
     image: 'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=400&fit=crop&q=80',
     color: '#10B981',
     icon: 'newspaper-outline',
   },
   'marketplace': {
-    description: 'Compra, vende e intercambia productos y servicios con la comunidad.',
+    claveDescripcion: 'home.communityDescMarketplace',
     image: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&h=400&fit=crop&q=80',
     color: '#D97706',
     icon: 'storefront-outline',
   },
   'relaciones-amor': {
-    description: 'Historias, consejos y experiencias sobre relaciones, citas y todo lo que tiene que ver con el amor.',
+    claveDescripcion: 'home.communityDescRelationshipsLove',
     image: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800&h=400&fit=crop&q=80',
     color: '#EC4899',
     icon: 'heart-outline',
   },
   'finanzas-dinero': {
-    description: 'Tips de ahorro, inversiones, y todo sobre cómo manejar tu dinero de forma inteligente.',
+    claveDescripcion: 'home.communityDescFinanceMoney',
     image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=400&fit=crop&q=80',
     color: '#6366F1',
     icon: 'cash-outline',
   },
   'laboral': {
-    description: 'Experiencias laborales, consejos de carrera, búsqueda de empleo y vida en la oficina.',
+    claveDescripcion: 'home.communityDescWork',
     image: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?w=800&h=400&fit=crop&q=80',
     color: '#F59E0B',
     icon: 'briefcase-outline',
   },
   'salud-bienestar': {
-    description: 'Consejos de salud, fitness, nutrición y bienestar mental para una vida mejor.',
+    claveDescripcion: 'home.communityDescHealthWellbeing',
     image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=400&fit=crop&q=80',
     color: '#22C55E',
     icon: 'fitness-outline',
   },
   'entretenimiento': {
-    description: 'Películas, series, música, memes y todo lo que te entretiene en el día a día.',
+    claveDescripcion: 'home.communityDescEntertainment',
     image: 'https://images.unsplash.com/photo-1603190287605-e6ade32fa852?w=800&h=400&fit=crop&q=80',
     color: '#F59E0B',
     icon: 'film-outline',
   },
   'gaming-tech': {
-    description: 'Videojuegos, gadgets, reviews y todo sobre el mundo gamer y tecnológico.',
+    claveDescripcion: 'home.communityDescGamingTech',
     image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=400&fit=crop&q=80',
     color: '#F5B731',
     icon: 'game-controller-outline',
   },
   'educacion-carrera': {
-    description: 'Universidades, cursos, becas y todo para impulsar tu educación y carrera profesional.',
+    claveDescripcion: 'home.communityDescEducationCareer',
     image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=400&fit=crop&q=80',
     color: '#0EA5E9',
     icon: 'school-outline',
   },
   'deportes': {
-    description: 'Fútbol, básquet, tenis y todos los deportes. Resultados, opiniones y pasión.',
+    claveDescripcion: 'home.communityDescSports',
     image: 'https://images.unsplash.com/photo-1461896836934-bd45ba055e6a?w=800&h=400&fit=crop&q=80',
     color: '#EF4444',
     icon: 'football-outline',
   },
   'confesiones': {
-    description: 'Un espacio seguro para compartir lo que no le contarías a nadie. Sin juicios.',
+    claveDescripcion: 'home.communityDescConfessions',
     image: 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=800&h=400&fit=crop&q=80',
     color: '#6B7280',
     icon: 'eye-off-outline',
   },
   'debates-calientes': {
-    description: 'Temas polémicos, opiniones divididas y debates intensos. ¿De qué lado estás?',
+    claveDescripcion: 'home.communityDescHotDebates',
     image: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&h=400&fit=crop&q=80',
     color: '#F97316',
     icon: 'flame-outline',
   },
   'viajes-lugares': {
-    description: 'Destinos increíbles, tips de viaje, experiencias y recomendaciones de la comunidad.',
+    claveDescripcion: 'home.communityDescTravelPlaces',
     image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=400&fit=crop&q=80',
     color: '#14B8A6',
     icon: 'airplane-outline',
   },
   'comida-cocina': {
-    description: 'Recetas, restaurantes, street food y todo para los amantes de la buena comida.',
+    claveDescripcion: 'home.communityDescFoodCooking',
     image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=400&fit=crop&q=80',
     color: '#F472B6',
     icon: 'restaurant-outline',
   },
   'moda-estilo': {
-    description: 'Tendencias, outfits, tips de estilo y todo sobre el mundo de la moda.',
+    claveDescripcion: 'home.communityDescFashionStyle',
     image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=800&h=400&fit=crop&q=80',
     color: '#A855F7',
     icon: 'shirt-outline',
   },
   'espiritualidad': {
-    description: 'Meditación, mindfulness, crecimiento personal y conexión espiritual.',
+    claveDescripcion: 'home.communityDescSpirituality',
     image: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=800&h=400&fit=crop&q=80',
     color: '#FBBF24',
     icon: 'sparkles-outline',
   },
   'anime-manga': {
-    description: 'Anime, manga, cosplay y toda la cultura otaku. ¿Cuál es tu anime favorito?',
+    claveDescripcion: 'home.communityDescAnimeManga',
     image: 'https://images.unsplash.com/photo-1578632767115-351597cf9d7b?w=800&h=400&fit=crop&q=80',
     color: '#FF6B9D',
     icon: 'sparkles-outline',
   },
   'criptomonedas': {
-    description: 'Bitcoin, altcoins, DeFi, NFTs y todo el ecosistema cripto. DYOR.',
+    claveDescripcion: 'home.communityDescCrypto',
     image: 'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=800&h=400&fit=crop&q=80',
     color: '#F7931A',
     icon: 'logo-bitcoin',
   },
   'kpop-kdrama': {
-    description: 'Idols, dramas, comebacks y todo sobre la cultura pop coreana.',
+    claveDescripcion: 'home.communityDescKpopKdrama',
     image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=400&fit=crop&q=80',
     color: '#FF2D78',
     icon: 'musical-notes-outline',
   },
   'esoterico': {
-    description: 'Astrología, tarot, energías y misterios del universo. ¿En qué crees?',
+    claveDescripcion: 'home.communityDescEsoteric',
     image: 'https://images.unsplash.com/photo-1507400492013-162706c8c05e?w=800&h=400&fit=crop&q=80',
     color: '#E5A020',
     icon: 'moon-outline',
   },
   'accion-poetica': {
-    description: 'Poesía, frases, letras y arte urbano. Expresa lo que sientes con palabras.',
+    claveDescripcion: 'home.communityDescPoeticAction',
     image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&h=400&fit=crop&q=80',
     color: '#EC4899',
     icon: 'pencil-outline',
   },
   'ai-tecnologia': {
-    description: 'Inteligencia artificial, innovación, startups y el futuro de la tecnología.',
+    claveDescripcion: 'home.communityDescAiTech',
     image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=400&fit=crop&q=80',
     color: '#06B6D4',
     icon: 'hardware-chip-outline',
   },
   'eventos-salidas': {
-    description: 'Fiestas, conciertos, meetups y eventos. ¿A dónde salimos hoy?',
+    claveDescripcion: 'home.communityDescEventsOutings',
     image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=400&fit=crop&q=80',
     color: '#F43F5E',
     icon: 'calendar-outline',
   },
   'negocios-inversiones': {
-    description: 'Emprendimiento, inversiones, estrategias de negocio y oportunidades.',
+    claveDescripcion: 'home.communityDescBusinessInvesting',
     image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&h=400&fit=crop&q=80',
     color: '#059669',
     icon: 'trending-up-outline',
   },
   'bares-restaurantes': {
-    description: 'Los mejores bares, restaurantes, cervecerías y spots para salir a comer.',
+    claveDescripcion: 'home.communityDescBarsRestaurants',
     image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&h=400&fit=crop&q=80',
     color: '#B45309',
     icon: 'beer-outline',
   },
   // Comunidades hardcoded de la landing
   'los-beatles': {
-    description: 'Todo sobre la banda más grande de la historia. Discografía, historia y legado.',
+    claveDescripcion: 'home.communityDescBeatles',
     image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&h=400&fit=crop&q=80',
     color: '#3B82F6',
     icon: 'musical-notes-outline',
   },
   'tarot-lectura': {
-    description: 'Lecturas de tarot, interpretaciones, arcanos y guía espiritual para tu camino.',
+    claveDescripcion: 'home.communityDescTarotReading',
     image: 'https://images.unsplash.com/photo-1600429991827-5224817554f2?w=800&h=400&fit=crop&q=80',
     color: '#F5B731',
     icon: 'moon-outline',
   },
   'recetas-abuela': {
-    description: 'Las recetas caseras que pasan de generación en generación. Cocina con alma.',
+    claveDescripcion: 'home.communityDescGrandmaRecipes',
     image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=400&fit=crop&q=80',
     color: '#F59E0B',
     icon: 'cafe-outline',
   },
   'memes-argentinos': {
-    description: 'Los mejores memes argentinos. Humor criollo, actualidad y cultura popular.',
+    claveDescripcion: 'home.communityDescArgentineMemes',
     image: 'https://images.unsplash.com/photo-1531259683007-016a7b628fc3?w=800&h=400&fit=crop&q=80',
     color: '#F97316',
     icon: 'happy-outline',
   },
   'true-crime-latino': {
-    description: 'Casos reales, misterios sin resolver y crónicas policiales de Latinoamérica.',
+    claveDescripcion: 'home.communityDescTrueCrimeLatino',
     image: 'https://images.unsplash.com/photo-1453873531674-2151bcd01707?w=800&h=400&fit=crop&q=80',
     color: '#EF4444',
     icon: 'skull-outline',
   },
   'plantitas-jardin': {
-    description: 'Tips de jardinería, cuidado de plantas, suculentas y todo para tu jardín.',
+    claveDescripcion: 'home.communityDescPlantsGarden',
     image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=400&fit=crop&q=80',
     color: '#10B981',
     icon: 'leaf-outline',
   },
   'rock-nacional': {
-    description: 'El rock argentino y latinoamericano. Bandas, discos, recitales y nostalgia.',
+    claveDescripcion: 'home.communityDescRockNacional',
     image: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=800&h=400&fit=crop&q=80',
     color: '#6366F1',
     icon: 'radio-outline',
   },
   'cat-lovers': {
-    description: 'Fotos, videos, consejos y todo sobre nuestros amigos felinos.',
+    claveDescripcion: 'home.communityDescCatLovers',
     image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=400&fit=crop&q=80',
     color: '#EC4899',
     icon: 'paw-outline',
@@ -314,7 +321,7 @@ type HomeScreenNavigationProp = StackNavigationProp<HomeStackParamList>;
 type HomeScreenRouteProp = RouteProp<HomeStackParamList, 'Feed'>;
 
 const HomeScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
@@ -458,7 +465,16 @@ const HomeScreen: React.FC = () => {
     return unsubscribe;
   }, [navigation]);
 
+  /*
+   * LA CARGA VIGENTE DEL MURO. Cambiar de comunidad en las pastillas pide otra carga; si la de la comunidad de antes
+   * volvía después, pintaba sus publicaciones bajo la pastilla nueva. Cada carga se numera y solo la última pinta (la
+   * caché sí se guarda siempre: es de su comunidad, sea cual sea la que se mira ahora).
+   */
+  const cargaDelMuro = useRef(0);
+
   const loadPosts = async (isInitial = false, forceRefresh = false) => {
+    const esta = ++cargaDelMuro.current;
+    const vigente = () => esta === cargaDelMuro.current;
     console.log('📝 loadPosts called:', { isInitial, forceRefresh, selectedCommunitySlug });
     const cacheKey = selectedCommunitySlug || 'all';
     const cached = postsCache.current.get(cacheKey);
@@ -515,6 +531,7 @@ const HomeScreen: React.FC = () => {
         timestamp: now,
         hayMas: (result as any)?.hayMas,
       });
+      if (!vigente()) return;
 
       setPosts(documents);
       setLastDoc(result?.lastDoc || null);
@@ -524,17 +541,21 @@ const HomeScreen: React.FC = () => {
     } catch (err) {
       console.error('❌ Error loading posts:', err);
       // Solo mostrar error si no hay cache
-      if (!cached) {
-        setError('Error al cargar los posts');
+      if (!cached && vigente()) {
+        setError('carga-fallida');
       }
     } finally {
-      setLoading(false);
-      setFiltering(false);
+      if (vigente()) {
+        setLoading(false);
+        setFiltering(false);
+      }
     }
   };
 
   const loadMorePosts = async () => {
     if (loadingMore || !hasMore || loading || !lastDoc) return;
+    /* La misma carga vigente que `loadPosts`: si mientras tanto se cambió de pastilla, esta página ya no pinta. */
+    const esta = cargaDelMuro.current;
 
     try {
       setLoadingMore(true);
@@ -555,9 +576,10 @@ const HomeScreen: React.FC = () => {
        * siguiente petición habría repetido la misma página. Ahora quien manda es
        * `hayMas`, que mira los documentos leídos y no los que pasaron el filtro.
        */
+      if (esta !== cargaDelMuro.current) return;
       const documents = result?.documents || [];
       const siguiente = (result as any)?.hayMas ?? documents.length === 15;
-      if (documents.length > 0) setPosts([...posts, ...documents]);
+      if (documents.length > 0) setPosts((anteriores) => [...anteriores, ...documents]);
       setLastDoc(result?.lastDoc || null);
       setHasMore(siguiente);
     } catch (err) {
@@ -614,7 +636,7 @@ const HomeScreen: React.FC = () => {
       setError(null);
     } catch (err) {
       console.error('Error refreshing posts:', err);
-      setError('Error al cargar los posts');
+      setError('carga-fallida');
     } finally {
       setRefreshing(false);
     }
@@ -625,7 +647,7 @@ const HomeScreen: React.FC = () => {
     if (post) {
       const parentNavigation = navigation.getParent();
       if (parentNavigation) {
-        (parentNavigation as any).navigate('PostDetail', { post });
+        (parentNavigation as any).navigate('PostDetail', { postId: post.id, post });
       }
     }
   };
@@ -650,7 +672,7 @@ const HomeScreen: React.FC = () => {
     // Navegar al detalle del post
     const parentNavigation = navigation.getParent();
     if (parentNavigation) {
-      (parentNavigation as any).navigate('PostDetail', { post });
+      (parentNavigation as any).navigate('PostDetail', { postId: post.id, post });
     }
   };
 
@@ -678,10 +700,11 @@ const HomeScreen: React.FC = () => {
   const HIGHLIGHT_CARD_WIDTH = scale(260);
   const HIGHLIGHT_CARD_GAP = SPACING.md;
 
+  /* Las mismas etiquetas que las tarjetas destacadas de la portada: el emoji se copia, la palabra se traduce. */
   const getHighlightLabel = (index: number): { emoji: string; label: string } => {
-    if (index === 0) return { emoji: '\uD83D\uDD25', label: 'Tema del día' };
-    if (index === 1) return { emoji: '\u2B50', label: 'Opinión destacada' };
-    return { emoji: '\uD83D\uDCCC', label: 'Destacado' };
+    if (index === 0) return { emoji: '\uD83D\uDD25', label: t('home.topicOfTheDay') };
+    if (index === 1) return { emoji: '\u2B50', label: t('home.featuredOpinion') };
+    return { emoji: '\uD83D\uDCCC', label: t('home.featuredItem') };
   };
 
   const handleCommunitySelect = (communitySlug: string | null) => {
@@ -722,7 +745,7 @@ const HomeScreen: React.FC = () => {
               ]}
               numberOfLines={1}
             >
-              {community.name}
+              {nombreDeComunidad(community, t, locale)}
             </Text>
           </>
         ) : (
@@ -738,7 +761,7 @@ const HomeScreen: React.FC = () => {
                 { color: isSelected ? theme.colors.accent : theme.colors.text },
               ]}
             >
-              {label || 'Todas'}
+              {label || t('home.allCommunities')}
             </Text>
           </>
         )}
@@ -752,7 +775,7 @@ const HomeScreen: React.FC = () => {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.communityTabsContainer}
     >
-      {renderCommunityTab(null, 'Todas')}
+      {renderCommunityTab(null, t('home.allCommunities'))}
       {officialCommunities.map(community => renderCommunityTab(community))}
     </ScrollView>
   );
@@ -792,8 +815,9 @@ const HomeScreen: React.FC = () => {
   if (error) {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: theme.colors.background }]}>
+        {/* El estado guarda un código, no una frase: el texto sale aquí, en el idioma de ahora. */}
         <Text style={[styles.errorText, { color: theme.colors.text }]}>
-          {error}
+          {t('home.postsLoadFailed')}
         </Text>
         <TouchableOpacity
           style={[
@@ -821,9 +845,9 @@ const HomeScreen: React.FC = () => {
 
   // Obtener nombre de la comunidad seleccionada
   const getSelectedCommunityName = () => {
-    if (!selectedCommunitySlug) return 'Todas las comunidades';
+    if (!selectedCommunitySlug) return t('home.allCommunities');
     const community = getCommunityBySlug(selectedCommunitySlug);
-    return community?.name || selectedCommunitySlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return community ? nombreDeComunidad(community, t, locale) : selectedCommunitySlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   // Determinar si la comunidad seleccionada es de usuario (no oficial)
@@ -836,12 +860,14 @@ const HomeScreen: React.FC = () => {
   const getHeroData = () => {
     if (!selectedCommunitySlug) return null;
     const predefined = COMMUNITY_HERO_DATA[selectedCommunitySlug];
-    if (predefined) return predefined;
+    /* La de Weë llega como clave y se traduce aquí, al pintar. */
+    if (predefined) return { ...predefined, description: t(predefined.claveDescripcion) };
 
     // Fallback for user-created communities
     const community = getSelectedCommunity();
     return {
-      description: community?.description || 'Un espacio para compartir, debatir y conectar con la comunidad.',
+      /* La de una comunidad de usuario la escribió una persona y sale tal cual; solo el respaldo es de Weë. */
+      description: community?.description || t('home.communityDescDefault'),
       image: community?.imageUrl || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&h=400&fit=crop&q=80',
       color: '#F5B731',
       icon: community?.icon ? community.icon + '-outline' : 'people-outline',
@@ -906,14 +932,18 @@ const HomeScreen: React.FC = () => {
             {memberCount > 0 && (
               <View style={styles.heroStat}>
                 <Ionicons name="people" size={scale(13)} color="rgba(255,255,255,0.8)" />
+                {/* El plural lo elige el número; la cifra, abreviada como en el idioma («1,2 mil», «1.2K», «1,2 t»). */}
                 <Text style={styles.heroStatText}>
-                  {memberCount >= 1000 ? (memberCount / 1000).toFixed(1) + 'K' : memberCount} miembros
+                  {t('communities.memberCount', {
+                    contador: memberCount,
+                    cantidad: formatNumber(memberCount, locale),
+                  })}
                 </Text>
               </View>
             )}
             <View style={styles.heroStat}>
               <Ionicons name="document-text" size={scale(13)} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.heroStatText}>{posts.length} posts</Text>
+              <Text style={styles.heroStatText}>{t('communities.postCount', { contador: posts.length })}</Text>
             </View>
           </View>
         </View>
@@ -932,7 +962,7 @@ const HomeScreen: React.FC = () => {
         </View>
       )}
       {/* Create post prompt */}
-      {user && userProfile && selectedCommunitySlug && (
+      {!!(user && userProfile && selectedCommunitySlug) && (
         <TouchableOpacity
           style={[styles.createPrompt, { backgroundColor: theme.colors.card }]}
           onPress={() => {
@@ -957,7 +987,7 @@ const HomeScreen: React.FC = () => {
           />
           <View style={[styles.createInput, { backgroundColor: theme.colors.surface }]}>
             <Text style={[styles.createPlaceholder, { color: theme.colors.textSecondary }]}>
-              ¿Qué quieres compartir?
+              {t('home.composerPlaceholder')}
             </Text>
           </View>
           <Ionicons name="image-outline" size={20} color={theme.colors.accent} />
@@ -1005,7 +1035,7 @@ const HomeScreen: React.FC = () => {
                     >
                       {post.content}
                     </Text>
-                    {(post.imageUrls?.[0] || post.videoUrl) && (
+                    {!!(post.imageUrls?.[0] || post.videoUrl) && (
                       <View style={[styles.highlightThumb, { backgroundColor: theme.colors.surface }]}>
                         {/*
                           Miniaturas, no reproductores. Aquí había hasta cinco
@@ -1136,13 +1166,14 @@ const HomeScreen: React.FC = () => {
         ListEmptyComponent={() =>
           filtering || hasMore ? null : (
           <View style={styles.emptyState}>
+            {/* Una comunidad vacía dice lo mismo que en su propia pantalla. */}
             <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-              {selectedCommunitySlug ? 'Sin publicaciones' : '¡Sé el primero en publicar!'}
+              {selectedCommunitySlug ? t('communities.noPosts') : t('home.feedEmptyTitle')}
             </Text>
             <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
               {selectedCommunitySlug
-                ? 'Esta comunidad aún no tiene posts. ¡Sé el primero!'
-                : 'Usa el campo de arriba para crear tu primer post.'}
+                ? t('communities.beTheFirst')
+                : t('home.feedEmptyHint')}
             </Text>
           </View>
         )}

@@ -117,12 +117,14 @@ export interface CreacionDeDesign {
   claveTipo: string;
   icono: string;
   titulo: string;
+  /** Son de muestra: su título va como clave (ver `CreacionEnLaFila.claveTitulo`). */
+  claveTitulo?: string;
   tono: string;
 }
 
 export const CREACIONES_DE_DESIGN: CreacionDeDesign[] = [
-  { id: 'd1', claveTipo: 'design.kindInterior', icono: 'home-outline', titulo: 'Salon luminoso', tono: '#EFE9E1' },
-  { id: 'd2', claveTipo: 'design.kindArchitecture', icono: 'business-outline', titulo: 'Casa entre pinos', tono: '#E3E8E2' },
-  { id: 'd3', claveTipo: 'design.kindBoat', icono: 'boat-outline', titulo: 'Yate de 15 metros', tono: '#DDE6EE' },
-  { id: 'd4', claveTipo: 'design.kindFurniture', icono: 'bed-outline', titulo: 'Butaca de madera', tono: '#ECEBE8' },
+  { id: 'd1', claveTipo: 'design.kindInterior', icono: 'home-outline', titulo: 'Salón luminoso', claveTitulo: 'design.sampleLivingRoom', tono: '#EFE9E1' },
+  { id: 'd2', claveTipo: 'design.kindArchitecture', icono: 'business-outline', titulo: 'Casa entre pinos', claveTitulo: 'design.samplePineHouse', tono: '#E3E8E2' },
+  { id: 'd3', claveTipo: 'design.kindBoat', icono: 'boat-outline', titulo: 'Yate de 15 metros', claveTitulo: 'design.sampleYacht', tono: '#DDE6EE' },
+  { id: 'd4', claveTipo: 'design.kindFurniture', icono: 'bed-outline', titulo: 'Butaca de madera', claveTitulo: 'design.sampleArmchair', tono: '#ECEBE8' },
 ];

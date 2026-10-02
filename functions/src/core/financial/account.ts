@@ -1,7 +1,7 @@
 import { FINANCIAL_CORE_CONTRACT_VERSION } from '../contracts';
 import { WeeError, WeeErrorCode, errorDelCore } from '../errors';
 import { FORMA_DE_ID, esNumero, esObjetoPlano, esTexto } from '../gateway';
-import { AccountNumber } from '../identity';
+import { NumeroDeCuenta } from '../account-identity';
 import { Principal } from '../orchestrator';
 import {
   CreditLedgerEntry,
@@ -75,7 +75,14 @@ export interface AccountLifetime {
  * Este vocabulario NACIÓ aquí, en la Fase 9, porque el dinero fue lo primero
  * que necesitó distinguir «de quién es» de «quién está actuando». Su propio
  * comentario decía que eso era «la futura capa de Identity». Ya existe:
- * `core/identity.ts`. El vocabulario se movió allí y aquí se USA.
+ * `core/identity.ts` para las entidades y la propiedad, y
+ * `core/account-identity.ts` para la cuenta y su número.
+ *
+ * El número de cuenta es `NumeroDeCuenta`: nueve dígitos, texto, el mismo tipo
+ * que asigna el nacimiento de la cuenta. Antes era un `AccountNumber` de cuatro
+ * a veinte dígitos, retirado en la Fase 11.x-5A junto con el contador global
+ * que lo repartía. El Financial Core NO cambia por esto: sigue sin generar
+ * números, sin validarlos y sin guardar el suyo aparte.
  *
  * No se re-exporta a propósito. Dos puertas para el mismo tipo acaban siendo
  * dos tipos, y `EntityType` tiene un solo dueño — la misma lección que dejó
@@ -100,7 +107,7 @@ export interface AccountLifetime {
 export interface CreditsWallet {
   contract: typeof FINANCIAL_CORE_CONTRACT_VERSION;
   /** El mismo número que la cuenta. Mismo número, distinto dominio. */
-  walletNumber: AccountNumber;
+  walletNumber: NumeroDeCuenta;
   /** De qué cuenta es. Una billetera sin cuenta no existe. */
   accountId: string;
   /** El saldo. UNO. La fuente de verdad, y la única. */
@@ -119,7 +126,7 @@ export interface FinancialAccount {
    * Opcional a propósito: hoy no existe, y declararlo obligatorio obligaría a
    * inventarlo aquí o a migrar el día que exista.
    */
-  accountNumber?: AccountNumber;
+  accountNumber?: NumeroDeCuenta;
   revision: number;
   status: AccountStatus;
   /**

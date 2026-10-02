@@ -61,4 +61,12 @@ export const onboarding: typeof import('../es/onboarding').onboarding = {
   weeCreatedTitle: 'Weë 主页已创建',
   weeCreated: '你的匿名身份准备好了。随时可以在顶部栏切换主页。',
   weeCreateFailed: '没能创建 Weë 主页',
+  birthDay: '日',
+  birthMonth: '月',
+  birthYear: '年',
+  stepOf: '第 {{paso}} 步，共 {{total}} 步',
+  customiseProfileHint: '选一个头像，再加一段简介（选填）',
+  bioLabel: '简介（选填）',
+  weeNameCounter: '{{usados}}/{{maximo}} - 至少 {{minimo}} 个字符',
+  weeBio: '个人简介（选填）',
 };

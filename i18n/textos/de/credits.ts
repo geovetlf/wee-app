@@ -37,4 +37,6 @@ export const credits: typeof import('../es/credits').credits = {
   pkgBasic: 'Basis',
   badgePopular: 'Beliebt',
   badgeBestValue: 'Bestes Angebot',
+  purchasesComingSoon: 'Credits kannst du bald kaufen. Aufladungen sind hier vorerst noch nicht möglich.',
+  topUpFailedTitle: 'Hoppla',
 };

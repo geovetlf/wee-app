@@ -75,4 +75,9 @@ export const profile: typeof import('../es/profile').profile = {
   seeFullProfile: '查看我的完整個人檔案',
   emptyCategory: '這個分類下還沒有貼文',
   actionFailed: '無法完成這個操作',
+  userNotFound: '這個使用者不存在',
+  shareOtherMessage: '來 Weë 看看 @{{nombre}} 的個人檔案！\n\n{{bio}}',
+  shareOtherNoBio: 'Weë 使用者',
+  joinedOn: '加入時間：{{fecha}}',
+  tabPolls: '投票',
 };

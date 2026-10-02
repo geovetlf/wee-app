@@ -7,6 +7,42 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // ADMINISTRACIÓN: una sesión con el claim `admin`. El claim lo pone el
+    // servidor con el SDK de administración; ningún cliente puede ponérselo.
+    // Es lo que distingue lo que Weë AFIRMA (oficial, verificado, destacado)
+    // de lo que una persona dice de sí misma.
+    function esAdministracion() {
+      return request.auth != null && request.auth.token.get('admin', false) == true;
+    }
+
+    // ─── FRONTERA DE COMPATIBILIDAD CON LA IDENTIDAD HEREDADA ───────────────
+    //
+    // El `uid` guardado de una cara Weë lleva un prefijo de cuando Weë se
+    // llamaba HideTok. Es DATO HISTÓRICO, no vocabulario: el concepto se llama
+    // PERFIL WEË y el tipo de entidad es WEE_PROFILE, y así se dice en el Core,
+    // en las APIs nuevas y en pantalla.
+    //
+    // Las reglas no pueden consultar `users` por campo —solo leer una ruta—, así
+    // que para atar una identidad a la cuenta que está autenticada no les queda
+    // más remedio que componer esa forma heredada. Esto es lo que lo hace
+    // legítimo: va de la CUENTA YA AUTENTICADA a los nombres con los que aparece
+    // en los datos, nunca al revés. De quién es una cara se LEE del documento
+    // (`linkedAccountId`, con `cuentaDeIdentidad` en el servidor); aquí no se
+    // resuelve nada quitando un prefijo.
+    //
+    // El día que los perfiles se renumeren, esto se cambia aquí. Las reglas de
+    // los datos históricos —publicaciones, votos, conversaciones, avisos— siguen
+    // componiéndolo en línea porque nombran documentos que ya están escritos.
+    // El Account Identity de la Fase 11.x-5A no depende de nada de esto: una
+    // cuenta, su número, sus entidades y sus membresías no contienen ni una
+    // letra heredada.
+    function identidadWeeHeredadaDe(uid) {
+      return 'hidi_' + uid;
+    }
+    function misIdentidadesHeredadas() {
+      return [request.auth.uid, identidadWeeHeredadaDe(request.auth.uid)];
+    }
+
     // Credit Engine (docs/CREDITS.md): el saldo vive en el perfil y SOLO lo
     // escribe el servidor (Cloud Functions). Ninguna escritura del cliente
     // puede crear, cambiar ni borrar estos campos.
@@ -83,7 +119,7 @@ service cloud.firestore {
     }
     function linkedAccountIdValido() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['linkedAccountId']) ||
-        (resource.data.uid == request.auth.uid && request.resource.data.linkedAccountId == ("hidi_" + request.auth.uid));
+        (resource.data.uid == request.auth.uid && request.resource.data.linkedAccountId == identidadWeeHeredadaDe(request.auth.uid));
     }
 
     // UN CONTADOR SOLO PUEDE MOVERSE DE UNO EN UNO.
@@ -266,15 +302,36 @@ service cloud.firestore {
       // y nace con los contadores a cero (o con su creador ya dentro). Las
       // oficiales no las crea nadie desde la app: solo una sesión con el claim
       // `admin`, que es quien siembra el catálogo.
+      //
+      // EL NOMBRE DE UNA OFICIAL ESTÁ RESERVADO, AUNQUE LA OFICIAL AÚN NO EXISTA.
+      // La app encuentra una comunidad por su `slug` y la siembra crea cada
+      // oficial con id = slug. Si una persona llegaba antes con ese slug o con
+      // ese id, ocupaba el sitio de la oficial: la app la enseñaba en su lugar
+      // —traducida como si fuera de Weë— y la siembra no podía crearla. Ahora ni
+      // el slug ni el id de una oficial los toma nadie que no sea administración,
+      // ni al crear ni cambiando después el slug de su comunidad.
+      //
+      // La lista es la de `constants/comunidadesOficiales.ts` (una por temática
+      // de `constants/communityCategories.ts`); `functions/test/comunidades-siembra.test.mjs`
+      // falla si las dos dejan de coincidir.
+      function slugsOficiales() {
+        return ['cine-animacion', 'arte-creatividad', 'creadores-influencers', 'negocios-emprendimiento',
+                'tecnologia-ia', 'gaming-mundos-virtuales', 'educacion-aprendizaje', 'futuro-sociedad'];
+      }
+      function ocupaUnNombreOficial() {
+        return communityId in slugsOficiales() ||
+          request.resource.data.get('slug', '') in slugsOficiales();
+      }
       function comunidadDeUsuario() {
         return request.resource.data.createdBy == request.auth.uid &&
           request.resource.data.moderators == [request.auth.uid] &&
           request.resource.data.get('isOfficial', false) == false &&
           request.resource.data.get('memberCount', 0) in [0, 1] &&
-          request.resource.data.get('postCount', 0) == 0;
+          request.resource.data.get('postCount', 0) == 0 &&
+          !ocupaUnNombreOficial();
       }
       function comunidadOficialDeAdministracion() {
-        return request.auth.token.get('admin', false) == true &&
+        return esAdministracion() &&
           request.resource.data.get('isOfficial', false) == true;
       }
       allow create: if isAuthenticated() && (comunidadDeUsuario() || comunidadOficialDeAdministracion());
@@ -286,10 +343,18 @@ service cloud.firestore {
           (request.resource.data.diff(resource.data).affectedKeys().hasAny(['moderators']) &&
            resource.data.get('createdBy', '') != request.auth.uid);
       }
+      // Ni se pasa después a un slug oficial: sería la misma ocupación por la
+      // puerta de la edición. Una comunidad que YA lo tenía puede seguir
+      // editándose; lo que no puede es tomarlo.
+      function tomaUnSlugOficial() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasAny(['slug']) &&
+          request.resource.data.get('slug', '') in slugsOficiales() &&
+          !esAdministracion();
+      }
 
       // Solo moderadores pueden actualizar la comunidad
       // O cualquier usuario autenticado puede actualizar contadores, de uno en uno
-      allow update: if isAuthenticated() && !tocaLaAutoriaDeLaComunidad() &&
+      allow update: if isAuthenticated() && !tocaLaAutoriaDeLaComunidad() && !tomaUnSlugOficial() &&
         (request.auth.uid in resource.data.moderators ||
          resource.data.get('createdBy', '') == request.auth.uid ||
          (request.resource.data.diff(resource.data).affectedKeys()
@@ -493,11 +558,11 @@ service cloud.firestore {
     // Las cuatro combinaciones son válidas —real↔real, real↔Weë, Weë↔real y
     // Weë↔Weë— y cada una es UN SOLO documento.
     match /econtacts/{contactId} {
-      // Las identidades que puede usar esta sesión. Se derivan del uid de la
-      // cuenta, que es exactamente como se construyen los perfiles: el Perfil Weë
-      // de la cuenta ABC es "hidi_ABC" y no puede ser otro.
+      // Las identidades con las que esta sesión aparece en los datos ya
+      // escritos. Salen de la frontera de compatibilidad de arriba, que es el
+      // sitio donde vive la forma heredada.
       function misIdentidades() {
-        return [request.auth.uid, 'hidi_' + request.auth.uid];
+        return misIdentidadesHeredadas();
       }
       // ¿Participa alguno de MIS perfiles en esta relación?
       function participo() {
@@ -543,14 +608,34 @@ service cloud.firestore {
     }
 
     // === FOLLOWS ===
+    //
+    // ATADA (cierre post-auditoría 2026-10-01). El cliente que la usaba
+    // (followsService/useFollow) era código muerto y se retiró; la regla
+    // quedaba abierta: se podía crear un follow con cualquier id, de uno mismo
+    // a uno mismo o con campos de más. Ahora el id ES el par
+    // `{followerId}_{followingId}` —la misma forma que escribía aquel cliente—,
+    // el seguidor es una de las DOS caras de quien escribe (la real o
+    // `hidi_<uid>`, nunca la de otro), no se sigue a uno mismo, y el documento
+    // lleva exactamente lo que escribía: los dos ids y la fecha.
     match /follows/{followId} {
+      function seguidorDeQuienEscribe(followerId) {
+        return followerId == request.auth.uid || followerId == ("hidi_" + request.auth.uid);
+      }
       allow read: if true;
       allow create: if isAuthenticated() &&
-        (request.resource.data.followerId == request.auth.uid ||
-         request.resource.data.followerId == ("hidi_" + request.auth.uid));
+        request.resource.data.keys().hasOnly(['followerId', 'followingId', 'createdAt']) &&
+        request.resource.data.followerId is string &&
+        request.resource.data.followingId is string &&
+        request.resource.data.followingId.size() > 0 &&
+        seguidorDeQuienEscribe(request.resource.data.followerId) &&
+        request.resource.data.followingId != request.resource.data.followerId &&
+        // Ni a la otra cara de la misma cuenta (segunda auditoría de cierre): seguirse a uno mismo por la otra puerta.
+        request.resource.data.followingId != request.auth.uid &&
+        request.resource.data.followingId != ("hidi_" + request.auth.uid) &&
+        followId == request.resource.data.followerId + '_' + request.resource.data.followingId;
+      allow update: if false;
       allow delete: if isAuthenticated() &&
-        (resource.data.followerId == request.auth.uid ||
-         resource.data.followerId == ("hidi_" + request.auth.uid));
+        seguidorDeQuienEscribe(resource.data.followerId);
     }
 
     // === CONVERSACIONES ===
@@ -570,7 +655,7 @@ service cloud.firestore {
     // igual: nada de esto mira con qué cara se habla, solo que sea tuya.
     match /conversations/{conversationId} {
       function misIdentidadesDeChat() {
-        return [request.auth.uid, 'hidi_' + request.auth.uid];
+        return misIdentidadesHeredadas();
       }
       function participo() {
         return resource.data.participants.hasAny(misIdentidadesDeChat());
@@ -668,11 +753,24 @@ service cloud.firestore {
       }
     }
 
-    // === REPORTES ===
+    // === MODERACIÓN (Fase 12-A/B · docs/MODERATION.md) ===
+    // Cerrado entero a los clientes. Antes cualquiera con sesión podía CREAR aquí
+    // cualquier documento, de cualquier tamaño y a nombre de cualquiera. Un reporte
+    // lo crea solo la callable `reportContent`, que pone la cuenta, la cara, el
+    // instante y el estado desde la sesión; y solo lo mueve `moderationAdmin`. Ni
+    // quien denuncia lee su reporte: lo que le toca saber se lo contesta la callable.
     match /reports/{reportId} {
-      // Solo el reporter puede crear, nadie puede leer (solo admin via console)
-      allow create: if isAuthenticated();
-      allow read, update, delete: if false;
+      allow read, write: if false;
+
+      // El historial solo se añade, y solo desde el servidor.
+      match /history/{entryId} {
+        allow read, write: if false;
+      }
+    }
+
+    // Cuánto ha denunciado cada cuenta en la ventana y en el día. Solo servidor.
+    match /moderationLimits/{accountId} {
+      allow read, write: if false;
     }
 
     // === BUSINESS FOLLOWS (WeeBiz) ===
@@ -689,27 +787,65 @@ service cloud.firestore {
       // Cualquiera puede leer negocios
       allow read: if true;
 
-      // Solo usuarios autenticados pueden crear un negocio
-      allow create: if isAuthenticated() &&
-        request.resource.data.ownerId == request.auth.uid;
-
-      // Solo el dueño puede actualizar su negocio, o cualquiera puede actualizar contadores.
+      // LO QUE WEË DICE DE UN NEGOCIO NO LO ESCRIBE SU DUEÑO.
       //
+      // `verified` es la insignia «Verificado» del perfil del negocio y
+      // `featured` lo pone en Destacados; `status` decide si aparece (una
+      // suspensión la levanta solo administración) y `ownerId` decide quién
+      // manda en él y en su catálogo. Antes el dueño los escribía como cualquier
+      // otro campo —al crear y al editar—, así que cualquiera podía registrarse
+      // un negocio ya verificado y destacado. Ahora nace sin ninguna de las
+      // dos cosas, activo y con los contadores a cero, que es exactamente lo
+      // que crea la app (`weeBizService.createBusiness`); y esos cuatro campos
+      // solo los cambia administración.
+      function camposQueAfirmaWee() {
+        return ['verified', 'featured', 'status', 'ownerId'];
+      }
+      function negocioRecienNacido() {
+        return request.resource.data.get('verified', false) == false &&
+          request.resource.data.get('featured', false) == false &&
+          request.resource.data.get('status', 'active') == 'active' &&
+          request.resource.data.get('followersCount', 0) == 0 &&
+          request.resource.data.get('auraScore', 0) == 0 &&
+          request.resource.data.get('reviewCount', 0) == 0;
+      }
+
+      // Solo usuarios autenticados pueden crear un negocio, a su nombre
+      allow create: if isAuthenticated() &&
+        request.resource.data.ownerId == request.auth.uid &&
+        negocioRecienNacido();
+
       // `followersCount` se acota de uno en uno como los demás. `auraScore` y
       // `reviewCount` NO se pueden acotar así: son un promedio y un recuento
       // que el cliente RECALCULA leyendo hasta mil reseñas, así que saltan a
       // cualquier valor por diseño. Aquí solo se les exige que sean números
       // dentro de su rango; que nadie pueda ponerle un 5 al negocio que quiera
       // exige contar en el servidor, y eso es de la fase de Weë Business.
-      allow update: if isAuthenticated() && (
-        resource.data.ownerId == request.auth.uid ||
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['followersCount', 'auraScore', 'reviewCount'])
-          && contadorSano('followersCount')
+      // Vale igual para el dueño cuando los mueve: su negocio no tiene
+      // contadores aparte. Si no los toca (editar el nombre), no se le miran,
+      // para que un negocio antiguo con un dato raro no quede sin poder editarse.
+      function contadoresDelNegocioSanos() {
+        return contadorSano('followersCount')
           && request.resource.data.get('auraScore', 0) >= 0
           && request.resource.data.get('auraScore', 0) <= 5
           && request.resource.data.get('reviewCount', 0) is int
-          && request.resource.data.get('reviewCount', 0) >= 0
+          && request.resource.data.get('reviewCount', 0) >= 0;
+      }
+      function tocaContadoresDelNegocio() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['followersCount', 'auraScore', 'reviewCount']);
+      }
+
+      // El dueño edita su negocio (nombre, descripción, logo…) pero no lo que
+      // afirma Weë; cualquiera mueve los contadores; administración, todo.
+      allow update: if isAuthenticated() && (
+        esAdministracion() ||
+        (resource.data.ownerId == request.auth.uid &&
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(camposQueAfirmaWee()) &&
+         (!tocaContadoresDelNegocio() || contadoresDelNegocioSanos())) ||
+        (request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['followersCount', 'auraScore', 'reviewCount'])
+          && contadoresDelNegocioSanos())
       );
 
       allow delete: if false;
@@ -718,15 +854,46 @@ service cloud.firestore {
       match /reviews/{reviewId} {
         allow read: if true;
 
-        // Solo usuarios autenticados pueden crear una reseña (no el dueño a sí mismo)
+        // Una reseña es de quien la escribe (la cuenta), puntúa de 1 a 5 en
+        // números enteros —las estrellas de la app— y es de ESTE negocio. Y el
+        // dueño no reseña su propio negocio: el comentario lo prometía y la
+        // regla no lo cumplía, así que un dueño podía subirse la media él solo.
+        //
+        // UNA RESEÑA POR PERSONA (cierre post-auditoría 2026-10-01,
+        // trust/resena-por-persona). El id de la reseña ES la cuenta que la
+        // escribe: `reviews/{uid}`. Así una persona no puede tener dos reseñas
+        // nuevas del mismo negocio —la segunda cae en el mismo documento y lo
+        // ACTUALIZA— y nadie puede escribir la de otro. La app la escribe con
+        // `setDoc` en ese id (`weeBizService.createReview`). Las antiguas, con id
+        // automático, se siguen leyendo y borrando, pero no se crean más así.
+        // Segunda auditoría de cierre: solo los campos de una reseña, y una fecha que no viene del futuro (con
+        // margen para el reloj del teléfono): una reseña con fecha futura se quedaba la primera de la lista
+        // (orderBy createdAt desc) y, desde que se puede actualizar, para siempre.
+        function resenaValida() {
+          return request.resource.data.keys().hasOnly(['userId', 'userName', 'userAvatar', 'rating', 'text', 'businessId', 'createdAt']) &&
+            request.resource.data.createdAt is timestamp &&
+            request.resource.data.createdAt <= request.time + duration.value(5, 'm') &&
+            request.resource.data.userId == request.auth.uid &&
+            request.resource.data.rating is int &&
+            request.resource.data.rating >= 1 &&
+            request.resource.data.rating <= 5 &&
+            request.resource.data.get('businessId', businessId) == businessId &&
+            get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId != request.auth.uid;
+        }
         allow create: if isAuthenticated() &&
-          request.resource.data.userId == request.auth.uid;
+          reviewId == request.auth.uid &&
+          resenaValida();
 
         // Solo el autor puede eliminar su reseña
         allow delete: if isAuthenticated() &&
           resource.data.userId == request.auth.uid;
 
-        allow update: if false;
+        // Y solo el autor cambia la SUYA, en su id: es la segunda reseña de la
+        // misma persona, que sustituye a la primera en vez de sumarse.
+        allow update: if isAuthenticated() &&
+          reviewId == request.auth.uid &&
+          resource.data.userId == request.auth.uid &&
+          resenaValida();
       }
 
       // Productos del negocio
@@ -756,12 +923,19 @@ service cloud.firestore {
     // que no puede vivir en `users`, que lo lee todo el mundo. El documento se
     // llama como la CUENTA (uid de Firebase Auth): lo escribe solo su dueño y
     // no lo lee nadie desde el cliente; lo lee el servidor al enviar.
+    //
+    // `locale` es el idioma con el que la app de ese aparato está funcionando
+    // («da-DK»): el aviso se escribe en él cuando la cuenta no tiene un idioma
+    // elegido a mano. Solo una etiqueta de idioma corta; nada más entra.
     match /pushTokens/{uid} {
       allow read: if false;
       allow create, update: if isAuthenticated() && request.auth.uid == uid &&
-        request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt']) &&
+        request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt', 'locale']) &&
         request.resource.data.token is string &&
-        request.resource.data.token.size() > 0 && request.resource.data.token.size() <= 300;
+        request.resource.data.token.size() > 0 && request.resource.data.token.size() <= 300 &&
+        (!('locale' in request.resource.data) ||
+          (request.resource.data.locale is string && request.resource.data.locale.size() <= 35 &&
+           request.resource.data.locale.matches('^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$')));
       allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
     // Acumulados para administración: solo servidor / consola
@@ -803,14 +977,67 @@ service cloud.firestore {
       //
       // Las dos caras valen, como en posts y comentarios: se avisa desde la
       // identidad con la que se actuó. Lo que no vale es firmar con una ajena.
+      //
+      // Y UN AVISO TIENE LA FORMA DE LOS QUE MANDA LA APP, Y NINGUNA OTRA.
+      // Firmarlo con la cara propia no bastaba: cualquier sesión podía escribir
+      // avisos de cualquier tipo, de cualquier tamaño y con cualquier campo para
+      // cualquier `recipientId`, y cada uno es un push de verdad. Ahora:
+      //   · no se avisa a sí misma, ni a su otra cara (Real ↔ Weë);
+      //   · el tipo es uno de los que crea la app hoy (`notificationService`,
+      //     desde `useLikes`, `useComentarios` y `econtactService`). Los
+      //     históricos (`follow`, `mention`, `repost`, `reply`,
+      //     `community_post`) se siguen LEYENDO, pero ningún cliente los crea;
+      //   · solo los campos que escribe la app, con textos acotados (la app ya
+      //     corta las vistas previas a 100 caracteres), sin leer y con su hora
+      //     (`Timestamp.now()` del aparato: se admite un margen de una hora por
+      //     relojes desajustados).
+      // El nombre del push no sale de `senderName` (lo resuelve el servidor
+      // desde el perfil de `senderId`) y el cupo por remitente es del servidor.
+      function tiposDeAvisoQueCreaLaApp() {
+        return ['like', 'comment', 'econtact_request', 'econtact_accepted'];
+      }
+      function camposDeAvisoDeLaApp() {
+        return ['type', 'recipientId', 'senderId', 'senderName', 'senderAvatar', 'senderAvatarType',
+                'senderAvatarId', 'recipientAccountId', 'senderProfileType', 'postId', 'postContent',
+                'commentId', 'commentContent', 'read', 'createdAt'];
+      }
+      function textoDeAviso(campo, maximo) {
+        return !(campo in request.resource.data) ||
+          (request.resource.data[campo] is string && request.resource.data[campo].size() <= maximo);
+      }
+      function avisoConLaFormaDeLaApp() {
+        let aviso = request.resource.data;
+        return aviso.keys().hasOnly(camposDeAvisoDeLaApp()) &&
+          aviso.keys().hasAll(['type', 'recipientId', 'senderId', 'senderName', 'read', 'createdAt']) &&
+          aviso.type in tiposDeAvisoQueCreaLaApp() &&
+          aviso.recipientId is string && aviso.recipientId.size() > 0 && aviso.recipientId.size() <= 200 &&
+          !(aviso.recipientId in misIdentidadesHeredadas()) &&
+          aviso.senderName is string && aviso.senderName.size() <= 200 &&
+          aviso.read == false &&
+          aviso.createdAt is timestamp &&
+          aviso.createdAt > request.time - duration.value(1, 'h') &&
+          aviso.createdAt < request.time + duration.value(1, 'h') &&
+          (!('senderProfileType' in aviso) || aviso.senderProfileType in ['real', 'wee']) &&
+          textoDeAviso('senderAvatar', 2048) && textoDeAviso('senderAvatarType', 20) &&
+          textoDeAviso('senderAvatarId', 100) && textoDeAviso('recipientAccountId', 128) &&
+          textoDeAviso('postId', 200) && textoDeAviso('commentId', 200) &&
+          textoDeAviso('postContent', 400) && textoDeAviso('commentContent', 400);
+      }
       allow create: if isAuthenticated() &&
         (request.resource.data.senderId == request.auth.uid ||
-         request.resource.data.senderId == ("hidi_" + request.auth.uid));
+         request.resource.data.senderId == ("hidi_" + request.auth.uid)) &&
+        avisoConLaFormaDeLaApp();
 
-      // Solo el destinatario puede actualizar (marcar como leída)
+      // Solo el destinatario puede actualizar, y solo para marcarla como leída
+      // (`markAsRead` / `markAllAsRead`, lo único que hace la app). Antes podía
+      // reescribir el aviso entero —su destinatario, su tipo, su texto—: o sea,
+      // mandarle a otra persona un aviso «de» un tercero sin pasar por el
+      // `create` de arriba.
       allow update: if isAuthenticated() &&
         (resource.data.recipientId == request.auth.uid ||
-         resource.data.recipientId == ("hidi_" + request.auth.uid));
+         resource.data.recipientId == ("hidi_" + request.auth.uid)) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+        request.resource.data.read == true;
 
       // Solo el destinatario puede eliminar sus notificaciones
       allow delete: if isAuthenticated() &&
@@ -883,6 +1110,29 @@ service cloud.firestore {
     match /aiProviderVerification/{providerId} {
       allow read, write: if false;
     }
+    // === WEË RUNTIME (Core): trabajos y ejecuciones de workflow ===
+    // Los escribe el conductor con el Admin SDK, que no pasa por estas reglas. El
+    // cliente no lee ni escribe: un trabajo lleva dentro la entrada de la operación
+    // —lo que la persona pidió— y la traza entera. Lo que la persona ve de su
+    // trabajo se le contesta por el callable, nunca leyendo aquí. Sin regla ya
+    // estarían cerradas (Firestore deniega por defecto); se escribe para que nadie
+    // las abra por descuido con una regla más ancha.
+    match /jobs/{jobId} {
+      allow read, write: if false;
+    }
+    /*
+     * El transporte durable del Job Engine. Cerrado como `jobs`, y por el mismo
+     * motivo: un aviso dice qué trabajo hay que mirar, y poder escribir uno
+     * sería poder hacer que un trabajador mire el trabajo de otro. Se encola
+     * desde el servidor y se atiende desde el servidor; el cliente no tiene
+     * nada que hacer aquí.
+     */
+    match /jobQueue/{avisoId} {
+      allow read, write: if false;
+    }
+    match /workflowRuns/{runId} {
+      allow read, write: if false;
+    }
 
     // === WEË BRAIN: conversaciones ===
     // La persona lee sus conversaciones y mensajes; escribe solo el servidor (brainChat)
@@ -910,19 +1160,77 @@ service cloud.firestore {
       }
     }
 
-    // === IDENTITY CORE (Fase 11.x-2): la cuenta con nombre, sus entidades y el contador ===
+    // === ACCOUNT IDENTITY (Fase 11.x-5A): la cuenta, su número, sus entidades
+    // y quién puede actuar en ella ===
     //
-    // Lo escribe solo el servidor: nacer una cuenta reparte una posición de una
-    // serie, y eso no puede hacerlo un cliente. La cuenta la lee su dueño; una
-    // entidad, la cuenta que la posee; el contador, nadie desde fuera.
+    // TODO LO ESCRIBE EL SERVIDOR. Nacer una cuenta es sortear un número libre,
+    // reservarlo, escribir la membresía de su dueño y crear su entidad de Perfil
+    // Real en una sola transacción. Nada de eso puede hacerlo un cliente, y por
+    // eso aquí no hay una sola escritura permitida: el Account ID, el Account
+    // Number, el Entity ID, el Entity Type y la Entity Sequence los asigna el
+    // servidor. Un cliente que pudiera escribirlos podría escribir los de otro.
+    //
+    // ── Por qué autorizar aquí no cuesta una lectura ─────────────────────────
+    //
+    // Porque el identificador de la cuenta ES el del principal que la fundó, así
+    // que «esta cuenta es mía» se resuelve comparando dos valores que la regla
+    // ya tiene en la mano. La lectura de la membresía solo la paga un SEGUNDO
+    // principal —el administrador o el contable que algún día tendrá una
+    // empresa—, que hoy no existe. Eso es diseño de documentos, no un atajo: el
+    // día que haya varios principales, el camino caro es el raro.
+    //
+    // Y la membresía no se puede falsificar: el cliente no la escribe. Que
+    // alguien esté autenticado NO lo hace dueño de ninguna cuenta; lo que lo
+    // dice es este documento, y lo escribe el servidor al nacer la cuenta.
+    function esMiembroActivoDe(accountId) {
+      return exists(/databases/$(database)/documents/accounts/$(accountId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/accounts/$(accountId)/members/$(request.auth.uid)).data.status == 'ACTIVE';
+    }
+
     match /accounts/{accountId} {
-      allow read: if isAuthenticated() && request.auth.uid == accountId;
+      // La cuenta la lee quien la fundó y quien tenga membresía activa en ella.
+      // Nadie más: aquí está el número de la cuenta, que no es público.
+      allow read: if isAuthenticated() && (request.auth.uid == accountId || esMiembroActivoDe(accountId));
       allow write: if false;
+
+      // PRINCIPAL → CUENTA. Quién puede actuar en esta cuenta y con qué papel.
+      // Cada cual ve la suya y el dueño ve las de su cuenta. Escribirla sería
+      // darse permisos, así que no se escribe desde fuera en ningún caso.
+      match /members/{principalId} {
+        allow read: if isAuthenticated() && (request.auth.uid == accountId || request.auth.uid == principalId);
+        allow write: if false;
+      }
+
+      // Lo ya hecho, para que repetir una petición no cree una segunda Página.
+      // No tiene por qué salir de aquí: es contabilidad interna del servidor.
+      match /operations/{clave} {
+        allow read, write: if false;
+      }
     }
+
+    // EL ÍNDICE DE LOS NÚMEROS. Su existencia es lo que impide repartir un
+    // número dos veces, así que un cliente que pudiera crear uno podría reservar
+    // el de otro; y uno que pudiera leerlo tendría la lista de las cuentas que
+    // hay. Resolver un número es del servidor, que además puede limitar el ritmo.
+    match /accountNumbers/{numero} {
+      allow read, write: if false;
+    }
+
+    // CADA CARA Y CADA PÁGINA. La lee la cuenta que la posee y sus miembros
+    // activos. El dueño, el tipo y la secuencia de una entidad son inmutables y
+    // no hay forma de tocarlos desde aquí: no se permite ninguna escritura, ni
+    // crear, ni actualizar, ni borrar. Cambiar el dueño de una entidad sería
+    // llevarse lo publicado a otra cuenta; cambiar su tipo o su secuencia, hacer
+    // pasar una Página por la cara de una persona.
     match /entities/{entityId} {
-      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.ownerAccountId == request.auth.uid || esMiembroActivoDe(resource.data.ownerAccountId));
       allow write: if false;
     }
+
+    // NO HAY CONTADOR GLOBAL DE CUENTAS, y esta regla existe para que siga sin
+    // haberlo. El número de cuenta se sortea y se reserva con su propio índice
+    // (Fase 11.x-5A); el contador de la Fase 11.x-2 se retiró sin llegar a
+    // escribir un solo documento.
     match /contadores/{contador} {
       allow read, write: if false;
     }
@@ -943,6 +1251,47 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // === WEE ELEMENTS (S4): las cosas de una cuenta, con nombre ===
+    // Una hamburguesa, un personaje, un sitio. Referencian materiales; no los
+    // contienen. Cada cuenta lee lo suyo, con consulta acotada por
+    // `ownerAccountId`, y el modelo es EXACTAMENTE el de `assets`: leer sí,
+    // escribir no.
+    //
+    // Escribir desde el cliente sería poder decir «esta foto es mía» sin que
+    // nadie lo compruebe, y poder ponerle a una cosa el `ownerAccountId` que
+    // uno quiera. Quien crea un Element tiene que comprobar antes, material a
+    // material, que cada uno es de esa cuenta y se puede usar — y eso lo hace
+    // el servidor a partir de la sesión, que es el único que sabe quién es
+    // quien pide. Archivar tampoco se escribe desde fuera: cambia un estado
+    // que decide si esa cosa sigue apareciendo, y es una operación del dominio.
+    match /elements/{elementId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    // === F11 · LAS FILAS DE UN PROYECTO ===
+    // `ProjectItem`: un proyecto, una cosa dentro, cuándo se añadió. Hoy no las
+    // escribe nadie —el contrato existe desde F11 y su runtime no— y se cierran
+    // igual que todo lo demás para que el día que alguien escriba ahí no herede
+    // una puerta abierta.
+    match /projectItems/{itemId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    // === WEE MEDIA CLOUD (MC-1): dónde están físicamente los bytes de un material ===
+    // Las escribe el servidor con el Admin SDK, que no pasa por estas reglas.
+    // El cliente NO lee y NO escribe, y esto es más estricto que `assets` a
+    // propósito: una ficha de objeto dice en qué proveedor y bajo qué clave vive
+    // un archivo, y eso es infraestructura. La persona ve su material por
+    // `assets`, que es donde vive su identidad; de dónde están los bytes no
+    // tiene por qué enterarse, y nadie de fuera tampoco.
+    // Sin regla ya estarían cerradas (Firestore deniega por defecto); se escribe
+    // para que nadie las abra por descuido con una regla más ancha.
+    match /mediaObjects/{objectRef} {
+      allow read, write: if false;
+    }
+
     // === WEË CREATOR: PROYECTOS ("Mis proyectos") ===
     match /creatorProjects/{projectId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
@@ -954,6 +1303,60 @@ service cloud.firestore {
       allow update: if isAuthenticated() && resource.data.userId == request.auth.uid &&
         request.resource.data.userId == resource.data.userId;
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // === C3 · ESCENAS Y PLANOS ===
+    // El estado creativo de una cuenta: qué tiene que representar cada plano y
+    // qué material lo representa hoy. NO son trabajos, ni materiales, ni
+    // ejecuciones — eso vive en `jobs`, en `assets` y en la procedencia, que ya
+    // lo llevan.
+    //
+    // Se lee solo lo propio, y se escribe SOLO por la callable `shots`, que
+    // corre con el Admin SDK y comprueba la propiedad en el dominio una por
+    // una. Estas reglas son la segunda cerradura, no la única.
+    //
+    // Van al final del archivo a propósito: la franja que va de `elements` a
+    // Media Cloud la mide un guard de S4 que cuenta sus dos bloques cerrados,
+    // y meter aquí dos más lo haría fallar sin que nada se hubiera roto.
+    match /scenes/{sceneId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /shots/{shotId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    // === F1-B · WEË FILMMAKER: LAS PRODUCCIONES ===
+    // La producción es la verdad creativa de una cuenta: su guion gráfico, con
+    // escenas y planos. NO son las `scenes`/`shots` del Core —que en F1-D serán
+    // las unidades de generación—, ni trabajos, ni materiales.
+    //
+    // Se lee solo lo propio, y se escribe SOLO desde la callable `productions`,
+    // que corre con el Admin SDK, comprueba la propiedad en el dominio y escribe
+    // en transacciones. Hoy esa callable NO está conectada: nadie escribe aquí.
+    // Estas reglas son la segunda cerradura, no la única.
+    //
+    // Las escenas y el registro repiten `ownerAccountId` para que estas reglas no
+    // tengan que leer la raíz. El registro solo se añade, y el cliente tampoco
+    // lo escribe.
+    //
+    // Van al final, detrás de C3 y por su mismo motivo: no mover la franja de
+    // `elements` a Media Cloud que mide un guard de S4.
+    match /productions/{productionId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+
+      match /productionScenes/{sceneId} {
+        allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+        allow create, update, delete: if false;
+      }
+
+      match /productionRevisions/{revisionId} {
+        allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+        allow create, update, delete: if false;
+      }
     }
   }
 }

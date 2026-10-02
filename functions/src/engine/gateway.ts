@@ -3,6 +3,8 @@ import {
   CanonicalResponse,
   CapabilityId,
   DESDE_ENGINE,
+  BrainAttachment,
+  ContinuityRequirements,
   ExecutorOutcome,
   Gateway,
   GatewayReason,
@@ -23,6 +25,10 @@ import { classifyError } from './errors';
 import { NotConfiguredError, ProviderError } from './http';
 import { ADAPTERS, DEFAULT_ROUTING } from './registry';
 import { sanitizeForLog } from './sanitize';
+import { cubreLoExigido, traducirContinuidad, materialDeLaEntrada } from './continuidad';
+import {
+  MaterialDeUnPasoAnterior, ResolucionDeReferencias, materialEnLaEntrada, upstreamEnLaEntrada,
+} from './referencias';
 import { EngineContext, ModelSpec, ProviderAdapter, ProviderConfig, ProviderResult, RoutingPrefs } from './types';
 
 /**
@@ -68,6 +74,44 @@ export interface EjecutorDeps {
   /** Configuración viva (o la que sea, en pruebas). Ya viene cacheada. */
   config: () => ConfigDelMotor | Promise<ConfigDelMotor>;
   now?: () => number;
+  /**
+   * ¿HAY QUIEN RECOJA UNA TAREA A MEDIAS? Cerrado por defecto.
+   *
+   * Pedirle a un adaptador que acepte y suelte solo es honesto si después
+   * alguien va a preguntar por esa tarea: el receptor de avisos y la
+   * reconciliación. Mientras eso no esté en marcha, aceptar sería dejar el
+   * trabajo esperando un desenlace que no va a llegar —y el dinero reservado
+   * con él—, así que esto sigue apagado hasta que se autorice encenderlo.
+   */
+  aceptaAsincrono?: boolean;
+  /**
+   * DE UN ANCLAJE AL MATERIAL AUTORIZADO. C8, y entra por aquí a propósito.
+   *
+   * Resolverlo cuesta lecturas de Firestore, y este archivo no sabe de
+   * Firestore —la configuración ya le entra por `loadConfig` por el mismo
+   * motivo—. Ausente significa que no se materializa nada, que es exactamente
+   * el comportamiento que había antes de C8.
+   */
+  referencias?: (accountId: string, requisitos: ContinuityRequirements) => Promise<ResolucionDeReferencias>;
+  /**
+   * DE UN ADJUNTO A MATERIAL AUTORIZADO. C11.4, y por la misma costura.
+   *
+   * Separado del de arriba porque son dos preguntas distintas: uno resuelve
+   * «lo de Luna, versión 4» y este «la foto que subió». Pasan por la MISMA
+   * puerta de Media Cloud; lo que cambia es cuánto hay que resolver antes.
+   */
+  recursos?: (accountId: string, adjuntos: readonly BrainAttachment[]) => Promise<ResolucionDeReferencias>;
+  /**
+   * LO QUE PRODUJERON LOS PASOS ANTERIORES. G8, y por la misma costura.
+   *
+   * Tercera pregunta distinta con la misma respuesta: quién autoriza. Un
+   * anclaje de continuidad, un adjunto y el resultado de otro paso son tres
+   * cosas, y las tres pasan por una puerta que comprueba de quién son.
+   */
+  upstream?: (
+    accountId: string,
+    pasos: readonly { stepId: string; capability: string; produces?: string; outputRefs: readonly string[] }[],
+  ) => Promise<{ materiales: readonly MaterialDeUnPasoAnterior[]; fallos: readonly { reason: string }[] }>;
 }
 
 /** Tiempo límite TOTAL de la ejecución, agotado. Distinto del de una llamada HTTP dentro del adaptador. */
@@ -194,6 +238,8 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
       if (!adapter.supports(capability as CapabilityId)) return rechazo('PROVIDER_UNAVAILABLE', 'adapter_unsupported');
 
       const config = await deps.config();
+      /* El interruptor de la IA (H0 #19): como si todos los proveedores estuvieran desactivados, antes de despachar. */
+      if (config.settings.iaDetenida === true) return rechazo('PROVIDER_UNAVAILABLE', 'provider_disabled', { iaDetenida: true });
       const providerConfig = config.providers[adapter.id];
       if (providerConfig?.enabled === false) return rechazo('PROVIDER_UNAVAILABLE', 'provider_disabled');
       const modelo = conAjustesDeAdministracion(spec, providerConfig);
@@ -240,13 +286,162 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
           }
         : undefined;
 
+      /*
+       * ── C8 · EL MATERIAL DE LA CONTINUIDAD, ANTES DE LLAMAR A NADIE ────────
+       *
+       * Aquí y no más abajo, porque este es el último sitio donde todavía no se
+       * ha gastado nada. Un anclaje que no da material o un requisito que no
+       * cabe en el mecanismo tienen que parar la ejecución ANTES del proveedor:
+       * después ya se está pagando, y rechazar entonces cuesta dinero real por
+       * algo que se sabía de antemano.
+       *
+       * Y no lo decide el adaptador. Un adaptador traduce; si además decidiera
+       * qué generaciones pueden ocurrir, la política de continuidad acabaría
+       * repartida en once archivos y distinta en cada uno.
+       */
+      let entrada = input as Record<string, unknown>;
+      /*
+       * ── G8 · LO QUE ESCRIBIÓ EL PASO ANTERIOR ─────────────────────────────
+       *
+       * Primero de todo, porque sin ello este paso no es el que se planificó:
+       * si B depende de A, ejecutar B sin lo que A escribió es generar otra
+       * cosa — y cobrarla. Una referencia que no se puede resolver para la
+       * ejecución aquí, antes de llamar a nadie.
+       *
+       * Llega RESUELTO: con el texto dentro o con la llave puesta. El adaptador
+       * no tiene que saber que existían identificadores de material.
+       */
+      if (req.upstream?.length && deps.upstream) {
+        const anterior = await deps.upstream(trace.userId, req.upstream);
+        if (anterior.fallos.length > 0) {
+          return rechazo('INVALID_REQUEST', 'invalid_request', {
+            upstream: 'pre_execution_rejected',
+            unresolved: anterior.fallos.map((f) => f.reason),
+          });
+        }
+        entrada = upstreamEnLaEntrada(anterior.materiales, entrada);
+      }
+      /*
+       * ── C11.4 · LO QUE LA PERSONA ADJUNTÓ ─────────────────────────────────
+       *
+       * Antes que la continuidad porque es material de la tarea: la foto que
+       * hay que restaurar. Y falla cerrado igual que todo lo demás: un adjunto
+       * que no se puede entregar —de otra cuenta, retirado, sin ficha— para la
+       * ejecución aquí, sin llamar a nadie.
+       */
+      if (req.references?.length && deps.recursos) {
+        const resueltos = await deps.recursos(trace.userId, req.references);
+        if (resueltos.fallos.length > 0) {
+          return rechazo('INVALID_REQUEST', 'invalid_request', {
+            resources: 'pre_execution_rejected',
+            unresolved: resueltos.fallos.map((f) => f.reason),
+          });
+        }
+        entrada = materialEnLaEntrada(resueltos.materiales, entrada);
+      }
+      const requisitosDeContinuidad = execution.hints?.continuity;
+      if (requisitosDeContinuidad && deps.referencias) {
+        /*
+         * La cuenta es la de la traza, y no se acepta de nadie más: `trace.userId`
+         * lo puso el servidor al autenticar. Un `accountId` que llegue en el
+         * cuerpo de una petición no prueba absolutamente nada.
+         */
+        const resolucion = await deps.referencias(trace.userId, requisitosDeContinuidad);
+        /*
+         * UN SOLO ANCLAJE QUE FALLE PARA LA EJECUCIÓN. No se ejecuta «con lo que
+         * haya»: los anclajes solo existen cuando hay algo que CONSERVAR, así
+         * que cada uno sostiene un requisito, y resolver tres de cuatro es
+         * generar algo que no puede cumplir lo que se pidió —pareciendo que sí—.
+         */
+        if (resolucion.fallos.length > 0) {
+          return rechazo('INVALID_REQUEST', 'invalid_request', {
+            continuity: 'pre_execution_rejected',
+            unresolved: resolucion.fallos.map((f) => f.reason),
+          });
+        }
+        entrada = materialEnLaEntrada(resolucion.materiales, entrada);
+      }
+
+      /*
+       * ── C7 · Y AHORA, ¿CABE? ──────────────────────────────────────────────
+       *
+       * El mecanismo lo declara el adaptador —nunca se le supone—, y la
+       * traducción es la misma función que él usará por dentro. Si algo de lo
+       * exigido no se sostiene, se para aquí. Un adaptador sin `continuidad` es
+       * uno que no tiene mecanismo: entonces lo exigido no se puede sostener y
+       * se rechaza igual, en vez de ejecutarse como si nada se hubiera pedido.
+       */
+      if (requisitosDeContinuidad) {
+        const traduccion = traducirContinuidad(
+          requisitosDeContinuidad,
+          adapter.continuidad?.(capability as CapabilityId, modelo.id)
+            ?? { referenciasDeImagen: 0, referenciasDeVideo: 0, controlesDedicados: [] },
+          materialDeLaEntrada(entrada),
+        );
+        if (!cubreLoExigido(traduccion)) {
+          return rechazo('INVALID_REQUEST', 'invalid_request', {
+            continuity: 'pre_execution_rejected',
+            uncovered: traduccion?.noCubiertos.length ?? 0,
+            reasons: [...new Set((traduccion?.aspects ?? []).filter((x) => x.support === 'unsupported').map((x) => x.reason))],
+          });
+        }
+      }
+
       const inicio = now();
       try {
         const result = await conTiempoLimite(
-          adapter.run({ capability: capability as CapabilityId, model: modelo, input: input as Record<string, unknown>, ctx, prefs, timeoutMs, onStatus }),
+          adapter.run({
+            capability: capability as CapabilityId,
+            model: modelo,
+            input: entrada,
+            ctx,
+            prefs,
+            timeoutMs,
+            onStatus,
+            /*
+             * Y los requisitos ENTEROS, no los dos escalares que `prefs`
+             * recorta. Quien sepa traducirlos los traducirá; quien no, los
+             * ignora y se comporta exactamente como antes.
+             */
+            ...(execution.hints ? { hints: execution.hints } : {}),
+            /*
+             * EXPLÍCITO Y SIEMPRE PRESENTE. Antes iba en un spread condicional:
+             * el adaptador recibía la propiedad o no la recibía, y «no
+             * recibirla» era indistinguible de «se perdió por el camino» —que
+             * es justo lo que pasó—. Ahora siempre llega un booleano, así que
+             * si un día vuelve a valer `false` cuando debería valer `true`, se
+             * ve en el sitio donde se decide y no tres capas más abajo.
+             */
+            acceptAsync: deps.aceptaAsincrono === true,
+          }),
           timeoutMs,
           adapter.id,
         );
+        /*
+         * EL PROVEEDOR LA COGIÓ. Aquí no hay respuesta que canonizar: hay un
+         * nombre con el que volver a preguntar. El uso viaja igual —lo que el
+         * proveedor ya dijo del coste no se pierde—, pero no se inventa un
+         * resultado vacío para que el tipo encaje.
+         */
+        if (result.accepted) {
+          /*
+           * SIN USO. `GatewayUsage` es lo que el proveedor DIJO que consumió, y
+           * al aceptar todavía no ha dicho nada: lo que hay es una estimación
+           * del adaptador. Mandarla aquí la convertiría en consumo real en el
+           * libro, y el consumo real llega con el desenlace. El coste estimado
+           * viaja por donde ya viajaba —`meta`, y `onStatus`—, no por aquí.
+           *
+           * Si el adaptador no dio nombre de operación, se manda vacío a
+           * propósito: el Gateway lo rechaza con `accepted_without_operation`,
+           * que es exactamente lo que es, en vez de inventarle uno.
+           */
+          return {
+            ok: true,
+            accepted: true,
+            operation: { providerId: adapter.id, operationId: String(result.accepted.operationId ?? '').trim() },
+            warnings: ganchoFallo ? ['progress_hook_failed'] : undefined,
+          };
+        }
         const response = aRespuestaCanonica(result, adapter.id, modelo.id, now() - inicio);
         return {
           ok: true,
@@ -267,6 +462,22 @@ export interface GatewayDelMotorDeps {
   loadConfig: () => Promise<EngineConfig>;
   tracer: Tracer;
   now?: () => number;
+  /**
+   * SE LE PASA AL EJECUTOR, y por eso tiene que estar declarado AQUÍ.
+   *
+   * Faltaba, y el canary real lo encontró: quien componía el Gateway lo pasaba
+   * con un `...spread`, que es justo la forma que TypeScript NO comprueba por
+   * propiedades de más. El tipo lo aceptaba, el compilador callaba, y la opción
+   * se caía por el camino sin que nadie se enterara — hasta que el proveedor
+   * sondeó ochenta segundos en vez de aceptar y soltar.
+   */
+  aceptaAsincrono?: boolean;
+  /** C8. Se declara AQUÍ por la misma lección de arriba: nada viaja por un spread. */
+  referencias?: EjecutorDeps['referencias'];
+  /** C11.4, por la misma razón. */
+  recursos?: EjecutorDeps['recursos'];
+  /** G8, por la misma razón. */
+  upstream?: EjecutorDeps['upstream'];
 }
 
 /**
@@ -286,7 +497,16 @@ export const crearGatewayDelMotor = (deps: GatewayDelMotorDeps): Gateway => {
   };
   return crearGateway({
     registry: registro,
-    executor: crearEjecutorDelMotor({ adapters: deps.adapters, config: deps.loadConfig, now: deps.now }),
+    executor: crearEjecutorDelMotor({
+      adapters: deps.adapters,
+      config: deps.loadConfig,
+      now: deps.now,
+      /* EXPLÍCITO. Un spread aquí es exactamente por donde se perdió la primera vez. */
+      aceptaAsincrono: deps.aceptaAsincrono === true,
+      referencias: deps.referencias,
+      recursos: deps.recursos,
+      upstream: deps.upstream,
+    }),
     tracer: deps.tracer,
     now: deps.now ?? (() => Date.now()),
   });
@@ -310,6 +530,32 @@ let instancia: Gateway | undefined;
 
 /** El Gateway de Weë: adaptadores reales y configuración viva. Se construye la primera vez que se pide. */
 export const gatewayDeWee = (): Gateway => {
-  if (!instancia) instancia = crearGatewayDelMotor({ adapters: ADAPTERS, loadConfig, tracer: trazaDeConsola });
+  if (!instancia) {
+    instancia = crearGatewayDelMotor({
+      adapters: ADAPTERS,
+      loadConfig,
+      tracer: trazaDeConsola,
+      /*
+       * C8. SE CARGA AL USARSE, y esto no es pereza: es la regla de este
+       * archivo. Resolver una referencia necesita Firestore, los elementos y
+       * Media Cloud enteros, y traer ese mundo con un import de arriba metería
+       * medio Weë en el grafo del Gateway —que lleva desde el primer día sin
+       * importar Firestore, y por eso se puede probar sin él—. Mientras nadie
+       * pida continuidad, nada de esto se carga siquiera.
+       */
+      referencias: async (accountId, requisitos) => {
+        const { referenciasDeContinuidadDeWee } = await import('./referencias-de-wee');
+        return referenciasDeContinuidadDeWee(accountId, requisitos);
+      },
+      recursos: async (accountId, adjuntos) => {
+        const { recursosAdjuntosDeWee } = await import('./referencias-de-wee');
+        return recursosAdjuntosDeWee(accountId, adjuntos);
+      },
+      upstream: async (accountId, pasos) => {
+        const { upstreamDeWee } = await import('./referencias-de-wee');
+        return upstreamDeWee(accountId, pasos);
+      },
+    });
+  }
   return instancia;
 };

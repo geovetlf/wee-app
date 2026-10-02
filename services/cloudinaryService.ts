@@ -2,6 +2,12 @@ import { Platform } from 'react-native';
 import { uriSinMetadatos, blobSinMetadatos } from '../utils/publicImage';
 
 const CLOUD_NAME = 'dnrj1guvs';
+/*
+ * Nombre heredado de HideTok, y no se toca aquí: es el nombre del preset SIN FIRMAR
+ * que EXISTE en la cuenta de Cloudinary. Cambiar esta cadena sin crear antes el preset
+ * nuevo en Cloudinary (con la misma configuración) rompe todas las subidas. La
+ * migración y quién la hace: docs/LEGADO-HIDETOK.md.
+ */
 const UPLOAD_PRESET = 'hidetok-simple';
 const BASE_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}`;
 
@@ -163,7 +169,7 @@ export const uploadImageToCloudinary = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Cloudinary image upload failed: ${response.status} ${errorText}`);
+      throw new Error(`cloudinary-imagen-fallida:${response.status}:${errorText}`);
     }
 
     const result = await response.json();
@@ -214,7 +220,7 @@ export const uploadBlobToCloudinary = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Cloudinary blob upload failed: ${response.status} ${errorText}`);
+      throw new Error(`cloudinary-blob-fallido:${response.status}:${errorText}`);
     }
 
     const result = await response.json();
@@ -248,7 +254,7 @@ export const uploadAudioToCloudinary = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Cloudinary audio upload failed: ${response.status} ${errorText}`);
+      throw new Error(`cloudinary-audio-fallido:${response.status}:${errorText}`);
     }
 
     const result = await response.json();
@@ -277,7 +283,7 @@ export const uploadVideoToCloudinary = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Cloudinary video upload failed: ${response.status} ${errorText}`);
+      throw new Error(`cloudinary-video-fallido:${response.status}:${errorText}`);
     }
 
     const result = await response.json();

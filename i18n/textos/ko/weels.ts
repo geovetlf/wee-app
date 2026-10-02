@@ -23,4 +23,8 @@ export const weels: typeof import('../es/weels').weels = {
   open: 'Weël 보기',
   upTo15s: '최대 15초',
   noneYetHint: '아직 커뮤니티가 만든 Weëls 영상이 없어요. 아래 예시로 어떤 모습일지 미리 볼 수 있어요.',
+  sampleAiScene: 'AI 장면',
+  sampleDance: '댄스',
+  sampleRecipe: '레시피',
+  sampleTrip: '여행',
 };

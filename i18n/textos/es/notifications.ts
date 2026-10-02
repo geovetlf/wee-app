@@ -24,4 +24,6 @@ export const notifications = {
   now: 'ahora',
   markAllRead: 'Marcar todas como leídas',
   all: 'Todas',
+  unread: 'No leídas',
+  unreadWithCount: 'No leídas ({{total}})',
 };

@@ -43,6 +43,11 @@ nul
 App-backup.tsx
 app-backup.json
 
+# Las huellas de copia de seguridad (scripts/copias.mjs, docs/BACKUP.md).
+# Son hashes, pero también llevan identificadores REALES de producción —números
+# de cuenta, ent_…, uid— para poder comparar una restauración. No se versionan.
+.backup-local/
+
 # Firebase
 .firebase/
 firebase-debug.log
@@ -77,3 +82,24 @@ design/canvas/propuesta-diseno-wee.html
 # Secretos de producción de Cloud Functions (claves de IA, uids de administración): nunca versionar
 functions/.env.get-wee
 functions/.env.prod
+
+# Compilado de Cloud Functions: sale de `npm --prefix functions run build` (predeploy y CI).
+# Versionado se quedaba congelado (76ca834) y viajaba a producción con archivos huérfanos (auditoría H0).
+functions/lib/
+
+# Copias locales de entornos y configuración: nunca se versionan (auditoría H0).
+.env.*
+!.env.example
+*.bak-*
+*.antes-*
+functions/parche*.txt
+functions/.secret.local
+hs_err_pid*.log
+
+# Revisor de fase (docs/REVISION.md): la caché de revisiones de IA y las salidas intermedias de cada pasada.
+# El informe final (ops/revision/informes/) y la baseline (ops/revision/baseline.json) sí se versionan.
+ops/revision/.cache/
+ops/revision/tmp/
+# Salidas de la CI cuando se ejecuta en local (scripts/ci-local.mjs): el informe de la revisión determinista y los registros de políticas.
+/revision-determinista.md
+/politica-*.log

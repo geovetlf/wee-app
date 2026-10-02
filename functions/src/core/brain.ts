@@ -1,11 +1,14 @@
 import { BRAIN_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { Modality } from './capability';
+import { CreativeParameters, creativosValidos } from './creative';
+import { ContinuityIntent, leerIntencionDeContinuidad } from './continuity-intent';
+import { ContextNeed, MAX_NECESIDADES, necesidadValida } from './visual-context';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
 import { LanguageContext } from './language';
 import { OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
 import { AssetKind } from './content';
 import { CanonicalResponse, SourceRef } from './provider';
-import { CAPABILITY_CATALOG, CoreCapabilityId } from './registry';
+import { CAPABILITY_CATALOG, VarianteDeCapacidad, CoreCapabilityId } from './registry';
 import { WorkplaceManifest } from './workplace';
 import {
   ExecutionHints,
@@ -271,6 +274,176 @@ export const LIMITES_DE_CONTEXTO = {
 /** Cuánto se fía Brain de lo que entendió. */
 export type BrainConfidence = 'high' | 'medium' | 'low';
 
+/* ── Lo que hace falta, y DE DÓNDE VIENE ──────────────────────────────────── */
+
+/**
+ * DE DÓNDE SALE EL MATERIAL DE UN PASO. Dos sitios, y ninguno más.
+ *
+ * `user` es lo que ya existe cuando el plan empieza: lo que la persona adjuntó,
+ * y lo que el contexto resolvió de sus cosas —que entra por el mismo canal a
+ * propósito, como `BrainAttachment`—.
+ *
+ * `upstream` es lo que produce OTRO PASO de este mismo plan, y entonces hay que
+ * decir cuál. No «el último que produjo una imagen»: cuál.
+ */
+export type OrigenDelMaterial = 'user' | 'upstream';
+
+/**
+ * QUÉ NECESITA ESTA INSTANCIA DE PASO, Y DE DÓNDE.
+ *
+ * ── Por qué no es `ContextNeed` ─────────────────────────────────────────────
+ *
+ * Se miró en serio, porque duplicar un vocabulario cerrado es de las peores
+ * cosas que se pueden hacer aquí. No sirve, por tres razones y la primera es
+ * medible: `ContextNeed` habla en `AssetKind` —seis clases de material
+ * guardado— y esto tiene que compararse contra `accepts` y `produces`, que
+ * hablan en `Modality`. El puente entre las dos pierde cosas: `music` no tiene
+ * ningún `AssetKind` que la represente, y son OCHO capacidades del catálogo.
+ *
+ * Las otras dos: `ContextNeed` es de otro motor —el contexto visual, que
+ * resuelve nombres contra las cosas de la cuenta y no sabe nada de pasos— y
+ * vive a otro nivel: se resuelve ANTES de planificar, y esto DURANTE.
+ *
+ * Lo que sí se le copia es la forma: obligatoriedad explícita, vocabulario
+ * cerrado, y ni un identificador ni una dirección por ningún lado.
+ *
+ * ── Por qué NO lleva `role` ─────────────────────────────────────────────────
+ *
+ * Porque no habría contra qué emparejarlo. `role` serviría para decir «esta
+ * foto es el sujeto y esa otra el fondo», pero un `BrainAttachment` es
+ * `{kind, url?, assetId?, name?}` y no tiene dónde llevar ese papel. Declarar
+ * algo que nadie puede resolver es peor que no declararlo.
+ */
+export interface StepNeed {
+  from: OrigenDelMaterial;
+  /** En el vocabulario del CATÁLOGO, que es contra lo que se comprueba. */
+  modality: Modality;
+  /** Solo con `from: 'upstream'`: la `key` del paso que lo produce. Obligatoria ahí. */
+  stepKey?: string;
+  /** Sin esto no se puede hacer el paso. Por defecto, sí. */
+  required?: boolean;
+}
+
+/**
+ * LO QUE TIENE QUE HACER ESTE PASO, Y SOLO ESTE.
+ *
+ * ── Por qué hacía falta ─────────────────────────────────────────────────────
+ *
+ * El plan sabía decir «esto va de restaurar» una vez, para todos sus pasos. Y
+ * casi nunca es verdad: «escribe el menú y luego púlelo» son dos pasos de la
+ * misma capacidad que hacen cosas distintas, y hasta aquí los dos recibían la
+ * misma variante y la misma frase —el objetivo entero de la persona, copiado—.
+ *
+ * Medido sobre los 65 pasos comparables de las experiencias: 64 perdían su
+ * variante y los 65 recibían el mismo `brief`.
+ *
+ * ── Lo que NO es ────────────────────────────────────────────────────────────
+ *
+ * No es un prompt. `brief` es una frase corta que dice QUÉ hace este paso, en
+ * las palabras del encargo; la instrucción que lee un proveedor se arma abajo,
+ * en ejecución, y sigue sin subir hasta aquí. Tampoco lleva proveedor, modelo,
+ * adaptador, identificador de material ni dirección: para eso están las otras
+ * capas y hay una comprobación que lo impide.
+ */
+export interface BrainStepInput {
+  /**
+   * LA VARIANTE, del catálogo y de la capacidad de ESTE paso.
+   *
+   * `draft` y `polish` son dos maneras de pedir `text.generate`, y quién sabe
+   * cuáles existen es el catálogo — no Brain, ni las plantillas, ni quien
+   * ejecuta—. Una que la capacidad no declare se rechaza en vez de pasar.
+   */
+  kind?: string;
+  /** Qué hace este paso, en una frase corta. Si falta, se usa el objetivo. */
+  brief?: string;
+}
+
+/**
+ * UNA INSTANCIA DE PASO, COMO LA PIENSA BRAIN.
+ *
+ * Y la diferencia con `capabilities` es la que costó dos fases entender:
+ * `capabilities` contesta QUÉ HACE FALTA y es un conjunto —Brain lo deduplica
+ * al leerlo, y el Workflow comprueba que el plan diga lo mismo—; esto contesta
+ * QUÉ PASOS HAY, y admite la misma capacidad tres veces porque escribir el
+ * guion, el pie y la descripción son tres pasos y no uno.
+ *
+ * Los dos campos viven juntos y ninguno sustituye al otro.
+ *
+ * La `key` es de Brain y se queda en Brain: no sale al plan, no viaja a ningún
+ * proveedor y no se guarda en ningún sitio. Sirve para UNA cosa —que un paso
+ * pueda señalar a otro— y por eso tiene que ser única dentro del entendimiento,
+ * estable mientras se planifica, y no depender de nada de abajo.
+ */
+export interface BrainStep {
+  /** Nombre corto y propio del encargo: `guion`, `pie`, `mirar_la_foto`. */
+  key: string;
+  capability: CoreCapabilityId;
+  /**
+   * DE DÓNDE SALE LO QUE ESTE PASO NECESITA.
+   *
+   * Ausente NO significa «dedúcelo»: significa que este paso no declara nada, y
+   * entonces nadie inventa una dependencia por él. Que una capacidad acepte
+   * imágenes y otra las produzca no las relaciona — eso es lo que rompía Weë
+   * Chef, que acababa describiendo la foto que el propio plan había dibujado.
+   */
+  needs?: readonly StepNeed[];
+  /**
+   * QUÉ HACE ESTE PASO. Ausente = lo que se venía haciendo: la variante del
+   * plan, si su capacidad la reconoce, y el objetivo de la persona como frase.
+   */
+  input?: BrainStepInput;
+  /**
+   * LO QUE ESTE PASO PIDE DEL RESULTADO. El mismo contrato de siempre.
+   *
+   * Un guion no dura diez segundos: dura diez segundos el vídeo que sale de
+   * él. Y la proporción vertical es del clip, no de la frase que lo describe.
+   * Medido sobre las 35 formas: hay DIEZ planes donde una pista la pide un
+   * solo paso, y dársela a todos le pondría a un paso de texto una duración
+   * y un encuadre — y, peor, una calidad `max` que nadie pidió para él, que
+   * es de las pocas pistas que cambian a qué modelo se va y cuánto cuesta.
+   *
+   * Ausente = las del plan, como hasta ahora. Presente = manda esta, clave a
+   * clave: lo que el paso no diga lo sigue poniendo el plan.
+   */
+  hints?: ExecutionHints;
+  /**
+   * CUÁNTAS PROPUESTAS ALTERNATIVAS ENTREGA ESTE PASO PARA QUE LA PERSONA ELIJA.
+   *
+   * Los tres logos de Weë Design, los dos looks de Weë Beauty. No es una
+   * cantidad cualquiera: son salidas equivalentes entre sí, de las que la
+   * persona se queda con una. Cuántos días dura un viaje o para cuántas
+   * personas es una receta NO es esto — eso viaja dentro de `input.brief`,
+   * donde ha viajado siempre.
+   *
+   * ── Por qué al lado de `input` y no dentro ──────────────────────────────
+   *
+   * Porque `input` dice QUÉ HACE el paso —su variante y su frase— y esto dice
+   * CUÁNTAS VECES entrega el resultado. Es la misma distinción que ya separa a
+   * `needs`, que también vive fuera. El Planner la coloca en `input.count` al
+   * armar el plan, que es donde el precio y el adaptador llevan años
+   * leyéndola; aquí es transporte, allí es contrato.
+   *
+   * ── BRAIN NO LA ESCRIBE ─────────────────────────────────────────────────
+   *
+   * Y no es un olvido. El intérprete de lo que contesta el modelo NO lee esta
+   * clave, y el prompt no la enseña: un modelo que se inventara una cantidad
+   * la vería descartada antes de llegar a ser un paso. Hoy la cantidad nace
+   * donde nació siempre —en la plantilla de la experiencia— y cruza al Core por
+   * el puente. Que Brain pueda decidirla algún día es otra fase, y exige
+   * medirlo antes.
+   *
+   * Ausente ≠ 1. Ausente es «este paso no pide varias», que es el caso normal.
+   * Un `1` escrito es alguien afirmando que quiere exactamente una.
+   */
+  count?: number;
+}
+
+/** Como mucho, los pasos que caben en un encargo. El mismo techo que las capacidades. */
+export const MAX_PASOS_DEL_ENTENDIMIENTO = 12;
+
+/** La forma de una `key`: corta, minúscula y legible. Ni un id, ni una URL. */
+export const FORMA_DE_CLAVE_DE_PASO = /^[a-z][a-z0-9_]{0,39}$/;
+
 /**
  * EL ENTENDIMIENTO: la salida que consumirá el Planner (Fase 4).
  *
@@ -278,9 +451,17 @@ export type BrainConfidence = 'high' | 'medium' | 'low';
  * cine» a algo sobre lo que se puede razonar: qué clase de cosa es, qué
  * capacidad hace falta, qué entra, qué restricciones hay y qué falta por saber.
  *
- * Lo que NO lleva: pasos, orden, dependencias, proveedor, modelo ni precio. Eso
- * es del Planner, del Router y del sistema de Credits, y meterlo aquí sería
- * exactamente convertir a Brain en lo que no debe ser.
+ * Lo que NO lleva: proveedor, modelo ni precio. Eso es del Router y del sistema
+ * de Credits, y meterlo aquí sería exactamente convertir a Brain en lo que no
+ * debe ser.
+ *
+ * Pasos y dependencias SÍ lleva, desde C15c, y no es una contradicción: lo que
+ * declara son pasos SEMÁNTICOS —qué hay que hacer y de dónde sale lo que cada
+ * uno necesita—, no ejecución. Quién lo hace, en qué orden real, con qué
+ * material resuelto y a qué coste sigue siendo del Planner para abajo. La
+ * razón de que suba hasta aquí es que abajo NO SE PUEDE SABER: que una
+ * capacidad produzca imágenes y otra las acepte no las relaciona, y deducirlo
+ * era inventar.
  */
 export interface BrainUnderstanding {
   intent: BrainIntent;
@@ -299,6 +480,22 @@ export interface BrainUnderstanding {
    * Planner del catálogo, que es quien sabe qué produce y qué acepta cada una.
    */
   capabilities?: readonly CoreCapabilityId[];
+  /**
+   * LOS PASOS, CUANDO BRAIN SABE DECIRLOS.
+   *
+   * `capabilities` dice qué hace falta; esto dice QUÉ PASOS HAY, en qué orden y
+   * —lo que no se podía decir hasta ahora— de dónde sale lo que cada uno
+   * necesita.
+   *
+   * Cuando está, MANDA: el orden es el declarado y las dependencias son las
+   * declaradas. El Planner deja de deducirlas del catálogo, que es justo lo que
+   * hacía que Weë Chef describiera la foto que el propio plan acababa de
+   * dibujar. Cuando no está, todo sigue exactamente como estaba.
+   *
+   * No sustituye a `capabilities`: el plan sigue llevando el conjunto, porque
+   * el Workflow lo comprueba contra los pasos.
+   */
+  steps?: readonly BrainStep[];
   /** Qué clase de resultado se espera. Se deduce de la capacidad, no se inventa. */
   modality?: Modality;
   inputs: { text: string; attachments: readonly BrainAttachment[] };
@@ -315,6 +512,34 @@ export interface BrainUnderstanding {
   suggestedExperience?: string;
   /** ¿Hace falta un plan, o esto se resuelve contestando? */
   needsPlanning: boolean;
+  /**
+   * QUÉ DE LO QUE YA TIENE LA PERSONA HACE FALTA PARA ESTO.
+   *
+   * «Usa la hamburguesa que creamos ayer» es una intención que necesita algo
+   * que ya existe. Esto lo dice en el vocabulario cerrado de S3
+   * (`ContextNeed`): un Element de una clase, o material de una clase. Nada
+   * más; ni un id, ni una URL, ni texto libre.
+   *
+   * Brain dice QUÉ HACE FALTA. Quién es «la hamburguesa» lo decide el contexto
+   * visual, que es otra capa y otro archivo. Y ausente significa que no hacía
+   * falta nada: ese es el caso normal y no se resuelve nada.
+   */
+  context?: readonly ContextNeed[];
+  /**
+   * QUÉ TIENE QUE QUEDARSE IGUAL Y QUÉ PUEDE CAMBIAR.
+   *
+   * «Mantén a Luna y cámbiale el vestido» son DOS cosas y hay que decirlas por
+   * separado, porque el silencio sobre todo lo demás no autoriza nada. Sale de
+   * la MISMA llamada que ya entendió la petición —igual que los parámetros
+   * creativos y las necesidades de contexto—, y en el vocabulario cerrado de C2.
+   *
+   * Los sujetos vienen POR SU NOMBRE, nunca por identificador: el modelo no los
+   * conoce, y uno inventado que pasara la validación apuntaría a la cosa de
+   * otra persona. Resolver el nombre es de `resolverIntencionDeContinuidad`.
+   *
+   * Ausente significa que nadie pidió conservar nada, que es el caso normal.
+   */
+  continuity?: ContinuityIntent;
   /** Lo que falta por saber. Sale del modelo o queda vacío: nunca se inventa. */
   missing: readonly string[];
   /** Lo que Brain dio por supuesto. Explícito a propósito: una suposición callada es una mentira. */
@@ -410,6 +635,20 @@ export interface ThoughtRequest {
     intents: readonly BrainIntent[];
     capabilities: readonly CoreCapabilityId[];
     experiences: readonly string[];
+    /**
+     * QUÉ VARIANTES ADMITE CADA CAPACIDAD, para las que tienen.
+     *
+     * Sin esto, el modelo sabe que existe `text.generate` pero no que `polish`
+     * es una manera de pedirla, así que no puede decir qué hace cada paso: lo
+     * encontró la auditoría de C18. Sale del catálogo y de ningún otro sitio —
+     * un segundo listado sería una segunda verdad sobre lo mismo, y el día que
+     * se añadiera una variante solo se enteraría la mitad del sistema.
+     *
+     * Solo el vocabulario semántico. Ni un proveedor, ni un modelo, ni un
+     * precio, ni qué hay disponible hoy: nada de eso ayuda a entender lo que
+     * alguien pidió, y todo eso invita a elegir por su cuenta.
+     */
+    variants?: Readonly<Record<string, readonly VarianteDeCapacidad[]>>;
   };
   hints?: ExecutionHints;
   accounting?: BrainAccounting;
@@ -625,6 +864,19 @@ const listaDeTextos = (v: unknown, tope: number, largo = 200): readonly string[]
  * compuso Brain; lo que no case, se descarta. Un campo descartado queda
  * ausente, nunca relleno con algo parecido.
  */
+/**
+ * Las pistas de quien llamó, con la intención creativa que el modelo dedujo del
+ * texto. Lo explícito manda: solo se rellena lo que no venía.
+ */
+const conIntencionCreativa = (
+  pistas: ExecutionHints | undefined,
+  creative: CreativeParameters | undefined,
+): ExecutionHints | undefined => {
+  if (!creative) return pistas;
+  if (pistas?.creative) return pistas;
+  return { ...(pistas ?? {}), creative };
+};
+
 export const interpretarEntendimiento = (
   crudo: unknown,
   esperado: NonNullable<ThoughtRequest['expected']>,
@@ -634,18 +886,47 @@ export const interpretarEntendimiento = (
   goal?: string;
   capability?: CoreCapabilityId;
   capabilities: readonly CoreCapabilityId[];
+  /** Los pasos que el modelo supo decir. Vacío cuando no dijo ninguno, que es el caso de hoy. */
+  steps: readonly BrainStep[];
   constraints: Readonly<Record<string, string | number | boolean>>;
   missing: readonly string[];
   assumptions: readonly string[];
   suggestedExperience?: string;
   question?: string;
+  /**
+   * LA INTENCIÓN CREATIVA QUE EL MODELO ENTENDIÓ, ya estructurada.
+   *
+   * Aquí es donde «que la cámara se aleje lentamente desde arriba» deja de ser
+   * una frase y pasa a ser `camera.type = aerial`, `movement.type = dolly_out`,
+   * `movement.speed = slow`. Lo hace EL MISMO modelo que ya está entendiendo la
+   * petición: no hay una segunda llamada, ni un intérprete, ni un analizador de
+   * texto en ningún sitio.
+   */
+  creative?: CreativeParameters;
+  /**
+   * LO QUE HACE FALTA TENER DELANTE, en el vocabulario cerrado de S3.
+   *
+   * Sale de la MISMA llamada que ya entendió la petición: no hay una segunda
+   * pasada, ni un segundo modelo, ni un analizador de texto. El modelo dice
+   * «esto necesita un producto»; qué producto es no lo decide él.
+   */
+  context?: readonly ContextNeed[];
+  /**
+   * LO QUE HAY QUE CONSERVAR Y LO QUE PUEDE CAMBIAR, en el vocabulario de C2.
+   *
+   * A diferencia de `creative`, esto NO es entero o nada: cada aspecto es
+   * independiente, y descartar «conserva el rostro» porque el modelo escribió
+   * mal otro aspecto sería perder lo que sí se entendió.
+   */
+  continuity?: ContinuityIntent;
 } => {
-  const vacio = { capabilities: [], constraints: {}, missing: [], assumptions: [] };
+  const vacio = { capabilities: [], steps: [], constraints: {}, missing: [], assumptions: [] };
   if (!esObjetoPlano(crudo)) return vacio;
   const intent = esTexto(crudo.intent) && (esperado.intents as readonly string[]).includes(crudo.intent) ? (crudo.intent as BrainIntent) : undefined;
   const confidence = crudo.confidence === 'high' || crudo.confidence === 'medium' || crudo.confidence === 'low' ? crudo.confidence : undefined;
   const capability = esTexto(crudo.capability) && (esperado.capabilities as readonly string[]).includes(crudo.capability) ? (crudo.capability as CoreCapabilityId) : undefined;
   /* Igual que la principal: lo que no esté en el catálogo se descarta, no se aproxima. */
+  const steps = interpretarPasos(crudo.steps, esperado);
   const capabilities = Array.isArray(crudo.capabilities)
     ? [...new Set(crudo.capabilities.filter((c): c is CoreCapabilityId => esTexto(c) && (esperado.capabilities as readonly string[]).includes(c)))].slice(0, 12)
     : [];
@@ -663,7 +944,26 @@ export const interpretarEntendimiento = (
     goal: esTexto(crudo.goal) ? recortar(crudo.goal.trim(), 300) : undefined,
     capability,
     capabilities,
+    steps,
     constraints,
+    /*
+     * ENTERA O NADA. Igual que las capacidades, que se descartan si no están en
+     * el catálogo: lo que el modelo diga se acepta si encaja en el vocabulario
+     * cerrado, y si no, se ignora. Media intención creativa sería peor que
+     * ninguna — el plan saldría describiendo algo que nadie pidió.
+     */
+    creative: creativosValidos(crudo.creative) ? crudo.creative : undefined,
+    /*
+     * ENTERO O NADA, y acotado. Lo que no encaje en el vocabulario se descarta
+     * sin avisar, igual que una capacidad que no está en el catálogo: media
+     * necesidad de contexto haría buscar algo que nadie pidió.
+     */
+    context: Array.isArray(crudo.context) && crudo.context.length > 0 && crudo.context.length <= MAX_NECESIDADES
+      && crudo.context.every(necesidadValida)
+      ? (crudo.context as readonly ContextNeed[])
+      : undefined,
+    /* Aspecto a aspecto, y los sujetos por su nombre. Sin resolver: eso es de otra capa. */
+    continuity: leerIntencionDeContinuidad(crudo.continuity),
     missing: listaDeTextos(crudo.missing, 8),
     assumptions: listaDeTextos(crudo.assumptions, 8),
     suggestedExperience: sugerida,
@@ -897,6 +1197,198 @@ const capacidadDePensar = (options: BrainOptions, kind: 'reply' | 'understand'):
   return options.webSearch === true ? 'text.search' : 'text.generate';
 };
 
+/**
+ * CAPACIDAD → SUS VARIANTES. Una PROYECCIÓN del catálogo, no una copia.
+ *
+ * Se calcula al cargar y solo incluye a las que tienen variantes: hoy 14 de 68.
+ * Las otras 54 se piden sin variante y eso ya era legal.
+ */
+
+export const VARIANTES_DEL_CATALOGO: Readonly<Record<string, readonly VarianteDeCapacidad[]>> = Object.freeze(
+  Object.fromEntries(CAPABILITY_CATALOG.filter((c) => c.variants?.length).map((c) => [c.id, c.variants as readonly VarianteDeCapacidad[]])),
+);
+
+/**
+ * EL VOCABULARIO CERRADO, ARMADO UNA SOLA VEZ.
+ *
+ * Se lo lleva el modelo para saber qué puede decir, y lo usa el intérprete
+ * para comprobar lo que dijo. Tienen que ser EL MISMO: se construía por
+ * separado en dos sitios, y al añadir las variantes solo se enteró uno —el
+ * modelo las recibía y el intérprete las descartaba todas—. Lo cazó el canary
+ * de Travel, que devolvía cuatro pasos sin variante.
+ */
+const vocabulario = (experiencias: readonly string[]): NonNullable<ThoughtRequest['expected']> => ({
+  intents: INTENCIONES,
+  capabilities: CAPABILITY_CATALOG.map((c) => c.id),
+  experiences: experiencias,
+  variants: VARIANTES_DEL_CATALOGO,
+});
+
+/**
+ * LOS PASOS QUE DIJO EL MODELO, REVISADOS.
+ *
+ * Con la MISMA regla que el resto de este archivo: lo que no encaje en el
+ * vocabulario cerrado se descarta, no se aproxima. Una capacidad que no está
+ * en el catálogo no es un paso; una variante que su capacidad no declara
+ * tampoco lo es, y se le quita la variante en vez de tirar el paso entero —
+ * perder «escribe el menú» porque el modelo escribió mal `menú` sería peor.
+ *
+ * Lo que NO se hace aquí es planificar. Ni se ordena, ni se deducen
+ * dependencias, ni se valida que el plan sea posible: eso es del Planner, que
+ * lo vuelve a comprobar todo porque es una frontera y las fronteras comprueban.
+ *
+ * Y las claves de más se DESCARTAN: si el modelo se inventa un `providerId`
+ * dentro de un paso, no viaja. El Planner además lo rechazaría, pero un dato
+ * que no debería existir no debe llegar hasta allí para que lo rechacen.
+ */
+const MAX_PASOS_DEL_MODELO = 12;
+const MAX_BRIEF_DEL_MODELO = 300;
+const MAX_NECESIDADES_DEL_PASO = 4;
+
+/**
+ * DE DÓNDE SACA SU MATERIAL UN PASO, DICHO POR EL MODELO.
+ *
+ * ── Por qué esto tenía que existir ──────────────────────────────────────────
+ *
+ * `StepNeed` existe desde C15c, el Planner lo valida entero y el puente de
+ * Legacy lo produce. Lo que faltaba era el único tramo que importa para que
+ * Weë Brain componga: que el modelo PUEDA DECIRLO. Ni el prompt lo pedía ni
+ * esta función lo leía, así que un paso nunca podía declarar que bebe de otro
+ * y todo plan del Brain salía con los pasos sueltos.
+ *
+ * Se vio midiendo Chef: «mira lo que tengo en la nevera y dime qué cocinar»
+ * son dos pasos, y el segundo es `text.generate`, que acepta SOLO texto. La
+ * foto no le puede llegar; lo único que le llega de ella es la descripción del
+ * primero. Sin este campo, Weë escribía una receta sin mirar la nevera.
+ *
+ * ── La modalidad la pone el CATÁLOGO, no el modelo ──────────────────────────
+ *
+ * Al modelo se le pregunta DE QUÉ PASO bebe, no de qué clase es lo que bebe:
+ * eso ya lo dice `produces` del paso que produce, y preguntarlo dos veces solo
+ * añade una forma de contestar mal.
+ *
+ * ── Y una necesidad imposible NO se tira: se deja pasar ─────────────────────
+ *
+ * Aquí se descarta mucho —una capacidad inventada, una variante que no
+ * existe—, y esto va al revés a propósito. Tirar una capacidad inventada quita
+ * un paso que el modelo se sacó de la manga. Tirar un «este paso bebe de aquel»
+ * cambia lo que el plan SIGNIFICA, de «cocina con lo que ves» a «cocina
+ * cualquier cosa», y lo cambia sin que nadie se entere: es exactamente el
+ * silencio que hizo falta arreglar aquí.
+ *
+ * Así que una necesidad que no se puede cumplir VIAJA, y la mata el Planner
+ * por su nombre y con su campo: `modality_not_accepted` si este paso no sabe
+ * recibir lo que aquel produce, y `unknown_step_key` si señala hacia adelante o
+ * a sí mismo. Ruidoso y con sitio, en vez de callado y plausible.
+ *
+ * Hay UNA autoridad para eso, y no es esta.
+ */
+const necesidadesDelModelo = (
+  crudo: unknown,
+  capability: CoreCapabilityId,
+  claveDe: ReadonlyMap<string, string>,
+  capacidadDe: ReadonlyMap<string, CoreCapabilityId>,
+): readonly StepNeed[] => {
+  if (!Array.isArray(crudo)) return [];
+  const entrada = CAPABILITY_CATALOG.find((c) => c.id === capability);
+  if (!entrada) return [];
+  const salida: StepNeed[] = [];
+  const vistas = new Set<string>();
+  for (const bruta of crudo.slice(0, MAX_NECESIDADES_DEL_PASO)) {
+    if (!esObjetoPlano(bruta)) continue;
+    const required = bruta.required === false ? { required: false } : {};
+
+    if (bruta.from === 'upstream') {
+      const stepKey = claveDe.get(esTexto(bruta.stepKey) ? bruta.stepKey : '');
+      if (!stepKey) continue;
+      const produce = capacidadDe.get(stepKey);
+      const modality = produce ? modalidadDeCapacidad(produce) : undefined;
+      if (!modality) continue;
+      const huella = stepKey;
+      if (vistas.has(huella)) continue;
+      vistas.add(huella);
+      salida.push(Object.freeze({ from: 'upstream' as const, modality, stepKey, ...required }));
+      continue;
+    }
+
+    if (bruta.from === 'user') {
+      const modality = bruta.modality;
+      if (!esTexto(modality) || !entrada.accepts.includes(modality as Modality)) continue;
+      const huella = `user:${modality}`;
+      if (vistas.has(huella)) continue;
+      vistas.add(huella);
+      salida.push(Object.freeze({ from: 'user' as const, modality: modality as Modality, ...required }));
+    }
+  }
+  return Object.freeze(salida);
+};
+
+export const interpretarPasos = (
+  crudo: unknown,
+  esperado: { capabilities: readonly string[]; variants?: Readonly<Record<string, readonly VarianteDeCapacidad[]>> },
+): readonly BrainStep[] => {
+  if (!Array.isArray(crudo)) return [];
+
+  /*
+   * DOS PASADAS, Y NO UNA.
+   *
+   * Porque un paso puede señalar a otro por su clave, y las claves las pone
+   * Weë —el modelo propone y aquí se acepta o se sustituye—. Con una sola
+   * pasada, señalar hacia ADELANTE se caería por el orden del bucle y no por
+   * una regla; sería un ciclo colándose como un olvido. Se resuelven todas las
+   * claves primero, y que el Planner aplique su regla de mirar solo hacia
+   * atrás, que es suya.
+   */
+  const aceptados: { bruto: Record<string, unknown>; key: string; capability: CoreCapabilityId; input?: { kind?: string; brief?: string } }[] = [];
+  const claves = new Set<string>();
+  const claveDe = new Map<string, string>();
+  const capacidadDe = new Map<string, CoreCapabilityId>();
+
+  for (const bruto of crudo.slice(0, MAX_PASOS_DEL_MODELO)) {
+    if (!esObjetoPlano(bruto)) continue;
+    const capability = bruto.capability;
+    if (!esTexto(capability) || !esperado.capabilities.includes(capability)) continue;
+    /*
+     * LA CLAVE LA PONE WEË, NO EL MODELO.
+     *
+     * Un nombre que otro paso usa para señalar a este tiene que ser único y
+     * estable, y un modelo puede repetirlo o dejarlo en blanco. Se acepta el
+     * suyo cuando tiene forma y no está cogido —se lee mejor en una traza—, y
+     * si no, se pone uno derivado de la posición.
+     */
+    const propuesta = esTexto(bruto.key) ? bruto.key : '';
+    const key = FORMA_DE_CLAVE_DE_PASO.test(propuesta) && !claves.has(propuesta)
+      ? propuesta
+      : `p${aceptados.length + 1}`;
+    if (claves.has(key)) continue;
+    claves.add(key);
+    /* Quien señale por el nombre que dijo el modelo tiene que llegar igual. */
+    if (propuesta && !claveDe.has(propuesta)) claveDe.set(propuesta, key);
+    claveDe.set(key, key);
+    capacidadDe.set(key, capability as CoreCapabilityId);
+
+    const entrada = esObjetoPlano(bruto.input) ? bruto.input : {};
+    const declaradas = esperado.variants?.[capability] ?? [];
+    const kind = esTexto(entrada.kind) && declaradas.some((d) => d.key === entrada.kind) ? entrada.kind : undefined;
+    const brief = esTexto(entrada.brief) && entrada.brief.trim() ? recortar(entrada.brief.trim(), MAX_BRIEF_DEL_MODELO) : undefined;
+    const input = kind !== undefined || brief !== undefined
+      ? { ...(kind !== undefined ? { kind } : {}), ...(brief !== undefined ? { brief } : {}) }
+      : undefined;
+
+    aceptados.push({ bruto, key, capability: capability as CoreCapabilityId, ...(input ? { input } : {}) });
+  }
+
+  return Object.freeze(aceptados.map(({ bruto, key, capability, input }) => {
+    const needs = necesidadesDelModelo(bruto.needs, capability, claveDe, capacidadDe);
+    return Object.freeze({
+      key,
+      capability,
+      ...(needs.length ? { needs } : {}),
+      ...(input ? { input: Object.freeze(input) } : {}),
+    });
+  }));
+};
+
 /** Todas las intenciones, como lista: la única, para que quien valide una no tenga que copiarla. */
 export const INTENCIONES: readonly BrainIntent[] = [
   'conversation', 'question', 'creation', 'edit', 'transform',
@@ -1001,7 +1493,7 @@ export const crearBrain = (ports: BrainPorts): Brain => {
         hints: p.options.hints,
         accounting: p.accounting,
         ...(kind === 'understand'
-          ? { expected: { intents: INTENCIONES, capabilities: CAPABILITY_CATALOG.map((c) => c.id), experiences: experiencias } }
+          ? { expected: vocabulario(experiencias) }
           : {}),
       });
     } catch (error) {
@@ -1021,8 +1513,8 @@ export const crearBrain = (ports: BrainPorts): Brain => {
 
     /* Lo que el modelo devolvió como estructura, ya validado contra el catálogo. */
     const leido = kind === 'understand'
-      ? interpretarEntendimiento(leerJson(crudo), { intents: INTENCIONES, capabilities: CAPABILITY_CATALOG.map((c) => c.id), experiences: experiencias })
-      : { capabilities: [] as readonly CoreCapabilityId[], constraints: {}, missing: [] as readonly string[], assumptions: [] as readonly string[] } as ReturnType<typeof interpretarEntendimiento>;
+      ? interpretarEntendimiento(leerJson(crudo), vocabulario(experiencias))
+      : { capabilities: [] as readonly CoreCapabilityId[], steps: [] as readonly BrainStep[], constraints: {}, missing: [] as readonly string[], assumptions: [] as readonly string[] } as ReturnType<typeof interpretarEntendimiento>;
 
     const señales = clasificarIntencion(contexto, marca.suggestedExperience);
     const intent = leido.intent ?? señales.intent;
@@ -1039,15 +1531,55 @@ export const crearBrain = (ports: BrainPorts): Brain => {
       capability,
       /* La principal entra en la lista aunque el modelo no la repita: la lista es el conjunto, no un extra. */
       capabilities: [...new Set([...(capability ? [capability] : []), ...leido.capabilities])],
+      /*
+       * LOS PASOS, CUANDO EL MODELO SUPO DECIRLOS.
+       *
+       * Y aquí NO se deduplican: `capabilities` es el conjunto —lo dice la
+       * línea de arriba— y esto es la lista de instancias. Escribir el guion,
+       * el pie y el título son tres pasos de `text.generate`, y un conjunto los
+       * dejaría en uno. Costó dos fases entenderlo (G9); no se repite.
+       *
+       * Ausente cuando el modelo no dijo ninguno, que hoy es SIEMPRE: el modo
+       * «entender» todavía no está enchufado a nada en producción.
+       */
+      ...(leido.steps.length ? { steps: leido.steps } : {}),
       modality: capability ? modalidadDeCapacidad(capability) : undefined,
       inputs: { text: contexto.inmediato.text, attachments: contexto.inmediato.attachments },
       references: contexto.inmediato.attachments.map((a) => a.assetId ?? a.url ?? '').filter(Boolean),
       constraints: leido.constraints,
-      preferences: p.options.hints,
+      /*
+       * LO QUE PIDIÓ QUIEN LLAMA, Y LO QUE ENTENDIÓ EL MODELO, EN EL MISMO
+       * SITIO. `preferences` ya viajaba de aquí al Planner y de ahí al
+       * adaptador; la intención creativa entra por ese mismo campo en vez de
+       * abrir otro. Y manda lo EXPLÍCITO: si quien llama ya trajo parámetros
+       * creativos —una interfaz avanzada, una repetición de algo anterior— lo
+       * deducido del texto no los pisa.
+       */
+      preferences: conIntencionCreativa(p.options.hints, leido.creative),
       language: p.language,
       workplace: p.workplace ? { id: p.workplace.id, experienceId: p.workplace.experienceId } : undefined,
       projectId: p.project?.id,
       suggestedExperience: sugerida,
+      /* Lo que hace falta tener delante, si el modelo lo dijo. Ausente es el caso normal. */
+      ...(leido.context ? { context: leido.context } : {}),
+      /*
+       * ── LO QUE HAY QUE CONSERVAR, QUE SE LEÍA Y SE TIRABA ──────────────────
+       *
+       * El intérprete la sacaba del JSON y la validaba ENTERA con su contrato
+       * —`leerIntencionDeContinuidad`, vocabulario cerrado de C2— y después
+       * este ensamblado no la copiaba. De los catorce campos que devuelve, era
+       * el único que no leía nadie.
+       *
+       * Lo enseñó un canary real: a «una foto de mi abuela… sin que deje de
+       * parecerse a sí misma» el modelo contestó exactamente
+       * `{preserve:['identity.face'], subjects:['abuela'], strength:'strict'}`,
+       * y eso se perdía aquí mismo, después de haber salido bien.
+       *
+       * Viaja con los SUJETOS POR SU NOMBRE, que es como el modelo los conoce.
+       * Convertir «abuela» en un `elementId@version` es de otra capa —el puente
+       * al Planner, con los candidatos de la cuenta delante— y sigue siéndolo.
+       */
+      ...(leido.continuity ? { continuity: leido.continuity } : {}),
       needsPlanning: necesitaPlan,
       missing: leido.missing,
       assumptions: leido.assumptions,

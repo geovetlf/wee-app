@@ -6,14 +6,13 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { textoDeObjetivo } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useWallet } from '../hooks/useWallet';
@@ -23,8 +22,7 @@ import { WEE_EXPERIENCES, WeeExperience, matchExperiences, getExperienceById, ex
 import { creatorService, CreatorJob, claveDelEstado } from '../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-
-const isWeb = Platform.OS === 'web';
+import { notify } from '../utils/notify';
 
 /**
  * Weë Creator — "El usuario elige el resultado. Weë elige la IA." (docs/CREATOR.md)
@@ -37,7 +35,7 @@ const isWeb = Platform.OS === 'web';
  */
 const WeeCreatorScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { t, formato } = useIdioma();
+  const { t, formato, locale } = useIdioma();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile } = useUserProfile();
   const navigation = useNavigation<any>();
@@ -50,7 +48,7 @@ const WeeCreatorScreen: React.FC = () => {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(initialCategory || null);
 
-  const matches = useMemo(() => matchExperiences(query), [query]);
+  const matches = useMemo(() => matchExperiences(query, locale), [query, locale]);
   const selected = WEE_EXPERIENCES.find((c) => c.id === selectedId) || null;
 
   // "Avísame cuando esté": categorías en las que la persona ya se anotó
@@ -74,14 +72,6 @@ const WeeCreatorScreen: React.FC = () => {
       cancelled = true;
     };
   }, [user]);
-
-  const notify = (title: string, message: string) => {
-    if (isWeb) {
-      window.alert(`${title}\n\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
 
   const handleCategoryPress = (cat: WeeExperience) => {
     navigation.navigate('Specialist', { id: cat.id });
@@ -226,7 +216,7 @@ const WeeCreatorScreen: React.FC = () => {
               <View style={styles.exampleRow}>
                 {selected.examples.map((example) => (
                   <View key={example} style={[styles.exampleChip, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-                    <Text style={[styles.exampleText, { color: theme.colors.text }]}>“{t(example)}”</Text>
+                    <Text style={[styles.exampleText, { color: theme.colors.text }]}>{t('creator.exampleQuoted', { ejemplo: t(example) })}</Text>
                   </View>
                 ))}
               </View>
@@ -273,7 +263,7 @@ const WeeCreatorScreen: React.FC = () => {
                 >
                   <Text style={styles.jobEmoji}>{exp?.emoji ?? '✨'}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{job.goal}</Text>
+                    <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{textoDeObjetivo(t, job.experienceId, job.goal)}</Text>
                     <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
                       {/*
                         El nombre con el que esa experiencia se presenta hoy, no

@@ -69,7 +69,7 @@ const SavedPostsScreen: React.FC = () => {
   );
 
   const handlePostPress = (post: Post) => {
-    navigation.navigate('PostDetail', { post });
+    navigation.navigate('PostDetail', { postId: post.id, post });
   };
 
   const handleComment = (postId: string) => {
@@ -93,7 +93,7 @@ const SavedPostsScreen: React.FC = () => {
       <Text style={styles.emptyEmoji}>🔖</Text>
       <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{t('saved.empty')}</Text>
       <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-        Toca el marcador de una publicación para guardar prompts, tutoriales y trabajos que quieras volver a ver.
+        {t('saved.emptyHint')}
       </Text>
       <TouchableOpacity
         style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]}
@@ -118,10 +118,11 @@ const SavedPostsScreen: React.FC = () => {
           <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitles}>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>🔖 Guardados</Text>
+          {/* El emoji se copia tal cual; el título se traduce. */}
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>🔖 {t('saved.title')}</Text>
           {!loading && (
             <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
-              {visiblePosts.length === 1 ? '1 publicación' : `${visiblePosts.length} publicaciones`}
+              {t('common.postsCount', { contador: visiblePosts.length, cantidad: visiblePosts.length })}
             </Text>
           )}
         </View>

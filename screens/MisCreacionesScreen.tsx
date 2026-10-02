@@ -6,6 +6,7 @@ import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { assetsService, AssetDoc, AssetKind, OrdenDeCreaciones, PaginaDeCreaciones } from '../services/assetsService';
+import { CLAVE_DE_ESTADO, vistaDeAsset } from '../services/vistaDeAsset';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, Chip } from '../components/creator/ui';
 import { RejillaDeCreaciones } from '../components/creator/RejillaDeCreaciones';
@@ -116,10 +117,11 @@ const MisCreacionesScreen: React.FC = () => {
      * como una avería. Se dice en qué estado está —procesando, subiendo, no
      * salió bien—, que es la razón por la que todavía no se puede ver.
      */
-    const claveDeEstado = asset.status === 'ready'
+    const vista = vistaDeAsset(asset);
+    const claveDeEstado = vista.estado === 'disponible'
       ? 'creaciones.loadFailed'
-      : (`creaciones.status${asset.status.charAt(0).toUpperCase()}${asset.status.slice(1)}` as const);
-    notify(asset.name || t('creaciones.title'), t(claveDeEstado));
+      : CLAVE_DE_ESTADO[vista.estado];
+    notify(vista.nombre || t('creaciones.title'), t(claveDeEstado));
   };
 
   const eliminar = async (asset: AssetDoc) => {
@@ -145,7 +147,7 @@ const MisCreacionesScreen: React.FC = () => {
 
       <View style={styles.section}>
         <SectionTitle
-          title={estado.fase === 'lista' ? t(estado.items.length === 1 ? 'creaciones.count_one' : 'creaciones.count_other', { contador: estado.items.length }) : t('creaciones.title')}
+          title={estado.fase === 'lista' ? t('creaciones.count', { contador: estado.items.length }) : t('creaciones.title')}
           action={t(orden === 'recent' ? 'creaciones.sortOldest' : 'creaciones.sortRecent')}
           onAction={() => setOrden((o) => (o === 'recent' ? 'oldest' : 'recent'))}
         />

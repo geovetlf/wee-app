@@ -32,4 +32,8 @@ export const avatar = {
   cameraPermission: 'Necesitamos acceso a tu cámara para tomar una foto',
   pickFailed: 'No se pudo seleccionar la imagen. Inténtalo de nuevo.',
   photoFailed: 'No se pudo tomar la foto',
+  styleAdventurer: 'Aventurero',
+  styleRobots: 'Robots',
+  styleSmile: 'Sonrisa',
+  stylePeople: 'Personas',
 };

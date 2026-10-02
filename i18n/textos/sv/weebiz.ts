@@ -1,0 +1,151 @@
+/*
+ * SUECO — Weë Biz: el directorio, el perfil de un negocio, sus productos y su alta.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * El nombre de un negocio, su especialidad, su descripción, sus productos y sus
+ * reseñas los escribió una persona: no pasan por aquí, entran por hueco.
+ *
+ * «Negocio» es företag, como la Företagsprofil de Google, y el directorio es la
+ * företagskatalog. «Reseña» es recension (Google Maps, App Store) y la nota con
+ * estrellas, betyg. «Weë Biz» no se declina: la frase lleva preposición («på
+ * Weë Biz», «Företagskatalogen på Weë»), nunca un genitivo pegado a la marca.
+ *
+ * Las categorías se pintan en una rejilla de cuatro por fila y en UNA línea:
+ * por eso son de una palabra. «Hogar» es Boende (alquiler, decoración, venta de
+ * vivienda), «Servicios Técnicos» es Hantverkare (electricistas, fontaneros) y
+ * «Empresas» es Bolag, para no repetir «företag», que ya es cualquier negocio
+ * del directorio. Las pistas de especialidad llevan mayúscula solo en la primera
+ * palabra y «…» de un carácter. «Especialidad» es inriktning: a qué se dedica.
+ *
+ * «Ej:» es «T.ex.», y los ejemplos son suecos (Lisas kafé, Södermalm i
+ * Stockholm, www.exempel.se); cada uno lleva alguna palabra en minúscula, porque
+ * un rótulo que fuera todo Nombres Propios pasaría por Mayúscula En Cada Palabra.
+ *
+ * `created` dice que el negocio ya está en Weë Business y que se abre su perfil
+ * para completarlo: el «cambia a tu perfil de negocio desde el menú» de antes se
+ * fue con el Perfil Biz (2026-09-19).
+ */
+export const weebiz: typeof import('../es/weebiz').weebiz = {
+  noBusinesses: 'Inga företag hittades',
+  searchPlaceholder: 'Sök företag…',
+  categories: 'Kategorier',
+  moreCategories: 'Visa fler kategorier',
+  featured: 'Utvalda',
+  newBusinesses: 'Nya företag',
+  registerMine: 'Registrera ditt företag',
+  noneYet: 'Inga företag ännu',
+  notFound: 'Företaget hittades inte',
+  followers: 'Följare',
+  reviews: 'Recensioner',
+  verified: 'Verifierat företag',
+  about: 'Om',
+  products: 'Produkter',
+  addProduct: 'Lägg till produkt',
+  writeReview: 'Skriv en recension',
+  noReviewsYet: 'Inga recensioner ännu',
+  leaveReview: 'Lämna en recension',
+  yourReview: 'Din recension',
+  rating: 'Betyg',
+  yourOpinion: 'Vad tycker du?',
+  reviewPlaceholder: 'Berätta om din upplevelse…',
+  sendReview: 'Skicka recension',
+  chatFailed: 'Det gick inte att öppna chatten.',
+  linkFailed: 'Det gick inte att öppna länken.',
+  requiredTitle: 'Obligatoriskt fält',
+  opinionRequired: 'Skriv vad du tycker.',
+  reviewFailed: 'Det gick inte att skicka recensionen.',
+  deleteReviewTitle: 'Ta bort recension',
+  deleteReviewConfirm: 'Vill du ta bort recensionen?',
+  notAvailable: 'Inte tillgänglig',
+  noProductsYet: 'Inga produkter ännu',
+  addFirstProduct: 'Lägg till din första produkt eller tjänst.',
+  addPhoto: 'Lägg till foto',
+  nameRequired: 'Namn *',
+  namePlaceholder: 'T.ex. Klassisk hamburgare',
+  price: 'Pris',
+  currency: 'Valuta',
+  description: 'Beskrivning',
+  descriptionPlaceholder: 'Beskriv produkten eller tjänsten…',
+  permissionTitle: 'Behörighet krävs',
+  galleryPermission: 'Weë behöver åtkomst till galleriet.',
+  productNameRequired: 'Ange ett produktnamn.',
+  productSaveFailed: 'Det gick inte att spara produkten.',
+  deleteProductTitle: 'Ta bort produkt',
+  deleteProductConfirm: 'Vill du ta bort ”{{nombre}}”?',
+  logo: 'Logotyp',
+  addLogo: 'Lägg till logotyp',
+  businessNameRequired: 'Företagsnamn *',
+  businessNamePlaceholder: 'T.ex. Lisas kafé',
+  categoryRequired: 'Kategori *',
+  speciality: 'Inriktning',
+  businessDescriptionPlaceholder: 'Berätta för andra om ditt företag…',
+  location: 'Plats',
+  locationPlaceholder: 'T.ex. Södermalm i Stockholm',
+  externalLink: 'Extern länk',
+  externalLinkPlaceholder: 'T.ex. www.exempel.se',
+  signInFirst: 'Du måste logga in.',
+  businessNameMissing: 'Ange företagets namn.',
+  categoryMissing: 'Välj en kategori.',
+  updated: 'Företaget har uppdaterats.',
+  createdTitle: 'Företaget har skapats',
+  created: 'Ditt företag finns nu på Weë Business. Öppna profilen om du vill se över den och fylla i det som saknas.',
+  viewProfile: 'Visa profil',
+  saveFailed: 'Det gick inte att spara företaget.',
+  catProfessionalServices: 'Tjänster',
+  catStores: 'Butiker',
+  catFood: 'Mat',
+  catBeauty: 'Skönhet',
+  catHealth: 'Hälsa',
+  catCreators: 'Kreatörer',
+  catHome: 'Boende',
+  catTech: 'Teknik',
+  catTechnicalServices: 'Hantverkare',
+  catCreatives: 'Kreativa',
+  catCompanies: 'Bolag',
+  catAutomotive: 'Fordon',
+  catEducation: 'Utbildning',
+  catTravel: 'Resor',
+  catPets: 'Husdjur',
+  catEvents: 'Evenemang',
+  catFinance: 'Ekonomi',
+  catLegal: 'Juridik',
+  catSpirituality: 'Andlighet',
+  catOther: 'Övrigt',
+  firstInCategory: 'Bli först med att registrera ditt företag i kategorin {{categoria}}.',
+  editBusinessTitle: 'Redigera företag',
+  registerBusinessTitle: 'Registrera företag',
+  saveChanges: 'Spara ändringar',
+  createBusiness: 'Skapa företag',
+  specialityPlaceholder: 'T.ex. {{ejemplos}}',
+  specialityNeedsCategory: 'Välj en kategori först',
+  specialityHintProfessionalServices: 'Rådgivning, coachning…',
+  specialityHintStores: 'Kläder, elektronik, accessoarer…',
+  specialityHintFood: 'Sushi, hamburgare, desserter…',
+  specialityHintBeauty: 'Barberare, spa, smink…',
+  specialityHintHealth: 'Kostrådgivning, psykologi, gym…',
+  specialityHintCreators: 'Streamare, bloggare, utbildare…',
+  specialityHintHome: 'Uthyrning, inredning, försäljning…',
+  specialityHintTech: 'Webbutveckling, marknadsföring, AI…',
+  specialityHintTechnicalServices: 'Elektriker, rörmokare…',
+  specialityHintCreatives: 'Fotografi, design, video…',
+  specialityHintCompanies: 'Startup, byrå, varumärke…',
+  specialityHintAutomotive: 'Bilverkstad, reservdelar, biltvätt…',
+  specialityHintEducation: 'Kurser, akademi, privatlärare…',
+  specialityHintTravel: 'Turer, hotell, guide…',
+  specialityHintPets: 'Veterinär, djurpassning, adoption…',
+  specialityHintEvents: 'DJ, shower, underhållning…',
+  specialityHintFinance: 'Investeringar, försäkringar, krypto…',
+  specialityHintLegal: 'Juridisk rådgivning, advokatbyrå…',
+  specialityHintSpirituality: 'Tarot, meditation, coachning…',
+  specialityHintOther: 'Beskriv ditt företag…',
+  specialityHintDefault: 'Beskriv din inriktning…',
+  editProductTitle: 'Redigera produkt',
+  newProductTitle: 'Ny produkt',
+  priceOnRequest: 'Pris på förfrågan',
+  follow: 'Följ',
+  following: 'Följer',
+  manageProducts: 'Hantera',
+  seeAllProducts: 'Visa alla',
+  reviewsCount: 'Recensioner ({{cantidad}})',
+  directoryEmpty: 'Företagskatalogen på Weë.\nSnart hittar du företag här.',
+};

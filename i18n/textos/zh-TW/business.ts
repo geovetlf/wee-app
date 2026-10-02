@@ -51,7 +51,7 @@ export const business: typeof import('../es/business').business = {
   networkConnected: '{{red}} 已連結',
   connectAnother: '連結其他平台',
   allConnected: '你的社群帳號都已經連結好了。',
-  simulatedConnection: '模擬連結：等各平台開放官方權限後，Weë 就會真正幫你發布和回覆。',
+  simulatedConnection: '模擬連結：Weë 暫時還不會替你發布或回覆。它會把每份內容準備好，由你檢查後再發布。',
   /* 行事曆 y no 日曆: en Taiwán el calendario de trabajo es un 行事曆. */
   postCalendar: '貼文行事曆',
   seeFullCalendar: '查看完整行事曆',
@@ -268,4 +268,5 @@ export const business: typeof import('../es/business').business = {
   promoteHint: '你的內容會在 Weë 裡展示給更多人。花掉任何 Credits 之前，你都會先看到要花多少。',
   promoteSoon: '在 Weë 裡推廣還沒有開放。開放之後會用你的 Credits 支付，你在這裡就能看到。',
   promoteCredits: '查看我的 Credits',
+  sampleProductName: '產品 {{numero}}',
 };

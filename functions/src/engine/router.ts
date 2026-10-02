@@ -7,7 +7,7 @@ import { recordRealSuccess } from './verification';
 import { sanitizeForLog } from './sanitize';
 import { NotConfiguredError, ProviderError } from './http';
 import { classifyError, EngineError } from './errors';
-import { providerCallsToday } from './limits';
+import { providerCallsToday, providerUsdToday, usdToday } from './limits';
 import {
   ChainLink,
   EngineRequest,
@@ -126,6 +126,27 @@ interface InternalCandidate extends RouteCandidate {
   meetsQuality: boolean;
 }
 
+/**
+ * ¿PUDO COBRAR EL PROVEEDOR UNA GENERACIÓN QUE FALLÓ? (auditoría H0, #22)
+ *
+ * El libro cerraba todo fallo con `providerCost: 0`, así que `aiUsage/{día}` —de donde salen los topes de
+ * gasto diario— no veía el dinero de lo que sí llegó al proveedor: una tarea de vídeo aceptada cuyo sondeo
+ * falla, o una petición que se queda sin respuesta. Se distingue con lo que se sabe, sin adivinar:
+ *  · 'cero': no salió nada (el proveedor no está configurado, o Weë rechazó la entrada antes de mandarla),
+ *    o el proveedor la rechazó al recibirla (4xx);
+ *  · 'desconocido': la tarea ya estaba aceptada (hay `providerTaskId`), se agotó el tiempo, no hubo
+ *    respuesta o el proveedor falló (5xx), o algo se rompió después de una respuesta.
+ * Lo desconocido se anota con su coste ESTIMADO como «en riesgo»; el coste medido sigue en 0, y los topes
+ * cuentan los dos: mejor parar un poco antes que gastar de más sin verlo.
+ */
+export const costeTrasUnFallo = (error: unknown, despachado: boolean): 'cero' | 'desconocido' => {
+  if (error instanceof NotConfiguredError) return 'cero';
+  if (despachado) return 'desconocido';
+  if (error instanceof EngineError) return error.code === 'INVALID_REQUEST' ? 'cero' : 'desconocido';
+  if (error instanceof ProviderError && typeof error.status === 'number' && error.status >= 400 && error.status < 500) return 'cero';
+  return 'desconocido';
+};
+
 const withTimeout = <T>(promise: Promise<T>, ms: number, provider: string): Promise<T> =>
   new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new ProviderError(`${provider}: tardó más de ${Math.round(ms / 1000)} s`, provider)), ms);
@@ -188,6 +209,14 @@ export function createRouter(deps: RouterDeps) {
     const prefs: RoutingPrefs = request.prefs || {};
     const quality = resolveQuality(request);
     const { links, policy } = linksFor(capability, config, prefs);
+    /*
+     * EL INTERRUPTOR (H0 #19). Detenida, no hay candidatos —tampoco el demo, que
+     * antes era lo que entraba al «apagar» todos los proveedores, y se cobraba—:
+     * `execute` contesta NOT_AVAILABLE antes de abrir el libro.
+     */
+    if (settings.iaDetenida === true) {
+      return { capability, quality, policy, candidates: [], skipped: [{ provider: '*', reason: 'ia_detenida' }], realProviderAvailable: false };
+    }
     const excluded = new Set(prefs.excludeProviders || []);
     const candidates: InternalCandidate[] = [];
     const skipped: RouteDecision['skipped'] = [];
@@ -206,6 +235,15 @@ export function createRouter(deps: RouterDeps) {
       return adapter.isConfigured() && adapter.supports(capability);
     });
     const usage = deps.usageToday ? await deps.usageToday().catch(() => undefined) : undefined;
+    /*
+     * EL TOPE DE GASTO DIARIO (FASE 8). Alcanzado, no hay candidatos: ni otro
+     * proveedor ni el demo. `execute` contesta NOT_AVAILABLE antes de abrir el
+     * libro y quien llamó reembolsa su reserva. Sin tope configurado, nada cambia.
+     */
+    const tope = settings.maxUsdPerDay;
+    if (typeof tope === 'number' && tope > 0 && usdToday(usage) >= tope) {
+      return { capability, quality, policy, candidates: [], skipped: [{ provider: '*', reason: 'presupuesto_diario_agotado' }], realProviderAvailable };
+    }
 
     links.forEach((link, index) => {
       const skip = (reason: string): void => {
@@ -222,6 +260,9 @@ export function createRouter(deps: RouterDeps) {
       if (deps.health.isOpen(link.provider)) return skip('en pausa por fallos recientes');
       const maxCalls = providerConfig.limits?.maxCallsPerDay;
       if (maxCalls && maxCalls > 0 && providerCallsToday(usage, link.provider) >= maxCalls) return skip('límite diario del proveedor alcanzado');
+      /* Declarado desde siempre en ProviderConfig y nunca aplicado hasta ahora (inventario FASE 13). */
+      const maxUsd = providerConfig.limits?.maxUsdPerDay;
+      if (maxUsd && maxUsd > 0 && providerUsdToday(usage, link.provider) >= maxUsd) return skip('presupuesto diario del proveedor alcanzado');
       if (link.minQuality && QUALITY_RANK[quality] < QUALITY_RANK[link.minQuality]) return skip('reservado para tareas de más calidad');
       if (link.maxQuality && QUALITY_RANK[quality] > QUALITY_RANK[link.maxQuality]) return skip('no alcanza la calidad que pide la tarea');
       const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model || prefs.modelId);
@@ -322,7 +363,7 @@ export function createRouter(deps: RouterDeps) {
     if (!decision.candidates.length) {
       const why = decision.skipped.map((s) => `${s.provider}: ${s.reason}`).join('; ');
       console.warn(`WEË AI ENGINE: ningún proveedor disponible para ${capability} (${why})`);
-      throw new EngineError('NOT_AVAILABLE', 'Ahora mismo no hay un proveedor disponible para esto. Inténtalo más tarde.', { capability });
+      throw new EngineError('NOT_AVAILABLE', 'Ahora mismo no hay una IA disponible para esto. Inténtalo más tarde.', { capability });
     }
 
     let lastError: unknown = null;
@@ -342,7 +383,10 @@ export function createRouter(deps: RouterDeps) {
         inputType: inputTypeOf(capability, input),
       });
       const start = now();
+      /* El proveedor ya tiene la tarea: si después falla, pudo costar dinero (ver costeTrasUnFallo). */
+      let despachado = false;
       const onStatus = async (status: 'PROCESSING', meta: Record<string, unknown>) => {
+        if (typeof meta.providerTaskId === 'string' && meta.providerTaskId) despachado = true;
         await deps.ledger.progress(generationId, {
           status,
           providerTaskId: typeof meta.providerTaskId === 'string' ? meta.providerTaskId : undefined,
@@ -352,7 +396,19 @@ export function createRouter(deps: RouterDeps) {
         });
       };
       try {
-        const result = await withTimeout(adapter.run({ capability, model: candidate.model, input, ctx, prefs, timeoutMs, onStatus }), timeoutMs, candidate.provider);
+        const salida = await withTimeout(adapter.run({ capability, model: candidate.model, input, ctx, prefs, timeoutMs, onStatus }), timeoutMs, candidate.provider);
+        /*
+         * ESTE CAMINO NO SABE ESPERAR.
+         *
+         * El camino de siempre no lleva Job Engine detrás: si un adaptador
+         * devolviera aquí una tarea a medias, no habría dónde guardarla ni quién
+         * preguntara por ella después, y el trabajo se perdería en silencio
+         * después de haberse pagado. No puede pasar —nunca se pide
+         * `acceptAsync` desde aquí—, así que si pasa es un fallo del adaptador,
+         * y se trata como tal en vez de fingir un resultado.
+         */
+        if (salida.accepted) throw new EngineError('PROVIDER_ERROR', undefined, { provider: candidate.provider, reason: 'accepted_sin_soporte' });
+        const result = salida;
         const durationMs = now() - start;
         const demo = candidate.provider === 'mock';
         const credits = creditsFor(capability, result.costUSD, settings, demo, input);
@@ -410,10 +466,19 @@ export function createRouter(deps: RouterDeps) {
       } catch (error) {
         lastError = error;
         const message = error instanceof Error ? error.message : String(error);
-        await deps.ledger.close(generationId, { status: 'FAILED', providerCost: 0, creditsEstimated: 0, durationMs: now() - start, error: sanitizeForLog(message, 300) });
+        const coste = costeTrasUnFallo(error, despachado);
+        await deps.ledger.close(generationId, {
+          status: 'FAILED',
+          providerCost: 0,
+          ...(coste === 'desconocido' ? { providerCostStatus: 'desconocido' as const, providerCostEstimated: candidate.estimatedUsd } : {}),
+          creditsEstimated: 0,
+          durationMs: now() - start,
+          error: sanitizeForLog(message, 300),
+        });
         const countsAsFailure = !(error instanceof NotConfiguredError) && (!(error instanceof ProviderError) || error.retryable);
         if (countsAsFailure) deps.health.failure(candidate.provider, settings);
-        console.warn(`WEË AI ENGINE: ${candidate.provider}/${candidate.model.id} falló en ${capability} (intento ${attempt}): ${message}`);
+        /* Saneado como el libro de arriba: el mensaje de un proveedor puede traer la cabecera que se le envió (cierre 2026-10-01, server/sanitize). */
+        console.warn(`WEË AI ENGINE: ${candidate.provider}/${candidate.model.id} falló en ${capability} (intento ${attempt}): ${sanitizeForLog(message, 300)}`);
       }
     }
     throw classifyError(lastError);

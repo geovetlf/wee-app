@@ -23,13 +23,16 @@ const root = path.resolve(here, '../..');
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
 import { comoSeLee, textosDe, traductorDe } from './i18n-ayuda.mjs';
 const ES = textosDe('es');
-const read = (p) => {
-  try {
-    return comoSeLee(fs.readFileSync(path.resolve(root, p), 'utf8'));
-  } catch {
-    return '';
-  }
+/*
+ * Un archivo que falta es un ERROR, no un texto vacío (cierre 2026-10-01, `tests/lector-tolerante`): con `''`, las
+ * comprobaciones negadas («ya no hay voteInPoll», «nadie vota por posición») pasaban en verde tras un renombrado.
+ */
+const leerOFallar = (p) => {
+  const abs = path.resolve(root, p);
+  if (!fs.existsSync(abs)) throw new Error(`encuestas: no existe ${p} (¿se renombró? actualiza la suite)`);
+  return fs.readFileSync(abs, 'utf8');
 };
+const read = (p) => comoSeLee(leerOFallar(p));
 
 /*
  * LO QUE SE EJECUTA SE LEE CRUDO.
@@ -39,13 +42,7 @@ const read = (p) => {
  * para ejecutar. Un ayudante compilado desde ese texto nunca llamaría al
  * traductor y diría español con la aplicación en inglés.
  */
-const crudo = (p) => {
-  try {
-    return fs.readFileSync(path.resolve(root, p), 'utf8');
-  } catch {
-    return '';
-  }
-};
+const crudo = (p) => leerOFallar(p);
 
 const { createPollEngine, decidirVoto, esEncuestaHistorica, milisDe } = lib('social/polls.js');
 
@@ -442,8 +439,17 @@ check('69) firestoreService ya no escribe poll.options', !servicio.includes("'po
 check('70) ni poll.totalVotes', !servicio.includes("'poll.totalVotes'"));
 check('71) votar pasa por la callable votePoll', /httpsCallable[\s\S]{0,200}'votePoll'/.test(servicio));
 check('72) y el cliente no manda identidad al servidor', /votePoll[\s\S]{0,300}\{ postId, optionId \}/.test(servicio));
-check('73) la posición de la opción se traduce a id antes de salir', /voteInPollById\(postId, opcion\.id\)/.test(servicio));
-check('74) una encuesta histórica no se puede votar desde el cliente', /versión anterior de Weë y ya no admite votos/.test(servicio));
+/*
+ * 73-74 miraban `voteInPoll`, que votaba por POSICIÓN, la traducía a id y rechazaba con una frase las encuestas
+ * históricas. No lo llamaba nadie —la 215 ya exigía que ni la tarjeta ni el detalle votaran por su cuenta— y se
+ * retiró como código muerto en el cierre post-auditoría (2026-10-01). Lo que exigían pasa a donde de verdad se vota:
+ * solo se vota por id, y la única pieza que vota (`components/Poll.tsx`) no deja pulsar una encuesta histórica.
+ */
+const encuesta = read('components/Poll.tsx');
+check('73) solo se vota por id: el voto por posición ya no existe', !/voteInPoll\s*:/.test(servicio)
+  && /postsService\.voteInPollById\(postId!, optionId\)/.test(encuesta));
+check('74) una encuesta histórica no se puede votar desde el cliente',
+  /const pulsable = !!postId && !historica && /.test(encuesta) && /const historica = esHistorica\(poll\);/.test(encuesta));
 
 // El modelo nuevo, declarado en los tipos que usa toda la app.
 const bloquePoll = servicio.slice(servicio.indexOf('export interface PostPoll'), servicio.indexOf('export interface PollVoteResult'));

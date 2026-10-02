@@ -33,6 +33,7 @@ import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { referenciaDesdeUrlDeWee } from '../content';
 import { storageBucket } from '../engine/http';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './econtact';
+import { identidadHeredadaEsDeLaCuenta, identidadesHeredadasDeLaCuenta } from '../identity/compatibilidad';
 
 const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 
@@ -133,14 +134,22 @@ export const claveDeFotoUnica = (objectKey: unknown, senderId: unknown, conversa
 };
 
 /**
- * Las dos caras de una cuenta participan como una sola persona: el Perfil
- * Weë (`hidi_<uid>`) no es otra persona, es la otra cara de la misma cuenta.
+ * Las dos caras de una cuenta participan como una sola persona: el Perfil Weë
+ * no es otra persona, es la otra cara de la misma cuenta.
+ *
+ * Los `participants` de una conversación son identidades HISTÓRICAS: así están
+ * escritas las conversaciones que ya existen. Cómo se llamaba esta cuenta en
+ * esos datos lo dice la frontera de compatibilidad —`identity/compatibilidad.ts`,
+ * el único sitio que conoce la forma heredada— y aquí ya no se compone ningún
+ * prefijo (Fase 11.x-5A). Va en esa dirección, de la cuenta autenticada a sus
+ * nombres antiguos, que es la única en la que esto no afirma nada nuevo: de
+ * quién es una cara se LEE del documento, nunca al revés.
  */
 export const participaEn = (participants: unknown, uid: string): boolean =>
-  Array.isArray(participants) && (participants.includes(uid) || participants.includes(`hidi_${uid}`));
+  Array.isArray(participants) && identidadesHeredadasDeLaCuenta(uid).some((id) => participants.includes(id));
 
 const esLaMismaCuenta = (senderId: unknown, uid: string): boolean =>
-  senderId === uid || senderId === `hidi_${uid}`;
+  identidadHeredadaEsDeLaCuenta(senderId, uid);
 
 const direccionDe = (msg: Record<string, unknown>): string | null => {
   if (typeof msg.imageUrl === 'string' && msg.imageUrl) return msg.imageUrl;

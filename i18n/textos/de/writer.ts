@@ -40,4 +40,5 @@ export const writer: typeof import('../es/writer').writer = {
   bodyPlaceholder: 'Schreib hier. Wann immer du willst, bitte Weë, ihn zu verbessern, zu korrigieren oder zu übersetzen.',
   resultHint: 'Weë arbeitet an dem, was du geschrieben hast, und gibt dir das Ergebnis hier zurück – bereit zum Weiterschreiben.',
   weeWorksWithYou: 'Weë arbeitet mit dir daran.',
+  saved: '✓ Gespeichert',
 };

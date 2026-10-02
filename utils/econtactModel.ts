@@ -265,6 +265,37 @@ export const cuentaDeIdentidad = (
   return vinculo;
 };
 
+// ─── Los errores que llegan a la pantalla ────────────────────────────────────
+
+/*
+ * UN ERROR DE ËCONTACT LLEVA SU CLAVE DE TRADUCCIÓN.
+ *
+ * Este modelo no tiene traductor —ni React, ni idioma—, así que no puede escribir
+ * la frase en el idioma de quien mira. Lo que sí puede es decir CUÁL es: la
+ * pantalla la pinta con `mensajeDeEContact` (services/econtactService.ts), que
+ * hace `t(error.clave)`. El mensaje en español se queda para los registros y las
+ * pruebas; nunca llega a la pantalla.
+ *
+ * Vive aquí, y no en el servicio, porque el modelo también lanza los suyos
+ * (`idDeContacto`, `nuevaSolicitud`) y no puede importar nada: las pruebas lo
+ * transpilan y lo EJECUTAN suelto. El servicio la importa de aquí.
+ */
+export class ErrorDeEContact extends Error {
+  constructor(readonly clave: string, mensaje: string) {
+    super(mensaje);
+  }
+}
+
+/*
+ * Por qué una pareja no vale, dicho como lo entiende una persona. En la app, las
+ * dos identidades ya llegan comprobadas como de persona (`exigirIdentidadAjena`),
+ * así que lo que queda es intentar conectar un perfil consigo mismo.
+ */
+const errorDePareja = (a: string, b: string): ErrorDeEContact =>
+  a === b && esIdentidadDePersona(a)
+    ? new ErrorDeEContact('econtact.errSameProfile', 'Un perfil no puede conectarse consigo mismo.')
+    : new ErrorDeEContact('econtact.errNotAPerson', 'Un ËContact necesita dos identidades de persona distintas.');
+
 // ─── La pareja ───────────────────────────────────────────────────────────────
 
 /** ¿Son dos identidades de persona, válidas y distintas? */
@@ -282,7 +313,7 @@ export const parejaOrdenada = (a: string, b: string): [string, string] => (a < b
  * `Weë A ↔ real B` dan ids distintos porque son relaciones distintas.
  */
 export const idDeContacto = (a: string, b: string): string => {
-  if (!esParejaValida(a, b)) throw new Error('Un ËContact necesita dos identidades de persona distintas.');
+  if (!esParejaValida(a, b)) throw errorDePareja(a, b);
   const [x, y] = parejaOrdenada(a, b);
   return `${x}_${y}`;
 };
@@ -309,7 +340,7 @@ export const esParejaEntreCuentasDistintas = (
  * desde aquí ni desde el cliente —las reglas lo prohíben aparte—.
  */
 export const nuevaSolicitud = <T>(de: string, para: string, sello: () => T): EContactDoc => {
-  if (!esParejaValida(de, para)) throw new Error('Un ËContact necesita dos identidades de persona distintas.');
+  if (!esParejaValida(de, para)) throw errorDePareja(de, para);
   return {
     users: parejaOrdenada(de, para),
     status: 'pending',

@@ -1,4 +1,7 @@
+import { CAPABILITY_CATALOG } from '../core/registry';
+import { ThoughtRequest } from '../core';
 import { ExperienceId } from './types';
+import { DESCRIPCIONES_PARA_DERIVAR, EXPERIENCIAS_PARA_DERIVAR } from './experiencias';
 
 /**
  * Prompts internos de Weë Brain (docs/CREATOR.md §6): la persona nunca los ve.
@@ -6,22 +9,19 @@ import { ExperienceId } from './types';
  */
 export const BRAIN_SYSTEM = [
   'Eres Weë, el asistente de WEË AI. Ayudas a personas que no saben nada de inteligencia artificial.',
-  'Hablas en español neutro, claro, cálido y directo, de tú.',
+  /*
+   * El TONO vive aquí; el IDIOMA no, igual que en `BRAIN_CHAT_SYSTEM`. Decía "hablas en español neutro": con la app en
+   * danés, el resultado de cada especialista salía en español. El idioma lo pone `instruccionDeSalida()` en cada paso,
+   * con el del trabajo; sin él, español neutro, que es lo que decía esta línea.
+   */
+  'Hablas claro, cálido y directo, de tú.',
   'Nunca mencionas modelos, proveedores, prompts, parámetros ni términos técnicos.',
   'Entregas resultados completos y listos para usar; no pides más información ni haces preguntas.',
 ].join(' ');
 
-/** Especialistas a los que Weë Brain puede derivar (nunca Weë Music mientras no esté conectado). */
-export const BRAIN_SPECIALISTS: Record<string, string> = {
-  design: 'Weë Design (logos, afiches, productos, personajes, escenas, cualquier diseño visual)',
-  studio: 'Weë Studio (videos, animar fotos, anuncios en video)',
-  photo: 'Weë Photo (mejorar, restaurar, transformar o editar fotos)',
-  writer: 'Weë Writer (textos, historias, guiones, emails, CV, traducciones, correcciones)',
-  beauty: 'Weë Beauty (maquillaje, cabello, barba, outfits, cambios de look en tu foto)',
-  chef: 'Weë Chef (recetas, menús, cocinar con lo que tienes)',
-  home: 'Hogar & Diseño (rediseñar, redecorar o reorganizar espacios de la casa)',
-  business: 'Weë Business (ideas, marketing, contenido para redes, estrategia, documentos de negocio)',
-};
+/** «a, b o c» — para que una lista derivada se lea como la escribiría alguien. */
+const enumerar = (ids: readonly string[]): string =>
+  ids.length < 2 ? ids.join('') : `${ids.slice(0, -1).join(', ')} o ${ids[ids.length - 1]}`;
 
 /**
  * Weë Brain como asistente general (chat con contexto): conversa, explica,
@@ -42,8 +42,13 @@ export const BRAIN_CHAT_SYSTEM = [
   'Si te dan resultados de búsqueda, úsalos para responder con información actual y menciona de dónde sale sin inventar datos; si no sabes algo, dilo.',
   'Nunca mencionas modelos, proveedores, prompts ni términos técnicos de IA. No inventes cifras ni resultados.',
   'Formato: texto plano; listas con • o pasos numerados cuando ayuden; sin símbolos de markdown como # o **; emojis con moderación.',
-  `Weë tiene especialistas: ${Object.values(BRAIN_SPECIALISTS).join('; ')}.`,
-  'Cuando lo que la persona quiere lograr lo hace mejor uno de esos especialistas (crear una imagen, un video, editar una foto, escribir un texto largo, una receta, un cambio de look, redecorar, hacer crecer un negocio), responde primero brevemente y termina tu mensaje con una línea final exactamente así: [[WEE:id]] usando el id del especialista (design, studio, photo, writer, beauty, chef, home o business). Si no corresponde derivar, no escribas esa línea.',
+  `Weë tiene especialistas: ${DESCRIPCIONES_PARA_DERIVAR.join('; ')}.`,
+  /*
+   * Los ids también se derivan. Estaban escritos a mano aquí dentro —"design,
+   * studio, … home o business"— y eran una tercera copia de la lista, metida en
+   * una cadena de texto donde ningún compilador iba a mirarla.
+   */
+  `Cuando lo que la persona quiere lograr lo hace mejor uno de esos especialistas (crear una imagen, un video, editar una foto, escribir un texto largo, una receta, un cambio de look, redecorar, preparar un viaje, hacer crecer un negocio), responde primero brevemente y termina tu mensaje con una línea final exactamente así: [[WEE:id]] usando el id del especialista (${enumerar(EXPERIENCIAS_PARA_DERIVAR)}). Si no corresponde derivar, no escribas esa línea.`,
 ].join(' ');
 
 /**
@@ -74,6 +79,252 @@ export const BRAIN_CHAT_SYSTEM = [
 const LOCALE_CON_FORMA_DE_IDIOMA = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/;
 const IDIOMA_DE_RESERVA_DE_BRAIN = 'es';
 
+/**
+ * LO QUE SE LE PIDE AL MODELO CUANDO SE LE PIDE QUE ENTIENDA, NO QUE HABLE.
+ *
+ * ── El pendiente de S2, y por qué no se resolvió allí ───────────────────────
+ *
+ * S2 dejó escrito que «el prompt de Brain no pide todavía el bloque
+ * `creative`». La auditoría de S5 encontró el motivo, y es más grande que un
+ * olvido: `brainChat` conversa —el modelo escribe PROSA para una persona— y
+ * `interpretarEntendimiento` solo se llama en el modo ENTENDER, que hoy no lo
+ * usa nadie en producción. Añadir «devuélveme un JSON» al prompt del chat
+ * rompería lo que la gente lee.
+ *
+ * Así que esto es el prompt del modo ENTENDER, con las dos cosas que faltaban
+ * —la intención creativa de S2 y lo que hace falta tener delante de S3— y EN
+ * UNA SOLA LLAMADA: el mismo modelo que ya entiende la petición devuelve
+ * también estos dos bloques. No hay una segunda pasada, ni un segundo modelo,
+ * ni un analizador de texto.
+ *
+ * NO está enchufado al chat. Enchufarlo es cambiar a qué modo llama
+ * `brainChat`, y eso cambia lo que la persona ve: es una decisión de producto
+ * y de otra fase.
+ */
+/**
+ * EL VOCABULARIO QUE RECIBE EL MODELO, EN TEXTO.
+ *
+ * ── El agujero que tapa ─────────────────────────────────────────────────────
+ *
+ * El Core armaba `ThoughtRequest.expected` con las capacidades y sus variantes,
+ * y NADIE lo leía: el pensador declaraba `async pensar()` sin parámetro y
+ * tiraba la petición entera. El canary de C20 tuvo que renderizar el
+ * vocabulario a mano en su propio script para poder preguntarle al modelo.
+ * Un canary que necesita su propio renderizador no está midiendo el producto.
+ *
+ * ── Y por qué se construye, no se escribe ───────────────────────────────────
+ *
+ * Las listas salen del catálogo en el momento de armar la petición. Escribirlas
+ * aquí sería una segunda verdad: el día que se añadiera una variante, el
+ * validador la aceptaría y el modelo no sabría que existe.
+ *
+ * Se descarta lo que no reconoce el catálogo —una capacidad inventada, una
+ * variante que no es de esa capacidad— en vez de arreglarlo. Esto NO corrige
+ * al modelo: le dice qué puede decir, y de comprobar lo que diga se encargan
+ * el lector y el Planner, cada uno por su cuenta.
+ *
+ * ── El orden no es una preferencia ──────────────────────────────────────────
+ *
+ * Las capacidades salen en el orden del catálogo y las variantes en orden
+ * alfabético. Es determinista para que dos peticiones iguales den el mismo
+ * texto, y NO significa que la primera sea mejor: aquí se define qué se puede
+ * expresar, no qué conviene elegir.
+ */
+export const vocabularioParaElPrompt = (esperado: ThoughtRequest['expected']): string => {
+  if (!esperado) return '';
+  const enElCatalogo = (id: string) => CAPABILITY_CATALOG.find((c) => c.id === id);
+  const delCatalogo = CAPABILITY_CATALOG
+    .filter((c) => esperado.capabilities.includes(c.id));
+  const capacidades = delCatalogo.map((c) => c.id);
+  if (!capacidades.length) return '';
+
+  const lineas: string[] = [
+    `Intenciones posibles: ${[...esperado.intents].join(', ')}.`,
+    /*
+     * ── QUÉ RECIBE Y QUÉ DA CADA UNA ──────────────────────────────────────
+     *
+     * Hasta G20 aquí iba la lista pelada de ids, y con eso el modelo podía
+     * NOMBRAR una capacidad pero no saber cuál puede alimentar a cuál. Desde
+     * C27 un paso sí puede declarar de qué otro bebe, así que la pregunta
+     * dejó de ser teórica: sin esto tendría que adivinarlo.
+     *
+     * Sale ENTERO del catálogo, entrada por entrada. No hay aquí ninguna tabla
+     * de compatibilidades escrita a mano, ni una sola pareja de capacidades
+     * nombrada: eso sería una segunda verdad, y el día que alguien cambiara
+     * un `accepts` solo se enteraría la mitad del sistema. Lo que se escribe
+     * a mano es UNA frase: cómo se leen los dos lados de la flecha.
+     *
+     * El catálogo declara que un `accepts` vacío significa «no necesita
+     * material de entrada». Hoy no hay ninguna así, pero si la hubiera se dice,
+     * porque callarla la haría parecer una que lo acepta todo.
+     */
+    `Capacidades del catálogo. Antes de la flecha, las clases de material que RECIBE; después, la que DA:`,
+    ...delCatalogo.map((c) => `  ${c.id} — ${c.accepts.length ? c.accepts.join('+') : 'nada'} → ${c.produces}`),
+    `Un paso solo puede beber de otro si lo que aquel DA es una de las clases que este RECIBE.`,
+  ];
+
+  /* Solo las que declaran variantes, y solo las variantes que son SUYAS. */
+  const conVariantes = capacidades
+    .map((id) => {
+      const declaradas = enElCatalogo(id)?.variants ?? [];
+      const pedidas = esperado.variants?.[id] ?? [];
+      /*
+       * Con su SIGNIFICADO. El nombre solo no bastaba: a «el texto de una
+       * campaña» el modelo contestaba `campaign` —que es diseñar la campaña
+       * entera— en vez de `copy`, que es el texto. Y una variante sin
+       * significado no se ofrece: preferimos que el modelo no la conozca a que
+       * la elija a ciegas.
+       */
+      const validas = [...pedidas]
+        .filter((v) => v?.description && declaradas.some((d) => d.key === v.key))
+        .sort((a, b) => a.key.localeCompare(b.key));
+      return validas.length
+        ? [`  ${id}:`, ...validas.map((v) => `    ${v.key} — ${v.description}`)].join('\n')
+        : '';
+    })
+    .filter(Boolean);
+  if (conVariantes.length) {
+    lineas.push('Variantes ("kind") que admite cada capacidad; una que no aparezca aquí no tiene variantes:');
+    lineas.push(...conVariantes);
+  }
+  if (esperado.experiences.length) lineas.push(`Experiencias: ${[...esperado.experiences].join(', ')}.`);
+  return lineas.join('\n');
+};
+
+/**
+ * CON QUÉ SE LE PREGUNTA AL MODELO EN MODO «ENTENDER».
+ *
+ * Vivía dentro del callable, como un cierre, y desde fuera no se podía ni
+ * mirar: para comprobar qué recibe el modelo había que reescribirlo, y un
+ * canary que reescribe el camino que dice medir se mide a sí mismo. Así que
+ * sale aquí, entero y puro, y el callable lo llama.
+ *
+ * No decide nada: junta el prompt de estructura con el vocabulario que trae la
+ * petición. Ni elige proveedor, ni modelo, ni sabe de Credits.
+ */
+export const entradaDeEntender = (
+  esperado: ThoughtRequest['expected'],
+  texto: string,
+  maxOutputTokens: number,
+): Record<string, unknown> => ({
+  system: [String(BRAIN_UNDERSTAND_SYSTEM), vocabularioParaElPrompt(esperado)].filter(Boolean).join('\n\n'),
+  prompt: texto,
+  kind: 'understand',
+  maxOutputTokens,
+  /* Estructurar no es escribir: aquí se quiere la misma respuesta dos veces. */
+  temperature: 0.2,
+});
+
+export const BRAIN_UNDERSTAND_SYSTEM = [
+  'Eres el módulo de comprensión de Weë. NO conversas y NO escribes para nadie: devuelves solamente un objeto JSON.',
+  'Campos: intent, confidence, goal, capability, capabilities, steps, constraints, missing, assumptions, suggestedExperience, creative, context, continuity.',
+  '"confidence" admite EXACTAMENTE tres valores: low, medium o high. Nunca un número.',
+  /*
+   * ── LOS PASOS ────────────────────────────────────────────────────────────
+   *
+   * `capabilities` dice QUÉ hace falta y es un conjunto. `steps` dice QUÉ
+   * PASOS hay, en qué orden y de qué clase es cada uno — y admite la misma
+   * capacidad varias veces, que es justo lo que un conjunto no sabe decir.
+   *
+   * Las variantes legales de cada capacidad se le pasan al modelo con el resto
+   * del vocabulario, sacadas del catálogo. Aquí NO se copia ninguna: una lista
+   * escrita a mano en un prompt sería una segunda verdad, y el día que se
+   * añadiera una variante solo se enteraría la mitad del sistema.
+   *
+   * Y tampoco se copia una sola instrucción de las plantillas. El modelo tiene
+   * que entender QUÉ pide la persona, no aprenderse cómo lo escribe Weë.
+   */
+  '"steps" son los pasos, en el orden en que hay que hacerlos, cuando lo que se pide necesita más de una operación.',
+  'Cada paso: {"key":"un_nombre_corto", "capability":"una del catálogo", "input":{"kind":"una variante de ESA capacidad", "brief":"qué hace este paso, en una frase"}, "needs":[{"from":"upstream", "stepKey":"la clave del paso del que bebe"}]}.',
+  /*
+   * ── POR QUÉ `needs` SE ENSEÑA DENTRO DEL ESQUEMA ─────────────────────────────────
+   *
+   * Porque describirlo en la frase siguiente no bastó. En el canary real de
+   * B2 el modelo razonó la composición entera bien —mirar la foto y luego
+   * escribir la receta— y declaró la dependencia con la clave correcta, pero
+   * la metió DENTRO de "input": el esquema se cerraba ahí, y «dilo en ese paso»
+   * no dice en qué sitio del paso. El intérprete la descartó con razón y la
+   * dependencia nunca llegó al Planner.
+   *
+   * No fue un fallo de razonamiento del modelo: fue un contrato ambiguo. Un
+   * campo que se pide en prosa y no se enseña en la forma, se coloca donde
+   * quepa.
+   */
+  '"needs" va AL LADO de "key", "capability" e "input", nunca DENTRO de "input". Si este paso no bebe de ningún otro, omítelo entero.',
+  'Solo hacia atrás: se puede beber de un paso anterior, nunca de uno posterior. Y no digas ahí de qué clase es lo que bebe: eso ya lo dice el paso que lo produce.',
+  'La MISMA capacidad puede aparecer varias veces: «escribe el borrador y luego púlelo» son DOS pasos de text.generate, uno con kind "copy" y otro con kind "polish".',
+  'No inventes capacidades ni variantes: si la que harías falta no está en las listas que se te dan, dilo en "missing" en vez de aproximar.',
+  'No elijas proveedor, modelo ni precio, y no escribas el texto final que leería un generador: solo QUÉ hay que hacer y de qué clase es.',
+  'Lo que hay que conservar va en "continuity", cómo se quiere el resultado va en "creative", y lo que ya existe de la persona va en "context". No los repitas dentro de un paso.',
+  'Si lo que se pide no se puede representar con el vocabulario que tienes, no lo fuerces: deja "steps" vacío y di qué falta en "missing".',
+  /*
+   * El vocabulario va LITERAL y CERRADO. Sin la lista, el modelo inventa
+   * valores parecidos —«dolly_backwards», «cámara aérea»— que el validador
+   * descarta enteros, y entonces la mitad de las peticiones pierden su
+   * intención creativa sin que nadie se entere.
+   */
+  /*
+   * ── LA TERCERA VEZ QUE UN CAMPO SIN FORMA SE RELLENA COMO SE PUEDE ────────────
+   *
+   * `constraints` se nombraba en la lista de campos de arriba y no se
+   * explicaba en ninguna parte — ni siquiera aparecía entre comillas, que es como
+   * se presenta cada campo que sí se explica. En un canary de Travel el modelo
+   * devolvió cinco restricciones REALES de la persona —Lisboa, cinco días, abril,
+   * la comida, sin prisas— en forma de LISTA DE FRASES. El contrato espera pares
+   * sueltos, así que el intérprete no vio un objeto plano y se quedó en {}.
+   *
+   * Es el mismo hueco que ya se pagó dos veces: `needs`, que se pedía en prosa y
+   * acabó dentro de `input`, y `confidence`, cuyo vocabulario no se decía y llegó
+   * un 0.9. Un campo nombrado y no mostrado se rellena como se pueda.
+   *
+   * ── Y LAS CLAVES SIGUEN SIENDO ABIERTAS, A PROPÓSITO ───────────────────
+   *
+   * Lo que acota a una persona no cabe en una lista que Weë decida de
+   * antemano: hoy es «sin gluten» y mañana «que quepa en el maletero». Por eso
+   * se enseña la FORMA —pares planos, valores escalares— y se dice explicitamente
+   * que los nombres los elige el modelo. El ejemplo es un ejemplo, no un
+   * catálogo: convertirlo en lista cerrada sería otra fase y otra decisión.
+   */
+  '"constraints" son los límites que puso la persona, en pares sueltos de nombre y valor: {"duracion":30, "tono":"cercano", "urgente":true}. Los valores son texto, número o sí/no, nunca listas ni objetos.',
+  'Los nombres de esas claves los eliges tú: no hay lista cerrada. Si no acotó nada, omite "constraints" entero.',
+  '"creative" describe CÓMO quiere el resultado, solo si la persona lo dijo. Forma: {"version":1, ...}. Grupos y valores admitidos:',
+  'camera.type: aerial|ground|handheld|pov|macro|overhead|underwater. camera.perspective: eye_level|low_angle|high_angle|aerial.',
+  'shot.type: establishing|wide|medium|close_up|extreme_close_up|hero. lens.type: wide|standard|telephoto|macro|fisheye.',
+  'movement.type: static|dolly_in|dolly_out|tracking|orbit|pan|tilt|crane_up|crane_down|push_in|pull_out|follow. movement.speed: slow|normal|fast.',
+  'motion.smoothness: smooth|natural|dynamic. lighting.type: natural|golden_hour|blue_hour|studio|dramatic|soft|high_contrast|night.',
+  'composition.type: centered|rule_of_thirds|symmetrical|negative_space|foreground_depth. transition.type: cut|dissolve|fade|match_cut|whip|seamless.',
+  'framing.aspectRatio: 16:9|9:16|1:1|4:5|4:3|21:9.',
+  'Si la persona no lo dijo, omite el grupo entero. No inventes valores que no estén en esas listas.',
+  /*
+   * Y esto es lo nuevo de S5: decir QUÉ HACE FALTA, no cuál. Cuál es de otra
+   * capa, y el modelo no tiene forma de saberlo — no ve lo que la cuenta tiene.
+   */
+  '"context" dice QUÉ COSAS YA EXISTENTES de la persona hacen falta, cuando se refiere a algo suyo ("usa mi hamburguesa", "el personaje de ayer", "el logo de mi restaurante").',
+  'Forma: [{"kind":"element","elementType":"character|product|brand|place|object|scene","required":true}] o [{"kind":"asset","assetKind":"image|video|audio|document|text|model3d","required":true}].',
+  'NO adivines CUÁL: solo de qué clase. Si no se refiere a nada que ya tenga, omite "context".',
+  /*
+   * C5: qué tiene que quedarse igual. Es el campo con la regla más delicada de
+   * todo el esquema —el silencio NO autoriza— y por eso se le dice tres veces
+   * de tres formas: omite lo que no se dijo, no completes listas, no inventes
+   * identificadores. Un modelo que rellena huecos aquí da permiso para cambiar
+   * la cara de alguien sin que nadie se lo haya pedido.
+   */
+  '"continuity" dice QUÉ DEBE QUEDARSE IGUAL y QUÉ PUEDE CAMBIAR, solo cuando la persona lo expresa ("deja a Luna igual", "no cambies el rostro", "mantén la arquitectura", "cambia solo el vestido", "hazlo de noche").',
+  'Forma: {"preserve":[...], "mayChange":[...], "subjects":["Luna","la casa"], "strength":"relaxed|standard|strict", "spatial":[{"subject":"lámpara","relation":"next_to","object":"sofá"}]}.',
+  'Aspectos admitidos, familia.detalle: identity.face|body|hair|features|appearance. appearance.hairstyle|hairColor|skin|eyes|facialHair|makeup. outfit.clothing|footwear|accessories|complete.',
+  'object.identity|geometry|proportions|color|material|texture|markings|presence|position|state. product.identity|geometry|packaging|label|branding.',
+  'architecture.identity|geometry|facade|openings|structure|proportions|spatialLayout|materials|elements. interior.layout|furniture|fixtures|materials|finishes|decoration.',
+  'exterior.site|landscape|terrain|vegetation|surroundings. environment.location|scene|background|spatialContext. style.visual|artistic|rendering|composition.',
+  'camera.framing|perspective|position|focal|shotType. lighting.type|direction|intensity|timeOfDay. pose.body|position. action.activity|movement.',
+  'spatial.relationships|alignment|containment|relativePosition. temporal.previousShot|sceneState|subjectState|environmentState|objectState|motion. narrative.state|logic.',
+  'relation admite: next_to|behind|in_front_of|inside|above|below|aligned_with|attached_to.',
+  'REGLA: pon en "preserve" SOLO lo que la persona dijo que se queda igual, y en "mayChange" SOLO lo que dijo que puede cambiar. Lo que no mencionó NO va en ninguna lista: el silencio no es permiso.',
+  '"solo"/"únicamente"/"nada más" refuerzan que lo demás se conserva, pero NO completes la lista con aspectos que nadie nombró.',
+  '"subjects" son los NOMBRES que usó la persona, nunca identificadores: no los conoces y no debes inventarlos.',
+  'Usa "strength":"strict" solo si dijo algo como "exactamente", "idéntico" o "sin cambiar nada". Si no habló de conservar nada, omite "continuity" entero.',
+  'Nunca incluyas nombres de modelos, proveedores, URLs, identificadores ni claves. Devuelve solo el JSON, sin explicaciones.',
+].join(' ');
+
 export const localeDeBrain = (locale?: unknown): string =>
   typeof locale === 'string' && LOCALE_CON_FORMA_DE_IDIOMA.test(locale) ? locale : IDIOMA_DE_RESERVA_DE_BRAIN;
 
@@ -84,6 +335,22 @@ export const nombreDelIdioma = (locale: string): string => {
     return locale;
   }
 };
+
+/** El nombre del idioma en inglés («Danish (Denmark)»): los modelos lo reconocen siempre, junto al propio y al código. */
+export const nombreDelIdiomaEnIngles = (locale: string): string => {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'language' }).of(locale) || locale;
+  } catch {
+    return locale;
+  }
+};
+
+/**
+ * EL IDIOMA, DICHO DE TRES MANERAS: el nombre propio, el inglés y el código («dansk (Danmark) · Danish (Denmark) ·
+ * código da-DK»). Una sola forma, la misma en la instrucción del sistema y en el recordatorio del final.
+ */
+const idiomaParaElModelo = (codigo: string): string =>
+  `${nombreDelIdioma(codigo)} · ${nombreDelIdiomaEnIngles(codigo)} · código ${codigo}`;
 
 /**
  * La frase que se le añade al prompt del sistema en cada petición.
@@ -98,6 +365,46 @@ export const instruccionDeIdioma = (locale?: unknown): string => {
     `Responde SIEMPRE en ${nombreDelIdioma(codigo)} (código ${codigo}), aunque la persona te escriba en otro idioma.`,
     'Cambia de idioma solo si te lo pide explícitamente.',
   ].join(' ');
+};
+
+/**
+ * EN QUÉ IDIOMA ESCRIBE UN ESPECIALISTA.
+ *
+ * No es la misma regla que la de Weë Brain conversando (`instruccionDeIdioma`, que no cambia de idioma aunque le
+ * escriban en otro): aquí la persona puede pedir el CONTENIDO en otro idioma —una traducción, un texto para otro
+ * público— y entonces manda lo que pidió (`core/language.ts`: appLanguage ≠ contentLanguage). Todo lo demás, en el
+ * idioma de su app.
+ *
+ * LAS MARCAS NO SE TRADUCEN. Algunos pasos piden líneas que lee el código —«IMAGEN:», «PROBAR:» y «NARRACIÓN:» encadenan
+ * un paso con el siguiente, «Escena 1» da la primera escena del vídeo, la app pliega un itinerario por sus «DÍA 1 ·» y
+ * deja abierto su «PRESUPUESTO:»—. Esas marcas son el contrato entre el servidor y la app: se piden en español, la app
+ * las esconde o las pinta en el idioma de quien mira (`utils/textoDeResultado.ts`) y aquí se pide copiarlas tal cual.
+ *
+ * Sin idioma —un cliente que no lo manda— o en español: español neutro, que es lo que decía `BRAIN_SYSTEM`.
+ */
+export const instruccionDeSalida = (locale?: unknown): string => {
+  if (locale === undefined || locale === null || locale === '') return 'Escribe en español neutro.';
+  const codigo = localeDeBrain(locale);
+  if (/^es(-|$)/i.test(codigo)) return 'Escribe en español neutro.';
+  return [
+    `La persona usa Weë en ${idiomaParaElModelo(codigo)}: escribe en ese idioma todo lo que va a leer, títulos y avisos incluidos, aunque estas instrucciones y el objetivo estén en español, salvo que haya pedido el contenido en otro idioma (una traducción, un texto para otro público); entonces ese contenido va en el idioma que pidió.`,
+    'Las marcas que piden estas instrucciones se copian EXACTAMENTE así, en español, porque la app las reconoce y las traduce: «IMAGEN:», «PROBAR:», «NARRACIÓN:», «Escena 1» (y las siguientes), «DÍA 1 ·» (y los siguientes) y «PRESUPUESTO:». Lo que va detrás de «IMAGEN:» y «PROBAR:» sigue en inglés.',
+  ].join(' ');
+};
+
+/**
+ * LO ÚLTIMO QUE LEE EL MODELO: el idioma, otra vez.
+ *
+ * Las instrucciones de Weë están en español y el objetivo por defecto también («Algo rico para comer hoy»): todo
+ * empuja al modelo a contestar en español aunque el sistema le haya pedido danés. Lo que más pesa en un modelo es lo
+ * último que lee, así que el idioma se repite al FINAL del encargo, con la misma forma que en el sistema. En español,
+ * o sin idioma, no se añade nada: no hay nada contra lo que empujar.
+ */
+export const recordatorioDeIdioma = (locale?: unknown): string => {
+  if (locale === undefined || locale === null || locale === '') return '';
+  const codigo = localeDeBrain(locale);
+  if (/^es(-|$)/i.test(codigo)) return '';
+  return `IDIOMA DE LA RESPUESTA: ${idiomaParaElModelo(codigo)}. Todo lo que la persona va a leer va en ese idioma, salvo el contenido que pidió en otro; las marcas «IMAGEN:», «PROBAR:», «NARRACIÓN:», «Escena», «DÍA» y «PRESUPUESTO:» se copian tal cual.`;
 };
 
 const EXPERIENCE_ROLE: Record<ExperienceId, string> = {
@@ -115,7 +422,7 @@ const EXPERIENCE_ROLE: Record<ExperienceId, string> = {
   brain: 'Ahora eres Weë Brain, el asistente general: explicas fácil y siempre propones por dónde empezar.',
 };
 
-const KIND_INSTRUCTIONS: Record<string, string> = {
+export const KIND_INSTRUCTIONS: Record<string, string> = {
   /*
    * Weë Travel. Cuatro tareas y una regla común: nunca inventar un sitio que se
    * pueda visitar. Un restaurante que no existe o un museo cerrado hace daño de
@@ -191,9 +498,11 @@ export const buildTextPrompt = (
   brief: string,
   goal: string,
   purpose: string,
-  previous: string[]
+  previous: string[],
+  /** El idioma del trabajo (`CreatorJob.locale`); sin él, español neutro. */
+  locale?: string
 ): BuiltPrompt => ({
-  system: `${BRAIN_SYSTEM}\n\n${EXPERIENCE_ROLE[experienceId]}\n\n${FORMAT_RULES}`,
+  system: `${BRAIN_SYSTEM} ${instruccionDeSalida(locale)}\n\n${EXPERIENCE_ROLE[experienceId]}\n\n${FORMAT_RULES}`,
   prompt: [
     `Objetivo de la persona: "${goal}".`,
     brief ? `Lo que eligió: ${brief}.` : '',
@@ -202,6 +511,7 @@ export const buildTextPrompt = (
     previous.length > 0
       ? `Material de los pasos anteriores (úsalo, no lo repitas):\n${previous.map((p, i) => `[${i + 1}] ${p}`).join('\n\n')}`
       : '',
+    recordatorioDeIdioma(locale),
   ]
     .filter(Boolean)
     .join('\n\n'),
@@ -262,6 +572,28 @@ export const IMAGE_TASK_EN: Record<string, string> = {
 /** Lo que ya va en inglés por las capas 1 y 2, para no adaptar de más. */
 export const imageEnglishPart = (kind: string, previous: string[] = []): string =>
   extractMarker(previous, 'IMAGEN') || extractMarker(previous, 'PROBAR') || IMAGE_TASK_EN[kind] || '';
+
+/**
+ * EL SISTEMA DE LA ADAPTACIÓN DE IDIOMA (capa 3 de `engine/promptLanguage.ts`; cierre post-auditoría
+ * 2026-10-01, server/prompts-internos).
+ *
+ * La llamada que reescribe en inglés el texto de una imagen para un proveedor que solo admite ciertos
+ * idiomas (hoy Seedream) no pasaba sistema: el adaptador ponía el suyo —«responde en español»— mientras
+ * `ADAPT_INSTRUCTION` pedía inglés. Y va por `text.structure`, que en los cuatro adaptadores encendía el
+ * modo JSON, contra «contesta solo con la instrucción». Ahora lleva SU sistema, que dice lo mismo que la
+ * instrucción, y pide texto plano (`format: 'text'`).
+ */
+export const SISTEMA_DE_ADAPTACION =
+  'You are an internal step of Weë. You rewrite image instructions in English for an image model, exactly as the message asks: same meaning, every detail, nothing added and nothing removed. Answer in English with plain text only: the rewritten instruction, without JSON, quotes or explanations.';
+
+/** La entrada de esa llamada: el texto con la instrucción, su sistema y texto plano. Trabajo interno: no se cobra. */
+export const entradaDeAdaptacion = (texto: string): Record<string, unknown> => ({
+  prompt: texto,
+  system: SISTEMA_DE_ADAPTACION,
+  format: 'text',
+  maxOutputTokens: 400,
+  quality: 'standard',
+});
 
 /**
  * DIRECCIÓN FOTOGRÁFICA — de momento solo Weë Chef.
@@ -370,23 +702,112 @@ export const buildImagePrompt = (experienceId: ExperienceId, kind: string, brief
     .join(' ');
 };
 
+/*
+ * ── LAS MARCAS DEL GUION, LEÍDAS CON TOLERANCIA (cierre post-auditoría 2026-10-01) ──
+ *
+ * El guion (`KIND_INSTRUCTIONS.script`) pide «Escena 1…», los tiempos «0–3 s, 3–7 s, 7–10 s» y una línea final
+ * que EMPIECE con «NARRACIÓN:», y `instruccionDeSalida` / `recordatorioDeIdioma` piden copiar esas marcas tal cual.
+ * Un modelo que escribe en otro idioma a veces las escribe con otra caja, sin el acento, con espacios de más, en
+ * negrita, con viñeta o con los dos puntos de ancho completo. Eso sigue siendo la MISMA marca y se reconoce.
+ * Una marca TRADUCIDA ya no es la marca y no se adivina: no se inventa un diccionario de «narración» en cada idioma.
+ *
+ * Lo que cambia de verdad es qué pasa cuando la marca no aparece:
+ *  · la VOZ no lee el guion entero (antes leía sus primeros 400 caracteres: tiempos, planos y cámara en voz alta).
+ *    Si el texto es un guion —tiene escenas o los tiempos que el guion pide— y no trae su narración marcada, no hay
+ *    nada inequívocamente narrable y se devuelve vacío: el paso de voz falla y se ve, en vez de leer otra cosa.
+ *    Un texto que NO es un guion (Weë Music «Una voz o narración»: el texto entero ES la narración) se lee como siempre.
+ *  · el VÍDEO, si no encuentra «Escena 1», busca la línea de la primera escena por el tiempo que el mismo guion pidió
+ *    («0–3 s»), que no se traduce. Si tampoco está, el prompt se queda sin escena, como antes: nada inventado.
+ */
+
+/** Lo que puede preceder a la marca de narración al principio de la línea: espacios, viñetas, citas, negritas, número. */
+const ANTES_DE_LA_MARCA = String.raw`^[\s>*_#•·\-–—]*(?:\d+[.)]\s*)?[\s*_]*`;
+/** La marca de narración, con o sin acento y con cualquier caja; los dos puntos, normales o de ancho completo. */
+const MARCA_DE_NARRACION = new RegExp(`${ANTES_DE_LA_MARCA}(narraci[oó]n)[\\s*_]*[:：][\\s*_]*(.*)$`, 'i');
+/** «Escena 1», «ESCENA 1», «escena  1», «**Escena 1**»… en cualquier punto de la línea, como antes; pero no «Escena 10». */
+const MARCA_DE_PRIMERA_ESCENA = /escena\s*#?\s*1(?!\d)/i;
+/** Cualquier escena numerada: para saber si un texto es un guion. */
+const MARCA_DE_ESCENA = /escena\s*#?\s*\d/i;
+/** El tiempo que el guion pide para la primera escena, «0–3 s», en cualquier idioma: los números no se traducen. */
+const TIEMPO_DE_PRIMERA_ESCENA = /(^|[^\d])0\s*[–—-]\s*3(?!\d)/;
+const TIEMPO_DE_SEGUNDA_ESCENA = /(^|[^\d])3\s*[–—-]\s*7(?!\d)/;
+
+const lineasDe = (texto: string): string[] => texto.normalize('NFC').split(/\r?\n/);
+/** Quita la negrita/cursiva de markdown que rodea a lo marcado; el contenido no se toca. */
+const sinAdornos = (s: string): string => s.replace(/^[\s*_]+|[\s*_]+$/g, '').trim();
+
+/** ¿Este texto es un guion por escenas? Por sus escenas o por los tiempos que el guion pide. */
+export const esUnGuion = (texto: string): boolean => {
+  const lineas = lineasDe(texto);
+  return lineas.some((l) => MARCA_DE_ESCENA.test(l)) || (TIEMPO_DE_PRIMERA_ESCENA.test(texto) && TIEMPO_DE_SEGUNDA_ESCENA.test(texto));
+};
+
+/**
+ * La narración marcada de un texto, o vacío. Si hay varias líneas con la marca, manda la escrita como la pide el
+ * contrato (en mayúsculas) y, entre iguales, la ÚLTIMA: el guion la pide «al final». Si el texto va en la línea
+ * siguiente a la marca, se toma hasta la primera línea en blanco.
+ */
+export const narracionMarcada = (texto: string): string => {
+  const lineas = lineasDe(texto);
+  const marcas = lineas.map((l, i) => ({ i, m: l.match(MARCA_DE_NARRACION) })).filter((x) => x.m);
+  if (marcas.length === 0) return '';
+  const delContrato = marcas.filter((x) => /^NARRACI[OÓ]N$/.test(x.m![1]));
+  const elegida = (delContrato.length ? delContrato : marcas)[(delContrato.length ? delContrato : marcas).length - 1];
+  let contenido = sinAdornos(elegida.m![2] ?? '');
+  if (!contenido) {
+    const siguientes: string[] = [];
+    for (const l of lineas.slice(elegida.i + 1)) {
+      if (!l.trim()) {
+        if (siguientes.length) break;
+        continue;
+      }
+      if (MARCA_DE_ESCENA.test(l) || MARCA_DE_NARRACION.test(l)) break;
+      siguientes.push(l.trim());
+    }
+    contenido = sinAdornos(siguientes.join(' '));
+  }
+  return contenido.replace(/\s+/g, ' ').slice(0, 600);
+};
+
 /** Prompt interno para un clip de video a partir del guion. */
 export const buildVideoPrompt = (goal: string, brief: string, previous: string[]): string => {
-  const script = previous.find((p) => /Escena 1/i.test(p)) || previous[0] || '';
-  // "Escena 1 (0–3 s): lo que se ve…" → lo que se ve (o la línea siguiente si la descripción va aparte)
-  const sameLine = script.match(/Escena 1[^:\n]*:\s*([^\n]+)/i)?.[1]?.trim() || '';
-  const nextLine = script.match(/Escena 1[^\n]*\n\s*([^\n]+)/i)?.[1]?.trim() || '';
-  const scene = sameLine || nextLine;
+  const script = previous.find((p) => lineasDe(p).some((l) => MARCA_DE_PRIMERA_ESCENA.test(l)))
+    || previous.find((p) => TIEMPO_DE_PRIMERA_ESCENA.test(p))
+    || previous[0] || '';
+  const lineas = lineasDe(script);
+  // "Escena 1 (0–3 s): lo que se ve…" → lo que se ve (o la línea siguiente si la descripción va aparte).
+  // Sin «Escena 1» reconocible, la línea de la primera escena es la de su tiempo, «0–3 s».
+  let at = lineas.findIndex((l) => MARCA_DE_PRIMERA_ESCENA.test(l));
+  let desde = at >= 0 ? lineas[at].search(MARCA_DE_PRIMERA_ESCENA) : -1;
+  if (at < 0) {
+    at = lineas.findIndex((l) => TIEMPO_DE_PRIMERA_ESCENA.test(l) && !MARCA_DE_NARRACION.test(l));
+    desde = at >= 0 ? lineas[at].search(TIEMPO_DE_PRIMERA_ESCENA) : -1;
+  }
+  let scene = '';
+  if (at >= 0) {
+    const linea = lineas[at].slice(Math.max(0, desde));
+    const dosPuntos = linea.search(/[:：]/);
+    const sameLine = dosPuntos >= 0 ? sinAdornos(linea.slice(dosPuntos + 1)) : '';
+    const nextLine = sinAdornos(lineas.slice(at + 1).find((l) => l.trim()) ?? '');
+    scene = sameLine || (MARCA_DE_NARRACION.test(nextLine) ? '' : nextLine);
+  }
   return [`${goal}.`, scene ? `Opening scene: ${scene}` : '', brief ? `Style: ${brief}.` : '', 'Smooth camera movement, natural motion, high detail, no text on screen.']
     .filter(Boolean)
     .join(' ')
     .slice(0, 1500);
 };
 
-/** Texto que se lee en voz alta: la línea NARRACIÓN del guion o un resumen breve. */
+/**
+ * Texto que se lee en voz alta: la línea NARRACIÓN del guion. Sin ella, un texto que NO es un guion se lee tal cual
+ * (es la narración misma); un guion sin su narración marcada NO se lee entero: se devuelve vacío.
+ */
 export const narrationFrom = (previous: string[], goal: string): string => {
-  const marked = extractMarker(previous, 'NARRACIÓN') || extractMarker(previous, 'NARRACION');
-  if (marked) return marked;
-  const text = previous.find((p) => p.trim().length > 0) || goal;
+  for (const texto of previous) {
+    const marcada = narracionMarcada(texto);
+    if (marcada) return marcada;
+  }
+  const text = previous.find((p) => p.trim().length > 0);
+  if (text === undefined) return goal.replace(/\s+/g, ' ').slice(0, 400);
+  if (esUnGuion(text)) return '';
   return text.replace(/\s+/g, ' ').slice(0, 400);
 };

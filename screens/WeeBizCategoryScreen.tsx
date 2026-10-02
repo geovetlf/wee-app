@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -27,7 +27,7 @@ type RoutePropType = RouteProp<MainStackParamList, 'WeeBizCategory'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 const WeeBizCategoryScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { theme } = useTheme();
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RoutePropType>();
@@ -35,6 +35,8 @@ const WeeBizCategoryScreen: React.FC = () => {
 
   const { categoryId, categoryLabel } = route.params;
   const category = getCategoryById(categoryId);
+  /* El nombre sale de la categoría y en el idioma de ahora; el de la ruta queda para un id que ya no exista. */
+  const nombreDeCategoria = category ? t(category.clave) : categoryLabel;
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +123,7 @@ const WeeBizCategoryScreen: React.FC = () => {
         <View style={styles.bizAura}>
           <Ionicons name="star" size={scale(14)} color="#F5B731" />
           <Text style={[styles.bizAuraText, { color: theme.colors.text }]}>
-            {item.auraScore.toFixed(1)}
+            {formato.numero(item.auraScore, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
           </Text>
         </View>
       )}
@@ -141,7 +143,7 @@ const WeeBizCategoryScreen: React.FC = () => {
           {t('weebiz.noneYet')}
         </Text>
         <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
-          Sé el primero en registrar tu negocio en {categoryLabel}.
+          {t('weebiz.firstInCategory', { categoria: nombreDeCategoria })}
         </Text>
       </View>
     );
@@ -161,7 +163,7 @@ const WeeBizCategoryScreen: React.FC = () => {
             </View>
           )}
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-            {categoryLabel}
+            {nombreDeCategoria}
           </Text>
         </View>
         <View style={{ width: scale(32) }} />

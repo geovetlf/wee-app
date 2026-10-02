@@ -41,6 +41,12 @@ export interface CloseRecord {
   status: Extract<GenerationStatus, 'COMPLETED' | 'FAILED' | 'CANCELLED'>;
   providerCost: number;
   /**
+   * Un fallo que pudo costar dinero al proveedor (H0 #22, `costeTrasUnFallo` en el router). `providerCost`
+   * sigue siendo lo MEDIDO (0); el estimado va aparte y se suma a `aiUsage/{día}` como `usdEnRiesgo`.
+   */
+  providerCostStatus?: 'desconocido';
+  providerCostEstimated?: number;
+  /**
    * Precio de catálogo de este paso. Se escribe SIEMPRE, haya cobro o no: es lo
    * que la operación vale, no lo que se cobró. Cerrar una generación ya no
    * declara ningún cobro, porque en ese momento la transacción sigue autorizada
@@ -167,6 +173,10 @@ export const firestoreLedger: Ledger = {
     const day = diaDelLibro(record.createdAt, now);
     const provider = record.provider || 'unknown';
     const capability = record.capability || 'unknown';
+    /* Lo que pudo costar un fallo que llegó al proveedor (H0 #22): aparte del dinero medido, para que los topes lo vean. */
+    const estimado = Number(patch.providerCostEstimated);
+    const enRiesgo = patch.providerCostStatus === 'desconocido' && Number.isFinite(estimado) && estimado > 0 ? estimado : 0;
+    const riesgo = enRiesgo > 0 ? { usdEnRiesgo: FieldValue.increment(enRiesgo) } : {};
     await Promise.all([
       ref.set(clean, { merge: true }),
       db()
@@ -183,10 +193,11 @@ export const firestoreLedger: Ledger = {
                 // se acumulan aquí: hasta que la transacción se liquide no se sabe
                 // si hubo ingreso. Lo hace ledger.settle().
                 usd: FieldValue.increment(patch.providerCost || 0),
+                ...riesgo,
                 latencyMs: FieldValue.increment(patch.durationMs || 0),
               },
             },
-            byProvider: { [provider]: { calls: FieldValue.increment(1), usd: FieldValue.increment(patch.providerCost || 0) } },
+            byProvider: { [provider]: { calls: FieldValue.increment(1), usd: FieldValue.increment(patch.providerCost || 0), ...riesgo } },
             updatedAt: now,
           },
           { merge: true }

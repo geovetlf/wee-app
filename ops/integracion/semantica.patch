@@ -1,0 +1,342 @@
+diff --git a/components/creator/CampoQueCrece.tsx b/components/creator/CampoQueCrece.tsx
+index b2671e9..7dddfc4 100644
+--- a/components/creator/CampoQueCrece.tsx
++++ b/components/creator/CampoQueCrece.tsx
+@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
+ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+ import { useTheme } from '../../contexts/ThemeContext';
+ import { useCajaQueCrece } from './CajaQueCrece';
++import TextoEnMayusculas from '../TextoEnMayusculas';
+ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
+ import { scale } from '../../utils/scale';
+ 
+@@ -52,7 +53,7 @@ const CampoQueCrece: React.FC<Props> = ({ etiqueta, valor, placeholder, maximo,
+ 
+   return (
+     <View style={styles.bloque}>
+-      <Text style={[styles.etiqueta, { color: theme.colors.textSecondary }]}>{etiqueta}</Text>
++      <TextoEnMayusculas style={[styles.etiqueta, { color: theme.colors.textSecondary }]}>{etiqueta}</TextoEnMayusculas>
+       <View
+         ref={caja.refCaja}
+         onLayout={caja.alMedirCaja}
+@@ -90,7 +91,7 @@ const CampoQueCrece: React.FC<Props> = ({ etiqueta, valor, placeholder, maximo,
+ 
+ const styles = StyleSheet.create({
+   bloque: { gap: SPACING.xs },
+-  etiqueta: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold as any, textTransform: 'uppercase', letterSpacing: 0.4 },
++  etiqueta: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold as any, letterSpacing: 0.4 },
+   caja: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.sm, gap: SPACING.xs },
+   campo: { fontSize: FONT_SIZE.base, lineHeight: FONT_SIZE.base * 1.4, padding: 0 },
+   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+diff --git a/components/studio/produccion/ProductionPiezas.tsx b/components/studio/produccion/ProductionPiezas.tsx
+index f5ea647..4b54c38 100644
+--- a/components/studio/produccion/ProductionPiezas.tsx
++++ b/components/studio/produccion/ProductionPiezas.tsx
+@@ -2,6 +2,7 @@ import React from 'react';
+ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+ import { Ionicons } from '@expo/vector-icons';
+ import { useTheme } from '../../../contexts/ThemeContext';
++import TextoEnMayusculas from '../../TextoEnMayusculas';
+ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
+ import { scale } from '../../../utils/scale';
+ 
+@@ -21,7 +22,7 @@ export const Seccion: React.FC<{ titulo: string; derecha?: React.ReactNode; chil
+   return (
+     <View style={styles.seccion}>
+       <View style={styles.seccionCabecera}>
+-        <Text style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{titulo}</Text>
++        <TextoEnMayusculas style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{titulo}</TextoEnMayusculas>
+         {derecha}
+       </View>
+       {children}
+@@ -80,7 +81,7 @@ export const BotonPequeno: React.FC<{
+ const styles = StyleSheet.create({
+   seccion: { gap: SPACING.sm },
+   seccionCabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.sm },
+-  seccionTitulo: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, textTransform: 'uppercase', letterSpacing: 0.6 },
++  seccionTitulo: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, letterSpacing: 0.6 },
+   chip: {
+     flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, borderWidth: 1, borderRadius: BORDER_RADIUS.full,
+     paddingHorizontal: SPACING.sm, paddingVertical: scale(3), alignSelf: 'flex-start', maxWidth: '100%',
+diff --git a/components/studio/produccion/ProductionSceneCard.tsx b/components/studio/produccion/ProductionSceneCard.tsx
+index 42510b5..269ecfa 100644
+--- a/components/studio/produccion/ProductionSceneCard.tsx
++++ b/components/studio/produccion/ProductionSceneCard.tsx
+@@ -1,6 +1,7 @@
+ import React from 'react';
+ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+ import { useTheme } from '../../../contexts/ThemeContext';
++import TextoEnMayusculas from '../../TextoEnMayusculas';
+ import { useIdioma } from '../../../contexts/IdiomaContext';
+ import { BotonPequeno, Chip } from './ProductionPiezas';
+ import ProductionShotCard, { IdsNuevos } from './ProductionShotCard';
+@@ -58,7 +59,7 @@ const ProductionSceneCard: React.FC<{
+         style={[styles.cabecera, isWeb && ({ cursor: 'pointer' } as any)]}
+       >
+         <View style={styles.titulos}>
+-          <Text style={[styles.numero, { color: theme.colors.accentDark }]}>{nombre}</Text>
++          <TextoEnMayusculas style={[styles.numero, { color: theme.colors.accentDark }]}>{nombre}</TextoEnMayusculas>
+           <Text style={[styles.titulo, { color: escena.title ? theme.colors.text : theme.colors.textSecondary }]} numberOfLines={1}>
+             {escena.title ?? t('filmmaker.untitledScene')}
+           </Text>
+@@ -130,7 +131,7 @@ const styles = StyleSheet.create({
+   escena: { borderWidth: 1, borderRadius: BORDER_RADIUS.lg, padding: SPACING.md, gap: SPACING.sm },
+   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.md, minHeight: 44 },
+   titulos: { flex: 1, minWidth: 0, gap: 2 },
+-  numero: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, textTransform: 'uppercase', letterSpacing: 0.6 },
++  numero: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, letterSpacing: 0.6 },
+   titulo: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.bold as any },
+   resumen: { alignItems: 'flex-end', gap: 2 },
+   duracion: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold as any, fontVariant: ['tabular-nums'] },
+diff --git a/components/studio/produccion/ProductionTimelinePreview.tsx b/components/studio/produccion/ProductionTimelinePreview.tsx
+index c3abcbe..b8cf6ed 100644
+--- a/components/studio/produccion/ProductionTimelinePreview.tsx
++++ b/components/studio/produccion/ProductionTimelinePreview.tsx
+@@ -1,6 +1,7 @@
+ import React from 'react';
+ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+ import { useTheme } from '../../../contexts/ThemeContext';
++import TextoEnMayusculas from '../../TextoEnMayusculas';
+ import { useT } from '../../../contexts/IdiomaContext';
+ import { useSegundos } from './ProductionDurationSummary';
+ import { aSec, duracionDeUnidadMs, unidades } from '../../../services/filmmaker/dominio';
+@@ -43,7 +44,7 @@ const ProductionTimelinePreview: React.FC<{
+   return (
+     <View style={styles.bloque}>
+       <View style={styles.cabecera}>
+-        <Text style={[styles.titulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{t('filmmaker.timeline')}</Text>
++        <TextoEnMayusculas style={[styles.titulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{t('filmmaker.timeline')}</TextoEnMayusculas>
+         {!!linea && <Text style={[styles.total, { color: theme.colors.text }]}>{t('filmmaker.timelineTotal', { duracion: segundos(linea.totalSec) })}</Text>}
+       </View>
+       <View style={styles.pista}>
+@@ -91,7 +92,7 @@ const ProductionTimelinePreview: React.FC<{
+ const styles = StyleSheet.create({
+   bloque: { gap: SPACING.sm },
+   cabecera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: SPACING.sm },
+-  titulo: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, textTransform: 'uppercase', letterSpacing: 0.6 },
++  titulo: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold as any, letterSpacing: 0.6 },
+   total: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold as any, fontVariant: ['tabular-nums'] },
+   pista: { flexDirection: 'row', alignItems: 'stretch', minHeight: 44 },
+   tramo: {
+diff --git a/functions/test/f1d-cliente.test.mjs b/functions/test/f1d-cliente.test.mjs
+index fd88621..83ee8ab 100644
+--- a/functions/test/f1d-cliente.test.mjs
++++ b/functions/test/f1d-cliente.test.mjs
+@@ -85,6 +85,9 @@ const dobles = {
+   '../../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
+   '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }) },
+   '../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
++  /* Los rótulos en mayúsculas: la caja la decide TextoEnMayusculas (lo prueba i18n-turco 34–36c); aquí, el mismo texto, como hacía el estilo. */
++  '../../TextoEnMayusculas': ({ children, ...p }) => reactNative.Text({ ...p, children }),
++  '../TextoEnMayusculas': ({ children, ...p }) => reactNative.Text({ ...p, children }),
+   '../utils/scale': { scale: (x) => x },
+   '../../utils/scale': { scale: (x) => x },
+   '../../../utils/scale': { scale: (x) => x },
+diff --git a/functions/test/f1d-generacion.test.mjs b/functions/test/f1d-generacion.test.mjs
+index 0686d8b..2f175d4 100644
+--- a/functions/test/f1d-generacion.test.mjs
++++ b/functions/test/f1d-generacion.test.mjs
+@@ -812,11 +812,15 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
+ {
+   check('AG) F1-A intacto', git(`diff --name-only ${PUENTE} -- functions/src/filmmaker`).trim() === '');
+   check('AH) productions intacto', git(`diff --name-only ${PUENTE} -- functions/src/productions`).trim() === '');
+-  check('AI) Credits intactos: el Credit Engine, creditCosts, credits/index, el Financial Core y el Router',
+-    git(`diff --name-only ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim() === '');
++
++  /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
++  const CREDITS_DEL_HARNESS = '14\t0\tfunctions/src/credits/index.ts';
++  check('AI) Credits intactos: el Credit Engine, creditCosts, el Financial Core y el Router; credits/index, solo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
++    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
+   const legacy = (s) => { const a = s.indexOf('    try {\n      const result = await videoEngine.generate('); return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a)); };
+-  check('creatorRun y la rama legacy de generateVideo, byte a byte',
+-    git(`diff --name-only ${PUENTE} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim() === ''
++  check('creatorRun, solo con los arreglos del Harness (H0 #9, #11, #15a) y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
++    git(`diff --numstat ${PUENTE} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
++      === '45\t4\tfunctions/src/creator/credits.ts|99\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
+     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
+ }
+ 
+diff --git a/functions/test/filmmaker-servicio.emulator.mjs b/functions/test/filmmaker-servicio.emulator.mjs
+index 8b69de0..4ed5ae0 100644
+--- a/functions/test/filmmaker-servicio.emulator.mjs
++++ b/functions/test/filmmaker-servicio.emulator.mjs
+@@ -27,7 +27,7 @@ const hub = process.env.FIREBASE_EMULATOR_HUB;
+ if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST || !hub) {
+   console.log('✘ sin emuladores no se corre: faltan FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST o FIREBASE_EMULATOR_HUB'); process.exit(1);
+ }
+-if (PROY === 'get-wee' || !PROY.startsWith('demo-')) { console.log(`✘ solo contra un proyecto de demostración, nunca contra «${PROY}»`); process.exit(1); }
++if (!PROY.startsWith('demo-')) { console.log(`✘ solo contra un proyecto de demostración, nunca contra «${PROY}»`); process.exit(1); }
+ 
+ let failures = 0; let n = 0;
+ const check = (name, cond, extra = '') => {
+diff --git a/functions/test/filmmaker-ui.test.mjs b/functions/test/filmmaker-ui.test.mjs
+index 9d115cf..dcb7f4a 100644
+--- a/functions/test/filmmaker-ui.test.mjs
++++ b/functions/test/filmmaker-ui.test.mjs
+@@ -103,6 +103,9 @@ const dobles = {
+   '../../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P },
+   '../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
+   '../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
++  /* Los rótulos en mayúsculas: la caja la decide TextoEnMayusculas (lo prueba i18n-turco 34–36c); aquí, el mismo texto, como hacía el estilo. */
++  '../../TextoEnMayusculas': ({ children, ...p }) => reactNative.Text({ ...p, children }),
++  '../TextoEnMayusculas': ({ children, ...p }) => reactNative.Text({ ...p, children }),
+   '../../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
+   '../utils/scale': { scale: (x) => x },
+   '../../utils/scale': { scale: (x) => x },
+diff --git a/functions/test/i18n-turco.test.mjs b/functions/test/i18n-turco.test.mjs
+index 5694f21..ee26b22 100644
+--- a/functions/test/i18n-turco.test.mjs
++++ b/functions/test/i18n-turco.test.mjs
+@@ -287,6 +287,10 @@ console.log('\n── F · La caja: mayúsculas, minúsculas y búsqueda con las
+     ['services/weeBizService.ts', 'el campo guardado `nameLower` y su búsqueda por prefijo: cambiarlo exige migrar los negocios guardados'],
+     ['constants/camaraCinematica.ts', 'el alias técnico de un comando de cámara'],
+     ['constants/weeExperiences.ts', 'las palabras clave de las experiencias, que solo existen en español e inglés (limitación documentada)'],
++    ['utils/mensajesDeFilmmaker.ts', 'convierte el código de error del servidor (ASCII, snake_case) en el sufijo de su clave i18n: no se enseña'],
++    ['services/filmmaker/espejo/core/continuity.ts', 'espejo generado del dominio: normaliza claves técnicas prohibidas (ASCII), no texto visible'],
++    ['services/filmmaker/espejo/core/language.ts', 'espejo generado del dominio: canonicaliza etiquetas de idioma BCP-47 (identificadores ASCII)'],
++    ['services/filmmaker/espejo/core/shot.ts', 'espejo generado del dominio: normaliza claves técnicas prohibidas (ASCII), no texto visible'],
+   ]);
+   const listar = (d, r = []) => {
+     for (const e of fs.readdirSync(path.resolve(raiz, d), { withFileTypes: true })) {
+diff --git a/functions/test/productions-callable.emulator.mjs b/functions/test/productions-callable.emulator.mjs
+index 50ad7e2..6573c68 100644
+--- a/functions/test/productions-callable.emulator.mjs
++++ b/functions/test/productions-callable.emulator.mjs
+@@ -24,7 +24,7 @@ import { createRequire } from 'node:module';
+ const PROY = process.env.GCLOUD_PROJECT || 'demo-wee-filmmaker';
+ const hub = process.env.FIREBASE_EMULATOR_HUB;
+ if (!process.env.FIRESTORE_EMULATOR_HOST || !hub) { console.log('✘ sin emuladores no se corre: faltan FIRESTORE_EMULATOR_HOST o FIREBASE_EMULATOR_HUB'); process.exit(1); }
+-if (PROY === 'get-wee' || !PROY.startsWith('demo-')) { console.log(`✘ solo contra un proyecto de demostración, nunca contra «${PROY}»`); process.exit(1); }
++if (!PROY.startsWith('demo-')) { console.log(`✘ solo contra un proyecto de demostración, nunca contra «${PROY}»`); process.exit(1); }
+ 
+ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+ const require = createRequire(import.meta.url);
+diff --git a/functions/test/productions.emulator.mjs b/functions/test/productions.emulator.mjs
+index e62a9be..6e3f217 100644
+--- a/functions/test/productions.emulator.mjs
++++ b/functions/test/productions.emulator.mjs
+@@ -29,7 +29,7 @@ import { createRequire } from 'node:module';
+ const host = process.env.FIRESTORE_EMULATOR_HOST;
+ const PROY = process.env.GCLOUD_PROJECT || 'demo-wee-filmmaker';
+ if (!host) { console.log('✘ sin emulador no se corre: falta FIRESTORE_EMULATOR_HOST'); process.exit(1); }
+-if (PROY === 'get-wee') { console.log('✘ nunca contra producción'); process.exit(1); }
++if (!PROY.startsWith('demo-')) { console.log(`✘ solo contra un proyecto de demostración, nunca contra «${PROY}»`); process.exit(1); }
+ 
+ const base = `http://${host}/v1/projects/${PROY}/databases/(default)/documents`;
+ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+diff --git a/functions/test/puente-pre-f1d.test.mjs b/functions/test/puente-pre-f1d.test.mjs
+index 596962d..bb0fbb7 100644
+--- a/functions/test/puente-pre-f1d.test.mjs
++++ b/functions/test/puente-pre-f1d.test.mjs
+@@ -503,11 +503,11 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
+   await pasada();
+   check('E3) ninguna reconciliación hace un POST: solo el que pide la persona sale hacia ModelArk',
+     posts.length === postsAntes && posts.every((p) => p.acceptAsync === true));
+-  /* F1-D toca dos piezas del motor, nominales y de tamaño fijo (ver video-asincrono H2): ni un proveedor ni una cadena. */
++  /* F1-D toca dos piezas del motor, nominales y de tamaño fijo (ver video-asincrono H2): ni un proveedor ni una cadena. Los arreglos de la FASE 1 del Harness, tampoco: también van por nombre y tamaño. */
+   check('E4) Seedance, y solo Seedance: ni un proveedor nuevo, ni una cadena nueva',
+     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
+     && git(`diff --numstat ${RUTA} -- functions/src/engine`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
+-      === '15\t3\tfunctions/src/engine/limits.ts|10\t0\tfunctions/src/engine/providers/seedance.ts');
++      === '9\t2\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|33\t3\tfunctions/src/engine/limits.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|21\t1\tfunctions/src/engine/router.ts|19\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
+ }
+ 
+ /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */
+@@ -522,16 +522,27 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
+    */
+   const nuevos = git('ls-files --others --exclude-standard functions/src').trim().split('\n').filter(Boolean);
+   const tocados = [...git(`diff --name-only ${RUTA} -- functions/src`).trim().split('\n').filter(Boolean), ...nuevos].sort();
+-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D',
+-    JSON.stringify(tocados) === JSON.stringify([
++  /* Los de la FASE 1 del Harness (auditoría H0), por nombre: H0 #9, #11, #15a, #16, #19, #20, #21, #24, §27 y FASE 8. */
++  const DEL_HARNESS = [
++    'functions/src/creator/credits.ts', 'functions/src/creator/index.ts', 'functions/src/creator/types.ts', 'functions/src/credits/index.ts',
++    'functions/src/engine/admin.ts', 'functions/src/engine/config.ts', 'functions/src/engine/gateway.ts', 'functions/src/engine/http.ts',
++    'functions/src/engine/registry.ts', 'functions/src/engine/router.ts', 'functions/src/engine/types.ts', 'functions/src/engine/webhooks.ts',
++    'functions/src/gateway/index.ts', 'functions/src/gateway/types.ts', 'functions/src/generateAvatar.ts', 'functions/src/index.ts',
++    'functions/src/opciones.ts', 'functions/src/secrets.ts',
++  ];
++  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D y del Harness',
++    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS,
+       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
+       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
+       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
+       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
+-    ]),
++    ].filter((f, i, a) => a.indexOf(f) === i).sort()),
+     tocados.join(', '));
+-  check('F2) el Credit Engine, el Financial Core, el Router, creditCosts y credits/index: sin tocar',
+-    git(`diff --name-only ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim() === '');
++
++  /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
++  const CREDITS_DEL_HARNESS = '14\t0\tfunctions/src/credits/index.ts';
++  check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
++    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
+   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. */
+   check('F3) ni el Core, ni F1-A, ni productions; del contenido, solo la adopción de F1-D',
+     git(`diff --name-only ${RUTA} -- functions/src/core functions/src/filmmaker functions/src/productions`).trim() === ''
+@@ -540,8 +551,10 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
+     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');
+     return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a));
+   };
+-  check('F4) creatorRun y la rama legacy de generateVideo, byte a byte',
+-    git(`diff --name-only ${RUTA} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim() === ''
++  /* creatorRun y el avatar solo con los arreglos de la FASE 1 del Harness (H0 #9, #11, #15a), por tamaño. */
++  check('F4) creatorRun, solo con los arreglos del Harness y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
++    git(`diff --numstat ${RUTA} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
++      === '45\t4\tfunctions/src/creator/credits.ts|99\t10\tfunctions/src/creator/index.ts|52\t13\tfunctions/src/generateAvatar.ts'
+     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
+ }
+ 
+diff --git a/functions/test/video-asincrono.test.mjs b/functions/test/video-asincrono.test.mjs
+index 36e8104..1e410e6 100644
+--- a/functions/test/video-asincrono.test.mjs
++++ b/functions/test/video-asincrono.test.mjs
+@@ -281,7 +281,11 @@ const VIDEO = sinComentarios(VIDEO_SRC);
+   const antes = git(`show ${ANTES}:functions/src/creator/video.ts`);
+   const cobros = (s) => (sinComentarios(s).match(/creditEngine\.(spend|complete|refund)Credits\(/g) || []).length;
+   check('A12) ni una llamada nueva al dinero: la puerta cobra, confirma y devuelve con las MISMAS llamadas que antes', cobros(VIDEO_SRC) === cobros(antes), `${cobros(antes)} → ${cobros(VIDEO_SRC)}`);
+-  check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar', git(`diff --name-only ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim() === '');
++
++  /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
++  const CREDITS_DEL_HARNESS = '14\t0\tfunctions/src/credits/index.ts';
++  check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
++    git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
+   const medios = sinComentarios(leer('functions/src/runtime/medios.ts'));
+   const ayudante = medios.slice(medios.indexOf('export const trabajoDelMedio'), medios.indexOf('const sinNada'));
+   check('A14) la pregunta nueva de la puerta es de SOLO lectura: `porIdempotencia`, y nada más',
+@@ -575,10 +579,32 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
+    * línea más en cualquiera de las dos, o un archivo más, y esto falla.
+    */
+   const MOTOR_F1D = { 'functions/src/engine/limits.ts': '15\t3', 'functions/src/engine/providers/seedance.ts': '10\t0' };
++  /*
++   * Y los arreglos de la FASE 1 del Harness (auditoría H0), también por nombre y
++   * tamaño, re-anclados al integrar producción en main como hizo 88fa34d: ninguna
++   * cerca se quita ni se afloja. limits.ts y providers/seedance.ts los mueven F1-D
++   * Y el Harness: su tamaño es el del diff combinado.
++   */
++  const MOTOR_F1D_Y_HARNESS = {
++    'functions/src/creator/credits.ts': '45\t4', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
++    'functions/src/creator/index.ts': '99\t10', // 0926584 (#9) · 0799ed6
++    'functions/src/engine/admin.ts': '9\t2', // 0ad8500 (#19) · 5e87b80 (FASE 8)
++    'functions/src/engine/config.ts': '36\t1', // 8193184 (#20)
++    'functions/src/engine/gateway.ts': '2\t0', // 0ad8500 (#19)
++    'functions/src/engine/http.ts': '26\t1', // 16ca1ae (#3)
++    'functions/src/engine/limits.ts': '33\t3', // F1-D (decisión 14) + 5e87b80 (FASE 8)
++    'functions/src/engine/providers/seedance.ts': '33\t19', // F1-D (ficha 6) + 8a9f098 (#21)
++    'functions/src/engine/registry.ts': '2\t0', // 0ad8500 (#19)
++    'functions/src/engine/router.ts': '21\t1', // 0ad8500 (#19) · 5e87b80 (FASE 8)
++    'functions/src/engine/types.ts': '19\t0', // 0ad8500 (#19) · 5e87b80 (FASE 8)
++    'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
++    'functions/src/generateAvatar.ts': '52\t13', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6
++  };
+   const movidos = git(`diff --numstat ${ANTES} -- functions/src/engine functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`)
+     .trim().split('\n').filter(Boolean).map((l) => l.split('\t')).map(([mas, menos, f]) => [f, `${mas}\t${menos}`]);
+-  check('H2) y lo que la sostiene tampoco se movió: sondeo, adaptador, router, motor de vídeo, libro, creatorRun — salvo las dos piezas nominales de F1-D, del tamaño exacto',
+-    JSON.stringify(Object.fromEntries(movidos)) === JSON.stringify(MOTOR_F1D), JSON.stringify(Object.fromEntries(movidos)));
++  check('H2) y lo que la sostiene tampoco se movió: sondeo, adaptador, router, motor de vídeo, libro, creatorRun — salvo las dos piezas nominales de F1-D y los arreglos del Harness, del tamaño exacto',
++    JSON.stringify(Object.fromEntries(movidos)) === JSON.stringify(MOTOR_F1D_Y_HARNESS) && Object.keys(MOTOR_F1D).every((f) => f in MOTOR_F1D_Y_HARNESS),
++    JSON.stringify(Object.fromEntries(movidos)));
+   check('H3) F1-A y productions, sin tocar', git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions functions/src/core`).trim() === '');
+ }
+ 

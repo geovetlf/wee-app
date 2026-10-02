@@ -134,15 +134,57 @@ console.log('\n─── D. Lo usa el Studio; las demás, sin tocar ───');
 
 const studio = leer('screens/StudioScreen.tsx');
 check('20) Weë Studio abre sus ajustes con el contexto', /<AjustesContextuales/.test(studio) && /contexto=\{contexto\}/.test(studio));
-check('20) que sale de la puerta y de lo escrito', /contextoDeCreacion\(area, prompt\)/.test(studio));
+check('20) que sale de la puerta y de lo escrito', /contextoDeCreacion\(area, prompt, locale\)/.test(studio));
 check('21) y al entrar no se da por hecho que sea una imagen',
   /useState<AreaDeStudio \| null>\(null\)/.test(studio) && !/useState<AreaDeStudio>\('images'\)/.test(studio));
 check('22) la sugerencia de duración solo existe en video',
-  /if \(contexto !== 'video'\) return undefined;/.test(studio) && /duracionEnElTexto\(prompt\)/.test(studio));
-check('23) y el panel dice cuántas referencias van', /referencias=\{referencias\.length\}/.test(studio));
+  /if \(contexto !== 'video'\) return undefined;/.test(studio) && /duracionEnElTexto\(prompt, locale\)/.test(studio));
+/*
+ * Y el panel dice cuántas referencias van — contando LA MISMA lista que viaja.
+ *
+ * En Weë Studio esa lista pasó a ser `adjuntos` (B3.12), que es el tipo del
+ * contrato y lleva la CLASE de cada material. Lo que se vigila no es cómo se
+ * llama la variable: es que el número salga de la lista que se manda y no de un
+ * contador aparte, porque un contador aparte se queda atrás y entonces el panel
+ * dice «2 referencias» mientras viaja una.
+ */
+check('23) y el panel dice cuántas referencias van', /referencias=\{adjuntos\.length\}/.test(studio));
+check('23) contando la misma lista que viaja',
+  /adjuntos\.length \? \{ adjuntos \} : \{\}/.test(studio) && !/useState<string\[\]>\(\[\]\)/.test(studio));
 
-check('24) Weë Design sigue con su panel de siempre',
-  /<PromptSettings/.test(leer('screens/DesignScreen.tsx')) && !/AjustesContextuales/.test(leer('screens/DesignScreen.tsx')));
+/*
+ * WEË DESIGN PASA A LA MISMA HOJA (B3.10 §5), Y ESTA COMPROBACIÓN CAMBIA CON
+ * ELLA EN VEZ DE DESAPARECER.
+ *
+ * Antes decía "Weë Design sigue con su panel de siempre", porque cuando se
+ * escribió esta hoja Design se quedó fuera a propósito. Tenía su propia copia,
+ * `studio/PromptSettings`, que era esta misma hoja con otro catálogo, y para
+ * usarla Design tenía que declararse área "imágenes" del Studio —que no lo es—.
+ * Dos copias de una hoja no son dos decisiones: son una decisión y otra que se
+ * quedará atrás.
+ *
+ * Lo que hay que proteger ahora es lo contrario y es más: que Design use la
+ * hoja común SIN heredar lo que no es suyo. Sus grupos son los suyos, su pista
+ * es la suya —en Design los ajustes NO cambian con lo que se escribe, así que
+ * decir que cambian sería mentir— y sus referencias se cuentan igual que en el
+ * Studio.
+ */
+const design = leer('screens/DesignScreen.tsx');
+check('24) Weë Design abre la MISMA hoja que el Studio',
+  /<AjustesContextuales/.test(design) && !/PromptSettings/.test(design));
+check('24) con SU catálogo, no con el del Studio',
+  /grupos=\{AJUSTES\}/.test(design) && /siempreSePregunta\(AJUSTES_DE_DESIGN\)/.test(design));
+check('24) y con SU pista: aquí los ajustes no cambian con lo escrito',
+  /pista=\{t\('design\.settingsHint'\)\}/.test(design));
+check('24) y ya no se disfraza de área del Studio',
+  !/area="images"/.test(design), 'Weë Design no es un área de Weë Studio');
+check('24) y dice cuántas referencias van, como el Studio',
+  /referencias=\{referencias\.length\}/.test(design));
+
+/* CONTROL: si Design volviera a heredar el catálogo del Studio, se vería. */
+check('CONTROL: Design con el catálogo del Studio sería detectado',
+  !/grupos=\{AJUSTES\}/.test('<AjustesContextuales contexto="imagen" elegido={ajustes} />'),
+  'si esto pasara, esta comprobación no protegería nada');
 /*
  * Y Weë Brain la usa desde el 2026-09-16, con UN solo grupo: si busca en
  * internet o no. Es la misma hoja, no una pantalla nueva ni un sistema nuevo;

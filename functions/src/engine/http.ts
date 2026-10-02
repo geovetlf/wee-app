@@ -90,14 +90,39 @@ export async function fetchBytes(url: string, options: FetchOptions): Promise<{ 
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Espera a que una tarea asíncrona termine (video, imagen en cola…). */
+/**
+ * UNA CONSULTA DE ESTADO QUE FALLA NO MATA UNA TAREA QUE SIGUE VIVA (auditoría H0, escenario #3).
+ *
+ * El sondeo solo PREGUNTA por una tarea que el proveedor ya está haciendo (y
+ * cobrando). Antes, un único 503, 429 o una consulta sin respuesta lanzaba fuera
+ * del bucle: el trabajo fallaba y se reembolsaba mientras el proveedor seguía
+ * generando, y Weë pagaba esa generación igual. Ahora un fallo pasajero del
+ * proveedor (lo que `fetchJson` marca como reintentable: 5xx, 429, red) se
+ * tolera hasta FALLOS_PASAJEROS_TOLERADOS veces seguidas, dentro del mismo
+ * plazo. Un 4xx, cualquier otro error y una tarea que el proveedor da por
+ * fallida terminan en el acto, como siempre. Nunca se vuelve a crear la tarea.
+ */
+export const FALLOS_PASAJEROS_TOLERADOS = 3;
+
 export async function pollUntil<T>(
   check: () => Promise<{ done: boolean; value?: T; error?: string }>,
   options: { intervalMs?: number; timeoutMs: number; provider: string }
 ): Promise<T> {
   const started = Date.now();
   const interval = options.intervalMs ?? 5_000;
+  let fallosSeguidos = 0;
   while (Date.now() - started < options.timeoutMs) {
-    const state = await check();
+    let state: { done: boolean; value?: T; error?: string };
+    try {
+      state = await check();
+      fallosSeguidos = 0;
+    } catch (error) {
+      const pasajero = error instanceof ProviderError && error.retryable;
+      if (!pasajero || ++fallosSeguidos > FALLOS_PASAJEROS_TOLERADOS) throw error;
+      console.warn(`${options.provider}: una consulta de estado falló (${fallosSeguidos}/${FALLOS_PASAJEROS_TOLERADOS}); la tarea sigue y se vuelve a preguntar.`);
+      await sleep(interval);
+      continue;
+    }
     if (state.error) throw new ProviderError(`${options.provider}: ${state.error}`, options.provider);
     if (state.done) return state.value as T;
     await sleep(interval);
@@ -105,7 +130,7 @@ export async function pollUntil<T>(
   throw new ProviderError(`${options.provider}: la tarea tardó más de ${Math.round(options.timeoutMs / 1000)} s`, options.provider);
 }
 
-const extensionFor = (contentType: string): string => {
+export const extensionFor = (contentType: string): string => {
   if (contentType.includes('png')) return 'png';
   if (contentType.includes('jpeg') || contentType.includes('jpg')) return 'jpg';
   if (contentType.includes('webp')) return 'webp';

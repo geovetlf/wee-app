@@ -1,5 +1,5 @@
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import { AI_SECRETS } from '../secrets';
+import { MODEL_SECRETS } from '../secrets';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { CapabilityId } from '../creator/types';
 import { engine } from './index';
@@ -53,9 +53,15 @@ export const validateSettings = (data: Record<string, unknown>): void => {
   if (data.creditsPerUsd !== undefined && (!esNumero(data.creditsPerUsd) || Number(data.creditsPerUsd) <= 0)) {
     throw new HttpsError('invalid-argument', 'creditsPerUsd debe ser mayor que cero');
   }
+  if (data.iaDetenida !== undefined && typeof data.iaDetenida !== 'boolean') {
+    throw new HttpsError('invalid-argument', 'iaDetenida solo admite true (detener la IA) o false');
+  }
+  if (data.maxUsdPerDay !== undefined && (typeof data.maxUsdPerDay !== 'number' || !Number.isFinite(data.maxUsdPerDay) || data.maxUsdPerDay < 0)) {
+    throw new HttpsError('invalid-argument', 'maxUsdPerDay es un número de dólares ≥ 0 (0 = sin tope)');
+  }
 };
 
-export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60, secrets: AI_SECRETS }, async (request) => {
+export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60, secrets: MODEL_SECRETS }, async (request) => {
   assertAdmin(request.auth as any);
   const data = (request.data || {}) as Record<string, any>;
   const action = String(data.action || 'status');
@@ -120,8 +126,9 @@ export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60, s
 
     case 'setSettings': {
       validateSettings(data);
-      const allowed = ['pricingMode', 'creditsPerUsd', 'margin', 'defaultPolicy', 'allowMockFallback', 'timeoutsMs', 'circuitBreaker'];
-      const patch: Record<string, unknown> = { updatedAt: Timestamp.now() };
+      const allowed = ['pricingMode', 'creditsPerUsd', 'margin', 'defaultPolicy', 'allowMockFallback', 'timeoutsMs', 'circuitBreaker', 'iaDetenida', 'maxUsdPerDay'];
+      /* Quién cambió los ajustes queda escrito: el interruptor de la IA, sobre todo, tiene que tener dueño. */
+      const patch: Record<string, unknown> = { updatedAt: Timestamp.now(), updatedBy: request.auth?.uid ?? null };
       for (const key of allowed) if (data[key] !== undefined) patch[key] = data[key];
       await db().collection('aiSettings').doc('global').set(patch, { merge: true });
       invalidateConfig();

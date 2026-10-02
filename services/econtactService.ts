@@ -44,14 +44,18 @@
  * No escribe `econtactsCount` en el perfil. Ese contador lo prohíben las reglas
  * al cliente a propósito: cuando haga falta guardarlo, lo escribirá el servidor.
  *
- * `followsService` sigue existiendo y no se toca: son sistemas distintos.
+ * Los seguimientos (`follows`) son otro sistema: su cliente (`followsService`/`useFollow`) no lo usaba nadie y se
+ * retiró en el cierre del 2026-10-01; la colección y su regla siguen (firestore.rules → follows).
  */
-import { collection, deleteDoc, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
 import { notificationService } from './notificationService';
+import type { Traductor } from '../i18n/traducir';
+import { mensajeDelServidor } from '../i18n/servidor';
 import {
   EContactDoc,
+  ErrorDeEContact,
   EstadoEntre,
   PerfilDeIdentidad,
   contactosDe,
@@ -73,6 +77,27 @@ import {
 
 const COLECCION = 'econtacts';
 
+/*
+ * LOS ERRORES QUE LLEGAN A LA PANTALLA LLEVAN SU CLAVE.
+ *
+ * Este archivo es un servicio y aquí no hay traductor. El mensaje en español se
+ * queda para los registros y las pruebas; lo que ve la persona sale de la
+ * clave, en su idioma, con `mensajeDeEContact`. Lo que contesta el servidor
+ * (`functions/src/social/econtact.ts`) viene en español y se reconoce contra su
+ * catálogo para decirlo en el idioma de quien mira (`mensajeDelServidor`); lo que
+ * no se reconoce, en otro idioma, no se dice.
+ *
+ * La clase vive en el modelo (`utils/econtactModel.ts`), que también lanza los
+ * suyos —una pareja que no vale— y no puede importar nada.
+ */
+export { ErrorDeEContact };
+
+export const mensajeDeEContact = (error: unknown, t: Traductor | ((clave: string) => string), locale: string): string | undefined => {
+  if (error instanceof ErrorDeEContact) return t(error.clave);
+  /* El idioma es obligatorio: sin él, lo que se enseñaba era el `error.message` del servidor, en español. */
+  return mensajeDelServidor(error, { t: t as Traductor, locale });
+};
+
 /** La cuenta de quien está usando Weë. null si no hay sesión. */
 const miCuenta = (): string | null => auth?.currentUser?.uid || null;
 
@@ -83,13 +108,13 @@ const misIdentidades = (): string[] => identidadesDeCuenta(miCuenta());
 const esMia = (identidad?: string | null): boolean => identidadEsDeLaCuenta(identidad, miCuenta());
 
 const exigirIdentidadPropia = (comoIdentidad: string): string => {
-  if (!miCuenta()) throw new Error('Inicia sesión para usar ËContact.');
-  if (!esMia(comoIdentidad)) throw new Error('Ese perfil no es tuyo.');
+  if (!miCuenta()) throw new ErrorDeEContact('econtact.errSignIn', 'Inicia sesión para usar ËContact.');
+  if (!esMia(comoIdentidad)) throw new ErrorDeEContact('econtact.errNotYours', 'Ese perfil no es tuyo.');
   return comoIdentidad;
 };
 
 const exigirIdentidadAjena = (otraIdentidad: string): string => {
-  if (!esIdentidadDePersona(otraIdentidad)) throw new Error('Ese perfil no puede tener ËContacts.');
+  if (!esIdentidadDePersona(otraIdentidad)) throw new ErrorDeEContact('econtact.errNotAPerson', 'Ese perfil no puede tener ËContacts.');
   return otraIdentidad;
 };
 
@@ -145,9 +170,14 @@ type PerfilLeido = PerfilDeIdentidad & {
   photoURL?: string;
 };
 
-/** El documento de `users` de una identidad. Se busca por el campo `uid`. */
+/**
+ * El documento de `users` de una identidad. Se busca por el campo `uid`.
+ *
+ * Se usa el primero y solo el primero, así que se pide uno: sin `orderBy`, Firestore ordena por el id del documento
+ * con y sin `limit`, de modo que `limit(1)` devuelve exactamente el mismo que antes era `docs[0]`.
+ */
 const perfilDe = async (identidad: string): Promise<PerfilLeido | null> => {
-  const snap = await getDocs(query(collection(db, 'users'), where('uid', '==', identidad)));
+  const snap = await getDocs(query(collection(db, 'users'), where('uid', '==', identidad), limit(1)));
   return (snap.docs[0]?.data() as PerfilLeido | undefined) || null;
 };
 
@@ -196,7 +226,7 @@ interface RespuestaRelacion {
 }
 
 const llamar = async (nombre: 'requestEContact' | 'acceptEContact', datos: Record<string, string>) => {
-  if (!functions) throw new Error('No se pudo conectar con Weë.');
+  if (!functions) throw new ErrorDeEContact('econtact.errOffline', 'No se pudo conectar con Weë.');
   const fn = httpsCallable<Record<string, string>, RespuestaRelacion>(functions, nombre, { timeout: 30_000 });
   const { data } = await fn(datos);
   return data;
@@ -246,7 +276,7 @@ export const econtactService = {
     const yo = exigirIdentidadPropia(comoIdentidad);
     const otra = exigirIdentidadAjena(otraIdentidad);
     const actual = await leerDoc(yo, otra);
-    if (!actual || !puedeAceptar(actual, yo)) throw new Error('No hay ninguna solicitud tuya que rechazar.');
+    if (!actual || !puedeAceptar(actual, yo)) throw new ErrorDeEContact('econtact.errNoRequestToReject', 'No hay ninguna solicitud tuya que rechazar.');
     await deleteDoc(refDe(yo, otra));
   },
 
@@ -255,7 +285,7 @@ export const econtactService = {
     const yo = exigirIdentidadPropia(comoIdentidad);
     const otra = exigirIdentidadAjena(otraIdentidad);
     const actual = await leerDoc(yo, otra);
-    if (!actual || !puedeCancelar(actual, yo)) throw new Error('No tienes ninguna solicitud pendiente con este perfil.');
+    if (!actual || !puedeCancelar(actual, yo)) throw new ErrorDeEContact('econtact.errNoPendingRequest', 'No tienes ninguna solicitud pendiente con este perfil.');
     await deleteDoc(refDe(yo, otra));
   },
 
@@ -264,7 +294,7 @@ export const econtactService = {
     const yo = exigirIdentidadPropia(comoIdentidad);
     const otra = exigirIdentidadAjena(otraIdentidad);
     const actual = await leerDoc(yo, otra);
-    if (!actual || !puedeEliminar(actual, yo)) throw new Error('No estáis conectados.');
+    if (!actual || !puedeEliminar(actual, yo)) throw new ErrorDeEContact('econtact.errNotConnected', 'No estáis conectados.');
     await deleteDoc(refDe(yo, otra));
   },
 

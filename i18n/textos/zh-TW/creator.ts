@@ -71,4 +71,5 @@ export const creator: typeof import('../es/creator').creator = {
   areaDesignHome: 'Weë Design · 居家與設計',
   areaHomeName: '居家與設計',
   tellTheSpecialist: '告訴 {{especialista}} 你想做什麼：它會問你兩三個簡單的問題，剩下的交給它。做好之後可以直接發到你的社群。',
+  exampleQuoted: '「{{ejemplo}}」',
 };

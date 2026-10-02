@@ -36,6 +36,7 @@ import { MarcaDeCredits } from './CreditsPill';
 import { MarcaDeWeeAi } from './icons/MarcaDeWeeAi';
 import { NombreDeIcono } from './icons/trazosDeWee';
 import { useT } from '../contexts/IdiomaContext';
+import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -128,14 +129,20 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const realUid = user?.uid;
   useEffect(() => {
     if (!realUid) return;
+    /* Si se cambia de cuenta antes de que llegue la respuesta, el negocio de la cuenta de antes no se ofrece en esta. */
+    let vivo = true;
     const loadBiz = async () => {
       try {
-        setMyBusiness(await weeBizService.getBusinessByOwner(realUid));
+        const negocio = await weeBizService.getBusinessByOwner(realUid);
+        if (vivo) setMyBusiness(negocio);
       } catch (e) {
         console.error('Error loading business:', e);
       }
     };
     loadBiz();
+    return () => {
+      vivo = false;
+    };
   }, [realUid]);
 
   useEffect(() => {
@@ -372,7 +379,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   ) => renderRow(MENU_ITEM[id].icono, opts.label ?? t(MENU_ITEM[id].clave), onPress, opts);
 
   const renderSectionLabel = (label: string) => (
-    <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>{label}</Text>
+    <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(label)]}>{label}</Text>
   );
 
   /*
@@ -453,7 +460,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             Estando ya en el Home, tocarla solo cierra el cajón: navegar a donde
             ya estás recarga la pantalla y pierde el sitio del muro.
           */}
-          {renderRow('casa', 'Home', goHome, { active: enHome })}
+          {renderRow('casa', t('menu.home'), goHome, { active: enHome })}
 
           {/* PERFIL */}
           {renderSectionLabel(t('menu.sectionProfile'))}

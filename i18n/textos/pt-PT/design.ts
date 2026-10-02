@@ -26,6 +26,7 @@ export const design: typeof import('../es/design').design = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'O que queres desenhar hoje?',
+  settingsHint: 'Como queres que fique',
 
   /* ── Explora ──────────────────────────────────────────────────────────── */
   exploreTitle: 'Explora',
@@ -107,4 +108,8 @@ export const design: typeof import('../es/design').design = {
   kindArchitecture: 'Arquitetura',
   kindBoat: 'Barco',
   kindFurniture: 'Mobiliário',
+  sampleLivingRoom: 'Sala de estar luminosa',
+  samplePineHouse: 'Casa entre pinheiros',
+  sampleYacht: 'Iate de 15 metros',
+  sampleArmchair: 'Cadeirão de madeira',
 };

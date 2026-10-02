@@ -18,14 +18,14 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById, updateUserCache } from '../hooks/useUserById';
-import { useEContact } from '../hooks/useEContact';
+import { useEContact, mensajeDeEContact } from '../hooks/useEContact';
 import { postsService, Post, repostsService } from '../services/firestoreService';
 import { likesService } from '../services/likesService';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import PostCard from '../components/PostCard';
@@ -33,6 +33,7 @@ import ImageViewer from '../components/ImageViewer';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { confirmAction, notify } from '../utils/notify';
+import TextoEnMayusculas from '../components/TextoEnMayusculas';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_HEIGHT = 160;
@@ -42,7 +43,7 @@ type UserProfileScreenRouteProp = RouteProp<MainStackParamList, 'UserProfile'>;
 type UserProfileScreenNavigationProp = StackNavigationProp<MainStackParamList, 'UserProfile'>;
 
 const UserProfileScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile: currentUserProfile, updateLocalProfile } = useUserProfile();
@@ -73,8 +74,10 @@ const UserProfileScreen: React.FC = () => {
   const [showAvatarViewer, setShowAvatarViewer] = useState(false);
   const [showBannerViewer, setShowBannerViewer] = useState(false);
 
-  // Cargar posts del usuario
+  // Cargar posts del usuario. Ir de un perfil a otro reutiliza la pantalla: lo que llegue tarde del perfil de antes
+  // no puede pintar sus publicaciones en el nuevo.
   useEffect(() => {
+    let vivo = true;
     const loadUserPosts = async () => {
       if (!userId) return;
 
@@ -111,26 +114,35 @@ const UserProfileScreen: React.FC = () => {
           console.error('❌ Error cargando liked posts:', e);
         }
 
+        if (!vivo) return;
         setUserPosts(posts);
         setUserReposts(reposts);
         setUserLikedPosts(likedPosts);
       } catch (error) {
         console.error('Error loading user posts:', error);
-        setPostsError('Error al cargar las publicaciones');
+        if (!vivo) return;
+        /* Se guarda la clave, no la frase: se traduce al pintarla, con el idioma de ese momento. */
+        setPostsError('profile.postsFailed');
       } finally {
-        setLoadingPosts(false);
+        if (vivo) setLoadingPosts(false);
       }
     };
 
     loadUserPosts();
+    return () => {
+      vivo = false;
+    };
   }, [userId]);
 
   const handleShareProfile = async () => {
     if (!userProfile) return;
 
+    /* El nombre y la biografía los escribió esa persona: entran por hueco, tal cual. */
+    const nombre = userProfile.displayName;
+    const bio = userProfile.bio || t('profile.shareOtherNoBio');
     try {
       await Share.share({
-        message: `¡Mira el perfil de @${userProfile.displayName} en Weë!\n\n${userProfile.bio || 'Usuario de Weë'}`,
+        message: t('profile.shareOtherMessage', { nombre, bio }),
       });
     } catch (error) {
       console.error('Error sharing profile:', error);
@@ -159,7 +171,7 @@ const UserProfileScreen: React.FC = () => {
   };
 
   const handlePostPress = (post: Post) => {
-    navigation.navigate('PostDetail', { post });
+    navigation.navigate('PostDetail', { postId: post.id, post });
   };
 
   const handleVideoPress = useCallback((post: Post, positionMillis?: number) => {
@@ -182,7 +194,7 @@ const UserProfileScreen: React.FC = () => {
   const handleComment = (postId: string) => {
     const post = [...userPosts, ...userReposts, ...userLikedPosts].find(p => p.id === postId);
     if (post) {
-      navigation.navigate('PostDetail', { post });
+      navigation.navigate('PostDetail', { postId: post.id, post });
     }
   };
 
@@ -279,7 +291,7 @@ const UserProfileScreen: React.FC = () => {
       try {
         await hacer();
       } catch (error) {
-        notify(t('profile.actionFailed'), error instanceof Error ? error.message : undefined);
+        notify(t('profile.actionFailed'), mensajeDeEContact(error, t, locale));
       }
     }
   };
@@ -288,7 +300,7 @@ const UserProfileScreen: React.FC = () => {
     try {
       await hacer();
     } catch (error) {
-      notify(t('profile.actionFailed'), error instanceof Error ? error.message : undefined);
+      notify(t('profile.actionFailed'), mensajeDeEContact(error, t, locale));
     }
   };
 
@@ -456,7 +468,7 @@ const UserProfileScreen: React.FC = () => {
             {t('profile.otherLoadFailed')}
           </Text>
           <Text style={[styles.errorSubtext, { color: theme.colors.textSecondary }]}>
-            {profileError || 'El usuario no existe'}
+            {profileError ? t('profile.loadFailedDetail') : t('profile.userNotFound')}
           </Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
@@ -546,7 +558,7 @@ const UserProfileScreen: React.FC = () => {
             {userProfile.displayName}
           </Text>
 
-          {userProfile.bio && (
+          {!!userProfile.bio && (
             <Text style={[styles.bio, { color: theme.colors.text }]}>
               {userProfile.bio}
             </Text>
@@ -554,7 +566,7 @@ const UserProfileScreen: React.FC = () => {
 
           {/* Info adicional */}
           <View style={styles.infoSection}>
-            {userProfile.website && (
+            {!!userProfile.website && (
               <TouchableOpacity
                 style={styles.infoRow}
                 onPress={() => {
@@ -572,8 +584,9 @@ const UserProfileScreen: React.FC = () => {
             )}
             <View style={styles.infoRow}>
               <Ionicons name="calendar-outline" size={14} color={theme.colors.textSecondary} />
+              {/* El mes y el año los escribe Intl con el locale activo, no un 'es-ES' fijo. */}
               <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
-                Se unió en {userProfile.createdAt.toDate().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                {t('profile.joinedOn', { fecha: formato.fecha(userProfile.createdAt.toDate(), { month: 'long', year: 'numeric' }) })}
               </Text>
             </View>
           </View>
@@ -582,9 +595,9 @@ const UserProfileScreen: React.FC = () => {
           <View style={[styles.statsRow, { borderColor: theme.colors.border }]}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {formatNumber(userProfile.posts)}
+                {formatNumber(userProfile.posts, locale)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('profile.posts')}</Text>
+              <TextoEnMayusculas style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('profile.posts')}</TextoEnMayusculas>
             </View>
           </View>
 
@@ -627,10 +640,11 @@ const UserProfileScreen: React.FC = () => {
         {/* Tabs de filtros */}
         <View style={[styles.tabsContainer, { borderBottomColor: theme.colors.border }]}>
           {renderTabButton('posts', 'document-text-outline', t('profile.posts'))}
-          {renderTabButton('reposts', 'repeat-outline', 'Repost')}
-          {renderTabButton('photos', 'image-outline', 'Multimedia')}
-          {renderTabButton('polls', 'stats-chart-outline', 'Encuestas')}
-          {renderTabButton('likes', 'heart-outline', 'Me gusta')}
+          {/* Las mismas pestañas que el perfil propio, con sus mismas claves; Encuestas solo existe aquí. */}
+          {renderTabButton('reposts', 'repeat-outline', t('profile.tabReposts'))}
+          {renderTabButton('photos', 'image-outline', t('profile.tabMedia'))}
+          {renderTabButton('polls', 'stats-chart-outline', t('profile.tabPolls'))}
+          {renderTabButton('likes', 'heart-outline', t('profile.tabLikes'))}
         </View>
 
         {/* Posts filtrados */}
@@ -645,7 +659,7 @@ const UserProfileScreen: React.FC = () => {
           ) : postsError ? (
             <View style={styles.errorPosts}>
               <Ionicons name="alert-circle-outline" size={32} color={theme.colors.textSecondary} />
-              <Text style={[styles.errorPostsText, { color: theme.colors.text }]}>{postsError}</Text>
+              <Text style={[styles.errorPostsText, { color: theme.colors.text }]}>{t(postsError)}</Text>
             </View>
           ) : getFilteredPosts().length > 0 ? (
             <FlatList
@@ -667,7 +681,7 @@ const UserProfileScreen: React.FC = () => {
       </ScrollView>
 
       {/* Visor de foto de perfil */}
-      {userProfile?.photoURL && (
+      {!!userProfile?.photoURL && (
         <ImageViewer
           visible={showAvatarViewer}
           imageUrls={[userProfile.photoURL]}
@@ -676,7 +690,7 @@ const UserProfileScreen: React.FC = () => {
       )}
 
       {/* Visor de banner */}
-      {userProfile?.bannerURL && (
+      {!!userProfile?.bannerURL && (
         <ImageViewer
           visible={showBannerViewer}
           imageUrls={[userProfile.bannerURL]}
@@ -809,7 +823,6 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   // Action buttons

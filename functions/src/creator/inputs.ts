@@ -74,7 +74,30 @@ export const modalityCounts = (steps: { capability: CapabilityId }[]): Partial<R
  * + la foto de la persona cuando el paso la necesita + el texto a narrar.
  * La persona nunca ve nada de esto.
  */
-export function stepInputFor(job: Pick<CreatorJob, 'experienceId' | 'goal' | 'inputImageUrl'>, step: JobStep, previous: string[]): Record<string, unknown> {
+/**
+ * ¿HAY UN PASO DE VOZ QUE YA PODRÍA CORRER Y NO TENDRÍA NADA QUE LEER? (segunda auditoría de cierre, 2026-10-01)
+ *
+ * Desde el cierre, un guion sin su «NARRACIÓN:» reconocible no se lee entero: `narrationFrom` devuelve vacío y el
+ * paso de voz falla. En Weë Studio la voz y el clip dependen los dos del guion y el clip va antes: el vídeo se pagaba
+ * a Seedance, la voz fallaba, el trabajo se reembolsaba entero… y el clip se quedaba como material de la cuenta.
+ * Esta pregunta se hace ANTES de elegir el siguiente paso: si la respuesta es un paso, el trabajo se para ahí, sin
+ * pagar nada caro, y se reembolsa como cualquier fallo. Pura: lo mismo que `stepInputFor` le daría a ese paso.
+ */
+export function vozSinNarracion(
+  job: Pick<CreatorJob, 'experienceId' | 'goal' | 'inputImageUrl' | 'locale'>,
+  steps: JobStep[],
+  results: Array<{ stepId: string; content?: string; url?: string }>,
+): JobStep | undefined {
+  return steps.find((s) => {
+    if (s.status !== 'pending' || s.capability !== 'voice.tts') return false;
+    const deps = s.dependsOn || [];
+    if (!deps.every((d) => results.some((r) => r.stepId === d))) return false;
+    const previous = results.filter((r) => deps.includes(r.stepId)).map((r) => r.content || r.url || '');
+    return String(stepInputFor(job, s, previous).text ?? '').trim() === '';
+  });
+}
+
+export function stepInputFor(job: Pick<CreatorJob, 'experienceId' | 'goal' | 'inputImageUrl' | 'locale'>, step: JobStep, previous: string[]): Record<string, unknown> {
   const base: Record<string, unknown> = { ...(step.input || {}), purpose: step.purpose, previous };
   const kind = String(base.kind ?? '');
   const brief = String(base.brief ?? '');
@@ -85,7 +108,7 @@ export function stepInputFor(job: Pick<CreatorJob, 'experienceId' | 'goal' | 'in
   if (job.inputImageUrl && (capability === 'video.generate' || capability === 'video.reference') && !base.referenceImages) base.referenceImages = [job.inputImageUrl];
 
   if (TEXT_CAPS.includes(capability) && !base.prompt) {
-    const built = buildTextPrompt(job.experienceId, capability === 'vision.describe' ? 'describe' : kind, brief, job.goal, step.purpose, previous);
+    const built = buildTextPrompt(job.experienceId, capability === 'vision.describe' ? 'describe' : kind, brief, job.goal, step.purpose, previous, job.locale);
     base.system = built.system;
     base.prompt = built.prompt;
   } else if (capability.startsWith('image.') && !base.prompt) {

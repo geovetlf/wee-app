@@ -94,6 +94,35 @@ const ORDER: VerificationState[] = ['CODE_COMPLETE', 'TESTED_WITH_MOCK', 'DOCUME
 export const isAtLeast = (state: VerificationState, minimum: VerificationState): boolean =>
   ORDER.indexOf(state) >= ORDER.indexOf(minimum);
 
+/**
+ * QUÉ CUENTA COMO «UN PROVEEDOR CONTESTÓ DE VERDAD».
+ *
+ * Vive aquí porque es la misma pregunta que este archivo lleva contestando
+ * desde el principio, y porque ahora la hacen DOS sitios: el Router del motor y
+ * el conductor del Core. Dos maneras de decidirlo se separan, y entonces un
+ * camino asciende a un proveedor que el otro no habría ascendido.
+ *
+ * Las tres condiciones, y las tres hacen falta:
+ *
+ *   completed      `accepted` es «el proveedor la cogió», no «salió bien»: una
+ *                  tarea viva del otro lado todavía puede fallar, así que
+ *                  registrarla sería dar por buena una promesa. Y `failed` es
+ *                  que no salió.
+ *   sin synthetic  la señal que el Gateway ya emite cuando quien respondió es
+ *                  interno. No se inventa una bandera: se usa la que hay.
+ *   proveedor real `mock` no es una integración, es el modo demostración.
+ *
+ * Es a propósito genérica: no sabe de Seedance, ni de DeepSeek, ni de vídeo, ni
+ * de voz. Un proveedor nuevo no tiene que tocar nada de esto para que su primera
+ * respuesta real conste.
+ */
+export const esExitoRealDeProveedor = (
+  estado: string | undefined,
+  avisos: readonly string[] = [],
+  proveedor: string | undefined
+): boolean =>
+  estado === 'completed' && !avisos.includes('synthetic_result') && !!proveedor && proveedor !== 'mock';
+
 const collection = () => getFirestore().collection('aiProviderVerification');
 
 /**

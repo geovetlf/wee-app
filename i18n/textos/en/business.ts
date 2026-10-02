@@ -12,7 +12,7 @@ export const business: typeof import('../es/business').business = {
   networkConnected: '{{red}} connected',
   connectAnother: 'Connect another account',
   allConnected: 'All your accounts are already connected.',
-  simulatedConnection: 'Simulated connection: Weë will post and reply for real once the platforms grant their official permissions.',
+  simulatedConnection: 'Simulated connection: Weë doesn’t post or reply for you yet. It gets each piece ready for you to review and publish.',
   postCalendar: 'Post calendar',
   seeFullCalendar: 'See full calendar',
   calendarGoal: 'See and organise my post calendar for the week',
@@ -211,4 +211,5 @@ export const business: typeof import('../es/business').business = {
   promoteHint: 'Your content is shown to more people inside Weë. You will see the cost before spending anything.',
   promoteSoon: 'Promoting inside Weë is not open yet. When it is, it will be paid with your Credits and you will see it here.',
   promoteCredits: 'See my Credits',
+  sampleProductName: 'Product {{numero}}',
 };

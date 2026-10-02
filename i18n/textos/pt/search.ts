@@ -22,4 +22,10 @@ export const search: typeof import('../es/search').search = {
   member: 'Membro',
   typeTwoForPeople: 'Escreva pelo menos 2 caracteres para buscar usuários',
   typeTwoForPosts: 'Escreva pelo menos 2 letras para buscar publicações',
+  peopleFound: 'Usuários encontrados',
+  searchPeople: 'Busque usuários',
+  noPeopleFor: 'Nenhum usuário encontrado para "{{busqueda}}"',
+  postsFound: 'Publicações encontradas',
+  searchPosts: 'Busque publicações',
+  noPostsFor: 'Não encontramos publicações para "{{busqueda}}"',
 };

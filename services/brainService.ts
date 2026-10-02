@@ -81,7 +81,7 @@ export interface BrainQuote {
 
 export const brainService = {
   /** Precio del próximo mensaje, antes de enviarlo. No cobra ni escribe nada. */
-  quote: async (input: { chatId?: string; message: string; imageUrl?: string; webSearch?: boolean; locale?: string }): Promise<BrainQuote> => {
+  quote: async (input: { chatId?: string; message: string; imageUrl?: string; webSearch?: boolean; locale: string }): Promise<BrainQuote> => {
     const fn = httpsCallable<typeof input, BrainQuote>(functions, 'brainQuote', { timeout: 30_000 });
     const result = await fn(input);
     return result.data;
@@ -92,7 +92,7 @@ export const brainService = {
    * puede cambiar en mitad de una conversación: se cambia el idioma en Ajustes y
    * la siguiente respuesta ya sale en el nuevo, sin reiniciar nada.
    */
-  send: async (input: { chatId?: string; message: string; messageId: string; imageUrl?: string; webSearch?: boolean; locale?: string }): Promise<BrainReply> => {
+  send: async (input: { chatId?: string; message: string; messageId: string; imageUrl?: string; webSearch?: boolean; locale: string }): Promise<BrainReply> => {
     const fn = httpsCallable<typeof input, BrainReply>(functions, 'brainChat', { timeout: 120_000 });
     const result = await fn(input);
     return result.data;

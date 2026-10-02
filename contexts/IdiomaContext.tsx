@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { CodigoDeIdioma, direccionDe, Idioma, idiomasDisponibles } from '../i18n/idiomas';
-import { elegirIdioma, IdiomaResuelto, OrigenDelIdioma } from '../i18n/resolver';
+import { elegirIdioma, etiquetaDelTexto, IdiomaResuelto, OrigenDelIdioma } from '../i18n/resolver';
 import { crearTraductor, Traductor, Valores } from '../i18n/traducir';
 import { DICCIONARIOS, idiomasConDiccionario } from '../i18n/diccionarios';
 import { localesDelAparato } from '../i18n/aparato';
@@ -97,14 +98,32 @@ export const IdiomaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     void guardarIdiomaElegido(codigoOLocale);
   };
 
+  /*
+   * LA LENGUA DE LA PÁGINA, EN LA WEB.
+   *
+   * El `<html lang>` lo escribe la plantilla al servir la página y no sabe nada
+   * de quien la abre: sin esto, Weë en japonés se anunciaba como inglés. Los
+   * lectores de pantalla lo usan para elegir la voz, y el navegador para elegir
+   * los glifos, así que se reescribe cada vez que cambia la lengua del texto.
+   */
+  const etiqueta = etiquetaDelTexto(resuelto.idioma, resuelto.locale);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    document.documentElement.lang = etiqueta;
+  }, [etiqueta]);
+
   const valor = useMemo<ValorDelContexto>(() => {
     const { idioma, locale, origen } = resuelto;
     /*
-     * Se le deja dicho a la pantalla de error qué idioma hay puesto. Vive por
-     * fuera de este proveedor —tiene que sobrevivir a que reviente— y no puede
-     * preguntar por contexto, así que se le avisa desde aquí.
+     * Se le deja dicho a la pantalla de error en qué lengua está la interfaz.
+     * Vive por fuera de este proveedor —tiene que sobrevivir a que reviente— y
+     * no puede preguntar por contexto, así que se le avisa desde aquí.
+     *
+     * La lengua del TEXTO, no el locale: con la interfaz en inglés y el aparato
+     * en `ja-JP`, el locale es japonés y el error tiene que salir en inglés. Y
+     * con la variante resuelta: un `zh-Hant-TW` es tradicional, no `zh`.
      */
-    recordarLocale(locale);
+    recordarLocale(etiqueta);
     const t = crearTraductor(locale, DICCIONARIOS, {
       modoDesarrollo: typeof __DEV__ !== 'undefined' && __DEV__,
     });

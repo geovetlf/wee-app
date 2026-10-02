@@ -53,4 +53,13 @@ export const econtact: typeof import('../es/econtact').econtact = {
   acceptLabel: '接受 {{lista}}',
   rejectRequestLabel: '拒絕 {{lista}} 邀請',
   requestSent: '邀請已送出',
+  errSignIn: '登入後才能使用 ËContact。',
+  errNotYours: '這不是你的個人檔案。',
+  errNotAPerson: '這個個人檔案不能使用 ËContact。',
+  errSameProfile: '個人檔案不能和自己建立連結。',
+  errOffline: '無法連上 Weë。',
+  errNoRequestToReject: '沒有可以拒絕的邀請。',
+  errNoPendingRequest: '你和這個個人檔案之間沒有待處理的邀請。',
+  errNotConnected: '你還沒有和這個個人檔案建立連結。',
+  errNoActiveProfile: '目前沒有可以用來執行這項操作的個人檔案。',
 };

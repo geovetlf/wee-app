@@ -40,4 +40,6 @@ export const credits: typeof import('../es/credits').credits = {
   pkgBasic: 'Базовый',
   badgePopular: 'Популярный',
   badgeBestValue: 'Выгоднее всего',
+  purchasesComingSoon: 'Покупка Credits скоро появится. Пока пополнить баланс здесь нельзя.',
+  topUpFailedTitle: 'Упс',
 };

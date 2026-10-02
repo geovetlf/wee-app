@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, BackHandler } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
@@ -12,15 +13,32 @@ import StudioPromptComposer from '../components/studio/StudioPromptComposer';
 import AjustesContextuales from '../components/creator/AjustesContextuales';
 import EspacioDeEscritura, { useAlturaDelTeclado } from '../components/EspacioDeEscritura';
 import { ALTO_BARRA } from '../components/BarraInferior';
-import StudioToolGrid from '../components/studio/StudioToolGrid';
-import StudioCreations from '../components/studio/StudioCreations';
-import StudioPanel from '../components/studio/StudioPanel';
-import { AreaDeStudio, HerramientaDeStudio } from '../constants/studioTools';
+import StudioEntradas from '../components/studio/StudioEntradas';
+import StudioPanel, { EleccionDeStudio } from '../components/studio/StudioPanel';
+import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDeCreacion';
+import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
+import { ControlesElegidos } from '../components/studio/StudioControles';
+import { AreaDeStudio } from '../constants/studioTools';
+import { EntradaDeStudio, abreLaProduccion, entradaPorId } from '../constants/studioExperiences';
+import { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
+import { CREACIONES_DEL_STUDIO } from '../constants/studioMocks';
 import { contextoDeCreacion, duracionEnElTexto } from '../utils/contextoDeCreacion';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { destinoDeIntencion } from '../utils/destinoDeIntencion';
+import FichaDeContexto from '../components/creator/FichaDeContexto';
+import { claveDelValor, creativoEnPalabras, filtrarCreativo } from '../constants/camaraCinematica';
+import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
-const isWeb = Platform.OS === 'web';
+/**
+ * Cómo se lee un control puesto: `movement.type: 'push_in'` → "Acercarse".
+ *
+ * Si la biblioteca no lo nombra no se enseña la ruta cruda: se calla. Nadie
+ * tiene por qué leer `push_in` en una pantalla de Weë.
+ */
+const nombreDelControl = (ruta: string, valor: string, t: (c: string) => string): string => {
+  const clave = claveDelValor(ruta, valor);
+  return clave ? t(clave) : '';
+};
 
 /** Cuánto tarda la creación de mentira. Lo justo para ver el estado, no para esperar. */
 const LO_QUE_TARDA_LA_DEMO = 1600;
@@ -28,39 +46,44 @@ const LO_QUE_TARDA_LA_DEMO = 1600;
 /** El hueco que deja la barra global de abajo. */
 const SITIO_DE_LA_BARRA = scale(96);
 
-type EstadoDeCreacion = 'quieto' | 'creando' | 'listo';
-
 /**
  * WEË STUDIO — EL SITIO DONDE SE CREA.
  *
  * ── Qué es esta pantalla ─────────────────────────────────────────────────────
  *
- * Un sitio, no un catálogo. Se entra, se dice qué quieres y se crea. Por eso el
- * orden es este y no otro: el nombre para saber dónde estás, el compositor —que
- * es el centro— y después las seis puertas para quien prefiera entrar por el
- * material en vez de por la idea. Al final, lo que ya has hecho.
+ * Una puerta a la creación, no una caja de herramientas. Se entra, se dice qué
+ * se quiere, y Weë lleva a donde se hace. Por eso el orden es este y no otro:
+ * el nombre para saber dónde estás, la caja —que es el centro—, cuatro
+ * entradas grandes, y debajo y en pequeño el resto. Al final, lo que ya has
+ * hecho.
  *
- * Reemplaza el Studio anterior, que era la pantalla genérica de especialista
- * con su cuadrícula, sus chips y su IdeaBox. Aquella servía para las once
- * experiencias y por eso no podía ser de ninguna; esta es solo de Studio.
+ * ── Las tres capas, y ninguna más ────────────────────────────────────────────
+ *
+ *   1  ESTA pantalla: dónde estoy. Una caja y cuatro sitios por donde empezar.
+ *   2  `StudioPanel`: qué quiero conseguir. Un retrato, un timelapse.
+ *   3  `StudioControles`: con qué detalle. Cámara, luz, movimiento.
+ *
+ * La tercera no se ve hasta contestar la segunda, y en eso está todo: los
+ * controles de cámara son más de cincuenta y enseñados antes de tiempo no son
+ * potencia, son un panel técnico. La potencia aparece DESPUÉS de la intención.
  *
  * ── Los paneles no son pantallas ─────────────────────────────────────────────
  *
- * Tocar una puerta no navega: cambia lo que enseña ESTA pantalla. Así volver es
- * instantáneo y no se acumula una pila de rutas por pasear entre herramientas.
- * La dirección `/studio` es una sola y siempre lleva al mismo sitio.
+ * Tocar una entrada no navega: cambia lo que enseña ESTA pantalla. Así volver
+ * es instantáneo y no se acumula una pila de rutas por pasear. La dirección del
+ * Studio es una sola y siempre lleva al mismo sitio.
  *
- * ── Lo que todavía no hay ────────────────────────────────────────────────────
+ * ── Y el Studio no genera ────────────────────────────────────────────────────
  *
- * No hay IA. Ni Weë Brain, ni motor, ni proveedores. Pulsar Crear enseña
- * "Creando..." y luego "Creación lista", y nada más: esta fase es la
- * experiencia, para poder recorrerla y decidir si se entiende antes de gastar
- * un Credit. Cuando se conecte, el sitio donde entra es `alCrear`, y nada más
- * de esta pantalla tiene que cambiar.
+ * Es un hub: descubre, encamina y entrega el contexto. Quien crea es la
+ * experiencia común, `CreatorFlow`, con sus preguntas, su plan, su precio y su
+ * resultado. Aquí no hay un segundo camino de generación, ni Brain propio, ni
+ * Planner propio, ni trabajo propio, ni Credits propios: todo eso existe una
+ * vez y está detrás de la experiencia a la que esta pantalla lleva.
  */
 const StudioScreen: React.FC = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const navigation = useNavigation<any>();
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const alturaTeclado = useAlturaDelTeclado();
@@ -72,10 +95,38 @@ const StudioScreen: React.FC = () => {
    * Voz…—, y hasta entonces los ajustes preguntan solo lo que vale para todo.
    */
   const [area, setArea] = useState<AreaDeStudio | null>(null);
-  const [panel, setPanel] = useState<AreaDeStudio | null>(null);
+  const [panel, setPanel] = useState<EntradaDeStudio | null>(null);
+  /*
+   * La experiencia que se eligió dentro de una puerta, y sus controles. No es
+   * lo mismo que el área: el área dice de qué medio hablamos —y con eso se
+   * decide qué ajustes preguntar—, y esto dice QUÉ se quiere conseguir, que es
+   * lo que viaja como contexto a la experiencia común.
+   */
+  const [experiencia, setExperiencia] = useState<
+    { id: string; clave: string; experienceId?: string; respuestas?: readonly { questionId: string; optionId: string }[] } | null
+  >(null);
+  /*
+   * POR QUÉ ENTRADA SE PASÓ, SI SE PASÓ POR ALGUNA.
+   *
+   * `null` mientras nadie haya abierto ninguna, y eso NO es "Imágenes": es no
+   * haber entrado por ninguna puerta. La diferencia importa —la encontró el
+   * recorrido de Documentos—: con "Imágenes" por defecto, escribir algo que no
+   * encaja con nada acababa en Weë Photo, que es inventarle a alguien una
+   * sección por la que no pasó.
+   */
+  const [entrada, setEntrada] = useState<EntradaDeStudio | null>(null);
+  const [controles, setControles] = useState<ControlesElegidos>({});
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
   const [ajustes, setAjustes] = useState<Record<string, string>>({});
-  const [referencias, setReferencias] = useState<string[]>([]);
+  /*
+   * LOS MATERIALES, YA CON LA FORMA CON LA QUE VIAJAN.
+   *
+   * Antes eran nombres inventados —"referencia-1.png"— porque no había selector
+   * de archivos. Ahora son `Adjunto`, que es el tipo del contrato: la misma
+   * cosa que se ve en pantalla es la que llega a la experiencia, sin traducción
+   * por el medio. Dos formas del mismo dato se separan; una sola, no.
+   */
+  const [adjuntos, setAdjuntos] = useState<Adjunto[]>([]);
   const [estado, setEstado] = useState<EstadoDeCreacion>('quieto');
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -84,7 +135,7 @@ const StudioScreen: React.FC = () => {
    * cinco las tarjetas se quedan sin ancho para su descripción y el Studio
    * empieza a parecer un panel de control, que es justo lo que no es.
    */
-  const porFila = isMobile ? 2 : isTablet ? 3 : 3;
+  const porFila = isMobile ? 2 : isTablet ? 3 : 4;
 
   /* El ancho del contenido se limita en escritorio: una columna legible, centrada. */
   const anchoMaximo = useMemo(() => (isMobile ? undefined : scale(720)), [isMobile]);
@@ -96,7 +147,7 @@ const StudioScreen: React.FC = () => {
    * Todo aquí, sin llamar a nadie: abrir los ajustes o tocar una píldora no
    * cuesta un Credit. Cuando Weë Brain decida de verdad, entrará por aquí.
    */
-  const contexto = useMemo(() => contextoDeCreacion(area, prompt), [area, prompt]);
+  const contexto = useMemo(() => contextoDeCreacion(area, prompt, locale), [area, prompt, locale]);
 
   /*
    * "Un video de 10 segundos" deja la duración puesta en 10 s. Es una sugerencia
@@ -104,37 +155,185 @@ const StudioScreen: React.FC = () => {
    */
   const sugerido = useMemo(() => {
     if (contexto !== 'video') return undefined;
-    const duracion = duracionEnElTexto(prompt);
+    const duracion = duracionEnElTexto(prompt, locale);
     return duracion ? { duration: duracion } : undefined;
-  }, [contexto, prompt]);
+  }, [contexto, prompt, locale]);
 
+  /**
+   * CREAR EN EL STUDIO ES IRSE A CREAR, NO CREAR AQUÍ.
+   *
+   * Weë Studio es un hub: descubre, encamina y entrega el contexto. Quien crea
+   * de verdad es la experiencia común —`CreatorFlow`—, que es donde están las
+   * preguntas, el plan, los Credits y el resultado. Construir aquí un segundo
+   * camino de generación sería tener dos, y el día que discreparan alguien
+   * tendría que decidir cuál gana.
+   *
+   * ── Quién decide a dónde ────────────────────────────────────────────────
+   *
+   * `destinoDeIntencion`, el de B3.10, que no es un router nuevo: elige entre
+   * lo que declaró la puerta por la que se entró y las palabras de lo escrito.
+   * Y se le pide que no salga del Studio, porque desde esta portada no se ven
+   * los otros lugares de trabajo y llevar a alguien a uno que no ha visto es
+   * dejarlo en una sección que no pidió.
+   *
+   * ── Y si no hay destino, se dice ────────────────────────────────────────
+   *
+   * No se inventa uno. Mientras no haya a dónde ir, el aviso sigue diciendo la
+   * verdad: que esto todavía es una demostración.
+   */
   const alCrear = useCallback(() => {
-    if (!prompt.trim()) return;
-    setEstado('creando');
+    const texto = prompt.trim();
+    if (!texto) return;
+
     /*
-     * AQUÍ ENTRA WEË BRAIN EL DÍA QUE SE CONECTE.
+     * ── VARIAS ESCENAS NO ES UN CLIP (Weë Filmmaker, F1-C) ────────────────
      *
-     * Lo que hoy es un temporizador será: mandar `prompt`, `area`, `ajustes` y
-     * `referencias` a Brain, que decide el plan y el especialista, y de ahí al
-     * motor. La pantalla ya tiene los cuatro datos reunidos y un estado que
-     * enseñar mientras tanto, así que no hay que tocar nada más de aquí.
+     * Un solo clip va a `CreatorFlow`, como siempre. «Varias escenas» abre la
+     * producción: lo escrito viaja tal cual como su idea, y los controles de
+     * cámara elegidos, como dirección de toda ella. El Studio sigue siendo una
+     * puerta: no crea la producción ni llama a nadie; la crea la pantalla de
+     * producción, con su servicio.
      */
+    if (abreLaProduccion(experiencia?.id)) {
+      navigation.navigate('Production', { intencion: texto, creativo: filtrarCreativo(controles) });
+      return;
+    }
+
+    const destino = destinoDeIntencion(texto, {
+      /*
+       * La puerta declara su experiencia SOLO si se pasó por una. Sin puerta no
+       * hay nada que declarar, y entonces deciden las palabras; y si las
+       * palabras tampoco encajan, no hay destino y se dice, en vez de llevar a
+       * alguien a una sección que no pidió.
+       */
+      declaradaPorLaPuerta: experiencia?.experienceId ?? (entrada ? entradaPorId(entrada)?.experienceId : undefined),
+      dentroDe: 'studio',
+      idioma: locale,
+    });
+
+    if (destino) {
+      /*
+       * ── LO QUE VIAJA, Y POR QUÉ VIAJA DOS VECES ──────────────────────────
+       *
+       * La ESTRUCTURA va entera y aparte: `creative` con las rutas del lenguaje
+       * creativo de Weë, `adjuntos` con su clase, `experienceId` y el `goal`
+       * tal como se escribió. Eso es el contrato, y es lo que tiene que
+       * sobrevivir.
+       *
+       * Y ADEMÁS lo elegido se dice con palabras dentro del goal. No es lo
+       * mismo ni sustituye a lo otro: es que hoy el camino de producción
+       * entiende una frase y todavía no sabe leer `lighting.type`, así que sin
+       * esa frase lo que la persona eligió no llegaría a ninguna parte. Cuando
+       * el plan sepa transportar la estructura, esta frase sobra.
+       *
+       * El texto de la persona NO se toca: se le añade delante de qué va y
+       * detrás con qué, y lo suyo queda entero en medio.
+       */
+      const creative = filtrarCreativo(controles);
+      const conPalabras = creativoEnPalabras(creative, t, locale);
+      const nombre = experiencia ? t(experiencia.clave) : '';
+
+      const contexto: ContextoDeExperiencia = {
+        experienceId: destino.experienceId,
+        workspace: 'studio',
+        goal: [nombre ? `${nombre}:` : '', texto, conPalabras ? `· ${conPalabras}` : '']
+          .filter(Boolean)
+          .join(' '),
+        ...(Object.keys(creative).length ? { creative } : {}),
+        /*
+         * LO QUE ELEGIR LA EXPERIENCIA YA CONTESTÓ.
+         *
+         * Por el canal que existe desde siempre para esto —`presets`, el mismo
+         * de las acciones de los especialistas—, así que la conversación empieza
+         * donde tiene que empezar en vez de preguntar lo que la persona acaba de
+         * decir al tocar "Retrato".
+         *
+         * Y es lo que hace que el plan sea de VERDAD el de crear una imagen:
+         * sin esto la plantilla deducía la acción de las palabras del objetivo,
+         * no encontraba ninguna que significara «desde cero», y acababa pidiendo
+         * una foto para editar.
+         */
+        ...(experiencia?.respuestas?.length ? { presets: [...experiencia.respuestas] } : {}),
+        ...(adjuntos.length ? { adjuntos } : {}),
+        /*
+         * La primera foto entra además por donde ya entraban las fotos
+         * (`imageUri` → `creatorUploads` → Storage de Weë). No se duplica el
+         * almacén: es el mismo camino de siempre, y `adjuntos` solo añade de
+         * QUÉ CLASE es cada material, que es lo que ese camino no sabe.
+         */
+        ...(adjuntos[0] ? { imageUri: adjuntos[0].uri } : {}),
+      };
+
+      /*
+       * Nada se cobra por llegar: `CreatorFlow` pregunta y planifica con
+       * `creditsCharged: 0`, y el dinero no se mueve hasta que la persona ve el
+       * plan con su precio y pulsa Crear.
+       */
+      navigation.navigate('CreatorFlow', contexto);
+      return;
+    }
+
+    setEstado('creando');
     temporizador.current = setTimeout(() => setEstado('listo'), LO_QUE_TARDA_LA_DEMO);
-  }, [prompt]);
+  }, [prompt, experiencia, entrada, controles, adjuntos, navigation, t, locale]);
 
-  const alElegirHerramienta = useCallback((herramienta: HerramientaDeStudio) => {
-    /*
-     * Elegir una herramienta no abre otra pantalla: vuelve al compositor con esa
-     * intención puesta. El sitio donde se dice qué quieres es uno solo.
-     */
-    if (panel && panel !== 'more') setArea(panel);
+  /**
+   * LO ELEGIDO DENTRO DE UNA PUERTA VUELVE AL COMPOSITOR.
+   *
+   * No abre otra pantalla ni pide más datos: deja la intención puesta donde se
+   * escribe, que es un solo sitio. Los controles de cámara se guardan tal cual
+   * —rutas del lenguaje creativo de Weë— para viajar con la creación.
+   */
+  const alElegir = useCallback((eleccion: EleccionDeStudio) => {
+    const puerta = entradaPorId(eleccion.entrada);
+    if (puerta && eleccion.entrada !== 'more') { setArea(puerta.area); setEntrada(eleccion.entrada); }
+    setControles(eleccion.controles);
+    setExperiencia(
+      eleccion.experiencia
+        ? {
+            id: eleccion.experiencia.id,
+            clave: eleccion.experiencia.clave,
+            experienceId: puerta?.experienceId,
+            /* Lo que elegirla ya contesta: viaja con el trabajo para no repreguntarlo. */
+            respuestas: eleccion.experiencia.respuestas,
+          }
+        : null
+    );
     setPanel(null);
-    setPrompt((antes) => (antes.trim() ? antes : `${t(herramienta.clave)}: `));
-  }, [panel, t]);
+    /*
+     * LO ELEGIDO YA NO SE ESCRIBE DENTRO DE LA CAJA.
+     *
+     * Antes se ponía "Retrato: " delante de lo que la persona fuera a escribir.
+     * Era cómodo de ver y caro de mantener: mezclaba en un solo texto la
+     * experiencia —que es un dato— con lo que alguien quería decir, y luego no
+     * había forma de volver a separarlos. La experiencia ya se ve como ficha y
+     * viaja como dato; la caja se queda para las palabras de la persona.
+     *
+     * Una herramienta del catálogo de siempre sí deja su nombre escrito: no es
+     * una experiencia, no tiene dónde viajar, y perderla sería peor.
+     */
+    const clave = eleccion.herramienta?.clave;
+    if (clave) setPrompt((antes) => (antes.trim() ? antes : `${t(clave)}: `));
+  }, [t]);
 
-  const alAnadirReferencia = useCallback(() => {
-    /* Sin selector de archivos todavía: se añade una de muestra para ver la forma. */
-    setReferencias((antes) => [...antes, `referencia-${antes.length + 1}.png`]);
+  /**
+   * UNA REFERENCIA DE VERDAD, POR EL CAMINO DE SIEMPRE.
+   *
+   * El mismo selector que usan Weë Brain y Weë Chef. Lo que se guarda es un
+   * `Adjunto` con su CLASE —una referencia inspira, no se reproduce—, y quien
+   * sube el archivo sigue siendo `creatorUploads` cuando llegue el momento:
+   * aquí no hay almacén, ni se crea uno.
+   */
+  const alAnadirReferencia = useCallback(async () => {
+    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permiso.granted) return;
+    const elegido = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    const foto = elegido.canceled ? null : elegido.assets?.[0];
+    if (!foto?.uri) return;
+    setAdjuntos((antes) => [
+      ...antes,
+      { clase: 'referencia', uri: foto.uri, nombre: foto.fileName ?? undefined },
+    ]);
   }, []);
 
   /*
@@ -162,10 +361,10 @@ const StudioScreen: React.FC = () => {
       <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
         <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
           <StudioPanel
-            area={panel}
-            porFila={porFila}
+            entrada={panel}
+            porFila={isMobile ? 2 : 3}
             onVolver={() => setPanel(null)}
-            onElegir={alElegirHerramienta}
+            onElegir={alElegir}
           />
         </View>
       </SafeAreaView>
@@ -217,23 +416,49 @@ const StudioScreen: React.FC = () => {
               />
             </View>
 
-            {/* Las referencias añadidas se ven bajo el compositor, no escondidas. */}
-            {referencias.length > 0 && (
-              <View style={styles.referencias}>
-                {referencias.map((r, i) => (
-                  <View key={`${r}-${i}`} style={[styles.ficha, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                    <Ionicons name="image-outline" size={scale(14)} color={theme.colors.text} />
-                    <Text style={[styles.fichaTexto, { color: theme.colors.text }]} numberOfLines={1}>{r}</Text>
-                  </View>
+            {/*
+              LO QUE WEË YA SABE, A LA VISTA Y QUITABLE.
+
+              La experiencia elegida, sus controles de cámara y las referencias
+              añadidas. No está aquí de adorno: está para que nadie tenga que
+              acordarse de lo que eligió hace tres pantallas, y para que no se
+              lo vuelvan a preguntar. Tocar una ficha la suelta.
+            */}
+            {(!!experiencia || Object.keys(controles).length > 0 || adjuntos.length > 0) && (
+              <View style={styles.contexto}>
+                {!!experiencia && (
+                  <FichaDeContexto
+                    icono="sparkles-outline"
+                    texto={t(experiencia.clave)}
+                    onQuitar={() => { setExperiencia(null); setControles({}); }}
+                    etiquetaQuitar={t('studio.removeContext')}
+                  />
+                )}
+                {Object.entries(controles).map(([ruta, valor]) => (
+                  <FichaDeContexto
+                    key={ruta}
+                    icono="videocam-outline"
+                    texto={nombreDelControl(ruta, valor, t)}
+                    onQuitar={() => setControles((antes) => { const { [ruta]: _f, ...resto } = antes; return resto; })}
+                    etiquetaQuitar={t('studio.removeContext')}
+                  />
+                ))}
+                {adjuntos.map((a, i) => (
+                  <FichaDeContexto
+                    key={`${a.uri}-${i}`}
+                    icono="image-outline"
+                    texto={a.nombre ?? t('studio.reference')}
+                    onQuitar={() => setAdjuntos((antes) => antes.filter((_, j) => j !== i))}
+                    etiquetaQuitar={t('studio.removeContext')}
+                  />
                 ))}
               </View>
             )}
 
-            <View style={styles.rejilla}>
-              <StudioToolGrid porFila={porFila} onAbrir={(a) => setPanel(a)} />
-            </View>
+            <StudioEntradas porFila={porFila} onAbrir={(entrada) => setPanel(entrada)} />
 
-            <StudioCreations
+            <FilaDeCreaciones
+              creaciones={CREACIONES_DEL_STUDIO}
               onVerTodas={() => navigation.navigate('Projects')}
               onOpciones={() => {}}
             />
@@ -252,45 +477,18 @@ const StudioScreen: React.FC = () => {
         Al enviar, además, el teclado se retira solo (`CajaDePrompt`), así que
         esto solo cubre el momento en que todavía se está yendo.
       */}
-      {estado !== 'quieto' && (
-        <View
-          style={[
-            styles.aviso,
-            { backgroundColor: theme.colors.card, borderColor: theme.colors.border, bottom: SITIO_DE_LA_BARRA + alturaTeclado },
-          ]}
-        >
-          {estado === 'creando' ? (
-            <>
-              <Ionicons name="sparkles" size={scale(18)} color={theme.colors.accentDark} />
-              <Text style={[styles.avisoTexto, { color: theme.colors.text }]}>{t('studio.creating')}</Text>
-            </>
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={scale(18)} color={theme.colors.success} />
-              <View style={styles.avisoCuerpo}>
-                <Text style={[styles.avisoTexto, { color: theme.colors.text }]}>{t('studio.ready')}</Text>
-                <Text style={[styles.avisoPista, { color: theme.colors.textSecondary }]}>{t('studio.readyHint')}</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setEstado('quieto')}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
-              >
-                <Text style={[styles.avisoCerrar, { color: theme.colors.accentDark }]}>{t('studio.dismiss')}</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
+      <AvisoDeCreacion
+        estado={estado}
+        bottom={SITIO_DE_LA_BARRA + alturaTeclado}
+        onCerrar={() => setEstado('quieto')}
+      />
 
       <AjustesContextuales
         visible={ajustesAbiertos}
         contexto={contexto}
         elegido={ajustes}
         sugerido={sugerido}
-        referencias={referencias.length}
+        referencias={adjuntos.length}
         onElegir={(ajuste, opcion) => setAjustes((antes) => ({ ...antes, [ajuste]: opcion }))}
         onCerrar={() => setAjustesAbiertos(false)}
       />
@@ -306,47 +504,14 @@ const styles = StyleSheet.create({
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl, flex: 1 },
   /* Sube la caja 26 de los 44 que la separaban de la cabecera. Deja unos 18. */
   cajaArriba: { marginTop: -scale(26) },
-  rejilla: { marginTop: -SPACING.sm },
-  referencias: {
+  /* Lo que Weë ya sabe, justo debajo de donde se escribe. */
+  contexto: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: SPACING.sm,
     paddingHorizontal: SPACING.xl,
     marginTop: -SPACING.md,
   },
-  ficha: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs + scale(2),
-    borderRadius: BORDER_RADIUS.full,
-    borderWidth: StyleSheet.hairlineWidth,
-    maxWidth: scale(170),
-  },
-  fichaTexto: { fontSize: FONT_SIZE.xs, flexShrink: 1 },
-  aviso: {
-    position: 'absolute',
-    left: SPACING.lg,
-    right: SPACING.lg,
-    bottom: SITIO_DE_LA_BARRA,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderRadius: scale(18),
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: scale(16),
-    shadowOffset: { width: 0, height: scale(4) },
-    elevation: 4,
-  },
-  avisoCuerpo: { flex: 1, gap: scale(1) },
-  avisoTexto: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.semibold },
-  avisoPista: { fontSize: FONT_SIZE.xs, lineHeight: scale(16) },
-  avisoCerrar: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },
 });
 
 /*

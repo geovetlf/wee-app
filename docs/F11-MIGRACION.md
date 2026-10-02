@@ -74,7 +74,7 @@ Corregida la búsqueda (§3.1), los cinco casos pasan a **MIGRABLE** y no queda 
 users.uid  →  linkedAccountId  →  cuentaDeIdentidad (resolutor canónico)
 ```
 
-- Se busca por **campo**: `where('uid', '==', <identidad>)`, igual que `econtactService`, `creditsService` y `followsService`. **Nunca se asume `documentId === uid`.**
+- Se busca por **campo**: `where('uid', '==', <identidad>)`, igual que `econtactService` y `creditsService` (y `followsService`, retirado en el cierre del 2026-10-01 porque no lo importaba nadie; queda en la historia (`git show d306a58:services/followsService.ts`)). **Nunca se asume `documentId === uid`.**
 - Se mantiene el **fallback por `documentId`** como compatibilidad, por si algún documento sí estuviera nombrado por su uid.
 - La decisión la toma **`cuentaDeIdentidad`** (`functions/src/social/econtact.ts`, el mismo resolutor que usan ËContact y las encuestas): exige que el documento exista, que su `uid` sea esa identidad, que el `profileType` sea el que toca y que el prefijo y `linkedAccountId` cuenten la misma historia. El script **no** tiene un criterio de identidad propio.
 - `users` **no** tiene unicidad: una identidad puede tener varios documentos. Se miran todos. Si coinciden, hay cuenta; **si se contradicen, el resultado es AMBIGUO** y se reporta la contradicción con sus documentos. **Nunca se elige uno al azar y nunca se inventa una cuenta.**

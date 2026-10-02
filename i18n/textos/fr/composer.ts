@@ -58,7 +58,7 @@ export const composer: typeof import('../es/composer').composer = {
   removeMentions_one: 'Retirer la mention',
   removeMentions_other: 'Retirer les mentions',
   signInToMention: 'Connecte-toi à Weë pour mentionner tes ËContact.',
-  bizNoAgenda: 'Le Profil Biz n’a pas de répertoire ËContact. Passe au Profil Réel ou au Profil Weë pour mentionner quelqu’un.',
+  profileNoAgenda: 'Ce profil n’a pas de répertoire ËContact. Passe à ton Profil Réel ou à ton Profil Weë pour mentionner quelqu’un.',
   noContactsYet: 'Tu n’as pas encore de {{lista}}. Dès que tu te connectes avec quelqu’un depuis son profil, la personne apparaît ici et tu peux la mentionner.',
   mentionAnyone: 'Mentionne qui tu veux parmi tes {{lista}}',
   publishIn: 'PUBLIER DANS',
@@ -131,4 +131,8 @@ export const composer: typeof import('../es/composer').composer = {
   askCommunity: 'Poser une question à la communauté',
   applyingFaceSwap: 'Application du face swap...',
   searchPlaceHint: 'Cherche une ville ou un pays pour marquer ta publication.',
+  aiProcessCreatedWith: 'Créé avec {{nombre}} dans Weë AI',
+  aiProcessDemoPreview: '{{proceso}} (aperçu en mode démo)',
+  distanceUnder: 'À moins de {{distancia}}',
+  distanceOver: 'À plus de {{distancia}}',
 };

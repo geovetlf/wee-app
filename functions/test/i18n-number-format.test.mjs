@@ -263,9 +263,12 @@ console.log('\n── F · El botón de volver del perfil, que no volvía ──
   check('22) y antes del return de "error", que es el que lo usa', declarado < conError && declarado < usado,
     declarado + ' < ' + conError + ' / ' + usado);
 
-  /* 23 · Sin cambiar nada de lo que hace: el mismo cuerpo, el mismo botón. */
+  /*
+   * 23 · Sin cambiar nada de lo que hace: el mismo cuerpo, el mismo botón. + cierre 2026-10-01: el aviso de error pasa
+   * de Alert.alert (vacío en la web) a notify, con la misma clave; lo demás, idéntico.
+   */
   check('23) hace exactamente lo mismo que hacía',
-    /const handleLogout = async \(\) => \{\s*try \{\s*await logout\(\);\s*\} catch \(error\) \{\s*console\.error\('Error logging out:', error\);\s*Alert\.alert\(t\('common\.error'\), t\('profile\.signOutFailed'\)\);\s*\}\s*\};/.test(PERFIL));
+    /const handleLogout = async \(\) => \{\s*try \{\s*await logout\(\);\s*\} catch \(error\) \{\s*console\.error\('Error logging out:', error\);\s*notify\(t\('common\.error'\), t\('profile\.signOutFailed'\)\);\s*\}\s*\};/.test(PERFIL));
   check('23) y el botón sigue siendo el mismo, con el mismo texto',
     /onPress=\{\(\) => handleLogout\(\)\}/.test(PERFIL) && /\{t\('profile\.backToLogin'\)\}/.test(PERFIL));
   check('23) no se creó ningún manejador nuevo',
@@ -302,8 +305,9 @@ console.log('\n── H · Control: no se rompió nada de lo anterior ──');
   check('28) los huecos de texto siguen entrando crudos',
     ES('wall.repostedBy', { nombre: 'Jazmín' }) === 'Jazmín reposteó'
     && EN('profile.shareMessage', { nombre: 'Jazmín' }) === 'Take a look at Jazmín on Weë');
+  /* Sin `contador` no hay plural y `communities.members` es 'miembros', sin hueco: el hueco vive en la forma plural. */
   check('29) un hueco sin valor sigue quedándose a la vista',
-    ES('communities.members', {}).includes('{{contador}}') === false || true);
+    ES('communities.members_other', {}).includes('{{contador}}'));
   check('29) y una clave que no existe sigue degradándose', ES('profile.noExisteEstaClave') === 'No Existe Esta Clave');
   check('30) el traductor sigue sin depender de React ni del almacenamiento',
     !/react|AsyncStorage|useState|window\./i.test(soloCodigo(leer('i18n/traducir.ts'))));

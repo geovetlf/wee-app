@@ -48,8 +48,11 @@ interface ContextoUbicacion {
   leidaEn: number | null;
   /** Se está mirando el permiso o pidiendo una lectura. */
   cargando: boolean;
-  /** Qué salió mal, en una frase que se le puede enseñar a alguien. */
-  error: string | null;
+  /**
+   * Qué salió mal, como CÓDIGO y no como frase: un contexto no sabe en qué idioma se mira. Hoy nadie lo pinta
+   * (Configuración y Agregar ubicación leen el estado y la lectura); quien lo enseñe elegirá la clave i18n por él.
+   */
+  error: 'lectura-fallida' | null;
 
   // ── Lo que se puede hacer ──────────────────────────────────────────────
   /** Enciende la preferencia y, si hace falta, pide el permiso del sistema. */
@@ -90,7 +93,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [lectura, setLectura] = useState<LecturaUbicacion | null>(null);
   const [leidaEn, setLeidaEn] = useState<number | null>(null);
   const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<'lectura-fallida' | null>(null);
 
   /** La lectura se olvida entera: la coordenada y la hora, para que nada quede colgando. */
   const olvidarLectura = useCallback(() => {
@@ -212,7 +215,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // servicio vuelve a comprobarlo y baja el listón si el sistema lo bajó.
         const nueva = await locationService.leerUnaVez(preferencia === 'precisa' ? 'precisa' : 'aproximada');
         if (!nueva) {
-          setError('No se pudo obtener tu ubicación. Inténtalo de nuevo en un momento.');
+          setError('lectura-fallida');
           return null;
         }
         setLectura(nueva);

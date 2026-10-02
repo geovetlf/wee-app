@@ -7,18 +7,20 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { paraBuscar } from '../i18n/caja';
+import { confirmAction } from '../utils/notify';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { messagesService, Conversation } from '../services/messagesService';
-import { getRelativeTime } from '../data/mockData';
+import { messagesService, Conversation, claveDeAvisoGuardado } from '../services/messagesService';
+import { useConversaciones } from '../hooks/useConversaciones';
+import { getRelativeTime } from '../utils/formatoCorto';
 import { InboxStackParamList } from '../navigation/InboxStackNavigator';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
@@ -42,36 +44,20 @@ const InboxScreen = () => {
 
   const activeUid = userProfile?.uid || user?.uid;
 
-  // ─── Subscribe to conversations ───
+  /*
+   * LA BANDEJA COMPARTE SUSCRIPCIÓN CON EL CONTADOR (Fase 11.x-6).
+   *
+   * Antes esta pantalla abría su propio oyente sobre `conversations` y la
+   * navegación abría otro idéntico para el número de no leídos: dos
+   * suscripciones en tiempo real al mismo conjunto de documentos. Ahora las dos
+   * salen de `useConversaciones`, que mantiene UNA por aplicación y la reabre
+   * sola al cambiar de cara.
+   */
+  const { conversaciones, cargando } = useConversaciones();
   useEffect(() => {
-    // Clear old conversations immediately on profile switch
-    setConversations([]);
-
-    if (!activeUid) { setLoading(false); return; }
-
-    setLoading(true);
-    let unsub: (() => void) | undefined;
-
-    try {
-      unsub = messagesService.subscribeToConversations(activeUid, (convs) => {
-        setConversations(convs);
-        setLoading(false);
-      });
-
-      const deregister = registerCleanup(() => unsub?.());
-
-      const timeout = setTimeout(() => setLoading(false), 10000);
-
-      return () => {
-        clearTimeout(timeout);
-        deregister();
-        unsub?.();
-      };
-    } catch (error) {
-      console.error('Error subscribing to conversations:', error);
-      setLoading(false);
-    }
-  }, [activeUid, registerCleanup]);
+    setConversations(conversaciones);
+    setLoading(cargando);
+  }, [conversaciones, cargando]);
 
   // ─── Helpers ───
   const openChat = (c: Conversation) => {
@@ -85,20 +71,23 @@ const InboxScreen = () => {
     });
   };
 
-  const deleteChat = (id: string) => {
-    Alert.alert(t('weetalk.deleteConversation'), t('weetalk.areYouSure'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => messagesService.deleteConversation(id).catch(console.error) },
-    ]);
+  /*
+   * BORRAR UNA CONVERSACIÓN (pulsación larga). Con `Alert.alert` y el borrado en el `onPress` de su botón, en la web
+   * no salía nada y no se borraba: allí `Alert.alert` no pinta ni llama a nadie. `confirmAction` es el mismo diálogo
+   * en el teléfono y `window.confirm` en la web.
+   */
+  const deleteChat = async (id: string) => {
+    if (!(await confirmAction(t('weetalk.deleteConversation'), t('weetalk.areYouSure'), t('common.delete'), true, t))) return;
+    messagesService.deleteConversation(id).catch(console.error);
   };
 
   const filtered = search.trim()
     ? conversations.filter(c => {
         const otherId = c.participants.find(id => id !== activeUid);
         if (!otherId) return false;
-        const name = c.participantsData[otherId]?.displayName?.toLowerCase() || '';
-        const msg = c.lastMessage?.content?.toLowerCase() || '';
-        return name.includes(search.toLowerCase()) || msg.includes(search.toLowerCase());
+        const name = paraBuscar(c.participantsData[otherId]?.displayName);
+        const msg = paraBuscar(c.lastMessage?.content);
+        return name.includes(paraBuscar(search)) || msg.includes(paraBuscar(search));
       })
     : conversations;
 
@@ -112,6 +101,9 @@ const InboxScreen = () => {
 
     const last = item.lastMessage;
     const unread = last && !last.read && last.senderId !== activeUid;
+    /* Un aviso que guardó Weë se dice en el idioma de quien mira; el mensaje de una persona, tal cual. */
+    const avisoGuardado = claveDeAvisoGuardado(last?.content);
+    const ultimo = avisoGuardado ? t(avisoGuardado) : last?.content ?? '';
 
     return (
       <TouchableOpacity
@@ -160,7 +152,7 @@ const InboxScreen = () => {
               {item.ephemeral
                 ? t('weetalk.ephemeralMode')
                 : last
-                  ? (last.senderId === activeUid ? t('weetalk.youSaid', { mensaje: last.content }) : last.content)
+                  ? (last.senderId === activeUid ? t('weetalk.youSaid', { mensaje: ultimo }) : ultimo)
                   : t('weetalk.noMessagesYet')}
             </Text>
             {unread && <View style={[styles.dot, { backgroundColor: theme.colors.accent }]} />}

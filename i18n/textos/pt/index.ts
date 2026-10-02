@@ -62,6 +62,8 @@ import { search } from './search';
 import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
 import { weebiz } from './weebiz';
+import { moderation } from './moderation';
+import { filmmaker } from './filmmaker';
 import { FormaDelDiccionario } from '../es';
 
 export const pt: FormaDelDiccionario = {
@@ -100,4 +102,6 @@ export const pt: FormaDelDiccionario = {
   design,
   chef,
   brain,
+  moderation,
+  filmmaker,
 };

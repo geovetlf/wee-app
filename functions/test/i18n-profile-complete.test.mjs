@@ -80,7 +80,9 @@ console.log('\n── A · Ni una frase española suelta en toda la pantalla ─
   check('2) ni texto suelto dentro del JSX', enJsx.length === 0, [...new Set(enJsx)].join(' · '));
 
   /* 3 · La pantalla usa el sistema de Weë, y solo ese. */
-  check('3) usa el traductor de Weë', /import \{ useT \} from '\.\.\/contexts\/IdiomaContext';/.test(PERFIL) && /const t = useT\(\);/.test(PERFIL));
+  /* useIdioma es el mismo proveedor: la pantalla lo pide para bajar el nombre a minúsculas con las reglas del idioma. */
+  check('3) usa el traductor de Weë', /import \{ (useT|useIdioma) \} from '\.\.\/contexts\/IdiomaContext';/.test(PERFIL)
+    && /const (t = useT\(\)|\{ t, locale \} = useIdioma\(\));/.test(PERFIL));
   check('3) sin diccionario propio ni ternarios de idioma',
     !/idioma === 'e[ns]'/.test(PERFIL) && !/locale === 'e[ns]'/.test(PERFIL)
     && !/i18next|react-intl|formatjs|lingui/.test(CRUDO)
@@ -119,19 +121,23 @@ console.log('\n── B · Los dos estados con los que puede abrirse ──');
 console.log('\n── C · Las siete alertas ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  const alertas = PERFIL.match(/Alert\.alert\([^;]*\);/g) || [];
-  /* Seis con `Alert.alert` y una —la del avatar— con `notify`, que también se ve en web. */
-  check('10) hay siete, ni una más', alertas.length === 6 && (PERFIL.match(/notify\(t\('common\.error'\), t\('profile\.avatarUpdateFailed'\)\)/g) || []).length === 1, String(alertas.length));
+  /*
+   * + cierre 2026-10-01: las seis que eran `Alert.alert` pasan a `notify` —en React Native Web `Alert.alert` es una
+   * función vacía y la persona no veía ninguna—. Mismas claves, mismo número, ninguna `Alert.alert` de vuelta.
+   */
+  const alertas = PERFIL.match(/\bnotify\([^;]*\);/g) || [];
+  check('10) hay siete, ni una más', alertas.length === 7 && !/Alert\.alert\(/.test(PERFIL)
+    && (PERFIL.match(/notify\(t\('common\.error'\), t\('profile\.avatarUpdateFailed'\)\)/g) || []).length === 1, String(alertas.length));
   check('10) y ninguna lleva una frase escrita a mano',
     alertas.every((a) => !/'[^']*[a-záéíóúñ]{4,}[^']*'/.test(a.replace(/t\('[^']*'/g, 't('))),
     alertas.filter((a) => /'[^']*[a-záéíóúñ]{4,}[^']*'/.test(a.replace(/t\('[^']*'/g, 't('))).join(' · '));
 
-  check('11) el nombre vacío', /Alert\.alert\(t\('common\.error'\), t\('profile\.nameRequired'\)\)/.test(PERFIL));
-  check('12) el perfil que no se actualiza', /Alert\.alert\(t\('common\.error'\), t\('profile\.updateFailed'\)\)/.test(PERFIL));
-  check('13) la sesión que no se cierra', /Alert\.alert\(t\('common\.error'\), t\('profile\.signOutFailed'\)\)/.test(PERFIL));
-  check('14) la sesión que no hay', /Alert\.alert\(t\('common\.error'\), t\('profile\.noSession'\)\)/.test(PERFIL));
-  check('15) la portada que no sube', /Alert\.alert\(t\('common\.error'\), t\('profile\.coverUploadFailed'\)\)/.test(PERFIL));
-  check('16) el permiso de la galería', /Alert\.alert\(t\('profile\.permissionsTitle'\), t\('profile\.galleryPermission'\)\)/.test(PERFIL));
+  check('11) el nombre vacío', /notify\(t\('common\.error'\), t\('profile\.nameRequired'\)\)/.test(PERFIL));
+  check('12) el perfil que no se actualiza', /notify\(t\('common\.error'\), t\('profile\.updateFailed'\)\)/.test(PERFIL));
+  check('13) la sesión que no se cierra', /notify\(t\('common\.error'\), t\('profile\.signOutFailed'\)\)/.test(PERFIL));
+  check('14) la sesión que no hay', /notify\(t\('common\.error'\), t\('profile\.noSession'\)\)/.test(PERFIL));
+  check('15) la portada que no sube', /notify\(t\('common\.error'\), t\('profile\.coverUploadFailed'\)\)/.test(PERFIL));
+  check('16) el permiso de la galería', /notify\(t\('profile\.permissionsTitle'\), t\('profile\.galleryPermission'\)\)/.test(PERFIL));
 
   /*
    * 17 · EL AVATAR. El motivo técnico —el almacén, la red— va al registro; la
@@ -260,7 +266,7 @@ console.log('\n── G · Lo que NO se traduce ──');
   /* 40 · Lo que escribe una persona se pinta crudo. */
   check('40) el nombre, el usuario y la biografía se pintan crudos',
     /\{userProfile\.displayName\}/.test(PERFIL)
-    && /\{userProfile\.username \|\| userProfile\.displayName\.toLowerCase/.test(PERFIL)
+    && /\{userProfile\.username \|\| userProfile\.displayName\.toLocaleLowerCase\(locale\)/.test(PERFIL)
     && /\{userProfile\.bio\}/.test(PERFIL));
   check('40) y ninguno entra como clave en el traductor',
     !/t\(\s*userProfile/.test(PERFIL) && !/t\(`/.test(PERFIL));

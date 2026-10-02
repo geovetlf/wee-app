@@ -30,7 +30,7 @@ if (Platform.OS !== 'web') {
      * no está activado como proveedor en Firebase Auth —entonces
      * google-services.json llega sin ningún oauth_client y no hay id que poner—.
      */
-    googleNoDisponible = 'Iniciar sesión con Google todavía no está configurado en esta versión. Entra con tu correo o como invitado.';
+    googleNoDisponible = 'google-sin-configurar';
     console.log('Google Sign-In: falta EXPO_PUBLIC_GOOGLE_CLIENT_ID; el botón quedará desactivado');
   } else {
     try {
@@ -40,7 +40,7 @@ if (Platform.OS !== 'web') {
       // Solo después de configurarlo de verdad se da por bueno.
       GoogleSignin = modulo;
     } catch (e) {
-      googleNoDisponible = 'No pude preparar el inicio de sesión con Google. Entra con tu correo o como invitado.';
+      googleNoDisponible = 'google-no-preparado';
       console.log('Google Sign-In nativo no disponible:', e);
     }
   }
@@ -59,7 +59,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signInAnonymously: () => Promise<void>;
   logout: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, idioma?: string) => Promise<void>;
   updateUserProfile: (displayName: string, photoURL?: string) => Promise<void>;
   registerCleanup: (cleanup: () => void) => () => void;
 }
@@ -69,7 +69,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+    throw new Error('useAuth-fuera-de-AuthProvider');
   }
   return context;
 };
@@ -171,8 +171,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const resetPassword = async (email: string): Promise<void> => {
+  /**
+   * `idioma` es el de la app: Firebase escribe el correo con su plantilla en ese idioma (`auth.languageCode`).
+   * Sin él, el idioma por defecto del proyecto.
+   */
+  const resetPassword = async (email: string, idioma?: string): Promise<void> => {
     try {
+      if (idioma) auth.languageCode = idioma;
       await sendPasswordResetEmail(auth, email);
     } catch (error) {
       throw error;
@@ -198,7 +203,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('📱 Iniciando Google Sign-In en Mobile...');
 
       if (!GoogleSignin) {
-        throw new Error(googleNoDisponible || 'Iniciar sesión con Google no está disponible ahora mismo. Entra con tu correo o como invitado.');
+        throw new Error(googleNoDisponible || 'google-no-disponible');
       }
 
       // Verificar si hay sesión previa
@@ -212,7 +217,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const idToken = signInResult?.data?.idToken;
 
       if (!idToken) {
-        throw new Error('No se pudo obtener el token de Google');
+        throw new Error('google-sin-token');
       }
 
       // Crear credencial de Firebase con el token

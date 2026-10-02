@@ -19,14 +19,72 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
+/*
+ * El lector NO perdona. Antes devolvía '' si el archivo no existía, y cada comprobación negada («no usa…», «no
+ * escribe…») pasaba en verde con el archivo renombrado. Ahora un archivo que falta es un error con su ruta. Lo que
+ * de verdad tiene que NO existir se pregunta con `existe`.
+ */
 const read = (p) => {
-  try {
-    return fs.readFileSync(path.resolve(root, p), 'utf8');
-  } catch {
-    return '';
-  }
+  const ruta = path.resolve(root, p);
+  if (!fs.existsSync(ruta)) throw new Error(`econtact.test: no existe ${p} (¿se renombró? actualiza la suite, no la debilites)`);
+  return fs.readFileSync(ruta, 'utf8');
 };
-const sinComentarios = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const existe = (p) => fs.existsSync(path.resolve(root, p));
+const ts = require('typescript');
+
+/*
+ * EL SEGUIR ANTIGUO, RETIRADO. `services/followsService.ts` y `hooks/useFollow.ts` no los importaba nadie desde que
+ * ËContact es el único camino entre personas, y varias comprobaciones (56, 96-97, 200-201, 301, 304, 371-372)
+ * exigían que siguieran «en pie, sin tocar» mientras duraba la migración. En el cierre post-auditoría (2026-10-01)
+ * se retiraron como código muerto, así que esas comprobaciones exigen ahora lo contrario, y más: que no existan y que
+ * NINGÚN archivo del cliente los importe. Lo que sigue en pie es lo que tiene datos detrás: la colección `follows` y
+ * sus reglas (203, 302), y `businessFollows` (99, 303).
+ */
+const SEGUIR_ANTIGUO = ['services/followsService.ts', 'hooks/useFollow.ts'];
+const listarCliente = (d) => fs.readdirSync(path.resolve(root, d), { withFileTypes: true })
+  .flatMap((e) => (e.isDirectory() ? listarCliente(`${d}/${e.name}`) : /\.tsx?$/.test(e.name) ? [`${d}/${e.name}`] : []));
+const RE_IMPORTA_SEGUIR_ANTIGUO = /from ['"][./]+(?:[\w/]+\/)?(?:followsService|useFollow)['"]/;
+const importanElSeguirAntiguo = () => ['screens', 'components', 'hooks', 'contexts', 'services', 'utils', 'navigation']
+  .flatMap(listarCliente).concat(['App.tsx']).filter((f) => RE_IMPORTA_SEGUIR_ANTIGUO.test(read(f)));
+const seguirAntiguoRetirado = () => SEGUIR_ANTIGUO.every((f) => !existe(f)) && importanElSeguirAntiguo().length === 0;
+
+/*
+ * LOS COMENTARIOS FUERA, CON EL ESCÁNER DE TYPESCRIPT.
+ *
+ * Antes era una expresión regular que no sabe qué es una cadena: en CreateScreen.tsx, `'image/*,video/*'` abría un
+ * «comentario» que se comía el código hasta el siguiente cierre de comentario (las líneas 441–534), y las
+ * comprobaciones negadas sobre ese archivo no veían esas líneas. El escáner distingue comentario, cadena, plantilla
+ * y expresión regular. Lo único que no sabe sin el analizador se le dice aquí: que tras la `}` de un `${…}` sigue la
+ * plantilla, y cuándo una `/` empieza una expresión regular (no tras algo que tenga valor, ni tras el `<` de una
+ * etiqueta de cierre de JSX). Cada comentario se quita entero, como hacía la versión anterior.
+ */
+const K = ts.SyntaxKind;
+const DESPUES_HAY_DIVISION = new Set([K.Identifier, K.PrivateIdentifier, K.NumericLiteral, K.BigIntLiteral, K.StringLiteral,
+  K.NoSubstitutionTemplateLiteral, K.TemplateTail, K.RegularExpressionLiteral, K.CloseParenToken, K.CloseBracketToken,
+  K.CloseBraceToken, K.ThisKeyword, K.SuperKeyword, K.TrueKeyword, K.FalseKeyword, K.NullKeyword, K.PlusPlusToken,
+  K.MinusMinusToken, K.LessThanToken]);
+const sinComentarios = (texto) => {
+  const escaner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, texto);
+  const llaves = [];
+  const comentarios = [];
+  let anterior = null;
+  for (let t = escaner.scan(); t !== K.EndOfFileToken; t = escaner.scan()) {
+    if (t === K.SingleLineCommentTrivia || t === K.MultiLineCommentTrivia) { comentarios.push([escaner.getTokenStart(), escaner.getTokenEnd()]); continue; }
+    if (t === K.WhitespaceTrivia || t === K.NewLineTrivia) continue;
+    if (t === K.OpenBraceToken) llaves.push('bloque');
+    else if (t === K.TemplateHead) llaves.push('plantilla');
+    else if (t === K.CloseBraceToken && llaves.pop() === 'plantilla') {
+      t = escaner.reScanTemplateToken(false);
+      if (t === K.TemplateMiddle) llaves.push('plantilla');
+    } else if ((t === K.SlashToken || t === K.SlashEqualsToken) && !(DESPUES_HAY_DIVISION.has(anterior)
+      || (anterior >= K.FirstContextualKeyword && anterior <= K.LastContextualKeyword))) t = escaner.reScanSlashToken();
+    anterior = t;
+  }
+  let salida = '';
+  let desde = 0;
+  for (const [ini, fin] of comentarios) { salida += texto.slice(desde, ini); desde = fin; }
+  return salida + texto.slice(desde);
+};
 
 let failures = 0;
 const check = (name, cond, extra = '') => {
@@ -34,8 +92,41 @@ const check = (name, cond, extra = '') => {
   if (!cond) failures++;
 };
 
+/* El lector y el quitacomentarios, comprobados antes de usarlos (cada uno falla con la versión anterior). */
+check('0a) el lector no perdona: un archivo que no existe es un error, no un texto vacío',
+  (() => { try { read('screens/NoExisteEstaPantalla.tsx'); return false; } catch { return true; } })());
+{
+  const CON_TRAMPAS = [
+    "input.accept = 'image/*,video/*'; // de verdad",
+    'const ruta = `a/*${x}*/b`; const re = /\\/\\*/g; const d = a / b; /* fuera */',
+    'const visible = <Text>{t("x")}</Text>; // fuera también',
+    'enviarSolicitud();',
+  ].join('\n');
+  const limpio = sinComentarios(CON_TRAMPAS);
+  check("0b) quitar comentarios no se come código: ni tras 'image/*,video/*', ni en una plantilla, una expresión regular o un cierre de JSX",
+    /'image\/\*,video\/\*';/.test(limpio) && limpio.includes('`a/*${x}*/b`') && limpio.includes('/\\/\\*/g') && limpio.includes('</Text>;')
+    && /enviarSolicitud\(\);/.test(limpio) && !/de verdad|fuera/.test(limpio), JSON.stringify(limpio));
+  /*
+   * Y sobre los archivos de verdad, con un juez que no es el escáner: el ANALIZADOR de TypeScript lista los
+   * identificadores del código (los de los comentarios no son nodos), antes y después de quitar comentarios. Si se
+   * perdiera código, faltarían identificadores: con la regex anterior, en CreateScreen.tsx faltaban los de 441–534.
+   */
+  const identificadores = (archivo, texto) => {
+    const sf = ts.createSourceFile(archivo, texto, ts.ScriptTarget.Latest, false, archivo.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    const vistos = [];
+    const visitar = (n) => { if (n.kind === K.Identifier) vistos.push(n.text); ts.forEachChild(n, visitar); };
+    visitar(sf);
+    return vistos.join(' ');
+  };
+  const LEIDOS_SIN_COMENTARIOS = ['utils/econtactModel.ts', 'services/econtactService.ts', 'functions/src/social/econtact.ts',
+    'components/DrawerMenu.tsx', 'components/Sidebar.tsx', 'screens/UserProfileScreen.tsx', 'screens/CreateScreen.tsx',
+    'screens/ProfileScreen.tsx', 'screens/SearchScreen.tsx', 'screens/EContactScreen.tsx', 'hooks/useEContact.ts', 'services/firestoreService.ts'];
+  const comidos = LEIDOS_SIN_COMENTARIOS.filter((f) => identificadores(f, read(f)) !== identificadores(f, sinComentarios(read(f))));
+  check('0c) …y en los archivos que esta suite lee sin comentarios no se pierde ni un identificador del código',
+    comidos.length === 0 && sinComentarios(read('screens/CreateScreen.tsx')).includes("input.accept = 'image/*,video/*';"), comidos.join(', '));
+}
+
 // El modelo, transpilado y ejecutado.
-const ts = require('typescript');
 const fuenteModelo = read('utils/econtactModel.ts');
 const jsModelo = ts.transpileModule(fuenteModelo, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
@@ -220,7 +311,7 @@ check('54) el contador se cuenta de lo que hay, para ESA identidad', /contarCont
  */
 check('55) la consulta filtra por la identidad activa', /array-contains', identidad/.test(codigoServicio));
 check('55b) y sigue siendo UNA sola consulta para las tres listas', (codigoServicio.match(/array-contains/g) || []).length === 1);
-check('56) followsService sigue intacto y sin mezclarse', !/followsService|useFollow/.test(codigoServicio) && read('services/followsService.ts').length > 0);
+check('56) ËContact no se mezcla con el seguir antiguo, que se retiró', !/followsService|useFollow/.test(codigoServicio) && seguirAntiguoRetirado(), importanElSeguirAntiguo().join(' '));
 
 // ═════════════════════════════════════════════════════════════════════════════
 console.log('\n── G) Reglas de Firestore (lectura del texto, no ejecución) ──');
@@ -238,8 +329,15 @@ check('58) la relación solo la leen sus dos partes', /allow read: if isAuthenti
  * sesión se derivan del uid de la cuenta —que es exactamente como se construyen
  * los perfiles—. `hasAny` cubre las dos caras: la relación puede ser de tu
  * Perfil Real o de tu Perfil Weë, y las dos son tuyas.
+ *
+ * Desde la Fase 11.x-5A la forma heredada no se escribe aquí: sale de
+ * `misIdentidadesHeredadas()`, la frontera de compatibilidad declarada arriba
+ * del archivo de reglas. El día que los perfiles se renumeren se cambia ahí.
  */
-check('58b) mis identidades son mi cuenta y mi Perfil Weë', /return \[request\.auth\.uid, 'hidi_' \+ request\.auth\.uid\];/.test(bloque));
+check('58b) mis identidades salen de la frontera de compatibilidad, no de un prefijo escrito a mano',
+  /return misIdentidadesHeredadas\(\);/.test(bloque)
+  && /function misIdentidadesHeredadas\(\) \{\s*\n\s*return \[request\.auth\.uid, identidadWeeHeredadaDe\(request\.auth\.uid\)\];/.test(reglas)
+  && /function identidadWeeHeredadaDe\(uid\) \{\s*\n\s*return 'hidi_' \+ uid;/.test(reglas));
 check('58c) participo si alguna de las dos está en la relación', /resource\.data\.users\.hasAny\(misIdentidades\(\)\)/.test(bloque));
 
 /*
@@ -396,8 +494,8 @@ check('95) objetivo táctil sin scale() en las filas', /minHeight: 64,/.test(pan
 console.log('\n── J) Lo que este bloque NO ha tocado ──');
 // ═════════════════════════════════════════════════════════════════════════════
 
-check('96) followsService sigue en su sitio', read('services/followsService.ts').includes("collection(db, 'follows')"));
-check('97) useFollow también', read('hooks/useFollow.ts').includes('followsService'));
+check('96) el seguir antiguo (followsService) se retiró como código muerto', !existe('services/followsService.ts'));
+check('97) useFollow también, y nadie en el cliente los importa', !existe('hooks/useFollow.ts') && importanElSeguirAntiguo().length === 0, importanElSeguirAntiguo().join(' '));
 check('98) el perfil ajeno ya usa ËContact, no el sistema antiguo', /useEContact/.test(read('screens/UserProfileScreen.tsx')) && !/useFollow/.test(sinComentarios(read('screens/UserProfileScreen.tsx'))));
 check('99) businessFollows intacto', /match \/businessFollows\/\{followId\}/.test(reglas));
 /* Siguen en pie: lo que se fue es la identidad Biz, no el seguir. */
@@ -751,7 +849,8 @@ check('174) ni siguiendo', !/user\.following/.test(codigoBuscar));
  * habría dado por buenos unos datos que son de otro sistema.
  */
 check('175) ni convierte el contador histórico en ËContacts', !/ËContact/.test(codigoBuscar));
-check('176) sigue mostrando lo que sí es suyo: sus publicaciones', /publicaciones/.test(buscar));
+/* El contador de publicaciones pasa por su clave (common.postsCount) desde que entró el japonés. */
+check('176) sigue mostrando lo que sí es suyo: sus publicaciones', /common\.postsCount/.test(sinComentarios(buscar)));
 check('177) y la búsqueda ya no ordena a las personas por seguidores', !/\(b\.followers \|\| 0\) - \(a\.followers \|\| 0\)/.test(read('services/firestoreService.ts')));
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -820,14 +919,15 @@ check('197) y las históricas se siguen mostrando',
 const avisosFn = read('functions/src/social/avisos.ts');
 check('198) el push del servidor también los conoce', /econtact_request:/.test(avisosFn) && /econtact_accepted:/.test(avisosFn)
   && /from '\.\/social\/avisos'/.test(indiceFn));
-check('199) sin borrar el mensaje histórico', /follow: \(nombre\) =>/.test(avisosFn));
+/* El aviso de «te sigue» sigue entero; ahora sus palabras viven en el diccionario (`avisos.seguidor*`), en cada idioma. */
+check('199) sin borrar el mensaje histórico', /follow: \['seguidorTitulo', 'seguidorCuerpo'\]/.test(avisosFn));
 
 // ═════════════════════════════════════════════════════════════════════════════
 console.log('\n── S) Lo antiguo sigue en pie, pero ya no alimenta nada ──');
 // ═════════════════════════════════════════════════════════════════════════════
 
-check('200) followsService sigue existiendo', read('services/followsService.ts').includes("collection(db, 'follows')"));
-check('201) useFollow también', read('hooks/useFollow.ts').includes('followsService'));
+check('200) el seguir antiguo ya no está: ni followsService', !existe('services/followsService.ts'));
+check('201) ni useFollow, ni un import suyo en el cliente', !existe('hooks/useFollow.ts') && importanElSeguirAntiguo().length === 0, importanElSeguirAntiguo().join(' '));
 /*
  * Y no lo usa nadie de la experiencia social de personas. Es la comprobación
  * que importa: no basta con que ËContact exista, tiene que ser el único.
@@ -840,7 +940,8 @@ check('201) useFollow también', read('hooks/useFollow.ts').includes('followsSer
 check('203) las reglas de follows siguen en pie, ya sin la identidad Biz',
   /match \/follows\/\{followId\}/.test(reglas) && !/followerId\.matches\('biz_/.test(reglas));
 check('204) businessFollows intacto', /match \/businessFollows\/\{followId\}[\s\S]{0,200}request\.resource\.data\.userId == request\.auth\.uid/.test(reglas));
-check('205) y el perfil de negocio sigue con su propio seguir', /isFollowing \? 'Siguiendo' : 'Seguir'/.test(read('screens/WeeBizProfileScreen.tsx')));
+/* Sus rótulos pasaron por i18n al entrar el japonés: weebiz.following / weebiz.follow. */
+check('205) y el perfil de negocio sigue con su propio seguir', /isFollowing \? t\('weebiz\.following'\) : t\('weebiz\.follow'\)/.test(read('screens/WeeBizProfileScreen.tsx')));
 check('206) la píldora ËContact del compositor ya está viva, y sigue sin tocar relaciones', /setShowEContacts/.test(read('screens/CreateScreen.tsx')) && !/econtactService/.test(sinComentarios(read('screens/CreateScreen.tsx'))));
 check('207) ËContact no gasta Credits ni llama a IA', !/spendCredits|gemini|provider/i.test(codigoPantalla + sinComentarios(read('hooks/useEContact.ts'))));
 check('208) sin índices nuevos', !/econtact/i.test(read('firestore.indexes.json')));
@@ -1179,7 +1280,7 @@ check('285) las reglas dejan borrar solo a quien participa con UNA DE SUS identi
   check('290) y crearlo también',
     /t\('menu\.createWeeProfile'\)/.test(read('components/DrawerMenu.tsx'))
     && /createWeeProfile: 'Crear mi perfil Weë'/.test(read('i18n/textos/es/menu.ts')));
-  check('291) la pantalla de crearlo ya no se llama Hidi', read('screens/HidiCreationScreen.tsx') === '' && read('screens/WeeProfileCreationScreen.tsx').length > 0);
+  check('291) la pantalla de crearlo ya no se llama Hidi', !existe('screens/HidiCreationScreen.tsx') && read('screens/WeeProfileCreationScreen.tsx').length > 0);
   check('292) ni su ruta', /WeeProfileCreation: undefined;/.test(navegacion) && !/HidiCreation/.test(navegacion));
   check('293) los videos de una comunidad se llaman Weëls', /Weëls/.test(read('screens/CommunityScreen.tsx')) && !/>\s*Hids\s*</.test(read('screens/CommunityScreen.tsx')));
 }
@@ -1207,10 +1308,10 @@ check('300) no hay ninguna migración en el código', !/migrat|migrar|backfill/i
 
 // ─── Follows y businessFollows, intactos ─────────────────────────────────────
 
-check('301) followsService sigue existiendo', read('services/followsService.ts').includes("collection(db, 'follows')"));
+check('301) el seguir antiguo se retiró del cliente (sus datos y sus reglas siguen, 302)', seguirAntiguoRetirado());
 check('302) las reglas de follows siguen aceptando hidi_', /match \/follows\/\{followId\}[\s\S]{0,600}followerId == \("hidi_" \+ request\.auth\.uid\)/.test(reglas));
 check('303) businessFollows no se ha tocado', /match \/businessFollows\/\{followId\}[\s\S]{0,200}request\.resource\.data\.userId == request\.auth\.uid/.test(reglas));
-check('304) y ËContact no ha entrado en ninguno de los dos', !/econtact/i.test(read('services/followsService.ts')) && !/econtact/i.test(read('hooks/useFollow.ts')));
+check('304) y ninguna pieza de ËContact vuelve a traerlo', !RE_IMPORTA_SEGUIR_ANTIGUO.test(read('services/econtactService.ts') + read('hooks/useEContact.ts') + read('screens/EContactScreen.tsx')));
 check('305) ningún negocio entra en econtacts', !/businessFollows/.test(codigoServicio + codigoFuncion));
 
 // ─── Notificaciones: el modelo guarda la identidad, no solo la cuenta ────────
@@ -1387,8 +1488,14 @@ check('351) y pregunta antes de eliminar', /preguntar\(\s*t\('econtact\.removeTi
 
 check('352) una fila enseña con qué cara está esa persona', /etiqueta: nombreDeIdentidad\(id\)/.test(codigoGancho));
 check('353) y la pantalla la pinta', /\{detalle\}/.test(codigoPantalla) && /const detalle = seccion === 'recibidas'/.test(codigoPantalla));
+/*
+ * La cara se pinta en el idioma de la interfaz: `etiqueta` es el nombre interno
+ * en español, y la pantalla dice `composer.profileWee` / `composer.profileReal`,
+ * lo mismo que `SelectorDeEContacts`.
+ */
 check('354) en las recibidas, además, qué está pidiendo',
-  /t\('econtact\.wantsToConnect', \{ lista: etiqueta \}\)/.test(pantallaEC)
+  /t\('econtact\.wantsToConnect', \{ lista: cara \}\)/.test(pantallaEC)
+  && /const cara = t\(tipo === 'wee' \? 'composer\.profileWee' : 'composer\.profileReal'\)/.test(pantallaEC)
   && /quiere conectar contigo/.test(read('i18n/textos/es/econtact.ts')));
 check('355) la etiqueta es "Perfil real" o "Perfil Weë", nunca otra cosa', nombreDeIdentidad(ANA) === 'Perfil real' && nombreDeIdentidad(WEE_ANA) === 'Perfil Weë');
 check('356) la identidad emisora de una recibida es quien la pidió', (() => {
@@ -1436,15 +1543,15 @@ check('364) la pantalla enseña un estado propio para eso',
   /t\('econtact\.noAgenda'\)/.test(pantallaEC) && /noAgenda: 'Este perfil no tiene agenda'/.test(read('i18n/textos/es/econtact.ts')));
 check('365) y no cae en la lista de la cuenta', /if \(!user\) return vacia\('sin-sesion'\);/.test(codigoGancho) && !/return user\.uid;/.test(codigoGancho.slice(codigoGancho.indexOf('perfil-sin-agenda'))));
 check('366) businessFollows no se toca desde aquí', !/businessFollows/.test(codigoPantalla + codigoGancho + codigoServicio));
-check('367) y el perfil de negocio sigue con su propio seguir', /isFollowing \? 'Siguiendo' : 'Seguir'/.test(read('screens/WeeBizProfileScreen.tsx')));
+check('367) y el perfil de negocio sigue con su propio seguir', /isFollowing \? t\('weebiz\.following'\) : t\('weebiz\.follow'\)/.test(read('screens/WeeBizProfileScreen.tsx')));
 
 // ─── P · Nada de follows para estas listas ───────────────────────────────────
 
 check('368) el hook no toca followsService ni useFollow', !/followsService|useFollow/.test(codigoGancho));
 check('369) la pantalla tampoco', !/followsService|useFollow|toggleFollow/.test(codigoPantalla));
 check('370) ni se leen followers/following para el contador', !/followersCount|followingCount/.test(codigoGancho + codigoPantalla + codigoServicio));
-check('371) followsService sigue existiendo, intacto', read('services/followsService.ts').includes("collection(db, 'follows')"));
-check('372) y useFollow también', read('hooks/useFollow.ts').includes('followsService'));
+check('371) el seguir antiguo sigue retirado: ni followsService', !existe('services/followsService.ts'));
+check('372) ni useFollow, ni nadie que los importe', !existe('hooks/useFollow.ts') && importanElSeguirAntiguo().length === 0, importanElSeguirAntiguo().join(' '));
 
 // ─── Q · Aceptar sigue siendo solo la callable ───────────────────────────────
 
@@ -1502,8 +1609,17 @@ console.log('\n── V) "No hay relación" es una respuesta, no un error ──
   const fuenteRechazar = trozo(/ {2}rechazarSolicitud: async \([\s\S]*?\n {2}\},/);
   const fuenteCancelar = trozo(/ {2}cancelarSolicitud: async \([\s\S]*?\n {2}\},/);
   const fuenteEliminar = trozo(/ {2}eliminarContacto: async \([\s\S]*?\n {2}\},/);
+  /*
+   * Los errores que llegan a la pantalla llevan su clave de traducción: la clase viaja con las funciones que la usan.
+   * Vive en el MODELO (también lanza los suyos y no puede importar nada); el servicio la importa de allí.
+   */
+  const fuenteError = (fuenteModelo.match(/export class ErrorDeEContact[\s\S]*?\n\}/) || [])[0];
+  if (!fuenteError) throw new Error('no se pudo extraer ErrorDeEContact del modelo');
+  check('387b) la clase de los errores con clave es la del modelo, y el servicio no tiene otra',
+    /import \{[^}]*\bErrorDeEContact\b[^}]*\} from '\.\.\/utils\/econtactModel'/.test(servicio) && !/class ErrorDeEContact/.test(servicio));
 
   const moduloTs = `
+${fuenteError}
 export const fabricarLeerDoc = (getDoc, refDe) => {
 ${fuenteLeerDoc}
   return leerDoc;
@@ -1644,6 +1760,16 @@ ${fuenteEliminar}
     let mensaje = '';
     try { await s.rechazarSolicitud(BETO, ANA); } catch (e) { mensaje = e.message; }
     check('404) con una identidad que no es tuya, se para antes de leer', mensaje === 'Ese perfil no es tuyo.', mensaje);
+  }
+  /* Y lo que la pantalla enseña sale de la clave, en el idioma de quien la usa. */
+  {
+    const leerDoc = real.fabricarLeerDoc(async () => { throw denegado(); }, refFalsa);
+    const s = real.fabricarAcciones(dependencias(leerDoc));
+    const claveDe = async (fn) => { try { await fn(); return '(no lanzó)'; } catch (e) { return e?.clave || ''; } };
+    check('404b) los tres errores llevan su clave de traducción',
+      (await claveDe(() => s.rechazarSolicitud(ANA, BETO))) === 'econtact.errNoRequestToReject'
+      && (await claveDe(() => s.cancelarSolicitud(ANA, BETO))) === 'econtact.errNoPendingRequest'
+      && (await claveDe(() => s.eliminarContacto(ANA, BETO))) === 'econtact.errNotConnected');
   }
 
   // ─── C y G · Las reglas no se han tocado ──────────────────────────────────

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Platform, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,8 +22,7 @@ import { Chip } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { useWallet } from '../hooks/useWallet';
 import { scale } from '../utils/scale';
-
-const isWeb = Platform.OS === 'web';
+import { notify } from '../utils/notify';
 
 /*
  * El saludo vive en el diccionario, no aquí: una constante de módulo se evalúa
@@ -193,11 +192,6 @@ const BrainChatScreen: React.FC = () => {
    */
   const enBlanco = bubbles.length === 0;
 
-  const notify = (title: string, message: string) => {
-    if (isWeb) window.alert(`${title}\n\n${message}`);
-    else Alert.alert(title, message);
-  };
-
   const requireLogin = () => {
     if (chat.user) return true;
     navigation.navigate('Login');
@@ -342,7 +336,7 @@ const BrainChatScreen: React.FC = () => {
    */
   const compositor = (
     <View style={styles.compositor}>
-      {attachment && (
+      {!!attachment && (
         <View style={styles.attachmentRow}>
           <Image source={{ uri: attachment }} style={styles.attachmentImage} contentFit="cover" />
           <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>{t('weeai.photoAttached')}</Text>
@@ -415,7 +409,7 @@ const BrainChatScreen: React.FC = () => {
                   {t('brain.blockLeft', { restantes: chat.bloque.restantes, total: chat.bloque.total })}
                 </Text>
               )}
-              {chat.quote.usd > 0 ? ' · ' + t('weeai.approxUsd', { usd: chat.quote.usd < 0.01 ? '<0.01' : chat.quote.usd.toFixed(2) }) : ''}
+              {chat.quote.usd > 0 ? ' · ' + t('weeai.approxUsd', { usd: chat.quote.usd < 0.01 ? '<' + formato.numero(0.01, { minimumFractionDigits: 2 }) : formato.numero(chat.quote.usd, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }) : ''}
               {typeof wallet.balance === 'number' ? ' · ' + t('weeai.creditsLeft', { saldo: formato.numero(wallet.balance) }) : ''}
             </Text>
           )}
@@ -552,7 +546,7 @@ const BrainChatScreen: React.FC = () => {
             </View>
           )}
 
-          {chat.error && (
+          {!!chat.error && (
             <View style={[styles.bubbleRow, styles.bubbleRowWee]}>
               <View style={styles.avatar}>
                 <Image source={CEREBRO_DE_WEE} style={styles.avatarDibujo} contentFit="contain" transition={0} accessible={false} />

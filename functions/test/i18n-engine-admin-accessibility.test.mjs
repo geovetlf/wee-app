@@ -236,7 +236,8 @@ console.log('\n── D · Las claves: completas, sin duplicar, sin paralelos �
   check('20) sin traductores propios ni ternarios de idioma',
     !/i18next|react-intl|idioma === 'en'|locale === 'en'/.test(MOTOR + PERFIL)
     && /import \{ useT \} from '\.\.\/contexts\/IdiomaContext';/.test(leer('screens/EngineAdminScreen.tsx'))
-    && /import \{ useT \} from '\.\.\/contexts\/IdiomaContext';/.test(leer('screens/UserProfileScreen.tsx')));
+    /* El perfil ajeno pide también `formato` (la fecha de «Se unió en»): useIdioma, del mismo proveedor. */
+    && /import \{ (useT|useIdioma) \} from '\.\.\/contexts\/IdiomaContext';/.test(leer('screens/UserProfileScreen.tsx')));
   check('20) y el módulo está registrado en los dos índices',
     /import \{ engine \} from '\.\/engine';/.test(leer('i18n/textos/es/index.ts'))
     && /import \{ engine \} from '\.\/engine';/.test(leer('i18n/textos/en/index.ts'))

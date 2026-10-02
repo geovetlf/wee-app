@@ -16,6 +16,8 @@ export const design = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: '¿Qué quieres diseñar hoy?',
+  /* Aquí los ajustes no cambian con lo escrito: siempre se diseña algo que se ve. */
+  settingsHint: 'Cómo quieres que se vea',
 
   /* ── Explora ──────────────────────────────────────────────────────────── */
   exploreTitle: 'Explora',
@@ -97,4 +99,8 @@ export const design = {
   kindArchitecture: 'Arquitectura',
   kindBoat: 'Barco',
   kindFurniture: 'Mobiliario',
+  sampleLivingRoom: 'Salón luminoso',
+  samplePineHouse: 'Casa entre pinos',
+  sampleYacht: 'Yate de 15 metros',
+  sampleArmchair: 'Butaca de madera',
 };

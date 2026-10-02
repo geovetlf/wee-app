@@ -24,7 +24,8 @@ export const help: typeof import('../es/help').help = {
   q2: 'Was ist der Unterschied zwischen Realem Profil und Weë Profil?',
   a2: 'Dein Reales Profil ist deine gewohnte Identität, und die App ist weiß. Dein Weë Profil ist deine Identität zum Erschaffen mit KI: ein eigener Avatar und ein eigener Name für deine Kreationen, und damit wird die App dunkel, damit du immer weißt, als wer du gerade unterwegs bist. Du wechselst zwischen beiden über das Menü ☰ oder den Knopf in der Kopfzeile.',
   q3: 'Wie funktioniert Weë AI?',
-  a3: 'Sag Weë mit deinen eigenen Worten, was du erreichen willst. Weë stellt dir ein paar einfache Fragen (du kannst immer "Ich weiß nicht" antworten), bereitet einen Plan vor und erstellt das Ergebnis. Du wählst das Ergebnis; Weë wählt die KI. Es gibt zehn Spezialisten: Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business und Brain.',
+  a3_one: 'Sag Weë mit deinen eigenen Worten, was du erreichen willst. Weë stellt dir ein paar einfache Fragen (du kannst immer "Ich weiß nicht" antworten), bereitet einen Plan vor und erstellt das Ergebnis. Du wählst das Ergebnis; Weë wählt die KI. Weë AI hat {{contador}} Spezialisten: {{lista}}.',
+  a3_other: 'Sag Weë mit deinen eigenen Worten, was du erreichen willst. Weë stellt dir ein paar einfache Fragen (du kannst immer "Ich weiß nicht" antworten), bereitet einen Plan vor und erstellt das Ergebnis. Du wählst das Ergebnis; Weë wählt die KI. Weë AI hat {{contador}} Spezialisten: {{lista}}.',
   q4: 'Was sind Credits?',
   a4: 'Jede Kreation mit Weë AI kostet Credits. Vor dem Erstellen siehst du, was es kostet, und wenn etwas schiefgeht, bekommst du sie zurück. Während wir Weë AI bauen, sind die Preise Testpreise und Aufladungen kosten nichts: Die endgültigen Preise kommen mit den echten KIs.',
   q5: 'Wofür sind Projekte da?',
@@ -37,4 +38,7 @@ export const help: typeof import('../es/help').help = {
   a8: 'Das ist der Chat von Weë: private Unterhaltungen mit anderen Menschen aus der Community, mit Text, Fotos und Sprachnachrichten.',
   q9: 'Was ist "So ist es entstanden"?',
   a9: 'Beim Veröffentlichen kannst du erzählen, welche Werkzeuge du benutzt hast, den Prompt und den Ablauf. So lernen andere von dir und du von ihnen, mit einem einzigen Tippen auf "Prompt kopieren".',
+  heroTitle: 'Wie können wir dir helfen?',
+  legalVisibility: 'Was du postest, ist für die Community sichtbar; was du in Weë AI erstellst, bleibt privat, bis du dich entscheidest, es zu veröffentlichen. Du kannst deine Beiträge und Projekte jederzeit löschen.',
+  askPrefill: 'Eine Frage an Weë: ',
 };

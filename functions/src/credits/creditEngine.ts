@@ -1,6 +1,6 @@
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { CreditService, getCreditCost, loadCostOverrides, SERVICE_LABEL, WELCOME_CREDITS } from './creditCosts';
-import { assertAmount, assertLimit, assertRequestId, assertService, assertUserId, cleanText, CreditError } from './creditValidation';
+import { assertAmount, assertFingerprint, assertLimit, assertRequestId, assertService, assertUserId, cleanText, CreditError } from './creditValidation';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from '../social/econtact';
 import {
   adjustmentTransactionId,
@@ -90,6 +90,14 @@ export interface SpendInput {
   source: string;
   generationId?: string;
   meta?: Record<string, unknown>;
+  /**
+   * LA HUELLA DE LA OPERACIÓN. Solo código de servidor, y solo quien sabe
+   * exactamente qué se pide —`generateVideo`: el vídeo pedido—. Se guarda con la
+   * reserva, y entonces un `requestId` repetido solo es la MISMA operación si
+   * trae la misma huella y el mismo importe. Sin huella, la identidad es la
+   * cuenta y el servicio.
+   */
+  fingerprint?: string;
 }
 
 export interface SpendResult {
@@ -207,13 +215,33 @@ export function createCreditEngine(deps: CreditEngineDeps) {
   const esElPerfilDeLaCuenta = (userId: string, account: CreditDocSnap): boolean =>
     cuentaDeIdentidad(userId, (account.data() || {}) as PerfilDeIdentidad) === userId;
 
+  /*
+   * QUÉ PERFIL GUARDA EL SALDO CUANDO HAY MÁS DE UNO (revisión post-auditoría 2026-10-01,
+   * money/remigracion-por-segundo-perfil).
+   *
+   * Una cuenta puede tener más de un Perfil Real: en producción hay cuentas así
+   * (utils/perfilCanonico.ts), y las reglas dejan crear `users/<uid>` aunque ya
+   * exista uno con id automático, porque no pueden consultar. Firestore devuelve
+   * la consulta por `uid` ordenada por id de documento; quedarse con «el primero»
+   * podía saltar a un perfil vacío y dejar el saldo de verdad inalcanzable (y
+   * `ensureAccount` volvía a migrar la billetera antigua). El saldo vive en el
+   * perfil que YA está inicializado: ese manda. Si ninguno lo está, el primero,
+   * como siempre; si varios lo están, el primero de ellos, como siempre.
+   */
+  const PERFILES_POR_CUENTA = 10;
+  const perfilDelSaldo = (userId: string, docs: CreditDocSnap[]): CreditDocSnap | undefined => {
+    const suyos = docs.filter((d) => esElPerfilDeLaCuenta(userId, d));
+    return suyos.find((d) => typeof (d.data() || {}).creditsBalance === 'number') ?? suyos[0];
+  };
+
   /** Perfil real de la persona (uid == auth uid). Los Credits son por cuenta, no por identidad. */
   const findAccount = async (tx: CreditTx, userId: string): Promise<CreditDocSnap> => {
-    const snap = await tx.get(users().where('uid', '==', userId).limit(1));
-    if (snap.empty || !esElPerfilDeLaCuenta(userId, snap.docs[0])) {
+    const snap = await tx.get(users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA));
+    const perfil = perfilDelSaldo(userId, snap.docs);
+    if (!perfil) {
       throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
     }
-    return snap.docs[0];
+    return perfil;
   };
 
   const balanceOf = (account: CreditDocSnap): AccountBalance => {
@@ -249,7 +277,12 @@ export function createCreditEngine(deps: CreditEngineDeps) {
       const account = await findAccount(tx, userId);
       const data = account.data() || {};
       const initialized = typeof data.creditsBalance === 'number';
-      const legacy = initialized ? null : await tx.get(db().collection('wallets').doc(userId));
+      /*
+       * La billetera antigua se migra UNA vez por cuenta, no una vez por perfil: si
+       * ya hay un `migration_<uid>`, no se vuelve a acreditar (antes se sobrescribía).
+       */
+      const yaMigrada = initialized ? true : (await tx.get(transactions().doc(migrationTransactionId(userId)))).exists;
+      const legacy = initialized || yaMigrada ? null : await tx.get(db().collection('wallets').doc(userId));
       const welcomeDoc = welcome > 0 ? await tx.get(transactions().doc(welcomeTransactionId(userId))) : null;
 
       let balance = num(data.creditsBalance);
@@ -316,16 +349,59 @@ export function createCreditEngine(deps: CreditEngineDeps) {
 
   const getBalance = async (rawUserId: string): Promise<AccountBalance> => {
     const userId = assertUserId(rawUserId);
-    const snap = await users().where('uid', '==', userId).limit(1).get();
-    if (snap.empty || !esElPerfilDeLaCuenta(userId, snap.docs[0])) {
+    const snap = await users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA).get();
+    const perfil = perfilDelSaldo(userId, snap.docs);
+    if (!perfil) {
       throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
     }
-    const data = snap.docs[0].data() || {};
+    const data = perfil.data() || {};
     if (typeof data.creditsBalance !== 'number') {
       const created = await ensureAccount(userId);
       return { userId, balance: created.balance, lifetimeEarned: created.lifetimeEarned, lifetimeSpent: created.lifetimeSpent };
     }
-    return balanceOf(snap.docs[0]);
+    return balanceOf(perfil);
+  };
+
+  /**
+   * EL SALDO, SOLO LEYENDO (cierre post-auditoría 2026-10-01, money/admin-balance-con-efecto).
+   *
+   * `getBalance` es la puerta de la app: si la cuenta no está inicializada, la inicializa
+   * (`ensureAccount`: migra la billetera antigua y da la bienvenida). Eso está bien cuando
+   * es la persona quien abre su saldo, y mal cuando es una CONSULTA de administración: mirar
+   * el saldo de alguien no puede regalarle la bienvenida ni migrarle nada. Esta lectura no
+   * escribe nunca: una cuenta sin inicializar se contesta con 0 y `initialized: false`.
+   */
+  const readBalance = async (rawUserId: string): Promise<AccountBalance & { initialized: boolean }> => {
+    const userId = assertUserId(rawUserId);
+    const snap = await users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA).get();
+    const perfil = perfilDelSaldo(userId, snap.docs);
+    if (!perfil) {
+      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
+    }
+    if (typeof (perfil.data() || {}).creditsBalance !== 'number') {
+      return { userId, balance: 0, lifetimeEarned: 0, lifetimeSpent: 0, initialized: false };
+    }
+    return { ...balanceOf(perfil), initialized: true };
+  };
+
+  /**
+   * ¿ES LA RESERVA GUARDADA LA DE ESTA OPERACIÓN?
+   *
+   * El mismo servicio, siempre. Y si alguno de los dos lados trae huella, la
+   * misma huella y el mismo importe autorizado. Es la regla que el Core ya
+   * escribió para la misma clave con otro contenido —`idempotency_conflict` en
+   * el Financial Core y en el Job Engine—, aplicada al motor que cobra de verdad.
+   *
+   * El importe solo cuenta con huella, y a propósito: sin ella, quien cobra no
+   * dice qué operación es, y hay puertas —Weë Brain— donde el precio del mismo
+   * mensaje puede moverse de un intento a otro porque el historial ya lo incluye.
+   */
+  const esLaMismaOperacion = (guardada: Record<string, unknown>, service: CreditService, amount: number, fingerprint: string | undefined): boolean => {
+    if (guardada.service !== service) return false;
+    const suya = typeof guardada.fingerprint === 'string' ? guardada.fingerprint : undefined;
+    if (suya === undefined && fingerprint === undefined) return true;
+    const autorizado = num(guardada.authorizedAmount) || Math.abs(num(guardada.amount));
+    return suya === fingerprint && autorizado === amount;
   };
 
   // ── Gastar (REQUEST → PENDING → AUTHORIZED) ─────────────────────────────
@@ -333,6 +409,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
     const userId = assertUserId(input.userId);
     const service = assertService(input.service);
     const requestId = assertRequestId(input.requestId);
+    const fingerprint = input.fingerprint !== undefined ? assertFingerprint(input.fingerprint) : undefined;
     await loadCosts();
     const amount = input.amount !== undefined ? assertAmount(input.amount) : assertAmount(getCreditCost(service));
     const reason = cleanText(input.reason, 140, SERVICE_LABEL[service]);
@@ -348,6 +425,18 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         if (data.status === 'REFUNDED' || data.status === 'FAILED') {
           // Un requestId reembolsado no se reutiliza: evita generar gratis con una operación ya devuelta
           throw new CreditError('ALREADY_REFUNDED', 'Esta operación ya fue reembolsada; inicia una nueva', { requestId, status: data.status });
+        }
+        /*
+         * LA MISMA CLAVE TIENE QUE SER LA MISMA OPERACIÓN.
+         *
+         * Antes bastaba con que el `requestId` existiera: una respuesta de Weë
+         * Brain ya cobrada (`brain_<messageId>`, COMPLETED) servía de pase para un
+         * vídeo, porque la reserva decía «ya está pagado» y nadie volvía a cobrar.
+         * Una clave prestada de otra operación no es un reintento: se rechaza sin
+         * tocar nada, ni la reserva de antes ni el saldo.
+         */
+        if (!esLaMismaOperacion(data, service, amount, fingerprint)) {
+          throw new CreditError('INVALID_REQUEST', 'Ese requestId pertenece a otra operación; inicia una nueva', { requestId, reason: 'idempotency_conflict' });
         }
         const creado = data.createdAt;
         const authorizedAt = typeof creado?.toMillis === 'function' ? creado.toMillis()
@@ -388,6 +477,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         statusHistory: ['PENDING', 'AUTHORIZED'],
         requestId,
         authorizedAmount: amount,
+        fingerprint,
         meta: strip(input.meta),
       });
       tx.update(account.ref, { creditsBalance: balanceAfter, creditsLifetimeSpent: current.lifetimeSpent + amount, updatedAt: now() });
@@ -559,7 +649,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
     return getCreditCost(assertService(service));
   };
 
-  return { ensureAccount, getBalance, spendCredits, completeCredits, refundCredits, grantCredits, getCreditHistory, getCreditCost: getCost, CREDIT_FIELDS };
+  return { ensureAccount, getBalance, readBalance, spendCredits, completeCredits, refundCredits, grantCredits, getCreditHistory, getCreditCost: getCost, CREDIT_FIELDS };
 }
 
 export type CreditEngine = ReturnType<typeof createCreditEngine>;

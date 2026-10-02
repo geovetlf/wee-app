@@ -1123,7 +1123,7 @@ console.log('\n── R4 · Fraude y riesgo — ARQUITECTURA LISTA, POLÍTICA NO
 
 console.log('\n── R5 · Cuenta, billetera y entidad — SEAM DE IDENTITY ──');
 {
-  const c = { ...cuenta(), accountNumber: '0018439', credits: 430 };
+  const c = { ...cuenta(), accountNumber: '008432175', credits: 430 };
   const w = core.billeteraDe(c);
 
   check('195) la cuenta y la billetera comparten número y NO son el mismo objeto',
@@ -1132,31 +1132,37 @@ console.log('\n── R5 · Cuenta, billetera y entidad — SEAM DE IDENTITY ─
     'mismo referente, dos dominios: de quién es el dinero vs dónde está el saldo');
   check('196) la billetera se DEDUCE de la cuenta: no hay un segundo saldo que sincronizar',
     w.credits === c.credits && !/walletCredits|saldoDeBilletera|syncWallet/i.test(codigoCore));
-  check('197) el número es TEXTO, con sus ceros delante', (() => {
-    const n = '0018439';
-    return core.esNumeroDeCuenta(n) && n.length === 7 && String(Number(n)) !== n;
+  check('197) el número es TEXTO de nueve dígitos, con sus ceros delante', (() => {
+    const n = '008432175';
+    return core.esNumeroDeCuentaCanonico(n) && n.length === 9 && String(Number(n)) !== n;
   })(), 'meterlo en un número le quita los ceros y lo convierte en otra cosa');
   check('198) y NO autoriza nada: no aparece en ninguna comprobación de propiedad',
     !/accountNumber ?===|walletNumber ?===/.test(sinComentarios(leer(`${DIR}/account.ts`))),
     'un identificador legible no es una contraseña');
   check('199) un número con forma rara no vale',
-    !core.esNumeroDeCuenta('18439abc') && !core.esNumeroDeCuenta('') && !core.esNumeroDeCuenta(18439));
+    !core.esNumeroDeCuentaCanonico('18439abc') && !core.esNumeroDeCuentaCanonico('')
+    && !core.esNumeroDeCuentaCanonico(18439) && !core.esNumeroDeCuentaCanonico('0018439'));
 
   /* UNA cuenta, UNA billetera. Ni por perfil, ni por Page, ni por producto. */
   check('200) NO existe billetera por perfil, por Page ni por producto',
     !/walletFor|billeteraDe(Perfil|Page|App)|realWallet|weeWallet|pageWallet/i.test(codigoCore + codigoComp));
   check('201) la entidad que actúa NO crea una cuenta financiera nueva', (() => {
+    const real = 'ent_0123456789abcdefghjkmnpqrs';
+    const wee = 'ent_abcdefghjkmnpqrstvwxyz0123';
+    const page = 'ent_9876543210zyxwvtsrqpnmkjhg';
     const desdeReal = motorCredits.mover(c, mov({ type: 'usage', amount: 20, idempotencyKey: 'k-ent-real',
-      attribution: { entityId: '00184391', entityType: 'REAL_PROFILE' } }));
+      attribution: { entityId: real, entityType: 'REAL_PROFILE' } }));
     const desdeWee = motorCredits.mover(c, mov({ type: 'usage', amount: 20, idempotencyKey: 'k-ent-wee',
-      attribution: { entityId: '00184392', entityType: 'WEE_PROFILE' } }));
+      attribution: { entityId: wee, entityType: 'WEE_PROFILE' } }));
     const desdePage = motorCredits.mover(c, mov({ type: 'usage', amount: 20, idempotencyKey: 'k-ent-page',
-      attribution: { entityId: '00184393', entityType: 'PAGE' } }));
+      attribution: { entityId: page, entityType: 'PAGE' } }));
     /* Las tres descuentan de la MISMA cuenta y dejan el mismo saldo. */
     return [desdeReal, desdeWee, desdePage].every((d) => d.status === 'applied'
       && d.account.accountId === 'user-0001' && d.account.credits === 410)
       && desdeReal.entry.attribution.entityType === 'REAL_PROFILE'
-      && desdePage.entry.attribution.entityId === '00184393';
+      && desdePage.entry.attribution.entityId === page
+      /* Y los tres identificadores son opacos: ninguno lleva dentro el número. */
+      && [real, wee, page].every((id) => core.esIdDeEntidad(id) && !id.includes('008432175'));
   })(), 'la entidad es el actor; la cuenta es quien posee el dinero');
 
   /* La convención de secuencia, y por qué el tipo se guarda. */
@@ -1164,33 +1170,49 @@ console.log('\n── R5 · Cuenta, billetera y entidad — SEAM DE IDENTITY ─
     core.tipoPorSecuencia(1) === 'REAL_PROFILE' && core.tipoPorSecuencia(2) === 'WEE_PROFILE');
   check('203) y de 3 en adelante son Pages',
     [3, 4, 5, 9, 10, 27].every((n) => core.tipoPorSecuencia(n) === 'PAGE'));
-  check('204) la secuencia 10 no rompe el identificador que se enseña',
-    core.identificadorDeEntidad('0018439', 10) === '001843910'
-    && core.identificadorDeEntidad('0018439', 1) === '00184391');
+  /*
+   * LA SECUENCIA 10 YA NO PUEDE ROMPER NADA. En la Fase 10 el identificador de
+   * una entidad era el número de la cuenta pegado a su secuencia, y con la
+   * décima entidad dejaba de ser legible: `0018439`+`10` no se distingue de
+   * `0018439`+`1` seguido de un cero. En la 11.x-5A el identificador se sortea
+   * y no lleva dentro ni el número ni la secuencia, así que la ambigüedad no
+   * existe: no hay nada que interpretar.
+   */
+  check('204) el identificador de una entidad no se forma con el número de la cuenta',
+    core.identificadorDeEntidad === undefined
+    && !/\$\{accountNumber\}\$\{entitySequence\}/.test(leer('functions/src/core/identity.ts'))
+    && core.esIdDeEntidad(core.idDeEntidadDesdeBytes(new Uint8Array(26).fill(7))));
   /*
    * El vocabulario de entidad SE MUDÓ a `core/identity.ts` en la Fase 10. Nació
    * aquí porque el dinero fue lo primero que necesitó distinguir cuenta de
    * entidad, y el propio archivo decía que su sitio era «la futura capa de
    * Identity». La comprobación es la misma; lo que cambia es dónde mira.
    */
-  check('205) EL TIPO NO SE DEDUCE DEL ÚLTIMO CARÁCTER, y esa es la razón de guardarlo', (() => {
-    /* `001843910` acaba en 0, y `0018439`+`10` no se distingue de `0018439`+`1`+`0`. */
-    const diez = core.identificadorDeEntidad('0018439', 10);
-    const ultimo = diez.slice(-1);
+  check('205) EL TIPO SE GUARDA, y no se deduce de nada', (() => {
     const identidad = leer('functions/src/core/identity.ts');
-    return ultimo === '0' && core.tipoPorSecuencia(10) === 'PAGE'
+    /*
+     * Dos entidades de la MISMA cuenta y de tipos distintos: sus identificadores
+     * solo dependen de los bytes sorteados, así que ni contienen el número de la
+     * cuenta, ni la secuencia, ni se parecen entre sí. De ahí no sale el tipo.
+     */
+    const uno = core.idDeEntidadDesdeBytes(new Uint8Array(26).fill(31));
+    const otro = core.idDeEntidadDesdeBytes(new Uint8Array(26).fill(3));
+    return core.tipoPorSecuencia(10) === 'PAGE'
+      && core.esIdDeEntidad(uno) && core.esIdDeEntidad(otro) && uno !== otro
+      && ![uno, otro].some((id) => id.includes('008432175') || id.endsWith('10'))
       && /entityType: EntityType;/.test(identidad)
       && /entitySequence: number;/.test(identidad);
   })());
   check('205b) y tiene UN SOLO dueño: el Financial Core lo importa, no lo redeclara',
     !/export type EntityType|export interface EntityRef/.test(leer(`${DIR}/account.ts`))
-    && /from '\.\.\/identity'/.test(leer(`${DIR}/account.ts`)),
+    && /from '\.\.\/account-identity'/.test(leer(`${DIR}/account.ts`)),
     'dos declaraciones del mismo tipo se separan en silencio');
   check('206) y el Core no clasifica entidades leyendo el identificador',
     !/slice\(-1\)|charAt\(.*length ?- ?1|endsWith\(/.test(sinComentarios(leer(`${DIR}/account.ts`))));
-  check('207) una secuencia imposible no produce identificador',
-    core.tipoPorSecuencia(0) === undefined && core.identificadorDeEntidad('0018439', 0) === undefined
-    && core.identificadorDeEntidad('abc', 1) === undefined);
+  check('207) una secuencia imposible no produce tipo, y un identificador no se inventa',
+    core.tipoPorSecuencia(0) === undefined && core.tipoPorSecuencia(-1) === undefined
+    && core.idDeEntidadDesdeBytes([1, 2, 3]) === undefined
+    && core.idDeEntidadDesdeBytes('008432175') === undefined);
 
   /* Separación de dominios: F9 no construye Identity. */
   check('208) esta fase NO crea entidades, ni las resuelve, ni genera identificadores',

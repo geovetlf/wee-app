@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ALTO_DE_LA_BARRA_INFERIOR } from '../utils/medidaDelMedio';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
@@ -34,7 +34,7 @@ import { DocumentSnapshot } from 'firebase/firestore';
 import PostCard from '../components/PostCard';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import WeelsRow from '../components/WeelsRow';
@@ -49,7 +49,7 @@ const isWeb = Platform.OS === 'web';
 type LandingScreenNavigationProp = StackNavigationProp<any>;
 
 const LandingScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile } = useUserProfile();
@@ -326,7 +326,7 @@ const LandingScreen: React.FC = () => {
     const tabNavigation = navigation.getParent();
     const mainNavigation = tabNavigation?.getParent();
     if (mainNavigation) {
-      (mainNavigation as any).navigate('PostDetail', { post });
+      (mainNavigation as any).navigate('PostDetail', { postId: post.id, post });
     }
   }, [navigation]);
 
@@ -477,8 +477,9 @@ const LandingScreen: React.FC = () => {
                 {post.content}
               </Text>
               <View style={styles.trendingStats}>
+                {/* El plural lo elige el número; la cifra se escribe como siempre, con formatNumber. */}
                 <Text style={[styles.trendingStatText, { color: theme.colors.textSecondary }]}>
-                  {formatNumber(post.agreementCount + post.disagreementCount)} Respuestas
+                  {t('home.answersCount', { contador: total || 0, cantidad: formatNumber(total, locale) })}
                 </Text>
                 <Text style={[styles.trendingDot, { color: theme.colors.textSecondary }]}>•</Text>
                 <Text style={[styles.trendingStatText, { color: theme.colors.accent }]}>
@@ -486,7 +487,7 @@ const LandingScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-            {(post.imageUrls?.[0] || post.videoUrl) && (
+            {!!(post.imageUrls?.[0] || post.videoUrl) && (
               <View style={[styles.cardThumb, { backgroundColor: theme.colors.surface }]}>
                 {post.videoUrl ? (
                   <Video
@@ -579,15 +580,15 @@ const LandingScreen: React.FC = () => {
             </Text>
             <View style={styles.featuredStats}>
               <Text style={[styles.featuredStatText, { color: theme.colors.textSecondary }]}>
-                {formatNumber(post.agreementCount)} Likes
+                {t('home.likesCount', { contador: post.agreementCount || 0, cantidad: formatNumber(post.agreementCount, locale) })}
               </Text>
               <Text style={[styles.featuredDot, { color: theme.colors.textSecondary }]}>•</Text>
               <Text style={[styles.featuredStatText, { color: theme.colors.textSecondary }]}>
-                {formatNumber(post.comments)} Comentarios
+                {t('home.commentsCount', { contador: post.comments || 0, cantidad: formatNumber(post.comments, locale) })}
               </Text>
             </View>
           </View>
-          {(post.imageUrls?.[0] || post.videoUrl) && (
+          {!!(post.imageUrls?.[0] || post.videoUrl) && (
             <View style={[styles.cardThumb, { backgroundColor: theme.colors.surface }]}>
               {post.videoUrl ? (
                 <Video

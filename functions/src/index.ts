@@ -1,7 +1,9 @@
+// PRIMERO: las opciones globales se leen al definir cada función (ver opciones.ts).
+import './opciones';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './social/econtact';
-import { avisoPush, datosDelAviso, nombreVisible, NOMBRE_POR_DEFECTO, resumenDeRespuestaDeExpo } from './social/avisos';
+import { avisoPush, cuerpoDelMensaje, cupoDeAvisos, datosDelAviso, nombreDeRespaldo, nombreVisible, resumenDeRespuestaDeExpo } from './social/avisos';
 
 // Inicializar Firebase Admin solo si no está inicializado
 if (admin.apps.length === 0) {
@@ -15,7 +17,12 @@ const db = admin.firestore();
  *
  * Los documentos de `users` tienen id automático: `users.doc(uid)` apuntaba a
  * un documento que no existe y las notificaciones push se perdían todas en
- * silencio. El id del documento queda como respaldo para lo heredado.
+ * silencio. El id del documento queda como ATAJO, nunca como identidad: desde
+ * la Fase 11.x los perfiles nuevos se crean en `users/<su identificador>`, así
+ * que mirar ahí ahorra una consulta. Lo que decide sigue siendo el campo `uid`,
+ * y por eso el documento encontrado por id tiene que declararlo (Fase 11.x-5A).
+ * Antes bastaba con que el documento existiera, y eso era tratar el id del
+ * documento como si fuera la identidad de una persona.
  */
 type PerfilEncontrado = admin.firestore.DocumentSnapshot | admin.firestore.QueryDocumentSnapshot;
 
@@ -24,7 +31,7 @@ async function perfilDeIdentidad(identidad: unknown): Promise<PerfilEncontrado |
   const porCampo = await db.collection('users').where('uid', '==', identidad).limit(1).get();
   if (!porCampo.empty) return porCampo.docs[0];
   const porId = await db.collection('users').doc(identidad).get();
-  return porId.exists ? porId : null;
+  return porId.exists && porId.data()?.uid === identidad ? porId : null;
 }
 
 /*
@@ -41,11 +48,45 @@ async function cuentaDeLaIdentidad(identidad: unknown): Promise<string | null> {
 /*
  * EL TOKEN DE PUSH VIVE EN `pushTokens/{cuenta}`, no en el perfil público. Lo
  * escribe solo su dueño y desde el cliente no lo lee nadie: lo lee esto.
+ *
+ * Y EN QUÉ IDIOMA LEE ESA CUENTA.
+ *  1 · El que eligió a mano, en su Perfil Real (`users.language`, `components/SincronizarIdioma.tsx`). Manda siempre.
+ *  2 · Si no eligió ninguno, el de la app del aparato que recibe el aviso, que viaja con su token
+ *      (`pushTokens/{cuenta}.locale`, `services/pushNotificationService.ts`). Antes de esto, quien usaba Weë en danés
+ *      porque su teléfono está en danés recibía los avisos en español.
+ *  3 · Sin ninguno de los dos —un token guardado por una app anterior—, null, y el aviso sale en español, como antes.
+ *
+ * El token y el idioma salen de UNA sola lectura de `pushTokens/{cuenta}` (revisión post-auditoría 2026-10-01):
+ * antes se leía dos veces por aviso —una para el token y otra para el locale— y en un mensaje, dos veces por
+ * participante. Sin token no hay a quién avisar y no se lee nada más.
  */
-async function tokenDeLaCuenta(cuenta: string | null): Promise<string | null> {
+async function destinoDelPush(cuenta: string | null): Promise<{ token: string; idioma: string | null } | null> {
   if (!cuenta) return null;
-  const token = (await db.collection('pushTokens').doc(cuenta).get()).data()?.token;
-  return typeof token === 'string' && token ? token : null;
+  const datos = (await db.collection('pushTokens').doc(cuenta).get()).data();
+  const token = typeof datos?.token === 'string' && datos.token ? datos.token : null;
+  if (!token) return null;
+  const elegido = (await perfilDeIdentidad(cuenta))?.data()?.language;
+  if (typeof elegido === 'string' && elegido) return { token, idioma: elegido };
+  return { token, idioma: typeof datos?.locale === 'string' && datos.locale ? datos.locale : null };
+}
+
+/*
+ * EL CUPO DE AVISOS DE UNA CUENTA (`cupoDeAvisos`, social/avisos.ts): una transacción sobre `pushLimits/{cuenta}`,
+ * colección que ningún cliente puede leer ni escribir (no tiene regla). Si no se puede comprobar, no suena: un aviso
+ * de menos es mejor que un teléfono inundado.
+ */
+async function gastarCupoDeAvisos(cuenta: string): Promise<boolean> {
+  try {
+    const ref = db.collection('pushLimits').doc(cuenta);
+    return await db.runTransaction(async (tx) => {
+      const { permitido, estado } = cupoDeAvisos((await tx.get(ref)).data(), Date.now());
+      if (permitido) tx.set(ref, estado);
+      return permitido;
+    });
+  } catch (error) {
+    console.error('Avisos: no se pudo comprobar el cupo', cuenta, error);
+    return false;
+  }
 }
 
 // Re-export avatar generation functions (Gemini only)
@@ -83,6 +124,60 @@ export { burnViewOnce } from './social/weetalk';
  * lee de `users` y las reglas no pueden consultar.
  */
 export { requestEContact, acceptEContact } from './social/econtact';
+
+/*
+ * IDENTITY: el nacimiento de las cuentas NUEVAS (Fase 11.x-5A).
+ *
+ * Se dispara al crear un documento de `users` y solo entonces: las cuentas que
+ * ya existen no pasan por aquí, y una cara Weë cuya cuenta no ha nacido no la
+ * hace nacer. Numerar lo que ya existe es la migración, y tiene su propia fase.
+ */
+export { nacimientoDeCuenta } from './identity/nacimiento';
+
+/*
+ * MODERATION (Fase 12-A/B): denunciar de verdad. `reports` está cerrada a los
+ * clientes; la única puerta para crear un reporte es `reportContent`, que pone
+ * la cuenta, la cara, el instante y el estado desde la sesión. `moderationAdmin`
+ * es la costura de la revisión humana, solo para administración
+ * (docs/MODERATION.md).
+ */
+export { reportContent, moderationAdmin } from './moderation';
+export { elements } from './elements/puerta';
+export { shots } from './shots/puerta';
+export { productions } from './productions/puerta';
+
+/*
+ * WEË RUNTIME · LA RED DE SEGURIDAD DEL DINERO (docs/RUNTIME.md § 17).
+ *
+ * Una tarea programada, cada cinco minutos, que hace dos cosas y ninguna más:
+ * le pregunta al proveedor qué fue de las tareas de las que no se sabe nada, y
+ * después cierra el dinero de las que ya tienen desenlace. Nada de lo que
+ * decide está aquí ni está en `settlement/`: vive en `runtime/`, es puro y se
+ * prueba sin levantar nada.
+ *
+ * SE DESPLIEGA ANTES QUE EL PRIMER TRABAJO ASÍNCRONO a propósito: una red se
+ * pone antes de saltar. Mientras no haya ninguno —y hoy no hay— pasa, no
+ * encuentra nada y se va.
+ *
+ * Lo que esta línea NO despliega: ninguna capacidad asíncrona de usuario, el
+ * receptor de avisos de proveedor (`avisoDeProveedor`, que sigue sin
+ * exportarse) y ningún cambio en el vídeo, que sigue por el camino de siempre.
+ */
+export { barridoDeLiquidacion } from './settlement/programado';
+
+/*
+ * WEE MEDIA CLOUD — LA PUERTA DEL CANARY, Y NADA MÁS DE MEDIA CLOUD.
+ *
+ * Es la ÚNICA Function de Media Cloud desplegable, y no es una API: solo
+ * administración (`assertAdmin`), sobre material que ella misma deriva, con una
+ * transformación escrita en el código. Lleva `MEDIA_SECRETS` —separado de
+ * `AI_SECRETS` a propósito—, así que si faltara el secreto de R2 lo único que
+ * no se despliega es esto.
+ *
+ * Media Cloud sigue SIN estar activo para nadie: ni la subida, ni la entrega,
+ * ni el procesado tienen puerta propia. Esta existe para ejecutar UNA prueba.
+ */
+export { mediaCanary } from './media/canary';
 
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 export {
@@ -170,15 +265,23 @@ export const sendPushNotification = onDocumentCreated(
         return null;
       }
 
-      const pushToken = await tokenDeLaCuenta(cuenta);
+      const destino = await destinoDelPush(cuenta);
 
-      if (!pushToken) {
+      if (!destino) {
         console.log('El usuario no tiene push token registrado');
+        return null;
+      }
+      const pushToken = destino.token;
+
+      /* El cupo es de la CUENTA que avisa (sus dos caras comparten uno): pasado, el aviso no suena. */
+      const cuentaQueAvisa = await cuentaDeLaIdentidad(senderId);
+      if (!cuentaQueAvisa || !(await gastarCupoDeAvisos(cuentaQueAvisa))) {
+        console.warn('Aviso sin push: remitente sin cuenta o cupo de avisos agotado');
         return null;
       }
 
       const remitente = await perfilDeIdentidad(senderId);
-      const aviso = avisoPush(type, nombreVisible(remitente?.data()));
+      const aviso = avisoPush(type, nombreVisible(remitente?.data()), destino.idioma);
       if (!aviso) return null;
 
       const data = datosDelAviso(notification, type, event.params.notificationId);
@@ -226,18 +329,22 @@ export const sendMessagePushNotification = onDocumentCreated(
 
       /* El nombre que se enseña es el de la cara que escribió; el token, el de la cuenta que recibe. */
       const senderDoc = await perfilDeIdentidad(senderId);
-      const senderName = nombreVisible(senderDoc?.data()) || NOMBRE_POR_DEFECTO;
+      const senderName = nombreVisible(senderDoc?.data());
 
       for (const participantId of participants) {
         if (participantId === senderId) continue;
 
-        const pushToken = await tokenDeLaCuenta(await cuentaDeLaIdentidad(participantId));
+        const cuenta = await cuentaDeLaIdentidad(participantId);
+        const destino = await destinoDelPush(cuenta);
 
-        if (pushToken) {
+        if (destino) {
+          const pushToken = destino.token;
+          /* En el idioma de quien lo recibe: el respaldo del nombre y lo que la app guarda cuando no hay texto. */
+          const idioma = destino.idioma;
           await sendExpoPush(
             pushToken,
-            senderName,
-            content?.substring(0, 100) || 'Te envió un mensaje',
+            senderName || nombreDeRespaldo(idioma),
+            cuerpoDelMensaje(content, idioma),
             { type: 'message', conversationId, senderId }
           );
         }

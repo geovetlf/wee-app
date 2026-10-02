@@ -57,4 +57,12 @@ export const onboarding: typeof import('../es/onboarding').onboarding = {
   weeCreatedTitle: 'Профиль Weë создан',
   weeCreated: 'Ваша анонимная личность готова. Переключаться между профилями можно в шапке.',
   weeCreateFailed: 'Не удалось создать профиль Weë',
+  birthDay: 'День',
+  birthMonth: 'Месяц',
+  birthYear: 'Год',
+  stepOf: 'Шаг {{paso}} из {{total}}',
+  customiseProfileHint: 'Выберите аватар и добавьте описание (необязательно)',
+  bioLabel: 'Описание (необязательно)',
+  weeNameCounter: '{{usados}}/{{maximo}} — минимум символов: {{minimo}}',
+  weeBio: 'О себе (необязательно)',
 };

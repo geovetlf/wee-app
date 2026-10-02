@@ -19,7 +19,8 @@ export const help: typeof import('../es/help').help = {
   q2: 'What is the difference between the Real profile and the Weë profile?',
   a2: 'Your Real profile is your usual identity, and the app looks white. Your Weë profile is your identity for creating with AI: an avatar and a name of their own for publishing what you make, and with it the app turns dark so you always know who you are taking part as. You switch between them from the ☰ menu or the header button.',
   q3: 'How does Weë AI work?',
-  a3: 'Tell Weë what you want to achieve, in your own words. Weë asks a few simple questions (you can always answer "I do not know"), prepares a plan and creates the result. You choose the result; Weë chooses the AI. There are ten specialists: Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business and Brain.',
+  a3_one: 'Tell Weë what you want to achieve, in your own words. Weë asks a few simple questions (you can always answer "I do not know"), prepares a plan and creates the result. You choose the result; Weë chooses the AI. Weë AI has {{contador}} specialist: {{lista}}.',
+  a3_other: 'Tell Weë what you want to achieve, in your own words. Weë asks a few simple questions (you can always answer "I do not know"), prepares a plan and creates the result. You choose the result; Weë chooses the AI. Weë AI has {{contador}} specialists: {{lista}}.',
   q4: 'What are Credits?',
   a4: 'Every creation with Weë AI uses Credits. Before creating you see what it will cost, and if something fails they are refunded. While we build Weë AI the prices are test prices and top-ups cost nothing: the final prices will arrive with the real AIs.',
   q5: 'What are projects for?',
@@ -32,4 +33,7 @@ export const help: typeof import('../es/help').help = {
   a8: 'It is the Weë chat: private conversations with other people in the community, with text, photos and voice notes.',
   q9: 'What is "How I made it"?',
   a9: 'When you post you can tell which tools you used, the prompt and the process. That way other people learn from you, and you from them, with a single tap on "Copy prompt".',
+  heroTitle: 'How can we help?',
+  legalVisibility: 'What you post is visible to the community; what you create in Weë AI stays private until you decide to post it. You can delete your posts and your projects whenever you want.',
+  askPrefill: 'A question for Weë: ',
 };

@@ -1,0 +1,367 @@
+{
+  "version": 1,
+  "nota": "Paquetes de contexto del revisor de Weë (ops/revision/selector.mjs). `zonas`: globs que disparan cada zona. `paquetes`: qué documentos —enteros o por secciones— acompañan a una zona; `secciones` son prefijos del texto del encabezado, sin las almohadillas (\"3. \" casa con \"## 3. El mapa…\" y no con \"## 13. …\"). `opcional: true`: si el documento no existe, el selector avisa y sigue. docs-solo, tests-solo y generados no son globs: los calcula el selector.",
+  "siempre": [
+    {
+      "ruta": "CLAUDE.md"
+    },
+    {
+      "ruta": "docs/DECISIONES-DELIBERADAS.md"
+    },
+    {
+      "ruta": "docs/MAPA-DE-FRONTERAS.md"
+    }
+  ],
+  "zonas": {
+    "seguridad": [
+      "firestore.rules",
+      "storage.rules",
+      "firebase.json",
+      ".firebaserc",
+      "vercel.json",
+      "netlify.toml",
+      "functions/src/secrets.ts",
+      "functions/src/index.ts",
+      "functions/src/opciones.ts",
+      "config/**",
+      ".claude/**",
+      ".github/**",
+      "ops/**",
+      "public/**",
+      "scripts/escaneo-secretos.mjs",
+      "scripts/ci-sin-secretos.mjs",
+      "scripts/solo-desde-el-workflow.mjs",
+      "functions/src/engine/sanitize.ts",
+      "functions/src/engine/webhooks.ts"
+    ],
+    "dinero": [
+      "functions/src/credits/**",
+      "functions/src/payments/**",
+      "functions/src/financial/**",
+      "functions/src/settlement/**",
+      "functions/src/core/financial/**",
+      "functions/src/engine/ledger.ts",
+      "functions/src/engine/pricing.ts",
+      "functions/src/engine/limits.ts",
+      "services/creditsService.ts",
+      "hooks/useWallet.ts",
+      "screens/CreditStoreScreen.tsx",
+      "screens/WalletScreen.tsx",
+      "components/CreditsPill.tsx"
+    ],
+    "arquitectura": [
+      "functions/src/index.ts",
+      "functions/src/core/**",
+      "functions/src/runtime/**",
+      "functions/src/router/**",
+      "functions/src/registry/**",
+      "functions/src/engine/router.ts",
+      "functions/src/engine/registry.ts",
+      "functions/src/engine/gateway.ts",
+      "functions/src/engine/providers/**",
+      "functions/src/gateway/**",
+      "App.tsx",
+      "index.ts",
+      "navigation/**",
+      "contexts/**"
+    ],
+    "i18n": [
+      "i18n/**",
+      "locales/**",
+      "contexts/IdiomaContext.tsx",
+      "hooks/useDireccion.ts",
+      "functions/src/shared/**",
+      "functions/src/creator/idiomaDeSalida.ts",
+      "docs/I18N*.md"
+    ],
+    "ia": [
+      "functions/src/engine/**",
+      "functions/src/creator/**",
+      "functions/src/gateway/**",
+      "functions/src/brain/**",
+      "functions/src/core/brain.ts",
+      "functions/src/core/gateway.ts",
+      "functions/src/core/visual-context.ts",
+      "functions/src/vertexAI.ts",
+      "functions/src/generateAvatar.ts",
+      "services/brainService.ts",
+      "services/creatorService.ts",
+      "services/aiEngineService.ts",
+      "hooks/useBrainChat.ts",
+      "components/creator/**"
+    ],
+    "planner-runtime": [
+      "functions/src/runtime/**",
+      "functions/src/planner/**",
+      "functions/src/workflow/**",
+      "functions/src/orchestrator/**",
+      "functions/src/job/**",
+      "functions/src/core/planner.ts",
+      "functions/src/core/workflow.ts",
+      "functions/src/core/orchestrator.ts",
+      "functions/src/core/job.ts",
+      "functions/src/core/job-queue.ts"
+    ],
+    "identidad-moderacion": [
+      "functions/src/identity/**",
+      "functions/src/moderation/**",
+      "functions/src/core/identity.ts",
+      "functions/src/core/account-identity.ts",
+      "functions/src/core/social-identity.ts",
+      "functions/src/core/moderation.ts",
+      "services/moderationService.ts",
+      "components/ReportSheet.tsx",
+      "utils/perfilCanonico.ts",
+      "utils/econtactModel.ts",
+      "services/econtactService.ts"
+    ],
+    "entrega": [
+      ".github/**",
+      "ops/**",
+      "scripts/**",
+      "firebase.json",
+      "package.json",
+      "functions/package.json",
+      "package-lock.json",
+      "functions/package-lock.json",
+      ".claude/**",
+      "app.json",
+      "eas.json"
+    ],
+    "filmmaker": [
+      "functions/src/filmmaker/**",
+      "functions/src/shots/**",
+      "functions/src/productions/**",
+      "functions/src/elements/**",
+      "functions/src/core/shot.ts",
+      "functions/src/core/continuity*.ts",
+      "functions/src/core/element.ts",
+      "services/filmmaker/**",
+      "services/filmmakerService.ts",
+      "services/tomaService.ts",
+      "components/studio/**"
+    ],
+    "algoritmo": [
+      "functions/src/core/algorithm/**",
+      "functions/src/creator/sombra.ts"
+    ]
+  },
+  "paquetes": [
+    {
+      "id": "ia-engine",
+      "zonas": [
+        "ia"
+      ],
+      "documentos": [
+        {
+          "ruta": "docs/AI-ENGINE.md"
+        },
+        {
+          "ruta": "docs/CORE.md",
+          "secciones": [
+            "El AI Gateway",
+            "WEE Router",
+            "Weë Brain"
+          ]
+        },
+        {
+          "ruta": "docs/RUNTIME.md",
+          "secciones": [
+            "3. ",
+            "10. ",
+            "21. "
+          ]
+        },
+        {
+          "ruta": "docs/INVENTARIO-IA.md"
+        }
+      ]
+    },
+    {
+      "id": "planner-runtime",
+      "zonas": [
+        "planner-runtime"
+      ],
+      "documentos": [
+        {
+          "ruta": "docs/CORE.md",
+          "secciones": [
+            "WEE Planner",
+            "WEE Workflow Engine",
+            "WEE Orchestrator",
+            "WEE Job Engine"
+          ]
+        },
+        {
+          "ruta": "docs/RUNTIME.md",
+          "secciones": [
+            "11. ",
+            "12. ",
+            "13. ",
+            "14. ",
+            "15. ",
+            "16. "
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dinero",
+      "zonas": [
+        "dinero"
+      ],
+      "documentos": [
+        {
+          "ruta": "docs/CREDITS.md"
+        },
+        {
+          "ruta": "docs/CORE.md",
+          "secciones": [
+            "WEE Financial Core"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "identidad-moderacion",
+      "zonas": [
+        "identidad-moderacion"
+      ],
+      "documentos": [
+        {
+          "ruta": "docs/IDENTITY.md"
+        },
+        {
+          "ruta": "docs/MODERATION.md"
+        }
+      ]
+    },
+    {
+      "id": "i18n",
+      "zonas": [
+        "i18n"
+      ],
+      "documentos": [
+        {
+          "ruta": "docs/I18N.md"
+        }
+      ]
+    },
+    {
+      "id": "entrega-seguridad",
+      "zonas": [
+        "seguridad",
+        "entrega"
+      ],
+      "documentos": [
+        {
+          "ruta": "docs/SECURITY.md"
+        },
+        {
+          "ruta": "docs/DEPLOYMENT.md"
+        },
+        {
+          "ruta": "docs/HARNESS.md"
+        },
+        {
+          "ruta": "docs/DECISIONES-PENDIENTES.md"
+        }
+      ]
+    },
+    {
+      "id": "filmmaker",
+      "zonas": [
+        "filmmaker"
+      ],
+      "documentos": [
+        {
+          "ruta": "docs/FILMMAKER.md"
+        }
+      ]
+    },
+    {
+      "id": "algoritmo",
+      "zonas": [
+        "algoritmo"
+      ],
+      "documentos": [
+        {
+          "ruta": "docs/ALGORITHM-ENGINE.md",
+          "secciones": [
+            "1 · ",
+            "2 · ",
+            "3 · ",
+            "4 · ",
+            "5 · ",
+            "6 · ",
+            "7 · ",
+            "8 · ",
+            "19 · ",
+            "20 · "
+          ]
+        }
+      ]
+    }
+  ],
+  "guiasDeIdioma": {
+    "da": "docs/I18N-DANES.md",
+    "hi": "docs/I18N-HINDI.md",
+    "ja": "docs/I18N-JAPONES.md",
+    "sv": "docs/I18N-SUECO.md",
+    "tr": "docs/I18N-TURCO.md"
+  },
+  "noRevisables": [
+    {
+      "glob": "**/package-lock.json",
+      "motivo": "archivo de bloqueo: lo cubre el disparador de dependencias"
+    },
+    {
+      "glob": "i18n/textos/**",
+      "motivo": "catálogo de textos: lo revisa el proceso de idioma (docs/I18N-REVISION.md) y sus suites"
+    },
+    {
+      "glob": "i18n/revision/**",
+      "motivo": "registro de la revisión de idioma (docs/I18N-REVISION.md)"
+    },
+    {
+      "glob": "i18n/huella.json",
+      "motivo": "huella generada de los catálogos"
+    },
+    {
+      "glob": "**/*.{png,jpg,jpeg,gif,webp,ico,svg,ttf,otf,woff,woff2,mp3,mp4,wav,pdf,glb,zip}",
+      "motivo": "binario o recurso"
+    }
+  ],
+  "rubricaComun": "ops/revision/rubricas/comun.md",
+  "revisores": {
+    "revisor-seguridad": {
+      "rubrica": "ops/revision/rubricas/seguridad.md",
+      "zonas": [
+        "seguridad",
+        "dinero",
+        "entrega",
+        "identidad-moderacion"
+      ]
+    },
+    "revisor-arquitectura": {
+      "rubrica": "ops/revision/rubricas/arquitectura.md",
+      "zonas": [
+        "arquitectura",
+        "ia",
+        "planner-runtime",
+        "algoritmo",
+        "filmmaker"
+      ],
+      "conDisparadores": true
+    },
+    "revisor-codigo": {
+      "rubrica": "ops/revision/rubricas/codigo.md",
+      "zonas": [
+        "*"
+      ],
+      "soloPaquetes": [
+        "i18n"
+      ]
+    }
+  }
+}

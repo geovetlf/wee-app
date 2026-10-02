@@ -3,19 +3,18 @@
     "apps": [],
     "details": [
       {
-        "appID": "TEAM_ID.com.hidetok.app",
+        "appID": "PENDIENTE_DEL_DUENO_APPLE_TEAM_ID.zone.wee.app",
         "paths": [
           "/post/*",
           "/user/*",
-          "/community/*",
-          "/feed/*"
+          "/community/*"
         ]
       }
     ]
   },
   "webcredentials": {
     "apps": [
-      "TEAM_ID.com.hidetok.app"
+      "PENDIENTE_DEL_DUENO_APPLE_TEAM_ID.zone.wee.app"
     ]
   }
 }

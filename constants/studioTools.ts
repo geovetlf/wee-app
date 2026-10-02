@@ -11,27 +11,16 @@
  * colores. Un solo trazo, una sola familia.
  */
 
-/** Las seis puertas del Studio. El id es también el panel que abren. */
+/**
+ * DE QUÉ SE ESTÁ CREANDO ALGO. Seis medios, y con eso se decide qué ajustes
+ * preguntar y qué herramientas enseñar.
+ *
+ * NO es la lista de entradas del Studio: esa vive en `studioExperiences.ts` y
+ * son nueve —cuatro grandes y cinco de Explorar—. Aquí había una segunda lista
+ * de seis puertas con sus iconos y sus pistas, y dos catálogos de lo mismo se
+ * separan solos en cuanto uno cambia. Se quedó el que dice DE QUÉ MEDIO va.
+ */
 export type AreaDeStudio = 'images' | 'videos' | 'voice' | 'writer' | 'documents' | 'more';
-
-export interface PuertaDeStudio {
-  id: AreaDeStudio;
-  /** La clave del nombre. `writer` no la lleva: Writer es marca. */
-  clave?: string;
-  /** El nombre literal, solo para lo que es marca. */
-  marca?: string;
-  claveHint: string;
-  icono: string;
-}
-
-export const PUERTAS_DE_STUDIO: PuertaDeStudio[] = [
-  { id: 'images', clave: 'studio.imagesTitle', claveHint: 'studio.imagesHint', icono: 'image-outline' },
-  { id: 'videos', clave: 'studio.videosTitle', claveHint: 'studio.videosHint', icono: 'videocam-outline' },
-  { id: 'voice', clave: 'studio.voiceTitle', claveHint: 'studio.voiceHint', icono: 'mic-outline' },
-  { id: 'writer', marca: 'Writer', claveHint: 'studio.writerHint', icono: 'create-outline' },
-  { id: 'documents', clave: 'studio.docsTitle', claveHint: 'studio.docsHint', icono: 'document-text-outline' },
-  { id: 'more', clave: 'studio.moreTitle', claveHint: 'studio.moreHint', icono: 'grid-outline' },
-];
 
 /** Una herramienta dentro de un panel. */
 export interface HerramientaDeStudio {

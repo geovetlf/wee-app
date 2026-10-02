@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { CreatorJob } from './creatorService';
+import { conMayusculaInicial } from '../i18n/caja';
 
 /**
  * "Mis proyectos" (docs/CREATOR-BUILD.md §17): cada proyecto agrupa creaciones
@@ -32,15 +33,18 @@ export interface WeeProject {
 
 export const PROJECT_EMOJIS = ['📁', '🍔', '🎵', '🚗', '🏷️', '🏠', '💼', '🎬', '📚', '💄', '🌟'];
 
-/** "Quiero un video para promocionar mi restaurante" → "Mi restaurante". */
-export const suggestProjectName = (goal: string): string => {
+/**
+ * "Quiero un video para promocionar mi restaurante" → "Mi restaurante".
+ * La inicial sube con las reglas del locale: «istanbul gezisi» → «İstanbul gezisi».
+ */
+export const suggestProjectName = (goal: string, locale?: string): string => {
   const match = goal.match(/\b(mi|mis)\s+([a-záéíóúñü]+(?:\s+[a-záéíóúñü]+)?)/i);
   if (match) {
     const words = match[2].toLowerCase().split(/\s+/).filter((w) => !['para', 'con', 'de', 'en', 'que', 'y', 'el', 'la'].includes(w));
     if (words.length > 0) return `Mi ${words.join(' ')}`;
   }
   const short = goal.split(/\s+/).slice(0, 3).join(' ').replace(/[.:,;]$/, '');
-  return short ? short.charAt(0).toUpperCase() + short.slice(1) : 'Mi proyecto';
+  return short ? conMayusculaInicial(short, locale) : 'Mi proyecto';
 };
 
 const projects = () => collection(db, 'creatorProjects');

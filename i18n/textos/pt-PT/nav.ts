@@ -25,4 +25,5 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Ir para Weë AI',
   weeAiQuestion: 'O que queres criar hoje?',
   weeAiPitch: 'Diz ao Weë o que queres. O Weë trata da IA.',
+  documentTitle: 'Weë - A comunidade do futuro',
 };

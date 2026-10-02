@@ -494,20 +494,21 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
     return n;
   };
   /*
-   * El número baja cuando se RETIRA una clave del producto entero —los once
-   * diccionarios a la vez—, y solo entonces: 2 242 → 2 240 al eliminarse el
-   * Perfil Biz (`menu.activeBiz`, `menu.bizActiveTap`). Y sube cuando se AÑADE
-   * a los once a la vez: 2 240 → 2 299 en la Fase 11, con el módulo `creaciones`
-   * («Mis creaciones», incluidas las cuatro claves de la descarga) y las dos
-   * claves de la foto única de WeeTalk (`weetalk.photoOnce`, `weetalk.photoOpened`).
+   * Sin cifra escrita: pt y pt-PT tienen que tener exactamente las claves del
+   * español, que es el molde. La cifra fija (la última fue 2 427) había que
+   * subirla a mano cada vez que entraba una clave en todos los diccionarios a
+   * la vez —el porqué de cada subida está en el historial de git—, y con cada
+   * idioma o módulo nuevo se rompía sin que nada estuviera mal. Lo que vigila
+   * no cambia: que el arreglo no «ayudó» tocando una traducción, ni quitando o
+   * añadiendo claves a una de las dos normas.
    */
-  const CLAVES_PT = 2301;
-  check(`57) I · pt-BR intacto: ${CLAVES_PT} claves y sigue siendo brasileño`,
-    claves('pt') === CLAVES_PT
+  const CLAVES_ES = claves('es');
+  check(`57) I · pt-BR intacto: las claves del español (${CLAVES_ES}) y sigue siendo brasileño`,
+    claves('pt') === CLAVES_ES
     && t('pt')('settings.title') === 'Configurações'
     && t('pt-BR')('settings.title') === 'Configurações', `${claves('pt')} claves`);
-  check(`58) J · pt-PT intacto: ${CLAVES_PT} claves y sigue siendo europeo`,
-    claves('pt-PT') === CLAVES_PT
+  check(`58) J · pt-PT intacto: las claves del español (${CLAVES_ES}) y sigue siendo europeo`,
+    claves('pt-PT') === CLAVES_ES
     && t('pt-PT')('settings.title') === 'Definições', `${claves('pt-PT')} claves`);
 
   /* Y el arreglo está donde dijo que estaba, y en ningún otro sitio. */

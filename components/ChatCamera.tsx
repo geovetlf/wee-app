@@ -102,8 +102,9 @@ const ChatCamera: React.FC<ChatCameraProps> = ({ visible, onClose, onSend }) => 
                 onPress={() => setViewOnce(!viewOnce)}
               >
                 <Ionicons name={viewOnce ? 'eye-off' : 'infinite-outline'} size={20} color="#fff" />
+                {/* El mismo interruptor que la vista previa de la galería (ConversationScreen): mismas claves. */}
                 <Text style={styles.toggleText}>
-                  {viewOnce ? 'Ver una vez' : 'Conservar'}
+                  {viewOnce ? t('weetalk.viewOnceOn') : t('weetalk.keepInChat')}
                 </Text>
               </TouchableOpacity>
 

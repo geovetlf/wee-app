@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma, useT } from '../contexts/IdiomaContext';
+import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
@@ -244,7 +245,7 @@ const Sidebar: React.FC = () => {
           <SidebarItem icono="casa" label={t('nav.home')} active={isActive('Home')} onPress={() => goHome('Landing')} />
           <SidebarItem emoji="🔍" label={t('nav.search')} active={isActive('Search')} onPress={() => navigation.navigate('Search')} />
 
-          <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('menu.sectionProfile')}</Text>
+          <Text style={[styles.grupo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('menu.sectionProfile'))]}>{t('menu.sectionProfile')}</Text>
           <Opcion id="realProfile" active={!!user && activeProfileType === 'real'} onPress={() => (user ? goTab('Profile') : requireLogin())} />
           <Opcion id="weeProfile" active={activeProfileType === 'hidi'} onPress={() => (user ? (hasWeeProfile ? goTab('Profile') : navigation.navigate('WeeProfileCreation')) : requireLogin())} label={hasWeeProfile || !user ? undefined : t('menu.createWeeProfile')} />
           <Opcion
@@ -270,7 +271,7 @@ const Sidebar: React.FC = () => {
           <Opcion id="econtact" label={nombreLista} active={isActive('EContact')} onPress={() => (user ? navigation.navigate('EContact') : requireLogin())} />
 
           <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
-          <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('menu.sectionExplore')}</Text>
+          <Text style={[styles.grupo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('menu.sectionExplore'))]}>{t('menu.sectionExplore')}</Text>
           <Opcion id="communities" onPress={() => goHome('ExploreCommunities')} />
           <Opcion id="weels" onPress={() => goHome('Landing', { openWeels: true })} />
           <Opcion id="weetalk" active={isActive('Inbox')} onPress={() => (user ? goTab('Inbox') : requireLogin())} />

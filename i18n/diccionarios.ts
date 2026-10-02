@@ -10,6 +10,14 @@ import { ru } from './textos/ru';
 import { ko } from './textos/ko';
 import { zh } from './textos/zh';
 import { zhTW } from './textos/zh-TW';
+import { ja } from './textos/ja';
+import { tr } from './textos/tr';
+import { sv } from './textos/sv';
+import { da } from './textos/da';
+import { hi } from './textos/hi';
+import { servidor as servidorEs } from './textos/es/servidor';
+import { servidor as servidorEn } from './textos/en/servidor';
+import { servidor as servidorDa } from './textos/da/servidor';
 
 /*
  * EL ÚNICO SITIO QUE SABE QUÉ DICCIONARIOS HAY.
@@ -18,9 +26,9 @@ import { zhTW } from './textos/zh-TW';
  * Ni una pantalla, ni un componente, ni el traductor cambian: por eso este
  * archivo existe en vez de importar los textos desde donde haga falta.
  *
- * SOBRE CARGARLOS SUELTOS: hoy los dos se importan de golpe, y con dos idiomas
- * pequeños es lo correcto —partirlos costaría más de lo que ahorra—. Cuando
- * sean once, la carga perezosa se pone AQUÍ, cambiando este objeto por un mapa
+ * SOBRE CARGARLOS SUELTOS: hoy todos se importan de golpe, que es lo más simple
+ * y lo que no puede fallar en el arranque. El día que su peso se note al abrir
+ * la app, la carga perezosa se pone AQUÍ, cambiando este objeto por un mapa
  * de funciones que devuelvan `import()`. Ninguna pantalla se entera, que es
  * justo lo que se buscaba al meter esto detrás de una puerta.
  *
@@ -28,9 +36,13 @@ import { zhTW } from './textos/zh-TW';
  * otro idioma no puede costar una petición, ni un servicio de traducción, ni un
  * céntimo por persona.
  */
+/*
+ * LOS TEXTOS DEL SERVIDOR van aparte (`textos/<idioma>/servidor/`, ver su índice) porque son una sección opcional:
+ * el idioma que los ha traducido los suma aquí a su diccionario; el que no, cae en el inglés por la cadena de siempre.
+ */
 export const DICCIONARIOS: Diccionarios = {
-  es,
-  en,
+  es: { ...es, ...servidorEs },
+  en: { ...en, ...servidorEn },
   de,
   fr,
   it,
@@ -85,16 +97,21 @@ export const DICCIONARIOS: Diccionarios = {
   'zh-Hant-TW': zhTW,
   'zh-Hant-HK': zhTW,
   'zh-Hant-MO': zhTW,
+  ja,
+  tr,
+  sv,
+  da: { ...da, ...servidorDa },
+  hi,
 };
 
 /*
  * ── LO QUE NUNCA SE TRADUCE, EN NINGÚN IDIOMA ────────────────────────────────
  *
- * Quien venga a añadir el portugués, el ruso o el japonés lee este archivo:
- * aquí está la puerta. Así que la regla queda aquí también.
+ * Quien venga a añadir un idioma lee este archivo: aquí está la puerta. Así
+ * que la regla queda aquí también.
  *
- * Los nombres de Weë son MARCA y se escriben IGUAL en los once idiomas: Weë,
- * Wäll, Weëls, WeeTalk, ËContact, Credits, Weë AI y las once experiencias (Weë
+ * Los nombres de Weë son MARCA y se escriben IGUAL en todos los idiomas: Weë,
+ * Wäll, Weëls, WeeTalk, ËContact, Credits, Weë AI y las experiencias (Weë
  * Studio, Weë Brain, Weë Chef…). No se traducen, no se adaptan, no se
  * pluralizan, no se transliteran, no cambian de mayúsculas y no pierden ni un
  * diacrítico. "Credits" no es "Crédits" ni "Kredite"; "Weë Brain" no es "Weë

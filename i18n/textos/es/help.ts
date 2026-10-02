@@ -24,7 +24,8 @@ export const help = {
   q2: '¿Qué diferencia hay entre Perfil Real y Perfil Weë?',
   a2: 'Tu Perfil Real es tu identidad de siempre y la app se ve blanca. Tu Perfil Weë es tu identidad para crear con IA: un avatar y un nombre propios para publicar tus creaciones, y con él la app se viste de oscuro para que siempre sepas con quién estás participando. Cambias de uno a otro desde el menú ☰ o el botón del encabezado.',
   q3: '¿Cómo funciona Weë AI?',
-  a3: 'Cuéntale a Weë lo que quieres lograr con tus palabras. Weë te hace pocas preguntas sencillas (siempre puedes responder "No sé"), prepara un plan y crea el resultado. Tú eliges el resultado; Weë elige la IA. Hay diez especialistas: Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business y Brain.',
+  a3_one: 'Cuéntale a Weë lo que quieres lograr con tus palabras. Weë te hace pocas preguntas sencillas (siempre puedes responder "No sé"), prepara un plan y crea el resultado. Tú eliges el resultado; Weë elige la IA. Weë AI tiene {{contador}} especialista: {{lista}}.',
+  a3_other: 'Cuéntale a Weë lo que quieres lograr con tus palabras. Weë te hace pocas preguntas sencillas (siempre puedes responder "No sé"), prepara un plan y crea el resultado. Tú eliges el resultado; Weë elige la IA. Weë AI tiene {{contador}} especialistas: {{lista}}.',
   q4: '¿Qué son los Credits?',
   a4: 'Cada creación con Weë AI usa Credits. Antes de crear ves cuánto costará y, si algo falla, se devuelven. Mientras construimos Weë AI, los precios son de prueba y las recargas no cuestan nada: los precios definitivos llegarán con las IAs reales.',
   q5: '¿Para qué sirven los proyectos?',
@@ -37,4 +38,7 @@ export const help = {
   a8: 'Es el chat de Weë: conversaciones privadas con otras personas de la comunidad, con texto, fotos y notas de voz.',
   q9: '¿Qué es "Cómo lo hice"?',
   a9: 'Al publicar puedes contar qué herramientas usaste, el prompt y el proceso. Así otras personas aprenden de ti, y tú de ellas, con un solo toque en "Copiar prompt".',
+  heroTitle: '¿En qué te ayudamos?',
+  legalVisibility: 'Lo que publicas es visible para la comunidad; lo que creas en Weë AI es privado hasta que decides publicarlo. Puedes borrar tus publicaciones y tus proyectos cuando quieras.',
+  askPrefill: 'Una pregunta para Weë: ',
 };

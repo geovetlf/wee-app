@@ -1,5 +1,6 @@
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
-import { env, fetchJson, NotConfiguredError, readImage, toDataUri } from '../http';
+import { env, fetchJson, NotConfiguredError, ProviderError, readImage, toDataUri } from '../http';
+import { pideTextoPlano, SISTEMA_POR_DEFECTO } from '../promptLanguage';
 
 /**
  * DEEPSEEK — API OFICIAL (api.deepseek.com), clave DEEPSEEK_API_KEY.
@@ -106,6 +107,24 @@ const partesDeImagen = async (urls: string[]) => {
   return partes;
 };
 
+/**
+ * LO QUE ESCRIBIERON LOS PASOS ANTERIORES, PUESTO EN EL ENCARGO.
+ *
+ * Llega ya resuelto —el Gateway lo pidió a la puerta que comprueba de quién
+ * es— así que aquí solo se lee y se coloca. Y se coloca APARTE de lo que pidió
+ * la persona, con su etiqueta, porque son dos cosas distintas: una es lo que
+ * alguien quiere y la otra es material de trabajo que produjo el propio plan.
+ * Mezclarlos haría que el modelo no supiera cuál obedecer.
+ */
+const loQueEscribieronAntes = (upstream: unknown): string => {
+  if (!Array.isArray(upstream)) return '';
+  const textos = upstream
+    .filter((u) => u && typeof u === 'object' && typeof (u as { contenido?: unknown }).contenido === 'string')
+    .map((u, i) => `[${i + 1}] ${(u as { contenido: string }).contenido}`);
+  if (!textos.length) return '';
+  return `Material de los pasos anteriores (úsalo, no lo repitas):\n${textos.join('\n\n')}`;
+};
+
 export const deepseekAdapter: ProviderAdapter = {
   id: 'deepseek',
   name: 'DeepSeek',
@@ -118,9 +137,10 @@ export const deepseekAdapter: ProviderAdapter = {
     if (!apiKey) throw new NotConfiguredError('deepseek', KEY);
     const { input, model, capability } = request;
     const start = Date.now();
-    const wantJson = capability === 'text.structure';
-    const system = String(input.system ?? 'Eres Weë. Responde en español, claro y breve.');
-    const prompt = String(input.prompt ?? input.purpose ?? '');
+    const wantJson = !pideTextoPlano(input) && capability === 'text.structure';
+    const system = String(input.system ?? SISTEMA_POR_DEFECTO);
+    const anterior = loQueEscribieronAntes(input.upstream);
+    const prompt = [String(input.prompt ?? input.purpose ?? ''), anterior].filter(Boolean).join('\n\n');
 
     const urls = [
       ...(input.imageUrl ? [String(input.imageUrl)] : []),
@@ -148,8 +168,67 @@ export const deepseekAdapter: ProviderAdapter = {
     });
 
     const content = String(data.choices?.[0]?.message?.content ?? '').trim();
-    const inputTokens = Number(data.usage?.prompt_tokens ?? 0);
-    const outputTokens = Number(data.usage?.completion_tokens ?? 0);
+    /*
+     * ── POR QUÉ EL DESENLACE SE GUARDA Y EL VACÍO SE RECHAZA ────────────────────────
+     *
+     * En un canary de Weë Brain esta API contestó con `content` vacío habiendo
+     * gastado los 1.400 tokens de salida enteros. Sin `finish_reason` no hay forma
+     * de saber si la cortaron por el techo, si decidió no escribir nada o si se
+     * negó, y cada una de las tres pide algo distinto. Lo devuelve la API en cada
+     * respuesta y aquí se tiraba, así que ahora viaja en `meta`, que es el canal que
+     * ya existía para esto y que el Router ya guarda en el libro.
+     *
+     * Y una respuesta vacía deja de pasar por buena. Pasaba: el Router cerraba la
+     * fila COMPLETED, ascendía al proveedor a verificado y se cobraba el Credit, todo
+     * por un texto que no existía. Gemini ya lo rechazaba desde su primer día; esto
+     * es la misma regla en el otro adaptador, no una nueva.
+     */
+    const finishReason = data.choices?.[0]?.finish_reason;
+    /*
+     * ── LOS CONTADORES SE LEEN ANTES DE RECHAZAR, NO DESPUÉS ──────────────────────
+     *
+     * Cuando una respuesta se corta, lo primero que hace falta saber es CUÁNTO
+     * gastó, y hasta ahora se tiraba: las guardas de abajo lanzaban antes de que
+     * nadie mirara `usage`, así que una llamada truncada no dejaba ni un número.
+     * El dato ya venía en la respuesta; solo estaba leyendo dos líneas más tarde.
+     *
+     * Se apunta lo que el proveedor da y nada más: si falta un contador, no se
+     * inventa. Lo que significan esos `completion_tokens` —y por qué una petición
+     * gasta más que otra— no se decide aquí: aquí solo se anota lo observado.
+     */
+    const usage = (data.usage ?? {}) as Record<string, unknown>;
+    const contados = (['prompt_tokens', 'completion_tokens', 'total_tokens'] as const)
+      .filter((k) => typeof usage[k] === 'number')
+      .map((k) => `${k}: ${usage[k]}`);
+    const gasto = contados.length ? `, ${contados.join(', ')}` : '';
+    /*
+     * ── Y UNA RESPUESTA CORTADA TAMPOCO ES UNA RESPUESTA ──────────────────────────
+     *
+     * El mismo canary, otra vez, con otra ropa: el modelo compuso bien los tres
+     * pasos y se quedó sin techo mientras escribía el tercero. Llegó un JSON sin
+     * cerrar, que NO está vacío, así que la guarda de arriba no lo veía: pasaba
+     * por bueno, `JSON.parse` fallaba en silencio y el entendimiento se rellenaba
+     * con señales. Un plan degradado, y cobrado.
+     *
+     * Manda el MOTIVO DE TERMINACIÓN, no la forma del texto. Si la API dice
+     * que cortó por el techo, da igual que lo escrito hasta ahí resulte parsear:
+     * falta lo que no llegó a escribir. Aquí no se repara nada ni se adivina el
+     * final; se dice que no hubo respuesta y quien llamó decide.
+     */
+    if (finishReason === 'length') {
+      throw new ProviderError(
+        `deepseek: la respuesta se cortó por el techo de tokens (finish_reason: length${gasto})`,
+        'deepseek',
+      );
+    }
+    if (!content) {
+      throw new ProviderError(
+        `deepseek: la respuesta llegó vacía${finishReason ? ` (finish_reason: ${finishReason}${gasto})` : gasto ? ` (${gasto.slice(2)})` : ''}`,
+        'deepseek',
+      );
+    }
+    const inputTokens = Number(usage.prompt_tokens ?? 0);
+    const outputTokens = Number(usage.completion_tokens ?? 0);
     /* El coste que se apunta en el libro es el de verdad: tokens reales por la tarifa de esta hora. */
     const tarifa = tarifaVigente();
     return {
@@ -158,6 +237,8 @@ export const deepseekAdapter: ProviderAdapter = {
       costUSD: (inputTokens * tarifa.input + outputTokens * tarifa.output) / 1_000_000,
       latencyMs: Date.now() - start,
       model: model.id,
+      /* Aditivo: no cambia salida, uso ni coste. Si la API no lo manda, no se inventa. */
+      ...(finishReason ? { meta: { finishReason } } : {}),
     };
   },
 };

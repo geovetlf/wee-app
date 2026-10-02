@@ -40,17 +40,25 @@ const identidad = lib('core/identity.js');
 console.log('\n── A · Cuatro identificadores que no se confunden ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  const { esIdDeCuenta, esNumeroDeCuenta, identificadorDeEntidad, numeroDeCuentaDesde } = identidad;
+  const { esIdDeCuenta } = identidad;
+  const cuenta = lib('core/account-identity.js');
+  const { esIdDeEntidad, esNumeroDeCuentaCanonico, sortearNumeroDeCuenta, idDeEntidadDesdeBytes } = cuenta;
   const uidDeFirebase = 'OEv4FAhfbAN0sFoFiHG0ZG2GK3r2';
-  const numero = numeroDeCuentaDesde(1);
-  const entidad = identificadorDeEntidad(numero, 2);
+  const numero = sortearNumeroDeCuenta([0, 0, 0, 0]);
+  const entidad = idDeEntidadDesdeBytes(new Uint8Array(26).fill(11));
   check('1) un uid de Firebase Auth es un Account ID', esIdDeCuenta(uidDeFirebase) && esIdDeCuenta('ana') && esIdDeCuenta('u1'));
-  check('2) un número de cuenta NO es un Account ID', esNumeroDeCuenta(numero) && !esIdDeCuenta(numero), numero);
-  check('3) ni el identificador de una entidad', typeof entidad === 'string' && !esIdDeCuenta(entidad), entidad);
+  check('2) un número de cuenta NO es un Account ID', esNumeroDeCuentaCanonico(numero) && !esIdDeCuenta(numero), numero);
+  check('3) ni el identificador de una entidad', esIdDeEntidad(entidad) && !esIdDeCuenta(entidad), entidad);
   check('4) ni el identificador de una cara (Profile ID con prefijo heredado)', !esIdDeCuenta('hidi_' + uidDeFirebase));
   check('5) ni texto con separadores, barras o vacío', ['a_b', 'a/b', 'a b', 'a.b', '', ' ', 'x'.repeat(129)].every((v) => !esIdDeCuenta(v)));
   check('6) ni algo que no sea texto', [null, undefined, 42, {}, ['ana']].every((v) => !esIdDeCuenta(v)));
-  check('7) el Identity Core sigue sin nacer cuentas a partir de un número', identidad.nacerCuenta({ accountId: numero, posicion: 1, at: 1 }) === undefined);
+  /*
+   * En la Fase 11.x-5A se retiró `nacerCuenta`, que hacía nacer una cuenta a
+   * partir de una posición de una serie. Lo que queda no admite un número de
+   * cuenta donde va un principal, y no hay forma de formar uno sin sortearlo.
+   */
+  check('7) el Identity Core sigue sin nacer cuentas a partir de un número',
+    identidad.nacerCuenta === undefined && !cuenta.esIdDePrincipal(numero) && !esIdDeCuenta(numero));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -162,7 +170,7 @@ console.log('\n── C · El push lo dice el servidor ──');
   const disparador = indice.slice(indice.indexOf('export const sendPushNotification'), indice.indexOf('export const sendMessagePushNotification'));
   check('27) el disparador ya NO lee `senderName` de la notificación', !/senderName/.test(disparador.replace(/\/\*[\s\S]*?\*\//g, '')));
   check('28) lee el perfil de quien firma y construye el aviso en el servidor',
-    /perfilDeIdentidad\(senderId\)/.test(disparador) && /avisoPush\(type, nombreVisible\(remitente\?\.data\(\)\)\)/.test(disparador) && /datosDelAviso\(notification,/.test(disparador));
+    /perfilDeIdentidad\(senderId\)/.test(disparador) && /avisoPush\(type, nombreVisible\(remitente\?\.data\(\)\), destino\.idioma\)/.test(disparador) && /datosDelAviso\(notification,/.test(disparador));
   check('29) ningún token de push acaba en un log', !/console\.(log|error|warn)\([^)]*pushToken/.test(indice) && !/console\.log\('Expo push response:', result\)/.test(indice));
 }
 
@@ -188,7 +196,7 @@ console.log('\n── E · La lista de avisos enseña el perfil del remitente �
 {
   const pantalla = leer('screens/NotificationsScreen.tsx');
   const codigo = pantalla.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
-  check('35) el nombre y la foto salen del perfil de `senderId`', /remitente=\{remitentes\[item\.senderId\]\}/.test(codigo) && /remitente\?\.displayName \|\| t\('common\.user'\)/.test(codigo));
+  check('35) el nombre y la foto salen del perfil de `senderId`', /remitente=\{remitentes\[item\.senderId\]\}/.test(codigo) && /remitente\?\.displayName \|\| t\('common\.someone'\)/.test(codigo));
   check('35b) y se piden por tandas, no uno por fila: sin N+1', /usersService\.getManyByUids\(faltan\)/.test(codigo) && !/useUserById/.test(codigo));
   check('36) y nunca de lo que escribió quien avisa', !/item\.senderName|item\.senderAvatar/.test(codigo));
   const esControlSuelto = (c) => (c >= 0 && c <= 8) || c === 11 || c === 12 || (c >= 14 && c <= 31);

@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   ActivityIndicator,
-  Alert,
   Modal,
   StatusBar,
   Animated,
@@ -24,17 +23,18 @@ import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { uploadAudioToCloudinary } from '../services/cloudinaryService';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
-import { messagesService, Message, Conversation, ParticipantData } from '../services/messagesService';
+import { messagesService, Message, Conversation, ParticipantData, claveDeAvisoGuardado } from '../services/messagesService';
 import { uploadMessageImageFromUri, uploadViewOncePhoto } from '../services/storageService';
 import { notify } from '../utils/notify';
 import { cloudinaryThumb } from '../services/cloudinaryService';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import ChatCamera from '../components/ChatCamera';
 import AudioBubble from '../components/AudioBubble';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
+import { SPACING } from '../constants/design';
+import { styles } from './ConversationScreen.styles';
 import { CHAT_THEMES, CHAT_WALLPAPERS, getThemeById, ChatTheme } from '../constants/chatThemes';
 import { InboxStackParamList } from '../navigation/InboxStackNavigator';
 
@@ -42,7 +42,7 @@ type ConvRoute = RouteProp<InboxStackParamList, 'Conversation'>;
 
 const ConversationScreen = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const nav = useNavigation();
@@ -68,7 +68,8 @@ const ConversationScreen = () => {
   const chatTheme = getThemeById(chatThemeId);
 
   const myUid = userProfile?.uid || user?.uid;
-  const other = otherUserData || { displayName: 'Usuario', avatarType: 'predefined' as const, avatarId: 'male' };
+  /* El respaldo solo se PINTA en la cabecera (no se guarda en ningún sitio): por eso sí pasa por t(). */
+  const other = otherUserData || { displayName: t('common.user'), avatarType: 'predefined' as const, avatarId: 'male' };
 
   // ─── Subscribe to conversation metadata (ephemeral state, theme) ───
   useEffect(() => {
@@ -124,7 +125,7 @@ const ConversationScreen = () => {
   const pickCustomWallpaper = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(t('weetalk.permissions'), t('weetalk.photoPermission'));
+      notify(t('weetalk.permissions'), t('weetalk.photoPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -155,22 +156,28 @@ const ConversationScreen = () => {
       return;
     }
 
-    // No conversation ID: need to find or create one
+    // No conversation ID: need to find or create one. Si mientras tanto cambia la cara activa (Real ↔ Weë), la
+    // conversación que vuelve es la de la cara de antes: no se abre en la nueva, que pide la suya.
+    let vivo = true;
     if (otherUserId && otherUserData) {
       messagesService.getOrCreateConversation(
         userProfile.uid, otherUserId,
         { displayName: userProfile.displayName, avatarType: userProfile.avatarType, avatarId: userProfile.avatarId, photoURL: userProfile.photoURL },
         otherUserData,
       ).then(cid => {
+        if (!vivo) return;
         setConvId(cid);
         setLoading(false);
       }).catch(e => {
         console.error('Error initializing conversation:', e);
-        setLoading(false);
+        if (vivo) setLoading(false);
       });
     } else {
       setLoading(false);
     }
+    return () => {
+      vivo = false;
+    };
   }, [user, userProfile, otherUserId]);
 
   // ─── Real-time messages ───
@@ -230,6 +237,12 @@ const ConversationScreen = () => {
        * lo único que `storage.rules` deja escribir; el mensaje lo firma la cara
        * activa (`myUid`), que es atribución. Con el Perfil Weë activo, subir bajo
        * la cara dejaba la foto denegada por las reglas.
+       *
+       * 'Foto única' y '📷 Imagen' NO son texto de interfaz: son MARCAS DE DATOS que se guardan como `content` del
+       * mensaje y del último mensaje de la conversación, y así están en los mensajes de siempre. Nadie las ve tal
+       * cual: la bandeja, la burbuja y el push las reconocen y las dicen con su clave en el idioma de quien mira
+       * (`claveDeAvisoGuardado` en services/messagesService.ts; `cuerpoDelMensaje` en functions/src/social/avisos.ts).
+       * Cambiarlas sería migrar datos. Lo vigila functions/test/i18n-marcas-de-mensaje.test.mjs.
        */
       const url = viewOnce ? await uploadViewOncePhoto(uri, user.uid, convId) : await uploadMessageImageFromUri(uri, myUid);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
@@ -244,7 +257,7 @@ const ConversationScreen = () => {
     if (!convId || !myUid || sending) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(t('weetalk.permissions'), t('weetalk.photoPermission'));
+      notify(t('weetalk.permissions'), t('weetalk.photoPermission'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -267,6 +280,29 @@ const ConversationScreen = () => {
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  /*
+   * SALIR GRABANDO NO DEJA EL MICRÓFONO ABIERTO.
+   *
+   * El contador y la grabación solo se soltaban en `stopRecording`, que llama el botón. Quien salía de la conversación
+   * a mitad de un audio dejaba el intervalo corriendo sobre una pantalla que ya no existe y el micrófono grabando.
+   * Al desmontar se para el contador y se detiene y descarga la grabación —sin enviarla: salir no es enviar—, y el
+   * modo de audio vuelve a reproducir. Las dependencias van vacías a propósito: con cualquier otra, la limpieza se
+   * ejecutaría al cambiar ese valor y cortaría un audio en curso. Si soltarla falla, se registra; no se calla.
+   */
+  useEffect(() => () => {
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
+    const grabacion = recordingRef.current;
+    recordingRef.current = null;
+    if (!grabacion) return;
+    grabacion
+      .stopAndUnloadAsync()
+      .then(() => Audio.setAudioModeAsync({ allowsRecordingIOS: false }))
+      .catch((e) => console.error('Error soltando la grabación al salir de la conversación:', e));
+  }, []);
+
   const startPulse = useCallback(() => {
     const loop = Animated.loop(
       Animated.sequence([
@@ -286,7 +322,7 @@ const ConversationScreen = () => {
         recordingRef.current = null;
       }
       const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) { Alert.alert(t('weetalk.permissions'), t('weetalk.audioPermission')); return; }
+      if (!granted) { notify(t('weetalk.permissions'), t('weetalk.audioPermission')); return; }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording: rec } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       recordingRef.current = rec;
@@ -312,12 +348,17 @@ const ConversationScreen = () => {
     pulseAnim.stopAnimation();
     pulseAnim.setValue(1);
     if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }
+    /*
+     * La grabación pasa a ser de este envío ANTES de esperar a nada: si la persona sale mientras se detiene, la
+     * limpieza del desmontaje ya no la encuentra en la ref y no la corta a medias —el audio se envía igual—.
+     */
+    const grabacion = recordingRef.current;
+    recordingRef.current = null;
 
     try {
-      await recordingRef.current.stopAndUnloadAsync();
+      await grabacion.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-      const uri = recordingRef.current.getURI();
-      recordingRef.current = null;
+      const uri = grabacion.getURI();
       if (!uri) return;
 
       const durationSec = Math.round((Date.now() - recordStartTime.current) / 1000);
@@ -344,6 +385,8 @@ const ConversationScreen = () => {
        * lo único que `storage.rules` deja escribir; el mensaje lo firma la cara
        * activa (`myUid`), que es atribución. Con el Perfil Weë activo, subir bajo
        * la cara dejaba la foto denegada por las reglas.
+       *
+       * Las marcas 'Foto única' / '📷 Imagen' son datos, no interfaz: ver `confirmSendImage`.
        */
       const url = viewOnce ? await uploadViewOncePhoto(uri, user.uid, convId) : await uploadMessageImageFromUri(uri, myUid);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
@@ -382,14 +425,19 @@ const ConversationScreen = () => {
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
+  /*
+   * La píldora de fecha: «Hoy» y «Ayer» son rótulos (claves); el resto de las
+   * fechas las escribe Intl con el locale de quien mira, no clavadas a es-ES.
+   * El corte de los días es el de siempre.
+   */
   const fmtDate = (ts: any) => {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
     const now = new Date();
     const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
-    if (diff === 0) return 'Hoy';
-    if (diff === 1) return 'Ayer';
-    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    if (diff === 0) return t('weetalk.today');
+    if (diff === 1) return t('business.yesterday');
+    return formato.fecha(d, { day: 'numeric', month: 'short' });
   };
 
   const showDate = (index: number) => {
@@ -482,8 +530,15 @@ const ConversationScreen = () => {
               ) : item.type === 'audio' && item.audioUrl ? (
                 <AudioBubble audioUrl={item.audioUrl} duration={item.audioDuration} mine={mine} />
               ) : (
+                /*
+                 * Una foto o un audio sin su dirección caen aquí con la MARCA guardada en `content` («📷 Imagen»,
+                 * «🎤 Audio»…): se dice con su clave. Un mensaje de texto es de quien lo escribió y sale tal cual,
+                 * aunque diga lo mismo que una marca.
+                 */
                 <Text style={[styles.msgText, { color: bubbleText }]}>
-                  {item.content}
+                  {item.type !== 'text' && claveDeAvisoGuardado(item.content)
+                    ? t(claveDeAvisoGuardado(item.content)!)
+                    : item.content}
                 </Text>
               )}
               <View style={styles.meta}>
@@ -499,7 +554,7 @@ const ConversationScreen = () => {
         </View>
       </View>
     );
-  }, [messages, myUid, chatTheme]);
+  }, [messages, myUid, chatTheme, t, formato]);
 
   // ─── Loading ───
   if (loading) {
@@ -554,7 +609,7 @@ const ConversationScreen = () => {
       )}
 
       {/* Chat background wallpaper */}
-      {chatWallpaper && (
+      {!!chatWallpaper && (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           <Image
             source={{ uri: chatWallpaper }}
@@ -768,19 +823,19 @@ const ConversationScreen = () => {
             <Text style={[styles.colorPickerTitle, { color: chatTheme.headerText }]}>{t('weetalk.theme')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.themeScrollView}>
               <View style={styles.themeGrid}>
-                {CHAT_THEMES.map(t => (
+                {CHAT_THEMES.map((tema) => (
                   <TouchableOpacity
-                    key={t.id}
+                    key={tema.id}
                     style={[
                       styles.themeOption,
-                      { backgroundColor: t.backgroundColor, borderColor: t.accent },
-                      chatThemeId === t.id && styles.themeOptionActive,
+                      { backgroundColor: tema.backgroundColor, borderColor: tema.accent },
+                      chatThemeId === tema.id && styles.themeOptionActive,
                     ]}
-                    onPress={() => pickTheme(t.id)}
+                    onPress={() => pickTheme(tema.id)}
                   >
-                    <View style={[styles.themePreviewBubble, { backgroundColor: t.myBubble }]} />
-                    <View style={[styles.themePreviewBubbleOther, { backgroundColor: t.otherBubble }]} />
-                    <Text style={[styles.themeOptionLabel, { color: t.headerText }]}>{t.name}</Text>
+                    <View style={[styles.themePreviewBubble, { backgroundColor: tema.myBubble }]} />
+                    <View style={[styles.themePreviewBubbleOther, { backgroundColor: tema.otherBubble }]} />
+                    <Text style={[styles.themeOptionLabel, { color: tema.headerText }]}>{t(tema.clave)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -843,133 +898,5 @@ const ConversationScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  fill: { flex: 1 },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: SPACING.sm,
-  },
-  headerUser: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  headerName: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold },
-
-  list: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
-
-  dateRow: { alignItems: 'center', marginVertical: SPACING.md },
-  datePill: { paddingHorizontal: SPACING.md, paddingVertical: 3, borderRadius: BORDER_RADIUS.full },
-  dateText: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.medium },
-
-  row: { marginVertical: 2 },
-  rowR: { alignItems: 'flex-end' },
-  rowL: { alignItems: 'flex-start' },
-  bubble: {
-    maxWidth: '78%',
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.sm,
-    paddingBottom: 6,
-    borderRadius: BORDER_RADIUS.lg,
-  },
-  msgText: { fontSize: FONT_SIZE.base, lineHeight: 20 },
-  img: { width: 220, aspectRatio: 3 / 4, borderRadius: BORDER_RADIUS.md, marginBottom: 4 },
-  imgStandalone: { width: 220, aspectRatio: 3 / 4, borderRadius: BORDER_RADIUS.lg },
-  meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 2 },
-  time: { fontSize: 11 },
-
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: SPACING.md },
-  emptyText: { fontSize: FONT_SIZE.base },
-  skeletonWrap: { flex: 1, justifyContent: 'flex-end', gap: 10, paddingBottom: SPACING.md },
-  skeletonRow: { paddingHorizontal: SPACING.xs },
-  skeletonBubble: { height: 38, borderRadius: BORDER_RADIUS.lg, opacity: 0.4 },
-
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 6,
-  },
-  cameraBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  inputWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 22,
-    paddingLeft: SPACING.md,
-    paddingRight: 4,
-    minHeight: 44,
-    maxHeight: 100,
-  },
-  input: {
-    flex: 1,
-    fontSize: FONT_SIZE.base,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
-    ...Platform.select({ web: { outlineStyle: 'none' as any } }),
-  },
-  inputActions: { flexDirection: 'row', alignItems: 'center', paddingBottom: 4 },
-  inputActionBtn: { width: 34, height: 34, justifyContent: 'center', alignItems: 'center' },
-  recordingBar: { justifyContent: 'center' },
-  recordingDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#EF4444' },
-  recordingTime: { color: '#EF4444', fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, fontVariant: ['tabular-nums'], marginHorizontal: 8 },
-  recordingWave: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 3 },
-  recordingWaveBar: { width: 3, borderRadius: 2 },
-  recordingStopBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center' },
-  sendBtn: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  ephemeralBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  ephemeralBubble: { opacity: 0.85 },
-  ephemeralIcon: { position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, backgroundColor: '#22C55E', justifyContent: 'center', alignItems: 'center' },
-  ephemeralBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6 },
-  ephemeralBannerText: { color: '#22C55E', fontSize: 11, fontWeight: FONT_WEIGHT.medium },
-
-  // Theme picker
-  colorPickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  colorPickerDismiss: { flex: 1 },
-  colorPickerSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40 },
-  sheetHandle: { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-  colorPickerTitle: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, marginBottom: 12, marginLeft: 4 },
-  themeScrollView: { marginHorizontal: -20, paddingHorizontal: 20 },
-  themeGrid: { flexDirection: 'row', gap: 10, paddingRight: 20 },
-  themeOption: { width: 85, height: 70, borderRadius: 12, padding: 8, alignItems: 'center', justifyContent: 'flex-end', borderWidth: 2, borderColor: 'transparent' },
-  themeOptionActive: { borderWidth: 2 },
-  themePreviewBubble: { position: 'absolute', top: 8, right: 10, width: 26, height: 14, borderRadius: 7 },
-  themePreviewBubbleOther: { position: 'absolute', top: 24, left: 10, width: 20, height: 12, borderRadius: 6 },
-  themeOptionLabel: { fontSize: 10, fontWeight: FONT_WEIGHT.medium, marginTop: 4 },
-  wallpaperScrollView: { marginHorizontal: -20, paddingHorizontal: 20 },
-  wallpaperGrid: { flexDirection: 'row', gap: 10, paddingRight: 20 },
-  wallpaperOption: { width: 70, height: 70, borderRadius: 12, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
-  wallpaperOptionActive: { borderColor: '#F5B731' },
-  wallpaperPreview: { width: '100%', height: '100%' },
-  doneButton: { marginTop: 24, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  doneButtonText: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.semibold },
-  chatBackground: { flex: 1 },
-
-  // View once styles
-  viewOnceOpened: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
-  viewOnceSender: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
-  viewOnceTap: { alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 20 },
-  viewOnceText: { fontSize: FONT_SIZE.sm },
-
-  // Photo preview modal
-  previewModal: { flex: 1, backgroundColor: '#000' },
-  previewHeader: { flexDirection: 'row', justifyContent: 'flex-start', paddingHorizontal: SPACING.lg, paddingTop: 50, paddingBottom: SPACING.md },
-  previewImage: { flex: 1 },
-  previewFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.lg, paddingBottom: 40 },
-  previewToggle: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24 },
-  previewToggleActive: { backgroundColor: 'rgba(34,197,94,0.6)' },
-  previewToggleText: { color: '#fff', fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium },
-  previewSendBtn: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-
-  // View once fullscreen viewer
-  viewOnceModal: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  viewOnceImageWrap: { width: '100%', aspectRatio: 3 / 4, borderRadius: 16, overflow: 'hidden' },
-  viewOnceFullImage: { width: '100%', height: '100%' },
-  viewOnceHint: { color: 'rgba(255,255,255,0.35)', fontSize: FONT_SIZE.sm, marginTop: SPACING.lg },
-});
 
 export default ConversationScreen;

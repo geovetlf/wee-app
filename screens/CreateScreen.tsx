@@ -16,7 +16,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -53,7 +54,7 @@ import {
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import SelectorDeEContacts from '../components/SelectorDeEContacts';
-import { notify } from '../utils/notify';
+import { notify, confirmAction } from '../utils/notify';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
 
 interface MediaItem {
@@ -76,7 +77,7 @@ interface MediaItem {
 
 const CreateScreen: React.FC = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const { contentMaxWidth } = useResponsive();
@@ -321,7 +322,7 @@ const CreateScreen: React.FC = () => {
     if (fromCamera) {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert(t('composer.permissionRequired'), t('composer.cameraAccess'));
+        notify(t('composer.permissionRequired'), t('composer.cameraAccess'));
         return;
       }
       result = await ImagePicker.launchCameraAsync({
@@ -333,7 +334,7 @@ const CreateScreen: React.FC = () => {
     } else {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert(t('composer.permissionRequired'), t('composer.galleryAccess'));
+        notify(t('composer.permissionRequired'), t('composer.galleryAccess'));
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -361,7 +362,7 @@ const CreateScreen: React.FC = () => {
       }]);
     } catch (error: any) {
       console.error('Error face swap:', error);
-      Alert.alert(t('common.error'), t('composer.faceSwapFailed'));
+      notify(t('common.error'), t('composer.faceSwapFailed'));
     } finally {
       setFaceSwapLoading(false);
     }
@@ -392,10 +393,7 @@ const CreateScreen: React.FC = () => {
       : t('composer.minutes', { contador: Math.ceil(seconds / 60) });
     const message = t(isWeel ? 'composer.weelMaxDuration' : 'composer.videoMaxDuration',
       { maximo: maxVideoDurationSeconds, duracion: lasted });
-    if (typeof document !== 'undefined') window.alert(`${title}
-
-${message}`);
-    else Alert.alert(title, message);
+    notify(title, message);
   };
   const maxPollOptions = MAX_OPCIONES;
   const minPollOptions = MIN_OPCIONES;
@@ -454,11 +452,11 @@ ${message}`);
               // Si es video, solo permitir 1 y sin imágenes previas
               if (isVideo) {
                 if (poll) {
-                  Alert.alert(t('composer.notAvailable'), t('composer.pollWithVideo'));
+                  notify(t('composer.notAvailable'), t('composer.pollWithVideo'));
                   continue;
                 }
                 if (attachedMedia.length > 0) {
-                  Alert.alert(t('composer.notAvailable'), t('composer.noVideoWithMedia'));
+                  notify(t('composer.notAvailable'), t('composer.noVideoWithMedia'));
                   continue;
                 }
                 // Validar duración del video en web
@@ -486,7 +484,7 @@ ${message}`);
               } else {
                 // No permitir imágenes si ya hay un video
                 if (attachedMedia.some(m => m.type === 'video')) {
-                  Alert.alert(t('composer.notAvailable'), t('composer.noImagesWithVideo'));
+                  notify(t('composer.notAvailable'), t('composer.noImagesWithVideo'));
                   continue;
                 }
                 newMedia.push({
@@ -546,11 +544,11 @@ ${message}`);
 
           if (isVideo) {
             if (poll) {
-              Alert.alert(t('composer.notAvailable'), t('composer.pollWithVideo'));
+              notify(t('composer.notAvailable'), t('composer.pollWithVideo'));
               continue;
             }
             if (attachedMedia.length > 0) {
-              Alert.alert(t('composer.notAvailable'), t('composer.noVideoWithMedia'));
+              notify(t('composer.notAvailable'), t('composer.noVideoWithMedia'));
               continue;
             }
             // Validar duración (asset.duration viene en milisegundos)
@@ -567,7 +565,7 @@ ${message}`);
             break; // Solo 1 video
           } else {
             if (attachedMedia.some(m => m.type === 'video')) {
-              Alert.alert(t('composer.notAvailable'), t('composer.noImagesWithVideo'));
+              notify(t('composer.notAvailable'), t('composer.noImagesWithVideo'));
               continue;
             }
             const ar = asset.width && asset.height ? asset.width / asset.height : undefined;
@@ -583,7 +581,7 @@ ${message}`);
         setAttachedMedia(prev => [...prev, ...newMedia]);
       }
     } catch (error) {
-      Alert.alert(t('common.error'), t('composer.pickImagesFailed'));
+      notify(t('common.error'), t('composer.pickImagesFailed'));
     }
   };
 
@@ -593,14 +591,19 @@ ${message}`);
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       
       if (!permissionResult.granted) {
-        Alert.alert(
+        /*
+         * `confirmAction` y no un `Alert.alert` con botones: la cámara también se abre desde la web, y ahí
+         * `Alert.alert` no pinta nada ni corre ningún botón. En el teléfono el diálogo es el mismo —Cancelar y el
+         * botón de ajustes, con los mismos textos— y pedir el permiso otra vez sigue siendo lo que hace ese botón.
+         */
+        const otraVez = await confirmAction(
           t('composer.permissionsNeeded'),
           t('composer.cameraForPhotos'),
-          [
-            { text: t('common.cancel'), style: 'cancel' },
-            { text: t('composer.goToSettings'), onPress: () => ImagePicker.requestCameraPermissionsAsync() }
-          ]
+          t('composer.goToSettings'),
+          false,
+          t,
         );
+        if (otraVez) ImagePicker.requestCameraPermissionsAsync();
         return;
       }
 
@@ -624,7 +627,7 @@ ${message}`);
         setAttachedMedia(prev => [...prev, newMedia]);
       }
     } catch (error) {
-      Alert.alert(t('common.error'), t('composer.takePhotoFailed'));
+      notify(t('common.error'), t('composer.takePhotoFailed'));
     }
   };
 
@@ -644,7 +647,7 @@ ${message}`);
 
   const handlePublish = async () => {
     if (!canPublish || !user || !userProfile) {
-      Alert.alert(t('common.error'), t('composer.mustSignIn'));
+      notify(t('common.error'), t('composer.mustSignIn'));
       return;
     }
 
@@ -1045,7 +1048,7 @@ ${message}`);
 
   const renderDestinos = () => (
     <View style={styles.destinos}>
-      <Text style={[styles.destinosRotulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">
+      <Text style={[styles.destinosRotulo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('composer.publishIn'))]} accessibilityRole="header">
         {t('composer.publishIn')}
       </Text>
       <View style={styles.destinosRejilla}>
@@ -1189,11 +1192,11 @@ ${message}`);
         {!!place && (
           <View
             style={[styles.chipLugar, { backgroundColor: theme.colors.accent + '1F', borderColor: theme.colors.accent + '66' }]}
-            accessibilityLabel={t('composer.placeIs', { lugar: etiquetaDeLugar({ place }) || '' })}
+            accessibilityLabel={t('composer.placeIs', { lugar: etiquetaDeLugar({ place }, locale) || '' })}
           >
             <Ionicons name="location" size={scale(15)} color={theme.colors.accentDark} />
             <Text style={[styles.chipLugarTexto, { color: theme.colors.text }]} numberOfLines={1}>
-              {etiquetaDeLugar({ place })}
+              {etiquetaDeLugar({ place }, locale)}
             </Text>
             <TouchableOpacity
               onPress={() => setPlace(undefined)}
@@ -1450,12 +1453,9 @@ ${message}`);
      * aplica el compositor por el otro lado, y vive en un solo sitio.
      */
     if (!puedeLlevarEncuesta(attachedMedia)) {
-      Alert.alert(
-        t('composer.notAvailable'),
-        attachedMedia.some((m) => m.type === 'video')
+      notify(t('composer.notAvailable'), attachedMedia.some((m) => m.type === 'video')
           ? t('composer.pollWithVideo')
-          : t('composer.pollMaxPhotos', { contador: MAX_IMAGENES_CON_ENCUESTA })
-      );
+          : t('composer.pollMaxPhotos', { contador: MAX_IMAGENES_CON_ENCUESTA }));
       return;
     }
     setPoll(encuestaVacia());

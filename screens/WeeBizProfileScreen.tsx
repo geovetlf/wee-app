@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Linking,
-  Alert,
   Platform,
   BackHandler,
   Image,
@@ -19,7 +18,7 @@ import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navig
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
@@ -29,24 +28,19 @@ import { getCategoryById } from '../constants/weebizCategories';
 import { weeBizService, Business, Product, Review } from '../services/weeBizService';
 import { messagesService, ParticipantData } from '../services/messagesService';
 import { cloudinaryThumb } from '../services/cloudinaryService';
-import { formatNumber } from '../data/mockData';
+import { formatNumber } from '../utils/formatoCorto';
 
 type RoutePropType = RouteProp<MainStackParamList, 'WeeBizProfile'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 // Follow para negocios: usa colección businessFollows con ID {userId}_{businessId}
-import {
-  doc,
-  getDoc,
-  setDoc,
-  deleteDoc,
-  Timestamp,
-} from 'firebase/firestore';
+import { doc, getDoc, increment, Timestamp, runTransaction } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import { confirmAction, notify } from '../utils/notify';
 
 const WeeBizProfileScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -108,9 +102,12 @@ const WeeBizProfileScreen: React.FC = () => {
       setBusiness(biz);
       setProducts(prods.slice(0, 4));
       setReviews(revs);
-      // Check if current user already reviewed
+      /*
+       * ¿Ya reseñó esta persona? Se pregunta por SU reseña, no se busca entre las diez últimas: quien tenía una
+       * antigua (id automático) más abajo veía el botón, creaba otra en su id y contaba dos veces en la media.
+       */
       if (activeUid) {
-        const myReview = revs.find(r => r.userId === activeUid);
+        const myReview = revs.find(r => r.userId === activeUid) || (await weeBizService.getUserReview(businessId, activeUid));
         setUserReview(myReview || null);
       }
     } catch (e) {
@@ -137,19 +134,35 @@ const WeeBizProfileScreen: React.FC = () => {
       setFollowLoading(true);
       const followId = `${activeUid}_biz_${businessId}`;
       const followRef = doc(db, 'businessFollows', followId);
-
+      const negocioRef = doc(db, 'businesses', businessId);
+      /*
+       * SEGUIR Y SU CONTADOR, EN UNA SOLA ESCRITURA. Antes eran dos: el documento de `businessFollows` y, después,
+       * `followersCount` del negocio. Si la segunda fallaba, el seguimiento quedaba hecho (o deshecho) con el contador
+       * sin mover, y la pantalla ni siquiera se enteraba. Ahora van en una TRANSACCIÓN: o las dos, o ninguna.
+       * El contador se mueve de uno en uno, que es lo que exige `contadorSano('followersCount')` en firestore.rules,
+       * y nunca baja de cero: la transacción lee el contador DEL SERVIDOR (no el que tiene la pantalla, que puede estar
+       * desfasado) y, si ya está en cero —un desfase heredado de cuando eran dos escrituras—, dejar de seguir borra el
+       * seguimiento sin restar, en vez de que la regla tumbe la escritura entera y no se pueda dejar de seguir.
+       */
+      await runTransaction(db, async (tx) => {
+        const negocio = await tx.get(negocioRef);
+        const enElServidor = Number(negocio.data()?.followersCount ?? 0);
+        if (isFollowing) {
+          tx.delete(followRef);
+          if (enElServidor > 0) tx.update(negocioRef, { followersCount: increment(-1) });
+        } else {
+          tx.set(followRef, {
+            userId: activeUid,
+            businessId,
+            createdAt: Timestamp.now(),
+          });
+          tx.update(negocioRef, { followersCount: increment(1) });
+        }
+      });
       if (isFollowing) {
-        await deleteDoc(followRef);
-        await weeBizService.incrementFollowers(businessId, -1);
         setIsFollowing(false);
         setBusiness(prev => prev ? { ...prev, followersCount: Math.max(0, prev.followersCount - 1) } : prev);
       } else {
-        await setDoc(followRef, {
-          userId: activeUid,
-          businessId,
-          createdAt: Timestamp.now(),
-        });
-        await weeBizService.incrementFollowers(businessId, 1);
         setIsFollowing(true);
         setBusiness(prev => prev ? { ...prev, followersCount: prev.followersCount + 1 } : prev);
       }
@@ -165,6 +178,7 @@ const WeeBizProfileScreen: React.FC = () => {
 
     try {
       // Obtener datos del dueño del negocio para crear/abrir conversación
+      /* El nombre de respaldo NO pasa por t(): se GUARDA en `participantsData` de la conversación. Es dato. */
       const currentUserData: ParticipantData = {
         displayName: userProfile?.displayName || 'Usuario',
         avatarType: userProfile?.avatarType as any,
@@ -198,7 +212,7 @@ const WeeBizProfileScreen: React.FC = () => {
       });
     } catch (e) {
       console.error('Error opening conversation:', e);
-      Alert.alert('Error', t('weebiz.chatFailed'));
+      notify(t('common.error'), t('weebiz.chatFailed'));
     }
   };
 
@@ -207,18 +221,19 @@ const WeeBizProfileScreen: React.FC = () => {
     let url = business.externalLink;
     if (!url.startsWith('http')) url = 'https://' + url;
     Linking.openURL(url).catch(() => {
-      Alert.alert('Error', t('weebiz.linkFailed'));
+      notify(t('common.error'), t('weebiz.linkFailed'));
     });
   };
 
   const handleSubmitReview = async () => {
     if (!activeUid || !business) return;
     if (!reviewText.trim()) {
-      Alert.alert(t('weebiz.requiredTitle'), t('weebiz.opinionRequired'));
+      notify(t('weebiz.requiredTitle'), t('weebiz.opinionRequired'));
       return;
     }
     try {
       setSavingReview(true);
+      /* Ídem: el nombre de respaldo se GUARDA en la reseña (`userName`), no se pinta desde aquí. */
       await weeBizService.createReview(businessId, {
         userId: activeUid,
         userName: userProfile?.displayName || 'Usuario',
@@ -239,34 +254,32 @@ const WeeBizProfileScreen: React.FC = () => {
       setUserReview(revs.find(r => r.userId === activeUid) || null);
     } catch (e) {
       console.error('Error submitting review:', e);
-      Alert.alert('Error', t('weebiz.reviewFailed'));
+      notify(t('common.error'), t('weebiz.reviewFailed'));
     } finally {
       setSavingReview(false);
     }
   };
 
-  const handleDeleteReview = () => {
+  /*
+   * Borrar la reseña propia. Con `Alert.alert` el borrado vivía en el `onPress` de su botón, y en la web no salía ni
+   * se llamaba nada. `confirmAction`: el mismo diálogo en el teléfono, `window.confirm` en la web.
+   */
+  const handleDeleteReview = async () => {
     if (!userReview?.id) return;
-    Alert.alert(t('weebiz.deleteReviewTitle'), t('weebiz.deleteReviewConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'), style: 'destructive',
-        onPress: async () => {
-          try {
-            await weeBizService.deleteReview(businessId, userReview.id!);
-            const [revs, biz] = await Promise.all([
-              weeBizService.getReviews(businessId, 10),
-              weeBizService.getBusinessById(businessId),
-            ]);
-            setReviews(revs);
-            setBusiness(biz);
-            setUserReview(null);
-          } catch (e) {
-            console.error('Error deleting review:', e);
-          }
-        },
-      },
-    ]);
+    const reviewId = userReview.id;
+    if (!(await confirmAction(t('weebiz.deleteReviewTitle'), t('weebiz.deleteReviewConfirm'), t('common.delete'), true, t))) return;
+    try {
+      await weeBizService.deleteReview(businessId, reviewId);
+      const [revs, biz] = await Promise.all([
+        weeBizService.getReviews(businessId, 10),
+        weeBizService.getBusinessById(businessId),
+      ]);
+      setReviews(revs);
+      setBusiness(biz);
+      setUserReview(null);
+    } catch (e) {
+      console.error('Error deleting review:', e);
+    }
   };
 
   const renderStars = (rating: number, interactive = false, onSelect?: (r: number) => void) => (
@@ -288,10 +301,11 @@ const WeeBizProfileScreen: React.FC = () => {
     </View>
   );
 
+  /* La fecha de una reseña la escribe Intl con el locale de quien mira, no clavada a es-ES. */
   const fmtDate = (ts: any) => {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formato.fecha(d, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   if (loading) {
@@ -361,7 +375,7 @@ const WeeBizProfileScreen: React.FC = () => {
             <View style={[styles.categoryBadge, { backgroundColor: category.color + '20' }]}>
               <Ionicons name={category.icon as any} size={scale(14)} color={category.color} />
               <Text style={[styles.categoryBadgeText, { color: category.color }]}>
-                {category.label}
+                {t(category.clave)}
               </Text>
               {business.subcategory ? (
                 <Text style={[styles.subcategoryText, { color: category.color }]}>
@@ -377,7 +391,7 @@ const WeeBizProfileScreen: React.FC = () => {
               <View style={styles.metaItem}>
                 <Ionicons name="star" size={scale(14)} color="#F5B731" />
                 <Text style={[styles.metaText, { color: theme.colors.text }]}>
-                  {business.auraScore.toFixed(1)} Aura
+                  {formato.numero(business.auraScore, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Aura
                 </Text>
               </View>
             )}
@@ -395,7 +409,7 @@ const WeeBizProfileScreen: React.FC = () => {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {formatNumber(business.followersCount)}
+                {formatNumber(business.followersCount, locale)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
                 {t('weebiz.followers')}
@@ -404,7 +418,7 @@ const WeeBizProfileScreen: React.FC = () => {
             {business.reviewCount > 0 && (
               <View style={styles.statItem}>
                 <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                  {formatNumber(business.reviewCount)}
+                  {formatNumber(business.reviewCount, locale)}
                 </Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
                   {t('weebiz.reviews')}
@@ -443,7 +457,7 @@ const WeeBizProfileScreen: React.FC = () => {
                     styles.followBtnText,
                     { color: isFollowing ? (category?.color || theme.colors.primary) : '#FFF' },
                   ]}>
-                    {isFollowing ? 'Siguiendo' : 'Seguir'}
+                    {isFollowing ? t('weebiz.following') : t('weebiz.follow')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -495,7 +509,7 @@ const WeeBizProfileScreen: React.FC = () => {
               activeOpacity={0.7}
             >
               <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>
-                {isOwner ? 'Administrar' : 'Ver todos'}
+                {isOwner ? t('weebiz.manageProducts') : t('weebiz.seeAllProducts')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -514,7 +528,7 @@ const WeeBizProfileScreen: React.FC = () => {
                     )}
                     <Text style={[styles.productMiniName, { color: theme.colors.text }]} numberOfLines={1}>{prod.name}</Text>
                     <Text style={[styles.productMiniPrice, { color: theme.colors.primary }]}>
-                      {prod.price > 0 ? `${prod.currency} ${prod.price.toFixed(2)}` : 'Consultar'}
+                      {prod.price > 0 ? `${prod.currency} ${formato.numero(prod.price, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : t('weebiz.priceOnRequest')}
                     </Text>
                   </View>
                 );
@@ -524,7 +538,7 @@ const WeeBizProfileScreen: React.FC = () => {
             <View style={styles.placeholderSection}>
               <Ionicons name="cube-outline" size={scale(32)} color={theme.colors.textSecondary} />
               <Text style={[styles.placeholderText, { color: theme.colors.textSecondary }]}>
-                {isOwner ? 'Agrega tu primer producto' : t('weebiz.noProductsYet')}
+                {isOwner ? t('weebiz.addFirstProduct') : t('weebiz.noProductsYet')}
               </Text>
               {isOwner && (
                 <TouchableOpacity
@@ -543,9 +557,9 @@ const WeeBizProfileScreen: React.FC = () => {
         <View style={[styles.section, { borderTopColor: theme.colors.border }]}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              Reseñas {reviews.length > 0 ? `(${reviews.length})` : ''}
+              {reviews.length > 0 ? t('weebiz.reviewsCount', { cantidad: reviews.length }) : t('weebiz.reviews')}
             </Text>
-            {!isOwner && !userReview && activeUid && (
+            {!!(!isOwner && !userReview && activeUid) && (
               <TouchableOpacity onPress={() => setReviewModalVisible(true)}>
                 <Text style={[styles.seeAllText, { color: theme.colors.primary }]}>{t('weebiz.writeReview')}</Text>
               </TouchableOpacity>
@@ -577,7 +591,7 @@ const WeeBizProfileScreen: React.FC = () => {
               <Text style={[styles.placeholderText, { color: theme.colors.textSecondary }]}>
                 {t('weebiz.noReviewsYet')}
               </Text>
-              {!isOwner && activeUid && (
+              {!!(!isOwner && activeUid) && (
                 <TouchableOpacity
                   style={[styles.addProductBtn, { borderColor: theme.colors.primary }]}
                   onPress={() => setReviewModalVisible(true)}

@@ -1,0 +1,256 @@
+import { createHash } from 'node:crypto';
+import {
+  CAPACIDADES_DE_MC1,
+  CapacidadDeAlmacen,
+  DesenlaceDeBorrado,
+  DesenlaceDeFirma,
+  DesenlaceDeGuardado,
+  DesenlaceDeLectura,
+  DesenlaceDeListado,
+  PeticionDeListado,
+  DesenlaceDeSubidaDirecta,
+  PeticionDeSubidaDirecta,
+  DescriptorDeProveedorDeMedios,
+  ObjetoGuardado,
+  PeticionDeGuardado,
+  PuertoDeAlmacenamiento,
+  StorageRef,
+  esStorageRef,
+  falloDeAlmacen,
+} from '../core';
+
+/**
+ * UN ALMACÉN DE MENTIRA, PARA PODER PROBAR EL DE VERDAD.
+ *
+ * Cumple el mismo puerto y las mismas reglas que el adaptador real —incluida la
+ * de guardar solo si la clave está libre—, pero los bytes viven en un `Map` que
+ * muere con el test.
+ *
+ * ── Lo que NO es ────────────────────────────────────────────────────────────
+ *
+ * No es un segundo sistema de almacenamiento. No se compone en producción, no
+ * se exporta desde ninguna Function, y no aparece en el registro vivo. Si un
+ * día alguien lo enchufara a algo real, guardaría en memoria y lo perdería todo
+ * al reiniciar — por eso su identificador es `fake` y no se disfraza de nada.
+ *
+ * Determinista, sin red, sin temporizadores y aislado por instancia: dos tests
+ * que creen el suyo no se ven.
+ */
+
+export const FAKE_PROVIDER_ID = 'fake';
+
+/** Lo mismo que sabe hacer el adaptador real, para que una prueba pruebe lo mismo. */
+export const CAPACIDADES_DE_FALSO: readonly CapacidadDeAlmacen[] = Object.freeze([...CAPACIDADES_DE_MC1, 'object.signedUrl', 'object.upload', 'object.get', 'object.list'] as const);
+
+export const DESCRIPTOR_FALSO: DescriptorDeProveedorDeMedios = Object.freeze({
+  id: FAKE_PROVIDER_ID,
+  name: 'Almacén de mentira (solo pruebas)',
+  estado: 'UNVERIFIED',
+  capacidades: CAPACIDADES_DE_FALSO,
+  limites: Object.freeze({ maxLargoDeClave: 1024 }),
+});
+
+interface Guardado {
+  cuerpo: Buffer;
+  contentType: string;
+  metadatos: Record<string, string>;
+  etag: string;
+  actualizadoEn: number;
+}
+
+export interface AlmacenFalso extends PuertoDeAlmacenamiento {
+  /** Para poder mirar por dentro en una prueba, sin pasar por el puerto. */
+  readonly contenido: ReadonlyMap<string, Guardado>;
+  /** Cuántas veces se llamó a cada operación: sirve para probar que algo NO se repitió. */
+  readonly llamadas: { guardar: number; mirar: number; borrar: number; listar: number };
+  /** Hacer que la siguiente operación falle, para probar el camino malo. */
+  fallarUnaVez(motivo: 'proveedor_no_disponible' | 'sin_permiso'): void;
+}
+
+const claveDe = (ref: StorageRef): string => `${ref.provider}|${ref.bucket ?? ''}|${ref.objectKey}`;
+
+export const crearAlmacenFalso = (opciones: { ahora?: () => number; contenedor?: string } = {}): AlmacenFalso => {
+  const contenido = new Map<string, Guardado>();
+  const llamadas = { guardar: 0, mirar: 0, borrar: 0, listar: 0 };
+  const ahora = opciones.ahora ?? (() => Date.now());
+  let falloPendiente: 'proveedor_no_disponible' | 'sin_permiso' | undefined;
+
+  const tomarFallo = () => { const f = falloPendiente; falloPendiente = undefined; return f; };
+  const comoObjeto = (ref: StorageRef, g: Guardado): ObjetoGuardado => ({
+    ref, bytes: g.cuerpo.length, contentType: g.contentType, etiquetaDelProveedor: g.etag, actualizadoEn: g.actualizadoEn,
+  });
+
+  return {
+    providerId: FAKE_PROVIDER_ID,
+    capacidades: CAPACIDADES_DE_FALSO,
+    /* Suyo, como el de cualquier adaptador: nadie de fuera se lo dice al guardar. */
+    ...(opciones.contenedor ? { contenedor: opciones.contenedor } : {}),
+    contenido,
+    llamadas,
+    fallarUnaVez(motivo) { falloPendiente = motivo; },
+
+    async guardar(peticion: PeticionDeGuardado): Promise<DesenlaceDeGuardado> {
+      llamadas.guardar++;
+      const f = tomarFallo();
+      if (f) return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, f) };
+      if (!esStorageRef(peticion.destino) || peticion.destino.provider !== FAKE_PROVIDER_ID) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'destino' }) };
+      }
+      if (!Buffer.isBuffer(peticion.cuerpo) || !peticion.cuerpo.length) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'cuerpo' }) };
+      }
+      const k = claveDe(peticion.destino);
+      const previo = contenido.get(k);
+      /* La MISMA regla que el adaptador real: solo si está libre. */
+      if (previo && peticion.siNoExiste) return { ok: true, yaExistia: true, objeto: comoObjeto(peticion.destino, previo) };
+
+      const g: Guardado = {
+        cuerpo: Buffer.from(peticion.cuerpo),
+        contentType: peticion.contentType || 'application/octet-stream',
+        metadatos: { ...(peticion.metadatos ?? {}) },
+        /* Un `ETag` creíble: el resumen del cuerpo, como hacen S3 y R2 con una subida simple. */
+        etag: createHash('md5').update(peticion.cuerpo).digest('hex'),
+        actualizadoEn: ahora(),
+      };
+      contenido.set(k, g);
+      return { ok: true, yaExistia: false, objeto: comoObjeto(peticion.destino, g) };
+    },
+
+    async mirar(ref: StorageRef): Promise<DesenlaceDeLectura> {
+      llamadas.mirar++;
+      const f = tomarFallo();
+      if (f) return { ok: false, motivo: 'fallo', error: falloDeAlmacen(FAKE_PROVIDER_ID, f) };
+      if (!esStorageRef(ref) || ref.provider !== FAKE_PROVIDER_ID) {
+        return { ok: false, motivo: 'fallo', error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'ref' }) };
+      }
+      const g = contenido.get(claveDe(ref));
+      return g ? { ok: true, objeto: comoObjeto(ref, g) } : { ok: false, motivo: 'no_existe' };
+    },
+
+    /**
+     * UNA LLAVE DE MENTIRA, PERO CON LAS MISMAS REGLAS.
+     *
+     * `fake.invalid` es un dominio que no existe y no puede existir: el TLD
+     * `.invalid` está reservado para esto justamente, así que si esta URL se
+     * escapara alguna vez a producción no llegaría a ningún sitio. Determinista
+     * y con su caducidad dentro, para que una prueba pueda comprobar las dos
+     * cosas sin red.
+     */
+    async urlFirmada(ref: StorageRef, vigenciaSegundos: number): Promise<DesenlaceDeFirma> {
+      if (!esStorageRef(ref) || ref.provider !== FAKE_PROVIDER_ID) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'ref' }) };
+      }
+      if (!Number.isInteger(vigenciaSegundos) || vigenciaSegundos < 1) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'vigenciaSegundos' }) };
+      }
+      if (!contenido.has(claveDe(ref))) return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'ref', reason_detail: 'no_existe' }) };
+      const desde = ahora();
+      const firma = createHash('sha256').update(`${claveDe(ref)}|${desde}|${vigenciaSegundos}`, 'utf8').digest('hex').slice(0, 32);
+      return {
+        ok: true,
+        url: `https://fake.invalid/object/${encodeURIComponent(ref.objectKey)}?expira=${desde + vigenciaSegundos * 1000}&firma=${firma}`,
+        expiraEn: desde + vigenciaSegundos * 1000,
+      };
+    },
+
+    /**
+     * UN PERMISO DE SUBIDA DE MENTIRA, CON LAS MISMAS REGLAS.
+     *
+     * Devuelve las mismas cabeceras obligatorias que el real —porque en el real
+     * van firmadas— para que una prueba pueda comprobar que quien sube está
+     * atado al tipo que se declaró. Igual que el real, firma aunque la clave
+     * esté ocupada: quien rechaza la segunda escritura es el propio almacén.
+     */
+    async urlDeSubida(peticion: PeticionDeSubidaDirecta): Promise<DesenlaceDeSubidaDirecta> {
+      if (!esStorageRef(peticion.destino) || peticion.destino.provider !== FAKE_PROVIDER_ID) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'destino' }) };
+      }
+      if (!Number.isInteger(peticion.vigenciaSegundos) || peticion.vigenciaSegundos < 1) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'vigenciaSegundos' }) };
+      }
+      if (typeof peticion.contentType !== 'string' || !peticion.contentType) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'contentType' }) };
+      }
+      if (!Number.isSafeInteger(peticion.maxBytes) || peticion.maxBytes < 1) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'maxBytes' }) };
+      }
+      const desde = ahora();
+      const firma = createHash('sha256').update(`subida|${claveDe(peticion.destino)}|${desde}|${peticion.vigenciaSegundos}`, 'utf8').digest('hex').slice(0, 32);
+      return {
+        ok: true,
+        metodo: 'PUT',
+        url: `https://fake.invalid/upload/${encodeURIComponent(peticion.destino.objectKey)}?expira=${desde + peticion.vigenciaSegundos * 1000}&firma=${firma}`,
+        cabeceras: Object.freeze({
+          'content-type': peticion.contentType,
+          ...(peticion.siNoExiste ? { 'if-none-match': '*' } : {}),
+        }),
+        expiraEn: desde + peticion.vigenciaSegundos * 1000,
+      };
+    },
+
+    /** Traer los bytes, con las mismas reglas: los de otro proveedor no se leen. */
+    async traer(ref: StorageRef): Promise<DesenlaceDeLectura & { cuerpo?: Buffer }> {
+      const leido = await this.mirar(ref);
+      if (!leido.ok) return leido;
+      const g = contenido.get(claveDe(ref));
+      return g ? { ...leido, cuerpo: Buffer.from(g.cuerpo) } : { ok: false, motivo: 'no_existe' };
+    },
+
+    async borrar(ref: StorageRef): Promise<DesenlaceDeBorrado> {
+      llamadas.borrar++;
+      const f = tomarFallo();
+      if (f) return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, f) };
+      if (!esStorageRef(ref) || ref.provider !== FAKE_PROVIDER_ID) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'ref' }) };
+      }
+      const k = claveDe(ref);
+      const habia = contenido.has(k);
+      contenido.delete(k);
+      return { ok: true, yaNoEstaba: !habia };
+    },
+
+    /**
+     * MC-9 · ENUMERAR, con paginación de verdad.
+     *
+     * Pagina de verdad y no de mentira a propósito: el caso que importa probar
+     * es el TRUNCADO —una página con cursor pendiente—, porque es el que no
+     * puede autorizar ningún borrado por ausencia. Un falso que devolviera todo
+     * de una vez no ejercitaría nunca esa rama.
+     */
+    async listar(peticion: PeticionDeListado): Promise<DesenlaceDeListado> {
+      llamadas.listar++;
+      const f = tomarFallo();
+      if (f) return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, f) };
+      if (typeof peticion?.prefijo !== 'string' || !peticion.prefijo) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'prefijo' }) };
+      }
+      if (!Number.isSafeInteger(peticion.limite) || peticion.limite < 1) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'limite' }) };
+      }
+
+      const todas = [...contenido.entries()]
+        .map(([k, g]) => ({ objectKey: k.split('|')[2] ?? '', g }))
+        .filter((x) => x.objectKey.startsWith(peticion.prefijo))
+        .sort((a, b) => (a.objectKey < b.objectKey ? -1 : a.objectKey > b.objectKey ? 1 : 0));
+
+      const desde = peticion.cursor ? todas.findIndex((x) => x.objectKey === peticion.cursor) + 1 : 0;
+      if (peticion.cursor && desde === 0) {
+        return { ok: false, error: falloDeAlmacen(FAKE_PROVIDER_ID, 'peticion_invalida', { field: 'cursor' }) };
+      }
+      const trozo = todas.slice(desde, desde + peticion.limite);
+      const hayMas = desde + peticion.limite < todas.length;
+
+      return {
+        ok: true,
+        objetos: trozo.map((x) => ({
+          objectKey: x.objectKey,
+          bytes: x.g.cuerpo.length,
+          contentType: x.g.contentType,
+          etiquetaDelProveedor: x.g.etag,
+          modificadoEn: x.g.actualizadoEn,
+        })),
+        ...(hayMas && trozo.length ? { cursor: trozo[trozo.length - 1].objectKey } : {}),
+      };
+    },
+  };
+};

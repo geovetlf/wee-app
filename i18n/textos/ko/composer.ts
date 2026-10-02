@@ -68,7 +68,7 @@ export const composer: typeof import('../es/composer').composer = {
   removeMentions_one: '멘션 제거',
   removeMentions_other: '멘션 제거',
   signInToMention: 'ËContact 멘션하려면 Weë에 로그인해 주세요.',
-  bizNoAgenda: 'Biz 프로필에는 ËContact 주소록이 없어요. 누군가를 멘션하려면 실제 프로필이나 Weë 프로필로 바꿔주세요.',
+  profileNoAgenda: '이 프로필에는 ËContact 주소록이 없어요. 누군가를 멘션하려면 실제 프로필이나 Weë 프로필로 전환해 주세요.',
   noContactsYet: '아직 {{lista}}에 아무도 없어요. 다른 사람의 프로필에서 연결하면 여기에 나타나고, 멘션할 수 있어요.',
   mentionAnyone: '{{lista}}에서 원하는 사람을 멘션해 보세요',
   publishIn: '게시 위치',
@@ -141,4 +141,8 @@ export const composer: typeof import('../es/composer').composer = {
   askCommunity: '커뮤니티에 질문하기',
   applyingFaceSwap: 'face swap 적용 중...',
   searchPlaceHint: '게시물에 태그할 도시나 국가를 검색해 보세요.',
+  aiProcessCreatedWith: 'Weë AI의 {{nombre}}에서 만들었어요',
+  aiProcessDemoPreview: '{{proceso}} (데모 모드 미리보기)',
+  distanceUnder: '{{distancia}} 이내',
+  distanceOver: '{{distancia}} 이상',
 };

@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   Platform,
   ScrollView,
   ActivityIndicator,
@@ -14,12 +13,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth, googleSignInDisponible } from '../contexts/AuthContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { useNavigation } from '@react-navigation/native';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
+import { notify } from '../utils/notify';
 const LoginScreen: React.FC = () => {
-  const t = useT();
+  const { t, idioma } = useIdioma();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -54,7 +54,7 @@ const LoginScreen: React.FC = () => {
       if (Platform.OS === 'web') {
         alert(t('auth.fillAllFields'));
       } else {
-        Alert.alert(t('common.error'), t('auth.fillAllFields'));
+        notify(t('common.error'), t('auth.fillAllFields'));
       }
       return;
     }
@@ -99,7 +99,7 @@ const LoginScreen: React.FC = () => {
       if (Platform.OS === 'web') {
         alert(errorMessage);
       } else {
-        Alert.alert(t('auth.authErrorTitle'), errorMessage);
+        notify(t('auth.authErrorTitle'), errorMessage);
       }
     }
   };
@@ -118,7 +118,7 @@ const LoginScreen: React.FC = () => {
       if (Platform.OS === 'web') {
         alert(message);
       } else {
-        Alert.alert(t('common.error'), message);
+        notify(t('common.error'), message);
       }
     } finally {
       // Siempre resetear el loading
@@ -142,7 +142,7 @@ const LoginScreen: React.FC = () => {
       if (Platform.OS === 'web') {
         alert(message);
       } else {
-        Alert.alert(t('common.error'), message);
+        notify(t('common.error'), message);
       }
     }
   };
@@ -153,18 +153,19 @@ const LoginScreen: React.FC = () => {
       if (Platform.OS === 'web') {
         alert(message);
       } else {
-        Alert.alert(t('auth.emailRequiredTitle'), message);
+        notify(t('auth.emailRequiredTitle'), message);
       }
       return;
     }
 
     try {
-      await resetPassword(email);
+      /* El correo, en el idioma de la app (Firebase usa su plantilla de ese idioma). */
+      await resetPassword(email, idioma);
       const message = t('auth.resetEmailSent');
       if (Platform.OS === 'web') {
         alert(message);
       } else {
-        Alert.alert(t('auth.emailSentTitle'), message);
+        notify(t('auth.emailSentTitle'), message);
       }
     } catch (error: any) {
       console.warn('Restablecer contraseña fallido:', error?.code || error);
@@ -172,7 +173,7 @@ const LoginScreen: React.FC = () => {
       if (Platform.OS === 'web') {
         alert(message);
       } else {
-        Alert.alert(t('common.error'), message);
+        notify(t('common.error'), message);
       }
     }
   };

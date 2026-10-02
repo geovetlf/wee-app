@@ -21,4 +21,10 @@ export const search: typeof import('../es/search').search = {
   member: 'Mitglied',
   typeTwoForPeople: 'Gib mindestens 2 Zeichen ein, um nach Personen zu suchen',
   typeTwoForPosts: 'Gib mindestens 2 Buchstaben ein, um nach Beiträgen zu suchen',
+  peopleFound: 'Gefundene Personen',
+  searchPeople: 'Personen suchen',
+  noPeopleFor: 'Keine Personen für „{{busqueda}}“ gefunden',
+  postsFound: 'Gefundene Beiträge',
+  searchPosts: 'Beiträge suchen',
+  noPostsFor: 'Wir haben keine Beiträge für „{{busqueda}}“ gefunden',
 };

@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë a besoin d’accéder à ton appareil photo afin que tu puisses prendre des photos pour tes publications, ton profil, WeeTalk et Weë AI.",
+    "NSMicrophoneUsageDescription": "Weë a besoin d’accéder à ton micro afin que tu puisses enregistrer et envoyer des notes vocales dans WeeTalk.",
+    "NSPhotoLibraryUsageDescription": "Weë a besoin d’accéder à ta galerie afin que tu puisses choisir des photos et des vidéos pour tes publications, ton profil, WeeTalk et Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Weë a besoin de ton autorisation pour enregistrer dans ta galerie les images et les vidéos que tu télécharges depuis Weë AI.",
+    "NSLocationWhenInUseUsageDescription": "Weë utilise ta localisation approximative uniquement lorsque l’application est ouverte, pour te suggérer ta zone et des lieux près de toi quand tu ajoutes un lieu à une publication. Ta localisation exacte n’est jamais affichée publiquement."
+  }
+}

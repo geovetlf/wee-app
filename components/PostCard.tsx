@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Share,
-  Alert,
   Linking,
   ScrollView,
   NativeSyntheticEvent,
@@ -29,7 +28,7 @@ import { esPublicacionDePreview } from '../utils/previewWall';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
-import { notify } from '../utils/notify';
+import { confirmAction, notify } from '../utils/notify';
 import { useIdioma } from '../contexts/IdiomaContext';
 import ShareablePostCard from './ShareablePostCard';
 import { cloudinaryThumb, cloudinaryFeed } from '../services/cloudinaryService';
@@ -39,6 +38,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById } from '../hooks/useUserById';
+import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { useVote } from '../hooks/useVote';
 import { useReposts } from '../hooks/useReposts';
 import { useBookmarks } from '../hooks/useBookmarks';
@@ -46,9 +46,10 @@ import { useCommunityById } from '../hooks/useCommunityById';
 import { Post, postsService } from '../services/firestoreService';
 import { Timestamp } from 'firebase/firestore';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
-import { formatNumber, getRelativeTime } from '../data/mockData';
+import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import ImageViewer from './ImageViewer';
+import ReportSheet from './ReportSheet';
 import Poll from './Poll';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -56,6 +57,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { alturaVisibleDelMuro, medidaDelMedio, topeDeLaFoto, topeDelMedio, ventanaDelPreview } from '../utils/medidaDelMedio';
 import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } from '../utils/imageDimensionCache';
 import { getCachedVideoAspectRatio, setCachedVideoAspectRatio, fetchAndCacheVideoAspectRatio, proporcionDeLaMedida } from '../utils/videoDimensionCache';
+import { nombreDeComunidad } from '../utils/comunidadesDeWee';
 
 // Enable LayoutAnimation on Android (not on web)
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -177,10 +179,10 @@ const PostCard: React.FC<PostCardProps> = ({
   alturaVisible,
   variante = 'tarjeta',
 }) => {
-  const { t, locale } = useIdioma();
+  const { t, locale, idioma } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile: activeProfile } = useUserProfile();
+  const { userProfile: activeProfile, realProfile, weeProfile } = useUserProfile();
   const navigation = useNavigation<PostCardNavigationProp>();
   const isFocused = useIsFocused();
 
@@ -242,7 +244,7 @@ const PostCard: React.FC<PostCardProps> = ({
    * etiqueta. La bandera solo aparece cuando el lugar viene del catálogo, porque
    * es lo único de lo que Weë tiene certeza.
    */
-  const lugar = useMemo(() => etiquetaDeLugar(post), [post]);
+  const lugar = useMemo(() => etiquetaDeLugar(post, locale), [post, locale]);
   const bandera = useMemo(() => banderaDe(post.place), [post.place]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -271,6 +273,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [denunciando, setDenunciando] = useState(false);
   const [localViews, setLocalViews] = useState(post.views || 0);
   /*
    * El "cargando" es SOLO de la foto, y solo la foto lo necesita: hay que
@@ -427,8 +430,10 @@ const PostCard: React.FC<PostCardProps> = ({
   const menuOpacity = useRef(new Animated.Value(0)).current;
   const menuScale = useRef(new Animated.Value(0.9)).current;
 
-  // Cargar post original si es un repost
+  // Cargar post original si es un repost. La lista recicla la tarjeta con otra publicación: el original que llegue
+  // tarde de la de antes no se pinta dentro de la nueva.
   useEffect(() => {
+    let vivo = true;
     const loadOriginalPost = async () => {
       if (!isRepost || !post.originalPostId) {
         setLoadingOriginal(false);
@@ -438,16 +443,19 @@ const PostCard: React.FC<PostCardProps> = ({
       try {
         setLoadingOriginal(true);
         const original = await postsService.getById(post.originalPostId);
-        setOriginalPost(original);
+        if (vivo) setOriginalPost(original);
       } catch (error) {
         console.error('Error loading original post:', error);
-        setOriginalPost(null);
+        if (vivo) setOriginalPost(null);
       } finally {
-        setLoadingOriginal(false);
+        if (vivo) setLoadingOriginal(false);
       }
     };
 
     loadOriginalPost();
+    return () => {
+      vivo = false;
+    };
   }, [isRepost, post.originalPostId]);
 
   // Verificar si el post pertenece al usuario actual (comparar con perfil activo)
@@ -586,18 +594,29 @@ const PostCard: React.FC<PostCardProps> = ({
     return `${voteStats.agreementPercentage}%`;
   };
 
-  // Navegar al perfil del autor original del post
+  /*
+   * SE ABRE LA ENTIDAD, NO EL uid (Fase 11.x-6).
+   *
+   * El `userId` de una publicación es la cara con la que se publicó, y para
+   * una cara Weë ese valor lleva dentro el identificador de la cuenta: abrirlo
+   * tal cual ponía la cuenta real en la barra de direcciones. Como el perfil
+   * del autor ya está cargado aquí, se navega por su referencia pública —su
+   * entidad— y solo se cae al identificador de siempre mientras el perfil no
+   * haya llegado o si todavía no tiene entidad.
+   */
   const handleProfilePress = () => {
-    const authorId = isRepost && originalPost ? originalPost.userId : post.userId;
-    if (authorId) {
-      navigation.navigate('UserProfile', { userId: authorId });
+    /* `postAuthor` ya ES el autor original cuando esto es un repost: ver arriba. */
+    const autorId = isRepost && originalPost ? originalPost.userId : post.userId;
+    const referencia = referenciaPublicaDe(postAuthor) ?? autorId;
+    if (referencia) {
+      navigation.navigate('UserProfile', { userId: referencia });
     }
   };
 
   // Navegar al perfil del reposteador
   const handleRepostAuthorPress = () => {
     if (isRepost && post.userId) {
-      navigation.navigate('UserProfile', { userId: post.userId });
+      navigation.navigate('UserProfile', { userId: referenciaPublicaDe(repostAuthor) ?? post.userId });
     }
   };
 
@@ -638,7 +657,7 @@ const PostCard: React.FC<PostCardProps> = ({
      * no es lo que la persona quiso mandar.
      */
     if (postToShare.videoUrl) {
-      const compartido = await compartirFueraDeWee(postToShare.id);
+      const compartido = await compartirFueraDeWee(postToShare.id, t('common.share'), idioma);
       if (!compartido) {
         notify(t('wall.shareFailed'));
       }
@@ -699,7 +718,7 @@ const PostCard: React.FC<PostCardProps> = ({
           message: `${postToShare.content}\n\n- ${t('wall.publishedOnWee')}`,
         });
       } catch (e) {
-        Alert.alert(t('common.error'), t('wall.shareFailed'));
+        notify(t('common.error'), t('wall.shareFailed'));
       }
     } finally {
       setIsSharing(false);
@@ -707,33 +726,24 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
-  const handleDeletePost = () => {
+  /*
+   * BORRAR LA PUBLICACIÓN PROPIA. Era un `Alert.alert` con el borrado dentro del `onPress` de su botón, y en la web
+   * `Alert.alert` no pinta nada ni llama a ningún botón: no se podía borrar. `confirmAction` es el mismo diálogo en el
+   * teléfono —Cancelar y Eliminar, destructivo— y `window.confirm` en la web.
+   */
+  const handleDeletePost = async () => {
     setMenuVisible(false);
-    Alert.alert(
-      t('wall.deletePost'),
-      t('wall.deletePostConfirm'),
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (post.id) {
-                await postsService.delete(post.id);
-                console.log('✅ Post eliminado exitosamente');
-              }
-            } catch (error) {
-              console.error('❌ Error eliminando post:', error);
-              Alert.alert(t('common.error'), t('wall.deletePostFailed'));
-            }
-          },
-        },
-      ]
-    );
+    const confirmado = await confirmAction(t('wall.deletePost'), t('wall.deletePostConfirm'), t('common.delete'), true, t);
+    if (!confirmado) return;
+    try {
+      if (post.id) {
+        await postsService.delete(post.id);
+        console.log('✅ Post eliminado exitosamente');
+      }
+    } catch (error) {
+      console.error('❌ Error eliminando post:', error);
+      notify(t('common.error'), t('wall.deletePostFailed'));
+    }
   };
 
   /*
@@ -754,46 +764,24 @@ const PostCard: React.FC<PostCardProps> = ({
     if (!user) { navigateToRegister(); return; }
     if (!postAuthor) return;
     onPrivateMessage(displayPost.userId, {
-      displayName: postAuthor.displayName || 'Usuario',
+      displayName: postAuthor.displayName || t('common.user'),
       avatarType: postAuthor.avatarType,
       avatarId: postAuthor.avatarId,
       photoURL: typeof postAuthor.photoURL === 'string' ? postAuthor.photoURL : undefined,
     });
   };
 
+  /*
+   * DENUNCIAR. Hasta la Fase 12 esto era un `Alert.alert` que escribía en la
+   * consola y daba las gracias por un reporte que no existía —y que en la web ni
+   * se veía, porque allí `Alert.alert` no pinta nada—. Ahora abre la hoja común,
+   * que crea un reporte de verdad en el servidor (docs/MODERATION.md). Sin
+   * sesión, lo mismo que el resto del menú: a registrarse.
+   */
   const handleReportPost = () => {
     setMenuVisible(false);
-    Alert.alert(
-      t('wall.reportPost'),
-      t('wall.reportWhy'),
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: t('wall.reportOffensive'),
-          onPress: () => {
-            console.log('📝 Post reportado: Contenido ofensivo');
-            Alert.alert(t('wall.reportSent'), t('wall.reportThanks'));
-          },
-        },
-        {
-          text: t('wall.reportSpam'),
-          onPress: () => {
-            console.log('📝 Post reportado: Spam');
-            Alert.alert(t('wall.reportSent'), t('wall.reportThanks'));
-          },
-        },
-        {
-          text: t('wall.reportOther'),
-          onPress: () => {
-            console.log('📝 Post reportado: Otro motivo');
-            Alert.alert(t('wall.reportSent'), t('wall.reportThanks'));
-          },
-        },
-      ]
-    );
+    if (!user) { navigateToRegister(); return; }
+    setDenunciando(true);
   };
 
   const handleTextPress = (text: string) => {
@@ -1152,6 +1140,13 @@ const PostCard: React.FC<PostCardProps> = ({
     !isOwnPost && !!postAuthor
     && displayPost.userId !== activeProfile?.uid
     && displayPost.userId !== user?.uid;
+  /*
+   * Lo propio no se denuncia, ni con esta cara ni con la otra. Las dos identidades
+   * se LEEN del contexto —nada se compone a partir de un prefijo—, y se mira la
+   * publicación que se VE: en un repost, la original. El servidor lo comprueba
+   * igual; aquí solo se evita ofrecer un botón que no va a servir.
+   */
+  const puedeDenunciar = ![user?.uid, realProfile?.uid, weeProfile?.uid].filter(Boolean).includes(displayPost.userId);
   const displayAuthor = isRepost && originalPost ? postAuthor : postAuthor;
 
   // Si es un repost y todavía está cargando el original, mostrar loading
@@ -1206,7 +1201,7 @@ const PostCard: React.FC<PostCardProps> = ({
         <Ionicons name="repeat" size={20} color={hasReposted ? theme.colors.accent : theme.colors.textSecondary} />
         <Text style={[styles.menuOptionText, { color: hasReposted ? theme.colors.accent : theme.colors.text }]}>
           {hasReposted ? t('wall.undoRepost') : t('wall.repost')}
-          {repostsCount > 0 ? `  ·  ${formatNumber(repostsCount)}` : ''}
+          {repostsCount > 0 ? `  ·  ${formatNumber(repostsCount, locale)}` : ''}
         </Text>
       </TouchableOpacity>
 
@@ -1223,16 +1218,23 @@ const PostCard: React.FC<PostCardProps> = ({
       )}
 
       {isOwnPost && (
-        <TouchableOpacity style={[styles.menuOption, separadorDelMenu]} onPress={handleDeletePost}>
+        <TouchableOpacity style={[styles.menuOption, puedeDenunciar && separadorDelMenu]} onPress={handleDeletePost}>
           <Ionicons name="trash-outline" size={20} color="#FF3B30" />
           <Text style={[styles.menuOptionText, { color: '#FF3B30' }]}>{t('wall.deletePost')}</Text>
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity style={styles.menuOption} onPress={handleReportPost}>
-        <Ionicons name="flag-outline" size={20} color={theme.colors.textSecondary} />
-        <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('wall.reportPost')}</Text>
-      </TouchableOpacity>
+      {puedeDenunciar && (
+        <TouchableOpacity
+          style={styles.menuOption}
+          onPress={handleReportPost}
+          accessibilityRole="button"
+          accessibilityLabel={t('moderation.report')}
+        >
+          <Ionicons name="flag-outline" size={20} color={theme.colors.textSecondary} />
+          <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('moderation.report')}</Text>
+        </TouchableOpacity>
+      )}
     </>
   );
 
@@ -1271,7 +1273,7 @@ const PostCard: React.FC<PostCardProps> = ({
       )}
 
       {/* Comentario del repost (si existe) */}
-      {isRepost && post.repostComment && (
+      {!!(isRepost && post.repostComment) && (
         <View style={styles.repostCommentContainer}>
           <Text style={[styles.repostComment, { color: theme.colors.text }]}>
             {post.repostComment}
@@ -1350,7 +1352,7 @@ const PostCard: React.FC<PostCardProps> = ({
               {community && (
                 <>
                   <Text style={[styles.metaSeparator, { color: theme.colors.textSecondary }]}>•</Text>
-                  <WeeTag nombre={community.name} icono={community.icon} onPress={handleCommunityPress} />
+                  <WeeTag nombre={nombreDeComunidad(community, t, locale)} icono={community.icon} onPress={handleCommunityPress} />
                 </>
               )}
               {!community && seccion && (
@@ -1423,7 +1425,7 @@ const PostCard: React.FC<PostCardProps> = ({
           <HowIMadeIt post={displayPost} />
         </TouchableOpacity>
         {/* Video rendered outside the content TouchableOpacity so taps reach onVideoPress */}
-        {displayPost.videoUrl && onVideoPress && renderMedia()}
+        {!!(displayPost.videoUrl && onVideoPress) && renderMedia()}
       </View>
 
       {/*
@@ -1450,7 +1452,7 @@ const PostCard: React.FC<PostCardProps> = ({
           <Text style={[styles.actionText, {
             color: voteStats.userVote === 'agree' ? '#22C55E' : theme.colors.textSecondary
           }]}>
-            {formatNumber(voteStats.agreementCount)}
+            {formatNumber(voteStats.agreementCount, locale)}
           </Text>
         </TouchableOpacity>
 
@@ -1469,7 +1471,7 @@ const PostCard: React.FC<PostCardProps> = ({
           <Text style={[styles.actionText, {
             color: voteStats.userVote === 'disagree' ? '#EF4444' : theme.colors.textSecondary
           }]}>
-            {formatNumber(voteStats.disagreementCount)}
+            {formatNumber(voteStats.disagreementCount, locale)}
           </Text>
         </TouchableOpacity>
 
@@ -1486,7 +1488,7 @@ const PostCard: React.FC<PostCardProps> = ({
             color={theme.colors.textSecondary}
           />
           <Text style={[styles.actionText, { color: theme.colors.textSecondary }]}>
-            {formatNumber(post.comments)}
+            {formatNumber(post.comments, locale)}
           </Text>
         </TouchableOpacity>
 
@@ -1527,6 +1529,16 @@ const PostCard: React.FC<PostCardProps> = ({
           imageUrls={displayPost.imageUrls}
           initialIndex={selectedImageIndex}
           onClose={() => setImageViewerVisible(false)}
+        />
+      )}
+
+      {/* Denunciar: se monta solo cuando se abre, para que un muro de cien tarjetas no lleve cien hojas. */}
+      {denunciando && !!displayPost.id && (
+        <ReportSheet
+          visible={denunciando}
+          onClose={() => setDenunciando(false)}
+          objetivo={{ type: 'POST', id: displayPost.id }}
+          surface="post_menu"
         />
       )}
 

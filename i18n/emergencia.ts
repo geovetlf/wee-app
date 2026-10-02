@@ -9,9 +9,13 @@
  * ella y la persona se quedaría mirando una pantalla en blanco—.
  *
  * Así que este archivo NO IMPORTA NADA. Es una variable y dos funciones. El
- * contexto de idioma le deja dicho cuál está puesto cada vez que cambia, y la
- * pantalla de error lo lee sin preguntarle a nadie. Si nunca llegó a
- * escribirse, se queda en inglés, que es la misma reserva que usa el resto.
+ * contexto de idioma le deja dicho en qué lengua está la interfaz cada vez que
+ * cambia, y la pantalla de error lo lee sin preguntarle a nadie. Si nunca llegó
+ * a escribirse, se queda en inglés, que es la misma reserva que usa el resto.
+ *
+ * Lo que se guarda es la lengua del TEXTO con su variante —'ja', 'zh-TW',
+ * 'pt-PT'—, la que calcula `etiquetaDelTexto` en el resolutor. No el locale de
+ * los formatos, que puede ser de otra lengua.
  *
  * No es un segundo sistema de traducción: son tres frases que no pueden
  * depender del sistema de traducción. Cualquier otro texto de Weë va por i18n.
@@ -24,5 +28,5 @@ export const recordarLocale = (locale: string): void => {
   if (locale) localeActual = locale;
 };
 
-/** El último locale conocido. 'en' si todavía no se sabe. */
+/** La última lengua conocida de la interfaz. 'en' si todavía no se sabe. */
 export const localeDeEmergencia = (): string => localeActual;

@@ -1,0 +1,215 @@
+# Despliegue a producción (get-wee) — Weë Agent Harness, FASE 6 (docs/DEPLOYMENT.md §6).
+#
+# EL ÚNICO camino a producción: un commit de main, con los tres niveles de la CI en verde, que no pisa
+# lo que funciona (ops/permitido.mjs), APROBADO por el dueño en el entorno `get-wee`, desplegado con una
+# identidad sin claves (Workload Identity Federation), comprobado con humo sin gasto, con la web
+# comparada archivo a archivo por sha256 y diez minutos de observación de los 5xx. Si algo falla
+# después de desplegar, el tráfico vuelve solo a las revisiones de antes. Queda un tag inmutable con
+# el registro: revisión y digest de imagen de cada función, versión de cada sitio.
+#
+# INACTIVO hasta que el dueño cree el entorno `get-wee` (con él como revisor obligatorio), el proveedor de
+# WIF y la cuenta de despliegue (`node ops/iam/wif.mjs` imprime los comandos) y las variables del entorno:
+# WIF_PROVEEDOR, CUENTA_DE_DESPLIEGUE, WEE_ADMIN_UIDS, R2_ACCOUNT_ID, R2_BUCKET y, solo para
+# hosting:wee-app, las EXPO_PUBLIC_FIREBASE_* (configuración web pública). Ningún secreto vive en GitHub.
+name: Despliegue a producción
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: SHA completo de un commit de main
+        required: true
+        type: string
+      objetivo:
+        description: "Qué desplegar, separado por comas: functions:nombre · firestore:rules · firestore:indexes · storage · hosting:get-wee · hosting:wee-app"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: despliegue-get-wee
+  cancel-in-progress: false # un despliegue a medias no se cancela
+
+jobs:
+  verificar:
+    name: Verificar (main, CI, no pisa producción)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      checks: read
+    outputs:
+      solo: ${{ steps.plan.outputs.solo }}
+      funciones: ${{ steps.plan.outputs.funciones }}
+      wee_app: ${{ steps.plan.outputs.wee_app }}
+      sitios: ${{ steps.plan.outputs.sitios }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - id: plan
+        name: El commit es de main, la CI pasó y no pisa producción
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ inputs.commit }}
+          OBJETIVO: ${{ inputs.objetivo }}
+        run: node ops/despliegue/cli.mjs verificar --commit "$COMMIT" --objetivo "$OBJETIVO"
+
+  desplegar:
+    name: Desplegar en get-wee
+    needs: verificar
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: get-wee
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      registro: ${{ steps.registro.outputs.registro }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - name: Dependencias y build de las Functions
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix functions --no-audit --no-fund
+          npm run build --prefix functions
+      - name: Build de la web (solo hosting:wee-app)
+        if: needs.verificar.outputs.wee_app == 'true'
+        env:
+          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ vars.EXPO_PUBLIC_FIREBASE_API_KEY }}
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ vars.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          EXPO_PUBLIC_FIREBASE_APP_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_APP_ID }}
+        run: |
+          npx expo export -p web
+          cp public/privacy-policy.html public/support.html public/terms.html dist/
+      - id: auth
+        name: Identidad de despliegue (sin claves)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVEEDOR }}
+          service_account: ${{ vars.CUENTA_DE_DESPLIEGUE }}
+          token_format: access_token
+      - name: Variables de las Functions (no son secretos)
+        env:
+          WEE_ADMIN_UIDS: ${{ vars.WEE_ADMIN_UIDS }}
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+        run: printf 'WEE_ADMIN_UIDS=%s\nR2_ACCOUNT_ID=%s\nR2_BUCKET=%s\n' "$WEE_ADMIN_UIDS" "$R2_ACCOUNT_ID" "$R2_BUCKET" > functions/.env.get-wee
+      - id: antes
+        name: Revisiones de antes (para la marcha atrás)
+        if: needs.verificar.outputs.funciones != ''
+        env:
+          GCP_TOKEN: ${{ steps.auth.outputs.access_token }}
+          FUNCIONES: ${{ needs.verificar.outputs.funciones }}
+        run: |
+          node ops/despliegue/cli.mjs revisiones --funciones "$FUNCIONES" > antes.json
+          echo "Revisiones que servían antes (si la marcha atrás automática no pudiera, se vuelve a estas a mano):"
+          cat antes.json
+      - name: Desplegar
+        env:
+          SOLO: ${{ needs.verificar.outputs.solo }}
+        run: npx --yes firebase-tools@15.29.0 deploy --only "$SOLO" --project get-wee --non-interactive
+      - name: Humo sin gasto
+        if: needs.verificar.outputs.funciones != ''
+        env:
+          GCP_TOKEN: ${{ steps.auth.outputs.access_token }}
+          FUNCIONES: ${{ needs.verificar.outputs.funciones }}
+        run: node ops/despliegue/cli.mjs humo --funciones "$FUNCIONES"
+      - name: La web publicada es la de este commit (sha256 archivo a archivo)
+        if: needs.verificar.outputs.sitios != ''
+        env:
+          SITIOS: ${{ needs.verificar.outputs.sitios }}
+        run: |
+          for SITIO in ${SITIOS//,/ }; do
+            node ops/despliegue/cli.mjs hashes --sitio "$SITIO" --salida "hashes-$SITIO.json"
+          done
+      # El token de acceso dura una hora: los pasos largos piden uno nuevo para no quedarse sin él.
+      - id: auth-observar
+        name: Identidad de despliegue (renovada para observar y registrar)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVEEDOR }}
+          service_account: ${{ vars.CUENTA_DE_DESPLIEGUE }}
+          token_format: access_token
+      - name: Observación posterior (10 min de 5xx contra los de antes)
+        if: needs.verificar.outputs.funciones != ''
+        env:
+          GCP_TOKEN: ${{ steps.auth-observar.outputs.access_token }}
+          FUNCIONES: ${{ needs.verificar.outputs.funciones }}
+          INICIO: ${{ steps.antes.outputs.inicio }}
+        run: node ops/despliegue/cli.mjs observar --funciones "$FUNCIONES" --inicio "$INICIO"
+      - id: registro
+        name: Registro del despliegue (revisión y digest de cada función, versión de cada sitio)
+        env:
+          GCP_TOKEN: ${{ steps.auth-observar.outputs.access_token }}
+          FUNCIONES: ${{ needs.verificar.outputs.funciones }}
+          SITIOS: ${{ needs.verificar.outputs.sitios }}
+          OBJETIVO: ${{ needs.verificar.outputs.solo }}
+          COMMIT: ${{ inputs.commit }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          HASHES=""
+          for SITIO in ${SITIOS//,/ }; do HASHES="$HASHES${HASHES:+,}hashes-$SITIO.json"; done
+          node ops/despliegue/cli.mjs registro --commit "$COMMIT" --objetivo "$OBJETIVO" --run "$RUN_URL" --funciones "$FUNCIONES" --hashes "$HASHES" > registro.txt
+          FIN="FIN_REGISTRO_$(date +%s%N)"
+          { echo "registro<<$FIN"; cat registro.txt; echo "$FIN"; } >> "$GITHUB_OUTPUT"
+      - id: auth-marcha-atras
+        name: Identidad de despliegue (renovada para la marcha atrás)
+        if: failure() && needs.verificar.outputs.funciones != ''
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVEEDOR }}
+          service_account: ${{ vars.CUENTA_DE_DESPLIEGUE }}
+          token_format: access_token
+      - name: Marcha atrás (si algo falló después de desplegar)
+        if: failure() && needs.verificar.outputs.funciones != ''
+        env:
+          GCP_TOKEN: ${{ steps.auth-marcha-atras.outputs.access_token }}
+        run: node ops/despliegue/cli.mjs marcha-atras --desde antes.json --ejecutar
+
+  registrar:
+    name: Registrar (tag inmutable)
+    needs: [verificar, desplegar]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.commit }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Tag del despliegue, con el registro como mensaje
+        env:
+          OBJETIVO: ${{ needs.verificar.outputs.solo }}
+          COMMIT: ${{ inputs.commit }}
+          REGISTRO: ${{ needs.desplegar.outputs.registro }}
+        run: |
+          TAG="$(node ops/despliegue/cli.mjs tag --objetivo "$OBJETIVO")"
+          printf '%s\n' "$REGISTRO" > registro.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" "$COMMIT" -F registro.txt
+          git push origin "refs/tags/$TAG"

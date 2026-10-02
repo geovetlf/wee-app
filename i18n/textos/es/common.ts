@@ -31,4 +31,7 @@ export const common = {
   /* La pareja de `yes`. Transversal como ella: aquí una vez, y nadie la repite. */
   no: 'No',
   loadMore: 'Cargar más publicaciones',
+  postsCount_one: '{{cantidad}} publicación',
+  postsCount_other: '{{cantidad}} publicaciones',
+  someone: 'Alguien',
 };

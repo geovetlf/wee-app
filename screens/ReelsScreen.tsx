@@ -26,7 +26,7 @@ import { useUserById } from '../hooks/useUserById';
 import { useVote } from '../hooks/useVote';
 import { Post, postsService } from '../services/firestoreService';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
-import { formatNumber, getRelativeTime } from '../data/mockData';
+import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
@@ -71,7 +71,7 @@ interface ReelItemProps {
 
 const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, initialPositionMillis }) => {
   const t = useT();
-  const { locale } = useIdioma();
+  const { locale, idioma } = useIdioma();
   const { user } = useAuth();
   const { userProfile: activeProfile } = useUserProfile();
   const { userProfile: postAuthor } = useUserById(post.userId);
@@ -208,7 +208,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
       />
 
       {/* Poster image — visible until video plays */}
-      {post.imageUrls?.[0] && !hasStartedPlaying && (
+      {!!(post.imageUrls?.[0] && !hasStartedPlaying) && (
         <Image
           source={{ uri: post.imageUrls[0] }}
           style={StyleSheet.absoluteFill}
@@ -326,7 +326,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
                 color={voteStats.userVote === 'agree' ? '#22C55E' : 'white'}
               />
               <Text style={styles.sidebarCount}>
-                {formatNumber(voteStats.agreementCount)}
+                {formatNumber(voteStats.agreementCount, locale)}
               </Text>
             </TouchableOpacity>
 
@@ -338,7 +338,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
                 color={voteStats.userVote === 'disagree' ? '#EF4444' : 'white'}
               />
               <Text style={styles.sidebarCount}>
-                {formatNumber(voteStats.disagreementCount)}
+                {formatNumber(voteStats.disagreementCount, locale)}
               </Text>
             </TouchableOpacity>
 
@@ -346,7 +346,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
             <TouchableOpacity style={styles.sidebarBtn} onPress={() => onComment(post.id!)}>
               <Ionicons name="chatbubble-outline" size={scale(26)} color="white" />
               <Text style={styles.sidebarCount}>
-                {formatNumber(post.comments)}
+                {formatNumber(post.comments, locale)}
               </Text>
             </TouchableOpacity>
 
@@ -364,11 +364,11 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
             <TouchableOpacity
               style={styles.sidebarBtn}
               accessibilityLabel={t('weels.shareWeel')}
-              onPress={() => { void compartirFueraDeWee(post.id); }}
+              onPress={() => { void compartirFueraDeWee(post.id, t('common.share'), idioma); }}
             >
               <Ionicons name="share-social-outline" size={scale(26)} color="white" />
               <Text style={styles.sidebarCount}>
-                {formatNumber(post.shares)}
+                {formatNumber(post.shares, locale)}
               </Text>
             </TouchableOpacity>
           </View>
@@ -476,7 +476,7 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
   const handleComment = useCallback((postId: string) => {
     const post = videoPosts.find(p => p.id === postId);
     if (post) {
-      (navigation as any).navigate('PostDetail', { post });
+      (navigation as any).navigate('PostDetail', { postId: post.id, post });
     }
   }, [videoPosts, navigation]);
 

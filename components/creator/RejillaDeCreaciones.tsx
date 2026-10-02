@@ -4,8 +4,10 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useT } from '../../contexts/IdiomaContext';
+import { useIdioma } from '../../contexts/IdiomaContext';
+import { textoDelServidor } from '../../i18n/servidor';
 import { AssetDoc, assetsService } from '../../services/assetsService';
+import { CLAVE_DE_ESTADO, CLAVE_DE_TIPO, vistaDeAsset } from '../../services/vistaDeAsset';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -52,12 +54,25 @@ interface TarjetaProps {
 
 const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDelete }) => {
   const { theme } = useTheme();
-  const t = useT();
-  const url = assetsService.urlDeMiniatura(asset);
-  const conImagen = !!url && (asset.kind === 'image' || asset.kind === 'video');
-  const claveDeTipo = `creaciones.kind${asset.kind.charAt(0).toUpperCase()}${asset.kind.slice(1)}` as const;
-  const claveDeEstado = asset.status === 'ready' ? null : (`creaciones.status${asset.status.charAt(0).toUpperCase()}${asset.status.slice(1)}` as const);
-  const fallo = asset.status === 'failed';
+  const { t, locale } = useIdioma();
+  /* El nombre de una creación es el paso del plan que la hizo, escrito por el servidor: en el idioma de quien mira. */
+  const nombreDe = (nombre: string | undefined): string | undefined => (nombre ? textoDelServidor(nombre, { t, locale }) : nombre);
+  /*
+   * TODO LO QUE SE ENSEÑA SALE DE LA PROYECCIÓN, no del documento.
+   *
+   * Antes esta tarjeta leía `asset.status` y fabricaba su clave de traducción
+   * pegando trozos: `creaciones.status${Capitalize(status)}`. Eso ataba la
+   * interfaz a los nombres internos del Core —renombrar uno dejaba la pantalla
+   * buscando una clave inexistente, sin que nada fallara al compilar— y la
+   * misma línea estaba copiada en `MisCreacionesScreen`.
+   */
+  const vista = vistaDeAsset(asset);
+  const miniatura = assetsService.miniatura(asset);
+  const url = miniatura?.url ?? null;
+  const conImagen = !!url && (vista.tipo === 'image' || vista.tipo === 'video');
+  const claveDeTipo = CLAVE_DE_TIPO[vista.tipo];
+  const claveDeEstado = vista.estado === 'disponible' ? null : CLAVE_DE_ESTADO[vista.estado];
+  const fallo = vista.estado === 'no_se_pudo';
 
   return (
     <View style={{ width: ancho as never, padding: SPACING.xs }}>
@@ -67,7 +82,7 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
         activeOpacity={0.85}
         style={[styles.card, { backgroundColor: theme.colors.card, borderColor: fallo ? theme.colors.error : theme.colors.border }]}
         accessibilityRole="button"
-        accessibilityLabel={t('creaciones.openCreation', { nombre: asset.name || t(claveDeTipo) })}
+        accessibilityLabel={t('creaciones.openCreation', { nombre: nombreDe(asset.name) || t(claveDeTipo) })}
         /* El estado también se dice, no solo se pinta: una creación fallida o en proceso no puede sonar igual que una lista. */
         accessibilityHint={claveDeEstado ? t(claveDeEstado) : undefined}
       >
@@ -95,7 +110,7 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
           <View style={[styles.kindBadge, { backgroundColor: 'rgba(31, 41, 55, 0.72)' }]}>
             <Text style={styles.kindText}>{t(claveDeTipo)}</Text>
           </View>
-          {claveDeEstado && (
+          {!!claveDeEstado && (
             <View style={[styles.statusBadge, { backgroundColor: fallo ? theme.colors.error : theme.colors.accent }]}>
               <Text style={[styles.statusText, { color: fallo ? '#FFFFFF' : '#1F2937' }]}>{t(claveDeEstado)}</Text>
             </View>
@@ -103,7 +118,7 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
         </View>
         <View style={styles.footer}>
           <Text style={[styles.name, { color: theme.colors.text }]} numberOfLines={2}>
-            {asset.name || t(claveDeTipo)}
+            {nombreDe(asset.name) || t(claveDeTipo)}
           </Text>
           {onDelete && (
             <TouchableOpacity

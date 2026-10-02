@@ -40,4 +40,5 @@ export const writer = {
   bodyPlaceholder: 'Escribe aquí. Cuando quieras, pídele a Weë que lo mejore, lo corrija o lo traduzca.',
   resultHint: 'Weë trabaja sobre lo que escribiste y te devuelve el resultado aquí, listo para seguir editando.',
   weeWorksWithYou: 'Weë lo trabaja contigo.',
+  saved: '✓ Guardado',
 };

@@ -12,12 +12,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
-import { useMisEContacts, PersonaEnAgenda } from '../hooks/useEContact';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { useMisEContacts, PersonaEnAgenda, mensajeDeEContact } from '../hooks/useEContact';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { confirmAction, notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import TextoEnMayusculas from '../components/TextoEnMayusculas';
 
 /**
  * ËCONTACT · ẄCONTACT — tu gente en Weë.
@@ -61,7 +62,7 @@ interface Fila {
 
 const EContactScreen: React.FC = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const navigation = useNavigation<any>();
   /* Toda la agenda del perfil activo, con las acciones ya atadas a él. */
   const {
@@ -108,7 +109,7 @@ const EContactScreen: React.FC = () => {
     try {
       await hacer();
     } catch (error) {
-      notify(t('econtact.failed'), error instanceof Error ? error.message : undefined);
+      notify(t('econtact.failed'), mensajeDeEContact(error, t, locale));
     } finally {
       await recargar();
       setOcupado(null);
@@ -165,7 +166,7 @@ const EContactScreen: React.FC = () => {
 
   const renderFila = ({ item }: { item: Fila }) => {
     const { persona, seccion } = item;
-    const { perfil, identidad, etiqueta, tipo } = persona;
+    const { perfil, identidad, tipo } = persona;
     const ocupada = ocupado === identidad;
     const nombre = perfil.displayName;
 
@@ -174,7 +175,12 @@ const EContactScreen: React.FC = () => {
      * se completa con lo que está pidiendo, para que la solicitud se lea entera
      * sin abrir nada.
      */
-    const detalle = seccion === 'recibidas' ? t('econtact.wantsToConnect', { lista: etiqueta }) : etiqueta;
+    /*
+     * La cara, dicha en el idioma de la interfaz. `persona.etiqueta` es el nombre
+     * interno en español y no se pinta: lo mismo que hace `SelectorDeEContacts`.
+     */
+    const cara = t(tipo === 'wee' ? 'composer.profileWee' : 'composer.profileReal');
+    const detalle = seccion === 'recibidas' ? t('econtact.wantsToConnect', { lista: cara }) : cara;
 
     return (
       <View style={[styles.fila, { borderBottomColor: theme.colors.border }]}>
@@ -183,7 +189,7 @@ const EContactScreen: React.FC = () => {
           onPress={() => abrirPerfil(identidad)}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={t('econtact.openProfile', { etiqueta: etiqueta.toLowerCase(), nombre })}
+          accessibilityLabel={t('econtact.openProfile', { etiqueta: cara, nombre })}
         >
           <AvatarDisplay
             avatarType={perfil.avatarType}
@@ -328,7 +334,7 @@ const EContactScreen: React.FC = () => {
           renderItem={renderFila}
           renderSectionHeader={({ section }) => (
             <View style={[styles.seccion, { backgroundColor: theme.colors.background }]}>
-              <Text style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]}>{section.titulo}</Text>
+              <TextoEnMayusculas style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]}>{section.titulo}</TextoEnMayusculas>
               <Text style={[styles.seccionCuenta, { color: theme.colors.textSecondary }]}>{section.data.length}</Text>
             </View>
           )}
@@ -392,7 +398,6 @@ const styles = StyleSheet.create({
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: 0.6,
-    textTransform: 'uppercase',
   },
   seccionCuenta: {
     fontSize: FONT_SIZE.sm,

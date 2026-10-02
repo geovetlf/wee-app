@@ -1,4 +1,5 @@
 import { HttpsError } from 'firebase-functions/v2/https';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { Plan } from './types';
 import { creditEngine } from '../credits/creditEngine';
 import { CreditService, getCreditCost, loadCostOverrides, serviceForCapability } from '../credits/creditCosts';
@@ -219,12 +220,24 @@ export async function ensureAccount(userId: string): Promise<void> {
   }
 }
 
-/** Reserva Credits al empezar un trabajo (AUTHORIZED). Lanza failed-precondition/INSUFFICIENT_CREDITS si no alcanza. */
-export async function holdCredits(userId: string, jobId: string, plan: Plan, amount: number, description: string): Promise<void> {
-  if (amount <= 0) return;
+/** Lo que dejó la reserva. `duplicate`: ya existía una con el mismo trabajo (el Credit Engine no cobró otra vez). */
+export interface ReservaDeTrabajo {
+  duplicate: boolean;
+  status?: string;
+  amount?: number;
+}
+
+/**
+ * Reserva Credits al empezar un trabajo (AUTHORIZED). Lanza failed-precondition/INSUFFICIENT_CREDITS si no alcanza.
+ *
+ * Devuelve lo que contestó el Credit Engine: hasta el 2026-09-30 esto se tiraba y
+ * quien llamaba no podía saber que la reserva era de OTRA llamada (H0 #9).
+ */
+export async function holdCredits(userId: string, jobId: string, plan: Plan, amount: number, description: string): Promise<ReservaDeTrabajo> {
+  if (amount <= 0) return { duplicate: false };
   try {
     const estimate = await estimatePlan(plan, userId);
-    await creditEngine.spendCredits({
+    const reserva = await creditEngine.spendCredits({
       userId,
       service: estimate.service,
       requestId: jobId,
@@ -234,6 +247,7 @@ export async function holdCredits(userId: string, jobId: string, plan: Plan, amo
       generationId: jobId,
       meta: { jobId, steps: estimate.steps },
     });
+    return { duplicate: reserva.duplicate, status: reserva.status, amount: reserva.amount };
   } catch (error) {
     throw toHttpsError(error);
   }
@@ -262,5 +276,32 @@ export async function settleCredits(userId: string, jobId: string, held: number,
   } catch (error) {
     if (error instanceof HttpsError) throw error;
     console.error(`Credit Engine: no se pudo ajustar el trabajo ${jobId}:`, error);
+    /*
+     * LA LIQUIDACIÓN QUE FALLA NO SE PIERDE (auditoría H0, escenario #15a).
+     *
+     * Antes este error se tragaba y la reserva se quedaba AUTHORIZED para
+     * siempre sin que nadie lo supiera. Ahora queda escrito en el propio
+     * trabajo, para que se pueda encontrar y cerrar (el Credit Engine es
+     * idempotente: repetir el ajuste no cobra ni devuelve dos veces). A la
+     * persona no le cambia nada: su trabajo termina igual.
+     */
+    await anotarLiquidacionPendiente(jobId, held, used, error);
   }
 }
+
+const anotarLiquidacionPendiente = async (jobId: string, held: number, used: number, error: unknown): Promise<void> => {
+  try {
+    /* `update`, no `set`: si el trabajo ya no existe no se crea un documento fantasma; el fallo queda en el log. */
+    await getFirestore().collection('creatorJobs').doc(jobId).update({
+      liquidacionPendiente: {
+        accion: used > 0 ? 'completar' : 'reembolsar',
+        retenido: held,
+        usado: Math.min(held, Math.max(0, used)),
+        motivo: (error instanceof Error ? error.message : String(error)).slice(0, 300),
+        at: Timestamp.now(),
+      },
+    });
+  } catch (fallo) {
+    console.error(`Credit Engine: tampoco se pudo anotar la liquidación pendiente del trabajo ${jobId}:`, fallo);
+  }
+};

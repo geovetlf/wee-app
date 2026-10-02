@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { textoDeFechas, textoDelServidor, textoDeObjetivo, textoDeOpcion, textoDePregunta } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorShell from '../components/creator/CreatorShell';
 import UploadBox from '../components/creator/UploadBox';
@@ -18,6 +19,10 @@ import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
 import { uploadCreatorImage } from '../services/creatorUploads';
 import { documentsService } from '../services/documentsService';
 import { WEE_EXPERIENCES, EXPERIENCE_AREA, experienceLabel, getExperienceById } from '../constants/weeExperiences';
+import { ContextoDeExperiencia } from '../constants/weeWorkspaces';
+import type { MainStackParamList } from '../navigation/MainStackNavigator';
+import { claveDelValor, filtrarCreativo } from '../constants/camaraCinematica';
+import FichaDeContexto from '../components/creator/FichaDeContexto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -27,21 +32,24 @@ import { scale } from '../utils/scale';
  */
 const CreatorFlowScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { t, formato } = useIdioma();
+  const { t, formato, locale } = useIdioma();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-  const params = (route.params || {}) as {
-    experienceId?: string;
-    goal?: string;
-    jobId?: string;
-    preset?: { questionId: string; optionId: string };
-    /** Varias respuestas ya dadas (puente de "No sé qué hacer", fase 2E-60). */
-    presets?: { questionId: string; optionId: string }[];
-    imageUri?: string;
-    /** Documento del editor que pidió la ayuda (Weë Writer). */
-    editorDocId?: string;
-  };
+  const route = useRoute<RouteProp<MainStackParamList, 'CreatorFlow'>>();
+  /*
+    * LO QUE EL SITIO DE DONDE SE VIENE YA SABE.
+    *
+    * La forma no se declara aquí: es `ContextoDeExperiencia`, en
+    * `constants/weeWorkspaces.ts`, y es también el tipo de la ruta
+    * (`MainStackParamList.CreatorFlow`), así que se lee sin `as`. Estaba escrita
+    * suelta dentro de esta pantalla, así que cada portada que quisiera mandar algo
+    * tenía que adivinarla mirando este archivo; ahora se lee de un sitio y el
+    * compilador avisa si una portada manda algo que el flujo no espera.
+    *
+    * Lo que llega aquí es transporte, no entendimiento: quien entiende es Weë
+    * Brain, en el servidor. Esta pantalla lo reúne y lo lleva.
+    */
+  const params: ContextoDeExperiencia = route.params ?? {};
 
   const experience = getExperienceById(params.experienceId || '') || WEE_EXPERIENCES[0];
   /*
@@ -140,18 +148,20 @@ const CreatorFlowScreen: React.FC = () => {
       setQuestion(null);
       try {
         const imageUrl = imageUri ? await uploadPhoto(imageUri) : undefined;
-        const response = await creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl);
+        const response = await creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl, locale);
         setJobId(response.jobId);
+        /* El trabajo ya existe: queda en la dirección, y recargar la página lo reabre en vez de empezar otro. */
+        (navigation as any).setParams({ jobId: response.jobId });
         setQuestion(response.question);
         setPricing(response.pricing ?? null);
         setQuality(null);
       } catch (e) {
-        setError(humanizeCreatorError(e, t));
+        setError(humanizeCreatorError(e, t, locale));
       } finally {
         setBusy(false);
       }
     },
-    [experience.id, imageUri, uploadPhoto]
+    [experience.id, imageUri, uploadPhoto, t]
   );
 
   // Foto elegida después de empezar: se sube y se adjunta al trabajo en curso
@@ -166,10 +176,10 @@ const CreatorFlowScreen: React.FC = () => {
         uploadedUrl.current = url;
         await creatorService.attachImage(jobId, url);
       } catch (e) {
-        setError(humanizeCreatorError(e, t));
+        setError(humanizeCreatorError(e, t, locale));
       }
     },
-    [jobId, user]
+    [jobId, user, t]
   );
 
   // Weë Writer: lo que genera queda en "Mis documentos"
@@ -178,8 +188,8 @@ const CreatorFlowScreen: React.FC = () => {
     const text = job.results.filter((r) => r.content && r.kind !== 'audio' && !r.url).map((r) => r.content).join('\n\n').trim();
     if (!text) return;
     savedDocFor.current = job.id;
-    documentsService.save({ id: `job_${job.id}`, title: job.goal, text, jobId: job.id }).catch((e) => console.warn('No se pudo guardar en Mis documentos:', e));
-  }, [job, experience.id]);
+    documentsService.save({ id: `job_${job.id}`, title: textoDeObjetivo(t, experience.id, job.goal), text, jobId: job.id }).catch((e) => console.warn('No se pudo guardar en Mis documentos:', e));
+  }, [job, experience.id, t]);
 
   // Sin sesión no hay trabajos; sin jobId, se empieza la conversación
   useEffect(() => {
@@ -233,22 +243,33 @@ const CreatorFlowScreen: React.FC = () => {
         const q = job.questions.find((item) => item.id === answer.questionId);
         if (!q) return null;
         const option = q.options.find((o) => o.id === answer.optionId);
-        const label = option ? option.label : answer.text || '';
-        return { question: q.text, answer: answer.inferred ? `${label} · lo entendí de lo que escribiste` : label };
+        /*
+         * Lo escribe el servidor en español: se pinta por su id en el idioma de quien mira. Unas fechas viajan como
+         * frase del encargo («del 12 al 22 de octubre de 2026») y aquí se escriben otra vez como se leen en su idioma.
+         */
+        const label = option
+          ? textoDeOpcion(t, experience.id, q.id, option)
+          : q.kind === 'dates'
+            ? textoDeFechas(t, locale, answer.text || '')
+            : answer.text || '';
+        return {
+          question: textoDePregunta(t, experience.id, q),
+          answer: answer.inferred ? t('weeai.inferredAnswer', { respuesta: label }) : label,
+        };
       })
       .filter((item): item is QaHistoryItem => !!item);
-  }, [job]);
+  }, [job, t, locale, experience.id]);
 
   const handleAnswer = async (optionId?: string, text?: string) => {
     if (!jobId || !question) return;
     setBusy(true);
     setError(null);
     try {
-      const response = await creatorService.answer(jobId, { questionId: question.id, optionId, text });
+      const response = await creatorService.answer(jobId, { questionId: question.id, optionId, text }, undefined, locale);
       setQuestion(response.question);
       setPricing(response.pricing ?? null);
     } catch (e) {
-      setError(humanizeCreatorError(e, t));
+      setError(humanizeCreatorError(e, t, locale));
     } finally {
       setBusy(false);
     }
@@ -266,12 +287,12 @@ const CreatorFlowScreen: React.FC = () => {
         setPricing(response.pricing ?? null);
         setJob((current) => (current ? { ...current, creditsEstimated: response.creditsEstimated } : current));
       } catch (e) {
-        setError(humanizeCreatorError(e, t));
+        setError(humanizeCreatorError(e, t, locale));
       } finally {
         setQuoting(false);
       }
     },
-    [jobId]
+    [jobId, t]
   );
 
   const handleCreate = async () => {
@@ -289,13 +310,13 @@ const CreatorFlowScreen: React.FC = () => {
         const url = await uploadPhoto(imageUri);
         if (url) await creatorService.attachImage(jobId, url);
       }
-      await creatorService.run(jobId);
+      await creatorService.run(jobId, locale);
     } catch (e) {
       // La app se cansó de esperar, pero el trabajo sigue en el servidor y llega por Firestore
       if (isClientTimeout(e)) return;
       const short = creditsShortfall(e);
       setShortfall(short);
-      if (!short) setError(humanizeCreatorError(e, t));
+      if (!short) setError(humanizeCreatorError(e, t, locale));
     } finally {
       setBusy(false);
     }
@@ -330,7 +351,8 @@ const CreatorFlowScreen: React.FC = () => {
    */
   const CONSERVA_EL_CONTEXTO = experience.id === 'travel';
   const handleEdit = (instruction: string) => {
-    const goal = `${job?.goal || params.goal || nombre} · Cambio: ${instruction}`;
+    // El cambio se escribe en el idioma de quien lo pide: es lo que luego lee en la conversación
+    const goal = t('weeai.goalWithChange', { objetivo: job?.goal || params.goal || nombre, cambio: instruction });
     if (!CONSERVA_EL_CONTEXTO || !job) return start(goal);
     const contexto: Answer[] = job.answers.map((a) => ({
       questionId: a.questionId,
@@ -382,6 +404,13 @@ const CreatorFlowScreen: React.FC = () => {
       .map((r) => r.content)
       .join('\n\n')
       .slice(0, 480);
+    /*
+     * El "cómo lo hice" que queda guardado en la publicación: lo explica el plan
+     * y, si no, lo escribe Weë por la persona, en el idioma en que publica.
+     */
+    const proceso = job.plan?.explainToUser
+      ? textoDelServidor(job.plan.explainToUser, { t, locale, experiencia: experience.id })
+      : t('composer.aiProcessCreatedWith', { nombre });
     navigation.navigate('Create', {
       kind: media ? media.type : 'post',
       /*
@@ -392,9 +421,9 @@ const CreatorFlowScreen: React.FC = () => {
        */
       sourceSection: EXPERIENCE_AREA[experience.id]?.section ?? experience.id,
       prefill: {
-        content: content || job.goal,
+        content: content || textoDeObjetivo(t, experience.id, job.goal),
         aiTools: [nombre],
-        aiProcess: `${job.plan?.explainToUser || `Creado con ${nombre} en Weë AI`}${job.demo ? ' (vista previa en modo demo)' : ''}`,
+        aiProcess: job.demo ? t('composer.aiProcessDemoPreview', { proceso }) : proceso,
         ...(media ? { media: [{ type: media.type, uri: media.uri, ...(media.assetId ? { assetId: media.assetId } : {}) }] } : {}),
       },
     });
@@ -408,19 +437,21 @@ const CreatorFlowScreen: React.FC = () => {
   const subidaConfig = React.useMemo(() => {
     const hint = t('weeai.uploadFormats');
     const subtitle = t('weeai.uploadHint');
+    // El emoji no es idioma: se queda aquí y el diccionario solo lleva la frase.
     if (experience.id === 'chef' && params.preset?.optionId === 'edit') {
-      return { title: '📸 Sube una foto de tu plato terminado', subtitle, hint };
+      return { title: `📸 ${t('weeai.uploadDishPhoto')}`, subtitle, hint };
     }
     if (experience.id === 'chef') {
-      return { title: '📸 Sube una foto de tu refrigerador o de los ingredientes que tienes', subtitle, hint };
+      return { title: `📸 ${t('weeai.uploadIngredientsPhoto')}`, subtitle, hint };
     }
     // Hogar & Diseño trabaja sobre el espacio que ya tienes: conviene decirlo aquí,
-    // y decir además para qué sirve la foto (fase 2E-59).
+    // y decir además para qué sirve la foto (fase 2E-59). La frase es la misma
+    // de la caja de subida de su portada.
     if (experience.id === 'home') {
-      return { title: '🏠 Sube una foto de tu espacio', subtitle: t('weeai.photoHelps'), hint };
+      return { title: `🏠 ${t('catalogo.homeUploadTitle')}`, subtitle: t('weeai.photoHelps'), hint };
     }
     return { title: t('weeai.uploadYourPhoto'), subtitle, hint };
-  }, [experience.id, params.preset?.optionId]);
+  }, [experience.id, params.preset?.optionId, t]);
 
   const status = job?.status;
 
@@ -455,8 +486,58 @@ const CreatorFlowScreen: React.FC = () => {
    */
   const area = EXPERIENCE_AREA[experience.id];
 
+  /*
+   * LO QUE LLEGÓ DEL LUGAR DE TRABAJO, EN FICHAS.
+   *
+   * Se lee del contexto que viajó —no de un estado propio— y se filtra otra vez
+   * contra el vocabulario del Core: lo que entra por la navegación es lo que
+   * entra por una puerta que esta pantalla no controla, y lo que entra por una
+   * puerta que no controlas se comprueba en la puerta. Un valor que el Core no
+   * conoce no se aproxima: se deja fuera, y no se enseña.
+   *
+   * Una ruta cruda —`shot.type`— no se pinta nunca: si la biblioteca no sabe
+   * cómo se llama en palabras, esa ficha no aparece. Nadie tiene por qué leer
+   * `close_up` en una pantalla de Weë.
+   */
+  const contextoQueLlego = useMemo(() => {
+    const fichas: { clave: string; icono: string; texto: string }[] = [];
+    for (const [ruta, valor] of Object.entries(filtrarCreativo(params.creative))) {
+      const clave = claveDelValor(ruta, valor);
+      if (clave) fichas.push({ clave: ruta, icono: 'videocam-outline', texto: t(clave) });
+    }
+    for (const adjunto of params.adjuntos ?? []) {
+      fichas.push({ clave: adjunto.uri, icono: 'image-outline', texto: adjunto.nombre ?? t('studio.reference') });
+    }
+    return fichas;
+  }, [params.creative, params.adjuntos, t]);
+
   return (
       <CreatorShell activeId={area ? area.section : experience.id} overline="🤖 Weë AI" title={`${experience.emoji} ${area ? t(area.claveEtiqueta) : experience.name}`} breadcrumb={area ? t(area.claveEtiqueta) : experience.name} contentStyle={styles.content}>
+        {/*
+          LO QUE SE TRAE DE DONDE SE VENÍA, A LA VISTA (B3.12).
+
+          Quien eligió Retrato, hora dorada y primer plano en Weë Studio tiene
+          que VER que llegaron. Si no se ven, no hay forma de saber si Weë se
+          acordó, y la única salida es volver a elegirlo todo —que es justo lo
+          que un lugar de trabajo existe para evitar—.
+
+          Son las MISMAS fichas del Studio (`FichaDeContexto`) y el MISMO dato:
+          lo que viaja en el contexto es lo que se pinta aquí. No hay un estado
+          de interfaz por un lado y un contexto por otro, porque dos copias del
+          mismo dato se separan y entonces la persona ve una cosa y Weë recibe
+          otra.
+
+          Sin aspa: aquí ya no se quitan. Lo elegido viajó con la petición y
+          cambiarlo ahora sería cambiar lo que ya se pidió; para eso se vuelve
+          atrás, que es lo que hace el gesto de siempre.
+        */}
+        {contextoQueLlego.length > 0 && (
+          <View style={styles.contextoTraido}>
+            {contextoQueLlego.map((ficha) => (
+              <FichaDeContexto key={ficha.clave} icono={ficha.icono} texto={ficha.texto} />
+            ))}
+          </View>
+        )}
         {needsPhoto && !imageUri && status !== 'done' && status !== 'running' && (
           <UploadBox
             config={subidaConfig}
@@ -490,7 +571,7 @@ const CreatorFlowScreen: React.FC = () => {
             <Image source={{ uri: imageUri }} style={styles.spaceImage} contentFit="contain" transition={200} />
             <View style={styles.spaceBar}>
               <Text style={[styles.spaceTitle, { color: theme.colors.text }]}>
-                {uploadingPhoto ? '📸 Subiendo tu espacio…' : '📸 Tu espacio'}
+                📸 {uploadingPhoto ? t('weeai.uploadingYourSpace') : t('weeai.yourSpace')}
               </Text>
               {status !== 'done' && status !== 'running' && (
                 <View style={styles.spaceActions}>
@@ -531,7 +612,7 @@ const CreatorFlowScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         )}
-        {error && (
+        {!!error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={[styles.errorText, { color: theme.colors.text }]}>{error}</Text>
             <TouchableOpacity
@@ -578,7 +659,7 @@ const CreatorFlowScreen: React.FC = () => {
 
         {status === 'failed' && job && !error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText || t('weeai.itDidNotWork')}</Text>
+            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText ? textoDelServidor(job.progressText, { t, locale, experiencia: experience.id }) : t('weeai.itDidNotWork')}</Text>
             <TouchableOpacity
               onPress={() => start(job.goal)}
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
@@ -593,7 +674,8 @@ const CreatorFlowScreen: React.FC = () => {
           <>
             <GuidedQuestion
               experienceName={nombre}
-              goal={job.goal}
+              experienceId={experience.id}
+              goal={textoDeObjetivo(t, experience.id, job.goal)}
               history={history}
               question={null}
               busy={false}
@@ -602,6 +684,7 @@ const CreatorFlowScreen: React.FC = () => {
             />
             <PlanCard
               experienceName={nombre}
+              experienceId={experience.id}
               plan={job.plan}
               creditsEstimated={pricing ? pricing.total : job.creditsEstimated}
               demo={job.demo}
@@ -620,7 +703,8 @@ const CreatorFlowScreen: React.FC = () => {
         {(!status || status === 'asking') && !error && (
           <GuidedQuestion
             experienceName={nombre}
-            goal={job?.goal || params.goal || experience.examples[0]}
+            experienceId={experience.id}
+            goal={job?.goal ? textoDeObjetivo(t, experience.id, job.goal) : params.goal || t(experience.examples[0])}
             history={history}
             question={question}
             busy={busy}
@@ -648,6 +732,8 @@ const CreatorFlowScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  /* La tira de lo que se trajo, arriba del todo y sin robar sitio. */
+  contextoTraido: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.md },
   container: {
     flex: 1,
   },

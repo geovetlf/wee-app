@@ -39,4 +39,7 @@ export const common: typeof import('../es/common').common = {
   /* La pareja de `yes`. Transversal como ella: aquí una vez, y nadie la repite. */
   no: '否',
   loadMore: '加载更多动态',
+  postsCount_one: '{{cantidad}} 条动态',
+  postsCount_other: '{{cantidad}} 条动态',
+  someone: '有人',
 };

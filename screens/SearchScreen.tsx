@@ -16,7 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { paraBuscar } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -24,14 +25,16 @@ import { useCommunities } from '../hooks/useCommunities';
 import { communityService, Community } from '../services/communityService';
 import { searchUsers, searchPosts, getTrendingPosts, getPopularHashtags, getPostsByHashtag, Post, UserProfile, PopularHashtag } from '../services/firestoreService';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
-import { formatNumber } from '../data/mockData';
+import { referenciaPublicaDe } from '../utils/identidadPublica';
+import { formatNumber } from '../utils/formatoCorto';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
+import { descripcionDeComunidad, nombreDeComunidad } from '../utils/comunidadesDeWee';
 
 type SearchCategory = 'comunidades' | 'usuarios' | 'posts';
 
 const SearchScreen: React.FC = () => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -103,40 +106,53 @@ const SearchScreen: React.FC = () => {
     loadInitialData();
   }, []);
 
-  // Buscar cuando cambia la query
+  // Buscar cuando cambia la query. El `clearTimeout` solo para la búsqueda que no ha EMPEZADO; la que ya está en
+  // camino podía volver después de la nueva («ca» después de «casa») y dejar en pantalla los resultados de antes.
   useEffect(() => {
+    let vigente = true;
     const searchTimeout = setTimeout(async () => {
       if (searchQuery.trim().length >= 2) {
         setSearching(true);
         try {
-          // Filtrar comunidades localmente
+          // Filtrar comunidades localmente («ibrahim» encuentra «İbrahim»: i18n/caja.ts). Por lo guardado y por lo que
+          // se LEE: una comunidad de Weë se encuentra también por su nombre en el idioma de quien busca («Film og animation»).
+          const buscado = paraBuscar(searchQuery);
           const filtered = communities.filter(c =>
-            c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            c.description.toLowerCase().includes(searchQuery.toLowerCase())
+            paraBuscar(c.name).includes(buscado) ||
+            paraBuscar(c.description).includes(buscado) ||
+            paraBuscar(nombreDeComunidad(c, t, locale)).includes(buscado) ||
+            paraBuscar(descripcionDeComunidad(c, t, locale)).includes(buscado)
           );
           setFilteredCommunities(filtered);
 
           // Buscar usuarios en Firebase
-          const users = await searchUsers(searchQuery, 10);
+          const users = await searchUsers(searchQuery, 10, locale);
+          if (!vigente) return;
           setSearchedUsers(users);
 
           // Buscar posts en Firebase
           const posts = await searchPosts(searchQuery, 10);
+          if (!vigente) return;
           setSearchedPosts(posts);
         } catch (error) {
           console.error('Error searching:', error);
         } finally {
-          setSearching(false);
+          if (vigente) setSearching(false);
         }
       } else {
+        /* Si una búsqueda larga seguía en camino, ya no es vigente y no apagará el indicador: lo apaga esta. */
+        setSearching(false);
         setFilteredCommunities(communities);
         setSearchedUsers([]);
         setSearchedPosts([]);
       }
     }, 300); // Debounce de 300ms
 
-    return () => clearTimeout(searchTimeout);
-  }, [searchQuery, communities]);
+    return () => {
+      vigente = false;
+      clearTimeout(searchTimeout);
+    };
+  }, [searchQuery, communities, t, locale]);
 
   const handleClearSearch = () => {
     setSearchQuery('');
@@ -158,7 +174,7 @@ const SearchScreen: React.FC = () => {
   };
 
   const handlePostPress = (post: Post) => {
-    navigation.navigate('PostDetail', { post });
+    navigation.navigate('PostDetail', { postId: post.id, post });
   };
 
   const handleHashtagPress = async (hashtag: string) => {
@@ -255,7 +271,7 @@ const SearchScreen: React.FC = () => {
         </View>
 
         {/* Categorías - solo mostrar cuando hay búsqueda */}
-        {(searchQuery.trim() || selectedHashtag) && (
+        {!!(searchQuery.trim() || selectedHashtag) && (
         <View style={styles.categories}>
           <TouchableOpacity
             style={[styles.categoryButton, {
@@ -431,7 +447,7 @@ const SearchScreen: React.FC = () => {
             )}
 
             {/* Posts de hashtag seleccionado */}
-            {selectedHashtag && (
+            {!!selectedHashtag && (
               <View>
                 <View style={styles.hashtagHeader}>
                   <TouchableOpacity onPress={clearHashtagSelection} style={styles.backButton}>
@@ -477,13 +493,13 @@ const SearchScreen: React.FC = () => {
                         <View style={styles.postStat}>
                           <Ionicons name="heart" size={14} color={theme.colors.like} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(post.likes || 0)}
+                            {formatNumber(post.likes || 0, locale)}
                           </Text>
                         </View>
                         <View style={styles.postStat}>
                           <Ionicons name="chatbubble" size={14} color={theme.colors.textSecondary} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(post.comments || 0)}
+                            {formatNumber(post.comments || 0, locale)}
                           </Text>
                         </View>
                       </View>
@@ -494,7 +510,7 @@ const SearchScreen: React.FC = () => {
             )}
 
             {/* Comunidades - solo mostrar si hay búsqueda o no hay hashtag seleccionado */}
-            {activeCategory === 'comunidades' && searchQuery.trim() && (
+            {!!(activeCategory === 'comunidades' && searchQuery.trim()) && (
               <View>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                   {t('search.results')}
@@ -523,23 +539,24 @@ const SearchScreen: React.FC = () => {
                       </View>
                       <View style={styles.communityInfo}>
                         <Text style={[styles.communityName, { color: theme.colors.text }]}>
-                          {community.name}
+                          {nombreDeComunidad(community, t, locale)}
                         </Text>
                         <Text style={[styles.communityDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>
-                          {community.description}
+                          {descripcionDeComunidad(community, t, locale)}
                         </Text>
+                        {/* El plural lo elige el número; la cifra se escribe como siempre, con formatNumber. */}
                         <View style={styles.communityStats}>
                           <Ionicons name="people" size={12} color={theme.colors.textSecondary} />
                           <Text style={[styles.communityStat, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(community.memberCount)} miembros
+                            {t('communities.memberCount', { contador: community.memberCount || 0, cantidad: formatNumber(community.memberCount, locale) })}
                           </Text>
                           <Ionicons name="document-text" size={12} color={theme.colors.textSecondary} style={{ marginLeft: 12 }} />
                           <Text style={[styles.communityStat, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(community.postCount)} publicaciones
+                            {t('common.postsCount', { contador: community.postCount || 0, cantidad: formatNumber(community.postCount, locale) })}
                           </Text>
                         </View>
                       </View>
-                      {user && community.id && (
+                      {!!(user && community.id) && (
                         joiningId === community.id ? (
                           <ActivityIndicator size="small" color={theme.colors.accent} style={{ marginLeft: 8 }} />
                         ) : isMember(community.id) ? (
@@ -576,10 +593,10 @@ const SearchScreen: React.FC = () => {
             )}
 
             {/* Usuarios - solo mostrar si hay búsqueda */}
-            {activeCategory === 'usuarios' && searchQuery.trim() && !selectedHashtag && (
+            {!!(activeCategory === 'usuarios' && searchQuery.trim() && !selectedHashtag) && (
               <View>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                  {searchQuery.trim().length >= 2 ? 'Usuarios encontrados' : 'Busca usuarios'}
+                  {searchQuery.trim().length >= 2 ? t('search.peopleFound') : t('search.searchPeople')}
                 </Text>
                 {searchQuery.trim().length < 2 ? (
                   <View style={styles.noResults}>
@@ -591,8 +608,9 @@ const SearchScreen: React.FC = () => {
                 ) : searchedUsers.length === 0 ? (
                   <View style={styles.noResults}>
                     <Ionicons name="person-outline" size={48} color={theme.colors.textSecondary} />
+                    {/* Lo que la persona escribió entra por hueco, tal cual: no se traduce. */}
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
-                      No se encontraron usuarios para "{searchQuery}"
+                      {t('search.noPeopleFor', { busqueda: searchQuery })}
                     </Text>
                   </View>
                 ) : (
@@ -600,7 +618,7 @@ const SearchScreen: React.FC = () => {
                     <TouchableOpacity
                       key={user.uid}
                       style={[styles.userItem, { borderBottomColor: theme.colors.border }]}
-                      onPress={() => handleUserPress(user.uid)}
+                      onPress={() => handleUserPress(referenciaPublicaDe(user) ?? user.uid)}
                       activeOpacity={0.8}
                     >
                       <AvatarDisplay
@@ -614,9 +632,9 @@ const SearchScreen: React.FC = () => {
                       />
                       <View style={styles.userInfo}>
                         <Text style={[styles.userName, { color: theme.colors.text }]}>
-                          {user.displayName || 'Usuario Anónimo'}
+                          {user.displayName || t('common.anonymousUser')}
                         </Text>
-                        {user.bio && (
+                        {!!user.bio && (
                           <Text style={[styles.userBio, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                             {user.bio}
                           </Text>
@@ -633,7 +651,7 @@ const SearchScreen: React.FC = () => {
                         */}
                         <View style={styles.userStats}>
                           <Text style={[styles.userStat, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(user.posts || 0)} publicaciones
+                            {t('common.postsCount', { contador: user.posts || 0, cantidad: formatNumber(user.posts || 0, locale) })}
                           </Text>
                         </View>
                       </View>
@@ -645,10 +663,10 @@ const SearchScreen: React.FC = () => {
             )}
 
             {/* Posts - solo mostrar si hay búsqueda */}
-            {activeCategory === 'posts' && searchQuery.trim() && !selectedHashtag && (
+            {!!(activeCategory === 'posts' && searchQuery.trim() && !selectedHashtag) && (
               <View>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                  {searchQuery.trim().length >= 2 ? 'Publicaciones encontradas' : 'Busca publicaciones'}
+                  {searchQuery.trim().length >= 2 ? t('search.postsFound') : t('search.searchPosts')}
                 </Text>
                 {searchQuery.trim().length < 2 ? (
                   <View style={styles.noResults}>
@@ -661,7 +679,7 @@ const SearchScreen: React.FC = () => {
                   <View style={styles.noResults}>
                     <Ionicons name="document-text-outline" size={48} color={theme.colors.textSecondary} />
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
-                      No encontramos publicaciones para "{searchQuery}"
+                      {t('search.noPostsFor', { busqueda: searchQuery })}
                     </Text>
                   </View>
                 ) : (
@@ -691,13 +709,13 @@ const SearchScreen: React.FC = () => {
                         <View style={styles.postStat}>
                           <Ionicons name="heart" size={14} color={theme.colors.like} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(post.likes || 0)}
+                            {formatNumber(post.likes || 0, locale)}
                           </Text>
                         </View>
                         <View style={styles.postStat}>
                           <Ionicons name="chatbubble" size={14} color={theme.colors.textSecondary} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
-                            {formatNumber(post.comments || 0)}
+                            {formatNumber(post.comments || 0, locale)}
                           </Text>
                         </View>
                       </View>

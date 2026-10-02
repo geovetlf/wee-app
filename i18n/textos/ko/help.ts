@@ -5,7 +5,7 @@
  *
  * EL CONTENIDO DE LA AYUDA ES INTERFAZ, no algo que escriba una persona: por
  * eso vive aquí y se traduce entero. Los emojis, el símbolo ☰ y los nombres de
- * Weë y de los diez especialistas se copian tal cual, sin transliterar.
+ * Weë y de los especialistas se copian tal cual, sin transliterar.
  *
  * ── DOS REGISTROS, COMO EN `settings` ──────────────────────────────────────
  *
@@ -42,7 +42,8 @@ export const help: typeof import('../es/help').help = {
   q2: '실제 프로필과 Weë 프로필은 어떻게 다른가요?',
   a2: '실제 프로필은 평소의 나이고, 앱은 밝은 화면으로 보여요. Weë 프로필은 AI로 창작하는 나예요. 나만의 아바타와 이름으로 창작물을 올리고, 그때는 앱이 어두운 화면으로 바뀌어서 지금 누구로 참여하고 있는지 늘 알 수 있어요. 메뉴 ☰ 또는 헤더의 버튼으로 둘 사이를 오가요.',
   q3: 'Weë AI는 어떻게 작동하나요?',
-  a3: '무엇을 하고 싶은지 편한 말로 Weë에 이야기해 주세요. Weë가 쉬운 질문 몇 가지를 하고("모르겠어요"라고 답해도 괜찮아요) 계획을 세운 뒤 결과를 만들어요. 결과는 내가 고르고, AI는 Weë가 골라요. 전문가는 열 명이에요. Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business, Brain.',
+  a3_one: '무엇을 하고 싶은지 편한 말로 Weë에 이야기해 주세요. Weë가 쉬운 질문 몇 가지를 하고("모르겠어요"라고 답해도 괜찮아요) 계획을 세운 뒤 결과를 만들어요. 결과는 내가 고르고, AI는 Weë가 골라요. Weë AI의 전문가는 {{contador}}명이에요. {{lista}}.',
+  a3_other: '무엇을 하고 싶은지 편한 말로 Weë에 이야기해 주세요. Weë가 쉬운 질문 몇 가지를 하고("모르겠어요"라고 답해도 괜찮아요) 계획을 세운 뒤 결과를 만들어요. 결과는 내가 고르고, AI는 Weë가 골라요. Weë AI의 전문가는 {{contador}}명이에요. {{lista}}.',
   q4: 'Credits란 무엇인가요?',
   a4: 'Weë AI로 만드는 모든 창작에는 Credits가 들어요. 만들기 전에 얼마가 드는지 볼 수 있고, 문제가 생기면 돌려받아요. Weë AI를 만들어 가는 동안 가격은 테스트용이고 충전은 무료예요. 최종 가격은 실제 AI와 함께 정해져요.',
   q5: '프로젝트는 어디에 쓰나요?',
@@ -55,4 +56,7 @@ export const help: typeof import('../es/help').help = {
   a8: 'Weë의 채팅이에요. 커뮤니티의 다른 사람들과 글, 사진, 음성 메모로 나누는 비공개 대화예요.',
   q9: '"이렇게 만들었어요"란 무엇인가요?',
   a9: '게시물을 올릴 때 어떤 도구를 썼는지, 프롬프트와 과정이 어땠는지 함께 적을 수 있어요. 그래서 다른 사람이 나에게 배우고, 나도 그 사람들에게 배워요. "프롬프트 복사"를 한 번 누르면 끝이에요.',
+  heroTitle: '무엇을 도와드릴까요?',
+  legalVisibility: '회원님이 게시한 내용은 커뮤니티에 공개됩니다. Weë AI에서 만든 것은 회원님이 게시하기로 결정할 때까지 비공개로 유지됩니다. 게시물과 프로젝트는 언제든지 삭제할 수 있습니다.',
+  askPrefill: 'Weë에게 질문: ',
 };

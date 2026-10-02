@@ -4,6 +4,8 @@ Los contratos sobre los que se entienden las piezas de Weë. **Solo tipos y func
 
 > Esto no sustituye a nada. El [WEË AI ENGINE](AI-ENGINE.md), el [Credit Engine](CREDITS.md), Weë Creator y Weë Brain siguen funcionando igual. El Core les da un vocabulario común y les quita de encima una dependencia que estaba del revés.
 
+> **Qué piezas del Core ejecutan producción hoy y cuáles no**, medido contra el compilado y contra los datos reales, está en [`docs/RUNTIME.md`](RUNTIME.md). Que una pieza exista aquí no significa que atienda a nadie.
+
 ## Por qué existe
 
 `CapabilityId` —el vocabulario central del sistema— vivía en `functions/src/creator/types.ts`, y lo importaban **más de veinte módulos**: el router, el registro, los once adaptadores, el cálculo de precios, el gateway. Es decir: **el motor dependía de la capa de experiencia**.
@@ -15,7 +17,8 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 | Archivo | Responsabilidad |
 |---|---|
 | `contracts.ts` | Versiones de contrato y `contratoCompatible()` |
-| `identity.ts` | `EntityType`, `EntityRef`, `EntityIdentity`, `AccountNumber`, handle público, `OwnerRef` / `EntityAttribution` |
+| `identity.ts` | `EntityType`, `EntityRef`, `EntityIdentity`, handle público, `OwnerRef` / `EntityAttribution` |
+| `account-identity.ts` | la cuenta, su número de nueve dígitos, el id opaco de entidad, la membresía del principal y la billetera derivada ([`docs/IDENTITY.md`](IDENTITY.md)) |
 | `events.ts` | `EventEnvelope`, `EventPublisher` / `EventHandler`, `OutboxRecord`, catálogo de eventos reservados |
 | `capability.ts` | `CapabilityId`, `Modality`, `CapabilityDefinition`, registro |
 | `language.ts` | `LanguageContext` — los seis conceptos de idioma |
@@ -28,7 +31,10 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 | `content/asset.ts` | `Asset`, `StorageRef`, `Provenance`, `AssetVariant`, estados y `retirar()` — el material y de quién es |
 | `content/content.ts` | `Content`, `AssetRef`, `ContentType` — lo que se compone con material |
 | `content/publication.ts` | `Publication`, `Visibility`, `PublicationTarget` — dónde, con qué cara y para quién |
+| `moderation.ts` | `Report`, motivos, estados y sus transiciones, `ModerationDecision` (ALLOW / BLOCK / REVIEW), la costura del evaluador y la del evento — denunciar de verdad ([`docs/MODERATION.md`](MODERATION.md)) |
 | `job.ts` | WEE Job Engine: `Job`, estados, `crearJobEngine()`; y la costura `JobTask` para trabajos que no son de IA |
+| `job-queue.ts` | Los puertos de la cola y del trabajador: `QueueMessage` (un aviso, nunca el trabajo), `QueuePort`, `JobExecutor`, `WorkerConfig`, `ResultadoDeEntrega` — por dónde se enchufará una cola sin tocar `job.ts` ([`docs/RUNTIME.md`](RUNTIME.md) § 7) |
+| `backup.ts` | Qué se puede perder y qué no: `CLASIFICACION_DE_DATOS` (CRITICAL / IMPORTANT / DERIVED), `huellaDeDocumento` para comparar una restauración documento a documento, `verificarRelaciones`, `seguridadDeRestauracion` y `CAMPOS_QUE_NO_SE_IMPRIMEN` — copiar no es recuperar ([`docs/BACKUP.md`](BACKUP.md)) |
 | `observability.ts` | `TraceContext` y campos prohibidos |
 | `registry/capabilities.ts` | `CoreCapabilityId` y el catálogo completo |
 | `registry/types.ts` | `ModelDescriptor`, `RegisteredProvider`, `RegisteredAdapter` |
@@ -41,6 +47,8 @@ Hoy vive en `core/capability.ts` y `creator/types.ts` lo re-exporta, así que ni
 Y fuera del Core, porque nombran proveedores o hablan con el motor: `functions/src/registry/` — la composición que enchufa los adaptadores reales y declara las matrices pendientes—, `functions/src/engine/gateway.ts` — el Gateway compuesto sobre el motor— y `functions/src/brain/` — la composición de Weë Brain.
 
 ## Identidad: una cuenta posee, una entidad actúa
+
+> **Los identificadores de este apartado se sustituyeron en la Fase 11.x-5 y se retiraron en la 11.x-5A.** El contrato definitivo —Account ID, Account Number de nueve dígitos, Entity ID opaco, tipo y secuencia explícitos y la relación principal → cuenta por membresía— está en [`docs/IDENTITY.md`](IDENTITY.md). Lo que sigue describe la convención de la Fase 10, en la que el identificador de una entidad se formaba pegando el número de la cuenta y su secuencia: eso ya no existe en el código y nunca tuvo datos detrás. Lo que NO cambia es la regla de abajo: una cuenta posee, una entidad actúa.
 
 La regla que manda sobre el resto del modelo social. **De quién es algo** se responde siempre con una **cuenta**; **quién lo hizo** y **quién lo publicó** se responden con **entidades**, y las dos son contexto.
 
@@ -1051,19 +1059,23 @@ Nunca cabe un número de tarjeta, un CVV ni una credencial de pasarela en ningú
 
 ### Cuenta, billetera y entidad — seam de Identity
 
-Una cuenta tiene **una** billetera, y comparten número (`0018439`). Son dos dominios: la cuenta dice de quién es el dinero, la billetera dónde está el saldo. La billetera se **deduce** de la cuenta y no se guarda aparte — dos saldos que sincronizar acaban siempre siendo dos saldos distintos.
+Una cuenta tiene **una** billetera, y comparten número (`008 432 175`). Son dos dominios: la cuenta dice de quién es el dinero, la billetera dónde está el saldo. La billetera se **deduce** de la cuenta y no se guarda aparte — dos saldos que sincronizar acaban siempre siendo dos saldos distintos.
 
 El número es texto con sus ceros delante (meterlo en un `number` lo convierte en otra cosa) y **no autoriza nada**: confundir un identificador legible con una contraseña es como se vacían cuentas ajenas.
 
-Dentro de una cuenta actúan varias entidades —Perfil Real, Perfil Weë, Pages—, y son **contexto**: viajan en la atribución junto al producto y al Workplace, y **no crean billetera**. Las tres descuentan del mismo saldo. La convención de secuencia es 1 → Perfil Real, 2 → Perfil Weë, 3+ → Pages, pero el **tipo se guarda** y nunca se deduce del identificador: `001843910` acaba en cero, y con la décima entidad la convención deja de poder leerse. Una convención de presentación no puede ser la que clasifique.
+Dentro de una cuenta actúan varias entidades —Perfil Real, Perfil Weë, Pages—, y son **contexto**: viajan en la atribución junto al producto y al Workplace, y **no crean billetera**. Las tres descuentan del mismo saldo. La convención de secuencia es 1 → Perfil Real, 2 → Perfil Weë, 3+ → Pages, pero el **tipo se guarda** y nunca se deduce del identificador, que desde la Fase 11.x-5A es opaco y sorteado: no lleva dentro ni la cuenta, ni su número, ni la secuencia, así que de él no se puede deducir nada.
 
 Esta fase no crea entidades, no genera identificadores y no resuelve pertenencias: eso es la futura capa de Identity. Aquí solo se sabe consumirlo.
 
-### Nacer una cuenta — el seam de Identity, preparado (Fase 11.x-2)
+### Nacer una cuenta — RETIRADO y sustituido (Fase 11.x-2 → 11.x-5A)
 
-`core/identity.ts` sabe ya **nacer** una cuenta: con una posición de la serie forma el número (`numeroDeCuentaDesde`), la cuenta (`AccountIdentity`, cuyo id sigue siendo el uid de Firebase Auth: no hay segunda identidad) y su primera entidad, el Perfil Real (`entidadDeCuenta`, secuencia 1). `asegurarIdentidadDeCuenta` es `createWEEAccountIdentity` en el vocabulario de Weë: idempotente y atómico sobre un puerto `AlmacenDeIdentidad` cuya transacción vuelve a leer la cuenta antes de reservar la posición. La cara Weë entra como entidad 2 con `asegurarEntidadWee`, que exige que la cuenta haya nacido y guarda el `uid` heredado de su documento de `users` como **puente**, nunca como origen de la cuenta.
+> El seam de la Fase 11.x-2 se **retiró entero** en la 11.x-5A, sin haber escrito un solo documento. Formaba el identificador de cada entidad pegando el número de la cuenta y su secuencia, y repartía números de siete dígitos desde un contador global `contadores/cuentas`. Con él se fueron `numeroDeCuentaDesde`, `identificadorDeEntidad`, `nacerCuenta`, `entidadDeCuenta`, `cuentaValida`, `AccountIdentity`, `asegurarIdentidadDeCuenta`, `asegurarEntidadWee`, el `AccountNumber` de cuatro a veinte dígitos y la composición `functions/src/identity/index.ts`.
 
-La composición mínima está en `functions/src/identity/index.ts`: `accounts/{uid}`, `entities/{entityId}` con `perfilUid`, y el contador `contadores/cuentas`, todos de escritura solo del servidor. **No hay callable ni disparador que lo llame todavía**: cablearlo a las cuentas nuevas es el siguiente paso, y hacerlo antes de decidir qué pasa con las cuentas que ya existen sería un backfill por la puerta de atrás. Un contador único sostiene alrededor de un nacimiento por segundo; el puerto admite reservar bloques por instancia el día que las altas lo superen.
+El contrato definitivo es [`docs/IDENTITY.md`](IDENTITY.md), y vive en `core/account-identity.ts`: número de **nueve dígitos** sorteado sin sesgo, con un documento por número que garantiza la unicidad; identificador de entidad **opaco** (`ent_` y 26 caracteres sorteados, 130 bits); tipo y secuencia explícitos; membresía del principal como documento propio; y billetera **derivada** de la cuenta, nunca guardada aparte ni pedida para una entidad.
+
+Se compone sobre Firestore en `functions/src/identity/cuentas.ts` y lo dispara `functions/src/identity/nacimiento.ts` al crear un documento de `users`: **solo cuentas nuevas**, porque un disparador de creación no despierta con lo que ya está escrito y una cara Weë nunca hace nacer una cuenta. Numerar las cuentas que ya existen es una migración, y tiene su propia fase.
+
+La identidad heredada queda encapsulada en `functions/src/identity/compatibilidad.ts`, el único archivo del servidor nuevo que la nombra: el tipo sale del campo guardado y la cuenta se lee del vínculo. El Core no depende de ella y se puede borrar ese archivo sin tocarlo.
 
 ### Qué NO hace
 

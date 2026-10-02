@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { useResponsive } from '../hooks/useResponsive';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -66,7 +67,12 @@ const FAQ: FaqItem[] = [
 
 /** Ayuda: preguntas frecuentes, términos y privacidad, contacto. */
 const HelpScreen: React.FC = () => {
-  const t = useT();
+  const { t, formato } = useIdioma();
+  /*
+   * CUÁNTOS ESPECIALISTAS HAY, Y CUÁLES: los que enseña el menú (`WEE_EXPERIENCES`, la única fuente). La Ayuda decía
+   * «diez» y nombraba secciones que ya son áreas de Weë Studio; ahora no puede volver a separarse del menú.
+   */
+  const especialistas = { contador: WEE_EXPERIENCES.length, lista: formato.lista(WEE_EXPERIENCES.map((e) => e.name)) };
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -82,7 +88,7 @@ const HelpScreen: React.FC = () => {
           {t('help.legalBody')}
         </Text>
         <Text style={[styles.answer, { color: theme.colors.text }]}>
-          Lo que publicas es visible para la comunidad; lo que creas en Weë AI es privado hasta que decides publicarlo. Puedes borrar tus publicaciones y tus proyectos cuando quieras.
+          {t('help.legalVisibility')}
         </Text>
         <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>
           {t('help.legalPending')}
@@ -104,7 +110,7 @@ const HelpScreen: React.FC = () => {
       <ScrollView contentContainerStyle={[styles.content, isDesktop && styles.contentDesktop]} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
           <Text style={styles.heroEmoji}>❓</Text>
-          <Text style={[styles.heroTitle, { color: theme.colors.text }]}>¿En qué te ayudamos?</Text>
+          <Text style={[styles.heroTitle, { color: theme.colors.text }]}>{t('help.heroTitle')}</Text>
           <Text style={[styles.heroText, { color: theme.colors.textSecondary }]}>
             {t('help.intro')}
           </Text>
@@ -119,7 +125,7 @@ const HelpScreen: React.FC = () => {
               <Text style={[styles.question, { color: theme.colors.text }]}>
                 {item.emoji} {t(item.question)}
               </Text>
-              <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>{t(item.answer)}</Text>
+              <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>{t(item.answer, item.answer === 'help.a3' ? especialistas : undefined)}</Text>
             </View>
           ))}
         </View>
@@ -132,8 +138,9 @@ const HelpScreen: React.FC = () => {
             <Text style={[styles.answer, { color: theme.colors.text }]}>
               {t('help.contactBody')}
             </Text>
+            {/* El arranque de la pregunta lo pone Weë, en el idioma de la interfaz; lo demás lo escribe la persona. */}
             <TouchableOpacity
-              onPress={() => navigation.navigate('Create', { kind: 'question', prefill: { content: 'Una pregunta para Weë: ' } })}
+              onPress={() => navigation.navigate('Create', { kind: 'question', prefill: { content: t('help.askPrefill') } })}
               style={[styles.button, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
               accessibilityLabel={t('composer.askCommunity')}

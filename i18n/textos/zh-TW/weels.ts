@@ -25,4 +25,8 @@ export const weels: typeof import('../es/weels').weels = {
   open: '查看 Weël',
   upTo15s: '最長 15 秒',
   noneYetHint: '社群還沒有 Weëls。下面的範例先讓你看看它們長什麼樣。',
+  sampleAiScene: 'AI 場景',
+  sampleDance: '舞蹈',
+  sampleRecipe: '食譜',
+  sampleTrip: '旅行',
 };

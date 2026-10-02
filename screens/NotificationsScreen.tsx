@@ -23,6 +23,8 @@ import { usersService, UserProfile } from '../services/firestoreService';
 import Header from '../components/Header';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { referenciaPublicaDe } from '../utils/identidadPublica';
+import { nombreGuardadoDeComunidad } from '../utils/comunidadesDeWee';
 
 /*
  * Cuánto hace. Vive fuera del componente, así que el idioma le llega como
@@ -126,7 +128,7 @@ interface PropsDeFilaDeAviso {
 
 const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }: PropsDeFilaDeAviso) {
   const { theme } = useTheme();
-  const { t, formato } = useIdioma();
+  const { t, formato, locale } = useIdioma();
   const icon = getNotificationIcon(item.type);
   /*
    * El nombre va en negrita DENTRO de la frase, y la frase puede ponerlo en
@@ -135,10 +137,11 @@ const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }
    * medio con su peso. Así se conserva el diseño y se gana el orden libre.
    */
   const MARCA = '\u0000';
-  const nombre = remitente?.displayName || t('common.user');
+  /* Dentro de una frase («… comentó tu publicación») el respaldo es un pronombre, no el sustantivo de un nombre. */
+  const nombre = remitente?.displayName || t('common.someone');
   const [antesDelNombre, despuesDelNombre] = t(claveDeLaNotificacion(item), {
     nombre: MARCA,
-    comunidad: item.communityName || t('notifications.aCommunity'),
+    comunidad: nombreGuardadoDeComunidad(item.communityName, t, locale) || t('notifications.aCommunity'),
   }).split(MARCA);
 
   return (
@@ -182,7 +185,7 @@ const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }
           </Text>
 
           {/* Preview del contenido */}
-          {(item.postContent || item.commentContent) && (
+          {!!(item.postContent || item.commentContent) && (
             <Text
               style={[styles.previewText, { color: theme.colors.textSecondary }]}
               numberOfLines={1}
@@ -284,10 +287,23 @@ const NotificationsScreen: React.FC = () => {
       await notificationService.markAsRead(notification.id);
     }
 
-    // Navegar según el tipo
+    /*
+     * SE ABRE LA CARA QUE AVISÓ, NO SU CUENTA (Fase 11.x-6).
+     *
+     * `senderId` es la identidad con la que se hizo la acción, y para una cara
+     * Weë lleva dentro el identificador de la cuenta. El perfil del remitente
+     * ya está cargado —la pantalla los pide por tandas—, así que se navega por
+     * su referencia pública y no por el identificador guardado. Si el perfil
+     * todavía no llegó, se cae al de siempre: un enlace que funciona vale más
+     * que uno que no abre.
+     */
     const nav = navigation as any;
+    const abrirRemitente = () => {
+      const referencia = referenciaPublicaDe(remitentes[notification.senderId]) ?? notification.senderId;
+      nav.navigate('UserProfile', { userId: referencia });
+    };
     if (notification.type === 'follow' && notification.senderId) {
-      nav.navigate('UserProfile', { userId: notification.senderId });
+      abrirRemitente();
       return;
     }
     const postId = (notification as any).postId;
@@ -301,7 +317,7 @@ const NotificationsScreen: React.FC = () => {
       return;
     }
     if (notification.senderId) {
-      nav.navigate('UserProfile', { userId: notification.senderId });
+      abrirRemitente();
     }
   };
 
@@ -403,7 +419,7 @@ const NotificationsScreen: React.FC = () => {
               },
             ]}
           >
-            No leídas {unreadCount > 0 && `(${unreadCount})`}
+            {unreadCount > 0 ? t('notifications.unreadWithCount', { total: unreadCount }) : t('notifications.unread')}
           </Text>
           {filter === 'unread' && (
             <View style={[styles.filterIndicator, { backgroundColor: theme.colors.accent }]} />

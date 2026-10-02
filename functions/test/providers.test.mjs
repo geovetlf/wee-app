@@ -102,7 +102,7 @@ const runWith = (adapter, capability, input, prefs = {}, modelId, extra = {}) =>
   check('seedance: un rostro real rechazado se marca como rechazo de entrada', /rechazo de entrada/.test(rejected), rejected);
   const { classifyError } = lib('errors.js');
   const classified = classifyError(new (lib('http.js').ProviderError)(rejected, 'seedance'));
-  check('errores: el rechazo de entrada llega a la app como INVALID_REQUEST con motivo input_rejected y frase amable', classified.code === 'INVALID_REQUEST' && classified.details.reason === 'input_rejected' && /rostros reales/.test(classified.message), classified.message);
+  check('errores: el rechazo de entrada llega a la app como INVALID_REQUEST con motivo input_rejected y frase amable', classified.code === 'INVALID_REQUEST' && classified.details.reason === 'input_rejected' && /rostros reales/.test(classified.message) && !/proveedor/.test(classified.message), classified.message);
   stub([[taskUrl, () => { const err = new http.ProviderError('seedance respondió 400: InvalidParameter', 'seedance', 400, true); throw err; }]]);
   let sync = null;
   try { await runWith(seedanceAdapter, 'video.generate', { prompt: 'x' }); } catch (e) { sync = e; }
@@ -389,8 +389,9 @@ const runWith = (adapter, capability, input, prefs = {}, modelId, extra = {}) =>
 
     // TEST 10) La edición sigue funcionando igual por lo demás.
     {
-      check('10) la edición sigue mandando la foto como input_image', typeof calls[0].body.input_image === 'string' || true);
+      // `calls` es solo de la última ejecución: la foto se mira DESPUÉS de editar, no en la creación del TEST 9.
       const e2 = await ejecutar('image.edit', { imageUrl: FOTO, outputWidth: 1024, outputHeight: 1024 });
+      check('10) la edición sigue mandando la foto como input_image', typeof calls[0].body.input_image === 'string');
       check('10) sigue declarando edited y su referencia', e2.meta.edited === true && e2.meta.references === 1);
       check('10) sigue enviando las medidas decididas por la política', calls[0].body.width === 1024 && calls[0].body.height === 1024, JSON.stringify({ w: calls[0].body.width, h: calls[0].body.height }));
       check('10) y sigue guardando la imagen', e2.output.url.startsWith('stored://flux/'));

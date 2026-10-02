@@ -1,3 +1,4 @@
+import { BrainAttachment } from './brain';
 import { ActualCost, Budget } from './cost';
 import { ORCHESTRATOR_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
@@ -135,6 +136,16 @@ export interface StepDispatch {
   language?: LanguageContext;
   /** Lo que acota el resultado, del workflow. Escalares; nunca una implementación. */
   constraints?: Readonly<Record<string, string | number | boolean>>;
+  /**
+   * LOS RECURSOS QUE ESTE PASO PIDIÓ, ya buscados en la lista del workflow.
+   *
+   * Aquí se resuelve la posición y se entrega el material, para que quien
+   * ejecute no tenga que saber que existían índices: recibe lo suyo y ya. El
+   * Orchestrator no mira de quién es —no lee nada—, y por eso esto sigue
+   * llevando el `assetId` en vez de una dirección: la autorización es de quien
+   * tenga permiso para leerlo.
+   */
+  references?: readonly BrainAttachment[];
   /**
    * La misma operación, la misma clave. Se deriva de la ejecución, el paso y
    * el intento, así que es determinista y no hace falta guardarla: dos
@@ -476,6 +487,23 @@ export const crearOrchestrator = (prepared: PreparedWorkflow): Orchestrator => {
     return Object.freeze(material);
   };
 
+  /**
+   * DE POSICIONES A MATERIAL. Una traducción, no una decisión.
+   *
+   * Un índice que no encuentre nada se salta en silencio y eso ES correcto
+   * aquí: el lector del workflow ya rechaza cualquier `uses` que apunte fuera
+   * de la lista, así que si algo faltara sería un workflow que nunca debió
+   * pasar por la puerta, y este no es el sitio donde se descubre.
+   */
+  const recursosDe = (
+    step: WorkflowStep,
+    todos: readonly BrainAttachment[] | undefined,
+  ): readonly BrainAttachment[] | undefined => {
+    if (!step.uses?.length || !todos?.length) return undefined;
+    const suyos = step.uses.map((i) => todos[i]).filter((r): r is BrainAttachment => r !== undefined);
+    return suyos.length ? Object.freeze(suyos) : undefined;
+  };
+
   /** El paquete de un paso, listo para que el Router le ponga el «con qué». */
   const despachoDe = (leida: Leida, step: WorkflowStep, attempt: number): StepDispatch => {
     const clave = claveDePaso(leida.run.id, step.id, attempt);
@@ -499,6 +527,7 @@ export const crearOrchestrator = (prepared: PreparedWorkflow): Orchestrator => {
       trace: Object.freeze({ ...leida.trace, requestId: clave, runId: leida.run.id, stepId: step.id }),
       ...(workflow.language ? { language: workflow.language } : {}),
       ...(workflow.constraints ? { constraints: workflow.constraints } : {}),
+      ...(recursosDe(step, workflow.references) ? { references: recursosDe(step, workflow.references) } : {}),
       idempotencyKey: clave,
       attempt,
       ...(step.timeoutMs !== undefined ? { timeoutMs: step.timeoutMs } : {}),

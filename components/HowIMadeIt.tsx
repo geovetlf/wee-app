@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { Post } from '../services/firestoreService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -66,7 +67,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
     <View style={[styles.box, { backgroundColor: theme.colors.accent + '14', borderColor: theme.colors.accent + '55' }]}>
       <View style={styles.headerRow}>
         <Text style={styles.emoji}>🤖</Text>
-        <Text style={[styles.title, { color: theme.colors.accentDark }]}>{t('wall.howIMadeIt')}</Text>
+        <Text style={[styles.title, { color: theme.colors.accentDark }, sinEspaciadoSiSeUne(t('wall.howIMadeIt'))]}>{t('wall.howIMadeIt')}</Text>
       </View>
 
       {tools.length > 0 && (
@@ -84,7 +85,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
         <View style={styles.promptBlock}>
           <TouchableOpacity style={styles.promptToggle} onPress={() => setPromptOpen((v) => !v)} activeOpacity={0.7}>
             <Text style={[styles.promptToggleText, { color: theme.colors.accentDark }]}>
-              {promptOpen ? 'Ocultar prompt' : 'Ver prompt'}
+              {promptOpen ? t('wall.hidePrompt') : t('wall.showPrompt')}
             </Text>
             <Ionicons name={promptOpen ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.accentDark} />
           </TouchableOpacity>
@@ -98,7 +99,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
                   activeOpacity={0.8}
                 >
                   <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={scale(14)} color="white" />
-                  <Text style={styles.copyText}>{copied ? 'Copiado' : 'Copiar prompt'}</Text>
+                  <Text style={styles.copyText}>{copied ? t('wall.promptCopied') : t('wall.copyPrompt')}</Text>
                 </TouchableOpacity>
               ) : (
                 <Text style={[styles.copyHint, { color: theme.colors.textSecondary }]}>{t('wall.holdToCopy')}</Text>

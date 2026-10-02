@@ -1,11 +1,13 @@
-import { BrainIntent, BrainUnderstanding } from './brain';
+import { BrainAttachment, BrainIntent, BrainStep, BrainStepInput, BrainUnderstanding, FORMA_DE_CLAVE_DE_PASO, MAX_PASOS_DEL_ENTENDIMIENTO, StepNeed } from './brain';
 import { Modality } from './capability';
-import { PLANNER_CONTRACT_VERSION, contratoCompatible } from './contracts';
+import { MAX_PROPUESTAS_POR_PASO, PLANNER_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
 import { LanguageContext } from './language';
 import { OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
 import { CAPABILITY_CATALOG, CatalogEntry, CoreCapabilityId } from './registry';
 import { ExecutionHints, claveProhibida, esObjetoPlano, esTexto, leerHints, nombreDeCampo, sanearMeta } from './gateway';
+import { CreativeParameters, completarCreativos, creativosValidos } from './creative';
+import { CAMPOS_DE_APORTACION, SkillPlanContribution, clavePeligrosa } from './skill';
 
 /**
  * WEE PLANNER — DE LO QUE SE ENTENDIÓ A LO QUE HAY QUE HACER.
@@ -67,6 +69,26 @@ export interface PlanStep {
   produces: Modality;
   /** Requisitos abstractos del resultado. Nunca una implementación. */
   hints?: ExecutionHints;
+  /**
+   * CUÁLES DE LOS RECURSOS DEL PLAN NECESITA ESTE PASO.
+   *
+   * Posiciones en `Plan.references`, no copias: un mismo material puede hacer
+   * falta en tres pasos y no puede aparecer tres veces, porque entonces habría
+   * tres verdades sobre el mismo objeto y bastaría con que una se quedara vieja.
+   *
+   * ── Por qué por POSICIÓN y no por `assetId` ─────────────────────────────
+   *
+   * Porque `assetId` es OPCIONAL en un adjunto: una foto que alguien acaba de
+   * subir puede llegar con URL y sin ficha todavía. Una clave que no siempre
+   * existe no sirve para señalar, así que se usa la única que siempre está.
+   *
+   * El riesgo de un índice es conocido —si alguien reordenara o filtrara la
+   * lista, apuntaría a otra cosa en silencio—, y por eso la lista se copia
+   * ENTERA y en orden del plan al workflow, y hay un guard que lo vigila.
+   *
+   * Ausente = este paso no necesita nada de lo que se aportó.
+   */
+  uses?: readonly number[];
 }
 
 export type PlanWarning =
@@ -101,6 +123,21 @@ export interface Plan {
   /** Lo que acota el resultado. Escalares que vinieron del entendimiento. */
   constraints: Readonly<Record<string, string | number | boolean>>;
   hints?: ExecutionHints;
+  /**
+   * LO QUE LA PERSONA APORTÓ. Recursos, no parámetros.
+   *
+   * Es el MISMO `BrainAttachment` que ya viajaba en el entendimiento —con su
+   * `assetId` cuando lo tiene, que es la llave con la que después se comprueba
+   * de quién es—, copiado tal cual. Ni un tipo nuevo, ni una conversión a URL,
+   * ni un segundo sistema de contexto.
+   *
+   * Y va AQUÍ y no dentro de `PlanStep.input` a propósito. Una foto no es un
+   * parámetro de la tarea: es un recurso que hay que autorizar. Mezclarlos
+   * habría metido material del que alguien es dueño en el mismo saco que
+   * `count` o `kind`, y la autorización habría acabado dependiendo de mirar
+   * las claves de un objeto libre.
+   */
+  references?: readonly BrainAttachment[];
   /** Lo que se le cuenta a la persona antes de empezar. */
   explainToUser?: string;
   /** Lo que se dio por supuesto. Viaja explícito desde el entendimiento. */
@@ -135,6 +172,20 @@ export interface PlannerRequest {
   understanding: BrainUnderstanding;
   /** Requisitos abstractos de quien pide. Nunca una implementación. */
   hints?: ExecutionHints;
+  /**
+   * LO QUE APORTA UN SKILL, cuando hay uno. OPCIONAL, y esa es la propiedad
+   * importante: sin esto el Planner se comporta EXACTAMENTE como antes, porque
+   * es el mismo código con una lista vacía.
+   *
+   * Es la vista estrecha (`SkillPlanContribution`), no el descriptor: aquí
+   * llegan capacidades del catálogo, frases de progreso y límites numéricos, y
+   * nada más. Un Skill no puede pedir un proveedor por esta puerta porque esa
+   * puerta no existe, y se comprueba igual que todo lo que cruza una frontera.
+   *
+   * Quien compone lo saca de una resolución con `aportacionDe()`, que solo
+   * devuelve algo cuando la resolución fue `found`.
+   */
+  skill?: SkillPlanContribution;
 }
 
 export interface PlannerResponse {
@@ -238,6 +289,248 @@ const dependenciasDe = (
   return deps;
 };
 
+/* ── Los pasos que declara Brain ──────────────────────────────────────────── */
+
+/**
+ * LO QUE NO PUEDE CABER DENTRO DE UNA NECESIDAD.
+ *
+ * Un `need` dice QUÉ hace falta y DE DÓNDE, en vocabulario cerrado. Todo lo que
+ * sea un identificador, una dirección o una elección de implementación es de
+ * otra capa, y si colara aquí viajaría hasta el plan — que es el documento que
+ * leen el Workflow y el Router. Se RECHAZA en vez de ignorarse, porque ignorar
+ * dejaría pasar un entendimiento que dice una cosa y consigue otra.
+ */
+/*
+ * Se escribe como la FORMA que describe, y no como una lista de textos, por un
+ * motivo tonto y real: el guard de pureza del Core aísla cada módulo
+ * reescribiendo sus imports por su texto, y una lista que empieza por la palabra
+ * `from` entre comillas le parecía un import. Antes que aflojar ese guard —que
+ * es de los que sujetan todo esto— se escribe la forma, que además dice lo
+ * mismo con menos vueltas: estas son las claves que un `StepNeed` puede tener.
+ */
+const CLAVES_DE_NECESIDAD = Object.keys({ from: 0, modality: 0, stepKey: 0, required: 0 });
+const CLAVES_DE_PASO = ['key', 'capability', 'needs', 'input', 'hints', 'count'];
+const CLAVES_DE_ENTRADA_DEL_PASO = Object.keys({ kind: 0, brief: 0 });
+/** Una frase que dice qué hace un paso cabe de sobra aquí. Un prompt, no. */
+const MAX_BRIEF_DEL_PASO = 300;
+
+
+/**
+ * LOS PASOS DECLARADOS, REVISADOS.
+ *
+ * Es una frontera y las fronteras comprueban, sobre todo esta: lo que llega es
+ * lo que un modelo escribió, y de aquí sale el grafo de ejecución.
+ *
+ * Se mira TODO hacia atrás: un `stepKey` solo puede señalar a un paso ANTERIOR.
+ * No es una comodidad, es lo que hace imposible un ciclo por construcción —y
+ * de paso, que un paso dependa de sí mismo—. No hay que detectar ciclos: no
+ * caben.
+ */
+const revisarPasos = (
+  crudo: unknown,
+): { ok: true; pasos: readonly BrainStep[] } | { ok: false; field: string; reason: string } => {
+  if (!Array.isArray(crudo)) return { ok: false, field: 'understanding.steps', reason: 'invalid_request' };
+  if (crudo.length === 0 || crudo.length > MAX_PASOS_DEL_ENTENDIMIENTO) {
+    return { ok: false, field: 'understanding.steps', reason: 'invalid_request' };
+  }
+  const pasos: BrainStep[] = [];
+  const claves = new Set<string>();
+  const producePorClave = new Map<string, Modality>();
+
+  for (let i = 0; i < crudo.length; i++) {
+    const paso: unknown = crudo[i];
+    const sitio = `understanding.steps.${i}`;
+    if (!esObjetoPlano(paso)) return { ok: false, field: sitio, reason: 'invalid_request' };
+    for (const clave of Object.keys(paso)) {
+      if (claveDeImplementacion(clave)) return { ok: false, field: `${sitio}.${nombreDeCampo(clave)}`, reason: 'implementation_not_allowed' };
+      if (!CLAVES_DE_PASO.includes(clave)) return { ok: false, field: `${sitio}.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+    }
+    /* La clave: única, con forma, y de nadie de abajo. */
+    if (!esTexto(paso.key) || !FORMA_DE_CLAVE_DE_PASO.test(paso.key)) {
+      return { ok: false, field: `${sitio}.key`, reason: 'invalid_request' };
+    }
+    if (claves.has(paso.key)) return { ok: false, field: `${sitio}.key`, reason: 'duplicate_step_key' };
+    /* Sin capacidad no hay paso, y la capacidad sale del catálogo o no sale. */
+    if (!esTexto(paso.capability)) return { ok: false, field: `${sitio}.capability`, reason: 'invalid_request' };
+    const entrada = entradaDe(paso.capability as CoreCapabilityId);
+    if (!entrada) return { ok: false, field: `${sitio}.capability`, reason: 'unknown_capability' };
+
+    const needs: StepNeed[] = [];
+    if (paso.needs !== undefined) {
+      if (!Array.isArray(paso.needs) || paso.needs.length > MAX_PASOS_DEL_ENTENDIMIENTO) {
+        return { ok: false, field: `${sitio}.needs`, reason: 'invalid_request' };
+      }
+      const vistas = new Set<string>();
+      for (let j = 0; j < paso.needs.length; j++) {
+        const need: unknown = paso.needs[j];
+        const donde = `${sitio}.needs.${j}`;
+        if (!esObjetoPlano(need)) return { ok: false, field: donde, reason: 'invalid_request' };
+        for (const clave of Object.keys(need)) {
+          if (claveDeImplementacion(clave)) return { ok: false, field: `${donde}.${nombreDeCampo(clave)}`, reason: 'implementation_not_allowed' };
+          if (!CLAVES_DE_NECESIDAD.includes(clave)) return { ok: false, field: `${donde}.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+        }
+        if (need.from !== 'user' && need.from !== 'upstream') return { ok: false, field: `${donde}.from`, reason: 'invalid_source' };
+        if (!esTexto(need.modality)) return { ok: false, field: `${donde}.modality`, reason: 'invalid_request' };
+        if (need.required !== undefined && typeof need.required !== 'boolean') {
+          return { ok: false, field: `${donde}.required`, reason: 'invalid_request' };
+        }
+        const modality = need.modality as Modality;
+        /*
+         * Lo que necesita tiene que ser algo que su capacidad SEPA recibir. Un
+         * paso que pide vídeo cuando solo acepta imagen no es un plan raro: es
+         * un plan que no se puede ejecutar, y se dice ahora y no al llegar al
+         * proveedor con los Credits ya retenidos.
+         */
+        if (!entrada.accepts.includes(modality)) return { ok: false, field: `${donde}.modality`, reason: 'modality_not_accepted' };
+
+        if (need.from === 'upstream') {
+          if (!esTexto(need.stepKey)) return { ok: false, field: `${donde}.stepKey`, reason: 'invalid_request' };
+          /* HACIA ATRÁS Y SOLO HACIA ATRÁS: aquí mueren el ciclo y la auto-dependencia. */
+          const produce = producePorClave.get(need.stepKey);
+          if (produce === undefined) return { ok: false, field: `${donde}.stepKey`, reason: 'unknown_step_key' };
+          /* Y lo que aquel produce tiene que ser lo que este pide. */
+          if (produce !== modality) return { ok: false, field: `${donde}.stepKey`, reason: 'modality_mismatch' };
+        } else if (need.stepKey !== undefined) {
+          /* `stepKey` sin `upstream` es una declaración que se contradice: no se sanea, se rechaza. */
+          return { ok: false, field: `${donde}.stepKey`, reason: 'invalid_request' };
+        }
+        /* La misma necesidad dos veces no aporta nada y esconde un error de quien la escribió. */
+        const huella = `${need.from}:${modality}:${need.stepKey ?? ''}`;
+        if (vistas.has(huella)) return { ok: false, field: donde, reason: 'duplicate_need' };
+        vistas.add(huella);
+        needs.push(Object.freeze({
+          from: need.from,
+          modality,
+          ...(need.stepKey ? { stepKey: need.stepKey as string } : {}),
+          ...(need.required !== undefined ? { required: need.required } : {}),
+        }));
+      }
+    }
+    /*
+     * LO QUE ESTE PASO HACE, REVISADO CONTRA SU PROPIA CAPACIDAD.
+     *
+     * La variante no vale «si existe en algún sitio»: tiene que estar entre
+     * las que declara ESTA capacidad. `polish` es de `text.generate` y
+     * `restore` de `image.edit`, y confundirlas daría un paso pidiendo algo
+     * que su capacidad no sabe hacer.
+     */
+    let entradaDeclarada: BrainStepInput | undefined;
+    if (paso.input !== undefined) {
+      if (!esObjetoPlano(paso.input)) return { ok: false, field: `${sitio}.input`, reason: 'invalid_request' };
+      for (const clave of Object.keys(paso.input)) {
+        if (claveDeImplementacion(clave)) return { ok: false, field: `${sitio}.input.${nombreDeCampo(clave)}`, reason: 'implementation_not_allowed' };
+        if (!CLAVES_DE_ENTRADA_DEL_PASO.includes(clave)) return { ok: false, field: `${sitio}.input.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+      }
+      const kind: unknown = (paso.input as Record<string, unknown>).kind;
+      const brief: unknown = (paso.input as Record<string, unknown>).brief;
+      if (kind !== undefined) {
+        if (!esTexto(kind)) return { ok: false, field: `${sitio}.input.kind`, reason: 'invalid_request' };
+        if (!entrada.variants?.some((v) => v.key === kind)) return { ok: false, field: `${sitio}.input.kind`, reason: 'unknown_variant' };
+      }
+      if (brief !== undefined && (!esTexto(brief) || !brief.trim() || brief.length > MAX_BRIEF_DEL_PASO)) {
+        return { ok: false, field: `${sitio}.input.brief`, reason: 'invalid_request' };
+      }
+      if (kind !== undefined || brief !== undefined) {
+        entradaDeclarada = Object.freeze({
+          ...(kind !== undefined ? { kind: kind as string } : {}),
+          ...(brief !== undefined ? { brief: (brief as string).trim() } : {}),
+        });
+      }
+    }
+    /*
+     * Y sus pistas, con el MISMO lector que las del plan. Un segundo lector
+     * sería una segunda idea de qué es una pista, y con ella un `providerId`
+     * podría colarse por el carril del paso mientras el del plan lo rechaza.
+     */
+    let pistasDelPaso: ExecutionHints | undefined;
+    if (paso.hints !== undefined) {
+      const leidas = revisarPistas(paso.hints, `${sitio}.hints`);
+      if (!leidas.ok) return { ok: false, field: leidas.field, reason: leidas.reason };
+      pistasDelPaso = leidas.hints;
+    }
+    /*
+     * CUÁNTAS PROPUESTAS PIDE ESTE PASO. SE VALIDA, NO SE ARREGLA.
+     *
+     * Aquí no hay `Math.min`, ni `Math.max`, ni `Number()`, ni redondeo, y es a
+     * propósito: son justo las herramientas que producían el fallo que esto
+     * viene a cerrar. Recortar un cinco a cuatro no es aceptar un cinco con
+     * prudencia —es prometer cinco, cobrar cinco y entregar cuatro—, y un 3,7
+     * redondeado a 3 es lo mismo más pequeño. Lo que el Planner hace con una
+     * cantidad imposible es lo mismo que hace con una variante inventada o con
+     * un proveedor colado en las pistas: decir que no, con el campo señalado.
+     *
+     * Ausente NO es cero ni uno: es «este paso no pide varias», que es el caso
+     * normal y el que tienen 54 de los 74 pasos de Weë. Y un `1` escrito es
+     * otra cosa: es alguien afirmando que quiere exactamente una. Las dos se
+     * ejecutan igual y no significan lo mismo, así que no se confunden.
+     */
+    let cuantasPropuestas: number | undefined;
+    if (paso.count !== undefined) {
+      const c: unknown = paso.count;
+      if (typeof c !== 'number' || !Number.isInteger(c) || c < 1 || c > MAX_PROPUESTAS_POR_PASO) {
+        return { ok: false, field: `${sitio}.count`, reason: 'invalid_request' };
+      }
+      cuantasPropuestas = c;
+    }
+    claves.add(paso.key);
+    producePorClave.set(paso.key, entrada.produces);
+    pasos.push(Object.freeze({
+      key: paso.key,
+      capability: paso.capability as CoreCapabilityId,
+      ...(needs.length ? { needs: Object.freeze(needs) } : {}),
+      ...(entradaDeclarada ? { input: entradaDeclarada } : {}),
+      ...(pistasDelPaso ? { hints: pistasDelPaso } : {}),
+      ...(cuantasPropuestas !== undefined ? { count: cuantasPropuestas } : {}),
+    }));
+  }
+  return { ok: true, pasos: Object.freeze(pasos) };
+};
+
+/**
+ * ¿ES OBLIGATORIA? Todo lo que no se declaró opcional.
+ *
+ * El silencio no autoriza a seguir sin el material: si alguien se molestó en
+ * decir que un paso necesita una foto, lo normal es que sin la foto no haya
+ * paso. Para lo contrario está `required: false`, escrito.
+ */
+const esObligatoria = (need: StepNeed): boolean => need.required !== false;
+
+/**
+ * LAS NECESIDADES DE UN PASO, COMPLETADAS.
+ *
+ * Lo que el catálogo dice que la capacidad acepta y NADIE declaró de dónde sale
+ * se trata como material de la persona y obligatorio. Es el lado seguro del
+ * silencio: nunca crea una dependencia —eso solo puede salir de una
+ * declaración— y como mucho hace que Weë pregunte por una foto que hace falta.
+ *
+ * El texto no entra: está disponible siempre, porque el encargo ya es texto.
+ */
+const necesidadesDe = (paso: BrainStep, entrada: CatalogEntry): readonly StepNeed[] => {
+  const declaradas = paso.needs ?? [];
+  const cubiertas = new Set(declaradas.map((n) => n.modality));
+  const implicitas: StepNeed[] = [];
+  for (const necesita of entrada.accepts) {
+    if (necesita === 'text' || cubiertas.has(necesita)) continue;
+    implicitas.push(Object.freeze({ from: 'user' as const, modality: necesita }));
+  }
+  return implicitas.length ? Object.freeze([...declaradas, ...implicitas]) : declaradas;
+};
+
+/** Qué posiciones de lo que trajo la persona sirven para estas necesidades suyas. */
+const recursosDeLasNecesidades = (
+  needs: readonly StepNeed[],
+  recursos: readonly BrainAttachment[],
+): readonly number[] => {
+  const quiere = new Set(needs.filter((n) => n.from === 'user').map((n) => n.modality));
+  if (!quiere.size || !recursos.length) return [];
+  const usa: number[] = [];
+  for (let i = 0; i < recursos.length; i++) {
+    const modalidad = MODALIDAD_DE_MATERIAL[recursos[i].kind];
+    if (modalidad && quiere.has(modalidad)) usa.push(i);
+  }
+  return usa;
+};
+
 /**
  * ORDENAR LAS CAPACIDADES PARA QUE CADA UNA TENGA LO QUE NECESITA.
  *
@@ -274,6 +567,15 @@ export const ordenarPorDependencia = (
 };
 
 /** Lo que la persona ya trajo: cada adjunto deja disponible su modalidad. */
+/**
+ * CUÁNTOS RECURSOS COMO MUCHO LLEVA UN PLAN.
+ *
+ * Acotado porque el plan se guarda, se copia y se recorre, y porque lo que
+ * cabe aquí es lo que una persona adjuntó a un mensaje: ocho es de sobra y el
+ * día que no baste, es un número.
+ */
+export const MAX_RECURSOS_DEL_PLAN = 8;
+
 const MODALIDAD_DE_MATERIAL: Readonly<Record<string, Modality>> = {
   text: 'text',
   image: 'image',
@@ -288,7 +590,7 @@ export const modalidadesAportadas = (entendimiento: BrainUnderstanding): readonl
 
 /* ── Validación ───────────────────────────────────────────────────────────── */
 
-const CLAVES_DE_PETICION = ['contract', 'trace', 'understanding', 'hints'];
+const CLAVES_DE_PETICION = ['contract', 'trace', 'understanding', 'hints', 'skill'];
 
 /**
  * LO QUE NADIE PUEDE PEDIRLE AL PLANNER.
@@ -365,9 +667,180 @@ const revisarPistas = (
   return leidas.ok ? { ok: true, hints: leidas.hints } : { ok: false, field: leidas.field, reason: 'invalid_request' };
 };
 
+/* ── Qué recursos usa un paso ─────────────────────────────────────────────── */
+
+/**
+ * CUÁLES DE LOS RECURSOS APORTADOS LE HACEN FALTA A ESTE PASO.
+ *
+ * La regla es la del catálogo y no una lista escrita a mano: un paso usa los
+ * recursos cuya MODALIDAD su capacidad declara aceptar. `vision.describe`
+ * acepta imagen, así que se lleva las fotos; `text.generate` no acepta
+ * ninguna, así que no se lleva nada aunque haya tres adjuntas.
+ *
+ * Devuelve POSICIONES en el orden del plan, sin repetir. Vacío significa que
+ * este paso no necesita nada de lo que alguien trajo, y entonces no se escribe
+ * la clave: un paso sin recursos tiene que salir exactamente como salía antes.
+ */
+const recursosDelPaso = (
+  entrada: CatalogEntry,
+  recursos: readonly BrainAttachment[],
+): readonly number[] => {
+  if (recursos.length === 0 || entrada.accepts.length === 0) return [];
+  const usa: number[] = [];
+  for (let i = 0; i < recursos.length; i++) {
+    const modalidad = MODALIDAD_DE_MATERIAL[recursos[i].kind];
+    if (modalidad && entrada.accepts.includes(modalidad)) usa.push(i);
+  }
+  return usa;
+};
+
+/* ── Con qué entra un paso ────────────────────────────────────────────────── */
+
+/**
+ * LA CLAVE DE LA VARIANTE. Una sola, y con nombre propio.
+ *
+ * Es la misma palabra que las plantillas llevan usando desde el principio, y se
+ * conserva a propósito: renombrarla no habría cambiado nada salvo obligar a
+ * traducirla en el único sitio que la lee de verdad, que es el ensamblado del
+ * prompt del lado del adaptador.
+ */
+export const CLAVE_DE_VARIANTE = 'kind';
+
+/**
+ * CON QUÉ ENTRA UN PASO. Y fíjate en lo corto que es.
+ *
+ * ── Lo que lleva ────────────────────────────────────────────────────────────
+ *
+ *   kind    cuál de las variantes que el catálogo declara. Se pide en
+ *           `constraints.kind` y se COMPRUEBA: una que la capacidad no declare
+ *           no se arrastra ni se ignora, se rechaza.
+ *   brief   el encargo, que son LAS PALABRAS DE LA PERSONA. No una frase que
+ *           compusimos nosotros.
+ *
+ * ── Y lo que NO lleva, que es lo que importa ────────────────────────────────
+ *
+ * No lleva `quality` ni `durationSec`: esos ya viven en `hints`, y tenerlos en
+ * los dos sitios es tener dos verdades y descubrir tarde cuál ganaba. No lleva
+ * las demás restricciones: viajan en el plan y el Orchestrator ya las despacha,
+ * así que copiarlas aquí sería duplicarlas paso a paso. No lleva creativos ni
+ * continuidad: están en `hints`, enteros, desde S2 y C2.
+ *
+ * Y sobre todo no lleva prosa compuesta desde etiquetas de interfaz. El plan
+ * viaja al servidor y se guarda; una frase armada con lo que ponía un botón
+ * queda atada al idioma en el que estaba esa persona ese día.
+ */
+const entradaDelPaso = (
+  entrada: CatalogEntry,
+  goal: string,
+  constraints: Readonly<Record<string, string | number | boolean>>,
+  declarada?: BrainStepInput,
+  propuestas?: number,
+): { ok: true; input?: Readonly<Record<string, unknown>> } | { ok: false; field: string } => {
+  /*
+   * ── LA VARIANTE ES DEL PLAN, PERO SOLO LA COGE QUIEN LA ENTIENDE ──────────
+   *
+   * Lo encontró el canary de Photo: «restaura esta foto» son DOS pasos —mirar
+   * la foto y editarla— y `restore` es una variante de editar, no de mirar.
+   * Rechazar el plan porque un paso no la reconoce habría hecho imposible
+   * cualquier plan de más de un paso, que es la forma normal de casi todos.
+   *
+   * Así que la coge el paso cuya capacidad la declara, y a los demás no les
+   * pasa nada. Lo que NO cambia es la protección: una variante que no declara
+   * NINGUNA capacidad del plan sigue siendo una invención y tumba el plan
+   * entero; eso lo comprueba quien arma los pasos, que es el único que las ve
+   * todas.
+   */
+  /*
+   * ── Y LO QUE DIJO EL PASO MANDA SOBRE LO QUE DIJO EL PLAN ────────────────
+   *
+   * La variante del plan es UNA para todos, y sirve cuando de verdad lo es.
+   * En cuanto un paso dice la suya, gana el paso: al revés, «pule el menú»
+   * acabaría escribiendo otro menú.
+   *
+   * Igual la frase. Dársela a todos igual —el objetivo entero de la persona—
+   * era lo que hacía que dos pasos distintos pidieran lo mismo.
+   */
+  const pedida = constraints[CLAVE_DE_VARIANTE];
+  const delPlan = esTexto(pedida) && entrada.variants?.some((v) => v.key === pedida) ? pedida : undefined;
+  const kind = declarada?.kind ?? delPlan;
+  const brief = declarada?.brief ?? (typeof goal === 'string' ? goal.trim() : '');
+  /*
+   * ── Y LA CANTIDAD, QUE VIAJA AL LADO Y ATERRIZA DENTRO ───────────────────
+   *
+   * El paso la declara como hermana de `input` —igual que `needs`— y aquí entra
+   * en el input, que es su sitio canónico: quien la consume después, el precio
+   * y el adaptador, lleva años leyendo `input.count` y no hay motivo para
+   * mandarle a mirar a otro lado.
+   *
+   * No hay defecto. Un paso que no la pide no la lleva, y eso es distinto de
+   * pedir una: lo primero es silencio y lo segundo es una afirmación. Ya viene
+   * validada de `revisarPasos`; aquí solo se coloca.
+   */
+  if (kind === undefined && !brief && propuestas === undefined) return { ok: true };
+  return {
+    ok: true,
+    input: Object.freeze({
+      ...(kind !== undefined ? { [CLAVE_DE_VARIANTE]: kind } : {}),
+      ...(brief ? { brief } : {}),
+      ...(propuestas !== undefined ? { count: propuestas } : {}),
+    }),
+  };
+};
+
 /* ── El Planner ───────────────────────────────────────────────────────────── */
 
 /** Lo que el plan intenta conseguir, dicho para quien lo lee. */
+/**
+ * EL APORTE DE UN SKILL, REVISADO EN LA FRONTERA.
+ *
+ * Un descriptor de Skill es contenido configurable, así que lo que sale de él
+ * se comprueba aquí igual que se comprueba un entendimiento: no porque se
+ * desconfíe de quien compone, sino porque esto es una frontera y las fronteras
+ * comprueban. Si el aporte trae cualquier cosa rara, el Planner NO planifica a
+ * medias ni lo ignora en silencio: dice que la petición es inválida.
+ */
+const revisarAportacionDeSkill = (
+  crudo: unknown,
+): { ok: true; skill?: SkillPlanContribution } | { ok: false; field: string; reason: string } => {
+  if (crudo === undefined) return { ok: true };
+  if (!esObjetoPlano(crudo)) return { ok: false, field: 'skill', reason: 'invalid_request' };
+  for (const clave of Object.keys(crudo)) {
+    if (clavePeligrosa(clave)) return { ok: false, field: `skill.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+    if (claveDeImplementacion(clave) || claveProhibida(clave)) {
+      return { ok: false, field: `skill.${nombreDeCampo(clave)}`, reason: 'implementation_not_allowed' };
+    }
+    if (!CAMPOS_DE_APORTACION.includes(clave)) return { ok: false, field: `skill.${nombreDeCampo(clave)}`, reason: 'invalid_request' };
+  }
+  const s = crudo;
+  if (!esTexto(s.skillId) || s.skillId.length === 0 || s.skillId.length > 64) return { ok: false, field: 'skill.skillId', reason: 'invalid_request' };
+  if (typeof s.version !== 'number' || !Number.isInteger(s.version) || s.version < 1) return { ok: false, field: 'skill.version', reason: 'invalid_request' };
+  if (!Array.isArray(s.capabilities) || s.capabilities.length === 0 || s.capabilities.length > 16) {
+    return { ok: false, field: 'skill.capabilities', reason: 'invalid_request' };
+  }
+  for (const c of s.capabilities) {
+    /* Del CATÁLOGO, y de ningún otro sitio: un Skill no inventa capacidades. */
+    if (!esTexto(c) || !entradaDe(c as CoreCapabilityId)) return { ok: false, field: 'skill.capabilities', reason: 'unknown_capability' };
+  }
+  if (s.purposes !== undefined) {
+    if (!esObjetoPlano(s.purposes)) return { ok: false, field: 'skill.purposes', reason: 'invalid_request' };
+    for (const [clave, valor] of Object.entries(s.purposes)) {
+      if (clavePeligrosa(clave) || !entradaDe(clave as CoreCapabilityId)) return { ok: false, field: 'skill.purposes', reason: 'invalid_request' };
+      /* Una frase para una persona. Si fuera larga, sería un prompt escondido. */
+      if (!esTexto(valor) || valor.length === 0 || valor.length > 160) return { ok: false, field: 'skill.purposes', reason: 'invalid_request' };
+    }
+  }
+  if (s.limits !== undefined) {
+    if (!esObjetoPlano(s.limits)) return { ok: false, field: 'skill.limits', reason: 'invalid_request' };
+    for (const [clave, valor] of Object.entries(s.limits)) {
+      if (clavePeligrosa(clave)) return { ok: false, field: 'skill.limits', reason: 'invalid_request' };
+      if (typeof valor !== 'number' || !Number.isFinite(valor) || valor < 0) return { ok: false, field: 'skill.limits', reason: 'invalid_request' };
+    }
+  }
+  /* La intención creativa que aporta, con su propio contrato: entera o nada. */
+  if (s.creative !== undefined && !creativosValidos(s.creative)) return { ok: false, field: 'skill.creative', reason: 'invalid_request' };
+  return { ok: true, skill: s as unknown as SkillPlanContribution };
+};
+
 const proposito = (entrada: CatalogEntry): string => {
   const accion = String(entrada.id).split('.')[1] ?? String(entrada.id);
   return `${accion.replace(/_/g, ' ')} (${entrada.category})`;
@@ -463,16 +936,121 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
        */
       const sinVacíos = (h?: ExecutionHints) => Object.fromEntries(Object.entries(h ?? {}).filter(([, v]) => v !== undefined));
       const pistas = { ...sinVacíos(preferencias.hints), ...sinVacíos(pistasPedidas.hints) };
-      /* Lo que pide quien llama manda sobre lo que se dedujo de la conversación. */
-      const conPistas = Object.keys(pistas).length ? { hints: pistas as ExecutionHints } : {};
 
       /* ── Lo que Brain no supo, el Planner no lo inventa ───────────────────── */
       if (u.missing.length > 0) {
         return terminar('needs_clarification', { clarification: { missing: u.missing } });
       }
 
+      /* ── Lo que aporta un Skill, si hay uno ───────────────────────────────── */
+      const aporte = revisarAportacionDeSkill(request.skill);
+      if (!aporte.ok) return fallar('invalid', 'INVALID_REQUEST', aporte.reason, { field: aporte.field });
+      const skill = aporte.skill;
+
+      /*
+       * ── LA INTENCIÓN CREATIVA, JUNTA ───────────────────────────────────────
+       *
+       * Lo que pide quien llama manda sobre lo que se dedujo de la conversación,
+       * y las dos cosas mandan sobre lo que aporta un Skill: el Skill RELLENA
+       * los huecos, nunca pisa. Alguien que pidió una toma a ras de suelo no
+       * acaba con una toma aérea porque un Skill las prefiera.
+       *
+       * Y va por el MISMO campo de siempre. `hints` ya viajaba de aquí al
+       * adaptador entera; esto solo añade una clave a un objeto que ya cruzaba
+       * el sistema, y por eso ni el Workflow, ni el Orchestrator, ni el Router,
+       * ni el Job Engine, ni la cola se enteran de que existe.
+       */
+      const creativo = completarCreativos(pistas.creative as CreativeParameters | undefined, skill?.creative);
+      const pistasDelPlan = { ...pistas, ...(creativo ? { creative: creativo } : {}) } as ExecutionHints;
+      /*
+       * ── LAS PISTAS DEL PLAN SON EL FONDO; LAS DEL PASO, LO QUE MANDA ───────
+       *
+       * Y se mezclan CLAVE A CLAVE, no objeto contra objeto: un paso que pide
+       * `durationSec` no pierde la calidad que la persona eligió para todo el
+       * encargo, ni al revés.
+       *
+       * Lo que NO se hace es repartir a todos lo que pidió uno. Un guion no
+       * dura diez segundos: dura diez segundos el vídeo que sale de él.
+       */
+      const pistasDe = (paso?: BrainStep): { hints?: ExecutionHints } => {
+        /*
+         * `sinVacíos` NO es adorno. `leerHints` devuelve SIEMPRE las cuatro
+         * claves, tres de ellas quizá `undefined`, y un `undefined` encima
+         * borra en silencio lo que el plan sí tenía: un paso que solo pide
+         * duración perdería la calidad que eligió la persona. Es la misma
+         * trampa de veinte líneas más arriba, y el compilador tampoco la ve.
+         */
+        const juntas = { ...pistasDelPlan, ...sinVacíos(paso?.hints) } as ExecutionHints;
+        return Object.keys(juntas).length ? { hints: Object.freeze(juntas) } : {};
+      };
+
       /* ── Qué capacidades hacen falta ──────────────────────────────────────── */
-      const pedidas = [...new Set([...(u.capability ? [u.capability] : []), ...(u.capabilities ?? [])])];
+      /*
+       * EL SKILL APORTA, NO MANDA. Sus capacidades entran en la misma lista que
+       * las que pidió la persona y pasan por exactamente los mismos filtros: el
+       * catálogo, la disponibilidad y el orden por dependencia. Si el Skill pide
+       * algo que hoy no sirve nadie, el plan sale `unsupported` igual que si lo
+       * hubiera pedido cualquiera — un Skill no tiene un carril propio.
+       *
+       * Las de la persona van PRIMERO: lo que se pidió no se reordena porque un
+       * Skill opine, y cuando el catálogo deja el orden libre, gana lo que se
+       * pidió.
+       */
+      /*
+       * ── UNA CAPACIDAD PUEDE HACER FALTA VARIAS VECES ──────────────────────
+       *
+       * Aquí había un `Set`. «Escribe el análisis, mira el mercado, escribe las
+       * ideas» son dos pasos de `text.generate` con uno en medio, y el conjunto
+       * los dejaba en uno.
+       *
+       * Medido sobre los planes de verdad —las 35 formas distintas que producen
+       * las once experiencias—: 74 pasos, de los que el conjunto dejaba pasar
+       * 68. Seis pasos que Weë no llegaba a dar. Weë Business era la más
+       * castigada: 9 pasos convertidos en 6, tres de sus cuatro formas tocadas.
+       *
+       * Y debajo hacía algo peor. De las 42 aristas que Legacy declara, 9 tienen
+       * la misma capacidad en los dos extremos: al fundirse los extremos, esas
+       * nueve se habrían vuelto un paso dependiendo de sí mismo.
+       *
+       * Un conjunto contesta «qué capacidades hacen falta». Un plan necesita
+       * contestar «qué pasos hay», que es otra pregunta. La lista que trae el
+       * entendimiento ya venía ordenada y ya admitía repeticiones; lo único que
+       * había que dejar de hacer era tirarlas.
+       *
+       * ── Por qué `capability` ya no se antepone ────────────────────────────
+       *
+       * Porque `capabilities` es, por contrato, la lista COMPLETA —`capability`
+       * es solo cuál de ellas es la principal—. Anteponerla era inofensivo
+       * mientras el conjunto absorbía el duplicado; sin él, añadiría un paso que
+       * nadie pidió. Se usa la lista cuando está, y la principal cuando no.
+       *
+       * Del Skill sí se descarta lo repetido: aporta lo que falta, y añadir una
+       * segunda copia de algo que ya se pidió sería mandar, no aportar.
+       */
+      /*
+       * ── LOS PASOS QUE DECLARA BRAIN MANDAN ───────────────────────────────
+       *
+       * Cuando vienen, el orden es el suyo y las dependencias son las suyas.
+       * El Planner deja de deducirlas del catálogo — que era lo que hacía que
+       * Weë Chef acabara describiendo la foto que el propio plan había
+       * dibujado, en vez de la que trajo la persona.
+       */
+      let declarados: readonly BrainStep[] | undefined;
+      if (u.steps !== undefined) {
+        const leidos = revisarPasos(u.steps);
+        if (!leidos.ok) return fallar('invalid', 'INVALID_REQUEST', leidos.reason, { field: leidos.field });
+        declarados = leidos.pasos;
+      }
+
+      const deLaPersonaEnOrden = declarados
+        ? declarados.map((paso) => paso.capability)
+        : u.capabilities?.length
+        ? [...u.capabilities]
+        : (u.capability ? [u.capability] : []);
+      const pedidas = [
+        ...deLaPersonaEnOrden,
+        ...(skill?.capabilities ?? []).filter((c) => !deLaPersonaEnOrden.includes(c)),
+      ];
       if (pedidas.length === 0) {
         /*
          * Sin capacidad no hay nada que planificar. Si además no hacía falta
@@ -496,7 +1074,16 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
 
       /* ── El orden, deducido del catálogo ──────────────────────────────────── */
       const aportadas = modalidadesAportadas(u);
-      const { orden, sinResolver } = ordenarPorDependencia(pedidas, aportadas);
+      /*
+       * DECLARADO NO SE REORDENA. `ordenarPorDependencia` resuelve el orden a
+       * partir de qué modalidad produce cada capacidad, y eso solo sirve cuando
+       * nadie ha dicho nada: en cuanto hay declaración, reordenar sería pisarla.
+       * Las capacidades que aporte un Skill van detrás, sin declarar nada, y por
+       * eso no pueden crear ninguna relación.
+       */
+      const { orden, sinResolver } = declarados
+        ? { orden: pedidas, sinResolver: [] as readonly CoreCapabilityId[] }
+        : ordenarPorDependencia(pedidas, aportadas);
 
       /*
        * Un paso cuya entrada nadie produce y nadie aportó: a veces se puede
@@ -543,21 +1130,86 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
 
       /* ── Los pasos ────────────────────────────────────────────────────────── */
       const anteriores: { id: string; produces: Modality }[] = [];
+      /* La `key` de Brain no sale al plan: se traduce aquí al id del paso y se queda aquí. */
+      const idPorClave = new Map<string, string>();
+      const faltaMaterial = new Set<Modality>();
       const deLaPersona = new Set<Modality>(aportadas);
+      /*
+       * LOS RECURSOS, COPIADOS Y EN ORDEN. Ni convertidos, ni resueltos, ni
+       * mirados: el plan dice QUÉ trajo la persona, y de quién es cada cosa lo
+       * comprobará quien tenga permiso para leerlo, que no es el Planner.
+       */
+      const recursos: readonly BrainAttachment[] = Object.freeze(
+        u.inputs.attachments.slice(0, MAX_RECURSOS_DEL_PLAN).map((a) => Object.freeze({ ...a })),
+      );
+
+      /* ¿Alguna capacidad del plan reconoce la variante que se pidió? Si ninguna, es inventada. */
+      const variantePedida = u.constraints[CLAVE_DE_VARIANTE];
+      let laReconocioAlguien = false;
       const steps: PlanStep[] = completas.map((capability, i) => {
         const entrada = entradaDe(capability)!;
         const id = idDePaso(capability, i + 1);
-        const dependsOn = dependenciasDe(entrada, anteriores, deLaPersona);
+        const conQue = entradaDelPaso(entrada, u.goal, u.constraints, declarados?.[i]?.input, declarados?.[i]?.count);
+        if (conQue.ok && conQue.input?.[CLAVE_DE_VARIANTE] !== undefined) laReconocioAlguien = true;
+        /*
+         * DE DÓNDE SALE LO QUE ESTE PASO NECESITA.
+         *
+         * Declarado: de lo que dice el paso, y de nada más. Sin declarar: como
+         * siempre — los recursos por modalidad y la dependencia deducida del
+         * catálogo—, que es el comportamiento que ya tenían todos los que
+         * llaman hoy.
+         */
+        const declarado = declarados?.[i];
+        const misNecesidades = declarado ? necesidadesDe(declarado, entrada) : undefined;
+        const usa = misNecesidades
+          ? recursosDeLasNecesidades(misNecesidades, recursos)
+          : recursosDelPaso(entrada, recursos);
+        const dependsOn = misNecesidades
+          ? [...new Set(misNecesidades
+              .filter((n) => n.from === 'upstream')
+              .map((n) => idPorClave.get(n.stepKey as string) as string))]
+          : dependenciasDe(entrada, anteriores, deLaPersona);
+        if (declarado) idPorClave.set(declarado.key, id);
+        /* Lo obligatorio que la persona no trajo se PREGUNTA, y se pregunta ahora. */
+        for (const necesidad of misNecesidades ?? []) {
+          if (necesidad.from === 'user' && esObligatoria(necesidad)
+            && !recursos.some((r) => MODALIDAD_DE_MATERIAL[r.kind] === necesidad.modality)) {
+            faltaMaterial.add(necesidad.modality);
+          }
+        }
         anteriores.push({ id, produces: entrada.produces });
         return {
           id,
           capability,
-          purpose: proposito(entrada),
+          /*
+           * La frase del Skill cuando la tiene, y la del catálogo cuando no. Es
+           * TODO lo que un Skill cambia de un paso: una frase que lee una
+           * persona en la barra de progreso. Ni la capacidad, ni el orden, ni
+           * las dependencias, ni la entrada.
+           */
+          purpose: skill?.purposes?.[String(capability)] ?? proposito(entrada),
           ...(dependsOn.length ? { dependsOn } : {}),
+          ...(conQue.ok && conQue.input ? { input: conQue.input } : {}),
+          ...(usa.length ? { uses: Object.freeze(usa) } : {}),
           produces: entrada.produces,
-          ...conPistas,
+          ...pistasDe(declarados?.[i]),
         };
       });
+      /*
+       * SIN LO OBLIGATORIO NO HAY PLAN. Se pregunta aquí —antes de que exista
+       * un plan, un trabajo, un proveedor o un Credit retenido— y no al llegar
+       * al adaptador, que es donde se notaba hasta ahora y solo en uno.
+       */
+      if (faltaMaterial.size) {
+        return terminar('needs_clarification', {
+          clarification: { missing: [...faltaMaterial].map((m) => `material:${m}`) },
+        });
+      }
+
+      /* Una variante que nadie del plan sabe qué es NO se planifica a medias: se rechaza entero. */
+      if (variantePedida !== undefined && !laReconocioAlguien) {
+        return fallar('invalid', 'INVALID_REQUEST', 'invalid_request', { field: `understanding.constraints.${CLAVE_DE_VARIANTE}` });
+      }
 
       if (u.confidence === 'low') warnings.push('low_confidence');
       if (u.assumptions.length) warnings.push('assumptions_carried');
@@ -569,7 +1221,13 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
         goal: u.goal,
         intent: u.intent,
         steps,
-        capabilities: steps.map((s) => s.capability),
+        /*
+         * EL CONJUNTO, no la lista. Son dos verdades distintas y cada una tiene
+         * su sitio: `capabilities` dice QUÉ hace falta —y el Workflow comprueba
+         * que coincida con lo de los pasos, comparándolo contra un conjunto—, y
+         * `steps` dice CUÁNTAS VECES y en qué orden.
+         */
+        capabilities: [...new Set(steps.map((s) => s.capability))],
         language: u.language,
         workplace: u.workplace?.id,
         projectId: u.projectId,
@@ -581,8 +1239,21 @@ export const crearPlanner = (ports: PlannerPorts): Planner => {
          * textos en silencio, que es alterar lo que la persona pidió.
          */
         constraints: { ...u.constraints },
-        ...conPistas,
-        assumptions: [...u.assumptions],
+        ...(recursos.length ? { references: recursos } : {}),
+        /* Las del PLAN, que son las que valen de fondo para quien no diga las suyas. */
+        ...pistasDe(),
+        /*
+         * Y SE DICE. Planificar con un Skill es una suposición sobre cómo se
+         * resuelve mejor lo que se pidió, y una suposición callada es una
+         * mentira: viaja con el plan, como todas las demás.
+         *
+         * AQUÍ Y NO EN UN CAMPO NUEVO. Un `plan.skill` habría obligado a abrir
+         * la lista cerrada de claves del Workflow —un contrato ya desplegado—
+         * para que no lo rechazara, y eso es mucho cambio para guardar una
+         * atribución que ya tiene sitio. `assumptions` existe justo para esto,
+         * lo copia el Workflow desde la Fase 5, y nadie tiene que enterarse.
+         */
+        assumptions: skill ? [...u.assumptions, `skill:${skill.skillId}@${skill.version}`] : [...u.assumptions],
         warnings: [...warnings],
       };
 

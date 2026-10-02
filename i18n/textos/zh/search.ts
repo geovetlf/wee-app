@@ -25,4 +25,10 @@ export const search: typeof import('../es/search').search = {
   member: '成员',
   typeTwoForPeople: '至少输入 2 个字符才能搜索用户',
   typeTwoForPosts: '至少输入 2 个字符才能搜索动态',
+  peopleFound: '找到的用户',
+  searchPeople: '搜索用户',
+  noPeopleFor: '没有找到与“{{busqueda}}”相关的用户',
+  postsFound: '找到的动态',
+  searchPosts: '搜索动态',
+  noPostsFor: '没有找到与“{{busqueda}}”相关的动态',
 };

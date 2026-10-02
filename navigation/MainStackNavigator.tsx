@@ -33,6 +33,7 @@ import EContactScreen from '../screens/EContactScreen';
 import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import SpecialistScreen from '../screens/SpecialistScreen';
 import StudioScreen from '../screens/StudioScreen';
+import ProductionScreen from '../screens/ProductionScreen';
 import DesignScreen from '../screens/DesignScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
@@ -51,6 +52,7 @@ import { scale } from '../utils/scale';
 import AgregarUbicacionScreen from '../screens/AgregarUbicacionScreen';
 import type { PostPlace } from '../data/places';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
+import type { ContextoDeExperiencia } from '../constants/weeWorkspaces';
 
 export type MainStackParamList = {
   Main: undefined;
@@ -80,15 +82,29 @@ export type MainStackParamList = {
   /** ËContact: las conexiones de Weë entre personas. */
   EContact: undefined;
   /**
+   * LO QUE LEE EL FLUJO GUIADO, Y NADA MÁS: `ContextoDeExperiencia` (constants/weeWorkspaces.ts), la forma que ya
+   * mandan las portadas —Studio, Writer, Chef…— y que `CreatorFlowScreen` lee sin `as`. Aquí había una copia a mano
+   * que se había quedado atrás (sin `editorDocId`, `creative`, `adjuntos` ni `workspace`), y la pantalla la tapaba
+   * con un `as`.
+   *
    * `presets` lleva VARIAS respuestas ya dadas, no una. Lo usa el puente de
    * "No sé qué hacer": cuando Weë ya miró la foto y la persona elige un camino,
    * el espacio y el estilo que ya dijo viajan con ella y no se le vuelven a
    * preguntar (fase 2E-60). `preset` sigue igual para quien solo lleva una.
+   *
+   * `experienceId` es opcional, como en el contexto: la dirección /weeai/<id> puede traer uno que no vale —el `parse`
+   * de App.tsx lo descarta— y entonces el flujo abre la primera experiencia.
    */
-  CreatorFlow: { experienceId: string; goal?: string; jobId?: string; preset?: { questionId: string; optionId: string }; presets?: { questionId: string; optionId: string }[]; imageUri?: string };
+  CreatorFlow: ContextoDeExperiencia;
   Specialist: { id: string };
   /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
   Studio: undefined;
+  /**
+   * «Varias escenas» (Weë Filmmaker, F1-C): una producción abierta con `productionId`; sin él, tus producciones y,
+   * si se llega desde la caja de Weë Studio, la producción a punto de nacer con lo escrito (`intencion`) y los
+   * controles de cámara elegidos (`creativo`, por ruta del lenguaje creativo).
+   */
+  Production: { productionId?: string; intencion?: string; creativo?: Record<string, string> } | undefined;
   /* Weë Design, igual que Studio: un sitio con pantalla propia. */
   Design: undefined;
   WriterEditor: { docId?: string; text?: string; title?: string; replaceText?: string } | undefined;
@@ -96,8 +112,13 @@ export type MainStackParamList = {
   Project: { id: string };
   /* Mis creaciones: la biblioteca de material de la cuenta (Fase 11). */
   MisCreaciones: undefined;
+  /*
+   * La dirección es /post/<postId>: el id va siempre. La publicación entera, si ya se tiene, viaja en memoria para no
+   * volver a leerla, pero no sale a la URL (navigation/enlaces.ts); al recargar se lee por su id.
+   */
   PostDetail: {
-    post: Post;
+    postId?: string;
+    post?: Post;
   };
   UserProfile: {
     userId: string;
@@ -333,6 +354,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
       <Stack.Screen name="Studio" component={StudioScreen} />
+      <Stack.Screen name="Production" component={ProductionScreen} />
       <Stack.Screen name="Design" component={DesignScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />

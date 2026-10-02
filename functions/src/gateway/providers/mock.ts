@@ -1,5 +1,6 @@
-import { CapabilityId } from '../../creator/types';
+import { CapabilityId, ExperienceId } from '../../creator/types';
 import { GatewayContext, ProviderAdapter, ProviderOutput, ProviderResult } from '../types';
+import { MAX_PROPUESTAS_POR_PASO } from '../../engine/types';
 
 /**
  * Proveedor de prueba (modo demo): devuelve resultados de muestra sin llamar a
@@ -8,9 +9,15 @@ import { GatewayContext, ProviderAdapter, ProviderOutput, ProviderResult } from 
  */
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const EMOJI: Record<string, string> = {
+/*
+ * Un emoji por experiencia. El Record es TOTAL sobre `ExperienceId` para que no
+ * se repita lo de siempre: esto tenía diez y se quedó sin Weë Travel cuando
+ * llegó la undécima, sin que nadie lo notara —el `?? '✨'` de abajo lo tapaba—.
+ * El emoji de Travel es el que la experiencia ya tiene en la app, no uno nuevo.
+ */
+const EMOJI: Record<ExperienceId, string> = {
   design: '🎨', studio: '🎬', photo: '📸', writer: '✍️', music: '🎵',
-  beauty: '💄', chef: '👨‍🍳', home: '🏠', business: '💼', brain: '🧠',
+  beauty: '💄', chef: '👨‍🍳', home: '🏠', business: '💼', travel: '✈️', brain: '🧠',
 };
 
 const escapeXml = (value: string) =>
@@ -143,12 +150,12 @@ const demoText = (kind: string, purpose: string, brief: string, ctx: GatewayCont
         'Sáb 18:00 · TikTok · Reseña de un cliente',
         'Dom 17:00 · Instagram · Resumen de la semana',
         '',
-        'Todo queda programado; solo tienes que aprobar cada pieza.',
+        'Weë todavía no publica por ti: revisa cada pieza y publícala tú.',
         '',
         DEMO_NOTE,
       ].join('\n');
     case 'published':
-      return `🚀 Publicación lista\n\nRedes: Instagram · Facebook · TikTok\nProgramada para hoy a las 19:00\n\nCuando tus redes habiliten sus permisos oficiales, Weë la publicará de verdad desde aquí.\n\n${DEMO_NOTE}`;
+      return `🚀 Publicación lista para copiar\n\nRedes: Instagram · Facebook · TikTok\nTodavía no se ha publicado: cópiala y publícala tú en cada red.\n\n${DEMO_NOTE}`;
     case 'metrics':
       return [
         `📊 Resultados de la semana · ${goal}`,
@@ -229,7 +236,14 @@ export const mockProvider: ProviderAdapter = {
     const purpose = String(input.purpose ?? capability);
     const brief = String(input.brief ?? '');
     const kind = String(input.kind ?? '');
-    const emoji = EMOJI[ctx.experienceId] ?? '✨';
+    /*
+     * El `experienceId` del contexto es un `string` suelto —lo dice el propio
+     * contrato del Gateway—, así que la búsqueda tiene que admitir una clave
+     * que no sea ninguna experiencia. Por eso sigue el respaldo de abajo. Lo
+     * que ya no puede pasar es que falte una experiencia REAL: eso lo sujeta
+     * el tipo de la tabla, no esta línea.
+     */
+    const emoji = (EMOJI as Record<string, string | undefined>)[ctx.experienceId] ?? '✨';
 
     let output: ProviderOutput;
     if (capability.startsWith('text.') || capability === 'vision.describe') {
@@ -238,7 +252,7 @@ export const mockProvider: ProviderAdapter = {
     } else if (capability === 'doc.render') {
       output = { kind: 'document', content: `📎 Documento listo (demo): "${ctx.goal}". En la versión real recibirás un PDF o una presentación para descargar.` };
     } else if (capability.startsWith('image.')) {
-      const count = Math.max(1, Math.min(4, Number(input.count ?? 1)));
+      const count = Math.max(1, Math.min(MAX_PROPUESTAS_POR_PASO, Number(input.count ?? 1)));
       const urls = Array.from({ length: count }, (_, i) =>
         demoImage(count > 1 ? `Propuesta ${i + 1}` : purpose, ctx.goal, emoji)
       );

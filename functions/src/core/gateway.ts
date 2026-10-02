@@ -1,6 +1,10 @@
+import { BrainAttachment } from './brain';
 import { GATEWAY_CONTRACT_VERSION, contratoCompatible } from './contracts';
+import { ContinuityRequirements, continuidadValida } from './continuity';
 import { CostLine, CostUnit } from './cost';
+import { CreativeParameters, creativosValidos } from './creative';
 import { WeeError, WeeErrorCode, errorDelCore } from './errors';
+import { esTipoDeEntidad } from './identity';
 import { LanguageContext, LanguageTag, normalizarEtiqueta } from './language';
 import { CAMPOS_PROHIBIDOS, OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
 import { CanonicalResponse } from './provider';
@@ -61,12 +65,33 @@ export interface ImplementationRef {
 export type ExecutionMode = 'sync' | 'async';
 
 /**
- * Lo ÚNICO que un adaptador lee de las preferencias hoy. No es selección:
- * calidad y duración describen el resultado que se quiere, no quién lo hace.
+ * LO QUE SE QUIERE DEL RESULTADO. Nunca quién lo hace.
+ *
+ * Calidad y duración describen el resultado, no la implementación, y por eso
+ * viajan de Brain al adaptador enteras. `creative` es lo mismo un paso más
+ * allá: la intención creativa de quien pidió, ya estructurada —`aerial`,
+ * `dolly_out`, `golden_hour`— en el vocabulario cerrado de Weë.
+ *
+ * ESTE ES EL SITIO, Y NO UNO NUEVO. Una segunda tubería para la intención
+ * creativa habría obligado a tocar el Workflow, el Orchestrator y el Router
+ * para transportar lo mismo que esta ya transporta. Aquí cabe, aquí se valida
+ * con el mismo lector, y aguas abajo nadie tiene que enterarse.
  */
 export interface ExecutionHints {
   quality?: 'standard' | 'high' | 'max';
   durationSec?: number;
+  /** La intención creativa, estructurada. Vocabulario cerrado; jamás sintaxis de un proveedor. */
+  creative?: CreativeParameters;
+  /**
+   * QUÉ NO PUEDE CAMBIAR. Vocabulario cerrado y con su propio contrato.
+   *
+   * Es la segunda clave que entra por aquí, y por el mismo motivo que la
+   * primera: es un REQUISITO del resultado, no una elección de con qué hacerlo.
+   * El Gateway no sabe qué es una fachada ni un rostro —ni falta que le hace—;
+   * lo transporta y lo entrega al adaptador, que es quien sabe traducirlo a los
+   * mandos que tenga su proveedor.
+   */
+  continuity?: ContinuityRequirements;
 }
 
 export interface ExecutionOptions {
@@ -101,6 +126,21 @@ export type GatewayMetadata = Readonly<Record<string, string | number | boolean>
  * clave. Cuando no viene, ES el requestId, que ya es la clave de idempotencia
  * del Credit Engine.
  */
+/**
+ * LO QUE PRODUJO UN PASO ANTERIOR. El subconjunto que esta capa mira.
+ *
+ * Escrito aquí y no importado del coordinador a propósito: la dependencia va en
+ * un solo sentido —el coordinador conoce a las capas de abajo, no al revés— y un
+ * import aquí la habría invertido. Misma decisión que `FichaDeMaterial` en el
+ * contrato de los Elements, y por el mismo motivo.
+ */
+export interface MaterialDeUpstream {
+  stepId: string;
+  capability: string;
+  produces?: string;
+  outputRefs: readonly string[];
+}
+
 export interface GatewayRequest {
   contract: string;
   capability: CoreCapabilityId;
@@ -108,6 +148,27 @@ export interface GatewayRequest {
   input: Readonly<Record<string, unknown>>;
   trace: TraceContext;
   language?: LanguageContext;
+  /**
+   * LOS RECURSOS QUE ESTA OPERACIÓN NECESITA. Referencias, todavía no material.
+   *
+   * Llegan con su `assetId` y NADA más: ni una URL firmada, ni un contenedor,
+   * ni una clave de objeto. Convertirlas en algo que un proveedor pueda leer es
+   * un paso aparte —el mismo que ya materializa los anclajes de continuidad— y
+   * pasa por la puerta que comprueba de quién es cada cosa.
+   *
+   * Y viaja por aquí, no dentro de `input`, porque `input` son los parámetros
+   * de la tarea y esto es material con dueño.
+   */
+  references?: readonly BrainAttachment[];
+  /**
+   * LO QUE PRODUJERON LOS PASOS ANTERIORES. Referencias, todavía no material.
+   *
+   * Distinto de `references`: aquello lo aportó la persona, esto nació dentro
+   * del mismo plan. Se separan porque su autorización es distinta —uno es de la
+   * cuenta desde el principio y el otro lo acaba de crear esta ejecución— y
+   * porque mezclarlos habría hecho imposible saber cuál era cuál.
+   */
+  upstream?: readonly MaterialDeUpstream[];
   idempotencyKey?: string;
   metadata?: GatewayMetadata;
   execution?: ExecutionOptions;
@@ -182,6 +243,8 @@ export type GatewayReason =
   | 'model_pending'
   | 'adapter_missing'
   | 'adapter_inactive'
+  /* Dijo que el proveedor la aceptó, pero no dijo cómo la llama él: así no hay a quién preguntarle después. */
+  | 'accepted_without_operation'
   | 'adapter_unsupported'
   | 'deadline_passed'
   | 'registry_unavailable'
@@ -221,6 +284,12 @@ export interface GatewayResult {
     type?: ProviderType;
   };
   response?: CanonicalResponse;
+  /**
+   * Cómo llama el proveedor a esta operación. Solo con `accepted`: es lo único
+   * que queda de una tarea que sigue en marcha del otro lado, y lo que permitirá
+   * preguntar por ella. Sin esto, `accepted` sería un callejón sin salida.
+   */
+  operation?: GatewayOperationRef;
   usage?: GatewayUsage;
   error?: WeeError;
   timing: { startedAt: number; finishedAt: number };
@@ -236,14 +305,46 @@ export interface ExecutorRequest {
   entry: CatalogEntry;
   implementation: CapabilityImplementation;
   input: Readonly<Record<string, unknown>>;
+  /** Los recursos de la petición, tal como llegaron. Referencias, no material. */
+  references?: readonly BrainAttachment[];
+  /** Lo que produjeron los pasos de los que este depende. Referencias, no material. */
+  upstream?: readonly MaterialDeUpstream[];
   trace: TraceContext;
   language?: LanguageContext;
   execution: ExecutionOptions & { mode: 'sync' };
   hooks?: ExecutionHooks;
 }
 
+/**
+ * CÓMO LLAMA EL PROVEEDOR A UNA OPERACIÓN SUYA. Opaco: no se interpreta, no se
+ * compara por partes. Es lo único que hace falta para poder volver a
+ * preguntarle por ella. Misma forma que `ProviderOperationRef` del Job Engine,
+ * escrita aquí para no cruzar capas.
+ */
+export interface GatewayOperationRef {
+  providerId: string;
+  operationId: string;
+}
+
+/**
+ * LO QUE CONTESTA UN ADAPTADOR.
+ *
+ * Tres respuestas, no dos. Las dos primeras llevaban aquí desde la Fase 2: salió
+ * bien con una respuesta, o salió mal con un error. La tercera es la que faltaba
+ * y sin la cual `accepted` —que está declarado desde el primer día— no podía
+ * producirse nunca: **el proveedor cogió la tarea y sigue con ella por su
+ * cuenta**.
+ *
+ * No es un modo de ejecución nuevo. La llamada se hace y se espera, como
+ * siempre; lo que cambia es que lo que contesta el proveedor no es un resultado
+ * sino un acuse con su nombre para la operación. Un adaptador que nunca lo
+ * devuelva se comporta exactamente igual que antes.
+ */
 export type ExecutorOutcome =
-  | { ok: true; response: CanonicalResponse; usage?: GatewayUsage; warnings?: readonly GatewayWarning[] }
+  /* `accepted` se declara aquí —ausente— para que distinguir las dos sea el tipo quien lo haga, y no una comprobación a mano. */
+  | { ok: true; accepted?: undefined; response: CanonicalResponse; usage?: GatewayUsage; warnings?: readonly GatewayWarning[] }
+  /* EL PROVEEDOR LA COGIÓ. No hay resultado todavía, y puede que tarde horas. */
+  | { ok: true; accepted: true; operation: GatewayOperationRef; usage?: GatewayUsage; warnings?: readonly GatewayWarning[] }
   | { ok: false; error: WeeError };
 
 /** Quien sabe hablar con un adaptador. La composición del motor lo implementa. */
@@ -324,13 +425,16 @@ const MAX_DURATION_SEC = 3600;
 const MAX_METADATA_KEYS = 32;
 const MAX_METADATA_TEXT = 256;
 
-const CLAVES_DE_PETICION = ['contract', 'capability', 'implementation', 'input', 'trace', 'language', 'idempotencyKey', 'metadata', 'execution'];
+/** Lo que una persona puede adjuntar a un mensaje. El mismo tope que el plan y el trabajo. */
+export const MAX_RECURSOS_DE_LA_PETICION = 8;
+
+const CLAVES_DE_PETICION = ['contract', 'capability', 'implementation', 'input', 'trace', 'language', 'references', 'upstream', 'idempotencyKey', 'metadata', 'execution'];
 const CLAVES_DE_REFERENCIA = ['providerId', 'modelId', 'adapterId'];
 /* Las cinco de `LanguageContext`. Lista local porque una interfaz no tiene claves en tiempo de ejecución. */
 const CLAVES_DE_IDIOMA = ['appLanguage', 'userLocale', 'inputLanguage', 'outputLanguage', 'contentLanguage'];
 const CLAVES_DE_USO_NORMALIZADO = ['inputTokens', 'outputTokens', 'totalTokens', 'images', 'videoSeconds', 'audioSeconds', 'characters', 'calls', 'searchQueries'] as const;
 const CLAVES_DE_EJECUCION = ['mode', 'timeoutMs', 'deadlineAt', 'stream', 'hints'];
-const CLAVES_DE_HINTS = ['quality', 'durationSec'];
+const CLAVES_DE_HINTS = ['quality', 'durationSec', 'creative', 'continuity'];
 const CALIDADES = ['standard', 'high', 'max'];
 const CLASES_DE_RESPUESTA = ['text', 'image', 'video', 'audio', 'document'];
 
@@ -524,6 +628,8 @@ interface PeticionValidada {
   capability: CoreCapabilityId;
   implementation: ImplementationRef;
   input: Readonly<Record<string, unknown>>;
+  references?: readonly BrainAttachment[];
+  upstream?: readonly MaterialDeUpstream[];
   trace: TraceContext;
   language?: LanguageContext;
   idempotencyKey: string;
@@ -547,10 +653,32 @@ export const leerTraza = (req: unknown): TraceContext | null => {
   if (!esTexto(t.traceId) || !FORMA_DE_ID.test(t.traceId)) return null;
   if (!esTexto(t.requestId) || !FORMA_DE_ID.test(t.requestId)) return null;
   if (!esTexto(t.userId) || !FORMA_DE_ID.test(t.userId)) return null;
-  for (const opcional of ['sessionId', 'runId', 'stepId', 'appId', 'workplace', 'projectId']) {
+  for (const opcional of ['sessionId', 'runId', 'stepId', 'appId', 'workplace', 'projectId', 'entityId', 'operationId', 'workspaceId']) {
     const v = t[opcional];
     if (v !== undefined && (!esTexto(v) || !FORMA_DE_ETIQUETA_DE_TRAZA.test(v))) return null;
   }
+  /*
+   * LOS CINCO CAMPOS DE LA FASE 10, QUE ESTE LECTOR SE COMÍA.
+   *
+   * La Fase 10 añadió a la traza `accountId`, `entityId`, `entityType`,
+   * `operationId` y `workspaceId` para que la atribución viajara de la primera
+   * capa a la última. Este lector es de la Fase 2, copiaba nueve campos por su
+   * nombre y nadie lo tocó: los cinco nuevos desaparecían en el PRIMER lector,
+   * sin error y sin aviso, y por este lector pasa toda traza que entra en Brain,
+   * en el Workflow, en el Orchestrator, en el Router, en el Job Engine y en el
+   * Gateway. Se encontró al construir el conductor (Fase 12-D), que tuvo que
+   * llevarlos por otro sitio.
+   *
+   * `accountId` NO es una etiqueta más. El contrato dice que es «la cuenta,
+   * dicha con su nombre. Mismo valor que `userId`», y mientras este lector lo
+   * tiraba daba igual lo que trajera. Conservarlo sin comprobarlo abriría una
+   * puerta que estaba cerrada por accidente: `cuentaDeTraza()` prefiere
+   * `accountId`, así que una traza con la cuenta de OTRO ahí dentro atribuiría
+   * la operación a esa otra cuenta. Si viene, tiene que ser el mismo. Si no lo
+   * es, la traza entera no vale —no se «corrige»—.
+   */
+  if (t.accountId !== undefined && t.accountId !== t.userId) return null;
+  if (t.entityType !== undefined && !esTipoDeEntidad(t.entityType)) return null;
   return {
     traceId: t.traceId,
     requestId: t.requestId,
@@ -562,6 +690,15 @@ export const leerTraza = (req: unknown): TraceContext | null => {
     appId: t.appId as string | undefined,
     workplace: t.workplace as string | undefined,
     projectId: t.projectId as string | undefined,
+    /*
+     * Solo si vienen. Una traza que no los trae sale EXACTAMENTE como salía
+     * antes, clave por clave: nada de lo que ya funciona nota este cambio.
+     */
+    ...(t.accountId !== undefined ? { accountId: t.accountId as string } : {}),
+    ...(t.entityId !== undefined ? { entityId: t.entityId as string } : {}),
+    ...(t.entityType !== undefined ? { entityType: t.entityType as string } : {}),
+    ...(t.operationId !== undefined ? { operationId: t.operationId as string } : {}),
+    ...(t.workspaceId !== undefined ? { workspaceId: t.workspaceId as string } : {}),
   };
 };
 
@@ -579,7 +716,27 @@ export const leerHints = (crudo: unknown, prefijo: string): { ok: true; hints?: 
   if (crudo.durationSec !== undefined && (!esNumero(crudo.durationSec) || crudo.durationSec <= 0 || crudo.durationSec > MAX_DURATION_SEC)) {
     return { ok: false, field: `${prefijo}.durationSec`, reason: 'invalid_request' };
   }
-  return { ok: true, hints: { quality: crudo.quality as ExecutionHints['quality'], durationSec: crudo.durationSec as number | undefined } };
+  /*
+   * La intención creativa se valida ENTERA con su propio contrato —vocabulario
+   * cerrado, rangos, unidades— y se rechaza si algo no encaja. No se recorta ni
+   * se admite a medias: media intención es una intención distinta.
+   */
+  if (crudo.creative !== undefined && !creativosValidos(crudo.creative)) {
+    return { ok: false, field: `${prefijo}.creative`, reason: 'invalid_request' };
+  }
+  /* Y los requisitos de continuidad, igual: contrato propio, entero o nada. */
+  if (crudo.continuity !== undefined && !continuidadValida(crudo.continuity)) {
+    return { ok: false, field: `${prefijo}.continuity`, reason: 'invalid_request' };
+  }
+  return {
+    ok: true,
+    hints: {
+      quality: crudo.quality as ExecutionHints['quality'],
+      durationSec: crudo.durationSec as number | undefined,
+      creative: crudo.creative as CreativeParameters | undefined,
+      continuity: crudo.continuity as ContinuityRequirements | undefined,
+    },
+  };
 };
 
 const validarEjecucion = (crudo: unknown): { ok: true; execution: PeticionValidada['execution'] } | Fallo => {
@@ -696,12 +853,34 @@ const validarPeticion = (req: unknown, trace: TraceContext | null, maxInputBytes
   const ejecucion = validarEjecucion(req.execution);
   if (!ejecucion.ok) return ejecucion;
 
+  /*
+   * LOS RECURSOS, REVISADOS EN LA PUERTA. La forma y nada más: aquí no se lee
+   * ninguna ficha, así que de quién es cada material lo dirá la entrega. Lo que
+   * sí se exige es que no entre un objeto con claves de más haciéndose pasar
+   * por un adjunto.
+   */
+  const recursos: BrainAttachment[] = [];
+  if (req.references !== undefined) {
+    if (!Array.isArray(req.references) || req.references.length > MAX_RECURSOS_DE_LA_PETICION) return invalido('references');
+    for (const [i, ref] of req.references.entries()) {
+      if (!esObjetoPlano(ref) || !esTexto(ref.kind)) return invalido(`references[${i}]`);
+      for (const clave of Object.keys(ref)) {
+        if (!['kind', 'url', 'assetId', 'name'].includes(clave)) return invalido(`references[${i}].${nombreDeCampo(clave)}`);
+      }
+      recursos.push(Object.freeze({ ...ref } as unknown as BrainAttachment));
+    }
+  }
+
   return {
     ok: true,
     peticion: {
       capability: req.capability as CoreCapabilityId,
       implementation: { providerId: ref.providerId, modelId: ref.modelId, adapterId: ref.adapterId as string | undefined },
       input: req.input,
+      ...(recursos.length ? { references: Object.freeze(recursos) } : {}),
+      ...(Array.isArray(req.upstream) && req.upstream.length
+        ? { upstream: Object.freeze((req.upstream as readonly MaterialDeUpstream[]).map((u) => Object.freeze({ ...u }))) }
+        : {}),
       trace,
       language: idioma.language,
       idempotencyKey: (req.idempotencyKey as string | undefined) ?? trace.requestId,
@@ -913,6 +1092,8 @@ export const crearGateway = (ports: GatewayPorts): Gateway => {
         entry,
         implementation: impl,
         input: p.input,
+        ...(p.references?.length ? { references: p.references } : {}),
+        ...(p.upstream?.length ? { upstream: p.upstream } : {}),
         trace: p.trace,
         language: p.language,
         execution: p.execution,
@@ -926,6 +1107,35 @@ export const crearGateway = (ports: GatewayPorts): Gateway => {
     if (!salida.ok) {
       const error = salida.error && esTexto(salida.error.code) ? salida.error : fallo('INTERNAL_ERROR', 'executor_failure');
       return fallar(error);
+    }
+
+    /*
+     * ── ACEPTADA, QUE NO ES TERMINADA ────────────────────────────────────────
+     *
+     * El proveedor cogió la tarea y sigue con ella. No hay resultado que
+     * validar, ni que proyectar, ni que sanear: lo único que vuelve es cómo la
+     * llama él, y sin eso no habría forma de volver a preguntarle, así que sin
+     * eso esto no es una aceptación —es un error nuestro—.
+     *
+     * Quien lo recibe (`informeDelGateway`, Fase 8) lo convierte en un intento
+     * cuyo desenlace NO se conoce todavía, con la operación marcada como salida,
+     * y el trabajo queda ESPERANDO. Ni se cobra, ni se devuelve, ni se repite.
+     */
+    if (salida.accepted === true) {
+      const op = salida.operation;
+      if (!op || !esTexto(op.providerId) || !esTexto(op.operationId) || !FORMA_DE_ETIQUETA_DE_TRAZA.test(op.operationId)) {
+        return fallar(fallo('PROVIDER_ERROR', 'accepted_without_operation'));
+      }
+      if (salida.warnings) warnings.push(...salida.warnings);
+      const usoDeAcuse = salida.usage ? sanearUso(salida.usage) : undefined;
+      return anotar({
+        ...base,
+        status: 'accepted',
+        operation: Object.freeze({ providerId: op.providerId, operationId: op.operationId }),
+        ...(usoDeAcuse ? { usage: usoDeAcuse } : {}),
+        timing: { startedAt, finishedAt: ports.now() },
+        warnings: [...warnings],
+      });
     }
 
     if (!respuestaCanonicaValida(salida.response)) {

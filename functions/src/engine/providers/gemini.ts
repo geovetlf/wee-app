@@ -1,8 +1,11 @@
 import { CapabilityId } from '../../creator/types';
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest, SourceRef } from '../types';
+import { MAX_PROPUESTAS_POR_PASO } from '../types';
 import { env, NotConfiguredError, persistBase64, ProviderError, readImage } from '../http';
+import { MecanismoDeContinuidad, materialDeLaEntrada, traducirContinuidad } from '../continuidad';
 import { estimateInputTokens } from '../../credits/aiPricing';
 import { aspectOf, nearestAspectLabel } from '../resolutionPolicy';
+import { pideTextoPlano, SISTEMA_POR_DEFECTO } from '../promptLanguage';
 
 /**
  * Google Gemini (clave GEMINI_API_KEY, SDK @google/genai, método generateContent).
@@ -163,7 +166,8 @@ const getClient = async () => {
   return client;
 };
 
-const DEFAULT_SYSTEM = 'Eres Weë. Respondes en español, claro, cálido y directo. Nunca mencionas modelos, proveedores ni términos técnicos.';
+/* Sin idioma impuesto: cada llamada pasa su sistema; este es el respaldo neutro (engine/promptLanguage.ts). */
+const DEFAULT_SYSTEM = SISTEMA_POR_DEFECTO;
 
 /**
  * Cualquier archivo de la persona viaja en línea (base64). Gemini entiende de
@@ -206,12 +210,15 @@ const attachmentsOf = (input: Record<string, unknown>): { url: string; mime: str
   return out;
 };
 
+/** Cuantas imágenes caben de verdad en una petición de imagen. El mecanismo las declara. */
+const MAX_REFERENCIAS_DE_IMAGEN = 4;
+
 const imageUrlsOf = (input: Record<string, unknown>): string[] => {
   const urls: string[] = [];
   if (typeof input.imageUrl === 'string' && input.imageUrl) urls.push(input.imageUrl);
   if (Array.isArray(input.imageUrls)) for (const u of input.imageUrls) if (typeof u === 'string' && u) urls.push(u);
   if (Array.isArray(input.referenceUrls)) for (const u of input.referenceUrls) if (typeof u === 'string' && u) urls.push(u);
-  return urls.slice(0, 4);
+  return urls.slice(0, MAX_REFERENCIAS_DE_IMAGEN);
 };
 
 /** Instrucciones internas por tipo de edición (la persona nunca las ve). */
@@ -268,7 +275,7 @@ const groundingSources = (response: any): { sources: SourceRef[]; queries: numbe
 
 async function runText(ai: any, request: ProviderRunRequest, start: number): Promise<ProviderResult> {
   const { capability, input, model } = request;
-  const wantJson = capability === 'text.structure' || capability === 'scene.split' || input.format === 'json';
+  const wantJson = input.format === 'json' || (!pideTextoPlano(input) && (capability === 'text.structure' || capability === 'scene.split'));
   const search = capability === 'text.search';
   const vision = capability === 'vision.describe';
   const system = String(input.system ?? DEFAULT_SYSTEM);
@@ -326,14 +333,34 @@ const aspectFromOutput = (input: Record<string, unknown>): string | undefined =>
   return nearestAspectLabel(aspectOf(width, height));
 };
 
+/**
+ * LO QUE ESTE ADAPTADOR SABE HACER DE VERDAD CON LA CONTINUIDAD.
+ *
+ * Cuatro imágenes de referencia —las que `imageUrlsOf` deja pasar— y ningún
+ * control dedicado. Y hay que decir lo otro en voz alta: `image.identity_edit`
+ * lleva una FRASE en las instrucciones internas —«keep the identity and
+ * features of the person»— y esa frase NO es un mecanismo. Pedirle por escrito
+ * a un modelo que no cambie una cara es una esperanza, no una garantía, así que
+ * no suma nada aquí: lo que se declara son las cuatro referencias y punto.
+ */
+const mecanismoDeContinuidad = (capability: CapabilityId): MecanismoDeContinuidad => ({
+  /* Solo la imagen tiene huecos: pedirle a un texto que conserve un rostro no tiene dónde caer. */
+  referenciasDeImagen: IMAGE_CAPS.includes(capability) ? MAX_REFERENCIAS_DE_IMAGEN : 0,
+  referenciasDeVideo: 0,
+  controlesDedicados: [],
+  admiteFuerza: false,
+});
+
 async function runImage(ai: any, request: ProviderRunRequest, start: number): Promise<ProviderResult> {
   const { capability, input, ctx, model, prefs } = request;
-  const count = Math.max(1, Math.min(4, Number(input.count ?? 1)));
+  const count = Math.max(1, Math.min(MAX_PROPUESTAS_POR_PASO, Number(input.count ?? 1)));
   const kind = String(input.kind ?? '');
   const instruction = EDIT_INSTRUCTIONS[kind] || EDIT_INSTRUCTIONS[capability] || '';
   const prompt = [String(input.prompt ?? input.purpose ?? ''), String(input.brief ?? ''), instruction].filter(Boolean).join('\n');
   const parts: any[] = [{ text: prompt }];
   for (const url of imageUrlsOf(input)) parts.push(await imagePart(url));
+  /* Qué se pidió conservar y hasta dónde llega esto. No toca el prompt ni el cuerpo. */
+  const continuidad = traducirContinuidad(request.hints?.continuity, mecanismoDeContinuidad(capability), materialDeLaEntrada(input));
 
   /*
    * La proporción sale de las medidas que ya resolvió la Resolution Policy.
@@ -371,11 +398,22 @@ async function runImage(ai: any, request: ProviderRunRequest, start: number): Pr
     costUSD: urls.length * rate,
     latencyMs: Date.now() - start,
     model: model.id,
-    meta: { imageSize: size, usdPerImage: rate },
+    meta: {
+      imageSize: size,
+      usdPerImage: rate,
+      ...(continuidad
+        ? {
+            continuityUncovered: continuidad.noCubiertos.length,
+            continuityReferences: continuidad.referenciasUsadas,
+            continuityDropped: continuidad.referenciasDescartadas,
+          }
+        : {}),
+    },
   };
 }
 
 export const geminiAdapter: ProviderAdapter = {
+  continuidad: (capability) => mecanismoDeContinuidad(capability),
   id: 'gemini',
   name: 'Google Gemini (texto, búsqueda, visión, imagen)',
   modalities: ['text', 'vision', 'image'],

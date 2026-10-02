@@ -96,7 +96,8 @@ console.log('\n── A · Ni una frase suelta en el Composer ──');
     Object.values(ES.composer).filter((v) => /[áéíóúñ¿¡]/.test(v)).length > 40);
 
   check('4) y las seis usan el traductor de siempre',
-    [HOJA, ENTRADA, CREAR, AGENDA, LUGAR].every((p) => /useT\(\)/.test(C[p]))
+    /* useIdioma es el mismo proveedor: la pantalla de lugar lo pide para decir el país en el idioma de ahora. */
+    [HOJA, ENTRADA, CREAR, AGENDA, LUGAR].every((p) => /useT\(\)|useIdioma\(\)/.test(C[p]))
     && !/i18next|react-intl|Localization\.locale/.test(TODO));
 }
 
@@ -128,7 +129,13 @@ console.log('\n── B · Español e inglés, completos ──');
    * 'question'`— y por eso su etiqueta vive en este módulo. Cuenta como uso;
    * no entra en la comprobación de arriba, que exige no tener frases sueltas.
    */
-  const PUERTAS = ['screens/HelpScreen.tsx'];
+  /*
+   * Y el «Cómo lo hice» que Weë deja escrito al publicar desde Weë AI
+   * (aiProcessCreatedWith, aiProcessDemoPreview) es parte de la publicación,
+   * aunque lo arme CreatorFlowScreen.
+   */
+  /* Y la distancia a un lugar, que ahora se escribe en su unidad y en su idioma fuera de la pantalla. */
+  const PUERTAS = ['screens/HelpScreen.tsx', 'screens/CreatorFlowScreen.tsx', 'utils/distanciaParaLeer.ts'];
   const desdeFuera = PUERTAS.map((p) => leer(p)).join(String.fromCharCode(10));
   const pedidasFuera = [...desdeFuera.matchAll(/'(composer\.[A-Za-z0-9_]+)'/g)].map((m) => m[1]);
   const usadas = new Set([...pedidas, ...pedidasFuera].filter((c) => c.startsWith('composer.')).map((c) => c.split('.')[1]));
@@ -192,7 +199,8 @@ console.log('\n── D · Lo que NO se traduce ──');
   check('17) ni el texto de una opción de encuesta', /value=\{option\.text\}/.test(C[CREAR]) && !/t\(option\.text\)/.test(C[CREAR]));
   check('17) ni la pregunta', /value=\{poll\.question\}/.test(C[CREAR]) && !/t\(poll\.question\)/.test(C[CREAR]));
   check('17) ni el nombre de un ËContact', /\{persona\.perfil\.displayName\}/.test(C[AGENDA]) && !/t\(persona\.perfil/.test(C[AGENDA]));
-  check('17) ni el nombre de un lugar del catálogo', /\{opcion\.label\}/.test(C[LUGAR]) && !/t\(opcion\.label\)/.test(C[LUGAR]));
+  /* El lugar se ESCRIBE en el idioma de quien mira con su nombre en ese idioma (`opcionEnSuIdioma`, «København»), no con el traductor. */
+  check('17) ni el nombre de un lugar del catálogo', /\{visible\.label\}/.test(C[LUGAR]) && /opcionEnSuIdioma\(opcion, locale\)/.test(C[LUGAR]) && !/t\((?:opcion|visible)\.label\)/.test(C[LUGAR]));
   check('17) ni el nombre de quien publica', /userProfile\?\.displayName \|\| t\('composer\.you'\)/.test(C[CREAR]));
 
   /* Las marcas, iguales en los dos idiomas. */

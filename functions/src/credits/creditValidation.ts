@@ -1,6 +1,7 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import { isCreditService, CreditService } from './creditCosts';
 import { esIdDeCuenta } from '../core/identity';
+import { sanitizeForLog } from '../engine/sanitize';
 
 /**
  * Validación y errores del Credit Engine. Nada de lo que llega del cliente se
@@ -45,8 +46,15 @@ export const toHttpsError = (error: unknown): HttpsError => {
     };
     return new HttpsError(map[error.code], error.code, { code: error.code, ...error.details });
   }
-  const message = error instanceof Error ? error.message : String(error);
-  return new HttpsError('internal', message);
+  /*
+   * UN ERROR QUE NO ES DE CREDITS NO LE CUENTA NADA AL CLIENTE (cierre post-auditoría 2026-10-01,
+   * money/error-interno-al-cliente). Antes viajaba su mensaje crudo —el de Firestore, una ruta, un
+   * identificador, lo que fuera—. Ahora sale un código genérico y lo interno se queda en el registro
+   * del servidor, saneado con el mismo saneador que el resto (`engine/sanitize.ts`). Es la forma de
+   * `moderation/index.ts` (`aHttpsError`).
+   */
+  console.error('CREDITS: fallo interno', sanitizeForLog(error, 300));
+  return new HttpsError('internal', 'INTERNAL');
 };
 
 export const MAX_AMOUNT = 1_000_000;
@@ -84,6 +92,14 @@ export const assertAmount = (amount: unknown): number => {
 export const assertRequestId = (requestId: unknown): string => {
   if (typeof requestId !== 'string' || !REQUEST_ID.test(requestId)) throw new CreditError('INVALID_REQUEST', 'requestId inválido (4–160 caracteres: letras, números, _ . : -)', { requestId });
   return requestId;
+};
+
+const FINGERPRINT = /^[a-f0-9]{16,128}$/;
+
+/** La huella de una operación: la calcula el servidor que sabe qué se pide, nunca el cliente. Hexadecimal, 16–128. */
+export const assertFingerprint = (fingerprint: unknown): string => {
+  if (typeof fingerprint !== 'string' || !FINGERPRINT.test(fingerprint)) throw new CreditError('INVALID_REQUEST', 'Huella de operación inválida', { field: 'fingerprint' });
+  return fingerprint;
 };
 
 export const assertService = (service: unknown): CreditService => {

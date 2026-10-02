@@ -142,7 +142,7 @@ const req = (extra = {}) => ({ capability: 'video.generate', input: { prompt: 'u
   const { router } = build({ alpha, mock }, config({ settings: { pricingMode: 'real', allowMockFallback: false } }));
   let error = null;
   try { await router.execute(req()); } catch (e) { error = e; }
-  check('error controlado NOT_AVAILABLE con mensaje amable (el motivo técnico queda en el registro)', error && error.code === 'NOT_AVAILABLE' && /no hay un proveedor disponible/.test(error.message) && !/sin clave/.test(error.message), error && error.message);
+  check('error controlado NOT_AVAILABLE con mensaje amable (el motivo técnico queda en el registro)', error && error.code === 'NOT_AVAILABLE' && /no hay una IA disponible/.test(error.message) && !/proveedor|sin clave/.test(error.message), error && error.message);
 }
 
 // 9) pickModel y resolveQuality directos

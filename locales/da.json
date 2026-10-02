@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë skal have adgang til dit kamera, så du kan tage fotos til dine opslag, din profil, WeeTalk og Weë AI.",
+    "NSMicrophoneUsageDescription": "Weë skal have adgang til din mikrofon, så du kan optage og sende talebeskeder i WeeTalk.",
+    "NSPhotoLibraryUsageDescription": "Weë skal have adgang til dit galleri, så du kan vælge fotos og videoer til dine opslag, din profil, WeeTalk og Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Weë skal have tilladelse til at gemme billeder og videoer fra Weë AI i dit galleri, når du downloader dem.",
+    "NSLocationWhenInUseUsageDescription": "Weë bruger din omtrentlige placering til at foreslå steder i nærheden og dit område, når du tilføjer en placering til et opslag – kun mens appen er åben. Din nøjagtige placering vises aldrig offentligt."
+  }
+}

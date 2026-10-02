@@ -5,7 +5,7 @@
  *
  * Tratamiento informal (tu). Lo legal va con el término exacto
  * ("Termini di servizio", "Informativa sulla privacy"); los nombres de Weë, los
- * diez especialistas y el símbolo ☰ se copian tal cual. "Cómo lo hice" se dice
+ * especialistas y el símbolo ☰ se copian tal cual. "Cómo lo hice" se dice
  * como en el Wäll: "Come l’ho fatto". Apóstrofo tipográfico ’ siempre.
  */
 export const help: typeof import('../es/help').help = {
@@ -24,7 +24,8 @@ export const help: typeof import('../es/help').help = {
   q2: 'Che differenza c’è tra Profilo Reale e Profilo Weë?',
   a2: 'Il tuo Profilo Reale è la tua identità di sempre e l’app si vede bianca. Il tuo Profilo Weë è la tua identità per creare con l’IA: un avatar e un nome tutti tuoi per pubblicare le tue creazioni, e con lui l’app si veste di scuro perché tu sappia sempre con chi stai partecipando. Passi dall’uno all’altro dal menu ☰ o dal pulsante dell’intestazione.',
   q3: 'Come funziona Weë AI?',
-  a3: 'Racconta a Weë cosa vuoi ottenere, con parole tue. Weë ti fa poche domande semplici (puoi sempre rispondere "Non lo so"), prepara un piano e crea il risultato. Tu scegli il risultato; Weë sceglie l’IA. Ci sono dieci specialisti: Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business e Brain.',
+  a3_one: 'Racconta a Weë cosa vuoi ottenere, con parole tue. Weë ti fa poche domande semplici (puoi sempre rispondere "Non lo so"), prepara un piano e crea il risultato. Tu scegli il risultato; Weë sceglie l’IA. Weë AI ha {{contador}} specialista: {{lista}}.',
+  a3_other: 'Racconta a Weë cosa vuoi ottenere, con parole tue. Weë ti fa poche domande semplici (puoi sempre rispondere "Non lo so"), prepara un piano e crea il risultato. Tu scegli il risultato; Weë sceglie l’IA. Weë AI ha {{contador}} specialisti: {{lista}}.',
   q4: 'Che cosa sono i Credits?',
   a4: 'Ogni creazione con Weë AI usa Credits. Prima di creare vedi quanto costerà e, se qualcosa non va, ti vengono restituiti. Mentre costruiamo Weë AI i prezzi sono di prova e le ricariche non costano nulla: i prezzi definitivi arriveranno con le IA reali.',
   q5: 'A cosa servono i progetti?',
@@ -37,4 +38,7 @@ export const help: typeof import('../es/help').help = {
   a8: 'È la chat di Weë: conversazioni private con altre persone della community, con testo, foto e note vocali.',
   q9: 'Che cos’è "Come l’ho fatto"?',
   a9: 'Quando pubblichi puoi raccontare quali strumenti hai usato, il prompt e il processo. Così altre persone imparano da te, e tu da loro, con un solo tocco su "Copia il prompt".',
+  heroTitle: 'Come possiamo aiutarti?',
+  legalVisibility: 'Quello che pubblichi è visibile alla community; quello che crei in Weë AI resta privato finché non decidi di pubblicarlo. Puoi eliminare i tuoi post e i tuoi progetti quando vuoi.',
+  askPrefill: 'Una domanda per Weë: ',
 };

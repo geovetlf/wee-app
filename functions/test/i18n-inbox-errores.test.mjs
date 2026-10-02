@@ -118,8 +118,9 @@ console.log('\n── B · El voto que no llegó ──');
    * detrás es el mensaje del error tal cual: NO se traduce, porque es lo que
    * dijo el servidor y traducirlo sería inventárselo.
    */
+  /* El detalle es el del servidor, reconocido y en el idioma de quien vota (`mensajeDelServidor`); lo que no reconoce, tal cual. */
   check('16) notify sigue recibiendo el titular y el detalle',
-    /notify\(t\('wall\.pollVoteFailed'\), error instanceof Error \? error\.message : undefined\);/.test(ENCUESTA));
+    /notify\(t\('wall\.pollVoteFailed'\), mensajeDelServidor\(error, \{ t, locale \}\)\);/.test(ENCUESTA));
   check('16) y el detalle del servidor no pasa por el traductor',
     !/t\(error\.message\)|t\(String\(error/.test(ENCUESTA));
   check('16) sin sistemas de aviso paralelos', /from '\.\.\/utils\/notify'/.test(leer('components/Poll.tsx'))

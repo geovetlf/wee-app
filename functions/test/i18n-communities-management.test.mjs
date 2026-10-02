@@ -111,20 +111,37 @@ console.log('\n── C · El diálogo de salir y los tres avisos ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   /*
-   * 15 · La pantalla NO usa `confirmAction`: arma su propio `Alert.alert` de
-   * tres botones. Eso no cambia —sería un refactor—; lo que cambia es de dónde
-   * salen sus palabras. `Cancelar` reutiliza `common.cancel`.
+   * 15 · El diálogo de salir era un `Alert.alert` propio con el trabajo dentro
+   * del `onPress` de su botón, y en React Native Web `Alert.alert` no pinta
+   * nada ni llama a ningún botón: en la web no se podía salir, y el indicador
+   * —que se encendía antes del diálogo y solo se apagaba en sus botones— se
+   * quedaba girando. Ahora es `confirmAction` (utils/notify.ts), con LAS MISMAS
+   * claves: el título, el mensaje con el nombre, `communities.leave` como botón
+   * destructivo y `common.cancel` como Cancelar, que pone `confirmAction`. El
+   * indicador se apaga en un `finally`. Lo que pasa de verdad, en la web y en
+   * el teléfono, lo ejecuta `avisos-en-la-web.test.mjs`.
    */
-  check('15) el diálogo de salir usa i18n y conserva su forma',
-    /Alert\.alert\(\s*\n\s*t\('communities\.leaveTitle'\),\s*\n\s*t\('communities\.leaveConfirm', \{ nombre: community\.name \}\),/.test(PANTALLA)
-    && /\{ text: t\('common\.cancel'\), style: 'cancel', onPress: \(\) => setJoiningCommunity\(null\) \}/.test(PANTALLA)
-    && /text: t\('communities\.leave'\),\s*\n\s*style: 'destructive',/.test(PANTALLA));
+  check('15) el diálogo de salir usa i18n, con las mismas claves, por confirmAction',
+    /await confirmAction\(\s*\n\s*t\('communities\.leaveTitle'\),\s*\n\s*t\('communities\.leaveConfirm', \{ nombre: nombreDeComunidad\(community, t, locale\) \}\),\s*\n\s*t\('communities\.leave'\),\s*\n\s*true,\s*\n\s*t,\s*\n\s*\);/.test(PANTALLA)
+    && /if \(!confirmado\) return;/.test(PANTALLA)
+    && /import \{ confirmAction, notify \} from '\.\.\/utils\/notify';/.test(CRUDO)
+    && /\{ text: t\('common\.cancel'\), style: 'cancel', onPress: \(\) => resolve\(false\) \}/.test(leer('utils/notify.ts'))
+    && !/Alert\.alert\(\s*\n?\s*t\('communities\.leaveTitle'\)/.test(PANTALLA));
+  check('15) y el indicador se apaga pase lo que pase',
+    /\} finally \{\s*\n\s*setJoiningCommunity\(null\);\s*\n\s*\}/.test(PANTALLA));
 
+  /*
+   * Los dos avisos de unirse y salir van por `notify`, que también se ve en la
+   * web; el de crear sigue en su `Alert.alert` (otro manejador, fuera de este
+   * arreglo). Los tres siguen reutilizando common.error.
+   */
+  /* + cierre 2026-10-01: el de crear también pasa a `notify` (Alert.alert no se ve en la web); mismas claves. */
   check('15) y los tres avisos de error reutilizan common.error',
-    (PANTALLA.match(/Alert\.alert\(t\('common\.error'\)/g) || []).length === 3
-    && /t\('communities\.leaveFailed'\)/.test(PANTALLA)
-    && /t\('communities\.actionFailed'\)/.test(PANTALLA)
-    && /Alert\.alert\(t\('common\.error'\), t\('communities\.createFailed'\)\)/.test(PANTALLA));
+    (PANTALLA.match(/(?:notify|Alert\.alert)\(t\('common\.error'\)/g) || []).length === 3
+    && /notify\(t\('common\.error'\), t\('communities\.leaveFailed'\)\)/.test(PANTALLA)
+    && /notify\(t\('common\.error'\), t\('communities\.actionFailed'\)\)/.test(PANTALLA)
+    && /notify\(t\('common\.error'\), t\('communities\.createFailed'\)\)/.test(PANTALLA)
+    && !/Alert\.alert\(/.test(PANTALLA));
 
   /* El error técnico va al registro; la persona ve la frase de Weë (cierre de F11: antes mandaba `e.message`). */
   check('15) el error técnico queda en el registro y la persona ve la frase de Weë',
@@ -158,8 +175,13 @@ console.log('\n── D · Los nombres de las comunidades no se traducen ──'
     EN('communities.leaveConfirm', { nombre: 'Weë Filmmakers' }) === 'Are you sure you want to leave "Weë Filmmakers"?');
 
   /* Y la pantalla los pinta crudos. */
-  check('11) el nombre y la descripción de cada comunidad se pintan crudos',
-    /\{item\.name\}/.test(PANTALLA) && /\{item\.description\}/.test(PANTALLA)
+  /*
+   * Lo que escribió una persona —el nombre y la descripción de SU comunidad— nunca pasa por el traductor. Solo las
+   * comunidades que siembra Weë, mientras sigan diciendo lo sembrado, se escriben en el idioma de quien mira
+   * (`utils/comunidadesDeWee.ts`); cualquier otra sale tal cual.
+   */
+  check('11) el nombre y la descripción de cada comunidad no pasan por el traductor',
+    /\{nombreDeComunidad\(item, t, locale\)\}/.test(PANTALLA) && /\{descripcionDeComunidad\(item, t, locale\)\}/.test(PANTALLA)
     && !/t\(item\.name\)|t\(item\.description\)/.test(PANTALLA));
 
   /* 13 · Las rutas y los registros técnicos, intactos. */
@@ -207,7 +229,7 @@ console.log('\n── E · Plurales, accesibilidad y lo que no se movió ──'
   /* 18 · Un solo sistema de traducción. */
   check('18) sin traductores propios ni ternarios de idioma',
     !/i18next|react-intl|idioma === 'en'|locale === 'en'/.test(PANTALLA)
-    && /import \{ useT \} from '\.\.\/contexts\/IdiomaContext';/.test(CRUDO) && /const t = useT\(\);/.test(PANTALLA));
+    && /import \{ useIdioma \} from '\.\.\/contexts\/IdiomaContext';/.test(CRUDO) && /const \{ t, locale \} = useIdioma\(\);/.test(PANTALLA));
   check('18) y el módulo está registrado en los dos índices',
     /import \{ communities \} from '\.\/communities';/.test(leer('i18n/textos/es/index.ts'))
     && /import \{ communities \} from '\.\/communities';/.test(leer('i18n/textos/en/index.ts'))
@@ -232,7 +254,8 @@ console.log('\n── E · Plurales, accesibilidad y lo que no se movió ──'
    * "posts" se dice igual en los dos idiomas: es la palabra, no un olvido. La
    * lista es cerrada, así que cualquier OTRA coincidencia sigue siendo un fallo.
    */
-  const IGUALES = ['posts'];
+  /* El contador de publicaciones de la cabecera de una comunidad dice «posts» por la misma razón. */
+  const IGUALES = ['posts', 'postCount_one', 'postCount_other'];
   const iguales = CLAVES.filter((k) => esT.communities[k] === enT.communities[k]);
   check('20) ES → EN mueve todas salvo la que se dice igual',
     iguales.length === IGUALES.length && IGUALES.every((k) => iguales.includes(k)), iguales.join(' '));

@@ -25,6 +25,8 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
 import { asegurarPerfilReal, asegurarPerfilWee, conUnaSolaEnVuelo, idDelPerfilReal, idDelPerfilWee, PerfilAsegurado, PuertosDeCreacion } from '../utils/perfilCanonico';
 import { identidadWeeDe } from '../utils/econtactModel';
+import { campoQueResuelve } from '../utils/identidadPublica';
+import { ErrorConClave } from '../i18n/servidor';
 
 // Tipos para las colecciones principales
 /*
@@ -47,6 +49,7 @@ export interface PollOption {
 import type { PostPlace } from '../data/places';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
 import { paginaDelMuroGeneral, sobreconsulta } from '../utils/sectionFeed';
+import { paraBuscar } from '../i18n/caja';
 
 /*
  * Una encuesta dentro de una publicación.
@@ -217,6 +220,18 @@ export interface Post {
 export interface UserProfile {
   id?: string;
   uid: string;
+  /**
+   * LA ENTIDAD DE ESTA CARA, y su referencia pública (Fase 11.x-6).
+   *
+   * Lo escribe SOLO el servidor al nacer la entidad; las reglas impiden que un
+   * cliente lo ponga o lo cambie. Es opaco a propósito: no lleva dentro la
+   * cuenta, ni su número, ni nada que se pueda tirar, y por eso puede viajar a
+   * una URL pública donde el `uid` no podía. Ver `utils/identidadPublica.ts`.
+   *
+   * Opcional porque los perfiles que todavía no tienen entidad se siguen
+   * nombrando por su `uid`, como siempre.
+   */
+  entityId?: string;
   realName?: string; // Nombre real (privado, no se muestra)
   displayName: string; // Alias público
   /**
@@ -648,8 +663,12 @@ export const postsService = {
     }
   },
 
+  /*
+   * Sin Functions no hay voto. El aviso lo pinta `Poll` con `mensajeDelServidor`, que dice este error por su CLAVE en
+   * el idioma de quien vota; la frase española es solo para los registros.
+   */
   voteInPollById: async (postId: string, optionId: string): Promise<PollVoteResult> => {
-    if (!functions) throw new Error('No se pudo conectar con Weë para registrar tu voto.');
+    if (!functions) throw new ErrorConClave('wall.pollVoteOffline', 'No se pudo conectar con Weë para registrar tu voto.');
     const fn = httpsCallable<{ postId: string; optionId: string }, PollVoteResult>(functions, 'votePoll', {
       timeout: 30_000,
     });
@@ -658,31 +677,10 @@ export const postsService = {
   },
 
   /*
-   * La misma puerta, con la firma de siempre: `PostCard` y `PostDetailScreen`
-   * conocen la posición de la opción que se tocó, no su id. La posición se
-   * traduce aquí y lo que viaja al servidor es siempre un id.
-   *
-   * `userId` se conserva por compatibilidad y se ignora a propósito: el servidor
-   * nunca acepta una identidad que venga del cliente.
+   * Aquí estaba `voteInPoll`, que votaba por POSICIÓN de la opción y la traducía a id. Ya no lo llamaba nadie: la
+   * única encuesta que vota es `components/Poll.tsx`, por id y con `voteInPollById`, y ahí una encuesta histórica
+   * no es pulsable. Se retiró como código muerto en el cierre post-auditoría (2026-10-01).
    */
-  voteInPoll: async (postId: string, optionIndex: number, _userId?: string): Promise<PollVoteResult> => {
-    const postSnap = await getDoc(doc(db, 'posts', postId));
-    if (!postSnap.exists()) throw new Error('Esta publicación ya no existe.');
-
-    const poll = (postSnap.data() as Post).poll;
-    if (!poll || !Array.isArray(poll.options) || poll.options.length === 0) {
-      throw new Error('Esta publicación no tiene encuesta.');
-    }
-
-    const opcion = poll.options[optionIndex];
-    if (!opcion) throw new Error('Esa opción no existe en esta encuesta.');
-    if (!opcion.id) {
-      // Encuesta histórica: se lee, no se vota. No se migra ni se modifica.
-      throw new Error('Esta encuesta es de una versión anterior de Weë y ya no admite votos.');
-    }
-
-    return postsService.voteInPollById(postId, opcion.id);
-  },
   /*
    * Contar una vista es UNA escritura atómica, no leer-y-entonces-escribir.
    * Antes cada tarjeta visible leía el post entero y escribía `views + 1` con
@@ -850,6 +848,29 @@ const perfilRealPorUid = async (uid: string): Promise<UserProfile | null> => {
   return users.length > 0 ? users[0] : null;
 };
 
+/*
+ * UN PERFIL POR SU REFERENCIA PÚBLICA (Fase 11.x-6).
+ *
+ * La referencia pública de un perfil es su ENTIDAD —`ent_` y 26 caracteres
+ * opacos—, no su `uid`. El motivo está entero en `utils/identidadPublica.ts`:
+ * la dirección de una cara Weë llevaba dentro el identificador de la cuenta, y
+ * con quitarle el prefijo se llegaba al Perfil Real de la misma persona.
+ *
+ * Se resuelve por el campo que corresponda y nada más: una referencia de
+ * entidad busca por `entityId`, y cualquier otra cosa por `uid`, que es como
+ * siguen funcionando los enlaces que ya estaban compartidos. Ninguna de las
+ * dos deduce nada de la otra.
+ */
+const perfilPorReferenciaPublica = async (referencia: string): Promise<UserProfile | null> => {
+  if (typeof referencia !== 'string' || !referencia) return null;
+  const campo = campoQueResuelve(referencia);
+  if (campo === 'uid') return perfilRealPorUid(referencia);
+  const users = await firestoreService.getMany<UserProfile>('users',
+    [{ field: 'entityId', operator: '==', value: referencia }], undefined, 'desc', 1
+  );
+  return users.length > 0 ? users[0] : null;
+};
+
 /* Los puertos de la creación idempotente (Fase 11.x): la transacción de Firestore sobre `users/<id>`. Los mismos para las dos caras. */
 const puertosDePerfiles: PuertosDeCreacion<UserProfile> = {
   buscarPorUid: perfilRealPorUid,
@@ -880,8 +901,20 @@ export interface DatosDelPerfilWee {
 
 export const usersService = {
   create: (data: Omit<UserProfile, 'id'>) => firestoreService.create<UserProfile>('users', data),
-  getById: (id: string) => firestoreService.getById<UserProfile>('users', id),
+  /*
+   * AQUÍ HABÍA UN `getById(id)` QUE DEVOLVÍA UN PERFIL POR EL ID DE SU
+   * DOCUMENTO, y se retiró en la Fase 11.x-5A sin que nadie lo llamara.
+   *
+   * El id de un documento de `users` NO es la identidad de nadie: la identidad
+   * es el campo `uid`, que es lo que miran las reglas, Credits, ËContact, el
+   * push y toda consulta. Los perfiles antiguos tienen id automático y los
+   * nuevos lo tienen determinista, así que un `getById` acierta a veces — y
+   * «a veces» es justo lo que no puede hacer un resolutor de identidad.
+   * Quien busque a alguien usa `getByUid`.
+   */
   getByUid: perfilRealPorUid,
+  /** Por la referencia PÚBLICA: la entidad si la hay, el `uid` para lo heredado. */
+  getByPublicRef: perfilPorReferenciaPublica,
 
   /*
    * EL PERFIL REAL SE CREA UNA SOLA VEZ, AUNQUE SE PIDA MUCHAS (Fase 11.x).
@@ -1029,7 +1062,7 @@ export const repostsService = {
       // Verificar que el post original existe
       const originalPost = await postsService.getById(originalPostId);
       if (!originalPost) {
-        throw new Error('Post original no encontrado');
+        throw new Error('publicacion-original-no-encontrada');
       }
 
       // Crear el repost como una REFERENCIA al post original
@@ -1142,11 +1175,16 @@ export const repostsService = {
 // === FUNCIONES DE BÚSQUEDA ===
 
 // Buscar usuarios por displayName (búsqueda simple)
-export const searchUsers = async (searchQuery: string, limitCount = 10): Promise<UserProfile[]> => {
+/**
+ * `locale` ordena los nombres como se ordenan en el idioma de quien busca (en danés, «Å» va al final del alfabeto).
+ * Sin él, el orden del aparato.
+ */
+export const searchUsers = async (searchQuery: string, limitCount = 10, locale?: string): Promise<UserProfile[]> => {
   try {
     if (!searchQuery || searchQuery.trim().length < 2) return [];
 
-    const searchLower = searchQuery.toLowerCase().trim();
+    // «ibrahim» encuentra a «İbrahim»: las íes del turco cuentan como una (i18n/caja.ts).
+    const searchLower = paraBuscar(searchQuery).trim();
 
     // Firebase no soporta búsqueda de texto completo, así que obtenemos usuarios y filtramos
     // En producción se usaría Algolia o Elasticsearch
@@ -1161,8 +1199,8 @@ export const searchUsers = async (searchQuery: string, limitCount = 10): Promise
 
     // Filtrar por displayName que contenga el query (case insensitive)
     const filtered = users.filter(user =>
-      user.displayName?.toLowerCase().includes(searchLower) ||
-      user.bio?.toLowerCase().includes(searchLower)
+      paraBuscar(user.displayName).includes(searchLower) ||
+      paraBuscar(user.bio).includes(searchLower)
     );
 
     /*
@@ -1176,10 +1214,10 @@ export const searchUsers = async (searchQuery: string, limitCount = 10): Promise
      * retirado.
      */
     filtered.sort((a, b) => {
-      const aExact = a.displayName?.toLowerCase().startsWith(searchLower) ? 1 : 0;
-      const bExact = b.displayName?.toLowerCase().startsWith(searchLower) ? 1 : 0;
+      const aExact = paraBuscar(a.displayName).startsWith(searchLower) ? 1 : 0;
+      const bExact = paraBuscar(b.displayName).startsWith(searchLower) ? 1 : 0;
       if (aExact !== bExact) return bExact - aExact;
-      return (a.displayName || '').localeCompare(b.displayName || '', 'es');
+      return (a.displayName || '').localeCompare(b.displayName || '', locale);
     });
 
     return filtered.slice(0, limitCount);
@@ -1194,7 +1232,7 @@ export const searchPosts = async (searchQuery: string, limitCount = 10): Promise
   try {
     if (!searchQuery || searchQuery.trim().length < 2) return [];
 
-    const searchLower = searchQuery.toLowerCase().trim();
+    const searchLower = paraBuscar(searchQuery).trim();
 
     // Firebase no soporta búsqueda de texto completo
     // Obtenemos posts recientes y filtramos
@@ -1213,8 +1251,8 @@ export const searchPosts = async (searchQuery: string, limitCount = 10): Promise
 
     // Filtrar por contenido que contenga el query
     const filtered = posts.filter(post =>
-      post.content?.toLowerCase().includes(searchLower) ||
-      post.hashtags?.some(tag => tag.toLowerCase().includes(searchLower))
+      paraBuscar(post.content).includes(searchLower) ||
+      post.hashtags?.some(tag => paraBuscar(tag).includes(searchLower))
     );
 
     return filtered.slice(0, limitCount);
@@ -1303,7 +1341,7 @@ export const getPopularHashtags = async (limitCount = 10): Promise<PopularHashta
 // Buscar posts por hashtag
 export const getPostsByHashtag = async (hashtag: string, limitCount = 20): Promise<Post[]> => {
   try {
-    const normalizedTag = hashtag.toLowerCase().trim().replace('#', '');
+    const normalizedTag = paraBuscar(hashtag).trim().replace('#', '');
 
     const snapshot = await getDocs(
       query(
@@ -1320,7 +1358,7 @@ export const getPostsByHashtag = async (hashtag: string, limitCount = 20): Promi
 
     // Filtrar por hashtag
     const filtered = posts.filter(post =>
-      post.hashtags?.some(tag => tag.toLowerCase().trim() === normalizedTag)
+      post.hashtags?.some(tag => paraBuscar(tag).trim() === normalizedTag)
     );
 
     return filtered.slice(0, limitCount);

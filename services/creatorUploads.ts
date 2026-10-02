@@ -49,10 +49,10 @@ const measure = (uri: string): Promise<{ width: number; height: number } | null>
 
 export async function uploadCreatorImage(uid: string, uri: string, folder: UploadFolder = 'creator-inputs'): Promise<string> {
   if (isAlreadyUploaded(uri)) return uri;
-  if (!storage) throw new Error('Storage no está inicializado');
+  if (!storage) throw new Error('storage-sin-inicializar');
   const response = await fetch(uri);
   const blob = await response.blob();
-  if (blob.size > MAX_BYTES) throw new Error('La foto pesa más de 10 MB. Elige una más liviana.');
+  if (blob.size > MAX_BYTES) throw new Error('foto-demasiado-grande');
   const contentType = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
   const extension = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
   const path = `users/${uid}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;

@@ -67,7 +67,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutBody: 'Weë（World Encode Entity）是用人工智慧創作的人們的社群平台。\n\n版本 1.0.0 · © {{anio}} Weë。版權所有。\n\n地理資料：GeoNames (geonames.org)，CC BY 4.0。',
   location: '📍 位置',
   locationLine: '{{estado}}你的精確位置永遠不會公開顯示。',
-  locationOff: '已關閉。開啟後，Weë 可以用你的大致位置為你推薦附近的內容和體驗。你的精確位置永遠不會公開顯示。',
+  locationOff: '已關閉。開啟後，你為貼文新增地點時，Weë 可以用你的大致位置為你推薦附近的地點和你所在的區域。你的精確位置永遠不會公開顯示。',
   locationUnavailable: '這台裝置無法提供你的位置。',
   locationDisabled: '你的裝置設定裡關閉了定位。',
   locationPermissionDenied: '你拒絕了系統的定位請求。點這裡，到裝置設定裡修改。',

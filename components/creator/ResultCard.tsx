@@ -5,6 +5,8 @@ import { Audio, ResizeMode, Video } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
+import { textoDelServidor, textoDeObjetivo } from '../../i18n/servidor';
+import { bloqueDelPresupuesto, palabrasDelItinerario, textoParaLeer, tituloDelDia } from '../../utils/textoDeResultado';
 import { useResponsive } from '../../hooks/useResponsive';
 import { CreatorJob } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -35,12 +37,26 @@ const formatDuration = (seconds?: number): string => {
 const LINEA_DIA = /^d[íi]a\s+\d+/i;
 const LINEA_CIERRE = /^presupuesto\b/i;
 
+/*
+ * El día y el presupuesto se piden en español (son el contrato con el servidor, ver `utils/textoDeResultado.ts`),
+ * pero si el modelo los escribiera en el idioma de la persona —«DAG 1 ·», «BUDGET:»— se reconocen también: llegan
+ * en `palabras`, que es lo que dice el diccionario activo.
+ */
+const escaparPalabra = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const conPalabra = (base: RegExp, palabra: string | undefined, cola: string): RegExp =>
+  palabra && palabra.trim() ? new RegExp(`^(?:${base.source.slice(1)}|${escaparPalabra(palabra.trim())}${cola})`, 'i') : base;
+
 interface Dia {
   titulo: string;
   cuerpo: string;
 }
 
-export const partirEnDias = (texto: string): { intro: string; dias: Dia[]; cierre: string } | null => {
+export const partirEnDias = (
+  texto: string,
+  palabras?: { dia?: string; presupuesto?: string },
+): { intro: string; dias: Dia[]; cierre: string } | null => {
+  const lineaDia = conPalabra(LINEA_DIA, palabras?.dia, '\\s+\\d+');
+  const lineaCierre = conPalabra(LINEA_CIERRE, palabras?.presupuesto, '\\b');
   const dias: Dia[] = [];
   const intro: string[] = [];
   const cierre: string[] = [];
@@ -57,12 +73,12 @@ export const partirEnDias = (texto: string): { intro: string; dias: Dia[]; cierr
     const limpia = linea.trim();
     if (cerrado) {
       cierre.push(linea);
-    } else if (LINEA_CIERRE.test(limpia)) {
+    } else if (lineaCierre.test(limpia)) {
       // El presupuesto no se pliega nunca: es lo primero que se busca.
       guardar();
       cerrado = true;
       cierre.push(linea);
-    } else if (LINEA_DIA.test(limpia)) {
+    } else if (lineaDia.test(limpia)) {
       guardar();
       actual = { titulo: limpia, cuerpo: [] };
     } else if (actual) {
@@ -79,10 +95,12 @@ export const partirEnDias = (texto: string): { intro: string; dias: Dia[]; cierr
 };
 
 /** El texto de un resultado: entero, o por días cuando es un itinerario. */
-const TextoDelResultado: React.FC<{ texto: string }> = ({ texto }) => {
+const TextoDelResultado: React.FC<{ texto: string }> = ({ texto: crudo }) => {
   const { theme } = useTheme();
-  const { t, formato } = useIdioma();
-  const partes = React.useMemo(() => partirEnDias(texto), [texto]);
+  const { t, formato, locale } = useIdioma();
+  /* Sin las marcas de la máquina y con las del texto en el idioma de quien mira (`utils/textoDeResultado.ts`). */
+  const texto = React.useMemo(() => textoParaLeer(crudo, t, locale), [crudo, t, locale]);
+  const partes = React.useMemo(() => partirEnDias(texto, palabrasDelItinerario(t)), [texto, t]);
   // El primero abierto: quien llega ve enseguida de qué va el viaje.
   const [abiertos, setAbiertos] = useState<Record<number, boolean>>({ 0: true });
 
@@ -120,9 +138,9 @@ const TextoDelResultado: React.FC<{ texto: string }> = ({ texto }) => {
               accessibilityRole="button"
               accessibilityState={{ expanded: abierto }}
               aria-expanded={abierto}
-              accessibilityLabel={t(abierto ? 'weeai.dayCollapse' : 'weeai.dayExpand', { titulo: dia.titulo })}
+              accessibilityLabel={t(abierto ? 'weeai.dayCollapse' : 'weeai.dayExpand', { titulo: tituloDelDia(dia.titulo, t, locale) })}
             >
-              <Text style={[styles.diaTitulo, { color: theme.colors.text }]}>{dia.titulo}</Text>
+              <Text style={[styles.diaTitulo, { color: theme.colors.text }]}>{tituloDelDia(dia.titulo, t, locale)}</Text>
               <Ionicons name={abierto ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
             {abierto && !!dia.cuerpo && (
@@ -131,7 +149,7 @@ const TextoDelResultado: React.FC<{ texto: string }> = ({ texto }) => {
           </View>
         );
       })}
-      {!!partes.cierre && <Text selectable style={[styles.resultText, { color: theme.colors.text }]}>{partes.cierre}</Text>}
+      {!!partes.cierre && <Text selectable style={[styles.resultText, { color: theme.colors.text }]}>{bloqueDelPresupuesto(partes.cierre, t, locale)}</Text>}
     </View>
   );
 };
@@ -201,7 +219,9 @@ const CAMINOS_HOGAR: { optionId: string; clave: string }[] = [
 
 const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri, onOpenInEditor, onContinue, onSaveToProject, projectName, onOpenCreations, regenerateCredits }) => {
   const { theme } = useTheme();
-  const { t, formato } = useIdioma();
+  const { t, formato, locale } = useIdioma();
+  /* El título de cada resultado es el paso del plan, escrito por el servidor: se pinta en el idioma de quien mira. */
+  const titulo = (texto: string): string => textoDelServidor(texto, { t, locale, experiencia: job.experienceId });
   const { isDesktop, isTablet } = useResponsive();
   /*
    * En móvil, el antes y el después van uno encima de otro (fase 2E-63).
@@ -261,7 +281,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
   const quickEdits = [t('weeai.makeItRealistic'), t('weeai.changeItsColor'), t('weeai.simpler'), t('weeai.moreStriking')];
 
   /** "· ≈ 9 Credits" para pegar al botón que vuelve a gastar. Vacío si no se sabe. */
-  const precio = regenerateCredits && regenerateCredits > 0 ? ` · ≈ ${formato.numero(regenerateCredits)} Credits` : '';
+  const precio = regenerateCredits && regenerateCredits > 0 ? t('weeai.regeneratePriceSuffix', { credits: formato.numero(regenerateCredits) }) : '';
 
   const visuals = job.results.filter((r) => r.url);
 
@@ -385,8 +405,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
       .map((result) => (
         <View key={result.stepId} style={[styles.textCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Text style={[styles.resultTitle, { color: theme.colors.text }]}>
-            {result.title}
-            {result.demo && !job.demo ? '  · muestra' : ''}
+            {titulo(result.title)}
+            {result.demo && !job.demo ? `  · ${t('weeai.sample')}` : ''}
           </Text>
           <TextoDelResultado texto={result.content || ''} />
           {!!result.sources?.length && (
@@ -407,7 +427,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: theme.colors.text }]}>✨ Listo</Text>
+        <Text style={[styles.title, { color: theme.colors.text }]}>✨ {t('common.done')}</Text>
         {job.demo && (
           <View style={[styles.demoTag, { backgroundColor: theme.colors.accent + '33' }]}>
             <Text style={[styles.demoTagText, { color: theme.colors.accentDark }]}>{t('weeai.previewDemo')}</Text>
@@ -415,7 +435,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
         )}
       </View>
       <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-        {experienceName} terminó "{job.goal}".
+        {t('weeai.finishedGoal', { nombre: experienceName, objetivo: textoDeObjetivo(t, job.experienceId, job.goal) })}
         {job.creditsCharged > 0
           ? t('weeai.youSpent', {
               credits: formato.numero(job.creditsCharged),
@@ -451,7 +471,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                         transition={200}
                       />
                       <View style={[styles.variantTag, { backgroundColor: theme.colors.accent }]}>
-                        <Text style={[styles.variantTagText, { color: '#1F2937' }]}>{`✓ Elegida · Propuesta ${elegida + 1}`}</Text>
+                        <Text style={[styles.variantTagText, { color: '#1F2937' }]}>{t('weeai.chosenProposal', { numero: elegida + 1 })}</Text>
                       </View>
                     </View>
                     <View style={styles.otherRow}>
@@ -465,7 +485,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                         >
                           <Image source={{ uri }} style={[styles.variantImage, espacio && styles.variantImageWide]} contentFit={espacio ? 'contain' : 'cover'} transition={200} />
                           <View style={[styles.variantTag, { backgroundColor: theme.colors.card }]}>
-                            <Text style={[styles.variantTagText, { color: '#1F2937' }]}>{`Propuesta ${index + 1}`}</Text>
+                            <Text style={[styles.variantTagText, { color: '#1F2937' }]}>{t('weeai.proposalNumber', { numero: index + 1 })}</Text>
                           </View>
                         </TouchableOpacity>
                       ))}
@@ -477,7 +497,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                       propuestas son dos habitaciones bonitas que podrían ser de
                       cualquiera. Cambia con la propuesta elegida.
                     */}
-                    {transforma && beforeImageUri && (
+                    {!!(transforma && beforeImageUri) && (
                       <View style={[styles.pair, apilar && styles.pairStacked]}>
                         <View style={styles.pairItem}>
                           <Image source={{ uri: beforeImageUri }} style={[styles.pairImage, styles.pairImageWide]} contentFit="contain" />
@@ -528,7 +548,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                 <Ionicons name={playingId === result.stepId ? 'pause' : 'play'} size={scale(24)} color="#1F2937" style={playingId === result.stepId ? undefined : { marginLeft: 3 }} />
               </View>
               <View style={styles.durationTag}>
-                <Text style={styles.durationText}>{playingId === result.stepId ? 'Vista previa · demo' : '0:15'}</Text>
+                <Text style={styles.durationText}>{playingId === result.stepId ? t('weeai.previewDemo') : '0:15'}</Text>
               </View>
             </TouchableOpacity>
           ) : (
@@ -536,8 +556,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
           )}
           <View style={styles.visualCaption}>
             <Text style={[styles.resultTitle, { color: theme.colors.text }]}>
-              {result.title}
-              {result.demo && !job.demo ? '  · muestra' : ''}
+              {titulo(result.title)}
+              {result.demo && !job.demo ? `  · ${t('weeai.sample')}` : ''}
             </Text>
             {!!result.content && <Text style={[styles.resultNote, { color: theme.colors.textSecondary }]}>{result.content}</Text>}
           </View>
@@ -557,7 +577,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               <Ionicons name={playing ? 'pause' : 'play'} size={scale(20)} color="#1F2937" style={playing ? undefined : { marginLeft: 2 }} />
             </TouchableOpacity>
             <View style={styles.audioBody}>
-              <Text style={styles.audioTitle} numberOfLines={1}>{result.title}</Text>
+              <Text style={styles.audioTitle} numberOfLines={1}>{titulo(result.title)}</Text>
               <View style={styles.waveform}>
                 {WAVE.map((height, index) => (
                   <View
@@ -568,9 +588,9 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               </View>
               <Text style={styles.audioMeta}>
                 {isRealMedia(result.url)
-                  ? playing ? t('weeai.playing') : result.durationSec ? `${formatDuration(result.durationSec)} · voz de Weë` : 'Voz de Weë'
-                  : playing ? t('weeai.playingPreview') : '0:32 · vista previa'}
-                {result.demo ? ' (demo)' : ''}
+                  ? playing ? t('weeai.playing') : result.durationSec ? t('weeai.weeVoiceDuration', { duracion: formatDuration(result.durationSec) }) : t('weeai.weeVoice')
+                  : playing ? t('weeai.playingPreview') : t('weeai.previewWithDuration', { duracion: '0:32' })}
+                {result.demo ? ` (${t('weeai.demo')})` : ''}
               </Text>
             </View>
           </View>
@@ -581,7 +601,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
 
       {visuals.length > 0 && !!precio && (
         <Text style={[styles.regenerateHint, { color: theme.colors.textSecondary }]}>
-          {`Cada cambio vuelve a crear${precio}. Se descuentan al terminar.`}
+          {t('weeai.eachChangeRecreates', { precio })}
         </Text>
       )}
 
@@ -648,7 +668,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             activeOpacity={0.8}
           >
             <Ionicons name="refresh" size={scale(18)} color={theme.colors.text} />
-            <Text style={[styles.actionText, { color: theme.colors.text }]}>{`Crear otra versión${precio}`}</Text>
+            <Text style={[styles.actionText, { color: theme.colors.text }]}>{t('weeai.anotherVersion', { precio })}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onPublish(publicable)}
@@ -674,7 +694,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             <Ionicons name="download-outline" size={scale(16)} color={theme.colors.text} />
             <Text style={[styles.creacionTexto, { color: theme.colors.text }]}>{t('creaciones.download')}</Text>
           </TouchableOpacity>
-          {publicable.assetId && onOpenCreations && (
+          {!!(publicable.assetId && onOpenCreations) && (
             <TouchableOpacity
               onPress={onOpenCreations}
               disabled={busy}
@@ -703,7 +723,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               onPress={() => setVerDetalle((v) => !v)}
               activeOpacity={0.8}
               style={[styles.projectRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-              accessibilityLabel={verDetalle ? t('weeai.hideChanges') : 'Ver la lista de cambios y compras'}
+              accessibilityLabel={verDetalle ? t('weeai.hideChanges') : t('weeai.showChanges')}
             >
               <Ionicons name="list-outline" size={scale(18)} color={theme.colors.accentDark} />
               <Text style={[styles.projectText, { color: theme.colors.text }]}>{t('wall.changesAndPurchases')}</Text>

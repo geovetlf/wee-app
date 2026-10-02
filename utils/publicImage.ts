@@ -67,13 +67,13 @@ const limpiarEnWeb = async (blob: Blob): Promise<Blob> => {
   lienzo.width = ancho;
   lienzo.height = alto;
   const pincel = lienzo.getContext('2d');
-  if (!pincel) throw new Error('El navegador no dio un contexto 2D');
+  if (!pincel) throw new Error('lienzo-sin-contexto-2d');
   pincel.drawImage(fuente as CanvasImageSource, 0, 0);
   if ('close' in fuente) fuente.close();
 
   const tipo = esPng(blob.type) ? 'image/png' : 'image/jpeg';
   const limpio = await new Promise<Blob | null>((resolve) => lienzo.toBlob(resolve, tipo, CALIDAD));
-  if (!limpio) throw new Error('El canvas no devolvió ninguna imagen');
+  if (!limpio) throw new Error('lienzo-sin-imagen');
   return limpio;
 };
 

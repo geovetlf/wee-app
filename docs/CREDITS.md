@@ -54,7 +54,7 @@ userId, type (purchase | usage | grant | refund), amount (con signo),
 balanceBefore, balanceAfter, reason (concepto legible), source (weë-creator, wee-avatar,
 store:test, welcome, migration, admin…), service?, generationId?, purchaseId?,
 status (PENDING | AUTHORIZED | COMPLETED | FAILED | REFUNDED), statusHistory[{status, at}],
-requestId, authorizedAmount?, finalAmount?, refundOf?, meta?, createdAt, updatedAt,
+requestId, authorizedAmount?, fingerprint?, finalAmount?, refundOf?, meta?, createdAt, updatedAt,
 completedAt?, refundedAt?
 ```
 
@@ -69,6 +69,7 @@ completedAt?, refundedAt?
 ## 3. Seguridad
 
 - **Reglas** (`firestore.rules`): `users` no se puede crear con campos de Credits (`createsCreditFields()`) ni actualizar tocándolos (`touchesCreditFields()`), en ninguna de las ramas (perfil real, Perfil Weë, Biz, contadores). `creditTransactions` solo lectura del dueño, `creditStats` solo servidor, `creditCosts` lectura autenticada, `wallets` y `transactions` solo lectura del dueño. Una escritura del cliente a `creditsBalance` recibe `PERMISSION_DENIED`.
+- **`spendCredits` (callable) es solo de administración desde el 2026-09-30.** Abierto al cliente permitía pagar 1 Credit por una operación cara: se reservaba antes con el `requestId` que el servidor iba a usar (auditoría H0, escenario #24). Ninguna pantalla lo usa. El candado está en el código, porque firebase-tools vuelve a poner el invocador público en cada despliegue; lo vigila `functions/test/credits-cliente-cerrado.test.mjs`.
 - **Nunca se confía en un monto del cliente.** `spendCredits` (callable) solo acepta `service` + `requestId`; el monto sale del catálogo. El parámetro `amount` del motor existe únicamente para código de servidor de confianza (el plan de WEË AI, calculado en el servidor) y se valida igual (entero positivo ≤ 1 000 000).
 - **Solo el dueño** opera sobre sus transacciones (`FORBIDDEN` si el `requestId` pertenece a otra cuenta). Otorgar y reembolsar por callable exige administración (`assertAdmin`).
 - **Pagos separados del motor**: el motor solo acredita lo que un proveedor de pago ya verificó.
@@ -100,6 +101,8 @@ REQUEST ─► PENDING ─► AUTHORIZED ─► (ejecutar IA) ─► COMPLETED
 4. Si falla: **`refundCredits({ userId, requestId, reason })`** → `FAILED → REFUNDED`, transacción `refund_<requestId>` por **exactamente** lo cobrado (menos ajustes ya devueltos) y saldo restaurado.
 
 **Doble cobro**: el id del documento es `usage_<requestId>`. Repetir la operación (doble clic, reintento de red) encuentra el documento y devuelve `duplicate: true` sin cobrar. Un `requestId` ya reembolsado no se puede reutilizar (`ALREADY_REFUNDED`): nadie genera gratis con una operación devuelta.
+
+**La misma clave es la misma operación** (PRE-F1-D). Encontrar el documento ya no basta para ser su duplicado: tiene que ser de la misma cuenta (`FORBIDDEN` si no) y del mismo servicio. Y si quien cobra da la **huella** de la operación (`fingerprint`, solo servidor: hoy, `generateVideo` con el vídeo pedido), también la misma huella y el mismo importe autorizado. Si no coincide, es otra operación con una clave prestada: `INVALID_REQUEST` con `reason: 'idempotency_conflict'`, sin tocar la reserva de antes ni el saldo —la misma regla que el Core escribió en el Financial Core y el Job Engine—. Antes, el `requestId` de una respuesta de Weë Brain ya cobrada (`brain_<messageId>`) pasaba como duplicado de un vídeo, y `generateVideo`, que no encontraba el vídeo, seguía hasta generarlo sin cobro. Sin huella —Brain, el avatar, `creatorRun`, la callable—, el importe no entra en la identidad: Brain recalcula el precio del mismo mensaje con el historial, y un reintento tras una caída podría cambiarlo. Y una operación de vídeo `COMPLETED` cuyo resultado no aparece ya no se vuelve a generar: `DUPLICATE_REQUEST` con `reason: 'result_not_available'`.
 
 **Doble reembolso**: `refund_<requestId>` también es determinista; si la operación ya está `REFUNDED`, se devuelve el reembolso existente con `duplicate: true` y el saldo no cambia. Una operación `COMPLETED` no se reembolsa salvo `force: true` (administración).
 
@@ -164,7 +167,7 @@ APPLE / GOOGLE / STRIPE ─► Purchase Validation ─► Credit Engine ─► C
 | `getCreditsBalance` | — | `{ userId, balance, lifetimeEarned, lifetimeSpent }` (crea/migra la cuenta si hace falta) |
 | `getCreditHistory` | `{ limit? }` | `{ items: CreditTransaction[] }` (más recientes primero) |
 | `getCreditCost` | `{ service? }` | `{ service, credits }` o `{ costs, packages }` |
-| `spendCredits` | `{ service, requestId, reason?, generationId? }` | `{ transactionId, status, amount, balanceBefore, balanceAfter, duplicate }` |
+| `spendCredits` (admin) | `{ service, requestId, reason?, generationId? }` | `{ transactionId, status, amount, balanceBefore, balanceAfter, duplicate }` |
 | `grantCredits` (admin) | `{ userId, amount, reason?, requestId? }` | `{ transactionId, amount, balanceAfter, duplicate }` |
 | `refundCredits` (admin) | `{ userId, requestId, reason?, force? }` | `{ transactionId, amount, balanceAfter, duplicate }` |
 | `validatePurchase` | `{ provider, packageId?, payload? }` | `{ …grant, credits, packageId }` |
@@ -185,7 +188,7 @@ Errores: `HttpsError` con `details.code` (`INSUFFICIENT_CREDITS` trae `required`
 
 ## 10. Configuración pendiente (lo que debe completar la persona dueña)
 
-1. **Producción (`get-wee`)**: activar el plan Blaze y desplegar Functions (`npm run deploy:prod:functions`) y reglas/índices (`npm run deploy:prod:firestore`). Sin Functions en producción la app muestra el saldo que haya y no puede iniciar cuentas ni cobrar.
+1. **Producción (`get-wee`)**: activar el plan Blaze y desplegar Functions y reglas/índices por el único camino de [`DEPLOYMENT.md`](DEPLOYMENT.md). Los atajos `npm run deploy:prod:*` se retiraron: desplegaban todo desde cualquier carpeta. Sin Functions en producción la app muestra el saldo que haya y no puede iniciar cuentas ni cobrar.
 2. `functions/.env.get-wee` (no versionado): `WEE_ADMIN_UIDS=<tu uid>`, `CREDITS_TEST_PURCHASES=false`, `CREDITS_WELCOME=<bienvenida definitiva>`.
 3. **Precios definitivos**: medir costes reales y ajustar `creditCosts.ts` o `creditCosts/{servicio}`.
 4. **Pagos**: crear los productos `zone.wee.credits.*` en App Store Connect / Google Play / Stripe, poner las claves en `functions/.env.local` y `.env.get-wee`, e implementar `verify` en cada proveedor.
@@ -206,5 +209,7 @@ Errores: `HttpsError` con `details.code` (`INSUFFICIENT_CREDITS` trae `required`
 - compras idempotentes por `purchaseId`; montos inválidos rechazados;
 - historial ordenado y encadenado (`balanceBefore` = `balanceAfter` anterior) con fecha, concepto, monto y saldo;
 - acumulados de administración coherentes.
+
+`functions/test/idempotencia-de-cobro.test.mjs` (PRE-F1-D) fija que un `requestId` es una operación. En el motor: el mismo servicio siempre, y con huella la misma huella y el mismo importe; la cuenta ajena y la clave reembolsada, como antes. Y en la callable `generateVideo` ejecutada de verdad —Firestore en memoria, el motor de vídeo espiado, sin proveedor—: el `requestId` de una respuesta de Weë Brain ya COMPLETED se rechaza sin generar, sin crear ningún trabajo, sin reservar ni un Credit de vídeo y sin tocar el cobro de Brain; repetir el mismo vídeo devuelve el mismo sin cobrar; uno COMPLETED cuyo resultado no aparece no se vuelve a generar; otra cuenta, otro servicio, otro importe u otra descripción con la misma clave se rechazan; un fallo definitivo o recuperable reembolsa exactamente y deja la clave devuelta; y dos peticiones a la vez con la misma clave hacen una sola generación y un solo cobro.
 
 La imposibilidad de modificar el saldo desde el cliente la garantizan las reglas de Firestore (§3), verificadas en dev con una escritura directa a `users/{doc}.creditsBalance` desde una sesión de la app: `PERMISSION_DENIED`.

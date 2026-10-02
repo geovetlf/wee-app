@@ -1,0 +1,904 @@
+/*
+ * A8 — CONTEXTO: QUÉ DE LO APRENDIDO LE SIRVE A UNA DECISIÓN.
+ *
+ *   APRENDER A LO ANCHO. USAR A LO ESTRECHO. NUNCA INVENTAR EVIDENCIA.
+ *
+ * A8 SELECCIONA, FILTRA, CLASIFICA Y EMPAQUETA. No decide la acción.
+ *
+ *  A. Quién es.
+ *  B. No duplica: reutiliza A0, A1 y A7.
+ *  C. Ámbito.
+ *  D. Relevancia por eje, con el objetivo en vigor.
+ *  E. Consumidor: se informa, no filtra.
+ *  F. CADA GUARDA SOLA: la regla que salió de A6 y A7.
+ *  G. Frescura, ventana y muestra no son lo mismo.
+ *  H. Confianza e incertidumbre.
+ *  I. Contradicción y tendencia: se transportan, no se eligen.
+ *  J. Deduplicación.
+ *  K. Orden.
+ *  L. Presupuesto y cotas.
+ *  M. Sin evidencia, evidencia insuficiente, desconocido.
+ *  N. Privacidad.
+ *  O. Autoridad.
+ *  P. Agnosticismo de capacidad y de proveedor.
+ *  Q. Determinismo.
+ *  R. Contratos de integración: A7 → A8 → A1, A5, A6.
+ *  S. Sabotajes de entrada.
+ *  U. Contrato 1.6: el reloj, la rejilla y la privacidad de A7, consumidos tal cual.
+ *  V. A9.1: A8 filtra, no decide implementación.
+ *  W. A9.2: el historial de cada alternativa.
+ *  X. A9.3: lo que llega a paraRouter, con cada desenlace en su sitio.
+ *  T. Rendimiento.
+ */
+import path from 'node:path';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const require_ = createRequire(import.meta.url);
+const here = path.dirname(fileURLToPath(import.meta.url));
+const RAIZ = path.resolve(here, '../../');
+const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
+const lib = (p) => require_(path.resolve(here, '../lib/' + p));
+const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+const tokens = (src) => new Set((sinComentarios(src).toLowerCase().match(/[a-z0-9_]+/g) ?? []));
+
+let failures = 0; let n = 0;
+const check = (name, cond, extra = '') => {
+  n++; console.log((cond ? '✔ ' : '✘ ') + `${n}) ${name}` + (extra ? ' — ' + extra : ''));
+  if (!cond) failures++;
+};
+
+const A = lib('core/algorithm/index.js');
+const { ALGORITHM_CONTRACT_VERSION, contratoCompatible } = lib('core/contracts.js');
+const a8 = A.crearMotorDeContexto();
+const a7 = A.crearMotorDeFeedback();
+
+const HORA = 3_600_000;
+const DIA = 86_400_000;
+const T0 = 1_700_000_000_000;
+const AHORA = T0 + 60 * DIA;
+const VENT = 4 * DIA;
+const FUENTES = ['context.ts', 'context-engine.ts'].map((f) => `functions/src/core/algorithm/${f}`);
+
+/*
+ * UN AGREGADO CONSTRUIDO A MANO, con `acumular` de A7: control total para
+ * poder romper UNA cosa y solo una. Por defecto pasa TODAS las guardas:
+ * 40 observaciones medidas, explícitas, con evidencia, estables, frescas.
+ */
+const agregado = ({
+  metric = 'result.latencyMs', scope = { capability: 'x.y' }, n: cuantas = 40,
+  valor = 800, valorTardio, fuente = 'measured', explicito = true, conEvidencia = true,
+  contrarias = 0, hasta = AHORA,
+} = {}) => {
+  const ini = hasta - VENT + HORA;
+  let a = A.agregadoVacio(A.claveDeAmbito(scope, metric), metric, scope);
+  for (let i = 0; i < cuantas; i++) {
+    const at = Math.round(ini + (hasta - ini) * (i / Math.max(1, cuantas - 1)));
+    const v = valorTardio !== undefined && i >= cuantas / 2 ? valorTardio : valor;
+    const s = { key: metric, value: v, source: fuente, at };
+    const apoya = i >= contrarias;
+    a = A.acumular(a, {
+      value: v, at, favorable: apoya, signal: s, implicito: !explicito,
+      ...(conEvidencia ? { evidence: { claim: metric, signal: s, supports: apoya } } : {}),
+    }, hasta, VENT);
+  }
+  return a;
+};
+const BASE = { ahora: AHORA, scope: { capability: 'x.y' }, objective: { weights: { latency: 1 } } };
+const sel = (learned, extra = {}, motor = a8) => motor.seleccionar({ ...BASE, learned, ...extra });
+const una = (a, extra = {}, motor = a8) => sel([a], extra, motor).admisiones[0];
+
+console.log('\n─── A. Quién es ───');
+
+check('1 · su descriptor vale, puro y EXPERIMENTAL: nadie lo elige solo',
+  A.algoritmoValido(A.DESCRIPTOR_DE_CONTEXTO) && A.DESCRIPTOR_DE_CONTEXTO.purity === 'pure' &&
+  A.crearRegistroDeAlgoritmos([A.DESCRIPTOR_DE_CONTEXTO]).registro.seleccionable(A.CONTEXT_ENGINE_ID) === false,
+  JSON.stringify(A.validarAlgoritmo(A.DESCRIPTOR_DE_CONTEXTO)));
+check('2 · es de la familia que PRODUCE SEÑALES para otros, nunca decide por ellos',
+  A.DESCRIPTOR_DE_CONTEXTO.category === 'routing-signals');
+check('3 · A8 NO sube el contrato: consume el 1.6 de A7 y solo añade tipos suyos',
+  contratoCompatible(ALGORITHM_CONTRACT_VERSION, '1.6') && !/\(A8\)/.test(leer('functions/src/core/contracts.ts')),
+  ALGORITHM_CONTRACT_VERSION);
+
+console.log('\n─── B. No duplica: reutiliza A0, A1 y A7 ───');
+
+const src8 = FUENTES.map((f) => sinComentarios(leer(f))).join('\n');
+for (const [que, usa] of [
+  ['las guardas de A7', 'guardas('], ['la confianza de A7', 'confianzaDeAgregado('],
+  ['la frescura de A7/A0', 'frescuraDe('], ['la tendencia de A7', 'tendenciaDe('],
+  ['la HistoryWindow de A1 vía A7', 'ventanaDe('], ['la lista de dimensiones de A7', 'ORDEN_DE_CLAVE'],
+  ['la reducción de ámbito de A7', 'ambitoAgregable('], ['los pesos de A0', 'pesosNormalizados('],
+  ['la regla del reloj de A7', 'motivoDeReloj('], ['la puerta de persona de A7', 'campoDePersonaEnAmbito('],
+]) check(`4 · reutiliza ${que}`, src8.includes(usa));
+for (const [que, prohibido] of [
+  ['otra decadencia', /Math\.exp|decay\s*=|semivida/], ['otra HistoryWindow', /interface\s+HistoryWindow/],
+  ['otra lista de ámbito', /CAMPOS_DE_AMBITO/], ['otra confianza', /confidenceV2|interface\s+Confidence\b/],
+  ['una copia de «¿hay pesos?»', /declaroPesos/], ['su propio saneado de ámbito', /ambitoDeClave/],
+  ['su propia rejilla temporal', /tramoDe|finDeTramo|tramosHasta|\.tramos\[/], ['su propia frescura', /\bfrescura\(/],
+  ['su propia lista de persona', /CAMPOS_DE_PERSONA/], ['un reloj por defecto', /ahora\s*:\s*0\b/],
+]) check(`5 · y NO trae ${que}`, !prohibido.test(src8));
+const agBase = agregado();
+check('6 · su confianza ES la de A7, no una parecida',
+  igual(una(agBase).confidence, A.confianzaDeAgregado(agBase, AHORA, A.politicaEfectiva())));
+check('7 · y su frescura ES la de A7',
+  una(agBase).freshness === A.frescuraDe(agBase, AHORA, A.politicaEfectiva().vidaMs));
+
+console.log('\n─── C. Ámbito ───');
+
+const E = (s) => A.encajeDeAmbito(s, { capability: 'x.y', providerId: 'p1' });
+check('8 · mismo ámbito → exacto', E({ capability: 'x.y', providerId: 'p1' }) === 'exact');
+check('9 · más concreto que la decisión → sirve', A.encajeDeAmbito({ capability: 'x.y', providerId: 'p1' }, { capability: 'x.y' }) === 'narrower');
+check('10 · más general que la decisión → no sirve por defecto', E({ capability: 'x.y' }) === 'broader');
+check('11 · hablan de otra cosa → conflicto', E({ capability: 'otra', providerId: 'p1' }) === 'conflict');
+check('12 · más concreto en un campo y más general en otro es otra cosa: conflicto',
+  E({ capability: 'x.y', modelId: 'm1' }) === 'conflict');
+check('13 · lo GLOBAL no contamina lo concreto sin regla de transferencia',
+  una(agregado({ scope: {} })).status === 'out_of_scope');
+check('14 · y la regla de transferencia es EXPLÍCITA',
+  una(agregado({ scope: {} }), { requirements: { allowBroaderScope: true } }).status === 'admitted');
+check('15 · no hay ámbitos REQUEST ni SESSION: ninguna evidencia aprendida los lleva',
+  !A.ORDEN_DE_CLAVE.includes('requestId') && !A.ORDEN_DE_CLAVE.includes('sessionId'));
+
+console.log('\n─── D. Relevancia por eje, con el objetivo en vigor ───');
+
+check('16 · la latencia es relevante para una decisión que optimiza latencia',
+  una(agBase).axisMatch === 'match');
+check('17 · otro eje queda fuera, con su motivo',
+  una(agBase, { objective: { weights: { cost: 1 } } }).axisMatch === 'other_axis');
+const satis = agregado({ metric: 'feedback.satisfaction', valor: 1 });
+check('18 · OPCIÓN (a): sin objetivo rige el de A0, como en A1 y A5 — y sin excepción de A8',
+  una(satis, { objective: undefined }).status === 'out_of_scope' &&
+  una(satis, { objective: undefined }).because.includes('axis_not_in_objective'),
+  `userValue no está en ${Object.keys(A.OBJETIVO_POR_DEFECTO.weights).join(',')}`);
+check('19 · y un objetivo vacío lee lo mismo que A0: el de por defecto',
+  igual(una(satis, { objective: { weights: {} } }), una(satis, { objective: undefined })));
+check('20 · pedir el eje lo hace relevante: userValue declarado',
+  una(satis, { objective: { weights: { userValue: 1 } } }).status === 'admitted');
+check('21 · la relevancia sale de campos estructurados, no de texto',
+  !/includes\(['"`]lat|match\(\/|keyword|similar/.test(src8));
+check('22 · un eje para una métrica futura se declara sin tocar el motor',
+  una(agregado({ metric: 'metrica.nueva' }), { ejes: { 'metrica.nueva': 'latency' } },
+    A.crearMotorDeContexto({ metricas: [{ key: 'metrica.nueva', mejor: 'baja', target: 'none', risk: 'bajo' }] })).status === 'admitted');
+/* Desde 1.9 una métrica base puede no informar NINGÚN eje —`recovery.succeeded`—,
+ * pero declarado y con su porqué: la tabla sigue sin poder desincronizarse. */
+check('23 · cada métrica base de A7 tiene su eje o está DECLARADA sin eje, con su porqué, y nunca las dos cosas',
+  A.METRICAS_BASE.every((d) => (typeof A.EJE_DE_METRICA[d.key] === 'string') !== (typeof A.METRICAS_SIN_EJE[d.key] === 'string')) &&
+  Object.values(A.METRICAS_SIN_EJE).every((porque) => porque.length > 20),
+  A.METRICAS_BASE.filter((d) => !A.EJE_DE_METRICA[d.key] && !A.METRICAS_SIN_EJE[d.key]).map((d) => d.key).join(',') || 'todas');
+check('24 · no hay un número de relevancia fabricado: van los componentes por separado',
+  ['scopeMatch', 'axisMatch', 'consumerMatch', 'freshness', 'confidence'].every((k) => k in una(agBase)) &&
+  !('relevance' in una(agBase)) && !('score' in una(agBase)));
+
+console.log('\n─── E. Consumidor: se informa, no filtra ───');
+
+check('25 · un consumidor distinto al previsto por A7 NO pierde la evidencia',
+  una(agBase, { consumer: 'strategy' }).consumerMatch === 'other_consumer' &&
+  una(agBase, { consumer: 'strategy' }).status === 'admitted');
+check('26 · y el previsto se marca como tal', una(agBase, { consumer: 'router' }).consumerMatch === 'match');
+
+console.log('\n─── F. CADA GUARDA SOLA ───');
+
+/*
+ * La regla que salió de A6 y A7: una guarda solo está probada si hay un caso
+ * donde es LA ÚNICA que puede caer. El de control pasa todas; cada variante
+ * rompe exactamente una, y su motivo tiene que ser el único.
+ */
+check('27 · CONTROL · el agregado base pasa todas las guardas', una(agBase).status === 'admitted' && una(agBase).because.length === 0,
+  JSON.stringify(una(agBase).because));
+const SOLA = [
+  ['A8 · la decisión no admite algo tan viejo', agregado({ hasta: AHORA - 2 * DIA }), { requirements: { maxAgeMs: DIA } }, 'older_than_decision_allows', 'stale'],
+  ['A8 · la decisión exige más confianza', agregado({ fuente: 'catalog' }), { requirements: { minConfidence: 0.9 } }, 'below_decision_confidence', 'insufficient'],
+  ['A8 · la decisión exige más muestra', agBase, { requirements: { minSampleSize: 100 } }, 'below_decision_sample', 'insufficient'],
+  ['A7 · muestra por debajo del mínimo', agregado({ n: 20 }), {}, 'sample_below_minimum', 'insufficient'],
+  ['A7 · evidencia contradictoria', agregado({ contrarias: 16 }), {}, 'evidence_contradictory', 'conflicted'],
+  ['A7 · inestable a lo largo de la ventana', agregado({ valor: 500, valorTardio: 3000 }), {}, 'unstable_across_window', 'conflicted'],
+  ['A7 · solo gestos implícitos', agregado({ explicito: false }), {}, 'implicit_only', 'insufficient'],
+  ['A7 · un número sin nada que lo sostenga', agregado({ conEvidencia: false }), {}, 'uncertainty_too_high', 'insufficient'],
+  ['ámbito · habla de otra capacidad', agregado({ scope: { capability: 'otra' } }), {}, 'scope_conflict', 'out_of_scope'],
+  ['ámbito · más general sin permiso', agBase, { scope: { capability: 'x.y', providerId: 'p1' } }, 'scope_broader_than_decision', 'out_of_scope'],
+  ['eje · fuera del objetivo', agBase, { objective: { weights: { cost: 1 } } }, 'axis_not_in_objective', 'out_of_scope'],
+  ['eje · la métrica no tiene eje', agregado({ metric: 'metrica.nueva' }), { __motor: A.crearMotorDeContexto({ metricas: [{ key: 'metrica.nueva', mejor: 'baja', target: 'none', risk: 'bajo' }] }) }, 'axis_unknown', 'unknown'],
+  ['métrica · sin descriptor', agregado({ metric: 'metrica.nueva' }), { ejes: { 'metrica.nueva': 'latency' } }, 'metric_not_interpretable', 'unknown'],
+  ['privacidad · campo que no es dimensión', { ...agBase, scope: { ...agBase.scope, account: 'u1' } }, {}, 'scope_not_aggregable', 'filtered'],
+  ['forma · agregado mal formado', { ...agBase, tramos: undefined }, {}, 'malformed', 'filtered'],
+];
+for (const [que, ag, extra, motivo, estado] of SOLA) {
+  const { __motor, ...resto } = extra;
+  const x = una(ag, resto, __motor ?? a8);
+  check(`28 · SOLA · ${que} → «${motivo}» y NADA más`,
+    x.status === estado && igual([...x.because], [motivo]), `${x.status} ${JSON.stringify(x.because)}`);
+}
+/* La caducidad de A7 va unida a la confianza —la frescura entra en ella—, así
+ * que NO se puede aislar: se prueba que manda el estado correcto. La que A8 sí
+ * aísla es la suya, `maxAgeMs`, arriba. */
+const rancio = una(agregado({ hasta: AHORA - 35 * DIA }));
+check('29 · la caducidad de A7 manda sobre la confianza que arrastra: estado `stale`',
+  rancio.status === 'stale' && rancio.because.includes('evidence_stale'), JSON.stringify(rancio.because));
+check('30 · CONTROL · y cada variante recupera la admisión al quitar su motivo',
+  una(agregado({ scope: { capability: 'otra' } }), { scope: { capability: 'otra' } }).status === 'admitted' &&
+  una(agregado({ explicito: false }), { learningPolicy: { permitirSoloImplicito: true } }).status === 'admitted');
+
+console.log('\n─── G. Frescura, ventana y muestra no son lo mismo ───');
+
+const ancho = (() => {
+  /* Primera observación hace 50 días, última ahora: ventana ANCHA, y fresco. */
+  let a = A.agregadoVacio(A.claveDeAmbito({ capability: 'x.y' }, 'result.latencyMs'), 'result.latencyMs', { capability: 'x.y' });
+  for (let i = 0; i < 40; i++) {
+    const at = AHORA - 50 * DIA + Math.round((50 * DIA) * (i / 39));
+    const s = { key: 'result.latencyMs', value: 800, source: 'measured', at };
+    a = A.acumular(a, { value: 800, at, favorable: true, signal: s, evidence: { claim: 'x', signal: s, supports: true }, implicito: false }, AHORA, 60 * DIA);
+  }
+  return a;
+})();
+check('31 · una ventana histórica ANCHA puede estar perfectamente fresca',
+  una(ancho).freshness === 1 && AHORA - ancho.primero === 50 * DIA, `primero hace ${(AHORA - ancho.primero) / DIA} días, frescura ${una(ancho).freshness}`);
+check('32 · la frescura sale de la ÚLTIMA observación, la muestra de todas',
+  una(ancho).sampleSize === 40 && una(ancho).lastObservedAt === AHORA);
+check('33 · no hay ventanas con nombre: la decisión declara su propio `maxAgeMs`',
+  !/['"]recent['"]|['"]short['"]|['"]medium['"]|['"]long['"]/.test(src8));
+
+console.log('\n─── H. Confianza e incertidumbre ───');
+
+check('34 · no inventa confianza: sin observaciones, cero y dicho',
+  una({ ...agBase, n: 0 }).confidence.value === 0);
+check('35 · la incertidumbre sale de la confianza con la escala de siempre',
+  una(agBase).uncertainty === A.incertidumbreDeAgregado(una(agBase).confidence));
+/*
+ * Y SE TRANSPORTA TAL CUAL. La 35 sola no lo demostraba: su caso es `known`, y
+ * un A8 que dijera «known» de todo la pasaba igual —el sabotaje S04 lo probó—.
+ * Aquí, tres niveles que NO son `known`, cada uno el que A7 calcula.
+ */
+const NIVELES = [[agregado({ fuente: 'catalog' }), 'probable'], [agregado({ fuente: 'model' }), 'uncertain'],
+  [agregado({ conEvidencia: false }), 'unknown']];
+check('35c · la incertidumbre se TRANSPORTA: probable, incierta y desconocida salen como son, nunca «known»',
+  NIVELES.every(([ag, esperada]) => una(ag).uncertainty === esperada &&
+    una(ag).uncertainty === A.incertidumbreDeAgregado(una(ag).confidence)),
+  NIVELES.map(([ag]) => una(ag).uncertainty).join(' · '));
+check('35b · lo que sale de A8 es `derived`, nunca `measured`: señales y evidencia, aunque entrara medido',
+  agBase.muestraDeApoyo.every((e) => e.signal.source === 'measured') &&
+  sel([agBase]).signals.length === 1 && sel([agBase]).signals.every((s) => s.source === 'derived') &&
+  sel([agBase]).evidence.every((e) => e.signal.source === 'derived'),
+  'presentarlo como medido lo colaría por delante de un dato real en `resolverSenales`');
+check('36 · lo no declarado se INFORMA y no descarta: la regla de `minConfidence`',
+  una(agregado({ fuente: 'catalog' })).status === 'admitted' && una(agregado({ fuente: 'catalog' })).confidence.value < 0.9);
+
+console.log('\n─── I. Contradicción y tendencia: se transportan, no se eligen ───');
+
+const conContra = una(agregado({ contrarias: 16 }));
+check('37 · a favor y en contra van CONTADOS, no resumidos', conContra.supporting === 24 && conContra.contradicting === 16);
+const degradando = una(agregado({ valor: 500, valorTardio: 3000 }), { learningPolicy: { minStability: 0 } });
+check('38 · una degradación se ENTREGA como tal, sin decidir qué hacer con ella',
+  degradando.trend === 'degrading' && degradando.status === 'admitted',
+  'el consumidor decide; A8 organiza');
+check('39 · y la tendencia la calcula A7: la misma, no una parecida',
+  degradando.trend === A.tendenciaDe(agregado({ valor: 500, valorTardio: 3000 }), 'baja', A.politicaEfectiva({ minStability: 0 })));
+
+console.log('\n─── J. Deduplicación ───');
+
+const viejo = agregado({ hasta: AHORA - 3 * DIA });
+const nuevo = agregado({ hasta: AHORA });
+const dup = sel([viejo, nuevo]);
+check('40 · la misma clave dos veces es UNA admisión', dup.admisiones.length === 1 && dup.metricas.duplicadas === 1);
+check('41 · se queda la foto MÁS RECIENTE, llegue en el orden que llegue',
+  sel([viejo, nuevo]).admisiones[0].lastObservedAt === nuevo.ultimo &&
+  sel([nuevo, viejo]).admisiones[0].lastObservedAt === nuevo.ultimo);
+check('42 · la identidad es la clave natural de A7, sin hash',
+  dup.admisiones[0].key === nuevo.key && !/hash|\bsha(1|224|256|384|512)?\b|digest/i.test(src8));
+
+console.log('\n─── K. Orden ───');
+
+const varios = ['zeta', 'media', 'alfa'].map((c) => agregado({ scope: { capability: c } }));
+const ord = sel(varios, { scope: {}, requirements: { allowBroaderScope: true } });
+check('43 · orden CANÓNICO por clave, no por llegada',
+  igual(ord.admisiones.map((x) => x.scope.capability), ['alfa', 'media', 'zeta']));
+const rapido = agregado({ scope: { capability: 'x.y', providerId: 'a-lento' }, valor: 9000 });
+const lento = agregado({ scope: { capability: 'x.y', providerId: 'z-rapido' }, valor: 100 });
+const ruta = A.paraRouter(sel([lento, rapido]));
+check('44 · NUNCA por calidad: el más rápido no sale primero por serlo',
+  igual(ruta.map((g) => g.providerId), ['a-lento', 'z-rapido']),
+  'ordenar proveedores por rendimiento ya sería elegir');
+
+console.log('\n─── L. Presupuesto y cotas ───');
+
+const muchos = Array.from({ length: 2000 }, (_, i) => ({ ...agBase, key: `result.latencyMs|capability=c${i}`, scope: { capability: `c${i}` } }));
+const acotado = sel(muchos, { budget: { maxEvidence: 50 } });
+check('45 · el tope corta y lo dice', acotado.metricas.evaluadas === 50 && acotado.metricas.budgetExhausted === true);
+check('46 · ni declarando más se pasa del techo de A0',
+  sel(muchos, { budget: { maxEvidence: 999_999 } }).metricas.evaluadas <= A.TOPES_MAXIMOS.maxEvidence);
+check('47 · lo que sale nunca es más que lo que se evaluó',
+  acotado.admisiones.length <= acotado.metricas.evaluadas && acotado.signals.length <= acotado.admisiones.length);
+
+console.log('\n─── M. Sin evidencia, insuficiente, desconocido ───');
+
+check('48 · sin nada → `no_evidence`, y no se inventa ninguna', sel([]).cierre === 'no_evidence' && sel([]).signals.length === 0);
+check('49 · llega y nada alcanza → `insufficient_evidence`', sel([agregado({ n: 20 })]).cierre === 'insufficient_evidence');
+check('50 · llega y nada se sabe leer → `unknown`',
+  sel([agregado({ metric: 'metrica.nueva' })], { ejes: { 'metrica.nueva': 'latency' } }).cierre === 'unknown');
+check('51 · ninguna de esas respuestas es un proveedor de respaldo: A8 no tiene ese recurso',
+  !/fallback|respaldo|porDefecto.*provider/i.test(src8));
+
+console.log('\n─── N. Privacidad ───');
+
+const porCuenta = sel([agBase], { scope: { capability: 'x.y', account: 'u1' } });
+check('52 · una decisión POR CUENTA no se contesta: el aprendizaje por cuenta está bloqueado',
+  porCuenta.cierre === 'unknown' && porCuenta.admisiones.length === 0 && /bloqueado/.test(porCuenta.because.join(' ')));
+check('53 · y no se ensancha en silencio a la evidencia de toda la capacidad',
+  porCuenta.signals.length === 0 && Object.keys(porCuenta.history).length === 0);
+const conIds = sel([{ ...agBase, scope: { ...agBase.scope, account: 'MARCA_A', jobId: 'MARCA_J' } }]);
+check('54 · un agregado con identificadores se FILTRA y se dice, no se limpia a escondidas',
+  conIds.admisiones[0].status === 'filtered' && conIds.admisiones[0].because.includes('scope_not_aggregable'));
+check('55 · y ningún identificador sale de A8 por ningún lado',
+  !/MARCA_/.test(JSON.stringify(conIds)));
+const conPais = una({ ...agBase, scope: { ...agBase.scope, country: 'PE' } });
+check('56 · un campo de persona se FILTRA y se dice COMO TAL: `privacy_scope`',
+  conPais.status === 'filtered' && conPais.because.includes('privacy_scope'), JSON.stringify(conPais.because));
+check('56b · y HOY también `scope_not_aggregable`, porque ningún campo de persona es una dimensión',
+  conPais.because.includes('scope_not_aggregable') &&
+  A.ORDEN_DE_CLAVE.filter((k) => A.CAMPOS_DE_PERSONA.has(String(k).toLowerCase())).length === 0,
+  'si alguien mete uno en la clave, esta cae y 56 sigue en pie: defensa en profundidad');
+check('56c · la lista de persona ENTERA, uno a uno, sale por `privacy_scope`',
+  [...A.CAMPOS_DE_PERSONA].every((k) => una({ ...agBase, scope: { ...agBase.scope, [k]: 'x' } }).because.includes('privacy_scope')));
+check('56d · CONTROL · una cuenta no es un campo de persona: solo `scope_not_aggregable`',
+  igual([...una({ ...agBase, scope: { ...agBase.scope, account: 'u1' } }).because], ['scope_not_aggregable']));
+const decisionConPais = sel([agBase], { scope: { capability: 'x.y', country: 'PE' } });
+check('56e · una DECISIÓN con un campo de persona no se contesta, y se dice que es de persona',
+  decisionConPais.cierre === 'unknown' && decisionConPais.admisiones.length === 0 &&
+  /campo de persona/.test(decisionConPais.because.join(' ')), decisionConPais.because.join(' '));
+check('56f · y el valor no sale por ningún lado',
+  !/MARCA_PERSONA/.test(JSON.stringify([sel([{ ...agBase, scope: { ...agBase.scope, city: 'MARCA_PERSONA' } }]),
+    sel([agBase], { scope: { capability: 'x.y', city: 'MARCA_PERSONA' } })])));
+check('57 · no hay perfiles: nada en A8 agrupa por cuenta',
+  !/account/.test(src8.replace(/'account'/g, '')));
+
+console.log('\n─── O. Autoridad ───');
+
+for (const [que, palabras] of [
+  ['no elige proveedor', ['selectedProvider', 'elegirProveedor', 'mejorProveedor', 'RoutingDecision', 'crearRouter']],
+  ['no muta ninguna política', ['aplicarPolitica', 'mutarPolitica', 'RouterPolicy', 'POLITICA_POR_DEFECTO =']],
+  ['no planifica ni piensa', ['crearPlanner', 'crearBrain', 'PlannerResponse']],
+  ['no ejecuta', ['crearJob', 'enqueue', 'dispatch(', 'await ', 'Promise.']],
+  ['no cobra ni guarda materiales', ['spendCredits', 'creditsBalance', 'createAsset']],
+  ['no toca la red, ni Firestore, ni secretos', ['fetch(', 'firebase', 'firestore', 'process.env', 'defineSecret']],
+  ['no llama a ningún modelo', ['generateContent', 'chat.completions', 'anthropic', 'openai']],
+  ['no tira dados ni lee relojes', ['Math.random', 'Date.now', 'new Date(']],
+]) {
+  const donde = palabras.filter((w) => src8.includes(w));
+  check(`58 · ${que}`, donde.length === 0, donde.join(',') || 'nada');
+}
+check('59 · no importa nada de fuera del Core',
+  FUENTES.every((f) => [...sinComentarios(leer(f)).matchAll(/from '([^']+)'/g)].map((m) => m[1]).every((r) => r.startsWith('.'))));
+check('60 · nadie ha conectado A8 a producción', (() => {
+  const recorrer = (dir, out = []) => {
+    for (const e of fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true })) {
+      const h = dir + '/' + e.name;
+      if (e.isDirectory()) recorrer(h, out); else if (/\.ts$/.test(e.name)) out.push(h);
+    }
+    return out;
+  };
+  const prod = ['creator', 'runtime', 'engine', 'gateway', 'credits', 'content', 'job'].flatMap((d) => recorrer('functions/src/' + d));
+  return prod.length > 50 && prod.filter((f) => /context-engine|crearMotorDeContexto/.test(leer(f))).length === 0;
+})());
+const deEjecucion = sel([agregado({ metric: 'outcome.success' })], { scope: { capability: 'x.y' }, objective: { weights: { reliability: 1 } } });
+check('61 · el puerto de A1 NO le pasa señales: su `evidenciaDeOpcion` subiría la confianza de lo malo',
+  igual(Object.keys(A.paraDecision(deEjecucion)), ['history']) && !('signals' in A.paraDecision(deEjecucion)),
+  'desde 1.8 puede llevar también `historyByOption` —sección W—, y nunca señales');
+check('61b · 1.9 · y la ventana del ámbito es la de la EJECUCIÓN: la de una latencia admitida no es historial de ejecuciones',
+  sel([agBase], { scope: { capability: 'x.y' } }).metricas.admitidas === 1 && igual(A.paraDecision(sel([agBase], { scope: { capability: 'x.y' } })), {}));
+
+console.log('\n─── P. Agnosticismo de capacidad y de proveedor ───');
+
+const CAPACIDADES = ['image.generate', 'video.generate', 'voice.tts', 'text.generate', 'music.generate',
+  'lipsync', 'face_swap', '3d_generation', 'document_analysis', ['future', 'capability', 'x' + (6 * 7)].join('.')];
+let todas = 0; const fallan = [];
+for (const cap of CAPACIDADES) {
+  const x = una(agregado({ scope: { capability: cap, providerId: `prov_${cap}` } }), { scope: { capability: cap } });
+  if (x.status === 'admitted' && x.scopeMatch === 'narrower') todas++; else fallan.push(`${cap}:${x.status}`);
+}
+check('62 · diez capacidades —nueve de hoy y una inventada— se tratan igual', todas === 10, fallan.join(',') || 'las diez');
+const t8 = tokens(FUENTES.map(leer).join('\n'));
+const NOMBRES = ['gemini', 'deepseek', 'seedance', 'elevenlabs', 'minimax', 'openai', 'claude', 'flux', 'seedream',
+  'lipsync', 'face_swap', 'talking_avatar', 'document_analysis', 'music', 'video', 'image', 'voice'];
+check('63 · ni una capacidad, proveedor ni modelo nombrados en el núcleo de A8',
+  NOMBRES.filter((x) => t8.has(x)).length === 0, NOMBRES.filter((x) => t8.has(x)).join(',') || 'ninguno');
+check('64 · CONTROL · y el detector sí los caza cuando están',
+  tokens("const x = 'seedance';").has('seedance'));
+/*
+ * UNA RAMA POR CAPACIDAD, PROVEEDOR O MODELO, se escriba como se escriba. Es la
+ * guarda de A9 (82b): la de antes era `if\s*\([^)]*…===` y no cruzaba un
+ * paréntesis —un cast delante del campo bastaba para esconder la rama—.
+ */
+const DIMENSION = '(?:capability|providerId|provider|modelId|model)';
+const FORMAS_DE_RAMA = [
+  new RegExp(`\\b${DIMENSION}\\b\\s*\\)*\\s*[!=]==?\\s*['"\`]`),
+  new RegExp(`['"\`][^'"\`\\n]*['"\`]\\s*[!=]==?\\s*[\\w.?()\\s]*\\b${DIMENSION}\\b`),
+  new RegExp(`switch\\s*\\((?:[^()]|\\([^()]*\\))*\\b${DIMENSION}\\b`),
+  new RegExp(`\\.(?:includes|indexOf|has)\\(\\s*[\\w.?]*\\b${DIMENSION}\\b`),
+];
+const esRama = (src) => FORMAS_DE_RAMA.some((r) => r.test(src));
+check('64b · ni una rama por capacidad, proveedor o modelo en todo A8, se escriba como se escriba', !esRama(src8));
+check('64c · CONTROL · la guarda caza cada forma de rama —también con paréntesis— y no lo que no lo es',
+  [
+    "if (a.scope.capability === 'x.y') continue;",
+    "if ((a.scope as Record<string, unknown>).providerId === 'p-favorito') continue;",
+    "if ('m-favorito' === (a.scope as any).modelId) continue;",
+    "switch (a.scope.provider) { case 'p': break; }",
+    "if (['p'].includes(a.scope.providerId)) continue;",
+  ].every(esRama) &&
+  !["if (a.status === 'admitted') x = 1;", "if (req.minSampleSize === 3) y = 2;", "const c = a.scope.capability;"].some(esRama));
+
+console.log('\n─── Q. Determinismo ───');
+
+const ENTRADA = [agBase, agregado({ scope: { capability: 'x.y', providerId: 'p2' }, valor: 1200 }), agregado({ n: 20 }), agregado({ scope: { capability: 'otra' } })];
+const doce = Array.from({ length: 12 }, () => JSON.stringify(sel(ENTRADA)));
+check('65 · doce corridas idénticas, campo por campo', doce.every((x) => x === doce[0]));
+check('66 · barajar la entrada no cambia nada', JSON.stringify(sel([...ENTRADA].reverse())) === doce[0]);
+check('67 · el reloj entra por parámetro: otro `ahora`, otra frescura',
+  una(agBase, { ahora: AHORA + 10 * DIA }).freshness < una(agBase).freshness);
+
+console.log('\n─── R. Contratos de integración ───');
+
+const H = 3_600_000;
+const aprendido = a7.aprender({
+  ahora: AHORA, policy: { ventanaMs: 5 * DIA },
+  outcomes: Array.from({ length: 60 }, (_, i) => ({ id: `o${i}`, kind: 'success', at: AHORA - (60 - i) * H, scope: { capability: 'x.y', providerId: 'p1' },
+    signals: [{ key: 'result.latencyMs', value: 800, source: 'measured', at: AHORA - (60 - i) * H }] })),
+});
+/* Con la fiabilidad en el objetivo: desde 1.9 la ventana del ámbito es la de la
+ * EJECUCIÓN (`outcome.success`, eje `reliability`), no la de la latencia. */
+const desdeA7 = a8.seleccionar({ ahora: AHORA, scope: { capability: 'x.y', providerId: 'p1' }, objective: { weights: { latency: 1, reliability: 1 } }, learned: aprendido.aggregates });
+check('68 · A7 → A8: lo que A7 entrega, A8 lo lee tal cual', desdeA7.metricas.admitidas >= 1, desdeA7.cierre);
+const deA1 = A.crearMotorDeDecision().decidir({
+  contract: ALGORITHM_CONTRACT_VERSION, objective: { weights: { latency: 1 } },
+  trace: { traceId: 't', requestId: 'r', userId: 'u' },
+  options: [{ id: 'a', value: {}, values: { latency: 800 } }, { id: 'b', value: {}, values: { latency: 1200 } }],
+  ...A.paraDecision(desdeA7),
+});
+check('69 · A7 → A8 → A1: la HistoryWindow entra en el contexto de A1 sin traducir nada',
+  deA1.status === 'decided' && typeof A.paraDecision(desdeA7).history?.sampleSize === 'number');
+const sinA8 = A.crearMotorDeDecision().decidir({
+  contract: ALGORITHM_CONTRACT_VERSION, objective: { weights: { latency: 1 } },
+  trace: { traceId: 't', requestId: 'r', userId: 'u' },
+  options: [{ id: 'a', value: {}, values: { latency: 800 } }, { id: 'b', value: {}, values: { latency: 1200 } }],
+});
+/*
+ * Este caso comparaba `chosen`, un campo que la decisión no tiene: pasaba con
+ * `undefined === undefined` dijera lo que dijera A1. Ahora compara lo que existe.
+ */
+check('70 · y A1 LEE la ventana (contrato 1.7): la declara, y como es del ámbito entero, no cambia a quién elige',
+  deA1.signalKeys.includes('history.decision') && !sinA8.signalKeys.includes('history.decision') &&
+  deA1.status === sinA8.status && igual(deA1.selected, sinA8.selected) && igual(deA1.candidates, sinA8.candidates) &&
+  deA1.candidates.length === 2, `elige ${deA1.candidates.find((c) => c.reason === 'selected')?.id} con y sin A8`);
+const optA5 = A.crearMotorDeOptimizacion().optimizar({
+  candidates: [{ id: 'c1', value: {}, values: { latency: 800 } }], objective: { weights: { latency: 1 } }, evidence: desdeA7.evidence,
+});
+check('71 · A7 → A8 → A5: A5 acepta la evidencia sin romperse', typeof optA5.stoppedBecause === 'string');
+check('72 · y no cambia nada: A5 solo lee recursos — no hay puerto para A5, a propósito',
+  igual(optA5.feasible.map((c) => c.id), A.crearMotorDeOptimizacion().optimizar({
+    candidates: [{ id: 'c1', value: {}, values: { latency: 800 } }], objective: { weights: { latency: 1 } } }).feasible.map((c) => c.id)));
+const verA6 = (evidence) => A.crearMotorDeVerificacion().verificar({
+  expected: [{ kind: 'salida' }], actual: { id: 'r', status: 'succeeded', outputs: [{ kind: 'salida', ref: 'x' }] }, ...(evidence ? { evidence } : {}),
+}).status;
+check('73 · A7 → A8 → A6: A6 acepta la evidencia, y el veredicto no cambia — el histórico no verifica ESTE resultado',
+  verA6(desdeA7.evidence) === verA6(undefined));
+check('74b · al Router solo le llega lo ADMITIDO: lo rancio de un proveedor no viaja',
+  A.paraRouter(sel([agregado({ scope: { capability: 'x.y', providerId: 'p-rancio' }, hasta: AHORA - 61 * DIA })])).length === 0 &&
+  A.paraRouter(sel([agregado({ scope: { capability: 'x.y', providerId: 'p-fresco' } })])).length === 1);
+check('74 · el Router: el conjunto está PREPARADO y nadie lo consume todavía',
+  A.paraRouter(desdeA7).length === 1 && A.paraRouter(desdeA7)[0].providerId === 'p1' &&
+  !/paraRouter|crearMotorDeContexto/.test(leer('functions/src/core/router.ts')));
+
+console.log('\n─── S. Sabotajes de entrada ───');
+
+const ROTAS = [
+  ['una petición que no es una petición', () => a8.seleccionar(undefined)],
+  ['sin reloj', () => a8.seleccionar({ scope: {}, learned: [agBase] })],
+  ['un reloj NaN', () => a8.seleccionar({ ahora: NaN, scope: {}, learned: [agBase] })],
+  ['lo aprendido no es una lista', () => a8.seleccionar({ ...BASE, learned: 'x' })],
+  ['agregados nulos', () => a8.seleccionar({ ...BASE, learned: [null, undefined, 3] })],
+  ['un agregado sin clave', () => a8.seleccionar({ ...BASE, learned: [{ ...agBase, key: undefined }] })],
+  ['un n negativo', () => a8.seleccionar({ ...BASE, learned: [{ ...agBase, n: -4 }] })],
+  ['una fuerza infinita', () => a8.seleccionar({ ...BASE, learned: [{ ...agBase, fuerza: Infinity }] })],
+  ['un objetivo con pesos basura', () => a8.seleccionar({ ...BASE, objective: { weights: { latency: NaN, cost: -3 } }, learned: [agBase] })],
+  ['requisitos imposibles', () => a8.seleccionar({ ...BASE, requirements: { minConfidence: 7, maxAgeMs: -1, minSampleSize: -2 }, learned: [agBase] })],
+  ['una política de aprendizaje que intenta aflojar el suelo', () => a8.seleccionar({ ...BASE, learningPolicy: { minSampleSize: 0 }, learned: [agregado({ n: 3 })] })],
+];
+for (const [que, correr] of ROTAS) {
+  let ok = false; let det = '';
+  try { const r = correr(); ok = !!r && typeof r.cierre === 'string'; det = r?.cierre; }
+  catch (e) { det = 'LANZÓ: ' + String(e.message).slice(0, 60); }
+  check(`75 · SABOTAJE ${que} → se maneja, no revienta`, ok, det);
+}
+check('76 · SABOTAJE · el suelo de A7 no se afloja desde A8',
+  una(agregado({ n: 3 }), { learningPolicy: { minSampleSize: 0 } }).because.includes('sample_below_minimum'));
+
+console.log('\n─── U. Contrato 1.6: el reloj, la rejilla y la privacidad de A7, consumidos tal cual ───');
+
+/*
+ * EL FALLO DE LA AUDITORÍA: sin reloj, A8 evaluaba con 0, y un agregado de hace
+ * sesenta y un días salía con frescura 1 y ADMITIDO.
+ */
+const RANCIO_61 = agregado({ hasta: AHORA - 61 * DIA });
+check('U1 · con reloj, un agregado de hace 61 días está rancio',
+  una(RANCIO_61).status === 'stale' && una(RANCIO_61).freshness === 0);
+for (const [etiqueta, reloj, motivo] of [
+  ['ausente', undefined, 'clock_missing'], ['null', null, 'clock_missing'], ['NaN', NaN, 'clock_invalid'],
+  ['Infinity', Infinity, 'clock_invalid'], ['negativo', -1, 'clock_invalid'], ['cero', 0, 'clock_invalid'],
+]) {
+  const r = sel([RANCIO_61, agBase], { ahora: reloj });
+  check(`U2 · reloj ${etiqueta} → ${motivo}: nada admitido, nada entregado`,
+    r.rechazo === motivo && r.cierre === 'unknown' && r.admisiones.length === 0 &&
+    r.signals.length === 0 && r.evidence.length === 0 && Object.keys(r.history).length === 0,
+    `${r.rechazo} · ${r.cierre}`);
+}
+check('U3 · CONTROL · con un reloj válido no hay rechazo y lo bueno se admite',
+  !('rechazo' in sel([agBase])) && sel([agBase]).metricas.admitidas === 1);
+check('U4 · rechazada, dice por qué y cuántas piezas quedaron sin mirar',
+  (() => { const r = sel([RANCIO_61, agBase], { ahora: undefined }); return r.metricas.recibidas === 2 && /reloj/.test(r.because.join(' ')); })());
+
+/* La rejilla es de A7, y A8 la consume sin reinterpretarla. */
+const LEGADO8 = (() => { const a = { ...agBase }; delete a.tramosHasta; return a; })();
+check('U5 · CONTROL · el agregado base trae su rejilla y se admite', typeof agBase.tramosHasta === 'number' && una(agBase).status === 'admitted');
+check('U6 · el mismo SIN rejilla: `stability_unknown` de A7 es su ÚNICO motivo, y no se admite',
+  una(LEGADO8).status === 'insufficient' && igual([...una(LEGADO8).because], ['stability_unknown']),
+  `${una(LEGADO8).status} ${JSON.stringify(una(LEGADO8).because)}`);
+check('U7 · y su estabilidad y su tendencia son las de A7: desconocidas',
+  una(LEGADO8).stability === undefined && una(LEGADO8).trend === 'insufficient_evidence');
+check('U8 · un agregado que A7 construyó en varias llamadas con su reloj se lee IGUAL que en una',
+  (() => {
+    const lote = (desde, hasta) => Array.from({ length: hasta - desde }, (_, j) => {
+      const i = desde + j; const at = AHORA - (80 - i) * 2 * HORA;
+      return { id: `u8_${i}`, kind: 'success', at, scope: { capability: 'x.y' },
+        signals: [{ key: 'result.latencyMs', value: i < 40 ? 500 : 3000, source: 'measured', at }] };
+    });
+    const pol = { ventanaMs: 8 * DIA };
+    const una7 = a7.aprender({ ahora: AHORA, policy: pol, outcomes: lote(0, 80) }).aggregates;
+    let previo = [];
+    for (const [d, h] of [[0, 20], [20, 40], [40, 60], [60, 80]]) {
+      const l = lote(d, h); previo = a7.aprender({ ahora: l[l.length - 1].at, policy: pol, outcomes: l, previo }).aggregates;
+    }
+    const lee = (learned) => JSON.stringify(a8.seleccionar({ ...BASE, learned, learningPolicy: pol }).admisiones);
+    return lee(una7) === lee(previo);
+  })());
+check('U9 · un motivo que A8 no conoce cae en `unknown`, nunca en `admitted` — también los del reloj de A7',
+  A.estadoDeMotivo('motivo_que_nadie_ha_inventado') === 'unknown' && A.estadoDeMotivo('clock_missing') === 'unknown' &&
+  A.estadoDeMotivo('evidence_stale') === 'stale');
+
+console.log('\n─── V. A9.1 · A8 FILTRA: no decide implementación, ni proveedor, ni modelo ───');
+
+/*
+ * A8 conoce proveedores y modelos —van en el ÁMBITO de lo aprendido, que es
+ * donde el Router los necesitará— y no puede sacarlos de ahí. Lo que entrega
+ * tiene una forma cerrada, y cada campo nuevo es una puerta.
+ */
+const PROVEEDORES = ['p-a', 'p-m', 'p-z'];
+const conImpl = sel(PROVEEDORES.map((p, k) => agregado({ scope: { capability: 'x.y', providerId: p, modelId: `m-${p}` }, valor: [3000, 9000, 100][k] })),
+  { scope: { capability: 'x.y' }, requirements: {} });
+const sinAmbitos = (x) => JSON.parse(JSON.stringify(x, (k, v) => (k === 'scope' ? undefined : v)));
+check('V1 · CONTROL · lo aprendido SÍ trae proveedor y modelo en su ámbito: la prueba de abajo mira algo',
+  A.violacionesEn(conImpl, 'a8', 64).length > 0 && conImpl.metricas.admitidas === 3, conImpl.cierre);
+check('V2 · y fuera del ámbito no sale ni una clave de implementación: ni en admisiones, ni en señales, ni en historial',
+  A.violacionesEn(sinAmbitos(conImpl), 'a8', 64).length === 0 && A.violacionesEn(sinAmbitos(desdeA7), 'a8', 64).length === 0);
+const CAMPOS = {
+  resultado: ['admisiones', 'because', 'cierre', 'contract', 'evidence', 'history', 'historyByOption', 'metricas', 'rechazo', 'signals'],
+  admision: ['axis', 'axisMatch', 'because', 'confidence', 'consumerMatch', 'contradicting', 'freshness', 'key', 'lastObservedAt',
+    'metric', 'sampleSize', 'scope', 'scopeMatch', 'stability', 'status', 'supporting', 'trend', 'uncertainty', 'value'],
+  senal: ['at', 'confidence', 'key', 'sampleSize', 'source', 'subject', 'value'],
+  ventana: ['medianCostUsd', 'medianLatencyMs', 'sampleSize', 'since', 'succeeded'],
+};
+const soloDe = (o, campos) => Object.keys(o).every((k) => campos.includes(k));
+check('V3 · la forma de lo que A8 entrega es CERRADA: resultado, admisiones y señales, sin un campo más',
+  [conImpl, desdeA7, sel([])].every((s) => soloDe(s, CAMPOS.resultado)) &&
+  [...conImpl.admisiones, ...desdeA7.admisiones].every((x) => soloDe(x, CAMPOS.admision)) &&
+  [...conImpl.signals, ...desdeA7.signals].every((s) => soloDe(s, CAMPOS.senal) && s.source === 'derived' && s.key.startsWith('learned.')) &&
+  conImpl.signals.length > 0);
+check('V4 · el puerto de A1 lleva SOLO ventanas —la del ámbito y, desde 1.8, las de cada alternativa—, con los campos de HistoryWindow y sin implementación',
+  soloDe(A.paraDecision(desdeA7), ['history', 'historyByOption']) && soloDe(A.paraDecision(desdeA7).history, CAMPOS.ventana) &&
+  A.violacionesEn(A.paraDecision(desdeA7), 'a1', 64).length === 0 &&
+  Object.values(conImpl.history).every((w) => soloDe(w, CAMPOS.ventana)));
+/* De la EJECUCIÓN (`outcome.success`) y con la fiabilidad en el objetivo: desde 1.9 es la única ventana del ámbito. */
+const deEjecucionP1 = agregado({ metric: 'outcome.success', scope: { capability: 'x.y', providerId: 'p1' } });
+const exacta = sel([deEjecucionP1], { scope: { capability: 'x.y', providerId: 'p1' }, objective: { weights: { reliability: 1 } } });
+const masAncha = sel([deEjecucionP1], { scope: { capability: 'x.y' }, objective: { weights: { reliability: 1 } } });
+check('V5 · la ventana que llega a A1 es la del ámbito EXACTO: lo de un proveedor no se hace pasar por lo de la capacidad',
+  typeof A.paraDecision(exacta).history?.sampleSize === 'number' && masAncha.metricas.admitidas === 1 &&
+  igual(A.paraDecision(masAncha), {}), 'se ADMITE —es evidencia más estrecha— pero no es historial de ESTA decisión');
+const ruta8 = A.paraRouter(conImpl);
+check('V6 · al Router, grupos por proveedor y modelo con lo admitido: ni puntuación, ni ranking, ni ganador',
+  ruta8.length === 3 && ruta8.every((g) => soloDe(g, ['admisiones', 'modelId', 'providerId']) && g.admisiones.every((x) => x.status === 'admitted')) &&
+  igual(ruta8.map((g) => g.providerId), PROVEEDORES), 'en orden de clave: p-a (3000), p-m (9000), p-z (100) — ni por valor subiendo ni bajando');
+const congelar8 = (o) => { if (o && typeof o === 'object' && !Object.isFrozen(o)) { Object.freeze(o); Object.values(o).forEach(congelar8); } return o; };
+const ENTRADA8 = congelar8(JSON.parse(JSON.stringify({ ...BASE, learned: [agBase, agregado({ scope: { capability: 'x.y', providerId: 'p9' } })] })));
+const antes8 = JSON.stringify(ENTRADA8);
+const tras8 = (() => { try { return a8.seleccionar(ENTRADA8); } catch (e) { return { lanzo: String(e?.message ?? e) }; } })();
+check('V7 · A8 no toca lo que recibe: la petición y lo aprendido entran congelados y salen iguales',
+  !tras8.lanzo && JSON.stringify(ENTRADA8) === antes8 && tras8.metricas.recibidas === 2, tras8.lanzo ?? tras8.cierre);
+/*
+ * `paraRouter`: PREPARADO / NO CONECTADO A PRODUCCIÓN. No solo el Router (74):
+ * NADA en `functions/src` fuera del propio algoritmo lo nombra ni importa la
+ * capa. Su consumidor futuro es la puntuación del Router, por un puerto que
+ * `RouterPorts` no tiene; hasta que exista, esto tiene que seguir en cero.
+ */
+const fuentesDe = (dir, out = []) => {
+  for (const e of fs.readdirSync(path.resolve(RAIZ, dir), { withFileTypes: true })) {
+    const h = dir + '/' + e.name;
+    if (e.isDirectory()) { if (h !== 'functions/src/core/algorithm') fuentesDe(h, out); } else if (/\.ts$/.test(e.name)) out.push(h);
+  }
+  return out;
+};
+const fuera = fuentesDe('functions/src');
+const nombranRuta = fuera.filter((f) => /paraRouter|EvidenciaDeRuta/.test(sinComentarios(leer(f))));
+/*
+ * ── QUIÉN CARGA LA CAPA, EN CUALQUIERA DE SUS FORMAS (S1) ───────────────────
+ *
+ * La versión anterior solo veía `from '…core/algorithm…'` con comillas simples
+ * y `from './algorithm'`: se le escapaban `'../algorithm'`, las comillas
+ * dobles, `require(…)`, `import(…)` y el `import '…'` sin nombres. Ahora se
+ * mira cualquier especificador de módulo que sea la capa, se cargue como se
+ * cargue, y el control de abajo lo demuestra con cada forma.
+ *
+ * Y hay UN archivo que sí puede: la sombra (S1), que es donde el Algorithm
+ * Engine observa sin mandar. Solo por la puerta de la capa, y solo con tres
+ * valores —el ciclo, la guarda de autoridad y los topes por defecto— más los
+ * tipos que nombran lo que recibe y devuelve. Nada de `import *`, nada de
+ * reexportar y nada de entrar por un archivo interno de la capa.
+ */
+const PUERTA_DE_LA_SOMBRA = 'functions/src/creator/sombra.ts';
+const VALORES_DE_LA_SOMBRA = ['TOPES_POR_DEFECTO', 'crearCicloAlgoritmico', 'violacionesEn'];
+const TIPOS_DE_LA_SOMBRA = ['AlgorithmDecisionResult', 'Objective', 'PeticionAlgoritmica', 'Strategy'];
+const especificadores = (src) =>
+  [...src.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|\bimport\s+)(['"])([^'"]+)\1/g)].map((m) => m[2]);
+/* `…/core/algorithm…`, `./algorithm…`, `../algorithm…`, `../../algorithm…`: la capa, entre por donde entre. */
+const esDeLaCapa = (m) => /(^|\/)(core|\.{1,2})\/algorithm(\/|$)/.test(m);
+const importanLaCapa = fuera.filter((f) => especificadores(sinComentarios(leer(f))).some(esDeLaCapa));
+const puertosDelRouter = [...(sinComentarios(leer('functions/src/core/router.ts')).match(/interface RouterPorts\s*\{([^}]*)\}/)?.[1] ?? '')
+  .matchAll(/(\w+)\??\s*:/g)].map((m) => m[1]).sort();
+check('V8 · `paraRouter` no tiene consumidor: nada fuera del algoritmo lo nombra, y solo la sombra importa la capa',
+  fuera.length > 100 && nombranRuta.length === 0 && importanLaCapa.every((f) => f === PUERTA_DE_LA_SOMBRA),
+  `${fuera.length} archivos · ${[...nombranRuta, ...importanLaCapa.filter((f) => f !== PUERTA_DE_LA_SOMBRA)].join(', ') || 'ninguno de más'}`);
+{
+  const src = sinComentarios(leer(PUERTA_DE_LA_SOMBRA));
+  const cargas = especificadores(src).filter(esDeLaCapa);
+  const nombradas = [...src.matchAll(/\bimport\s+(type\s+)?\{([^}]*)\}\s*from\s*(['"])([^'"]+)\3/g)].filter((m) => esDeLaCapa(m[4]));
+  const nombres = (tipo) => nombradas.filter((m) => !!m[1] === tipo)
+    .flatMap((m) => m[2].split(',').map((x) => x.trim()).filter(Boolean)).sort();
+  check('V8c · la sombra entra SOLO por la puerta de la capa, con nombres explícitos y solo estos',
+    cargas.length > 0 && cargas.every((m) => m === '../core/algorithm') && nombradas.length === cargas.length
+    && nombradas.every((m) => !/\bas\b|\*|\btype\s/.test(m[2]))
+    && igual(nombres(false), [...VALORES_DE_LA_SOMBRA].sort()) && igual(nombres(true), [...TIPOS_DE_LA_SOMBRA].sort()),
+    `valores: ${nombres(false).join(', ') || '—'} · tipos: ${nombres(true).join(', ') || '—'}`);
+}
+check('V8d · y la guarda ve todas las formas de cargar la capa (control: si una se le escapa, esto falla)',
+  [
+    "import { x } from '../core/algorithm';", 'import { x } from "../core/algorithm";', "import * as A from '../algorithm';",
+    "const A = require('../core/algorithm');", "const A = await import('../core/algorithm/integration-cycle');",
+    "import '../core/algorithm';", "export { x } from './algorithm';", "import type { Strategy } from '../core/algorithm/strategy';",
+  ].every((s) => especificadores(s).some(esDeLaCapa))
+  && !["import { x } from '../core/router';", "import { y } from './paridad';"].some((s) => especificadores(s).some(esDeLaCapa)),
+  'comillas simples y dobles, `require`, `import()`, `import` sin nombres y reexportación');
+check('V8b · y el Router no tiene por dónde recibirlo: sus puertos son el Registry, la política y los costes',
+  igual(puertosDelRouter, ['costs', 'policy', 'registry']), puertosDelRouter.join(', ') || 'no se encontró `RouterPorts`');
+
+console.log('\n─── W. A9.2 · El historial de CADA alternativa ───');
+
+/*
+ * Lo aprendido por A7 con la identidad de lo que se ejecutó (`strategyId`), de
+ * verdad y no a mano: el agregado del ayudante `agregado` cuenta las muestras
+ * desfavorables como contradicción, y para `strategy.succeeded` un fallo no lo
+ * es (sección X de A7). Los ids llevan `:`, `+` y `=` a propósito: la identidad
+ * se lee del ÁMBITO del agregado, y leerla de su clave la rompería.
+ */
+const VENT_W = { ventanaMs: 4 * DIA };
+const EXITO_W = { weights: { latency: 1, successProbability: 2 } };
+const ALT_A = 'T:par1:estrategia';
+const ALT_B = 'T:par2:estrategia+simple=2';
+const porAlternativa = (casos) => a7.aprender({ ahora: AHORA, policy: VENT_W, outcomes: casos.flatMap(({ id, n, bien, scope = {} }) =>
+  Array.from({ length: n }, (_, i) => ({ id: `${id}#${JSON.stringify(scope)}#${i}`, kind: bien(i) ? 'success' : 'failure',
+    at: AHORA - (n - i) * HORA, scope: { capability: 'x.y', strategyId: id, ...scope } }))) }).aggregates;
+const siempre = () => true; const nunca = () => false;
+const pedirW = (learned, extra = {}) => sel(learned, { scope: { capability: 'x.y' }, objective: EXITO_W, learningPolicy: VENT_W, ...extra });
+const aprendidoW = porAlternativa([{ id: ALT_A, n: 40, bien: siempre }, { id: ALT_B, n: 40, bien: nunca }]);
+const conjuntoW = pedirW(aprendidoW);
+const exitoW = (learned, id) => learned.find((a) => a.metric === 'strategy.succeeded' && a.scope.strategyId === id);
+check('W1 · A8 entrega el historial de CADA alternativa, con SU identidad y la ventana de SU agregado',
+  igual(Object.keys(conjuntoW.historyByOption), [ALT_A, ALT_B]) &&
+  igual(conjuntoW.historyByOption[ALT_A], A.ventanaDe(exitoW(aprendidoW, ALT_A))) &&
+  igual(conjuntoW.historyByOption[ALT_B], A.ventanaDe(exitoW(aprendidoW, ALT_B))),
+  JSON.stringify(conjuntoW.historyByOption));
+check('W2 · y no mezcla una con otra: la que salió siempre bien y la que salió siempre mal llegan así',
+  conjuntoW.historyByOption[ALT_A]?.succeeded === 40 && conjuntoW.historyByOption[ALT_B]?.succeeded === 0 &&
+  conjuntoW.historyByOption[ALT_B]?.sampleSize === 40);
+check('W3 · el puerto de A1 las lleva, y solo eso: ventanas, sin señales ni evidencia',
+  igual(A.paraDecision(conjuntoW).historyByOption, conjuntoW.historyByOption) &&
+  Object.keys(A.paraDecision(conjuntoW)).every((k) => ['history', 'historyByOption'].includes(k)) &&
+  Object.values(conjuntoW.historyByOption).every((w) => soloDe(w, CAMPOS.ventana)) &&
+  A.violacionesEn(A.paraDecision(conjuntoW), 'a1', 64).length === 0);
+const soloDelAmbito = a7.aprender({ ahora: AHORA, policy: VENT_W, outcomes: Array.from({ length: 40 }, (_, i) => ({
+  id: `amb${i}`, kind: 'success', at: AHORA - (40 - i) * HORA, scope: { capability: 'x.y' } })) }).aggregates;
+const conjuntoAmbito = pedirW(soloDelAmbito, { objective: { weights: { latency: 1, reliability: 1, successProbability: 2 } } });
+check('W4 · CONTROL · con evidencia del ámbito y ninguna por alternativa hay historial del ámbito…',
+  typeof A.paraDecision(conjuntoAmbito).history?.sampleSize === 'number');
+check('W5 · …y el historial por alternativa queda VACÍO: el del ámbito no se copia a nadie',
+  igual(conjuntoAmbito.historyByOption, {}) && A.paraDecision(conjuntoAmbito).historyByOption === undefined);
+const conProveedorW = porAlternativa([{ id: ALT_A, n: 40, bien: siempre, scope: { providerId: 'p1' } }]);
+const conjuntoProv = pedirW(conProveedorW);
+check('W6 · lo aprendido de una alternativa CON un proveedor habla de una implementación: no es historial de la alternativa',
+  conjuntoProv.admisiones.some((x) => x.metric === 'strategy.succeeded' && x.status === 'admitted' && x.scopeMatch === 'narrower') &&
+  igual(conjuntoProv.historyByOption, {}) && A.paraRouter(conjuntoProv).length === 1);
+const otraCapacidad = porAlternativa([{ id: ALT_A, n: 40, bien: siempre, scope: { capability: 'otra.cosa' } }]);
+check('W7 · lo de otra capacidad no cuenta para esta decisión, por buena que sea la alternativa',
+  igual(pedirW(otraCapacidad).historyByOption, {}) &&
+  pedirW(otraCapacidad).admisiones.every((x) => x.status !== 'admitted'));
+check('W8 · si el objetivo no pondera la probabilidad de éxito, `strategy.succeeded` no es de su eje y no se entrega',
+  igual(pedirW(aprendidoW, { objective: { weights: { latency: 1 } } }).historyByOption, {}) &&
+  pedirW(aprendidoW, { objective: { weights: { latency: 1 } } }).admisiones
+    .filter((x) => x.metric === 'strategy.succeeded').every((x) => x.because.includes('axis_not_in_objective')));
+const pocaW = porAlternativa([{ id: ALT_A, n: 10, bien: siempre }, { id: ALT_B, n: 40, bien: nunca }]);
+check('W9 · una alternativa con menos muestra de la que exige A7 no llega; la otra sí: no es todo o nada',
+  igual(Object.keys(pedirW(pocaW).historyByOption), [ALT_B]) &&
+  pedirW(pocaW).admisiones.some((x) => x.metric === 'strategy.succeeded' && x.scope.strategyId === ALT_A && x.because.includes('sample_below_minimum')));
+const soloUnaHecha = porAlternativa([{ id: ALT_B, n: 40, bien: nunca }]);
+check('W10 · sin ganador: entrega TODAS las que tienen evidencia, también la que falla, y ninguna más',
+  igual(Object.keys(pedirW(soloUnaHecha).historyByOption), [ALT_B]) &&
+  !Object.keys(conjuntoW).some((k) => /rank|score|best|winner|selected|mejor/i.test(k)));
+/* Park–Miller con semilla fija: barajar sin azar, y comprobar que de verdad baraja. */
+const barajarW = (xs, s) => { const r = [...xs]; for (let i = r.length - 1; i > 0; i--) { s = (s * 16807) % 2147483647; const j = s % (i + 1); [r[i], r[j]] = [r[j], r[i]]; } return r; };
+const ordenesW = [3, 5, 7, 11].map((s) => barajarW(aprendidoW, s));
+check('W11 · lo aprendido en cualquier orden da el mismo historial por alternativa, en orden de identidad',
+  new Set(ordenesW.map((o) => o.map((a) => a.key).join())).size > 1 &&
+  ordenesW.every((o) => JSON.stringify(pedirW(o).historyByOption) === JSON.stringify(conjuntoW.historyByOption)) &&
+  igual(Object.keys(conjuntoW.historyByOption), [ALT_A, ALT_B].sort()));
+const ambosW = pedirW([...soloDelAmbito, ...aprendidoW], { objective: { weights: { latency: 1, reliability: 1, successProbability: 2 } } });
+check('W13 · con historial del ámbito Y por alternativa, cada alternativa lleva el SUYO y el del ámbito va aparte',
+  typeof A.paraDecision(ambosW).history?.sampleSize === 'number' &&
+  igual(ambosW.historyByOption[ALT_A], A.ventanaDe(exitoW(aprendidoW, ALT_A))) &&
+  igual(ambosW.historyByOption[ALT_B], A.ventanaDe(exitoW(aprendidoW, ALT_B))) &&
+  !igual(ambosW.historyByOption[ALT_B], A.paraDecision(ambosW).history), JSON.stringify(A.paraDecision(ambosW)));
+const decisionConAlt = sel(aprendidoW, { scope: { capability: 'x.y', strategyId: ALT_A },
+  objective: { weights: { latency: 1, reliability: 1, successProbability: 2 } }, learningPolicy: VENT_W });
+check('W12 · una decisión que ya fija la alternativa no elige entre alternativas: su historial es el del ámbito, no uno por alternativa',
+  igual(decisionConAlt.historyByOption, {}) && typeof A.paraDecision(decisionConAlt).history?.sampleSize === 'number');
+
+console.log('\n─── X. A9.3 · Lo que llega a paraRouter, con cada desenlace en su sitio ───');
+
+/*
+ * `paraRouter` sigue PREPARADO y SIN CONECTAR. Lo que se prueba es qué EVIDENCIA
+ * lleva cuando alguien la lea: la ejecución, la verificación y el rendimiento de
+ * cada implementación, cada uno por su lado, y ninguna recuperación.
+ */
+/* Veredictos de A6 DE VERDAD, con sus hallazgos (1.9): el de un resultado que
+ * cumple, el de uno que no, y el de un fallo —la puerta de ejecución de A6 lo
+ * suspende, y no hay resultado suyo que verificar—. */
+const A6X = A.crearMotorDeVerificacion();
+const ESPERA_X = [{ kind: 'text' }];
+const veredicto8 = (pasa) => A6X.verificar({ expected: ESPERA_X,
+  actual: { id: 'v', status: 'succeeded', outputs: pasa ? [{ kind: 'text', ref: 'r' }] : [] } });
+const VEREDICTO_DE_UN_FALLO = A6X.verificar({ expected: ESPERA_X, actual: { id: 'v', status: 'failed', error: { code: 'x' }, outputs: [] } });
+const VENT_X = { ventanaMs: 4 * DIA };
+const OBJ_X = { weights: { reliability: 1, quality: 1, latency: 1 } };
+const implementacion = (p, n, cada) => Array.from({ length: n }, (_, i) => ({
+  id: `${p}-${i}`, at: AHORA - (n - i) * HORA, scope: { capability: 'x.y', providerId: p }, ...cada(i, AHORA - (n - i) * HORA) }));
+const OUTCOMES_X = [
+  /* p-mala: falla tres de cada cinco —y A6 suspende esos fallos—, recupera la mitad
+   * de ellos, y de lo que SÍ entrega cumple la mitad. Ochenta, para que lo que
+   * entrega (32) llegue a la muestra que exige A7. */
+  ...implementacion('p-mala', 80, (i, at) => (i % 5 < 3
+    ? { kind: 'failure', verification: VEREDICTO_DE_UN_FALLO, recovery: { kind: 'retry', executed: true, succeeded: i % 2 === 0 } }
+    : { kind: 'success', verification: veredicto8(i % 5 === 3), signals: [{ key: 'result.latencyMs', value: 1200, source: 'measured', at }] })),
+  /* p-termina: siempre termina, y su resultado nunca pasa la verificación. */
+  ...implementacion('p-termina', 40, () => ({ kind: 'success', verification: veredicto8(false) })),
+  /* p-recupera: siempre falla, y una recuperación siempre lo arregla. */
+  ...implementacion('p-recupera', 40, () => ({ kind: 'failure', recovery: { kind: 'retry', executed: true, succeeded: true } })),
+  /* p-rapida-al-fallar: la mitad falla deprisa; la otra mitad sale bien y tarda. Ochenta, para que las
+   * cuarenta buenas lleguen a la muestra que exige A7: la medida solo cuenta las que salieron bien. */
+  ...implementacion('p-rapida-al-fallar', 80, (i, at) => ({ kind: i % 2 ? 'success' : 'failure',
+    signals: [{ key: 'result.latencyMs', value: i % 2 ? 1500 : 50, source: 'measured', at }] })),
+];
+const aprendidoX = a7.aprender({ ahora: AHORA, policy: VENT_X, outcomes: OUTCOMES_X });
+const conjuntoX = sel(aprendidoX.aggregates, { scope: { capability: 'x.y' }, objective: OBJ_X, learningPolicy: VENT_X });
+const rutaX = A.paraRouter(conjuntoX);
+const grupoX = (p) => rutaX.find((g) => g.providerId === p);
+const enGrupo = (p, m) => grupoX(p)?.admisiones.find((x) => x.metric === m);
+const agregadoX = (p, m) => aprendidoX.aggregates.find((a) => a.scope.providerId === p && a.metric === m);
+check('X1 · lo que falla a menudo LLEGA al Router como tal: su ejecución y su verificación, cada una con su tasa real',
+  VEREDICTO_DE_UN_FALLO.status === 'fail' &&
+  enGrupo('p-mala', 'outcome.success')?.value === 0.4 && enGrupo('p-mala', 'verification.passed')?.value === 0.5,
+  `${enGrupo('p-mala', 'outcome.success')?.value} · ${enGrupo('p-mala', 'verification.passed')?.value}`);
+check('X1b · y la verificación es la de lo que ENTREGÓ (32), no la de sus fallos: contarlos la dejaría en 0.2, y castigaría dos veces el mismo fallo',
+  agregadoX('p-mala', 'verification.passed')?.n === 32 && agregadoX('p-mala', 'verification.passed')?.favorables === 16 &&
+  agregadoX('p-mala', 'outcome.success')?.n === 80,
+  `n ${agregadoX('p-mala', 'verification.passed')?.n}`);
+check('X2 · ninguna recuperación llega al Router: no es la fiabilidad de la implementación que falló',
+  rutaX.every((g) => g.admisiones.every((x) => x.metric !== 'recovery.succeeded')) &&
+  conjuntoX.admisiones.filter((x) => x.metric === 'recovery.succeeded').length > 0 &&
+  conjuntoX.admisiones.filter((x) => x.metric === 'recovery.succeeded').every((x) => x.status === 'out_of_scope' && x.because.includes('axis_not_in_objective')));
+check('X3 · ni dándole un eje por configuración: una métrica declarada sin eje no lo gana',
+  sel(aprendidoX.aggregates, { scope: { capability: 'x.y' }, objective: OBJ_X, learningPolicy: VENT_X, ejes: { 'recovery.succeeded': 'reliability' } })
+    .admisiones.filter((x) => x.metric === 'recovery.succeeded').every((x) => x.status === 'out_of_scope'));
+check('X4 · ni se cambia el eje de una conocida: la verificación no se hace pasar por fiabilidad',
+  sel(aprendidoX.aggregates, { scope: { capability: 'x.y' }, objective: OBJ_X, learningPolicy: VENT_X, ejes: { 'verification.passed': 'reliability' } })
+    .admisiones.filter((x) => x.metric === 'verification.passed').every((x) => x.axis === 'quality'));
+check('X5 · una implementación que termina pero no cumple: la ejecución NO se castiga por la verificación, y la verificación va aparte',
+  enGrupo('p-termina', 'outcome.success')?.value === 1 && enGrupo('p-termina', 'verification.passed')?.value === 0);
+check('X6 · una que falla y se recupera: la ejecución NO se premia por la recuperación',
+  enGrupo('p-recupera', 'outcome.success')?.value === 0 && !enGrupo('p-recupera', 'recovery.succeeded'));
+check('X7 · el rendimiento es el de las ejecuciones que salieron bien: fallar deprisa no la hace rápida',
+  enGrupo('p-rapida-al-fallar', 'result.latencyMs')?.value === 1500 && enGrupo('p-rapida-al-fallar', 'outcome.success')?.value === 0.5);
+check('X8 · y paraRouter sigue sin decidir: grupos por proveedor en orden de clave, con lo admitido, ni ganador ni puntuación',
+  igual(rutaX.map((g) => g.providerId), [...rutaX.map((g) => g.providerId)].sort()) && rutaX.length === 4 &&
+  rutaX.every((g) => soloDe(g, ['admisiones', 'modelId', 'providerId']) && g.admisiones.every((x) => x.status === 'admitted')));
+const soloCalidadX = sel(aprendidoX.aggregates.filter((a) => a.scope.providerId === 'p-termina').map((a) => ({ ...a, scope: { capability: 'x.y' },
+  key: A.claveDeAmbito({ capability: 'x.y' }, a.metric) })), { scope: { capability: 'x.y' }, objective: { weights: { quality: 1 } }, learningPolicy: VENT_X });
+check('X9 · la ventana del ámbito para A1 es la de la EJECUCIÓN: con un objetivo de solo calidad, la verificación no se cuenta como ejecuciones',
+  soloCalidadX.admisiones.some((x) => x.metric === 'verification.passed' && x.status === 'admitted' && x.scopeMatch === 'exact') &&
+  A.paraDecision(soloCalidadX).history === undefined);
+/* Un proveedor con DOS modelos, y el de clave primera es el peor: elegir modelo
+ * —por valor o quedándose con uno— se nota en el orden o en el número de grupos. */
+const conModelo = (p, m, n, cada) => implementacion(p, n, cada).map((o) => ({ ...o, id: `${o.id}-${m}`, scope: { ...o.scope, modelId: m } }));
+const dosModelos = a7.aprender({ ahora: AHORA, policy: VENT_X, outcomes: [
+  ...conModelo('p-dos', 'm-a', 40, (i) => ({ kind: i % 2 ? 'success' : 'failure' })),
+  ...conModelo('p-dos', 'm-z', 40, () => ({ kind: 'success' })),
+] });
+const rutaModelos = A.paraRouter(sel(dosModelos.aggregates, { scope: { capability: 'x.y' }, objective: OBJ_X, learningPolicy: VENT_X }));
+check('X10 · paraRouter no elige MODELO: un proveedor con dos da dos grupos, en orden de clave —el peor primero—, cada uno con su ejecución',
+  igual(rutaModelos.map((g) => `${g.providerId}/${g.modelId}`), ['p-dos/m-a', 'p-dos/m-z']) &&
+  rutaModelos.every((g) => soloDe(g, ['admisiones', 'modelId', 'providerId'])) &&
+  igual(rutaModelos.map((g) => g.admisiones.find((x) => x.metric === 'outcome.success')?.value), [0.5, 1]),
+  rutaModelos.map((g) => `${g.providerId}/${g.modelId}`).join(' '));
+check('X11 · ni nombra GANADOR: lo que devuelve es la lista de grupos y nada más, ni en la lista ni en un grupo',
+  [rutaX, rutaModelos, ruta8].every((r) => Array.isArray(r) && Object.keys(r).every((k) => /^\d+$/.test(k)) &&
+    r.every((g) => soloDe(g, ['admisiones', 'modelId', 'providerId']))));
+check('X12 · y no pone un modelo donde la evidencia no lo trae: el grupo es el de la evidencia, no una elección',
+  rutaX.every((g) => g.modelId === undefined && !('modelId' in g)) && rutaModelos.every((g) => typeof g.modelId === 'string'));
+/* DETERMINISMO de lo que llega al Router: los mismos resultados en otro orden, con
+ * sus señales en otro orden, y lo aprendido entregado a A8 en otro orden. */
+const barajarX = (xs, semilla) => { const r = [...xs]; let s = semilla; for (let i = r.length - 1; i > 0; i--) { s = (s * 16807) % 2147483647; const j = s % (i + 1); [r[i], r[j]] = [r[j], r[i]]; } return r; };
+check('X13 · barajar los resultados, sus señales y lo aprendido que recibe A8 da la misma evidencia para el Router, byte a byte',
+  [3, 17, 29].every((semilla) => {
+    const otro = a7.aprender({ ahora: AHORA, policy: VENT_X,
+      outcomes: barajarX(OUTCOMES_X, semilla).map((o) => (o.signals ? { ...o, signals: [...o.signals].reverse() } : o)) });
+    return igual(otro.aggregates, aprendidoX.aggregates) &&
+      igual(A.paraRouter(sel(barajarX(otro.aggregates, semilla + 1), { scope: { capability: 'x.y' }, objective: OBJ_X, learningPolicy: VENT_X })), rutaX);
+  }));
+
+console.log('\n─── T. Rendimiento ───');
+
+/*
+ * MEDIDO COMO SE USA. El techo por llamada es el de A0 (512). A escala, A8 se
+ * llama por DECISIÓN con los agregados de SU ámbito —que se piden por clave—,
+ * así que la entrada real de una llamada es pequeña. Para N grandes se mide lo
+ * que de verdad pasaría: llamadas acotadas, TODAS las piezas evaluadas. Nada
+ * se trunca antes de cronometrar.
+ */
+const TECHO = A.TOPES_MAXIMOS.maxEvidence;
+const piscina = (cuantos) => Array.from({ length: cuantos }, (_, i) => ({ ...agBase, key: `result.latencyMs|capability=c${i}`, scope: { capability: `c${i}` } }));
+const medir = (cuantos) => {
+  const todos = piscina(cuantos);
+  const correr = () => {
+    let evaluadas = 0; let llamadas = 0; let maxPorLlamada = 0;
+    for (let k = 0; k < todos.length; k += TECHO) {
+      const r = a8.seleccionar({ ahora: AHORA, scope: {}, objective: { weights: { latency: 1 } }, requirements: { allowBroaderScope: true }, learned: todos.slice(k, k + TECHO) });
+      evaluadas += r.metricas.evaluadas; llamadas++; maxPorLlamada = Math.max(maxPorLlamada, r.metricas.evaluadas);
+    }
+    return { evaluadas, llamadas, maxPorLlamada };
+  };
+  correr();
+  const ini = process.hrtime.bigint();
+  const r = correr();
+  return { cuantos, ms: Number(process.hrtime.bigint() - ini) / 1e6, ...r };
+};
+const tiempos = [100, 1000, 10_000, 100_000].map(medir);
+for (const t of tiempos) {
+  console.log(`   ${String(t.cuantos).padStart(6)} agregados → ${t.ms.toFixed(1)} ms · ${(t.ms / t.cuantos * 1000).toFixed(2)} µs/agregado · ${t.llamadas} llamada(s) · máx ${t.maxPorLlamada}/llamada`);
+}
+check('77 · se evalúan TODOS: nada se trunca antes de medir', tiempos.every((t) => t.evaluadas === t.cuantos),
+  tiempos.map((t) => `${t.cuantos}→${t.evaluadas}`).join(' '));
+check('78 · ninguna llamada pasa del techo: el coste por llamada está acotado', tiempos.every((t) => t.maxPorLlamada <= TECHO));
+const porAg = tiempos.map((t) => t.ms / t.cuantos);
+check('79 · el coste por agregado no crece con N: lineal, sin estado entre llamadas',
+  porAg[3] < porAg[1] * 3, tiempos.map((t) => `${t.cuantos}:${(t.ms / t.cuantos * 1000).toFixed(2)}µs`).join(' · '));
+check('80 · cien mil agregados en menos de 10 s', tiempos[3].ms < 10_000, `${tiempos[3].ms.toFixed(0)} ms`);
+
+console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA8: usa lo aprendido a lo estrecho, y no inventa ni una evidencia');
+process.exit(failures ? 1 : 0);

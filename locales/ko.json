@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "게시물, 프로필, WeeTalk, Weë AI에서 쓸 사진을 찍으려면 Weë에 카메라 접근 권한이 필요해요.",
+    "NSMicrophoneUsageDescription": "WeeTalk에서 음성 메시지를 녹음해서 보내려면 Weë에 마이크 접근 권한이 필요해요.",
+    "NSPhotoLibraryUsageDescription": "게시물, 프로필, WeeTalk, Weë AI에서 쓸 사진과 비디오를 선택하려면 Weë에 갤러리 접근 권한이 필요해요.",
+    "NSPhotoLibraryAddUsageDescription": "Weë AI에서 다운로드한 이미지와 비디오를 갤러리에 저장하려면 Weë에 권한이 필요해요.",
+    "NSLocationWhenInUseUsageDescription": "Weë는 게시물에 위치를 추가할 때 주변 장소와 현재 지역을 추천해 드리기 위해, 앱이 열려 있는 동안에만 대략적인 위치를 사용해요. 정확한 위치는 공개적으로 표시되지 않아요."
+  }
+}

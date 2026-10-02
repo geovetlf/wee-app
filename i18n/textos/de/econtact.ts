@@ -36,4 +36,13 @@ export const econtact: typeof import('../es/econtact').econtact = {
   acceptLabel: '{{lista}} annehmen',
   rejectRequestLabel: '{{lista}}-Anfrage ablehnen',
   requestSent: 'Anfrage gesendet',
+  errSignIn: 'Melde dich an, um ËContact zu nutzen.',
+  errNotYours: 'Dieses Profil gehört nicht dir.',
+  errNotAPerson: 'Dieses Profil kann ËContact nicht nutzen.',
+  errSameProfile: 'Ein Profil kann sich nicht mit sich selbst verbinden.',
+  errOffline: 'Keine Verbindung zu Weë möglich.',
+  errNoRequestToReject: 'Es gibt keine Anfrage, die du ablehnen kannst.',
+  errNoPendingRequest: 'Du hast keine offene Anfrage bei diesem Profil.',
+  errNotConnected: 'Du bist nicht mit diesem Profil verbunden.',
+  errNoActiveProfile: 'Es gibt kein aktives Profil, mit dem du das tun kannst.',
 };

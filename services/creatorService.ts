@@ -2,6 +2,8 @@ import { httpsCallable } from 'firebase/functions';
 import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db, functions } from '../config/firebase';
 import { creditsShortfall } from './creditsService';
+import type { Traductor } from '../i18n/traducir';
+import { textoDelServidorLegible } from '../i18n/servidor';
 
 /**
  * Weë Creator en la app: habla con Weë Brain (creatorChat), lanza el trabajo
@@ -195,24 +197,46 @@ export const isClientTimeout = (error: unknown): boolean => {
 };
 
 /**
+ * Lo que dice cada código controlado del motor cuando su frase no se reconoce. Son las mismas frases del catálogo
+ * del servidor (`i18n/textos/<idioma>/servidor/motor.ts`), por su código.
+ */
+const FRASE_DEL_CODIGO: Record<string, string> = {
+  INVALID_REQUEST: 'motor.invalidRequest',
+  UNAUTHORIZED: 'motor.unauthorized',
+  PROVIDER_ERROR: 'motor.providerError',
+  GENERATION_FAILED: 'motor.generationFailed',
+  NOT_AVAILABLE: 'motor.notAvailable',
+};
+
+/**
  * Convierte errores de las funciones en frases para la persona.
  *
  * El traductor entra por parámetro porque este archivo es un servicio: se
  * importa fuera de React y aquí no hay contexto. Quien llama ya lo tiene.
  *
- * OJO CON UN CAMINO: cuando el servidor manda un error controlado con su
- * propia frase, esa frase se enseña tal cual y hoy viene en español
- * (`functions/src/engine/errors.ts`). Traducirla es cosa del servidor, no de
- * aquí: cambiarlo desde el cliente sería inventarse un mensaje distinto del
- * que el motor quiso dar.
+ * LA FRASE DEL SERVIDOR. Un error controlado llega con su propia frase, escrita
+ * en español por el motor (`functions/src/engine/errors.ts`). Esa frase está,
+ * palabra por palabra, en el catálogo del servidor (`i18n/textos/es/servidor/`),
+ * así que se reconoce y se pinta en el idioma de quien mira (`i18n/servidor.ts`):
+ * es el mismo mensaje que el motor quiso dar, no uno inventado aquí. Si no se
+ * reconoce —una frase nueva que todavía nadie ha traducido—, en español se
+ * enseña tal cual y en cualquier otro idioma se dice lo de su código, para que
+ * nadie lea español por accidente.
+ *
+ * `locale` es el de la app, y es OBLIGATORIO: sin él no hay manera de saber si una frase sin reconocer se puede
+ * enseñar tal cual, y lo que se enseñaba era el español del servidor.
  */
-export const humanizeCreatorError = (error: unknown, t: (clave: string) => string): string => {
+export const humanizeCreatorError = (error: unknown, t: Traductor | ((clave: string) => string), locale: string): string => {
   const code = String((error as any)?.code || '');
   const message = String((error as any)?.message || '');
   if (creditsShortfall(error)) return t('weeai.errNotEnoughCredits');
   const controlled = creatorErrorCode(error);
   // Los errores controlados del servidor ya vienen con una frase amable
-  if (controlled && message && !/^[A-Z_]+$/.test(message)) return message;
+  if (controlled && message && !/^[A-Z_]+$/.test(message)) {
+    const legible = textoDelServidorLegible(message, { t: t as Traductor, locale });
+    if (legible !== undefined) return legible;
+    if (FRASE_DEL_CODIGO[controlled]) return t(FRASE_DEL_CODIGO[controlled]);
+  }
   if (controlled === 'RATE_LIMITED') return t('weeai.errRateLimited');
   if (controlled === 'TIMEOUT') return t('weeai.errTimeout');
   if (controlled === 'DUPLICATE_REQUEST') return t('weeai.errDuplicate');
@@ -226,11 +250,20 @@ export const humanizeCreatorError = (error: unknown, t: (clave: string) => strin
 
 export const creatorService = {
   /** Empieza una conversación con un especialista (crea el trabajo); la foto ya subida va como URL. */
-  start: (experienceId: string, goal?: string, presetAnswers?: Answer[], imageUrl?: string) =>
-    call<ChatResponse>('creatorChat', { experienceId, goal: goal || '', presetAnswers: presetAnswers || [], ...(imageUrl ? { imageUrl } : {}) }),
+  start: (experienceId: string, goal: string | undefined, presetAnswers: Answer[] | undefined, imageUrl: string | undefined, locale: string) =>
+    call<ChatResponse>('creatorChat', {
+      experienceId,
+      goal: goal || '',
+      presetAnswers: presetAnswers || [],
+      ...(imageUrl ? { imageUrl } : {}),
+      /* El idioma de la app: el trabajo lo guarda y sus textos salen en él (`instruccionDeSalida` en el servidor).
+         Obligatorio en las tres llamadas: un llamador que lo olvide no compila. */
+      locale,
+    }),
 
   /** Responde la pregunta actual; Weë Brain devuelve la siguiente o el plan. */
-  answer: (jobId: string, answer: Answer, imageUrl?: string) => call<ChatResponse>('creatorChat', { jobId, answer, ...(imageUrl ? { imageUrl } : {}) }),
+  answer: (jobId: string, answer: Answer, imageUrl: string | undefined, locale: string) =>
+    call<ChatResponse>('creatorChat', { jobId, answer, ...(imageUrl ? { imageUrl } : {}), locale }),
 
   /** Adjunta (o cambia) la foto de un trabajo que todavía no empezó. */
   attachImage: (jobId: string, imageUrl: string) => call<ChatResponse>('creatorChat', { jobId, imageUrl }),
@@ -239,7 +272,8 @@ export const creatorService = {
   quote: (jobId: string, quality?: QualityChoice) => call<QuoteResponse>('creatorQuote', { jobId, ...(quality ? { quality } : {}) }),
 
   /** Ejecuta el plan; el progreso llega por subscribeToJob. */
-  run: (jobId: string) => call<{ jobId: string; status: JobStatus }>('creatorRun', { jobId }, RUN_TIMEOUT_MS),
+  run: (jobId: string, locale: string) =>
+    call<{ jobId: string; status: JobStatus }>('creatorRun', { jobId, locale }, RUN_TIMEOUT_MS),
 
   subscribeToJob: (jobId: string, callback: (job: CreatorJob | null) => void) =>
     onSnapshot(

@@ -16,8 +16,8 @@ import {
   leerTraza,
   nombreDeCampo,
 } from './gateway';
-import { BrainIntent, INTENCIONES } from './brain';
-import { Plan, PlanWarning, claveDeImplementacion } from './planner';
+import { BrainAttachment, BrainIntent, INTENCIONES } from './brain';
+import { MAX_RECURSOS_DEL_PLAN, Plan, PlanWarning, claveDeImplementacion } from './planner';
 import { LanguageContext } from './language';
 import { OperationTrace, TraceContext, Tracer, trazaLimpia } from './observability';
 
@@ -117,6 +117,8 @@ export interface QualityRequirement {
  * un plan de hoy es un workflow válido de mañana sin tocar una línea.
  */
 export interface WorkflowStep {
+  /** A cuáles de `Workflow.references` apunta este paso. Posiciones, no copias. */
+  uses?: readonly number[];
   id: string;
   /**
    * Del CATÁLOGO, como el plan del que sale. Es un ensanchamiento compatible:
@@ -246,6 +248,15 @@ export interface Workflow {
   /** Lo que acota el resultado. Escalares que vinieron del entendimiento. */
   constraints?: Readonly<Record<string, string | number | boolean>>;
   hints?: ExecutionHints;
+  /**
+   * LO QUE LA PERSONA APORTÓ, copiado del plan ENTERO Y EN ORDEN.
+   *
+   * Y lo de «entero y en orden» no es una manera de hablar: los pasos apuntan
+   * a estos recursos por posición, así que filtrar uno o reordenarlos haría que
+   * un paso pidiera otra cosa sin que nadie se enterara. Se copia como se copian
+   * las restricciones —tal cual— y hay un guard que lo comprueba.
+   */
+  references?: readonly BrainAttachment[];
   /** Lo que se dio por supuesto. Viaja explícito desde el plan. */
   assumptions?: readonly string[];
   warnings?: readonly WorkflowWarning[];
@@ -587,10 +598,10 @@ const MAX_ELEMENTOS = 1_024;
 const MAX_DATOS_BYTES = 2 * 1024 * 1024;
 
 const CLAVES_DE_PETICION = ['contract', 'trace', 'plan', 'ids'];
-const CLAVES_DE_PLAN = ['id', 'contract', 'goal', 'intent', 'steps', 'capabilities', 'language', 'workplace', 'projectId', 'constraints', 'hints', 'explainToUser', 'assumptions', 'warnings'];
-const CLAVES_DE_PASO_DE_PLAN = ['id', 'capability', 'purpose', 'dependsOn', 'input', 'produces', 'hints'];
-const CLAVES_DE_WORKFLOW = ['id', 'contract', 'goal', 'workplace', 'steps', 'budget', 'explainToUser', 'metadata', 'planId', 'intent', 'projectId', 'language', 'constraints', 'hints', 'assumptions', 'warnings'];
-const CLAVES_DE_PASO = ['id', 'capability', 'purpose', 'dependsOn', 'input', 'when', 'retry', 'onFailure', 'timeoutMs', 'requiresApproval', 'quality', 'budget', 'produces', 'hints'];
+const CLAVES_DE_PLAN = ['id', 'contract', 'goal', 'intent', 'steps', 'capabilities', 'language', 'workplace', 'projectId', 'constraints', 'hints', 'references', 'explainToUser', 'assumptions', 'warnings'];
+const CLAVES_DE_PASO_DE_PLAN = ['id', 'capability', 'purpose', 'dependsOn', 'input', 'produces', 'hints', 'uses'];
+const CLAVES_DE_WORKFLOW = ['id', 'contract', 'goal', 'workplace', 'steps', 'budget', 'explainToUser', 'metadata', 'planId', 'intent', 'projectId', 'language', 'constraints', 'hints', 'references', 'assumptions', 'warnings'];
+const CLAVES_DE_PASO = ['id', 'capability', 'purpose', 'dependsOn', 'input', 'when', 'retry', 'onFailure', 'timeoutMs', 'requiresApproval', 'quality', 'budget', 'produces', 'hints', 'uses'];
 const CLAVES_DE_TRANSICION = ['stepId', 'to', 'at', 'error', 'outputRefs', 'actual', 'cause'];
 const CLAVES_DE_PRESUPUESTO = ['maxCredits', 'maxUsd', 'prefer', 'onExceed'];
 const CLAVES_DE_REINTENTO = ['maxAttempts', 'backoffMs', 'onlyOn'];
@@ -750,6 +761,54 @@ const leerTextoCorto = (crudo: unknown, campo: string, obligatorio: boolean): Le
   if (crudo === undefined) return obligatorio ? invalido(campo) : { ok: true, valor: undefined };
   if (!esTexto(crudo) || (obligatorio && !crudo.trim()) || crudo.length > MAX_TEXTO) return invalido(campo);
   return { ok: true, valor: crudo };
+};
+
+/**
+ * LOS RECURSOS QUE ACOMPAÑAN A UN PLAN. El mismo contrato de siempre, revisado.
+ *
+ * Se valida la FORMA, no la propiedad: de quién es cada material lo dirá quien
+ * tenga permiso para leerlo, y eso no pasa aquí —este archivo no lee nada—.
+ * Lo que sí se exige es que no llegue una URL con credenciales dentro ni un
+ * objeto con claves de más disfrazado de adjunto.
+ */
+const leerRecursos = (crudo: unknown, campo: string): Lectura<readonly BrainAttachment[] | undefined> => {
+  if (crudo === undefined) return { ok: true, valor: undefined };
+  if (!Array.isArray(crudo)) return invalido(campo);
+  if (crudo.length > MAX_RECURSOS_DEL_PLAN) return invalido(campo, 'too_many');
+  const salida: BrainAttachment[] = [];
+  for (const [i, crudoRef] of crudo.entries()) {
+    if (!esObjetoPlano(crudoRef)) return invalido(`${campo}[${i}]`);
+    for (const clave of Object.keys(crudoRef)) {
+      if (!['kind', 'url', 'assetId', 'name'].includes(clave)) return invalido(`${campo}[${i}].${nombreDeCampo(clave)}`);
+    }
+    if (!esTexto(crudoRef.kind)) return invalido(`${campo}[${i}].kind`);
+    for (const clave of ['url', 'assetId', 'name'] as const) {
+      const v = crudoRef[clave];
+      if (v !== undefined && (!esTexto(v) || v.length === 0 || v.length > MAX_TEXTO)) return invalido(`${campo}[${i}].${clave}`);
+    }
+    salida.push(Object.freeze({ ...crudoRef } as unknown as BrainAttachment));
+  }
+  return { ok: true, valor: Object.freeze(salida) };
+};
+
+/**
+ * A CUÁLES APUNTA UN PASO. Posiciones, y las cuatro reglas que las hacen fiables.
+ *
+ * Entera y no negativa · dentro de la lista que de verdad hay · sin repetir ·
+ * y como mucho tantas como recursos. Un índice que no cumpla no se recorta ni
+ * se ignora: invalida el workflow, porque un paso apuntando a un material que
+ * no está es un paso que se ejecutaría con otra cosa o con nada.
+ */
+const leerUsos = (crudo: unknown, campo: string, cuantos: number): Lectura<readonly number[] | undefined> => {
+  if (crudo === undefined) return { ok: true, valor: undefined };
+  if (!Array.isArray(crudo) || crudo.length === 0 || crudo.length > MAX_RECURSOS_DEL_PLAN) return invalido(campo);
+  const vistos = new Set<number>();
+  for (const i of crudo) {
+    if (typeof i !== 'number' || !Number.isInteger(i) || i < 0 || i >= cuantos) return invalido(campo, 'out_of_range');
+    if (vistos.has(i)) return invalido(campo, 'duplicate');
+    vistos.add(i);
+  }
+  return { ok: true, valor: Object.freeze([...crudo] as number[]) };
 };
 
 const leerEtiqueta = (crudo: unknown, campo: string): Lectura<string | undefined> => {
@@ -951,6 +1010,10 @@ const leerPlan = (crudo: unknown, workflowId: string): Lectura<{ workflow: Workf
   if (!Array.isArray(crudo.assumptions)) return invalido('plan.assumptions');
   if (!Array.isArray(crudo.warnings)) return invalido('plan.warnings');
 
+  /* Los recursos primero: sin saber cuántos hay no se puede comprobar a cuál apunta un paso. */
+  const recursos = leerRecursos(crudo.references, 'plan.references');
+  if (!recursos.ok) return recursos;
+
   const steps: WorkflowStep[] = [];
   for (let i = 0; i < crudo.steps.length; i++) {
     const paso = crudo.steps[i];
@@ -971,6 +1034,8 @@ const leerPlan = (crudo: unknown, workflowId: string): Lectura<{ workflow: Workf
     if (paso.produces !== undefined && paso.produces !== entrada.produces) return invalido(`${campo}.produces`);
     const hints = leerPistas(paso.hints, `${campo}.hints`);
     if (!hints.ok) return hints;
+    const usos = leerUsos(paso.uses, `${campo}.uses`, recursos.valor?.length ?? 0);
+    if (!usos.ok) return usos;
     steps.push({
       id: paso.id,
       capability: entrada.id,
@@ -979,6 +1044,7 @@ const leerPlan = (crudo: unknown, workflowId: string): Lectura<{ workflow: Workf
       ...(input.valor ? { input: input.valor } : {}),
       produces: entrada.produces,
       ...(hints.valor ? { hints: hints.valor } : {}),
+      ...(usos.valor ? { uses: usos.valor } : {}),
     });
   }
 
@@ -1021,6 +1087,8 @@ const leerPlan = (crudo: unknown, workflowId: string): Lectura<{ workflow: Workf
     ...(language.valor ? { language: language.valor } : {}),
     ...(constraints.valor ? { constraints: constraints.valor } : {}),
     ...(hints.valor ? { hints: hints.valor } : {}),
+    /* ENTEROS Y EN ORDEN: los pasos apuntan por posición. */
+    ...(recursos.valor?.length ? { references: recursos.valor } : {}),
     assumptions: assumptions.valor ?? Object.freeze([]),
     warnings: Object.freeze(warnings),
   };
@@ -1048,6 +1116,8 @@ const leerWorkflow = (crudo: unknown): Lectura<Workflow> => {
   if (crudo.steps.length === 0) return invalido('workflow.steps', 'empty_workflow');
   if (crudo.steps.length > MAX_PASOS) return invalido('workflow.steps', 'too_many_steps');
 
+  const recursosGuardados = leerRecursos(crudo.references, 'workflow.references');
+  if (!recursosGuardados.ok) return recursosGuardados;
   const steps: WorkflowStep[] = [];
   for (let i = 0; i < crudo.steps.length; i++) {
     const paso = crudo.steps[i];
@@ -1067,6 +1137,8 @@ const leerWorkflow = (crudo: unknown): Lectura<Workflow> => {
     if (paso.produces !== undefined && paso.produces !== entrada.produces) return invalido(`${campo}.produces`);
     const hints = leerPistas(paso.hints, `${campo}.hints`);
     if (!hints.ok) return hints;
+    const usos = leerUsos(paso.uses, `${campo}.uses`, recursosGuardados.valor?.length ?? 0);
+    if (!usos.ok) return usos;
     if (paso.when !== undefined) {
       if (!esObjetoDeDatos(paso.when) || !esTexto(paso.when.stepId) || !FORMA_DE_ETIQUETA.test(paso.when.stepId)
         || !COMPROBACIONES.includes(paso.when.check as StepCondition['check'])
@@ -1102,6 +1174,7 @@ const leerWorkflow = (crudo: unknown): Lectura<Workflow> => {
       ...(paso.budget !== undefined ? { budget: paso.budget } : {}),
       produces: entrada.produces,
       ...(hints.valor ? { hints: hints.valor } : {}),
+      ...(usos.valor ? { uses: usos.valor } : {}),
     }) as WorkflowStep);
   }
 
@@ -1116,7 +1189,9 @@ const leerWorkflow = (crudo: unknown): Lectura<Workflow> => {
   if (!language.ok) return language;
   const constraints = leerRestricciones(crudo.constraints, 'workflow.constraints');
   if (!constraints.ok) return constraints;
-  const hints = leerPistas(crudo.hints, 'workflow.hints');
+  const recursosDelWf = leerRecursos(crudo.references, 'workflow.references');
+  if (!recursosDelWf.ok) return recursosDelWf;
+    const hints = leerPistas(crudo.hints, 'workflow.hints');
   if (!hints.ok) return hints;
   const explainToUser = leerTextoCorto(crudo.explainToUser, 'workflow.explainToUser', false);
   if (!explainToUser.ok) return explainToUser;
@@ -1144,6 +1219,7 @@ const leerWorkflow = (crudo: unknown): Lectura<Workflow> => {
     ...(language.valor ? { language: language.valor } : {}),
     ...(constraints.valor ? { constraints: constraints.valor } : {}),
     ...(hints.valor ? { hints: hints.valor } : {}),
+    ...(recursosGuardados.valor?.length ? { references: recursosGuardados.valor } : {}),
     ...(assumptions.valor ? { assumptions: assumptions.valor } : {}),
     ...(warnings.valor ? { warnings: warnings.valor } : {}),
   }) as Workflow;

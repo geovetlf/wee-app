@@ -1,81 +1,115 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
-import {
-  AreaDeStudio, PUERTAS_DE_STUDIO, HERRAMIENTAS_POR_AREA, GRUPOS_DE_HERRAMIENTAS, HerramientaDeStudio,
-} from '../../constants/studioTools';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
+import { HERRAMIENTAS_POR_AREA, GRUPOS_DE_HERRAMIENTAS, HerramientaDeStudio, AreaDeStudio } from '../../constants/studioTools';
+import { EntradaDeStudio, ExperienciaDeStudio, entradaPorId, experienciasDeLaEntrada } from '../../constants/studioExperiences';
+import StudioControles, { ControlesElegidos } from './StudioControles';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import TextoEnMayusculas from '../TextoEnMayusculas';
 
 const isWeb = Platform.OS === 'web';
 
+export interface EleccionDeStudio {
+  entrada: EntradaDeStudio;
+  experiencia?: ExperienciaDeStudio;
+  herramienta?: HerramientaDeStudio;
+  controles: ControlesElegidos;
+}
+
 interface Props {
-  area: AreaDeStudio;
+  entrada: EntradaDeStudio;
   onVolver: () => void;
-  /** Elegir una herramienta vuelve al compositor con esa intención puesta. */
-  onElegir: (herramienta: HerramientaDeStudio) => void;
-  /** Cuántas caben por fila. */
+  /** Lo elegido vuelve al compositor: el sitio donde se escribe es uno solo. */
+  onElegir: (eleccion: EleccionDeStudio) => void;
   porFila: number;
 }
 
 /**
- * LO QUE HAY DETRÁS DE UNA PUERTA.
+ * LAS CAPAS DOS Y TRES DEL STUDIO, UNA DETRÁS DE OTRA.
  *
- * Las cinco primeras áreas enseñan sus herramientas en una lista; "Más
- * herramientas" las enseña por familias —imagen, video, audio, texto,
- * archivos—, que es la única forma de que cuarenta cosas no se lean como un
- * muro de botones. La diferencia no es de diseño: es que en un área sabes de
- * qué estás hablando y en "Más" estás buscando.
+ *   CAPA 2  qué quieres conseguir: Retrato, Timelapse, Narración.
+ *   CAPA 3  con qué detalle: encuadre, luz, movimiento.
  *
- * ── Qué pasa al elegir una ───────────────────────────────────────────────────
+ * La tercera NO se ve hasta que la segunda está contestada, y ahí está todo el
+ * asunto: los controles de cámara son más de cincuenta, y enseñados antes de
+ * saber qué se quiere hacer no son potencia, son un panel técnico. Elegida una
+ * experiencia, aparecen solo los suyos —tres para un retrato, ocho para un
+ * vídeo cinematográfico, ninguno para un cartel—.
  *
- * No abre otra pantalla ni pide más datos: vuelve al Studio con esa intención
- * puesta, y ahí es donde se escribe. El sitio donde se dice qué quieres es uno
- * solo —el compositor—, y una herramienta es la forma de llegar a él sabiendo
- * ya de qué va la cosa. Los ajustes cambian con ella, porque el área cambia.
+ * ── Dos entradas siguen enseñando el catálogo de siempre ────────────────────
  *
- * Nada de esto genera todavía: Weë Brain y el motor se conectan después. Lo que
- * existe hoy es el camino entero, para poder recorrerlo y ver si se entiende.
+ * Documentos y "Más herramientas". No es una excepción olvidada: en "Más" no se
+ * empieza algo, se busca algo concreto —quitar un fondo, sacar los silencios—,
+ * y para buscar una lista por familias funciona mejor que una experiencia. Y a
+ * Documentos no se le inventan experiencias mientras Weë no llegue de verdad a
+ * hacer un documento: sería dibujar una puerta a un sitio al que no se llega.
+ *
+ * ── Y elegir no genera nada ─────────────────────────────────────────────────
+ *
+ * Al final del camino se vuelve al compositor con la intención puesta: la
+ * experiencia, sus controles y el texto empezado. El Studio encamina; quien
+ * crea es la experiencia común, con todo esto de contexto.
  */
-const StudioPanel: React.FC<Props> = ({ area, onVolver, onElegir, porFila }) => {
+const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) => {
   const { theme } = useTheme();
   const t = useT();
 
-  const puerta = PUERTAS_DE_STUDIO.find((p) => p.id === area);
-  const titulo = puerta?.marca ?? (puerta ? t(puerta.clave as string) : '');
-  const esMas = area === 'more';
+  /* Dentro del panel se avanza un paso: de las experiencias a sus controles. */
+  const [elegida, setElegida] = useState<ExperienciaDeStudio | null>(null);
+  const [controles, setControles] = useState<ControlesElegidos>({});
+  /* El motivo que se está explicando, cuando se toca algo que todavía no se puede. */
+  const [explicando, setExplicando] = useState<string | null>(null);
 
-  const herramienta = (h: HerramientaDeStudio) => (
+  const puerta = entradaPorId(entrada);
+  const titulo = puerta?.marca ?? (puerta ? t(puerta.clave as string) : '');
+  const experiencias = experienciasDeLaEntrada(entrada);
+  const esCatalogo = experiencias.length === 0;
+
+  const volverUnPaso = () => (elegida ? setElegida(null) : onVolver());
+
+  /* ── Una tarjeta, igual para una experiencia y para una herramienta ────── */
+  const tarjeta = (clave: string, icono: string, id: string, onPress: () => void, pendiente?: string) => (
     <TouchableOpacity
-      key={h.id + h.clave}
-      style={[
-        styles.hueco,
-        { width: `${100 / porFila}%` as any },
-      ]}
-      onPress={() => onElegir(h)}
+      key={id}
+      style={[styles.hueco, { width: `${100 / porFila}%` as any }]}
+      onPress={pendiente ? () => setExplicando(pendiente) : onPress}
       activeOpacity={0.75}
       accessibilityRole="button"
-      accessibilityLabel={t(h.clave)}
+      accessibilityLabel={pendiente ? `${t(clave)} — ${t(pendiente)}` : t(clave)}
+      accessibilityState={{ disabled: !!pendiente }}
     >
       <View style={[
-        styles.herramienta,
+        styles.pieza,
         { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+        /*
+          LO QUE TODAVÍA NO SE PUEDE HACER SE VE, Y SE VE QUE NO SE PUEDE.
+          Apagada y con su sello. Ni escondida —nadie sabría que existe— ni
+          igual que las demás —alguien gastaría Credits en algo que no va a
+          salir—. Tocarla cuenta por qué falta, que es lo único útil que puede
+          hacer hoy.
+        */
+        !!pendiente && { opacity: OPACITY.disabled },
         isWeb && ({ cursor: 'pointer' } as any),
       ]}>
-        <Ionicons name={h.icono as any} size={scale(22)} color={theme.colors.text} />
-        <Text style={[styles.herramientaTexto, { color: theme.colors.text }]} numberOfLines={2}>{t(h.clave)}</Text>
+        <Ionicons name={icono as any} size={scale(22)} color={theme.colors.text} />
+        <Text style={[styles.piezaTexto, { color: theme.colors.text }]} numberOfLines={2}>{t(clave)}</Text>
+        {!!pendiente && (
+          <View style={[styles.sello, { backgroundColor: theme.colors.surface }]}>
+            <TextoEnMayusculas style={[styles.selloTexto, { color: theme.colors.textSecondary }]}>{t('studio.soon')}</TextoEnMayusculas>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.panel}>
-      {/* Cabecera: volver y el nombre del área. Sin nada más. */}
       <View style={styles.cabecera}>
         <TouchableOpacity
-          onPress={onVolver}
+          onPress={volverUnPaso}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
@@ -84,14 +118,16 @@ const StudioPanel: React.FC<Props> = ({ area, onVolver, onElegir, porFila }) => 
         >
           <Ionicons name="chevron-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.titulo, { color: theme.colors.text }]}>{titulo}</Text>
+        <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={1}>
+          {elegida ? t(elegida.clave) : titulo}
+        </Text>
       </View>
 
       {/*
-        Los videos avisan de su límite aquí y no al final: es lo que cambia lo
+        Los vídeos avisan de su límite aquí y no al final: es lo que cambia lo
         que vas a pedir, así que se dice antes de elegir, no después.
       */}
-      {area === 'videos' && (
+      {entrada === 'videos' && !elegida && (
         <View style={[styles.nota, { backgroundColor: theme.colors.surface }]}>
           <Ionicons name="time-outline" size={scale(15)} color={theme.colors.textSecondary} />
           <Text style={[styles.notaTexto, { color: theme.colors.textSecondary }]}>{t('studio.vidLimit')}</Text>
@@ -99,21 +135,99 @@ const StudioPanel: React.FC<Props> = ({ area, onVolver, onElegir, porFila }) => 
       )}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.dentro}>
-        {esMas ? (
-          GRUPOS_DE_HERRAMIENTAS.map((grupo) => (
-            <View key={grupo.id} style={styles.grupo}>
-              <Text style={[styles.grupoTitulo, { color: theme.colors.textSecondary }]}>{t(grupo.clave)}</Text>
-              <View style={styles.rejilla}>{grupo.herramientas.map(herramienta)}</View>
+        {/* ── CAPA 3 · los controles de la experiencia elegida ───────────── */}
+        {elegida ? (
+          <>
+            {elegida.pideMaterial && (
+              <View style={[styles.nota, { backgroundColor: theme.colors.surface, marginHorizontal: SPACING.lg }]}>
+                <Ionicons name="image-outline" size={scale(15)} color={theme.colors.textSecondary} />
+                <Text style={[styles.notaTexto, { color: theme.colors.textSecondary }]}>{t('studio.needsMaterial')}</Text>
+              </View>
+            )}
+
+            {elegida.controles.length > 0 ? (
+              <StudioControles
+                familias={elegida.controles}
+                elegido={controles}
+                onElegir={(ruta, valor) =>
+                  setControles((antes) => (antes[ruta] === valor ? quitar(antes, ruta) : { ...antes, [ruta]: valor }))
+                }
+              />
+            ) : (
+              /* Sin controles no se deja un hueco mudo: se dice por qué no hay. */
+              <Text style={[styles.sinControles, { color: theme.colors.textSecondary }]}>
+                {t('studio.noControls')}
+              </Text>
+            )}
+
+            <TouchableOpacity
+              style={[styles.seguir, { backgroundColor: theme.colors.accent }, isWeb && ({ cursor: 'pointer' } as any)]}
+              onPress={() => onElegir({ entrada, experiencia: elegida, controles })}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={t('studio.continue')}
+            >
+              <Text style={styles.seguirTexto}>{t('studio.continue')}</Text>
+            </TouchableOpacity>
+          </>
+        ) : esCatalogo ? (
+          /* ── El catálogo de siempre: Documentos y "Más herramientas" ──── */
+          entrada === 'more' ? (
+            GRUPOS_DE_HERRAMIENTAS.map((grupo) => (
+              <View key={grupo.id} style={styles.grupo}>
+                <TextoEnMayusculas style={[styles.grupoTitulo, { color: theme.colors.textSecondary }]}>{t(grupo.clave)}</TextoEnMayusculas>
+                <View style={styles.rejilla}>
+                  {grupo.herramientas.map((h) =>
+                    tarjeta(h.clave, h.icono, grupo.id + h.id, () => onElegir({ entrada, herramienta: h, controles: {} }))
+                  )}
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.rejilla}>
+              {(HERRAMIENTAS_POR_AREA[(puerta?.area ?? 'images') as Exclude<AreaDeStudio, 'more'>] ?? []).map((h) =>
+                tarjeta(h.clave, h.icono, h.id, () => onElegir({ entrada, herramienta: h, controles: {} }))
+              )}
             </View>
-          ))
+          )
         ) : (
+          /* ── CAPA 2 · qué quieres conseguir ─────────────────────────────── */
           <View style={styles.rejilla}>
-            {(HERRAMIENTAS_POR_AREA[area as Exclude<AreaDeStudio, 'more'>] ?? []).map(herramienta)}
+            {experiencias.map((x) => tarjeta(x.clave, x.icono, x.id, () => setElegida(x), x.pendiente))}
           </View>
         )}
       </ScrollView>
+
+      {/*
+        POR QUÉ ESA NO SE PUEDE TODAVÍA.
+
+        Debajo y en su sitio, no en una alerta que tape lo que se estaba
+        mirando. Dice qué pieza concreta falta —no «pronto»—, porque «pronto»
+        no ayuda a decidir qué hacer ahora.
+      */}
+      {!!explicando && (
+        <View style={[styles.motivo, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Ionicons name="information-circle-outline" size={scale(17)} color={theme.colors.textSecondary} />
+          <Text style={[styles.motivoTexto, { color: theme.colors.text }]}>{t(explicando)}</Text>
+          <TouchableOpacity
+            onPress={() => setExplicando(null)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel={t('studio.dismiss')}
+            style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
+          >
+            <Ionicons name="close" size={scale(16)} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
+};
+
+/** Quitar una ruta es des-elegirla: tocar lo puesto lo suelta. */
+const quitar = (de: ControlesElegidos, ruta: string): ControlesElegidos => {
+  const { [ruta]: _fuera, ...resto } = de;
+  return resto;
 };
 
 const styles = StyleSheet.create({
@@ -126,7 +240,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.md,
     paddingBottom: SPACING.lg,
   },
-  titulo: { fontSize: scale(26), fontWeight: FONT_WEIGHT.bold, letterSpacing: scale(-0.4) },
+  titulo: { fontSize: scale(26), fontWeight: FONT_WEIGHT.bold, letterSpacing: scale(-0.4), flexShrink: 1 },
   nota: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -137,19 +251,18 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
   },
-  notaTexto: { fontSize: FONT_SIZE.xs },
-  dentro: { paddingHorizontal: SPACING.lg - SPACING.xs, paddingBottom: SPACING.xxxl, gap: SPACING.xl },
+  notaTexto: { fontSize: FONT_SIZE.xs, flexShrink: 1 },
+  dentro: { paddingBottom: SPACING.xxxl, gap: SPACING.xl },
   grupo: { gap: SPACING.sm },
   grupoTitulo: {
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
-    textTransform: 'uppercase',
     letterSpacing: scale(0.5),
-    paddingHorizontal: SPACING.xs + SPACING.sm,
+    paddingHorizontal: SPACING.lg + SPACING.xs,
   },
-  rejilla: { flexDirection: 'row', flexWrap: 'wrap' },
+  rejilla: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: SPACING.lg - SPACING.xs },
   hueco: { padding: SPACING.xs },
-  herramienta: {
+  pieza: {
     borderRadius: scale(16),
     borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: SPACING.lg,
@@ -157,7 +270,35 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     minHeight: scale(96),
   },
-  herramientaTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, lineHeight: scale(18) },
+  piezaTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, lineHeight: scale(18) },
+  sello: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: scale(2),
+    borderRadius: BORDER_RADIUS.full,
+  },
+  selloTexto: { fontSize: scale(10), fontWeight: FONT_WEIGHT.semibold, letterSpacing: scale(0.4) },
+  motivo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  motivoTexto: { fontSize: FONT_SIZE.sm, flex: 1, lineHeight: scale(19) },
+  sinControles: { fontSize: FONT_SIZE.sm, paddingHorizontal: SPACING.xl, lineHeight: scale(20) },
+  seguir: {
+    marginHorizontal: SPACING.xl,
+    marginTop: SPACING.sm,
+    paddingVertical: SPACING.md + scale(2),
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+  },
+  seguirTexto: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.bold, color: '#1F2937' },
 });
 
 export default StudioPanel;

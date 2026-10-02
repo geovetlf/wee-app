@@ -38,7 +38,7 @@ const WeeTag: React.FC<WeeTagProps> = ({ nombre, icono, onPress }) => {
 
   const contenido = (
     <>
-      {icono && <Ionicons name={icono as any} size={scale(12)} color={theme.colors.accent} />}
+      {!!icono && <Ionicons name={icono as any} size={scale(12)} color={theme.colors.accent} />}
       <Text style={[styles.texto, { color: theme.colors.accent }]} numberOfLines={1}>
         {nombre}
       </Text>

@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë needs access to your camera so you can take photos and use them in your posts, your profile, WeeTalk and Weë AI.",
+    "NSMicrophoneUsageDescription": "Weë needs access to your microphone so you can record and send voice messages in WeeTalk.",
+    "NSPhotoLibraryUsageDescription": "Weë needs access to your photo library so you can choose photos and videos for your posts, your profile, WeeTalk and Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Weë needs permission to save the images and videos you download from Weë AI to your photo library.",
+    "NSLocationWhenInUseUsageDescription": "Weë uses your approximate location only while the app is open, to suggest nearby places and your area when you add a location to a post. Your exact location is never shown publicly."
+  }
+}

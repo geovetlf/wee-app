@@ -1,0 +1,31 @@
+# Dependabot — Weë Agent Harness, FASE 3.
+# Las alertas y las actualizaciones de SEGURIDAD se activan en los ajustes del repositorio (las decide el dueño);
+# este archivo solo gobierna las actualizaciones de VERSIÓN.
+version: 2
+updates:
+  # Las acciones de la CI van fijadas por SHA: Dependabot las mantiene al día, todas en un PR.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      acciones:
+        patterns: ["*"]
+
+  # Las Functions: menores y parches juntos; cada salto mayor en su propio PR.
+  - package-ecosystem: npm
+    directory: /functions
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      functions-menores:
+        update-types: [minor, patch]
+
+  # La app (Expo SDK 54): las versiones las fija Expo (`npx expo install --check`) y un salto suelto rompe la
+  # compatibilidad. Límite 0 = sin PR de versión aquí; las actualizaciones de seguridad no dependen de este límite.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0

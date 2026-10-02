@@ -67,7 +67,11 @@ export interface PushNotificationData {
 
 export const pushNotificationService = {
   // Registrar para push notifications y obtener el token
-  registerForPushNotifications: async (): Promise<string | null> => {
+  /**
+   * `nombreDelCanal` es como se llama el canal de avisos en los ajustes de Android, en el idioma de quien usa Weë
+   * (lo pone quien llama, con su traductor). Sin él, «Weë».
+   */
+  registerForPushNotifications: async (nombreDelCanal = 'Weë'): Promise<string | null> => {
     try {
       // Solo funciona en dispositivos físicos
       if (!Device.isDevice) {
@@ -101,7 +105,7 @@ export const pushNotificationService = {
       // Configuración específica de Android
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
+          name: nombreDelCanal,
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#F5B731',
@@ -115,12 +119,16 @@ export const pushNotificationService = {
     }
   },
 
-  // Guardar el token de la CUENTA en su documento privado
-  savePushToken: async (accountUid: string, token: string): Promise<void> => {
+  /*
+   * Guardar el token de la CUENTA en su documento privado, con el idioma en el que funciona la app de este aparato:
+   * el aviso se escribe en él cuando la cuenta no tiene un idioma elegido a mano (`users.language`).
+   */
+  savePushToken: async (accountUid: string, token: string, locale: string): Promise<void> => {
     try {
       await setDoc(tokenDeLaCuenta(accountUid), {
         token,
         platform: Platform.OS,
+        locale,
         updatedAt: serverTimestamp(),
       }, { merge: true });
     } catch (error) {

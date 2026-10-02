@@ -145,6 +145,64 @@ const DEFORMES = [
   [/크레딧|크레디트/u, 'Credits en coreano'],
   [/Weë ?(?:브레인|스튜디오|디자인|뮤직|음악|셰프|요리사|비즈니스|여행|작가|뷰티)/u, 'experiencia de Weë traducida al coreano'],
   [/(?:브레인|스튜디오|디자인) Weë/u, 'nombre de Weë reordenado en coreano'],
+  /*
+   * JAPONÉS. La tentación es la misma que en coreano, y en japonés es todavía
+   * más natural: todo nombre extranjero se escribe en katakana, así que «Weë»
+   * saldría solo como ウィー y «Credits» como クレジット. Aquí la marca va en
+   * latino, tal cual, y el katakana se queda para las palabras comunes.
+   *
+   * Las excepciones no son de cortesía: son palabras japonesas corrientes que
+   * EMPIEZAN igual y que la interfaz sí usa. ウェーブ es el pelo ondulado de
+   * Weë Beauty (`hairWavy`); クレジットカード, la tarjeta de crédito; ウィーク
+   * y ウィーン, la semana y Viena. Sin ellas, esta guarda acusaría a traducciones
+   * perfectas.
+   */
+  [/クレジット(?!カード)/u, 'Credits en katakana'],
+  [/ウィー(?![クン])|ウイー|ウェー(?![ブル])/u, 'Weë (o Weëls, WeeTalk…) en katakana'],
+  [/(?<!ファイア)ウォール(?!ペーパー)/u, 'Wäll en katakana'],
+  [/Weë ?(?:スタジオ|ブレイン|デザイン|ミュージック|音楽|シェフ|料理人|ビジネス|トラベル|旅行|ライター|作家|ビューティー|美容|フォト|写真|ホーム)/u, 'experiencia de Weë traducida al japonés'],
+  [/(?:スタジオ|ブレイン|デザイン|ミュージック) ?Weë/u, 'nombre de Weë reordenado en japonés'],
+  /*
+   * TURCO. Tres tentaciones. Traducir la moneda —«Kredi», «Krediniz»—, que es
+   * la palabra común; «kredi kartı», la tarjeta, sí es turco corriente. Traducir
+   * la experiencia —«Weë Stüdyo», «Weë Müzik»—, que en turco se escribe casi
+   * igual y por eso cuela. Y pegarle una terminación a la marca sin apóstrofo:
+   * el turco la escribe «Weë'de», con el apóstrofo que separa el nombre propio
+   * de su sufijo; «Weëde» ya no es la marca.
+   */
+  [/(?<![\p{L}])[Kk]redi(?:ler\p{L}*|niz|n|ni|ye|den|de)?(?![\p{L}])(?! kart)/u, 'Credits en turco'],
+  [/Weë (?:Stüdyo|Tasarım|Fotoğraf|Yazar|Müzik|Güzellik|Şef|Ev|İş|Seyahat|Gezi|Beyin|Zihin)(?![\p{L}])/u, 'experiencia de Weë traducida al turco'],
+  [/(?:Weë|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits)(?:de|da|te|ta|den|dan|ten|tan|ye|ya|yi|yı|nin|nın|in|ın|un|ün|yle|yla)(?![\p{L}])/u, 'marca con un sufijo turco pegado sin apóstrofo'],
+  /*
+   * SUECO. Traducir la moneda —«krediter»— o la experiencia —«Weë Musik»,
+   * «Weë Resor»—; y declinar la marca como un nombre sueco: la forma definida
+   * («WeeTalken», «Creditsen») o un genitivo pegado («Weës»). La marca va con
+   * preposición («på Weë») o en un compuesto con guion («Weë-konto»).
+   * «kreditkort», la tarjeta, sí es sueco corriente.
+   */
+  [/(?<![\p{L}])[Kk]redit(?:er|erna|en)(?![\p{L}])/u, 'Credits en sueco'],
+  [/Weë (?:Musik|Resa|Resor|Kock|Företag|Hjärna|Skribent|Skönhet|Hem)(?![\p{L}])/u, 'experiencia de Weë traducida al sueco'],
+  [/(?:WeeTalk|Credits|Wäll|ËContact|ẄContact)(?:en|et|s|ens|ets)(?![\p{L}])|(?<![\p{L}])Weës(?![\p{L}])/u, 'marca declinada en sueco'],
+  /*
+   * DANÉS. Traducir la moneda —«kreditter»— o la experiencia —«Weë Musik», «Weë Rejser», «Weë Kok»—; y declinar la
+   * marca: la forma definida plural («ËContactene») o un genitivo pegado («Weës», que ya caza la regla sueca). La
+   * marca va con preposición («på Weë») o en un compuesto con guion («din Weë-profil»). «kreditkort», la tarjeta,
+   * sí es danés corriente.
+   */
+  [/(?<![\p{L}])[Kk]redit(?:ter|terne|ten)(?![\p{L}])/u, 'Credits en danés'],
+  [/Weë (?:Musik|Rejse|Rejser|Kok|Virksomhed|Forretning|Hjerne|Forfatter|Skribent|Skønhed|Hjem)(?![\p{L}])/u, 'experiencia de Weë traducida al danés'],
+  [/(?:WeeTalk|Credits|Wäll|ËContact|ẄContact|Weëls)(?:ene|erne)(?![\p{L}])/u, 'marca declinada en danés'],
+  /*
+   * HINDI. Las marcas van en latino dentro de la frase: la tentación es
+   * transliterarlas en devanagari —«क्रेडिट्स», «वीटॉक», «वील्स», «वी»— o
+   * traducir la experiencia —«Weë संगीत», «Weë यात्रा»—. «क्रेडिट कार्ड», la
+   * tarjeta, sí es hindi corriente, y «Weë प्रोफ़ाइल» es la marca seguida de un
+   * sustantivo (como «Google खाता»), no una experiencia traducida. En devanagari
+   * una matra es parte de la palabra: por eso las fronteras miran `\p{M}`.
+   */
+  [/क्रेडिट(?! कार्ड)/u, 'Credits en devanagari'],
+  [/(?<![\p{L}\p{M}])(?:वी|वीई|वीटॉक|वी टॉक|वील|वील्स|वॉल|ईकॉन्टैक्ट|ईकॉन्टेक्ट|डब्ल्यूकॉन्टैक्ट)(?![\p{L}\p{M}])/u, 'marca de Weë en devanagari'],
+  [/Weë (?:संगीत|म्यूज़िक|यात्रा|ट्रैवल|शेफ़|रसोइया|व्यापार|व्यवसाय|बिज़नेस|फ़ोटो|लेखक|राइटर|सौंदर्य|ब्यूटी|घर|होम|दिमाग|ब्रेन|स्टूडियो|डिज़ाइन)(?![\p{L}\p{M}])/u, 'experiencia de Weë traducida al hindi'],
 ];
 for (const idioma of idiomas) {
   const hallados = [];
@@ -180,9 +238,34 @@ const TRAMPAS = [
   ['Abre tu ëContact', 'Ë en minúscula'],
   ['Abre tu Ẅcontact', 'C en minúscula'],
   ['Wee Talk で話す', 'japonés'],
+  ['クレジットが 12 残っています', 'japonés · moneda en katakana'],
+  ['ウィーへようこそ', 'japonés · Weë en katakana'],
+  ['ウィールズを見る', 'japonés · Weëls en katakana'],
+  ['ウィートークで話す', 'japonés · WeeTalk en katakana'],
+  ['ウォールに投稿', 'japonés · Wäll en katakana'],
+  ['Weë スタジオを開く', 'japonés · experiencia en katakana'],
+  ['Weë 旅行で計画する', 'japonés · experiencia traducida'],
   ['查看 Weels', 'chino'],
   ['EContact 열기', 'coreano'],
   ['Bienvenue sur Wee', 'sin diéresis'],
+  ['12 Krediniz kaldı', 'turco · moneda traducida'],
+  ['Weë Stüdyo ile oluştur', 'turco · experiencia traducida'],
+  ['Weëde paylaş', 'turco · sufijo sin apóstrofo'],
+  ['WeeTalkta yaz', 'turco · sufijo sin apóstrofo'],
+  ['Du har 12 krediter kvar', 'sueco · moneda traducida'],
+  ['Öppna Weë Musik', 'sueco · experiencia traducida'],
+  ['Skriv i WeeTalken', 'sueco · marca en forma definida'],
+  ['Läs Weës villkor', 'sueco · genitivo pegado a la marca'],
+  ['Du har 12 kreditter tilbage', 'danés · moneda traducida'],
+  ['Åbn Weë Rejser', 'danés · experiencia traducida'],
+  ['Alle dine ËContactene', 'danés · marca en forma definida plural'],
+  ['Læs Weës vilkår', 'danés · genitivo pegado a la marca'],
+  ['आपके पास 12 क्रेडिट्स बचे हैं', 'hindi · moneda transliterada'],
+  ['वीटॉक में लिखें', 'hindi · WeeTalk transliterado'],
+  ['वील्स देखें', 'hindi · Weëls transliterado'],
+  ['वी में आपका स्वागत है', 'hindi · Weë transliterado'],
+  ['Weë संगीत खोलें', 'hindi · experiencia traducida'],
+  ['Weë यात्रा से प्लान बनाएँ', 'hindi · experiencia traducida'],
 ];
 const pillada = (texto) => DEFORMES.some(([re]) => re.test(texto));
 const escapadas = TRAMPAS.filter(([t]) => !pillada(t));
@@ -192,8 +275,20 @@ check(`6) control: reconoce las ${TRAMPAS.length} deformaciones típicas`, escap
 const BUENAS = ['Tu as 12 Credits', 'Öffne Weë Studio', 'ËContact', 'Weëls', 'Wäll', 'WeeTalk', 'Weë Brain',
   'У вас 12 Credits', 'Откройте Weë Studio', 'Weë Brain отвечает', 'фотостудия и свет',
   'Credits 12개가 남았어요', 'Weë Brain 열기', 'Weë Studio에서 만들기', '사진 스튜디오 조명',
+  /* Japonés: las marcas en latino, y las palabras corrientes que empiezan igual. */
+  '残り 12 Credits', 'Weë へようこそ', 'Weë Studio で作成', 'Wäll に投稿', 'Weëls を見る', 'WeeTalk で話す',
+  'クレジットカードで支払う', 'ウェーブヘア', '今週の予定', '写真スタジオの照明',
   /* Los dos nombres bien escritos, y uno que solo ACABA en «contact» sin serlo. */
-  'Abre tu ËContact', 'Abre tu ẄContact', '打开你的 ËContact', '你的 ẄContact 通訊錄'];
+  'Abre tu ËContact', 'Abre tu ẄContact', '打开你的 ËContact', '你的 ẄContact 通訊錄',
+  /* Turco: la marca con su apóstrofo, y las palabras corrientes que se le parecen. */
+  '12 Credits kaldı', "Weë'de paylaş", "WeeTalk'ta yaz", 'Kredi kartıyla öde', 'Weë Studio ile oluştur', 'fotoğraf stüdyosu',
+  /* Sueco: la marca con preposición o en un compuesto con guion, y la tarjeta de crédito. */
+  'Du har 12 Credits kvar', 'Öppna Weë Music', 'Skriv i WeeTalk', 'Villkor för Weë', 'ditt Weë-konto', 'Betala med kreditkort',
+  /* Hindi: la marca en latino con su posposición, y las palabras corrientes que empiezan igual. */
+  'आपके पास 12 Credits बचे हैं', 'WeeTalk में लिखें', 'Weëls देखें', 'Weë में आपका स्वागत है', 'Weë Music खोलें',
+  'आपकी Weë प्रोफ़ाइल', 'क्रेडिट कार्ड से भुगतान करें', 'वीडियो देखें', 'वॉलपेपर बदलें',
+  /* Danés: la marca con preposición o en un compuesto con guion, y la tarjeta de crédito. */
+  'Du har 12 Credits tilbage', 'Åbn Weë Music', 'Skriv i WeeTalk', 'Vilkår for Weë', 'din Weë-profil', 'Et Weë Studio-projekt', 'Betal med kreditkort'];
 const falsosPositivos = BUENAS.filter((t) => pillada(t));
 check('7) control: y no molesta con los nombres bien escritos', falsosPositivos.length === 0,
   falsosPositivos.join(' | ') || 'ninguno');

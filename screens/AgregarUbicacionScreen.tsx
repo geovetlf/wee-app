@@ -14,7 +14,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { nombreDeLaRegion } from '../i18n/formato';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useLocation } from '../contexts/LocationContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -24,15 +25,17 @@ import {
   PostPlace,
   buscarLugares,
   cargarMundo,
-  distanciaAproximada,
   lugarDelCatalogo,
   lugarPropio,
   lugaresCercanos,
   lugaresDelPais,
+  opcionEnSuIdioma,
 } from '../data/places';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import TextoEnMayusculas from '../components/TextoEnMayusculas';
+import { distanciaParaLeer } from '../utils/distanciaParaLeer';
 
 /**
  * AGREGAR UBICACIÓN.
@@ -82,7 +85,7 @@ type RutaProp = RouteProp<MainStackParamList, 'AgregarUbicacion'>;
 
 const AgregarUbicacionScreen: React.FC = () => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
   const navigation = useNavigation<NavProp>();
   const ruta = useRoute<RutaProp>();
   const { userProfile } = useUserProfile();
@@ -160,8 +163,8 @@ const AgregarUbicacionScreen: React.FC = () => {
    * Los resultados de otros países siguen saliendo: solo van después.
    */
   const contextoBusqueda = useMemo(
-    () => ({ lat: lecturaActual?.latitude, lon: lecturaActual?.longitude, pais: userProfile?.country }),
-    [lecturaActual?.latitude, lecturaActual?.longitude, userProfile?.country]
+    () => ({ lat: lecturaActual?.latitude, lon: lecturaActual?.longitude, pais: userProfile?.country, idioma: locale }),
+    [lecturaActual?.latitude, lecturaActual?.longitude, userProfile?.country, locale]
   );
 
   // `mundoCargado` entra a propósito: cuando el catálogo llega, lo ya escrito se
@@ -246,6 +249,8 @@ const AgregarUbicacionScreen: React.FC = () => {
    * dorado y pequeña: es un dato, no un adorno.
    */
   const Fila: React.FC<{ opcion: PlaceOption; km?: number; ultima?: boolean }> = ({ opcion, km, ultima }) => {
+    /* Se ENSEÑA en el idioma de quien mira; se ELIGE la del catálogo, que es la que se guarda. */
+    const visible = opcionEnSuIdioma(opcion, locale);
     const esPais = !opcion.countryCode;
     return (
       <TouchableOpacity
@@ -253,7 +258,7 @@ const AgregarUbicacionScreen: React.FC = () => {
         activeOpacity={0.6}
         style={[styles.fila, !ultima && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }]}
         accessibilityRole="button"
-        accessibilityLabel={opcion.sublabel ? t('composer.placeOption', { lugar: opcion.label, detalle: opcion.sublabel }) : opcion.label}
+        accessibilityLabel={visible.sublabel ? t('composer.placeOption', { lugar: visible.label, detalle: visible.sublabel }) : visible.label}
         accessibilityHint={t('composer.chooseThisPlace')}
       >
         <View style={[styles.iconoCirculo, { backgroundColor: theme.colors.accent + '1A' }]}>
@@ -265,20 +270,20 @@ const AgregarUbicacionScreen: React.FC = () => {
         </View>
         <View style={styles.filaDatos}>
           <Text style={[styles.filaNombre, { color: theme.colors.text }]} numberOfLines={1}>
-            {opcion.label}
+            {visible.label}
           </Text>
           {/*
             Texto limpio, sin bandera: "Lima, Perú". El emoji no añadía nada que
             el nombre del sitio no dijera ya, y ensuciaba la línea.
           */}
           <Text style={[styles.filaSub, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-            {opcion.sublabel || t('composer.country')}
+            {visible.sublabel || t('composer.country')}
           </Text>
         </View>
         {/* La distancia solo cuando se ha podido calcular de verdad. */}
         {km !== undefined && (
           <Text style={[styles.filaDistancia, { color: theme.colors.accentDark }]} numberOfLines={1}>
-            {distanciaAproximada(km)}
+            {distanciaParaLeer(km, t, locale)}
           </Text>
         )}
       </TouchableOpacity>
@@ -292,7 +297,7 @@ const AgregarUbicacionScreen: React.FC = () => {
     onAccion,
   }) => (
     <View style={styles.seccion}>
-      <Text style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{titulo}</Text>
+      <TextoEnMayusculas style={[styles.seccionTitulo, { color: theme.colors.textSecondary }]} accessibilityRole="header">{titulo}</TextoEnMayusculas>
       {!!accion && (
         <TouchableOpacity onPress={onAccion} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={accion}>
           <Text style={[styles.seccionAccion, { color: theme.colors.accentDark }]}>{accion}</Text>
@@ -414,7 +419,7 @@ const AgregarUbicacionScreen: React.FC = () => {
                 de verdad. El título cuenta lo que hay, no lo que quedaría bien.
               */}
               <Seccion
-                titulo={t('composer.placesIn', { pais: userProfile?.countryName || t('composer.yourCountry') })}
+                titulo={t('composer.placesIn', { pais: (userProfile?.country ? nombreDeLaRegion(userProfile.country, locale) : '') || userProfile?.countryName || t('composer.yourCountry') })}
                 accion={t(verTodos ? 'composer.seeLess' : 'composer.seeMore')}
                 onAccion={() => setVerTodos((v) => !v)}
               />
@@ -558,7 +563,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: 1,
-    textTransform: 'uppercase',
   },
   seccionAccion: {
     fontSize: FONT_SIZE.xs,

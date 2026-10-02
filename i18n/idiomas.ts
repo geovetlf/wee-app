@@ -20,7 +20,7 @@
 
 /** Los idiomas que Weë contempla. Añadir uno es añadirlo a esta lista. */
 export type CodigoDeIdioma =
-  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar';
+  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar' | 'tr' | 'sv' | 'hi' | 'da';
 
 /**
  * UNA ESCRITURA O REGIÓN QUE SE OFRECE POR SEPARADO DENTRO DEL MISMO IDIOMA.
@@ -131,6 +131,35 @@ export const IDIOMAS: readonly Idioma[] = [
     ],
   },
   /*
+   * El sueco se tutea («du») y escribe junto lo que es una sola palabra: una
+   * palabra compuesta partida en dos («profil bild») es el error más visible de
+   * una traducción al sueco. Tiene `one` y `other`, y aquí sí cambian
+   * («1 kommentar», «3 kommentarer»). Las marcas no llevan terminaciones: se
+   * usan con preposición («på Weë»). Todo eso está en `docs/I18N-SUECO.md` y
+   * lo vigila `functions/test/i18n-sueco.test.mjs`.
+   */
+  { codigo: 'sv', nombreNativo: 'Svenska', direccion: 'ltr', listo: true },
+  /*
+   * El danés también se tutea («du») y escribe junto lo que es una sola palabra
+   * («profilbillede», nunca «profil billede»). Tiene `one` y `other`, pero su
+   * `one` NO es solo el 1: `Intl.PluralRules('da')` da `one` también a 1,5 y a
+   * 0,5, así que ningún `_one` escribe un «1» a mano. Las marcas no se declinan
+   * («på Weë», «din Weë-profil»). La hora se escribe con punto (14.30) y la
+   * moneda como `1.234,50 kr.`: lo da `Intl` con `da-DK`. Todo eso está en
+   * `docs/I18N-DANES.md` y lo vigila `functions/test/i18n-danes.test.mjs`.
+   */
+  { codigo: 'da', nombreNativo: 'Dansk', direccion: 'ltr', listo: true },
+  /*
+   * Lo propio del turco no es el plural —`Intl.PluralRules('tr')` tiene `one` y
+   * `other`, y tras una cifra el sustantivo va en singular, así que las dos
+   * formas suelen decir lo mismo— sino la CAJA y los SUFIJOS: la mayúscula de
+   * «i» es «İ» y la minúscula de «I» es «ı», así que nada se pasa a mayúsculas
+   * o minúsculas sin su locale; y un sufijo no se pega a un {{hueco}}, porque
+   * su vocal depende de una palabra que no se conoce. Todo eso está en
+   * `docs/I18N-TURCO.md` y lo vigila `functions/test/i18n-turco.test.mjs`.
+   */
+  { codigo: 'tr', nombreNativo: 'Türkçe', direccion: 'ltr', listo: true },
+  /*
    * Primer idioma que necesita MÁS formas de plural que el español: cuatro en
    * vez de dos. El motor ya lo preveía y el tipo lo permite desde
    * `textos/ru/plurales.ts`; lo comprueba `functions/test/i18n-plurales-ru.test.mjs`
@@ -138,6 +167,18 @@ export const IDIOMAS: readonly Idioma[] = [
    */
   { codigo: 'ru', nombreNativo: 'Русский', direccion: 'ltr', listo: true },
   { codigo: 'ar', nombreNativo: 'العربية', direccion: 'rtl', listo: false },
+  /*
+   * El hindi tiene dos cosas que no se ven en ningún otro idioma de Weë. La
+   * primera: el CERO es `one` (`Intl.PluralRules('hi')` pone 0 y 1 en `one`),
+   * así que ninguna forma `_one` puede escribir «1» ni «एक» a mano. La segunda:
+   * la nukta de «फ़ोटो» o «ज़रूरी» se escribe letra + U+093C, porque las letras
+   * precompuestas (U+0958–U+095F) no sobreviven a NFC. Se trata de «आप», las
+   * marcas van en latino con la posposición separada («Weë पर») y la frase
+   * acaba en «.». El nombre del selector es el de CLDR, «हिन्दी»; en el texto
+   * corrido, «हिंदी». Todo eso está en `docs/I18N-HINDI.md` y lo vigila
+   * `functions/test/i18n-hindi.test.mjs`.
+   */
+  { codigo: 'hi', nombreNativo: 'हिन्दी', direccion: 'ltr', listo: true },
   /*
    * El reverso del ruso: el coreano NO distingue número. `Intl.PluralRules`
    * declara una sola categoría, así que la forma `_one` no se lee nunca y las
@@ -174,7 +215,15 @@ export const IDIOMAS: readonly Idioma[] = [
       },
     ],
   },
-  { codigo: 'ja', nombreNativo: '日本語', direccion: 'ltr', listo: false },
+  /*
+   * Como el coreano y el chino, el japonés NO distingue número: `_one` lleva el
+   * mismo texto que `_other`. Una sola escritura, así que sin variantes; su
+   * locale es `ja-JP`. Lo propio del japonés —las marcas en latino y nunca en
+   * katakana, la puntuación de ancho completo, sin espacios entre japonés y
+   * latino— está en `docs/I18N-JAPONES.md` y lo vigila
+   * `functions/test/i18n-japones.test.mjs`.
+   */
+  { codigo: 'ja', nombreNativo: '日本語', direccion: 'ltr', listo: true },
 ];
 
 /**
@@ -204,10 +253,14 @@ export const LOCALES_CONTEMPLADOS: readonly string[] = [
   'fr-FR', 'fr-CA',
   'de-DE',
   'pt-BR', 'pt-PT',
+  'sv-SE',
+  'da-DK',
+  'tr-TR',
   'ja-JP',
   'zh-CN', 'zh-TW',
   'ko-KR',
   'ru-RU',
+  'hi-IN',
   'ar-SA',
 ];
 

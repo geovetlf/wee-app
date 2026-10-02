@@ -1,15 +1,34 @@
 {
   "firestore": {
     "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "indexes": "firestore.indexes.json",
+    "predeploy": [
+      "node scripts/solo-desde-el-workflow.mjs firestore"
+    ]
   },
   "storage": {
-    "rules": "storage.rules"
+    "rules": "storage.rules",
+    "predeploy": [
+      "node scripts/solo-desde-el-workflow.mjs storage"
+    ]
   },
   "functions": {
     "source": "functions",
     "runtime": "nodejs24",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "*.local",
+      ".env.local",
+      ".secret.local",
+      "test/**",
+      "parche*.txt",
+      "*.tmp.txt"
+    ],
     "predeploy": [
+      "node scripts/solo-desde-el-workflow.mjs functions",
       "npm --prefix functions run build"
     ]
   },
@@ -18,13 +37,17 @@
       "port": 9099,
       "host": "127.0.0.1"
     },
+    "firestore": {
+      "port": 8080,
+      "host": "127.0.0.1"
+    },
     "functions": {
       "port": 5001,
-      "host": "0.0.0.0"
+      "host": "127.0.0.1"
     },
     "storage": {
       "port": 9199,
-      "host": "0.0.0.0"
+      "host": "127.0.0.1"
     },
     "ui": {
       "enabled": false
@@ -63,6 +86,106 @@
             "region": "us-central1"
           }
         }
+      ],
+      "predeploy": [
+        "node scripts/solo-desde-el-workflow.mjs hosting:get-wee"
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(self), microphone=(self), geolocation=(self), payment=(), usb=()"
+            }
+          ]
+        },
+        {
+          "source": "/",
+          "headers": [
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+            }
+          ]
+        },
+        {
+          "source": "/privacy",
+          "headers": [
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+            }
+          ]
+        },
+        {
+          "source": "/terms",
+          "headers": [
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+            }
+          ]
+        },
+        {
+          "source": "/support",
+          "headers": [
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+            }
+          ]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+            }
+          ]
+        },
+        {
+          "source": "/post/**",
+          "headers": [
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+            }
+          ]
+        }
       ]
     },
     {
@@ -70,13 +193,42 @@
       "public": "dist",
       "ignore": [
         "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
+        "**/.*"
       ],
       "rewrites": [
         {
           "source": "**",
           "destination": "/index.html"
+        }
+      ],
+      "predeploy": [
+        "node scripts/solo-desde-el-workflow.mjs hosting:wee-app"
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(self), microphone=(self), geolocation=(self), payment=(), usb=()"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+            }
+          ]
         }
       ]
     }

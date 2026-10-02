@@ -96,7 +96,7 @@ export const idDeMaterial = (huella) => 'asset_' + createHash('sha256').update(h
  * miraba donde están los datos.
  *
  * Se busca como busca el resto de Weë —`where('uid','==',…)`, igual que
- * `econtactService`, `creditsService` o `followsService`— y además, por si
+ * `econtactService` o `creditsService` (antes también `followsService`)— y además, por si
  * algún documento sí estuviera nombrado por su uid, se prueba también el id.
  *
  * ── QUIÉN DECIDE ───────────────────────────────────────────────────────────

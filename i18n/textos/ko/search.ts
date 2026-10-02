@@ -24,4 +24,10 @@ export const search: typeof import('../es/search').search = {
   member: '멤버',
   typeTwoForPeople: '사용자를 찾으려면 2자 이상 입력하세요',
   typeTwoForPosts: '게시물을 찾으려면 2자 이상 입력하세요',
+  peopleFound: '검색된 사용자',
+  searchPeople: '사용자 검색',
+  noPeopleFor: '"{{busqueda}}"에 해당하는 사용자를 찾지 못했어요',
+  postsFound: '검색된 게시물',
+  searchPosts: '게시물 검색',
+  noPostsFor: '"{{busqueda}}"에 해당하는 게시물을 찾지 못했어요',
 };

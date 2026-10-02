@@ -89,6 +89,27 @@ export const formatearHora = (
   opciones: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' },
 ): string => formatearFecha(fecha, locale, opciones);
 
+export type ParteDeFecha = 'day' | 'month' | 'year';
+const ORDEN_DE_SIEMPRE: ParteDeFecha[] = ['day', 'month', 'year'];
+
+/*
+ * En qué orden se piden el día, el mes y el año cuando se eligen por separado:
+ * 31/12 en Lima, 12/31 en Nueva York, 年・月・日 en Tokio. Lo dice Intl
+ * partiendo una fecha ya escrita; si el motor no sabe partirla, el de siempre.
+ */
+export const ordenDeLaFecha = (locale: string): ParteDeFecha[] => {
+  const f = recordar(`d|${locale}|orden`,
+    () => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }));
+  try {
+    const orden = (f?.formatToParts(new Date(2000, 11, 31)) ?? [])
+      .map((parte) => parte.type)
+      .filter((tipo): tipo is ParteDeFecha => tipo === 'day' || tipo === 'month' || tipo === 'year');
+    return orden.length === 3 ? orden : ORDEN_DE_SIEMPRE;
+  } catch {
+    return ORDEN_DE_SIEMPRE;
+  }
+};
+
 /** Los tramos de "hace un rato", del más pequeño al más grande. */
 const TRAMOS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
   ['second', 1000],

@@ -26,4 +26,8 @@ export const avatar: typeof import('../es/avatar').avatar = {
   cameraPermission: 'Weë ha bisogno di accedere alla tua fotocamera per scattare una foto',
   pickFailed: 'Non è stato possibile selezionare l’immagine. Riprova.',
   photoFailed: 'Non è stato possibile scattare la foto',
+  styleAdventurer: 'Avventuriero',
+  styleRobots: 'Robot',
+  styleSmile: 'Sorriso',
+  stylePeople: 'Persone',
 };

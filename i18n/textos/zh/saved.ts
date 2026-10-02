@@ -10,4 +10,5 @@ export const saved: typeof import('../es/saved').saved = {
   empty: '还没有收藏任何内容',
   exploreHome: '去首页逛逛',
   loadFailed: '无法加载你的收藏',
+  emptyHint: '点一下动态上的书签，就能收藏想再看的提示词、教程和作品。',
 };

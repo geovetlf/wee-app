@@ -51,4 +51,12 @@ export const onboarding = {
   weeCreatedTitle: 'Perfil Weë creado',
   weeCreated: 'Tu identidad anónima está lista. Puedes cambiar entre perfiles desde el header.',
   weeCreateFailed: 'No se pudo crear el perfil Weë',
+  birthDay: 'Día',
+  birthMonth: 'Mes',
+  birthYear: 'Año',
+  stepOf: 'Paso {{paso}} de {{total}}',
+  customiseProfileHint: 'Elige un avatar y agrega una descripción (opcional)',
+  bioLabel: 'Descripción (opcional)',
+  weeNameCounter: '{{usados}}/{{maximo}} - Mínimo {{minimo}} caracteres',
+  weeBio: 'Bio (opcional)',
 };

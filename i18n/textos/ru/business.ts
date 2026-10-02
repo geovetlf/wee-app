@@ -29,7 +29,7 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
   networkConnected: '{{red}}: подключено',
   connectAnother: 'Подключить ещё одну соцсеть',
   allConnected: 'Все ваши соцсети уже подключены.',
-  simulatedConnection: 'Подключение имитировано: Weë начнёт публиковать и отвечать по-настоящему, когда соцсети откроют официальный доступ.',
+  simulatedConnection: 'Подключение имитировано: Weë пока не публикует и не отвечает за вас. Он готовит каждый материал, чтобы вы сами его проверили и опубликовали.',
   postCalendar: 'Календарь публикаций',
   seeFullCalendar: 'Открыть весь календарь',
   calendarGoal: 'Посмотреть и составить мой календарь публикаций на неделю',
@@ -247,4 +247,5 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
   promoteHint: 'Ваш контент увидит больше людей внутри Weë. Стоимость вы увидите до того, как что-то потратите.',
   promoteSoon: 'Продвижение внутри Weë ещё не открыто. Когда откроется, оно будет оплачиваться вашими Credits и появится здесь.',
   promoteCredits: 'Посмотреть мои Credits',
+  sampleProductName: 'Продукт {{numero}}',
 };

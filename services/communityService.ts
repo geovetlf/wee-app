@@ -73,23 +73,10 @@ export const CATEGORY_TAGS: { [slug: string]: string[] } = {
   'kpop-kdrama': ['Grupos', 'Idols', 'Doramas', 'Comebacks', 'Concerts', 'Noticias', 'Ships', 'Fandom'],
 };
 
-// Comunidades oficiales iniciales
-export const OFFICIAL_COMMUNITIES: Omit<Community, 'id' | 'createdAt' | 'updatedAt'>[] = COMMUNITY_CATEGORIES.map((c) => ({
-  name: c.name,
-  slug: c.slug,
-  description: c.description,
-  icon: c.icon,
-  rules: [
-    { id: '1', text: 'Compartí lo que creaste con IA y contá cómo lo hiciste', order: 1 },
-    { id: '2', text: 'Preguntá y respondé con respeto', order: 2 },
-    { id: '3', text: 'Nada de spam ni contenido que no sea tuyo', order: 3 },
-  ],
-  memberCount: 0,
-  postCount: 0,
-  isOfficial: true,
-  moderators: [],
-  status: 'active' as const,
-}));
+/*
+ * Las comunidades oficiales son DATOS (`constants/comunidadesOficiales.ts`) y las crea la administración
+ * (`scripts/sembrar-comunidades.mjs`), no la app: por eso este servicio no las importa ni las reexporta.
+ */
 
 // Servicio de comunidades
 export const communityService = {
@@ -108,10 +95,11 @@ export const communityService = {
       } as Community));
     } catch (error) {
       console.error('Error getting communities:', error);
-      // Fallback: obtener todas y filtrar en JS (no requiere índice)
+      // Fallback sin índice compuesto: solo las activas (un filtro de igualdad no lo necesita) y se ordenan aquí.
+      // Antes leía la colección ENTERA —pendientes y rechazadas incluidas— para tirarlas después en JS.
       console.log('🔄 Usando fallback sin índice compuesto...');
       try {
-        const snapshot = await getDocs(collection(db, 'communities'));
+        const snapshot = await getDocs(query(collection(db, 'communities'), where('status', '==', 'active')));
         const allCommunities = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -126,31 +114,12 @@ export const communityService = {
     }
   },
 
-  // Obtener comunidades oficiales
-  getOfficialCommunities: async (): Promise<Community[]> => {
-    try {
-      const q = query(
-        collection(db, 'communities'),
-        where('isOfficial', '==', true),
-        where('status', '==', 'active')
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Community));
-    } catch (error) {
-      console.error('Error getting official communities:', error);
-      // Fallback: obtener todas y filtrar en JS (no requiere índice)
-      console.log('🔄 Usando fallback sin índice compuesto...');
-      return communityService.getAllCommunitiesFallback();
-    }
-  },
-
   // Obtener comunidades creadas por usuarios (no oficiales, activas)
+  // La pantalla las enseña TODAS (las mías, a las que pertenezco y las que puedo descubrir), así que no se acota con
+  // un `limit`: se piden solo las activas en vez de la colección entera, y el resto se filtra y ordena como siempre.
   getUserCommunities: async (): Promise<Community[]> => {
     try {
-      const snapshot = await getDocs(collection(db, 'communities'));
+      const snapshot = await getDocs(query(collection(db, 'communities'), where('status', '==', 'active')));
       const allCommunities = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -163,75 +132,6 @@ export const communityService = {
     } catch (error) {
       console.error('Error getting user communities:', error);
       return [];
-    }
-  },
-
-  // Obtener comunidades pendientes de aprobación (para admin)
-  getPendingCommunities: async (): Promise<Community[]> => {
-    try {
-      const snapshot = await getDocs(collection(db, 'communities'));
-      const allCommunities = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Community));
-
-      return allCommunities
-        .filter(c => c.status === 'pending')
-        .sort((a, b) => {
-          const aTime = a.createdAt?.toMillis?.() || 0;
-          const bTime = b.createdAt?.toMillis?.() || 0;
-          return bTime - aTime;
-        });
-    } catch (error) {
-      console.error('Error getting pending communities:', error);
-      return [];
-    }
-  },
-
-  // Aprobar una comunidad (para admin)
-  approveCommunity: async (communityId: string): Promise<void> => {
-    try {
-      const communityRef = doc(db, 'communities', communityId);
-      await updateDoc(communityRef, {
-        status: 'active',
-        updatedAt: Timestamp.now(),
-      });
-    } catch (error) {
-      console.error('Error approving community:', error);
-      throw error;
-    }
-  },
-
-  // Rechazar una comunidad (para admin)
-  rejectCommunity: async (communityId: string): Promise<void> => {
-    try {
-      const communityRef = doc(db, 'communities', communityId);
-      await updateDoc(communityRef, {
-        status: 'rejected',
-        updatedAt: Timestamp.now(),
-      });
-    } catch (error) {
-      console.error('Error rejecting community:', error);
-      throw error;
-    }
-  },
-
-  // Fallback que no requiere índices compuestos
-  getAllCommunitiesFallback: async (): Promise<Community[]> => {
-    try {
-      const snapshot = await getDocs(collection(db, 'communities'));
-      const allCommunities = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Community));
-
-      // Filtrar en JavaScript
-      return allCommunities
-        .filter(c => c.isOfficial && c.status === 'active')
-        .sort((a, b) => b.memberCount - a.memberCount);
-    } catch (error) {
-      console.error('Error in fallback communities:', error);
-      throw error;
     }
   },
 
@@ -416,7 +316,7 @@ export const communityService = {
       // Verificar que el slug no exista
       const existing = await communityService.getCommunityBySlug(slug);
       if (existing) {
-        throw new Error('Ya existe una comunidad con ese nombre');
+        throw new Error('comunidad-ya-existe');
       }
 
       const communityData: Omit<Community, 'id'> = {
@@ -476,78 +376,6 @@ export const communityService = {
       });
     } catch (error) {
       console.error('Error decrementing post count:', error);
-    }
-  },
-
-  // Seed de comunidades oficiales (solo ejecutar una vez)
-  seedOfficialCommunities: async (): Promise<void> => {
-    try {
-      console.log('🌱 Iniciando seed de comunidades oficiales...');
-
-      for (const community of OFFICIAL_COMMUNITIES) {
-        // Verificar si ya existe
-        const existing = await communityService.getCommunityBySlug(community.slug);
-        if (existing) {
-          console.log(`⏭️ Comunidad "${community.name}" ya existe, saltando...`);
-          continue;
-        }
-
-        // Crear la comunidad
-        const docRef = await addDoc(collection(db, 'communities'), {
-          ...community,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
-
-        console.log(`✅ Comunidad "${community.name}" creada con ID: ${docRef.id}`);
-      }
-
-      console.log('🎉 Seed completado!');
-    } catch (error) {
-      console.error('❌ Error en seed:', error);
-      throw error;
-    }
-  },
-
-  // Migrar iconos de emojis a Ionicons
-  migrateIcons: async (): Promise<void> => {
-    try {
-      console.log('🔄 Migrando iconos de comunidades...');
-
-      // Mapa de slug a nuevo icono
-      const iconMap: Record<string, string> = {
-        'gamers': 'game-controller',
-        'politica': 'business',
-        'deportes': 'football',
-        'religion-filosofia': 'book',
-        'recreacion': 'color-palette',
-        'denuncias-injusticias': 'megaphone',
-        'consejos-psicologia': 'heart',
-        'gastronomia': 'restaurant',
-        'haters': 'flame',
-      };
-
-      // Obtener todas las comunidades oficiales
-      const communities = await communityService.getOfficialCommunities();
-
-      for (const community of communities) {
-        if (!community.id) continue;
-
-        const newIcon = iconMap[community.slug];
-        if (newIcon && community.icon !== newIcon) {
-          const communityRef = doc(db, 'communities', community.id);
-          await updateDoc(communityRef, {
-            icon: newIcon,
-            updatedAt: Timestamp.now(),
-          });
-          console.log(`✅ Icono actualizado para "${community.name}": ${community.icon} -> ${newIcon}`);
-        }
-      }
-
-      console.log('🎉 Migración de iconos completada!');
-    } catch (error) {
-      console.error('❌ Error en migración:', error);
-      throw error;
     }
   },
 };
