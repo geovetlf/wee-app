@@ -46,7 +46,12 @@ export const PATRON_A3 = /strategy-engine|crearMotorDeEstrategias/;
 
 /** Todos los archivos de una carpeta, en orden. Si la carpeta no existe, LANZA: nada de aprobar sin mirar. */
 export const archivosDe = (raiz, carpeta) => {
-  const absoluta = path.resolve(raiz, carpeta);
+  /*
+   * La carpeta se normaliza ANTES de mirarla: en Linux `\` no es un separador, y una capa escrita a la Windows
+   * (`functions\src\creator\`) no existía como carpeta —la guarda lanzaba en la CI de GitHub y aprobaba en el portátil—.
+   */
+  const normal = carpeta.replace(/\\/g, '/').replace(/\/+$/, '');
+  const absoluta = path.resolve(raiz, normal);
   if (!fs.existsSync(absoluta) || !fs.statSync(absoluta).isDirectory()) {
     throw new Error(`guarda: la carpeta ${carpeta} no existe en ${raiz}`);
   }
@@ -59,7 +64,7 @@ export const archivosDe = (raiz, carpeta) => {
     }
   };
   /* Las rutas que se informan, siempre con `/`: las mismas en Windows y en Linux. */
-  andar(carpeta.replace(/\\/g, '/').replace(/\/+$/, ''));
+  andar(normal);
   return salida.sort();
 };
 
