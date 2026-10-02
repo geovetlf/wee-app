@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Share,
-  Alert,
   Linking,
   ScrollView,
   NativeSyntheticEvent,

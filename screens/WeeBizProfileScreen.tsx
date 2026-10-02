@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Linking,
-  Alert,
   Platform,
   BackHandler,
   Image,
@@ -35,13 +34,7 @@ type RoutePropType = RouteProp<MainStackParamList, 'WeeBizProfile'>;
 type NavProp = StackNavigationProp<MainStackParamList>;
 
 // Follow para negocios: usa colección businessFollows con ID {userId}_{businessId}
-import {
-  doc,
-  getDoc,
-  increment,
-  writeBatch,
-  Timestamp,
-} from 'firebase/firestore';
+import { doc, getDoc, increment, Timestamp, runTransaction } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import { confirmAction, notify } from '../utils/notify';
@@ -109,9 +102,12 @@ const WeeBizProfileScreen: React.FC = () => {
       setBusiness(biz);
       setProducts(prods.slice(0, 4));
       setReviews(revs);
-      // Check if current user already reviewed
+      /*
+       * ¿Ya reseñó esta persona? Se pregunta por SU reseña, no se busca entre las diez últimas: quien tenía una
+       * antigua (id automático) más abajo veía el botón, creaba otra en su id y contaba dos veces en la media.
+       */
       if (activeUid) {
-        const myReview = revs.find(r => r.userId === activeUid);
+        const myReview = revs.find(r => r.userId === activeUid) || (await weeBizService.getUserReview(businessId, activeUid));
         setUserReview(myReview || null);
       }
     } catch (e) {
@@ -142,27 +138,31 @@ const WeeBizProfileScreen: React.FC = () => {
       /*
        * SEGUIR Y SU CONTADOR, EN UNA SOLA ESCRITURA. Antes eran dos: el documento de `businessFollows` y, después,
        * `followersCount` del negocio. Si la segunda fallaba, el seguimiento quedaba hecho (o deshecho) con el contador
-       * sin mover, y la pantalla ni siquiera se enteraba. Ahora van en un `writeBatch`: o las dos, o ninguna.
+       * sin mover, y la pantalla ni siquiera se enteraba. Ahora van en una TRANSACCIÓN: o las dos, o ninguna.
        * El contador se mueve de uno en uno, que es lo que exige `contadorSano('followersCount')` en firestore.rules,
-       * y nunca baja de cero: con un contador ya en cero (un desfase heredado de cuando eran dos escrituras), dejar de
-       * seguir borra el seguimiento sin restar, en vez de que la regla tumbe el lote entero y no se pueda dejar de seguir.
+       * y nunca baja de cero: la transacción lee el contador DEL SERVIDOR (no el que tiene la pantalla, que puede estar
+       * desfasado) y, si ya está en cero —un desfase heredado de cuando eran dos escrituras—, dejar de seguir borra el
+       * seguimiento sin restar, en vez de que la regla tumbe la escritura entera y no se pueda dejar de seguir.
        */
-      const lote = writeBatch(db);
-
+      await runTransaction(db, async (tx) => {
+        const negocio = await tx.get(negocioRef);
+        const enElServidor = Number(negocio.data()?.followersCount ?? 0);
+        if (isFollowing) {
+          tx.delete(followRef);
+          if (enElServidor > 0) tx.update(negocioRef, { followersCount: increment(-1) });
+        } else {
+          tx.set(followRef, {
+            userId: activeUid,
+            businessId,
+            createdAt: Timestamp.now(),
+          });
+          tx.update(negocioRef, { followersCount: increment(1) });
+        }
+      });
       if (isFollowing) {
-        lote.delete(followRef);
-        if ((business?.followersCount ?? 0) > 0) lote.update(negocioRef, { followersCount: increment(-1) });
-        await lote.commit();
         setIsFollowing(false);
         setBusiness(prev => prev ? { ...prev, followersCount: Math.max(0, prev.followersCount - 1) } : prev);
       } else {
-        lote.set(followRef, {
-          userId: activeUid,
-          businessId,
-          createdAt: Timestamp.now(),
-        });
-        lote.update(negocioRef, { followersCount: increment(1) });
-        await lote.commit();
         setIsFollowing(true);
         setBusiness(prev => prev ? { ...prev, followersCount: prev.followersCount + 1 } : prev);
       }

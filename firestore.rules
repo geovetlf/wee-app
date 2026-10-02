@@ -629,6 +629,9 @@ service cloud.firestore {
         request.resource.data.followingId.size() > 0 &&
         seguidorDeQuienEscribe(request.resource.data.followerId) &&
         request.resource.data.followingId != request.resource.data.followerId &&
+        // Ni a la otra cara de la misma cuenta (segunda auditoría de cierre): seguirse a uno mismo por la otra puerta.
+        request.resource.data.followingId != request.auth.uid &&
+        request.resource.data.followingId != ("hidi_" + request.auth.uid) &&
         followId == request.resource.data.followerId + '_' + request.resource.data.followingId;
       allow update: if false;
       allow delete: if isAuthenticated() &&
@@ -863,8 +866,14 @@ service cloud.firestore {
         // ACTUALIZA— y nadie puede escribir la de otro. La app la escribe con
         // `setDoc` en ese id (`weeBizService.createReview`). Las antiguas, con id
         // automático, se siguen leyendo y borrando, pero no se crean más así.
+        // Segunda auditoría de cierre: solo los campos de una reseña, y una fecha que no viene del futuro (con
+        // margen para el reloj del teléfono): una reseña con fecha futura se quedaba la primera de la lista
+        // (orderBy createdAt desc) y, desde que se puede actualizar, para siempre.
         function resenaValida() {
-          return request.resource.data.userId == request.auth.uid &&
+          return request.resource.data.keys().hasOnly(['userId', 'userName', 'userAvatar', 'rating', 'text', 'businessId', 'createdAt']) &&
+            request.resource.data.createdAt is timestamp &&
+            request.resource.data.createdAt <= request.time + duration.value(5, 'm') &&
+            request.resource.data.userId == request.auth.uid &&
             request.resource.data.rating is int &&
             request.resource.data.rating >= 1 &&
             request.resource.data.rating <= 5 &&

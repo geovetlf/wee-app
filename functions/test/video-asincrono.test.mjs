@@ -607,7 +607,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    */
   const MOTOR_F1D_Y_HARNESS = {
     'functions/src/creator/credits.ts': '45\t4', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
-    'functions/src/creator/index.ts': '117\t15', // 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
+    'functions/src/creator/index.ts': '124\t16', // segunda auditoría de cierre 2026-10-01 (+7 −1, antes 117/15): vozSinNarracion antes del vídeo · 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
     'functions/src/engine/admin.ts': '11\t4', // 0ad8500 (#19) · 5e87b80 (FASE 8) · cierre post-auditoría 2026-10-01 (+2 −2, antes 9/2): engineAdmin monta MODEL_SECRETS
     'functions/src/engine/config.ts': '36\t1', // 8193184 (#20)
     'functions/src/engine/errors.ts': '1\t1', // i18n da-DK: el rechazo de entrada sin «el proveedor»

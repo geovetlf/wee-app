@@ -144,6 +144,37 @@ console.log('\n── B · Las marcas del guion, en danés ──');
   check('19) CONTROL: sin escena reconocible, el vídeo no se inventa ninguna', !/Opening scene/.test(buildVideoPrompt('x', '', ['Bare en tekst uden scener.'])));
 }
 
+/* ── B2 · La voz sin narración se descubre ANTES de pagar el vídeo (segunda auditoría de cierre) ── */
+console.log('\n── B2 · Sin narración que leer, el trabajo se para antes del vídeo ──');
+{
+  /*
+   * El plan de Weë Studio: guion → clip (Seedance) y guion → voz; el clip va primero. Con la voz vacía, el vídeo se
+   * pagaba, la voz fallaba, todo se reembolsaba y el clip se quedaba como material: un vídeo gratis.
+   */
+  const inputs = (() => { try { return lib('creator/inputs.js'); } catch { return {}; } })();
+  const vozSinNarracion = inputs.vozSinNarracion;
+  const job = { experienceId: 'studio', goal: 'Un anuncio de café', locale: 'da-DK' };
+  const plan = () => [
+    { id: 'script', capability: 'text.generate', purpose: 'guion', status: 'done', input: { kind: 'script' } },
+    { id: 'clip', capability: 'video.generate', purpose: 'clip', status: 'pending', dependsOn: ['script'], input: { kind: 'clip' } },
+    { id: 'voice', capability: 'voice.tts', purpose: 'voz', status: 'pending', dependsOn: ['script'], input: { kind: 'narration' } },
+  ];
+  const sinMarca = 'Escena 1 (0–3 s): kaffebar om morgenen.\nEscena 2 (3–7 s): en kop.\nEscena 3 (7–10 s): logo.\nFORTÆLLING: Kom og smag.';
+  const conMarca = 'Escena 1 (0–3 s): kaffebar om morgenen.\nNARRACIÓN: Kom og smag kaffen.';
+  check('23b) existe la pregunta pura en creator/inputs', typeof vozSinNarracion === 'function');
+  const vacia = vozSinNarracion?.(job, plan(), [{ stepId: 'script', content: sinMarca }]);
+  check('23c) un guion sin su NARRACIÓN reconocible: la voz no tendría nada que leer, y se dice ANTES del clip', vacia?.id === 'voice');
+  check('23d) CONTROL: con la narración marcada, no hay nada que parar', vozSinNarracion?.(job, plan(), [{ stepId: 'script', content: conMarca }]) === undefined);
+  const conTexto = plan().map((s) => (s.id === 'voice' ? { ...s, input: { text: 'Lo que hay que decir' } } : s));
+  check('23e) CONTROL: una voz con su texto ya puesto no depende del guion', vozSinNarracion?.(job, conTexto, [{ stepId: 'script', content: sinMarca }]) === undefined);
+  check('23f) CONTROL: mientras el guion no ha terminado, no se juzga nada', vozSinNarracion?.(job, plan().map((s) => (s.id === 'script' ? { ...s, status: 'running' } : s)), []) === undefined);
+  const run = sinComentarios(fuente('functions/src/creator/index.ts'));
+  const pregunta = run.indexOf('vozSinNarracion(job, steps, results)');
+  const eleccion = run.indexOf("const next = steps.find((s) => s.status === 'pending' && (s.dependsOn || []).every((d) => done.has(d)));");
+  check('23g) creatorRun lo pregunta en cada vuelta ANTES de elegir el siguiente paso, y para el trabajo como un fallo',
+    pregunta > 0 && eleccion > pregunta && /if \(vozVacia\) \{\s*vozVacia\.status = 'running';\s*throw new Error\(/.test(run.slice(pregunta, eleccion)));
+}
+
 /* ── C · Error interno al cliente ───────────────────────────────────────── */
 console.log('\n── C · Un error que no es de Credits no viaja crudo ──');
 {
@@ -398,7 +429,8 @@ console.log('\n── I · Consultas acotadas y documentación que dice la verda
     && /\*\*no está preparada\*\*/.test(MODERATION) && !/su migración está preparada y no ejecutada/.test(MODERATION));
   const BIZ = sinComentarios(fuente('services/weeBizService.ts'));
   check('50) la app escribe la reseña en `reviews/{uid}` con setDoc: la segunda de la misma persona actualiza la suya',
-    /const reviewRef = doc\(reviewsCol\(businessId\), data\.userId\);\s*await setDoc\(reviewRef,/.test(BIZ) && !/addDoc\(reviewsCol\(/.test(BIZ));
+    /const reviewRef = doc\(reviewsCol\(businessId\), data\.userId\);\s*const datos = [^\n]*\.filter\(\(\[, v\]\) => v !== undefined\)\);\s*await setDoc\(reviewRef, datos\);/.test(BIZ)
+    && !/addDoc\(reviewsCol\(/.test(BIZ)); /* + segunda auditoría: sin campos `undefined` (la persona sin foto podía no reseñar) */
 }
 
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');

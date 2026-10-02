@@ -10,7 +10,8 @@
  *       `utils/notify.ts` de verdad, en la web y en el teléfono. La cámara del compositor pide su permiso con
  *       `confirmAction` (en la web un `Alert.alert` con botones no hacía nada).
  *   D · El identificador del Perfil Weë se compone en UN sitio (`identidadWeeDe`).
- *   E · Seguir un negocio y su contador van en un `writeBatch`: o las dos escrituras, o ninguna.
+ *   E · Seguir un negocio y su contador van en una transacción: o las dos escrituras, o ninguna; y la resta mira el
+ *       contador del servidor, no el de la pantalla.
  *   F · Los hooks y contextos ya no guardan frases en español escritas a mano (el detector de la revisión lo mide).
  *   G · App.tsx solo registra las URLs en desarrollo.
  *   H · WeeTalk bajó de las mil líneas sacando sus estilos, sin perder ninguno.
@@ -290,6 +291,7 @@ console.log('\n── E · Seguir un negocio: el seguimiento y su contador, a la
    * `contadorSano('followersCount')` —se mueve de uno en uno y nunca baja de cero— rechaza el lote entero.
    */
   const firestoreDeJuguete = ({ followersCount, fallaElCommit = false }) => {
+    /* + segunda auditoría de cierre: la escritura es una TRANSACCIÓN que lee el negocio del servidor antes de escribir. */
     const estado = { docs: new Map([['businesses/N', { followersCount }]]), commits: 0, escriturasSueltas: 0 };
     const aplicar = (op) => {
       if (op.tipo === 'set') estado.docs.set(op.ref.ruta, op.datos);
@@ -306,19 +308,19 @@ console.log('\n── E · Seguir un negocio: el seguimiento y su contador, a la
       estado,
       alcance: {
         db: {}, doc: (_db, col, id) => ({ ruta: `${col}/${id}` }), increment: (n) => ({ __inc: n }), Timestamp: { now: () => 'AHORA' },
-        writeBatch: () => {
+        runTransaction: async (_db, cuerpo) => {
           const ops = [];
-          return {
+          const tx = {
+            get: async (ref) => ({ data: () => estado.docs.get(ref.ruta) }),
             set: (ref, datos) => { ops.push({ tipo: 'set', ref, datos }); },
             delete: (ref) => { ops.push({ tipo: 'delete', ref }); },
             update: (ref, datos) => { ops.push({ tipo: 'update', ref, datos }); },
-            commit: async () => {
-              estado.ultimoLote = ops.map((o) => `${o.tipo} ${o.ref.ruta}`);
-              if (fallaElCommit || !ops.every(contadorSano)) throw new Error('permission-denied');
-              ops.forEach(aplicar);
-              estado.commits++;
-            },
           };
+          await cuerpo(tx);
+          estado.ultimoLote = ops.map((o) => `${o.tipo} ${o.ref.ruta}`);
+          if (fallaElCommit || !ops.every(contadorSano)) throw new Error('permission-denied');
+          ops.forEach(aplicar);
+          estado.commits++;
         },
         /* Las escrituras sueltas de antes: si el manejador vuelve a usarlas, se cuentan. */
         setDoc: async (ref, datos) => { estado.escriturasSueltas++; aplicar({ tipo: 'set', ref, datos }); },
@@ -329,14 +331,14 @@ console.log('\n── E · Seguir un negocio: el seguimiento y su contador, a la
     };
   };
   const seguir = funcionDe('screens/WeeBizProfileScreen.tsx', 'handleToggleFollow');
-  const pulsar = async (texto, { isFollowing, followersCount, fallaElCommit }) => {
+  const pulsar = async (texto, { isFollowing, followersCount, fallaElCommit, enPantalla }) => {
     const f = firestoreDeJuguete({ followersCount, fallaElCommit });
     if (isFollowing) f.estado.docs.set('businessFollows/U_biz_N', { userId: 'U', businessId: 'N' });
     const setIsFollowing = espia();
     const setFollowLoading = espia();
     await ejecutable(texto, {
       ...f.alcance, activeUid: 'U', followLoading: false, setFollowLoading, businessId: 'N', isFollowing,
-      business: { followersCount }, setIsFollowing, setBusiness: espia(),
+      business: { followersCount: enPantalla ?? followersCount }, setIsFollowing, setBusiness: espia(),
     })();
     return { ...f.estado, setIsFollowing, setFollowLoading };
   };
@@ -354,6 +356,19 @@ console.log('\n── E · Seguir un negocio: el seguimiento y su contador, a la
   check('13) con el contador ya en cero (desfase heredado), dejar de seguir sigue funcionando y no baja de cero',
     r.commits === 1 && !r.docs.has('businessFollows/U_biz_N') && r.docs.get('businesses/N').followersCount === 0
     && JSON.stringify(r.ultimoLote) === JSON.stringify(['delete businessFollows/U_biz_N']));
+  /*
+   * + segunda auditoría de cierre: la pantalla puede creer que el contador vale 5 cuando en el servidor ya está en 0
+   * (desfase heredado). Con el número de la pantalla se restaba, la regla tumbaba la escritura entera y no se podía
+   * dejar de seguir. La transacción lee el del servidor.
+   */
+  r = await pulsar(seguir, { isFollowing: true, followersCount: 0, enPantalla: 5 });
+  check('13) con la pantalla desfasada (5) y el servidor en 0, dejar de seguir funciona: manda el contador del servidor',
+    r.commits === 1 && !r.docs.has('businessFollows/U_biz_N') && r.docs.get('businesses/N').followersCount === 0
+    && JSON.stringify(r.ultimoLote) === JSON.stringify(['delete businessFollows/U_biz_N']) && r.setIsFollowing.llamadas[0]?.[0] === false);
+  const conLaPantalla = (seguir || '').replace('if (enElServidor > 0)', 'if ((business?.followersCount ?? 0) > 0)');
+  r = await pulsar(conLaPantalla, { isFollowing: true, followersCount: 0, enPantalla: 5 });
+  check('13) SABOTAJE: decidiendo con el número de la pantalla, la escritura entera cae y el seguimiento sigue ahí',
+    conLaPantalla !== seguir && r.commits === 0 && r.docs.has('businessFollows/U_biz_N'));
   r = await pulsar(seguir, { isFollowing: false, followersCount: 3, fallaElCommit: true });
   check('14) si el lote falla, no queda NADA escrito ni la pantalla cambia',
     r.commits === 0 && !r.docs.has('businessFollows/U_biz_N') && r.docs.get('businesses/N').followersCount === 3
@@ -376,6 +391,14 @@ console.log('\n── E · Seguir un negocio: el seguimiento y su contador, a la
   check('14) SABOTAJE: con dos escrituras sueltas, un fallo deja el seguimiento sin su contador, y se ve',
     r.docs.has('businessFollows/U_biz_N') && r.docs.get('businesses/N').followersCount === 3);
   check('14) el manejador ya no usa escrituras sueltas', !/setDoc\(|deleteDoc\(|incrementFollowers/.test(sinComentarios(seguir || '')));
+  /*
+   * + segunda auditoría de cierre: ¿ya reseñó esta persona? Se pregunta por SU reseña (getUserReview busca por
+   * userId), no solo entre las diez últimas: quien tenía una antigua más abajo veía el botón y contaba dos veces.
+   */
+  const perfilNegocio = sinComentarios(leer('screens/WeeBizProfileScreen.tsx'));
+  check('14b) la reseña propia se busca entera: entre las cargadas o, si no está, preguntando por la de esa persona',
+    /revs\.find\(r => r\.userId === activeUid\) \|\| \(await weeBizService\.getUserReview\(businessId, activeUid\)\)/.test(perfilNegocio)
+    && /export const getUserReview = async \(businessId: string, userId: string\)[\s\S]{0,200}where\('userId', '==', userId\), limit\(1\)/.test(leer('services/weeBizService.ts')));
 }
 
 /* ════════════════════════════════════════════════════════════════════════ */

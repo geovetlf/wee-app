@@ -95,6 +95,13 @@ console.log('── A · Una reseña por persona ──');
   await esperar('14) CONTROL: …y sí la borra, como siempre', 'PERMITE', 'DELETE', '/businesses/bCafe/reviews/autoViejo1', { uid: CARLA });
   await esperar('15) CONTROL: Beto borra la suya', 'PERMITE', 'DELETE', `/businesses/bCafe/reviews/${BETO}`, { uid: BETO });
   await esperar('16) sin sesión no se reseña', 'DENIEGA', 'PATCH', `/businesses/bCafe/reviews/${BETO}`, { anonimo: true, body: doc(resena(BETO)) });
+  /* Segunda auditoría de cierre: ni fecha del futuro (para quedarse arriba) ni campos de más. */
+  const manana = new Date(Date.now() + 24 * 3600 * 1000);
+  await esperar('16b) una reseña con fecha de mañana no se crea', 'DENIEGA', 'PATCH', `/businesses/bCafe/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO, { createdAt: manana })) });
+  await esperar('16c) ni con campos de más (un «verified», un contador…)', 'DENIEGA', 'PATCH', `/businesses/bCafe/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO, { verified: true })) });
+  await esperar('16d) CONTROL: con la fecha de ahora y sus campos, sí', 'PERMITE', 'PATCH', `/businesses/bCafe/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO)) });
+  await esperar('16e) y al actualizarla tampoco se le pone fecha de mañana', 'DENIEGA', 'PATCH', `/businesses/bCafe/reviews/${BETO}`, { uid: BETO, body: doc(resena(BETO, { createdAt: manana })) });
+  await esperar('16f) CONTROL: Beto la vuelve a borrar', 'PERMITE', 'DELETE', `/businesses/bCafe/reviews/${BETO}`, { uid: BETO });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -109,6 +116,8 @@ console.log('\n── B · follows, atada ──');
   await esperar('21) ni en nombre de otra persona', 'DENIEGA', 'PATCH', `/follows/${BETO}_${CARLA}`, { uid: ANA, body: doc(seguir(BETO, CARLA)) });
   await esperar('22) ni con la cara Weë de otra persona', 'DENIEGA', 'PATCH', `/follows/hidi_${BETO}_${CARLA}`, { uid: ANA, body: doc(seguir(`hidi_${BETO}`, CARLA)) });
   await esperar('23) nadie se sigue a sí mismo', 'DENIEGA', 'PATCH', `/follows/${ANA}_${ANA}`, { uid: ANA, body: doc(seguir(ANA, ANA)) });
+  await esperar('23b) ni su cara real sigue a su Perfil Weë', 'DENIEGA', 'PATCH', `/follows/${ANA}_${WEE_ANA}`, { uid: ANA, body: doc(seguir(ANA, WEE_ANA)) });
+  await esperar('23c) ni su Perfil Weë a su cara real', 'DENIEGA', 'PATCH', `/follows/${WEE_ANA}_${ANA}`, { uid: ANA, body: doc(seguir(WEE_ANA, ANA)) });
   await esperar('24) ni con campos de más (un contador, un nombre…)', 'DENIEGA', 'PATCH', `/follows/${ANA}_${CARLA}`, { uid: ANA, body: doc(seguir(ANA, CARLA, { followers: 9999 })) });
   await esperar('25) ni sin a quién seguir', 'DENIEGA', 'PATCH', `/follows/${ANA}_`, { uid: ANA, body: doc(seguir(ANA, '')) });
   await esperar('26) un follow no se reescribe', 'DENIEGA', 'PATCH', `/follows/${ANA}_${BETO}`, { uid: ANA, body: doc(seguir(ANA, BETO)) });

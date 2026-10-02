@@ -267,11 +267,12 @@ export const createReview = async (
   data: Omit<Review, 'id' | 'businessId' | 'createdAt'>,
 ): Promise<string> => {
   const reviewRef = doc(reviewsCol(businessId), data.userId);
-  await setDoc(reviewRef, {
-    ...data,
-    businessId,
-    createdAt: Timestamp.now(),
-  });
+  /*
+   * Sin campos `undefined`: el SDK web los rechaza («Unsupported field value: undefined») y una persona sin foto de
+   * perfil (`userAvatar` vacío) no podía reseñar.
+   */
+  const datos = Object.fromEntries(Object.entries({ ...data, businessId, createdAt: Timestamp.now() }).filter(([, v]) => v !== undefined));
+  await setDoc(reviewRef, datos);
   // Recalculate aura score
   await recalculateAura(businessId);
   return reviewRef.id;

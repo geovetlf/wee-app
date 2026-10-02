@@ -29,6 +29,7 @@ export function useCommunityById(communityId: string | undefined) {
   useEffect(() => {
     if (!communityId) {
       setCommunity(null);
+      setIsLoading(false);
       return;
     }
 
@@ -36,6 +37,8 @@ export function useCommunityById(communityId: string | undefined) {
     const cached = communityCache.get(communityId);
     if (cached) {
       setCommunity(cached);
+      /* Una carga de la comunidad anterior ya no es vigente y no apagará el indicador: se apaga aquí. */
+      setIsLoading(false);
       return;
     }
 

@@ -831,7 +831,8 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
       /* creator/index.ts: + 10 de la integración i18n da-DK (el locale) y + 2 de la observación del idioma de salida, ver video-asincrono H2. */
       === /* + revisión post-auditoría 2026-10-01: el aviso del idioma lleva jobId/stepId (index) y el avatar devuelve sus reservas abandonadas (generateAvatar). */
       /* + cierre post-auditoría 2026-10-01: index +6 −5 (creatorChat/creatorQuote con MODEL_SECRETS; la adaptación de idioma de creatorRun con su sistema y `format: 'text'`) y generateAvatar +3 −3 (AVATAR_SECRETS, solo Gemini); creator/credits.ts sin tocar. */
-      '45\t4\tfunctions/src/creator/credits.ts|117\t15\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
+      /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
+      '45\t4\tfunctions/src/creator/credits.ts|124\t16\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
 }
 

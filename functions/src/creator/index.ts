@@ -7,7 +7,7 @@ import { PlannerInput, getPlanner, respuestaPara } from './planner';
 import { configuracionDeLaSombra, entendimientoRealDelBrain, sombraDelPlan } from './sombra';
 import { TEMPLATES, plainQuestion } from './templates';
 import { PlanEstimate, QualityChoice, estimatePlan, estimatePlanCredits, holdCredits, settleCredits, ensureAccount, planOptions, pricingMode } from './credits';
-import { assertInputImageUrl, modalityCounts, needsInputImage, stepInputFor } from './inputs';
+import { assertInputImageUrl, modalityCounts, needsInputImage, stepInputFor, vozSinNarracion } from './inputs';
 import { engine } from '../engine';
 import { GatewayRun, runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
@@ -610,6 +610,12 @@ export const creatorRun = onCall(
         let guard = 0;
         while (done.size < steps.length) {
           if (guard++ > steps.length * 2) throw new Error('El plan tiene dependencias circulares');
+          /* Una voz que no tendría nada que leer para el trabajo AQUÍ, antes de pagar el siguiente paso (el vídeo). */
+          const vozVacia = vozSinNarracion(job, steps, results);
+          if (vozVacia) {
+            vozVacia.status = 'running';
+            throw new Error('El guion no trae una narración que leer');
+          }
           const next = steps.find((s) => s.status === 'pending' && (s.dependsOn || []).every((d) => done.has(d)));
           if (!next) throw new Error('No hay pasos ejecutables');
 

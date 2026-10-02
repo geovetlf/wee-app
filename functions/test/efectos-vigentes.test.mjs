@@ -358,6 +358,80 @@ console.log('\n── B · Las cargas que son funciones: solo escribe la última
 }
 {
   /*
+   * + SEGUNDA AUDITORÍA DE CIERRE. Con la bandera, la búsqueda que deja de ser vigente ya no apaga su indicador; si la
+   * consulta nueva es corta («c» tras «casa») la apaga ESTA, o el indicador gira para siempre y la X desaparece.
+   */
+  const texto = efectoCon('screens/SearchScreen.tsx', 'searchTimeout');
+  const correr = async (t) => {
+    const d = diferido();
+    const setSearching = espia();
+    const alcance = (searchQuery) => ({
+      searchQuery, communities: [], t: (k) => k, locale: 'es',
+      paraBuscar: (s) => String(s || '').toLowerCase(), nombreDeComunidad: (c) => c.name, descripcionDeComunidad: (c) => c.description,
+      setSearching, setFilteredCommunities: espia(), setSearchedUsers: espia(), setSearchedPosts: espia(),
+      searchUsers: () => d.promesa, searchPosts: async () => [],
+      setTimeout: (f) => { f(); return 1; }, clearTimeout: () => {}, console: consola,
+    });
+    const limpiar = ejecutable(t, alcance('casa'))();
+    await ticks();
+    limpiar();
+    ejecutable(t, alcance('c'))();
+    await ticks();
+    d.resolver([]);
+    await ticks();
+    return setSearching.llamadas.at(-1)?.[0];
+  };
+  check('Buscar: con la consulta corta tras una larga en camino, el indicador se apaga', !!texto && await correr(texto) === false);
+  const sinApagar = (texto || '').replace(/\/\* Si una búsqueda larga[^\n]*\*\/\s*\n\s*setSearching\(false\);/, '');
+  check('Buscar: SABOTAJE — sin apagarlo en la rama corta, se queda girando', sinApagar !== texto && await correr(sinApagar) === true);
+}
+{
+  /* useCommunityById: la tarjeta pasa a una comunidad de la caché con una carga en vuelo; la carga se apaga igual. */
+  const texto = efectoCon('hooks/useCommunityById.ts', 'fetchCommunity');
+  const correr = async (t) => {
+    const d = diferido();
+    const setIsLoading = espia();
+    const cache = new Map([['en-cache', { id: 'en-cache' }]]);
+    const alcance = (communityId) => ({
+      communityId, communityCache: cache, setCommunity: espia(), setIsLoading, fixCommunityIcon: (c) => c,
+      communityService: { getCommunityById: () => d.promesa }, console: consola,
+    });
+    const limpiar = ejecutable(t, alcance('lejana'))();
+    await ticks();
+    limpiar();
+    ejecutable(t, alcance('en-cache'))();
+    d.resolver({ id: 'lejana' });
+    await ticks();
+    return setIsLoading.llamadas.at(-1)?.[0];
+  };
+  check('useCommunityById: al pasar a una comunidad en caché con una carga en vuelo, la carga se apaga', !!texto && await correr(texto) === false);
+  const sinApagar = (texto || '').replace(/\/\* Una carga de la comunidad anterior[^\n]*\*\/\s*\n\s*setIsLoading\(false\);/, '');
+  check('useCommunityById: SABOTAJE — sin apagarla en la rama de la caché, se queda cargando', sinApagar !== texto && await correr(sinApagar) === true);
+}
+{
+  /* El Home: «cargar más» de la comunidad de antes contesta después de cambiar de pastilla. No pinta. */
+  const texto = funcionDe('screens/HomeScreen.tsx', 'loadMorePosts');
+  const correr = async (t) => {
+    const d = diferido();
+    const setPosts = espia();
+    const cargaDelMuro = { current: 4 };
+    const p = ejecutable(t, {
+      loadingMore: false, hasMore: true, loading: false, lastDoc: { id: 'cursor' }, selectedCommunitySlug: 'a', posts: [],
+      cargaDelMuro, setLoadingMore: espia(), setPosts, setLastDoc: espia(), setHasMore: espia(), console: consola,
+      postsService: { getByCommunitySlugPaginated: () => d.promesa, getMuroGeneralPaginado: () => d.promesa },
+    })();
+    await ticks();
+    cargaDelMuro.current++;
+    d.resolver({ documents: [{ id: 'de-a' }], lastDoc: null, hayMas: false });
+    await p;
+    return setPosts.llamadas.length;
+  };
+  check('el muro: «cargar más» de la comunidad de antes no añade nada tras cambiar de pastilla', !!texto && await correr(texto) === 0);
+  const sinComprobar = (texto || '').replace(/if \(esta !== cargaDelMuro\.current\) return;/, '');
+  check('el muro: SABOTAJE — sin comprobar la carga vigente, la página vieja se añade', sinComprobar !== texto && await correr(sinComprobar) === 1);
+}
+{
+  /*
    * LAS COMUNIDADES DE CADA CARA. `refreshCommunities` depende de la identidad: al cambiar de cara se pide otra carga
    * y la de antes traía las comunidades de la OTRA cara.
    */

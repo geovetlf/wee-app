@@ -11,7 +11,6 @@ import {
   Keyboard,
   Platform,
   ActivityIndicator,
-  Alert,
   Linking,
   Dimensions,
   Share,

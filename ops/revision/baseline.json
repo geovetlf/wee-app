@@ -1,7 +1,7 @@
 {
   "version": 1,
   "corte": "5be63ff",
-  "generado": "2026-10-02T00:31:07.149Z",
+  "generado": "2026-10-02T02:10:04.516Z",
   "nota": "Corte = base común de i18n/da-dk y harness/fase-2. Las entradas de los detectores son el estado EN EL CORTE (todas PREEXISTENTE): al pasar la puerta sobre el árbol de hoy, lo que esta rama introdujo sale como NUEVO y lo que arregló como CORREGIDO. Las de la auditoría del 2026-10-01 llevan su estado decidido a mano (introducidoTrasElCorte = apareció en las fases posteriores al corte). Tras integrar en main, el corte pasa al commit de merge (docs/REVISION.md). Cierre del 2026-10-01: los estados de la auditoría se actualizaron con su prueba (encontradoEnElCierre = apareció durante el cierre) y la regla web/alert-sin-boton se pasó también sobre el corte.",
   "reglas": {
     "tamano/archivo-mil-lineas": 1,
@@ -42,6 +42,17 @@
       "prueba": "regla web/alert-sin-boton (revision-detectores 3b) + 7 suites i18n con notify (cierre 2026-10-01)"
     },
     {
+      "id": "client/buscar-indicador/screens/SearchScreen.tsx#searchTimeout",
+      "regla": "client/buscar-indicador",
+      "severidad": "media",
+      "titulo": "Con la bandera nueva, borrar la búsqueda a menos de 2 letras dejaba el indicador girando",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "efectos-vigentes (Buscar, con sabotaje) (cierre 2026-10-01)"
+    },
+    {
       "id": "client/capas/screens/WeeBizProfileScreen.tsx#handleToggleFollow",
       "regla": "client/capas",
       "severidad": "baja",
@@ -50,6 +61,28 @@
       "desde": "2026-10-01",
       "estado": "CORREGIDO",
       "prueba": "cierre-cliente 14: un writeBatch (cierre 2026-10-01)"
+    },
+    {
+      "id": "client/carga-colgada/hooks/useCommunityById.ts#fetchCommunity",
+      "regla": "client/carga-colgada",
+      "severidad": "baja",
+      "titulo": "isLoading podía quedarse en true al pasar a una comunidad en caché",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "efectos-vigentes (useCommunityById, con sabotaje) (cierre 2026-10-01)"
+    },
+    {
+      "id": "client/cargar-mas-vigente/screens/HomeScreen.tsx#loadMorePosts",
+      "regla": "client/cargar-mas-vigente",
+      "severidad": "baja",
+      "titulo": "«Cargar más» de la comunidad anterior se añadía tras cambiar de pastilla",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "efectos-vigentes (el muro, con sabotaje) (cierre 2026-10-01)"
     },
     {
       "id": "client/ciclos/navigation",
@@ -102,6 +135,17 @@
       "nota": "DECISIÓN DEL DUEÑO: quitar las comunidades de ejemplo cambia lo que ve una cuenta nueva"
     },
     {
+      "id": "client/dejar-de-seguir-desfasado/screens/WeeBizProfileScreen.tsx#handleToggleFollow",
+      "regla": "client/dejar-de-seguir-desfasado",
+      "severidad": "baja",
+      "titulo": "Con el contador de la pantalla desfasado, dejar de seguir fallaba entero",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "cierre-cliente 13 (transacción que lee el contador del servidor, con sabotaje) (cierre 2026-10-01)"
+    },
+    {
       "id": "client/duplicacion/screens#manejadores-del-muro",
       "regla": "client/duplicacion",
       "severidad": "baja",
@@ -150,6 +194,17 @@
       "desde": "2026-10-01",
       "estado": "CORREGIDO",
       "prueba": "detector i18n/texto-a-mano-fuera-de-pantallas: los textos de hooks/contexts pasan a códigos o a claves (cierre 2026-10-01)"
+    },
+    {
+      "id": "client/imports-sin-uso/screens/ProfileScreen.tsx#Alert",
+      "regla": "client/imports-sin-uso",
+      "severidad": "baja",
+      "titulo": "Seis imports de Alert sin uso tras pasar a notify",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "tsc + revisión (cierre 2026-10-01)"
     },
     {
       "id": "client/lista-sin-virtualizar/screens/PostDetailScreen.tsx#comments",
@@ -1649,6 +1704,17 @@
       "prueba": "cierre-servidor: creditEngine.readBalance de solo lectura (cierre 2026-10-01)"
     },
     {
+      "id": "money/brain-mensaje-duplicado/functions/src/creator/brain.ts#cobroYaCerradoSinCobro",
+      "regla": "money/brain-mensaje-duplicado",
+      "severidad": "baja",
+      "titulo": "Si la segunda cerradura se alcanzara, el texto diría «ya está en marcha» para un mensaje devuelto",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "PREEXISTENTE",
+      "nota": "DEUDA DELIBERADA: rama inalcanzable hoy (spendCredits lanza ALREADY_REFUNDED antes); es la segunda cerradura del dinero, no un camino de la app"
+    },
+    {
       "id": "money/coste-de-duplicado-en-conversacion/functions/src/creator/brain.ts#brainChat",
       "regla": "money/coste-de-duplicado-en-conversacion",
       "severidad": "baja",
@@ -1708,6 +1774,17 @@
       "desde": "2026-10-01",
       "estado": "CORREGIDO",
       "prueba": "functions/test/credits-cliente-cerrado.test.mjs (b878068, antes de esta misión)"
+    },
+    {
+      "id": "money/video-gratis-sin-narracion/functions/src/creator/index.ts#creatorRun",
+      "regla": "money/video-gratis-sin-narracion",
+      "severidad": "media",
+      "titulo": "Un guion sin NARRACIÓN reconocible: el vídeo se pagaba, la voz fallaba, todo se reembolsaba y el clip quedaba como material",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "cierre-servidor 23b–23g: vozSinNarracion para el trabajo ANTES del vídeo (cierre 2026-10-01)"
     },
     {
       "id": "muerto/modulo-sin-importador/components/CommunitySelector.tsx#(archivo)",
@@ -2121,6 +2198,17 @@
       "nota": "detector ciclos/import-ciclico"
     },
     {
+      "id": "server/canary-codigo/functions/src/content/index.ts#crearMaterialParaSubida",
+      "regla": "server/canary-codigo",
+      "severidad": "baja",
+      "titulo": "Un fallo de infraestructura al crear la ficha de subida contesta internal en vez de «inválido»",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "FALSO POSITIVO",
+      "motivo": "Cambio deliberado del cierre (errores-tragados): la entrada inválida sigue siendo «invalido»; un fallo de red o permisos no es culpa de la entrada y se puede reintentar"
+    },
+    {
       "id": "server/codigo-muerto/functions/src/media",
       "regla": "server/codigo-muerto",
       "severidad": "baja",
@@ -2360,6 +2448,17 @@
       "introducidoTrasElCorte": true,
       "estado": "CORREGIDO",
       "prueba": "functions/test/idioma-servidor-coherencia.test.mjs + i18n-idioma-del-locale.test.mjs"
+    },
+    {
+      "id": "social/follow-a-la-otra-cara/firestore.rules#follows",
+      "regla": "social/follow-a-la-otra-cara",
+      "severidad": "baja",
+      "titulo": "Una cara podía seguir a la otra cara de la misma cuenta",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "cierre-reglas.emulator 23b/23c (cierre 2026-10-01)"
     },
     {
       "id": "social/follows-codigo-muerto/services/followsService.ts",
@@ -4769,6 +4868,28 @@
       "prueba": "fronteras-rules.emulator 1–5x + avisos-cupo.test.mjs"
     },
     {
+      "id": "trust/resena-antigua-doble/screens/WeeBizProfileScreen.tsx#loadBusiness",
+      "regla": "trust/resena-antigua-doble",
+      "severidad": "baja",
+      "titulo": "Quien tenía una reseña antigua fuera de las diez últimas podía crear otra",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "cierre-cliente 14b: getUserReview (cierre 2026-10-01)"
+    },
+    {
+      "id": "trust/resena-fecha-futura/firestore.rules#businesses.reviews",
+      "regla": "trust/resena-fecha-futura",
+      "severidad": "baja",
+      "titulo": "Una reseña con fecha futura se quedaba arriba; y campos de más",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "cierre-reglas.emulator 16b–16e (con las reglas anteriores, fallan) (cierre 2026-10-01)"
+    },
+    {
       "id": "trust/resena-por-persona/firestore.rules#businesses.reviews",
       "regla": "trust/resena-por-persona",
       "severidad": "baja",
@@ -4776,7 +4897,18 @@
       "origen": "auditoria-2026-10-01",
       "desde": "2026-10-01",
       "estado": "CORREGIDO",
-      "prueba": "cierre-reglas.emulator A + fronteras-rules: reviews/{uid}; residual: quien ya tenga una reseña antigua con id automático puede tener una más en su id (cierre 2026-10-01)"
+      "prueba": "cierre-reglas.emulator A + fronteras-rules: reviews/{uid}; la reseña antigua con id automático se encuentra con getUserReview (cierre-cliente 14b) (cierre 2026-10-01)"
+    },
+    {
+      "id": "trust/resena-sin-foto/services/weeBizService.ts#createReview",
+      "regla": "trust/resena-sin-foto",
+      "severidad": "baja",
+      "titulo": "userAvatar undefined hacía fallar setDoc: sin foto de perfil no se podía reseñar (ya pasaba con addDoc)",
+      "origen": "auditoria-2026-10-01",
+      "desde": "2026-10-01",
+      "encontradoEnElCierre": true,
+      "estado": "CORREGIDO",
+      "prueba": "cierre-servidor 50: sin campos undefined (cierre 2026-10-01)"
     },
     {
       "id": "trust/verificado-autoasignado/firestore.rules#businesses",

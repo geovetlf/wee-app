@@ -554,6 +554,8 @@ const HomeScreen: React.FC = () => {
 
   const loadMorePosts = async () => {
     if (loadingMore || !hasMore || loading || !lastDoc) return;
+    /* La misma carga vigente que `loadPosts`: si mientras tanto se cambió de pastilla, esta página ya no pinta. */
+    const esta = cargaDelMuro.current;
 
     try {
       setLoadingMore(true);
@@ -574,9 +576,10 @@ const HomeScreen: React.FC = () => {
        * siguiente petición habría repetido la misma página. Ahora quien manda es
        * `hayMas`, que mira los documentos leídos y no los que pasaron el filtro.
        */
+      if (esta !== cargaDelMuro.current) return;
       const documents = result?.documents || [];
       const siguiente = (result as any)?.hayMas ?? documents.length === 15;
-      if (documents.length > 0) setPosts([...posts, ...documents]);
+      if (documents.length > 0) setPosts((anteriores) => [...anteriores, ...documents]);
       setLastDoc(result?.lastDoc || null);
       setHasMore(siguiente);
     } catch (err) {

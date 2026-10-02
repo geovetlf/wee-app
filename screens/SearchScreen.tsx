@@ -140,6 +140,8 @@ const SearchScreen: React.FC = () => {
           if (vigente) setSearching(false);
         }
       } else {
+        /* Si una búsqueda larga seguía en camino, ya no es vigente y no apagará el indicador: lo apaga esta. */
+        setSearching(false);
         setFilteredCommunities(communities);
         setSearchedUsers([]);
         setSearchedPosts([]);
