@@ -547,11 +547,15 @@ console.log('\n── J · Observabilidad ──');
 console.log('\n── K · La puerta: CORE o LEGACY, y volver atrás con un booleano ──');
 {
   const ctx = { capability: 'text.generate', userId: 'user-0001', experienceId: 'brain' };
-  const abierta = { habilitado: true, capacidades: ['text.generate'] };
+  /* Abierta = habilitada, para una capacidad Y para una lista de cuentas: sin lista no se abre (regla 3, 2026-10-03). */
+  const abierta = { habilitado: true, capacidades: ['text.generate'], cuentas: ['user-0001'] };
   check('CERRADA POR DEFECTO: sin configuración, por donde siempre', decidirRuntime(undefined, ctx).runtime === 'legacy' && decidirRuntime(null, ctx).runtime === 'legacy' && PUERTA_CERRADA.habilitado === false);
   check('una configuración que no se entiende NO abre nada', ['si', 42, [], { habilitado: 'true', capacidades: [] }, { habilitado: true }, { habilitado: true, capacidades: ['TEXT GENERATE'] }, { habilitado: true, capacidades: ['text.generate'], cuentas: [7] }]
     .every((c) => decidirRuntime(c, ctx).runtime === 'legacy'));
-  check('abierta para una capacidad: esa va por el Core', decidirRuntime(abierta, ctx).runtime === 'core');
+  check('abierta para una capacidad y una cuenta: esa va por el Core', decidirRuntime(abierta, ctx).runtime === 'core');
+  check('SIN lista de cuentas NO se abre para nadie (antes se abría para todo el mundo)',
+    decidirRuntime({ habilitado: true, capacidades: ['text.generate'] }, ctx).motivo === 'sin_lista_de_cuentas'
+    && decidirRuntime({ habilitado: true, capacidades: ['text.generate'], cuentas: [] }, ctx).motivo === 'sin_lista_de_cuentas');
   check('y las demás siguen por donde siempre', decidirRuntime(abierta, { ...ctx, capability: 'video.generate' }).motivo === 'capacidad_no_migrada');
   check('con lista de cuentas, SOLO esas: así se prueba en producción sin usar a nadie de sujeto', decidirRuntime({ ...abierta, cuentas: ['cuenta-de-prueba'] }, ctx).motivo === 'cuenta_fuera_de_la_prueba' && decidirRuntime({ ...abierta, cuentas: ['user-0001'] }, ctx).runtime === 'core');
   check('y con lista de productos, solo esos', decidirRuntime({ ...abierta, experiencias: ['studio'] }, ctx).motivo === 'experiencia_no_migrada');

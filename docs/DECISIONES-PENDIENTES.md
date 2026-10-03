@@ -69,8 +69,11 @@ lee datos reales y por eso lo ejecuta el dueño.
 
 ([INVENTARIO-IA.md](INVENTARIO-IA.md))
 
-- La puerta `aiSettings/runtime` sin `cuentas` abre el conductor a todo el
-  mundo, y CLAUDE.md dice «por cuenta».
+- ~~La puerta `aiSettings/runtime` sin `cuentas` abre el conductor a todo el
+  mundo, y CLAUDE.md dice «por cuenta».~~ **Cerrado el 2026-10-03 (H3):** sin
+  `cuentas`, o con la lista vacía, no se abre para nadie (`sin_lista_de_cuentas`);
+  lo vigila `functions/test/puerta-cerrada.test.mjs`. Abrirla a toda la base, si
+  algún día se quiere, será un campo explícito y una decisión del dueño.
 - La sombra abierta sin `caminos` llama a DeepSeek de verdad, a 0 Credits.
 - El cortacircuitos de proveedores vive en la memoria de cada instancia.
 - El cupo de texto de `creatorChat` (H0 #12): cortar en seco interrumpe la

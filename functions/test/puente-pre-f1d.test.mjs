@@ -571,8 +571,13 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const DEL_CIERRE = ["functions/src/content/index.ts","functions/src/credits/creditValidation.ts","functions/src/engine/promptLanguage.ts","functions/src/engine/providers/claude.ts","functions/src/engine/providers/deepseek.ts","functions/src/engine/providers/gemini.ts","functions/src/engine/providers/openai.ts","functions/src/identity/nacimiento.ts",
     /* + cierre: solo el COMENTARIO de isAdmin (dónde vive hoy WEE_ADMIN_UIDS: el entorno get-wee de GitHub); el código no cambia. */
     "functions/src/shared/admin.ts"];
+  /*
+   * Los del cierre de los cuatro hallazgos (2026-10-03, H3), por nombre: la puerta de `aiSettings/runtime` falla
+   * CERRADA también sin lista de cuentas (puerta.ts) y un error de lectura se distingue en el registro (configuracion.ts).
+   */
+  const DE_LOS_HALLAZGOS = ['functions/src/runtime/configuracion.ts', 'functions/src/runtime/puerta.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness y de la integración i18n da-DK',
-    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE,
+    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_HALLAZGOS,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',

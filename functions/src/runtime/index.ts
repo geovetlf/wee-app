@@ -575,7 +575,7 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
 
 export { crearConductor, MARGEN_DE_CIERRE_MS } from './conductor';
 export type { Conductor, EjecucionPreparada, ResultadoDelConductor } from './conductor';
-export { decidirRuntime, leerPuerta, PUERTA_CERRADA } from './puerta';
+export { decidirRuntime, leerPuerta, PUERTA_CERRADA, LECTURA_FALLIDA } from './puerta';
 export type { ConfiguracionDePuerta, DecisionDePuerta } from './puerta';
 export { configuracionDeLaPuerta, olvidarLaPuerta } from './configuracion';
 export { huellaDeEntrada } from './contexto';

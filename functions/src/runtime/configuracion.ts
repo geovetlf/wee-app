@@ -1,4 +1,5 @@
 import type { Firestore } from 'firebase-admin/firestore';
+import { LECTURA_FALLIDA } from './puerta';
 
 /**
  * WEË RUNTIME — DÓNDE SE GUARDA EL INTERRUPTOR.
@@ -16,10 +17,10 @@ import type { Firestore } from 'firebase-admin/firestore';
  *
  * ── Fallar hacia el lado seguro ─────────────────────────────────────────────
  *
- * Si Firestore no contesta, o el documento no existe, o trae cualquier otra
- * cosa, lo que se devuelve es `undefined` y la puerta queda CERRADA. Una
- * incidencia de lectura nunca abre un camino nuevo: como mucho deja todo como
- * estaba.
+ * Si el documento no existe se devuelve `undefined`; si Firestore no contesta,
+ * `LECTURA_FALLIDA`. En los dos casos la puerta queda CERRADA (y con un motivo
+ * distinto en el registro). Una incidencia de lectura nunca abre un camino
+ * nuevo: como mucho deja todo como estaba.
  *
  * ── El minuto de caché ──────────────────────────────────────────────────────
  *
@@ -54,7 +55,7 @@ export const configuracionDeLaPuerta = async (db: Firestore, ahora: () => number
     valor = snap.exists ? snap.data() : undefined;
   } catch {
     /* Sin poder leerla, la puerta está cerrada. Y se recuerda cerrada, para no castigar a cada mensaje con un reintento. */
-    valor = undefined;
+    valor = LECTURA_FALLIDA;
   }
   recordado = { valor, hasta: t + VIGENCIA_DE_LA_PUERTA_MS };
   return valor;

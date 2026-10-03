@@ -699,8 +699,9 @@ transacción de Credits por `requestId`. Nada lleva claves, tokens ni el texto d
 ### 11.12 Volver atrás
 
 `runtime/puerta.ts`: cerrada por defecto; una configuración que no se entiende no abre
-nada; se abre por capacidad y primero para cuentas concretas —para probar en
-producción con una cuenta controlada—; y **`habilitado: false` manda sobre todo lo
+nada; se abre por capacidad y **solo** para cuentas concretas —para probar en
+producción con una cuenta controlada; sin lista de `cuentas`, o vacía, no se abre
+para nadie (2026-10-03, H3)—; y **`habilitado: false` manda sobre todo lo
 demás**. Volver atrás es un booleano, sin desplegar y sin migrar datos: los trabajos
 del Core viven en colecciones nuevas, y **ninguna colección de hoy se toca**.
 
@@ -971,8 +972,10 @@ que es otra capacidad, otro proveedor y otro cobro), ni el vídeo, ni el avatar,
 **La puerta.** Vive en `aiSettings/runtime` —una colección que las reglas ya cerraban
 a los clientes— y la lee `runtime/configuracion.ts` con un minuto de caché. Decide
 `runtime/puerta.ts`, que es una función pura. Cerrada por defecto: sin documento, con
-un documento que no se entiende o con Firestore sin contestar, la respuesta es
-`legacy`. Una incidencia de lectura nunca abre un camino.
+un documento que no se entiende, **sin lista de `cuentas` o con la lista vacía**
+(`sin_lista_de_cuentas`, desde el 2026-10-03) o con Firestore sin contestar
+(`lectura_fallida`), la respuesta es `legacy`. Una incidencia de lectura nunca abre
+un camino. Lo vigila `functions/test/puerta-cerrada.test.mjs`.
 
 **El candado que la configuración no puede abrir.** La puerta es genérica —sirve para
 toda la migración— así que al lado hay una constante en el código:

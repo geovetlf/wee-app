@@ -12,10 +12,18 @@
  *      puede abrirse por accidente: solo porque alguien la abrió.
  *   2. VOLVER ATRÁS ES UN BOOLEANO. `habilitado: false` manda sobre todo lo
  *      demás. No hay que vaciar listas ni tocar nada más.
- *   3. SE ABRE POR CAPACIDAD, Y PRIMERO PARA CUENTAS CONCRETAS. Con `cuentas`,
- *      solo esas cuentas pasan por el Core: así se prueba en producción con una
- *      cuenta controlada y sin que ninguna persona real sea el sujeto de la
- *      prueba. Sin `cuentas`, pasa todo el mundo.
+ *   3. SE ABRE POR CAPACIDAD Y SOLO PARA CUENTAS CONCRETAS. Solo las cuentas de
+ *      `cuentas` pasan por el Core: así se prueba en producción con una cuenta
+ *      controlada y sin que ninguna persona real sea el sujeto de la prueba.
+ *      Sin `cuentas`, o con la lista vacía, NO pasa nadie (`sin_lista_de_cuentas`).
+ *      (Hasta el 2026-10-03, sin `cuentas` pasaba todo el mundo: era la única
+ *      forma de abrir la puerta por accidente, porque olvidar un campo la abría
+ *      a toda la base. Abrirla para todos exigirá una decisión explícita y su
+ *      propio campo, no la ausencia de uno.)
+ *
+ * Un error al LEER la configuración llega como `LECTURA_FALLIDA` y se contesta
+ * `legacy` con su propio motivo, para que el registro distinga «no hay
+ * configuración» de «no se pudo leer».
  *
  * ── Lo que NO decide ────────────────────────────────────────────────────────
  *
@@ -32,7 +40,7 @@ export interface ConfiguracionDePuerta {
   habilitado: boolean;
   /** Capacidades que ya pueden ir por el Core. Una que no esté aquí va por donde siempre. */
   capacidades: readonly string[];
-  /** Si está, SOLO estas cuentas. Para probar con una cuenta controlada. */
+  /** SOLO estas cuentas pasan por el Core. Sin ella, o vacía, no pasa nadie. */
   cuentas?: readonly string[];
   /** Si está, SOLO estos productos (`brain`, `studio`…). */
   experiencias?: readonly string[];
@@ -42,7 +50,9 @@ export type MotivoDePuerta =
   | 'abierta'
   | 'deshabilitada'
   | 'configuracion_ilegible'
+  | 'lectura_fallida'
   | 'capacidad_no_migrada'
+  | 'sin_lista_de_cuentas'
   | 'cuenta_fuera_de_la_prueba'
   | 'experiencia_no_migrada';
 
@@ -52,6 +62,9 @@ export interface DecisionDePuerta {
 }
 
 export const PUERTA_CERRADA: ConfiguracionDePuerta = Object.freeze({ habilitado: false, capacidades: Object.freeze([]) as readonly string[] });
+
+/** Lo que devuelve `configuracionDeLaPuerta` cuando Firestore no contesta: cierra, con su propio motivo. */
+export const LECTURA_FALLIDA: unique symbol = Symbol('aiSettings/runtime: lectura fallida');
 
 const FORMA_DE_CAPACIDAD = /^[a-z0-9]+\.[a-z0-9_]+$/;
 const FORMA_DE_ETIQUETA = /^[A-Za-z0-9_.:-]{1,160}$/;
@@ -95,12 +108,15 @@ export const decidirRuntime = (
   crudo: unknown,
   contexto: { capability: string; userId: string; experienceId?: string },
 ): DecisionDePuerta => {
+  if (crudo === LECTURA_FALLIDA) return { runtime: 'legacy', motivo: 'lectura_fallida' };
   const leida = leerPuerta(crudo);
   if (!leida.ok) return { runtime: 'legacy', motivo: crudo === undefined || crudo === null ? 'deshabilitada' : 'configuracion_ilegible' };
   const { config } = leida;
   if (!config.habilitado) return { runtime: 'legacy', motivo: 'deshabilitada' };
   if (!config.capacidades.includes(contexto.capability)) return { runtime: 'legacy', motivo: 'capacidad_no_migrada' };
-  if (config.cuentas && !config.cuentas.includes(contexto.userId)) return { runtime: 'legacy', motivo: 'cuenta_fuera_de_la_prueba' };
+  /* La lista de cuentas es OBLIGATORIA: sin ella, o vacía, la puerta no se abre para nadie (regla 3). */
+  if (!config.cuentas || config.cuentas.length === 0) return { runtime: 'legacy', motivo: 'sin_lista_de_cuentas' };
+  if (!contexto.userId || !config.cuentas.includes(contexto.userId)) return { runtime: 'legacy', motivo: 'cuenta_fuera_de_la_prueba' };
   if (config.experiencias && (!contexto.experienceId || !config.experiencias.includes(contexto.experienceId))) {
     return { runtime: 'legacy', motivo: 'experiencia_no_migrada' };
   }

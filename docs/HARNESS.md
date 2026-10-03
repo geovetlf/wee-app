@@ -29,7 +29,8 @@ espera al dueño). Qué frontera del código vive dónde y si está conectada: [
 | `scripts/ci-sin-secretos.mjs` | Para la CI si el entorno trae una clave, una credencial de Google o un proyecto real | Local |
 | `scripts/escaneo-secretos.mjs` | Ningún secreto en los archivos versionados; nunca imprime un valor | Local |
 | `functions/test/_emuladores.mjs` | Las suites de emulador, cada una en su sesión, solo con proyectos `demo-*` | Local |
-| `.claude/settings.json` + `.claude/hooks/guardia.mjs` | La guardia de Claude: lo que Claude no ejecuta nunca (desplegar, leer secretos, IAM…) | Local |
+| `.claude/settings.json` + `.claude/hooks/guardia.mjs` | La guardia de Claude: lo que Claude no ejecuta nunca (desplegar, leer secretos, IAM…) y lo que pregunta (push, y la historia de git: commit, merge, rebase…) | Local |
+| `.claude/hooks/guardia-vigente.mjs` | ¿La guardia que corre en esta sesión es la de main? (hook SessionStart y a mano; ANTIGUA, SIN_SEGUIMIENTO…) | Local |
 | `ops/permitido.mjs` | No desplegar un commit que no contiene lo que está vivo (por ascendencia) | Local |
 | `ops/produccion.json` + tags `prod/*` | Qué commit corre en cada función, reglas, índices y webs | Local |
 | `ops/integracion/capacidades.mjs` | Producción actual → main propuesto: ninguna capacidad viva se pierde | Local |

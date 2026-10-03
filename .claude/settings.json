@@ -65,6 +65,24 @@
     "ask": [
       "Bash(git push *)",
       "PowerShell(git push *)",
+      "Bash(git commit*)",
+      "PowerShell(git commit*)",
+      "Bash(git merge)",
+      "PowerShell(git merge)",
+      "Bash(git merge *)",
+      "PowerShell(git merge *)",
+      "Bash(git rebase*)",
+      "PowerShell(git rebase*)",
+      "Bash(git cherry-pick*)",
+      "PowerShell(git cherry-pick*)",
+      "Bash(git revert*)",
+      "PowerShell(git revert*)",
+      "Bash(git am*)",
+      "PowerShell(git am*)",
+      "Bash(git pull*)",
+      "PowerShell(git pull*)",
+      "Bash(git update-ref *)",
+      "PowerShell(git update-ref *)",
       "Bash(gh pr merge *)",
       "Bash(gh workflow run *)",
       "Bash(gh secret *)",
@@ -89,6 +107,9 @@
       "Bash(gcloud* auth print-access-token*)",
       "PowerShell(gcloud* auth print-access-token*)",
       "Edit(/.claude/**)",
+      "Edit(/.git/**)",
+      "mcp__ccd_host__sync_with_base_branch",
+      "mcp__ccd_pr__set_auto_merge",
       "Edit(/.firebaserc)",
       "Edit(/functions/src/credits/creditEngine.ts)",
       "Edit(/functions/src/core/financial/**)"
@@ -99,7 +120,6 @@
       "Bash(git log*)",
       "Bash(git show*)",
       "Bash(git add *)",
-      "Bash(git commit *)",
       "Bash(git switch -c *)",
       "Bash(git worktree list*)",
       "Bash(npx tsc --noEmit*)",
@@ -118,6 +138,18 @@
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guardia-vigente.mjs", "--sesion"],
+            "timeout": 20
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash|PowerShell|Monitor",

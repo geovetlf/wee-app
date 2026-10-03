@@ -104,10 +104,11 @@ Brain (`webSearch` pasa a `text.search`) o por `normalizeVideoRequest`.
 
 ## Huecos que siguen abiertos (decisión del dueño)
 
-- **La puerta del runtime abre para todos sin `cuentas`.** Una puerta
-  `aiSettings/runtime` sin lista de `cuentas` abre el conductor para todo el
-  mundo (`runtime/puerta.ts`). La de la sombra, en cambio, exige cuentas.
-  CLAUDE.md §10 dice que «se abre por cuenta». Toca la semántica de la puerta.
+- ~~**La puerta del runtime abre para todos sin `cuentas`.**~~ **Cerrado el
+  2026-10-03 (H3).** Ahora, como la de la sombra, exige cuentas: sin lista, o
+  con la lista vacía, la respuesta es `legacy` con el motivo
+  `sin_lista_de_cuentas`, y un error de lectura se registra como
+  `lectura_fallida` (`runtime/puerta.ts`, `functions/test/puerta-cerrada.test.mjs`).
 - **La sombra abierta sin `caminos` llama a un proveedor real**: DeepSeek, con
   0 Credits y fuera de los cupos por persona.
 - **Ningún camino vivo verifica el resultado** (A6 no está conectado). Solo se
