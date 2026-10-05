@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "dominio": "router",
+  "descripcion": "Casos deterministas de la decisión del Model Router vivo (engine/router.ts route()). Mundo sintético: proveedores/cadenas/uso, sin datos de personas. Coste $0: route() no ejecuta adaptadores.",
+  "casos": [
+    {
+      "evalCaseId": "router-cadena-manda",
+      "name": "La cadena manda sobre la puntuación",
+      "description": "Con cadena ['a'], gana a aunque b puntúe más; b ni aparece.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "quality": 5, "speed": 5, "usd": 0.001 } ] } ], "routing": { "chain": ["a"], "policy": "balanced" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "a", "model": "a1" }, "orden": ["a"], "politica": true },
+      "tags": ["routing", "policy"]
+    },
+    {
+      "evalCaseId": "router-sin-cadena-prioridad",
+      "name": "Sin cadena, orden por prioridad",
+      "description": "Sin cadena configurada, todos los reales por prioridad; gana el de menor prioridad numérica.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "quality": 5, "speed": 5, "usd": 0.001 } ] } ], "routing": { "policy": "balanced" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "a", "model": "a1" }, "orden": ["a", "b"], "politica": true },
+      "tags": ["routing"]
+    },
+    {
+      "evalCaseId": "router-cost-first-barato",
+      "name": "cost-first elige el más barato",
+      "description": "Política cost-first ordena por coste ascendente.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "quality": 5, "speed": 5, "usd": 0.001 } ] } ], "routing": { "chain": ["a", "b"], "policy": "cost-first" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "b", "model": "b1" }, "orden": ["b", "a"], "coste": { "cheapest": true }, "politica": true },
+      "tags": ["routing", "cost"]
+    },
+    {
+      "evalCaseId": "router-quality-first-mejor",
+      "name": "quality-first elige el de más calidad",
+      "description": "Política quality-first ordena por calidad descendente.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "quality": 5, "speed": 5, "usd": 0.001 } ] } ], "routing": { "chain": ["a", "b"], "policy": "quality-first" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "b", "model": "b1" }, "orden": ["b", "a"], "latencia": { "fastest": true }, "politica": true },
+      "tags": ["routing", "quality", "latency"]
+    },
+    {
+      "evalCaseId": "router-excluir-proveedor",
+      "name": "excludeProviders descarta con motivo",
+      "description": "La petición excluye a; se descarta con el motivo correcto y gana b.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "quality": 5, "speed": 5, "usd": 0.001 } ] } ], "routing": { "chain": ["a", "b"], "policy": "balanced" } },
+      "request": { "prefs": { "excludeProviders": ["a"] } },
+      "expected": { "status": "routed", "chosen": { "provider": "b", "model": "b1" }, "descartes": [ { "provider": "a", "reason": "excluido en esta petición" } ], "politica": true },
+      "tags": ["routing", "policy"]
+    },
+    {
+      "evalCaseId": "router-familia-permitida",
+      "name": "allowedProviders recorta la familia",
+      "description": "La petición solo permite b; a queda fuera de la familia permitida.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "quality": 5, "speed": 5, "usd": 0.001 } ] } ], "routing": { "chain": ["a", "b"], "policy": "balanced" } },
+      "request": { "prefs": { "allowedProviders": ["b"] } },
+      "expected": { "status": "routed", "chosen": { "provider": "b", "model": "b1" }, "descartes": [ { "provider": "a", "reason": "fuera de la familia de modelos permitida" } ], "politica": true },
+      "tags": ["routing", "policy"]
+    },
+    {
+      "evalCaseId": "router-desactivado",
+      "name": "Proveedor desactivado por administración",
+      "description": "a deshabilitado; se descarta con su motivo y gana b.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "enabled": false, "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "quality": 5, "speed": 5, "usd": 0.001 } ] } ], "routing": { "chain": ["a", "b"], "policy": "balanced" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "b", "model": "b1" }, "descartes": [ { "provider": "a", "reason": "desactivado por administración" } ], "politica": true },
+      "tags": ["routing", "admin"]
+    },
+    {
+      "evalCaseId": "router-sin-clave",
+      "name": "Proveedor sin clave configurada",
+      "description": "a no tiene clave; se descarta con su motivo y gana b.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "sinClave": true, "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "quality": 5, "speed": 5, "usd": 0.001 } ] } ], "routing": { "chain": ["a", "b"], "policy": "balanced" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "b", "model": "b1" }, "descartes": [ { "provider": "a", "reason": "sin clave configurada" } ], "politica": true },
+      "tags": ["routing", "secrets"]
+    },
+    {
+      "evalCaseId": "router-cortacircuitos",
+      "name": "Proveedor en pausa por fallos recientes",
+      "description": "El cortacircuitos de a está abierto; se descarta con su motivo y gana b.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "quality": 5, "speed": 5, "usd": 0.001 } ] } ], "routing": { "chain": ["a", "b"], "policy": "balanced" }, "health": { "open": ["a"] } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "b", "model": "b1" }, "descartes": [ { "provider": "a", "reason": "en pausa por fallos recientes" } ], "politica": true },
+      "tags": ["routing", "reliability"]
+    },
+    {
+      "evalCaseId": "router-tope-diario",
+      "name": "Tope de gasto diario agotado (fail-closed)",
+      "description": "El gasto del día alcanzó maxUsdPerDay; no hay candidatos y se dice el motivo.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] } ], "routing": { "chain": ["a"], "policy": "balanced" }, "settings": { "maxUsdPerDay": 5 }, "usage": { "text.generate": { "a": { "usd": 6 } }, "byProvider": { "a": { "usd": 6 } } } },
+      "request": {},
+      "expected": { "status": "unavailable", "motivo": "presupuesto_diario_agotado" },
+      "tags": ["routing", "budget", "reliability"]
+    },
+    {
+      "evalCaseId": "router-ia-detenida",
+      "name": "Interruptor de IA activado (fail-closed)",
+      "description": "iaDetenida corta todo antes de abrir el libro.",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] } ], "routing": { "chain": ["a"], "policy": "balanced" }, "settings": { "iaDetenida": true } },
+      "request": {},
+      "expected": { "status": "unavailable", "motivo": "ia_detenida" },
+      "tags": ["routing", "killswitch", "reliability"]
+    },
+    {
+      "evalCaseId": "router-demo-solo-sin-real",
+      "name": "Modo demo solo cuando no hay proveedor real",
+      "description": "Único proveedor sin clave + mock permitido: no hay real, entra el demo.",
+      "capability": "text.generate",
+      "world": { "mock": true, "providers": [ { "id": "a", "sinClave": true, "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] } ], "routing": { "chain": ["a"], "policy": "balanced" }, "settings": { "allowMockFallback": true } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "mock", "model": "demo" }, "sinDemoConReal": true },
+      "tags": ["routing", "demo"]
+    },
+    {
+      "evalCaseId": "router-sin-demo-con-real",
+      "name": "Nunca demo si existe un proveedor real",
+      "description": "Con un real disponible, el demo no entra como candidato.",
+      "capability": "text.generate",
+      "world": { "mock": true, "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "quality": 3, "speed": 3, "usd": 0.02 } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "quality": 5, "speed": 5, "usd": 0.001 } ] } ], "routing": { "chain": ["a", "b"], "policy": "balanced" }, "settings": { "allowMockFallback": true } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "a", "model": "a1" }, "sinDemoConReal": true, "politica": true },
+      "tags": ["routing", "demo"]
+    }
+  ]
+}

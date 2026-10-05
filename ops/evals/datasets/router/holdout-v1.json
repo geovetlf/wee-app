@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "dominio": "router",
+  "holdout": true,
+  "descripcion": "HOLDOUT SELLADO del Model Router. Mundos distintos de v1 (proveedores x/y/z), para medir sin que nadie haya ajustado a él. Solo se carga con permiso de holdout (ops/evals/holdout.mjs). Coste $0.",
+  "casos": [
+    {
+      "evalCaseId": "holdout-cost-first",
+      "name": "cost-first elige el más barato (mundo holdout)",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "x", "priority": 5, "models": [ { "id": "x1", "quality": 4, "speed": 2, "usd": 0.03 } ] }, { "id": "y", "priority": 9, "models": [ { "id": "y1", "quality": 2, "speed": 4, "usd": 0.005 } ] } ], "routing": { "chain": ["x", "y"], "policy": "cost-first" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "y", "model": "y1" }, "orden": ["y", "x"], "coste": { "cheapest": true }, "politica": true },
+      "tags": ["holdout", "cost"]
+    },
+    {
+      "evalCaseId": "holdout-quality-first",
+      "name": "quality-first elige el de más calidad (mundo holdout)",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "x", "priority": 5, "models": [ { "id": "x1", "quality": 4, "speed": 2, "usd": 0.03 } ] }, { "id": "y", "priority": 9, "models": [ { "id": "y1", "quality": 2, "speed": 4, "usd": 0.005 } ] } ], "routing": { "chain": ["x", "y"], "policy": "quality-first" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "x", "model": "x1" }, "orden": ["x", "y"], "politica": true },
+      "tags": ["holdout", "quality"]
+    },
+    {
+      "evalCaseId": "holdout-sin-clave",
+      "name": "proveedor sin clave descartado (mundo holdout)",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "x", "sinClave": true, "priority": 5, "models": [ { "id": "x1", "quality": 4, "speed": 2, "usd": 0.03 } ] }, { "id": "y", "priority": 9, "models": [ { "id": "y1", "quality": 2, "speed": 4, "usd": 0.005 } ] } ], "routing": { "chain": ["x", "y"], "policy": "balanced" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "y", "model": "y1" }, "descartes": [ { "provider": "x", "reason": "sin clave configurada" } ], "politica": true },
+      "tags": ["holdout", "secrets"]
+    },
+    {
+      "evalCaseId": "holdout-tope-diario",
+      "name": "tope de gasto diario agotado (mundo holdout)",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "x", "priority": 5, "models": [ { "id": "x1", "quality": 4, "speed": 2, "usd": 0.03 } ] } ], "routing": { "chain": ["x"], "policy": "balanced" }, "settings": { "maxUsdPerDay": 2 }, "usage": { "text.generate": { "x": { "usd": 3 } }, "byProvider": { "x": { "usd": 3 } } } },
+      "request": {},
+      "expected": { "status": "unavailable", "motivo": "presupuesto_diario_agotado" },
+      "tags": ["holdout", "budget"]
+    },
+    {
+      "evalCaseId": "holdout-prioridad",
+      "name": "sin cadena, orden por prioridad con tres proveedores (mundo holdout)",
+      "capability": "text.generate",
+      "world": { "providers": [ { "id": "x", "priority": 5, "models": [ { "id": "x1", "quality": 4, "speed": 2, "usd": 0.03 } ] }, { "id": "y", "priority": 9, "models": [ { "id": "y1", "quality": 2, "speed": 4, "usd": 0.005 } ] }, { "id": "z", "priority": 1, "models": [ { "id": "z1", "quality": 5, "speed": 3, "usd": 0.01 } ] } ], "routing": { "policy": "balanced" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "z", "model": "z1" }, "orden": ["z", "x", "y"], "politica": true },
+      "tags": ["holdout", "routing"]
+    }
+  ]
+}
