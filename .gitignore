@@ -100,6 +100,8 @@ hs_err_pid*.log
 # El informe final (ops/revision/informes/) y la baseline (ops/revision/baseline.json) sí se versionan.
 ops/revision/.cache/
 ops/revision/tmp/
+# Las extensiones del Harness (ops/harness/extensiones.mjs): lo único que pueden escribir, sus informes.
+ops/harness/.cache/
 # Salidas de la CI cuando se ejecuta en local (scripts/ci-local.mjs): el informe de la revisión determinista y los registros de políticas.
 /revision-determinista.md
 /politica-*.log

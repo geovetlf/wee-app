@@ -49,6 +49,22 @@ espera al dueño). Qué frontera del código vive dónde y si está conectada: [
 | `ops/revision/selector.mjs` + `ops/revision/contexto/paquetes.json` | Capa 4: qué revisar con IA, con qué contexto, presupuesto de tokens y caché | Local |
 | `.claude/agents/revisor-{codigo,seguridad,arquitectura}.md` + `ops/revision/rubricas/` | Capa 5: revisores de SOLO LECTURA (Read, Grep, Glob, Bash bajo la guardia), con rúbricas propias | Local (IA) |
 | `.claude/commands/revision-de-fase.md` | El cierre de fase G0–G7: higiene, build, pruebas, detectores, selector, revisores, verificación, informe; sin commit ni deploy | Local |
+| `ops/harness/extensiones.mjs` + `ops/harness/extensiones/` | Las extensiones del Harness (F3): manifiestos solo de datos, permisos de un catálogo cerrado y una puerta que pasa cada acción por la guardia; `listar`, `validar`, `ejecutar` | Local |
+
+## Las extensiones (F3)
+
+Una extensión es un manifiesto JSON en `ops/harness/extensiones/<id>.json`, **sin código**: el Harness nunca
+importa ni evalúa nada de una extensión. Dice qué aporta (`comprobacion`, `contexto` o `informe`, puntos de
+extensión del Harness, no capacidades del producto), qué permisos necesita (`leer-repositorio`, `leer-git`,
+`ejecutar-pruebas`, `escribir-cache`, y ninguno más) y para qué versión del Harness es (`^1.0.0`).
+
+- **La puerta** (`autorizar`) pide cuatro cosas: que la extensión esté activa, que la acción esté en su
+  manifiesto, que la lista blanca del permiso la cubra y que la guardia de siempre no la pregunte ni la
+  niegue. Lo que la guardia pregunta o niega es del dueño: una extensión no lo hace nunca.
+- **Nunca se conceden**: aprobar despliegues, desplegar, merge, push, IAM, secretos, apagar la guardia o las
+  puertas, ni saltarse la revisión. Pedirlo invalida el manifiesto.
+- **Activar o desactivar** es cambiar `estado` en el manifiesto, por PR. `WEE_EXTENSIONES=off` las apaga todas.
+- **La primera**, `revision-determinista`, registra la puerta G3 tal cual (`node ops/revision/baseline.mjs`).
 
 ## Lo que el Harness añadió al código de Weë
 
