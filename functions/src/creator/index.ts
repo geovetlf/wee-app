@@ -455,11 +455,22 @@ export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, 
 
     const pricing = await pricingFor(job, uid, quality);
     if (!pricing) return { jobId, creditsEstimated: job.creditsEstimated, pricing: null };
-    // El nivel elegido queda guardado para que creatorRun cobre y genere igual
-    job.quality = quality ?? null;
-    job.creditsEstimated = pricing.total;
-    job.updatedAt = now();
-    await ref.set(clean(job));
+    /*
+     * El nivel elegido queda guardado para que creatorRun cobre y genere igual. Se guarda en una TRANSACCIÓN, solo
+     * esos tres campos y solo mientras el presupuesto se puede cambiar: el trabajo sigue `planned`, nadie lo ha
+     * reclamado hace poco (un reclamo reciente es una creación arrancando) y no hay una reserva de Credits hecha para
+     * él. Si no, contesta «ya está en marcha» sin tocar nada. Antes se reescribía el documento entero con lo leído al
+     * empezar: si caía entre el reclamo de creatorRun y su arranque, borraba el reclamo DESPUÉS de reservar, y la
+     * reserva quedaba retenida con el precio viejo mientras el trabajo guardaba el nuevo (ningún reintento cuadraba);
+     * si caía con el trabajo en marcha, lo devolvía a `planned`.
+     */
+    await db().runTransaction(async (tx) => {
+      const actual = ((await tx.get(ref)).data() || {}) as Partial<CreatorJob>;
+      const reclamado = Boolean(actual.runId) && typeof actual.claimedAt === 'number' && Date.now() - actual.claimedAt < RECLAMO_VIGENTE_MS;
+      if (actual.status !== 'planned' || reclamado) throw new EngineError('DUPLICATE_REQUEST');
+      if ((await tx.get(db().collection('creditTransactions').doc(usageTransactionId(jobId)))).exists) throw new EngineError('DUPLICATE_REQUEST');
+      tx.update(ref, { quality: quality ?? null, creditsEstimated: pricing.total, updatedAt: now() });
+    });
     return { jobId, quality: quality ?? null, creditsEstimated: pricing.total, pricing: { total: pricing.total, steps: pricing.steps, options: pricing.options ?? null } };
   } catch (error) {
     throw toEngineHttpsError(error);
