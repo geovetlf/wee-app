@@ -52,6 +52,7 @@ espera al dueño). Qué frontera del código vive dónde y si está conectada: [
 | `ops/harness/extensiones.mjs` + `ops/harness/extensiones/` | Las extensiones del Harness (F3): manifiestos solo de datos, permisos de un catálogo cerrado y una puerta que pasa cada acción por la guardia; `listar`, `validar`, `ejecutar` | Local |
 | `ops/harness/cierre.mjs` | El cierre de misión (F4): misión declarada + evidencias reales → JSON canónico y Markdown derivado; lo que no tiene evidencia es UNKNOWN | Local |
 | `functions/src/evals/motor/*` + `ops/evals/*` | El Eval Engine (F2): UN motor común (el corredor, puntuar, holdout, presupuesto, permisos, corrida) en `functions/src/evals/motor`, que `ops/evals` reexporta para desarrollo ($0, sin proveedor) y `evalRun` corre con el proveedor real; dominios registrados, el Router el primero ([EVALS.md](EVALS.md)) | Local · `evalRun`: callable de administración, sin desplegar |
+| `ops/harness/guardian.mjs` (+ `guardian-fuentes.mjs`) | El Build Guardian (F5): antes de tocar unas rutas (`antes --archivos`) o sobre un diff (`cambio --base`), junta lo que ya protege a Weë —zonas rojas, guardia, producción y `permitido`, cercas, fronteras, decisiones, detectores y G3, registros de puertas, F3— con la fuente exacta de cada aviso; CRITICAL · IMPORTANT · CONTEXT; informa y no bloquea | Local |
 
 ## Las extensiones (F3)
 
@@ -85,6 +86,24 @@ verificable (contrato `wee-cierre@1`).
   `--escribir` lo guarda por la puerta de F3, como la extensión `cierre-de-mision`, en `ops/harness/.cache/`.
 - **Observa y cierra; no manda:** no aprueba, no despliega, no hace merge ni push, no escribe en git y no
   ejecuta más que lecturas de git. Las puertas que salen son las registradas en F3.
+
+## El Build Guardian (F5)
+
+`ops/harness/guardian.mjs` no es otro guardián ni otra puerta: **coordina** las protecciones que ya existen y
+dice, con su fuente exacta (archivo y línea, regla o ruta JSON), lo que hay que saber.
+
+- **`antes --archivos a,b`**: CRITICAL si la ruta es zona roja (`ZONAS_ROJAS`), está protegida (`settings.json` y la
+  guardia), es código vivo en producción (cierre de imports de cada función de `produccion.json`, grupo y
+  `permitido.mjs`; reglas, índices y hosting por `firebase.json`) o la fija una cerca de cierre de las suites;
+  IMPORTANT, los paquetes de contexto, las suites de su frontera (`MAPA-DE-FRONTERAS.md`) y sus decisiones
+  (`DECISIONES-DELIBERADAS.md`); CONTEXT, los importadores directos, el contexto de F3 y los documentos de siempre.
+- **`cambio --base <ref>`**: lo mismo sobre las rutas del diff, más lo que dicen los detectores y la puerta G3
+  (`clasificacion.mjs`), los disparadores de `frontera.mjs` (aristas y carpetas nuevas, exports, dependencias) y las
+  regresiones de registro (extensiones de F3, pasos de la CI, suites que salen de la cadena).
+- **Sin ruido y sin inventar:** un hallazgo por hecho, tope por nivel (lo que no cabe se lista en `omitidos`); un
+  nombre ambiguo o demasiado amplio no se atribuye, y una ruta que no conoce nadie no produce nada.
+- **Informa; no bloquea:** sale 0 con cualquier informe y 2 si la entrada no vale. Las puertas siguen siendo G3 y la
+  CI. JSON canónico (`wee-guardian@1`) y texto que sale de él. Sin Claude Code (Node y git) y fuera de `functions/src`.
 
 ## Lo que el Harness añadió al código de Weë
 
