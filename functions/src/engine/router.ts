@@ -128,6 +128,12 @@ export interface RouterDeps {
   now?: () => number;
   /** Consumo de hoy (aiUsage/{día}) para aplicar límites diarios por proveedor. */
   usageToday?: () => Promise<Record<string, any> | undefined>;
+  /**
+   * De dónde sale la jurisdicción de la operación cuando la petición no la trae: la fuente de la cuenta, que compone
+   * `engine/index.ts` (`jurisdiccionesDeLaCuenta`). Solo se consulta si algún modelo de la cadena tiene reglas
+   * territoriales; si falla o no sabe, la regla común falla cerrado.
+   */
+  jurisdiccionesDe?: (userId: string) => Promise<readonly string[] | undefined>;
 }
 
 interface InternalCandidate extends RouteCandidate {
@@ -218,8 +224,21 @@ export function createRouter(deps: RouterDeps) {
     const prefs: RoutingPrefs = request.prefs || {};
     const quality = resolveQuality(request);
     const { links, policy } = linksFor(capability, config, prefs);
-    /* La política de la operación: la pone el servidor y la leen solo las reglas territoriales de cada modelo. */
-    const contexto: ContextoDeElegibilidad = { jurisdicciones: request.jurisdicciones };
+    /*
+     * La política de la operación: la pone el servidor —la petición, o la fuente de la cuenta— y la leen solo las
+     * reglas territoriales de cada modelo. La cuenta solo se consulta si algún modelo de la cadena las tiene: el
+     * tráfico de siempre no hace ni una lectura más. Si la consulta falla, no hay jurisdicción y se falla cerrado.
+     */
+    const territorial = links.some((l) => (deps.adapters[l.provider]?.models ?? []).some((m) => !!m.territorio && m.capabilities.includes(capability)));
+    const jurisdicciones = request.jurisdicciones?.length
+      ? request.jurisdicciones
+      : territorial && deps.jurisdiccionesDe
+        ? await deps.jurisdiccionesDe(request.userId).catch((error) => {
+          console.warn(`WEË AI ENGINE: no se pudo leer la jurisdicción de la cuenta para ${capability}; se falla cerrado: ${sanitizeForLog(error instanceof Error ? error.message : String(error), 200)}`);
+          return undefined;
+        })
+        : undefined;
+    const contexto: ContextoDeElegibilidad = { jurisdicciones };
     /*
      * EL INTERRUPTOR (H0 #19). Detenida, no hay candidatos —tampoco el demo, que
      * antes era lo que entraba al «apagar» todos los proveedores, y se cobraba—:
@@ -336,6 +355,7 @@ export function createRouter(deps: RouterDeps) {
       candidates: candidates.map(({ durationOk: _d, meetsQuality: _m, ...c }) => c),
       skipped,
       realProviderAvailable,
+      ...(jurisdicciones?.length ? { jurisdicciones: [...jurisdicciones] } : {}),
     };
   };
 
@@ -347,8 +367,8 @@ export function createRouter(deps: RouterDeps) {
     const modality = modalityOf(capability);
     /* La decisión de elegibilidad, al libro (auditoría): solo cuando hay algo que auditar. */
     const descartes = decision.skipped.flatMap((s) => (s.estado ? [{ provider: s.provider, ...(s.model ? { model: s.model } : {}), estado: s.estado }] : []));
-    const elegibilidad = request.jurisdicciones?.length || descartes.length
-      ? { jurisdicciones: request.jurisdicciones?.length ? [...request.jurisdicciones] : null, descartes }
+    const elegibilidad = decision.jurisdicciones?.length || descartes.length
+      ? { jurisdicciones: decision.jurisdicciones?.length ? [...decision.jurisdicciones] : null, descartes }
       : undefined;
     const ctx = {
       userId: request.userId,

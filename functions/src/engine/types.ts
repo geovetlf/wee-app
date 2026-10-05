@@ -506,6 +506,8 @@ export interface RouteDecision {
   candidates: RouteCandidate[];
   /** `estado`: cuando el descarte lo decidió la elegibilidad del modelo (`modeloElegible`), en qué escalón se quedó. */
   skipped: { provider: string; model?: string; reason: string; estado?: EstadoDeElegibilidad }[];
+  /** Las jurisdicciones con las que se decidió (de la petición o de la cuenta), si había alguna. Para la auditoría. */
+  jurisdicciones?: string[];
   /**
    * Hay al menos un proveedor real con clave y con modelo para esta capacidad.
    * Cuando es true el modo demo NO puede ser candidato, ni siquiera si todos los

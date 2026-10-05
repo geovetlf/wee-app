@@ -7,6 +7,7 @@ import { createRouter, memoryHealth } from './router';
 import { dayKey } from './limits';
 import { EngineRequest, EngineResult, RouteDecision } from './types';
 import { verificationStatus } from './verification';
+import { jurisdiccionesDeLaCuenta } from './jurisdiccion';
 
 /**
  * WEË AI ENGINE — punto de entrada (docs/AI-ENGINE.md).
@@ -29,7 +30,8 @@ const usageToday = async (): Promise<Record<string, any> | undefined> => {
   return usageCache.data;
 };
 
-const router = createRouter({ adapters: ADAPTERS, loadConfig, ledger: firestoreLedger, health, usageToday });
+/* La jurisdicción de la operación sale de la fuente de la cuenta (el país que declara su Perfil Real), en el servidor. */
+const router = createRouter({ adapters: ADAPTERS, loadConfig, ledger: firestoreLedger, health, usageToday, jurisdiccionesDe: jurisdiccionesDeLaCuenta });
 
 export interface ProviderStatus {
   id: string;

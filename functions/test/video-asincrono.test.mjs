@@ -620,6 +620,8 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     'functions/src/engine/errors.ts': '1\t1', // i18n da-DK: el rechazo de entrada sin «el proveedor»
     'functions/src/engine/gateway.ts': '10\t2', // 0ad8500 (#19) · misión fal (+8 −2, antes 2/0): el ejecutor pregunta a la regla común y los ajustes no tocan identidad ni gobierno
     'functions/src/engine/http.ts': '26\t1', // 16ca1ae (#3)
+    'functions/src/engine/index.ts': '3\t1', // misión fal (nuevo en el mapa): la composición conecta la jurisdicción de la cuenta al Router
+    'functions/src/engine/jurisdiccion.ts': '46\t0', // misión fal (nuevo): el conector de la jurisdicción —el país que declara el Perfil Real, leído en el servidor—
     'functions/src/engine/ledger.ts': '19\t2', // harness/fase-2 (H0 #22) · F2-C1 (+7 −1, antes 12/1): el gasto de eval (attribution:'eval') se contabiliza en evalUsage/{día}, no en el tope del usuario
     'functions/src/engine/limits.ts': '40\t4', // F1-D (decisión 14) + 5e87b80 (FASE 8) + harness/fase-2 (H0 #22) · misión fal (+2 −1, antes 38/3): cupo diario de la modalidad 3d
     'functions/src/engine/promptLanguage.ts': '21\t0', // cierre post-auditoría 2026-10-01 (nuevo en el mapa, +21): SISTEMA_POR_DEFECTO neutro y `pideTextoPlano` (server/prompts-internos)
@@ -631,8 +633,8 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     'functions/src/engine/providers/openai.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/seedance.ts': '33\t19', // F1-D (ficha 6) + 8a9f098 (#21)
     'functions/src/engine/registry.ts': '17\t1', // 0ad8500 (#19) · misión fal (+15 −1, antes 2/0): fal en ADAPTERS (apagado), la cadena de world.generate y el plazo de la modalidad 3d
-    'functions/src/engine/router.ts': '102\t13', // 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK · harness/fase-2 (H0 #22) · cierre post-auditoría 2026-10-01 · F2-C1 (+2, antes 57/4) · misión fal (+43 −9, antes 59/4): la elegibilidad con las jurisdicciones de la operación, el descarte con su escalón y su modelo, NOT_AVAILABLE «sin_modelo_elegible» y la decisión al libro (auditoría)
-    'functions/src/engine/types.ts': '147\t3', // 0ad8500 (#19) · 5e87b80 (FASE 8) · F2-C1 (+10, antes 19/0) · misión fal (+118 −3, antes 29/0): gobierno y territorio del modelo, escalones de elegibilidad, jurisdicciones de la operación, la decisión en el libro, modalidad 3d
+    'functions/src/engine/router.ts': '122\t13', // 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK · harness/fase-2 (H0 #22) · cierre post-auditoría 2026-10-01 · F2-C1 (+2, antes 57/4) · misión fal (+63 −9, antes 59/4): la elegibilidad con las jurisdicciones de la operación —de la petición o de la cuenta, solo si algún modelo las necesita—, el descarte con su escalón y su modelo, NOT_AVAILABLE «sin_modelo_elegible» y la decisión al libro (auditoría)
+    'functions/src/engine/types.ts': '149\t3', // 0ad8500 (#19) · 5e87b80 (FASE 8) · F2-C1 (+10, antes 19/0) · misión fal (+120 −3, antes 29/0): gobierno y territorio del modelo, escalones de elegibilidad, jurisdicciones de la operación, la decisión en el libro, modalidad 3d
     'functions/src/engine/verification.ts': '8\t0', // misión fal (nuevo en el mapa): la ficha de fal, documentada y sin verificar con la API real
     'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
     'functions/src/generateAvatar.ts': '132\t15', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar) · cierre post-auditoría 2026-10-01 (+3 −3, antes 129/12): el avatar monta AVATAR_SECRETS (solo Gemini)

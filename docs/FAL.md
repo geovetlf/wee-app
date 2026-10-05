@@ -43,9 +43,14 @@ primero que falla decide:
 | `ACTIVE` | Aprobado y activado | **Sí** |
 
 - **La jurisdicción es política, no interfaz.** Viaja en `EngineContext.jurisdicciones` (ISO 3166-1 alfa-2) y la pone
-  el servidor desde una fuente de confianza; nunca el cliente, el idioma, el locale, la IP ni el país del dispositivo.
-  Hoy **nadie la pone**: todo modelo con reglas territoriales cae en `JURISDICTION_UNKNOWN`. Los modelos sin reglas
-  territoriales (todos los demás) no notan nada.
+  el servidor; nunca el cliente, el idioma, el locale, la IP ni el país del dispositivo. **Su fuente es la de la
+  cuenta** (`engine/jurisdiccion.ts`, compuesto en `engine/index.ts`): el país que DECLARA el Perfil Real
+  (`users.country`, obligatorio en el registro), leído en el servidor del perfil que el resolutor canónico reconoce como
+  de esa cuenta. Es la única ubicación que Weë guarda de una persona (auditoría del 2026-10-05: el idioma no mira la
+  ubicación y el `country` del Financial Core no tiene datos). Solo se consulta si algún modelo de la cadena tiene
+  reglas territoriales —el tráfico de siempre no hace ni una lectura más—, una jurisdicción que ya pone el servidor en
+  la petición manda sobre ella, y si la lectura falla o no hay país válido, `JURISDICTION_UNKNOWN`. Es una
+  declaración: basta para bloquear; si basta para aprobar lo decide legal (§7).
 - **Una operación puede tocar varias jurisdicciones**: si cualquiera está bloqueada, bloqueada; si cualquiera no está
   aprobada, en revisión.
 - **Los grupos** se declaran una vez (`GRUPOS_DE_JURISDICCIONES`): `EU` = los 27 Estados miembros. Un territorio con
@@ -70,9 +75,9 @@ primero que falla decide:
 
 Relación con lo que ya había: la **región técnica** del Router del Core (`constraints.region`, dónde declara servir un
 modelo) es otra cosa, y la capa **Policy & Eligibility del runtime** (`runtime/politica.ts`, F12-D) son reglas de
-«deny» de la administración solo en el camino del conductor, hoy **sin ninguna regla**. Esa capa trata una región
-desconocida como «la regla no aplica»; la nueva regla, como «no elegible». Alinearlas es una decisión pendiente
-(§7): no se ha tocado una decisión cerrada de F12-D.
+«deny» de la administración solo en el camino del conductor, hoy **sin ninguna regla**. **Alineada el 2026-10-05**
+(orden del dueño): igual que la regla común, falla cerrado. Una regla de región o de producto solo deja de aplicar si
+el dato se conoce y queda fuera; sin región o sin producto, se aplica. Sin reglas sigue sin bloquear nada.
 
 ## 3. Hunyuan World 1.0 (imagen → mundo 3D)
 
@@ -140,11 +145,12 @@ la persistencia esperan sus decisiones (§7).
 ## 7. Lo que espera al dueño
 
 Ver [DECISIONES-PENDIENTES.md](DECISIONES-PENDIENTES.md) § fal.ai: la revisión legal de Hunyuan World por jurisdicción,
-de dónde sale la jurisdicción de una operación, alinear `runtime/politica.ts`, dónde se hace cumplir lo que el material
-no puede mostrarse, conectar lo asíncrono (webhook + barrido + conductor), crear `FAL_KEY`, el precio real y el visor 3D.
+si una jurisdicción DECLARADA basta para aprobar (y si el país del perfil debe poder cambiarse libremente), dónde se
+hace cumplir lo que el material no puede mostrarse, conectar lo asíncrono (webhook + barrido + conductor), crear
+`FAL_KEY`, el precio real y el visor 3D.
 
 ## 8. Pruebas
 
-`elegibilidad-jurisdiccion` (27: los diez casos del ajuste de jurisdicción, la auditoría y lo que los sostiene), `proveedor-fal`
+`elegibilidad-jurisdiccion` (34: los diez casos del ajuste de jurisdicción, la fuente de la cuenta, la política del runtime, la auditoría y lo que los sostiene), `proveedor-fal`
 (30: el adaptador con la red sustituida por dobles, firma, cancelación, reconciliación, Credits, material y que nada
 está encendido) y `escena3d` (11). Todas deterministas y sin red. $0.
