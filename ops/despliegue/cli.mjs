@@ -159,13 +159,18 @@ const observar = async () => {
   await esperar(ventana + RETRASO_DE_METRICAS_MS);
   let antes;
   let despues;
+  let error = null;
   try {
     antes = await n.cuenta5xx(servicios, new Date(Date.parse(inicio) - ventana).toISOString(), inicio);
     despues = await n.cuenta5xx(servicios, desde, new Date(Date.parse(desde) + ventana).toISOString());
-  } catch (e) { console.log(`· ${e.message}`); }
-  const juicio = juzgarObservacion({ antes, despues, umbral });
+  } catch (e) { error = e.message; }
+  const juicio = juzgarObservacion({ antes, despues, umbral, error });
   console.log(`${juicio.ok ? '✔' : '✘'} ${juicio.motivo}`);
-  if (!juicio.ok) fallar(['la observación posterior al despliegue falló: se devuelve el tráfico']);
+  if (!juicio.ok) {
+    fallar([juicio.medido
+      ? 'la observación posterior al despliegue falló (los 5xx subieron): se devuelve el tráfico'
+      : 'la revisión nueva queda SIN comprobar: el despliegue se detiene aquí (sin registro ni tag) y, como no se pudo comprobar, el workflow devuelve el tráfico a la de antes (docs/DEPLOYMENT.md §6)']);
+  }
 };
 
 /** Todos los archivos de una carpeta, con rutas relativas y barras normales. */
