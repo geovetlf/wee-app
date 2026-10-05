@@ -38,12 +38,17 @@ const aplicar = (p, d) => {
   docs.set(p, { ...(docs.get(p) || {}), ...d });
   escrituras.push({ path: p, ...d });
 };
+/* `set` sin merge REEMPLAZA el documento, como en Firestore: es lo que hace visible pisar un campo que no se leyó. */
+const reemplazar = (p, d) => {
+  docs.set(p, { ...d });
+  escrituras.push({ path: p, ...d });
+};
 const ref = (p) => ({
   id: p.split('/').pop(),
   path: p,
   collection: (sub) => ({ doc: (id) => ref(`${p}/${sub}/${id || 'auto'}`) }),
   get: async () => ({ exists: docs.has(p), id: p.split('/').pop(), data: () => docs.get(p) }),
-  set: async (d) => aplicar(p, d),
+  set: async (d) => reemplazar(p, d),
   update: async (d) => aplicar(p, d),
 });
 let cola = Promise.resolve();
@@ -56,7 +61,7 @@ const baseFalsa = {
     const turno = cola.then(() => fn({
       get: async (r) => r.get(),
       update: (r, d) => aplicar(r.path, d),
-      set: (r, d) => aplicar(r.path, d),
+      set: (r, d) => reemplazar(r.path, d),
     }));
     cola = turno.catch(() => {});
     return turno;
@@ -165,6 +170,50 @@ const rc2 = await resultado(correr('cambiado'));
 check('16) si el presupuesto cambió justo antes del reclamo, se reserva el VIGENTE (20), no el leído antes (12)',
   rc2.ok && importesReservados.join(',') === '20', importesReservados.join(','));
 check('17) …y se liquida por ese mismo importe', eventos.filter((e) => e.startsWith('liquida')).join(',') === 'liquida:20:20', eventos.join(','));
+
+/* ── D3. creatorQuote no pisa una creación que arranca (C-1, preparación del motor 2026-10-05) ──────────
+ * Antes reescribía el documento entero con lo leído al empezar. Si caía entre el reclamo de creatorRun y su arranque,
+ * borraba el reclamo DESPUÉS de reservar: la reserva quedaba retenida con el precio viejo y el trabajo con el nuevo,
+ * y ningún reintento cuadraba. Si caía con el trabajo en marcha, lo devolvía a `planned`. */
+const cotizar = (jobId, quality) => creatorMod.creatorQuote.run({ auth: { uid: UID }, data: { jobId, quality } });
+const originalesQuote = { estimar: creditosMod.estimatePlan, opciones: creditosMod.planOptions };
+creditosMod.estimatePlan = async (plan, uid, quality) => ({ total: quality === 'high' ? 20 : 12, steps: [], service: 'ai_image' });
+creditosMod.planOptions = async () => null;
+reiniciar('cotiza', { notaAjena: 'x' });
+const q1 = await resultado(cotizar('cotiza', 'high'));
+const d1 = docs.get('creatorJobs/cotiza');
+check('Q1) creatorQuote con el trabajo planned guarda la calidad y el precio (20), y nada más: lo demás queda como estaba',
+  q1.ok && q1.v.creditsEstimated === 20 && d1.quality === 'high' && d1.creditsEstimated === 20 && d1.notaAjena === 'x' && d1.status === 'planned' && d1.plan, JSON.stringify(q1.ok ? q1.v : q1.e?.message));
+reiniciar('carreraQ');
+antesDeLaTransaccion = () => {
+  /* creatorRun reclama el trabajo entre la lectura de la cotización y su escritura. */
+  docs.set('creatorJobs/carreraQ', { ...docs.get('creatorJobs/carreraQ'), runId: 'run-en-curso', claimedAt: Date.now() });
+};
+const q2 = await resultado(cotizar('carreraQ', 'high'));
+const d2 = docs.get('creatorJobs/carreraQ');
+check('Q2) LA CARRERA DE C-1: si una creación reclama el trabajo entre la lectura y la escritura de la cotización, «ya está en marcha», y el reclamo y el precio quedan intactos',
+  esDuplicado(q2) && d2.runId === 'run-en-curso' && d2.creditsEstimated === 12 && d2.quality === undefined, JSON.stringify({ runId: d2.runId, precio: d2.creditsEstimated }));
+reiniciar('enMarcha', { status: 'running', runId: 'r', claimedAt: Date.now() - 200_000 });
+const q3 = await resultado(cotizar('enMarcha', 'high'));
+check('Q3) con el trabajo en marcha, «ya está en marcha» y sigue running (antes la cotización lo devolvía a planned)',
+  esDuplicado(q3) && docs.get('creatorJobs/enMarcha').status === 'running' && docs.get('creatorJobs/enMarcha').creditsEstimated === 12);
+reiniciar('reservado', { runId: 'proceso-muerto', claimedAt: Date.now() - 120_000 });
+docs.set('creditTransactions/usage_reservado', { status: 'AUTHORIZED', amount: 12, requestId: 'reservado' });
+const q4 = await resultado(cotizar('reservado', 'high'));
+check('Q4) con una reserva ya hecha (de un intento que murió después de reservar), el precio NO cambia', esDuplicado(q4) && docs.get('creatorJobs/reservado').creditsEstimated === 12);
+respuestaDeReserva = () => ({ duplicate: true, status: 'AUTHORIZED', amount: 12 });
+const r4 = await resultado(correr('reservado'));
+check('Q5) …y el reintento de creatorRun reutiliza esa reserva, ejecuta y liquida: nada queda retenido',
+  r4.ok && r4.v.status === 'done' && eventos.filter((e) => e.startsWith('liquida')).join(',') === 'liquida:12:12', JSON.stringify(r4.ok ? r4.v : r4.e?.message));
+respuestaDeReserva = () => ({ duplicate: false, status: 'AUTHORIZED', amount: 12 });
+docs.delete('creditTransactions/usage_reservado');
+const fuenteQuote = leer('functions/src/creator/index.ts').split('export const creatorQuote')[1].split('\nexport const ')[0];
+check('Q6) creatorQuote ya no reescribe el documento: transacción y update de sus tres campos, nunca set',
+  !/\.set\(/.test(fuenteQuote) && /runTransaction/.test(fuenteQuote)
+  && /tx\.update\(ref, \{ quality: quality \?\? null, creditsEstimated: pricing\.total, updatedAt: now\(\) \}\)/.test(fuenteQuote)
+  && /usageTransactionId\(jobId\)/.test(fuenteQuote) && /RECLAMO_VIGENTE_MS/.test(fuenteQuote));
+creditosMod.estimatePlan = originalesQuote.estimar;
+creditosMod.planOptions = originalesQuote.opciones;
 
 /* ── E. El texto: holdCredits ya no tira la respuesta del Credit Engine ─── */
 const fuente = leer('functions/src/creator/credits.ts');
