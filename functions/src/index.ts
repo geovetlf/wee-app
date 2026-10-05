@@ -99,6 +99,7 @@ export { brainChat, brainQuote } from './creator/brain';
 // Weë Video Engine (Weë Studio → Seedance): petición abstracta de video y webhook preparado
 export { generateVideo } from './creator/video';
 export { seedanceCallback } from './engine/webhooks';
+export { evalRun } from './evals';
 
 /*
  * La página pública de una publicación: https://wee.zone/post/{postId}.

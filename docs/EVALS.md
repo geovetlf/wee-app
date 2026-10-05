@@ -6,14 +6,23 @@ Un sistema propio de WEE para responder **"¿esta modificación mejora la IA?"**
 
 F2-A evalúa la **decisión del router vivo** (`functions/src/engine/router.ts`, `route()`), que es determinista: a qué proveedor/modelo encamina, en qué orden, qué descarta y por qué, bajo qué política, respetando topes/cortacircuitos/interruptor. Se evalúa con dependencias **falsas** (proveedores, uso, salud) y graders **deterministas**: **sin proveedor real, sin juez-LLM, sin red, sin Firestore → COSTE $0**. `route()` ni ejecuta adaptadores ni abre el libro, así que una corrida no gasta nada (la suite lo afirma: `ejecuciones === 0`).
 
-### Piezas (todas en `ops/evals/`, solo desarrollo)
-- `contrato.mjs` — formato de `EvalCase`, veredictos, dimensiones, hash canónico, validación de dataset.
+### Dónde vive el motor
+
+El motor es **uno**: `functions/src/evals/motor/` (TypeScript). Vive ahí porque Cloud Functions solo empaqueta `functions/`: es el único sitio desde el que lo pueden usar a la vez `evalRun` (el camino real, abajo) y las herramientas de desarrollo. `ops/evals/` lo carga ya compilado (`functions/lib`, como el resto de `ops/` que lee el código de WEE; `npm run build --prefix functions` antes) y lo **reexporta**: no hay una segunda copia en ninguna parte.
+
+- `motor/contrato.ts` — formato común de un dataset, veredictos, dimensiones, hash canónico, validación.
+- `motor/dominios.ts` — el contrato de dominio, el registro y el paso común de cada caso (el motor comprueba lo que devuelve el dominio).
+- `motor/corredor.ts` — **EL corredor**: el único sitio de WEE donde se recorren los casos (`recorrerCasos`), y sus dos entradas, `ejecutarDataset` y `correrEvalGobernada`. Lo que cambia entre desarrollo y dinero real entra por un **entorno** (ganchos), nunca por una copia del bucle.
+- `motor/puntuacion.ts`, `motor/presupuesto.ts`, `motor/corrida.ts`, `motor/permisos.ts`, `motor/holdout.ts` — puntuación, presupuesto (decisión fail-closed y reserva/reconciliación), corrida (estados, idempotencia, reproducibilidad), permisos y holdout.
+
+### Piezas de desarrollo (`ops/evals/`)
+- `contrato.mjs`, `scoring.mjs`, `presupuesto.mjs`, `evalRun.mjs`, `permisos.mjs`, `holdout.mjs` — reexportan el motor (y `contrato.mjs` añade `DIMENSION_DE_GRADER`, que es del Router).
 - `escenario-router.mjs` — reconstruye el router vivo con dependencias falsas y devuelve la decisión normalizada.
 - `graders.mjs` — graders deterministas: `router/eleccion` (GOLDEN: proveedor/modelo), `router/orden`, `router/politica`, `router/descarte`, `router/disponibilidad`, `router/sin-demo-con-real`, `router/coste`, `router/latencia`.
-- `scoring.mjs` — puntúa por caso → dimensión → dataset; pesos de `config.json`.
-- `comparar.mjs` — baseline (inmutable) ↔ candidate → veredicto `ACCEPT` / `REJECT` / `NO_CHANGE` / `REVIEW_REQUIRED`.
-- `runner.mjs` — corredor de desarrollo (CLI). No conoce ningún dominio: lo resuelve por `dataset.dominio` en `dominios.mjs`.
-- `dominios.mjs` + `dominios/router.mjs` — el registro de dominios y el adaptador del Router (ver «Dominios», abajo).
+- `comparar.mjs` — baseline (inmutable) ↔ candidate → veredicto `ACCEPT` / `REJECT` / `NO_CHANGE` / `REVIEW_REQUIRED`. Es de ingeniería (el eval-gate, el CLI y el hillclimb comparan; `evalRun` no), así que vive aquí, una vez, y no viaja a producción.
+- `runner.mjs` — la línea de órdenes de desarrollo: corre el corredor común con el registro de desarrollo.
+- `gobernanza.mjs` — la corrida gobernada del motor con el registro de desarrollo, el almacén en memoria y el coste simulado.
+- `dominios.mjs` + `dominios/router.mjs` — el registro de dominios de desarrollo y el adaptador del Router sin coste (ver «Dominios», abajo).
 - `config.json` — pesos y umbrales (**configurables**, no fijados en el código).
 - `datasets/router/v1.json` — dataset versionado (hash canónico; 13 casos).
 - `baseline/router.json` — baseline comprometida (scores de referencia del router actual).
@@ -48,26 +57,28 @@ Pruebas: `functions/test/evals-gobernanza.test.mjs` (holdout, contaminación, pr
 
 ## Dominios: un motor, muchos dominios
 
-El Eval Engine es **infraestructura de todo WEE**, no del Router: el Router es solo el **primer dominio**. El motor —corredor, gobernanza, puntuación, comparación, holdout y contaminación, presupuesto, permisos y corrida— es **uno y común**. Un dominio aporta solo lo suyo, como un adaptador en `ops/evals/dominios/`:
+El Eval Engine es **infraestructura de todo WEE**, no del Router: el Router es solo el **primer dominio**. El motor —corredor, gobernanza, puntuación, comparación, holdout y contaminación, presupuesto, permisos y corrida— es **uno y común**. Un dominio aporta solo lo suyo, como un adaptador:
 
-- `decidir(caso)`: cómo se decide un caso **sin ejecutar adaptadores** (devuelve cuántas ejecuciones hubo; el $0 lo afirma el motor).
-- `calificar(decision, caso)`: sus graders, cada uno con su dimensión (QUALITY, COST, LATENCY, RELIABILITY).
-- `validarCaso(caso)`: la forma de su caso (la del Router: `capability` y `world`).
+- `decidir(caso, contexto)`: cómo se decide un caso. Devuelve cuántas ejecuciones de adaptador hubo (el $0 de desarrollo lo afirma el motor). `contexto` dice en qué corrida y caso está (`evalRunId`, `requestId`) y los límites de coste de la corrida (`maxOutputTokens`): un dominio real se niega a correr sin corrida, porque sin corrida no hay presupuesto.
+- `calificar(decision, caso, medicion)`: sus graders, cada uno con su dimensión (QUALITY, COST, LATENCY, RELIABILITY); `medicion` es lo que el corredor midió (el coste real del caso).
+- `validarCaso(caso)`: la forma de su caso (la del Router de desarrollo: `capability` y `world`).
 - `claveDeCaso(caso)` (opcional): qué identifica un caso para la contaminación; si no, la clave común.
 
-**Añadir un dominio** (Orchestrator, Planner, generación, Design, Music…) es un adaptador y una línea en `DOMINIOS` de `dominios.mjs`: **el motor no se toca**. Sin carga dinámica: un dataset solo nombra un dominio registrado (`dataset.dominio`) y cualquier otro nombre falla cerrado; del dataset nunca sale código. El motor comprueba lo que devuelve cada dominio (ejecuciones y dimensiones), así que un dominio no puede esconder un gasto ni inventarse una dimensión. Lo fija `functions/test/evals-dominios.test.mjs`, con un dominio de prueba que no es de WEE.
+Hay **dos registros y un solo mecanismo**: el de desarrollo (`ops/evals/dominios.mjs`, dominios que deciden sin ejecutar adaptadores, $0) y el real (`functions/src/evals/dominios.ts`, los que `evalRun` corre con el proveedor de verdad). Los dos se crean con el mismo `crearRegistroDeDominios` y se resuelven con el mismo `resolverDominio`.
 
-## Estado: F2-C1 (entregado, SIN desplegar) — el corredor real en infraestructura de WEE
+**Añadir un dominio** (Orchestrator, Planner, generación, Design, Music…) es un adaptador y una línea en el registro que toque: **el motor no se toca**. Sin carga dinámica: un dataset solo nombra un dominio registrado (`dataset.dominio`) y cualquier otro nombre falla cerrado; del dataset nunca sale código. El motor comprueba lo que devuelve cada dominio (ejecuciones y dimensiones), así que un dominio no puede esconder un gasto ni inventarse una dimensión. Lo fija `functions/test/evals-dominios.test.mjs`, con un dominio de prueba que no es de WEE; la misma suite comprueba que cada pieza del motor existe una vez y que hay **un solo bucle de casos** en todo el código de evals.
 
-> **No está en este PR.** La mitad real (`functions/src/evals`, `evalRun`) sigue en la copia de trabajo y entrará en su propio PR. Lo que sigue la describe tal como quedó; no usa el corredor de desarrollo, así que los dominios no la cambian.
+## Estado: F2-C1 (entregado, SIN desplegar) — el camino real, sobre el motor común
 
-El corredor de producción vive en `functions/src/evals/`, aparte del lado de autoría de `ops/evals/`:
-- `index.ts` — `ejecutarEvalRun` y el callable `evalRun` (ADMIN-ONLY con `assertAdmin`, FAIL-CLOSED). Reutiliza el motor vivo (`engine.generate`, el mismo embudo que todo lo demás) con `attribution: 'eval'` + `evalRunId`: cada intento queda en `aiGenerations` atado a su corrida y el libro desvía su gasto a `evalUsage/{día}` en vez de `aiUsage/{día}`. El gasto de eval no cuenta para el tope del usuario y **no se cobra a nadie**: no importa ni llama al Credit Engine.
-- `datos.ts` — dataset real mínimo (3 casos `text.generate`, tope duro de 3 por ejecución) y graders deterministas, sin juez-LLM.
-- `presupuesto.ts` — la reserva y la reconciliación del presupuesto, como lógica pura.
+`evalRun` **no tiene corredor propio**: corre el MISMO corredor que las herramientas de desarrollo (`motor/corredor.ts`, `correrEvalGobernada`), con un dominio del registro real y un **entorno de Firestore**. Lo que aporta, en `functions/src/evals/`:
+- `index.ts` — `ejecutarEvalRun` y el callable `evalRun` (ADMIN-ONLY con `assertAdmin`, FAIL-CLOSED) y su entorno: releer el interruptor y el tope antes de cada caso, la cancelación, saltar lo ya hecho, **reservar** el techo, leer el coste real de todos los intentos, **liberar** siempre, el rastro de cada caso y el estado del día al cerrar. El almacén de corridas en Firestore cumple el contrato del motor (`crearIdempotente`, `guardar`).
+- `dominios.ts` + `dominios/router.ts` — el registro real y el dominio Router real: decide con `engine.generate` (el mismo embudo que todo lo demás) con `attribution: 'eval'` + `evalRunId` + `maxOutputTokens`. Cada intento queda en `aiGenerations` atado a su corrida y el libro desvía su gasto a `evalUsage/{día}` en vez de `aiUsage/{día}`. El gasto de eval no cuenta para el tope del usuario y **no se cobra a nadie**: nada de esto importa ni llama al Credit Engine.
+- `datos.ts` — el dataset real mínimo, con la forma del contrato común (3 casos `text.generate`, tope duro de 3 por ejecución), y sus graders deterministas, cada uno en su dimensión, sin juez-LLM.
 - Persistencia server-only: `evalRuns/{id}` (con `casos/{caso}` como rastro de auditoría) y `evalUsage/{día}`, con `allow read, write: if false` en `firestore.rules`.
 
-Pruebas, a $0: `functions/test/evals-presupuesto.test.mjs` (cadena y CI: reserva, límite, reconciliación, sobrecoste, restante y una prueba de propiedad con 3 000 intercalados de corridas concurrentes) y `functions/test/evals-runner.emulator.mjs` (emulador de Firestore con `mock`: permisos, fail-closed, reserva, concurrencia, reconciliación, sobrecoste, idempotencia, cancelación y Credits intactos).
+Los estados son los del motor, más `COST_OVERRUN` (el coste real de un caso superó su techo, o no se pudo saber): solo desde `RUNNING` y terminal. Una corrida interrumpida guarda las métricas de lo que llegó a hacer; solo una corrida entera da `scores` para comparar.
+
+Pruebas, a $0: `functions/test/evals-presupuesto.test.mjs` (reserva, límite, reconciliación, sobrecoste, restante, una prueba de propiedad con 3 000 intercalados de corridas concurrentes, y por lectura del fuente que el corredor común reserva antes de generar y libera siempre), `functions/test/evals-corredor.test.mjs` (el corredor común con un entorno de dinero real SIMULADO en memoria, y que `evalRun` no recorre casos ni genera por su cuenta) y `functions/test/evals-runner.emulator.mjs` (emulador de Firestore con `mock`: permisos, fail-closed, reserva, concurrencia, reconciliación, sobrecoste, idempotencia, cancelación y Credits intactos).
 
 ### El hard cap del presupuesto: reserva + reconciliación
 
@@ -101,9 +112,9 @@ Ningún proveedor de texto ofrece un «máximo de dólares por llamada»: cobran
 - `cli.mjs verificar`: cada función nombrada en el objetivo (nunca `functions` a secas, máximo 6), commit ancestro de `origin/main`, CI en verde y `ops/permitido.mjs` (una función que no está en producción solo da un aviso: «se desplegaría por primera vez»).
 - El entorno `get-wee` de GitHub (aprobación del dueño) y WIF.
 
-**Hoy no se puede desplegar por ninguna vía autorizada:** F2-C1 no está en `main`, y no existen ni el entorno `get-wee` ni el pool de WIF (el mismo bloqueo que el resto de despliegues).
+**Desplegarla es una decisión del dueño, y hoy no está autorizada.** El camino existe (el entorno `get-wee` y WIF ya llevaron `spendCredits` a producción por `despliegue.yml`), pero estar en `main` no despliega nada.
 
-**Cuando el dueño lo autorice:** (1) commit y merge a `main`; (2) CI en verde; (3) lanzar `despliegue.yml` con `objetivo: functions:evalRun` **sola**, sin mezclarla con otras funciones; (4) el humo hace una petición sin sesión y acepta 2xx–4xx: para `evalRun`, un 401 («viva y cerrada»); (5) observación y registro del propio workflow; (6) inventarios: `ops/produccion.json` gana `evalRun`, que pasa de `no_se_despliegan` a un grupo de `grupos.json` (toda función viva va en un grupo), y las suites de inventario suben de 34 a 35 funciones vivas.
+**Cuando el dueño lo autorice:** (1) CI en verde en `main`; (2) lanzar `despliegue.yml` con `objetivo: functions:evalRun` **sola**, sin mezclarla con otras funciones; (3) el humo hace una petición sin sesión y acepta 2xx–4xx: para `evalRun`, un 401 («viva y cerrada»); (4) observación y registro del propio workflow; (5) inventarios: `ops/produccion.json` gana `evalRun`, que pasa de `no_se_despliegan` a un grupo de `grupos.json` (toda función viva va en un grupo), y las suites de inventario suben en una función viva.
 
 **Quién y con qué permisos:** el dueño, que es quien puede lanzar el workflow en `main` de `geovetlf/wee-app` y aprobar el entorno `get-wee`. La cuenta de despliegue necesita lo mismo que para cualquier otra función, y no hace falta conceder secretos nuevos: ninguna función fija su propia cuenta de servicio, así que `evalRun` monta los ocho secretos de modelo (`MODEL_SECRETS`) con los mismos permisos que ya usan `brainChat` o `engineAdmin`. El agente no puede desplegar: la guardia del Harness bloquea `firebase deploy` y no tiene credenciales.
 

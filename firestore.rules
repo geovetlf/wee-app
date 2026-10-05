@@ -1092,6 +1092,16 @@ service cloud.firestore {
     match /aiUsage/{day} {
       allow read, write: if false;
     }
+    // Evaluaciones internas (F2-C): corridas y gasto de eval. SOLO servidor/administración; el cliente no los ve ni los toca.
+    match /evalRuns/{evalRunId} {
+      allow read, write: if false;
+      match /{documento=**} {
+        allow read, write: if false;
+      }
+    }
+    match /evalUsage/{day} {
+      allow read, write: if false;
+    }
     // Libro de generaciones: cada persona lee las suyas; escribe solo el servidor
     match /aiGenerations/{generationId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;

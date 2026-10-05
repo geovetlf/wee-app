@@ -55,14 +55,21 @@ const VIVO_H0 = {
  * cambiará en el próximo despliegue de esas funciones. Hasta entonces el mapa vivo es un SUPERCONJUNTO
  * del código: una rotación hecha ANTES de desplegar dejaría servicios montando la versión vieja de una
  * clave que su código ya no lista. Por eso (1) fija el mapa del código con la misma exactitud que antes
- * y (1b) fija que la diferencia con lo vivo es EXACTAMENTE la retirada prevista y nada más.
+ * y (1b) fija que la diferencia con lo vivo es EXACTAMENTE la retirada prevista MÁS la única función nueva
+ * aún sin desplegar (evalRun, F2-C1), que monta los ocho secretos de modelo; cualquier otra diferencia falla.
+ *
+ * F2-C1: `evalRun` —el corredor de evaluaciones del Model Router, de ADMINISTRACIÓN— monta los OCHO secretos
+ * de modelo (`MODEL_SECRETS`) porque reutiliza el motor vivo. No crea vídeo (sin SEEDANCE_CALLBACK_TOKEN) ni
+ * toca R2, y NO está desplegada (ops/despliegue/grupos.json → no_se_despliegan): no corre en producción, así
+ * que una rotación no la deja con una versión vieja; por eso la añade al mapa del CÓDIGO y 1b la cuenta aparte.
  */
 const AVATAR = ['avatarReplacement', 'generateAvatarWithGemini'];
 const SIETE = NUEVE.filter((f) => !AVATAR.includes(f));
+const conEval = (l) => [...l, 'evalRun'].sort();
 const CODIGO = {
-  ANTHROPIC_API_KEY: SIETE, BFL_API_KEY: SIETE, DEEPSEEK_API_KEY: SIETE, ELEVENLABS_API_KEY: SIETE, MINIMAX_API_KEY: SIETE, OPENAI_API_KEY: SIETE,
-  GEMINI_API_KEY: NUEVE,
-  ARK_API_KEY: [...SIETE, 'barridoDeLiquidacion'].sort(),
+  ANTHROPIC_API_KEY: conEval(SIETE), BFL_API_KEY: conEval(SIETE), DEEPSEEK_API_KEY: conEval(SIETE), ELEVENLABS_API_KEY: conEval(SIETE), MINIMAX_API_KEY: conEval(SIETE), OPENAI_API_KEY: conEval(SIETE),
+  GEMINI_API_KEY: conEval(NUEVE),
+  ARK_API_KEY: conEval([...SIETE, 'barridoDeLiquidacion']),
   SEEDANCE_CALLBACK_TOKEN: ['creatorRun', 'generateVideo', 'seedanceCallback'],
   R2_ACCESS_KEY_ID: ['mediaCanary'], R2_SECRET_ACCESS_KEY: ['mediaCanary'],
 };
@@ -72,12 +79,21 @@ check('1) quién monta cada secreto en el código compilado es exactamente el ma
   distintos.length === 0, distintos.map((k) => `${k}: ${JSON.stringify(montajes[k] || [])}`).join(' | ') || `${Object.keys(montajes).length} secretos`);
 const retirados = Object.fromEntries(Object.keys(VIVO_H0).map((k) => [k, VIVO_H0[k].filter((f) => !(CODIGO[k] || []).includes(f))]).filter(([, l]) => l.length));
 const anadidos = Object.keys(CODIGO).flatMap((k) => CODIGO[k].filter((f) => !(VIVO_H0[k] || []).includes(f)).map((f) => `${k}→${f}`));
-check('1b) frente a lo vivo (H0) solo se RETIRA: el token sale de las cinco que no crean vídeo y el avatar se queda con Gemini; nada se añade',
-  anadidos.length === 0
+/* F2-C1: lo único añadido frente a H0 es evalRun en los ocho secretos de modelo, y tiene que estar SIN desplegar. */
+const MODELO = ['ANTHROPIC_API_KEY', 'ARK_API_KEY', 'BFL_API_KEY', 'DEEPSEEK_API_KEY', 'ELEVENLABS_API_KEY', 'GEMINI_API_KEY', 'MINIMAX_API_KEY', 'OPENAI_API_KEY'];
+const noDesplegadas = JSON.parse(leer('ops/despliegue/grupos.json')).no_se_despliegan.map((n) => n.funcion);
+check('1b) frente a lo vivo (H0): se RETIRA lo previsto (el token de las cinco que no crean vídeo; el avatar se queda con Gemini) y se AÑADE solo evalRun, en los ocho secretos de modelo y SIN desplegar',
+  anadidos.sort().join(',') === MODELO.map((k) => `${k}→evalRun`).sort().join(',')
+  && noDesplegadas.includes('evalRun')
   && JSON.stringify(retirados.SEEDANCE_CALLBACK_TOKEN) === JSON.stringify(['avatarReplacement', 'brainChat', 'brainQuote', 'creatorChat', 'creatorQuote', 'engineAdmin', 'generateAvatarWithGemini'])
   && ['ANTHROPIC_API_KEY', 'ARK_API_KEY', 'BFL_API_KEY', 'DEEPSEEK_API_KEY', 'ELEVENLABS_API_KEY', 'MINIMAX_API_KEY', 'OPENAI_API_KEY'].every((k) => JSON.stringify(retirados[k]) === JSON.stringify(AVATAR))
   && Object.keys(retirados).length === 8,
   JSON.stringify({ retirados, anadidos }));
+/* F2-C1: evalRun monta los secretos de modelo en el CÓDIGO, pero no es un servicio de Cloud Run; la rotación lo aparta. */
+const geminiVivas = rot.serviciosQueMontan(montajes, ['GEMINI_API_KEY']);
+check('1c) y esa función nueva (evalRun) NO es un servicio de Cloud Run: la rotación la aparta, aunque el código la monte',
+  montajes.GEMINI_API_KEY.includes('evalRun') && !geminiVivas.includes('evalRun') && geminiVivas.length === NUEVE.length,
+  geminiVivas.join(', '));
 const seguridad = leer('docs/SECURITY.md');
 const servicios = [...new Set(Object.values(VIVO_H0).flat())].map((f) => f.toLowerCase());
 check('2) docs/SECURITY.md §2 nombra los 12 servicios que montan secretos', servicios.length === 12 && servicios.every((s) => seguridad.includes(s)),
@@ -99,7 +115,8 @@ check('7) DeepSeek, el secreto que gestiona Firebase, lleva el aviso de secrets:
 
 /* ── C. Los comandos ─────────────────────────────────────────────────────── */
 const gemini = rot.ROTACIONES.find((r) => r.grupo === 'gemini');
-const fases = rot.comandosDeRotacion(gemini, 2, montajes.GEMINI_API_KEY);
+/* Los servicios VIVOS que montan GEMINI (sin evalRun, que no está desplegada): lo que la rotación de verdad toca. */
+const fases = rot.comandosDeRotacion(gemini, 2, geminiVivas);
 const lineas = fases.flatMap((f) => f.lineas);
 const titulos = fases.map((f) => f.fase);
 const posDe = (re) => titulos.findIndex((t) => re.test(t));

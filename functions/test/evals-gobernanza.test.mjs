@@ -116,9 +116,12 @@ check('G cargarHoldout autorizado devuelve casos y sello', (() => { const r = ca
 
 /* ── I. Separación dura de los Credits de usuario (en el CÓDIGO, no en los comentarios que explican la separación) ── */
 const sinComentarios = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
-check('I ningún módulo de F2-B toca Credits de usuario en su código', ['presupuesto.mjs', 'evalRun.mjs', 'gobernanza.mjs', 'permisos.mjs', 'holdout.mjs']
-  .every((f) => !/creditsBalance|creditTransactions|spendCredits|creditEngine|users\//.test(sinComentarios(fs.readFileSync(path.join(dir, f), 'utf8')))),
-  ['presupuesto.mjs', 'evalRun.mjs', 'gobernanza.mjs', 'permisos.mjs', 'holdout.mjs'].filter((f) => /creditsBalance|creditTransactions|spendCredits|creditEngine|users\//.test(sinComentarios(fs.readFileSync(path.join(dir, f), 'utf8')))).join(', '));
+/* El motor vive en functions/src/evals/motor y el camino real en functions/src/evals: se mira donde está el código. */
+const tsDe = (rel) => fs.readdirSync(path.join(RAIZ, rel), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? tsDe(`${rel}/${e.name}`) : e.name.endsWith('.ts') ? [`${rel}/${e.name}`] : []));
+const CODIGO_EVALS = [...['presupuesto.mjs', 'evalRun.mjs', 'gobernanza.mjs', 'permisos.mjs', 'holdout.mjs'].map((m) => `ops/evals/${m}`), ...tsDe('functions/src/evals')];
+const tocanCredits = CODIGO_EVALS.filter((rel) => /creditsBalance|creditTransactions|spendCredits|creditEngine|users\//.test(sinComentarios(fs.readFileSync(path.join(RAIZ, rel), 'utf8'))));
+check('I ningún módulo de evals —ni el motor ni evalRun— toca Credits de usuario en su código',
+  tocanCredits.length === 0 && CODIGO_EVALS.includes('functions/src/evals/motor/presupuesto.ts') && CODIGO_EVALS.includes('functions/src/evals/index.ts'), tocanCredits.join(', '));
 
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

@@ -51,7 +51,7 @@ espera al dueño). Qué frontera del código vive dónde y si está conectada: [
 | `.claude/commands/revision-de-fase.md` | El cierre de fase G0–G7: higiene, build, pruebas, detectores, selector, revisores, verificación, informe; sin commit ni deploy | Local |
 | `ops/harness/extensiones.mjs` + `ops/harness/extensiones/` | Las extensiones del Harness (F3): manifiestos solo de datos, permisos de un catálogo cerrado y una puerta que pasa cada acción por la guardia; `listar`, `validar`, `ejecutar` | Local |
 | `ops/harness/cierre.mjs` | El cierre de misión (F4): misión declarada + evidencias reales → JSON canónico y Markdown derivado; lo que no tiene evidencia es UNKNOWN | Local |
-| `ops/evals/*` (+ `ops/evals/dominios.mjs`) | El Eval Engine (F2): un motor común (correr, puntuar, comparar, holdout, presupuesto, permisos) y dominios registrados, el Router el primero; $0, sin proveedor ([EVALS.md](EVALS.md)) | Local |
+| `functions/src/evals/motor/*` + `ops/evals/*` | El Eval Engine (F2): UN motor común (el corredor, puntuar, holdout, presupuesto, permisos, corrida) en `functions/src/evals/motor`, que `ops/evals` reexporta para desarrollo ($0, sin proveedor) y `evalRun` corre con el proveedor real; dominios registrados, el Router el primero ([EVALS.md](EVALS.md)) | Local · `evalRun`: callable de administración, sin desplegar |
 
 ## Las extensiones (F3)
 
@@ -107,3 +107,9 @@ sabotaje, y fijados por nombre y tamaño en las cercas de F1-D:
 
 Ninguno cambia precios, la interfaz, los idiomas, el Brain, el Planner, el
 Algorithm Engine ni el Credit Engine.
+
+Y, de F2, el camino real del Eval Engine (`functions/src/evals`): el motor común
+y `evalRun`, un callable de administración que **no está desplegado**, apagado
+por defecto (`aiSettings/evalBudget`) y que gasta contra su propio presupuesto,
+nunca contra Credits. Del motor de IA solo toca el reenvío de `attribution` y
+`evalRunId` al libro, también fijado por nombre y tamaño en las cercas.

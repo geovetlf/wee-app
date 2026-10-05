@@ -10,13 +10,17 @@
  * ejecuta, línea a línea, desde su terminal (docs/SECURITY.md §4 y §5). Quién
  * monta cada secreto sale del código COMPILADO (`functions/lib`), que es lo que
  * se despliega; functions/test/rotacion-secretos.test.mjs comprueba que coincide
- * con lo que la auditoría H0 vio vivo en producción.
+ * con lo que la auditoría H0 vio vivo en producción. Las funciones que el código
+ * monta pero AÚN NO se despliegan (ops/despliegue/grupos.json → no_se_despliegan,
+ * p. ej. evalRun) NO son servicios de Cloud Run, así que la rotación no las toca:
+ * `serviciosQueMontan` las aparta (si no, `gcloud run services update <esa>` fallaría).
  *
  * Por qué NO `firebase functions:secrets:set`: con un secreto que gestiona
  * Firebase pregunta si redesplegar y destruir la versión vieja, y por defecto es
  * Sí. Destruida, no hay marcha atrás. Aquí la versión vieja se conserva hasta
  * haber verificado, se deshabilita después (reversible) y se destruye la última.
  */
+import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -85,6 +89,19 @@ export const montajes = (compilado) => {
   return porSecreto;
 };
 
+/** Las funciones que el código monta pero aún NO se despliegan (ops/despliegue/grupos.json): no son servicios de Cloud Run. */
+const sinDesplegar = () => new Set(JSON.parse(fs.readFileSync(path.join(RAIZ, 'ops/despliegue/grupos.json'), 'utf8')).no_se_despliegan.map((n) => n.funcion));
+
+/**
+ * Los servicios VIVOS que montan unos secretos: lo que el código monta MENOS lo que aún no se despliega. La rotación
+ * actualiza revisiones de Cloud Run, así que solo puede tocar funciones desplegadas; una que el código monta pero que
+ * no está en producción (p. ej. evalRun, de F2-C1) haría fallar `gcloud run services update`.
+ */
+export const serviciosQueMontan = (mapa, secretos) => {
+  const fuera = sinDesplegar();
+  return [...new Set(secretos.flatMap((s) => mapa[s] || []))].filter((f) => !fuera.has(f)).sort();
+};
+
 const servicio = (funcion) => funcion.toLowerCase();
 const dondeCorre = `--region ${REGION} --project ${PROYECTO}`;
 
@@ -148,7 +165,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     if (!rotacion) { console.log(`✘ grupo desconocido: ${grupo} (${ROTACIONES.map((r) => r.grupo).join(', ')})`); process.exit(1); }
     const require = createRequire(import.meta.url);
     const mapa = montajes(require(path.join(RAIZ, 'functions/lib/index.js')));
-    const funciones = [...new Set(rotacion.secretos.flatMap((s) => mapa[s] || []))].sort();
+    const funciones = serviciosQueMontan(mapa, rotacion.secretos);
     const versiones = String(version || '').split(',');
     try {
       const fases = comandosDeRotacion(rotacion, versiones.length > 1 ? versiones : versiones[0], funciones);

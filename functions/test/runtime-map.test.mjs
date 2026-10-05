@@ -273,6 +273,13 @@ const FUNCTIONS = {
   './engine/webhooks': ['seedanceCallback'],
   './public/postPage': ['publicPostPage'],
   './engine/admin': ['engineAdmin'],
+  /*
+   * F2-C1: el camino real del Eval Engine (corre el corredor COMÚN de functions/src/evals/motor). Callable de
+   * ADMINISTRACIÓN que reutiliza el motor vivo (`engine.generate` desde su dominio real, embudo 102) con identidad y
+   * presupuesto propios; no cobra Credits del usuario. No está
+   * desplegada (ops/despliegue/grupos.json → no_se_despliegan): está en el mapa porque el código la exporta.
+   */
+  './evals': ['evalRun'],
   './content': ['deleteAsset'],
   './social/polls': ['votePoll'],
   './social/weetalk': ['burnViewOnce'],
@@ -364,12 +371,12 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y cinco: las treinta y dos de antes, Elements (S5), Scenes/Shots (C3) y Productions (F1-B)', reales.length === 35, `${reales.length}`);
+  check('5) y son treinta y seis: las treinta y cinco de antes (hasta Productions, F1-B) y evalRun (F2-C1, de administración, sin desplegar)', reales.length === 36, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *
-   * S5, C3 y F1-B tuvieron que tocar este mapa: cada una añadió una Function
-   * —`elements`, `shots` y `productions`—. Actualizar una guarda es la forma más
+   * S5, C3, F1-B y F2-C1 tuvieron que tocar este mapa: cada una añadió una Function
+   * —`elements`, `shots`, `productions` y `evalRun`—. Actualizar una guarda es la forma más
    * fácil de desactivarla sin querer, así que aquí se demuestra que sigue
    * haciendo su trabajo: se le presenta una Function que NADIE declaró y se
    * comprueba que la detectaría.
@@ -377,7 +384,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const inventada = [...reales, 'functionQueNadieDeclaro'];
   check('5b) y la guarda SIGUE PROTEGIENDO: una Function sin clasificar se detecta',
     inventada.filter((f) => !declaradas.includes(f)).join(',') === 'functionQueNadieDeclaro'
-    && inventada.length !== 35);
+    && inventada.length !== 36);
 
   const malUbicadas = Object.entries(FUNCTIONS).filter(([mod, fns]) => !igual(fns, porModulo[mod] || []));
   check('6) cada una sale del módulo que el mapa dice', malUbicadas.length === 0, malUbicadas.map(([m]) => m).join(', '));
@@ -510,10 +517,15 @@ console.log('\n── D · Un solo motor EN USO por pieza ──');
    * que es justo por lo que se eligió este camino— con `creditsEstimated: 0` y
    * sin transacción de Credits, y detrás de un interruptor cerrado por defecto.
    * Que aparezca aquí es la prueba de que NO se abrió un camino paralelo.
+   *
+   * `evals/dominios/router.ts` entra con F2-C1: el dominio real del Router en el Eval
+   * Engine ejecuta una generación REAL por el MISMO embudo —Router y libro incluidos—, con
+   * `attribution: 'eval'` para que el gasto se mida aparte y sin tocar los Credits
+   * del usuario. Que aparezca aquí prueba que las evals NO rodean el motor.
    */
   const embudo = donde(/\bengine\.generate\(/, (r) => !r.startsWith('core/'));
   check('102) todo lo que pide IA entra por un único embudo: `engine.generate`',
-    igual(embudo, ['creator/brain.ts', 'creator/index.ts', 'engine/video.ts', 'gateway/index.ts']), embudo.join(', '));
+    igual(embudo, ['creator/brain.ts', 'creator/index.ts', 'engine/video.ts', 'evals/dominios/router.ts', 'gateway/index.ts']), embudo.join(', '));
   check('103) y a `runCapability` solo lo llama Weë Creator', igual(donde(/\brunCapability\(/, (r) => r !== 'gateway/index.ts'), ['creator/index.ts', 'creator/planner.ts']));
   /*
    * LA ÚNICA DUPLICACIÓN DE RUNTIME QUE EXISTE HOY, y está a la vista a propósito:

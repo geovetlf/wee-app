@@ -38,6 +38,12 @@ const CONFIG = JSON.parse(leer('ops/evals/config.json'));
 const DATASET = JSON.parse(leer('ops/evals/datasets/router/v1.json'));
 const HOLDOUT = JSON.parse(leer('ops/evals/datasets/router/holdout-v1.json'));
 const BASELINE = JSON.parse(leer('ops/evals/baseline/router.json'));
+/* El motor vive en functions/src/evals/motor (lo que Cloud Functions empaqueta); ops/evals lo reexporta. Las
+ * comprobaciones de FUENTE leen el motor donde está y, además, lo de ops/evals y el camino real (functions/src/evals). */
+const DIR_MOTOR = 'functions/src/evals/motor';
+const tsDe = (rel) => fs.readdirSync(path.join(RAIZ, rel), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? tsDe(`${rel}/${e.name}`) : e.name.endsWith('.ts') ? [`${rel}/${e.name}`] : []));
+const MOTOR_TS = tsDe(DIR_MOTOR);
+const TS_DE_EVALS = tsDe('functions/src/evals');
 
 /* Un dominio DE PRUEBA: repite la entrada. Solo existe en esta suite. */
 const dominioEco = {
@@ -83,7 +89,7 @@ check('4) un dominio desconocido falla de forma determinista (mismo mensaje, cer
 /* ── Un segundo dominio entra por el registro, sin tocar el motor ─────────── */
 const runEco = await intentar(() => ejecutarDataset(datasetEco, CONFIG, { dominios: conEco }));
 const MOTOR = ['runner.mjs', 'gobernanza.mjs', 'scoring.mjs', 'comparar.mjs', 'holdout.mjs', 'presupuesto.mjs', 'permisos.mjs', 'evalRun.mjs', 'contrato.mjs', 'dominios.mjs'];
-const motorMencionaEco = MOTOR.filter((f) => /\beco\b/.test(fs.readFileSync(path.join(dir, f), 'utf8')));
+const motorMencionaEco = [...MOTOR.filter((f) => /\beco\b/.test(fs.readFileSync(path.join(dir, f), 'utf8'))), ...MOTOR_TS.filter((f) => /\beco\b/.test(leer(f)))];
 check('5) un segundo dominio (de prueba) se registra con el mecanismo común y corre por el MISMO corredor, sin que el motor sepa de él',
   !runEco.error && runEco.dominio === 'eco' && runEco.scores.n === 6 && runEco.scores.aprobados === 6 && runEco.ejecuciones === 0 && motorMencionaEco.length === 0
   && /dominio desconocido: "eco"/.test((await falla(() => ejecutarDataset(datasetEco, CONFIG))) || ''), runEco.error || motorMencionaEco.join(', '));
@@ -132,14 +138,32 @@ check('12) la idempotencia sigue funcionando: la misma spec es la MISMA corrida,
 /* ── F2 sigue en pie, sin motor duplicado y sin poderes ───────────────────── */
 const suitesF2 = ['evals-router', 'evals-gobernanza'].map((s) => [s, spawnSync(process.execPath, [`test/${s}.test.mjs`], { cwd: path.join(RAIZ, 'functions'), encoding: 'utf8' }).status]);
 check('13) las suites de F2 siguen pasando tal cual', suitesF2.every(([, st]) => st === 0), suitesF2.map(([s, st]) => `${s}=${st}`).join(', '));
-const definiciones = ['ejecutarDataset', 'correrEvalGobernada', 'puntuar', 'comparar', 'decidirPresupuesto', 'accederHoldout', 'crearEvalRun', 'detectarContaminacion']
-  .map((n) => [n, modulos.filter((f) => new RegExp(`export const ${n} =`).test(fs.readFileSync(path.join(dir, f), 'utf8'))).length]);
+const fuentesEvals = [...modulos.map((f) => [`ops/evals/${f}`, fs.readFileSync(path.join(dir, f), 'utf8')]), ...TS_DE_EVALS.map((f) => [f, leer(f)])];
+const definidaEn = (n) => fuentesEvals.filter(([, t]) => new RegExp(`export const ${n} =`).test(t)).map(([f]) => f);
+const PIEZAS = ['recorrerCasos', 'puntuar', 'decidirPresupuesto', 'cabeLaReserva', 'accederHoldout', 'crearEvalRun', 'transicionar', 'detectarContaminacion', 'crearRegistroDeDominios', 'resolverDominio', 'decidirYCalificar'];
+const definiciones = PIEZAS.map((n) => [n, definidaEn(n)]);
+/* La comparación es de ingeniería (el CLI y el hillclimb la usan; evalRun no compara): vive UNA vez, en ops/evals. */
+const comparacion = definidaEn('comparar');
+/* Las dos entradas del corredor: una definición en el motor y, en ops, solo el ENLACE con el registro de desarrollo. */
+const ENLACES = { ejecutarDataset: 'ops/evals/runner.mjs', correrEvalGobernada: 'ops/evals/gobernanza.mjs' };
+const enlaces = Object.entries(ENLACES).map(([n, enlace]) => [n, definidaEn(n), new RegExp(`corredor\\.${n}\\(`).test(leer(enlace))]);
+const bucles = fuentesEvals.filter(([, t]) => /for \(const caso of /.test(t)).map(([f]) => f);
 const adaptadores = modulos.filter((f) => f.startsWith('dominios/'));
-const adaptadorConMotor = adaptadores.filter((f) => /from '\.\.\/(runner|gobernanza|scoring|comparar|holdout|presupuesto|permisos|evalRun)\.mjs'/.test(fs.readFileSync(path.join(dir, f), 'utf8')));
-check('14) no hay motor duplicado: cada pieza del motor existe UNA vez y los adaptadores de dominio no traen ni importan motor',
-  definiciones.every(([, n]) => n === 1) && adaptadores.join() === 'dominios/router.mjs' && adaptadorConMotor.length === 0, definiciones.map(([n, c]) => `${n}:${c}`).join(' '));
-const conPoderes = modulos.filter((f) => /child_process|\bfetch\(|https?:\/\/|firebase|git push|gh pr|deploy/.test(fs.readFileSync(path.join(dir, f), 'utf8')));
-check('15) ninguna capacidad de despliegue, merge, push ni red: ningún módulo de evals lanza procesos ni habla con nada', conPoderes.length === 0, conPoderes.join(', '));
+const adaptadorConMotor = adaptadores.filter((f) => /from '\.\.\/(runner|gobernanza|scoring|comparar|holdout|presupuesto|permisos|evalRun|motor)\.mjs'/.test(fs.readFileSync(path.join(dir, f), 'utf8')));
+const adaptadoresReales = TS_DE_EVALS.filter((f) => f.startsWith('functions/src/evals/dominios/'));
+const realConMotor = adaptadoresReales.filter((f) => /from '\.\.\/motor\/(corredor|puntuacion|comparar|holdout|permisos|corrida)'/.test(leer(f)));
+check('14) no hay motor duplicado: cada pieza existe UNA vez —en el motor, y la comparación (de ingeniería) en ops/evals—; ops/evals solo la reexporta (el corredor, enlazado con su registro); hay UN solo bucle de casos; y los adaptadores no traen motor',
+  definiciones.every(([, d]) => d.length === 1 && d[0].startsWith(`${DIR_MOTOR}/`))
+  && enlaces.every(([n, d, delega]) => d.length === 2 && d.includes(`${DIR_MOTOR}/corredor.ts`) && d.includes(ENLACES[n]) && delega)
+  && comparacion.join() === 'ops/evals/comparar.mjs'
+  && bucles.join() === `${DIR_MOTOR}/corredor.ts`
+  && adaptadores.join() === 'dominios/router.mjs' && adaptadorConMotor.length === 0
+  && adaptadoresReales.join() === 'functions/src/evals/dominios/router.ts' && realConMotor.length === 0,
+  [...definiciones.map(([n, d]) => `${n}:${d.join('+') || '—'}`), ...enlaces.map(([n, d, x]) => `${n}:${d.join('+')}${x ? '' : ' (sin delegar)'}`), `comparar:${comparacion.join('+')}`, `bucles:${bucles.join('+')}`].join(' '));
+const PODERES = /child_process|\bfetch\(|https?:\/\/|firebase|git push|gh pr|deploy/;
+const conPoderes = [...modulos.filter((f) => PODERES.test(fs.readFileSync(path.join(dir, f), 'utf8'))), ...MOTOR_TS.filter((f) => PODERES.test(leer(f)))];
+check('15) ninguna capacidad de despliegue, merge, push ni red: ni ops/evals ni el motor lanzan procesos ni hablan con nada (Firestore y el proveedor son del entorno de evalRun, no del motor)',
+  conPoderes.length === 0 && MOTOR_TS.length >= 8, conPoderes.join(', ') || `motor: ${MOTOR_TS.length} archivos`);
 
 /* ── El motor no se fía del dominio ───────────────────────────────────────── */
 const sinEjecuciones = crearRegistroDeDominios([{ ...dominioEco, id: 'opaco', decidir: async () => ({ salida: 'x' }) }]);
