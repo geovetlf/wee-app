@@ -12,6 +12,8 @@
  * Lo vigila `functions/test/filmmaker-espejo.test.mjs`.
  */
 export * from './filmmaker/espejo/core/escena3d';
+/* Y el contrato de `world.generate` (WEË 3D Engine): lo que se pide y lo que sale, en palabras de Weë. */
+export * from './filmmaker/espejo/core/mundo3d';
 
 /* Del Core, lo que una escena 3D nombra: la capacidad que la llena, la forma de un id de material y el catálogo. */
 export type { CapabilityId } from './filmmaker/espejo/core/capability';

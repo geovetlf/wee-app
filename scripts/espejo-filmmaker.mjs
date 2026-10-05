@@ -57,7 +57,7 @@ export const DESTINO_DEL_ESPEJO = 'services/filmmaker/espejo';
  * del de F1-A; si algún día importara otro módulo del Core, la prueba del
  * espejo lo mediría y exigiría añadirlo aquí abajo.
  */
-export const RAICES_DEL_NUCLEO_3D = Object.freeze(['core/escena3d.ts']);
+export const RAICES_DEL_NUCLEO_3D = Object.freeze(['core/escena3d.ts', 'core/mundo3d.ts']);
 
 /**
  * El dominio y su cierre en el Core, medido siguiendo sus `import`, más el

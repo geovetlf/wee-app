@@ -13,6 +13,7 @@ export const VISUAL_CONTEXT_CONTRACT_VERSION = '1.0' as const;
 export const CONTINUITY_CONTRACT_VERSION = '1.0' as const;
 export const SHOT_CONTRACT_VERSION = '1.0' as const;
 export const ESCENA3D_CONTRACT_VERSION = '1.0' as const;
+export const MUNDO3D_CONTRACT_VERSION = '1.0' as const;
 export const PLANNER_CONTRACT_VERSION = '1.0' as const;
 export const MAX_PROPUESTAS_POR_PASO = 4;
 export const ALGORITHM_CONTRACT_VERSION = '1.12' as const;

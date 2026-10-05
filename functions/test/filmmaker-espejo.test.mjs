@@ -115,9 +115,10 @@ seccion('A', () => {
   }
   check('A4) la lista del generador ES el cierre de importaciones de F1-A y del núcleo 3D, medido', iguales([...cierre].sort(), [...GEN.ARCHIVOS_DEL_ESPEJO].sort()),
     [...cierre].filter((r) => !GEN.ARCHIVOS_DEL_ESPEJO.includes(r)).join(', ') || `${cierre.size} archivos`);
-  check('A4b) el núcleo 3D es UNA raíz —el WEË 3D Engine del Core— y su cierre no añade nada que F1-A no tuviera',
-    iguales([...GEN.RAICES_DEL_NUCLEO_3D], ['core/escena3d.ts'])
-    && [...leer(`${GEN.ORIGEN_DEL_ESPEJO}/core/escena3d.ts`).matchAll(/from '(\.{1,2}\/[^']+)'/g)].every((m) => ['./contracts', './identity'].includes(m[1])));
+  check('A4b) el núcleo 3D son DOS raíces del mismo WEË 3D Engine —la escena y el contrato de world.generate— y su cierre no añade nada que F1-A no tuviera',
+    iguales([...GEN.RAICES_DEL_NUCLEO_3D], ['core/escena3d.ts', 'core/mundo3d.ts'])
+    && [...leer(`${GEN.ORIGEN_DEL_ESPEJO}/core/escena3d.ts`).matchAll(/from '(\.{1,2}\/[^']+)'/g)].every((m) => ['./contracts', './identity'].includes(m[1]))
+    && [...leer(`${GEN.ORIGEN_DEL_ESPEJO}/core/mundo3d.ts`).matchAll(/from '(\.{1,2}\/[^']+)'/g)].every((m) => ['./contracts', './capability', './content/asset', './escena3d'].includes(m[1])));
   check('A5) de `core/gateway.ts` solo entra `ExecutionHints`, como en F1-A', iguales([...GEN.TIPOS_DEL_GATEWAY], ['ExecutionHints'])
     && /^import type \{ ExecutionHints \} from '\.\.\/core\/gateway';$/m.test(leer(`${GEN.ORIGEN_DEL_ESPEJO}/filmmaker/modelo.ts`))
     && !/export (const|function|class) /.test(actual.get('core/gateway.ts') ?? ''));

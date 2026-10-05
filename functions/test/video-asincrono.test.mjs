@@ -624,17 +624,18 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     'functions/src/engine/jurisdiccion.ts': '46\t0', // misión fal (nuevo): el conector de la jurisdicción —el país que declara el Perfil Real, leído en el servidor—
     'functions/src/engine/ledger.ts': '19\t2', // harness/fase-2 (H0 #22) · F2-C1 (+7 −1, antes 12/1): el gasto de eval (attribution:'eval') se contabiliza en evalUsage/{día}, no en el tope del usuario
     'functions/src/engine/limits.ts': '40\t4', // F1-D (decisión 14) + 5e87b80 (FASE 8) + harness/fase-2 (H0 #22) · misión fal (+2 −1, antes 38/3): cupo diario de la modalidad 3d
+    'functions/src/engine/mundo.ts': '12\t0', // misión mundo3d (nuevo): el contrato de world.generate (core/mundo3d) reexportado para los adaptadores, que no importan del Core
     'functions/src/engine/promptLanguage.ts': '21\t0', // cierre post-auditoría 2026-10-01 (nuevo en el mapa, +21): SISTEMA_POR_DEFECTO neutro y `pideTextoPlano` (server/prompts-internos)
     'functions/src/engine/providers/claude.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/deepseek.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
-    'functions/src/engine/providers/fal-modelos.ts': '116\t0', // misión fal (nuevo): los modelos de fal como DATOS, con su gobierno y sus reglas territoriales
-    'functions/src/engine/providers/fal.ts': '393\t0', // misión fal (nuevo): el adaptador de fal (cola, fotos en línea, avisos firmados, cancelación, reconciliación)
+    'functions/src/engine/providers/fal-modelos.ts': '147\t0', // misión fal (nuevo): los modelos de fal como DATOS, con su gobierno y sus reglas territoriales · misión mundo3d (+31, antes 116/0): el mapeo de la entrada de Weë a su esquema y el papel del archivo de salida, como datos
+    'functions/src/engine/providers/fal.ts': '424\t0', // misión fal (nuevo): el adaptador de fal (cola, fotos en línea, avisos firmados, cancelación, reconciliación) · misión mundo3d (+31, antes 393/0): traduce la entrada de Weë con los datos del mapeo y no escribe ningún campo de fal
     'functions/src/engine/providers/gemini.ts': '4\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/openai.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/seedance.ts': '33\t19', // F1-D (ficha 6) + 8a9f098 (#21)
     'functions/src/engine/registry.ts': '17\t1', // 0ad8500 (#19) · misión fal (+15 −1, antes 2/0): fal en ADAPTERS (apagado), la cadena de world.generate y el plazo de la modalidad 3d
     'functions/src/engine/router.ts': '122\t13', // 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK · harness/fase-2 (H0 #22) · cierre post-auditoría 2026-10-01 · F2-C1 (+2, antes 57/4) · misión fal (+63 −9, antes 59/4): la elegibilidad con las jurisdicciones de la operación —de la petición o de la cuenta, solo si algún modelo las necesita—, el descarte con su escalón y su modelo, NOT_AVAILABLE «sin_modelo_elegible» y la decisión al libro (auditoría)
-    'functions/src/engine/types.ts': '149\t3', // 0ad8500 (#19) · 5e87b80 (FASE 8) · F2-C1 (+10, antes 19/0) · misión fal (+120 −3, antes 29/0): gobierno y territorio del modelo, escalones de elegibilidad, jurisdicciones de la operación, la decisión en el libro, modalidad 3d
+    'functions/src/engine/types.ts': '194\t3', // misión mundo3d (+45, antes 149/3): el papel de un archivo de salida, las variantes de un resultado y el origen de un campo del proveedor en la entrada de Weë · 0ad8500 (#19) · 5e87b80 (FASE 8) · F2-C1 (+10, antes 19/0) · misión fal (+120 −3, antes 29/0): gobierno y territorio del modelo, escalones de elegibilidad, jurisdicciones de la operación, la decisión en el libro, modalidad 3d
     'functions/src/engine/verification.ts': '8\t0', // misión fal (nuevo en el mapa): la ficha de fal, documentada y sin verificar con la API real
     'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
     'functions/src/generateAvatar.ts': '132\t15', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar) · cierre post-auditoría 2026-10-01 (+3 −3, antes 129/12): el avatar monta AVATAR_SECRETS (solo Gemini)
@@ -655,8 +656,12 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * `world` y sus derechos, el núcleo 3D (escena3d, nuevo) y su contrato, el tipo `aggregator` del registro, los dos
    * tipos de resultado y la modalidad en el Router (job-queue 63fal). Aditivo: ningún contrato sube de versión.
    */
-  const CORE_DE_LA_MISION_FAL = '4\t2\tfunctions/src/core/capability.ts|44\t2\tfunctions/src/core/content/asset.ts|6\t0\tfunctions/src/core/contracts.ts'
-    + '|216\t0\tfunctions/src/core/escena3d.ts|1\t0\tfunctions/src/core/index.ts|2\t1\tfunctions/src/core/provider.ts'
+  /*
+   * + misión mundo3d (2026-10-05): el contrato canónico de world.generate (mundo3d, nuevo), su versión en contracts (+6),
+   * su exportación (index +1) y la forma de un id del núcleo 3D exportada para reutilizarla (escena3d +1).
+   */
+  const CORE_DE_LA_MISION_FAL = '4\t2\tfunctions/src/core/capability.ts|44\t2\tfunctions/src/core/content/asset.ts|12\t0\tfunctions/src/core/contracts.ts'
+    + '|217\t0\tfunctions/src/core/escena3d.ts|2\t0\tfunctions/src/core/index.ts|364\t0\tfunctions/src/core/mundo3d.ts|2\t1\tfunctions/src/core/provider.ts'
     + '|6\t0\tfunctions/src/core/registry/capabilities.ts|6\t2\tfunctions/src/core/registry/types.ts|2\t2\tfunctions/src/core/router.ts';
   check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal, del tamaño exacto',
     git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions`).trim() === ''

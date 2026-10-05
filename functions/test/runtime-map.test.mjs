@@ -179,6 +179,13 @@ const OTROS_DEL_CORE = {
   'core/algorithm/types.js': ['TOPES_POR_DEFECTO'],
   'core/observability.js': ['trazaLimpia'],
   /*
+   * Misión «cerrar los gaps de world.generate» (2026-10-05): el contrato canónico del mundo. El adaptador de fal lee
+   * la entrada de Weë con el lector del propio contrato (por `engine/mundo.ts`, sin escribir `core/`), así que el
+   * contrato está en producción por lo que LEE, no por ninguna puerta abierta: `world.generate` sigue sin modelo
+   * elegible y sin puerta abierta.
+   */
+  'core/mundo3d.js': ['leerEntradaDeMundo3D'],
+  /*
    * S5: exportar la puerta de Elements pone en producción los dos contratos de
    * S3. Es lo esperado y es lo que estas listas existen para enseñar: qué usa
    * de verdad y qué no. Fíjate en lo que NO aparece —`archivar`,

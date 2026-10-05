@@ -510,6 +510,8 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
    *   común), providers/fal.ts y fal-modelos.ts (nuevos), verification.ts +8 (su ficha), registry.ts +15 −1 (antes 2/0),
    *   router.ts +63 −9 (antes 59/4), types.ts +120 −3 (antes 29/0), index.ts +3 −1 y jurisdiccion.ts (nuevo, el conector de la jurisdicción de la cuenta), gateway.ts +8 −2 (antes 2/0) y limits.ts +2 −1
    *   (antes 38/3). Cifras de `git diff --numstat b023f24`; el detalle de cada una, en video-asincrono H2.
+   * + misión mundo3d (2026-10-05): mundo.ts (nuevo, el contrato de world.generate para los adaptadores), types.ts +45
+   *   (antes 149/3), fal.ts +31 (antes 393/0) y fal-modelos.ts +31 (antes 116/0). Ni un proveedor ni una cadena nuevos.
    */
   check('E4) para el vídeo, Seedance y solo Seedance; el único proveedor nuevo es fal, con la única cadena nueva (world.generate)',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
@@ -527,7 +529,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * GenerationRecord) y router.ts 57/4 → 59/4 (reenvía esos dos campos al contexto del libro). SIGUE sin haber
        * proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|193\t0\tfunctions/src/engine/elegibilidad.ts|1\t1\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|116\t0\tfunctions/src/engine/providers/fal-modelos.ts|393\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|122\t13\tfunctions/src/engine/router.ts|149\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|193\t0\tfunctions/src/engine/elegibilidad.ts|1\t1\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|147\t0\tfunctions/src/engine/providers/fal-modelos.ts|424\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|122\t13\tfunctions/src/engine/router.ts|194\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 
@@ -612,8 +614,14 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     'functions/src/registry/excepciones.ts', 'functions/src/registry/index.ts',
     /* + la jurisdicción de la cuenta conectada al Router (engine/index y el conector) y runtime/politica alineada a fail-closed. */
     'functions/src/engine/index.ts', 'functions/src/engine/jurisdiccion.ts', 'functions/src/runtime/politica.ts'];
+  /*
+   * Los de la MISIÓN mundo3d (2026-10-05, «cerrar los gaps de world.generate»), por nombre: el contrato canónico del
+   * mundo en el Core (mundo3d, nuevo) y su reexportación para los adaptadores (engine/mundo, nuevo). contracts, index,
+   * escena3d, types, fal y fal-modelos ya estaban declarados (sus tamaños, en E4, F3 y video-asincrono H2/H3).
+   */
+  const DE_LA_MISION_MUNDO3D = ['functions/src/core/mundo3d.ts', 'functions/src/engine/mundo.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1) y de la misión fal',
-    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL,
+    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
@@ -636,8 +644,9 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; del tamaño exacto',
     git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === `${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. Del Core, solo la misión fal (video-asincrono H3). */
-  const CORE_DE_LA_MISION_FAL = '4\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n6\t0\tfunctions/src/core/contracts.ts'
-    + '\n216\t0\tfunctions/src/core/escena3d.ts\n1\t0\tfunctions/src/core/index.ts\n2\t1\tfunctions/src/core/provider.ts'
+  /* + misión mundo3d (2026-10-05): mundo3d (nuevo), contracts +6, index +1 y escena3d +1 (ver video-asincrono H3). */
+  const CORE_DE_LA_MISION_FAL = '4\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n12\t0\tfunctions/src/core/contracts.ts'
+    + '\n217\t0\tfunctions/src/core/escena3d.ts\n2\t0\tfunctions/src/core/index.ts\n364\t0\tfunctions/src/core/mundo3d.ts\n2\t1\tfunctions/src/core/provider.ts'
     + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
   check('F3) ni F1-A ni productions; del Core, solo la misión fal; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',
     git(`diff --name-only ${RUTA} -- functions/src/filmmaker functions/src/productions`).trim() === ''

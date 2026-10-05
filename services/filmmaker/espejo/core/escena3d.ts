@@ -67,8 +67,8 @@ export interface Escena3D extends OwnedByAccount {
     createdAt: number;
     updatedAt: number;
 }
-const ID = /^[A-Za-z0-9_-]{1,128}$/;
-const esId = (v: unknown): v is string => typeof v === 'string' && ID.test(v);
+export const FORMA_DE_ID_3D = /^[A-Za-z0-9_-]{1,128}$/;
+const esId = (v: unknown): v is string => typeof v === 'string' && FORMA_DE_ID_3D.test(v);
 const finitos = (v: unknown, n: number): boolean => Array.isArray(v) && v.length === n && v.every((x) => typeof x === 'number' && Number.isFinite(x));
 const erroresDeTransformacion = (t: unknown, donde: string): string[] => {
     if (!t || typeof t !== 'object')

@@ -1,4 +1,9 @@
 import { ExecutionHints } from '../core';
+import type { VariantKind } from '../core/content/asset';
+import type { EntradaDeMundo3D } from '../core/mundo3d';
+
+/** La entrada canónica de `world.generate` (`core/mundo3d.ts`), para que los datos de un adaptador la nombren sin importar del Core. */
+export type { EntradaDeMundo3D };
 import { CapabilityId, ResultKind } from '../creator/types';
 import { MecanismoDeContinuidad } from './continuidad';
 
@@ -183,6 +188,31 @@ export type EstadoDeElegibilidad =
 /** Si la configuración de Weë lo deja usar. Un modelo nuevo nace DISABLED. */
 export type ActivacionDeModelo = 'ACTIVE' | 'DISABLED';
 
+/**
+ * DE DÓNDE SALE UN CAMPO DEL ESQUEMA DE UN PROVEEDOR, en la entrada CANÓNICA de Weë de la capacidad. Son DATOS del
+ * adaptador (junto a sus modelos): si el proveedor cambia su esquema, cambia esto y nada más.
+ */
+export interface OrigenDeCampo<Entrada = Readonly<Record<string, unknown>>> {
+  /** El campo de la entrada de Weë. */
+  readonly de: keyof Entrada & string;
+  /** Si el campo de Weë es una lista: cuál de sus elementos (0 = el primero). */
+  readonly posicion?: number;
+  /** Del valor de Weë al vocabulario del proveedor. Un valor sin traducción no viaja. */
+  readonly valores?: Readonly<Record<string, string>>;
+  /**
+   * Si el proveedor admite el campo VACÍO cuando la persona no puso nada. Solo con evidencia: lo que diga la fuente
+   * va en `fuente`, y si no está verificado en el proveedor, se dice.
+   */
+  readonly vacio?: { readonly fuente: string };
+}
+
+/**
+ * EL PAPEL DE UN ARCHIVO DE SALIDA: el resultado mismo (`principal`) o una variante suya (la vista previa, una
+ * miniatura, un póster), con el vocabulario de variantes del Content Core. Lo declara el esquema de salida de cada
+ * modelo; nunca se deduce del nombre del archivo, de su extensión ni del orden en que llegó.
+ */
+export type PapelDeArchivo = 'principal' | VariantKind;
+
 /** Un campo de un esquema de entrada o de salida, tal como lo publica el proveedor. */
 export interface CampoDeEsquema {
   nombre: string;
@@ -191,6 +221,8 @@ export interface CampoDeEsquema {
   /** Para `enum`: los valores que admite. */
   valores?: readonly (string | number)[];
   descripcion?: string;
+  /** Solo en la salida y solo para archivos: qué papel hace. Sin él, es el resultado principal. */
+  papel?: PapelDeArchivo;
 }
 
 export interface GobiernoDeModelo {
@@ -303,6 +335,19 @@ export interface ProviderOutput {
   durationSec?: number;
   /** Fuentes de la búsqueda web (cuando corresponde). */
   sources?: SourceRef[];
+  /**
+   * Las VARIANTES del resultado que el proveedor dio de verdad (la vista previa de un mundo…), ya guardadas en Weë.
+   * No son propuestas: `url`/`urls` siguen siendo solo el resultado. Lo que el proveedor no dio, no está aquí.
+   */
+  variantes?: readonly VarianteDeSalida[];
+}
+
+/** Una variante de un resultado: qué es y dónde quedó guardada. */
+export interface VarianteDeSalida {
+  kind: VariantKind;
+  url: string;
+  mimeType?: string;
+  bytes?: number;
 }
 
 export interface ProviderResult {

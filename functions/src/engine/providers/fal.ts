@@ -1,8 +1,9 @@
 import { createHash, createPublicKey, verify as verificarEd25519 } from 'node:crypto';
 import { CapabilityId } from '../../creator/types';
-import { CampoDeEsquema, ModelSpec, ProviderAdapter, ProviderOutcome, ProviderOutput, ProviderRunRequest } from '../types';
+import { CampoDeEsquema, ModelSpec, OrigenDeCampo, ProviderAdapter, ProviderOutcome, ProviderOutput, ProviderRunRequest } from '../types';
 import { env, fetchJson, parseStorageUrl, persistRemoteFile, pollUntil, ProviderError, readImage, toDataUri } from '../http';
-import { MODELOS_FAL } from './fal-modelos';
+import { ENTRADA_DE_WEE_POR_MODELO, MODELOS_FAL } from './fal-modelos';
+import { leerEntradaDeMundo3D } from '../mundo';
 import { derechosDelModelo } from '../elegibilidad';
 import type { AvisoNormalizado, DesenlaceDelProveedor } from '../../runtime/aviso';
 import type { ResolutorDeEstadoDeProveedor } from '../../runtime/reconciliacion';
@@ -31,6 +32,10 @@ import type { ResolutorDeEstadoDeProveedor } from '../../runtime/reconciliacion'
  *   · `X-Fal-Store-IO: 0` — que fal no guarde 30 días lo que entra y sale.
  *   · `X-Fal-Object-Lifecycle-Preference` — que sus archivos caduquen pronto: Weë copia el resultado a su Storage en
  *     cuanto llega y la URL de fal (pública por defecto) deja de importar.
+ *
+ * Lo que recibe es la ENTRADA DE WEË de la capacidad (`world.generate`: foto, abierto o cerrado, qué destaca delante),
+ * nunca nombres de fal; la traduce con los datos de `fal-modelos.ts` (`ENTRADA_DE_WEE_POR_MODELO`). Y al volver, lo
+ * que devuelve fal se normaliza al resultado de Weë por el PAPEL que el esquema de salida da a cada archivo.
  *
  * Y lo que NO hace nunca: seguir una URL que no sea de la cola de fal, mandarle un campo que no esté en el esquema
  * publicado del modelo, aceptar una imagen que no esté en la carpeta de la persona en el Storage de Weë, ni darle a
@@ -90,9 +95,9 @@ const urlDeCancelacion = (modelo: string, requestId: string) => `${COLA}/${model
 /** Una imagen ya en línea: solo los formatos de imagen que fal admite como entrada. */
 const DATO_DE_IMAGEN = /^data:image\/(png|jpe?g|webp|gif|avif|heic|heif);base64,[A-Za-z0-9+/=]+$/;
 
-const tipoValido = (campo: CampoDeEsquema, valor: unknown): boolean => {
+const tipoValido = (campo: CampoDeEsquema, valor: unknown, vacioPermitido = false): boolean => {
   switch (campo.tipo) {
-    case 'string': return typeof valor === 'string' && valor.trim().length > 0 && valor.length <= 2000;
+    case 'string': return typeof valor === 'string' && valor.length <= 2000 && (valor.trim().length > 0 || (vacioPermitido && valor === ''));
     case 'boolean': return typeof valor === 'boolean';
     case 'number': return typeof valor === 'number' && Number.isFinite(valor);
     case 'integer': return Number.isInteger(valor);
@@ -126,20 +131,46 @@ export const enLinea = async (modelo: ModelSpec, cuerpo: Record<string, unknown>
   return resultado;
 };
 
-/** De lo que Weë pide al cuerpo que recibe el modelo. Lanza (sin llamar a nadie) si falta algo obligatorio o sobra algo. */
-export const cuerpoParaFal = (modelo: ModelSpec, input: Record<string, unknown>): Record<string, unknown> => {
+/**
+ * LA ENTRADA DE WEË DE CADA CAPACIDAD que fal puede atender, leída con el lector del propio contrato. Lo que no es de
+ * ese contrato se ignora y no viaja: un `image_url` o un `labels_fg1` que llegaran en la entrada no se traducen a nada.
+ */
+const LECTORES_DE_ENTRADA: Partial<Record<CapabilityId, (input: unknown, cuenta: string) => ReturnType<typeof leerEntradaDeMundo3D>>> = {
+  'world.generate': leerEntradaDeMundo3D,
+};
+
+/** El valor de Weë que llena un campo del proveedor, ya traducido a su vocabulario. `undefined` si no hay con qué. */
+const valorDesde = (origen: Omit<OrigenDeCampo, 'de'> & { readonly de: string }, entrada: Readonly<Record<string, unknown>>): unknown => {
+  const crudo = entrada[origen.de];
+  const valor = Array.isArray(crudo) ? crudo[origen.posicion ?? 0] : crudo;
+  if (valor === undefined || valor === null || valor === '') return origen.vacio ? '' : undefined;
+  if (!origen.valores) return valor;
+  return typeof valor === 'string' && Object.prototype.hasOwnProperty.call(origen.valores, valor) ? origen.valores[valor] : undefined;
+};
+
+/**
+ * DE LA ENTRADA DE WEË AL CUERPO QUE RECIBE EL MODELO. Lanza (sin llamar a nadie) si la entrada no es del contrato, si
+ * a un campo obligatorio no hay con qué llenarlo o si un valor no cabe en lo que el esquema publicado admite. Solo
+ * viajan los campos del esquema que el mapeo del modelo sabe llenar.
+ */
+export const cuerpoParaFal = (modelo: ModelSpec, capability: CapabilityId, input: Record<string, unknown>, cuenta: string): Record<string, unknown> => {
   const esquema = modelo.gobierno?.inputSchema ?? [];
   if (!esquema.length) throw new ProviderError(`fal: el modelo ${modelo.id} no declara su esquema de entrada`, 'fal', 400, false);
-  /* Nombres de Weë → nombres del esquema. Lo demás de `input` (calidad, prefs…) no viaja. */
-  const fuente: Record<string, unknown> = { ...input, image_url: input.image_url ?? input.imageUrl };
+  const mapeo = ENTRADA_DE_WEE_POR_MODELO[modelo.id];
+  const leer = LECTORES_DE_ENTRADA[capability];
+  if (!mapeo || !leer) throw new ProviderError(`fal: el modelo ${modelo.id} no sabe leer la entrada de Weë de ${capability}`, 'fal', 400, false);
+  const leida = leer(input, cuenta);
+  if (!leida.ok) throw new ProviderError(`fal: la entrada de Weë de ${capability} no es válida (${leida.motivo})`, 'fal', 400, false);
+  const entrada = leida.entrada as unknown as Readonly<Record<string, unknown>>;
   const cuerpo: Record<string, unknown> = {};
   for (const campo of esquema) {
-    const valor = fuente[campo.nombre];
-    if (valor === undefined || valor === null || valor === '') {
+    const origen = mapeo[campo.nombre];
+    const valor = origen ? valorDesde(origen, entrada) : undefined;
+    if (valor === undefined) {
       if (campo.requerido) throw new ProviderError(`fal: falta ${campo.nombre} para ${modelo.id}`, 'fal', 400, false);
       continue;
     }
-    if (!tipoValido(campo, valor)) throw new ProviderError(`fal: ${campo.nombre} no es válido para ${modelo.id}`, 'fal', 400, false);
+    if (!tipoValido(campo, valor, !!origen?.vacio)) throw new ProviderError(`fal: ${campo.nombre} no es válido para ${modelo.id}`, 'fal', 400, false);
     cuerpo[campo.nombre] = valor;
   }
   return cuerpo;
@@ -203,7 +234,7 @@ export const falAdapter: ProviderAdapter = {
     if (!propio || !ID_DE_MODELO.test(modelo) || !propio.capabilities.includes(request.capability)) {
       throw new ProviderError(`fal: ${model.id} no atiende ${request.capability}`, 'fal', 400, false);
     }
-    const cuerpo = await enLinea(propio, cuerpoParaFal(propio, request.input), ctx.userId);
+    const cuerpo = await enLinea(propio, cuerpoParaFal(propio, request.capability, request.input, ctx.userId), ctx.userId);
     const enviado = await fetchJson<Record<string, unknown>>(`${COLA}/${modelo}`, {
       provider: 'fal', method: 'POST', headers: cabecerasDeFal(), body: cuerpo, timeoutMs: 30_000,
     });
