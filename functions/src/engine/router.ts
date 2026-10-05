@@ -333,6 +333,8 @@ export function createRouter(deps: RouterDeps) {
       requestId: request.requestId,
       service: request.service,
       creditTransactionId: request.creditTransactionId,
+      attribution: request.attribution,
+      evalRunId: request.evalRunId,
     };
     const prefs: RoutingPrefs = request.prefs || {};
     /*

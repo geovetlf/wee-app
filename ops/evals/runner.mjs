@@ -10,46 +10,30 @@
  * SOLO graders deterministas, SIN proveedor real, SIN juez-LLM, SIN red, SIN Firestore: COSTE $0 (afirma que no
  * hubo ninguna ejecución de adaptador). Produce EVIDENCIA; nunca cambia producción.
  *
+ * El corredor NO está aquí: es el del motor común (functions/src/evals/motor/corredor.ts), el mismo que corre
+ * `evalRun` con el proveedor real. Este archivo es la línea de órdenes de desarrollo y le pasa su registro de dominios.
+ *
  * Salidas: 0 si ACCEPT/NO_CHANGE (o run simple sin comparar), 1 si REJECT, 3 si REVIEW_REQUIRED, 2 si error.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { validarDataset, hashCanonico } from './contrato.mjs';
-import { DOMINIOS, decidirYCalificar, resolverDominio } from './dominios.mjs';
-import { puntuar } from './scoring.mjs';
+import { DOMINIOS, resolverDominio } from './dominios.mjs';
 import { comparar } from './comparar.mjs';
+import { motor } from './motor.mjs';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const leerJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
+const corredor = motor('corredor');
 
 /**
- * Ejecuta un dataset: decide, califica y puntúa cada caso. Devuelve scores + hash + ejecuciones (debe ser 0).
- * El dominio sale de `dataset.dominio` y del registro (`dominios`, por defecto DOMINIOS): este corredor no conoce ninguno.
+ * Ejecuta un dataset con el corredor común: decide, califica y puntúa cada caso. Devuelve scores + hash + ejecuciones
+ * (debe ser 0). El dominio sale de `dataset.dominio` y del registro (`dominios`, por defecto DOMINIOS).
  */
-export const ejecutarDataset = async (dataset, config, { dominios = DOMINIOS } = {}) => {
-  const dominio = resolverDominio(dominios, dataset && dataset.dominio);
-  const errores = validarDataset(dataset, { validarCaso: dominio.validarCaso });
-  if (errores.length) throw new Error(`dataset inválido: ${errores.join('; ')}`);
-  let ejecuciones = 0;
-  const resultados = [];
-  const detalle = [];
-  for (const caso of dataset.casos) {
-    const { decision, graders } = await decidirYCalificar(dominio, caso);
-    ejecuciones += decision.ejecuciones;
-    resultados.push({ evalCaseId: caso.evalCaseId, graders });
-    detalle.push({ evalCaseId: caso.evalCaseId, decision, graders });
-  }
-  const scores = puntuar(resultados, config);
-  return { datasetHash: hashCanonico(dataset.casos), dominio: dataset.dominio, scores, ejecuciones, detalle };
-};
+export const ejecutarDataset = (dataset, config, { dominios = DOMINIOS } = {}) => corredor.ejecutarDataset(dataset, config, { dominios });
 
-/** La forma inmutable que se guarda como baseline (sin el detalle, que no se compara). */
-export const baselineDe = (run, dataset) => ({
-  version: 1, dominio: run.dominio, datasetVersion: dataset.version, datasetHash: run.datasetHash,
-  generado: null, // se rellena fuera (Date.now no está en los corredores puros); el runner CLI lo pone
-  scores: run.scores,
-});
+/** La forma inmutable que se guarda como baseline (sin el detalle, que no se compara). La del motor común. */
+export const { baselineDe } = corredor;
 
 const resumen = (run) => {
   const l = [];

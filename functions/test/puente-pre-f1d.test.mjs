@@ -514,8 +514,13 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * `pideTextoPlano`); los adaptadores de TEXTO claude/deepseek/openai +3 −2 y gemini +4 −2 (ese sistema y `format: 'text'`
        * respetado); router.ts +2 −1 (el aviso de fallo, saneado). Ningún proveedor nuevo y ninguna cadena nueva: seedance,
        * registry y la cadena de `video.generate` quedan como estaban.
+       *
+       * + F2-C1 (el camino real del Eval Engine): ledger.ts 12/1 → 19/2 (el gasto con attribution:'eval' va a
+       * evalUsage/{día}, no al tope del usuario), types.ts 19/0 → 29/0 (attribution?/evalRunId? en EngineContext y
+       * GenerationRecord) y router.ts 57/4 → 59/4 (reenvía esos dos campos al contexto del libro). SIGUE sin haber
+       * proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|1\t1\tfunctions/src/engine/errors.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|12\t1\tfunctions/src/engine/ledger.ts|38\t3\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|57\t4\tfunctions/src/engine/router.ts|19\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|1\t1\tfunctions/src/engine/errors.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|19\t2\tfunctions/src/engine/ledger.ts|38\t3\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|59\t4\tfunctions/src/engine/router.ts|29\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */
@@ -571,8 +576,21 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const DEL_CIERRE = ["functions/src/content/index.ts","functions/src/credits/creditValidation.ts","functions/src/engine/promptLanguage.ts","functions/src/engine/providers/claude.ts","functions/src/engine/providers/deepseek.ts","functions/src/engine/providers/gemini.ts","functions/src/engine/providers/openai.ts","functions/src/identity/nacimiento.ts",
     /* + cierre: solo el COMENTARIO de isAdmin (dónde vive hoy WEE_ADMIN_UIDS: el entorno get-wee de GitHub); el código no cambia. */
     "functions/src/shared/admin.ts"];
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness y de la integración i18n da-DK',
-    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE,
+  /*
+   * Los de F2-C1 (el camino real del Eval Engine, 2026-10-05), por nombre y todos NUEVOS: el motor común de
+   * evaluaciones (evals/motor/: contrato, dominios, puntuación, presupuesto, corrida, permisos, holdout y
+   * EL corredor, que ops/evals reexporta), el dominio real del Router y su registro (evals/dominios*), su dataset y
+   * graders deterministas (evals/datos.ts) y `evalRun`, que solo aporta el entorno de Firestore (evals/index.ts). El
+   * motor de IA solo gana el reenvío de attribution/evalRunId (engine/types, router y ledger: ya estaban en
+   * DEL_HARNESS) e index.ts exporta evalRun (ya estaba).
+   */
+  const DE_LOS_EVALS = ['functions/src/evals/datos.ts', 'functions/src/evals/dominios.ts', 'functions/src/evals/dominios/router.ts',
+    'functions/src/evals/index.ts', 'functions/src/evals/motor/contrato.ts',
+    'functions/src/evals/motor/corredor.ts', 'functions/src/evals/motor/corrida.ts', 'functions/src/evals/motor/dominios.ts',
+    'functions/src/evals/motor/holdout.ts', 'functions/src/evals/motor/permisos.ts', 'functions/src/evals/motor/presupuesto.ts',
+    'functions/src/evals/motor/puntuacion.ts'];
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK y de los evals (F2-C1)',
+    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',

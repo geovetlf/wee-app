@@ -109,7 +109,10 @@ check('E todos los casos aprueban hoy', run.scores.aprobados === run.scores.n &&
 /* ── F. Separación del Quality Reviewer ───────────────────────────────────── */
 check('F el Eval Engine no depende de la baseline del Quality Reviewer',
   !['contrato.mjs', 'graders.mjs', 'scoring.mjs', 'comparar.mjs', 'runner.mjs', 'escenario-router.mjs']
-    .some((f) => /revision\/baseline|ops\/revision/.test(fs.readFileSync(path.join(dir, f), 'utf8'))));
+    .some((f) => /revision\/baseline|ops\/revision/.test(fs.readFileSync(path.join(dir, f), 'utf8')))
+  /* el motor común vive en functions/src/evals/motor (ops/evals lo reexporta): también se mira allí */
+  && !fs.readdirSync(path.join(dir, '../../functions/src/evals/motor'))
+    .some((f) => /revision\/baseline|ops\/revision/.test(fs.readFileSync(path.join(dir, '../../functions/src/evals/motor', f), 'utf8'))));
 check('F la baseline del Eval vive en ops/evals/baseline, no en ops/revision', fs.existsSync(path.join(dir, 'baseline/router.json')));
 
 /* ── G. SABOTAJE: un caso que deja de cumplir su propiedad hace REJECT ─────── */
