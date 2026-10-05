@@ -1,0 +1,14 @@
+{
+  "id": "revision-determinista",
+  "nombre": "Revisión determinista del Quality Reviewer",
+  "version": "1.0.0",
+  "descripcion": "La puerta G3 (ops/revision/baseline.mjs) registrada como comprobación del Harness: se corre tal cual, sin cambiarla, sin proponer baseline y sin saltarla.",
+  "compatibilidad": { "harness": "^1.0.0" },
+  "estado": "activa",
+  "permisos": ["ejecutar-pruebas"],
+  "capacidades": {
+    "comprobacion": [
+      { "id": "g3", "descripcion": "Detectores deterministas + baseline + puerta G3", "argv": ["node", "ops/revision/baseline.mjs"] }
+    ]
+  }
+}
