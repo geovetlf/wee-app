@@ -612,12 +612,19 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     'functions/src/registry/excepciones.ts', 'functions/src/registry/index.ts',
     /* + la jurisdicción de la cuenta conectada al Router (engine/index y el conector) y runtime/politica alineada a fail-closed. */
     'functions/src/engine/index.ts', 'functions/src/engine/jurisdiccion.ts', 'functions/src/runtime/politica.ts'];
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1) y de la misión fal',
+  /*
+   * Los del CICLO DE VIDA 3D (2026-10-05), por nombre: el linaje del material —versiones, derivados, derechos que solo
+   * se endurecen y dónde se usa— (`core/content/linaje.ts`, nuevo, puro y sin conectar a ningún camino) y su línea de
+   * exportación en la puerta del Content Core (`core/content/index.ts`). Ver docs/3D-ASSET-LIFECYCLE.md.
+   */
+  const DEL_CICLO_DE_VIDA_3D = ['functions/src/core/content/index.ts', 'functions/src/core/content/linaje.ts'];
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal y del ciclo de vida 3D',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
+      ...DEL_CICLO_DE_VIDA_3D,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -639,9 +646,13 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const CORE_DE_LA_MISION_FAL = '4\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n6\t0\tfunctions/src/core/contracts.ts'
     + '\n216\t0\tfunctions/src/core/escena3d.ts\n1\t0\tfunctions/src/core/index.ts\n2\t1\tfunctions/src/core/provider.ts'
     + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
-  check('F3) ni F1-A ni productions; del Core, solo la misión fal; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',
+  /* + ciclo de vida 3D (2026-10-05): el linaje del material (nuevo) y su línea de exportación en la puerta del Content Core. */
+  const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts\n630\t0\tfunctions/src/core/content/linaje.ts';
+  /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
+  const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
+  check('F3) ni F1-A ni productions; del Core, solo la misión fal y el linaje del ciclo de vida 3D; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',
     git(`diff --name-only ${RUTA} -- functions/src/filmmaker functions/src/productions`).trim() === ''
-    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === CORE_DE_LA_MISION_FAL
+    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D)
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
     && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '41\t3\tfunctions/src/content/index.ts\n62\t2\tfunctions/src/content/materializador.ts');
