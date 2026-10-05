@@ -51,6 +51,7 @@ espera al dueño). Qué frontera del código vive dónde y si está conectada: [
 | `.claude/commands/revision-de-fase.md` | El cierre de fase G0–G7: higiene, build, pruebas, detectores, selector, revisores, verificación, informe; sin commit ni deploy | Local |
 | `ops/harness/extensiones.mjs` + `ops/harness/extensiones/` | Las extensiones del Harness (F3): manifiestos solo de datos, permisos de un catálogo cerrado y una puerta que pasa cada acción por la guardia; `listar`, `validar`, `ejecutar` | Local |
 | `ops/harness/cierre.mjs` | El cierre de misión (F4): misión declarada + evidencias reales → JSON canónico y Markdown derivado; lo que no tiene evidencia es UNKNOWN | Local |
+| `ops/evals/*` (+ `ops/evals/dominios.mjs`) | El Eval Engine (F2): un motor común (correr, puntuar, comparar, holdout, presupuesto, permisos) y dominios registrados, el Router el primero; $0, sin proveedor ([EVALS.md](EVALS.md)) | Local |
 
 ## Las extensiones (F3)
 
