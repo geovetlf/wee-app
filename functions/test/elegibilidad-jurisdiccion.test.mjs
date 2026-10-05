@@ -305,6 +305,93 @@ check('24) el «no disponible» no le enseña a la persona ni el proveedor ni el
   detalles?.reason === 'sin_modelo_elegible' && !/fal|hunyuan/i.test(JSON.stringify(detalles)) && Object.keys(detalles).sort().join() === 'capability,elegibilidad,reason',
   JSON.stringify(detalles));
 
+{
+  /* La decisión, al libro: con qué jurisdicciones se decidió y qué quedó fuera, para auditoría (nunca para la persona). */
+  const terra = proveedor('terra', [{ ...TERRITORIAL, id: 'estrella', quality: 5 }]);
+  const otro = proveedor('otro', [modelo('alternativo', 'otro', { quality: 3 })]);
+  const conJurisdiccion = router({ terra, otro, mock: demo() }, configuracion(['terra', 'otro']));
+  await conJurisdiccion.r.execute(peticion({ jurisdicciones: ['ES'] }));
+  const anotado = Object.values(conJurisdiccion.ledger.records)[0];
+  const deSiempre = router({ otro: proveedor('otro', [modelo('alternativo', 'otro', { quality: 3 })]), mock: demo() }, configuracion(['otro']));
+  await deSiempre.r.execute(peticion());
+  const sinNada = Object.values(deSiempre.ledger.records)[0];
+  check('25) AUDITORÍA: cada intento deja en el libro con qué jurisdicciones se decidió y qué modelo quedó fuera, con su escalón; el tráfico sin jurisdicción ni descartes no cambia de forma',
+    JSON.stringify(anotado?.elegibilidad) === JSON.stringify({ jurisdicciones: ['ES'], descartes: [{ provider: 'terra', model: 'estrella', estado: 'BLOCKED_FOR_JURISDICTION' }] })
+    && anotado.provider === 'otro' && !!sinNada && !('elegibilidad' in sinNada), JSON.stringify(anotado?.elegibilidad));
+}
+
+/* ── E · La fuente de la jurisdicción: la de la cuenta, en el servidor ───── */
+console.log('── E · De dónde sale la jurisdicción de la operación ──');
+const { jurisdiccionesDeclaradas } = lib('engine/jurisdiccion.js');
+
+const PERFILES = [
+  { uid: 'u1', profileType: 'real', country: 'ES' },
+  { uid: 'u1', country: 'MX' },                                          // Perfil Real antiguo, sin tipo
+  { uid: 'hidi_u1', profileType: 'hidi', linkedAccountId: 'u1', country: 'US' }, // su cara Weë: no es la cuenta
+  { uid: 'u2', profileType: 'real', country: 'JP' },                     // otra cuenta
+  { uid: 'u1', profileType: 'biz', country: 'BR' },                      // un tipo que ya no existe
+  { uid: 'u1', profileType: 'real', country: 'es' }, { uid: 'u1', profileType: 'real', country: 'ESP' },
+  { uid: 'u1', profileType: 'real', country: '' }, { uid: 'u1', profileType: 'real', country: 42 }, undefined,
+];
+check('26) la fuente es el país que DECLARAN los Perfiles Reales de la cuenta (resolutor canónico): ni su cara Weë, ni otra cuenta, ni un tipo antiguo, ni un código mal escrito; sin ninguno válido, nada',
+  JSON.stringify(jurisdiccionesDeclaradas('u1', PERFILES)) === '["ES","MX"]'
+  && jurisdiccionesDeclaradas('u1', [PERFILES[2], PERFILES[3], PERFILES[4], PERFILES[5], PERFILES[8]]) === undefined
+  && jurisdiccionesDeclaradas('u1', []) === undefined, JSON.stringify(jurisdiccionesDeclaradas('u1', PERFILES)));
+
+{
+  const llamadas = [];
+  const fuente = (respuesta) => async (userId) => { llamadas.push(userId); if (respuesta instanceof Error) throw respuesta; return respuesta; };
+  const conFuente = (adapters, respuesta, cadena = Object.keys(adapters).filter((k) => k !== 'mock')) => {
+    const ledger = memoryLedger();
+    return { r: createRouter({ adapters, loadConfig: async () => configuracion(cadena), ledger, health: memoryHealth(() => 1_000), now: () => 1_000, jurisdiccionesDe: fuente(respuesta) }), ledger };
+  };
+  const terra = () => proveedor('terra', [TERRITORIAL]);
+  const decidir = async (respuesta, extra = {}) => (await conFuente({ terra: terra(), mock: demo() }, respuesta).r.route(peticion(extra)));
+  const enES = await decidir(['ES']);
+  const enUS = await decidir(['US']);
+  const caida = await decidir(new Error('Firestore no contesta'));
+  const sinPais = await decidir(undefined);
+  check('27) sin jurisdicción en la petición, el Router usa la de la cuenta: bloqueado si declara ES, elegible si declara US (aprobado), y si la fuente falla o no sabe, JURISDICTION_UNKNOWN (falla cerrado)',
+    enES.candidates.length === 0 && enES.skipped.some((s) => s.estado === 'BLOCKED_FOR_JURISDICTION')
+    && enUS.candidates[0]?.provider === 'terra' && JSON.stringify(enUS.jurisdicciones) === '["US"]'
+    && [caida, sinPais].every((d) => d.candidates.length === 0 && d.skipped.some((s) => s.estado === 'JURISDICTION_UNKNOWN')),
+    JSON.stringify({ es: enES.skipped, us: enUS.candidates.map((c) => c.provider), caida: caida.skipped }));
+
+  llamadas.length = 0;
+  const explicita = await decidir(['ES'], { jurisdicciones: ['US'] });
+  check('28) una jurisdicción que ya pone el servidor en la petición manda sobre la de la cuenta, y entonces la cuenta ni se consulta',
+    explicita.candidates[0]?.provider === 'terra' && llamadas.length === 0, JSON.stringify({ llamadas }));
+
+  llamadas.length = 0;
+  const normal = conFuente({ otro: proveedor('otro', [modelo('alternativo', 'otro', { quality: 3 })]), mock: demo() }, ['ES']);
+  await normal.r.route(peticion());
+  await normal.r.execute(peticion());
+  const territorialUnaVez = conFuente({ terra: terra(), mock: demo() }, ['US']);
+  await territorialUnaVez.r.route(peticion());
+  check('29) el tráfico de siempre no hace ni una lectura más: la cuenta solo se consulta si algún modelo de la cadena tiene reglas territoriales, y entonces una vez por decisión',
+    llamadas.length === 1 && !('elegibilidad' in Object.values(normal.ledger.records)[0]), JSON.stringify(llamadas));
+
+  const auditada = conFuente({ terra: terra(), mock: demo() }, ['US']);
+  await auditada.r.execute(peticion());
+  check('30) y el libro guarda las jurisdicciones con las que se decidió de verdad, las de la cuenta',
+    JSON.stringify(Object.values(auditada.ledger.records)[0]?.elegibilidad) === JSON.stringify({ jurisdicciones: ['US'], descartes: [] }),
+    JSON.stringify(Object.values(auditada.ledger.records)[0]?.elegibilidad));
+}
+
+const conector = sinComentarios(leer('functions/src/engine/jurisdiccion.ts'));
+const composicion = sinComentarios(leer('functions/src/engine/index.ts'));
+check('31) el conector solo lee el Perfil Real de la cuenta en el servidor: ni idioma, ni locale, ni IP, ni dispositivo, ni lo que mande el cliente; y la composición del motor lo conecta al Router',
+  /collection\('users'\)\.where\('uid', '==', userId\)/.test(conector) && /cuentaDeIdentidad\(/.test(conector)
+  && !/locale|idioma|language|navigator|headers|rawRequest|\bip\b|geo|device|dispositivo|request\.data|auth\.token/i.test(conector)
+  && /jurisdiccionesDe: jurisdiccionesDeLaCuenta/.test(composicion));
+
+const politica = lib('runtime/politica.js');
+const reglaDeRegion = politica.politicaPorReglas(politica.leerReglas([{ id: 'r-region', source: 'prueba', effect: 'deny', modelId: 'm1', when: { regions: ['XX'] } }]).reglas);
+const base = { capability: 'text.generate', providerId: 'p1', modelId: 'm1' };
+check('32) y la capa de política del runtime falla cerrado igual: una regla de región se aplica si la región no se sabe, y solo deja de aplicar si se sabe y queda fuera',
+  !reglaDeRegion.evaluar(base).eligible && !reglaDeRegion.evaluar({ ...base, region: 'XX' }).eligible && reglaDeRegion.evaluar({ ...base, region: 'YY' }).eligible
+  && politica.politicaPorReglas(politica.SIN_REGLAS).evaluar(base).eligible);
+
 check('esta suite está en la cadena de `npm test`', /elegibilidad-jurisdiccion\.test\.mjs/.test(leer('functions/package.json')));
 
 console.log(failures ? `\n✘ ${failures} fallo(s)` : `\n✔ elegibilidad por jurisdicción: ${n} comprobaciones ($0)`);

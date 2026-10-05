@@ -506,6 +506,8 @@ export interface RouteDecision {
   candidates: RouteCandidate[];
   /** `estado`: cuando el descarte lo decidió la elegibilidad del modelo (`modeloElegible`), en qué escalón se quedó. */
   skipped: { provider: string; model?: string; reason: string; estado?: EstadoDeElegibilidad }[];
+  /** Las jurisdicciones con las que se decidió (de la petición o de la cuenta), si había alguna. Para la auditoría. */
+  jurisdicciones?: string[];
   /**
    * Hay al menos un proveedor real con clave y con modelo para esta capacidad.
    * Cuando es true el modo demo NO puede ser candidato, ni siquiera si todos los
@@ -525,6 +527,13 @@ export interface GenerationRecord {
   userId: string;
   /** Evaluación interna (F2-C): marca la generación como de eval y la ata a su corrida. Ausente en el tráfico normal. */
   attribution?: 'eval';
+  /**
+   * LA DECISIÓN DE ELEGIBILIDAD DE ESTE INTENTO, para auditoría (nunca llega a la persona): las jurisdicciones con las
+   * que se decidió (`null` si la operación no las traía) y los modelos que la regla común dejó fuera, con su escalón.
+   * Solo aparece cuando hay algo que auditar —la operación traía jurisdicciones o algún modelo quedó fuera por
+   * elegibilidad—: el tráfico de siempre no la lleva.
+   */
+  elegibilidad?: { jurisdicciones: string[] | null; descartes: { provider: string; model?: string; estado: EstadoDeElegibilidad }[] };
   evalRunId?: string;
   jobId?: string;
   stepId?: string;

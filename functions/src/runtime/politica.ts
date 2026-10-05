@@ -18,13 +18,19 @@
  * decisión de producto o un aviso legal. Eso es una REGLA, es un dato, tiene una
  * fuente, y es lo único que se evalúa aquí.
  *
- * ── La regla de esta capa: no inventar ──────────────────────────────────────
+ * ── La regla de esta capa: no inventar reglas, y no saltárselas ─────────────
  *
  * Sin una regla conocida, NADA se bloquea. No hay lista de países, no hay
- * geolocalización, no hay consulta a nadie. Si una regla depende de la región y
- * la petición no trae región, la regla NO aplica: no saber dónde está alguien no
- * es saber que está donde no se puede. Bloquear por suposición sería inventarse
- * una restricción, que es justo lo que esta capa existe para no hacer.
+ * geolocalización, no hay consulta a nadie: esta capa no se inventa
+ * restricciones.
+ *
+ * Pero una regla que SÍ existe no se salta por falta de un dato (2026-10-05,
+ * regla fail-closed del dueño, la misma de `engine/elegibilidad.ts`). Si una
+ * regla depende de la región o del producto y la petición no lo trae, no se
+ * puede comprobar que la operación quede fuera de ella, así que SE APLICA. Hasta
+ * esa fecha era al revés —«no saber dónde está alguien no es saber que está
+ * donde no se puede»—, y eso dejaba pasar a cualquier petición que no dijera su
+ * región: justo el atajo que la regla común cierra.
  *
  * Hoy Weë no tiene NINGUNA regla de este tipo, y la composición arranca con la
  * lista vacía. La capa existe para que el día que aparezca la primera sea una
@@ -42,7 +48,7 @@ export interface ContextoDePolitica {
   modelId: string;
   appId?: string;
   workspaceId?: string;
-  /** La región de la petición, SI se conoce. Nadie la deduce: o viene, o no está. */
+  /** La región de la petición, SI se conoce. Nadie la deduce: o viene, o no está (y entonces sus reglas se aplican). */
   region?: string;
 }
 
@@ -69,7 +75,7 @@ export interface ReglaDePolitica {
   providerId?: string;
   modelId?: string;
   capability?: string;
-  /** Cuándo. TODAS las condiciones presentes tienen que cumplirse, y cumplirse con un dato CONOCIDO. */
+  /** Cuándo. La regla se descarta solo si un dato CONOCIDO queda fuera de alguna condición; un dato desconocido no la descarta. */
   when?: { regions?: readonly string[]; appIds?: readonly string[] };
 }
 
@@ -134,9 +140,12 @@ const aplica = (r: ReglaDePolitica, c: ContextoDePolitica): boolean => {
   if (r.providerId !== undefined && r.providerId !== c.providerId) return false;
   if (r.modelId !== undefined && r.modelId !== c.modelId) return false;
   if (r.capability !== undefined && r.capability !== c.capability) return false;
-  /* Una condición sobre un dato que NO se conoce no se cumple. No saber la región no es estar en ella. */
-  if (r.when?.regions && (c.region === undefined || !r.when.regions.includes(c.region))) return false;
-  if (r.when?.appIds && (c.appId === undefined || !r.when.appIds.includes(c.appId))) return false;
+  /*
+   * FALLA CERRADO: la regla solo deja de aplicar si el dato se CONOCE y queda fuera. Sin región o sin producto no se
+   * puede comprobar que la operación esté fuera de la restricción, así que la restricción se aplica.
+   */
+  if (r.when?.regions && c.region !== undefined && !r.when.regions.includes(c.region)) return false;
+  if (r.when?.appIds && c.appId !== undefined && !r.when.appIds.includes(c.appId)) return false;
   return true;
 };
 

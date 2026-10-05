@@ -289,7 +289,9 @@ console.log('\n── C · Policy & Eligibility: quién dice «no puede» y qui�
   const otraRegion = await resolver({ politica: conRegla }).resolver(pet({ constraints: { region: 'yy-permitida' } }));
   check('en otra región la regla no aplica', otraRegion.implementation.providerId === 'alfa' && de(otraRegion, 'alfa').eligible);
   const sinRegion = await resolver({ politica: conRegla }).resolver(pet());
-  check('REGIÓN DESCONOCIDA: NO se inventa una restricción — no saber dónde está alguien no es saber que está donde no se puede', sinRegion.implementation.providerId === 'alfa' && de(sinRegion, 'alfa').eligible);
+  /* Fail-closed (2026-10-05, la misma regla que engine/elegibilidad.ts): sin región no se puede comprobar que la operación quede fuera. */
+  check('REGIÓN DESCONOCIDA: FALLA CERRADO — la regla de región se aplica; no saber dónde ocurre la operación no la deja pasar',
+    sinRegion.ok && sinRegion.implementation.providerId === 'beta' && !de(sinRegion, 'alfa').eligible && de(sinRegion, 'alfa').decidedBy === 'policy' && de(sinRegion, 'alfa').rule === 'r-alfa-region');
 
   const todos = politicaPorReglas(leerReglas([{ id: 'r-todo', source: 'prueba', effect: 'deny', capability: 'text.generate' }]).reglas);
   const vetado = await resolver({ politica: todos }).resolver(pet());
@@ -300,7 +302,10 @@ console.log('\n── C · Policy & Eligibility: quién dice «no puede» y qui�
   const soloAlfa = await resolver({ cadena: { async cadena() { return [{ providerId: 'alfa', modelId: 'alfa-1' }]; } }, politica: conRegla }).resolver(pet({ constraints: { region: 'xx-prohibida' } }));
   check('y si la cadena solo tenía al vetado, NO se sale de ella a buscar otro', !soloAlfa.ok && soloAlfa.reason === 'policy_denied');
   const porApp = politicaPorReglas(leerReglas([{ id: 'r-app', source: 'prueba', effect: 'deny', modelId: 'alfa-1', when: { appIds: ['wee-chef'] } }]).reglas);
-  check('una regla por PRODUCTO aplica a ese producto, y a uno que no dice cuál es NO', (await resolver({ politica: porApp }).resolver(pet({ appId: 'wee-chef' }))).implementation.providerId === 'beta' && (await resolver({ politica: porApp }).resolver(pet())).implementation.providerId === 'alfa');
+  check('una regla por PRODUCTO aplica a ese producto y, sin producto conocido, también (falla cerrado); a OTRO producto conocido, no',
+    (await resolver({ politica: porApp }).resolver(pet({ appId: 'wee-chef' }))).implementation.providerId === 'beta'
+    && (await resolver({ politica: porApp }).resolver(pet())).implementation.providerId === 'beta'
+    && (await resolver({ politica: porApp }).resolver(pet({ appId: 'wee-travel' }))).implementation.providerId === 'alfa');
 
   check('NO INVENTAR: sin lista, la política está vacía — y vacía no bloquea nada', leerReglas(undefined).ok && leerReglas(undefined).reglas.length === 0 && politicaPorReglas(SIN_REGLAS).evaluar({ capability: 'x.y', providerId: 'a', modelId: 'b' }).eligible);
   check('una regla SIN FUENTE no es una regla conocida: invalida la lista entera', [[{ ...REGLA, source: '' }], [{ ...REGLA, source: undefined }], [{ ...REGLA, effect: 'allow' }], [{ ...REGLA, pais: 'xx' }], [{ ...REGLA, when: { regions: [] } }], [REGLA, REGLA], 'todo', [7]].every((c) => leerReglas(c).ok === false));

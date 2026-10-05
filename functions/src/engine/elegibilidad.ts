@@ -42,6 +42,8 @@ export interface Elegibilidad {
   estado: EstadoDeElegibilidad;
   /** La jurisdicción que lo decidió (la bloqueada o la pendiente de revisión), cuando fue una. */
   jurisdiccion?: string;
+  /** El modelo al que se refiere, cuando la respuesta es de una capacidad entera (`elegibilidadDeLaCapacidad`). */
+  modelo?: string;
 }
 
 /* ── Jurisdicciones ─────────────────────────────────────────────────────── */
@@ -168,7 +170,7 @@ export const elegibilidadDeLaCapacidad = (
   const suyos = modelos.filter((m) => (m.capabilities as readonly string[]).includes(capability));
   if (!suyos.length) return undefined;
   const respuestas = suyos.map((m) => modeloElegible(m, ajustes?.[m.id], contexto));
-  return respuestas.some((r) => r.elegible) ? undefined : respuestas[0];
+  return respuestas.some((r) => r.elegible) ? undefined : { ...respuestas[0], modelo: suyos[0].id };
 };
 
 /**
