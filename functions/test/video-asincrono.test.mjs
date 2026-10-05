@@ -626,7 +626,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     'functions/src/engine/providers/claude.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/deepseek.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/fal-modelos.ts': '116\t0', // misión fal (nuevo): los modelos de fal como DATOS, con su gobierno y sus reglas territoriales
-    'functions/src/engine/providers/fal.ts': '389\t0', // misión fal (nuevo): el adaptador de fal (cola, fotos en línea, avisos firmados, cancelación, reconciliación)
+    'functions/src/engine/providers/fal.ts': '393\t0', // misión fal (nuevo): el adaptador de fal (cola, fotos en línea, avisos firmados, cancelación, reconciliación)
     'functions/src/engine/providers/gemini.ts': '4\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/openai.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/seedance.ts': '33\t19', // F1-D (ficha 6) + 8a9f098 (#21)

@@ -155,16 +155,18 @@ const CLASE_DE_RESULTADO: Partial<Record<CapabilityId, ProviderOutput['kind']>> 
 /** Los archivos que el esquema de salida declara, tal como llegaron (URL temporal de fal, tipo, tamaño). */
 export const archivosDelResultado = (modelo: ModelSpec, resultado: unknown): Array<{ campo: string; url: string; contentType?: string; bytes?: number }> => {
   if (!resultado || typeof resultado !== 'object') return [];
-  const r = resultado as Record<string, any>;
+  const r = resultado as Record<string, unknown>;
   const archivos: Array<{ campo: string; url: string; contentType?: string; bytes?: number }> = [];
   for (const campo of modelo.gobierno?.outputSchema ?? []) {
-    const f = r[campo.nombre];
-    if (campo.tipo !== 'file' || !f || typeof f !== 'object' || typeof f.url !== 'string') continue;
+    const crudo = r[campo.nombre];
+    if (campo.tipo !== 'file' || !crudo || typeof crudo !== 'object') continue;
+    const f = crudo as { url?: unknown; content_type?: unknown; file_size?: unknown };
+    if (typeof f.url !== 'string') continue;
     archivos.push({
       campo: campo.nombre,
       url: f.url,
       ...(typeof f.content_type === 'string' ? { contentType: f.content_type } : {}),
-      ...(Number.isFinite(f.file_size) ? { bytes: Number(f.file_size) } : {}),
+      ...(typeof f.file_size === 'number' && Number.isFinite(f.file_size) ? { bytes: f.file_size } : {}),
     });
   }
   return archivos;
@@ -202,7 +204,7 @@ export const falAdapter: ProviderAdapter = {
       throw new ProviderError(`fal: ${model.id} no atiende ${request.capability}`, 'fal', 400, false);
     }
     const cuerpo = await enLinea(propio, cuerpoParaFal(propio, request.input), ctx.userId);
-    const enviado = await fetchJson<Record<string, any>>(`${COLA}/${modelo}`, {
+    const enviado = await fetchJson<Record<string, unknown>>(`${COLA}/${modelo}`, {
       provider: 'fal', method: 'POST', headers: cabecerasDeFal(), body: cuerpo, timeoutMs: 30_000,
     });
     const requestId = String(enviado.request_id ?? '');
@@ -219,7 +221,7 @@ export const falAdapter: ProviderAdapter = {
     const resultadoUrl = esUrlDeLaCola(enviado.response_url) ? enviado.response_url : urlDeResultado(modelo, requestId);
     await request.onStatus?.('PROCESSING', { requestId, providerModelId: modelo });
     await pollUntil<true>(async () => {
-      const e = await fetchJson<Record<string, any>>(estadoUrl, { provider: 'fal', headers: cabecerasDeFal(), timeoutMs: 30_000 });
+      const e = await fetchJson<Record<string, unknown>>(estadoUrl, { provider: 'fal', headers: cabecerasDeFal(), timeoutMs: 30_000 });
       const s = String(e.status ?? '');
       if (s === 'COMPLETED') return { done: true, value: true };
       if (s === 'IN_QUEUE' || s === 'IN_PROGRESS') return { done: false };
@@ -227,7 +229,7 @@ export const falAdapter: ProviderAdapter = {
     }, { provider: 'fal', timeoutMs: request.timeoutMs, intervalMs: 5_000 });
 
     /* COMPLETED no dice si salió bien: lo dice el resultado. Un error de modelo llega aquí como 4xx/5xx de fetchJson. */
-    const resultado = await fetchJson<Record<string, any>>(resultadoUrl, { provider: 'fal', headers: cabecerasDeFal(), timeoutMs: 60_000 });
+    const resultado = await fetchJson<Record<string, unknown>>(resultadoUrl, { provider: 'fal', headers: cabecerasDeFal(), timeoutMs: 60_000 });
     const archivos = archivosDelResultado(propio, resultado);
     if (!archivos.length) throw new ProviderError(`fal: ${model.id} terminó sin ningún archivo en su resultado`, 'fal', 502, false);
     const guardados: string[] = [];
@@ -287,7 +289,7 @@ const DESENLACE_DE_FAL: Record<string, DesenlaceDelProveedor> = {
  */
 export const leerAvisoDeFal = (cuerpo: unknown, modelo: string, modeloDeclarado?: ModelSpec): AvisoNormalizado | undefined => {
   if (!cuerpo || typeof cuerpo !== 'object' || Array.isArray(cuerpo) || !ID_DE_MODELO.test(modelo)) return undefined;
-  const b = cuerpo as Record<string, any>;
+  const b = cuerpo as Record<string, unknown>;
   const requestId = String(b.request_id ?? '').trim();
   const providerStatus = String(b.status ?? '').trim().toUpperCase();
   if (!ID_DE_PETICION.test(requestId) || !providerStatus) return undefined;
@@ -339,16 +341,18 @@ export const verificarFirmaDeFal = (
   const huella = createHash('sha256').update(typeof cuerpoCrudo === 'string' ? Buffer.from(cuerpoCrudo, 'utf8') : cuerpoCrudo).digest('hex');
   const mensaje = Buffer.from([requestId, userId, marca, huella].join('\n'), 'utf8');
   const firma = Buffer.from(firmaHex, 'hex');
+  /* Una clave mal formada no valida nada: se cuenta, se dice en el motivo y se prueba la siguiente. */
+  let malFormadas = 0;
   for (const jwk of claves) {
     if (jwk?.kty !== 'OKP' || jwk.crv !== 'Ed25519' || typeof jwk.x !== 'string') continue;
     try {
       const clave = createPublicKey({ key: { kty: 'OKP', crv: 'Ed25519', x: jwk.x }, format: 'jwk' });
       if (verificarEd25519(null, mensaje, clave, firma)) return { valida: true };
     } catch {
-      /* Una clave mal formada no valida nada; se prueba la siguiente. */
+      malFormadas++;
     }
   }
-  return { valida: false, motivo: 'ninguna clave de fal valida la firma' };
+  return { valida: false, motivo: `ninguna clave de fal valida la firma${malFormadas ? ` (${malFormadas} mal formada${malFormadas > 1 ? 's' : ''})` : ''}` };
 };
 
 /* ── Reconciliación: preguntarle a fal qué fue de una operación ─────────── */
@@ -364,14 +368,14 @@ export const resolutorDeFal: ResolutorDeEstadoDeProveedor = {
     const op = leerOperacion(ref.operationId);
     if (!op) return { conocido: false, motivo: 'no_configurado' };
     try {
-      const e = await fetchJson<Record<string, any>>(urlDeEstado(op.modelo, op.requestId), { provider: 'fal', headers: cabecerasDeFal(), timeoutMs: 30_000 });
+      const e = await fetchJson<Record<string, unknown>>(urlDeEstado(op.modelo, op.requestId), { provider: 'fal', headers: cabecerasDeFal(), timeoutMs: 30_000 });
       const s = String(e.status ?? '').toUpperCase();
       if (s === 'IN_QUEUE' || s === 'IN_PROGRESS') {
         return { conocido: true, aviso: { providerId: 'fal', operationId: ref.operationId, providerStatus: s, desenlace: 'en_marcha' } };
       }
       if (s !== 'COMPLETED') return { conocido: false, motivo: 'ilegible' };
       try {
-        const resultado = await fetchJson<Record<string, any>>(urlDeResultado(op.modelo, op.requestId), { provider: 'fal', headers: cabecerasDeFal(), timeoutMs: 60_000 });
+        const resultado = await fetchJson<Record<string, unknown>>(urlDeResultado(op.modelo, op.requestId), { provider: 'fal', headers: cabecerasDeFal(), timeoutMs: 60_000 });
         const aviso = leerAvisoDeFal({ request_id: op.requestId, status: 'OK', payload: resultado }, op.modelo);
         return aviso ? { conocido: true, aviso } : { conocido: false, motivo: 'ilegible' };
       } catch (error) {
