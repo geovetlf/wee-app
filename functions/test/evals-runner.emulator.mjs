@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — F2-C1: el corredor REAL contra el emulador de Firestore (COSTE $0, con el adaptador mock).
+ * WEË AI EVALUATION ENGINE — F2-C1: el corredor REAL contra el emulador de Firestore (COSTE $0, con el adaptador mock).
  *
  *   firebase emulators:exec --only firestore --project demo-wee "node functions/test/evals-runner.emulator.mjs"
  *

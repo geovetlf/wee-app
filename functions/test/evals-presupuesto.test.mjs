@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — F2-C1 (hardening): la RESERVA y la RECONCILIACIÓN del presupuesto de evals.
+ * WEË AI EVALUATION ENGINE — F2-C1 (hardening): la RESERVA y la RECONCILIACIÓN del presupuesto de evals.
  *
  * Coste $0: sin Firestore, sin red, sin proveedor. Mide el compilado del presupuesto del motor común
  * (functions/lib/evals/motor/presupuesto.js) y, por lectura del fuente, que el corredor COMÚN
@@ -117,7 +117,7 @@ check('P3) con proveedores que se pasan del techo, el exceso sobre el tope está
 check('P4) al terminar todas las corridas no queda ninguna reserva colgada', reservasColgadas === 0, `con reserva viva=${reservasColgadas}`);
 
 /* ── El corredor COMÚN con el entorno real, por lectura del fuente ──────────
- * El bucle es el del motor (motor/corredor.ts, uno para todo WEE); evalRun solo aporta su entorno (index.ts: leer el
+ * El bucle es el del motor (motor/corredor.ts, uno para todo Weë); evalRun solo aporta su entorno (index.ts: leer el
  * interruptor y el tope, reservar, liberar, leer el coste real, el rastro) y el dominio real (dominios/router.ts: la
  * generación). Se comprueba en los tres sitios, que es donde vive cada cosa.
  */

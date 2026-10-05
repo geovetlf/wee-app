@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — LA CORRIDA (registro, estados, idempotencia, cancelación, reproducibilidad). Es la del
+ * WEË AI EVALUATION ENGINE — LA CORRIDA (registro, estados, idempotencia, cancelación, reproducibilidad). Es la del
  * motor común (functions/src/evals/motor/corrida.ts), la misma que persiste `evalRun` en Firestore: aquí solo se
  * reexporta, con su almacén en memoria para desarrollo.
  */

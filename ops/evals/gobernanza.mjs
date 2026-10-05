@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — GOBERNANZA DE UNA CORRIDA, en desarrollo.
+ * WEË AI EVALUATION ENGINE — GOBERNANZA DE UNA CORRIDA, en desarrollo.
  *
  * La corrida gobernada es la del motor común (functions/src/evals/motor/corredor.ts): permiso → (holdout sellado) →
  * corrida QUEUED → presupuesto FAIL-CLOSED → RUNNING → el corredor (cancelación y tope por caso) → COMPLETED /

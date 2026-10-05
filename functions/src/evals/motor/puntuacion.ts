@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — LA PUNTUACIÓN (común a todos los dominios).
+ * WEË AI EVALUATION ENGINE — LA PUNTUACIÓN (común a todos los dominios).
  *
  * De los resultados de los graders a puntuaciones: por caso, por dimensión y del dataset. Los PESOS y UMBRALES NO
  * se fijan aquí: entran por `config` (ops/evals/config.json en desarrollo), configurables, para no congelar valores

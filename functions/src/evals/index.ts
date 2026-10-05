@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — F2-C1: `evalRun`, el camino REAL del motor común, en infraestructura de WEE.
+ * WEË AI EVALUATION ENGINE — F2-C1: `evalRun`, el camino REAL del motor común, en infraestructura de Weë.
  *
  * Callable de ADMINISTRACIÓN que ejecuta una evaluación con el proveedor REAL, graders DETERMINISTAS y persistencia
  * en Firestore (`evalRuns`), bajo un presupuesto propio FAIL-CLOSED. NO tiene corredor propio: corre el MISMO

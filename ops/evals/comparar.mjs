@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — BASELINE ↔ CANDIDATE → VEREDICTO (F2-A).
+ * WEË AI EVALUATION ENGINE — BASELINE ↔ CANDIDATE → VEREDICTO (F2-A).
  *
  * `BASELINE → CANDIDATE → EVALUATE → COMPARE → DECISION`. El baseline es INMUTABLE durante una comparación: esta
  * función no muta ninguna de sus entradas. Produce EVIDENCIA y una recomendación; nunca cambia producción.

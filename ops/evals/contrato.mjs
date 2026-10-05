@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — CONTRATO. El contrato común (versión, dimensiones, veredictos, hash canónico y la
+ * WEË AI EVALUATION ENGINE — CONTRATO. El contrato común (versión, dimensiones, veredictos, hash canónico y la
  * validación de un dataset) es el del motor (functions/src/evals/motor/contrato.ts): aquí solo se reexporta.
  *
  * Un caso del Router evalúa PROPIEDADES de la decisión del router (`expected.*`), y sólo la elección proveedor/modelo
