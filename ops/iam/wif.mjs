@@ -29,6 +29,14 @@ export const DUENO_ID = '325097307';
 export const ENTORNO = 'get-wee';
 export const CUENTA = `despliegue-github@${PROYECTO}.iam.gserviceaccount.com`;
 export const CUENTA_DE_EJECUCION = `${NUMERO}-compute@developer.gserviceaccount.com`;
+/**
+ * La cuenta de App Engine. Ninguna función corre con ella, pero firebase-tools 15.29.0 (`checkIam.js`)
+ * comprueba SIEMPRE «actuar como» sobre ella antes de desplegar Functions, aunque las gen2 corran con la
+ * de ejecución. Sin ese permiso el primer despliegue (run 37258963670) abortó en esa comprobación, sin
+ * tocar producción. El dueño lo concedió el 2026-10-05, solo sobre esta cuenta, después de ver que no tiene
+ * roles en el proyecto (si tuviera Editor, «actuar como» ella sería una escalada).
+ */
+export const CUENTA_DE_APP_ENGINE = `${PROYECTO}@appspot.gserviceaccount.com`;
 
 export const WORKFLOW_REF = `${REPOSITORIO}/.github/workflows/despliegue.yml@refs/heads/main`;
 
@@ -110,6 +118,7 @@ export const comandos = () => {
     `gcloud iam service-accounts create despliegue-github --project=${PROYECTO} --display-name="Despliegue desde GitHub (workflow aprobado)"`,
     ...ROLES.map(([rol, para]) => `gcloud projects add-iam-policy-binding ${PROYECTO} --member="serviceAccount:${CUENTA}" --role="${rol}" --condition=None   # ${para}`),
     `gcloud iam service-accounts add-iam-policy-binding ${CUENTA_DE_EJECUCION} --project=${PROYECTO} --member="serviceAccount:${CUENTA}" --role="roles/iam.serviceAccountUser"   # desplegar funciones que corren con la cuenta de ejecución`,
+    `gcloud iam service-accounts add-iam-policy-binding ${CUENTA_DE_APP_ENGINE} --project=${PROYECTO} --member="serviceAccount:${CUENTA}" --role="roles/iam.serviceAccountUser"   # firebase-tools lo comprueba antes de desplegar Functions (ver CUENTA_DE_APP_ENGINE); esa cuenta no tiene roles en el proyecto`,
     '',
     '# 3 · Que el workflow pueda hacerse pasar por la cuenta (solo desde este repositorio; la condición del proveedor ya exige main y el entorno)',
     `gcloud iam service-accounts add-iam-policy-binding ${CUENTA} --project=${PROYECTO} --role="roles/iam.workloadIdentityUser" --member="principalSet://iam.googleapis.com/${pool}/attribute.repository_id/${REPOSITORIO_ID}"`,

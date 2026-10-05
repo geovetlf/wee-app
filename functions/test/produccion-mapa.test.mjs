@@ -41,19 +41,21 @@ const por = Object.fromEntries(fns.map((f) => [f.funcion, f]));
 /* ── A. El mapa ─────────────────────────────────────────────────────────── */
 check('1) es de get-wee, us-central1', mapa.proyecto === 'get-wee' && mapa.region === 'us-central1');
 check('2) tiene las 34 funciones vivas, sin repetir', fns.length === 34 && new Set(fns.map((f) => f.funcion)).size === 34, String(fns.length));
-const malFormadas = fns.filter((f) => !/^[0-9a-f]{40}$/.test(f.commit) || !/^prod\/functions\//.test(f.tag)
+const malFormadas = fns.filter((f) => !/^[0-9a-f]{40}$/.test(f.commit)
+  || !(/^prod\/functions\//.test(f.tag || '') || (!f.tag && String(f.sinTag || '').length > 40))
   || !f.revision || !f.revision.startsWith(f.funcion.toLowerCase() + '-')
   || !f.fuente || !f.fuente.zip || !/^\d+$/.test(f.fuente.generacion || '') || !/^[A-Za-z0-9+/]{22}==$/.test(f.fuente.md5 || '')
   || !/^[0-9a-f-]{36}$/.test(f.build || ''));
-check('3) cada función trae revisión, commit completo, tag, zip#generación, md5 y build', malFormadas.length === 0,
+check('3) cada función trae revisión, commit completo, tag (o por qué no lo tiene), zip#generación, md5 y build', malFormadas.length === 0,
   malFormadas.map((f) => f.funcion).join(', '));
 const fuera = fns.filter((f) => !f.enMain).map((f) => f.funcion).sort();
 check('4) las que corren código fuera de main son exactamente las cuatro de H0, con la rama donde vive',
   fuera.join(',') === 'barridoDeLiquidacion,generateVideo,productions,shots' && fns.filter((f) => !f.enMain).every((f) => (f.ramas || []).length > 0),
   fuera.join(', '));
-check('5) spendCredits avisa de que su tag no se vuelve a desplegar y exige el arreglo de #24',
-  /assertAdmin/.test(por.spendCredits && por.spendCredits.aviso || '')
-  && (por.spendCredits.requiere || []).some((r) => /^b878068[0-9a-f]{33}$/.test(r.commit) && /#24/.test(r.motivo)));
+/* Hasta el 2026-10-05, spendCredits exigía aquí el arreglo de #24 (b878068). Desde su despliegue gobernado ya lo lleva,
+ * así que la regla se prueba con el mapa de juguete (8 y 9) y aquí solo se exige que cada arreglo pendiente esté bien dicho. */
+check('5) cada arreglo pendiente (`requiere`) del mapa dice qué commit falta y por qué',
+  fns.every((f) => (f.requiere || []).every((r) => /^[0-9a-f]{40}$/.test(r.commit) && String(r.motivo || '').length > 10)));
 const otros = Object.fromEntries((mapa.otros || []).map((o) => [o.desplegable, o]));
 check('6) también están las reglas e índices de Firestore (exactos), las de Storage, los dos hostings y Vercel',
   otros.firestore && otros.firestore.exacto === true && otros['storage-rules'] && otros['hosting:get-wee'] && otros['hosting:wee-app']
@@ -95,7 +97,7 @@ check('11d) el workflow pasa a la regla las funciones Y lo demás (reglas, índi
 
 /* ── C. Con la historia de verdad, si este clon la tiene ────────────────── */
 const git = (...a) => { try { return execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { return null; } };
-const tags = [...new Set([...fns.map((f) => f.tag), ...(mapa.otros || []).map((o) => o.tag)])];
+const tags = [...new Set([...fns.filter((f) => f.tag).map((f) => f.tag), ...(mapa.otros || []).map((o) => o.tag)])];
 const presentes = tags.filter((t) => git('rev-parse', '--verify', '--quiet', `refs/tags/${t}`));
 if (presentes.length === 0) {
   console.log('· este clon no tiene los tags prod/* (CI o copia sin tags): se salta la comprobación contra git');

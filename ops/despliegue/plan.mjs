@@ -150,7 +150,7 @@ export const comandosDeVueltaAlMapa = (manifiesto, funciones, { proyecto = 'get-
       continue;
     }
     if (f.aviso) comandos.push(`# AVISO ${nombre}: ${f.aviso}`);
-    comandos.push(`gcloud run services update-traffic ${servicioDe(nombre)} --region ${region} --project ${proyecto} --to-revisions ${f.revision}=100   # ${f.tag}`);
+    comandos.push(`gcloud run services update-traffic ${servicioDe(nombre)} --region ${region} --project ${proyecto} --to-revisions ${f.revision}=100   # ${f.tag || 'sin tag'}`);
   }
   return { comandos, errores };
 };

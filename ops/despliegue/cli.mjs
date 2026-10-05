@@ -50,6 +50,22 @@ const mapaDeProduccion = () => JSON.parse(fs.readFileSync(path.join(RAIZ, 'ops/p
 const sha256 = (datos) => createHash('sha256').update(datos).digest('hex');
 const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
 
+/**
+ * El compilado de las Functions, solo para leer el `__endpoint` de cada una. Se carga SIN
+ * GOOGLE_APPLICATION_CREDENTIALS: al cargarse llama a `admin.initializeApp()`, y firebase-admin 12 lee
+ * esa variable en ese momento y no entiende la credencial `external_account` que deja WIF en el runner
+ * (el humo del run 37259825016 se cayó así, antes de hacer ninguna petición). Sin ella se carga como en
+ * Cloud Run, que no la tiene; el humo no la usa: lee Cloud Run con GCP_TOKEN y llama sin sesión.
+ */
+export const cargarCompilado = () => {
+  const require = createRequire(import.meta.url);
+  const credencial = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  try { return require(path.join(RAIZ, 'functions/lib/index.js')); } finally {
+    if (credencial !== undefined) process.env.GOOGLE_APPLICATION_CREDENTIALS = credencial;
+  }
+};
+
 /** Una petición sin sesión y con cuerpo vacío: lo que hace el humo. Ninguna función llama a una IA sin una persona identificada. */
 const pedirSinSesion = async (destino, tipo) => {
   try {
@@ -104,8 +120,7 @@ const revisiones = async () => {
 };
 
 const humo = async () => {
-  const require = createRequire(import.meta.url);
-  const compilado = require(path.join(RAIZ, 'functions/lib/index.js'));
+  const compilado = cargarCompilado();
   const sinCredenciales = args.includes('--sin-credenciales');
   const n = sinCredenciales ? null : nube();
   const fallos = [];
