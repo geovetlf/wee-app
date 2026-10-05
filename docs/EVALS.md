@@ -136,4 +136,4 @@ Ningún segundo caso sin autorización explícita.
 - **Juez-LLM** (juez 2-de-3, evaluación subjetiva) y **F2-C2**.
 - El **despliegue** de `evalRun` y el **primer run real** con proveedor.
 - El **model-change gate** en `engine/verification.ts` (F2-D): F2 solo diseñó su interfaz; no se implementa.
-- WEE Brain y Prompt Composer como dominios, Hillclimb y cualquier promoción automática: fuera del alcance.
+- WEE Brain y Prompt Composer como dominios, y cualquier promoción automática: fuera del alcance. **Hillclimb** (F6, [HILLCLIMB.md](HILLCLIMB.md)) ya existe sobre este motor, a $0: optimiza el dominio que declare una superficie y nunca aplica nada.

@@ -1,0 +1,16 @@
+{
+  "id": "hillclimb",
+  "nombre": "Hillclimb (F6)",
+  "version": "1.0.0",
+  "descripcion": "Dónde guarda ops/hillclimb/cli.mjs cada corrida: el registro canónico, el Markdown que sale de él y los usos del holdout, en su carpeta de caché y por la puerta de F3. No es una puerta (su suite va en la cadena) y no escribe nada más.",
+  "compatibilidad": { "harness": "^1.0.0" },
+  "estado": "activa",
+  "permisos": ["escribir-cache"],
+  "capacidades": {
+    "informe": [
+      { "id": "json", "descripcion": "El registro canónico (contrato wee-hillclimb@1)", "archivo": "hillclimb.json" },
+      { "id": "markdown", "descripcion": "El mismo registro, legible, derivado del JSON", "archivo": "hillclimb.md" },
+      { "id": "holdout-usos", "descripcion": "Los usos del holdout por candidato (una vez por candidato)", "archivo": "holdout-usos.json" }
+    ]
+  }
+}
