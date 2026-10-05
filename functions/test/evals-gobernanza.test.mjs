@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — GOBERNANZA (F2-B). docs/EVALS.md.
+ * WEË AI EVALUATION ENGINE — GOBERNANZA (F2-B). docs/EVALS.md.
  *
  * Prueba, con fakes y COSTE $0 (sin proveedor real, sin juez-LLM, sin red/Firestore), los 11 puntos de F2-B:
  * holdout protegido, protección de contaminación, presupuesto separado de los Credits de usuario, fail-closed,

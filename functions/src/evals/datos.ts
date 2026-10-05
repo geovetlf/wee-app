@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — F2-C1: el dataset REAL pequeño del Model Router y sus graders DETERMINISTAS.
+ * WEË AI EVALUATION ENGINE — F2-C1: el dataset REAL pequeño del Model Router y sus graders DETERMINISTAS.
  *
  * Casos mínimos y controlados (text.generate) para ejercitar una generación real y medir con graders deterministas
  * (sin juez-LLM): que haya texto, que el coste y la latencia queden registrados. Es un dataset del CONTRATO COMÚN

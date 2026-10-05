@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — EL PRESUPUESTO (uno, para el gasto simulado y para el real).
+ * WEË AI EVALUATION ENGINE — EL PRESUPUESTO (uno, para el gasto simulado y para el real).
  *
  * El dinero de las evaluaciones es COMPLETAMENTE AJENO a los Credits del usuario. Una evaluación interna no cobra a
  * nadie: gasta contra una IDENTIDAD PRESUPUESTARIA PROPIA (`eval`), medida en `providerCost` (USD) —el mismo número

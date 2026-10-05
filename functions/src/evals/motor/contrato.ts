@@ -1,7 +1,7 @@
 /*
- * WEE AI EVALUATION ENGINE — EL CONTRATO COMÚN (F2).
+ * WEË AI EVALUATION ENGINE — EL CONTRATO COMÚN (F2).
  *
- * El motor de evaluaciones es UNO y vive aquí, en `functions/src/evals/motor/`: es lo único de WEE que Cloud
+ * El motor de evaluaciones es UNO y vive aquí, en `functions/src/evals/motor/`: es lo único de Weë que Cloud
  * Functions empaqueta (`functions/`), así que es el único sitio donde lo pueden usar a la vez el corredor real
  * (`evalRun`, functions/src/evals) y las herramientas de desarrollo (`ops/evals/*.mjs`, que lo reexportan desde
  * functions/lib). No hay una segunda copia en ninguna parte.

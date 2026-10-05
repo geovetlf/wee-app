@@ -1,7 +1,7 @@
 /*
- * WEE AI EVALUATION ENGINE — EL CORREDOR (uno solo para todo WEE).
+ * WEË AI EVALUATION ENGINE — EL CORREDOR (uno solo para todo Weë).
  *
- * Es el ÚNICO sitio de WEE donde se recorren los casos de una evaluación (`recorrerCasos`). Lo usan los dos caminos
+ * Es el ÚNICO sitio de Weë donde se recorren los casos de una evaluación (`recorrerCasos`). Lo usan los dos caminos
  * que existen, sin copia:
  *  · el de DESARROLLO (ops/evals: `runner.mjs` y `gobernanza.mjs` lo reexportan con su registro de dominios sin
  *    coste), $0, con el almacén en memoria y el coste simulado;

@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — evalRun CORRE EL CORREDOR COMÚN (F2-C1 sobre el motor por dominios).
+ * WEË AI EVALUATION ENGINE — evalRun CORRE EL CORREDOR COMÚN (F2-C1 sobre el motor por dominios).
  *
  * El motor de evaluaciones es uno (functions/src/evals/motor) y su corredor es el único sitio donde se recorren casos.
  * `evalRun` no tiene bucle propio: aporta un dominio real (registro común) y un ENTORNO de Firestore. Esta suite lo
