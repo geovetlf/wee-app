@@ -106,37 +106,97 @@ const inexistente = await svc.getProduction('zzzzzzzzzzzzzzzzzzzzzzzz');
 check('B4) una que no existe: `no_encontrada`', !inexistente.ok && inexistente.fallo.tipo === 'no_encontrada');
 
 console.log('\n── C · El controlador de la pantalla, contra la callable, con dos personas a la vez ──');
+/*
+ * DETERMINISTA, SIN RELOJ. Antes esto esperaba como mucho 5 s (200 × 25 ms) y dejaba al azar cuál de las dos pantallas
+ * llegaba antes al servidor. Con el emulador cargado (la tanda entera de `_emuladores.mjs`), la vuelta «chocar →
+ * reconstruirse → volver a mandar» tardaba más de 5 s y C1 leía la revisión 2; y en C3, si llegaba antes el cambio
+ * que el borrado, nada se apartaba («descartados: 0 / 0») y la comprobación caía sin que nada estuviera roto.
+ *
+ * Ahora las dos cosas son explícitas:
+ *  · EL ORDEN DE LLEGADA. Las dos pantallas editan la MISMA revisión —por eso chocan—, pero la segunda no sale hacia
+ *    el servidor hasta que la primera tiene respuesta. La colisión es la de verdad (el CAS de la callable la
+ *    detecta) y ocurre siempre igual: gana la primera, choca la segunda, se reconstruye y vuelve a mandar.
+ *  · EL FINAL. Se espera a que no quede ninguna llamada en vuelo y las dos pantallas estén en reposo, no a que pase
+ *    un tiempo. El techo de 120 s solo existe para no colgar la tanda: si se alcanza, las comprobaciones lo dicen.
+ * Y cada llamada al servicio deja su huella, así que se comprueba la secuencia exacta, no solo el resultado final.
+ */
 const K1 = ana.cargar('utils/controladorDeProduccion.ts');
 const inmediato = (fn) => { const t = setTimeout(fn, 0); return () => clearTimeout(t); };
-const pantalla1 = K1.crearControladorDeProduccion(pid, { servicio: svc, nuevoIdDeOperacion: S.nuevoIdDeOperacion, programar: inmediato });
-const pantalla2 = K1.crearControladorDeProduccion(pid, { servicio: svc, nuevoIdDeOperacion: S.nuevoIdDeOperacion, programar: inmediato });
+const enCurso = new Set();
+const huellas = [];
+const seguir = (promesa) => { enCurso.add(promesa); promesa.finally(() => enCurso.delete(promesa)).catch(() => {}); return promesa; };
+let turno = Promise.resolve();
+let darTurno = () => {};
+const nuevaRonda = () => { turno = new Promise((r) => { darTurno = r; }); };
+/** El servicio de verdad de cada pantalla, con su huella; la segunda guarda turno hasta que la primera tiene respuesta. */
+const servicioDe = (quien, guardaTurno) => ({
+  ...svc,
+  getProduction: (id) => seguir(svc.getProduction(id).then((r) => { huellas.push(`${quien}:abrir`); return r; })),
+  applyProductionOperations: (args) => seguir((async () => {
+    if (guardaTurno) await turno;
+    try {
+      const r = await svc.applyProductionOperations(args);
+      huellas.push(`${quien}:${r.ok ? `rev${r.valor.produccion.revision}` : r.fallo.tipo}`);
+      return r;
+    } finally {
+      /* Pase lo que pase con la primera, la segunda nunca se queda esperando turno para siempre. */
+      if (!guardaTurno) darTurno();
+    }
+  })()),
+});
+const pantalla1 = K1.crearControladorDeProduccion(pid, { servicio: servicioDe('p1', false), nuevoIdDeOperacion: S.nuevoIdDeOperacion, programar: inmediato });
+const pantalla2 = K1.crearControladorDeProduccion(pid, { servicio: servicioDe('p2', true), nuevoIdDeOperacion: S.nuevoIdDeOperacion, programar: inmediato });
 await pantalla1.cargar(); await pantalla2.cargar();
-const esperar = async () => { for (let i = 0; i < 200; i++) { await new Promise((r) => setTimeout(r, 25)); if (!pantalla1.leer().estado.enVuelo && !pantalla2.leer().estado.enVuelo && !pantalla1.leer().estado.pendientes.length && !pantalla2.leer().estado.pendientes.length) return; } };
+const enReposo = (p) => { const e = p.leer().estado; return !e.enVuelo && !e.pendientes.length; };
+const TECHO_MS = 120_000;
+const hastaQueTodoQuedeQuieto = async () => {
+  const desde = Date.now();
+  const queda = () => TECHO_MS - (Date.now() - desde);
+  while (queda() > 0) {
+    /* Esperar a lo que está en vuelo, pero nunca más allá del techo: una llamada que no vuelve no cuelga la tanda. */
+    while (enCurso.size && queda() > 0) {
+      let reloj;
+      await Promise.race([Promise.allSettled([...enCurso]), new Promise((r) => { reloj = setTimeout(r, queda()); })]);
+      clearTimeout(reloj);
+    }
+    await new Promise((r) => setTimeout(r, 0));
+    if (!enCurso.size && enReposo(pantalla1) && enReposo(pantalla2)) return true;
+  }
+  return false;
+};
+nuevaRonda(); huellas.length = 0;
 pantalla1.gesto([{ op: 'edit_text', target: { sceneId: 'sc_0001' }, title: 'Las cinco de la mañana' }]);
 pantalla2.gesto([{ op: 'add_shot', sceneId: 'sc_0001', shot: { id: 'sh_0102', durationSec: 4, description: 'La masa entra al horno' } }]);
-await esperar();
+const quietoC1 = await hastaQueTodoQuedeQuieto();
+const secuenciaC1 = huellas.join(' → ');
 const final = await svc.getProduction(pid);
 check('C1) dos pantallas escribiendo a la vez: una pasa, la otra choca, se reconstruye y pasa encima',
-  final.ok && final.valor.revision === 3 && final.valor.production.scenes[0].title === 'Las cinco de la mañana' && final.valor.production.scenes[0].shots.length === 2,
-  final.ok ? `rev ${final.valor.revision}` : '');
+  quietoC1 && secuenciaC1 === 'p1:rev2 → p2:conflicto → p2:abrir → p2:rev3'
+  && final.ok && final.valor.revision === 3 && final.valor.production.scenes[0].title === 'Las cinco de la mañana' && final.valor.production.scenes[0].shots.length === 2,
+  `${quietoC1 ? '' : 'sin calma en 120 s · '}${secuenciaC1}${final.ok ? ` · rev ${final.valor.revision}` : ''}`);
 /*
  * La que guardó primero no se entera de lo que vino después —F1-C no escucha cambios en vivo; lo verá al volver a
  * abrirla—; la que chocó se reconstruyó sobre la versión de ahora y ve EXACTAMENTE lo que tiene el servidor.
  */
 const { canonico } = ana.cargar('services/filmmaker/dominio.ts');
-const [primera, segunda] = [pantalla1, pantalla2].sort((a, b) => a.leer().estado.confirmada.revision - b.leer().estado.confirmada.revision);
+const [primera, segunda] = [pantalla1, pantalla2];
 check('C2) no se pisó nada: la que chocó se reconstruyó y ve exactamente lo del servidor; las dos, guardadas',
   final.ok && segunda.leer().estado.confirmada.revision === 3 && canonico(segunda.leer().estado.vista) === canonico(final.valor.production)
-  && segunda.leer().estado.conflicto && primera.leer().estado.confirmada.revision === 2
+  && segunda.leer().estado.conflicto && primera.leer().estado.confirmada.revision === 2 && !primera.leer().estado.conflicto
   && primera.leer().estado.guardado === 'guardado' && segunda.leer().estado.guardado === 'guardado');
 await pantalla1.cargar();
+nuevaRonda(); huellas.length = 0;
 pantalla1.gesto([{ op: 'remove_shot', shotId: 'sh_0102' }]);
 pantalla2.gesto([{ op: 'change_subject', target: { shotId: 'sh_0102' }, subject: { focus: 'hands' } }]);
-await esperar();
+const quietoC3 = await hastaQueTodoQuedeQuieto();
+const secuenciaC3 = huellas.join(' → ');
 const tras = pantalla2.leer().estado;
+const trasServidor = await svc.getProduction(pid);
 check('C3) lo que ya no cabe tras el conflicto —un plano que la otra pantalla quitó— se aparta CON su problema, y no se pierde en silencio',
-  (tras.descartados.length === 1 && tras.descartados[0].problems[0].code === 'operation_target_missing') || (pantalla1.leer().estado.descartados.length === 1),
-  `descartados: ${tras.descartados.length} / ${pantalla1.leer().estado.descartados.length}`);
+  quietoC3 && secuenciaC3 === 'p1:rev4 → p2:conflicto → p2:abrir'
+  && tras.descartados.length === 1 && tras.descartados[0].problems[0].code === 'operation_target_missing' && pantalla1.leer().estado.descartados.length === 0
+  && trasServidor.ok && trasServidor.valor.revision === 4 && !trasServidor.valor.production.scenes[0].shots.some((s) => s.id === 'sh_0102'),
+  `${quietoC3 ? '' : 'sin calma en 120 s · '}${secuenciaC3} · descartados: ${tras.descartados.length} / ${pantalla1.leer().estado.descartados.length}`);
 
 console.log('\n── D · Sin sesión ──');
 await signOut(ana.auth);
