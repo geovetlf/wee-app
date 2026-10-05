@@ -96,8 +96,17 @@ check('18) humo: 401/403 = viva y cerrada; 5xx o sin respuesta = fallo; programa
   && plan.juzgarHumo({ tipo: 'programada', lista: true }).ok && !plan.juzgarHumo({ tipo: 'evento', lista: false }).ok);
 const ma = plan.planDeMarchaAtras({ a: 'a-00001', b: 'b-00004' }, { a: 'a-00002', b: 'b-00004' });
 check('19) la marcha atrás solo toca lo que cambió', ma.length === 1 && ma[0].servicio === 'a' && ma[0].revision === 'a-00001');
-check('20) y manda el 100 % del tráfico a la revisión de antes',
-  JSON.stringify(plan.cuerpoDeTrafico('a-00001')) === JSON.stringify({ traffic: [{ type: 'TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION', revision: 'a-00001', percent: 100 }] }));
+const leido = { apiVersion: 'serving.knative.dev/v1', kind: 'Service', metadata: { name: 'a', resourceVersion: 'v7' },
+  spec: { template: { metadata: { name: 'a-00002' }, spec: { containers: [{ image: 'x@sha256:1' }] } }, traffic: [{ latestRevision: true, percent: 100 }] },
+  status: { latestReadyRevisionName: 'a-00002' } };
+const conTrafico = plan.servicioConTrafico(leido, 'a-00001');
+const lanza = (f) => { try { f(); return false; } catch { return true; } };
+check('20) y manda el 100 % del tráfico a la revisión de antes con la plantilla INTACTA (si cambiara, Cloud Run respondería ALREADY_EXISTS); solo a revisiones de ese servicio',
+  JSON.stringify(conTrafico.spec.traffic) === JSON.stringify([{ revisionName: 'a-00001', percent: 100 }])
+  && JSON.stringify(conTrafico.spec.template) === JSON.stringify(leido.spec.template) && conTrafico.metadata.resourceVersion === 'v7'
+  && conTrafico.status === undefined && leido.spec.traffic[0].latestRevision === true
+  && lanza(() => plan.servicioConTrafico({ metadata: { name: 'a' }, spec: {} }, 'a-00001'))
+  && lanza(() => plan.servicioConTrafico(leido, 'b-00001')) && lanza(() => plan.servicioConTrafico(leido, 'a-00001;x')));
 check('21) el tag del despliegue es inmutable y dice qué y cuándo',
   plan.tagDeDespliegue('functions:brainChat', '2026-10-01T12:34:56.000Z') === 'prod/functions/brainChat/2026-10-01T1234Z'
   && plan.tagDeDespliegue('functions:a,functions:b,firestore:rules', '2026-10-01T12:34:00Z') === 'prod/functions/2fn+1/2026-10-01T1234Z');
@@ -107,7 +116,6 @@ const { crearNube } = await importar('ops/despliegue/nube.mjs');
 const peticiones = [];
 const red = async (url, opts) => {
   peticiones.push({ url, opts });
-  if (opts.method === 'PATCH') return { ok: true, status: 200, text: async () => '{}' };
   if (url.endsWith('/services/roto')) return { ok: false, status: 403, text: async () => '{"error":"x"}' };
   if (url.endsWith('/services/nueva')) return { ok: false, status: 404, text: async () => '{"error":"not found"}' };
   if (url.endsWith('/services/fijada')) return { ok: true, status: 200, text: async () => JSON.stringify({ uri: 'https://fijada-x.a.run.app', latestReadyRevision: 'fijada-00009-new', latestCreatedRevision: 'fijada-00009-new', terminalCondition: { state: 'CONDITION_SUCCEEDED' }, trafficStatuses: [{ type: 'TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION', revision: 'fijada-00007-old', percent: 100 }] }) };
@@ -124,10 +132,73 @@ check('23) con el token en la cabecera (y a la API v2 del proyecto)', peticiones
 let error = null;
 try { await nube.servicio('roto'); } catch (e) { error = e; }
 check('24) un error de Cloud Run nunca lleva el token', error && /403/.test(error.message) && !/TOKEN-SECRETO/.test(error.message));
-await nube.traficoA('brainchat', 'brainchat-00011-old');
-const p = peticiones.at(-1);
-check('25) la marcha atrás es un PATCH del tráfico, nada más', p.opts.method === 'PATCH' && p.url.endsWith('/services/brainchat?updateMask=traffic')
-  && JSON.parse(p.opts.body).traffic[0].revision === 'brainchat-00011-old');
+const eco = async () => ({ ok: false, status: 400, text: async () => JSON.stringify({ error: { code: 400, status: 'INVALID_ARGUMENT', message: 'cabecera rara: Bearer TOKEN-SECRETO' } }) });
+let conEco = null;
+try { await crearNube({ proyecto: 'get-wee', region: 'us-central1', token: 'TOKEN-SECRETO', fetch: eco }).cuenta5xx(['spendcredits'], '2026-10-01T10:00:00Z', '2026-10-01T10:10:00Z'); } catch (e) { conEco = e; }
+check('24b) el motivo de la API se cuenta; si trajera el token, sale tapado', conEco && /respondió 400 \(INVALID_ARGUMENT: /.test(conEco.message)
+  && conEco.message.includes('[token]') && !conEco.message.includes('TOKEN-SECRETO'), conEco ? conEco.message : 'no falló');
+
+/* Cloud Run como se porta con un servicio que GESTIONA Cloud Functions (lo visto en el run 37264571641): la plantilla
+ * lleva fijado el nombre de la revisión, y una escritura que no trae esa plantilla idéntica es «crear otra vez esa
+ * revisión con otra configuración» → 409 ALREADY_EXISTS. Con la plantilla idéntica, solo cambia el tráfico. */
+const cloudRunDeFunciones = ({ cambiaEntreLecturaYEscritura = false } = {}) => {
+  const guardado = {
+    apiVersion: 'serving.knative.dev/v1', kind: 'Service',
+    metadata: { name: 'spendcredits', namespace: '546769059837', resourceVersion: 'AAA', labels: { 'goog-managed-by': 'cloudfunctions' } },
+    spec: { template: { metadata: { name: 'spendcredits-00007-xub', annotations: { 'cloudfunctions.googleapis.com/trigger-type': 'HTTP_TRIGGER' } },
+      spec: { containers: [{ image: `us-central1-docker.pkg.dev/get-wee/gcf-artifacts/spend_credits@sha256:${'d'.repeat(64)}` }] } },
+    traffic: [{ latestRevision: true, percent: 100 }] },
+    status: { latestReadyRevisionName: 'spendcredits-00007-xub' },
+  };
+  const yaExiste = () => ({ ok: false, status: 409, text: async () => JSON.stringify({ error: { code: 409, status: 'ALREADY_EXISTS',
+    message: `Revision named '${guardado.spec.template.metadata.name}' with different configuration already exists.` } }) });
+  const vistas = [];
+  const red = async (url, opts = {}) => {
+    vistas.push({ url, metodo: opts.method || 'GET', cuerpo: opts.body ? JSON.parse(opts.body) : null, auth: opts.headers?.Authorization });
+    if (url.startsWith('https://run.googleapis.com/v2/') && opts.method === 'PATCH') return yaExiste();
+    if (url === 'https://us-central1-run.googleapis.com/apis/serving.knative.dev/v1/namespaces/get-wee/services/spendcredits') {
+      if (!opts.method || opts.method === 'GET') {
+        const leidoAhora = JSON.stringify(guardado);
+        if (cambiaEntreLecturaYEscritura) guardado.spec.template.metadata.name = 'spendcredits-00008-otr';
+        return { ok: true, status: 200, text: async () => leidoAhora };
+      }
+      if (opts.method === 'PUT') {
+        const cuerpo = JSON.parse(opts.body);
+        if (JSON.stringify(cuerpo.spec?.template) !== JSON.stringify(guardado.spec.template)) return yaExiste();
+        guardado.spec.traffic = cuerpo.spec.traffic;
+        return { ok: true, status: 200, text: async () => JSON.stringify(guardado) };
+      }
+    }
+    return { ok: false, status: 404, text: async () => '{"error":{"code":404,"status":"NOT_FOUND","message":"no existe"}}' };
+  };
+  return { red, vistas, guardado };
+};
+const crViejo = cloudRunDeFunciones();
+const viejo = await crViejo.red('https://run.googleapis.com/v2/projects/get-wee/locations/us-central1/services/spendcredits?updateMask=traffic',
+  { method: 'PATCH', body: JSON.stringify({ traffic: [{ type: 'TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION', revision: 'spendcredits-00006-duh', percent: 100 }] }) });
+check('25) reproducción: la marcha atrás de antes (PATCH v2 con solo `traffic`) recibe el 409 ALREADY_EXISTS del run 37264571641, y el tráfico no se mueve',
+  viejo.status === 409 && /ALREADY_EXISTS/.test(await viejo.text()) && crViejo.guardado.spec.traffic[0].latestRevision === true);
+const cr = cloudRunDeFunciones();
+let fallo25g = null;
+try { await crearNube({ proyecto: 'get-wee', region: 'us-central1', token: 'TOKEN-SECRETO', fetch: cr.red }).traficoA('spendcredits', 'spendcredits-00006-duh'); } catch (e) { fallo25g = e.message; }
+const [lectura, escritura] = cr.vistas;
+check('25g) la marcha atrás de ahora: lee el servicio por la API v1 y lo reemplaza con la plantilla idéntica; el tráfico queda 100 % en la de antes',
+  !fallo25g && cr.vistas.length === 2 && lectura.metodo === 'GET' && escritura.metodo === 'PUT' && escritura.url === lectura.url
+  && !cr.vistas.some((v) => v.metodo === 'PATCH' || v.url.includes('/v2/'))
+  && escritura.cuerpo.status === undefined && escritura.cuerpo.metadata.resourceVersion === 'AAA'
+  && JSON.stringify(cr.guardado.spec.traffic) === JSON.stringify([{ revisionName: 'spendcredits-00006-duh', percent: 100 }])
+  && cr.vistas.every((v) => v.auth === 'Bearer TOKEN-SECRETO'), fallo25g || '');
+const crCambia = cloudRunDeFunciones({ cambiaEntreLecturaYEscritura: true });
+let rechazo = null;
+try { await crearNube({ proyecto: 'get-wee', region: 'us-central1', token: 'TOKEN-SECRETO', fetch: crCambia.red }).traficoA('spendcredits', 'spendcredits-00006-duh'); } catch (e) { rechazo = e; }
+check('25h) si Cloud Run la rechaza (ALREADY_EXISTS), la marcha atrás falla con el motivo REAL de la API, sin el token, y el tráfico no se toca',
+  rechazo && /respondió 409 \(ALREADY_EXISTS: Revision named 'spendcredits-00008-otr' with different configuration already exists\.\)/.test(rechazo.message)
+  && !rechazo.message.includes('TOKEN-SECRETO') && crCambia.guardado.spec.traffic[0].latestRevision === true, rechazo ? rechazo.message : 'no falló');
+const crAjena = cloudRunDeFunciones();
+let ajena = null;
+try { await crearNube({ proyecto: 'get-wee', region: 'us-central1', token: 'TOKEN-SECRETO', fetch: crAjena.red }).traficoA('spendcredits', 'brainchat-00011-old'); } catch (e) { ajena = e; }
+check('25i) y nunca manda el tráfico a una revisión de OTRO servicio: ni siquiera escribe',
+  ajena && /no es una revisión de spendcredits/.test(ajena.message) && !crAjena.vistas.some((v) => v.metodo === 'PUT'));
 
 const fijada = await nube.servicio('fijada');
 check('25b) tras una marcha atrás, «la que sirve» es la fijada, no la última lista; y el humo no la da por buena',
@@ -281,11 +352,53 @@ check('40) observación: cuenta lo que SUBE sobre lo de antes; si no se puede me
   && !plan.juzgarObservacion({ antes: undefined, despues: 0 }).ok && !plan.juzgarObservacion({ antes: 0, despues: NaN }).ok
   && !plan.juzgarObservacion({ antes: null, despues: 0 }).ok && !plan.juzgarObservacion({ antes: 0, despues: null }).ok
   && plan.OBSERVACION.minutos === 10 && plan.OBSERVACION.umbral === 5);
-const q = plan.consultaDe5xx(['brainchat', 'creatorrun', 'brainchat'], '2026-10-01T10:00:00Z', '2026-10-01T10:10:00Z');
-check('41) la consulta suma los 5xx de la ventana entera, solo de los servicios desplegados',
+const q = plan.consultaDe5xx('brainchat', '2026-10-01T10:00:00Z', '2026-10-01T10:10:00Z');
+check('41) la consulta suma los 5xx de la ventana entera, de un servicio desplegado',
   q.get('aggregation.alignmentPeriod') === '600s' && q.get('aggregation.perSeriesAligner') === 'ALIGN_SUM' && q.get('aggregation.crossSeriesReducer') === 'REDUCE_SUM'
-  && /response_code_class="5xx"/.test(q.get('filter')) && q.get('filter').includes('("brainchat" OR "creatorrun")')
+  && q.get('filter') === 'metric.type = "run.googleapis.com/request_count" AND resource.type = "cloud_run_revision" AND metric.labels.response_code_class = "5xx" AND resource.labels.service_name = "brainchat"'
   && plan.sumarSeries({}) === 0 && plan.sumarSeries({ timeSeries: [{ points: [{ value: { int64Value: '2' } }] }, { points: [{ value: { doubleValue: 1 } }] }] }) === 3);
+/* La gramática de los filtros de Cloud Monitoring, lo justo (cloud.google.com/monitoring/api/v3/filters): comparaciones
+ * `selector = "texto"` unidas por AND, con los selectores de la referencia. La lista de valores de Cloud Logging,
+ * `campo=("a" OR "b")`, no está. Es un CONTRATO escrito aquí, no Google: el mensaje del 400 es de este doble, no el
+ * literal de la API. Lo valida de verdad el próximo despliegue gobernado. */
+const SELECTOR_DE_MONITORING = /^(metric\.type|resource\.type|metric\.labels?\.[a-z_]+|resource\.labels?\.[a-z_]+)\s*=\s*"[^"()]*"$/;
+const filtroValidoEnMonitoring = (f) => String(f).split(' AND ').every((t) => SELECTOR_DE_MONITORING.test(t.trim()));
+const consultas = [];
+const monitoringDeContrato = async (url) => {
+  const filtro = new URL(url).searchParams.get('filter');
+  consultas.push(filtro);
+  if (!filtroValidoEnMonitoring(filtro)) {
+    return { ok: false, status: 400, text: async () => JSON.stringify({ error: { code: 400, status: 'INVALID_ARGUMENT', message: `Could not parse filter: ${filtro}` } }) };
+  }
+  const servicio = /service_name\s*=\s*"([^"]+)"/.exec(filtro)?.[1];
+  return { ok: true, status: 200, text: async () => JSON.stringify({ timeSeries: [{ points: [{ value: { int64Value: servicio === 'creatorrun' ? '2' : '1' } }] }] }) };
+};
+const FILTRO_DEL_RUN = 'metric.type="run.googleapis.com/request_count" AND resource.type="cloud_run_revision" AND metric.label.response_code_class="5xx" AND resource.label.service_name=("spendcredits")';
+const viejoMon = await monitoringDeContrato(`https://monitoring.googleapis.com/v3/projects/get-wee/timeSeries?${new URLSearchParams({ filter: FILTRO_DEL_RUN })}`);
+check('41b) reproducción: el filtro del run 37264571641 (la lista de valores de Logging) no es un filtro de Monitoring → 400 INVALID_ARGUMENT',
+  !filtroValidoEnMonitoring(FILTRO_DEL_RUN) && viejoMon.status === 400 && /INVALID_ARGUMENT/.test(await viejoMon.text()));
+let total5xx = null;
+let fallo41c = null;
+try {
+  total5xx = await crearNube({ proyecto: 'get-wee', region: 'us-central1', token: 'TOKEN-SECRETO', fetch: monitoringDeContrato })
+    .cuenta5xx(['spendcredits', 'creatorrun', 'spendcredits'], '2026-10-01T10:00:00Z', '2026-10-01T10:10:00Z');
+} catch (e) { fallo41c = e.message; }
+const deAhora = consultas.slice(1);
+check('41c) el filtro de ahora pasa el contrato: una consulta por servicio (sin repetir), solo `selector = "texto"` con AND, y se suman',
+  !fallo41c && total5xx === 3 && deAhora.length === 2 && deAhora.every(filtroValidoEnMonitoring) && deAhora.every((f) => !/[()]|\bOR\b/.test(f))
+  && deAhora[0].endsWith('resource.labels.service_name = "spendcredits"') && deAhora[1].endsWith('resource.labels.service_name = "creatorrun"'), fallo41c || '');
+const monitoringRoto = async () => ({ ok: false, status: 400, text: async () => JSON.stringify({ error: { code: 400, status: 'INVALID_ARGUMENT', message: 'Could not parse filter' } }) });
+let errorMon = null;
+try { await crearNube({ proyecto: 'get-wee', region: 'us-central1', token: 'TOKEN-SECRETO', fetch: monitoringRoto }).cuenta5xx(['spendcredits'], '2026-10-01T10:00:00Z', '2026-10-01T10:10:00Z'); } catch (e) { errorMon = e.message; }
+const juicioMon = plan.juzgarObservacion({ antes: undefined, despues: undefined, error: errorMon });
+check('41d) un 400 de Monitoring no se lee como fallo de la aplicación: el juicio dice «falló la medición» con el motivo REAL de la API',
+  /monitoring\.googleapis\.com respondió 400 \(INVALID_ARGUMENT: Could not parse filter\)/.test(errorMon || '')
+  && !juicioMon.ok && juicioMon.medido === false && juicioMon.motivo.includes(errorMon) && /Falló la medición, no la aplicación/.test(juicioMon.motivo)
+  && plan.juzgarObservacion({ antes: 0, despues: 9 }).medido === true && !plan.juzgarObservacion({ antes: 0, despues: 9 }).ok, juicioMon.motivo);
+const fuenteCli = leer('ops/despliegue/cli.mjs');
+check('41e) y el paso lo dice así: «los 5xx subieron» solo si se midieron; si no, la revisión queda «SIN comprobar», con el error real',
+  /juzgarObservacion\(\{ antes, despues, umbral, error \}\)/.test(fuenteCli) && /\(los 5xx subieron\)/.test(fuenteCli) && /SIN comprobar/.test(fuenteCli)
+  && /catch \(e\) \{ error = e\.message; \}/.test(fuenteCli));
 check('42) un digest solo vale si es un sha256 completo', plan.digestDeImagen(`x/y@sha256:${'c'.repeat(64)}`) === `sha256:${'c'.repeat(64)}` && plan.digestDeImagen('x/y:latest') === null && plan.digestDeImagen(null) === null);
 const reg = plan.mensajeDelRegistro({ commit: SHA, objetivo: 'functions:brainChat,hosting:wee-app', run: 'https://github.com/x/y/actions/runs/1',
   funciones: [{ funcion: 'brainChat', revision: 'brainchat-00013-xyz', digest: 'repo@sha256:abc' }], sitios: [{ sitio: 'wee-app', version: 'v1', comparados: 140 }] });

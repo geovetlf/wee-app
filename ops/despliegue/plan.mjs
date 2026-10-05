@@ -109,10 +109,25 @@ export const planDeMarchaAtras = (antes, despues, prohibidas = new Set()) => Obj
 export const revisionesSinArreglo = (manifiesto) => new Set(((manifiesto && manifiesto.funciones) || [])
   .filter((f) => (f.requiere || []).length && f.revision).map((f) => f.revision));
 
-/** El cuerpo del PATCH de Cloud Run (v2) que manda el 100 % del tráfico a una revisión. */
-export const cuerpoDeTrafico = (revision) => ({
-  traffic: [{ type: 'TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION', revision, percent: 100 }],
-});
+/**
+ * El servicio de Cloud Run (API v1, serving.knative.dev), tal como se leyó, con el 100 % del tráfico en
+ * `revision` y TODO LO DEMÁS IGUAL. Las funciones gen2 son servicios que gestiona Cloud Functions y su
+ * plantilla lleva fijado el nombre de la revisión: si la plantilla cambia, Cloud Run entiende que se pide
+ * crear otra vez esa revisión con otra configuración y responde 409 ALREADY_EXISTS (run 37264571641, con
+ * un PATCH v2 que solo llevaba `traffic`). Es lo que hace `gcloud run services update-traffic`. Solo se
+ * aceptan revisiones de ESE servicio.
+ */
+export const servicioConTrafico = (servicio, revision) => {
+  const nombre = servicio?.metadata?.name;
+  if (!nombre || !servicio?.spec?.template) throw new Error('el servicio leído no trae su nombre y su plantilla: no se mueve el tráfico');
+  if (!/^[a-z0-9-]+$/.test(String(revision || '')) || !String(revision).startsWith(`${nombre}-`)) {
+    throw new Error(`${revision} no es una revisión de ${nombre}: no se mueve el tráfico`);
+  }
+  const copia = JSON.parse(JSON.stringify(servicio));
+  delete copia.status;
+  copia.spec.traffic = [{ revisionName: revision, percent: 100 }];
+  return copia;
+};
 
 /** El tag con el que queda registrado un despliegue (inmutable). */
 export const tagDeDespliegue = (objetivo, fechaIso) => {
@@ -244,11 +259,18 @@ export const compararHashes = (locales, remotos) => {
 
 /* ── Observación después del despliegue ────────────────────────────────────── */
 
-/** El filtro de Cloud Monitoring para las respuestas 5xx de unos servicios de Cloud Run. */
-export const filtroDe5xx = (servicios) => {
-  const nombres = [...new Set(servicios)].map((s) => `"${s}"`).join(' OR ');
-  return `metric.type="run.googleapis.com/request_count" AND resource.type="cloud_run_revision" AND metric.label.response_code_class="5xx" AND resource.label.service_name=(${nombres})`;
-};
+/**
+ * El filtro de Cloud Monitoring para las respuestas 5xx de UN servicio de Cloud Run. Solo comparaciones
+ * `selector = "texto"` unidas por AND, con los selectores de la referencia (monitoring/api/v3/filters). La
+ * lista de valores de Cloud Logging, `campo=("a" OR "b")`, no existe en Monitoring: con ella, la API
+ * respondió 400 en el run 37264571641. Para varios servicios se hace una consulta por servicio.
+ */
+export const filtroDe5xx = (servicio) => [
+  'metric.type = "run.googleapis.com/request_count"',
+  'resource.type = "cloud_run_revision"',
+  'metric.labels.response_code_class = "5xx"',
+  `resource.labels.service_name = "${servicio}"`,
+].join(' AND ');
 
 /** La política de observación, escrita aquí y en ningún otro sitio (docs/DEPLOYMENT.md §6). */
 export const OBSERVACION = { minutos: 10, umbral: 5 };
@@ -261,19 +283,23 @@ export const OBSERVACION = { minutos: 10, umbral: 5 };
  * por encima de antes, el despliegue se da por fallido y el workflow devuelve el
  * tráfico (marcha atrás). Si no se puede medir, también: lo que no se sabe no
  * se da por bueno. La decide código, con una cifra escrita: nunca una IA.
+ * `medido: false` separa «falló la medición» de «la aplicación da 5xx», y el
+ * motivo lleva el error real de la API (`error`), no un «no se pudo» a secas.
  */
-export const juzgarObservacion = ({ antes, despues, umbral = OBSERVACION.umbral }) => {
-  if (!Number.isFinite(antes) || !Number.isFinite(despues)) return { ok: false, motivo: 'no se pudo medir: se trata como fallo' };
+export const juzgarObservacion = ({ antes, despues, umbral = OBSERVACION.umbral, error = null }) => {
+  if (!Number.isFinite(antes) || !Number.isFinite(despues)) {
+    return { ok: false, medido: false, motivo: `no se pudo medir los 5xx: ${error || 'Cloud Monitoring no dio un número'}. Falló la medición, no la aplicación` };
+  }
   const subida = despues - antes;
   const motivo = `${despues} respuestas 5xx después, ${antes} antes (subida ${subida}, umbral ${umbral})`;
-  return { ok: subida <= umbral, motivo };
+  return { ok: subida <= umbral, medido: true, motivo };
 };
 
-/** Los parámetros de `projects.timeSeries.list` que suman los 5xx de una ventana en un solo número por serie. */
-export const consultaDe5xx = (servicios, desdeIso, hastaIso) => {
+/** Los parámetros de `projects.timeSeries.list` que suman los 5xx de una ventana de un servicio en un solo número. */
+export const consultaDe5xx = (servicio, desdeIso, hastaIso) => {
   const segundos = Math.max(60, Math.round((Date.parse(hastaIso) - Date.parse(desdeIso)) / 1000));
   return new URLSearchParams({
-    filter: filtroDe5xx(servicios),
+    filter: filtroDe5xx(servicio),
     'interval.startTime': desdeIso,
     'interval.endTime': hastaIso,
     'aggregation.alignmentPeriod': `${segundos}s`,
