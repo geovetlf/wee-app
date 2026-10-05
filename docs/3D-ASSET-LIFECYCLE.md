@@ -2,7 +2,7 @@
 
 **Estado:** preparación de arquitectura. Lo único construido es un módulo puro del Core,
 [`functions/src/core/content/linaje.ts`](../functions/src/core/content/linaje.ts), y su suite,
-[`functions/test/ciclo-de-vida-3d.test.mjs`](../functions/test/ciclo-de-vida-3d.test.mjs) (76 comprobaciones, $0). **Nada está
+[`functions/test/ciclo-de-vida-3d.test.mjs`](../functions/test/ciclo-de-vida-3d.test.mjs) (77 comprobaciones, $0). **Nada está
 conectado a ningún camino de producción, ni desplegado.** Lo que este documento afirma del código está comprobado sobre
 `main` (`a735b58`).
 
@@ -67,7 +67,7 @@ expone `vieneDe` (la versión anterior).
 | `Escena3D` | `core/escena3d.ts` | Un núcleo, tres perfiles (`world`, `design`, `filmmaker`); nodos con papel, `assetId`/`elementId` y transformación; cámaras; zonas; `entorno {worldAssetId, previewAssetId}`; **ids, nunca URL**; `materialesDeLaEscena3D` | Sin persistencia (decisión pendiente); la luz no tiene parámetros; no hay acabados de superficie; no se comprueba la clase de material por papel |
 | `Element` | `core/element.ts` | Una cosa con nombre (`scene`, `place`, `object`…) que **referencia** materiales con papel y clase; `puedeReferenciar` (dueño, listo, clase) | — |
 | `SceneNode` / `ShotNode` | `core/shot.ts` | El eje temporal; `ElementBinding` (Element + versión); `producedAssetId`; «el grafo ya existe: `Element.related`, `sourceAssetIds`, `previousVersionId`» | Nada propaga `stale` (a propósito) |
-| Producción | `functions/src/filmmaker/` | `ProductionReference.kind` admite cualquier `AssetKind` —también `world`—; el servidor (F1-B) comprueba cada `assetId` con `leerMaterial` + `puedeReferenciar`; la línea de tiempo se deriva; `duplicate` no copia materiales | Los requisitos de un plano solo llevan referencias `image`/`video` (§9.3) |
+| Producción | `functions/src/filmmaker/` | `ProductionReference.kind` admite cualquier `AssetKind` —también `world`—; el servidor (F1-B) comprueba cada `assetId` que entra nuevo con `leerMaterial` + `puedeReferenciar`; la línea de tiempo se deriva; `duplicate` no copia materiales | Los requisitos de un plano solo llevan referencias `image`/`video` (§9.3) |
 
 ### 1.4 Quién escribe el material hoy, y lo que **no** escribe nadie
 
@@ -252,6 +252,10 @@ material esperada por papel, recorridos de cámara para Filmmaker y la colecció
 
 - **Falla cerrado:** unos derechos que no se entienden no se tratan como ausentes (`derechos_invalidos`), y una unión que
   no cabe en el contrato no se recorta (`no_representables`): recortar sería soltar obligaciones.
+- **Una dimensión nueva no se pierde:** si `DerechosDelMaterial` gana un campo (una obligación de etiquetar lo
+  generado, de entregar copia de la licencia…), el validador de hoy lo deja pasar, y copiar solo lo conocido lo tiraría.
+  Por eso unos derechos con algo que el linaje aún no sabe juntar —también dentro de una licencia— no se juntan
+  (`derechos_desconocidos`) y nunca cuentan como igual de estrictos, hasta que se enseñe aquí cómo se endurece.
 - **Invariante comprobable:** `derechosNoSeRelajan(hijo, fuentes)` y `almenosTanEstrictos(a, b)`. La suite comprueba que
   muerde con siete formas de relajar.
 - **Dónde viajan:** versión (`nuevaVersion`), derivado (`materialDerivado`: vídeo, objeto extraído, vista previa como
@@ -341,7 +345,7 @@ Todos son **aditivos y compatibles hacia atrás**. Van por orden de importancia.
 - **Las guardas de frontera que fijan qué se tocó del servidor:** `puente-pre-f1d` (F1 y F3) y `video-asincrono` (H3)
   enumeran, por nombre y por `numstat` exacto, lo que cambió en `functions/src` y en `functions/src/core` desde su base.
   Esta rama registra sus dos archivos en constantes propias (`DEL_CICLO_DE_VIDA_3D`, `CORE_DEL_CICLO_DE_VIDA_3D`:
-  `3 0 core/content/index.ts` y `630 0 core/content/linaje.ts`). La misión de `world.generate` tocará las mismas guardas
+  `3 0 core/content/index.ts` y `651 0 core/content/linaje.ts`). La misión de `world.generate` tocará las mismas guardas
   —y cambiará los números de `asset.ts`—: al fusionar, la unión de las listas y los `numstat` recalculados sobre el
   árbol fusionado.
 - **`functions/src/core/content/index.ts`:** esta rama añade `export * from './linaje';` justo detrás de `./asset` y una
@@ -357,6 +361,10 @@ Todos son **aditivos y compatibles hacia atrás**. Van por orden de importancia.
   dos y, en la segunda, exige heredar los derechos.
 - **P1 sin P2:** escribir los derechos en el material raíz basta para un mundo nuevo, pero si las ediciones no pasan por
   `nuevaVersion` (o el mismo `combinarDerechos`), la v2 puede perderlos.
+- **Un campo nuevo en `DerechosDelMaterial`** (si la misión de `world.generate` añade, por ejemplo, el etiquetado del
+  punto 12 de la política de uso o la copia del acuerdo a terceros): desde ese momento el linaje se niega a crear
+  descendientes de los materiales que lo lleven (`derechos_desconocidos`) hasta que `linaje.ts` aprenda cómo se junta.
+  Es a propósito —lo contrario sería perderlo en silencio—, y la suite F11 lo vigila.
 - **Versiones de contrato por igualdad:** `materialValido` y `validarEscena3D` comparan `contract` con `===`; subir el
   menor invalidaría lo guardado. Lo aditivo no sube número o se valida con `contratoCompatible`.
 - **Ids que el almacén no lee:** una versión con un id que no sea `asset_<32 hex>` es válida para el contrato y
@@ -366,7 +374,7 @@ Todos son **aditivos y compatibles hacia atrás**. Van por orden de importancia.
 
 ## 12. Pruebas
 
-`functions/test/ciclo-de-vida-3d.test.mjs` — 76 comprobaciones, deterministas, sin red ni proveedores ni Firestore,
+`functions/test/ciclo-de-vida-3d.test.mjs` — 77 comprobaciones, deterministas, sin red ni proveedores ni Firestore,
 sobre el compilado (`npm run build` antes):
 
 | Sección | Qué demuestra |
@@ -376,7 +384,7 @@ sobre el compilado (`npm run build` antes):
 | C | Recuperar una versión: línea desde cualquier miembro, ramas, vigente y última, aviso por uso, otra cuenta fuera, cadena rota o cerrada, retirada sin renumerar |
 | D | Reutilizar es referenciar: la tabla de consecuencias, Design mueve la escena y no el material, Element, volver a una versión |
 | E | Un material en Studio A, Design B y Filmmaker C: un id, un objeto, usos sin repetir, cada uso en su versión |
-| F | Derechos: unión estricta, canónica, falla cerrado, herencia en versiones y derivados, la invariante muerde (7 formas), los de una escena |
+| F | Derechos: unión estricta, canónica, falla cerrado, herencia en versiones y derivados, la invariante muerde (7 formas), los de una escena, y una dimensión nueva no se pierde |
 | G | Procedencia: la operación y las fuentes, que nadie pisa; de vídeo a foto; lo que se cuenta; lo que salió de un mundo |
 | H | Vista previa separada: variante, original aparte, muere con el mundo, propia de cada versión; como material aparte, con derechos |
 | I | La escena referencia por id, no guarda nada del material, rechaza URL; el perfil de Filmmaker |
@@ -384,8 +392,8 @@ sobre el compilado (`npm run build` antes):
 | K | Sin duplicación: seis usos, un material; compartir objeto se detecta y no puede nacer; lo que nace es un `Asset` |
 | L | Fronteras: Core puro, sin proveedores, sin tipos ni contratos nuevos, una sola puerta, un solo núcleo 3D, en la cadena |
 
-Además se sabotearon 14 reglas del módulo compilado (perder jurisdicciones, aceptar fuentes ajenas, no comprobar el
-objeto compartido, que gane la primera y no la más estricta…): las 14 ponen la suite en rojo.
+Además se sabotearon 16 reglas del módulo compilado (perder jurisdicciones, tirar una dimensión desconocida, aceptar fuentes ajenas, no comprobar el
+objeto compartido, que gane la primera y no la más estricta…): las 16 ponen la suite en rojo.
 
 Fuera de esta suite solo cambian dos guardas de frontera, para registrar los dos archivos del Core que toca esta rama
 (`puente-pre-f1d` F1/F3 y `video-asincrono` H3, §11), y la cadena de `npm test`.

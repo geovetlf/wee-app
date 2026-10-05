@@ -662,7 +662,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * + ciclo de vida 3D (2026-10-05), por nombre y tamaño: el linaje del material (`core/content/linaje.ts`, nuevo, puro y
    * sin conectar) y su línea de exportación en la puerta del Content Core. Ningún contrato sube de versión.
    */
-  const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts|630\t0\tfunctions/src/core/content/linaje.ts';
+  const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts|651\t0\tfunctions/src/core/content/linaje.ts';
   /* Las dos listas juntas, en el orden en que las da git: por ruta. */
   const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|')]
     .sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');

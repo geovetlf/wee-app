@@ -647,7 +647,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     + '\n216\t0\tfunctions/src/core/escena3d.ts\n1\t0\tfunctions/src/core/index.ts\n2\t1\tfunctions/src/core/provider.ts'
     + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
   /* + ciclo de vida 3D (2026-10-05): el linaje del material (nuevo) y su línea de exportación en la puerta del Content Core. */
-  const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts\n630\t0\tfunctions/src/core/content/linaje.ts';
+  const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts\n651\t0\tfunctions/src/core/content/linaje.ts';
   /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
   const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
   check('F3) ni F1-A ni productions; del Core, solo la misión fal y el linaje del ciclo de vida 3D; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',

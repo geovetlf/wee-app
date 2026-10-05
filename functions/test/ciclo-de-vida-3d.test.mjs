@@ -359,6 +359,17 @@ seccion('F · Los derechos solo se endurecen', () => {
   check('F10) sin haber leído todo lo que usa no se afirma nada (material_desconocido); y lo retirado sigue obligando',
     !falta.ok && falta.motivo === 'material_desconocido' && canonico(falta.desconocidos) === canonico([SILLA.assetId])
     && retirado.ok && equivalentes(retirado.derechos, MUNDO.derechos));
+  /* Una obligación nueva en el contrato (p. ej., etiquetar lo generado): el validador de hoy la deja pasar, y copiar solo lo conocido la perdería. */
+  const conEtiquetado = { ...DERECHOS_DEL_MUNDO, etiquetadoObligatorio: true };
+  const conNotas = { ...DERECHOS_DEL_MUNDO, licencias: [{ ...LIC_MUNDO, notas: 'entregar copia del acuerdo' }, LIC_SERVICIO] };
+  const fuenteConEtiquetado = conEstado(MUNDO, 'ready', { derechos: conEtiquetado });
+  check('F11) una dimensión de derechos que el linaje aún no sabe juntar NO se tira: se para (`derechos_desconocidos`), también dentro de una licencia, y nunca cuenta como igual de estricta',
+    A.derechosValidos(conEtiquetado) && A.materialValido(fuenteConEtiquetado)
+    && L.combinarDerechos([conEtiquetado]).motivo === 'derechos_desconocidos'
+    && L.combinarDerechos([conNotas, SILLA.derechos]).motivo === 'derechos_desconocidos'
+    && L.nuevaVersion(fuenteConEtiquetado, datos(41, 91)).motivo === 'derechos_desconocidos'
+    && L.almenosTanEstrictos(conEtiquetado, DERECHOS_DEL_MUNDO) === false && L.almenosTanEstrictos(DERECHOS_DEL_MUNDO, conEtiquetado) === false
+    && L.almenosTanEstrictos(conEtiquetado, undefined) === false);
 });
 
 /* ═══ G · LA PROCEDENCIA ════════════════════════════════════════════════════ */

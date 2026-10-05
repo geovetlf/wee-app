@@ -80,15 +80,33 @@ const claveDeLicencia = (l: { nombre: string; url: string }): string => `${l.url
 const elMasEstricto = <T extends string>(tabla: Readonly<Record<T, number>>, a: T, b: T): T => (tabla[b] > tabla[a] ? b : a);
 
 /**
+ * LO QUE ESTE LINAJE SABE JUNTAR, dimensión a dimensión, y de cada licencia.
+ *
+ * Si el contrato de derechos gana una dimensión —una obligación de etiquetar lo
+ * generado, de entregar copia de una licencia—, juntar unos derechos que la
+ * traen y copiar solo lo conocido la TIRARÍA: lo que saliera de ese material
+ * nacería sin ella, más libre que su fuente. Así que lo desconocido no se
+ * junta: se para (`derechos_desconocidos`) hasta que alguien enseñe aquí cómo
+ * se endurece.
+ */
+const DIMENSIONES_CONOCIDAS: readonly string[] = Object.freeze(['revision', 'usoComercial', 'atribucion', 'licencias', 'jurisdiccionesBloqueadas']);
+const CAMPOS_DE_LICENCIA: readonly string[] = Object.freeze(['nombre', 'url']);
+const todoConocido = (d: DerechosDelMaterial): boolean =>
+  Object.keys(d).every((k) => DIMENSIONES_CONOCIDAS.includes(k))
+  && d.licencias.every((l) => Object.keys(l).every((k) => CAMPOS_DE_LICENCIA.includes(k)));
+
+/**
  * Por qué unos derechos no se pueden juntar. Un literal, nunca una frase.
  *
- *   derechos_invalidos   alguno no se entiende. No se trata como ausente:
- *                        tirarlo sería soltar una licencia en silencio.
- *   no_representables    juntos no caben en el contrato (más licencias o más
- *                        jurisdicciones de las que admite). Recortar sería
- *                        perder obligaciones; no se recorta.
+ *   derechos_invalidos     alguno no se entiende. No se trata como ausente:
+ *                          tirarlo sería soltar una licencia en silencio.
+ *   derechos_desconocidos  alguno trae una dimensión que este linaje todavía
+ *                          no sabe juntar. Copiar solo lo conocido la perdería.
+ *   no_representables      juntos no caben en el contrato (más licencias o más
+ *                          jurisdicciones de las que admite). Recortar sería
+ *                          perder obligaciones; no se recorta.
  */
-export type MotivoDeDerechosNoCombinables = 'derechos_invalidos' | 'no_representables';
+export type MotivoDeDerechosNoCombinables = 'derechos_invalidos' | 'derechos_desconocidos' | 'no_representables';
 
 export type DerechosCombinados =
   | { ok: true; derechos?: DerechosDelMaterial }
@@ -110,6 +128,7 @@ export type DerechosCombinados =
 export const combinarDerechos = (lista: readonly (DerechosDelMaterial | undefined)[]): DerechosCombinados => {
   const presentes = (Array.isArray(lista) ? lista : []).filter((d) => d !== undefined) as DerechosDelMaterial[];
   if (presentes.some((d) => !derechosValidos(d))) return { ok: false, motivo: 'derechos_invalidos' };
+  if (!presentes.every(todoConocido)) return { ok: false, motivo: 'derechos_desconocidos' };
   if (presentes.length === 0) return { ok: true };
   let revision = presentes[0].revision;
   let usoComercial = presentes[0].usoComercial;
@@ -135,11 +154,13 @@ export const combinarDerechos = (lista: readonly (DerechosDelMaterial | undefine
 
 /**
  * ¿Son `estos` al menos tan estrictos como `base`, en todas las dimensiones?
- * Unos derechos que no se entienden nunca lo son.
+ * Unos derechos que no se entienden, o que traen algo que aquí no se sabe
+ * comparar, nunca lo son: no se puede afirmar lo que no se sabe medir.
  */
 export const almenosTanEstrictos = (estos: DerechosDelMaterial | undefined, base: DerechosDelMaterial | undefined): boolean => {
-  if (base === undefined) return estos === undefined || derechosValidos(estos);
+  if (base === undefined) return estos === undefined || (derechosValidos(estos) && todoConocido(estos));
   if (estos === undefined || !derechosValidos(estos) || !derechosValidos(base)) return false;
+  if (!todoConocido(estos) || !todoConocido(base)) return false;
   const licencias = new Set(estos.licencias.map(claveDeLicencia));
   const territorios = new Set(estos.jurisdiccionesBloqueadas ?? []);
   return RIGOR_DE_REVISION[estos.revision] >= RIGOR_DE_REVISION[base.revision]
