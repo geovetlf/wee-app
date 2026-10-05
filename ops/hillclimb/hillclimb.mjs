@@ -1,5 +1,5 @@
 /*
- * WEË HILLCLIMB (F6) — optimizar cualquier componente de WEE con evidencia, no con intuición.
+ * WEË HILLCLIMB (F6) — optimizar cualquier componente de Weë con evidencia, no con intuición.
  *
  *   BASELINE → EXPERIMENTO → MEDICIÓN → COMPARACIÓN → DECISIÓN → CONSERVAR / RECHAZAR
  *

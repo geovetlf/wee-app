@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * WEE AI EVALUATION ENGINE — CORREDOR DE DESARROLLO (F2-A).
+ * WEË AI EVALUATION ENGINE — CORREDOR DE DESARROLLO (F2-A).
  *
  *   node ops/evals/runner.mjs [--dataset router] [--config ops/evals/config.json]
  *                             [--contra ops/evals/baseline/<d>.json] [--guardar-baseline <archivo>] [--json <archivo>]

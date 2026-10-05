@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — LOS DOMINIOS (el motor no conoce ninguno).
+ * WEË AI EVALUATION ENGINE — LOS DOMINIOS (el motor no conoce ninguno).
  *
  * El motor es UNO y común: el corredor (`corredor.ts`), la puntuación, la comparación, el holdout y la
  * contaminación, el presupuesto, los permisos y la corrida (`corrida.ts`). Un dominio aporta SOLO lo suyo:

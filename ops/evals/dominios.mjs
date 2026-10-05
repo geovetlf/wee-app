@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — LOS DOMINIOS DE DESARROLLO.
+ * WEË AI EVALUATION ENGINE — LOS DOMINIOS DE DESARROLLO.
  *
  * El mecanismo es el del motor común (functions/src/evals/motor/dominios.ts): el contrato de dominio, el registro
  * congelado sin prototipo, `resolverDominio` (un nombre sin registrar falla cerrado) y el paso común de cada caso, en

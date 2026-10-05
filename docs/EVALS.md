@@ -1,6 +1,6 @@
-# WEE AI Evaluation Engine (F2)
+# WEË AI Evaluation Engine (F2)
 
-Un sistema propio de WEE para responder **"¿esta modificación mejora la IA?"** con evidencia objetiva —calidad, coste, latencia, fiabilidad— en vez de "parece que funciona". No es un segundo Harness ni un segundo Quality Reviewer: reutiliza el motor, el ledger y los patrones que ya existen. El Eval Engine solo produce **evidencia y una recomendación**; nunca cambia producción.
+Un sistema propio de Weë para responder **"¿esta modificación mejora la IA?"** con evidencia objetiva —calidad, coste, latencia, fiabilidad— en vez de "parece que funciona". No es un segundo Harness ni un segundo Quality Reviewer: reutiliza el motor, el ledger y los patrones que ya existen. El Eval Engine solo produce **evidencia y una recomendación**; nunca cambia producción.
 
 ## Estado: F2-A (entregado) — dominio **Model Router**, coste $0
 
@@ -8,11 +8,11 @@ F2-A evalúa la **decisión del router vivo** (`functions/src/engine/router.ts`,
 
 ### Dónde vive el motor
 
-El motor es **uno**: `functions/src/evals/motor/` (TypeScript). Vive ahí porque Cloud Functions solo empaqueta `functions/`: es el único sitio desde el que lo pueden usar a la vez `evalRun` (el camino real, abajo) y las herramientas de desarrollo. `ops/evals/` lo carga ya compilado (`functions/lib`, como el resto de `ops/` que lee el código de WEE; `npm run build --prefix functions` antes) y lo **reexporta**: no hay una segunda copia en ninguna parte.
+El motor es **uno**: `functions/src/evals/motor/` (TypeScript). Vive ahí porque Cloud Functions solo empaqueta `functions/`: es el único sitio desde el que lo pueden usar a la vez `evalRun` (el camino real, abajo) y las herramientas de desarrollo. `ops/evals/` lo carga ya compilado (`functions/lib`, como el resto de `ops/` que lee el código de Weë; `npm run build --prefix functions` antes) y lo **reexporta**: no hay una segunda copia en ninguna parte.
 
 - `motor/contrato.ts` — formato común de un dataset, veredictos, dimensiones, hash canónico, validación.
 - `motor/dominios.ts` — el contrato de dominio, el registro y el paso común de cada caso (el motor comprueba lo que devuelve el dominio).
-- `motor/corredor.ts` — **EL corredor**: el único sitio de WEE donde se recorren los casos (`recorrerCasos`), y sus dos entradas, `ejecutarDataset` y `correrEvalGobernada`. Lo que cambia entre desarrollo y dinero real entra por un **entorno** (ganchos), nunca por una copia del bucle.
+- `motor/corredor.ts` — **EL corredor**: el único sitio de Weë donde se recorren los casos (`recorrerCasos`), y sus dos entradas, `ejecutarDataset` y `correrEvalGobernada`. Lo que cambia entre desarrollo y dinero real entra por un **entorno** (ganchos), nunca por una copia del bucle.
 - `motor/puntuacion.ts`, `motor/presupuesto.ts`, `motor/corrida.ts`, `motor/permisos.ts`, `motor/holdout.ts` — puntuación, presupuesto (decisión fail-closed y reserva/reconciliación), corrida (estados, idempotencia, reproducibilidad), permisos y holdout.
 
 ### Piezas de desarrollo (`ops/evals/`)
@@ -57,7 +57,7 @@ Pruebas: `functions/test/evals-gobernanza.test.mjs` (holdout, contaminación, pr
 
 ## Dominios: un motor, muchos dominios
 
-El Eval Engine es **infraestructura de todo WEE**, no del Router: el Router es solo el **primer dominio**. El motor —corredor, gobernanza, puntuación, comparación, holdout y contaminación, presupuesto, permisos y corrida— es **uno y común**. Un dominio aporta solo lo suyo, como un adaptador:
+El Eval Engine es **infraestructura de todo Weë**, no del Router: el Router es solo el **primer dominio**. El motor —corredor, gobernanza, puntuación, comparación, holdout y contaminación, presupuesto, permisos y corrida— es **uno y común**. Un dominio aporta solo lo suyo, como un adaptador:
 
 - `decidir(caso, contexto)`: cómo se decide un caso. Devuelve cuántas ejecuciones de adaptador hubo (el $0 de desarrollo lo afirma el motor). `contexto` dice en qué corrida y caso está (`evalRunId`, `requestId`) y los límites de coste de la corrida (`maxOutputTokens`): un dominio real se niega a correr sin corrida, porque sin corrida no hay presupuesto.
 - `calificar(decision, caso, medicion)`: sus graders, cada uno con su dimensión (QUALITY, COST, LATENCY, RELIABILITY); `medicion` es lo que el corredor midió (el coste real del caso).
@@ -66,7 +66,7 @@ El Eval Engine es **infraestructura de todo WEE**, no del Router: el Router es s
 
 Hay **dos registros y un solo mecanismo**: el de desarrollo (`ops/evals/dominios.mjs`, dominios que deciden sin ejecutar adaptadores, $0) y el real (`functions/src/evals/dominios.ts`, los que `evalRun` corre con el proveedor de verdad). Los dos se crean con el mismo `crearRegistroDeDominios` y se resuelven con el mismo `resolverDominio`.
 
-**Añadir un dominio** (Orchestrator, Planner, generación, Design, Music…) es un adaptador y una línea en el registro que toque: **el motor no se toca**. Sin carga dinámica: un dataset solo nombra un dominio registrado (`dataset.dominio`) y cualquier otro nombre falla cerrado; del dataset nunca sale código. El motor comprueba lo que devuelve cada dominio (ejecuciones y dimensiones), así que un dominio no puede esconder un gasto ni inventarse una dimensión. Lo fija `functions/test/evals-dominios.test.mjs`, con un dominio de prueba que no es de WEE; la misma suite comprueba que cada pieza del motor existe una vez y que hay **un solo bucle de casos** en todo el código de evals.
+**Añadir un dominio** (Orchestrator, Planner, generación, Design, Music…) es un adaptador y una línea en el registro que toque: **el motor no se toca**. Sin carga dinámica: un dataset solo nombra un dominio registrado (`dataset.dominio`) y cualquier otro nombre falla cerrado; del dataset nunca sale código. El motor comprueba lo que devuelve cada dominio (ejecuciones y dimensiones), así que un dominio no puede esconder un gasto ni inventarse una dimensión. Lo fija `functions/test/evals-dominios.test.mjs`, con un dominio de prueba que no es de Weë; la misma suite comprueba que cada pieza del motor existe una vez y que hay **un solo bucle de casos** en todo el código de evals.
 
 ## Estado: F2-C1 (entregado, SIN desplegar) — el camino real, sobre el motor común
 
@@ -94,13 +94,13 @@ El interruptor y el tope se **releen antes de cada caso**: apagar las evals o ba
 
 Configuración en `aiSettings/evalBudget`: `habilitado` (sin `true` no corre), `maxUsdPerDay` (el tope; ≤0 → no corre), `maxUsdPerCaso` (el techo por caso; 0,05 por defecto) y `maxOutputTokens` (64 por defecto, nunca más de 1024). Quien llama puede pedir un techo mayor, nunca uno menor.
 
-### Qué garantiza WEE y cuál es el peor caso
+### Qué garantiza Weë y cuál es el peor caso
 
-Ningún proveedor de texto ofrece un «máximo de dólares por llamada»: cobran por tokens. La única palanca por llamada es el **tope de tokens de salida**, que cada adaptador traduce para su API (`maxOutputTokens` en Gemini, `max_completion_tokens` en OpenAI, `max_tokens` en Claude y DeepSeek). La entrada la pone WEE: una línea fija por caso.
+Ningún proveedor de texto ofrece un «máximo de dólares por llamada»: cobran por tokens. La única palanca por llamada es el **tope de tokens de salida**, que cada adaptador traduce para su API (`maxOutputTokens` en Gemini, `max_completion_tokens` en OpenAI, `max_tokens` en Claude y DeepSeek). La entrada la pone Weë: una línea fija por caso.
 
-**Lo que WEE garantiza:** nunca **inicia** una generación si `gastado + reservado + techo` supera el tope (en transacción, seguro ante concurrencia; lo comprueba la prueba de propiedad sobre 3 000 intercalados). Mientras el coste real de cada caso quepa en su techo, el gasto real del día **no supera el tope**.
+**Lo que Weë garantiza:** nunca **inicia** una generación si `gastado + reservado + techo` supera el tope (en transacción, seguro ante concurrencia; lo comprueba la prueba de propiedad sobre 3 000 intercalados). Mientras el coste real de cada caso quepa en su techo, el gasto real del día **no supera el tope**.
 
-**Peor caso, lo que WEE no puede impedir:** que un proveedor cobre por encima del techo de un caso —porque no respete el tope de tokens, porque el modelo facture tokens de razonamiento (Gemini los suma a la salida: `thoughtsTokenCount` en `functions/src/engine/providers/gemini.ts`) o porque la cadena de reintentos lo multiplique—. Entonces el día puede pasar del tope en **el exceso de ese caso**, y la corrida se detiene en el acto (`COST_OVERRUN`). Con varias corridas a la vez, cada una puede aportar como mucho el exceso de su caso en vuelo: tope + Σ excesos. Las evals no piden búsqueda web, así que su coste por consulta no aplica.
+**Peor caso, lo que Weë no puede impedir:** que un proveedor cobre por encima del techo de un caso —porque no respete el tope de tokens, porque el modelo facture tokens de razonamiento (Gemini los suma a la salida: `thoughtsTokenCount` en `functions/src/engine/providers/gemini.ts`) o porque la cadena de reintentos lo multiplique—. Entonces el día puede pasar del tope en **el exceso de ese caso**, y la corrida se detiene en el acto (`COST_OVERRUN`). Con varias corridas a la vez, cada una puede aportar como mucho el exceso de su caso en vuelo: tope + Σ excesos. Las evals no piden búsqueda web, así que su coste por consulta no aplica.
 
 **Cómo dimensionar el techo:** `maxUsdPerCaso ≥ intentos × (tokens de entrada × tarifa de entrada + maxOutputTokens × tarifa de salida) / 1 000 000`, con los intentos que permita la cadena de `text.generate`. Con 64 tokens de salida y prompts de una línea, cada intento cuesta milésimas de dólar: 0,05 deja mucho margen.
 
@@ -136,4 +136,4 @@ Ningún segundo caso sin autorización explícita.
 - **Juez-LLM** (juez 2-de-3, evaluación subjetiva) y **F2-C2**.
 - El **despliegue** de `evalRun` y el **primer run real** con proveedor.
 - El **model-change gate** en `engine/verification.ts` (F2-D): F2 solo diseñó su interfaz; no se implementa.
-- WEE Brain y Prompt Composer como dominios, y cualquier promoción automática: fuera del alcance. **Hillclimb** (F6, [HILLCLIMB.md](HILLCLIMB.md)) ya existe sobre este motor, a $0: optimiza el dominio que declare una superficie y nunca aplica nada.
+- Weë Brain y Prompt Composer como dominios, y cualquier promoción automática: fuera del alcance. **Hillclimb** (F6, [HILLCLIMB.md](HILLCLIMB.md)) ya existe sobre este motor, a $0: optimiza el dominio que declare una superficie y nunca aplica nada.

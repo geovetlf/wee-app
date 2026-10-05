@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — F2-A (dominio Model Router). docs/EVALS.md.
+ * WEË AI EVALUATION ENGINE — F2-A (dominio Model Router). docs/EVALS.md.
  *
  * El Eval Engine evalúa la DECISIÓN del router vivo con dependencias falsas: graders deterministas, SIN proveedor
  * real, SIN juez-LLM, SIN red/Firestore → COSTE $0. Esta suite ES TAMBIÉN el eval-gate de CI (separado del Quality

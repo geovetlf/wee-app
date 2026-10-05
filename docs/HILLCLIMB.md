@@ -1,6 +1,6 @@
 # Weë Hillclimb (F6)
 
-Optimiza **cualquier componente de WEE** con evidencia, no con intuición:
+Optimiza **cualquier componente de Weë** con evidencia, no con intuición:
 
 > BASELINE → EXPERIMENTO → MEDICIÓN → COMPARACIÓN → DECISIÓN → CONSERVAR / RECHAZAR
 

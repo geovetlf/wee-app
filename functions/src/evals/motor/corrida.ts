@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — LA CORRIDA: registro, máquina de estados, idempotencia, cancelación, reproducibilidad.
+ * WEË AI EVALUATION ENGINE — LA CORRIDA: registro, máquina de estados, idempotencia, cancelación, reproducibilidad.
  *
  * Una corrida es el registro auditable de una evaluación: qué dataset/baseline/candidate, con qué modelo/proveedor/
  * prompt/grader, cuándo, cuánto costó, qué métricas, en qué estado, bajo la identidad `eval`. Aquí está la LÓGICA
