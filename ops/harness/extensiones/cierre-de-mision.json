@@ -1,0 +1,15 @@
+{
+  "id": "cierre-de-mision",
+  "nombre": "Cierre de misión (wrap-up)",
+  "version": "1.0.0",
+  "descripcion": "Dónde guarda ops/harness/cierre.mjs cada cierre: el JSON canónico y el Markdown que sale de él, en su carpeta de caché y por la puerta de F3. No escribe nada más.",
+  "compatibilidad": { "harness": "^1.0.0" },
+  "estado": "activa",
+  "permisos": ["escribir-cache"],
+  "capacidades": {
+    "informe": [
+      { "id": "json", "descripcion": "El cierre canónico (contrato wee-cierre@1)", "archivo": "cierre.json" },
+      { "id": "markdown", "descripcion": "El mismo cierre, legible, derivado del JSON", "archivo": "cierre.md" }
+    ]
+  }
+}

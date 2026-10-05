@@ -50,6 +50,7 @@ espera al dueño). Qué frontera del código vive dónde y si está conectada: [
 | `.claude/agents/revisor-{codigo,seguridad,arquitectura}.md` + `ops/revision/rubricas/` | Capa 5: revisores de SOLO LECTURA (Read, Grep, Glob, Bash bajo la guardia), con rúbricas propias | Local (IA) |
 | `.claude/commands/revision-de-fase.md` | El cierre de fase G0–G7: higiene, build, pruebas, detectores, selector, revisores, verificación, informe; sin commit ni deploy | Local |
 | `ops/harness/extensiones.mjs` + `ops/harness/extensiones/` | Las extensiones del Harness (F3): manifiestos solo de datos, permisos de un catálogo cerrado y una puerta que pasa cada acción por la guardia; `listar`, `validar`, `ejecutar` | Local |
+| `ops/harness/cierre.mjs` | El cierre de misión (F4): misión declarada + evidencias reales → JSON canónico y Markdown derivado; lo que no tiene evidencia es UNKNOWN | Local |
 
 ## Las extensiones (F3)
 
@@ -65,6 +66,24 @@ extensión del Harness, no capacidades del producto), qué permisos necesita (`l
   puertas, ni saltarse la revisión. Pedirlo invalida el manifiesto.
 - **Activar o desactivar** es cambiar `estado` en el manifiesto, por PR. `WEE_EXTENSIONES=off` las apaga todas.
 - **La primera**, `revision-determinista`, registra la puerta G3 tal cual (`node ops/revision/baseline.mjs`).
+
+## El cierre de misión (F4)
+
+`ops/harness/cierre.mjs` no escribe un resumen: **junta resultados reales** y los convierte en un cierre
+verificable (contrato `wee-cierre@1`).
+
+- **La misión** la declara una persona en JSON: objetivo, alcance autorizado, tareas, decisiones, riesgos,
+  pendientes, bloqueos y diferidos, cada cosa con su fuente, y lo que la misión `exige` para cerrarse.
+- **Las evidencias** son salidas de herramientas que ya existen, cada una con su origen y su huella: git (solo
+  lectura), la puerta G3 (`baseline.mjs --json`), la cadena (`_cadena.mjs`), una suite suelta, los check-runs de
+  GitHub (`NIVELES_DE_CI`), `gh pr view --json`, `gh run list --json` de `despliegue.yml` y el tag `prod/*`.
+- **Estados:** DONE (hecho según su fuente), VERIFIED (lo confirma una evidencia), PENDING, BLOCKED, DEFERRED
+  (autorizado para otra fase) y UNKNOWN (no hay evidencia). El estado final sale siempre por las mismas reglas:
+  un fallo bloquea; una contradicción deja UNKNOWN; lo abierto deja PENDING; lo exigido sin evidencia, UNKNOWN.
+- **El JSON es la fuente**; el Markdown sale de él. La misma evidencia da el mismo cierre (sin hora de reloj).
+  `--escribir` lo guarda por la puerta de F3, como la extensión `cierre-de-mision`, en `ops/harness/.cache/`.
+- **Observa y cierra; no manda:** no aprueba, no despliega, no hace merge ni push, no escribe en git y no
+  ejecuta más que lecturas de git. Las puertas que salen son las registradas en F3.
 
 ## Lo que el Harness añadió al código de Weë
 
