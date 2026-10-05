@@ -63,7 +63,9 @@ export type CapabilityId =
   | 'video.vertical'
   | 'audio.sfx'
   | 'audio.transcribe'
-  | 'doc.read';
+  | 'doc.read'
+  // 3D: un mundo explorable a partir de una imagen (2026-10-05). Qué proveedor lo hace lo decide el registro.
+  | 'world.generate';
 
 /**
  * Las modalidades que atraviesan el sistema.
@@ -73,7 +75,7 @@ export type CapabilityId =
  * motor la seguirá; mientras la migración no toque `engine/`, las dos existen y
  * una prueba comprueba que dicen lo mismo.
  */
-export type Modality = 'text' | 'vision' | 'image' | 'video' | 'voice' | 'music' | 'doc';
+export type Modality = 'text' | 'vision' | 'image' | 'video' | 'voice' | 'music' | 'doc' | '3d';
 
 /**
  * HASTA DÓNDE ESTÁ COMPROBADA UNA CAPACIDAD, y esto no es burocracia.

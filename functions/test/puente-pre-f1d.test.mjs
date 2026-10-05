@@ -504,7 +504,14 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
   check('E3) ninguna reconciliación hace un POST: solo el que pide la persona sale hacia ModelArk',
     posts.length === postsAntes && posts.every((p) => p.acceptAsync === true));
   /* F1-D toca dos piezas del motor, nominales y de tamaño fijo (ver video-asincrono H2): ni un proveedor ni una cadena. Los arreglos de la FASE 1 del Harness, tampoco: también van por nombre y tamaño (harness/fase-2 añade H0 #22: ledger, limits y router). */
-  check('E4) Seedance, y solo Seedance: ni un proveedor nuevo, ni una cadena nueva',
+  /*
+   * + misión fal (2026-10-05), con autorización del dueño: el ÚNICO proveedor y la ÚNICA cadena nuevos son fal y
+   *   `world.generate` —el vídeo sigue siendo Seedance y solo Seedance—. En el motor: elegibilidad.ts (nuevo, la regla
+   *   común), providers/fal.ts y fal-modelos.ts (nuevos), verification.ts +8 (su ficha), registry.ts +15 −1 (antes 2/0),
+   *   router.ts +63 −9 (antes 59/4), types.ts +120 −3 (antes 29/0), index.ts +3 −1 y jurisdiccion.ts (nuevo, el conector de la jurisdicción de la cuenta), gateway.ts +8 −2 (antes 2/0) y limits.ts +2 −1
+   *   (antes 38/3). Cifras de `git diff --numstat b023f24`; el detalle de cada una, en video-asincrono H2.
+   */
+  check('E4) para el vídeo, Seedance y solo Seedance; el único proveedor nuevo es fal, con la única cadena nueva (world.generate)',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
     && git(`diff --numstat ${RUTA} -- functions/src/engine`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
       /* i18n da-DK: errors.ts y router.ts, una línea de texto cada uno; harness/fase-2 (H0 #22): ledger, limits y router. Cifras de `git diff --numstat b023f24` sobre el árbol consolidado. */
@@ -520,7 +527,8 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * GenerationRecord) y router.ts 57/4 → 59/4 (reenvía esos dos campos al contexto del libro). SIGUE sin haber
        * proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|1\t1\tfunctions/src/engine/errors.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|19\t2\tfunctions/src/engine/ledger.ts|38\t3\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|59\t4\tfunctions/src/engine/router.ts|29\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|193\t0\tfunctions/src/engine/elegibilidad.ts|1\t1\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|116\t0\tfunctions/src/engine/providers/fal-modelos.ts|393\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|122\t13\tfunctions/src/engine/router.ts|149\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+    && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */
@@ -589,8 +597,23 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     'functions/src/evals/motor/corredor.ts', 'functions/src/evals/motor/corrida.ts', 'functions/src/evals/motor/dominios.ts',
     'functions/src/evals/motor/holdout.ts', 'functions/src/evals/motor/permisos.ts', 'functions/src/evals/motor/presupuesto.ts',
     'functions/src/evals/motor/puntuacion.ts'];
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK y de los evals (F2-C1)',
-    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS,
+  /*
+   * Los de la MISIÓN fal (2026-10-05), por nombre: la capacidad world.generate y la modalidad 3d en el Core (capability,
+   * su catálogo y la guardia de modalidades del Router), el material `world` y sus derechos (asset y su adopción en
+   * content/index, que ya estaba en DEL_CIERRE), el núcleo 3D (escena3d, nuevo, y su contrato y su exportación), el
+   * tipo `aggregator` del registro y la excepción que lo permite, los dos tipos de resultado, la regla común de
+   * elegibilidad, el adaptador y sus datos, su ficha, y el servicio `ai_world`. engine/registry, router, types,
+   * gateway, config, limits, creator/types y secrets ya estaban declarados (sus tamaños, en E4 y video-asincrono H2).
+   */
+  const DE_LA_MISION_FAL = ['functions/src/core/capability.ts', 'functions/src/core/content/asset.ts', 'functions/src/core/contracts.ts',
+    'functions/src/core/escena3d.ts', 'functions/src/core/index.ts', 'functions/src/core/provider.ts', 'functions/src/core/registry/capabilities.ts',
+    'functions/src/core/registry/types.ts', 'functions/src/core/router.ts', 'functions/src/credits/creditCosts.ts', 'functions/src/engine/elegibilidad.ts',
+    'functions/src/engine/providers/fal-modelos.ts', 'functions/src/engine/providers/fal.ts', 'functions/src/engine/verification.ts',
+    'functions/src/registry/excepciones.ts', 'functions/src/registry/index.ts',
+    /* + la jurisdicción de la cuenta conectada al Router (engine/index y el conector) y runtime/politica alineada a fail-closed. */
+    'functions/src/engine/index.ts', 'functions/src/engine/jurisdiccion.ts', 'functions/src/runtime/politica.ts'];
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1) y de la misión fal',
+    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
@@ -608,13 +631,20 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    *   credits/index.ts +5 −3: `balance` → `readBalance` y `failed` → `assertLimit`. Bloques exactos en job-queue 63k/63p.
    */
   const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
-  check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068), del tamaño exacto',
-    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_DEL_HARNESS);
-  /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. */
-  check('F3) ni el Core, ni F1-A, ni productions; del contenido, solo la adopción de F1-D',
-    git(`diff --name-only ${RUTA} -- functions/src/core functions/src/filmmaker functions/src/productions`).trim() === ''
+  /* + misión fal (2026-10-05): core/router.ts +2 −2 (la modalidad 3d) y creditCosts.ts +8 (el servicio ai_world). Líneas exactas en job-queue 63fal. */
+  const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
+  check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; del tamaño exacto',
+    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === `${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
+  /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. Del Core, solo la misión fal (video-asincrono H3). */
+  const CORE_DE_LA_MISION_FAL = '4\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n6\t0\tfunctions/src/core/contracts.ts'
+    + '\n216\t0\tfunctions/src/core/escena3d.ts\n1\t0\tfunctions/src/core/index.ts\n2\t1\tfunctions/src/core/provider.ts'
+    + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
+  check('F3) ni F1-A ni productions; del Core, solo la misión fal; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',
+    git(`diff --name-only ${RUTA} -- functions/src/filmmaker functions/src/productions`).trim() === ''
+    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === CORE_DE_LA_MISION_FAL
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
-    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '32\t3\tfunctions/src/content/index.ts\n62\t2\tfunctions/src/content/materializador.ts');
+    /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
+    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '41\t3\tfunctions/src/content/index.ts\n62\t2\tfunctions/src/content/materializador.ts');
   const legacy = (s) => {
     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');
     return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a));

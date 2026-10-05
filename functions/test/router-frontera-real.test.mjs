@@ -53,7 +53,8 @@ console.log('\n── A · De `aiRouting` a la frontera, sin inventar nada ─�
   const { cadenas, sinTraducir } = cadenasDesdeLaConfiguracion(REAL);
   const capacidades = Object.keys(REAL);
 
-  check('A) las 28 capacidades declaradas se traducen', capacidades.length === 28, `${capacidades.length}`);
+  /* Las 28 de siempre y world.generate (misión fal, 2026-10-05). */
+  check('A) las 29 capacidades declaradas se traducen', capacidades.length === 29 && capacidades.includes('world.generate'), `${capacidades.length}`);
   check('A) y hoy NINGUNA se queda fuera: no hay un solo eslabón con banda de calidad',
     sinTraducir.length === 0, sinTraducir.map((s) => s.capability).join(',') || 'ninguna');
 

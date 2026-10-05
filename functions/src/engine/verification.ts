@@ -19,6 +19,14 @@ import { ProviderVerification, VerificationState } from './types';
 
 /** Estado declarado de cada proveedor, sin contar las llamadas reales. */
 export const DECLARED: Record<string, ProviderVerification> = {
+  /* Leída la documentación oficial de la cola, los webhooks y el modelo (2026-10-05). Nunca llamada de verdad. */
+  fal: {
+    state: 'DOCUMENTATION_VERIFIED',
+    credential: 'FAL_KEY',
+    docsUrl: 'https://fal.ai/docs/documentation/model-apis/inference/queue',
+    firstTest: 'Solo con autorización del dueño: crear FAL_KEY, aprobar y activar un modelo, y generar una sola vez (Hunyuan World cuesta USD 0.30).',
+    documentedAt: '2026-10-05',
+  },
   gemini: {
     state: 'DOCUMENTATION_VERIFIED',
     credential: 'GEMINI_API_KEY',

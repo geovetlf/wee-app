@@ -26,6 +26,7 @@ import { NotConfiguredError, ProviderError } from './http';
 import { ADAPTERS, DEFAULT_ROUTING } from './registry';
 import { sanitizeForLog } from './sanitize';
 import { cubreLoExigido, traducirContinuidad, materialDeLaEntrada } from './continuidad';
+import { camposAjustables, modeloElegible } from './elegibilidad';
 import {
   MaterialDeUnPasoAnterior, ResolucionDeReferencias, materialEnLaEntrada, upstreamEnLaEntrada,
 } from './referencias';
@@ -196,10 +197,15 @@ export const normalizarErrorDelMotor = (error: unknown, providerId: string): Wee
   return con(code, reason);
 };
 
-/** Los mismos ajustes de administración que aplica el router a un modelo: coste, calidad, duración y apagado. */
+/**
+ * Los mismos ajustes de administración que aplica el router a un modelo: coste, calidad, duración y apagado, con la
+ * misma regla de elegibilidad. El Core todavía no transporta las jurisdicciones de la operación, así que aquí se
+ * pregunta SIN ellas: un modelo con reglas territoriales no es elegible por esta puerta (falla cerrado) hasta que el
+ * contrato canónico las lleve.
+ */
 const conAjustesDeAdministracion = (model: ModelSpec, config?: ProviderConfig): ModelSpec & { enabled: boolean } => {
   const override = config?.models?.[model.id];
-  return { ...model, ...(override || {}), cost: override?.cost || model.cost, enabled: override?.enabled !== false } as ModelSpec & { enabled: boolean };
+  return { ...model, ...camposAjustables(override), cost: override?.cost || model.cost, enabled: modeloElegible(model, override).elegible } as ModelSpec & { enabled: boolean };
 };
 
 /** De lo que devuelve un adaptador a la respuesta canónica de la Fase 0. Sin inventar: `lines` vacías, `usd` el que midió él. */

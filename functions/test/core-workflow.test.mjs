@@ -635,7 +635,8 @@ console.log('\n── O · Compatibilidad: Brain → Planner → Workflow, y nad
   check('157) el Planner no se tocó: sigue sin saber de ejecución', !/StepRun|RunState|pasosListos|ejecucionTerminada|retry|maxAttempts|cursor|awaiting_approval/i.test(sinComentarios(leer('functions/src/core/planner.ts'))) && /export const crearPlanner/.test(leer('functions/src/core/planner.ts')));
   check('158) Brain solo ganó la exportación de su lista de intenciones, que el motor reutiliza en vez de copiarla', /export const INTENCIONES/.test(leer('functions/src/core/brain.ts')) && /INTENCIONES\.includes/.test(codigoMotor) && !/'conversation', 'question'/.test(codigoMotor));
   check('159) el `while` de Weë Creator sigue donde estaba: el motor no sustituye ninguna ruta de producción', /while \(done\.size < steps\.length\)/.test(leer('functions/src/creator/index.ts')) && !/core\/workflow|crearWorkflowEngine|prepararWorkflow/.test(leer('functions/src/creator/index.ts')));
-  check('160) el catálogo sigue teniendo las mismas capacidades', core.CAPABILITY_CATALOG.length === 68);
+  /* 68 y world.generate, la única que se añadió después (misión fal, 2026-10-05). */
+  check('160) el catálogo sigue teniendo las mismas capacidades, más world.generate', core.CAPABILITY_CATALOG.length === 69 && core.CAPABILITY_CATALOG.some((c) => c.id === 'world.generate'));
   check('161) esta suite no llama a ninguna API real', !/https?:\/\/(?!ejemplo\.invalido)/.test(leer('functions/test/core-workflow.test.mjs')));
 }
 

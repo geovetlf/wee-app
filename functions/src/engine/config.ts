@@ -12,7 +12,7 @@ import { DEFAULT_PROVIDERS, DEFAULT_ROUTING, DEFAULT_SETTINGS } from './registry
  * las modalidades que nombra, y solo con un entero ≥ 0 (0 sigue siendo «sin
  * límite», como fija creator.test.mjs). Lo demás se ignora y se avisa.
  */
-const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc'] as const;
+const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc', '3d'] as const;
 /* Si `Modality` gana una modalidad, esto deja de compilar hasta añadirla arriba. */
 const _todasLasModalidades: Exclude<Modality, (typeof MODALIDADES)[number]> extends never ? true : never = true;
 void _todasLasModalidades;

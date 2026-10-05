@@ -1,6 +1,7 @@
 import { ProviderAdapter } from '../engine/types';
 import { ADAPTERS, DEFAULT_PROVIDERS } from '../engine/registry';
 import { DECLARED } from '../engine/verification';
+import { Elegibilidad, modeloElegible } from '../engine/elegibilidad';
 import { PROVIDER_LANGUAGES } from '../engine/promptLanguage';
 import { PROVIDER_CONTRACT_VERSION } from '../core/contracts';
 import { ProviderStatus } from '../core/provider';
@@ -16,6 +17,7 @@ import {
   validarRegistro,
 } from '../core/registry';
 import { MATRICES_PENDIENTES } from './matrices';
+import { esAgregadorAprobado } from './excepciones';
 
 /**
  * EL PUNTO DONDE EL CORE SE ENCUENTRA CON LOS ADAPTADORES.
@@ -124,7 +126,7 @@ const estadoDeModelo = (estadoProveedor: ProviderStatus, apagado: boolean): Mode
 const describirModelo = (
   spec: ProviderAdapter['models'][number],
   estadoProveedor: ProviderStatus,
-  apagado = false,
+  elegibilidad: Elegibilidad = { elegible: true, estado: 'ACTIVE' },
 ): ModelDescriptor => ({
   id: spec.id,
   providerId: spec.provider,
@@ -141,7 +143,14 @@ const describirModelo = (
     source: DECLARED[spec.provider]?.docsUrl,
     verifiedAt: DECLARED[spec.provider]?.documentedAt,
   },
-  status: estadoDeModelo(estadoProveedor, apagado),
+  /*
+   * La MISMA regla que el router vivo (`modeloElegible`), preguntada sin jurisdicción porque el catálogo no es de
+   * ninguna operación: pendiente de revisión legal o con reglas territoriales → PENDING; bloqueado o desactivado →
+   * DISABLED. Ninguno es usable en el Core (solo READY y BETA lo son), así que por ahí falla cerrado.
+   */
+  status: elegibilidad.estado === 'REVIEW_REQUIRED' || elegibilidad.estado === 'JURISDICTION_UNKNOWN'
+    ? 'PENDING'
+    : estadoDeModelo(estadoProveedor, !elegibilidad.elegible),
   metadata: spec.tags?.length ? { tags: spec.tags } : undefined,
 });
 
@@ -159,7 +168,7 @@ export const datosDelRegistro = (
     const estado = estadoDeProveedor(adapter, habilitado);
     const verificacion = DECLARED[id];
 
-    const susModelos = adapter.models.map((m) => describirModelo(m, estado, config[id]?.models?.[m.id]?.enabled === false));
+    const susModelos = adapter.models.map((m) => describirModelo(m, estado, modeloElegible(m, config[id]?.models?.[m.id])));
     models.push(...susModelos);
 
     /* Las capacidades del proveedor son la UNIÓN de las de sus modelos, no una
@@ -176,7 +185,7 @@ export const datosDelRegistro = (
       name: adapter.name,
       /* El modo demo no es de nadie: no es una matriz y no debe contarse como
        * tal en ningún informe. */
-      type: id === 'mock' ? 'internal' : 'matrix',
+      type: id === 'mock' ? 'internal' : esAgregadorAprobado(id) ? 'aggregator' : 'matrix',
       status: estado,
       contract: PROVIDER_CONTRACT_VERSION,
       docsUrl: verificacion?.docsUrl && verificacion.docsUrl !== '—' ? verificacion.docsUrl : undefined,

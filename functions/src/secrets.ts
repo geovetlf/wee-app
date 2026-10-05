@@ -137,6 +137,25 @@ export const MEDIA_SECRET_REFS: Record<MediaSecretName, ReturnType<typeof define
  */
 export const MEDIA_SECRETS = declaradosDeMedios.map(([, secret]) => secret);
 
+/* ── fal.ai: su propio llavero, DORMIDO ─────────────────────────────────────── */
+
+/**
+ * LA CLAVE DE fal.ai, DECLARADA APARTE Y SIN MONTAR EN NINGUNA FUNCIÓN (2026-10-05).
+ *
+ * Mismo motivo que el llavero de Media Cloud: si fuera en `PROVIDER_SECRET_NAMES`, todas las funciones que montan
+ * `AI_SECRETS` o `MODEL_SECRETS` exigirían en su próximo despliegue un secreto que no existe en Secret Manager, y no
+ * se desplegarían. Aquí no la monta nadie: el adaptador de fal (`engine/providers/fal.ts`) lee `FAL_KEY` por el
+ * `env()` de siempre y, sin ella, `isConfigured()` es falso y el Router ni lo considera. Crear el secreto y montarlo
+ * en la función que lo use es la ACTIVACIÓN, y es una decisión del dueño. Nunca va al cliente.
+ */
+export const FAL_SECRET_NAMES = ['FAL_KEY'] as const;
+export type FalSecretName = (typeof FAL_SECRET_NAMES)[number];
+const declaradosDeFal = FAL_SECRET_NAMES.map((name) => [name, defineSecret(name)] as const);
+export const FAL_SECRET_REFS: Record<FalSecretName, ReturnType<typeof defineSecret>> =
+  Object.fromEntries(declaradosDeFal) as Record<FalSecretName, ReturnType<typeof defineSecret>>;
+/** Para la opción `secrets` de la función que, el día que se active, llame a fal. Hoy no la usa ninguna. */
+export const FAL_SECRETS = declaradosDeFal.map(([, secret]) => secret);
+
 /**
  * Valor de un secreto desde Secret Manager. Solo funciona dentro de una función
  * con ese secreto declarado; fuera (pruebas, scripts) devuelve undefined en vez
@@ -147,9 +166,10 @@ const inFunctionRuntime = (): boolean => !!(process.env.K_SERVICE || process.env
 
 export function secretValue(name: string): string | undefined {
   if (!inFunctionRuntime()) return undefined;
-  /* Los dos llaveros, buscados por nombre. Quien lee no tiene que saber en cuál está. */
+  /* Los llaveros, buscados por nombre. Quien lee no tiene que saber en cuál está. */
   const secret = (SECRETS as Record<string, ReturnType<typeof defineSecret> | undefined>)[name]
-    ?? (MEDIA_SECRET_REFS as Record<string, ReturnType<typeof defineSecret> | undefined>)[name];
+    ?? (MEDIA_SECRET_REFS as Record<string, ReturnType<typeof defineSecret> | undefined>)[name]
+    ?? (FAL_SECRET_REFS as Record<string, ReturnType<typeof defineSecret> | undefined>)[name];
   if (!secret) return undefined;
   /*
    * Un secreto que ESTA función no monta no está en su entorno: `value()` devolvería '' y,
@@ -169,8 +189,8 @@ export function secretValue(name: string): string | undefined {
 /** Todos los valores de secretos que estén disponibles ahora, para poder censurarlos en los registros. */
 export function knownSecretValues(): string[] {
   const values: string[] = [];
-  /* LOS DOS LLAVEROS. Una credencial de almacén en un registro es tan grave como una de un modelo. */
-  for (const name of [...PROVIDER_SECRET_NAMES, ...MEDIA_SECRET_NAMES]) {
+  /* LOS LLAVEROS. Una credencial de almacén o de fal en un registro es tan grave como una de un modelo. */
+  for (const name of [...PROVIDER_SECRET_NAMES, ...MEDIA_SECRET_NAMES, ...FAL_SECRET_NAMES]) {
     const fromEnv = process.env[name];
     if (fromEnv && fromEnv.trim().length >= 8) values.push(fromEnv.trim());
     const fromManager = secretValue(name);

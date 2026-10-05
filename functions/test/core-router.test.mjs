@@ -429,7 +429,8 @@ console.log('\n── N · Lo que no se ha roto ──');
     ['orchestrator', 'workflow', 'planner', 'brain'].every((f) => !/\brouter\b/i.test(sinComentarios(leer(`functions/src/core/${f}.ts`)))));
   check('111) la dependencia va en el sentido correcto: el Router importa del registro, no al revés',
     /from '\.\/registry'/.test(leer(CORE_ROUTER)) && !/from '\.\.\/router'/.test(leer('functions/src/core/registry/registry.ts')));
-  check('112) el catálogo sigue teniendo las mismas capacidades', core.CAPABILITY_CATALOG.length === 68);
+  /* 68 y world.generate, la única que se añadió después (misión fal, 2026-10-05). */
+  check('112) el catálogo sigue teniendo las mismas capacidades, más world.generate', core.CAPABILITY_CATALOG.length === 69 && core.CAPABILITY_CATALOG.some((c) => c.id === 'world.generate'));
   check('113) el contrato del Router está declarado y es compatible consigo mismo',
     core.ROUTER_CONTRACT_VERSION === '1.0' && core.contratoCompatible('1.0', core.ROUTER_CONTRACT_VERSION));
   check('114) el `while` de Weë Creator sigue donde estaba: ninguna ruta de producción pasa por aquí todavía',

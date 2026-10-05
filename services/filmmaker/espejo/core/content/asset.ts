@@ -3,9 +3,9 @@ import { CapabilityId } from '../capability';
 import { CONTENT_CORE_CONTRACT_VERSION } from '../contracts';
 import { ActualCost } from '../cost';
 import { OwnedByAccount } from '../identity';
-export type AssetKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'model3d';
+export type AssetKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'model3d' | 'world';
 export const TIPOS_DE_MATERIAL: readonly AssetKind[] = Object.freeze([
-    'text', 'image', 'video', 'audio', 'document', 'model3d',
+    'text', 'image', 'video', 'audio', 'document', 'model3d', 'world',
 ] as const);
 export const esTipoDeMaterial = (v: unknown): v is AssetKind => typeof v === 'string' && (TIPOS_DE_MATERIAL as readonly string[]).includes(v);
 export interface StorageRef {
@@ -58,6 +58,35 @@ export interface Provenance {
     sourceAssetIds?: readonly string[];
     createdAt: number;
 }
+export interface DerechosDelMaterial {
+    revision: 'APPROVED' | 'REVIEW_REQUIRED' | 'BLOCKED_GLOBAL';
+    usoComercial: 'ALLOWED' | 'RESTRICTED' | 'UNCLEAR' | 'NOT_ALLOWED';
+    atribucion: boolean | 'UNKNOWN';
+    licencias: readonly {
+        nombre: string;
+        url: string;
+    }[];
+    jurisdiccionesBloqueadas?: readonly string[];
+}
+export const derechosValidos = (d: unknown): d is DerechosDelMaterial => {
+    if (!d || typeof d !== 'object')
+        return false;
+    const x = d as Record<string, unknown>;
+    return ['APPROVED', 'REVIEW_REQUIRED', 'BLOCKED_GLOBAL'].includes(x.revision as string)
+        && ['ALLOWED', 'RESTRICTED', 'UNCLEAR', 'NOT_ALLOWED'].includes(x.usoComercial as string)
+        && (typeof x.atribucion === 'boolean' || x.atribucion === 'UNKNOWN')
+        && Array.isArray(x.licencias) && x.licencias.length <= 10
+        && x.licencias.every((l) => !!l && typeof l === 'object' && typeof (l as {
+            nombre?: unknown;
+        }).nombre === 'string'
+            && typeof (l as {
+                url?: unknown;
+            }).url === 'string' && /^https:\/\//.test((l as {
+            url: string;
+        }).url))
+        && (x.jurisdiccionesBloqueadas === undefined || (Array.isArray(x.jurisdiccionesBloqueadas) && x.jurisdiccionesBloqueadas.length <= 64
+            && x.jurisdiccionesBloqueadas.every((j) => typeof j === 'string' && /^[A-Z]{2}$/.test(j))));
+};
 export type AssetStatus = 'uploading' | 'processing' | 'ready' | 'failed' | 'deleted';
 export const ESTADOS_DE_MATERIAL: readonly AssetStatus[] = Object.freeze([
     'uploading', 'processing', 'ready', 'failed', 'deleted',
@@ -89,6 +118,7 @@ export interface Asset extends OwnedByAccount {
     name?: string;
     tags?: readonly string[];
     metadata?: Readonly<Record<string, string | number | boolean>>;
+    derechos?: DerechosDelMaterial;
     createdAt: number;
     updatedAt: number;
     deletedAt?: number;
@@ -127,6 +157,8 @@ export const materialValido = (a: Asset | undefined): boolean => {
     if (a.variants !== undefined && !a.variants.every((v) => esStorageRef(v.storageRef)))
         return false;
     if (!a.provenance || !Number.isFinite(a.provenance.createdAt))
+        return false;
+    if (a.derechos !== undefined && !derechosValidos(a.derechos))
         return false;
     if (a.previousVersionId !== undefined && a.previousVersionId === a.assetId)
         return false;

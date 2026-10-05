@@ -53,10 +53,15 @@ import { OwnedByAccount } from '../identity';
  * `audio`; una miniatura NO es un material, es una VARIANTE de uno. Añadir un
  * tipo aquí es un cambio menor del contrato, y hay una prueba que lo vigila.
  */
-export type AssetKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'model3d';
+export type AssetKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'model3d' | 'world';
 
+/*
+ * 'world' (2026-10-05): un mundo 3D explorable. Es un material más —con dueño, procedencia y ciclo de vida— cuyo
+ * objeto es el archivo del mundo y cuyas variantes son su vista previa. Aditivo: la versión del contrato NO sube,
+ * porque `esAsset` compara la versión por igualdad y los materiales ya guardados llevan la actual.
+ */
 export const TIPOS_DE_MATERIAL: readonly AssetKind[] = Object.freeze([
-  'text', 'image', 'video', 'audio', 'document', 'model3d',
+  'text', 'image', 'video', 'audio', 'document', 'model3d', 'world',
 ] as const);
 
 export const esTipoDeMaterial = (v: unknown): v is AssetKind =>
@@ -167,6 +172,40 @@ export interface Provenance {
   createdAt: number;
 }
 
+/* ── Sus derechos, cuando los impone una licencia ajena ─────────────────── */
+
+/**
+ * LOS DERECHOS DEL MATERIAL cuando los impone un tercero: la licencia del modelo que lo generó y los términos de quien
+ * lo sirvió. Se copian del GOBIERNO del modelo (`ModelSpec.gobierno`) en el momento de generarlo —lo que valía
+ * entonces—, y viajan con el material para que cualquier experiencia que lo reutilice sepa qué puede hacer con él.
+ * Opcional y aditivo (2026-10-05): un material sin esto es uno sin licencia ajena declarada.
+ */
+export interface DerechosDelMaterial {
+  revision: 'APPROVED' | 'REVIEW_REQUIRED' | 'BLOCKED_GLOBAL';
+  usoComercial: 'ALLOWED' | 'RESTRICTED' | 'UNCLEAR' | 'NOT_ALLOWED';
+  atribucion: boolean | 'UNKNOWN';
+  licencias: readonly { nombre: string; url: string }[];
+  /**
+   * Dónde la licencia NO deja usarlo ni MOSTRARLO (ISO 3166-1 alfa-2, o un grupo como «EU»), copiado de las reglas
+   * territoriales del modelo. Viaja con el material porque la restricción no acaba al generarlo: quien lo enseñe o lo
+   * reutilice tiene que poder saberlo. Ausente = sin restricción territorial declarada.
+   */
+  jurisdiccionesBloqueadas?: readonly string[];
+}
+
+export const derechosValidos = (d: unknown): d is DerechosDelMaterial => {
+  if (!d || typeof d !== 'object') return false;
+  const x = d as Record<string, unknown>;
+  return ['APPROVED', 'REVIEW_REQUIRED', 'BLOCKED_GLOBAL'].includes(x.revision as string)
+    && ['ALLOWED', 'RESTRICTED', 'UNCLEAR', 'NOT_ALLOWED'].includes(x.usoComercial as string)
+    && (typeof x.atribucion === 'boolean' || x.atribucion === 'UNKNOWN')
+    && Array.isArray(x.licencias) && x.licencias.length <= 10
+    && x.licencias.every((l) => !!l && typeof l === 'object' && typeof (l as { nombre?: unknown }).nombre === 'string'
+      && typeof (l as { url?: unknown }).url === 'string' && /^https:\/\//.test((l as { url: string }).url))
+    && (x.jurisdiccionesBloqueadas === undefined || (Array.isArray(x.jurisdiccionesBloqueadas) && x.jurisdiccionesBloqueadas.length <= 64
+      && x.jurisdiccionesBloqueadas.every((j) => typeof j === 'string' && /^[A-Z]{2}$/.test(j))));
+};
+
 /* ── Su ciclo de vida ───────────────────────────────────────────────────── */
 
 /**
@@ -245,6 +284,8 @@ export interface Asset extends OwnedByAccount {
   tags?: readonly string[];
   /** Libre y acotado. Lo que un proveedor devolvió y no cabe en ningún campo con nombre. */
   metadata?: Readonly<Record<string, string | number | boolean>>;
+  /** La licencia ajena que lo acompaña, si la hay (ver `DerechosDelMaterial`). */
+  derechos?: DerechosDelMaterial;
   createdAt: number;
   updatedAt: number;
   /** Solo cuando `status` es `deleted`. Se guarda la ficha; el objeto ya no está. */
@@ -296,6 +337,7 @@ export const materialValido = (a: Asset | undefined): boolean => {
   if (a.bytes !== undefined && (!Number.isSafeInteger(a.bytes) || a.bytes < 0 || a.bytes > MAXIMO_DE_BYTES_DE_MATERIAL)) return false;
   if (a.variants !== undefined && !a.variants.every((v) => esStorageRef(v.storageRef))) return false;
   if (!a.provenance || !Number.isFinite(a.provenance.createdAt)) return false;
+  if (a.derechos !== undefined && !derechosValidos(a.derechos)) return false;
   if (a.previousVersionId !== undefined && a.previousVersionId === a.assetId) return false;
   return Number.isFinite(a.createdAt) && Number.isFinite(a.updatedAt);
 };

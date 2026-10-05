@@ -6,6 +6,7 @@ import {
   AssetKind,
   AssetVariant,
   CONTENT_CORE_CONTRACT_VERSION,
+  DerechosDelMaterial,
   FORMA_DE_ID_DE_MATERIAL,
   Provenance,
   StorageRef,
@@ -163,6 +164,11 @@ const limpiar = <T extends object>(o: T): T =>
   Object.fromEntries(Object.entries(o as Record<string, unknown>).filter(([, v]) => v !== undefined)) as T;
 
 const tipoPorMime = (mime: string | undefined, porDefecto: AssetKind): AssetKind => {
+  /*
+   * Un mundo o un objeto 3D viajan en archivos de cualquier tipo —un PNG de panorama, una malla Draco o PLY en
+   * application/octet-stream—: manda lo que se declaró. Sin esto, un mundo se guardaba como imagen o como documento.
+   */
+  if (porDefecto === 'world' || porDefecto === 'model3d') return porDefecto;
   if (!mime) return porDefecto;
   if (mime.startsWith('image/')) return 'image';
   if (mime.startsWith('video/')) return 'video';
@@ -192,6 +198,8 @@ export interface NuevoMaterialDesdeUrl {
   url: string;
   kind: AssetKind;
   provenance: Provenance;
+  /** La licencia ajena que lo acompaña (del gobierno del modelo que lo generó). */
+  derechos?: DerechosDelMaterial;
   name?: string;
   mimeType?: string;
   width?: number;
@@ -272,6 +280,7 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
     provenance: limpiar({ ...datos.provenance }),
     name: datos.name,
     metadata: datos.metadata,
+    derechos: datos.derechos,
     createdAt: at,
     updatedAt: at,
     delivery,

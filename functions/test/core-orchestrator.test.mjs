@@ -543,7 +543,8 @@ console.log('\n── P · Lo que no se ha roto ──');
   check('136) y la dependencia va en el sentido correcto: el coordinador importa del Workflow, no al revés',
     /from '\.\/workflow'/.test(leer(CORE_ORQ)) && !/from '\.\/orchestrator'/.test(leer('functions/src/core/workflow.ts')));
   check('137) `appId` de la Fase 5 sigue en el hilo y llega', core.leerTraza({ trace }).appId === 'wee-chef');
-  check('138) el catálogo sigue teniendo las mismas capacidades', core.CAPABILITY_CATALOG.length === 68);
+  /* 68 y world.generate, la única que se añadió después (misión fal, 2026-10-05). */
+  check('138) el catálogo sigue teniendo las mismas capacidades, más world.generate', core.CAPABILITY_CATALOG.length === 69 && core.CAPABILITY_CATALOG.some((c) => c.id === 'world.generate'));
   check('139) el contrato del coordinador está declarado y es compatible consigo mismo',
     core.ORCHESTRATOR_CONTRACT_VERSION === '1.0' && core.contratoCompatible('1.0', core.ORCHESTRATOR_CONTRACT_VERSION));
   check('140) el `while` de Weë Creator sigue donde estaba: ninguna ruta de producción pasa por aquí',

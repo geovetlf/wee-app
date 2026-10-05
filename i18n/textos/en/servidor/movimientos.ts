@@ -46,6 +46,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiAudio: 'Voice generation',
   servicioAiTranscribe: 'Transcription and subtitles',
   servicioAiMusic: 'Music generation',
+  servicioAiWorld: '3D world generation',
   servicioAiBrain: 'Weë Brain answer',
   servicioAiText: 'Text generation',
   servicioAiTextPro: 'Maximum-quality long text',

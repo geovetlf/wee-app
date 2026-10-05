@@ -34,13 +34,21 @@ export const EXCEPCIONES = new Map([
 const NO_SON_DE_IA = new Set(['firebasestorage.googleapis.com', 'storage.googleapis.com']);
 
 /**
+ * Los archivos de DATOS de modelos (`*-modelos.ts`, p. ej. `fal-modelos.ts`) no son adaptadores: declaran modelos con
+ * su licencia, su precio publicado y sus fuentes oficiales, y sus URLs son REFERENCIAS (documentación, términos,
+ * licencias en GitHub), no direcciones a las que Weë llame. Contarlas como hosts de IA convertiría `github.com` en un
+ * proveedor. Que de verdad no llamen a nada lo vigila `gateway-autoridad`: solo importan tipos y no tienen funciones.
+ */
+export const esDatosDeModelos = (archivo) => archivo.endsWith('-modelos.ts');
+
+/**
  * Lee los adaptadores y devuelve los hosts de IA que escriben (`https://host...`), más los de los SDK.
- * Ignora `mock.ts` (no llama a nada) y los hosts que no son de IA.
+ * Ignora `mock.ts` (no llama a nada), los archivos de datos de modelos y los hosts que no son de IA.
  */
 export const hostsDeProveedores = (raiz) => {
   const dir = path.join(raiz, CARPETA_DE_ADAPTADORES);
   const hosts = new Set(HOSTS_DE_SDKS);
-  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.ts') && x !== 'mock.ts')) {
+  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.ts') && x !== 'mock.ts' && !esDatosDeModelos(x))) {
     const texto = fs.readFileSync(path.join(dir, f), 'utf8');
     for (const m of texto.matchAll(/https:\/\/([a-z0-9-]+(?:\.[a-z0-9-]+)+)/gi)) {
       const host = m[1].toLowerCase();
