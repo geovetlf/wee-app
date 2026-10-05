@@ -104,8 +104,11 @@ if (presentes.length === 0) {
 } else {
   const commitDe = Object.fromEntries([...fns.map((f) => [f.tag, f.commit]), ...(mapa.otros || []).map((o) => [o.tag, o.commit])]);
   const descuadrados = presentes.filter((t) => git('rev-parse', `${t}^{commit}`) !== commitDe[t]);
-  check('12) cada tag prod/* apunta al commit del mapa', presentes.length === tags.length && descuadrados.length === 0,
+  /* Un clon puede tener solo parte de los tags: en GitHub están los que crea el workflow gobernado, y los de la
+   * auditoría H0 son locales. Cada tag que SÍ está tiene que apuntar a su commit; los que faltan se dicen. */
+  check('12) cada tag prod/* de este clon apunta al commit del mapa', descuadrados.length === 0,
     `${presentes.length}/${tags.length} presentes${descuadrados.length ? '; descuadrados: ' + descuadrados.join(', ') : ''}`);
+  if (presentes.length < tags.length) console.log(`· ${tags.length - presentes.length} tags del mapa no están en este clon (los de H0 son locales): no se comprueban aquí`);
   const anotados = presentes.filter((t) => git('cat-file', '-t', `refs/tags/${t}`) === 'tag');
   check('13) y son tags anotados (llevan la evidencia en el mensaje)', anotados.length === presentes.length);
   const gv = por.generateVideo;
