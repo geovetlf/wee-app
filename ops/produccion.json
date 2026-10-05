@@ -276,18 +276,18 @@
     },
     {
       "funcion": "spendCredits",
-      "revision": "spendcredits-00006-duh",
-      "desde": "2026-10-05T03:37:46Z",
-      "commit": "acf1f56854d457fe40352bf568cf520bdde8bad7",
-      "sinTag": "Desplegada por el workflow gobernado (run 37259825016, el primero). Su humo se cayó antes de hacer ninguna petición (firebase-admin 12 no entiende la credencial external_account de WIF; arreglado en ops/despliegue/cli.mjs), así que el job «Registrar» no corrió y no hay tag. El tag llega con el próximo despliegue gobernado de spendCredits.",
+      "revision": "spendcredits-00008-xoj",
+      "desde": "2026-10-05T06:21:27Z",
+      "commit": "d2412cebb31a0e883843b338905de87c290c4e89",
+      "tag": "prod/functions/spendCredits/2026-10-05T0634Z",
       "enMain": true,
-      "aviso": "La revisión anterior, spendcredits-00005-puz (bfc622d), no tiene assertAdmin: no se vuelve a ella. El invocador allUsers sigue retirado (actualizar no lo reabre): política IAM sin bindings, comprobada en solo lectura el 2026-10-05 junto con la revisión, el tráfico (100 %), la fuente y el build.",
+      "aviso": "Desplegada por el workflow gobernado (run 37271413828): humo 403, observación con 0 respuestas 5xx, registro y tag (con el digest de la imagen, sha256:a3a4305f…). La revisión spendcredits-00005-puz (bfc622d) no tiene assertAdmin: no se vuelve a ella. El invocador allUsers sigue retirado: política IAM sin bindings, comprobada en solo lectura el 2026-10-05. Pendiente técnica conocida: la marcha atrás corregida en el PR #8 aún no se ha ejercitado contra Google, porque no ha fallado nada; no se provoca un fallo para probarla.",
       "fuente": {
         "zip": "gs://gcf-v2-sources-546769059837-us-central1/spendCredits/function-source.zip",
-        "generacion": "1791171398936355",
-        "md5": "MdihHM/AS4Ee8/SHCU0n1g=="
+        "generacion": "1791181233322219",
+        "md5": "wIGTA6So5EJ4W9LQKV+tsQ=="
       },
-      "build": "912ccc21-3985-4fc0-b720-c12ee9adbfa7",
+      "build": "61695917-3c39-407c-bb6d-4b58b994a67e",
       "runtime": "nodejs24"
     },
     {
