@@ -276,24 +276,18 @@
     },
     {
       "funcion": "spendCredits",
-      "revision": "spendcredits-00005-puz",
-      "desde": "2026-09-19T21:09:24Z",
-      "commit": "bfc622d9ec5db7ee7e3b1b6f7bed252749dee177",
-      "tag": "prod/functions/2026-09-19T2109Z-8fn",
+      "revision": "spendcredits-00006-duh",
+      "desde": "2026-10-05T03:37:46Z",
+      "commit": "acf1f56854d457fe40352bf568cf520bdde8bad7",
+      "sinTag": "Desplegada por el workflow gobernado (run 37259825016, el primero). Su humo se cayó antes de hacer ninguna petición (firebase-admin 12 no entiende la credencial external_account de WIF; arreglado en ops/despliegue/cli.mjs), así que el job «Registrar» no corrió y no hay tag. El tag llega con el próximo despliegue gobernado de spendCredits.",
       "enMain": true,
-      "aviso": "Invocador allUsers retirado a mano el 2026-09-30 (H0 #24) sin nueva revisión. NO volver a desplegar este tag: su código no tiene assertAdmin y firebase deploy reabre el invocador público. La marcha atrás de spendCredits es desde b878068 o posterior.",
-      "requiere": [
-        {
-          "commit": "b878068d181c3d3fe789431468499f266210604c",
-          "motivo": "assertAdmin: spendCredits cerrado al cliente (H0 #24)"
-        }
-      ],
+      "aviso": "La revisión anterior, spendcredits-00005-puz (bfc622d), no tiene assertAdmin: no se vuelve a ella. El invocador allUsers sigue retirado (actualizar no lo reabre): política IAM sin bindings, comprobada en solo lectura el 2026-10-05 junto con la revisión, el tráfico (100 %), la fuente y el build.",
       "fuente": {
-        "zip": "Z05",
-        "generacion": "1789852163575884",
-        "md5": "OFjRKkrF7FkTMmoNAAAHEw=="
+        "zip": "gs://gcf-v2-sources-546769059837-us-central1/spendCredits/function-source.zip",
+        "generacion": "1791171398936355",
+        "md5": "MdihHM/AS4Ee8/SHCU0n1g=="
       },
-      "build": "07182f50-d0c3-4891-b92a-7bbbf4d1f68e",
+      "build": "912ccc21-3985-4fc0-b720-c12ee9adbfa7",
       "runtime": "nodejs24"
     },
     {

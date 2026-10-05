@@ -29,7 +29,7 @@ const fuente = fs.readFileSync(path.join(RAIZ, 'ops/iam/wif-verificar.mjs'), 'ut
 const ordenes = Object.values(v.LECTURAS);
 const ESCRIBEN = /\b(create|delete|add-iam-policy-binding|remove-iam-policy-binding|set-iam-policy|update|undelete|enable|disable|keys create|sign-blob|sign-jwt|print-access-token)\b/;
 check('1) cada orden es una LECTURA: describe, get-iam-policy o list, y ninguna escribe',
-  ordenes.length === 5 && ordenes.every((o) => o.some((p) => v.VERBOS_DE_LECTURA.includes(p)) && !ESCRIBEN.test(o.join(' '))),
+  ordenes.length === 6 && ordenes.every((o) => o.some((p) => v.VERBOS_DE_LECTURA.includes(p)) && !ESCRIBEN.test(o.join(' '))),
   ordenes.map((o) => o.slice(0, 4).join(' ')).join(' · '));
 check('2) y solo se ejecuta gcloud con esas órdenes: un único spawnSync, sin exec ni comandos armados como texto',
   (fuente.match(/spawnSync\(/g) || []).length === 1 && /spawnSync\('gcloud', args/.test(fuente) && !/execSync|exec\(|execFile/.test(fuente));
@@ -47,13 +47,14 @@ const conforme = () => ({
   ] },
   cuenta: { bindings: [{ role: 'roles/iam.workloadIdentityUser', members: [v.MIEMBRO_DEL_REPOSITORIO] }] },
   ejecucion: { bindings: [{ role: 'roles/iam.serviceAccountUser', members: [sa] }] },
+  appEngine: { bindings: [{ role: 'roles/iam.serviceAccountUser', members: [sa] }] },
   claves: [],
 });
 const con = (f) => { const x = conforme(); f(x); return v.comparar(x); };
 
 check('4) una identidad creada con los comandos de wif.mjs sale CONFORME', v.comparar(conforme()).length === 0, v.comparar(conforme()).join(' | '));
 check('5) sin identidad (aún no creada) no es conforme, y dice qué falta',
-  v.comparar({ proveedor: null, proyecto: null, cuenta: null, ejecucion: null, claves: null }).length === 5);
+  v.comparar({ proveedor: null, proyecto: null, cuenta: null, ejecucion: null, appEngine: null, claves: null }).length === 6);
 check('6) una condición con PREFIJO (startsWith) no es conforme',
   con((x) => { x.proveedor.attributeCondition = wif.CONDICION.replace("assertion.workflow_ref == '", "assertion.workflow_ref.startsWith('").replace("main' && assertion.ref", "main') && assertion.ref"); })
     .some((d) => /condición/.test(d)));
@@ -77,6 +78,10 @@ check('11) que OTRO repositorio, o todo el pool, pueda hacerse pasar por la cuen
 check('12) sobre la cuenta de ejecución, solo «actuar como»: un rol más (crear tokens) no es conforme',
   con((x) => { x.ejecucion.bindings.push({ role: 'roles/iam.serviceAccountTokenCreator', members: [sa] }); }).length === 1
   && con((x) => { x.ejecucion.bindings = []; }).length === 1);
+check('12b) sobre la cuenta de App Engine, lo mismo (firebase-tools lo comprueba antes de desplegar), y esa cuenta sin roles en el proyecto',
+  con((x) => { x.appEngine.bindings = []; }).some((d) => /App Engine/.test(d))
+  && con((x) => { x.appEngine.bindings.push({ role: 'roles/iam.serviceAccountTokenCreator', members: [sa] }); }).length === 1
+  && con((x) => { x.proyecto.bindings.push({ role: 'roles/editor', members: [`serviceAccount:${wif.CUENTA_DE_APP_ENGINE}`] }); }).some((d) => /escalada/.test(d)));
 check('13) una clave descargable en la cuenta de despliegue no es conforme (con WIF no hace falta ninguna)',
   con((x) => { x.claves = [{ name: 'k1', keyType: 'USER_MANAGED' }]; }).some((d) => /clave/.test(d)));
 check('14) un rol con condición no es conforme (los de wif.mjs van sin ella, --condition=None)',

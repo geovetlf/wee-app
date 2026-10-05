@@ -192,9 +192,15 @@ check('30) la revisión que sirve: LATEST → la última lista; fijada → la fi
   && plan.revisionQueSirve({ latestReadyRevision: 'a-00003', trafficStatuses: [{ type: 'TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION', revision: 'a-00001', percent: 100 }] }).revision === 'a-00001'
   && plan.revisionQueSirve({ latestReadyRevision: 'a-00003', trafficStatuses: [{ revision: 'a-00001', percent: 50 }, { revision: 'a-00002', percent: 50 }] }).revision === null
   && plan.revisionQueSirve({ trafficStatuses: [{ revision: 'a-00001', percent: 50 }, { revision: 'a-00002', percent: 50 }] }).reparto.join(' ') === 'a-00001=50% a-00002=50%');
-const mapa = JSON.parse(leer('ops/produccion.json'));
+/* Un mapa de JUGUETE con el caso que motivó la regla: spendCredits en 00005-puz, sin el assertAdmin de b878068. Así se
+ * prueba sin depender de que el mapa de verdad tenga hoy un arreglo pendiente (desde el 2026-10-05 no lo tiene). */
+const mapaReal = JSON.parse(leer('ops/produccion.json'));
+const mapa = { ...mapaReal, funciones: mapaReal.funciones.map((f) => (f.funcion !== 'spendCredits' ? f : {
+  ...f, revision: 'spendcredits-00005-puz', tag: 'prod/functions/2026-09-19T2109Z-8fn',
+  requiere: [{ commit: 'b878068d181c3d3fe789431468499f266210604c', motivo: 'assertAdmin: spendCredits cerrado al cliente (H0 #24)' }],
+})) };
 const prohibidas = plan.revisionesSinArreglo(mapa);
-check('31) las revisiones prohibidas son exactamente las del mapa con arreglos pendientes (hoy: spendCredits sin assertAdmin)',
+check('31) las revisiones prohibidas son exactamente las del mapa con arreglos pendientes (en el juguete: spendCredits sin assertAdmin)',
   [...prohibidas].join(',') === mapa.funciones.filter((f) => (f.requiere || []).length).map((f) => f.revision).join(',')
   && prohibidas.has(mapa.funciones.find((f) => f.funcion === 'spendCredits').revision), [...prohibidas].join(', '));
 const sc = mapa.funciones.find((f) => f.funcion === 'spendCredits').revision;
@@ -210,10 +216,10 @@ check('33) la vuelta al mapa imprime el comando exacto de cada función; para sp
   && !vuelta.comandos.some((c) => c.includes('spendcredits')) && vuelta.errores.length === 2
   && vuelta.errores.some((e) => /^spendCredits: .*b878068.*reabriría/.test(e)) && vuelta.errores.some((e) => /^noExiste: /.test(e)));
 const { spawnSync } = await import('node:child_process');
-const cli = spawnSync(process.execPath, [path.resolve(RAIZ, 'ops/despliegue/cli.mjs'), 'marcha-atras', '--al-mapa', '--funciones', 'brainChat,spendCredits'],
+const cli = spawnSync(process.execPath, [path.resolve(RAIZ, 'ops/despliegue/cli.mjs'), 'marcha-atras', '--al-mapa', '--funciones', 'brainChat,noExiste'],
   { cwd: RAIZ, encoding: 'utf8', env: { ...process.env, GCP_TOKEN: '' } });
-check('34) «marcha-atras --al-mapa» funciona sin credenciales, solo imprime, y sale con error por spendCredits',
-  cli.status === 1 && /NO ejecuta nada/.test(cli.stdout) && cli.stdout.includes(`--to-revisions ${bc.revision}=100`) && /✘ spendCredits:/.test(cli.stdout), `salida ${cli.status}`);
+check('34) «marcha-atras --al-mapa» funciona sin credenciales, solo imprime, y sale con error por lo que no puede devolver',
+  cli.status === 1 && /NO ejecuta nada/.test(cli.stdout) && cli.stdout.includes(`--to-revisions ${bc.revision}=100`) && /✘ noExiste:/.test(cli.stdout), `salida ${cli.status}`);
 check('34b) y en ese camino no hay forma de mover tráfico: devuelve antes de pedir credenciales',
   (() => { const src = leer('ops/despliegue/cli.mjs'); const ramal = src.slice(src.indexOf("if (args.includes('--al-mapa'))"), src.indexOf('const antes = JSON.parse')); return ramal.length > 50 && !/nube\(\)|traficoA/.test(ramal) && /return;/.test(ramal); })());
 
@@ -222,6 +228,38 @@ check('35) humo sin credenciales: 401 es viva y cerrada; 503 o sin respuesta, fa
   plan.juzgarHumoSinCredenciales({ tipo: 'callable', status: 401 }).ok && plan.juzgarHumoSinCredenciales({ tipo: 'callable', status: 401 }).verificado
   && !plan.juzgarHumoSinCredenciales({ tipo: 'http', status: 503 }).ok && !plan.juzgarHumoSinCredenciales({ tipo: 'callable' }).ok
   && plan.juzgarHumoSinCredenciales({ tipo: 'programada' }).ok && plan.juzgarHumoSinCredenciales({ tipo: 'evento' }).verificado === false);
+/* El humo del run 37259825016 se cayó antes de pedir nada: firebase-admin 12 no entiende la credencial `external_account`
+ * que WIF deja en GOOGLE_APPLICATION_CREDENTIALS. Se reproduce con una credencial FALSA, sin credenciales de verdad (HOME
+ * vacío), sin red (cualquier conexión rompe la prueba) y en procesos aparte (en este el compilado ya está cargado). */
+const { tmpdir } = await import('node:os');
+const tmpWif = fs.mkdtempSync(path.join(tmpdir(), 'wee-wif-'));
+const credencialFalsa = path.join(tmpWif, 'gha-creds-falsa.json');
+fs.writeFileSync(credencialFalsa, JSON.stringify({
+  type: 'external_account', audience: '//iam.googleapis.com/projects/0/locations/global/workloadIdentityPools/falso/providers/falso',
+  subject_token_type: 'urn:ietf:params:oauth:token-type:jwt', token_url: 'https://sts.googleapis.com/v1/token', credential_source: { file: path.join(tmpWif, 'no-existe') },
+}));
+const sinRed = path.join(tmpWif, 'sin-red.cjs');
+fs.writeFileSync(sinRed, "const net = require('node:net');\nconst cortar = () => { process.stderr.write('RED-INTENTADA\\n'); throw new Error('sin red en esta prueba'); };\n"
+  + 'net.Socket.prototype.connect = cortar;\nglobalThis.fetch = async () => cortar();\n');
+const entornoWif = Object.fromEntries(Object.entries({ PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: tmpWif, USERPROFILE: tmpWif,
+  APPDATA: tmpWif, LOCALAPPDATA: tmpWif, TEMP: tmpWif, TMP: tmpWif, GOOGLE_APPLICATION_CREDENTIALS: credencialFalsa }).filter(([, x]) => x !== undefined));
+const conWif = (args) => spawnSync(process.execPath, ['--require', sinRed, ...args], { cwd: RAIZ, encoding: 'utf8', env: entornoWif, timeout: 120_000 });
+const tal = conWif(['-e', `require(${JSON.stringify(path.resolve(RAIZ, 'functions/lib/index.js'))})`]);
+check('35b) con esa credencial, cargar el compilado tal cual reproduce el fallo del run 37259825016',
+  tal.status !== 0 && /Invalid contents in the credentials file/.test(tal.stderr) && !/RED-INTENTADA/.test(tal.stderr), `salida ${tal.status}`);
+const conElArreglo = conWif(['--input-type=module', '-e', [
+  `const { cargarCompilado } = await import(${JSON.stringify(pathToFileURL(path.resolve(RAIZ, 'ops/despliegue/cli.mjs')).href)});`,
+  `const { tipoDeFuncion } = await import(${JSON.stringify(pathToFileURL(path.resolve(RAIZ, 'ops/despliegue/plan.mjs')).href)});`,
+  'const c = cargarCompilado();',
+  'await new Promise((r) => setTimeout(r, 300));',
+  'console.log(JSON.stringify({ tipo: tipoDeFuncion(c.spendCredits && c.spendCredits.__endpoint), credencial: process.env.GOOGLE_APPLICATION_CREDENTIALS }));',
+].join('\n')]);
+const salidaArreglo = (() => { try { return JSON.parse(conElArreglo.stdout.trim().split('\n').pop()); } catch { return {}; } })();
+check('35c) el humo sí lo carga: spendCredits sale callable, sin red y sin credenciales de verdad, y la variable vuelve a su sitio',
+  conElArreglo.status === 0 && salidaArreglo.tipo === 'callable' && salidaArreglo.credencial === credencialFalsa && !/RED-INTENTADA/.test(conElArreglo.stderr)
+  && /const compilado = cargarCompilado\(\);/.test(leer('ops/despliegue/cli.mjs')) && (leer('ops/despliegue/cli.mjs').match(/functions\/lib\/index\.js/g) || []).length === 1,
+  `salida ${conElArreglo.status}${conElArreglo.stderr ? ': ' + conElArreglo.stderr.trim().split('\n').pop() : ''}`);
+fs.rmSync(tmpWif, { recursive: true, force: true });
 check('36) la URL pública de una función gen2', plan.urlDeFuncion('brainChat') === 'https://us-central1-get-wee.cloudfunctions.net/brainChat');
 const hosting = JSON.parse(leer('firebase.json')).hosting;
 const ignorarDe = (sitio) => hosting.find((h) => h.site === sitio).ignore;

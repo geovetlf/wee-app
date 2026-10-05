@@ -16,12 +16,14 @@
  *    ninguno de NUNCA y sin condiciones raras;
  *  · solo este repositorio (por id) puede hacerse pasar por ella;
  *  · puede «actuar como» la cuenta de ejecución (para desplegar), y nada más;
+ *  · y la de App Engine, que firebase-tools comprueba antes de desplegar: solo
+ *    «actuar como», y esa cuenta sin roles en el proyecto;
  *  · no tiene ninguna clave descargable.
  */
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { CONDICION, CUENTA, CUENTA_DE_EJECUCION, MAPEO, NUMERO, NUNCA, PROYECTO, REPOSITORIO_ID, ROLES } from './wif.mjs';
+import { CONDICION, CUENTA, CUENTA_DE_APP_ENGINE, CUENTA_DE_EJECUCION, MAPEO, NUMERO, NUNCA, PROYECTO, REPOSITORIO_ID, ROLES } from './wif.mjs';
 
 export const EMISOR = 'https://token.actions.githubusercontent.com';
 export const MIEMBRO_DEL_REPOSITORIO = `principalSet://iam.googleapis.com/projects/${NUMERO}/locations/global/workloadIdentityPools/github/attribute.repository_id/${REPOSITORIO_ID}`;
@@ -32,6 +34,7 @@ export const LECTURAS = Object.freeze({
   proyecto: ['projects', 'get-iam-policy', PROYECTO, '--format=json'],
   cuenta: ['iam', 'service-accounts', 'get-iam-policy', CUENTA, `--project=${PROYECTO}`, '--format=json'],
   ejecucion: ['iam', 'service-accounts', 'get-iam-policy', CUENTA_DE_EJECUCION, `--project=${PROYECTO}`, '--format=json'],
+  appEngine: ['iam', 'service-accounts', 'get-iam-policy', CUENTA_DE_APP_ENGINE, `--project=${PROYECTO}`, '--format=json'],
   claves: ['iam', 'service-accounts', 'keys', 'list', `--iam-account=${CUENTA}`, '--managed-by=user', `--project=${PROYECTO}`, '--format=json'],
 });
 export const VERBOS_DE_LECTURA = Object.freeze(['describe', 'get-iam-policy', 'list']);
@@ -47,7 +50,7 @@ const rolesDe = (politica, miembro) => (politica?.bindings || []).filter((b) => 
  * Pura: las diferencias entre lo que hay y lo que dice wif.mjs (vacía = conforme).
  * `null` en una lectura = no existe (o no se pudo leer).
  */
-export const comparar = ({ proveedor, proyecto, cuenta, ejecucion, claves }) => {
+export const comparar = ({ proveedor, proyecto, cuenta, ejecucion, appEngine, claves }) => {
   const d = [];
   const sa = `serviceAccount:${CUENTA}`;
 
@@ -95,6 +98,18 @@ export const comparar = ({ proveedor, proyecto, cuenta, ejecucion, claves }) => 
     if (JSON.stringify(roles) !== JSON.stringify(['roles/iam.serviceAccountUser'])) {
       d.push(`sobre la cuenta de ejecución, la de despliegue debe tener solo roles/iam.serviceAccountUser; tiene: ${roles.join(', ') || 'nada'}`);
     }
+  }
+
+  if (!appEngine) d.push('no se pudo leer la política de la cuenta de App Engine');
+  else {
+    const roles = rolesDe(appEngine, sa).map((b) => b.role).sort();
+    if (JSON.stringify(roles) !== JSON.stringify(['roles/iam.serviceAccountUser'])) {
+      d.push(`sobre la cuenta de App Engine, la de despliegue debe tener solo roles/iam.serviceAccountUser; tiene: ${roles.join(', ') || 'nada'}`);
+    }
+  }
+  if (proyecto) {
+    const deAppEngine = rolesDe(proyecto, `serviceAccount:${CUENTA_DE_APP_ENGINE}`).map((b) => b.role);
+    if (deAppEngine.length) d.push(`la cuenta de App Engine tiene roles en el proyecto (actuar como ella sería una escalada): ${deAppEngine.join(', ')}`);
   }
 
   if (!Array.isArray(claves)) d.push('no se pudieron listar las claves de la cuenta de despliegue');

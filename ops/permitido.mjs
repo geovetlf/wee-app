@@ -55,7 +55,7 @@ export const decidir = ({ manifiesto, funciones = [], otros = [], contiene, cand
     const si = contiene(viva.commit, candidato);
     if (si === null) desconocido.push(`${nombre}: no se puede comprobar si ${candidato} contiene ${viva.commit.slice(0, 7)} (¿falta historia o el commit?).`);
     else if (!si) {
-      bloqueos.push(`${nombre}: en producción corre ${viva.commit.slice(0, 7)} (${viva.tag}) y ${candidato} no lo contiene. `
+      bloqueos.push(`${nombre}: en producción corre ${viva.commit.slice(0, 7)} (${viva.tag || 'sin tag'}) y ${candidato} no lo contiene. `
         + `Desplegarlo borraría lo que funciona: integra antes ${viva.ramas ? `la rama ${viva.ramas.join(' o ')}` : 'ese commit'}.`);
     }
     /* Arreglos de seguridad aún no desplegados: cualquier despliegue de la función tiene que llevarlos. */
