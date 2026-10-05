@@ -13,7 +13,12 @@ import { textoDelServidorLegible } from '../i18n/servidor';
  */
 export type JobStatus = 'asking' | 'planned' | 'running' | 'done' | 'failed' | 'cancelled';
 export type StepStatus = 'pending' | 'running' | 'done' | 'failed';
-export type ResultKind = 'text' | 'image' | 'video' | 'audio' | 'document';
+/*
+ * Espejo de `ResultKind` del servidor (functions/src/creator/types.ts), que ganó `world` y `model3d` el 2026-10-05.
+ * Solo el tipo: ninguna pantalla pinta todavía un mundo, y `ResultCard` no debe tratarlo como imagen
+ * (docs/3D-EXPERIENCIA.md). Lo vigila `functions/test/crear-mundo-3d.test.mjs`.
+ */
+export type ResultKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'world' | 'model3d';
 
 export interface QuestionOption {
   id: string;
