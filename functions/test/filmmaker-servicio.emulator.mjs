@@ -134,10 +134,14 @@ const servicioDe = (quien, guardaTurno) => ({
   getProduction: (id) => seguir(svc.getProduction(id).then((r) => { huellas.push(`${quien}:abrir`); return r; })),
   applyProductionOperations: (args) => seguir((async () => {
     if (guardaTurno) await turno;
-    const r = await svc.applyProductionOperations(args);
-    huellas.push(`${quien}:${r.ok ? `rev${r.valor.produccion.revision}` : r.fallo.tipo}`);
-    if (!guardaTurno) darTurno();
-    return r;
+    try {
+      const r = await svc.applyProductionOperations(args);
+      huellas.push(`${quien}:${r.ok ? `rev${r.valor.produccion.revision}` : r.fallo.tipo}`);
+      return r;
+    } finally {
+      /* Pase lo que pase con la primera, la segunda nunca se queda esperando turno para siempre. */
+      if (!guardaTurno) darTurno();
+    }
   })()),
 });
 const pantalla1 = K1.crearControladorDeProduccion(pid, { servicio: servicioDe('p1', false), nuevoIdDeOperacion: S.nuevoIdDeOperacion, programar: inmediato });
@@ -147,8 +151,14 @@ const enReposo = (p) => { const e = p.leer().estado; return !e.enVuelo && !e.pen
 const TECHO_MS = 120_000;
 const hastaQueTodoQuedeQuieto = async () => {
   const desde = Date.now();
-  while (Date.now() - desde < TECHO_MS) {
-    while (enCurso.size) await Promise.allSettled([...enCurso]);
+  const queda = () => TECHO_MS - (Date.now() - desde);
+  while (queda() > 0) {
+    /* Esperar a lo que está en vuelo, pero nunca más allá del techo: una llamada que no vuelve no cuelga la tanda. */
+    while (enCurso.size && queda() > 0) {
+      let reloj;
+      await Promise.race([Promise.allSettled([...enCurso]), new Promise((r) => { reloj = setTimeout(r, queda()); })]);
+      clearTimeout(reloj);
+    }
     await new Promise((r) => setTimeout(r, 0));
     if (!enCurso.size && enReposo(pantalla1) && enReposo(pantalla2)) return true;
   }
