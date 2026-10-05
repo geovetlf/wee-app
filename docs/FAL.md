@@ -63,6 +63,10 @@ primero que falla decide:
   contrato canónico la lleve.
 - **El adaptador no decide nada de esto.** fal no sabe de jurisdicciones; si se llega a `run`, la regla común ya dijo
   que sí (`elegibilidad-jurisdiccion` 9 y 9b).
+- **Auditoría:** cada intento deja en su registro de `aiGenerations` (`elegibilidad`) con qué jurisdicciones se decidió
+  (`null` si no se sabían) y qué modelos quedaron fuera, con su escalón; junto a lo que el libro ya guardaba —proveedor,
+  modelo, capacidad, petición, trabajo, coste, Credits y fechas—. Solo cuando hay algo que auditar: el tráfico de
+  siempre no cambia de forma. Es del libro de administración; la persona nunca lo ve (`elegibilidad-jurisdiccion` 25).
 
 Relación con lo que ya había: la **región técnica** del Router del Core (`constraints.region`, dónde declara servir un
 modelo) es otra cosa, y la capa **Policy & Eligibility del runtime** (`runtime/politica.ts`, F12-D) son reglas de
@@ -141,6 +145,6 @@ no puede mostrarse, conectar lo asíncrono (webhook + barrido + conductor), crea
 
 ## 8. Pruebas
 
-`elegibilidad-jurisdiccion` (26: los diez casos del ajuste de jurisdicción y lo que los sostiene), `proveedor-fal`
+`elegibilidad-jurisdiccion` (27: los diez casos del ajuste de jurisdicción, la auditoría y lo que los sostiene), `proveedor-fal`
 (30: el adaptador con la red sustituida por dobles, firma, cancelación, reconciliación, Credits, material y que nada
 está encendido) y `escena3d` (11). Todas deterministas y sin red. $0.

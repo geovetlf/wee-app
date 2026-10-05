@@ -508,7 +508,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
    * + misión fal (2026-10-05), con autorización del dueño: el ÚNICO proveedor y la ÚNICA cadena nuevos son fal y
    *   `world.generate` —el vídeo sigue siendo Seedance y solo Seedance—. En el motor: elegibilidad.ts (nuevo, la regla
    *   común), providers/fal.ts y fal-modelos.ts (nuevos), verification.ts +8 (su ficha), registry.ts +15 −1 (antes 2/0),
-   *   router.ts +37 −9 (antes 59/4), types.ts +111 −3 (antes 29/0), gateway.ts +8 −2 (antes 2/0) y limits.ts +2 −1
+   *   router.ts +43 −9 (antes 59/4), types.ts +118 −3 (antes 29/0), gateway.ts +8 −2 (antes 2/0) y limits.ts +2 −1
    *   (antes 38/3). Cifras de `git diff --numstat b023f24`; el detalle de cada una, en video-asincrono H2.
    */
   check('E4) para el vídeo, Seedance y solo Seedance; el único proveedor nuevo es fal, con la única cadena nueva (world.generate)',
@@ -527,7 +527,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * GenerationRecord) y router.ts 57/4 → 59/4 (reenvía esos dos campos al contexto del libro). SIGUE sin haber
        * proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|191\t0\tfunctions/src/engine/elegibilidad.ts|1\t1\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|116\t0\tfunctions/src/engine/providers/fal-modelos.ts|393\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|96\t13\tfunctions/src/engine/router.ts|140\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|193\t0\tfunctions/src/engine/elegibilidad.ts|1\t1\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|116\t0\tfunctions/src/engine/providers/fal-modelos.ts|393\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|102\t13\tfunctions/src/engine/router.ts|147\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 

@@ -257,8 +257,8 @@ export function createRouter(deps: RouterDeps) {
     }
 
     links.forEach((link, index) => {
-      const skip = (reason: string, estado?: RouteDecision['skipped'][number]['estado']): void => {
-        skipped.push({ provider: link.provider, model: link.model, reason, ...(estado ? { estado } : {}) });
+      const skip = (reason: string, estado?: RouteDecision['skipped'][number]['estado'], modelo?: string): void => {
+        skipped.push({ provider: link.provider, model: modelo ?? link.model, reason, ...(estado ? { estado } : {}) });
       };
       const adapter = deps.adapters[link.provider];
       if (!adapter) return skip('no existe');
@@ -285,7 +285,7 @@ export function createRouter(deps: RouterDeps) {
           ? (suyo ? modeloElegible(suyo, providerConfig.models?.[suyo.id], contexto) : undefined)
           : elegibilidadDeLaCapacidad(adapter.models, capability, providerConfig.models, contexto);
         const deSiempre = prefs.modelId ? `sin el modelo ${prefs.modelId} disponible` : 'sin modelo disponible para esta capacidad';
-        if (porQue && !porQue.elegible) return skip(porQue.estado === 'APPROVED' ? deSiempre : textoDeElegibilidad(porQue), porQue.estado);
+        if (porQue && !porQue.elegible) return skip(porQue.estado === 'APPROVED' ? deSiempre : textoDeElegibilidad(porQue), porQue.estado, suyo?.id ?? porQue.modelo);
         return skip(deSiempre);
       }
       const estimatedUsd = estimateUsd(model, capability, input, prefs);
@@ -345,6 +345,11 @@ export function createRouter(deps: RouterDeps) {
     const decision = await route(request, config);
     const { capability, input } = request;
     const modality = modalityOf(capability);
+    /* La decisión de elegibilidad, al libro (auditoría): solo cuando hay algo que auditar. */
+    const descartes = decision.skipped.flatMap((s) => (s.estado ? [{ provider: s.provider, ...(s.model ? { model: s.model } : {}), estado: s.estado }] : []));
+    const elegibilidad = request.jurisdicciones?.length || descartes.length
+      ? { jurisdicciones: request.jurisdicciones?.length ? [...request.jurisdicciones] : null, descartes }
+      : undefined;
     const ctx = {
       userId: request.userId,
       jobId: request.jobId,
@@ -411,6 +416,7 @@ export function createRouter(deps: RouterDeps) {
         estimatedUsd: candidate.estimatedUsd,
         pricingMode: settings.pricingMode,
         inputType: inputTypeOf(capability, input),
+        ...(elegibilidad ? { elegibilidad } : {}),
       });
       const start = now();
       /* El proveedor ya tiene la tarea: si después falla, pudo costar dinero (ver costeTrasUnFallo). */

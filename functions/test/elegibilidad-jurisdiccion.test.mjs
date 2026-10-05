@@ -305,6 +305,21 @@ check('24) el «no disponible» no le enseña a la persona ni el proveedor ni el
   detalles?.reason === 'sin_modelo_elegible' && !/fal|hunyuan/i.test(JSON.stringify(detalles)) && Object.keys(detalles).sort().join() === 'capability,elegibilidad,reason',
   JSON.stringify(detalles));
 
+{
+  /* La decisión, al libro: con qué jurisdicciones se decidió y qué quedó fuera, para auditoría (nunca para la persona). */
+  const terra = proveedor('terra', [{ ...TERRITORIAL, id: 'estrella', quality: 5 }]);
+  const otro = proveedor('otro', [modelo('alternativo', 'otro', { quality: 3 })]);
+  const conJurisdiccion = router({ terra, otro, mock: demo() }, configuracion(['terra', 'otro']));
+  await conJurisdiccion.r.execute(peticion({ jurisdicciones: ['ES'] }));
+  const anotado = Object.values(conJurisdiccion.ledger.records)[0];
+  const deSiempre = router({ otro: proveedor('otro', [modelo('alternativo', 'otro', { quality: 3 })]), mock: demo() }, configuracion(['otro']));
+  await deSiempre.r.execute(peticion());
+  const sinNada = Object.values(deSiempre.ledger.records)[0];
+  check('25) AUDITORÍA: cada intento deja en el libro con qué jurisdicciones se decidió y qué modelo quedó fuera, con su escalón; el tráfico sin jurisdicción ni descartes no cambia de forma',
+    JSON.stringify(anotado?.elegibilidad) === JSON.stringify({ jurisdicciones: ['ES'], descartes: [{ provider: 'terra', model: 'estrella', estado: 'BLOCKED_FOR_JURISDICTION' }] })
+    && anotado.provider === 'otro' && !!sinNada && !('elegibilidad' in sinNada), JSON.stringify(anotado?.elegibilidad));
+}
+
 check('esta suite está en la cadena de `npm test`', /elegibilidad-jurisdiccion\.test\.mjs/.test(leer('functions/package.json')));
 
 console.log(failures ? `\n✘ ${failures} fallo(s)` : `\n✔ elegibilidad por jurisdicción: ${n} comprobaciones ($0)`);
