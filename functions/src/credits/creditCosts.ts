@@ -36,6 +36,11 @@ export const CREDIT_COSTS = {
   ai_audio: 20,            // ElevenLabs: USD 0.10 por 1 000 caracteres
   ai_transcribe: 2,        // Gemini 3.5 Transcribe: ≈ USD 0.005 por minuto
   ai_music: 30,            // Weë Music pausada: sin proveedor activo
+  // 3D — un mundo explorable desde una imagen. Hunyuan World vía fal: USD 0.30 por petición
+  // (fal.ai/models/fal-ai/hunyuan_world/image-to-world, 2026-10-05) → techo(0.30 × 100 × 1.3) = 39.
+  // Hoy no se puede usar en ninguna jurisdicción: bloqueado en la UE, el Reino Unido y Corea del Sur por su licencia,
+  // en revisión legal en el resto y desactivado (engine/providers/fal-modelos.ts).
+  ai_world: 39,
   // Texto
   /*
    * WEË BRAIN TIENE SU PROPIO SERVICIO (decisión del usuario, 2026-09-16).
@@ -132,6 +137,7 @@ export const SERVICE_LABEL: Record<CreditService, string> = {
   ai_audio: 'Generación de voz',
   ai_transcribe: 'Transcripción y subtítulos',
   ai_music: 'Generación de música',
+  ai_world: 'Generación de mundo 3D',
   ai_brain: 'Respuesta de Weë Brain',
   ai_text: 'Generación de texto',
   ai_text_pro: 'Texto largo de máxima calidad',
@@ -219,6 +225,8 @@ export function serviceForCapability(capability: CapabilityId, input: Record<str
     case 'music.generate':
     case 'audio.sfx':
       return 'ai_music';
+    case 'world.generate':
+      return 'ai_world';
     case 'doc.render':
       return input.kind === 'book' ? 'ai_book' : 'ai_text';
     default:

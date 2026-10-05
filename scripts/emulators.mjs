@@ -39,6 +39,8 @@ export const SECRETOS = [
   'GEMINI_API_KEY', 'ARK_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'DEEPSEEK_API_KEY',
   'BFL_API_KEY', 'ELEVENLABS_API_KEY', 'MINIMAX_API_KEY', 'SEEDANCE_CALLBACK_TOKEN',
   'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY',
+  /* El llavero dormido de fal (misión fal, 2026-10-05): ninguna Function lo monta todavía. */
+  'FAL_KEY',
 ];
 
 /** Variables de un .env con valor no vacío (solo los NOMBRES; los valores no salen de aquí). */

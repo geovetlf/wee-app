@@ -436,8 +436,9 @@ console.log('\n── N · Lo que no se ha roto ──');
   check('77) el Gateway no se tocó para esto', !/planner|Planner/.test(sinComentarios(leer('functions/src/core/gateway.ts'))));
   check('78) `capabilities` se AÑADIÓ al entendimiento sin romper a quien solo usa `capability`',
     /capability\?: CoreCapabilityId;/.test(leer('functions/src/core/brain.ts')) && /capabilities\?: readonly CoreCapabilityId\[\];/.test(leer('functions/src/core/brain.ts')));
-  check('79) y el catálogo sigue teniendo las mismas capacidades que antes de esta fase',
-    core.CAPABILITY_CATALOG.length === 68, `${core.CAPABILITY_CATALOG.length}`);
+  /* 68 y world.generate, la única que se añadió después (misión fal, 2026-10-05). */
+  check('79) y el catálogo sigue teniendo las mismas capacidades que antes de esta fase, más world.generate',
+    core.CAPABILITY_CATALOG.length === 69 && core.CAPABILITY_CATALOG.some((c) => c.id === 'world.generate'), `${core.CAPABILITY_CATALOG.length}`);
   check('80) esta suite no llama a ninguna API real', !/https?:\/\/(?!ejemplo\.invalido)/.test(leer('functions/test/core-planner.test.mjs')));
 }
 

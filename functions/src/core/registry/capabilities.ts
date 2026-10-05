@@ -328,6 +328,12 @@ export const CAPABILITY_CATALOG: readonly CatalogEntry[] = [
   e('3d.rig', '3d', ['image'], 'image', 'DECLARED'),
   e('3d.convert', '3d', ['image'], 'image', 'DECLARED', 'Cambiar de formato: glTF, USDZ, OBJ…'),
   e('3d.export', '3d', ['image'], 'doc', 'DECLARED'),
+  /*
+   * Un MUNDO 3D explorable a partir de una imagen (y su contexto, si lo hay). Enrutable desde el 2026-10-05: la
+   * cadena existe, pero ningún modelo es elegible hasta que su licencia esté aprobada y se active (registro). AMPLIAR
+   * un mundo ya generado no es esta capacidad, y el proveedor actual no lo ofrece: no se simula.
+   */
+  e('world.generate', '3d', ['image', 'text'], '3d', 'ROUTABLE', 'Generar un mundo 3D explorable desde una imagen. Ampliar un mundo existente: NOT_SUPPORTED_BY_CURRENT_PROVIDER.'),
 
   /* ── DISEÑO — por disciplina, nunca por proveedor ──────────────────────── */
   e('architecture.design', 'design', ['text', 'image'], 'image', 'DECLARED'),

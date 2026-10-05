@@ -417,11 +417,38 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   const CALLABLES_DE_CREDITS = 'functions/src/credits/index.ts';
   /* Los de la identidad del cobro (PRE-F1-D): qué se les permite lo dice 63p, línea a línea. */
   const DE_LA_IDENTIDAD = ['functions/src/credits/creditEngine.ts', 'functions/src/credits/creditValidation.ts', 'functions/src/credits/creditTransactions.ts'];
+  /*
+   * Y los de la MISIÓN fal (2026-10-05), con autorización del dueño y del tamaño exacto (63fal): el Router del Core gana
+   * la modalidad '3d' en su lista y en su guardia —lo que esa guardia exige cuando cambia la unión `Modality`—, y
+   * creditCosts gana el servicio `ai_world` (su precio de prueba, su etiqueta y su capacidad). Ni gasto, ni cobro, ni
+   * reembolso, ni ningún otro servicio se mueven.
+   */
+  const DE_LA_MISION_FAL = ['functions/src/core/router.ts', 'functions/src/credits/creditCosts.ts'];
   /* Un archivo nuevo también es tocar lo cerrado, aunque aún no esté en git: `git diff` no lo ve y esto sí. */
   const sinSeguir = execSync('git ls-files --others --exclude-standard -- functions/src/core/router.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
   const fueraDelPermiso = [...tocados.split('\n'), ...sinSeguir.split('\n')].map((l) => l.trim())
-    .filter((l) => l && l !== AI_PRICING && l !== CALLABLES_DE_CREDITS && !DE_LA_IDENTIDAD.includes(l));
+    .filter((l) => l && l !== AI_PRICING && l !== CALLABLES_DE_CREDITS && !DE_LA_IDENTIDAD.includes(l) && !DE_LA_MISION_FAL.includes(l));
   check('63) CONTRATOS CERRADOS SIN TOCAR: Router, Financial y el resto de Credits son los del commit desplegado', fueraDelPermiso.length === 0, fueraDelPermiso.join(' '));
+  {
+    const lineas = (archivo) => {
+      const d = execSync(`git diff -U0 c3515b3 -- ${archivo}`, { cwd: RAIZ, encoding: 'utf8' }).split('\n');
+      const codigo = (signo) => d.filter((l) => l.startsWith(signo) && !l.startsWith(signo.repeat(3)))
+        .map((l) => l.slice(1).trim()).filter((l) => l && !/^(\*|\/\*|\/\/)/.test(l));
+      return { quitadas: codigo('-'), nuevas: codigo('+') };
+    };
+    const delRouter = lineas('functions/src/core/router.ts');
+    const deCostes = lineas('functions/src/credits/creditCosts.ts');
+    check('63fal) y de la misión fal, exacto: el Router del Core solo gana la modalidad 3d (lista y guardia) y creditCosts solo el servicio ai_world',
+      JSON.stringify(delRouter.quitadas) === JSON.stringify([
+        "const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc'] as const;",
+        'const MODALIDADES_COMPLETAS: Record<Modality, true> = { text: true, vision: true, image: true, video: true, voice: true, music: true, doc: true };',
+      ]) && JSON.stringify(delRouter.nuevas) === JSON.stringify([
+        "const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc', '3d'] as const;",
+        "const MODALIDADES_COMPLETAS: Record<Modality, true> = { text: true, vision: true, image: true, video: true, voice: true, music: true, doc: true, '3d': true };",
+      ]) && deCostes.quitadas.length === 0 && JSON.stringify(deCostes.nuevas) === JSON.stringify([
+        'ai_world: 39,', "ai_world: 'Generación de mundo 3D',", "case 'world.generate':", "return 'ai_world';",
+      ]), JSON.stringify({ delRouter, deCostes }));
+  }
   {
     const delCallable = execSync('git diff -U0 c3515b3 -- ' + CALLABLES_DE_CREDITS, { cwd: RAIZ, encoding: 'utf8' });
     const quitadas = delCallable.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'));

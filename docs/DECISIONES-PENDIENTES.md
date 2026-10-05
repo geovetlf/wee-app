@@ -75,3 +75,18 @@ lee datos reales y por eso lo ejecuta el dueño.
 - El cortacircuitos de proveedores vive en la memoria de cada instancia.
 - El cupo de texto de `creatorChat` (H0 #12): cortar en seco interrumpe la
   conversación.
+
+## fal.ai, 3D World y la elegibilidad por jurisdicción (misión fal, 2026-10-05)
+
+Construido, probado y **apagado**: nada de esto está desplegado ni activo. Detalle en [FAL.md](FAL.md).
+
+| Decisión | Qué hay hoy | Por qué es del dueño |
+|---|---|---|
+| **La revisión legal de Hunyuan World, jurisdicción por jurisdicción** | Bloqueado en la UE, el Reino Unido y Corea del Sur (licencia de Tencent); `REVIEW_REQUIRED` en el resto; `DISABLED`. Abiertas: si que Weë esté establecido en España impide usarlo en operaciones de fuera de la UE; cómo se cumple que el resultado no se muestre en territorio excluido; los términos de fal §2 (edad mínima) y §6(e) («service bureau»); el umbral de 1 M MAU; el etiquetado del punto 12 de su política de uso; la copia del acuerdo a terceros | Es una decisión legal; aprobar una jurisdicción se escribe con evidencia en `fal-modelos.ts` (la configuración no puede) |
+| **Si una jurisdicción DECLARADA basta para aprobar** | Conectada el 2026-10-05: la jurisdicción de la operación sale del país que declara el Perfil Real (`users.country`, obligatorio en el registro), leído en el servidor (`engine/jurisdiccion.ts`); sin país válido, falla cerrado. Basta para bloquear. Las reglas dejan que la persona cambie su país cuando quiera | Aprobar una jurisdicción con una declaración, o exigir una fuente verificada (país de facturación de una compra validada) y/o fijar el país, es una decisión legal y de producto |
+| **Dónde se cumple lo que un material no puede mostrar** | `Asset.derechos.jurisdiccionesBloqueadas` viaja con el material; nadie lo lee todavía (muro, compartir, página pública) | Es producto: qué ve cada persona según dónde está |
+| **Conectar lo asíncrono de fal** | Aceptación, firma de avisos (ED25519/JWKS), reconciliación y cancelación construidas; ni webhook expuesto, ni resolutor en el barrido, ni `world.generate` en el conductor | Una tercera capacidad en el conductor necesita autorización explícita (CLAUDE.md §10); exponer un webhook es desplegar |
+| **Crear `FAL_KEY` y montarla** | Llavero dormido en `secrets.ts`; ninguna Function lo monta | Es un secreto de producción |
+| **El precio real de `ai_world`** | 39 Credits de prueba (`usdToCredits(0,30)`) | Se confirma con el coste medido, como el resto |
+| **El visor 3D de la app y dónde se guardan las escenas** | El núcleo (`core/escena3d.ts`) no sabe de pantallas ni de almacenamiento | Elegir la biblioteca de render y la colección es una decisión de producto y de cliente |
+| **Revisión nativa del danés de «Generación de mundo 3D»** | `servicioAiWorld: '3D-verdensgenerering'` sin revisar por una persona nativa | El proceso de idiomas exige revisión nativa (I18N-REVISION.md) |

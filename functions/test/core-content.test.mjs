@@ -92,8 +92,9 @@ console.log('\n── A · El material: forma, dueño y estado ──');
   check('1) un material bien formado vale', core.materialValido(material()));
   check('2) sin cuenta no hay material',
     !core.materialValido(material({ ownerAccountId: '' })) && !core.materialValido(material({ ownerAccountId: undefined })));
-  check('3) los tipos son los seis de siempre, y la miniatura NO es uno',
-    core.TIPOS_DE_MATERIAL.join() === 'text,image,video,audio,document,model3d'
+  /* Los seis de siempre y `world` (misión fal, 2026-10-05), al final: los guardados no cambian de sitio. */
+  check('3) los tipos son los seis de siempre y el mundo 3D, y la miniatura NO es uno',
+    core.TIPOS_DE_MATERIAL.join() === 'text,image,video,audio,document,model3d,world'
     && !core.esTipoDeMaterial('thumbnail') && !core.esTipoDeMaterial('IMAGE'));
 
   /* 4 · LA URL YA NO ES LA IDENTIDAD. El material no tiene campo `url`. */

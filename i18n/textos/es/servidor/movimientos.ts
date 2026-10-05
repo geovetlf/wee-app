@@ -46,6 +46,7 @@ export const movimientos = {
   servicioAiAudio: 'Generación de voz',
   servicioAiTranscribe: 'Transcripción y subtítulos',
   servicioAiMusic: 'Generación de música',
+  servicioAiWorld: 'Generación de mundo 3D',
   servicioAiBrain: 'Respuesta de Weë Brain',
   servicioAiText: 'Generación de texto',
   servicioAiTextPro: 'Texto largo de máxima calidad',

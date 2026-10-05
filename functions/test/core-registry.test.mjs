@@ -97,6 +97,7 @@ const cargar = async (ruta) => {
 
 const core = (await cargar('functions/src/core/registry/index.ts')).ns;
 const composicion = (await cargar('functions/src/registry/index.ts')).ns;
+const excepciones = (await cargar('functions/src/registry/excepciones.ts')).ns;
 
 const datos = composicion.datosDelRegistro();
 const reg = composicion.registroDeWee();
@@ -110,7 +111,8 @@ console.log('\n── A · El registro real está sano ──');
     errores.map((e) => `${e.where}: ${e.message}`).slice(0, 4).join(' | ') || `${problemas.length} avisos`);
 
   check('2) tiene las tres dimensiones pobladas',
-    datos.capabilities.length > 50 && datos.providers.length >= 15 && datos.models.length >= 25 && datos.adapters.length === 11,
+    /* Doce adaptadores: los once de siempre y fal, la excepción controlada del 2026-10-05. */
+    datos.capabilities.length > 50 && datos.providers.length >= 15 && datos.models.length >= 25 && datos.adapters.length === 12,
     `${datos.capabilities.length} cap · ${datos.providers.length} prov · ${datos.models.length} mod · ${datos.adapters.length} adap`);
 }
 
@@ -236,13 +238,20 @@ console.log('\n── E · Matrices originales, nunca intermediarios ──');
    * modelo te toca—, y cuando algo falle Weë quiere saber de quién es la culpa.
    */
   const PROHIBIDOS = ['kling', 'runway', 'replicate', 'fal.ai', 'openrouter', 'together', 'huggingface', 'segmind', 'novita', 'piapi'];
+  /*
+   * La regla sigue siendo absoluta para todos MENOS para las excepciones que el dueño aprobó con fecha y motivo
+   * (`registry/excepciones.ts`). Hoy hay una —fal, 2026-10-05— y la lista se vigila entera: una más es otra decisión.
+   */
+  const APROBADAS = excepciones.EXCEPCIONES_DE_AGREGADOR.map((e) => e.id);
+  check('23a) las excepciones a «solo matrices» son exactamente las aprobadas: fal, con su fecha y su motivo',
+    APROBADAS.join() === 'fal' && excepciones.EXCEPCIONES_DE_AGREGADOR.every((e) => /^\d{4}-\d{2}-\d{2}$/.test(e.aprobadaEl) && e.motivo.length > 40));
   const intrusos = [];
-  for (const p of datos.providers) {
+  for (const p of datos.providers.filter((x) => !APROBADAS.includes(x.id))) {
     for (const mal of PROHIBIDOS) {
       if (p.id.toLowerCase().includes(mal) || p.name.toLowerCase().includes(mal)) intrusos.push(`${p.id}/${mal}`);
     }
   }
-  check('23) ningún intermediario registrado como proveedor', intrusos.length === 0, intrusos.join(' ') || `${PROHIBIDOS.length} comprobados`);
+  check('23) ningún intermediario registrado como proveedor fuera de las excepciones aprobadas', intrusos.length === 0, intrusos.join(' ') || `${PROHIBIDOS.length} comprobados`);
 
   /* CONTROL: que la comprobación sepa encontrar uno. */
   const conIntruso = [...datos.providers, { id: 'runway', name: 'Runway' }];
@@ -252,7 +261,9 @@ console.log('\n── E · Matrices originales, nunca intermediarios ──');
   /* Solo hay dos tipos, y eso es a propósito: si hiciera falta un tercero, la
    * conversación es si esa integración debe existir. */
   const tipos = new Set(datos.providers.map((p) => p.type));
-  check('24) solo hay matrices y lo interno de Weë', [...tipos].every((t) => t === 'matrix' || t === 'internal'), [...tipos].join(','));
+  check('24) solo hay matrices, lo interno de Weë y las excepciones aprobadas —que son agregadores, y solo ellas—',
+    [...tipos].every((t) => t === 'matrix' || t === 'internal' || t === 'aggregator')
+    && datos.providers.filter((p) => p.type === 'aggregator').map((p) => p.id).join() === APROBADAS.join(), [...tipos].join(','));
 }
 
 console.log('\n── F · 3D no es render, y ninguno es un proveedor ──');

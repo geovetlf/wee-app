@@ -12,6 +12,7 @@ import { minimaxAdapter } from './providers/minimax';
 import { fluxAdapter } from './providers/flux';
 import { elevenlabsAdapter } from './providers/elevenlabs';
 import { musicPlaceholderAdapter } from './providers/music';
+import { falAdapter } from './providers/fal';
 
 /**
  * Registro de proveedores y valores por defecto del router.
@@ -37,6 +38,8 @@ export const ADAPTERS: Record<string, ProviderAdapter> = {
   flux: fluxAdapter,
   elevenlabs: elevenlabsAdapter,
   'music-pending': musicPlaceholderAdapter,
+  /* Agregador: EXCEPCIÓN CONTROLADA del dueño (registry/excepciones.ts). Un proveedor más, reemplazable. */
+  fal: falAdapter,
 };
 
 export const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
@@ -52,6 +55,12 @@ export const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
   minimax: { enabled: true, priority: 2, note: 'Solo voz.' },
   'music-pending': { enabled: false, priority: 1, note: 'Sin proveedor de música con API oficial y licencia comercial todavía.' },
   mock: { enabled: true, priority: 99, note: 'Modo demo: último recurso.' },
+  /*
+   * DESACTIVADO por defecto. Además de que ningún modelo suyo es elegible (cada uno tiene su revisión legal), usar fal
+   * exige decisiones del dueño sobre sus propios términos: usuarios finales de 18+ (§2) y el encaje de vender Credits
+   * (§6(e)). Se activa en aiProviders/fal, nunca aquí.
+   */
+  fal: { enabled: false, priority: 1, note: 'Excepción controlada (2026-10-05). Desactivado: pendiente de la decisión legal del dueño.' },
 };
 
 const chain = (...providers: string[]): ChainLink[] => providers.map((provider) => ({ provider }));
@@ -104,6 +113,11 @@ export const DEFAULT_ROUTING: Record<CapabilityId, CapabilityRouting> = {
   'music.generate': routing('music.generate', chain('music-pending'), 'balanced'),
   'audio.sfx': routing('audio.sfx', chain('music-pending'), 'balanced'),
   'doc.render': routing('doc.render', [], 'balanced'),
+  /*
+   * Un mundo 3D a partir de una imagen. La cadena dice quién PUEDE atenderlo; si se usa lo decide la regla común
+   * (`modeloElegible`): APPROVED, ACTIVE y permitido en las jurisdicciones de la operación. Hoy ninguno lo es.
+   */
+  'world.generate': routing('world.generate', chain('fal'), 'quality-first'),
 };
 
 export const DEFAULT_SETTINGS: EngineSettings = {
@@ -112,7 +126,7 @@ export const DEFAULT_SETTINGS: EngineSettings = {
   margin: 0.3,
   defaultPolicy: 'balanced',
   allowMockFallback: true,
-  timeoutsMs: { text: 90_000, vision: 90_000, image: 240_000, video: 1_200_000, voice: 120_000, music: 300_000, doc: 60_000 },
+  timeoutsMs: { text: 90_000, vision: 90_000, image: 240_000, video: 1_200_000, voice: 120_000, music: 300_000, doc: 60_000, '3d': 900_000 },
   circuitBreaker: { failures: 3, windowMs: 10 * 60_000, openMs: 5 * 60_000 },
   limits: DEFAULT_LIMITS,
   // Modelo de video por defecto. Seedance 2.0 fast cuesta USD 0.12 por segundo a 720p

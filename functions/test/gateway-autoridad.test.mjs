@@ -34,7 +34,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { hostsDeProveedores, patronDeHosts, SDKS_DE_IA, CARPETA_DE_ADAPTADORES } from '../../ops/revision/hosts-de-proveedores.mjs';
+import { hostsDeProveedores, patronDeHosts, SDKS_DE_IA, CARPETA_DE_ADAPTADORES, esDatosDeModelos } from '../../ops/revision/hosts-de-proveedores.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -105,6 +105,17 @@ console.log('\n── A · ¿Quién puede llamar a un adaptador? ──');
   const conEndpoint = TODO.filter(([f, s]) => ENDPOINTS.test(s) && !f.startsWith(`${CARPETA_DE_ADAPTADORES}/`)).map(([f]) => f);
   check('A) NADIE fuera de los adaptadores tiene la dirección de un proveedor',
     conEndpoint.length === 0, conEndpoint.join(',') || 'ninguno');
+  /*
+   * Los archivos de DATOS de modelos (`*-modelos.ts`) no aportan hosts: sus URLs son fuentes y licencias. Eso solo es
+   * verdad si no pueden llamar a nada, así que se comprueba: solo importan tipos y no declaran ninguna función.
+   */
+  const deDatos = fs.readdirSync(path.join(RAIZ, CARPETA_DE_ADAPTADORES)).filter(esDatosDeModelos);
+  const datosQueLlaman = deDatos.filter((f) => {
+    const s = sinComentarios(leer(`${CARPETA_DE_ADAPTADORES}/${f}`));
+    return /=>|\bfunction\b|\bfetch|\bawait\b/.test(s) || (s.match(/^import .*$/gm) || []).some((l) => !/^import (type )?\{[^}]*\} from '\.\.\/types';$/.test(l.trim()));
+  });
+  check('A) y los archivos de datos de modelos no llaman a nada: solo importan tipos y no tienen funciones',
+    datosQueLlaman.length === 0 && !hostsDeProveedores(RAIZ).some((h) => /github\.com|^fal\.ai$/.test(h)), datosQueLlaman.join(',') || `${deDatos.length} archivo(s) de datos`);
   /*
    * Y por SDK, uno solo: `vertexAI.ts`, que llama a Gemini con `@google/genai`
    * para el avatar. Es anterior al ENGINE y se salta el motor entero — queda
