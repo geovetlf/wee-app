@@ -7,6 +7,7 @@ import { recordRealSuccess } from './verification';
 import { sanitizeForLog } from './sanitize';
 import { NotConfiguredError, ProviderError } from './http';
 import { classifyError, EngineError } from './errors';
+import { camposAjustables, ContextoDeElegibilidad, elegibilidadDeLaCapacidad, modeloElegible, textoDeElegibilidad } from './elegibilidad';
 import { providerCallsToday, providerUsdToday, usdToday } from './limits';
 import {
   ChainLink,
@@ -93,13 +94,21 @@ export function resolveQuality(request: EngineRequest): QualityTier {
 }
 
 // ── Elección de modelo dentro de un proveedor ──────────────────────────────
-const applyOverrides = (model: ModelSpec, config?: ProviderConfig): (ModelSpec & { enabled: boolean }) => {
+const applyOverrides = (model: ModelSpec, config?: ProviderConfig, contexto?: ContextoDeElegibilidad): (ModelSpec & { enabled: boolean }) => {
   const override = config?.models?.[model.id];
-  return { ...model, ...(override || {}), cost: override?.cost || model.cost, enabled: override?.enabled !== false } as ModelSpec & { enabled: boolean };
+  /*
+   * Elegible = lo que diga `modeloElegible` para ESTA operación (la misma regla que el gateway del Core y el
+   * registro). Los ajustes cambian calidad, velocidad, coste y duración; nunca quién es el modelo ni su gobierno.
+   */
+  return { ...model, ...camposAjustables(override), cost: override?.cost || model.cost, enabled: modeloElegible(model, override, contexto).elegible } as ModelSpec & { enabled: boolean };
 };
 
-export function pickModel(adapter: ProviderAdapter, capability: CapabilityId, quality: QualityTier, policy: RoutingPolicy, config?: ProviderConfig, modelId?: string): ModelSpec | null {
-  const models = adapter.models.filter((m) => m.capabilities.includes(capability)).map((m) => applyOverrides(m, config)).filter((m) => m.enabled);
+/**
+ * El mejor modelo del proveedor para la capacidad, SOLO entre los elegibles para la operación: la calidad, el coste
+ * y el modelo fijado ordenan lo que la política dejó pasar, nunca lo amplían.
+ */
+export function pickModel(adapter: ProviderAdapter, capability: CapabilityId, quality: QualityTier, policy: RoutingPolicy, config?: ProviderConfig, modelId?: string, contexto?: ContextoDeElegibilidad): ModelSpec | null {
+  const models = adapter.models.filter((m) => m.capabilities.includes(capability)).map((m) => applyOverrides(m, config, contexto)).filter((m) => m.enabled);
   if (modelId) return models.find((m) => m.id === modelId) || null;
   if (!models.length) return null;
   const meeting = models.filter((m) => m.quality >= QUALITY_MIN_SCORE[quality]);
@@ -209,6 +218,8 @@ export function createRouter(deps: RouterDeps) {
     const prefs: RoutingPrefs = request.prefs || {};
     const quality = resolveQuality(request);
     const { links, policy } = linksFor(capability, config, prefs);
+    /* La política de la operación: la pone el servidor y la leen solo las reglas territoriales de cada modelo. */
+    const contexto: ContextoDeElegibilidad = { jurisdicciones: request.jurisdicciones };
     /*
      * EL INTERRUPTOR (H0 #19). Detenida, no hay candidatos —tampoco el demo, que
      * antes era lo que entraba al «apagar» todos los proveedores, y se cobraba—:
@@ -246,8 +257,8 @@ export function createRouter(deps: RouterDeps) {
     }
 
     links.forEach((link, index) => {
-      const skip = (reason: string): void => {
-        skipped.push({ provider: link.provider, model: link.model, reason });
+      const skip = (reason: string, estado?: RouteDecision['skipped'][number]['estado']): void => {
+        skipped.push({ provider: link.provider, model: link.model, reason, ...(estado ? { estado } : {}) });
       };
       const adapter = deps.adapters[link.provider];
       if (!adapter) return skip('no existe');
@@ -265,8 +276,18 @@ export function createRouter(deps: RouterDeps) {
       if (maxUsd && maxUsd > 0 && providerUsdToday(usage, link.provider) >= maxUsd) return skip('presupuesto diario del proveedor alcanzado');
       if (link.minQuality && QUALITY_RANK[quality] < QUALITY_RANK[link.minQuality]) return skip('reservado para tareas de más calidad');
       if (link.maxQuality && QUALITY_RANK[quality] > QUALITY_RANK[link.maxQuality]) return skip('no alcanza la calidad que pide la tarea');
-      const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model || prefs.modelId);
-      if (!model) return skip(prefs.modelId ? `sin el modelo ${prefs.modelId} disponible` : 'sin modelo disponible para esta capacidad');
+      const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model || prefs.modelId, contexto);
+      if (!model) {
+        /* Por qué: el escalón de elegibilidad del modelo fijado o, sin fijar, el del primero que cubre la capacidad. */
+        const fijado = link.model || prefs.modelId;
+        const suyo = fijado ? adapter.models.find((m) => m.id === fijado && m.capabilities.includes(capability)) : undefined;
+        const porQue = fijado
+          ? (suyo ? modeloElegible(suyo, providerConfig.models?.[suyo.id], contexto) : undefined)
+          : elegibilidadDeLaCapacidad(adapter.models, capability, providerConfig.models, contexto);
+        const deSiempre = prefs.modelId ? `sin el modelo ${prefs.modelId} disponible` : 'sin modelo disponible para esta capacidad';
+        if (porQue && !porQue.elegible) return skip(porQue.estado === 'APPROVED' ? deSiempre : textoDeElegibilidad(porQue), porQue.estado);
+        return skip(deSiempre);
+      }
       const estimatedUsd = estimateUsd(model, capability, input, prefs);
       const estimatedCredits = creditsFor(capability, estimatedUsd, settings, adapter.id === 'mock', input);
       if (prefs.maxCredits !== undefined && estimatedCredits > prefs.maxCredits) return skip(`supera el tope de ${prefs.maxCredits} Credits`);
@@ -302,7 +323,7 @@ export function createRouter(deps: RouterDeps) {
     const mock = deps.adapters.mock;
     const mockAllowed = !realProviderAvailable;
     if (mock && settings.allowMockFallback && !candidates.some((c) => c.provider === 'mock') && mockAllowed) {
-      const model = pickModel(mock, capability, quality, policy, config.providers.mock);
+      const model = pickModel(mock, capability, quality, policy, config.providers.mock, undefined, contexto);
       if (model) {
         candidates.push({ provider: 'mock', model, priority: 999, estimatedUsd: 0, estimatedCredits: creditsFor(capability, 0, settings, true, input), durationOk: true, meetsQuality: false, reason: 'modo demo (sin IA real)' });
       }
@@ -365,7 +386,14 @@ export function createRouter(deps: RouterDeps) {
     if (!decision.candidates.length) {
       const why = decision.skipped.map((s) => `${s.provider}: ${s.reason}`).join('; ');
       console.warn(`WEË AI ENGINE: ningún proveedor disponible para ${capability} (${why})`);
-      throw new EngineError('NOT_AVAILABLE', 'Ahora mismo no hay una IA disponible para esto. Inténtalo más tarde.', { capability });
+      /*
+       * SIN MODELO ELEGIBLE es un estado explícito, no un «inténtalo más tarde» que se arregla solo: se dice por qué
+       * escalones se quedaron fuera (sin nombrar proveedores, que la persona nunca ve) y no se sirve nada en su lugar.
+       */
+      const estados = [...new Set(decision.skipped.map((s) => s.estado).filter((e): e is NonNullable<typeof e> => !!e))];
+      throw new EngineError('NOT_AVAILABLE', 'Ahora mismo no hay una IA disponible para esto. Inténtalo más tarde.', {
+        capability, ...(estados.length ? { reason: 'sin_modelo_elegible', elegibilidad: estados } : {}),
+      });
     }
 
     let lastError: unknown = null;

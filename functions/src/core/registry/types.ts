@@ -134,11 +134,15 @@ export interface ModelDescriptor {
  * decidir qué modelo te toca. Weë ya tiene un router; no necesita el de otro
  * encima, y cuando algo falle quiere saber de quién es la culpa.
  *
- * `'internal'` es para el modo demo, que no es de nadie. No hay ningún otro
+ * `'internal'` es para el modo demo, que no es de nadie. No había ningún otro
  * valor a propósito: si algún día hiciera falta uno, la conversación es si esa
  * integración debe existir, no qué etiqueta ponerle.
+ *
+ * Esa conversación se tuvo el 2026-10-05: `'aggregator'` existe para las EXCEPCIONES controladas que aprueba el
+ * dueño (`registry/excepciones.ts`), y solo para ellas. Un agregador sigue siendo un proveedor más detrás del mismo
+ * Router y Gateway; la etiqueta existe para que ningún informe lo cuente como una matriz.
  */
-export type ProviderType = 'matrix' | 'internal';
+export type ProviderType = 'matrix' | 'internal' | 'aggregator';
 
 /** Salud declarada. El monitor real llega en una fase posterior. */
 export type HealthState = 'AVAILABLE' | 'DEGRADED' | 'UNAVAILABLE' | 'UNKNOWN';

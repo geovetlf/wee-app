@@ -1,7 +1,7 @@
 // GENERADO por scripts/espejo-filmmaker.mjs desde functions/src/core/capability.ts: no se edita a mano, se regenera.
 import { CAPABILITY_CONTRACT_VERSION } from './contracts';
-export type CapabilityId = 'text.generate' | 'text.structure' | 'text.search' | 'image.generate' | 'image.edit' | 'image.background_remove' | 'image.upscale' | 'image.object_remove' | 'image.identity_edit' | 'image.space_restyle' | 'image.try_on' | 'vision.describe' | 'video.generate' | 'video.image_to_video' | 'video.reference' | 'video.compose' | 'voice.tts' | 'music.generate' | 'doc.render' | 'script.write' | 'scene.split' | 'subtitle.generate' | 'image.reference' | 'video.montage' | 'video.vertical' | 'audio.sfx' | 'audio.transcribe' | 'doc.read';
-export type Modality = 'text' | 'vision' | 'image' | 'video' | 'voice' | 'music' | 'doc';
+export type CapabilityId = 'text.generate' | 'text.structure' | 'text.search' | 'image.generate' | 'image.edit' | 'image.background_remove' | 'image.upscale' | 'image.object_remove' | 'image.identity_edit' | 'image.space_restyle' | 'image.try_on' | 'vision.describe' | 'video.generate' | 'video.image_to_video' | 'video.reference' | 'video.compose' | 'voice.tts' | 'music.generate' | 'doc.render' | 'script.write' | 'scene.split' | 'subtitle.generate' | 'image.reference' | 'video.montage' | 'video.vertical' | 'audio.sfx' | 'audio.transcribe' | 'doc.read' | 'world.generate';
+export type Modality = 'text' | 'vision' | 'image' | 'video' | 'voice' | 'music' | 'doc' | '3d';
 export type CapabilityStatus = 'SUPPORTED' | 'PENDING' | 'UNSUPPORTED' | 'DEPRECATED';
 export interface CapabilityIO {
     accepts: readonly Modality[];

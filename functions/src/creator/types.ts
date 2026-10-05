@@ -98,7 +98,7 @@ export interface JobStep extends PlanStep {
   credits?: number;
 }
 
-export type ResultKind = 'text' | 'image' | 'video' | 'audio' | 'document';
+export type ResultKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'world' | 'model3d';
 
 export interface JobResult {
   stepId: string;

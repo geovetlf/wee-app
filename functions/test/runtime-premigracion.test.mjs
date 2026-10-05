@@ -240,9 +240,14 @@ console.log('\n── B · El Gateway: qué contesta de verdad, y `accepted` ─
    */
   check('la opción viaja EXPLÍCITA al adaptador, siempre como booleano', /acceptAsync: deps\.aceptaAsincrono === true/.test(EJEC) && /aceptaAsincrono\?: boolean/.test(EJEC));
   check('y quien compone el Gateway también la pasa explícita al ejecutor', /aceptaAsincrono: deps\.aceptaAsincrono === true/.test(EJEC));
-  check('un solo adaptador lo produce —Seedance— y ninguno más',
-    fs.readdirSync(path.resolve(RAIZ, 'functions/src/engine/providers')).filter((f) => /accepted: \{ operationId/.test(leer(`functions/src/engine/providers/${f}`))).join(',') === 'seedance.ts');
-  check('y sin que se lo pidan, Seedance sigue sondeando como siempre', /if \(request\.acceptAsync\)/.test(sinComentarios(leer('functions/src/engine/providers/seedance.ts'))));
+  /*
+   * Y desde la misión fal (2026-10-05), dos: fal también sabe soltar la llamada con el nombre de su operación. Igual
+   * que Seedance, SOLO si se lo piden, y hoy nadie se lo pide para un mundo 3D: el conductor solo atiende sus dos
+   * canaries (CLAUDE.md §10) y world.generate no es ninguno de ellos.
+   */
+  check('dos adaptadores lo producen —Seedance y fal— y ninguno más',
+    fs.readdirSync(path.resolve(RAIZ, 'functions/src/engine/providers')).filter((f) => /accepted: \{ operationId/.test(leer(`functions/src/engine/providers/${f}`))).join(',') === 'fal.ts,seedance.ts');
+  check('y sin que se lo pidan, los dos sondean como siempre', ['seedance.ts', 'fal.ts'].every((f) => /if \(request\.acceptAsync\)/.test(sinComentarios(leer(`functions/src/engine/providers/${f}`)))));
   check('su ÚNICO consumidor es la composición del Job Engine, que lo traduce a «no se sabe todavía»', trabajosDeWee.informeDelGateway({ attemptId: 'a1' }, { status: 'accepted', implementation: {} }).outcome === 'unknown');
 
   /* Y si un día el Gateway lo contestara, el runtime YA es seguro: no lo da por hecho, no lo repite y no se queda esperando. */

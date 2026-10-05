@@ -271,13 +271,15 @@ console.log('\n── G · Preparar esto NO cambió nada de lo que ya funcionaba
    */
   const enrutadas = [...leer('functions/src/engine/registry.ts').matchAll(/routing\('([a-z0-9._]+)'/g)].map((m) => m[1]);
   const routable = core.CAPABILITY_CATALOG.filter((c) => c.status === 'ROUTABLE').map((c) => String(c.id));
-  check('46) el motor sigue enrutando las mismas 28 capacidades, con las mismas 22 ROUTABLE',
-    enrutadas.length === 28 && routable.length === 22 && routable.every((c) => enrutadas.includes(c)),
+  /* Más world.generate (misión fal, 2026-10-05): enrutada y ROUTABLE, aunque hoy ningún modelo suyo sea elegible. */
+  check('46) el motor sigue enrutando las mismas 28 capacidades y world.generate, con las mismas 22 ROUTABLE y world.generate',
+    enrutadas.length === 29 && routable.length === 23 && routable.every((c) => enrutadas.includes(c)) && routable.includes('world.generate'),
     `${enrutadas.length} enrutadas · ${routable.length} ROUTABLE`);
   check('47) y ninguna de traducción es enrutable', !routable.some((c) => c.startsWith('translation.')));
-  check('48) el catálogo creció en dos y nada más', core.CAPABILITY_CATALOG.length === 68, `${core.CAPABILITY_CATALOG.length} capacidades`);
-  check('49) los proveedores, modelos y adaptadores de siempre siguen igual',
-    datos.providers.length === 17 && datos.models.length === 32 && datos.adapters.length === 11,
+  check('48) el catálogo creció en dos y nada más (y después, en world.generate)', core.CAPABILITY_CATALOG.length === 69, `${core.CAPABILITY_CATALOG.length} capacidades`);
+  /* Más fal (excepción controlada, 2026-10-05): un proveedor, un modelo y un adaptador. */
+  check('49) los proveedores, modelos y adaptadores de siempre siguen igual, más fal',
+    datos.providers.length === 18 && datos.models.length === 33 && datos.adapters.length === 12 && datos.providers.some((p) => p.id === 'fal'),
     `${datos.providers.length} prov · ${datos.models.length} mod · ${datos.adapters.length} adap`);
   check('50) el registro real sigue sin errores de integridad', composicion.problemasDelRegistro().filter((p) => p.severity === 'error').length === 0);
   /* Y las matrices que sí estaban pendientes siguen exactamente donde estaban. */

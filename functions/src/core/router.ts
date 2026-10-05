@@ -386,9 +386,9 @@ const CLAVES_DE_SELECCION = ['implementation', 'implementationref', 'adapterid',
  * `satisfies` de abajo es la guardia: si algún día se añade una modalidad al
  * Core y no se añade aquí, deja de compilar en vez de colarse en silencio.
  */
-const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc'] as const;
+const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc', '3d'] as const;
 /* Si esta línea deja de compilar, es que la unión `Modality` cambió y la lista de arriba no. */
-const MODALIDADES_COMPLETAS: Record<Modality, true> = { text: true, vision: true, image: true, video: true, voice: true, music: true, doc: true };
+const MODALIDADES_COMPLETAS: Record<Modality, true> = { text: true, vision: true, image: true, video: true, voice: true, music: true, doc: true, '3d': true };
 const esModalidad = (v: unknown): v is Modality => esTexto(v) && Object.prototype.hasOwnProperty.call(MODALIDADES_COMPLETAS, v) && (MODALIDADES as readonly string[]).includes(v);
 
 /* ── Piezas ───────────────────────────────────────────────────────────────── */

@@ -224,8 +224,9 @@ check('el prompt sigue diciendo DÓNDE declararlo',
 
 console.log('\n── G · Lo que no se tocó ──');
 
+/* 68 y world.generate, añadida después con sus `accepts` y su `produces` (misión fal, 2026-10-05). */
 check('el catálogo NO se editó para que esto cuadrara',
-  CAPABILITY_CATALOG.length === 68
+  CAPABILITY_CATALOG.length === 69
   && CAPABILITY_CATALOG.every((c) => Array.isArray(c.accepts) && typeof c.produces === 'string'),
   '68 entradas, cobertura completa: la auditoría no encontró ningún dato que faltara');
 check('G19 congelado: las 53 variantes siguen con su significado',

@@ -135,6 +135,7 @@ Quién lo usa hoy:
 | `ai_video_edit` | 20 |
 | `ai_audio` | 20 |
 | `ai_music` | 30 |
+| `ai_world` | 39 |
 | `ai_text` | 2 |
 | `ai_book` | 100 |
 | `wee_avatar` | 50 |

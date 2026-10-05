@@ -50,6 +50,7 @@ export * from './element';
 export * from './visual-context';
 export * from './continuity';
 export * from './shot';
+export * from './escena3d';
 export * from './continuity-check';
 export * from './continuity-intent';
 export * from './skill';

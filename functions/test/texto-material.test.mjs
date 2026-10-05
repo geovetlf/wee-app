@@ -102,12 +102,13 @@ check('G7 CERRADO · el prefijo discrepaba del catálogo en 38 de 68 capacidades
     const CLASE = { text: 'text', image: 'image', video: 'video', voice: 'audio', audio: 'audio', music: 'audio', doc: 'document', '3d': 'model3d', vision: 'text' };
     return core.CAPABILITY_CATALOG.every((e) => tipoDeMaterialDe(e.id) === CLASE[e.produces]);
   })(),
-  'las 68 coinciden ahora con lo que declara el catálogo');
+  'las 69 coinciden ahora con lo que declara el catálogo');
 check('y una capacidad que no está en el catálogo no produce material',
   tipoDeMaterialDe('inventada.x') === undefined && tipoDeMaterialDe(undefined) === undefined);
-check('`AssetKind` no ha ganado ni un tipo nuevo',
-  TIPOS_DE_MATERIAL.length === 6 && igual([...TIPOS_DE_MATERIAL].sort(),
-    ['audio', 'document', 'image', 'model3d', 'text', 'video']));
+/* Salvo `world` (misión fal, 2026-10-05): el mundo 3D que genera world.generate, aditivo y sin subir el contrato. */
+check('`AssetKind` no ha ganado ningún tipo nuevo salvo `world`',
+  TIPOS_DE_MATERIAL.length === 7 && igual([...TIPOS_DE_MATERIAL].sort(),
+    ['audio', 'document', 'image', 'model3d', 'text', 'video', 'world']));
 
 console.log('\n── B · De un resultado de texto a una petición de material ──');
 

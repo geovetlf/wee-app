@@ -117,6 +117,12 @@ export const CONTINUITY_CONTRACT_VERSION = '1.0' as const;
  */
 export const SHOT_CONTRACT_VERSION = '1.0' as const;
 
+/**
+ * Forma de una escena o un mundo 3D (`escena3d.ts`): el núcleo de composición único de Weë, que comparten
+ * Weë Studio (3D World), Weë Design (3D Design) y, más adelante, Weë Filmmaker.
+ */
+export const ESCENA3D_CONTRACT_VERSION = '1.0' as const;
+
 /** Forma de un plan de capacidades y de la petición que lo produce. */
 export const PLANNER_CONTRACT_VERSION = '1.0' as const;
 

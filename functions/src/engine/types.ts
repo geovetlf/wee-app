@@ -11,7 +11,7 @@ import { MecanismoDeContinuidad } from './continuidad';
  * obliga a tocar el resto de la aplicación.
  */
 
-export type Modality = 'text' | 'vision' | 'image' | 'video' | 'voice' | 'music' | 'doc';
+export type Modality = 'text' | 'vision' | 'image' | 'video' | 'voice' | 'music' | 'doc' | '3d';
 
 /** Calidad que exige la tarea (la decide Weë Brain o la experiencia, nunca la persona). */
 export type QualityTier = 'standard' | 'high' | 'max';
@@ -89,6 +89,17 @@ export interface EngineContext {
    * propio y más largo— sigue exactamente igual que antes.
    */
   deadlineAt?: number;
+  /**
+   * LAS JURISDICCIONES DE ESTA OPERACIÓN (ISO 3166-1 alfa-2): las de las leyes que la alcanzan.
+   *
+   * Es una dimensión de POLÍTICA, no de interfaz: la pone el servidor desde una fuente de confianza, nunca desde lo
+   * que mande el cliente, el idioma, el locale ni el país del dispositivo. Solo la leen las reglas territoriales de
+   * `modeloElegible`, antes de que el Router compare candidatos; ningún adaptador la recibe.
+   *
+   * Ausente o vacía = desconocida: un modelo con reglas territoriales NO es elegible (falla cerrado). Los modelos sin
+   * ellas siguen exactamente igual.
+   */
+  jurisdicciones?: readonly string[];
 }
 
 export interface EngineRequest extends EngineContext {
@@ -122,6 +133,95 @@ export interface ModelSpec {
   /** true cuando el contrato de la API se verificó con una clave real. */
   verified?: boolean;
   note?: string;
+  /**
+   * EL GOBIERNO DEL MODELO: qué es exactamente, qué dice su licencia, cuánto cuesta según el proveedor y si se puede
+   * usar. Opcional y solo para los modelos que lo declaran (los de un proveedor agregador, hoy fal.ai): un modelo que
+   * lo declara solo es elegible si está ACTIVE **y** su revisión legal es APPROVED (`modeloElegible`, `elegibilidad.ts`).
+   * Los modelos de siempre no lo declaran y siguen exactamente igual.
+   */
+  gobierno?: GobiernoDeModelo;
+  /**
+   * DÓNDE se puede usar, si su licencia, su proveedor o Weë lo limitan por territorio. Vale para cualquier modelo de
+   * cualquier capacidad, tenga gobierno o no. Sin esto, el modelo no tiene límites territoriales; con esto, cada
+   * operación se mira por SUS jurisdicciones (`EngineContext.jurisdicciones`) y, si no se saben, no es elegible.
+   */
+  territorio?: ReglasTerritoriales;
+}
+
+/** La revisión legal de un modelo para Weë: por proveedor + modelo + capacidad + versión. Ante la duda, REVIEW_REQUIRED. */
+export type EstadoDeRevision = 'APPROVED' | 'REVIEW_REQUIRED' | 'BLOCKED_GLOBAL';
+
+/**
+ * LAS REGLAS TERRITORIALES DE UN MODELO. Datos con su fuente, nunca lógica de un proveedor.
+ *
+ * Los códigos son ISO 3166-1 alfa-2 («ES», «US»), o un grupo de `GRUPOS_DE_JURISDICCIONES` («EU»). Para una operación:
+ * si alguna de sus jurisdicciones está en `bloqueadas`, BLOCKED_FOR_JURISDICTION; si todas están en `aprobadas`, lo que
+ * diga el resto del gobierno; cualquier otra, `resto`. Bloquear manda siempre sobre aprobar. Solo se cambian con
+ * evidencia, en el código: la configuración no levanta un bloqueo ni aprueba una jurisdicción.
+ */
+export interface ReglasTerritoriales {
+  bloqueadas: readonly string[];
+  /** Donde se verificó, con evidencia, que sí se puede. Vacía = en ninguna todavía. */
+  aprobadas: readonly string[];
+  /** Lo que vale fuera de las dos listas. Cualquier otro valor cuenta como REVIEW_REQUIRED. */
+  resto: 'REVIEW_REQUIRED' | 'APPROVED';
+  /** De dónde sale: la cláusula de la licencia, los términos del proveedor o la política de Weë. */
+  fuente: string;
+}
+
+/**
+ * EN QUÉ ESCALÓN SE QUEDA UN MODELO PARA UNA OPERACIÓN (`modeloElegible`). Solo ACTIVE es elegible.
+ *   BLOCKED_GLOBAL             prohibido en todas partes
+ *   BLOCKED_FOR_JURISDICTION   prohibido en una de las jurisdicciones de la operación (y solo en ellas)
+ *   JURISDICTION_UNKNOWN       tiene reglas territoriales y la operación no dice dónde ocurre: falla cerrado
+ *   REVIEW_REQUIRED            sin revisión legal aprobada, global o para esa jurisdicción
+ *   APPROVED                   aprobado, pero no activado
+ *   ACTIVE                     aprobado y activado
+ */
+export type EstadoDeElegibilidad =
+  | 'BLOCKED_GLOBAL' | 'BLOCKED_FOR_JURISDICTION' | 'JURISDICTION_UNKNOWN' | 'REVIEW_REQUIRED' | 'APPROVED' | 'ACTIVE';
+/** Si la configuración de Weë lo deja usar. Un modelo nuevo nace DISABLED. */
+export type ActivacionDeModelo = 'ACTIVE' | 'DISABLED';
+
+/** Un campo de un esquema de entrada o de salida, tal como lo publica el proveedor. */
+export interface CampoDeEsquema {
+  nombre: string;
+  tipo: 'string' | 'number' | 'integer' | 'boolean' | 'image_url' | 'file' | 'object' | 'array' | 'enum';
+  requerido: boolean;
+  /** Para `enum`: los valores que admite. */
+  valores?: readonly (string | number)[];
+  descripcion?: string;
+}
+
+export interface GobiernoDeModelo {
+  /** El id del modelo en el proveedor (el endpoint). Solo lo usa el adaptador; nunca llega a la persona. */
+  providerModelId: string;
+  /** La versión del modelo o del endpoint que se revisó. Cambia la versión → se revisa otra vez. */
+  version: string;
+  /** La revisión legal vigente. Solo APPROVED deja usarlo. Se puede cambiar en aiProviders/{proveedor} (decisión del dueño). */
+  reviewStatus: EstadoDeRevision;
+  /** Por defecto, desactivado: activarlo es una decisión de configuración (aiProviders/{proveedor}.models[id].enabled). */
+  active: ActivacionDeModelo;
+  commercialUseStatus: 'ALLOWED' | 'RESTRICTED' | 'UNCLEAR' | 'NOT_ALLOWED';
+  licenseStatus: 'CLEAR' | 'RESTRICTED' | 'UNCLEAR';
+  outputRightsStatus: 'CLEAR' | 'RESTRICTED' | 'UNCLEAR';
+  attributionRequired: boolean | 'UNKNOWN';
+  /** Las licencias que aplican (la del proveedor y la del modelo), con lo que importa de cada una. */
+  licencias: readonly { nombre: string; url: string; notas: readonly string[] }[];
+  /** Cómo cobra el proveedor. El precio en Credits NO sale de aquí: lo calcula el motor de coste con su margen. */
+  pricingMode: 'per_generation' | 'per_second' | 'per_megapixel' | 'per_image' | 'per_token' | 'unknown';
+  providerPricing: { usd: number; unidad: string; fuente: string; consultadoEn: string } | null;
+  limits?: Readonly<Record<string, number | string>>;
+  supportedFormats?: readonly string[];
+  inputSchema: readonly CampoDeEsquema[];
+  outputSchema: readonly CampoDeEsquema[];
+  /** Operaciones que el proveedor NO ofrece y que Weë no simula (p. ej. ampliar un mundo). */
+  noSoportado?: readonly string[];
+  /** Fuentes oficiales leídas para todo lo anterior. */
+  fuentes: readonly string[];
+  lastVerifiedAt: string;
+  /** Por qué ese estado de revisión, en una frase. */
+  motivo: string;
 }
 
 /**
@@ -340,7 +440,11 @@ export interface CapabilityRouting {
 export interface ProviderConfig {
   enabled: boolean;
   priority: number;
-  models?: Record<string, Partial<Pick<ModelSpec, 'quality' | 'speed' | 'cost' | 'maxDurationSec'>> & { enabled?: boolean }>;
+  /**
+   * Ajustes de la administración por modelo. `reviewStatus` solo puede ENDURECER la revisión del código (pedir
+   * revisión o bloquear), nunca aprobar ni levantar un bloqueo: eso necesita evidencia y se hace en el código.
+   */
+  models?: Record<string, Partial<Pick<ModelSpec, 'quality' | 'speed' | 'cost' | 'maxDurationSec'>> & { enabled?: boolean; reviewStatus?: EstadoDeRevision }>;
   limits?: { maxCallsPerDay?: number; maxUsdPerDay?: number };
   note?: string;
 }
@@ -400,7 +504,8 @@ export interface RouteDecision {
   quality: QualityTier;
   policy: RoutingPolicy;
   candidates: RouteCandidate[];
-  skipped: { provider: string; model?: string; reason: string }[];
+  /** `estado`: cuando el descarte lo decidió la elegibilidad del modelo (`modeloElegible`), en qué escalón se quedó. */
+  skipped: { provider: string; model?: string; reason: string; estado?: EstadoDeElegibilidad }[];
   /**
    * Hay al menos un proveedor real con clave y con modelo para esta capacidad.
    * Cuando es true el modo demo NO puede ser candidato, ni siquiera si todos los
@@ -521,6 +626,9 @@ export const MODALITY_OF: Record<string, Modality> = {
   scene: 'text',
   subtitle: 'text',
   audio: 'music',
+  /* Un mundo y un objeto 3D son geometría: modalidad propia, con su plazo y su cupo. */
+  world: '3d',
+  '3d': '3d',
 };
 
 /** Capacidades con modalidad propia que no se deduce del prefijo. */

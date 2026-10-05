@@ -56,12 +56,16 @@ modelo llega a la interfaz.
 
 1. **Calidad exigida** (`resolveQuality`): la fija Weë Brain/la experiencia (`prefs.quality` o `input.quality`), o se deduce: "cinematográfico", "premium", "máxima calidad", "4K" → `max`; "borrador", "rápido", "de prueba" → `standard`; por defecto imagen/video/voz/música → `high`, texto → `standard`.
 2. **Candidatos**: recorre la cadena de la capacidad (`aiRouting/{capacidad}.chain`, o los proveedores por prioridad si no hay cadena) y descarta con motivo legible: `desactivado por administración`, `sin clave configurada`, `no atiende esta capacidad`, `en pausa por fallos recientes`, `reservado para tareas de más calidad`, `supera el tope de N Credits`, `sin modelo disponible`.
-3. **Modelo dentro del proveedor** (`pickModel`): el más barato que cumple la calidad pedida (o el mejor si la política es `quality-first`); se puede fijar un modelo en la cadena.
+3. **Modelo dentro del proveedor** (`pickModel`): SOLO entre los modelos elegibles para la operación (§ Elegibilidad), el más barato que cumple la calidad pedida (o el mejor si la política es `quality-first`); se puede fijar un modelo en la cadena, pero fijarlo nunca hace elegible a uno que no lo es.
 4. **Orden** según la política: `quality-first` (mejor calidad primero), `balanced` (el orden de la cadena entre los que cumplen), `cost-first` (el más barato que cumple). Los que no llegan a la duración pedida van al final.
 5. **Ejecución con fallback**: intenta en orden; cada intento deja su registro. Tres fallos de un proveedor en diez minutos lo ponen en pausa cinco minutos (cortacircuitos configurable).
 6. **Modo demo**: en modo `simulated` cierra la cadena; en modo `real` solo entra si nadie más puede (y se puede desactivar con `allowMockFallback`). **Video es la excepción**: el demo solo atiende cuando no hay ningún candidato real (sin `ARK_API_KEY`); si Seedance falla no lo sustituye nadie: error controlado y reembolso.
 
 Ejemplo: *"Créame un video cinematográfico de 30 segundos de una persona caminando por Lima de noche"* → `video.generate`, calidad `max`; el Weë Video Engine fija la familia (`allowedProviders: ['seedance']`) y la versión: 30 s → Seedance 2.5 (hasta 30 s, 1080p); si la escena fuera sencilla ("un borrador rápido") → Seedance 2.0 fast; con "4K" → Seedance 2.0. Un plan con varias escenas sigue pudiendo dividirse y montarse (`video.compose`).
+
+## Elegibilidad: una sola regla para todos los modelos
+
+`engine/elegibilidad.ts` decide qué modelo se puede usar **en cada operación** y lo aplican las tres piezas que eligen modelo (el router vivo, el ejecutor del Gateway del Core y el puente al registro del Core). Escalones: `BLOCKED_GLOBAL` → reglas territoriales (`JURISDICTION_UNKNOWN` si la operación no dice dónde ocurre, `BLOCKED_FOR_JURISDICTION`, `REVIEW_REQUIRED`) → revisión legal → activación; solo `ACTIVE` es elegible. La jurisdicción viaja en `EngineContext.jurisdicciones` y la pone el servidor, nunca el cliente, el idioma ni el dispositivo; sin ella, un modelo con reglas territoriales no es elegible. La configuración solo endurece (apagar, pedir revisión, bloquear). Sin ningún candidato elegible: `NOT_AVAILABLE` con `reason: 'sin_modelo_elegible'`, sin demo ni sustituto. Los modelos sin gobierno ni territorio —todos menos los de fal— siguen exactamente igual. Detalle en [FAL.md](FAL.md) §2.
 
 ## Credits
 
@@ -111,7 +115,8 @@ Se editan en la consola de Firestore o con la callable `engineAdmin` (solo uids 
 | Claude | LLM | `ANTHROPIC_API_KEY` | pendiente de verificar |
 | OpenAI | LLM | `OPENAI_API_KEY` | pendiente de verificar |
 | Música | música y efectos | — | **hueco preparado**; sin Suno hasta tener API oficial con licencia comercial |
-| mock | todo | — | modo demo |
+| fal.ai (excepción controlada, 2026-10-05) | 3D: mundo desde una imagen (Hunyuan World 1.0) | `FAL_KEY` (llavero dormido, sin montar) | **apagado**; el modelo no es elegible en ninguna jurisdicción (bloqueado en UE/GB/KR, en revisión en el resto); ver [FAL.md](FAL.md) |
+| mock | todo menos mundos 3D | — | modo demo |
 
 "Pendiente de verificar" significa: el adaptador sigue la documentación pública del proveedor, pero la primera llamada con clave real puede requerir ajustar un campo. Los precios de lista de `ModelSpec.cost` solo sirven para ordenar candidatos; no fijan Credits.
 

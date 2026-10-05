@@ -84,7 +84,8 @@ export interface SourceRef {
 
 /** Una respuesta ya canónica, con lo del proveedor traducido. */
 export interface CanonicalResponse {
-  kind: 'text' | 'image' | 'video' | 'audio' | 'document';
+  /* 'world' y 'model3d' (2026-10-05): aditivos. La versión del contrato no sube: lo que valía sigue valiendo. */
+  kind: 'text' | 'image' | 'video' | 'audio' | 'document' | 'world' | 'model3d';
   content?: string;
   urls?: readonly string[];
   durationSec?: number;

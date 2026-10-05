@@ -200,12 +200,19 @@ console.log('\n── P2 · Router: qué elige cada uno, capacidad por capacidad
   const DISTINTAS = ['image.background_remove', 'image.edit', 'image.generate', 'image.identity_edit', 'image.object_remove', 'image.reference', 'image.space_restyle', 'image.upscale',
     'subtitle.generate', 'text.generate', 'text.structure', 'video.generate', 'video.image_to_video', 'video.reference', 'vision.describe'];
   const SIN_NADIE = ['audio.sfx', 'doc.render', 'image.try_on', 'music.generate', 'video.compose', 'video.montage', 'video.vertical'];
+  /*
+   * world.generate (misión fal, 2026-10-05) tampoco la sirve nadie de verdad, pero NO cae en el demo: el demo no sabe
+   * hacer mundos, fal está apagado y su único modelo no es elegible en ninguna jurisdicción. Es «no disponible».
+   */
+  const SIN_NADIE_NI_DEMO = ['world.generate'];
   const DISTINTAS_CON_ADAPTADOR = DISTINTAS.filter((c) => !['image.upscale', 'subtitle.generate'].includes(c));
 
-  check('11) producción enruta veintiocho capacidades', Object.keys(DEFAULT_ROUTING).length === 28, `${Object.keys(DEFAULT_ROUTING).length}`);
+  check('11) producción enruta veintinueve capacidades: las veintiocho de siempre y world.generate', Object.keys(DEFAULT_ROUTING).length === 29 && 'world.generate' in DEFAULT_ROUTING, `${Object.keys(DEFAULT_ROUTING).length}`);
   check('12) en seis, los dos routers eligen el mismo proveedor y el mismo modelo', igual(iguales, IGUALES), iguales.join(', '));
   check('13) en QUINCE eligen distinto: migrar hoy cambiaría el modelo que atiende a la gente', igual(distintas, DISTINTAS), distintas.join(', '));
-  check('14) y siete no las sirve nadie de verdad: hoy caen en el modo demo, y el Core las daría por no disponibles', igual(sinNadie, SIN_NADIE), sinNadie.join(', '));
+  check('14) y ocho no las sirve nadie de verdad: siete caen hoy en el modo demo y world.generate en «no disponible»; el Core las daría todas por no disponibles', igual(sinNadie, [...SIN_NADIE, ...SIN_NADIE_NI_DEMO]), sinNadie.join(', '));
+  const mundo = await vivo.route({ capability: 'world.generate', input: {}, userId: 'user-0001' });
+  check('14b) y para world.generate no hay ni demo: ningún candidato, tampoco el de muestra', mundo.candidates.length === 0 && !mundo.candidates.some((c) => c.provider === 'mock'), JSON.stringify(mundo.skipped));
   check('15) con el adaptador que el contrato admite hoy (`preference` + `hints`) siguen siendo trece: la preferencia pesa, no manda',
     igual(distintasConAdaptador, DISTINTAS_CON_ADAPTADOR), distintasConAdaptador.join(', '));
   check('16) PUERTA Router: CERRADA', distintas.length > 0 && distintasConAdaptador.length > 0);
@@ -270,11 +277,14 @@ console.log('\n── P2b · F12-D: la misma medida, con la capa de compatibilid
     'POLICY DIFFERENCE': ['image.background_remove', 'image.edit', 'image.generate', 'image.identity_edit', 'image.object_remove', 'image.reference', 'image.space_restyle', 'image.upscale',
       'subtitle.generate', 'text.generate', 'text.structure', 'video.generate', 'video.image_to_video', 'video.reference', 'vision.describe'],
     'MISSING PROVIDER': ['audio.sfx', 'doc.render', 'image.try_on', 'music.generate', 'video.compose', 'video.montage', 'video.vertical'],
+    /* Tiene proveedor (fal), pero ningún modelo elegible: apagado, y en revisión legal o bloqueado según la jurisdicción. */
+    'NOT ELIGIBLE': ['world.generate'],
     'EXPECTED IMPROVEMENT': [], 'COMPATIBILITY ISSUE': [], BUG: [], 'MISSING CAPABILITY': [],
   };
   check('25) las quince divergencias son POLICY DIFFERENCE: con solo cambiar el orden desaparecen todas', CLASIFICACION['POLICY DIFFERENCE'].length === 15 && CLASIFICACION['POLICY DIFFERENCE'].every((c) => igualesConCapa.includes(c)));
   check('26) ninguna es BUG, MISSING CAPABILITY ni COMPATIBILITY ISSUE: el Core considera elegible todo lo que producción elige', CLASIFICACION.BUG.length + CLASIFICACION['MISSING CAPABILITY'].length + CLASIFICACION['COMPATIBILITY ISSUE'].length === 0 && distintasConCapa.length === 0);
-  check('27) las siete sin proveedor real son MISSING PROVIDER: hoy las sirve el modo demo', igual(demo, CLASIFICACION['MISSING PROVIDER']), demo.join(', '));
+  check('27) las siete sin proveedor real son MISSING PROVIDER (hoy las sirve el modo demo) y world.generate es NOT ELIGIBLE: tiene proveedor, pero ningún modelo elegible',
+    igual(demo, [...CLASIFICACION['MISSING PROVIDER'], ...CLASIFICACION['NOT ELIGIBLE']]), demo.join(', '));
   /* Y aquí SÍ cambiaría el producto: hoy devuelven una muestra; el Core no da por elegible un resultado sintético. No se migran sin decidirlo. */
   check('28) y ahí el Core contesta «no hay con qué», con capa y sin ella: migrarlas apagaría el modo demo', igual([...demoEnElCore], ['✘ unavailable']), [...demoEnElCore].join(' | '));
   check('29) PUERTA Router + capa de compatibilidad: ABIERTA a nivel de decisión para las 21', igualesConCapa.length === 21 && respaldoDistinto.length === 0 && sinEstimar.length === 0);

@@ -11,7 +11,8 @@ import { Modality, UsageLimits } from './types';
  * (aiProviders/{id}.limits.maxCallsPerDay) los aplica el router con aiUsage/{día}.
  */
 export const DEFAULT_LIMITS: UsageLimits = {
-  perUserPerDay: { text: 400, vision: 200, image: 80, video: 12, voice: 60, doc: 100 },
+  /* 3D: pocas y caras. Es un valor de partida; se cambia en aiSettings/global.limits sin tocar código. */
+  perUserPerDay: { text: 400, vision: 200, image: 80, video: 12, voice: 60, doc: 100, '3d': 5 },
 };
 
 interface LimiterDoc {
