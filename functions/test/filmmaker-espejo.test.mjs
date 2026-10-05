@@ -15,7 +15,11 @@
  *   B · Las estructuras: cada tipo exportado, campo a campo y con su opcionalidad.
  *   C · Los vocabularios cerrados y los límites, iguales en ejecución.
  *   D · Las operaciones: el mismo lenguaje, y aplicado da lo mismo.
- *   E · Cómo lo usa la app: una sola puerta, sin `functions/src`, sin red.
+ *   E · Cómo lo usa la app: una puerta por dominio, sin `functions/src`, sin red.
+ *
+ * El espejo lleva además una segunda raíz, el núcleo 3D del Core (`core/escena3d.ts`): uno para Weë Studio, Weë Design
+ * y Filmmaker, con su propia puerta en la app (`services/escena3d.ts`). A lo vigila igual; E, que entra por su puerta
+ * y que hace lo mismo que el del servidor.
  *
  * Sin red, sin Firebase y sin el compilado: se cargan los dos árboles de fuentes.
  */
@@ -88,14 +92,17 @@ seccion('A', () => {
   const distintos = [...new Set([...esperado.keys(), ...actual.keys()])].filter((r) => esperado.get(r) !== actual.get(r)).sort();
   check('A1) regenerar el espejo da EXACTAMENTE lo que hay en disco, byte a byte', distintos.length === 0,
     distintos.length ? `difiere: ${distintos.join(', ')} — node scripts/espejo-filmmaker.mjs` : `${esperado.size} archivos`);
-  check('A2) son los cinco archivos del dominio, su cierre en el Core y el tipo del Gateway: ni uno más',
+  check('A2) son los cinco archivos del dominio, su cierre en el Core, el núcleo 3D y el tipo del Gateway: ni uno más',
     esperado.size === GEN.ARCHIVOS_DEL_ESPEJO.length + 1 && GEN.ARCHIVOS_DEL_ESPEJO.filter((r) => r.startsWith('filmmaker/')).length === 5
     && [...actual.keys()].every((r) => esperado.has(r)), [...actual.keys()].filter((r) => !esperado.has(r)).join(', ') || `${actual.size} archivos`);
   check('A3) cada archivo dice que es generado y de dónde sale',
     [...actual].every(([r, s]) => s.startsWith(`// GENERADO por scripts/espejo-filmmaker.mjs desde ${GEN.ORIGEN_DEL_ESPEJO}/${r}: no se edita a mano, se regenera.\n`)));
-  /* El cierre se mide, no se supone: los `import` de F1-A, seguidos hasta el final, son exactamente estos. */
+  /*
+   * El cierre se mide, no se supone: los `import` de F1-A —y los del núcleo 3D, la segunda raíz del espejo—, seguidos
+   * hasta el final, son exactamente estos.
+   */
   const cierre = new Set();
-  const cola = DOMINIO.map((m) => `filmmaker/${m}.ts`);
+  const cola = [...DOMINIO.map((m) => `filmmaker/${m}.ts`), ...GEN.RAICES_DEL_NUCLEO_3D];
   while (cola.length) {
     const r = cola.shift();
     if (cierre.has(r)) continue;
@@ -106,8 +113,11 @@ seccion('A', () => {
       if (f !== 'core/gateway.ts') cola.push(f);
     }
   }
-  check('A4) la lista del generador ES el cierre de importaciones de F1-A, medido', iguales([...cierre].sort(), [...GEN.ARCHIVOS_DEL_ESPEJO].sort()),
+  check('A4) la lista del generador ES el cierre de importaciones de F1-A y del núcleo 3D, medido', iguales([...cierre].sort(), [...GEN.ARCHIVOS_DEL_ESPEJO].sort()),
     [...cierre].filter((r) => !GEN.ARCHIVOS_DEL_ESPEJO.includes(r)).join(', ') || `${cierre.size} archivos`);
+  check('A4b) el núcleo 3D es UNA raíz —el WEË 3D Engine del Core— y su cierre no añade nada que F1-A no tuviera',
+    iguales([...GEN.RAICES_DEL_NUCLEO_3D], ['core/escena3d.ts'])
+    && [...leer(`${GEN.ORIGEN_DEL_ESPEJO}/core/escena3d.ts`).matchAll(/from '(\.{1,2}\/[^']+)'/g)].every((m) => ['./contracts', './identity'].includes(m[1])));
   check('A5) de `core/gateway.ts` solo entra `ExecutionHints`, como en F1-A', iguales([...GEN.TIPOS_DEL_GATEWAY], ['ExecutionHints'])
     && /^import type \{ ExecutionHints \} from '\.\.\/core\/gateway';$/m.test(leer(`${GEN.ORIGEN_DEL_ESPEJO}/filmmaker/modelo.ts`))
     && !/export (const|function|class) /.test(actual.get('core/gateway.ts') ?? ''));
@@ -290,18 +300,36 @@ seccion('D', () => {
 });
 
 /* ═══ E · CÓMO LO USA LA APP ═══════════════════════════════════════════════ */
-console.log('\n── E · Una sola puerta, sin `functions/src` y sin red ──');
+console.log('\n── E · Una puerta por dominio, sin `functions/src` y sin red ──');
 seccion('E', () => {
   const FACHADA = 'services/filmmaker/dominio.ts';
+  /* La segunda puerta: la del núcleo 3D, que no es de Filmmaker sino de todo Weë (Studio, Design y Filmmaker). */
+  const FACHADA_3D = 'services/escena3d.ts';
   const CLIENTE = ['services', 'hooks', 'utils', 'screens', 'components', 'constants', 'contexts', 'navigation'];
   const archivos = CLIENTE.flatMap((d) => fs.readdirSync(path.resolve(RAIZ, d), { recursive: true })
     .map((f) => `${d}/${String(f).split(path.sep).join('/')}`)).filter((r) => /\.tsx?$/.test(r) && !r.startsWith(`${DESTINO}/`));
   const alEspejo = archivos.filter((r) => /from '[^']*filmmaker\/espejo\//.test(leer(r)) || /from '\.\/espejo\//.test(leer(r)));
-  check('E1) solo la fachada importa el espejo: la app entra por una puerta', iguales(alEspejo, [FACHADA]), alEspejo.join(', '));
+  check('E1) solo las dos fachadas importan el espejo: el dominio de Filmmaker y el núcleo 3D, cada uno por su puerta',
+    iguales([...alEspejo].sort(), [FACHADA_3D, FACHADA].sort()), alEspejo.join(', '));
   const alServidor = archivos.filter((r) => /from '[^']*functions\/(src|lib)/.test(leer(r)));
   check('E2) nada de la app importa `functions/src` ni `functions/lib`', alServidor.length === 0, alServidor.join(', '));
   const fachada = sinComentarios(leer(FACHADA)).replace(/\s+/g, ' ').trim();
   check('E3) la fachada no tiene ni una regla: solo reexporta', /^(export (\*|type \{[^}]*\}|\{[^}]*\}) from '\.\/espejo\/[^']+'; ?)+$/.test(fachada));
+  const fachada3d = sinComentarios(leer(FACHADA_3D)).replace(/\s+/g, ' ').trim();
+  check('E3b) la del núcleo 3D tampoco: solo reexporta del espejo, y el núcleo entero',
+    /^(export (\*|type \{[^}]*\}|\{[^}]*\}) from '\.\/filmmaker\/espejo\/[^']+'; ?)+$/.test(fachada3d)
+    && fachada3d.includes("export * from './filmmaker/espejo/core/escena3d';"));
+  /* Y lo que reexporta la puerta 3D es el núcleo del servidor, en ejecución: la misma escena, la misma validación. */
+  const nucleoS = servidor('core/escena3d.ts');
+  const nucleoC = cliente('core/escena3d.ts');
+  const datos = { sceneId: 'mundo-1', modo: 'world', ownerAccountId: 'cuenta-a', projectId: 'proyecto_1', ahora: 7, entorno: { worldAssetId: 'asset_mundo' } };
+  const malos = [{ ...datos, modo: 'videojuego' }, { ...datos, entorno: { worldAssetId: 'https://cdn.ejemplo/x.glb' } }, { ...datos, sceneId: '' }];
+  const lanza = (f) => { try { f(); return null; } catch (e) { return String(e.message); } };
+  check('E3c) el núcleo 3D del espejo hace lo mismo que el del servidor: crear, validar, rechazar y no ampliar',
+    iguales(nucleoS.crearEscena3D(datos), nucleoC.crearEscena3D(datos))
+    && malos.every((m) => lanza(() => nucleoS.crearEscena3D(m)) === lanza(() => nucleoC.crearEscena3D(m)) && lanza(() => nucleoC.crearEscena3D(m)) !== null)
+    && iguales(nucleoS.PERFILES_DE_COMPOSICION, nucleoC.PERFILES_DE_COMPOSICION)
+    && nucleoC.puedeAmpliarse(nucleoC.crearEscena3D(datos), ['world.generate']) === false);
   const espejo = [...GEN.leerEspejo(RAIZ)].map(([r, s]) => [r, s]);
   check('E4) el espejo no importa nada de fuera de sí mismo', espejo.every(([, s]) => [...s.matchAll(/from '([^']+)'/g)].every((m) => m[1].startsWith('.'))));
   check('E5) sin Firebase, sin red, sin disco, sin reloj y sin azar', espejo.every(([, s]) =>
