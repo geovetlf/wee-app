@@ -1,9 +1,9 @@
 /*
- * WEE AI EVALUATION ENGINE — dónde está el motor.
+ * WEË AI EVALUATION ENGINE — dónde está el motor.
  *
- * El motor común de evaluaciones vive en `functions/src/evals/motor/` (TypeScript): es lo único de WEE que Cloud
+ * El motor común de evaluaciones vive en `functions/src/evals/motor/` (TypeScript): es lo único de Weë que Cloud
  * Functions empaqueta, y así lo usan a la vez el corredor real (`evalRun`) y estas herramientas de desarrollo, sin
- * una segunda copia. Aquí se carga YA COMPILADO (`functions/lib`), como el resto de ops/ que lee el código de WEE.
+ * una segunda copia. Aquí se carga YA COMPILADO (`functions/lib`), como el resto de ops/ que lee el código de Weë.
  */
 import fs from 'node:fs';
 import path from 'node:path';

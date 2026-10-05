@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — PRESUPUESTO. Es el del motor común (functions/src/evals/motor/presupuesto.ts): la
+ * WEË AI EVALUATION ENGINE — PRESUPUESTO. Es el del motor común (functions/src/evals/motor/presupuesto.ts): la
  * decisión fail-closed, el acumulador y la reserva/reconciliación del gasto real. Aquí solo se reexporta. El dinero
  * de las evaluaciones es ajeno a los Credits del usuario: gasta contra la identidad `eval`.
  */

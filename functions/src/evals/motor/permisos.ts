@@ -1,8 +1,8 @@
 /*
- * WEE AI EVALUATION ENGINE — LOS PERMISOS.
+ * WEË AI EVALUATION ENGINE — LOS PERMISOS.
  *
  * Quién puede hacer qué con las evaluaciones. Lógica PURA (una matriz rol × acción); el enganche con la identidad de
- * WEE (callable de administración + `assertAdmin`) vive en `evalRun`. Aquí se decide, en un solo sitio, la política:
+ * Weë (callable de administración + `assertAdmin`) vive en `evalRun`. Aquí se decide, en un solo sitio, la política:
  * el holdout está MÁS restringido que el resto, y aprobar un resultado es siempre de una persona, no automático.
  */
 

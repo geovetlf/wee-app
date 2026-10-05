@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — GRADERS DETERMINISTAS DEL MODEL ROUTER (F2-A).
+ * WEË AI EVALUATION ENGINE — GRADERS DETERMINISTAS DEL MODEL ROUTER (F2-A).
  *
  * Cada grader mira la decisión NORMALIZADA del escenario y una propiedad esperada del caso. Son deterministas: sin
  * IA, sin red, sin azar. NO hay juez-LLM en F2-A. Un caso activa SOLO los graders cuya clave `expected.*` trae.

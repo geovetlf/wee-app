@@ -1,5 +1,5 @@
 /*
- * WEE AI EVALUATION ENGINE — ESCENARIO DEL MODEL ROUTER (F2-A).
+ * WEË AI EVALUATION ENGINE — ESCENARIO DEL MODEL ROUTER (F2-A).
  *
  * Reconstruye el ROUTER VIVO de producción (`functions/lib/engine/router.js`, `createRouter`) con dependencias
  * FALSAS y deterministas, y le pide la DECISIÓN pura con `route()` —que NO ejecuta ningún adaptador, ni abre el

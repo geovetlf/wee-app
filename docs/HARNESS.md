@@ -53,6 +53,7 @@ espera al dueño). Qué frontera del código vive dónde y si está conectada: [
 | `ops/harness/cierre.mjs` | El cierre de misión (F4): misión declarada + evidencias reales → JSON canónico y Markdown derivado; lo que no tiene evidencia es UNKNOWN | Local |
 | `functions/src/evals/motor/*` + `ops/evals/*` | El Eval Engine (F2): UN motor común (el corredor, puntuar, holdout, presupuesto, permisos, corrida) en `functions/src/evals/motor`, que `ops/evals` reexporta para desarrollo ($0, sin proveedor) y `evalRun` corre con el proveedor real; dominios registrados, el Router el primero ([EVALS.md](EVALS.md)) | Local · `evalRun`: callable de administración, sin desplegar |
 | `ops/harness/guardian.mjs` (+ `guardian-fuentes.mjs`) | El Build Guardian (F5): antes de tocar unas rutas (`antes --archivos`) o sobre un diff (`cambio --base`), junta lo que ya protege a Weë —zonas rojas, guardia, producción y `permitido`, cercas, fronteras, decisiones, detectores y G3, registros de puertas, F3— con la fuente exacta de cada aviso; CRITICAL · IMPORTANT · CONTEXT; informa y no bloquea | Local |
+| `ops/hillclimb/hillclimb.mjs` (+ `cli.mjs`) | Hillclimb (F6): BASELINE → EXPERIMENTO → MEDICIÓN → COMPARACIÓN → DECISIÓN sobre el Eval Engine, para cualquier dominio que declare su superficie; $0, no aplica nada, propuestas con evidencia y holdout una vez por candidato ([HILLCLIMB.md](HILLCLIMB.md)) | Local |
 
 ## Las extensiones (F3)
 
@@ -104,6 +105,15 @@ dice, con su fuente exacta (archivo y línea, regla o ruta JSON), lo que hay que
   nombre ambiguo o demasiado amplio no se atribuye, y una ruta que no conoce nadie no produce nada.
 - **Informa; no bloquea:** sale 0 con cualquier informe y 2 si la entrada no vale. Las puertas siguen siendo G3 y la
   CI. JSON canónico (`wee-guardian@1`) y texto que sale de él. Sin Claude Code (Node y git) y fuera de `functions/src`.
+
+## Hillclimb (F6)
+
+`ops/hillclimb/hillclimb.mjs` optimiza **cualquier componente** que su dominio describa con una **superficie**
+(parámetros de valores cerrados, con el de producción como baseline). Mide con el corredor común del Eval Engine,
+compara con su `comparar` y protege el holdout con sus permisos: no es otro motor. Es $0, reproducible byte a byte
+y no aplica nada: lo que sale es una **propuesta** con su evidencia, que una persona adopta por PR. Un parámetro que no
+cambia ninguna decisión es **inerte** y se dice así. Lo registra la extensión `hillclimb` (sus informes, por la puerta de F3;
+no es una puerta: su suite va en la cadena). Detalle en [HILLCLIMB.md](HILLCLIMB.md).
 
 ## Lo que el Harness añadió al código de Weë
 
