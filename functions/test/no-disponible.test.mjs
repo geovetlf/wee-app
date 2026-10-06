@@ -197,7 +197,7 @@ console.log('\n── C · La app: cada motivo, su clave, en los dieciséis idio
   const t = crearTraductor('es', DICCIONARIOS, {});
   const humanizar = (reason) => CREATOR.humanizeCreatorError({ code: 'functions/failed-precondition', message: 'Ahora mismo no hay una IA disponible para esto. Inténtalo más tarde.', details: { code: 'NOT_AVAILABLE', reason } }, t, 'es');
   check('C5) en todo Weë AI (`humanizeCreatorError`), «no disponible» se dice por su motivo, aunque la frase que llegue sea la vieja',
-    humanizar('en_tu_region') === 'Esta función no está disponible en tu región.' && humanizar('falta_tu_pais') === 'Para usar esta función, indica tu país en tu Perfil Real.'
+    humanizar('en_tu_region') === 'Esta función no está disponible actualmente en tu región.' && humanizar('falta_tu_pais') === 'Para usar esta función, indica tu país en tu Perfil Real.'
     && humanizar('raro') === 'Esta función no está disponible actualmente.' && !/más tarde/.test(humanizar('no_disponible')));
   const mundo = (reason) => M.errorDelMundo3D({ code: 'functions/failed-precondition', details: { code: 'NOT_AVAILABLE', reason } });
   check('C6) en «Crear mundo 3D», solo «ahora no» se reintenta; el resto es «no disponible» con su clave y sin reintento',

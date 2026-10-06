@@ -160,15 +160,17 @@ seccion('E', () => {
   const COMPLETOS = { revision: 'APPROVED', usoComercial: 'RESTRICTED', atribucion: true,
     licencias: [{ nombre: 'Licencia de un tercero', url: 'https://example.com/licencia' }], jurisdiccionesBloqueadas: ['EU', 'GB', 'KR'] };
   const frases = D.frasesDeDerechos(COMPLETOS);
-  check('E1) uso comercial, atribución y lugares, en ese orden; los lugares van como códigos para nombrarlos en el idioma de quien mira',
-    iguales(frases, [{ clave: 'creaciones.rightsCommercialRestricted' }, { clave: 'creaciones.rightsAttribution' }, { clave: 'creaciones.rightsBlockedIn', lugares: ['EU', 'GB', 'KR'] }]));
+  /* Misión de gobernanza (2026-10-06): la PROCEDENCIA va primero —hecho con IA en Weë, con un modelo de terceros que tiene
+     su propia licencia—, para que las condiciones se entiendan sin nombrar ni el modelo ni el proveedor. */
+  check('E1) procedencia, uso comercial, atribución y lugares, en ese orden; los lugares van como códigos para nombrarlos en el idioma de quien mira',
+    iguales(frases, [{ clave: 'creaciones.rightsProvenance' }, { clave: 'creaciones.rightsCommercialRestricted' }, { clave: 'creaciones.rightsAttribution' }, { clave: 'creaciones.rightsBlockedIn', lugares: ['EU', 'GB', 'KR'] }]));
   check('E2) los derechos enteros de un material y los visibles de la puerta dicen lo MISMO (la misma regla del Core)',
     iguales(frases, D.frasesDeDerechos(N3D.derechosVisibles(COMPLETOS))));
   check('E3) y nada de la licencia sale: ni su nombre ni su dirección, ni la revisión interna', !/Licencia de un tercero|example\.com|APPROVED|revision/.test(JSON.stringify(frases)));
   check('E4) sin derechos, nada que avisar; atribución «no se sabe», nada; sin lugares bloqueados, ninguna frase de lugares',
     iguales(D.frasesDeDerechos(undefined), []) && iguales(D.frasesDeDerechos(null), [])
-    && iguales(D.frasesDeDerechos({ usoComercial: 'ALLOWED', atribucion: 'UNKNOWN' }), [{ clave: 'creaciones.rightsCommercialAllowed' }])
-    && iguales(D.frasesDeDerechos({ usoComercial: 'NOT_ALLOWED', atribucion: false, jurisdiccionesBloqueadas: [] }), [{ clave: 'creaciones.rightsCommercialNotAllowed' }]));
+    && iguales(D.frasesDeDerechos({ usoComercial: 'ALLOWED', atribucion: 'UNKNOWN' }), [{ clave: 'creaciones.rightsProvenance' }, { clave: 'creaciones.rightsCommercialAllowed' }])
+    && iguales(D.frasesDeDerechos({ usoComercial: 'NOT_ALLOWED', atribucion: false, jurisdiccionesBloqueadas: [] }), [{ clave: 'creaciones.rightsProvenance' }, { clave: 'creaciones.rightsCommercialNotAllowed' }]));
 });
 
 /* ═══ F · DESCARGAR ════════════════════════════════════════════════════════ */
@@ -188,11 +190,11 @@ seccion('F', () => {
 /* ═══ G · LOS TEXTOS ═══════════════════════════════════════════════════════ */
 console.log('\n── G · Los textos de la experiencia, en los dieciséis diccionarios ──');
 const NUEVAS = {
-  creaciones: ['filterWorlds', 'kindWorld', 'noViewer3d', 'rightsTitle', 'rightsCommercialAllowed', 'rightsCommercialRestricted', 'rightsCommercialUnclear',
+  creaciones: ['filterWorlds', 'kindWorld', 'noViewer3d', 'rightsTitle', 'rightsProvenance', 'rightsCommercialAllowed', 'rightsCommercialRestricted', 'rightsCommercialUnclear',
     'rightsCommercialNotAllowed', 'rightsAttribution', 'rightsBlockedIn'],
   studio: ['world3dTitle', 'world3dHint', 'xpCreateWorld', 'pendWorld', 'worldIntro', 'worldChangePhoto', 'worldYourWords', 'worldSpaceQuestion', 'worldSpaceOutdoor',
     'worldSpaceIndoor', 'worldSpaceIdk', 'worldCreateFor', 'worldPriceChanged', 'worldQueued', 'worldGenerating', 'worldStopping', 'worldStoppingNote',
-    'worldCancelledNote', 'worldUploadFailed'],
+    'worldCancelledNote', 'worldUploadFailed', 'worldDailyLimit'],
 };
 const IDIOMAS = ['da', 'de', 'en', 'es', 'fr', 'hi', 'it', 'ja', 'ko', 'pt', 'pt-PT', 'ru', 'sv', 'tr', 'zh', 'zh-TW'];
 /** El valor de una clave en el archivo de un idioma, leído del fuente (comillas simples o dobles). */

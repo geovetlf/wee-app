@@ -384,4 +384,5 @@ export const studio: typeof import('../es/studio').studio = {
   worldStoppingNote: '3D dünya durdurulmadan önce hazır olursa oluşturduklarına kaydedilir ve ücreti bakiyenden düşülür.',
   worldCancelledNote: 'Oluşturmayı durdurdum. Ayrılan Credits bakiyene iade edilecek.',
   worldUploadFailed: 'Fotoğrafını yükleyemedim. Yeniden dene.',
+  worldDailyLimit: 'Bugünkü 3D dünyalarını kullandın. Biri oluşmazsa geri alırsın ve her gün yenilenir.',
 };

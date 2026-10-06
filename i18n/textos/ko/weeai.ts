@@ -166,7 +166,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   errTimeout: '시간이 너무 오래 걸려서 중단했어요. Credits 차감은 없어요. 다시 시도해 주세요.',
   errNotAvailable: '이 기능은 현재 사용할 수 없어요.',
   errNotAvailableNow: '지금은 이 기능을 사용할 수 없어요. 잠시 후 다시 시도해 주세요.',
-  errNotAvailableRegion: '이 기능은 현재 지역에서 사용할 수 없어요.',
+  errNotAvailableRegion: '이 기능은 지금 이 지역에서 사용할 수 없어요.',
   errNotAvailableCountry: '이 기능을 사용하려면 실제 프로필에서 국가를 입력해 주세요.',
   errNotAvailableOptions: '선택한 옵션으로는 이 기능을 사용할 수 없어요. 다른 옵션을 시도해 보세요.',
   errDuplicate: '이미 만들고 있는 작업이에요.',

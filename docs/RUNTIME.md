@@ -94,7 +94,7 @@ y conectada en el canary (§ 13):
 
 | Pieza | Dónde | En uso (producción) | Estado | Qué une |
 |---|---|---|---|---|
-| **Conductor** | `functions/src/runtime/` (`conductorDeWee`) | `brainChat` con `text.generate`, **detrás de una puerta cerrada por defecto**. Todo lo demás sigue por `creatorRun` y `engine.generate` | CANARY — CONNECTED FOR BRAIN TEXT ONLY | Orchestrator → Router → Job Engine → cola → trabajador → Gateway |
+| **Conductor** | `functions/src/runtime/` (`conductorDeWee`) | Tres puertas declaradas, **todas detrás de una puerta cerrada por defecto**: `brainChat` con `text.generate` (el único canary que se ha ejecutado en producción, §13), `generateVideo` con `video.generate` (§22) y `generateWorld` con `world.generate` (sin desplegar; con lista de cuentas obligatoria, §25). Todo lo demás sigue por `creatorRun` y `engine.generate` | CANARY — CONNECTED FOR BRAIN TEXT ONLY | Orchestrator → Router → Job Engine → cola → trabajador → Gateway |
 
 **Qué significa exactamente ese CONNECTED.** Que el código está en la ruta, no que el
 tráfico pase por él: la puerta vive en `aiSettings/runtime` y, cerrada, `brainChat` se
@@ -2361,4 +2361,30 @@ otro Job Engine, sin otro Credit Engine, sin otro motor: el mismo conductor de l
 - **Pruebas**: `mundo3d-asincrono` (36: relojes, parada, reconciliación, aviso tardío, reintento, cancelación) y
   `mundo3d.emulator.mjs` (24: contra Firestore y Storage emulados, con una cola de fal falsa local). runtime-map:
   la puerta CORE/LEGACY la consultan exactamente tres callables (`brainChat`, `generateVideo`, `generateWorld`).
-- **CLAUDE.md §10** sigue diciendo «dos canaries»: no se ha editado; la redacción propuesta va en el informe de cierre.
+- **CLAUDE.md §10** dice «tres canaries» desde la misión de gobernanza (2026-10-06): la tercera puerta está CONFIRMADA
+  por el dueño, y con ella las rúbricas de `ops/revision`, DD-08 y el mapa de fronteras.
+
+### 25b. Gobernanza del canary del mundo (misión del 2026-10-06)
+
+- **Lista de cuentas obligatoria.** `decidirRuntime` acepta `listaObligatoria` en el contexto —lo pasa la PUERTA, nunca
+  la configuración—: sin `cuentas` o con `cuentas: []`, `legacy` con motivo `sin_lista_de_cuentas`. La declara
+  `creator/mundo.ts` (`LISTA_DE_CUENTAS_OBLIGATORIA = true`); `brainChat` y `generateVideo` no la piden y no cambian.
+  Orden: habilitada → capacidad → lista → experiencia; después, la jurisdicción, la elegibilidad y el Router.
+- **El hueco del cupo diario sigue al dinero.** El limitador de siempre (`engine/limits.ts`) anota, por operación, en
+  qué quedó —`operaciones[clave]`: `true` mientras cuenta (la forma de siempre), `'devuelta'`, `'consumida'`— y QUÉ contó
+  —`cuentas[clave]`, entero—, y `liberar(cuenta, operación, día)` devuelve exactamente eso; una operación contada que no
+  cubre lo que se le pide es un conflicto (`operacion_de_otro_cupo`). La puerta del mundo nombra su operación con la
+  capacidad, «#» —que un requestId no admite— y el requestId (`world.generate#<requestId>`: ningún requestId que contó
+  para un vídeo, ni uno hecho a medida, sirve para un mundo) y la apunta en el trabajo con su día (`quotaOperation`, `quotaDay`;
+  `CLAVE_DE_LA_OPERACION_DEL_CUPO`, `CLAVE_DEL_DIA_DEL_CUPO` en `runtime/liquidacion.ts`); `reservaDe` los lee, y
+  `liquidacionDeWee` —la del barrido desplegado— devuelve el hueco cuando la reserva queda DEVUELTA; uno cobrado no lo
+  devuelve, y uno que la persona gastó al cancelar con el proveedor trabajando (`consumir`) tampoco. Un trabajo sin hueco
+  (vídeo, Weë Brain) no cambia. Política completa: [3D-EXPERIENCIA.md](3D-EXPERIENCIA.md) §11b.
+- **Una sola lista de cuentas para las tres puertas.** `aiSettings/runtime` es UN documento con UNA `cuentas`: con la
+  lista obligatoria del mundo, abrir el mundo en canary deja también Brain y vídeo restringidos a esas cuentas (si están
+  en `capacidades`), y no se puede tener el mundo en canary con Brain o vídeo abiertos para todos. Falla hacia cerrado;
+  listas por capacidad dentro del mismo documento serían una decisión del dueño.
+- **El coste de un intento aceptado no se anota todavía** (§22.5, también para el vídeo): la fila del libro se cierra al
+  aceptar con `providerCost: 0` y nadie la corrige al final, así que los topes diarios de proveedor no ven lo que cuesta
+  un mundo. Es requisito del runbook antes de abrir el canary ([3D-EXPERIENCIA.md](3D-EXPERIENCIA.md) §20).
+- **Pruebas**: `mundo3d-gobernanza` (A–G) y `mundo3d.emulator.mjs` (34).

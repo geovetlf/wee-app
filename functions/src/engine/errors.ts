@@ -70,7 +70,7 @@ export const MOTIVOS_DE_NO_DISPONIBLE: readonly MotivoDeNoDisponible[] = Object.
 /** La frase de cada motivo: la que se registra y la que reconoce la app (`i18n/textos/<idioma>/servidor/motor.ts`). */
 export const MENSAJE_DE_NO_DISPONIBLE: Readonly<Record<MotivoDeNoDisponible, string>> = Object.freeze({
   ahora_no: 'Esta función no está disponible en este momento. Vuelve a intentarlo dentro de un rato.',
-  en_tu_region: 'Esta función no está disponible en tu región.',
+  en_tu_region: 'Esta función no está disponible actualmente en tu región.',
   falta_tu_pais: 'Para usar esta función, indica tu país en tu Perfil Real.',
   con_estas_opciones: 'Esta función no está disponible con las opciones que elegiste. Prueba con otras.',
   no_disponible: 'Esta función no está disponible actualmente.',

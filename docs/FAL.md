@@ -50,12 +50,16 @@ primero que falla decide:
   ubicación y el `country` del Financial Core no tiene datos). Solo se consulta si algún modelo de la cadena tiene
   reglas territoriales —el tráfico de siempre no hace ni una lectura más—, una jurisdicción que ya pone el servidor en
   la petición manda sobre ella, y si la lectura falla o no hay país válido, `JURISDICTION_UNKNOWN`. Es una
-  declaración: basta para bloquear; si basta para aprobar lo decide legal (§7).
+  declaración. **Política del dueño (2026-10-06):** el país del Perfil Real es la fuente; con una restricción territorial
+  explícita para ese país, el modelo queda fuera y el Router busca otro; sin ella, el territorio no lo excluye. Solo cuenta
+  un país del catálogo de Weë (`PAISES_DEL_CATALOGO`, los 193 del registro): otro valor no determina el país y, para un
+  modelo territorial, falla cerrado.
 - **Una operación puede tocar varias jurisdicciones**: si cualquiera está bloqueada, bloqueada; si cualquiera no está
   aprobada, en revisión.
 - **Los grupos** se declaran una vez (`GRUPOS_DE_JURISDICCIONES`): `EU` = los 27 Estados miembros. Un territorio con
-  código propio que no esté en ningún grupo (Gibraltar, Åland, ultramar…) queda en `resto` —para un modelo restringido,
-  en revisión—: tampoco es elegible hasta que legal lo decida.
+  código propio que no esté en ningún grupo (Gibraltar, Åland, ultramar…) tampoco está en el catálogo de países de Weë:
+  declararlo no da jurisdicción, y para un modelo territorial es `JURISDICTION_UNKNOWN`. Si el catálogo ofreciera una
+  región ultraperiférica de la UE, tendría que entrar en el grupo `EU` (lo vigila `mundo3d-gobernanza` E3).
 - **La configuración solo endurece.** `aiProviders/{proveedor}.models[id]` puede apagar un modelo, pedir revisión o
   bloquearlo; nunca aprobarlo, levantar un bloqueo ni tocar su identidad, su gobierno o su territorio
   (`camposAjustables`). Aprobar es una revisión legal con evidencia, escrita en los datos del modelo con sus fuentes.
@@ -88,7 +92,7 @@ el dato se conoce y queda fuera; sin región o sin producto, se aplica. Sin regl
 | | |
 |---|---|
 | Revisión global | `REVIEW_REQUIRED` (no `BLOCKED_GLOBAL`: la restricción encontrada es territorial) |
-| Territorio | `BLOCKED_FOR_JURISDICTION` en la UE, el Reino Unido y Corea del Sur; ninguna aprobada; resto `REVIEW_REQUIRED` |
+| Territorio | `BLOCKED_FOR_JURISDICTION` en la UE, el Reino Unido y Corea del Sur; ninguna aprobada por lista; resto `APPROVED` por territorio (política del dueño, 2026-10-06: territorio no bloqueado → potencialmente elegible). Lo sigue parando la revisión global |
 | Activación | `DISABLED` |
 | fal | `enabled: false` por defecto; `FAL_KEY` en un llavero dormido que ninguna Function monta |
 
@@ -149,9 +153,11 @@ la persistencia esperan sus decisiones (§7).
 ## 7. Lo que espera al dueño
 
 Ver [DECISIONES-PENDIENTES.md](DECISIONES-PENDIENTES.md) § fal.ai y [3D-EXPERIENCIA.md](3D-EXPERIENCIA.md) §19: la revisión
-legal de Hunyuan World por jurisdicción, si una jurisdicción DECLARADA basta para aprobar (y si el país del perfil debe
-poder cambiarse libremente), dónde se hace cumplir lo que el material no puede mostrarse, crear `FAL_KEY` y montarla en
-`generateWorld` y en el barrido, desplegar `generateWorld` y exponer el webhook, el precio real y el visor 3D.
+legal GLOBAL de Hunyuan World (el territorio ya no la bloquea fuera de EU/GB/KR; DECIDIDO el 2026-10-06 que el país del
+Perfil Real es la fuente), si el país del perfil debe poder cambiarse libremente, dónde se hace cumplir lo que el
+material no puede mostrarse, crear `FAL_KEY` y montarla en `generateWorld` y en el barrido, desplegar `generateWorld` y
+exponer el webhook, el precio real y el visor 3D. El orden, en el runbook de activación ([3D-EXPERIENCIA.md](3D-EXPERIENCIA.md)
+§20), PREPARADO y NO ejecutado.
 
 ## 8. Pruebas
 

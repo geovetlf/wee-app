@@ -93,14 +93,15 @@ Revisado el 2026-10-01 sobre `i18n/da-dk` (`d306a58` + cambios sin commit).
 ### DD-08 · Puertas cerradas por defecto
 
 - **Decisión:** varias capacidades existen y están apagadas hasta que el dueño las abra:
-  - `aiSettings/runtime` (el conductor del Core; `CAPACIDAD_DEL_CANARY` en `creator/brain.ts` y `creator/video.ts`);
+  - `aiSettings/runtime` (el conductor del Core; TRES puertas, cada una con su `CAPACIDAD_DEL_CANARY`: `creator/brain.ts`, `creator/video.ts` y `creator/mundo.ts` —la tercera, `generateWorld` → `world.generate`, asíncrona y sin desplegar, confirmada por el dueño el 2026-10-06—; la del mundo exige además lista de cuentas, `LISTA_DE_CUENTAS_OBLIGATORIA`: sin lista o con la lista vacía, para nadie);
   - `aiSettings/sombra` (la sombra del plan; sin comodín);
   - `FILMMAKER_EN_LA_APP = false` (`constants/studioExperiences.ts`);
+  - `MUNDO_3D_EN_LA_APP = false` (`constants/studioExperiences.ts`): Weë Studio → 3D World → «Crear mundo 3D» se ve, bloqueada con su motivo, sin pantalla ni enlace;
   - App Check preparado y no exigido (`APP_CHECK_OBLIGATORIO = false`, `functions/src/opciones.ts`; `config/appCheck.web.ts` sin clave no hace nada);
   - el interruptor de parada de la IA `aiSettings/global.iaDetenida`, **apagado** por defecto (la IA funciona; encenderlo detiene toda generación nueva).
 - **Razón:** cada una espera una decisión o una medida del dueño.
-- **Evidencia:** `CLAUDE.md` § 10; [`RUNTIME.md`](RUNTIME.md) §§ 3-4 y 13; [`SECURITY.md`](SECURITY.md) § 7; [`AI-ENGINE.md`](AI-ENGINE.md) («El interruptor de la IA»); `engine/registry.ts` (`iaDetenida: false`); [`DECISIONES-PENDIENTES.md`](DECISIONES-PENDIENTES.md) («Lanzar Weë Filmmaker»).
-- **Sería defecto si:** una puerta se abre por defecto o para todos sin lista de cuentas; el código la rodea; o la configuración amplía lo que una puerta declara en su código.
+- **Evidencia:** `CLAUDE.md` § 10; [`RUNTIME.md`](RUNTIME.md) §§ 3-4, 13 y 25; [`3D-EXPERIENCIA.md`](3D-EXPERIENCIA.md); `functions/test/mundo3d-gobernanza.test.mjs`; [`SECURITY.md`](SECURITY.md) § 7; [`AI-ENGINE.md`](AI-ENGINE.md) («El interruptor de la IA»); `engine/registry.ts` (`iaDetenida: false`); [`DECISIONES-PENDIENTES.md`](DECISIONES-PENDIENTES.md) («Lanzar Weë Filmmaker»).
+- **Sería defecto si:** una puerta se abre por defecto o para todos sin lista de cuentas (para el mundo, además, si se abre sin lista o con la lista vacía); el código la rodea; la configuración amplía lo que una puerta declara en su código, convierte una puerta en otra, habilita una capacidad no declarada u otro proveedor o modelo; o aparece una cuarta puerta sin autorización explícita.
 - **Estado:** DECIDIDA. App Check apagado **además** agrava DD-18 (pendiente).
 
 ### DD-09 · Weë Brain fijado a DeepSeek, sin respaldo

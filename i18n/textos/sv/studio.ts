@@ -393,4 +393,5 @@ export const studio: typeof import('../es/studio').studio = {
   worldStoppingNote: 'Om 3D-världen hinner bli klar först, sparas den bland dina skapelser och Credits dras.',
   worldCancelledNote: 'Jag stoppade skapandet. De reserverade Credits går tillbaka till ditt saldo.',
   worldUploadFailed: 'Det gick inte att ladda upp fotot. Försök igen.',
+  worldDailyLimit: 'Du har använt dagens 3D-världar. Om någon inte blir av får du tillbaka den, och de förnyas varje dag.',
 };

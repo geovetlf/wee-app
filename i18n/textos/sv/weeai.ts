@@ -205,7 +205,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   errTimeout: 'Det tog för lång tid, så jag stoppade det. Inga Credits har dragits. Försök igen.',
   errNotAvailable: 'Den här funktionen är inte tillgänglig för närvarande.',
   errNotAvailableNow: 'Den här funktionen är inte tillgänglig just nu. Försök igen om en stund.',
-  errNotAvailableRegion: 'Den här funktionen är inte tillgänglig i din region.',
+  errNotAvailableRegion: 'Den här funktionen är för närvarande inte tillgänglig i din region.',
   errNotAvailableCountry: 'För att använda den här funktionen behöver du ange ditt land i din Riktiga profil.',
   errNotAvailableOptions: 'Den här funktionen är inte tillgänglig med de val du har gjort. Prova några andra.',
   errDuplicate: 'Det här håller redan på att skapas.',

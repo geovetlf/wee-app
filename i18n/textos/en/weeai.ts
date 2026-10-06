@@ -147,7 +147,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   errTimeout: 'It took too long so I stopped it. You weren’t charged: try again.',
   errNotAvailable: 'This feature isn’t currently available.',
   errNotAvailableNow: 'This feature isn’t available at the moment. Try again in a little while.',
-  errNotAvailableRegion: 'This feature isn’t available in your region.',
+  errNotAvailableRegion: 'This feature isn’t currently available in your region.',
   errNotAvailableCountry: 'To use this feature, add your country to your Real profile.',
   errNotAvailableOptions: 'This feature isn’t available with the options you chose. Try different ones.',
   errDuplicate: 'That creation is already under way.',

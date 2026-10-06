@@ -194,7 +194,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   errTimeout: 'Çok uzun sürdü, durdurdum. Senden Credits almadım: yeniden dene.',
   errNotAvailable: 'Bu özellik şimdilik kullanılamıyor.',
   errNotAvailableNow: 'Bu özellik şu anda kullanılamıyor. Biraz sonra yeniden dene.',
-  errNotAvailableRegion: 'Bu özellik bölgende kullanılamıyor.',
+  errNotAvailableRegion: 'Bu özellik şu anda bölgende kullanılamıyor.',
   errNotAvailableCountry: 'Bu özelliği kullanmak için Gerçek profilinde ülkeni belirt.',
   errNotAvailableOptions: 'Bu özellik seçtiğin seçeneklerle kullanılamıyor. Başka seçenekler dene.',
   errDuplicate: 'Bu içerik zaten oluşturuluyor.',

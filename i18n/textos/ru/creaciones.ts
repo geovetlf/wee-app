@@ -77,6 +77,7 @@ export const creaciones = {
   kindWorld: '3D-мир',
   noViewer3d: 'В Weë пока нет 3D-просмотрщика. Скачайте файл, чтобы открыть его в 3D-приложении.',
   rightsTitle: 'Что можно с этим делать',
+  rightsProvenance: 'Создано с помощью ИИ в Weë на сторонней модели со своей лицензией.',
   rightsCommercialAllowed: 'Можно использовать в коммерческих целях.',
   rightsCommercialRestricted: 'Для коммерческого использования есть условия.',
   rightsCommercialUnclear: 'Пока неясно, можно ли использовать в коммерческих целях.',

@@ -43,7 +43,8 @@ del ataque o del fallo, no una sospecha.
 
 Las puertas de Weë están CERRADAS por defecto y deben fallar CERRADAS si no se pueden leer:
 
-- `aiSettings/runtime` (el conductor del Core; solo los dos canaries declarados en `CAPACIDAD_DEL_CANARY`);
+- `aiSettings/runtime` (el conductor del Core; solo los tres canaries declarados en `CAPACIDAD_DEL_CANARY`,
+  y el del mundo, además, solo para las cuentas de su lista: sin lista o con la lista vacía, para nadie);
 - `aiSettings/sombra` (el Algorithm Engine en sombra);
 - `FILMMAKER_EN_LA_APP` (Filmmaker en la app);
 - App Check (preparado y apagado);

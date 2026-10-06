@@ -364,4 +364,5 @@ export const studio: typeof import('../es/studio').studio = {
   worldStoppingNote: 'Se il mondo 3D è pronto prima dell’interruzione, resta tra le tue creazioni e i Credits vengono addebitati.',
   worldCancelledNote: 'Ho fermato la creazione. I Credits riservati tornano sul tuo saldo.',
   worldUploadFailed: 'Non sono riuscito a caricare la tua foto. Riprova.',
+  worldDailyLimit: 'Hai usato i mondi 3D di oggi. Se uno non riesce, lo recuperi, e si rinnovano ogni giorno.',
 };

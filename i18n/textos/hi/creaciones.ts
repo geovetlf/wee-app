@@ -89,6 +89,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   kindWorld: '3D वर्ल्ड',
   noViewer3d: 'Weë में अभी 3D व्यूअर नहीं है. फ़ाइल डाउनलोड करें और उसे किसी 3D ऐप में खोलें.',
   rightsTitle: 'आप इसके साथ क्या कर सकते हैं',
+  rightsProvenance: 'Weë में AI से बनाया गया, एक थर्ड-पार्टी मॉडल से जिसका अपना लाइसेंस है.',
   rightsCommercialAllowed: 'इसका कमर्शियल इस्तेमाल किया जा सकता है.',
   rightsCommercialRestricted: 'इसके कमर्शियल इस्तेमाल पर कुछ शर्तें लागू हैं.',
   rightsCommercialUnclear: 'अभी साफ़ नहीं है कि इसका कमर्शियल इस्तेमाल किया जा सकता है या नहीं.',

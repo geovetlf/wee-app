@@ -10,7 +10,8 @@
  *   · el Router solo compara modelos elegibles —ninguna política, calidad, coste ni modelo fijado los amplía— y sin
  *     ninguno contesta NOT_AVAILABLE explícito, sin demo ni sustituto;
  *   · ni fal.ai ni la configuración pueden cambiar la decisión territorial;
- *   · Hunyuan World queda bloqueado en la UE, el Reino Unido y Corea del Sur y en revisión en el resto: no global.
+ *   · Hunyuan World queda bloqueado en la UE, el Reino Unido y Corea del Sur; en el resto el territorio no lo excluye y lo
+ *     para su revisión legal GLOBAL (REVIEW_REQUIRED, DISABLED): no es un bloqueo global.
  * Determinista, sin red ni proveedor real. $0.
  *
  *   node functions/test/elegibilidad-jurisdiccion.test.mjs     (usa el compilado: `npm run build` antes)
@@ -246,17 +247,20 @@ check('15) un modelo de un agregador SIN gobierno declarado no es elegible (nadi
 /* ── C · Hunyuan World: restricción territorial, no bloqueo global ───────── */
 console.log('── C · Hunyuan World ──');
 
-check('16) su representación legal: revisión global REVIEW_REQUIRED (no BLOCKED_GLOBAL), bloqueado en EU/GB/KR, ninguna jurisdicción aprobada, el resto en revisión y DISABLED',
+/* Misión de gobernanza (2026-10-06, política del dueño): territorio no bloqueado → potencialmente elegible. El resto pasa a
+   APPROVED POR TERRITORIO; la revisión GLOBAL sigue REVIEW_REQUIRED y DISABLED, así que hoy sigue sin ser elegible en ninguna parte. */
+check('16) su representación legal: revisión global REVIEW_REQUIRED (no BLOCKED_GLOBAL), bloqueado en EU/GB/KR, ninguna jurisdicción aprobada por lista, el resto aprobado por territorio (política del dueño) y DISABLED',
   HW.gobierno.reviewStatus === 'REVIEW_REQUIRED' && HW.gobierno.active === 'DISABLED'
-  && HW.territorio.bloqueadas.join() === 'EU,GB,KR' && HW.territorio.aprobadas.length === 0 && HW.territorio.resto === 'REVIEW_REQUIRED'
+  && HW.territorio.bloqueadas.join() === 'EU,GB,KR' && HW.territorio.aprobadas.length === 0 && HW.territorio.resto === 'APPROVED'
   && /Territory/.test(HW.territorio.fuente) && MODELOS_FAL.length === 1);
 
 const MUESTRA = ['ES', 'FR', 'DE', 'IT', 'PT', 'NL', 'GB', 'KR', 'US', 'MX', 'BR', 'AR', 'CO', 'JP', 'CN', 'IN', 'CA', 'AU', 'NO', 'CH'];
-/* Territorios con código propio (Gibraltar, Åland, Reunión, Jersey…): no caen en ningún grupo; legal decide. Hoy, fuera. */
+/* Territorios con código propio (Gibraltar, Åland, Reunión, Jersey…): no caen en ningún grupo ni están en el catálogo de países de
+   Weë —declararlos no da jurisdicción (mundo3d-gobernanza E2)—. Hoy, fuera. */
 const CON_CODIGO_PROPIO = ['GI', 'AX', 'RE', 'GP', 'JE', 'IM'];
 const veredictos = Object.fromEntries(MUESTRA.map((j) => [j, E.modeloElegible(HW, undefined, J(j)).estado]));
 const bloqueadosHW = MUESTRA.filter((j) => veredictos[j] === 'BLOCKED_FOR_JURISDICTION');
-check('17) Hunyuan World no es elegible en NINGUNA jurisdicción hoy: BLOCKED_FOR_JURISDICTION en la UE, GB y KR; REVIEW_REQUIRED en el resto (también NO y CH); fuera en los territorios con código propio; sin jurisdicción, JURISDICTION_UNKNOWN',
+check('17) Hunyuan World no es elegible en NINGUNA jurisdicción hoy: BLOCKED_FOR_JURISDICTION en la UE, GB y KR; en el resto (también NO y CH) pasa el territorio y lo para su revisión GLOBAL, REVIEW_REQUIRED; fuera en los territorios con código propio; sin jurisdicción, JURISDICTION_UNKNOWN',
   [...MUESTRA, ...CON_CODIGO_PROPIO].every((j) => !E.modeloElegible(HW, undefined, J(j)).elegible)
   && bloqueadosHW.join() === 'ES,FR,DE,IT,PT,NL,GB,KR'
   && MUESTRA.filter((j) => !bloqueadosHW.includes(j)).every((j) => veredictos[j] === 'REVIEW_REQUIRED')
@@ -345,10 +349,17 @@ const PERFILES = [
   { uid: 'u1', profileType: 'real', country: 'es' }, { uid: 'u1', profileType: 'real', country: 'ESP' },
   { uid: 'u1', profileType: 'real', country: '' }, { uid: 'u1', profileType: 'real', country: 42 }, undefined,
 ];
-check('26) la fuente es el país que DECLARAN los Perfiles Reales de la cuenta (resolutor canónico): ni su cara Weë, ni otra cuenta, ni un tipo antiguo, ni un código mal escrito; sin ninguno válido, nada',
-  JSON.stringify(jurisdiccionesDeclaradas('u1', PERFILES)) === '["ES","MX"]'
-  && jurisdiccionesDeclaradas('u1', [PERFILES[2], PERFILES[3], PERFILES[4], PERFILES[5], PERFILES[8]]) === undefined
-  && jurisdiccionesDeclaradas('u1', []) === undefined, JSON.stringify(jurisdiccionesDeclaradas('u1', PERFILES)));
+/*
+ * Misión de gobernanza (2026-10-06, «no asumir país»): un código mal escrito en UNO de los Perfiles Reales ya no se
+ * descarta en silencio dejando decidir al otro: la cuenta entera queda sin jurisdicción (falla cerrado). Vacío no cuenta.
+ */
+const VALIDOS = PERFILES.filter((p) => !p || !['es', 'ESP', 42].includes(p.country));
+check('26) la fuente es el país que DECLARAN los Perfiles Reales de la cuenta (resolutor canónico): ni su cara Weë, ni otra cuenta, ni un tipo antiguo; un código mal escrito en cualquiera de ellos deja la cuenta SIN jurisdicción; sin ninguno, nada',
+  JSON.stringify(jurisdiccionesDeclaradas('u1', VALIDOS)) === '["ES","MX"]'
+  && jurisdiccionesDeclaradas('u1', PERFILES) === undefined
+  && [PERFILES[5], PERFILES[6], PERFILES[8]].every((malo) => jurisdiccionesDeclaradas('u1', [PERFILES[0], malo]) === undefined)
+  && jurisdiccionesDeclaradas('u1', [PERFILES[2], PERFILES[3], PERFILES[4], PERFILES[7]]) === undefined
+  && jurisdiccionesDeclaradas('u1', []) === undefined, JSON.stringify(jurisdiccionesDeclaradas('u1', VALIDOS)));
 
 {
   const llamadas = [];

@@ -348,8 +348,9 @@ export const sePuedeCancelarElMundo = (estado: EstadoDeMundo3D | undefined): boo
  * LOS DERECHOS QUE SE LE CUENTAN A LA PERSONA: si puede usar su mundo con fines comerciales, si pide atribución y
  * dónde no se puede usar ni mostrar. Las licencias concretas NO: su nombre y su dirección nombran al modelo, y ni la
  * respuesta de la puerta ni lo que la app ENSEÑA nombran proveedor o modelo. Se quedan enteras en el material
- * (`Asset.derechos`, que su dueño SÍ puede leer, como la procedencia). Si deben quedar solo en el servidor, y cómo se
- * enseñan los términos de una licencia ajena sin nombrar a nadie, son decisiones pendientes (docs/3D-EXPERIENCIA.md).
+ * (`Asset.derechos`, que su dueño SÍ puede leer, como la procedencia): decisión del dueño del 2026-10-06, lo completo en
+ * el servidor y en el material, y para la persona un resumen —de dónde viene, qué puede hacer, qué pide y dónde no—
+ * que la app compone sin nombrar a nadie (`utils/derechosDelMaterial.ts`; docs/3D-EXPERIENCIA.md §10).
  */
 export type DerechosVisibles = Pick<DerechosDelMaterial, 'usoComercial' | 'atribucion' | 'jurisdiccionesBloqueadas'>;
 
