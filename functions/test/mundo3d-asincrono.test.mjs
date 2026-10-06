@@ -384,8 +384,47 @@ console.log('\n── F · La puerta: una capacidad, ninguna clave, la jurisdicc
   check('F4) la elegibilidad y el precio, ANTES del cupo y de los Credits: un «no disponible» no mueve nada',
     puerta.indexOf('await prepararElMundo(uid, data.peticion)') < puerta.indexOf('limiter.reserve(') && puerta.indexOf('limiter.reserve(') < puerta.indexOf('creditEngine.spendCredits('));
   check('F5) la Function existe y se exporta (desplegarla es del dueño); el estado y la cancelación solo ven trabajos de la cuenta que pregunta',
-    /export \{ generateWorld \} from '\.\/creator\/mundo';/.test(leer('functions/src/index.ts')) && /trabajoDelMedioDeWee\(db, uid, requestId\)/.test(puerta)
+    /export \{ generateWorld \} from '\.\/creator\/mundo';/.test(leer('functions/src/index.ts'))
+    && /const job = await trabajoDelMedioDeWee\(getFirestore\(\), uid, requestId\);/.test(puerta)
     && /pedirParada\(paradaDeWee\(\{ db: getFirestore\(\) \}\), job, \{ userId: uid \}\)/.test(puerta));
+  /* Revisión de seguridad (2026-10-06): la clave del medio (cuenta, requestId) la comparten las puertas del conductor. */
+  check('F5b) …y solo trabajos de MUNDO: un vídeo del Core con el mismo requestId ni se cuenta ni se para por esta puerta; una reserva de otro servicio, tampoco',
+    /return job && job\.capability === CAPACIDAD_DEL_CANARY \? job : null;/.test(puerta) && (puerta.match(/await trabajoDelMundo\(uid, requestId\)/g) || []).length === 4
+    && /reserva\.service !== SERVICIO_DEL_MUNDO/.test(puerta) && /const SERVICIO_DEL_MUNDO = serviceForCapability\(CAPACIDAD_DEL_CANARY, \{\}\);/.test(puerta)
+    && !/trabajoDelMedioDeWee\(db, uid, requestId\)/.test(puerta));
+  check('F5c) no se pide parar MIENTRAS SE ENVÍA: el Job Engine consumaría la parada al llegar la aceptación (cualquier informe con el trabajo en cancel_requested) y la tarea seguiría viva en el proveedor',
+    /if \(sePuedeCancelarElMundo\(estadoDeMundoDelTrabajo\(job\.state\)\) && job\.state !== 'running'\) \{/.test(puerta)
+    && /if \(job\.state === 'cancel_requested'\) return consumarCancelacion\(job, at, attempts\);/.test(leer('functions/src/core/job.ts')));
+  check('F5d) la foto de la persona, solo del cubo de ESTE proyecto y reescrita como gs://: un host o un cubo ajenos con la ruta «correcta» no hacen que el servidor la busque fuera',
+    /const cubo = getStorage\(\)\.bucket\(\)\.name;/.test(puerta) && /if \(!ruta \|\| ruta\.bucket !== cubo \|\| !ruta\.path\.startsWith\(`users\/\$\{uid\}\/`\)\) \{/.test(puerta)
+    && /return `gs:\/\/\$\{cubo\}\/\$\{ruta\.path\}`;/.test(puerta) && !/return peticion\.imagen\.url;/.test(puerta));
+  /* Revisión de arquitectura (2026-10-06). */
+  check('F5e) lo que se cobra es el modelo que se cotizó: la puerta fija la decisión del Router (proveedor y modelo) al crear, sin nombrar a ninguno',
+    /ruteo: \{ modelId: p\.modelo, allowedProviders: \[p\.proveedor\] \}/.test(puerta) && /proveedor: elegido\.provider,/.test(puerta) && /modelo: elegido\.model\.id,/.test(puerta));
+  check('F5f) el estado solo cuenta un material de MUNDO, y su clase sale del contrato (literal)',
+    /material\.kind !== TIPO_DE_MATERIAL_DEL_MUNDO\) return/.test(puerta) && /kind: TIPO_DE_MATERIAL_DEL_MUNDO,/.test(puerta)
+    && /export const TIPO_DE_MATERIAL_DEL_MUNDO = 'world' as const satisfies AssetKind;/.test(leer('functions/src/core/mundo3d.ts')));
+  const rt = sinComentarios(leer('functions/src/runtime/index.ts'));
+  check('F5g) la jurisdicción se lee UNA vez: la cadena del conductor usa la de la operación (la que leyó la puerta), igual que el ejecutor y la política',
+    /resolutorPorCadena\(router, cadenaVivaCon\(deps\.jurisdicciones\), politicaConJurisdicciones\(/.test(rt)
+    && /\.\.\.\(jurisdicciones\?\.length \? \{ jurisdicciones: \[\.\.\.jurisdicciones\] \} : \{\}\),/.test(rt));
+  {
+    /* Un adaptador que sabe soltar la llamada (acepta lo asíncrono) tiene que tener quien pregunte por él; y al revés. */
+    const dir = path.resolve(AQUI, '../src/engine/providers');
+    const asincronos = fs.readdirSync(dir).filter((f) => f.endsWith('.ts') && /acceptAsync/.test(fs.readFileSync(path.join(dir, f), 'utf8'))).map((f) => f.replace(/\.ts$/, '')).sort();
+    const conResolutor = Object.keys(lib('engine/registry.js').RESOLUTORES_DE_ESTADO).sort();
+    check('F5h) cada adaptador asíncrono tiene su resolutor de estado, y no hay resolutor sin adaptador asíncrono (las dos tablas no se separan)',
+      iguales(asincronos, conResolutor) && asincronos.length >= 2, `${asincronos.join(',')} vs ${conResolutor.join(',')}`);
+  }
+  /* Revisión de código (2026-10-06). */
+  check('F5i) una operación que no existe se rechaza en la frontera: no se toma por «crear», que es la que cobra',
+    /if \(!OPERACIONES\.includes\(op\)\) throw new EngineError\('INVALID_REQUEST', undefined, \{ reason: 'op_desconocida' \}\);/.test(puerta) && !/: 'crear';/.test(puerta));
+  check('F5j) una reserva retenida SIN trabajo pasado el plazo de la puerta se devuelve al preguntar (la app nunca repite ese requestId); antes, en cola',
+    /if \(operacionAbandonada\(true, autorizadaEn \+ PLAZO_DE_LA_PUERTA_MS, Date\.now\(\)\)\) \{\s*await creditEngine\.refundCredits\(/.test(puerta)
+    && /if \(reserva\.status !== 'AUTHORIZED'\) return \{ contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: 'fallido' \};/.test(puerta));
+  check('F5k) un reintento con el mismo requestId converge: reserva cerrada sin trabajo = cómo acabó (no «ya en marcha»); y un fallo con el trabajo YA creado se cuenta como va, no como error',
+    /if \(spend\.status !== 'AUTHORIZED'\) return \{ \.\.\.\(await estadoDelMundo\(uid, requestId\)\), duplicate: true \};/.test(puerta)
+    && /\} catch \(error\) \{\s*if \(await trabajoDelMundo\(uid, requestId\)\) return \{ \.\.\.\(await estadoDelMundo\(uid, requestId\)\), status: 'ACCEPTED', credits: spend\.amount, duplicate: false \};\s*throw error;/.test(puerta));
   check('F6) la reconciliación desplegada conoce a fal por el registro (sin importar el adaptador) y pregunta con los relojes de cada trabajo; sin su clave montada contesta «no configurado» y el trabajo ESPERA',
     /resolutores: deps\.resolutores \?\? RESOLUTORES_DE_ESTADO/.test(sinComentarios(leer('functions/src/runtime/index.ts')))
     && runtime && typeof runtime.paradaDeWee === 'function' && /plazosDe: deps\.plazosDe \?\? \(\(job\) => plazosDeLaCapacidad\(job\.capability\)\)/.test(leer('functions/src/runtime/index.ts')));

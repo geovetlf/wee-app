@@ -34,7 +34,7 @@ if (!PROY.startsWith('demo-')) { console.log('✘ solo contra un proyecto de dem
 const MODELO = 'fal-ai/hunyuan_world/image-to-world';
 const CLAVE = 'clave-de-prueba-que-no-es-real';
 const tareas = new Map(); /* id → { status, falla?, cancelada? } */
-const cuenta = { post: 0, estado: 0, resultado: 0, cancelar: 0, archivos: 0, conClave: true, sinDesvio: true, sinGuardar: true, fotoEnLinea: true, cuerpos: [] };
+const cuenta = { post: 0, estado: 0, resultado: 0, cancelar: 0, archivos: 0, ajenas: 0, conClave: true, sinDesvio: true, sinGuardar: true, fotoEnLinea: true, cuerpos: [] };
 let serie = 0;
 const PNG = Buffer.from('89504e470d0a1a0a0000000d4948445200000001000000010806000000', 'hex');
 const MUNDO = Buffer.concat([Buffer.from('MUNDO3D'), Buffer.alloc(2048, 3)]);
@@ -45,6 +45,8 @@ const servidor = http.createServer((req, res) => {
     cuenta.archivos++;
     return /vista\.png$/.test(req.url) ? enviar(200, PNG, 'image/png') : enviar(200, MUNDO, 'application/octet-stream');
   }
+  /* Un «Storage» que no es el nuestro: si el servidor viniera a buscar aquí una foto, se cuenta (y no debe pasar nunca). */
+  if (req.url.startsWith('/v0/b/')) { cuenta.ajenas++; return enviar(200, PNG, 'image/png'); }
   if (req.headers.authorization !== `Key ${CLAVE}`) cuenta.conClave = false;
   if (req.headers['x-app-fal-disable-fallback'] !== 'true') cuenta.sinDesvio = false;
   if (req.headers['x-fal-store-io'] !== '0') cuenta.sinGuardar = false;
@@ -276,6 +278,35 @@ check('el precio que cambió, un campo de un proveedor o la foto de otra cuenta:
   codigo(caro) === 'invalid-argument · INVALID_REQUEST · price_changed' && codigo(deFal) === 'invalid-argument · INVALID_REQUEST · campo_desconocido'
   && codigo(fotoAjena) === 'invalid-argument · INVALID_REQUEST · imagen_ajena' && !(await uso('emu-mundo-P')) && !(await uso('emu-mundo-P2')) && (await saldo(P)) === SALDO,
   [caro, deFal, fotoAjena].map(codigo).join(' | '));
+
+/* Revisión de seguridad (2026-10-06): la ruta «correcta» con un host o un cubo ajenos. Antes, el lector de la foto caía a HTTP. */
+const postsSinAjenas = cuenta.post;
+const otroHost = `http://127.0.0.1:${servidor.address().port}/v0/b/otro-cubo/o/${encodeURIComponent(`users/${P}/creator-inputs/plaza.png`)}?alt=media`;
+const hostAjeno = await llamar(P, { op: 'crear', requestId: 'emu-mundo-P4', creditosCotizados: 39, peticion: { ...(await peticion(P)), imagen: { tipo: 'storage', url: otroHost } } });
+const cuboAjeno = await llamar(P, { op: 'crear', requestId: 'emu-mundo-P5', creditosCotizados: 39, peticion: { ...(await peticion(P)), imagen: { tipo: 'storage', url: `gs://otro-cubo/users/${P}/creator-inputs/plaza.png` } } });
+check('una foto con la ruta de la cuenta pero de OTRO host o de OTRO cubo: «sube una foto», sin reserva, sin POST y sin que el servidor la vaya a buscar fuera',
+  codigo(hostAjeno) === 'invalid-argument · INVALID_REQUEST · needs_image' && codigo(cuboAjeno) === 'invalid-argument · INVALID_REQUEST · needs_image'
+  && cuenta.ajenas === 0 && cuenta.post === postsSinAjenas && !(await uso('emu-mundo-P4')) && !(await uso('emu-mundo-P5')) && (await saldo(P)) === SALDO,
+  [hostAjeno, cuboAjeno].map(codigo).join(' | '));
+
+/* Revisión de código (2026-10-06). */
+console.log('\n── Lo que no se sabe, y lo que se quedó a medias ──');
+{
+  const postsAntesDeLasReservas = cuenta.post;
+  const opRara = await llamar(P, { op: 'estados', requestId: 'emu-mundo-P6', creditosCotizados: 39, peticion: await peticion(P) });
+  check('una operación que no existe no se toma por «crear»: INVALID_REQUEST, sin reserva y sin POST',
+    codigo(opRara) === 'invalid-argument · INVALID_REQUEST · op_desconocida' && !(await uso('emu-mundo-P6')) && cuenta.post === postsAntesDeLasReservas, codigo(opRara));
+  /* Lo que deja una invocación que muere después de reservar y antes de crear el trabajo: la reserva, sola. */
+  await creditEngine.spendCredits({ userId: P, service: 'ai_world', amount: 39, requestId: 'emu-mundo-P7', reason: 'Weë Studio · mundo 3D', source: 'weë-studio', fingerprint: 'cafe'.repeat(16) });
+  const reciente = await llamar(P, { op: 'estado', requestId: 'emu-mundo-P7' });
+  await db.collection('creditTransactions').doc('usage_emu-mundo-P7').update({ createdAt: admin.firestore.Timestamp.fromMillis(Date.now() - 3 * 60_000) });
+  const vieja = await llamar(P, { op: 'estado', requestId: 'emu-mundo-P7' });
+  check('una reserva SIN trabajo: «en cola» mientras se puede estar creando; pasado el plazo de la puerta, al PREGUNTAR se devuelve exacta y se cuenta como fallida',
+    reciente.ok && reciente.valor.estado === 'en_cola' && vieja.ok && vieja.valor.estado === 'fallido'
+    && (await uso('emu-mundo-P7'))?.status === 'REFUNDED' && (await saldo(P)) === SALDO, `${reciente.valor?.estado} → ${vieja.valor?.estado}`);
+  const otraVez = await llamar(P, { op: 'estado', requestId: 'emu-mundo-P7' });
+  check('y preguntar otra vez no devuelve nada más: fallida, una sola devolución', otraVez.ok && otraVez.valor.estado === 'fallido' && (await reembolsos('emu-mundo-P7')).length <= 1 && (await saldo(P)) === SALDO);
+}
 
 console.log('\n── Y nada de esto cambió los datos de verdad ──');
 check('Hunyuan World sigue DISABLED y en revisión legal en su catálogo: lo aprobado vivió solo en la memoria de esta prueba',

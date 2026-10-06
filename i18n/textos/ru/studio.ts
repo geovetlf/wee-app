@@ -380,6 +380,6 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   worldGenerating: 'Создаём ваш 3D-мир…',
   worldStopping: 'Останавливаем…',
   worldStoppingNote: 'Если 3D-мир успеет создаться до остановки, он останется в ваших работах, а Credits будут списаны.',
-  worldCancelledNote: 'Я остановил создание и вернул вам Credits.',
+  worldCancelledNote: 'Я остановил создание. Зарезервированные Credits вернутся на ваш баланс.',
   worldUploadFailed: 'Не удалось загрузить ваше фото. Попробуйте ещё раз.',
 };

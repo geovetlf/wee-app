@@ -90,6 +90,9 @@ seccion('A', () => {
     CONTRATO_SERVIDOR.MAX_LARGO_DE_LA_DESCRIPCION === 300 && recortada.ok && recortada.peticion.descripcion === 'a'.repeat(299) && recortada.descripcionRecortada === true
     && M.peticionDelMundo3D({ ...ENTRADA, descripcion: `${'b'.repeat(298)}😀` }, CUENTA).peticion.descripcion.length === 300);
   check('A8) la petición sale congelada: un reintento no puede mandar otra cosa', Object.isFrozen(r.peticion) && Object.isFrozen(r.peticion.imagen));
+  check('A9) las palabras que VIAJAN, para enseñarlas: recortadas igual que en la petición, sin partir un emoji',
+    M.palabrasQueViajan({ ...ENTRADA, descripcion: `   ${larga}   ` }) === recortada.peticion.descripcion && M.palabrasQueViajan({ ...ENTRADA, descripcion: '  hola  ' }) === 'hola'
+    && M.palabrasQueViajan(M.ENTRADA_VACIA) === '');
 });
 
 /* ═══ B · LO QUE PONE LA PERSONA ═══════════════════════════════════════════ */
@@ -205,6 +208,13 @@ seccion('C', () => {
     distintos.length === 0, distintos.map((e) => JSON.stringify(e)).join(' | '));
   check('C7) y los motivos de «no disponible» que entiende la app son EXACTAMENTE los que el motor manda (`MOTIVOS_DE_NO_DISPONIBLE`)',
     iguales(Object.keys(cargar('utils/noDisponible.ts').CLAVE_DE_NO_DISPONIBLE).sort(), [...createRequire(import.meta.url)(path.resolve(RAIZ, 'functions/lib/engine/errors.js')).MOTIVOS_DE_NO_DISPONIBLE].sort()));
+  /* Revisión de código (2026-10-06): qué errores NO dicen cómo acabó una creación. */
+  const inciertos = ERRORES.filter(([, e]) => M.esDesenlaceIncierto(M.errorDelMundo3D(e))).map(([nombre]) => nombre).sort();
+  check('C7b) inciertos —se pregunta por ESA petición y se reintenta con el MISMO id—: la red, sin código, el fallo genérico del motor y el tiempo agotado en la app; los demás son ciertos (no se reservó o se devolvió)',
+    iguales(inciertos, ['algo raro', 'el precio cambió, sin un precio que se pueda enseñar', 'el proveedor falló', 'no se terminó', 'sin conexión', 'sin red, la callable dice internal', 'un error suelto, sin código'].sort())
+    && M.esDesenlaceIncierto(null) === true && M.esDesenlaceIncierto(M.errorDelMundo3D(errorLlamado('sin Credits'))) === false
+    && M.esDesenlaceIncierto(M.errorDelMundo3D(noDisponible('ahora_no'))) === false && M.esDesenlaceIncierto(M.errorDelMundo3D(errorLlamado('el intento anterior se quedó sin tiempo'))) === false,
+    inciertos.join(' | '));
   check('C8) el precio que cambió es el que dice la puerta: `price_changed` con `credits`, antes de reservar nada',
     /throw new EngineError\('INVALID_REQUEST', undefined, \{ reason: 'price_changed', credits: p\.credits \}\)/.test(leer('functions/src/creator/mundo.ts')));
 });

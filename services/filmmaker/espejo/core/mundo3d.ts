@@ -1,5 +1,5 @@
 // GENERADO por scripts/espejo-filmmaker.mjs desde functions/src/core/mundo3d.ts: no se edita a mano, se regenera.
-import { MUNDO3D_CONTRACT_VERSION } from './contracts';
+import { MUNDO3D_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import type { CapabilityId } from './capability';
 import { FORMA_DE_ID_DE_MATERIAL } from './content/asset';
 import { FORMA_DE_ID_3D } from './escena3d';
@@ -88,7 +88,7 @@ export const leerPeticionDeMundo3D = (crudo: unknown, cuenta: string): LecturaDe
     const sobra = Object.keys(crudo).find((k) => !CAMPOS_DE_LA_PETICION.includes(k));
     if (sobra)
         return no('campo_desconocido', sobra);
-    if (crudo.contract !== MUNDO3D_CONTRACT_VERSION)
+    if (typeof crudo.contract !== 'string' || !contratoCompatible(MUNDO3D_CONTRACT_VERSION, crudo.contract))
         return no('contrato_no_valido', 'contract');
     if (!MODOS_DE_MUNDO.includes(crudo.modo as ModoDeMundo))
         return no('modo_no_soportado', 'modo');
@@ -204,7 +204,7 @@ export const leerEntradaDeMundo3D = (input: unknown, cuenta: string): {
 };
 export type PapelDeSalidaDeMundo = 'world' | 'preview';
 export const PAPELES_DE_SALIDA_DE_MUNDO: readonly PapelDeSalidaDeMundo[] = Object.freeze(['world', 'preview'] as const);
-export const TIPO_DE_MATERIAL_DEL_MUNDO: AssetKind = 'world';
+export const TIPO_DE_MATERIAL_DEL_MUNDO = 'world' as const satisfies AssetKind;
 export const VARIANTE_DE_LA_VISTA_PREVIA: VariantKind = 'preview';
 export type EstadoDeMundo3D = 'en_cola' | 'generando' | 'cancelando' | 'completado' | 'fallido' | 'cancelado';
 export const ESTADOS_DE_MUNDO3D: readonly EstadoDeMundo3D[] = Object.freeze(['en_cola', 'generando', 'cancelando', 'completado', 'fallido', 'cancelado'] as const);

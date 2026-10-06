@@ -361,6 +361,6 @@ export const studio: typeof import('../es/studio').studio = {
   worldGenerating: 'Création de ton monde 3D…',
   worldStopping: 'Arrêt en cours…',
   worldStoppingNote: 'Si le monde 3D est prêt avant l’arrêt, il reste dans tes créations et les Credits sont débités.',
-  worldCancelledNote: 'J’ai arrêté la création et je t’ai rendu tes Credits.',
+  worldCancelledNote: 'J’ai arrêté la création. Les Credits réservés reviennent sur ton solde.',
   worldUploadFailed: 'Je n’ai pas pu envoyer ta photo. Réessaie.',
 };

@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { onCall } from 'firebase-functions/v2/https';
 import { EngineError, motivoDeNoDisponible, noDisponible, toEngineHttpsError } from '../engine/errors';
 import { engine } from '../engine';
@@ -24,10 +25,12 @@ import {
   VARIANTE_DE_LA_VISTA_PREVIA,
   derechosVisibles,
   entradaDeMundo3D,
+  TIPO_DE_MATERIAL_DEL_MUNDO,
   estadoDeMundoDelTrabajo,
   leerPeticionDeMundo3D,
   materialEsDeLaCuenta,
   operacionAbandonada,
+  rutaEnElStorageDeWee,
   sePuedeCancelarElMundo,
 } from '../core';
 import {
@@ -107,6 +110,8 @@ interface EntradaDeLaPuerta {
 }
 
 const OPERACIONES = ['cotizar', 'crear', 'estado', 'cancelar'] as const;
+/** El servicio de Credits de un mundo: una reserva de otro servicio con el mismo requestId no es un mundo. */
+const SERVICIO_DEL_MUNDO = serviceForCapability(CAPACIDAD_DEL_CANARY, {});
 type Operacion = typeof OPERACIONES[number];
 
 /**
@@ -114,7 +119,19 @@ type Operacion = typeof OPERACIONES[number];
  * no es una imagen o que no está listo no vale; de él no se dice ni que exista.
  */
 const resolverImagen = async (uid: string, peticion: PeticionDeMundo3D): Promise<string> => {
-  if (peticion.imagen.tipo === 'storage') return peticion.imagen.url;
+  if (peticion.imagen.tipo === 'storage') {
+    /*
+     * SOLO EL CUBO DE ESTE PROYECTO, y se reescribe como gs://. El contrato mira la RUTA (la carpeta de la cuenta);
+     * aquí se exige además que el cubo sea el nuestro, porque quien lee la foto, si el Admin SDK no puede, la pide por
+     * HTTP con la dirección original: con un host ajeno y la ruta «correcta», el servidor iría a buscarla fuera.
+     */
+    const ruta = rutaEnElStorageDeWee(peticion.imagen.url);
+    const cubo = getStorage().bucket().name;
+    if (!ruta || ruta.bucket !== cubo || !ruta.path.startsWith(`users/${uid}/`)) {
+      throw new EngineError('INVALID_REQUEST', 'Sube una foto para que Weë pueda trabajar con ella.', { reason: 'needs_image' });
+    }
+    return `gs://${cubo}/${ruta.path}`;
+  }
   /* `leerMaterial` contesta `null` si no existe; si LANZA es una avería, y una avería no se cuenta como «esa foto no vale». */
   const material = await leerMaterial(peticion.imagen.assetId);
   const ref = material?.storageRef;
@@ -148,6 +165,9 @@ interface MundoPreparado {
   credits: number;
   usd: number;
   service: ReturnType<typeof serviceForCapability>;
+  /** Lo que eligió el Router al cotizar. Se fija al crear: lo que se cobra es el precio de ESTE modelo. */
+  proveedor: string;
+  modelo: string;
 }
 
 /**
@@ -189,6 +209,8 @@ const prepararElMundo = async (uid: string, crudo: unknown): Promise<MundoPrepar
     ...(jurisdicciones?.length ? { jurisdicciones } : {}),
     credits: elegido.estimatedCredits,
     usd: elegido.estimatedUsd,
+    proveedor: elegido.provider,
+    modelo: elegido.model.id,
     service: serviceForCapability(CAPACIDAD_DEL_CANARY, { ...entrada }),
   };
 };
@@ -200,30 +222,51 @@ const prepararElMundo = async (uid: string, crudo: unknown): Promise<MundoPrepar
  */
 const estadoDelMundo = async (uid: string, requestId: string): Promise<TrabajoDeMundo3D> => {
   const db = getFirestore();
-  const job = await trabajoDelMedioDeWee(db, uid, requestId);
+  const job = await trabajoDelMundo(uid, requestId);
   if (!job) {
     /* Sin trabajo: o se está creando ahora mismo (la reserva existe y está retenida) o se devolvió sin llegar a nadie. */
     const reserva = (await db.collection('creditTransactions').doc(usageTransactionId(requestId)).get()).data();
-    if (!reserva || reserva.userId !== uid) throw new EngineError('INVALID_REQUEST', 'No encontramos esa creación.', { reason: 'no_existe' });
-    return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: reserva.status === 'AUTHORIZED' ? 'en_cola' : 'fallido' };
+    if (!reserva || reserva.userId !== uid || reserva.service !== SERVICIO_DEL_MUNDO) throw new EngineError('INVALID_REQUEST', 'No encontramos esa creación.', { reason: 'no_existe' });
+    if (reserva.status !== 'AUTHORIZED') return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: 'fallido' };
+    /*
+     * RETENIDA Y SIN TRABAJO MÁS ALLÁ DEL PLAZO DE LA PUERTA: la invocación que la hizo murió antes de crear el trabajo
+     * y nada llegó al proveedor. La app pide cada mundo con un requestId nuevo y nunca repetiría este, así que es al
+     * PREGUNTAR cuando se devuelve (idempotente) y se cuenta como fallido. Antes del plazo, se está creando: en cola.
+     */
+    const creada = reserva.createdAt;
+    const autorizadaEn = typeof creada?.toMillis === 'function' ? creada.toMillis() : typeof creada === 'number' ? creada : Infinity;
+    if (operacionAbandonada(true, autorizadaEn + PLAZO_DE_LA_PUERTA_MS, Date.now())) {
+      await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el intento anterior se quedó sin tiempo', source: 'weë-studio' });
+      return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: 'fallido' };
+    }
+    return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: 'en_cola' };
   }
   const estado = estadoDeMundoDelTrabajo(job.state) ?? 'generando';
   if (estado !== 'completado') return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado };
   const assetId = job.result?.outputRefs?.[0];
   /* Una lectura que LANZA sube como avería: «completado» sin el mundo sería contar otra cosa. Preguntar es repetible. */
   const material = assetId ? await leerMaterial(assetId) : null;
-  if (!material || !materialEsDeLaCuenta(material, uid)) return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado };
+  if (!material || !materialEsDeLaCuenta(material, uid) || material.kind !== TIPO_DE_MATERIAL_DEL_MUNDO) return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado };
   return {
     contract: MUNDO3D_CONTRACT_VERSION,
     requestId,
     estado,
     mundo: {
       assetId: material.assetId,
-      kind: 'world',
+      kind: TIPO_DE_MATERIAL_DEL_MUNDO,
       conVistaPrevia: (material.variants ?? []).some((v) => v.kind === VARIANTE_DE_LA_VISTA_PREVIA),
       ...(material.derechos ? { derechos: derechosVisibles(material.derechos) } : {}),
     },
   };
+};
+
+/**
+ * EL TRABAJO DE UN MUNDO DE ESA CUENTA, o nada. La clave del medio es (cuenta, requestId) y la comparten las puertas
+ * del conductor: un trabajo de vídeo con el mismo requestId no es un mundo, y por esta puerta ni se cuenta ni se para.
+ */
+const trabajoDelMundo = async (uid: string, requestId: string) => {
+  const job = await trabajoDelMedioDeWee(getFirestore(), uid, requestId);
+  return job && job.capability === CAPACIDAD_DEL_CANARY ? job : null;
 };
 
 /** ¿Esta operación ya se reservó alguna vez? Si sí, repetirla no gasta cupo. Solo cuenta si es de quien pregunta. */
@@ -237,7 +280,9 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
     const uid = request.auth.uid;
     const data = (request.data || {}) as EntradaDeLaPuerta;
-    const op: Operacion = OPERACIONES.includes(data.op as Operacion) ? (data.op as Operacion) : 'crear';
+    /* Una operación que no existe se rechaza en la frontera: no se toma por «crear», que es la que cobra. */
+    const op = data.op as Operacion;
+    if (!OPERACIONES.includes(op)) throw new EngineError('INVALID_REQUEST', undefined, { reason: 'op_desconocida' });
 
     if (op === 'cotizar') {
       const p = await prepararElMundo(uid, data.peticion);
@@ -248,10 +293,15 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
     if (op === 'estado') return await estadoDelMundo(uid, requestId);
 
     if (op === 'cancelar') {
-      const job = await trabajoDelMedioDeWee(getFirestore(), uid, requestId);
+      const job = await trabajoDelMundo(uid, requestId);
       if (!job) throw new EngineError('INVALID_REQUEST', 'No encontramos esa creación.', { reason: 'no_existe' });
-      /* Lo que ya terminó, o ya se pidió parar, no se vuelve a pedir: se cuenta cómo está. */
-      if (sePuedeCancelarElMundo(estadoDeMundoDelTrabajo(job.state))) {
+      /*
+       * Lo que ya terminó, o ya se pidió parar, no se vuelve a pedir: se cuenta cómo está. Y MIENTRAS SE ENVÍA
+       * (`running`, el intento todavía sin la referencia del proveedor) tampoco: el Job Engine consumaría la parada en
+       * cuanto llegara la aceptación, y la tarea seguiría viva en el proveedor sin nadie que le pida parar —el mundo
+       * se tiraría y la reserva se devolvería—. Se cuenta «generando» y se puede volver a pedir en un momento.
+       */
+      if (sePuedeCancelarElMundo(estadoDeMundoDelTrabajo(job.state)) && job.state !== 'running') {
         await pedirParada(paradaDeWee({ db: getFirestore() }), job, { userId: uid });
       }
       return await estadoDelMundo(uid, requestId);
@@ -279,44 +329,57 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
 
     /* Mismo requestId: UN REQUEST = UNA GENERACIÓN = UN COBRO. */
     if (spend.duplicate) {
-      const db = getFirestore();
       /* Ya tiene trabajo: es la misma creación. Se cuenta cómo va; ni otra generación, ni otro cobro. */
-      if (await trabajoDelMedioDeWee(db, uid, requestId)) return { ...(await estadoDelMundo(uid, requestId)), duplicate: true };
+      if (await trabajoDelMundo(uid, requestId)) return { ...(await estadoDelMundo(uid, requestId)), duplicate: true };
       if (spend.status === 'AUTHORIZED' && operacionAbandonada(true, (spend.authorizedAt ?? Infinity) + PLAZO_DE_LA_PUERTA_MS, Date.now())) {
         /* Se quedó colgada sin trabajo: nada llegó al proveedor. Se devuelve lo retenido y se dice. */
         await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el intento anterior se quedó sin tiempo', source: 'weë-studio' });
         throw new EngineError('TIMEOUT', 'Ese intento se quedó sin tiempo y te devolví los Credits. Puedes volver a intentarlo.');
       }
+      /* Cerrada (devuelta) sin trabajo: no está en marcha; se cuenta cómo acabó, para que un reintento converja. */
+      if (spend.status !== 'AUTHORIZED') return { ...(await estadoDelMundo(uid, requestId)), duplicate: true };
       throw new EngineError('DUPLICATE_REQUEST');
     }
 
-    const desenlace = await sinReservaHuerfana(uid, requestId, async () => {
-      const conductor = await conductorDeWee({
-        db: getFirestore(),
-        aceptaAsincrono: ACEPTA_ASINCRONO,
-        politica: POLITICA_DEL_MUNDO,
-        /* La jurisdicción que se leyó arriba, la MISMA para el ejecutor y para la política. */
-        ...(p.jurisdicciones ? { jurisdicciones: p.jurisdicciones } : {}),
-      });
-      return pedirMedio({
-        conductor,
-        principal: { userId: uid },
-        trace: { traceId: requestId, requestId, userId: uid, workplace: EXPERIENCIA_DE_STUDIO },
-        capability: CAPACIDAD_DEL_CANARY,
-        input: { ...p.entrada },
-        /* Para qué es: lo que escribió la persona, si escribió algo. Va al trabajo, nunca al proveedor. */
-        proposito: p.peticion.descripcion ?? 'Crear un mundo 3D',
-        contabilidad: {
-          service: p.service,
-          creditsEstimated: spend.amount,
-          estimatedUsd: p.usd,
-          creditTransactionId: usageTransactionId(requestId),
-          creditRequestId: requestId,
-        },
-        contexto: { appId: 'wee', operationId: requestId },
-        deadlineAt: Date.now() + PLAZOS_DE_MUNDO.vidaDelTrabajoMs,
-      });
-    }, 'Weë Studio · el mundo 3D no se pudo crear');
+    let desenlace: Awaited<ReturnType<typeof pedirMedio>>;
+    try {
+      desenlace = await sinReservaHuerfana(uid, requestId, async () => {
+        const conductor = await conductorDeWee({
+          db: getFirestore(),
+          aceptaAsincrono: ACEPTA_ASINCRONO,
+          politica: POLITICA_DEL_MUNDO,
+          /* La jurisdicción que se leyó arriba, la MISMA para el ejecutor y para la política. */
+          ...(p.jurisdicciones ? { jurisdicciones: p.jurisdicciones } : {}),
+        });
+        return pedirMedio({
+          conductor,
+          principal: { userId: uid },
+          trace: { traceId: requestId, requestId, userId: uid, workplace: EXPERIENCIA_DE_STUDIO },
+          capability: CAPACIDAD_DEL_CANARY,
+          input: { ...p.entrada },
+          /* El modelo que se cotizó es el que se ejecuta (como en las otras dos puertas): se fija la decisión del Router, no se sustituye. */
+          ruteo: { modelId: p.modelo, allowedProviders: [p.proveedor] },
+          /* Para qué es: lo que escribió la persona, si escribió algo. Va al trabajo, nunca al proveedor. */
+          proposito: p.peticion.descripcion ?? 'Crear un mundo 3D',
+          contabilidad: {
+            service: p.service,
+            creditsEstimated: spend.amount,
+            estimatedUsd: p.usd,
+            creditTransactionId: usageTransactionId(requestId),
+            creditRequestId: requestId,
+          },
+          contexto: { appId: 'wee', operationId: requestId },
+          deadlineAt: Date.now() + PLAZOS_DE_MUNDO.vidaDelTrabajoMs,
+        });
+      }, 'Weë Studio · el mundo 3D no se pudo crear');
+    } catch (error) {
+      /*
+       * Si el trabajo EXISTE, lo pedido sigue su camino (la reserva la cierra la liquidación): se cuenta cómo va. Un
+       * error aquí la app lo tomaría por un fallo y lo pediría otra vez —dos mundos, dos cobros—.
+       */
+      if (await trabajoDelMundo(uid, requestId)) return { ...(await estadoDelMundo(uid, requestId)), status: 'ACCEPTED', credits: spend.amount, duplicate: false };
+      throw error;
+    }
 
     if (desenlace.estado === 'en_marcha') {
       /* Aceptado y en marcha. Ni cobro, ni reembolso, ni segundo POST: se contesta y se sale. */

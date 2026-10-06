@@ -1,4 +1,4 @@
-import { MUNDO3D_CONTRACT_VERSION } from './contracts';
+import { MUNDO3D_CONTRACT_VERSION, contratoCompatible } from './contracts';
 import type { CapabilityId } from './capability';
 import { FORMA_DE_ID_DE_MATERIAL } from './content/asset';
 import { FORMA_DE_ID_3D } from './escena3d';
@@ -83,7 +83,7 @@ export interface PeticionDeMundo3D {
   readonly descripcion?: string;
   readonly espacio?: EspacioDelMundo;
   readonly elementos?: readonly string[];
-  /** El proyecto donde lo quiere, si eligió uno. */
+  /** El proyecto donde lo quiere, si eligió uno. RESERVADO: la puerta aún no lo guarda (dónde viven las escenas, pendiente). */
   readonly projectId?: string;
 }
 
@@ -166,7 +166,7 @@ export const leerPeticionDeMundo3D = (crudo: unknown, cuenta: string): LecturaDe
   if (!esObjeto(crudo)) return no('forma_no_valida');
   const sobra = Object.keys(crudo).find((k) => !CAMPOS_DE_LA_PETICION.includes(k));
   if (sobra) return no('campo_desconocido', sobra);
-  if (crudo.contract !== MUNDO3D_CONTRACT_VERSION) return no('contrato_no_valido', 'contract');
+  if (typeof crudo.contract !== 'string' || !contratoCompatible(MUNDO3D_CONTRACT_VERSION, crudo.contract)) return no('contrato_no_valido', 'contract');
   if (!MODOS_DE_MUNDO.includes(crudo.modo as ModoDeMundo)) return no('modo_no_soportado', 'modo');
 
   const imagen = crudo.imagen;
@@ -298,7 +298,7 @@ export type PapelDeSalidaDeMundo = 'world' | 'preview';
 export const PAPELES_DE_SALIDA_DE_MUNDO: readonly PapelDeSalidaDeMundo[] = Object.freeze(['world', 'preview'] as const);
 
 /** La clase de material del mundo. */
-export const TIPO_DE_MATERIAL_DEL_MUNDO: AssetKind = 'world';
+export const TIPO_DE_MATERIAL_DEL_MUNDO = 'world' as const satisfies AssetKind;
 /** Qué variante del material es su vista previa. */
 export const VARIANTE_DE_LA_VISTA_PREVIA: VariantKind = 'preview';
 
@@ -346,10 +346,10 @@ export const sePuedeCancelarElMundo = (estado: EstadoDeMundo3D | undefined): boo
 
 /**
  * LOS DERECHOS QUE SE LE CUENTAN A LA PERSONA: si puede usar su mundo con fines comerciales, si pide atribución y
- * dónde no se puede usar ni mostrar. Las licencias concretas NO: su nombre y su dirección nombran al modelo, y lo que
- * llega a la app no nombra ni proveedor ni modelo. Se quedan enteras en el material (`Asset.derechos`), para la
- * auditoría y para quien lo reutilice en el servidor. Cómo se le enseñan a la persona los términos de una licencia
- * ajena sin nombrar a nadie es una decisión de producto pendiente (docs/3D-EXPERIENCIA.md).
+ * dónde no se puede usar ni mostrar. Las licencias concretas NO: su nombre y su dirección nombran al modelo, y ni la
+ * respuesta de la puerta ni lo que la app ENSEÑA nombran proveedor o modelo. Se quedan enteras en el material
+ * (`Asset.derechos`, que su dueño SÍ puede leer, como la procedencia). Si deben quedar solo en el servidor, y cómo se
+ * enseñan los términos de una licencia ajena sin nombrar a nadie, son decisiones pendientes (docs/3D-EXPERIENCIA.md).
  */
 export type DerechosVisibles = Pick<DerechosDelMaterial, 'usoComercial' | 'atribucion' | 'jurisdiccionesBloqueadas'>;
 

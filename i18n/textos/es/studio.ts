@@ -367,6 +367,6 @@ export const studio = {
   worldGenerating: 'Creando tu mundo 3D…',
   worldStopping: 'Parando…',
   worldStoppingNote: 'Si el mundo llega antes de parar, se queda en tus creaciones y se cobra.',
-  worldCancelledNote: 'Paré la creación y te devolví los Credits.',
+  worldCancelledNote: 'Paré la creación. Lo que se reservó vuelve a tu saldo de Credits.',
   worldUploadFailed: 'No pude subir tu foto. Inténtalo de nuevo.',
 };

@@ -382,6 +382,6 @@ export const studio: typeof import('../es/studio').studio = {
   worldGenerating: '3D dünyan oluşturuluyor…',
   worldStopping: 'Durduruluyor…',
   worldStoppingNote: '3D dünya durdurulmadan önce hazır olursa oluşturduklarına kaydedilir ve ücreti bakiyenden düşülür.',
-  worldCancelledNote: 'Oluşturmayı durdurdum, Credits bakiyene iade edildi.',
+  worldCancelledNote: 'Oluşturmayı durdurdum. Ayrılan Credits bakiyene iade edilecek.',
   worldUploadFailed: 'Fotoğrafını yükleyemedim. Yeniden dene.',
 };

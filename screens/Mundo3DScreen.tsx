@@ -27,7 +27,10 @@ import {
   EventoDelMundo3D,
   avanzar,
   errorDelMundo3D,
+  esDesenlaceIncierto,
   eventoDelTrabajoDeMundo,
+  leerErrorDelServidor,
+  palabrasQueViajan,
   peticionDelMundo3D,
   presentacionDelMundo3D,
 } from '../utils/crearMundo3D';
@@ -86,6 +89,12 @@ const Mundo3DScreen: React.FC = () => {
    * instante, antes de cualquier render.
    */
   const enCamino = useRef(false);
+  /*
+   * LA PETICIÓN CUYO DESENLACE NO SE SABE. Tras un error que no dice si llegó (red, sin código, fallo genérico), se
+   * guarda su requestId y el siguiente «Crear por N Credits» la vuelve a pedir CON ESE: el servidor reconoce la misma
+   * creación (UN REQUEST = UNA GENERACIÓN = UN COBRO). En cuanto la puerta cuenta algo de ella, se suelta.
+   */
+  const pendiente = useRef<string | null>(null);
 
   const despachar = useCallback((evento: EventoDelMundo3D) => setEstado((e) => avanzar(e, evento, { cuenta })), [cuenta]);
   const presentacion = useMemo(() => presentacionDelMundo3D(estado, { cuenta }), [estado, cuenta]);
@@ -98,12 +107,22 @@ const Mundo3DScreen: React.FC = () => {
     if (evento) despachar(evento);
   }, [despachar]);
 
-  /** Cómo va, preguntado UNA vez. Si no se puede preguntar ahora, el trabajo sigue en el servidor: se dice y se espera. */
-  const preguntar = useCallback(async (id: string) => {
+  /**
+   * Cómo va, preguntado UNA vez: «sabido» si la puerta conoce la petición, «no_existe» si no tiene rastro de ella, y
+   * «sin_respuesta» si no se pudo preguntar (el trabajo, si existe, sigue en el servidor).
+   */
+  const preguntar = useCallback(async (id: string): Promise<'sabido' | 'no_existe' | 'sin_respuesta'> => {
     try {
       alContestar(await mundoService.estado(id));
+      if (pendiente.current === id) pendiente.current = null;
+      return 'sabido';
     } catch (error) {
+      if (leerErrorDelServidor(error).motivo === 'no_existe') {
+        if (pendiente.current === id) pendiente.current = null;
+        return 'no_existe';
+      }
       console.warn('3D World: no se pudo preguntar por el mundo', error);
+      return 'sin_respuesta';
     }
   }, [alContestar]);
 
@@ -147,16 +166,24 @@ const Mundo3DScreen: React.FC = () => {
   const confirmar = useCallback(async () => {
     if (enCamino.current || estado.fase !== 'presupuestado' || !estado.peticion || estado.creditos === null) return;
     enCamino.current = true;
-    const id = newRequestId('mundo3d');
+    /* Si la anterior quedó sin saberse cómo acabó, se vuelve a pedir LA MISMA; si no, una nueva. */
+    const id = pendiente.current ?? newRequestId('mundo3d');
     requestId.current = id;
     despachar({ tipo: 'confirmar' });
     try {
       alContestar(await mundoService.crear(estado.peticion, id, estado.creditos));
+      pendiente.current = null;
     } catch (error) {
       const fallo = errorDelMundo3D(error);
-      /* La app se cansó de esperar: lo pedido puede existir. Se pregunta, no se da por perdido. */
-      if (fallo) despachar({ tipo: 'fallo', error: fallo });
-      else await preguntar(id);
+      if (fallo && !esDesenlaceIncierto(fallo)) {
+        /* Un fallo cierto: no se reservó nada, o se devolvió. Reintentar es otra creación. */
+        pendiente.current = null;
+        despachar({ tipo: 'fallo', error: fallo });
+      } else {
+        /* No se sabe si llegó: se pregunta por ESA petición. Sin respuesta, se dice; y «Reintentar» la pide con el MISMO id. */
+        pendiente.current = id;
+        if ((await preguntar(id)) !== 'sabido') despachar({ tipo: 'fallo', error: fallo ?? sinConexion() });
+      }
     } finally {
       enCamino.current = false;
     }
@@ -206,6 +233,7 @@ const Mundo3DScreen: React.FC = () => {
   }, [assetId]);
 
   const elegirFoto = useCallback(async () => {
+    if (enCamino.current) return;
     const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permiso.granted) return;
     const elegido = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
@@ -217,6 +245,7 @@ const Mundo3DScreen: React.FC = () => {
   }, [estado.entrada, despachar]);
 
   const elegirEspacio = useCallback((espacio: EspacioDelMundo | null) => {
+    if (enCamino.current) return;
     despachar({ tipo: 'editar', entrada: { ...estado.entrada, espacio } });
   }, [estado.entrada, despachar]);
 
@@ -256,6 +285,8 @@ const Mundo3DScreen: React.FC = () => {
   }
 
   const enReposo = estado.fase === 'quieto' || estado.fase === 'entrada_invalida';
+  /* Las palabras que VIAJAN: las de la petición si ya se envió, o las de la persona recortadas como se mandarán. */
+  const palabras = estado.peticion?.descripcion ?? palabrasQueViajan(estado.entrada);
   const puedeCrear = !subiendo && (presentacion.sePuedeCrear || (!!fotoLocal && !estado.entrada.imagen));
   const ocupado = presentacion.ocupado || subiendo;
 
@@ -281,7 +312,7 @@ const Mundo3DScreen: React.FC = () => {
             ) : (
               <Text style={[styles.boxText, { color: theme.colors.textSecondary }]}>{t('weeai.uploadToWork')}</Text>
             )}
-            {enReposo && (
+            {enReposo && !subiendo && (
               <TouchableOpacity onPress={elegirFoto} style={[styles.button, styles.secondary, { borderColor: theme.colors.border }]} activeOpacity={0.85} accessibilityRole="button">
                 <Text style={[styles.secondaryText, { color: theme.colors.text }]}>{t(fotoLocal ? 'studio.worldChangePhoto' : 'weeai.pickFromPhotos')}</Text>
               </TouchableOpacity>
@@ -289,10 +320,10 @@ const Mundo3DScreen: React.FC = () => {
           </View>
 
           {/* ── Lo que contó, tal cual: es contenido ── */}
-          {!!estado.entrada.descripcion.trim() && (
+          {!!palabras && (
             <View style={styles.bloque}>
               <Text style={[styles.label, { color: theme.colors.text }]}>{t('studio.worldYourWords')}</Text>
-              <Text style={[styles.palabras, { color: theme.colors.textSecondary }]}>{estado.entrada.descripcion}</Text>
+              <Text style={[styles.palabras, { color: theme.colors.textSecondary }]}>{palabras}</Text>
             </View>
           )}
 
@@ -305,7 +336,7 @@ const Mundo3DScreen: React.FC = () => {
                   key={e.clave}
                   label={t(e.clave)}
                   active={estado.entrada.espacio === e.id}
-                  onPress={enReposo ? () => elegirEspacio(e.id) : undefined}
+                  onPress={enReposo && !subiendo ? () => elegirEspacio(e.id) : undefined}
                 />
               ))}
             </View>

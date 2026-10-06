@@ -417,6 +417,6 @@ export const studio: typeof import('../es/studio').studio = {
   worldGenerating: '正在生成你的 3D 世界…',
   worldStopping: '正在停止…',
   worldStoppingNote: '如果 3D 世界在停止前已經完成，它會儲存在你的作品中，並扣除 Credits。',
-  worldCancelledNote: '我已停止創作，並退回了你的 Credits。',
+  worldCancelledNote: '我已停止創作。預留的 Credits 會退回你的餘額。',
   worldUploadFailed: '沒能上傳你的照片，請再試一次。',
 };

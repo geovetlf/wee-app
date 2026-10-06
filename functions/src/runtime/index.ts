@@ -75,8 +75,11 @@ import { CadenaDeProducto, resolutorPorCadena } from './resolucion';
  * directorio y ningún callable lo importa.
  */
 
-/** La cadena de producto, preguntándole a quien hoy decide. */
-export const cadenaViva: CadenaDeProducto = {
+/**
+ * La cadena de producto, preguntándole a quien hoy decide. Con las jurisdicciones de la operación cuando la puerta ya
+ * las leyó (revisión de arquitectura, 2026-10-06): una lectura, la misma para el Router, el ejecutor y la política.
+ */
+export const cadenaVivaCon = (jurisdicciones?: readonly string[]): CadenaDeProducto => ({
   async cadena({ peticion, input, preferencias }) {
     /* Lo que el motor de hoy no enruta no tiene cadena: ahí decide el Router del Core solo. */
     if (!(peticion.capability in DEFAULT_ROUTING)) return undefined;
@@ -84,6 +87,7 @@ export const cadenaViva: CadenaDeProducto = {
       capability: peticion.capability as CapabilityId,
       input: { ...input },
       userId: peticion.trace.userId,
+      ...(jurisdicciones?.length ? { jurisdicciones: [...jurisdicciones] } : {}),
       prefs: {
         ...(peticion.hints?.quality ? { quality: peticion.hints.quality } : {}),
         ...(peticion.hints?.durationSec !== undefined ? { durationSec: peticion.hints.durationSec } : {}),
@@ -99,7 +103,10 @@ export const cadenaViva: CadenaDeProducto = {
       estimatedCredits: c.estimatedCredits,
     }));
   },
-};
+});
+
+/** Sin jurisdicciones de la operación: el motor las lee de la cuenta si algún modelo de la cadena las necesita. */
+export const cadenaViva: CadenaDeProducto = cadenaVivaCon();
 
 const numero = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
 const texto = (v: unknown): string | undefined => (typeof v === 'string' && v.length ? v : undefined);
@@ -580,7 +587,7 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
     ejecuciones: almacenDeEjecuciones(deps.db, ahora),
     cola: colaDeInvocacion(ahora),
     motor,
-    resolver: resolutorPorCadena(router, cadenaViva, politicaConJurisdicciones(politicaPorReglas(deps.reglas ?? SIN_REGLAS), deps.jurisdicciones)),
+    resolver: resolutorPorCadena(router, cadenaVivaCon(deps.jurisdicciones), politicaConJurisdicciones(politicaPorReglas(deps.reglas ?? SIN_REGLAS), deps.jurisdicciones)),
     ejecutor: crearEjecutor({
       gateway, libro: deps.libro ?? libroDelMotor(), ahora,
       /* La misma bandera que el Gateway: con ella, un POST que se queda sin respuesta es un desenlace desconocido. */

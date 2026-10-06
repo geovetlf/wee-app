@@ -391,6 +391,6 @@ export const studio: typeof import('../es/studio').studio = {
   worldGenerating: 'Skapar din 3D-värld…',
   worldStopping: 'Stoppar…',
   worldStoppingNote: 'Om 3D-världen hinner bli klar först, sparas den bland dina skapelser och Credits dras.',
-  worldCancelledNote: 'Jag stoppade skapandet och du har fått tillbaka dina Credits.',
+  worldCancelledNote: 'Jag stoppade skapandet. De reserverade Credits går tillbaka till ditt saldo.',
   worldUploadFailed: 'Det gick inte att ladda upp fotot. Försök igen.',
 };

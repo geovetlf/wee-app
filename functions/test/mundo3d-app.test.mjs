@@ -85,9 +85,19 @@ seccion('B', () => {
   check('B3) toda la lógica es del compositor: la máquina, la petición canónica, los errores y lo que se enseña',
     ['avanzar', 'presentacionDelMundo3D', 'peticionDelMundo3D', 'eventoDelTrabajoDeMundo', 'errorDelMundo3D'].every((f) => new RegExp(`\\b${f}\\(`).test(codigo))
     && !/fase:\s*'/.test(codigo));
-  check('B4) UN requestId por intento, al confirmar con el precio a la vista; y si la app se cansa de esperar, PREGUNTA en vez de dar por perdido',
-    /const id = newRequestId\('mundo3d'\);\s*requestId\.current = id;/.test(codigo) && /mundoService\.crear\(estado\.peticion, id, estado\.creditos\)/.test(codigo)
-    && /if \(fallo\) despachar\(\{ tipo: 'fallo', error: fallo \}\);\s*else await preguntar\(id\);/.test(codigo));
+  check('B4) UN requestId por intento, al confirmar con el precio a la vista; y si no se sabe cómo acabó, PREGUNTA por esa petición en vez de dar por perdido',
+    /const id = pendiente\.current \?\? newRequestId\('mundo3d'\);\s*requestId\.current = id;/.test(codigo) && /mundoService\.crear\(estado\.peticion, id, estado\.creditos\)/.test(codigo)
+    && /if \(fallo && !esDesenlaceIncierto\(fallo\)\) \{/.test(codigo) && /if \(\(await preguntar\(id\)\) !== 'sabido'\) despachar\(\{ tipo: 'fallo', error: fallo \?\? sinConexion\(\) \}\);/.test(codigo));
+  /* Revisión de código (2026-10-06). */
+  check('B4b) tras un error que no dice si la creación llegó, «Reintentar» la pide con el MISMO requestId (dos mundos, dos cobros, nunca); en cuanto la puerta cuenta algo de ella, se suelta',
+    /const pendiente = useRef<string \| null>\(null\);/.test(codigo) && /pendiente\.current = id;/.test(codigo)
+    && (codigo.match(/if \(pendiente\.current === id\) pendiente\.current = null;/g) || []).length === 2
+    && /leerErrorDelServidor\(error\)\.motivo === 'no_existe'/.test(codigo));
+  check('B4c) mientras se sube la foto y se pide el precio, ni otra foto ni otro espacio: se cotizaría lo de antes con lo nuevo en pantalla',
+    (codigo.match(/=> \{\s*if \(enCamino\.current\) return;/g) || []).length === 2
+    && /\{enReposo && !subiendo && \(\s*<TouchableOpacity onPress=\{elegirFoto\}/.test(codigo) && /onPress=\{enReposo && !subiendo \? \(\) => elegirEspacio\(e\.id\) : undefined\}/.test(codigo));
+  check('B4d) las palabras que se enseñan son las que VIAJAN (recortadas al límite del contrato), no el texto entero',
+    /const palabras = estado\.peticion\?\.descripcion \?\? palabrasQueViajan\(estado\.entrada\);/.test(codigo) && />\{palabras\}<\/Text>/.test(codigo));
   check('B5) mientras el mundo se hace, escucha su reserva y pregunta UNA vez cuando se cierra; no hay sondeo con temporizador',
     /mundoService\.observarReserva\(/.test(codigo) && /CERRADAS\.has\(reserva\)\) void preguntar\(id\)/.test(codigo) && !/setInterval|setTimeout/.test(codigo));
   check('B6) la foto sube a la carpeta de la cuenta con el cargador de siempre; nunca viaja una dirección local',
@@ -100,7 +110,7 @@ seccion('B', () => {
     && (codigo.match(/enCamino\.current = true;/g) || []).length === 2 && (codigo.match(/finally \{\s*enCamino\.current = false;\s*\}/g) || []).length === 2
     && codigo.indexOf('enCamino.current = true;', codigo.indexOf('const confirmar')) < codigo.indexOf("newRequestId('mundo3d')"));
   check('B8) abierto o cerrado, siempre con «No sé» (que no viaja), y solo mientras se está poniendo',
-    /\{ id: null, clave: 'studio\.worldSpaceIdk' \}/.test(codigo) && /onPress=\{enReposo \? \(\) => elegirEspacio\(e\.id\) : undefined\}/.test(codigo));
+    /\{ id: null, clave: 'studio\.worldSpaceIdk' \}/.test(codigo) && /onPress=\{enReposo && !subiendo \? \(\) => elegirEspacio\(e\.id\) : undefined\}/.test(codigo));
 });
 
 /* ═══ C · EL SERVICIO ══════════════════════════════════════════════════════ */

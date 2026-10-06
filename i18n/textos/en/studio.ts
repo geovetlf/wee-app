@@ -360,6 +360,6 @@ export const studio: typeof import('../es/studio').studio = {
   worldGenerating: 'Creating your 3D world…',
   worldStopping: 'Stopping…',
   worldStoppingNote: 'If the world arrives before it stops, it stays in your creations and is charged.',
-  worldCancelledNote: 'I stopped it and gave your Credits back.',
+  worldCancelledNote: 'I stopped it. What was reserved goes back to your Credits balance.',
   worldUploadFailed: 'I couldn’t upload your photo. Please try again.',
 };

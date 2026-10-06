@@ -190,10 +190,12 @@ const OTROS_DEL_CORE = {
    * + FASE 5: la puerta del mundo (`creator/mundo.ts`) LEE la petición con el contrato, construye la entrada del
    * motor, cuenta el estado de un trabajo y dice si se puede parar; los relojes del runtime nombran la capacidad.
    * Y al contar un mundo terminado le da a la app solo sus derechos VISIBLES (`derechosVisibles`): sin las licencias,
-   * cuyo nombre y dirección nombran al modelo.
+   * cuyo nombre y dirección nombran al modelo. Y lee la ruta de una foto con el lector del contrato
+   * (`rutaEnElStorageDeWee`) para exigir el cubo propio (revisión de seguridad, 2026-10-06).
    */
   'core/mundo3d.js': ['leerEntradaDeMundo3D', 'leerPeticionDeMundo3D', 'entradaDeMundo3D', 'estadoDeMundoDelTrabajo', 'VARIANTE_DE_LA_VISTA_PREVIA',
-    'sePuedeCancelarElMundo', 'CAPACIDAD_DE_MUNDO', 'derechosVisibles'],
+    /* + la clase del material del mundo (literal del contrato) para no contar como mundo otro material (revisión, 2026-10-06). */
+    'sePuedeCancelarElMundo', 'CAPACIDAD_DE_MUNDO', 'derechosVisibles', 'rutaEnElStorageDeWee', 'TIPO_DE_MATERIAL_DEL_MUNDO'],
   /*
    * S5: exportar la puerta de Elements pone en producción los dos contratos de
    * S3. Es lo esperado y es lo que estas listas existen para enseñar: qué usa

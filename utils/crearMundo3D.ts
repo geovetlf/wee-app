@@ -150,6 +150,10 @@ export const peticionDelMundo3D = (entrada: EntradaDelMundo3D, cuenta: string): 
   return { ok: true, peticion: lectura.peticion, descripcionRecortada: descripcion.length < escrita.length };
 };
 
+/** Las palabras que VIAJAN: las de la persona, recortadas al límite del contrato sin partir un carácter. Lo que se enseña es lo que se manda. */
+export const palabrasQueViajan = (entrada: EntradaDelMundo3D): string =>
+  recortar(typeof entrada.descripcion === 'string' ? entrada.descripcion.trim() : '', MAX_LARGO_DE_LA_DESCRIPCION).trim();
+
 /** Lo que falta o sobra antes de enviar nada. Vacío = se puede pedir. */
 export const validarEntradaDelMundo3D = (entrada: EntradaDelMundo3D, cuenta: string): ProblemaDeEntrada[] => {
   const r = peticionDelMundo3D(entrada, cuenta);
@@ -258,6 +262,16 @@ export const errorDelMundo3D = (error: unknown): ErrorDelMundo3D | null => {
   if (codigoDeRed.includes('unavailable') || codigoDeRed.includes('internal')) return fallo('sin_conexion', 'weeai.errOffline', true);
   return fallo('desconocido', 'weeai.errGeneric', true);
 };
+
+/**
+ * ¿SE SABE CÓMO ACABÓ LO PEDIDO? Un error de red, uno sin código de Weë o un fallo genérico del motor NO lo dicen: la
+ * petición pudo llegar y el mundo estar en marcha. Ante uno de esos se pregunta por ESA petición y, mientras no se
+ * sepa, un reintento la vuelve a pedir con el MISMO requestId —el servidor la reconoce: UN REQUEST = UNA GENERACIÓN =
+ * UN COBRO—. `null` es la app cansada de esperar: tampoco se sabe. Los demás fallos son ciertos (no se reservó nada, o
+ * se devolvió) y un reintento es otra creación.
+ */
+export const esDesenlaceIncierto = (error: ErrorDelMundo3D | null): boolean =>
+  error === null || error.tipo === 'sin_conexion' || error.tipo === 'desconocido' || (error.tipo === 'reintentable' && error.clave === 'weeai.errGeneric');
 
 /* ── 5 · El ciclo de vida ─────────────────────────────────────────────────── */
 

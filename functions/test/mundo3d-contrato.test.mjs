@@ -105,6 +105,8 @@ seccion('B', () => {
     rechazos.every((x, i) => !x.ok && x.motivo === 'campo_desconocido' && x.campo === intrusos[i]), rechazos.map((x) => x.campo ?? x.motivo).join(','));
   const casos = [
     [con({ contract: '2.0' }), 'contrato_no_valido'],
+    [con({ contract: 1 }), 'contrato_no_valido'],
+    [con({ contract: '0.9' }), 'contrato_no_valido'],
     [con({ modo: 'desde_texto' }), 'modo_no_soportado'],
     [con({ imagen: undefined }), 'falta_imagen'],
     [con({ imagen: { tipo: 'storage', url: 'https://evil.test/foto.png' } }), 'imagen_sin_subir'],
@@ -122,6 +124,10 @@ seccion('B', () => {
   ];
   check('B2) y cada forma de equivocarse tiene su motivo: contrato, modo, foto ausente, de fuera, ajena (prefijo entero), material, texto, espacio, elementos, proyecto',
     casos.every(([x, m]) => !x.ok && x.motivo === m), casos.filter(([x, m]) => x.ok || x.motivo !== m).map(([x, m]) => `${m}≠${x.motivo}`).join(' '));
+  /* Revisión de arquitectura (2026-10-06): la versión se lee con la regla de siempre (`contratoCompatible`), no con «===». */
+  check('B2b) la versión de la petición se acepta si el servidor la ENTIENDE (mismo mayor, menor que no pase del suyo): un servidor 1.x sigue sirviendo a una app 1.0',
+    con({ contract: '1.0' }).ok && /!contratoCompatible\(MUNDO3D_CONTRACT_VERSION, crudo\.contract\)/.test(leer('functions/src/core/mundo3d.ts'))
+    && !/crudo\.contract !== MUNDO3D_CONTRACT_VERSION/.test(leer('functions/src/core/mundo3d.ts')) && C.TIPO_DE_MATERIAL_DEL_MUNDO === 'world');
   const material = C.leerPeticionDeMundo3D({ contract: '1.0', modo: 'desde_imagen', imagen: { tipo: 'material', assetId: ASSET } }, CUENTA);
   check('B3) una foto que ya es material de la cuenta viaja por su id, nunca por su dirección',
     material.ok && iguales(material.peticion.imagen, { tipo: 'material', assetId: ASSET }));

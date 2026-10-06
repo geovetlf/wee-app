@@ -394,6 +394,6 @@ export const studio: typeof import('../es/studio').studio = {
   worldGenerating: 'आपका 3D वर्ल्ड बन रहा है…',
   worldStopping: 'रोका जा रहा है…',
   worldStoppingNote: 'अगर रुकने से पहले 3D वर्ल्ड बन गया, तो वह आपकी रचनाओं में रहेगा और उसके Credits कटेंगे.',
-  worldCancelledNote: 'मैंने इसे बनाना रोक दिया और आपके Credits वापस कर दिए.',
+  worldCancelledNote: 'मैंने इसे बनाना रोक दिया. रिज़र्व किए गए Credits आपके बैलेंस में वापस आ जाएँगे.',
   worldUploadFailed: 'आपकी फ़ोटो अपलोड नहीं की जा सकी. फिर से कोशिश करें.',
 };
