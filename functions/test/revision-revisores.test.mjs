@@ -12,7 +12,12 @@
  *   4. los paquetes de contexto apuntan a documentos y secciones que EXISTEN (los opcionales pueden faltar);
  *   5. el selector, con un repositorio temporal: cambiados, importadores DIRECTOS (profundidad 1), zonas,
  *      revisores, secciones, presupuesto que LISTA lo que queda fuera, docs-solo y la caché;
- *   6. SABOTAJE: un selector que recorta en silencio hace fallar la comprobación.
+ *   6. SABOTAJE: un selector que recorta en silencio hace fallar la comprobación;
+ *   7. la caché lee la evidencia de un hallazgo de IA como lo que es, una LISTA (rúbrica común §7): todas sus
+ *      rutas, ninguna inventada, cada hallazgo solo en las entradas de su revisor y de sus archivos, los aciertos del
+ *      plan sin pisar, el mismo reparto en cualquier orden, y la orden avisa de lo que no guarda;
+ *   8. SABOTAJE: volver a leer la lista como un objeto (o solo su primer elemento, o deducir la ruta del id, o
+ *      mezclar revisores, o pisar los aciertos) hace fallar la comprobación correspondiente.
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -104,14 +109,16 @@ check('18) ALGORITHM-ENGINE.md entra solo por §§1-8 y 19-20 (no por §9 en ade
 
 /* ── 5. el selector, con un repositorio temporal ────────────────────────── */
 
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wee-rev-sel-'));
-temporales.push(dir);
-const git = (...args) => {
-  const r = spawnSync('git', ['-C', dir, '-c', 'core.autocrlf=false', '-c', 'user.email=revisor@wee.invalid', '-c', 'user.name=revisor', ...args], { encoding: 'utf8' });
+const gitEn = (d, ...args) => {
+  const r = spawnSync('git', ['-C', d, '-c', 'core.autocrlf=false', '-c', 'user.email=revisor@wee.invalid', '-c', 'user.name=revisor', ...args], { encoding: 'utf8' });
   if (r.status !== 0) throw new Error(`git ${args.join(' ')}: ${r.stderr}`);
   return r.stdout.trim();
 };
-const escribir = (m) => { for (const [r, t] of Object.entries(m)) { fs.mkdirSync(path.dirname(path.join(dir, r)), { recursive: true }); fs.writeFileSync(path.join(dir, r), t); } };
+const escribirEn = (d, m) => { for (const [r, t] of Object.entries(m)) { fs.mkdirSync(path.dirname(path.join(d, r)), { recursive: true }); fs.writeFileSync(path.join(d, r), t); } };
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wee-rev-sel-'));
+temporales.push(dir);
+const git = (...args) => gitEn(dir, ...args);
+const escribir = (m) => escribirEn(dir, m);
 escribir({
   'CLAUDE.md': '# Reglas\nTodo en español.\n',
   'docs/CTX.md': '# Contexto\n## 1. Uno\nuno\n## 2. Dos\ndos-secreto\n## 10. Diez\ndiez\n',
@@ -175,8 +182,10 @@ check('24) un documento opcional que no existe da un aviso y no rompe el plan', 
 check('25) con presupuesto de sobra, nada queda fuera', plan.fueraDelPresupuesto.length === 0 && plan.unidades.every((u) => u.dentro));
 check('26) con un presupuesto mínimo, lo que no cabe se LISTA (en el plan y en el resumen), nunca se recorta en silencio', pruebaPresupuesto(S));
 
-// Caché: registrar una revisión y volver a planificar.
-const resultados = [{ revisor: 'revisor-codigo', hallazgos: [{ id: 'ia-codigo/x/components/B.tsx#B', evidencia: { ruta: 'components/B.tsx', linea: 1 } }] }, { revisor: 'revisor-seguridad', hallazgos: [] }];
+// Caché: registrar una revisión y volver a planificar. La evidencia con la forma de la rúbrica común §7 (una LISTA):
+// esta prueba la escribía como objeto —la forma de los detectores— y por eso no vio que `--registrar` perdía los
+// hallazgos de verdad (sección 7).
+const resultados = [{ revisor: 'revisor-codigo', hallazgos: [{ id: 'ia-codigo/x/components/B.tsx#B', evidencia: [{ ruta: 'components/B.tsx', linea: 1 }] }] }, { revisor: 'revisor-seguridad', hallazgos: [] }];
 const escritos = S.registrar(dir, plan, resultados);
 const plan2 = S.planificar({ raiz: dir, base, paquetes: paquetesFixture, presupuesto: 300000, modelo: 'm1' });
 check('27) caché: lo registrado es un acierto en la siguiente pasada y no consume presupuesto',
@@ -239,6 +248,335 @@ const Sab = await importarDe(sab, 'ops/revision/selector.mjs');
 let r;
 try { r = pruebaPresupuesto(Sab); } catch { r = false; }
 check('35) SABOTAJE «el selector recorta en silencio lo que no cabe»: la comprobación FALLA', r === false);
+
+/* ── 7. la evidencia de un hallazgo de IA es una LISTA ──────────────────── */
+
+// Lo que vio el revisor de seguridad (ops/revision/informes/2026-10-06-gobernanza.md): la rúbrica común §7 pide
+// `evidencia: [{ ruta, linea, fragmento }]` y `--registrar` leía `h.evidencia?.ruta || h.ruta`. En una lista `.ruta`
+// no existe: el hallazgo no caía en ninguna entrada, la de su archivo se escribía VACÍA y la pasada siguiente daba el
+// archivo por revisado y limpio. Las comprobaciones son funciones del módulo para que el sabotaje (8) las vuelva a
+// correr con un selector roto a propósito.
+
+const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/** Un objeto como texto con las claves ordenadas: comparar no depende del orden en que se llenó. */
+const canon = (o) => JSON.stringify(Object.keys(o || {}).sort().map((k) => [k, o[k]]));
+
+/** Copia de ops/revision con el selector cambiado a propósito; node_modules por unión para resolver typescript. */
+const selectorSaboteado = (pares) => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'wee-rev-sab-'));
+  temporales.push(d);
+  const destino = path.join(d, 'ops/revision');
+  fs.mkdirSync(destino, { recursive: true });
+  for (const f of fs.readdirSync(path.join(RAIZ, 'ops/revision'))) if (f.endsWith('.mjs')) fs.copyFileSync(path.join(RAIZ, 'ops/revision', f), path.join(destino, f));
+  fs.symlinkSync(path.join(RAIZ, 'node_modules'), path.join(d, 'node_modules'), 'junction');
+  let t = fs.readFileSync(path.join(destino, 'selector.mjs'), 'utf8');
+  for (const [a, b] of pares) {
+    if (!t.includes(a)) throw new Error(`el sabotaje no encontró en selector.mjs: ${a}`);
+    t = t.replace(a, b);
+  }
+  fs.writeFileSync(path.join(destino, 'selector.mjs'), t);
+  return importarDe(d, 'ops/revision/selector.mjs');
+};
+
+const RUTA_B = 'components/B.tsx';
+const RUTA_MOTOR = 'functions/src/credits/motor.ts';
+const conLista = { id: `ia-codigo/x/${RUTA_B}#B`, regla: 'ia-codigo/x', evidencia: [{ ruta: RUTA_B, linea: 1, fragmento: 'export const B = 2;' }] };
+
+/** Un repositorio nuevo donde cambiaron B y el motor de Credits (A importa B): el plan tiene 3 unidades con caché. */
+const repoDeCache = (M) => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'wee-rev-cache-'));
+  temporales.push(d);
+  escribirEn(d, {
+    'CLAUDE.md': '# Reglas\n',
+    'docs/CTX.md': '# Contexto\n## 1. Uno\nuno\n## 10. Diez\ndiez\n',
+    'components/A.tsx': "import { B } from './B';\nexport const A = B;\n",
+    [RUTA_B]: 'export const B = 1;\n',
+    [RUTA_MOTOR]: 'export const cobrar = () => 1;\n',
+    'ops/revision/rubricas/comun.md': '# común\n',
+    'ops/revision/rubricas/codigo.md': '# código\n',
+    'ops/revision/rubricas/seguridad.md': '# seguridad\n',
+    'ops/revision/rubricas/arquitectura.md': '# arquitectura\n',
+  });
+  gitEn(d, 'init', '-q');
+  gitEn(d, 'add', '-A');
+  gitEn(d, 'commit', '-q', '-m', 'base');
+  const baseDeCache = gitEn(d, 'rev-parse', 'HEAD');
+  escribirEn(d, { [RUTA_B]: 'export const B = 2;\n', [RUTA_MOTOR]: 'export const cobrar = () => 2;\n' });
+  return { dir: d, base: baseDeCache, plan: M.planificar({ raiz: d, base: baseDeCache, paquetes: paquetesFixture, presupuesto: 300000, modelo: 'm1' }) };
+};
+// Una sola vez: su plan es la entrada de todos los ensayos (las claves salen del contenido, no de la carpeta, así
+// que valen en cualquier copia). Lo que vuelve a planificar trabaja en una copia propia; lo demás, en una carpeta vacía.
+const REPO_DE_CACHE = repoDeCache(S);
+const PLAN_DE_CACHE = REPO_DE_CACHE.plan;
+/** Una copia del repositorio de la caché (sin caché), con su `planificar` hecho por el módulo M. */
+const copiaDelRepo = (M) => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'wee-rev-cache-'));
+  temporales.push(d);
+  fs.cpSync(REPO_DE_CACHE.dir, d, { recursive: true });
+  return { dir: d, planificar: () => M.planificar({ raiz: d, base: REPO_DE_CACHE.base, paquetes: paquetesFixture, presupuesto: 300000, modelo: 'm1' }) };
+};
+
+/** Lo que hay en la caché de un repositorio: las entradas tal cual y «revisor|ruta» → ids ordenados. */
+const leerCache = (d) => {
+  const c = path.join(d, 'ops/revision/.cache');
+  const entradas = fs.existsSync(c) ? fs.readdirSync(c).sort().map((f) => ({ archivo: f, ...JSON.parse(fs.readFileSync(path.join(c, f), 'utf8')) })) : [];
+  return { entradas, porUnidad: Object.fromEntries(entradas.map((e) => [`${e.revisor}|${e.ruta}`, e.hallazgos.map((h) => h?.id).sort()])) };
+};
+
+const ID = {
+  unaRuta: `ia-codigo/una-ruta/${RUTA_B}#B`,
+  dosArchivos: `ia-codigo/dos-archivos/${RUTA_MOTOR}#cobrar`,
+  sinRuta: `ia-codigo/sin-ruta/${RUTA_B}#B`,
+  listaVacia: `ia-codigo/lista-vacia/${RUTA_B}#B`,
+  mezcla: `ia-codigo/mezcla/${RUTA_B}#B`,
+  mismoArchivo: `ia-codigo/mismo-archivo/${RUTA_B}#B`,
+  inexistente: 'ia-codigo/inexistente/components/NO-EXISTE.tsx#X',
+  importador: 'ia-codigo/importador/components/A.tsx#A',
+  objetoDeAntes: `ia-codigo/objeto-de-antes/${RUTA_MOTOR}#cobrar`,
+  rutaArriba: `ia-codigo/ruta-arriba/${RUTA_MOTOR}#cobrar`,
+  dinero: `ia-seguridad/dinero/${RUTA_MOTOR}#cobrar`,
+  deOtro: `ia-seguridad/de-otro/${RUTA_B}#B`,
+};
+const hallazgoIA = (id, extra) => ({ id, regla: id.split('/').slice(0, 2).join('/'), estadoCandidato: 'NUEVO', severidad: 'media', titulo: 'prueba', ...extra });
+/** La salida de dos revisores con la forma de la rúbrica común §7, con cada caso de evidencia. */
+const revisionDePrueba = () => [
+  {
+    revisor: 'revisor-codigo', plan: 'plan.json', revisado: [RUTA_B, RUTA_MOTOR], noRevisado: [], preguntas: [],
+    hallazgos: [
+      hallazgoIA(ID.unaRuta, { evidencia: [{ ruta: RUTA_B, linea: 1, fragmento: 'export const B = 2;' }] }),
+      hallazgoIA(ID.dosArchivos, { evidencia: [{ ruta: RUTA_MOTOR, linea: 1 }, { ruta: RUTA_B, linea: 1 }] }),
+      hallazgoIA(ID.sinRuta, { evidencia: [{ mensaje: 'el fallo es de diseño, no de una línea' }, { simbolo: 'B' }] }),
+      hallazgoIA(ID.listaVacia, { evidencia: [] }),
+      hallazgoIA(ID.mezcla, { evidencia: [{ ruta: 'components/NO-EXISTE.tsx', linea: 3 }, { simbolo: 'B' }, { ruta: '' }, null, { ruta: RUTA_B, linea: 1 }] }),
+      hallazgoIA(ID.mismoArchivo, { evidencia: [{ ruta: RUTA_B, linea: 1 }, { ruta: `./${RUTA_B}`, linea: 1 }, { ruta: RUTA_B, linea: 1, fragmento: 'otra vez' }] }),
+      hallazgoIA(ID.inexistente, { evidencia: [{ ruta: 'components/NO-EXISTE.tsx', linea: 1 }] }),
+      hallazgoIA(ID.importador, { evidencia: [{ ruta: 'components/A.tsx', linea: 1 }] }),
+      hallazgoIA(ID.objetoDeAntes, { evidencia: { ruta: RUTA_MOTOR, linea: 1 } }),
+      hallazgoIA(ID.rutaArriba, { ruta: RUTA_MOTOR, evidencia: [{ simbolo: 'cobrar' }] }),
+    ],
+  },
+  {
+    revisor: 'revisor-seguridad', plan: 'plan.json', revisado: [RUTA_MOTOR], noRevisado: [], preguntas: [],
+    hallazgos: [
+      hallazgoIA(ID.dinero, { evidencia: [{ ruta: RUTA_MOTOR, linea: 1 }] }),
+      hallazgoIA(ID.deOtro, { evidencia: [{ ruta: RUTA_B, linea: 1 }] }),
+    ],
+  },
+];
+/** Dónde tiene que quedar cada hallazgo: «revisor|archivo» → ids. Y lo que no cae en ninguna entrada. */
+const ESPERADO = {
+  [`revisor-codigo|${RUTA_B}`]: [ID.unaRuta, ID.dosArchivos, ID.mezcla, ID.mismoArchivo].sort(),
+  [`revisor-codigo|${RUTA_MOTOR}`]: [ID.dosArchivos, ID.objetoDeAntes, ID.rutaArriba].sort(),
+  [`revisor-seguridad|${RUTA_MOTOR}`]: [ID.dinero],
+};
+const SIN_ENTRADA = [ID.sinRuta, ID.listaVacia, ID.inexistente, ID.importador, ID.deOtro].sort();
+
+/** Reparte y registra con el módulo M, con el plan de la caché, en una carpeta nueva; y lee lo que quedó en la caché. */
+const ensayoDeCache = (M, revision = revisionDePrueba()) => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'wee-rev-cache-'));
+  temporales.push(d);
+  const reparto = M.repartirHallazgos(PLAN_DE_CACHE, revision);
+  const escritos = M.registrar(d, PLAN_DE_CACHE, revision);
+  return { dir: d, plan: PLAN_DE_CACHE, revision, reparto, escritos, cache: leerCache(d) };
+};
+const unidadDe = (p, revisorDeLaUnidad, ruta) => p.unidades.find((u) => u.tipo === 'archivo' && u.revisor === revisorDeLaUnidad && u.ruta === ruta);
+
+/** Las rutas de un hallazgo, sin repositorio. */
+const pe = {
+  despues: (M) => igual(M.rutasDeHallazgo(conLista), [RUTA_B]),
+  unaRuta: (M) => igual(M.rutasDeHallazgo({ evidencia: [{ ruta: 'a.ts', linea: 1, fragmento: 'x' }] }), ['a.ts']),
+  variasRutas: (M) => igual(M.rutasDeHallazgo({ evidencia: [{ ruta: 'b.ts', linea: 2 }, { ruta: 'a.ts', linea: 1 }] }), ['a.ts', 'b.ts']),
+  // Ninguna ruta: tampoco la que va dentro del id (`<dominio>/<regla>/<ruta>#<ancla>`), que no es evidencia.
+  sinRuta: (M) => [
+    { evidencia: [{ mensaje: 'el fallo es de diseño' }] },
+    { evidencia: [{ simbolo: 'cobrar', linea: 3, fragmento: 'cobrar()' }] },
+    { id: `ia-codigo/x/${RUTA_B}#B`, evidencia: [{ ruta: '' }, { ruta: '   ' }, { ruta: null }, { ruta: 42 }, { ruta: [RUTA_B] }] },
+  ].every((h) => igual(M.rutasDeHallazgo(h), [])),
+  vacia: (M) => [{ evidencia: [] }, {}, { evidencia: null }, { id: `ia-codigo/x/${RUTA_B}#B`, evidencia: [] }, null, RUTA_B]
+    .every((h) => igual(M.rutasDeHallazgo(h), [])),
+  mezcla: (M) => igual(M.rutasDeHallazgo({ evidencia: [{ ruta: 'b.ts', linea: 2 }, { mensaje: 'x' }, null, 'c.ts', { ruta: '' }, { ruta: 7 }, { simbolo: 's' }, { ruta: 'a.ts' }] }), ['a.ts', 'b.ts']),
+  mismoArchivo: (M) => {
+    const evidencia = [{ ruta: 'a.ts', linea: 1 }, { ruta: 'b.ts', linea: 5 }, { ruta: 'a.ts', linea: 9 }, { ruta: './a.ts' }];
+    return igual(M.rutasDeHallazgo({ evidencia }), ['a.ts', 'b.ts']) && igual(M.rutasDeHallazgo({ evidencia: [...evidencia].reverse() }), ['a.ts', 'b.ts']);
+  },
+  objetoDeAntes: (M) => igual(M.rutasDeHallazgo({ evidencia: { ruta: 'a.ts', linea: 1, fragmento: 'x' } }), ['a.ts']),
+  rutaArriba: (M) => igual(M.rutasDeHallazgo({ ruta: 'a.ts' }), ['a.ts'])
+    && igual(M.rutasDeHallazgo({ ruta: 'c.ts', evidencia: [{ ruta: 'b.ts' }, { simbolo: 'x' }] }), ['b.ts', 'c.ts'])
+    && igual(M.rutasDeHallazgo({ ruta: 'a.ts', evidencia: [{ ruta: 'a.ts', linea: 4 }] }), ['a.ts']),
+  normaliza: (M) => igual(M.rutasDeHallazgo({ evidencia: [{ ruta: ` ./${RUTA_B} ` }, { ruta: 'functions\\src\\x.ts' }] }), [RUTA_B, 'functions/src/x.ts']),
+};
+
+/** El registro en la caché, con el plan de un repositorio de verdad (y una copia suya donde hay que volver a planificar). */
+const pc = {
+  despues: (M) => {
+    const e = ensayoDeCache(M, [{ revisor: 'revisor-codigo', hallazgos: [conLista] }]);
+    const entrada = e.cache.entradas.find((x) => x.revisor === 'revisor-codigo' && x.ruta === RUTA_B);
+    return Boolean(entrada) && entrada.hallazgos.length === 1 && igual(entrada.hallazgos[0], conLista);
+  },
+  registro: (M) => {
+    const e = ensayoDeCache(M);
+    const claves = new Set(e.plan.unidades.filter((u) => u.tipo === 'archivo' && u.clave).map((u) => `${u.clave}.json`));
+    return e.escritos === 3 && e.cache.entradas.length === 3 && e.cache.entradas.every((x) => claves.has(x.archivo) && x.archivo === `${x.clave}.json`)
+      && canon(e.cache.porUnidad) === canon(ESPERADO);
+  },
+  variosArchivos: (M) => {
+    const { porUnidad, entradas } = ensayoDeCache(M).cache;
+    const enB = entradas.find((x) => x.revisor === 'revisor-codigo' && x.ruta === RUTA_B);
+    return (porUnidad[`revisor-codigo|${RUTA_B}`] || []).includes(ID.dosArchivos) && (porUnidad[`revisor-codigo|${RUTA_MOTOR}`] || []).includes(ID.dosArchivos)
+      && Boolean(enB) && enB.hallazgos.filter((h) => h.id === ID.mismoArchivo).length === 1;
+  },
+  rutaCorrecta: (M) => {
+    const { porUnidad } = ensayoDeCache(M).cache;
+    const enCodigoB = porUnidad[`revisor-codigo|${RUTA_B}`] || [];
+    return !enCodigoB.includes(ID.deOtro) && !enCodigoB.includes(ID.objetoDeAntes) && !(porUnidad[`revisor-codigo|${RUTA_MOTOR}`] || []).includes(ID.unaRuta)
+      && igual(porUnidad[`revisor-seguridad|${RUTA_MOTOR}`], [ID.dinero]);
+  },
+  sinInexistentes: (M) => {
+    const e = ensayoDeCache(M);
+    const rutas = new Set(e.cache.entradas.map((x) => x.ruta));
+    const sin = new Map(e.reparto.sinEntrada.map((s) => [s.id, s]));
+    return e.cache.entradas.length === 3 && !rutas.has('components/NO-EXISTE.tsx') && !rutas.has('components/A.tsx')
+      && igual(sin.get(ID.inexistente)?.rutas, ['components/NO-EXISTE.tsx']) && igual(sin.get(ID.importador)?.rutas, ['components/A.tsx'])
+      && (e.cache.porUnidad[`revisor-codigo|${RUTA_B}`] || []).includes(ID.mezcla) && !sin.has(ID.mezcla);
+  },
+  sinRuta: (M) => {
+    const e = ensayoDeCache(M);
+    const sin = new Map(e.reparto.sinEntrada.map((s) => [s.id, s]));
+    const enAlguna = (id) => Object.values(e.cache.porUnidad).some((ids) => ids.includes(id));
+    return [ID.sinRuta, ID.listaVacia].every((id) => !enAlguna(id) && igual(sin.get(id)?.rutas, []) && /no se inventa/.test(sin.get(id)?.motivo || ''))
+      && igual(e.reparto.sinEntrada.map((s) => s.id).sort(), SIN_ENTRADA);
+  },
+  idsEstables: (M) => {
+    const e = ensayoDeCache(M);
+    const original = new Map(e.revision.flatMap((x) => x.hallazgos).map((h) => [h.id, h]));
+    const guardados = e.cache.entradas.flatMap((x) => x.hallazgos);
+    return guardados.length === 8 && guardados.every((h) => igual(h, original.get(h.id)))
+      && guardados.filter((h) => h.id !== ID.objetoDeAntes).every((h) => Array.isArray(h.evidencia));
+  },
+  acierto: (M) => {
+    const copia = copiaDelRepo(M);
+    M.registrar(copia.dir, PLAN_DE_CACHE, revisionDePrueba());
+    const p2 = copia.planificar();
+    const aciertos = p2.unidades.filter((u) => u.enCache);
+    const leida = (u) => JSON.parse(fs.readFileSync(path.join(copia.dir, 'ops/revision/.cache', `${u.clave}.json`), 'utf8'));
+    return p2.cache.aciertos === 3 && p2.cache.fallos === 0 && aciertos.every((u) => u.tokens === 0 && u.tokensSinCache > 0)
+      && aciertos.every((u) => igual(leida(u).hallazgos.map((h) => h.id).sort(), ESPERADO[`${u.revisor}|${u.ruta}`]));
+  },
+  invalidacion: (M) => {
+    const copia = copiaDelRepo(M);
+    M.registrar(copia.dir, PLAN_DE_CACHE, revisionDePrueba());
+    escribirEn(copia.dir, { [RUTA_B]: 'export const B = 3;\n' });
+    const p3 = copia.planificar();
+    return unidadDe(p3, 'revisor-codigo', RUTA_B).clave !== unidadDe(PLAN_DE_CACHE, 'revisor-codigo', RUTA_B).clave && !unidadDe(p3, 'revisor-codigo', RUTA_B).enCache
+      && unidadDe(p3, 'revisor-codigo', RUTA_MOTOR).enCache && unidadDe(p3, 'revisor-seguridad', RUTA_MOTOR).enCache
+      && p3.cache.aciertos === 2 && p3.cache.fallos === 1;
+  },
+  reRegistro: (M) => {
+    const copia = copiaDelRepo(M);
+    M.registrar(copia.dir, PLAN_DE_CACHE, revisionDePrueba());
+    const p2 = copia.planificar();
+    // La pasada siguiente: todo acierta, los revisores no vuelven a revisar nada y devuelven sus listas vacías.
+    const escritos = M.registrar(copia.dir, p2, [{ revisor: 'revisor-codigo', hallazgos: [] }, { revisor: 'revisor-seguridad', hallazgos: [] }]);
+    return p2.cache.aciertos === 3 && escritos === 0 && canon(leerCache(copia.dir).porUnidad) === canon(ESPERADO);
+  },
+  determinismo: (M) => {
+    const e = ensayoDeCache(M);
+    const alReves = revisionDePrueba().reverse().map((x) => ({
+      ...x, hallazgos: [...x.hallazgos].reverse().map((h) => (Array.isArray(h.evidencia) ? { ...h, evidencia: [...h.evidencia].reverse() } : h)),
+    }));
+    const resumen = (rep) => canon(Object.fromEntries(rep.entradas.map((x) => [`${x.unidad.revisor}|${x.unidad.ruta}`, x.hallazgos.map((h) => h.id).sort()])));
+    const otro = M.repartirHallazgos(e.plan, alReves);
+    return resumen(otro) === resumen(e.reparto) && resumen(e.reparto) === canon(ESPERADO)
+      && igual(otro.sinEntrada.map((s) => s.id).sort(), e.reparto.sinEntrada.map((s) => s.id).sort());
+  },
+  malformado: (M) => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'wee-rev-cache-'));
+    temporales.push(d);
+    const rechaza = (resultados) => {
+      try { M.registrar(d, PLAN_DE_CACHE, resultados); return false; } catch { return true; }
+    };
+    return rechaza([{ revisor: 'revisor-codigo' }]) && rechaza({ revisor: 'revisor-codigo', hallazgos: { id: 'x' } }) && rechaza([null])
+      && !fs.existsSync(path.join(d, 'ops/revision/.cache'));
+  },
+};
+
+const FILTRO_DE_HOY = '.filter((h) => rutasDeHallazgo(h).includes(u.ruta))';
+const FILTRO_VIEJO = '.filter((h) => (h.evidencia?.ruta || h.ruta) === u.ruta)';
+const Viejo = await selectorSaboteado([[FILTRO_DE_HOY, FILTRO_VIEJO]]);
+const repoAntes = copiaDelRepo(Viejo);
+Viejo.registrar(repoAntes.dir, PLAN_DE_CACHE, [{ revisor: 'revisor-codigo', hallazgos: [conLista] }]);
+const entradaAntes = leerCache(repoAntes.dir).entradas.find((x) => x.revisor === 'revisor-codigo' && x.ruta === RUTA_B);
+const unidadAntes = unidadDe(repoAntes.planificar(), 'revisor-codigo', RUTA_B);
+check('36) ANTES, el fallo tal cual: con `evidencia` como LISTA, `evidencia.ruta` es undefined; con la línea vieja del registro el hallazgo no cae en la entrada de su archivo, que se escribe VACÍA, y la pasada siguiente la da por revisada (acierto)',
+  Array.isArray(conLista.evidencia) && conLista.evidencia.ruta === undefined && (conLista.evidencia?.ruta || conLista.ruta) === undefined
+  && Boolean(entradaAntes) && entradaAntes.hallazgos.length === 0 && Boolean(unidadAntes?.enCache));
+check('37) DESPUÉS: la ruta sale de los ELEMENTOS de la lista, y la entrada de su archivo guarda el hallazgo tal cual', pe.despues(S) && pc.despues(S));
+check('38) evidencia con una ruta → ese archivo', pe.unaRuta(S));
+check('39) evidencia con varias rutas → todas, ordenadas', pe.variasRutas(S));
+check('40) evidencia sin ruta (un mensaje, un símbolo, rutas vacías o que no son texto) → ninguna; tampoco la del id: no se inventa', pe.sinRuta(S));
+check('41) lista vacía, sin evidencia o evidencia null → ninguna', pe.vacia(S));
+check('42) evidencia mezclada → solo las rutas válidas', pe.mezcla(S));
+check('43) varias evidencias del mismo archivo → una vez; y el orden de la lista no cambia nada', pe.mismoArchivo(S));
+check('44) las formas de antes siguen valiendo: `evidencia` como objeto y una `ruta` arriba (sumada a la lista)', pe.objetoDeAntes(S) && pe.rutaArriba(S));
+check('45) la ruta se lee con la forma del plan: sin espacios alrededor, sin `./` delante y con `/`', pe.normaliza(S));
+check('46) registro: una entrada por revisor y archivo del plan, cada una con los hallazgos cuya evidencia nombra su archivo', pc.registro(S));
+check('47) un hallazgo con varios archivos queda en la entrada de cada uno, y una sola vez aunque nombre el mismo archivo tres veces', pc.variosArchivos(S));
+check('48) la ruta correcta: cada hallazgo solo en las entradas de SU revisor y de SUS archivos', pc.rutaCorrecta(S));
+check('49) ninguna ruta inexistente: ni entrada para lo que no es un archivo del plan (inexistente, importador), ni hallazgo mezclado fuera del suyo', pc.sinInexistentes(S));
+check('50) un hallazgo sin ruta no queda en ninguna entrada ni se le inventa una: sale en sinEntrada con su motivo', pc.sinRuta(S));
+check('51) ids estables: lo guardado es el hallazgo tal cual (mismo id, la evidencia sigue siendo una lista)', pc.idsEstables(S));
+check('52) acierto: la pasada siguiente acierta las 3 entradas, sin gastar presupuesto, y cada una devuelve sus hallazgos', pc.acierto(S));
+check('53) invalidación: cambiar B cambia su clave (fallo) y deja acertar las demás', pc.invalidacion(S));
+check('54) volver a registrar con un plan de aciertos no pisa sus entradas (antes las dejaba vacías)', pc.reRegistro(S));
+check('55) determinista: con los hallazgos y sus evidencias en otro orden, el mismo reparto', pc.determinismo(S));
+check('56) un resultado sin su lista de hallazgos se rechaza antes de escribir nada (no deja entradas «limpias»)', pc.malformado(S));
+
+const repoCli = copiaDelRepo(S);
+const planDeCli = path.join(repoCli.dir, 'plan.json');
+fs.writeFileSync(planDeCli, JSON.stringify(PLAN_DE_CACHE));
+const [iaCodigo, iaSeguridad] = revisionDePrueba();
+fs.writeFileSync(path.join(repoCli.dir, 'ia-revisor-codigo.json'), JSON.stringify(iaCodigo));
+fs.writeFileSync(path.join(repoCli.dir, 'ia-revisor-seguridad.json'), JSON.stringify(iaSeguridad));
+const registrarPorCli = (planJson, archivo) => spawnSync(process.execPath, [path.join(RAIZ, 'ops/revision/selector.mjs'), '--raiz', repoCli.dir, '--registrar', planJson, path.join(repoCli.dir, archivo)], { encoding: 'utf8', timeout: 120000 });
+const cliCodigo = registrarPorCli(planDeCli, 'ia-revisor-codigo.json');
+const cliSeguridad = registrarPorCli(planDeCli, 'ia-revisor-seguridad.json');
+const planDeAciertos = path.join(repoCli.dir, 'plan-2.json');
+fs.writeFileSync(planDeAciertos, JSON.stringify(repoCli.planificar()));
+fs.writeFileSync(path.join(repoCli.dir, 'ia-vacio.json'), JSON.stringify({ revisor: 'revisor-codigo', hallazgos: [] }));
+const cliAciertos = registrarPorCli(planDeAciertos, 'ia-vacio.json');
+check('57) la CLI `--registrar`, una vez por revisor (G6): escribe sus entradas, sale con 0, AVISA con id y motivo de cada hallazgo que no guarda y conserva los aciertos',
+  cliCodigo.status === 0 && cliSeguridad.status === 0 && cliAciertos.status === 0
+  && /Caché: 2 entradas escritas/.test(cliCodigo.stdout) && /aviso: 4 hallazgos quedan fuera de la caché/.test(cliCodigo.stdout)
+  && [ID.sinRuta, ID.listaVacia, ID.inexistente, ID.importador].every((id) => cliCodigo.stdout.includes(id))
+  && /Caché: 1 entradas escritas/.test(cliSeguridad.stdout) && /aviso: 1 hallazgo queda fuera de la caché/.test(cliSeguridad.stdout) && cliSeguridad.stdout.includes(ID.deOtro)
+  && /Caché: 0 entradas escritas .*3 aciertos del plan se conservan sin tocar/.test(cliAciertos.stdout) && !/aviso/.test(cliAciertos.stdout)
+  && canon(leerCache(repoCli.dir).porUnidad) === canon(ESPERADO),
+  [cliCodigo, cliSeguridad, cliAciertos].map((x) => x.stdout + x.stderr).join('\n'));
+
+/* ── 8. SABOTAJE de la evidencia ────────────────────────────────────────── */
+
+const EVIDENCIAS = 'const evidencias = Array.isArray(h.evidencia) ? h.evidencia : [h.evidencia];';
+const sabotajesDeEvidencia = [
+  ['vuelve la línea vieja del registro: `(h.evidencia?.ruta || h.ruta) === u.ruta`', [[FILTRO_DE_HOY, FILTRO_VIEJO]], pc.registro],
+  ['la lista de evidencias se lee como un objeto', [[EVIDENCIAS, 'const evidencias = [h.evidencia];']], pe.despues],
+  ['solo cuenta la primera evidencia', [[EVIDENCIAS, 'const evidencias = Array.isArray(h.evidencia) ? h.evidencia.slice(0, 1) : [h.evidencia];']], pe.variasRutas],
+  ['…y el registro deja de ver el segundo archivo', [[EVIDENCIAS, 'const evidencias = Array.isArray(h.evidencia) ? h.evidencia.slice(0, 1) : [h.evidencia];']], pc.variosArchivos],
+  ['se olvida la evidencia como objeto', [[EVIDENCIAS, 'const evidencias = Array.isArray(h.evidencia) ? h.evidencia : [];']], pe.objetoDeAntes],
+  ['se olvida la `ruta` de arriba', [['[...evidencias.map((e) => e?.ruta), h.ruta]', '[...evidencias.map((e) => e?.ruta)]']], pe.rutaArriba],
+  ['se deduce la ruta del id cuando la evidencia no trae ninguna', [['return [...new Set(rutas)].sort();', "return [...new Set(rutas.length ? rutas : [String(h.id || '').split('#')[0].split('/').slice(2).join('/')].filter(Boolean))].sort();"]], pc.sinRuta],
+  ['la caché mezcla revisores', [['const delRevisor = lista.filter((r) => r.revisor === u.revisor);', 'const delRevisor = lista;']], pc.rutaCorrecta],
+  ['volver a registrar pisa los aciertos', [["x.tipo === 'archivo' && x.clave && x.dentro && !x.enCache", "x.tipo === 'archivo' && x.clave && x.dentro"]], pc.reRegistro],
+  ['un resultado sin lista de hallazgos pasa como limpio', [['!Array.isArray(r.hallazgos)) {', 'false) {'], ['delRevisor.flatMap((r) => r.hallazgos)', 'delRevisor.flatMap((r) => r.hallazgos || [])'], ['lista.flatMap((r) => r.hallazgos.filter(', 'lista.flatMap((r) => (r.hallazgos || []).filter(']], pc.malformado],
+];
+for (const [nombre, pares, prueba] of sabotajesDeEvidencia) {
+  const M = await selectorSaboteado(pares);
+  let res;
+  try { res = prueba(M); } catch { res = false; }
+  check(`58) SABOTAJE «${nombre}»: la comprobación correspondiente FALLA`, res === false);
+}
+// Y el selector bueno sigue pasando todas las comprobaciones de la sección 7 después de los sabotajes.
+const fallidasTrasSabotaje = [...Object.entries(pe), ...Object.entries(pc)].filter(([, prueba]) => !prueba(S)).map(([n]) => n);
+check('59) tras los sabotajes, el selector bueno sigue pasando todas las comprobaciones de la evidencia', fallidasTrasSabotaje.length === 0, fallidasTrasSabotaje.join(', '));
 
 for (const d of temporales) {
   try { fs.unlinkSync(path.join(d, 'node_modules')); } catch { /* no había unión */ }

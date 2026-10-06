@@ -108,7 +108,11 @@ El informe queda en `ops/revision/informes/<fecha>-<fase>.{json,md}`; los interm
   los importadores. Lo que no cabe se LISTA (`fueraDelPresupuesto` y el resumen): nunca hay recorte silencioso.
 - **Caché** (`ops/revision/.cache/`, ignorada por git): clave = sha256(versión de las rúbricas y de las reglas +
   hash del archivo + hash del paquete de contexto + modelo). Cualquier cambio en uno de los cuatro invalida la
-  entrada; `selector.mjs --registrar` guarda los hallazgos de una revisión hecha.
+  entrada; `selector.mjs --registrar` guarda los hallazgos de una revisión hecha, cada uno en la entrada de cada
+  archivo que nombre su `evidencia` (la LISTA de la rúbrica común §7: todos sus elementos, no el primero; también
+  las formas de antes, un objeto o una `ruta` arriba). No reescribe las entradas que el plan ya traía como aciertos,
+  no inventa rutas y rechaza un resultado sin su lista de `hallazgos`; lo que no nombra ningún archivo por registrar
+  no se guarda, y la orden lo avisa con su id y su motivo para que vaya al informe tal cual.
 - **Revisión completa** (todas las zonas, sin caché, presupuesto ampliado con permiso): la baseline inicial, la
   integración de una rama a `main`, antes del primer release y en un barrido periódico de las zonas rojas
   (reglas, dinero, puertas, entrega).
