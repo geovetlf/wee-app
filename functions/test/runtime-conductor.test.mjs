@@ -547,17 +547,20 @@ console.log('\n── J · Observabilidad ──');
 console.log('\n── K · La puerta: CORE o LEGACY, y volver atrás con un booleano ──');
 {
   const ctx = { capability: 'text.generate', userId: 'user-0001', experienceId: 'brain' };
-  const abierta = { habilitado: true, capacidades: ['text.generate'] };
+  /* Desde el 2026-10-06, cada capacidad con SU lista de cuentas (`porCapacidad`): la del texto no abre nada más. */
+  const conCuentas = (cuentas, extra = {}) => ({ habilitado: true, porCapacidad: { 'text.generate': { cuentas, ...extra } } });
+  const abierta = conCuentas(['user-0001']);
   check('CERRADA POR DEFECTO: sin configuración, por donde siempre', decidirRuntime(undefined, ctx).runtime === 'legacy' && decidirRuntime(null, ctx).runtime === 'legacy' && PUERTA_CERRADA.habilitado === false);
-  check('una configuración que no se entiende NO abre nada', ['si', 42, [], { habilitado: 'true', capacidades: [] }, { habilitado: true }, { habilitado: true, capacidades: ['TEXT GENERATE'] }, { habilitado: true, capacidades: ['text.generate'], cuentas: [7] }]
+  check('una configuración que no se entiende NO abre nada', ['si', 42, [], { habilitado: 'true', porCapacidad: {} }, { habilitado: true, porCapacidad: { 'TEXT GENERATE': { cuentas: ['user-0001'] } } }, conCuentas([7]), { habilitado: true, capacidades: ['text.generate'] }]
     .every((c) => decidirRuntime(c, ctx).runtime === 'legacy'));
-  check('abierta para una capacidad: esa va por el Core', decidirRuntime(abierta, ctx).runtime === 'core');
+  check('abierta para una capacidad y una cuenta nombrada: esa va por el Core', decidirRuntime(abierta, ctx).runtime === 'core');
   check('y las demás siguen por donde siempre', decidirRuntime(abierta, { ...ctx, capability: 'video.generate' }).motivo === 'capacidad_no_migrada');
-  check('con lista de cuentas, SOLO esas: así se prueba en producción sin usar a nadie de sujeto', decidirRuntime({ ...abierta, cuentas: ['cuenta-de-prueba'] }, ctx).motivo === 'cuenta_fuera_de_la_prueba' && decidirRuntime({ ...abierta, cuentas: ['user-0001'] }, ctx).runtime === 'core');
-  check('y con lista de productos, solo esos', decidirRuntime({ ...abierta, experiencias: ['studio'] }, ctx).motivo === 'experiencia_no_migrada');
-  check('VOLVER ATRÁS ES UN BOOLEANO: `habilitado: false` manda sobre todo lo demás', decidirRuntime({ ...abierta, habilitado: false, cuentas: ['user-0001'] }, ctx).runtime === 'legacy');
+  check('con lista de cuentas, SOLO esas: así se prueba en producción sin usar a nadie de sujeto', decidirRuntime(conCuentas(['cuenta-de-prueba']), ctx).motivo === 'cuenta_fuera_de_la_prueba' && decidirRuntime(abierta, ctx).runtime === 'core');
+  check('y sin lista, o con la lista vacía, NADIE: la lista es obligatoria', decidirRuntime({ habilitado: true, porCapacidad: { 'text.generate': {} } }, ctx).motivo === 'sin_lista_de_cuentas' && decidirRuntime(conCuentas([]), ctx).motivo === 'sin_lista_de_cuentas');
+  check('y con lista de productos, solo esos', decidirRuntime(conCuentas(['user-0001'], { experiencias: ['studio'] }), ctx).motivo === 'experiencia_no_migrada');
+  check('VOLVER ATRÁS ES UN BOOLEANO: `habilitado: false` manda sobre todo lo demás', decidirRuntime({ ...abierta, habilitado: false }, ctx).runtime === 'legacy');
   check('la puerta no decide ni proveedor, ni modelo, ni precio', !/provider|model|credit|price|usd/i.test(sinComentarios(leer('functions/src/runtime/puerta.ts'))));
-  check('y leerla es estricto: no «limpia» una lista rara, descarta la configuración entera', leerPuerta({ habilitado: true, capacidades: ['text.generate', 7] }).ok === false);
+  check('y leerla es estricto: no «limpia» una lista rara, descarta la configuración entera', leerPuerta(conCuentas(['user-0001', 7])).ok === false);
 }
 
 /* ── L · Estructura ────────────────────────────────────────────────────────── */

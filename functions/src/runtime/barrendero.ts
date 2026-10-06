@@ -148,9 +148,10 @@ export const barrerLiquidaciones = async (deps: BarrenderoDeps): Promise<Informe
         continue;
       }
 
+      /* Con el trabajo leído: de él salen los desenlaces de lo que el proveedor aceptó, que se cierran antes que el dinero. */
       const resultado = accion.tipo === 'liquidar'
-        ? await deps.liquidacion.liquidar({ userId: job.owner.userId, reserva, importe: accion.importe, jobId: job.jobId })
-        : await deps.liquidacion.reembolsar({ userId: job.owner.userId, reserva, motivo: accion.motivo, jobId: job.jobId });
+        ? await deps.liquidacion.liquidar({ userId: job.owner.userId, reserva, importe: accion.importe, jobId: job.jobId, job })
+        : await deps.liquidacion.reembolsar({ userId: job.owner.userId, reserva, motivo: accion.motivo, jobId: job.jobId, job });
 
       const visto = { ...base, desenlace: resultado.desenlace, ...(resultado.estado ? { estado: resultado.estado } : {}), ...(accion.tipo === 'liquidar' ? { importe: accion.importe } : {}) };
       vistos.push(visto); deps.observar?.(visto);

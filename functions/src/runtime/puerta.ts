@@ -12,14 +12,36 @@
  *      puede abrirse por accidente: solo porque alguien la abrió.
  *   2. VOLVER ATRÁS ES UN BOOLEANO. `habilitado: false` manda sobre todo lo
  *      demás. No hay que vaciar listas ni tocar nada más.
- *   3. SE ABRE POR CAPACIDAD, Y PRIMERO PARA CUENTAS CONCRETAS. Con `cuentas`,
- *      solo esas cuentas pasan por el Core: así se prueba en producción con una
- *      cuenta controlada y sin que ninguna persona real sea el sujeto de la
- *      prueba. Sin `cuentas`, pasa todo el mundo… salvo por una puerta que
- *      declare EN SU CÓDIGO que la lista es obligatoria (`listaObligatoria`):
- *      ahí, sin lista o con la lista vacía, no pasa NADIE. Es la del mundo 3D
- *      durante su canary (`creator/mundo.ts`): la configuración puede añadir
- *      cuentas a la prueba, pero quitar la lista no la abre para todos.
+ *   3. SE ABRE POR CAPACIDAD, Y CADA CAPACIDAD CON SU PROPIA LISTA DE CUENTAS.
+ *      Cada puerta del conductor declara EN SU CÓDIGO la capacidad que manda al
+ *      Core (`brainChat` → `text.generate`, `generateVideo` → `video.generate`,
+ *      `generateWorld` → `world.generate`), y aquí se mira la lista de ESA
+ *      capacidad y de ninguna otra:
+ *
+ *        aiSettings/runtime
+ *          habilitado: true
+ *          porCapacidad:
+ *            'world.generate':  { cuentas: [<uid>], experiencias?: ['studio'] }
+ *            'video.generate':  { cuentas: [<uid>] }
+ *
+ *      La lista es OBLIGATORIA para todas: una capacidad sin entrada, una
+ *      entrada sin lista o con la lista vacía no deja pasar a NADIE. No hay
+ *      lista global, ni comodín, ni una lista que sirva de respaldo de otra: la
+ *      del mundo no abre el vídeo y la del vídeo no abre el mundo, y poner o
+ *      quitar cuentas de una no toca las demás. La configuración puede cerrar
+ *      una capacidad o mover cuentas dentro de su lista; quitar la obligación,
+ *      no puede (decisión del dueño, 2026-10-06: «separar allowlist por
+ *      capability»).
+ *
+ * ── La forma de antes no se lee ─────────────────────────────────────────────
+ *
+ * Hasta el 2026-10-06 la puerta llevaba UNA lista para todas (`cuentas`) junto
+ * a `capacidades`, y sin `cuentas` dejaba pasar a todo el mundo. Un documento
+ * con esa forma —`capacidades`, `cuentas` o `experiencias` en lo alto— se da
+ * por ilegible y CIERRA: leerlo a medias sería volver a esa regla. Y al revés
+ * también cierra: el código de antes no encuentra `capacidades` en un
+ * documento de ahora y lo da por ilegible, así que un documento escrito para
+ * esta puerta nunca abre una puerta antigua para todos.
  *
  * ── Lo que NO decide ────────────────────────────────────────────────────────
  *
@@ -34,14 +56,18 @@
 
 export type RuntimeElegido = 'core' | 'legacy';
 
-export interface ConfiguracionDePuerta {
-  habilitado: boolean;
-  /** Capacidades que ya pueden ir por el Core. Una que no esté aquí va por donde siempre. */
-  capacidades: readonly string[];
-  /** Si está, SOLO estas cuentas. Para probar con una cuenta controlada. */
+/** Lo que abre UNA capacidad: sus cuentas y, si se quiere acotar más, sus productos. */
+export interface PuertaDeCapacidad {
+  /** SOLO estas cuentas, por igualdad exacta. Sin lista, o vacía, no pasa nadie. */
   cuentas?: readonly string[];
   /** Si está, SOLO estos productos (`brain`, `studio`…). */
   experiencias?: readonly string[];
+}
+
+export interface ConfiguracionDePuerta {
+  habilitado: boolean;
+  /** Las capacidades que ya pueden ir por el Core, cada una con lo suyo. Una que no esté aquí va por donde siempre. */
+  porCapacidad: Readonly<Record<string, PuertaDeCapacidad>>;
 }
 
 export type MotivoDePuerta =
@@ -49,7 +75,7 @@ export type MotivoDePuerta =
   | 'deshabilitada'
   | 'configuracion_ilegible'
   | 'capacidad_no_migrada'
-  /* La puerta exige lista de cuentas y la configuración no trae ninguna (o la trae vacía): no pasa nadie. */
+  /* La capacidad está, pero sin lista de cuentas (o con la lista vacía): no pasa nadie. */
   | 'sin_lista_de_cuentas'
   | 'cuenta_fuera_de_la_prueba'
   | 'experiencia_no_migrada';
@@ -59,11 +85,17 @@ export interface DecisionDePuerta {
   motivo: MotivoDePuerta;
 }
 
-export const PUERTA_CERRADA: ConfiguracionDePuerta = Object.freeze({ habilitado: false, capacidades: Object.freeze([]) as readonly string[] });
+export const PUERTA_CERRADA: ConfiguracionDePuerta = Object.freeze({ habilitado: false, porCapacidad: Object.freeze({}) });
 
 const FORMA_DE_CAPACIDAD = /^[a-z0-9]+\.[a-z0-9_]+$/;
+/* Una cuenta o un producto, por su nombre exacto. Ni «*» ni ningún otro carácter de patrón: no hay comodín. */
 const FORMA_DE_ETIQUETA = /^[A-Za-z0-9_.:-]{1,160}$/;
 const MAX_LISTA = 256;
+/* La forma de antes (una lista para todas). Si aparece, el documento no es de esta puerta: se cierra. */
+const CAMPOS_DE_ANTES = ['capacidades', 'cuentas', 'experiencias'] as const;
+
+const esObjeto = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
+const propio = (o: object, clave: string): boolean => Object.prototype.hasOwnProperty.call(o, clave);
 
 const lista = (crudo: unknown, forma: RegExp): readonly string[] | undefined => {
   if (!Array.isArray(crudo) || crudo.length > MAX_LISTA) return undefined;
@@ -71,55 +103,60 @@ const lista = (crudo: unknown, forma: RegExp): readonly string[] | undefined => 
   return Object.freeze([...new Set(crudo as string[])]);
 };
 
+/** Lo de UNA capacidad. Una lista presente y rota invalida todo el documento; una lista ausente es «sin lista». */
+const leerCapacidad = (crudo: unknown): PuertaDeCapacidad | undefined => {
+  if (!esObjeto(crudo)) return undefined;
+  const cuentas = propio(crudo, 'cuentas') ? lista(crudo.cuentas, FORMA_DE_ETIQUETA) : undefined;
+  if (propio(crudo, 'cuentas') && !cuentas) return undefined;
+  const experiencias = propio(crudo, 'experiencias') ? lista(crudo.experiencias, FORMA_DE_ETIQUETA) : undefined;
+  if (propio(crudo, 'experiencias') && !experiencias) return undefined;
+  return Object.freeze({ ...(cuentas ? { cuentas } : {}), ...(experiencias ? { experiencias } : {}) });
+};
+
 /**
  * De lo que haya guardado a una configuración en la que se puede confiar.
  *
  * Estricta a propósito: una lista con un elemento raro no se «limpia», se
  * descarta la configuración entera. Medio entender una configuración que decide
- * por dónde pasa el dinero es peor que no entenderla.
+ * por dónde pasa el dinero es peor que no entenderla. Una clave que no conoce
+ * se ignora —nunca abre más de lo que abren las que sí conoce—, salvo los
+ * campos de la forma de antes, que cierran.
  */
 export const leerPuerta = (crudo: unknown): { ok: true; config: ConfiguracionDePuerta } | { ok: false } => {
-  if (crudo === null || typeof crudo !== 'object' || Array.isArray(crudo)) return { ok: false };
-  const c = crudo as Record<string, unknown>;
-  if (typeof c.habilitado !== 'boolean') return { ok: false };
-  const capacidades = lista(c.capacidades, FORMA_DE_CAPACIDAD);
-  if (!capacidades) return { ok: false };
-  const cuentas = c.cuentas === undefined ? undefined : lista(c.cuentas, FORMA_DE_ETIQUETA);
-  if (c.cuentas !== undefined && !cuentas) return { ok: false };
-  const experiencias = c.experiencias === undefined ? undefined : lista(c.experiencias, FORMA_DE_ETIQUETA);
-  if (c.experiencias !== undefined && !experiencias) return { ok: false };
-  return {
-    ok: true,
-    config: Object.freeze({
-      habilitado: c.habilitado,
-      capacidades,
-      ...(cuentas ? { cuentas } : {}),
-      ...(experiencias ? { experiencias } : {}),
-    }),
-  };
+  if (!esObjeto(crudo)) return { ok: false };
+  if (typeof crudo.habilitado !== 'boolean') return { ok: false };
+  if (CAMPOS_DE_ANTES.some((campo) => propio(crudo, campo))) return { ok: false };
+  const bruto = propio(crudo, 'porCapacidad') ? crudo.porCapacidad : {};
+  if (!esObjeto(bruto)) return { ok: false };
+  const claves = Object.keys(bruto);
+  if (claves.length > MAX_LISTA || !claves.every((c) => FORMA_DE_CAPACIDAD.test(c))) return { ok: false };
+  const porCapacidad: Record<string, PuertaDeCapacidad> = {};
+  for (const capacidad of claves) {
+    const leida = leerCapacidad(bruto[capacidad]);
+    if (!leida) return { ok: false };
+    porCapacidad[capacidad] = leida;
+  }
+  return { ok: true, config: Object.freeze({ habilitado: crudo.habilitado, porCapacidad: Object.freeze(porCapacidad) }) };
 };
 
+/**
+ * POR DÓNDE VA ESTA OPERACIÓN. La capacidad es la que la puerta declara en su código, y la cuenta, la del principal
+ * autenticado: ninguna de las dos la manda el cliente. El orden es el de siempre: habilitada → capacidad → SU lista →
+ * cuenta → producto.
+ */
 export const decidirRuntime = (
   crudo: unknown,
-  contexto: {
-    capability: string;
-    userId: string;
-    experienceId?: string;
-    /**
-     * LA LISTA DE CUENTAS ES OBLIGATORIA PARA ESTA PUERTA. Lo declara la puerta en su código, nunca la
-     * configuración: sin `cuentas`, o con `cuentas: []`, la respuesta es `legacy` para todo el mundo.
-     */
-    listaObligatoria?: boolean;
-  },
+  contexto: { capability: string; userId: string; experienceId?: string },
 ): DecisionDePuerta => {
   const leida = leerPuerta(crudo);
   if (!leida.ok) return { runtime: 'legacy', motivo: crudo === undefined || crudo === null ? 'deshabilitada' : 'configuracion_ilegible' };
   const { config } = leida;
   if (!config.habilitado) return { runtime: 'legacy', motivo: 'deshabilitada' };
-  if (!config.capacidades.includes(contexto.capability)) return { runtime: 'legacy', motivo: 'capacidad_no_migrada' };
-  if (contexto.listaObligatoria === true && !config.cuentas?.length) return { runtime: 'legacy', motivo: 'sin_lista_de_cuentas' };
-  if (config.cuentas && !config.cuentas.includes(contexto.userId)) return { runtime: 'legacy', motivo: 'cuenta_fuera_de_la_prueba' };
-  if (config.experiencias && (!contexto.experienceId || !config.experiencias.includes(contexto.experienceId))) {
+  const suya = propio(config.porCapacidad, contexto.capability) ? config.porCapacidad[contexto.capability] : undefined;
+  if (!suya) return { runtime: 'legacy', motivo: 'capacidad_no_migrada' };
+  if (!suya.cuentas?.length) return { runtime: 'legacy', motivo: 'sin_lista_de_cuentas' };
+  if (!suya.cuentas.includes(contexto.userId)) return { runtime: 'legacy', motivo: 'cuenta_fuera_de_la_prueba' };
+  if (suya.experiencias && (!contexto.experienceId || !suya.experiencias.includes(contexto.experienceId))) {
     return { runtime: 'legacy', motivo: 'experiencia_no_migrada' };
   }
   return { runtime: 'core', motivo: 'abierta' };

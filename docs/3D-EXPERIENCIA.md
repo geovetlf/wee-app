@@ -13,7 +13,7 @@ La regla de siempre: **la persona elige el resultado («Crear mundo 3D»); Weë 
 «fal», nunca un modelo.
 
 > **Estado, en una línea:** todo está construido y probado (unidades, emuladores, la app) y **todo está APAGADO**: ningún
-> modelo de mundos está aprobado, la puerta del conductor está cerrada (y para el mundo exige lista de cuentas),
+> modelo de mundos está aprobado, la puerta del conductor está cerrada (y cada capacidad, el mundo también, exige SU lista de cuentas),
 > `generateWorld` no está desplegada, no hay `FAL_KEY` montada y «Crear mundo 3D» se ve en el Studio bloqueada con su
 > motivo. Encenderlo es una decisión del dueño, paso a paso (§20).
 >
@@ -21,6 +21,11 @@ La regla de siempre: **la persona elige el resultado («Crear mundo 3D»); Weë 
 > CONFIRMADA y escrita en CLAUDE.md §10, las rúbricas, DD-08 y el mapa de fronteras; lista de cuentas obligatoria
 > (§15); «5 mundos = 5 que salen» (§11b); jurisdicción sin fricción (§14); derechos completos en el material y
 > resumidos —con su procedencia— para la persona (§10). Lo vigila `functions/test/mundo3d-gobernanza.test.mjs`.
+>
+> **Cierre final (misión del 2026-10-06, «CIERRE FINAL DE GOBERNANZA Y COST ACCOUNTING DE WORLD 3D»):** una lista de
+> cuentas por capacidad, obligatoria para las tres puertas (§15), y el coste de un mundo aceptado en el libro de siempre,
+> una vez, hasta la liquidación (§11b; RUNTIME §25c). **WORLD 3D = READY FOR CONTROLLED ACTIVATION, todavía OFF**: ni fal,
+> ni Hunyuan, ni `FAL_KEY`, ni la puerta, ni la app. Lo vigilan `listas-por-capacidad` y `mundo3d-costes`.
 
 ---
 
@@ -234,11 +239,11 @@ hoy…» (`studio.worldDailyLimit`), sin reintentar.
 
 **Cancelar con el proveedor ya trabajando** (política, como pidió el dueño: se conserva el mecanismo de siempre): el hueco
 **se queda gastado**, y el dinero sigue la regla de la parada (`runtime/parada.ts`): si el final bueno llega antes, gana el
-final y se cobra; si el proveedor confirma la parada, la reserva vuelve. **El coste, dicho como es hoy** (revisión de
-arquitectura): por el conductor, la fila del libro de un intento aceptado se cierra al aceptarlo con `providerCost: 0` y
-nadie la corrige al final (RUNTIME §22.5, abierto también para el vídeo), así que ni `providerCost` ni `usdEnRiesgo` ven
-lo que cuesta un mundo y los topes diarios de proveedor no lo frenan; cerrarlo es requisito del runbook (§20) antes de
-abrir el canary. **Cancelar antes de que nada llegue al proveedor no gasta hueco.**
+final y se cobra; si el proveedor confirma la parada, la reserva vuelve. **El coste** (cerrado el 2026-10-06, RUNTIME
+§25c): la fila del libro de un mundo aceptado queda en curso con el nombre de la tarea del proveedor y la cierra la
+liquidación UNA vez —un mundo que sale, con su tarifa por petición (exacta); uno que falla o se cancela con el proveedor
+trabajando, con su tarifa «en riesgo» (`usdEnRiesgo`, que ven los topes diarios de proveedor)—. **Cancelar antes de que
+nada llegue al proveedor no gasta hueco.**
 **Un final que no se sabe** (salió y no volvió nadie) retiene dinero y hueco hasta saberse: se reconcilia, no se adivina.
 
 Lo prueban `mundo3d-gobernanza` (B, C y D) y el emulador (un mundo que sale ocupa su hueco; un fallo del proveedor y una
@@ -314,12 +319,13 @@ país del Perfil Real → ¿restricción territorial EXPLÍCITA para ese país?
 - Aislamiento por cuenta: `estado`/`cancelar` buscan dentro del ámbito de la cuenta; un `requestId` ajeno «no existe».
 - La app no recibe proveedor, modelo, URLs internas ni licencias (§10, §13); los registros del servidor, sanitizados.
 - `generateWorld` está en `no_se_despliegan` (`ops/despliegue/grupos.json`): no hay ruta de despliegue que la incluya.
-- **Lista de cuentas OBLIGATORIA durante el canary** (misión de gobernanza): `world.generate → puerta → ¿habilitada? →
-  ¿cuenta en la lista? → jurisdicción → elegibilidad → Router → proveedor`. Sin `cuentas` en `aiSettings/runtime`, o con
-  la lista vacía, NADIE puede usar `world.generate` (nunca «sin lista = todos»). La obligación la declara la puerta en su
-  código (`LISTA_DE_CUENTAS_OBLIGATORIA`), como su capacidad: la configuración pone y quita cuentas, pero no puede
-  quitar la obligación ni abrir con un comodín. Reutiliza `aiSettings/runtime` y `decidirRuntime`: no hay un segundo
-  sistema de permisos.
+- **Una lista de cuentas POR CAPACIDAD, obligatoria** (misión de gobernanza y su cierre final, 2026-10-06):
+  `world.generate → puerta → ¿habilitada? → ¿cuenta en la lista de world.generate? → jurisdicción → elegibilidad → Router
+  → proveedor`. La del mundo vive en `aiSettings/runtime.porCapacidad['world.generate'].cuentas`; sin ella, o vacía,
+  NADIE puede usar `world.generate` (nunca «sin lista = todos»), y la lista del vídeo o la de Weë Brain no sirven aquí
+  (ni la del mundo allí). La obligación es de la puerta del runtime para las tres (`runtime/puerta.ts`): la
+  configuración pone y quita cuentas, pero no puede quitar la obligación, ni abrir con un comodín, ni usar una lista
+  global. Reutiliza `aiSettings/runtime` y `decidirRuntime`: no hay un segundo sistema de permisos.
 - De la revisión de calidad (2026-10-06), en la puerta: la foto solo del cubo de ESTE proyecto y reescrita como `gs://`
   (con un host o un cubo ajenos y la ruta «correcta», el lector caía a HTTP y el servidor iba a buscarla fuera; la
   regla general para el resto de Weë es una tarea aparte); `estado` y `cancelar` solo ven trabajos y reservas de MUNDO
@@ -329,7 +335,7 @@ país del Perfil Real → ¿restricción territorial EXPLÍCITA para ese país?
 
 ## 16. Evolución futura
 
-- **Encenderlo** (§19): modelo aprobado + `FAL_KEY` + desplegar + abrir `aiSettings/runtime` por cuenta + `MUNDO_3D_EN_LA_APP`.
+- **Encenderlo** (§19): modelo aprobado + `FAL_KEY` + desplegar + abrir la entrada `world.generate` de `aiSettings/runtime` con su lista + `MUNDO_3D_EN_LA_APP`.
 - **Visor 3D** (web y móvil): depende del formato real del archivo (NO VERIFICADO) y de la biblioteca que elija el dueño.
 - **La vista previa en la app:** hoy se guarda pero una variante no tiene dirección de entrega propia.
 - **Escenas guardadas en proyectos** (`escenaDelMundo` ya las construye) y «Guardar en proyecto» para materiales.
@@ -347,14 +353,15 @@ país del Perfil Real → ¿restricción territorial EXPLÍCITA para ese país?
 | NOT_AVAILABLE semántico + i18n | `engine/errors.ts`, `engine/router.ts`, `utils/noDisponible.ts` | `no-disponible` (26) |
 | Derechos de punta a punta y derechos visibles | `engine/derechos.ts`, `runtime/aviso.ts`, `runtime/atencion.ts`, `core/mundo3d.ts` | `mundo3d-salidas` (27), emulador |
 | Papeles World/Preview | `engine/types.ts`, `fal.ts`, `content/materializador.ts` | `mundo3d-salidas` |
-| Relojes, parada y la tercera puerta | `runtime/plazos.ts`, `runtime/parada.ts`, `runtime/reconciliador.ts`, `creator/mundo.ts` | `mundo3d-asincrono` (36), `mundo3d.emulator` (24) |
+| Relojes, parada y la tercera puerta | `runtime/plazos.ts`, `runtime/parada.ts`, `runtime/reconciliador.ts`, `creator/mundo.ts` | `mundo3d-asincrono` (36), `mundo3d.emulator` (40) |
 | Jurisdicción hasta el ejecutor y la política | `engine/gateway.ts`, `runtime/politica.ts`, `runtime/index.ts` | `elegibilidad-jurisdiccion`, emulador |
 | Mis creaciones con `world` y la tarjeta 3D | `vistaDeAsset`, `RejillaDeCreaciones`, `MisCreacionesScreen`, `TarjetaTresD`, `assetDownload`, `ResultCard` | `mundo3d-app` D–F |
 | El camino del Studio y la pantalla | `studioExperiences`, `StudioScreen`, `Mundo3DScreen`, `mundoService`, rutas | `mundo3d-app` A–C, `navegacion-enlaces`, `studio-capas` |
 | El compositor | `utils/crearMundo3D.ts` | `crear-mundo-3d` |
 | Textos (29 claves nuevas × 16 idiomas) | `i18n/textos/*/creaciones.ts`, `studio.ts` | `mundo3d-app` G, `crear-mundo-3d` G |
 | Auditoría «la app no nombra a nadie» (FASE 13) | toda la app | `mundo3d-app` H |
-| Lista de cuentas obligatoria del canary | `runtime/puerta.ts` (`listaObligatoria`), `creator/mundo.ts` | `mundo3d-gobernanza` A, emulador |
+| Una lista de cuentas por capacidad, obligatoria | `runtime/puerta.ts` (`porCapacidad`) | `listas-por-capacidad` (36), `mundo3d-gobernanza` A, emulador |
+| El coste de un intento aceptado | `runtime/index.ts` (`libroDelMotor`, `liquidacionDeWee`, `costeDelFalloDelGateway`, `tarifaPorPeticion`), `runtime/liquidacion.ts` (`desenlacesDeLasAceptadas`), `engine/ledger.ts` (`closeAccepted`) | `mundo3d-costes` (56), emulador |
 | «5 mundos que salen» | `engine/limits.ts` (`comprobar`, `liberar`, `consumir`), `creator/mundo.ts`, `runtime/liquidacion.ts`, `runtime/index.ts` | `mundo3d-gobernanza` B–D, emulador |
 | Jurisdicción del catálogo y política territorial | `engine/jurisdiccion.ts`, `engine/providers/fal-modelos.ts` | `mundo3d-gobernanza` E, `elegibilidad-jurisdiccion` |
 | La procedencia en el resumen de derechos | `utils/derechosDelMaterial.ts`, `creaciones.rightsProvenance` × 16 | `mundo3d-gobernanza` F, `mundo3d-app` E |
@@ -364,7 +371,7 @@ país del Perfil Real → ¿restricción territorial EXPLÍCITA para ese país?
 - Hunyuan World: `DISABLED`, revisión legal pendiente; ningún modelo de mundos elegible en ninguna jurisdicción.
 - `FAL_KEY`: no creada, no montada.
 - `generateWorld`: no desplegada (`no_se_despliegan`).
-- La puerta del conductor (`aiSettings/runtime`): cerrada para todas las cuentas; y para el mundo, sin lista, nadie.
+- La puerta del conductor (`aiSettings/runtime`): cerrada para todas las cuentas; y cada capacidad, sin su lista, nadie.
 - `MUNDO_3D_EN_LA_APP = false`: «Crear mundo 3D» visible y bloqueada; sin enlace.
 - Precios: 39 Credits **de prueba** (`CREATOR_PRICING_MODE=simulated`).
 
@@ -374,7 +381,7 @@ país del Perfil Real → ¿restricción territorial EXPLÍCITA para ese país?
 |---|---|---|
 | 1 | Aprobación legal de un modelo de mundos (por jurisdicción) | Dueño / legal |
 | 2 | Crear y montar `FAL_KEY` en `generateWorld` **y** en el barrido (`RECONCILIATION_SECRETS`) | Dueño (secretos) |
-| 3 | Desplegar `generateWorld` (sacarla de `no_se_despliegan`) y abrir la puerta por cuenta | Dueño (producción) |
+| 3 | Desplegar `generateWorld` (sacarla de `no_se_despliegan`) y abrir la entrada `world.generate` de la puerta con su lista | Dueño (producción) |
 | 4 | `MUNDO_3D_EN_LA_APP = true` | Dueño |
 | 5 | ~~Si el país declarado basta para APROBAR una jurisdicción~~ **Resuelto (2026-10-06):** el país del Perfil Real es la fuente; sin restricción explícita, el territorio no excluye (§14) | — |
 | 6 | ~~Cómo se enseñan los términos de una licencia ajena sin nombrar al modelo~~ **Resuelto:** el resumen con procedencia (§10). Pendiente de legal antes de activar: cómo se cumple el etiquetado del AUP al difundir en público | Legal |
@@ -385,6 +392,9 @@ país del Perfil Real → ¿restricción territorial EXPLÍCITA para ese país?
 | 11 | El horizonte de reconciliación del proveedor (24 h, NO VERIFICADO) | Verificar con la primera generación autorizada |
 | 12 | ~~Si los derechos enteros y la procedencia deben quedar solo en el servidor~~ **Resuelto:** completos en el servidor y en el documento del material (su dueño los lee); la persona ve el resumen (§10) | — |
 | 13 | ~~Confirmar la tercera puerta~~ **Resuelto (2026-10-06):** confirmada; CLAUDE.md §10, rúbricas, DD-08 y el mapa, actualizados a la vez | — |
+| 14 | ~~El coste de un mundo aceptado~~ **Resuelto (2026-10-06):** en el libro, una vez, hasta la liquidación (§11b, RUNTIME §25c) | — |
+| 15 | ~~Una lista de cuentas para las tres puertas~~ **Resuelto (2026-10-06):** una por capacidad, obligatoria (§15) | — |
+| 16 | Lo legal antes de activar: sanciones, exportación, territorios del Reino Unido, el país declarado y editable, el etiquetado del AUP, las licencias y las restricciones territoriales ([DECISIONES-PENDIENTES.md](DECISIONES-PENDIENTES.md)) | Legal / dueño |
 
 ## 20. Runbook de activación — PREPARADO, NO EJECUTADO
 
@@ -393,14 +403,16 @@ que dice.
 
 | # | Paso | Qué cambia exactamente | Quién |
 |---|---|---|---|
-| 0 | **El coste de lo aceptado** | Cerrar RUNTIME §22.5 —anotar el intento aceptado con su coste estimado (`providerCostStatus: 'desconocido'`, el mecanismo H0 #22) y corregirlo al final—, o decidir leer el coste de la factura del proveedor. Sin esto, los topes diarios de proveedor no ven lo que cuesta un mundo | Dueño |
+| 0 | **El coste de lo aceptado** — HECHO EN CÓDIGO (2026-10-06), sin desplegar | RUNTIME §25c: la fila de un mundo aceptado queda en curso y la cierra la liquidación del barrido, UNA vez, con su tarifa (exacta, por petición) o «en riesgo». Probado en `mundo3d-costes` y contra los emuladores. Falta VERIFICARLO en el humo (paso 5) y comparar la tarifa con la factura en la observación (paso 6) | Hecho (código); el dueño lo verifica |
 | 1 | **Aprobación legal** del modelo de mundos | En `engine/providers/fal-modelos.ts`, el gobierno del modelo: `reviewStatus: 'APPROVED'` (con evidencia y fecha en `fuentes`/`motivo`), y lo que legal endurezca: más `bloqueadas` (sanciones y controles de exportación; qué cuenta como «Reino Unido»), si basta un país DECLARADO y editable para una licencia que prohíbe mostrar el resultado, etiquetado del AUP, 1M MAU | Dueño / legal |
 | 2 | **Secreto** `FAL_KEY` | Crearlo en Secret Manager (`get-wee`; ya está DECLARADO y sin montar en `functions/src/secrets.ts`, `FAL_SECRETS`) y montarlo en la puerta (`onCall({ …, secrets: FAL_SECRETS })` de `generateWorld`) **y** en el barrido (añadir `FAL_SECRET_REFS.FAL_KEY` a `RECONCILIATION_SECRETS` en `functions/src/secrets.ts`, que monta `settlement/programado.ts`); el modelo pasa a `active: 'ACTIVE'` | Dueño (secretos) |
-| 3 | **Configuración del canary** | En `aiSettings/runtime`, AÑADIR a lo que haya —no reescribir el documento: lo comparten las tres puertas—: `'world.generate'` en `capacidades`, las cuentas de prueba en `cuentas` (sin `cuentas`, nadie; ojo: esas cuentas son también la lista de Brain y vídeo) y `'studio'` en `experiencias` si hay lista de experiencias; y `aiProviders/fal.enabled: true` | Dueño |
-| 4 | **Despliegue autorizado** | Sacar `generateWorld` de `no_se_despliegan` (`ops/despliegue/grupos.json`) y desplegar por la ruta gobernada (WIF, `despliegue.yml`), junto con el barrido que monta `FAL_KEY` | Dueño (producción) |
-| 5 | **Humo** | Con UNA cuenta de prueba: cotizar → crear → estado hasta completado → material `world` con derechos y procedencia → un cobro; y un fallo provocado → reembolso exacto y el hueco devuelto | Dueño |
+| 3 | **Configuración del canary** | En `aiSettings/runtime`, la forma por capacidad (RUNTIME §25c): `{ habilitado: true, porCapacidad: { 'world.generate': { cuentas: [<cuentas de prueba>], experiencias: ['studio'] } } }` —más la entrada de cada otra puerta que deba seguir abierta, con SU lista—. Se ESCRIBE el documento entero, sin mezclar con el anterior: un documento con `capacidades`, `cuentas` o `experiencias` arriba (la forma de antes, como el estado de producción de RUNTIME §21.3) se lee como ilegible y CIERRA las tres. Con la consola o con `set` de un objeto anidado: la clave `'world.generate'` lleva un punto, y un `update` con la ruta `'porCapacidad.world.generate'` escribiría otra cosa. Y `aiProviders/fal.enabled: true` | Dueño |
+| 4 | **Despliegue autorizado** | Sacar `generateWorld` de `no_se_despliegan` (`ops/despliegue/grupos.json`) y desplegar por la ruta gobernada (WIF, `despliegue.yml`), junto con el barrido que monta `FAL_KEY` (es el que cierra el coste de lo aceptado) y con `brainChat` y `generateVideo` si sus canaries se van a abrir (la puerta nueva vive en las tres). Una Function con la puerta de antes lee un documento de ahora como ilegible y se queda cerrada: el orden de los pasos 3 y 4 no abre nada por accidente | Dueño (producción) |
+| 5 | **Humo** | Con UNA cuenta de prueba: cotizar → crear → estado hasta completado → material `world` con derechos y procedencia → un cobro, y su fila de `aiGenerations` completada con la tarifa y liquidada; y un fallo provocado → reembolso exacto, el hueco devuelto y la fila fallida «en riesgo». Otra cuenta, fuera de la lista del mundo, no pasa (ni con la lista del vídeo) | Dueño |
 | 6 | **Observación** | `aiGenerations` (`providerCost` real → precio real de `ai_world`), `aiUsage/{día}` (`usdEnRiesgo`), `creatorUsage`, el barrido (reconciliación, horizonte de 24 h por verificar), formato real del archivo | Dueño |
-| 7 | **Apertura controlada** | Ampliar `cuentas`; precio real; `MUNDO_3D_EN_LA_APP = true`; abrirlo a todos sería cambiar `LISTA_DE_CUENTAS_OBLIGATORIA` en el código, con autorización | Dueño |
+| 7 | **Apertura controlada** | Ampliar la lista de `world.generate` poco a poco; precio real; `MUNDO_3D_EN_LA_APP = true`; abrirlo a todos sería cambiar la regla de la puerta en el código (`runtime/puerta.ts`: hoy la lista es obligatoria para todas las capacidades), con autorización | Dueño |
 
-**Volver atrás** en cualquier paso: `aiSettings/runtime.habilitado = false` (o quitar la cuenta de la lista) cierra el
-mundo en segundos sin desplegar nada; `MUNDO_3D_EN_LA_APP = false` lo esconde de la app.
+**Volver atrás** en cualquier paso: `aiSettings/runtime.habilitado = false` cierra las tres puertas en segundos sin
+desplegar nada; quitar la cuenta de la lista de `world.generate` (o quitar esa entrada) cierra solo el mundo, sin tocar
+las otras; `MUNDO_3D_EN_LA_APP = false` lo esconde de la app. Volver a desplegar un código de ANTES de esta puerta con el
+documento de ahora deja las puertas cerradas (lo lee como ilegible): no hay que tocar el documento para eso.

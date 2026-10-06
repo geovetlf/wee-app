@@ -171,7 +171,7 @@ const pedir = (uid = ANA) => ({ capability: 'text.generate', trace: traza(uid), 
 console.log('\n── A · La puerta: quién pasa, quién no, y qué pasa si nadie la tocó ──');
 {
   const CANARIA = 'cuentaDelCanary01';
-  const abierta = { habilitado: true, capacidades: ['text.generate'], cuentas: [CANARIA] };
+  const abierta = { habilitado: true, porCapacidad: { 'text.generate': { cuentas: [CANARIA] } } };
   const ctx = (o = {}) => ({ capability: 'text.generate', userId: CANARIA, experienceId: 'brain', ...o });
 
   check('PUERTA CERRADA → LEGACY: sin configuración no pasa nadie', decidirRuntime(undefined, ctx()).runtime === 'legacy' && decidirRuntime(undefined, ctx()).motivo === 'deshabilitada');
@@ -179,7 +179,8 @@ console.log('\n── A · La puerta: quién pasa, quién no, y qué pasa si nad
   check('PUERTA ABIERTA + cuenta del canary + `text.generate` → CORE', decidirRuntime(abierta, ctx()).runtime === 'core' && decidirRuntime(abierta, ctx()).motivo === 'abierta');
   check('PUERTA ABIERTA + cuenta del canary + CUALQUIER OTRA capacidad → LEGACY', ['text.search', 'video.generate', 'image.generate', 'voice.tts'].every((c) => decidirRuntime(abierta, ctx({ capability: c })).runtime === 'legacy'));
   check('y `habilitado: false` manda sobre todo lo demás: volver atrás es un booleano', decidirRuntime({ ...abierta, habilitado: false }, ctx()).runtime === 'legacy');
-  check('una configuración a medio entender NO abre nada', [{ habilitado: 'sí' }, { habilitado: true }, { habilitado: true, capacidades: 'text.generate' }, { habilitado: true, capacidades: ['text.generate', 7] }, 'abierta', []].every((c) => decidirRuntime(c, ctx()).runtime === 'legacy'));
+  check('una configuración a medio entender NO abre nada', [{ habilitado: 'sí' }, { habilitado: true }, { habilitado: true, porCapacidad: 'text.generate' }, { habilitado: true, porCapacidad: { 'text.generate': { cuentas: [CANARIA, 7] } } }, 'abierta', []].every((c) => decidirRuntime(c, ctx()).runtime === 'legacy'));
+  check('y la forma de antes —una lista para todas— tampoco: el documento se da por ilegible y la puerta sigue cerrada', decidirRuntime({ habilitado: true, capacidades: ['text.generate'], cuentas: [CANARIA] }, ctx()).motivo === 'configuracion_ilegible');
   check('`PUERTA_CERRADA` es la que se usa cuando no hay nada, y es inmutable', Object.isFrozen(PUERTA_CERRADA) && decidirRuntime(PUERTA_CERRADA, ctx()).runtime === 'legacy' && leerPuerta(PUERTA_CERRADA).ok === true);
 
   /* ── Lo guardado, leído de Firestore ── */
@@ -191,7 +192,7 @@ console.log('\n── A · La puerta: quién pasa, quién no, y qué pasa si nad
     };
   };
   olvidarLaPuerta();
-  let db = fakeDb({ habilitado: true, capacidades: ['text.generate'], cuentas: [CANARIA] });
+  let db = fakeDb({ habilitado: true, porCapacidad: { 'text.generate': { cuentas: [CANARIA] } } });
   let guardada = await configuracionDeLaPuerta(db, now);
   check('la puerta se guarda en `aiSettings/runtime`, que es server-only', db.lecturas[0] === `${COLECCION_DE_LA_PUERTA}/${DOCUMENTO_DE_LA_PUERTA}` && COLECCION_DE_LA_PUERTA === 'aiSettings' && /match \/aiSettings\/\{settingId\} \{\s*allow read, write: if false;/.test(leer('firestore.rules')));
   check('y lo guardado decide de verdad', decidirRuntime(guardada, ctx()).runtime === 'core');
@@ -326,7 +327,7 @@ console.log('\n── F · Volver atrás: cerrar la puerta y que todo vuelva a c
 {
   const CANARIA = 'cuentaDelCanary01';
   const ctx = { capability: 'text.generate', userId: CANARIA, experienceId: 'brain' };
-  const documento = { habilitado: true, capacidades: ['text.generate'], cuentas: [CANARIA] };
+  const documento = { habilitado: true, porCapacidad: { 'text.generate': { cuentas: [CANARIA] } } };
   let almacenado = documento;
   const db = { collection() { return { doc() { return { async get() { return { exists: almacenado !== undefined, data: () => almacenado }; } }; } }; } };
 

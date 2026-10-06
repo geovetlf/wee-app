@@ -232,7 +232,7 @@ for (const uid of [A, B, C, SIN, L, POBRE]) {
   base.docs.get(`users/doc_${uid}`).creditsBalance = SALDO;
 }
 /* `SIN` no está en la puerta: para él, el camino Core no existe. */
-base.docs.set('aiSettings/runtime', { habilitado: true, capacidades: ['video.generate'], cuentas: [A, B, C, L, POBRE], experiencias: ['studio'] });
+base.docs.set('aiSettings/runtime', { habilitado: true, porCapacidad: { 'video.generate': { cuentas: [A, B, C, L, POBRE], experiencias: ['studio'] } } });
 olvidarLaPuerta();
 base.docs.get(`users/doc_${POBRE}`).creditsBalance = 1;
 const saldo = (uid) => base.docs.get(`users/doc_${uid}`).creditsBalance;

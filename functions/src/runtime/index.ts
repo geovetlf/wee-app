@@ -5,6 +5,7 @@ import { crearMaterialDesdeUrl } from '../content';
 import { materializadorDeWee } from '../content/materializador';
 import {
   CapabilityId,
+  GatewayResult,
   Job,
   JobDispatch,
   JobLimits,
@@ -42,7 +43,7 @@ import { Conductor, PuertoDeMaterial, crearConductor } from './conductor';
 import { ConstructorDeEntrada, resolutorDeBrain } from './contexto';
 import { conversacionesDeBrain, entidadesDeWee } from './conversaciones';
 import { LibroDeIntentos, crearEjecutor } from './ejecutor';
-import { PuertoDeLiquidacion, ReservaDelTrabajo } from './liquidacion';
+import { PuertoDeLiquidacion, ReservaDelTrabajo, desenlacesDeLasAceptadas } from './liquidacion';
 import { trabajoDelMedio } from './medios';
 import { ReglaDePolitica, SIN_REGLAS, politicaConJurisdicciones, politicaPorReglas } from './politica';
 import { CadenaDeProducto, resolutorPorCadena } from './resolucion';
@@ -136,6 +137,29 @@ const texto = (v: unknown): string | undefined => (typeof v === 'string' && v.le
  */
 export type IdentidadDelLibro = (dispatch: JobDispatch) => { requestId?: string; jobId?: string; stepId?: string };
 
+/**
+ * ¿PUDO COBRAR EL PROVEEDOR UN INTENTO QUE FALLÓ? La misma pregunta que `costeTrasUnFallo` (engine/router.ts, H0 #22)
+ * le hace al camino de siempre, contestada con lo que el conductor tiene: el error ya normalizado por el Gateway.
+ *
+ *   'cero'         no llegó al adaptador (lo paró el Gateway, el registro o el plazo); el adaptador no tenía clave o
+ *                  rechazó la entrada antes de mandarla; o el proveedor la rechazó al recibirla (4xx).
+ *   'desconocido'  todo lo demás: se agotó el tiempo, no volvió respuesta, el proveedor falló (5xx). La tarifa de la
+ *                  fila va «en riesgo» (`usdEnRiesgo`), que es lo que ven los topes de gasto.
+ *
+ * Sin la marca de «la tarea ya estaba aceptada» que el router lee de su sondeo: por el conductor un trabajo largo no
+ * sondea —acepta y suelta— y lo que pase después lo cierra la liquidación (`desenlacesDeLasAceptadas`).
+ */
+export const costeDelFalloDelGateway = (resultado: GatewayResult): 'cero' | 'desconocido' => {
+  const error = resultado.error;
+  if (!error || !String(error.source ?? '').startsWith('adapter:')) return 'cero';
+  const detalles = (error.details ?? {}) as Record<string, unknown>;
+  if (detalles.reason === 'not_configured') return 'cero';
+  const http = Number(error.providerCode);
+  if (Number.isInteger(http) && http >= 400 && http < 500) return 'cero';
+  if (error.providerCode === undefined && (error.code === 'INVALID_REQUEST' || error.code === 'CONTENT_POLICY')) return 'cero';
+  return 'desconocido';
+};
+
 export const libroDelMotor = (ledger: Ledger = firestoreLedger, identidad?: IdentidadDelLibro): LibroDeIntentos => ({
   async abrir(dispatch) {
     if (!dispatch.capability || !dispatch.implementation) return undefined;
@@ -198,13 +222,27 @@ export const libroDelMotor = (ledger: Ledger = firestoreLedger, identidad?: Iden
       void recordRealSuccess(quien.providerId, quien.modelId ?? '', resultado.capability ?? dispatch.capability ?? '', fila);
     }
 
+    /*
+     * ACEPTADO NO ES TERMINADO (RUNTIME §22.5). El proveedor dijo «lo tengo» y nada más: la fila NO se cierra aquí —antes
+     * se cerraba como completada con coste 0 y nadie la corregía—. Queda EN CURSO con el nombre que el proveedor le dio a
+     * la tarea, el mismo que guarda el intento del trabajo, y la cierra la liquidación cuando el trabajo sepa cómo acabó.
+     * Ni llamadas ni dinero al uso del día todavía: lo que está en marcha no cuenta (`engine/limits.ts`).
+     */
+    if (resultado.status === 'accepted') {
+      await ledger.progress(fila, { status: 'PROCESSING', providerTaskId: resultado.operation?.operationId });
+      return;
+    }
+
     const meta = dispatch.metadata ?? {};
     const uso = resultado.usage
       ? Object.fromEntries(Object.entries(resultado.usage).filter((par): par is [string, number] => typeof par[1] === 'number'))
       : undefined;
+    /* Un fallo que pudo costar dinero (H0 #22, la misma regla que el camino de siempre): su tarifa, «en riesgo». */
+    const enRiesgo = resultado.status === 'failed' && costeDelFalloDelGateway(resultado) === 'desconocido';
     await ledger.close(fila, {
       status: resultado.status === 'failed' ? 'FAILED' : 'COMPLETED',
       providerCost: resultado.response?.actual.provider.usd ?? 0,
+      ...(enRiesgo ? { providerCostStatus: 'desconocido' as const, providerCostEstimated: numero(meta.estimatedUsd) ?? 0 } : {}),
       creditsEstimated: numero(meta.creditsEstimated) ?? numero(meta.estimatedCredits),
       durationMs,
       outputType: resultado.response?.kind,
@@ -254,6 +292,23 @@ export const materialDeWee: PuertoDeMaterial = {
 };
 
 /**
+ * ¿LA TARIFA DE ESTA IMPLEMENTACIÓN ES SU COSTE? Sí cuando el modelo cobra POR PETICIÓN (`cost.unit: 'call'`): lo que se
+ * cotizó es lo que cuesta, como el mundo 3D. Con el ajuste de la administración si lo hay (puede cambiar el coste de un
+ * modelo) y, si no, el catálogo del adaptador. Si no se puede saber, no se presume exacta: se cierra como estimación.
+ */
+export const tarifaPorPeticion = async (implementacion: Job['implementation']): Promise<boolean> => {
+  if (!implementacion) return false;
+  try {
+    const config = await loadConfig();
+    const ajuste = config.providers?.[implementacion.providerId]?.models?.[implementacion.modelId]?.cost;
+    const propio = ADAPTERS[implementacion.providerId]?.models.find((m) => m.id === implementacion.modelId)?.cost;
+    return (ajuste ?? propio)?.unit === 'call';
+  } catch {
+    return false;
+  }
+};
+
+/**
  * LA LIQUIDACIÓN, POR EL MOTOR DE CREDITS QUE YA EXISTE.
  *
  * Dos llamadas, y son exactamente las dos que hace hoy `creator/brain.ts`
@@ -273,11 +328,42 @@ export const materialDeWee: PuertoDeMaterial = {
  * reserva queda DEVUELTA, vuelve lo que esa operación ocupó —el limitador de siempre (`engine/limits.ts`) lo tiene
  * anotado— al día en que se contó. Un trabajo cobrado no lo devuelve, y el limitador no devuelve el de quien canceló
  * con el proveedor ya trabajando. Sin `cupo` en el trabajo —el vídeo, Weë Brain—, nada cambia.
+ *
+ * Y EL COSTE DE LO QUE EL PROVEEDOR ACEPTÓ SE CIERRA AQUÍ (RUNTIME §22.5): la fila de un intento aceptado quedó en curso
+ * (`libroDelMotor`), y es aquí donde se sabe cómo acabó el trabajo. Después del dinero y ANTES de liquidar la fila —para
+ * que la liquidación la vea completada—, una vez (`ledger.closeAccepted`). Si no se puede cerrar, el dinero ya está
+ * bien y la pasada se da por no terminada (`fallo`): la siguiente vuelve sobre el mismo trabajo, el Credit Engine
+ * contesta «ya estaba» sin mover nada y el libro cierra lo que le faltaba.
  */
-export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?: Ledger; cupo?: Pick<typeof limiter, 'liberar'> } = {}): PuertoDeLiquidacion => {
+export const liquidacionDeWee = (deps: {
+  credits?: typeof creditEngine;
+  ledger?: Ledger;
+  cupo?: Pick<typeof limiter, 'liberar'>;
+  /** ¿La tarifa de esta implementación ES su coste? Entra por aquí para poder probarlo sin configuración. */
+  tarifaExacta?: (implementacion: Job['implementation']) => Promise<boolean>;
+} = {}): PuertoDeLiquidacion => {
   const credits = deps.credits ?? creditEngine;
   const ledger = deps.ledger ?? firestoreLedger;
   const cupo = deps.cupo ?? limiter;
+  const exacta = deps.tarifaExacta ?? tarifaPorPeticion;
+  const cerrarLoAceptado = async (job: Job | undefined, reserva: ReservaDelTrabajo): Promise<void> => {
+    const desenlaces = job ? desenlacesDeLasAceptadas(job) : [];
+    if (!job || !desenlaces.length) return;
+    const porPeticion = desenlaces.some((d) => d.desenlace === 'salio') ? await exacta(job.implementation) : false;
+    await ledger.closeAccepted({
+      creditTransactionId: reserva.transactionId,
+      cierres: desenlaces.map((d) => ({
+        providerTaskId: d.operationId,
+        status: d.desenlace === 'salio' ? 'COMPLETED' as const : d.desenlace === 'cancelada' ? 'CANCELLED' as const : 'FAILED' as const,
+        /* Salió: su tarifa —exacta si cobra por petición; si no, la estimación, marcada—. No salió: H0 #22, en riesgo. */
+        coste: d.desenlace !== 'salio' ? 'desconocido' as const : porPeticion ? 'exacto' as const : 'estimado' as const,
+        creditsEstimated: reserva.importe,
+        durationMs: d.durationMs,
+        ...(d.error ? { error: d.error } : {}),
+        ...(d.usage ? { usage: { ...d.usage } } : {}),
+      })),
+    });
+  };
   const devolverElHueco = async (userId: string, reserva: ReservaDelTrabajo): Promise<void> => {
     const hueco = reserva.cupo;
     if (!hueco) return;
@@ -297,7 +383,7 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
     });
   };
   return {
-    async liquidar({ userId, reserva, importe, jobId }) {
+    async liquidar({ userId, reserva, importe, jobId, job }) {
       try {
         /*
          * `completeCredits` solo mueve algo si la transacción está
@@ -306,17 +392,20 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
          * el doble cobro, y es del motor de Credits, no de aquí.
          */
         const r = await credits.completeCredits({ userId, requestId: reserva.requestId, finalAmount: importe, meta: { jobId } });
-        await cerrarFila(reserva.transactionId, importe);
+        await cerrarLoAceptado(job, reserva);
+        /* Lo que la fila dice que se cobró es lo que el Credit Engine dice que quedó cobrado: una reserva que ya estaba devuelta, cero. */
+        await cerrarFila(reserva.transactionId, r.status === 'COMPLETED' ? importe : 0);
         return { desenlace: r.status === 'COMPLETED' ? 'liquidada' : 'ya_estaba', estado: r.status };
       } catch (e) {
         return { desenlace: 'fallo', error: e instanceof Error ? e.name : 'error' };
       }
     },
-    async reembolsar({ userId, reserva }) {
+    async reembolsar({ userId, reserva, job }) {
       try {
         const r = await credits.refundCredits({ userId, requestId: reserva.requestId, reason: 'Weë · la operación no llegó a completarse', source: 'weë-runtime' });
-        await cerrarFila(reserva.transactionId, 0);
         await devolverElHueco(userId, reserva);
+        await cerrarLoAceptado(job, reserva);
+        await cerrarFila(reserva.transactionId, 0);
         return { desenlace: r.duplicate ? 'ya_estaba' : 'reembolsada', estado: 'REFUNDED' };
       } catch (e) {
         /*

@@ -20,8 +20,8 @@ Weë ya tiene sus piezas; lo nuevo se apoya en ellas en vez de rodearlas:
 - **El conductor del Core** (`functions/src/runtime/`) atiende exactamente tres canaries detrás de
   `aiSettings/runtime`: `brainChat` → `text.generate`, `generateVideo` → `video.generate` y `generateWorld` →
   `world.generate` (asíncrona, sin desplegar; confirmada por el dueño el 2026-10-06), cada una con su
-  `CAPACIDAD_DEL_CANARY` en su código. `world.generate` exige lista de cuentas durante su canary
-  (`LISTA_DE_CUENTAS_OBLIGATORIA`): que la puerta se abra sin lista es alta. Abrir una cuarta puerta, migrar otra
+  `CAPACIDAD_DEL_CANARY` en su código, y cada capacidad exige SU lista de cuentas en `aiSettings/runtime`
+  (`porCapacidad`, `runtime/puerta.ts`): que una puerta se abra sin su lista, con la de otra o con un comodín es alta. Abrir una cuarta puerta, migrar otra
   capacidad, convertir una puerta en otra, o simular que el orquestador atiende más de lo que atiende, sin
   autorización explícita, es alta.
 - **Credits:** el Credit Engine es la única puerta del dinero (ver la rúbrica de seguridad).
