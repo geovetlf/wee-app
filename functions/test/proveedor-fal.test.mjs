@@ -282,9 +282,9 @@ check('27) ningún contrato existente sube de versión: lo nuevo es aditivo (sol
 console.log('── E · Nada encendido ──');
 
 const nombran = fuentesSrc.filter((f) => /'world\.generate'/.test(sinComentarios(leer(f)))).sort();
-check('28) ninguna experiencia, plantilla ni pantalla pide un mundo por su cuenta: world.generate vive en el catálogo, su contrato canónico, el registro, el precio y fal',
+check('28) ninguna experiencia, plantilla ni pantalla pide un mundo por su cuenta: world.generate vive en el catálogo, su contrato canónico, el registro, el precio, fal y la clase de material que deja (un mundo es `world`)',
   JSON.stringify(nombran) === JSON.stringify(['functions/src/core/capability.ts', 'functions/src/core/mundo3d.ts', 'functions/src/core/registry/capabilities.ts', 'functions/src/credits/creditCosts.ts',
-    'functions/src/engine/providers/fal-modelos.ts', 'functions/src/engine/providers/fal.ts', 'functions/src/engine/registry.ts']), nombran.join(', '));
+    'functions/src/engine/providers/fal-modelos.ts', 'functions/src/engine/providers/fal.ts', 'functions/src/engine/registry.ts', 'functions/src/runtime/materializacion.ts']), nombran.join(', '));
 check('29) y no hay ningún webhook de fal desplegable: verificar y leer un aviso son funciones puras que nadie expone todavía',
   !/onRequest|onCall/.test(adaptador) && !/\bfal\b|fal\.ai|providers\/fal/i.test(sinComentarios(leer('functions/src/engine/webhooks.ts'))) && !/\bfal\b|fal\.ai|providers\/fal/i.test(sinComentarios(leer('functions/src/index.ts'))));
 

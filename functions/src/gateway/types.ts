@@ -1,5 +1,5 @@
 import { CapabilityId, ResultKind } from '../creator/types';
-import { RoutingPrefs } from '../engine/types';
+import { RoutingPrefs, VarianteDeSalida } from '../engine/types';
 
 /**
  * AI Gateway: una capacidad, N proveedores. Cada proveedor implementa esta
@@ -49,6 +49,8 @@ export interface ProviderOutput {
   durationSec?: number;
   /** Fuentes de la búsqueda web (cuando corresponde). */
   sources?: { url: string; title?: string }[];
+  /** Las variantes del resultado que el proveedor dio de verdad (la vista previa de un mundo), ya guardadas en Weë. */
+  variantes?: readonly VarianteDeSalida[];
 }
 
 export interface ProviderResult {

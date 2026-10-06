@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { AssetKind, CAPABILITY_CATALOG, CapabilityId, Job, Provenance } from '../core';
+import { AssetKind, CAPABILITY_CATALOG, CapabilityId, DerechosDelMaterial, Job, Provenance, VariantKind } from '../core';
 import { AvisoNormalizado } from './aviso';
 
 /**
@@ -137,6 +137,13 @@ export interface PeticionDeMaterializacion {
   provenance: Provenance;
   /** Escalares del proveedor, ya acotados. Ni enlaces, ni texto de nadie. */
   metadata?: Readonly<Record<string, string | number | boolean>>;
+  /**
+   * LA LICENCIA AJENA QUE ACOMPAÑA AL RESULTADO (`Asset.derechos`), sacada del modelo del TRABAJO guardado —nunca
+   * del aviso—. Sin ella, un mundo nacería sin su restricción territorial.
+   */
+  derechos?: DerechosDelMaterial;
+  /** Las variantes que dio el proveedor (la vista previa), temporales como `recurso`: se traen y se anotan. */
+  variantes?: readonly { kind: VariantKind; recurso: string }[];
 }
 
 export type DesenlaceDeMaterializacion =
@@ -190,8 +197,18 @@ const CLASE_POR_MODALIDAD: Readonly<Record<string, AssetKind>> = Object.freeze({
  * El catálogo ya declaraba `produces` en las sesenta y ocho. Había una verdad y
  * una suposición; se quita la suposición.
  */
+/**
+ * LAS CAPACIDADES CUYA CLASE DE MATERIAL ES MÁS PRECISA QUE SU MODALIDAD. La modalidad `3d` agrupa un objeto 3D y un
+ * mundo explorable, y el Content Core los distingue (`model3d` y `world`): sin esto, un mundo que llegara por el
+ * camino asíncrono se guardaba como objeto 3D, y por `creatorRun` como mundo. La misma capacidad, dos clases.
+ */
+const CLASE_POR_CAPACIDAD: Readonly<Record<string, AssetKind>> = Object.freeze({
+  'world.generate': 'world',
+});
+
 export const tipoDeMaterialDe = (capability: string | undefined): AssetKind | undefined => {
   if (typeof capability !== 'string') return undefined;
+  if (Object.prototype.hasOwnProperty.call(CLASE_POR_CAPACIDAD, capability)) return CLASE_POR_CAPACIDAD[capability];
   const entrada = CAPABILITY_CATALOG.find((e) => e.id === capability);
   return entrada ? CLASE_POR_MODALIDAD[entrada.produces] : undefined;
 };

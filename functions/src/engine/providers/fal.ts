@@ -1,6 +1,6 @@
 import { createHash, createPublicKey, verify as verificarEd25519 } from 'node:crypto';
 import { CapabilityId } from '../../creator/types';
-import { CampoDeEsquema, ModelSpec, OrigenDeCampo, ProviderAdapter, ProviderOutcome, ProviderOutput, ProviderRunRequest } from '../types';
+import { CampoDeEsquema, ModelSpec, OrigenDeCampo, PapelDeArchivo, ProviderAdapter, ProviderOutcome, ProviderOutput, ProviderRunRequest, VarianteDeSalida } from '../types';
 import { env, fetchJson, parseStorageUrl, persistRemoteFile, pollUntil, ProviderError, readImage, toDataUri } from '../http';
 import { ENTRADA_DE_WEE_POR_MODELO, MODELOS_FAL } from './fal-modelos';
 import { leerEntradaDeMundo3D } from '../mundo';
@@ -42,7 +42,16 @@ import type { ResolutorDeEstadoDeProveedor } from '../../runtime/reconciliacion'
  * fal una URL de Weë: las fotos viajan EN LÍNEA (data URI), como en Seedance. Las URLs privadas de Weë no salen.
  */
 
-const COLA = 'https://queue.fal.run';
+const COLA_DE_FAL = 'https://queue.fal.run';
+/**
+ * LA COLA. La de fal, salvo que el entorno diga otra que sea https o ESTA máquina (`http://127.0.0.1:<puerto>`, la
+ * de las pruebas con emuladores, como `ARK_BASE_URL` en Seedance). Cualquier otra cosa se ignora: la clave de fal
+ * nunca viaja a un sitio sin cifrar que no sea este equipo.
+ */
+const cola = (): string => {
+  const pedida = env('FAL_QUEUE_URL');
+  return pedida && (/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(pedida) || /^http:\/\/127\.0\.0\.1:\d+$/.test(pedida)) ? pedida : COLA_DE_FAL;
+};
 /** Un id de modelo de fal: `dueño/modelo[/subruta…]`, en minúsculas. Nada que pueda salirse de su sitio en una URL. */
 const ID_DE_MODELO = /^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9_.-]*(\/[a-z0-9][a-z0-9_.-]*)*$/;
 /** Un request_id de fal (UUID u opaco), sin `/`. */
@@ -67,7 +76,7 @@ export const cabecerasDeFal = (): Record<string, string> => {
 
 /** ¿Es una URL de la cola de fal? Lo único que este adaptador sigue (evita que una respuesta lo mande a otro sitio). */
 export const esUrlDeLaCola = (url: unknown): url is string =>
-  typeof url === 'string' && url.startsWith(`${COLA}/`) && !url.includes('..') && !/[\s@]/.test(url);
+  typeof url === 'string' && url.startsWith(`${cola()}/`) && !url.includes('..') && !/[\s@]/.test(url);
 
 /* ── La operación: cómo se llama una petición de fal fuera de fal ────────── */
 
@@ -86,9 +95,9 @@ export const leerOperacion = (operationId: unknown): { modelo: string; requestId
 
 /* Rutas a partir del modelo, según el OpenAPI del modelo (con la subruta). Solo para la reconciliación: en una
  * ejecución se usan las URLs que devuelve el envío, que es lo que recomienda la documentación. */
-const urlDeEstado = (modelo: string, requestId: string) => `${COLA}/${modelo}/requests/${encodeURIComponent(requestId)}/status`;
-const urlDeResultado = (modelo: string, requestId: string) => `${COLA}/${modelo}/requests/${encodeURIComponent(requestId)}`;
-const urlDeCancelacion = (modelo: string, requestId: string) => `${COLA}/${modelo}/requests/${encodeURIComponent(requestId)}/cancel`;
+const urlDeEstado = (modelo: string, requestId: string) => `${cola()}/${modelo}/requests/${encodeURIComponent(requestId)}/status`;
+const urlDeResultado = (modelo: string, requestId: string) => `${cola()}/${modelo}/requests/${encodeURIComponent(requestId)}`;
+const urlDeCancelacion = (modelo: string, requestId: string) => `${cola()}/${modelo}/requests/${encodeURIComponent(requestId)}/cancel`;
 
 /* ── La entrada: solo lo que el esquema publicado del modelo admite ───────── */
 
@@ -183,11 +192,14 @@ const CLASE_DE_RESULTADO: Partial<Record<CapabilityId, ProviderOutput['kind']>> 
   'world.generate': 'world',
 };
 
-/** Los archivos que el esquema de salida declara, tal como llegaron (URL temporal de fal, tipo, tamaño). */
-export const archivosDelResultado = (modelo: ModelSpec, resultado: unknown): Array<{ campo: string; url: string; contentType?: string; bytes?: number }> => {
+/** Un archivo de un resultado de fal, con el PAPEL que le da el esquema de salida de su modelo. */
+export interface ArchivoDeResultado { campo: string; papel: PapelDeArchivo; url: string; contentType?: string; bytes?: number }
+
+/** Los archivos que el esquema de salida declara, tal como llegaron (URL temporal de fal, tipo, tamaño) y con su papel. */
+export const archivosDelResultado = (modelo: ModelSpec, resultado: unknown): ArchivoDeResultado[] => {
   if (!resultado || typeof resultado !== 'object') return [];
   const r = resultado as Record<string, unknown>;
-  const archivos: Array<{ campo: string; url: string; contentType?: string; bytes?: number }> = [];
+  const archivos: ArchivoDeResultado[] = [];
   for (const campo of modelo.gobierno?.outputSchema ?? []) {
     const crudo = r[campo.nombre];
     if (campo.tipo !== 'file' || !crudo || typeof crudo !== 'object') continue;
@@ -195,12 +207,36 @@ export const archivosDelResultado = (modelo: ModelSpec, resultado: unknown): Arr
     if (typeof f.url !== 'string') continue;
     archivos.push({
       campo: campo.nombre,
+      /* El papel lo dice el esquema, no el nombre del archivo, ni su extensión, ni el orden en que llegó. */
+      papel: campo.papel ?? 'principal',
       url: f.url,
       ...(typeof f.content_type === 'string' ? { contentType: f.content_type } : {}),
       ...(typeof f.file_size === 'number' && Number.isFinite(f.file_size) ? { bytes: f.file_size } : {}),
     });
   }
   return archivos;
+};
+
+/**
+ * EL RESULTADO POR PAPELES: el principal (uno) y sus variantes (una de cada clase). Lo que no encaja se deja fuera y se
+ * dice por qué —un segundo principal no es una «propuesta», y dos vistas previas no son una—; nada se inventa: sin
+ * principal no hay resultado, y sin variante no hay variante.
+ */
+export const porPapel = (archivos: readonly ArchivoDeResultado[]): { principal?: ArchivoDeResultado; variantes: ArchivoDeResultado[]; descartados: string[] } => {
+  let principal: ArchivoDeResultado | undefined;
+  const variantes: ArchivoDeResultado[] = [];
+  const descartados: string[] = [];
+  for (const a of archivos) {
+    if (a.papel === 'principal') {
+      if (principal) descartados.push(`${a.campo}: un segundo archivo principal`);
+      else principal = a;
+    } else if (variantes.some((v) => v.papel === a.papel)) {
+      descartados.push(`${a.campo}: otra variante ${a.papel}`);
+    } else {
+      variantes.push(a);
+    }
+  }
+  return { principal, variantes, descartados };
 };
 
 const persistirArchivo = async (userId: string, archivo: { campo: string; url: string; bytes?: number }): Promise<string> => {
@@ -235,7 +271,7 @@ export const falAdapter: ProviderAdapter = {
       throw new ProviderError(`fal: ${model.id} no atiende ${request.capability}`, 'fal', 400, false);
     }
     const cuerpo = await enLinea(propio, cuerpoParaFal(propio, request.capability, request.input, ctx.userId), ctx.userId);
-    const enviado = await fetchJson<Record<string, unknown>>(`${COLA}/${modelo}`, {
+    const enviado = await fetchJson<Record<string, unknown>>(`${cola()}/${modelo}`, {
       provider: 'fal', method: 'POST', headers: cabecerasDeFal(), body: cuerpo, timeoutMs: 30_000,
     });
     const requestId = String(enviado.request_id ?? '');
@@ -261,13 +297,27 @@ export const falAdapter: ProviderAdapter = {
 
     /* COMPLETED no dice si salió bien: lo dice el resultado. Un error de modelo llega aquí como 4xx/5xx de fetchJson. */
     const resultado = await fetchJson<Record<string, unknown>>(resultadoUrl, { provider: 'fal', headers: cabecerasDeFal(), timeoutMs: 60_000 });
-    const archivos = archivosDelResultado(propio, resultado);
-    if (!archivos.length) throw new ProviderError(`fal: ${model.id} terminó sin ningún archivo en su resultado`, 'fal', 502, false);
-    const guardados: string[] = [];
-    for (const archivo of archivos) guardados.push(await persistirArchivo(ctx.userId, archivo));
+    /* Por PAPELES: el mundo es el principal; la vista previa, si el modelo la declara y la da, una variante suya. */
+    const { principal, variantes, descartados } = porPapel(archivosDelResultado(propio, resultado));
+    if (!principal) throw new ProviderError(`fal: ${model.id} terminó sin su archivo principal`, 'fal', 502, false);
+    const url = await persistirArchivo(ctx.userId, principal);
+    /* Una variante que no se puede guardar no tumba un resultado bueno: se deja fuera y se dice. */
+    const guardadas: VarianteDeSalida[] = [];
+    for (const v of variantes) {
+      try {
+        guardadas.push({
+          kind: v.papel as Exclude<PapelDeArchivo, 'principal'>,
+          url: await persistirArchivo(ctx.userId, v),
+          ...(v.contentType ? { mimeType: v.contentType } : {}),
+          ...(v.bytes !== undefined ? { bytes: v.bytes } : {}),
+        });
+      } catch (error) {
+        descartados.push(`${v.campo}: no se pudo guardar (${error instanceof ProviderError ? error.status ?? 'sin estado' : 'error'})`);
+      }
+    }
 
     return {
-      output: { kind: CLASE_DE_RESULTADO[request.capability] ?? 'world', url: guardados[0], urls: guardados },
+      output: { kind: CLASE_DE_RESULTADO[request.capability] ?? 'world', url, urls: [url], ...(guardadas.length ? { variantes: guardadas } : {}) },
       costUSD: costeConocido,
       latencyMs: Date.now() - start,
       model: model.id,
@@ -275,7 +325,8 @@ export const falAdapter: ProviderAdapter = {
         requestId,
         providerModelId: modelo,
         operationId,
-        archivos: archivos.map((a) => ({ campo: a.campo, contentType: a.contentType ?? null, bytes: a.bytes ?? null })),
+        archivos: [principal, ...variantes].map((a) => ({ campo: a.campo, papel: a.papel, contentType: a.contentType ?? null, bytes: a.bytes ?? null })),
+        ...(descartados.length ? { descartados } : {}),
         /* Lo que dice la licencia del modelo, para el material que salga de aquí (Asset.derechos). */
         derechos: derechosDelModelo(propio),
       },
@@ -325,7 +376,8 @@ export const leerAvisoDeFal = (cuerpo: unknown, modelo: string, modeloDeclarado?
   const providerStatus = String(b.status ?? '').trim().toUpperCase();
   if (!ID_DE_PETICION.test(requestId) || !providerStatus) return undefined;
   const declarado = modeloDeclarado ?? MODELOS.find((m) => m.gobierno?.providerModelId === modelo);
-  const archivo = declarado ? archivosDelResultado(declarado, b.payload)[0] : undefined;
+  /* El recurso es el archivo PRINCIPAL por su papel, nunca «el primero que llegó»; las variantes viajan aparte. */
+  const { principal: archivo, variantes } = declarado ? porPapel(archivosDelResultado(declarado, b.payload)) : { principal: undefined, variantes: [] };
   const motivo = typeof b.error === 'string' && b.error ? b.error.slice(0, 200) : undefined;
   return {
     providerId: 'fal',
@@ -333,6 +385,9 @@ export const leerAvisoDeFal = (cuerpo: unknown, modelo: string, modeloDeclarado?
     providerStatus,
     desenlace: DESENLACE_DE_FAL[providerStatus] ?? 'desconocido',
     ...(providerStatus === 'OK' && archivo ? { recurso: archivo.url } : {}),
+    ...(providerStatus === 'OK' && archivo && variantes.length
+      ? { variantes: variantes.map((v) => ({ kind: v.papel as Exclude<PapelDeArchivo, 'principal'>, recurso: v.url })) }
+      : {}),
     ...(motivo ? { motivo } : {}),
   };
 };

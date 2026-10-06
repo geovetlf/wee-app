@@ -24,6 +24,7 @@ import { Ledger, firestoreLedger } from '../engine/ledger';
 import { sanitizeForLog } from '../engine/sanitize';
 import { esExitoRealDeProveedor, recordRealSuccess } from '../engine/verification';
 import { ADAPTERS, DEFAULT_ROUTING } from '../engine/registry';
+import { derechosDeImplementacion } from '../engine/derechos';
 import { crearMotorDeTrabajosDeWee } from '../job';
 import { datosDelRegistro } from '../registry';
 import { almacenDeEjecuciones, almacenDeTrabajos, contadorDeCapacidad } from './almacen';
@@ -208,6 +209,8 @@ export const libroDelMotor = (ledger: Ledger = firestoreLedger, identidad?: Iden
 export const materialDeWee: PuertoDeMaterial = {
   async registrar({ principal, dispatch, job, respuesta }) {
     const urls = respuesta?.urls?.length ? respuesta.urls : job.result?.outputRefs ?? [];
+    /* Los derechos del modelo que atendió el trabajo: de sus datos, como en los otros dos caminos. */
+    const derechos = derechosDeImplementacion(job.implementation);
     const ids: string[] = [];
     for (const url of urls) {
       try {
@@ -227,6 +230,7 @@ export const materialDeWee: PuertoDeMaterial = {
             capability: dispatch.capability in DEFAULT_ROUTING ? (dispatch.capability as CapabilityId) : undefined,
             provider: job.implementation?.providerId,
           },
+          ...(derechos ? { derechos } : {}),
         });
         if (material) ids.push(material.assetId);
       } catch (e) {
@@ -360,6 +364,8 @@ export const atencionDeWee = (deps: { db?: Firestore; ahora?: () => number; mate
     materializar: deps.materializar ?? materializadorDeWee,
     ahora: deps.ahora ?? (() => Date.now()),
     ...(deps.observar ? { observar: deps.observar } : {}),
+    /* La licencia de lo que llegue: del modelo del trabajo, por la misma regla que los otros dos caminos. */
+    derechosDe: (job) => derechosDeImplementacion(job.implementation),
   };
 };
 

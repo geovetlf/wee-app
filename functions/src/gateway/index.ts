@@ -18,6 +18,8 @@ export interface GatewayRun extends ProviderResult {
   /** true si lo resolvió el proveedor de prueba. */
   demo: boolean;
   attempts: number;
+  /** El modelo que atendió, del catálogo de su proveedor: de él salen los derechos del material. */
+  modelId?: string;
 }
 
 export async function runCapability(
@@ -50,5 +52,6 @@ export async function runCapability(
     generationId: result.generationId,
     demo: result.demo,
     attempts: result.attempts,
+    modelId: result.modelId,
   };
 }

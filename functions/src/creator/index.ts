@@ -28,7 +28,9 @@ import { usageTransactionId } from '../credits/creditTransactions';
 import { operacionAbandonada } from '../core';
 import { etiquetaDeIdioma } from '../shared/idiomaDelServidor';
 import { idiomaDeSalida } from './idiomaDeSalida';
-import { crearMaterialDesdeUrl } from '../content';
+import { anotarVariantesDelResultado, crearMaterialDesdeUrl } from '../content';
+import { derechosDeImplementacion } from '../engine/derechos';
+import { sanitizeForLog } from '../engine/sanitize';
 
 /**
  * ── EL PLAZO DE UN TRABAJO, Y POR QUÉ ESTÁ AQUÍ ────────────────────────────
@@ -217,6 +219,7 @@ const toGatewayRun = (result: EngineResult): GatewayRun => ({
   generationId: result.generationId,
   demo: result.demo,
   attempts: result.attempts,
+  modelId: result.modelId,
 });
 
 /**
@@ -494,7 +497,7 @@ export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, 
  * Los resultados de prueba (`demo`) no se convierten: sus URLs no son de
  * ningún almacén de Weë y un material de mentira sería una ficha de mentira.
  */
-const materialesDeResultado = async (
+export const materialesDeResultado = async (
   uid: string,
   run: GatewayRun,
   step: JobStep,
@@ -504,6 +507,8 @@ const materialesDeResultado = async (
 ): Promise<string[]> => {
   if (run.demo) return [];
   const urls = run.output.urls && run.output.urls.length > 0 ? run.output.urls : run.output.url ? [run.output.url] : [];
+  /* Los derechos de la licencia del modelo que lo hizo: de sus datos, no del proveedor ni de ningún caso especial. */
+  const derechos = derechosDeImplementacion({ providerId: run.provider, modelId: run.modelId });
   const ids: string[] = [];
   for (const url of urls) {
     try {
@@ -525,11 +530,21 @@ const materialesDeResultado = async (
           provider: run.provider,
           /* El modelo exacto vive en `aiGenerations/{generationId}`: se llega por el id, no se copia. */
         },
+        ...(derechos ? { derechos } : {}),
       });
       if (material) ids.push(material.assetId);
     } catch (error) {
       console.error(`Content: no se pudo crear el material del paso ${step.id} del trabajo ${jobId}:`, error);
     }
+  }
+  /*
+   * LAS VARIANTES SON DE UN RESULTADO, no de varias propuestas: solo se anotan cuando hay UN material (la vista previa
+   * de un mundo es de ese mundo). Si no se pueden anotar, el material sigue siendo lo que es: catalogar no le quita
+   * a la persona lo que ya pagó.
+   */
+  if (ids.length === 1 && run.output.variantes?.length) {
+    await anotarVariantesDelResultado(uid, ids[0], run.output.variantes)
+      .catch((error) => console.error(`Content: no se pudieron anotar las variantes del paso ${step.id} del trabajo ${jobId}:`, sanitizeForLog(error, 300)));
   }
   return ids;
 };

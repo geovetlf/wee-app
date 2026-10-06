@@ -514,6 +514,8 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
    *   (antes 149/3), fal.ts +31 (antes 393/0) y fal-modelos.ts +31 (antes 116/0). Ni un proveedor ni una cadena nuevos.
    *   FASE 2 (NOT_AVAILABLE semántico): errors.ts +58 −1 (antes 1/1), router.ts +22 −12 (antes 122/13), types.ts +18
    *   (antes 194/3) y elegibilidad.ts +17 (antes 193/0): la causa de cada descarte y el motivo público, sin proveedor.
+   *   FASES 3 y 4 (derechos; mundo y vista previa): derechos.ts (nuevo, los derechos del modelo que atendió) y fal.ts +55
+   *   (antes 424/0): la salida por papeles y la cola configurable solo a https o a esta máquina.
    */
   check('E4) para el vídeo, Seedance y solo Seedance; el único proveedor nuevo es fal, con la única cadena nueva (world.generate)',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
@@ -531,7 +533,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * GenerationRecord) y router.ts 57/4 → 59/4 (reenvía esos dos campos al contexto del libro). SIGUE sin haber
        * proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|210\t0\tfunctions/src/engine/elegibilidad.ts|59\t2\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|147\t0\tfunctions/src/engine/providers/fal-modelos.ts|424\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|144\t25\tfunctions/src/engine/router.ts|212\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|210\t0\tfunctions/src/engine/elegibilidad.ts|59\t2\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|147\t0\tfunctions/src/engine/providers/fal-modelos.ts|479\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|144\t25\tfunctions/src/engine/router.ts|212\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 
@@ -621,7 +623,9 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * mundo en el Core (mundo3d, nuevo) y su reexportación para los adaptadores (engine/mundo, nuevo). contracts, index,
    * escena3d, types, fal y fal-modelos ya estaban declarados (sus tamaños, en E4, F3 y video-asincrono H2/H3).
    */
-  const DE_LA_MISION_MUNDO3D = ['functions/src/core/mundo3d.ts', 'functions/src/engine/mundo.ts'];
+  /* + FASES 3 y 4: los derechos (engine/derechos, nuevo) y las variantes viajan por el aviso y su atención (runtime/aviso, runtime/atencion). */
+  const DE_LA_MISION_MUNDO3D = ['functions/src/core/mundo3d.ts', 'functions/src/engine/mundo.ts',
+    'functions/src/engine/derechos.ts', 'functions/src/runtime/atencion.ts', 'functions/src/runtime/aviso.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1) y de la misión fal',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
@@ -655,7 +659,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === CORE_DE_LA_MISION_FAL
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
-    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '41\t3\tfunctions/src/content/index.ts\n62\t2\tfunctions/src/content/materializador.ts');
+    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '68\t3\tfunctions/src/content/index.ts\n124\t4\tfunctions/src/content/materializador.ts');
+    /* + misión mundo3d (2026-10-05): content/index.ts +27 (antes 41/3), las variantes de UN resultado; materializador.ts +62 −2 (antes 62/2), los derechos al material y sus variantes después. */
   const legacy = (s) => {
     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');
     return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a));
@@ -669,7 +674,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       === /* + revisión post-auditoría 2026-10-01: el aviso del idioma lleva jobId/stepId (index) y el avatar devuelve sus reservas abandonadas (generateAvatar). */
       /* + cierre post-auditoría 2026-10-01: index +6 −5 (creatorChat/creatorQuote con MODEL_SECRETS; la adaptación de idioma de creatorRun con su sistema y `format: 'text'`) y generateAvatar +3 −3 (AVATAR_SECRETS, solo Gemini); creator/credits.ts sin tocar. */
       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
-      '45\t4\tfunctions/src/creator/credits.ts|140\t21\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
+      /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos y las variantes; nada del reclamo ni del cobro. */
+      '45\t4\tfunctions/src/creator/credits.ts|157\t23\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 
