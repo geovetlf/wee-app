@@ -28,6 +28,7 @@
  * El detalle de la experiencia, lo que falta y lo que espera al dueño: `docs/3D-EXPERIENCIA.md`.
  */
 import type { CreatorJob, JobResult, JobStep } from '../services/creatorService';
+import { CLAVE_DE_NO_DISPONIBLE, claveDeNoDisponible, motivoDeNoDisponible } from './noDisponible';
 import {
   CAPABILITY_CATALOG,
   FORMA_DE_ID_DE_MATERIAL,
@@ -273,7 +274,11 @@ export const errorDelMundo3D = (error: unknown): ErrorDelMundo3D | null => {
   }
   if (codigoDeRed.includes('deadline-exceeded') && !codigo) return null;
   switch (codigo) {
-    case 'NOT_AVAILABLE': return fallo('no_disponible', 'motor.notAvailable', false);
+    case 'NOT_AVAILABLE':
+      /* El MOTIVO dice qué contar —y si «más tarde» es verdad—; nunca quién, ni qué modelo, ni dónde. */
+      return motivoDeNoDisponible(error) === 'ahora_no'
+        ? fallo('reintentable', CLAVE_DE_NO_DISPONIBLE.ahora_no, true)
+        : fallo('no_disponible', claveDeNoDisponible(error), false);
     case 'INVALID_REQUEST':
       if (motivo === 'needs_image' || motivo === 'bad_image_url') return fallo('entrada', 'weeai.uploadToWork', false);
       if (motivo === 'input_rejected') return fallo('entrada', 'motor.inputRejected', false);
@@ -680,7 +685,7 @@ export const presentacionDelMundo3D = (estado: EstadoDelMundo3D, contexto: Conte
         acciones: accionesDelFallo(estado.error),
       };
     case 'no_disponible':
-      return { ...base, claveTitulo: 'common.notAvailable', claveMensaje: 'motor.notAvailable', acciones: ['volver'] };
+      return { ...base, claveTitulo: 'common.notAvailable', claveMensaje: estado.error?.clave ?? CLAVE_DE_NO_DISPONIBLE.no_disponible, acciones: ['volver'] };
     default:
       return base;
   }

@@ -512,6 +512,8 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
    *   (antes 38/3). Cifras de `git diff --numstat b023f24`; el detalle de cada una, en video-asincrono H2.
    * + misión mundo3d (2026-10-05): mundo.ts (nuevo, el contrato de world.generate para los adaptadores), types.ts +45
    *   (antes 149/3), fal.ts +31 (antes 393/0) y fal-modelos.ts +31 (antes 116/0). Ni un proveedor ni una cadena nuevos.
+   *   FASE 2 (NOT_AVAILABLE semántico): errors.ts +58 −1 (antes 1/1), router.ts +22 −12 (antes 122/13), types.ts +18
+   *   (antes 194/3) y elegibilidad.ts +17 (antes 193/0): la causa de cada descarte y el motivo público, sin proveedor.
    */
   check('E4) para el vídeo, Seedance y solo Seedance; el único proveedor nuevo es fal, con la única cadena nueva (world.generate)',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
@@ -529,7 +531,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * GenerationRecord) y router.ts 57/4 → 59/4 (reenvía esos dos campos al contexto del libro). SIGUE sin haber
        * proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|193\t0\tfunctions/src/engine/elegibilidad.ts|1\t1\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|147\t0\tfunctions/src/engine/providers/fal-modelos.ts|424\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|122\t13\tfunctions/src/engine/router.ts|194\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|210\t0\tfunctions/src/engine/elegibilidad.ts|59\t2\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|147\t0\tfunctions/src/engine/providers/fal-modelos.ts|424\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|144\t25\tfunctions/src/engine/router.ts|212\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 

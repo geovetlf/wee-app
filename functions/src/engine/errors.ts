@@ -2,6 +2,7 @@ import { HttpsError } from 'firebase-functions/v2/https';
 import { CreditError, toHttpsError as creditsToHttpsError } from '../credits/creditValidation';
 import { NotConfiguredError, ProviderError } from './http';
 import { sanitizeForLog } from './sanitize';
+import type { CausaDeDescarte, EstadoDeElegibilidad } from './types';
 
 /**
  * Errores controlados del WEË AI ENGINE y de Weë Creator (docs/AI-ENGINE.md §Errores).
@@ -49,6 +50,61 @@ export class EngineError extends Error {
   }
 }
 
+/**
+ * POR QUÉ NO ESTÁ DISPONIBLE, dicho como lo puede saber la persona.
+ *
+ * «Inténtalo más tarde» solo es verdad cuando la causa es PASAJERA. Cuando lo que falta es una aprobación, una
+ * activación, una jurisdicción o una opción, esperar no arregla nada, y decirlo sería mentir. Así que el motivo sale
+ * de los descartes del Router —sus causas y los escalones de la regla común—, pero lo que viaja a la app es SOLO esto:
+ * ni el proveedor, ni el modelo, ni la jurisdicción, ni el escalón.
+ *
+ *   ahora_no            algo pasajero (pausa, cupo, la IA detenida): vuelve sola
+ *   en_tu_region        aquí no, y en otra jurisdicción sí lo estaría
+ *   falta_tu_pais       hace falta saber el país de la cuenta (el que declara el Perfil Real), y en alguno sí lo estaría
+ *   con_estas_opciones  lo pedido no lo puede hacer ninguna IA disponible; con otras opciones, quizá
+ *   no_disponible       no lo está, para nadie, ahora: sin aprobar, sin activar, sin proveedor o sin configurar
+ */
+export type MotivoDeNoDisponible = 'ahora_no' | 'en_tu_region' | 'falta_tu_pais' | 'con_estas_opciones' | 'no_disponible';
+export const MOTIVOS_DE_NO_DISPONIBLE: readonly MotivoDeNoDisponible[] = Object.freeze(['ahora_no', 'en_tu_region', 'falta_tu_pais', 'con_estas_opciones', 'no_disponible'] as const);
+
+/** La frase de cada motivo: la que se registra y la que reconoce la app (`i18n/textos/<idioma>/servidor/motor.ts`). */
+export const MENSAJE_DE_NO_DISPONIBLE: Readonly<Record<MotivoDeNoDisponible, string>> = Object.freeze({
+  ahora_no: 'Esta función no está disponible en este momento. Vuelve a intentarlo dentro de un rato.',
+  en_tu_region: 'Esta función no está disponible en tu región.',
+  falta_tu_pais: 'Para usar esta función, indica tu país en tu Perfil Real.',
+  con_estas_opciones: 'Esta función no está disponible con las opciones que elegiste. Prueba con otras.',
+  no_disponible: 'Esta función no está disponible actualmente.',
+});
+
+export interface DescarteLegible {
+  causa?: CausaDeDescarte;
+  estado?: EstadoDeElegibilidad;
+  enOtraJurisdiccion?: boolean;
+}
+
+/**
+ * DE LOS DESCARTES AL MOTIVO PÚBLICO. Pura. Lo pasajero gana —si algo vuelve solo, decir «más tarde» es verdad—;
+ * después, lo territorial que en otra jurisdicción sí valdría; después, lo que pidió la operación; y si no, no está.
+ */
+export const motivoDeNoDisponible = (descartes: readonly DescarteLegible[]): MotivoDeNoDisponible => {
+  if (descartes.some((d) => d.causa === 'pasajera')) return 'ahora_no';
+  const territoriales = descartes.filter((d) => d.causa === 'elegibilidad' && d.enOtraJurisdiccion === true);
+  if (territoriales.some((d) => d.estado === 'JURISDICTION_UNKNOWN')) return 'falta_tu_pais';
+  if (territoriales.some((d) => d.estado === 'BLOCKED_FOR_JURISDICTION' || d.estado === 'REVIEW_REQUIRED')) return 'en_tu_region';
+  if (descartes.some((d) => d.causa === 'peticion')) return 'con_estas_opciones';
+  return 'no_disponible';
+};
+
+/** NOT_AVAILABLE con su motivo público, y nada más en los detalles. */
+export const noDisponible = (motivo: MotivoDeNoDisponible): EngineError =>
+  new EngineError('NOT_AVAILABLE', MENSAJE_DE_NO_DISPONIBLE[motivo], { reason: motivo });
+
+/**
+ * LO QUE NUNCA SALE HACIA LA APP en los detalles de un error: quién era el proveedor, qué escalones de elegibilidad
+ * se quedaron fuera, qué capacidad. Se registra en el servidor (saneado) y la app recibe el código y el motivo.
+ */
+const DETALLES_INTERNOS: readonly string[] = Object.freeze(['provider', 'elegibilidad', 'capability', 'model', 'modelo', 'jurisdicciones', 'jurisdiccion']);
+
 /** Clasifica cualquier fallo en un código controlado (sin exponer nada interno). */
 export function classifyError(error: unknown): EngineError {
   if (error instanceof EngineError) return error;
@@ -74,7 +130,8 @@ export function toEngineHttpsError(error: unknown): HttpsError {
     // Lo interno solo queda en el registro del servidor, y siempre sanitizado
     console.error(`WEË AI ENGINE: ${classified.code}:`, sanitizeForLog(error, 300));
   }
-  return new HttpsError(HTTPS_CODE[classified.code], classified.message, { code: classified.code, ...classified.details });
+  const hacia = Object.fromEntries(Object.entries(classified.details).filter(([k]) => !DETALLES_INTERNOS.includes(k)));
+  return new HttpsError(HTTPS_CODE[classified.code], classified.message, { code: classified.code, ...hacia });
 }
 
 export const assertText = (value: unknown, name: string, max = 4000): string => {

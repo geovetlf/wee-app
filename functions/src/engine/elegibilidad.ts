@@ -148,6 +148,23 @@ export const modeloElegible = (modelo: ModelSpec, ajuste?: AjusteDeModelo, conte
   return { elegible: true, estado: 'ACTIVE' };
 };
 
+/**
+ * ¿HAY ALGUNA JURISDICCIÓN EN LA QUE ESTE MODELO SERÍA ELEGIBLE? Sin operación: lo pregunta el catálogo del Core (que
+ * no es de ninguna operación) y lo pregunta quien explica un «no» —«no está disponible en tu región» solo es verdad si
+ * lo está en otra—. Se prueba con las jurisdicciones aprobadas (un grupo, por sus miembros) y, si el resto está
+ * aprobado, con «cualquier otra»: `ZZ`, el código que ISO 3166 reserva para uso propio, que no cae en ningún grupo ni
+ * en ninguna lista. Un modelo sin reglas territoriales contesta lo mismo que sin jurisdicción.
+ */
+export const elegibleEnAlgunaJurisdiccion = (modelo: ModelSpec, ajuste?: AjusteDeModelo): boolean => {
+  const t = modelo.territorio;
+  if (!t) return modeloElegible(modelo, ajuste).elegible;
+  const aprobadas = Array.isArray(t.aprobadas)
+    ? t.aprobadas.flatMap((r) => (esGrupo(r) ? [...GRUPOS_DE_JURISDICCIONES[r]] : CODIGO.test(r) ? [r] : []))
+    : [];
+  const candidatas = [...aprobadas, ...(t.resto === 'APPROVED' ? ['ZZ'] : [])];
+  return candidatas.some((j) => modeloElegible(modelo, ajuste, { jurisdicciones: [j] }).elegible);
+};
+
 const TEXTO_DEL_ESTADO: Record<Exclude<EstadoDeElegibilidad, 'ACTIVE'>, string> = {
   BLOCKED_GLOBAL: 'modelo bloqueado por su licencia',
   BLOCKED_FOR_JURISDICTION: 'modelo bloqueado en la jurisdicción de la operación',

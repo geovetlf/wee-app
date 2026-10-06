@@ -185,6 +185,15 @@ export interface ReglasTerritoriales {
  */
 export type EstadoDeElegibilidad =
   | 'BLOCKED_GLOBAL' | 'BLOCKED_FOR_JURISDICTION' | 'JURISDICTION_UNKNOWN' | 'REVIEW_REQUIRED' | 'APPROVED' | 'ACTIVE';
+/**
+ * LA CAUSA DE UN DESCARTE DEL ROUTER, sin frases:
+ *   pasajera       pausa por fallos, cupo o presupuesto del día, la IA detenida: vuelve sola
+ *   configuracion  sin adaptador, sin clave, apagado por administración, sin modelo para la capacidad
+ *   peticion       lo que pidió esta operación: calidad, familia de modelos, tope de Credits, un modelo fijado
+ *   elegibilidad   la regla común de Weë (licencia, revisión legal, jurisdicción, activación)
+ */
+export type CausaDeDescarte = 'pasajera' | 'configuracion' | 'peticion' | 'elegibilidad';
+
 /** Si la configuración de Weë lo deja usar. Un modelo nuevo nace DISABLED. */
 export type ActivacionDeModelo = 'ACTIVE' | 'DISABLED';
 
@@ -550,7 +559,16 @@ export interface RouteDecision {
   policy: RoutingPolicy;
   candidates: RouteCandidate[];
   /** `estado`: cuando el descarte lo decidió la elegibilidad del modelo (`modeloElegible`), en qué escalón se quedó. */
-  skipped: { provider: string; model?: string; reason: string; estado?: EstadoDeElegibilidad }[];
+  skipped: {
+    provider: string;
+    model?: string;
+    reason: string;
+    estado?: EstadoDeElegibilidad;
+    /** Por qué, en una palabra que se puede leer sin traducir la frase: lo que decide qué se le dice a la persona. */
+    causa?: CausaDeDescarte;
+    /** Solo en un descarte territorial: si el modelo sí sería elegible en alguna otra jurisdicción. */
+    enOtraJurisdiccion?: boolean;
+  }[];
   /** Las jurisdicciones con las que se decidió (de la petición o de la cuenta), si había alguna. Para la auditoría. */
   jurisdicciones?: string[];
   /**

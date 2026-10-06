@@ -146,11 +146,19 @@ seccion('B', () => {
 /* ═══ C · LOS ERRORES, EN CLAVES ═══════════════════════════════════════════ */
 console.log('\n── C · Los errores, en claves: «no disponible» es neutro ──');
 const err = (code, details, message = 'Ahora mismo no hay una IA disponible para esto. Inténtalo más tarde.') => ({ code: `functions/${code}`, message, details });
+/* Un servidor de ANTES (con los escalones, el proveedor y «inténtalo más tarde»): lo que traiga de dentro no pasa. */
 const NO_ELEGIBLE = err('failed-precondition', { code: 'NOT_AVAILABLE', capability: 'world.generate', reason: 'sin_modelo_elegible', elegibilidad: ['BLOCKED_FOR_JURISDICTION', 'JURISDICTION_UNKNOWN'], provider: 'fal' });
+const noDisponible = (reason) => err('failed-precondition', { code: 'NOT_AVAILABLE', reason }, 'Esta función no está disponible.');
 const ERRORES = [
-  ['sin modelo elegible (bloqueado en la jurisdicción)', NO_ELEGIBLE, 'no_disponible', 'motor.notAvailable', false],
-  ['sin proveedor ahora (apagado, sin clave o en pausa)', err('failed-precondition', { code: 'NOT_AVAILABLE', capability: 'world.generate' }), 'no_disponible', 'motor.notAvailable', false],
-  ['el SDK nativo deja los detalles en customData', { code: 'functions/failed-precondition', message: 'x', customData: { details: { code: 'NOT_AVAILABLE', reason: 'sin_modelo_elegible' } } }, 'no_disponible', 'motor.notAvailable', false],
+  /* FASE 2: «no disponible» por su MOTIVO público; «más tarde» solo cuando es pasajero. */
+  ['no disponible en la región', noDisponible('en_tu_region'), 'no_disponible', 'weeai.errNotAvailableRegion', false],
+  ['falta el país de la cuenta', noDisponible('falta_tu_pais'), 'no_disponible', 'weeai.errNotAvailableCountry', false],
+  ['no con estas opciones', noDisponible('con_estas_opciones'), 'no_disponible', 'weeai.errNotAvailableOptions', false],
+  ['no disponible, sin más', noDisponible('no_disponible'), 'no_disponible', 'weeai.errNotAvailable', false],
+  ['ahora no (pasajero): esto sí se reintenta', noDisponible('ahora_no'), 'reintentable', 'weeai.errNotAvailableNow', true],
+  ['un servidor de antes (escalones y proveedor en los detalles)', NO_ELEGIBLE, 'no_disponible', 'weeai.errNotAvailable', false],
+  ['sin motivo', err('failed-precondition', { code: 'NOT_AVAILABLE' }), 'no_disponible', 'weeai.errNotAvailable', false],
+  ['el SDK nativo deja los detalles en customData', { code: 'functions/failed-precondition', message: 'x', customData: { details: { code: 'NOT_AVAILABLE', reason: 'en_tu_region' } } }, 'no_disponible', 'weeai.errNotAvailableRegion', false],
   ['sin Credits', err('resource-exhausted', { code: 'INSUFFICIENT_CREDITS', required: 39, available: 12 }, 'INSUFFICIENT_CREDITS'), 'sin_credits', 'weeai.errNotEnoughCredits', false],
   ['falta la foto', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'needs_image' }), 'entrada', 'weeai.uploadToWork', false],
   ['la foto no es de Weë', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'bad_image_url' }), 'entrada', 'weeai.uploadToWork', false],
@@ -170,6 +178,8 @@ const ERRORES = [
   ['un error suelto, sin código', { message: 'Failed to fetch' }, 'desconocido', 'weeai.errGeneric', true],
   ['algo raro', { message: 'x' }, 'desconocido', 'weeai.errGeneric', true],
 ];
+/** Un error de la tabla por su nombre, no por su posición: la tabla crece. */
+const errorLlamado = (nombre) => ERRORES.find(([n]) => n === nombre)[1];
 seccion('C', () => {
   const mal = ERRORES.filter(([, e, tipo, clave, reintentable]) => {
     const r = M.errorDelMundo3D(e);
@@ -179,7 +189,7 @@ seccion('C', () => {
   check('C2) cansarse de esperar en la app no es un error: el trabajo sigue en el servidor y llega por su documento',
     M.errorDelMundo3D({ code: 'functions/deadline-exceeded', message: 'deadline-exceeded' }) === null);
   check('C3) sin Credits trae cuánto hacía falta y cuánto había, para el aviso de saldo de siempre',
-    iguales(M.errorDelMundo3D(ERRORES[3][1]).faltan, { required: 39, available: 12 }));
+    iguales(M.errorDelMundo3D(errorLlamado('sin Credits')).faltan, { required: 39, available: 12 }));
   const r = M.errorDelMundo3D(NO_ELEGIBLE);
   check('C4) «no disponible» no deja pasar NADA de dentro: ni escalones, ni jurisdicciones, ni proveedor, ni la frase de «inténtalo más tarde»',
     !DE_DENTRO.test(JSON.stringify(r)) && r.clave !== 'motor.sinProveedor' && !/Inténtalo más tarde/.test(JSON.stringify(r)), JSON.stringify(r));
@@ -192,8 +202,9 @@ seccion('C', () => {
     || (M.errorDelMundo3D(e)?.tipo === 'sin_credits') !== (CREDITS.creditsShortfall(e) !== null));
   check(`C6) el código, el tiempo agotado en la app y la falta de Credits se leen como \`creatorErrorCode\`, \`isClientTimeout\` y \`creditsShortfall\` (${TODOS.length} formas)`,
     distintos.length === 0, distintos.map((e) => JSON.stringify(e)).join(' | '));
-  check('C7) y «no disponible» es lo que el motor llama NOT_AVAILABLE con `sin_modelo_elegible`: el contrato del Router es ese',
-    /reason: 'sin_modelo_elegible', elegibilidad: estados/.test(leer('functions/src/engine/router.ts')) && /NOT_AVAILABLE/.test(leer('functions/src/engine/errors.ts')));
+  check('C7) y los motivos que entiende la app son EXACTAMENTE los que el motor manda (`MOTIVOS_DE_NO_DISPONIBLE`), y el Router los usa',
+    iguales(Object.keys(cargar('utils/noDisponible.ts').CLAVE_DE_NO_DISPONIBLE).sort(), [...createRequire(import.meta.url)(path.resolve(RAIZ, 'functions/lib/engine/errors.js')).MOTIVOS_DE_NO_DISPONIBLE].sort())
+    && /throw noDisponible\(motivoDeNoDisponible\(decision\.skipped\)\)/.test(leer('functions/src/engine/router.ts')));
   check('C8) la falta de Credits se reconoce por su código sin leer la frase: el Credit Engine lo pone SIEMPRE en los detalles',
     /new HttpsError\(map\[error\.code\], error\.code, \{ code: error\.code, \.\.\.error\.details \}\)/.test(leer('functions/src/credits/creditValidation.ts')));
 });
@@ -218,7 +229,7 @@ const ev = {
   noDisponible: { tipo: 'fallo', error: M.errorDelMundo3D(NO_ELEGIBLE) },
   reintentable: { tipo: 'fallo', error: M.errorDelMundo3D(err('resource-exhausted', { code: 'RATE_LIMITED' })) },
   duplicado: { tipo: 'fallo', error: M.errorDelMundo3D(err('already-exists', { code: 'DUPLICATE_REQUEST' })) },
-  sinCredits: { tipo: 'fallo', error: M.errorDelMundo3D(ERRORES[3][1]) },
+  sinCredits: { tipo: 'fallo', error: M.errorDelMundo3D(errorLlamado('sin Credits')) },
   reintentar: { tipo: 'reintentar' },
   empezar: { tipo: 'empezar_de_nuevo' },
 };
@@ -387,7 +398,7 @@ seccion('G', () => {
     P.presupuestado.creditos === 39 && iguales(P.presupuestado.acciones, ['confirmar', 'cambiar'])
     && ['enviando', 'creando', 'generando'].every((k) => P[k].ocupado && P[k].acciones.length === 0) && !P.presupuestado.ocupado);
   check('G4) «no disponible»: título y frase neutros, y solo volver (ni reintentar, ni otra IA, ni por qué)',
-    P.no_disponible.claveTitulo === 'common.notAvailable' && P.no_disponible.claveMensaje === 'motor.notAvailable' && iguales(P.no_disponible.acciones, ['volver'])
+    P.no_disponible.claveTitulo === 'common.notAvailable' && /^weeai\.errNotAvailable/.test(P.no_disponible.claveMensaje) && iguales(P.no_disponible.acciones, ['volver'])
     && !DE_DENTRO.test(JSON.stringify(P.no_disponible)) && !DE_DENTRO.test(JSON.stringify(ESTADOS.no_disponible.error)));
   check('G5) el progreso, en pasos y con la frase de siempre; nunca un porcentaje',
     iguales(P.generando.progreso, { hechos: 1, total: 2 }) && M.CLAVE_DEL_PROGRESO === 'creaciones.progressSteps'
@@ -418,11 +429,11 @@ seccion('G', () => {
   const delServidor = [...claves].filter((k) => k.startsWith('motor.'));
   const deLaApp = [...claves].filter((k) => !k.startsWith('motor.'));
   const faltanApp = unicos.flatMap(([codigo, d]) => deLaApp.filter((k) => typeof valor(d, k) !== 'string' || !valor(d, k).trim()).map((k) => `${codigo}:${k}`));
-  check(`G8) las ${deLaApp.length} claves de la app existen y tienen texto en los ${unicos.length} diccionarios (ni una nueva: son las de Weë AI de siempre)`,
+  check(`G8) las ${deLaApp.length} claves de la app existen y tienen texto en los ${unicos.length} diccionarios (las de Weë AI de siempre y, desde la FASE 2, las cinco del «no disponible»)`,
     unicos.length === 16 && faltanApp.length === 0, faltanApp.slice(0, 6).join(' '));
   const faltanServidor = ['es', 'en', 'da'].flatMap((c) => delServidor.filter((k) => typeof valor(DICCIONARIOS[c], k) !== 'string').map((k) => `${c}:${k}`));
-  check(`G9) las ${delServidor.length} del servidor (\`motor.*\`) están en los idiomas que traducen su catálogo (es, en, da); los demás caen al inglés por la cadena de siempre`,
-    delServidor.length >= 3 && faltanServidor.length === 0, faltanServidor.join(' '));
+  check(`G9) las ${delServidor.length} del servidor (\`motor.*\`) están en los idiomas que traducen su catálogo (es, en, da); los demás caen al inglés por la cadena de siempre (el «no disponible» ya no es una de ellas: es de la app, en los dieciséis)`,
+    delServidor.length >= 2 && faltanServidor.length === 0 && !delServidor.includes('motor.notAvailable'), faltanServidor.join(' '));
   /* Y pintadas con el traductor de verdad: en español, en inglés y en portugués de Brasil. */
   const { crearTraductor } = cargar('i18n/traducir.ts');
   const faltan = [];
@@ -430,7 +441,8 @@ seccion('G', () => {
   const [tEs, tEn, tPt] = ['es', 'en', 'pt'].map(tr);
   for (const p of Object.values(P)) for (const t of [tEs, tEn, tPt]) { for (const k of [p.claveTitulo, p.claveMensaje]) if (k) t(k); for (const a of p.acciones) t(M.CLAVE_DE_ACCION[a]); }
   check('G10) pintado con el traductor de la app en es, en y pt-BR no falta ninguna',
-    faltan.length === 0 && tEs('common.notAvailable') === 'No disponible' && tEs('motor.notAvailable') === 'Esta función todavía no está disponible.'
+    faltan.length === 0 && tEs('common.notAvailable') === 'No disponible' && tEs('weeai.errNotAvailable') === 'Esta función no está disponible actualmente.'
+    && tEn('weeai.errNotAvailableRegion') === 'This feature isn’t available in your region.'
     && tPt('common.notAvailable') === 'Indisponível' && tEs(M.CLAVE_DEL_PROGRESO, P.generando.progreso) === '1 de 2 pasos listos', faltan.join(' '));
 });
 
@@ -443,8 +455,9 @@ seccion('H', () => {
   check('H1) puro: sin Firebase, sin React, sin red, sin reloj y sin azar',
     !/firebase|from 'react|fetch\(|XMLHttpRequest|\brequire\(|Date\.now\(|new Date\(|Math\.random\(/.test(codigo));
   const imports = [...fuente.matchAll(/^import (type )?\{[^}]*\} from '([^']+)';$/gm)].map((m) => `${m[1] ? 'tipo' : 'valor'}:${m[2]}`);
-  check('H2) importa solo el núcleo 3D por su puerta y TIPOS de los servicios (nada que se ejecute de ellos)',
-    iguales(imports.sort(), ['tipo:../services/creatorService', 'tipo:../services/escena3d', 'valor:../services/escena3d']), imports.join(', '));
+  check('H2) importa solo el núcleo 3D por su puerta, el «no disponible» puro y TIPOS de los servicios (nada que se ejecute de ellos)',
+    iguales(imports.sort(), ['tipo:../services/creatorService', 'tipo:../services/escena3d', 'valor:../services/escena3d', 'valor:./noDisponible'])
+    && !/^import /m.test(leer('utils/noDisponible.ts')), imports.join(', '));
   check('H3) no nombra ningún proveedor, modelo, endpoint ni campo de un proveedor, ni siquiera en los comentarios',
     /* `bad_image_url` es un motivo de Weë (servidor), no el campo de un proveedor: por eso los límites de palabra. */
     !/\b(fal|hunyuan|tencent|gemini|seedance|seedream|flux|elevenlabs|deepseek|minimax|openai|replicate|byteplus|bytedance)\b|\blabels_fg|\bexport_drc\b|\bimage_url\b|queue\.|FAL_KEY/i.test(fuente)
