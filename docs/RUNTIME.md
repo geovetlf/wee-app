@@ -2444,7 +2444,8 @@ reutilizando lo que hay —ni otro sistema de permisos, ni otro libro, ni otro C
   - si el libro no puede cerrar, el dinero ya está bien y la pasada se da por no terminada (`fallo`): la siguiente vuelve
     sobre el mismo trabajo, el Credit Engine contesta «ya estaba» y el libro cierra lo que faltaba.
 - **Los fallos síncronos del conductor** llevan LA regla del camino de siempre, no una copia: la decide el ejecutor del
-  motor (`engine/gateway.ts`), el único que tiene el error ORIGINAL, con `costeTrasUnFallo` —y si el proveedor ya dio
+  motor (`engine/gateway.ts`), el único que tiene el error ORIGINAL, con `costeTrasUnFallo` —que vive en `engine/errors.ts`, con la
+  clasificación de errores, y el router reexporta: así el ejecutor no arrastra el router—, y si el proveedor ya dio
   nombre a la tarea, como despachada— y viaja en el error (`details.costeDelFallo`); el runtime solo la lee
   (`costeDelFalloDelGateway`). Un fallo del Gateway sin pasar por el adaptador se decide por su CÓDIGO —el motivo fino es
   diagnóstico—: un rechazo previo a ejecutar, cero; una tarea aceptada sin nombre, una respuesta inservible o una avería

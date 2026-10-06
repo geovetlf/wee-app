@@ -51,6 +51,31 @@ export class EngineError extends Error {
 }
 
 /**
+ * ¿PUDO COBRAR EL PROVEEDOR UNA GENERACIÓN QUE FALLÓ? (auditoría H0, #22)
+ *
+ * El libro cerraba todo fallo con `providerCost: 0`, así que `aiUsage/{día}` —de donde salen los topes de
+ * gasto diario— no veía el dinero de lo que sí llegó al proveedor: una tarea de vídeo aceptada cuyo sondeo
+ * falla, o una petición que se queda sin respuesta. Se distingue con lo que se sabe, sin adivinar:
+ *  · 'cero': no salió nada (el proveedor no está configurado, o Weë rechazó la entrada antes de mandarla),
+ *    o el proveedor la rechazó al recibirla (4xx);
+ *  · 'desconocido': la tarea ya estaba aceptada (hay `providerTaskId`), se agotó el tiempo, no hubo
+ *    respuesta o el proveedor falló (5xx), o algo se rompió después de una respuesta.
+ * Lo desconocido se anota con su coste ESTIMADO como «en riesgo»; el coste medido sigue en 0, y los topes
+ * cuentan los dos: mejor parar un poco antes que gastar de más sin verlo.
+ *
+ * Vive aquí, con la clasificación de errores, para que la usen los dos caminos sin arrastrar el router: el router del
+ * motor (que la reexporta) y el ejecutor del Gateway del Core (`engine/gateway.ts`), que la decide con el error original
+ * y la anota en el error para el conductor (RUNTIME §25c).
+ */
+export const costeTrasUnFallo = (error: unknown, despachado: boolean): 'cero' | 'desconocido' => {
+  if (error instanceof NotConfiguredError) return 'cero';
+  if (despachado) return 'desconocido';
+  if (error instanceof EngineError) return error.code === 'INVALID_REQUEST' ? 'cero' : 'desconocido';
+  if (error instanceof ProviderError && typeof error.status === 'number' && error.status >= 400 && error.status < 500) return 'cero';
+  return 'desconocido';
+};
+
+/**
  * POR QUÉ NO ESTÁ DISPONIBLE, dicho como lo puede saber la persona.
  *
  * «Inténtalo más tarde» solo es verdad cuando la causa es PASAJERA. Cuando lo que falta es una aprobación, una

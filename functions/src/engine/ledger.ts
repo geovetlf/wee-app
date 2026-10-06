@@ -41,7 +41,7 @@ export interface CloseRecord {
   status: Extract<GenerationStatus, 'COMPLETED' | 'FAILED' | 'CANCELLED'>;
   providerCost: number;
   /**
-   * Un fallo que pudo costar dinero al proveedor (H0 #22, `costeTrasUnFallo` en el router). `providerCost`
+   * Un fallo que pudo costar dinero al proveedor (H0 #22, `costeTrasUnFallo` en engine/errors.ts). `providerCost`
    * sigue siendo lo MEDIDO (0); el estimado va aparte y se suma a `aiUsage/{día}` como `usdEnRiesgo`.
    *
    * `estimado` (RUNTIME §22.5): una generación aceptada que terminó bien y cuyo coste no se midió —un modelo que cobra

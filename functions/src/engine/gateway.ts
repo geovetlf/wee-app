@@ -21,10 +21,9 @@ import {
 } from '../core';
 import { datosDelRegistro } from '../registry';
 import { EngineConfig, loadConfig } from './config';
-import { classifyError } from './errors';
+import { classifyError, costeTrasUnFallo } from './errors';
 import { NotConfiguredError, ProviderError } from './http';
 import { ADAPTERS, DEFAULT_ROUTING } from './registry';
-import { costeTrasUnFallo } from './router';
 import { sanitizeForLog } from './sanitize';
 import { cubreLoExigido, traducirContinuidad, materialDeLaEntrada } from './continuidad';
 import { camposAjustables, modeloElegible } from './elegibilidad';
