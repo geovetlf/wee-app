@@ -59,8 +59,9 @@ check('B1) Imagen, Video, Texto y Voz, con su área y su experiencia de siempre'
   JSON.stringify(principales) === JSON.stringify(['images:images:photo', 'videos:videos:studio', 'text:writer:writer', 'voice:voice:music']), principales.join(' · '));
 check('B2) ninguna quinta puerta: ni «Varias escenas», ni una de producciones', E.ENTRADAS_PRINCIPALES.length === 4
   && !E.ENTRADAS_PRINCIPALES.concat(E.ENTRADAS_DE_EXPLORAR).some((e) => /multi|produc|filmmaker/i.test(`${e.id}${e.clave}`)));
-check('B3) Explorar, igual: Personajes, Beauty, Fashion, Documentos y Más',
-  JSON.stringify(E.ENTRADAS_DE_EXPLORAR.map((e) => e.id)) === JSON.stringify(['characters', 'beauty', 'fashion', 'documents', 'more']));
+/* + misión mundo3d (2026-10-05): 3D World entra en Explorar; ninguna puerta de producciones (B2 lo sigue vigilando). */
+check('B3) Explorar, igual: Personajes, Beauty, Fashion, 3D World, Documentos y Más',
+  JSON.stringify(E.ENTRADAS_DE_EXPLORAR.map((e) => e.id)) === JSON.stringify(['characters', 'beauty', 'fashion', 'world3d', 'documents', 'more']));
 const video = E.experienciasDeLaEntrada('videos');
 check('B4) «Varias escenas» vive DENTRO de la puerta de vídeo, entre sus quince', video.length === 15 && video.some((x) => x.id === 'multiScene'));
 const soloVideo = ['images', 'text', 'voice'].every((p) => !E.experienciasDeLaEntrada(p).some((x) => x.produccion));

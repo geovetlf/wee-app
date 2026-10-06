@@ -34,6 +34,7 @@ import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import SpecialistScreen from '../screens/SpecialistScreen';
 import StudioScreen from '../screens/StudioScreen';
 import ProductionScreen from '../screens/ProductionScreen';
+import Mundo3DScreen from '../screens/Mundo3DScreen';
 import DesignScreen from '../screens/DesignScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
@@ -105,6 +106,11 @@ export type MainStackParamList = {
    * controles de cámara elegidos (`creativo`, por ruta del lenguaje creativo).
    */
   Production: { productionId?: string; intencion?: string; creativo?: Record<string, string> } | undefined;
+  /**
+   * «Crear mundo 3D» (Weë Studio → 3D World): lo escrito en la caja del Studio (`descripcion`) y la foto adjunta
+   * (`imageUri`, local: la pantalla la sube a la carpeta de la cuenta). Sin su puerta abierta, la pantalla no hace nada.
+   */
+  Mundo3D: { descripcion?: string; imageUri?: string } | undefined;
   /* Weë Design, igual que Studio: un sitio con pantalla propia. */
   Design: undefined;
   WriterEditor: { docId?: string; text?: string; title?: string; replaceText?: string } | undefined;
@@ -355,6 +361,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
       <Stack.Screen name="Studio" component={StudioScreen} />
       <Stack.Screen name="Production" component={ProductionScreen} />
+      <Stack.Screen name="Mundo3D" component={Mundo3DScreen} />
       <Stack.Screen name="Design" component={DesignScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />

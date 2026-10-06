@@ -73,4 +73,17 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   progressStarting: '開始しています…',
   progressSteps: '{{total}}ステップ中{{hechos}}ステップ完了',
   progressFindLater: 'この画面を離れても大丈夫です。完成したら「マイ作品」で確認できます。',
+
+  /* Mundos 3D (misión mundo3d, 2026-10-05): su tipo, que Weë todavía no tiene visor 3D, y lo que su licencia deja hacer
+     —nunca el nombre de la licencia, que nombra al modelo—. `{{lugares}}` llega ya nombrado y unido en el idioma de quien mira. */
+  filterWorlds: '3Dワールド',
+  kindWorld: '3Dワールド',
+  noViewer3d: 'Weëにはまだ3Dビューアーがありません。ファイルをダウンロードして、3Dアプリで開いてください。',
+  rightsTitle: '利用できる範囲',
+  rightsCommercialAllowed: '商用利用できます。',
+  rightsCommercialRestricted: '商用利用には条件があります。',
+  rightsCommercialUnclear: '商用利用できるかどうかは、まだはっきりしていません。',
+  rightsCommercialNotAllowed: '商用利用はできません。',
+  rightsAttribution: 'ライセンスにより、出典の表示が必要です。',
+  rightsBlockedIn: '次の地域では使用も表示もできません：{{lugares}}。',
 };

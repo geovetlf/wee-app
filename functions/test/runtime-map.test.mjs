@@ -621,6 +621,8 @@ console.log('\n── E · Quién llama desde la app ──');
     creatorChat: 'services/creatorService.ts', creatorQuote: 'services/creatorService.ts', creatorRun: 'services/creatorService.ts',
     brainChat: 'services/brainService.ts', brainQuote: 'services/brainService.ts',
     generateVideo: 'services/videoService.ts', deleteAsset: 'services/assetsService.ts',
+    /* + misión mundo3d: la tercera puerta del conductor tiene UN servicio en la app (sin desplegar, y su pantalla tras su puerta). */
+    generateWorld: 'services/mundoService.ts',
   };
   let n = 120;
   for (const [fn, servicio] of Object.entries(ESPERADO)) check(`${n++}) \`${fn}\` la invoca ${servicio}, y nadie más`, igual(quienNombraLaCallable(fn), [servicio]), quienNombraLaCallable(fn).join(', '));
@@ -631,6 +633,7 @@ console.log('\n── E · Quién llama desde la app ──');
    * el plano y nunca un texto. Ninguna pantalla ni componente la importa directamente.
    */
   check(`${n++}) \`generateVideo\` tiene UN consumidor nominal, la toma de un plano: ninguna pantalla importa su servicio`, igual(importadores('videoService'), ['hooks/useTomaDePlano.ts']), importadores('videoService').join(', '));
+  check(`${n++}) \`generateWorld\` tiene UN consumidor nominal, la pantalla «Crear mundo 3D»: ninguna otra importa su servicio`, igual(importadores('mundoService'), ['screens/Mundo3DScreen.tsx']), importadores('mundoService').join(', '));
   check(`${n++}) los proyectos los escribe el cliente directamente: no hay callable de Project`, /collection\(db, 'creatorProjects'\)|doc\(db, 'creatorProjects'/.test(leer('services/projectsService.ts')) && !Object.values(FUNCTIONS).flat().some((f) => /project/i.test(f)));
   check(`${n++}) y las publicaciones también: \`posts\` no pasa por el modelo de Publication del Core`, /'posts'/.test(leer('services/firestoreService.ts')) && (nombrados.get('core/content/publication.js') || new Set()).size === 0);
 }

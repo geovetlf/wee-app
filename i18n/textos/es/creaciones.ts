@@ -86,4 +86,17 @@ export const creaciones = {
   progressStarting: 'Empezando…',
   progressSteps: '{{hechos}} de {{total}} pasos listos',
   progressFindLater: 'Puedes salir de esta pantalla; lo encontrarás en «Mis creaciones» cuando esté listo.',
+
+  /* Mundos 3D (misión mundo3d, 2026-10-05): su tipo, que Weë todavía no tiene visor 3D, y lo que su licencia deja hacer
+     —nunca el nombre de la licencia, que nombra al modelo—. `{{lugares}}` llega ya nombrado y unido en el idioma de quien mira. */
+  filterWorlds: 'Mundos 3D',
+  kindWorld: 'Mundo 3D',
+  noViewer3d: 'Weë todavía no tiene un visor 3D. Descárgalo para abrirlo en una app 3D.',
+  rightsTitle: 'Qué puedes hacer con él',
+  rightsCommercialAllowed: 'Puedes usarlo con fines comerciales.',
+  rightsCommercialRestricted: 'Su uso comercial tiene condiciones.',
+  rightsCommercialUnclear: 'Todavía no está claro si se puede usar con fines comerciales.',
+  rightsCommercialNotAllowed: 'No se puede usar con fines comerciales.',
+  rightsAttribution: 'Su licencia pide atribución.',
+  rightsBlockedIn: 'No se puede usar ni mostrar en: {{lugares}}.',
 };

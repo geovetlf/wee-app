@@ -30,9 +30,13 @@
  * Y no trae ni una frase: los textos y su i18n son de quien pinta.
  */
 
+/* El tipo de los derechos viene del contrato del Core, por su puerta en la app: uno, no una copia más. Solo el tipo. */
+import type { DerechosDelMaterial } from './escena3d';
+
 /* ── El material, tal y como el servidor lo guarda ──────────────────────────── */
 
-export type AssetKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'model3d';
+/* `world` (2026-10-05): un mundo 3D explorable, como en el Core (`core/content/asset.ts`). */
+export type AssetKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'model3d' | 'world';
 export type AssetStatus = 'uploading' | 'processing' | 'ready' | 'failed' | 'deleted';
 export type VariantKind = 'thumbnail' | 'poster' | 'preview' | 'transcoded';
 
@@ -88,6 +92,11 @@ export interface AssetDoc {
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
+  /**
+   * La licencia ajena que lo acompaña, si la hay (un mundo de un modelo con licencia propia). Se LEE para decirle a
+   * la persona qué puede hacer con él —con `derechosVisibles`, nunca enseñando el nombre de una licencia—.
+   */
+  derechos?: DerechosDelMaterial;
   /** La URL de entrega. Caché, no identidad: puede cambiar sin que el material cambie. */
   delivery?: { url: string; kind: 'bearer_token' | 'public' };
   pendingPhysicalDeletion?: boolean;
@@ -316,4 +325,5 @@ export const CLAVE_DE_TIPO: Record<AssetKind, string> = {
   audio: 'creaciones.kindAudio',
   document: 'creaciones.kindDocument',
   model3d: 'creaciones.kindModel3d',
+  world: 'creaciones.kindWorld',
 };

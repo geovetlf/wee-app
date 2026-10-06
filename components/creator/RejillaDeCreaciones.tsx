@@ -42,6 +42,8 @@ const ICONO_POR_TIPO: Record<AssetDoc['kind'], keyof typeof Ionicons.glyphMap> =
   audio: 'musical-notes-outline',
   document: 'document-text-outline',
   model3d: 'cube-outline',
+  /* Un mundo 3D se ve como lo que es, con su icono: su archivo no es una imagen y no se pinta como una. */
+  world: 'planet-outline',
   text: 'text-outline',
 };
 

@@ -1,13 +1,13 @@
 /**
- * «CREAR MUNDO 3D» — WEË STUDIO → 3D WORLD, EN LA APP (`utils/crearMundo3D.ts`).
+ * «CREAR MUNDO 3D» — WEË STUDIO → 3D WORLD → CREAR MUNDO 3D, EN LA APP (`utils/crearMundo3D.ts`).
  *
  * El compositor de la experiencia, probado con el código de verdad y sin red:
  *
- *   A · El contrato de la capacidad: lo que se pide es de Weë (`world.generate`), nunca de un proveedor.
- *   B · Lo que pone la persona: una imagen suya y unas palabras; validar antes de enviar, como el servidor.
- *   C · Los errores, en claves: «no disponible» es neutro, no se reintenta y no deja ver nada de dentro.
- *   D · El ciclo de vida: la máquina hace exactamente lo que dice su tabla, ni un salto más.
- *   E · Del trabajo de `CreatorFlow` (el camino de hoy) a los eventos.
+ *   A · Lo que se pide: la PETICIÓN CANÓNICA del contrato (`PeticionDeMundo3D`), leída por el mismo lector que el servidor.
+ *   B · Lo que pone la persona: una foto suya, unas palabras y «abierto / cerrado / No sé»; validar como el servidor.
+ *   C · Los errores, en claves: «no disponible» es neutro y dice su motivo público; el precio que cambió se vuelve a enseñar.
+ *   D · El ciclo de vida: la máquina hace exactamente lo que dice su tabla, con en cola, parar y cancelado de verdad.
+ *   E · De lo que contesta la puerta asíncrona (`generateWorld`) a los eventos.
  *   F · Del mundo a la escena: el núcleo 3D único, por id, idéntico al del servidor.
  *   G · Lo que se enseña: claves que existen, en los dieciséis diccionarios, sin frases propias.
  *   H · Fronteras: puro, sin proveedores, sin Credits, sin reloj, y en la cadena.
@@ -43,6 +43,7 @@ const cargar = crearCargador({
 
 const M = cargar('utils/crearMundo3D.ts');
 const N3D = cargar('services/escena3d.ts');
+const CONTRATO_SERVIDOR = cargar('functions/src/core/mundo3d.ts');
 const NUCLEO_SERVIDOR = cargar('functions/src/core/escena3d.ts');
 const CATALOGO_SERVIDOR = cargar('functions/src/core/registry/capabilities.ts');
 const CREATOR = cargar('services/creatorService.ts');
@@ -51,50 +52,51 @@ const CREDITS = cargar('services/creditsService.ts');
 const CUENTA = 'cuentaA1b2C3';
 const enStorage = (ruta) => `https://firebasestorage.googleapis.com/v0/b/get-wee.firebasestorage.app/o/${encodeURIComponent(ruta)}?alt=media&token=t0k3n`;
 const FOTO = enStorage(`users/${CUENTA}/creator-inputs/1700000000000-ab12cd.jpg`);
-const ENTRADA = { imagen: { tipo: 'storage', url: FOTO }, descripcion: 'Un pueblo de pescadores al atardecer', projectId: null };
-const CTX = { cuenta: CUENTA, camino: M.CAMINO_DE_CREATORFLOW };
-const ASINCRONO = { cuenta: CUENTA, camino: M.CAMINO_ASINCRONO_DEL_CORE };
+const ENTRADA = { imagen: { tipo: 'storage', url: FOTO }, descripcion: 'Un pueblo de pescadores al atardecer', espacio: null, projectId: null };
+const CTX = { cuenta: CUENTA };
 const ASSET = 'asset_0123456789abcdef0123456789abcdef';
+const DERECHOS = { usoComercial: 'RESTRICTED', atribucion: true, jurisdiccionesBloqueadas: ['EU', 'GB', 'KR'] };
 
 /** Lo que nunca puede verse en lo que se enseña: proveedores, modelos, jurisdicciones, escalones de elegibilidad. */
 const DE_DENTRO = /\b(fal|hunyuan|tencent|gemini|seedance|seedream|flux|elevenlabs|deepseek|minimax|openai|anthropic|replicate|byteplus|bytedance)\b|BLOCKED|JURISDICTION|REVIEW_REQUIRED|APPROVED|ACTIVE\b|elegib|sin_modelo|jurisdic|labels_fg|export_drc|image_url|providerModel|"(ES|EU|GB|KR|US)"/i;
 
-/* ═══ A · EL CONTRATO DE LA CAPACIDAD ══════════════════════════════════════ */
-console.log('\n── A · Lo que se pide es una capacidad de Weë, no un proveedor ──');
+/* ═══ A · LA PETICIÓN CANÓNICA ═════════════════════════════════════════════ */
+console.log('\n── A · Lo que se pide es la petición canónica de Weë, no la de un proveedor ──');
 seccion('A', () => {
   const entrada = CATALOGO_SERVIDOR.CAPABILITY_CATALOG.find((c) => c.id === M.CAPACIDAD_DEL_MUNDO_3D);
   const espejo = N3D.CAPABILITY_CATALOG.find((c) => c.id === M.CAPACIDAD_DEL_MUNDO_3D);
-  check('A1) la capacidad es `world.generate`, del catálogo del Core: enrutable, de imagen y texto a 3D, igual en el espejo',
-    M.CAPACIDAD_DEL_MUNDO_3D === 'world.generate' && entrada?.status === 'ROUTABLE' && iguales(entrada?.accepts, ['image', 'text'])
-    && entrada?.produces === '3d' && iguales(entrada, espejo));
+  check('A1) la capacidad es `world.generate`, la del contrato y del catálogo del Core: enrutable, de imagen y texto a 3D, igual en el espejo',
+    M.CAPACIDAD_DEL_MUNDO_3D === 'world.generate' && M.CAPACIDAD_DEL_MUNDO_3D === CONTRATO_SERVIDOR.CAPACIDAD_DE_MUNDO
+    && entrada?.status === 'ROUTABLE' && iguales(entrada?.accepts, ['image', 'text']) && entrada?.produces === '3d' && iguales(entrada, espejo));
   const r = M.peticionDelMundo3D(ENTRADA, CUENTA);
-  check('A2) la petición lleva la capacidad, la imagen de la persona y sus palabras, y NADA más',
-    r.ok && iguales(Object.keys(r.peticion).sort(), ['capacidad', 'descripcion', 'imagen']) && r.peticion.capacidad === 'world.generate'
-    && iguales(r.peticion.imagen, { tipo: 'storage', url: FOTO }) && r.peticion.descripcion === ENTRADA.descripcion && r.descripcionRecortada === false);
+  check('A2) la petición es la CANÓNICA del contrato: versión, modo, la foto de la persona y sus palabras, y NADA más',
+    r.ok && iguales(Object.keys(r.peticion).sort(), ['contract', 'descripcion', 'imagen', 'modo']) && r.peticion.contract === '1.0'
+    && r.peticion.modo === 'desde_imagen' && iguales(r.peticion.imagen, { tipo: 'storage', url: FOTO }) && r.peticion.descripcion === ENTRADA.descripcion
+    && r.descripcionRecortada === false);
+  check('A3) y es EXACTAMENTE lo que el lector del SERVIDOR lee de ella: la app nunca manda algo que la puerta rechace por su forma',
+    r.ok && iguales(CONTRATO_SERVIDOR.leerPeticionDeMundo3D(JSON.parse(JSON.stringify(r.peticion)), CUENTA), { ok: true, peticion: r.peticion }));
   const claves = (o, acc = []) => { for (const [k, v] of Object.entries(o)) { acc.push(k); if (v && typeof v === 'object') claves(v, acc); } return acc; };
-  const PROHIBIDOS = ['labels_fg1', 'labels_fg2', 'classes', 'export_drc', 'image_url', 'prompt', 'model', 'modelId', 'provider', 'quality', 'jurisdicciones', 'endpoint', 'seed'];
-  const conMaterial = M.peticionDelMundo3D({ imagen: { tipo: 'material', assetId: ASSET, kind: 'image' }, descripcion: '', projectId: 'proyecto_7' }, CUENTA);
-  check('A3) ni un campo de un proveedor ni de la ruta: ni etiquetas de escena, ni prompt, ni modelo, ni calidad, ni jurisdicción',
-    [r, conMaterial].every((x) => x.ok && claves(x.peticion).every((k) => !PROHIBIDOS.includes(k))),
-    claves(r.peticion).join(', '));
-  check('A4) un material viaja por su id (sin su tipo ni su dirección) y el proyecto, si lo hay; sin palabras, no se inventan',
-    conMaterial.ok && iguales(conMaterial.peticion, { capacidad: 'world.generate', imagen: { tipo: 'material', assetId: ASSET }, projectId: 'proyecto_7' }));
+  const PROHIBIDOS = ['labels_fg1', 'labels_fg2', 'classes', 'export_drc', 'image_url', 'prompt', 'model', 'modelId', 'provider', 'quality', 'jurisdicciones', 'endpoint', 'seed', 'capacidad'];
+  const conMaterial = M.peticionDelMundo3D({ imagen: { tipo: 'material', assetId: ASSET }, descripcion: '', espacio: 'interior', projectId: 'proyecto_7' }, CUENTA);
+  check('A4) ni un campo de un proveedor ni de la ruta: ni etiquetas de escena, ni prompt, ni modelo, ni calidad, ni jurisdicción',
+    [r, conMaterial].every((x) => x.ok && claves(x.peticion).every((k) => !PROHIBIDOS.includes(k))), claves(r.peticion).join(', '));
+  check('A5) un material viaja por su id, el espacio elegido y el proyecto, si los hay; sin palabras, no se inventan',
+    conMaterial.ok && iguales(conMaterial.peticion, { contract: '1.0', modo: 'desde_imagen', imagen: { tipo: 'material', assetId: ASSET }, espacio: 'interior', projectId: 'proyecto_7' }));
+  check('A6) «🤷 No sé» no viaja: sin espacio, lo decide Weë en el servidor (`ESPACIO_POR_DEFECTO`)',
+    r.ok && !('espacio' in r.peticion) && CONTRATO_SERVIDOR.entradaDeMundo3D(r.peticion, FOTO).espacio === CONTRATO_SERVIDOR.ESPACIO_POR_DEFECTO);
   const larga = `${'a'.repeat(299)}😀 y más`;
   const recortada = M.peticionDelMundo3D({ ...ENTRADA, descripcion: `   ${larga}   ` }, CUENTA);
-  check(`A5) las palabras viajan tal cual (recortadas en los bordes) y hasta ${M.LIMITE_DE_LA_DESCRIPCION}, sin partir un emoji, y se dice si se recortaron`,
-    M.LIMITE_DE_LA_DESCRIPCION === 300 && recortada.ok && recortada.peticion.descripcion === 'a'.repeat(299) && recortada.descripcionRecortada === true
+  check(`A7) las palabras viajan hasta el límite del contrato (${CONTRATO_SERVIDOR.MAX_LARGO_DE_LA_DESCRIPCION}), sin partir un emoji, y se dice si se recortaron`,
+    CONTRATO_SERVIDOR.MAX_LARGO_DE_LA_DESCRIPCION === 300 && recortada.ok && recortada.peticion.descripcion === 'a'.repeat(299) && recortada.descripcionRecortada === true
     && M.peticionDelMundo3D({ ...ENTRADA, descripcion: `${'b'.repeat(298)}😀` }, CUENTA).peticion.descripcion.length === 300);
-  check('A6) el límite es el del servidor: `creatorChat` guarda 300 caracteres del objetivo',
-    /String\(data\.goal \|\| ''\)\.trim\(\)\.slice\(0, 300\)/.test(leer('functions/src/creator/index.ts')));
-  check('A7) la petición sale congelada: un reintento no puede mandar otra cosa',
-    Object.isFrozen(r.peticion) && Object.isFrozen(r.peticion.imagen));
+  check('A8) la petición sale congelada: un reintento no puede mandar otra cosa', Object.isFrozen(r.peticion) && Object.isFrozen(r.peticion.imagen));
 });
 
 /* ═══ B · LO QUE PONE LA PERSONA ═══════════════════════════════════════════ */
-console.log('\n── B · Una imagen suya, de Weë; validar antes de enviar ──');
+console.log('\n── B · Una foto suya, de Weë; validar antes de enviar, con la regla del servidor ──');
 seccion('B', () => {
-  const codigos = (entrada) => M.validarEntradaDelMundo3D(entrada, CUENTA).map((p) => p.codigo);
-  check('B1) una foto de su carpeta del Storage de Weë sirve; sin imagen, no', iguales(codigos(ENTRADA), []) && iguales(codigos({ ...ENTRADA, imagen: null }), ['falta_imagen']));
+  const motivos = (entrada) => M.validarEntradaDelMundo3D(entrada, CUENTA).map((p) => p.motivo);
+  check('B1) una foto de su carpeta del Storage de Weë sirve; sin foto, no', iguales(motivos(ENTRADA), []) && iguales(motivos({ ...ENTRADA, imagen: null }), ['falta_imagen']));
   const CASOS = [
     ['una foto de otra cuenta', { tipo: 'storage', url: enStorage('users/otraCuenta/creator-inputs/x.jpg') }, 'imagen_ajena'],
     ['una foto fuera de una carpeta de persona', { tipo: 'storage', url: enStorage('public/x.jpg') }, 'imagen_ajena'],
@@ -104,24 +106,22 @@ seccion('B', () => {
     ['una imagen en línea', { tipo: 'storage', url: 'data:image/png;base64,AAAA' }, 'imagen_sin_subir'],
     ['una dirección de más de 2000 caracteres', { tipo: 'storage', url: enStorage(`users/${CUENTA}/creator-inputs/${'x'.repeat(2000)}.jpg`) }, 'imagen_sin_subir'],
     ['un material con un id que no es un id', { tipo: 'material', assetId: 'https://cdn.ejemplo/x.png' }, 'material_no_valido'],
-    ['un material que es un vídeo', { tipo: 'material', assetId: ASSET, kind: 'video' }, 'material_no_es_imagen'],
     ['un tipo de fuente inventado', { tipo: 'url', url: FOTO }, 'falta_imagen'],
   ];
-  const mal = CASOS.filter(([, imagen, esperado]) => !iguales(codigos({ ...ENTRADA, imagen }), [esperado])).map(([nombre]) => nombre);
-  check(`B2) ${CASOS.length} imágenes que no sirven, cada una con su motivo`, mal.length === 0, mal.join(', '));
-  check('B3) sirven también la forma gs:// , la del emulador y la de Cloud Storage, y un material suyo que es imagen',
+  const mal = CASOS.filter(([, imagen, esperado]) => !iguales(motivos({ ...ENTRADA, imagen }), [esperado])).map(([nombre]) => nombre);
+  check(`B2) ${CASOS.length} fotos que no sirven, cada una con el motivo del contrato`, mal.length === 0, mal.join(', '));
+  check('B3) sirven también la forma gs:// , la del emulador y la de Cloud Storage, y un material suyo',
     [`gs://get-wee.firebasestorage.app/users/${CUENTA}/creator-inputs/x.jpg`, `http://127.0.0.1:9199/v0/b/demo-wee/o/users%2F${CUENTA}%2Fai-generations%2Fx.png?alt=media`,
-      `https://storage.googleapis.com/get-wee/users/${CUENTA}/ai-generations/x.png`].every((url) => codigos({ ...ENTRADA, imagen: { tipo: 'storage', url } }).length === 0)
-    && codigos({ ...ENTRADA, imagen: { tipo: 'material', assetId: ASSET, kind: 'image' } }).length === 0
-    && codigos({ ...ENTRADA, imagen: { tipo: 'material', assetId: ASSET } }).length === 0);
-  check('B4) un proyecto con un id que el núcleo 3D no admite se dice antes de crear nada',
-    iguales(codigos({ ...ENTRADA, projectId: 'mi proyecto/1' }), ['proyecto_no_valido']) && iguales(codigos({ ...ENTRADA, projectId: 'Abc123XyZ' }), []));
-  check('B5) sin cuenta no hay carpeta propia: ninguna foto es suya', iguales(M.validarEntradaDelMundo3D(ENTRADA, '').map((p) => p.codigo), ['imagen_ajena']));
-  check('B6) cada problema lleva su clave, y para la imagen es siempre la misma frase accionable: subir una foto a Weë',
-    CASOS.every(([, imagen]) => M.validarEntradaDelMundo3D({ ...ENTRADA, imagen }, CUENTA).every((p) => p.clave === 'weeai.uploadToWork'))
+      `https://storage.googleapis.com/get-wee/users/${CUENTA}/ai-generations/x.png`].every((url) => motivos({ ...ENTRADA, imagen: { tipo: 'storage', url } }).length === 0)
+    && motivos({ ...ENTRADA, imagen: { tipo: 'material', assetId: ASSET } }).length === 0);
+  check('B4) un proyecto con un id que el núcleo 3D no admite se dice antes de crear nada; un espacio inventado, también',
+    iguales(motivos({ ...ENTRADA, projectId: 'mi proyecto/1' }), ['proyecto_no_valido']) && iguales(motivos({ ...ENTRADA, projectId: 'Abc123XyZ' }), [])
+    && iguales(motivos({ ...ENTRADA, espacio: 'playa' }), ['espacio_no_valido']) && iguales(motivos({ ...ENTRADA, espacio: 'exterior' }), []));
+  check('B5) sin cuenta no hay carpeta propia: ninguna foto es suya', iguales(M.validarEntradaDelMundo3D(ENTRADA, '').map((p) => p.motivo), ['imagen_ajena']));
+  check('B6) cada problema lleva su campo y su clave; para la foto es siempre la misma frase accionable: subir una foto a Weë',
+    CASOS.every(([, imagen]) => M.validarEntradaDelMundo3D({ ...ENTRADA, imagen }, CUENTA).every((p) => p.clave === 'weeai.uploadToWork' && p.campo === 'imagen'))
     && M.validarEntradaDelMundo3D({ ...ENTRADA, projectId: '/' }, CUENTA)[0].clave === 'weeai.couldNotSaveToProject');
-
-  /* La dirección se lee como la lee el servidor: su `parseStorageUrl`, extraído de su fuente y comparado caso a caso. */
+  /* La dirección se lee como la lee el motor: su `parseStorageUrl`, extraído de su fuente y comparado caso a caso con el contrato. */
   const fuente = leer('functions/src/engine/http.ts');
   const inicio = fuente.indexOf('export function parseStorageUrl');
   const fin = fuente.indexOf('\n}\n', inicio) + 3;
@@ -132,15 +132,13 @@ seccion('B', () => {
   const DIRECCIONES = [
     FOTO, enStorage('users/otra/x.png'), enStorage(`users/${CUENTA}/../otra/x.png`), `gs://b/users/${CUENTA}/x.jpg`, 'gs://b/',
     `http://localhost:9199/v0/b/demo/o/users%2F${CUENTA}%2Fx.png`, `https://storage.googleapis.com/b/users/${CUENTA}/x%20y.png`,
-    'https://storage.googleapis.com/b/', 'https://ejemplo.com/v0/b/x/o/', 'https://ejemplo.com/foto.jpg', 'file:///x.jpg', 'blob:x', 'data:image/png;base64,AA', '',
+    'https://storage.googleapis.com/b/', 'https://ejemplo.com/v0/b/x/o/', 'https://ejemplo.com/foto.jpg', 'file:///x.jpg', 'blob:x', 'data:image/png;base64,AA',
     'https://firebasestorage.googleapis.com/v0/b/b/o/users%2Fx%E0%A4%A.png',
   ];
   const como = (f, url) => { try { return f(url); } catch { return null; } };
-  const distintas = DIRECCIONES.filter((url) => !iguales(como(delServidor, url), M.rutaEnElStorage(url)));
-  check(`B7) la dirección se lee EXACTAMENTE como en el servidor (${DIRECCIONES.length} formas, también las rotas): una copia comprobada, no una segunda verdad`,
+  const distintas = DIRECCIONES.filter((url) => !iguales(como(delServidor, url), N3D.rutaEnElStorageDeWee(url)));
+  check(`B7) la dirección se lee EXACTAMENTE como en el motor (${DIRECCIONES.length} formas, también las rotas), con el lector del contrato`,
     inicio > 0 && distintas.length === 0, distintas.join(' | '));
-  check('B8) y la carpeta propia es la misma regla que aplica el servidor a una foto de entrada (`users/{uid}/`)',
-    /parsed\.path\.startsWith\(`users\/\$\{uid\}\/`\)/.test(leer('functions/src/creator/inputs.ts')));
 });
 
 /* ═══ C · LOS ERRORES, EN CLAVES ═══════════════════════════════════════════ */
@@ -150,7 +148,6 @@ const err = (code, details, message = 'Ahora mismo no hay una IA disponible para
 const NO_ELEGIBLE = err('failed-precondition', { code: 'NOT_AVAILABLE', capability: 'world.generate', reason: 'sin_modelo_elegible', elegibilidad: ['BLOCKED_FOR_JURISDICTION', 'JURISDICTION_UNKNOWN'], provider: 'fal' });
 const noDisponible = (reason) => err('failed-precondition', { code: 'NOT_AVAILABLE', reason }, 'Esta función no está disponible.');
 const ERRORES = [
-  /* FASE 2: «no disponible» por su MOTIVO público; «más tarde» solo cuando es pasajero. */
   ['no disponible en la región', noDisponible('en_tu_region'), 'no_disponible', 'weeai.errNotAvailableRegion', false],
   ['falta el país de la cuenta', noDisponible('falta_tu_pais'), 'no_disponible', 'weeai.errNotAvailableCountry', false],
   ['no con estas opciones', noDisponible('con_estas_opciones'), 'no_disponible', 'weeai.errNotAvailableOptions', false],
@@ -160,16 +157,20 @@ const ERRORES = [
   ['sin motivo', err('failed-precondition', { code: 'NOT_AVAILABLE' }), 'no_disponible', 'weeai.errNotAvailable', false],
   ['el SDK nativo deja los detalles en customData', { code: 'functions/failed-precondition', message: 'x', customData: { details: { code: 'NOT_AVAILABLE', reason: 'en_tu_region' } } }, 'no_disponible', 'weeai.errNotAvailableRegion', false],
   ['sin Credits', err('resource-exhausted', { code: 'INSUFFICIENT_CREDITS', required: 39, available: 12 }, 'INSUFFICIENT_CREDITS'), 'sin_credits', 'weeai.errNotEnoughCredits', false],
+  ['el precio cambió', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'price_changed', credits: 45 }), 'precio_cambiado', 'studio.worldPriceChanged', false],
+  ['el precio cambió, sin un precio que se pueda enseñar', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'price_changed', credits: 'mucho' }), 'reintentable', 'weeai.errGeneric', true],
   ['falta la foto', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'needs_image' }), 'entrada', 'weeai.uploadToWork', false],
   ['la foto no es de Weë', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'bad_image_url' }), 'entrada', 'weeai.uploadToWork', false],
+  ['la foto es de otra cuenta (motivo del contrato)', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'imagen_ajena', field: 'imagen' }), 'entrada', 'weeai.uploadToWork', false],
   ['la foto se rechazó', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'input_rejected' }), 'entrada', 'motor.inputRejected', false],
+  ['un campo que el contrato no tiene', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'campo_desconocido', field: 'labels_fg1' }), 'entrada', 'motor.invalidRequest', false],
   ['falta algo', err('invalid-argument', { code: 'INVALID_REQUEST' }), 'entrada', 'motor.invalidRequest', false],
   ['sin sesión', err('unauthenticated', { code: 'UNAUTHORIZED' }), 'sesion', 'weeai.errSignIn', false],
   ['sin sesión, sin código', { code: 'functions/unauthenticated', message: 'x' }, 'sesion', 'weeai.errSignIn', false],
   ['sin perfil', err('failed-precondition', { code: 'ACCOUNT_NOT_FOUND' }), 'sesion', 'weeai.errNoAccount', false],
   ['ya en marcha', err('already-exists', { code: 'DUPLICATE_REQUEST' }), 'duplicado', 'weeai.errDuplicate', false],
   ['demasiadas seguidas', err('resource-exhausted', { code: 'RATE_LIMITED' }), 'reintentable', 'weeai.errRateLimited', true],
-  ['tardó demasiado', err('deadline-exceeded', { code: 'TIMEOUT' }), 'reintentable', 'weeai.errTimeout', true],
+  ['el intento anterior se quedó sin tiempo', err('deadline-exceeded', { code: 'TIMEOUT' }), 'reintentable', 'weeai.errTimeout', true],
   ['el proveedor falló', err('unavailable', { code: 'PROVIDER_ERROR', provider: 'fal', retryable: true }), 'reintentable', 'weeai.errGeneric', true],
   ['no se terminó', err('aborted', { code: 'GENERATION_FAILED' }), 'reintentable', 'weeai.errGeneric', true],
   ['sin conexión', { code: 'functions/unavailable', message: 'x' }, 'sin_conexion', 'weeai.errOffline', true],
@@ -179,20 +180,20 @@ const ERRORES = [
   ['algo raro', { message: 'x' }, 'desconocido', 'weeai.errGeneric', true],
 ];
 /** Un error de la tabla por su nombre, no por su posición: la tabla crece. */
-const errorLlamado = (nombre) => ERRORES.find(([n]) => n === nombre)[1];
+const errorLlamado = (nombre) => ERRORES.find(([nombre2]) => nombre2 === nombre)[1];
 seccion('C', () => {
   const mal = ERRORES.filter(([, e, tipo, clave, reintentable]) => {
     const r = M.errorDelMundo3D(e);
     return !r || r.tipo !== tipo || r.clave !== clave || r.reintentable !== reintentable;
   }).map(([nombre]) => nombre);
   check(`C1) ${ERRORES.length} errores del servidor y de la red, cada uno con su tipo, su clave y si tiene sentido reintentar`, mal.length === 0, mal.join(', '));
-  check('C2) cansarse de esperar en la app no es un error: el trabajo sigue en el servidor y llega por su documento',
+  check('C2) cansarse de esperar en la app no es un error: lo pedido puede existir y se pregunta por su estado',
     M.errorDelMundo3D({ code: 'functions/deadline-exceeded', message: 'deadline-exceeded' }) === null);
-  check('C3) sin Credits trae cuánto hacía falta y cuánto había, para el aviso de saldo de siempre',
-    iguales(M.errorDelMundo3D(errorLlamado('sin Credits')).faltan, { required: 39, available: 12 }));
+  check('C3) sin Credits trae cuánto hacía falta y cuánto había; el precio que cambió trae el precio nuevo',
+    iguales(M.errorDelMundo3D(errorLlamado('sin Credits')).faltan, { required: 39, available: 12 }) && M.errorDelMundo3D(errorLlamado('el precio cambió')).creditos === 45);
   const r = M.errorDelMundo3D(NO_ELEGIBLE);
   check('C4) «no disponible» no deja pasar NADA de dentro: ni escalones, ni jurisdicciones, ni proveedor, ni la frase de «inténtalo más tarde»',
-    !DE_DENTRO.test(JSON.stringify(r)) && r.clave !== 'motor.sinProveedor' && !/Inténtalo más tarde/.test(JSON.stringify(r)), JSON.stringify(r));
+    !DE_DENTRO.test(JSON.stringify(r)) && !/Inténtalo más tarde/.test(JSON.stringify(r)), JSON.stringify(r));
   check('C5) CONTROL: el detector sí ve lo que no puede salir',
     DE_DENTRO.test(JSON.stringify(NO_ELEGIBLE.details)) && DE_DENTRO.test('"ES"') && !DE_DENTRO.test(JSON.stringify({ clave: 'motor.notAvailable' })));
   /* Lo que se lee del error es lo mismo que leen los servicios de siempre: no hay una segunda forma de leerlo. */
@@ -202,147 +203,141 @@ seccion('C', () => {
     || (M.errorDelMundo3D(e)?.tipo === 'sin_credits') !== (CREDITS.creditsShortfall(e) !== null));
   check(`C6) el código, el tiempo agotado en la app y la falta de Credits se leen como \`creatorErrorCode\`, \`isClientTimeout\` y \`creditsShortfall\` (${TODOS.length} formas)`,
     distintos.length === 0, distintos.map((e) => JSON.stringify(e)).join(' | '));
-  check('C7) y los motivos que entiende la app son EXACTAMENTE los que el motor manda (`MOTIVOS_DE_NO_DISPONIBLE`), y el Router los usa',
-    iguales(Object.keys(cargar('utils/noDisponible.ts').CLAVE_DE_NO_DISPONIBLE).sort(), [...createRequire(import.meta.url)(path.resolve(RAIZ, 'functions/lib/engine/errors.js')).MOTIVOS_DE_NO_DISPONIBLE].sort())
-    && /throw noDisponible\(motivoDeNoDisponible\(decision\.skipped\)\)/.test(leer('functions/src/engine/router.ts')));
-  check('C8) la falta de Credits se reconoce por su código sin leer la frase: el Credit Engine lo pone SIEMPRE en los detalles',
-    /new HttpsError\(map\[error\.code\], error\.code, \{ code: error\.code, \.\.\.error\.details \}\)/.test(leer('functions/src/credits/creditValidation.ts')));
+  check('C7) y los motivos de «no disponible» que entiende la app son EXACTAMENTE los que el motor manda (`MOTIVOS_DE_NO_DISPONIBLE`)',
+    iguales(Object.keys(cargar('utils/noDisponible.ts').CLAVE_DE_NO_DISPONIBLE).sort(), [...createRequire(import.meta.url)(path.resolve(RAIZ, 'functions/lib/engine/errors.js')).MOTIVOS_DE_NO_DISPONIBLE].sort()));
+  check('C8) el precio que cambió es el que dice la puerta: `price_changed` con `credits`, antes de reservar nada',
+    /throw new EngineError\('INVALID_REQUEST', undefined, \{ reason: 'price_changed', credits: p\.credits \}\)/.test(leer('functions/src/creator/mundo.ts')));
 });
 
 /* ═══ D · EL CICLO DE VIDA ═════════════════════════════════════════════════ */
 console.log('\n── D · La máquina hace lo que dice su tabla ──');
-const MUNDO = { stepId: 'world', worldAssetId: ASSET };
+const MUNDO_DE_LA_PUERTA = { assetId: ASSET, kind: 'world', conVistaPrevia: true, derechos: DERECHOS };
 const ev = {
   editarBien: { tipo: 'editar', entrada: ENTRADA },
   editarVacia: { tipo: 'editar', entrada: M.ENTRADA_VACIA },
   enviar: { tipo: 'enviar' },
-  pregunta: { tipo: 'pregunta' },
-  responder: { tipo: 'responder' },
   presupuesto: { tipo: 'presupuesto', creditos: 39 },
-  presupuestoMalo: { tipo: 'presupuesto', creditos: 1.5 },
-  presupuestoNegativo: { tipo: 'presupuesto', creditos: -1 },
   confirmar: { tipo: 'confirmar' },
-  generando: { tipo: 'generando', pasos: { hechos: 0, total: 1 } },
-  generandoSinPasos: { tipo: 'generando' },
-  completado: { tipo: 'completado', mundo: MUNDO },
-  completadoSinMundo: { tipo: 'completado', mundo: null },
-  noDisponible: { tipo: 'fallo', error: M.errorDelMundo3D(NO_ELEGIBLE) },
-  reintentable: { tipo: 'fallo', error: M.errorDelMundo3D(err('resource-exhausted', { code: 'RATE_LIMITED' })) },
-  duplicado: { tipo: 'fallo', error: M.errorDelMundo3D(err('already-exists', { code: 'DUPLICATE_REQUEST' })) },
+  enCola: { tipo: 'trabajo', estado: 'en_cola' },
+  generando: { tipo: 'trabajo', estado: 'generando' },
+  cancelando: { tipo: 'trabajo', estado: 'cancelando' },
+  completado: { tipo: 'trabajo', estado: 'completado', mundo: MUNDO_DE_LA_PUERTA },
+  completadoSinMundo: { tipo: 'trabajo', estado: 'completado' },
+  fallidoDelTrabajo: { tipo: 'trabajo', estado: 'fallido' },
+  cancelado: { tipo: 'trabajo', estado: 'cancelado' },
+  noDisponible: { tipo: 'fallo', error: M.errorDelMundo3D(noDisponible('en_tu_region')) },
   sinCredits: { tipo: 'fallo', error: M.errorDelMundo3D(errorLlamado('sin Credits')) },
+  reintentable: { tipo: 'fallo', error: M.errorDelMundo3D(errorLlamado('demasiadas seguidas')) },
+  duplicado: { tipo: 'fallo', error: M.errorDelMundo3D(errorLlamado('ya en marcha')) },
+  precioCambiado: { tipo: 'fallo', error: M.errorDelMundo3D(errorLlamado('el precio cambió')) },
   reintentar: { tipo: 'reintentar' },
   empezar: { tipo: 'empezar_de_nuevo' },
 };
 const avanzar = (estado, ...eventos) => eventos.reduce((e, x) => M.avanzar(e, x, CTX), estado);
+const enviado = avanzar(M.ESTADO_INICIAL, ev.editarBien, ev.enviar);
+const creando = avanzar(enviado, ev.presupuesto, ev.confirmar);
 seccion('D', () => {
   const FASES = Object.keys(M.TRANSICIONES_DEL_MUNDO_3D);
-  check('D1) diez fases, y entre ellas ni «en cola» ni «cancelar»: ningún camino de hoy los sabe decir de verdad',
-    FASES.length === 10 && !FASES.some((f) => /cola|queue|cancel/.test(f)) && !Object.keys(M.CLAVE_DE_ACCION).some((a) => /cancel/.test(a)));
-  /* Recorrer la máquina entera desde el principio con todos los eventos: lo que se alcanza y cómo. */
-  /* Tres contextos: los dos caminos de hoy y una sesión sin cuenta (con ella, una foto «ajena» deja de serlo al entrar). */
-  const SIN_CUENTA = { cuenta: '', camino: M.CAMINO_DE_CREATORFLOW };
-  const vistas = new Set(); const saltos = new Set(); const fuera = [];
-  const visitados = new Set(); const cola = [[M.ESTADO_INICIAL, 0]];
-  while (cola.length) {
-    const [estado, profundidad] = cola.shift();
-    const huella = JSON.stringify(estado);
-    if (visitados.has(huella) || profundidad > 9) continue;
-    visitados.add(huella); vistas.add(estado.fase);
-    for (const [nombre, evento] of Object.entries(ev)) {
-      for (const ctx of [CTX, ASINCRONO, SIN_CUENTA]) {
-        const siguiente = M.avanzar(estado, evento, ctx);
-        if (siguiente === estado) continue;
-        if (!M.TRANSICIONES_DEL_MUNDO_3D[estado.fase].includes(siguiente.fase)) fuera.push(`${estado.fase} -${nombre}-> ${siguiente.fase}`);
-        saltos.add(`${estado.fase}>${siguiente.fase}`);
-        cola.push([siguiente, profundidad + 1]);
-      }
+  check('D1) doce fases, y ahora SÍ «en cola», «parando» y «cancelado»: la puerta asíncrona los sabe decir de verdad (y no hay pasos)',
+    FASES.length === 12 && ['en_cola', 'cancelando', 'cancelado'].every((f) => FASES.includes(f)) && !FASES.includes('preguntando'));
+  /* Un estado de cada fase, para probar cada evento en cada una. */
+  const UNO_POR_FASE = {
+    quieto: M.ESTADO_INICIAL,
+    entrada_invalida: avanzar(M.ESTADO_INICIAL, ev.enviar),
+    enviando: enviado,
+    presupuestado: avanzar(enviado, ev.presupuesto),
+    creando,
+    en_cola: avanzar(creando, ev.enCola),
+    generando: avanzar(creando, ev.generando),
+    cancelando: avanzar(creando, ev.generando, ev.cancelando),
+    completado: avanzar(creando, ev.completado),
+    fallido: avanzar(creando, ev.reintentable),
+    cancelado: avanzar(creando, ev.generando, ev.cancelando, ev.cancelado),
+    no_disponible: avanzar(creando, ev.noDisponible),
+  };
+  const saltos = [];
+  for (const [fase, estado] of Object.entries(UNO_POR_FASE)) {
+    for (const [nombre, x] of Object.entries(ev)) {
+      const despues = M.avanzar(estado, x, CTX);
+      if (despues !== estado && !M.TRANSICIONES_DEL_MUNDO_3D[fase].includes(despues.fase)) saltos.push(`${fase} --${nombre}--> ${despues.fase}`);
     }
   }
-  check('D2) ningún evento, en ninguna fase, da un salto que no esté en la tabla', fuera.length === 0, [...new Set(fuera)].slice(0, 5).join(' · '));
-  check('D3) y desde el principio se llega a las diez fases', iguales([...vistas].sort(), [...FASES].sort()), [...vistas].join(', '));
-  const declarados = FASES.flatMap((f) => M.TRANSICIONES_DEL_MUNDO_3D[f].map((g) => `${f}>${g}`));
-  const muertos = declarados.filter((s) => !saltos.has(s));
-  check(`D4) y la tabla no promete nada que la máquina no haga: los ${declarados.length} saltos declarados ocurren`, muertos.length === 0, muertos.join(', '));
-
-  /* El camino de hoy, de punta a punta. */
-  const escrito = avanzar(M.ESTADO_INICIAL, ev.editarBien);
-  const enviado = M.avanzar(escrito, ev.enviar, CTX);
-  const final = avanzar(enviado, ev.presupuesto, ev.confirmar, ev.generando, { tipo: 'generando', pasos: { hechos: 1, total: 1 } }, ev.completado);
-  check('D5) escribir → enviar → precio → confirmar → generando → completado, con el precio del servidor y el mundo por id',
-    escrito.fase === 'quieto' && enviado.fase === 'enviando' && enviado.peticion?.capacidad === 'world.generate'
-    && avanzar(enviado, ev.presupuesto).creditos === 39 && final.fase === 'completado' && iguales(final.mundo, MUNDO) && final.creditos === 39);
-  const sinImagen = M.avanzar(M.ESTADO_INICIAL, ev.enviar, CTX);
-  check('D6) enviar sin imagen no envía: dice qué falta, y al corregirlo se puede enviar',
-    sinImagen.fase === 'entrada_invalida' && sinImagen.peticion === null && sinImagen.problemas[0]?.codigo === 'falta_imagen'
-    && avanzar(sinImagen, ev.editarBien, ev.enviar).fase === 'enviando');
-  const generando = avanzar(enviado, ev.presupuesto, ev.confirmar, ev.generando);
-  check('D7) mientras algo está en camino, editar, empezar de nuevo, volver a enviar o confirmar no hacen nada (mismo objeto)',
-    [ev.editarBien, ev.empezar, ev.enviar, ev.confirmar, ev.presupuesto].every((x) => M.avanzar(generando, x, CTX) === generando)
-    && [ev.editarBien, ev.empezar, ev.confirmar].every((x) => M.avanzar(enviado, x, CTX) === enviado));
-  check('D8) un precio que no es un número entero de Credits no es un precio: se ignora',
-    M.avanzar(enviado, ev.presupuestoMalo, CTX) === enviado && M.avanzar(enviado, ev.presupuestoNegativo, CTX) === enviado);
-  const pasos = (ctx, p) => M.avanzar(avanzar(enviado, ev.presupuesto, ev.confirmar), { tipo: 'generando', pasos: p }, ctx).pasos;
-  check('D9) el progreso son pasos hechos de los que hay, solo si el camino los escribe de verdad; nunca uno inventado',
-    iguales(pasos(CTX, { hechos: 1, total: 2 }), { hechos: 1, total: 2 }) && pasos(ASINCRONO, { hechos: 1, total: 2 }) === null
-    && [{ hechos: 3, total: 2 }, { hechos: -1, total: 2 }, { hechos: 0.5, total: 2 }, { hechos: 0, total: 0 }, undefined].every((p) => pasos(CTX, p) === null));
-  const noDisp = M.avanzar(generando, ev.noDisponible, CTX);
-  check('D10) «no disponible» es una fase propia, sin reintento: reintentar no hace nada, y solo se puede volver',
-    noDisp.fase === 'no_disponible' && M.avanzar(noDisp, ev.reintentar, CTX) === noDisp && avanzar(noDisp, ev.empezar).fase === 'quieto');
-  const fallido = M.avanzar(generando, ev.reintentable, CTX);
-  const otraVez = M.avanzar(fallido, ev.reintentar, CTX);
-  check('D11) reintentar vuelve a pedir EXACTAMENTE lo mismo y el precio se vuelve a enseñar antes de cobrar',
-    fallido.fase === 'fallido' && otraVez.fase === 'enviando' && otraVez.peticion === fallido.peticion && otraVez.creditos === null && otraVez.error === null);
-  check('D12) «ya está en marcha» no es un fallo mientras se crea: se sigue la que hay',
-    M.avanzar(generando, ev.duplicado, CTX).fase === 'generando' && M.avanzar(avanzar(enviado, ev.presupuesto, ev.confirmar), ev.duplicado, CTX).fase === 'generando');
-  const sinCredits = M.avanzar(avanzar(enviado, ev.presupuesto, ev.confirmar), ev.sinCredits, CTX);
-  check('D13) sin Credits no se reintenta solo: se consiguen Credits o se cambia algo',
-    sinCredits.fase === 'fallido' && M.avanzar(sinCredits, ev.reintentar, CTX) === sinCredits);
-  check('D14) las respuestas que llegan tarde no mueven nada: un completado en reposo o un fallo después de terminar',
-    M.avanzar(M.ESTADO_INICIAL, ev.completado, CTX) === M.ESTADO_INICIAL && M.avanzar(final, ev.reintentable, CTX) === final && M.avanzar(final, ev.generando, CTX) === final);
-  const antes = JSON.stringify(enviado);
-  for (const x of Object.values(ev)) M.avanzar(enviado, x, CTX);
-  check('D15) la máquina no muta lo que recibe: el estado de partida sale intacto de todos los eventos',
-    JSON.stringify(enviado) === antes && Object.isFrozen(M.ESTADO_INICIAL) && Object.isFrozen(M.ESTADO_INICIAL.entrada));
+  check(`D2) ningún evento, en ninguna fase, da un salto que no esté en la tabla (${Object.keys(UNO_POR_FASE).length} × ${Object.keys(ev).length})`, saltos.length === 0, saltos.join(' | '));
+  check('D3) y desde el principio se llega a las doce fases', iguales(Object.entries(UNO_POR_FASE).filter(([f, e]) => e.fase !== f).map(([f]) => f), []));
+  const fin = avanzar(creando, ev.generando, ev.completado);
+  check('D4) poner → enviar → precio → confirmar → generando → completado, con el precio del servidor y el mundo POR ID con sus derechos visibles',
+    fin.fase === 'completado' && fin.creditos === 39 && iguales(fin.mundo, { assetId: ASSET, conVistaPrevia: true, derechos: DERECHOS }) && fin.error === null);
+  const sinFoto = avanzar(M.ESTADO_INICIAL, ev.enviar);
+  check('D5) enviar sin foto no envía: dice qué falta, y al corregirlo se puede enviar',
+    sinFoto.fase === 'entrada_invalida' && sinFoto.problemas[0].motivo === 'falta_imagen' && avanzar(sinFoto, ev.editarBien, ev.enviar).fase === 'enviando');
+  const enCamino = ['enviando', 'creando', 'en_cola', 'generando', 'cancelando'].map((f) => UNO_POR_FASE[f]);
+  check('D6) mientras algo está en camino, editar, empezar de nuevo, volver a enviar o confirmar no hacen nada (mismo objeto)',
+    enCamino.every((e) => [ev.editarVacia, ev.empezar, ev.enviar, ev.confirmar].every((x) => M.avanzar(e, x, CTX) === e)));
+  check('D7) un precio que no es un número entero de Credits no es un precio: se ignora',
+    [1.5, -1, NaN, Infinity].every((c) => M.avanzar(enviado, { tipo: 'presupuesto', creditos: c }, CTX) === enviado));
+  check('D8) las respuestas que llegan tarde no hacen retroceder: ni «en cola» después de «generando», ni «generando» después de pedir parar, ni nada después de un final',
+    M.avanzar(UNO_POR_FASE.generando, ev.enCola, CTX) === UNO_POR_FASE.generando && M.avanzar(UNO_POR_FASE.cancelando, ev.generando, CTX) === UNO_POR_FASE.cancelando
+    && M.avanzar(UNO_POR_FASE.completado, ev.fallidoDelTrabajo, CTX) === UNO_POR_FASE.completado && M.avanzar(UNO_POR_FASE.cancelado, ev.completado, CTX) === UNO_POR_FASE.cancelado);
+  const parado = avanzar(creando, ev.generando, ev.cancelando, ev.cancelado);
+  const ganaElMundo = avanzar(creando, ev.generando, ev.cancelando, ev.completado);
+  check('D9) parar: «parando» hasta que la puerta lo confirma; cancelado, sin error. Y si el mundo llega antes, gana el mundo',
+    UNO_POR_FASE.cancelando.fase === 'cancelando' && parado.fase === 'cancelado' && parado.error === null && ganaElMundo.fase === 'completado' && ganaElMundo.mundo?.assetId === ASSET);
+  const fallo = avanzar(creando, ev.generando, ev.fallidoDelTrabajo);
+  check('D10) un trabajo que falla en el servidor: «no me salió, no te cobré», y tiene sentido reintentar',
+    fallo.fase === 'fallido' && fallo.error.clave === 'weeai.itDidNotWork' && fallo.error.reintentable === true);
+  const nuevoPrecio = avanzar(creando, ev.precioCambiado);
+  check('D11) si el precio cambió al crear, se vuelve a enseñar el NUEVO (y se avisa); no se crea nada hasta confirmar otra vez',
+    nuevoPrecio.fase === 'presupuestado' && nuevoPrecio.creditos === 45 && nuevoPrecio.precioCambiado === true && avanzar(nuevoPrecio, ev.confirmar).fase === 'creando');
+  check('D12) «ya está en marcha» al crear no es un fallo: es la misma creación, que espera', avanzar(creando, ev.duplicado).fase === 'en_cola');
+  check('D13) con el trabajo aceptado, un error al PREGUNTAR no es un desenlace: el trabajo sigue en el servidor',
+    ['en_cola', 'generando', 'cancelando'].every((f) => M.avanzar(UNO_POR_FASE[f], ev.reintentable, CTX) === UNO_POR_FASE[f]
+      && M.avanzar(UNO_POR_FASE[f], ev.noDisponible, CTX) === UNO_POR_FASE[f]));
+  check('D14) «no disponible» es una fase propia, sin reintento: reintentar no hace nada, y solo se puede volver',
+    UNO_POR_FASE.no_disponible.fase === 'no_disponible' && M.avanzar(UNO_POR_FASE.no_disponible, ev.reintentar, CTX) === UNO_POR_FASE.no_disponible
+    && avanzar(enviado, ev.noDisponible).fase === 'no_disponible');
+  const reintento = avanzar(UNO_POR_FASE.fallido, ev.reintentar);
+  check('D15) reintentar vuelve a pedir EXACTAMENTE lo mismo y el precio se vuelve a enseñar antes de cobrar',
+    reintento.fase === 'enviando' && reintento.peticion === UNO_POR_FASE.fallido.peticion && reintento.creditos === null && reintento.error === null);
+  check('D16) sin Credits no se reintenta solo: se consiguen Credits o se cambia algo',
+    M.avanzar(avanzar(creando, ev.sinCredits), ev.reintentar, CTX).fase === 'fallido');
+  const congelar = (o) => { Object.freeze(o); for (const v of Object.values(o)) if (v && typeof v === 'object' && !Object.isFrozen(v)) congelar(v); return o; };
+  const intactos = Object.values(UNO_POR_FASE).map((e) => congelar(JSON.parse(JSON.stringify(e))));
+  let muta = false;
+  try { for (const e of intactos) for (const x of Object.values(ev)) M.avanzar(e, x, CTX); } catch { muta = true; }
+  check('D17) la máquina no muta lo que recibe: el estado de partida sale intacto de todos los eventos', !muta);
+  /* Los estados de la experiencia, con los nombres del dueño. */
+  const NOMBRES = ['IDLE', 'INPUT', 'SUBMITTING', 'QUEUED', 'GENERATING', 'COMPLETED', 'FAILED', 'CANCELLED', 'NOT_AVAILABLE'];
+  const vistos = new Set([M.estadoDeLaExperiencia(M.ESTADO_INICIAL), ...Object.values(UNO_POR_FASE).map(M.estadoDeLaExperiencia)]);
+  check('D18) los nueve estados del dueño: IDLE, INPUT, SUBMITTING, QUEUED, GENERATING, COMPLETED, FAILED, CANCELLED y NOT_AVAILABLE, todos alcanzables',
+    NOMBRES.every((x) => vistos.has(x)) && vistos.size === 9 && iguales([...new Set(Object.values(M.ESTADO_DE_LA_EXPERIENCIA))].sort(), NOMBRES.filter((x) => x !== 'IDLE').sort()));
+  check('D19) IDLE es no haber puesto nada todavía; con algo puesto ya es INPUT; parando sigue siendo GENERATING hasta que la puerta lo confirma',
+    M.estadoDeLaExperiencia(M.ESTADO_INICIAL) === 'IDLE' && M.estadoDeLaExperiencia(avanzar(M.ESTADO_INICIAL, ev.editarBien)) === 'INPUT'
+    && M.estadoDeLaExperiencia(avanzar(M.ESTADO_INICIAL, { tipo: 'editar', entrada: { ...M.ENTRADA_VACIA, espacio: 'interior' } })) === 'INPUT'
+    && M.estadoDeLaExperiencia(UNO_POR_FASE.cancelando) === 'GENERATING' && M.estadoDeLaExperiencia(UNO_POR_FASE.presupuestado) === 'SUBMITTING');
 });
 
-/* ═══ E · DEL TRABAJO DE CREATORFLOW A LOS EVENTOS ═════════════════════════ */
-console.log('\n── E · Lo que dice el documento del trabajo (el camino de hoy) ──');
+/* ═══ E · DE LA PUERTA A LOS EVENTOS ═══════════════════════════════════════ */
+console.log('\n── E · Lo que contesta `generateWorld`, como eventos ──');
 seccion('E', () => {
-  const pasoMundo = { id: 'world', capability: 'world.generate', purpose: 'Crear tu mundo', status: 'done' };
-  const trabajo = (extra) => ({ status: 'running', steps: [pasoMundo], results: [], creditsEstimated: 39, progressText: '', ...extra });
-  const resultado = (extra) => ({ stepId: 'world', kind: 'world', title: 'Crear tu mundo', url: 'https://firebasestorage.googleapis.com/v0/b/b/o/x', ...extra });
-  check('E1) pregunta, precio y en marcha con sus pasos, leídos del documento',
-    iguales(M.eventoDelTrabajo(trabajo({ status: 'asking' })), { tipo: 'pregunta' })
-    && iguales(M.eventoDelTrabajo(trabajo({ status: 'planned' })), { tipo: 'presupuesto', creditos: 39 })
-    && iguales(M.eventoDelTrabajo(trabajo({ status: 'running', steps: [pasoMundo, { ...pasoMundo, id: 'b', status: 'running' }] })), { tipo: 'generando', pasos: { hechos: 1, total: 2 } }));
-  const hecho = M.eventoDelTrabajo(trabajo({ status: 'done', results: [resultado({ assetIds: [ASSET] })] }));
-  check('E2) terminado: el mundo por el id de su material, del paso que hace mundos; la dirección no se lee',
-    iguales(hecho, { tipo: 'completado', mundo: { stepId: 'world', worldAssetId: ASSET } }) && !/http/.test(JSON.stringify(hecho)));
-  check('E3) sin ficha de material (o con una dirección en su lugar) no hay id: nunca una URL en su sitio',
-    M.eventoDelTrabajo(trabajo({ status: 'done', results: [resultado({})] })).mundo.worldAssetId === null
-    && M.eventoDelTrabajo(trabajo({ status: 'done', results: [resultado({ assetIds: ['https://x/y.glb'] })] })).mundo.worldAssetId === null
-    && M.eventoDelTrabajo(trabajo({ status: 'done', results: [{ ...resultado({ assetIds: [ASSET] }), kind: 'image' }] })).mundo === null);
-  check('E4) si hay varios resultados, manda el del paso `world.generate`',
-    M.mundoDelTrabajo({ steps: [{ ...pasoMundo, id: 'b' }], results: [resultado({ assetIds: ['asset_aaaa'] }), resultado({ stepId: 'b', assetIds: ['asset_bbbb'] })] }).worldAssetId === 'asset_bbbb');
-  const fallido = M.eventoDelTrabajo(trabajo({ status: 'failed', progressText: 'No me salió bien esta vez. No te cobré: inténtalo de nuevo en un momento.' }));
-  check('E5) fallido: con la frase que dejó el servidor (se pinta con `textoDelServidor`) y su clave de respaldo; se reembolsó entero',
-    fallido.tipo === 'fallo' && fallido.error.clave === 'weeai.itDidNotWork' && fallido.error.reintentable === true && /No te cobré/.test(fallido.error.fraseDelServidor)
-    && /settleCredits\(uid, jobId, job\.creditsEstimated, 0, description\)/.test(leer('functions/src/creator/index.ts')));
-  check('E6) cancelado y un estado que no se conoce: el primero con su clave, el segundo no se adivina',
-    M.eventoDelTrabajo(trabajo({ status: 'cancelled' })).error.clave === 'weeai.jobCancelled' && M.eventoDelTrabajo(trabajo({ status: 'raro' })) === null);
-  const ESTADOS_DEL_TRABAJO = (leer('services/creatorService.ts').match(/export type JobStatus = ([^;]+);/)?.[1] ?? '').match(/'[a-z]+'/g)?.map((s) => s.slice(1, -1)) ?? [];
-  check(`E7) cada estado del trabajo de la app (${ESTADOS_DEL_TRABAJO.length}) tiene su evento`,
-    ESTADOS_DEL_TRABAJO.length === 6 && ESTADOS_DEL_TRABAJO.every((s) => M.eventoDelTrabajo(trabajo({ status: s })) !== null));
-  /* El tipo del resultado en la app es espejo del del servidor: incluye `world`, que es lo que lee el compositor. */
-  const union = (src, re) => (src.match(re)?.[1] ?? '').match(/'[a-z0-9]+'/g)?.map((s) => s.slice(1, -1)).sort() ?? [];
-  const cliente = union(leer('services/creatorService.ts'), /export type ResultKind = ([^;]+);/);
-  const servidor = union(leer('functions/src/creator/types.ts'), /export type ResultKind = ([^;]+);/);
-  check('E8) el tipo de resultado de la app es el del servidor, `world` incluido', servidor.includes('world') && iguales(cliente, servidor), cliente.join(','));
+  const ESTADOS = CONTRATO_SERVIDOR.ESTADOS_DE_MUNDO3D;
+  check(`E1) cada estado del contrato (${ESTADOS.length}) es un evento, igual en el espejo; uno que no existe, o nada, no se adivina`,
+    ESTADOS.length === 6 && iguales(ESTADOS, N3D.ESTADOS_DE_MUNDO3D) && ESTADOS.every((estado) => iguales(M.eventoDelTrabajoDeMundo({ estado }), { tipo: 'trabajo', estado }))
+    && M.eventoDelTrabajoDeMundo({ estado: 'running' }) === null && M.eventoDelTrabajoDeMundo(null) === null && M.eventoDelTrabajoDeMundo(undefined) === null);
+  const aceptado = { contract: '1.0', status: 'ACCEPTED', requestId: 'mundo3d_x', estado: 'generando', credits: 39, duplicate: false };
+  check('E2) lo que contesta `crear` (aceptado, sin esperar al mundo) es un «generando»; lo que sobra no viaja',
+    iguales(M.eventoDelTrabajoDeMundo(aceptado), { tipo: 'trabajo', estado: 'generando' }));
+  const terminado = { contract: '1.0', requestId: 'mundo3d_x', estado: 'completado', mundo: MUNDO_DE_LA_PUERTA };
+  check('E3) terminado: el mundo POR ID; uno sin un id de material de verdad termina sin mundo —nunca una URL en su sitio—',
+    avanzar(creando, M.eventoDelTrabajoDeMundo(terminado)).mundo?.assetId === ASSET
+    && avanzar(creando, M.eventoDelTrabajoDeMundo({ ...terminado, mundo: { ...MUNDO_DE_LA_PUERTA, assetId: 'https://x/y.spz' } })).mundo === null);
+  check('E4) cada estado del Job Engine tiene su estado de mundo en el contrato (lo comprueba su suite) y la máquina sabe ir a todos',
+    ESTADOS.every((estado) => avanzar(creando, { tipo: 'trabajo', estado, ...(estado === 'completado' ? { mundo: MUNDO_DE_LA_PUERTA } : {}) }).fase === estado));
 });
 
 /* ═══ F · DEL MUNDO A LA ESCENA ════════════════════════════════════════════ */
 console.log('\n── F · Del mundo a la escena: el núcleo 3D único ──');
 seccion('F', () => {
+  const MUNDO = { assetId: ASSET, conVistaPrevia: false };
   const r = M.escenaDelMundo({ mundo: MUNDO, cuenta: CUENTA, projectId: 'proyecto_7', ahora: 1700000000000 });
   check('F1) un mundo da una escena del núcleo 3D, perfil `world`, con el mundo de entorno, de la cuenta y en su proyecto',
     r.ok && r.escena.modo === 'world' && r.escena.contract === '1.0' && r.escena.entorno.worldAssetId === ASSET && r.escena.ownerAccountId === CUENTA
@@ -355,8 +350,7 @@ seccion('F', () => {
   check('F4) determinista: el mismo mundo da la misma escena, con un id que sale del material (guardarla dos veces no duplica)',
     iguales(r, M.escenaDelMundo({ mundo: MUNDO, cuenta: CUENTA, projectId: 'proyecto_7', ahora: 1700000000000 })) && r.escena.sceneId === M.idDeEscenaDelMundo(ASSET) && r.escena.sceneId === `mundo_${ASSET}`);
   check('F5) sin material no hay escena, sin cuenta tampoco, y un proyecto que el núcleo no admite no la rompe: se dice',
-    iguales(M.escenaDelMundo({ mundo: { stepId: 'world', worldAssetId: null }, cuenta: CUENTA, ahora: 1 }), { ok: false, motivo: 'sin_material' })
-    && iguales(M.escenaDelMundo({ mundo: null, cuenta: CUENTA, ahora: 1 }), { ok: false, motivo: 'sin_material' })
+    iguales(M.escenaDelMundo({ mundo: null, cuenta: CUENTA, ahora: 1 }), { ok: false, motivo: 'sin_material' })
     && iguales(M.escenaDelMundo({ mundo: MUNDO, cuenta: '', ahora: 1 }), { ok: false, motivo: 'sin_cuenta' })
     && iguales(M.escenaDelMundo({ mundo: MUNDO, cuenta: CUENTA, projectId: 'no vale', ahora: 1 }), { ok: false, motivo: 'escena_no_valida' }));
   const IDS = ['asset_ok', 'a'.repeat(122), 'a'.repeat(123), 'con/barra', 'con espacio', 'acentuadó', ASSET];
@@ -373,77 +367,76 @@ seccion('F', () => {
 /* ═══ G · LO QUE SE ENSEÑA ═════════════════════════════════════════════════ */
 console.log('\n── G · Lo que se enseña: claves que existen, en todos los diccionarios ──');
 seccion('G', () => {
-  /* Cada estado que la máquina puede tener, con su presentación. */
-  const enviado = M.avanzar(M.avanzar(M.ESTADO_INICIAL, ev.editarBien, CTX), ev.enviar, CTX);
   const ESTADOS = {
     quieto: M.ESTADO_INICIAL,
-    quietoListo: M.avanzar(M.ESTADO_INICIAL, ev.editarBien, CTX),
-    entrada_invalida: M.avanzar(M.ESTADO_INICIAL, ev.enviar, CTX),
+    quietoListo: avanzar(M.ESTADO_INICIAL, ev.editarBien),
+    entrada_invalida: avanzar(M.ESTADO_INICIAL, ev.enviar),
     enviando: enviado,
-    preguntando: M.avanzar(enviado, ev.pregunta, CTX),
-    presupuestado: M.avanzar(enviado, ev.presupuesto, CTX),
-    creando: avanzar(enviado, ev.presupuesto, ev.confirmar),
-    generando: avanzar(enviado, ev.presupuesto, ev.confirmar, { tipo: 'generando', pasos: { hechos: 1, total: 2 } }),
-    completado: avanzar(enviado, ev.presupuesto, ev.confirmar, ev.completado),
-    completadoSinMaterial: avanzar(enviado, ev.presupuesto, ev.confirmar, ev.completadoSinMundo),
-    no_disponible: avanzar(enviado, ev.presupuesto, ev.confirmar, ev.noDisponible),
-    ...Object.fromEntries(ERRORES.filter(([, , tipo]) => tipo !== 'no_disponible').map(([nombre, e]) => [`fallido: ${nombre}`, avanzar(enviado, { tipo: 'fallo', error: M.errorDelMundo3D(e) })])),
-    fallidoConFrase: avanzar(enviado, ev.presupuesto, ev.confirmar, M.eventoDelTrabajo({ status: 'failed', steps: [], results: [], creditsEstimated: 39, progressText: 'No me salió bien.' })),
+    presupuestado: avanzar(enviado, ev.presupuesto),
+    precioNuevo: avanzar(creando, ev.precioCambiado),
+    creando,
+    en_cola: avanzar(creando, ev.enCola),
+    generando: avanzar(creando, ev.generando),
+    cancelando: avanzar(creando, ev.generando, ev.cancelando),
+    completado: avanzar(creando, ev.completado),
+    completadoSinMaterial: avanzar(creando, ev.completadoSinMundo),
+    cancelado: avanzar(creando, ev.generando, ev.cancelando, ev.cancelado),
+    no_disponible: avanzar(creando, ev.noDisponible),
+    fallidoDelTrabajo: avanzar(creando, ev.generando, ev.fallidoDelTrabajo),
+    ...Object.fromEntries(ERRORES.filter(([, , tipo]) => !['no_disponible', 'precio_cambiado'].includes(tipo)).map(([nombre, e]) => [`fallido: ${nombre}`, avanzar(enviado, { tipo: 'fallo', error: M.errorDelMundo3D(e) })])),
   };
   const P = Object.fromEntries(Object.entries(ESTADOS).map(([k, e]) => [k, M.presentacionDelMundo3D(e, CTX)]));
   check('G1) cada fase tiene su presentación, y todas las fases salen', iguales([...new Set(Object.values(ESTADOS).map((e) => e.fase))].sort(), Object.keys(M.TRANSICIONES_DEL_MUNDO_3D).sort()));
-  check('G2) en reposo manda la caja: solo «Crear», y se puede crear cuando hay una imagen que sirve',
+  check('G2) en reposo, solo «Crear», y se puede crear cuando hay una foto que sirve',
     iguales(P.quieto.acciones, ['crear']) && P.quieto.sePuedeCrear === false && P.quietoListo.sePuedeCrear === true && P.quieto.claveTitulo === null);
-  check('G3) el precio se enseña antes de crear, con confirmar y cambiar; mientras algo está en camino, el botón no acepta otro toque',
-    P.presupuestado.creditos === 39 && iguales(P.presupuestado.acciones, ['confirmar', 'cambiar'])
-    && ['enviando', 'creando', 'generando'].every((k) => P[k].ocupado && P[k].acciones.length === 0) && !P.presupuestado.ocupado);
-  check('G4) «no disponible»: título y frase neutros, y solo volver (ni reintentar, ni otra IA, ni por qué)',
+  check('G3) el precio se enseña antes de crear, con confirmar y cambiar (y se avisa si es nuevo); mientras algo está en camino, nada crea otra vez',
+    P.presupuestado.creditos === 39 && iguales(P.presupuestado.acciones, ['confirmar', 'cambiar']) && P.presupuestado.claveMensaje === null
+    && P.precioNuevo.creditos === 45 && P.precioNuevo.claveMensaje === 'studio.worldPriceChanged'
+    && ['enviando', 'creando', 'en_cola', 'generando', 'cancelando'].every((k) => P[k].ocupado && !P[k].acciones.includes('crear') && !P[k].acciones.includes('confirmar'))
+    && !P.presupuestado.ocupado);
+  check('G4) en cola y generando se puede pedir parar; parando, ya no hay nada que pulsar; y siempre «lo encontrarás en Mis creaciones»',
+    iguales(P.en_cola.acciones, ['cancelar']) && iguales(P.generando.acciones, ['cancelar']) && iguales(P.cancelando.acciones, [])
+    && ['creando', 'en_cola', 'generando'].every((k) => P[k].claveMensaje === 'creaciones.progressFindLater') && P.cancelando.claveMensaje === 'studio.worldStoppingNote');
+  check('G5) «no disponible»: título y frase neutros, y solo volver (ni reintentar, ni otra IA, ni por qué)',
     P.no_disponible.claveTitulo === 'common.notAvailable' && /^weeai\.errNotAvailable/.test(P.no_disponible.claveMensaje) && iguales(P.no_disponible.acciones, ['volver'])
     && !DE_DENTRO.test(JSON.stringify(P.no_disponible)) && !DE_DENTRO.test(JSON.stringify(ESTADOS.no_disponible.error)));
-  check('G5) el progreso, en pasos y con la frase de siempre; nunca un porcentaje',
-    iguales(P.generando.progreso, { hechos: 1, total: 2 }) && M.CLAVE_DEL_PROGRESO === 'creaciones.progressSteps'
-    && Object.values(P).every((p) => !Object.keys(p).some((k) => /porcent|percent/i.test(k)) && (p.progreso === null || iguales(Object.keys(p.progreso).sort(), ['hechos', 'total'])))
-    && M.presentacionDelMundo3D(ESTADOS.generando, ASINCRONO).progreso === null);
-  check('G6) terminado con su material: guardar en un proyecto, ver en Mis creaciones y volver; sin material, solo volver',
-    iguales(P.completado.acciones, ['guardar_en_proyecto', 'ver_creaciones', 'volver']) && P.completado.claveMensaje === 'creaciones.savedInCreations'
+  check('G6) ningún porcentaje ni pasos inventados: la puerta no los sabe',
+    Object.values(P).every((p) => !Object.keys(p).some((k) => /porcent|percent|progreso|pasos/i.test(k))));
+  check('G7) terminado con su mundo: verlo en Mis creaciones y volver; sin mundo, solo volver',
+    iguales(P.completado.acciones, ['ver_creaciones', 'volver']) && P.completado.claveMensaje === 'creaciones.savedInCreations'
     && iguales(P.completadoSinMaterial.acciones, ['volver']) && P.completadoSinMaterial.claveMensaje === null);
-  check('G7) cada fallo con su salida: Credits, sesión, seguir la que hay, reintentar o cambiar; y la frase del servidor cuando es lo que hay',
+  check('G8) cancelado: «paré y te devolví los Credits», y se puede cambiar algo o volver',
+    P.cancelado.claveTitulo === 'weeai.jobCancelled' && P.cancelado.claveMensaje === 'studio.worldCancelledNote' && iguales(P.cancelado.acciones, ['cambiar', 'volver']));
+  check('G9) cada fallo con su salida: Credits, sesión, seguir la que hay, reintentar o cambiar',
     iguales(P['fallido: sin Credits'].acciones, ['conseguir_credits', 'cambiar']) && iguales(P['fallido: sin sesión'].acciones, ['iniciar_sesion'])
     && iguales(P['fallido: ya en marcha'].acciones, ['ver_creaciones']) && iguales(P['fallido: demasiadas seguidas'].acciones, ['reintentar', 'cambiar'])
-    && iguales(P['fallido: la foto se rechazó'].acciones, ['cambiar']) && P.fallidoConFrase.fraseDelServidor === 'No me salió bien.' && P.fallidoConFrase.claveMensaje === null);
-
+    && iguales(P['fallido: la foto se rechazó'].acciones, ['cambiar']) && iguales(P.fallidoDelTrabajo.acciones, ['reintentar', 'cambiar']));
   /* Todas las claves que esto puede pedir, en los diccionarios de verdad. */
-  const claves = new Set([...Object.values(M.CLAVE_DE_ACCION), M.CLAVE_DEL_PROGRESO]);
+  const claves = new Set(Object.values(M.CLAVE_DE_ACCION));
   for (const p of Object.values(P)) for (const k of [p.claveTitulo, p.claveMensaje]) if (k) claves.add(k);
   for (const e of Object.values(ESTADOS)) { for (const pr of e.problemas) claves.add(pr.clave); if (e.error) claves.add(e.error.clave); }
   for (const [, e] of ERRORES) claves.add(M.errorDelMundo3D(e).clave);
-  for (const codigo of ['falta_imagen', 'imagen_sin_subir', 'imagen_ajena', 'material_no_valido', 'material_no_es_imagen', 'proyecto_no_valido']) {
-    const entrada = { falta_imagen: { ...ENTRADA, imagen: null }, imagen_sin_subir: { ...ENTRADA, imagen: { tipo: 'storage', url: 'x' } },
-      imagen_ajena: { ...ENTRADA, imagen: { tipo: 'storage', url: enStorage('users/otra/x.jpg') } }, material_no_valido: { ...ENTRADA, imagen: { tipo: 'material', assetId: '/' } },
-      material_no_es_imagen: { ...ENTRADA, imagen: { tipo: 'material', assetId: ASSET, kind: 'audio' } }, proyecto_no_valido: { ...ENTRADA, projectId: '/' } }[codigo];
-    for (const pr of M.validarEntradaDelMundo3D(entrada, CUENTA)) claves.add(pr.clave);
-  }
+  for (const entrada of [{ ...ENTRADA, imagen: null }, { ...ENTRADA, projectId: '/' }, { ...ENTRADA, espacio: 'playa' }]) for (const pr of M.validarEntradaDelMundo3D(entrada, CUENTA)) claves.add(pr.clave);
   const DICCIONARIOS = cargar('i18n/diccionarios.ts').DICCIONARIOS;
   const unicos = []; for (const [codigo, d] of Object.entries(DICCIONARIOS)) if (!unicos.some(([, otro]) => otro === d)) unicos.push([codigo, d]);
   const valor = (d, clave) => clave.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), d);
   const delServidor = [...claves].filter((k) => k.startsWith('motor.'));
   const deLaApp = [...claves].filter((k) => !k.startsWith('motor.'));
   const faltanApp = unicos.flatMap(([codigo, d]) => deLaApp.filter((k) => typeof valor(d, k) !== 'string' || !valor(d, k).trim()).map((k) => `${codigo}:${k}`));
-  check(`G8) las ${deLaApp.length} claves de la app existen y tienen texto en los ${unicos.length} diccionarios (las de Weë AI de siempre y, desde la FASE 2, las cinco del «no disponible»)`,
+  check(`G10) las ${deLaApp.length} claves de la app existen y tienen texto en los ${unicos.length} diccionarios`,
     unicos.length === 16 && faltanApp.length === 0, faltanApp.slice(0, 6).join(' '));
   const faltanServidor = ['es', 'en', 'da'].flatMap((c) => delServidor.filter((k) => typeof valor(DICCIONARIOS[c], k) !== 'string').map((k) => `${c}:${k}`));
-  check(`G9) las ${delServidor.length} del servidor (\`motor.*\`) están en los idiomas que traducen su catálogo (es, en, da); los demás caen al inglés por la cadena de siempre (el «no disponible» ya no es una de ellas: es de la app, en los dieciséis)`,
-    delServidor.length >= 2 && faltanServidor.length === 0 && !delServidor.includes('motor.notAvailable'), faltanServidor.join(' '));
+  check(`G11) las ${delServidor.length} del servidor (\`motor.*\`) están en los idiomas que traducen su catálogo (es, en, da)`,
+    delServidor.length >= 2 && faltanServidor.length === 0, faltanServidor.join(' '));
   /* Y pintadas con el traductor de verdad: en español, en inglés y en portugués de Brasil. */
   const { crearTraductor } = cargar('i18n/traducir.ts');
   const faltan = [];
   const tr = (locale) => crearTraductor(locale, DICCIONARIOS, { alFaltarUnaClave: (k) => faltan.push(`${locale}:${k}`) });
   const [tEs, tEn, tPt] = ['es', 'en', 'pt'].map(tr);
-  for (const p of Object.values(P)) for (const t of [tEs, tEn, tPt]) { for (const k of [p.claveTitulo, p.claveMensaje]) if (k) t(k); for (const a of p.acciones) t(M.CLAVE_DE_ACCION[a]); }
-  check('G10) pintado con el traductor de la app en es, en y pt-BR no falta ninguna',
-    faltan.length === 0 && tEs('common.notAvailable') === 'No disponible' && tEs('weeai.errNotAvailable') === 'Esta función no está disponible actualmente.'
-    && tEn('weeai.errNotAvailableRegion') === 'This feature isn’t available in your region.'
-    && tPt('common.notAvailable') === 'Indisponível' && tEs(M.CLAVE_DEL_PROGRESO, P.generando.progreso) === '1 de 2 pasos listos', faltan.join(' '));
+  for (const p of Object.values(P)) for (const t of [tEs, tEn, tPt]) { for (const k of [p.claveTitulo, p.claveMensaje]) if (k) t(k); for (const a of p.acciones) t(M.CLAVE_DE_ACCION[a], { credits: 39 }); }
+  check('G12) pintado con el traductor de la app en es, en y pt-BR no falta ninguna, y el precio va dentro del botón',
+    faltan.length === 0 && tEs(M.CLAVE_DE_ACCION.confirmar, { credits: 39 }) === 'Crear por 39 Credits' && tEn(M.CLAVE_DE_ACCION.confirmar, { credits: 39 }) === 'Create for 39 Credits'
+    && /39/.test(tPt(M.CLAVE_DE_ACCION.confirmar, { credits: 39 })) && tEs('common.notAvailable') === 'No disponible' && tPt('common.notAvailable') === 'Indisponível', faltan.join(' '));
 });
 
 /* ═══ H · FRONTERAS ════════════════════════════════════════════════════════ */
@@ -455,11 +448,10 @@ seccion('H', () => {
   check('H1) puro: sin Firebase, sin React, sin red, sin reloj y sin azar',
     !/firebase|from 'react|fetch\(|XMLHttpRequest|\brequire\(|Date\.now\(|new Date\(|Math\.random\(/.test(codigo));
   const imports = [...fuente.matchAll(/^import (type )?\{[^}]*\} from '([^']+)';$/gm)].map((m) => `${m[1] ? 'tipo' : 'valor'}:${m[2]}`);
-  check('H2) importa solo el núcleo 3D por su puerta, el «no disponible» puro y TIPOS de los servicios (nada que se ejecute de ellos)',
-    iguales(imports.sort(), ['tipo:../services/creatorService', 'tipo:../services/escena3d', 'valor:../services/escena3d', 'valor:./noDisponible'])
+  check('H2) importa solo el contrato y el núcleo 3D por su puerta, y el «no disponible» puro: ningún servicio',
+    iguales(imports.sort(), ['tipo:../services/escena3d', 'valor:../services/escena3d', 'valor:./noDisponible'])
     && !/^import /m.test(leer('utils/noDisponible.ts')), imports.join(', '));
   check('H3) no nombra ningún proveedor, modelo, endpoint ni campo de un proveedor, ni siquiera en los comentarios',
-    /* `bad_image_url` es un motivo de Weë (servidor), no el campo de un proveedor: por eso los límites de palabra. */
     !/\b(fal|hunyuan|tencent|gemini|seedance|seedream|flux|elevenlabs|deepseek|minimax|openai|replicate|byteplus|bytedance)\b|\blabels_fg|\bexport_drc\b|\bimage_url\b|queue\.|FAL_KEY/i.test(fuente)
     && /\bimage_url\b/.test('{ image_url: x }') && !/\bimage_url\b/.test('bad_image_url'));
   check('H4) ni cobra, ni pone precio, ni sabe de jurisdicciones: el precio lo dice el servidor y la jurisdicción la pone el servidor',
@@ -475,11 +467,11 @@ seccion('H', () => {
   andar(sf);
   const frases = literales.filter((s) => /\s|[áéíóúñü¿¡]/i.test(s));
   check(`H5) ni una frase escrita a mano: los ${literales.length} literales son claves, ids o rutas`, literales.length > 50 && frases.length === 0, frases.slice(0, 3).join(' | '));
-  check('H5b) y la frase de un error no se lee nunca (ni para enseñarla ni para buscar en ella)', !/\.message\b|\bmessage\b/.test(codigo));
-  check('H6) CONTROL: el detector de frases sí ve una', ['Sube una foto', 'No disponible'].every((s) => /\s|[áéíóúñü¿¡]/i.test(s)));
-  check('H7) y ninguna callable se nombra aquí: las llama su servicio, y solo él',
-    !/['"](creatorChat|creatorRun|creatorQuote|generateVideo|brainChat)['"]/.test(fuente));
-  check('H8) la caja sigue siendo la de siempre: este módulo no pinta ni trae otra caja, otro Brain ni otro router',
+  check('H6) y la frase de un error no se lee nunca (ni para enseñarla ni para buscar en ella)', !/\.message\b|\bmessage\b/.test(codigo));
+  check('H7) CONTROL: el detector de frases sí ve una', ['Sube una foto', 'No disponible'].every((s) => /\s|[áéíóúñü¿¡]/i.test(s)));
+  check('H8) y ninguna callable se nombra aquí: las llama su servicio, y solo él',
+    !/['"](creatorChat|creatorRun|creatorQuote|generateVideo|generateWorld|brainChat)['"]/.test(fuente));
+  check('H9) la caja sigue siendo la del Studio: este módulo no pinta ni trae otra caja, otro Brain ni otro router',
     !/CajaDePrompt|CajaQueCrece|TextInput|brainService|useBrainChat|router|Router/.test(codigo));
   check('esta suite está en la cadena de `npm test`', /crear-mundo-3d\.test\.mjs/.test(leer('functions/package.json')));
 });
