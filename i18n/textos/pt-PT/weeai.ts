@@ -162,7 +162,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   errTimeout: 'Demorou demasiado e eu parei. Não te cobrei nada: tenta de novo.',
   errNotAvailable: 'Esta funcionalidade não está disponível atualmente.',
   errNotAvailableNow: 'Esta funcionalidade não está disponível neste momento. Tenta outra vez daqui a pouco.',
-  errNotAvailableRegion: 'Esta funcionalidade não está disponível na tua região.',
+  errNotAvailableRegion: 'Esta funcionalidade não está disponível de momento na tua região.',
   errNotAvailableCountry: 'Para usares esta funcionalidade, indica o teu país no teu Perfil Real.',
   errNotAvailableOptions: 'Esta funcionalidade não está disponível com as opções que escolheste. Experimenta outras.',
   errDuplicate: 'Essa criação já está em curso.',

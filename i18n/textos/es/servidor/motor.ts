@@ -44,7 +44,7 @@ export const motor = {
   sinProveedor: 'Ahora mismo no hay una IA disponible para esto. Inténtalo más tarde.',
   noDisponibleActualmente: 'Esta función no está disponible actualmente.',
   noDisponibleAhora: 'Esta función no está disponible en este momento. Vuelve a intentarlo dentro de un rato.',
-  noDisponibleRegion: 'Esta función no está disponible en tu región.',
+  noDisponibleRegion: 'Esta función no está disponible actualmente en tu región.',
   noDisponiblePais: 'Para usar esta función, indica tu país en tu Perfil Real.',
   noDisponibleOpciones: 'Esta función no está disponible con las opciones que elegiste. Prueba con otras.',
   describeVideo: 'Cuéntame qué video quieres crear.',

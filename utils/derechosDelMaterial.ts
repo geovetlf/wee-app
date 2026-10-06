@@ -26,13 +26,16 @@ const CLAVE_DEL_USO_COMERCIAL: Readonly<Record<DerechosDelMaterial['usoComercial
 });
 
 /**
- * Las frases, en orden: el uso comercial, la atribución (solo si la pide de verdad; «UNKNOWN» no se convierte en
- * nada) y los lugares. Sin derechos, ninguna: un material sin licencia ajena no tiene nada que avisar.
+ * Las frases, en orden: la PROCEDENCIA (hecho con IA en Weë, con un modelo de terceros que tiene su propia licencia:
+ * explica de dónde salen las condiciones sin nombrar modelo ni proveedor), el uso comercial, la atribución (solo si la
+ * pide de verdad; «UNKNOWN» no se convierte en nada) y los lugares. Sin derechos, ninguna: un material sin licencia
+ * ajena no tiene nada que avisar. La revisión legal (`revision`) no se cuenta nunca: es gobierno interno de Weë.
+ * Lo completo —licencias, revisión, proveedor y modelo— vive en el documento del material, que su dueño puede leer.
  */
 export const frasesDeDerechos = (derechos: DerechosVisibles | undefined | null): FraseDeDerechos[] => {
   if (!derechos) return [];
   const visibles: DerechosVisibles = derechos;
-  const frases: FraseDeDerechos[] = [];
+  const frases: FraseDeDerechos[] = [{ clave: 'creaciones.rightsProvenance' }];
   const comercial = CLAVE_DEL_USO_COMERCIAL[visibles.usoComercial];
   if (comercial) frases.push({ clave: comercial });
   if (visibles.atribucion === true) frases.push({ clave: 'creaciones.rightsAttribution' });

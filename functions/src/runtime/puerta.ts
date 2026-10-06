@@ -15,15 +15,21 @@
  *   3. SE ABRE POR CAPACIDAD, Y PRIMERO PARA CUENTAS CONCRETAS. Con `cuentas`,
  *      solo esas cuentas pasan por el Core: así se prueba en producción con una
  *      cuenta controlada y sin que ninguna persona real sea el sujeto de la
- *      prueba. Sin `cuentas`, pasa todo el mundo.
+ *      prueba. Sin `cuentas`, pasa todo el mundo… salvo por una puerta que
+ *      declare EN SU CÓDIGO que la lista es obligatoria (`listaObligatoria`):
+ *      ahí, sin lista o con la lista vacía, no pasa NADIE. Es la del mundo 3D
+ *      durante su canary (`creator/mundo.ts`): la configuración puede añadir
+ *      cuentas a la prueba, pero quitar la lista no la abre para todos.
  *
  * ── Lo que NO decide ────────────────────────────────────────────────────────
  *
  * Ni el proveedor, ni el modelo, ni el precio. Una operación cuesta lo mismo
  * por un camino que por el otro; si no, no sería una migración.
  *
- * NADA DE PRODUCCIÓN LEE ESTA PUERTA TODAVÍA. Es una función pura con sus
- * pruebas; ningún callable la consulta.
+ * NADA DE PRODUCCIÓN PASA POR AQUÍ TODAVÍA camino del Core: es una función pura
+ * que consultan las puertas del conductor (`brainChat`, `generateVideo`,
+ * `generateWorld`) con lo que leen de `aiSettings/runtime`, y esa configuración
+ * está CERRADA, así que contesta siempre `legacy`.
  */
 
 export type RuntimeElegido = 'core' | 'legacy';
@@ -43,6 +49,8 @@ export type MotivoDePuerta =
   | 'deshabilitada'
   | 'configuracion_ilegible'
   | 'capacidad_no_migrada'
+  /* La puerta exige lista de cuentas y la configuración no trae ninguna (o la trae vacía): no pasa nadie. */
+  | 'sin_lista_de_cuentas'
   | 'cuenta_fuera_de_la_prueba'
   | 'experiencia_no_migrada';
 
@@ -93,13 +101,23 @@ export const leerPuerta = (crudo: unknown): { ok: true; config: ConfiguracionDeP
 
 export const decidirRuntime = (
   crudo: unknown,
-  contexto: { capability: string; userId: string; experienceId?: string },
+  contexto: {
+    capability: string;
+    userId: string;
+    experienceId?: string;
+    /**
+     * LA LISTA DE CUENTAS ES OBLIGATORIA PARA ESTA PUERTA. Lo declara la puerta en su código, nunca la
+     * configuración: sin `cuentas`, o con `cuentas: []`, la respuesta es `legacy` para todo el mundo.
+     */
+    listaObligatoria?: boolean;
+  },
 ): DecisionDePuerta => {
   const leida = leerPuerta(crudo);
   if (!leida.ok) return { runtime: 'legacy', motivo: crudo === undefined || crudo === null ? 'deshabilitada' : 'configuracion_ilegible' };
   const { config } = leida;
   if (!config.habilitado) return { runtime: 'legacy', motivo: 'deshabilitada' };
   if (!config.capacidades.includes(contexto.capability)) return { runtime: 'legacy', motivo: 'capacidad_no_migrada' };
+  if (contexto.listaObligatoria === true && !config.cuentas?.length) return { runtime: 'legacy', motivo: 'sin_lista_de_cuentas' };
   if (config.cuentas && !config.cuentas.includes(contexto.userId)) return { runtime: 'legacy', motivo: 'cuenta_fuera_de_la_prueba' };
   if (config.experiencias && (!contexto.experienceId || !config.experiencias.includes(contexto.experienceId))) {
     return { runtime: 'legacy', motivo: 'experiencia_no_migrada' };

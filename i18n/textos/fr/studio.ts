@@ -363,4 +363,5 @@ export const studio: typeof import('../es/studio').studio = {
   worldStoppingNote: 'Si le monde 3D est prêt avant l’arrêt, il reste dans tes créations et les Credits sont débités.',
   worldCancelledNote: 'J’ai arrêté la création. Les Credits réservés reviennent sur ton solde.',
   worldUploadFailed: 'Je n’ai pas pu envoyer ta photo. Réessaie.',
+  worldDailyLimit: 'Tu as utilisé les mondes 3D du jour. Si l’un d’eux n’aboutit pas, tu le récupères, et ils se renouvellent chaque jour.',
 };

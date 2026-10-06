@@ -71,6 +71,7 @@ export const creaciones = {
   kindWorld: '3D 世界',
   noViewer3d: 'Weë 還沒有 3D 檢視器。請下載檔案，用 3D 應用程式開啟。',
   rightsTitle: '你可以用它做什麼',
+  rightsProvenance: '在 Weë 中用 AI 製作，使用的是有自己授權條款的第三方模型。',
   rightsCommercialAllowed: '可以用於商業用途。',
   rightsCommercialRestricted: '商業使用需符合一定條件。',
   rightsCommercialUnclear: '目前還不確定能否用於商業用途。',

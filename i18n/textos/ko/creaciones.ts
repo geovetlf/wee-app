@@ -71,6 +71,7 @@ export const creaciones = {
   kindWorld: '3D 월드',
   noViewer3d: 'Weë에는 아직 3D 뷰어가 없어요. 파일을 다운로드해서 3D 앱에서 열어 주세요.',
   rightsTitle: '사용할 수 있는 범위',
+  rightsProvenance: 'Weë에서 자체 라이선스가 있는 외부 모델로 AI가 만들었어요.',
   rightsCommercialAllowed: '상업적으로 사용할 수 있어요.',
   rightsCommercialRestricted: '상업적 사용에는 조건이 있어요.',
   rightsCommercialUnclear: '상업적으로 사용할 수 있는지 아직 확실하지 않아요.',
