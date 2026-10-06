@@ -2410,13 +2410,15 @@ reutilizando lo que hay —ni otro sistema de permisos, ni otro libro, ni otro C
 - Cada puerta declara su capacidad en su código y se mira SOLO su entrada. Sin entrada → `capacidad_no_migrada`; sin
   lista o con la lista vacía → `sin_lista_de_cuentas`; para TODAS, sin excepción y sin que la configuración pueda
   quitarlo. No hay lista global, ni respaldo, ni comodín: la cuenta se compara por igualdad y «*» o un patrón hacen
-  ilegible el documento. La lista del mundo no abre el vídeo y la del vídeo no abre el mundo.
+  ilegible el documento. La lista del mundo no abre el vídeo y la del vídeo no abre el mundo. `habilitado: false` dentro
+  de una entrada cierra esa capacidad sola, con su lista intacta; y `habilitado: false` arriba MANDA PRIMERO, sea cual
+  sea el resto: el documento cerrado de §21.3 se lee «deshabilitada», no «ilegible».
 - **La forma de antes cierra.** Un documento con `capacidades`, `cuentas` o `experiencias` arriba se da por ilegible
   (`configuracion_ilegible`, legacy): el estado de producción de §21.3 (`{ habilitado: false, capacidades: [] }`) se lee
   así, cerrado. Y al revés: el código de antes no encuentra `capacidades` en un documento de ahora y lo da por ilegible,
   así que una Function sin volver a desplegar nunca queda abierta para todos por un documento nuevo. Abrir un canary es
   ESCRIBIR el documento entero (sin mezclar con el anterior), después de desplegar las puertas con esta lectura.
-- Pruebas: `listas-por-capacidad` (36: las diez de la misión, la regla que la configuración no cambia, las tres puertas
+- Pruebas: `listas-por-capacidad` (38: las diez de la misión, el cierre por capacidad, `habilitado: false` primero, la regla que la configuración no cambia, las tres puertas
   en su código, la vuelta atrás en los dos sentidos —con la puerta de e190f1d copiada—, la lectura de Firestore) y la
   sección A de `mundo3d-gobernanza`.
 
@@ -2432,26 +2434,37 @@ reutilizando lo que hay —ni otro sistema de permisos, ni otro libro, ni otro C
   (`runtime/liquidacion.ts`, pura) y el método nuevo del libro de siempre, `ledger.closeAccepted` (`engine/ledger.ts`):
   una transacción por fila que comprueba que SIGUE en curso y con la misma tarea, y escribe la fila y su suma a
   `aiUsage/{día}` juntas. Dos liquidaciones a la vez cierran una vez.
-  - salió → `COMPLETED` con la tarifa cotizada: exacta si el modelo cobra por petición (el mundo, `cost.unit: 'call'`,
-    `tarifaPorPeticion`); si no, la estimación marcada `providerCostStatus: 'estimado'` (el vídeo, por segundos).
+  - salió → `COMPLETED` con la tarifa cotizada: exacta si el modelo cobra por petición (el mundo, `cost.unit: 'call'`);
+    si no, la estimación marcada `providerCostStatus: 'estimado'` (el vídeo, por segundos). Si es exacta lo decide quien
+    COTIZA (`tarifaExacta`, engine/pricing.ts, con el modelo que eligió el Router) y viaja con el trabajo
+    (`estimatedUsdExact`, que lee `reservaDe`): al liquidar no se vuelve a preguntar a la configuración del momento.
   - falló, se agotó o se canceló con el proveedor trabajando → `FAILED`/`CANCELLED`, `providerCost: 0`,
     `providerCostStatus: 'desconocido'` y la tarifa en `providerCostEstimated` (H0 #22: `usdEnRiesgo`, que ven los topes).
   - sin saberse → la fila sigue en curso, y el trabajo se reconcilia: no se adivina.
   - si el libro no puede cerrar, el dinero ya está bien y la pasada se da por no terminada (`fallo`): la siguiente vuelve
     sobre el mismo trabajo, el Credit Engine contesta «ya estaba» y el libro cierra lo que faltaba.
-- **Los fallos síncronos del conductor** llevan la misma regla que el camino de siempre (`costeDelFalloDelGateway`, la
-  de `costeTrasUnFallo` sobre el error ya normalizado): lo que no llegó o se rechazó al recibirse, cero; un plazo con la
-  petición en vuelo, una red caída o un 5xx, «en riesgo».
+- **Los fallos síncronos del conductor** llevan LA regla del camino de siempre, no una copia: la decide el ejecutor del
+  motor (`engine/gateway.ts`), el único que tiene el error ORIGINAL, con `costeTrasUnFallo` —y si el proveedor ya dio
+  nombre a la tarea, como despachada— y viaja en el error (`details.costeDelFallo`); el runtime solo la lee
+  (`costeDelFalloDelGateway`). Un fallo del Gateway sin pasar por el adaptador se decide por su CÓDIGO —el motivo fino es
+  diagnóstico—: un rechazo previo a ejecutar, cero; una tarea aceptada sin nombre, una respuesta inservible o una avería
+  del ejecutor, «en riesgo».
 - **Una reserva ya devuelta no se liquida con Credits**: si `completeCredits` contesta que la transacción no quedó
   cobrada, la fila se liquida a 0 (antes, con el importe).
 - **La cadena, sin ambigüedad**: `world.generate#<requestId>` (el hueco del día, `aiRateLimits`) ↔ `usage_<requestId>`
   (la reserva, `creditTransactions`, con `meta.quotaDay`) ↔ el trabajo (`creditTransactionId`, `creditRequestId`,
   `quotaOperation`, `quotaDay`; su intento con `providerRef.operationId`) ↔ la fila del libro (`creditTransactionId`,
   `providerTaskId` = esa operación, `jobId` = la ejecución del medio) ↔ la liquidación (`settledAt`, `creditsCharged`).
-- Pruebas: `mundo3d-costes` (56, sobre una Firestore en memoria con el Credit Engine, el libro y el limitador de
+- Pruebas: `mundo3d-costes` (58, sobre una Firestore en memoria con el Credit Engine, el libro y el limitador de
   verdad: el libro al aceptar, la paridad con H0 #22, los desenlaces, el cierre una vez y a la vez, las reglas A–F de la
   misión, de punta a punta con el motor de trabajos, la identidad por capacidad y la seguridad) y cinco comprobaciones
-  más en `mundo3d.emulator.mjs` (40, contra Firestore emulada). Catorce sabotajes del compilado, todos detectados.
-- **Lo que NO cambió**: ni el Gateway, ni el Router, ni el Job Engine, ni el Credit Engine, ni `settle`; ni una Function
-  nueva; ninguna puerta abierta. Pendiente, dicho: convertir el uso MEDIDO de un vídeo aceptado (tokens del aviso) en
+  más en `mundo3d.emulator.mjs` (40, contra Firestore emulada). Veintiún sabotajes del compilado: veinte los detectan las unidades y el de la puerta del mundo, el emulador.
+- **El orden** —después del dinero, antes de `settle`— lo garantiza la liquidación (el `job` es obligatorio en
+  `PuertoDeLiquidacion`), no el libro: `settle` sigue sellando la transacción entera. Por eso el barrido se despliega
+  con las puertas o antes, y no se devuelve a una versión anterior por separado mientras haya trabajos aceptados en marcha
+  (3D-EXPERIENCIA §20). Hacer que `settle` no selle una transacción con filas en curso sería tocar `settle`: decisión del
+  dueño, no tomada.
+- **Lo que NO cambió**: ni el Gateway del Core, ni el Router, ni el Job Engine, ni el Credit Engine, ni `settle`; del
+  motor, solo la anotación del coste de un fallo en su ejecutor y `tarifaExacta`; ni una Function nueva; ninguna puerta
+  abierta. Pendiente, dicho: convertir el uso MEDIDO de un vídeo aceptado (tokens del aviso) en
   dinero; hoy se cierra con la estimación, marcada.

@@ -22,13 +22,14 @@
  *          habilitado: true
  *          porCapacidad:
  *            'world.generate':  { cuentas: [<uid>], experiencias?: ['studio'] }
- *            'video.generate':  { cuentas: [<uid>] }
+ *            'video.generate':  { cuentas: [<uid>], habilitado?: false }
  *
  *      La lista es OBLIGATORIA para todas: una capacidad sin entrada, una
  *      entrada sin lista o con la lista vacía no deja pasar a NADIE. No hay
  *      lista global, ni comodín, ni una lista que sirva de respaldo de otra: la
  *      del mundo no abre el vídeo y la del vídeo no abre el mundo, y poner o
- *      quitar cuentas de una no toca las demás. La configuración puede cerrar
+ *      quitar cuentas de una no toca las demás. `habilitado: false` dentro de
+ *      una capacidad la cierra a ella sola, con su lista intacta. La configuración puede cerrar
  *      una capacidad o mover cuentas dentro de su lista; quitar la obligación,
  *      no puede (decisión del dueño, 2026-10-06: «separar allowlist por
  *      capability»).
@@ -58,6 +59,8 @@ export type RuntimeElegido = 'core' | 'legacy';
 
 /** Lo que abre UNA capacidad: sus cuentas y, si se quiere acotar más, sus productos. */
 export interface PuertaDeCapacidad {
+  /** `false` cierra SOLO esta capacidad, con su lista intacta: volver atrás también es un booleano por capacidad. */
+  habilitado?: boolean;
   /** SOLO estas cuentas, por igualdad exacta. Sin lista, o vacía, no pasa nadie. */
   cuentas?: readonly string[];
   /** Si está, SOLO estos productos (`brain`, `studio`…). */
@@ -106,11 +109,17 @@ const lista = (crudo: unknown, forma: RegExp): readonly string[] | undefined => 
 /** Lo de UNA capacidad. Una lista presente y rota invalida todo el documento; una lista ausente es «sin lista». */
 const leerCapacidad = (crudo: unknown): PuertaDeCapacidad | undefined => {
   if (!esObjeto(crudo)) return undefined;
+  /* Un `habilitado` que no es un booleano no se adivina: el documento entero se da por ilegible. */
+  if (propio(crudo, 'habilitado') && typeof crudo.habilitado !== 'boolean') return undefined;
   const cuentas = propio(crudo, 'cuentas') ? lista(crudo.cuentas, FORMA_DE_ETIQUETA) : undefined;
   if (propio(crudo, 'cuentas') && !cuentas) return undefined;
   const experiencias = propio(crudo, 'experiencias') ? lista(crudo.experiencias, FORMA_DE_ETIQUETA) : undefined;
   if (propio(crudo, 'experiencias') && !experiencias) return undefined;
-  return Object.freeze({ ...(cuentas ? { cuentas } : {}), ...(experiencias ? { experiencias } : {}) });
+  return Object.freeze({
+    ...(crudo.habilitado === false ? { habilitado: false } : {}),
+    ...(cuentas ? { cuentas } : {}),
+    ...(experiencias ? { experiencias } : {}),
+  });
 };
 
 /**
@@ -148,12 +157,19 @@ export const decidirRuntime = (
   crudo: unknown,
   contexto: { capability: string; userId: string; experienceId?: string },
 ): DecisionDePuerta => {
+  /*
+   * `habilitado: false` MANDA PRIMERO, sea cual sea el resto: la puerta queda igual de cerrada, y el motivo dice lo que
+   * es —cerrada a propósito— y no «ilegible». Es el estado de producción de RUNTIME §21.3 (`{ habilitado: false,
+   * capacidades: [] }`, la forma de antes): así su registro sigue distinguiendo «cerrada» de «configuración rota».
+   */
+  if (esObjeto(crudo) && crudo.habilitado === false) return { runtime: 'legacy', motivo: 'deshabilitada' };
   const leida = leerPuerta(crudo);
   if (!leida.ok) return { runtime: 'legacy', motivo: crudo === undefined || crudo === null ? 'deshabilitada' : 'configuracion_ilegible' };
   const { config } = leida;
   if (!config.habilitado) return { runtime: 'legacy', motivo: 'deshabilitada' };
   const suya = propio(config.porCapacidad, contexto.capability) ? config.porCapacidad[contexto.capability] : undefined;
   if (!suya) return { runtime: 'legacy', motivo: 'capacidad_no_migrada' };
+  if (suya.habilitado === false) return { runtime: 'legacy', motivo: 'deshabilitada' };
   if (!suya.cuentas?.length) return { runtime: 'legacy', motivo: 'sin_lista_de_cuentas' };
   if (!suya.cuentas.includes(contexto.userId)) return { runtime: 'legacy', motivo: 'cuenta_fuera_de_la_prueba' };
   if (suya.experiencias && (!contexto.experienceId || !suya.experiencias.includes(contexto.experienceId))) {

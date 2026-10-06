@@ -237,6 +237,22 @@ export const firestoreLedger: Ledger = {
  * lo mismo, y una fila aceptada que se cierra al saberse su desenlace no puede contar distinto que una que se cerró al
  * volver la llamada.
  */
+/**
+ * CUÁNTO SUMA UN CIERRE: una llamada, si falló, el dinero medido del proveedor, lo que pudo costar si falló después de
+ * llegarle (H0 #22: `usdEnRiesgo`, aparte del dinero medido, para que los topes lo vean) y el tiempo. Pura: la usan el
+ * libro de Firestore (como incrementos) y el de memoria (como sumas), así que los dos cuentan lo mismo.
+ */
+export const sumaDeUnCierre = (patch: CloseRecord): { calls: number; failed: number; usd: number; usdEnRiesgo: number; latencyMs: number } => {
+  const estimado = Number(patch.providerCostEstimated);
+  return {
+    calls: 1,
+    failed: patch.status === 'FAILED' ? 1 : 0,
+    usd: patch.providerCost || 0,
+    usdEnRiesgo: patch.providerCostStatus === 'desconocido' && Number.isFinite(estimado) && estimado > 0 ? estimado : 0,
+    latencyMs: patch.durationMs || 0,
+  };
+};
+
 const sumaAlUsoDelDia = (record: Partial<GenerationRecord>, patch: CloseRecord, now: Timestamp) => {
   // El día de la fila, no el de ahora: si la generación cruzó medianoche, el
   // gasto se apunta donde ya está el resto de la operación.
@@ -249,28 +265,26 @@ const sumaAlUsoDelDia = (record: Partial<GenerationRecord>, patch: CloseRecord, 
    * informes de coste de producción. El resto (tráfico real) sigue en aiUsage como siempre.
    */
   const coleccionDeUso = record.attribution === 'eval' ? 'evalUsage' : 'aiUsage';
-  /* Lo que pudo costar un fallo que llegó al proveedor (H0 #22): aparte del dinero medido, para que los topes lo vean. */
-  const estimado = Number(patch.providerCostEstimated);
-  const enRiesgo = patch.providerCostStatus === 'desconocido' && Number.isFinite(estimado) && estimado > 0 ? estimado : 0;
-  const riesgo = enRiesgo > 0 ? { usdEnRiesgo: FieldValue.increment(enRiesgo) } : {};
+  const suma = sumaDeUnCierre(patch);
+  const riesgo = suma.usdEnRiesgo > 0 ? { usdEnRiesgo: FieldValue.increment(suma.usdEnRiesgo) } : {};
   return {
     coleccion: coleccionDeUso,
     dia: day,
     datos: {
       [capability]: {
         [provider]: {
-          calls: FieldValue.increment(1),
-          failed: FieldValue.increment(patch.status === 'FAILED' ? 1 : 0),
+          calls: FieldValue.increment(suma.calls),
+          failed: FieldValue.increment(suma.failed),
           // Dinero real del proveedor y llamadas: ocurrieron de verdad aunque
           // después se reembolse, así que se acumulan siempre. Los Credits NO
           // se acumulan aquí: hasta que la transacción se liquide no se sabe
           // si hubo ingreso. Lo hace ledger.settle().
-          usd: FieldValue.increment(patch.providerCost || 0),
+          usd: FieldValue.increment(suma.usd),
           ...riesgo,
-          latencyMs: FieldValue.increment(patch.durationMs || 0),
+          latencyMs: FieldValue.increment(suma.latencyMs),
         },
       },
-      byProvider: { [provider]: { calls: FieldValue.increment(1), usd: FieldValue.increment(patch.providerCost || 0), ...riesgo } },
+      byProvider: { [provider]: { calls: FieldValue.increment(suma.calls), usd: FieldValue.increment(suma.usd), ...riesgo } },
       updatedAt: now,
     },
   };
@@ -391,12 +405,13 @@ export const memoryLedger = (): Ledger & {
   const usage = { credits: 0, calls: 0, failed: 0, usd: 0, usdEnRiesgo: 0 };
   let counter = 0;
   let sello = 0;
+  /* La MISMA suma que el libro de Firestore (`sumaDeUnCierre`), no una copia de la regla. */
   const sumar = (patch: CloseRecord) => {
-    usage.calls += 1;
-    usage.failed += patch.status === 'FAILED' ? 1 : 0;
-    usage.usd += patch.providerCost || 0;
-    const estimado = Number(patch.providerCostEstimated);
-    if (patch.providerCostStatus === 'desconocido' && Number.isFinite(estimado) && estimado > 0) usage.usdEnRiesgo += estimado;
+    const suma = sumaDeUnCierre(patch);
+    usage.calls += suma.calls;
+    usage.failed += suma.failed;
+    usage.usd += suma.usd;
+    usage.usdEnRiesgo += suma.usdEnRiesgo;
   };
   return {
     records,
@@ -413,13 +428,15 @@ export const memoryLedger = (): Ledger & {
       records[id] = { ...(records[id] || {}), ...patch };
       sumar(patch);
     },
+    /* Como el de Firestore: cada fila EN CURSO de la transacción cuya tarea tenga cierre, una vez. */
     async closeAccepted({ creditTransactionId, cierres }) {
+      const porTarea = new Map(cierres.map((c) => [c.providerTaskId, c]));
       let cerradas = 0;
-      for (const cierre of cierres) {
-        const fila = Object.entries(records).find(([, r]) => r.creditTransactionId === creditTransactionId && r.providerTaskId === cierre.providerTaskId);
-        if (!fila || fila[1].status !== 'PROCESSING') continue;
-        const cerrado = cierreDeAceptada(fila[1].estimatedUsd, cierre);
-        records[fila[0]] = { ...fila[1], ...cerrado };
+      for (const [id, r] of Object.entries(records)) {
+        const cierre = porTarea.get(String(r.providerTaskId ?? ''));
+        if (r.creditTransactionId !== creditTransactionId || !cierre || r.status !== 'PROCESSING') continue;
+        const cerrado = cierreDeAceptada(r.estimatedUsd, cierre);
+        records[id] = { ...r, ...cerrado };
         sumar(cerrado);
         cerradas++;
       }

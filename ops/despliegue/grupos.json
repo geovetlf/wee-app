@@ -53,7 +53,7 @@
     },
     {
       "funcion": "generateWorld",
-      "porque": "«Crear mundo 3D» (Weë Studio → 3D World), misión mundo3d 2026-10-05: la TERCERA puerta del conductor. Está en el código de main y NO en producción: sería una función nueva y de producto, y se despliega solo con decisión del dueño. Desplegada no hace nada: la puerta aiSettings/runtime está CERRADA por defecto (sin world.generate en sus capacidades, todo mundo es «no disponible»), no monta la clave de ningún proveedor (sin ella fal no está configurado) y ningún modelo de mundo es elegible hoy (Hunyuan World, DISABLED y en revisión legal). Activarla son tres decisiones del dueño, en este orden: aprobación legal y activación de un modelo, montar su clave en esta función, y abrir la puerta para una cuenta de prueba. Detalle en docs/3D-EXPERIENCIA.md."
+      "porque": "«Crear mundo 3D» (Weë Studio → 3D World), misión mundo3d 2026-10-05: la TERCERA puerta del conductor. Está en el código de main y NO en producción: sería una función nueva y de producto, y se despliega solo con decisión del dueño. Desplegada no hace nada: la puerta aiSettings/runtime está CERRADA por defecto (sin la entrada world.generate en porCapacidad, con su lista de cuentas, todo mundo es «no disponible»), no monta la clave de ningún proveedor (sin ella fal no está configurado) y ningún modelo de mundo es elegible hoy (Hunyuan World, DISABLED y en revisión legal). Activarla son tres decisiones del dueño, en este orden: aprobación legal y activación de un modelo, montar su clave en esta función, y abrir la puerta para una cuenta de prueba. Detalle en docs/3D-EXPERIENCIA.md."
     }
   ]
 }

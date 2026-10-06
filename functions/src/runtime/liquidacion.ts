@@ -61,6 +61,12 @@ export const CLAVE_DE_SERVICIO = 'service';
  */
 export const CLAVE_DE_LA_OPERACION_DEL_CUPO = 'quotaOperation';
 export const CLAVE_DEL_DIA_DEL_CUPO = 'quotaDay';
+/**
+ * SI LA TARIFA COTIZADA ES EL COSTE (un modelo que cobra por petición, `tarifaExacta` de engine/pricing.ts). Lo decide
+ * quien cotiza, con el modelo que eligió el Router, y viaja con el trabajo: al cerrar el coste de lo que el proveedor
+ * aceptó (RUNTIME §25c) no se vuelve a preguntar a la configuración del momento. Sin la marca, es una estimación.
+ */
+export const CLAVE_DE_TARIFA_EXACTA = 'estimatedUsdExact';
 
 export type MotivoDeEspera =
   /* Alguien lo está ejecutando ahora mismo: la concesión está viva. */
@@ -101,6 +107,8 @@ export interface ReservaDelTrabajo {
   service?: string;
   /** El hueco del cupo del día que ocupa, si ocupa uno: su operación en el limitador y su día. Si la reserva se devuelve, vuelve con ella. */
   cupo?: { operacion: string; dia: string };
+  /** La tarifa cotizada ES el coste (lo decidió quien cotizó). Ausente: el coste de lo que salga es una estimación. */
+  tarifaExacta?: true;
 }
 
 const texto = (v: unknown): string | undefined => (typeof v === 'string' && v.length ? v : undefined);
@@ -124,6 +132,7 @@ export const reservaDe = (job: Job): ReservaDelTrabajo | undefined => {
     importe: entero(meta[CLAVE_DE_CREDITS]) ?? 0,
     ...(texto(meta[CLAVE_DE_SERVICIO]) ? { service: texto(meta[CLAVE_DE_SERVICIO]) as string } : {}),
     ...(operacion && dia ? { cupo: { operacion, dia } } : {}),
+    ...(meta[CLAVE_DE_TARIFA_EXACTA] === true ? { tarifaExacta: true as const } : {}),
   };
 };
 
@@ -200,7 +209,7 @@ export const decidirLiquidacion = (job: Job, at: number): AccionDeLiquidacion =>
  * CÓMO ACABÓ CADA INTENTO QUE EL PROVEEDOR ACEPTÓ, leído del trabajo guardado (RUNTIME §22.5). Pura.
  *
  * La fila del libro de un intento aceptado no se cierra al aceptarse —el proveedor solo dijo «lo tengo»—: queda en
- * curso con el nombre de su tarea. Quien liquida la cierra con esto, ANTES de mover el dinero, y por eso el coste de
+ * curso con el nombre de su tarea. Quien liquida la cierra con esto —después del dinero y ANTES de liquidar la fila—, y por eso el coste de
  * un trabajo largo llega al libro y al uso del día una vez y en el mismo sitio que su cobro o su devolución.
  *
  * Solo los intentos que SALIERON con el nombre que les dio el proveedor y cuyo final ya se sabe. Uno sin saberse
@@ -283,10 +292,11 @@ export interface ResultadoDeLiquidacion {
  * que venía en el trabajo.
  *
  * `job` es el trabajo guardado tal como lo leyó quien liquida: de él salen los desenlaces de lo que el proveedor
- * aceptó (`desenlacesDeLasAceptadas`), para cerrar su coste en el libro antes que el dinero. Opcional para quien solo
- * tiene la reserva; sin él no se cierra ninguna fila en curso.
+ * aceptó (`desenlacesDeLasAceptadas`), para cerrar su coste en el libro DESPUÉS del dinero y ANTES de liquidar la fila
+ * (`settle` sella la transacción: una fila en curso que llegue tarde ya no recibiría sus Credits). OBLIGATORIO: sin él
+ * no habría con qué cerrar lo aceptado, y el orden no dependería solo de quien compone.
  */
 export interface PuertoDeLiquidacion {
-  liquidar(orden: { userId: string; reserva: ReservaDelTrabajo; importe: number; jobId: string; job?: Job }): Promise<ResultadoDeLiquidacion>;
-  reembolsar(orden: { userId: string; reserva: ReservaDelTrabajo; motivo: MotivoDeReembolso; jobId: string; job?: Job }): Promise<ResultadoDeLiquidacion>;
+  liquidar(orden: { userId: string; reserva: ReservaDelTrabajo; importe: number; jobId: string; job: Job }): Promise<ResultadoDeLiquidacion>;
+  reembolsar(orden: { userId: string; reserva: ReservaDelTrabajo; motivo: MotivoDeReembolso; jobId: string; job: Job }): Promise<ResultadoDeLiquidacion>;
 }

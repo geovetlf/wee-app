@@ -157,11 +157,13 @@ const { creditEngine } = lib('credits/creditEngine.js');
 const { assertRequestId } = lib('credits/creditValidation.js');
 const { limiter, DEFAULT_LIMITS } = lib('engine/limits.js');
 const { costeTrasUnFallo } = lib('engine/router.js');
-const { normalizarErrorDelMotor } = lib('engine/gateway.js');
 const { ProviderError, NotConfiguredError } = lib('engine/http.js');
 const { EngineError } = lib('engine/errors.js');
-const { invalidateConfig } = lib('engine/config.js');
-const { ADAPTERS } = lib('engine/registry.js');
+const { ADAPTERS, DEFAULT_SETTINGS } = lib('engine/registry.js');
+const { tarifaExacta } = lib('engine/pricing.js');
+const core = lib('core/index.js');
+const { datosDelRegistro } = lib('registry/index.js');
+const { crearEjecutorDelMotor } = lib('engine/gateway.js');
 const { HUNYUAN_WORLD_IMAGEN_A_MUNDO: HW } = lib('engine/providers/fal-modelos.js');
 const { derechosDeImplementacion } = lib('engine/derechos.js');
 
@@ -229,7 +231,9 @@ const trabajo = (uid, r, o = {}) => ({
   capability: o.capability ?? 'world.generate', implementation: o.implementation ?? { providerId: 'fal', modelId: HW.id, adapterId: 'adapter:fal' },
   input: { modo: 'desde_imagen', descripcion: 'Una plaza medieval' },
   trace: { traceId: r, requestId: `medio:${r}:crear:1`, userId: uid, runId: `medio:${r}`, stepId: 'crear' },
-  metadata: { creditTransactionId: `usage_${r}`, creditRequestId: r, creditsEstimated: PRECIO, service: 'ai_world', quotaOperation: operacionDelCupo(r), quotaDay: DIA },
+  metadata: { creditTransactionId: `usage_${r}`, creditRequestId: r, creditsEstimated: PRECIO, service: 'ai_world', quotaOperation: operacionDelCupo(r), quotaDay: DIA,
+    /* Lo que escribe la puerta del mundo al cotizar (`tarifaExacta`): un mundo cobra por petición. */
+    ...(o.exacta === false ? {} : { estimatedUsdExact: true }) },
   mode: 'sync', policy: P.politicaDe(P.PLAZOS_DE_MUNDO, { ...POLITICA_DE_TRABAJO, retry: { ...POLITICA_DE_TRABAJO.retry, maxAttempts: 1 } }),
   idempotency: { key: 'k', scope: 's', fingerprint: 'f' },
   createdAt: T0, updatedAt: o.updatedAt ?? T0 + 4 * MIN, deadlineAt: T0 + 45 * MIN, availableAt: T0,
@@ -254,38 +258,85 @@ await seccion('A', async () => {
     f.creditTransactionId === 'usage_costes-a1' && f.service === 'ai_world' && cerca(f.estimatedUsd, TARIFA) && f.capability === 'world.generate'
     && f.provider === 'fal' && f.model === HW.id && f.jobId === 'medio:costes-a1' && f.modality === '3d');
 
-  /* H0 #22 por el conductor: un intento que FALLA al salir lleva su coste según lo que se sabe del error. */
-  const tabla = [
-    ['rechazado por el Gateway antes del adaptador', errorDelCore('PROVIDER_UNAVAILABLE', 'gateway', { details: { reason: 'deadline_passed' } }), 'cero'],
-    ['el adaptador sin clave', normalizarErrorDelMotor(new NotConfiguredError('fal', 'FAL_KEY'), 'fal'), 'cero'],
-    ['el proveedor la rechazó al recibirla (422)', normalizarErrorDelMotor(new ProviderError('fal: 422', 'fal', 422, false), 'fal'), 'cero'],
-    ['límite del proveedor (429)', normalizarErrorDelMotor(new ProviderError('fal: 429', 'fal', 429, true), 'fal'), 'cero'],
-    ['una entrada que el adaptador no manda', normalizarErrorDelMotor(new EngineError('INVALID_REQUEST', undefined, { reason: 'needs_image' }), 'fal'), 'cero'],
-    ['el proveedor falló (502)', normalizarErrorDelMotor(new ProviderError('fal: 502', 'fal', 502, true), 'fal'), 'desconocido'],
-    ['se agotó el tiempo con la petición en vuelo', errorDelCore('TIMEOUT', 'adapter:fal', { details: { reason: 'timeout', scope: 'execution' } }), 'desconocido'],
-    ['no volvió respuesta (red)', normalizarErrorDelMotor(new ProviderError('fal: socket hang up', 'fal', undefined, true), 'fal'), 'desconocido'],
+  /*
+   * H0 #22 por el conductor, por el GATEWAY DE VERDAD: un adaptador que falla de cada forma, el ejecutor del motor que
+   * decide con el error ORIGINAL (`costeTrasUnFallo`, anotado en `details.costeDelFallo`) y la regla del runtime, que
+   * solo lo lee —o, si el fallo es del Gateway sin pasar por el adaptador, decide por el CÓDIGO, nunca por el motivo—.
+   */
+  const porElGateway = async (run, { config: ajustes = {}, execution } = {}) => {
+    const adaptador = {
+      id: 'falso', name: 'falso', modalities: ['text'],
+      models: [{ id: 'falso-1', provider: 'falso', capabilities: ['text.generate'], quality: 3, speed: 3, cost: { unit: 'call', usd: TARIFA } }],
+      isConfigured: () => true, supports: (c) => c === 'text.generate', run,
+    };
+    const adapters = { falso: adaptador };
+    const config = { providers: ajustes, settings: DEFAULT_SETTINGS };
+    const gateway = core.crearGateway({
+      registry: core.crearRegistro(datosDelRegistro(adapters, config.providers)),
+      executor: crearEjecutorDelMotor({ adapters, config: () => config, now: () => T0 }),
+      tracer: { record() {} }, now: () => T0,
+    });
+    return gateway.ejecutar({
+      contract: core.GATEWAY_CONTRACT_VERSION, capability: 'text.generate', implementation: { providerId: 'falso', modelId: 'falso-1' },
+      input: { prompt: 'hola' }, trace: { traceId: 'costes-gw', requestId: 'costes-gw', userId: 'usuario-gw-0001' }, ...(execution ? { execution } : {}),
+    });
+  };
+  const lanza = (e) => async () => { throw e; };
+  const trasAceptar = (e) => async (req) => { await req.onStatus?.('PROCESSING', { providerTaskId: 'tarea-aceptada-1' }); throw e; };
+  const ERRORES = [
+    ['el adaptador sin clave', new NotConfiguredError('falso', 'FALSO_KEY'), false, 'cero'],
+    ['el proveedor la rechazó al recibirla (422)', new ProviderError('falso: 422', 'falso', 422, false), false, 'cero'],
+    ['límite del proveedor (429)', new ProviderError('falso: 429', 'falso', 429, true), false, 'cero'],
+    ['una entrada que el adaptador no manda', new EngineError('INVALID_REQUEST', undefined, { reason: 'needs_image' }), false, 'cero'],
+    ['el proveedor falló (502)', new ProviderError('falso: 502', 'falso', 502, true), false, 'desconocido'],
+    ['no volvió respuesta (red)', new ProviderError('falso: socket hang up', 'falso', undefined, true), false, 'desconocido'],
+    ['moderación del proveedor, sin código HTTP', new ProviderError('falso: sensitive content detected', 'falso'), false, 'desconocido'],
+    ['un 404 DESPUÉS de que el proveedor aceptara la tarea', new ProviderError('falso: 404', 'falso', 404, false), true, 'desconocido'],
   ];
-  const mal = tabla.filter(([, error, esperado]) => rt.costeDelFalloDelGateway(fallido('x', error)) !== esperado);
-  check('A4) un FALLO por el conductor se clasifica como en el camino de siempre (H0 #22): lo que no llegó o se rechazó al recibirse, cero; el resto, desconocido',
-    mal.length === 0, JSON.stringify(mal.map(([nombre]) => nombre)));
-  const paridad = [
-    [new NotConfiguredError('fal', 'FAL_KEY')], [new ProviderError('fal: 400', 'fal', 400, false)], [new ProviderError('fal: 503', 'fal', 503, true)],
-    [new ProviderError('fal: tardó más de 30 s', 'fal')], [new EngineError('INVALID_REQUEST')],
-  ];
-  check('A5) y contesta LO MISMO que `costeTrasUnFallo` (engine/router.ts) para el mismo error antes de que la tarea se acepte',
-    paridad.every(([e]) => rt.costeDelFalloDelGateway(fallido('x', normalizarErrorDelMotor(e, 'fal'))) === costeTrasUnFallo(e, false)),
-    paridad.map(([e]) => `${e.name}:${rt.costeDelFalloDelGateway(fallido('x', normalizarErrorDelMotor(e, 'fal')))}/${costeTrasUnFallo(e, false)}`).join(' '));
+  const vistos = [];
+  for (const [nombre, error, aceptada, esperado] of ERRORES) {
+    const r = await porElGateway(aceptada ? trasAceptar(error) : lanza(error));
+    vistos.push({ nombre, error, aceptada, esperado, r, coste: rt.costeDelFalloDelGateway(r) });
+  }
+  const malA4 = vistos.filter((v) => v.r.status !== 'failed' || v.coste !== v.esperado || v.r.error?.details?.costeDelFallo !== v.esperado);
+  check('A4) un FALLO del adaptador: lo decide el ejecutor del motor con el error original y viaja en el error; lo que no llegó o se rechazó al recibirse, cero; el resto —también la moderación sin código y lo que falla tras aceptar—, desconocido',
+    malA4.length === 0, JSON.stringify(malA4.map((v) => [v.nombre, v.r.status, v.coste, v.r.error?.details?.costeDelFallo])));
+  check('A5) y es LO MISMO que contesta `costeTrasUnFallo` (engine/router.ts) para el mismo error: una sola regla, no dos',
+    vistos.every((v) => v.coste === costeTrasUnFallo(v.error, v.aceptada)),
+    vistos.map((v) => `${v.nombre}:${v.coste}/${costeTrasUnFallo(v.error, v.aceptada)}`).join(' · '));
+
+  const sinNombre = await porElGateway(async () => ({ accepted: { operationId: '' }, costUSD: TARIFA, latencyMs: 1, model: 'falso-1' }));
+  const apagado = await porElGateway(lanza(new Error('no debe llamarse')), { config: { falso: { enabled: false, priority: 1 } } });
+  const vencido = await porElGateway(lanza(new Error('no debe llamarse')), { execution: { mode: 'sync', deadlineAt: T0 - 1 } });
+  const delGateway = (code, reason) => fallido('x', errorDelCore(code, 'gateway', { details: { reason } }));
+  check('A6) los fallos del GATEWAY sin pasar por el adaptador se deciden por su código: un rechazo previo a ejecutar (proveedor apagado, plazo vencido, petición mala), cero; una tarea aceptada sin nombre, una respuesta del proveedor inservible o una avería del ejecutor, desconocido',
+    apagado.status === 'failed' && rt.costeDelFalloDelGateway(apagado) === 'cero'
+    && vencido.status === 'failed' && rt.costeDelFalloDelGateway(vencido) === 'cero'
+    && sinNombre.status === 'failed' && sinNombre.error?.details?.reason === 'accepted_without_operation' && rt.costeDelFalloDelGateway(sinNombre) === 'desconocido'
+    && rt.costeDelFalloDelGateway(delGateway('PROVIDER_ERROR', 'invalid_provider_response')) === 'desconocido'
+    && rt.costeDelFalloDelGateway(delGateway('INTERNAL_ERROR', 'executor_failure')) === 'desconocido'
+    && rt.costeDelFalloDelGateway(delGateway('INVALID_REQUEST', 'input_too_large')) === 'cero'
+    && rt.costeDelFalloDelGateway(fallido('x', undefined)) === 'desconocido',
+    JSON.stringify([apagado.error?.code, vencido.error?.code, sinNombre.error?.details?.reason]));
+  check('A7) y la regla del runtime ya no ramifica por el motivo fino (diagnóstico): ni `reason`, ni `not_configured`, ni códigos HTTP',
+    (() => {
+      const s = sinComentarios(leer('functions/src/runtime/index.ts'));
+      const cuerpo = s.slice(s.indexOf('export const costeDelFalloDelGateway'), s.indexOf('export const libroDelMotor'));
+      return cuerpo.length > 100 && !/reason|not_configured|providerCode|\b4\d\d\b/.test(cuerpo) && /costeDelFallo/.test(cuerpo);
+    })());
 
   const libro = rt.libroDelMotor(firestoreLedger);
   const usdAntes = delMundo().usd ?? 0; const riesgoAntes = delMundo().usdEnRiesgo ?? 0;
+  const r502 = vistos.find((v) => v.nombre === 'el proveedor falló (502)').r;
+  const r422 = vistos.find((v) => v.nombre === 'el proveedor la rechazó al recibirla (422)').r;
   const dTimeout = despacho(ANA, 'costes-a6');
   const idTimeout = await libro.abrir(dTimeout);
-  await libro.cerrar(idTimeout, { dispatch: dTimeout, resultado: fallido('costes-a6', tabla[6][1]), durationMs: 30_000 });
+  await libro.cerrar(idTimeout, { dispatch: dTimeout, resultado: r502, durationMs: 30_000 });
   const dRechazo = despacho(ANA, 'costes-a7');
   const idRechazo = await libro.abrir(dRechazo);
-  await libro.cerrar(idRechazo, { dispatch: dRechazo, resultado: fallido('costes-a7', tabla[2][1]), durationMs: 200 });
+  await libro.cerrar(idRechazo, { dispatch: dRechazo, resultado: r422, durationMs: 200 });
   const t = base.leer(`aiGenerations/${idTimeout}`); const r = base.leer(`aiGenerations/${idRechazo}`);
-  check('A6) en el libro: el plazo con la petición en vuelo queda FALLIDO con su tarifa «en riesgo» (y el día lo suma); el rechazo del proveedor, fallido y a cero',
+  check('A8) en el libro: un fallo del proveedor que pudo costar queda FALLIDO con su tarifa «en riesgo» (y el día lo suma); el rechazo al recibirla, fallido y a cero',
     t.status === 'FAILED' && t.providerCost === 0 && t.providerCostStatus === 'desconocido' && cerca(t.providerCostEstimated, TARIFA)
     && r.status === 'FAILED' && r.providerCost === 0 && r.providerCostStatus === undefined
     && cerca(delMundo().usdEnRiesgo - riesgoAntes, TARIFA) && cerca((delMundo().usd ?? 0) - usdAntes, 0),
@@ -485,21 +536,20 @@ await seccion('D', async () => {
   const d8 = { ...despacho(CIRO, 'costes-d8'), implementation: { providerId: 'seedance', modelId: ADAPTERS.seedance.models[0].id } };
   const id8 = await libro.abrir(d8);
   await libro.cerrar(id8, { dispatch: d8, resultado: aceptado('costes-d8'), durationMs: 900 });
-  const porSegundos = trabajo(CIRO, 'costes-d8', { state: 'completed', outcome: 'succeeded', endedAt: T0 + MIN, implementation: d8.implementation, usage: { totalTokens: 4800 } });
+  const porSegundos = trabajo(CIRO, 'costes-d8', { state: 'completed', outcome: 'succeeded', endedAt: T0 + MIN, implementation: d8.implementation, usage: { totalTokens: 4800 }, exacta: false });
   await L.liquidar({ userId: CIRO, reserva: reservaDe(porSegundos), importe: PRECIO, jobId: porSegundos.jobId, job: porSegundos });
   const f8 = base.leer(`aiGenerations/${id8}`);
   check('D12) un modelo que NO cobra por petición (por segundos): completado con la estimación de su cotización, marcada `estimado`, y con el uso que dijo el proveedor',
     f8.status === 'COMPLETED' && f8.providerCostStatus === 'estimado' && cerca(f8.providerCost, TARIFA) && f8.usage?.totalTokens === 4800);
-  check('D13) quién sabe si la tarifa es exacta: el catálogo del adaptador y el ajuste de la administración (por petición → exacta; si no, o si no se sabe, no)',
-    (await rt.tarifaPorPeticion({ providerId: 'fal', modelId: HW.id })) === true && (await rt.tarifaPorPeticion({ providerId: 'seedance', modelId: ADAPTERS.seedance.models[0].id })) === false
-    && (await rt.tarifaPorPeticion({ providerId: 'nadie', modelId: 'x' })) === false && (await rt.tarifaPorPeticion(undefined)) === false
-    && await (async () => {
-      base.docs.set('aiProviders/fal', { enabled: false, models: { [HW.id]: { cost: { unit: 'second', usd: 0.01 } } } });
-      invalidateConfig();
-      const conAjuste = await rt.tarifaPorPeticion({ providerId: 'fal', modelId: HW.id });
-      base.docs.delete('aiProviders/fal');
-      invalidateConfig();
-      return conAjuste === false;
+  const PUERTA = sinComentarios(leer('functions/src/creator/mundo.ts'));
+  check('D13) si la tarifa ES el coste lo decide quien COTIZA (`tarifaExacta`, por petición) con el modelo que eligió el Router, la puerta del mundo lo guarda con el trabajo y la liquidación lo LEE de ahí: sin preguntar a la configuración del momento',
+    tarifaExacta(HW) === true && tarifaExacta(ADAPTERS.seedance.models[0]) === false && tarifaExacta({ cost: { unit: 'mtoken', usd: 1 } }) === false
+    && /tarifaExacta: tarifaExacta\(elegido\.model\),/.test(PUERTA) && /\.\.\.\(p\.tarifaExacta \? \{ \[CLAVE_DE_TARIFA_EXACTA\]: true \} : \{\}\),/.test(PUERTA)
+    && reservaDe(trabajo(CIRO, 'x')).tarifaExacta === true && reservaDe(trabajo(CIRO, 'y', { exacta: false })).tarifaExacta === undefined
+    && (() => {
+      const s = sinComentarios(leer('functions/src/runtime/index.ts'));
+      const cuerpo = s.slice(s.indexOf('export const liquidacionDeWee'), s.indexOf('export const barridoDeLiquidacionDeWee'));
+      return cuerpo.length > 500 && /reserva\.tarifaExacta === true/.test(cuerpo) && !/loadConfig|tarifaPorPeticion|ADAPTERS/.test(cuerpo);
     })());
 
   /* Cobrar una reserva que la puerta ya había devuelto (el mundo llegó tarde): el coste se anota, los Credits no. */

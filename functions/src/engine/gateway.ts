@@ -24,6 +24,7 @@ import { EngineConfig, loadConfig } from './config';
 import { classifyError } from './errors';
 import { NotConfiguredError, ProviderError } from './http';
 import { ADAPTERS, DEFAULT_ROUTING } from './registry';
+import { costeTrasUnFallo } from './router';
 import { sanitizeForLog } from './sanitize';
 import { cubreLoExigido, traducirContinuidad, materialDeLaEntrada } from './continuidad';
 import { camposAjustables, modeloElegible } from './elegibilidad';
@@ -294,16 +295,18 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
        * atribuido al proveedor: se anota, se avisa y la tarea sigue.
        */
       let ganchoFallo = false;
-      const onStatus = hooks?.onProgress
-        ? async (_status: 'PROCESSING', meta: Record<string, unknown>) => {
-            try {
-              await hooks.onProgress?.({ stage: 'processing', at: now(), providerMeta: sanearMeta(meta).valor as Record<string, unknown> });
-            } catch (error) {
-              ganchoFallo = true;
-              console.warn(`WEË AI GATEWAY: el gancho onProgress falló (${trace.requestId}): ${sanitizeForLog(error, 300)}`);
-            }
-          }
-        : undefined;
+      /* El proveedor ya tiene la tarea (dijo su nombre): un fallo de aquí en adelante pudo costar dinero (H0 #22). */
+      let despachado = false;
+      const onStatus = async (_status: 'PROCESSING', meta: Record<string, unknown>) => {
+        if (typeof meta?.providerTaskId === 'string' && meta.providerTaskId) despachado = true;
+        if (!hooks?.onProgress) return;
+        try {
+          await hooks.onProgress({ stage: 'processing', at: now(), providerMeta: sanearMeta(meta).valor as Record<string, unknown> });
+        } catch (error) {
+          ganchoFallo = true;
+          console.warn(`WEË AI GATEWAY: el gancho onProgress falló (${trace.requestId}): ${sanitizeForLog(error, 300)}`);
+        }
+      };
 
       /*
        * ── C8 · EL MATERIAL DE LA CONTINUIDAD, ANTES DE LLAMAR A NADIE ────────
@@ -470,7 +473,13 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
         };
       } catch (error) {
         console.warn(`WEË AI GATEWAY: ${adapter.id}/${modelo.id} falló en ${capability} (${trace.requestId}): ${sanitizeForLog(error, 300)}`);
-        return { ok: false, error: normalizarErrorDelMotor(error, adapter.id) };
+        /*
+         * ¿PUDO COBRAR EL PROVEEDOR? (H0 #22) Se decide AQUÍ, el único sitio que tiene el error ORIGINAL, con la regla
+         * de siempre (`costeTrasUnFallo`), y viaja en el error (`details.costeDelFallo`): quien cierre la fila del libro
+         * lo lee, no lo reconstruye a partir del diagnóstico (RUNTIME §25c).
+         */
+        const normalizado = normalizarErrorDelMotor(error, adapter.id);
+        return { ok: false, error: { ...normalizado, details: { ...(normalizado.details ?? {}), costeDelFallo: costeTrasUnFallo(error, despachado) } } };
       }
     },
   };

@@ -105,10 +105,13 @@ Brain (`webSearch` pasa a `text.search`) o por `normalizeVideoRequest`.
 ## Huecos que siguen abiertos (decisión del dueño)
 
 - ~~**La puerta del runtime abre para todos sin `cuentas`… salvo para el mundo.**~~
-  **Cerrado (dueño, 2026-10-06):** cada capacidad lleva SU lista en
-  `aiSettings/runtime.porCapacidad`, obligatoria para las tres puertas: sin
+  **Cerrado en el código (dueño, 2026-10-06):** cada capacidad lleva SU lista
+  en `aiSettings/runtime.porCapacidad`, obligatoria para las tres puertas: sin
   lista, o vacía, nadie; sin lista global ni comodín (RUNTIME §25c,
-  `listas-por-capacidad`). La de la sombra también exige cuentas.
+  `listas-por-capacidad`). En producción, cuando se desplieguen `brainChat`,
+  `generateVideo` y el barrido con esta versión (runbook de 3D-EXPERIENCIA §20,
+  paso 4); hasta entonces lo desplegado lleva la puerta de antes. La de la
+  sombra también exige cuentas.
 - **La sombra abierta sin `caminos` llama a un proveedor real**: DeepSeek, con
   0 Credits y fuera de los cupos por persona.
 - **Ningún camino vivo verifica el resultado** (A6 no está conectado). Solo se

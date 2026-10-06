@@ -140,7 +140,13 @@ console.log('\n── B · La configuración no quita la obligación ni abre má
   check('B6) los productos también son por capacidad: los del mundo no tocan a Weë Brain',
     pasa(acotada, MUNDO, ANA) && decide(acotada, { ...MUNDO, experienceId: 'chef' }, ANA).motivo === 'experiencia_no_migrada'
     && decide(con({ 'world.generate': { cuentas: [ANA] } }), { capability: 'world.generate' }, ANA).runtime === 'core');
-  check('B7) y el documento leído es lo guardado, congelado: nadie lo cambia por el camino',
+  const cerradaUna = con({ 'video.generate': { cuentas: [ANA], habilitado: false }, 'world.generate': { cuentas: [ANA] } });
+  check('B7) `habilitado: false` DENTRO de una capacidad la cierra a ella sola, con su lista intacta; y un `habilitado` que no es booleano no se adivina: el documento entero cierra',
+    decide(cerradaUna, VIDEO, ANA).motivo === 'deshabilitada' && pasa(cerradaUna, MUNDO, ANA)
+    && pasa(con({ 'video.generate': { cuentas: [ANA], habilitado: true } }), VIDEO, ANA)
+    && [con({ 'video.generate': { cuentas: [ANA], habilitado: 'no' } }), con({ 'video.generate': { cuentas: [ANA], habilitado: 0 } })]
+      .every((c) => Object.values(PUERTAS).every((p) => decide(c, p, ANA).runtime === 'legacy') && decide(c, VIDEO, ANA).motivo === 'configuracion_ilegible'));
+  check('B8) y el documento leído es lo guardado, congelado: nadie lo cambia por el camino',
     Object.isFrozen(leerPuerta(mundo).config) && Object.isFrozen(leerPuerta(mundo).config.porCapacidad) && Object.isFrozen(leerPuerta(mundo).config.porCapacidad['world.generate'].cuentas));
 }
 
@@ -169,9 +175,14 @@ console.log('\n── C · Cada puerta declara su capacidad y lleva la cuenta de
     !/config\.cuentas|config\.experiencias|config\.capacidades/.test(puerta)
     && /const suya = propio\(config\.porCapacidad, contexto\.capability\) \? config\.porCapacidad\[contexto\.capability\] : undefined;/.test(puerta)
     && /if \(!suya\.cuentas\?\.length\) return \{ runtime: 'legacy', motivo: 'sin_lista_de_cuentas' \};/.test(puerta));
-  check('C6) tres puertas y ninguna más leen esta configuración, y ninguna la escribe',
-    ['functions/src/creator/brain.ts', 'functions/src/creator/video.ts', 'functions/src/creator/mundo.ts'].every((f) => /decidirRuntime\(/.test(leer(f)))
-    && !/collection\('aiSettings'\)\.doc\('runtime'\)\.(set|update)|doc\('aiSettings\/runtime'\)\.(set|update)/.test(Object.values(fuentes).join('\n')));
+  const todo = (dir) => fs.readdirSync(path.join(RAIZ, dir), { withFileTypes: true })
+    .flatMap((e) => (e.isDirectory() ? todo(`${dir}/${e.name}`) : e.name.endsWith('.ts') ? [`${dir}/${e.name}`] : []));
+  const fuera = todo('functions/src').filter((f) => !f.startsWith('functions/src/runtime/'));
+  const leen = fuera.filter((f) => /decidirRuntime\(|configuracionDeLaPuerta\(/.test(sinComentarios(leer(f)))).sort();
+  check('C6) tres puertas y ninguna más leen esta configuración —recorriendo todo functions/src fuera del runtime—, y nadie la escribe',
+    JSON.stringify(leen) === JSON.stringify(['functions/src/creator/brain.ts', 'functions/src/creator/mundo.ts', 'functions/src/creator/video.ts'])
+    && fuera.every((f) => !/collection\('aiSettings'\)\.doc\('runtime'\)\.(set|update)|doc\('aiSettings\/runtime'\)\.(set|update)|DOCUMENTO_DE_LA_PUERTA\)\.(set|update)/.test(leer(f))),
+    leen.join(', '));
 }
 
 /* ═══ D · VOLVER ATRÁS ══════════════════════════════════════════════════════ */
@@ -223,7 +234,11 @@ console.log('\n── D · La forma de antes cierra aquí, y la de ahora cierra 
   check('D2) y al revés: un documento de AHORA, leído por la puerta de antes (una Function sin volver a desplegar), no abre nada para nadie',
     deAhora.every((c) => [ANA, BEA, CIRO].every((u) => puertaDeAntes(c, { ...BRAIN, userId: u }) === 'legacy' && puertaDeAntes(c, { ...VIDEO, userId: u }) === 'legacy'
       && puertaDeAntes(c, { ...MUNDO, userId: u, listaObligatoria: true }) === 'legacy')));
-  check('D3) `PUERTA_CERRADA` es la forma de ahora, legible, inmutable y cerrada para las tres',
+  check('D3) `habilitado: false` manda PRIMERO, sea cual sea la forma: el documento cerrado de producción (RUNTIME §21.3, `{ habilitado: false, capacidades: [] }`) se lee «deshabilitada», no «ilegible» —el registro sigue distinguiendo cerrada de rota—',
+    Object.values(PUERTAS).every((p) => decide({ habilitado: false, capacidades: [] }, p, ANA).motivo === 'deshabilitada')
+    && decide({ habilitado: false, porCapacidad: 'roto' }, MUNDO, ANA).motivo === 'deshabilitada'
+    && decide({ habilitado: true, capacidades: [] }, MUNDO, ANA).motivo === 'configuracion_ilegible');
+  check('D4) `PUERTA_CERRADA` es la forma de ahora, legible, inmutable y cerrada para las tres',
     Object.isFrozen(PUERTA_CERRADA) && leerPuerta(PUERTA_CERRADA).ok === true && PUERTA_CERRADA.habilitado === false
     && Object.values(PUERTAS).every((p) => decide(PUERTA_CERRADA, p, ANA).motivo === 'deshabilitada'));
 }

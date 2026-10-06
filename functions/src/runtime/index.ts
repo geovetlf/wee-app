@@ -138,26 +138,29 @@ const texto = (v: unknown): string | undefined => (typeof v === 'string' && v.le
 export type IdentidadDelLibro = (dispatch: JobDispatch) => { requestId?: string; jobId?: string; stepId?: string };
 
 /**
- * ¿PUDO COBRAR EL PROVEEDOR UN INTENTO QUE FALLÓ? La misma pregunta que `costeTrasUnFallo` (engine/router.ts, H0 #22)
- * le hace al camino de siempre, contestada con lo que el conductor tiene: el error ya normalizado por el Gateway.
+ * Lo que el Gateway rechaza ANTES de ejecutar nada, por su código: una petición que no vale, una capacidad, un
+ * proveedor o un modelo que no están, o un plazo ya vencido. Nada salió hacia el proveedor.
+ */
+const RECHAZOS_ANTES_DE_EJECUTAR: ReadonlySet<string> = new Set(['INVALID_REQUEST', 'CAPABILITY_UNAVAILABLE', 'PROVIDER_UNAVAILABLE', 'MODEL_UNAVAILABLE', 'TIMEOUT']);
+
+/**
+ * ¿PUDO COBRAR EL PROVEEDOR UN INTENTO QUE FALLÓ? (H0 #22, por el conductor.) La regla NO se reescribe aquí:
  *
- *   'cero'         no llegó al adaptador (lo paró el Gateway, el registro o el plazo); el adaptador no tenía clave o
- *                  rechazó la entrada antes de mandarla; o el proveedor la rechazó al recibirla (4xx).
- *   'desconocido'  todo lo demás: se agotó el tiempo, no volvió respuesta, el proveedor falló (5xx). La tarifa de la
- *                  fila va «en riesgo» (`usdEnRiesgo`), que es lo que ven los topes de gasto.
- *
- * Sin la marca de «la tarea ya estaba aceptada» que el router lee de su sondeo: por el conductor un trabajo largo no
- * sondea —acepta y suelta— y lo que pase después lo cierra la liquidación (`desenlacesDeLasAceptadas`).
+ *   - Si el adaptador llegó a correr, la decidió el ejecutor del motor (`engine/gateway.ts`) con el error ORIGINAL y la
+ *     regla de siempre (`costeTrasUnFallo`), y viaja en el error (`details.costeDelFallo`). Se lee y ya.
+ *   - Si el fallo es del Gateway sin pasar por el adaptador, se decide por su CÓDIGO —el motivo fino es diagnóstico y
+ *     no se ramifica por él—: un rechazo previo a ejecutar (`RECHAZOS_ANTES_DE_EJECUTAR`) es cero. Lo demás —una
+ *     respuesta del proveedor que no se pudo usar, una tarea aceptada sin nombre, una avería del ejecutor— pudo
+ *     costar, y va «en riesgo» (`usdEnRiesgo`), que es lo que ven los topes. En la duda, riesgo: mejor parar un poco
+ *     antes que gastar sin verlo.
  */
 export const costeDelFalloDelGateway = (resultado: GatewayResult): 'cero' | 'desconocido' => {
   const error = resultado.error;
-  if (!error || !String(error.source ?? '').startsWith('adapter:')) return 'cero';
-  const detalles = (error.details ?? {}) as Record<string, unknown>;
-  if (detalles.reason === 'not_configured') return 'cero';
-  const http = Number(error.providerCode);
-  if (Number.isInteger(http) && http >= 400 && http < 500) return 'cero';
-  if (error.providerCode === undefined && (error.code === 'INVALID_REQUEST' || error.code === 'CONTENT_POLICY')) return 'cero';
-  return 'desconocido';
+  if (!error) return 'desconocido';
+  const decidido = (error.details as Record<string, unknown> | undefined)?.costeDelFallo;
+  if (decidido === 'cero' || decidido === 'desconocido') return decidido;
+  if (String(error.source ?? '').startsWith('adapter:')) return 'desconocido';
+  return RECHAZOS_ANTES_DE_EJECUTAR.has(error.code) ? 'cero' : 'desconocido';
 };
 
 export const libroDelMotor = (ledger: Ledger = firestoreLedger, identidad?: IdentidadDelLibro): LibroDeIntentos => ({
@@ -292,23 +295,6 @@ export const materialDeWee: PuertoDeMaterial = {
 };
 
 /**
- * ¿LA TARIFA DE ESTA IMPLEMENTACIÓN ES SU COSTE? Sí cuando el modelo cobra POR PETICIÓN (`cost.unit: 'call'`): lo que se
- * cotizó es lo que cuesta, como el mundo 3D. Con el ajuste de la administración si lo hay (puede cambiar el coste de un
- * modelo) y, si no, el catálogo del adaptador. Si no se puede saber, no se presume exacta: se cierra como estimación.
- */
-export const tarifaPorPeticion = async (implementacion: Job['implementation']): Promise<boolean> => {
-  if (!implementacion) return false;
-  try {
-    const config = await loadConfig();
-    const ajuste = config.providers?.[implementacion.providerId]?.models?.[implementacion.modelId]?.cost;
-    const propio = ADAPTERS[implementacion.providerId]?.models.find((m) => m.id === implementacion.modelId)?.cost;
-    return (ajuste ?? propio)?.unit === 'call';
-  } catch {
-    return false;
-  }
-};
-
-/**
  * LA LIQUIDACIÓN, POR EL MOTOR DE CREDITS QUE YA EXISTE.
  *
  * Dos llamadas, y son exactamente las dos que hace hoy `creator/brain.ts`
@@ -335,21 +321,15 @@ export const tarifaPorPeticion = async (implementacion: Job['implementation']): 
  * bien y la pasada se da por no terminada (`fallo`): la siguiente vuelve sobre el mismo trabajo, el Credit Engine
  * contesta «ya estaba» sin mover nada y el libro cierra lo que le faltaba.
  */
-export const liquidacionDeWee = (deps: {
-  credits?: typeof creditEngine;
-  ledger?: Ledger;
-  cupo?: Pick<typeof limiter, 'liberar'>;
-  /** ¿La tarifa de esta implementación ES su coste? Entra por aquí para poder probarlo sin configuración. */
-  tarifaExacta?: (implementacion: Job['implementation']) => Promise<boolean>;
-} = {}): PuertoDeLiquidacion => {
+export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?: Ledger; cupo?: Pick<typeof limiter, 'liberar'> } = {}): PuertoDeLiquidacion => {
   const credits = deps.credits ?? creditEngine;
   const ledger = deps.ledger ?? firestoreLedger;
   const cupo = deps.cupo ?? limiter;
-  const exacta = deps.tarifaExacta ?? tarifaPorPeticion;
   const cerrarLoAceptado = async (job: Job | undefined, reserva: ReservaDelTrabajo): Promise<void> => {
     const desenlaces = job ? desenlacesDeLasAceptadas(job) : [];
     if (!job || !desenlaces.length) return;
-    const porPeticion = desenlaces.some((d) => d.desenlace === 'salio') ? await exacta(job.implementation) : false;
+    /* Si la tarifa ES el coste lo decidió quien cotizó (`tarifaExacta`, engine/pricing.ts) y viaja en el trabajo: el trabajo guardado basta. */
+    const porPeticion = reserva.tarifaExacta === true;
     await ledger.closeAccepted({
       creditTransactionId: reserva.transactionId,
       cierres: desenlaces.map((d) => ({
@@ -729,7 +709,7 @@ export { barrerLiquidaciones } from './barrendero';
 export type { BarrenderoDeps, InformeDelBarrendero, VistoPorElBarrendero } from './barrendero';
 export { pasarElBarrendero, CADA_CUANTO_POR_DEFECTO_MIN } from './barrido';
 export type { BarridoDeps, InformeDeBarrido } from './barrido';
-export { CLAVE_DE_LA_OPERACION_DEL_CUPO, CLAVE_DEL_DIA_DEL_CUPO, decidirLiquidacion, reservaDe } from './liquidacion';
+export { CLAVE_DE_LA_OPERACION_DEL_CUPO, CLAVE_DEL_DIA_DEL_CUPO, CLAVE_DE_TARIFA_EXACTA, decidirLiquidacion, desenlacesDeLasAceptadas, reservaDe } from './liquidacion';
 export type { AccionDeLiquidacion, PuertoDeLiquidacion, ReservaDelTrabajo } from './liquidacion';
 export type { AlmacenDeTrabajosDeWee } from './almacen';
 export { claveDeOperacion, clavesDeOperacionDe, identidadCompleta, identidadDeEvento, intentoDeLaOperacion } from './proveedor';

@@ -5,6 +5,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { EngineError, motivoDeNoDisponible, noDisponible, toEngineHttpsError } from '../engine/errors';
 import { engine } from '../engine';
 import { dayKey, limiter } from '../engine/limits';
+import { tarifaExacta } from '../engine/pricing';
 import { loadConfig } from '../engine/config';
 import { sanitizeForLog } from '../engine/sanitize';
 import { jurisdiccionesDeLaCuenta } from '../engine/jurisdiccion';
@@ -37,6 +38,7 @@ import {
 import {
   CLAVE_DE_LA_OPERACION_DEL_CUPO,
   CLAVE_DEL_DIA_DEL_CUPO,
+  CLAVE_DE_TARIFA_EXACTA,
   PLAZOS_DE_MUNDO,
   conductorDeWee,
   configuracionDeLaPuerta,
@@ -125,7 +127,7 @@ const EXPERIENCIA_DE_STUDIO = 'studio';
  *
  * Al aceptarlo, la fila del libro (`aiGenerations`) NO se cierra: queda en curso (`PROCESSING`) con el nombre que el
  * proveedor le dio a la tarea (`providerTaskId`), el mismo que guarda el intento del trabajo. La cierra UNA vez el
- * barrido, al liquidar (`liquidacionDeWee`), antes de mover el dinero: un mundo que SALE, con su coste de tarifa (por
+ * barrido, al liquidar (`liquidacionDeWee`), después del dinero y antes de liquidar la fila: un mundo que SALE, con su coste de tarifa (por
  * petición: el que se cotizó, exacto); uno que falla o se cancela con el proveedor ya trabajando, con su coste «en
  * riesgo» (H0 #22: `usdEnRiesgo`, que ven los topes de gasto). Un final que no se sabe deja la fila en curso: se
  * reconcilia, no se adivina.
@@ -221,6 +223,8 @@ interface MundoPreparado {
   /** Lo que eligió el Router al cotizar. Se fija al crear: lo que se cobra es el precio de ESTE modelo. */
   proveedor: string;
   modelo: string;
+  /** Si su tarifa ES el coste (cobra por petición): se decide al cotizar y viaja con el trabajo (RUNTIME §25c). */
+  tarifaExacta: boolean;
 }
 
 /**
@@ -264,6 +268,7 @@ const prepararElMundo = async (uid: string, crudo: unknown): Promise<MundoPrepar
     usd: elegido.estimatedUsd,
     proveedor: elegido.provider,
     modelo: elegido.model.id,
+    tarifaExacta: tarifaExacta(elegido.model),
     service: serviceForCapability(CAPACIDAD_DEL_CANARY, { ...entrada }),
   };
 };
@@ -500,6 +505,8 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
             /* El hueco del cupo que ocupa: si el barrido devuelve la reserva, vuelve con ella a ESTE día. */
             [CLAVE_DE_LA_OPERACION_DEL_CUPO]: operacionDelCupo(requestId),
             [CLAVE_DEL_DIA_DEL_CUPO]: dia,
+            /* Si lo cotizado es lo que cuesta: con esto se cierra el coste de lo aceptado, sin volver a preguntar. */
+            ...(p.tarifaExacta ? { [CLAVE_DE_TARIFA_EXACTA]: true } : {}),
           },
           contexto: { appId: 'wee', operationId: requestId },
           deadlineAt: Date.now() + PLAZOS_DE_MUNDO.vidaDelTrabajoMs,

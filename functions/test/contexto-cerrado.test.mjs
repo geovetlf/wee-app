@@ -34,7 +34,7 @@ const {
   leerConfiguracionDelContexto, decidirContexto, contextoParaBrain, configuracionDelContexto,
   olvidarElContexto, CONTEXTO_CERRADO,
 } = lib('elements/contexto.js');
-const { leerPuerta } = lib('runtime/puerta.js');
+const { leerPuerta, decidirRuntime } = lib('runtime/puerta.js');
 const { leerSombra } = lib('creator/sombra.js');
 
 const A = 'cuenta_autorizada_A';
@@ -115,7 +115,8 @@ check('19 · lista AUSENTE + habilitado=true → sin acotar por cuenta, como dic
   abre({ habilitado: true }, A).resolver && abre({ habilitado: true }, B).resolver
   && JSON.stringify(leerConfiguracionDelContexto({ habilitado: true })) === JSON.stringify({ habilitado: true })
   && leerPuerta({ habilitado: true, porCapacidad: { 'text.generate': {} } }).ok === true
-  && leerPuerta({ habilitado: true, porCapacidad: { 'text.generate': {} } }).config.porCapacidad['text.generate'].cuentas === undefined);
+  && leerPuerta({ habilitado: true, porCapacidad: { 'text.generate': {} } }).config.porCapacidad['text.generate'].cuentas === undefined
+  && decidirRuntime({ habilitado: true, porCapacidad: { 'text.generate': {} } }, { capability: 'text.generate', userId: A, experienceId: 'brain' }).motivo === 'sin_lista_de_cuentas');
 check('20 · con una configuración válida, lo leído es lo guardado: ni se añade ni se quita una cuenta',
   JSON.stringify(leerConfiguracionDelContexto({ habilitado: true, cuentas: [A, B] })) === JSON.stringify({ habilitado: true, cuentas: [A, B] }));
 check('21 · y sin necesidades no se resuelve nada aunque esté abierta: el caso normal cuesta cero',
