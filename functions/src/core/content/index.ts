@@ -5,6 +5,8 @@
  *
  *   asset.ts         el material: un archivo con id, dueño, referencia al
  *                    almacén, derivados, procedencia y ciclo de vida
+ *   linaje.ts        su linaje: versiones, derivados, derechos que solo se
+ *                    endurecen y dónde se usa. Funciones puras; no añade campos
  *   content.ts       el contenido: lo que se puede publicar; texto + materiales
  *                    por referencia; borrador o listo
  *   publication.ts   la publicación: el acto de poner un contenido en un sitio,
@@ -32,6 +34,7 @@
  */
 
 export * from './asset';
+export * from './linaje';
 export * from './content';
 export * from './publication';
 export * from './vista';
