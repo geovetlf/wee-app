@@ -18,6 +18,7 @@ export const DIMENSION_DE_GRADER = {
   'router/politica': 'QUALITY',
   'router/descarte': 'RELIABILITY',
   'router/disponibilidad': 'RELIABILITY',
+  'router/motivo-publico': 'RELIABILITY',
   'router/sin-demo-con-real': 'RELIABILITY',
   'router/coste': 'COST',
   'router/latencia': 'LATENCY',

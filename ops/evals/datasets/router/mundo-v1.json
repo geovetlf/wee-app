@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "dominio": "router",
+  "descripcion": "Misión mundo3d (2026-10-05): la elegibilidad de world.generate en el Model Router vivo (engine/router.ts route()). Modelos con reglas territoriales SINTÉTICAS y la jurisdicción de la operación que, en producción, pone el servidor desde la cuenta. Mundo sintético (proveedores a y b), sin datos de personas ni nombres de proveedores reales. Coste $0: route() no ejecuta adaptadores. Comprueba el motivo PÚBLICO de cada «no disponible».",
+  "casos": [
+    {
+      "evalCaseId": "mundo-aprobado-en-su-jurisdiccion",
+      "name": "Un modelo territorial aprobado donde opera la cuenta",
+      "description": "a1 está aprobado en US y bloqueado en la UE; la operación es de US: se elige a1.",
+      "capability": "world.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "capabilities": ["world.generate"], "quality": 4, "speed": 2, "usd": 0.3, "territorio": { "bloqueadas": ["EU"], "aprobadas": ["US"], "resto": "REVIEW_REQUIRED", "fuente": "eval" } } ] } ], "routing": { "chain": ["a"], "policy": "balanced" } },
+      "request": { "jurisdicciones": ["US"] },
+      "expected": { "status": "routed", "chosen": { "provider": "a", "model": "a1" }, "orden": ["a"] },
+      "tags": ["mundo3d", "jurisdiccion", "elegibilidad"]
+    },
+    {
+      "evalCaseId": "mundo-sin-jurisdiccion-falla-cerrado",
+      "name": "Sin jurisdicción conocida, un modelo territorial falla cerrado",
+      "description": "El mismo a1 sin jurisdicción de la operación: no se elige, y la persona lee «falta tu país».",
+      "capability": "world.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "capabilities": ["world.generate"], "quality": 4, "speed": 2, "usd": 0.3, "territorio": { "bloqueadas": ["EU"], "aprobadas": ["US"], "resto": "REVIEW_REQUIRED", "fuente": "eval" } } ] } ], "routing": { "chain": ["a"], "policy": "balanced" } },
+      "request": {},
+      "expected": { "status": "unavailable", "motivoPublico": "falta_tu_pais" },
+      "tags": ["mundo3d", "jurisdiccion", "fail-closed"]
+    },
+    {
+      "evalCaseId": "mundo-bloqueado-en-su-region",
+      "name": "Bloqueado donde opera la cuenta, aprobado en otra jurisdicción",
+      "description": "La operación es de ES (miembro del grupo EU, bloqueado): no se elige, y la persona lee «no está disponible en tu región».",
+      "capability": "world.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "capabilities": ["world.generate"], "quality": 4, "speed": 2, "usd": 0.3, "territorio": { "bloqueadas": ["EU"], "aprobadas": ["US"], "resto": "REVIEW_REQUIRED", "fuente": "eval" } } ] } ], "routing": { "chain": ["a"], "policy": "balanced" } },
+      "request": { "jurisdicciones": ["ES"] },
+      "expected": { "status": "unavailable", "motivoPublico": "en_tu_region" },
+      "tags": ["mundo3d", "jurisdiccion", "bloqueo"]
+    },
+    {
+      "evalCaseId": "mundo-alternativa-aprobada",
+      "name": "Otro proveedor aprobado en esa jurisdicción",
+      "description": "a1 está bloqueado en la UE y b1 aprobado en ella: para una operación de ES se elige b1, sin cambiar nada de la experiencia.",
+      "capability": "world.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "capabilities": ["world.generate"], "quality": 4, "speed": 2, "usd": 0.3, "territorio": { "bloqueadas": ["EU"], "aprobadas": ["US"], "resto": "REVIEW_REQUIRED", "fuente": "eval" } } ] }, { "id": "b", "priority": 20, "models": [ { "id": "b1", "capabilities": ["world.generate"], "quality": 3, "speed": 2, "usd": 0.4, "territorio": { "bloqueadas": [], "aprobadas": ["EU"], "resto": "REVIEW_REQUIRED", "fuente": "eval" } } ] } ], "routing": { "chain": ["a", "b"], "policy": "balanced" } },
+      "request": { "jurisdicciones": ["ES"] },
+      "expected": { "status": "routed", "chosen": { "provider": "b", "model": "b1" }, "orden": ["b"] },
+      "tags": ["mundo3d", "jurisdiccion", "alternativa"]
+    },
+    {
+      "evalCaseId": "mundo-en-revision-en-todas-partes",
+      "name": "Un modelo que no está aprobado en ninguna jurisdicción",
+      "description": "a1 no está aprobado en ningún sitio: no se elige, y no se culpa a la región (no lo está en otra).",
+      "capability": "world.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "capabilities": ["world.generate"], "quality": 4, "speed": 2, "usd": 0.3, "territorio": { "bloqueadas": ["EU"], "aprobadas": [], "resto": "REVIEW_REQUIRED", "fuente": "eval" } } ] } ], "routing": { "chain": ["a"], "policy": "balanced" } },
+      "request": { "jurisdicciones": ["US"] },
+      "expected": { "status": "unavailable", "motivoPublico": "no_disponible" },
+      "tags": ["mundo3d", "elegibilidad", "revision"]
+    },
+    {
+      "evalCaseId": "mundo-en-pausa-es-pasajero",
+      "name": "El único proveedor de mundos en pausa por fallos recientes",
+      "description": "El cortacircuitos de a está abierto: no hay candidato, y «más tarde» es verdad.",
+      "capability": "world.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "capabilities": ["world.generate"], "quality": 4, "speed": 2, "usd": 0.3 } ] } ], "routing": { "chain": ["a"], "policy": "balanced" }, "health": { "open": ["a"] } },
+      "request": {},
+      "expected": { "status": "unavailable", "motivoPublico": "ahora_no" },
+      "tags": ["mundo3d", "reliability"]
+    },
+    {
+      "evalCaseId": "mundo-sin-reglas-no-pide-pais",
+      "name": "Un modelo sin reglas territoriales no necesita jurisdicción",
+      "description": "a1 no tiene reglas territoriales: se elige aunque la operación no diga dónde ocurre.",
+      "capability": "world.generate",
+      "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "capabilities": ["world.generate"], "quality": 4, "speed": 2, "usd": 0.3 } ] } ], "routing": { "chain": ["a"], "policy": "balanced" } },
+      "request": {},
+      "expected": { "status": "routed", "chosen": { "provider": "a", "model": "a1" } },
+      "tags": ["mundo3d", "elegibilidad"]
+    },
+    {
+      "evalCaseId": "mundo-desactivado",
+      "name": "El proveedor de mundos apagado por administración",
+      "description": "a está apagado: no hay candidato, y se dice «no disponible» sin más (ni región ni «más tarde»).",
+      "capability": "world.generate",
+      "world": { "providers": [ { "id": "a", "enabled": false, "priority": 10, "models": [ { "id": "a1", "capabilities": ["world.generate"], "quality": 4, "speed": 2, "usd": 0.3 } ] } ], "routing": { "chain": ["a"], "policy": "balanced" } },
+      "request": { "jurisdicciones": ["US"] },
+      "expected": { "status": "unavailable", "motivoPublico": "no_disponible" },
+      "tags": ["mundo3d", "admin"]
+    }
+  ]
+}

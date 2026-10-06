@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "dominio": "router",
+  "datasetVersion": 1,
+  "datasetHash": "e0897402a285f83206d0c50587d0905d005987f23da967a77596754be75517fd",
+  "generado": null,
+  "scores": {
+    "overall": 1,
+    "perDimension": {
+      "QUALITY": 1,
+      "COST": null,
+      "LATENCY": null,
+      "RELIABILITY": 1
+    },
+    "porCaso": [
+      {
+        "evalCaseId": "mundo-aprobado-en-su-jurisdiccion",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "mundo-sin-jurisdiccion-falla-cerrado",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "mundo-bloqueado-en-su-region",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "mundo-alternativa-aprobada",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "mundo-en-revision-en-todas-partes",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "mundo-en-pausa-es-pasajero",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "mundo-sin-reglas-no-pide-pais",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "mundo-desactivado",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      }
+    ],
+    "n": 8,
+    "aprobados": 8
+  }
+}

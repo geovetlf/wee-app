@@ -20,6 +20,8 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const { createRouter } = require(path.join(RAIZ, 'functions/lib/engine/router.js'));
+/* El motivo PÚBLICO de un «no disponible» (misión mundo3d): el mismo que manda el motor a la app. */
+const { motivoDeNoDisponible } = require(path.join(RAIZ, 'functions/lib/engine/errors.js'));
 
 /** Adaptador falso: declara sus modelos y responde isConfigured/supports; su `run` CUENTA ejecuciones (debe ser 0). */
 const adaptadorFalso = (p, contador) => ({
@@ -30,6 +32,8 @@ const adaptadorFalso = (p, contador) => ({
     id: m.id, provider: p.id, capabilities: m.capabilities || ['text.generate'],
     quality: m.quality, speed: m.speed, cost: { unit: m.unit || 'call', usd: m.usd },
     ...(m.maxDurationSec ? { maxDurationSec: m.maxDurationSec } : {}),
+    /* Reglas territoriales sintéticas (misión mundo3d): dónde se puede usar un modelo. Sin ellas, como siempre. */
+    ...(m.territorio ? { territorio: m.territorio } : {}),
   })),
   isConfigured: () => p.sinClave !== true,
   supports: (c) => (p.models || []).some((m) => (m.capabilities || ['text.generate']).includes(c)),
@@ -87,7 +91,11 @@ export const decidirEscenario = async (caso) => {
     usageToday: async () => w.usage || {},
   });
 
-  const d = await router.route({ capability: caso.capability, input: caso.request?.input || {}, userId: 'eval', requestId: `eval_${caso.evalCaseId}`, prefs: caso.request?.prefs || {} }, config);
+  /* La jurisdicción de la operación la pone el caso (en producción, el servidor desde la cuenta); el escenario no tiene de dónde leerla. */
+  const d = await router.route({
+    capability: caso.capability, input: caso.request?.input || {}, userId: 'eval', requestId: `eval_${caso.evalCaseId}`, prefs: caso.request?.prefs || {},
+    ...(Array.isArray(caso.request?.jurisdicciones) ? { jurisdicciones: caso.request.jurisdicciones } : {}),
+  }, config);
   const c0 = d.candidates[0] || null;
   return {
     status: d.candidates.length ? 'routed' : 'unavailable',
@@ -96,6 +104,7 @@ export const decidirEscenario = async (caso) => {
     candidatos: d.candidates.map((c) => ({ provider: c.provider, model: c.model.id, usd: c.estimatedUsd, credits: c.estimatedCredits, quality: c.model.quality, speed: c.model.speed })),
     descartes: d.skipped.map((s) => ({ provider: s.provider, reason: s.reason })),
     motivo: d.candidates.length ? null : (d.skipped.find((s) => s.provider === '*')?.reason || null),
+    motivoPublico: d.candidates.length ? null : motivoDeNoDisponible(d.skipped),
     realProviderAvailable: d.realProviderAvailable,
     policy: d.policy,
     quality: d.quality,
