@@ -1121,6 +1121,10 @@ Lo generado tiene id, dueño y procedencia (antes: una URL en un array). Lo gene
 
 No sabe de Firestore ni de Storage (lo vigila `core-contracts.test.mjs`). No modera, no indexa, no recomienda, no cuenta vistas. No mueve archivos entre almacenes ni borra en Cloudinary. No decide quién ve una publicación con visibilidad de grafo (`followers`, `connections`): `visibleParaTerceros` devuelve `undefined` y lo resolverá quien tenga el grafo. La migración de lo que ya existe está preparada y **no ejecutada**: [`F11-MIGRACION.md`](F11-MIGRACION.md).
 
+### El linaje: versiones, derivados, derechos y usos (`linaje.ts`)
+
+Funciones puras sobre los campos que el material ya tenía (`previousVersionId`, `provenance.sourceAssetIds`, `derechos`); **ningún campo nuevo**. Una versión es otro material (`nuevaVersion`) y un resultado hecho a partir de otros es un derivado (`materialDerivado`); los dos heredan los derechos de sus fuentes, que **solo se endurecen** (`combinarDerechos`, `derechosNoSeRelajan`). La línea de versiones se deriva (`lineaDeVersiones`), la versión activa es la que apunta cada uso, y reutilizar es referenciar (`usosDelMaterial`, `CONSECUENCIA_DE_OPERACION`). Sirve a cualquier material; el 3D es su primer cliente. Nada lo llama todavía. Detalle y cambios propuestos: [`3D-ASSET-LIFECYCLE.md`](3D-ASSET-LIFECYCLE.md).
+
 ## Weë Translation — el sitio reservado
 
 **Weë Translation todavía no existe.** Lo que existe es el sitio donde encajará, para que integrarla después no obligue a rehacer Core, Gateway, Brain ni Workplaces.

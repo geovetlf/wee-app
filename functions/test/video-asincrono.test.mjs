@@ -668,9 +668,17 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
   const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts|44\t2\tfunctions/src/core/content/asset.ts|12\t0\tfunctions/src/core/contracts.ts'
     + '|217\t0\tfunctions/src/core/escena3d.ts|2\t0\tfunctions/src/core/index.ts|379\t0\tfunctions/src/core/mundo3d.ts|2\t1\tfunctions/src/core/provider.ts'
     + '|6\t0\tfunctions/src/core/registry/capabilities.ts|6\t2\tfunctions/src/core/registry/types.ts|2\t2\tfunctions/src/core/router.ts';
-  check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal, del tamaño exacto',
+  /*
+   * + ciclo de vida 3D (2026-10-05), por nombre y tamaño: el linaje del material (`core/content/linaje.ts`, nuevo, puro y
+   * sin conectar) y su línea de exportación en la puerta del Content Core. Ningún contrato sube de versión.
+   */
+  const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts|651\t0\tfunctions/src/core/content/linaje.ts';
+  /* Las dos listas juntas, en el orden en que las da git: por ruta. */
+  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|')]
+    .sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');
+  check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal y el linaje del ciclo de vida 3D, del tamaño exacto',
     git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions`).trim() === ''
-    && git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|') === CORE_DE_LA_MISION_FAL,
+    && git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|') === coreEsperado,
     git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').join('|'));
 }
 
