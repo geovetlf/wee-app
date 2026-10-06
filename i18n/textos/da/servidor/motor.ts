@@ -64,7 +64,7 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Lige nu er der ingen tilgængelig AI til det her. Prøv igen senere.',
   noDisponibleActualmente: 'Denne funktion er ikke tilgængelig i øjeblikket.',
   noDisponibleAhora: 'Denne funktion er ikke tilgængelig lige nu. Prøv igen om lidt.',
-  noDisponibleRegion: 'Denne funktion er ikke tilgængelig i din region.',
+  noDisponibleRegion: 'Denne funktion er i øjeblikket ikke tilgængelig i din region.',
   noDisponiblePais: 'For at bruge denne funktion skal du angive dit land i din Ægte profil.',
   noDisponibleOpciones: 'Denne funktion er ikke tilgængelig med de valg, du har truffet. Prøv nogle andre.',
   describeVideo: 'Fortæl mig, hvilken video du vil lave.',

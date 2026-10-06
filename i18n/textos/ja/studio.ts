@@ -377,4 +377,5 @@ export const studio: typeof import('../es/studio').studio = {
   worldStoppingNote: '停止する前に3Dワールドが完成した場合は、マイ作品に保存され、Creditsが消費されます。',
   worldCancelledNote: '作成を停止しました。確保していたCreditsは残高に戻ります。',
   worldUploadFailed: '写真をアップロードできませんでした。もう一度お試しください。',
+  worldDailyLimit: '今日の3Dワールドはすべて使いました。作成できなかったものは戻ります。3Dワールドは毎日リセットされます。',
 };

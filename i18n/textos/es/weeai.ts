@@ -152,7 +152,7 @@ export const weeai = {
   errTimeout: 'Tardó demasiado y lo detuve. No te cobré: inténtalo de nuevo.',
   errNotAvailable: 'Esta función no está disponible actualmente.',
   errNotAvailableNow: 'Esta función no está disponible en este momento. Vuelve a intentarlo dentro de un rato.',
-  errNotAvailableRegion: 'Esta función no está disponible en tu región.',
+  errNotAvailableRegion: 'Esta función no está disponible actualmente en tu región.',
   errNotAvailableCountry: 'Para usar esta función, indica tu país en tu Perfil Real.',
   errNotAvailableOptions: 'Esta función no está disponible con las opciones que elegiste. Prueba con otras.',
   errDuplicate: 'Esa creación ya está en marcha.',

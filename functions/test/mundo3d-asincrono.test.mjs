@@ -381,8 +381,17 @@ console.log('\n── F · La puerta: una capacidad, ninguna clave, la jurisdicc
   check('F3) la jurisdicción la lee el SERVIDOR de la cuenta (Perfil Real), una vez, y la usan el Router, el ejecutor y la política; nada del cliente la decide',
     /jurisdiccionesDeLaCuenta\(uid\)/.test(puerta) && !/data\.(jurisdic|country|pais|region|locale)/i.test(puerta)
     && /jurisdicciones: p\.jurisdicciones/.test(puerta) && /\.\.\.\(jurisdicciones\?\.length \? \{ jurisdicciones \} : \{\}\)/.test(puerta));
-  check('F4) la elegibilidad y el precio, ANTES del cupo y de los Credits: un «no disponible» no mueve nada',
-    puerta.indexOf('await prepararElMundo(uid, data.peticion)') < puerta.indexOf('limiter.reserve(') && puerta.indexOf('limiter.reserve(') < puerta.indexOf('creditEngine.spendCredits('));
+  /*
+   * Misión de gobernanza (2026-10-06): «5 mundos = 5 que SALEN». El cupo se COMPRUEBA antes de los Credits (sin apuntar
+   * nada) y se OCUPA una vez reservado el dinero; si no cabe ya, lo reservado vuelve. Antes se ocupaba antes de cobrar,
+   * y un cobro rechazado (saldo, huella) gastaba el hueco.
+   */
+  check('F4) la elegibilidad y el precio, ANTES del cupo y de los Credits: un «no disponible» no mueve nada; el cupo se comprueba antes de los Credits y se ocupa al reservarlos',
+    puerta.indexOf('await prepararElMundo(uid, data.peticion)') < puerta.indexOf('limiter.comprobar(')
+    && puerta.indexOf('limiter.comprobar(') < puerta.indexOf('creditEngine.spendCredits(')
+    && puerta.indexOf('creditEngine.spendCredits(') < puerta.indexOf('limiter.reserve(')
+    /* + revisión de la misión de gobernanza: también al COTIZAR se dice si hoy ya no cabe (un `comprobar` más, sin apuntar nada). */
+    && (puerta.match(/limiter\.reserve\(/g) || []).length === 1 && (puerta.match(/limiter\.comprobar\(/g) || []).length === 2);
   check('F5) la Function existe y se exporta (desplegarla es del dueño); el estado y la cancelación solo ven trabajos de la cuenta que pregunta',
     /export \{ generateWorld \} from '\.\/creator\/mundo';/.test(leer('functions/src/index.ts'))
     && /const job = await trabajoDelMedioDeWee\(getFirestore\(\), uid, requestId\);/.test(puerta)
@@ -420,11 +429,12 @@ console.log('\n── F · La puerta: una capacidad, ninguna clave, la jurisdicc
   check('F5i) una operación que no existe se rechaza en la frontera: no se toma por «crear», que es la que cobra',
     /if \(!OPERACIONES\.includes\(op\)\) throw new EngineError\('INVALID_REQUEST', undefined, \{ reason: 'op_desconocida' \}\);/.test(puerta) && !/: 'crear';/.test(puerta));
   check('F5j) una reserva retenida SIN trabajo pasado el plazo de la puerta se devuelve al preguntar (la app nunca repite ese requestId); antes, en cola',
-    /if \(operacionAbandonada\(true, autorizadaEn \+ PLAZO_DE_LA_PUERTA_MS, Date\.now\(\)\)\) \{\s*await creditEngine\.refundCredits\(/.test(puerta)
-    && /if \(reserva\.status !== 'AUTHORIZED'\) return \{ contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: 'fallido' \};/.test(puerta));
+    /* + revisión de la misión de gobernanza: el dinero (y su hueco) se devuelve por UN sitio, `devolverLoReservado`. */
+    /if \(operacionAbandonada\(true, autorizadaEn \+ PLAZO_DE_LA_PUERTA_MS, Date\.now\(\)\)\) \{\s*await devolverLoReservado\(uid, requestId, \{ reason: '[^']+', siFalla: 'sube' \}\);/.test(puerta)
+    && /if \(reserva\.status !== 'AUTHORIZED'\) \{\s*await devolverElHuecoSiNoSalio\(uid, requestId\);\s*return \{ contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: 'fallido' \};/.test(puerta));
   check('F5k) un reintento con el mismo requestId converge: reserva cerrada sin trabajo = cómo acabó (no «ya en marcha»); y un fallo con el trabajo YA creado se cuenta como va, no como error',
     /if \(spend\.status !== 'AUTHORIZED'\) return \{ \.\.\.\(await estadoDelMundo\(uid, requestId\)\), duplicate: true \};/.test(puerta)
-    && /\} catch \(error\) \{\s*if \(await trabajoDelMundo\(uid, requestId\)\) return \{ \.\.\.\(await estadoDelMundo\(uid, requestId\)\), status: 'ACCEPTED', credits: spend\.amount, duplicate: false \};\s*throw error;/.test(puerta));
+    && /\} catch \(error\) \{\s*if \(await trabajoDelMundo\(uid, requestId\)\) return \{ \.\.\.\(await estadoDelMundo\(uid, requestId\)\), status: 'ACCEPTED', credits: spend\.amount, duplicate: false \};\s*await devolverElHuecoSiNoSalio\(uid, requestId\);\s*throw error;/.test(puerta));
   check('F6) la reconciliación desplegada conoce a fal por el registro (sin importar el adaptador) y pregunta con los relojes de cada trabajo; sin su clave montada contesta «no configurado» y el trabajo ESPERA',
     /resolutores: deps\.resolutores \?\? RESOLUTORES_DE_ESTADO/.test(sinComentarios(leer('functions/src/runtime/index.ts')))
     && runtime && typeof runtime.paradaDeWee === 'function' && /plazosDe: deps\.plazosDe \?\? \(\(job\) => plazosDeLaCapacidad\(job\.capability\)\)/.test(leer('functions/src/runtime/index.ts')));

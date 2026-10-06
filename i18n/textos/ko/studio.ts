@@ -384,4 +384,5 @@ export const studio: typeof import('../es/studio').studio = {
   worldStoppingNote: '중지되기 전에 3D 월드가 완성되면 내 창작물에 저장되고 Credits가 차감돼요.',
   worldCancelledNote: '만들기를 중지했어요. 차감 예정이던 Credits는 잔액으로 돌아가요.',
   worldUploadFailed: '사진을 올리지 못했어요. 다시 시도해 주세요.',
+  worldDailyLimit: '오늘의 3D 월드를 모두 사용했어요. 만들어지지 않은 건 다시 돌아오고, 3D 월드는 매일 새로 채워져요.',
 };

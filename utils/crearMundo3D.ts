@@ -175,6 +175,8 @@ export type TipoDeError =
   | 'precio_cambiado'
   /** Falló esta vez y no se cobró: probar otra vez tiene sentido. */
   | 'reintentable'
+  /** Ya salieron (o están en marcha) los mundos del día: hasta mañana —o hasta que uno no salga y vuelva— no hay otro. */
+  | 'cupo_del_dia'
   | 'sin_conexion'
   | 'desconocido';
 
@@ -251,7 +253,10 @@ export const errorDelMundo3D = (error: unknown): ErrorDelMundo3D | null => {
     case 'UNAUTHORIZED': return fallo('sesion', 'weeai.errSignIn', false);
     case 'ACCOUNT_NOT_FOUND': return fallo('sesion', 'weeai.errNoAccount', false);
     case 'DUPLICATE_REQUEST': return fallo('duplicado', 'weeai.errDuplicate', false);
-    case 'RATE_LIMITED': return fallo('reintentable', 'weeai.errRateLimited', true);
+    /* El cupo de mundos es del DÍA (`details.modality === '3d'`): reintentar en un momento no sirve, y se dice. */
+    case 'RATE_LIMITED': return leerDetalles(error).modality === '3d'
+      ? fallo('cupo_del_dia', 'studio.worldDailyLimit', false)
+      : fallo('reintentable', 'weeai.errRateLimited', true);
     case 'TIMEOUT': return fallo('reintentable', 'weeai.errTimeout', true);
     case 'PROVIDER_ERROR':
     case 'GENERATION_FAILED': return fallo('reintentable', 'weeai.errGeneric', true);
@@ -565,6 +570,7 @@ const accionesDelFallo = (error: ErrorDelMundo3D | null): AccionDelMundo3D[] => 
     case 'sin_credits': return ['conseguir_credits', 'cambiar'];
     case 'sesion': return ['iniciar_sesion'];
     case 'duplicado': return ['ver_creaciones'];
+    case 'cupo_del_dia': return ['ver_creaciones', 'volver'];
     default: return error?.reintentable ? ['reintentar', 'cambiar'] : ['cambiar'];
   }
 };

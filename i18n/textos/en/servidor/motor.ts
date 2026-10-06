@@ -46,7 +46,7 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'There’s no AI available for this right now. Please try again later.',
   noDisponibleActualmente: 'This feature isn’t currently available.',
   noDisponibleAhora: 'This feature isn’t available at the moment. Try again in a little while.',
-  noDisponibleRegion: 'This feature isn’t available in your region.',
+  noDisponibleRegion: 'This feature isn’t currently available in your region.',
   noDisponiblePais: 'To use this feature, add your country to your Real profile.',
   noDisponibleOpciones: 'This feature isn’t available with the options you chose. Try different ones.',
   describeVideo: 'Tell me what video you want to create.',

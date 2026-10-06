@@ -93,6 +93,7 @@ export const creaciones = {
   kindWorld: 'Mundo 3D',
   noViewer3d: 'Weë todavía no tiene un visor 3D. Descárgalo para abrirlo en una app 3D.',
   rightsTitle: 'Qué puedes hacer con él',
+  rightsProvenance: 'Hecho con IA en Weë, con un modelo de terceros que tiene su propia licencia.',
   rightsCommercialAllowed: 'Puedes usarlo con fines comerciales.',
   rightsCommercialRestricted: 'Su uso comercial tiene condiciones.',
   rightsCommercialUnclear: 'Todavía no está claro si se puede usar con fines comerciales.',

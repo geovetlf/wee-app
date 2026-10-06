@@ -4,8 +4,9 @@ import { getStorage } from 'firebase-admin/storage';
 import { onCall } from 'firebase-functions/v2/https';
 import { EngineError, motivoDeNoDisponible, noDisponible, toEngineHttpsError } from '../engine/errors';
 import { engine } from '../engine';
-import { limiter } from '../engine/limits';
+import { dayKey, limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
+import { sanitizeForLog } from '../engine/sanitize';
 import { jurisdiccionesDeLaCuenta } from '../engine/jurisdiccion';
 import { firestoreLedger } from '../engine/ledger';
 import { creditEngine } from '../credits/creditEngine';
@@ -34,6 +35,8 @@ import {
   sePuedeCancelarElMundo,
 } from '../core';
 import {
+  CLAVE_DE_LA_OPERACION_DEL_CUPO,
+  CLAVE_DEL_DIA_DEL_CUPO,
   PLAZOS_DE_MUNDO,
   conductorDeWee,
   configuracionDeLaPuerta,
@@ -50,8 +53,9 @@ import {
  *
  *   app → generateWorld({ op, requestId, peticion })
  *     cotizar   ¿se puede, y cuánto cuesta? Ni cupo, ni Credits, ni proveedor.
- *     crear     Auth → contrato de Weë → puerta → jurisdicción del Perfil Real → elegibilidad (Router) → cupo →
- *               Credit Engine (reserva) → conductor → Gateway → adaptador → el proveedor ACEPTA y suelta.
+ *     crear     Auth → contrato de Weë → puerta (habilitada → capacidad → LISTA DE CUENTAS) → jurisdicción del Perfil
+ *               Real → elegibilidad (Router) → ¿cabe en el cupo? → Credit Engine (reserva) → el hueco del cupo →
+ *               conductor → Gateway → adaptador → el proveedor ACEPTA y suelta.
  *               Contesta en segundos con el trabajo: un mundo tarda minutos y NO depende de una llamada abierta.
  *     estado    cómo va (en cola, generando, cancelando, completado, fallido, cancelado) y, al final, el mundo.
  *     cancelar  pedir parar: el Job Engine lo registra y, si el proveedor sabe parar, se le pide.
@@ -81,6 +85,51 @@ import {
  */
 const CAPACIDAD_DEL_CANARY: CapabilityId = 'world.generate';
 const EXPERIENCIA_DE_STUDIO = 'studio';
+
+/**
+ * ── LA LISTA DE CUENTAS DEL CANARY ES OBLIGATORIA ───────────────────────────
+ *
+ * Mientras el mundo esté en canary solo pasan las cuentas que nombra `aiSettings/runtime.cuentas`. Sin lista, o con la
+ * lista vacía, no pasa NADIE: quitar la lista no abre la puerta para todos. Va aquí, en el código, como la capacidad:
+ * la configuración puede cerrar el canary o poner y quitar cuentas de la prueba, pero no puede cambiar esta regla.
+ * Abrir el mundo a todo el mundo será cambiar esta línea, con autorización del dueño.
+ */
+const LISTA_DE_CUENTAS_OBLIGATORIA = true;
+
+/**
+ * ── EL CUPO DEL DÍA: CINCO MUNDOS QUE SALGAN ────────────────────────────────
+ *
+ * «5 mundos al día» son cinco generaciones que SALEN (`DEFAULT_LIMITS.perUserPerDay['3d']`, cambiable en
+ * `aiSettings/global.limits`). Un fallo técnico no gasta ninguno. Por el limitador de siempre (`engine/limits.ts`):
+ *
+ *   al cotizar y antes de    ¿cabe? (`comprobar`, sin apuntar nada): «hoy ya no» se dice antes de enseñar un precio y
+ *   tocar Credits            no mueve dinero.
+ *   reservado el dinero      se ocupa el hueco (`reserve`, idempotente por operación): si otra creación ocupó el último
+ *                            entretanto, esta no sigue y lo reservado vuelve.
+ *   el hueco sigue al dinero si la reserva queda DEVUELTA —error interno, plazo, fallo del proveedor, aviso perdido que
+ *                            la reconciliación cierra como fallido, avería, nada llegó a nadie—, el hueco vuelve al día
+ *                            en que se ocupó (`liberar`, que devuelve lo que la operación anotó): lo devuelve esta
+ *                            puerta en sus fallos (`devolverLoReservado`, un solo sitio) y el barrido en los de después
+ *                            (`liquidacionDeWee`, con la operación y el día que viajan en el trabajo).
+ *   un mundo que sale        su hueco se queda: es uno de los cinco.
+ *   la persona cancela con   el hueco se queda gastado (`consumir`): el proveedor ya trabajaba. El dinero sigue la regla
+ *   el proveedor trabajando  de la parada (si el proveedor no llega a terminar, vuelve). Ojo con el COSTE: por el conductor,
+ *                            la fila del libro de un intento aceptado se cierra al aceptarlo con `providerCost: 0` y
+ *                            nadie la corrige al final (RUNTIME §22.5, abierto también para el vídeo), así que hoy ni
+ *                            `providerCost` ni `usdEnRiesgo` ven lo que cuesta un mundo: cerrarlo es requisito del
+ *                            runbook antes de abrir el canary (docs/3D-EXPERIENCIA.md §20). Cancelar antes de que nada
+ *                            llegue al proveedor no gasta el hueco.
+ *   reintentar con el MISMO  es la misma operación: ni otro hueco, ni otro cobro.
+ *   requestId
+ *
+ * LA OPERACIÓN DEL CUPO tiene nombre propio —la capacidad, «#» y el requestId—: el vídeo cuenta sus operaciones por el
+ * requestId a secas, y «#» es un carácter que un requestId no admite (`assertRequestId`), así que ningún requestId que
+ * contó para un vídeo, ni uno hecho a medida, puede hacer pasar un mundo por un hueco que no ocupó.
+ *
+ * Un mundo cuyo final no se sabe (salió y no volvió nadie) retiene su dinero y su hueco hasta saberse: se reconcilia.
+ */
+const CUPO_DEL_MUNDO = { '3d': 1 } as const;
+const operacionDelCupo = (requestId: string): string => `${CAPACIDAD_DEL_CANARY}#${requestId}`;
 
 /** El proveedor coge la tarea y suelta: es lo único que tiene sentido para algo que tarda minutos. */
 const ACEPTA_ASINCRONO = true;
@@ -187,6 +236,7 @@ const prepararElMundo = async (uid: string, crudo: unknown): Promise<MundoPrepar
     capability: CAPACIDAD_DEL_CANARY,
     userId: uid,
     experienceId: EXPERIENCIA_DE_STUDIO,
+    listaObligatoria: LISTA_DE_CUENTAS_OBLIGATORIA,
   });
   /* No hay otro camino para un mundo: sin el conductor, no está disponible —y no se dice por qué puerta—. */
   if (puerta.runtime !== 'core') throw noDisponible('no_disponible');
@@ -227,7 +277,10 @@ const estadoDelMundo = async (uid: string, requestId: string): Promise<TrabajoDe
     /* Sin trabajo: o se está creando ahora mismo (la reserva existe y está retenida) o se devolvió sin llegar a nadie. */
     const reserva = (await db.collection('creditTransactions').doc(usageTransactionId(requestId)).get()).data();
     if (!reserva || reserva.userId !== uid || reserva.service !== SERVICIO_DEL_MUNDO) throw new EngineError('INVALID_REQUEST', 'No encontramos esa creación.', { reason: 'no_existe' });
-    if (reserva.status !== 'AUTHORIZED') return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: 'fallido' };
+    if (reserva.status !== 'AUTHORIZED') {
+      await devolverElHuecoSiNoSalio(uid, requestId);
+      return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: 'fallido' };
+    }
     /*
      * RETENIDA Y SIN TRABAJO MÁS ALLÁ DEL PLAZO DE LA PUERTA: la invocación que la hizo murió antes de crear el trabajo
      * y nada llegó al proveedor. La app pide cada mundo con un requestId nuevo y nunca repetiría este, así que es al
@@ -236,12 +289,14 @@ const estadoDelMundo = async (uid: string, requestId: string): Promise<TrabajoDe
     const creada = reserva.createdAt;
     const autorizadaEn = typeof creada?.toMillis === 'function' ? creada.toMillis() : typeof creada === 'number' ? creada : Infinity;
     if (operacionAbandonada(true, autorizadaEn + PLAZO_DE_LA_PUERTA_MS, Date.now())) {
-      await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el intento anterior se quedó sin tiempo', source: 'weë-studio' });
+      await devolverLoReservado(uid, requestId, { reason: 'Weë Studio · el intento anterior se quedó sin tiempo', siFalla: 'sube' });
       return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: 'fallido' };
     }
     return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado: 'en_cola' };
   }
   const estado = estadoDeMundoDelTrabajo(job.state) ?? 'generando';
+  /* Acabó sin mundo: si el barrido ya devolvió el dinero, el hueco también (por si su devolución no llegó a escribirse). */
+  if (estado === 'fallido' || estado === 'cancelado') await devolverElHuecoSiNoSalio(uid, requestId);
   if (estado !== 'completado') return { contract: MUNDO3D_CONTRACT_VERSION, requestId, estado };
   const assetId = job.result?.outputRefs?.[0];
   /* Una lectura que LANZA sube como avería: «completado» sin el mundo sería contar otra cosa. Preguntar es repetible. */
@@ -275,6 +330,56 @@ const yaReservada = async (uid: string, requestId: string): Promise<boolean> => 
   return snap.exists && snap.data()?.userId === uid;
 };
 
+/**
+ * EL HUECO SIGUE AL DINERO: si la reserva de ESTE mundo quedó devuelta, el mundo no salió y su hueco vuelve al día que
+ * anotó la reserva. Idempotente; sin efecto si ya volvió, si la reserva sigue retenida o cobrada, o si la persona lo
+ * gastó al cancelar. Una avería aquí no cambia la respuesta: deja a la persona con un hueco menos, nunca con uno de más,
+ * se registra y se vuelve a intentar la próxima vez que pregunte por este mundo.
+ */
+const devolverElHuecoSiNoSalio = async (uid: string, requestId: string): Promise<void> => {
+  try {
+    const reserva = (await getFirestore().collection('creditTransactions').doc(usageTransactionId(requestId)).get()).data();
+    const dia = reserva?.meta?.[CLAVE_DEL_DIA_DEL_CUPO];
+    if (!reserva || reserva.userId !== uid || reserva.service !== SERVICIO_DEL_MUNDO || reserva.status !== 'REFUNDED' || typeof dia !== 'string') return;
+    await limiter.liberar(uid, operacionDelCupo(requestId), dia);
+  } catch (e) {
+    console.error(`Weë Studio · mundo 3D: no se pudo devolver el hueco del día · requestId=${requestId}`, sanitizeForLog(e, 300));
+  }
+};
+
+/**
+ * DEVOLVER LO QUE ESTA PUERTA RESERVÓ: el dinero y, con él, el hueco del día. UN solo sitio, para que «el hueco sigue al
+ * dinero» no dependa de acordarse en cada camino (revisión de código). `siFalla`: si el reembolso no se puede hacer,
+ * ¿se sube el error —quien llama le va a decir a la persona que se le devolvió— o se registra —lo cerrará la
+ * liquidación—? `libro`: si hay una fila del libro que cerrar a cero. Sin reembolso hecho, el hueco no vuelve.
+ */
+const devolverLoReservado = async (
+  uid: string,
+  requestId: string,
+  opciones: { reason: string; siFalla: 'sube' | 'registra'; libro?: boolean },
+): Promise<void> => {
+  const reembolso = creditEngine.refundCredits({ userId: uid, requestId, reason: opciones.reason, source: 'weë-studio' });
+  if (opciones.siFalla === 'sube') await reembolso;
+  else await reembolso.catch((e) => console.error('Weë Studio · mundo 3D: no se pudo reembolsar', requestId, sanitizeForLog(e, 300)));
+  if (opciones.libro) {
+    await firestoreLedger.settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
+      .catch((e) => console.error('Weë Studio · mundo 3D: no se pudo liquidar el libro', requestId, sanitizeForLog(e, 300)));
+  }
+  await devolverElHuecoSiNoSalio(uid, requestId);
+};
+
+/**
+ * LA PERSONA CANCELA UN MUNDO QUE EL PROVEEDOR YA TENÍA: su hueco se queda gastado (ver «el cupo del día»). Con el día
+ * que viaja en el trabajo. Si no se puede anotar, se registra: la parada ya está pedida y es lo que la persona quería.
+ */
+const gastarElHueco = async (uid: string, requestId: string, metadata: Readonly<Record<string, unknown>> | undefined): Promise<void> => {
+  const dia = metadata?.[CLAVE_DEL_DIA_DEL_CUPO];
+  if (typeof dia !== 'string') return;
+  await limiter.consumir(uid, operacionDelCupo(requestId), dia).catch((e) => {
+    console.error(`Weë Studio · mundo 3D: no se pudo anotar el hueco gastado · requestId=${requestId}`, sanitizeForLog(e, 300));
+  });
+};
+
 export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_LA_PUERTA_MS / 1000, memory: '512MiB' }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
@@ -286,6 +391,8 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
 
     if (op === 'cotizar') {
       const p = await prepararElMundo(uid, data.peticion);
+      /* Si hoy ya no cabe otro mundo, se dice AHORA, antes de enseñar un precio (sin apuntar nada). */
+      await limiter.comprobar(uid, CUPO_DEL_MUNDO, (await loadConfig()).settings.limits);
       return { contract: MUNDO3D_CONTRACT_VERSION, status: 'QUOTED', credits: p.credits };
     }
 
@@ -302,7 +409,11 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
        * se tiraría y la reserva se devolvería—. Se cuenta «generando» y se puede volver a pedir en un momento.
        */
       if (sePuedeCancelarElMundo(estadoDeMundoDelTrabajo(job.state)) && job.state !== 'running') {
-        await pedirParada(paradaDeWee({ db: getFirestore() }), job, { userId: uid });
+        const parada = await pedirParada(paradaDeWee({ db: getFirestore() }), job, { userId: uid });
+        /* El proveedor ya lo tenía: es un mundo empezado que la persona decide parar, y su hueco del día se queda gastado. */
+        if (parada.estado === 'pedida' && parada.job.attempts.some((a) => a.dispatched === true)) {
+          await gastarElHueco(uid, requestId, parada.job.metadata);
+        }
       }
       return await estadoDelMundo(uid, requestId);
     }
@@ -313,7 +424,10 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
     if (Number(data.creditosCotizados) !== p.credits) throw new EngineError('INVALID_REQUEST', undefined, { reason: 'price_changed', credits: p.credits });
 
     const { settings } = await loadConfig();
-    if (!(await yaReservada(uid, requestId))) await limiter.reserve(uid, { '3d': 1 }, settings.limits, requestId);
+    /* El día del cupo de ESTA petición: viaja en la reserva y en el trabajo, para que el hueco vuelva al día en que se ocupó. */
+    const dia = dayKey();
+    /* ¿Cabe? Antes de tocar Credits, y sin apuntar nada: «hoy ya no» no mueve dinero. Repetir la operación no pregunta. */
+    if (!(await yaReservada(uid, requestId))) await limiter.comprobar(uid, CUPO_DEL_MUNDO, settings.limits, operacionDelCupo(requestId), dia);
     await ensureAccount(uid);
     const spend = await creditEngine.spendCredits({
       userId: uid,
@@ -324,7 +438,7 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
       source: 'weë-studio',
       /* Lo que se pide: un requestId repetido solo sirve para ESTE mundo. */
       fingerprint: huellaDelMundo(p.entrada),
-      meta: { estimatedUsd: p.usd },
+      meta: { estimatedUsd: p.usd, [CLAVE_DEL_DIA_DEL_CUPO]: dia },
     });
 
     /* Mismo requestId: UN REQUEST = UNA GENERACIÓN = UN COBRO. */
@@ -332,13 +446,26 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
       /* Ya tiene trabajo: es la misma creación. Se cuenta cómo va; ni otra generación, ni otro cobro. */
       if (await trabajoDelMundo(uid, requestId)) return { ...(await estadoDelMundo(uid, requestId)), duplicate: true };
       if (spend.status === 'AUTHORIZED' && operacionAbandonada(true, (spend.authorizedAt ?? Infinity) + PLAZO_DE_LA_PUERTA_MS, Date.now())) {
-        /* Se quedó colgada sin trabajo: nada llegó al proveedor. Se devuelve lo retenido y se dice. */
-        await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el intento anterior se quedó sin tiempo', source: 'weë-studio' });
+        /* Se quedó colgada sin trabajo: nada llegó al proveedor. Se devuelve lo retenido —y su hueco del día— y se dice. */
+        await devolverLoReservado(uid, requestId, { reason: 'Weë Studio · el intento anterior se quedó sin tiempo', siFalla: 'sube' });
         throw new EngineError('TIMEOUT', 'Ese intento se quedó sin tiempo y te devolví los Credits. Puedes volver a intentarlo.');
       }
       /* Cerrada (devuelta) sin trabajo: no está en marcha; se cuenta cómo acabó, para que un reintento converja. */
       if (spend.status !== 'AUTHORIZED') return { ...(await estadoDelMundo(uid, requestId)), duplicate: true };
       throw new EngineError('DUPLICATE_REQUEST');
+    }
+
+    /*
+     * RESERVADO EL DINERO, EL HUECO, en el mismo día. Si otra creación ocupó el último entretanto (RATE_LIMITED) o el
+     * limitador no contesta, este mundo no sigue: lo reservado vuelve entero, y si el hueco llegó a apuntarse, también.
+     */
+    try {
+      await limiter.reserve(uid, CUPO_DEL_MUNDO, settings.limits, operacionDelCupo(requestId), dia);
+    } catch (error) {
+      /* Si el reembolso falla, sube ESE error: la app no sabe cómo acabó y pregunta por esta petición, que es lo que devuelve
+         una reserva sin trabajo; si sale bien, el «hoy ya no» de siempre. */
+      await devolverLoReservado(uid, requestId, { reason: 'Weë Studio · el mundo 3D no se pudo crear', siFalla: 'sube' });
+      throw error;
     }
 
     let desenlace: Awaited<ReturnType<typeof pedirMedio>>;
@@ -367,6 +494,9 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
             estimatedUsd: p.usd,
             creditTransactionId: usageTransactionId(requestId),
             creditRequestId: requestId,
+            /* El hueco del cupo que ocupa: si el barrido devuelve la reserva, vuelve con ella a ESTE día. */
+            [CLAVE_DE_LA_OPERACION_DEL_CUPO]: operacionDelCupo(requestId),
+            [CLAVE_DEL_DIA_DEL_CUPO]: dia,
           },
           contexto: { appId: 'wee', operationId: requestId },
           deadlineAt: Date.now() + PLAZOS_DE_MUNDO.vidaDelTrabajoMs,
@@ -378,6 +508,8 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
        * error aquí la app lo tomaría por un fallo y lo pediría otra vez —dos mundos, dos cobros—.
        */
       if (await trabajoDelMundo(uid, requestId)) return { ...(await estadoDelMundo(uid, requestId)), status: 'ACCEPTED', credits: spend.amount, duplicate: false };
+      /* Sin trabajo, nada llegó a nadie: si lo reservado volvió (`sinReservaHuerfana`), vuelve también el hueco. */
+      await devolverElHuecoSiNoSalio(uid, requestId);
       throw error;
     }
 
@@ -394,10 +526,7 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
     }
     if (desenlace.estado === 'fallado') {
       if (desenlace.reembolsoSeguro) {
-        await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el mundo 3D no se pudo crear', source: 'weë-studio' })
-          .catch((e) => console.error('Weë Studio · mundo 3D: no se pudo reembolsar', requestId, e));
-        await firestoreLedger.settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
-          .catch((e) => console.error('Weë Studio · mundo 3D: no se pudo liquidar el libro', requestId, e));
+        await devolverLoReservado(uid, requestId, { reason: 'Weë Studio · el mundo 3D no se pudo crear', siFalla: 'registra', libro: true });
       } else {
         console.warn(`WEË STUDIO · MUNDO 3D · fallo sin reembolso seguro · job=${desenlace.jobId ?? '?'}: lo cierra la liquidación`);
       }

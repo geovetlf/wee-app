@@ -419,4 +419,5 @@ export const studio: typeof import('../es/studio').studio = {
   worldStoppingNote: '如果 3D 世界在停止前已經完成，它會儲存在你的作品中，並扣除 Credits。',
   worldCancelledNote: '我已停止創作。預留的 Credits 會退回你的餘額。',
   worldUploadFailed: '沒能上傳你的照片，請再試一次。',
+  worldDailyLimit: '今天的 3D 世界已經用完了。沒有生成成功的會退還給你，次數每天都會重置。',
 };

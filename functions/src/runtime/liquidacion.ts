@@ -45,7 +45,8 @@ import { Job, JobAttempt, esTrabajoTerminal } from '../core';
  * motor de trabajos ya lo ha convertido en un estado final, que es cuando hay
  * constancia de que el intento no sigue vivo.
  *
- * NADA DE PRODUCCIÓN PASA POR AQUÍ TODAVÍA.
+ * La usa el barrido DESPLEGADO (\`barridoDeLiquidacion\`, cada 5 min) para cerrar lo que tiene desenlace; los trabajos
+ * que la llegan a usar solo los crea el conductor, que sigue detrás de \`aiSettings/runtime\`, cerrada.
  */
 
 /** Dónde vive, dentro del trabajo, lo que hace falta para liquidarlo. */
@@ -53,6 +54,13 @@ export const CLAVE_DE_TRANSACCION = 'creditTransactionId';
 export const CLAVE_DE_PETICION_DE_CREDITS = 'creditRequestId';
 export const CLAVE_DE_CREDITS = 'creditsEstimated';
 export const CLAVE_DE_SERVICIO = 'service';
+/**
+ * EL HUECO DEL CUPO DIARIO que ocupa la operación, si lo ocupa (hoy, solo el mundo 3D): cómo la nombró el limitador y el
+ * día en que la contó. Viajan con el trabajo para que, si el dinero se DEVUELVE, vuelva lo que esa operación ocupó
+ * (el limitador lo tiene anotado) y a ESE día, no al de quien liquida.
+ */
+export const CLAVE_DE_LA_OPERACION_DEL_CUPO = 'quotaOperation';
+export const CLAVE_DEL_DIA_DEL_CUPO = 'quotaDay';
 
 export type MotivoDeEspera =
   /* Alguien lo está ejecutando ahora mismo: la concesión está viva. */
@@ -91,6 +99,8 @@ export interface ReservaDelTrabajo {
   /** Lo que se cotizó. Cero es un número legítimo: hay respuestas que no cobran. */
   importe: number;
   service?: string;
+  /** El hueco del cupo del día que ocupa, si ocupa uno: su operación en el limitador y su día. Si la reserva se devuelve, vuelve con ella. */
+  cupo?: { operacion: string; dia: string };
 }
 
 const texto = (v: unknown): string | undefined => (typeof v === 'string' && v.length ? v : undefined);
@@ -106,11 +116,14 @@ export const reservaDe = (job: Job): ReservaDelTrabajo | undefined => {
   const requestId = texto(meta[CLAVE_DE_PETICION_DE_CREDITS]);
   const transactionId = texto(meta[CLAVE_DE_TRANSACCION]);
   if (!requestId || !transactionId) return undefined;
+  const operacion = texto(meta[CLAVE_DE_LA_OPERACION_DEL_CUPO]);
+  const dia = texto(meta[CLAVE_DEL_DIA_DEL_CUPO]);
   return {
     requestId,
     transactionId,
     importe: entero(meta[CLAVE_DE_CREDITS]) ?? 0,
     ...(texto(meta[CLAVE_DE_SERVICIO]) ? { service: texto(meta[CLAVE_DE_SERVICIO]) as string } : {}),
+    ...(operacion && dia ? { cupo: { operacion, dia } } : {}),
   };
 };
 

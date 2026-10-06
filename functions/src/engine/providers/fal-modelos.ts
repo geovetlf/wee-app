@@ -34,9 +34,12 @@ const TERMINOS_DE_FAL = Object.freeze({
  * RESTRICCIÓN TERRITORIAL, no bloqueo global: la licencia de Tencent («Tencent HunyuanWorld-1.0 Community License
  * Agreement», 2025-07-27) NO se aplica en la Unión Europea, el Reino Unido ni Corea del Sur, prohíbe usar o MOSTRAR los
  * resultados fuera de su territorio y se acepta también al usarlo a través de un servicio alojado (como fal). Así que:
- * BLOCKED_FOR_JURISDICTION en la UE, el Reino Unido y Corea del Sur; REVIEW_REQUIRED en cualquier otra jurisdicción
- * hasta que legal la verifique; y sin jurisdicción conocida, no elegible. La etiqueta «Commercial use» de fal no
- * menciona territorios ni enlaza ninguna licencia que sustituya la de Tencent.
+ * BLOCKED_FOR_JURISDICTION en la UE, el Reino Unido y Corea del Sur; en cualquier otro país del catálogo de Weë la
+ * licencia no lo prohíbe, y por la política de Weë (decisión del dueño, 2026-10-06: «territorio no bloqueado →
+ * potencialmente elegible; bloqueado → excluido; sin país determinable → no elegible») el TERRITORIO no lo excluye
+ * (`resto: 'APPROVED'`). Eso no lo activa: su revisión legal GLOBAL sigue REVIEW_REQUIRED y su estado DISABLED, así que
+ * hoy no es elegible en ninguna parte. La etiqueta «Commercial use» de fal no menciona territorios ni enlaza ninguna
+ * licencia que sustituya la de Tencent.
  *
  * Además: el formato real de `world_file` NO está verificado (el esquema solo dice «File»), y no existe en fal ningún
  * endpoint para AMPLIAR un mundo (WORLD_EXPANSION = NOT_SUPPORTED_BY_CURRENT_PROVIDER).
@@ -49,13 +52,14 @@ export const HUNYUAN_WORLD_IMAGEN_A_MUNDO: ModelSpec = Object.freeze({
   speed: 2,
   cost: { unit: 'call', usd: 0.3 },
   tags: ['3d', 'world'],
-  note: 'Hunyuan World 1.0 (Tencent) servido por fal. Bloqueado en la UE, el Reino Unido y Corea del Sur; en revisión en el resto.',
+  note: 'Hunyuan World 1.0 (Tencent) servido por fal. Bloqueado en la UE, el Reino Unido y Corea del Sur; en el resto, lo decide su revisión legal global (pendiente).',
   territorio: Object.freeze({
     bloqueadas: Object.freeze(['EU', 'GB', 'KR']),
     aprobadas: Object.freeze([]),
-    resto: 'REVIEW_REQUIRED',
+    resto: 'APPROVED',
     fuente: 'Tencent HunyuanWorld-1.0 Community License Agreement (2025-07-27): «Territory» = todo el mundo salvo la UE, '
-      + 'el Reino Unido y Corea del Sur; prohíbe usar o mostrar el Output fuera del Territory, también vía «Hosted Service».',
+      + 'el Reino Unido y Corea del Sur; prohíbe usar o mostrar el Output fuera del Territory, también vía «Hosted Service». '
+      + 'El resto, aprobado por territorio según la política de Weë (decisión del dueño, 2026-10-06).',
   }),
   gobierno: Object.freeze({
     providerModelId: 'fal-ai/hunyuan_world/image-to-world',
@@ -106,8 +110,9 @@ export const HUNYUAN_WORLD_IMAGEN_A_MUNDO: ModelSpec = Object.freeze({
       'https://fal.ai/legal/api-services',
     ]),
     lastVerifiedAt: '2026-10-05',
-    motivo: 'Bloqueado en la UE, el Reino Unido y Corea del Sur por la licencia de Tencent (ver `territorio`). En el resto, '
-      + 'REVIEW_REQUIRED: legal tiene que confirmar si que el operador (Weë) esté establecido en España impide usarlo en '
+    motivo: 'Bloqueado en la UE, el Reino Unido y Corea del Sur por la licencia de Tencent (ver `territorio`). En el resto, el '
+      + 'territorio no lo excluye, pero la revisión GLOBAL sigue REVIEW_REQUIRED: legal tiene que confirmar si que el operador (Weë) '
+      + 'esté establecido en España impide usarlo en '
       + 'operaciones de fuera de la UE, cómo se cumple que el resultado no se muestre en territorio excluido, y los '
       + 'términos de fal (§2 edad mínima, §6(e) service bureau), además del umbral de 1M MAU y el etiquetado del AUP.',
   }),

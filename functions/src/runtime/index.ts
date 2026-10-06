@@ -20,6 +20,7 @@ import { engine } from '../engine';
 import { loadConfig } from '../engine/config';
 import { crearGatewayDelMotor, trazaDeConsola } from '../engine/gateway';
 import { Ledger, firestoreLedger } from '../engine/ledger';
+import { limiter } from '../engine/limits';
 import { sanitizeForLog } from '../engine/sanitize';
 import { esExitoRealDeProveedor, recordRealSuccess } from '../engine/verification';
 import { ADAPTERS, DEFAULT_ROUTING, RESOLUTORES_DE_ESTADO } from '../engine/registry';
@@ -41,7 +42,7 @@ import { Conductor, PuertoDeMaterial, crearConductor } from './conductor';
 import { ConstructorDeEntrada, resolutorDeBrain } from './contexto';
 import { conversacionesDeBrain, entidadesDeWee } from './conversaciones';
 import { LibroDeIntentos, crearEjecutor } from './ejecutor';
-import { PuertoDeLiquidacion } from './liquidacion';
+import { PuertoDeLiquidacion, ReservaDelTrabajo } from './liquidacion';
 import { trabajoDelMedio } from './medios';
 import { ReglaDePolitica, SIN_REGLAS, politicaConJurisdicciones, politicaPorReglas } from './politica';
 import { CadenaDeProducto, resolutorPorCadena } from './resolucion';
@@ -71,8 +72,10 @@ import { CadenaDeProducto, resolutorPorCadena } from './resolucion';
  * construcción el mismo que obedece el camino de siempre, y el modelo que se
  * cotizó es el que se ejecuta.
  *
- * NADA DE PRODUCCIÓN PASA POR AQUÍ TODAVÍA. `index.ts` no exporta nada de este
- * directorio y ningún callable lo importa.
+ * NADA DE PRODUCCIÓN PASA POR AQUÍ TODAVÍA camino del Core: el conductor solo
+ * corre detrás de `aiSettings/runtime`, que está CERRADA. Lo que sí corre es el
+ * barrido programado (`barridoDeLiquidacion`, en `settlement/programado.ts`),
+ * que compone desde aquí la reconciliación y la liquidación (`liquidacionDeWee`).
  */
 
 /**
@@ -265,10 +268,24 @@ export const materialDeWee: PuertoDeMaterial = {
  * Lo único que cambia respecto de hoy es QUIÉN las llama: hoy, la invocación
  * que empezó la operación; con esto, también quien la encuentre abierta
  * después, leyendo del trabajo guardado.
+ *
+ * Y EL HUECO DEL CUPO DIARIO SIGUE AL DINERO: si el trabajo ocupa uno (`reserva.cupo`, hoy solo el mundo 3D) y su
+ * reserva queda DEVUELTA, vuelve lo que esa operación ocupó —el limitador de siempre (`engine/limits.ts`) lo tiene
+ * anotado— al día en que se contó. Un trabajo cobrado no lo devuelve, y el limitador no devuelve el de quien canceló
+ * con el proveedor ya trabajando. Sin `cupo` en el trabajo —el vídeo, Weë Brain—, nada cambia.
  */
-export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?: Ledger } = {}): PuertoDeLiquidacion => {
+export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?: Ledger; cupo?: Pick<typeof limiter, 'liberar'> } = {}): PuertoDeLiquidacion => {
   const credits = deps.credits ?? creditEngine;
   const ledger = deps.ledger ?? firestoreLedger;
+  const cupo = deps.cupo ?? limiter;
+  const devolverElHueco = async (userId: string, reserva: ReservaDelTrabajo): Promise<void> => {
+    const hueco = reserva.cupo;
+    if (!hueco) return;
+    /* El dinero ya volvió; un hueco que no vuelve deja a la persona con uno menos ese día, nunca con uno de más. Se registra. */
+    await cupo.liberar(userId, hueco.operacion, hueco.dia).catch((e) => {
+      console.error(`WEË RUNTIME: no se pudo devolver el hueco del día de ${reserva.transactionId}`, sanitizeForLog(e, 300));
+    });
+  };
   const cerrarFila = async (creditTransactionId: string, finalAmount: number) => {
     /*
      * El dinero ya se cerró en el Credit Engine; la fila del libro es la contabilidad del coste. Si no se
@@ -299,6 +316,7 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
       try {
         const r = await credits.refundCredits({ userId, requestId: reserva.requestId, reason: 'Weë · la operación no llegó a completarse', source: 'weë-runtime' });
         await cerrarFila(reserva.transactionId, 0);
+        await devolverElHueco(userId, reserva);
         return { desenlace: r.duplicate ? 'ya_estaba' : 'reembolsada', estado: 'REFUNDED' };
       } catch (e) {
         /*
@@ -622,7 +640,7 @@ export { barrerLiquidaciones } from './barrendero';
 export type { BarrenderoDeps, InformeDelBarrendero, VistoPorElBarrendero } from './barrendero';
 export { pasarElBarrendero, CADA_CUANTO_POR_DEFECTO_MIN } from './barrido';
 export type { BarridoDeps, InformeDeBarrido } from './barrido';
-export { decidirLiquidacion, reservaDe } from './liquidacion';
+export { CLAVE_DE_LA_OPERACION_DEL_CUPO, CLAVE_DEL_DIA_DEL_CUPO, decidirLiquidacion, reservaDe } from './liquidacion';
 export type { AccionDeLiquidacion, PuertoDeLiquidacion, ReservaDelTrabajo } from './liquidacion';
 export type { AlmacenDeTrabajosDeWee } from './almacen';
 export { claveDeOperacion, clavesDeOperacionDe, identidadCompleta, identidadDeEvento, intentoDeLaOperacion } from './proveedor';

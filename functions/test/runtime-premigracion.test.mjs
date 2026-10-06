@@ -242,8 +242,8 @@ console.log('\n── B · El Gateway: qué contesta de verdad, y `accepted` ─
   check('y quien compone el Gateway también la pasa explícita al ejecutor', /aceptaAsincrono: deps\.aceptaAsincrono === true/.test(EJEC));
   /*
    * Y desde la misión fal (2026-10-05), dos: fal también sabe soltar la llamada con el nombre de su operación. Igual
-   * que Seedance, SOLO si se lo piden, y hoy nadie se lo pide para un mundo 3D: el conductor solo atiende sus dos
-   * canaries (CLAUDE.md §10) y world.generate no es ninguno de ellos.
+   * que Seedance, SOLO si se lo piden. Quien se lo pide para un mundo 3D es la tercera puerta del conductor
+   * (`generateWorld` → `world.generate`, CLAUDE.md §10, confirmada el 2026-10-06), cerrada y sin desplegar.
    */
   check('dos adaptadores lo producen —Seedance y fal— y ninguno más',
     fs.readdirSync(path.resolve(RAIZ, 'functions/src/engine/providers')).filter((f) => /accepted: \{ operationId/.test(leer(`functions/src/engine/providers/${f}`))).join(',') === 'fal.ts,seedance.ts');

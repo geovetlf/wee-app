@@ -369,4 +369,5 @@ export const studio = {
   worldStoppingNote: 'Si el mundo llega antes de parar, se queda en tus creaciones y se cobra.',
   worldCancelledNote: 'Paré la creación. Lo que se reservó vuelve a tu saldo de Credits.',
   worldUploadFailed: 'No pude subir tu foto. Inténtalo de nuevo.',
+  worldDailyLimit: 'Ya usaste los mundos 3D de hoy. Si alguno no sale, lo recuperas, y se renuevan cada día.',
 };

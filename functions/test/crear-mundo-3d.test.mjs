@@ -173,6 +173,8 @@ const ERRORES = [
   ['sin perfil', err('failed-precondition', { code: 'ACCOUNT_NOT_FOUND' }), 'sesion', 'weeai.errNoAccount', false],
   ['ya en marcha', err('already-exists', { code: 'DUPLICATE_REQUEST' }), 'duplicado', 'weeai.errDuplicate', false],
   ['demasiadas seguidas', err('resource-exhausted', { code: 'RATE_LIMITED' }), 'reintentable', 'weeai.errRateLimited', true],
+  /* Misión de gobernanza (2026-10-06): el cupo de mundos es del DÍA; reintentar en un momento no sirve, y se dice. */
+  ['el cupo de mundos del día', err('resource-exhausted', { code: 'RATE_LIMITED', modality: '3d', limit: 5, used: 5 }), 'cupo_del_dia', 'studio.worldDailyLimit', false],
   ['el intento anterior se quedó sin tiempo', err('deadline-exceeded', { code: 'TIMEOUT' }), 'reintentable', 'weeai.errTimeout', true],
   ['el proveedor falló', err('unavailable', { code: 'PROVIDER_ERROR', provider: 'fal', retryable: true }), 'reintentable', 'weeai.errGeneric', true],
   ['no se terminó', err('aborted', { code: 'GENERATION_FAILED' }), 'reintentable', 'weeai.errGeneric', true],

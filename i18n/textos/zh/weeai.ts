@@ -171,7 +171,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   errTimeout: '耗时太久，我把它停下了。没有扣除 Credits，再试一次吧。',
   errNotAvailable: '此功能目前不可用。',
   errNotAvailableNow: '此功能暂时不可用，请稍后再试。',
-  errNotAvailableRegion: '此功能在你所在的地区不可用。',
+  errNotAvailableRegion: '此功能目前在你所在的地区不可用。',
   errNotAvailableCountry: '要使用此功能，请在你的真实主页中填写你的国家或地区。',
   errNotAvailableOptions: '你选择的选项无法使用此功能，请换一些试试。',
   errDuplicate: '这个创作已经在进行中了。',

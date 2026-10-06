@@ -535,8 +535,14 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * evalUsage/{día}, no al tope del usuario), types.ts 19/0 → 29/0 (attribution?/evalRunId? en EngineContext y
        * GenerationRecord) y router.ts 57/4 → 59/4 (reenvía esos dos campos al contexto del libro). SIGUE sin haber
        * proveedor ni cadena nuevos.
+       *
+       * + misión de gobernanza del mundo 3D (2026-10-06): limits.ts 40/4 → 169/14 («5 mundos que salen»: comprobar,
+       * el día explícito, cada operación anota lo que ocupó, liberar, consumir), jurisdiccion.ts 46/0 → 62/0 (solo
+       * países del catálogo de Weë, del archivo generado; basta uno fuera para fallar cerrado),
+       * fal-modelos.ts 147/0 → 152/0 (Hunyuan: resto APPROVED por territorio, revisión global intacta) y
+       * elegibilidad.ts 210/0 → 212/0 (un comentario). Ni proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|210\t0\tfunctions/src/engine/elegibilidad.ts|59\t2\tfunctions/src/engine/errors.ts|28\t4\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|147\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|144\t25\tfunctions/src/engine/router.ts|212\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|212\t0\tfunctions/src/engine/elegibilidad.ts|59\t2\tfunctions/src/engine/errors.ts|28\t4\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|144\t25\tfunctions/src/engine/router.ts|212\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 
@@ -639,13 +645,21 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * exportación en la puerta del Content Core (`core/content/index.ts`). Ver docs/3D-ASSET-LIFECYCLE.md.
    */
   const DEL_CICLO_DE_VIDA_3D = ['functions/src/core/content/index.ts', 'functions/src/core/content/linaje.ts'];
+  /*
+   * Los de la GOBERNANZA DEL MUNDO 3D (2026-10-06), por nombre: la lista de cuentas obligatoria en la puerta de siempre
+   * (`runtime/puerta.ts`, `listaObligatoria`), las claves del hueco del cupo diario que viajan con el trabajo para que
+   * la liquidación lo devuelva con el dinero (`runtime/liquidacion.ts`) y los países del registro para el servidor,
+   * GENERADOS por `scripts/paises-del-catalogo.mjs` (`shared/paisesDelCatalogo.ts`, nuevo). Ver docs/3D-EXPERIENCIA.md
+   * §§ 11b, 14 y 15.
+   */
+  const DE_LA_GOBERNANZA_DEL_MUNDO = ['functions/src/runtime/liquidacion.ts', 'functions/src/runtime/puerta.ts', 'functions/src/shared/paisesDelCatalogo.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d y del ciclo de vida 3D',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-      ...DEL_CICLO_DE_VIDA_3D,
+      ...DEL_CICLO_DE_VIDA_3D, ...DE_LA_GOBERNANZA_DEL_MUNDO,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -666,8 +680,9 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. Del Core, solo la misión fal (video-asincrono H3). */
   /* + misión mundo3d (2026-10-05): mundo3d (nuevo), contracts +6, index +1 y escena3d +1 (ver video-asincrono H3). */
   /* + misión mundo3d FASE 5: capability.ts +2 (`world: '3d'`) y mundo3d.ts +15 (364 → 379, los derechos visibles). */
+  /* + misión gobernanza (2026-10-06): mundo3d.ts +1 (379 → 380), el comentario de los derechos visibles con la decisión del dueño. */
   const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n12\t0\tfunctions/src/core/contracts.ts'
-    + '\n217\t0\tfunctions/src/core/escena3d.ts\n2\t0\tfunctions/src/core/index.ts\n379\t0\tfunctions/src/core/mundo3d.ts\n2\t1\tfunctions/src/core/provider.ts'
+    + '\n217\t0\tfunctions/src/core/escena3d.ts\n2\t0\tfunctions/src/core/index.ts\n380\t0\tfunctions/src/core/mundo3d.ts\n2\t1\tfunctions/src/core/provider.ts'
     + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
   /* + ciclo de vida 3D (2026-10-05): el linaje del material (nuevo) y su línea de exportación en la puerta del Content Core. */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts\n651\t0\tfunctions/src/core/content/linaje.ts';

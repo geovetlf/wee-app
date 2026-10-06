@@ -206,7 +206,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   errTimeout: 'इसमें बहुत ज़्यादा समय लग रहा था, इसलिए मैंने इसे रोक दिया. आपके Credits नहीं काटे गए. फिर से कोशिश करें.',
   errNotAvailable: 'यह सुविधा अभी उपलब्ध नहीं है.',
   errNotAvailableNow: 'यह सुविधा इस समय उपलब्ध नहीं है. थोड़ी देर बाद फिर से कोशिश करें.',
-  errNotAvailableRegion: 'यह सुविधा आपके क्षेत्र में उपलब्ध नहीं है.',
+  errNotAvailableRegion: 'यह सुविधा फ़िलहाल आपके क्षेत्र में उपलब्ध नहीं है.',
   errNotAvailableCountry: 'इस सुविधा का उपयोग करने के लिए, अपनी असली प्रोफ़ाइल में अपना देश बताएँ.',
   errNotAvailableOptions: 'आपके चुने हुए विकल्पों के साथ यह सुविधा उपलब्ध नहीं है. दूसरे विकल्प आज़माएँ.',
   errDuplicate: 'यह रचना पहले से बन रही है.',

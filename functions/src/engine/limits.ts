@@ -33,38 +33,157 @@ export interface LimiterDb {
 
 export const dayKey = (date = new Date()): string => date.toISOString().slice(0, 10);
 
+/** Un día como lo escribe `dayKey`. El de una operación viaja con ella para devolverle el hueco al día en que lo ocupó. */
+const FORMA_DE_DIA = /^\d{4}-\d{2}-\d{2}$/;
+/**
+ * EL DÍA DE UNA OPERACIÓN. Sin día, hoy. Uno con otra forma es un error de quien llama y se dice: convertirlo en «hoy»
+ * en silencio ocuparía un hueco que después, con ese mismo día, no se podría devolver.
+ */
+const diaDe = (dia?: string): string => {
+  if (dia === undefined) return dayKey();
+  if (typeof dia === 'string' && FORMA_DE_DIA.test(dia)) return dia;
+  throw new Error('limiter: el día de la operación no tiene la forma AAAA-MM-DD');
+};
+
+/** Por su resumen: un `requestId` lleva puntos, y un punto en una clave de Firestore es un camino. */
+const claveDeOperacion = (operacion: string): string => createHash('sha256').update(operacion, 'utf8').digest('hex').slice(0, 32);
+
+/**
+ * ── LO QUE UNA OPERACIÓN OCUPA EN EL CUPO DEL DÍA ──────────────────────────
+ *
+ * Dos mapas en el documento del día, con la misma clave (el resumen del nombre de la operación):
+ *
+ *   operaciones[clave]   true          contada: ocupa sus huecos (la forma de siempre; el código de antes la entiende).
+ *                        'devuelta'    no salió el resultado (fallo técnico, plazo, proveedor caído, nada llegó a
+ *                                      nadie): sus huecos volvieron al día. Si la MISMA operación vuelve a reservar,
+ *                                      vuelve a contar.
+ *                        'consumida'   la persona pidió cancelar cuando el proveedor ya trabajaba: se quedan gastados.
+ *   cuentas[clave]       QUÉ contó, por modalidad, para que devolverla devuelva exactamente eso. Una operación de antes
+ *                        (sin `cuentas`) cuenta, pero no se puede devolver: no se sabe qué ocupó.
+ *
+ * La clave es el resumen de la operación TAL COMO LA NOMBRA quien llama, y cada puerta la nombra a su manera (el vídeo,
+ * por su `requestId`; el mundo, con su capacidad y un carácter que un requestId no admite): ninguna operación de una
+ * puede ser la de otra. Y si aun así una operación contada no cubre lo que se le pide, es un conflicto, no «ya está».
+ * Solo se devuelve lo contado, una vez: devolver dos veces no regala dos huecos.
+ */
+type EstadoEnElCupo = 'contada' | 'devuelta' | 'consumida';
+interface EntradaDelCupo {
+  estado: EstadoEnElCupo;
+  cuenta?: Partial<Record<Modality, number>>;
+}
+const leerEntrada = (marca: unknown, cuentaCruda: unknown): EntradaDelCupo | undefined => {
+  const estado: EstadoEnElCupo | undefined = marca === true ? 'contada' : marca === 'devuelta' || marca === 'consumida' ? marca : undefined;
+  if (!estado) return undefined;
+  const cuenta = cuentaCruda && typeof cuentaCruda === 'object'
+    ? Object.fromEntries(Object.entries(cuentaCruda as Record<string, unknown>).filter(([, n]) => typeof n === 'number' && Number.isInteger(n) && n > 0)) as Partial<Record<Modality, number>>
+    : {};
+  return { estado, ...(Object.keys(cuenta).length ? { cuenta } : {}) };
+};
+/** ¿Ocupa sus huecos? Contada o gastada; una devuelta, no. */
+const ocupa = (entrada: EntradaDelCupo | undefined): boolean => entrada?.estado === 'contada' || entrada?.estado === 'consumida';
+/** ¿Lo que contó cubre lo que se pide? Una de antes, sin desglose, se da por buena (es la forma de siempre del vídeo). */
+const cubre = (entrada: EntradaDelCupo, wanted: [Modality, number][]): boolean =>
+  !entrada.cuenta || wanted.every(([modality, n]) => Number(entrada.cuenta?.[modality] || 0) >= n);
+
+const pedidas = (counts: Partial<Record<Modality, number>>): [Modality, number][] =>
+  Object.entries(counts).filter(([, n]) => (n || 0) > 0) as [Modality, number][];
+
 export function createLimiter(deps: { db: () => LimiterDb; now?: () => unknown }) {
   const now = deps.now || (() => Timestamp.now());
+  const docDelDia = (userId: string, dia: string) => deps.db().collection('aiRateLimits').doc(`${userId}_${dia}`);
+  const entradaDe = (datos: Record<string, unknown> | undefined, operacion: string): EntradaDelCupo | undefined => {
+    const clave = claveDeOperacion(operacion);
+    return leerEntrada(((datos?.operaciones || {}) as Record<string, unknown>)[clave], ((datos?.cuentas || {}) as Record<string, unknown>)[clave]);
+  };
+  /** Una operación ya contada que no cubre lo pedido: es otra cosa con el mismo nombre, y no se toma por hecha. */
+  const yaContada = (entrada: EntradaDelCupo | undefined, wanted: [Modality, number][]): boolean => {
+    if (!ocupa(entrada)) return false;
+    if (cubre(entrada as EntradaDelCupo, wanted)) return true;
+    throw new EngineError('INVALID_REQUEST', undefined, { reason: 'operacion_de_otro_cupo' });
+  };
+  const pasaDelLimite = (used: Record<string, unknown>, wanted: [Modality, number][], limits: UsageLimits): void => {
+    for (const [modality, n] of wanted) {
+      const limit = limits.perUserPerDay[modality];
+      const current = Number(used[modality] || 0);
+      if (limit && limit > 0 && current + n > limit) {
+        throw new EngineError('RATE_LIMITED', undefined, { modality, limit, used: current });
+      }
+    }
+  };
   return {
     /**
      * Reserva cupo para las generaciones pedidas; lanza RATE_LIMITED si alguna modalidad se pasa.
      *
-     * Con `operacion` —el `requestId` de quien pide— la misma operación cuenta UNA
+     * Con `operacion` —como la nombre quien pide— la misma operación cuenta UNA
      * vez en el día, aunque llegue dos veces a la vez: la segunda la encuentra
-     * apuntada dentro de la misma transacción y no suma. Sin ella, todo es como
-     * siempre.
+     * apuntada dentro de la misma transacción y no suma; y queda anotado QUÉ contó.
+     * Sin ella, todo es como siempre. Con `dia`, el cupo de ESE día.
      */
-    async reserve(userId: string, counts: Partial<Record<Modality, number>>, limits: UsageLimits = DEFAULT_LIMITS, operacion?: string): Promise<void> {
-      const wanted = Object.entries(counts).filter(([, n]) => (n || 0) > 0) as [Modality, number][];
+    async reserve(userId: string, counts: Partial<Record<Modality, number>>, limits: UsageLimits = DEFAULT_LIMITS, operacion?: string, dia?: string): Promise<void> {
+      const wanted = pedidas(counts);
       if (!wanted.length) return;
-      const ref = deps.db().collection('aiRateLimits').doc(`${userId}_${dayKey()}`);
+      const elDia = diaDe(dia);
+      const ref = docDelDia(userId, elDia);
       await deps.db().runTransaction(async (tx) => {
         const snap = await tx.get(ref);
         const used = (snap.data() || {}) as Record<string, number>;
-        /* Por su resumen: un `requestId` lleva puntos, y un punto en una clave de Firestore es un camino. */
-        const clave = operacion ? createHash('sha256').update(operacion, 'utf8').digest('hex').slice(0, 32) : undefined;
-        const contadas = (snap.data()?.operaciones || {}) as Record<string, unknown>;
-        if (clave && contadas[clave] === true) return;
-        const patch: Record<string, unknown> = { userId, day: dayKey(), updatedAt: now(), ...(clave ? { operaciones: { [clave]: true } } : {}) };
-        for (const [modality, n] of wanted) {
-          const limit = limits.perUserPerDay[modality];
-          const current = Number(used[modality] || 0);
-          if (limit && limit > 0 && current + n > limit) {
-            throw new EngineError('RATE_LIMITED', undefined, { modality, limit, used: current });
-          }
-          patch[modality] = current + n;
-        }
+        const anterior = operacion ? entradaDe(snap.data(), operacion) : undefined;
+        if (operacion && yaContada(anterior, wanted)) return;
+        pasaDelLimite(used, wanted, limits);
+        /* Lo que cuenta AHORA, entero: lo que contó antes y ya no, a cero (un merge no puede dejar restos de otra vez). */
+        const cuenta = { ...Object.fromEntries(Object.keys(anterior?.cuenta ?? {}).map((m) => [m, 0])), ...Object.fromEntries(wanted) };
+        const clave = operacion ? claveDeOperacion(operacion) : undefined;
+        const patch: Record<string, unknown> = {
+          userId, day: elDia, updatedAt: now(),
+          ...(clave ? { operaciones: { [clave]: true }, cuentas: { [clave]: cuenta } } : {}),
+        };
+        for (const [modality, n] of wanted) patch[modality] = Number(used[modality] || 0) + n;
         tx.set(ref, patch, { merge: true });
+      });
+    },
+
+    /**
+     * ¿CABE? Lo mismo que `reserve`, sin apuntar nada: para decir «hoy ya no» ANTES de tocar Credits o de enseñar un
+     * precio. Una operación que ya ocupa sus huecos, cabe (son los suyos).
+     */
+    async comprobar(userId: string, counts: Partial<Record<Modality, number>>, limits: UsageLimits = DEFAULT_LIMITS, operacion?: string, dia?: string): Promise<void> {
+      const wanted = pedidas(counts);
+      if (!wanted.length) return;
+      const snap = await docDelDia(userId, diaDe(dia)).get();
+      if (operacion && yaContada(entradaDe(snap.data(), operacion), wanted)) return;
+      pasaDelLimite((snap.data() || {}) as Record<string, unknown>, wanted, limits);
+    },
+
+    /**
+     * DEVOLVER LOS HUECOS de una operación que no dio su resultado, al día en que los ocupó: exactamente los que contó
+     * (su `cuenta`), no los que diga quien llama. Idempotente: solo una operación contada se devuelve, y una vez; una
+     * `consumida` no vuelve nunca, y una de antes (sin desglose) no se puede devolver. Contesta si devolvió.
+     */
+    async liberar(userId: string, operacion: string, dia: string): Promise<boolean> {
+      const ref = docDelDia(userId, diaDe(dia));
+      return deps.db().runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const entrada = entradaDe(snap.data(), operacion);
+        if (entrada?.estado !== 'contada' || !entrada.cuenta) return false;
+        const used = (snap.data() || {}) as Record<string, unknown>;
+        const patch: Record<string, unknown> = { updatedAt: now(), operaciones: { [claveDeOperacion(operacion)]: 'devuelta' } };
+        for (const [modality, n] of Object.entries(entrada.cuenta)) patch[modality] = Math.max(0, Number(used[modality] || 0) - Number(n));
+        tx.set(ref, patch, { merge: true });
+        return true;
+      });
+    },
+
+    /**
+     * LOS HUECOS SE QUEDAN GASTADOS: la persona pidió cancelar cuando el proveedor ya trabajaba. Desde aquí, `liberar`
+     * no los devuelve. Solo una operación contada cambia; contesta si cambió.
+     */
+    async consumir(userId: string, operacion: string, dia: string): Promise<boolean> {
+      const ref = docDelDia(userId, diaDe(dia));
+      return deps.db().runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (entradaDe(snap.data(), operacion)?.estado !== 'contada') return false;
+        tx.set(ref, { updatedAt: now(), operaciones: { [claveDeOperacion(operacion)]: 'consumida' } }, { merge: true });
+        return true;
       });
     },
   };

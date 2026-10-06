@@ -54,8 +54,10 @@ const CODIGO = /^[A-Z]{2}$/;
 /**
  * Los grupos que usan las licencias, por sus miembros. La Unión Europea son sus 27 Estados miembros (ISO 3166-1
  * alfa-2; Grecia es «GR»). Un territorio con código propio que no esté aquí —regiones ultraperiféricas, territorios de
- * ultramar, dependencias de la Corona— no cae en ningún grupo: queda en `resto`, que para un modelo restringido es
- * REVIEW_REQUIRED, así que tampoco es elegible hasta que legal lo decida.
+ * ultramar, dependencias de la Corona— no cae en ningún grupo, y TAMPOCO está en el catálogo de países de Weë
+ * (`PAISES_DEL_CATALOGO`, `engine/jurisdiccion.ts`): declararlo no da una jurisdicción, y para un modelo con reglas
+ * territoriales eso es JURISDICTION_UNKNOWN (falla cerrado), aunque su `resto` esté aprobado. Si el catálogo llegara a
+ * ofrecer una región ultraperiférica de la UE, tendría que entrar en este grupo (lo vigila `mundo3d-gobernanza`).
  */
 export const GRUPOS_DE_JURISDICCIONES: Readonly<Record<string, readonly string[]>> = Object.freeze({
   EU: Object.freeze([
