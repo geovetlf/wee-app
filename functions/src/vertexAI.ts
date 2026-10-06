@@ -7,6 +7,12 @@
  */
 
 // sharp is lazy-loaded to avoid deployment timeout
+/*
+ * El Storage de Weë, en cambio, va estático: es ligero, el avatar ya lo carga
+ * por `creator/inputs` (su guardia de direcciones), y así el lector y la URL de
+ * descarga quedan a la vista del grafo en vez de esconderse en un `import()`.
+ */
+import { downloadUrlFor, readImage } from './engine/http';
 
 // Project configuration
 // Bucket de Weë: el del proyecto activo (FIREBASE_CONFIG) salvo que STORAGE_BUCKET indique otro
@@ -351,34 +357,23 @@ export async function uploadImageToStorage(
   });
 
   // URL de descarga estable (producción o emulador de Storage)
-  const { downloadUrlFor } = await import('./engine/http');
   return downloadUrlFor(bucket.name, storagePath, downloadToken);
 }
 
 /**
- * Downloads an image from URL and converts to base64
- * Also handles data URLs (base64 already embedded)
+ * Reads an input image and converts it to base64
+ *
+ * SE LEE CON EL LECTOR COMÚN (`readImage`, revisión de seguridad 2026-10-06).
+ * Antes era un `fetch(url)` a lo que llegara: sin plazo, sin tope y sin mirar
+ * el host, así que una dirección con la ruta «correcta» y un host ajeno hacía
+ * que el servidor fuera a buscarla fuera. Las dos fotos del avatar llegan ya
+ * comprobadas y reescritas por `assertInputImageUrl` (cubo de Weë, carpeta de la
+ * cuenta) y se leen como todas las demás: con el Admin SDK, nunca por la red.
+ * (Una `data:` también la sabe leer `readImage`, con su tope de tamaño.)
  */
 export async function urlToBase64(url: string): Promise<{ base64: string; mimeType: string }> {
-  // Handle data URLs directly
-  if (url.startsWith('data:')) {
-    const match = url.match(/^data:([^;]+);base64,(.+)$/);
-    if (match) {
-      return { mimeType: match[1], base64: match[2] };
-    }
-    throw new Error('Invalid data URL format');
-  }
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${url}`);
-  }
-
-  const buffer = await response.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString('base64');
-  const contentType = response.headers.get('content-type') || 'image/jpeg';
-
-  return { base64, mimeType: contentType };
+  const { buffer, contentType } = await readImage(url, 'avatar');
+  return { base64: buffer.toString('base64'), mimeType: contentType };
 }
 
 /**

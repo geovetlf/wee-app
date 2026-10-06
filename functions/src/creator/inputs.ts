@@ -1,6 +1,6 @@
 import { CapabilityId, CreatorJob, JobStep } from './types';
 import { EngineError } from '../engine/errors';
-import { parseStorageUrl } from '../engine/http';
+import { direccionDeLaCuenta } from '../engine/http';
 import { Modality, modalityOf } from '../engine/types';
 import { buildImagePrompt, buildTextPrompt, buildVideoPrompt, narrationFrom } from './prompts';
 
@@ -33,14 +33,20 @@ const TEXT_CAPS: CapabilityId[] = ['text.generate', 'text.structure', 'text.sear
 /**
  * Solo se aceptan fotos que la propia persona subió a Storage de Weë
  * (users/{uid}/…): nunca URLs arbitrarias de internet.
+ *
+ * La regla es la de `direccionDeLaCuenta` (engine/http.ts): host del Storage de
+ * Weë, cubo de Weë y carpeta de la cuenta. Y lo que se devuelve es la dirección
+ * REESCRITA desde esas piezas, no la que llegó: es la que viaja al trabajo, al
+ * motor y a la conversación (revisión de seguridad 2026-10-06).
  */
 export const assertInputImageUrl = (url: unknown, uid: string): string => {
   if (typeof url !== 'string' || !url.trim()) throw new EngineError('INVALID_REQUEST', 'Sube una foto para que Weë pueda trabajar con ella.', { reason: 'needs_image' });
   if (url.length > 2000) throw new EngineError('INVALID_REQUEST', 'La dirección de la foto no es válida.', { reason: 'bad_image_url' });
-  const parsed = parseStorageUrl(url);
-  if (!parsed) throw new EngineError('INVALID_REQUEST', 'La foto debe subirse a Weë antes de usarla.', { reason: 'bad_image_url' });
-  if (!parsed.path.startsWith(`users/${uid}/`)) throw new EngineError('INVALID_REQUEST', 'Esa foto no es tuya.', { reason: 'bad_image_url' });
-  return url;
+  const direccion = direccionDeLaCuenta(url, uid);
+  if (direccion.ok) return direccion.url;
+  if (direccion.motivo === 'malformada') throw new EngineError('INVALID_REQUEST', 'La dirección de la foto no es válida.', { reason: 'bad_image_url' });
+  if (direccion.motivo === 'ajena') throw new EngineError('INVALID_REQUEST', 'Esa foto no es tuya.', { reason: 'bad_image_url' });
+  throw new EngineError('INVALID_REQUEST', 'La foto debe subirse a Weë antes de usarla.', { reason: 'bad_image_url' });
 };
 
 export const needsInputImage = (steps: { capability: CapabilityId }[]): boolean => steps.some((s) => IMAGE_INPUT_CAPS.includes(s.capability));
@@ -53,10 +59,11 @@ export const assertAttachmentUrl = (url: unknown, uid: string, kind: keyof typeo
   const { label } = ATTACHMENT_KINDS[kind];
   if (typeof url !== 'string' || !url.trim()) throw new EngineError('INVALID_REQUEST', `Sube el ${label} para que Weë pueda leerlo.`, { reason: 'needs_file' });
   if (url.length > 2000) throw new EngineError('INVALID_REQUEST', `La dirección del ${label} no es válida.`, { reason: 'bad_file_url' });
-  const parsed = parseStorageUrl(url);
-  if (!parsed) throw new EngineError('INVALID_REQUEST', `El ${label} debe subirse a Weë antes de usarlo.`, { reason: 'bad_file_url' });
-  if (!parsed.path.startsWith(`users/${uid}/`)) throw new EngineError('INVALID_REQUEST', `Ese ${label} no es tuyo.`, { reason: 'bad_file_url' });
-  return url;
+  const direccion = direccionDeLaCuenta(url, uid);
+  if (direccion.ok) return direccion.url;
+  if (direccion.motivo === 'malformada') throw new EngineError('INVALID_REQUEST', `La dirección del ${label} no es válida.`, { reason: 'bad_file_url' });
+  if (direccion.motivo === 'ajena') throw new EngineError('INVALID_REQUEST', `Ese ${label} no es tuyo.`, { reason: 'bad_file_url' });
+  throw new EngineError('INVALID_REQUEST', `El ${label} debe subirse a Weë antes de usarlo.`, { reason: 'bad_file_url' });
 };
 
 /** Cuántas generaciones de cada modalidad pide un plan (para los límites por persona). */

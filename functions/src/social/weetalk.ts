@@ -31,7 +31,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { referenciaDesdeUrlDeWee } from '../content';
-import { storageBucket } from '../engine/http';
+import { esDireccionDelStorageDeWee, storageBucket } from '../engine/http';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './econtact';
 import { identidadHeredadaEsDeLaCuenta, identidadesHeredadasDeLaCuenta } from '../identity/compatibilidad';
 
@@ -115,11 +115,11 @@ export interface PuertosDelQuemador {
  */
 const FORMA_DE_REMITENTE = /^[A-Za-z0-9]{1,128}$/;
 const FORMA_DE_ARCHIVO = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
-/** Solo los hosts del Storage de Weë (y el emulador en local). Un host ajeno con la forma correcta no es una dirección de Weë. */
-const FORMA_DE_DIRECCION_DE_WEE = /^(?:gs:\/\/|https:\/\/firebasestorage\.googleapis\.com\/|https:\/\/storage\.googleapis\.com\/|http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/)/;
-
-export const esDireccionDelStorageDeWee = (url: unknown): boolean =>
-  typeof url === 'string' && FORMA_DE_DIRECCION_DE_WEE.test(url);
+/*
+ * Solo los hosts del Storage de Weë: un host ajeno con la forma correcta no es una dirección de Weë. La regla vivía
+ * aquí y ahora vive en un solo sitio para toda Weë (`esDireccionDelStorageDeWee`, engine/http.ts), la misma con la que
+ * Weë AI acepta las fotos de la persona; el emulador cuenta solo cuando este proceso corre contra él.
+ */
 
 /**
  * ¿Es esta clave la foto única que ESE remitente subió para ESTA conversación?
