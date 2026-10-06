@@ -542,7 +542,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * fal-modelos.ts 147/0 → 152/0 (Hunyuan: resto APPROVED por territorio, revisión global intacta) y
        * elegibilidad.ts 210/0 → 212/0 (un comentario). Ni proveedor ni cadena nuevos.
        *
-       * + cierre final de gobernanza y cost accounting de World 3D (2026-10-06): ledger.ts 19/2 → 164/29 (`closeAccepted`:
+       * + cierre final de gobernanza y cost accounting de World 3D (2026-10-06): ledger.ts 19/2 → 171/29 (`closeAccepted`:
        * la fila de lo ACEPTADO se cierra una vez, en transacción con su suma al día, cuando se sabe cómo acabó; la suma al
        * día en un solo sitio para `close` y `closeAccepted`) y types.ts 212/3 → 219/3 (`providerCostStatus` y
        * `providerCostEstimated` declarados en la fila). Ni proveedor, ni cadena, ni otro libro.
@@ -552,7 +552,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * Storage que llega de fuera y el lector sin segundo intento por HTTP) e imageMeta.ts +8 −5 (las medidas, solo del
        * cubo de Weë). Ningún proveedor ni ninguna cadena nuevos. Detalle en video-asincrono H2.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|212\t0\tfunctions/src/engine/elegibilidad.ts|59\t2\tfunctions/src/engine/errors.ts|28\t4\tfunctions/src/engine/gateway.ts|191\t24\tfunctions/src/engine/http.ts|8\t5\tfunctions/src/engine/imageMeta.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|164\t29\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|144\t25\tfunctions/src/engine/router.ts|219\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|212\t0\tfunctions/src/engine/elegibilidad.ts|59\t2\tfunctions/src/engine/errors.ts|28\t4\tfunctions/src/engine/gateway.ts|191\t24\tfunctions/src/engine/http.ts|8\t5\tfunctions/src/engine/imageMeta.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|171\t29\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|144\t25\tfunctions/src/engine/router.ts|219\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 

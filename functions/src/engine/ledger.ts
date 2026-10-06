@@ -277,15 +277,22 @@ const sumaAlUsoDelDia = (record: Partial<GenerationRecord>, patch: CloseRecord, 
 };
 
 /**
- * EL CIERRE DE LO ACEPTADO, EN FIRESTORE. La consulta es la de `settle` (un campo, sin índice compuesto); cada fila se
- * cierra en su propia transacción, que relee la fila, comprueba que SIGUE en curso y con la misma tarea, y escribe la
- * fila y su suma al uso del día juntas. Si otra liquidación la cerró antes, esta no escribe nada.
+ * Cuántas filas de UNA transacción se miran como mucho al cerrar lo aceptado. Una transacción lleva una fila por
+ * intento de su trabajo (un mundo, uno; un vídeo, los que permita su política): cien es de sobra, y acotar la consulta
+ * evita leer sin fin si algo escribiera filas de más. Lo que quedara fuera seguiría en curso, que se ve.
+ */
+const MAX_FILAS_DE_UNA_TRANSACCION = 100;
+
+/**
+ * EL CIERRE DE LO ACEPTADO, EN FIRESTORE. La consulta es la de `settle` (un campo, sin índice compuesto), acotada; cada
+ * fila se cierra en su propia transacción, que relee la fila, comprueba que SIGUE en curso y con la misma tarea, y
+ * escribe la fila y su suma al uso del día juntas. Si otra liquidación la cerró antes, esta no escribe nada.
  */
 async function closeAcceptedFirestore(patch: CloseAcceptedRecord): Promise<{ cerradas: number }> {
   const { creditTransactionId, cierres } = patch;
   if (!creditTransactionId || !cierres.length) return { cerradas: 0 };
   const porTarea = new Map(cierres.map((c) => [c.providerTaskId, c]));
-  const snap = await db().collection('aiGenerations').where('creditTransactionId', '==', creditTransactionId).get();
+  const snap = await db().collection('aiGenerations').where('creditTransactionId', '==', creditTransactionId).limit(MAX_FILAS_DE_UNA_TRANSACCION).get();
   let cerradas = 0;
   for (const d of snap.docs) {
     const cierre = porTarea.get(String(d.get('providerTaskId') ?? ''));
