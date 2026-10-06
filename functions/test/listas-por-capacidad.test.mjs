@@ -179,10 +179,26 @@ console.log('\n── C · Cada puerta declara su capacidad y lleva la cuenta de
     .flatMap((e) => (e.isDirectory() ? todo(`${dir}/${e.name}`) : e.name.endsWith('.ts') ? [`${dir}/${e.name}`] : []));
   const fuera = todo('functions/src').filter((f) => !f.startsWith('functions/src/runtime/'));
   const leen = fuera.filter((f) => /decidirRuntime\(|configuracionDeLaPuerta\(/.test(sinComentarios(leer(f)))).sort();
-  check('C6) tres puertas y ninguna más leen esta configuración —recorriendo todo functions/src fuera del runtime—, y nadie la escribe',
+  /*
+   * Y NADIE LA ESCRIBE, en todo functions/src (también runtime/): el documento solo se nombra con sus dos constantes, que
+   * viven en runtime/configuracion.ts, y ahí se usan una vez y para LEER. Ni la ruta a mano ('aiSettings' + 'runtime',
+   * con cualquier comilla y en varias líneas), ni otro archivo con las constantes.
+   */
+  const codigo = todo('functions/src').map((f) => [f, sinComentarios(leer(f))]);
+  const conLasConstantes = codigo.filter(([, s]) => /COLECCION_DE_LA_PUERTA|DOCUMENTO_DE_LA_PUERTA/.test(s)).map(([f]) => f);
+  const aMano = codigo.filter(([, s]) => /['"`]aiSettings\/runtime['"`]|['"`]aiSettings['"`]\s*\)\s*\.\s*doc\(\s*['"`]runtime['"`]/.test(s)).map(([f]) => f);
+  const configuracion = codigo.find(([f]) => f === 'functions/src/runtime/configuracion.ts')?.[1] ?? '';
+  /* Cada vez que se nombra la colección de la puerta, con el documento y el método que se le llama después. */
+  const usoEnConfiguracion = [...configuracion.matchAll(/\.collection\(COLECCION_DE_LA_PUERTA\)\s*\.doc\(DOCUMENTO_DE_LA_PUERTA\)\s*\.(\w+)\(/g)].map((m) => m[1]);
+  const nombraLaColeccion = (configuracion.match(/COLECCION_DE_LA_PUERTA/g) || []).length;
+  const nombraElDocumento = (configuracion.match(/DOCUMENTO_DE_LA_PUERTA/g) || []).length;
+  check('C6) tres puertas y ninguna más leen esta configuración —recorriendo todo functions/src fuera del runtime—, y NADIE la escribe: el documento solo se nombra en runtime/configuracion.ts, una vez, para leerlo',
     JSON.stringify(leen) === JSON.stringify(['functions/src/creator/brain.ts', 'functions/src/creator/mundo.ts', 'functions/src/creator/video.ts'])
-    && fuera.every((f) => !/collection\('aiSettings'\)\.doc\('runtime'\)\.(set|update)|doc\('aiSettings\/runtime'\)\.(set|update)|DOCUMENTO_DE_LA_PUERTA\)\.(set|update)/.test(leer(f))),
-    leen.join(', '));
+    && JSON.stringify(conLasConstantes) === JSON.stringify(['functions/src/runtime/configuracion.ts']) && aMano.length === 0
+    /* Definidas una vez (export const …) y usadas una vez, juntas y para LEER (`.get()`): nada más las nombra. */
+    && JSON.stringify(usoEnConfiguracion) === JSON.stringify(['get']) && nombraLaColeccion === 2 && nombraElDocumento === 2
+    && !/\.(set|update|create|delete)\(/.test(configuracion),
+    JSON.stringify({ leen, conLasConstantes, aMano, usoEnConfiguracion, nombraLaColeccion, nombraElDocumento }));
 }
 
 /* ═══ D · VOLVER ATRÁS ══════════════════════════════════════════════════════ */

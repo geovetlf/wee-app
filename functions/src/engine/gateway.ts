@@ -21,7 +21,7 @@ import {
 } from '../core';
 import { datosDelRegistro } from '../registry';
 import { EngineConfig, loadConfig } from './config';
-import { classifyError, costeTrasUnFallo } from './errors';
+import { classifyError, costeTrasUnFallo, tareaEnElProveedor } from './errors';
 import { NotConfiguredError, ProviderError } from './http';
 import { ADAPTERS, DEFAULT_ROUTING } from './registry';
 import { sanitizeForLog } from './sanitize';
@@ -297,7 +297,7 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
       /* El proveedor ya tiene la tarea (dijo su nombre): un fallo de aquí en adelante pudo costar dinero (H0 #22). */
       let despachado = false;
       const onStatus = async (_status: 'PROCESSING', meta: Record<string, unknown>) => {
-        if (typeof meta?.providerTaskId === 'string' && meta.providerTaskId) despachado = true;
+        if (tareaEnElProveedor(meta)) despachado = true;
         if (!hooks?.onProgress) return;
         try {
           await hooks.onProgress({ stage: 'processing', at: now(), providerMeta: sanearMeta(meta).valor as Record<string, unknown> });

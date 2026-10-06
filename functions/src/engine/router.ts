@@ -6,7 +6,7 @@ import { creditsFor, estimateUsd } from './pricing';
 import { recordRealSuccess } from './verification';
 import { sanitizeForLog } from './sanitize';
 import { NotConfiguredError, ProviderError } from './http';
-import { classifyError, costeTrasUnFallo, EngineError, motivoDeNoDisponible, noDisponible } from './errors';
+import { classifyError, costeTrasUnFallo, EngineError, motivoDeNoDisponible, noDisponible, tareaEnElProveedor } from './errors';
 import { camposAjustables, ContextoDeElegibilidad, elegibilidadDeLaCapacidad, elegibleEnAlgunaJurisdiccion, modeloElegible, textoDeElegibilidad } from './elegibilidad';
 import { providerCallsToday, providerUsdToday, usdToday } from './limits';
 import {
@@ -434,7 +434,7 @@ export function createRouter(deps: RouterDeps) {
       /* El proveedor ya tiene la tarea: si después falla, pudo costar dinero (ver costeTrasUnFallo). */
       let despachado = false;
       const onStatus = async (status: 'PROCESSING', meta: Record<string, unknown>) => {
-        if (typeof meta.providerTaskId === 'string' && meta.providerTaskId) despachado = true;
+        if (tareaEnElProveedor(meta)) despachado = true;
         await deps.ledger.progress(generationId, {
           status,
           providerTaskId: typeof meta.providerTaskId === 'string' ? meta.providerTaskId : undefined,

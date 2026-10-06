@@ -139,9 +139,12 @@ export type IdentidadDelLibro = (dispatch: JobDispatch) => { requestId?: string;
 
 /**
  * Lo que el Gateway rechaza ANTES de ejecutar nada, por su código: una petición que no vale, una capacidad, un
- * proveedor o un modelo que no están, o un plazo ya vencido. Nada salió hacia el proveedor.
+ * proveedor o un modelo que no están, un plazo ya vencido, o una avería de Weë (`INTERNAL_ERROR`: el registro que no
+ * contesta, o el ejecutor que se rompe antes de llamar al adaptador —con el ejecutor del motor, lo que falla DENTRO del
+ * adaptador vuelve anotado y nunca llega aquí—). Nada salió hacia el proveedor: contarlo «en riesgo» llenaría los topes
+ * de gasto en plena avería con dinero que no se gastó.
  */
-const RECHAZOS_ANTES_DE_EJECUTAR: ReadonlySet<string> = new Set(['INVALID_REQUEST', 'CAPABILITY_UNAVAILABLE', 'PROVIDER_UNAVAILABLE', 'MODEL_UNAVAILABLE', 'TIMEOUT']);
+const RECHAZOS_ANTES_DE_EJECUTAR: ReadonlySet<string> = new Set(['INVALID_REQUEST', 'CAPABILITY_UNAVAILABLE', 'PROVIDER_UNAVAILABLE', 'MODEL_UNAVAILABLE', 'TIMEOUT', 'INTERNAL_ERROR']);
 
 /**
  * ¿PUDO COBRAR EL PROVEEDOR UN INTENTO QUE FALLÓ? (H0 #22, por el conductor.) La regla NO se reescribe aquí:
@@ -150,9 +153,9 @@ const RECHAZOS_ANTES_DE_EJECUTAR: ReadonlySet<string> = new Set(['INVALID_REQUES
  *     regla de siempre (`costeTrasUnFallo`), y viaja en el error (`details.costeDelFallo`). Se lee y ya.
  *   - Si el fallo es del Gateway sin pasar por el adaptador, se decide por su CÓDIGO —el motivo fino es diagnóstico y
  *     no se ramifica por él—: un rechazo previo a ejecutar (`RECHAZOS_ANTES_DE_EJECUTAR`) es cero. Lo demás —una
- *     respuesta del proveedor que no se pudo usar, una tarea aceptada sin nombre, una avería del ejecutor— pudo
- *     costar, y va «en riesgo» (`usdEnRiesgo`), que es lo que ven los topes. En la duda, riesgo: mejor parar un poco
- *     antes que gastar sin verlo.
+ *     respuesta del proveedor que no se pudo usar, una tarea aceptada sin nombre (`PROVIDER_ERROR`: el proveedor ya
+ *     trabajó)— pudo costar, y va «en riesgo» (`usdEnRiesgo`), que es lo que ven los topes. Un resultado fallido sin
+ *     error, que no debería existir, también: en la duda, riesgo.
  */
 export const costeDelFalloDelGateway = (resultado: GatewayResult): 'cero' | 'desconocido' => {
   const error = resultado.error;

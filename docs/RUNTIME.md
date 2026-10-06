@@ -2152,7 +2152,7 @@ en producción: ninguna cuenta está migrada.
   con el mismo sondeo y el mismo reembolso al fallar. `generateVideo` no tiene todavía
   clientes en la app.
 - La fila del libro de un vídeo aceptado se cierra con `providerCost: 0`; el coste real no
-  se anota al terminar. → **Cerrado en §25c** (2026-10-06): la fila queda en curso y la
+  se anota al terminar. → **Cerrado en el código en §25c** (2026-10-06, sin desplegar): la fila queda en curso y la
   cierra la liquidación con su desenlace —para el vídeo, con la estimación de su cotización
   marcada `estimado`, porque cobra por segundos y su coste medido aún no se convierte—.
 - Un POST cuya respuesta se pierde —error de red o plazo agotado después de enviarlo— se
@@ -2390,7 +2390,7 @@ otro Job Engine, sin otro Credit Engine, sin otro motor: el mismo conductor de l
 - **El coste de un intento aceptado no se anota todavía** (§22.5, también para el vídeo): la fila del libro se cierra al
   aceptar con `providerCost: 0` y nadie la corrige al final, así que los topes diarios de proveedor no ven lo que cuesta
   un mundo. Es requisito del runbook antes de abrir el canary ([3D-EXPERIENCIA.md](3D-EXPERIENCIA.md) §20). → **Cerrado
-  en §25c.**
+  en el código en §25c** (sin desplegar).
 - **Pruebas**: `mundo3d-gobernanza` (A–G) y `mundo3d.emulator.mjs` (34).
 
 ### 25c. Cierre final: una lista por capacidad y el coste de lo aceptado (misión del 2026-10-06)
@@ -2414,8 +2414,9 @@ reutilizando lo que hay —ni otro sistema de permisos, ni otro libro, ni otro C
   de una entrada cierra esa capacidad sola, con su lista intacta; y `habilitado: false` arriba MANDA PRIMERO, sea cual
   sea el resto: el documento cerrado de §21.3 se lee «deshabilitada», no «ilegible».
 - **La forma de antes cierra.** Un documento con `capacidades`, `cuentas` o `experiencias` arriba se da por ilegible
-  (`configuracion_ilegible`, legacy): el estado de producción de §21.3 (`{ habilitado: false, capacidades: [] }`) se lee
-  así, cerrado. Y al revés: el código de antes no encuentra `capacidades` en un documento de ahora y lo da por ilegible,
+  (`configuracion_ilegible`, legacy) —salvo que diga `habilitado: false`, que manda primero: el estado de producción de
+  §21.3 (`{ habilitado: false, capacidades: [] }`) se lee «deshabilitada», cerrado y diciendo que está cerrado a
+  propósito—. Y al revés: el código de antes no encuentra `capacidades` en un documento de ahora y lo da por ilegible,
   así que una Function sin volver a desplegar nunca queda abierta para todos por un documento nuevo. Abrir un canary es
   ESCRIBIR el documento entero (sin mezclar con el anterior), después de desplegar las puertas con esta lectura.
 - Pruebas: `listas-por-capacidad` (38: las diez de la misión, el cierre por capacidad, `habilitado: false` primero, la regla que la configuración no cambia, las tres puertas
@@ -2429,7 +2430,8 @@ reutilizando lo que hay —ni otro sistema de permisos, ni otro libro, ni otro C
 - **Al aceptar** (`libroDelMotor.cerrar`, `runtime/index.ts`): la fila de `aiGenerations` NO se cierra. Queda
   `PROCESSING` con `providerTaskId` = el nombre que el proveedor dio a la tarea, el mismo que guarda el intento del
   trabajo (`providerRef.operationId`). Ni llamadas ni dinero al día todavía: lo que está en marcha no cuenta.
-- **Al saberse el desenlace**, lo cierra la liquidación del barrido desplegado (`liquidacionDeWee`): después del dinero
+- **Al saberse el desenlace**, lo cierra la liquidación del barrido (`liquidacionDeWee`; el barrido desplegado hoy es la
+  versión de antes, y lo hará cuando se despliegue esta): después del dinero
   y ANTES de `ledger.settle` —para que la fila completada reciba los Credits—, con `desenlacesDeLasAceptadas(job)`
   (`runtime/liquidacion.ts`, pura) y el método nuevo del libro de siempre, `ledger.closeAccepted` (`engine/ledger.ts`):
   una transacción por fila que comprueba que SIGUE en curso y con la misma tarea, y escribe la fila y su suma a
@@ -2448,8 +2450,8 @@ reutilizando lo que hay —ni otro sistema de permisos, ni otro libro, ni otro C
   clasificación de errores, y el router reexporta: así el ejecutor no arrastra el router—, y si el proveedor ya dio
   nombre a la tarea, como despachada— y viaja en el error (`details.costeDelFallo`); el runtime solo la lee
   (`costeDelFalloDelGateway`). Un fallo del Gateway sin pasar por el adaptador se decide por su CÓDIGO —el motivo fino es
-  diagnóstico—: un rechazo previo a ejecutar, cero; una tarea aceptada sin nombre, una respuesta inservible o una avería
-  del ejecutor, «en riesgo».
+  diagnóstico—: un rechazo o una avería previos a ejecutar (con este ejecutor, todo lo que falla en el adaptador vuelve
+  anotado), cero; una tarea aceptada sin nombre o una respuesta del proveedor inservible, «en riesgo».
 - **Una reserva ya devuelta no se liquida con Credits**: si `completeCredits` contesta que la transacción no quedó
   cobrada, la fila se liquida a 0 (antes, con el importe).
 - **La cadena, sin ambigüedad**: `world.generate#<requestId>` (el hueco del día, `aiRateLimits`) ↔ `usage_<requestId>`
@@ -2465,7 +2467,11 @@ reutilizando lo que hay —ni otro sistema de permisos, ni otro libro, ni otro C
   con las puertas o antes, y no se devuelve a una versión anterior por separado mientras haya trabajos aceptados en marcha
   (3D-EXPERIENCIA §20). Hacer que `settle` no selle una transacción con filas en curso sería tocar `settle`: decisión del
   dueño, no tomada.
-- **Lo que NO cambió**: ni el Gateway del Core, ni el Router, ni el Job Engine, ni el Credit Engine, ni `settle`; del
-  motor, solo la anotación del coste de un fallo en su ejecutor y `tarifaExacta`; ni una Function nueva; ninguna puerta
-  abierta. Pendiente, dicho: convertir el uso MEDIDO de un vídeo aceptado (tokens del aviso) en
+- **Lo que cambió del motor, entero**: el libro (`closeAccepted`, `cierreDeAceptada`, `sumaDeUnCierre`; `close` suma lo
+  mismo que antes y `settle` no se toca), la fila (`providerCostStatus`/`providerCostEstimated` declarados), el ejecutor
+  del Gateway (la anotación del coste de un fallo), `errors.ts` (`costeTrasUnFallo` mudada desde el router, que la
+  reexporta, y `tareaEnElProveedor`) y `pricing.ts` (`tarifaExacta`).
+- **Lo que NO cambió**: ni el Gateway del Core, ni el Router del Core, ni el Job Engine, ni el Credit Engine, ni `settle`;
+  ni una Function nueva; ninguna puerta abierta. Pendiente, de los dos caminos por igual: un adaptador que avisa de su
+  avance sin `providerTaskId` (fal síncrono dice `requestId`) no se ve «despachado»; por el conductor, fal acepta y suelta. Pendiente, dicho: convertir el uso MEDIDO de un vídeo aceptado (tokens del aviso) en
   dinero; hoy se cierra con la estimación, marcada.

@@ -309,20 +309,23 @@ await seccion('A', async () => {
   const apagado = await porElGateway(lanza(new Error('no debe llamarse')), { config: { falso: { enabled: false, priority: 1 } } });
   const vencido = await porElGateway(lanza(new Error('no debe llamarse')), { execution: { mode: 'sync', deadlineAt: T0 - 1 } });
   const delGateway = (code, reason) => fallido('x', errorDelCore(code, 'gateway', { details: { reason } }));
-  check('A6) los fallos del GATEWAY sin pasar por el adaptador se deciden por su código: un rechazo previo a ejecutar (proveedor apagado, plazo vencido, petición mala), cero; una tarea aceptada sin nombre, una respuesta del proveedor inservible o una avería del ejecutor, desconocido',
+  check('A6) los fallos del GATEWAY sin pasar por el adaptador se deciden por su código: un rechazo o una avería previos a ejecutar (proveedor apagado, plazo vencido, petición mala, registro caído, ejecutor roto antes del adaptador), cero; una tarea aceptada sin nombre o una respuesta del proveedor inservible, desconocido',
     apagado.status === 'failed' && rt.costeDelFalloDelGateway(apagado) === 'cero'
     && vencido.status === 'failed' && rt.costeDelFalloDelGateway(vencido) === 'cero'
     && sinNombre.status === 'failed' && sinNombre.error?.details?.reason === 'accepted_without_operation' && rt.costeDelFalloDelGateway(sinNombre) === 'desconocido'
     && rt.costeDelFalloDelGateway(delGateway('PROVIDER_ERROR', 'invalid_provider_response')) === 'desconocido'
-    && rt.costeDelFalloDelGateway(delGateway('INTERNAL_ERROR', 'executor_failure')) === 'desconocido'
+    && rt.costeDelFalloDelGateway(delGateway('INTERNAL_ERROR', 'executor_failure')) === 'cero'
+    && rt.costeDelFalloDelGateway(delGateway('INTERNAL_ERROR', 'registry_unavailable')) === 'cero'
     && rt.costeDelFalloDelGateway(delGateway('INVALID_REQUEST', 'input_too_large')) === 'cero'
     && rt.costeDelFalloDelGateway(fallido('x', undefined)) === 'desconocido',
     JSON.stringify([apagado.error?.code, vencido.error?.code, sinNombre.error?.details?.reason]));
-  check('A7) y la regla del runtime ya no ramifica por el motivo fino (diagnóstico): ni `reason`, ni `not_configured`, ni códigos HTTP',
+  check('A7) y la regla del runtime ya no ramifica por el motivo fino (diagnóstico): ni `reason`, ni `not_configured`, ni códigos HTTP; y «despachado» se reconoce en UN sitio (`tareaEnElProveedor`), el mismo para el router y el ejecutor',
     (() => {
       const s = sinComentarios(leer('functions/src/runtime/index.ts'));
       const cuerpo = s.slice(s.indexOf('export const costeDelFalloDelGateway'), s.indexOf('export const libroDelMotor'));
-      return cuerpo.length > 100 && !/reason|not_configured|providerCode|\b4\d\d\b/.test(cuerpo) && /costeDelFallo/.test(cuerpo);
+      const motor = ['functions/src/engine/router.ts', 'functions/src/engine/gateway.ts'].map((f) => sinComentarios(leer(f)));
+      return cuerpo.length > 100 && !/reason|not_configured|providerCode|\b4\d\d\b/.test(cuerpo) && /costeDelFallo/.test(cuerpo)
+        && motor.every((s) => /if \(tareaEnElProveedor\(meta\)\) despachado = true;/.test(s) && !/providerTaskId === 'string' && meta\??\.providerTaskId\)/.test(s));
     })());
 
   const libro = rt.libroDelMotor(firestoreLedger);

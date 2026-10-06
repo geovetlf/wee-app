@@ -545,7 +545,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * + cierre final de gobernanza y cost accounting de World 3D (2026-10-06): ledger.ts 19/2 → 188/29 (`closeAccepted`:
        * la fila de lo ACEPTADO se cierra una vez, en transacción con su suma al día, cuando se sabe cómo acabó; la suma al
        * día en un solo sitio para `close` y `closeAccepted`) y types.ts 212/3 → 219/3 (`providerCostStatus` y
-       * `providerCostEstimated` declarados en la fila). De la revisión de calidad: errors.ts 59/2 → 84/2 y router.ts 144/25 → 126/25 (`costeTrasUnFallo` se muda a errors y el
+       * `providerCostEstimated` declarados en la fila). De la revisión de calidad: errors.ts 59/2 → 92/2 (con `tareaEnElProveedor`) y router.ts 144/25 → 126/25 (`costeTrasUnFallo` se muda a errors y el
        * router la reexporta), gateway.ts 28/4 → 48/16 (el ejecutor del
        * motor anota el coste de un fallo, `costeTrasUnFallo` con el error original, en `details.costeDelFallo`) y pricing.ts
        * 0/0 → 8/0 (`tarifaExacta`, decidida al cotizar). Ni proveedor, ni cadena, ni otro libro.
@@ -555,7 +555,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * Storage que llega de fuera y el lector sin segundo intento por HTTP) e imageMeta.ts +8 −5 (las medidas, solo del
        * cubo de Weë). Ningún proveedor ni ninguna cadena nuevos. Detalle en video-asincrono H2.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|212\t0\tfunctions/src/engine/elegibilidad.ts|84\t2\tfunctions/src/engine/errors.ts|48\t16\tfunctions/src/engine/gateway.ts|191\t24\tfunctions/src/engine/http.ts|8\t5\tfunctions/src/engine/imageMeta.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|188\t29\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|8\t0\tfunctions/src/engine/pricing.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|126\t25\tfunctions/src/engine/router.ts|219\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|212\t0\tfunctions/src/engine/elegibilidad.ts|92\t2\tfunctions/src/engine/errors.ts|48\t16\tfunctions/src/engine/gateway.ts|191\t24\tfunctions/src/engine/http.ts|8\t5\tfunctions/src/engine/imageMeta.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|188\t29\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|8\t0\tfunctions/src/engine/pricing.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|126\t25\tfunctions/src/engine/router.ts|219\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 
@@ -678,7 +678,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   /*
    * Los del CIERRE FINAL de gobernanza y cost accounting de World 3D (2026-10-06), por nombre: el barrendero le pasa el
    * trabajo leído a la liquidación (`runtime/barrendero.ts`), para que el coste de lo que el proveedor aceptó se cierre en
-   * el libro antes que el dinero. La puerta por capacidad (`runtime/puerta.ts`), los desenlaces de lo aceptado
+   * el libro después del dinero y antes de liquidar la fila. La puerta por capacidad (`runtime/puerta.ts`), los desenlaces de lo aceptado
    * (`runtime/liquidacion.ts`) y la composición (`runtime/index.ts`) ya estaban nombrados; el libro y la fila, en E4 y en
    * video-asincrono H2. Ver docs/RUNTIME.md §25c.
    */
