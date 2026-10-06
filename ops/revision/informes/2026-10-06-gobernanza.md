@@ -16,7 +16,7 @@ con lista de cuentas durante el canary). Los revisores preguntaron por esa evide
 | G2 Pruebas | Cadena completa (ver el PR); `mundo3d-gobernanza` 56/56; emuladores: `mundo3d` 35/35, `video-asincrono` 31/31, `f1d` 15/15 |
 | G3 Detectores + baseline | Pasa: 0 NUEVO, 0 REAPARECIDO |
 | G4 Selector | 63 cambiados; presupuesto por defecto (300 000): TODOS los archivos cambiados dentro; fuera solo importadores indirectos (44 unidades, listadas en el plan) |
-| G5 Revisores IA | Seguridad (1 hallazgo), código (5) y arquitectura (5); y una segunda pasada sobre los arreglos |
+| G5 Revisores IA | Seguridad (1 hallazgo), código (5) y arquitectura (5); y una segunda pasada sobre los arreglos (5 más, abajo) |
 | G6 Verificación | Todos verificados; ninguno queda bloqueante (abajo) |
 | G7 Dueño | Lo que espera decisión, al final |
 
@@ -26,7 +26,7 @@ con lista de cuentas durante el canary). Los revisores preguntaron por esa evide
 
 | Hallazgo | Sev. | Desenlace |
 |---|---|---|
-| La clave de la operación en el cupo no tenía modalidad: un `requestId` contado por un vídeo (que reserva antes de cobrar) dejaba pasar un sexto mundo, y `liberar` podía restar un hueco 3D que nunca se ocupó | media | **Arreglado y verificado**: la operación del mundo tiene nombre propio (`world.generate:<requestId>`); el limitador anota por operación QUÉ contó y `liberar` devuelve exactamente eso (lo de antes, `true`, cuenta pero no se devuelve). `mundo3d-gobernanza` B9 reproduce el escenario del revisor; B10, la forma de antes |
+| La clave de la operación en el cupo no tenía modalidad: un `requestId` contado por un vídeo (que reserva antes de cobrar) dejaba pasar un sexto mundo, y `liberar` podía restar un hueco 3D que nunca se ocupó | media | **Arreglado y verificado**: la operación del mundo tiene nombre propio (`world.generate#<requestId>`, con un carácter que un requestId no admite —la segunda pasada vio que con «:» un requestId hecho a medida aún chocaba—); el limitador anota por operación QUÉ contó (`cuentas`) y `liberar` devuelve exactamente eso; una operación contada que no cubre lo pedido es un conflicto. `mundo3d-gobernanza` B9 (el mismo requestId y uno hecho a medida), B9b (conflicto), B10 (la forma de antes) |
 | Preguntas: confirmación del dueño fuera del diff; sanciones y controles de exportación con `resto: 'APPROVED'`; país declarado y editable | — | La confirmación, arriba. Sanciones, exportación, «Reino Unido» y la declaración editable van al paso 1 del runbook (legal) y a DECISIONES-PENDIENTES. Hunyuan sigue `REVIEW_REQUIRED` + `DISABLED`: hoy no es elegible en ninguna parte |
 | Pregunta: `selector.mjs --registrar` lee `evidencia.ruta` y la rúbrica define `evidencia` como lista | — | Fuera de esta misión: tarea aparte |
 
@@ -51,6 +51,17 @@ con lista de cuentas durante el canary). Los revisores preguntaron por esa evide
 | `PAISES_DEL_CATALOGO` era una copia a mano de `data/countries.ts` | baja | **Arreglado**: lo genera `scripts/paises-del-catalogo.mjs` en `functions/src/shared/paisesDelCatalogo.ts` (como `textosDelServidor.ts`); E1 exige que esté al día; E3 vigila también los territorios ligados al Reino Unido |
 | Mapas desfasados (MAPA §1 con 35 funciones, §4; RUNTIME §3; cabeceras de `runtime/index.ts` y `runtime/liquidacion.ts`) | baja (preexistente) | **Arreglado** en este cambio |
 | Preguntas: ¿pasó G2 entera? ¿Brain/vídeo abiertos con el mundo en canary? ¿territorios del Reino Unido? | — | G2: sí (arriba). Lo demás, documentado y para el dueño o legal |
+
+### Segunda pasada (sobre los arreglos)
+
+| Hallazgo | Sev. | Desenlace |
+|---|---|---|
+| Con `world.generate:<requestId>`, un requestId de vídeo hecho a medida (`world.generate:R`, que el alfabeto admite) aún chocaba con la operación del mundo | media | **Arreglado**: «#», que `assertRequestId` rechaza; y el conflicto si una operación contada no cubre lo pedido (B9, B9b) |
+| Si `reserve` daba RATE_LIMITED y el reembolso fallaba, la app recibía «hoy ya no» (no incierto) y nadie devolvía la reserva | baja | **Arreglado**: ese reembolso es `siFalla: 'sube'` —sube el error del reembolso, que la app trata como incierto y resuelve preguntando por la petición, el camino que devuelve una reserva sin trabajo— (D3, D4) |
+| Volver a contar una operación devuelta arrastraba, por el merge de Firestore, lo que contó la vez anterior | baja (latente) | **Arreglado**: lo contado se apunta ENTERO, con ceros para lo de antes (B10b) |
+| La entrada nueva cambiaba `operaciones[clave]` del vídeo desplegado: con marcha atrás, un reintento contaría dos veces | baja | **Arreglado**: `operaciones[clave]` vuelve a la forma de siempre (`true` mientras cuenta) y lo contado va en un mapa hermano (`cuentas`) (B10c) |
+| E1 fijaba el número de países (193) | baja | **Arreglado**: la igualdad con el archivo generado basta |
+| Pregunta: el día del cupo es UTC y el texto decía «mañana» | — | **Arreglado**: el texto ya no promete «mañana» («…se renuevan cada día», 16 idiomas) |
 
 ## Lo que espera al dueño (G7)
 

@@ -17,9 +17,13 @@ Weë ya tiene sus piezas; lo nuevo se apoya en ellas en vez de rodearlas:
 - **Weë Brain es uno.** Todas las cajas de Weë AI son puertas al mismo Brain; lo único que cambia es el
   CONTEXTO que se pasa por props o parámetros. Un sistema conversacional nuevo, un motor de contexto nuevo o una
   copia de `CajaDePrompt` es un hallazgo alto.
-- **El conductor del Core** (`functions/src/runtime/`) atiende exactamente dos canaries detrás de
-  `aiSettings/runtime`. Migrar una tercera capacidad, o simular que el orquestador atiende más de lo que
-  atiende, sin autorización explícita, es alta.
+- **El conductor del Core** (`functions/src/runtime/`) atiende exactamente tres canaries detrás de
+  `aiSettings/runtime`: `brainChat` → `text.generate`, `generateVideo` → `video.generate` y `generateWorld` →
+  `world.generate` (asíncrona, sin desplegar; confirmada por el dueño el 2026-10-06), cada una con su
+  `CAPACIDAD_DEL_CANARY` en su código. `world.generate` exige lista de cuentas durante su canary
+  (`LISTA_DE_CUENTAS_OBLIGATORIA`): que la puerta se abra sin lista es alta. Abrir una cuarta puerta, migrar otra
+  capacidad, convertir una puerta en otra, o simular que el orquestador atiende más de lo que atiende, sin
+  autorización explícita, es alta.
 - **Credits:** el Credit Engine es la única puerta del dinero (ver la rúbrica de seguridad).
 - **Datos generados:** los espejos (`services/filmmaker/espejo/**`, textos del servidor) se regeneran con su
   script; editarlos a mano es un hallazgo.

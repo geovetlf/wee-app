@@ -18,7 +18,7 @@ código (§ 4 lista las contradicciones halladas).
 |---|---|---|---|---|
 | **Gateway / adaptadores** | `functions/src/engine/providers/` (un adaptador por proveedor, registrados en `ADAPTERS` de `engine/registry.ts`); `engine/gateway.ts`; compatibilidad `functions/src/gateway/` (`runCapability`); contrato `core/gateway.ts` | `docs/CORE.md` § El AI Gateway; `docs/AI-ENGINE.md`; `docs/RUNTIME.md` § 4 | `core-gateway`, `gateway-autoridad`, `gateway-plazo`, `providers` | **Conectada**: `runCapability` → `engine.generate` en `creatorChat`/`creatorRun`. **Preparada**: `crearGatewayDelMotor` solo lo usa el conductor (puerta cerrada); `gatewayDeWee` no tiene llamador en producción |
 | **Router** | `engine/router.ts` (instancia única en `engine/index.ts`); contrato `core/router.ts`; `functions/src/router/` | `docs/AI-ENGINE.md` § Cómo decide el router; `docs/CORE.md` § WEE Router; `docs/RUNTIME.md` §§ 4 y 6 | `router`, `router-parity`, `core-router`, `router-politica`, `router-frontera-real` | **Conectada**: `engine/router.ts` decide cada llamada de IA. **Preparada**: `core/router.ts`, solo dentro del conductor. `router/index.ts` y `router/politica.ts` no tienen importador |
-| **Runtime (conductor)** | `functions/src/runtime/` (`puerta.ts`, `configuracion.ts`, `conductor.ts`, `index.ts`…); barrido en `settlement/programado.ts` | `docs/RUNTIME.md` §§ 11–24 | `runtime-conductor`, `runtime-liquidacion`, `runtime-asincrono`, `puerta-canario`, `brain-canary`, `camino-durable` | **Conectada**: `barridoDeLiquidacion` (programada, desplegada). **Preparada**: el conductor está dentro de `brainChat` y `generateVideo` pero `aiSettings/runtime` está cerrada por defecto (sin documento, `decidirRuntime` devuelve `legacy`); cada puerta fija su única capacidad en `CAPACIDAD_DEL_CANARY` (`text.generate` en `creator/brain.ts`, `video.generate` en `creator/video.ts`) |
+| **Runtime (conductor)** | `functions/src/runtime/` (`puerta.ts`, `configuracion.ts`, `conductor.ts`, `index.ts`…); barrido en `settlement/programado.ts` | `docs/RUNTIME.md` §§ 11–25 | `runtime-conductor`, `runtime-liquidacion`, `runtime-asincrono`, `puerta-canario`, `brain-canary`, `camino-durable`, `mundo3d-asincrono`, `mundo3d-gobernanza`, `mundo3d.emulator` | **Conectada**: `barridoDeLiquidacion` (programada, desplegada). **Preparada**: el conductor está dentro de `brainChat`, `generateVideo` y `generateWorld` (esta, sin desplegar: `no_se_despliegan`), pero `aiSettings/runtime` está cerrada por defecto (sin documento, `decidirRuntime` devuelve `legacy`); cada puerta fija su única capacidad en `CAPACIDAD_DEL_CANARY` (`text.generate` en `creator/brain.ts`, `video.generate` en `creator/video.ts`, `world.generate` en `creator/mundo.ts`), y la del mundo exige lista de cuentas (sin lista o vacía, nadie) |
 | **Planner / Orchestrator / Workflow** | Vivo: `creator/planner.ts` + `creator/templates.ts` y el bucle de `creatorRun` (`creator/index.ts`). Core: `functions/src/planner/`, `orchestrator/`, `workflow/`, `core/planner.ts`, `core/orchestrator.ts`, `core/workflow.ts`; sombra en `creator/sombra.ts` | `docs/CORE.md` §§ WEE Planner, WEE Workflow Engine, WEE Orchestrator; `docs/RUNTIME.md` § 4; `docs/ALGORITHM-ENGINE.md` | `planner`, `core-planner`, `core-workflow`, `core-orchestrator`, `autoridad-core` | **Conectada**: el planner de `creator/` (`creatorChat`). **Preparada**: el Planner del Core solo corre en la sombra (`aiSettings/sombra`, cerrada y por cuentas); el Orchestrator, solo desde el conductor; `workflow/index.ts` sin importador. Excepción: `creator/planner.ts` importa `disponibilidadDeWee` de `planner/index.ts` |
 | **Job** | Vivo: `creatorJobs` (lo escribe `creator/index.ts`, lo escucha `services/creatorService.ts`). Core: `functions/src/job/`, `core/job.ts`, `core/job-queue.ts`, `runtime/almacen.ts` (`jobs`), `runtime/cola*.ts` | `docs/CORE.md` § WEE Job Engine; `docs/RUNTIME.md` § 11 | `core-job`, `job-queue`, `cola-durable`, `camino-durable`, `creator-reclamo` | **Conectada**: `creatorJobs`. **Preparada**: el Job Engine del Core, solo vía conductor y `mediaCanary` |
 | **Media** | `functions/src/media/` (R2, almacén, entrega, subida, proceso, reconciliación), contrato `core/media/`; colección `mediaObjects` | Sin documento propio: `docs/RUNTIME.md` § 21, `docs/SECURITY.md` § 5 (R2), `docs/F11-MIGRACION.md` | `media-core`, `media-upload-core`, `media-delivery-core`, `media-proceso-core`, `media-canary` | **Preparada**: solo `mediaCanary` está exportada (administración, `assertAdmin`); ninguna otra Function importa `media/`. Las fotos de WEË AI siguen por Storage (`services/creatorUploads.ts`) |
@@ -32,13 +32,34 @@ código (§ 4 lista las contradicciones halladas).
 | **Weë Studio** | Cliente: `screens/StudioScreen.tsx`, `screens/ProductionScreen.tsx`, `components/studio/`, `constants/studioExperiences.ts`, `services/filmmakerService.ts`, `services/tomaService.ts`. Servidor: `functions/src/filmmaker/`, `productions/`, `shots/`, `elements/`, `creator/toma.ts`, `creator/video.ts` | `docs/FILMMAKER.md`; `docs/INTEGRACION-PRODUCCION.md` §§ 2 y 7 | `filmmaker-modelo`, `filmmaker-navegacion`, `productions-runtime`, `f1d-generacion`, `studio-video` | **Conectada**: un clip suelto (Studio → `CreatorFlow` → `creatorRun`); `productions` y `shots`, exportadas y desplegadas. **Preparada**: Filmmaker en la app (`FILMMAKER_EN_LA_APP = false`); `elements`, exportada pero **no desplegada** (`ops/despliegue/grupos.json` → `no_se_despliegan`); la toma de un plano por `generateVideo` responde `route_unavailable` mientras `aiSettings/runtime` esté cerrada |
 | **Weë Brain** | `functions/src/creator/brain.ts` (`brainChat`, `brainQuote`), `creator/brainUsage.ts`, `functions/src/brain/` (`crearBrainDeWee`), `core/brain.ts`, `runtime/pensador.ts`; colecciones `brainChats`, `brainUsage`; cliente `screens/BrainChatScreen.tsx`, `hooks/useBrainChat.ts`, `services/brainService.ts` | `docs/AI-ENGINE.md` § Weë Brain; `docs/CORE.md` § Weë Brain; `docs/RUNTIME.md` § 13 | `core-brain`, `brain-canary`, `brain-deepseek`, `brain-vivo`, `brain-contexto` | **Conectada** (desplegada; `crearBrainDeWee` en cada respuesta). **Preparada**: el camino por el conductor, solo con `aiSettings/runtime` abierta y la capacidad `text.generate` |
 
-Las funciones exportadas (35) por módulo: `generateAvatar` (2) · `creator` (`creatorChat`, `creatorQuote`, `creatorRun`) ·
+Las funciones exportadas (37) por módulo: `generateAvatar` (2) · `creator` (`creatorChat`, `creatorQuote`, `creatorRun`) ·
 `creator/brain` (2) · `creator/video` (`generateVideo`) · `engine/webhooks` (`seedanceCallback`) · `public/postPage` ·
 `engine/admin` (`engineAdmin`) · `content` (`deleteAsset`) · `social` (`votePoll`, `burnViewOnce`, `requestEContact`,
 `acceptEContact`) · `identity/nacimiento` · `moderation` (2) · las puertas `elements`, `shots`, `productions` ·
 `settlement/programado` (`barridoDeLiquidacion`) · `media/canary` · `credits` (9: saldo, historial, coste, `spendCredits`,
-`grantCredits`, `refundCredits`, `validatePurchase`, `restorePurchase`, `creditsAdmin`) · y dos disparadores de push
-definidos en `index.ts` (`sendPushNotification`, `sendMessagePushNotification`). Todas desplegadas salvo `elements`.
+`grantCredits`, `refundCredits`, `validatePurchase`, `restorePurchase`, `creditsAdmin`) · `evals` (`evalRun`, de administración) ·
+`creator/mundo` (`generateWorld`) · y dos disparadores de push definidos en `index.ts` (`sendPushNotification`,
+`sendMessagePushNotification`). Todas desplegadas salvo las de `no_se_despliegan` (`ops/despliegue/grupos.json`):
+`elements`, `evalRun` y `generateWorld` (lo fija `runtime-map`, prueba 5).
+
+### 1b. El camino de una capacidad de IA desde la app (`world.generate`, misión de gobernanza, 2026-10-06)
+
+```
+APP (Weë Studio → 3D World → Crear mundo 3D)
+ → Composer (utils/crearMundo3D.ts: la petición en el contrato de Weë, sin un campo de proveedor)
+ → capacidad de Weë (generateWorld · world.generate, core/mundo3d.ts)
+ → Runtime Gate (aiSettings/runtime: habilitada → capacidad → LISTA DE CUENTAS → experiencia; decidirRuntime)
+ → Elegibilidad (jurisdicción del Perfil Real, solo países del catálogo; engine/jurisdiccion.ts + engine/elegibilidad.ts)
+ → Router (engine/router.ts: solo modelos elegibles; si uno queda fuera, otro elegible, solo)
+ → Provider (un adaptador en engine/providers/, el único que habla con la API oficial)
+ → Job (Job Engine del Core por el conductor; el barrido reconcilia, materializa y liquida)
+ → Asset (material `world` de la cuenta, con su procedencia y sus derechos)
+```
+
+**La app nunca llama a un proveedor directamente**: no conoce ni su nombre, ni su modelo, ni su clave; solo la
+capacidad de Weë y el contrato de Weë. Lo vigilan `mundo3d-app` (H1–H4: nada de la app nombra un proveedor, un modelo,
+una clave ni una licencia) y `mundo3d-gobernanza` (A–G). El cupo («5 mundos que salen») y los Credits van por los
+motores de siempre (`engine/limits.ts`, Credit Engine), entre la elegibilidad y el conductor.
 
 ## 2. Social Graph: lo que existe
 
@@ -86,7 +107,9 @@ Todo lo anterior está conectado y sus callables y disparadores, desplegados.
   `engine` directamente.
 - `docs/FILMMAKER.md` y el comentario de `productions/puerta.ts` dicen «sin desplegar»; `ops/produccion.json` tiene
   `productions` y `shots` desplegadas (2026-09-28).
-- Comentarios que dicen «nada de producción pasa por aquí» en `runtime/puerta.ts`, `runtime/conductor.ts` y
-  `runtime/index.ts`: el código está dentro de `brainChat` y `generateVideo` (aunque la puerta lo deje en `legacy`).
+- Comentarios que dicen «nada de producción pasa por aquí» en `runtime/conductor.ts`: el código está dentro de
+  `brainChat`, `generateVideo` y `generateWorld` (aunque la puerta lo deje en `legacy`). `runtime/puerta.ts`,
+  `runtime/index.ts` y `runtime/liquidacion.ts` ya lo dicen con precisión (misión de gobernanza, 2026-10-06): nada pasa
+  CAMINO DEL CORE; el barrido desplegado sí compone la liquidación.
 - `docs/RUNTIME.md` § 4 cita líneas de `creator/brain.ts` que ya se movieron.
 - ~~`services/econtactService.ts` decía que `followsService` «sigue existiendo»~~: corregido en el cierre del 2026-10-01.

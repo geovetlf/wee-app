@@ -104,10 +104,13 @@ Brain (`webSearch` pasa a `text.search`) o por `normalizeVideoRequest`.
 
 ## Huecos que siguen abiertos (decisión del dueño)
 
-- **La puerta del runtime abre para todos sin `cuentas`.** Una puerta
+- **La puerta del runtime abre para todos sin `cuentas`… salvo para el mundo.** Una puerta
   `aiSettings/runtime` sin lista de `cuentas` abre el conductor para todo el
-  mundo (`runtime/puerta.ts`). La de la sombra, en cambio, exige cuentas.
-  CLAUDE.md §10 dice que «se abre por cuenta». Toca la semántica de la puerta.
+  mundo en Brain y vídeo (`runtime/puerta.ts`). Desde la misión de gobernanza
+  (2026-10-06) la puerta del mundo declara la lista OBLIGATORIA en su código
+  (`listaObligatoria`): sin lista, o vacía, nadie. La de la sombra también exige
+  cuentas. Hacerla obligatoria para Brain y vídeo, o listas por capacidad (hoy
+  las tres puertas comparten UNA lista), es decisión del dueño.
 - **La sombra abierta sin `caminos` llama a un proveedor real**: DeepSeek, con
   0 Credits y fuera de los cupos por persona.
 - **Ningún camino vivo verifica el resultado** (A6 no está conectado). Solo se

@@ -13,9 +13,14 @@ La regla de siempre: **la persona elige el resultado («Crear mundo 3D»); Weë 
 «fal», nunca un modelo.
 
 > **Estado, en una línea:** todo está construido y probado (unidades, emuladores, la app) y **todo está APAGADO**: ningún
-> modelo de mundos está aprobado, la puerta del conductor está cerrada, `generateWorld` no está desplegada, no hay
-> `FAL_KEY` montada y «Crear mundo 3D» se ve en el Studio bloqueada con su motivo. Encenderlo es una decisión del dueño
-> (§19).
+> modelo de mundos está aprobado, la puerta del conductor está cerrada (y para el mundo exige lista de cuentas),
+> `generateWorld` no está desplegada, no hay `FAL_KEY` montada y «Crear mundo 3D» se ve en el Studio bloqueada con su
+> motivo. Encenderlo es una decisión del dueño, paso a paso (§20).
+>
+> **Gobernanza (misión del 2026-10-06, «CERRAR WORLD 3D + CANARY + GOBERNANZA»):** la tercera puerta del conductor está
+> CONFIRMADA y escrita en CLAUDE.md §10, las rúbricas, DD-08 y el mapa de fronteras; lista de cuentas obligatoria
+> (§15); «5 mundos = 5 que salen» (§11b); jurisdicción sin fricción (§14); derechos completos en el material y
+> resumidos —con su procedencia— para la persona (§10). Lo vigila `functions/test/mundo3d-gobernanza.test.mjs`.
 
 ---
 
@@ -165,11 +170,22 @@ se copian del **gobierno del modelo** del trabajo guardado —nunca del aviso de
 revisión, uso comercial, atribución, licencias y `jurisdiccionesBloqueadas`. Sin modelo conocido o sin licencia ajena, no
 hay derechos que copiar. **La puerta contesta, y la app ENSEÑA, solo lo VISIBLE** (`derechosVisibles`): uso comercial,
 atribución y dónde no se puede usar ni mostrar; el nombre y la dirección de la licencia **no se enseñan** (nombran al
-modelo). Ojo, medido en la revisión: el documento del material —que solo su dueño puede leer— sí guarda los derechos
-enteros y la procedencia (proveedor y modelo), como los demás materiales; si eso debe quedar solo en el servidor es una
-decisión pendiente (§19). La app los cuenta con
-`utils/derechosDelMaterial.ts` («Su uso comercial tiene condiciones», «Su licencia pide atribución», «No se puede usar ni
-mostrar en: Unión Europea, Reino Unido y Corea del Sur», con los nombres en el idioma de quien mira).
+modelo). **Decisión del dueño (2026-10-06):** la información COMPLETA —derechos enteros con sus licencias y su revisión, y
+la procedencia con proveedor y modelo— se queda en el servidor y en el documento del material, que su dueño puede leer;
+la persona ve un RESUMEN comprensible. La app lo cuenta con `utils/derechosDelMaterial.ts`, en este orden:
+
+1. **de dónde viene** — «Hecho con IA en Weë, con un modelo de terceros que tiene su propia licencia» (explica de dónde
+   salen las condiciones sin nombrar ni el modelo ni el proveedor);
+2. **qué se puede hacer** — «Su uso comercial tiene condiciones» (o permitido, no claro, no permitido);
+3. **qué pide** — «Su licencia pide atribución», si la pide de verdad;
+4. **dónde no** — «No se puede usar ni mostrar en: Unión Europea, Reino Unido y Corea del Sur», con los nombres en el
+   idioma de quien mira.
+
+La revisión legal no se cuenta nunca (es gobierno interno). **A lo largo del linaje** —generación → resultado → material
+→ versión → reutilización → Design → Filmmaker— los derechos viajan con el material por id (sin copiar bytes), una
+versión es su propio material, y lo que se hace con varios materiales junta sus derechos **endureciéndolos, nunca
+relajándolos** (`core/content/linaje.ts`, PR #21): el resumen de cualquiera de ellos sigue diciendo de dónde viene y qué
+condiciones arrastra (`mundo3d-gobernanza` F1–F7).
 
 ## 11. Credits (FASE 11)
 
@@ -178,7 +194,8 @@ candidato (servicio `ai_world`, **39 Credits de PRUEBA** en `creditCosts.ts`, si
 **crear** = `spendCredits` con el `requestId` y la **huella** de la petición (un requestId repetido solo vale para ESE
 mundo; otro mundo con el mismo id = `idempotency_conflict`), si el precio cambió desde que se enseñó no se reserva nada
 (`price_changed`); **cobro** al terminar y **reembolso exacto** si falla o se cancela, UNA vez, por la liquidación del
-barrido; `providerCost` separado de `creditsCharged` en `aiGenerations`. El cupo por persona es el de `3d` (5 al día).
+barrido; `providerCost` separado de `creditsCharged` en `aiGenerations`. El cupo por persona es el de `3d`: cinco mundos
+que SALEN al día (§11b).
 **Una reserva sin trabajo:** si la creación falla antes de crearlo, `sinReservaHuerfana` la devuelve en el acto; si la
 invocación muere antes de crearlo, se devuelve al PREGUNTAR su estado pasado el plazo de la puerta (120 s); y si nadie
 pregunta, queda retenida hasta que el barrido sepa devolver reservas sin trabajo (H0 #15b, decisión pendiente). **Un
@@ -186,6 +203,46 @@ error que no dice si la creación llegó** (red, sin código, fallo genérico) n
 ESA petición y, si no se sabe, «Reintentar» la vuelve a pedir con el MISMO requestId (UN REQUEST = UNA GENERACIÓN = UN
 COBRO); si la creación falló con el trabajo ya creado, la puerta cuenta cómo va en vez de un error. Lo prueban el emulador (cobro una vez, reembolso exacto
 aunque pasen dos barridos, sin doble cobro) y `mundo3d-asincrono`.
+
+## 11b. El cupo del día: cinco mundos que SALEN (misión de gobernanza)
+
+«5 Worlds = 5 generaciones exitosas por día» (`DEFAULT_LIMITS.perUserPerDay['3d'] = 5`, cambiable en
+`aiSettings/global.limits`). Por el limitador de siempre (`engine/limits.ts`, `aiRateLimits/{cuenta}_{día}`), sin un
+segundo sistema de cupos:
+
+| Momento | Qué hace | Por qué |
+|---|---|---|
+| Al cotizar y antes de tocar Credits | `comprobar` (lee, no apunta) | «hoy ya no» se dice antes de enseñar un precio y no mueve dinero |
+| Reservado el dinero | `reserve` con el MISMO día, idempotente por operación, anotando qué ocupó | si otra creación ocupó el último entretanto, esta no sigue y lo reservado vuelve |
+| El mundo sale | el hueco se queda | es uno de los cinco |
+| La reserva queda DEVUELTA | `liberar` devuelve lo que la operación anotó, al día que viaja con ella (en la reserva y en el trabajo) | un fallo técnico no gasta ninguno |
+| La persona cancela con el proveedor trabajando | `consumir`: el hueco se queda gastado | el proveedor ya trabajaba |
+
+**No gastan hueco** (el dinero vuelve, y el hueco con él): error interno, plazo (`timed_out`), fallo del proveedor, aviso
+perdido que la reconciliación cierra como fallido, reconciliación, avería, la parada que pide Weë por plazo, una reserva
+sin trabajo que se devuelve al preguntar, y un error ambiguo reintentado con el MISMO requestId (es la misma operación:
+ni otro hueco, ni otro cobro). Quien devuelve: la puerta en sus fallos, por UN sitio (`devolverLoReservado`: el dinero y,
+con él, el hueco) y el barrido en los de después (`liquidacionDeWee`, solo si el trabajo lleva su hueco: el vídeo y Weë
+Brain no llevan). Un hueco devuelto no se devuelve dos veces, y una operación devuelta que vuelve a reservar vuelve a
+contar. **La operación del mundo tiene nombre propio** (`world.generate#<requestId>`, con «#», que un requestId no
+admite): el vídeo cuenta las suyas por el requestId a secas, así que ningún requestId —el mismo, o uno hecho a medida— que
+contó para un vídeo puede hacer pasar un mundo por un hueco que no ocupó, ni devolver un hueco 3D que nunca sumó (revisión
+de seguridad y su segunda pasada). Y si aun así una operación contada no cubre lo que se le pide, es un conflicto, nunca
+«ya está». El limitador guarda la marca de siempre en `operaciones` (`true` mientras cuenta, lo que entiende el código de
+antes si hay marcha atrás) y lo que contó, entero, en `cuentas`. **En la app**, el sexto mundo lee «Ya usaste los mundos 3D de
+hoy…» (`studio.worldDailyLimit`), sin reintentar.
+
+**Cancelar con el proveedor ya trabajando** (política, como pidió el dueño: se conserva el mecanismo de siempre): el hueco
+**se queda gastado**, y el dinero sigue la regla de la parada (`runtime/parada.ts`): si el final bueno llega antes, gana el
+final y se cobra; si el proveedor confirma la parada, la reserva vuelve. **El coste, dicho como es hoy** (revisión de
+arquitectura): por el conductor, la fila del libro de un intento aceptado se cierra al aceptarlo con `providerCost: 0` y
+nadie la corrige al final (RUNTIME §22.5, abierto también para el vídeo), así que ni `providerCost` ni `usdEnRiesgo` ven
+lo que cuesta un mundo y los topes diarios de proveedor no lo frenan; cerrarlo es requisito del runbook (§20) antes de
+abrir el canary. **Cancelar antes de que nada llegue al proveedor no gasta hueco.**
+**Un final que no se sabe** (salió y no volvió nadie) retiene dinero y hueco hasta saberse: se reconcilia, no se adivina.
+
+Lo prueban `mundo3d-gobernanza` (B, C y D) y el emulador (un mundo que sale ocupa su hueco; un fallo del proveedor y una
+parada por plazo lo devuelven; la persona que cancela lo gasta; el sexto mundo no reserva ni un Credit).
 
 ## 12. Mis creaciones (FASE 6)
 
@@ -205,7 +262,7 @@ visor de mentira.
 | Motivo | Cuándo | Lo que se lee | ¿Reintentar? |
 |---|---|---|---|
 | `ahora_no` | Algo pasajero (cupo, pausa, salud) | «… inténtalo más tarde» | Sí |
-| `en_tu_region` | Bloqueado donde opera la cuenta, aprobado en otra jurisdicción | «no está disponible en tu región» | No |
+| `en_tu_region` | Bloqueado donde opera la cuenta, aprobado en otra jurisdicción | «no está disponible actualmente en tu región» | No |
 | `falta_tu_pais` | Un modelo territorial y la cuenta sin país declarado | «… falta tu país» | No |
 | `con_estas_opciones` | La petición no encaja con ningún modelo | «… con estas opciones» | No |
 | `no_disponible` | Lo demás (apagado, sin configurar, puerta cerrada) | «no está disponible actualmente» | No |
@@ -221,8 +278,32 @@ avería al leer (la foto, el país, el mundo terminado) sube como avería, no co
 cuentan, cualquiera bloquea) → la puerta lo lee UNA vez → Router (elegibilidad) → conductor (ejecutor del Core y política,
 `politicaConJurisdicciones`). **Nunca** la IP, el dispositivo, el idioma del navegador, el locale ni un país que mande el
 cliente: la petición canónica ni siquiera tiene dónde ponerlo. Sin país válido → falla cerrado (`falta_tu_pais`). Es una
-DECLARACIÓN: basta para BLOQUEAR; si basta para APROBAR una jurisdicción lo decide legal (`DECISIONES-PENDIENTES.md`).
-Hunyuan no está marcado como bloqueado en todo el mundo: su restricción es territorial y vive en sus datos.
+DECLARACIÓN. Hunyuan no está marcado como bloqueado en todo el mundo: su restricción es territorial y vive en sus datos.
+
+**La política del dueño (2026-10-06): sin fricción.**
+
+```
+país del Perfil Real → ¿restricción territorial EXPLÍCITA para ese país?
+   SÍ → ese modelo queda fuera
+   NO → puede usarse según la política de Weë (su revisión legal y su activación siguen mandando)
+ → el Router pasa SOLO a otro modelo o proveedor elegible
+ → si no hay ninguno: NOT_AVAILABLE «Esta función no está disponible actualmente en tu región.»
+```
+
+- **Solo cuenta un país del catálogo de Weë** (`PAISES_DEL_CATALOGO`, los mismos 193 que ofrece el registro, copiados
+  por `scripts/paises-del-catalogo.mjs` a un archivo generado): un valor con forma de código que no es un país del
+  catálogo («UK», «EU», «ZZ», un territorio que el catálogo no ofrece) no determina el país → para un modelo con
+  restricciones territoriales, **no elegible** (fail-closed). Y basta UNO: si algún Perfil Real de la cuenta declara algo
+  que no es un país del catálogo, la cuenta entera queda sin jurisdicción (no se elige el país de otro perfil). Nunca se
+  asume país.
+- **Hunyuan World**: bloqueado en EU/GB/KR por su licencia; en el resto, el territorio no lo excluye (`resto:
+  'APPROVED'`), y lo sigue parando su revisión legal GLOBAL (`REVIEW_REQUIRED`, `DISABLED`). Ejemplo: **Perú** → no está
+  bloqueado → potencialmente elegible; **España** → bloqueado → alternativa. Hoy no es elegible en ninguna parte.
+- **REVIEW_REQUIRED es gobierno interno**: el modelo no se usa, el Router busca otro, y la persona no lo ve (lee «no
+  disponible actualmente», sin revisión ni región).
+- **A la persona nunca** se le pregunta nada legal ni técnico, ni se le dice proveedor, modelo, licencia, reglas internas,
+  detalles del Router ni de la elegibilidad. Si a la cuenta le falta el país, se le pide su país en su Perfil Real (un
+  dato de su perfil, no una pregunta legal).
 
 ## 15. Seguridad
 
@@ -233,6 +314,12 @@ Hunyuan no está marcado como bloqueado en todo el mundo: su restricción es ter
 - Aislamiento por cuenta: `estado`/`cancelar` buscan dentro del ámbito de la cuenta; un `requestId` ajeno «no existe».
 - La app no recibe proveedor, modelo, URLs internas ni licencias (§10, §13); los registros del servidor, sanitizados.
 - `generateWorld` está en `no_se_despliegan` (`ops/despliegue/grupos.json`): no hay ruta de despliegue que la incluya.
+- **Lista de cuentas OBLIGATORIA durante el canary** (misión de gobernanza): `world.generate → puerta → ¿habilitada? →
+  ¿cuenta en la lista? → jurisdicción → elegibilidad → Router → proveedor`. Sin `cuentas` en `aiSettings/runtime`, o con
+  la lista vacía, NADIE puede usar `world.generate` (nunca «sin lista = todos»). La obligación la declara la puerta en su
+  código (`LISTA_DE_CUENTAS_OBLIGATORIA`), como su capacidad: la configuración pone y quita cuentas, pero no puede
+  quitar la obligación ni abrir con un comodín. Reutiliza `aiSettings/runtime` y `decidirRuntime`: no hay un segundo
+  sistema de permisos.
 - De la revisión de calidad (2026-10-06), en la puerta: la foto solo del cubo de ESTE proyecto y reescrita como `gs://`
   (con un host o un cubo ajenos y la ruta «correcta», el lector caía a HTTP y el servidor iba a buscarla fuera; la
   regla general para el resto de Weë es una tarea aparte); `estado` y `cancelar` solo ven trabajos y reservas de MUNDO
@@ -267,13 +354,17 @@ Hunyuan no está marcado como bloqueado en todo el mundo: su restricción es ter
 | El compositor | `utils/crearMundo3D.ts` | `crear-mundo-3d` |
 | Textos (29 claves nuevas × 16 idiomas) | `i18n/textos/*/creaciones.ts`, `studio.ts` | `mundo3d-app` G, `crear-mundo-3d` G |
 | Auditoría «la app no nombra a nadie» (FASE 13) | toda la app | `mundo3d-app` H |
+| Lista de cuentas obligatoria del canary | `runtime/puerta.ts` (`listaObligatoria`), `creator/mundo.ts` | `mundo3d-gobernanza` A, emulador |
+| «5 mundos que salen» | `engine/limits.ts` (`comprobar`, `liberar`, `consumir`), `creator/mundo.ts`, `runtime/liquidacion.ts`, `runtime/index.ts` | `mundo3d-gobernanza` B–D, emulador |
+| Jurisdicción del catálogo y política territorial | `engine/jurisdiccion.ts`, `engine/providers/fal-modelos.ts` | `mundo3d-gobernanza` E, `elegibilidad-jurisdiccion` |
+| La procedencia en el resumen de derechos | `utils/derechosDelMaterial.ts`, `creaciones.rightsProvenance` × 16 | `mundo3d-gobernanza` F, `mundo3d-app` E |
 
 ## 18. Qué permanece OFF
 
 - Hunyuan World: `DISABLED`, revisión legal pendiente; ningún modelo de mundos elegible en ninguna jurisdicción.
 - `FAL_KEY`: no creada, no montada.
 - `generateWorld`: no desplegada (`no_se_despliegan`).
-- La puerta del conductor (`aiSettings/runtime`): cerrada para todas las cuentas.
+- La puerta del conductor (`aiSettings/runtime`): cerrada para todas las cuentas; y para el mundo, sin lista, nadie.
 - `MUNDO_3D_EN_LA_APP = false`: «Crear mundo 3D» visible y bloqueada; sin enlace.
 - Precios: 39 Credits **de prueba** (`CREATOR_PRICING_MODE=simulated`).
 
@@ -285,16 +376,31 @@ Hunyuan no está marcado como bloqueado en todo el mundo: su restricción es ter
 | 2 | Crear y montar `FAL_KEY` en `generateWorld` **y** en el barrido (`RECONCILIATION_SECRETS`) | Dueño (secretos) |
 | 3 | Desplegar `generateWorld` (sacarla de `no_se_despliegan`) y abrir la puerta por cuenta | Dueño (producción) |
 | 4 | `MUNDO_3D_EN_LA_APP = true` | Dueño |
-| 5 | Si el país declarado basta para APROBAR una jurisdicción (hoy basta para bloquear) | Legal |
-| 6 | Cómo se le enseñan a la persona los términos de una licencia ajena (y la atribución) sin nombrar al modelo | Producto / legal |
+| 5 | ~~Si el país declarado basta para APROBAR una jurisdicción~~ **Resuelto (2026-10-06):** el país del Perfil Real es la fuente; sin restricción explícita, el territorio no excluye (§14) | — |
+| 6 | ~~Cómo se enseñan los términos de una licencia ajena sin nombrar al modelo~~ **Resuelto:** el resumen con procedencia (§10). Pendiente de legal antes de activar: cómo se cumple el etiquetado del AUP al difundir en público | Legal |
 | 7 | La entrega de la vista previa (dirección para variantes) | Dueño |
 | 8 | Dónde se guardan las escenas de un proyecto | Dueño |
 | 9 | El visor 3D y el formato real del archivo de mundo | Dueño (tras la primera generación autorizada) |
 | 10 | El precio real de `ai_world` (medir `providerCost` primero) | Dueño |
 | 11 | El horizonte de reconciliación del proveedor (24 h, NO VERIFICADO) | Verificar con la primera generación autorizada |
-| 12 | Si los derechos enteros y la procedencia de un material deben quedar solo en el servidor (hoy su dueño los puede leer) | Dueño / legal |
-| 13 | Confirmar la tercera puerta y, con ella, actualizar CLAUDE.md §10, las rúbricas de revisión, DD-08 y el mapa de fronteras | Dueño |
+| 12 | ~~Si los derechos enteros y la procedencia deben quedar solo en el servidor~~ **Resuelto:** completos en el servidor y en el documento del material (su dueño los lee); la persona ve el resumen (§10) | — |
+| 13 | ~~Confirmar la tercera puerta~~ **Resuelto (2026-10-06):** confirmada; CLAUDE.md §10, rúbricas, DD-08 y el mapa, actualizados a la vez | — |
 
-**CLAUDE.md §10.** El texto vigente dice que el conductor atiende DOS canaries; esta misión (FASE 5, autorizada por el
-dueño) añade la tercera puerta, `generateWorld` → `world.generate`, detrás de la misma puerta cerrada. CLAUDE.md no se ha
-editado: la redacción propuesta va en el informe de cierre de la misión.
+## 20. Runbook de activación — PREPARADO, NO EJECUTADO
+
+Ninguno de estos pasos se ha dado. Cada uno es una decisión del dueño y va **en este orden**; ninguno abre más de lo
+que dice.
+
+| # | Paso | Qué cambia exactamente | Quién |
+|---|---|---|---|
+| 0 | **El coste de lo aceptado** | Cerrar RUNTIME §22.5 —anotar el intento aceptado con su coste estimado (`providerCostStatus: 'desconocido'`, el mecanismo H0 #22) y corregirlo al final—, o decidir leer el coste de la factura del proveedor. Sin esto, los topes diarios de proveedor no ven lo que cuesta un mundo | Dueño |
+| 1 | **Aprobación legal** del modelo de mundos | En `engine/providers/fal-modelos.ts`, el gobierno del modelo: `reviewStatus: 'APPROVED'` (con evidencia y fecha en `fuentes`/`motivo`), y lo que legal endurezca: más `bloqueadas` (sanciones y controles de exportación; qué cuenta como «Reino Unido»), si basta un país DECLARADO y editable para una licencia que prohíbe mostrar el resultado, etiquetado del AUP, 1M MAU | Dueño / legal |
+| 2 | **Secreto** `FAL_KEY` | Crearlo en Secret Manager (`get-wee`; ya está DECLARADO y sin montar en `functions/src/secrets.ts`, `FAL_SECRETS`) y montarlo en la puerta (`onCall({ …, secrets: FAL_SECRETS })` de `generateWorld`) **y** en el barrido (añadir `FAL_SECRET_REFS.FAL_KEY` a `RECONCILIATION_SECRETS` en `functions/src/secrets.ts`, que monta `settlement/programado.ts`); el modelo pasa a `active: 'ACTIVE'` | Dueño (secretos) |
+| 3 | **Configuración del canary** | En `aiSettings/runtime`, AÑADIR a lo que haya —no reescribir el documento: lo comparten las tres puertas—: `'world.generate'` en `capacidades`, las cuentas de prueba en `cuentas` (sin `cuentas`, nadie; ojo: esas cuentas son también la lista de Brain y vídeo) y `'studio'` en `experiencias` si hay lista de experiencias; y `aiProviders/fal.enabled: true` | Dueño |
+| 4 | **Despliegue autorizado** | Sacar `generateWorld` de `no_se_despliegan` (`ops/despliegue/grupos.json`) y desplegar por la ruta gobernada (WIF, `despliegue.yml`), junto con el barrido que monta `FAL_KEY` | Dueño (producción) |
+| 5 | **Humo** | Con UNA cuenta de prueba: cotizar → crear → estado hasta completado → material `world` con derechos y procedencia → un cobro; y un fallo provocado → reembolso exacto y el hueco devuelto | Dueño |
+| 6 | **Observación** | `aiGenerations` (`providerCost` real → precio real de `ai_world`), `aiUsage/{día}` (`usdEnRiesgo`), `creatorUsage`, el barrido (reconciliación, horizonte de 24 h por verificar), formato real del archivo | Dueño |
+| 7 | **Apertura controlada** | Ampliar `cuentas`; precio real; `MUNDO_3D_EN_LA_APP = true`; abrirlo a todos sería cambiar `LISTA_DE_CUENTAS_OBLIGATORIA` en el código, con autorización | Dueño |
+
+**Volver atrás** en cualquier paso: `aiSettings/runtime.habilitado = false` (o quitar la cuenta de la lista) cierra el
+mundo en segundos sin desplegar nada; `MUNDO_3D_EN_LA_APP = false` lo esconde de la app.
