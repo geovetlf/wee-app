@@ -17,7 +17,10 @@
  *   5. las claves de caché sha256(versión de rúbrica y reglas + hash del archivo + hash del paquete + modelo) y
  *      los aciertos en `ops/revision/.cache/` (ignorada por git): lo ya revisado con el mismo todo no se repite.
  *
- * `--registrar` guarda en la caché los hallazgos de una revisión ya hecha (uno por revisor y archivo del plan).
+ * `--registrar` guarda en la caché los hallazgos de una revisión ya hecha (uno por revisor y archivo del plan): cada
+ * hallazgo va a la entrada de cada archivo que nombra su `evidencia` —una LISTA, rúbrica común §7: todos sus
+ * elementos, no el primero—; los aciertos del plan no se reescriben, y lo que no nombra ningún archivo por registrar
+ * no se guarda y se avisa.
  * Sin IA, sin red, sin tocar nada fuera de `--plan` y de la caché.
  */
 import fs from 'node:fs';
@@ -300,20 +303,77 @@ export const resumenDelPlan = (p) => {
   return l.join('\n');
 };
 
-/** Guarda en la caché los hallazgos de una revisión: uno por revisor y archivo del plan. */
-export const registrar = (raiz, plan, resultados) => {
+/* ── la caché: los hallazgos de una revisión hecha ───────────────────────── */
+
+/** Una ruta con la forma del plan (relativa a la raíz, con `/`), o '' si no es un texto con algo dentro. */
+const normalizarRuta = (r) => (typeof r === 'string' ? r.trim().replace(/\\/g, '/').replace(/^(?:\.\/)+/, '') : '');
+
+/**
+ * Los archivos que nombra un hallazgo de un revisor IA, ordenados y sin repetir.
+ *
+ * El contrato es el de la rúbrica común §7: `evidencia` es una LISTA de `{ ruta, linea, fragmento }`. Se recorren
+ * TODOS sus elementos —no solo el primero: un hallazgo puede tocar varios archivos y el orden de la lista no decide
+ * nada—, y no todos señalan un archivo: uno con solo un símbolo, un mensaje o metadatos no aporta ruta, y nunca se
+ * inventa una (tampoco a partir del id). Se aceptan las formas de antes para no perder hallazgos ya escritos:
+ * `evidencia` como un objeto y una `ruta` arriba (el apaño que los revisores ponían a mano).
+ * Los hallazgos de los DETECTORES no pasan por aquí: su `evidencia` es un objeto (`detectores.mjs`) y la leen
+ * `clasificacion.mjs`, `sarif.mjs` y `baseline.mjs`.
+ */
+export const rutasDeHallazgo = (h) => {
+  if (!h || typeof h !== 'object') return [];
+  const evidencias = Array.isArray(h.evidencia) ? h.evidencia : [h.evidencia];
+  const rutas = [...evidencias.map((e) => e?.ruta), h.ruta].map(normalizarRuta).filter(Boolean);
+  return [...new Set(rutas)].sort();
+};
+
+/**
+ * Reparte los hallazgos de una revisión entre las unidades del plan que se registran: las de tipo archivo, con
+ * clave, dentro del presupuesto y que NO eran ya un acierto de la caché (el revisor no las vuelve a revisar, así que
+ * su entrada se conserva; reescribirla la dejaría vacía). Cada unidad recibe los hallazgos de SU revisor que nombran
+ * su archivo (`rutasDeHallazgo`): uno que nombra dos archivos va a los dos; uno que nombra el mismo varias veces, una
+ * sola vez; varios resultados del mismo revisor se suman. Pura: no lee ni escribe.
+ *
+ * Lo que no cae en ninguna unidad sale en `sinEntrada`, con su motivo, y no se guarda: la caché nunca lo apunta en
+ * un archivo inventado ni en el de otro, y quien registra lo ve. Un resultado que no es el JSON de un revisor (sin
+ * su lista de `hallazgos`) se rechaza antes de escribir nada: no puede dejar entradas «revisado y limpio».
+ */
+export const repartirHallazgos = (plan, resultados) => {
   const lista = Array.isArray(resultados) ? resultados : [resultados];
+  lista.forEach((r, i) => {
+    if (!r || typeof r !== 'object' || !Array.isArray(r.hallazgos)) {
+      throw new Error(`resultados[${i}]${r?.revisor ? ` (${r.revisor})` : ''} no es el JSON de un revisor: \`hallazgos\` tiene que ser una lista (rúbrica común §7)`);
+    }
+  });
+  const colocados = new Set();
+  const entradas = [];
+  for (const u of plan.unidades.filter((x) => x.tipo === 'archivo' && x.clave && x.dentro && !x.enCache)) {
+    const delRevisor = lista.filter((r) => r.revisor === u.revisor);
+    if (!delRevisor.length) continue;
+    const hallazgos = delRevisor.flatMap((r) => r.hallazgos).filter((h) => rutasDeHallazgo(h).includes(u.ruta));
+    for (const h of hallazgos) colocados.add(h);
+    entradas.push({ unidad: u, hallazgos });
+  }
+  const sinEntrada = lista.flatMap((r) => r.hallazgos.filter((h) => !colocados.has(h)).map((h) => {
+    const rutas = rutasDeHallazgo(h);
+    return {
+      revisor: r.revisor ?? null, id: h?.id ?? null, rutas,
+      motivo: rutas.length
+        ? `ninguna de sus rutas (${rutas.join(', ')}) es un archivo de ${r.revisor || 'su revisor'} por registrar en este plan (fuera del plan, importador, fuera del presupuesto o ya en la caché)`
+        : 'su evidencia no nombra ningún archivo: no se inventa uno',
+    };
+  }));
+  return { entradas, sinEntrada };
+};
+
+/** Guarda en la caché los hallazgos de una revisión: una entrada por revisor y archivo del plan (`repartirHallazgos`). */
+export const registrar = (raiz, plan, resultados) => {
+  const { entradas } = repartirHallazgos(plan, resultados);
   const dir = path.join(raiz, DIR_CACHE);
   fs.mkdirSync(dir, { recursive: true });
-  let escritos = 0;
-  for (const u of plan.unidades.filter((x) => x.tipo === 'archivo' && x.clave && x.dentro)) {
-    const r = lista.find((x) => x.revisor === u.revisor);
-    if (!r) continue;
-    const hallazgos = (r.hallazgos || []).filter((h) => (h.evidencia?.ruta || h.ruta) === u.ruta);
+  for (const { unidad: u, hallazgos } of entradas) {
     fs.writeFileSync(path.join(dir, `${u.clave}.json`), `${JSON.stringify({ clave: u.clave, revisor: u.revisor, ruta: u.ruta, modelo: plan.modelo, registrado: new Date().toISOString(), hallazgos }, null, 2)}\n`);
-    escritos++;
   }
-  return escritos;
+  return entradas.length;
 };
 
 const principal = () => {
@@ -322,7 +382,13 @@ const principal = () => {
   if (args.registrar) {
     const plan = leerJson(args.registrar);
     const resultados = leerJson(args._[0]);
-    console.log(`Caché: ${registrar(raiz, plan, resultados)} entradas escritas en ${DIR_CACHE}`);
+    const { sinEntrada } = repartirHallazgos(plan, resultados);
+    const conservados = plan.unidades.filter((u) => u.tipo === 'archivo' && u.clave && u.dentro && u.enCache).length;
+    console.log(`Caché: ${registrar(raiz, plan, resultados)} entradas escritas en ${DIR_CACHE}${conservados ? ` (${conservados} aciertos del plan se conservan sin tocar)` : ''}`);
+    if (sinEntrada.length) {
+      console.log(`  aviso: ${sinEntrada.length} ${sinEntrada.length === 1 ? 'hallazgo queda' : 'hallazgos quedan'} fuera de la caché (al informe, tal cual):`);
+      for (const s of sinEntrada) console.log(`    · ${s.revisor || '(sin revisor)'} ${s.id || '(sin id)'}: ${s.motivo}`);
+    }
     return 0;
   }
   let base = args.base;
