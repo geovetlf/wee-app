@@ -86,6 +86,11 @@ export interface EjecutorDeps {
    */
   aceptaAsincrono?: boolean;
   /**
+   * LAS JURISDICCIONES DE LA OPERACIÓN, leídas en el servidor (`engine/jurisdiccion.ts`). Solo se preguntan para un
+   * modelo con reglas territoriales; sin esto, ese modelo no es elegible (falla cerrado). Nunca del cliente.
+   */
+  jurisdiccionesDe?: (userId: string) => Promise<readonly string[] | undefined>;
+  /**
    * DE UN ANCLAJE AL MATERIAL AUTORIZADO. C8, y entra por aquí a propósito.
    *
    * Resolverlo cuesta lecturas de Firestore, y este archivo no sabe de
@@ -199,13 +204,14 @@ export const normalizarErrorDelMotor = (error: unknown, providerId: string): Wee
 
 /**
  * Los mismos ajustes de administración que aplica el router a un modelo: coste, calidad, duración y apagado, con la
- * misma regla de elegibilidad. El Core todavía no transporta las jurisdicciones de la operación, así que aquí se
- * pregunta SIN ellas: un modelo con reglas territoriales no es elegible por esta puerta (falla cerrado) hasta que el
- * contrato canónico las lleve.
+ * misma regla de elegibilidad Y las jurisdicciones de la operación cuando el modelo tiene reglas territoriales: las lee
+ * el servidor de la fuente autorizada (`jurisdiccionesDe`, el país del Perfil Real). Sin ellas —o si la lectura
+ * falla—, un modelo territorial no es elegible por esta puerta: falla cerrado.
  */
-const conAjustesDeAdministracion = (model: ModelSpec, config?: ProviderConfig): ModelSpec & { enabled: boolean } => {
+const conAjustesDeAdministracion = (model: ModelSpec, config?: ProviderConfig, jurisdicciones?: readonly string[]): ModelSpec & { enabled: boolean } => {
   const override = config?.models?.[model.id];
-  return { ...model, ...camposAjustables(override), cost: override?.cost || model.cost, enabled: modeloElegible(model, override).elegible } as ModelSpec & { enabled: boolean };
+  const elegible = modeloElegible(model, override, jurisdicciones?.length ? { jurisdicciones } : undefined).elegible;
+  return { ...model, ...camposAjustables(override), cost: override?.cost || model.cost, enabled: elegible } as ModelSpec & { enabled: boolean };
 };
 
 /** De lo que devuelve un adaptador a la respuesta canónica de la Fase 0. Sin inventar: `lines` vacías, `usd` el que midió él. */
@@ -248,7 +254,14 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
       if (config.settings.iaDetenida === true) return rechazo('PROVIDER_UNAVAILABLE', 'provider_disabled', { iaDetenida: true });
       const providerConfig = config.providers[adapter.id];
       if (providerConfig?.enabled === false) return rechazo('PROVIDER_UNAVAILABLE', 'provider_disabled');
-      const modelo = conAjustesDeAdministracion(spec, providerConfig);
+      /* Las jurisdicciones, solo si el modelo tiene reglas territoriales; un fallo al leerlas falla cerrado. */
+      const jurisdicciones = spec.territorio && deps.jurisdiccionesDe
+        ? await deps.jurisdiccionesDe(trace.userId).catch((error) => {
+          console.warn(`WEË AI GATEWAY: no se pudo leer la jurisdicción de la cuenta para ${capability}; se falla cerrado: ${sanitizeForLog(error, 200)}`);
+          return undefined;
+        })
+        : undefined;
+      const modelo = conAjustesDeAdministracion(spec, providerConfig, jurisdicciones);
       if (!modelo.enabled) return rechazo('MODEL_UNAVAILABLE', 'model_disabled');
 
       /*
@@ -480,6 +493,8 @@ export interface GatewayDelMotorDeps {
   aceptaAsincrono?: boolean;
   /** C8. Se declara AQUÍ por la misma lección de arriba: nada viaja por un spread. */
   referencias?: EjecutorDeps['referencias'];
+  /** Las jurisdicciones de la operación, para el ejecutor. Declarado AQUÍ por la misma lección. */
+  jurisdiccionesDe?: EjecutorDeps['jurisdiccionesDe'];
   /** C11.4, por la misma razón. */
   recursos?: EjecutorDeps['recursos'];
   /** G8, por la misma razón. */
@@ -510,6 +525,7 @@ export const crearGatewayDelMotor = (deps: GatewayDelMotorDeps): Gateway => {
       /* EXPLÍCITO. Un spread aquí es exactamente por donde se perdió la primera vez. */
       aceptaAsincrono: deps.aceptaAsincrono === true,
       referencias: deps.referencias,
+      jurisdiccionesDe: deps.jurisdiccionesDe,
       recursos: deps.recursos,
       upstream: deps.upstream,
     }),

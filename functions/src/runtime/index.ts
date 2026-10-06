@@ -3,7 +3,6 @@ import { getFirestore } from 'firebase-admin/firestore';
 import type { Firestore } from 'firebase-admin/firestore';
 import { crearMaterialDesdeUrl } from '../content';
 import { materializadorDeWee } from '../content/materializador';
-import { resolutorDeSeedance } from '../engine/providers/seedance';
 import {
   CapabilityId,
   Job,
@@ -23,7 +22,8 @@ import { crearGatewayDelMotor, trazaDeConsola } from '../engine/gateway';
 import { Ledger, firestoreLedger } from '../engine/ledger';
 import { sanitizeForLog } from '../engine/sanitize';
 import { esExitoRealDeProveedor, recordRealSuccess } from '../engine/verification';
-import { ADAPTERS, DEFAULT_ROUTING } from '../engine/registry';
+import { ADAPTERS, DEFAULT_ROUTING, RESOLUTORES_DE_ESTADO } from '../engine/registry';
+import { jurisdiccionesDeLaCuenta } from '../engine/jurisdiccion';
 import { derechosDeImplementacion } from '../engine/derechos';
 import { crearMotorDeTrabajosDeWee } from '../job';
 import { datosDelRegistro } from '../registry';
@@ -32,7 +32,8 @@ import { AtencionDeps, VistoAlAtender } from './atencion';
 import { InformeDeBarrido, pasarElBarrendero } from './barrido';
 import { barrerLiquidaciones } from './barrendero';
 import { PuertoDeMaterializacion } from './materializacion';
-import { PLAZOS_DE_VIDEO, PlazosDeCapacidad } from './plazos';
+import { PLAZOS_DE_VIDEO, PlazosDeCapacidad, plazosDeLaCapacidad } from './plazos';
+import { ParadaDeps } from './parada';
 import { InformeDelReconciliador, reconciliarTrabajos } from './reconciliador';
 import { ResolutorDeEstadoDeProveedor } from './reconciliacion';
 import { colaDeInvocacion } from './cola';
@@ -42,7 +43,7 @@ import { conversacionesDeBrain, entidadesDeWee } from './conversaciones';
 import { LibroDeIntentos, crearEjecutor } from './ejecutor';
 import { PuertoDeLiquidacion } from './liquidacion';
 import { trabajoDelMedio } from './medios';
-import { ReglaDePolitica, SIN_REGLAS, politicaPorReglas } from './politica';
+import { ReglaDePolitica, SIN_REGLAS, politicaConJurisdicciones, politicaPorReglas } from './politica';
 import { CadenaDeProducto, resolutorPorCadena } from './resolucion';
 
 /**
@@ -366,15 +367,18 @@ export const atencionDeWee = (deps: { db?: Firestore; ahora?: () => number; mate
     ...(deps.observar ? { observar: deps.observar } : {}),
     /* La licencia de lo que llegue: del modelo del trabajo, por la misma regla que los otros dos caminos. */
     derechosDe: (job) => derechosDeImplementacion(job.implementation),
+    /* El nombre: las palabras de quien lo pidió (`descripcion` de la entrada de Weë), si las hay. Contenido. */
+    nombreDe: (job) => (typeof job.input?.descripcion === 'string' && job.input.descripcion.trim() ? job.input.descripcion.trim().slice(0, 300) : undefined),
   };
 };
 
 /**
  * LA PASADA DEL RECONCILIADOR DE WEË, compuesta.
  *
- * Los resolutores son los adaptadores que saben preguntarle a su proveedor. Hoy
- * hay uno —Seedance—, y se declara aquí y no dentro del runtime: el runtime no
- * conoce proveedores.
+ * Los resolutores son los adaptadores que saben preguntarle a su proveedor
+ * —Seedance y fal—, y vienen del registro de adaptadores (`RESOLUTORES_DE_ESTADO`),
+ * no de dentro del runtime: el runtime no conoce proveedores. Los relojes son los
+ * de CADA trabajo, por su capacidad (`plazosDeLaCapacidad`).
  *
  * LA LLAMA EL BARRIDO DESPLEGADO: `mantenimientoDeWee` la usa cuando no le pasan otra, y
  * `barridoDeLiquidacion` (settlement/programado.ts, cada 5 min) no le pasa otra.
@@ -384,6 +388,7 @@ export const reconciliacionDeWee = (deps: {
   ahora?: () => number;
   resolutores?: Readonly<Record<string, ResolutorDeEstadoDeProveedor>>;
   plazos?: Pick<PlazosDeCapacidad, 'horizonteDeReconciliacionMs'>;
+  plazosDe?: (job: Job) => PlazosDeCapacidad | undefined;
   materializar?: PuertoDeMaterializacion;
   porPagina?: number;
   maxPaginas?: number;
@@ -394,8 +399,9 @@ export const reconciliacionDeWee = (deps: {
   return async (): Promise<InformeDelReconciliador> => reconciliarTrabajos({
     ...base,
     trabajos: almacenDeTrabajos(db),
-    resolutores: deps.resolutores ?? { seedance: resolutorDeSeedance },
+    resolutores: deps.resolutores ?? RESOLUTORES_DE_ESTADO,
     plazos: deps.plazos ?? PLAZOS_DE_VIDEO,
+    plazosDe: deps.plazosDe ?? ((job) => plazosDeLaCapacidad(job.capability)),
     ...(deps.porPagina !== undefined ? { porPagina: deps.porPagina } : {}),
     ...(deps.maxPaginas !== undefined ? { maxPaginas: deps.maxPaginas } : {}),
     ...(deps.quietoDesdeMs !== undefined ? { quietoDesdeMs: deps.quietoDesdeMs } : {}),
@@ -479,6 +485,17 @@ export const mantenimientoDeWee = (deps: {
 };
 
 /**
+ * PEDIR PARADA, COMPUESTO: el motor de siempre, el almacén de verdad y los resolutores del registro. Lo usa la puerta
+ * de «Crear mundo 3D» cuando la persona cancela; la reconciliación lo usa cuando vence lo concedido al proveedor.
+ */
+export const paradaDeWee = (deps: { db?: Firestore; ahora?: () => number } = {}): ParadaDeps => ({
+  motor: crearMotorDeTrabajosDeWee().motor,
+  almacen: almacenDeTrabajos(deps.db ?? getFirestore()),
+  resolutores: RESOLUTORES_DE_ESTADO,
+  ahora: deps.ahora ?? (() => Date.now()),
+});
+
+/**
  * ¿TIENE TRABAJO DEL CORE ESTA PETICIÓN DE MEDIO? Sobre el almacén de verdad, y
  * solo lectura.
  *
@@ -507,6 +524,12 @@ export interface ConductorDeWeeDeps {
   construirEntradaDeBrain?: ConstructorDeEntrada;
   /** Las restricciones EXPLÍCITAS conocidas. Hoy no hay ninguna, y sin ellas no se bloquea nada. */
   reglas?: readonly ReglaDePolitica[];
+  /**
+   * LAS JURISDICCIONES DE LA OPERACIÓN, si quien prepara la ejecución ya las leyó en el servidor (la puerta del mundo
+   * las lee una vez del Perfil Real): con ellas decide el ejecutor del Core si un modelo territorial es elegible, y las
+   * ve la política como región. Sin ellas, el ejecutor las lee de la misma fuente cuando un modelo las necesita.
+   */
+  jurisdicciones?: readonly string[];
   /**
    * PEDIRLE AL PROVEEDOR QUE ACEPTE Y SUELTE. Cerrado por defecto.
    *
@@ -537,6 +560,8 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
     now: ahora,
     /* EXPLÍCITO, no un spread: un spread es justo la forma que TypeScript no comprueba, y por ahí se perdió la primera vez. */
     aceptaAsincrono: deps.aceptaAsincrono === true,
+    /* La jurisdicción de la operación: la que ya leyó quien prepara, o la de la cuenta (la misma fuente). */
+    jurisdiccionesDe: deps.jurisdicciones ? async () => [...(deps.jurisdicciones as readonly string[])] : jurisdiccionesDeLaCuenta,
   });
   const { motor } = crearMotorDeTrabajosDeWee(deps.politica);
   const capacidad = deps.limites ? contadorDeCapacidad(deps.db, deps.limites) : undefined;
@@ -555,7 +580,7 @@ export const conductorDeWee = async (deps: ConductorDeWeeDeps): Promise<Conducto
     ejecuciones: almacenDeEjecuciones(deps.db, ahora),
     cola: colaDeInvocacion(ahora),
     motor,
-    resolver: resolutorPorCadena(router, cadenaViva, politicaPorReglas(deps.reglas ?? SIN_REGLAS)),
+    resolver: resolutorPorCadena(router, cadenaViva, politicaConJurisdicciones(politicaPorReglas(deps.reglas ?? SIN_REGLAS), deps.jurisdicciones)),
     ejecutor: crearEjecutor({
       gateway, libro: deps.libro ?? libroDelMotor(), ahora,
       /* La misma bandera que el Gateway: con ella, un POST que se queda sin respuesta es un desenlace desconocido. */
@@ -595,14 +620,16 @@ export type { AccionDeLiquidacion, PuertoDeLiquidacion, ReservaDelTrabajo } from
 export type { AlmacenDeTrabajosDeWee } from './almacen';
 export { claveDeOperacion, clavesDeOperacionDe, identidadCompleta, identidadDeEvento, intentoDeLaOperacion } from './proveedor';
 export type { BusquedaPorOperacion } from './proveedor';
-export { PLAZOS_DE_VIDEO, TOPE_DEL_CONTRATO_MS, politicaDe, revisarPlazos, segundosParaElProveedor } from './plazos';
+export { PLAZOS_DE_MUNDO, PLAZOS_DE_VIDEO, PLAZOS_POR_CAPACIDAD, TOPE_DEL_CONTRATO_MS, plazosDeLaCapacidad, politicaDe, revisarPlazos, segundosParaElProveedor } from './plazos';
+export { pedirParada } from './parada';
+export type { DesenlaceDeParada, ParadaDeps } from './parada';
 export type { FalloDePlazos, PlazosDeCapacidad } from './plazos';
 export { leerAviso, MAX_MOTIVO } from './aviso';
 export type { AvisoNormalizado, DesenlaceDelProveedor, LecturaDeAviso } from './aviso';
 export { atenderAviso } from './atencion';
 export type { AtencionDeps, DesenlaceDeAtencion, VistoAlAtender } from './atencion';
 export { decidirReconciliacion } from './reconciliacion';
-export type { AccionDeReconciliacion, EstadoSegunElProveedor, MotivoDeNoSaber, ResolutorDeEstadoDeProveedor } from './reconciliacion';
+export type { AccionDeReconciliacion, EstadoSegunElProveedor, MotivoDeNoSaber, ResolutorDeEstadoDeProveedor, ResultadoDeParada } from './reconciliacion';
 export { reconciliarTrabajos, reconciliarUno } from './reconciliador';
 export type { InformeDelReconciliador, ReconciliadorDeps, VistoAlReconciliar } from './reconciliador';
 export { pedirMedio, interpretarMedio, PASO_DE_MEDIO, ejecucionDelMedio, trabajoDelMedio } from './medios';

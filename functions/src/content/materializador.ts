@@ -93,6 +93,7 @@ const adoptarObjeto = async (peticion: PeticionDeMaterializacion): Promise<Desen
       provenance: peticion.provenance,
       ...(peticion.metadata ? { metadata: peticion.metadata } : {}),
       ...(peticion.derechos ? { derechos: peticion.derechos } : {}),
+      ...(peticion.nombre ? { name: peticion.nombre } : {}),
     });
     if (!material) return { ok: false, motivo: 'fallo' };
     return { ok: true, assetId: material.assetId, yaEstaba: material.provenance.createdAt !== peticion.provenance.createdAt };
@@ -193,6 +194,7 @@ const elMaterial: PuertoDeMaterializacion = {
       provenance: peticion.provenance,
       ...(peticion.metadata ? { metadata: peticion.metadata } : {}),
       ...(peticion.derechos ? { derechos: peticion.derechos } : {}),
+      ...(peticion.nombre ? { name: peticion.nombre } : {}),
     });
     if (!material) return { ok: false, motivo: 'fallo' };
     /* `create` devuelve la que ya estaba cuando otra llegada ganó: entonces el material es suyo, y está bien. */

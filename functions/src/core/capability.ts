@@ -147,6 +147,8 @@ const MODALIDAD_DE_FAMILIA: Record<string, Modality> = {
   scene: 'text',
   subtitle: 'text',
   audio: 'music',
+  /* Un mundo explorable (world.generate) es 3D: sin esto el libro y los plazos por modalidad lo trataban como texto. */
+  world: '3d',
 };
 
 export const modalidadDe = (capability: CapabilityId): Modality =>

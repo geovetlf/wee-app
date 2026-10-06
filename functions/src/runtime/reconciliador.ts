@@ -1,7 +1,8 @@
-import { Job, JobStore } from '../core';
+import { Job, JobEngine, JobStore } from '../core';
 import { AtencionDeps, DesenlaceDeAtencion, atenderAviso } from './atencion';
 import { PlazosDeCapacidad } from './plazos';
 import { AccionDeReconciliacion, MotivoDeNoSaber, ResolutorDeEstadoDeProveedor, decidirReconciliacion } from './reconciliacion';
+import { pedirParada } from './parada';
 
 /**
  * WEË RUNTIME — EL QUE PREGUNTA CUANDO NADIE HA AVISADO.
@@ -43,6 +44,14 @@ export interface ReconciliadorDeps extends AtencionDeps {
   resolutores: Readonly<Record<string, ResolutorDeEstadoDeProveedor>>;
   /** Los relojes de la capacidad. De aquí sale hasta cuándo el proveedor recuerda. */
   plazos: Pick<PlazosDeCapacidad, 'horizonteDeReconciliacionMs'>;
+  /**
+   * LOS RELOJES DE CADA TRABAJO, por su capacidad. Con ellos, el horizonte es el de SU proveedor y, si el proveedor
+   * no acepta que se le diga cuánto puede tardar, Weë le pide parar al superar `vidaEnElProveedorMs`. Sin ellos,
+   * todo como siempre: un solo horizonte y nadie pide parar.
+   */
+  plazosDe?: (job: Job) => PlazosDeCapacidad | undefined;
+  /** Para pedir parada hace falta el `cancelar` del motor de siempre. Sin él, no se pide. */
+  motor: AtencionDeps['motor'] & Partial<Pick<JobEngine, 'cancelar'>>;
   /** Cuánto tiene que llevar parado un trabajo para molestarse en preguntar. */
   quietoDesdeMs?: number;
   porPagina?: number;
@@ -74,6 +83,8 @@ export interface VistoAlReconciliar {
   /** Qué contestó, o por qué no se pudo saber. */
   respuesta?: 'conocido' | MotivoDeNoSaber;
   desenlace?: DesenlaceDeAtencion['estado'];
+  /** Si se le pidió parar, cómo quedó (lo que contestó el proveedor, o el estado de la parada). */
+  parada?: string;
 }
 
 export interface InformeDelReconciliador {
@@ -153,7 +164,7 @@ export const reconciliarTrabajos = async (deps: ReconciliadorDeps): Promise<Info
 
 /** Un trabajo, de principio a fin. Aparte para que se lea, y para poder probarlo solo. */
 export const reconciliarUno = async (deps: ReconciliadorDeps, job: Job): Promise<VistoAlReconciliar> => {
-  const accion = decidirReconciliacion(job, deps.ahora(), deps.plazos);
+  const accion = decidirReconciliacion(job, deps.ahora(), deps.plazosDe?.(job) ?? deps.plazos);
   const anotar = (v: VistoAlReconciliar): VistoAlReconciliar => { deps.observarPregunta?.(v); return v; };
 
   if (accion.tipo !== 'preguntar') {
@@ -178,5 +189,27 @@ export const reconciliarUno = async (deps: ReconciliadorDeps, job: Job): Promise
 
   /* Contestó. A partir de aquí es el mismo camino que un webhook, y por eso no pueden discrepar. */
   const desenlace = await atenderAviso(deps, estado.aviso);
-  return anotar({ jobId: job.jobId, accion: 'preguntar', ...accion.operacion, respuesta: 'conocido', desenlace: desenlace.estado });
+  const visto: VistoAlReconciliar = { jobId: job.jobId, accion: 'preguntar', ...accion.operacion, respuesta: 'conocido', desenlace: desenlace.estado };
+
+  /*
+   * SIGUE EN MARCHA, ¿Y DEBERÍA HABER PARADO? Dos casos y una sola acción:
+   *   · ya se pidió parar (`cancel_requested`) y el proveedor sigue: se le vuelve a pedir —la primera vez pudo no oírlo—;
+   *   · superó lo que se le concede (`vidaEnElProveedorMs`) y su proveedor no acepta que se lo digamos: lo pide Weë,
+   *     en nombre de quien pidió la creación.
+   * Solo si su resolutor sabe parar. El final se oirá después, por este mismo camino.
+   */
+  if (estado.aviso.desenlace !== 'en_marcha' || !resolutor.cancelar || !deps.motor.cancelar) return anotar(visto);
+  const plazos = deps.plazosDe?.(job);
+  const desde = job.attempts[job.attempts.length - 1]?.startedAt;
+  const vencida = !!plazos && typeof desde === 'number' && deps.ahora() - desde > plazos.vidaEnElProveedorMs;
+  if (job.state !== 'cancel_requested' && !vencida) return anotar(visto);
+  /* Lo de ahora, no lo de cuando empezó la pasada: el aviso de arriba pudo escribir el trabajo. */
+  const fresco = await deps.trabajos.porReferenciaDeProveedor(accion.operacion.providerId, accion.operacion.operationId);
+  if (!fresco.ok) return anotar({ ...visto, parada: 'no_encontrada' });
+  const parada = await pedirParada(
+    { motor: { cancelar: deps.motor.cancelar }, almacen: deps.almacen, resolutores: deps.resolutores, ahora: deps.ahora },
+    fresco.job,
+    { userId: fresco.job.owner.userId },
+  );
+  return anotar({ ...visto, parada: parada.estado === 'pedida' ? parada.proveedor ?? 'pedida' : parada.estado });
 };

@@ -51,6 +51,8 @@ export interface AtencionDeps {
    * composición (el runtime no conoce proveedores). Sin esto, el material nace sin derechos.
    */
   derechosDe?: (job: Job) => DerechosDelMaterial | undefined;
+  /** Cómo se llama el material de un trabajo (las palabras de quien lo pidió), si la composición lo sabe. */
+  nombreDe?: (job: Job) => string | undefined;
 }
 
 export interface VistoAlAtender {
@@ -202,6 +204,7 @@ const traerACasa = async (
   const kind = tipoDeMaterialDe(job.capability);
   if (!kind) return { ok: false, motivo: 'tipo_desconocido' };
   const derechos = deps.derechosDe?.(job);
+  const nombre = deps.nombreDe?.(job);
 
   const guardado = await deps.materializar.guardar({
     assetId,
@@ -214,6 +217,7 @@ const traerACasa = async (
     /* De quién es la licencia: del modelo del TRABAJO guardado, nunca de lo que diga el aviso. */
     ...(derechos ? { derechos } : {}),
     ...(aviso.variantes?.length ? { variantes: aviso.variantes } : {}),
+    ...(nombre ? { nombre } : {}),
   });
   return guardado.ok ? { ok: true, assetId: guardado.assetId } : { ok: false, motivo: guardado.motivo };
 };

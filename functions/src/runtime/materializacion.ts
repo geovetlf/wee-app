@@ -144,6 +144,8 @@ export interface PeticionDeMaterializacion {
   derechos?: DerechosDelMaterial;
   /** Las variantes que dio el proveedor (la vista previa), temporales como `recurso`: se traen y se anotan. */
   variantes?: readonly { kind: VariantKind; recurso: string }[];
+  /** Cómo se llama en «Mis creaciones»: lo que escribió la persona, si escribió algo. Contenido: no se traduce. */
+  nombre?: string;
 }
 
 export type DesenlaceDeMaterializacion =

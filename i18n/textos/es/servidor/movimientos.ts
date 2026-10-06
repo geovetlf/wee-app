@@ -29,6 +29,8 @@ export const movimientos = {
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · el intento anterior se quedó sin tiempo',
   studioNoSePudo: 'Weë Studio · el video no se pudo generar',
+  studioMundo: 'Weë Studio · mundo 3D',
+  studioMundoNoSePudo: 'Weë Studio · el mundo 3D no se pudo crear',
   weeAi: 'WEË AI · {{experiencia}}',
   operacionIncompleta: 'Weë · la operación no llegó a completarse',
   servicioAiImageLite: 'Imagen estándar',

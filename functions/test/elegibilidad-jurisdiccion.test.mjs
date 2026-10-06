@@ -287,10 +287,19 @@ console.log('── D · Una sola regla, en la capa común ──');
 const archivosDe = (dir) => fs.readdirSync(path.join(RAIZ, dir), { withFileTypes: true }).flatMap((d) =>
   d.isDirectory() ? archivosDe(`${dir}/${d.name}`) : d.name.endsWith('.ts') ? [`${dir}/${d.name}`] : []);
 const quienLaNombra = archivosDe('functions/src').filter((f) => /\bjurisdicciones\b/.test(sinComentarios(leer(f)))).sort();
-/* FASE 2: `engine/errors.ts` la nombra solo para QUITARLA de lo que sale hacia la app (DETALLES_INTERNOS). */
-check('21) las jurisdicciones de la operación solo las nombran el contexto del motor, la regla común, el Router y quien las quita de lo que ve la app: ningún callable, experiencia ni adaptador las lee o las fija desde el cliente',
-  quienLaNombra.join() === 'functions/src/engine/elegibilidad.ts,functions/src/engine/errors.ts,functions/src/engine/router.ts,functions/src/engine/types.ts'
-  && /DETALLES_INTERNOS[^;]*'jurisdicciones'/.test(leer('functions/src/engine/errors.ts')), quienLaNombra.join());
+/*
+ * FASE 2: `engine/errors.ts` la nombra solo para QUITARLA de lo que sale hacia la app (DETALLES_INTERNOS).
+ * FASE 5/12: la cadena Perfil Real → servidor → elegibilidad → política → Router llega al Core. La puerta del mundo
+ * (`creator/mundo.ts`) la LEE en el servidor de la cuenta (`jurisdiccionesDeLaCuenta`) y la pasa; el ejecutor del Core
+ * (`engine/gateway.ts`), la composición (`runtime/index.ts`) y la política (`runtime/politica.ts`) la reciben. Ninguno
+ * la toma del cliente: se comprueba abajo.
+ */
+const puertaDelMundo = sinComentarios(leer('functions/src/creator/mundo.ts'));
+check('21) las jurisdicciones de la operación solo las nombran el contexto del motor, la regla común, el Router, quien las quita de lo que ve la app y la cadena del Core (la puerta que las LEE en el servidor, el ejecutor, la composición y la política): ningún callable, experiencia ni adaptador las lee o las fija desde el cliente',
+  quienLaNombra.join() === 'functions/src/creator/mundo.ts,functions/src/engine/elegibilidad.ts,functions/src/engine/errors.ts,functions/src/engine/gateway.ts,functions/src/engine/router.ts,functions/src/engine/types.ts,functions/src/runtime/index.ts,functions/src/runtime/politica.ts'
+  && /DETALLES_INTERNOS[^;]*'jurisdicciones'/.test(leer('functions/src/engine/errors.ts'))
+  && /const jurisdicciones = await jurisdiccionesDeLaCuenta\(uid\)/.test(puertaDelMundo) && !/data\.\w*jurisdic|request\.data\.\w*(country|pais|region)/i.test(puertaDelMundo),
+  quienLaNombra.join());
 
 const regla = sinComentarios(leer('functions/src/engine/elegibilidad.ts'));
 check('22) la regla no deduce la jurisdicción de nada: ni del idioma, ni del locale, ni de la IP, ni del dispositivo, y no sabe de proveedores concretos',

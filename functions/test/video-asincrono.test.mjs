@@ -275,8 +275,10 @@ const VIDEO = sinComentarios(VIDEO_SRC);
   const fuentes = execSync('git ls-files functions/src', { cwd: RAIZ, encoding: 'utf8' }).trim().split('\n').filter((f) => f.endsWith('.ts'));
   const con = (re) => fuentes.filter((f) => re.test(sinComentarios(leer(f))));
   check('A9) un solo conductor', JSON.stringify(con(/export const crearConductor\b/)) === JSON.stringify(['functions/src/runtime/conductor.ts']));
-  check('A10) la puerta CORE/LEGACY la consultan solo brainChat y generateVideo',
-    JSON.stringify(con(/decidirRuntime\(/).filter((f) => !f.startsWith('functions/src/runtime/'))) === JSON.stringify(['functions/src/creator/brain.ts', 'functions/src/creator/video.ts']));
+  /* Misión mundo3d (FASE 5, autorizada por la misión del dueño): la TERCERA, la del mundo, con su propio candado. Una cuarta hace fallar esto. */
+  check('A10) la puerta CORE/LEGACY la consultan solo brainChat, generateVideo y generateWorld',
+    JSON.stringify(con(/decidirRuntime\(/).filter((f) => !f.startsWith('functions/src/runtime/'))) === JSON.stringify(['functions/src/creator/brain.ts', 'functions/src/creator/mundo.ts', 'functions/src/creator/video.ts'])
+    && /const CAPACIDAD_DEL_CANARY: CapabilityId = 'world\.generate';/.test(sinComentarios(leer('functions/src/creator/mundo.ts'))));
   check('A11) la puerta de vídeo no fabrica un motor de trabajos propio: el único lo construye el conductor',
     !/crearJobEngine\(|crearMotorDeTrabajosDeWee\(|crearConductor\(/.test(VIDEO));
   const antes = git(`show ${ANTES}:functions/src/creator/video.ts`);
@@ -619,7 +621,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     'functions/src/engine/derechos.ts': '26\t0', // misión mundo3d (nuevo): los derechos de lo que generó una implementación, de los datos de SU modelo; una regla para los tres caminos
     'functions/src/engine/elegibilidad.ts': '210\t0', // misión fal (nuevo): la regla común de elegibilidad —gobierno, revisión, activación y jurisdicción— · misión mundo3d (+17, antes 193/0): `elegibleEnAlgunaJurisdiccion`, para el catálogo y para explicar un «no»
     'functions/src/engine/errors.ts': '59\t2', // i18n da-DK: el rechazo de entrada sin «el proveedor» · misión mundo3d (+58 −1, antes 1/1): el motivo PÚBLICO de un NOT_AVAILABLE (cinco, cerrados, con su frase) y lo que nunca sale hacia la app en los detalles de un error
-    'functions/src/engine/gateway.ts': '10\t2', // 0ad8500 (#19) · misión fal (+8 −2, antes 2/0): el ejecutor pregunta a la regla común y los ajustes no tocan identidad ni gobierno
+    'functions/src/engine/gateway.ts': '28\t4', // misión mundo3d (+18 −2, antes 10/2): el ejecutor del Core pregunta la elegibilidad de un modelo territorial CON la jurisdicción de la cuenta (falla cerrado sin ella) · 0ad8500 (#19) · misión fal (+8 −2, antes 2/0): el ejecutor pregunta a la regla común y los ajustes no tocan identidad ni gobierno
     'functions/src/engine/http.ts': '26\t1', // 16ca1ae (#3)
     'functions/src/engine/index.ts': '3\t1', // misión fal (nuevo en el mapa): la composición conecta la jurisdicción de la cuenta al Router
     'functions/src/engine/jurisdiccion.ts': '46\t0', // misión fal (nuevo): el conector de la jurisdicción —el país que declara el Perfil Real, leído en el servidor—
@@ -630,11 +632,11 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     'functions/src/engine/providers/claude.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/deepseek.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/fal-modelos.ts': '147\t0', // misión fal (nuevo): los modelos de fal como DATOS, con su gobierno y sus reglas territoriales · misión mundo3d (+31, antes 116/0): el mapeo de la entrada de Weë a su esquema y el papel del archivo de salida, como datos
-    'functions/src/engine/providers/fal.ts': '479\t0', // misión mundo3d (+55, antes 424/0): la salida por PAPELES (el mundo principal y sus variantes) en la ejecución y en el aviso, y la cola configurable solo a https o a esta máquina · misión fal (nuevo): el adaptador de fal (cola, fotos en línea, avisos firmados, cancelación, reconciliación) · misión mundo3d (+31, antes 393/0): traduce la entrada de Weë con los datos del mapeo y no escribe ningún campo de fal
+    'functions/src/engine/providers/fal.ts': '486\t0', // misión mundo3d FASE 5 (+7, antes 479/0): el nombre de la operación sin «/» (con «:», lo que admite la etiqueta del Core) y el resolutor que sabe pedir parada · misión mundo3d (+55, antes 424/0): la salida por PAPELES (el mundo principal y sus variantes) en la ejecución y en el aviso, y la cola configurable solo a https o a esta máquina · misión fal (nuevo): el adaptador de fal (cola, fotos en línea, avisos firmados, cancelación, reconciliación) · misión mundo3d (+31, antes 393/0): traduce la entrada de Weë con los datos del mapeo y no escribe ningún campo de fal
     'functions/src/engine/providers/gemini.ts': '4\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/openai.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/seedance.ts': '33\t19', // F1-D (ficha 6) + 8a9f098 (#21)
-    'functions/src/engine/registry.ts': '17\t1', // 0ad8500 (#19) · misión fal (+15 −1, antes 2/0): fal en ADAPTERS (apagado), la cadena de world.generate y el plazo de la modalidad 3d
+    'functions/src/engine/registry.ts': '29\t2', // misión mundo3d (+12 −1, antes 17/1): RESOLUTORES_DE_ESTADO, quién sabe preguntarle a cada proveedor (Seedance y fal), junto a los adaptadores · 0ad8500 (#19) · misión fal (+15 −1, antes 2/0): fal en ADAPTERS (apagado), la cadena de world.generate y el plazo de la modalidad 3d
     'functions/src/engine/router.ts': '144\t25', // misión mundo3d (+22 −12, antes 122/13): cada descarte con su CAUSA y, si es territorial, si en otra jurisdicción valdría; NOT_AVAILABLE con su motivo público en vez de «inténtalo más tarde» · 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK · harness/fase-2 (H0 #22) · cierre post-auditoría 2026-10-01 · F2-C1 (+2, antes 57/4) · misión fal (+63 −9, antes 59/4): la elegibilidad con las jurisdicciones de la operación —de la petición o de la cuenta, solo si algún modelo las necesita—, el descarte con su escalón y su modelo, NOT_AVAILABLE «sin_modelo_elegible» y la decisión al libro (auditoría)
     'functions/src/engine/types.ts': '212\t3', // misión mundo3d (+63, antes 149/3): la causa de un descarte del Router (+18) y el papel de un archivo de salida, las variantes de un resultado y el origen de un campo del proveedor en la entrada de Weë · 0ad8500 (#19) · 5e87b80 (FASE 8) · F2-C1 (+10, antes 19/0) · misión fal (+120 −3, antes 29/0): gobierno y territorio del modelo, escalones de elegibilidad, jurisdicciones de la operación, la decisión en el libro, modalidad 3d
     'functions/src/engine/verification.ts': '8\t0', // misión fal (nuevo en el mapa): la ficha de fal, documentada y sin verificar con la API real
@@ -661,8 +663,10 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * + misión mundo3d (2026-10-05): el contrato canónico de world.generate (mundo3d, nuevo), su versión en contracts (+6),
    * su exportación (index +1) y la forma de un id del núcleo 3D exportada para reutilizarla (escena3d +1).
    */
-  const CORE_DE_LA_MISION_FAL = '4\t2\tfunctions/src/core/capability.ts|44\t2\tfunctions/src/core/content/asset.ts|12\t0\tfunctions/src/core/contracts.ts'
-    + '|217\t0\tfunctions/src/core/escena3d.ts|2\t0\tfunctions/src/core/index.ts|364\t0\tfunctions/src/core/mundo3d.ts|2\t1\tfunctions/src/core/provider.ts'
+  /* + misión mundo3d FASE 5: capability.ts +2 (un mundo es 3D también para el Core: `world: '3d'` en MODALIDAD_DE_FAMILIA), y
+     mundo3d.ts +15 (364 → 379): los derechos VISIBLES que la puerta le cuenta a la app, sin las licencias que nombran al modelo. */
+  const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts|44\t2\tfunctions/src/core/content/asset.ts|12\t0\tfunctions/src/core/contracts.ts'
+    + '|217\t0\tfunctions/src/core/escena3d.ts|2\t0\tfunctions/src/core/index.ts|379\t0\tfunctions/src/core/mundo3d.ts|2\t1\tfunctions/src/core/provider.ts'
     + '|6\t0\tfunctions/src/core/registry/capabilities.ts|6\t2\tfunctions/src/core/registry/types.ts|2\t2\tfunctions/src/core/router.ts';
   check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal, del tamaño exacto',
     git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions`).trim() === ''

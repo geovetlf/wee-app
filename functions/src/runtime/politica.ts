@@ -159,6 +159,23 @@ export const politicaPorReglas = (reglas: readonly ReglaDePolitica[]): PolicyEli
   },
 });
 
+/**
+ * LA POLÍTICA CON LAS JURISDICCIONES DE LA OPERACIÓN (FASE 12 de la misión mundo3d). La región que ve cada regla es la
+ * que el SERVIDOR leyó de la fuente autorizada —el país que declara el Perfil Real (`engine/jurisdiccion.ts`)—, nunca
+ * la del cliente, el idioma o el dispositivo. Una operación de varias jurisdicciones se evalúa en TODAS, y basta una
+ * que niegue para negar. Sin jurisdicciones conocidas, la política de siempre (que aplica sus reglas: falla cerrado).
+ */
+export const politicaConJurisdicciones = (base: PolicyEligibilityPort, jurisdicciones: readonly string[] | undefined): PolicyEligibilityPort => ({
+  evaluar(contexto) {
+    if (contexto.region !== undefined || !jurisdicciones?.length) return base.evaluar(contexto);
+    for (const region of jurisdicciones) {
+      const v = base.evaluar({ ...contexto, region });
+      if (!v.eligible) return v;
+    }
+    return { eligible: true, reason: 'no_rule_applies' };
+  },
+});
+
 /** Para quien decida que, con las reglas ilegibles, no se ejecuta nada: una restricción que no se puede leer es una que se puede incumplir. */
 export const politicaCerrada: PolicyEligibilityPort = Object.freeze({
   evaluar: (): VeredictoDePolitica => ({ eligible: false, reason: 'policy_unreadable' }),

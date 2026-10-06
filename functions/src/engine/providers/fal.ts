@@ -81,15 +81,20 @@ export const esUrlDeLaCola = (url: unknown): url is string =>
 /* ── La operación: cómo se llama una petición de fal fuera de fal ────────── */
 
 /**
- * El nombre de la operación que guarda Weë: `{modelo}::{request_id}`. Lleva el modelo porque las rutas de estado y
- * de resultado de fal cuelgan de él, y quien pregunta después (la reconciliación) solo tiene este nombre.
+ * El nombre de la operación que guarda Weë: `{modelo}::{request_id}`, con las `/` del modelo escritas como `:`.
+ * Lleva el modelo porque las rutas de estado y de resultado de fal cuelgan de él, y quien pregunta después (la
+ * reconciliación) solo tiene este nombre. Sin `/` porque la clave con la que el runtime encuentra un trabajo por su
+ * operación no las admite (`claveDeOperacion`): con ellas, ningún aviso ni ninguna pregunta encontraba su trabajo.
+ * `:` porque es lo que la etiqueta de una operación aceptada admite en el Core (`FORMA_DE_ETIQUETA_DE_TRAZA`) y no es
+ * un carácter de un id de modelo ni de una petición; como ningún tramo del modelo es vacío, el primer `::` separa.
  */
-export const nombreDeOperacion = (modelo: string, requestId: string): string => `${modelo}::${requestId}`;
+export const nombreDeOperacion = (modelo: string, requestId: string): string => `${modelo.split('/').join(':')}::${requestId}`;
 
 export const leerOperacion = (operationId: unknown): { modelo: string; requestId: string } | undefined => {
-  if (typeof operationId !== 'string' || operationId.length > 256) return undefined;
-  const [modelo, requestId, ...resto] = operationId.split('::');
-  if (resto.length || !ID_DE_MODELO.test(modelo ?? '') || !ID_DE_PETICION.test(requestId ?? '')) return undefined;
+  if (typeof operationId !== 'string' || operationId.length > 256 || operationId.includes('/')) return undefined;
+  const [escrito, requestId, ...resto] = operationId.split('::');
+  const modelo = (escrito ?? '').split(':').join('/');
+  if (resto.length || !ID_DE_MODELO.test(modelo) || !ID_DE_PETICION.test(requestId ?? '')) return undefined;
   return { modelo, requestId };
 };
 
@@ -449,6 +454,8 @@ export const verificarFirmaDeFal = (
  * si fal contesta con un error de modelo, fallado con su motivo.
  */
 export const resolutorDeFal: ResolutorDeEstadoDeProveedor = {
+  /* Parar, cuando fal lo permite (una petición en cola; una ya terminada contesta que ya terminó). Nunca lanza. */
+  cancelar: (ref) => (ref.providerId === 'fal' ? cancelarEnFal(ref.operationId) : Promise.resolve('no_configurado' as const)),
   async consultar(ref) {
     if (ref.providerId !== 'fal' || !isFalConfigured()) return { conocido: false, motivo: 'no_configurado' };
     const op = leerOperacion(ref.operationId);

@@ -516,6 +516,9 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
    *   (antes 194/3) y elegibilidad.ts +17 (antes 193/0): la causa de cada descarte y el motivo público, sin proveedor.
    *   FASES 3 y 4 (derechos; mundo y vista previa): derechos.ts (nuevo, los derechos del modelo que atendió) y fal.ts +55
    *   (antes 424/0): la salida por papeles y la cola configurable solo a https o a esta máquina.
+   *   FASE 5 (la tercera puerta del conductor): gateway.ts +18 −2 (antes 10/2), la elegibilidad del ejecutor con la
+   *   jurisdicción de la cuenta; registry.ts +12 −1 (antes 17/1), los resolutores de estado junto a los adaptadores; y
+   *   fal.ts +7 (antes 479/0), el nombre de la operación sin «/» (con «:») y el resolutor que sabe parar. Ni un proveedor ni una cadena nuevos.
    */
   check('E4) para el vídeo, Seedance y solo Seedance; el único proveedor nuevo es fal, con la única cadena nueva (world.generate)',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
@@ -533,7 +536,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * GenerationRecord) y router.ts 57/4 → 59/4 (reenvía esos dos campos al contexto del libro). SIGUE sin haber
        * proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|210\t0\tfunctions/src/engine/elegibilidad.ts|59\t2\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|147\t0\tfunctions/src/engine/providers/fal-modelos.ts|479\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|144\t25\tfunctions/src/engine/router.ts|212\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|210\t0\tfunctions/src/engine/elegibilidad.ts|59\t2\tfunctions/src/engine/errors.ts|28\t4\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|147\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|144\t25\tfunctions/src/engine/router.ts|212\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 
@@ -625,7 +628,11 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    */
   /* + FASES 3 y 4: los derechos (engine/derechos, nuevo) y las variantes viajan por el aviso y su atención (runtime/aviso, runtime/atencion). */
   const DE_LA_MISION_MUNDO3D = ['functions/src/core/mundo3d.ts', 'functions/src/engine/mundo.ts',
-    'functions/src/engine/derechos.ts', 'functions/src/runtime/atencion.ts', 'functions/src/runtime/aviso.ts'];
+    'functions/src/engine/derechos.ts', 'functions/src/runtime/atencion.ts', 'functions/src/runtime/aviso.ts',
+    /* + FASE 5: la puerta del mundo (creator/mundo, nueva), pedir parada (runtime/parada, nueva), los relojes del mundo y por capacidad
+       (runtime/plazos), un resolutor que puede saber parar (runtime/reconciliacion) y la reconciliación que lo usa (runtime/reconciliador). */
+    'functions/src/creator/mundo.ts', 'functions/src/runtime/parada.ts', 'functions/src/runtime/plazos.ts', 'functions/src/runtime/reconciliacion.ts',
+    'functions/src/runtime/reconciliador.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1) y de la misión fal',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
@@ -651,15 +658,17 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === `${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. Del Core, solo la misión fal (video-asincrono H3). */
   /* + misión mundo3d (2026-10-05): mundo3d (nuevo), contracts +6, index +1 y escena3d +1 (ver video-asincrono H3). */
-  const CORE_DE_LA_MISION_FAL = '4\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n12\t0\tfunctions/src/core/contracts.ts'
-    + '\n217\t0\tfunctions/src/core/escena3d.ts\n2\t0\tfunctions/src/core/index.ts\n364\t0\tfunctions/src/core/mundo3d.ts\n2\t1\tfunctions/src/core/provider.ts'
+  /* + misión mundo3d FASE 5: capability.ts +2 (`world: '3d'`) y mundo3d.ts +15 (364 → 379, los derechos visibles). */
+  const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n12\t0\tfunctions/src/core/contracts.ts'
+    + '\n217\t0\tfunctions/src/core/escena3d.ts\n2\t0\tfunctions/src/core/index.ts\n379\t0\tfunctions/src/core/mundo3d.ts\n2\t1\tfunctions/src/core/provider.ts'
     + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
   check('F3) ni F1-A ni productions; del Core, solo la misión fal; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',
     git(`diff --name-only ${RUTA} -- functions/src/filmmaker functions/src/productions`).trim() === ''
     && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === CORE_DE_LA_MISION_FAL
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
-    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '68\t3\tfunctions/src/content/index.ts\n124\t4\tfunctions/src/content/materializador.ts');
+    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '68\t3\tfunctions/src/content/index.ts\n126\t4\tfunctions/src/content/materializador.ts');
+    /* + FASE 5: materializador.ts +2 (antes 124/4): el nombre del material, las palabras de quien lo pidió. */
     /* + misión mundo3d (2026-10-05): content/index.ts +27 (antes 41/3), las variantes de UN resultado; materializador.ts +62 −2 (antes 62/2), los derechos al material y sus variantes después. */
   const legacy = (s) => {
     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');

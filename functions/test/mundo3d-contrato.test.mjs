@@ -229,6 +229,16 @@ seccion('F', () => {
   const entradas = [PETICION, { ...PETICION, labels_fg1: 'x' }, { ...PETICION, imagen: { tipo: 'storage', url: enStorage('users/otra/x.png') } }, { ...PETICION, espacio: undefined, elementos: undefined }, null];
   check('F2) y decide igual sobre las mismas peticiones', entradas.every((p) => iguales(C.leerPeticionDeMundo3D(p, CUENTA), ESPEJO.leerPeticionDeMundo3D(p, CUENTA))));
   check('F3) la puerta de la app lo reexporta tal cual', /export \* from '\.\/filmmaker\/espejo\/core\/mundo3d';/.test(leer('services/escena3d.ts')));
+  /* Los derechos que llegan a la app: sin las licencias (su nombre y su dirección nombran al modelo) ni la revisión interna. */
+  const DERECHOS = Object.freeze({ revision: 'APPROVED', usoComercial: 'RESTRICTED', atribucion: true,
+    licencias: Object.freeze([Object.freeze({ nombre: 'Licencia de un tercero', url: 'https://example.com/licencia' })]),
+    jurisdiccionesBloqueadas: Object.freeze(['EU', 'GB']) });
+  const visibles = C.derechosVisibles(DERECHOS);
+  check('F4) los derechos VISIBLES: uso comercial, atribución y dónde no se puede mostrar; ni licencias ni revisión, y sin tocar los del material',
+    iguales(visibles, { usoComercial: 'RESTRICTED', atribucion: true, jurisdiccionesBloqueadas: ['EU', 'GB'] })
+    && !('licencias' in visibles) && !('revision' in visibles) && visibles.jurisdiccionesBloqueadas !== DERECHOS.jurisdiccionesBloqueadas
+    && iguales(C.derechosVisibles({ ...DERECHOS, jurisdiccionesBloqueadas: [] }), { usoComercial: 'RESTRICTED', atribucion: true })
+    && iguales(ESPEJO.derechosVisibles(DERECHOS), visibles), JSON.stringify(visibles));
 });
 
 /* ═══ G · LOS DATOS DEL MAPEO SE SOSTIENEN ════════════════════════════════ */

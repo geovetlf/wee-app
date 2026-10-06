@@ -779,11 +779,13 @@ const quienes = (re) => TODAS.filter((f) => re.test(src(f)));
   check('AD) un solo conductor, y nadie lo reexporta con otro nombre',
     JSON.stringify(quienes(/export const crearConductor\b/)) === JSON.stringify(['functions/src/runtime/conductor.ts'])
     && quienes(/(?:=|:)\s*conductorDeWee\b(?!\()|conductorDeWee\s+as\s+|as\s+conductorDeWee\b/).length === 0
-    && JSON.stringify(quienes(/conductorDeWee\(\{/)) === JSON.stringify(['functions/src/creator/brain.ts', 'functions/src/creator/video.ts']));
-  check('AE) dos puertas y ninguna más: `decidirRuntime(` fuera del runtime, solo en brain y video, una vez cada una',
-    JSON.stringify(quienes(/decidirRuntime\(/).filter((f) => !f.startsWith('functions/src/runtime/'))) === JSON.stringify(['functions/src/creator/brain.ts', 'functions/src/creator/video.ts'])
+    /* + misión mundo3d (FASE 5): la tercera puerta, la del mundo, autorizada por la misión del dueño. */
+    && JSON.stringify(quienes(/conductorDeWee\(\{/)) === JSON.stringify(['functions/src/creator/brain.ts', 'functions/src/creator/mundo.ts', 'functions/src/creator/video.ts']));
+  check('AE) tres puertas y ninguna más: `decidirRuntime(` fuera del runtime, solo en brain, mundo y video, una vez cada una, cada una con su candado',
+    JSON.stringify(quienes(/decidirRuntime\(/).filter((f) => !f.startsWith('functions/src/runtime/'))) === JSON.stringify(['functions/src/creator/brain.ts', 'functions/src/creator/mundo.ts', 'functions/src/creator/video.ts'])
     && (src('functions/src/creator/video.ts').match(/decidirRuntime\(/g) || []).length === 1
-    && JSON.stringify(quienes(/const CAPACIDAD_DEL_CANARY/)) === JSON.stringify(['functions/src/creator/brain.ts', 'functions/src/creator/video.ts']));
+    && (src('functions/src/creator/mundo.ts').match(/decidirRuntime\(/g) || []).length === 1
+    && JSON.stringify(quienes(/const CAPACIDAD_DEL_CANARY/)) === JSON.stringify(['functions/src/creator/brain.ts', 'functions/src/creator/mundo.ts', 'functions/src/creator/video.ts']));
   check('AE) un solo Credit Engine y un solo Job Engine',
     JSON.stringify(quienes(/export function createCreditEngine\b/)) === JSON.stringify(['functions/src/credits/creditEngine.ts'])
     && JSON.stringify(quienes(/export const crearJobEngine\b/)) === JSON.stringify(['functions/src/core/job.ts']));

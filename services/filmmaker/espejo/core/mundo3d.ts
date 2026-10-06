@@ -223,11 +223,17 @@ export const estadoDeMundoDelTrabajo = (estadoDelTrabajo: unknown): EstadoDeMund
     ? ESTADO_DE_MUNDO_POR_ESTADO_DE_TRABAJO[estadoDelTrabajo]
     : undefined;
 export const sePuedeCancelarElMundo = (estado: EstadoDeMundo3D | undefined): boolean => estado === 'en_cola' || estado === 'generando';
+export type DerechosVisibles = Pick<DerechosDelMaterial, 'usoComercial' | 'atribucion' | 'jurisdiccionesBloqueadas'>;
+export const derechosVisibles = (derechos: DerechosDelMaterial): DerechosVisibles => ({
+    usoComercial: derechos.usoComercial,
+    atribucion: derechos.atribucion,
+    ...(derechos.jurisdiccionesBloqueadas?.length ? { jurisdiccionesBloqueadas: [...derechos.jurisdiccionesBloqueadas] } : {}),
+});
 export interface MundoTerminado {
     readonly assetId: string;
     readonly kind: typeof TIPO_DE_MATERIAL_DEL_MUNDO;
     readonly conVistaPrevia: boolean;
-    readonly derechos?: DerechosDelMaterial;
+    readonly derechos?: DerechosVisibles;
 }
 export interface TrabajoDeMundo3D {
     readonly contract: typeof MUNDO3D_CONTRACT_VERSION;

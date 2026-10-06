@@ -29,6 +29,8 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · the previous attempt ran out of time',
   studioNoSePudo: 'Weë Studio · the video couldn’t be generated',
+  studioMundo: 'Weë Studio · 3D world',
+  studioMundoNoSePudo: 'Weë Studio · the 3D world couldn’t be created',
   weeAi: 'Weë AI · {{experiencia}}',
   operacionIncompleta: 'Weë · the operation wasn’t completed',
   servicioAiImageLite: 'Standard image',

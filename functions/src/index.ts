@@ -98,6 +98,8 @@ export { brainChat, brainQuote } from './creator/brain';
 
 // Weë Video Engine (Weë Studio → Seedance): petición abstracta de video y webhook preparado
 export { generateVideo } from './creator/video';
+/* «Crear mundo 3D» (Weë Studio → 3D World): la tercera puerta del conductor, cerrada por `aiSettings/runtime`. */
+export { generateWorld } from './creator/mundo';
 export { seedanceCallback } from './engine/webhooks';
 export { evalRun } from './evals';
 

@@ -44,6 +44,8 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · tiden løb ud for det forrige forsøg',
   studioNoSePudo: 'Weë Studio · videoen kunne ikke genereres',
+  studioMundo: 'Weë Studio · 3D-verden',
+  studioMundoNoSePudo: 'Weë Studio · 3D-verdenen kunne ikke oprettes',
   weeAi: 'Weë AI · {{experiencia}}',
   operacionIncompleta: 'Weë · handlingen blev ikke gennemført',
   servicioAiImageLite: 'Standardbillede',

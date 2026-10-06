@@ -166,8 +166,10 @@ const ajena = await lanza(() => F.falAdapter.run(peticion({ input: { ...ENTRADA,
 check('13) y solo si es de la carpeta de quien pide: la foto de otra persona no sale, ni se lee',
   ajena?.status === 400 && ajena.retryable === false && leidas.length === 1);
 
-check('14) con `acceptAsync` suelta la llamada y devuelve SOLO el nombre de la operación (modelo::request_id), su coste conocido y nada más',
-  aceptada.accepted?.operationId === 'fal-ai/hunyuan_world/image-to-world::req-123' && llamadas.length === 1 && aceptada.costUSD === HW.cost.usd && !aceptada.output);
+/* Misión mundo3d (FASE 5): el modelo va con «:» en vez de «/», que la clave del runtime no admite (claveDeOperacion), y la
+   etiqueta de una operación aceptada del Core admite «:» y no «~» (FORMA_DE_ETIQUETA_DE_TRAZA). */
+check('14) con `acceptAsync` suelta la llamada y devuelve SOLO el nombre de la operación (modelo::request_id, sin «/»), su coste conocido y nada más',
+  aceptada.accepted?.operationId === 'fal-ai:hunyuan_world:image-to-world::req-123' && llamadas.length === 1 && aceptada.costUSD === HW.cost.usd && !aceptada.output);
 
 red([{ ...ENVIO, status_url: 'https://evil.test/status', response_url: 'https://queue.fal.run.evil.test/r' }, { status: 'IN_QUEUE' }, { status: 'IN_PROGRESS' }, { status: 'COMPLETED' }, RESULTADO]);
 guardados.length = 0;
@@ -282,8 +284,9 @@ check('27) ningún contrato existente sube de versión: lo nuevo es aditivo (sol
 console.log('── E · Nada encendido ──');
 
 const nombran = fuentesSrc.filter((f) => /'world\.generate'/.test(sinComentarios(leer(f)))).sort();
-check('28) ninguna experiencia, plantilla ni pantalla pide un mundo por su cuenta: world.generate vive en el catálogo, su contrato canónico, el registro, el precio, fal y la clase de material que deja (un mundo es `world`)',
-  JSON.stringify(nombran) === JSON.stringify(['functions/src/core/capability.ts', 'functions/src/core/mundo3d.ts', 'functions/src/core/registry/capabilities.ts', 'functions/src/credits/creditCosts.ts',
+/* Misión mundo3d (FASE 5): la pide UNA puerta, la suya —`creator/mundo.ts`, con su candado de una capacidad—; ninguna plantilla ni pantalla. */
+check('28) ninguna experiencia, plantilla ni pantalla pide un mundo por su cuenta: world.generate vive en el catálogo, su contrato canónico, su puerta (el candado del canary), el registro, el precio, fal y la clase de material que deja (un mundo es `world`)',
+  JSON.stringify(nombran) === JSON.stringify(['functions/src/core/capability.ts', 'functions/src/core/mundo3d.ts', 'functions/src/core/registry/capabilities.ts', 'functions/src/creator/mundo.ts', 'functions/src/credits/creditCosts.ts',
     'functions/src/engine/providers/fal-modelos.ts', 'functions/src/engine/providers/fal.ts', 'functions/src/engine/registry.ts', 'functions/src/runtime/materializacion.ts']), nombran.join(', '));
 check('29) y no hay ningún webhook de fal desplegable: verificar y leer un aviso son funciones puras que nadie expone todavía',
   !/onRequest|onCall/.test(adaptador) && !/\bfal\b|fal\.ai|providers\/fal/i.test(sinComentarios(leer('functions/src/engine/webhooks.ts'))) && !/\bfal\b|fal\.ai|providers\/fal/i.test(sinComentarios(leer('functions/src/index.ts'))));

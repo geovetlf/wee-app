@@ -345,14 +345,29 @@ export const sePuedeCancelarElMundo = (estado: EstadoDeMundo3D | undefined): boo
 /* ── 7 · El material ──────────────────────────────────────────────────────── */
 
 /**
- * EL MUNDO TERMINADO, como lo ve quien lo pidió: por id, con su vista previa si existe y con sus derechos. Ni la
- * dirección del archivo (la entrega la da «Mis creaciones»), ni el proveedor, ni el modelo.
+ * LOS DERECHOS QUE SE LE CUENTAN A LA PERSONA: si puede usar su mundo con fines comerciales, si pide atribución y
+ * dónde no se puede usar ni mostrar. Las licencias concretas NO: su nombre y su dirección nombran al modelo, y lo que
+ * llega a la app no nombra ni proveedor ni modelo. Se quedan enteras en el material (`Asset.derechos`), para la
+ * auditoría y para quien lo reutilice en el servidor. Cómo se le enseñan a la persona los términos de una licencia
+ * ajena sin nombrar a nadie es una decisión de producto pendiente (docs/3D-EXPERIENCIA.md).
+ */
+export type DerechosVisibles = Pick<DerechosDelMaterial, 'usoComercial' | 'atribucion' | 'jurisdiccionesBloqueadas'>;
+
+export const derechosVisibles = (derechos: DerechosDelMaterial): DerechosVisibles => ({
+  usoComercial: derechos.usoComercial,
+  atribucion: derechos.atribucion,
+  ...(derechos.jurisdiccionesBloqueadas?.length ? { jurisdiccionesBloqueadas: [...derechos.jurisdiccionesBloqueadas] } : {}),
+});
+
+/**
+ * EL MUNDO TERMINADO, como lo ve quien lo pidió: por id, con su vista previa si existe y con sus derechos visibles. Ni
+ * la dirección del archivo (la entrega la da «Mis creaciones»), ni el proveedor, ni el modelo, ni sus licencias.
  */
 export interface MundoTerminado {
   readonly assetId: string;
   readonly kind: typeof TIPO_DE_MATERIAL_DEL_MUNDO;
   readonly conVistaPrevia: boolean;
-  readonly derechos?: DerechosDelMaterial;
+  readonly derechos?: DerechosVisibles;
 }
 
 /** EL TRABAJO, contado: lo que contesta la puerta cuando se le pregunta por una petición. */

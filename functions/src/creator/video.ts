@@ -317,13 +317,13 @@ const huellaDelVideo = (peticion: VideoRequest): string => {
  * se puede saber, NO se devuelve (un desenlace desconocido se reconcilia, no se
  * reembolsa a ciegas).
  */
-export const sinReservaHuerfana = async <T>(uid: string, requestId: string, pedir: () => Promise<T>): Promise<T> => {
+export const sinReservaHuerfana = async <T>(uid: string, requestId: string, pedir: () => Promise<T>, motivo = 'Weë Studio · el video no se pudo generar'): Promise<T> => {
   try {
     return await pedir();
   } catch (error) {
     const trabajo = await Promise.resolve().then(() => trabajoDelMedioDeWee(getFirestore(), uid, requestId)).then((t) => t ?? null, () => 'desconocido' as const);
     if (trabajo === null) {
-      await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el video no se pudo generar', source: 'weë-studio' })
+      await creditEngine.refundCredits({ userId: uid, requestId, reason: motivo, source: 'weë-studio' })
         .catch((e) => console.error('Weë Studio canary: no se pudo reembolsar una reserva sin trabajo', requestId, e));
       await firestoreLedger.settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
         .catch((e) => console.error('Weë Studio canary: no se pudo liquidar el libro', requestId, e));
