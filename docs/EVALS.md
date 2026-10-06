@@ -25,6 +25,7 @@ El motor es **uno**: `functions/src/evals/motor/` (TypeScript). Vive ahí porque
 - `dominios.mjs` + `dominios/router.mjs` — el registro de dominios de desarrollo y el adaptador del Router sin coste (ver «Dominios», abajo).
 - `config.json` — pesos y umbrales (**configurables**, no fijados en el código).
 - `datasets/router/v1.json` — dataset versionado (hash canónico; 13 casos).
+- `datasets/router/mundo-v1.json` — misión mundo3d (2026-10-05): la elegibilidad de `world.generate` (8 casos, mundo sintético): un modelo territorial se elige solo donde está aprobado, sin jurisdicción falla cerrado, otro proveedor aprobado lo sustituye, y cada «no disponible» lleva su **motivo público** (grader `router/motivo-publico`). El escenario pasa las reglas territoriales de cada modelo y la jurisdicción de la operación. Baseline propia (`baseline/router-mundo.json`); gate en `functions/test/evals-mundo3d.test.mjs`. El v1 y su baseline no cambian.
 - `baseline/router.json` — baseline comprometida (scores de referencia del router actual).
 
 ### Propiedades vs golden

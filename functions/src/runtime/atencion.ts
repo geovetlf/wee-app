@@ -1,4 +1,4 @@
-import { Job, JobEngine, JobStore, esTrabajoTerminal } from '../core';
+import { DerechosDelMaterial, Job, JobEngine, JobStore, esTrabajoTerminal } from '../core';
 import { AvisoNormalizado, leerAviso } from './aviso';
 import { PuertoDeMaterializacion, identidadDelMaterial, procedenciaDe, tipoDeMaterialDe } from './materializacion';
 import { BusquedaPorOperacion, identidadDeEvento } from './proveedor';
@@ -46,6 +46,13 @@ export interface AtencionDeps {
   ahora: () => number;
   /** Para poder verlo desde fuera sin que esto sepa cómo se registra nada. */
   observar?: (v: VistoAlAtender) => void;
+  /**
+   * DE QUÉ LICENCIA SON los resultados de un trabajo: los derechos del modelo que lo atendió, que lo sabe la
+   * composición (el runtime no conoce proveedores). Sin esto, el material nace sin derechos.
+   */
+  derechosDe?: (job: Job) => DerechosDelMaterial | undefined;
+  /** Cómo se llama el material de un trabajo (las palabras de quien lo pidió), si la composición lo sabe. */
+  nombreDe?: (job: Job) => string | undefined;
 }
 
 export interface VistoAlAtender {
@@ -196,6 +203,8 @@ const traerACasa = async (
   if (!assetId) return { ok: false, motivo: 'sin_identidad' };
   const kind = tipoDeMaterialDe(job.capability);
   if (!kind) return { ok: false, motivo: 'tipo_desconocido' };
+  const derechos = deps.derechosDe?.(job);
+  const nombre = deps.nombreDe?.(job);
 
   const guardado = await deps.materializar.guardar({
     assetId,
@@ -205,6 +214,10 @@ const traerACasa = async (
     recurso: aviso.recurso,
     provenance: procedenciaDe(job, aviso, at),
     metadata: Object.freeze({ providerStatus: aviso.providerStatus, providerOperationId: aviso.operationId }),
+    /* De quién es la licencia: del modelo del TRABAJO guardado, nunca de lo que diga el aviso. */
+    ...(derechos ? { derechos } : {}),
+    ...(aviso.variantes?.length ? { variantes: aviso.variantes } : {}),
+    ...(nombre ? { nombre } : {}),
   });
   return guardado.ok ? { ok: true, assetId: guardado.assetId } : { ok: false, motivo: guardado.motivo };
 };

@@ -1,4 +1,4 @@
-import { ModelSpec } from '../types';
+import { EntradaDeMundo3D, ModelSpec, OrigenDeCampo } from '../types';
 
 /**
  * LOS MODELOS DE fal.ai QUE WEË CONOCE, COMO DATOS.
@@ -94,7 +94,8 @@ export const HUNYUAN_WORLD_IMAGEN_A_MUNDO: ModelSpec = Object.freeze({
       Object.freeze({ nombre: 'export_drc', tipo: 'boolean', requerido: false, descripcion: 'Exportar «DRC» (sin documentar qué devuelve)' }),
     ]),
     outputSchema: Object.freeze([
-      Object.freeze({ nombre: 'world_file', tipo: 'file', requerido: true, descripcion: 'File: url, content_type, file_name, file_size. Formato NO VERIFICADO' }),
+      /* El ÚNICO archivo que declara: el mundo. Este modelo no da vista previa, y Weë no se la inventa. */
+      Object.freeze({ nombre: 'world_file', tipo: 'file', requerido: true, papel: 'principal', descripcion: 'File: url, content_type, file_name, file_size. Formato NO VERIFICADO' }),
     ]),
     noSoportado: Object.freeze(['world.expand']),
     fuentes: Object.freeze([
@@ -114,3 +115,33 @@ export const HUNYUAN_WORLD_IMAGEN_A_MUNDO: ModelSpec = Object.freeze({
 
 /** Todos los modelos de fal que conoce Weë. Añadir uno = una entrada aquí, con su gobierno y sus fuentes. */
 export const MODELOS_FAL: readonly ModelSpec[] = Object.freeze([HUNYUAN_WORLD_IMAGEN_A_MUNDO]);
+
+/* ── De la entrada de Weë al esquema de cada modelo ───────────────────────── */
+
+/**
+ * DE DÓNDE SALE CADA CAMPO QUE PIDE UN MODELO, en el contrato de Weë (`EntradaDeMundo3D`, el de `world.generate`).
+ *
+ * Esto es lo ÚNICO que sabe de los nombres de fal, y son datos: si fal cambia su esquema, cambia esta tabla y nada
+ * más —ni la app, ni la puerta, ni el contrato—. Un campo del esquema que no esté aquí no se manda; si además es
+ * obligatorio, el adaptador falla cerrado antes de llamar a nadie. Nada se inventa: un valor que Weë no tiene no se
+ * rellena con uno de muestra.
+ */
+export const ENTRADA_DE_WEE_POR_MODELO: Readonly<Record<string, Readonly<Record<string, OrigenDeCampo<EntradaDeMundo3D>>>>> = Object.freeze({
+  [HUNYUAN_WORLD_IMAGEN_A_MUNDO.id]: Object.freeze({
+    /* La foto de la persona. El adaptador la lee de su carpeta y la manda EN LÍNEA, nunca como una URL de Weë. */
+    image_url: Object.freeze({ de: 'imagen' }),
+    /* Abierto o cerrado: el modelo distingue «outdoor» e «indoor». */
+    classes: Object.freeze({ de: 'espacio', valores: Object.freeze({ exterior: 'outdoor', interior: 'indoor' }) }),
+    /* Lo que destaca delante: el modelo lo separa en dos capas de primer plano. */
+    labels_fg1: Object.freeze({
+      de: 'elementos', posicion: 0,
+      vacio: Object.freeze({ fuente: 'Demo oficial de HunyuanWorld-1.0 (demo_scenegen.py): sin etiquetas de primer plano por defecto. El esquema de fal las marca obligatorias sin decir si admite el texto vacío: NO VERIFICADO en fal.' }),
+    }),
+    labels_fg2: Object.freeze({
+      de: 'elementos', posicion: 1,
+      vacio: Object.freeze({ fuente: 'Demo oficial de HunyuanWorld-1.0 (demo_scenegen.py): sin etiquetas de primer plano por defecto. El esquema de fal las marca obligatorias sin decir si admite el texto vacío: NO VERIFICADO en fal.' }),
+    }),
+    /* export_drc NO se manda: el proveedor no documenta qué devuelve, y Weë no pide lo que no sabe leer. */
+    /* La descripción de la persona tampoco: este modelo no tiene entrada de texto. Se guarda como nombre del mundo. */
+  }),
+});

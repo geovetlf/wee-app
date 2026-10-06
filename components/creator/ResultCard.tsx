@@ -13,6 +13,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/
 import { scale } from '../../utils/scale';
 import { descargarCreacion } from '../../services/assetDownload';
 import { notify } from '../../utils/notify';
+import { TarjetaTresD } from './TarjetaTresD';
 
 /** Forma de onda decorativa del reproductor. */
 const WAVE = [8, 14, 20, 12, 26, 18, 10, 22, 16, 28, 12, 20, 9, 24, 14, 18, 26, 11, 17, 22, 13, 19, 8, 15];
@@ -283,7 +284,13 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
   /** "· ≈ 9 Credits" para pegar al botón que vuelve a gastar. Vacío si no se sabe. */
   const precio = regenerateCredits && regenerateCredits > 0 ? t('weeai.regeneratePriceSuffix', { credits: formato.numero(regenerateCredits) }) : '';
 
-  const visuals = job.results.filter((r) => r.url);
+  /*
+   * UN MUNDO O UN MODELO 3D NO ES UNA IMAGEN. Antes caían aquí y se pintaban —y se podían publicar— como fotos; ahora
+   * van aparte, a su tarjeta (`TarjetaTresD`), que dice lo que son y no finge un visor.
+   */
+  const esTresD = (kind: string) => kind === 'world' || kind === 'model3d';
+  const visuals = job.results.filter((r) => r.url && !esTresD(r.kind));
+  const tresD = job.results.filter((r) => esTresD(r.kind));
 
   /*
    * ¿Esta imagen es de un espacio, y no de una persona o un producto?
@@ -562,6 +569,15 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             {!!result.content && <Text style={[styles.resultNote, { color: theme.colors.textSecondary }]}>{result.content}</Text>}
           </View>
         </View>
+      ))}
+
+      {tresD.map((result) => (
+        <TarjetaTresD
+          key={result.stepId}
+          tipo={result.kind === 'model3d' ? 'model3d' : 'world'}
+          nombre={titulo(result.title)}
+          url={isRealMedia(result.url) ? result.url : null}
+        />
       ))}
 
       {audios.map((result) => {

@@ -1,4 +1,4 @@
-import { errorDelCore, Job, JobAttempt, ProviderEvent, ProviderOperationRef } from '../core';
+import { errorDelCore, Job, JobAttempt, ProviderEvent, ProviderOperationRef, VariantKind } from '../core';
 import { identidadCompleta, identidadDeEvento } from './proveedor';
 
 /**
@@ -61,6 +61,11 @@ export interface AvisoNormalizado {
   desenlace: DesenlaceDelProveedor;
   /** Solo si terminó bien. TEMPORAL: no se guarda, no se registra, no viaja al trabajo. */
   recurso?: string;
+  /**
+   * Las VARIANTES que dio el proveedor con ese resultado (la vista previa de un mundo), por su clase y su enlace.
+   * Igual de temporales que `recurso`: llegan hasta quien materializa y ahí se acaban. Sin ellas, no hay variantes.
+   */
+  variantes?: readonly { kind: VariantKind; recurso: string }[];
   /** Qué dijo que falló. Acotado, y sin nada escrito por una persona. */
   motivo?: string;
   /** Su código de error, si lo dio. */

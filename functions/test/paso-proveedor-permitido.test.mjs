@@ -94,7 +94,8 @@ console.log('\n─── B. El Router obedece. EJECUTADO contra el Router real �
  * fuente. Es la línea que decide si un eslabón de la cadena entra o se salta.
  */
 const router = leer('functions/src/engine/router.ts');
-const filtro = router.match(/if \(prefs\.allowedProviders && !prefs\.allowedProviders\.includes\(link\.provider\)\) return skip\('([^']+)'\);/);
+/* Misión mundo3d (FASE 2): el descarte lleva además su CAUSA ('peticion'); el filtro y su motivo, los de siempre. */
+const filtro = router.match(/if \(prefs\.allowedProviders && !prefs\.allowedProviders\.includes\(link\.provider\)\) return skip\('([^']+)', 'peticion'\);/);
 check('el filtro del Router sigue donde estaba', !!filtro, filtro?.[1] ?? 'no encontrado');
 
 const pasa = (prefs, proveedor) => !(prefs.allowedProviders && !prefs.allowedProviders.includes(proveedor));
@@ -122,7 +123,7 @@ check('E · una lista vacía no deja pasar a nadie',
 
 console.log('\n─── C. El Router no se tocó ───');
 
-check('el filtro es el de siempre', /return skip\('fuera de la familia de modelos permitida'\)/.test(router));
+check('el filtro es el de siempre', /return skip\('fuera de la familia de modelos permitida', 'peticion'\)/.test(router));
 check('y el bucle de candidatos tampoco cambió', /for \(const candidate of decision\.candidates\) \{/.test(router));
 
 console.log('\n─── D. Los tres que ya lo usaban, igual ───');

@@ -124,10 +124,11 @@ const lanzado = async (f) => { try { await f(); return null; } catch (e) { retur
   const err = await lanzado(() => r.execute(peticion({ jurisdicciones: ['ES'] })));
   const desconocida = await lanzado(() => r.execute(peticion()));
   const abiertas = Object.keys(ledger.records).length;
-  check('7) sin ningún candidato elegible → falla cerrado: ni demo ni sustituto, NOT_AVAILABLE explícito («sin_modelo_elegible» y su escalón), sin llamar al proveedor ni abrir el libro',
-    decision.candidates.length === 0 && decision.skipped.some((s) => s.provider === 'terra' && s.estado === 'BLOCKED_FOR_JURISDICTION')
-    && err?.code === 'NOT_AVAILABLE' && err.details?.reason === 'sin_modelo_elegible' && err.details.elegibilidad.join() === 'BLOCKED_FOR_JURISDICTION'
-    && desconocida?.code === 'NOT_AVAILABLE' && desconocida.details.elegibilidad.join() === 'JURISDICTION_UNKNOWN'
+  /* FASE 2: el escalón se queda en la decisión (el registro, la auditoría); a la app solo viaja el MOTIVO público. */
+  check('7) sin ningún candidato elegible → falla cerrado: ni demo ni sustituto, NOT_AVAILABLE con su motivo público (aquí no, en otra jurisdicción sí → «en tu región»; sin país → «falta tu país»), sin llamar al proveedor ni abrir el libro',
+    decision.candidates.length === 0 && decision.skipped.some((s) => s.provider === 'terra' && s.estado === 'BLOCKED_FOR_JURISDICTION' && s.causa === 'elegibilidad' && s.enOtraJurisdiccion === true)
+    && err?.code === 'NOT_AVAILABLE' && JSON.stringify(err.details) === '{"reason":"en_tu_region"}'
+    && desconocida?.code === 'NOT_AVAILABLE' && JSON.stringify(desconocida.details) === '{"reason":"falta_tu_pais"}'
     && terra.llamadas === 0 && mock.llamadas === 0 && abiertas === 0,
     JSON.stringify({ c: decision.candidates, s: decision.skipped, e: err?.details, d: desconocida?.details, abiertas }));
 }
@@ -286,8 +287,19 @@ console.log('── D · Una sola regla, en la capa común ──');
 const archivosDe = (dir) => fs.readdirSync(path.join(RAIZ, dir), { withFileTypes: true }).flatMap((d) =>
   d.isDirectory() ? archivosDe(`${dir}/${d.name}`) : d.name.endsWith('.ts') ? [`${dir}/${d.name}`] : []);
 const quienLaNombra = archivosDe('functions/src').filter((f) => /\bjurisdicciones\b/.test(sinComentarios(leer(f)))).sort();
-check('21) las jurisdicciones de la operación solo las nombran el contexto del motor, la regla común y el Router: ningún callable, experiencia ni adaptador las lee o las fija desde el cliente',
-  quienLaNombra.join() === 'functions/src/engine/elegibilidad.ts,functions/src/engine/router.ts,functions/src/engine/types.ts', quienLaNombra.join());
+/*
+ * FASE 2: `engine/errors.ts` la nombra solo para QUITARLA de lo que sale hacia la app (DETALLES_INTERNOS).
+ * FASE 5/12: la cadena Perfil Real → servidor → elegibilidad → política → Router llega al Core. La puerta del mundo
+ * (`creator/mundo.ts`) la LEE en el servidor de la cuenta (`jurisdiccionesDeLaCuenta`) y la pasa; el ejecutor del Core
+ * (`engine/gateway.ts`), la composición (`runtime/index.ts`) y la política (`runtime/politica.ts`) la reciben. Ninguno
+ * la toma del cliente: se comprueba abajo.
+ */
+const puertaDelMundo = sinComentarios(leer('functions/src/creator/mundo.ts'));
+check('21) las jurisdicciones de la operación solo las nombran el contexto del motor, la regla común, el Router, quien las quita de lo que ve la app y la cadena del Core (la puerta que las LEE en el servidor, el ejecutor, la composición y la política): ningún callable, experiencia ni adaptador las lee o las fija desde el cliente',
+  quienLaNombra.join() === 'functions/src/creator/mundo.ts,functions/src/engine/elegibilidad.ts,functions/src/engine/errors.ts,functions/src/engine/gateway.ts,functions/src/engine/router.ts,functions/src/engine/types.ts,functions/src/runtime/index.ts,functions/src/runtime/politica.ts'
+  && /DETALLES_INTERNOS[^;]*'jurisdicciones'/.test(leer('functions/src/engine/errors.ts'))
+  && /const jurisdicciones = await jurisdiccionesDeLaCuenta\(uid\)/.test(puertaDelMundo) && !/data\.\w*jurisdic|request\.data\.\w*(country|pais|region)/i.test(puertaDelMundo),
+  quienLaNombra.join());
 
 const regla = sinComentarios(leer('functions/src/engine/elegibilidad.ts'));
 check('22) la regla no deduce la jurisdicción de nada: ni del idioma, ni del locale, ni de la IP, ni del dispositivo, y no sabe de proveedores concretos',
@@ -301,8 +313,8 @@ const detalles = await (async () => {
   const { r } = router({ fal: { ...falAdapter, isConfigured: () => true, run: async () => { throw new Error('no debía ejecutarse'); } }, mock: demo() }, configuracion(['fal'], { fal: { enabled: true, priority: 1 } }));
   return (await lanzado(() => r.execute(peticion({ jurisdicciones: ['ES'] }))))?.details;
 })();
-check('24) el «no disponible» no le enseña a la persona ni el proveedor ni el modelo: solo la capacidad y el escalón',
-  detalles?.reason === 'sin_modelo_elegible' && !/fal|hunyuan/i.test(JSON.stringify(detalles)) && Object.keys(detalles).sort().join() === 'capability,elegibilidad,reason',
+check('24) el «no disponible» no le enseña a la persona ni el proveedor, ni el modelo, ni la jurisdicción, ni el escalón: solo el motivo público (Hunyuan no es elegible en NINGUNA parte → «no disponible», no «en tu región»)',
+  JSON.stringify(detalles) === '{"reason":"no_disponible"}' && !/fal|hunyuan/i.test(JSON.stringify(detalles)),
   JSON.stringify(detalles));
 
 {

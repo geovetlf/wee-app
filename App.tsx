@@ -63,6 +63,7 @@ import { crearTraductor } from './i18n/traducir';
 import { DICCIONARIOS } from './i18n/diccionarios';
 import { localeDeEmergencia } from './i18n/emergencia';
 import { FILMMAKER_EN_LA_APP } from './constants/studioExperiences';
+import { MUNDO_3D_EN_LA_APP } from './constants/studioExperiences';
 // SplashScreen de React removido - el splash nativo de Android es suficiente
 
 /*
@@ -230,6 +231,8 @@ const linking: any = {
           creativo: (creativo: unknown) => JSON.stringify(creativo ?? {}),
         },
       } } : {}),
+      /* Con la puerta de «Crear mundo 3D» cerrada, tampoco tiene enlace. Ni la foto (es local) ni las palabras de la persona viajan en la dirección. */
+      ...(MUNDO_3D_EN_LA_APP ? { Mundo3D: { path: 'studio/mundo-3d', stringify: { imageUri: nuncaEnLaUrl, descripcion: nuncaEnLaUrl } } } : {}),
       Design: 'design',
       PostDetail: {
         path: 'post/:postId',

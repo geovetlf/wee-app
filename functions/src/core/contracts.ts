@@ -123,6 +123,12 @@ export const SHOT_CONTRACT_VERSION = '1.0' as const;
  */
 export const ESCENA3D_CONTRACT_VERSION = '1.0' as const;
 
+/**
+ * Forma de lo que se pide y de lo que sale de `world.generate` (`mundo3d.ts`), en palabras de Weë: ni un campo de un
+ * proveedor. Lo traduce a cada esquema concreto su adaptador, con datos.
+ */
+export const MUNDO3D_CONTRACT_VERSION = '1.0' as const;
+
 /** Forma de un plan de capacidades y de la petición que lo produce. */
 export const PLANNER_CONTRACT_VERSION = '1.0' as const;
 

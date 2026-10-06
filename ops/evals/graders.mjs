@@ -51,6 +51,12 @@ const CATALOGO = {
     }
     return { ok: true, detail: '' };
   },
+  /* Misión mundo3d: el motivo PÚBLICO de un «no disponible» (el que ve la persona), sin nombrar proveedor ni jurisdicción. */
+  'router/motivo-publico': (d, e) => {
+    if (!e.motivoPublico) return null;
+    const ok = d.motivoPublico === e.motivoPublico;
+    return { ok, detail: ok ? '' : `motivo público ${d.motivoPublico}; esperado ${e.motivoPublico}` };
+  },
   'router/sin-demo-con-real': (d, e) => {
     if (e.sinDemoConReal !== true) return null;
     const demo = d.candidatos.some((c) => c.provider === 'mock');

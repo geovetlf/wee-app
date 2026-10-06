@@ -2,7 +2,8 @@ import { randomUUID } from 'crypto';
 import { DesenlaceDeMaterializacion, PeticionDeMaterializacion, PuertoDeMaterializacion } from '../runtime/materializacion';
 import { downloadUrlFor, extensionFor, fetchBytes, storageBucket } from '../engine/http';
 import { ProviderError } from '../engine/http';
-import { crearMaterialDesdeUrl, crearMaterialDeTexto, leerMaterial } from './index';
+import { PROVEEDOR_WEE, anotarVariante, crearMaterialDesdeUrl, crearMaterialDeTexto, leerMaterial } from './index';
+import { sanitizeForLog } from '../engine/sanitize';
 
 /**
  * WEË CONTENT — TRAERSE A CASA EL RESULTADO DE UNA TAREA ASÍNCRONA.
@@ -91,6 +92,8 @@ const adoptarObjeto = async (peticion: PeticionDeMaterializacion): Promise<Desen
       kind: peticion.kind,
       provenance: peticion.provenance,
       ...(peticion.metadata ? { metadata: peticion.metadata } : {}),
+      ...(peticion.derechos ? { derechos: peticion.derechos } : {}),
+      ...(peticion.nombre ? { name: peticion.nombre } : {}),
     });
     if (!material) return { ok: false, motivo: 'fallo' };
     return { ok: true, assetId: material.assetId, yaEstaba: material.provenance.createdAt !== peticion.provenance.createdAt };
@@ -98,7 +101,7 @@ const adoptarObjeto = async (peticion: PeticionDeMaterializacion): Promise<Desen
   return null;
 };
 
-export const materializadorDeWee: PuertoDeMaterializacion = {
+const elMaterial: PuertoDeMaterializacion = {
   async guardar(peticion: PeticionDeMaterializacion): Promise<DesenlaceDeMaterializacion> {
     /*
      * ¿YA ESTÁ? Se pregunta ANTES de descargar. Un webhook que se repite tres
@@ -190,9 +193,68 @@ export const materializadorDeWee: PuertoDeMaterializacion = {
       kind: peticion.kind,
       provenance: peticion.provenance,
       ...(peticion.metadata ? { metadata: peticion.metadata } : {}),
+      ...(peticion.derechos ? { derechos: peticion.derechos } : {}),
+      ...(peticion.nombre ? { name: peticion.nombre } : {}),
     });
     if (!material) return { ok: false, motivo: 'fallo' };
     /* `create` devuelve la que ya estaba cuando otra llegada ganó: entonces el material es suyo, y está bien. */
     return { ok: true, assetId: material.assetId, yaEstaba: material.provenance.createdAt !== peticion.provenance.createdAt };
+  },
+};
+
+/** Lo más grande que se acepta como variante: una vista previa o una miniatura, no otro resultado. */
+export const MAX_BYTES_DE_VARIANTE = 20 * 1024 * 1024;
+
+/** La ruta de una variante, derivada de la identidad del material y de su clase: cada llegada escribe el mismo sitio. */
+export const rutaDeLaVariante = (userId: string, assetId: string, kind: string, contentType: string): string =>
+  `users/${userId}/ai-generations/${assetId}-${kind}.${extensionFor(contentType)}`;
+
+/**
+ * TRAERSE LAS VARIANTES DEL RESULTADO (la vista previa de un mundo) y anotarlas en SU material.
+ *
+ * Después del material y nunca en su lugar: una variante que no llega no tumba un resultado bueno —se registra y se
+ * sigue, y el material queda sin ella—, una que ya está anotada no se vuelve a descargar, y la ruta sale de la
+ * identidad del material (solo si no existe: dos llegadas no dejan dos objetos). No inventa ninguna.
+ */
+const traerVariantes = async (peticion: PeticionDeMaterializacion, assetId: string): Promise<void> => {
+  for (const v of peticion.variantes ?? []) {
+    try {
+      const actual = await leerMaterial(assetId);
+      if (!actual || actual.ownerAccountId !== peticion.userId || actual.variants?.some((x) => x.kind === v.kind)) continue;
+      const traido = await fetchBytes(v.recurso, { provider: 'materializacion', timeoutMs: 60_000 });
+      if (!traido.buffer.length || traido.buffer.length > MAX_BYTES_DE_VARIANTE) continue;
+      const bucket = storageBucket();
+      const ruta = rutaDeLaVariante(peticion.userId, assetId, v.kind, traido.contentType);
+      try {
+        await bucket.file(ruta).save(traido.buffer, {
+          metadata: { contentType: traido.contentType, metadata: { [MARCA_DE_MATERIAL]: assetId } },
+          resumable: false,
+          preconditionOpts: { ifGenerationMatch: 0 },
+        });
+      } catch (error) {
+        /* Ya estaba: otra llegada la guardó en el mismo sitio. Es la misma variante; se anota la que hay. */
+        if ((error as { code?: number })?.code !== 412) throw error;
+      }
+      await anotarVariante(peticion.userId, assetId, {
+        kind: v.kind,
+        storageRef: { provider: PROVEEDOR_WEE, bucket: bucket.name, objectKey: ruta },
+        mimeType: traido.contentType,
+        bytes: traido.buffer.length,
+      });
+    } catch (error) {
+      console.warn(`WEË CONTENT: la variante ${v.kind} del material ${assetId} no se pudo traer; el material queda sin ella`, sanitizeForLog(error, 200));
+    }
+  }
+};
+
+/**
+ * EL MATERIAL Y, SI LAS HAY, SUS VARIANTES. El material primero —es lo que cierra el trabajo— y las variantes
+ * después, con el mismo `assetId`: lo que diga el material es lo que se contesta.
+ */
+export const materializadorDeWee: PuertoDeMaterializacion = {
+  async guardar(peticion: PeticionDeMaterializacion): Promise<DesenlaceDeMaterializacion> {
+    const desenlace = await elMaterial.guardar(peticion);
+    if (desenlace.ok && peticion.variantes?.length) await traerVariantes(peticion, desenlace.assetId);
+    return desenlace;
   },
 };

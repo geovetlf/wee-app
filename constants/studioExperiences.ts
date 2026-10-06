@@ -31,7 +31,7 @@ import { AreaDeStudio } from './studioTools';
 /* ── CAPA 1 · Las entradas ─────────────────────────────────────────────────── */
 
 /**
- * Por dónde se entra. Cuatro principales y cinco para explorar.
+ * Por dónde se entra. Cuatro principales y seis para explorar.
  *
  * NO están Travel, Chef, Design, Business ni Music: son lugares de trabajo
  * distintos de Weë AI, no áreas del Studio. Meterlos aquí sería decir que el
@@ -39,7 +39,7 @@ import { AreaDeStudio } from './studioTools';
  */
 export type EntradaDeStudio =
   | 'images' | 'videos' | 'text' | 'voice'
-  | 'characters' | 'beauty' | 'fashion' | 'documents' | 'more';
+  | 'characters' | 'beauty' | 'fashion' | 'world3d' | 'documents' | 'more';
 
 export interface PuertaDeEntrada {
   id: EntradaDeStudio;
@@ -106,11 +106,17 @@ export const ENTRADAS_PRINCIPALES: PuertaDeEntrada[] = [
  *
  * Documentos NO es Texto y no se mezclan (B3.11 §19): uno es contenido escrito
  * y el otro son archivos con estructura.
+ *
+ * 3D World (misión del dueño, 2026-10-05: «WEË STUDIO → 3D WORLD → CREAR MUNDO
+ * 3D») es el perfil `world` del núcleo 3D único de Weë (`services/escena3d.ts`):
+ * de una foto, un mundo. Su área es `images` porque empieza por una foto; lo
+ * demás lo pregunta su propia pantalla, no los ajustes de una imagen.
  */
 export const ENTRADAS_DE_EXPLORAR: PuertaDeEntrada[] = [
   { id: 'characters', clave: 'studio.charactersTitle', claveHint: 'studio.charactersHint', icono: 'person-outline', area: 'images' },
   { id: 'beauty', clave: 'studio.beautyTitle', claveHint: 'studio.beautyHint', icono: 'sparkles-outline', area: 'images', experienceId: 'beauty' },
   { id: 'fashion', clave: 'studio.fashionTitle', claveHint: 'studio.fashionHint', icono: 'shirt-outline', area: 'images', experienceId: 'beauty' },
+  { id: 'world3d', clave: 'studio.world3dTitle', claveHint: 'studio.world3dHint', icono: 'planet-outline', area: 'images' },
   { id: 'documents', clave: 'studio.docsTitle', claveHint: 'studio.docsHint', icono: 'document-text-outline', area: 'documents' },
   { id: 'more', clave: 'studio.moreTitle', claveHint: 'studio.moreHint', icono: 'grid-outline', area: 'more' },
 ];
@@ -178,6 +184,15 @@ export interface ExperienciaDeStudio {
    * guarda, se edita y se dirige.
    */
   produccion?: true;
+  /**
+   * NO ES UNA IMAGEN NI UN CLIP: ABRE «CREAR MUNDO 3D» (`world.generate`).
+   *
+   * La foto y lo escrito en la caja del Studio no van a `CreatorFlow`: viajan a la
+   * pantalla del mundo (`Mundo3DScreen`), que enseña el precio, crea por la puerta
+   * asíncrona del servidor (`generateWorld`) y cuenta cómo va. La caja sigue siendo
+   * la del Studio: la pantalla no trae otra.
+   */
+  mundo3d?: true;
 }
 
 const x = (
@@ -345,6 +360,14 @@ export const EXPERIENCIAS_DE_PERSONAJES: ExperienciaDeStudio[] = [
   x('keepIdentity', 'studio.xpKeepIdentity', 'infinite-outline', ['shot', 'lighting'], true),
 ];
 
+/**
+ * 3D WORLD. Una sola: de una foto a un mundo 3D. Pide una foto (`pideMaterial`) y
+ * no abre controles de cámara: abierto o cerrado lo pregunta su pantalla, con «No sé».
+ */
+export const EXPERIENCIAS_DE_MUNDO_3D: ExperienciaDeStudio[] = [
+  { ...x('createWorld', 'studio.xpCreateWorld', 'planet-outline', [], true), mundo3d: true },
+];
+
 /** BEAUTY. Sobre la foto de una persona, siempre. */
 export const EXPERIENCIAS_DE_BEAUTY: ExperienciaDeStudio[] = [
   x('look', 'studio.xpBeautyLook', 'sparkles-outline', ['shot', 'lighting'], true),
@@ -377,6 +400,7 @@ export const EXPERIENCIAS_POR_ENTRADA: Readonly<Partial<Record<EntradaDeStudio, 
   characters: EXPERIENCIAS_DE_PERSONAJES,
   beauty: EXPERIENCIAS_DE_BEAUTY,
   fashion: EXPERIENCIAS_DE_FASHION,
+  world3d: EXPERIENCIAS_DE_MUNDO_3D,
 };
 
 /**
@@ -408,13 +432,34 @@ export const conLaPuertaDeFilmmaker = (xs: ExperienciaDeStudio[], abierta: boole
   return i < 0 ? [...resto, ...bloqueadas] : [...resto.slice(0, i + 1), ...bloqueadas, ...resto.slice(i + 1)];
 };
 
+/**
+ * LA PUERTA DE «CREAR MUNDO 3D» EN LA APP (misión mundo3d, 2026-10-05).
+ *
+ * El camino entero existe —contrato, puerta asíncrona `generateWorld`, Credits,
+ * jurisdicción, material `world` y su tarjeta en Mis creaciones— pero ningún modelo
+ * de mundos está aprobado, la puerta del conductor está cerrada y `generateWorld` no
+ * está desplegada. Así que «Crear mundo 3D» se ve, bloqueada con su motivo
+ * (`studio.pendWorld`), y no abre su pantalla ni desde el Studio ni por enlace.
+ *
+ * Abrirla es poner esto a `true` DESPUÉS de lo que falta (docs/3D-EXPERIENCIA.md).
+ */
+export const MUNDO_3D_EN_LA_APP = false;
+
+/** Pura: con la puerta cerrada, lo que abre el mundo se ve con su motivo y sin abrir nada; abierta, tal cual. */
+export const conLaPuertaDelMundo3D = (xs: ExperienciaDeStudio[], abierta: boolean = MUNDO_3D_EN_LA_APP): ExperienciaDeStudio[] =>
+  abierta ? xs : xs.map((e) => (e.mundo3d ? (({ mundo3d: _ignorada, ...resto }) => ({ ...resto, pendiente: 'studio.pendWorld' }))(e) : e));
+
 export const experienciasDeLaEntrada = (id: EntradaDeStudio): ExperienciaDeStudio[] =>
-  conLaPuertaDeFilmmaker(EXPERIENCIAS_POR_ENTRADA[id] ?? []);
+  conLaPuertaDelMundo3D(conLaPuertaDeFilmmaker(EXPERIENCIAS_POR_ENTRADA[id] ?? []));
 
 /**
  * ¿UN SOLO CLIP O VARIAS ESCENAS? Lo dice el catálogo —la experiencia elegida—,
  * no las palabras de lo escrito: leer «varias escenas» dentro de una frase es
  * cosa de Weë Brain, en otra fase. Hoy solo «Varias escenas» abre la producción.
  */
+/** ¿Esta experiencia abre «Crear mundo 3D»? Solo con su puerta abierta: lo dice el catálogo, no las palabras. */
+export const abreElMundo3D = (experienciaId?: string | null): boolean =>
+  MUNDO_3D_EN_LA_APP && !!experienciaId && EXPERIENCIAS_DE_MUNDO_3D.some((e) => e.id === experienciaId && e.mundo3d === true);
+
 export const abreLaProduccion = (experienciaId?: string | null): boolean =>
   FILMMAKER_EN_LA_APP && !!experienciaId && Object.values(EXPERIENCIAS_POR_ENTRADA).some((xs) => (xs ?? []).some((e) => e.id === experienciaId && e.produccion === true));

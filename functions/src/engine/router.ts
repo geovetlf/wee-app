@@ -6,10 +6,11 @@ import { creditsFor, estimateUsd } from './pricing';
 import { recordRealSuccess } from './verification';
 import { sanitizeForLog } from './sanitize';
 import { NotConfiguredError, ProviderError } from './http';
-import { classifyError, EngineError } from './errors';
-import { camposAjustables, ContextoDeElegibilidad, elegibilidadDeLaCapacidad, modeloElegible, textoDeElegibilidad } from './elegibilidad';
+import { classifyError, EngineError, motivoDeNoDisponible, noDisponible } from './errors';
+import { camposAjustables, ContextoDeElegibilidad, elegibilidadDeLaCapacidad, elegibleEnAlgunaJurisdiccion, modeloElegible, textoDeElegibilidad } from './elegibilidad';
 import { providerCallsToday, providerUsdToday, usdToday } from './limits';
 import {
+  CausaDeDescarte,
   ChainLink,
   EngineRequest,
   EngineResult,
@@ -245,7 +246,7 @@ export function createRouter(deps: RouterDeps) {
      * `execute` contesta NOT_AVAILABLE antes de abrir el libro.
      */
     if (settings.iaDetenida === true) {
-      return { capability, quality, policy, candidates: [], skipped: [{ provider: '*', reason: 'ia_detenida' }], realProviderAvailable: false };
+      return { capability, quality, policy, candidates: [], skipped: [{ provider: '*', reason: 'ia_detenida', causa: 'pasajera' }], realProviderAvailable: false };
     }
     const excluded = new Set(prefs.excludeProviders || []);
     const candidates: InternalCandidate[] = [];
@@ -272,29 +273,32 @@ export function createRouter(deps: RouterDeps) {
      */
     const tope = settings.maxUsdPerDay;
     if (typeof tope === 'number' && tope > 0 && usdToday(usage) >= tope) {
-      return { capability, quality, policy, candidates: [], skipped: [{ provider: '*', reason: 'presupuesto_diario_agotado' }], realProviderAvailable };
+      return { capability, quality, policy, candidates: [], skipped: [{ provider: '*', reason: 'presupuesto_diario_agotado', causa: 'pasajera' }], realProviderAvailable };
     }
 
     links.forEach((link, index) => {
-      const skip = (reason: string, estado?: RouteDecision['skipped'][number]['estado'], modelo?: string): void => {
-        skipped.push({ provider: link.provider, model: modelo ?? link.model, reason, ...(estado ? { estado } : {}) });
+      const skip = (reason: string, causa: CausaDeDescarte, estado?: RouteDecision['skipped'][number]['estado'], modelo?: string, enOtraJurisdiccion?: boolean): void => {
+        skipped.push({
+          provider: link.provider, model: modelo ?? link.model, reason, causa,
+          ...(estado ? { estado } : {}), ...(enOtraJurisdiccion !== undefined ? { enOtraJurisdiccion } : {}),
+        });
       };
       const adapter = deps.adapters[link.provider];
-      if (!adapter) return skip('no existe');
+      if (!adapter) return skip('no existe', 'configuracion');
       const providerConfig = config.providers[link.provider] || { enabled: true, priority: 50 };
-      if (!providerConfig.enabled) return skip('desactivado por administración');
-      if (excluded.has(link.provider)) return skip('excluido en esta petición');
-      if (prefs.allowedProviders && !prefs.allowedProviders.includes(link.provider)) return skip('fuera de la familia de modelos permitida');
-      if (!adapter.isConfigured()) return skip('sin clave configurada');
-      if (!adapter.supports(capability)) return skip('no atiende esta capacidad');
-      if (deps.health.isOpen(link.provider)) return skip('en pausa por fallos recientes');
+      if (!providerConfig.enabled) return skip('desactivado por administración', 'configuracion');
+      if (excluded.has(link.provider)) return skip('excluido en esta petición', 'peticion');
+      if (prefs.allowedProviders && !prefs.allowedProviders.includes(link.provider)) return skip('fuera de la familia de modelos permitida', 'peticion');
+      if (!adapter.isConfigured()) return skip('sin clave configurada', 'configuracion');
+      if (!adapter.supports(capability)) return skip('no atiende esta capacidad', 'configuracion');
+      if (deps.health.isOpen(link.provider)) return skip('en pausa por fallos recientes', 'pasajera');
       const maxCalls = providerConfig.limits?.maxCallsPerDay;
-      if (maxCalls && maxCalls > 0 && providerCallsToday(usage, link.provider) >= maxCalls) return skip('límite diario del proveedor alcanzado');
+      if (maxCalls && maxCalls > 0 && providerCallsToday(usage, link.provider) >= maxCalls) return skip('límite diario del proveedor alcanzado', 'pasajera');
       /* Declarado desde siempre en ProviderConfig y nunca aplicado hasta ahora (inventario FASE 13). */
       const maxUsd = providerConfig.limits?.maxUsdPerDay;
-      if (maxUsd && maxUsd > 0 && providerUsdToday(usage, link.provider) >= maxUsd) return skip('presupuesto diario del proveedor alcanzado');
-      if (link.minQuality && QUALITY_RANK[quality] < QUALITY_RANK[link.minQuality]) return skip('reservado para tareas de más calidad');
-      if (link.maxQuality && QUALITY_RANK[quality] > QUALITY_RANK[link.maxQuality]) return skip('no alcanza la calidad que pide la tarea');
+      if (maxUsd && maxUsd > 0 && providerUsdToday(usage, link.provider) >= maxUsd) return skip('presupuesto diario del proveedor alcanzado', 'pasajera');
+      if (link.minQuality && QUALITY_RANK[quality] < QUALITY_RANK[link.minQuality]) return skip('reservado para tareas de más calidad', 'peticion');
+      if (link.maxQuality && QUALITY_RANK[quality] > QUALITY_RANK[link.maxQuality]) return skip('no alcanza la calidad que pide la tarea', 'peticion');
       const model = pickModel(adapter, capability, quality, policy, providerConfig, link.model || prefs.modelId, contexto);
       if (!model) {
         /* Por qué: el escalón de elegibilidad del modelo fijado o, sin fijar, el del primero que cubre la capacidad. */
@@ -304,12 +308,20 @@ export function createRouter(deps: RouterDeps) {
           ? (suyo ? modeloElegible(suyo, providerConfig.models?.[suyo.id], contexto) : undefined)
           : elegibilidadDeLaCapacidad(adapter.models, capability, providerConfig.models, contexto);
         const deSiempre = prefs.modelId ? `sin el modelo ${prefs.modelId} disponible` : 'sin modelo disponible para esta capacidad';
-        if (porQue && !porQue.elegible) return skip(porQue.estado === 'APPROVED' ? deSiempre : textoDeElegibilidad(porQue), porQue.estado, suyo?.id ?? porQue.modelo);
-        return skip(deSiempre);
+        if (porQue && !porQue.elegible) {
+          /* ¿Sería elegible en otra jurisdicción? Es lo que separa «no en tu región» de «no, en ninguna parte». */
+          const territorial = porQue.estado === 'JURISDICTION_UNKNOWN' || porQue.estado === 'BLOCKED_FOR_JURISDICTION' || porQue.estado === 'REVIEW_REQUIRED';
+          const modeloDelPorQue = adapter.models.find((m) => m.id === (suyo?.id ?? porQue.modelo));
+          const enOtra = territorial && !!modeloDelPorQue?.territorio
+            ? elegibleEnAlgunaJurisdiccion(modeloDelPorQue, providerConfig.models?.[modeloDelPorQue.id])
+            : undefined;
+          return skip(porQue.estado === 'APPROVED' ? deSiempre : textoDeElegibilidad(porQue), 'elegibilidad', porQue.estado, suyo?.id ?? porQue.modelo, enOtra);
+        }
+        return skip(deSiempre, prefs.modelId ? 'peticion' : 'configuracion');
       }
       const estimatedUsd = estimateUsd(model, capability, input, prefs);
       const estimatedCredits = creditsFor(capability, estimatedUsd, settings, adapter.id === 'mock', input);
-      if (prefs.maxCredits !== undefined && estimatedCredits > prefs.maxCredits) return skip(`supera el tope de ${prefs.maxCredits} Credits`);
+      if (prefs.maxCredits !== undefined && estimatedCredits > prefs.maxCredits) return skip(`supera el tope de ${prefs.maxCredits} Credits`, 'peticion');
       const durationOk = !(prefs.durationSec && model.maxDurationSec && model.maxDurationSec < prefs.durationSec);
       const meetsQuality = model.quality >= QUALITY_MIN_SCORE[quality];
       candidates.push({
@@ -412,13 +424,11 @@ export function createRouter(deps: RouterDeps) {
       const why = decision.skipped.map((s) => `${s.provider}: ${s.reason}`).join('; ');
       console.warn(`WEË AI ENGINE: ningún proveedor disponible para ${capability} (${why})`);
       /*
-       * SIN MODELO ELEGIBLE es un estado explícito, no un «inténtalo más tarde» que se arregla solo: se dice por qué
-       * escalones se quedaron fuera (sin nombrar proveedores, que la persona nunca ve) y no se sirve nada en su lugar.
+       * SIN CANDIDATOS es un estado explícito con su MOTIVO PÚBLICO, no un «inténtalo más tarde» que se arregla solo:
+       * «más tarde» solo si lo que falta es pasajero; si no, en tu región, falta tu país, con estas opciones o, sin
+       * más, no disponible. Los escalones y los proveedores se quedan en el registro de arriba; a la app no viajan.
        */
-      const estados = [...new Set(decision.skipped.map((s) => s.estado).filter((e): e is NonNullable<typeof e> => !!e))];
-      throw new EngineError('NOT_AVAILABLE', 'Ahora mismo no hay una IA disponible para esto. Inténtalo más tarde.', {
-        capability, ...(estados.length ? { reason: 'sin_modelo_elegible', elegibilidad: estados } : {}),
-      });
+      throw noDisponible(motivoDeNoDisponible(decision.skipped));
     }
 
     let lastError: unknown = null;

@@ -43,7 +43,8 @@ for (; fin < app.length; fin++) {
 const jsEnlaces = ts.transpileModule(leer('navigation/enlaces.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
 const urlEnlaces = 'data:text/javascript;base64,' + Buffer.from(jsEnlaces).toString('base64');
 const E = await import(urlEnlaces);
-const fuente = `import { ${Object.keys(E).join(', ')} } from '${urlEnlaces}';\nexport const crear = (FILMMAKER_EN_LA_APP) => (${app.slice(inicio, fin + 1)});`;
+/* + misión mundo3d (2026-10-05): la puerta de «Crear mundo 3D» también decide si tiene enlace; cerrada, por defecto. */
+const fuente = `import { ${Object.keys(E).join(', ')} } from '${urlEnlaces}';\nexport const crear = (FILMMAKER_EN_LA_APP, MUNDO_3D_EN_LA_APP = false) => (${app.slice(inicio, fin + 1)});`;
 const js = ts.transpileModule(fuente, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
 const { crear } = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 
@@ -89,7 +90,8 @@ for (const filmmaker of [false, true]) {
 
 console.log('\n── La configuración solo nombra pantallas que existen ──');
 {
-  const config = crear(true);
+  /* Con las dos puertas abiertas: así se nombran TODAS las pantallas que la configuración puede llegar a enlazar. */
+  const config = crear(true, true);
   const nombrados = [];
   const recorrer = (screens) => {
     for (const [nombre, v] of Object.entries(screens || {})) {
@@ -173,6 +175,19 @@ console.log('\n── Los parámetros: forma estable, recuperable al recargar, y
   /* Escritorio y móvil comparten la misma configuración: no depende del ancho. */
   const bloqueLinking = app.slice(app.indexOf('const linking'), app.indexOf('// Global error handler'));
   check('27) escritorio y móvil: la misma configuración de enlaces, que no depende del ancho de la pantalla', !/useResponsive|width|isDesktop|isMobile/.test(bloqueLinking));
+}
+
+console.log('\n── «Crear mundo 3D»: sin enlace con su puerta cerrada; abierta, uno estable y sin nada privado ──');
+{
+  const cerrada = crear(false, false);
+  check('28) con la puerta de «Crear mundo 3D» cerrada, /studio/mundo-3d no abre su pantalla',
+    !enfocada(getStateFromPath('/studio/mundo-3d', cerrada) || { routes: [{ name: '' }] }).includes('Mundo3D'));
+  const abierta = crear(false, true);
+  const escribir = (estado) => getPathFromState(E.sinObjetosSueltos(estado, abierta.screens).estado, abierta);
+  const ruta = escribir({ routes: [{ name: 'Main' }, { name: 'Mundo3D', params: { descripcion: 'Mi plaza secreta', imageUri: 'blob:http://localhost:8083/abc' } }], index: 1 });
+  check('29) abierta, la dirección es /studio/mundo-3d y no lleva ni las palabras de la persona ni su foto',
+    /^\/studio\/mundo-3d/.test(ruta) && !/plaza|secreta|blob|imageUri|descripcion/i.test(decodeURIComponent(ruta)), ruta);
+  check('30) y esa dirección vuelve a abrir la pantalla', enfocada(getStateFromPath(ruta, abierta) || { routes: [{ name: '' }] }).includes('Mundo3D'));
 }
 
 check('esta suite está en la cadena de `npm test`', /navegacion-enlaces\.test\.mjs/.test(leer('functions/package.json')));

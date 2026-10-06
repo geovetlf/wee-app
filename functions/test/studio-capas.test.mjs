@@ -51,7 +51,8 @@ const idsDe = (marca) => {
   const i = capas.indexOf(marca);
   if (i < 0) return [];
   const fin = capas.indexOf('];', i);
-  return [...capas.slice(i, fin).matchAll(/\{ id: '([a-zA-Z]+)'/g)].map((m) => m[1]);
+  /* Con dígitos: un id como `world3d` era INVISIBLE para `[a-zA-Z]+`, y la cerca daba por buena una lista que había cambiado. */
+  return [...capas.slice(i, fin).matchAll(/\{ id: '([a-zA-Z0-9]+)'/g)].map((m) => m[1]);
 };
 
 console.log('\n─── A. Weë Studio es un sitio, y no genera ───');
@@ -85,8 +86,9 @@ check('y la portada las pinta a todas, sin elegir a mano',
 console.log('\n─── C. Explorar, y lo que NO está en la portada ───');
 
 const explorar = idsDe('export const ENTRADAS_DE_EXPLORAR');
-check('Explorar tiene Personajes, Beauty, Fashion, Documentos y Más',
-  JSON.stringify(explorar) === JSON.stringify(['characters', 'beauty', 'fashion', 'documents', 'more']),
+/* + misión mundo3d (2026-10-05): 3D World, la puerta de «Crear mundo 3D» («WEË STUDIO → 3D WORLD → CREAR MUNDO 3D»). */
+check('Explorar tiene Personajes, Beauty, Fashion, 3D World, Documentos y Más',
+  JSON.stringify(explorar) === JSON.stringify(['characters', 'beauty', 'fashion', 'world3d', 'documents', 'more']),
   explorar.join(', '));
 /*
  * Y pesa menos que las cuatro: píldoras, no tarjetas. Esa diferencia de tamaño

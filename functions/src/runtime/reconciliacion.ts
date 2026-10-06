@@ -63,10 +63,18 @@ export type MotivoDeNoSaber =
   /* Contestó algo que no se entiende. Igual que el silencio. */
   | 'ilegible';
 
+/** Lo que contesta un proveedor cuando se le pide PARAR una operación. Nunca lanza: lo que pasó se contesta. */
+export type ResultadoDeParada = 'pedida' | 'ya_terminada' | 'no_existe' | 'no_configurado' | 'no_contesta';
+
 /** El puerto. Un adaptador que sepa hablar con su proveedor lo implementa; el runtime solo lo declara. */
 export interface ResolutorDeEstadoDeProveedor {
   /** ¿Qué fue de esta operación? Nunca lanza: no saber se CONTESTA, no se rompe. */
   consultar(ref: ProviderOperationRef): Promise<EstadoSegunElProveedor>;
+  /**
+   * PEDIRLE QUE PARE, si su proveedor lo permite. Opcional: quien no sabe parar no lo declara, y entonces parar es
+   * solo dejar constancia (el trabajo pasa a `cancel_requested` y su final se sigue oyendo). Nunca lanza.
+   */
+  cancelar?(ref: ProviderOperationRef): Promise<ResultadoDeParada>;
 }
 
 export type AccionDeReconciliacion =

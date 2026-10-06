@@ -19,7 +19,7 @@ import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDe
 import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
 import { ControlesElegidos } from '../components/studio/StudioControles';
 import { AreaDeStudio } from '../constants/studioTools';
-import { EntradaDeStudio, abreLaProduccion, entradaPorId } from '../constants/studioExperiences';
+import { EntradaDeStudio, abreElMundo3D, abreLaProduccion, entradaPorId } from '../constants/studioExperiences';
 import { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
 import { CREACIONES_DEL_STUDIO } from '../constants/studioMocks';
 import { contextoDeCreacion, duracionEnElTexto } from '../utils/contextoDeCreacion';
@@ -194,6 +194,19 @@ const StudioScreen: React.FC = () => {
      * puerta: no crea la producción ni llama a nadie; la crea la pantalla de
      * producción, con su servicio.
      */
+    /*
+     * ── UN MUNDO 3D NO ES UN CLIP NI UNA IMAGEN (misión mundo3d) ──────────
+     *
+     * «Crear mundo 3D» abre su pantalla con lo escrito y la foto adjunta. El
+     * Studio sigue siendo una puerta: ni cotiza ni crea; lo hace la pantalla del
+     * mundo, con su servicio y la puerta asíncrona del servidor. Solo con su
+     * puerta abierta (`MUNDO_3D_EN_LA_APP`): cerrada, la experiencia ni se elige.
+     */
+    if (abreElMundo3D(experiencia?.id)) {
+      navigation.navigate('Mundo3D', { descripcion: texto, ...(adjuntos[0] ? { imageUri: adjuntos[0].uri } : {}) });
+      return;
+    }
+
     if (abreLaProduccion(experiencia?.id)) {
       navigation.navigate('Production', { intencion: texto, creativo: filtrarCreativo(controles) });
       return;

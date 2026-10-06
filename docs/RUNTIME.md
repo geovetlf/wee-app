@@ -2338,3 +2338,27 @@ Detalle de dominio en `docs/FILMMAKER.md` § «F1-D».
 - El emulador de Storage no aplica `ifGenerationMatch: 0` (medido en `f1d.emulator.mjs`): el 412 del guardado «solo
   si no existe» se prueba en memoria; la biblioteca sí lo manda en la subida, así que en GCS real se aplica.
 - Varias unidades a la vez, montaje, voz, música, lip-sync, Elements y prompt avanzado: fases siguientes.
+
+## 25. Misión mundo3d · La tercera puerta: `generateWorld` → `world.generate`
+
+Autorizada por la FASE 5 de la misión del dueño (2026-10-05, «cerrar los gaps de world.generate»). Sin conductor nuevo, sin
+otro Job Engine, sin otro Credit Engine, sin otro motor: el mismo conductor de la F12-D con una tercera puerta.
+
+- **La puerta** (`functions/src/creator/mundo.ts`): `cotizar`, `crear`, `estado`, `cancelar`; declara en su código su
+  única capacidad (`CAPACIDAD_DEL_CANARY = 'world.generate'`) y consulta la misma `aiSettings/runtime` (cerrada); sin ella
+  no hay mundo (no hay camino síncrono): `NOT_AVAILABLE` `no_disponible`. Lee la petición con el contrato canónico
+  (`core/mundo3d.ts`), resuelve la foto en el servidor, lee la jurisdicción de la cuenta UNA vez y la pasa al Router, al
+  ejecutor (`jurisdiccionesDe`) y a la política (`politicaConJurisdicciones`). Reserva con `spendCredits` (requestId +
+  huella de la petición), crea el trabajo y contesta `ACCEPTED` en cuanto existe. **No desplegada** (`no_se_despliegan`).
+- **Relojes por capacidad** (`runtime/plazos.ts`, `PLAZOS_POR_CAPACIDAD`): `PLAZOS_DE_MUNDO` = proveedor 30 min, trabajo
+  45 min, concesión 1 min, envío 30 s, horizonte 24 h (NO VERIFICADO), URL 1 h. La reconciliación usa los del trabajo.
+- **Parar** (`runtime/parada.ts`, `pedirParada`): el `cancelar` del Job Engine más la parada opcional del resolutor del
+  proveedor; la reconciliación la pide cuando se agota el plazo del proveedor y la repite mientras el trabajo esté en
+  `cancel_requested`. Si el resultado llega antes, gana el resultado.
+- **Quién sabe preguntar** (`engine/registry.ts`, `RESOLUTORES_DE_ESTADO`): Seedance y fal, junto a sus adaptadores.
+- **El material**: la materialización asíncrona lleva los derechos del modelo del trabajo (`atencionDeWee.derechosDe`),
+  las variantes por papel (la vista previa) y el nombre que puso la persona (`job.input.descripcion`).
+- **Pruebas**: `mundo3d-asincrono` (36: relojes, parada, reconciliación, aviso tardío, reintento, cancelación) y
+  `mundo3d.emulator.mjs` (24: contra Firestore y Storage emulados, con una cola de fal falsa local). runtime-map:
+  la puerta CORE/LEGACY la consultan exactamente tres callables (`brainChat`, `generateVideo`, `generateWorld`).
+- **CLAUDE.md §10** sigue diciendo «dos canaries»: no se ha editado; la redacción propuesta va en el informe de cierre.

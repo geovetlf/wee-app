@@ -33,6 +33,7 @@ const MODALIDAD_DE_FAMILIA: Record<string, Modality> = {
     scene: 'text',
     subtitle: 'text',
     audio: 'music',
+    world: '3d',
 };
 export const modalidadDe = (capability: CapabilityId): Modality => MODALIDAD_EXACTA[capability] || MODALIDAD_DE_FAMILIA[familiaDe(capability)] || 'text';
 export interface CapabilityRegistry {

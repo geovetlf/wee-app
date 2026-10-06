@@ -142,7 +142,10 @@ const req = (extra = {}) => ({ capability: 'video.generate', input: { prompt: 'u
   const { router } = build({ alpha, mock }, config({ settings: { pricingMode: 'real', allowMockFallback: false } }));
   let error = null;
   try { await router.execute(req()); } catch (e) { error = e; }
-  check('error controlado NOT_AVAILABLE con mensaje amable (el motivo técnico queda en el registro)', error && error.code === 'NOT_AVAILABLE' && /no hay una IA disponible/.test(error.message) && !/proveedor|sin clave/.test(error.message), error && error.message);
+  /* FASE 2 (misión mundo3d): sin clave es CONFIGURACIÓN, no algo pasajero → «no disponible actualmente», no «inténtalo más tarde». */
+  check('error controlado NOT_AVAILABLE con mensaje amable y su motivo público (el motivo técnico queda en el registro)',
+    error && error.code === 'NOT_AVAILABLE' && /no está disponible actualmente/.test(error.message) && !/más tarde|proveedor|sin clave/.test(error.message)
+    && JSON.stringify(error.details) === '{"reason":"no_disponible"}', error && error.message);
 }
 
 // 9) pickModel y resolveQuality directos

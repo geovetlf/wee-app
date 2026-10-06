@@ -79,4 +79,17 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   progressStarting: 'Sätter igång…',
   progressSteps: '{{hechos}} av {{total}} steg klara',
   progressFindLater: 'Du kan lämna den här skärmen. Du hittar det i ”Mina skapelser” när det är klart.',
+
+  /* Mundos 3D (misión mundo3d, 2026-10-05): su tipo, que Weë todavía no tiene visor 3D, y lo que su licencia deja hacer
+     —nunca el nombre de la licencia, que nombra al modelo—. `{{lugares}}` llega ya nombrado y unido en el idioma de quien mira. */
+  filterWorlds: '3D-världar',
+  kindWorld: '3D-värld',
+  noViewer3d: 'Weë har ingen 3D-visare ännu. Ladda ner filen om du vill öppna den i en 3D-app.',
+  rightsTitle: 'Så får du använda den',
+  rightsCommercialAllowed: 'Du får använda den kommersiellt.',
+  rightsCommercialRestricted: 'Det finns villkor för kommersiell användning.',
+  rightsCommercialUnclear: 'Det är ännu inte klart om den får användas kommersiellt.',
+  rightsCommercialNotAllowed: 'Den får inte användas kommersiellt.',
+  rightsAttribution: 'Licensen kräver att du anger källan.',
+  rightsBlockedIn: 'Den får inte användas eller visas på följande platser: {{lugares}}.',
 };

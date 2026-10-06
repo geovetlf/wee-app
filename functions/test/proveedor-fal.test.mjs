@@ -66,7 +66,15 @@ const CLAVE_ANTES = process.env.FAL_KEY;
 process.env.FAL_KEY = 'clave-de-prueba-no-real';
 
 const FOTO = 'https://firebasestorage.googleapis.com/v0/b/get-wee.appspot.com/o/users%2Fu1%2Fcreator-inputs%2Ffaro.png?alt=media&token=t';
-const ENTRADA = { image_url: FOTO, labels_fg1: 'faro', labels_fg2: 'barca', classes: 'costa', prompt: 'no debe viajar', quality: 'max', webhook_url: 'https://evil.test/x', sync_mode: true };
+/*
+ * La ENTRADA DE WEË de `world.generate` (`core/mundo3d.ts`): la foto, abierto o cerrado, qué destaca delante. Y, de
+ * propina, lo que nunca debe viajar: campos sueltos del motor y nombres de fal metidos a mano, que no se traducen.
+ */
+const ENTRADA = {
+  modo: 'desde_imagen', imagen: FOTO, espacio: 'exterior', elementos: ['faro', 'barca'],
+  prompt: 'no debe viajar', quality: 'max', webhook_url: 'https://evil.test/x', sync_mode: true,
+  image_url: 'https://evil.test/inyectada.png', labels_fg1: 'inyectado', classes: 'inyectado', export_drc: true,
+};
 const ENVIO = { request_id: 'req-123', status_url: 'https://queue.fal.run/fal-ai/hunyuan_world/requests/req-123/status', response_url: 'https://queue.fal.run/fal-ai/hunyuan_world/requests/req-123', cancel_url: 'https://queue.fal.run/fal-ai/hunyuan_world/requests/req-123/cancel' };
 const RESULTADO = { world_file: { url: 'https://v3.fal.media/files/abc/world.zip', content_type: 'application/zip', file_name: 'world.zip', file_size: 1234 } };
 const peticion = (extra = {}) => ({ capability: 'world.generate', model: HW, input: { ...ENTRADA }, ctx: { userId: 'u1', requestId: 'r1' }, timeoutMs: 60_000, ...extra });
@@ -124,19 +132,26 @@ const sinClave = await lanza(() => F.cabecerasDeFal());
 check('9) sin FAL_KEY no hay cabeceras ni llamada: error que no se reintenta', sinClave?.name === 'ProviderError' && sinClave.retryable === false && !F.isFalConfigured());
 process.env.FAL_KEY = 'clave-de-prueba-no-real';
 
-const cuerpo = F.cuerpoParaFal(HW, { ...ENTRADA });
-check('10) al modelo solo le llega su esquema publicado: ni el prompt, ni la calidad, ni un webhook, ni sync_mode',
-  Object.keys(cuerpo).sort().join() === 'classes,image_url,labels_fg1,labels_fg2');
+const cuerpo = F.cuerpoParaFal(HW, 'world.generate', { ...ENTRADA }, 'u1');
+check('10) al modelo solo le llega su esquema publicado, TRADUCIDO desde la entrada de Weë: ni el prompt, ni la calidad, ni un webhook, ni los nombres de fal que alguien colara',
+  Object.keys(cuerpo).sort().join() === 'classes,image_url,labels_fg1,labels_fg2'
+  && cuerpo.image_url === FOTO && cuerpo.classes === 'outdoor' && cuerpo.labels_fg1 === 'faro' && cuerpo.labels_fg2 === 'barca',
+  JSON.stringify(cuerpo));
 const rechazos = await Promise.all([
-  lanza(() => F.cuerpoParaFal(HW, { ...ENTRADA, classes: undefined })),
-  lanza(() => F.cuerpoParaFal(HW, { ...ENTRADA, image_url: 'https://evil.test/foto.png' })),
-  lanza(() => F.cuerpoParaFal(HW, { ...ENTRADA, image_url: 'http://169.254.169.254/latest' })),
-  lanza(() => F.cuerpoParaFal(HW, { ...ENTRADA, image_url: 'data:text/html;base64,PGh0bWw+' })),
-  lanza(() => F.cuerpoParaFal(HW, { ...ENTRADA, labels_fg1: 'x'.repeat(2001) })),
-  lanza(() => F.cuerpoParaFal(HW, { ...ENTRADA, export_drc: 'sí' })),
-  lanza(() => F.cuerpoParaFal({ ...HW, gobierno: { ...HW.gobierno, inputSchema: [] } }, { ...ENTRADA })),
+  lanza(() => F.cuerpoParaFal(HW, 'world.generate', { ...ENTRADA, imagen: undefined }, 'u1')),
+  lanza(() => F.cuerpoParaFal(HW, 'world.generate', { ...ENTRADA, imagen: 'https://evil.test/foto.png' }, 'u1')),
+  lanza(() => F.cuerpoParaFal(HW, 'world.generate', { ...ENTRADA, imagen: 'http://169.254.169.254/latest' }, 'u1')),
+  lanza(() => F.cuerpoParaFal(HW, 'world.generate', { ...ENTRADA, imagen: 'data:text/html;base64,PGh0bWw+' }, 'u1')),
+  lanza(() => F.cuerpoParaFal(HW, 'world.generate', { ...ENTRADA, imagen: FOTO.replace('users%2Fu1', 'users%2Fotra') }, 'u1')),
+  lanza(() => F.cuerpoParaFal(HW, 'world.generate', { ...ENTRADA, elementos: ['x'.repeat(61)] }, 'u1')),
+  lanza(() => F.cuerpoParaFal(HW, 'world.generate', { ...ENTRADA, elementos: ['a', 'b', 'c'] }, 'u1')),
+  lanza(() => F.cuerpoParaFal(HW, 'world.generate', { ...ENTRADA, espacio: 'costa' }, 'u1')),
+  lanza(() => F.cuerpoParaFal(HW, 'world.generate', { ...ENTRADA, modo: 'desde_texto' }, 'u1')),
+  lanza(() => F.cuerpoParaFal(HW, 'world.generate', { image_url: FOTO, labels_fg1: 'faro', labels_fg2: 'barca', classes: 'outdoor' }, 'u1')),
+  lanza(() => F.cuerpoParaFal(HW, 'image.generate', { ...ENTRADA }, 'u1')),
+  lanza(() => F.cuerpoParaFal({ ...HW, gobierno: { ...HW.gobierno, inputSchema: [] } }, 'world.generate', { ...ENTRADA }, 'u1')),
 ]);
-check('11) y se rechaza ANTES de llamar a nadie lo que falta o no vale: obligatorio ausente, URL de fuera, metadatos, HTML, texto enorme, tipo cambiado, modelo sin esquema',
+check('11) y se rechaza ANTES de llamar a nadie lo que falta o no vale: sin foto, URL de fuera, metadatos, HTML, foto ajena, elementos de más o enormes, espacio o modo que no existen, una entrada escrita CON NOMBRES DE fal, otra capacidad, modelo sin esquema',
   rechazos.every((e) => e?.name === 'ProviderError' && e.status === 400 && e.retryable === false), rechazos.map((e) => e?.message ?? 'no lanzó').join(' | '));
 
 red([ENVIO]);
@@ -147,12 +162,14 @@ check('12) la foto viaja EN LÍNEA (leída del Storage en el servidor): fal nunc
   envio?.metodo === 'POST' && envio.url === 'https://queue.fal.run/fal-ai/hunyuan_world/image-to-world'
   && /^data:image\/png;base64,/.test(envio.cuerpo.image_url) && leidas.join() === FOTO && !JSON.stringify(envio.cuerpo).includes('firebasestorage'),
   JSON.stringify({ url: envio?.url, imagen: String(envio?.cuerpo?.image_url).slice(0, 30) }));
-const ajena = await lanza(() => F.falAdapter.run(peticion({ input: { ...ENTRADA, image_url: FOTO.replace('users%2Fu1', 'users%2Fotra') } })));
+const ajena = await lanza(() => F.falAdapter.run(peticion({ input: { ...ENTRADA, imagen: FOTO.replace('users%2Fu1', 'users%2Fotra') } })));
 check('13) y solo si es de la carpeta de quien pide: la foto de otra persona no sale, ni se lee',
   ajena?.status === 400 && ajena.retryable === false && leidas.length === 1);
 
-check('14) con `acceptAsync` suelta la llamada y devuelve SOLO el nombre de la operación (modelo::request_id), su coste conocido y nada más',
-  aceptada.accepted?.operationId === 'fal-ai/hunyuan_world/image-to-world::req-123' && llamadas.length === 1 && aceptada.costUSD === HW.cost.usd && !aceptada.output);
+/* Misión mundo3d (FASE 5): el modelo va con «:» en vez de «/», que la clave del runtime no admite (claveDeOperacion), y la
+   etiqueta de una operación aceptada del Core admite «:» y no «~» (FORMA_DE_ETIQUETA_DE_TRAZA). */
+check('14) con `acceptAsync` suelta la llamada y devuelve SOLO el nombre de la operación (modelo::request_id, sin «/»), su coste conocido y nada más',
+  aceptada.accepted?.operationId === 'fal-ai:hunyuan_world:image-to-world::req-123' && llamadas.length === 1 && aceptada.costUSD === HW.cost.usd && !aceptada.output);
 
 red([{ ...ENVIO, status_url: 'https://evil.test/status', response_url: 'https://queue.fal.run.evil.test/r' }, { status: 'IN_QUEUE' }, { status: 'IN_PROGRESS' }, { status: 'COMPLETED' }, RESULTADO]);
 guardados.length = 0;
@@ -267,9 +284,10 @@ check('27) ningún contrato existente sube de versión: lo nuevo es aditivo (sol
 console.log('── E · Nada encendido ──');
 
 const nombran = fuentesSrc.filter((f) => /'world\.generate'/.test(sinComentarios(leer(f)))).sort();
-check('28) ninguna experiencia, plantilla, callable ni pantalla pide un mundo: world.generate solo vive en el catálogo, el registro, el precio y fal',
-  JSON.stringify(nombran) === JSON.stringify(['functions/src/core/capability.ts', 'functions/src/core/registry/capabilities.ts', 'functions/src/credits/creditCosts.ts',
-    'functions/src/engine/providers/fal-modelos.ts', 'functions/src/engine/providers/fal.ts', 'functions/src/engine/registry.ts']), nombran.join(', '));
+/* Misión mundo3d (FASE 5): la pide UNA puerta, la suya —`creator/mundo.ts`, con su candado de una capacidad—; ninguna plantilla ni pantalla. */
+check('28) ninguna experiencia, plantilla ni pantalla pide un mundo por su cuenta: world.generate vive en el catálogo, su contrato canónico, su puerta (el candado del canary), el registro, el precio, fal y la clase de material que deja (un mundo es `world`)',
+  JSON.stringify(nombran) === JSON.stringify(['functions/src/core/capability.ts', 'functions/src/core/mundo3d.ts', 'functions/src/core/registry/capabilities.ts', 'functions/src/creator/mundo.ts', 'functions/src/credits/creditCosts.ts',
+    'functions/src/engine/providers/fal-modelos.ts', 'functions/src/engine/providers/fal.ts', 'functions/src/engine/registry.ts', 'functions/src/runtime/materializacion.ts']), nombran.join(', '));
 check('29) y no hay ningún webhook de fal desplegable: verificar y leer un aviso son funciones puras que nadie expone todavía',
   !/onRequest|onCall/.test(adaptador) && !/\bfal\b|fal\.ai|providers\/fal/i.test(sinComentarios(leer('functions/src/engine/webhooks.ts'))) && !/\bfal\b|fal\.ai|providers\/fal/i.test(sinComentarios(leer('functions/src/index.ts'))));
 

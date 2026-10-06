@@ -2,11 +2,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { assetsService, AssetDoc, AssetKind, OrdenDeCreaciones, PaginaDeCreaciones } from '../services/assetsService';
-import { CLAVE_DE_ESTADO, vistaDeAsset } from '../services/vistaDeAsset';
+import { CLAVE_DE_ESTADO, CLAVE_DE_TIPO, vistaDeAsset } from '../services/vistaDeAsset';
+import { descargarCreacion } from '../services/assetDownload';
+import { frasesDeDerechos } from '../utils/derechosDelMaterial';
+import { formatearLista, nombreDeLaRegion } from '../i18n/formato';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, Chip } from '../components/creator/ui';
 import { RejillaDeCreaciones } from '../components/creator/RejillaDeCreaciones';
@@ -47,11 +50,13 @@ const FILTROS: { id: AssetKind | 'all'; clave: string }[] = [
   { id: 'audio', clave: 'creaciones.filterAudio' },
   { id: 'document', clave: 'creaciones.filterDocuments' },
   { id: 'model3d', clave: 'creaciones.filterModel3d' },
+  { id: 'world', clave: 'creaciones.filterWorlds' },
 ];
 
 const MisCreacionesScreen: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
+  const { locale } = useIdioma();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { isDesktop, isTablet } = useResponsive();
@@ -108,6 +113,14 @@ const MisCreacionesScreen: React.FC = () => {
       return;
     }
     const url = assetsService.urlDeEntrega(asset);
+    /*
+     * UN ARCHIVO 3D NO SE ABRE COMO UNA PÁGINA. Weë todavía no tiene un visor 3D: se dice, con lo que su licencia deja
+     * hacer, y se ofrece descargarlo para abrirlo en una app 3D. Ni un visor de mentira ni una imagen que no es el mundo.
+     */
+    if (url && (asset.kind === 'world' || asset.kind === 'model3d')) {
+      void abrirTresD(asset, asset.kind, url);
+      return;
+    }
     if (url) {
       Linking.openURL(url).catch(() => notify(t('creaciones.loadFailed')));
       return;
@@ -122,6 +135,19 @@ const MisCreacionesScreen: React.FC = () => {
       ? 'creaciones.loadFailed'
       : CLAVE_DE_ESTADO[vista.estado];
     notify(vista.nombre || t('creaciones.title'), t(claveDeEstado));
+  };
+
+  const abrirTresD = async (asset: AssetDoc, tipo: 'world' | 'model3d', url: string) => {
+    const derechos = frasesDeDerechos(asset.derechos).map((f) => (f.lugares
+      ? t(f.clave, { lugares: formatearLista(f.lugares.map((c) => nombreDeLaRegion(c, locale)), locale) })
+      : t(f.clave)));
+    const titulo = asset.name || t(CLAVE_DE_TIPO[tipo]);
+    const ok = await confirmAction(titulo, [t('creaciones.noViewer3d'), ...derechos].join('\n'), t('creaciones.download'), false, t);
+    if (!ok) return;
+    const resultado = await descargarCreacion(url, tipo, asset.mimeType);
+    if (resultado === 'guardado') notify(t('creaciones.downloaded'));
+    else if (resultado === 'sin_permiso') notify(t('creaciones.downloadPermission'));
+    else if (resultado === 'error') notify(t('creaciones.downloadFailed'));
   };
 
   const eliminar = async (asset: AssetDoc) => {

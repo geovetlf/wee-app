@@ -6,13 +6,14 @@ import { IMAGE_MODEL_PRO, TEXT_MODEL_MULTI, geminiAdapter } from './providers/ge
 import { claudeAdapter } from './providers/claude';
 import { openaiAdapter } from './providers/openai';
 import { deepseekAdapter } from './providers/deepseek';
-import { seedanceAdapter } from './providers/seedance';
+import { resolutorDeSeedance, seedanceAdapter } from './providers/seedance';
 import { seedreamAdapter } from './providers/seedream';
 import { minimaxAdapter } from './providers/minimax';
 import { fluxAdapter } from './providers/flux';
 import { elevenlabsAdapter } from './providers/elevenlabs';
 import { musicPlaceholderAdapter } from './providers/music';
-import { falAdapter } from './providers/fal';
+import { falAdapter, resolutorDeFal } from './providers/fal';
+import type { ResolutorDeEstadoDeProveedor } from '../runtime/reconciliacion';
 
 /**
  * Registro de proveedores y valores por defecto del router.
@@ -136,3 +137,13 @@ export const DEFAULT_SETTINGS: EngineSettings = {
   // El interruptor de la IA (ver EngineSettings.iaDetenida): apagado, todo funciona como siempre.
   iaDetenida: false,
 };
+
+/**
+ * QUIÉN SABE PREGUNTARLE A CADA PROVEEDOR QUÉ FUE DE UNA OPERACIÓN (y, si lo permite, pedirle que pare). Vive aquí,
+ * junto a los adaptadores, para que el runtime —que no conoce proveedores— los reciba por su nombre sin importar a
+ * ninguno. Un proveedor sin resolutor no se reconcilia: lo que acepta queda esperando su aviso.
+ */
+export const RESOLUTORES_DE_ESTADO: Readonly<Record<string, ResolutorDeEstadoDeProveedor>> = Object.freeze({
+  seedance: resolutorDeSeedance,
+  fal: resolutorDeFal,
+});

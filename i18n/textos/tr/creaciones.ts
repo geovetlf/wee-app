@@ -77,4 +77,17 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   progressStarting: 'Başlıyor…',
   progressSteps: '{{hechos}}/{{total}} adım tamamlandı',
   progressFindLater: 'Bu ekrandan çıkabilirsin; hazır olduğunda “Oluşturduklarım” bölümünde bulacaksın.',
+
+  /* Mundos 3D (misión mundo3d, 2026-10-05): su tipo, que Weë todavía no tiene visor 3D, y lo que su licencia deja hacer
+     —nunca el nombre de la licencia, que nombra al modelo—. `{{lugares}}` llega ya nombrado y unido en el idioma de quien mira. */
+  filterWorlds: '3D dünyalar',
+  kindWorld: '3D dünya',
+  noViewer3d: 'Weë\'de henüz 3D görüntüleyici yok. Dosyayı indirip bir 3D uygulamasında aç.',
+  rightsTitle: 'Bununla neler yapabilirsin',
+  rightsCommercialAllowed: 'Ticari amaçla kullanabilirsin.',
+  rightsCommercialRestricted: 'Ticari kullanımı belirli koşullara bağlı.',
+  rightsCommercialUnclear: 'Ticari amaçla kullanılıp kullanılamayacağı henüz belli değil.',
+  rightsCommercialNotAllowed: 'Ticari amaçla kullanılamaz.',
+  rightsAttribution: 'Lisansı atıf yapılmasını gerektiriyor.',
+  rightsBlockedIn: 'Şu yerlerde kullanılamaz ve gösterilemez: {{lugares}}.',
 };

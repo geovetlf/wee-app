@@ -510,6 +510,15 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
    *   común), providers/fal.ts y fal-modelos.ts (nuevos), verification.ts +8 (su ficha), registry.ts +15 −1 (antes 2/0),
    *   router.ts +63 −9 (antes 59/4), types.ts +120 −3 (antes 29/0), index.ts +3 −1 y jurisdiccion.ts (nuevo, el conector de la jurisdicción de la cuenta), gateway.ts +8 −2 (antes 2/0) y limits.ts +2 −1
    *   (antes 38/3). Cifras de `git diff --numstat b023f24`; el detalle de cada una, en video-asincrono H2.
+   * + misión mundo3d (2026-10-05): mundo.ts (nuevo, el contrato de world.generate para los adaptadores), types.ts +45
+   *   (antes 149/3), fal.ts +31 (antes 393/0) y fal-modelos.ts +31 (antes 116/0). Ni un proveedor ni una cadena nuevos.
+   *   FASE 2 (NOT_AVAILABLE semántico): errors.ts +58 −1 (antes 1/1), router.ts +22 −12 (antes 122/13), types.ts +18
+   *   (antes 194/3) y elegibilidad.ts +17 (antes 193/0): la causa de cada descarte y el motivo público, sin proveedor.
+   *   FASES 3 y 4 (derechos; mundo y vista previa): derechos.ts (nuevo, los derechos del modelo que atendió) y fal.ts +55
+   *   (antes 424/0): la salida por papeles y la cola configurable solo a https o a esta máquina.
+   *   FASE 5 (la tercera puerta del conductor): gateway.ts +18 −2 (antes 10/2), la elegibilidad del ejecutor con la
+   *   jurisdicción de la cuenta; registry.ts +12 −1 (antes 17/1), los resolutores de estado junto a los adaptadores; y
+   *   fal.ts +7 (antes 479/0), el nombre de la operación sin «/» (con «:») y el resolutor que sabe parar. Ni un proveedor ni una cadena nuevos.
    */
   check('E4) para el vídeo, Seedance y solo Seedance; el único proveedor nuevo es fal, con la única cadena nueva (world.generate)',
     JSON.stringify((DEFAULT_ROUTING['video.generate']?.chain ?? []).map((e) => e.provider)) === JSON.stringify(['seedance'])
@@ -527,7 +536,7 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * GenerationRecord) y router.ts 57/4 → 59/4 (reenvía esos dos campos al contexto del libro). SIGUE sin haber
        * proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|193\t0\tfunctions/src/engine/elegibilidad.ts|1\t1\tfunctions/src/engine/errors.ts|10\t2\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|116\t0\tfunctions/src/engine/providers/fal-modelos.ts|393\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|17\t1\tfunctions/src/engine/registry.ts|122\t13\tfunctions/src/engine/router.ts|149\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|210\t0\tfunctions/src/engine/elegibilidad.ts|59\t2\tfunctions/src/engine/errors.ts|28\t4\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|3\t1\tfunctions/src/engine/index.ts|46\t0\tfunctions/src/engine/jurisdiccion.ts|19\t2\tfunctions/src/engine/ledger.ts|40\t4\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|147\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|144\t25\tfunctions/src/engine/router.ts|212\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 
@@ -613,13 +622,25 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     /* + la jurisdicción de la cuenta conectada al Router (engine/index y el conector) y runtime/politica alineada a fail-closed. */
     'functions/src/engine/index.ts', 'functions/src/engine/jurisdiccion.ts', 'functions/src/runtime/politica.ts'];
   /*
+   * Los de la MISIÓN mundo3d (2026-10-05, «cerrar los gaps de world.generate»), por nombre: el contrato canónico del
+   * mundo en el Core (mundo3d, nuevo) y su reexportación para los adaptadores (engine/mundo, nuevo). contracts, index,
+   * escena3d, types, fal y fal-modelos ya estaban declarados (sus tamaños, en E4, F3 y video-asincrono H2/H3).
+   */
+  /* + FASES 3 y 4: los derechos (engine/derechos, nuevo) y las variantes viajan por el aviso y su atención (runtime/aviso, runtime/atencion). */
+  const DE_LA_MISION_MUNDO3D = ['functions/src/core/mundo3d.ts', 'functions/src/engine/mundo.ts',
+    'functions/src/engine/derechos.ts', 'functions/src/runtime/atencion.ts', 'functions/src/runtime/aviso.ts',
+    /* + FASE 5: la puerta del mundo (creator/mundo, nueva), pedir parada (runtime/parada, nueva), los relojes del mundo y por capacidad
+       (runtime/plazos), un resolutor que puede saber parar (runtime/reconciliacion) y la reconciliación que lo usa (runtime/reconciliador). */
+    'functions/src/creator/mundo.ts', 'functions/src/runtime/parada.ts', 'functions/src/runtime/plazos.ts', 'functions/src/runtime/reconciliacion.ts',
+    'functions/src/runtime/reconciliador.ts'];
+  /*
    * Los del CICLO DE VIDA 3D (2026-10-05), por nombre: el linaje del material —versiones, derivados, derechos que solo
    * se endurecen y dónde se usa— (`core/content/linaje.ts`, nuevo, puro y sin conectar a ningún camino) y su línea de
    * exportación en la puerta del Content Core (`core/content/index.ts`). Ver docs/3D-ASSET-LIFECYCLE.md.
    */
   const DEL_CICLO_DE_VIDA_3D = ['functions/src/core/content/index.ts', 'functions/src/core/content/linaje.ts'];
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal y del ciclo de vida 3D',
-    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL,
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d y del ciclo de vida 3D',
+    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
@@ -643,8 +664,10 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; del tamaño exacto',
     git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === `${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. Del Core, solo la misión fal (video-asincrono H3). */
-  const CORE_DE_LA_MISION_FAL = '4\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n6\t0\tfunctions/src/core/contracts.ts'
-    + '\n216\t0\tfunctions/src/core/escena3d.ts\n1\t0\tfunctions/src/core/index.ts\n2\t1\tfunctions/src/core/provider.ts'
+  /* + misión mundo3d (2026-10-05): mundo3d (nuevo), contracts +6, index +1 y escena3d +1 (ver video-asincrono H3). */
+  /* + misión mundo3d FASE 5: capability.ts +2 (`world: '3d'`) y mundo3d.ts +15 (364 → 379, los derechos visibles). */
+  const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n12\t0\tfunctions/src/core/contracts.ts'
+    + '\n217\t0\tfunctions/src/core/escena3d.ts\n2\t0\tfunctions/src/core/index.ts\n379\t0\tfunctions/src/core/mundo3d.ts\n2\t1\tfunctions/src/core/provider.ts'
     + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
   /* + ciclo de vida 3D (2026-10-05): el linaje del material (nuevo) y su línea de exportación en la puerta del Content Core. */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts\n651\t0\tfunctions/src/core/content/linaje.ts';
@@ -655,7 +678,9 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D)
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
-    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '41\t3\tfunctions/src/content/index.ts\n62\t2\tfunctions/src/content/materializador.ts');
+    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '68\t3\tfunctions/src/content/index.ts\n126\t4\tfunctions/src/content/materializador.ts');
+    /* + FASE 5: materializador.ts +2 (antes 124/4): el nombre del material, las palabras de quien lo pidió. */
+    /* + misión mundo3d (2026-10-05): content/index.ts +27 (antes 41/3), las variantes de UN resultado; materializador.ts +62 −2 (antes 62/2), los derechos al material y sus variantes después. */
   const legacy = (s) => {
     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');
     return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a));
@@ -669,7 +694,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       === /* + revisión post-auditoría 2026-10-01: el aviso del idioma lleva jobId/stepId (index) y el avatar devuelve sus reservas abandonadas (generateAvatar). */
       /* + cierre post-auditoría 2026-10-01: index +6 −5 (creatorChat/creatorQuote con MODEL_SECRETS; la adaptación de idioma de creatorRun con su sistema y `format: 'text'`) y generateAvatar +3 −3 (AVATAR_SECRETS, solo Gemini); creator/credits.ts sin tocar. */
       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
-      '45\t4\tfunctions/src/creator/credits.ts|140\t21\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
+      /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos y las variantes; nada del reclamo ni del cobro. */
+      '45\t4\tfunctions/src/creator/credits.ts|157\t23\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 

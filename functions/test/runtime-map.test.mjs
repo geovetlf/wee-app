@@ -162,7 +162,9 @@ const OTROS_DEL_CORE = {
   'core/contracts.js': ['BRAIN_CONTRACT_VERSION', 'CONTENT_CORE_CONTRACT_VERSION', 'ELEMENT_CONTRACT_VERSION', 'GATEWAY_CONTRACT_VERSION', 'PLANNER_CONTRACT_VERSION',
     'JOB_ENGINE_CONTRACT_VERSION', 'ORCHESTRATOR_CONTRACT_VERSION', 'PROVIDER_CONTRACT_VERSION', 'SHOT_CONTRACT_VERSION', 'ROUTER_CONTRACT_VERSION', 'WORKFLOW_CONTRACT_VERSION', 'MAX_PROPUESTAS_POR_PASO',
     /* S1: la versión con la que la sombra le pide la decisión al Algorithm Engine. */
-    'ALGORITHM_CONTRACT_VERSION'],
+    'ALGORITHM_CONTRACT_VERSION',
+    /* Misión mundo3d (FASE 5): la versión del contrato de world.generate con la que contesta la puerta del mundo. */
+    'MUNDO3D_CONTRACT_VERSION'],
   /*
    * S1 · EL ALGORITHM ENGINE, EN SOMBRA. La sombra del plan estrena la capa por
    * su puerta y nombra exactamente tres cosas de ella: el CICLO que decide, la
@@ -178,6 +180,22 @@ const OTROS_DEL_CORE = {
   'core/algorithm/authority.js': ['violacionesEn'],
   'core/algorithm/types.js': ['TOPES_POR_DEFECTO'],
   'core/observability.js': ['trazaLimpia'],
+  /*
+   * Misión «cerrar los gaps de world.generate» (2026-10-05): el contrato canónico del mundo. El adaptador de fal lee
+   * la entrada de Weë con el lector del propio contrato (por `engine/mundo.ts`, sin escribir `core/`), así que el
+   * contrato está en producción por lo que LEE, no por ninguna puerta abierta: `world.generate` sigue sin modelo
+   * elegible y sin puerta abierta.
+   */
+  /*
+   * + FASE 5: la puerta del mundo (`creator/mundo.ts`) LEE la petición con el contrato, construye la entrada del
+   * motor, cuenta el estado de un trabajo y dice si se puede parar; los relojes del runtime nombran la capacidad.
+   * Y al contar un mundo terminado le da a la app solo sus derechos VISIBLES (`derechosVisibles`): sin las licencias,
+   * cuyo nombre y dirección nombran al modelo. Y lee la ruta de una foto con el lector del contrato
+   * (`rutaEnElStorageDeWee`) para exigir el cubo propio (revisión de seguridad, 2026-10-06).
+   */
+  'core/mundo3d.js': ['leerEntradaDeMundo3D', 'leerPeticionDeMundo3D', 'entradaDeMundo3D', 'estadoDeMundoDelTrabajo', 'VARIANTE_DE_LA_VISTA_PREVIA',
+    /* + la clase del material del mundo (literal del contrato) para no contar como mundo otro material (revisión, 2026-10-06). */
+    'sePuedeCancelarElMundo', 'CAPACIDAD_DE_MUNDO', 'derechosVisibles', 'rutaEnElStorageDeWee', 'TIPO_DE_MATERIAL_DEL_MUNDO'],
   /*
    * S5: exportar la puerta de Elements pone en producción los dos contratos de
    * S3. Es lo esperado y es lo que estas listas existen para enseñar: qué usa
@@ -270,6 +288,12 @@ const FUNCTIONS = {
   './creator': ['creatorChat', 'creatorQuote', 'creatorRun'],
   './creator/brain': ['brainChat', 'brainQuote'],
   './creator/video': ['generateVideo'],
+  /*
+   * Misión mundo3d (FASE 5, 2026-10-05): «Crear mundo 3D», la TERCERA puerta del conductor —autorizada por la misión
+   * del dueño—, cerrada por `aiSettings/runtime` y sin montar la clave de ningún proveedor. NO está desplegada
+   * (ops/despliegue/grupos.json → no_se_despliegan): está en el mapa porque el código la exporta.
+   */
+  './creator/mundo': ['generateWorld'],
   './engine/webhooks': ['seedanceCallback'],
   './public/postPage': ['publicPostPage'],
   './engine/admin': ['engineAdmin'],
@@ -371,7 +395,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y seis: las treinta y cinco de antes (hasta Productions, F1-B) y evalRun (F2-C1, de administración, sin desplegar)', reales.length === 36, `${reales.length}`);
+  check('5) y son treinta y siete: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar) y generateWorld (misión mundo3d, sin desplegar)', reales.length === 37, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *
@@ -384,7 +408,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const inventada = [...reales, 'functionQueNadieDeclaro'];
   check('5b) y la guarda SIGUE PROTEGIENDO: una Function sin clasificar se detecta',
     inventada.filter((f) => !declaradas.includes(f)).join(',') === 'functionQueNadieDeclaro'
-    && inventada.length !== 36);
+    && inventada.length !== 37);
 
   const malUbicadas = Object.entries(FUNCTIONS).filter(([mod, fns]) => !igual(fns, porModulo[mod] || []));
   check('6) cada una sale del módulo que el mapa dice', malUbicadas.length === 0, malUbicadas.map(([m]) => m).join(', '));
@@ -566,19 +590,24 @@ console.log('\n── D2 · El conductor (F12-D): existe, es UNO, y entra por UN
   check('110) el conductor está compilado: sus doce módulos existen', DEL_CONDUCTOR.every((m) => fs.existsSync(path.join(LIB, m))), DEL_CONDUCTOR.filter((m) => !fs.existsSync(path.join(LIB, m))).join(', '));
   check('111) y producción los carga TODOS: el canary los puso en la ruta, no a medias', DEL_CONDUCTOR.every((m) => VIVOS.has(m)), DEL_CONDUCTOR.filter((m) => !VIVOS.has(m)).join(', '));
   const fabrica = [...invocadaDesde('conductorDeWee'), ...invocadaDesde('crearConductor')];
-  check('112) y su fábrica la invocan DOS módulos vivos: los dos canaries declarados (Brain texto, Studio vídeo)', igual(fabrica, ['creator/brain.js', 'creator/video.js', 'runtime/index.js']), fabrica.join(', '));
+  /* Misión mundo3d (FASE 5): una tercera puerta declarada, la del mundo. Una cuarta hace fallar esto. */
+  check('112) y su fábrica la invocan TRES módulos vivos: los tres canaries declarados (Brain texto, Studio vídeo, Studio mundo 3D)', igual(fabrica, ['creator/brain.js', 'creator/mundo.js', 'creator/video.js', 'runtime/index.js']), fabrica.join(', '));
   const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
   const fuentes = andar(SRC, '.ts').map((abs) => ({ r: path.relative(SRC, abs).split(path.sep).join('/'), src: sinComentarios(fs.readFileSync(abs, 'utf8')) }));
   const conductores = fuentes.filter((f) => /export const crearConductor\b/.test(f.src)).map((f) => f.r);
   check('113) hay UN conductor. Un segundo sería el segundo runtime que esta fase existe para impedir', igual(conductores, ['runtime/conductor.ts']), conductores.join(', '));
   const puertas = fuentes.filter((f) => /decidirRuntime\(/.test(f.src) && !f.r.startsWith('runtime/')).map((f) => f.r);
-  check('114) la puerta CORE/LEGACY la consultan EXACTAMENTE dos callables: `brainChat` y `generateVideo`', igual(puertas, ['creator/brain.ts', 'creator/video.ts']), puertas.join(', '));
+  check('114) la puerta CORE/LEGACY la consultan EXACTAMENTE tres callables: `brainChat`, `generateVideo` y `generateWorld`', igual(puertas, ['creator/brain.ts', 'creator/mundo.ts', 'creator/video.ts']), puertas.join(', '));
   const pensadores = fuentes.filter((f) => /pensadorSobreConductor\(/.test(f.src) && !f.r.startsWith('runtime/')).map((f) => f.r);
   check('116) Weë Brain puede pensar por el conductor, y el camino de siempre sigue entero al lado', igual(pensadores, ['creator/brain.ts']) && /engine\.generate\(/.test(leer('functions/src/creator/brain.ts')), pensadores.join(', '));
   /* UNA capacidad, escrita en el código: la configuración de la puerta puede cerrar el canary, nunca ampliarlo. */
   const brainVivo = sinComentarios(leer('functions/src/creator/brain.ts'));
   check("117) y solo `text.generate` puede cruzarla: la capacidad del canary está en el código, no en la configuración",
     /CAPACIDAD_DEL_CANARY: CapabilityId = 'text\.generate'/.test(brainVivo) && /porElCore = puerta\.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY/.test(brainVivo));
+  /* Y la tercera, con su propio candado: ni la configuración la amplía ni las otras dos la abren. */
+  const mundoVivo = sinComentarios(leer('functions/src/creator/mundo.ts'));
+  check("117b) por la tercera solo cruza `world.generate`, escrita en el código, y sin la puerta abierta no hay mundo (no hay camino síncrono)",
+    /CAPACIDAD_DEL_CANARY: CapabilityId = 'world\.generate'/.test(mundoVivo) && /if \(puerta\.runtime !== 'core'\) throw noDisponible\('no_disponible'\)/.test(mundoVivo));
   check('118) y la puerta se guarda donde solo la lee el servidor: `aiSettings`, cerrada a los clientes', /COLECCION_DE_LA_PUERTA = 'aiSettings'/.test(leer('functions/src/runtime/configuracion.ts')) && /match \/aiSettings\/\{settingId\} \{\s*allow read, write: if false;/.test(leer('firestore.rules')));
 }
 
@@ -594,6 +623,8 @@ console.log('\n── E · Quién llama desde la app ──');
     creatorChat: 'services/creatorService.ts', creatorQuote: 'services/creatorService.ts', creatorRun: 'services/creatorService.ts',
     brainChat: 'services/brainService.ts', brainQuote: 'services/brainService.ts',
     generateVideo: 'services/videoService.ts', deleteAsset: 'services/assetsService.ts',
+    /* + misión mundo3d: la tercera puerta del conductor tiene UN servicio en la app (sin desplegar, y su pantalla tras su puerta). */
+    generateWorld: 'services/mundoService.ts',
   };
   let n = 120;
   for (const [fn, servicio] of Object.entries(ESPERADO)) check(`${n++}) \`${fn}\` la invoca ${servicio}, y nadie más`, igual(quienNombraLaCallable(fn), [servicio]), quienNombraLaCallable(fn).join(', '));
@@ -604,6 +635,7 @@ console.log('\n── E · Quién llama desde la app ──');
    * el plano y nunca un texto. Ninguna pantalla ni componente la importa directamente.
    */
   check(`${n++}) \`generateVideo\` tiene UN consumidor nominal, la toma de un plano: ninguna pantalla importa su servicio`, igual(importadores('videoService'), ['hooks/useTomaDePlano.ts']), importadores('videoService').join(', '));
+  check(`${n++}) \`generateWorld\` tiene UN consumidor nominal, la pantalla «Crear mundo 3D»: ninguna otra importa su servicio`, igual(importadores('mundoService'), ['screens/Mundo3DScreen.tsx']), importadores('mundoService').join(', '));
   check(`${n++}) los proyectos los escribe el cliente directamente: no hay callable de Project`, /collection\(db, 'creatorProjects'\)|doc\(db, 'creatorProjects'/.test(leer('services/projectsService.ts')) && !Object.values(FUNCTIONS).flat().some((f) => /project/i.test(f)));
   check(`${n++}) y las publicaciones también: \`posts\` no pasa por el modelo de Publication del Core`, /'posts'/.test(leer('services/firestoreService.ts')) && (nombrados.get('core/content/publication.js') || new Set()).size === 0);
 }

@@ -1,7 +1,7 @@
 import { ProviderAdapter } from '../engine/types';
 import { ADAPTERS, DEFAULT_PROVIDERS } from '../engine/registry';
 import { DECLARED } from '../engine/verification';
-import { Elegibilidad, modeloElegible } from '../engine/elegibilidad';
+import { Elegibilidad, elegibleEnAlgunaJurisdiccion, modeloElegible } from '../engine/elegibilidad';
 import { PROVIDER_LANGUAGES } from '../engine/promptLanguage';
 import { PROVIDER_CONTRACT_VERSION } from '../core/contracts';
 import { ProviderStatus } from '../core/provider';
@@ -168,7 +168,16 @@ export const datosDelRegistro = (
     const estado = estadoDeProveedor(adapter, habilitado);
     const verificacion = DECLARED[id];
 
-    const susModelos = adapter.models.map((m) => describirModelo(m, estado, modeloElegible(m, config[id]?.models?.[m.id])));
+    /*
+     * El catálogo no es de ninguna operación: un modelo territorial que es elegible en ALGUNA jurisdicción se puede
+     * pedir, y cada operación lo vuelve a preguntar con SU jurisdicción (el ejecutor del Core, `jurisdiccionesDe`).
+     * Uno que no lo es en ninguna, como hoy Hunyuan World, sigue PENDING.
+     */
+    const elegibilidad = (m: ProviderAdapter['models'][number]): Elegibilidad => {
+      const ajuste = config[id]?.models?.[m.id];
+      return m.territorio && elegibleEnAlgunaJurisdiccion(m, ajuste) ? { elegible: true, estado: 'ACTIVE' } : modeloElegible(m, ajuste);
+    };
+    const susModelos = adapter.models.map((m) => describirModelo(m, estado, elegibilidad(m)));
     models.push(...susModelos);
 
     /* Las capacidades del proveedor son la UNIÓN de las de sus modelos, no una

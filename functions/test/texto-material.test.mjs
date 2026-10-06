@@ -97,12 +97,19 @@ check('la clase de material la dice EL CATÁLOGO, no el prefijo del nombre',
   tipoDeMaterialDe('text.generate') === 'text' && tipoDeMaterialDe('vision.describe') === 'text'
   && tipoDeMaterialDe('audio.transcribe') === 'text' && tipoDeMaterialDe('image.analyze') === 'text',
   'mirar una foto produce una descripción, y una descripción es texto');
+/*
+ * Misión mundo3d (2026-10-05): UNA excepción nominal y más precisa que la modalidad. `3d` agrupa un objeto y un mundo,
+ * y el Content Core los distingue: `world.generate` produce un MUNDO (`world`), como ya lo guardaba creatorRun. Sin esto,
+ * el mismo mundo era `world` por un camino y `model3d` por el asíncrono. Cualquier otra excepción hace fallar esto.
+ */
+const MAS_PRECISA_QUE_SU_MODALIDAD = { 'world.generate': 'world' };
 check('G7 CERRADO · el prefijo discrepaba del catálogo en 38 de 68 capacidades',
   (() => {
     const CLASE = { text: 'text', image: 'image', video: 'video', voice: 'audio', audio: 'audio', music: 'audio', doc: 'document', '3d': 'model3d', vision: 'text' };
-    return core.CAPABILITY_CATALOG.every((e) => tipoDeMaterialDe(e.id) === CLASE[e.produces]);
+    return core.CAPABILITY_CATALOG.every((e) => tipoDeMaterialDe(e.id) === (MAS_PRECISA_QUE_SU_MODALIDAD[e.id] ?? CLASE[e.produces]))
+      && Object.keys(MAS_PRECISA_QUE_SU_MODALIDAD).every((id) => core.CAPABILITY_CATALOG.some((e) => e.id === id && e.produces === '3d'));
   })(),
-  'las 69 coinciden ahora con lo que declara el catálogo');
+  'las 69 coinciden ahora con lo que declara el catálogo (world.generate, más precisa: world)');
 check('y una capacidad que no está en el catálogo no produce material',
   tipoDeMaterialDe('inventada.x') === undefined && tipoDeMaterialDe(undefined) === undefined);
 /* Salvo `world` (misión fal, 2026-10-05): el mundo 3D que genera world.generate, aditivo y sin subir el contrato. */

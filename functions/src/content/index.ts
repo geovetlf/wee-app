@@ -631,6 +631,33 @@ export const anotarVariante = async (accountId: string, assetId: string, variant
   return true;
 };
 
+/**
+ * LAS VARIANTES QUE DIO EL PROVEEDOR, sobre el material de su resultado (la vista previa de un mundo). Solo archivos
+ * que ya están en la carpeta de la cuenta en el Storage de Weë —los guardó el adaptador—; una dirección de fuera no se
+ * anota. Devuelve cuántas quedaron. No inventa ninguna: lo que el proveedor no dio, no está.
+ */
+export const anotarVariantesDelResultado = async (
+  accountId: string,
+  assetId: string,
+  variantes: readonly { kind: AssetVariant['kind']; url: string; mimeType?: string; bytes?: number }[] | undefined,
+): Promise<number> => {
+  let anotadas = 0;
+  for (const v of variantes ?? []) {
+    const storageRef = referenciaDesdeUrlDeWee(v.url);
+    if (!storageRef || !esDeLaCuenta(storageRef, accountId)) {
+      console.warn('Content: una variante fuera de la carpeta de la cuenta no se anota', assetId, v.kind);
+      continue;
+    }
+    const ok = await anotarVariante(accountId, assetId, {
+      kind: v.kind, storageRef,
+      ...(v.mimeType ? { mimeType: v.mimeType } : {}),
+      ...(Number.isSafeInteger(v.bytes) ? { bytes: v.bytes } : {}),
+    });
+    if (ok) anotadas++;
+  }
+  return anotadas;
+};
+
 /** Para las pruebas y el inventario: la marca de tiempo de Firestore, en milisegundos. */
 export const milisegundos = (v: unknown): number | undefined =>
   v instanceof Timestamp ? v.toMillis() : typeof v === 'number' ? v : undefined;

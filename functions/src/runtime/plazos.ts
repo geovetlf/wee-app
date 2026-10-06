@@ -1,4 +1,4 @@
-import { JobPolicy } from '../core';
+import { CAPACIDAD_DE_MUNDO, JobPolicy } from '../core';
 
 /**
  * WEË RUNTIME — CINCO RELOJES QUE NO SON EL MISMO.
@@ -87,6 +87,40 @@ export const PLAZOS_DE_VIDEO: PlazosDeCapacidad = Object.freeze({
   /* Publicado: «Video URLs are valid for 24 hours». */
   vidaDeLaUrlMs: 24 * HORA,
 });
+
+/**
+ * UN MUNDO 3D (`world.generate`).
+ *
+ * A diferencia de ModelArk, el proveedor de hoy no acepta que le digamos cuánto puede tardar, así que el primer reloj
+ * lo hace cumplir WEË: pasado ese tiempo, la reconciliación le pide que pare (`runtime/parada.ts`), y el final que
+ * diga después decide —el mundo, si llegó antes; la devolución de la reserva, si no—. Los dos últimos relojes no los
+ * publica fal: se fijan con prudencia y se dice.
+ *
+ *   30 min   lo que se le concede al proveedor: un mundo tarda minutos, y con la cola cargada, más
+ *   45 min   lo que vive el trabajo: la vida del proveedor y tiempo para que una parada se oiga
+ *   1 min    la concesión del trabajador; 30 s, el envío (un POST a la cola, nada más)
+ *   24 h     hasta cuándo se le pregunta: fal no publica cuánto recuerda una petición (NO VERIFICADO)
+ *   1 h      lo que vale el enlace del resultado: lo pide Weë al enviar (`X-Fal-Object-Lifecycle-Preference`)
+ */
+export const PLAZOS_DE_MUNDO: PlazosDeCapacidad = Object.freeze({
+  vidaEnElProveedorMs: 30 * MINUTO,
+  vidaDelTrabajoMs: 45 * MINUTO,
+  concesionMs: MINUTO,
+  envioMs: 30_000,
+  horizonteDeReconciliacionMs: 24 * HORA,
+  vidaDeLaUrlMs: HORA,
+});
+
+/** Los relojes de cada capacidad que va por el camino asíncrono. Una que no esté usa los de quien pregunte. */
+export const PLAZOS_POR_CAPACIDAD: Readonly<Record<string, PlazosDeCapacidad>> = Object.freeze({
+  'video.generate': PLAZOS_DE_VIDEO,
+  [CAPACIDAD_DE_MUNDO]: PLAZOS_DE_MUNDO,
+});
+
+export const plazosDeLaCapacidad = (capability: string | undefined): PlazosDeCapacidad | undefined =>
+  typeof capability === 'string' && Object.prototype.hasOwnProperty.call(PLAZOS_POR_CAPACIDAD, capability)
+    ? PLAZOS_POR_CAPACIDAD[capability]
+    : undefined;
 
 export type FalloDePlazos =
   | 'concesion_no_menor'

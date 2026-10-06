@@ -23,6 +23,15 @@
  * `core/gateway.ts`, que arrastraría el Gateway entero, solo el tipo
  * `ExecutionHints`: es lo único que `modelo.ts` toma de él.
  *
+ * Y una segunda raíz, por la misma puerta y con las mismas reglas: el núcleo 3D
+ * de Weë (`core/escena3d.ts`, el WEË 3D Engine). Es UNO para Weë Studio (3D
+ * World), Weë Design (3D Design) y Filmmaker, y la app lo necesita igual que el
+ * dominio de F1-A —construir y validar una escena en local con la misma regla
+ * que el servidor—. Copiarlo a mano serían dos verdades; un segundo generador,
+ * dos espejos. Se añade su raíz (`RAICES_DEL_NUCLEO_3D`) y su cierre en el Core
+ * —contratos e identidad— ya estaba dentro. La app lo lee por su propia puerta,
+ * `services/escena3d.ts`, que solo reexporta.
+ *
  * ── Cómo se vigila ──────────────────────────────────────────────────────────
  *
  * `functions/test/filmmaker-espejo.test.mjs` lo vuelve a generar en memoria y
@@ -43,9 +52,17 @@ export const ORIGEN_DEL_ESPEJO = 'functions/src';
 export const DESTINO_DEL_ESPEJO = 'services/filmmaker/espejo';
 
 /**
- * El dominio y su cierre en el Core, medido siguiendo sus `import`. Si F1-A
- * empezara a importar otro módulo, el espejo no compilaría: la lista no se
- * queda corta en silencio.
+ * LAS RAÍCES DEL NÚCLEO 3D: lo que entra en el espejo por sí mismo, sin que F1-A
+ * lo importe. Su cierre de importaciones (contratos e identidad) ya forma parte
+ * del de F1-A; si algún día importara otro módulo del Core, la prueba del
+ * espejo lo mediría y exigiría añadirlo aquí abajo.
+ */
+export const RAICES_DEL_NUCLEO_3D = Object.freeze(['core/escena3d.ts', 'core/mundo3d.ts']);
+
+/**
+ * El dominio y su cierre en el Core, medido siguiendo sus `import`, más el
+ * núcleo 3D. Si F1-A o el núcleo 3D empezaran a importar otro módulo, el espejo
+ * no compilaría: la lista no se queda corta en silencio.
  */
 export const ARCHIVOS_DEL_ESPEJO = Object.freeze([
   'filmmaker/modelo.ts',
@@ -63,6 +80,7 @@ export const ARCHIVOS_DEL_ESPEJO = Object.freeze([
   'core/language.ts',
   'core/content/asset.ts',
   'core/registry/capabilities.ts',
+  ...RAICES_DEL_NUCLEO_3D,
 ]);
 
 /** Lo único que se toma de `core/gateway.ts`. */

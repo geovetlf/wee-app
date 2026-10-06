@@ -61,11 +61,12 @@ primero que falla decide:
   (`camposAjustables`). Aprobar es una revisión legal con evidencia, escrita en los datos del modelo con sus fuentes.
 - **Un modelo de un agregador sin gobierno declarado no es elegible**: nadie revisó su licencia.
 - **El Router solo compara elegibles.** Ninguna política, calidad, precio ni modelo fijado lo amplía. Sin ningún
-  candidato elegible contesta `NOT_AVAILABLE` con `reason: 'sin_modelo_elegible'` y los escalones (sin nombrar
-  proveedores), y no sirve nada en su lugar: ni el demo (el demo no tiene ningún modelo de mundos).
-- **El Core no transporta todavía la jurisdicción**: el catálogo del Core no es de ninguna operación, así que ahí un
-  modelo con reglas territoriales queda `PENDING` y el ejecutor del Gateway lo rechaza. Falla cerrado hasta que el
-  contrato canónico la lleve.
+  candidato elegible contesta `NOT_AVAILABLE` con su **motivo público** (`ahora_no`, `en_tu_region`, `falta_tu_pais`,
+  `con_estas_opciones` o `no_disponible`; los escalones se quedan en el servidor), y no sirve nada en su lugar: ni el demo
+  (el demo no tiene ningún modelo de mundos).
+- **La jurisdicción llega al ejecutor del Core** (misión mundo3d): la puerta la lee una vez de la cuenta y la pasa al
+  Router, al ejecutor (`jurisdiccionesDe`) y a la política; sin ella, un modelo territorial falla cerrado. El catálogo del
+  Core, que no es de ninguna operación, da por usable un modelo territorial aprobado en ALGUNA jurisdicción.
 - **El adaptador no decide nada de esto.** fal no sabe de jurisdicciones; si se llega a `run`, la regla común ya dijo
   que sí (`elegibilidad-jurisdiccion` 9 y 9b).
 - **Auditoría:** cada intento deja en su registro de `aiGenerations` (`elegibilidad`) con qué jurisdicciones se decidió
@@ -119,11 +120,14 @@ es «partner-hosted» sin licencia pública → `REVIEW_REQUIRED`.
   dice «File»).
 - **Identidad**: el endpoint, el esquema y la licencia salen del catálogo propio por id; un gobierno forjado en la
   petición no lo redirige y un modelo que no conoce no se llama.
-- **Asíncrono, construido y NO conectado**: con `acceptAsync` suelta la llamada y devuelve la operación
-  (`{modelo}::{request_id}`); `verificarFirmaDeFal` (ED25519 contra el JWKS de fal, ±300 s, sobre el cuerpo crudo),
-  `leerAvisoDeFal`, `resolutorDeFal` (reconciliación, nunca lanza) y `cancelarEnFal`. Ningún webhook de fal está
-  expuesto, el barrido solo tiene el resolutor de Seedance y el conductor solo atiende sus dos canaries: conectar
-  `world.generate` al Core es una tercera capacidad y necesita autorización explícita (CLAUDE.md §10).
+- **Asíncrono, por la TERCERA puerta del conductor** (misión mundo3d, 2026-10-05, FASE 5 autorizada por el dueño): con
+  `acceptAsync` suelta la llamada y devuelve la operación (`{modelo con «:» en vez de «/»}::{request_id}`: el runtime no
+  admite «/» y la etiqueta del Core no admite «~»); `verificarFirmaDeFal` (ED25519 contra el JWKS de fal, ±300 s, sobre el
+  cuerpo crudo), `leerAvisoDeFal` (el mundo y su vista previa por PAPEL), `resolutorDeFal` (reconciliación, nunca lanza,
+  y sabe pedir parada) y `cancelarEnFal`. `world.generate` entra al Core por `generateWorld` (`creator/mundo.ts`), detrás
+  de la puerta cerrada de `aiSettings/runtime`, **sin desplegar**; el barrido conoce a fal por `RESOLUTORES_DE_ESTADO`
+  (`engine/registry.ts`) y, sin `FAL_KEY` montada, contesta «no configurado» y el trabajo espera. Ningún webhook de fal
+  está expuesto. La experiencia entera: [3D-EXPERIENCIA.md](3D-EXPERIENCIA.md).
 
 ## 5. Credits y material
 
@@ -144,13 +148,15 @@ la persistencia esperan sus decisiones (§7).
 
 ## 7. Lo que espera al dueño
 
-Ver [DECISIONES-PENDIENTES.md](DECISIONES-PENDIENTES.md) § fal.ai: la revisión legal de Hunyuan World por jurisdicción,
-si una jurisdicción DECLARADA basta para aprobar (y si el país del perfil debe poder cambiarse libremente), dónde se
-hace cumplir lo que el material no puede mostrarse, conectar lo asíncrono (webhook + barrido + conductor), crear
-`FAL_KEY`, el precio real y el visor 3D.
+Ver [DECISIONES-PENDIENTES.md](DECISIONES-PENDIENTES.md) § fal.ai y [3D-EXPERIENCIA.md](3D-EXPERIENCIA.md) §19: la revisión
+legal de Hunyuan World por jurisdicción, si una jurisdicción DECLARADA basta para aprobar (y si el país del perfil debe
+poder cambiarse libremente), dónde se hace cumplir lo que el material no puede mostrarse, crear `FAL_KEY` y montarla en
+`generateWorld` y en el barrido, desplegar `generateWorld` y exponer el webhook, el precio real y el visor 3D.
 
 ## 8. Pruebas
 
 `elegibilidad-jurisdiccion` (34: los diez casos del ajuste de jurisdicción, la fuente de la cuenta, la política del runtime, la auditoría y lo que los sostiene), `proveedor-fal`
 (30: el adaptador con la red sustituida por dobles, firma, cancelación, reconciliación, Credits, material y que nada
-está encendido) y `escena3d` (11). Todas deterministas y sin red. $0.
+está encendido) y `escena3d` (11). Y desde la misión mundo3d: `mundo3d-contrato` (29), `no-disponible` (26),
+`mundo3d-salidas` (27), `mundo3d-asincrono` (36), `crear-mundo-3d`, `mundo3d-app` y el emulador `mundo3d.emulator.mjs`
+(24, con una cola de fal falsa en esta máquina). Todas deterministas y sin red. $0.

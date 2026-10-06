@@ -3,6 +3,7 @@ import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } fr
 import { db, functions } from '../config/firebase';
 import { creditsShortfall } from './creditsService';
 import type { Traductor } from '../i18n/traducir';
+import { claveDeNoDisponible } from '../utils/noDisponible';
 import { textoDelServidorLegible } from '../i18n/servidor';
 
 /**
@@ -13,7 +14,12 @@ import { textoDelServidorLegible } from '../i18n/servidor';
  */
 export type JobStatus = 'asking' | 'planned' | 'running' | 'done' | 'failed' | 'cancelled';
 export type StepStatus = 'pending' | 'running' | 'done' | 'failed';
-export type ResultKind = 'text' | 'image' | 'video' | 'audio' | 'document';
+/*
+ * Espejo de `ResultKind` del servidor (functions/src/creator/types.ts), que ganó `world` y `model3d` el 2026-10-05.
+ * Solo el tipo: ninguna pantalla pinta todavía un mundo, y `ResultCard` no debe tratarlo como imagen
+ * (docs/3D-EXPERIENCIA.md). Lo vigila `functions/test/crear-mundo-3d.test.mjs`.
+ */
+export type ResultKind = 'text' | 'image' | 'video' | 'audio' | 'document' | 'world' | 'model3d';
 
 export interface QuestionOption {
   id: string;
@@ -231,6 +237,8 @@ export const humanizeCreatorError = (error: unknown, t: Traductor | ((clave: str
   const message = String((error as any)?.message || '');
   if (creditsShortfall(error)) return t('weeai.errNotEnoughCredits');
   const controlled = creatorErrorCode(error);
+  /* «No disponible» se explica por su MOTIVO, no por la frase: la frase de antes decía «inténtalo más tarde» siempre. */
+  if (controlled === 'NOT_AVAILABLE') return t(claveDeNoDisponible(error));
   // Los errores controlados del servidor ya vienen con una frase amable
   if (controlled && message && !/^[A-Z_]+$/.test(message)) {
     const legible = textoDelServidorLegible(message, { t: t as Traductor, locale });

@@ -64,4 +64,17 @@ export const creaciones = {
   progressStarting: '시작하는 중…',
   progressSteps: '{{total}}단계 중 {{hechos}}단계 완료',
   progressFindLater: '이 화면에서 나가도 괜찮아요. 완료되면 "내 창작물"에서 찾을 수 있어요.',
+
+  /* Mundos 3D (misión mundo3d, 2026-10-05): su tipo, que Weë todavía no tiene visor 3D, y lo que su licencia deja hacer
+     —nunca el nombre de la licencia, que nombra al modelo—. `{{lugares}}` llega ya nombrado y unido en el idioma de quien mira. */
+  filterWorlds: '3D 월드',
+  kindWorld: '3D 월드',
+  noViewer3d: 'Weë에는 아직 3D 뷰어가 없어요. 파일을 다운로드해서 3D 앱에서 열어 주세요.',
+  rightsTitle: '사용할 수 있는 범위',
+  rightsCommercialAllowed: '상업적으로 사용할 수 있어요.',
+  rightsCommercialRestricted: '상업적 사용에는 조건이 있어요.',
+  rightsCommercialUnclear: '상업적으로 사용할 수 있는지 아직 확실하지 않아요.',
+  rightsCommercialNotAllowed: '상업적으로 사용할 수 없어요.',
+  rightsAttribution: '라이선스에 따라 출처를 표시해야 해요.',
+  rightsBlockedIn: '다음 지역에서는 사용하거나 보여 줄 수 없어요: {{lugares}}.',
 };
