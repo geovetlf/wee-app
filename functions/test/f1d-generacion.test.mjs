@@ -796,7 +796,12 @@ const quienes = (re) => TODAS.filter((f) => re.test(src(f)));
     'functions/src/engine/gateway.ts': ["'./referencias-de-wee'", "'./referencias-de-wee'", "'./referencias-de-wee'"],
     'functions/src/engine/providers/gemini.ts': ["'@google/genai'"],
     'functions/src/media/procesador.ts': ["'sharp'"],
-    'functions/src/vertexAI.ts': ["'@google/genai'", "'sharp'", "'firebase-admin'", "'uuid'", "'./engine/http'"],
+    /*
+     * − './engine/http' (revisión de seguridad 2026-10-06, urls del Storage): el avatar lee sus fotos con el lector
+     * común, y el Storage de Weë —el lector y la URL de descarga— se importa ESTÁTICO, a la vista del grafo. Una carga
+     * dinámica menos: la cerca se estrecha, no se afloja.
+     */
+    'functions/src/vertexAI.ts': ["'@google/genai'", "'sharp'", "'firebase-admin'", "'uuid'"],
   };
   const cargas = Object.fromEntries(TODAS.map((f) => [f, [...src(f).matchAll(/\b(?:import|require)\s*\(\s*([^)]*?)\s*\)/g)].map((m) => m[1])]).filter(([, l]) => l.length));
   check('AE) ni cargas dinámicas nuevas para esquivar el grafo: `import(`/`require(` solo donde ya estaban, con lo mismo',

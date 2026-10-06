@@ -1,5 +1,4 @@
-import { getStorage } from 'firebase-admin/storage';
-import { parseStorageUrl } from './http';
+import { objetoDelStorageDeWee, storageBucket } from './http';
 
 /**
  * TAMAÑO REAL DE UNA IMAGEN DE ENTRADA.
@@ -97,11 +96,15 @@ export const withPixels = (size: { width: number; height: number }, source: Imag
  *
  * Devuelve null si no se puede determinar. Nunca inventa un tamaño: quien llama
  * decide qué hacer, y el precio se queda en la cota inferior conocida.
+ *
+ * Solo del cubo de Weë (`objetoDelStorageDeWee`, la misma regla que `readImage`):
+ * antes se leía del cubo que dijera la dirección, y cualquier cubo legible
+ * —uno público de otro— servía para hacer descargar al servidor lo que fuera.
  */
 export async function imageDimensions(url: string): Promise<ImageDimensions | null> {
-  const own = parseStorageUrl(url);
-  if (!own) return null;
-  const file = getStorage().bucket(own.bucket).file(own.path);
+  const own = objetoDelStorageDeWee(url);
+  if (!own || own === 'fuera_del_cubo') return null;
+  const file = storageBucket().file(own.path);
 
   try {
     const [metadata] = await file.getMetadata();

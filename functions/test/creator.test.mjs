@@ -33,9 +33,20 @@ const { memoryLedger } = lib('engine/ledger.js');
 const { serviceForCapability, CREDIT_COSTS } = lib('credits/creditCosts.js');
 
 console.log('\n── Entradas de Weë Creator: foto propia, prompts internos, narración ──');
+/*
+ * El cubo de Weë de estas pruebas. La puerta solo acepta direcciones del cubo de Weë (revisión de seguridad
+ * 2026-10-06, `direccionDeLaCuenta`), y sin Firebase lo lee de aquí, como `storageBucket`. El detalle de la regla —host,
+ * cubo, carpeta, trucos de ruta y el lector sin red— vive en urls-del-storage.test.mjs.
+ */
+process.env.STORAGE_BUCKET = 'wee-dev-geovet.firebasestorage.app';
 const OWN = 'https://firebasestorage.googleapis.com/v0/b/wee-dev-geovet.firebasestorage.app/o/users%2Fu1%2Fcreator-inputs%2Ffoto.jpg?alt=media&token=abc';
 check('acepta una foto subida por la propia persona a Storage', assertInputImageUrl(OWN, 'u1') === OWN);
-check('acepta la URL del emulador de Storage', assertInputImageUrl('http://127.0.0.1:9199/v0/b/wee-dev-geovet.firebasestorage.app/o/users%2Fu1%2Fcreator-inputs%2Fa.png?alt=media&token=t', 'u1').includes('9199'));
+/* La del emulador vale cuando ESTE proceso corre contra él (FIREBASE_STORAGE_EMULATOR_HOST, que pone el emulador). */
+const emuladorAntes = process.env.FIREBASE_STORAGE_EMULATOR_HOST;
+process.env.FIREBASE_STORAGE_EMULATOR_HOST = '127.0.0.1:9199';
+check('acepta la URL del emulador de Storage cuando se corre contra él', assertInputImageUrl('http://127.0.0.1:9199/v0/b/wee-dev-geovet.firebasestorage.app/o/users%2Fu1%2Fcreator-inputs%2Fa.png?alt=media&token=t', 'u1').includes('9199'));
+if (emuladorAntes === undefined) delete process.env.FIREBASE_STORAGE_EMULATOR_HOST;
+else process.env.FIREBASE_STORAGE_EMULATOR_HOST = emuladorAntes;
 let err = null;
 try { assertInputImageUrl(OWN, 'u2'); } catch (e) { err = e; }
 check('rechaza la foto de otra persona', err instanceof EngineError && err.code === 'INVALID_REQUEST', err && err.message);

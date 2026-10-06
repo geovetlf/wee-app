@@ -171,8 +171,10 @@ const resolverImagen = async (uid: string, peticion: PeticionDeMundo3D): Promise
   if (peticion.imagen.tipo === 'storage') {
     /*
      * SOLO EL CUBO DE ESTE PROYECTO, y se reescribe como gs://. El contrato mira la RUTA (la carpeta de la cuenta);
-     * aquí se exige además que el cubo sea el nuestro, porque quien lee la foto, si el Admin SDK no puede, la pide por
-     * HTTP con la dirección original: con un host ajeno y la ruta «correcta», el servidor iría a buscarla fuera.
+     * aquí se exige además que el cubo sea el nuestro. Lo hizo primero esta puerta, cuando el lector de fotos, si el
+     * Admin SDK no podía, la pedía por HTTP con la dirección original; desde la revisión de las direcciones del Storage
+     * (2026-10-06) la regla es común para todo Weë (`direccionDeLaCuenta`, `engine/http.ts`) y el lector ya no sale a
+     * la red con una dirección del Storage. Pasar esta puerta a la regla común queda como deuda registrada.
      */
     const ruta = rutaEnElStorageDeWee(peticion.imagen.url);
     const cubo = getStorage().bucket().name;
