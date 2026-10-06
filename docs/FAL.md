@@ -61,11 +61,12 @@ primero que falla decide:
   (`camposAjustables`). Aprobar es una revisión legal con evidencia, escrita en los datos del modelo con sus fuentes.
 - **Un modelo de un agregador sin gobierno declarado no es elegible**: nadie revisó su licencia.
 - **El Router solo compara elegibles.** Ninguna política, calidad, precio ni modelo fijado lo amplía. Sin ningún
-  candidato elegible contesta `NOT_AVAILABLE` con `reason: 'sin_modelo_elegible'` y los escalones (sin nombrar
-  proveedores), y no sirve nada en su lugar: ni el demo (el demo no tiene ningún modelo de mundos).
-- **El Core no transporta todavía la jurisdicción**: el catálogo del Core no es de ninguna operación, así que ahí un
-  modelo con reglas territoriales queda `PENDING` y el ejecutor del Gateway lo rechaza. Falla cerrado hasta que el
-  contrato canónico la lleve.
+  candidato elegible contesta `NOT_AVAILABLE` con su **motivo público** (`ahora_no`, `en_tu_region`, `falta_tu_pais`,
+  `con_estas_opciones` o `no_disponible`; los escalones se quedan en el servidor), y no sirve nada en su lugar: ni el demo
+  (el demo no tiene ningún modelo de mundos).
+- **La jurisdicción llega al ejecutor del Core** (misión mundo3d): la puerta la lee una vez de la cuenta y la pasa al
+  Router, al ejecutor (`jurisdiccionesDe`) y a la política; sin ella, un modelo territorial falla cerrado. El catálogo del
+  Core, que no es de ninguna operación, da por usable un modelo territorial aprobado en ALGUNA jurisdicción.
 - **El adaptador no decide nada de esto.** fal no sabe de jurisdicciones; si se llega a `run`, la regla común ya dijo
   que sí (`elegibilidad-jurisdiccion` 9 y 9b).
 - **Auditoría:** cada intento deja en su registro de `aiGenerations` (`elegibilidad`) con qué jurisdicciones se decidió

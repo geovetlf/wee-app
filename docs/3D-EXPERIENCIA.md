@@ -59,7 +59,7 @@ servicio y pinta su presentación.
 
 | Pieza | Qué hace |
 |---|---|
-| `peticionDelMundo3D(entrada, cuenta)` | Construye la **petición canónica** (`PeticionDeMundo3D`) y la valida con `leerPeticionDeMundo3D`, **el mismo lector que usa el servidor** (por el espejo generado): lo que la app manda es exactamente lo que la puerta acepta. Palabras recortadas a 300 sin partir un carácter (y se dice). «No sé» no viaja |
+| `peticionDelMundo3D(entrada, cuenta)` | Construye la **petición canónica** (`PeticionDeMundo3D`) y la valida con `leerPeticionDeMundo3D`, **el mismo lector que usa el servidor** (por el espejo generado): lo que la app manda es exactamente lo que la puerta acepta. Palabras recortadas a 300 sin partir un carácter; la pantalla enseña las que viajan (`palabrasQueViajan`). «No sé» no viaja |
 | `validarEntradaDelMundo3D` | Los problemas, con el MOTIVO del contrato (`falta_imagen`, `imagen_ajena`…), su campo y su clave |
 | `errorDelMundo3D(error)` | De un error de la callable a `{ tipo, clave, reintentable }`. NOT_AVAILABLE por su motivo público; `price_changed` vuelve a enseñar el precio nuevo; un tiempo agotado en la app no es un fallo (se pregunta). **La frase del error no se lee nunca** |
 | `avanzar` + `TRANSICIONES_DEL_MUNDO_3D` | La máquina de doce fases (§7). Pura: un evento que no toca devuelve el MISMO objeto; una respuesta tardía no hace retroceder |
@@ -163,8 +163,11 @@ material. El linaje (versiones, derivados, derechos que solo se endurecen) es `c
 Una sola regla para los tres caminos que crean materiales (`engine/derechos.ts`, `derechosDeImplementacion`): los derechos
 se copian del **gobierno del modelo** del trabajo guardado —nunca del aviso del proveedor— al nacer el material:
 revisión, uso comercial, atribución, licencias y `jurisdiccionesBloqueadas`. Sin modelo conocido o sin licencia ajena, no
-hay derechos que copiar. **A la app llega lo VISIBLE** (`derechosVisibles`): uso comercial, atribución y dónde no se puede
-usar ni mostrar; el nombre y la dirección de la licencia **no** (nombran al modelo). La app los cuenta con
+hay derechos que copiar. **La puerta contesta, y la app ENSEÑA, solo lo VISIBLE** (`derechosVisibles`): uso comercial,
+atribución y dónde no se puede usar ni mostrar; el nombre y la dirección de la licencia **no se enseñan** (nombran al
+modelo). Ojo, medido en la revisión: el documento del material —que solo su dueño puede leer— sí guarda los derechos
+enteros y la procedencia (proveedor y modelo), como los demás materiales; si eso debe quedar solo en el servidor es una
+decisión pendiente (§19). La app los cuenta con
 `utils/derechosDelMaterial.ts` («Su uso comercial tiene condiciones», «Su licencia pide atribución», «No se puede usar ni
 mostrar en: Unión Europea, Reino Unido y Corea del Sur», con los nombres en el idioma de quien mira).
 
@@ -175,8 +178,13 @@ candidato (servicio `ai_world`, **39 Credits de PRUEBA** en `creditCosts.ts`, si
 **crear** = `spendCredits` con el `requestId` y la **huella** de la petición (un requestId repetido solo vale para ESE
 mundo; otro mundo con el mismo id = `idempotency_conflict`), si el precio cambió desde que se enseñó no se reserva nada
 (`price_changed`); **cobro** al terminar y **reembolso exacto** si falla o se cancela, UNA vez, por la liquidación del
-barrido; `providerCost` separado de `creditsCharged` en `aiGenerations`. El cupo por persona es el de `3d` (5 al día). Un
-intento colgado sin trabajo se devuelve (`sinReservaHuerfana`). Lo prueban el emulador (cobro una vez, reembolso exacto
+barrido; `providerCost` separado de `creditsCharged` en `aiGenerations`. El cupo por persona es el de `3d` (5 al día).
+**Una reserva sin trabajo:** si la creación falla antes de crearlo, `sinReservaHuerfana` la devuelve en el acto; si la
+invocación muere antes de crearlo, se devuelve al PREGUNTAR su estado pasado el plazo de la puerta (120 s); y si nadie
+pregunta, queda retenida hasta que el barrido sepa devolver reservas sin trabajo (H0 #15b, decisión pendiente). **Un
+error que no dice si la creación llegó** (red, sin código, fallo genérico) no se toma por un fallo: la app pregunta por
+ESA petición y, si no se sabe, «Reintentar» la vuelve a pedir con el MISMO requestId (UN REQUEST = UNA GENERACIÓN = UN
+COBRO); si la creación falló con el trabajo ya creado, la puerta cuenta cómo va en vez de un error. Lo prueban el emulador (cobro una vez, reembolso exacto
 aunque pasen dos barridos, sin doble cobro) y `mundo3d-asincrono`.
 
 ## 12. Mis creaciones (FASE 6)
@@ -225,6 +233,12 @@ Hunyuan no está marcado como bloqueado en todo el mundo: su restricción es ter
 - Aislamiento por cuenta: `estado`/`cancelar` buscan dentro del ámbito de la cuenta; un `requestId` ajeno «no existe».
 - La app no recibe proveedor, modelo, URLs internas ni licencias (§10, §13); los registros del servidor, sanitizados.
 - `generateWorld` está en `no_se_despliegan` (`ops/despliegue/grupos.json`): no hay ruta de despliegue que la incluya.
+- De la revisión de calidad (2026-10-06), en la puerta: la foto solo del cubo de ESTE proyecto y reescrita como `gs://`
+  (con un host o un cubo ajenos y la ruta «correcta», el lector caía a HTTP y el servidor iba a buscarla fuera; la
+  regla general para el resto de Weë es una tarea aparte); `estado` y `cancelar` solo ven trabajos y reservas de MUNDO
+  de la cuenta; no se pide parar mientras el intento se está ENVIANDO (el Job Engine consumaría la parada al llegar la
+  aceptación y la tarea seguiría viva en el proveedor); y se ejecuta el modelo que se cotizó (la puerta fija la
+  decisión del Router). Informe: `ops/revision/informes/2026-10-06-mundo3d.md`.
 
 ## 16. Evolución futura
 
@@ -278,6 +292,8 @@ Hunyuan no está marcado como bloqueado en todo el mundo: su restricción es ter
 | 9 | El visor 3D y el formato real del archivo de mundo | Dueño (tras la primera generación autorizada) |
 | 10 | El precio real de `ai_world` (medir `providerCost` primero) | Dueño |
 | 11 | El horizonte de reconciliación del proveedor (24 h, NO VERIFICADO) | Verificar con la primera generación autorizada |
+| 12 | Si los derechos enteros y la procedencia de un material deben quedar solo en el servidor (hoy su dueño los puede leer) | Dueño / legal |
+| 13 | Confirmar la tercera puerta y, con ella, actualizar CLAUDE.md §10, las rúbricas de revisión, DD-08 y el mapa de fronteras | Dueño |
 
 **CLAUDE.md §10.** El texto vigente dice que el conductor atiende DOS canaries; esta misión (FASE 5, autorizada por el
 dueño) añade la tercera puerta, `generateWorld` → `world.generate`, detrás de la misma puerta cerrada. CLAUDE.md no se ha
