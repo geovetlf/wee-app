@@ -547,6 +547,11 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  *               (`problemasDeLosRequisitos`): un `NaN` o un texto ya no apagan esos suelos.
  *   PARADA      el ciclo dice `context_rejected`, no `context_refused`, cuando los requisitos
  *               de lo aprendido están mal formados: es una petición que corregir.
+ *   CORTE       A6, cuando se le acaba el presupuesto de comprobaciones —o el de pensar—, cuenta
+ *               lo que no miró como `unknown`; antes lo dejaba fuera y el veredicto podía salir
+ *               `pass` sin haber mirado un duro. Cambia lo que A6 decide al cortarse, así que,
+ *               por la regla de `AlgorithmDescriptor.version`, sube a `motor-de-verificacion@3`;
+ *               la forma pública no cambia.
  *
  * Y el ciclo acepta un cronómetro (`OpcionesDelCiclo.cronometro`) para que el tope de pensar
  * `maxLatencyMs` —que el contrato ya declaraba— se aplique mientras se razona y no solo se

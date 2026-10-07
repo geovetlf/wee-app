@@ -44,8 +44,10 @@ export const VERIFICATION_ENGINE_ID = 'motor-de-verificacion';
 
 export const DESCRIPTOR_DE_VERIFICACION: AlgorithmDescriptor = Object.freeze({
   id: VERIFICATION_ENGINE_ID,
-  /* 2 desde S2-C.1 (D3): los topes se comprueban solo con lo medido del resultado, y eso cambia lo que decide. */
-  version: 2,
+  /* 2 desde S2-C.1 (D3): los topes se comprueban solo con lo medido del resultado, y eso cambia lo que decide.
+   * 3 desde la misión de cierre: un corte del presupuesto cuenta lo no mirado como `unknown` —antes se
+   * dejaba fuera y podía salir `pass`—; cambia lo que decide cuando se corta, y nada más. */
+  version: 3,
   contract: ALGORITHM_CONTRACT_VERSION,
   category: 'verification',
   status: 'experimental',
@@ -329,10 +331,32 @@ export const crearMotorDeVerificacion = (opciones: OpcionesDelVerificador = {}) 
       m.duros++;
       porque.push(`Topes de pensar mal formados (${limitesRotos.join('; ')}): no se verifica con ellos, así que no se puede concluir.`);
     }
-    for (const c of limitesRotos.length ? [] : todas) {
+    const porMirar = limitesRotos.length ? [] : todas;
+    for (let i = 0; i < porMirar.length; i++) {
+      const c = porMirar[i];
       if (vistos.has(c.id)) continue;      /* Un id repetido es una comprobación, no dos. */
       vistos.add(c.id);
-      if (!contador.gastar('checks')) { m.budgetExhausted = true; porque.push('se llegó al tope de comprobaciones'); break; }
+      if (!contador.gastar('checks')) {
+        m.budgetExhausted = true;
+        /*
+         * (Misión de cierre · motor-de-verificacion@3) LO QUE NO SE MIRÓ NO SE DA POR BUENO.
+         * Antes se dejaba fuera —`break` y nada más— y el veredicto se fundía solo con lo
+         * mirado: con las comprobaciones ordenadas por id, un duro como `structural:status`
+         * podía quedarse sin mirar y el veredicto salir `pass`. Ahora cada una que queda
+         * entra como «sin mirar» (`unknown`) con su dureza, y `fusionarEstados` hace lo de
+         * siempre: un duro sin mirar no deja pasar. Vale igual si el corte es por tiempo
+         * (`maxLatencyMs`, con el cronómetro del ciclo).
+         */
+        let sinMirar = 0;
+        for (const r of porMirar.slice(i)) {
+          if (r !== c && vistos.has(r.id)) continue;
+          vistos.add(r.id);
+          findings.push(hallazgo(r, 'unknown', 'no se miró: se acabó el presupuesto de comprobaciones', 'budget'));
+          sinMirar++;
+        }
+        porque.push(`se llegó al tope de comprobaciones: ${sinMirar} sin mirar, que cuentan como «sin saber» (\`unknown\`), no como buenas`);
+        break;
+      }
       m.checksEvaluados++;
       if (c.hard) m.duros++;
 
