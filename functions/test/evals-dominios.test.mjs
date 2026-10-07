@@ -60,8 +60,8 @@ const reloj = () => '2026-10-05T10:00:00.000Z';
 const specEco = { target: 'eco', datasetVersion: 1, datasetHash: hashCanonico(casosEco), graderVersion: 'eco@1', candidateVersion: 1 };
 
 /* ── El Router, primer dominio registrado ─────────────────────────────────── */
-check('1) el Router es el primer dominio registrado: cumple el contrato de dominio y el registro está congelado',
-  Object.keys(DOMINIOS).join() === 'router' && DOMINIOS.router.id === 'router' && validarDominio(dominioRouter).length === 0
+check('1) el Router es el primer dominio registrado —y el Algorithm Engine el segundo, misión de cierre—: cumple el contrato de dominio y el registro está congelado',
+  Object.keys(DOMINIOS).join() === 'router,algoritmo' && DOMINIOS.router.id === 'router' && validarDominio(dominioRouter).length === 0
   && Object.isFrozen(DOMINIOS) && Object.isFrozen(DOMINIOS.router));
 const run = await ejecutarDataset(DATASET, CONFIG);
 check('2) el Router se ejecuta EXACTAMENTE como antes: mismo hash de dataset, mismas puntuaciones que su baseline, $0',
@@ -83,7 +83,7 @@ const trampas = ['__proto__', 'constructor', 'toString', '../router', 'ROUTER'].
 const almacenVacio = almacenMemoria();
 const gobDesconocido = await falla(() => correrEvalGobernada({ dataset: { ...datasetEco }, config: CONFIG, spec: specEco, ahora: reloj, almacen: almacenVacio }));
 check('4) un dominio desconocido falla de forma determinista (mismo mensaje, cerrado): sin nombre, con trampas de prototipo o de ruta, y sin crear ninguna corrida',
-  m1 === 'dominio desconocido: "inexistente" (registrados: router)' && m1 === m2 && /dominio desconocido: null/.test(sinDominio || '')
+  m1 === 'dominio desconocido: "inexistente" (registrados: algoritmo, router)' && m1 === m2 && /dominio desconocido: null/.test(sinDominio || '')
   && trampas.length === 0 && /dominio desconocido: "eco"/.test(gobDesconocido || '') && almacenVacio.n === 0, `${m1} · trampas ${trampas.join(',')}`);
 
 /* ── Un segundo dominio entra por el registro, sin tocar el motor ─────────── */
@@ -157,7 +157,7 @@ check('14) no hay motor duplicado: cada pieza existe UNA vez —en el motor, y l
   && enlaces.every(([n, d, delega]) => d.length === 2 && d.includes(`${DIR_MOTOR}/corredor.ts`) && d.includes(ENLACES[n]) && delega)
   && comparacion.join() === 'ops/evals/comparar.mjs'
   && bucles.join() === `${DIR_MOTOR}/corredor.ts`
-  && adaptadores.join() === 'dominios/router.mjs' && adaptadorConMotor.length === 0
+  && adaptadores.join() === 'dominios/algoritmo.mjs,dominios/router.mjs' && adaptadorConMotor.length === 0
   && adaptadoresReales.join() === 'functions/src/evals/dominios/router.ts' && realConMotor.length === 0,
   [...definiciones.map(([n, d]) => `${n}:${d.join('+') || '—'}`), ...enlaces.map(([n, d, x]) => `${n}:${d.join('+')}${x ? '' : ' (sin delegar)'}`), `comparar:${comparacion.join('+')}`, `bucles:${bucles.join('+')}`].join(' '));
 const PODERES = /child_process|\bfetch\(|https?:\/\/|firebase|git push|gh pr|deploy/;

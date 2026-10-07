@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "dominio": "algoritmo",
+  "holdout": true,
+  "descripcion": "HOLDOUT SELLADO del dominio algoritmo. Mundos distintos de v1 (otros pasos, capacidades y opciones), para medir sin que nadie haya ajustado a él. Solo se carga con permiso de holdout (ops/evals/holdout.mjs). Coste $0.",
+  "casos": [
+    {
+      "evalCaseId": "holdout-sombra-cadena-de-tres",
+      "name": "Sombra · buscar, escribir y locutar",
+      "description": "Tres pasos en cadena con la forma de la sombra y otras capacidades.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"holdout-1:puente","steps":[{"id":"buscar","capability":"text.search","purpose":"p-buscar","input":{"kind":"activities"}},{"id":"escribir","capability":"text.generate","purpose":"p-escribir","dependsOn":["buscar"]},{"id":"locutar","capability":"voice.tts","purpose":"p-locutar","dependsOn":["escribir"]}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"holdout-1:puente:par1:estrategia","grupos":[],"incertidumbre":"unknown"},
+      "tags": ["holdout","sombra"]
+    },
+    {
+      "evalCaseId": "holdout-abanico-medido",
+      "name": "Abanico medido de un paso a tres",
+      "description": "r → s1, s2, s3 con latencias medidas.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"r","value":200,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s1","value":200,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s2","value":200,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s3","value":200,"source":"measured","sampleSize":20}]},"tarea":{"id":"abanico","steps":[{"id":"r","capability":"text.generate","purpose":"p-r"},{"id":"s1","capability":"image.generate","purpose":"p-s1","dependsOn":["r"]},{"id":"s2","capability":"image.generate","purpose":"p-s2","dependsOn":["r"]},{"id":"s3","capability":"voice.tts","purpose":"p-s3","dependsOn":["r"]}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"abanico:par3:estrategia","grupos":[["s1","s2","s3"]],"incertidumbre":"uncertain"},
+      "tags": ["holdout","paralelismo"]
+    },
+    {
+      "evalCaseId": "holdout-abanico-hasta-dos",
+      "name": "Abanico con maxParallel 2",
+      "description": "El mismo abanico acotado a dos a la vez.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"constraints":{"maxParallel":2},"signals":[{"key":"step.latencyMs","subject":"r","value":200,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s1","value":200,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s2","value":200,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s3","value":200,"source":"measured","sampleSize":20}]},"tarea":{"id":"abanico","steps":[{"id":"r","capability":"text.generate","purpose":"p-r"},{"id":"s1","capability":"image.generate","purpose":"p-s1","dependsOn":["r"]},{"id":"s2","capability":"image.generate","purpose":"p-s2","dependsOn":["r"]},{"id":"s3","capability":"voice.tts","purpose":"p-s3","dependsOn":["r"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"abanico:par2:estrategia","grupos":[["s1","s2"]],"incertidumbre":"uncertain"},
+      "tags": ["holdout","restricciones"]
+    },
+    {
+      "evalCaseId": "holdout-capacidad-exigida-ausente",
+      "name": "Capacidad exigida que el Planner no pidió",
+      "description": "requiredCapabilities video.generate en un plan sin vídeo: nada que entregar.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"constraints":{"requiredCapabilities":["video.generate"]}},"tarea":{"id":"sin-video","steps":[{"id":"r","capability":"text.generate","purpose":"p-r"},{"id":"s","capability":"image.generate","purpose":"p-s","dependsOn":["r"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"undecided","parada":"composition_emptied","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["holdout","restricciones"]
+    },
+    {
+      "evalCaseId": "holdout-objetivo-nombra-adaptador",
+      "name": "El objetivo nombra un adaptador",
+      "description": "adapterId en las restricciones del objetivo: se para por autoridad.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1},"constraints":{"adapterId":"a-sintetico"}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"adaptador","steps":[{"id":"r","capability":"text.generate","purpose":"p-r"}]}},
+      "expected": {"status":"invalid","parada":"authority_violation","elegida":null},
+      "tags": ["holdout","frontera"]
+    },
+    {
+      "evalCaseId": "holdout-opciones-medidas-tres",
+      "name": "Tres opciones medidas",
+      "description": "Tres opciones con latencia y fiabilidad medidas.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"options":[{"id":"u","value":{"nombre":"u"},"values":{"latency":400,"reliability":0.9}},{"id":"v","value":{"nombre":"v"},"values":{"latency":200,"reliability":0.95}},{"id":"w","value":{"nombre":"w"},"values":{"latency":800,"reliability":0.99}}],"signals":[{"key":"option.latency","subject":"u","value":400,"source":"measured","sampleSize":40},{"key":"option.reliability","subject":"u","value":0.9,"source":"measured","sampleSize":40},{"key":"option.latency","subject":"v","value":200,"source":"measured","sampleSize":40},{"key":"option.reliability","subject":"v","value":0.95,"source":"measured","sampleSize":40},{"key":"option.latency","subject":"w","value":800,"source":"measured","sampleSize":40},{"key":"option.reliability","subject":"w","value":0.99,"source":"measured","sampleSize":40}]}},
+      "expected": {"status":"decided","parada":null,"elegida":"v","incertidumbre":"known"},
+      "tags": ["holdout","opciones"]
+    },
+    {
+      "evalCaseId": "holdout-profundidad",
+      "name": "Una cadena que no cabe en maxDepth 1",
+      "description": "Dos niveles de dependencia con maxDepth 1.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":1,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"profundo","steps":[{"id":"r","capability":"text.generate","purpose":"p-r"},{"id":"s","capability":"image.generate","purpose":"p-s","dependsOn":["r"]}]}},
+      "expected": {"status":"undecided","parada":"max_depth_exceeded","elegida":null},
+      "tags": ["holdout","presupuesto"]
+    }
+  ]
+}
