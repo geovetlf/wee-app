@@ -63,8 +63,8 @@ export interface OpcionesDelCiclo {
    * A4, A3, A5) recibe el tiempo que queda como su propio `maxLatencyMs` y se recorta
    * como siempre —lo mejor que tenga—, y entre etapas, si no queda tiempo, el ciclo
    * se para con `budget_exceeded` y dice antes de qué etapa. En `cerrar`, A6 y A6r
-   * reciben el reloj y miden su PROPIO tope (el del presupuesto que les llegue), sin
-   * uno común a las dos. A8 —lo aprendido— va antes de la primera comprobación y sin
+   * reciben el reloj —desde el inicio de `cerrar`, leído fresco— y miden su PROPIO tope
+   * (el del presupuesto que les llegue), sin uno común a las dos. A8 —lo aprendido— va antes de la primera comprobación y sin
    * el cronómetro (su reloj es el `ahora` de la petición): lo acotan sus propios
    * topes. Y el corte entre etapas es el tercer caso de `budget_exceeded`
    * (`MotivoDeParada`): sin `decision`, y dicho en el porqué.
@@ -78,28 +78,45 @@ export interface OpcionesDelCiclo {
 }
 
 /**
- * UN CRONÓMETRO A PRUEBA DE RELOJES ROTOS. `fresca` es la lectura de AHORA, o nada si
- * el reloj lanza o no da un número finito; `leer`, la de ahora o, si falla, la última
- * buena. El inicio de cada `decidir` se toma FRESCO: una lectura vieja como inicio
- * mediría como «pensar» el hueco desde la llamada anterior y cortaría por error
- * (revisión de la misión). Con un inicio fallido la llamada va sin reloj; después,
- * un reloj que falla deja de avanzar. Así no tumba el razonamiento ni lo corta por
- * error, y lo que acota entonces es el resto de topes, como sin reloj.
+ * UN CRONÓMETRO A PRUEBA DE RELOJES ROTOS, ANCLADO A CADA LLAMADA (revisión de la misión,
+ * dos pasadas). Cada `decidir` y cada `cerrar` ABREN una llamada con una lectura fresca:
+ *
+ *  · si esa lectura falla, la llamada entera va SIN reloj —las etapas leen un reloj quieto,
+ *    que no avanza ni corta, y no hay tope común—;
+ *  · si es buena, una lectura que falla después vale la última buena DE ESA LLAMADA, nunca
+ *    una de la anterior ni 0. Así un reloj que falla y se recupera no hace pasar por «pensar»
+ *    el hueco entre dos llamadas, ni la ejecución entre `decidir` y `cerrar`.
+ *
+ * Una lectura no cuenta si el reloj lanza o no da un número finito. Lo que acota sin reloj es
+ * el resto de topes —candidatas, iteraciones, profundidad—, como siempre.
  */
-const cronometroSeguro = (c: (() => number) | undefined): { fresca: () => number | undefined; leer: () => number | undefined } | undefined => {
+const cronometroSeguro = (c: (() => number) | undefined): { abrir: () => number | undefined; leer: () => number } | undefined => {
   if (typeof c !== 'function') return undefined;
-  let ultima: number | undefined;
   const fresca = (): number | undefined => {
     try {
       const v = c();
-      if (typeof v === 'number' && Number.isFinite(v)) { ultima = v; return v; }
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
     } catch {
       /* El reloj no tumba el razonamiento: una lectura que lanza no cuenta, y se dice devolviendo «sin lectura». */
       return undefined;
     }
     return undefined;
   };
-  return { fresca, leer: () => fresca() ?? ultima };
+  /* La llamada en curso: la última lectura buena desde que se abrió. Sin ella, la llamada va sin reloj. */
+  let llamada: { ultima: number } | undefined;
+  return {
+    abrir: (): number | undefined => {
+      const v = fresca();
+      llamada = v === undefined ? undefined : { ultima: v };
+      return v;
+    },
+    leer: (): number => {
+      if (!llamada) return 0;
+      const v = fresca();
+      if (v !== undefined) llamada.ultima = v;
+      return llamada.ultima;
+    },
+  };
 };
 
 /** La alternativa elegida, por su id: A1 devuelve el valor, y el id está en sus candidatos. */
@@ -166,8 +183,8 @@ const porElPresupuesto = (paralelizar: boolean, r: Pick<AlgorithmDecisionResult,
 
 export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
   const cronometro = cronometroSeguro(opciones.cronometro);
-  /* El de las etapas: sin ninguna lectura buena todavía, 0 —lo que no avanza no corta—. */
-  const ahora = cronometro ? { ahora: (): number => cronometro.leer() ?? 0 } : {};
+  /* El de las etapas: el de la llamada en curso; sin llamada (su inicio falló), quieto —lo que no avanza no corta—. */
+  const ahora = cronometro ? { ahora: (): number => cronometro.leer() } : {};
   const a1 = crearMotorDeDecision<unknown>();
   const a2 = crearMotorDeDescomposicion({ ...(opciones.capacidades ? { capacidades: opciones.capacidades } : {}), ...ahora });
   const a3 = crearMotorDeEstrategias({ ...ahora });
@@ -182,7 +199,7 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
 
   const decidir = <T = unknown>(peticion: PeticionAlgoritmica<T>): AlgorithmDecisionResult<T> => {
     /* Lo primero, para que cuente todo: con cronómetro, el tope de pensar cubre el ciclo entero. */
-    const inicio = cronometro?.fresca();
+    const inicio = cronometro?.abrir();
     const recorrido: PasoDelCiclo[] = [];
     const porque: string[] = [];
     let salida: Omit<AlgorithmDecisionResult<T>, 'contract' | 'status' | 'recorrido' | 'because'> = {};
@@ -539,6 +556,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     observacion: ObservacionDeEjecucion,
     aprendizaje?: OpcionesDeAprendizaje,
   ): CierreDelCiclo => {
+    /* Una llamada nueva: A6 y A6r miden desde AQUÍ, no desde el final de `decidir` —la ejecución no es pensar—. */
+    cronometro?.abrir();
     const porque: string[] = [];
     const invalido = (parada: MotivoDeCierreInvalido): CierreDelCiclo =>
       Object.freeze({ contract: ALGORITHM_CONTRACT_VERSION, status: 'invalid' as const, parada, because: Object.freeze(porque) });
