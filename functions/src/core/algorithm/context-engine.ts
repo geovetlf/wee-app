@@ -563,12 +563,16 @@ export const paraDecision = (c: ConjuntoDeSenales): {
 };
 
 /**
- * PARA EL ROUTER: preparado, y NO consumido por nadie todavía.
+ * PARA EL ROUTER: PREPARADO / NO CONECTADO, por decisión (DD-26).
  *
  * Agrupado por proveedor y modelo, en orden CANÓNICO. Ni una ordenación por
  * rendimiento, ni un «mejor», ni un «recomendado»: eso sería elegir, y elegir
  * es del Router. La política define la frontera; la puntuación ordena dentro de
- * ella; A8 solo entrega la evidencia a quien puntúa, el día que puntúe con ella.
+ * ella. `RouterPorts` no tiene puerto para esto a propósito (registry, policy y
+ * costs; `algorithm-context` V8b): conectarlo es una decisión del Router —y de
+ * cuál: la autoridad de producción es `engine/router.ts` (DD-02)—, y antes hacen
+ * falta lo aprendido persistido (ALGORITHM-ENGINE.md § 13) y alguien que aprenda
+ * por implementación: `cerrar` nunca produce agregados con `providerId`.
  */
 export interface EvidenciaDeRuta {
   providerId: string;

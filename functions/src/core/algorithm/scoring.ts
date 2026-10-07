@@ -6,7 +6,7 @@
  * Tienen la misma forma —componentes 0–1, pesos, media ponderada, el total y
  * sus partes guardadas para poder auditar— y puntúan cosas distintas:
  *
- *     RoutingScore   ¿qué implementación sirve mejor ESTE paso?
+ *     RoutingScore   ¿qué implementación sirve mejor ESTE paso? (el Router del Core, `core/router.ts`)
  *     StrategyScore  ¿qué FORMA de hacer el trabajo entero sale mejor?
  *
  * Se escriben dos veces a propósito. Fundirlos obligaría a que uno de los dos
@@ -18,7 +18,7 @@
  * La calidad es absoluta: 0,8 es 0,8. El coste no: treinta céntimos son caros o
  * baratos según con qué se comparen. Por eso los ejes que se minimizan se
  * normalizan CONTRA EL CONJUNTO de candidatos, exactamente como hace el Router
- * con `costFit`, y por eso puntuar un candidato solo no significa nada.
+ * del Core con `costFit`, y por eso puntuar un candidato solo no significa nada.
  *
  * ── Y cuando no hay un ganador ──────────────────────────────────────────────
  *

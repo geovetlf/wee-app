@@ -24,9 +24,11 @@
  *
  * ── Lo que NO hace, y tiene dueño ───────────────────────────────────────────
  *
- * No elige proveedor, modelo ni adaptador: eso es del Router, que ya puntúa sus
- * siete ejes y no se copia aquí. Si una estrategia necesita saber algo del
- * Router, lo recibe como SEÑAL. Este archivo no lo importa y no puede.
+ * No elige proveedor, modelo ni adaptador: eso es del Router —en producción
+ * `engine/router.ts`, que ordena por su política; el del Core (`core/router.ts`)
+ * puntúa seis ejes ponderados más `capabilityFit`, que solo informa—, y no se
+ * copia aquí. Si una estrategia necesita saber algo del Router, lo recibe como
+ * SEÑAL. Este archivo no lo importa y no puede.
  */
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';

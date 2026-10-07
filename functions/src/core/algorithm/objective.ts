@@ -35,8 +35,9 @@ import { QualityRequirement } from '../workflow';
  *
  * `userValue` está a propósito sin implementación. Es el eje que de verdad
  * importa y el único que Weë todavía no sabe medir; declararlo aquí, vacío y
- * con este comentario, es mejor que fingir una fórmula. Cuando exista feedback
- * real (A7) tendrá con qué llenarse.
+ * con este comentario, es mejor que fingir una fórmula. A8 ya tiene dónde
+ * llenarlo —`feedback.satisfaction` va a `userValue` (context.ts)—, pero el cierre
+ * del ciclo no está conectado: sigue sin una sola medición real.
  */
 export type ObjectiveAxis =
   | 'quality'

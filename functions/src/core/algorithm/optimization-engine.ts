@@ -491,8 +491,10 @@ export const mueveAlgoQueImporta = <T>(op: OperadorDeOptimizacion<T>, p: Optimiz
  * importa es si el conjunto mejora, no si un paso intermedio mejoró otro.
  *
  * La confianza sale de la evidencia que respalda los ejes que cambiaron, y de
- * ninguna otra parte. Sin evidencia, la propuesta se descarta con su motivo —
- * no se propone con confianza cero, que sería proponer una esperanza.
+ * ninguna otra parte. Sin evidencia, la confianza es 0 y se dice («Sin evidencia
+ * nueva: el delta sale de lo que los candidatos declaran»): la propuesta sale si
+ * mejora lo bastante, y quien no quiera esperanzas lo pide con
+ * `acceptance.minConfidence`, que entonces la descarta con su motivo.
  */
 export const evaluarPropuesta = <T>(
   baseline: Alternative<T>,
