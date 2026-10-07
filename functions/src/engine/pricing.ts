@@ -77,6 +77,14 @@ export function estimateUsd(model: ModelSpec, capability: CapabilityId, input: R
   }
 }
 
+/**
+ * ¿LO COTIZADO ES LO QUE CUESTA? Solo cuando el modelo cobra POR PETICIÓN (`cost.unit: 'call'`): `estimateUsd` devuelve
+ * su tarifa tal cual, que es lo que el proveedor factura por una petición que sale. Con cualquier otra unidad —tokens,
+ * segundos, imágenes— la cotización estima un tamaño. Se pregunta al COTIZAR, con el modelo del candidato del Router
+ * (los ajustes de la administración ya aplicados), y la respuesta viaja con el trabajo hasta que se cierra su coste
+ * (RUNTIME §25c): no se recalcula después con la configuración del momento.
+ */
+export const tarifaExacta = (model: Pick<ModelSpec, 'cost'>): boolean => model.cost?.unit === 'call';
 
 /**
  * Credits que se cobran por una generación (lo que ve la persona).

@@ -105,7 +105,7 @@ const SALDO = 5000;
 await db.collection('users').doc(`doc_${A}`).set({ uid: A, displayName: A });
 await creditEngine.ensureAccount(A);
 await db.collection('users').doc(`doc_${A}`).update({ creditsBalance: SALDO });
-await db.collection('aiSettings').doc('runtime').set({ habilitado: true, capacidades: ['video.generate'], cuentas: [A], experiencias: ['studio'] });
+await db.collection('aiSettings').doc('runtime').set({ habilitado: true, porCapacidad: { 'video.generate': { cuentas: [A], experiencias: ['studio'] } } });
 olvidarLaPuerta();
 
 const saldo = async () => (await db.collection('users').doc(`doc_${A}`).get()).get('creditsBalance');

@@ -34,7 +34,7 @@ const {
   leerConfiguracionDelContexto, decidirContexto, contextoParaBrain, configuracionDelContexto,
   olvidarElContexto, CONTEXTO_CERRADO,
 } = lib('elements/contexto.js');
-const { leerPuerta } = lib('runtime/puerta.js');
+const { leerPuerta, decidirRuntime } = lib('runtime/puerta.js');
 const { leerSombra } = lib('creator/sombra.js');
 
 const A = 'cuenta_autorizada_A';
@@ -87,7 +87,7 @@ check('CASE 13 · estructura desconocida → se ignora y NUNCA abre más: la mis
   && cerradaPara({ habilitado: true, cuentas: null, comodin: true, todas: true }),
   describir(conExtras));
 check('13b · y lo mismo hacen las otras dos puertas con una clave desconocida: la ignoran',
-  leerPuerta({ habilitado: true, capacidades: ['text.generate'], comodin: true }).ok === true
+  leerPuerta({ habilitado: true, porCapacidad: { 'text.generate': { cuentas: [A], comodin: true } }, comodin: true }).ok === true
   && leerSombra({ habilitado: true, cuentas: [A], comodin: true }).ok === true);
 
 console.log('\n─── Más allá de la matriz ───');
@@ -105,16 +105,18 @@ console.log('\n─── B. Lo que no cambia ───');
 
 /*
  * La lista AUSENTE —no rota, no vacía: ausente— significa «sin acotar por cuenta».
- * Es el contrato del tipo («Si está, SOLO estas cuentas») y la misma semántica que
- * la puerta del runtime. No es un comodín accidental: es la forma declarada de
- * abrir para todos, y S1.2 no la cambia (A4). La sombra es más estricta —sin
- * lista no abre— y tampoco cambia.
+ * Es el contrato del tipo («Si está, SOLO estas cuentas») de ESTA puerta. No es un
+ * comodín accidental: es la forma declarada de abrir para todos, y S1.2 no la
+ * cambia (A4). La sombra es más estricta —sin lista no abre— y tampoco cambia. Y la
+ * del runtime, desde el 2026-10-06, también: cada capacidad con SU lista, y sin
+ * ella no pasa nadie (`listas-por-capacidad`); lo de aquí no la toca.
  */
-check('19 · lista AUSENTE + habilitado=true → sin acotar por cuenta, como dice el contrato y como el runtime (sin cambios)',
+check('19 · lista AUSENTE + habilitado=true → sin acotar por cuenta, como dice el contrato (sin cambios); la del runtime, sin lista, no abre',
   abre({ habilitado: true }, A).resolver && abre({ habilitado: true }, B).resolver
   && JSON.stringify(leerConfiguracionDelContexto({ habilitado: true })) === JSON.stringify({ habilitado: true })
-  && leerPuerta({ habilitado: true, capacidades: ['text.generate'] }).ok === true
-  && leerPuerta({ habilitado: true, capacidades: ['text.generate'] }).config.cuentas === undefined);
+  && leerPuerta({ habilitado: true, porCapacidad: { 'text.generate': {} } }).ok === true
+  && leerPuerta({ habilitado: true, porCapacidad: { 'text.generate': {} } }).config.porCapacidad['text.generate'].cuentas === undefined
+  && decidirRuntime({ habilitado: true, porCapacidad: { 'text.generate': {} } }, { capability: 'text.generate', userId: A, experienceId: 'brain' }).motivo === 'sin_lista_de_cuentas');
 check('20 · con una configuración válida, lo leído es lo guardado: ni se añade ni se quita una cuenta',
   JSON.stringify(leerConfiguracionDelContexto({ habilitado: true, cuentas: [A, B] })) === JSON.stringify({ habilitado: true, cuentas: [A, B] }));
 check('21 · y sin necesidades no se resuelve nada aunque esté abierta: el caso normal cuesta cero',
@@ -124,7 +126,7 @@ console.log('\n─── C. La misma regla que el runtime y la sombra ───'
 
 /* Para cada lista rota: la del runtime la da por ilegible, la de la sombra también, y ésta la cierra. */
 const ROTAS = [null, {}, A, [123], [null], [''], ['*'], [A, 123]];
-const alRuntime = (cuentas) => leerPuerta({ habilitado: true, capacidades: ['text.generate'], cuentas }).ok;
+const alRuntime = (cuentas) => leerPuerta({ habilitado: true, porCapacidad: { 'text.generate': { cuentas } } }).ok;
 const aLaSombra = (cuentas) => leerSombra({ habilitado: true, cuentas }).ok;
 check('22 · cada lista rota: ilegible para el runtime, ilegible para la sombra y CERRADA aquí',
   ROTAS.every((c) => alRuntime(c) === false && aLaSombra(c) === false && cerradaPara({ habilitado: true, cuentas: c })),

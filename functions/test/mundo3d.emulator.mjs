@@ -140,7 +140,7 @@ for (const [letra, pais] of Object.entries(PAISES)) {
   await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: SALDO });
 }
 /* La puerta, abierta SOLO para las cuentas de la prueba (X se queda fuera); fal, encendido en la configuración. */
-await db.collection('aiSettings').doc('runtime').set({ habilitado: true, capacidades: ['world.generate'], cuentas: Object.keys(PAISES).filter((l) => l !== 'X').map(cuentaDe), experiencias: ['studio'] });
+await db.collection('aiSettings').doc('runtime').set({ habilitado: true, porCapacidad: { 'world.generate': { cuentas: Object.keys(PAISES).filter((l) => l !== 'X').map(cuentaDe), experiencias: ['studio'] } } });
 await db.collection('aiProviders').doc('fal').set({ enabled: true });
 olvidarLaPuerta();
 
@@ -164,6 +164,11 @@ const claveDelMundo = (requestId) => createHash('sha256').update(`world.generate
 const enElCupo = async (uid, requestId) => (await huecos(uid)).operaciones?.[claveDelMundo(requestId)];
 const cuentaEnElCupo = async (uid, requestId) => (await huecos(uid)).cuentas?.[claveDelMundo(requestId)];
 const tareaDe = async (uid, requestId) => F.leerOperacion((await trabajo(uid, requestId))?.attempts?.[0]?.providerRef?.operationId)?.requestId;
+/* El coste de lo aceptado (misión cost accounting, 2026-10-06): la fila del libro de cada mundo y lo que suma al día. */
+const filasDelLibro = async (requestId) => (await db.collection('aiGenerations').where('creditTransactionId', '==', `usage_${requestId}`).get()).docs.map((d) => d.data());
+const usoDelMundo = async () => (await db.collection('aiUsage').doc(HOY).get()).data()?.['world.generate']?.fal ?? {};
+const TARIFA = HW.cost.usd;
+const cerca = (a, b) => typeof a === 'number' && Math.abs(a - b) < 1e-9;
 const pasada = () => rt.mantenimientoDeWee({
   db,
   reconciliacion: () => rt.reconciliacionDeWee({ db, quietoDesdeMs: 0 })(),
@@ -201,6 +206,11 @@ check('el trabajo espera en Firestore con la operación de fal (sin «/»), UN i
   jA?.state === 'waiting' && jA.policy.retry.maxAttempts === 1 && jA.policy.maxLifetimeMs === 45 * 60_000
   && jA.attempts[0].providerRef?.providerId === 'fal' && !jA.attempts[0].providerRef.operationId.includes('/')
   && (await uso('emu-mundo-A'))?.status === 'AUTHORIZED' && (await saldo(A)) === SALDO - 39);
+const [enCurso] = await filasDelLibro('emu-mundo-A');
+const usoAlAceptar = await usoDelMundo();
+check('aceptado NO es terminado: la fila del libro queda EN CURSO con el nombre de la tarea de fal —el mismo que guarda el trabajo—, sin coste todavía y sin contar al día',
+  (await filasDelLibro('emu-mundo-A')).length === 1 && enCurso?.status === 'PROCESSING' && enCurso.providerTaskId === jA.attempts[0].providerRef.operationId
+  && enCurso.providerCost === 0 && cerca(enCurso.estimatedUsd, TARIFA) && enCurso.creditsCharged === undefined && !usoAlAceptar.calls, JSON.stringify({ s: enCurso?.status, uso: usoAlAceptar }));
 const est = await llamar(A, { op: 'estado', requestId: 'emu-mundo-A' });
 check('el estado se pregunta por el requestId: «generando»', est.ok && est.valor.estado === 'generando', codigo(est));
 const repetida = await llamar(A, { op: 'crear', requestId: 'emu-mundo-A', creditosCotizados: 39, peticion: await peticion(A) });
@@ -230,6 +240,11 @@ check('con los DERECHOS de su modelo en el material (Asset.derechos): su licenci
 check('y su VISTA PREVIA como variante del mundo (no otro material), guardada en su carpeta', variante?.mimeType === 'image/png' && objetos[1][0] === true
   && variante.storageRef.objectKey.startsWith(`users/${A}/`) && (await db.collection('assets').where('ownerAccountId', '==', A).get()).size === 1);
 check('se cobra lo reservado, UNA vez', (await uso('emu-mundo-A'))?.status === 'COMPLETED' && (await saldo(A)) === SALDO - 39 && (await reembolsos('emu-mundo-A')).length === 0);
+const [cerradaA] = await filasDelLibro('emu-mundo-A');
+const usoA = await usoDelMundo();
+check('y su COSTE llega al libro y al día: la fila se cierra completada con la tarifa por petición (exacta), liquidada con los 39 Credits cobrados; el día suma una llamada y su dinero',
+  cerradaA?.status === 'COMPLETED' && cerca(cerradaA.providerCost, TARIFA) && cerradaA.providerCostStatus === undefined && cerradaA.creditsCharged === 39 && !!cerradaA.settledAt
+  && usoA.calls === 1 && cerca(usoA.usd, TARIFA) && usoA.credits === 39 && !usoA.usdEnRiesgo, JSON.stringify({ f: [cerradaA?.status, cerradaA?.providerCost, cerradaA?.creditsCharged], usoA }));
 check('un mundo que SALE ocupa su hueco del día, y el reintento con el mismo requestId no ocupó otro',
   (await huecos(A))['3d'] === 1 && (await enElCupo(A, 'emu-mundo-A')) === true && (await cuentaEnElCupo(A, 'emu-mundo-A'))?.['3d'] === 1
   && (await uso('emu-mundo-A'))?.meta?.quotaDay === HOY);
@@ -258,6 +273,10 @@ check('su final (cancelado en fal) CONSUMA la parada: «cancelado» y la reserva
   && (await llamar(C, { op: 'estado', requestId: 'emu-mundo-C' })).valor?.estado === 'cancelado');
 check('la persona canceló con el proveedor trabajando: el dinero volvió, pero su hueco del día se queda GASTADO',
   (await huecos(C))['3d'] === 1 && (await enElCupo(C, 'emu-mundo-C')) === 'consumida');
+const [canceladaC] = await filasDelLibro('emu-mundo-C');
+check('su coste, «en riesgo»: la fila se cierra CANCELADA con la tarifa aparte (fal ya trabajaba), sin Credits cobrados',
+  canceladaC?.status === 'CANCELLED' && canceladaC.providerCost === 0 && canceladaC.providerCostStatus === 'desconocido' && cerca(canceladaC.providerCostEstimated, TARIFA) && canceladaC.creditsCharged === 0,
+  JSON.stringify([canceladaC?.status, canceladaC?.providerCostStatus]));
 
 console.log('\n── El proveedor falla ──');
 const D = cuentaDe('D');
@@ -267,6 +286,11 @@ const postsAntes = cuenta.post;
 await pasada(); await pasada();
 check('fal termina con error: «fallido», sin un segundo POST, y la reserva vuelve EXACTA una sola vez aunque pasen dos barridos',
   (await trabajo(D, 'emu-mundo-D'))?.state === 'failed' && cuenta.post === postsAntes && (await reembolsos('emu-mundo-D')).length === 1 && (await saldo(D)) === SALDO);
+const [falladaD] = await filasDelLibro('emu-mundo-D');
+const usoD = await usoDelMundo();
+check('y la fila se cierra FALLIDA con su tarifa «en riesgo», UNA vez aunque pasen dos barridos: el día suma el riesgo de C y de D, y el dinero medido sigue siendo solo el de A',
+  falladaD?.status === 'FAILED' && falladaD.providerCostStatus === 'desconocido' && cerca(falladaD.providerCostEstimated, TARIFA) && falladaD.creditsCharged === 0
+  && cerca(usoD.usdEnRiesgo, 2 * TARIFA) && cerca(usoD.usd, TARIFA) && usoD.calls === 3 && usoD.failed === 1, JSON.stringify(usoD));
 check('un FALLO del proveedor no gasta ninguno de los cinco mundos del día: el hueco volvió con la reserva, una vez',
   (await huecos(D))['3d'] === 0 && (await enElCupo(D, 'emu-mundo-D')) === 'devuelta');
 
@@ -285,6 +309,9 @@ adelanto -= 31 * 60_000;
 check('y su final cierra la parada y devuelve lo retenido', (await trabajo(E, 'emu-mundo-E'))?.state === 'cancelled' && (await saldo(E)) === SALDO);
 check('la parada la pidió Weë por PLAZO (no la persona): es un fallo técnico, y el hueco vuelve',
   (await huecos(E))['3d'] === 0 && (await enElCupo(E, 'emu-mundo-E')) === 'devuelta');
+const [paradaE] = await filasDelLibro('emu-mundo-E');
+check('la parada por plazo también deja su coste «en riesgo» en el libro (cancelada por Weë, sin Credits)',
+  paradaE?.status === 'CANCELLED' && paradaE.providerCostStatus === 'desconocido' && cerca(paradaE.providerCostEstimated, TARIFA) && paradaE.creditsCharged === 0);
 
 console.log('\n── Lo que no entra ──');
 const P = cuentaDe('P');
@@ -330,11 +357,11 @@ console.log('\n── La lista de cuentas y el cupo del día ──');
   const B = cuentaDe('B');
   const conPuerta = async (config) => { await db.collection('aiSettings').doc('runtime').set(config); olvidarLaPuerta(); };
   const LISTA = Object.keys(PAISES).filter((l) => l !== 'X').map(cuentaDe);
-  await conPuerta({ habilitado: true, capacidades: ['world.generate'], experiencias: ['studio'] });
+  await conPuerta({ habilitado: true, porCapacidad: { 'world.generate': { experiencias: ['studio'] } } });
   const sinLista = await llamar(B, { op: 'cotizar', peticion: await peticion(B) });
-  await conPuerta({ habilitado: true, capacidades: ['world.generate'], cuentas: [], experiencias: ['studio'] });
+  await conPuerta({ habilitado: true, porCapacidad: { 'world.generate': { cuentas: [], experiencias: ['studio'] } } });
   const vacia = await llamar(B, { op: 'cotizar', peticion: await peticion(B) });
-  await conPuerta({ habilitado: true, capacidades: ['world.generate'], cuentas: LISTA, experiencias: ['studio'] });
+  await conPuerta({ habilitado: true, porCapacidad: { 'world.generate': { cuentas: LISTA, experiencias: ['studio'] } } });
   const conLista = await llamar(B, { op: 'cotizar', peticion: await peticion(B) });
   check('la lista de cuentas es OBLIGATORIA: abierta sin lista, o con la lista vacía, «no disponible» para TODOS; con la lista, la cuenta nombrada cotiza',
     codigo(sinLista) === 'failed-precondition · NOT_AVAILABLE · no_disponible' && codigo(vacia) === 'failed-precondition · NOT_AVAILABLE · no_disponible'

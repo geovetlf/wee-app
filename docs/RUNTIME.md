@@ -94,7 +94,7 @@ y conectada en el canary (§ 13):
 
 | Pieza | Dónde | En uso (producción) | Estado | Qué une |
 |---|---|---|---|---|
-| **Conductor** | `functions/src/runtime/` (`conductorDeWee`) | Tres puertas declaradas, **todas detrás de una puerta cerrada por defecto**: `brainChat` con `text.generate` (el único canary que se ha ejecutado en producción, §13), `generateVideo` con `video.generate` (§22) y `generateWorld` con `world.generate` (sin desplegar; con lista de cuentas obligatoria, §25). Todo lo demás sigue por `creatorRun` y `engine.generate` | CANARY — CONNECTED FOR BRAIN TEXT ONLY | Orchestrator → Router → Job Engine → cola → trabajador → Gateway |
+| **Conductor** | `functions/src/runtime/` (`conductorDeWee`) | Tres puertas declaradas, **todas detrás de una puerta cerrada por defecto**: `brainChat` con `text.generate` (el único canary que se ha ejecutado en producción, §13), `generateVideo` con `video.generate` (§22) y `generateWorld` con `world.generate` (sin desplegar, §25); cada capacidad con SU lista de cuentas, obligatoria (§25c). Todo lo demás sigue por `creatorRun` y `engine.generate` | CANARY — CONNECTED FOR BRAIN TEXT ONLY | Orchestrator → Router → Job Engine → cola → trabajador → Gateway |
 
 **Qué significa exactamente ese CONNECTED.** Que el código está en la ruta, no que el
 tráfico pase por él: la puerta vive en `aiSettings/runtime` y, cerrada, `brainChat` se
@@ -2152,7 +2152,9 @@ en producción: ninguna cuenta está migrada.
   con el mismo sondeo y el mismo reembolso al fallar. `generateVideo` no tiene todavía
   clientes en la app.
 - La fila del libro de un vídeo aceptado se cierra con `providerCost: 0`; el coste real no
-  se anota al terminar.
+  se anota al terminar. → **Cerrado en el código en §25c** (2026-10-06, sin desplegar): la fila queda en curso y la
+  cierra la liquidación con su desenlace —para el vídeo, con la estimación de su cotización
+  marcada `estimado`, porque cobra por segundos y su coste medido aún no se convierte—.
 - Un POST cuya respuesta se pierde —error de red o plazo agotado después de enviarlo— se
   informa como fallido y sin referencia, y la reserva se devuelve aunque ModelArk hubiera
   llegado a crear la tarea. Es la única ventana de reembolso sin preguntar que queda en esta
@@ -2366,9 +2368,10 @@ otro Job Engine, sin otro Credit Engine, sin otro motor: el mismo conductor de l
 
 ### 25b. Gobernanza del canary del mundo (misión del 2026-10-06)
 
-- **Lista de cuentas obligatoria.** `decidirRuntime` acepta `listaObligatoria` en el contexto —lo pasa la PUERTA, nunca
-  la configuración—: sin `cuentas` o con `cuentas: []`, `legacy` con motivo `sin_lista_de_cuentas`. La declara
-  `creator/mundo.ts` (`LISTA_DE_CUENTAS_OBLIGATORIA = true`); `brainChat` y `generateVideo` no la piden y no cambian.
+- **Lista de cuentas obligatoria.** `decidirRuntime` aceptaba `listaObligatoria` en el contexto —lo pasaba la PUERTA,
+  nunca la configuración—: sin `cuentas` o con `cuentas: []`, `legacy` con motivo `sin_lista_de_cuentas`. La declaraba
+  `creator/mundo.ts`; `brainChat` y `generateVideo` no la pedían. → **Sustituido en §25c**: la lista es obligatoria
+  para las tres, y es la de cada capacidad.
   Orden: habilitada → capacidad → lista → experiencia; después, la jurisdicción, la elegibilidad y el Router.
 - **El hueco del cupo diario sigue al dinero.** El limitador de siempre (`engine/limits.ts`) anota, por operación, en
   qué quedó —`operaciones[clave]`: `true` mientras cuenta (la forma de siempre), `'devuelta'`, `'consumida'`— y QUÉ contó
@@ -2383,8 +2386,92 @@ otro Job Engine, sin otro Credit Engine, sin otro motor: el mismo conductor de l
 - **Una sola lista de cuentas para las tres puertas.** `aiSettings/runtime` es UN documento con UNA `cuentas`: con la
   lista obligatoria del mundo, abrir el mundo en canary deja también Brain y vídeo restringidos a esas cuentas (si están
   en `capacidades`), y no se puede tener el mundo en canary con Brain o vídeo abiertos para todos. Falla hacia cerrado;
-  listas por capacidad dentro del mismo documento serían una decisión del dueño.
+  listas por capacidad dentro del mismo documento serían una decisión del dueño. → **Decidido y hecho en §25c.**
 - **El coste de un intento aceptado no se anota todavía** (§22.5, también para el vídeo): la fila del libro se cierra al
   aceptar con `providerCost: 0` y nadie la corrige al final, así que los topes diarios de proveedor no ven lo que cuesta
-  un mundo. Es requisito del runbook antes de abrir el canary ([3D-EXPERIENCIA.md](3D-EXPERIENCIA.md) §20).
+  un mundo. Es requisito del runbook antes de abrir el canary ([3D-EXPERIENCIA.md](3D-EXPERIENCIA.md) §20). → **Cerrado
+  en el código en §25c** (sin desplegar).
 - **Pruebas**: `mundo3d-gobernanza` (A–G) y `mundo3d.emulator.mjs` (34).
+
+### 25c. Cierre final: una lista por capacidad y el coste de lo aceptado (misión del 2026-10-06)
+
+Decisión del dueño: «separar allowlist por capability» y «registrar el coste de un intento aceptado de world.generate»,
+reutilizando lo que hay —ni otro sistema de permisos, ni otro libro, ni otro Credit Engine—, sin abrir nada.
+
+**Una lista por capacidad** (`runtime/puerta.ts`). El documento de siempre, con otra forma:
+
+    aiSettings/runtime
+      habilitado: true | false                     el interruptor de todo; false cierra las tres
+      porCapacidad:
+        'text.generate':  { cuentas: [<uid>, …], experiencias?: […] }    brainChat
+        'video.generate': { cuentas: [<uid>, …], experiencias?: […] }    generateVideo
+        'world.generate': { cuentas: [<uid>, …], experiencias?: […] }    generateWorld
+
+- Cada puerta declara su capacidad en su código y se mira SOLO su entrada. Sin entrada → `capacidad_no_migrada`; sin
+  lista o con la lista vacía → `sin_lista_de_cuentas`; para TODAS, sin excepción y sin que la configuración pueda
+  quitarlo. No hay lista global, ni respaldo, ni comodín: la cuenta se compara por igualdad y «*» o un patrón hacen
+  ilegible el documento. La lista del mundo no abre el vídeo y la del vídeo no abre el mundo. `habilitado: false` dentro
+  de una entrada cierra esa capacidad sola, con su lista intacta; y `habilitado: false` arriba MANDA PRIMERO, sea cual
+  sea el resto: el documento cerrado de §21.3 se lee «deshabilitada», no «ilegible».
+- **La forma de antes cierra.** Un documento con `capacidades`, `cuentas` o `experiencias` arriba se da por ilegible
+  (`configuracion_ilegible`, legacy) —salvo que diga `habilitado: false`, que manda primero: el estado de producción de
+  §21.3 (`{ habilitado: false, capacidades: [] }`) se lee «deshabilitada», cerrado y diciendo que está cerrado a
+  propósito—. Y al revés: el código de antes no encuentra `capacidades` en un documento de ahora y lo da por ilegible,
+  así que una Function sin volver a desplegar nunca queda abierta para todos por un documento nuevo. Abrir un canary es
+  ESCRIBIR el documento entero (sin mezclar con el anterior), después de desplegar las puertas con esta lectura.
+- Pruebas: `listas-por-capacidad` (38: las diez de la misión, el cierre por capacidad, `habilitado: false` primero, la regla que la configuración no cambia, las tres puertas
+  en su código, la vuelta atrás en los dos sentidos —con la puerta de e190f1d copiada—, la lectura de Firestore) y la
+  sección A de `mundo3d-gobernanza`.
+
+**El coste de un intento aceptado** (el hueco de §22.5 y §25b):
+
+    cotizar → reservar → el proveedor ACEPTA → genera → desenlace → libro y uso del día → liquidación → cobro o devolución
+
+- **Al aceptar** (`libroDelMotor.cerrar`, `runtime/index.ts`): la fila de `aiGenerations` NO se cierra. Queda
+  `PROCESSING` con `providerTaskId` = el nombre que el proveedor dio a la tarea, el mismo que guarda el intento del
+  trabajo (`providerRef.operationId`). Ni llamadas ni dinero al día todavía: lo que está en marcha no cuenta.
+- **Al saberse el desenlace**, lo cierra la liquidación del barrido (`liquidacionDeWee`; el barrido desplegado hoy es la
+  versión de antes, y lo hará cuando se despliegue esta): después del dinero
+  y ANTES de `ledger.settle` —para que la fila completada reciba los Credits—, con `desenlacesDeLasAceptadas(job)`
+  (`runtime/liquidacion.ts`, pura) y el método nuevo del libro de siempre, `ledger.closeAccepted` (`engine/ledger.ts`):
+  una transacción por fila que comprueba que SIGUE en curso y con la misma tarea, y escribe la fila y su suma a
+  `aiUsage/{día}` juntas. Dos liquidaciones a la vez cierran una vez.
+  - salió → `COMPLETED` con la tarifa cotizada: exacta si el modelo cobra por petición (el mundo, `cost.unit: 'call'`);
+    si no, la estimación marcada `providerCostStatus: 'estimado'` (el vídeo, por segundos). Si es exacta lo decide quien
+    COTIZA (`tarifaExacta`, engine/pricing.ts, con el modelo que eligió el Router) y viaja con el trabajo
+    (`estimatedUsdExact`, que lee `reservaDe`): al liquidar no se vuelve a preguntar a la configuración del momento.
+  - falló, se agotó o se canceló con el proveedor trabajando → `FAILED`/`CANCELLED`, `providerCost: 0`,
+    `providerCostStatus: 'desconocido'` y la tarifa en `providerCostEstimated` (H0 #22: `usdEnRiesgo`, que ven los topes).
+  - sin saberse → la fila sigue en curso, y el trabajo se reconcilia: no se adivina.
+  - si el libro no puede cerrar, el dinero ya está bien y la pasada se da por no terminada (`fallo`): la siguiente vuelve
+    sobre el mismo trabajo, el Credit Engine contesta «ya estaba» y el libro cierra lo que faltaba.
+- **Los fallos síncronos del conductor** llevan LA regla del camino de siempre, no una copia: la decide el ejecutor del
+  motor (`engine/gateway.ts`), el único que tiene el error ORIGINAL, con `costeTrasUnFallo` —que vive en `engine/errors.ts`, con la
+  clasificación de errores, y el router reexporta: así el ejecutor no arrastra el router—, y si el proveedor ya dio
+  nombre a la tarea, como despachada— y viaja en el error (`details.costeDelFallo`); el runtime solo la lee
+  (`costeDelFalloDelGateway`). Un fallo del Gateway sin pasar por el adaptador se decide por su CÓDIGO —el motivo fino es
+  diagnóstico—: un rechazo o una avería previos a ejecutar (con este ejecutor, todo lo que falla en el adaptador vuelve
+  anotado), cero; una tarea aceptada sin nombre o una respuesta del proveedor inservible, «en riesgo».
+- **Una reserva ya devuelta no se liquida con Credits**: si `completeCredits` contesta que la transacción no quedó
+  cobrada, la fila se liquida a 0 (antes, con el importe).
+- **La cadena, sin ambigüedad**: `world.generate#<requestId>` (el hueco del día, `aiRateLimits`) ↔ `usage_<requestId>`
+  (la reserva, `creditTransactions`, con `meta.quotaDay`) ↔ el trabajo (`creditTransactionId`, `creditRequestId`,
+  `quotaOperation`, `quotaDay`; su intento con `providerRef.operationId`) ↔ la fila del libro (`creditTransactionId`,
+  `providerTaskId` = esa operación, `jobId` = la ejecución del medio) ↔ la liquidación (`settledAt`, `creditsCharged`).
+- Pruebas: `mundo3d-costes` (59, sobre una Firestore en memoria con el Credit Engine, el libro y el limitador de
+  verdad: el libro al aceptar, la paridad con H0 #22, los desenlaces, el cierre una vez y a la vez, las reglas A–F de la
+  misión, de punta a punta con el motor de trabajos, la identidad por capacidad y la seguridad) y cinco comprobaciones
+  más en `mundo3d.emulator.mjs` (40, contra Firestore emulada). Veintitrés sabotajes del compilado: veintidós los detectan las unidades y el de la puerta del mundo, el emulador.
+- **El orden** —después del dinero, antes de `settle`— lo garantiza la liquidación (el `job` es obligatorio en
+  `PuertoDeLiquidacion`), no el libro: `settle` sigue sellando la transacción entera. Por eso el barrido se despliega
+  con las puertas o antes, y no se devuelve a una versión anterior por separado mientras haya trabajos aceptados en marcha
+  (3D-EXPERIENCIA §20). Hacer que `settle` no selle una transacción con filas en curso sería tocar `settle`: decisión del
+  dueño, no tomada.
+- **Lo que cambió del motor, entero**: el libro (`closeAccepted`, `cierreDeAceptada`, `sumaDeUnCierre`; `close` suma lo
+  mismo que antes y `settle` no se toca), la fila (`providerCostStatus`/`providerCostEstimated` declarados), el ejecutor
+  del Gateway (la anotación del coste de un fallo), `errors.ts` (`costeTrasUnFallo` mudada desde el router, que la
+  reexporta, y `tareaEnElProveedor`) y `pricing.ts` (`tarifaExacta`).
+- **Lo que NO cambió**: ni el Gateway del Core, ni el Router del Core, ni el Job Engine, ni el Credit Engine, ni `settle`;
+  ni una Function nueva; ninguna puerta abierta. Pendiente, de los dos caminos por igual: un adaptador que avisa de su
+  avance sin `providerTaskId` (fal síncrono dice `requestId`) no se ve «despachado»; por el conductor, fal acepta y suelta. Pendiente, dicho: convertir el uso MEDIDO de un vídeo aceptado (tokens del aviso) en
+  dinero; hoy se cierra con la estimación, marcada.

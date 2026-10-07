@@ -39,13 +39,14 @@ const registroDeWee = lib('registry/index.js');
 const { decidirRuntime, PUERTA_CERRADA } = puerta;
 const VIDEO = leer('functions/src/creator/video.ts');
 
-/** La configuración EXACTA que S6-E.1 pide activar. Ni un comodín, ni una cuenta global. */
+/**
+ * La configuración EXACTA que S6-E.1 pide activar. Ni un comodín, ni una cuenta global: desde el 2026-10-06 cada
+ * capacidad lleva SU lista (`porCapacidad`), y la del vídeo no abre nada más.
+ */
 const UID = 'cuenta_de_prueba_0001';
 const ACOTADA = {
   habilitado: true,
-  capacidades: ['video.generate'],
-  cuentas: [UID],
-  experiencias: ['studio'],
+  porCapacidad: { 'video.generate': { cuentas: [UID], experiencias: ['studio'] } },
 };
 const pedir = (extra = {}) => decidirRuntime(ACOTADA, {
   capability: 'video.generate', userId: UID, experienceId: 'studio', ...extra,
@@ -72,7 +73,7 @@ console.log('\n── A · La puerta, propiedad por propiedad ──');
     && /const porElCore = puerta\.runtime === 'core' && normalizado\.capability === CAPACIDAD_DEL_CANARY;/.test(VIDEO));
   check('A3) así que la configuración puede CERRAR la puerta pero nunca ampliarla a otra capacidad',
     (() => {
-      const conOtra = { ...ACOTADA, capacidades: ['video.generate', 'image.generate'] };
+      const conOtra = { ...ACOTADA, porCapacidad: { ...ACOTADA.porCapacidad, 'image.generate': { cuentas: [UID], experiencias: ['studio'] } } };
       /* La puerta diría `core` para `image.generate`… */
       const d = decidirRuntime(conOtra, { capability: 'image.generate', userId: UID, experienceId: 'studio' });
       /* …pero esta callable solo manda al Core su propia capacidad. */
@@ -121,11 +122,13 @@ console.log('\n── B · Quién va por Core, y todo lo demás por Legacy ─�
   check('B-E) otra experiencia → LEGACY',
     E.runtime === 'legacy' && E.motivo === 'experiencia_no_migrada', `${E.runtime}/${E.motivo}`);
 
+  const delVideo = ACOTADA.porCapacidad['video.generate'];
   check('B) y la configuración acotada es EXACTAMENTE la pedida: una capacidad, una cuenta, una experiencia',
-    ACOTADA.capacidades.length === 1 && ACOTADA.cuentas.length === 1 && ACOTADA.experiencias.length === 1
-    && !ACOTADA.capacidades.includes('*'));
-  check('B) un comodín no vale: la lista se compara por igualdad, no por patrón',
-    decidirRuntime({ habilitado: true, capacidades: ['*'] }, { capability: 'video.generate', userId: UID }).runtime === 'legacy');
+    Object.keys(ACOTADA.porCapacidad).length === 1 && delVideo.cuentas.length === 1 && delVideo.experiencias.length === 1
+    && !Object.keys(ACOTADA.porCapacidad).includes('*') && !delVideo.cuentas.includes('*'));
+  check('B) un comodín no vale: ni de capacidad ni de cuenta (la lista se compara por igualdad, no por patrón)',
+    decidirRuntime({ habilitado: true, porCapacidad: { '*': { cuentas: [UID] } } }, { capability: 'video.generate', userId: UID }).runtime === 'legacy'
+    && decidirRuntime({ habilitado: true, porCapacidad: { 'video.generate': { cuentas: ['*'] } } }, { capability: 'video.generate', userId: UID }).runtime === 'legacy');
 }
 
 /* ═══ C · DÓNDE PARA CADA INTERRUPTOR ═════════════════════════════════════ */

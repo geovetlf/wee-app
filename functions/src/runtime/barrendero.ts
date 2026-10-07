@@ -30,8 +30,11 @@ import { AccionDeLiquidacion, PuertoDeLiquidacion, decidirLiquidacion, reservaDe
  * un reintento y una liquidación: exactamente una transición financiera, porque
  * quien la aplica es el mismo motor de siempre y sabe decir que no.
  *
- * NADA DE PRODUCCIÓN PASA POR AQUÍ TODAVÍA. No está programado, no hay nadie
- * llamándolo y no se despliega en este bloque.
+ * LO LLAMA EL BARRIDO PROGRAMADO Y DESPLEGADO (`barridoDeLiquidacion`, settlement/programado.ts, cada 5 min, por
+ * `barridoDeLiquidacionDeWee`). Con la puerta del conductor cerrada no hay trabajos del Core que liquidar. Y lo que
+ * mueve no es solo el dinero: desde el 2026-10-06 la liquidación también cierra en el libro (`aiGenerations`,
+ * `aiUsage/{día}`) el coste de lo que el proveedor aceptó (RUNTIME §25c), así que quien mida qué toca un despliegue
+ * del barrido cuente con eso.
  */
 
 /** Lo que el barrendero necesita del almacén. Menos que el `JobStore` entero, a propósito. */
@@ -148,9 +151,10 @@ export const barrerLiquidaciones = async (deps: BarrenderoDeps): Promise<Informe
         continue;
       }
 
+      /* Con el trabajo leído: de él salen los desenlaces de lo que el proveedor aceptó, que se cierran después del dinero y antes de liquidar la fila. */
       const resultado = accion.tipo === 'liquidar'
-        ? await deps.liquidacion.liquidar({ userId: job.owner.userId, reserva, importe: accion.importe, jobId: job.jobId })
-        : await deps.liquidacion.reembolsar({ userId: job.owner.userId, reserva, motivo: accion.motivo, jobId: job.jobId });
+        ? await deps.liquidacion.liquidar({ userId: job.owner.userId, reserva, importe: accion.importe, jobId: job.jobId, job })
+        : await deps.liquidacion.reembolsar({ userId: job.owner.userId, reserva, motivo: accion.motivo, jobId: job.jobId, job });
 
       const visto = { ...base, desenlace: resultado.desenlace, ...(resultado.estado ? { estado: resultado.estado } : {}), ...(accion.tipo === 'liquidar' ? { importe: accion.importe } : {}) };
       vistos.push(visto); deps.observar?.(visto);

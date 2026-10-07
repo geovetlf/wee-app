@@ -613,6 +613,13 @@ export interface GenerationRecord {
   /** Coste del proveedor: estimado antes de llamar y medido/estimado al terminar. */
   estimatedUsd: number;
   providerCost: number;
+  /**
+   * Cuánto se sabe de `providerCost` cuando no es una medida (ver `CloseRecord` en `ledger.ts`): `desconocido`, un fallo
+   * que pudo cobrarse (va «en riesgo» con `providerCostEstimated`, H0 #22); `estimado`, una generación aceptada que
+   * terminó bien y se cerró con la estimación de su cotización (RUNTIME §22.5). Ausente: medido, o tarifa exacta.
+   */
+  providerCostStatus?: 'desconocido' | 'estimado';
+  providerCostEstimated?: number;
   providerCurrency: 'USD';
   /**
    * Credits DEFINITIVAMENTE CAPTURADOS a la persona por este paso.

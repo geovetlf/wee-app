@@ -1,8 +1,9 @@
 /**
  * MISIÓN «CERRAR WORLD 3D + CANARY + GOBERNANZA» (2026-10-06): dejarlo todo PREPARADO, no activado.
  *
- *   A · La lista de cuentas del canary es OBLIGATORIA para el mundo: sin lista, o vacía, no pasa nadie; la
- *       configuración puede poner y quitar cuentas, pero no abrirlo para todos. Las otras dos puertas, igual.
+ *   A · La lista de cuentas del mundo es SUYA y OBLIGATORIA: sin lista, o vacía, no pasa nadie; la configuración puede
+ *       poner y quitar cuentas, pero no abrirlo para todos, y ni la lista del vídeo ni la de Weë Brain lo abren (desde
+ *       el 2026-10-06, una lista por capacidad para las tres puertas: ver también `listas-por-capacidad`).
  *   B · El cupo del día son cinco mundos que SALEN: se comprueba antes de los Credits (y al cotizar), se ocupa al
  *       reservarlos, cada operación anota lo que ocupó, un hueco devuelto no se devuelve dos veces, uno gastado al
  *       cancelar no vuelve, y un requestId que contó para un vídeo no sirve para un mundo.
@@ -114,40 +115,49 @@ const entradaDe = (docs, uid, dia, operacion) => {
 const { assertRequestId } = lib('credits/creditValidation.js');
 
 /* ═══ A · LA LISTA DE CUENTAS ═══════════════════════════════════════════════ */
-console.log('── A · La lista de cuentas del canary es obligatoria para el mundo ──');
+console.log('── A · La lista de cuentas del mundo: la suya, obligatoria, y de nadie más ──');
 await seccion('A', async () => {
   const YO = 'cuentaDePrueba01';
-  const mundo = (config, userId = YO, extra = {}) => decidirRuntime(config, { capability: 'world.generate', userId, experienceId: 'studio', listaObligatoria: true, ...extra });
-  const abierta = { habilitado: true, capacidades: ['world.generate'] };
+  const mundo = (config, userId = YO, extra = {}) => decidirRuntime(config, { capability: 'world.generate', userId, experienceId: 'studio', ...extra });
+  const conMundo = (entrada, otras = {}) => ({ habilitado: true, porCapacidad: { 'world.generate': entrada, ...otras } });
   const casos = [
     ['sin configuración', mundo(undefined), 'legacy', 'deshabilitada'],
-    ['cerrada (habilitado: false), aunque te nombre', mundo({ ...abierta, habilitado: false, cuentas: [YO] }), 'legacy', 'deshabilitada'],
-    ['sin la capacidad', mundo({ habilitado: true, capacidades: ['video.generate'], cuentas: [YO] }), 'legacy', 'capacidad_no_migrada'],
-    ['abierta SIN lista', mundo(abierta), 'legacy', 'sin_lista_de_cuentas'],
-    ['abierta con la lista VACÍA', mundo({ ...abierta, cuentas: [] }), 'legacy', 'sin_lista_de_cuentas'],
-    ['con lista, otra cuenta', mundo({ ...abierta, cuentas: ['otraCuenta00001'] }), 'legacy', 'cuenta_fuera_de_la_prueba'],
-    ['con lista y tu cuenta', mundo({ ...abierta, cuentas: [YO] }), 'core', 'abierta'],
-    ['con lista y tu cuenta, desde otra experiencia', mundo({ ...abierta, cuentas: [YO], experiencias: ['brain'] }), 'legacy', 'experiencia_no_migrada'],
+    ['cerrada (habilitado: false), aunque te nombre', mundo({ ...conMundo({ cuentas: [YO] }), habilitado: false }), 'legacy', 'deshabilitada'],
+    ['sin la capacidad (solo la del vídeo, que te nombra)', mundo({ habilitado: true, porCapacidad: { 'video.generate': { cuentas: [YO] } } }), 'legacy', 'capacidad_no_migrada'],
+    ['abierta SIN lista', mundo(conMundo({})), 'legacy', 'sin_lista_de_cuentas'],
+    ['abierta con la lista VACÍA', mundo(conMundo({ cuentas: [] })), 'legacy', 'sin_lista_de_cuentas'],
+    ['con lista, otra cuenta', mundo(conMundo({ cuentas: ['otraCuenta00001'] })), 'legacy', 'cuenta_fuera_de_la_prueba'],
+    ['con lista y tu cuenta', mundo(conMundo({ cuentas: [YO] })), 'core', 'abierta'],
+    ['con lista y tu cuenta, desde otra experiencia', mundo(conMundo({ cuentas: [YO], experiencias: ['brain'] })), 'legacy', 'experiencia_no_migrada'],
   ];
   const mal = casos.filter(([, d, runtime, motivo]) => d.runtime !== runtime || d.motivo !== motivo);
-  check('A1) el orden de la puerta: habilitada → capacidad → LISTA → experiencia; sin lista o con la lista vacía no pasa NADIE; solo una cuenta nombrada pasa',
+  check('A1) el orden de la puerta: habilitada → capacidad → SU LISTA → experiencia; sin lista o con la lista vacía no pasa NADIE; solo una cuenta nombrada pasa',
     mal.length === 0, JSON.stringify(mal.map(([nombre, d]) => [nombre, d])));
 
   const brain = (config) => decidirRuntime(config, { capability: 'text.generate', userId: YO, experienceId: 'brain' });
-  check('A2) las otras dos puertas no cambian: sin `listaObligatoria`, una configuración sin lista sigue abriendo para todos (como hasta hoy)',
-    brain({ habilitado: true, capacidades: ['text.generate'] }).runtime === 'core'
-    && brain({ habilitado: true, capacidades: ['text.generate'], cuentas: ['otraCuenta00001'] }).motivo === 'cuenta_fuera_de_la_prueba');
+  const video = (config) => decidirRuntime(config, { capability: 'video.generate', userId: YO, experienceId: 'studio' });
+  const lasOtras = { habilitado: true, porCapacidad: { 'text.generate': { cuentas: [YO] }, 'video.generate': { cuentas: [YO] } } };
+  check('A2) las listas no se prestan: la del vídeo y la de Weë Brain, con tu cuenta, no abren el mundo; y la del mundo no abre ninguna de las otras dos',
+    mundo(lasOtras).motivo === 'capacidad_no_migrada' && brain(lasOtras).runtime === 'core' && video(lasOtras).runtime === 'core'
+    && brain(conMundo({ cuentas: [YO] })).motivo === 'capacidad_no_migrada' && video(conMundo({ cuentas: [YO] })).motivo === 'capacidad_no_migrada');
 
-  check('A3) la configuración no puede quitar la obligación ni abrir con un comodín: `listaObligatoria` en el documento no se lee, y «*» no es una cuenta (configuración ilegible → cerrada)',
-    mundo({ ...abierta, listaObligatoria: false }).motivo === 'sin_lista_de_cuentas'
-    && mundo({ ...abierta, cuentas: ['*'] }).runtime === 'legacy' && mundo({ ...abierta, cuentas: ['*'] }).motivo === 'configuracion_ilegible'
-    && mundo({ ...abierta, cuentas: 'todas' }).runtime === 'legacy');
+  check('A3) la configuración no puede quitar la obligación ni abrir con un comodín: `listaObligatoria` en el documento no se lee, «*» no es una cuenta ni una capacidad, y la lista GLOBAL de antes cierra (configuración ilegible)',
+    mundo(conMundo({ listaObligatoria: false })).motivo === 'sin_lista_de_cuentas'
+    && mundo({ ...conMundo({}), listaObligatoria: false }).motivo === 'sin_lista_de_cuentas'
+    && mundo(conMundo({ cuentas: ['*'] })).motivo === 'configuracion_ilegible'
+    && mundo({ habilitado: true, porCapacidad: { '*': { cuentas: [YO] } } }).motivo === 'configuracion_ilegible'
+    && mundo(conMundo({ cuentas: 'todas' })).runtime === 'legacy'
+    && mundo({ ...conMundo({ cuentas: [YO] }), cuentas: [YO] }).motivo === 'configuracion_ilegible'
+    && mundo({ habilitado: true, capacidades: ['world.generate'], cuentas: [YO] }).motivo === 'configuracion_ilegible');
 
   const puerta = sinComentarios(leer('functions/src/creator/mundo.ts'));
   const preparar = puerta.slice(puerta.indexOf('const prepararElMundo'), puerta.indexOf('const estadoDelMundo'));
-  check('A4) la obligación la declara la PUERTA DEL MUNDO en su código, como su capacidad; brainChat y generateVideo no la piden',
-    /const LISTA_DE_CUENTAS_OBLIGATORIA = true;/.test(puerta) && /listaObligatoria: LISTA_DE_CUENTAS_OBLIGATORIA,/.test(puerta)
-    && !/listaObligatoria/.test(sinComentarios(leer('functions/src/creator/brain.ts'))) && !/listaObligatoria/.test(sinComentarios(leer('functions/src/creator/video.ts'))));
+  const delRuntime = sinComentarios(leer('functions/src/runtime/puerta.ts'));
+  check('A4) la obligación es de la PUERTA del runtime y vale para las tres (`sin_lista_de_cuentas` sin excepción); ya no hay `listaObligatoria` en ninguna puerta, y el mundo declara SU capacidad en su código',
+    /if \(!suya\.cuentas\?\.length\) return \{ runtime: 'legacy', motivo: 'sin_lista_de_cuentas' \};/.test(delRuntime)
+    && /const CAPACIDAD_DEL_CANARY: CapabilityId = 'world\.generate';/.test(puerta)
+    && ['functions/src/creator/mundo.ts', 'functions/src/creator/brain.ts', 'functions/src/creator/video.ts', 'functions/src/runtime/puerta.ts']
+      .every((a) => !/listaObligatoria|LISTA_DE_CUENTAS_OBLIGATORIA/.test(sinComentarios(leer(a)))));
   check('A5) y va ANTES que la jurisdicción, la elegibilidad y el Router: world.generate → puerta (habilitada, lista) → jurisdicción → Router',
     preparar.indexOf('decidirRuntime(') > 0 && preparar.indexOf('decidirRuntime(') < preparar.indexOf('jurisdiccionesDeLaCuenta(uid)')
     && preparar.indexOf('jurisdiccionesDeLaCuenta(uid)') < preparar.indexOf('engine.route('));

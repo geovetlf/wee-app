@@ -109,6 +109,7 @@ REQUEST ─► PENDING ─► AUTHORIZED ─► (ejecutar IA) ─► COMPLETED
 Quién lo usa hoy:
 
 - **WEË AI** (`functions/src/creator/credits.ts`): `creatorChat` estima el plan (Σ catálogo por paso) y llama a `ensureAccount`; `creatorRun` autoriza con `requestId = jobId`, y al terminar completa (modo real: cobra lo medido, nunca más de lo estimado) o reembolsa todo si falló. Sin saldo, la app muestra "No tienes suficientes Credits · Credits disponibles: X · Costo: Y · Obtener Credits".
+- **El conductor del Core** (`generateVideo` y `generateWorld` por el Core, detrás de `aiSettings/runtime`, cerrada): la puerta reserva con `spendCredits` y la reserva viaja en el trabajo; el barrido programado (`liquidacionDeWee`) la cobra o la devuelve cuando el trabajo tiene desenlace, devuelve con ella el hueco del cupo del día si lo ocupaba, y antes de liquidar la fila del libro cierra el coste de lo que el proveedor ACEPTÓ (`ledger.closeAccepted`, RUNTIME §25c). Una reserva que ya estaba devuelta se liquida a 0 Credits.
 - **Avatar del Perfil Weë** (`generateAvatar.ts`): `wee_avatar` para generar y `ai_image_enhance` para la foto con avatar. La app manda un `requestId` por intento; si la generación falla se reembolsa; si se repite un `requestId` ya completado se devuelve la misma imagen sin cobrar.
 
 ---

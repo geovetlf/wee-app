@@ -5,6 +5,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { EngineError, motivoDeNoDisponible, noDisponible, toEngineHttpsError } from '../engine/errors';
 import { engine } from '../engine';
 import { dayKey, limiter } from '../engine/limits';
+import { tarifaExacta } from '../engine/pricing';
 import { loadConfig } from '../engine/config';
 import { sanitizeForLog } from '../engine/sanitize';
 import { jurisdiccionesDeLaCuenta } from '../engine/jurisdiccion';
@@ -37,6 +38,7 @@ import {
 import {
   CLAVE_DE_LA_OPERACION_DEL_CUPO,
   CLAVE_DEL_DIA_DEL_CUPO,
+  CLAVE_DE_TARIFA_EXACTA,
   PLAZOS_DE_MUNDO,
   conductorDeWee,
   configuracionDeLaPuerta,
@@ -53,7 +55,7 @@ import {
  *
  *   app → generateWorld({ op, requestId, peticion })
  *     cotizar   ¿se puede, y cuánto cuesta? Ni cupo, ni Credits, ni proveedor.
- *     crear     Auth → contrato de Weë → puerta (habilitada → capacidad → LISTA DE CUENTAS) → jurisdicción del Perfil
+ *     crear     Auth → contrato de Weë → puerta (habilitada → capacidad → SU LISTA DE CUENTAS) → jurisdicción del Perfil
  *               Real → elegibilidad (Router) → ¿cabe en el cupo? → Credit Engine (reserva) → el hueco del cupo →
  *               conductor → Gateway → adaptador → el proveedor ACEPTA y suelta.
  *               Contesta en segundos con el trabajo: un mundo tarda minutos y NO depende de una llamada abierta.
@@ -67,7 +69,7 @@ import {
  *
  * Ni otro gateway, ni otro router, ni otro motor de trabajos, ni otro sistema de Credits: es el conductor de siempre
  * con UNA capacidad más, por la misma puerta de configuración (`aiSettings/runtime`, CERRADA por defecto, que se abre
- * por cuenta). No hay camino síncrono de mundos: con la puerta cerrada, un mundo «no está disponible». Y no conoce
+ * por capacidad y por cuenta). No hay camino síncrono de mundos: con la puerta cerrada, un mundo «no está disponible». Y no conoce
  * proveedores: qué modelo lo hace —y si es elegible en la jurisdicción de la operación— lo decide el Router; ni
  * siquiera monta la clave de ningún proveedor (activar uno es montarla aquí, una decisión del dueño).
  *
@@ -82,19 +84,14 @@ import {
  * UNA capacidad, escrita en el CÓDIGO, como en `creator/brain.ts` y `creator/video.ts`. La configuración de
  * `aiSettings/runtime` puede cerrar este canary —y lo está por defecto—, pero no puede ampliarlo: ni esta puerta puede
  * mandar al Core otra capacidad, ni las otras dos pueden abrir esta.
+ *
+ * Y CON SU PROPIA LISTA DE CUENTAS (decisión del dueño, 2026-10-06): solo pasan las que nombra
+ * `aiSettings/runtime.porCapacidad['world.generate'].cuentas`. Sin esa lista, o con ella vacía, no pasa NADIE, y la
+ * lista del vídeo o la de Weë Brain no sirven aquí. La obligación no la puede quitar la configuración: es de la puerta
+ * del runtime (`runtime/puerta.ts`) y vale igual para las tres.
  */
 const CAPACIDAD_DEL_CANARY: CapabilityId = 'world.generate';
 const EXPERIENCIA_DE_STUDIO = 'studio';
-
-/**
- * ── LA LISTA DE CUENTAS DEL CANARY ES OBLIGATORIA ───────────────────────────
- *
- * Mientras el mundo esté en canary solo pasan las cuentas que nombra `aiSettings/runtime.cuentas`. Sin lista, o con la
- * lista vacía, no pasa NADIE: quitar la lista no abre la puerta para todos. Va aquí, en el código, como la capacidad:
- * la configuración puede cerrar el canary o poner y quitar cuentas de la prueba, pero no puede cambiar esta regla.
- * Abrir el mundo a todo el mundo será cambiar esta línea, con autorización del dueño.
- */
-const LISTA_DE_CUENTAS_OBLIGATORIA = true;
 
 /**
  * ── EL CUPO DEL DÍA: CINCO MUNDOS QUE SALGAN ────────────────────────────────
@@ -113,12 +110,8 @@ const LISTA_DE_CUENTAS_OBLIGATORIA = true;
  *                            (`liquidacionDeWee`, con la operación y el día que viajan en el trabajo).
  *   un mundo que sale        su hueco se queda: es uno de los cinco.
  *   la persona cancela con   el hueco se queda gastado (`consumir`): el proveedor ya trabajaba. El dinero sigue la regla
- *   el proveedor trabajando  de la parada (si el proveedor no llega a terminar, vuelve). Ojo con el COSTE: por el conductor,
- *                            la fila del libro de un intento aceptado se cierra al aceptarlo con `providerCost: 0` y
- *                            nadie la corrige al final (RUNTIME §22.5, abierto también para el vídeo), así que hoy ni
- *                            `providerCost` ni `usdEnRiesgo` ven lo que cuesta un mundo: cerrarlo es requisito del
- *                            runbook antes de abrir el canary (docs/3D-EXPERIENCIA.md §20). Cancelar antes de que nada
- *                            llegue al proveedor no gasta el hueco.
+ *   el proveedor trabajando  de la parada (si el proveedor no llega a terminar, vuelve), y el COSTE queda «en riesgo»
+ *                            (ver abajo). Cancelar antes de que nada llegue al proveedor no gasta el hueco.
  *   reintentar con el MISMO  es la misma operación: ni otro hueco, ni otro cobro.
  *   requestId
  *
@@ -127,6 +120,17 @@ const LISTA_DE_CUENTAS_OBLIGATORIA = true;
  * contó para un vídeo, ni uno hecho a medida, puede hacer pasar un mundo por un hueco que no ocupó.
  *
  * Un mundo cuyo final no se sabe (salió y no volvió nadie) retiene su dinero y su hueco hasta saberse: se reconcilia.
+ *
+ * ── EL COSTE DE UN MUNDO ACEPTADO (RUNTIME §22.5, cerrado el 2026-10-06) ────
+ *
+ *   cotizar → reservar → el proveedor ACEPTA → genera → desenlace → libro y uso → liquidación → cobro o devolución
+ *
+ * Al aceptarlo, la fila del libro (`aiGenerations`) NO se cierra: queda en curso (`PROCESSING`) con el nombre que el
+ * proveedor le dio a la tarea (`providerTaskId`), el mismo que guarda el intento del trabajo. La cierra UNA vez el
+ * barrido, al liquidar (`liquidacionDeWee`), después del dinero y antes de liquidar la fila: un mundo que SALE, con su coste de tarifa (por
+ * petición: el que se cotizó, exacto); uno que falla o se cancela con el proveedor ya trabajando, con su coste «en
+ * riesgo» (H0 #22: `usdEnRiesgo`, que ven los topes de gasto). Un final que no se sabe deja la fila en curso: se
+ * reconcilia, no se adivina.
  */
 const CUPO_DEL_MUNDO = { '3d': 1 } as const;
 const operacionDelCupo = (requestId: string): string => `${CAPACIDAD_DEL_CANARY}#${requestId}`;
@@ -219,6 +223,8 @@ interface MundoPreparado {
   /** Lo que eligió el Router al cotizar. Se fija al crear: lo que se cobra es el precio de ESTE modelo. */
   proveedor: string;
   modelo: string;
+  /** Si su tarifa ES el coste (cobra por petición): se decide al cotizar y viaja con el trabajo (RUNTIME §25c). */
+  tarifaExacta: boolean;
 }
 
 /**
@@ -238,7 +244,6 @@ const prepararElMundo = async (uid: string, crudo: unknown): Promise<MundoPrepar
     capability: CAPACIDAD_DEL_CANARY,
     userId: uid,
     experienceId: EXPERIENCIA_DE_STUDIO,
-    listaObligatoria: LISTA_DE_CUENTAS_OBLIGATORIA,
   });
   /* No hay otro camino para un mundo: sin el conductor, no está disponible —y no se dice por qué puerta—. */
   if (puerta.runtime !== 'core') throw noDisponible('no_disponible');
@@ -263,6 +268,7 @@ const prepararElMundo = async (uid: string, crudo: unknown): Promise<MundoPrepar
     usd: elegido.estimatedUsd,
     proveedor: elegido.provider,
     modelo: elegido.model.id,
+    tarifaExacta: tarifaExacta(elegido.model),
     service: serviceForCapability(CAPACIDAD_DEL_CANARY, { ...entrada }),
   };
 };
@@ -499,6 +505,8 @@ export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLA
             /* El hueco del cupo que ocupa: si el barrido devuelve la reserva, vuelve con ella a ESTE día. */
             [CLAVE_DE_LA_OPERACION_DEL_CUPO]: operacionDelCupo(requestId),
             [CLAVE_DEL_DIA_DEL_CUPO]: dia,
+            /* Si lo cotizado es lo que cuesta: con esto se cierra el coste de lo aceptado, sin volver a preguntar. */
+            ...(p.tarifaExacta ? { [CLAVE_DE_TARIFA_EXACTA]: true } : {}),
           },
           contexto: { appId: 'wee', operationId: requestId },
           deadlineAt: Date.now() + PLAZOS_DE_MUNDO.vidaDelTrabajoMs,
