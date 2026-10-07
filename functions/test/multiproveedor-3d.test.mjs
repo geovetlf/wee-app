@@ -17,9 +17,10 @@
  *       capacidad y con qué condiciones, según la investigación dedicada: una etiqueta de autorización por fila, nunca
  *       inventada; Tripo con autorización escrita, Meshy con Enterprise; lo que solo es web, NOT_ALLOWED; las exclusiones
  *       de Weë en su columna y no en la de los términos; y la selección A–E sin B); y lo que entró después: Sloyd
- *       (pendiente), Seed3D 2.0 (investigado: solo en Volcano Engine, NOT_ALLOWED con sus términos públicos, nunca con
- *       la clave ni el cliente de ModelArk) y la investigación global de matrices 3D (pendiente, todo DISABLED /
- *       REVIEW_REQUIRED).
+ *       (investigado: REVIEW_REQUIRED en su API, que no tiene términos propios, y su resultado en una URL pública y
+ *       predecible que Weë trata como exposición pública), Seed3D 2.0 (investigado: solo en Volcano Engine, NOT_ALLOWED
+ *       con sus términos públicos, nunca con la clave ni el cliente de ModelArk) y la investigación global de matrices 3D
+ *       (pendiente, todo DISABLED / REVIEW_REQUIRED).
  *
  * Cada regla tiene su CONTROL con una entrada saboteada (sección F): un detector que no ve nada no prueba nada.
  *
@@ -67,7 +68,8 @@ const seccion = (letra, fn) => {
 
 /**
  * Los proveedores 3D que se preparan en esta misión. fal ya está integrado (apagado) y lo vigila `proveedor-fal`. Sloyd y
- * Seed3D entraron en el alcance el 2026-10-07 y están PENDING DEPENDENCY (sus investigaciones las hacen otros): apagados.
+ * Seed3D entraron en el alcance el 2026-10-07; ya están investigados (sus investigaciones las hicieron otros) y siguen
+ * apagados.
  */
 const CANDIDATOS = ['tripo', 'meshy', 'sloyd', 'seed3d'];
 /** Las matrices 3D que el registro puede declarar PENDING (dos en main; Meshy y World Labs, en `filmmaker/core`). */
@@ -77,9 +79,11 @@ const NOMBRE = /\b(tripo|tripo3d|meshy|sloyd|seed-?3d)\b/i;
 const CLAVE = /\b(TRIPO|MESHY|SLOYD|SEED3D|VOLC|VOLCENGINE)_[A-Z0-9_]+\b/;
 /*
  * Los hosts de las API de los candidatos. De Volcano Engine, el de su API en China y el de su consola, NUNCA el CDN
- * `volces.com`, que también sirve los resultados de Seedance por BytePlus: el host del CDN no distingue plataformas.
+ * `volces.com`, que también sirve los resultados de Seedance por BytePlus: el host del CDN no distingue plataformas. De
+ * Sloyd, el de su API y el BUCKET público donde deja sus resultados (`storage.googleapis.com` es de cualquiera: lo que
+ * lo distingue es el bucket).
  */
-const HOST = /\b(?:[a-z0-9-]+\.)*(tripo3d\.ai|meshy\.ai|cn-beijing\.volces\.com|volcengineapi\.com)\b/i;
+const HOST = /\b(?:[a-z0-9-]+\.)*(tripo3d\.ai|meshy\.ai|sloyd\.ai|cn-beijing\.volces\.com|volcengineapi\.com)\b|\bai-services-quality\b/i;
 /** El único archivo de functions/src que puede nombrarlos hoy: el de las matrices PENDING (sin capacidades). */
 const PUEDEN_NOMBRARLOS = new Set(['functions/src/registry/matrices.ts']);
 
@@ -402,6 +406,27 @@ const seed3dMalEtiquetado = (filas) => filas
   .filter((f) => f.Proveedor === 'Seed3D' && /doubao-seed3d/.test(f['Endpoint / modelo']))
   .filter((f) => f['Autorización comercial'] !== 'NOT_ALLOWED')
   .map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}: ${f['Autorización comercial']}`);
+/**
+ * Sloyd: lo que su API ofrece hoy es REVIEW_REQUIRED —no hay términos de API: sus Términos cubren solo la web app y la
+ * licencia de los resultados de la API no está definida—. Ni más (nadie ha firmado nada) ni otra etiqueta (ningún texto
+ * prohíbe servir a terceros ni exige Enterprise). Lo «coming soon» y lo solo web llevan la suya, aparte.
+ */
+const sloydMalEtiquetado = (filas) => filas
+  .filter((f) => f.Proveedor === 'Sloyd' && /^SÍ/.test(f['Disponibilidad en la API']))
+  .filter((f) => f['Autorización comercial'] !== 'REVIEW_REQUIRED')
+  .map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}: ${f['Autorización comercial']}`);
+/**
+ * Y su requisito de privacidad, escrito en la sección de seguridad: el resultado sale en el bucket público de Sloyd, en
+ * una URL sin autenticación y predecible, y Weë lo trata como exposición pública. Devuelve lo que falta.
+ */
+const faltaLaPrivacidadDeSloyd = (doc) => {
+  const seguridad = entre(doc, '## 19. ', '## 20. ');
+  return [
+    ...(seguridad.includes('ai-services-quality') ? [] : ['el bucket público']),
+    ...(seguridad.includes('**una URL pública, sin autenticación y predecible**') ? [] : ['«una URL pública, sin autenticación y predecible»']),
+    ...(seguridad.includes('**exposición pública del resultado de la persona**') ? [] : ['«exposición pública del resultado de la persona»']),
+  ];
+};
 const capacidadesAjenas = (filas, catalogo = CAPABILITY_CATALOG) => filas.flatMap((f) =>
   [...String(f['Capacidad (MAPA 1)']).matchAll(/\b(?:3d|world|scene|image|video|text)\.[a-z_]+\b/g)].map((m) => m[0])
     .filter((c) => !enCatalogo(catalogo, c) && !PROPUESTAS.includes(c)).map((c) => `${f.Proveedor}: ${c}`));
@@ -417,7 +442,7 @@ seccion('E', () => {
   const sinEtiqueta = etiquetaUnica(filas);
   check('E2) cada fila lleva EXACTAMENTE una de las siete etiquetas de autorización', filas.length > 0 && sinEtiqueta.length === 0, sinEtiqueta.join(' | '));
   const inventadas = autorizacionInventada(filas);
-  check('E3) «hay API» no es «Weë puede ofrecerlo»: ninguna fila del MAPA 2 (Tripo, Meshy, Seed3D, fal) está APPROVED / AVAILABLE', inventadas.length === 0, inventadas.join(', '));
+  check('E3) «hay API» no es «Weë puede ofrecerlo»: ninguna fila del MAPA 2 (Tripo, Meshy, Sloyd, Seed3D, fal) está APPROVED / AVAILABLE', inventadas.length === 0, inventadas.join(', '));
   const tripo = generacionDe(filas, 'Tripo');
   const meshy = generacionDe(filas, 'Meshy');
   check('E4) Tripo genera solo con autorización escrita previa (Terms §3.2) y Meshy solo con Enterprise (§1.2 uso interno, §2.1, §2.6): los dos, OFF',
@@ -447,6 +472,11 @@ seccion('E', () => {
   check('E12) Seed3D 2.0: su API está solo en Volcano Engine —no en BytePlus ModelArk, y nunca con la clave ni el cliente de ModelArk— y, con los términos públicos (licencia solo en China continental, uso comercial con permiso escrito), es NOT_ALLOWED',
     filas.filter((f) => f.Proveedor === 'Seed3D' && /doubao-seed3d/.test(f['Endpoint / modelo'])).length >= 1 && s3.length === 0
     && /\*\*No está en BytePlus ModelArk\*\*/.test(doc) && /\*\*Nunca reutilizar el cliente de ModelArk\*\*/.test(doc), s3.join(', '));
+  const sl = sloydMalEtiquetado(filas);
+  const privacidad = faltaLaPrivacidadDeSloyd(doc);
+  check('E13) Sloyd: lo que su API ofrece hoy es REVIEW_REQUIRED —no hay términos de API: sus Términos cubren solo la web app y la licencia de sus resultados por API no está definida— y su requisito de privacidad sigue escrito: el resultado sale en una URL pública, sin autenticación y predecible, que Weë trata como exposición pública',
+    filas.filter((f) => f.Proveedor === 'Sloyd' && /^SÍ/.test(f['Disponibilidad en la API'])).length >= 5 && sl.length === 0 && privacidad.length === 0,
+    [...sl, ...privacidad].join(', '));
 });
 
 /* ═══ F · CONTROLES: cada detector, con una entrada saboteada ══════════════ */
@@ -523,6 +553,17 @@ seccion('F', () => {
     nombra('https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks').length > 0 && nombra('https://ark.cn-beijing.volcengineapi.com/').length > 0
     && nombra('https://ark-content.volces.com/v.mp4').length === 0 && nombra('https://ark.ap-southeast.bytepluses.com/api/v3').length === 0 && nombra('VOLC_ARK_API_KEY').length > 0);
   check('F26) CONTROL A3–A6: Seed3D y Sloyd, con y sin guion, se ven', nombra('lo hace Seed3D').length === 1 && nombra('seed-3d').length === 1 && nombra('SEED3D_API_KEY').length >= 1 && nombra('Sloyd').length === 1);
+  const filaDeApi = (etiqueta) => ({ ...fila('Sloyd', 'POST /jobs/text-to-3d', '3d.generate · texto', 'PREPARADO', etiqueta, 'A'), 'Disponibilidad en la API': 'SÍ' });
+  const seguridad = (texto) => `## 19. Seguridad\n${texto}\n## 20. `;
+  const completa = '`ai-services-quality` **una URL pública, sin autenticación y predecible** **exposición pública del resultado de la persona**';
+  check('F30) CONTROL E13: una fila de la API de Sloyd con otra etiqueta se ve, y una sección de seguridad sin su requisito de privacidad también; con REVIEW_REQUIRED y el requisito entero, no',
+    sloydMalEtiquetado([filaDeApi('REQUIRES WRITTEN AUTHORIZATION'), filaDeApi('APPROVED / AVAILABLE')]).length === 2 && sloydMalEtiquetado([filaDeApi('REVIEW_REQUIRED')]).length === 0
+    && faltaLaPrivacidadDeSloyd(seguridad(completa)).length === 0 && faltaLaPrivacidadDeSloyd(seguridad('nada')).length === 3
+    && faltaLaPrivacidadDeSloyd(seguridad(completa.replace('**exposición pública del resultado de la persona**', 'exposición'))).length === 1
+    && faltaLaPrivacidadDeSloyd(`${seguridad('nada')}\n${completa}`).length === 3);
+  check('F31) CONTROL A3–A6: el host de la API de Sloyd y su bucket público se ven sin su nombre; el Storage de Weë y otro bucket cualquiera, no',
+    HOST.test('https://api.sloyd.ai/api/jobs/text-to-3d') && HOST.test('https://storage.googleapis.com/ai-services-quality/jobs/01JX.glb')
+    && !HOST.test('https://storage.googleapis.com/get-wee.appspot.com/users/x/model.glb') && !HOST.test('https://storage.googleapis.com/ai-services/x.glb'));
 });
 
 console.log(failures ? `\n✘ ${failures} de ${n} comprobaciones fallaron` : `\n✔ 3D multiproveedor: preparado, apagado y medido (${n} comprobaciones, $0)`);

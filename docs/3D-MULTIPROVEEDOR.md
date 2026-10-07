@@ -15,10 +15,12 @@ al dueño. Lo vigila `functions/test/multiproveedor-3d.test.mjs`.
 **En una línea:** la arquitectura para mundos 3D (`world.generate`, fal + Hunyuan World) está construida y apagada; la de
 objetos 3D (`3d.generate` y sus operaciones) existe como vocabulario del catálogo y como piezas comunes reutilizables, y
 le faltan, en este orden, una decisión del dueño (la cuarta puerta, D3D-1), cinco precondiciones de dinero, material y
-modalidad que hoy fallarían en silencio (G3D-1 a G3D-4, G3D-7) y los contratos con Tripo y Meshy (D3D-3, D3D-4). **Sloyd** entró
-en el alcance el 2026-10-07 y su investigación no había llegado: **PENDING DEPENDENCY** (§4b). **Seed3D 2.0** entró el mismo
-día y ya está investigado: solo existe en Volcano Engine (China), no en BytePlus ModelArk, y sus términos públicos lo dejan en
-**NOT_ALLOWED** (§4c). La investigación global de matrices 3D: **PENDING DEPENDENCY** (§4d).
+modalidad que hoy fallarían en silencio (G3D-1 a G3D-4, G3D-7) y los contratos con Tripo, Meshy y Sloyd (D3D-3, D3D-4,
+D3D-20). **Sloyd** entró en el alcance el 2026-10-07 y ya está investigado: una API self-serve sin términos de API (sus
+Términos cubren solo la web app), así que **REVIEW_REQUIRED**, y un resultado que sale en una URL pública y predecible
+(§4b, §19). **Seed3D 2.0** entró el mismo día y ya está investigado: solo existe en Volcano Engine (China), no en BytePlus
+ModelArk, y sus términos públicos lo dejan en **NOT_ALLOWED** (§4c). La investigación global de matrices 3D:
+**PENDING DEPENDENCY** (§4d).
 
 ---
 
@@ -38,9 +40,9 @@ día y ya está investigado: solo existe en Volcano Engine (China), no en BytePl
 
 Fuentes de Tripo y Meshy: los informes de la Línea B sobre la documentación OFICIAL de cada proveedor y la investigación
 dedicada de su elegibilidad comercial (el MAPA 2), consultadas el 2026-10-07 sin cuenta, sin clave, sin contactar con nadie
-y sin llamar a nada (notas de trabajo de la misión, fuera del repositorio). Lo que esos
-informes marcan como fragmento, contradicción o sin confirmar aparece aquí como UNKNOWN o REVIEW_REQUIRED. Toda la lectura
-jurídica necesita revisión legal.
+y sin llamar a nada (notas de trabajo de la misión, fuera del repositorio); las de Sloyd y Seed3D, sus propias
+investigaciones oficiales, con el mismo método (§4b, §4c). Lo que esos informes marcan como fragmento, contradicción o sin
+confirmar aparece aquí como UNKNOWN o REVIEW_REQUIRED. Toda la lectura jurídica necesita revisión legal.
 
 ---
 
@@ -162,23 +164,50 @@ de terceros (Seedream, Gemini, GPT Image) y **no se usan** (regla de matrices; W
 | Lo que añade el MAPA 2 | UV unwrap en Beta, tras una bandera; Scene Compose, vídeo y 3D Agent solo en la web (sin API); §2.6(iv) prohíbe también el «análisis competitivo» —comparar proveedores podría caer ahí ⚖—; Meshy puede citar a Weë como cliente salvo oposición por escrito (§3.6) |
 | UNKNOWN principales | Si Weë puede servir a sus usuarios con una clave self-serve (lectura del contrato: no, §1.2); entrenamiento con datos de la API; firma y reintentos del webhook; duración de la firma de URLs; cómo se llega a `CANCELED`; precio USD de los créditos sueltos; endpoints exclusivos de Enterprise |
 
-## 4b. Sloyd — PENDING DEPENDENCY
+## 4b. Sloyd — CANDIDATO 3D, DISABLED / REVIEW_REQUIRED
 
-Entró en el alcance de la Línea B el 2026-10-07 (decisión del dueño), junto a Tripo, Meshy y fal, con su elegibilidad. Su
-investigación —API, UX, las cuatro dimensiones y la matriz A–E, solo de fuentes oficiales— la hace otro investigador y **no
-había llegado al cerrar esta línea**: aquí no se investigó (por instrucción) y no se afirma nada de él.
+**Quién.** Sloyd, fundada en Noruega, que opera en EE. UU. y Europa. Sus Términos los firma **Sloyd Inc.** (EE. UU.) y su
+Privacidad, **Sloyd AS** (Noruega, RGPD): dos entidades y dos marcos legales que sus textos no relacionan ⚖. Entró en el
+alcance de la Línea B el 2026-10-07. Su investigación (notas de trabajo de la Línea B, 2026-10-07: 44 fuentes oficiales —la
+referencia de la API, su tarifa, los Términos, la Privacidad, el changelog, su GitHub y la web app como invitado—, sin
+cuenta, sin clave, sin llamar a la API, sin descargar nada y sin contactar con nadie) dice, en corto (⚖ = revisión legal;
+SL-n son las filas de su tabla de capacidades):
 
-| Pieza | Estado |
+| Aspecto | Lo que dicen las fuentes oficiales |
 |---|---|
-| Qué es (matriz o agregador), API, ciclo de vida, salidas, coste, derechos | UNKNOWN — pendiente de su investigación |
-| MAPA 1 | No cambia: las capacidades son de Weë; Sloyd solo podrá aparecer como candidato en el MAPA 2 |
-| MAPA 2 | Sin filas: ninguna capacidad de Weë puede ejecutarse con Sloyd y su autorización comercial es UNKNOWN hasta que lleguen sus filas, con las cuatro dimensiones y la selección A–E |
-| Registro | Ni adaptador, ni datos, ni matriz PENDING: entra por el camino de §7 cuando su investigación diga si es una matriz (`MATRICES_PENDIENTES`) o un agregador, que exigiría una excepción del dueño en `functions/src/registry/excepciones.ts` |
-| Seguridad | Ninguna clave `SLOYD_*` declarada ni montada; la guardia lo vigila como a Tripo y a Meshy (A1–A6) |
-| Estado | **OFF** |
+| ¿Matriz o intermediario? | **Mixto, y sin aclarar.** Entrena modelos propios y tiene un motor paramétrico propio (438 plantillas), pero dice que los combina con modelos y proveedores externos que no nombra. Su multivista la sirve un proveedor subyacente sin nombre (hipótesis NO verificada: Hunyuan 3D de Tencent Cloud) y su imagen usa GPT Image 2.5 y Nano Banana, según su changelog. Qué hay detrás de texto → 3D e imagen → 3D: UNKNOWN |
+| API | REST asíncrona en `https://api.sloyd.ai/api`, lanzada el 2026-08-20 y descrita aún «en fase de test» (sin SLA). Un PAR por clave, `x-client-id` (`sok_live_…`) + `x-client-secret`, solo desde un servidor. Claves «live» y «test» que cobran igual: **no hay sandbox gratuito**. Prepago (75 créditos = 1 USD; mínimo 12 USD), sin suscripción |
+| Capacidades activas | Texto → 3D, imagen → 3D y multivista → 3D (GLB de hasta 500 000 caras, tris o quads, textura de 128 px a 4K o sin ella, T-pose); retexturizar y separar en partes, solo sobre trabajos suyos; texto → imagen y edición de imagen; skybox 360° desde texto o desde imagen, y su edición; 16 estilos |
+| «Coming soon» | Documentados y sin habilitar: auto-rig, animación por texto o vídeo, retarget de 16 presets, merge, subir un modelo 3D (con campos paramétricos), «solid box» y spritesheet |
+| Solo web | El editor paramétrico, Astra, Scene AI, Edit Texture, la impresión 3D, Roblox Avatar Lab, 13 apps de imagen y la exportación en 10 formatos con «Send to»; su SDK de runtime está en lista de espera |
+| No existe | Mundos explorables (su «worldbox» es una panorámica 360°), vídeo, y remesh, retopología o UV como operación suelta |
+| Ciclo de vida | POST → `jobId` en menos de 1 s → sondeo de `GET /jobs/{jobId}` hasta `success` o `error` (antes, `pending` y `running`; los trabajos antiguos dicen `created`, `completed` y `failed`). **Sin webhook, sin cancelación, sin listado y sin idempotencia**: cada POST aceptado crea un trabajo que se cobra al arrancar, así que nunca se reintenta a ciegas. 402 sin saldo (no consume), 422 validación, 403 sobre un trabajo ajeno, 429 al sexto trabajo simultáneo |
+| Salidas | **Solo GLB**, en `storage.googleapis.com/ai-services-quality/jobs/{jobId}.glb`: **una URL pública, sin autenticación y predecible**, en el mismo bucket y la misma ruta que carga el visor de su comunidad. Sin plazo de retención ni de caducidad publicados; sus Términos (§9) le dejan borrar a discreción. Dónde salen la imagen y el skybox por la API: UNKNOWN |
+| Coste | Tarifa por combinación: imagen → 3D sin textura, 10 créditos; +10 con textura, +5 desde texto, +10 multivista, +5 quads, +10 a 500K caras o más (texto → 3D texturizado = 25 ≈ 0,33 USD; la resolución de la textura no cambia el precio); retexturizar 15; partes 40; skybox 25; imagen 10–15. **Se cobra al arrancar y se reembolsa si falla**; el trabajo **no dice lo cobrado** y no hay API de uso |
+| Límites | 5 trabajos simultáneos por clave mientras dure la fase de test, sin límite por segundo; su documentación sugiere repartir la carga entre varias claves ⚖ (sus Términos, §10, prohíben eludir límites técnicos) |
+| Derechos | Términos (2026-02-16) §6: licencia no exclusiva, perpetua y mundial, comercial incluida, sobre los modelos **de la web-app**; reventa en marketplaces solo con el plan Pro (§7); **la impresión 3D comercial exige una licencia a medida** (§6). Sin cláusulas de garantía, de límite de responsabilidad ni de indemnidad ⚖. Varios de sus estilos se describen con franquicias ajenas como referencia ⚖ |
+| Bloqueante | **No hay términos de API.** Los Términos se aceptan al registrarse en la WebApp y no mencionan la API, y la licencia de los resultados de la API no está definida (las licencias van con los planes de la web app, que la API no exige) → autorización comercial REVIEW_REQUIRED en lo que su API ofrece hoy (§5.2). No es REQUIRES WRITTEN AUTHORIZATION ni REQUIRES ENTERPRISE: ningún texto prohíbe servir a terceros (nada como el §3.2 de Tripo ni el §1.2 de Meshy) y su documentación describe justo el proxy para usuarios finales; tampoco APPROVED / AVAILABLE, porque ningún contrato lo cubre. OFF hasta tenerlo por escrito (D3D-20) |
+| Plan gratuito | Licencia de uso personal, y **lo generado se publica en CC BY 4.0**, público y reutilizable por cualquiera: nunca, tampoco para pruebas internas |
+| Territorio y datos | Sin cláusulas de sanciones ni de países; su changelog menciona «restricciones regionales» sin decir cuáles (UNKNOWN). Resultados en un bucket público de Google Cloud, región UNKNOWN. La Privacidad no habla de prompts, imágenes subidas, modelos generados, entrenamiento, fotos de personas ni biometría; entrena sus propios modelos sin decir con qué datos; sin DPA público ni certificaciones. La respuesta trae `libraryEligible: true` (¿pueden acabar sus resultados en la biblioteca pública? REVIEW_REQUIRED). Un fallo, corregido en 2026-02, intercambió trabajos entre usuarios |
+| UNKNOWN principales | Términos de API no públicos; licencia, propiedad y exclusividad de los resultados de la API; qué entidad contrata; retención y borrado; región; entrenamiento; qué proveedor sirve cada endpoint; límites y SLA tras la fase de test; edad mínima, AUP y moderación |
 
-Cuando llegue: sus filas en §5.2 y su columna en §5.3, su gobierno en §12, sus brechas y decisiones si las hay, y esta
-marca desaparece (la suite exige una de las dos cosas, nunca las dos ni ninguna: E10).
+**El hallazgo de privacidad**, para el diseño de cualquier adaptador: desde que existe, el resultado de la persona es
+público en el proveedor —sin autenticación, en una ruta que se deduce de su `jobId` y sin forma de borrarlo—, y nada de lo
+que haga Weë después lo deshace. Weë lo copiaría a su Storage en la misma pasada y trataría la URL del proveedor como
+**exposición pública** de ese resultado: los requisitos, en §19 (punto 5); la brecha, G3D-21.
+
+**Su relación con fal y con Hunyuan.** Si la multivista de Sloyd fuera Hunyuan 3D servido por Tencent Cloud (hipótesis NO
+verificada en fuentes de Sloyd), podrían alcanzarle las exclusiones territoriales de la licencia comunitaria de Hunyuan que
+`territorio` ya aplica a fal (EU/GB/KR) ⚖. Por eso, y por la regla de matrices, la multivista de Sloyd queda DESCARTADA
+(§5.2).
+
+**En el registro:** hoy nada (ni adaptador, ni datos, ni matriz PENDING). Si entra, DISABLED y REVIEW_REQUIRED (§4d, §7),
+y antes, dos cosas por escrito (D3D-20): qué endpoints sirven modelos propios —la regla de matrices solo deja lo suyo; lo
+que sirva un tercero se queda fuera salvo una excepción del dueño (`functions/src/registry/excepciones.ts`)— y la
+privacidad del resultado (§19). Sus datos, si llegan: un `ModelSpec` por combinación cobrable (texto o imagen × textura ×
+quads × 500K, G3D-7), con su tarifa por petición, porque el `providerCost` sale de la tarifa (el trabajo no lo informa);
+`operationId` = su `jobId` (§9); solo GLB (D3D-6); `concurrenciaPorCuenta: 5` por clave en `gobierno.limits`; y dos
+credenciales en un llavero dormido propio (§19).
 
 ---
 
@@ -315,8 +344,8 @@ etiqueta es la que dicen los términos. Hoy ninguna fila está en APPROVED / AVA
 
 **Fuente:** la investigación dedicada del MAPA 2 de la Línea B (2026-10-07; solo fuentes oficiales —términos,
 privacidad, AUP, precios, centros de ayuda, documentación y páginas de programas—, sin cuentas, sin claves y sin
-contactar con nadie; notas de trabajo fuera del repositorio), sobre los informes técnicos de §3 y §4. Lo que marca con ⚖
-necesita revisión legal. Lo que dice, en corto:
+contactar con nadie; notas de trabajo fuera del repositorio), sobre los informes técnicos de §3 y §4; para Sloyd y Seed3D,
+sus propias investigaciones (§4b, §4c). Lo que marca con ⚖ necesita revisión legal. Lo que dice, en corto:
 
 - **Tripo: REQUIRES WRITTEN AUTHORIZATION, confirmado.** §3.2 («available to any third party, including end users,
   without the prior written authorization»), §3.3(a) (no explotar comercialmente el servicio: alcanza también a lo que
@@ -328,7 +357,12 @@ necesita revisión legal. Lo que dice, en corto:
   usuarios en una cuenta, y su AUP. La vía es un Order Form de Enterprise, que prevalece sobre los Términos (§11.4), o el
   Partner Program, que también vende Enterprise (empieza por Europa). Sus páginas comerciales invitan a integrarlo en
   productos propios y contradicen el contrato ⚖.
-- **Derechos sobre el resultado ≠ derecho a dar el servicio.** Los dos dejan al cliente de pago explotar sus resultados;
+- **Sloyd: REVIEW_REQUIRED** (de su investigación, §4b). Self-serve, ningún texto prohíbe servir a terceros (nada como el
+  §3.2 de Tripo ni el §1.2 de Meshy) y su documentación describe justo el proxy para usuarios finales; pero no hay términos
+  de API: sus Términos (Sloyd Inc., EE. UU.) cubren solo la WebApp, la licencia de los resultados de la API no está definida
+  y la Privacidad la firma otra entidad (Sloyd AS, Noruega) ⚖. Ni RWA ni Enterprise, porque nada los exige; ni APPROVED,
+  porque ningún contrato lo cubre.
+- **Derechos sobre el resultado ≠ derecho a dar el servicio.** Tripo y Meshy dejan al cliente de pago explotar sus resultados;
   ninguno deja poner el SERVICIO de generación a disposición de terceros sin ese acuerdo, y Weë, que genera a petición
   de sus usuarios, cae del lado del servicio ⚖.
 - **fal** (de FAL.md): REVIEW_REQUIRED global y DISABLED; en la UE, el Reino Unido y Corea del Sur la licencia de Tencent
@@ -339,7 +373,9 @@ elige el Router de Weë (el valor por defecto, siempre) · **B** la persona lo e
 administración lo fija · **D** elegirlo exige Enterprise o un acuerdo de socio · **E** no se permite. **B no está activa en
 ninguna fila ni puede estarlo por defecto**: CLAUDE.md dice que la persona nunca ve proveedores ni modelos (como mucho, un
 modo avanzado opcional y oculto); la investigación la deja en REVIEW_REQUIRED en los dos (uso de marca y acceso visible de
-terceros) y «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED, con lectura desfavorable, en Meshy (D3D-17).
+terceros), y la de Sloyd también (sin pautas de marca); «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED,
+con lectura desfavorable, en Meshy y en Sloyd (en Sloyd, por seguridad: Weë custodiaría credenciales de facturación
+ajenas) (D3D-17).
 
 | Proveedor | Endpoint / modelo | Capacidad (MAPA 1) | Disponibilidad en la API | Uso en Weë | Autorización comercial | Selección | Evidencia y notas |
 |---|---|---|---|---|---|---|---|
@@ -380,6 +416,31 @@ terceros) y «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED, 
 | Meshy | Tienda de figuras impresas | — | NO (sin API de pedidos) | DESCARTADO | NOT_ALLOWED | E | M28a |
 | Meshy | Fabricación para empresas, con sus socios | — | NO (fuera de la API) | NO INTEGRADO (D3D-18) | REQUIRES PARTNER AGREEMENT | D | M28b |
 | Meshy | `text-to-image`, `image-to-image` (Nano Banana, GPT Image) | `image.generate` / `image.edit` | SÍ | DESCARTADO: revende modelos de terceros (regla de matrices) | REVIEW_REQUIRED | E | M13–M14: Enterprise + términos de Google y OpenAI (§2.7) |
+| Sloyd | `POST /jobs/text-to-3d` | `3d.generate` · texto | SÍ (API en fase de test desde 2026-08-20) | PREPARADO (diseño; sin adaptador) | REVIEW_REQUIRED | A | SL1; sin términos de API (§4b); qué modelo hay detrás: UNKNOWN (si fuera de un tercero, la regla de matrices lo descartaría) |
+| Sloyd | `POST /jobs/image-to-3d` (con `file` o con el `jobId` de `POST /jobs/image-upload`, 0 créditos) | `3d.generate` · imagen | SÍ | PREPARADO | REVIEW_REQUIRED | A | SL2, SL4; fotos de personas: su Privacidad no habla de imágenes de personas ni de biometría, y el resultado sería público en el proveedor ⚖ (D3D-12, §19) |
+| Sloyd | `POST /jobs/multi-image-to-3d` | `3d.generate` · varias imágenes | SÍ (sin topología ni resolución elegibles) | DESCARTADO: revende modelos de terceros (un proveedor subyacente que su documentación no nombra; regla de matrices) | REVIEW_REQUIRED | E | SL3; hipótesis NO verificada: Hunyuan 3D de Tencent Cloud, al que quizá alcancen las exclusiones territoriales de su licencia comunitaria (EU/GB/KR) ⚖ |
+| Sloyd | `POST /jobs/retexture` | `3d.texture` | SÍ (solo sobre trabajos suyos) | PREPARADO | REVIEW_REQUIRED | A | SL5; 403 sobre un trabajo ajeno (G3D-6); subir un modelo propio sigue en «coming soon» |
+| Sloyd | `POST /jobs/split-to-parts` | `3d.edit` | SÍ (solo sobre trabajos suyos) | NO INTEGRADO | REVIEW_REQUIRED | A | SL6; 40 créditos |
+| Sloyd | `POST /jobs/text-to-image`, `POST /jobs/image-edit` | `image.generate` / `image.edit` | SÍ | DESCARTADO: revende modelos de terceros (regla de matrices) | REVIEW_REQUIRED | E | SL8–SL9: GPT Image 2.5 y Nano Banana según su changelog, con sus términos; la referencia de identidad (`referenceImageJobId`) y el selfie → cuerpo entero tocan fotos de personas ⚖ |
+| Sloyd | `POST /jobs/text-to-worldbox`, `POST /jobs/skybox-from-image`, `POST /jobs/skybox-edit` | — (una panorámica 360°: ninguna capacidad de Weë) | SÍ (su salida por API, sin documentar) | DESCARTADO (ninguna capacidad de Weë lo usa) | REVIEW_REQUIRED | E | SL10–SL12: pese al nombre, no es un mundo explorable ni `world.generate`; modelo UNKNOWN |
+| Sloyd | `POST /jobs/sketch-to-image` (sin documentar) | `image.generate` | UNKNOWN (no está en su referencia) | DESCARTADO: sin documentación no se integra | UNKNOWN | E | SL14: lo llama su nodo oficial de ComfyUI y su tarifa lo cobra a 10 créditos |
+| Sloyd | `POST /jobs/auto-rig` | `3d.rig` | NO («coming soon»: documentado, sin habilitar) | NO INTEGRADO | NOT_ALLOWED | E | SL15: hoy no hay API (cuando la haya, REVIEW_REQUIRED como el resto); en la web, solo humanoides en pose T o A |
+| Sloyd | `POST /jobs/animate`, `/animate/video`, `/retarget`, `/animate/motion-only`, `/animate/merge` | `3d.animate` (PROPUESTA) | NO («coming soon») | NO INTEGRADO | NOT_ALLOWED | E | SL16–SL18: igual; animar desde un vídeo de personas ⚖ |
+| Sloyd | `POST /jobs/upload-3d` | — (subir un modelo propio, con campos paramétricos) | NO («coming soon») | NO INTEGRADO | NOT_ALLOWED | E | SL20: la única pista de lo paramétrico en la API |
+| Sloyd | `POST /jobs/text-to-solidbox`, `POST /jobs/create-solid-box` | — (sin descripción funcional) | NO («coming soon») | NO INTEGRADO | UNKNOWN | E | SL21 |
+| Sloyd | `POST /jobs/spritesheet` | — (hojas de sprites 2D) | NO («coming soon»; en la web es una app) | NO INTEGRADO | NOT_ALLOWED | E | SL22 |
+| Sloyd | Editor de plantillas paramétricas (438 generadores, «Tweak Model») | `3d.generate` (paramétrico) | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | SL23: sin API, y automatizar la web choca con sus Términos (§10) ⚖; su SDK de runtime, en lista de espera (D3D-20) |
+| Sloyd | Astra («GPT-6 Astra», código → 3D, beta) | `3d.generate` | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | SL24: modelo de un tercero que no nombra |
+| Sloyd | Scene AI (alpha) y su «Render Scene» | `scene.generate` | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | SL25, SL39 |
+| Sloyd | Edit Texture | `3d.texture` | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | SL26 |
+| Sloyd | Animación en la web (auto-rig, 17 presets, texto o vídeo → movimiento) | `3d.rig` / `3d.animate` (PROPUESTA) | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | SL31 |
+| Sloyd | Exportación en 10 formatos, «Send to» (Blender, Maya, Unity, Unreal, Godot, Roblox) y sus puentes DCC | `3d.convert` / `3d.export` | NO (solo web: la API solo da GLB) | DESCARTADO | NOT_ALLOWED | E | SL30, SL33: Weë convierte por su cuenta (D3D-6); los puentes son del titular de una cuenta de pago |
+| Sloyd | Impresión 3D (multicolor en 3MF, bases y llaveros, imprimibilidad, envío a Bambu u Orca) | `3d.export` / `3d.analyze` | NO (solo web) | DESCARTADO (D3D-18) | NOT_ALLOWED | E | SL27 |
+| Sloyd | Impresión 3D comercial de cualquier resultado (vender lo impreso) | — (uso del resultado: producto físico, D3D-18) | NO (es una licencia, no una API) | NO INTEGRADO (D3D-18) | REQUIRES WRITTEN AUTHORIZATION | D | Términos §6: exige una licencia a medida; sus páginas de impresión y de comercio electrónico dicen lo contrario ⚖ |
+| Sloyd | Roblox Avatar Lab | — | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | SL28: conecta la cuenta de Roblox de la persona |
+| Sloyd | Apps de imagen (13: selfie → Roblox, mascota → figura, topper de tarta con una foto…) | `image.edit` | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | SL29: varias usan fotos de personas ⚖ |
+| Sloyd | SDK de runtime (generación local) | — | NO (lista de espera; condiciones desconocidas) | NO INTEGRADO (D3D-20) | UNKNOWN | D | SL34; su ficha de Unity Asset Store, retirada |
+| Sloyd | Nodos de ComfyUI | — (herramientas del titular de la cuenta; Weë Brain es el único cerebro) | SÍ (envuelven la API) | DESCARTADO | REVIEW_REQUIRED | E | SL35: como su API |
 | fal | `fal-ai/hunyuan_world/image-to-world` | `world.generate` | SÍ | INTEGRADO (apagado: DISABLED, sin `FAL_KEY`, puerta cerrada) | REVIEW_REQUIRED | A | FAL.md §3: licencia de Tencent (EU/GB/KR fuera, 1 M MAU, AUP 12) y términos de fal (§2 edad, §4(b)(ii), §6(e) «service bureau») |
 | fal | Hunyuan 3D (2.x, 3.x) | `3d.generate` | SÍ | DESCARTADO (evaluado, no añadido) | REVIEW_REQUIRED | A | FAL.md §3: 2.x con las mismas exclusiones territoriales; 3.x «partner-hosted» sin licencia pública |
 | Seed3D | `doubao-seed3d-2-0-260328` (Volcano Engine 火山方舟, cn-beijing) | `3d.generate` · imagen | SÍ (solo en Volcano Engine; no en BytePlus ModelArk) | NO INTEGRADO (otra plataforma, cuenta y contrato que Seedance) | NOT_ALLOWED | D | Ark §3.1 y Doubao §1.2: licencia solo en China continental; uso comercial con permiso escrito previo; vía: un acuerdo escrito con Volcano Engine (uso comercial + territorio) ⚖ |
@@ -387,11 +448,16 @@ terceros) y «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED, 
 | Seed3D | Experience Center (demo de Volcano Engine) | — | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | Solo para probar el modelo y no da derechos (Ark §3.7.14) |
 
 **Sin fila** (no hay nada que autorizar; N/A en la investigación): lo que el proveedor no ofrece —Tripo: texto →
-movimiento, vídeo, mundos, fabricación; Meshy: splat, Text to Texture y Text to Voxel (retirados); Seed3D: varias imágenes, texturizar una malla propia, convertir, refinar o variaciones, y sus
-partes, articulación (URDF), simulación y escenas, que son investigación sin API—. Las vistas previas de
+movimiento, vídeo, mundos, fabricación; Meshy: splat, Text to Texture y Text to Voxel (retirados); Sloyd: mundos
+explorables y vídeo (no existen), y remesh, retopología o UV como operación suelta (solo parámetros al generar), además de
+su biblioteca CC BY 4.0, que es contenido de terceros y no una capacidad; Seed3D: varias imágenes, texturizar una malla
+propia, convertir, refinar o variaciones, y sus partes, articulación (URDF), simulación y escenas, que son investigación
+sin API—. Las vistas previas de
 Tripo y las miniaturas de Meshy no son un servicio de render: viajan como variante del resultado (§11).
 
-**Sloyd:** PENDING DEPENDENCY (§4b): sin filas hasta que llegue su investigación.
+**Sloyd**, de su investigación (§4b): REVIEW_REQUIRED en todo lo que su API ofrece hoy, porque no hay términos de API (no
+porque algo lo prohíba); lo que sirven terceros (la multivista, la imagen), DESCARTADO por la regla de matrices; lo
+«coming soon» y lo solo web, NOT_ALLOWED; y la impresión comercial, con una licencia a medida.
 
 **Lo que cambia cuando llega un contrato:** solo la etiqueta de SUS filas (y, si el contrato lo concede, lo que permita
 de la selección), en los datos del modelo, con su fuente y su fecha. Ni el MAPA 1, ni la app, ni la puerta se enteran.
@@ -414,8 +480,9 @@ La matriz que pide la FASE 5, para leer de un vistazo. Manda el MAPA 2: aquí so
 | `world.edit` | **PROPUESTA** | No | No | No (`world.expand`: NOT_SUPPORTED_BY_CURRENT_PROVIDER) | FALTA | `functions/src/core/escena3d.ts` | No se ofrece ni se simula |
 | `scene.generate` | DECLARED (design) | No | No | No | FALTA (proveedor) | — | Una escena compone materiales por id (`Escena3D`) |
 
-Seed3D (solo `3d.generate` · imagen, en Volcano Engine): NOT_ALLOWED con los términos públicos (§4c, §5.2, D3D-19). Sloyd no
-tiene columna todavía: PENDING DEPENDENCY (§4b).
+Seed3D (solo `3d.generate` · imagen, en Volcano Engine): NOT_ALLOWED con los términos públicos (§4c, §5.2, D3D-19).
+Sloyd (texto e imagen → 3D, retexturizar y separar en partes, por API): REVIEW_REQUIRED, porque no hay términos de API
+(§4b, §5.2, D3D-20); sin mundos —su «worldbox» es una panorámica 360°—, y su rig y su animación siguen en «coming soon».
 
 **Ids nuevos que propone esta línea, para reconciliar con la Línea C (UX de Weë Design) y con la Línea A:** `3d.animate` y
 `world.edit`. Ningún otro. Nada se ha añadido al catálogo.
@@ -532,7 +599,7 @@ CondicionesDeEjecucion — PROPUESTO (gobierno.condiciones: una por capacidad de
 
 **Lo que se añade, sin campos nuevos en el tipo:** claves de datos en `gobierno.limits` para lo que solo un proveedor
 asíncrono de 3D necesita saber — `retencionDelResultadoHoras` (Meshy 72), `caducidadDeUrlSegundos` (Tripo ≈ 300, UNKNOWN
-en la referencia), `concurrenciaPorCuenta` (Tripo H 10) —, que leerá la comprobación de plazos (G3D-8).
+en la referencia), `concurrenciaPorCuenta` (Tripo H 10; Sloyd 5 por clave) —, que leerá la comprobación de plazos (G3D-8).
 
 **Cómo se registra un proveedor 3D nuevo** (el camino de siempre, `functions/src/registry/matrices.ts`):
 
@@ -587,6 +654,7 @@ es la RELACIÓN, nunca la fuente de verdad (`ProviderOperationRef`, `functions/s
 | fal | `{modelo con «:»}::{request_id}` | Las rutas de estado cuelgan del modelo (existe) |
 | Tripo | el `task_id` tal cual (validado por juego de caracteres, nunca por prefijo) | Un solo `GET /v3/tasks/{id}` para todo |
 | Meshy | `{recurso}::{id}` (`image-to-3d::…`, `rigging::…`) | La ruta de estado depende del recurso; `/` no cabe en la clave del runtime |
+| Sloyd | el `jobId` tal cual | Un solo `GET /jobs/{jobId}`; y es, además, la llave de su archivo público (§19, G3D-21) |
 
 | Estado de la misión | Job Engine | Intento | Contrato | Tripo | Meshy | fal |
 |---|---|---|---|---|---|---|
@@ -603,6 +671,14 @@ es la RELACIÓN, nunca la fuente de verdad (`ProviderOperationRef`, `functions/s
 copiado en la misma pasada: caduca a las 24 h); `failed` → failed; `cancelled` (solo desde `queued`) → cancelled; `expired` o
 un estado no listado → unknown y reconciliación; sin aviso, solo el barrido; `operationId` = su id `cgt-…`; horizonte de
 reconciliación de 24 h como mucho, la retención más corta que dan sus fuentes.
+
+**Sloyd**, si algún día se integrara: `pending` y `running` → processing; `success` → completed (el GLB, copiado en la misma
+pasada: es público desde que existe, §19); `error` → failed; los estados antiguos (`created`, `completed`, `failed`), igual;
+uno no listado → unknown y reconciliación. Sin aviso ni cancelación: solo el barrido, y parar es dejar constancia, como con
+Tripo. **Sin listado ni idempotencia:** si el POST no vuelve, el trabajo puede existir y cobrarse sin que Weë sepa su id;
+queda «sin referencia», que se reconcilia a mano (`functions/src/runtime/reconciliacion.ts`), y con Sloyd a mano solo queda
+su panel (D3D-16). Su atajo de pedir el GLB de forma optimista no sirve para saber si falló: el desenlace lo da el JSON del
+trabajo.
 
 **Lo que se reutiliza tal cual:** el conductor y la puerta por capacidad, el barrido de 5 min (pregunta, materializa y
 liquida en la misma pasada: una URL de Tripo que caduca en minutos se pide fresca con un `GET` y se copia en el momento,
@@ -636,6 +712,7 @@ por debajo del coste.
 | fal | tarifa por petición del modelo (`cost.unit: 'call'`) | exacta (`tarifaExacta`) |
 | Tripo | `credits_consumed × 0,01 USD` del propio desenlace; 0 si `failed`/`cancelled` (créditos liberados) | exacta y publicada |
 | Meshy | `consumed_credits × USD por crédito del PLAN contratado` | depende del contrato: hasta firmarlo, el techo conservador (Pro, 0,020) en `gobierno.providerPricing`, con su fuente |
+| Sloyd | la tarifa de la combinación (75 créditos = 1 USD; texto → 3D texturizado, 25 = 0,33 USD): el trabajo no dice lo cobrado | exacta por tarifa (`tarifaExacta`, G3D-7), sin forma de comprobarla por API: se concilia con el saldo de su panel |
 
 **Una combinación cobrable = un `ModelSpec`** (G3D-7). «Imagen → 3D con textura estándar» (Tripo 0,30) y «con textura HD»
 (0,40) son dos entradas de datos, cada una con su tarifa por petición fija: así el Router compara coste real, `tarifaExacta`
@@ -655,8 +732,8 @@ sigue siendo cierta, el libro cierra exacto y no hay que tocar `functions/src/en
 
 **Reserva, cobro y devolución:** `spendCredits` con `requestId` y huella → AUTHORIZED; la liquidación cobra al completar o
 devuelve exacto al fallar, UNA vez; una tarea aceptada deja su fila del libro en curso y la cierra la liquidación (RUNTIME
-§25c). Encaja con los dos proveedores: Tripo y Meshy no cobran lo que falla. Riesgo de negocio, no de código: los créditos
-del proveedor son de prepago (Tripo, no reembolsables) o caducan cada mes (Meshy).
+§25c). Encaja con los tres: Tripo y Meshy no cobran lo que falla, y Sloyd lo reembolsa. Riesgo de negocio, no de código: los
+créditos del proveedor son de prepago (Tripo, no reembolsables; Sloyd, sin caducidad por ciclo) o caducan cada mes (Meshy).
 
 ---
 
@@ -676,8 +753,8 @@ siempre (`functions/src/content/materializador.ts`):
 | linaje | `sourceAssetIds` (de qué material salió), `previousVersionId` | **G3D-5**: nadie lo escribe; un rig o una retextura nacerían sin su origen |
 | derechos | `derechos` copiados del gobierno del modelo del trabajo (`derechosDeImplementacion`) | EXISTE; falta una dimensión para «no quitar las marcas de IA» (Meshy §2.4) y «etiquetar lo generado» (Hunyuan, AUP 12): G3D-15 |
 | versión | DERIVADA (`lineaDeVersiones`), nunca guardada | EXISTE (`linaje.ts`) |
-| retención | se copia al llegar a `success`/`SUCCEEDED`, en la misma pasada; la URL del proveedor no se guarda | EXISTE (molde de fal); Meshy borra a los 3 días |
-| tamaño y host | tope de bytes por adaptador (fal: 200 MB); solo https | **G3D-11**: sin lista de hosts de descarga por proveedor |
+| retención | se copia al llegar a `success`/`SUCCEEDED`, en la misma pasada; la URL del proveedor no se guarda | EXISTE (molde de fal); Meshy borra a los 3 días; Sloyd lo deja PÚBLICO desde que existe, sin plazo (§19, G3D-21) |
+| tamaño y host | tope de bytes por adaptador (fal: 200 MB); solo https | **G3D-11**: sin lista de hosts de descarga por proveedor (con Sloyd, `storage.googleapis.com` es un host compartido: habría que fijar el bucket) |
 | salida empaquetada | un ZIP con el archivo dentro (Seed3D), que caduca a las 24 h | **G3D-19**: hay que traerlo, descomprimirlo con límites (tamaño, número de entradas, rutas) y validar el formato aplicado; hoy el materializador guarda un archivo tal cual |
 
 Una operación derivada (retextura, rig, animación) crea un material **derivado** con `materialDerivado` y sus derechos
@@ -692,22 +769,23 @@ Se reutiliza todo: el país del Perfil Real como única fuente (`functions/src/e
 (`functions/src/engine/elegibilidad.ts`), `Asset.derechos` y el resumen visible (`utils/derechosDelMaterial.ts`). Nada de un
 segundo sistema.
 
-Lo que declararía el gobierno de cada modelo (PROPUESTO para Tripo, Meshy y Seed3D, a partir de sus informes; lo de fal ya
-existe):
+Lo que declararía el gobierno de cada modelo (PROPUESTO para Tripo, Meshy, Seed3D y Sloyd, a partir de sus informes; lo de
+fal ya existe):
 
-| Dato por proveedor / modelo | Tripo | Meshy | fal · Hunyuan World | Seed3D · Volcano Engine |
-|---|---|---|---|---|
-| `territorio` | ninguno explícito → sin `territorio` (política del dueño, 2026-10-06) | ninguno explícito → sin `territorio` | EU/GB/KR bloqueadas | licencia solo en China continental, sin definir si cuenta dónde está el cliente o dónde la persona (⚖): no cabe en `territorio` (G3D-20) |
-| `reviewStatus` | REVIEW_REQUIRED (§3.2 usuarios finales, no competencia, «Paid User») | REVIEW_REQUIRED (§2.1/§2.6 reventa, §2.9 entrenamiento) | REVIEW_REQUIRED | REVIEW_REQUIRED (la lectura honesta sería BLOCKED_GLOBAL: D3D-19) |
-| `commercialUseStatus` | ALLOWED con cuenta de pago (por confirmar por escrito) | ALLOWED con plan de pago | RESTRICTED | NOT_ALLOWED sin el permiso escrito previo (Ark §3.1) |
-| `outputRightsStatus` | UNCLEAR («en general todos los derechos», no es una cesión explícita) | CLEAR con plan de pago (en la medida que permita la ley) | RESTRICTED | UNCLEAR (no reclaman la propiedad; uso según el acuerdo y la ley; sin exclusividad) |
-| `attributionRequired` | `false` (pago) | `false` (pago) | `true` | `false`, pero etiquetado de IA obligatorio (G3D-15) |
-| licencias | Terms of User Agreement (2025-07-11) | Terms of Use (2026-09-19) + AUP | Licencia de Tencent + términos de fal | Términos de la plataforma Ark (2026-08-05), acuerdo de Doubao (2026-09-17) y contrato marco de Volcano Engine (2024-06-14) |
-| datos | Hong Kong (+ EE. UU.); no entrenan con datos de pago | AWS EE. UU.; entrenan con no-Enterprise (§2.9); prohíbe datos personales en entradas | `X-Fal-Store-IO: 0` | China (cn-beijing); no entrenan sin consentimiento aparte; sin DPA público |
+| Dato por proveedor / modelo | Tripo | Meshy | fal · Hunyuan World | Seed3D · Volcano Engine | Sloyd |
+|---|---|---|---|---|---|
+| `territorio` | ninguno explícito → sin `territorio` (política del dueño, 2026-10-06) | ninguno explícito → sin `territorio` | EU/GB/KR bloqueadas | licencia solo en China continental, sin definir si cuenta dónde está el cliente o dónde la persona (⚖): no cabe en `territorio` (G3D-20) | ninguno explícito → sin `territorio`; su changelog menciona «restricciones regionales» sin decir cuáles (UNKNOWN) |
+| `reviewStatus` | REVIEW_REQUIRED (§3.2 usuarios finales, no competencia, «Paid User») | REVIEW_REQUIRED (§2.1/§2.6 reventa, §2.9 entrenamiento) | REVIEW_REQUIRED | REVIEW_REQUIRED (la lectura honesta sería BLOCKED_GLOBAL: D3D-19) | REVIEW_REQUIRED (sin términos de API; licencia de los resultados de la API sin definir; dos entidades; resultado público en el proveedor) |
+| `commercialUseStatus` | ALLOWED con cuenta de pago (por confirmar por escrito) | ALLOWED con plan de pago | RESTRICTED | NOT_ALLOWED sin el permiso escrito previo (Ark §3.1) | UNCLEAR (los Términos lo permiten sobre los modelos de la web-app; la API no exige plan y no tiene texto) |
+| `outputRightsStatus` | UNCLEAR («en general todos los derechos», no es una cesión explícita) | CLEAR con plan de pago (en la medida que permita la ley) | RESTRICTED | UNCLEAR (no reclaman la propiedad; uso según el acuerdo y la ley; sin exclusividad) | UNCLEAR (¿propiedad o licencia? Los Términos dan una licencia; sus páginas comerciales dicen «es tuyo») |
+| `attributionRequired` | `false` (pago) | `false` (pago) | `true` | `false`, pero etiquetado de IA obligatorio (G3D-15) | `false` en los planes de pago; CC BY 4.0 en el gratuito, que Weë nunca usaría |
+| licencias | Terms of User Agreement (2025-07-11) | Terms of Use (2026-09-19) + AUP | Licencia de Tencent + términos de fal | Términos de la plataforma Ark (2026-08-05), acuerdo de Doubao (2026-09-17) y contrato marco de Volcano Engine (2024-06-14) | Terms of Use (Sloyd Inc., 2026-02-16; solo la WebApp) + Privacy Policy (Sloyd AS, 2026-09-28); sin términos de API |
+| datos | Hong Kong (+ EE. UU.); no entrenan con datos de pago | AWS EE. UU.; entrenan con no-Enterprise (§2.9); prohíbe datos personales en entradas | `X-Fal-Store-IO: 0` | China (cn-beijing); no entrenan sin consentimiento aparte; sin DPA público | resultados en un bucket PÚBLICO de Google Cloud (región UNKNOWN); la Privacidad no habla de contenidos, entrenamiento ni biometría; sin DPA público |
 
 **Regla que no cambia:** un modelo con licencia, uso comercial, derechos del resultado o restricción territorial
 desconocidos es REVIEW_REQUIRED y no es elegible (la configuración no aprueba: solo endurece). Sanciones y control de
-exportaciones no aparecen en ningún contrato de los dos: revisión legal antes de activar (D3D-3, D3D-4).
+exportaciones no aparecen en los contratos de Tripo, de Meshy ni de Sloyd: revisión legal antes de activar (D3D-3, D3D-4,
+D3D-20).
 
 ---
 
@@ -847,18 +925,39 @@ Ninguna se crea ni se monta en esta misión. El diseño, el mismo de `FAL_KEY` (
      ofrece su consola, como defensa extra.
    - `FAL_KEY`: ya declarada y dormida (`FAL_SECRETS`).
    - Seed3D: está en Volcano Engine, no en BytePlus: **no puede usar `ARK_API_KEY`** (la clave de la cuenta de BytePlus) ni
-     el cliente de ModelArk; tendría su propio llavero dormido, con su clave y su URL base (§4c). Sloyd: pendiente de su
-     investigación (§4b).
+     el cliente de ModelArk; tendría su propio llavero dormido, con su clave y su URL base (§4c).
+   - Sloyd: un PAR por clave, `SLOYD_CLIENT_ID` (`sok_live_…`) y `SLOYD_CLIENT_SECRET` (se muestra una sola vez: directo a
+     Secret Manager), los dos en su llavero dormido aunque el id no sea secreto, para que `knownSecretValues` censure los
+     dos por valor (`functions/src/engine/sanitize.ts` ya tapa la cabecera `x-client-secret` por su patrón; la
+     `x-client-id`, no). Sin secreto de aviso: no hay avisos. Sus claves «test» cobran como las «live»: no hay sandbox.
+     Repartir la carga entre varias claves para esquivar su cupo de 5, solo con su confirmación escrita (sus Términos,
+     §10, prohíben eludir límites técnicos ⚖).
 2. **Montadas solo donde se leen:** la puerta de la capacidad, el barrido (`RECONCILIATION_SECRETS`, que solo consulta) y, si
    el dueño expone avisos, la Function que los recibe. `secretValue` y `knownSecretValues` las buscan por nombre, para
    censurarlas en los registros (`sanitizeForLog`).
 3. **Nunca** en el cliente, el bundle, los registros, Firestore público ni una respuesta; ni Tripo ni Meshy admiten CORS ni
-   piden otra cosa. `functions/test/rotacion-secretos.test.mjs` fija el mapa del código: el día que entren, se actualiza con él.
+   piden otra cosa, y Sloyd prohíbe usar su secreto en el navegador. `functions/test/rotacion-secretos.test.mjs` fija el
+   mapa del código: el día que entren, se actualiza con él.
 4. **Descargas:** solo https y, cuando los hosts estén fijados por contrato, una lista por proveedor (G3D-11). La foto de la
-   persona sale como bytes (Tripo, subida) o data URI (Meshy), nunca como una URL de Weë.
+   persona sale como bytes (Tripo, subida; Sloyd, multipart) o data URI (Meshy), nunca como una URL de Weë.
+5. **La privacidad del resultado en el proveedor (requisito; hoy, Sloyd).** Su API deja el GLB en
+   `https://storage.googleapis.com/ai-services-quality/jobs/{jobId}.glb`:
+   **una URL pública, sin autenticación y predecible** (se deduce del `jobId`), sin forma de borrarla y sin plazo publicado.
+   Para Weë eso es **exposición pública del resultado de la persona** desde el momento en que existe, y nada de lo que se
+   haga después lo deshace. Cualquier adaptador suyo tendría que:
+   - copiarlo al Storage de Weë en la misma pasada en que vea `success`, y no guardar, registrar, devolver ni mostrar
+     nunca esa URL;
+   - tratar su `jobId` como la llave de ese archivo: fuera de los registros y de todo lo que pueda publicarse (G3D-21);
+   - no mandarle fotos de personas ni nada que la persona tenga por privado mientras no haya, por escrito, almacenamiento
+     privado o URLs firmadas, borrado a petición y no entrenamiento (D3D-12, D3D-20);
+   - y no usar nunca su plan gratuito, ni para pruebas: lo publica todo en CC BY 4.0.
 
-Hoy la suite lo vigila (A3–A5): ninguna clave ni host de Tripo o de Meshy en `functions/src`, en los llaveros, en la CI ni en
-la configuración.
+   La persona no ve el proveedor, pero la política de privacidad de Weë tendría que decir que un tercero procesa y conserva
+   su creación ⚖.
+
+Hoy la suite lo vigila: ninguna clave ni host de Tripo, Meshy, Sloyd o Seed3D —ni el bucket público de Sloyd— en
+`functions/src`, en los llaveros, en la CI, en la configuración ni en la app (A3–A6), y este requisito de privacidad sigue
+escrito aquí (E13).
 
 ---
 
@@ -887,7 +986,7 @@ la configuración.
 | Corregir `produces` de `3d.*` en el catálogo | Lo leen `functions/src/core/algorithm/decomposition-engine.ts` y `functions/src/creator/sombra.ts` (Línea A) y lo fija `core-gateway` 105 (G3D-3) |
 | Dataset de evals, reglas de G3, cambios en Guardian | `ops/**` es de la Línea A (§17, §18) |
 | Claves, avisos, despliegue, activación | Prohibido en esta misión |
-| Sloyd | PENDING DEPENDENCY: su investigación la escribe otro investigador y no había llegado; aquí no se inventa nada (§4b) |
+| Sloyd | Investigado e incorporado (§4b, §5.2, §12, §19): REVIEW_REQUIRED en su API, porque no hay términos de API, y su resultado en una URL pública; nada que implementar hasta D3D-20 |
 | Seed3D 2.0 | Investigado e incorporado (§4c, §5.2, §12): NOT_ALLOWED con los términos públicos; nada que implementar hasta D3D-19. Los requisitos de la Línea C para Seed3D: PENDING DEPENDENCY |
 | La investigación global de matrices 3D | PENDING DEPENDENCY: la hacen cinco investigadores y un sintetizador, no esta línea; sus entregables no existían al cerrar (§4d) |
 
@@ -897,17 +996,17 @@ la configuración.
 
 | | Brecha | Evidencia | Se cierra con |
 |---|---|---|---|
-| G3D-1 | `serviceForCapability` no tiene caso para `3d.*`: cae en `ai_text` (2 Credits por ≈ 0,30 USD) | `functions/src/credits/creditCosts.ts`; suite E7 | Un servicio 3D propio al activar (C1) |
-| G3D-2 | En modo prueba, el precio de una capacidad 3D es el del catálogo y no mira el coste del modelo (`creditsFor` → `priceOperation` estima tokens de texto) | `functions/src/engine/pricing.ts`; suite E9 | Catálogo = techo del modelo más caro elegible (C2) |
-| G3D-3 | El catálogo dice `produces: 'image'` en `3d.generate/edit/texture/retopology/rig/convert` (y `doc` en `3d.export`): `tipoDeMaterialDe('3d.generate')` = `image` | `functions/src/core/registry/capabilities.ts`, `functions/src/runtime/materializacion.ts`; suite E10; `core-gateway` 105 | `produces: '3d'` con la Línea A (C3) |
-| G3D-4 | `scene.generate` hereda la modalidad `text` de `scene.split` (plazos y cupo de texto) | `functions/src/engine/types.ts` (`MODALITY_OF`); suite E11 | Una entrada en `MODALITY_EXACT` antes de enrutarla (C4) |
+| G3D-1 | `serviceForCapability` no tiene caso para `3d.*`: cae en `ai_text` (2 Credits por ≈ 0,30 USD) | `functions/src/credits/creditCosts.ts`; suite F7 (control) | Un servicio 3D propio al activar (C1) |
+| G3D-2 | En modo prueba, el precio de una capacidad 3D es el del catálogo y no mira el coste del modelo (`creditsFor` → `priceOperation` estima tokens de texto) | `functions/src/engine/pricing.ts`; suite F8–F9 (controles) | Catálogo = techo del modelo más caro elegible (C2) |
+| G3D-3 | El catálogo dice `produces: 'image'` en `3d.generate/edit/texture/retopology/rig/convert` (y `doc` en `3d.export`): `tipoDeMaterialDe('3d.generate')` = `image` | `functions/src/core/registry/capabilities.ts`, `functions/src/runtime/materializacion.ts`; suite F10 (control); `core-gateway` 105 | `produces: '3d'` con la Línea A (C3) |
+| G3D-4 | `scene.generate` hereda la modalidad `text` de `scene.split` (plazos y cupo de texto) | `functions/src/engine/types.ts` (`MODALITY_OF`); suite F11 (control) | Una entrada en `MODALITY_EXACT` antes de enrutarla (C4) |
 | G3D-5 | Nadie escribe el linaje (`sourceAssetIds`, `previousVersionId`): los derivados 3D nacerían sin origen ni herencia de derechos | 3D-ASSET-LIFECYCLE P2; `functions/src/core/content/linaje.ts` sin consumidores de producción | P2 de 3D-ASSET-LIFECYCLE |
-| G3D-6 | El Router no filtra por entrada: la incompatibilidad se descubre en el adaptador (400) | `functions/src/engine/router.ts` (`pickModel`) | Filtro puro de compatibilidad por datos |
+| G3D-6 | El Router no filtra por entrada: la incompatibilidad se descubre en el adaptador (400; o 403, si se le pide a Sloyd retexturizar un trabajo que no es suyo) | `functions/src/engine/router.ts` (`pickModel`) | Filtro puro de compatibilidad por datos |
 | G3D-7 | `ModelSpec.cost` es una tarifa por unidad; las opciones (textura HD, geometría HD, quad) la cambian | `functions/src/engine/types.ts` (`ModelCost`) | Un `ModelSpec` por combinación cobrable |
-| G3D-8 | El horizonte de reconciliación es por capacidad; la retención, por proveedor (Meshy 72 h, Tripo sin publicar) | `functions/src/runtime/plazos.ts` | Comprobación horizonte ≤ retención mínima de la cadena |
-| G3D-9 | Sin concurrencia por cuenta del proveedor en el Router; un 429 de cola es un fallo y se devuelve | `functions/src/engine/router.ts`; cola durable sin conectar (DD-03) | Cola o descarte `pasajera` |
+| G3D-8 | El horizonte de reconciliación es por capacidad; la retención, por proveedor (Meshy 72 h; Tripo y Sloyd sin publicar) | `functions/src/runtime/plazos.ts` | Comprobación horizonte ≤ retención mínima de la cadena |
+| G3D-9 | Sin concurrencia por cuenta del proveedor en el Router; un 429 de cola es un fallo y se devuelve (Sloyd: 5 trabajos por clave en su fase de test) | `functions/src/engine/router.ts`; cola durable sin conectar (DD-03) | Cola o descarte `pasajera` |
 | G3D-10 | El lector por papeles admite una variante por clase: varios formatos `transcoded` se descartarían | `functions/src/engine/providers/fal.ts` (`porPapel`) | GLB único + `3d.convert` (D3D-6) |
-| G3D-11 | La descarga del resultado acepta cualquier https que dé el proveedor | `functions/src/engine/http.ts` (`persistRemoteFile`) | Hosts por proveedor cuando el contrato los fije |
+| G3D-11 | La descarga del resultado acepta cualquier https que dé el proveedor (y con Sloyd el host es `storage.googleapis.com`, compartido por cualquiera) | `functions/src/engine/http.ts` (`persistRemoteFile`) | Hosts por proveedor cuando el contrato los fije |
 | G3D-12 | `ResultadoDeParada` no dice «este proveedor no para en este estado»; el único parar de Meshy es un `DELETE` que borra | `functions/src/runtime/reconciliacion.ts` | Vocabulario de parada + resolutor que pregunta antes |
 | G3D-13 | Un aviso sin firma (Meshy) no puede mover dinero; el runtime da por verificado el aviso normalizado | `functions/src/runtime/aviso.ts` | Aviso no firmado = «pregunta ya» |
 | G3D-14 | Texto → 3D de Meshy son dos POST cobrables en una operación | Meshy S14; `functions/src/core/job.ts` (un intento, una ejecución) | D3D-7 |
@@ -917,6 +1016,7 @@ la configuración.
 | G3D-18 | El libro es en USD (`providerCurrency: 'USD'`); un proveedor que cobra en CNY (Seed3D) necesita un tipo de cambio con fuente y fecha, o un techo en USD | `functions/src/engine/types.ts` (`GenerationRecord`), `functions/src/engine/pricing.ts` | Su `providerPricing` en USD, convertido con fuente, o un campo de moneda |
 | G3D-19 | La salida de Seed3D es un ZIP que caduca a las 24 h; el materializador guarda un archivo tal cual | `functions/src/content/materializador.ts` | Traerlo en la misma pasada y descomprimirlo con límites (tamaño, entradas, rutas), validando el formato aplicado |
 | G3D-20 | `ReglasTerritoriales` no dice «solo en X, bloqueado en el resto» (`resto` solo admite APPROVED o REVIEW_REQUIRED), y la licencia de Seed3D puede referirse a dónde está el cliente (Weë) y no al país de la persona ⚖ | `functions/src/engine/types.ts` (`ReglasTerritoriales`), `functions/src/engine/jurisdiccion.ts` | Hasta decidirlo, REVIEW_REQUIRED global (falla cerrado); `resto: 'BLOCKED'` o un bloqueo del proveedor sería un cambio de tipo |
+| G3D-21 | El gobierno no tiene dónde decir que un proveedor deja el resultado en una URL PÚBLICA, sin autenticación y predecible (Sloyd), ni que su id de trabajo es la llave de ese archivo: la elegibilidad no puede apartar de él las fotos de personas ni lo privado, el `Asset` guarda ese id en su procedencia (`operationId`) y la sanitización de registros solo conoce credenciales | `functions/src/engine/types.ts` (`GobiernoDeModelo`), `functions/src/core/content/asset.ts` (`Provenance.operationId`), `functions/src/engine/sanitize.ts` | Un dato de gobierno («salida pública en el proveedor») que lea la elegibilidad, ese id censurado en los registros y fuera de todo lo publicable, y el requisito de §19 (punto 5) en su adaptador |
 
 ---
 
@@ -938,14 +1038,15 @@ Cada una con su recomendado, **no aplicado**.
 | D3D-9 | Cupo diario: mundos y objetos comparten la modalidad `3d` (5 al día) | A) Un cupo 3D común · B) Un cupo por capacidad | **B** |
 | D3D-10 | Precio en Credits de cada servicio 3D | A) Techo del modelo más caro elegible, medir `providerCost` y ajustar · B) Precio fijo de prueba | **A** |
 | D3D-11 | Cancelar objetos 3D (Tripo no para; Meshy solo en PENDING; `expired` tras un éxito sin copiar) | A) Ofrecer «cancelar» solo donde el proveedor para de verdad · B) No ofrecerlo | **A** |
-| D3D-12 | Fotos de personas («3D de mí», avatar): Tripo desaconseja caras de terceros; Meshy prohíbe datos personales; Seed3D las mandaría a China | A) Bloquear caras hasta tener base legal y DPA · B) Permitirlas con aviso | **A** |
+| D3D-12 | Fotos de personas («3D de mí», avatar): Tripo desaconseja caras de terceros; Meshy prohíbe datos personales; Seed3D las mandaría a China; Sloyd las promociona (selfie → 3D) sin que su Privacidad hable de imágenes de personas ni de biometría, y las dejaría en una URL pública | A) Bloquear caras hasta tener base legal y DPA · B) Permitirlas con aviso | **A** |
 | D3D-13 | Marcas de IA y etiquetado como dimensión de derechos | A) Dimensión nueva en `DerechosDelMaterial` + `linaje.ts` · B) Solo en `licencias.notas` | **A** |
 | D3D-14 | Visor 3D y dónde se guardan las escenas (ya pendientes en 3D-EXPERIENCIA §19) | A) Integrar el visor web de `filmmaker/core` · B) Otra biblioteca | **A** |
 | D3D-15 | Integrar lo preparado en `filmmaker/core` (Meshy y World Labs PENDING, `models3d`, visor) antes o después de esta línea | A) Antes · B) Después, re-anclando | **A** |
-| D3D-16 | Reconciliar «sin referencia» (Meshy lista tareas por fecha; Tripo necesita ids) | A) Herramienta humana · B) Automática | **A** |
-| D3D-17 | **¿Puede la persona elegir proveedor (selección B)?** CLAUDE.md: nunca ve proveedores ni modelos por defecto (como mucho, un modo avanzado opcional y oculto). El MAPA 2 la deja en REVIEW_REQUIRED en Tripo y en Meshy (uso de marca, acceso visible de terceros) y UNKNOWN en fal; «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED, con lectura desfavorable, en Meshy. Haría falta un contrato que lo permita Y una decisión del dueño | A) No: A siempre (el Router elige) · B) Solo en un modo avanzado oculto, por proveedor, cuando su contrato lo permita | **A** (no es una función: es una decisión pendiente) |
-| D3D-18 | ¿Entran en el alcance de Weë las capacidades no 3D de estos proveedores (imagen con modelos de terceros, multivista) y la impresión o el producto físico (preparar para imprimir, Creative Lab, fabricación)? | A) Solo 3D: generar, texturizar, retopología, rig, animar, convertir · B) A + preparar para imprimir · C) B + producto físico | **A** |
+| D3D-16 | Reconciliar «sin referencia» (Meshy lista tareas por fecha; Tripo necesita ids; Sloyd no lista nada: sin el `jobId` de la respuesta, solo queda su panel) | A) Herramienta humana · B) Automática | **A** |
+| D3D-17 | **¿Puede la persona elegir proveedor (selección B)?** CLAUDE.md: nunca ve proveedores ni modelos por defecto (como mucho, un modo avanzado opcional y oculto). El MAPA 2 la deja en REVIEW_REQUIRED en Tripo, en Meshy y en Sloyd (uso de marca, acceso visible de terceros) y UNKNOWN en fal; «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED, con lectura desfavorable, en Meshy y en Sloyd. Haría falta un contrato que lo permita Y una decisión del dueño | A) No: A siempre (el Router elige) · B) Solo en un modo avanzado oculto, por proveedor, cuando su contrato lo permita | **A** (no es una función: es una decisión pendiente) |
+| D3D-18 | ¿Entran en el alcance de Weë las capacidades no 3D de estos proveedores (imagen con modelos de terceros, multivista) y la impresión o el producto físico (preparar para imprimir, Creative Lab, fabricación; en Sloyd, la impresión comercial exige una licencia a medida)? | A) Solo 3D: generar, texturizar, retopología, rig, animar, convertir · B) A + preparar para imprimir · C) B + producto físico | **A** |
 | D3D-19 | Seed3D 2.0: solo existe en Volcano Engine (China), con licencia para China continental y uso comercial con permiso escrito; los datos irían a China y el cliente asume obligaciones de la normativa china | A) Esperar a BytePlus ModelArk, donde Weë ya tiene contrato, y preguntar si llegará · B) Negociar un acuerdo escrito con Volcano Engine (uso comercial + territorio + datos) · C) Descartarlo | **A**; mientras, sus datos, si entran, REVIEW_REQUIRED (o BLOCKED_GLOBAL, si lo decide legal) y DISABLED |
+| D3D-20 | Sloyd: no hay términos de API (sus Términos cubren solo la WebApp), la licencia y la propiedad de los resultados de la API no están definidas, contratan dos entidades (Sloyd Inc., EE. UU.; Sloyd AS, Noruega), el resultado queda en una URL pública y parte de su API la sirven terceros sin nombrar | A) Pedirle por escrito, antes de nada, términos de API, licencia y propiedad de los resultados, entidad y ley, almacenamiento privado o URLs firmadas, retención y borrado, no entrenamiento, DPA y qué endpoints sirven modelos propios · B) A + entrar en la lista de espera de su SDK paramétrico · C) Descartar Sloyd | **A**; hasta entonces OFF. Esta línea no ha contactado con nadie |
 
 ---
 
@@ -978,7 +1079,7 @@ Ninguno de estos pasos se ha dado; cada uno es una decisión del dueño.
 
 | # | Paso | Cierra |
 |---|---|---|
-| 1 | Contrato con el proveedor elegido (Tripo con autorización escrita; Meshy Enterprise o Partner) y revisión legal | D3D-3 / D3D-4 |
+| 1 | Contrato con el proveedor elegido (Tripo con autorización escrita; Meshy Enterprise o Partner; Sloyd, sus términos de API y la privacidad del resultado, por escrito) y revisión legal | D3D-3 / D3D-4 / D3D-20 |
 | 2 | Vocabulario: `3d.generate` enrutable y `produces: '3d'`, con la Línea A | D3D-2, G3D-3, G3D-4 |
 | 3 | Datos del proveedor: `*-modelos.ts` con una combinación cobrable por `ModelSpec`, REVIEW_REQUIRED y DISABLED, y sus condiciones del MAPA 2 (`gobierno.condiciones`, con la etiqueta que diga el contrato firmado) | G3D-7, G3D-17 |
 | 4 | Adaptador + resolutor + plazos, probados con dobles y emulador, sin clave | G3D-8, G3D-12, G3D-13 |
@@ -993,10 +1094,10 @@ Ninguno de estos pasos se ha dado; cada uno es una decisión del dueño.
 ## 25. Estado final
 
 Algorithm Engine CONTINÚA EN SU MISIÓN — NO INTERFERIDO · Tripo OFF · Meshy OFF · fal.ai OFF · Hunyuan OFF · World 3D OFF ·
-API keys NO · Real calls NO · Production deploy NO · Real spend NO · Sloyd OFF (PENDING DEPENDENCY) · Seed3D PENDING /
-DISABLED (investigado: NOT_ALLOWED con los términos públicos) · investigación global de matrices 3D PENDING DEPENDENCY: todo candidato DISABLED /
-REVIEW_REQUIRED.
+API keys NO · Real calls NO · Production deploy NO · Real spend NO · Sloyd OFF (investigado: DISABLED / REVIEW_REQUIRED,
+sin términos de API y con su resultado en una URL pública) · Seed3D PENDING / DISABLED (investigado: NOT_ALLOWED con los
+términos públicos) · investigación global de matrices 3D PENDING DEPENDENCY: todo candidato DISABLED / REVIEW_REQUIRED.
 
-Lo que no se pudo verificar: ninguna API de Tripo, de Meshy ni de Seed3D se ha llamado (todo sale de su documentación pública,
-con los UNKNOWN de §3, §4 y §4c); la lectura jurídica es de un informe técnico y necesita revisión legal; el formato real de los
-archivos de mundo de fal y la retención de Tripo siguen sin confirmar.
+Lo que no se pudo verificar: ninguna API de Tripo, de Meshy, de Sloyd ni de Seed3D se ha llamado (todo sale de su
+documentación pública, con los UNKNOWN de §3, §4, §4b y §4c); la lectura jurídica es de un informe técnico y necesita
+revisión legal; el formato real de los archivos de mundo de fal y la retención de Tripo y de Sloyd siguen sin confirmar.
