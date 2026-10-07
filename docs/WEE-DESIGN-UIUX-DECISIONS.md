@@ -13,7 +13,7 @@ Qué se decidió en esta misión (y por qué), qué **espera al dueño**, y qué
 | DEC-06a | **Exportar por destino** (juego, animación, impresión, web y AR, render, edición profesional, 🤷 No sé) en vez de por formato | CREATOR.md §14: sin lenguaje técnico | La lista de destinos la confirma el dueño (DEC-06) |
 | DEC-13a | Disposición **por ancho útil medido** (tres columnas ≥ 1000, dos ≥ 720, una superficie por debajo) | La barra lateral de Weë AI se come 232 en escritorio | Cambiar dos números en `utils/designReferencia.ts` |
 | DEC-14a | **Sin micrófono** en la caja de la referencia | No hay dictado conectado en Weë Design (H-1): un botón que no hace lo que dice no se pone | Añadirlo cuando haya dictado |
-| DEC-15a | **No se representa el selector de proveedor** ni en la interfaz ni en el código | CLAUDE.md: la persona no ve proveedores; haría falta contrato y decisión del dueño (DEC-07) | — |
+| DEC-15a | El selector de proveedor existe **solo como puerta de gobierno cerrada** (`ELEGIR_QUIEN_LO_HACE_EN_LA_APP = false`): cerrada, no se pinta nada; abierta, el detalle de una capacidad enseña «Automático: Weë elige» elegido y **apagado**, y «Elegir otro» apagado con «pendiente de decisión del dueño». **Nunca un nombre de proveedor** | CLAUDE.md: la persona no ve proveedores por defecto; MAPA 2: la opción B (elige la persona) es REVIEW_REQUIRED en los dos candidatos; haría falta contrato, marca y decisión (DEC-07) | Borrar la puerta y su pieza |
 | DEC-16a | **Las pruebas nuevas van dentro de suites que ya están en la cadena** (`foundation-de-experiencias`, `cajas-weeai`, `navegacion-enlaces`, `credits-weeai`) con un módulo auxiliar (`functions/test/design-referencia.mjs`) | `ci-workflow` 13 exige que toda `*.test.mjs` esté en `functions/package.json`, que es de la Línea A y no se toca en esta misión | Al fusionar con la Línea A: convertir el auxiliar en `design-referencia.test.mjs` y añadirlo a la cadena (DEC-17) |
 
 ## 2. Del dueño (pendientes; cada una con la recomendación de esta misión, NO aplicada)
@@ -24,7 +24,7 @@ Qué se decidió en esta misión (y por qué), qué **espera al dueño**, y qué
 | **DEC-02** | Con la puerta abierta, ¿por dónde se entra? | A) Solo por dirección (`/design/referencia`, hoy) · B) Un acceso discreto en `DesignScreen` · C) Una entrada en el ☰ y la barra lateral | **B** (sin tocar el menú) |
 | **DEC-05** | ¿Se oculta la barra global inferior dentro del workspace en el teléfono? | A) No (hoy) · B) Sí (`SIN_BARRA`) | **A** mientras la referencia no sea la pantalla de Design |
 | **DEC-06** | Los destinos de exportación | La lista de DEC-06a, otra, o formatos visibles | La lista de DEC-06a; los formatos solo en un modo avanzado oculto |
-| **DEC-07** | ¿Selector de proveedor (AUTO · uno · otro)? | A) No, nunca por defecto · B) Solo en un modo avanzado de gobierno, apagado, con contrato | **A**. Si algún día B: puerta de gobierno, contrato y decisión explícita |
+| **DEC-07** | ¿Selector de proveedor (AUTO · uno · otro)? MAPA 2: que lo elija la persona es REVIEW_REQUIRED en los dos candidatos (marca, «dar acceso» al servicio) | A) No, nunca por defecto · B) Solo en un modo avanzado de gobierno, apagado, con contrato | **A**. Hoy solo existe la puerta de gobierno cerrada de DEC-15a; abrirla —y más aún nombrar a alguien— exige contrato, revisión de marca y decisión explícita |
 | **DEC-08** | ¿Modo avanzado (parámetros técnicos)? | A) No · B) Oculto por defecto (CREATOR.md §6 lo permite) | **A** hasta que haya capacidades 3D reales |
 | **DEC-09** | ¿Qué visor 3D? | A) El preparado en `filmmaker/core` (`VisorDeModelo3d`, web sobre `<model-viewer>`/three.js) para TODO Weë · B) Otro | **A**: uno solo, nunca uno de Design |
 | **DEC-10** | Precio y cupo diario de los modelos 3D | Medir `providerCost` primero | Ninguno hasta medir (CLAUDE.md §7) |
@@ -39,7 +39,8 @@ Qué se decidió en esta misión (y por qué), qué **espera al dueño**, y qué
 
 | Con | Qué | Marca |
 |---|---|---|
-| **Línea B** | Contrato canónico 3D, Provider Registry, huecos del Router, **MAPA 2** (elegibilidad), ids propuestos (`3d.segment`, `3d.animate`, variantes `resize`/`motion`/`stylize`, `image.multiview`) | DEPENDENCY / FUTURE INTEGRATION |
+| **Línea B** | Contrato canónico 3D, Provider Registry, huecos del Router, ids propuestos (`3d.segment`, `3d.animate`, variantes `resize`/`motion`/`stylize`, `image.multiview`) | DEPENDENCY / FUTURE INTEGRATION |
+| **Línea B · MAPA 2** | `elegibilidad-comercial.md` (2026-10-07): ninguna capacidad de Tripo ni de Meshy APPROVED; Tripo REQUIRES WRITTEN AUTHORIZATION; Meshy REQUIRES ENTERPRISE; vídeo, escenas y agente 3D de un candidato solo en su web (NOT_ALLOWED). La referencia lo copia como **dato** (`elegibilidad` en `constants/designReferencia.ts`) sin nombrar a nadie; cuando el Provider Registry de la Línea B lo exponga como código, ese campo se **deriva** de él en vez de escribirse a mano | DEPENDENCY / FUTURE INTEGRATION |
 | **Línea A** | Planes de varios pasos (imprimir, de imagen a 3D a textura), `functions/package.json` (la cadena de pruebas) | DEPENDENCY / FUTURE INTEGRATION |
 | **Filmmaker** (`filmmaker/core`) | El visor 3D | DEPENDENCY (DEC-09) |
 

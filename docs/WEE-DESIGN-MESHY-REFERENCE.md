@@ -67,13 +67,20 @@ sueltos no es público. **Weë no traslada estos números**: mide `providerCost`
 
 ## 6. Elegibilidad (dato del MAPA 2, no decidido aquí)
 
-**Estado: REVIEW_REQUIRED** hasta que el MAPA 2 diga otra cosa. Hechos ya conocidos:
-- La API exige **plan de pago**; la licencia es intransferible y no sublicenciable, y el contrato prohíbe revender o
-  redistribuir el acceso y compartir una cuenta. **La vía oficial para revender es el Partner Program, solo sobre Enterprise.**
-- Fuera de Enterprise, el proveedor **puede entrenar** con entradas y resultados (los términos y su FAQ comercial se contradicen).
-- Marcas de IA en los archivos que no se pueden quitar; borrado a los 3 días; datos en EE. UU.
+**MAPA 2 (Línea B, `elegibilidad-comercial.md`, 2026-10-07): REQUIRES ENTERPRISE (matizado). Ninguna capacidad está APPROVED.**
+- La API exige **plan de pago**; la licencia es limitada, intransferible y no sublicenciable (§2.1); el uso es **interno** del
+  cliente y sus usuarios autorizados (§1.2); prohíbe redistribuir el acceso y compartir cuenta (§2.6). La vía es un **Order Form
+  de Enterprise** (prevalece sobre los términos, §11.4) o el **Partner Program** (solo Enterprise, empieza por Europa).
+- **Solo en su web, sin API — NOT_ALLOWED:** composición de escenas, vídeo (render de modelos a vídeo) y su agente 3D.
+- Su imagen usa modelos de terceros: **REVIEW_REQUIRED**. Su línea de productos físicos (Creative Lab): REVIEW_REQUIRED
+  (contradicción entre su página comercial y los términos); fabricación: acuerdo de socio.
+- Que la persona elija este proveedor por su nombre (opción B): **REVIEW_REQUIRED**. «Trae tu propia clave»: REVIEW_REQUIRED
+  con lectura desfavorable.
+- Fuera de Enterprise puede entrenar con entradas y resultados (sus fuentes se contradicen); marcas de IA que no se pueden
+  quitar; borrado a los 3 días; datos en EE. UU.
 
-En la interfaz de Weë esto se ve, como mucho, como **«pendiente de autorización»** en la capacidad, sin nombrar a nadie.
+En la interfaz de Weë esto se ve como **«Pendiente de autorización»** (`requiere_acuerdo`) o, para lo que solo existe en su web,
+**«Nadie puede hacerlo todavía»** (`sin_candidato`), sin nombrar a nadie.
 
 ## 7. La interfaz oficial (lo que enseña la web)
 

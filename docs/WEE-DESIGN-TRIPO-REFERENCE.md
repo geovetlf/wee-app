@@ -74,13 +74,20 @@ Credits sale del Credit Engine (CLAUDE.md §7; [COSTES.md](COSTES.md)).
 
 ## 6. Elegibilidad (dato del MAPA 2, no decidido aquí)
 
-**Estado: REVIEW_REQUIRED** hasta que el MAPA 2 de la Línea B diga otra cosa. Hechos ya conocidos:
-- Los términos piden **autorización previa por escrito** del titular (Holymolly Ltd) para poner el servicio a disposición de
-  terceros, usuarios finales incluidos (§3.2): **bloqueante** para servir a la gente de Weë sin ese permiso.
-- En planes de pago la persona conserva los derechos del resultado y el proveedor no entrena con él; en el gratuito, no.
-- Ley de Hong Kong y arbitraje HKIAC.
+**MAPA 2 (Línea B, `elegibilidad-comercial.md`, 2026-10-07): REQUIRES WRITTEN AUTHORIZATION, confirmado. Ninguna capacidad
+está APPROVED.**
+- Los términos (§3.2, idénticos en sus dos copias del 2025-07-11) prohíben poner el servicio a disposición de cualquier
+  tercero, usuarios finales incluidos, **sin autorización previa por escrito**; el §3.3(a) prohíbe además explotarlo
+  comercialmente, así que el requisito alcanza también a la imagen. Una cuenta por plataforma (§2.2); sin cesión (§12.3); sin
+  programa público de socios (solo un contacto de alianzas y un Enterprise a medida). Quién firma la autorización es una
+  pregunta legal abierta.
+- Su imagen usa modelos de terceros: **REVIEW_REQUIRED** además de la autorización.
+- «Trae tu propia clave» (la persona conecta su cuenta): **NOT_ALLOWED**.
+- Que la persona elija este proveedor por su nombre (opción B): **REVIEW_REQUIRED** (sin pautas de marca públicas).
+- En planes de pago la persona conserva los derechos del resultado; en el gratuito, no (y el gratuito cae en NOT_ALLOWED para Weë).
 
-En la interfaz de Weë esto se ve, como mucho, como **«pendiente de autorización»** en la capacidad, sin nombrar a nadie.
+En la interfaz de Weë esto se ve como **«Pendiente de autorización»** en la capacidad (valor `requiere_acuerdo` del registro),
+sin nombrar a nadie.
 
 ## 7. La interfaz oficial (lo que enseña la web)
 

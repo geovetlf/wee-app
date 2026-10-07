@@ -83,19 +83,20 @@ entera, no una columna estrecha. Lo que necesita pantalla propia —la conversac
 
 | Grupo (barra) | Lleva a | Qué hay dentro |
 |---|---|---|
-| **Crear** | Composer, intención «Crear» | Concepto y propuestas (C01, conectado) · vistas (C02) · modelo 3D desde texto (C03) · render (C04) · entorno (C05) · inspiración (C06) |
-| **Transformar** | Composer, intención «Transformar» | Rediseñar mi espacio (C07, conectado) · de una imagen a 3D (C08) · de varias vistas a 3D (C09) · presentar en vídeo (C10) |
-| **Editar** | Inspector · Cambiar (necesita algo elegido) | Cambiar la imagen (C11) · otra versión (C12, conectado como «recrear») · quitar fondo (C13) · más resolución (C14) · cambiar el modelo (C15) · materiales (C16) · separar en partes (C18) · tamaño real (C19) |
+| **Crear** | Composer, intención «Crear» | Concepto y propuestas (C01, conectado) · vistas (C02) · modelo 3D desde texto (C03) · render (C04) · entorno (C05) · inspiración (C06) · empezar desde un modelo propio (C35, en la biblioteca) |
+| **Transformar** | Composer, intención «Transformar» | Rediseñar mi espacio (C07, conectado) · de una imagen a 3D (C08) · de varias vistas a 3D (C09) · antes y después (C29, conectado: abre su trabajo) |
+| **Editar** | Inspector · Cambiar (necesita algo elegido) | Cambiar con palabras (C11, parcial: recrea) · otra versión (C12, conectado: abre su trabajo) · quitar fondo (C13) · más resolución (C14) · cambiar el modelo (C15) · materiales (C16) · separar en partes (C18) · tamaño real (C19) · estilizar (C20) · versiones (C36, en la franja) |
 | **Animar** | Inspector · Animar | Esqueleto (C21) · animar (C22) · movimiento desde una frase (C23) |
-| **Escena** | Biblioteca · Escena | Componer (C24) · cámaras (C25) · luces (C26) |
-| **Entregar** | Inspector · Entregar | Descargar (C30, conectado) · exportar para… (C31; aligerar C17 va dentro) · imprimir (C32) · publicar (C33, conectado para imagen) · guardar en proyecto (C34, conectado) · importar un modelo (C35, en la biblioteca) |
+| **Escena** | Biblioteca · Escena y la barra del lienzo | Componer (C24) · cámaras (C25) · luces (C26) · visor (C27) · modos de vista (C28) |
+| **Entregar** | Inspector · Entregar | Presentar en vídeo (C10) · aligerar (C17) · descargar (C30, conectado) · exportar para… (C31) · imprimir (C32) · publicar (C33, conectado para imagen) · guardar en proyecto (C34, conectado) |
 
 ## 5. Cómo lo implementa la referencia (código de esta rama)
 
 | Pieza | Archivo | Qué es |
 |---|---|---|
 | Puerta | `constants/designReferencia.ts` → `DESIGN_REFERENCIA_EN_LA_APP = false` | Cerrada: la ruta existe en la pila, el enlace `design/referencia` solo con la puerta abierta, y la pantalla cerrada no lee ni llama a nada |
-| Registro de capacidades | `constants/designReferencia.ts` | Las filas C01–C36 del MAPA 1 en CLAVES (nunca frases), con su grupo, su capacidad del Core (o propuesta marcada), dónde viven, de qué dependen, decisiones y el estado de elegibilidad **como dato** |
+| Registro de capacidades | `constants/designReferencia.ts` | Las filas C01–C36 del MAPA 1 en CLAVES (nunca frases), con su grupo, su capacidad del Core (o propuesta marcada), dónde viven, de qué dependen, decisiones y la elegibilidad del MAPA 2 **como dato**, sin nombres de proveedor |
+| Puerta de gobierno | `constants/designReferencia.ts` → `ELEGIR_QUIEN_LO_HACE_EN_LA_APP = false` | Elegir quién ejecuta una capacidad (DEC-07, DEC-15a): cerrada no se pinta; abierta, solo «Automático» y todo apagado |
 | Disponibilidad | `utils/designReferencia.ts` → `estadoDeLaCapacidad` | Pura. Una capacidad solo está disponible si (1) tiene un punto de integración real, (2) su capacidad del Core es `ROUTABLE` en el catálogo **leído del espejo**, (3) no espera backend, proveedor, decisión ni visor. Si no, devuelve el motivo |
 | Estados de trabajo | `utils/designReferencia.ts` | Los once del dueño (+ NOT_AVAILABLE, CANCELLING), sus transiciones y la traducción desde `creatorJobs.status` |
 | Contexto hacia Weë Brain | `utils/designReferencia.ts` → `contextoDeDesign` | Arma el `ContextoDeExperiencia` (`workspace: 'design'`, `experienceId` por `destinoDeIntencion` dentro de `design`, `presets`, `adjuntos`, `imageUri`); no interpreta nada |
