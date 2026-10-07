@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
@@ -7,11 +7,10 @@ import {
   CADENA_DE_DESIGN, CLAVE_DE_LA_CLASE, CapacidadDeDesign, EslabonDeLaCadena, capacidadPorId, eslabonDeLaCapacidad,
 } from '../../constants/designReferencia';
 import { SeleccionDeDesign, eslabonActual, pasosDesde } from '../../utils/designReferencia';
-import { BotonDeAccion, Insignia, Pista } from './piezas';
+import { BotonDeAccion, CURSOR, Insignia, Pista, nombreDeIcono } from './piezas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
-const isWeb = Platform.OS === 'web';
 
 interface Props {
   seleccion: SeleccionDeDesign;
@@ -71,11 +70,11 @@ const CadenaDeDesign: React.FC<Props> = ({ seleccion, onAbrir }) => {
                     borderColor: esActual ? theme.colors.text : theme.colors.border,
                     backgroundColor: hecho ? theme.colors.glow : theme.colors.card,
                   },
-                  isWeb && ({ cursor: 'pointer' } as any),
+                  CURSOR,
                 ]}
               >
                 <View style={estilos.eslabonCabeza}>
-                  <Ionicons name={e.icono as any} size={scale(16)} color={theme.colors.text} />
+                  <Ionicons name={nombreDeIcono(e.icono)} size={scale(16)} color={theme.colors.text} />
                   <Text style={[estilos.eslabonNombre, { color: theme.colors.text }]} numberOfLines={1}>{t(e.clave)}</Text>
                 </View>
                 <Insignia clave={CLAVE_DE_LA_CLASE[e.clase]} tono={e.clase === 'EXISTING' ? 'activo' : e.clase === 'PARTIAL' ? 'aviso' : 'apagado'} />

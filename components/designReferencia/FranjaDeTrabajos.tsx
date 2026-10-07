@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import type { CreatorJob } from '../../services/creatorService';
 import { CapacidadDeDesign, capacidadPorId } from '../../constants/designReferencia';
 import { CLAVE_DEL_ESTADO_DE_TRABAJO, ESTADO_DESDE_CREATOR_JOB, EstadoDeLaCapacidad } from '../../utils/designReferencia';
 import type { Carga } from './PanelDeBiblioteca';
-import { BotonDeCapacidad, Insignia, Pestanas, Pista } from './piezas';
+import { BotonDeCapacidad, CURSOR, Insignia, Pestanas, Pista } from './piezas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
-const isWeb = Platform.OS === 'web';
 
 type Pestana = 'trabajos' | 'versiones';
 const PESTANAS: { id: Pestana; clave: string }[] = [
@@ -66,7 +65,7 @@ const FranjaDeTrabajos: React.FC<Props> = ({ trabajos, elegidoId, onElegirTrabaj
           style={[
             horizontal ? estilos.ficha : estilos.fila,
             { borderColor: elegido ? theme.colors.text : theme.colors.border, backgroundColor: theme.colors.card },
-            isWeb && ({ cursor: 'pointer' } as any),
+            CURSOR,
           ]}
         >
           <Text style={[estilos.objetivo, { color: theme.colors.text }]} numberOfLines={2}>{j.goal}</Text>

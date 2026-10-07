@@ -12,11 +12,10 @@ import {
   CLAVE_DEL_ESTADO_DE_TRABAJO, CLAVE_DEL_ESTADO_DEL_PASO, CLAVE_DEL_NIVEL, CLAVE_DEL_PASO, EstadoDeLaCapacidad, PASOS,
   cancelacionEn, estadosSimulados, recorridoDe, siguientesDe,
 } from '../../utils/designReferencia';
-import { Insignia, ListaDeAjustes, Pista, TituloDeBloque } from './piezas';
+import { CURSOR, Insignia, ListaDeAjustes, Pista, TituloDeBloque, nombreDeIcono } from './piezas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
-const isWeb = Platform.OS === 'web';
 
 interface Props {
   cap: CapacidadDeDesign | null;
@@ -77,7 +76,7 @@ const HojaDeCapacidad: React.FC<Props> = ({ cap, estado, onCerrar, onUsar, onAbr
       <View style={[estilos.fondo, { backgroundColor: theme.colors.backdrop }]}>
         <View style={[estilos.hoja, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]} accessibilityViewIsModal>
           <View style={estilos.cabecera}>
-            <Ionicons name={cap.icono as any} size={scale(22)} color={theme.colors.text} />
+            <Ionicons name={nombreDeIcono(cap.icono)} size={scale(22)} color={theme.colors.text} />
             <Text style={[estilos.nombre, { color: theme.colors.text }]} accessibilityRole="header" numberOfLines={2}>{t(cap.clave)}</Text>
             <TouchableOpacity onPress={onCerrar} accessibilityRole="button" accessibilityLabel={t('common.close')} style={estilos.cerrar} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={scale(22)} color={theme.colors.text} />
@@ -228,7 +227,7 @@ const BotonDeTexto: React.FC<{ clave: string; onPress: () => void; principal?: b
       style={[
         estilos.boton,
         principal ? { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent } : { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
-        isWeb && ({ cursor: 'pointer' } as any),
+        CURSOR,
       ]}
     >
       <Text style={[estilos.botonTexto, { color: principal ? '#1F2937' : theme.colors.text }]} numberOfLines={2}>{t(clave, valores)}</Text>

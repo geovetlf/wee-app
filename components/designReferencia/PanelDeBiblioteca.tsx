@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -15,11 +15,10 @@ import {
 import {
   CLAVE_DEL_ESTADO_DE_TRABAJO, ESTADO_DESDE_CREATOR_JOB, EstadoDeLaCapacidad, FiltroDeBiblioteca, capacidadesDeLaPestana, filtrarCreaciones,
 } from '../../utils/designReferencia';
-import { BotonDeCapacidad, Insignia, Pestanas, Pista } from './piezas';
+import { BotonDeCapacidad, CURSOR, Insignia, Pestanas, Pista, nombreDeIcono } from './piezas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
-const isWeb = Platform.OS === 'web';
 
 export interface Carga<T> {
   estado: 'sinSesion' | 'cargando' | 'listo' | 'error';
@@ -114,13 +113,13 @@ const PanelDeBiblioteca: React.FC<Props> = (p) => {
                   accessibilityRole="button"
                   accessibilityState={{ selected: elegido }}
                   accessibilityLabel={a.name || t(CLAVE_DE_TIPO[a.kind])}
-                  style={[estilos.item, { borderColor: elegido ? theme.colors.text : theme.colors.border, backgroundColor: theme.colors.card }, isWeb && ({ cursor: 'pointer' } as any)]}
+                  style={[estilos.item, { borderColor: elegido ? theme.colors.text : theme.colors.border, backgroundColor: theme.colors.card }, CURSOR]}
                 >
                   {url ? (
                     <Image source={{ uri: url }} style={estilos.miniatura} contentFit="cover" accessibilityIgnoresInvertColors />
                   ) : (
                     <View style={[estilos.miniatura, estilos.icono, { backgroundColor: theme.colors.surface }]}>
-                      <Ionicons name={(ICONO_DE_CLASE[a.kind] ?? 'document-outline') as any} size={scale(20)} color={theme.colors.text} />
+                      <Ionicons name={nombreDeIcono((ICONO_DE_CLASE[a.kind] ?? 'document-outline'))} size={scale(20)} color={theme.colors.text} />
                     </View>
                   )}
                   <View style={estilos.itemTexto}>
@@ -147,7 +146,7 @@ const PanelDeBiblioteca: React.FC<Props> = (p) => {
                     activeOpacity={0.8}
                     accessibilityRole="button"
                     accessibilityLabel={j.goal}
-                    style={[estilos.item, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }, isWeb && ({ cursor: 'pointer' } as any)]}
+                    style={[estilos.item, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }, CURSOR]}
                   >
                     <View style={estilos.itemTexto}>
                       <Text style={[estilos.itemNombre, { color: theme.colors.text }]} numberOfLines={2}>{j.goal}</Text>
@@ -203,7 +202,7 @@ const BotonSimple: React.FC<{ clave: string; onPress: () => void }> = ({ clave, 
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={t(clave)}
-      style={[estilos.simple, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }, isWeb && ({ cursor: 'pointer' } as any)]}
+      style={[estilos.simple, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }, CURSOR]}
     >
       <Text style={[estilos.itemNombre, { color: theme.colors.text }]}>{t(clave)}</Text>
     </TouchableOpacity>

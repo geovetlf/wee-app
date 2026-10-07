@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
@@ -9,6 +9,13 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/
 import { scale } from '../../utils/scale';
 
 const isWeb = Platform.OS === 'web';
+
+/** El nombre de un icono de la app. Los registros guardan el nombre como texto (es un identificador). */
+export type NombreDeIcono = React.ComponentProps<typeof Ionicons>['name'];
+export const nombreDeIcono = (n: string): NombreDeIcono => n as NombreDeIcono;
+
+/** La mano sobre lo que se pulsa, en web. */
+export const CURSOR: ViewStyle | null = isWeb ? { cursor: 'pointer' } : null;
 
 /**
  * LAS PIEZAS DE LA REFERENCIA FUNCIONAL DE WEË DESIGN.
@@ -41,10 +48,10 @@ export const BotonDeCapacidad: React.FC<{
       style={[
         compacto ? estilos.chip : estilos.fila,
         { borderColor: theme.colors.border, backgroundColor: apagado ? theme.colors.surface : theme.colors.card },
-        isWeb && ({ cursor: 'pointer' } as any),
+        CURSOR,
       ]}
     >
-      <Ionicons name={cap.icono as any} size={scale(compacto ? 16 : 18)} color={apagado ? theme.colors.textSecondary : theme.colors.text} />
+      <Ionicons name={nombreDeIcono(cap.icono)} size={scale(compacto ? 16 : 18)} color={apagado ? theme.colors.textSecondary : theme.colors.text} />
       <Text
         style={[compacto ? estilos.chipTexto : estilos.filaTexto, { color: apagado ? theme.colors.textSecondary : theme.colors.text }]}
         numberOfLines={compacto ? 1 : 2}
@@ -93,7 +100,7 @@ export const Pestanas = <T extends string>({ opciones, elegida, onElegir, etique
             style={[
               estilos.pestana,
               { borderColor: activa ? theme.colors.text : theme.colors.border, backgroundColor: activa ? theme.colors.text : theme.colors.card },
-              isWeb && ({ cursor: 'pointer' } as any),
+              CURSOR,
             ]}
           >
             <Text style={[estilos.pestanaTexto, { color: activa ? theme.colors.background : theme.colors.text }]} numberOfLines={1}>{t(o.clave)}</Text>
@@ -137,10 +144,10 @@ export const BotonDeAccion: React.FC<{
       style={[
         estilos.chip,
         principal ? { backgroundColor: theme.colors.text, borderColor: theme.colors.text } : { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
-        isWeb && ({ cursor: 'pointer' } as any),
+        CURSOR,
       ]}
     >
-      {icono ? <Ionicons name={icono as any} size={scale(16)} color={principal ? theme.colors.background : theme.colors.text} /> : null}
+      {icono ? <Ionicons name={nombreDeIcono(icono)} size={scale(16)} color={principal ? theme.colors.background : theme.colors.text} /> : null}
       <Text style={[estilos.chipTexto, { color: principal ? theme.colors.background : theme.colors.text }]} numberOfLines={1}>{t(clave, valores)}</Text>
     </TouchableOpacity>
   );
@@ -184,7 +191,7 @@ export const ListaDeAjustes: React.FC<{
 };
 
 /** Un panel: borde suave, fondo de tarjeta. */
-export const Panel: React.FC<{ children: React.ReactNode; style?: any }> = ({ children, style }) => {
+export const Panel: React.FC<{ children: React.ReactNode; style?: StyleProp<ViewStyle> }> = ({ children, style }) => {
   const { theme } = useTheme();
   return <View style={[estilos.panel, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }, style]}>{children}</View>;
 };

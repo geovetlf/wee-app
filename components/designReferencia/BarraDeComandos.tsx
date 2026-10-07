@@ -1,14 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { CLAVE_DEL_GRUPO, GRUPOS_DE_COMANDOS, GrupoDeComandos } from '../../constants/designReferencia';
-import { Insignia, Pestanas } from './piezas';
+import { CURSOR, Insignia, Pestanas } from './piezas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
-const isWeb = Platform.OS === 'web';
 
 interface Props {
   /** El nombre del proyecto activo: contenido de la persona, no se traduce. */
@@ -44,7 +43,7 @@ const BarraDeComandos: React.FC<Props> = ({ proyecto, grupo, onGrupo, onProyecto
           activeOpacity={0.75}
           accessibilityRole="button"
           accessibilityLabel={t('designRef.capSwitchProject')}
-          style={[estilos.proyecto, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }, isWeb && ({ cursor: 'pointer' } as any)]}
+          style={[estilos.proyecto, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }, CURSOR]}
         >
           <Ionicons name="folder-open-outline" size={scale(16)} color={theme.colors.text} />
           <Text style={[estilos.proyectoTexto, { color: theme.colors.text }]} numberOfLines={1}>
@@ -56,7 +55,7 @@ const BarraDeComandos: React.FC<Props> = ({ proyecto, grupo, onGrupo, onProyecto
           activeOpacity={0.75}
           accessibilityRole="button"
           accessibilityLabel={t('designRef.capCapabilityDiscovery')}
-          style={[estilos.icono, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }, isWeb && ({ cursor: 'pointer' } as any)]}
+          style={[estilos.icono, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }, CURSOR]}
         >
           <Ionicons name="compass-outline" size={scale(18)} color={theme.colors.text} />
         </TouchableOpacity>

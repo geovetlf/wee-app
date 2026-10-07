@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, LayoutChangeEvent } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import type { MainStackParamList } from '../navigation/MainStackNavigator';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -75,8 +77,8 @@ const ReferenciaCerrada: React.FC = () => {
 const EspacioDeTrabajo: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+  const route = useRoute<RouteProp<MainStackParamList, 'DesignReferencia'>>();
   const { user } = useAuth();
   const { isDesktop, height } = useResponsive();
 

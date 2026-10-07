@@ -169,7 +169,8 @@ export const CLAVE_DEL_ESTADO_DEL_PASO: Readonly<Record<EstadoDelPaso, string>> 
  * - = N/A (no aplica, dicho), X = NO (falta y nadie lo ha diseñado).
  */
 const recorrido = (codigo: string): Readonly<Record<Paso, EstadoDelPaso>> => {
-  if (codigo.length !== PASOS.length) throw new Error(`recorrido de ${codigo.length} pasos`);
+  /* Un recorrido mal escrito es un error de programación: se dice el código, no una frase. */
+  if (codigo.length !== PASOS.length) throw new RangeError(codigo);
   const letra: Record<string, EstadoDelPaso> = { Y: 'YES', P: 'PENDING', '-': 'N/A', X: 'NO' };
   return Object.freeze(Object.fromEntries(PASOS.map((p, i) => [p, letra[codigo[i]]])) as Record<Paso, EstadoDelPaso>);
 };
@@ -639,7 +640,7 @@ export const recorrerCadena = (eslabones: readonly EslabonDeLaCadena[] = CADENA_
   let anterior: SeleccionDeDesign = null;
   eslabones.forEach((e, i) => {
     const cap = capacidadPorId(e.capacidad);
-    if (!cap) throw new Error(`eslabón sin capacidad: ${e.id}`);
+    if (!cap) throw new RangeError(e.id);
     const r = simularResultado(cap, anterior, i + 1);
     salida.push(r);
     anterior = r;
