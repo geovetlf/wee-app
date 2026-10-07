@@ -31,7 +31,7 @@ import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto }
 import { restriccionesMalFormadas } from './objective';
 import { Confidence, Evidence, Signal, resolverSenales } from './signals';
 import { Severidad } from './strategy';
-import { violacionesEn } from './authority';
+import { duenosDe, sonDelRouter, violacionesEn } from './authority';
 import { claveDeEstado } from './verification';
 import {
   ContextoDeVerificacion, ESTADOS, EstadoDeVerificacion, MetricasDeVerificacion, METRICAS_DE_VERIFICACION_CERO,
@@ -318,7 +318,9 @@ export const crearMotorDeVerificacion = (opciones: OpcionesDelVerificador = {}) 
       findings.push(Object.freeze({
         checkId: 'authority:implementacion', type: 'authority.implementation', status: 'fail' as const,
         hard: true, severity: 'alto' as Severidad, by: 'structural',
-        because: `el resultado nombra implementación en ${violaciones.map((v) => `${v.donde}.${v.clave}`).sort().join(', ')}`,
+        because: sonDelRouter(violaciones)
+          ? `el resultado nombra implementación en ${violaciones.map((v) => `${v.donde}.${v.clave}`).sort().join(', ')}`
+          : `el resultado cruza la frontera de autoridad en ${violaciones.map((v) => `${v.donde}.${v.clave}`).sort().join(', ')} (${duenosDe(violaciones)})`,
       }));
       m.durosIncumplidos++;
     }

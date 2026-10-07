@@ -47,7 +47,7 @@ import {
 } from './signals';
 import { Alternative, AxisValues, StrategyScore, pareto, puntuar } from './scoring';
 import { Strategy, problemasDeEstrategia } from './strategy';
-import { violacionesDeEstrategia, violacionesEn } from './authority';
+import { duenosDe, sonDelRouter, violacionesDeEstrategia, violacionesEn } from './authority';
 /* Solo la DEFINICIÓN de muestra de A7. Ni su motor ni el de A8: A1 no lee de ellos. */
 import { POLITICA_MINIMA } from './feedback';
 import {
@@ -597,7 +597,7 @@ export const problemaDeHistorial = (h: unknown): string | undefined => {
     if (v !== undefined && (typeof v !== 'number' || !Number.isFinite(v) || v < 0)) return `${k} imposible`;
   }
   const cruces = violacionesEn(h, 'history');
-  if (cruces.length) return `nombra una implementación (${cruces[0].clave})`;
+  if (cruces.length) return sonDelRouter(cruces) ? `nombra una implementación (${cruces[0].clave})` : `cruza la frontera de autoridad (${duenosDe(cruces)})`;
   if (w.sampleSize < POLITICA_MINIMA.minSampleSize) {
     return `muestra de ${w.sampleSize}, por debajo de ${POLITICA_MINIMA.minSampleSize}: no es una muestra`;
   }
@@ -834,7 +834,9 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
           'authority_violation', contador.gasto(), { warnings: ['authority_violation'] }),
         status: 'invalid',
         explanation: Object.freeze([
-          `La petición nombra una implementación en sus requisitos (${claves.join(', ')}): eso lo elige el Router, y no se decide sobre ella.`,
+          sonDelRouter(cruces)
+            ? `La petición nombra una implementación en sus requisitos (${claves.join(', ')}): eso lo elige el Router, y no se decide sobre ella.`
+            : `La petición pide en sus requisitos lo que no es de esta capa (${duenosDe(cruces)}), y no se decide sobre ella.`,
         ]),
       };
     }
