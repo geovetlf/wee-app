@@ -32,7 +32,8 @@
       "scripts/ci-sin-secretos.mjs",
       "scripts/solo-desde-el-workflow.mjs",
       "functions/src/engine/sanitize.ts",
-      "functions/src/engine/webhooks.ts"
+      "functions/src/engine/webhooks.ts",
+      "functions/src/creator/sombra.ts"
     ],
     "dinero": [
       "functions/src/credits/**",
@@ -296,8 +297,10 @@
             "6 · ",
             "7 · ",
             "8 · ",
+            "17 · ",
             "19 · ",
-            "20 · "
+            "20 · ",
+            "21 · "
           ]
         }
       ]

@@ -105,7 +105,10 @@ check('16) CLAUDE.md y DECISIONES-DELIBERADAS.md van siempre, los dos obligatori
 check('17) las rúbricas de los revisores existen y cada revisor tiene la suya',
   ['revisor-codigo', 'revisor-seguridad', 'revisor-arquitectura'].every((n) => paquetes.revisores[n] && existe(paquetes.revisores[n].rubrica)) && existe(paquetes.rubricaComun));
 const alg = S.extraerSecciones(leer('docs/ALGORITHM-ENGINE.md'), paquetes.paquetes.find((p) => p.id === 'algoritmo').documentos[0].secciones);
-check('18) ALGORITHM-ENGINE.md entra solo por §§1-8 y 19-20 (no por §9 en adelante)', !/^## 9 · /m.test(alg.texto) && /^## 1 · /m.test(alg.texto) && /^## 20 · /m.test(alg.texto));
+/* (Misión de cierre) Y § 17 —la sombra, su único camino vivo— y § 21 —el estado y la frontera—; nunca §§ 9-16 ni la 18 entera. */
+check('18) ALGORITHM-ENGINE.md entra solo por §§1-8, 17 y 19-21 (no por §9 ni por la 18)',
+  !/^## 9 · /m.test(alg.texto) && !/^## 18 · /m.test(alg.texto) && /^## 1 · /m.test(alg.texto) && /^## 17 · /m.test(alg.texto)
+  && /^## 20 · /m.test(alg.texto) && /^## 21 · /m.test(alg.texto));
 
 /* ── 5. el selector, con un repositorio temporal ────────────────────────── */
 

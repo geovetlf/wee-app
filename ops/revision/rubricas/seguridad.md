@@ -45,7 +45,8 @@ Las puertas de Weë están CERRADAS por defecto y deben fallar CERRADAS si no se
 
 - `aiSettings/runtime` (el conductor del Core; solo los tres canaries declarados en `CAPACIDAD_DEL_CANARY`,
   cada uno solo para las cuentas de SU lista —`porCapacidad`—: sin lista o con la lista vacía, para nadie);
-- `aiSettings/sombra` (el Algorithm Engine en sombra);
+- `aiSettings/sombra` (el Algorithm Engine en sombra; `creator/sombra.ts` es zona roja: al abrirse, su camino `brain` llama
+  a un proveedor real a 0 Credits y la sombra espera en línea dentro de `creatorChat`);
 - `FILMMAKER_EN_LA_APP` (Filmmaker en la app);
 - App Check (preparado y apagado);
 - `aiSettings/global.iaDetenida` (el interruptor de la IA).

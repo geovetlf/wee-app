@@ -115,6 +115,10 @@ export const ZONAS_ROJAS = [
   'functions/src/settlement/**',
   'functions/src/core/financial/**',
   'functions/src/runtime/**',
+  /* La sombra del plan: implementa la puerta `aiSettings/sombra`, que al abrirse ejecuta en `creatorChat` el camino
+   * `brain` —una llamada real a un proveedor, a 0 Credits— y espera en línea al Algorithm Engine (misión de cierre,
+   * DD-26). El motor (`core/algorithm/**`) NO es zona roja: es puro, sin autoridad y su salida se tira. */
+  'functions/src/creator/sombra.ts',
   'functions/src/engine/router.ts',
   'functions/src/engine/registry.ts',
   'functions/src/engine/providers/**',
