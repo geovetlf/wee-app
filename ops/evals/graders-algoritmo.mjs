@@ -282,34 +282,39 @@ const CATALOGO = {
   },
 
   /*
-   * LA FRONTERA DE AUTORIDAD, con la lista del Planner (`claveDeImplementacion`), recorrida entera: nada que cruza
-   * (la entrega) ni nada elegido o elegible nombra una implementación; si la petición no cruzaba la frontera, el motor
-   * no introduce ninguna implementación en ninguna parte —lo mismo que mira la sombra con `violacionesEn`—; y si la
-   * cruzaba, se niega a entregar. «Cruzaba» es por la lista del Planner o por la lectura por responsabilidad del motor
-   * (misión de cierre: una billetera o un sinónimo en un paso); el desenlace exacto lo fija `expected`.
+   * LA FRONTERA DE AUTORIDAD, recorrida entera —con la lista del Planner, sin el tope de la guarda— y también con la
+   * lectura por responsabilidad del motor:
+   *  · nada que cruza (la entrega) ni nada elegido o elegible cruza la frontera;
+   *  · si cruzaba algo que vale para TODAS las alternativas —el objetivo, las restricciones, el ámbito de lo aprendido,
+   *    lo esperado o los pasos de la tarea—, el motor se niega a entregar; una OPCIÓN que cruza, A1 la deja fuera y
+   *    decide con las demás, como el ciclo (segunda pasada de la revisión: juzgar toda la petición daba un falso fallo);
+   *  · y el motor no INTRODUCE nada que cruce: lo que cruza en lo que devuelve tiene que venir de la petición —se mira
+   *    siempre, también cuando la petición ya cruzaba—.
+   * El desenlace exacto lo fija `expected`.
    */
   'algoritmo/frontera': (d, _e, caso) => {
     const r = resultadoDe(d);
     if (!r) return { ok: false, detail: 'sin resultado del ciclo' };
     const f = [];
-    const entrada = rutasDe({ peticion: caso.peticion ?? null, observacion: caso.cierre?.observacion ?? null }, esImplementacion);
-    const porResponsabilidad = MOTOR_ALGORITMICO.violacionesEn({ peticion: caso.peticion ?? null, observacion: caso.cierre?.observacion ?? null }, 'entrada')
-      .map((v) => `${v.donde}.${v.clave}`);
-    const cruzaba = [...new Set([...entrada.rutas, ...porResponsabilidad])];
-    const entrega = rutasDe(r.entrega ?? null, esImplementacion);
-    const elegido = rutasDe([r.decision?.selected ?? null, ...lista(r.decision?.alternatives), r.approach?.selected ?? null,
-      ...lista(r.decision?.candidates).filter((c) => c?.eligible).map((c) => c.value)], esImplementacion);
-    if (entrega.rutas.length) f.push(`la entrega nombra una implementación: ${entrega.rutas.join(', ')}`);
-    if (elegido.rutas.length) f.push(`lo elegido o elegible nombra una implementación: ${elegido.rutas.join(', ')}`);
-    if (cruzaba.length) {
-      if (r.status === 'decided' || r.entrega) f.push(`la petición cruzaba la frontera (${cruzaba.join(', ')}) y aun así se entregó`);
-    } else {
-      const todo = rutasDe({ resultado: r, cierre: d.cierre ?? null }, esImplementacion);
-      if (todo.rutas.length) f.push(`el motor introdujo una implementación: ${todo.rutas.join(', ')}`);
-      if (MOTOR_ALGORITMICO.violacionesEn(r, 'algoritmo').length) f.push('la guarda de la sombra (violacionesEn) lo ve cruzar la frontera');
-      if (!todo.completo) f.push('el resultado no se pudo revisar entero');
-    }
-    if (!entrada.completo || !entrega.completo || !elegido.completo) f.push('no se pudo revisar entero');
+    const p = peticionDe(caso);
+    const claveFinal = (ruta) => String(ruta).split('.').pop().replace(/\[\d+\]$/, '');
+    const cruces = (valor, donde) => {
+      const porNombre = rutasDe(valor, esImplementacion);
+      if (!porNombre.completo) f.push(`no se pudo revisar entero (${donde})`);
+      return [...porNombre.rutas, ...MOTOR_ALGORITMICO.violacionesEn(valor, donde).map((v) => `${v.donde}.${v.clave}`)];
+    };
+    const aprendido = esObjeto(p.aprendido) ? { ...p.aprendido, learned: null } : null;
+    const global = cruces({ objective: p.decision?.objective ?? null, constraints: p.decision?.constraints ?? null, aprendido,
+      expected: p.expected ?? null, tarea: p.tarea ?? null }, 'entrada');
+    const entrega = cruces(r.entrega ?? null, 'entrega');
+    const elegido = cruces([r.decision?.selected ?? null, ...lista(r.decision?.alternatives), r.approach?.selected ?? null,
+      ...lista(r.decision?.candidates).filter((c) => c?.eligible).map((c) => c.value)], 'elegido');
+    if (entrega.length) f.push(`la entrega cruza la frontera: ${entrega.join(', ')}`);
+    if (elegido.length) f.push(`lo elegido o elegible cruza la frontera: ${elegido.join(', ')}`);
+    if (global.length && (r.status === 'decided' || r.entrega)) f.push(`la petición cruzaba la frontera (${global.join(', ')}) y aun así se entregó`);
+    const traidas = new Set(cruces({ peticion: caso.peticion ?? null, observacion: caso.cierre?.observacion ?? null }, 'entrada').map(claveFinal));
+    const introducidas = [...new Set(cruces({ resultado: r, cierre: d.cierre ?? null }, 'algoritmo').map(claveFinal))].filter((k) => !traidas.has(k));
+    if (introducidas.length) f.push(`el motor introdujo lo que la petición no traía: ${introducidas.join(', ')}`);
     return veredicto(f);
   },
 
