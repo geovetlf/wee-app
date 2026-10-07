@@ -377,6 +377,19 @@ const estadoDelCandidato = (doc, filas, { nombre, marca }) => {
   const marcado = marca.test(doc);
   return conFilas && !marcado ? 'con_filas' : !conFilas && marcado ? 'pendiente' : conFilas ? 'a_medias: filas y marca' : 'olvidado: ni filas ni marca';
 };
+/**
+ * LA INVESTIGACIÓN GLOBAL DE MATRICES 3D (programa del dueño, 2026-10-07): no la hace esta línea. Su sección del
+ * documento tiene que nombrar sus siete entregables y la regla del registro —todo candidato DISABLED y REVIEW_REQUIRED—,
+ * esté pendiente o ya resumida. Devuelve lo que falta.
+ */
+const ENTREGABLES_GLOBALES = Object.freeze(['INDICE.md', '3d-provider-matrix.md', '3d-provider-capability-matrix.md',
+  '3d-provider-commercial-eligibility.md', '3d-provider-contradictions.md', '3d-provider-ranking.md', '3d-provider-implementation-requirements.md']);
+const faltaEnLaGlobal = (doc) => {
+  const seccion = entre(doc, '## 4d. Investigación global de matrices 3D', '## 5. ');
+  if (!seccion) return ['la sección §4d'];
+  return [...ENTREGABLES_GLOBALES.filter((e) => !seccion.includes(`\`${e}\``)),
+    ...(/\*\*DISABLED\*\*[^\n]*\n?[^\n]*\*\*REVIEW_REQUIRED\*\*/.test(seccion) ? [] : ['la regla DISABLED / REVIEW_REQUIRED'])];
+};
 const capacidadesAjenas = (filas, catalogo = CAPABILITY_CATALOG) => filas.flatMap((f) =>
   [...String(f['Capacidad (MAPA 1)']).matchAll(/\b(?:3d|world|scene|image|video|text)\.[a-z_]+\b/g)].map((m) => m[0])
     .filter((c) => !enCatalogo(catalogo, c) && !PROPUESTAS.includes(c)).map((c) => `${f.Proveedor}: ${c}`));
@@ -415,6 +428,9 @@ seccion('E', () => {
   const pendientes = PENDIENTES.map((c) => `${c.nombre}: ${estadoDelCandidato(doc, filas, c)}`);
   check('E10) Sloyd y Seed3D (en el alcance desde el 2026-10-07): cada uno, o con sus filas en el MAPA 2, o marcado PENDING DEPENDENCY — una de las dos, nunca ninguna ni las dos',
     pendientes.every((p) => /: (pendiente|con_filas)$/.test(p)), pendientes.join(' · '));
+  const global = faltaEnLaGlobal(doc);
+  check('E11) la investigación global de matrices 3D (no la hace esta línea): el documento nombra sus siete entregables y la regla del registro —todo candidato DISABLED y REVIEW_REQUIRED—',
+    global.length === 0, global.join(', '));
 });
 
 /* ═══ F · CONTROLES: cada detector, con una entrada saboteada ══════════════ */
@@ -480,6 +496,10 @@ seccion('F', () => {
   check('F25) CONTROL E10: un candidato olvidado (ni filas ni marca) o a medias (las dos) se ve; con una sola, no',
     estadoDelCandidato('sin nada', [], sloyd).startsWith('olvidado') && estadoDelCandidato('## 4b. Sloyd — PENDING DEPENDENCY', filaSloyd, sloyd).startsWith('a_medias')
     && estadoDelCandidato('## 4b. Sloyd — PENDING DEPENDENCY', [], sloyd) === 'pendiente' && estadoDelCandidato('', filaSloyd, sloyd) === 'con_filas');
+  const seccionGlobal = `## 4d. Investigación global de matrices 3D — PENDING DEPENDENCY\n${ENTREGABLES_GLOBALES.map((e) => `\`${e}\``).join(' ')}\nentra **DISABLED** y **REVIEW_REQUIRED**\n## 5. `;
+  check('F27) CONTROL E11: sin un entregable, sin la regla o sin la sección, se ve; completa, no',
+    faltaEnLaGlobal(seccionGlobal).length === 0 && faltaEnLaGlobal(seccionGlobal.replace('`3d-provider-ranking.md`', '')).includes('3d-provider-ranking.md')
+    && faltaEnLaGlobal(seccionGlobal.replace('**DISABLED**', 'DISABLED')).includes('la regla DISABLED / REVIEW_REQUIRED') && faltaEnLaGlobal('nada').includes('la sección §4d'));
   check('F26) CONTROL A3–A6: Seed3D y Sloyd, con y sin guion, se ven', nombra('lo hace Seed3D').length === 1 && nombra('seed-3d').length === 1 && nombra('SEED3D_API_KEY').length >= 1 && nombra('Sloyd').length === 1);
 });
 

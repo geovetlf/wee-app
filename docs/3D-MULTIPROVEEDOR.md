@@ -17,7 +17,7 @@ objetos 3D (`3d.generate` y sus operaciones) existe como vocabulario del catálo
 le faltan, en este orden, una decisión del dueño (la cuarta puerta, D3D-1), cinco precondiciones de dinero, material y
 modalidad que hoy fallarían en silencio (G3D-1 a G3D-4, G3D-7) y los contratos con Tripo y Meshy (D3D-3, D3D-4). **Sloyd**
 y **Seed3D 2.0** entraron en el alcance el 2026-10-07 y sus investigaciones no habían llegado: figuran como **PENDING
-DEPENDENCY** (§4b, §4c), apagados.
+DEPENDENCY** (§4b, §4c), apagados; y la investigación global de matrices 3D, también (§4d).
 
 ---
 
@@ -223,6 +223,33 @@ dormido propio (§19) y su jurisdicción y residencia de datos.
 
 Cuando lleguen la investigación y los requisitos de la Línea C: sus filas en §5.2, su columna en §5.3, su gobierno en §12,
 lo que pida su contrato al contrato de objetos (§6) y esta marca desaparece (E10).
+
+## 4d. Investigación global de matrices 3D — PENDING DEPENDENCY
+
+Programa del dueño del 2026-10-07 para la Línea B: una investigación GLOBAL de «matrices» 3D —proveedores de modelos o
+motores integrables directamente por API, el equivalente 3D de Gemini, FLUX o Seedance—, con cinco investigadores
+(Occidente y EE. UU.; Asia; Europa, Reino Unido, Israel y Canadá, más CAD y animación; código abierto y autoalojable;
+alojamiento y agregadores como fal.ai o Replicate) sobre una plantilla común, y un sintetizador. **No la hace esta línea**, y
+sus entregables no existían al cerrarla; vivirán con las notas de trabajo de la Línea B, fuera del repositorio:
+
+| Entregable | Qué será |
+|---|---|
+| `INDICE.md` | El índice de la investigación |
+| `3d-provider-matrix.md` | Los proveedores encontrados |
+| `3d-provider-capability-matrix.md` | Sus capacidades, leídas contra el MAPA 1 (§5.1) |
+| `3d-provider-commercial-eligibility.md` | Su elegibilidad comercial, con las siete etiquetas del MAPA 2 (§5.2) |
+| `3d-provider-contradictions.md` | Lo que las fuentes dicen distinto |
+| `3d-provider-ranking.md` | Su orden |
+| `3d-provider-implementation-requirements.md` | Lo que pediría integrar cada uno |
+
+**La regla del registro para TODO candidato que salga de ahí** (y de cualquier otra investigación): entra **DISABLED** y
+**REVIEW_REQUIRED**, con su gobierno completo y sus filas del MAPA 2; un agregador, además, solo con una excepción del dueño
+(`functions/src/registry/excepciones.ts`). Ningún orden de la investigación activa nada: ACTIVE y APPROVED / AVAILABLE
+exigen contrato y revisión legal. La guardia ya lo hace cumplir a cualquier modelo que declare una capacidad 3D, se llame
+como se llame (C5–C6), y a las matrices 3D pendientes conocidas (A2).
+
+Cuando lleguen: aquí, un puntero y un resumen corto; sus filas en el MAPA 2 (§5.2) con las etiquetas de su elegibilidad; y
+esta marca desaparece. La suite exige que esta sección nombre los siete entregables y la regla (E11).
 
 ---
 
@@ -505,6 +532,9 @@ en la referencia), `concurrenciaPorCuenta` (Tripo H 10) —, que leerá la compr
 3. Adaptador: `functions/src/engine/providers/tripo.ts` / `functions/src/engine/providers/meshy.ts` (PROPUESTOS) + una línea en
    `ADAPTERS`, `DEFAULT_PROVIDERS` con `enabled: false`, su resolutor en `RESOLUTORES_DE_ESTADO` y su ficha en `DECLARED`.
 4. Se quita de `MATRICES_PENDIENTES` en el mismo cambio (una matriz integrada no puede seguir prometiendo nada como PENDING).
+
+Vale igual para Sloyd, Seed3D y cualquier candidato de la investigación global (§4b, §4c, §4d): **todos entran DISABLED y
+REVIEW_REQUIRED**, y ninguno sale de ahí sin contrato y revisión legal.
 
 La suite exige ya hoy (C5–C6) que TODO modelo que declare una capacidad 3D —de un agregador o de una matriz— traiga su
 gobierno completo y nazca apagado: en 3D los derechos del resultado cambian con el plan contratado, así que «una matriz
@@ -837,6 +867,7 @@ la configuración.
 | Dataset de evals, reglas de G3, cambios en Guardian | `ops/**` es de la Línea A (§17, §18) |
 | Claves, avisos, despliegue, activación | Prohibido en esta misión |
 | Sloyd y Seed3D 2.0 | PENDING DEPENDENCY: sus investigaciones las escriben otros investigadores y no habían llegado; aquí no se inventa nada de ellos (§4b, §4c) |
+| La investigación global de matrices 3D | PENDING DEPENDENCY: la hacen cinco investigadores y un sintetizador, no esta línea; sus entregables no existían al cerrar (§4d) |
 
 ---
 
@@ -934,7 +965,8 @@ Ninguno de estos pasos se ha dado; cada uno es una decisión del dueño.
 
 Algorithm Engine CONTINÚA EN SU MISIÓN — NO INTERFERIDO · Tripo OFF · Meshy OFF · fal.ai OFF · Hunyuan OFF · World 3D OFF ·
 API keys NO · Real calls NO · Production deploy NO · Real spend NO · Sloyd OFF (PENDING DEPENDENCY) · Seed3D PENDING /
-DISABLED (PENDING DEPENDENCY).
+DISABLED (PENDING DEPENDENCY) · investigación global de matrices 3D PENDING DEPENDENCY: todo candidato DISABLED /
+REVIEW_REQUIRED.
 
 Lo que no se pudo verificar: ninguna API de Tripo ni de Meshy se ha llamado (todo sale de su documentación pública, con los
 UNKNOWN de §3 y §4); la lectura jurídica es de un informe técnico y necesita revisión legal; el formato real de los
