@@ -107,7 +107,7 @@ código vivo y **ninguna autoridad** en él ([`docs/ALGORITHM-ENGINE.md`](ALGORI
 
 | Pieza | Dónde | En uso (producción) | Estado | Qué hace ahí |
 |---|---|---|---|---|
-| **Algorithm Engine** | `functions/src/core/algorithm/` (A0–A9, S2-A, S2-B y S2-C.1, contrato 1.12) | solo `creator/sombra.ts`, el tercer camino de la sombra del plan, detrás de `aiSettings/sombra` (**cerrada por defecto**, por cuentas, sin comodín) | SOMBRA — sin autoridad de producción | decide sobre el plan del puente, se compara con Legacy y con el plan del Core y se tira. Ni Router, ni proveedor, ni Credits, ni materiales, ni aprendizaje |
+| **Algorithm Engine** | `functions/src/core/algorithm/` (A0–A9, S2-A, S2-B y S2-C.1; contrato **1.12 en main**, **1.9 en producción** —`creatorChat`, desplegada desde `05ab31b`—: S2 no ha corrido nunca en producción) | solo `creator/sombra.ts`, el tercer camino de la sombra del plan, detrás de `aiSettings/sombra` (**cerrada por defecto**, por cuentas, sin comodín) | SOMBRA — sin autoridad de producción | decide sobre el plan del puente, se compara con Legacy y con el plan del Core y se tira. Ni Router, ni proveedor, ni Credits, ni materiales, ni aprendizaje |
 
 **Qué significa exactamente ese SOMBRA.** Que el ciclo (`crearCicloAlgoritmico`) se
 crea desde un módulo vivo —la sombra, y solo ella— pero lo que decide no lo lee ningún
@@ -137,17 +137,17 @@ Estados: `EXISTS` · `PARTIAL` · `MISSING` · `CONNECTED` · `NOT CONNECTED` ·
 | Legacy | `creator/planner.ts`: `getPlanner()` → `templatePlanner` (plantillas de `creator/templates.ts`) o `llmPlanner` |
 | Core | `core/planner.ts` (`crearPlanner`) · composición `planner/index.ts` (`crearPlannerDeWee`) |
 | Consumidor | `screens/CreatorFlowScreen.tsx` → `services/creatorService.ts` → `creatorChat` / `creatorQuote` |
-| Runtime hoy | `creator/index.ts:275` `getPlanner().next(…)` — **Legacy sigue siendo la autoridad de ejecución**. Después de guardar el trabajo, `creator/sombra.ts` calcula EN PARALELO el plan del Core (`crearPlannerDeWee`), compara los dos ejes de `creator/paridad.ts` y lo guarda en `creatorJobs/{id}/private/sombra`. Desde S1, con un tercer camino opcional —el Algorithm Engine decide sobre el plan del puente— que se guarda en la misma sombra. Nada de eso se ejecuta ni se le enseña a nadie |
+| Runtime hoy | `creator/index.ts:357` `getPlanner().next(…)` — **Legacy sigue siendo la autoridad de ejecución**. Después de guardar el trabajo, `creator/sombra.ts` calcula APARTE —esperándola, sin tocar nada y sin autoridad— el plan del Core (`crearPlannerDeWee`), compara los dos ejes de `creator/paridad.ts` y lo guarda en `creatorJobs/{id}/private/sombra`. Desde S1, con un tercer camino opcional —el Algorithm Engine decide sobre el plan del puente— que se guarda en la misma sombra. Nada de eso se ejecuta ni se le enseña a nadie |
 | Runtime objetivo | Brain → Planner del Core → plan de capacidades |
 | Estrategia | **No son la misma función.** El planificador vivo conduce una conversación guiada por plantillas (preguntas con «🤷 No sé») y devuelve un plan por experiencia; el del Core convierte un *entendimiento* de Brain en un plan. Sustituir uno por otro cambiaría el producto (CLAUDE.md § 5 y § 10: las interfaces guiadas son la referencia y el orquestador central «no se adelanta»). El camino es un adaptador: las plantillas pasan a ser una fuente de planes del Planner, no un segundo planificador. No es de este bloque |
 | Puerta | `aiSettings/sombra` — **cerrada por defecto y SIN comodín**: sin lista de cuentas no se abre para nadie. No es la puerta del runtime (`aiSettings/runtime`) y no puede abrirla: la sombra no manda nada a ejecutar |
-| Producción | `creatorJobs`: 3 (los tres de `travel`, un paso `text.search`) |
+| Producción | `creatorJobs`: 3 en la foto de este mapa (los tres de `travel`, un paso `text.search`); la canary de S1 llegó a 4 ([`ALGORITHM-ENGINE.md`](ALGORITHM-ENGINE.md) § 17) |
 
 ### Workflow y Orchestrator — EXISTS · NOT CONNECTED · puerta ABIERTA a nivel de decisión
 
 | | |
 |---|---|
-| Legacy | el bucle de `creatorRun`: `creator/index.ts:463` `while (done.size < steps.length)` — elige el primer paso pendiente con sus dependencias hechas, lo ejecuta y guarda |
+| Legacy | el bucle de `creatorRun`: `creator/index.ts:637` `while (done.size < steps.length)` — elige el primer paso pendiente con sus dependencias hechas, lo ejecuta y guarda |
 | Core | `core/workflow.ts` (`prepararWorkflow`, `crearWorkflowEngine`) y `core/orchestrator.ts` (`crearOrchestrator`) · composiciones `workflow/index.ts`, `orchestrator/index.ts` |
 | Consumidor | `CreatorFlowScreen`, `SpecialistScreen`, `ChefScreen`, `ProjectScreen` → `services/creatorService.ts` → `creatorRun` |
 | Runtime hoy | el `while`. Las composiciones del Core no las carga ninguna ruta de producción |
@@ -243,7 +243,7 @@ CreatorFlowScreen
     → creatorChat   creator/index.ts:186   getPlanner().next()            → creatorJobs (asking)
     → creatorQuote  creator/index.ts:316   estimatePlan()                 → creatorJobs (planned)
     → creatorRun    creator/index.ts:401   holdCredits()                  → creditTransactions
-         while (done.size < steps.length)                                  creator/index.ts:463
+         while (done.size < steps.length)                                  creator/index.ts:637
            runCapability()                 gateway/index.ts:23
              engine.generate()             engine/index.ts:47
                router.execute()            engine/router.ts  → cadena, salud, límites, respaldo
