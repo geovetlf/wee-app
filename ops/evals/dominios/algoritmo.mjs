@@ -4,8 +4,8 @@
  * Mismo contrato de dominio que el Router (`functions/src/evals/motor/dominios.ts`), y lo único propio del Algorithm
  * Engine: el escenario que pide al ciclo vivo que decida —y, si el caso lo trae, que cierre sin aprender— sin ejecutar
  * nada (`escenario-algoritmo.mjs`, $0), sus graders deterministas (`graders-algoritmo.mjs`), la forma de su caso (una
- * PETICIÓN algorítmica sintética, sin contrato ni traza, que pone el entorno) y qué identifica un caso para la
- * contaminación (la petición y lo observado). Todo lo demás —correr, puntuar, comparar con su baseline, holdout,
+ * PETICIÓN algorítmica sintética, sin contrato ni traza, que pone el entorno; y, si lo pide, un cronómetro determinista)
+ * y qué identifica un caso para la contaminación (la petición, lo observado y el cronómetro). Todo lo demás —correr, puntuar, comparar con su baseline, holdout,
  * presupuesto, permisos, corrida— es el motor común: aquí no hay ni un bucle.
  *
  * EXPERIMENTAL / OBSERVACIONAL, NUNCA AUTORIDAD, y por eso:
@@ -34,6 +34,9 @@ const validarCaso = (caso) => {
   const d = caso.peticion.decision;
   if (esObjeto(d) && ('contract' in d || 'trace' in d)) e.push(`${id}: el contrato y la traza los pone el escenario, no el caso`);
   if (caso.cierre !== undefined && !(esObjeto(caso.cierre) && esObjeto(caso.cierre.observacion))) e.push(`${id}: cierre sin observacion`);
+  if (caso.cronometro !== undefined && !(esObjeto(caso.cronometro) && Number.isFinite(caso.cronometro.paso) && caso.cronometro.paso >= 0)) {
+    e.push(`${id}: cronometro sin un paso finito y no negativo`);
+  }
   for (const k of Object.keys(esObjeto(caso.expected) ? caso.expected : {})) if (!CLAVES_DE_EXPECTED.includes(k)) e.push(`${id}: expected.${k} no es una clave de este dominio`);
   return e;
 };
@@ -44,5 +47,5 @@ export const dominioAlgoritmo = Object.freeze({
   decidir: (caso) => decidirEscenario(caso),
   calificar: (decision, caso, medicion) => calificar(decision, caso, medicion),
   validarCaso,
-  claveDeCaso: (caso) => hashCanonico({ peticion: caso.peticion, cierre: caso.cierre || null }).slice(0, 24),
+  claveDeCaso: (caso) => hashCanonico({ peticion: caso.peticion, cierre: caso.cierre || null, ...(caso.cronometro ? { cronometro: caso.cronometro } : {}) }).slice(0, 24),
 });

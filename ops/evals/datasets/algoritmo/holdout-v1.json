@@ -59,6 +59,14 @@
       "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":1,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"profundo","steps":[{"id":"r","capability":"text.generate","purpose":"p-r"},{"id":"s","capability":"image.generate","purpose":"p-s","dependsOn":["r"]}]}},
       "expected": {"status":"undecided","parada":"max_depth_exceeded","elegida":null},
       "tags": ["holdout","presupuesto"]
+    },
+    {
+      "evalCaseId": "holdout-frontera-cabecera-de-autorizacion",
+      "name": "Frontera · una cabecera de autorización en una restricción",
+      "description": "Un secreto no es de esta capa, se llame como se llame: se para antes de pensar.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"r","value":200,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s1","value":200,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s2","value":200,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s3","value":200,"source":"measured","sampleSize":20}],"constraints":{"authHeader":"h-sintetico"}},"tarea":{"id":"abanico","steps":[{"id":"r","capability":"text.generate","purpose":"p-r"},{"id":"s1","capability":"image.generate","purpose":"p-s1","dependsOn":["r"]},{"id":"s2","capability":"image.generate","purpose":"p-s2","dependsOn":["r"]},{"id":"s3","capability":"voice.tts","purpose":"p-s3","dependsOn":["r"]}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"invalid","parada":"authority_violation","elegida":null},
+      "tags": ["holdout","frontera","responsabilidad"]
     }
   ]
 }

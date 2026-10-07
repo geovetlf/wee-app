@@ -2956,9 +2956,11 @@ plazo; hoy está cerrada, y `algoritmo` y `puente` no llaman a nadie.
 
 El motor tiene su dominio en el Eval Engine: `algoritmo`, el segundo del registro de
 DESARROLLO (`ops/evals/dominios/algoritmo.mjs`), a $0 y sin LLM juez. Corre el motor de verdad
-—`decidir`, y `cerrar` sin aprender, como mucho— sobre 38 casos (los planes de la sombra y del
-corpus dorado de S2, restricciones, frontera, entradas rotas, presupuesto de pensar, opciones,
-enfoques y cierre) y 7 sellados en holdout, con quince graders deterministas: la elección, la
+—`decidir`, y `cerrar` sin aprender, como mucho— sobre 44 casos (los planes de la sombra y del
+corpus dorado de S2, restricciones, frontera —también por responsabilidad: un sinónimo, una clave
+compuesta, una billetera y un tope de dinero que pasa—, entradas rotas, presupuesto de pensar
+—también con un cronómetro determinista por caso, `cronometro: { paso }`, el puerto que usa la
+sombra—, opciones, enfoques y cierre) y 8 sellados en holdout, con quince graders deterministas: la elección, la
 estrategia, el paralelismo (también el transitivo, que `problemasDeEstrategia` no mira), las
 restricciones, el desenlace, la coherencia, la reproducibilidad, la incertidumbre, la frontera,
 `sin-proveedor`, `experimental`, el cierre, el presupuesto de pensar, el coste cero y
@@ -2968,12 +2970,16 @@ Lo trata como **experimental y observacional, nunca como autoridad**: vive solo 
 desarrollo —nunca en `DOMINIOS_REALES`—, no declara superficie (Hillclimb se niega a optimizarlo:
 no hay nada de producción que mejorar ni promover), exige el aviso `experimental_algorithm` en cada
 decisión y ninguna huella de ejecución en lo que devuelve, y su presupuesto es el de evals, aparte
-de los Credits. Hoy: 38/38, todas las dimensiones a 1, 0 ejecuciones. Lo fija
-`functions/test/evals-algoritmo.test.mjs` (45, también en el Nivel 3), con dieciséis sabotajes:
+de los Credits. El grader del presupuesto de pensar reconoce el corte entre etapas solo con
+cronómetro —por su porqué: no hay un dato propio (pendiente)—, y el de la frontera cuenta como «la
+petición cruzaba» también lo que ve la lectura por responsabilidad. Hoy: 44/44, todas las
+dimensiones a 1, 0 ejecuciones. Lo fija `functions/test/evals-algoritmo.test.mjs` (48, también en
+el Nivel 3), con dieciocho sabotajes:
 un proveedor en el plan —también a doce niveles de profundidad, donde `violacionesEn` deja de
 mirar—, grupos paralelos que contradicen `dependsOn`, un campo oculto, Credits cobrados, `known`
 sin evidencia, una ejecución, un `jobId`, aprendizaje, un paso del Planner perdido, una decisión
-sin entrega, un desenlace atribuido a otra estrategia y un presupuesto pasado en silencio.
+sin entrega, un desenlace atribuido a otra estrategia, un presupuesto pasado en silencio, un corte
+por tiempo sin cronómetro (o que entrega) y una billetera en un paso dada por decidida.
 
 ### G3
 

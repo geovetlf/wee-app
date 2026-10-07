@@ -12,7 +12,8 @@
  *   C. GATE: el motor vivo no regresa frente a la baseline; $0; reproducible; y un sabotaje del dataset RECHAZA;
  *   D. SABOTAJES: cada grader falla donde debe —una decisión que nombra un proveedor (también más hondo de lo que mira
  *      la guarda de la sombra), un plan cuyos grupos contradicen `dependsOn` (también de forma indirecta, que la guarda
- *      del propio motor no ve), una elección escondida en un campo que no es del contrato, un cobro…—;
+ *      del propio motor no ve), una elección escondida en un campo que no es del contrato, un cobro, un corte por tiempo
+ *      sin cronómetro, una billetera en un paso dada por decidida…—;
  *   E. la gobernanza común: corrida gobernada, presupuesto fail-closed, holdout con permiso, un coste simulado se ve;
  *   F. experimental / observacional y $0, en un proceso aparte: no se carga nada fuera de functions/lib/core y del
  *      motor de evals, ni una llamada de red;
@@ -292,6 +293,29 @@ const falsa = (cambiar, d = base) => { const x = structuredClone(d); cambiar(x);
     v['algoritmo/desenlace'] === false && v['algoritmo/eleccion'] === false
     && Array.isArray(basura) && basura.some((g) => !g.ok) && Array.isArray(nula) && nula.some((g) => !g.ok)
     && basura.find((g) => g.id === 'algoritmo/frontera')?.ok === false);
+}
+
+{
+  /* El corte entre etapas (misión de cierre): legítimo con el cronómetro del caso, mentira sin él. */
+  const CRONO = caso('algoritmo-crono-corte');
+  const cortado = real(CRONO.evalCaseId);
+  const sinCronometro = { ...CRONO, cronometro: undefined };
+  const entregando = falsa((x) => { x.resultado.entrega = { elegida: 'x' }; }, cortado);
+  check('D17) CORTE POR TIEMPO: con el cronómetro del caso, el corte entre etapas aprueba todos los graders; el mismo corte sin cronómetro, o uno que entrega, hacen fallar `algoritmo/presupuesto-de-pensar`',
+    todos(cortado, CRONO) && cortado.parada === 'budget_exceeded' && !cortado.resultado.decision
+    && veredictos(cortado, sinCronometro)['algoritmo/presupuesto-de-pensar'] === false
+    && veredictos(entregando, CRONO)['algoritmo/presupuesto-de-pensar'] === false,
+    `${cortado.status}/${cortado.parada} · ${calificar(cortado, CRONO).filter((g) => !g.ok).map((g) => g.id).join(', ') || 'todo aprueba'}`);
+}
+{
+  /* La frontera por responsabilidad: una billetera que la lista del Planner no ve. */
+  const BILLETERA = caso('algoritmo-frontera-billetera-en-paso');
+  const rechazada = real(BILLETERA.evalCaseId);
+  const decidida = falsa((x) => { x.resultado.status = 'decided'; x.status = 'decided'; }, rechazada);
+  check('D18) FRONTERA POR RESPONSABILIDAD: una billetera en un paso —que la lista del Planner no ve— no se entrega, y aprueba; dada por decidida, `algoritmo/frontera` falla',
+    todos(rechazada, BILLETERA) && !rechazada.resultado.entrega && !MOTOR_ALGORITMICO.claveDeImplementacion('walletId')
+    && veredictos(decidida, BILLETERA)['algoritmo/frontera'] === false,
+    calificar(rechazada, BILLETERA).filter((g) => !g.ok).map((g) => `${g.id}: ${g.detail}`).join(' | ') || 'todo aprueba');
 }
 
 /* ── E · La gobernanza común: corrida, presupuesto, holdout ──────────────── */

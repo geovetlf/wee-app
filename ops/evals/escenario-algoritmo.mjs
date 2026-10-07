@@ -15,7 +15,10 @@
  * `functions/lib/core` y del motor de evals.
  *
  * Lo único que pone el escenario es lo del ENTORNO de la evaluación: el contrato vigente del motor y la traza de la
- * identidad de las evals (`eval`, nunca una cuenta). Todo lo demás sale del caso tal cual.
+ * identidad de las evals (`eval`, nunca una cuenta). Todo lo demás sale del caso tal cual. Y si el caso lo pide
+ * (`cronometro: { paso }`), el ciclo recibe un cronómetro DETERMINISTA —un reloj de mentira que avanza `paso` ms en
+ * cada lectura, empezando en 0—: el mismo puerto con que la sombra le pasa el suyo (misión de cierre). Sin él, el
+ * motor no lee ningún reloj, como siempre.
  *
  * La reproducibilidad no se supone: se MIDE en cada caso. La misma petición, con un motor y una copia nuevos, da el
  * mismo resultado byte a byte (y el mismo cierre); con las señales, las opciones y los enfoques en orden inverso, el
@@ -66,6 +69,21 @@ export const peticionDelCaso = (caso) => {
   return p;
 };
 
+/**
+ * El cronómetro del caso, NUEVO para cada ciclo: la misma secuencia de lecturas en la decisión, en su repetición y en
+ * la permutada, así que la reproducibilidad se sigue midiendo byte a byte.
+ */
+const cronometroDelCaso = (caso) => {
+  const paso = caso && caso.cronometro && typeof caso.cronometro === 'object' ? caso.cronometro.paso : undefined;
+  if (!(typeof paso === 'number' && Number.isFinite(paso) && paso >= 0)) return undefined;
+  let t = 0;
+  return () => (t += paso);
+};
+const cicloDelCaso = (caso) => {
+  const cronometro = cronometroDelCaso(caso);
+  return A.crearCicloAlgoritmico(cronometro ? { cronometro } : undefined);
+};
+
 /* Lo que puede llegar en otro orden sin que eso deba cambiar nada: señales, opciones y enfoques. */
 const LISTAS_SIN_ORDEN = [['decision', 'signals'], ['decision', 'options'], [null, 'enfoques']];
 const listaDe = (p, [padre, campo]) => (padre ? p[padre] && p[padre][campo] : p[campo]);
@@ -92,7 +110,7 @@ const nucleoDe = (r) => ({
 /**
  * Un caso contra el motor vivo. Devuelve la decisión NORMALIZADA —estado, parada, recorrido, lo entregado—, el
  * resultado y el cierre crudos (los graders los recorren enteros) y lo medido de su reproducibilidad. Puro: sin red,
- * sin reloj, sin Firestore, sin coste.
+ * sin reloj de verdad (el del caso, si lo hay, es de mentira y determinista), sin Firestore, sin coste.
  */
 export const decidirEscenario = (caso) => {
   const peticion = peticionDelCaso(caso);
@@ -100,12 +118,12 @@ export const decidirEscenario = (caso) => {
   const paraPermutar = alReves(peticion);
   const antes = hashCanonico(peticion);
 
-  const ciclo = A.crearCicloAlgoritmico();
+  const ciclo = cicloDelCaso(caso);
   const resultado = ciclo.decidir(peticion);
   const entradaIntacta = hashCanonico(peticion) === antes;
-  const otroCiclo = A.crearCicloAlgoritmico();
+  const otroCiclo = cicloDelCaso(caso);
   const repetido = otroCiclo.decidir(paraRepetir);
-  const permutado = A.crearCicloAlgoritmico().decidir(paraPermutar);
+  const permutado = cicloDelCaso(caso).decidir(paraPermutar);
 
   /* El cierre, si el caso trae lo observado: sin aprendizaje, que es lo que mantiene esto en observación. */
   const observacion = caso.cierre && caso.cierre.observacion;
