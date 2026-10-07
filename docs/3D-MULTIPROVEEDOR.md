@@ -33,8 +33,9 @@ modalidad que hoy fallarían en silencio (G3D-1 a G3D-4, G3D-7) y los contratos 
 | D3D-n | §22 | Decisión del dueño, con un valor recomendado que **no** se ha aplicado |
 | PROPUESTO | todo | Algo que no existe en el repositorio y que este documento propone (rutas propuestas: §20) |
 
-Fuentes de Tripo y Meshy: los informes de la Línea B sobre la documentación OFICIAL de cada proveedor, consultada el
-2026-10-07 sin cuenta, sin clave y sin llamar a nada (notas de trabajo de la misión, fuera del repositorio). Lo que esos
+Fuentes de Tripo y Meshy: los informes de la Línea B sobre la documentación OFICIAL de cada proveedor y la investigación
+dedicada de su elegibilidad comercial (el MAPA 2), consultadas el 2026-10-07 sin cuenta, sin clave, sin contactar con nadie
+y sin llamar a nada (notas de trabajo de la misión, fuera del repositorio). Lo que esos
 informes marcan como fragmento, contradicción o sin confirmar aparece aquí como UNKNOWN o REVIEW_REQUIRED. Toda la lectura
 jurídica necesita revisión legal.
 
@@ -131,7 +132,8 @@ de terceros (Seedream, Gemini, GPT Image) y **no se usan** (regla de matrices; W
 | Derechos | Usuario de pago: «en general» todos los derechos sobre entradas y salidas, uso comercial incluido, **y no entrenan** con ellos (§5.2.2); sin exclusividad. Usuario gratuito: Tripo retiene los derechos (§5.2.1). Atribución: no exigida al de pago |
 | Bloqueante | **§3.2: prohibido poner el servicio a disposición de terceros, usuarios finales incluidos, sin autorización previa por escrito.** No competencia ambigua. → autorización comercial REQUIRES WRITTEN AUTHORIZATION en todas sus filas del MAPA 2 (§5.2); OFF hasta el contrato (D3D-3) |
 | Territorio y datos | Sin restricción territorial de licencia ni cláusula de sanciones. Ley de Hong Kong, arbitraje HKIAC. Datos en Hong Kong con posible tratamiento en EE. UU.; edad mínima 13 |
-| UNKNOWN principales | Caducidad exacta de URLs y retención; cancelación; reintentos del webhook; rate limits; precios P y Splat; si una cuenta de API con créditos comprados es «Paid User»; marca de agua en salidas 3D |
+| Lo que añade el MAPA 2 | Image-to-splat (`.splat`, 30 créditos) y smart segmentation ya tienen página de referencia; según su FAQ, no entrenan con los datos de la API y sus créditos no caducan; sin programa público de socios; quién firma la autorización (Holymolly o VAST) ⚖ |
+| UNKNOWN principales | Caducidad exacta de URLs y retención; cancelación; reintentos del webhook; rate limits; si una cuenta de API con créditos comprados es «Paid User»; marca de agua en salidas 3D; términos suplementarios de la API |
 
 ---
 
@@ -152,9 +154,10 @@ de terceros (Seedream, Gemini, GPT Image) y **no se usan** (regla de matrices; W
 | Coste | En créditos de Meshy: imagen → 3D texturizado 30 (2K/4K) o 35 (8K), +5 geometría ultra; texto → 3D 20 + 10 de refine; rig 5; animación 3 por acción; texto → movimiento 10/3; remesh 5; convert 1. `consumed_credits` por tarea; `FAILED` reembolsado. **El USD por crédito depende del plan** (Pro ≈ 0,020; Ultra 0,0125, cálculo propio) y el de los paquetes sueltos no es público |
 | Límites | Por plan: 20 peticiones/s; cola Pro 10, Premium 30, Ultra 100 (la web comercial dice otras cifras: UNKNOWN); 429 de cola sin `Retry-After` |
 | Derechos | Plan de pago: el cliente es dueño del resultado (en la medida que lo permita la ley), uso comercial sin atribución. Plan gratuito (sin API): CC BY 4.0. Sin garantía de unicidad ni indemnidad. **No se pueden quitar las marcas de IA** (§2.4). **No se admiten datos personales en las entradas** (§2.2) |
-| Bloqueantes | **§2.1 y §2.6: licencia intransferible y no sublicenciable; prohibido revender o redistribuir el acceso y que varios usuarios usen una cuenta.** La reventa oficial es el Partner Program sobre Enterprise → autorización comercial REQUIRES PARTNER AGREEMENT en todas sus filas del MAPA 2 (§5.2); OFF hasta el contrato (D3D-4). **§2.9: entrenan con datos de clientes no-Enterprise** (la FAQ comercial dice lo contrario: REVIEW_REQUIRED) |
+| Bloqueantes | **§2.1 y §2.6: licencia intransferible y no sublicenciable; prohibido revender o redistribuir el acceso y que varios usuarios usen una cuenta.** La reventa oficial es el Partner Program sobre Enterprise. **§1.2: uso INTERNO del cliente y de sus Authorized Users** → autorización comercial REQUIRES ENTERPRISE en sus filas de la API (Order Form, que prevalece por su §11.4, o Partner Program); OFF hasta el contrato (D3D-4). **§2.9: entrenan con datos de clientes no-Enterprise** (la FAQ comercial dice lo contrario: REVIEW_REQUIRED) |
 | Territorio y datos | Sin cláusula de sanciones ni exportación. Ley de California, arbitraje AAA-ICDR. Datos en AWS EE. UU.; ISO 27001 y SOC 2 declarados; DPA no público; edad mínima 14 (permiso parental por debajo de 18) |
-| UNKNOWN principales | Si Weë puede servir a sus usuarios con una clave self-serve; entrenamiento con datos de la API; firma y reintentos del webhook; duración de la firma de URLs; cómo se llega a `CANCELED`; precio USD de los créditos sueltos |
+| Lo que añade el MAPA 2 | UV unwrap en Beta, tras una bandera; Scene Compose, vídeo y 3D Agent solo en la web (sin API); §2.6(iv) prohíbe también el «análisis competitivo» —comparar proveedores podría caer ahí ⚖—; Meshy puede citar a Weë como cliente salvo oposición por escrito (§3.6) |
+| UNKNOWN principales | Si Weë puede servir a sus usuarios con una clave self-serve (lectura del contrato: no, §1.2); entrenamiento con datos de la API; firma y reintentos del webhook; duración de la firma de URLs; cómo se llega a `CANCELED`; precio USD de los créditos sueltos; endpoints exclusivos de Enterprise |
 
 ---
 
@@ -206,48 +209,85 @@ Cuatro dimensiones que no se funden, por fila (proveedor, endpoint o modelo, cap
 |---|---|---|
 | CAPACIDAD | Qué capacidad de Weë (MAPA 1) atendería, o «—» si no es una capacidad de Weë | ids del catálogo |
 | DISPONIBILIDAD EN LA API | ¿El proveedor lo publica en su API oficial? | SÍ · PARCIAL · NO · UNKNOWN |
-| USO EN WEË | ¿Qué hace Weë con ello? | INTEGRADO (apagado) · PREPARADO · NO INTEGRADO · DESCARTADO |
-| AUTORIZACIÓN COMERCIAL / DE TERCEROS | ¿Puede Weë ofrecerlo a sus usuarios? **Una sola etiqueta** | APPROVED / AVAILABLE · REQUIRES ENTERPRISE · REQUIRES WRITTEN AUTHORIZATION · REQUIRES PARTNER AGREEMENT · REVIEW_REQUIRED · NOT_ALLOWED · UNKNOWN |
+| USO EN WEË | ¿Qué hace Weë con ello? Aquí, y solo aquí, van las exclusiones PROPIAS de Weë (la regla de matrices, lo que está fuera del alcance) | INTEGRADO (apagado) · PREPARADO · NO INTEGRADO · DESCARTADO |
+| AUTORIZACIÓN COMERCIAL / DE TERCEROS | ¿Lo dejan ofrecer a los usuarios de Weë los términos del proveedor y los de terceros? **Una sola etiqueta** | APPROVED / AVAILABLE · REQUIRES ENTERPRISE · REQUIRES WRITTEN AUTHORIZATION · REQUIRES PARTNER AGREEMENT · REVIEW_REQUIRED · NOT_ALLOWED · UNKNOWN |
 
 **«Hay API» nunca significa «Weë puede ofrecerlo»**, y ninguna autorización se supone: sin un contrato que la dé, la
 etiqueta es la que dicen los términos. Hoy ninguna fila está en APPROVED / AVAILABLE.
+
+**Fuente:** la investigación dedicada del MAPA 2 de la Línea B (2026-10-07; solo fuentes oficiales —términos,
+privacidad, AUP, precios, centros de ayuda, documentación y páginas de programas—, sin cuentas, sin claves y sin
+contactar con nadie; notas de trabajo fuera del repositorio), sobre los informes técnicos de §3 y §4. Lo que marca con ⚖
+necesita revisión legal. Lo que dice, en corto:
+
+- **Tripo: REQUIRES WRITTEN AUTHORIZATION, confirmado.** §3.2 («available to any third party, including end users,
+  without the prior written authorization»), §3.3(a) (no explotar comercialmente el servicio: alcanza también a lo que
+  no es 3D), §3.1 (prevé un acuerdo de licencia aparte), una cuenta por plataforma (§2.2), sin cesión (§12.3). No hay
+  programa público de socios ni de reventa: solo un contacto de alianzas de canal y Enterprise a medida. Quién firma la
+  autorización —Holymolly Ltd o VAST— ⚖.
+- **Meshy: REQUIRES ENTERPRISE, matizado.** §1.2 (uso INTERNO del cliente y de sus Authorized Users), §2.1 (no
+  sublicenciable), §2.6 (iv) competencia y análisis competitivo, (v) reventa o redistribución del acceso, (vi) varios
+  usuarios en una cuenta, y su AUP. La vía es un Order Form de Enterprise, que prevalece sobre los Términos (§11.4), o el
+  Partner Program, que también vende Enterprise (empieza por Europa). Sus páginas comerciales invitan a integrarlo en
+  productos propios y contradicen el contrato ⚖.
+- **Derechos sobre el resultado ≠ derecho a dar el servicio.** Los dos dejan al cliente de pago explotar sus resultados;
+  ninguno deja poner el SERVICIO de generación a disposición de terceros sin ese acuerdo, y Weë, que genera a petición
+  de sus usuarios, cae del lado del servicio ⚖.
+- **fal** (de FAL.md): REVIEW_REQUIRED global y DISABLED; en la UE, el Reino Unido y Corea del Sur la licencia de Tencent
+  no lo permite (dato territorial del modelo, `territorio`, no esta etiqueta).
 
 **Selección de proveedor** (atributo de gobierno por proveedor y capacidad, decisión del dueño del 2026-10-07): **A** lo
 elige el Router de Weë (el valor por defecto, siempre) · **B** la persona lo elige explícitamente · **C** solo Weë o la
 administración lo fija · **D** elegirlo exige Enterprise o un acuerdo de socio · **E** no se permite. **B no está activa en
 ninguna fila ni puede estarlo por defecto**: CLAUDE.md dice que la persona nunca ve proveedores ni modelos (como mucho, un
-modo avanzado opcional y oculto), así que B pediría un contrato que lo permita Y una decisión del dueño (D3D-17).
+modo avanzado opcional y oculto); la investigación la deja en REVIEW_REQUIRED en los dos (uso de marca y acceso visible de
+terceros) y «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED, con lectura desfavorable, en Meshy (D3D-17).
 
 | Proveedor | Endpoint / modelo | Capacidad (MAPA 1) | Disponibilidad en la API | Uso en Weë | Autorización comercial | Selección | Evidencia y notas |
 |---|---|---|---|---|---|---|---|
-| Tripo | `text-to-model` (H3.1/H3.0/H2.5, P1, P2 Preview) | `3d.generate` · texto | SÍ | PREPARADO (diseño; sin adaptador) | REQUIRES WRITTEN AUTHORIZATION | A | Tripo S18–S19; Terms §3.2: nada a terceros ni a usuarios finales sin autorización previa por escrito de Holymolly |
-| Tripo | `image-to-model` | `3d.generate` · imagen | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | S20; la foto sale como `file_token` (subida), nunca como URL de Weë |
-| Tripo | `multiview-to-model` | `3d.generate` · varias imágenes | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | S21 |
-| Tripo | `image-to-multiview`, `edit-multiview` | — (paso interno de un multivista, no una capacidad de Weë) | SÍ | NO INTEGRADO | REQUIRES WRITTEN AUTHORIZATION | A | S23; qué modelo hay detrás: UNKNOWN (si fuera de terceros, cae en la regla de matrices) |
-| Tripo | `models/texture` | `3d.texture` | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | S24 |
-| Tripo | `mesh/decimate` | `3d.retopology` | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | S32 |
-| Tripo | `animations/rig-check`, `animations/rig` | `3d.rig` | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | S27–S28; siete morfologías |
-| Tripo | `animations/retarget` | `3d.animate` (PROPUESTA) | SÍ | NO INTEGRADO | REQUIRES WRITTEN AUTHORIZATION | A | S29; presets, sin texto → movimiento |
-| Tripo | `models/convert` | `3d.convert` | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | S25 |
-| Tripo | `mesh/segment`, `mesh/complete`, `models/refine`, `models/stylize` | `3d.edit` | SÍ (segmentar y completar) · PARCIAL (refine y stylize) | NO INTEGRADO | REQUIRES WRITTEN AUTHORIZATION | A | S30–S31; refine y stylize sin página de referencia |
-| Tripo | `image-to-splat` (Gaussian splat) | — (un splat no es `model3d` ni `world`) | PARCIAL | DESCARTADO (sin referencia ni visor) | REQUIRES WRITTEN AUTHORIZATION | E | S17, S42 |
-| Tripo | `models/import` | — (importar no es IA; Weë tiene su propia importación, `models3d` en `filmmaker/core`) | SÍ | DESCARTADO | REQUIRES WRITTEN AUTHORIZATION | E | S26 |
-| Tripo | `text-to-image`, `image-to-image` (Seedream, Gemini «banana», chat_image) | `image.generate` / `image.edit` | SÍ | DESCARTADO: revende modelos de terceros | NOT_ALLOWED | E | S16, S22; regla de matrices (`functions/src/registry/excepciones.ts`), términos de terceros (§3.4) y marca de agua obligatoria en «banana» |
-| Meshy | `text-to-3d` (preview + refine) | `3d.generate` · texto | SÍ (dos tareas) | PREPARADO (D3D-7) | REQUIRES PARTNER AGREEMENT | A | Meshy S14; §2.1 y §2.6: licencia no sublicenciable, prohibido revender o redistribuir el acceso; la reventa oficial es el Partner Program sobre Enterprise |
-| Meshy | `image-to-3d` | `3d.generate` · imagen | SÍ | PREPARADO | REQUIRES PARTNER AGREEMENT | A | S15; data URI |
-| Meshy | `multi-image-to-3d` | `3d.generate` · varias imágenes | SÍ | PREPARADO | REQUIRES PARTNER AGREEMENT | A | S16 |
-| Meshy | `retexture` | `3d.texture` | SÍ | PREPARADO | REQUIRES PARTNER AGREEMENT | A | S18 |
-| Meshy | `remesh` | `3d.retopology` | SÍ | PREPARADO | REQUIRES PARTNER AGREEMENT | A | S17 |
-| Meshy | `rigging` | `3d.rig` | SÍ (solo humanoides bípedos) | PREPARADO | REQUIRES PARTNER AGREEMENT | A | S19 |
-| Meshy | `animations` (+ biblioteca), `text-to-motion` | `3d.animate` (PROPUESTA) | SÍ | NO INTEGRADO | REQUIRES PARTNER AGREEMENT | A | S20–S21; las animaciones de la biblioteca siguen siendo de Meshy (§2.3) |
-| Meshy | `convert` | `3d.convert` | SÍ | PREPARADO | REQUIRES PARTNER AGREEMENT | A | S22 |
-| Meshy | `resize`, `uv-unwrap` | `3d.edit` | SÍ | NO INTEGRADO | REQUIRES PARTNER AGREEMENT | A | S23–S24 |
-| Meshy | `print/*` (analyze, repair, multi-color, split) | — (la impresión 3D no está en el MAPA 1) | SÍ | DESCARTADO (ninguna experiencia lo pide) | REQUIRES PARTNER AGREEMENT | E | S27–S30 |
-| Meshy | Creative Lab | — | SÍ | DESCARTADO | REQUIRES PARTNER AGREEMENT | E | S31 |
-| Meshy | servidor MCP, CLI y agente oficiales | — (herramientas para asistentes; Weë Brain es el único cerebro, CLAUDE.md §10) | SÍ (repositorios oficiales) | DESCARTADO | REQUIRES PARTNER AGREEMENT | E | S12, S61; por debajo es la misma API |
-| Meshy | `text-to-image`, `image-to-image` (Nano Banana, GPT Image) | `image.generate` / `image.edit` | SÍ | DESCARTADO: revende modelos de terceros | NOT_ALLOWED | E | S25–S26; regla de matrices y términos de terceros (§2.7) |
-| fal | `fal-ai/hunyuan_world/image-to-world` | `world.generate` | SÍ | INTEGRADO (apagado: DISABLED, sin `FAL_KEY`, puerta cerrada) | REVIEW_REQUIRED | A | FAL.md §3: licencia de Tencent (EU/GB/KR fuera, 1 M MAU, AUP 12) y términos de fal (§2 edad, §4(b), §6(e) «service bureau») |
+| Tripo | `text-to-model` (H3.1/H3.0/H2.5, P1, P2 Preview) | `3d.generate` · texto | SÍ (P2 en Preview) | PREPARADO (diseño; sin adaptador) | REQUIRES WRITTEN AUTHORIZATION | A | T1; Terms §3.2, §3.3(a) |
+| Tripo | `image-to-model` | `3d.generate` · imagen | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | T2; fotos de personas: privacidad y DPA ⚖ (D3D-12) |
+| Tripo | `multiview-to-model` | `3d.generate` · varias imágenes | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | T3 |
+| Tripo | `image-to-multiview`, `edit-multiview` | — (paso interno de un multivista; sin id claro) | SÍ | NO INTEGRADO | REQUIRES WRITTEN AUTHORIZATION | A | T6–T7; el modelo que hay detrás no se declara (UNKNOWN) |
+| Tripo | `models/texture` | `3d.texture` | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | T8 |
+| Tripo | `mesh/decimate` (y low-poly o quad al generar) | `3d.retopology` | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | T20 |
+| Tripo | `animations/rig-check`, `animations/rig` | `3d.rig` (rig-check: `3d.analyze`) | SÍ (rig-check, gratis) | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | T13–T14; siete morfologías |
+| Tripo | `animations/retarget` | `3d.animate` (PROPUESTA) | SÍ | NO INTEGRADO | REQUIRES WRITTEN AUTHORIZATION | A | T15; presets; texto → movimiento no existe |
+| Tripo | `models/convert` | `3d.convert` | SÍ | PREPARADO | REQUIRES WRITTEN AUTHORIZATION | A | T9 |
+| Tripo | `models/convert` + `mesh/segment` para imprimir (STL/3MF, base plana, piezas) | `3d.export` | PARCIAL | NO INTEGRADO (D3D-18) | REQUIRES WRITTEN AUTHORIZATION | A | T27 |
+| Tripo | `mesh/segment`, `mesh/smartsegment`, `mesh/complete` | `3d.edit` | SÍ (segmentación semántica en Beta) | NO INTEGRADO | REQUIRES WRITTEN AUTHORIZATION | A | T17–T19 |
+| Tripo | `models/refine`, `models/stylize` | `3d.edit` | UNKNOWN (sin página en v3) | NO INTEGRADO | REQUIRES WRITTEN AUTHORIZATION | A | T11–T12, si existen |
+| Tripo | `image-to-splat` (Gaussian splat) | — (un splat no es `model3d` ni `world`) | SÍ (página nueva: `.splat`, 30 créditos) | DESCARTADO (ninguna capacidad de Weë ni visor lo usa) | REQUIRES WRITTEN AUTHORIZATION | E | T23 |
+| Tripo | `models/import` | — (importar no es IA; Weë tiene su propia importación en `filmmaker/core`) | SÍ | DESCARTADO | REQUIRES WRITTEN AUTHORIZATION | E | T10 |
+| Tripo | CLI para agentes, plugin de Codex, nodos de ComfyUI | — (herramientas del titular de la cuenta; Weë Brain es el único cerebro) | SÍ (envuelven la API) | DESCARTADO | REQUIRES WRITTEN AUTHORIZATION | E | T29 |
+| Tripo | `text-to-image`, `image-to-image` (Seedream, Gemini «banana», chat_image) | `image.generate` / `image.edit` | SÍ | DESCARTADO: revende modelos de terceros (regla de matrices) | REVIEW_REQUIRED | E | T4–T5: autorización escrita + términos de Google, OpenAI y ByteDance (§3.4); marca de agua invisible en «banana» |
+| Tripo | Funciones solo de Studio (Midjourney, Magic Brush, lotes, Pro Refine, DCC Bridge, galería) | — | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | T30: sin API, y automatizar la web está prohibido (§3.1, §3.3(e)); los créditos de Studio no sirven para la API |
+| Meshy | `text-to-3d` (preview + refine) | `3d.generate` · texto | SÍ (dos tareas) | PREPARADO (D3D-7) | REQUIRES ENTERPRISE | A | M1–M2; §1.2, §2.1, §2.6(v)(vi); vía: Order Form (§11.4) o Partner Program |
+| Meshy | `image-to-3d` | `3d.generate` · imagen | SÍ | PREPARADO | REQUIRES ENTERPRISE | A | M3; data URI; §2.2 sin datos personales (fotos de personas ⚖, D3D-12) |
+| Meshy | `multi-image-to-3d` | `3d.generate` · varias imágenes | SÍ | PREPARADO | REQUIRES ENTERPRISE | A | M4 |
+| Meshy | `retexture` | `3d.texture` | SÍ | PREPARADO | REQUIRES ENTERPRISE | A | M6 |
+| Meshy | `remesh` | `3d.retopology` | SÍ | PREPARADO | REQUIRES ENTERPRISE | A | M5; también desde un modelo propio (`model_url`, M21) |
+| Meshy | `rigging` | `3d.rig` | SÍ (solo humanoides bípedos) | PREPARADO | REQUIRES ENTERPRISE | A | M7 |
+| Meshy | `animations` (+ biblioteca), `text-to-motion` | `3d.animate` (PROPUESTA) | SÍ | NO INTEGRADO | REQUIRES ENTERPRISE | A | M8–M9; las animaciones y rigs de la biblioteca siguen siendo de Meshy (§2.3) |
+| Meshy | `convert` | `3d.convert` | SÍ | PREPARADO | REQUIRES ENTERPRISE | A | M10; §2.4: no quitar las marcas de IA |
+| Meshy | `resize`, `uv-unwrap` | `3d.edit` | SÍ (UV unwrap en Beta, tras una bandera) | NO INTEGRADO | REQUIRES ENTERPRISE | A | M11–M12 |
+| Meshy | `print/analyze`, `print/repair` | `3d.analyze` | SÍ | NO INTEGRADO (D3D-18) | REQUIRES ENTERPRISE | A | M15–M16 |
+| Meshy | `print/multi-color`, `print/split` | `3d.export` | SÍ | NO INTEGRADO (D3D-18) | REQUIRES ENTERPRISE | A | M17–M18 |
+| Meshy | Creative Lab (llavero, figura, lámpara…) | — (producto físico personalizado; fuera del MAPA 1, D3D-18) | SÍ | DESCARTADO | REVIEW_REQUIRED | E | M19: su página For Business invita a usar la API con fotos de clientes y choca con §1.2, §2.6 y §2.2 ⚖ |
+| Meshy | servidor MCP, CLI, paquete de skills y app de ChatGPT | — (herramientas del titular de la cuenta; Weë Brain es el único cerebro) | SÍ (envuelven la API) | DESCARTADO | REQUIRES ENTERPRISE | E | M26 |
+| Meshy | 3D Agent (beta) | — | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | M25 |
+| Meshy | Scene Compose | `scene.generate` (compone, no genera) | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | M23 |
+| Meshy | AI Video Generation | `video.generate` | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | M24; no dice qué modelos usa |
+| Meshy | Otras funciones (Texture Edit, lotes, pose libre, envío a laminadores) | — | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | M27; compartir cuenta (§2.6(vi)) y automatizar (AUP), prohibidos |
+| Meshy | Tienda de figuras impresas | — | NO (sin API de pedidos) | DESCARTADO | NOT_ALLOWED | E | M28a |
+| Meshy | Fabricación para empresas, con sus socios | — | NO (fuera de la API) | NO INTEGRADO (D3D-18) | REQUIRES PARTNER AGREEMENT | D | M28b |
+| Meshy | `text-to-image`, `image-to-image` (Nano Banana, GPT Image) | `image.generate` / `image.edit` | SÍ | DESCARTADO: revende modelos de terceros (regla de matrices) | REVIEW_REQUIRED | E | M13–M14: Enterprise + términos de Google y OpenAI (§2.7) |
+| fal | `fal-ai/hunyuan_world/image-to-world` | `world.generate` | SÍ | INTEGRADO (apagado: DISABLED, sin `FAL_KEY`, puerta cerrada) | REVIEW_REQUIRED | A | FAL.md §3: licencia de Tencent (EU/GB/KR fuera, 1 M MAU, AUP 12) y términos de fal (§2 edad, §4(b)(ii), §6(e) «service bureau») |
 | fal | Hunyuan 3D (2.x, 3.x) | `3d.generate` | SÍ | DESCARTADO (evaluado, no añadido) | REVIEW_REQUIRED | A | FAL.md §3: 2.x con las mismas exclusiones territoriales; 3.x «partner-hosted» sin licencia pública |
+
+**Sin fila** (no hay nada que autorizar; N/A en la investigación): lo que el proveedor no ofrece —Tripo: texto →
+movimiento, vídeo, mundos, fabricación; Meshy: splat, Text to Texture y Text to Voxel (retirados)—. Las vistas previas de
+Tripo y las miniaturas de Meshy no son un servicio de render: viajan como variante del resultado (§11).
 
 **Lo que cambia cuando llega un contrato:** solo la etiqueta de SUS filas (y, si el contrato lo concede, lo que permita
 de la selección), en los datos del modelo, con su fuente y su fecha. Ni el MAPA 1, ni la app, ni la puerta se enteran.
@@ -258,14 +298,14 @@ La matriz que pide la FASE 5, para leer de un vistazo. Manda el MAPA 2: aquí so
 
 | CAPABILITY | WEË CORE | TRIPO | MESHY | FAL.AI | ESTADO | EVIDENCIA | NOTAS |
 |---|---|---|---|---|---|---|---|
-| `3d.generate` · texto | DECLARED; sin `CapabilityId`, sin cadena, sin servicio | API sí, una tarea · autorización escrita | API sí, **dos tareas** · acuerdo de socio | — | PREPARADO · OFF | Tripo S18–S19; Meshy S14 | Alternativa sin dos tareas: texto → imagen con el camino de Weë → imagen → 3D (D3D-7) |
-| `3d.generate` · imagen | igual | API sí · autorización escrita | API sí · acuerdo de socio | Hunyuan 3D evaluado y no añadido | PREPARADO · OFF | Tripo S20; Meshy S15; FAL.md §3 | El caso con más utilidad para Weë (Studio, Design D7, fichas de Filmmaker) |
-| `3d.generate` · varias imágenes | igual | API sí · autorización escrita | API sí · acuerdo de socio | — | PREPARADO · OFF | Tripo S21; Meshy S16 | |
-| `3d.texture` | DECLARED | API sí · autorización escrita | API sí · acuerdo de socio | — | PREPARADO · OFF | Tripo S24; Meshy S18 | Derivado del material de origen (G3D-5) |
-| `3d.retopology` | DECLARED | API sí · autorización escrita | API sí · acuerdo de socio | — | PREPARADO · OFF | Tripo S32; Meshy S17 | Filmmaker no la necesita (el vídeo lo hace Seedance) |
-| `3d.rig` | DECLARED | API sí, 7 morfologías · autorización escrita | API sí, humanoides · acuerdo de socio | — | PREPARADO · OFF | Tripo S27–S28; Meshy S19 | El Router tiene que saber qué morfología admite cada modelo (G3D-6) |
-| `3d.animate` | **PROPUESTA** | Presets · autorización escrita | Biblioteca + texto → movimiento · acuerdo de socio | — | FALTA (vocabulario) · OFF | Tripo S29; Meshy S20–S21 | |
-| `3d.convert` | DECLARED | API sí · autorización escrita | API sí · acuerdo de socio | — | PREPARADO · OFF | Tripo S25; Meshy S22 | Formato canónico: D3D-6 |
+| `3d.generate` · texto | DECLARED; sin `CapabilityId`, sin cadena, sin servicio | API sí, una tarea · autorización escrita | API sí, **dos tareas** · Enterprise | — | PREPARADO · OFF | Tripo S18–S19; Meshy S14 | Alternativa sin dos tareas: texto → imagen con el camino de Weë → imagen → 3D (D3D-7) |
+| `3d.generate` · imagen | igual | API sí · autorización escrita | API sí · Enterprise | Hunyuan 3D evaluado y no añadido | PREPARADO · OFF | Tripo S20; Meshy S15; FAL.md §3 | El caso con más utilidad para Weë (Studio, Design D7, fichas de Filmmaker) |
+| `3d.generate` · varias imágenes | igual | API sí · autorización escrita | API sí · Enterprise | — | PREPARADO · OFF | Tripo S21; Meshy S16 | |
+| `3d.texture` | DECLARED | API sí · autorización escrita | API sí · Enterprise | — | PREPARADO · OFF | Tripo S24; Meshy S18 | Derivado del material de origen (G3D-5) |
+| `3d.retopology` | DECLARED | API sí · autorización escrita | API sí · Enterprise | — | PREPARADO · OFF | Tripo S32; Meshy S17 | Filmmaker no la necesita (el vídeo lo hace Seedance) |
+| `3d.rig` | DECLARED | API sí, 7 morfologías · autorización escrita | API sí, humanoides · Enterprise | — | PREPARADO · OFF | Tripo S27–S28; Meshy S19 | El Router tiene que saber qué morfología admite cada modelo (G3D-6) |
+| `3d.animate` | **PROPUESTA** | Presets · autorización escrita | Biblioteca + texto → movimiento · Enterprise | — | FALTA (vocabulario) · OFF | Tripo S29; Meshy S20–S21 | |
+| `3d.convert` | DECLARED | API sí · autorización escrita | API sí · Enterprise | — | PREPARADO · OFF | Tripo S25; Meshy S22 | Formato canónico: D3D-6 |
 | `world.generate` | ROUTABLE (tercera puerta, sin desplegar) | **No** | **No** | Hunyuan World · REVIEW_REQUIRED | EXISTE · INERTE | FAL.md; 3D-EXPERIENCIA | Otro proveedor de mundos entra por datos (World Labs, candidata en `filmmaker/core`) |
 | `world.edit` | **PROPUESTA** | No | No | No (`world.expand`: NOT_SUPPORTED_BY_CURRENT_PROVIDER) | FALTA | `functions/src/core/escena3d.ts` | No se ofrece ni se simula |
 | `scene.generate` | DECLARED (design) | No | No | No | FALTA (proveedor) | — | Una escena compone materiales por id (`Escena3D`) |
@@ -610,8 +650,8 @@ Capacidad («Crear objeto 3D»)  →  Composer (claves, «🤷 No sé» siempre)
 Lo que implementa esta línea: `functions/test/multiproveedor-3d.test.mjs` (en la cadena), sin red, sin clave y sin
 proveedor: A (apagado), B (vocabulario), C (precondiciones de activación), D (el documento), E (MAPA 1 y MAPA 2: una
 etiqueta por fila, ninguna autorización inventada, ninguna selección B, ningún proveedor en el MAPA 1) y F (un control
-saboteado por regla). Además se sabotearon 37 reglas sobre los archivos de verdad —el compilado, la fuente, la app, la
-configuración y este documento—, una a una y restaurando cada archivo byte a byte: las 37 ponen la suite en rojo en la
+saboteado por regla). Además se sabotearon 39 reglas sobre los archivos de verdad —el compilado, la fuente, la app, la
+configuración y este documento—, una a una y restaurando cada archivo byte a byte: las 39 ponen la suite en rojo en la
 comprobación esperada. Lo que haría falta al integrar cada proveedor, siguiendo los moldes que ya existen:
 
 | Caso | Qué se prueba | Molde que se extiende | Sabotaje que tiene que verse |
@@ -646,7 +686,8 @@ candado de operaciones pesadas.
 **No hace falta un dominio nuevo para el routing:** el dominio `router` (`ops/evals/dominios/router.mjs`) ya decide
 cualquier capacidad con el router VIVO y dependencias falsas, $0; así se hizo `world.generate` (dataset propio, sin tocar
 el v1 congelado). El plan: `ops/evals/datasets/router/modelo3d-v1.json` y su baseline `ops/evals/baseline/router-modelo3d.json`
-(PROPUESTOS), con proveedores sintéticos (ni un nombre real) y estos casos: proveedor A elegible; proveedor B elegible; los
+(PROPUESTOS), con proveedores sintéticos —ni un nombre real; y con más razón, porque el §2.6(iv) de Meshy prohíbe el
+«análisis competitivo» ⚖— y estos casos: proveedor A elegible; proveedor B elegible; los
 dos (desempate por política, prioridad y coste); bloqueado; DISABLED; no disponible (sin clave, pausa); fallback de
 cotización (A en pausa → B); ningún proveedor; capacidad no soportada; restricción de jurisdicción; y el motivo público de
 cada «no disponible».
@@ -756,8 +797,8 @@ Cada una con su recomendado, **no aplicado**.
 |---|---|---|---|
 | D3D-1 | **La cuarta puerta del conductor** para objetos 3D (CLAUDE.md §10: prohibido sin autorización explícita) | A) Una puerta por capacidad, empezando por `3d.generate` · B) Una puerta para la familia `3d.*` con lista cerrada en código · C) No abrir: solo mundos | **A** |
 | D3D-2 | El vocabulario del motor: `3d.generate` a `CapabilityId` (+ `DEFAULT_ROUTING`, sube `CAPABILITY_CONTRACT_VERSION`), `produces: '3d'` en las `3d.*`, y `3d.animate` / `world.edit` | A) Todo junto con la Línea A · B) Solo `3d.generate` y su `produces` · C) Esperar | **B**, coordinado con la Línea A |
-| D3D-3 | Tripo: autorización escrita (§3.2) para usuarios finales, alcance de la no competencia, «Paid User», privacidad (Hong Kong) | A) Pedirla y activarlo después · B) Descartar Tripo | **A**; hasta entonces OFF con su motivo |
-| D3D-4 | Meshy: §2.1/§2.6 (reventa), Partner Program / Enterprise, §2.9 (entrenamiento), DPA, retención | A) Order Form Enterprise · B) Confirmación escrita sobre self-serve · C) Descartar | **A** |
+| D3D-3 | Tripo: autorización escrita (§3.2) para usuarios finales —quién la firma (Holymolly o VAST ⚖), en qué forma, con qué alcance (§3.3(a): también lo que no es 3D) y si cubre la marca—, la no competencia, «Paid User», privacidad (Hong Kong) | A) Pedirla y activarlo después · B) Descartar Tripo | **A**; hasta entonces OFF con su motivo |
+| D3D-4 | Meshy: §1.2 (uso interno), §2.1/§2.6 (reventa, cuentas compartidas, competencia y análisis competitivo ⚖), §2.9 (entrenamiento), DPA, retención, la cita como cliente (§3.6) y la cobertura del Partner Program fuera de Europa | A) Order Form Enterprise · B) Partner Program · C) Confirmación escrita sobre self-serve · D) Descartar | **A** |
 | D3D-5 | ¿fal sirve también objetos 3D? | A) Solo mundos · B) Evaluar modelos de objetos con licencia clara | **A** por ahora |
 | D3D-6 | Formato canónico del material 3D | A) GLB único + `3d.convert` bajo demanda · B) Guardar todos los formatos como variantes | **A** |
 | D3D-7 | Texto → 3D | A) Texto → imagen (Weë) → imagen → 3D · B) Dos tareas de Meshy en un trabajo · C) Solo proveedores de una tarea | **A** |
@@ -770,7 +811,8 @@ Cada una con su recomendado, **no aplicado**.
 | D3D-14 | Visor 3D y dónde se guardan las escenas (ya pendientes en 3D-EXPERIENCIA §19) | A) Integrar el visor web de `filmmaker/core` · B) Otra biblioteca | **A** |
 | D3D-15 | Integrar lo preparado en `filmmaker/core` (Meshy y World Labs PENDING, `models3d`, visor) antes o después de esta línea | A) Antes · B) Después, re-anclando | **A** |
 | D3D-16 | Reconciliar «sin referencia» (Meshy lista tareas por fecha; Tripo necesita ids) | A) Herramienta humana · B) Automática | **A** |
-| D3D-17 | **¿Puede la persona elegir proveedor (selección B)?** CLAUDE.md: nunca ve proveedores ni modelos por defecto (como mucho, un modo avanzado opcional y oculto). Haría falta un contrato que permita nombrarlo (Tripo: dentro de su autorización escrita → D; Meshy: Partner/Enterprise → D; fal: sus términos no lo tratan → UNKNOWN) Y una decisión del dueño | A) No: A siempre (el Router elige) · B) Solo en un modo avanzado oculto, por proveedor, cuando su contrato lo permita | **A** (no es una función: es una decisión pendiente) |
+| D3D-17 | **¿Puede la persona elegir proveedor (selección B)?** CLAUDE.md: nunca ve proveedores ni modelos por defecto (como mucho, un modo avanzado opcional y oculto). El MAPA 2 la deja en REVIEW_REQUIRED en Tripo y en Meshy (uso de marca, acceso visible de terceros) y UNKNOWN en fal; «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED, con lectura desfavorable, en Meshy. Haría falta un contrato que lo permita Y una decisión del dueño | A) No: A siempre (el Router elige) · B) Solo en un modo avanzado oculto, por proveedor, cuando su contrato lo permita | **A** (no es una función: es una decisión pendiente) |
+| D3D-18 | ¿Entran en el alcance de Weë las capacidades no 3D de estos proveedores (imagen con modelos de terceros, multivista) y la impresión o el producto físico (preparar para imprimir, Creative Lab, fabricación)? | A) Solo 3D: generar, texturizar, retopología, rig, animar, convertir · B) A + preparar para imprimir · C) B + producto físico | **A** |
 
 ---
 

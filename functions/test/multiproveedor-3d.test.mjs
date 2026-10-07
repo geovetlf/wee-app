@@ -14,7 +14,9 @@
  *       modalidad, gobierno completo, nacer apagado, plazos);
  *   D · que el documento dice lo que el código dice (rutas que existen, mapa de capacidades, estado final, decisiones);
  *   E · los dos mapas, sin mezclarse: MAPA 1 (lo que Weë sabe hacer, sin proveedores) y MAPA 2 (quién puede ejecutar cada
- *       capacidad y con qué condiciones: una etiqueta de autorización por fila, nunca inventada, y la selección A–E sin B).
+ *       capacidad y con qué condiciones, según la investigación dedicada: una etiqueta de autorización por fila, nunca
+ *       inventada; Tripo con autorización escrita, Meshy con Enterprise; lo que solo es web, NOT_ALLOWED; las exclusiones
+ *       de Weë en su columna y no en la de los términos; y la selección A–E sin B).
  *
  * Cada regla tiene su CONTROL con una entrada saboteada (sección F): un detector que no ve nada no prueba nada.
  *
@@ -343,9 +345,18 @@ const autorizacionInventada = (filas) => filas
   .filter((f) => /^(Tripo|Meshy|fal)$/.test(f.Proveedor) && f['Autorización comercial'] === 'APPROVED / AVAILABLE')
   .map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}`);
 const generacionDe = (filas, proveedor) => filas.filter((f) => f.Proveedor === proveedor && /3d\.generate/.test(f['Capacidad (MAPA 1)']));
-/** Revender modelos de terceros (la imagen 2D de Tripo y de Meshy) no lo hace Weë: NOT_ALLOWED y selección E. */
+/**
+ * Revender modelos de terceros (la imagen 2D de Tripo y de Meshy) lo excluye WEË, por su regla de matrices: eso va en
+ * «uso en Weë» (DESCARTADO) y en la selección (E). La columna de autorización dice solo lo que dicen los términos del
+ * proveedor y de los terceros —según la investigación del MAPA 2, REVIEW_REQUIRED—: las dos dimensiones no se funden.
+ */
 const revendidosMalEtiquetados = (filas) => filas
   .filter((f) => /revende modelos de terceros/i.test(f['Uso en Weë']))
+  .filter((f) => !/^DESCARTADO/.test(f['Uso en Weë']) || f.Selección !== 'E' || f['Autorización comercial'] !== 'REVIEW_REQUIRED')
+  .map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}`);
+/** Lo que solo existe en la web del proveedor no se integra: sin API, automatizarla o compartir cuenta está prohibido. */
+const soloWebMalEtiquetado = (filas) => filas
+  .filter((f) => /solo web/i.test(f['Disponibilidad en la API']))
   .filter((f) => f['Autorización comercial'] !== 'NOT_ALLOWED' || f.Selección !== 'E')
   .map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}`);
 const seleccionNoValida = (filas) => filas.filter((f) => !SELECCIONES.includes(f.Selección) || f.Selección === 'B').map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}: ${f.Selección}`);
@@ -368,12 +379,12 @@ seccion('E', () => {
   check('E3) «hay API» no es «Weë puede ofrecerlo»: ninguna fila de Tripo, Meshy o fal está APPROVED / AVAILABLE', inventadas.length === 0, inventadas.join(', '));
   const tripo = generacionDe(filas, 'Tripo');
   const meshy = generacionDe(filas, 'Meshy');
-  check('E4) Tripo genera solo con autorización escrita previa (Terms §3.2) y Meshy solo con acuerdo de socio o Enterprise (§2.1, §2.6): los dos, OFF',
+  check('E4) Tripo genera solo con autorización escrita previa (Terms §3.2) y Meshy solo con Enterprise (§1.2 uso interno, §2.1, §2.6): los dos, OFF',
     tripo.length >= 3 && tripo.every((f) => f['Autorización comercial'] === 'REQUIRES WRITTEN AUTHORIZATION')
-    && meshy.length >= 3 && meshy.every((f) => ['REQUIRES PARTNER AGREEMENT', 'REQUIRES ENTERPRISE'].includes(f['Autorización comercial'])),
+    && meshy.length >= 3 && meshy.every((f) => f['Autorización comercial'] === 'REQUIRES ENTERPRISE'),
     `Tripo ${tripo.map((f) => f['Autorización comercial']).join(',')} · Meshy ${meshy.map((f) => f['Autorización comercial']).join(',')}`);
   const revendidos = revendidosMalEtiquetados(filas);
-  check('E5) lo que revende modelos de terceros (la imagen 2D de Tripo y de Meshy) es NOT_ALLOWED y nadie lo elige (E)',
+  check('E5) lo que revende modelos de terceros (la imagen 2D de Tripo y de Meshy) lo descarta Weë —uso DESCARTADO, selección E— y su autorización sigue siendo la de los términos (REVIEW_REQUIRED): las dimensiones no se funden',
     filas.filter((f) => /revende modelos de terceros/i.test(f['Uso en Weë'])).length >= 2 && revendidos.length === 0, revendidos.join(', '));
   const seleccion = seleccionNoValida(filas);
   check('E6) la selección de proveedor es A–E y NINGUNA fila tiene B (la persona no elige proveedor por defecto; B es la decisión D3D-17)',
@@ -382,6 +393,9 @@ seccion('E', () => {
   check('E7) la capacidad es de Weë: el MAPA 2 no inventa ninguna (todas existen en el catálogo o son las propuestas)', ajenas.length === 0, ajenas.join(', '));
   const m1 = mapa1(doc);
   check('E8) y el MAPA 1 no nombra ningún proveedor: los dos mapas nunca se mezclan', m1.length > 500 && !PROVEEDOR_EN_TEXTO.test(m1), (m1.match(PROVEEDOR_EN_TEXTO) || [''])[0]);
+  const soloWeb = soloWebMalEtiquetado(filas);
+  check('E9) lo que solo existe en la web del proveedor (sin API) es NOT_ALLOWED y nadie lo elige (E)',
+    filas.filter((f) => /solo web/i.test(f['Disponibilidad en la API'])).length >= 4 && soloWeb.length === 0, soloWeb.join(', '));
 });
 
 /* ═══ F · CONTROLES: cada detector, con una entrada saboteada ══════════════ */
@@ -431,13 +445,17 @@ seccion('F', () => {
   check('F18) CONTROL E2: una fila con dos etiquetas, o con una que no existe, se ve',
     etiquetaUnica([fila('Tripo', 'x', '3d.generate', 'PREPARADO', 'REVIEW_REQUIRED, UNKNOWN', 'A'), fila('Meshy', 'y', '3d.rig', 'PREPARADO', 'APROBADO', 'A')]).length === 2);
   check('F19) CONTROL E3: una autorización inventada para Tripo se ve', autorizacionInventada([fila('Tripo', 'image-to-model', '3d.generate · imagen', 'PREPARADO', 'APPROVED / AVAILABLE', 'A')]).length === 1);
-  check('F20) CONTROL E5: un modelo revendido que no está en NOT_ALLOWED, o que alguien puede elegir, se ve',
-    revendidosMalEtiquetados([fila('Meshy', 'text-to-image', 'image.generate', 'DESCARTADO: revende modelos de terceros', 'REQUIRES PARTNER AGREEMENT', 'E'),
-      fila('Tripo', 'text-to-image', 'image.generate', 'DESCARTADO: revende modelos de terceros', 'NOT_ALLOWED', 'A')]).length === 2);
+  check('F20) CONTROL E5: un modelo revendido que alguien puede elegir, o cuya autorización mezcla la regla de Weë con los términos, se ve',
+    revendidosMalEtiquetados([fila('Meshy', 'text-to-image', 'image.generate', 'DESCARTADO: revende modelos de terceros', 'REVIEW_REQUIRED', 'A'),
+      fila('Tripo', 'text-to-image', 'image.generate', 'DESCARTADO: revende modelos de terceros', 'NOT_ALLOWED', 'E')]).length === 2
+    && revendidosMalEtiquetados([fila('Tripo', 'text-to-image', 'image.generate', 'DESCARTADO: revende modelos de terceros', 'REVIEW_REQUIRED', 'E')]).length === 0);
   check('F21) CONTROL E6: una fila con la selección B (la persona elige) se ve, y una que no es A–E también',
     seleccionNoValida([fila('Tripo', 'x', '3d.generate', 'PREPARADO', 'REQUIRES WRITTEN AUTHORIZATION', 'B'), fila('fal', 'y', 'world.generate', 'INTEGRADO', 'REVIEW_REQUIRED', 'AUTO')]).length === 2);
   check('F22) CONTROL E7: una capacidad que el MAPA 2 se inventa se ve', capacidadesAjenas([fila('Tripo', 'x', '3d.inventada', 'PREPARADO', 'REQUIRES WRITTEN AUTHORIZATION', 'A')]).length === 1);
   check('F23) CONTROL E8: un MAPA 1 que nombra a un proveedor se ve', PROVEEDOR_EN_TEXTO.test('| 3d.generate | lo hace Tripo |') && !PROVEEDOR_EN_TEXTO.test('| 3d.generate | falta tu país |'));
+  const web = (etiqueta, sel) => ({ ...fila('Meshy', 'Scene Compose', 'scene.generate', 'DESCARTADO', etiqueta, sel), 'Disponibilidad en la API': 'NO (solo web)' });
+  check('F24) CONTROL E9: una función solo web con otra etiqueta, o que alguien puede elegir, se ve',
+    soloWebMalEtiquetado([web('REQUIRES ENTERPRISE', 'E'), web('NOT_ALLOWED', 'A')]).length === 2 && soloWebMalEtiquetado([web('NOT_ALLOWED', 'E')]).length === 0);
 });
 
 console.log(failures ? `\n✘ ${failures} de ${n} comprobaciones fallaron` : `\n✔ 3D multiproveedor: preparado, apagado y medido (${n} comprobaciones, $0)`);
