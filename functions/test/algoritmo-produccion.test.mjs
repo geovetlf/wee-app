@@ -85,7 +85,27 @@ check('7 · CONTROL · la regla de arriba ve una afirmación falsa: «el Algorit
 
 /* ── 4 · El número no esconde el código ── */
 /* `git diff --quiet <commit> -- rutas` compara ese commit con este árbol: 0 igual, 1 distinto, otra cosa es un error. */
-const RUTAS_DEL_MOTOR = ['functions/src/core/algorithm', 'functions/src/core/contracts.ts', 'functions/src/creator/sombra.ts'];
+/*
+ * El código que decide lo que el motor decide: el CIERRE de imports relativos de la capa (core/algorithm/index.ts) —con la
+ * primera capa de la frontera, la lista del Planner (core/planner.ts), y lo demás que importa del Core—, más la sombra que
+ * la aloja (segunda pasada de la revisión: comparar solo core/algorithm dejaba fuera la lista del Planner).
+ */
+const cierreDeImports = (desde) => {
+  const vistos = new Set();
+  const pendientes = [desde];
+  while (pendientes.length) {
+    const rel = pendientes.pop();
+    if (vistos.has(rel)) continue;
+    vistos.add(rel);
+    for (const m of leer(rel).matchAll(/(?:^|\n)\s*(?:import|export)\b[^'"]*?\bfrom\s*'(\.{1,2}\/[^']+)'/g)) {
+      const base = path.posix.join(path.posix.dirname(rel), m[1]);
+      const archivo = [`${base}.ts`, `${base}/index.ts`].find((f) => fs.existsSync(path.join(RAIZ, f)));
+      if (archivo) pendientes.push(archivo);
+    }
+  }
+  return [...vistos].sort();
+};
+const RUTAS_DEL_MOTOR = [...cierreDeImports('functions/src/core/algorithm/index.ts'), 'functions/src/creator/sombra.ts'];
 let CODIGO;
 if (commitValido) {
   try {
@@ -93,8 +113,11 @@ if (commitValido) {
     CODIGO = 'igual';
   } catch (e) { CODIGO = e.status === 1 ? 'distinto' : undefined; }
 }
-console.log(`   el código del motor (core/algorithm, core/contracts.ts, la sombra) en producción frente a este árbol: ${CODIGO ?? 'sin leer'}`);
+console.log(`   el código del motor (${RUTAS_DEL_MOTOR.length} archivos: el cierre de imports de core/algorithm y la sombra) en producción frente a este árbol: ${CODIGO ?? 'sin leer'}`);
 check('8 · el código del motor del commit desplegado se compara con el de este árbol', CODIGO !== undefined, CODIGO ?? errorDeGit);
+check('8b · y ese código es el cierre de imports de la capa: incluye la lista del Planner (la primera capa de la frontera), core/contracts.ts y la sombra',
+  ['functions/src/core/planner.ts', 'functions/src/core/contracts.ts', 'functions/src/core/algorithm/authority.ts', 'functions/src/creator/sombra.ts']
+    .every((f) => RUTAS_DEL_MOTOR.includes(f)) && RUTAS_DEL_MOTOR.length > 30, `${RUTAS_DEL_MOTOR.length} archivos`);
 check('9 · el número no esconde el código: con números distintos, el código también lo es; con el mismo número y otro código, RUNTIME.md § 3 lo dice («mismo número, código distinto»)',
   MAIN !== PROD ? CODIGO === 'distinto' : (CODIGO !== 'distinto' || fila.includes('mismo número, código distinto')),
   `${MAIN} frente a ${PROD} · código ${CODIGO}`);
