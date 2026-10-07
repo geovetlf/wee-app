@@ -906,7 +906,9 @@ check('91 · nadie ha conectado A9 a producción: solo la sombra lo crea, y solo
 })());
 check('91b · y en la sombra el ciclo solo DECIDE: ni cierra, ni aprende, ni recibe lo aprendido', (() => {
   const src = sinComentarios(leer(PUERTA_DE_LA_SOMBRA));
-  const creaciones = src.match(/crearCicloAlgoritmico\)?\(\)/g) ?? [];
+  /* (Misión de cierre) Con UNA opción como mucho, y esa literal: el cronómetro del razonamiento
+   * —el tope de pensar—. Ni evaluadores, ni métricas, ni capacidades: nada que cierre ni aprenda. */
+  const creaciones = src.match(/crearCicloAlgoritmico\)?\((?:\{ cronometro: reloj \})?\)/g) ?? [];
   /* Lo que se le pide al ciclo vive entre la petición de sombra y la sección: ahí se mira. */
   const desde = src.indexOf('export const peticionDeLaSombra');
   const hasta = src.indexOf('const yaExiste');
@@ -973,6 +975,36 @@ check('CM8 · CONTROL · los mismos requisitos, bien formados, deciden como siem
   ciclo.decidir(peticion({ aprendido: { ahora: T1, scope: { capability: CAP }, learned: [], requirements: { minConfidence: 0, minSampleSize: 0, maxAgeMs: 1e12 } } })).status === 'decided');
 check('CM9 · y `context_refused` sigue siendo lo que era: un ámbito al que A8 no contesta',
   ciclo.decidir(peticion({ aprendido: { ahora: T1, scope: { capability: CAP, account: 'u1' }, learned: [] } })).parada === 'context_refused');
+
+console.log('\n─── Misión de cierre · el tope de pensar se aplica mientras se piensa ───');
+
+const PET_CRONO = peticion({ aprendido: undefined });
+const comoTexto = (r) => JSON.stringify(r);
+const sinCrono = A.crearCicloAlgoritmico().decidir(PET_CRONO);
+check('CM10 · sin cronómetro, el ciclo es byte a byte el de siempre; y con uno que no avanza, también',
+  sinCrono.status === 'decided' && comoTexto(A.crearCicloAlgoritmico({ cronometro: () => 1000 }).decidir(PET_CRONO)) === comoTexto(sinCrono));
+let tCM11 = 0;
+const cortadoCM = A.crearCicloAlgoritmico({ cronometro: () => (tCM11 += 100) }).decidir(PET_CRONO);
+check('CM11 · un razonamiento que se pasa del tope se CORTA dentro del motor: `budget_exceeded`, sin entrega, y dicho antes de qué etapa',
+  cortadoCM.status === 'undecided' && cortadoCM.parada === 'budget_exceeded' && !cortadoCM.entrega
+  && cortadoCM.because.some((b) => b.startsWith('Se acabó el tiempo de pensar')),
+  `${cortadoCM.status}/${cortadoCM.parada} · ${JSON.stringify(cortadoCM.recorrido)} · ${String(cortadoCM.because.slice(-1)[0]).slice(0, 90)}`);
+let tCM12 = 0;
+const holgadoCM = A.crearCicloAlgoritmico({ cronometro: () => (tCM12 += 0.001) }).decidir(PET_CRONO);
+check('CM12 · CONTROL · un reloj que avanza pero deja tiempo de sobra: decide y entrega lo mismo que sin reloj',
+  holgadoCM.status === 'decided' && !!holgadoCM.entrega?.plan && holgadoCM.entrega.plan.id === sinCrono.entrega?.plan?.id,
+  `${holgadoCM.status} · ${holgadoCM.entrega?.plan?.id} vs ${sinCrono.entrega?.plan?.id}`);
+check('CM13 · un reloj roto —que lanza, o que no da un número finito— no tumba el razonamiento ni lo corta: como sin reloj',
+  [() => { throw new Error('reloj roto'); }, () => NaN, () => Infinity, () => 'x']
+    .every((c) => comoTexto(A.crearCicloAlgoritmico({ cronometro: c }).decidir(PET_CRONO)) === comoTexto(sinCrono)));
+const conPlazoCM = soloOpciones({ decision: decisionBase({ constraints: { deadlineAt: 4e12 }, options: soloOpciones().decision.options }) });
+let tCM14 = 0;
+check('CM14 · A1 NO recibe el cronómetro: un plazo (`deadlineAt`, una FECHA) se juzga igual con y sin él —el cronómetro no es un reloj de pared—',
+  comoTexto(A.crearCicloAlgoritmico({ cronometro: () => (tCM14 += 0.001) }).decidir(conPlazoCM)) === comoTexto(A.crearCicloAlgoritmico().decidir(conPlazoCM)));
+const fuentesCM = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/algorithm')).filter((f) => f.endsWith('.ts'));
+const conRelojCM = fuentesCM.filter((f) => /Date\.now|performance\.now|new Date\(|Math\.random|process\.hrtime/.test(sinComentarios(leer('functions/src/core/algorithm/' + f))));
+check('CM15 · el motor sigue PURO: ningún archivo de core/algorithm lee un reloj ni el azar; el cronómetro solo entra por el puerto',
+  fuentesCM.length >= 30 && conRelojCM.length === 0, conRelojCM.join(', '));
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA9: A0–A8 forman un ciclo, y cada uno sigue siendo el único dueño de lo suyo');
 process.exit(failures ? 1 : 0);

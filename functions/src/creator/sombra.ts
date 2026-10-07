@@ -888,7 +888,8 @@ export const seccionDelAlgoritmo = (e: EntradaDelAlgoritmo): SeccionDelAlgoritmo
     const peticion = peticionDeLaSombra({ jobId: e.jobId, userId: e.userId, experienceId: e.experienceId, pasos: pasosDelCore });
     pasosQueEntran = peticion.algoritmo.tarea?.steps ?? [];
 
-    const ciclo = (e.crearCiclo ?? crearCicloAlgoritmico)();
+    /* El MISMO cronómetro con que se mide la sección: el motor corta su razonamiento al tope. */
+    const ciclo = e.crearCiclo ? e.crearCiclo() : crearCicloAlgoritmico({ cronometro: reloj });
     const r = ciclo.decidir(peticion.algoritmo);
 
     /*
@@ -984,7 +985,12 @@ export const seccionDelAlgoritmo = (e: EntradaDelAlgoritmo): SeccionDelAlgoritmo
     }
     /* Lo que no se puede guardar no se guarda: una clave prohibida en la sección es un fallo, no un dato. */
     if (!seccionPresentable(hecha)) throw new Error('la sección del algoritmo lleva una clave que no puede guardarse');
-    /* El tope de tiempo es el del propio motor. Pasarse no rompe nada: se dice. */
+    /*
+     * El tope de tiempo, en dos sitios y con el mismo cronómetro: el MOTOR corta su
+     * razonamiento al llegar a él (`OpcionesDelCiclo.cronometro`, desde la misión de
+     * cierre; antes solo se medía aquí, al terminar), y aquí se mide la sección
+     * entera —decidir y comparar—. Pasarse no rompe nada: se dice.
+     */
     return hecha.duracionMs > TOPES_POR_DEFECTO.maxLatencyMs ? { ...hecha, estado: 'fuera_de_presupuesto' } : hecha;
   } catch (error) {
     const categorias = categoriasVacias();

@@ -547,6 +547,12 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  *               (`problemasDeLosRequisitos`): un `NaN` o un texto ya no apagan esos suelos.
  *   PARADA      el ciclo dice `context_rejected`, no `context_refused`, cuando los requisitos
  *               de lo aprendido están mal formados: es una petición que corregir.
+ *
+ * Y el ciclo acepta un cronómetro (`OpcionesDelCiclo.cronometro`) para que el tope de pensar
+ * `maxLatencyMs` —que el contrato ya declaraba— se aplique mientras se razona y no solo se
+ * mida al terminar. Es una opción de la fábrica, no un campo de la petición ni del resultado:
+ * sin ella, el motor es byte a byte el de antes; con ella, lo que puede cambiar es que se
+ * pare por `budget_exceeded`, una parada que 1.12 ya tenía.
  */
 export const ALGORITHM_CONTRACT_VERSION = '1.12' as const;
 

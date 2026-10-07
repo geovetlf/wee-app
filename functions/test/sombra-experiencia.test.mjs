@@ -892,6 +892,17 @@ const lenta = await correrCanary({ cronometro: () => (tics.length ? tics.shift()
     `duracionMs=${enElTope.sombra?.algoritmo?.duracionMs}`);
 }
 
+{
+  /* (Misión de cierre) El MISMO cronómetro llega al motor: un razonamiento que se pasa se corta dentro, no solo se mide al terminar. */
+  let tCorte = 0;
+  const cortada = await correrCanary({ cronometro: () => (tCorte += 100) });
+  const a = cortada.sombra?.algoritmo;
+  check('S1-8c) el motor CORTA su razonamiento al tope con el cronómetro de la sombra: `budget_exceeded`, sin lanzar, la evidencia se guarda y Legacy queda intacto',
+    a?.estado === 'fuera_de_presupuesto' && a?.decision?.parada === 'budget_exceeded' && a?.decision?.status === 'undecided'
+    && cortada.salida?.algoritmo === 'fuera_de_presupuesto' && legacyIntacto(cortada),
+    `estado=${a?.estado} parada=${a?.decision?.parada} status=${a?.decision?.status}`);
+}
+
 /* ── 9–10 · Una sola sombra, y siempre la misma decisión ─────────────────── */
 {
   const db = new BaseFalsa();

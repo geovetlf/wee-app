@@ -54,7 +54,41 @@ export interface OpcionesDelCiclo {
   evaluadores?: readonly VerificationEvaluator[];
   metricas?: readonly DescriptorDeMetrica[];
   capacidades?: PuertosDeCapacidad;
+  /**
+   * EL CRONÓMETRO DEL RAZONAMIENTO, por puerto: milisegundos MONOTÓNICOS
+   * (`performance.now`), solo para el tope de pensar `maxLatencyMs`.
+   *
+   * Sin él, el motor es el de siempre —puro, sin reloj— y el tope de tiempo no se
+   * mide. Con él, el ciclo lo aplica MIENTRAS razona: cada etapa (A2–A6r) recibe
+   * el tiempo que queda como su propio `maxLatencyMs` y se recorta como siempre
+   * —lo mejor que tenga—, y entre etapas, si no queda tiempo, el ciclo se para con
+   * `budget_exceeded` y dice antes de qué etapa.
+   *
+   * NO es un reloj de pared: no sirve para `deadlineAt`, que es una fecha. Por eso
+   * A1 no lo recibe —su `ahora` es justamente ese reloj de pared—, y el ciclo
+   * comprueba el tiempo ANTES de A1. Y NO es un plazo de nadie más: ni del
+   * proveedor, ni del Gateway, ni de un trabajo, ni del dinero. Solo de pensar.
+   */
+  cronometro?: () => number;
 }
+
+/**
+ * UN CRONÓMETRO A PRUEBA DE RELOJES ROTOS: lo que lanza, o no es un número finito,
+ * no cuenta, y se devuelve la última lectura buena. Así un reloj roto no tumba el
+ * razonamiento ni lo corta por error: deja de avanzar, y lo que acota entonces es
+ * el resto de topes —candidatas, iteraciones, profundidad—, como sin reloj.
+ */
+const cronometroSeguro = (c: (() => number) | undefined): (() => number | undefined) | undefined => {
+  if (typeof c !== 'function') return undefined;
+  let ultima: number | undefined;
+  return () => {
+    try {
+      const v = c();
+      if (typeof v === 'number' && Number.isFinite(v)) ultima = v;
+    } catch { /* el reloj no tumba el razonamiento: se queda la última lectura buena */ }
+    return ultima;
+  };
+};
 
 /** La alternativa elegida, por su id: A1 devuelve el valor, y el id está en sus candidatos. */
 const idDe = <T>(d: AlgorithmDecision<T>, valor: T | undefined): string | undefined =>
@@ -119,19 +153,24 @@ const porElPresupuesto = (paralelizar: boolean, r: Pick<AlgorithmDecisionResult,
   || (!!r.strategies?.metricas.budgetExhausted && !r.strategies.estrategias.length);
 
 export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
+  const leerCronometro = cronometroSeguro(opciones.cronometro);
+  /* El de las etapas: sin ninguna lectura buena todavía, 0 —lo que no avanza no corta—. */
+  const ahora = leerCronometro ? { ahora: (): number => leerCronometro() ?? 0 } : {};
   const a1 = crearMotorDeDecision<unknown>();
-  const a2 = crearMotorDeDescomposicion(opciones.capacidades ? { capacidades: opciones.capacidades } : {});
-  const a3 = crearMotorDeEstrategias();
-  const a4 = crearMotorDeParalelizacion();
-  const a5 = crearMotorDeOptimizacion<Strategy>();
-  const a6 = crearMotorDeVerificacion(opciones.evaluadores ? { evaluadores: opciones.evaluadores } : {});
-  const a6r = crearMotorDeRecuperacion();
+  const a2 = crearMotorDeDescomposicion({ ...(opciones.capacidades ? { capacidades: opciones.capacidades } : {}), ...ahora });
+  const a3 = crearMotorDeEstrategias({ ...ahora });
+  const a4 = crearMotorDeParalelizacion({ ...ahora });
+  const a5 = crearMotorDeOptimizacion<Strategy>({ ...ahora });
+  const a6 = crearMotorDeVerificacion({ ...(opciones.evaluadores ? { evaluadores: opciones.evaluadores } : {}), ...ahora });
+  const a6r = crearMotorDeRecuperacion({ ...ahora });
   const a7 = crearMotorDeFeedback(opciones.metricas ? { metricas: opciones.metricas } : {});
   const a8 = crearMotorDeContexto(opciones.metricas ? { metricas: opciones.metricas } : {});
 
   /* ── DECIDIR ────────────────────────────────────────────────────────────── */
 
   const decidir = <T = unknown>(peticion: PeticionAlgoritmica<T>): AlgorithmDecisionResult<T> => {
+    /* Lo primero, para que cuente todo: con cronómetro, el tope de pensar cubre el ciclo entero. */
+    const inicio = leerCronometro?.();
     const recorrido: PasoDelCiclo[] = [];
     const porque: string[] = [];
     let salida: Omit<AlgorithmDecisionResult<T>, 'contract' | 'status' | 'recorrido' | 'because'> = {};
@@ -260,6 +299,32 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     }
     const restricciones = restriccionesEfectivas(d);
 
+    /*
+     * EL TOPE DE PENSAR, MIENTRAS SE PIENSA (misión de cierre). Solo con
+     * cronómetro; sin él, `d.budget` llega a cada etapa tal cual y nada cambia.
+     * Con él, cada etapa recibe como `maxLatencyMs` el tiempo que queda —lo más
+     * estrecho manda, como siempre— y, entre etapas, sin tiempo se para aquí con
+     * `budget_exceeded`: no se entrega una alternativa pensada a medias. El
+     * presupuesto ya está validado (arriba), así que el tope es un número bueno.
+     */
+    const topeDeTiempo = presupuestoEfectivo(d.budget).maxLatencyMs;
+    const queda = (): number | undefined => {
+      const ya = leerCronometro?.();
+      return inicio === undefined || ya === undefined ? undefined : topeDeTiempo - (ya - inicio);
+    };
+    /* Nunca 0 ni negativo —un tope así sería un presupuesto mal formado—: si el tiempo se acaba
+     * entre la comprobación y la etapa, la etapa recibe una milésima y se recorta en su primera cuenta. */
+    const presupuestoDeEtapa = (): DecisionContext<unknown>['budget'] => {
+      const q = queda();
+      return q === undefined ? d.budget : { ...(d.budget ?? {}), maxLatencyMs: Math.max(q, 0.001) };
+    };
+    const sinTiempo = (antesDe: string): AlgorithmDecisionResult<T> | undefined => {
+      const q = queda();
+      if (q === undefined || q > 0) return undefined;
+      porque.push(`Se acabó el tiempo de pensar —maxLatencyMs ${topeDeTiempo} ms— antes de ${antesDe}: se para aquí, y no se entrega una alternativa pensada a medias.`);
+      return fin('undecided', 'budget_exceeded');
+    };
+
     /* 1 · CONTEXTO. A8 selecciona lo aprendido; A1 lo recibe por su puerto: el del
      * ámbito y el de cada alternativa, los dos de A8 y ninguno fabricado aquí. */
     let history = d.history;
@@ -293,6 +358,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
 
     /* 2 · SIN TAREA: la decisión es entre lo que ya hay. */
     if (!tarea && !enfoques) {
+      const corte = sinTiempo('A1 (decisión)');
+      if (corte) return corte;
       recorrido.push('decision');
       const decision = a1.decidir(base) as AlgorithmDecision<T | Strategy>;
       salida = { ...salida, decision };
@@ -307,6 +374,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     /* 3 · ENFOQUE. Cuando lo primero es elegir qué tarea, lo elige A1. */
     let tareaElegida: TareaADescomponer | undefined = tarea;
     if (enfoques) {
+      const corte = sinTiempo('A1 (enfoque)');
+      if (corte) return corte;
       recorrido.push('approach');
       const approach = a1.decidir({ ...base, options: enfoques }) as AlgorithmDecision<TareaADescomponer>;
       salida = { ...salida, approach };
@@ -319,8 +388,10 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     const t = tareaElegida as TareaADescomponer;
 
     /* 4 · ESTRUCTURA. A2 es la autoridad sobre la tarea: si la rechaza, se para. */
+    const corteA2 = sinTiempo('A2 (estructura)');
+    if (corteA2) return corteA2;
     recorrido.push('decomposition');
-    const decomposition = a2.descomponer(t, restricciones, d.budget);
+    const decomposition = a2.descomponer(t, restricciones, presupuestoDeEtapa());
     salida = { ...salida, decomposition };
     if (decomposition.problemas.length) {
       porque.push(`A2 rechazó la tarea: ${decomposition.problemas.map((p) => p.reason).join(', ')}.`);
@@ -340,15 +411,19 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
 
     /* 5 · PARALELISMO, si se pidió. A4 es la autoridad sobre la forma paralela. */
     if (peticion.componer?.paralelizar) {
+      const corte = sinTiempo('A4 (paralelismo)');
+      if (corte) return corte;
       recorrido.push('parallelization');
-      const p = a4.variantes(t, senales, restricciones, d.budget);
+      const p = a4.variantes(t, senales, restricciones, presupuestoDeEtapa());
       salida = { ...salida, parallelization: p.analisis };
       formas = p.variantes;
     }
 
     /* 6 · ESTRATEGIAS. Solo A3 las genera. */
+    const corteA3 = sinTiempo('A3 (estrategias)');
+    if (corteA3) return corteA3;
     recorrido.push('strategy');
-    const strategies = a3.proponer(formas, senales, restricciones, d.budget);
+    const strategies = a3.proponer(formas, senales, restricciones, presupuestoDeEtapa());
     salida = { ...salida, strategies };
     let candidatas = strategies.estrategias;
 
@@ -390,13 +465,16 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
 
     /* 7 · OPTIMIZACIÓN, si se pidió. A5 dice qué es factible y qué mejora; no elige. */
     if (peticion.componer?.optimizar) {
+      const corte = sinTiempo('A5 (optimización)');
+      if (corte) return corte;
       recorrido.push('optimization');
       const baseline = candidatas.find((c) => c.value.isBaseline);
+      const presupuestoA5 = presupuestoDeEtapa();
       const optimization = a5.optimizar({
         candidates: candidatas,
         objective: d.objective,
         ...(restricciones ? { constraints: restricciones } : {}),
-        ...(d.budget ? { budget: d.budget } : {}),
+        ...(presupuestoA5 ? { budget: presupuestoA5 } : {}),
         evidence: comoEvidencia(senales),
         ...(baseline ? { baselineId: baseline.id } : {}),
         ...(typeof d.seed === 'number' ? { seed: d.seed } : {}),
@@ -415,6 +493,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     if (vaciada) porque.push(porQueSeVacio(peticion.componer?.paralelizar === true, salida));
 
     /* 8 · DECISIÓN. A1, entre lo que A3 generó y A5 dejó en pie o propuso. */
+    const corteA1 = sinTiempo('A1 (decisión)');
+    if (corteA1) return corteA1;
     recorrido.push('decision');
     const decision = a1.decidir({ ...base, options: candidatas, signals: strategies.signals }) as AlgorithmDecision<T | Strategy>;
     salida = { ...salida, decision };
