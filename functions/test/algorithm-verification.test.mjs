@@ -576,5 +576,23 @@ check('108 · y el conjunto de evaluadores está acotado por presupuesto, no por
     actual: res('r', { outputs: Array.from({ length: 500 }, (_, i) => sal(`k${i}`, 'x')) }),
   }).metricas.porEvaluador <= A.TOPES_MAXIMOS.maxEvaluators);
 
+console.log('\n─── Misión de cierre · la clave de señal de cada estado ───');
+
+check('CM1 · cada uno de los seis estados tiene una clave de señal que pasa la regla de nombres de las señales',
+  A.ESTADOS.length === 6 && A.ESTADOS.every((e) => A.senalValida({ key: A.claveDeEstado(e), value: true, source: 'derived' })),
+  A.ESTADOS.map((e) => `${e}→${A.claveDeEstado(e)}`).join(' · '));
+check('CM2 · `pass_with_uncertainty` se publica como `verification.passWithUncertainty`; los otros cinco, como antes',
+  A.claveDeEstado('pass_with_uncertainty') === 'verification.passWithUncertainty'
+  && ['pass', 'fail', 'partial', 'unknown', 'inconclusive'].every((e) => A.claveDeEstado(e) === `verification.${e}`));
+const conIncertidumbreCM = verificar(PIDE_CALIDAD);
+check('CM3 · REGRESIÓN · un veredicto `pass_with_uncertainty` publica solo señales que el motor puede volver a leer',
+  conIncertidumbreCM.status === 'pass_with_uncertainty' && conIncertidumbreCM.signals.length > 0
+  && conIncertidumbreCM.signals.every((s) => A.senalValida(s))
+  && conIncertidumbreCM.signals.some((s) => s.key === 'verification.passWithUncertainty'),
+  JSON.stringify(conIncertidumbreCM.signals.map((s) => s.key)));
+check('CM3b · y ninguna clave publicada por A6, para ningún estado, se queda fuera de la regla',
+  [verificar(PIDE_CALIDAD), conEval(evaluador('e1', 'fail', 0.4)).verificar(PIDE_CALIDAD), conEval(evaluador('e2', 'pass', 0.95)).verificar(PIDE_CALIDAD)]
+    .every((r) => r.signals.every((s) => A.senalValida(s))));
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA6: verifica lo que puede, dice lo que no sabe, y propone sin ejecutar');
 process.exit(failures ? 1 : 0);

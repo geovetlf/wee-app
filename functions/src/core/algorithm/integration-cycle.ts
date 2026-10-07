@@ -36,7 +36,7 @@ import { ContextoDeRecuperacion } from './recovery';
 import { crearMotorDeRecuperacion } from './recovery-engine';
 import { ResultadoDeDecision } from './feedback';
 import { DescriptorDeMetrica, crearMotorDeFeedback } from './feedback-engine';
-import { crearMotorDeContexto, paraDecision } from './context-engine';
+import { crearMotorDeContexto, paraDecision, problemasDeLosRequisitos } from './context-engine';
 import { violacionesEn } from './authority';
 import {
   AlgorithmDecisionResult, CierreDelCiclo, EntregaDeEjecucion, MotivoDeCierreInvalido, MotivoDeParada,
@@ -244,6 +244,19 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       salida = { ...salida, decision };
       porque.push(`Restricciones mal formadas (${malFormadas.join('; ')}): se para antes de componer, y A1 lo dice como conflicto de restricciones.`);
       return fin(decision.status === 'decided' ? 'undecided' : decision.status, 'undecided');
+    }
+    /*
+     * Y LOS REQUISITOS DE LO APRENDIDO, con la misma regla y antes de A8. Hasta
+     * la misión de cierre, A8 contestaba sin admisiones a unos requisitos mal
+     * formados y aquí se leía como «A8 no contesta para ese ámbito»
+     * (`context_refused`): una etiqueta falsa, que manda a quien pidió a mirar su
+     * ámbito cuando lo que tiene que corregir es un número. Es una petición de
+     * contexto rechazada, y se dice qué campo y por qué.
+     */
+    const requisitosRotos = peticion.aprendido ? problemasDeLosRequisitos(peticion.aprendido.requirements) : [];
+    if (requisitosRotos.length) {
+      porque.push(`Los requisitos de lo aprendido están mal formados (${requisitosRotos.join('; ')}): A8 no serviría nada, y no es un ámbito sin respuesta sino una petición que corregir.`);
+      return fin('invalid', 'context_rejected');
     }
     const restricciones = restriccionesEfectivas(d);
 
