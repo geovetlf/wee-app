@@ -535,6 +535,19 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  *                  la ausencia la dice `missing`, y un 0 no es evidencia negativa. Solo
  *                  queda escrito.
  */
+/*
+ * CORRECCIONES DENTRO DE 1.12 (misión de cierre y maduración, 2026-10-07). No cambia la
+ * forma pública ni lo que se decide con entradas válidas; se corrigen tres sitios que
+ * incumplían una semántica que 1.11 y 1.12 ya habían escrito, así que el número se queda:
+ *
+ *   SEÑAL       A6 publicaba `verification.pass_with_uncertainty`, que la regla de nombres
+ *               de las señales rechaza; ahora `verification.passWithUncertainty`
+ *               (`claveDeEstado`). Los otros cinco estados ya cumplían.
+ *   REQUISITOS  A8 aplica la regla de B.1 también a `minSampleSize` y `maxAgeMs`
+ *               (`problemasDeLosRequisitos`): un `NaN` o un texto ya no apagan esos suelos.
+ *   PARADA      el ciclo dice `context_rejected`, no `context_refused`, cuando los requisitos
+ *               de lo aprendido están mal formados: es una petición que corregir.
+ */
 export const ALGORITHM_CONTRACT_VERSION = '1.12' as const;
 
 /** Forma de una decisión de coordinación y del paquete que entrega por paso. */

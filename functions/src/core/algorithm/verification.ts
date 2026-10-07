@@ -81,14 +81,28 @@ export const afirmaFallo = (e: EstadoDeVerificacion): boolean => e === 'fail' ||
 /** ¿Se quedó sin saber? Las dos maneras. */
 export const esSinSaber = (e: EstadoDeVerificacion): boolean => e === 'unknown' || e === 'inconclusive';
 
+/**
+ * LA CLAVE DE SEÑAL DE UN ESTADO, con la regla de nombres de las señales.
+ *
+ * Los estados se escriben como en el resto del Core —`pass_with_uncertainty`—,
+ * pero una clave de señal es `segmento.segmento` en camelCase (`NOMBRE_DE_SENAL`,
+ * signals.ts): A6 publicaba `verification.pass_with_uncertainty`, que `senalValida`
+ * rechaza, así que una señal propia de A6 no habría podido volver a entrar al
+ * motor. Una regla, aquí, para los seis: `verification.passWithUncertainty`,
+ * `verification.pass`… Corrección dentro de 1.12: el contrato ya exigía esa forma.
+ */
+export const claveDeEstado = (e: EstadoDeVerificacion): string =>
+  `verification.${e.replace(/_([a-z])/g, (_m: string, letra: string) => letra.toUpperCase())}`;
+
 /* ── Lo que se esperaba que saliera ───────────────────────────────────────── */
 
 /**
  * LO QUE SE ESPERABA, descrito como DATO.
  *
- * `kind` es `string` y no `Modality` a propósito. `Modality` son siete términos
- * —texto, visión, imagen, vídeo, voz, música, documento— y una salida futura
- * —una malla 3D, un rig facial, una pista de movimiento— no cabe en ninguno.
+ * `kind` es `string` y no `Modality` a propósito. `Modality` es un vocabulario
+ * cerrado del Core —texto, visión, imagen, vídeo, voz, música, documento y, desde
+ * la misión mundo3d, `3d`— y una salida futura —un rig facial, una pista de
+ * movimiento— no cabe en ninguno.
  * Cerrar esto obligaría a tocar el Core para verificar algo nuevo, que es justo
  * lo que A6 no puede pedir. Lo de hoy sigue siendo asignable.
  */

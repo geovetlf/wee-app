@@ -960,5 +960,19 @@ for (const g of GRAFO) console.log(`   grafo de ${String(g.pasos).padStart(2)} p
 check('95 · lo que depende del GRAFO crece con el grafo, y lo dice: A2, A4 y A3 trabajan sobre pasos y anchura',
   GRAFO[2].ms / GRAFO[2].r > GRAFO[0].ms / GRAFO[0].r, GRAFO.map((g) => `${g.pasos}p:${(g.ms / g.r * 1000).toFixed(0)}µs`).join(' · '));
 
+console.log('\n─── Misión de cierre · unos requisitos mal formados son una petición que corregir ───');
+
+for (const [campo, v] of [['minConfidence', NaN], ['minConfidence', '0.9'], ['minSampleSize', NaN], ['maxAgeMs', -1]]) {
+  const r = ciclo.decidir(peticion({ aprendido: { ahora: T1, scope: { capability: CAP }, learned: [], requirements: { [campo]: v } } }));
+  check(`CM7 · requirements.${campo} = ${String(v)} → \`context_rejected\` (no \`context_refused\`), antes de A8 y sin decidir`,
+    r.status === 'invalid' && r.parada === 'context_rejected' && r.recorrido.length === 0 && !r.decision
+    && r.because.some((p) => p.includes(`requirements.${campo}`)),
+    `${r.parada} · ${JSON.stringify(r.recorrido)}`);
+}
+check('CM8 · CONTROL · los mismos requisitos, bien formados, deciden como siempre',
+  ciclo.decidir(peticion({ aprendido: { ahora: T1, scope: { capability: CAP }, learned: [], requirements: { minConfidence: 0, minSampleSize: 0, maxAgeMs: 1e12 } } })).status === 'decided');
+check('CM9 · y `context_refused` sigue siendo lo que era: un ámbito al que A8 no contesta',
+  ciclo.decidir(peticion({ aprendido: { ahora: T1, scope: { capability: CAP, account: 'u1' }, learned: [] } })).parada === 'context_refused');
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA9: A0–A8 forman un ciclo, y cada uno sigue siendo el único dueño de lo suyo');
 process.exit(failures ? 1 : 0);

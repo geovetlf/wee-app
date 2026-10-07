@@ -900,5 +900,30 @@ check('79 · el coste por agregado no crece con N: lineal, sin estado entre llam
   porAg[3] < porAg[1] * 3, tiempos.map((t) => `${t.cuantos}:${(t.ms / t.cuantos * 1000).toFixed(2)}µs`).join(' · '));
 check('80 · cien mil agregados en menos de 10 s', tiempos[3].ms < 10_000, `${tiempos[3].ms.toFixed(0)} ms`);
 
+console.log('\n─── Misión de cierre · los tres números de los requisitos, con la regla de B.1 ───');
+
+const admitidasSinRequisitosCM = a8.seleccionar({ ...BASE, learned: [agBase] }).admisiones.filter((x) => x.status === 'admitted').length;
+for (const [campo, malos] of [
+  ['minSampleSize', [NaN, '30', -1, Infinity, null]],
+  ['maxAgeMs', [NaN, '1000', -5, -Infinity, null]],
+  ['minConfidence', [NaN, '0.5', 7, null]],
+]) {
+  for (const v of malos) {
+    const r = a8.seleccionar({ ...BASE, requirements: { [campo]: v }, learned: [agBase] });
+    check(`CM4 · requirements.${campo} = ${String(v)} → no se admite nada, y se dice qué campo`,
+      r.admisiones.length === 0 && r.cierre === 'unknown' && r.because.some((b) => b.includes(`requirements.${campo}`)),
+      `${r.admisiones.length} admisiones · ${r.because.join(' | ').slice(0, 140)}`);
+  }
+}
+check('CM5 · CONTROL · con requisitos válidos que no recortan nada, A8 admite lo mismo que sin ellos',
+  a8.seleccionar({ ...BASE, requirements: { minSampleSize: 0, maxAgeMs: 1e12, minConfidence: 0 }, learned: [agBase] })
+    .admisiones.filter((x) => x.status === 'admitted').length === admitidasSinRequisitosCM && admitidasSinRequisitosCM > 0,
+  `sin requisitos: ${admitidasSinRequisitosCM}`);
+check('CM6 · la regla es UNA y está exportada: `problemasDeLosRequisitos` (la usan A8 y el ciclo)',
+  A.problemasDeLosRequisitos({ minConfidence: 0.5, minSampleSize: 3, maxAgeMs: 1000 }).length === 0
+  && A.problemasDeLosRequisitos({ minSampleSize: NaN, maxAgeMs: '1' }).length === 2
+  && A.problemasDeLosRequisitos(undefined).length === 0 && A.problemasDeLosRequisitos('x').length === 0
+  && A.problemasDeLosRequisitos({ allowBroaderScope: 'si' }).length === 0);
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA8: usa lo aprendido a lo estrecho, y no inventa ni una evidencia');
 process.exit(failures ? 1 : 0);

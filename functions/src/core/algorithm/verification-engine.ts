@@ -32,6 +32,7 @@ import { restriccionesMalFormadas } from './objective';
 import { Confidence, Evidence, Signal, resolverSenales } from './signals';
 import { Severidad } from './strategy';
 import { violacionesEn } from './authority';
+import { claveDeEstado } from './verification';
 import {
   ContextoDeVerificacion, ESTADOS, EstadoDeVerificacion, MetricasDeVerificacion, METRICAS_DE_VERIFICACION_CERO,
   OutputExpectation, ResultadoAVerificar, VerificationCheck, VerificationEvaluator, VerificationFinding,
@@ -409,7 +410,7 @@ export const crearMotorDeVerificacion = (opciones: OpcionesDelVerificador = {}) 
 
     /* Las señales que A6 publica sobre SÍ MISMO. Genéricas: nada de capacidades. */
     const propias: Signal[] = [
-      { key: `verification.${status}`, subject: resultado.id, value: true, source: 'derived' },
+      { key: claveDeEstado(status), subject: resultado.id, value: true, source: 'derived' },
       { key: 'verification.coverage', subject: resultado.id, source: 'derived',
         value: m.checksEvaluados ? findings.filter((f) => !esSinSaber(f.status)).length / findings.length : 0 },
     ];

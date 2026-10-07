@@ -136,7 +136,7 @@ export type MotivoDeParada =
   | 'ambiguous_alternatives'
   /* Declara un historial —del ámbito o por alternativa— Y pide a A8 que lo seleccione: dos fuentes para lo mismo. */
   | 'history_twice'
-  /* A8 rechazó la petición de contexto: sin reloj no se sabe qué sigue valiendo. */
+  /* A8 rechazó la petición de contexto: sin reloj no se sabe qué sigue valiendo. O el ciclo la rechaza antes de A8 porque sus requisitos están mal formados —`problemasDeLosRequisitos`—. */
   | 'context_rejected'
   /* A8 no contesta para ese ámbito —una cuenta, un campo de persona—. */
   | 'context_refused'
