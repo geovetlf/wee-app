@@ -2,12 +2,16 @@
 
 **Qué es.** Para cada comando: **COMANDO → ACCIÓN → SUPERFICIE → PARÁMETROS → VALIDACIÓN → TRABAJO → PROGRESO → RESULTADO →
 SIGUIENTES ACCIONES**, sin botones muertos. Lo conectado dice a qué pieza real va; lo apagado dice por qué y de qué depende.
-Las filas `C..` son las del [MAPA 1](WEE-DESIGN-CAPABILITY-MATRIX.md). Comprobado sobre `main` = `5efbc0a` (2026-10-07).
+Las filas `C..` son las del mapa maestro ([generado](WEE-DESIGN-CAPABILITY-MAP.md); el razonamiento, en la
+[matriz](WEE-DESIGN-CAPABILITY-MATRIX.md)). Los diecinueve pasos de cada capacidad, celda a celda, están en la
+[matriz de cobertura](WEE-DESIGN-COVERAGE-MATRIX.md) §2. Comprobado sobre `main` = `5efbc0a` (2026-10-07).
 
 ## 1. Los estados de un trabajo
 
-Los once del dueño y dos más que sirven (los dos ya existen en el contrato del mundo 3D). Viven en
-`utils/designReferencia.ts` (`ESTADOS_DE_TRABAJO`, `TRANSICIONES_DE_TRABAJO`), con su clave de texto cada uno.
+Quince, y ni uno más: los once del dueño, los genéricos de un trabajo 3D (**CANCEL_REQUESTED**, **RECONCILING**) y dos que ya
+existían en Weë y sirven (**VALIDATING**, **WAITING_FOR_CREDITS**). Viven en `utils/designReferencia.ts`
+(`ESTADOS_DE_TRABAJO`, `TRANSICIONES_DE_TRABAJO`), cada uno con su clave de texto en los dieciséis idiomas, y
+`functions/test/design-referencia.mjs` (grupo I9) los fija.
 
 | Estado | Qué significa para la persona | Qué se ve | Qué se puede hacer |
 |---|---|---|---|
@@ -15,36 +19,56 @@ Los once del dueño y dos más que sirven (los dos ya existen en el contrato del
 | **READY** | Hay lo necesario para mandarlo | Botón amarillo encendido | Crear |
 | **VALIDATING** | Weë comprueba lo que hay y pregunta lo que falta | Las preguntas guiadas (con «🤷 No sé») | Contestar, cambiar algo |
 | **QUOTING** | Weë calcula el precio | «Calculando el precio…» | Esperar |
-| **WAITING_FOR_CREDITS** | El precio está a la vista y falta el sí (o faltan Credits) | El plan con su precio; si no alcanza, cuántos faltan y «Conseguir Credits» | Confirmar, cambiar el nivel, conseguir Credits, volver |
-| **QUEUED** | Aceptado, esperando turno | «En cola» (y cuántos delante, si el contrato lo trae) | Salir de la pantalla; cancelar si la capacidad lo admite |
-| **PROCESSING** | Se está haciendo | Pasos (o avance real si el contrato lo trae) | Salir; cancelar si se puede |
-| **CANCELLING** | Se pidió parar y se espera respuesta | «Parando…» | Esperar (si el resultado llega antes, gana el resultado y se cobra) |
-| **COMPLETED** | Hecho | El resultado en el lienzo y en «Mis creaciones» | Editar, otra versión, entregar, guardar en proyecto |
+| **WAITING_FOR_CONFIRMATION** | El precio está a la vista y falta el sí | El plan con su precio en Credits (del Credit Engine) | Confirmar, cambiar el nivel, volver |
+| **WAITING_FOR_CREDITS** | Faltan Credits para ese precio | Cuántos faltan y «Conseguir Credits» | Conseguir Credits, cambiar el nivel, volver |
+| **QUEUED** | Aceptado, esperando turno | «En cola» (y cuántos delante, si el contrato lo trae) | Salir de la pantalla; pedir que **no empiece**, si la capacidad lo admite |
+| **PROCESSING** | Se está haciendo | Pasos, o avance real si el contrato lo trae (ningún candidato 3D lo garantiza) | Salir; pedir parar **solo** si la capacidad sabe parar |
+| **CANCEL_REQUESTED** | Se pidió parar o que no empiece | «Pedido parar…» | Esperar: si el resultado llega antes, gana el resultado y se guarda |
+| **RECONCILING** | No se sabe cómo terminó (se perdió la respuesta, caducó el aviso) | «Comprobando cómo terminó» | Esperar: Weë pregunta por ESA petición; nunca adivina ni cobra dos veces |
+| **COMPLETED** | Hecho | El resultado en el lienzo y en «Mis creaciones» | Lo que sigue (barra de acciones), otra versión, entregar, guardar en proyecto |
 | **FAILED** | No salió | El motivo, en palabras; el dinero devuelto | Reintentar, cambiar algo |
-| **CANCELLED** | Parado | Lo que pasó con el dinero | Volver a empezar |
-| **RETRYING** | Se vuelve a pedir lo mismo | «Reintentando…» | Esperar |
-| **NOT_AVAILABLE** | Esto no se puede hacer ahora | El motivo público (`noDisponible`: ahora no, en tu región, falta tu país, con estas opciones, no disponible) o «pendiente de autorización» | Volver; nunca se cobra |
+| **CANCELLED** | Parado antes de terminar | Lo que pasó con el dinero (la regla de la parada) | Volver a empezar |
+| **RETRYING** | Se vuelve a pedir lo mismo | «Reintentando» | Esperar |
+| **NOT_AVAILABLE** | Esto no se puede hacer ahora | El motivo público (`noDisponible`) o «pendiente de autorización» / «en revisión» / «nadie puede hacerlo todavía» | Volver; nunca se cobra |
 
-**Transiciones** (`TRANSICIONES_DE_TRABAJO`; una prueba las fija):
+**Transiciones** (`TRANSICIONES_DE_TRABAJO`):
 
 ```
-IDLE ⇄ READY → VALIDATING → QUOTING → WAITING_FOR_CREDITS → QUEUED → PROCESSING → COMPLETED
-                    │           │              │  ↑ (otro nivel)    │         │
-                    │           │              └→ QUOTING           ├→ CANCELLING → CANCELLED | COMPLETED | FAILED
-                    │           │                                   └→ FAILED → RETRYING → QUEUED | QUOTING | FAILED
-                    └───────────┴→ NOT_AVAILABLE / FAILED
+IDLE ⇄ READY ─→ VALIDATING ─→ QUOTING ─→ WAITING_FOR_CONFIRMATION ─→ QUEUED ─→ PROCESSING ─→ COMPLETED
+          │         │   │          │         ↑ │  │         ↑                │    │           │
+          │         │   │          │ (otro nivel) │  └→ WAITING_FOR_CREDITS ──┘    ├─→ CANCEL_REQUESTED ─→ CANCELLED | COMPLETED | FAILED | RECONCILING
+          │         │   │          │              │                                ├─→ RECONCILING ─→ COMPLETED | FAILED | CANCELLED
+          │         │   │          └──────────────┴─→ NOT_AVAILABLE / FAILED        └─→ FAILED ─→ RETRYING ─→ QUEUED | QUOTING | FAILED
+          │         │   └─→ QUEUED   (solo lo que NO cuesta: subir un modelo, capturar el visor)
+          │         └─→ NOT_AVAILABLE / FAILED
+          └─→ COMPLETED   (lo que no tiene trabajo: filtrar, abrir un proyecto, descargar)
 COMPLETED, CANCELLED, FAILED, NOT_AVAILABLE → IDLE (empezar otra)
 ```
 
-**Desde lo que ya existe** (pura, sin inventar estados):
+Tres reglas que la prueba hace caer si se rompen:
+
+1. **El precio va antes del trabajo.** A la cola solo se llega confirmando el precio (WAITING_FOR_CONFIRMATION), reintentando
+   (RETRYING) o —solo lo que no cuesta— tras comprobar (VALIDATING). Toda capacidad que pasa por el motor pasa por QUOTING y
+   WAITING_FOR_CONFIRMATION, también en la simulación; el precio lo da el Credit Engine al cotizar (`creatorQuote`), nunca la
+   pantalla.
+2. **Pedir parar no es haber parado.** De PROCESSING no se va a CANCELLED: se va a CANCEL_REQUESTED, y de ahí a lo que de verdad
+   pase.
+3. **Lo que no se sabe se reconcilia** (RECONCILING), no se adivina.
+
+**Desde lo que ya existe** (pura, sin inventar estados; las dos tablas son totales: un estado nuevo en la fuente no compila):
 
 | Fuente | → Estado |
 |---|---|
-| `creatorJobs.status`: `asking` · `planned` · `running` · `done` · `failed` · `cancelled` | VALIDATING · WAITING_FOR_CREDITS · PROCESSING · COMPLETED · FAILED · CANCELLED |
-| Contrato 3D asíncrono (hoy, el del mundo, `EstadoDeMundo3D`): `en_cola` · `generando` · `cancelando` · `completado` · `fallido` · `cancelado` | QUEUED · PROCESSING · CANCELLING · COMPLETED · FAILED · CANCELLED |
+| `creatorJobs.status`: `asking` · `planned` · `running` · `done` · `failed` · `cancelled` | VALIDATING · WAITING_FOR_CONFIRMATION · PROCESSING · COMPLETED · FAILED · CANCELLED |
+| Contrato 3D asíncrono (hoy, el del mundo, `EstadoDeMundo3D`): `en_cola` · `generando` · `cancelando` · `completado` · `fallido` · `cancelado` | QUEUED · PROCESSING · CANCEL_REQUESTED · COMPLETED · FAILED · CANCELLED |
 | Sin candidato elegible (`NOT_AVAILABLE` del Router) | NOT_AVAILABLE |
+| Desenlace desconocido (el barrido de liquidación del runtime) | RECONCILING |
 
-QUOTING, READY, IDLE y RETRYING son del cliente: nadie los guarda.
+IDLE, READY, QUOTING, WAITING_FOR_CREDITS y RETRYING son del cliente: nadie los guarda.
+
+**La simulación** (`estadosSimulados`): el detalle de cada capacidad recorre los estados por los que pasaría, uno por toque de la
+persona —sin temporizadores que finjan trabajo—, con «Simulación: no se genera nada, no se cobra nada y no se llama a nadie»
+en cada paso. El precio se dice «pendiente» si la capacidad no tiene cotización de verdad.
 
 ## 2. Los flujos conectados (funcionan hoy con la puerta abierta)
 
@@ -115,12 +139,33 @@ visor, linaje, escenas) y sus decisiones. Nunca mueve un Credit ni llama a nada.
 | No disponible | `noDisponible` (5 motivos) | Igual + «pendiente de autorización» | Ni proveedor, ni modelo, ni jurisdicción en el texto |
 | Faltan Credits | Se sabe al crear; «Conseguir Credits» | Antes de reservar (la puerta del mundo ya lo hace) | WAITING_FOR_CREDITS, nunca FAILED |
 | Reintentar | Abre un trabajo nuevo y pierde las respuestas; ⚠ H-3 | Con el MISMO `requestId` si el desenlace es incierto (un request = una generación = un cobro) | RETRYING |
-| Cancelar | No existe | Solo honesto antes de llegar al proveedor; después depende de la capacidad (un candidato no cancela; otro solo en cola) y el dinero sigue la regla de la parada | CANCELLING → CANCELLED / COMPLETED |
+| Cancelar | No existe | **Solo lo que se puede cumplir.** Lo documentado por los candidatos 3D: uno no cancela nunca; otro, solo en cola; la puerta del mundo pide parar y el Job Engine confirma. La referencia ofrece «que no empiece» **solo en cola** (`logica`), «pedir parar» solo donde la parada se confirma (`con_parada`), y en el resto dice que no se puede parar y que lo que salga se guarda | QUEUED → CANCEL_REQUESTED → CANCELLED; empezado: nada, o CANCEL_REQUESTED si sabe parar |
 | Desenlace desconocido | — | Se pregunta por ESA petición; se reconcilia, no se adivina | Nunca se cobra dos veces |
 
 ## 5. Por tamaño
 
 Los flujos no cambian con el tamaño; cambia **dónde** se ven (ver [arquitectura](WEE-DESIGN-WORKSPACE-ARCHITECTURE.md) §3):
-VALIDATING, QUOTING y WAITING_FOR_CREDITS ocurren siempre en `CreatorFlow`, que es pantalla propia en todos; el resultado vuelve
+VALIDATING, QUOTING, WAITING_FOR_CONFIRMATION y WAITING_FOR_CREDITS ocurren siempre en `CreatorFlow`, que es pantalla propia en todos; el resultado vuelve
 al lienzo por los trabajos y los materiales. En el teléfono, la caja solo está en la superficie «Lienzo», y elegir algo en la
 biblioteca lleva al lienzo.
+
+## 6. De la imagen al objeto, sin salir de Weë Design (la cadena)
+
+La cadena que pidió el dueño —**imagen → editar → vistas → 3D → materiales → entregar**— es un flujo de flujos: cada eslabón es
+una capacidad de las de arriba, y lo que sale de uno **entra en el siguiente como material de Weë** (por su id, con su linaje),
+nunca como un archivo descargado y vuelto a subir. El diseño completo, con lo que cada eslabón es hoy y lo que le falta, está en
+la [arquitectura](WEE-DESIGN-WORKSPACE-ARCHITECTURE.md) §11 y en la [matriz de cobertura](WEE-DESIGN-COVERAGE-MATRIX.md) §5.
+
+| Paso | Qué hace la persona | Qué pasa | Hoy |
+|---|---|---|---|
+| 1 · Imagen | Escribe en la caja (Crear) | Concepto y propuestas por `CreatorFlow` | **EXISTING** |
+| 2 · Editar (opcional) | Elige la propuesta y «Retocar la imagen» / «Quitar el fondo» | Una versión nueva de esa imagen | **PARTIAL**: hoy se vuelve a crear con el cambio, sin linaje |
+| 3 · Vistas (opcional) | «Vistas del objeto» sobre la imagen | Un material derivado con las vistas | **BACKEND_REQUIRED** |
+| 4 · Modelo 3D | «Modelo 3D desde una imagen» | Un modelo derivado de la imagen (o de las vistas) | **PROVIDER_REQUIRED** |
+| 5 · Materiales (opcional) | «Materiales y texturas» | Una versión nueva del modelo | **PROVIDER_REQUIRED** |
+| 6 · Entregar | «Exportar para un programa» con sus ajustes | Una variante del modelo (otro formato), sin tocarlo | **BACKEND_REQUIRED** |
+
+En la referencia se **recorre entera**: la tira «De la imagen al objeto» del lienzo abre cada eslabón en su detalle; «Recorrer en
+simulación» y «Ver en el lienzo» dejan un resultado SIMULADO que entra en el siguiente por referencia, con su linaje a la vista
+(lienzo e inspector), y los atajos «Siguiente» y «Saltar a» llevan al paso que toca. Nada se genera, nada se cobra.
+

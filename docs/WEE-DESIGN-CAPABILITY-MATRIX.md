@@ -5,6 +5,16 @@ que Weë tiene hoy, lo que ofrecen Tripo y Meshy, lo que falta, dónde vive en l
 [auditoría](WEE-DESIGN-UIUX-AUDIT.md) y en las referencias de [Tripo](WEE-DESIGN-TRIPO-REFERENCE.md) y [Meshy](WEE-DESIGN-MESHY-REFERENCE.md).
 Comprobado sobre `main` = `5efbc0a` (2026-10-07).
 
+> **Actualización (2026-10-07, cierre de cobertura).** El mapa maestro completo —C01–C107, categorías A–L, con los diecisiete
+> campos que pidió el dueño— se **genera** del registro de la referencia: [WEE-DESIGN-CAPABILITY-MAP.md](WEE-DESIGN-CAPABILITY-MAP.md),
+> con su [matriz de cobertura](WEE-DESIGN-COVERAGE-MATRIX.md) (celdas YES / NO / N/A / PENDING, los diecinueve pasos, la Matriz B
+> de elegibilidad, la cadena y los inventarios de Seed3D 2.0 y Sloyd). Este documento conserva el **razonamiento** por capacidad
+> (qué hay en Weë, qué hacen los candidatos, qué se recomienda) de C01–C38 y W01–W26. Lo añadido después —Sloyd, Seed3D 2.0, las
+> investigaciones globales de la Línea B (r3–r5), el encadenado sin salir de Weë Design y la entrega a otros programas— está en
+> las filas C39–C107 del mapa generado, en la [arquitectura](WEE-DESIGN-WORKSPACE-ARCHITECTURE.md) §11 y en
+> [lo que falta](WEE-DESIGN-MISSING-CAPABILITIES.md) §5. Donde este documento y el mapa generado no coincidan (estado o
+> elegibilidad), **manda el generado**: sale del código y una prueba lo fija.
+
 ## 0. Reglas de lectura
 
 - **La capacidad es de Weë.** Tripo, Meshy u otro son **candidatos** que el AI ROUTER puede elegir si están autorizados. Ningún

@@ -69,7 +69,26 @@ apagado, con su motivo, en su sitio.
 | M33 | **Cupo diario de 3D** | Hay uno para mundos (`'3d'`: 5) | Decidir el de modelos | Dueño |
 | M34 | **«No sé» en todas las preguntas** | Seis preguntas de `design` sin él (H-2) | Añadirlo en la plantilla | Servidor |
 
-## 5. Lo que NO falta (y no se construye)
+## 5. Lo que trajeron el cierre de cobertura, Sloyd, Seed3D 2.0 y r3–r5
+
+| # | Hueco | Por qué importa | Qué requiere | Proveedor | Depende de |
+|---|---|---|---|---|---|
+| M39 | **Material como entrada** por su id en `CreatorFlow` / `creatorRun` | Encadenar sin descargar ni volver a subir (§11 de la arquitectura) | Resolver el id en el servidor como ya hace la puerta del mundo | Ninguno | Servidor |
+| M40 | **Escribir el linaje** al materializar (`sourceAssetIds`, `previousVersionId`) | Versiones, «de dónde viene», derechos heredados | Usar `nuevaVersion` / `materialDerivado` (existen, sin llamadores) | Ninguno | Servidor; P1, P2 |
+| M41 | **Conversor de formatos de Weë** (escala, ejes, origen, LOD, texturas) | Entregar a cualquier programa sin depender del candidato | Un proceso de Media Core (variante `convertir_formato`) | Ninguno | DEC-20 |
+| M42 | Variantes de imagen `multiview` y `object3d` | Vistas e «imagen lista para 3D» con la cadena de imagen de Weë | Plantilla y variante en el motor | Ninguno (cadena de Weë) | DEC-22 |
+| M43 | Pieza CAD desde palabras o desde un plano (C94, C95), de malla a CAD (C96) | Diseño de producto que se fabrica | Capacidad CAD (salida sólida, STEP) | Candidatos C / solo web / autoalojable | **B**; dueño |
+| M44 | Medir el modelo (C97) | Tamaño, volumen, superficie antes de imprimir o fabricar | Cálculo de Weë sobre la malla (visor o servidor) | Ninguno | DEC-09 |
+| M45 | Movimiento desde un vídeo y retoque de movimiento (C98, C99) | Personajes con movimiento propio | Variantes de `3d.animate`; revisión de biometría | Candidatos B/C | **B**; DEC-24 |
+| M46 | Un estilo 3D propio (C106) | Memoria de marca (D8) | Entrenar y guardar un estilo por cuenta | Candidatos B / sin saber | **B**; D8 |
+| M47 | Plantillas paramétricas y ajuste con controles (C88, C86) | Objetos que se ajustan con deslizadores | Un motor paramétrico | Candidato B | **B** |
+| M48 | Fondo de 360°, textura que se repite, base para imprimir, hoja de sprites, pintar sobre el modelo (C87, C92, C91, C89, C90) | Escena, materiales, impresión y juego | Variantes y visor | Varios | **B**; DEC-09 |
+| M49 | Profundidad de una imagen (C105, interna) | Dar volumen y alimentar el 3D | Variante de `image.analyze` | Candidato C / autoalojable | **B** |
+
+Fuera de Weë Design, con su motivo y en el mapa: avatar de una persona real (C100), labios con la voz (C101), cambiar un mundo
+(C102), mundo en vídeo (C103), cámara de un vídeo real (C104), bibliotecas de modelos ajenas (C107).
+
+## 6. Lo que NO falta (y no se construye)
 
 Un router, un gateway, un motor de trabajos, un sistema de Credits, una capa de materiales, un motor 3D, un registro de
 proveedores o un asistente propios de Weë Design. Todo eso **existe una vez** y Weë Design lo usa
