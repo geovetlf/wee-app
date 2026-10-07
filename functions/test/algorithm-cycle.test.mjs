@@ -1006,5 +1006,16 @@ const conRelojCM = fuentesCM.filter((f) => /Date\.now|performance\.now|new Date\
 check('CM15 · el motor sigue PURO: ningún archivo de core/algorithm lee un reloj ni el azar; el cronómetro solo entra por el puerto',
   fuentesCM.length >= 30 && conRelojCM.length === 0, conRelojCM.join(', '));
 
+console.log('\n─── Misión de cierre · un rechazo de la frontera dice de quién era lo que cruzó ───');
+
+const cobroCM = ciclo.decidir(peticion({ aprendido: undefined, decision: decisionBase({ constraints: { billingAccount: 'b' } }) }));
+check('CM20 · una cuenta de facturación en los requisitos se rechaza diciendo que es del Financial Core, no «del Router»',
+  cobroCM.parada === 'authority_violation' && !cobroCM.entrega
+  && cobroCM.because.some((b) => b.includes('billingAccount → Financial Core') && !b.includes('eso lo elige el Router')),
+  String(cobroCM.because.slice(-1)[0]).slice(0, 140));
+const proveedorCM = ciclo.decidir(peticion({ aprendido: undefined, decision: decisionBase({ constraints: { providerId: 'p' } }) }));
+check('CM21 · y cuando lo que cruzó SÍ era elegir proveedor, la frase de siempre: «eso lo elige el Router»',
+  proveedorCM.parada === 'authority_violation' && proveedorCM.because.some((b) => b.includes('eso lo elige el Router')));
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA9: A0–A8 forman un ciclo, y cada uno sigue siendo el único dueño de lo suyo');
 process.exit(failures ? 1 : 0);

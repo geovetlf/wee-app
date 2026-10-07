@@ -37,7 +37,7 @@ import { crearMotorDeRecuperacion } from './recovery-engine';
 import { ResultadoDeDecision } from './feedback';
 import { DescriptorDeMetrica, crearMotorDeFeedback } from './feedback-engine';
 import { crearMotorDeContexto, paraDecision, problemasDeLosRequisitos } from './context-engine';
-import { violacionesEn } from './authority';
+import { duenosDe, sonDelRouter, violacionesEn } from './authority';
 import {
   AlgorithmDecisionResult, CierreDelCiclo, EntregaDeEjecucion, MotivoDeCierreInvalido, MotivoDeParada,
   ObservacionDeEjecucion, OpcionesDeAprendizaje, PasoDelCiclo, PeticionAlgoritmica, problemaDeObservacion,
@@ -204,7 +204,9 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       });
       const cruces = violacionesEn(entrega, 'entrega');
       if (cruces.length) {
-        porque.push(`La entrega nombraba una implementación (${cruces.map((c) => c.clave).join(', ')}): eso lo elige el Router.`);
+        porque.push(sonDelRouter(cruces)
+          ? `La entrega nombraba una implementación (${cruces.map((c) => c.clave).join(', ')}): eso lo elige el Router.`
+          : `La entrega pedía lo que no es de esta capa (${duenosDe(cruces)}): no se entrega.`);
         return fin('invalid', 'authority_violation');
       }
       recorrido.push('handoff');
@@ -260,7 +262,9 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       ...violacionesEn(pedidoDeContexto, 'aprendido'),
     ];
     if (cruzan.length) {
-      porque.push(`La petición nombra una implementación en sus requisitos o en su ámbito (${[...new Set(cruzan.map((c) => c.clave))].sort().join(', ')}): eso lo elige el Router.`);
+      porque.push(sonDelRouter(cruzan)
+        ? `La petición nombra una implementación en sus requisitos o en su ámbito (${[...new Set(cruzan.map((c) => c.clave))].sort().join(', ')}): eso lo elige el Router.`
+        : `La petición pide en sus requisitos o en su ámbito lo que no es de esta capa (${duenosDe(cruzan)}): no se piensa nada.`);
       return fin('invalid', 'authority_violation');
     }
 
