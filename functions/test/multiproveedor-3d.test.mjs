@@ -62,13 +62,16 @@ const seccion = (letra, fn) => {
 
 /* ── Lo que esta línea PREPARA y no integra ─────────────────────────────── */
 
-/** Los proveedores 3D que se preparan en esta misión. fal ya está integrado (apagado) y lo vigila `proveedor-fal`. */
-const CANDIDATOS = ['tripo', 'meshy'];
+/**
+ * Los proveedores 3D que se preparan en esta misión. fal ya está integrado (apagado) y lo vigila `proveedor-fal`. Sloyd y
+ * Seed3D entraron en el alcance el 2026-10-07 y están PENDING DEPENDENCY (sus investigaciones las hacen otros): apagados.
+ */
+const CANDIDATOS = ['tripo', 'meshy', 'sloyd', 'seed3d'];
 /** Las matrices 3D que el registro puede declarar PENDING (dos en main; Meshy y World Labs, en `filmmaker/core`). */
-const MATRICES_3D_PENDIENTES = ['tripo', 'meshy', 'hunyuan3d', 'worldlabs'];
+const MATRICES_3D_PENDIENTES = ['tripo', 'meshy', 'sloyd', 'seed3d', 'hunyuan3d', 'worldlabs'];
 /* Con límites de palabra: «tripOneDay» (i18n de Weë Travel) o «Trípoli» no son Tripo. */
-const NOMBRE = /\b(tripo|tripo3d|meshy)\b/i;
-const CLAVE = /\b(TRIPO|MESHY)_[A-Z0-9_]+\b/;
+const NOMBRE = /\b(tripo|tripo3d|meshy|sloyd|seed-?3d)\b/i;
+const CLAVE = /\b(TRIPO|MESHY|SLOYD|SEED3D)_[A-Z0-9_]+\b/;
 const HOST = /\b(?:[a-z0-9-]+\.)*(tripo3d\.ai|meshy\.ai)\b/i;
 /** El único archivo de functions/src que puede nombrarlos hoy: el de las matrices PENDING (sin capacidades). */
 const PUEDEN_NOMBRARLOS = new Set(['functions/src/registry/matrices.ts']);
@@ -192,7 +195,7 @@ const sinPlazos = (adapters, catalogo, resolutores = reg.RESOLUTORES_DE_ESTADO, 
 console.log('\n── A · Tripo y Meshy: preparados, no integrados ──');
 seccion('A', () => {
   const donde = integraciones(reg, DECLARED);
-  check('A1) ni Tripo ni Meshy están en el cableado del motor: sin adaptador, sin configuración, sin cadena, sin resolutor, sin ficha de verificación ni modelos',
+  check('A1) ni Tripo, ni Meshy, ni Sloyd, ni Seed3D están en el cableado del motor: sin adaptador, sin configuración, sin cadena, sin resolutor, sin ficha de verificación ni modelos',
     donde.length === 0, donde.join(', '));
 
   const datos = datosDelRegistro();
@@ -203,11 +206,11 @@ seccion('A', () => {
   const fuentes = archivos('functions/src', (r) => r.endsWith('.ts'));
   const conNombre = fuentes.filter((f) => !PUEDEN_NOMBRARLOS.has(f) && NOMBRE.test(leer(f)));
   const conClaveOHost = fuentes.filter((f) => CLAVE.test(leer(f)) || HOST.test(leer(f)));
-  check('A3) en functions/src solo el registro de matrices pendientes nombra a Tripo o a Meshy, y NINGÚN archivo lleva su clave ni su host (no hay con qué llamarlos)',
+  check('A3) en functions/src solo el registro de matrices pendientes nombra a Tripo, Meshy, Sloyd o Seed3D, y NINGÚN archivo lleva su clave ni su host (no hay con qué llamarlos)',
     fuentes.length > 100 && conNombre.length === 0 && conClaveOHost.length === 0, [...conNombre, ...conClaveOHost].join(', '));
 
   const llaveros = [...secretos.PROVIDER_SECRET_NAMES, ...secretos.MEDIA_SECRET_NAMES, ...secretos.FAL_SECRET_NAMES];
-  check('A4) API keys NO: ningún llavero de Secret Manager declara una clave de Tripo o de Meshy (su configuración futura solo está DISEÑADA)',
+  check('A4) API keys NO: ningún llavero de Secret Manager declara una clave de Tripo, Meshy, Sloyd o Seed3D (su configuración futura solo está DISEÑADA)',
     llaveros.length >= 10 && !llaveros.some((s) => CLAVE.test(s)) && !CLAVE.test(leer('functions/src/secrets.ts')), llaveros.filter((s) => CLAVE.test(s)).join(', '));
 
   const configuracion = [
@@ -226,7 +229,7 @@ seccion('A', () => {
     ...['App.tsx'].filter(existe),
   ];
   const enLaApp = app.filter((f) => nombra(leer(f)).length > 0);
-  check('A6) la app —pantallas, servicios, catálogos y los textos de todos los idiomas— no nombra a Tripo ni a Meshy, ni su clave, ni su host: la persona nunca elige proveedor',
+  check('A6) la app —pantallas, servicios, catálogos y los textos de todos los idiomas— no nombra a Tripo, Meshy, Sloyd ni Seed3D, ni su clave, ni su host: la persona nunca elige proveedor',
     app.length > 300 && enLaApp.length === 0, enLaApp.join(', '));
 });
 
@@ -361,6 +364,19 @@ const soloWebMalEtiquetado = (filas) => filas
   .map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}`);
 const seleccionNoValida = (filas) => filas.filter((f) => !SELECCIONES.includes(f.Selección) || f.Selección === 'B').map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}: ${f.Selección}`);
 /** El MAPA 2 no inventa capacidades: cada una existe en el catálogo del Core o es de las propuestas, o es «—». */
+/**
+ * UN CANDIDATO QUE ENTRÓ EN EL ALCANCE SIN SU INVESTIGACIÓN (Sloyd, Seed3D): o tiene sus filas en el MAPA 2, o el documento
+ * lo marca PENDING DEPENDENCY en su sección. Las dos a la vez o ninguna es un estado a medias.
+ */
+const PENDIENTES = Object.freeze([
+  { nombre: 'Sloyd', marca: /^## 4b\. Sloyd — PENDING DEPENDENCY$/m },
+  { nombre: 'Seed3D', marca: /^## 4c\. Seed3D 2\.0 \(ByteDance Seed\) — CANDIDATO 3D, PENDING PROVIDER ELIGIBILITY · PENDING DEPENDENCY$/m },
+]);
+const estadoDelCandidato = (doc, filas, { nombre, marca }) => {
+  const conFilas = filas.some((f) => f.Proveedor === nombre);
+  const marcado = marca.test(doc);
+  return conFilas && !marcado ? 'con_filas' : !conFilas && marcado ? 'pendiente' : conFilas ? 'a_medias: filas y marca' : 'olvidado: ni filas ni marca';
+};
 const capacidadesAjenas = (filas, catalogo = CAPABILITY_CATALOG) => filas.flatMap((f) =>
   [...String(f['Capacidad (MAPA 1)']).matchAll(/\b(?:3d|world|scene|image|video|text)\.[a-z_]+\b/g)].map((m) => m[0])
     .filter((c) => !enCatalogo(catalogo, c) && !PROPUESTAS.includes(c)).map((c) => `${f.Proveedor}: ${c}`));
@@ -396,6 +412,9 @@ seccion('E', () => {
   const soloWeb = soloWebMalEtiquetado(filas);
   check('E9) lo que solo existe en la web del proveedor (sin API) es NOT_ALLOWED y nadie lo elige (E)',
     filas.filter((f) => /solo web/i.test(f['Disponibilidad en la API'])).length >= 4 && soloWeb.length === 0, soloWeb.join(', '));
+  const pendientes = PENDIENTES.map((c) => `${c.nombre}: ${estadoDelCandidato(doc, filas, c)}`);
+  check('E10) Sloyd y Seed3D (en el alcance desde el 2026-10-07): cada uno, o con sus filas en el MAPA 2, o marcado PENDING DEPENDENCY — una de las dos, nunca ninguna ni las dos',
+    pendientes.every((p) => /: (pendiente|con_filas)$/.test(p)), pendientes.join(' · '));
 });
 
 /* ═══ F · CONTROLES: cada detector, con una entrada saboteada ══════════════ */
@@ -456,6 +475,12 @@ seccion('F', () => {
   const web = (etiqueta, sel) => ({ ...fila('Meshy', 'Scene Compose', 'scene.generate', 'DESCARTADO', etiqueta, sel), 'Disponibilidad en la API': 'NO (solo web)' });
   check('F24) CONTROL E9: una función solo web con otra etiqueta, o que alguien puede elegir, se ve',
     soloWebMalEtiquetado([web('REQUIRES ENTERPRISE', 'E'), web('NOT_ALLOWED', 'A')]).length === 2 && soloWebMalEtiquetado([web('NOT_ALLOWED', 'E')]).length === 0);
+  const [sloyd] = PENDIENTES;
+  const filaSloyd = [fila('Sloyd', 'x', '3d.generate', 'PREPARADO', 'UNKNOWN', 'A')];
+  check('F25) CONTROL E10: un candidato olvidado (ni filas ni marca) o a medias (las dos) se ve; con una sola, no',
+    estadoDelCandidato('sin nada', [], sloyd).startsWith('olvidado') && estadoDelCandidato('## 4b. Sloyd — PENDING DEPENDENCY', filaSloyd, sloyd).startsWith('a_medias')
+    && estadoDelCandidato('## 4b. Sloyd — PENDING DEPENDENCY', [], sloyd) === 'pendiente' && estadoDelCandidato('', filaSloyd, sloyd) === 'con_filas');
+  check('F26) CONTROL A3–A6: Seed3D y Sloyd, con y sin guion, se ven', nombra('lo hace Seed3D').length === 1 && nombra('seed-3d').length === 1 && nombra('SEED3D_API_KEY').length >= 1 && nombra('Sloyd').length === 1);
 });
 
 console.log(failures ? `\n✘ ${failures} de ${n} comprobaciones fallaron` : `\n✔ 3D multiproveedor: preparado, apagado y medido (${n} comprobaciones, $0)`);

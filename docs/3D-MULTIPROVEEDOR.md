@@ -1,4 +1,4 @@
-# Weë 3D — arquitectura multiproveedor: Tripo, Meshy, fal.ai y los que vengan
+# Weë 3D — arquitectura multiproveedor: Tripo, Meshy, Sloyd, Seed3D, fal.ai y los que vengan
 
 Misión del dueño (2026-10-07), **Línea B**, rama `3d/multiproveedor` sobre `origin/main` = `5efbc0a`. En paralelo a la Línea
 A (Algorithm Engine), sin tocarla. **Preparar no es integrar**: aquí no hay adaptador nuevo, ni clave, ni llamada, ni
@@ -15,7 +15,9 @@ al dueño. Lo vigila `functions/test/multiproveedor-3d.test.mjs`.
 **En una línea:** la arquitectura para mundos 3D (`world.generate`, fal + Hunyuan World) está construida y apagada; la de
 objetos 3D (`3d.generate` y sus operaciones) existe como vocabulario del catálogo y como piezas comunes reutilizables, y
 le faltan, en este orden, una decisión del dueño (la cuarta puerta, D3D-1), cinco precondiciones de dinero, material y
-modalidad que hoy fallarían en silencio (G3D-1 a G3D-4, G3D-7) y los contratos con Tripo y Meshy (D3D-3, D3D-4).
+modalidad que hoy fallarían en silencio (G3D-1 a G3D-4, G3D-7) y los contratos con Tripo y Meshy (D3D-3, D3D-4). **Sloyd**
+y **Seed3D 2.0** entraron en el alcance el 2026-10-07 y sus investigaciones no habían llegado: figuran como **PENDING
+DEPENDENCY** (§4b, §4c), apagados.
 
 ---
 
@@ -159,6 +161,69 @@ de terceros (Seedream, Gemini, GPT Image) y **no se usan** (regla de matrices; W
 | Lo que añade el MAPA 2 | UV unwrap en Beta, tras una bandera; Scene Compose, vídeo y 3D Agent solo en la web (sin API); §2.6(iv) prohíbe también el «análisis competitivo» —comparar proveedores podría caer ahí ⚖—; Meshy puede citar a Weë como cliente salvo oposición por escrito (§3.6) |
 | UNKNOWN principales | Si Weë puede servir a sus usuarios con una clave self-serve (lectura del contrato: no, §1.2); entrenamiento con datos de la API; firma y reintentos del webhook; duración de la firma de URLs; cómo se llega a `CANCELED`; precio USD de los créditos sueltos; endpoints exclusivos de Enterprise |
 
+## 4b. Sloyd — PENDING DEPENDENCY
+
+Entró en el alcance de la Línea B el 2026-10-07 (decisión del dueño), junto a Tripo, Meshy y fal, con su elegibilidad. Su
+investigación —API, UX, las cuatro dimensiones y la matriz A–E, solo de fuentes oficiales— la hace otro investigador y **no
+había llegado al cerrar esta línea**: aquí no se investigó (por instrucción) y no se afirma nada de él.
+
+| Pieza | Estado |
+|---|---|
+| Qué es (matriz o agregador), API, ciclo de vida, salidas, coste, derechos | UNKNOWN — pendiente de su investigación |
+| MAPA 1 | No cambia: las capacidades son de Weë; Sloyd solo podrá aparecer como candidato en el MAPA 2 |
+| MAPA 2 | Sin filas: ninguna capacidad de Weë puede ejecutarse con Sloyd y su autorización comercial es UNKNOWN hasta que lleguen sus filas, con las cuatro dimensiones y la selección A–E |
+| Registro | Ni adaptador, ni datos, ni matriz PENDING: entra por el camino de §7 cuando su investigación diga si es una matriz (`MATRICES_PENDIENTES`) o un agregador, que exigiría una excepción del dueño en `functions/src/registry/excepciones.ts` |
+| Seguridad | Ninguna clave `SLOYD_*` declarada ni montada; la guardia lo vigila como a Tripo y a Meshy (A1–A6) |
+| Estado | **OFF** |
+
+Cuando llegue: sus filas en §5.2 y su columna en §5.3, su gobierno en §12, sus brechas y decisiones si las hay, y esta
+marca desaparece (la suite exige una de las dos cosas, nunca las dos ni ninguna: E10).
+
+---
+
+## 4c. Seed3D 2.0 (ByteDance Seed) — CANDIDATO 3D, PENDING PROVIDER ELIGIBILITY · PENDING DEPENDENCY
+
+Entró en el alcance de la Línea B el 2026-10-07 como «CANDIDATO 3D — PENDING PROVIDER ELIGIBILITY». La investigación
+oficial del proveedor (API, disponibilidad, precio, licencia, derechos, uso por terceros, reventa, requisitos Enterprise,
+jurisdicciones, retención de datos, seguridad y autorización contractual) es de esta línea y la está escribiendo un
+investigador; la Línea C entregará sus requisitos (capacidades, entradas y salidas, trabajo, formato, cancelación, material y
+versiones). **Ninguno de los dos había llegado al cerrar**: no se afirma nada del proveedor.
+
+| Pieza | Estado |
+|---|---|
+| API, disponibilidad, precio, licencia, derechos, reventa, Enterprise, jurisdicciones, retención, seguridad, autorización | UNKNOWN — pendiente de su investigación |
+| Pista interna, sin verificar | La investigación de la rama sin integrar `filmmaker/core` (2026-09-29) lo anotó «solo en Volcano Engine (China), sin listado en BytePlus», y que la «3D» de ModelArk revende modelos de terceros. Hay que confirmarlo o descartarlo con la investigación de ahora: no se usa como dato |
+| MAPA 1 | No cambia |
+| MAPA 2 | Sin filas hasta su investigación |
+| Registro | Nada: ni adaptador, ni datos, ni matriz PENDING, ni un registro ACTIVE |
+| Estado | **PENDING / DISABLED**: sin clave, sin llamada, sin descarga |
+
+**Si resulta estar en BytePlus ModelArk** —relación con la integración ARK que ya existe, sin activar ni llamar a nada—:
+
+- **Un cliente, una clave.** Seedance (vídeo) y Seedream (imagen) ya comparten el cliente de ModelArk
+  (`functions/src/engine/providers/ark.ts`: `ARK_API_KEY`, `ARK_BASE_URL`, región ap-southeast por defecto). Seed3D sería
+  otro adaptador con su propio id de proveedor sobre ese cliente —como Seedream—, nunca modelos colgados del adaptador de
+  Seedance: así el Router, el registro, `DEFAULT_PROVIDERS` y las filas del MAPA 2 lo tratan como un proveedor aparte, con
+  su gobierno.
+- **La clave ya está montada.** `ARK_API_KEY` está en `PROVIDER_SECRET_NAMES` (`functions/src/secrets.ts`): la montan las
+  funciones con `AI_SECRETS` o `MODEL_SECRETS` y el barrido (`RECONCILIATION_SECRETS`). Un adaptador de Seed3D estaría
+  «configurado» allí donde lo está Seedance, así que **«sin clave» no sería una capa de seguridad para él**: lo mantendrían
+  apagado no estar en `ADAPTERS` (hoy), `DEFAULT_PROVIDERS` con `enabled: false`, su gobierno DISABLED y REVIEW_REQUIRED, su
+  fila del MAPA 2 y la falta de una puerta para `3d.generate` (D3D-1). Lo vigila A1 de la guardia.
+- **Tareas asíncronas.** Si usa la misma API de tareas que Seedance (`contents/generations/tasks`), su resolutor sería propio
+  (`RESOLUTORES_DE_ESTADO` va por proveedor, y el de Seedance lee salidas de vídeo) y su aviso, si lo hay, otro receptor con
+  su propio token: el de Seedance (`SEEDANCE_CALLBACK_TOKEN`) no se comparte.
+- **Matriz o reventa.** ModelArk es la plataforma oficial de ByteDance: un modelo propio de ByteDance servido allí sería una
+  matriz, como Seedance; un modelo de terceros que ModelArk revenda no lo sería (regla de matrices).
+- **Contrato.** Que Weë ya use ModelArk para Seedance no dice nada de los términos de Seed3D: su licencia, sus derechos del
+  resultado y su autorización comercial son filas propias del MAPA 2.
+
+**Si no está en ModelArk** (por ejemplo, solo en Volcano Engine): otro proveedor, con su contrato, su clave en un llavero
+dormido propio (§19) y su jurisdicción y residencia de datos.
+
+Cuando lleguen la investigación y los requisitos de la Línea C: sus filas en §5.2, su columna en §5.3, su gobierno en §12,
+lo que pida su contrato al contrato de objetos (§6) y esta marca desaparece (E10).
+
 ---
 
 ## 5. Las capacidades y quién puede ejecutarlas (FASE 5)
@@ -289,6 +354,8 @@ terceros) y «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED, 
 movimiento, vídeo, mundos, fabricación; Meshy: splat, Text to Texture y Text to Voxel (retirados)—. Las vistas previas de
 Tripo y las miniaturas de Meshy no son un servicio de render: viajan como variante del resultado (§11).
 
+**Sloyd y Seed3D:** PENDING DEPENDENCY (§4b, §4c): sin filas hasta que lleguen sus investigaciones.
+
 **Lo que cambia cuando llega un contrato:** solo la etiqueta de SUS filas (y, si el contrato lo concede, lo que permita
 de la selección), en los datos del modelo, con su fuente y su fecha. Ni el MAPA 1, ni la app, ni la puerta se enteran.
 
@@ -309,6 +376,8 @@ La matriz que pide la FASE 5, para leer de un vistazo. Manda el MAPA 2: aquí so
 | `world.generate` | ROUTABLE (tercera puerta, sin desplegar) | **No** | **No** | Hunyuan World · REVIEW_REQUIRED | EXISTE · INERTE | FAL.md; 3D-EXPERIENCIA | Otro proveedor de mundos entra por datos (World Labs, candidata en `filmmaker/core`) |
 | `world.edit` | **PROPUESTA** | No | No | No (`world.expand`: NOT_SUPPORTED_BY_CURRENT_PROVIDER) | FALTA | `functions/src/core/escena3d.ts` | No se ofrece ni se simula |
 | `scene.generate` | DECLARED (design) | No | No | No | FALTA (proveedor) | — | Una escena compone materiales por id (`Escena3D`) |
+
+Sloyd y Seed3D no tienen columna todavía: PENDING DEPENDENCY (§4b, §4c).
 
 **Ids nuevos que propone esta línea, para reconciliar con la Línea C (UX de Weë Design) y con la Línea A:** `3d.animate` y
 `world.edit`. Ningún otro. Nada se ha añadido al catálogo.
@@ -642,6 +711,10 @@ Capacidad («Crear objeto 3D»)  →  Composer (claves, «🤷 No sé» siempre)
 - Mis creaciones ya tiene «Modelos 3D»; la tarjeta 3D (`components/creator/TarjetaTresD.tsx`) dice que todavía no hay visor
   y ofrece descargar; el visor web existe en `filmmaker/core`, sin integrar (D3D-14).
 - Los textos, por i18n. La UX de detalle es de la Línea C (Weë Design UI/UX), que se alinea con este contrato al integrar.
+- **Fronteras entre líneas** (dueño, 2026-10-07): la Línea C decide QUÉ EXPERIENCIA existe (mapa de capacidades de Weë
+  Design, UX, flujos); esta línea decide QUÉ PROVEEDORES pueden ejecutar cada capacidad, legal y técnicamente (MAPA 2,
+  registro, brechas del Router y contratos de Job, Credits, Asset, derechos y jurisdicción), y su MAPA 2 es DATO que la
+  Línea C consume; la Línea A garantiza que el motor de debajo sea maduro y seguro. Aquí no se diseña ninguna pantalla.
 
 ---
 
@@ -723,6 +796,8 @@ Ninguna se crea ni se monta en esta misión. El diseño, el mismo de `FAL_KEY` (
    - `MESHY_API_KEY` (Meshy no firma sus avisos: no hay secreto de webhook). Con el límite mensual de créditos por clave que
      ofrece su consola, como defensa extra.
    - `FAL_KEY`: ya declarada y dormida (`FAL_SECRETS`).
+   - Seed3D: si está en ModelArk no hay clave nueva —comparte `ARK_API_KEY`, ya montada— y lo apagan las otras capas (§4c);
+     si no, su propio llavero dormido. Sloyd: pendiente de su investigación (§4b).
 2. **Montadas solo donde se leen:** la puerta de la capacidad, el barrido (`RECONCILIATION_SECRETS`, que solo consulta) y, si
    el dueño expone avisos, la Function que los recibe. `secretValue` y `knownSecretValues` las buscan por nombre, para
    censurarlas en los registros (`sanitizeForLog`).
@@ -761,6 +836,7 @@ la configuración.
 | Corregir `produces` de `3d.*` en el catálogo | Lo leen `functions/src/core/algorithm/decomposition-engine.ts` y `functions/src/creator/sombra.ts` (Línea A) y lo fija `core-gateway` 105 (G3D-3) |
 | Dataset de evals, reglas de G3, cambios en Guardian | `ops/**` es de la Línea A (§17, §18) |
 | Claves, avisos, despliegue, activación | Prohibido en esta misión |
+| Sloyd y Seed3D 2.0 | PENDING DEPENDENCY: sus investigaciones las escriben otros investigadores y no habían llegado; aquí no se inventa nada de ellos (§4b, §4c) |
 
 ---
 
@@ -857,7 +933,8 @@ Ninguno de estos pasos se ha dado; cada uno es una decisión del dueño.
 ## 25. Estado final
 
 Algorithm Engine CONTINÚA EN SU MISIÓN — NO INTERFERIDO · Tripo OFF · Meshy OFF · fal.ai OFF · Hunyuan OFF · World 3D OFF ·
-API keys NO · Real calls NO · Production deploy NO · Real spend NO.
+API keys NO · Real calls NO · Production deploy NO · Real spend NO · Sloyd OFF (PENDING DEPENDENCY) · Seed3D PENDING /
+DISABLED (PENDING DEPENDENCY).
 
 Lo que no se pudo verificar: ninguna API de Tripo ni de Meshy se ha llamado (todo sale de su documentación pública, con los
 UNKNOWN de §3 y §4); la lectura jurídica es de un informe técnico y necesita revisión legal; el formato real de los
