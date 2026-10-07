@@ -162,9 +162,6 @@ export const contadorAgotado = (
 ): keyof AlgorithmSpend | undefined =>
   CONTADORES.find((c) => gasto[c] > topes[TOPE_DE[c]]);
 
-export const dentroDelPresupuesto = (gasto: AlgorithmSpend, topes: Required<AlgorithmBudgetLimits>): boolean =>
-  contadorAgotado(gasto, topes) === undefined;
-
 /**
  * EL CONTADOR.
  *

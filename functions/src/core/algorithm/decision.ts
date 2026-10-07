@@ -275,6 +275,9 @@ export interface AlgorithmDecision<T = unknown> {
  * algoritmo con estado es un algoritmo que un día devuelve algo distinto con la
  * misma entrada, y entonces se acabó la reproducibilidad.
  *
+ * PREPARADO: es la firma de un algoritmo registrable, y hoy no hay ninguno
+ * registrado —el registro no se instancia fuera de las pruebas—.
+ *
  * Es SÍNCRONA a propósito. Nada de lo que A0 contempla necesita esperar a
  * nadie: pensar es local. El día que un algoritmo `effectful` necesite LEER
  * algo, entrará por un puerto en el contexto —como hace el Router con

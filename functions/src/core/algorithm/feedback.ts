@@ -62,6 +62,7 @@ import { Severidad } from './strategy';
  * evidencia hasta que apoya o contradice algo. Y nada de eso es conocimiento
  * hasta que sobrevive a las guardas.
  */
+/* Vocabulario de la taxonomía de arriba, tipado: lo nombran la documentación y los nombres, no el código. */
 export type ClaseDeDato = 'event' | 'signal' | 'evidence' | 'outcome' | 'candidate' | 'fact';
 
 /* ── El evento ────────────────────────────────────────────────────────────── */
@@ -160,8 +161,6 @@ export const PROCEDENCIA_DE_GESTO: Readonly<Record<string, { origen: OrigenDeEve
   implicit_success: { origen: 'implicit', orden: 1 },
   implicit_failure: { origen: 'implicit', orden: 1 },
 });
-
-export const ORDEN_MAXIMO = 5;
 
 /** Qué origen tiene un gesto. `undefined` = no se sabe interpretarlo. */
 export const origenDe = (t: TipoDeEvento): OrigenDeEvento | undefined => PROCEDENCIA_DE_GESTO[t]?.origen;

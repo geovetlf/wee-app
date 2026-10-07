@@ -97,6 +97,12 @@ export const DESCRIPTOR_DE_DESCOMPOSICION: AlgorithmDescriptor = Object.freeze({
  */
 export type Heuristica = 'secuencial' | 'por-niveles' | 'acotada' | (string & {});
 
+/**
+ * El vocabulario publicado de A2: las tres disposiciones que sabe proponer. Hoy no lo lee
+ * ningún módulo —las tres están escritas en `descomponer`—; se queda como la lista que
+ * leería el registro el día que haya más de una manera de descomponer (PREPARADO, misión de
+ * cierre: inventario de exportaciones).
+ */
 export const HEURISTICAS: readonly Heuristica[] = Object.freeze(['secuencial', 'por-niveles', 'acotada']);
 
 /* ── Lo que produce ──────────────────────────────────────────────────────── */

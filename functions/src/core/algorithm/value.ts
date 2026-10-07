@@ -143,6 +143,8 @@ export const valorAportado = (
  * Ni una clave de señal con datos de nadie, ni un texto de la persona. Lo que
  * no está no se filtra.
  */
+/* PREPARADO: nadie la produce todavía. Es la medida del valor frente a la línea base el día que una
+ * decisión del motor se compare con lo que pasó de verdad. */
 export interface AlgorithmMetric {
   algorithm: string;
   category: string;
