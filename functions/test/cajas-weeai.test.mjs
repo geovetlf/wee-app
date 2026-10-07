@@ -99,6 +99,8 @@ const superficies = [
   ...tsxDe('components/creator'),
   ...tsxDe('components/studio'),
   ...tsxDe('components/design'),
+  /* La referencia funcional de Weë Design (Línea C): sus piezas también son de Weë AI, aunque hoy ninguna tenga un campo propio. */
+  ...tsxDe('components/designReferencia'),
   ...pantallas,
   'screens/StudioScreen.tsx',
   'screens/DesignScreen.tsx',

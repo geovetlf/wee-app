@@ -239,6 +239,11 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['studio.camDrone', '«Drone» es la palabra danesa'],
     ['studio.mvTilt', '«Tilt», el término danés del movimiento de cámara'],
     ['weebiz.logo', '«Logo» es la palabra danesa'],
+    /* Weë Design · referencia funcional. */
+    ['designRef.groupScene', '«Scene» es la palabra danesa'],
+    ['designRef.secAnimation', '«Animation» es la palabra danesa'],
+    ['designRef.propKind', '«Type» es la palabra danesa, la misma de studio.optType'],
+    ['designRef.paramFormat', '«Format» es la palabra danesa, la misma de filmmaker.format y studio.optFormat'],
     /* Los textos del servidor. */
     ['opciones.studioStyleElegant', '«Elegant» es la palabra danesa'],
     ['opciones.musicStylePop', '«Pop», nombre del género musical'],
@@ -505,6 +510,8 @@ console.log('\n── K · Traducciones defectuosas ──');
     'writer.improve',
     /* El botón del plan de Weë AI crea una OBRA: «Lav» (§ 9.1); el + y los proyectos crean objetos: «Opret». */
     'weeai.createWork',
+    /* El grupo «Crear» de Weë Design crea OBRAS (imágenes, modelos 3D): «Lav» (§ 9.1), no el «Opret» de los objetos. */
+    'designRef.groupCreate',
     /* «Sonrisa» como estilo de avatar es un nombre («Smil»); como gesto de la cara, un adjetivo («Smilende»). */
     'avatar.styleSmile',
     /* «¿Qué quieres hacer?» en Chef y en Travel es qué preparar o qué actividades («Hvad vil du lave?»); la pregunta

@@ -16,6 +16,9 @@
  *  F. El contexto se declara una vez y se transporta, no se interpreta.
  *  G. El frontend no decide proveedor, modelo, ruta ni dinero.
  *  H. El sistema de diseño sigue siendo uno.
+ *  I. La referencia funcional de Weë Design (Línea C, 2026-10-07): cobertura,
+ *     elegibilidad sin nombres, precio sin inventar, linaje y la cadena de la
+ *     imagen al objeto. Vive en `design-referencia.mjs`; aquí se ejecuta.
  *
  * Cada grupo lleva su CONTROL: una versión rota a propósito que TIENE que
  * caer. Un guard que no se puede falsificar no protege nada.
@@ -277,6 +280,10 @@ for (const rel of [AVISO, FILA]) {
 check('CONTROL: una escala propia sería detectada',
   /const (SPACING|FONT_SIZE|BORDER_RADIUS|FONT_WEIGHT) =/.test('const SPACING = { sm: 8 };'),
   'si esto pasara, el grupo H no protegería nada');
+
+console.log('\n─── I. La referencia funcional de Weë Design (Línea C) ───');
+const { comprobarLaReferenciaDeDesign } = await import('./design-referencia.mjs');
+await comprobarLaReferenciaDeDesign(check);
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nLa base de las experiencias es una sola');
 process.exit(failures ? 1 : 0);

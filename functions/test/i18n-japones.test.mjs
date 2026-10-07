@@ -573,6 +573,8 @@ console.log('\n── J · Traducciones defectuosas ──');
     'weebiz.follow',
     /* «N días»: lo que dura un viaje se dice «10泊11日», sin 間; lo que dura una encuesta, 3日間. */
     'weeai.tripDays_other',
+    /* «Formato» en las opciones de entrega de Weë Design: el tipo de archivo que pide un programa (ファイル形式), no la proporción de studio.optFormat (アスペクト比). */
+    'designRef.paramFormat',
   ]);
   const porFrase = new Map();
   for (const [k, v] of JA) {
