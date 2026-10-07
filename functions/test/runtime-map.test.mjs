@@ -488,8 +488,11 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
    */
   check(`${n++}) algorithm: SOMBRA — la fábrica del ciclo la invoca la sombra del plan, y nadie más`,
     igual(['creator/sombra.js'], invocadaDesde('crearCicloAlgoritmico')), invocadaDesde('crearCicloAlgoritmico').join(', ') || 'nadie');
-  check(`${n++}) algorithm: y lo que decide no lo consume nadie: ni \`paraRouter\`, ni el cierre del ciclo, en ningún módulo vivo`,
-    invocadaDesde('paraRouter').length === 0 && vivosFueraDelCore.every((r) => !/\.cerrar\(\{|\bparaRouter\b/.test(codigo(path.join(LIB, r)))),
+  /* (Misión de cierre) `/\.cerrar\(\{/` no veía una llamada posicional —`cerrar(r, obs)`, que es la forma real—. El
+   * cierre solo puede llamarlo quien tiene el ciclo, y solo la sombra lo crea (arriba): se mira en ella, sin la llave. */
+  check(`${n++}) algorithm: y lo que decide no lo consume nadie: ni \`paraRouter\` en ningún módulo vivo, ni el cierre del ciclo —solo podría llamarlo quien lo crea, la sombra, y no lo llama—`,
+    invocadaDesde('paraRouter').length === 0 && vivosFueraDelCore.every((r) => !/\bparaRouter\b/.test(codigo(path.join(LIB, r))))
+      && !/\.cerrar\(/.test(codigo(path.join(LIB, 'creator/sombra.js'))),
     [...invocadaDesde('paraRouter')].join(', ') || 'nadie');
   const otros = Object.entries(OTROS_DEL_CORE);
   for (const [mod, simbolos] of otros) check(`${n++}) ${mod}: símbolos nombrados [${simbolos.join(', ')}]`, igual(simbolos, [...(nombrados.get(mod) || [])]), diferencia(simbolos, [...(nombrados.get(mod) || [])]));
