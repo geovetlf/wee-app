@@ -20,7 +20,9 @@
  *       (investigado: REVIEW_REQUIRED en su API, que no tiene términos propios, y su resultado en una URL pública y
  *       predecible que Weë trata como exposición pública), Seed3D 2.0 (investigado: solo en Volcano Engine, NOT_ALLOWED
  *       con sus términos públicos, nunca con la clave ni el cliente de ModelArk) y la investigación global de matrices 3D
- *       (pendiente, todo DISABLED / REVIEW_REQUIRED).
+ *       (pendiente, todo DISABLED / REVIEW_REQUIRED); y la due diligence de BytePlus ModelArk como capa 3D (punteros:
+ *       REQUIRES ADDITIONAL AGREEMENT, la neutralización de los parámetros escritos en el texto, ningún id de Hyper3D
+ *       ni de Hitem3D en el código).
  *
  * Cada regla tiene su CONTROL con una entrada saboteada (sección F): un detector que no ve nada no prueba nada.
  *
@@ -75,7 +77,11 @@ const CANDIDATOS = ['tripo', 'meshy', 'sloyd', 'seed3d'];
 /** Las matrices 3D que el registro puede declarar PENDING (dos en main; Meshy y World Labs, en `filmmaker/core`). */
 const MATRICES_3D_PENDIENTES = ['tripo', 'meshy', 'sloyd', 'seed3d', 'hunyuan3d', 'worldlabs'];
 /* Con límites de palabra: «tripOneDay» (i18n de Weë Travel) o «Trípoli» no son Tripo. */
-const NOMBRE = /\b(tripo|tripo3d|meshy|sloyd|seed-?3d)\b/i;
+/*
+ * Y los dos modelos 3D de BytePlus ModelArk (Hyper3D, Hitem3D/Hi3D): comparten host y familia de tareas con Seedance, así
+ * que lo que los delataría en el código es su nombre o su id de modelo, no un host ni una clave.
+ */
+const NOMBRE = /\b(tripo|tripo3d|meshy|sloyd|seed-?3d|hyper3d|hitem3d|hi3d)\b/i;
 const CLAVE = /\b(TRIPO|MESHY|SLOYD|SEED3D|VOLC|VOLCENGINE)_[A-Z0-9_]+\b/;
 /*
  * Los hosts de las API de los candidatos. De Volcano Engine, el de su API en China y el de su consola, NUNCA el CDN
@@ -206,7 +212,7 @@ const sinPlazos = (adapters, catalogo, resolutores = reg.RESOLUTORES_DE_ESTADO, 
 console.log('\n── A · Tripo y Meshy: preparados, no integrados ──');
 seccion('A', () => {
   const donde = integraciones(reg, DECLARED);
-  check('A1) ni Tripo, ni Meshy, ni Sloyd, ni Seed3D están en el cableado del motor: sin adaptador, sin configuración, sin cadena, sin resolutor, sin ficha de verificación ni modelos',
+  check('A1) ni Tripo, ni Meshy, ni Sloyd, ni Seed3D, ni un modelo 3D de ModelArk (Hyper3D, Hitem3D) están en el cableado del motor: sin adaptador, sin configuración, sin cadena, sin resolutor, sin ficha de verificación ni modelos',
     donde.length === 0, donde.join(', '));
 
   const datos = datosDelRegistro();
@@ -217,7 +223,7 @@ seccion('A', () => {
   const fuentes = archivos('functions/src', (r) => r.endsWith('.ts'));
   const conNombre = fuentes.filter((f) => !PUEDEN_NOMBRARLOS.has(f) && NOMBRE.test(leer(f)));
   const conClaveOHost = fuentes.filter((f) => CLAVE.test(leer(f)) || HOST.test(leer(f)));
-  check('A3) en functions/src solo el registro de matrices pendientes nombra a Tripo, Meshy, Sloyd o Seed3D, y NINGÚN archivo lleva su clave ni su host (no hay con qué llamarlos)',
+  check('A3) en functions/src solo el registro de matrices pendientes nombra a Tripo, Meshy, Sloyd, Seed3D, Hyper3D o Hitem3D, y NINGÚN archivo lleva su clave ni su host (no hay con qué llamarlos)',
     fuentes.length > 100 && conNombre.length === 0 && conClaveOHost.length === 0, [...conNombre, ...conClaveOHost].join(', '));
 
   const llaveros = [...secretos.PROVIDER_SECRET_NAMES, ...secretos.MEDIA_SECRET_NAMES, ...secretos.FAL_SECRET_NAMES];
@@ -240,7 +246,7 @@ seccion('A', () => {
     ...['App.tsx'].filter(existe),
   ];
   const enLaApp = app.filter((f) => nombra(leer(f)).length > 0);
-  check('A6) la app —pantallas, servicios, catálogos y los textos de todos los idiomas— no nombra a Tripo, Meshy, Sloyd ni Seed3D, ni su clave, ni su host: la persona nunca elige proveedor',
+  check('A6) la app —pantallas, servicios, catálogos y los textos de todos los idiomas— no nombra a Tripo, Meshy, Sloyd, Seed3D, Hyper3D ni Hitem3D, ni su clave, ni su host: la persona nunca elige proveedor',
     app.length > 300 && enLaApp.length === 0, enLaApp.join(', '));
 });
 
@@ -395,10 +401,32 @@ const estadoDelCandidato = (doc, filas, { nombre, marca }) => {
  */
 const ENTREGABLES_GLOBALES = Object.freeze(['INDICE.md', '3d-provider-matrix.md', '3d-provider-capability-matrix.md',
   '3d-provider-commercial-eligibility.md', '3d-provider-contradictions.md', '3d-provider-ranking.md', '3d-provider-implementation-requirements.md']);
+/** Una sección del documento: desde su cabecera `## …` hasta la siguiente del mismo nivel (nunca se come la de al lado). */
+const seccionDelDoc = (doc, cabecera) => {
+  const i = doc.indexOf(cabecera);
+  if (i < 0) return '';
+  const j = doc.indexOf('\n## ', i + cabecera.length);
+  return doc.slice(i, j < 0 ? undefined : j);
+};
 const faltaEnLaGlobal = (doc) => {
-  const seccion = entre(doc, '## 4d. Investigación global de matrices 3D', '## 5. ');
+  const seccion = seccionDelDoc(doc, '## 4d. Investigación global de matrices 3D');
   if (!seccion) return ['la sección §4d'];
   return [...ENTREGABLES_GLOBALES.filter((e) => !seccion.includes(`\`${e}\``)),
+    ...(/\*\*DISABLED\*\*[^\n]*\n?[^\n]*\*\*REVIEW_REQUIRED\*\*/.test(seccion) ? [] : ['la regla DISABLED / REVIEW_REQUIRED'])];
+};
+/**
+ * LA DUE DILIGENCE DE BYTEPLUS MODELARK COMO CAPA 3D (dueño, 2026-10-07): tampoco la hace esta línea. Su sección nombra
+ * sus archivos —los llegados y los que faltan—, su veredicto, el requisito del adaptador que más cuesta si se olvida (los
+ * parámetros viajan DENTRO del texto: neutralizar los «--» de la persona) y la regla del registro. Devuelve lo que falta.
+ */
+const ARCHIVOS_DE_MODELARK = Object.freeze(['modelark-overview.md', 'modelark-commercial-eligibility.md', 'modelark-privacy-jurisdiction.md',
+  'modelark-api-technical.md', 'modelark-scale.md', 'modelark-hitem3d.md', 'modelark-pricing-economics.md', 'modelark-hyper3d.md']);
+const faltaEnModelArk = (doc) => {
+  const seccion = seccionDelDoc(doc, '## 4e. BytePlus ModelArk como capa 3D');
+  if (!seccion) return ['la sección §4e'];
+  return [...ARCHIVOS_DE_MODELARK.filter((a) => !seccion.includes(`\`${a}\``)),
+    ...(seccion.includes('REQUIRES ADDITIONAL AGREEMENT') ? [] : ['el veredicto']),
+    ...(seccion.includes('**neutralizar todo «--» del texto de la persona**') ? [] : ['la neutralización de los parámetros escritos en el texto']),
     ...(/\*\*DISABLED\*\*[^\n]*\n?[^\n]*\*\*REVIEW_REQUIRED\*\*/.test(seccion) ? [] : ['la regla DISABLED / REVIEW_REQUIRED'])];
 };
 /** Seed3D: lo que existe por API (en Volcano Engine, no en BytePlus ModelArk) es, con los términos públicos, NOT_ALLOWED. */
@@ -477,6 +505,9 @@ seccion('E', () => {
   check('E13) Sloyd: lo que su API ofrece hoy es REVIEW_REQUIRED —no hay términos de API: sus Términos cubren solo la web app y la licencia de sus resultados por API no está definida— y su requisito de privacidad sigue escrito: el resultado sale en una URL pública, sin autenticación y predecible, que Weë trata como exposición pública',
     filas.filter((f) => f.Proveedor === 'Sloyd' && /^SÍ/.test(f['Disponibilidad en la API'])).length >= 5 && sl.length === 0 && privacidad.length === 0,
     [...sl, ...privacidad].join(', '));
+  const modelark = faltaEnModelArk(doc);
+  check('E14) la due diligence de BytePlus ModelArk como capa 3D (no la hace esta línea): el documento nombra sus archivos —los llegados y los pendientes—, su veredicto (REQUIRES ADDITIONAL AGREEMENT), la neutralización de los parámetros escritos en el texto y la regla del registro (DISABLED / REVIEW_REQUIRED)',
+    modelark.length === 0, modelark.join(', '));
 });
 
 /* ═══ F · CONTROLES: cada detector, con una entrada saboteada ══════════════ */
@@ -564,6 +595,17 @@ seccion('F', () => {
   check('F31) CONTROL A3–A6: el host de la API de Sloyd y su bucket público se ven sin su nombre; el Storage de Weë y otro bucket cualquiera, no',
     HOST.test('https://api.sloyd.ai/api/jobs/text-to-3d') && HOST.test('https://storage.googleapis.com/ai-services-quality/jobs/01JX.glb')
     && !HOST.test('https://storage.googleapis.com/get-wee.appspot.com/users/x/model.glb') && !HOST.test('https://storage.googleapis.com/ai-services/x.glb'));
+  const seccionModelArk = `## 4e. BytePlus ModelArk como capa 3D — x\n${ARCHIVOS_DE_MODELARK.map((a) => `\`${a}\``).join(' ')}\nREQUIRES ADDITIONAL AGREEMENT\n1. **neutralizar todo «--» del texto de la persona**\n**DISABLED** y **REVIEW_REQUIRED**\n## 5. `;
+  check('F32) CONTROL E14: sin un archivo, sin el veredicto, sin la neutralización de los parámetros, sin la regla o sin la sección, se ve; completa, no; y no se come la sección de al lado',
+    faltaEnModelArk(seccionModelArk).length === 0 && faltaEnModelArk(seccionModelArk.replace('`modelark-hyper3d.md`', '')).includes('modelark-hyper3d.md')
+    && faltaEnModelArk(seccionModelArk.replace('REQUIRES ADDITIONAL AGREEMENT', '')).includes('el veredicto')
+    && faltaEnModelArk(seccionModelArk.replace('**neutralizar todo «--» del texto de la persona**', 'neutralizar')).includes('la neutralización de los parámetros escritos en el texto')
+    && faltaEnModelArk('nada').includes('la sección §4e')
+    && faltaEnModelArk(seccionModelArk.replace('**DISABLED** y **REVIEW_REQUIRED**\n## 5. ', '\n## 5. **DISABLED** y **REVIEW_REQUIRED**')).includes('la regla DISABLED / REVIEW_REQUIRED'));
+  check('F33) CONTROL A1–A6: los ids de los modelos 3D de ModelArk y sus nombres se ven; Seedance, «hi», «3D» o «Hyperion», no',
+    nombra("model: 'hitem3d-2-0-251223'").length === 1 && nombra("model: 'hyper3d-gen2-260112'").length === 1 && nombra('Created with Hi3D').length === 1
+    && nombra("model: 'seedance-2-0-pro'").length === 0 && nombra('hi, un objeto 3D').length === 0 && nombra('Hyperion').length === 0
+    && integraciones({ ...reg, ADAPTERS: { ...reg.ADAPTERS, seedance: { ...reg.ADAPTERS.seedance, models: [...reg.ADAPTERS.seedance.models, { id: 'hitem3d-2-0-251223', provider: 'seedance', capabilities: [] }] } } }, DECLARED).some((x) => x.includes('hitem3d')));
 });
 
 console.log(failures ? `\n✘ ${failures} de ${n} comprobaciones fallaron` : `\n✔ 3D multiproveedor: preparado, apagado y medido (${n} comprobaciones, $0)`);

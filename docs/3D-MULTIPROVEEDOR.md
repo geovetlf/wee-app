@@ -20,7 +20,8 @@ D3D-20). **Sloyd** entró en el alcance el 2026-10-07 y ya está investigado: un
 Términos cubren solo la web app), así que **REVIEW_REQUIRED**, y un resultado que sale en una URL pública y predecible
 (§4b, §19). **Seed3D 2.0** entró el mismo día y ya está investigado: solo existe en Volcano Engine (China), no en BytePlus
 ModelArk, y sus términos públicos lo dejan en **NOT_ALLOWED** (§4c). La investigación global de matrices 3D:
-**PENDING DEPENDENCY** (§4d).
+**PENDING DEPENDENCY** (§4d). Y BytePlus ModelArk como capa 3D, según su due diligence:
+**REQUIRES ADDITIONAL AGREEMENT**, con su síntesis pendiente (§4e).
 
 ---
 
@@ -221,7 +222,7 @@ cuentas, sin claves y sin llamar a nada) dice, en corto (⚖ = revisión legal):
 |---|---|
 | Qué | El modelo 3D de segunda generación del equipo Seed de ByteDance (2026-04-23). En la API, `doubao-seed3d-2-0-260328`, la única versión publicada (Seed3D 1.0 se cerró en marzo de 2026). Sin pesos abiertos |
 | Capacidad por API | **Solo imagen → 3D**: una imagen; sale un archivo con textura y materiales PBR (glb, obj, usd o usdz) dentro de un ZIP, con 100 000, 500 000 o 1 000 000 de caras. Texto → 3D: UNKNOWN (las fuentes se contradicen). Partes, articulación (URDF), simulación y escenas son **investigación, sin API** |
-| Dónde | **Solo en Volcano Engine · 火山方舟, región cn-beijing.** **No está en BytePlus ModelArk**, la plataforma internacional con la que Weë sirve Seedance: a 2026-09-28 su 3D son dos modelos de terceros, Hyper3D Gen2 y Hitem3D 2.0 —candidatos de la investigación global (§4d), no Seed3D— |
+| Dónde | **Solo en Volcano Engine · 火山方舟, región cn-beijing.** **No está en BytePlus ModelArk**, la plataforma internacional con la que Weë sirve Seedance: a 2026-09-28 su 3D son dos modelos de terceros, Hyper3D Gen2 y Hitem3D 2.0 —candidatos de la investigación global (§4d) y de la due diligence de ModelArk (§4e), no Seed3D— |
 | Ciclo de vida | Tarea asíncrona: POST → id `cgt-…`; **solo sondeo** (sin aviso ni webhook para el 3D); estados `queued`, `running`, `succeeded`, `failed`, `cancelled` (más `expired` en la tabla de borrado); parar solo en `queued`, con un `DELETE` que en un estado terminal BORRA el registro; minutos; **el ZIP caduca a las 24 h**; el registro, 7 días o 24 h (se contradicen: se diseña para 24 h); RPM 300 y concurrencia 5 por cuenta; sin clave de idempotencia; un parámetro mal escrito se ignora sin error, así que hay que comprobar en la respuesta qué formato y qué caras se aplicaron |
 | Coste | **2,40 CNY por generación con éxito** (30 000 tokens × 0,80 CNY por cada 10 000); lo que falla no se cobra; `usage.completion_tokens` por tarea; cobro en CNY |
 | Licencia y uso comercial | **NOT_ALLOWED con los términos públicos**: la licencia de la plataforma Ark (§3.1) y la de Doubao (§1.2) valen solo en China continental, y cualquier uso comercial, o que dé ingresos directos o indirectos, exige el permiso escrito previo de Volcano Engine (§3.1). La nota de lanzamiento dice «可商用» (utilizable comercialmente) y lo contradice ⚖. Vía hipotética: un acuerdo escrito con Volcano Engine que cubra el uso comercial y el territorio fuera de China continental ⚖ |
@@ -265,7 +266,8 @@ Programa del dueño del 2026-10-07 para la Línea B: una investigación GLOBAL d
 motores integrables directamente por API, el equivalente 3D de Gemini, FLUX o Seedance—, con cinco investigadores
 (Occidente y EE. UU.; Asia; Europa, Reino Unido, Israel y Canadá, más CAD y animación; código abierto y autoalojable;
 alojamiento y agregadores como fal.ai o Replicate) sobre una plantilla común, y un sintetizador. **No la hace esta línea**, y
-sus entregables no existían al cerrarla; vivirán con las notas de trabajo de la Línea B, fuera del repositorio:
+sus entregables de síntesis no existían al cerrarla (sí tres de los cinco informes de investigador: abajo); vivirán con las
+notas de trabajo de la Línea B, fuera del repositorio:
 
 | Entregable | Qué será |
 |---|---|
@@ -285,6 +287,82 @@ como se llame (C5–C6), y a las matrices 3D pendientes conocidas (A2).
 
 Cuando lleguen: aquí, un puntero y un resumen corto; sus filas en el MAPA 2 (§5.2) con las etiquetas de su elegibilidad; y
 esta marca desaparece. La suite exige que esta sección nombre los siete entregables y la regla (E11).
+
+**Lo que ya ha llegado** (2026-10-07; punteros y resumen corto: son informes de investigador, no los entregables de la
+síntesis, y su «clase A–E» es la de su plantilla, no la selección A–E del MAPA 2):
+
+| Archivo | Bloque | En corto |
+|---|---|---|
+| `global/r3-europa-cad-animacion.md` | Europa, Reino Unido, Israel y Canadá; CAD e impresión; rig, animación, personajes, mundos y texturas | Ningún SERVICIO por API queda en clase A; las únicas A son código abierto autoalojado con copyleft (CADAM, GPL-3.0; laminadores, AGPL-3.0) ⚖. Los mejores encajes, en clase B y CONDITIONAL: Alpha3D (objetos), World Labs (mundos), Runware (agregador) y Uthana (movimiento), cada uno con algo que pedir por escrito. Transversal: casi nadie cancela un trabajo en curso; entrenar con el contenido de los usuarios es la norma; varios exigen 18 años; nadie publica un régimen para datos biométricos; usar el resultado ≠ ofrecer el servicio |
+| `global/r4-autoalojables.md` | Modelos 3D de pesos abiertos, autoalojables | Ninguno en clase A: incluso con MIT o Apache falta el inventario de dependencias (piezas no comerciales como nvdiffrast o RMBG) y la procedencia de los datos. Los más cercanos: TripoSG y UniRig (VAST), SAM 3D Objects (Meta), MagicArticulate y Puppeteer; Hunyuan3D, con las exclusiones de la UE, el Reino Unido y Corea del Sur |
+| `global/r5-agregadores.md` | Agregadores y hosting | fal, clase B y CONDITIONAL, el único con permiso expreso para servir a usuarios finales sin cuenta; Replicate B/C; ModelArk C, REQUIRES ADDITIONAL AGREEMENT (§4e); WaveSpeedAI C; Segmind C (autorización escrita); NVIDIA E/D; Hugging Face, sin 3D. Los modelos de socio (Tripo, Meshy, Rodin, Hi3D, Hunyuan 3.x) en cualquier agregador dependen de qué términos del autor se trasladan, y eso solo lo confirma cada plataforma por escrito |
+
+`global/r1-occidente.md`, `global/r2-asia.md` y los siete entregables: **PENDING DEPENDENCY** (no habían llegado al cerrar).
+Nada de lo llegado cambia todavía el MAPA 2: sus candidatos entran con la síntesis, cada uno DISABLED y REVIEW_REQUIRED.
+
+---
+
+## 4e. BytePlus ModelArk como capa 3D (due diligence) — REQUIRES ADDITIONAL AGREEMENT · PENDING DEPENDENCY
+
+La pregunta del dueño (2026-10-07): ¿puede ModelArk ser una capa de infraestructura 3D invisible, en la que Weë controla la
+experiencia, los Credits, los trabajos y el material, y ModelArk solo pone la inferencia? **No la investiga esta línea:** la
+hacen otros investigadores, y aquí van un puntero y un resumen corto de lo que ha llegado (notas de trabajo de la Línea B,
+fuera del repositorio; ⚖ = revisión legal).
+
+| Archivo | Qué trae, en corto |
+|---|---|
+| `modelark-overview.md` | ModelArk (BytePlus Pte. Ltd., Singapur, grupo ByteDance) es a la vez proveedor de modelos propios y agregador de modelos de terceros detrás de un solo gateway. Su 3D son **dos modelos de terceros, solo de generación y solo en ap-southeast-1 (Johor, Malasia)**: Hyper3D Gen2 (`hyper3d-gen2-260112`: texto en inglés o 1–5 imágenes → 3D) y Hitem3D 2.0 (`hitem3d-2-0-251223`: 1–4 imágenes → 3D). Sin rig, animación, texturizado aparte, CAD ni mundos. Técnicamente, la misma integración que Seedance; contractualmente, la plataforma MÁS un contrato con cada proveedor |
+| `modelark-commercial-eligibility.md` | **REQUIRES ADDITIONAL AGREEMENT**, confianza media (abajo), y un hallazgo colateral sobre el vídeo que Weë ya sirve (abajo) |
+| `modelark-privacy-jurisdiction.md` | El 3D se procesa solo en Malasia; lo que marca el filtro se guarda 180 días allí; los datos pueden llegar al proveedor del modelo si no se usa el modo de seguridad reforzada; BytePlus no entrena sin un «opt-in». **Los dos modelos 3D solo admiten 30 países: sin Perú, EE. UU., la UE, el Reino Unido, Canadá ni América Latina** (de los mercados de Weë, solo Japón y Corea del Sur); a quién se aplica la lista, a la cuenta o a la persona, es UNKNOWN |
+| `modelark-api-technical.md` | Las tareas son las de Seedance (`contents/generations/tasks`): avisos sin firma, sin idempotencia, cancelación solo en cola, archivo que caduca a las 24 h y registro que dura 7 días. **Los parámetros viajan dentro del texto** (`--param valor`). Sus requisitos para el adaptador, abajo |
+| `modelark-scale.md` | Límites por cuenta: Hyper3D 60 RPM y 3 tareas simultáneas; Hitem3D 600 RPM y 30; se suben por ticket. Sin SLA público. BytePlus puede retirar un modelo de tercero si acaba su relación con el proveedor |
+| `modelark-hitem3d.md` | Hitem3D vía ModelArk: **REQUIRES ENTERPRISE OR AGREEMENT** (confianza media): territorio, §6.2(1) y unos términos de proveedor que no son públicos; si fueran los de Hi3D directo, exigirían la atribución «Created with Hi3D» y una licencia de entrenamiento, que chocan con «la persona no ve proveedores» y con la política de datos de Weë. Solo serviría de respaldo de imagen → 3D dentro de los 30 países |
+| `modelark-pricing-economics.md` | Por archivo con éxito: Hyper3D 0,399 USD; Hitem3D 0,80–1,80 USD, **el doble** que Hi3D directo. Los precios no impiden volver a tarifarlo en Credits (los términos, quizá: §6.2(1)); con la fórmula de Weë, margen bruto ≈ 23,1 % del precio |
+| `modelark-hyper3d.md` | **PENDING DEPENDENCY**: no había llegado al cerrar |
+| La síntesis de ModelArk (comparación, contradicciones, decisión GO / NO-GO y requisitos de implementación) | **PENDING DEPENDENCY**: no había llegado al cerrar |
+
+**El veredicto y las cláusulas que lo deciden.** REQUIRES ADDITIONAL AGREEMENT, confianza media, por tres piezas:
+- **Customer Agreement §6.2(1):** sin el consentimiento previo y por escrito de BytePlus, nada de acuerdos SaaS, MaaS, de
+  «application service provider», reventa u otra distribución «in connection with the Services». El mismo contrato da
+  licencia a los End Users del cliente (§3.1), así que cabe una lectura estrecha —prohíbe revender el SERVICIO, no servir
+  sus resultados dentro de una app— ⚖; si BytePlus la confirmara por escrito, bajaría a una aceptación por modelo.
+- **Los Model Service Terms de cada modelo** (Service Specific Terms, ModelArk §1.1 y §3.5): obligan entre Weë y el
+  proveedor, se aceptan al USAR o activar el modelo y su texto no es público.
+- **El territorio:** la lista de 30 países de los modelos 3D deja fuera casi todos los mercados de Weë.
+
+Además, la cuenta de Weë probablemente aceptó el Customer Agreement de 2022 (uso «solely for your internal business
+purposes»), y desde el 2026-09-30 está, por uso continuado, bajo el de 2026 (§17.9) ⚖.
+
+**Aviso para el dueño, fuera del 3D: el vídeo que Weë YA sirve** ⚖. Los términos de los modelos de vídeo de BytePlus
+(«Platform Customers», §4.2) prohíben re-integrar sus API en plataformas UGC, «including AI content creation tools»,
+exigen verificar la identidad de los usuarios finales y fijan daños pactados; y los modelos de BytePlus «are not available
+in the United States», también para los End Users. Weë sirve hoy Seedance en una red social con contenido de sus
+usuarios: la due diligence lo marca como riesgo abierto de la integración ACTUAL, y que se haga hoy no prueba que esté
+permitido. Aquí no se resuelve (D3D-21).
+
+**Requisitos para cualquier adaptador 3D sobre ModelArk** (de `modelark-api-technical.md`; esta línea los hace suyos):
+1. **neutralizar todo «--» del texto de la persona** (y de lo que Weë Brain componga a partir de él) y añadir los
+   parámetros solo desde datos: los modelos 3D de ModelArk leen del propio texto la calidad, las caras, el formato y extras
+   que cambian el coste (`--addons HighPack`…), así que un texto sin neutralizar deja a cualquiera cambiar la calidad o el
+   precio (G3D-22);
+2. copiar el archivo en la misma pasada (caduca a las 24 h) y **nunca un `DELETE` antes de copiarlo**: en una tarea
+   terminada, el `DELETE` BORRA el registro;
+3. reconciliar dentro de los 7 días que vive el registro (el listado no mira más atrás);
+4. la concurrencia por modelo y cuenta (Hyper3D: 3) como límite compartido entre instancias (G3D-9);
+5. Hitem3D solo acepta una URL pública para la foto: una URL firmada de vida corta, que es una decisión de privacidad (hoy
+   Seedance la manda como data URI);
+6. Hyper3D solo entiende inglés, con 400 caracteres como mucho: traducir en el adaptador;
+7. un formato por petición: GLB, y convertir aparte (D3D-6);
+8. un proyecto y una clave APARTE para 3D, restringida a esos dos ids de modelo (y por IP, si se puede), en un llavero
+   dormido propio: hoy Seedance usa una sola `ARK_API_KEY`, montada en producción, y con la activación con un clic
+   encendida basta USAR un modelo para aceptar sus términos y su facturación (SST ModelArk §3.5). Por eso nadie prueba un
+   modelo 3D con la clave del vídeo.
+
+**En el registro y en el MAPA 2:** hoy nada. Sus filas del MAPA 2 llegan con la síntesis (PENDING DEPENDENCY); si entra, como
+todo candidato, **DISABLED** y **REVIEW_REQUIRED** (§4d), con un adaptador sobre el cliente compartido
+(`functions/src/engine/providers/ark.ts`) pero con su propia clave; con lo leído, ninguno de los dos modelos sería APPROVED /
+AVAILABLE. La guardia vigila que ningún id de Hyper3D ni de Hitem3D aparezca en el código ni en la app (A1, A3, A6) y que
+esta sección conserve sus archivos, su veredicto, la neutralización de los parámetros y la regla del registro (E14).
 
 ---
 
@@ -680,6 +758,11 @@ queda «sin referencia», que se reconcilia a mano (`functions/src/runtime/recon
 su panel (D3D-16). Su atajo de pedir el GLB de forma optimista no sirve para saber si falló: el desenlace lo da el JSON del
 trabajo.
 
+**ModelArk 3D (Hyper3D, Hitem3D)**, si algún día se integrara: la tabla de desenlaces que ya usa Seedance (en marcha,
+terminado, fallado; lo demás, desconocido y nunca fallo), el archivo copiado en la misma pasada (caduca a las 24 h), la
+reconciliación dentro de los 7 días que vive el registro, nunca un `DELETE` antes de copiar y `operationId` = su id de
+tarea (§4e).
+
 **Lo que se reutiliza tal cual:** el conductor y la puerta por capacidad, el barrido de 5 min (pregunta, materializa y
 liquida en la misma pasada: una URL de Tripo que caduca en minutos se pide fresca con un `GET` y se copia en el momento,
 nunca se guarda), `pedirParada`, `maxAttempts: 1`, «un POST sin respuesta es un desenlace desconocido» (RUNTIME §23.3), el
@@ -713,6 +796,7 @@ por debajo del coste.
 | Tripo | `credits_consumed × 0,01 USD` del propio desenlace; 0 si `failed`/`cancelled` (créditos liberados) | exacta y publicada |
 | Meshy | `consumed_credits × USD por crédito del PLAN contratado` | depende del contrato: hasta firmarlo, el techo conservador (Pro, 0,020) en `gobierno.providerPricing`, con su fuente |
 | Sloyd | la tarifa de la combinación (75 créditos = 1 USD; texto → 3D texturizado, 25 = 0,33 USD): el trabajo no dice lo cobrado | exacta por tarifa (`tarifaExacta`, G3D-7), sin forma de comprobarla por API: se concilia con el saldo de su panel |
+| ModelArk 3D | `usage.completion_tokens` × la tarifa, por archivo con éxito (Hyper3D 0,399 USD; Hitem3D 0,80–1,80 USD) | exacta, la misma idea que `seedanceUsd`; con la fórmula de siempre, margen bruto ≈ 23,1 % del precio (§4e) |
 
 **Una combinación cobrable = un `ModelSpec`** (G3D-7). «Imagen → 3D con textura estándar» (Tripo 0,30) y «con textura HD»
 (0,40) son dos entradas de datos, cada una con su tarifa por petición fija: así el Router compara coste real, `tarifaExacta`
@@ -850,11 +934,11 @@ Capacidad («Crear objeto 3D»)  →  Composer (claves, «🤷 No sé» siempre)
 
 Lo que implementa esta línea: `functions/test/multiproveedor-3d.test.mjs` (en la cadena), sin red, sin clave y sin
 proveedor: A (apagado), B (vocabulario), C (precondiciones de activación), D (el documento), E (MAPA 1 y MAPA 2: una
-etiqueta por fila, ninguna autorización inventada, ninguna selección B, ningún proveedor en el MAPA 1; y Sloyd, Seed3D y
-la investigación global, E10–E13) y F (un control saboteado por regla). Además se sabotearon 53 reglas sobre los archivos
-de verdad —el compilado, la fuente, la app, la configuración y este documento—, una a una y restaurando cada archivo byte
-a byte: las 53 ponen la suite en rojo en la comprobación esperada. Lo que haría falta al integrar cada proveedor,
-siguiendo los moldes que ya existen:
+etiqueta por fila, ninguna autorización inventada, ninguna selección B, ningún proveedor en el MAPA 1; y Sloyd, Seed3D, la
+investigación global y ModelArk, E10–E14) y F (un control saboteado por regla). Además se sabotearon 57 reglas sobre los
+archivos de verdad —el compilado, la fuente, la app, la configuración y este documento—, una a una y restaurando cada
+archivo byte a byte: las 57 ponen la suite en rojo en la comprobación esperada. Lo que haría falta al integrar cada
+proveedor, siguiendo los moldes que ya existen:
 
 | Caso | Qué se prueba | Molde que se extiende | Sabotaje que tiene que verse |
 |---|---|---|---|
@@ -933,6 +1017,10 @@ Ninguna se crea ni se monta en esta misión. El diseño, el mismo de `FAL_KEY` (
      `x-client-id`, no). Sin secreto de aviso: no hay avisos. Sus claves «test» cobran como las «live»: no hay sandbox.
      Repartir la carga entre varias claves para esquivar su cupo de 5, solo con su confirmación escrita (sus Términos,
      §10, prohíben eludir límites técnicos ⚖).
+   - ModelArk 3D (Hyper3D, Hitem3D): el mismo host y la misma familia de tareas que Seedance, pero
+     **un proyecto y una clave aparte**, restringida a sus dos ids de modelo (y por IP, si se puede), en un llavero
+     dormido propio; nunca `ARK_API_KEY` para probarlos: con la activación con un clic encendida, usarlos acepta sus
+     términos y su facturación (§4e).
 2. **Montadas solo donde se leen:** la puerta de la capacidad, el barrido (`RECONCILIATION_SECRETS`, que solo consulta) y, si
    el dueño expone avisos, la Function que los recibe. `secretValue` y `knownSecretValues` las buscan por nombre, para
    censurarlas en los registros (`sanitizeForLog`).
@@ -989,7 +1077,8 @@ escrito aquí (E13).
 | Claves, avisos, despliegue, activación | Prohibido en esta misión |
 | Sloyd | Investigado e incorporado (§4b, §5.2, §12, §19): REVIEW_REQUIRED en su API, porque no hay términos de API, y su resultado en una URL pública; nada que implementar hasta D3D-20 |
 | Seed3D 2.0 | Investigado e incorporado (§4c, §5.2, §12): NOT_ALLOWED con los términos públicos; nada que implementar hasta D3D-19. Los requisitos de la Línea C para Seed3D: PENDING DEPENDENCY |
-| La investigación global de matrices 3D | PENDING DEPENDENCY: la hacen cinco investigadores y un sintetizador, no esta línea; sus entregables no existían al cerrar (§4d) |
+| La investigación global de matrices 3D | PENDING DEPENDENCY: la hacen cinco investigadores y un sintetizador, no esta línea; al cerrar habían llegado tres informes de investigador (r3, r4 y r5: punteros y resumen en §4d), y ni r1, ni r2, ni los siete entregables |
+| BytePlus ModelArk como capa 3D | Due diligence de otros investigadores: siete archivos llegados (punteros y resumen en §4e: REQUIRES ADDITIONAL AGREEMENT); `modelark-hyper3d.md` y la síntesis, PENDING DEPENDENCY; sin filas del MAPA 2 hasta la síntesis |
 
 ---
 
@@ -1005,7 +1094,7 @@ escrito aquí (E13).
 | G3D-6 | El Router no filtra por entrada: la incompatibilidad se descubre en el adaptador (400; o 403, si se le pide a Sloyd retexturizar un trabajo que no es suyo) | `functions/src/engine/router.ts` (`pickModel`) | Filtro puro de compatibilidad por datos |
 | G3D-7 | `ModelSpec.cost` es una tarifa por unidad; las opciones (textura HD, geometría HD, quad) la cambian | `functions/src/engine/types.ts` (`ModelCost`) | Un `ModelSpec` por combinación cobrable |
 | G3D-8 | El horizonte de reconciliación es por capacidad; la retención, por proveedor (Meshy 72 h; Tripo y Sloyd sin publicar) | `functions/src/runtime/plazos.ts` | Comprobación horizonte ≤ retención mínima de la cadena |
-| G3D-9 | Sin concurrencia por cuenta del proveedor en el Router; un 429 de cola es un fallo y se devuelve (Sloyd: 5 trabajos por clave en su fase de test) | `functions/src/engine/router.ts`; cola durable sin conectar (DD-03) | Cola o descarte `pasajera` |
+| G3D-9 | Sin concurrencia por cuenta del proveedor en el Router; un 429 de cola es un fallo y se devuelve (Sloyd: 5 trabajos por clave en su fase de test; ModelArk: Hyper3D, 3 por cuenta) | `functions/src/engine/router.ts`; cola durable sin conectar (DD-03) | Cola o descarte `pasajera` |
 | G3D-10 | El lector por papeles admite una variante por clase: varios formatos `transcoded` se descartarían | `functions/src/engine/providers/fal.ts` (`porPapel`) | GLB único + `3d.convert` (D3D-6) |
 | G3D-11 | La descarga del resultado acepta cualquier https que dé el proveedor (y con Sloyd el host es `storage.googleapis.com`, compartido por cualquiera) | `functions/src/engine/http.ts` (`persistRemoteFile`) | Hosts por proveedor cuando el contrato los fije |
 | G3D-12 | `ResultadoDeParada` no dice «este proveedor no para en este estado»; el único parar de Meshy es un `DELETE` que borra | `functions/src/runtime/reconciliacion.ts` | Vocabulario de parada + resolutor que pregunta antes |
@@ -1018,6 +1107,7 @@ escrito aquí (E13).
 | G3D-19 | La salida de Seed3D es un ZIP que caduca a las 24 h; el materializador guarda un archivo tal cual | `functions/src/content/materializador.ts` | Traerlo en la misma pasada y descomprimirlo con límites (tamaño, entradas, rutas), validando el formato aplicado |
 | G3D-20 | `ReglasTerritoriales` no dice «solo en X, bloqueado en el resto» (`resto` solo admite APPROVED o REVIEW_REQUIRED), y la licencia de Seed3D puede referirse a dónde está el cliente (Weë) y no al país de la persona ⚖ | `functions/src/engine/types.ts` (`ReglasTerritoriales`), `functions/src/engine/jurisdiccion.ts` | Hasta decidirlo, REVIEW_REQUIRED global (falla cerrado); `resto: 'BLOCKED'` o un bloqueo del proveedor sería un cambio de tipo |
 | G3D-21 | El gobierno no tiene dónde decir que un proveedor deja el resultado en una URL PÚBLICA, sin autenticación y predecible (Sloyd), ni que su id de trabajo es la llave de ese archivo: la elegibilidad no puede apartar de él las fotos de personas ni lo privado, el `Asset` guarda ese id en su procedencia (`operationId`) y la sanitización de registros solo conoce credenciales | `functions/src/engine/types.ts` (`GobiernoDeModelo`), `functions/src/core/content/asset.ts` (`Provenance.operationId`), `functions/src/engine/sanitize.ts` | Un dato de gobierno («salida pública en el proveedor») que lea la elegibilidad, ese id censurado en los registros y fuera de todo lo publicable, y el requisito de §19 (punto 5) en su adaptador |
+| G3D-22 | Ningún adaptador neutraliza parámetros escritos dentro del texto: el de Seedance manda el texto de la persona tal cual (hasta 3000 caracteres) junto a sus parámetros en campos JSON, y los modelos 3D de ModelArk leen los suyos —calidad, caras, formato y extras que cambian el coste— del propio texto (`--param valor`). Si Seedance honra también parámetros escritos en el texto: UNKNOWN, sin comprobar | `functions/src/engine/providers/seedance.ts` (`buildSeedanceBody`) | Una regla del adaptador 3D: quitar o escapar todo «--» del texto y componer los parámetros solo desde datos (§4e); y comprobar el caso del vídeo antes de decidir si también lo necesita |
 
 ---
 
@@ -1048,6 +1138,7 @@ Cada una con su recomendado, **no aplicado**.
 | D3D-18 | ¿Entran en el alcance de Weë las capacidades no 3D de estos proveedores (imagen con modelos de terceros, multivista) y la impresión o el producto físico (preparar para imprimir, Creative Lab, fabricación; en Sloyd, la impresión comercial exige una licencia a medida)? | A) Solo 3D: generar, texturizar, retopología, rig, animar, convertir · B) A + preparar para imprimir · C) B + producto físico | **A** |
 | D3D-19 | Seed3D 2.0: solo existe en Volcano Engine (China), con licencia para China continental y uso comercial con permiso escrito; los datos irían a China y el cliente asume obligaciones de la normativa china | A) Esperar a BytePlus ModelArk, donde Weë ya tiene contrato, y preguntar si llegará · B) Negociar un acuerdo escrito con Volcano Engine (uso comercial + territorio + datos) · C) Descartarlo | **A**; mientras, sus datos, si entran, REVIEW_REQUIRED (o BLOCKED_GLOBAL, si lo decide legal) y DISABLED |
 | D3D-20 | Sloyd: no hay términos de API (sus Términos cubren solo la WebApp), la licencia y la propiedad de los resultados de la API no están definidas, contratan dos entidades (Sloyd Inc., EE. UU.; Sloyd AS, Noruega), el resultado queda en una URL pública y parte de su API la sirven terceros sin nombrar | A) Pedirle por escrito, antes de nada, términos de API, licencia y propiedad de los resultados, entidad y ley, almacenamiento privado o URLs firmadas, retención y borrado, no entrenamiento, DPA y qué endpoints sirven modelos propios · B) A + entrar en la lista de espera de su SDK paramétrico · C) Descartar Sloyd | **A**; hasta entonces OFF. Esta línea no ha contactado con nadie |
+| D3D-21 | BytePlus ModelArk como capa 3D (Hyper3D, Hitem3D): REQUIRES ADDITIONAL AGREEMENT (§6.2(1), unos Model Service Terms que no son públicos y 30 países sin los mercados de Weë); y, fuera del 3D, el riesgo que su due diligence señala en el vídeo que Weë YA sirve («Platform Customers» §4.2; EE. UU.) | A) Esperar a la síntesis (decisión GO / NO-GO) antes de pedir nada para 3D · B) Pedir ya a BytePlus, por escrito, §6.2(1), el territorio y los términos de los modelos · C) Descartar ModelArk para 3D | **A** para el 3D. El vídeo actual no es una decisión de esta línea: se señala para revisión legal, sin esperar a la síntesis |
 
 ---
 
@@ -1097,7 +1188,9 @@ Ninguno de estos pasos se ha dado; cada uno es una decisión del dueño.
 Algorithm Engine CONTINÚA EN SU MISIÓN — NO INTERFERIDO · Tripo OFF · Meshy OFF · fal.ai OFF · Hunyuan OFF · World 3D OFF ·
 API keys NO · Real calls NO · Production deploy NO · Real spend NO · Sloyd OFF (investigado: DISABLED / REVIEW_REQUIRED,
 sin términos de API y con su resultado en una URL pública) · Seed3D PENDING / DISABLED (investigado: NOT_ALLOWED con los
-términos públicos) · investigación global de matrices 3D PENDING DEPENDENCY: todo candidato DISABLED / REVIEW_REQUIRED.
+términos públicos) · investigación global de matrices 3D PENDING DEPENDENCY: todo candidato DISABLED / REVIEW_REQUIRED ·
+ModelArk 3D (Hyper3D, Hitem3D) OFF: REQUIRES ADDITIONAL AGREEMENT según su due diligence, con su síntesis
+PENDING DEPENDENCY.
 
 Lo que no se pudo verificar: ninguna API de Tripo, de Meshy, de Sloyd ni de Seed3D se ha llamado (todo sale de su
 documentación pública, con los UNKNOWN de §3, §4, §4b y §4c); la lectura jurídica es de un informe técnico y necesita
