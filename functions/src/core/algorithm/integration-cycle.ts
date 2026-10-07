@@ -546,8 +546,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
      * lo que salió. Es la evidencia que A6 necesita para comprobar los topes —hasta 1.11
      * no se le pasaba, y cerraba `unknown`— y lo medido que A7 aprende de este resultado.
      * Lo de un paso, lo de otro resultado o una `result.*` sin sujeto no es suyo: ni se
-     * le atribuye ni se mezcla. Quien ejecuta lo produce con su sujeto, y quien llama a
-     * `cerrar` lo entrega en la observación.
+     * le atribuye ni se mezcla. Quien ejecute tendrá que producirlo con su sujeto, y quien
+     * llame a `cerrar`, entregarlo en la observación: hoy nadie llama a `cerrar` (91b, DD-26).
      */
     const delResultado = (observacion.signals ?? []).filter((s) => !!s && s.subject === observacion.actual.id);
 

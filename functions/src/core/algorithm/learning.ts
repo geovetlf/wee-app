@@ -39,8 +39,10 @@ import { AmbitoDeEvento, CodigoDeRazon, PoliticaDeAprendizaje, Tendencia, motivo
  * Todo el acceso de A7 es por clave: nunca hay un recorrido sobre el histórico
  * y nunca hay una consulta que dependa de cuántas observaciones haya. Una
  * cadena canónica permite que el día que esto viva en Firestore sea el id del
- * documento y la operación sea un `increment`, que es O(1) — exactamente lo que
- * `engine/ledger.ts` ya hace con `aiUsage/{día}`.
+ * documento. La actualización NO es un `increment` como el de `aiUsage/{día}`:
+ * la rejilla avanza, `fuerza` es una media y la muestra se reordena, así que
+ * pide una transacción por clave —y resolver antes la deuda 4 de
+ * ALGORITHM-ENGINE.md § 13—. Hoy no vive en ninguna parte: no se persiste nada.
  *
  * El orden de los campos es fijo y los ausentes se omiten: dos ámbitos iguales
  * escritos en distinto orden TIENEN que dar la misma clave, o el agregado se

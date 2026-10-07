@@ -182,9 +182,11 @@ export const fuenteDeGesto = (t: TipoDeEvento): SignalSource | undefined => {
 /**
  * DÓNDE PASÓ. Todo opcional, y ninguno es una persona.
  *
- * `account` es un identificador opaco y existe para poder ACOTAR y deduplicar
- * —no para perfilar—: sin él, mil eventos de la misma cuenta parecen mil
- * observaciones independientes y no lo son. Nada más se guarda de nadie.
+ * `account` es un identificador opaco, RESERVADO para poder acotar —nunca para
+ * perfilar— el día que exista un contrato de consentimiento. Hoy no se usa: el
+ * aprendizaje por cuenta está bloqueado (la clave de agregación no lo lleva y A8
+ * no sirve un ámbito con cuenta), y la deduplicación de eventos va por su id.
+ * Nada más se guarda de nadie.
  */
 export interface AmbitoDeEvento {
   capability?: string;

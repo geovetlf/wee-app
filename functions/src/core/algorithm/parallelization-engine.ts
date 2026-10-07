@@ -14,8 +14,13 @@
  *
  * ── Lo que NO hace ──────────────────────────────────────────────────────────
  *
- * No ejecuta. No hay `Promise.all`, ni workers, ni colas, ni despacho: el
- * Orchestrator ya ejecuta `ParallelGroup` y no se toca. No estima por su cuenta
+ * No ejecuta. No hay `Promise.all`, ni workers, ni colas, ni despacho. Y el
+ * Orchestrator NO lee `ParallelGroup`: deduce el paralelismo de `dependsOn`
+ * (core/workflow.ts: «El paralelismo NO se declara: se DEDUCE») y lo acota con
+ * `maxConcurrent`. Los grupos de A4 son una RECOMENDACIÓN que hoy no consume
+ * nadie (FUTURE): si algún día se consumen, entrarán como restricción
+ * —`maxParallel`— o validados contra `dependsOn`, nunca como una segunda fuente
+ * de verdad, y nunca haciendo que el Orchestrator dependa de esta capa. No estima por su cuenta
  * coste ni calidad: para eso está A3, y A4 le DELEGA construyendo las variantes
  * y pasándoselas. Y no elige: eso es A1.
  *

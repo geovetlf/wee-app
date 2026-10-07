@@ -19,17 +19,24 @@
  *   Financial      cobra               ← no se toca
  *   Asset Core     guarda              ← no se toca
  *
- * ── Qué hay hoy (A0) y qué no ───────────────────────────────────────────────
+ * ── Qué hay hoy ─────────────────────────────────────────────────────────────
  *
- * Están los CONTRATOS y las piezas puras que se pueden escribir sin datos:
- * señales con procedencia, confianza explicable, incertidumbre, objetivos con
- * restricciones, presupuesto computacional con paracaídas, estrategias con
- * niveles de paralelismo, puntuación comparativa con frente de Pareto, el
- * registro, la medición del valor aportado y la frontera de autoridad.
+ * Estado: PREPARED (docs/DECISIONES-DELIBERADAS.md, DD-26). Construido —A0 a A9,
+ * más S2—, puro —sin red, Firestore, reloj ni azar— y probado, y SIN AUTORIDAD:
  *
- * NO hay ningún algoritmo. A0 no decide nada todavía, no está conectado a
- * ninguna ruta y no se ejecuta en producción: es el suelo sobre el que A1–A7 se
- * construyen sin rehacer contratos.
+ *   · Un solo módulo vivo lo usa: la sombra de `creatorChat` (`creator/sombra.ts`),
+ *     detrás de `aiSettings/sombra`, cerrada por defecto y por cuentas. De todo el
+ *     ciclo solo corre `decidir` (A2 → A4 → A3 → A5 → A1), lo que decide se guarda
+ *     en `creatorJobs/{id}/private/sombra` y nadie lo lee: la respuesta, el plan y
+ *     la ejecución siguen siendo de Legacy.
+ *   · PREPARADO y sin conectar: el cierre del ciclo (A6, A6r, A7 —`cerrar`—), A8 y
+ *     `paraRouter`, el registro de algoritmos, la línea base y la medición de valor.
+ *   · No elige proveedor ni modelo, no llama a nadie, no crea ni ejecuta trabajos,
+ *     no toca dinero ni materiales: `authority.ts` lo comprueba.
+ *
+ * Qué versión del contrato corre en producción no se escribe aquí —cambia con cada
+ * despliegue—: la dice docs/RUNTIME.md § 3, contrastada con ops/produccion.json por
+ * `functions/test/algoritmo-produccion.test.mjs`.
  */
 
 export * from './types';
