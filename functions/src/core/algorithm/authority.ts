@@ -120,7 +120,10 @@ export interface ViolacionDeAutoridad extends CruceDeAutoridad {
  * nombran un secreto —`apiKey`, `authorization`, `secret`, `password`, `credential`—,
  * más sus parientes; `token`, `prompt`, `message` y `content` no, porque no nombran un
  * secreto en una clave de esta capa. Una lista de secretos, no dos que divergen: lo fija
- * `algorithm-foundation` K2.19.
+ * `algorithm-foundation` K2.19. `authorization` es la CABECERA: cruza como la clave entera
+ * —así la nombra `CAMPOS_PROHIBIDOS`— o junto a `header`; suelta dentro de una compuesta
+ * suele ser un PERMISO («requiereAutorizacion», la autorización del dueño), y eso no es un
+ * secreto (segunda pasada de la revisión).
  *
  * El orden es de precedencia —el más específico primero: `apiKey` es un secreto
  * antes que una dirección—, no el de `EFECTOS_PROHIBIDOS`.
@@ -136,8 +139,9 @@ export interface ConceptoDeAutoridad {
 const conceptos: readonly ConceptoDeAutoridad[] = [
   {
     efecto: 'leer un secreto',
-    nombres: ['secret', 'secreto', 'credential', 'credencial', 'password', 'contrasena', 'bearer', 'authorization', 'autorizacion'],
+    nombres: ['secret', 'secreto', 'credential', 'credencial', 'password', 'contrasena', 'bearer'],
     pares: [['api', 'key'], ['private', 'key'], ['access', 'key'], ['access', 'token'], ['auth', 'token'], ['auth', 'header'],
+      ['authorization', 'header'],
       ['refresh', 'token'], ['id', 'token'], ['clave', 'api'], ['clave', 'privada'], ['token', 'acceso']],
   },
   {
@@ -149,7 +153,7 @@ const conceptos: readonly ConceptoDeAutoridad[] = [
   },
   {
     efecto: 'llamar a una API de proveedor',
-    nombres: ['api', 'endpoint', 'webhook', 'callback', 'http', 'https'],
+    nombres: ['api', 'endpoint', 'webhook', 'callback', 'http', 'https', 'gateway'],
     pares: [['base', 'url'], ['base', 'uri']],
   },
   {
@@ -202,8 +206,19 @@ const limpiar = (clave: string): string => clave.normalize('NFKD').replace(MARCA
  * `@model`.)
  */
 const ES_UN_DATO = /[|=:]/;
-/** Lo que se lee de una clave, como mucho: más allá, una clave no es un nombre sino un abuso. */
+/**
+ * Lo que se lee de una clave, como mucho, TAL COMO LLEGA: más allá, una clave no es un nombre sino
+ * un abuso. Se recorta ANTES de normalizar: NFKD puede alargar un carácter hasta 18 veces, y
+ * recortar después dejaría fuera lo que venía detrás (segunda pasada de la revisión).
+ */
 const MAX_LECTURA = 1024;
+
+/**
+ * LO LEGÍTIMO QUE, PARTIDO, NOMBRARÍA A OTRO. Un modelo 3D es un TIPO de material, no elegir un
+ * modelo: `model3d`, `model3D`, `modelo_3d`, `3dModel`… se protegen ANTES de partir la clave,
+ * para que la separación de letras y dígitos no deje un `model` suelto.
+ */
+const LEGITIMAS_PEGADAS = /(?:modelado|modelo|model)[\s_.-]?3d|3d[\s_.-]?(?:modelo|model)/gi;
 
 /** La palabra del léxico que es, sin su plural: `proveedores` → `proveedor`. */
 const delLexico = (w: string): string | undefined => {
@@ -236,11 +251,15 @@ const despegar = (t: string): readonly string[] => {
 };
 
 const palabrasDe = (limpia: string): readonly string[] => limpia
+  .replace(LEGITIMAS_PEGADAS, (m) => ` ${m.toLowerCase().replace(/[^a-z0-9]/g, '')} `)
   .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-  .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+  /* Siglas pegadas a una palabra (`HTTPServer` → HTTP·Server), en tiempo LINEAL: cada mayúscula se mira una vez. */
+  .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1 ')
   .toLowerCase()
   .split(/[^a-z0-9]+/)
   .filter((t) => t.length > 0)
+  /* Letras y dígitos, aparte (`provider2` → provider·2, `accessToken2` → access·token·2), salvo lo legítimo. */
+  .flatMap((t) => (EXCEPCIONES.has(t) ? [t] : t.match(/[a-z]+|[0-9]+/g) ?? []))
   .flatMap((t) => (delLexico(t) !== undefined || !PISTA.test(t) ? [t] : despegar(t)))
   .map((t) => delLexico(t) ?? t);
 
@@ -260,29 +279,58 @@ const cruceDe = (efecto: string): CruceDeAutoridad =>
  * cada concepto se buscan DENTRO de las palabras ajenas al léxico. Los cortos (`api`, `pay`,
  * `pago`, `http`) no: dentro de `capital` o de `payload` no nombran nada.
  *
- * `EXCEPCIONES` es lo legítimo que contiene una raíz larga sin nombrarla: `model3d` es un TIPO
- * de material, no un modelo. Corta a propósito, y cada una con su porqué.
+ * `EXCEPCIONES` es lo legítimo que contiene una raíz larga sin nombrarla, cada una con su porqué
+ * (segunda pasada de la revisión: todas cruzaban, y alguna es vocabulario de Weë):
+ *  · un modelo 3D es un TIPO de material, no elegir un modelo: `model3d`, `modelo3d`,
+ *    `modelado3d`, `3dmodel`, `3dmodelo` (ver `LEGITIMAS_PEGADAS`);
+ *  · `remodel`, `remodelar`, `remodelacion`: una intención de Weë Home (`HOME_ALIAS` en
+ *    creator/templates.ts); `modeling`, `modelling`, `modelado`: la actividad, no un modelo;
+ *  · `apagar` y `propagar` contienen `pagar` y no pagan nada;
+ *  · `engineering` (`promptEngineering`), `secretary`/`secretaria` (un cargo),
+ *    `transactional` (una cualidad) y `bucketlist` (una lista): contienen una raíz y no la nombran.
+ * Una que falte se rechaza: un fallo que se ve, y se añade aquí con su porqué.
  */
 const LARGA = 5;
-const EXCEPCIONES: ReadonlySet<string> = new Set(['model3d']);
+const EXCEPCIONES: ReadonlySet<string> = new Set(['model3d', 'modelo3d', 'modelado3d', '3dmodel', '3dmodelo',
+  'remodel', 'remodelar', 'remodelacion', 'modeling', 'modelling', 'modelado', 'apagar', 'propagar',
+  'engineering', 'secretary', 'secretaria', 'transactional', 'bucketlist']);
 
 interface Compilado {
   cruce: CruceDeAutoridad;
-  raicesLargas: readonly string[];
+  /** Las raíces largas del concepto, en UNA expresión: una pasada por palabra, no palabras × raíces. */
+  raicesLargas: RegExp | undefined;
   nombres: ReadonlySet<string>;
   pares: readonly (readonly [string, string])[];
   cantidades: ReadonlySet<string>;
   objetos: ReadonlySet<string>;
 }
+const CABECERA = cruceDe('leer un secreto');
 const COMPILADOS: readonly Compilado[] = conceptos.map((c) => ({
   cruce: cruceDe(c.efecto),
-  raicesLargas: (c.nombres ?? []).filter((w) => w.length >= LARGA),
+  raicesLargas: (() => {
+    const largas = (c.nombres ?? []).filter((w) => w.length >= LARGA);
+    return largas.length ? new RegExp(largas.join('|')) : undefined;
+  })(),
   nombres: new Set(c.nombres ?? []),
   pares: c.pares ?? [],
   cantidades: new Set(c.cantidades ?? []),
   objetos: new Set(c.objetos ?? []),
 }));
 const alguna = (palabras: readonly string[], de: ReadonlySet<string>): boolean => palabras.some((p) => de.has(p));
+/**
+ * UN ACTO, con el verbo DELANTE de su objeto: `runJob`, `createAsset`, `retryJob`. Al revés es una
+ * frase nominal que DESCRIBE —`jobRetryPolicy`, `materialRender`— y no cruza (segunda pasada).
+ */
+const verboAntesDe = (palabras: readonly string[], objetos: ReadonlySet<string>): boolean => {
+  let hayVerbo = false;
+  for (const p of palabras) {
+    if (ACCIONES.has(p)) hayVerbo = true;
+    else if (hayVerbo && objetos.has(p)) return true;
+  }
+  return false;
+};
+/** La cabecera de autorización, como la nombra `CAMPOS_PROHIBIDOS`: la clave ENTERA. */
+const SECRETOS_EXACTOS: ReadonlySet<string> = new Set(['authorization']);
 
 /**
  * ¿DE QUIÉN ES LO QUE NOMBRA ESTA CLAVE? `undefined` si de nadie de fuera de esta capa.
@@ -291,19 +339,20 @@ const alguna = (palabras: readonly string[], de: ReadonlySet<string>): boolean =
  */
 export const responsabilidadDeClave = (clave: string): CruceDeAutoridad | undefined => {
   if (typeof clave !== 'string') return undefined;
-  const limpia = limpiar(clave).slice(0, MAX_LECTURA);
+  const limpia = limpiar(clave.slice(0, MAX_LECTURA));
   if (ES_UN_DATO.test(limpia)) return undefined;
+  if (SECRETOS_EXACTOS.has(limpia.toLowerCase().replace(/[^a-z0-9]/g, ''))) return CABECERA;
   const palabras = palabrasDe(limpia);
-  const ajenas = palabras.filter((p) => !LEXICO.has(p) && !EXCEPCIONES.has(p));
+  const ajenas = [...new Set(palabras.filter((p) => !LEXICO.has(p) && !EXCEPCIONES.has(p)))];
   const seguidas = palabras.filter((p) => !CONECTORES.has(p));
   const actua = alguna(palabras, ACCIONES);
   const esTope = alguna(palabras, TOPES) && !alguna(palabras, IDENTIFICADORES) && !actua;
   for (const c of COMPILADOS) {
     if (alguna(palabras, c.nombres)) return c.cruce;
-    if (ajenas.some((p) => c.raicesLargas.some((r) => p.includes(r)))) return c.cruce;
+    if (c.raicesLargas && ajenas.some((p) => c.raicesLargas!.test(p))) return c.cruce;
     if (c.pares.some(([a, b]) => seguidas.some((p, i) => p === a && seguidas[i + 1] === b))) return c.cruce;
     if (!esTope && alguna(palabras, c.cantidades)) return c.cruce;
-    if (actua && alguna(palabras, c.objetos)) return c.cruce;
+    if (verboAntesDe(palabras, c.objetos)) return c.cruce;
   }
   return undefined;
 };
