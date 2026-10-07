@@ -1,0 +1,1135 @@
+{
+  "_que_es": "MATRIZ B de Weë Design: quién PODRÍA servir cada capacidad y en qué estado está su elegibilidad. Es un DATO de la Línea B (MAPA 2) y de los informes de producto; no decide nada. La capacidad es de Weë y los proveedores son candidatos. Ningún nombre de este archivo entra en el código de la app: la app solo lleva la elegibilidad agregada (campo `elegibilidad` de constants/designReferencia.ts), y una prueba (functions/test/design-referencia.mjs) exige que coincida con la que sale de aquí.",
+  "fecha": "2026-10-07",
+  "fuentes": {
+    "mapa2": "scratchpad/linea-b/elegibilidad-comercial.md (Línea B)",
+    "tripo": "scratchpad/linea-b/tripo.md · scratchpad/linea-c/tripo-ux.md",
+    "meshy": "scratchpad/linea-b/meshy.md · scratchpad/linea-c/meshy-ux.md",
+    "sloyd": "scratchpad/linea-b/sloyd.md (§3 capacidades, §10 UX)",
+    "seed3d": "scratchpad/linea-b/seed3d.md (§2 inventario funcional, §3 contradicciones, §4 ciclo de vida)",
+    "wee": "functions/src/engine/registry.ts · functions/src/core/registry/capabilities.ts",
+    "global": "scratchpad/linea-b/global/r3-europa-cad-animacion.md · r4-autoalojables.md · r5-agregadores.md (Línea B, 2026-10-07)"
+  },
+  "agregacion": "Para cada capacidad que pasa por el motor: si algún candidato es la cadena de Weë → cadena_de_wee; si no, si alguno está en REVIEW_REQUIRED → en_revision; si no, si alguno exige acuerdo (RWA, RE o elegibilidad pendiente) → requiere_acuerdo; sin candidatos con API → sin_candidato. Lo que no pasa por el motor → no_aplica.",
+  "estados": {
+    "CADENA_DE_WEE": {
+      "elegibilidad": "cadena_de_wee",
+      "dice": "La cadena que Weë ya usa en el WEË AI ENGINE (el Router elige)."
+    },
+    "REQUIRES_WRITTEN_AUTHORIZATION": {
+      "elegibilidad": "requiere_acuerdo",
+      "dice": "RWA: sus términos prohíben servir a terceros sin autorización previa por escrito."
+    },
+    "REQUIRES_ENTERPRISE": {
+      "elegibilidad": "requiere_acuerdo",
+      "dice": "RE: uso interno; la reventa oficial es el programa de socios sobre Enterprise."
+    },
+    "PENDING_PROVIDER_ELIGIBILITY": {
+      "elegibilidad": "requiere_acuerdo",
+      "dice": "Restrictiva según la Línea B: con los términos públicos NOT_ALLOWED; única vía, un acuerdo escrito (REVIEW_REQUIRED ⚖). No es decisión de la Línea C."
+    },
+    "REVIEW_REQUIRED": {
+      "elegibilidad": "en_revision",
+      "dice": "API de autoservicio sin contrato que la cubra, o candidato en revisión legal."
+    },
+    "AVAILABLE_WITH_CONDITIONS": {
+      "elegibilidad": "en_revision",
+      "dice": "Clase B de la Línea B: disponible con condiciones (contrato, revisión), sin aprobar."
+    },
+    "REQUIRES_PARTNER": {
+      "elegibilidad": "requiere_acuerdo",
+      "dice": "Clase D: hace falta ser socio o revendedor."
+    },
+    "UNKNOWN_ELIGIBILITY": {
+      "elegibilidad": "requiere_acuerdo",
+      "dice": "La Línea B no pudo establecer la elegibilidad: no autoriza nada."
+    }
+  },
+  "origenes": {
+    "wee": {
+      "nombre": "Cadena de Weë (imagen, texto y vídeo del WEË AI ENGINE)",
+      "estado": "CADENA_DE_WEE"
+    },
+    "tripo": {
+      "nombre": "Tripo",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "meshy": {
+      "nombre": "Meshy",
+      "estado": "REQUIRES_ENTERPRISE"
+    },
+    "sloyd": {
+      "nombre": "Sloyd",
+      "estado": "REVIEW_REQUIRED"
+    },
+    "seed3d": {
+      "nombre": "Seed3D 2.0",
+      "estado": "PENDING_PROVIDER_ELIGIBILITY"
+    },
+    "mundo": {
+      "nombre": "Candidato de mundos del registro (3D World de Weë Studio)",
+      "estado": "REVIEW_REQUIRED"
+    },
+    "kaedim": {
+      "nombre": "Kaedim",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "stability": {
+      "nombre": "Stability AI (SF3D, SPAR3D)",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "alpha3d": {
+      "nombre": "Alpha3D",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "runware": {
+      "nombre": "Runware (pares 3D)",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "estudio3d": {
+      "nombre": "3D AI Studio",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "threedium": {
+      "nombre": "Threedium",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "spaitial": {
+      "nombre": "SpAItial",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "zoo": {
+      "nombre": "Zoo (Text-to-CAD)",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "adam": {
+      "nombre": "Adam",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "shapediver": {
+      "nombre": "ShapeDiver",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "shapeways": {
+      "nombre": "Shapeways",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "slant3d": {
+      "nombre": "Slant 3D",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "anythingworld": {
+      "nombre": "Anything World",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "deepmotion": {
+      "nombre": "DeepMotion",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "moveai": {
+      "nombre": "Move.ai",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "uthana": {
+      "nombre": "Uthana",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "quickmagic": {
+      "nombre": "QuickMagic",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "cartwheel": {
+      "nombre": "Cartwheel",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "avatarsdk": {
+      "nombre": "Avatar SDK",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "worldlabs": {
+      "nombre": "World Labs (Marble)",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "blockade": {
+      "nombre": "Blockade (Skybox AI)",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "scenario": {
+      "nombre": "Scenario",
+      "estado": "AVAILABLE_WITH_CONDITIONS"
+    },
+    "adobe": {
+      "nombre": "Adobe Substance 3D API",
+      "estado": "UNKNOWN_ELIGIBILITY"
+    },
+    "fal": {
+      "nombre": "fal (pares 3D de socios)",
+      "estado": "UNKNOWN_ELIGIBILITY"
+    },
+    "replicate": {
+      "nombre": "Replicate (pares 3D)",
+      "estado": "UNKNOWN_ELIGIBILITY"
+    },
+    "modelark": {
+      "nombre": "BytePlus ModelArk (3D)",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "wavespeed": {
+      "nombre": "WaveSpeedAI",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "segmind": {
+      "nombre": "Segmind",
+      "estado": "REQUIRES_WRITTEN_AUTHORIZATION"
+    },
+    "nvidia": {
+      "nombre": "NVIDIA (NIM)",
+      "estado": "REQUIRES_PARTNER"
+    }
+  },
+  "reglas": [
+    "La IMAGEN es la de Weë: los modelos de imagen de los candidatos 3D no son candidatos de las capacidades de imagen (orden del dueño, 2026-10-07: no hay un segundo sistema de imágenes).",
+    "La CONVERSIÓN de formatos es de Weë (DEC-20, propuesta): se aplica sobre el material de Weë, sea quien sea quien lo hizo; por eso las conversiones de los candidatos no cuentan como candidatas.",
+    "Lo que un candidato solo ofrece en su web (sin API) no es candidato: NOT_ALLOWED como integración.",
+    "Lo que un candidato anuncia como «próximamente» no es candidato hoy.",
+    "Lo que solo aparece en investigación (sin API) no es candidato; la capacidad se queda en el mapa como PROVIDER_REQUIRED, o REVIEW_REQUIRED si las fuentes se contradicen."
+  ],
+  "candidatos": {
+    "concept": [
+      "wee"
+    ],
+    "multiview": [
+      "wee",
+      "tripo",
+      "meshy"
+    ],
+    "model3dFromText": [
+      "tripo",
+      "meshy",
+      "sloyd",
+      "alpha3d",
+      "runware",
+      "estudio3d",
+      "threedium",
+      "anythingworld",
+      "fal",
+      "wavespeed",
+      "nvidia"
+    ],
+    "photoRender": [
+      "adobe",
+      "estudio3d"
+    ],
+    "environment": [
+      "mundo",
+      "spaitial",
+      "worldlabs",
+      "scenario",
+      "fal"
+    ],
+    "styleReference": [
+      "wee"
+    ],
+    "restyleSpace": [
+      "wee"
+    ],
+    "model3dFromImage": [
+      "tripo",
+      "meshy",
+      "sloyd",
+      "seed3d",
+      "kaedim",
+      "stability",
+      "alpha3d",
+      "runware",
+      "estudio3d",
+      "threedium",
+      "anythingworld",
+      "fal",
+      "replicate",
+      "modelark",
+      "wavespeed",
+      "segmind",
+      "nvidia"
+    ],
+    "model3dFromViews": [
+      "tripo",
+      "meshy",
+      "sloyd",
+      "kaedim",
+      "alpha3d",
+      "runware",
+      "estudio3d",
+      "fal",
+      "replicate",
+      "wavespeed",
+      "segmind"
+    ],
+    "presentationVideo": [
+      "wee"
+    ],
+    "editImage": [
+      "wee"
+    ],
+    "anotherVersion": [
+      "wee"
+    ],
+    "removeBackground": [
+      "wee"
+    ],
+    "upscale": [
+      "wee"
+    ],
+    "editModel": [
+      "tripo",
+      "meshy",
+      "zoo",
+      "adam"
+    ],
+    "texture": [
+      "tripo",
+      "meshy",
+      "sloyd",
+      "kaedim",
+      "alpha3d",
+      "runware",
+      "estudio3d",
+      "fal"
+    ],
+    "optimizeMesh": [
+      "tripo",
+      "meshy",
+      "kaedim",
+      "stability",
+      "alpha3d",
+      "runware",
+      "estudio3d",
+      "threedium",
+      "fal",
+      "avatarsdk"
+    ],
+    "splitParts": [
+      "tripo",
+      "meshy",
+      "sloyd",
+      "alpha3d",
+      "runware",
+      "estudio3d",
+      "threedium",
+      "fal"
+    ],
+    "realScale": [
+      "tripo",
+      "meshy",
+      "kaedim",
+      "worldlabs"
+    ],
+    "stylize": [
+      "tripo",
+      "meshy",
+      "fal"
+    ],
+    "rig": [
+      "tripo",
+      "meshy",
+      "kaedim",
+      "alpha3d",
+      "threedium",
+      "anythingworld",
+      "uthana",
+      "cartwheel",
+      "avatarsdk",
+      "fal"
+    ],
+    "animate": [
+      "tripo",
+      "meshy",
+      "anythingworld",
+      "deepmotion",
+      "uthana",
+      "quickmagic",
+      "cartwheel",
+      "fal"
+    ],
+    "motionFromText": [
+      "meshy",
+      "uthana",
+      "cartwheel",
+      "fal"
+    ],
+    "beforeAfter": [
+      "wee"
+    ],
+    "exportFor": [],
+    "print3d": [
+      "tripo",
+      "meshy",
+      "zoo",
+      "estudio3d"
+    ],
+    "batchTo3d": [
+      "tripo",
+      "meshy",
+      "sloyd",
+      "seed3d"
+    ],
+    "retouchRegion": [
+      "tripo",
+      "meshy"
+    ],
+    "inpaintImage": [
+      "wee"
+    ],
+    "sketchToImage": [
+      "wee"
+    ],
+    "generateScene": [
+      "spaitial",
+      "worldlabs",
+      "scenario"
+    ],
+    "mergeParts": [],
+    "repairMesh": [
+      "meshy",
+      "estudio3d"
+    ],
+    "unwrapUv": [
+      "meshy",
+      "kaedim",
+      "alpha3d"
+    ],
+    "pose": [
+      "meshy",
+      "sloyd",
+      "deepmotion"
+    ],
+    "printability": [
+      "meshy",
+      "shapeways",
+      "slant3d"
+    ],
+    "multicolorPrint": [
+      "tripo",
+      "meshy",
+      "fal"
+    ],
+    "designAgent": [
+      "wee"
+    ],
+    "reconstructObject": [
+      "tripo",
+      "meshy",
+      "sloyd",
+      "seed3d",
+      "runware",
+      "fal",
+      "wavespeed",
+      "segmind"
+    ],
+    "generateInParts": [
+      "estudio3d"
+    ],
+    "articulate": [],
+    "simulationReady": [
+      "spaitial",
+      "worldlabs"
+    ],
+    "refineModel": [
+      "tripo",
+      "meshy"
+    ],
+    "regenerate3d": [
+      "tripo",
+      "meshy",
+      "sloyd"
+    ],
+    "variations3d": [
+      "meshy"
+    ],
+    "imageFor3d": [
+      "wee"
+    ],
+    "chainToObject": [
+      "tripo",
+      "meshy",
+      "sloyd",
+      "seed3d",
+      "alpha3d",
+      "estudio3d"
+    ],
+    "parametricAdjust": [
+      "shapediver"
+    ],
+    "skybox360": [
+      "sloyd",
+      "spaitial",
+      "worldlabs",
+      "blockade",
+      "fal"
+    ],
+    "parametricTemplate": [
+      "shapediver"
+    ],
+    "printBase": [
+      "meshy"
+    ],
+    "tileableTexture": [
+      "wee"
+    ],
+    "cadFromText": [
+      "zoo",
+      "adam"
+    ],
+    "cadFromImage": [],
+    "meshToCad": [],
+    "motionFromVideo": [
+      "deepmotion",
+      "moveai",
+      "uthana",
+      "quickmagic",
+      "cartwheel"
+    ],
+    "editMotion": [
+      "uthana"
+    ],
+    "depthFromImage": [
+      "blockade"
+    ],
+    "customStyle3d": [
+      "fal",
+      "scenario"
+    ]
+  },
+  "notas": {
+    "chainToObject": "Sus candidatos son los de su eslabón 3D, que es el que la bloquea; los de imagen son la cadena de Weë.",
+    "printBase": "El candidato lo ofrece como producto imprimible (llavero, figura…) por API; la base suelta solo en su web.",
+    "pose": "Como ajuste al crear (pose en A o en T), no como operación suelta.",
+    "model3dFromText": "Seed3D 2.0: UNKNOWN (contradicción C1 de su informe); no cuenta como candidato.",
+    "exportFor": "Tripo y Meshy convierten por API, y Seed3D elige el formato al crear; DEC-20 (propuesta) deja la conversión en Weë para que el resultado no dependa de quién hizo el modelo.",
+    "skybox360": "Es una panorámica de 360°, NO un mundo explorable (`world.generate`)."
+  },
+  "excluidos": {
+    "exportFor": {
+      "origenes": [
+        "tripo",
+        "meshy",
+        "seed3d",
+        "alpha3d",
+        "estudio3d",
+        "zoo",
+        "shapediver",
+        "blockade",
+        "worldlabs"
+      ],
+      "motivo": "DEC-20 (propuesta): la conversión es de Weë"
+    },
+    "concept": {
+      "origenes": [
+        "tripo",
+        "meshy",
+        "sloyd"
+      ],
+      "motivo": "La imagen es la de Weë (orden del dueño)"
+    },
+    "editImage": {
+      "origenes": [
+        "tripo",
+        "meshy",
+        "sloyd"
+      ],
+      "motivo": "La imagen es la de Weë (orden del dueño)"
+    },
+    "removeBackground": {
+      "origenes": [
+        "meshy"
+      ],
+      "motivo": "La imagen es la de Weë (orden del dueño)"
+    }
+  },
+  "soloEnLaWeb": {
+    "photoRender": [
+      "sloyd"
+    ],
+    "presentationVideo": [
+      "meshy"
+    ],
+    "editModel": [
+      "sloyd"
+    ],
+    "exportFor": [
+      "sloyd"
+    ],
+    "print3d": [
+      "sloyd"
+    ],
+    "retouchRegion": [
+      "sloyd"
+    ],
+    "generateScene": [
+      "meshy",
+      "sloyd"
+    ],
+    "printability": [
+      "sloyd"
+    ],
+    "multicolorPrint": [
+      "sloyd"
+    ],
+    "generateInParts": [
+      "meshy"
+    ],
+    "parametricAdjust": [
+      "sloyd"
+    ],
+    "parametricTemplate": [
+      "sloyd"
+    ],
+    "printBase": [
+      "sloyd"
+    ],
+    "externalTools": [
+      "tripo",
+      "meshy",
+      "sloyd"
+    ],
+    "sendToSlicer": [
+      "tripo",
+      "meshy",
+      "sloyd"
+    ],
+    "providerAgent": [
+      "meshy"
+    ],
+    "spriteSheet": [
+      "sloyd"
+    ],
+    "paintTexture": [
+      "meshy",
+      "sloyd"
+    ],
+    "platformAvatar": [
+      "sloyd"
+    ],
+    "cadFromImage": [
+      "zoo"
+    ],
+    "meshToCad": []
+  },
+  "proximamente": {
+    "rig": [
+      "sloyd"
+    ],
+    "animate": [
+      "sloyd"
+    ],
+    "motionFromText": [
+      "sloyd"
+    ],
+    "importModel": [
+      "sloyd"
+    ],
+    "spriteSheet": [
+      "sloyd"
+    ]
+  },
+  "investigacion": {
+    "generateInParts": [
+      "seed3d"
+    ],
+    "splitParts": [
+      "seed3d"
+    ],
+    "articulate": [
+      "seed3d"
+    ],
+    "simulationReady": [
+      "seed3d"
+    ],
+    "generateScene": [
+      "seed3d"
+    ],
+    "reconstructObject": [
+      "seed3d"
+    ]
+  },
+  "seed3d": {
+    "estado": "PENDING PROVIDER ELIGIBILITY (Línea B: restrictiva)",
+    "ciclo": "Asíncrono con SOLO sondeo (sin webhook); cancelar SOLO en cola; de varios a más de diez minutos; el ZIP caduca a las 24 h; RPM 300 y 5 a la vez (las demás esperan en cola); sin clave de idempotencia; estados queued/running/succeeded/failed/cancelled (+ expired en DELETE).",
+    "inventario": [
+      {
+        "id": "A",
+        "capacidad": "Imagen → 3D (1 imagen)",
+        "clase": "CONFIRMED",
+        "wee": [
+          "model3dFromImage",
+          "batchTo3d",
+          "chainToObject"
+        ]
+      },
+      {
+        "id": "B",
+        "capacidad": "Texto → 3D",
+        "clase": "UNKNOWN",
+        "wee": [
+          "model3dFromText"
+        ]
+      },
+      {
+        "id": "C",
+        "capacidad": "Varias imágenes → 3D",
+        "clase": "NOT_AVAILABLE",
+        "wee": [
+          "model3dFromViews"
+        ]
+      },
+      {
+        "id": "D",
+        "capacidad": "Reconstrucción de un objeto (foto → 3D)",
+        "clase": "PARTIALLY_CONFIRMED",
+        "wee": [
+          "reconstructObject"
+        ]
+      },
+      {
+        "id": "E",
+        "capacidad": "Geometría",
+        "clase": "CONFIRMED",
+        "wee": [
+          "model3dFromImage"
+        ]
+      },
+      {
+        "id": "F",
+        "capacidad": "Materiales",
+        "clase": "CONFIRMED",
+        "wee": [
+          "model3dFromImage"
+        ]
+      },
+      {
+        "id": "G",
+        "capacidad": "PBR",
+        "clase": "CONFIRMED",
+        "wee": [
+          "model3dFromImage"
+        ]
+      },
+      {
+        "id": "H",
+        "capacidad": "Textura (al generar)",
+        "clase": "CONFIRMED",
+        "wee": [
+          "model3dFromImage"
+        ]
+      },
+      {
+        "id": "I",
+        "capacidad": "Texturizar una malla existente",
+        "clase": "NOT_AVAILABLE",
+        "wee": [
+          "texture"
+        ]
+      },
+      {
+        "id": "J",
+        "capacidad": "Descomposición en partes",
+        "clase": "PARTIALLY_CONFIRMED",
+        "wee": [
+          "splitParts",
+          "generateInParts"
+        ]
+      },
+      {
+        "id": "K",
+        "capacidad": "Completar partes",
+        "clase": "PARTIALLY_CONFIRMED",
+        "wee": [
+          "generateInParts"
+        ]
+      },
+      {
+        "id": "L",
+        "capacidad": "Articulación (URDF)",
+        "clase": "PARTIALLY_CONFIRMED",
+        "wee": [
+          "articulate"
+        ]
+      },
+      {
+        "id": "M",
+        "capacidad": "Juntas (datos de articulación)",
+        "clase": "PARTIALLY_CONFIRMED",
+        "wee": [
+          "articulate"
+        ]
+      },
+      {
+        "id": "M′",
+        "capacidad": "Rig de personaje",
+        "clase": "UNKNOWN",
+        "wee": [
+          "rig"
+        ]
+      },
+      {
+        "id": "N",
+        "capacidad": "Salida para simulación (URDF, masa, fricción)",
+        "clase": "PARTIALLY_CONFIRMED",
+        "wee": [
+          "simulationReady"
+        ]
+      },
+      {
+        "id": "O",
+        "capacidad": "Estructura y composición de escena",
+        "clase": "PARTIALLY_CONFIRMED",
+        "wee": [
+          "generateScene"
+        ]
+      },
+      {
+        "id": "P",
+        "capacidad": "Formatos al crear (glb, obj, usd, usdz en ZIP)",
+        "clase": "CONFIRMED",
+        "wee": [
+          "exportFor",
+          "download"
+        ]
+      },
+      {
+        "id": "P′",
+        "capacidad": "Convertir un activo existente",
+        "clase": "NOT_AVAILABLE",
+        "wee": [
+          "exportFor"
+        ]
+      },
+      {
+        "id": "Q",
+        "capacidad": "Refinar un activo existente",
+        "clase": "NOT_AVAILABLE",
+        "wee": [
+          "refineModel"
+        ]
+      },
+      {
+        "id": "R",
+        "capacidad": "Regenerar",
+        "clase": "UNKNOWN",
+        "wee": [
+          "regenerate3d"
+        ]
+      },
+      {
+        "id": "S",
+        "capacidad": "Variaciones",
+        "clase": "NOT_AVAILABLE",
+        "wee": [
+          "variations3d"
+        ]
+      },
+      {
+        "id": "T1",
+        "capacidad": "Densidad de malla (100k / 500k / 1M caras)",
+        "clase": "CONFIRMED",
+        "wee": [
+          "model3dFromImage"
+        ]
+      },
+      {
+        "id": "T2",
+        "capacidad": "Entrega en ZIP",
+        "clase": "CONFIRMED",
+        "wee": [
+          "model3dFromImage"
+        ]
+      },
+      {
+        "id": "T3",
+        "capacidad": "Escena → objetos articulados",
+        "clase": "PARTIALLY_CONFIRMED",
+        "wee": [
+          "generateScene",
+          "articulate"
+        ]
+      },
+      {
+        "id": "T4",
+        "capacidad": "Malla sin textura",
+        "clase": "NOT_AVAILABLE",
+        "wee": [
+          "model3dFromImage"
+        ]
+      }
+    ]
+  },
+  "sloyd": {
+    "estado": "REVIEW_REQUIRED (Línea B)",
+    "ciclo": "Asíncrono con SOLO sondeo (sin webhook); SIN cancelación, listado ni idempotencia; cobra al empezar y reembolsa si falla; 5 a la vez por clave; el GLB queda en una URL pública y predecible.",
+    "inventario": [
+      {
+        "id": "SL1",
+        "capacidad": "Texto → 3D",
+        "api": "Sí",
+        "wee": [
+          "model3dFromText"
+        ]
+      },
+      {
+        "id": "SL2",
+        "capacidad": "Imagen → 3D",
+        "api": "Sí",
+        "wee": [
+          "model3dFromImage",
+          "reconstructObject",
+          "batchTo3d",
+          "chainToObject"
+        ]
+      },
+      {
+        "id": "SL3",
+        "capacidad": "Varias imágenes → 3D",
+        "api": "Sí",
+        "wee": [
+          "model3dFromViews"
+        ]
+      },
+      {
+        "id": "SL4",
+        "capacidad": "Subir una imagen para reutilizarla",
+        "api": "Sí",
+        "wee": []
+      },
+      {
+        "id": "SL5",
+        "capacidad": "Re-texturizar",
+        "api": "Sí",
+        "wee": [
+          "texture"
+        ]
+      },
+      {
+        "id": "SL6",
+        "capacidad": "Separar en partes",
+        "api": "Sí",
+        "wee": [
+          "splitParts"
+        ]
+      },
+      {
+        "id": "SL7",
+        "capacidad": "Estilos y pose en T",
+        "api": "Sí",
+        "wee": [
+          "pose"
+        ]
+      },
+      {
+        "id": "SL8",
+        "capacidad": "Texto → imagen",
+        "api": "Sí",
+        "wee": []
+      },
+      {
+        "id": "SL9",
+        "capacidad": "Editar imagen",
+        "api": "Sí",
+        "wee": []
+      },
+      {
+        "id": "SL10",
+        "capacidad": "Fondo de 360° desde texto",
+        "api": "Sí",
+        "wee": [
+          "skybox360"
+        ]
+      },
+      {
+        "id": "SL11",
+        "capacidad": "Fondo de 360° desde imagen",
+        "api": "Sí",
+        "wee": [
+          "skybox360"
+        ]
+      },
+      {
+        "id": "SL12",
+        "capacidad": "Editar el fondo de 360°",
+        "api": "Sí",
+        "wee": [
+          "skybox360"
+        ]
+      },
+      {
+        "id": "SL14",
+        "capacidad": "Boceto → imagen",
+        "api": "UNKNOWN",
+        "wee": [
+          "sketchToImage"
+        ]
+      },
+      {
+        "id": "SL15",
+        "capacidad": "Auto-rig",
+        "api": "Próximamente",
+        "wee": [
+          "rig"
+        ]
+      },
+      {
+        "id": "SL16",
+        "capacidad": "Animar desde texto",
+        "api": "Próximamente",
+        "wee": [
+          "motionFromText",
+          "animate"
+        ]
+      },
+      {
+        "id": "SL20",
+        "capacidad": "Subir un modelo 3D (con campos paramétricos)",
+        "api": "Próximamente",
+        "wee": [
+          "importModel"
+        ]
+      },
+      {
+        "id": "SL22",
+        "capacidad": "Hoja de sprites",
+        "api": "Próximamente",
+        "wee": [
+          "spriteSheet"
+        ]
+      },
+      {
+        "id": "SL23",
+        "capacidad": "Editor de plantillas paramétricas (438)",
+        "api": "No (solo web)",
+        "wee": [
+          "parametricTemplate",
+          "parametricAdjust"
+        ]
+      },
+      {
+        "id": "SL25",
+        "capacidad": "Escena con agente y render",
+        "api": "No (solo web)",
+        "wee": [
+          "generateScene",
+          "photoRender"
+        ]
+      },
+      {
+        "id": "SL26",
+        "capacidad": "Pintar la textura",
+        "api": "No (solo web)",
+        "wee": [
+          "paintTexture",
+          "retouchRegion"
+        ]
+      },
+      {
+        "id": "SL27",
+        "capacidad": "Impresión 3D (multicolor, bases, imprimibilidad, laminadores)",
+        "api": "No (solo web)",
+        "wee": [
+          "multicolorPrint",
+          "printBase",
+          "printability",
+          "sendToSlicer"
+        ]
+      },
+      {
+        "id": "SL28",
+        "capacidad": "Avatar para una plataforma de juegos",
+        "api": "No (solo web)",
+        "wee": [
+          "platformAvatar"
+        ]
+      },
+      {
+        "id": "SL30",
+        "capacidad": "Exportación multiformato por destino",
+        "api": "No (la API solo da GLB)",
+        "wee": [
+          "exportFor"
+        ]
+      },
+      {
+        "id": "SL33",
+        "capacidad": "Plugins para programas 3D",
+        "api": "No (solo web)",
+        "wee": [
+          "externalTools"
+        ]
+      },
+      {
+        "id": "SL34",
+        "capacidad": "SDK de ejecución",
+        "api": "UNKNOWN (lista de espera)",
+        "wee": [
+          "externalAgents"
+        ]
+      }
+    ]
+  },
+  "autoalojables": {
+    "_que_es": "Modelos con pesos para alojarlos Weë (r4). No son candidatos de hoy: hacen falta infraestructura (GCP) y la revisión de su licencia; la Línea B los clasifica DIS/RR.",
+    "model3dFromImage": [
+      "TRELLIS / TRELLIS.2",
+      "Hunyuan3D 2.x (territorial)",
+      "SF3D / SPAR3D",
+      "TripoSG",
+      "Step1X-3D",
+      "Direct3D-S2",
+      "Hi3DGen"
+    ],
+    "texture": [
+      "TRELLIS.2",
+      "Hunyuan Paint",
+      "MV-Adapter",
+      "Step1X-3D"
+    ],
+    "optimizeMesh": [
+      "cumesh / xatlas",
+      "SF3D remesh"
+    ],
+    "splitParts": [
+      "Hunyuan3D-Part",
+      "HoloPart",
+      "PartCrafter"
+    ],
+    "rig": [
+      "UniRig",
+      "SkinTokens",
+      "MagicArticulate"
+    ],
+    "motionFromText": [
+      "HY-Motion"
+    ],
+    "imageFor3d": [
+      "Hunyuan Delight"
+    ],
+    "environment": [
+      "HY-World 2.0 (territorial)",
+      "Lyra 1.0"
+    ],
+    "generateScene": [
+      "MIDI-3D"
+    ],
+    "reconstructObject": [
+      "SAM 3D Objects"
+    ],
+    "cadFromText": [
+      "CADAM (GPL-3.0; OpenSCAD → STL/DXF)"
+    ],
+    "sendToSlicer": [
+      "PrusaSlicer",
+      "CuraEngine",
+      "OrcaSlicer (AGPL)"
+    ],
+    "depthFromImage": [
+      "Depth Anything 3 (modelos Apache)"
+    ]
+  }
+}

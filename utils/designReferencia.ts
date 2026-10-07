@@ -1,0 +1,691 @@
+/**
+ * WEË DESIGN · LA LÓGICA PURA DE LA REFERENCIA FUNCIONAL.
+ *
+ * Sin React, sin Firebase, sin red, sin reloj y sin azar: todo lo que la pantalla
+ * (`screens/DesignReferenciaScreen.tsx`) decide sale de aquí, y las pruebas lo
+ * ejecutan tal cual. Nada de esto ejecuta una capacidad: dice si se puede, por
+ * dónde, qué falta, en qué estado está un trabajo y qué viene después.
+ *
+ * Lo que NO hay aquí: ni un router (el destino lo elige `destinoDeIntencion`, el de
+ * Weë Studio), ni precios (los da el Credit Engine al cotizar), ni proveedores
+ * (la elegibilidad es un dato de la Línea B), ni otro Weë Brain.
+ */
+
+import { CAPABILITY_CATALOG } from '../services/escena3d';
+import type { CatalogEntry, EstadoDeMundo3D } from '../services/escena3d';
+import type { CreatorJob, JobStatus } from '../services/creatorService';
+import type { AssetDoc } from '../services/vistaDeAsset';
+import type { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
+import { destinoDeIntencion } from './destinoDeIntencion';
+import {
+  CADENA_DE_DESIGN, CAPACIDADES_DE_DESIGN, QUE_SE_DISENA, SIGUIENTES_POR_RESULTADO, capacidadPorId, eslabonDeLaCapacidad,
+  CapacidadDeDesign, EslabonDeLaCadena, IdDeEslabon, ImpactoEnMaterial, Necesita, Paso, EstadoDelPaso, PerfilDeFlujo,
+  SeccionDelInspector, Superficie, TipoDeResultado,
+} from '../constants/designReferencia';
+
+/* ── Disponibilidad de una capacidad ───────────────────────────────────────── */
+
+/** Lo elegido, resumido: lo único que la disponibilidad necesita saber de ello. */
+export interface ResumenDeSeleccion {
+  hayTrabajo: boolean;
+  /** Un material que sabe de qué trabajo salió (para abrirlo). */
+  hayTrabajoDeMaterial: boolean;
+  /** Tiene dirección de entrega: se puede descargar o publicar. */
+  hayEntrega: boolean;
+  esImagen: boolean;
+}
+
+export const SIN_SELECCION: ResumenDeSeleccion = Object.freeze({
+  hayTrabajo: false, hayTrabajoDeMaterial: false, hayEntrega: false, esImagen: false,
+});
+
+export type NivelDeCapacidad = 'conectada' | 'parcial' | 'pendiente' | 'fuera';
+
+export const CLAVE_DEL_NIVEL: Readonly<Record<NivelDeCapacidad, string>> = Object.freeze({
+  conectada: 'designRef.levelConnected',
+  parcial: 'designRef.levelPartial',
+  pendiente: 'designRef.stepPending',
+  fuera: 'designRef.levelOutside',
+});
+
+export interface EstadoDeLaCapacidad {
+  /** Se puede usar YA, con lo elegido. */
+  disponible: boolean;
+  nivel: NivelDeCapacidad;
+  /** Clave del motivo cuando no está disponible. */
+  motivo: string | null;
+  /** No está disponible solo porque falta elegir algo. */
+  porSeleccion: boolean;
+  /** Ids que el Core todavía no nombra. */
+  propuestas: string[];
+  /** Ids del Core que hoy no son ROUTABLE. */
+  noEnrutables: string[];
+}
+
+const MOTIVO_POR_SELECCION: Readonly<Record<Necesita, string>> = Object.freeze({
+  trabajo: 'designRef.whyNeedsJob',
+  trabajoOMaterial: 'designRef.whyNeedsJob',
+  materialConEntrega: 'designRef.whyNeedsMaterial',
+  imagenConEntrega: 'designRef.whyNeedsImage',
+});
+
+const falta = (necesita: Necesita | undefined, s: ResumenDeSeleccion): string | null => {
+  if (!necesita) return null;
+  const ok =
+    necesita === 'trabajo' ? s.hayTrabajo
+      : necesita === 'trabajoOMaterial' ? s.hayTrabajo || s.hayTrabajoDeMaterial
+        : necesita === 'materialConEntrega' ? s.hayEntrega
+          : s.hayEntrega && s.esImagen;
+  return ok ? null : MOTIVO_POR_SELECCION[necesita];
+};
+
+/**
+ * ¿SE PUEDE USAR? Solo si tiene un manejador de verdad, si TODAS sus capacidades
+ * del Core son ROUTABLE en el catálogo (leído, no copiado), si no es una propuesta
+ * ni una variante que no existe, y si su elegibilidad no la bloquea.
+ *
+ * El motivo sigue un orden: primero lo que dice la Línea B (pendiente de
+ * autorización, en revisión, sin candidato), después lo que el Core no tiene,
+ * después lo que falta en Weë. Nunca hay «disponible» por omisión.
+ */
+export const estadoDeLaCapacidad = (
+  cap: CapacidadDeDesign,
+  seleccion: ResumenDeSeleccion = SIN_SELECCION,
+  catalogo: readonly CatalogEntry[] = CAPABILITY_CATALOG,
+): EstadoDeLaCapacidad => {
+  const porId = new Map<string, CatalogEntry>(catalogo.map((x) => [String(x.id), x]));
+  const propuestas = cap.capacidades.filter((id) => !porId.has(id)).map(String);
+  const noEnrutables = cap.capacidades.filter((id) => porId.has(id) && porId.get(id)!.status !== 'ROUTABLE').map(String);
+  if (!cap.enDesign) {
+    return { disponible: false, nivel: 'fuera', motivo: cap.motivoFuera ?? 'designRef.whyNotInDesign', porSeleccion: false, propuestas, noEnrutables };
+  }
+  if (cap.entrada === 'interna') {
+    return { disponible: false, nivel: 'pendiente', motivo: 'designRef.whyInternal', porSeleccion: false, propuestas, noEnrutables };
+  }
+  const bloqueadaPorProveedor = cap.elegibilidad === 'requiere_acuerdo' || cap.elegibilidad === 'en_revision' || cap.elegibilidad === 'sin_candidato';
+  const bloqueada = cap.integracion.tipo === 'ninguna' || propuestas.length > 0 || noEnrutables.length > 0
+    || !!cap.variantePropuesta || bloqueadaPorProveedor;
+  if (bloqueada) {
+    const motivo =
+      cap.elegibilidad === 'requiere_acuerdo' ? 'designRef.whyAwaitingAuthorization'
+        : cap.elegibilidad === 'en_revision' ? 'designRef.whyInReview'
+          : cap.elegibilidad === 'sin_candidato' ? 'designRef.whyNoCandidate'
+            : propuestas.length > 0 ? 'designRef.whyProposed'
+              : cap.variantePropuesta ? 'designRef.whyProposedVariant'
+                : noEnrutables.length > 0 ? 'designRef.whyDeclared'
+                  : cap.requiere.includes('escenas') ? 'designRef.whyNeedsScenes'
+                    : cap.requiere.includes('linaje') ? 'designRef.whyNeedsLineage'
+                      : cap.requiere.includes('visor') ? 'designRef.whyNeedsViewer'
+                        : cap.requiere.includes('decision') ? 'designRef.whyNeedsDecision'
+                          : cap.requiere.includes('servidor') ? 'designRef.whyNeedsServer'
+                            : 'designRef.whyNotWired';
+    return { disponible: false, nivel: 'pendiente', motivo, porSeleccion: false, propuestas, noEnrutables };
+  }
+  const nivel: NivelDeCapacidad = cap.requiere.length > 0 ? 'parcial' : 'conectada';
+  const motivo = falta(cap.necesita, seleccion);
+  if (motivo) return { disponible: false, nivel, motivo, porSeleccion: true, propuestas, noEnrutables };
+  return { disponible: true, nivel, motivo: null, porSeleccion: false, propuestas, noEnrutables };
+};
+
+/* ── Los diecinueve pasos ──────────────────────────────────────────────────── */
+
+export const PASOS: readonly Paso[] = Object.freeze([
+  'entrada', 'comando', 'superficie', 'parametros', 'validacion', 'cotizacion', 'confirmacion', 'trabajo', 'progreso',
+  'cancelar', 'error', 'reintento', 'resultado', 'edicion', 'guardado', 'material', 'version', 'siguientes', 'exportar',
+]);
+
+export const CLAVE_DEL_PASO: Readonly<Record<Paso, string>> = Object.freeze({
+  entrada: 'designRef.stepEntry',
+  comando: 'designRef.stepCommand',
+  superficie: 'designRef.stepSurface',
+  parametros: 'designRef.stepOptions',
+  validacion: 'designRef.stepCheck',
+  cotizacion: 'designRef.stepPrice',
+  confirmacion: 'designRef.stepConfirm',
+  trabajo: 'designRef.stepJob',
+  progreso: 'designRef.stepProgress',
+  cancelar: 'designRef.stepCancel',
+  error: 'designRef.stepError',
+  reintento: 'designRef.stepRetry',
+  resultado: 'designRef.stepResult',
+  edicion: 'designRef.stepEdit',
+  guardado: 'designRef.stepSave',
+  material: 'designRef.stepAsset',
+  version: 'designRef.stepVersion',
+  siguientes: 'designRef.stepNext',
+  exportar: 'designRef.secExport',
+});
+
+export const CLAVE_DEL_ESTADO_DEL_PASO: Readonly<Record<EstadoDelPaso, string>> = Object.freeze({
+  YES: 'designRef.stepYes',
+  PENDING: 'designRef.stepPending',
+  'N/A': 'designRef.stepNa',
+  NO: 'designRef.stepNo',
+});
+
+/**
+ * Un recorrido escrito en diecinueve letras, en el orden de `PASOS`:
+ * Y = YES (hay pieza de verdad), P = PENDING (diseñado y representado, espera algo),
+ * - = N/A (no aplica, dicho), X = NO (falta y nadie lo ha diseñado).
+ */
+const recorrido = (codigo: string): Readonly<Record<Paso, EstadoDelPaso>> => {
+  if (codigo.length !== PASOS.length) throw new Error(`recorrido de ${codigo.length} pasos`);
+  const letra: Record<string, EstadoDelPaso> = { Y: 'YES', P: 'PENDING', '-': 'N/A', X: 'NO' };
+  return Object.freeze(Object.fromEntries(PASOS.map((p, i) => [p, letra[codigo[i]]])) as Record<Paso, EstadoDelPaso>);
+};
+
+/**
+ * LOS PERFILES. Cada uno es la verdad de hoy de un tipo de camino:
+ *
+ *   creatorFlow       la caja → CreatorFlow (Weë Brain pregunta, cotiza, confirma, trabaja)
+ *   trabajoExistente  sobre un trabajo ya hecho, por CreatorFlow
+ *   abrirTrabajo      abre un trabajo ya hecho para verlo
+ *   asincrono3d       trabajo largo de un proveedor externo: todo PENDING menos su sitio y lo que sigue
+ *   pasoDeImagen      la cadena de imagen existe; falta el paso en la plantilla
+ *   local             sin IA ni trabajo: navegar, filtrar, descargar, publicar, proyectos
+ *   escena            el núcleo 3D (`escena3d.ts`): operaciones puras, sin guardado ni visor
+ *   visor             depende del visor 3D
+ *   subida            sube o captura un archivo y lo deja en la cuenta
+ *   plan              varios pasos de Weë Brain (Línea A)
+ *   otraExperiencia   se hace en otra experiencia de Weë (Weë Studio)
+ *   externo           fuera de Weë (programas, laminadores)
+ *   interna           Weë lo hace por dentro de otra capacidad (sin trabajo propio: va en el de la otra)
+ *   noAplica          no es de Weë Design
+ */
+export const RECORRIDO_POR_PERFIL: Readonly<Record<PerfilDeFlujo, Readonly<Record<Paso, EstadoDelPaso>>>> = Object.freeze({
+  //                          entrada comando superficie parametros validacion cotizacion confirmacion trabajo progreso cancelar error reintento resultado edicion guardado material version siguientes exportar
+  creatorFlow: recorrido(     'YYYYYYYYYPYYYYYYPYY'),
+  trabajoExistente: recorrido('YYYYYYYYYPYYYYYYPYY'),
+  abrirTrabajo: recorrido(    'YYY-Y-----Y-YYYYPYY'),
+  asincrono3d: recorrido(     'YYYPPPPPPPPPPPPPPYP'),
+  pasoDeImagen: recorrido(    'YYYPPPPPPPPPPPPPPYP'),
+  local: recorrido(           'YYY-Y-----YYY------'),
+  escena: recorrido(          'YYYPP-----P-PPP--YP'),
+  visor: recorrido(           'YYY-----P-PPP----Y-'),
+  subida: recorrido(          'YYYPP--PPPPPP-PPPYP'),
+  plan: recorrido(            'YYYPPPPPPPPPPPPPPYP'),
+  otraExperiencia: recorrido( 'YYYPPPPPPPPPPPPPPYP'),
+  externo: recorrido(         'YYYPP-----P-P-----P'),
+  interna: recorrido(         '------------P--PP--'),
+  noAplica: recorrido(        '-------------------'),
+});
+
+/** El recorrido de una capacidad: su perfil, con los pasos que ella corrige. */
+export const recorridoDe = (cap: CapacidadDeDesign): Readonly<Record<Paso, EstadoDelPaso>> =>
+  Object.freeze({ ...RECORRIDO_POR_PERFIL[cap.perfil], ...(cap.pasos ?? {}) });
+
+/* ── La matriz de cobertura (13 columnas del dueño) ────────────────────────── */
+
+export const COLUMNAS_DE_COBERTURA = Object.freeze([
+  'Entry', 'Composer', 'Panel', 'Job', 'Progress', 'Result', 'Next Action', 'Asset', 'Version', 'Export', 'Mobile', 'Provider',
+] as const);
+
+export type ColumnaDeCobertura = typeof COLUMNAS_DE_COBERTURA[number];
+
+/** Una fila de la matriz: cada celda es exactamente YES, NO, N/A o PENDING. */
+export const coberturaDe = (cap: CapacidadDeDesign): Readonly<Record<ColumnaDeCobertura, EstadoDelPaso>> => {
+  const r = recorridoDe(cap);
+  /* El proveedor solo existe para lo que pasa por el motor: lo de Weë y lo que se entrega a otro programa no tienen. */
+  const proveedor: EstadoDelPaso =
+    cap.ejecutaPor !== 'motor' || cap.elegibilidad === 'no_aplica' ? 'N/A' : cap.elegibilidad === 'cadena_de_wee' ? 'YES' : 'PENDING';
+  const movil: EstadoDelPaso = cap.movil === 'no_aplica' ? 'N/A' : 'YES';
+  return Object.freeze({
+    Entry: r.entrada,
+    Composer: cap.entrada === 'composer' ? 'YES' : 'N/A',
+    Panel: r.superficie,
+    Job: r.trabajo,
+    Progress: r.progreso,
+    Result: r.resultado,
+    'Next Action': r.siguientes,
+    Asset: r.material,
+    Version: r.version,
+    Export: r.exportar,
+    Mobile: cap.enDesign ? movil : 'N/A',
+    Provider: cap.enDesign ? proveedor : 'N/A',
+  });
+};
+
+/** Lo que falta de verdad: las celdas NO y PENDING, con su capacidad. */
+export const loQueFalta = (caps: readonly CapacidadDeDesign[] = CAPACIDADES_DE_DESIGN): { id: string; columna: ColumnaDeCobertura; estado: EstadoDelPaso }[] =>
+  caps.flatMap((cap) => {
+    const fila = coberturaDe(cap);
+    return COLUMNAS_DE_COBERTURA.filter((col) => fila[col] === 'NO' || fila[col] === 'PENDING').map((col) => ({ id: cap.id, columna: col, estado: fila[col] }));
+  });
+
+/* ── Los estados de un trabajo ─────────────────────────────────────────────── */
+
+/**
+ * Los once del dueño, los genéricos de un trabajo 3D (CANCEL_REQUESTED,
+ * RECONCILING) y los tres que ya existían en Weë y sirven (VALIDATING,
+ * WAITING_FOR_CREDITS, NOT_AVAILABLE).
+ */
+export type EstadoDeTrabajo =
+  | 'IDLE' | 'READY' | 'VALIDATING' | 'QUOTING' | 'WAITING_FOR_CONFIRMATION' | 'WAITING_FOR_CREDITS'
+  | 'QUEUED' | 'PROCESSING' | 'CANCEL_REQUESTED' | 'RECONCILING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
+  | 'RETRYING' | 'NOT_AVAILABLE';
+
+export const ESTADOS_DE_TRABAJO: readonly EstadoDeTrabajo[] = Object.freeze([
+  'IDLE', 'READY', 'VALIDATING', 'QUOTING', 'WAITING_FOR_CONFIRMATION', 'WAITING_FOR_CREDITS', 'QUEUED', 'PROCESSING',
+  'CANCEL_REQUESTED', 'RECONCILING', 'COMPLETED', 'FAILED', 'CANCELLED', 'RETRYING', 'NOT_AVAILABLE',
+]);
+
+export const CLAVE_DEL_ESTADO_DE_TRABAJO: Readonly<Record<EstadoDeTrabajo, string>> = Object.freeze({
+  IDLE: 'designRef.stIdle',
+  READY: 'designRef.stReady',
+  VALIDATING: 'designRef.stValidating',
+  QUOTING: 'designRef.stQuoting',
+  WAITING_FOR_CONFIRMATION: 'designRef.stWaitingConfirmation',
+  WAITING_FOR_CREDITS: 'designRef.stWaitingCredits',
+  QUEUED: 'designRef.stQueued',
+  PROCESSING: 'designRef.stProcessing',
+  CANCEL_REQUESTED: 'designRef.stCancelRequested',
+  RECONCILING: 'designRef.stReconciling',
+  COMPLETED: 'designRef.stCompleted',
+  FAILED: 'designRef.stFailed',
+  CANCELLED: 'designRef.stCancelled',
+  RETRYING: 'designRef.stRetrying',
+  NOT_AVAILABLE: 'designRef.stNotAvailable',
+});
+
+/**
+ * LAS TRANSICIONES. Lo que cuesta pasa SIEMPRE por el precio antes del trabajo
+ * (QUOTING → WAITING_FOR_CONFIRMATION → QUEUED): nunca «primero el trabajo y luego
+ * el coste». Solo lo que no cuesta —subir un modelo, capturar el visor— va de la
+ * comprobación a la cola (VALIDATING → QUEUED), y lo que no tiene trabajo —filtrar,
+ * abrir un proyecto— termina en el acto (READY → COMPLETED). La prueba exige que
+ * toda capacidad que pasa por el motor pase por el precio.
+ * Pedir parar no es haber parado (CANCEL_REQUESTED); un final que no se sabe se
+ * reconcilia (RECONCILING), no se adivina.
+ */
+export const TRANSICIONES_DE_TRABAJO: Readonly<Record<EstadoDeTrabajo, readonly EstadoDeTrabajo[]>> = Object.freeze({
+  IDLE: ['READY'],
+  READY: ['IDLE', 'VALIDATING', 'QUOTING', 'NOT_AVAILABLE', 'COMPLETED'],
+  VALIDATING: ['QUOTING', 'QUEUED', 'NOT_AVAILABLE', 'FAILED', 'IDLE'],
+  QUOTING: ['WAITING_FOR_CONFIRMATION', 'NOT_AVAILABLE', 'FAILED'],
+  WAITING_FOR_CONFIRMATION: ['QUOTING', 'WAITING_FOR_CREDITS', 'QUEUED', 'IDLE', 'FAILED'],
+  WAITING_FOR_CREDITS: ['WAITING_FOR_CONFIRMATION', 'IDLE'],
+  QUEUED: ['PROCESSING', 'CANCEL_REQUESTED', 'FAILED', 'RECONCILING'],
+  PROCESSING: ['COMPLETED', 'FAILED', 'CANCEL_REQUESTED', 'RECONCILING'],
+  CANCEL_REQUESTED: ['CANCELLED', 'COMPLETED', 'FAILED', 'RECONCILING'],
+  RECONCILING: ['COMPLETED', 'FAILED', 'CANCELLED'],
+  COMPLETED: ['IDLE'],
+  FAILED: ['RETRYING', 'IDLE'],
+  CANCELLED: ['IDLE'],
+  RETRYING: ['QUEUED', 'QUOTING', 'FAILED'],
+  NOT_AVAILABLE: ['IDLE'],
+});
+
+export const puedePasar = (de: EstadoDeTrabajo, a: EstadoDeTrabajo): boolean => TRANSICIONES_DE_TRABAJO[de].includes(a);
+
+/** De un trabajo de CreatorFlow (`creatorJobs.status`) a su estado. Total: un estado nuevo no compila. */
+export const ESTADO_DESDE_CREATOR_JOB: Readonly<Record<JobStatus, EstadoDeTrabajo>> = Object.freeze({
+  asking: 'VALIDATING',
+  planned: 'WAITING_FOR_CONFIRMATION',
+  running: 'PROCESSING',
+  done: 'COMPLETED',
+  failed: 'FAILED',
+  cancelled: 'CANCELLED',
+});
+
+/** Del contrato asíncrono 3D que ya existe (el del mundo, `EstadoDeMundo3D`) a su estado. */
+export const ESTADO_DESDE_TRABAJO_3D: Readonly<Record<EstadoDeMundo3D, EstadoDeTrabajo>> = Object.freeze({
+  en_cola: 'QUEUED',
+  generando: 'PROCESSING',
+  cancelando: 'CANCEL_REQUESTED',
+  completado: 'COMPLETED',
+  fallido: 'FAILED',
+  cancelado: 'CANCELLED',
+});
+
+/** De qué capacidad es un trabajo de CreatorFlow, por su experiencia (un trabajo nunca va sin capacidad). */
+export const CAPACIDAD_DE_LA_EXPERIENCIA: Readonly<Record<string, string>> = Object.freeze({
+  design: 'concept',
+  home: 'restyleSpace',
+});
+
+export const EXPERIENCIAS_DE_DESIGN: readonly string[] = Object.freeze(Object.keys(CAPACIDAD_DE_LA_EXPERIENCIA));
+
+/* ── La simulación del recorrido (mocks, marcados como tales) ──────────────── */
+
+/**
+ * EL RECORRIDO SIMULADO DE UNA CAPACIDAD QUE TODAVÍA NO EXISTE.
+ *
+ * El dueño quiere recorrer la experiencia entera dentro de la referencia aunque
+ * no haya backend. Esto da el orden de los estados por los que pasaría, y nada
+ * más: ni precio (nunca se inventa), ni tiempo, ni resultado. Quien lo pinta
+ * dice en cada paso que es una SIMULACIÓN, y el avance lo da la persona con un
+ * toque: no hay temporizadores que hagan creer que algo está trabajando.
+ */
+export const estadosSimulados = (cap: CapacidadDeDesign): readonly EstadoDeTrabajo[] => {
+  const r = recorridoDe(cap);
+  if (r.trabajo === 'N/A') return Object.freeze(['IDLE', 'READY', 'COMPLETED'] as EstadoDeTrabajo[]);
+  const base: EstadoDeTrabajo[] = ['IDLE', 'READY'];
+  if (r.validacion !== 'N/A') base.push('VALIDATING');
+  if (r.cotizacion !== 'N/A') base.push('QUOTING', 'WAITING_FOR_CONFIRMATION');
+  base.push('QUEUED', 'PROCESSING', 'COMPLETED');
+  return Object.freeze(base);
+};
+
+/**
+ * QUÉ SE OFRECE PARA PARAR, SIN PROMETER DE MÁS.
+ *
+ * `logica` solo ANTES de empezar (en cola): pedir que no empiece es lo único que
+ * los candidatos 3D documentan —alguno solo cancela en cola— y Weë no sabe parar
+ * a nadie que ya trabaja. Empezado, se dice que no se puede parar y que lo que
+ * salga se guarda. `con_parada` (la puerta del mundo) se pide en cola y
+ * trabajando, y lo confirma el Job Engine; nunca se da por hecho.
+ */
+export const cancelacionEn = (cap: CapacidadDeDesign, estado: EstadoDeTrabajo): 'ninguna' | 'logica' | 'con_parada' => {
+  if (estado !== 'QUEUED' && estado !== 'PROCESSING') return 'ninguna';
+  if (cap.cancelar === 'con_parada') return 'con_parada';
+  if (cap.cancelar === 'logica' && estado === 'QUEUED') return 'logica';
+  return 'ninguna';
+};
+
+/** Lo que sigue a un resultado de esa capacidad: solo ids que existen y son de Weë Design. */
+export const siguientesDe = (salida: TipoDeResultado): CapacidadDeDesign[] =>
+  SIGUIENTES_POR_RESULTADO[salida].map((id) => CAPACIDADES_DE_DESIGN.find((x) => x.id === id)).filter((x): x is CapacidadDeDesign => !!x && x.enDesign);
+
+/* ── El contexto hacia Weë Brain (la misma caja de siempre) ────────────────── */
+
+const IDS_DE_QUE = new Set(QUE_SE_DISENA.map((q) => q.id));
+
+/**
+ * LO QUE VIAJA A `CreatorFlow` DESDE LA CAJA DE LA REFERENCIA.
+ *
+ * El destino lo decide `destinoDeIntencion` con la experiencia que DECLARA la
+ * intención (`design` para crear, `home` para transformar un espacio) y sin salir
+ * de Weë Design; no hay un router nuevo. Lo que la persona escribe no se toca: los
+ * ajustes van detrás, en palabras, como en Weë Studio, porque el plan todavía no
+ * los lee como estructura.
+ *
+ * Al CREAR no viaja ninguna foto: la plantilla `design` la ignora (la referencia de
+ * estilo es C06, pendiente) y subirla para nada sería mentir. Al TRANSFORMAR, la
+ * foto del espacio entra por el camino de siempre (`imageUri` → `creatorUploads`).
+ */
+export const contextoDeDesign = (e: {
+  intencion: 'crear' | 'transformar';
+  texto: string;
+  que?: string | null;
+  ajustesEnPalabras?: string;
+  adjuntos?: readonly Adjunto[];
+}): ContextoDeExperiencia | null => {
+  const texto = e.texto.trim();
+  if (!texto) return null;
+  const destino = destinoDeIntencion(texto, {
+    declaradaPorLaPuerta: e.intencion === 'crear' ? 'design' : 'home',
+    dentroDe: 'design',
+  });
+  if (!destino) return null;
+  const fotos = e.intencion === 'transformar' ? (e.adjuntos ?? []).filter((a) => a.clase === 'fotoDeUnEspacio') : [];
+  return {
+    experienceId: destino.experienceId,
+    workspace: 'design',
+    goal: e.ajustesEnPalabras ? `${texto} · ${e.ajustesEnPalabras}` : texto,
+    ...(e.intencion === 'crear' && e.que && IDS_DE_QUE.has(e.que) ? { presets: [{ questionId: 'what', optionId: e.que }] } : {}),
+    ...(fotos.length ? { adjuntos: [...fotos], imageUri: fotos[0].uri } : {}),
+  };
+};
+
+/** Cambiar con palabras un trabajo ya hecho: lo mismo que hacen las ediciones rápidas del resultado. */
+export const contextoParaCambiar = (trabajo: { experienceId: string }, objetivoConCambio: string): ContextoDeExperiencia => ({
+  experienceId: trabajo.experienceId,
+  workspace: 'design',
+  goal: objetivoConCambio,
+});
+
+/** Abrir un trabajo ya hecho, como «Mis creaciones». */
+export const contextoParaAbrir = (trabajo: { experienceId: string; jobId: string }): ContextoDeExperiencia => ({
+  experienceId: trabajo.experienceId,
+  jobId: trabajo.jobId,
+});
+
+/* ── La disposición por tamaño ─────────────────────────────────────────────── */
+
+export type Disposicion = 'tresColumnas' | 'dosColumnas' | 'unaSuperficie';
+
+/** REFERENCE (anchos de la app) y ESTIMATED (el lienzo mínimo): docs/WEE-DESIGN-WORKSPACE-ARCHITECTURE.md §3. */
+export const MEDIDAS_DEL_WORKSPACE = Object.freeze({ biblioteca: 280, inspector: 320, lienzoMinimo: 400 });
+
+/** Por el ancho que DE VERDAD queda (medido), no por el de la ventana. */
+export const disposicionDelWorkspace = (
+  anchoUtil: number,
+  m: { biblioteca: number; inspector: number; lienzoMinimo: number } = MEDIDAS_DEL_WORKSPACE,
+): Disposicion => {
+  if (anchoUtil >= m.biblioteca + m.lienzoMinimo + m.inspector) return 'tresColumnas';
+  if (anchoUtil >= m.lienzoMinimo + m.inspector) return 'dosColumnas';
+  return 'unaSuperficie';
+};
+
+/* ── El inspector: solo lo que toca a lo elegido ───────────────────────────── */
+
+export type TipoDeSeleccion = 'ninguna' | 'image' | 'model3d' | 'world' | 'video' | 'otro' | 'trabajo' | 'escena';
+
+export const SECCIONES_POR_SELECCION: Readonly<Record<TipoDeSeleccion, readonly SeccionDelInspector[]>> = Object.freeze({
+  ninguna: Object.freeze([]),
+  image: Object.freeze(['objeto', 'exportar'] as SeccionDelInspector[]),
+  model3d: Object.freeze(['objeto', 'material', 'textura', 'malla', 'esqueleto', 'animacion', 'impresion', 'exportar'] as SeccionDelInspector[]),
+  world: Object.freeze(['objeto', 'escena', 'exportar'] as SeccionDelInspector[]),
+  video: Object.freeze(['objeto', 'exportar'] as SeccionDelInspector[]),
+  otro: Object.freeze(['objeto', 'exportar'] as SeccionDelInspector[]),
+  trabajo: Object.freeze(['objeto', 'exportar'] as SeccionDelInspector[]),
+  escena: Object.freeze(['escena', 'camara', 'luz'] as SeccionDelInspector[]),
+});
+
+/** Las capacidades que viven en una sección. */
+export const capacidadesDeLaSeccion = (seccion: SeccionDelInspector): CapacidadDeDesign[] =>
+  CAPACIDADES_DE_DESIGN.filter((x) => x.enDesign && x.entrada === 'inspector' && x.seccion === seccion);
+
+/** Las de la barra del lienzo (vista, transformar…). */
+export const capacidadesDeLaBarraDelLienzo = (): CapacidadDeDesign[] =>
+  CAPACIDADES_DE_DESIGN.filter((x) => x.enDesign && x.entrada === 'barraDelLienzo' && x.integracion.tipo !== 'sugerencias');
+
+/** Las de la caja, por intención. */
+export const capacidadesDeLaIntencion = (intencion: 'crear' | 'transformar' | 'editar'): CapacidadDeDesign[] =>
+  CAPACIDADES_DE_DESIGN.filter((x) => x.enDesign && x.entrada === 'composer' && x.intencion === intencion);
+
+/** Las de una pestaña de la biblioteca. */
+export const capacidadesDeLaPestana = (pestana: string): CapacidadDeDesign[] =>
+  CAPACIDADES_DE_DESIGN.filter((x) => x.enDesign && x.entrada === 'biblioteca' && x.pestana === pestana);
+
+/* ── A dónde lleva cada grupo de la barra de comandos ──────────────────────── */
+
+export interface DestinoDelGrupo {
+  superficie: Superficie;
+  intencion?: 'crear' | 'transformar' | 'editar';
+  seccion?: SeccionDelInspector;
+  pestana?: 'creaciones' | 'proyecto' | 'escena' | 'referencias';
+}
+
+export const DESTINO_DEL_GRUPO: Readonly<Record<string, DestinoDelGrupo>> = Object.freeze({
+  crear: { superficie: 'lienzo', intencion: 'crear' },
+  transformar: { superficie: 'lienzo', intencion: 'transformar' },
+  editar: { superficie: 'inspector', seccion: 'objeto', intencion: 'editar' },
+  materiales: { superficie: 'inspector', seccion: 'material' },
+  animar: { superficie: 'inspector', seccion: 'esqueleto' },
+  escena: { superficie: 'biblioteca', pestana: 'escena' },
+  imprimir: { superficie: 'inspector', seccion: 'impresion' },
+  entregar: { superficie: 'inspector', seccion: 'exportar' },
+});
+
+/* ── El texto «por si se lee en un sitio público» ─────────────────────────── */
+
+/**
+ * Lo que la persona ve de una capacidad sin backend NUNCA lleva un número de
+ * precio ni de tiempo: esas claves existen para decir «pendiente», y son las
+ * únicas que el detalle usa para hablar de dinero.
+ */
+export const CLAVES_DE_PRECIO: readonly string[] = Object.freeze(['designRef.priceBeforeCreate', 'designRef.pricePending']);
+
+/* ── Lo elegido ────────────────────────────────────────────────────────────── */
+
+/**
+ * LO QUE ESTÁ ELEGIDO EN EL ESPACIO DE TRABAJO. Proyecto, material, versión y
+ * trabajo son cosas distintas y no se mezclan: aquí se elige un MATERIAL (de
+ * «Mis creaciones») o un TRABAJO (de `creatorJobs`); una versión será un material
+ * con su `previousVersionId`, y el proyecto va aparte, en la barra.
+ *
+ * `simulada` es el resultado de una simulación: no existe, no se puede descargar ni
+ * publicar, y quien la pinta lo dice.
+ */
+export type SeleccionDeDesign =
+  | { tipo: 'material'; asset: AssetDoc }
+  | { tipo: 'trabajo'; job: CreatorJob }
+  | ResultadoSimulado
+  | null;
+
+/* ── El resultado simulado, con su linaje ──────────────────────────────────── */
+
+/** Un paso del linaje: qué capacidad lo hizo y qué material dejó. */
+export interface PasoDelLinaje {
+  capacidadId: string;
+  materialId: string;
+}
+
+/** Qué es respecto de lo que entró (`core/content/linaje.ts`): un material nuevo, una versión, un derivado o una variante. */
+export type RelacionConElOrigen = 'nuevo' | 'version' | 'derivado' | 'variante';
+
+export const CLAVE_DE_LA_RELACION: Readonly<Record<RelacionConElOrigen, string>> = Object.freeze({
+  nuevo: 'designRef.relNew',
+  version: 'designRef.relVersion',
+  derivado: 'designRef.relDerived',
+  variante: 'designRef.relVariant',
+});
+
+/**
+ * UN RESULTADO QUE NO EXISTE, CON TODO LO QUE TENDRÍA SI EXISTIERA: su material,
+ * el trabajo que lo hizo, el material del que salió (entrado por REFERENCIA, no
+ * descargado y vuelto a subir), qué es respecto de él y la línea entera hasta el
+ * principio. Los ids empiezan por `sim-` y no se parecen a los de Firestore: un
+ * resultado simulado no se puede confundir con uno de verdad, ni descargar, ni
+ * publicar, ni guardar.
+ */
+export interface ResultadoSimulado {
+  tipo: 'simulada';
+  salida: TipoDeResultado;
+  capacidadId: string;
+  materialId: string;
+  trabajoId: string;
+  padreId: string | null;
+  relacion: RelacionConElOrigen;
+  linaje: readonly PasoDelLinaje[];
+}
+
+const RELACION_POR_IMPACTO: Readonly<Record<ImpactoEnMaterial, RelacionConElOrigen>> = Object.freeze({
+  nuevo: 'nuevo',
+  version: 'version',
+  derivado: 'derivado',
+  variante: 'variante',
+  referencia: 'nuevo',
+  ninguno: 'nuevo',
+});
+
+/** ¿Lo simulado antes sirve de ENTRADA a esta capacidad? Por lo que sigue a su resultado o por la cadena. */
+export const encadenaCon = (cap: CapacidadDeDesign, anterior: SeleccionDeDesign): anterior is ResultadoSimulado => {
+  if (!anterior || anterior.tipo !== 'simulada') return false;
+  if (SIGUIENTES_POR_RESULTADO[anterior.salida].includes(cap.id)) return true;
+  const eslabon = eslabonDeLaCapacidad(cap.id);
+  return !!eslabon && eslabon.entra === anterior.salida;
+};
+
+/** El resultado simulado de una capacidad. `n` lo da quien llama (un contador): aquí no hay reloj ni azar. */
+export const simularResultado = (cap: CapacidadDeDesign, anterior: SeleccionDeDesign, n: number): ResultadoSimulado => {
+  const materialId = `sim-${cap.id}-${n}`;
+  const trabajoId = `sim-job-${cap.id}-${n}`;
+  if (encadenaCon(cap, anterior)) {
+    const relacion = RELACION_POR_IMPACTO[cap.impacto];
+    return Object.freeze({
+      tipo: 'simulada', salida: cap.salida, capacidadId: cap.id, materialId, trabajoId,
+      padreId: anterior.materialId,
+      /* Si entró algo, lo que sale VIENE de ello: nunca es «nuevo». */
+      relacion: relacion === 'nuevo' ? 'derivado' : relacion,
+      linaje: Object.freeze([...anterior.linaje, Object.freeze({ capacidadId: cap.id, materialId })]),
+    });
+  }
+  return Object.freeze({
+    tipo: 'simulada', salida: cap.salida, capacidadId: cap.id, materialId, trabajoId,
+    padreId: null, relacion: 'nuevo',
+    linaje: Object.freeze([Object.freeze({ capacidadId: cap.id, materialId })]),
+  });
+};
+
+/* ── La cadena en el espacio de trabajo ────────────────────────────────────── */
+
+/** El eslabón en el que está lo elegido: solo un resultado simulado de la cadena lo tiene. */
+export const eslabonActual = (s: SeleccionDeDesign): EslabonDeLaCadena | null =>
+  s && s.tipo === 'simulada' ? eslabonDeLaCapacidad(s.capacidadId) ?? null : null;
+
+/**
+ * LOS ATAJOS ENTRE PASOS: el siguiente eslabón y, si ese se puede saltar, el
+ * primero obligatorio después (de la imagen se puede ir directo al modelo; del
+ * modelo, directo a entregar). Sin eslabón, la cadena empieza por el primero.
+ */
+export const pasosDesde = (id: IdDeEslabon | null): { siguiente: EslabonDeLaCadena | null; salto: EslabonDeLaCadena | null } => {
+  const i = id ? CADENA_DE_DESIGN.findIndex((e) => e.id === id) : -1;
+  const resto = CADENA_DE_DESIGN.slice(i + 1);
+  const siguiente = resto[0] ?? null;
+  const salto = siguiente && siguiente.opcional ? resto.slice(1).find((e) => !e.opcional) ?? null : null;
+  return { siguiente, salto };
+};
+
+/**
+ * LA CADENA ENTERA, SIMULADA: cada eslabón con su capacidad por defecto, y cada
+ * resultado entrando en el siguiente. Es lo que la prueba recorre para exigir que
+ * nada se suelte por el camino: ni un resultado sin trabajo, ni una versión sin
+ * padre, ni un salto de tipo (lo que sale de uno es lo que entra en el otro).
+ */
+export const recorrerCadena = (eslabones: readonly EslabonDeLaCadena[] = CADENA_DE_DESIGN): ResultadoSimulado[] => {
+  const salida: ResultadoSimulado[] = [];
+  let anterior: SeleccionDeDesign = null;
+  eslabones.forEach((e, i) => {
+    const cap = capacidadPorId(e.capacidad);
+    if (!cap) throw new Error(`eslabón sin capacidad: ${e.id}`);
+    const r = simularResultado(cap, anterior, i + 1);
+    salida.push(r);
+    anterior = r;
+  });
+  return salida;
+};
+
+/** Lo que la disponibilidad necesita saber de lo elegido. Una simulación nunca habilita nada real. */
+export const resumenDeSeleccion = (s: SeleccionDeDesign, urlDe: (a: AssetDoc) => string | null): ResumenDeSeleccion => {
+  if (!s || s.tipo === 'simulada') return SIN_SELECCION;
+  if (s.tipo === 'trabajo') return { hayTrabajo: true, hayTrabajoDeMaterial: false, hayEntrega: false, esImagen: false };
+  const a = s.asset;
+  return {
+    hayTrabajo: false,
+    hayTrabajoDeMaterial: !!(a.provenance?.jobId && typeof a.metadata?.experienceId === 'string'),
+    hayEntrega: !!urlDe(a),
+    esImagen: a.kind === 'image',
+  };
+};
+
+export const tipoDeSeleccion = (s: SeleccionDeDesign): TipoDeSeleccion => {
+  if (!s) return 'ninguna';
+  if (s.tipo === 'trabajo') return 'trabajo';
+  const clase = s.tipo === 'material' ? s.asset.kind : s.salida;
+  if (clase === 'image' || clase === 'model3d' || clase === 'world' || clase === 'video') return clase;
+  if (clase === 'scene') return 'escena';
+  return 'otro';
+};
+
+/** Qué resultado es lo elegido, para saber qué viene después (la barra de acciones). */
+export const salidaDeSeleccion = (s: SeleccionDeDesign): TipoDeResultado => {
+  if (!s) return 'none';
+  if (s.tipo === 'simulada') return s.salida;
+  if (s.tipo === 'trabajo') return s.job.status === 'done' && CAPACIDAD_DE_LA_EXPERIENCIA[s.job.experienceId] ? 'image' : 'none';
+  const k = s.asset.kind;
+  return k === 'image' || k === 'model3d' || k === 'world' || k === 'video' ? k : 'none';
+};
+
+/** Lo que se ve en la franja: solo los trabajos de Weë Design (y Hogar & Diseño). */
+export const sonDeDesign = (jobs: readonly CreatorJob[]): CreatorJob[] =>
+  jobs.filter((j) => EXPERIENCIAS_DE_DESIGN.includes(j.experienceId));
+
+/** Las clases de material que Weë Design enseña en su biblioteca. */
+export const CLASES_DE_LA_BIBLIOTECA: readonly ('image' | 'model3d' | 'world')[] = Object.freeze(['image', 'model3d', 'world']);
+
+export type FiltroDeBiblioteca = 'todo' | 'image' | 'model3d' | 'world';
+
+export const filtrarCreaciones = (items: readonly AssetDoc[], filtro: FiltroDeBiblioteca): AssetDoc[] =>
+  items.filter((a) => (CLASES_DE_LA_BIBLIOTECA as readonly string[]).includes(a.kind) && (filtro === 'todo' || a.kind === filtro));
