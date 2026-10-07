@@ -850,10 +850,11 @@ Capacidad («Crear objeto 3D»)  →  Composer (claves, «🤷 No sé» siempre)
 
 Lo que implementa esta línea: `functions/test/multiproveedor-3d.test.mjs` (en la cadena), sin red, sin clave y sin
 proveedor: A (apagado), B (vocabulario), C (precondiciones de activación), D (el documento), E (MAPA 1 y MAPA 2: una
-etiqueta por fila, ninguna autorización inventada, ninguna selección B, ningún proveedor en el MAPA 1) y F (un control
-saboteado por regla). Además se sabotearon 39 reglas sobre los archivos de verdad —el compilado, la fuente, la app, la
-configuración y este documento—, una a una y restaurando cada archivo byte a byte: las 39 ponen la suite en rojo en la
-comprobación esperada. Lo que haría falta al integrar cada proveedor, siguiendo los moldes que ya existen:
+etiqueta por fila, ninguna autorización inventada, ninguna selección B, ningún proveedor en el MAPA 1; y Sloyd, Seed3D y
+la investigación global, E10–E13) y F (un control saboteado por regla). Además se sabotearon 53 reglas sobre los archivos
+de verdad —el compilado, la fuente, la app, la configuración y este documento—, una a una y restaurando cada archivo byte
+a byte: las 53 ponen la suite en rojo en la comprobación esperada. Lo que haría falta al integrar cada proveedor,
+siguiendo los moldes que ya existen:
 
 | Caso | Qué se prueba | Molde que se extiende | Sabotaje que tiene que verse |
 |---|---|---|---|
