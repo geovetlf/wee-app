@@ -555,7 +555,8 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  *               de las señales rechaza; ahora `verification.passWithUncertainty`
  *               (`claveDeEstado`). Los otros cinco estados ya cumplían.
  *   REQUISITOS  A8 aplica la regla de B.1 también a `minSampleSize` y `maxAgeMs`
- *               (`problemasDeLosRequisitos`): un `NaN` o un texto ya no apagan esos suelos.
+ *               (`problemasDeLosRequisitos`): un `NaN` o un texto ya no apagan esos suelos, ni
+ *               unos requisitos que no son un objeto.
  *   PARADA      el ciclo dice `context_rejected`, no `context_refused`, cuando los requisitos
  *               de lo aprendido están mal formados: es una petición que corregir.
  *   CORTE       A6, cuando se le acaba el presupuesto de comprobaciones —o el de pensar—, cuenta

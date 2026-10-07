@@ -27,7 +27,7 @@
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { AlgorithmDescriptor } from './types';
-import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
+import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto, topeDelContador } from './budget';
 import { restriccionesMalFormadas } from './objective';
 import { Confidence, Evidence, Signal, resolverSenales } from './signals';
 import { Severidad } from './strategy';
@@ -347,16 +347,21 @@ export const crearMotorDeVerificacion = (opciones: OpcionesDelVerificador = {}) 
          * podía quedarse sin mirar y el veredicto salir `pass`. Ahora cada una que queda
          * entra como «sin mirar» (`unknown`) con su dureza, y `fusionarEstados` hace lo de
          * siempre: un duro sin mirar no deja pasar. Vale igual si el corte es por tiempo
-         * (`maxLatencyMs`, con el cronómetro del ciclo).
+         * (`maxLatencyMs`, con el cronómetro del ciclo), y se dice cuál se acabó —como A1—.
+         * Cada id una vez: `c` ya está en `vistos`, y los siguientes se saltan por id.
          */
-        let sinMirar = 0;
-        for (const r of porMirar.slice(i)) {
-          if (r !== c && vistos.has(r.id)) continue;
+        const agotado = contador.agotado();
+        const tope = agotado ? topeDelContador(agotado) : 'maxChecks';
+        const motivo = `no se miró: se acabó el presupuesto de pensar (${tope})`;
+        findings.push(hallazgo(c, 'unknown', motivo, 'budget'));
+        let sinMirar = 1;
+        for (const r of porMirar.slice(i + 1)) {
+          if (vistos.has(r.id)) continue;
           vistos.add(r.id);
-          findings.push(hallazgo(r, 'unknown', 'no se miró: se acabó el presupuesto de comprobaciones', 'budget'));
+          findings.push(hallazgo(r, 'unknown', motivo, 'budget'));
           sinMirar++;
         }
-        porque.push(`se llegó al tope de comprobaciones: ${sinMirar} sin mirar, que cuentan como «sin saber» (\`unknown\`), no como buenas`);
+        porque.push(`se llegó al tope de pensar (${tope}): ${sinMirar} sin mirar, que cuentan como «sin saber» (\`unknown\`), no como buenas`);
         break;
       }
       m.checksEvaluados++;

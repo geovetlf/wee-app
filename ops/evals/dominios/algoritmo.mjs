@@ -17,10 +17,8 @@
  *    artefacto de ejecución, ni un cobro, ni nombre una implementación, y que el cierre no aprenda;
  *  · produce EVIDENCIA y un veredicto contra su baseline; nunca cambia producción.
  *
- * Hoy no está en `DOMINIOS` (`dominios.mjs`): registrarlo es una línea allí y mover este archivo a `dominios/`, pero
- * `functions/test/evals-dominios.test.mjs` fija el registro de desarrollo a exactamente el Router. Hasta que esa suite
- * se actualice, se corre por el MISMO mecanismo con un registro común hecho con `crearRegistroDeDominios`
- * (`functions/test/evals-algoritmo.test.mjs`).
+ * Registrado en `DOMINIOS` (`dominios.mjs`), el segundo después del Router: `evals-dominios` fija el registro como
+ * router + algoritmo, y `node ops/evals/runner.mjs --dataset algoritmo` lo corre como a cualquier otro.
  */
 import { decidirEscenario } from '../escenario-algoritmo.mjs';
 import { calificar, CLAVES_DE_EXPECTED } from '../graders-algoritmo.mjs';

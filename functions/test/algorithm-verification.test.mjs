@@ -612,5 +612,34 @@ check('CM18 · y un duro sin mirar no deja pasar: el veredicto queda en `unknown
 check('CM19 · A6 sube a `motor-de-verificacion@3`: cambia lo que decide cuando se corta (regla de `AlgorithmDescriptor.version`)',
   A.DESCRIPTOR_DE_VERIFICACION.version === 3);
 
+/* La MISMA comprobación dos veces en la petición —el mismo objeto—, justo donde se corta (revisión de código). */
+const repetidaCM = { id: 'zz:repetida', type: 'structural.status', hard: false, severity: 'bajo' };
+const conRepetidaCM = verificar({ actual: res('r'), checks: [repetidaCM, repetidaCM], budget: { maxChecks: 1 } });
+check('CM23 · REGRESIÓN · lo que no se miró entra UNA vez por comprobación, aunque la petición la traiga dos veces',
+  conRepetidaCM.metricas.budgetExhausted === true
+  && conRepetidaCM.findings.filter((x) => x.checkId === 'zz:repetida').length === 1
+  && conRepetidaCM.because.some((b) => b.includes('1 sin mirar')),
+  `${conRepetidaCM.findings.filter((x) => x.checkId === 'zz:repetida').length} hallazgos de zz:repetida · ${conRepetidaCM.because.slice(-1)[0]}`);
+let tCM24 = 0;
+const porTiempoCM = A.crearMotorDeVerificacion({ ahora: () => (tCM24 += 10) }).verificar({ ...TODO_BIEN_CM, budget: { maxLatencyMs: 25 } });
+check('CM24 · REGRESIÓN · si el corte es por TIEMPO, se dice el tope que se acabó (`maxLatencyMs`), no «comprobaciones»',
+  porTiempoCM.metricas.budgetExhausted === true
+  && porTiempoCM.findings.some((x) => x.by === 'budget' && x.because.includes('maxLatencyMs'))
+  && porTiempoCM.because.some((b) => b.includes('tope de pensar (maxLatencyMs)')),
+  String(porTiempoCM.because.slice(-1)[0]).slice(0, 120));
+/*
+ * BLOCKED — HUMAN DECISION (revisión de arquitectura; DECISIONES-PENDIENTES, «la frontera sobre lo que se describe»).
+ * La lectura por responsabilidad también se aplica a lo que DESCRIBE: el resultado observado, la metadata de un evento
+ * de A7 y la de una capacidad. Hoy un `storagePath` legítimo en una salida es un `fail` duro —y A7 lo aprendería—, y
+ * `pricingModel` o `supportsWebhook` no pasan como metadata. Se FIJA tal cual para que conectar el cierre no lo pase por
+ * alto: cambiarlo es la decisión del dueño, y esta comprobación tendrá que cambiar con ella.
+ */
+const observadoCM = verificar({ expected: [{ kind: 'image' }], actual: res('r', { outputs: [{ ...sal('image', 'a'), metadata: { storagePath: 'x' } }] }) });
+check('CM25 · BLOCKED — HUMAN DECISION · la frontera por responsabilidad también lee lo OBSERVADO y lo que DESCRIBE: un `storagePath` en una salida es hoy un `fail` duro, y `pricingModel` o `supportsWebhook` no pasan como metadata',
+  observadoCM.status === 'fail' && observadoCM.findings.some((x) => x.type === 'authority.implementation' && x.hard)
+  && A.metadataSegura({ pricingModel: 'per-second' }).reason === 'authority_violation'
+  && A.metadataSegura({ supportsWebhook: true }).reason === 'authority_violation',
+  `${observadoCM.status} · ${A.metadataSegura({ pricingModel: 'per-second' }).reason} · ${A.metadataSegura({ supportsWebhook: true }).reason}`);
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA6: verifica lo que puede, dice lo que no sabe, y propone sin ejecutar');
 process.exit(failures ? 1 : 0);

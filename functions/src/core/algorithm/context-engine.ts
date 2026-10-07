@@ -200,7 +200,10 @@ export interface OpcionesDelContexto {
  * `context_rejected` —una petición que corregir, no un ámbito sin respuesta—.
  */
 export const problemasDeLosRequisitos = (req: unknown): readonly string[] => {
-  if (typeof req !== 'object' || req === null || Array.isArray(req)) return [];
+  /* Ausentes, no hay nada que mirar. Algo que no es un objeto —un texto, una lista— apagaría todos los suelos en
+   * silencio, como un `NaN` en uno (revisión de la misión): está mal formado, como `problemasDelPresupuesto`. */
+  if (req === undefined || req === null) return [];
+  if (typeof req !== 'object' || Array.isArray(req)) return [`requirements: no es un objeto (${Array.isArray(req) ? 'array' : typeof req})`];
   const r = req as Record<string, unknown>;
   const salida: string[] = [];
   for (const [campo, rango] of [['minConfidence', 'fraccion'], ['minSampleSize', 'noNegativo'], ['maxAgeMs', 'noNegativo']] as const) {

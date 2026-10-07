@@ -915,6 +915,12 @@ for (const [campo, malos] of [
       `${r.admisiones.length} admisiones · ${r.because.join(' | ').slice(0, 140)}`);
   }
 }
+for (const malos of ['x', ['minConfidence'], 7]) {
+  const r = a8.seleccionar({ ...BASE, requirements: malos, learned: [agBase] });
+  check(`CM4b · unos requisitos que no son un objeto (${JSON.stringify(malos)}) → no se admite nada, y se dice`,
+    r.admisiones.length === 0 && r.cierre === 'unknown' && r.because.some((b) => b.includes('requirements: no es un objeto')),
+    `${r.admisiones.length} admisiones · ${r.because.join(' | ').slice(0, 140)}`);
+}
 check('CM5 · CONTROL · con requisitos válidos que no recortan nada, A8 admite lo mismo que sin ellos',
   a8.seleccionar({ ...BASE, requirements: { minSampleSize: 0, maxAgeMs: 1e12, minConfidence: 0 }, learned: [agBase] })
     .admisiones.filter((x) => x.status === 'admitted').length === admitidasSinRequisitosCM && admitidasSinRequisitosCM > 0,
@@ -922,7 +928,8 @@ check('CM5 · CONTROL · con requisitos válidos que no recortan nada, A8 admite
 check('CM6 · la regla es UNA y está exportada: `problemasDeLosRequisitos` (la usan A8 y el ciclo)',
   A.problemasDeLosRequisitos({ minConfidence: 0.5, minSampleSize: 3, maxAgeMs: 1000 }).length === 0
   && A.problemasDeLosRequisitos({ minSampleSize: NaN, maxAgeMs: '1' }).length === 2
-  && A.problemasDeLosRequisitos(undefined).length === 0 && A.problemasDeLosRequisitos('x').length === 0
+  && A.problemasDeLosRequisitos(undefined).length === 0 && A.problemasDeLosRequisitos(null).length === 0
+  && A.problemasDeLosRequisitos('x').length === 1 && A.problemasDeLosRequisitos([]).length === 1
   && A.problemasDeLosRequisitos({ allowBroaderScope: 'si' }).length === 0);
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA8: usa lo aprendido a lo estrecho, y no inventa ni una evidencia');

@@ -971,6 +971,13 @@ for (const [campo, v] of [['minConfidence', NaN], ['minConfidence', '0.9'], ['mi
     && r.because.some((p) => p.includes(`requirements.${campo}`)),
     `${r.parada} · ${JSON.stringify(r.recorrido)}`);
 }
+for (const malos of ['x', []]) {
+  const r = ciclo.decidir(peticion({ aprendido: { ahora: T1, scope: { capability: CAP }, learned: [], requirements: malos } }));
+  check(`CM7b · unos requisitos que no son un objeto (${JSON.stringify(malos)}) → \`context_rejected\`, antes de A8 y sin decidir`,
+    r.status === 'invalid' && r.parada === 'context_rejected' && r.recorrido.length === 0 && !r.decision
+    && r.because.some((p) => p.includes('requirements: no es un objeto')),
+    `${r.parada} · ${JSON.stringify(r.recorrido)}`);
+}
 check('CM8 · CONTROL · los mismos requisitos, bien formados, deciden como siempre',
   ciclo.decidir(peticion({ aprendido: { ahora: T1, scope: { capability: CAP }, learned: [], requirements: { minConfidence: 0, minSampleSize: 0, maxAgeMs: 1e12 } } })).status === 'decided');
 check('CM9 · y `context_refused` sigue siendo lo que era: un ámbito al que A8 no contesta',
@@ -1005,6 +1012,21 @@ const fuentesCM = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/algorith
 const conRelojCM = fuentesCM.filter((f) => /Date\.now|performance\.now|new Date\(|Math\.random|process\.hrtime/.test(sinComentarios(leer('functions/src/core/algorithm/' + f))));
 check('CM15 · el motor sigue PURO: ningún archivo de core/algorithm lee un reloj ni el azar; el cronómetro solo entra por el puerto',
   fuentesCM.length >= 30 && conRelojCM.length === 0, conRelojCM.join(', '));
+/*
+ * El inicio se lee FRESCO (revisión de código). Un mismo ciclo decide dos veces: la primera con el reloj quieto; entre
+ * las dos, el reloj salta mucho más que el tope, y la lectura del inicio de la segunda falla. Con un inicio viejo —la
+ * última lectura buena, de la llamada anterior— la segunda mediría como «pensar» todo ese hueco y cortaría por error.
+ */
+let tCM22 = 0;
+let fallaCM22 = false;
+const cicloCM22 = A.crearCicloAlgoritmico({ cronometro: () => { if (fallaCM22) { fallaCM22 = false; throw new Error('lectura perdida'); } return tCM22; } });
+const primeraCM22 = cicloCM22.decidir(PET_CRONO);
+tCM22 = 1e9;
+fallaCM22 = true;
+const segundaCM22 = cicloCM22.decidir(PET_CRONO);
+check('CM22 · REGRESIÓN · si la lectura del inicio falla, la llamada va sin reloj —no mide como «pensar» el hueco desde la anterior— y decide como sin cronómetro',
+  comoTexto(primeraCM22) === comoTexto(sinCrono) && comoTexto(segundaCM22) === comoTexto(sinCrono),
+  `${segundaCM22.status}/${segundaCM22.parada ?? '-'} · ${String(segundaCM22.because.slice(-1)[0]).slice(0, 90)}`);
 
 console.log('\n─── Misión de cierre · un rechazo de la frontera dice de quién era lo que cruzó ───');
 

@@ -72,7 +72,7 @@ export const VOCABULARIO = Object.freeze({
 
 /*
  * Lo que delataría AUTORIDAD si apareciera en lo que devuelve el motor —esto es observación de la evaluación, no la
- * frontera del Core (esa es la del Planner)—. Cada clave tiene dueño en `EFECTOS_PROHIBIDOS` (authority.ts):
+ * frontera del Core (esa es la de authority.ts: la lista del Planner y la lectura por responsabilidad)—. Cada clave tiene dueño en `EFECTOS_PROHIBIDOS` (authority.ts):
  *  · DINERO (Financial Core): un importe de Credits, un precio, un cobro, un reembolso, un saldo. Un TOPE de Credits
  *    para el Router (`constraints.budget.maxCredits`, dueño `router` en DESTINO_DEL_REQUISITO) es un requisito, no un
  *    cobro, y es lo único con «credit» que puede viajar; `costUsd` es coste estimado de proveedor, no Credits.

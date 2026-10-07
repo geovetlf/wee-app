@@ -33,7 +33,8 @@
       "scripts/solo-desde-el-workflow.mjs",
       "functions/src/engine/sanitize.ts",
       "functions/src/engine/webhooks.ts",
-      "functions/src/creator/sombra.ts"
+      "functions/src/creator/sombra.ts",
+      "functions/src/core/algorithm/authority.ts"
     ],
     "dinero": [
       "functions/src/credits/**",
