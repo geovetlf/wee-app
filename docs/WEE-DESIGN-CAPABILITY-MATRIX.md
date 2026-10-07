@@ -62,6 +62,7 @@ Comprobado sobre `main` = `5efbc0a` (2026-10-07).
 | C08 (`model3dFromImage`) | Un modelo 3D desde una foto, un boceto o una propuesta elegida — `3d.generate` | No existe | image-to-model | image-to-3d | Como C03, más «de esta propuesta a 3D» | Encadenar C01 → C08 como un plan de Weë Brain, con linaje (`sourceAssetIds`) | Composer · «Transformar»; Lienzo · acción sobre la propuesta | REQUIERE BACKEND | Candidatos: Tripo, Meshy | `requiere_acuerdo` (RWA · RE) | **PLANEADA** · REQUIERE BACKEND · REQUIERE PROVIDER |
 | C09 (`model3dFromViews`) | Un modelo 3D desde varias fotos (vistas) — `3d.generate` | No existe | multiview-to-model (frente obligatorio, ≥ 2) | multi-image-to-3d (1–4) | Subida de varias vistas con su papel | Un adjunto con **papel de vista** (frente, lado, espalda) dentro de `Adjunto` | Composer · adjuntar vistas | REQUIERE BACKEND | Candidatos: Tripo, Meshy | `requiere_acuerdo` (RWA · RE) | **PLANEADA** · REQUIERE BACKEND · REQUIERE PROVIDER |
 | C29 (`beforeAfter`) | Antes y después de un espacio | En los resultados de Hogar & Diseño (`ResultCard.tsx:507-541`) | — | — | Traerlo al lienzo | Hoy, abrir su trabajo (donde ya se ve); después, en el lienzo | Lienzo | Existe | — | `cadena_de_wee` | **EXISTENTE** |
+| C37 (`batchTo3d`) | Varias fotos a 3D de una vez (un modelo por foto: un catálogo de productos) | No existe | lote de hasta 10 | lote de hasta 10 | Un trabajo por lote con su precio | **NUEVA** (§3.15): un plan de Weë Brain con varios pasos `3d.generate`, no un comando técnico | Composer · «Transformar» | REQUIERE BACKEND | Candidatos | `requiere_acuerdo` (RWA · RE) | **NUEVA NECESARIA** · REQUIERE PROVIDER |
 
 ### 1.3 Editar lo que se hizo
 
@@ -76,7 +77,8 @@ Comprobado sobre `main` = `5efbc0a` (2026-10-07).
 | C18 (`splitParts`) | Separar en partes | No existe en el catálogo | mesh/segment, mesh/complete | print/split (por partes o color) | Capacidad | **NUEVA CAPACIDAD DETECTADA** (§3.2): propuesta `3d.segment` (MAPA 2 la lee dentro de `3d.edit`) | Inspector · Modelo; Escena · nodos | REQUIERE BACKEND | Candidatos | `requiere_acuerdo` (RWA · RE) | **NUEVA NECESARIA** · REQUIERE PROVIDER |
 | C19 (`realScale`) | Tamaño real en metros | No existe | parámetro de escala real | resize | Variante | **NUEVA** (§3.3): variante `resize` de `3d.edit` | Inspector · Modelo | REQUIERE BACKEND | Candidatos | `requiere_acuerdo` (RWA · RE) | **NUEVA NECESARIA** · REQUIERE PROVIDER |
 | C20 (`stylize`) | Estilizar (bloques, voxel…) | No existe | stylize (**parcial**) | re-texturizar con un estilo | Variante y caso de uso | **REQUIERE DECISIÓN** (§3.4): variante `stylize` de `3d.edit` | Inspector · «Cambiar» | REQUIERE BACKEND | Candidato (sin página oficial) | `requiere_acuerdo` (RWA si existe en v3 · RE) | REQUIERE DECISIÓN |
-| C36 (`versions`) | Ver y volver a versiones de un diseño | `linaje.ts` puro; nadie escribe ni lee el linaje | Historial de tareas | Historial de tareas | P1, P2, P9 | Conectar el linaje del Core; la versión activa es por uso | Franja inferior · Versiones; Inspector | REQUIERE BACKEND | — | `no_aplica` | **PARCIAL** (contrato) · REQUIERE BACKEND |
+| C36 (`versions`) | Ver y volver a versiones de un diseño | `linaje.ts` puro; nadie escribe ni lee el linaje | Historial por asset («restaurar» / «guardar como versión nueva») | Versiones prometidas, sin interfaz vista | P1, P2, P9 | Conectar el linaje del Core; la versión activa es por uso (volver = volver a apuntar; editar una vieja = una rama) | Franja inferior · Versiones; Inspector | REQUIERE BACKEND | — | `no_aplica` | **PARCIAL** (contrato) · REQUIERE BACKEND |
+| C38 (`retouchRegion`) | Retocar una zona del modelo con palabras (cambiar el color o el material de una parte) | No existe | pincel con indicación y cámara fija | edición de textura con máscara, 3 variantes | Variante | **NUEVA** (§3.16): variante `region` de `3d.texture` | Inspector · Cambiar; Lienzo (zona) | REQUIERE BACKEND | Candidatos | `requiere_acuerdo` (RWA · RE) | **NUEVA NECESARIA** · REQUIERE PROVIDER |
 
 ### 1.4 Animar (personajes y mascotas de Weë Design)
 
@@ -136,6 +138,8 @@ Comprobado sobre `main` = `5efbc0a` (2026-10-07).
 | W22 | Flujos de varios pasos | Planes de Weë Brain (un trabajo, varios pasos) | Encadenar por id de tarea | Cadena imagen → 3D → textura → entrega | Planes, no cadenas a mano | Composer · plan | **EXISTENTE** (motor) · PLANEADA (3D) |
 | W23 | Elegir proveedor (AUTO · uno · otro) | No | — | — | **No** por defecto (DEC-07). MAPA 2: opción B = REVIEW_REQUIRED en los dos. Representado solo como puerta de gobierno cerrada, sin nombres (DEC-15) | Inspector · detalle de una capacidad (con la puerta de gobierno abierta) | **NO APLICA** por defecto · REQUIERE DECISIÓN |
 | W24 | Modo avanzado (parámetros técnicos) | No | Todos los parámetros | — | Oculto por defecto si el dueño lo quiere (CREATOR.md §6) | Inspector · avanzado | REQUIERE DECISIÓN (DEC-08) |
+| W25 | Acciones sobre lo elegido, junto al lienzo | No | Barra de acciones del visor (las dos) | — | Una fila de acciones de lo elegido bajo el lienzo: las mismas capacidades del registro (otro acceso, no otra implementación) | Lienzo | **NUEVA NECESARIA** |
+| W26 | Enlace a cada grupo de comandos | No | Una ruta por herramienta o módulo (las dos) | — | `/design/referencia/<grupo>` con el grupo validado | Navegación | **NUEVA NECESARIA** |
 
 ## 3. NUEVAS CAPACIDADES DETECTADAS
 
@@ -204,9 +208,29 @@ Cada una: por qué sirve · dónde vive en Weë Design · si requiere backend o 
 - **Dónde:** validación del comando (estado VALIDATING). **Requiere:** backend (operación de comprobación; un candidato la ofrece
   gratis; MAPA 2 la lee como `3d.analyze`).
 
+### 3.13 Precio (y tiempo) antes de la conversación, en el botón
+- **Por qué:** las dos referencias enseñan el coste —y una, el tiempo— en el botón, recalculado con cada opción. En Weë hoy el
+  precio llega con el plan (`creatorChat`/`creatorQuote`), después de las preguntas.
+- **Dónde:** el pie de la caja. **Requiere:** backend (cotizar sin trabajo, como ya hace la puerta del mundo con `cotizar`;
+  tiempo estimado por capacidad). **Nunca se inventa**: hasta entonces, «verás el precio antes de crear».
+- **Reutiliza:** el Credit Engine y su catálogo de precios. **Depende de:** Línea B (contrato 3D con cotización) y DEC-10.
+
+### 3.14 Recetas reutilizables (las «Skills» de un candidato)
+- **Por qué:** repetir un buen proceso (por ejemplo, «de mi boceto a figura imprimible») sin volver a explicarlo.
+- **Dónde:** el Composer. **Requiere:** backend (un plan de Weë Brain guardado y reutilizable: es del Planner, **Línea A**).
+- **REQUIERE DECISIÓN** (DEC-19). No se representa como comando hasta entonces.
+
+### 3.15 Lote de fotos a 3D (C37)
+- **Por qué:** catálogos de producto. **Dónde:** «Transformar». **Requiere:** backend (un plan con un paso por foto, precio
+  del lote antes de crear) y proveedor. **Reutiliza:** el Planner, el Credit Engine, `assets`.
+
+### 3.16 Retocar una zona del modelo (C38)
+- **Por qué:** cambiar una parte sin rehacer todo. **Dónde:** Inspector · Cambiar, con la zona elegida en el lienzo.
+- **Requiere:** backend y proveedor, y el visor (para elegir la zona). **Reutiliza:** linaje (una versión nueva).
+
 ## 4. Qué entra en la referencia funcional, y por qué
 
-Entran **todas** las filas de §1 (C01–C36) y la superficie de §2. Las que tienen backend se **conectan** al camino que ya existe
+Entran **todas** las filas de §1 (C01–C38) y la superficie de §2. Las que tienen backend se **conectan** al camino que ya existe
 (C01, C07, C11 —recrea con el cambio—, C12, C29, C30, C33, C34, W07, W08, W11, W15, W19, W20). Las demás se **ven apagadas con su
 motivo**, su elegibilidad y su dependencia; ninguna finge estar disponible ([arquitectura](WEE-DESIGN-WORKSPACE-ARCHITECTURE.md) §5).
 W23 (elegir proveedor) solo existe como **puerta de gobierno cerrada** (DEC-15): con ella cerrada no se pinta nada.
@@ -226,3 +250,30 @@ W23 (elegir proveedor) solo existe como **puerta de gobierno cerrada** (DEC-15):
 | Gaussian splat | Sin caso de uso | RWA | NO APLICA (hoy) |
 | Agente / asistente / MCP del proveedor | No: Weë Brain es el único asistente | RWA · RE; el agente 3D, NA (solo web) | NO APLICA |
 | Créditos, saldo y uso del proveedor | No: Credits es la única moneda de Weë | — | NO APLICA |
+
+## 6. Patrones de la interfaz de los candidatos, y qué hace Weë con ellos
+
+De los informes de UX (resumidos en el §7 de [Tripo](WEE-DESIGN-TRIPO-REFERENCE.md) y [Meshy](WEE-DESIGN-MESHY-REFERENCE.md)).
+
+| Patrón | Weë | Por qué |
+|---|---|---|
+| Lienzo central, herramientas a un lado, biblioteca al otro | **Se adopta** (arquitectura §2) | Es la forma de trabajar de un estudio 3D, y Weë ya la tiene en Filmmaker |
+| Composer como panel con la acción anclada abajo | **Se adopta** con la caja común de Weë (que crece; CLAUDE.md §9) | La caja es Weë Brain (CLAUDE.md §10) |
+| Coste (y tiempo) en el botón | **Pendiente** (§3.13): no se inventa un precio | CLAUDE.md §7 |
+| Familia de motor por resultado | **Se adopta como pregunta** («¿para qué lo quieres?», con «🤷 No sé») | «El usuario elige el resultado» |
+| Desplegable de versión o de modelo, sin «Auto» | **No** | La persona nunca ve modelos (DEC-07) |
+| Modelos de terceros con su marca | **No** | Ídem; además, marcas ajenas |
+| Chip «Auto» del agente | Solo como puerta de gobierno cerrada (DEC-15a) | MAPA 2: opción B en revisión |
+| Barra de acciones sobre el resultado | **Se adopta** (W25) | Las siguientes acciones, junto a lo que se mira |
+| Una ruta por herramienta o módulo | **Se adopta** por grupo (W26) | Enlazable y sin perder el lienzo |
+| Tooltips con lo que se gana y lo que se pierde | **Se adopta** como detalle de cada capacidad (motivo, requisitos, quién) | Didáctico (CREATOR.md §7) |
+| Puentes entre módulos | **Se adopta** entre intenciones | Nadie se queda sin salida |
+| Espacio solo de escritorio (≥ 1280) / tableta con panel cortado | **No**: tres, dos o una superficie, sin cortar nada | CREATOR-BUILD.md §21 |
+| Tres pestañas en el teléfono | **Se adopta** como selector de superficie (cuatro: Lienzo, Biblioteca, Inspector, Trabajos) | Mismas capacidades en el teléfono |
+| Tema solo oscuro, tipografía de 10–12 px, iconos sin nombre accesible | **No**: tema claro de Weë, tamaños de la app, todo con nombre | UX.md §16; accesibilidad |
+| Licencia o privacidad elegidas al generar | **No aplica**: el material es privado de la cuenta y publicar es un acto aparte | Content Core |
+| Reintento gratis con contador | **Decisión** (DEC-18) | Política de Credits |
+| Recetas (Skills) | **Decisión** (DEC-19) | Planner (Línea A) |
+| Créditos por compartir, insignias de recompensa | **No** sin decisión del dueño | Credits no se regalan desde la interfaz |
+| Plugins de programas 3D y envío al laminador | **Decisión** (dentro de DEC-06: destinos) | Integraciones externas |
+| Remezclar el modelo público de otra persona | **No**: llevar un material a otra cuenta arrastra licencias (`no_admitido` en `linaje.ts`) | Legal; 3D-ASSET-LIFECYCLE §5 |

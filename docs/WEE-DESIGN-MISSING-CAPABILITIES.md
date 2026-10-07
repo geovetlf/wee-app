@@ -53,6 +53,10 @@ apagado, con su motivo, en su sitio.
 | M26 | Traer un modelo propio (subida `model3d`) | Trabajar sobre lo que ya se tiene | Content Core (P3) | Ninguno | Content Core |
 | M27 | Escenas guardadas (`Escena3D` perfil `design`) y luces con parámetros (P7) | Componer y presentar | Persistencia + contrato aditivo | Ninguno | Dueño (dónde se guardan); Content Core |
 | M28 | Versiones visibles y «dónde se usa» | Volver atrás sin perder nada | P1, P2, P5, P9 | Ninguno | Content Core |
+| M35 | Varias fotos a 3D de una vez (C37) | Catálogos de producto | Plan con un paso por foto y precio del lote | Candidatos | **B**; Línea A |
+| M36 | Retocar una zona del modelo (C38; variante `region` de `3d.texture`) | Cambiar una parte sin rehacerlo todo | Capacidad + visor para elegir la zona | Candidatos | **B**; DEC-09 |
+| M37 | Precio (y tiempo) en el botón, antes de la conversación (matriz §3.13) | Las dos referencias lo enseñan antes de generar | Cotizar sin trabajo; tiempo estimado por capacidad | — | **B**; Credit Engine; DEC-10 |
+| M38 | Recetas reutilizables (matriz §3.14) | Repetir un buen proceso | Planes guardados (Planner) | — | Línea A; DEC-19 |
 
 ## 4. Huecos del ciclo de trabajo
 

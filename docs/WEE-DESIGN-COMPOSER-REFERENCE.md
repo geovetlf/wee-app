@@ -77,6 +77,18 @@ El destino lo decide `destinoDeIntencion` (`utils/destinoDeIntencion.ts`) con la
 | Sin sesión | Lleva a iniciar sesión, como hacen las demás puertas de Weë AI |
 | Puerta cerrada | La pantalla no existe para nadie (sin enlace) y, si se llegara, no lee ni manda nada |
 
+## 5b. Lo que se toma de las dos referencias (y lo que no)
+
+- **La acción anclada al pie**, siempre a la vista: aquí lo da la caja común (CLAUDE.md §9).
+- **El coste en el botón**: en las dos referencias se recalcula en vivo con cada opción. En Weë el precio sale del Credit
+  Engine cuando Weë Brain ya tiene el plan, y **no se inventa** antes: el pie dice «verás el precio antes de crear». Llevarlo al
+  botón es una capacidad nueva (cotizar sin trabajo, [matriz](WEE-DESIGN-CAPABILITY-MATRIX.md) §3.13).
+- **La familia de motor por resultado**: aquí no hay motores a la vista; la persona dice **para qué** lo quiere y Weë elige.
+- **Ni desplegable de versión ni modelos con nombre**: tampoco el chip «Auto» de uno de ellos, que solo existe como puerta de
+  gobierno cerrada (DEC-15a).
+- **Puentes entre intenciones**, como sus puentes entre módulos: una capacidad de «Transformar» que necesita una imagen ofrece
+  «crea primero un concepto», que cambia la intención a «Crear» sin perder lo escrito.
+
 ## 6. Lo que queda pendiente en el Composer
 
 - **Dictado por voz**: sin backend en Weë Design (H-1). No se enseña.

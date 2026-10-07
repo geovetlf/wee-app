@@ -84,10 +84,52 @@ En la interfaz de Weë esto se ve como **«Pendiente de autorización»** (`requ
 
 ## 7. La interfaz oficial (lo que enseña la web)
 
-> Resume el informe del investigador de UX de la Línea C (`meshy-ux.md`). **Si no consta aquí, ese informe aún no estaba
-> disponible al cerrar este documento**, y lo que se diga de la interfaz queda **REVIEW_REQUIRED**.
+Resumen del informe de UX de la Línea C (`meshy-ux.md`, unas 75 fuentes fechadas el 2026-10-06/07). El espacio de trabajo se
+ve sin sesión con ejemplos; se midió a 375, 768, 1024, 1440 y 1920 px; lo que pide sesión, por capturas oficiales de julio y
+agosto de 2026. **Todas las medidas son REFERENCE / ESTIMATED**; los límites que enseña la propia interfaz, oficiales.
 
-_(Se completa con el informe; ver §7 de [decisiones](WEE-DESIGN-UIUX-DECISIONS.md) para el estado.)_
+**Disposición** (tema oscuro):
+- **Rail de módulos** (64 px): Activos · Agente · Imagen · Modelo · Imprimir · Animar. Los módulos de escena y vídeo
+  anunciados en mayo de 2026 **no aparecen** (estado UNKNOWN). La URL refleja el módulo.
+- **Composer fijo de 280 px** con desplazamiento propio y **pie fijo con tiempo y créditos** («1 min · 20») sobre «Generar» a
+  todo el ancho; las opciones de pago llevan corona.
+- **Visor flexible**: alambre, tres modos de luz, ajuste de material, entorno, **miniaturas de cada canal PBR**, vista de la
+  textura UV, estadísticas y una marca de **imprimibilidad**; un cajón con nombre, fecha, licencia, **dimensiones X:Y:Z**,
+  modelo e id de la tarea.
+- **Panel de assets e historial redimensionable** (con asa): búsqueda, subida, filtros por tipo, geometría, textura, pose y
+  **estado** (publicado, descargado), selección en lote, paginación.
+- **Barra de acciones flotante sobre el resultado:** reintento gratis (con contador) · **Textura** · remesh · rig · edición ·
+  compartir · **Descargar** · imprimir · animar; debajo, «Reutilizar indicación» y 👍/👎.
+
+**Composer por tarea:** imagen → 3D, lote (hasta 10), texto → 3D (forma primero; la textura es un paso aparte con su coste),
+imagen 2D (hasta 5 referencias, estilos propios, proporción, 1–8 imágenes), imprimir (editar, dividir, multicolor, base, enviar
+al laminador) y animar (rig, biblioteca de más de 600 movimientos, texto → movimiento). Cada ⓘ dice **qué gana y qué pierde**
+la opción (tiempo, detalle). Hay **puentes entre módulos** («¿Aún sin imagen? Genera una primero»).
+
+**Elección de modelo:**
+- En el espacio manual, un **selector grande y explícito, sin «Auto»**, con un lema llano por opción (precisión, estabilidad,
+  velocidad) y los viejos marcados como «heredados»; el módulo de imagen enseña modelos de terceros por su nombre.
+- En el **Agente**, el selector se rebaja a un **chip pequeño con «Auto» por defecto** («el agente elige el más adecuado»).
+  **Es el patrón que encaja con Weë** («el usuario elige el resultado; Weë elige la IA»), y aun así Weë no enseña el chip por
+  defecto (DEC-07).
+
+**Agente:** chat a la izquierda y un lienzo de conceptos a la derecha; **aprobación de créditos por acción** y presupuesto por
+turno; **Skills** (recetas reutilizables); dictado; adjuntar desde los propios assets; siguientes pasos numerados. Solo en su
+web: NOT_ALLOWED por API (MAPA 2).
+
+**Estados:** coste y tiempo antes de generar; en curso, la tarea vive en el servidor (salir no la cancela) y hay cola por
+plan; cancelar devuelve todo en cola y nada en proceso, **pero no se encontró el control** (UNKNOWN); fallo con reembolso
+automático y motivos explicados; listo con tarjeta nueva, visor, estadísticas e imprimibilidad.
+
+**Tamaños:** de 1024 a 1920 el composer siempre mide 280 y visor y assets se reparten el resto; **a 768 se mantiene la
+disposición de escritorio y el panel de assets queda cortado**; a 375 hay **tres pestañas inferiores: Herramientas · Visor ·
+Assets**. Hay apps nativas (iOS, Android).
+
+**Accesibilidad visible:** muchos botones solo de icono sin nombre accesible; las pestañas de tarea, solo por icono.
+
+**UNKNOWN principales:** la interfaz con sesión de hoy; escena, vídeo y 3D → imagen; progreso y cancelar; versiones,
+proyectos y carpetas («Próximamente»). El informe anota **unas 14 contradicciones** entre fuentes oficiales (costes,
+reintentos, vistas, tamaños de subida…): en la interfaz manda lo que muestra el producto.
 
 ## 8. Qué aprende Weë Design
 
@@ -99,6 +141,15 @@ _(Se completa con el informe; ver §7 de [decisiones](WEE-DESIGN-UIUX-DECISIONS.
 | Biblioteca de animaciones | «Animar» ofrece movimientos con nombre humano, no parámetros | inspector · animación |
 | Solo bípedos para el esqueleto | La capacidad dice **para qué modelos sirve** antes de cobrar (validación) | validación de comandos |
 | Borrado a los 3 días | El material es de la cuenta en Weë desde que llega (Content Core, linaje, derechos) | Content Core |
+| «Auto» por defecto en el chip del Agente | Weë va más lejos: ni chip; si algún día lo hay, es la puerta de gobierno de DEC-15a, con «Automático» elegido | DEC-07 |
+| Tiempo y créditos en el pie del composer | El precio llega con el plan (Credit Engine); el tiempo, cuando el contrato 3D lo traiga. Antes, «verás el precio antes de crear» | matriz §3.13 |
+| Tooltips con qué se gana y qué se pierde | Cada capacidad apagada dice por qué, qué falta y quién podría hacerla; las opciones de Weë Brain se explican en palabras | referencia funcional |
+| Puentes entre módulos («¿sin imagen? genera una») | Atajos entre intenciones: de «a 3D desde una imagen» a «crear un concepto» | Composer |
+| Barra de acciones flotante sobre el resultado | Acciones de lo elegido junto al lienzo (las mismas del registro) | Lienzo |
+| Móvil con tres pestañas (herramientas, visor, assets) | Selector de superficie: Lienzo (con la caja) · Biblioteca · Inspector · Trabajos | arquitectura §3 |
+| Tableta con el panel cortado | Dos columnas con panel lateral por pestañas: nada se corta | arquitectura §3 |
+| Skills (recetas reutilizables) | NUEVA capacidad: recetas de Weë Brain (Línea A), decisión del dueño | matriz §3.14, DEC-19 |
+| Reintento gratis con contador | Política de Credits del dueño (hoy «otra versión» se cotiza y se cobra) | DEC-18 |
 
 ## 9. Lo que no se copia, nunca
 

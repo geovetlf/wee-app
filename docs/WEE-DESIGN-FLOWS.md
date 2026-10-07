@@ -104,6 +104,8 @@ visor, linaje, escenas) y sus decisiones. Nunca mueve un Credit ni llama a nada.
 | Imprimir (C32) | Inspector · Entregar | Analizar, reparar, colores, piezas | Igual | Línea B |
 | Traer un modelo (C35) | Biblioteca · Materiales | Subir un GLB/OBJ/FBX/STL propio | Sin subida de `model3d` | Content Core (P3) |
 | Versiones (C36) | Franja · Versiones | Ver y volver a versiones | Nadie escribe el linaje | P1, P2, P9 |
+| Varias fotos a 3D (C37) | Composer · Transformar | Un modelo por foto, con el precio del lote | Sin capacidad enrutable; pendiente de autorización | Línea B; Línea A |
+| Retocar una zona (C38) | Inspector · Cambiar | Cambiar el color o el material de una parte | Sin capacidad enrutable ni visor; pendiente de autorización | Línea B; DEC-09 |
 
 ## 4. Error, reintento y cancelación
 

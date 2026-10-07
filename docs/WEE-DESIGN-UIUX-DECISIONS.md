@@ -33,6 +33,8 @@ Qué se decidió en esta misión (y por qué), qué **espera al dueño**, y qué
 | **DEC-13** | ¿Productos físicos a medida (figuras, llaveros…)? | Fuera del alcance de hoy | No ahora |
 | **DEC-14** | ¿Estilizar modelos (bloques, voxel…)? | Sin caso de uso | No ahora |
 | **DEC-17** | Al fusionar con la Línea A: la suite propia en la cadena | — | Sí (ver DEC-16a) |
+| **DEC-18** | ¿Reintentos gratis tras un resultado (los dos candidatos los dan, con contador)? | A) No: «otra versión» se cotiza y se cobra (hoy) · B) N gratis por resultado, a cargo de Weë | **A** hasta medir el coste real (CLAUDE.md §7) |
+| **DEC-19** | ¿Recetas reutilizables de Weë Brain (las «Skills» de un candidato)? | A) No por ahora · B) Planes guardados por la persona (Planner, Línea A) | **A** |
 | **D1–D9** | Las de [DESIGN.md](DESIGN.md) §4: qué es Weë Design, entregables, editar, texto en imagen, formatos, referencias, puertas sin capacidad, memoria de marca, uso comercial | — | Las recomendaciones de DESIGN.md, sin cambios |
 
 ## 3. Dependencias con las otras líneas
@@ -70,7 +72,9 @@ las funciones descubiertas, colocadas y conectadas) y no redescubre ninguna.
 
 ## 7. Informes de UX oficial de Tripo y Meshy
 
-Los investigadores de UX de la Línea C escriben `tripo-ux.md` y `meshy-ux.md`. Lo que esos informes digan de la interfaz pública
-se resume en el §7 de cada referencia ([Tripo](WEE-DESIGN-TRIPO-REFERENCE.md), [Meshy](WEE-DESIGN-MESHY-REFERENCE.md)); si allí
-no consta, el informe no estaba disponible y lo dicho de su interfaz queda **REVIEW_REQUIRED**. Nada de esto cambia el MAPA 1,
-que se hizo desde la API oficial y desde Weë.
+Los dos informes de UX de la Línea C (`tripo-ux.md`, 57 fuentes; `meshy-ux.md`, unas 75; 2026-10-06/07, medidas REFERENCE /
+ESTIMATED) están resumidos en el §7 de cada referencia ([Tripo](WEE-DESIGN-TRIPO-REFERENCE.md), [Meshy](WEE-DESIGN-MESHY-REFERENCE.md)).
+Lo que añadieron al MAPA 1: C37 (lote de fotos a 3D), C38 (retocar una zona), W25 (acciones junto al lienzo), W26 (enlace por
+grupo), §3.13 (precio en el botón, pendiente) y §3.14 (recetas, DEC-19). Qué patrones se adoptan y cuáles no, con su motivo:
+[matriz](WEE-DESIGN-CAPABILITY-MATRIX.md) §6. Lo que en ellos queda UNKNOWN (progreso y cancelar durante la generación 3D en
+los dos; la interfaz con sesión de hoy; escena y vídeo de uno de ellos) **no** se rellena con suposiciones.

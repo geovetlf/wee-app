@@ -91,10 +91,44 @@ sin nombrar a nadie.
 
 ## 7. La interfaz oficial (lo que enseña la web)
 
-> Esta sección resume el informe del investigador de UX de la Línea C (`tripo-ux.md`). **Si no consta aquí, ese informe aún
-> no estaba disponible al cerrar este documento**, y lo que se diga de la interfaz queda **REVIEW_REQUIRED**.
+Resumen del informe de UX de la Línea C (`tripo-ux.md`, 57 fuentes fechadas el 2026-10-07). El espacio de trabajo se abre sin
+sesión, en modo invitado: se midió el DOM a 1440×900 y a 375 px; lo que necesita un modelo cargado se reconstruyó con capturas
+oficiales. **Todas las medidas son REFERENCE / ESTIMATED**; los límites que enseña la propia interfaz, oficiales.
 
-_(Se completa con el informe; ver §7 de [decisiones](WEE-DESIGN-UIUX-DECISIONS.md) para el estado.)_
+**Disposición** (un solo «3D Workspace», tema solo oscuro):
+- Barra superior flotante de 48 px; debajo, cuatro zonas: **rail** de herramientas (54 px), **panel de la herramienta activa**
+  (248 px), **visor** a sangre (ancho de la ventana − 575) y panel **Assets | Property** (248 px).
+- **Cada herramienta tiene su ruta** (`/workspace/<módulo>`); cambiar de herramienta cambia **solo** el panel izquierdo.
+- Rail: Imagen · Modelo · Segmentar (▾ completar partes) · Retopología · UV · Textura (▾ editar, mejorar, PBR) · Rig (▾ animar).
+- Visor: estadísticas de malla, gizmo, entorno (HDRI), rejilla, cámara, guía flotante por herramienta; abajo, una **barra de
+  vista** (alambre, sólido, textura, normales, sin luz y tres estilos) y una **barra de acciones** que cambia con la herramienta
+  (deshacer/rehacer, reintento gratis ×3, imprimir, favorito, compartir, **exportar**, denunciar).
+- Panel derecho: biblioteca con favoritos, filtros por tipo de modelo, lote (exportar o borrar), subida de modelos; «Property»
+  con el árbol de partes. **No hay proyectos** como entidad. Hay historial de versiones por asset («restaurar» frente a
+  «guardar como versión nueva»).
+
+**El Composer ES el panel de la herramienta**: parámetros arriba y el botón de acción **anclado al pie** (224×40), con el
+**coste recalculado en vivo** en el propio botón (y tachado en promociones). Entrada en cuatro modos (imagen, multivista con
+ranuras con nombre —frente obligatoria—, lote de hasta 10, texto de 1000 caracteres que **no crece**), ayudas de imagen
+(«demasiado plana», «fondo desordenado»…) y un **atajo a otro módulo** («Generar imagen para 3D ›»).
+
+**Elección de motor y versión:**
+- Familia de motor arriba (`HD Model | Smart Mesh`) con tooltip ilustrado **por resultado** («para impresión y arte» / «para
+  juegos y web»); en la portada, la misma elección se ve **solo por resultado** («Best Quality» / «Clean Topology»).
+- Versión en un desplegable justo antes del botón, **sin «Auto»**; el valor por defecto es la más nueva y se recuerda.
+- El módulo de imagen enseña **modelos de terceros con su marca** y el tiempo estimado de cada uno.
+
+**Estados:** vacíos explicados por herramienta (con sus incompatibilidades), invitado → modal de inicio de sesión, coste y
+tiempo esperado a la vista, éxito con ✓, fallo con créditos devueltos en ≤ 1 h. **UNKNOWN:** progreso, cola y **cancelar**
+durante la generación 3D (no se ha visto ningún control para cancelar).
+
+**Tamaños:** el espacio de trabajo exige **≥ 1280 px** y **no tiene vista móvil** (a 375 px se queda en 1280); la portada sí se
+adapta (pestañas imagen/texto y botón a todo el ancho). El móvil se sirve con **apps aparte** (iOS, iPadOS, Mac, Android).
+
+**Accesibilidad visible:** 22 de 47 controles sin nombre accesible (solo icono + tooltip), tipografía de 10–12 px, solo tema
+oscuro.
+
+**Sin** chat ni agente dentro del espacio de trabajo, sin vídeo generativo, sin texto → movimiento, sin proyectos.
 
 ## 8. Qué aprende Weë Design
 
@@ -106,6 +140,12 @@ _(Se completa con el informe; ver §7 de [decisiones](WEE-DESIGN-UIUX-DECISIONS.
 | Sin cancelación | «Cancelar» en un trabajo 3D solo es honesto antes de enviarlo al proveedor; después, se dice qué pasa con el dinero | [flujos](WEE-DESIGN-FLOWS.md) §cancelar |
 | URLs que caducan en minutos | El material vive en el Storage de Weë desde que llega; nunca se enseña la URL del proveedor | Content Core |
 | Destinos de formato (juego, impresión, AR…) | Exportar por **destino** («¿para qué lo quieres?»), no por extensión | [Composer](WEE-DESIGN-COMPOSER-REFERENCE.md), entrega |
+| Una ruta por herramienta; cambiar de herramienta cambia solo el panel | Cada grupo de comandos se puede enlazar (`/design/referencia/<grupo>`), y cambiar de grupo no mueve el lienzo | [arquitectura](WEE-DESIGN-WORKSPACE-ARCHITECTURE.md) §4 |
+| Coste en vivo en el botón | En Weë el precio lo da el Credit Engine al planificar; antes de la conversación **no se inventa** (se dice «verás el precio antes de crear»). Precio en el botón = NUEVA capacidad (cotizar sin trabajo) | [matriz](WEE-DESIGN-CAPABILITY-MATRIX.md) §3.13 |
+| Familia de motor elegida por resultado («mejor calidad» / «topología limpia») | La persona dice **para qué** lo quiere; Weë elige motor y versión. Sin desplegable de versiones | Composer, DEC-07 |
+| Barra de acciones sobre el resultado | Las siguientes acciones de lo elegido, junto al lienzo (un acceso más al mismo comando del registro) | Lienzo |
+| Espacio de trabajo solo de escritorio (≥ 1280) | Weë adapta: tres columnas, dos, o una superficie en el teléfono, con las mismas capacidades | arquitectura §3 |
+| Controles solo de icono sin nombre accesible | Todo control con su nombre (`accessibilityLabel`) y su motivo cuando está apagado | referencia funcional |
 
 ## 9. Lo que no se copia, nunca
 
