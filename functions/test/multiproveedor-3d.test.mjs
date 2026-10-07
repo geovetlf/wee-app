@@ -16,7 +16,10 @@
  *   E · los dos mapas, sin mezclarse: MAPA 1 (lo que Weë sabe hacer, sin proveedores) y MAPA 2 (quién puede ejecutar cada
  *       capacidad y con qué condiciones, según la investigación dedicada: una etiqueta de autorización por fila, nunca
  *       inventada; Tripo con autorización escrita, Meshy con Enterprise; lo que solo es web, NOT_ALLOWED; las exclusiones
- *       de Weë en su columna y no en la de los términos; y la selección A–E sin B).
+ *       de Weë en su columna y no en la de los términos; y la selección A–E sin B); y lo que entró después: Sloyd
+ *       (pendiente), Seed3D 2.0 (investigado: solo en Volcano Engine, NOT_ALLOWED con sus términos públicos, nunca con
+ *       la clave ni el cliente de ModelArk) y la investigación global de matrices 3D (pendiente, todo DISABLED /
+ *       REVIEW_REQUIRED).
  *
  * Cada regla tiene su CONTROL con una entrada saboteada (sección F): un detector que no ve nada no prueba nada.
  *
@@ -71,8 +74,12 @@ const CANDIDATOS = ['tripo', 'meshy', 'sloyd', 'seed3d'];
 const MATRICES_3D_PENDIENTES = ['tripo', 'meshy', 'sloyd', 'seed3d', 'hunyuan3d', 'worldlabs'];
 /* Con límites de palabra: «tripOneDay» (i18n de Weë Travel) o «Trípoli» no son Tripo. */
 const NOMBRE = /\b(tripo|tripo3d|meshy|sloyd|seed-?3d)\b/i;
-const CLAVE = /\b(TRIPO|MESHY|SLOYD|SEED3D)_[A-Z0-9_]+\b/;
-const HOST = /\b(?:[a-z0-9-]+\.)*(tripo3d\.ai|meshy\.ai)\b/i;
+const CLAVE = /\b(TRIPO|MESHY|SLOYD|SEED3D|VOLC|VOLCENGINE)_[A-Z0-9_]+\b/;
+/*
+ * Los hosts de las API de los candidatos. De Volcano Engine, el de su API en China y el de su consola, NUNCA el CDN
+ * `volces.com`, que también sirve los resultados de Seedance por BytePlus: el host del CDN no distingue plataformas.
+ */
+const HOST = /\b(?:[a-z0-9-]+\.)*(tripo3d\.ai|meshy\.ai|cn-beijing\.volces\.com|volcengineapi\.com)\b/i;
 /** El único archivo de functions/src que puede nombrarlos hoy: el de las matrices PENDING (sin capacidades). */
 const PUEDEN_NOMBRARLOS = new Set(['functions/src/registry/matrices.ts']);
 
@@ -343,9 +350,9 @@ const COLUMNAS_DEL_MAPA_2 = ['Proveedor', 'Capacidad (MAPA 1)', 'Disponibilidad 
 const mapa2 = (doc) => tablaCon(entre(doc, '### 5.2 MAPA 2', '### 5.3'), COLUMNAS_DEL_MAPA_2);
 const mapa1 = (doc) => entre(doc, '### 5.1 MAPA 1', '### 5.2 MAPA 2');
 const etiquetaUnica = (filas) => filas.filter((f) => !ETIQUETAS.includes(f['Autorización comercial'])).map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}: «${f['Autorización comercial']}»`);
-/** Nunca se inventa una autorización: ni Tripo, ni Meshy, ni fal tienen hoy un contrato que diga APPROVED / AVAILABLE. */
+/** Nunca se inventa una autorización: ningún proveedor del MAPA 2 tiene hoy un contrato que diga APPROVED / AVAILABLE. */
 const autorizacionInventada = (filas) => filas
-  .filter((f) => /^(Tripo|Meshy|fal)$/.test(f.Proveedor) && f['Autorización comercial'] === 'APPROVED / AVAILABLE')
+  .filter((f) => f['Autorización comercial'] === 'APPROVED / AVAILABLE')
   .map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}`);
 const generacionDe = (filas, proveedor) => filas.filter((f) => f.Proveedor === proveedor && /3d\.generate/.test(f['Capacidad (MAPA 1)']));
 /**
@@ -390,6 +397,11 @@ const faltaEnLaGlobal = (doc) => {
   return [...ENTREGABLES_GLOBALES.filter((e) => !seccion.includes(`\`${e}\``)),
     ...(/\*\*DISABLED\*\*[^\n]*\n?[^\n]*\*\*REVIEW_REQUIRED\*\*/.test(seccion) ? [] : ['la regla DISABLED / REVIEW_REQUIRED'])];
 };
+/** Seed3D: lo que existe por API (en Volcano Engine, no en BytePlus ModelArk) es, con los términos públicos, NOT_ALLOWED. */
+const seed3dMalEtiquetado = (filas) => filas
+  .filter((f) => f.Proveedor === 'Seed3D' && /doubao-seed3d/.test(f['Endpoint / modelo']))
+  .filter((f) => f['Autorización comercial'] !== 'NOT_ALLOWED')
+  .map((f) => `${f.Proveedor} ${f['Endpoint / modelo']}: ${f['Autorización comercial']}`);
 const capacidadesAjenas = (filas, catalogo = CAPABILITY_CATALOG) => filas.flatMap((f) =>
   [...String(f['Capacidad (MAPA 1)']).matchAll(/\b(?:3d|world|scene|image|video|text)\.[a-z_]+\b/g)].map((m) => m[0])
     .filter((c) => !enCatalogo(catalogo, c) && !PROPUESTAS.includes(c)).map((c) => `${f.Proveedor}: ${c}`));
@@ -405,7 +417,7 @@ seccion('E', () => {
   const sinEtiqueta = etiquetaUnica(filas);
   check('E2) cada fila lleva EXACTAMENTE una de las siete etiquetas de autorización', filas.length > 0 && sinEtiqueta.length === 0, sinEtiqueta.join(' | '));
   const inventadas = autorizacionInventada(filas);
-  check('E3) «hay API» no es «Weë puede ofrecerlo»: ninguna fila de Tripo, Meshy o fal está APPROVED / AVAILABLE', inventadas.length === 0, inventadas.join(', '));
+  check('E3) «hay API» no es «Weë puede ofrecerlo»: ninguna fila del MAPA 2 (Tripo, Meshy, Seed3D, fal) está APPROVED / AVAILABLE', inventadas.length === 0, inventadas.join(', '));
   const tripo = generacionDe(filas, 'Tripo');
   const meshy = generacionDe(filas, 'Meshy');
   check('E4) Tripo genera solo con autorización escrita previa (Terms §3.2) y Meshy solo con Enterprise (§1.2 uso interno, §2.1, §2.6): los dos, OFF',
@@ -431,6 +443,10 @@ seccion('E', () => {
   const global = faltaEnLaGlobal(doc);
   check('E11) la investigación global de matrices 3D (no la hace esta línea): el documento nombra sus siete entregables y la regla del registro —todo candidato DISABLED y REVIEW_REQUIRED—',
     global.length === 0, global.join(', '));
+  const s3 = seed3dMalEtiquetado(filas);
+  check('E12) Seed3D 2.0: su API está solo en Volcano Engine —no en BytePlus ModelArk, y nunca con la clave ni el cliente de ModelArk— y, con los términos públicos (licencia solo en China continental, uso comercial con permiso escrito), es NOT_ALLOWED',
+    filas.filter((f) => f.Proveedor === 'Seed3D' && /doubao-seed3d/.test(f['Endpoint / modelo'])).length >= 1 && s3.length === 0
+    && /\*\*No está en BytePlus ModelArk\*\*/.test(doc) && /\*\*Nunca reutilizar el cliente de ModelArk\*\*/.test(doc), s3.join(', '));
 });
 
 /* ═══ F · CONTROLES: cada detector, con una entrada saboteada ══════════════ */
@@ -500,6 +516,12 @@ seccion('F', () => {
   check('F27) CONTROL E11: sin un entregable, sin la regla o sin la sección, se ve; completa, no',
     faltaEnLaGlobal(seccionGlobal).length === 0 && faltaEnLaGlobal(seccionGlobal.replace('`3d-provider-ranking.md`', '')).includes('3d-provider-ranking.md')
     && faltaEnLaGlobal(seccionGlobal.replace('**DISABLED**', 'DISABLED')).includes('la regla DISABLED / REVIEW_REQUIRED') && faltaEnLaGlobal('nada').includes('la sección §4d'));
+  check('F28) CONTROL E12: una fila de la API de Seed3D con otra etiqueta se ve; con NOT_ALLOWED, no',
+    seed3dMalEtiquetado([fila('Seed3D', 'doubao-seed3d-2-0-260328', '3d.generate · imagen', 'NO INTEGRADO', 'REQUIRES WRITTEN AUTHORIZATION', 'D')]).length === 1
+    && seed3dMalEtiquetado([fila('Seed3D', 'doubao-seed3d-2-0-260328', '3d.generate · imagen', 'NO INTEGRADO', 'NOT_ALLOWED', 'D')]).length === 0);
+  check('F29) CONTROL A3–A6: el host de la API de Volcano Engine en China se ve; el CDN de los resultados de Seedance y la API de BytePlus, no',
+    nombra('https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks').length > 0 && nombra('https://ark.cn-beijing.volcengineapi.com/').length > 0
+    && nombra('https://ark-content.volces.com/v.mp4').length === 0 && nombra('https://ark.ap-southeast.bytepluses.com/api/v3').length === 0 && nombra('VOLC_ARK_API_KEY').length > 0);
   check('F26) CONTROL A3–A6: Seed3D y Sloyd, con y sin guion, se ven', nombra('lo hace Seed3D').length === 1 && nombra('seed-3d').length === 1 && nombra('SEED3D_API_KEY').length >= 1 && nombra('Sloyd').length === 1);
 });
 

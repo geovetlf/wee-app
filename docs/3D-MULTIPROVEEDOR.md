@@ -15,9 +15,10 @@ al dueño. Lo vigila `functions/test/multiproveedor-3d.test.mjs`.
 **En una línea:** la arquitectura para mundos 3D (`world.generate`, fal + Hunyuan World) está construida y apagada; la de
 objetos 3D (`3d.generate` y sus operaciones) existe como vocabulario del catálogo y como piezas comunes reutilizables, y
 le faltan, en este orden, una decisión del dueño (la cuarta puerta, D3D-1), cinco precondiciones de dinero, material y
-modalidad que hoy fallarían en silencio (G3D-1 a G3D-4, G3D-7) y los contratos con Tripo y Meshy (D3D-3, D3D-4). **Sloyd**
-y **Seed3D 2.0** entraron en el alcance el 2026-10-07 y sus investigaciones no habían llegado: figuran como **PENDING
-DEPENDENCY** (§4b, §4c), apagados; y la investigación global de matrices 3D, también (§4d).
+modalidad que hoy fallarían en silencio (G3D-1 a G3D-4, G3D-7) y los contratos con Tripo y Meshy (D3D-3, D3D-4). **Sloyd** entró
+en el alcance el 2026-10-07 y su investigación no había llegado: **PENDING DEPENDENCY** (§4b). **Seed3D 2.0** entró el mismo
+día y ya está investigado: solo existe en Volcano Engine (China), no en BytePlus ModelArk, y sus términos públicos lo dejan en
+**NOT_ALLOWED** (§4c). La investigación global de matrices 3D: **PENDING DEPENDENCY** (§4d).
 
 ---
 
@@ -181,48 +182,53 @@ marca desaparece (la suite exige una de las dos cosas, nunca las dos ni ninguna:
 
 ---
 
-## 4c. Seed3D 2.0 (ByteDance Seed) — CANDIDATO 3D, PENDING PROVIDER ELIGIBILITY · PENDING DEPENDENCY
+## 4c. Seed3D 2.0 (ByteDance Seed) — CANDIDATO 3D, PENDING PROVIDER ELIGIBILITY
 
-Entró en el alcance de la Línea B el 2026-10-07 como «CANDIDATO 3D — PENDING PROVIDER ELIGIBILITY». La investigación
-oficial del proveedor (API, disponibilidad, precio, licencia, derechos, uso por terceros, reventa, requisitos Enterprise,
-jurisdicciones, retención de datos, seguridad y autorización contractual) es de esta línea y la está escribiendo un
-investigador; la Línea C entregará sus requisitos (capacidades, entradas y salidas, trabajo, formato, cancelación, material y
-versiones). **Ninguno de los dos había llegado al cerrar**: no se afirma nada del proveedor.
+Entró en el alcance de la Línea B el 2026-10-07. Su investigación oficial (notas de trabajo de la Línea B, 2026-10-07: el
+sitio de Seed, el informe técnico, la documentación y los términos de Volcano Engine y los de BytePlus ModelArk, sin
+cuentas, sin claves y sin llamar a nada) dice, en corto (⚖ = revisión legal):
 
-| Pieza | Estado |
+| Aspecto | Lo que dicen las fuentes oficiales |
 |---|---|
-| API, disponibilidad, precio, licencia, derechos, reventa, Enterprise, jurisdicciones, retención, seguridad, autorización | UNKNOWN — pendiente de su investigación |
-| Pista interna, sin verificar | La investigación de la rama sin integrar `filmmaker/core` (2026-09-29) lo anotó «solo en Volcano Engine (China), sin listado en BytePlus», y que la «3D» de ModelArk revende modelos de terceros. Hay que confirmarlo o descartarlo con la investigación de ahora: no se usa como dato |
-| MAPA 1 | No cambia |
-| MAPA 2 | Sin filas hasta su investigación |
-| Registro | Nada: ni adaptador, ni datos, ni matriz PENDING, ni un registro ACTIVE |
-| Estado | **PENDING / DISABLED**: sin clave, sin llamada, sin descarga |
+| Qué | El modelo 3D de segunda generación del equipo Seed de ByteDance (2026-04-23). En la API, `doubao-seed3d-2-0-260328`, la única versión publicada (Seed3D 1.0 se cerró en marzo de 2026). Sin pesos abiertos |
+| Capacidad por API | **Solo imagen → 3D**: una imagen; sale un archivo con textura y materiales PBR (glb, obj, usd o usdz) dentro de un ZIP, con 100 000, 500 000 o 1 000 000 de caras. Texto → 3D: UNKNOWN (las fuentes se contradicen). Partes, articulación (URDF), simulación y escenas son **investigación, sin API** |
+| Dónde | **Solo en Volcano Engine · 火山方舟, región cn-beijing.** **No está en BytePlus ModelArk**, la plataforma internacional con la que Weë sirve Seedance: a 2026-09-28 su 3D son dos modelos de terceros, Hyper3D Gen2 y Hitem3D 2.0 —candidatos de la investigación global (§4d), no Seed3D— |
+| Ciclo de vida | Tarea asíncrona: POST → id `cgt-…`; **solo sondeo** (sin aviso ni webhook para el 3D); estados `queued`, `running`, `succeeded`, `failed`, `cancelled` (más `expired` en la tabla de borrado); parar solo en `queued`, con un `DELETE` que en un estado terminal BORRA el registro; minutos; **el ZIP caduca a las 24 h**; el registro, 7 días o 24 h (se contradicen: se diseña para 24 h); RPM 300 y concurrencia 5 por cuenta; sin clave de idempotencia; un parámetro mal escrito se ignora sin error, así que hay que comprobar en la respuesta qué formato y qué caras se aplicaron |
+| Coste | **2,40 CNY por generación con éxito** (30 000 tokens × 0,80 CNY por cada 10 000); lo que falla no se cobra; `usage.completion_tokens` por tarea; cobro en CNY |
+| Licencia y uso comercial | **NOT_ALLOWED con los términos públicos**: la licencia de la plataforma Ark (§3.1) y la de Doubao (§1.2) valen solo en China continental, y cualquier uso comercial, o que dé ingresos directos o indirectos, exige el permiso escrito previo de Volcano Engine (§3.1). La nota de lanzamiento dice «可商用» (utilizable comercialmente) y lo contradice ⚖. Vía hipotética: un acuerdo escrito con Volcano Engine que cubra el uso comercial y el territorio fuera de China continental ⚖ |
+| Derechos del resultado | No reclaman su propiedad; sin exclusividad; sin atribución, pero con **etiquetado de IA obligatorio** (visible e implícito, normativa china) y sin herramienta de marca implícita para el 3D ⚖ |
+| Reventa y competencia | Prohibido sublicenciar, ceder o revender; prohibido usar salidas o prompts para entrenar u optimizar otros modelos o algoritmos que compitan (Doubao §2.4 ⚖: toca al motor de algoritmo, §23) |
+| Datos | Todo se trata en China (cn-beijing): las fotos de las personas saldrían hacia China (LGPD, RGPD) ⚖; no entrenan sin un consentimiento aparte (y su «programa de recompensas por colaboración» cuenta como consentimiento); sin DPA público |
+| Entidad y ley | Beijing Volcano Engine Technology Co., Ltd.; ley de la China continental y tribunales de Haidian (Pekín); el cliente asume las obligaciones de «proveedor de servicio de IA generativa» de la normativa china ⚖ |
+| Revendedores | Aparecen en buscadores (también una ruta en fal); no se abrieron y no prueban nada: con los términos públicos, cualquiera necesitaría su propio acuerdo con Volcano Engine o ByteDance ⚖ |
 
-**Si resulta estar en BytePlus ModelArk** —relación con la integración ARK que ya existe, sin activar ni llamar a nada—:
+**Su relación con la integración ARK que ya existe.** La familia de rutas es la misma (`contents/generations/tasks`), y por
+eso engaña: **Volcano Engine es otra plataforma, con otra cuenta, otra entidad contratante, otra moneda y otros términos
+que BytePlus**. La cuenta y el contrato con los que Weë sirve Seedance no alcanzan a Seed3D. Para la arquitectura:
 
-- **Un cliente, una clave.** Seedance (vídeo) y Seedream (imagen) ya comparten el cliente de ModelArk
-  (`functions/src/engine/providers/ark.ts`: `ARK_API_KEY`, `ARK_BASE_URL`, región ap-southeast por defecto). Seed3D sería
-  otro adaptador con su propio id de proveedor sobre ese cliente —como Seedream—, nunca modelos colgados del adaptador de
-  Seedance: así el Router, el registro, `DEFAULT_PROVIDERS` y las filas del MAPA 2 lo tratan como un proveedor aparte, con
-  su gobierno.
-- **La clave ya está montada.** `ARK_API_KEY` está en `PROVIDER_SECRET_NAMES` (`functions/src/secrets.ts`): la montan las
-  funciones con `AI_SECRETS` o `MODEL_SECRETS` y el barrido (`RECONCILIATION_SECRETS`). Un adaptador de Seed3D estaría
-  «configurado» allí donde lo está Seedance, así que **«sin clave» no sería una capa de seguridad para él**: lo mantendrían
-  apagado no estar en `ADAPTERS` (hoy), `DEFAULT_PROVIDERS` con `enabled: false`, su gobierno DISABLED y REVIEW_REQUIRED, su
-  fila del MAPA 2 y la falta de una puerta para `3d.generate` (D3D-1). Lo vigila A1 de la guardia.
-- **Tareas asíncronas.** Si usa la misma API de tareas que Seedance (`contents/generations/tasks`), su resolutor sería propio
-  (`RESOLUTORES_DE_ESTADO` va por proveedor, y el de Seedance lee salidas de vídeo) y su aviso, si lo hay, otro receptor con
-  su propio token: el de Seedance (`SEEDANCE_CALLBACK_TOKEN`) no se comparte.
-- **Matriz o reventa.** ModelArk es la plataforma oficial de ByteDance: un modelo propio de ByteDance servido allí sería una
-  matriz, como Seedance; un modelo de terceros que ModelArk revenda no lo sería (regla de matrices).
-- **Contrato.** Que Weë ya use ModelArk para Seedance no dice nada de los términos de Seed3D: su licencia, sus derechos del
-  resultado y su autorización comercial son filas propias del MAPA 2.
+- **Nunca reutilizar el cliente de ModelArk** (`functions/src/engine/providers/ark.ts`) apuntando `ARK_BASE_URL` a cn-beijing:
+  mandaría la clave de la cuenta de BytePlus (`ARK_API_KEY`) a otro host y mezclaría dos contratos. Sería un adaptador propio,
+  con su URL base, su propio id de proveedor y **su propia clave en un llavero dormido** (§19), sin montar.
+- **Los hosts no distinguen plataformas:** los resultados de Seedance también se descargan de dominios `volces.com`; lo que
+  separa Volcano Engine de BytePlus es la URL base de la API (`ark.cn-beijing.volces.com`) y la cuenta, no el CDN. La guardia
+  vigila ese host de la API, no el del CDN.
+- La cerca de `functions/test/f1d-generacion.test.mjs` fija hoy que solo `seedance.ts` nombra la ruta de tareas de ModelArk:
+  un adaptador de Seed3D la movería, con autorización.
+- **Si algún día llega a BytePlus ModelArk** (no está anunciado): sería otro adaptador sobre el cliente compartido, como
+  Seedream, con la clave ya montada en las funciones de IA y en el barrido; entonces «sin clave» no lo apagaría, y lo
+  apagarían su ausencia de `ADAPTERS`, `enabled: false`, su gobierno DISABLED / REVIEW_REQUIRED y la falta de puerta
+  (D3D-1). Su contrato seguiría siendo una fila propia del MAPA 2.
 
-**Si no está en ModelArk** (por ejemplo, solo en Volcano Engine): otro proveedor, con su contrato, su clave en un llavero
-dormido propio (§19) y su jurisdicción y residencia de datos.
+**En el registro:** hoy nada (ni adaptador, ni datos, ni matriz PENDING, ni un registro ACTIVE); si entra, DISABLED y
+REVIEW_REQUIRED (§4d, §7). Con los términos públicos la lectura honesta sería BLOCKED_GLOBAL —Weë opera fuera de China
+continental y cobra—: cuál se escribe en sus datos lo decide legal (D3D-19). Sus brechas propias: el coste en CNY (G3D-18),
+la salida en un ZIP que caduca a las 24 h (G3D-19) y una licencia «solo en China continental» que no es el país de la persona
+(G3D-20).
 
-Cuando lleguen la investigación y los requisitos de la Línea C: sus filas en §5.2, su columna en §5.3, su gobierno en §12,
-lo que pida su contrato al contrato de objetos (§6) y esta marca desaparece (E10).
+**Requisitos de la Línea C para Seed3D** (capacidades, entradas y salidas, trabajo, formato, cancelación, material y
+versiones): PENDING DEPENDENCY, porque su archivo no había llegado al cerrar.
+
+---
 
 ## 4d. Investigación global de matrices 3D — PENDING DEPENDENCY
 
@@ -376,12 +382,16 @@ terceros) y «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED, 
 | Meshy | `text-to-image`, `image-to-image` (Nano Banana, GPT Image) | `image.generate` / `image.edit` | SÍ | DESCARTADO: revende modelos de terceros (regla de matrices) | REVIEW_REQUIRED | E | M13–M14: Enterprise + términos de Google y OpenAI (§2.7) |
 | fal | `fal-ai/hunyuan_world/image-to-world` | `world.generate` | SÍ | INTEGRADO (apagado: DISABLED, sin `FAL_KEY`, puerta cerrada) | REVIEW_REQUIRED | A | FAL.md §3: licencia de Tencent (EU/GB/KR fuera, 1 M MAU, AUP 12) y términos de fal (§2 edad, §4(b)(ii), §6(e) «service bureau») |
 | fal | Hunyuan 3D (2.x, 3.x) | `3d.generate` | SÍ | DESCARTADO (evaluado, no añadido) | REVIEW_REQUIRED | A | FAL.md §3: 2.x con las mismas exclusiones territoriales; 3.x «partner-hosted» sin licencia pública |
+| Seed3D | `doubao-seed3d-2-0-260328` (Volcano Engine 火山方舟, cn-beijing) | `3d.generate` · imagen | SÍ (solo en Volcano Engine; no en BytePlus ModelArk) | NO INTEGRADO (otra plataforma, cuenta y contrato que Seedance) | NOT_ALLOWED | D | Ark §3.1 y Doubao §1.2: licencia solo en China continental; uso comercial con permiso escrito previo; vía: un acuerdo escrito con Volcano Engine (uso comercial + territorio) ⚖ |
+| Seed3D | `doubao-seed3d-2-0-260328` con solo texto | `3d.generate` · texto | UNKNOWN (las fuentes se contradicen) | NO INTEGRADO | NOT_ALLOWED | D | Si existe, lo mismo que la fila anterior |
+| Seed3D | Experience Center (demo de Volcano Engine) | — | NO (solo web) | DESCARTADO | NOT_ALLOWED | E | Solo para probar el modelo y no da derechos (Ark §3.7.14) |
 
 **Sin fila** (no hay nada que autorizar; N/A en la investigación): lo que el proveedor no ofrece —Tripo: texto →
-movimiento, vídeo, mundos, fabricación; Meshy: splat, Text to Texture y Text to Voxel (retirados)—. Las vistas previas de
+movimiento, vídeo, mundos, fabricación; Meshy: splat, Text to Texture y Text to Voxel (retirados); Seed3D: varias imágenes, texturizar una malla propia, convertir, refinar o variaciones, y sus
+partes, articulación (URDF), simulación y escenas, que son investigación sin API—. Las vistas previas de
 Tripo y las miniaturas de Meshy no son un servicio de render: viajan como variante del resultado (§11).
 
-**Sloyd y Seed3D:** PENDING DEPENDENCY (§4b, §4c): sin filas hasta que lleguen sus investigaciones.
+**Sloyd:** PENDING DEPENDENCY (§4b): sin filas hasta que llegue su investigación.
 
 **Lo que cambia cuando llega un contrato:** solo la etiqueta de SUS filas (y, si el contrato lo concede, lo que permita
 de la selección), en los datos del modelo, con su fuente y su fecha. Ni el MAPA 1, ni la app, ni la puerta se enteran.
@@ -404,7 +414,8 @@ La matriz que pide la FASE 5, para leer de un vistazo. Manda el MAPA 2: aquí so
 | `world.edit` | **PROPUESTA** | No | No | No (`world.expand`: NOT_SUPPORTED_BY_CURRENT_PROVIDER) | FALTA | `functions/src/core/escena3d.ts` | No se ofrece ni se simula |
 | `scene.generate` | DECLARED (design) | No | No | No | FALTA (proveedor) | — | Una escena compone materiales por id (`Escena3D`) |
 
-Sloyd y Seed3D no tienen columna todavía: PENDING DEPENDENCY (§4b, §4c).
+Seed3D (solo `3d.generate` · imagen, en Volcano Engine): NOT_ALLOWED con los términos públicos (§4c, §5.2, D3D-19). Sloyd no
+tiene columna todavía: PENDING DEPENDENCY (§4b).
 
 **Ids nuevos que propone esta línea, para reconciliar con la Línea C (UX de Weë Design) y con la Línea A:** `3d.animate` y
 `world.edit`. Ningún otro. Nada se ha añadido al catálogo.
@@ -588,6 +599,11 @@ es la RELACIÓN, nunca la fuente de verdad (`ProviderOperationRef`, `functions/s
 | unknown | `waiting` hasta su plazo | `outcome: 'unknown'` (sin `providerRef` si el POST no volvió) | `generando` | estado no listado; `expired` tras un éxito | estado no listado | `desconocido` |
 | reconciliation | liquidación «reconciliar»; reconciliador `rendirse` fuera del horizonte | — | — | `tasks/list` → `missed` | 404 tras la retención | `no_la_conoce` |
 
+**Seed3D (Volcano Engine)**, si algún día se integrara: `queued` y `running` → processing; `succeeded` → completed (el ZIP,
+copiado en la misma pasada: caduca a las 24 h); `failed` → failed; `cancelled` (solo desde `queued`) → cancelled; `expired` o
+un estado no listado → unknown y reconciliación; sin aviso, solo el barrido; `operationId` = su id `cgt-…`; horizonte de
+reconciliación de 24 h como mucho, la retención más corta que dan sus fuentes.
+
 **Lo que se reutiliza tal cual:** el conductor y la puerta por capacidad, el barrido de 5 min (pregunta, materializa y
 liquida en la misma pasada: una URL de Tripo que caduca en minutos se pide fresca con un `GET` y se copia en el momento,
 nunca se guarda), `pedirParada`, `maxAttempts: 1`, «un POST sin respuesta es un desenlace desconocido» (RUNTIME §23.3), el
@@ -634,6 +650,8 @@ sigue siendo cierta, el libro cierra exacto y no hay que tocar `functions/src/en
   no es imagen ni vídeo es el del catálogo y **no mira el coste del modelo**: un segundo proveedor de mundos de 0,60 USD se
   cobraría 39 Credits con un coste de 78. Regla: el precio de catálogo de cada servicio 3D es el techo del modelo más caro
   elegible de su cadena (como `TEXT_RATES`), y la suite lo comprueba para cada modelo que declare la capacidad (C2).
+- **G3D-18:** un proveedor que cobra en CNY (Seed3D: 2,40 CNY por generación) no cabe en un libro en USD
+  (`providerCurrency: 'USD'`) sin un tipo de cambio con fuente y fecha, o un techo conservador en USD escrito en sus datos.
 
 **Reserva, cobro y devolución:** `spendCredits` con `requestId` y huella → AUTHORIZED; la liquidación cobra al completar o
 devuelve exacto al fallar, UNA vez; una tarea aceptada deja su fila del libro en curso y la cierra la liquidación (RUNTIME
@@ -660,6 +678,7 @@ siempre (`functions/src/content/materializador.ts`):
 | versión | DERIVADA (`lineaDeVersiones`), nunca guardada | EXISTE (`linaje.ts`) |
 | retención | se copia al llegar a `success`/`SUCCEEDED`, en la misma pasada; la URL del proveedor no se guarda | EXISTE (molde de fal); Meshy borra a los 3 días |
 | tamaño y host | tope de bytes por adaptador (fal: 200 MB); solo https | **G3D-11**: sin lista de hosts de descarga por proveedor |
+| salida empaquetada | un ZIP con el archivo dentro (Seed3D), que caduca a las 24 h | **G3D-19**: hay que traerlo, descomprimirlo con límites (tamaño, número de entradas, rutas) y validar el formato aplicado; hoy el materializador guarda un archivo tal cual |
 
 Una operación derivada (retextura, rig, animación) crea un material **derivado** con `materialDerivado` y sus derechos
 endurecidos con `combinarDerechos` (`functions/src/core/content/linaje.ts`); convertir de formato crea una variante; mover o
@@ -673,17 +692,18 @@ Se reutiliza todo: el país del Perfil Real como única fuente (`functions/src/e
 (`functions/src/engine/elegibilidad.ts`), `Asset.derechos` y el resumen visible (`utils/derechosDelMaterial.ts`). Nada de un
 segundo sistema.
 
-Lo que declararía el gobierno de cada modelo (PROPUESTO para Tripo y Meshy, a partir de sus informes; lo de fal ya existe):
+Lo que declararía el gobierno de cada modelo (PROPUESTO para Tripo, Meshy y Seed3D, a partir de sus informes; lo de fal ya
+existe):
 
-| Dato por proveedor / modelo | Tripo | Meshy | fal · Hunyuan World |
-|---|---|---|---|
-| `territorio` | ninguno explícito → sin `territorio` (política del dueño, 2026-10-06) | ninguno explícito → sin `territorio` | EU/GB/KR bloqueadas |
-| `reviewStatus` | REVIEW_REQUIRED (§3.2 usuarios finales, no competencia, «Paid User») | REVIEW_REQUIRED (§2.1/§2.6 reventa, §2.9 entrenamiento) | REVIEW_REQUIRED |
-| `commercialUseStatus` | ALLOWED con cuenta de pago (por confirmar por escrito) | ALLOWED con plan de pago | RESTRICTED |
-| `outputRightsStatus` | UNCLEAR («en general todos los derechos», no es una cesión explícita) | CLEAR con plan de pago (en la medida que permita la ley) | RESTRICTED |
-| `attributionRequired` | `false` (pago) | `false` (pago) | `true` |
-| licencias | Terms of User Agreement (2025-07-11) | Terms of Use (2026-09-19) + AUP | Licencia de Tencent + términos de fal |
-| datos | Hong Kong (+ EE. UU.); no entrenan con datos de pago | AWS EE. UU.; entrenan con no-Enterprise (§2.9); prohíbe datos personales en entradas | `X-Fal-Store-IO: 0` |
+| Dato por proveedor / modelo | Tripo | Meshy | fal · Hunyuan World | Seed3D · Volcano Engine |
+|---|---|---|---|---|
+| `territorio` | ninguno explícito → sin `territorio` (política del dueño, 2026-10-06) | ninguno explícito → sin `territorio` | EU/GB/KR bloqueadas | licencia solo en China continental, sin definir si cuenta dónde está el cliente o dónde la persona (⚖): no cabe en `territorio` (G3D-20) |
+| `reviewStatus` | REVIEW_REQUIRED (§3.2 usuarios finales, no competencia, «Paid User») | REVIEW_REQUIRED (§2.1/§2.6 reventa, §2.9 entrenamiento) | REVIEW_REQUIRED | REVIEW_REQUIRED (la lectura honesta sería BLOCKED_GLOBAL: D3D-19) |
+| `commercialUseStatus` | ALLOWED con cuenta de pago (por confirmar por escrito) | ALLOWED con plan de pago | RESTRICTED | NOT_ALLOWED sin el permiso escrito previo (Ark §3.1) |
+| `outputRightsStatus` | UNCLEAR («en general todos los derechos», no es una cesión explícita) | CLEAR con plan de pago (en la medida que permita la ley) | RESTRICTED | UNCLEAR (no reclaman la propiedad; uso según el acuerdo y la ley; sin exclusividad) |
+| `attributionRequired` | `false` (pago) | `false` (pago) | `true` | `false`, pero etiquetado de IA obligatorio (G3D-15) |
+| licencias | Terms of User Agreement (2025-07-11) | Terms of Use (2026-09-19) + AUP | Licencia de Tencent + términos de fal | Términos de la plataforma Ark (2026-08-05), acuerdo de Doubao (2026-09-17) y contrato marco de Volcano Engine (2024-06-14) |
+| datos | Hong Kong (+ EE. UU.); no entrenan con datos de pago | AWS EE. UU.; entrenan con no-Enterprise (§2.9); prohíbe datos personales en entradas | `X-Fal-Store-IO: 0` | China (cn-beijing); no entrenan sin consentimiento aparte; sin DPA público |
 
 **Regla que no cambia:** un modelo con licencia, uso comercial, derechos del resultado o restricción territorial
 desconocidos es REVIEW_REQUIRED y no es elegible (la configuración no aprueba: solo endurece). Sanciones y control de
@@ -826,8 +846,9 @@ Ninguna se crea ni se monta en esta misión. El diseño, el mismo de `FAL_KEY` (
    - `MESHY_API_KEY` (Meshy no firma sus avisos: no hay secreto de webhook). Con el límite mensual de créditos por clave que
      ofrece su consola, como defensa extra.
    - `FAL_KEY`: ya declarada y dormida (`FAL_SECRETS`).
-   - Seed3D: si está en ModelArk no hay clave nueva —comparte `ARK_API_KEY`, ya montada— y lo apagan las otras capas (§4c);
-     si no, su propio llavero dormido. Sloyd: pendiente de su investigación (§4b).
+   - Seed3D: está en Volcano Engine, no en BytePlus: **no puede usar `ARK_API_KEY`** (la clave de la cuenta de BytePlus) ni
+     el cliente de ModelArk; tendría su propio llavero dormido, con su clave y su URL base (§4c). Sloyd: pendiente de su
+     investigación (§4b).
 2. **Montadas solo donde se leen:** la puerta de la capacidad, el barrido (`RECONCILIATION_SECRETS`, que solo consulta) y, si
    el dueño expone avisos, la Function que los recibe. `secretValue` y `knownSecretValues` las buscan por nombre, para
    censurarlas en los registros (`sanitizeForLog`).
@@ -866,7 +887,8 @@ la configuración.
 | Corregir `produces` de `3d.*` en el catálogo | Lo leen `functions/src/core/algorithm/decomposition-engine.ts` y `functions/src/creator/sombra.ts` (Línea A) y lo fija `core-gateway` 105 (G3D-3) |
 | Dataset de evals, reglas de G3, cambios en Guardian | `ops/**` es de la Línea A (§17, §18) |
 | Claves, avisos, despliegue, activación | Prohibido en esta misión |
-| Sloyd y Seed3D 2.0 | PENDING DEPENDENCY: sus investigaciones las escriben otros investigadores y no habían llegado; aquí no se inventa nada de ellos (§4b, §4c) |
+| Sloyd | PENDING DEPENDENCY: su investigación la escribe otro investigador y no había llegado; aquí no se inventa nada (§4b) |
+| Seed3D 2.0 | Investigado e incorporado (§4c, §5.2, §12): NOT_ALLOWED con los términos públicos; nada que implementar hasta D3D-19. Los requisitos de la Línea C para Seed3D: PENDING DEPENDENCY |
 | La investigación global de matrices 3D | PENDING DEPENDENCY: la hacen cinco investigadores y un sintetizador, no esta línea; sus entregables no existían al cerrar (§4d) |
 
 ---
@@ -892,6 +914,9 @@ la configuración.
 | G3D-15 | `DerechosDelMaterial` no tiene dónde guardar «no quitar marcas de IA» ni «etiquetar lo generado» | `functions/src/core/content/asset.ts`; Meshy §2.4; Hunyuan AUP 12 | Dimensión nueva + enseñar a `linaje.ts` a endurecerla (D3D-13) |
 | G3D-16 | El registro de main no declara a Meshy como candidata (sí `filmmaker/core`) | `functions/src/registry/matrices.ts` | Integrar `filmmaker/core` o su línea de matrices (D3D-15) |
 | G3D-17 | El registro no puede expresar el MAPA 2: ni autorización comercial por (proveedor, modelo, capacidad), ni selección de proveedor A–E; hoy solo `reviewStatus` + `motivo` por modelo | `functions/src/engine/types.ts` (`GobiernoDeModelo`), `functions/src/engine/elegibilidad.ts` | `gobierno.condiciones` y su escalón en `modeloElegible` (§7) |
+| G3D-18 | El libro es en USD (`providerCurrency: 'USD'`); un proveedor que cobra en CNY (Seed3D) necesita un tipo de cambio con fuente y fecha, o un techo en USD | `functions/src/engine/types.ts` (`GenerationRecord`), `functions/src/engine/pricing.ts` | Su `providerPricing` en USD, convertido con fuente, o un campo de moneda |
+| G3D-19 | La salida de Seed3D es un ZIP que caduca a las 24 h; el materializador guarda un archivo tal cual | `functions/src/content/materializador.ts` | Traerlo en la misma pasada y descomprimirlo con límites (tamaño, entradas, rutas), validando el formato aplicado |
+| G3D-20 | `ReglasTerritoriales` no dice «solo en X, bloqueado en el resto» (`resto` solo admite APPROVED o REVIEW_REQUIRED), y la licencia de Seed3D puede referirse a dónde está el cliente (Weë) y no al país de la persona ⚖ | `functions/src/engine/types.ts` (`ReglasTerritoriales`), `functions/src/engine/jurisdiccion.ts` | Hasta decidirlo, REVIEW_REQUIRED global (falla cerrado); `resto: 'BLOCKED'` o un bloqueo del proveedor sería un cambio de tipo |
 
 ---
 
@@ -913,13 +938,14 @@ Cada una con su recomendado, **no aplicado**.
 | D3D-9 | Cupo diario: mundos y objetos comparten la modalidad `3d` (5 al día) | A) Un cupo 3D común · B) Un cupo por capacidad | **B** |
 | D3D-10 | Precio en Credits de cada servicio 3D | A) Techo del modelo más caro elegible, medir `providerCost` y ajustar · B) Precio fijo de prueba | **A** |
 | D3D-11 | Cancelar objetos 3D (Tripo no para; Meshy solo en PENDING; `expired` tras un éxito sin copiar) | A) Ofrecer «cancelar» solo donde el proveedor para de verdad · B) No ofrecerlo | **A** |
-| D3D-12 | Fotos de personas («3D de mí», avatar): Tripo desaconseja caras de terceros; Meshy prohíbe datos personales | A) Bloquear caras hasta tener base legal y DPA · B) Permitirlas con aviso | **A** |
+| D3D-12 | Fotos de personas («3D de mí», avatar): Tripo desaconseja caras de terceros; Meshy prohíbe datos personales; Seed3D las mandaría a China | A) Bloquear caras hasta tener base legal y DPA · B) Permitirlas con aviso | **A** |
 | D3D-13 | Marcas de IA y etiquetado como dimensión de derechos | A) Dimensión nueva en `DerechosDelMaterial` + `linaje.ts` · B) Solo en `licencias.notas` | **A** |
 | D3D-14 | Visor 3D y dónde se guardan las escenas (ya pendientes en 3D-EXPERIENCIA §19) | A) Integrar el visor web de `filmmaker/core` · B) Otra biblioteca | **A** |
 | D3D-15 | Integrar lo preparado en `filmmaker/core` (Meshy y World Labs PENDING, `models3d`, visor) antes o después de esta línea | A) Antes · B) Después, re-anclando | **A** |
 | D3D-16 | Reconciliar «sin referencia» (Meshy lista tareas por fecha; Tripo necesita ids) | A) Herramienta humana · B) Automática | **A** |
 | D3D-17 | **¿Puede la persona elegir proveedor (selección B)?** CLAUDE.md: nunca ve proveedores ni modelos por defecto (como mucho, un modo avanzado opcional y oculto). El MAPA 2 la deja en REVIEW_REQUIRED en Tripo y en Meshy (uso de marca, acceso visible de terceros) y UNKNOWN en fal; «trae tu propia clave» es NOT_ALLOWED en Tripo y REVIEW_REQUIRED, con lectura desfavorable, en Meshy. Haría falta un contrato que lo permita Y una decisión del dueño | A) No: A siempre (el Router elige) · B) Solo en un modo avanzado oculto, por proveedor, cuando su contrato lo permita | **A** (no es una función: es una decisión pendiente) |
 | D3D-18 | ¿Entran en el alcance de Weë las capacidades no 3D de estos proveedores (imagen con modelos de terceros, multivista) y la impresión o el producto físico (preparar para imprimir, Creative Lab, fabricación)? | A) Solo 3D: generar, texturizar, retopología, rig, animar, convertir · B) A + preparar para imprimir · C) B + producto físico | **A** |
+| D3D-19 | Seed3D 2.0: solo existe en Volcano Engine (China), con licencia para China continental y uso comercial con permiso escrito; los datos irían a China y el cliente asume obligaciones de la normativa china | A) Esperar a BytePlus ModelArk, donde Weë ya tiene contrato, y preguntar si llegará · B) Negociar un acuerdo escrito con Volcano Engine (uso comercial + territorio + datos) · C) Descartarlo | **A**; mientras, sus datos, si entran, REVIEW_REQUIRED (o BLOCKED_GLOBAL, si lo decide legal) y DISABLED |
 
 ---
 
@@ -940,6 +966,9 @@ archivos, ni su worktree, ni sus suites. Lo que habrá que decidir juntas al int
 6. **Cercas de cierre** (`functions/test/puente-pre-f1d.test.mjs` F1/F3, `functions/test/video-asincrono.test.mjs` H3): esta línea
    **no cambia nada en `functions/src`**, así que no las re-ancla; si la Línea A las re-ancla, la de esta línea no las mueve.
 7. **`runtime-map`** fija tres puertas: una cuarta (D3D-1) lo cambia, con la autorización.
+8. **Seed3D y el motor de algoritmo:** el acuerdo de Doubao (§2.4) prohíbe usar salidas o prompts para optimizar otros modelos
+   o algoritmos que compitan; si algún día se integrara, que el Algorithm Engine aprenda de sus resultados es una pregunta
+   legal que toca a la Línea A ⚖.
 
 ---
 
@@ -965,9 +994,9 @@ Ninguno de estos pasos se ha dado; cada uno es una decisión del dueño.
 
 Algorithm Engine CONTINÚA EN SU MISIÓN — NO INTERFERIDO · Tripo OFF · Meshy OFF · fal.ai OFF · Hunyuan OFF · World 3D OFF ·
 API keys NO · Real calls NO · Production deploy NO · Real spend NO · Sloyd OFF (PENDING DEPENDENCY) · Seed3D PENDING /
-DISABLED (PENDING DEPENDENCY) · investigación global de matrices 3D PENDING DEPENDENCY: todo candidato DISABLED /
+DISABLED (investigado: NOT_ALLOWED con los términos públicos) · investigación global de matrices 3D PENDING DEPENDENCY: todo candidato DISABLED /
 REVIEW_REQUIRED.
 
-Lo que no se pudo verificar: ninguna API de Tripo ni de Meshy se ha llamado (todo sale de su documentación pública, con los
-UNKNOWN de §3 y §4); la lectura jurídica es de un informe técnico y necesita revisión legal; el formato real de los
+Lo que no se pudo verificar: ninguna API de Tripo, de Meshy ni de Seed3D se ha llamado (todo sale de su documentación pública,
+con los UNKNOWN de §3, §4 y §4c); la lectura jurídica es de un informe técnico y necesita revisión legal; el formato real de los
 archivos de mundo de fal y la retención de Tripo siguen sin confirmar.
