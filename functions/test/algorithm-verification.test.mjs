@@ -594,5 +594,23 @@ check('CM3b · y ninguna clave publicada por A6, para ningún estado, se queda f
   [verificar(PIDE_CALIDAD), conEval(evaluador('e1', 'fail', 0.4)).verificar(PIDE_CALIDAD), conEval(evaluador('e2', 'pass', 0.95)).verificar(PIDE_CALIDAD)]
     .every((r) => r.signals.every((s) => A.senalValida(s))));
 
+console.log('\n─── Misión de cierre · un corte del presupuesto no da por bueno lo que no miró ───');
+
+const TODO_BIEN_CM = { expected: Array.from({ length: 12 }, (_, i) => ({ kind: `k${i}` })), actual: res('r', { outputs: Array.from({ length: 12 }, (_, i) => sal(`k${i}`, 'x')) }) };
+const enteroCM = verificar(TODO_BIEN_CM);
+const cortadoCM = verificar({ ...TODO_BIEN_CM, budget: { maxChecks: 3 } });
+check('CM16 · CONTROL · con presupuesto de sobra, todo lo pedido está y el veredicto es `pass`',
+  enteroCM.status === 'pass' && enteroCM.passed === true, enteroCM.status);
+check('CM17 · REGRESIÓN · cortado por el tope de comprobaciones, lo no mirado entra como `unknown` —no se deja fuera— y el veredicto NO es `pass`',
+  cortadoCM.metricas.budgetExhausted === true && cortadoCM.status !== 'pass' && cortadoCM.passed !== true
+  && cortadoCM.findings.some((x) => x.status === 'unknown' && x.by === 'budget')
+  && cortadoCM.findings.length === enteroCM.findings.length,
+  `${cortadoCM.status} · ${cortadoCM.findings.length} hallazgos (entero: ${enteroCM.findings.length})`);
+check('CM18 · y un duro sin mirar no deja pasar: el veredicto queda en `unknown`',
+  cortadoCM.findings.some((x) => x.hard && x.by === 'budget') && cortadoCM.status === 'unknown',
+  `${cortadoCM.findings.filter((x) => x.hard && x.by === 'budget').length} duros sin mirar · ${cortadoCM.status}`);
+check('CM19 · A6 sube a `motor-de-verificacion@3`: cambia lo que decide cuando se corta (regla de `AlgorithmDescriptor.version`)',
+  A.DESCRIPTOR_DE_VERIFICACION.version === 3);
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA6: verifica lo que puede, dice lo que no sabe, y propone sin ejecutar');
 process.exit(failures ? 1 : 0);
