@@ -37,7 +37,7 @@ import {
   referenciaDeAlgoritmo,
 } from './types';
 import {
-  AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectivo, problemasDelPresupuesto, topeDelContador,
+  Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto, topeDelContador,
 } from './budget';
 import {
   AlgorithmConstraints, EJES, Objective, ObjectiveAxis, conflictosDeRestricciones, ladoFundible, pesosNormalizados, problemasDeLosLados,
@@ -45,7 +45,7 @@ import {
 import {
   Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales, senalValida,
 } from './signals';
-import { Alternative, AxisValues, StrategyScore, ejesDeEstrategia, pareto, puntuar } from './scoring';
+import { Alternative, AxisValues, StrategyScore, pareto, puntuar } from './scoring';
 import { Strategy, problemasDeEstrategia } from './strategy';
 import { violacionesDeEstrategia, violacionesEn } from './authority';
 /* Solo la DEFINICIÓN de muestra de A7. Ni su motor ni el de A8: A1 no lee de ellos. */
@@ -1131,24 +1131,6 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
 
   return { descriptor: DESCRIPTOR_DEL_MOTOR, decidir };
 };
-
-/** Lo que el motor ESPERA del elegido. Para comparar con la línea base; no es lo medido. */
-export const resultadoEsperado = <T>(d: AlgorithmDecision<T>, valores?: AxisValues): {
-  quality?: number; costUsd?: number; latencyMs?: number;
-} => {
-  const v = valores ?? {};
-  return {
-    quality: typeof v.quality === 'number' ? v.quality : undefined,
-    costUsd: typeof v.cost === 'number' ? v.cost : undefined,
-    latencyMs: typeof v.latency === 'number' ? v.latency : undefined,
-  };
-};
-
-/** Los ejes de una alternativa cuyo valor es una estrategia. Atajo sobre lo de A0. */
-export const valoresDeEstrategia = (s: Strategy): AxisValues => ejesDeEstrategia(s);
-
-/** Un gasto vacío, para quien tenga que construir una decisión sin haber pensado. */
-export const SIN_GASTO: Readonly<AlgorithmSpend> = GASTO_CERO;
 
 /** El contador, expuesto para que una prueba pueda construir el mismo que usa el motor. */
 export const contadorDelMotor = (limites?: AlgorithmBudgetLimits, ahora?: () => number): Contador =>

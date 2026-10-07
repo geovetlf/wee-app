@@ -32,7 +32,7 @@
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { AlgorithmBudgetLimits, AlgorithmDescriptor, referenciaDeAlgoritmo } from './types';
-import { Contador, GASTO_CERO, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
+import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
 import { AlgorithmConstraints, ObjectiveAxis, problemasDeLosLados } from './objective';
 import {
   Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales,
@@ -50,6 +50,8 @@ import {
 
 export const OPTIMIZATION_ENGINE_ID = 'motor-de-optimizacion';
 export const OPTIMIZATION_ENGINE_VERSION = 1;
+/* Su identidad `id@version`, de la familia de las otras `*_REF`. A5 no la estampa en sus propuestas
+ * —no es una autoridad que proponga estrategias, las mejora—; la leería el registro (PREPARADO). */
 export const OPTIMIZATION_ENGINE_REF = referenciaDeAlgoritmo(OPTIMIZATION_ENGINE_ID, OPTIMIZATION_ENGINE_VERSION);
 
 export const DESCRIPTOR_DE_OPTIMIZACION: AlgorithmDescriptor = Object.freeze({
@@ -545,5 +547,3 @@ export const evaluarPropuesta = <T>(
   };
 };
 
-/** Un gasto vacío, para quien construya un resultado sin haber optimizado. */
-export const SIN_OPTIMIZAR = GASTO_CERO;

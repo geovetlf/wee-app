@@ -27,7 +27,6 @@
  */
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
-import { PlanStep } from '../planner';
 import { AlgorithmBudgetLimits, AlgorithmDescriptor, referenciaDeAlgoritmo } from './types';
 import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
 import { AlgorithmConstraints, problemasDeLosLados } from './objective';
@@ -322,7 +321,3 @@ export const crearMotorDeParalelizacion = (opciones: OpcionesDelParalelizador = 
 
   return { descriptor: DESCRIPTOR_DE_PARALELIZACION, analizar, variantes };
 };
-
-/** Un paso con su duración, para construir una tabla de pruebas o un informe. */
-export const conDuracion = (steps: readonly PlanStep[], dur: DuracionDe): readonly { id: string; ms?: number }[] =>
-  steps.map((s) => ({ id: s.id, ...(duracionValida(dur(s.id)) ? { ms: dur(s.id) as number } : {}) }));
