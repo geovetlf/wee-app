@@ -65,8 +65,8 @@ import { Strategy } from './strategy';
  * sistema por no saber dónde estaba el primero.
  */
 export const EFECTOS_PROHIBIDOS: readonly { readonly efecto: string; readonly dueno: string }[] = Object.freeze([
-  Object.freeze({ efecto: 'elegir proveedor o modelo', dueno: 'Router (core/router.ts)' }),
-  Object.freeze({ efecto: 'llamar a una API de proveedor', dueno: 'Gateway + adaptador (core/gateway.ts)' }),
+  Object.freeze({ efecto: 'elegir proveedor o modelo', dueno: 'Router (core/router.ts; en producción hoy, engine/router.ts, DD-02)' }),
+  Object.freeze({ efecto: 'llamar a una API de proveedor', dueno: 'Gateway + adaptador (core/gateway.ts; en producción hoy, engine.generate y su adaptador, DD-02)' }),
   Object.freeze({ efecto: 'cobrar, reservar o reembolsar Credits', dueno: 'Financial Core (core/financial, credits/)' }),
   Object.freeze({ efecto: 'crear o modificar materiales', dueno: 'Asset Core (core/content)' }),
   Object.freeze({ efecto: 'crear o ejecutar trabajos', dueno: 'Job Engine (core/job.ts)' }),

@@ -63,7 +63,11 @@ export interface OpcionesDelCiclo {
    * A4, A3, A5) recibe el tiempo que queda como su propio `maxLatencyMs` y se recorta
    * como siempre —lo mejor que tenga—, y entre etapas, si no queda tiempo, el ciclo
    * se para con `budget_exceeded` y dice antes de qué etapa. En `cerrar`, A6 y A6r
-   * reciben el reloj y miden su PROPIO tope (el del presupuesto que les llegue).
+   * reciben el reloj y miden su PROPIO tope (el del presupuesto que les llegue), sin
+   * uno común a las dos. A8 —lo aprendido— va antes de la primera comprobación y sin
+   * el cronómetro (su reloj es el `ahora` de la petición): lo acotan sus propios
+   * topes. Y el corte entre etapas es el tercer caso de `budget_exceeded`
+   * (`MotivoDeParada`): sin `decision`, y dicho en el porqué.
    *
    * NO es un reloj de pared: no sirve para `deadlineAt`, que es una fecha. Por eso
    * A1 no lo recibe —su `ahora` es justamente ese reloj de pared—, y el ciclo

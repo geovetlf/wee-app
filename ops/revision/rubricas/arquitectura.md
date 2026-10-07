@@ -72,6 +72,6 @@ convierte una función en dos. Un buen hallazgo de arquitectura dice qué capa s
   contrato, con versión nueva del contrato.
 - El Algorithm Engine es PREPARED, en sombra y sin autoridad (DD-26, `CLAUDE.md` § 11): decide DE QUÉ FORMA y
   nunca CON QUÉ. Es alta que elija o reciba como autoridad un proveedor o un modelo —con esa palabra o con otra:
-  la frontera de `authority.ts` es por responsabilidad—, que su salida cambie la respuesta, el plan o la ejecución,
+  la frontera de `authority.ts` es por responsabilidad, con los límites que dice `docs/ALGORITHM-ENGINE.md` § 21—, que su salida cambie la respuesta, el plan o la ejecución,
   que alguien fuera de la sombra cree el ciclo, que se conecte el cierre del ciclo, `paraRouter` o
   `repartirRequisitos`, o que el Orchestrator pase a depender de sus `parallelGroups`, sin autorización explícita.

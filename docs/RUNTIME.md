@@ -240,9 +240,9 @@ módulo vivo. Se conectará con Publication; hoy no hay consumidor que migrar.
 ```
 CreatorFlowScreen
   → services/creatorService.ts
-    → creatorChat   creator/index.ts:186   getPlanner().next()            → creatorJobs (asking)
-    → creatorQuote  creator/index.ts:316   estimatePlan()                 → creatorJobs (planned)
-    → creatorRun    creator/index.ts:401   holdCredits()                  → creditTransactions
+    → creatorChat   creator/index.ts:264   getPlanner().next()  (:357)    → creatorJobs (asking)
+    → creatorQuote  creator/index.ts:444   estimatePlan()                 → creatorJobs (planned)
+    → creatorRun    creator/index.ts:552   holdCredits()        (:613)    → creditTransactions
          while (done.size < steps.length)                                  creator/index.ts:637
            runCapability()                 gateway/index.ts:23
              engine.generate()             engine/index.ts:47
@@ -495,7 +495,7 @@ Seguido por imports y llamadas, no por comentarios. `archivo:línea` en cada sal
 | Capacidad | Ruta de hoy | Ruta objetivo | Diferencia | Riesgo | Estrategia |
 |---|---|---|---|---|---|
 | **Texto de Weë Brain** | `brainChat` (`creator/brain.ts:246`) → `crearBrainDeWee` → pensador en línea → `engine.generate` (`:367`) con `modelId` + `allowedProviders` fijados (`:376`) | el mismo Brain; su pensador ejecuta por el conductor | hoy no hay trabajo, ni intentos, ni recuperación | BAJO: síncrono, 120 s, la liquidación se queda donde está | **primera capacidad a migrar**, detrás de la puerta |
-| **Pasos de texto de `creatorRun`** | `creatorRun` (`creator/index.ts:401`) → `while` (`:463`) → `runCapability` (`gateway/index.ts:23`) → `engine.generate` | workflow → conductor | el `while` no reintenta ni recupera; `deadlineAt` se pierde en `runCapability` | MEDIO: la liquidación es del trabajo entero | después del barrendero y la liquidación |
+| **Pasos de texto de `creatorRun`** | `creatorRun` (`creator/index.ts:552`) → `while` (`:637`) → `runCapability` (`gateway/index.ts:23`) → `engine.generate` | workflow → conductor | el `while` no reintenta ni recupera; `deadlineAt` se pierde en `runCapability` | MEDIO: la liquidación es del trabajo entero | después del barrendero y la liquidación |
 | **Imagen** | igual, con `planImage` fijando un solo proveedor (`engine/image.ts:31`) | igual | sin respaldo entre proveedores, a propósito | MEDIO | con `creatorRun` |
 | **Vídeo** | `creatorRun` → `videoEngine.generate` (`engine/video.ts:148`) → Seedance con sondeo cada 10 s dentro de la Function | trabajo → proveedor acepta → `waiting` → aviso del proveedor | hoy ocupa una Function hasta 25 min; la tarea **no se cancela** en el proveedor si vence | **ALTO** | **no se migra todavía** (§ 11.9) |
 | **Voz** | `creatorRun` → `runCapability` → ElevenLabs › MiniMax | igual | — | MEDIO | con `creatorRun` |

@@ -29,8 +29,13 @@
  *
  * Un descriptor puede DECIR «estos modelos existen» y «estos proveedores la
  * sirven». Lo que no puede es ordenar cuál usar: elegir implementación es del
- * Router, y `validarDescriptorDeCapacidad` lo comprueba con el mismo predicado
- * que el Planner (`claveDeImplementacion`). Describir no es elegir.
+ * Router, y `validarDescriptorDeCapacidad` lo comprueba con la frontera de
+ * `authority.ts`: la lista del Planner (`claveDeImplementacion`) y, desde la
+ * misión de cierre, la lectura por responsabilidad. Describir no es elegir; pero
+ * hoy esa lectura alcanza también a la metadata que DESCRIBE —`pricingModel` o
+ * `supportsWebhook` no pasan—, más estricta de lo que hace falta. Dónde debe
+ * aplicarse es una decisión pendiente (DECISIONES-PENDIENTES, «la frontera sobre
+ * lo que se describe»); no hay ningún descriptor registrado.
  */
 
 import { Budget } from '../cost';

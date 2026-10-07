@@ -506,7 +506,7 @@ export type EstadoDelAlgoritmo =
   | 'sin_plan_del_core'
   /* El ciclo no decidió, o no entregó un plan. No es un error: se dice. */
   | 'no_decidido'
-  /* Lo que devolvió nombra una implementación. Se para ahí: ni comparación ni nada después. */
+  /* Lo que devolvió cruza la frontera de `authority.ts`: una implementación o, desde la misión de cierre, otra responsabilidad ajena —Credits, un secreto, una API…—. Se para ahí: ni comparación ni nada después. */
   | 'violacion_de_autoridad'
   /* Decidió, pero tardó más que su tope. La evidencia se guarda igual: es lo que hay que mirar. */
   | 'fuera_de_presupuesto'
@@ -813,6 +813,7 @@ export interface SeccionDelAlgoritmo {
     optimizacion: { factibles: number; propuestas: number; rechazadas: number };
   } | null;
   violaciones: number;
+  /** Las claves que cruzaron la frontera. El nombre es de cuando solo se veían implementaciones: desde la misión de cierre puede traer `walletId` o `apiKey`, y renombrarlo sería cambiar la forma de la sección guardada. */
   clavesDeImplementacion?: string[];
   comparacion: {
     resumen: Readonly<Record<string, number>>;
@@ -894,7 +895,8 @@ export const seccionDelAlgoritmo = (e: EntradaDelAlgoritmo): SeccionDelAlgoritmo
 
     /*
      * LA FRONTERA, antes que nada más. Si algo de lo que devolvió el ciclo
-     * nombra una implementación, la sombra se para aquí: sin comparación y sin
+     * cruza la frontera —una implementación u otra responsabilidad ajena—, la
+     * sombra se para aquí: sin comparación y sin
      * nada después. No se apaga la puerta ni se escribe en `aiSettings`: se
      * deja constancia y se sigue, que Legacy no se ha enterado de nada.
      */
