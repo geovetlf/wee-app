@@ -93,7 +93,10 @@ const cronometroSeguro = (c: (() => number) | undefined): { fresca: () => number
     try {
       const v = c();
       if (typeof v === 'number' && Number.isFinite(v)) { ultima = v; return v; }
-    } catch { /* el reloj no tumba el razonamiento: esta lectura no cuenta */ }
+    } catch {
+      /* El reloj no tumba el razonamiento: una lectura que lanza no cuenta, y se dice devolviendo «sin lectura». */
+      return undefined;
+    }
     return undefined;
   };
   return { fresca, leer: () => fresca() ?? ultima };
