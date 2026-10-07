@@ -36,6 +36,7 @@ import StudioScreen from '../screens/StudioScreen';
 import ProductionScreen from '../screens/ProductionScreen';
 import Mundo3DScreen from '../screens/Mundo3DScreen';
 import DesignScreen from '../screens/DesignScreen';
+import DesignReferenciaScreen from '../screens/DesignReferenciaScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
 import MisCreacionesScreen from '../screens/MisCreacionesScreen';
@@ -113,6 +114,12 @@ export type MainStackParamList = {
   Mundo3D: { descripcion?: string; imageUri?: string } | undefined;
   /* Weë Design, igual que Studio: un sitio con pantalla propia. */
   Design: undefined;
+  /**
+   * La REFERENCIA FUNCIONAL de Weë Design (Línea C, docs/WEE-DESIGN-WORKSPACE-ARCHITECTURE.md): no sustituye a `Design`.
+   * `grupo` abre un grupo de comandos (crear, transformar…); otro valor se ignora. Con su puerta cerrada, la pantalla
+   * solo lo dice: ni lee la cuenta ni llama a nada.
+   */
+  DesignReferencia: { grupo?: string } | undefined;
   WriterEditor: { docId?: string; text?: string; title?: string; replaceText?: string } | undefined;
   Projects: undefined;
   Project: { id: string };
@@ -363,6 +370,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="Production" component={ProductionScreen} />
       <Stack.Screen name="Mundo3D" component={Mundo3DScreen} />
       <Stack.Screen name="Design" component={DesignScreen} />
+      <Stack.Screen name="DesignReferencia" component={DesignReferenciaScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />
       <Stack.Screen name="MisCreaciones" component={MisCreacionesScreen} />

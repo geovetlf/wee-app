@@ -62,6 +62,7 @@ import { projects } from './projects';
 import { creaciones } from './creaciones';
 import { studio } from './studio';
 import { design } from './design';
+import { designRef } from './designRef';
 import { chef } from './chef';
 import { brain } from './brain';
 import { auth } from './auth';
@@ -112,6 +113,7 @@ export const hi: FormaDelDiccionario = {
   creaciones,
   studio,
   design,
+  designRef,
   chef,
   brain,
   moderation,
