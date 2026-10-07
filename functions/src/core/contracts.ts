@@ -186,8 +186,8 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  *
  * Lo que NO entra, y a propósito: elegir proveedor o modelo. Eso es del Router
  * y el intento de meterlo en un plan ya se rechazó una vez (B3.15.2). El mismo
- * predicado que lo impidió —`claveDeImplementacion`— guarda esta capa, primero; desde
- * la misión de cierre, además, la lectura por responsabilidad de `authority.ts`.
+ * predicado que lo impidió —`claveDeImplementacion`— guarda esta capa.
+ * (Desde la misión de cierre, primero; y después, la lectura por responsabilidad de `authority.ts`.)
  *
  * 1.1 (A1): el primer algoritmo real obligó a que una decisión pudiera contar
  * más de sí misma. Se AÑADEN, todos opcionales: `constraints` —el objetivo dice

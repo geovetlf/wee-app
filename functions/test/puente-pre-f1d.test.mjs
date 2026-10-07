@@ -683,13 +683,41 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * video-asincrono H2. Ver docs/RUNTIME.md §25c.
    */
   const DEL_COSTE_DE_LO_ACEPTADO = ['functions/src/engine/pricing.ts', 'functions/src/runtime/barrendero.ts'];
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
+  /*
+   * + misión de cierre y maduración del Algorithm Engine (2026-10-07, DD-26): los arreglos de contrato (A6, A8, la parada),
+   * el cronómetro del razonamiento, el inventario de exportaciones, el corte de A6 (`motor-de-verificacion@3`), la frontera por
+   * responsabilidad y los comentarios que contradecían al código. Sin autoridad nueva: el motor sigue PREPARED y en sombra. Y la sombra (`creator/sombra.ts`), que le pasa al ciclo su cronómetro. Por nombre;
+   * los tamaños, en F3 y en video-asincrono H3.
+   */
+  const DEL_CIERRE_DEL_ALGORITMO = [
+    'functions/src/core/algorithm/authority.ts',
+    'functions/src/core/algorithm/budget.ts',
+    'functions/src/core/algorithm/context-engine.ts',
+    'functions/src/core/algorithm/decision-engine.ts',
+    'functions/src/core/algorithm/decision.ts',
+    'functions/src/core/algorithm/decomposition-engine.ts',
+    'functions/src/core/algorithm/decomposition.ts',
+    'functions/src/core/algorithm/feedback.ts',
+    'functions/src/core/algorithm/index.ts',
+    'functions/src/core/algorithm/integration-cycle.ts',
+    'functions/src/core/algorithm/integration.ts',
+    'functions/src/core/algorithm/learning.ts',
+    'functions/src/core/algorithm/objective.ts',
+    'functions/src/core/algorithm/optimization-engine.ts',
+    'functions/src/core/algorithm/parallelization-engine.ts',
+    'functions/src/core/algorithm/scoring.ts',
+    'functions/src/core/algorithm/value.ts',
+    'functions/src/core/algorithm/verification-engine.ts',
+    'functions/src/core/algorithm/verification.ts',
+    'functions/src/creator/sombra.ts',
+  ];
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage, del coste de lo aceptado y del cierre del Algorithm Engine',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO,
+      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DEL_CIERRE_DEL_ALGORITMO,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -711,16 +739,19 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   /* + misión mundo3d (2026-10-05): mundo3d (nuevo), contracts +6, index +1 y escena3d +1 (ver video-asincrono H3). */
   /* + misión mundo3d FASE 5: capability.ts +2 (`world: '3d'`) y mundo3d.ts +15 (364 → 379, los derechos visibles). */
   /* + misión gobernanza (2026-10-06): mundo3d.ts +1 (379 → 380), el comentario de los derechos visibles con la decisión del dueño. */
-  const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n12\t0\tfunctions/src/core/contracts.ts'
-    + '\n217\t0\tfunctions/src/core/escena3d.ts\n2\t0\tfunctions/src/core/index.ts\n380\t0\tfunctions/src/core/mundo3d.ts\n2\t1\tfunctions/src/core/provider.ts'
+  /* + misión de cierre del Algorithm Engine (2026-10-07): contracts.ts 12/0 → 53/0 (solo líneas nuevas) e index.ts 2/0 → 12/8. */
+  const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n53\t0\tfunctions/src/core/contracts.ts'
+    + '\n217\t0\tfunctions/src/core/escena3d.ts\n12\t8\tfunctions/src/core/index.ts\n380\t0\tfunctions/src/core/mundo3d.ts\n2\t1\tfunctions/src/core/provider.ts'
     + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
   /* + ciclo de vida 3D (2026-10-05): el linaje del material (nuevo) y su línea de exportación en la puerta del Content Core. */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts\n651\t0\tfunctions/src/core/content/linaje.ts';
+  /* + el cierre del Algorithm Engine (2026-10-07), por tamaño (ver DEL_CIERRE_DEL_ALGORITMO en F1 y video-asincrono H3). */
+  const CORE_DEL_CIERRE_DEL_ALGORITMO = '250\t11\tfunctions/src/core/algorithm/authority.ts\n0\t3\tfunctions/src/core/algorithm/budget.ts\n39\t11\tfunctions/src/core/algorithm/context-engine.ts\n12\t26\tfunctions/src/core/algorithm/decision-engine.ts\n3\t0\tfunctions/src/core/algorithm/decision.ts\n6\t0\tfunctions/src/core/algorithm/decomposition-engine.ts\n0\t3\tfunctions/src/core/algorithm/decomposition.ts\n6\t5\tfunctions/src/core/algorithm/feedback.ts\n16\t9\tfunctions/src/core/algorithm/index.ts\n113\t16\tfunctions/src/core/algorithm/integration-cycle.ts\n31\t16\tfunctions/src/core/algorithm/integration.ts\n4\t2\tfunctions/src/core/algorithm/learning.ts\n3\t2\tfunctions/src/core/algorithm/objective.ts\n7\t5\tfunctions/src/core/algorithm/optimization-engine.ts\n7\t7\tfunctions/src/core/algorithm/parallelization-engine.ts\n2\t2\tfunctions/src/core/algorithm/scoring.ts\n2\t0\tfunctions/src/core/algorithm/value.ts\n34\t7\tfunctions/src/core/algorithm/verification-engine.ts\n17\t3\tfunctions/src/core/algorithm/verification.ts';
   /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
   const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
-  check('F3) ni F1-A ni productions; del Core, solo la misión fal y el linaje del ciclo de vida 3D; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',
+  check('F3) ni F1-A ni productions; del Core, solo la misión fal, el linaje del ciclo de vida 3D y el cierre del Algorithm Engine; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',
     git(`diff --name-only ${RUTA} -- functions/src/filmmaker functions/src/productions`).trim() === ''
-    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D)
+    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DEL_CIERRE_DEL_ALGORITMO)
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
     && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '68\t3\tfunctions/src/content/index.ts\n126\t4\tfunctions/src/content/materializador.ts');
