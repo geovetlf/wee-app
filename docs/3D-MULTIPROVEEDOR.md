@@ -266,8 +266,8 @@ Programa del dueño del 2026-10-07 para la Línea B: una investigación GLOBAL d
 motores integrables directamente por API, el equivalente 3D de Gemini, FLUX o Seedance—, con cinco investigadores
 (Occidente y EE. UU.; Asia; Europa, Reino Unido, Israel y Canadá, más CAD y animación; código abierto y autoalojable;
 alojamiento y agregadores como fal.ai o Replicate) sobre una plantilla común, y un sintetizador. **No la hace esta línea**, y
-sus entregables de síntesis no existían al cerrarla (sí cuatro de los cinco informes de investigador: abajo); vivirán con las
-notas de trabajo de la Línea B, fuera del repositorio:
+sus entregables de síntesis no existían al cerrarla (sí los cinco informes de investigador, uno a medias: abajo); vivirán
+con las notas de trabajo de la Línea B, fuera del repositorio:
 
 | Entregable | Qué será |
 |---|---|
@@ -293,12 +293,13 @@ síntesis, y su «clase A–E» es la de su plantilla, no la selección A–E de
 
 | Archivo | Bloque | En corto |
 |---|---|---|
+| `global/r1-occidente.md` (a medias al cerrar: tres fichas y sin resumen) | EE. UU. y Occidente | Stability AI (API de SF3D y SPAR3D: imagen → 3D, síncrona): clase A provisional y «YES» para usuarios ADULTOS según sus Términos de 2026 (§3.b: usuarios finales a través del producto propio), con los 18 años y la versión aceptada por revisar ⚖; r3 la ponía en C (§3.b.2): contradicción abierta, para la síntesis. Hyper3D / Rodin directo: B, CONDITIONAL. CSM (Cube): fuera de línea, E. Una clase A de un investigador no es APPROVED / AVAILABLE |
 | `global/r2-asia.md` | Asia | La matriz 3D más completa en capacidades es Tencent HY 3D Global por API (texto, imagen, multivista y boceto → 3D, PBR, partes, topología, UV, auto-rig y conversión), en clase C: el uso comercial pide consentimiento escrito previo. El único asiático cuyos términos ya permiten servir a usuarios finales es Hi3D directo (clase B), a cambio de atribución visible y de una licencia de entrenamiento. KIRI Engine (reconstrucción), B. Seed3D, Tripo vía Alibaba (solo China) y Step1X-3D, entre otros, E. Para ModelArk, no sin renegociar (§4e) |
 | `global/r3-europa-cad-animacion.md` | Europa, Reino Unido, Israel y Canadá; CAD e impresión; rig, animación, personajes, mundos y texturas | Ningún SERVICIO por API queda en clase A; las únicas A son código abierto autoalojado con copyleft (CADAM, GPL-3.0; laminadores, AGPL-3.0) ⚖. Los mejores encajes, en clase B y CONDITIONAL: Alpha3D (objetos), World Labs (mundos), Runware (agregador) y Uthana (movimiento), cada uno con algo que pedir por escrito. Transversal: casi nadie cancela un trabajo en curso; entrenar con el contenido de los usuarios es la norma; varios exigen 18 años; nadie publica un régimen para datos biométricos; usar el resultado ≠ ofrecer el servicio |
 | `global/r4-autoalojables.md` | Modelos 3D de pesos abiertos, autoalojables | Ninguno en clase A: incluso con MIT o Apache falta el inventario de dependencias (piezas no comerciales como nvdiffrast o RMBG) y la procedencia de los datos. Los más cercanos: TripoSG y UniRig (VAST), SAM 3D Objects (Meta), MagicArticulate y Puppeteer; Hunyuan3D, con las exclusiones de la UE, el Reino Unido y Corea del Sur |
 | `global/r5-agregadores.md` | Agregadores y hosting | fal, clase B y CONDITIONAL, el único con permiso expreso para servir a usuarios finales sin cuenta; Replicate B/C; ModelArk C, REQUIRES ADDITIONAL AGREEMENT (§4e); WaveSpeedAI C; Segmind C (autorización escrita); NVIDIA E/D; Hugging Face, sin 3D. Los modelos de socio (Tripo, Meshy, Rodin, Hi3D, Hunyuan 3.x) en cualquier agregador dependen de qué términos del autor se trasladan, y eso solo lo confirma cada plataforma por escrito |
 
-`global/r1-occidente.md` y los siete entregables: **PENDING DEPENDENCY** (no habían llegado al cerrar).
+El resto de `global/r1-occidente.md` y los siete entregables: **PENDING DEPENDENCY** (no habían llegado al cerrar).
 Nada de lo llegado cambia todavía el MAPA 2: sus candidatos entran con la síntesis, cada uno DISABLED y REVIEW_REQUIRED.
 
 ---
@@ -1078,7 +1079,7 @@ escrito aquí (E13).
 | Claves, avisos, despliegue, activación | Prohibido en esta misión |
 | Sloyd | Investigado e incorporado (§4b, §5.2, §12, §19): REVIEW_REQUIRED en su API, porque no hay términos de API, y su resultado en una URL pública; nada que implementar hasta D3D-20 |
 | Seed3D 2.0 | Investigado e incorporado (§4c, §5.2, §12): NOT_ALLOWED con los términos públicos; nada que implementar hasta D3D-19. Los requisitos de la Línea C para Seed3D: PENDING DEPENDENCY |
-| La investigación global de matrices 3D | PENDING DEPENDENCY: la hacen cinco investigadores y un sintetizador, no esta línea; al cerrar habían llegado cuatro informes de investigador (r2, r3, r4 y r5: punteros y resumen en §4d), y ni r1 ni los siete entregables |
+| La investigación global de matrices 3D | PENDING DEPENDENCY: la hacen cinco investigadores y un sintetizador, no esta línea; al cerrar habían llegado los cinco informes de investigador (r1 a medias; punteros y resumen en §4d), y ninguno de los siete entregables |
 | BytePlus ModelArk como capa 3D | Due diligence de otros investigadores: sus ocho archivos llegados (punteros y resumen en §4e: REQUIRES ADDITIONAL AGREEMENT); la síntesis, PENDING DEPENDENCY; sin filas del MAPA 2 hasta la síntesis |
 
 ---
