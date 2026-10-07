@@ -301,6 +301,12 @@ await seccion('A', async () => {
   const malA4 = vistos.filter((v) => v.r.status !== 'failed' || v.coste !== v.esperado || v.r.error?.details?.costeDelFallo !== v.esperado);
   check('A4) un FALLO del adaptador: lo decide el ejecutor del motor con el error original y viaja en el error; lo que no llegó o se rechazó al recibirse, cero; el resto —también la moderación sin código y lo que falla tras aceptar—, desconocido',
     malA4.length === 0, JSON.stringify(malA4.map((v) => [v.nombre, v.r.status, v.coste, v.r.error?.details?.costeDelFallo])));
+  const raro = await porElGateway(async (req) => { await req.onStatus?.('PROCESSING', { providerTaskId: 'tarea-rara-1' }); throw Object.create(null); });
+  const raroAntes = await porElGateway(async () => { throw Object.create(null); });
+  check('A4b) y si REGISTRAR o NORMALIZAR el error lanzara (un valor que ni se deja convertir en texto), el fallo sale igual del adaptador y anotado: tras dar nombre a la tarea, desconocido —nunca una «avería previa» a cero—',
+    raro.status === 'failed' && raro.error?.source === 'adapter:falso' && raro.error?.details?.costeDelFallo === 'desconocido' && rt.costeDelFalloDelGateway(raro) === 'desconocido'
+    && raroAntes.status === 'failed' && raroAntes.error?.source === 'adapter:falso' && rt.costeDelFalloDelGateway(raroAntes) === 'desconocido',
+    JSON.stringify([raro.error, raroAntes.error?.details]));
   check('A5) y es LO MISMO que contesta `costeTrasUnFallo` (engine/router.ts) para el mismo error: una sola regla, no dos',
     vistos.every((v) => v.coste === costeTrasUnFallo(v.error, v.aceptada)),
     vistos.map((v) => `${v.nombre}:${v.coste}/${costeTrasUnFallo(v.error, v.aceptada)}`).join(' · '));

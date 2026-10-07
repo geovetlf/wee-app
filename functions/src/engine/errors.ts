@@ -51,6 +51,14 @@ export class EngineError extends Error {
 }
 
 /**
+ * ¿EL PROVEEDOR YA TIENE LA TAREA? Lo dice un adaptador al avisar de su avance con el nombre que el proveedor le dio
+ * (`providerTaskId`): desde ahí, un fallo pudo costar dinero (el `despachado` de `costeTrasUnFallo`). Una sola
+ * definición para el router del motor y para el ejecutor del Gateway.
+ */
+export const tareaEnElProveedor = (meta: Record<string, unknown> | undefined): boolean =>
+  typeof meta?.providerTaskId === 'string' && meta.providerTaskId.length > 0;
+
+/**
  * ¿PUDO COBRAR EL PROVEEDOR UNA GENERACIÓN QUE FALLÓ? (auditoría H0, #22)
  *
  * El libro cerraba todo fallo con `providerCost: 0`, así que `aiUsage/{día}` —de donde salen los topes de
@@ -67,14 +75,6 @@ export class EngineError extends Error {
  * motor (que la reexporta) y el ejecutor del Gateway del Core (`engine/gateway.ts`), que la decide con el error original
  * y la anota en el error para el conductor (RUNTIME §25c).
  */
-/**
- * ¿EL PROVEEDOR YA TIENE LA TAREA? Lo dice un adaptador al avisar de su avance con el nombre que el proveedor le dio
- * (`providerTaskId`): desde ahí, un fallo pudo costar dinero (el `despachado` de `costeTrasUnFallo`). Una sola
- * definición para el router del motor y para el ejecutor del Gateway.
- */
-export const tareaEnElProveedor = (meta: Record<string, unknown> | undefined): boolean =>
-  typeof meta?.providerTaskId === 'string' && meta.providerTaskId.length > 0;
-
 export const costeTrasUnFallo = (error: unknown, despachado: boolean): 'cero' | 'desconocido' => {
   if (error instanceof NotConfiguredError) return 'cero';
   if (despachado) return 'desconocido';

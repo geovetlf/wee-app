@@ -2458,10 +2458,10 @@ reutilizando lo que hay —ni otro sistema de permisos, ni otro libro, ni otro C
   (la reserva, `creditTransactions`, con `meta.quotaDay`) ↔ el trabajo (`creditTransactionId`, `creditRequestId`,
   `quotaOperation`, `quotaDay`; su intento con `providerRef.operationId`) ↔ la fila del libro (`creditTransactionId`,
   `providerTaskId` = esa operación, `jobId` = la ejecución del medio) ↔ la liquidación (`settledAt`, `creditsCharged`).
-- Pruebas: `mundo3d-costes` (58, sobre una Firestore en memoria con el Credit Engine, el libro y el limitador de
+- Pruebas: `mundo3d-costes` (59, sobre una Firestore en memoria con el Credit Engine, el libro y el limitador de
   verdad: el libro al aceptar, la paridad con H0 #22, los desenlaces, el cierre una vez y a la vez, las reglas A–F de la
   misión, de punta a punta con el motor de trabajos, la identidad por capacidad y la seguridad) y cinco comprobaciones
-  más en `mundo3d.emulator.mjs` (40, contra Firestore emulada). Veintiún sabotajes del compilado: veinte los detectan las unidades y el de la puerta del mundo, el emulador.
+  más en `mundo3d.emulator.mjs` (40, contra Firestore emulada). Veintitrés sabotajes del compilado: veintidós los detectan las unidades y el de la puerta del mundo, el emulador.
 - **El orden** —después del dinero, antes de `settle`— lo garantiza la liquidación (el `job` es obligatorio en
   `PuertoDeLiquidacion`), no el libro: `settle` sigue sellando la transacción entera. Por eso el barrido se despliega
   con las puertas o antes, y no se devuelve a una versión anterior por separado mientras haya trabajos aceptados en marcha

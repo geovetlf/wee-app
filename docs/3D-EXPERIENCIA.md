@@ -361,7 +361,7 @@ país del Perfil Real → ¿restricción territorial EXPLÍCITA para ese país?
 | Textos (29 claves nuevas × 16 idiomas) | `i18n/textos/*/creaciones.ts`, `studio.ts` | `mundo3d-app` G, `crear-mundo-3d` G |
 | Auditoría «la app no nombra a nadie» (FASE 13) | toda la app | `mundo3d-app` H |
 | Una lista de cuentas por capacidad, obligatoria | `runtime/puerta.ts` (`porCapacidad`) | `listas-por-capacidad` (38), `mundo3d-gobernanza` A, emulador |
-| El coste de un intento aceptado | `runtime/index.ts` (`libroDelMotor`, `liquidacionDeWee`, `costeDelFalloDelGateway`), `runtime/liquidacion.ts` (`desenlacesDeLasAceptadas`, `CLAVE_DE_TARIFA_EXACTA`), `engine/ledger.ts` (`closeAccepted`, `sumaDeUnCierre`), `engine/gateway.ts` (el coste de un fallo, anotado), `engine/pricing.ts` (`tarifaExacta`), `creator/mundo.ts` | `mundo3d-costes` (58), emulador |
+| El coste de un intento aceptado | `runtime/index.ts` (`libroDelMotor`, `liquidacionDeWee`, `costeDelFalloDelGateway`), `runtime/liquidacion.ts` (`desenlacesDeLasAceptadas`, `CLAVE_DE_TARIFA_EXACTA`), `engine/ledger.ts` (`closeAccepted`, `sumaDeUnCierre`), `engine/gateway.ts` (el coste de un fallo, anotado), `engine/pricing.ts` (`tarifaExacta`), `creator/mundo.ts` | `mundo3d-costes` (59), emulador |
 | «5 mundos que salen» | `engine/limits.ts` (`comprobar`, `liberar`, `consumir`), `creator/mundo.ts`, `runtime/liquidacion.ts`, `runtime/index.ts` | `mundo3d-gobernanza` B–D, emulador |
 | Jurisdicción del catálogo y política territorial | `engine/jurisdiccion.ts`, `engine/providers/fal-modelos.ts` | `mundo3d-gobernanza` E, `elegibilidad-jurisdiccion` |
 | La procedencia en el resumen de derechos | `utils/derechosDelMaterial.ts`, `creaciones.rightsProvenance` × 16 | `mundo3d-gobernanza` F, `mundo3d-app` E |

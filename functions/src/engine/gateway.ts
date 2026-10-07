@@ -471,14 +471,24 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
           warnings: ganchoFallo ? ['progress_hook_failed'] : undefined,
         };
       } catch (error) {
-        console.warn(`WEË AI GATEWAY: ${adapter.id}/${modelo.id} falló en ${capability} (${trace.requestId}): ${sanitizeForLog(error, 300)}`);
         /*
          * ¿PUDO COBRAR EL PROVEEDOR? (H0 #22) Se decide AQUÍ, el único sitio que tiene el error ORIGINAL, con la regla
          * de siempre (`costeTrasUnFallo`), y viaja en el error (`details.costeDelFallo`): quien cierre la fila del libro
          * lo lee, no lo reconstruye a partir del diagnóstico (RUNTIME §25c).
+         *
+         * PRIMERO, y con lo único que no puede fallar (`instanceof`). Registrar o normalizar un valor raro —uno que ni
+         * siquiera se deja convertir en texto— podría lanzar, y entonces el fallo saldría del ejecutor sin anotar y el
+         * conductor lo contaría como una avería previa (cero) aunque el proveedor ya tuviera la tarea. Por eso lo demás
+         * va en su propio try, y su respaldo devuelve el error del adaptador ya anotado.
          */
-        const normalizado = normalizarErrorDelMotor(error, adapter.id);
-        return { ok: false, error: { ...normalizado, details: { ...(normalizado.details ?? {}), costeDelFallo: costeTrasUnFallo(error, despachado) } } };
+        const costeDelFallo = costeTrasUnFallo(error, despachado);
+        try {
+          console.warn(`WEË AI GATEWAY: ${adapter.id}/${modelo.id} falló en ${capability} (${trace.requestId}): ${sanitizeForLog(error, 300)}`);
+          const normalizado = normalizarErrorDelMotor(error, adapter.id);
+          return { ok: false, error: { ...normalizado, details: { ...(normalizado.details ?? {}), costeDelFallo } } };
+        } catch {
+          return { ok: false, error: errorDelCore('PROVIDER_ERROR', `adapter:${adapter.id}`, { details: { reason: 'provider_error', costeDelFallo } }) };
+        }
       }
     },
   };
