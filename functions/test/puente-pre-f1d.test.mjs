@@ -692,6 +692,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const DEL_CIERRE_DEL_ALGORITMO = [
     'functions/src/core/algorithm/authority.ts',
     'functions/src/core/algorithm/budget.ts',
+    'functions/src/core/algorithm/capability.ts',
     'functions/src/core/algorithm/context-engine.ts',
     'functions/src/core/algorithm/decision-engine.ts',
     'functions/src/core/algorithm/decision.ts',
@@ -706,6 +707,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     'functions/src/core/algorithm/optimization-engine.ts',
     'functions/src/core/algorithm/parallelization-engine.ts',
     'functions/src/core/algorithm/scoring.ts',
+    'functions/src/core/algorithm/strategy.ts',
     'functions/src/core/algorithm/value.ts',
     'functions/src/core/algorithm/verification-engine.ts',
     'functions/src/core/algorithm/verification.ts',
@@ -739,14 +741,14 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   /* + misión mundo3d (2026-10-05): mundo3d (nuevo), contracts +6, index +1 y escena3d +1 (ver video-asincrono H3). */
   /* + misión mundo3d FASE 5: capability.ts +2 (`world: '3d'`) y mundo3d.ts +15 (364 → 379, los derechos visibles). */
   /* + misión gobernanza (2026-10-06): mundo3d.ts +1 (379 → 380), el comentario de los derechos visibles con la decisión del dueño. */
-  /* + misión de cierre del Algorithm Engine (2026-10-07): contracts.ts 12/0 → 53/0 (solo líneas nuevas) e index.ts 2/0 → 12/8. */
-  const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n53\t0\tfunctions/src/core/contracts.ts'
+  /* + misión de cierre del Algorithm Engine (2026-10-07): contracts.ts 12/0 → 65/0 (solo líneas nuevas) e index.ts 2/0 → 12/8. */
+  const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts\n44\t2\tfunctions/src/core/content/asset.ts\n65\t0\tfunctions/src/core/contracts.ts'
     + '\n217\t0\tfunctions/src/core/escena3d.ts\n12\t8\tfunctions/src/core/index.ts\n380\t0\tfunctions/src/core/mundo3d.ts\n2\t1\tfunctions/src/core/provider.ts'
     + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
   /* + ciclo de vida 3D (2026-10-05): el linaje del material (nuevo) y su línea de exportación en la puerta del Content Core. */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts\n651\t0\tfunctions/src/core/content/linaje.ts';
   /* + el cierre del Algorithm Engine (2026-10-07), por tamaño (ver DEL_CIERRE_DEL_ALGORITMO en F1 y video-asincrono H3). */
-  const CORE_DEL_CIERRE_DEL_ALGORITMO = '250\t11\tfunctions/src/core/algorithm/authority.ts\n0\t3\tfunctions/src/core/algorithm/budget.ts\n39\t11\tfunctions/src/core/algorithm/context-engine.ts\n12\t26\tfunctions/src/core/algorithm/decision-engine.ts\n3\t0\tfunctions/src/core/algorithm/decision.ts\n6\t0\tfunctions/src/core/algorithm/decomposition-engine.ts\n0\t3\tfunctions/src/core/algorithm/decomposition.ts\n6\t5\tfunctions/src/core/algorithm/feedback.ts\n16\t9\tfunctions/src/core/algorithm/index.ts\n113\t16\tfunctions/src/core/algorithm/integration-cycle.ts\n31\t16\tfunctions/src/core/algorithm/integration.ts\n4\t2\tfunctions/src/core/algorithm/learning.ts\n3\t2\tfunctions/src/core/algorithm/objective.ts\n7\t5\tfunctions/src/core/algorithm/optimization-engine.ts\n7\t7\tfunctions/src/core/algorithm/parallelization-engine.ts\n2\t2\tfunctions/src/core/algorithm/scoring.ts\n2\t0\tfunctions/src/core/algorithm/value.ts\n34\t7\tfunctions/src/core/algorithm/verification-engine.ts\n17\t3\tfunctions/src/core/algorithm/verification.ts';
+  const CORE_DEL_CIERRE_DEL_ALGORITMO = '283\t13\tfunctions/src/core/algorithm/authority.ts\n0\t3\tfunctions/src/core/algorithm/budget.ts\n10\t4\tfunctions/src/core/algorithm/capability.ts\n42\t11\tfunctions/src/core/algorithm/context-engine.ts\n12\t26\tfunctions/src/core/algorithm/decision-engine.ts\n3\t0\tfunctions/src/core/algorithm/decision.ts\n6\t0\tfunctions/src/core/algorithm/decomposition-engine.ts\n0\t3\tfunctions/src/core/algorithm/decomposition.ts\n6\t5\tfunctions/src/core/algorithm/feedback.ts\n16\t9\tfunctions/src/core/algorithm/index.ts\n124\t17\tfunctions/src/core/algorithm/integration-cycle.ts\n33\t18\tfunctions/src/core/algorithm/integration.ts\n4\t2\tfunctions/src/core/algorithm/learning.ts\n3\t2\tfunctions/src/core/algorithm/objective.ts\n7\t5\tfunctions/src/core/algorithm/optimization-engine.ts\n7\t7\tfunctions/src/core/algorithm/parallelization-engine.ts\n2\t2\tfunctions/src/core/algorithm/scoring.ts\n2\t1\tfunctions/src/core/algorithm/strategy.ts\n2\t0\tfunctions/src/core/algorithm/value.ts\n40\t8\tfunctions/src/core/algorithm/verification-engine.ts\n17\t3\tfunctions/src/core/algorithm/verification.ts';
   /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
   const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
   check('F3) ni F1-A ni productions; del Core, solo la misión fal, el linaje del ciclo de vida 3D y el cierre del Algorithm Engine; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',

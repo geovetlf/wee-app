@@ -668,10 +668,10 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
   /* + misión mundo3d FASE 5: capability.ts +2 (un mundo es 3D también para el Core: `world: '3d'` en MODALIDAD_DE_FAMILIA), y
      mundo3d.ts +15 (364 → 379): los derechos VISIBLES que la puerta le cuenta a la app, sin las licencias que nombran al modelo. */
   /* + misión gobernanza (2026-10-06): mundo3d.ts +1 (379 → 380), el comentario de los derechos visibles dice lo que decidió el dueño. */
-  /* + misión de cierre del Algorithm Engine (2026-10-07): contracts.ts 12/0 → 53/0 (la nota de lo que la misión hace DENTRO de
+  /* + misión de cierre del Algorithm Engine (2026-10-07): contracts.ts 12/0 → 65/0 (la nota de lo que la misión hace DENTRO de
      1.12, solo líneas nuevas —proveedor-fal 27 lo exige—) e index.ts 2/0 → 12/8 (el comentario de por qué el motor no se
      reexporta, al día: ya lo consume la sombra). */
-  const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts|44\t2\tfunctions/src/core/content/asset.ts|53\t0\tfunctions/src/core/contracts.ts'
+  const CORE_DE_LA_MISION_FAL = '6\t2\tfunctions/src/core/capability.ts|44\t2\tfunctions/src/core/content/asset.ts|65\t0\tfunctions/src/core/contracts.ts'
     + '|217\t0\tfunctions/src/core/escena3d.ts|12\t8\tfunctions/src/core/index.ts|380\t0\tfunctions/src/core/mundo3d.ts|2\t1\tfunctions/src/core/provider.ts'
     + '|6\t0\tfunctions/src/core/registry/capabilities.ts|6\t2\tfunctions/src/core/registry/types.ts|2\t2\tfunctions/src/core/router.ts';
   /*
@@ -684,7 +684,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * el cronómetro del razonamiento, el inventario de exportaciones, el corte de A6 (`motor-de-verificacion@3`), la frontera por
    * responsabilidad y los comentarios que contradecían al código. Sin autoridad nueva: el motor sigue PREPARED y en sombra.
    */
-  const CORE_DEL_CIERRE_DEL_ALGORITMO = '250\t11\tfunctions/src/core/algorithm/authority.ts|0\t3\tfunctions/src/core/algorithm/budget.ts|39\t11\tfunctions/src/core/algorithm/context-engine.ts|12\t26\tfunctions/src/core/algorithm/decision-engine.ts|3\t0\tfunctions/src/core/algorithm/decision.ts|6\t0\tfunctions/src/core/algorithm/decomposition-engine.ts|0\t3\tfunctions/src/core/algorithm/decomposition.ts|6\t5\tfunctions/src/core/algorithm/feedback.ts|16\t9\tfunctions/src/core/algorithm/index.ts|113\t16\tfunctions/src/core/algorithm/integration-cycle.ts|31\t16\tfunctions/src/core/algorithm/integration.ts|4\t2\tfunctions/src/core/algorithm/learning.ts|3\t2\tfunctions/src/core/algorithm/objective.ts|7\t5\tfunctions/src/core/algorithm/optimization-engine.ts|7\t7\tfunctions/src/core/algorithm/parallelization-engine.ts|2\t2\tfunctions/src/core/algorithm/scoring.ts|2\t0\tfunctions/src/core/algorithm/value.ts|34\t7\tfunctions/src/core/algorithm/verification-engine.ts|17\t3\tfunctions/src/core/algorithm/verification.ts';
+  const CORE_DEL_CIERRE_DEL_ALGORITMO = '283\t13\tfunctions/src/core/algorithm/authority.ts|0\t3\tfunctions/src/core/algorithm/budget.ts|10\t4\tfunctions/src/core/algorithm/capability.ts|42\t11\tfunctions/src/core/algorithm/context-engine.ts|12\t26\tfunctions/src/core/algorithm/decision-engine.ts|3\t0\tfunctions/src/core/algorithm/decision.ts|6\t0\tfunctions/src/core/algorithm/decomposition-engine.ts|0\t3\tfunctions/src/core/algorithm/decomposition.ts|6\t5\tfunctions/src/core/algorithm/feedback.ts|16\t9\tfunctions/src/core/algorithm/index.ts|124\t17\tfunctions/src/core/algorithm/integration-cycle.ts|33\t18\tfunctions/src/core/algorithm/integration.ts|4\t2\tfunctions/src/core/algorithm/learning.ts|3\t2\tfunctions/src/core/algorithm/objective.ts|7\t5\tfunctions/src/core/algorithm/optimization-engine.ts|7\t7\tfunctions/src/core/algorithm/parallelization-engine.ts|2\t2\tfunctions/src/core/algorithm/scoring.ts|2\t1\tfunctions/src/core/algorithm/strategy.ts|2\t0\tfunctions/src/core/algorithm/value.ts|40\t8\tfunctions/src/core/algorithm/verification-engine.ts|17\t3\tfunctions/src/core/algorithm/verification.ts';
   /* Las listas juntas, en el orden en que las da git: por ruta. */
   const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), ...CORE_DEL_CIERRE_DEL_ALGORITMO.split('|')]
     .sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');
