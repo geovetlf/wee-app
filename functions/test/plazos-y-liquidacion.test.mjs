@@ -38,6 +38,8 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
@@ -248,7 +250,7 @@ console.log('\n── E · El callable, EJECUTADO: un trabajo abandonado se cier
   creditosMod.settleCredits = async (userId, jobId, held, used) => { liquidaciones.push({ jobId, held, used }); };
 
   const UID = 'AbCdEfGhIjKlMnOpQrStUvWxYz01';
-  const correr = (jobId) => creatorMod.creatorRun.run({ auth: { uid: UID }, data: { jobId } });
+  const correr = (jobId) => creatorMod.creatorRun.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: UID }, data: { jobId } });
 
   /* Un trabajo que se quedó colgado: en marcha, con el plazo ya vencido. */
   docs.set('creatorJobs/colgado', {

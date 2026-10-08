@@ -80,8 +80,10 @@ if (!integrada) {
      * `assertLimit`), y entra creditValidation.ts (10/2, `toHttpsError`). Que el candado sigue siendo EXACTAMENTE la línea de
      * b878068 lo fija job-queue 63k línea a línea; aquí se exige que las tres cercas lleven, exacta y la misma, la cifra
      * real de hoy (`git diff --numstat 8e91daa` sobre el árbol).
+     * + Guest AI Gate (2026-10-07): credits/index.ts 19/3 → 45/3 (+26, la barrera del invitado y su saldo sin efecto; exacto
+     *   línea a línea en job-queue 63k). Las tres cercas llevan la misma cifra nueva.
      */
-    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '57\\t9\\tfunctions\/src\/credits\/creditEngine\.ts\\n10\\t2\\tfunctions\/src\/credits\/creditValidation\.ts\\n19\\t3\\tfunctions\/src\/credits\/index\.ts';/.test(leer(`functions/test/${s}.test.mjs`))));
+    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '57\\t9\\tfunctions\/src\/credits\/creditEngine\.ts\\n10\\t2\\tfunctions\/src\/credits\/creditValidation\.ts\\n45\\t3\\tfunctions\/src\/credits\/index\.ts';/.test(leer(`functions/test/${s}.test.mjs`))));
 }
 
 const ESPERADOS = [

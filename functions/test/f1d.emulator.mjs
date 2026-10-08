@@ -81,6 +81,8 @@ const admin = require('firebase-admin');
 admin.initializeApp({ projectId: PROY, storageBucket: `${PROY}.appspot.com` });
 const db = admin.firestore();
 const lib = (p) => require(path.resolve(here, '../lib', p));
+/* Cuenta Weë válida (identity/sesion.ts): estas cuentas de prueba se dan por enroladas; el enrolamiento tiene su suite (edad-minima, guest-sin-ia). */
+lib('identity/sesion.js').enrolamiento.leer = async () => true;
 const video = lib('creator/video.js');
 const toma = lib('creator/toma.js');
 const rt = lib('runtime/index.js');
@@ -102,7 +104,8 @@ const codigo = (r) => (r.ok ? r.valor?.status ?? 'ok' : `${r.error.code} · ${r.
 const marca = Date.now().toString(36);
 const A = `emuf1dA${marca}`;
 const SALDO = 5000;
-await db.collection('users').doc(`doc_${A}`).set({ uid: A, displayName: A });
+/* Perfil Real con país permitido: Seedance es territorial y la ruta previa (antes del dinero) lee users.country, como en f1d-generacion.test.mjs. */
+await db.collection('users').doc(`doc_${A}`).set({ uid: A, displayName: A, profileType: 'real', country: 'ES' });
 await creditEngine.ensureAccount(A);
 await db.collection('users').doc(`doc_${A}`).update({ creditsBalance: SALDO });
 await db.collection('aiSettings').doc('runtime').set({ habilitado: true, porCapacidad: { 'video.generate': { cuentas: [A], experiencias: ['studio'] } } });
@@ -138,7 +141,7 @@ const plan = async (k, extra = {}) => {
   const req = Rq.requisitosDeProduccion(v.production).requirements.shots.find((s) => s.unitId === 'sh-0101');
   return { productionId: pid(k), sceneId: 'sc-0001', unitId: 'sh-0101', revision: v.revision, quality: 'high', requirement: req, ...extra };
 };
-const llamar = (data) => intento(() => video.generateVideo.run({ auth: { uid: A }, data }));
+const llamar = (data) => intento(() => video.generateVideo.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: A }, data }));
 
 /* ═══ 1 · COTIZAR Y GENERAR, CON TRANSACCIONES DE VERDAD ══════════════════ */
 console.log('\n── Cotizar y generar: dos pestañas a la vez, un POST, un cupo, una reserva ──');
@@ -175,13 +178,13 @@ const [meta] = ficha?.storageRef?.objectKey ? await admin.storage().bucket().fil
 check('el vídeo, en Storage con su ficha asset_ a nombre de la cuenta, y cobrado una vez', /^asset_[0-9a-f]{32}$/.test(assetId ?? '') && ficha?.ownerAccountId === A && ficha?.status === 'ready'
   && (await uso(rid))?.status === 'COMPLETED' && (await reembolsos(rid)).length === 0, assetId);
 check('el objeto lleva la marca de SU material en los metadatos de Storage', meta?.metadata?.[MARCA_DE_MATERIAL] === assetId, JSON.stringify(meta?.metadata ?? {}).slice(0, 120));
-const enlace = await intento(() => shotsPuerta.shots.run({ auth: { uid: A }, data: { op: 'shot.result', productionId: pid(1), sceneId: 'sc-0001', unitId: 'sh-0101', take: 1 } }));
+const enlace = await intento(() => shotsPuerta.shots.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: A }, data: { op: 'shot.result', productionId: pid(1), sceneId: 'sc-0001', unitId: 'sh-0101', take: 1 } }));
 const nodoId = toma.idDeNodoDePlano(A, pid(1), 'sh-0101');
 const nodo = (await db.collection('shots').doc(nodoId).get()).data();
 check('`shot.result` por la callable: el plano del Core, generado, con SU vídeo, en su producción',
   enlace.ok && enlace.valor.result.status === 'linked' && nodo?.producedAssetId === assetId && nodo?.state === 'generated' && nodo?.ownerAccountId === A && nodo?.projectId === pid(1),
   JSON.stringify(enlace.valor?.result ?? enlace.error?.message));
-const otraVez = await intento(() => shotsPuerta.shots.run({ auth: { uid: A }, data: { op: 'shot.result', productionId: pid(1), sceneId: 'sc-0001', unitId: 'sh-0101', take: 1 } }));
+const otraVez = await intento(() => shotsPuerta.shots.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: A }, data: { op: 'shot.result', productionId: pid(1), sceneId: 'sc-0001', unitId: 'sh-0101', take: 1 } }));
 check('y otra vez: ya estaba, sin otra versión', otraVez.ok && otraVez.valor.result.status === 'already' && (await db.collection('shots').doc(nodoId).get()).data()?.version === nodo?.version);
 
 /* ═══ 3 · UN VÍDEO EN STORAGE SIN SU FICHA ═══════════════════════════════ */
@@ -230,7 +233,7 @@ pasar(job2.attempts[0].providerRef.operationId, 'expired');
 await pasada();
 await pasada();
 const reembolso = await reembolsos(rid2);
-const enlace2 = await intento(() => shotsPuerta.shots.run({ auth: { uid: A }, data: { op: 'shot.result', productionId: pid(2), sceneId: 'sc-0001', unitId: 'sh-0101', take: 1 } }));
+const enlace2 = await intento(() => shotsPuerta.shots.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: A }, data: { op: 'shot.result', productionId: pid(2), sceneId: 'sc-0001', unitId: 'sh-0101', take: 1 } }));
 check('vencida: FAILED, la reserva vuelve EXACTA y una sola vez', r2.ok && (await uso(rid2))?.status === 'REFUNDED' && reembolso.length === 1 && reembolso[0].amount === q2.valor.credits, codigo(r2));
 check('y no hay nada que enlazar', enlace2.ok && enlace2.valor.result.status === 'failed' && !(await db.collection('shots').doc(toma.idDeNodoDePlano(A, pid(2), 'sh-0101')).get()).exists);
 

@@ -184,6 +184,13 @@ El Financial Core no cambió: toma el número de `NumeroDeCuenta` y sigue sin ge
 
 Dos cerraduras lo mantienen fuera de la migración: un disparador de creación no despierta con lo ya escrito, y una cara Weë nunca hace nacer una cuenta. Ningún valor llega del cliente: lo único que entra es el documento recién escrito.
 
+### 12.0 Cuenta Weë válida y `publicProfiles` (integración 2026-10-07, sin desplegar)
+
+- Al registrarse, la persona declara **fecha de nacimiento (18+) y país**: la fecha vive en `users/{id}/private/account` (las reglas solo la dejan nacer con 18+, y después no se cambia ni se borra) y el país en `users.country`.
+- **Cuenta Weë válida** (`exigirCuentaWeeValida`, `identity/sesion.ts`): sesión no anónima + esa fecha validada con la regla pura única `identity/edad.ts` (`veredictoDeEdad`, 18+ en fecha civil UTC−12, la misma que las reglas) + país del catálogo. Menor, inválida, futura o ausente → `ACCOUNT_REQUIRED`. El `birthDate` heredado de `users/{id}` no cuenta.
+- La cara pública de cada perfil es `publicProfiles/{id}` (lista blanca, la escribe solo `espejoDelPerfilPublico`); `users/{id}` solo lo leerá su dueño en la fase 2 (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo). Ver DD-15.
+- PENDIENTE: destino de las fechas históricas, cuentas sin país, flujo UX para completar el enrolamiento, cierre definitivo de `users`.
+
 ### 12.1 Las cuentas que no han nacido, y la migración que falta
 
 Documentado en el cierre post-auditoría 2026-10-01 (`trust/denuncia-sin-cuenta-nacida`). **Nada de esto se ha ejecutado, y la política no cambia:** denunciar exige una cuenta nacida y `ACTIVE` (`docs/MODERATION.md` § 7).

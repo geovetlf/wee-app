@@ -14,7 +14,7 @@ import JobProgress from '../components/creator/JobProgress';
 import ResultCard from '../components/creator/ResultCard';
 import ProjectPicker from '../components/creator/ProjectPicker';
 import { projectsService } from '../services/projectsService';
-import { creatorService, Answer, CreatorJob, PlanPricing, QualityChoice, Question, humanizeCreatorError, isClientTimeout } from '../services/creatorService';
+import { creatorService, Answer, CreatorJob, PlanPricing, QualityChoice, Question, humanizeCreatorError, isClientTimeout, pideCuentaAutenticada } from '../services/creatorService';
 import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
 import { uploadCreatorImage } from '../services/creatorUploads';
 import { documentsService } from '../services/documentsService';
@@ -78,6 +78,15 @@ const CreatorFlowScreen: React.FC = () => {
   const [question, setQuestion] = useState<Question | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* Guest AI Gate: el último error fue «hace falta una cuenta» (sesión de invitado). Se apaga con el error. */
+  const [pideCuenta, setPideCuenta] = useState(false);
+  useEffect(() => {
+    if (!error) setPideCuenta(false);
+  }, [error]);
+  const fallo = (e: unknown) => {
+    setError(humanizeCreatorError(e, t, locale));
+    setPideCuenta(pideCuentaAutenticada(e));
+  };
   /** Saldo insuficiente al crear: se muestra el aviso con saldo, costo y tienda (docs/CREDITS.md). */
   const [shortfall, setShortfall] = useState<CreditsShortfall | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -156,7 +165,7 @@ const CreatorFlowScreen: React.FC = () => {
         setPricing(response.pricing ?? null);
         setQuality(null);
       } catch (e) {
-        setError(humanizeCreatorError(e, t, locale));
+        fallo(e);
       } finally {
         setBusy(false);
       }
@@ -176,7 +185,7 @@ const CreatorFlowScreen: React.FC = () => {
         uploadedUrl.current = url;
         await creatorService.attachImage(jobId, url);
       } catch (e) {
-        setError(humanizeCreatorError(e, t, locale));
+        fallo(e);
       }
     },
     [jobId, user, t]
@@ -269,7 +278,7 @@ const CreatorFlowScreen: React.FC = () => {
       setQuestion(response.question);
       setPricing(response.pricing ?? null);
     } catch (e) {
-      setError(humanizeCreatorError(e, t, locale));
+      fallo(e);
     } finally {
       setBusy(false);
     }
@@ -287,7 +296,7 @@ const CreatorFlowScreen: React.FC = () => {
         setPricing(response.pricing ?? null);
         setJob((current) => (current ? { ...current, creditsEstimated: response.creditsEstimated } : current));
       } catch (e) {
-        setError(humanizeCreatorError(e, t, locale));
+        fallo(e);
       } finally {
         setQuoting(false);
       }
@@ -316,7 +325,7 @@ const CreatorFlowScreen: React.FC = () => {
       if (isClientTimeout(e)) return;
       const short = creditsShortfall(e);
       setShortfall(short);
-      if (!short) setError(humanizeCreatorError(e, t, locale));
+      if (!short) fallo(e);
     } finally {
       setBusy(false);
     }
@@ -615,13 +624,25 @@ const CreatorFlowScreen: React.FC = () => {
         {!!error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={[styles.errorText, { color: theme.colors.text }]}>{error}</Text>
-            <TouchableOpacity
-              onPress={() => (status === 'planned' ? handleCreate() : start(job?.goal || params.goal))}
-              style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.retryText}>{t('weeai.tryAgain')}</Text>
-            </TouchableOpacity>
+            {pideCuenta ? (
+              /* Guest AI Gate: el inicio de sesión de siempre (la ruta `Login`, que también lleva a crear cuenta). */
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Login')}
+                style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
+                activeOpacity={0.85}
+                accessibilityLabel={t('weeai.accountRequiredAction')}
+              >
+                <Text style={styles.retryText}>{t('weeai.accountRequiredAction')}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => (status === 'planned' ? handleCreate() : start(job?.goal || params.goal))}
+                style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.retryText}>{t('weeai.tryAgain')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 

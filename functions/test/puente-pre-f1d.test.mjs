@@ -35,6 +35,8 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const lib = (p) => require(path.resolve(RAIZ, 'functions/lib', p));
 const sinCR = (s) => s.replace(/\r\n/g, '\n');
 const leer = (p) => sinCR(fs.readFileSync(path.resolve(RAIZ, p), 'utf8'));
@@ -221,14 +223,14 @@ const pasada = () => rt.mantenimientoDeWee({
 const CUENTAS = ['puenteMat0001', 'puenteOtra0001', 'puenteLiq0001', 'puenteDup0001', 'puenteCon0001', 'puentePost0001', 'puentePost0002', 'puentePost0003', 'puentePost0004', 'puenteBrain0001'];
 const SALDO = 5000;
 for (const uid of CUENTAS) {
-  base.docs.set(`users/doc_${uid}`, { uid, displayName: uid });
+  base.docs.set(`users/doc_${uid}`, { uid, displayName: uid, profileType: 'real', country: 'ES' }); // Fase 1: Perfil Real con país permitido (Seedance es territorial)
   await creditEngine.ensureAccount(uid);
   base.docs.get(`users/doc_${uid}`).creditsBalance = SALDO;
 }
 base.docs.set('aiSettings/runtime', { habilitado: true, porCapacidad: { 'video.generate': { cuentas: CUENTAS, experiencias: ['studio'] } } });
 olvidarLaPuerta();
 const PETICION = { prompt: 'Un faro al amanecer, olas suaves', durationSec: 5, aspectRatio: '16:9' };
-const pedir = (uid, requestId, extra = {}) => intento(() => video.generateVideo.run({ auth: { uid }, data: { ...PETICION, requestId, ...extra } }));
+const pedir = (uid, requestId, extra = {}) => intento(() => video.generateVideo.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data: { ...PETICION, requestId, ...extra } }));
 const saldo = (uid) => base.docs.get(`users/doc_${uid}`).creditsBalance;
 const uso = (requestId) => base.leer(`creditTransactions/usage_${requestId}`);
 const reembolsos = (requestId) => base.de('creditTransactions').filter((t) => t.requestId === requestId && t.type === 'refund');
@@ -260,14 +262,14 @@ const idB = identidadDelMaterial('job-puente-b', 'job-puente-b#1');
    */
   const LEGADO = `mat_${idA.slice(6)}`;
   base.docs.set(`assets/${LEGADO}`, { assetId: LEGADO, ownerAccountId: DUENO, kind: 'video', status: 'ready', delivery: { url: 'https://almacen.invalid/legado.mp4', kind: 'bearer_token' } });
-  const borrarLegado = await intento(() => contenido.deleteAsset.run({ auth: { uid: DUENO }, data: { assetId: LEGADO } }));
+  const borrarLegado = await intento(() => contenido.deleteAsset.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: DUENO }, data: { assetId: LEGADO } }));
   check('A4) CONTROL · un material `mat_`, aunque exista, no lo lee `leerMaterial` ni lo retira `deleteAsset`: ninguna compatibilidad con el prefijo de antes',
     (await contenido.leerMaterial(LEGADO)) === null && !borrarLegado.ok && borrarLegado.error.code === 'not-found' && !!base.leer(`assets/${LEGADO}`));
   await materializadorDeWee.guardar({ assetId: idB, userId: DUENO, kind: 'video', recurso: 'https://modelark.invalid/b.mp4', provenance: { createdAt: Date.now(), jobId: 'job-puente-b' } });
   const claveB = (await contenido.leerMaterial(idB))?.storageRef?.objectKey;
-  const ajeno = await intento(() => contenido.deleteAsset.run({ auth: { uid: 'puenteOtra0001' }, data: { assetId: idB } }));
+  const ajeno = await intento(() => contenido.deleteAsset.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: 'puenteOtra0001' }, data: { assetId: idB } }));
   check('A5) `deleteAsset` de OTRA cuenta no lo encuentra, ni lo toca', !ajeno.ok && ajeno.error.code === 'not-found' && objetos.has(claveB) && (await contenido.leerMaterial(idB))?.status === 'ready');
-  const borrado = await intento(() => contenido.deleteAsset.run({ auth: { uid: DUENO }, data: { assetId: idB } }));
+  const borrado = await intento(() => contenido.deleteAsset.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: DUENO }, data: { assetId: idB } }));
   check('A6) `deleteAsset` de su dueño lo localiza y lo retira: la ficha queda retirada y el objeto borrado',
     borrado.ok && borrado.valor.status === 'deleted' && borrado.valor.already === false && (await contenido.leerMaterial(idB))?.status === 'deleted' && !objetos.has(claveB), codigo(borrado));
   const conRef = (assetId) => ({
@@ -351,7 +353,7 @@ console.log('\n── B · Llegar otra vez no descarga ni duplica ──');
   check('B7) si el trabajo nombrara un material AJENO, el reintento no lo entrega: `result_not_available`',
     !ajeno.ok && ajeno.error.details?.reason === 'result_not_available', codigo(ajeno));
   /* B8 · Retirado por su dueño: ya no se puede entregar, y no se genera otro con el cobro del primero. */
-  await contenido.deleteAsset.run({ auth: { uid: 'puenteCon0001' }, data: { assetId: idDeC } });
+  await contenido.deleteAsset.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: 'puenteCon0001' }, data: { assetId: idDeC } });
   const postsB8 = posts.length;
   const retirado = await pedir('puenteCon0001', 'puente-B4');
   check('B8) un material RETIRADO no se entrega ni se vuelve a generar: `result_not_available`, sin POST ni cobro',
@@ -554,8 +556,20 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * + revisión de seguridad 2026-10-06 (urls del Storage): http.ts 26/1 → 191/24 (UNA regla para una dirección del
        * Storage que llega de fuera y el lector sin segundo intento por HTTP) e imageMeta.ts +8 −5 (las medidas, solo del
        * cubo de Weë). Ningún proveedor ni ninguna cadena nuevos. Detalle en video-asincrono H2.
+       *
+       * + Fase 1 — jurisdicción (2026-10-07): elegibilidad.ts 212/0 → 240/0 (`estadoTerritorial`, los cinco estados
+       * territoriales traducidos de la regla común). Seedance gana su dato territorial; ni proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|212\t0\tfunctions/src/engine/elegibilidad.ts|92\t2\tfunctions/src/engine/errors.ts|59\t17\tfunctions/src/engine/gateway.ts|191\t24\tfunctions/src/engine/http.ts|8\t5\tfunctions/src/engine/imageMeta.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|188\t29\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|8\t0\tfunctions/src/engine/pricing.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|126\t25\tfunctions/src/engine/router.ts|219\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      /*
+       * + corrección P0 Seedance (2026-10-07), autorizada por el dueño: providers/seedance.ts 33/19 → 237/44
+       * (`neutralizarParametrosEnLinea`: el texto de la persona no puede llevar `--rs/--rt/--dur/--wm…`; y
+       * `peticionEfectivaDeSeedance`, la única verdad del cuerpo y del precio) y video.ts 0/0 → 35/7 (el modelo ya no
+       * lo eligen palabras del prompt; `videoParamsForQuote`; el motor acepta el `normalizado` cotizado). Ni proveedor
+       * ni cadena nuevos: el vídeo sigue siendo Seedance y solo Seedance.
+       * + integración P0 + Fase 1 (2026-10-07): providers/seedance.ts recibe además el +24 −4 de Fase 1 → 261/48 (TERRITORIO_DE_SEEDANCE y `territorio` en sus cuatro modelos). Las dos
+       * correcciones caen en trozos distintos del adaptador: la suma es exacta (237+24, 44+4).
+       */
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|240\t0\tfunctions/src/engine/elegibilidad.ts|96\t3\tfunctions/src/engine/errors.ts|59\t17\tfunctions/src/engine/gateway.ts|191\t24\tfunctions/src/engine/http.ts|8\t5\tfunctions/src/engine/imageMeta.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|188\t29\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|8\t0\tfunctions/src/engine/pricing.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|261\t48\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|126\t25\tfunctions/src/engine/router.ts|219\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|35\t7\tfunctions/src/engine/video.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 
@@ -683,13 +697,31 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * video-asincrono H2. Ver docs/RUNTIME.md §25c.
    */
   const DEL_COSTE_DE_LO_ACEPTADO = ['functions/src/engine/pricing.ts', 'functions/src/runtime/barrendero.ts'];
+  /* Los de la CORRECCIÓN P0 DE SEEDANCE (2026-10-07), por nombre: el precio del vídeo lee la petición efectiva
+     (credits/aiPricing) y el motor de vídeo deja de leer el texto para elegir modelo (engine/video). El adaptador,
+     creator/video y creator/credits ya estaban nombrados. */
+  const DE_LA_CORRECCION_P0 = ['functions/src/credits/aiPricing.ts', 'functions/src/engine/video.ts'];
+  /*
+   * La EDAD MÍNIMA de 18 (2026-10-07), por nombre: la regla pura única (identity/edad.ts, nueva), que usa la condición
+   * «cuenta Weë válida» (`exigirCuentaWeeValida`, identity/sesion.ts) para validar el valor de la fecha (corrección F),
+   * y su llamada en las callables de IA. La puerta `elegibilidadDeCuenta` de la primera versión ya no existe.
+   * Nada del reclamo, del cobro ni del vídeo (ver edad-minima.test.mjs y los tamaños en F4 y en video-asincrono H2).
+   */
+  const DE_LA_EDAD_MINIMA = ['functions/src/creator/brain.ts', 'functions/src/creator/index.ts', 'functions/src/creator/mundo.ts', 'functions/src/creator/video.ts',
+    'functions/src/generateAvatar.ts', 'functions/src/identity/edad.ts'];
+  /* Los del GUEST AI GATE (2026-10-07) y de la SIMPLIFICACIÓN DEFINITIVA (cuenta Weë válida en identity/sesion.ts, la
+     ruta antes del dinero en creator/rutaPrevia.ts), por nombre. ËContact vuelve a estar como en main. */
+  /* Los de la SEGURIDAD DE users (2026-10-07), por nombre: la copia pública con lista blanca (identity/perfilPublico, nuevo). Su forma, en perfil-publico. */
+  /* + reanclaje pre-commit (2026-10-07, autorizado por el dueño): core/backup.ts clasifica publicProfiles como DERIVED (se reconstruye desde users con el relleno). Ver F3. */
+  const DE_LA_SEGURIDAD_DE_USERS = ['functions/src/core/backup.ts', 'functions/src/identity/perfilPublico.ts'];
+  const DEL_GUEST_GATE = ['functions/src/identity/sesion.ts', 'functions/src/core/errors.ts', 'functions/src/creator/rutaPrevia.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO,
+      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_LA_CORRECCION_P0, ...DE_LA_EDAD_MINIMA, ...DEL_GUEST_GATE, ...DE_LA_SEGURIDAD_DE_USERS,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -702,11 +734,20 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    *   lo que no es un CreditError y su causa al registro con `sanitizeForLog` (money/error-interno-al-cliente);
    *   credits/index.ts +5 −3: `balance` → `readBalance` y `failed` → `assertLimit`. Bloques exactos en job-queue 63k/63p.
    */
-  const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
+  /*
+   * + Guest AI Gate (2026-10-07, rama fix/guest-sin-ia): credits/index.ts +26 (antes 19/3): un invitado (Firebase
+   *   Anonymous) lee su saldo con `readBalance` —sin inicializar la cuenta, así que sin bienvenida— y no compra ni
+   *   gasta (`guardarCuenta` en validatePurchase y spendCredits). El Credit Engine, sin tocar.
+   */
+  const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n45\t3\tfunctions/src/credits/index.ts';
   /* + misión fal (2026-10-05): core/router.ts +2 −2 (la modalidad 3d) y creditCosts.ts +8 (el servicio ai_world). Líneas exactas en job-queue 63fal. */
   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
-  check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; del tamaño exacto',
-    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === `${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
+  /* + corrección P0 Seedance (2026-10-07), autorizada: aiPricing.ts 69/20, el precio del vídeo lee la petición efectiva del cuerpo. */
+  const CREDITS_DE_LA_CORRECCION_P0 = '69\t20\tfunctions/src/credits/aiPricing.ts';
+  const ordenadas = (x) => x.split('\n').sort().join('\n');
+  check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; aiPricing, solo la corrección P0 de Seedance; del tamaño exacto',
+    ordenadas(git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r/g, ''))
+      === ordenadas(`${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}\n${CREDITS_DE_LA_CORRECCION_P0}`));
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. Del Core, solo la misión fal (video-asincrono H3). */
   /* + misión mundo3d (2026-10-05): mundo3d (nuevo), contracts +6, index +1 y escena3d +1 (ver video-asincrono H3). */
   /* + misión mundo3d FASE 5: capability.ts +2 (`world: '3d'`) y mundo3d.ts +15 (364 → 379, los derechos visibles). */
@@ -717,10 +758,15 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   /* + ciclo de vida 3D (2026-10-05): el linaje del material (nuevo) y su línea de exportación en la puerta del Content Core. */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts\n651\t0\tfunctions/src/core/content/linaje.ts';
   /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
+  /* + Guest AI Gate (2026-10-07): core/errors.ts +2, el código nuevo del motor ACCOUNT_REQUIRED tiene destino en el Core (AUTH_ERROR, core-contracts 44). Aditivo; ningún contrato sube de versión. */
+  const CORE_DEL_GUEST_GATE = '2\t0\tfunctions/src/core/errors.ts';
+  /* + reanclaje pre-commit (2026-10-07, autorizado por el dueño): core/backup.ts +5 −0, publicProfiles en CLASIFICACION_DE_DATOS como DERIVED
+     (seguridad de users; se reconstruye desde users con el relleno). Solo una entrada de datos; ni contratos ni la lógica de la copia cambian. */
+  const CORE_DE_LA_SEGURIDAD_DE_USERS = '5\t0\tfunctions/src/core/backup.ts';
   const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
   check('F3) ni F1-A ni productions; del Core, solo la misión fal y el linaje del ciclo de vida 3D; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',
     git(`diff --name-only ${RUTA} -- functions/src/filmmaker functions/src/productions`).trim() === ''
-    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D)
+    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DEL_GUEST_GATE, CORE_DE_LA_SEGURIDAD_DE_USERS)
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
     && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '68\t3\tfunctions/src/content/index.ts\n126\t4\tfunctions/src/content/materializador.ts');
@@ -740,8 +786,18 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       /* + cierre post-auditoría 2026-10-01: index +6 −5 (creatorChat/creatorQuote con MODEL_SECRETS; la adaptación de idioma de creatorRun con su sistema y `format: 'text'`) y generateAvatar +3 −3 (AVATAR_SECRETS, solo Gemini); creator/credits.ts sin tocar. */
       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
       /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos y las variantes; nada del reclamo ni del cobro. */
-      '45\t4\tfunctions/src/creator/credits.ts|157\t23\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
-    && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
+      /* + corrección P0 Seedance (2026-10-07, creator/credits.ts 45/4 → 54/17): el presupuesto cotiza con la petición efectiva y la capacidad del paso. */
+      /* + edad mínima 18 (2026-10-07): index +3 (la puerta en creatorChat y creatorRun y su import) y generateAvatar +5 (la puerta en las dos callables, su comentario y su import).
+       * + simplificación definitiva (2026-10-07): index 160/23 → 197/25 (Guest Gate; `exigirCuentaWeeValida` en lugar de la edad;
+       *   la ruta antes del dinero en creatorRun: `peticionesDelPlan` + `exigirRutaElegible`) y generateAvatar 137/15 → 152/15
+       *   (la cuenta Weë válida con su try/catch, su comentario y sus imports).
+       * + reanclaje pre-commit (2026-10-07, autorizado; corrección 4): index 197/25 → 250/69. UNA sola función arma la
+       *   entrada de cada paso (`entradaDelPaso`: input + prefs) para la ruta previa (`peticionDelPaso`) y para el bucle
+       *   de creatorRun: el bloque de `allowedProviders` y su comentario se MUEVEN del bucle a esa función (+53 −44). Sin
+       *   tocar pricing, Router, reserva/cobro ni proveedor; equivalencia exacta en creator-entrada-del-paso.test.mjs. */
+      '54\t17\tfunctions/src/creator/credits.ts|250\t69\tfunctions/src/creator/index.ts|152\t15\tfunctions/src/generateAvatar.ts'
+    /* + corrección P0 Seedance (2026-10-07): el motor recibe el `normalizado` con el que se cotizó; es la única diferencia admitida. */
+    && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')).replace('requestId, service, normalizado, creditTransactionId', 'requestId, service, creditTransactionId') === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 
 check('esta suite está en la cadena de `npm test`', /puente-pre-f1d\.test\.mjs/.test(leer('functions/package.json')));

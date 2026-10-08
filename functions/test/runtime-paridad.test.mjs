@@ -67,6 +67,13 @@ const { orquestadorDeWee } = lib('orchestrator/index.js');
 const core = lib('core/index.js');
 const { resolverConContexto } = lib('router/index.js');
 const { createRouter, memoryHealth, resolveQuality } = lib('engine/router.js');
+/*
+ * REANCLAJE NOMBRADO (Fase 1 — jurisdicción, 2026-10-07): Seedance tiene ahora reglas territoriales (bloqueado en US,
+ * IN y CN; sin país, falla cerrado). Esta suite mide la PARIDAD de elección Router↔Core, no la jurisdicción: se decide
+ * como una cuenta de un país permitido (ES), que es lo que veía antes cualquier operación. La jurisdicción la prueban
+ * `elegibilidad-jurisdiccion` y `jurisdiccion-seedance`.
+ */
+const JURISDICCION_PERMITIDA = Object.freeze(['ES']);
 const { ADAPTERS, DEFAULT_PROVIDERS, DEFAULT_ROUTING, DEFAULT_SETTINGS } = lib('engine/registry.js');
 const { registroDeWee } = lib('registry/index.js');
 const { resolutorPorCadena, resolutorDelRouter } = lib('runtime/resolucion.js');
@@ -181,7 +188,7 @@ console.log('\n── P2 · Router: qué elige cada uno, capacidad por capacidad
 
   const iguales = [], distintas = [], sinNadie = [], distintasConAdaptador = [];
   for (const capability of Object.keys(DEFAULT_ROUTING)) {
-    const c0 = (await vivo.route({ capability, input: {}, userId: 'user-0001' })).candidates?.[0];
+    const c0 = (await vivo.route({ capability, input: {}, userId: 'user-0001', jurisdicciones: JURISDICCION_PERMITIDA })).candidates?.[0];
     if (!c0 || c0.provider === 'mock') { sinNadie.push(capability); continue; }
     const rc = resolverConContexto({ capability, trace });
     const delCore = rc.ok ? `${rc.implementation.providerId}/${rc.implementation.modelId}` : '—';
@@ -211,7 +218,7 @@ console.log('\n── P2 · Router: qué elige cada uno, capacidad por capacidad
   check('12) en seis, los dos routers eligen el mismo proveedor y el mismo modelo', igual(iguales, IGUALES), iguales.join(', '));
   check('13) en QUINCE eligen distinto: migrar hoy cambiaría el modelo que atiende a la gente', igual(distintas, DISTINTAS), distintas.join(', '));
   check('14) y ocho no las sirve nadie de verdad: siete caen hoy en el modo demo y world.generate en «no disponible»; el Core las daría todas por no disponibles', igual(sinNadie, [...SIN_NADIE, ...SIN_NADIE_NI_DEMO]), sinNadie.join(', '));
-  const mundo = await vivo.route({ capability: 'world.generate', input: {}, userId: 'user-0001' });
+  const mundo = await vivo.route({ capability: 'world.generate', input: {}, userId: 'user-0001', jurisdicciones: JURISDICCION_PERMITIDA });
   check('14b) y para world.generate no hay ni demo: ningún candidato, tampoco el de muestra', mundo.candidates.length === 0 && !mundo.candidates.some((c) => c.provider === 'mock'), JSON.stringify(mundo.skipped));
   check('15) con el adaptador que el contrato admite hoy (`preference` + `hints`) siguen siendo trece: la preferencia pesa, no manda',
     igual(distintasConAdaptador, DISTINTAS_CON_ADAPTADOR), distintasConAdaptador.join(', '));
@@ -237,7 +244,7 @@ console.log('\n── P2b · F12-D: la misma medida, con la capa de compatibilid
   const router = core.crearRouter({ registry: registroDeWee() });
   const cadena = {
     async cadena({ peticion, input }) {
-      const d = await vivo.route({ capability: peticion.capability, input: { ...input }, userId: peticion.trace.userId });
+      const d = await vivo.route({ capability: peticion.capability, input: { ...input }, userId: peticion.trace.userId, jurisdicciones: JURISDICCION_PERMITIDA });
       return d.candidates.map((c) => ({ providerId: c.provider, modelId: c.model.id, estimatedUsd: c.estimatedUsd, estimatedCredits: c.estimatedCredits }));
     },
   };
@@ -248,7 +255,7 @@ console.log('\n── P2b · F12-D: la misma medida, con la capa de compatibilid
   const igualesConCapa = [], distintasConCapa = [], respaldoDistinto = [], demo = [], demoEnElCore = new Set(), sinEstimar = [];
   let igualesSinCapa = 0;
   for (const capability of Object.keys(DEFAULT_ROUTING)) {
-    const dv = await vivo.route({ capability, input: {}, userId: 'user-0001' });
+    const dv = await vivo.route({ capability, input: {}, userId: 'user-0001', jurisdicciones: JURISDICCION_PERMITIDA });
     const cabeza = dv.candidates[0];
     const r = await conCapa.resolver({ peticion: { capability, trace }, input: {} });
     if (!cabeza || cabeza.provider === 'mock') { demo.push(capability); demoEnElCore.add(id(r)); continue; }

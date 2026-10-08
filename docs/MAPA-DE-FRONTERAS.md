@@ -83,6 +83,8 @@ por el cliente.
 
 Todo lo anterior está conectado y sus callables y disparadores, desplegados.
 
+**Perfiles (integración 2026-10-07, sin desplegar):** `users/{id}` será privado (dueño y servidor) en la fase 2 (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo); los perfiles ajenos se leen de `publicProfiles/{id}` (lista blanca, escrita solo por el servidor con `espejoDelPerfilPublico`, `list` limitado), vía `perfilesPublicos` en `services/firestoreService.ts` (con una caída de transición a `users`, deuda declarada en DD-15). La frontera Identity → IA es «cuenta Weë válida» (`identity/sesion.ts`), que valida la fecha con `identity/edad.ts`.
+
 ## 3. Payment Router: lo que existe
 
 - **`functions/src/payments/purchaseValidation.ts`**: una tabla de proveedores `apple`, `google`, `stripe` y `test`.

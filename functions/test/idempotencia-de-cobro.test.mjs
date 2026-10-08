@@ -23,6 +23,8 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const lib = (p) => require(path.resolve(RAIZ, 'functions/lib', p));
 const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
 const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
@@ -242,7 +244,7 @@ const mundo = async (cuentas = ['ana']) => {
   comportamiento = generaBien;
   for (const uid of cuentas) await perfil(base, uid)(creditEngine);
 };
-const pedir = (uid, datos) => intento(() => video.generateVideo.run({ auth: { uid }, data: datos }));
+const pedir = (uid, datos) => intento(() => video.generateVideo.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data: datos }));
 const PETICION = { prompt: 'Un faro al amanecer, olas suaves', durationSec: 5, aspectRatio: '16:9' };
 const saldo = (uid) => saldoEn(base, uid);
 const usos = (requestId) => base.de('creditTransactions').filter((t) => t.requestId === requestId && t.type === 'usage');

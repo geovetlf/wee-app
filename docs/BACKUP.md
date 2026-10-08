@@ -148,6 +148,8 @@ dejarla fuera de la copia sin enterarse.
   `pushTokens` desde el propio aparato al arrancar. Si no se sabe decir desde qué,
   no es derivado.
 
+> **Integración 2026-10-07:** la colección `publicProfiles` (copia pública de `users`, escrita solo por el servidor: `espejoDelPerfilPublico` y el relleno, con la misma `sincronizarPerfilPublico`) está clasificada en `core/backup.ts` como **DERIVED**, reconstruible desde `users` con `scripts/rellenar-perfiles-publicos.mjs`. No necesita copia propia: restaurar `users` y volver a pasar el relleno la reconstruye.
+
 ## 4. Los bytes no están donde están los datos
 
 **Una URL no es una copia.** Guardar `https://…/foto.jpg` respalda la dirección de

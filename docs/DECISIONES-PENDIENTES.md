@@ -105,3 +105,31 @@ Construido, probado y **apagado**: nada de esto está desplegado ni activo. Deta
 | **Las filas del libro que se quedan en curso** (revisión de calidad, 2026-10-06) | Un intento aceptado cuyo desenlace no se sabe deja su fila de `aiGenerations` en `PROCESSING`: no suma al día ni a los topes, y se reconcilia a mano. Tampoco cuenta mientras el proveedor trabaja (como en el camino de siempre, que anota al terminar). No hay informe ni alarma que las mire | Decidir si se vigilan (y desde cuándo cuentan como riesgo) es del dueño; el runbook las pone en la observación (paso 6) |
 | **El cupo `3d` es de todo lo 3D** | `DEFAULT_LIMITS.perUserPerDay['3d']` es por MODALIDAD; hoy la única capacidad 3D es `world.generate` | Si llega otra capacidad 3D, decidir si comparte los 5 o tiene su cupo |
 | **Las 29 claves de 3D World en 14 idiomas** (+ `creaciones.rightsProvenance` y el texto de `errNotAvailableRegion`/`noDisponibleRegion` con «actualmente», misión de gobernanza) | Traducidas siguiendo las convenciones de cada diccionario, sin revisión nativa | El proceso de idiomas exige revisión nativa (I18N-REVISION.md) |
+
+## Edad, país y `users` (integración `integracion/p0-edad-fase1`, 2026-10-07)
+
+PENDIENTES, sin resolver. Auditoría de solo lectura de las fechas: `scripts/auditoria-edades.mjs` (solo conteos).
+
+- **Destino de las fechas de nacimiento históricas** (las de `private/account` anteriores a la regla de 18+ y los `birthDate` heredados en `users/{id}`): sin decidir si se conservan, se anonimizan o se borran.
+- **Cuentas sin país**: no pasan «cuenta Weë válida» (`ACCOUNT_REQUIRED`); sin decidir cómo se les pide.
+- **Flujo UX para completar el enrolamiento** de una cuenta autenticada que no lo terminó (fecha o país): hoy solo ve `ACCOUNT_REQUIRED`.
+- **Transición de las apps nativas antiguas** que aún leen perfiles ajenos de `users`.
+- **Segundo proveedor de vídeo** (hoy solo la familia Seedance).
+- **Cierre definitivo de `users`** (retirar la caída de transición del cliente y lo heredado del documento).
+- **Limpieza de datos legacy** de `users` (`scripts/limpiar-cuenta-en-users.mjs`, preparado, no ejecutado).
+
+### Despliegue de la seguridad de `users` por fases (correcciones 1–5, 2026-10-07)
+
+- **Fase 1** (lo que hay en `firestore.rules`): `publicProfiles`, `private/account` con fecha 18+ fija y `country` fijo. La lectura de `users` se queda **como está en producción** (`allow read: if true`, ruleset de c3515b3), entre las marcas `<fase-1:lectura-de-users>`. Conserva la exposición actual —ni la empeora ni la arregla— y no rompe a nadie: ni la web, ni las apps nativas publicadas.
+- **Fase 2** (el cierre): `ops/despliegue/reglas/users-cierre.fase2.rules`, que sustituye ese bloque (`componerFase2`, `ops/despliegue/cierre-users.mjs`). `ops/permitido.mjs` (y con él `despliegue.yml` y el Guardian) **bloquea** publicar unas reglas que cierren `users` hasta que `ops/produccion.json` demuestre: `espejoDelPerfilPublico` desplegada; `cierreDeUsers.relleno` verificado (`users == publicProfiles > 0`); `cierreDeUsers.cliente` (commit del cliente web, ya contenido en el `hosting:wee-app` vivo, y versión nativa mínima). Las tres son decisiones del dueño; escribirlas en el mapa es una afirmación de quien lo comprobó.
+- **Secuencia de la fase 2, preparada y sin ejecutar** (`ops/despliegue/grupos.json` → `primeros_despliegues` → `f2-1-espejo`): 1 desplegar el espejo SOLO; 2 verificarlo; 3 relleno con autorización explícita; 4 verificar `users == publicProfiles > 0`; 5 publicar clientes; 6 comprobar las tres condiciones por código (`permitido.mjs` en el workflow y el Guardian); 7 solo entonces el cierre. `permitido.mjs` bloquea el primer despliegue del espejo mezclado con cualquier otro objetivo.
+- La alternativa (cerrar `users` en este mismo commit) arreglaba antes la exposición pero dejaba la integridad del orden en un texto: un `firestore:rules` desplegado antes del espejo vacía el muro, los perfiles ajenos y el buscador para todos, y rompe las apps instaladas hasta que se actualicen.
+
+## Deudas técnicas declaradas (correcciones 1–5, 2026-10-07) — documentadas, sin cambio de arquitectura
+
+| Deuda | Qué hay hoy | Qué haría falta |
+|---|---|---|
+| **El vínculo `hidi_<cuenta>` es público** | `publicProfiles` no copia `linkedAccountId`, pero el id y el `uid` de un Perfil Weë son `hidi_` + el uid de la cuenta (que es el del Perfil Real). Quien lea las dos copias públicas (o los `posts`) une las dos caras. Preexistente; el comentario de `identity/perfilPublico.ts` ya no promete seudonimato | Migrar los identificadores `hidi_` (no se renombran sin migración, CLAUDE.md); decisión del dueño |
+| **El vídeo está acoplado a Seedance** | `engine/video.ts`: `VIDEO_PROVIDERS = ['seedance']`, normalización con `chooseSeedanceModel`/`specOf` y `modelId` de Seedance; `creator/video.ts`: `TARIFA_PROPIA_DE_VIDEO = ['seedance', 'mock']`, otra lista de proveedores en código. La rama de `precioPorRuta` para «otro proveedor» es inalcanzable en producción. Es la **restricción actual** de CLAUDE.md §6 (solo la familia Seedance), no un defecto | Un segundo proveedor de vídeo exigirá tocar la normalización de `engine/video.ts` y derivar la tarifa propia de `VIDEO_PROVIDERS`, no solo un adaptador + una línea en `ADAPTERS` |
+| **Tokens `custom` en el Guest Gate** | `identity/sesion.ts` (`esCuentaAutenticada`) rechaza solo `anonymous` (lista negra): un token `custom` pasa como cuenta. Hoy no hay `createCustomToken` en `functions/src`, así que no es explotable; las callables que cobran además exigen enrolamiento (`exigirCuentaWeeValida`), las cotizaciones no | Lista blanca de proveedores de acceso (google.com, password, apple.com, phone) el día que se acuñen tokens propios |
+| **Aristas `identity → engine` y `credits → identity`** | `identity/sesion.ts` importa `engine/errors` y `engine/jurisdiccion`; `identity/perfilPublico.ts` importa `engine/sanitize` (registro saneado del espejo); `credits/index.ts` importa `identity/sesion`. Sin ciclo (engine no importa identity), pero la identidad, capa base, depende del motor | Llevar la lectura del país declarado a identity, un error propio de identity que core/engine traduzcan, y el saneador a una capa común |

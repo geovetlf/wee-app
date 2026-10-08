@@ -97,6 +97,8 @@ const admin = require('firebase-admin');
 admin.initializeApp({ projectId: PROY, storageBucket: `${PROY}.appspot.com` });
 const db = admin.firestore();
 const lib = (p) => require(path.resolve(here, '../lib', p));
+/* Cuenta Weë válida (identity/sesion.ts): estas cuentas de prueba se dan por enroladas; el enrolamiento tiene su suite (edad-minima, guest-sin-ia). */
+lib('identity/sesion.js').enrolamiento.leer = async () => true;
 const video = lib('creator/video.js');
 const rt = lib('runtime/index.js');
 const { creditEngine } = lib('credits/creditEngine.js');
@@ -119,7 +121,8 @@ const cuentaDe = (letra) => `emuvideo${letra}${marca}`;
 const CUENTAS = ['B', 'F', 'D', 'E', 'I', 'H', 'A', 'C', 'P'].map(cuentaDe);
 const SALDO = 5000;
 for (const uid of CUENTAS) {
-  await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: uid });
+  /* Perfil Real con país permitido: Seedance es territorial y la ruta previa (antes del dinero) lee users.country, como en video-asincrono.test.mjs. */
+  await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: uid, profileType: 'real', country: 'ES' });
   await creditEngine.ensureAccount(uid);
   await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: SALDO });
 }
@@ -127,7 +130,7 @@ await db.collection('aiSettings').doc('runtime').set({ habilitado: true, porCapa
 olvidarLaPuerta();
 
 const PETICION = { prompt: 'Un faro al amanecer, olas suaves', durationSec: 5, aspectRatio: '16:9' };
-const pedir = (uid, requestId) => intento(() => video.generateVideo.run({ auth: { uid }, data: { ...PETICION, requestId } }));
+const pedir = (uid, requestId) => intento(() => video.generateVideo.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data: { ...PETICION, requestId } }));
 const saldo = async (uid) => (await db.collection('users').doc(`doc_${uid}`).get()).get('creditsBalance');
 const uso = async (requestId) => (await db.collection('creditTransactions').doc(`usage_${requestId}`).get()).data();
 const reembolsos = async (requestId) => (await db.collection('creditTransactions').where('requestId', '==', requestId).get()).docs.filter((d) => d.get('type') === 'refund').map((d) => d.data());
@@ -183,9 +186,9 @@ const conRef = (id) => ({ ...M.produccionVacia({ title: 'Puente', aspectRatio: '
 const pid = `prodemu${marca}`.padEnd(24, '0');
 const prod = await producciones.crearProduccion({ accountId: cuentaDe('B'), productionId: pid, production: conRef(assetId), at: Date.now() }, { db });
 check('productions lo acepta como referencia', prod.ok === true, prod.ok ? 'ok' : prod.code);
-const ajeno = await intento(() => contenido.deleteAsset.run({ auth: { uid: cuentaDe('F') }, data: { assetId } }));
+const ajeno = await intento(() => contenido.deleteAsset.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: cuentaDe('F') }, data: { assetId } }));
 check('`deleteAsset` de otra cuenta no lo encuentra, y el objeto sigue', !ajeno.ok && ajeno.error.code === 'not-found' && (await admin.storage().bucket().file(ficha.storageRef.objectKey).exists())[0] === true);
-const borrado = await intento(() => contenido.deleteAsset.run({ auth: { uid: cuentaDe('B') }, data: { assetId } }));
+const borrado = await intento(() => contenido.deleteAsset.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: cuentaDe('B') }, data: { assetId } }));
 const sigue = await admin.storage().bucket().file(ficha.storageRef.objectKey).exists();
 check('`deleteAsset` de su dueño lo retira y BORRA el objeto del Storage', borrado.ok && borrado.valor.status === 'deleted' && sigue[0] === false
   && (await contenido.leerMaterial(assetId))?.status === 'deleted', borrado.ok ? borrado.valor.status : borrado.error.code);

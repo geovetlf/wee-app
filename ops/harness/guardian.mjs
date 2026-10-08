@@ -297,6 +297,8 @@ const produccion = (ctx, rutas, h) => {
   const vivas = new Map((manifiesto.funciones || []).map((f, i) => [f.funcion, { ...f, indice: i }]));
   const grupos = ctx.json('ops/despliegue/grupos.json');
   const grupoDe = (n) => (grupos?.grupos || []).find((g) => (g.funciones || []).includes(n))?.id || null;
+  /* Una función nueva con su primer despliegue declarado (grupos.json → primeros_despliegues): se nombra su grupo y su paso. */
+  const primerDespliegueDe = (n) => { const g = (grupos?.primeros_despliegues || []).find((x) => (x.funciones || []).includes(n)); return g ? { grupo: g.id, fase: g.fase, paso: g.paso } : null; };
   const porFuncion = [];
   if (tocaFunciones) {
     const mapa = ctx.funciones();
@@ -307,7 +309,7 @@ const produccion = (ctx, rutas, h) => {
   const tocadas = porFuncion.filter(([n]) => vivas.has(n));
   const sinDesplegar = porFuncion.filter(([n]) => !vivas.has(n));
   const candidato = ctx.head();
-  const veredicto = decidir({ manifiesto, funciones: tocadas.map(([n]) => n), otros: otros.map((d) => d.objetivo), contiene: ctx.contiene, candidato: candidato || 'HEAD' });
+  const veredicto = decidir({ manifiesto, funciones: tocadas.map(([n]) => n), otros: otros.map((d) => d.objetivo), contiene: ctx.contiene, candidato: candidato || 'HEAD', reglas: ctx.leer('firestore.rules') ?? undefined });
   const regla = { archivo: PRODUCCION, json: 'regla', valor: manifiesto.regla };
   const camino = fuenteEnTexto('docs/HARNESS.md', ctx.leer('docs/HARNESS.md'), 'El único camino a producción');
   if (tocadas.length) {
@@ -321,14 +323,14 @@ const produccion = (ctx, rutas, h) => {
       datos: {
         candidato,
         funciones: tocadas.map(([n, t]) => { const f = vivas.get(n); return { funcion: n, json: `funciones[${f.indice}]`, commit: f.commit || null, tag: f.tag || null, grupo: grupoDe(n), enMain: f.enMain ?? null, rutas: t }; }),
-        ...(sinDesplegar.length ? { sinDesplegar: sinDesplegar.map(([n, t]) => ({ funcion: n, rutas: t })) } : {}),
+        ...(sinDesplegar.length ? { sinDesplegar: sinDesplegar.map(([n, t]) => ({ funcion: n, rutas: t, primerDespliegue: primerDespliegueDe(n) })) } : {}),
         avisos: veredicto.avisos,
       },
     });
   } else if (sinDesplegar.length) {
     h.poner({
       id: 'produccion:sin-desplegar', nivel: 'CONTEXT', tipo: 'produccion', titulo: `Código de funciones exportadas que no están en producción: ${sinDesplegar.map(([n]) => n).join(', ')}`,
-      rutas: sinDesplegar.flatMap(([, t]) => t), fuentes: [regla], datos: { sinDesplegar: sinDesplegar.map(([n, t]) => ({ funcion: n, rutas: t })) },
+      rutas: sinDesplegar.flatMap(([, t]) => t), fuentes: [regla], datos: { sinDesplegar: sinDesplegar.map(([n, t]) => ({ funcion: n, rutas: t, primerDespliegue: primerDespliegueDe(n) })) },
     });
   }
   for (const d of otros) {

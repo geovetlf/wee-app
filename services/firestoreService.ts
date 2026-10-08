@@ -849,6 +849,26 @@ const perfilRealPorUid = async (uid: string): Promise<UserProfile | null> => {
 };
 
 /*
+ * LO QUE SE LEE DE OTRA PERSONA SALE DE `publicProfiles` (seguridad de `users`, 2026-10-07).
+ *
+ * `users/{id}` solo lo lee su dueño: lleva el saldo, el país, el idioma y `linkedAccountId`. La cara pública
+ * —nombre, foto, bio, contadores, referencia— la copia el servidor con lista blanca
+ * (`functions/src/identity/perfilPublico.ts`) a `publicProfiles/{id}`, y de ahí leen tarjetas, perfil ajeno,
+ * buscador, avisos y ËContact. Lo propio sigue leyéndose de `users` (`perfilRealPorUid`).
+ *
+ * TRANSICIÓN: mientras la copia no esté rellena, una consulta vacía cae a `users` como antes. Con las reglas
+ * nuevas esa caída la deniega Firestore para lo ajeno y aquí se queda en «no hay», nunca en un error en pantalla.
+ * Se retira cuando el relleno esté hecho (scratchpad/users/INFORME.md, «migración pendiente»).
+ */
+export const COLECCION_PERFILES_PUBLICOS = 'publicProfiles';
+type FiltroDePerfil = { field: 'uid' | 'entityId'; operator: '==' | 'in'; value: string | string[] };
+const perfilesPublicos = async (filtros: FiltroDePerfil[], limite: number): Promise<UserProfile[]> => {
+  const publicos = await firestoreService.getMany<UserProfile>(COLECCION_PERFILES_PUBLICOS, filtros, undefined, 'desc', limite);
+  if (publicos.length > 0) return publicos;
+  return firestoreService.getMany<UserProfile>('users', filtros, undefined, 'desc', limite).catch(() => [] as UserProfile[]);
+};
+
+/*
  * UN PERFIL POR SU REFERENCIA PÚBLICA (Fase 11.x-6).
  *
  * La referencia pública de un perfil es su ENTIDAD —`ent_` y 26 caracteres
@@ -864,10 +884,10 @@ const perfilRealPorUid = async (uid: string): Promise<UserProfile | null> => {
 const perfilPorReferenciaPublica = async (referencia: string): Promise<UserProfile | null> => {
   if (typeof referencia !== 'string' || !referencia) return null;
   const campo = campoQueResuelve(referencia);
-  if (campo === 'uid') return perfilRealPorUid(referencia);
-  const users = await firestoreService.getMany<UserProfile>('users',
-    [{ field: 'entityId', operator: '==', value: referencia }], undefined, 'desc', 1
-  );
+  const filtro: FiltroDePerfil = campo === 'uid'
+    ? { field: 'uid', operator: '==', value: referencia }
+    : { field: 'entityId', operator: '==', value: referencia };
+  const users = await perfilesPublicos([filtro], 1);
   return users.length > 0 ? users[0] : null;
 };
 
@@ -950,8 +970,7 @@ export const usersService = {
     for (let i = 0; i < unicos.length; i += 30) tandas.push(unicos.slice(i, i + 30));
     const resultados = await Promise.all(
       tandas.map((tanda) =>
-        firestoreService
-          .getMany<UserProfile>('users', [{ field: 'uid', operator: 'in', value: tanda }])
+        perfilesPublicos([{ field: 'uid', operator: 'in', value: tanda }], 30)
           .catch((error) => {
             // Una tanda que falla se queda sin sus personas. Que se vea, en vez
             // de que la lista salga corta sin que nadie sepa por qué.
@@ -1188,14 +1207,8 @@ export const searchUsers = async (searchQuery: string, limitCount = 10, locale?:
 
     // Firebase no soporta búsqueda de texto completo, así que obtenemos usuarios y filtramos
     // En producción se usaría Algolia o Elasticsearch
-    const snapshot = await getDocs(
-      query(collection(db, 'users'), limit(100))
-    );
-
-    const users = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as UserProfile));
+    // Solo la cara pública (`publicProfiles`): `users` ya no se lista. Ver `perfilesPublicos`.
+    const users = await perfilesPublicos([], 100);
 
     // Filtrar por displayName que contenga el query (case insensitive)
     const filtered = users.filter(user =>

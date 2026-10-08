@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { exigirCuentaWeeValida } from '../identity/sesion';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { onCall } from 'firebase-functions/v2/https';
@@ -391,6 +392,8 @@ const gastarElHueco = async (uid: string, requestId: string, metadata: Readonly<
 export const generateWorld = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_LA_PUERTA_MS / 1000, memory: '512MiB' }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
+    /* Cuenta Weë válida (identity/sesion.ts): autenticada y enrolada (registro 18+ con país). Única condición; sin edad aquí. */
+    await exigirCuentaWeeValida(request.auth);
     const uid = request.auth.uid;
     const data = (request.data || {}) as EntradaDeLaPuerta;
     /* Una operación que no existe se rechaza en la frontera: no se toma por «crear», que es la que cobra. */

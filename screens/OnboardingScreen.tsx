@@ -25,6 +25,7 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import AvatarPicker from '../components/avatars/AvatarPicker';
 import { uploadProfileImageFromUri } from '../services/storageService';
+import { EDAD_MINIMA, veredictoDeEdad } from '../utils/edadMinima';
 import { usersService } from '../services/firestoreService';
 import { scale } from '../utils/scale';
 import { isDiceBearUrl } from '../components/avatars/AvatarPicker';
@@ -90,9 +91,9 @@ const OnboardingScreen: React.FC = () => {
   const maxRealNameLength = 50;
   const maxBioLength = 150;
 
-  // Año máximo: hace 13 años (edad mínima)
+  // Año máximo: hace EDAD_MINIMA (18) años. La lista solo orienta; quien decide es `veredictoDeEdad`.
   const currentYear = new Date().getFullYear();
-  const maxYear = currentYear - 13;
+  const maxYear = currentYear - EDAD_MINIMA;
   const minYear = currentYear - 120;
 
   /*
@@ -246,6 +247,19 @@ const OnboardingScreen: React.FC = () => {
         notify(t('onboarding.birthMissingTitle'), t('onboarding.birthMissing'));
         return;
       }
+      /*
+       * EDAD MÍNIMA: 18 (utils/edadMinima.ts). Misma cuenta que las reglas y el
+       * servidor, que son quienes de verdad lo impiden; aquí solo se avisa antes.
+       */
+      const edad = veredictoDeEdad(getBirthDateISO(), Date.now());
+      if (edad === 'INVALIDA') {
+        notify(t('onboarding.birthInvalidTitle'), t('onboarding.birthInvalid'));
+        return;
+      }
+      if (edad !== 'OK') {
+        notify(t('onboarding.underAgeTitle'), t('onboarding.birthDateHint', { edad: EDAD_MINIMA }));
+        return;
+      }
       // Validar género
       if (!gender) {
         notify(t('onboarding.genderMissingTitle'), t('onboarding.genderMissing'));
@@ -263,6 +277,22 @@ const OnboardingScreen: React.FC = () => {
 
       setUploading(true);
       try {
+        /*
+         * PRIMERO LA CUENTA, DESPUÉS EL PERFIL (edad mínima de Weë, 18).
+         *
+         * Las reglas solo aceptan la cuenta privada con una fecha de nacimiento
+         * de 18+, y una vez guardada no se cambia. Se escribe ANTES que el perfil
+         * público para que, si se rechaza, el registro no quede marcado como
+         * terminado (`hasCompletedCommunityOnboarding`) sin una edad válida.
+         * Sin perfil al que colgarla no hay registro que completar.
+         */
+        if (!userProfile?.id) throw new Error('onboarding: sin perfil para guardar la cuenta');
+        await usersService.guardarDatosPrivados(userProfile.id, {
+          realName: realName.trim(),
+          birthDate: getBirthDateISO(),
+          gender,
+        });
+
         /*
          * LO PÚBLICO Y LO DE LA CUENTA VAN A SITIOS DISTINTOS. `users/{id}` lo
          * lee cualquiera: ahí van el alias, la bio y el avatar. El nombre real,
@@ -305,13 +335,6 @@ const OnboardingScreen: React.FC = () => {
         }
 
         await updateProfile(updateData);
-        if (userProfile?.id) {
-          await usersService.guardarDatosPrivados(userProfile.id, {
-            realName: realName.trim(),
-            birthDate: getBirthDateISO(),
-            gender,
-          });
-        }
 
         // Marcar como completado
         setCompleted(true);
@@ -402,7 +425,7 @@ const OnboardingScreen: React.FC = () => {
           {t('onboarding.birthDate')}
         </Text>
         <Text style={[styles.inputHint, { color: theme.colors.textSecondary }]}>
-          {t('onboarding.birthDateHint')}
+          {t('onboarding.birthDateHint', { edad: EDAD_MINIMA })}
         </Text>
         <View style={styles.dateSelectorsRow}>
           {ordenDeFecha.map((parte) => {

@@ -210,3 +210,31 @@ export const derechosDelModelo = (modelo: ModelSpec | undefined): DerechosDelMat
     ...(bloqueadas.length ? { jurisdiccionesBloqueadas: [...bloqueadas] } : {}),
   };
 };
+
+/* ── El estado territorial, en el vocabulario de la Fase 1 ──────────────── */
+
+/**
+ * LO MISMO QUE `modeloElegible`, dicho como lo pidió el cierre pre-lanzamiento (Fase 1, 2026-10-07) para auditoría y
+ * para el informe de cumplimiento. No decide nada nuevo: TRADUCE la respuesta de la regla común, que sigue siendo la
+ * única. Nunca viaja a la app (la app solo recibe el motivo público de `errors.ts`).
+ *
+ *   TERRITORY_UNKNOWN            el modelo tiene reglas territoriales y la operación no tiene país conocido
+ *   TERRITORY_DENIED             bloqueado en el país de la operación (o en todos: licencia)
+ *   PROVIDER_DISABLED            el proveedor o el modelo están apagados por configuración
+ *   CONTRACTUAL_STATUS_UNKNOWN   el territorio no lo excluye, pero su revisión legal/contractual no está aprobada
+ *   TERRITORY_ALLOWED            el territorio no lo excluye y es elegible. NO es una aprobación contractual.
+ */
+export type EstadoTerritorial =
+  | 'TERRITORY_ALLOWED' | 'TERRITORY_DENIED' | 'TERRITORY_UNKNOWN' | 'PROVIDER_DISABLED' | 'CONTRACTUAL_STATUS_UNKNOWN';
+
+export const estadoTerritorial = (
+  modelo: ModelSpec, ajuste?: AjusteDeModelo, contexto?: ContextoDeElegibilidad, proveedorActivo = true,
+): EstadoTerritorial => {
+  const e = modeloElegible(modelo, ajuste, contexto);
+  if (e.estado === 'JURISDICTION_UNKNOWN') return 'TERRITORY_UNKNOWN';
+  if (e.estado === 'BLOCKED_FOR_JURISDICTION' || e.estado === 'BLOCKED_GLOBAL') return 'TERRITORY_DENIED';
+  if (proveedorActivo !== true) return 'PROVIDER_DISABLED';
+  if (e.estado === 'REVIEW_REQUIRED') return 'CONTRACTUAL_STATUS_UNKNOWN';
+  if (e.estado === 'APPROVED') return 'PROVIDER_DISABLED';
+  return 'TERRITORY_ALLOWED';
+};

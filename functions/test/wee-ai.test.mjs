@@ -118,8 +118,9 @@ console.log('\n── A · El nombre visible es Weë AI ──');
   /* Los errores del servicio ya no llevan la frase dentro: llevan su clave, y
    * la frase —con la sección bien escrita— está en los dos diccionarios. */
   check('4) los errores del servicio, también',
+    /* + Guest AI Gate (2026-10-07): `errAccountRequired` («Para crear contenido con Weë AI…») es la tercera. */
     ['es', 'en'].every((idioma) =>
-      (leer('i18n/textos/' + idioma + '/weeai.ts').match(new RegExp("'[^'\n]*" + NUEVO + "[^'\n]*'", 'g')) || []).length === 2)
+      (leer('i18n/textos/' + idioma + '/weeai.ts').match(new RegExp("'[^'\n]*" + NUEVO + "[^'\n]*'", 'g')) || []).length === 3)
     && /return t\('weeai\.errNoAccount'\)/.test(leer('services/creatorService.ts'))
     && /return t\('weeai\.errOffline'\)/.test(leer('services/creatorService.ts')));
   /* Sale de su clave, en el idioma de quien publica; en español sigue diciendo lo mismo. */

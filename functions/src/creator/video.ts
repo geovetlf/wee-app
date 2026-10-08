@@ -1,14 +1,15 @@
 import { createHash } from 'crypto';
+import { exigirCuentaWeeValida } from '../identity/sesion';
+import { exigirRuta, precioPorRuta, rutaPrevia } from './rutaPrevia';
 import { getFirestore } from 'firebase-admin/firestore';
 import { onCall } from 'firebase-functions/v2/https';
 import { assertText, EngineError, toEngineHttpsError } from '../engine/errors';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
-import { chooseSeedanceModel, normalizeVideoRequest, videoEngine, VideoModelPreference, VideoQuality, VideoRequest } from '../engine/video';
+import { normalizeVideoRequest, videoEngine, VideoModelPreference, VideoQuality, VideoRequest } from '../engine/video';
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId } from '../credits/creditValidation';
-import { priceVideo } from '../credits/aiPricing';
-import { techoDeVideoDeEntrada } from '../engine/providers/seedance';
+import { priceVideoRequest } from '../credits/aiPricing';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
@@ -334,10 +335,15 @@ export const sinReservaHuerfana = async <T>(uid: string, requestId: string, pedi
   }
 };
 
+/** Los proveedores que `priceVideoRequest` sabe cotizar con su tarifa oficial (más el demo, que cobra como ellos). */
+const TARIFA_PROPIA_DE_VIDEO: readonly string[] = ['seedance', 'mock'];
+
 export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, async (request) => {
   const deadlineAt = Date.now() + PLAZO_DE_VIDEO_MS - RESERVA_PARA_LIQUIDAR_MS;
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
+    /* Cuenta Weë válida (identity/sesion.ts): autenticada y enrolada (registro 18+ con país). Única condición; sin edad aquí. */
+    await exigirCuentaWeeValida(request.auth);
     const uid = request.auth.uid;
     const data = (request.data || {}) as GenerateVideoInput;
     /*
@@ -408,6 +414,24 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     }
 
     /*
+     * ── LA RUTA ANTES DEL DINERO (simplificación de jurisdicción, 2026-10-07) ──
+     *
+     * Se le pregunta al Router de siempre —con la MISMA petición normalizada que
+     * llegará al proveedor y la jurisdicción que él lee de la cuenta— si hay
+     * alguna ruta elegible. Sin ninguna, no se toca el cupo, no se reserva y no
+     * se cobra: antes salía −35 +35 y un vídeo del cupo gastado por algo que se
+     * sabía de antemano. El mensaje es el genérico: sin proveedor ni región.
+     */
+    const ruta = await rutaPrevia.decidir({ userId: uid, capability: normalizado.capability, input: normalizado.input, prefs: normalizado.prefs });
+    if (!ruta.candidates.length) {
+      if (deToma) {
+        if (!cotizar) throw noSeGenera(deToma, 'route_unavailable');
+        return { status: 'QUOTED', allowed: false, reason: 'route_unavailable', takes: await estadoDeLaToma(deToma) };
+      }
+      exigirRuta(ruta);
+    }
+
+    /*
      * Precio calculado con la tarifa oficial de ByteDance para el modelo que
      * elegirá el Weë Video Engine; el Credit Engine sigue siendo quien cobra.
      * Las sobreescrituras de `creditCosts` se cargan ANTES: si no, una instancia
@@ -415,19 +439,17 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
      * Firestore, y la misma petición cambiaba de importe —y de identidad—.
      */
     await loadCostOverrides();
-    /* R22 · con vídeos de referencia, su entrada se cotiza con el techo del modelo, no con lo que declare quien llama. */
-    const modeloDelPrecio = chooseSeedanceModel(videoRequest, settings);
-    const price = priceVideo(
-      {
-        modelId: modeloDelPrecio,
-        durationSec: videoRequest.durationSec,
-        aspectRatio: videoRequest.aspectRatio,
-        resolution: videoRequest.resolution,
-        quality: videoRequest.quality,
-        inputVideoSec: videoRequest.references?.videos?.length ? techoDeVideoDeEntrada(modeloDelPrecio) : undefined,
-      },
-      settings,
-    );
+    /*
+     * PETICIÓN → NORMALIZAR → PRECIO → RESERVA → PROVEEDOR (corrección P0 del
+     * 2026-10-07). El precio sale de `normalizado`, el MISMO objeto que llega al
+     * proveedor por los dos caminos —el del Core y el de siempre—, y pasa por la
+     * misma petición efectiva que construye el cuerpo (`peticionEfectivaDeSeedance`):
+     * resolución, proporción —`adaptive` en imagen a vídeo—, duración y, con vídeos
+     * de referencia, el techo de entrada del modelo (R22). Antes se cotizaba con la
+     * petición cruda y se enviaba otra cosa.
+     */
+    /* Con la ruta FINAL: la tarifa de Seedance si atiende Seedance (o el demo); si no, la de la ruta elegida. */
+    const price = precioPorRuta(priceVideoRequest(normalizado, settings), ruta, TARIFA_PROPIA_DE_VIDEO);
 
     if (deToma?.evaluacion) {
       /*
@@ -435,11 +457,8 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
        * rebajar nada. Si no llega, se dice hasta dónde llega ESA calidad con su
        * modelo —un precio que no se cobra, solo se lee— para que la persona elija.
        */
-      const modeloDeLaCalidad = chooseSeedanceModel({ ...videoRequest, resolution: undefined }, settings);
-      const deLaCalidad = modeloDeLaCalidad === price.model ? price : priceVideo(
-        { modelId: modeloDeLaCalidad, durationSec: videoRequest.durationSec, aspectRatio: videoRequest.aspectRatio, resolution: videoRequest.resolution, quality: videoRequest.quality },
-        settings,
-      );
+      const modeloDeLaCalidad = normalizeVideoRequest({ ...videoRequest, resolution: undefined }, settings).modelId;
+      const deLaCalidad = modeloDeLaCalidad === price.model ? price : priceVideoRequest({ ...normalizado, modelId: modeloDeLaCalidad }, settings);
       const degradada = calidadRepresentable(
         deToma.evaluacion,
         { modelo: modeloDeLaCalidad, resolucion: String(deLaCalidad.detail.resolution) },
@@ -677,8 +696,9 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
       };
     }
 
+    /* Con `normalizado`: lo que se cotizó es lo que el motor envía, sin volver a decidirlo (corrección P0 Seedance). */
     try {
-      const result = await videoEngine.generate(videoRequest, { userId: uid, experienceId: 'studio', goal: prompt, requestId, service, creditTransactionId: usageTransactionId(requestId), deadlineAt });
+      const result = await videoEngine.generate(videoRequest, { userId: uid, experienceId: 'studio', goal: prompt, requestId, service, normalizado, creditTransactionId: usageTransactionId(requestId), deadlineAt });
       await getFirestore().collection('aiGenerations').doc(result.generationId).set({ videoUrl: result.output.url }, { merge: true });
       /*
        * EL VÍDEO PASA A SER MATERIAL DE LA CUENTA. Antes, un vídeo de Weë Studio

@@ -1,4 +1,6 @@
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { exigirCuentaAutenticada, exigirCuentaWeeValida } from '../identity/sesion';
+import { exigirRutaElegible } from './rutaPrevia';
 import { onCall } from 'firebase-functions/v2/https';
 import { engine } from '../engine';
 import { contextoParaBrain } from '../elements/contexto';
@@ -266,6 +268,8 @@ async function priceBrainMessage(input: Record<string, unknown>, webSearch: bool
 export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: MODEL_SECRETS }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
+    /* Guest AI Gate (identity/sesion.ts): un invitado no genera; va ANTES de trabajo, Credits y proveedor. */
+    exigirCuentaAutenticada(request.auth);
     const uid = request.auth.uid;
     const data = (request.data || {}) as BrainChatInput;
     const message = assertText(data.message ?? ' ', 'tu mensaje', LIMITES_DE_CONTEXTO.caracteresDelMensaje);
@@ -313,6 +317,8 @@ export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, me
 export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, memory: '512MiB', secrets: MODEL_SECRETS }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
+    /* Cuenta Weë válida (identity/sesion.ts): autenticada y enrolada (registro 18+ con país). Única condición; sin edad aquí. */
+    await exigirCuentaWeeValida(request.auth);
     const uid = request.auth.uid;
     const data = (request.data || {}) as BrainChatInput;
     const message = assertText(data.message, 'tu mensaje', LIMITES_DE_CONTEXTO.caracteresDelMensaje);
@@ -342,6 +348,13 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       return { chatId: chatRef.id, messageId: existing.id, text: prev.text, sources: prev.sources || [], suggestedExperience: prev.suggestedExperience ?? null, credits: prev.credits || 0, demo: !!prev.demo, duplicate: true, bloque: await bloqueDe(uid) };
     }
 
+    /* La ruta antes del dinero (creator/rutaPrevia.ts): la misma capacidad y el mismo ruteo con que se generará. */
+    await exigirRutaElegible([{
+      userId: uid,
+      capability: webSearch ? 'text.search' : 'text.generate',
+      input: {},
+      ...(webSearch ? null : { prefs: { modelId: MODELO_DE_BRAIN, allowedProviders: ['deepseek'] } }),
+    }]);
     // Límites y Credits antes de llamar a la IA
     const { settings } = await loadConfig();
     await limiter.reserve(uid, { text: 1 }, settings.limits);

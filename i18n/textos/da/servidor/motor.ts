@@ -30,6 +30,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Der mangler noget. Tjek det, du har bedt om, og prøv igen.',
   unauthorized: 'Log ind for at skabe med Weë.',
+  accountRequired: 'Hvis du vil skabe indhold med Weë AI, skal du logge ind eller oprette din konto.',
   providerError: 'AI-tjenesten kunne ikke gøre din kreation færdig denne gang. Der er ikke trukket nogen Credits. Prøv igen om et øjeblik.',
   generationFailed: 'Jeg kunne ikke gøre din kreation færdig. Der er ikke trukket nogen Credits. Prøv igen.',
   timeout: 'Det tog for lang tid, så jeg stoppede det. Der er ikke trukket nogen Credits. Prøv igen.',
@@ -64,8 +65,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Lige nu er der ingen tilgængelig AI til det her. Prøv igen senere.',
   noDisponibleActualmente: 'Denne funktion er ikke tilgængelig i øjeblikket.',
   noDisponibleAhora: 'Denne funktion er ikke tilgængelig lige nu. Prøv igen om lidt.',
-  noDisponibleRegion: 'Denne funktion er i øjeblikket ikke tilgængelig i din region.',
-  noDisponiblePais: 'For at bruge denne funktion skal du angive dit land i din Ægte profil.',
   noDisponibleOpciones: 'Denne funktion er ikke tilgængelig med de valg, du har truffet. Prøv nogle andre.',
   describeVideo: 'Fortæl mig, hvilken video du vil lave.',
   creacionTerminada: 'Den kreation er allerede færdig og bliver ikke lavet igen. Du finder den i ”Mine kreationer”.',

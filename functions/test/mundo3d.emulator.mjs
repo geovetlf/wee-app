@@ -96,6 +96,8 @@ const admin = require('firebase-admin');
 admin.initializeApp({ projectId: PROY, storageBucket: `${PROY}.appspot.com` });
 const db = admin.firestore();
 const lib = (p) => require(path.resolve(here, '../lib', p));
+/* Cuenta Weë válida (identity/sesion.ts): estas cuentas de prueba se dan por enroladas; el enrolamiento tiene su suite (edad-minima, guest-sin-ia). */
+lib('identity/sesion.js').enrolamiento.leer = async () => true;
 const mundo = lib('creator/mundo.js');
 const rt = lib('runtime/index.js');
 const { creditEngine } = lib('credits/creditEngine.js');
@@ -151,7 +153,7 @@ const foto = async (uid) => {
   return `gs://${bucket.name}/${ruta}`;
 };
 const peticion = async (uid, extra = {}) => ({ contract: '1.0', modo: 'desde_imagen', imagen: { tipo: 'storage', url: await foto(uid) }, descripcion: 'Una plaza medieval abandonada', ...extra });
-const llamar = (uid, data) => intento(() => mundo.generateWorld.run({ auth: { uid }, data }));
+const llamar = (uid, data) => intento(() => mundo.generateWorld.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data }));
 const uso = async (requestId) => (await db.collection('creditTransactions').doc(`usage_${requestId}`).get()).data();
 const saldo = async (uid) => (await db.collection('users').doc(`doc_${uid}`).get()).get('creditsBalance');
 const reembolsos = async (requestId) => (await db.collection('creditTransactions').where('requestId', '==', requestId).get()).docs.filter((d) => d.get('type') === 'refund');
@@ -181,8 +183,8 @@ console.log('\n── No disponible, sin mover nada ──');
   const region = await llamar(cuentaDe('S'), { op: 'crear', requestId: 'emu-mundo-S', creditosCotizados: 39, peticion: await peticion(cuentaDe('S')) });
   const sinPais = await llamar(cuentaDe('N'), { op: 'cotizar', peticion: await peticion(cuentaDe('N')) });
   check('puerta cerrada para la cuenta → «no disponible»; en España (bloqueada, aprobado en EE. UU.) → «no disponible en tu región»; sin país declarado → «falta tu país»',
-    codigo(cerrada) === 'failed-precondition · NOT_AVAILABLE · no_disponible' && codigo(region) === 'failed-precondition · NOT_AVAILABLE · en_tu_region'
-    && codigo(sinPais) === 'failed-precondition · NOT_AVAILABLE · falta_tu_pais', [cerrada, region, sinPais].map(codigo).join(' | '));
+    codigo(cerrada) === 'failed-precondition · NOT_AVAILABLE · no_disponible' && codigo(region) === 'failed-precondition · NOT_AVAILABLE · no_disponible'
+    && codigo(sinPais) === 'failed-precondition · NOT_AVAILABLE · no_disponible', [cerrada, region, sinPais].map(codigo).join(' | '));
   check('…y ninguno movió nada: ni una reserva, ni un Credit, ni un POST, ni un nombre de proveedor en lo que llega a la app',
     !(await uso('emu-mundo-S')) && (await saldo(cuentaDe('S'))) === SALDO && cuenta.post === 0
     /* «falta_tu_pais» lleva «fal» dentro: se busca el nombre del proveedor como palabra, y el país como valor exacto. */

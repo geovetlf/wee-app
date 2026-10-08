@@ -12,6 +12,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Something is missing from your request. Check it and try again.',
   unauthorized: 'Sign in to create with Weë.',
+  accountRequired: 'To create content with Weë AI, sign in or create your account.',
   providerError: 'The AI couldn’t complete your creation this time. You weren’t charged: try again in a moment.',
   generationFailed: 'I couldn’t finish your creation. You weren’t charged: try again.',
   timeout: 'It took too long so I stopped it. You weren’t charged: try again.',
@@ -46,8 +47,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'There’s no AI available for this right now. Please try again later.',
   noDisponibleActualmente: 'This feature isn’t currently available.',
   noDisponibleAhora: 'This feature isn’t available at the moment. Try again in a little while.',
-  noDisponibleRegion: 'This feature isn’t currently available in your region.',
-  noDisponiblePais: 'To use this feature, add your country to your Real profile.',
   noDisponibleOpciones: 'This feature isn’t available with the options you chose. Try different ones.',
   describeVideo: 'Tell me what video you want to create.',
   creacionTerminada: 'That creation is already finished and won’t be made again. You’ll find it in your creations.',

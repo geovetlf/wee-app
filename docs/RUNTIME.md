@@ -506,6 +506,8 @@ Seguido por imports y llamadas, no por comentarios. `archivo:línea` en cada sal
 | **`aiGenerations`** | una fila por intento, la escribe `engine/router.ts` | **las mismas filas**, por el puerto del ejecutor | ninguna en la forma | BAJO | hecho en el tramo 1 |
 | **Cobro de Credits** | reserva (débito real, `AUTHORIZED`) → proveedor → `completeCredits` / `refundCredits`, todo en la misma invocación | **igual, sin tocar** | ninguna | **P0** | § 11.9 |
 
+> **Actualización (integración `integracion/p0-edad-fase1`, 2026-10-07, SIN desplegar):** `index.ts` exporta **38** Functions en el código integrado (37 + `espejoDelPerfilPublico`, el disparador que escribe `publicProfiles`). Las cifras de este apartado son las de la fecha en que se escribió y se conservan como historia; producción no cambia hasta un despliegue autorizado.
+
 Un solo embudo hacia los proveedores (`engine.generate`, cuatro llamadores hoy —ver § 5—) más el avatar.
 Las 30 Functions desplegadas son las 30 que exporta `index.ts`; seis tocan IA.
 

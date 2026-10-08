@@ -139,6 +139,11 @@ export const CLASIFICACION_DE_DATOS: Readonly<Record<string, ClaseDeDatos>> = Ob
   aiRateLimits: { criticidad: 'DERIVED', porque: 'contadores de ritmo; se rellenan solos', seReconstruyeDesde: 'nada: caducan y vuelven a empezar' },
   aiProviderVerification: { criticidad: 'DERIVED', porque: 'si un proveedor contestó de verdad alguna vez', seReconstruyeDesde: 'una llamada de verificación a cada proveedor' },
   contadores: { criticidad: 'DERIVED', porque: 'contadores agregados', seReconstruyeDesde: 'la colección que cuentan' },
+  publicProfiles: {
+    criticidad: 'DERIVED',
+    porque: 'la cara pública de cada perfil (lista blanca); nadie la escribe salvo el servidor (reglas: write false)',
+    seReconstruyeDesde: 'users, con scripts/rellenar-perfiles-publicos.mjs (la misma sincronización que el espejo)',
+  },
   pushTokens: { criticidad: 'DERIVED', porque: 'los aparatos vuelven a registrarse al abrir la app', seReconstruyeDesde: 'el propio aparato, al arrancar' },
 
   /* ── Configuración: se puede volver a poner, pero hay que saber cuál era ── */

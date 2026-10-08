@@ -94,12 +94,32 @@ export const SEEDANCE_SPECS: Record<string, SeedanceSpec> = {
 
 const VIDEO_CAPS: CapabilityId[] = ['video.generate', 'video.image_to_video', 'video.reference'];
 
+/**
+ * DÓNDE NO SE PUEDE USAR SEEDANCE (Fase 1 — cierre pre-lanzamiento, 2026-10-07). Es DATO del registro, no lógica: lo
+ * aplica la regla común (`engine/elegibilidad.ts`) en el router vivo, en el gateway del Core y en el puente del
+ * registro, con la jurisdicción que el SERVIDOR lee del Perfil Real (`engine/jurisdiccion.ts`).
+ *   · EE. UU., India y China continental: BytePlus Model Services no ofrece el servicio ahí → bloqueado.
+ *   · País desconocido (sin país del catálogo en el Perfil Real): la regla común falla cerrado (JURISDICTION_UNKNOWN).
+ *   · El resto: el territorio NO lo excluye y sigue la evaluación normal (configuración y activación).
+ * NO es una aprobación contractual de ningún territorio: el estado contractual de Weë como «Platform Customer» sigue
+ * sin verificar (`estadoTerritorial` lo dice como CONTRACTUAL_STATUS_UNKNOWN). Hong Kong, Macao y Taiwán tienen su
+ * propio código ISO y no caen en «CN».
+ */
+export const TERRITORIO_DE_SEEDANCE = Object.freeze({
+  bloqueadas: Object.freeze(['US', 'IN', 'CN']),
+  aprobadas: Object.freeze([]),
+  resto: 'APPROVED' as const,
+  fuente: 'Documentación pública de BytePlus Model Services (ModelArk) revisada para la Fase 1 (scratchpad/byteplus-empresa): '
+    + 'servicio no disponible en EE. UU. ni a usuarios finales de allí; India y China continental nunca en la lista de regiones. '
+    + 'Restricción territorial explícita → bloqueo; el resto, según la política de Weë (decisión del dueño, 2026-10-06).',
+});
+
 /** ModelSpec.cost.usd = precio de lista por segundo a 720p 16:9 (solo para ordenar candidatos). */
 export const seedanceModels: ModelSpec[] = [
-  { id: SEEDANCE_MODEL_IDS.SEEDANCE_2_5, provider: 'seedance', capabilities: VIDEO_CAPS, quality: 5, speed: 2, cost: { unit: 'second', usd: 0.231 }, maxDurationSec: 30, tags: ['seedance 2.5', 'hasta 30 s', 'audio'], verified: false, note: 'Seedance 2.5: máxima calidad, hasta 30 s, 1080p.' },
-  { id: SEEDANCE_MODEL_IDS.SEEDANCE_2_0, provider: 'seedance', capabilities: VIDEO_CAPS, quality: 4, speed: 3, cost: { unit: 'second', usd: 0.15 }, maxDurationSec: 15, tags: ['seedance 2.0', '4k', 'audio'], verified: false, note: 'Seedance 2.0: hasta 15 s, 480p a 4K.' },
-  { id: SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST, provider: 'seedance', capabilities: VIDEO_CAPS, quality: 3, speed: 4, cost: { unit: 'second', usd: 0.12 }, maxDurationSec: 15, tags: ['seedance 2.0 fast', 'rápido'], verified: false },
-  { id: SEEDANCE_MODEL_IDS.SEEDANCE_2_0_MINI, provider: 'seedance', capabilities: VIDEO_CAPS, quality: 2, speed: 4, cost: { unit: 'second', usd: 0.08 }, maxDurationSec: 15, tags: ['seedance 2.0 mini', 'económico'], verified: false },
+  { id: SEEDANCE_MODEL_IDS.SEEDANCE_2_5, provider: 'seedance', capabilities: VIDEO_CAPS, territorio: TERRITORIO_DE_SEEDANCE, quality: 5, speed: 2, cost: { unit: 'second', usd: 0.231 }, maxDurationSec: 30, tags: ['seedance 2.5', 'hasta 30 s', 'audio'], verified: false, note: 'Seedance 2.5: máxima calidad, hasta 30 s, 1080p.' },
+  { id: SEEDANCE_MODEL_IDS.SEEDANCE_2_0, provider: 'seedance', capabilities: VIDEO_CAPS, territorio: TERRITORIO_DE_SEEDANCE, quality: 4, speed: 3, cost: { unit: 'second', usd: 0.15 }, maxDurationSec: 15, tags: ['seedance 2.0', '4k', 'audio'], verified: false, note: 'Seedance 2.0: hasta 15 s, 480p a 4K.' },
+  { id: SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST, provider: 'seedance', capabilities: VIDEO_CAPS, territorio: TERRITORIO_DE_SEEDANCE, quality: 3, speed: 4, cost: { unit: 'second', usd: 0.12 }, maxDurationSec: 15, tags: ['seedance 2.0 fast', 'rápido'], verified: false },
+  { id: SEEDANCE_MODEL_IDS.SEEDANCE_2_0_MINI, provider: 'seedance', capabilities: VIDEO_CAPS, territorio: TERRITORIO_DE_SEEDANCE, quality: 2, speed: 4, cost: { unit: 'second', usd: 0.08 }, maxDurationSec: 15, tags: ['seedance 2.0 mini', 'económico'], verified: false },
 ];
 
 export const specOf = (modelId: string): SeedanceSpec => SEEDANCE_SPECS[modelId] || SEEDANCE_SPECS[SEEDANCE_MODEL_IDS.SEEDANCE_2_0];
@@ -120,11 +140,24 @@ const PIXELS: Record<SeedanceResolution, Record<string, [number, number]>> = {
 };
 const FPS = 24;
 
-const canonicalRatio = (ratio: string): string => (ratio === '9:16' ? '16:9' : ratio === '3:4' ? '4:3' : ratio === 'adaptive' ? '16:9' : ratio);
+const canonicalRatio = (ratio: string): string => (ratio === '9:16' ? '16:9' : ratio === '3:4' ? '4:3' : ratio);
+
+/**
+ * LO QUE COSTARÁ «adaptive»: EL TECHO DE LA TABLA OFICIAL.
+ *
+ * Con `adaptive` la proporción la decide ModelArk a partir de la foto (en
+ * imagen a video, Seedance 2.5 solo admite eso y conserva la proporción del
+ * primer cuadro). Weë no sabe de antemano qué píxeles saldrán, así que no se
+ * inventa un coste: se cotiza la proporción más cara de la tabla para esa
+ * resolución, la misma regla que el R22 aplica a los vídeos de referencia. Antes
+ * se cotizaba la proporción que declaraba quien llamaba, y se enviaba otra.
+ */
+const pixelesDeAdaptive = (resolution: SeedanceResolution): [number, number] =>
+  Object.values(PIXELS[resolution]).reduce((max, p) => (p[0] * p[1] > max[0] * max[1] ? p : max));
 
 /** Tokens estimados = (entrada + salida en segundos) × ancho × alto × fps / 1024. */
 export function seedanceTokens(resolution: SeedanceResolution, ratio: string, outputSec: number, inputVideoSec = 0): number {
-  const [w, h] = PIXELS[resolution][canonicalRatio(ratio)] || PIXELS[resolution]['16:9'];
+  const [w, h] = ratio === 'adaptive' ? pixelesDeAdaptive(resolution) : PIXELS[resolution][canonicalRatio(ratio)] || PIXELS[resolution]['16:9'];
   return Math.round(((inputVideoSec + outputSec) * w * h * FPS) / 1024);
 }
 
@@ -172,6 +205,168 @@ export function clampDuration(modelId: string, wanted: unknown): number {
 
 const asList = (value: unknown): string[] => (Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string' && !!v) : []);
 
+/* ── Lo que viaja en el texto no puede ser un parámetro ─────────────────────── */
+
+/**
+ * LOS PARÁMETROS QUE MODELARK SABE LEER DENTRO DEL TEXTO.
+ *
+ * Su documentación (API de vídeo y tutorial, 2026-09-28) admite dos vías para
+ * resolution, ratio, duration, frames, seed, camera_fixed y watermark: los campos
+ * del cuerpo, con validación estricta, o el «método heredado», `--[parámetro]
+ * valor` escrito tras el prompt, con validación laxa. No documenta cuál gana si
+ * se contradicen. Weë no se apoya en esa precedencia: los parámetros salen SOLO
+ * de los campos, y el texto de la persona no puede expresarlos.
+ *
+ * La lista lleva los nombres largos, las abreviaturas documentadas y las
+ * variantes razonables. Un nombre que no esté aquí lo cubre la regla genérica de
+ * abajo.
+ */
+export const PARAMETROS_EN_LINEA_DE_SEEDANCE: readonly string[] = [
+  'rs', 'resolution', 'rt', 'ratio', 'aspectratio', 'aspect_ratio', 'ar',
+  'dur', 'duration', 'frames', 'frame', 'fs', 'fps', 'framepersecond', 'framespersecond',
+  'wm', 'watermark', 'seed', 'cf', 'camerafixed', 'camera_fixed',
+  'generate_audio', 'generateaudio', 'audio', 'model', 'draft', 'service_tier', 'servicetier', 'priority',
+];
+
+/* Guiones que una lectura laxa podría tomar por `-`: el ASCII, los tipográficos, el signo menos y los anchos. */
+const GUION = '[\\-\\u2010-\\u2015\\u2212\\uFE58\\uFE63\\uFF0D]';
+/* Invisibles que no deben poder separar el guion del nombre (de anchura cero, marcas de dirección, BOM). */
+const INVISIBLE = '[\\u00AD\\u180E\\u200B-\\u200F\\u202A-\\u202E\\u2060-\\u2064\\uFEFF]';
+const NOMBRES = [...PARAMETROS_EN_LINEA_DE_SEEDANCE].sort((a, b) => b.length - a.length).join('|');
+const FIN_DE_PALABRA = '(?![\\p{L}\\p{N}_])';
+/*
+ * Regla 1, la lista, con UN guion o más: solo al empezar una palabra. Así «-rs 4k»
+ * se neutraliza y un compuesto legítimo como «alta-resolución» no se toca.
+ */
+const RESERVADO = new RegExp(`(?<![\\p{L}\\p{N}_])((?:${GUION}${INVISIBLE}*)+)(${NOMBRES})${FIN_DE_PALABRA}`, 'giu');
+/* Regla 1b, la lista, con DOS guiones o más: en cualquier sitio y aunque haya espacios hasta el nombre. */
+const RESERVADO_SEPARADO = new RegExp(`((?:${GUION}${INVISIBLE}*){2,}\\s*)(${NOMBRES})${FIN_DE_PALABRA}`, 'giu');
+/* Regla 2, la gramática: dos o más guiones pegados a una letra son la forma `--[parámetro]`, sea cual sea el nombre. */
+const GRAMATICA = new RegExp(`((?:${GUION}${INVISIBLE}*){2,})(?=\\p{L})`, 'gu');
+const LETRA_O_CIFRA = /[\p{L}\p{N}_]/u;
+
+/**
+ * Quita el guion y deja la palabra. Si los guiones venían pegados a otra palabra
+ * («cielo--rs»), se deja un espacio para no fundirlas en una sola.
+ */
+const quitarGuiones = (texto: string, patron: RegExp): { texto: string; veces: number } => {
+  let veces = 0;
+  const limpio = texto.replace(patron, (...args: unknown[]) => {
+    veces++;
+    const offset = args[args.length - 2] as number;
+    const entero = args[args.length - 1] as string;
+    const nombre = typeof args[2] === 'string' ? (args[2] as string) : '';
+    const pegado = offset > 0 && LETRA_O_CIFRA.test(entero[offset - 1]);
+    return `${pegado ? ' ' : ''}${nombre}`;
+  });
+  return { texto: limpio, veces };
+};
+
+const pasada = (texto: string): { texto: string; veces: number } => {
+  const a = quitarGuiones(texto, RESERVADO_SEPARADO);
+  const b = quitarGuiones(a.texto, RESERVADO);
+  const c = quitarGuiones(b.texto, GRAMATICA);
+  return { texto: c.texto, veces: a.veces + b.veces + c.veces };
+};
+
+/** ¿Queda algo que una lectura laxa —sin invisibles, con anchos y compatibles normalizados— pudiera tomar por un parámetro? */
+const quedaSintaxis = (texto: string): boolean => {
+  const plano = texto.normalize('NFKC').replace(new RegExp(INVISIBLE, 'gu'), '');
+  RESERVADO.lastIndex = 0; RESERVADO_SEPARADO.lastIndex = 0; GRAMATICA.lastIndex = 0;
+  const hay = RESERVADO.test(plano) || RESERVADO_SEPARADO.test(plano) || GRAMATICA.test(plano);
+  RESERVADO.lastIndex = 0; RESERVADO_SEPARADO.lastIndex = 0; GRAMATICA.lastIndex = 0;
+  return hay;
+};
+
+/**
+ * EL TEXTO DE LA PERSONA, SIN SINTAXIS DE PARÁMETROS. Determinista y pura.
+ *
+ * Quita los guiones de `--rs 4k`, `--dur 30`, `—wm false`… y deja la palabra:
+ * «Un perro corriendo --dur 30» viaja como «Un perro corriendo dur 30», que ya no
+ * es un comando para nadie. Un guion normal no se toca: «escena normal con --
+ * palabra» (guiones sueltos) y «bien-hecho» llegan igual.
+ *
+ * Y si alguien lo disfraza —letras de ancho completo, invisibles entre el guion
+ * y el nombre—, se cierra en falso: el texto se normaliza (NFKC, sin invisibles)
+ * y se vuelve a limpiar. Esa forma solo la recibe quien intentó colarlo.
+ */
+export function neutralizarParametrosEnLinea(texto: string): { texto: string; neutralizados: number } {
+  const primera = pasada(texto);
+  if (!quedaSintaxis(primera.texto)) return { texto: primera.texto, neutralizados: primera.veces };
+  const normalizado = primera.texto.normalize('NFKC').replace(new RegExp(INVISIBLE, 'gu'), '');
+  const segunda = pasada(normalizado);
+  return { texto: segunda.texto, neutralizados: primera.veces + segunda.veces };
+}
+
+/* ── La petición efectiva: una sola verdad para el precio y para el cuerpo ──── */
+
+/**
+ * LO QUE SE ENVIARÁ A MODELARK, DECIDIDO UNA VEZ.
+ *
+ * Antes, el precio (`priceVideo`) y el cuerpo (`buildSeedanceBody`) llamaban por
+ * separado a las mismas reglas con datos distintos —el precio, con la proporción
+ * declarada; el cuerpo, con `adaptive` en imagen a vídeo— y podían no coincidir.
+ * Ahora los dos leen ESTO: lo que cuesta es exactamente lo que viaja.
+ *
+ * Pura: no lee imágenes ni red. Sale solo de la capacidad, el modelo y el input
+ * normalizado; nunca del texto de la persona.
+ */
+export interface PeticionEfectivaDeSeedance {
+  readonly capability: CapabilityId;
+  readonly modelId: string;
+  readonly resolution: SeedanceResolution;
+  readonly ratio: string;
+  /** La duración que viaja: -1 = la elige el modelo. */
+  readonly duration: number;
+  /** Los segundos que se cotizan: con -1, el techo del modelo. */
+  readonly outputSec: number;
+  readonly inputVideoSec: number;
+  readonly withVideoInput: boolean;
+  readonly generateAudio: boolean;
+  readonly watermark: false;
+  readonly estimatedTokens: number;
+  readonly ratePerMillion: number;
+  readonly usd: number;
+}
+
+export function peticionEfectivaDeSeedance(
+  capability: CapabilityId,
+  modelId: string,
+  input: Record<string, unknown>,
+  prefs: { quality?: unknown; durationSec?: unknown } = {},
+): PeticionEfectivaDeSeedance {
+  const spec = specOf(modelId);
+  const quality = typeof prefs.quality === 'string' && prefs.quality !== 'auto' ? prefs.quality : String(input.quality ?? '');
+  const resolution = resolveResolution(modelId, input.resolution, quality);
+  const duration = clampDuration(modelId, prefs.durationSec ?? input.durationSec ?? 5);
+  let ratio = String(input.aspectRatio ?? input.ratio ?? '16:9');
+  if (!RATIOS.has(ratio)) ratio = '16:9';
+  /* Primer/último cuadro: "adaptive" (obligatorio en 2.5, recomendado en 2.0). Se cotiza su techo. */
+  if (capability === 'video.image_to_video') ratio = 'adaptive';
+  const videos = capability === 'video.reference' ? asList(input.referenceVideos).slice(0, spec.maxReferenceClips) : [];
+  const withVideoInput = videos.length > 0;
+  /* R22 · con vídeos de referencia se cotiza el techo de entrada del modelo, no lo que declare quien llama. */
+  const inputVideoSec = withVideoInput ? spec.maxReferenceTotalSec : 0;
+  const outputSec = duration === -1 ? spec.maxDurationSec : duration;
+  const estimatedTokens = seedanceTokens(resolution, ratio, outputSec, inputVideoSec);
+  const ratePerMillion = seedanceRate(modelId, resolution, withVideoInput);
+  return {
+    capability,
+    modelId,
+    resolution,
+    ratio,
+    duration,
+    outputSec,
+    inputVideoSec,
+    withVideoInput,
+    generateAudio: input.generateAudio === undefined ? true : Boolean(input.generateAudio),
+    watermark: false,
+    estimatedTokens,
+    ratePerMillion,
+    usd: seedanceUsd(estimatedTokens, ratePerMillion),
+  };
+}
+
 /** Las fotos de la persona viven en Storage privado: viajan en línea (data URI), nunca como URL. */
 const imageContent = async (url: string, role: string) => ({ type: 'image_url', image_url: { url: url.startsWith('data:') ? url : toDataUri(await readImage(url, 'seedance')) }, role });
 
@@ -217,19 +412,19 @@ const mecanismoDeContinuidad = (capability: CapabilityId, modelId: string): Meca
 };
 
 /** Traduce el input abstracto de Weë al cuerpo oficial de ModelArk (función pura salvo la lectura de imágenes). */
-export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ body: SeedanceRequestBody; estimatedTokens: number; rate: number; withVideoInput: boolean }> {
+export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ body: SeedanceRequestBody; estimatedTokens: number; rate: number; withVideoInput: boolean; efectiva: PeticionEfectivaDeSeedance; neutralizados: number }> {
   const { capability, input, model, prefs } = request;
-  const prompt = String(input.prompt ?? input.purpose ?? '').slice(0, 3000);
-  if (!prompt) throw new ProviderError('seedance: falta la descripción del video', 'seedance', undefined, false);
+  /*
+   * El texto se limpia ANTES de recortarlo: quitar guiones no puede crear
+   * sintaxis nueva, y recortar después no puede partir un comando a medias.
+   */
+  const limpio = neutralizarParametrosEnLinea(String(input.prompt ?? input.purpose ?? ''));
+  const prompt = limpio.texto.slice(0, 3000);
+  if (!prompt.trim()) throw new ProviderError('seedance: falta la descripción del video', 'seedance', undefined, false);
   const spec = specOf(model.id);
-  const quality = typeof prefs.quality === 'string' && prefs.quality !== 'auto' ? prefs.quality : String(input.quality ?? '');
-  const resolution = resolveResolution(model.id, input.resolution, quality);
-  const duration = clampDuration(model.id, prefs.durationSec ?? input.durationSec ?? 5);
+  /* Resolución, proporción, duración, audio y marca de agua: SOLO de aquí, la misma verdad que cotizó el precio. */
+  const efectiva = peticionEfectivaDeSeedance(capability, model.id, input, prefs);
   const content: any[] = [{ type: 'text', text: prompt }];
-  let ratio = String(input.aspectRatio ?? input.ratio ?? '16:9');
-  if (!RATIOS.has(ratio)) ratio = '16:9';
-  let withVideoInput = false;
-  let inputVideoSec = 0;
   let taskType: SeedanceRequestBody['omni_reference_task_type'] | undefined;
 
   if (capability === 'video.image_to_video') {
@@ -238,8 +433,6 @@ export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ 
     content.push(await imageContent(first, 'first_frame'));
     const last = String(input.lastFrameUrl ?? '');
     if (last) content.push(await imageContent(last, 'last_frame'));
-    // Primer/último cuadro: el ratio debe ser "adaptive" (obligatorio en 2.5, recomendado en 2.0)
-    ratio = 'adaptive';
   } else if (capability === 'video.reference') {
     const images = asList(input.referenceImages).slice(0, spec.maxReferenceImages);
     const videos = asList(input.referenceVideos).slice(0, spec.maxReferenceClips);
@@ -248,19 +441,17 @@ export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ 
     for (const url of images) content.push(await imageContent(url, 'reference_image'));
     for (const url of videos) content.push({ type: 'video_url', video_url: { url }, role: 'reference_video' });
     for (const url of audios) content.push({ type: 'audio_url', audio_url: { url }, role: 'reference_audio' });
-    withVideoInput = videos.length > 0;
-    inputVideoSec = withVideoInput ? spec.maxReferenceTotalSec : 0;
     taskType = (input.taskType as SeedanceRequestBody['omni_reference_task_type']) || 'reference';
   }
 
   const body: SeedanceRequestBody = {
-    model: model.id,
+    model: efectiva.modelId,
     content,
-    resolution,
-    ratio,
-    duration,
-    generate_audio: input.generateAudio === undefined ? true : Boolean(input.generateAudio),
-    watermark: false,
+    resolution: efectiva.resolution,
+    ratio: efectiva.ratio,
+    duration: efectiva.duration,
+    generate_audio: efectiva.generateAudio,
+    watermark: efectiva.watermark,
   };
   if (Number.isFinite(Number(input.seed))) body.seed = Number(input.seed);
   if (input.cameraFixed === true) body.camera_fixed = true;
@@ -276,10 +467,14 @@ export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ 
   const callback = env('SEEDANCE_CALLBACK_URL');
   if (callback) body.callback_url = env('SEEDANCE_CALLBACK_TOKEN') ? `${callback}${callback.includes('?') ? '&' : '?'}token=${encodeURIComponent(env('SEEDANCE_CALLBACK_TOKEN') as string)}` : callback;
 
-  const outputSec = duration === -1 ? spec.maxDurationSec : duration;
-  const estimatedTokens = seedanceTokens(resolution, ratio, outputSec, inputVideoSec);
-  const rate = seedanceRate(model.id, resolution, withVideoInput);
-  return { body, estimatedTokens, rate, withVideoInput };
+  return {
+    body,
+    estimatedTokens: efectiva.estimatedTokens,
+    rate: efectiva.ratePerMillion,
+    withVideoInput: efectiva.withVideoInput,
+    efectiva,
+    neutralizados: limpio.neutralizados,
+  };
 }
 
 export const seedanceAdapter: ProviderAdapter = {
@@ -307,7 +502,9 @@ export const seedanceAdapter: ProviderAdapter = {
         }
       : {};
     const headers = arkHeaders('seedance');
-    const { body, estimatedTokens, rate, withVideoInput } = await buildSeedanceBody(request);
+    const { body, estimatedTokens, rate, withVideoInput, neutralizados } = await buildSeedanceBody(request);
+    /* Cuántos parámetros escritos en el texto se neutralizaron: queda en el libro, sin el texto. */
+    const fichaDeTexto = neutralizados > 0 ? { inlineParamsNeutralized: neutralizados } : {};
 
     let task: any;
     try {
@@ -349,6 +546,7 @@ export const seedanceAdapter: ProviderAdapter = {
           estimatedUsd: seedanceUsd(estimatedTokens, rate),
           withVideoInput,
           generateAudio: body.generate_audio,
+          ...fichaDeTexto,
           /* Lo que se le pidió durar: sin esto, quien reconcilie no sabe qué esperaba. */
           requestedDurationSec: body.duration,
           ...fichaDeContinuidad,
@@ -402,6 +600,7 @@ export const seedanceAdapter: ProviderAdapter = {
         estimatedUsd: seedanceUsd(estimatedTokens, rate),
         withVideoInput,
         generateAudio: body.generate_audio,
+        ...fichaDeTexto,
         ...fichaDeContinuidad,
       },
     };

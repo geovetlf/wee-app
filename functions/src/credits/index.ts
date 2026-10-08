@@ -4,6 +4,8 @@ import { creditEngine } from './creditEngine';
 import { allCreditCosts, CREDIT_PACKAGES, invalidateCostOverrides, isCreditService, loadCostOverrides } from './creditCosts';
 import { assertLimit, assertRequestId, cleanText, toHttpsError } from './creditValidation';
 import { assertAdmin } from '../shared/admin';
+import { esInvitado, exigirCuentaAutenticada } from '../identity/sesion';
+import { toEngineHttpsError } from '../engine/errors';
 import { PaymentProvider, restorePurchases, validatePurchase } from '../payments/purchaseValidation';
 
 /**
@@ -15,6 +17,15 @@ const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 const uidOf = (request: { auth?: { uid: string } | null }): string => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión');
   return request.auth.uid;
+};
+
+/** La barrera del invitado con el error controlado del motor (`ACCOUNT_REQUIRED`), que `run` deja pasar tal cual. */
+const guardarCuenta = (auth: unknown): void => {
+  try {
+    exigirCuentaAutenticada(auth as Parameters<typeof exigirCuentaAutenticada>[0]);
+  } catch (error) {
+    throw toEngineHttpsError(error);
+  }
 };
 
 const run = async <T>(fn: () => Promise<T>): Promise<T> => {
@@ -29,6 +40,17 @@ const run = async <T>(fn: () => Promise<T>): Promise<T> => {
 export const getCreditsBalance = onCall(OPTS, async (request) =>
   run(async () => {
     const userId = uidOf(request);
+    /*
+     * Guest AI Gate: un invitado (Firebase Anonymous) NO recibe Credits. `getBalance` inicializa la cuenta y da la
+     * bienvenida la primera vez; para el invitado se LEE sin escribir (`readBalance`: 0 si nunca se inicializó, y
+     * el saldo histórico si ya lo tenía — que no puede gastar, porque toda callable de IA lo para antes).
+     * Si un día esa sesión se vincula a una credencial real (mismo uid), la primera lectura ya autenticada da la
+     * bienvenida una sola vez, como a cualquier cuenta: `welcome_<uid>` sigue sin existir.
+     */
+    if (esInvitado(request.auth)) {
+      const { initialized: _i, ...saldo } = await creditEngine.readBalance(userId);
+      return saldo;
+    }
     const balance = await creditEngine.getBalance(userId);
     return balance;
   })
@@ -98,6 +120,8 @@ export const spendCredits = onCall(OPTS, async (request) =>
   run(async () => {
     assertAdmin(request.auth as any);
     const userId = uidOf(request);
+    /* Guest AI Gate: tampoco aquí gasta una sesión de invitado (va antes de `ensureAccount`, que da la bienvenida). */
+    guardarCuenta(request.auth);
     const data = (request.data || {}) as { service?: string; requestId?: string; reason?: string; generationId?: string };
     if (!isCreditService(data.service)) throw new HttpsError('invalid-argument', `Servicio desconocido: ${String(data.service)}`);
     await creditEngine.ensureAccount(userId);
@@ -148,6 +172,8 @@ export const validatePurchaseCallable = onCall(OPTS, async (request) =>
     const userId = uidOf(request);
     const data = (request.data || {}) as { provider?: PaymentProvider; packageId?: string; payload?: Record<string, unknown> };
     const provider = data.provider || 'test';
+    /* Guest AI Gate: un invitado no compra ni recibe Credits; `ensureAccount` le daría la bienvenida. */
+    guardarCuenta(request.auth);
     await creditEngine.ensureAccount(userId);
     return validatePurchase({ userId, provider, packageId: data.packageId, payload: data.payload });
   })

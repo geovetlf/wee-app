@@ -60,9 +60,15 @@ export interface NormalizedVideo {
 }
 
 const ASPECTS = new Set(['21:9', '16:9', '4:3', '1:1', '3:4', '9:16']);
-const DRAFT_HINT = /borrador|boceto|r[aá]pido|de prueba|prueba r[aá]pida/i;
 
-/** Qué versión de Seedance conviene: preferencia explícita > duración > calidad > coste. */
+/**
+ * Qué versión de Seedance conviene: preferencia explícita > duración > calidad > coste.
+ *
+ * SOLO de campos estructurados. Antes, palabras del prompt («borrador»,
+ * «rápido», «de prueba») elegían Seedance 2.0 fast: el texto de la persona
+ * decidía el modelo, y en Weë Creator el precio se calculaba sin ese texto. El
+ * modelo ya no lo puede cambiar lo que se escribe (corrección P0 del 2026-10-07).
+ */
 export function chooseSeedanceModel(request: VideoRequest, settings?: Pick<EngineSettings, 'video' | 'defaultPolicy'>): string {
   const preference = request.model && request.model !== 'auto' ? request.model : undefined;
   if (preference && SEEDANCE_MODEL_IDS[preference]) return SEEDANCE_MODEL_IDS[preference];
@@ -71,7 +77,7 @@ export function chooseSeedanceModel(request: VideoRequest, settings?: Pick<Engin
   if (request.resolution === '4k') return SEEDANCE_MODEL_IDS.SEEDANCE_2_0;
   if (request.quality === 'max') return SEEDANCE_MODEL_IDS.SEEDANCE_2_5;
   if (request.quality === 'high') return SEEDANCE_MODEL_IDS.SEEDANCE_2_0;
-  if (request.quality === 'standard' || DRAFT_HINT.test(request.prompt || '')) return SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST;
+  if (request.quality === 'standard') return SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST;
   if (settings?.defaultPolicy === 'cost-first') return SEEDANCE_MODEL_IDS.SEEDANCE_2_0_MINI;
   const configured = settings?.video?.defaultModel as VideoModelPreference | undefined;
   if (configured && configured !== 'auto' && configured in SEEDANCE_MODEL_IDS) return SEEDANCE_MODEL_IDS[configured as SeedanceKey];
@@ -82,6 +88,20 @@ export function chooseSeedanceModel(request: VideoRequest, settings?: Pick<Engin
 export function normalizeVideoRequest(request: VideoRequest, settings?: Pick<EngineSettings, 'video' | 'defaultPolicy'>): NormalizedVideo {
   const prompt = String(request.prompt ?? '').trim();
   if (!prompt) throw new EngineError('INVALID_REQUEST', 'Cuéntame qué video quieres crear.', { field: 'prompt' });
+  return normalizar(request, settings, prompt);
+}
+
+/**
+ * Los mismos parámetros, para COTIZAR un paso cuyo texto todavía no existe (el
+ * presupuesto de Weë Creator se calcula antes de que Weë Brain escriba el guion).
+ * Como el modelo y los parámetros ya no dependen del texto, salen idénticos a los
+ * que se enviarán.
+ */
+export function videoParamsForQuote(request: VideoRequest, settings?: Pick<EngineSettings, 'video' | 'defaultPolicy'>): NormalizedVideo {
+  return normalizar(request, settings, '');
+}
+
+function normalizar(request: VideoRequest, settings: Pick<EngineSettings, 'video' | 'defaultPolicy'> | undefined, prompt: string): NormalizedVideo {
   const modelId = chooseSeedanceModel({ ...request, prompt }, settings);
   const spec = specOf(modelId);
   const wanted = Number(request.durationSec ?? 5);
@@ -145,10 +165,18 @@ export function videoRequestFromStep(capability: CapabilityId, input: Record<str
 
 export const videoEngine = {
   /** Genera el video con Seedance (o el modo demo sin clave) y lo deja en Weë Storage. */
-  async generate(request: VideoRequest, ctx: EngineContext & { record?: (entry: any) => Promise<void> }): Promise<EngineResult> {
-    const settings = await engine.settings();
-    const normalized = normalizeVideoRequest(request, settings);
-    return engine.generate({ ...ctx, capability: normalized.capability, input: normalized.input, prefs: normalized.prefs });
+  async generate(
+    request: VideoRequest,
+    ctx: EngineContext & { record?: (entry: any) => Promise<void>; normalizado?: NormalizedVideo },
+  ): Promise<EngineResult> {
+    /*
+     * Si quien llama ya normalizó Y COTIZÓ (generateVideo), se usa ESE objeto: el
+     * precio y el proveedor leen la misma representación, sin volver a decidir
+     * con otra lectura de la configuración.
+     */
+    const { normalizado, ...resto } = ctx;
+    const normalized = normalizado ?? normalizeVideoRequest(request, await engine.settings());
+    return engine.generate({ ...resto, capability: normalized.capability, input: normalized.input, prefs: normalized.prefs });
   },
   /** Solo decide (para estimar Credits y coste antes de crear). */
   async estimate(request: VideoRequest, ctx: EngineContext): Promise<RouteDecision & { modelId: string; capability: CapabilityId }> {

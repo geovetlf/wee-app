@@ -145,6 +145,17 @@ procedimiento a mano; ya no.
 - **Un despliegue lleva como mucho 6 funciones** (`MAX_FUNCIONES_POR_DESPLIEGUE`),
   y `functions` a secas, que serían todas, se rechaza. Los grupos y su orden
   están en `ops/despliegue/grupos.json`.
+- **Los grupos de `grupos` solo llevan funciones vivas** (las de
+  `ops/produccion.json`). El primer despliegue de una función NUEVA que ya
+  está decidida se declara aparte, en `primeros_despliegues` (id, fase, paso,
+  funciones y secuencia): `ops/permitido.mjs` la deja pasar solo si el
+  objetivo es EXACTAMENTE ese grupo, sin otra función ni otro objetivo, y su
+  aviso dice el paso siguiente. Hoy hay uno: `f2-1-espejo`
+  (`functions:espejoDelPerfilPublico`), paso 1 de la fase 2 de `users`
+  (espejo → verificar → relleno autorizado → `users == publicProfiles > 0` →
+  clientes → tres condiciones de `cierre-users.mjs` → cierre). Desplegado,
+  pasa a `ops/produccion.json` y a un grupo de las vivas. Lo prueban
+  `despliegue-workflow` (51–52) y `users-fases` (20–20c).
 - **La marcha atrás sigue a mano**, porque NO es un despliegue: es mover el
   tráfico a una revisión que ya existe (§5).
 - **Para comprobar lo publicado sin credenciales** (también después del

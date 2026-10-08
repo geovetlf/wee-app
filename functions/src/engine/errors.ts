@@ -17,7 +17,9 @@ export type EngineErrorCode =
   | 'TIMEOUT'
   | 'RATE_LIMITED'
   | 'DUPLICATE_REQUEST'
-  | 'NOT_AVAILABLE';
+  | 'NOT_AVAILABLE'
+  /* La sesión es de invitado (Firebase Anonymous): para crear hace falta una cuenta (identity/sesion.ts). */
+  | 'ACCOUNT_REQUIRED';
 
 export const ENGINE_MESSAGES: Record<EngineErrorCode, string> = {
   INVALID_REQUEST: 'Falta algo en tu pedido. Revísalo e inténtalo de nuevo.',
@@ -28,6 +30,7 @@ export const ENGINE_MESSAGES: Record<EngineErrorCode, string> = {
   RATE_LIMITED: 'Has hecho muchas creaciones seguidas. No te cobré: espera un momento e inténtalo de nuevo.',
   DUPLICATE_REQUEST: 'Esa creación ya está en marcha.',
   NOT_AVAILABLE: 'Esta función todavía no está disponible.',
+  ACCOUNT_REQUIRED: 'Para crear contenido con Weë AI, crea o inicia sesión en tu cuenta.',
 };
 
 type HttpsCode = 'invalid-argument' | 'unauthenticated' | 'unavailable' | 'aborted' | 'deadline-exceeded' | 'resource-exhausted' | 'already-exists' | 'failed-precondition';
@@ -41,6 +44,8 @@ const HTTPS_CODE: Record<EngineErrorCode, HttpsCode> = {
   RATE_LIMITED: 'resource-exhausted',
   DUPLICATE_REQUEST: 'already-exists',
   NOT_AVAILABLE: 'failed-precondition',
+  /* `unauthenticated` a propósito: una app que no conozca el código sigue diciendo «Inicia sesión para crear con Weë». */
+  ACCOUNT_REQUIRED: 'unauthenticated',
 };
 
 export class EngineError extends Error {
@@ -87,24 +92,24 @@ export const costeTrasUnFallo = (error: unknown, despachado: boolean): 'cero' | 
  * POR QUÉ NO ESTÁ DISPONIBLE, dicho como lo puede saber la persona.
  *
  * «Inténtalo más tarde» solo es verdad cuando la causa es PASAJERA. Cuando lo que falta es una aprobación, una
- * activación, una jurisdicción o una opción, esperar no arregla nada, y decirlo sería mentir. Así que el motivo sale
- * de los descartes del Router —sus causas y los escalones de la regla común—, pero lo que viaja a la app es SOLO esto:
- * ni el proveedor, ni el modelo, ni la jurisdicción, ni el escalón.
+ * activación o una opción, esperar no arregla nada, y decirlo sería mentir. Así que el motivo sale de los descartes
+ * del Router —sus causas—, pero lo que viaja a la app es SOLO esto: ni el proveedor, ni el modelo, ni la jurisdicción,
+ * ni el escalón.
+ *
+ * LA JURISDICCIÓN NO ES UNA CONVERSACIÓN (decisión del dueño, 2026-10-07). El país de la cuenta se fija en el registro
+ * y el Router lo usa como un dato más para elegir ruta; a la persona nunca se le dice «en tu región», ni «indica tu
+ * país», ni qué proveedor no le corresponde. Un descarte territorial cuenta como cualquier otro «no está disponible».
  *
  *   ahora_no            algo pasajero (pausa, cupo, la IA detenida): vuelve sola
- *   en_tu_region        aquí no, y en otra jurisdicción sí lo estaría
- *   falta_tu_pais       hace falta saber el país de la cuenta (el que declara el Perfil Real), y en alguno sí lo estaría
  *   con_estas_opciones  lo pedido no lo puede hacer ninguna IA disponible; con otras opciones, quizá
- *   no_disponible       no lo está, para nadie, ahora: sin aprobar, sin activar, sin proveedor o sin configurar
+ *   no_disponible       no lo está ahora, sin más: sin ruta elegible, sin aprobar, sin activar o sin configurar
  */
-export type MotivoDeNoDisponible = 'ahora_no' | 'en_tu_region' | 'falta_tu_pais' | 'con_estas_opciones' | 'no_disponible';
-export const MOTIVOS_DE_NO_DISPONIBLE: readonly MotivoDeNoDisponible[] = Object.freeze(['ahora_no', 'en_tu_region', 'falta_tu_pais', 'con_estas_opciones', 'no_disponible'] as const);
+export type MotivoDeNoDisponible = 'ahora_no' | 'con_estas_opciones' | 'no_disponible';
+export const MOTIVOS_DE_NO_DISPONIBLE: readonly MotivoDeNoDisponible[] = Object.freeze(['ahora_no', 'con_estas_opciones', 'no_disponible'] as const);
 
 /** La frase de cada motivo: la que se registra y la que reconoce la app (`i18n/textos/<idioma>/servidor/motor.ts`). */
 export const MENSAJE_DE_NO_DISPONIBLE: Readonly<Record<MotivoDeNoDisponible, string>> = Object.freeze({
   ahora_no: 'Esta función no está disponible en este momento. Vuelve a intentarlo dentro de un rato.',
-  en_tu_region: 'Esta función no está disponible actualmente en tu región.',
-  falta_tu_pais: 'Para usar esta función, indica tu país en tu Perfil Real.',
   con_estas_opciones: 'Esta función no está disponible con las opciones que elegiste. Prueba con otras.',
   no_disponible: 'Esta función no está disponible actualmente.',
 });
@@ -117,13 +122,11 @@ export interface DescarteLegible {
 
 /**
  * DE LOS DESCARTES AL MOTIVO PÚBLICO. Pura. Lo pasajero gana —si algo vuelve solo, decir «más tarde» es verdad—;
- * después, lo territorial que en otra jurisdicción sí valdría; después, lo que pidió la operación; y si no, no está.
+ * después, lo que pidió la operación; y si no, no está. Lo territorial (`enOtraJurisdiccion`, el escalón) se queda en
+ * el libro del servidor para auditoría y NUNCA cambia la frase.
  */
 export const motivoDeNoDisponible = (descartes: readonly DescarteLegible[]): MotivoDeNoDisponible => {
   if (descartes.some((d) => d.causa === 'pasajera')) return 'ahora_no';
-  const territoriales = descartes.filter((d) => d.causa === 'elegibilidad' && d.enOtraJurisdiccion === true);
-  if (territoriales.some((d) => d.estado === 'JURISDICTION_UNKNOWN')) return 'falta_tu_pais';
-  if (territoriales.some((d) => d.estado === 'BLOCKED_FOR_JURISDICTION' || d.estado === 'REVIEW_REQUIRED')) return 'en_tu_region';
   if (descartes.some((d) => d.causa === 'peticion')) return 'con_estas_opciones';
   return 'no_disponible';
 };

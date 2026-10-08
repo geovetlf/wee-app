@@ -45,7 +45,7 @@ if (!hayHistoria) {
   const funciones = filas.find((f) => f.clase === 'Funciones');
   check('5) las 34 funciones vivas siguen; lo nuevo está decidido en ops/despliegue/grupos.json',
     funciones.vivo === 34 && funciones.faltan.length === 0
-    && funciones.nuevas.every((n) => JSON.parse(leer('ops/despliegue/grupos.json')).no_se_despliegan.some((x) => x.funcion === n)), funciones.nuevas.join(', ') || 'nada nuevo');
+    && funciones.nuevas.every((n) => { const g = JSON.parse(leer('ops/despliegue/grupos.json')); return g.no_se_despliegan.some((x) => x.funcion === n) || (g.primeros_despliegues || []).some((x) => x.funciones.includes(n)); }), funciones.nuevas.join(', ') || 'nada nuevo');
   const usadas = new Set(filas.flatMap((f) => f.sustituidas));
   check('6) cada sustitución se usa de verdad (la lista no guarda restos) y tiene su porqué',
     Object.keys(C.SUSTITUIDAS).every((k) => usadas.has(k)) && Object.values(C.SUSTITUIDAS).every((s) => s.porque.length > 20 && /^[a-z][A-Za-z]*\.[A-Za-z0-9_]+$/.test(s.por)));

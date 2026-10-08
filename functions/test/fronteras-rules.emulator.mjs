@@ -420,5 +420,64 @@ console.log('\n── H · Lo de la cuenta, fuera del perfil público (cierre de
   await esperar('56) y otro documento privado no se crea desde el cliente', 'DENIEGA', 'PATCH', '/users/perfilAna/private/otro', { uid: ANA, body: doc({ realName: 'Ana' }) });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n── I · Edad mínima de Weë: 18, obligatoria y fija (functions/src/identity/edad.ts) ──');
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  /* «Hoy» como lo cuentan las reglas: la fecha civil en UTC−12. Las fechas se calculan desde ahí. */
+  const hoy = new Date(Date.now() - 12 * 3600_000);
+  const fecha = (anios, dias = 0) => {
+    const d = new Date(Date.UTC(hoy.getUTCFullYear() - anios, hoy.getUTCMonth(), hoy.getUTCDate() + dias));
+    return d.toISOString().slice(0, 10);
+  };
+  const esBisiestoHoy = hoy.getUTCMonth() === 1 && hoy.getUTCDate() === 29;
+  const CARLA = 'carla0000000000000000000003';
+  const DANI = 'dani00000000000000000000004';
+  const EVA = 'eva000000000000000000000005';
+  await sembrar('/users/perfilCarla', { uid: CARLA, displayName: 'Carla', profileType: 'real' });
+  await sembrar('/users/perfilDani', { uid: DANI, displayName: 'Dani', profileType: 'real' });
+  await sembrar('/users/perfilEva', { uid: EVA, displayName: 'Eva', profileType: 'real' });
+  /* Dani: un perfil antiguo cuya cuenta privada se guardó sin fecha. Eva: una menor que ya existía. Los siembra el servidor. */
+  await sembrar('/users/perfilDani/private/account', { realName: 'Dani' });
+  await sembrar('/users/perfilEva/private/account', { realName: 'Eva', birthDate: fecha(16) });
+
+  const privada = (uid, datos) => ({ uid, body: doc(datos) });
+  const RUTA = '/users/perfilCarla/private/account';
+  await esperar('57) 17 años (cumple 18 mañana) → no se crea la cuenta', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { realName: 'Carla', birthDate: fecha(18, 1) }));
+  await esperar('58) sin fecha de nacimiento → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { realName: 'Carla', gender: 'female' }));
+  await esperar('59) una fecha que no existe (30 de febrero) → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { birthDate: '2000-02-30' }));
+  await esperar('60) una fecha futura → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { birthDate: fecha(-1) }));
+  await esperar('61) otro formato → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { birthDate: '1990/01/01' }));
+  await esperar('62) un número en vez de una fecha → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { birthDate: 19900101 }));
+  await esperar('63) anterior a 1900 → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { birthDate: '1899-12-31' }));
+  if (!esBisiestoHoy) {
+    await esperar('64) cumple 18 HOY → sí', 'PERMITE', 'PATCH', RUTA, privada(CARLA, { realName: 'Carla', birthDate: fecha(18), gender: 'female' }));
+  } else {
+    await esperar('64) (29-02) 18 años y un día → sí', 'PERMITE', 'PATCH', RUTA, privada(CARLA, { realName: 'Carla', birthDate: fecha(18, -1), gender: 'female' }));
+  }
+  check('65) Ana (18+) no puede cambiar su fecha después, ni a otra de 18+', (await escribir('/users/perfilAna/private/account', ANA, { birthDate: '1980-01-01' })) >= 400);
+  check('66) ni borrarla', (await escribir('/users/perfilAna/private/account', ANA, { birthDate: null })) >= 400);
+  check('67) pero sí cambiar su nombre real sin tocar la fecha', (await escribir('/users/perfilAna/private/account', ANA, { realName: 'Ana P.' })) < 400);
+  check('68) una menor que ya existía no se hace mayor cambiando su fecha', (await escribir('/users/perfilEva/private/account', EVA, { birthDate: '1990-01-01' })) >= 400);
+  check('69) una cuenta antigua sin fecha no puede actualizarse sin ponerla', (await escribir('/users/perfilDani/private/account', DANI, { realName: 'Dani G.' })) >= 400);
+  check('70) ni ponerla de 17', (await escribir('/users/perfilDani/private/account', DANI, { birthDate: fecha(18, 1) })) >= 400);
+  check('71) sí ponerla de 18+, y desde entonces queda fija', (await escribir('/users/perfilDani/private/account', DANI, { birthDate: '1995-03-03' })) < 400
+    && (await escribir('/users/perfilDani/private/account', DANI, { birthDate: '1990-03-03' })) >= 400);
+  check('72) Beto no escribe la fecha de nadie', (await escribir('/users/perfilDani/private/account', BETO, { realName: 'x' })) >= 400);
+  check('73) y la fecha sigue sin poder ir al perfil público', (await escribir('/users/perfilCarla', CARLA, { birthDate: '1990-01-01' })) >= 400);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n── J · El país de la cuenta se fija en el registro (jurisdicción, 2026-10-07) ──');
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  const FEDE = 'fede00000000000000000000006';
+  await sembrar('/users/perfilFede', { uid: FEDE, displayName: 'Fede', profileType: 'real' });
+  check('74) quien aún no tiene país lo pone (el registro)', (await escribir('/users/perfilFede', FEDE, { country: 'ES' })) < 400);
+  check('75) después no se cambia: nadie «se muda» para cambiar de ruta', (await escribir('/users/perfilFede', FEDE, { country: 'US' })) >= 400);
+  check('76) ni se borra', (await escribir('/users/perfilFede', FEDE, { country: null })) >= 400);
+  check('77) y el resto del perfil se sigue editando sin tocar el país', (await escribir('/users/perfilFede', FEDE, { bio: 'hola' })) < 400);
+}
+
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

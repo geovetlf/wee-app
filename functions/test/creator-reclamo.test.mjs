@@ -20,6 +20,8 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lib = (p) => require(path.resolve(here, '../lib', p));
 const leer = (p) => fs.readFileSync(path.resolve(here, '../../', p), 'utf8');
@@ -96,7 +98,7 @@ creditosMod.settleCredits = async (userId, jobId, held, used) => { eventos.push(
 creditosMod.pricingMode = async () => 'simulated';
 
 const UID = 'AbCdEfGhIjKlMnOpQrStUvWxYz01';
-const correr = (jobId) => creatorMod.creatorRun.run({ auth: { uid: UID }, data: { jobId } });
+const correr = (jobId) => creatorMod.creatorRun.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: UID }, data: { jobId } });
 const trabajo = (extra = {}) => ({
   userId: UID, experienceId: 'design', status: 'planned', creditsEstimated: 12, plan: { steps: [] }, steps: [], results: [],
   progressText: 'Este es el plan.', ...extra,
@@ -175,7 +177,7 @@ check('17) …y se liquida por ese mismo importe', eventos.filter((e) => e.start
  * Antes reescribía el documento entero con lo leído al empezar. Si caía entre el reclamo de creatorRun y su arranque,
  * borraba el reclamo DESPUÉS de reservar: la reserva quedaba retenida con el precio viejo y el trabajo con el nuevo,
  * y ningún reintento cuadraba. Si caía con el trabajo en marcha, lo devolvía a `planned`. */
-const cotizar = (jobId, quality) => creatorMod.creatorQuote.run({ auth: { uid: UID }, data: { jobId, quality } });
+const cotizar = (jobId, quality) => creatorMod.creatorQuote.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: UID }, data: { jobId, quality } });
 const originalesQuote = { estimar: creditosMod.estimatePlan, opciones: creditosMod.planOptions };
 creditosMod.estimatePlan = async (plan, uid, quality) => ({ total: quality === 'high' ? 20 : 12, steps: [], service: 'ai_image' });
 creditosMod.planOptions = async () => null;

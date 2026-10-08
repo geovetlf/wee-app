@@ -309,6 +309,7 @@ const FUNCTIONS = {
   './social/weetalk': ['burnViewOnce'],
   './social/econtact': ['requestEContact', 'acceptEContact'],
   './identity/nacimiento': ['nacimientoDeCuenta'],
+  './identity/perfilPublico': ['espejoDelPerfilPublico'],
   './moderation': ['reportContent', 'moderationAdmin'],
   /*
    * S5: la puerta de las cosas de una cuenta. Crea, lee, cambia, archiva y
@@ -395,7 +396,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y siete: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar) y generateWorld (misión mundo3d, sin desplegar)', reales.length === 37, `${reales.length}`);
+  check('5) y son treinta y ocho: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar) , generateWorld (misión mundo3d, sin desplegar) y espejoDelPerfilPublico (seguridad de users, sin desplegar)', reales.length === 38, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *

@@ -30,6 +30,8 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
 const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
@@ -544,7 +546,7 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
 
   /* Un uid con la forma que da Firebase Auth: 28 caracteres. */
   const UID = 'AbCdEfGhIjKlMnOpQrStUvWxYz01';
-  const ctx = (data) => ({ auth: { uid: UID }, data });
+  const ctx = (data) => ({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: UID }, data });
   const correr = (data) => brainCallable.brainChat.run(ctx(data));
 
   /* 1) Camino feliz: Brain contesta, y lo que la app recibe es lo de siempre. */
@@ -610,7 +612,7 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
   engineMod.engine.generate = async () => { throw new Error('no debería llamarse'); };
   let deForma = null;
   try {
-    await brainCallable.brainChat.run({ auth: { uid: 'u-1' }, data: { message: 'hola', messageId: 'm_ccc1' } });
+    await brainCallable.brainChat.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: 'u-1' }, data: { message: 'hola', messageId: 'm_ccc1' } });
   } catch (e) { deForma = e; }
   check('97b) una petición que no pasa la frontera de Brain dice ESO, no «no pude terminar»',
     deForma?.details?.code === 'INVALID_REQUEST' && deForma.code === 'invalid-argument', `${deForma?.code} / ${deForma?.details?.code}`);

@@ -45,6 +45,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'Weë\'nin sohbet bölümüdür: topluluktaki diğer kişilerle yazı, fotoğraf ve sesli mesajla özel olarak sohbet edebilirsin.',
   q9: '“Nasıl yaptım” nedir?',
   a9: 'Paylaşım yaparken hangi araçları kullandığını, promptu ve süreci anlatabilirsin. Böylece “Promptu kopyala” düğmesine tek bir dokunuşla başkaları senden, sen de onlardan öğrenirsin.',
+  q10: 'Weë kullanmak için kaç yaşında olmak gerekir?',
+  a10: 'Weë yalnızca {{edad}} yaş ve üzerindeki kişiler içindir. Doğum tarihin kayıt olurken sorulur ve kaydedildikten sonra değiştirilemez.',
   heroTitle: 'Sana nasıl yardımcı olabiliriz?',
   legalVisibility: 'Paylaştıklarını topluluk görebilir; Weë AI\'da oluşturdukların ise sen paylaşmaya karar verene kadar gizli kalır. Gönderilerini ve projelerini istediğin zaman silebilirsin.',
   askPrefill: 'Weë\'ye bir sorum var: ',

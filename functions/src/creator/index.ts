@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { exigirCuentaAutenticada, exigirCuentaWeeValida } from '../identity/sesion';
 import { getFirestore, Timestamp, FieldValue, DocumentReference } from 'firebase-admin/firestore';
 import { AI_SECRETS, MODEL_SECRETS } from '../secrets';
 import { onCall } from 'firebase-functions/v2/https';
@@ -12,9 +13,10 @@ import { engine } from '../engine';
 import { GatewayRun, runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
 import { progressTextFor, friendlyFailure } from '../engine/humanize';
-import { EngineResult, RoutingPrefs } from '../engine/types';
+import { EngineRequest, EngineResult, RoutingPrefs } from '../engine/types';
 import { classifyError, EngineError, toEngineHttpsError } from '../engine/errors';
-import { videoEngine, videoRequestFromStep } from '../engine/video';
+import { normalizeVideoRequest, videoEngine, videoRequestFromStep } from '../engine/video';
+import { exigirRutaElegible } from './rutaPrevia';
 import { planImage } from '../engine/image';
 import { imageDimensions } from '../engine/imageMeta';
 import { resolveForModel } from '../engine/resolutionPolicy';
@@ -266,6 +268,8 @@ export const creatorChat = onCall(
   async (request) => {
     try {
       if (!request.auth) throw new EngineError('UNAUTHORIZED');
+      /* Cuenta Weë válida (identity/sesion.ts): autenticada y enrolada (registro 18+ con país). Única condición; sin edad aquí. */
+      await exigirCuentaWeeValida(request.auth);
       const uid = request.auth.uid;
       const data = (request.data || {}) as ChatInput;
 
@@ -444,6 +448,8 @@ export const creatorChat = onCall(
 export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: MODEL_SECRETS }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
+    /* Guest AI Gate (identity/sesion.ts): un invitado no genera; va ANTES de trabajo, Credits y proveedor. */
+    exigirCuentaAutenticada(request.auth);
     const uid = request.auth.uid;
     const data = (request.data || {}) as { jobId?: string; quality?: string };
     const jobId = String(data.jobId || '');
@@ -549,6 +555,84 @@ export const materialesDeResultado = async (
   return ids;
 };
 
+/**
+ * LA ENTRADA DE UN PASO, EN UN SOLO SITIO: el input interno (Weë Brain: prompt, foto, narración; el nivel que la
+ * persona eligió en el presupuesto manda sobre el de la plantilla) y las preferencias de ruta del paso. La usan la
+ * ruta previa (`peticionDelPaso`, antes de cobrar) y el bucle de `creatorRun` (al ejecutar): si cambia, cambia en
+ * los dos, y la ruta que se aprobó no puede ser distinta de la que se pide.
+ */
+export const entradaDelPaso = (job: CreatorJob, step: JobStep, previous: string[]): { input: Record<string, unknown>; prefs: RoutingPrefs } => {
+  const input = stepInputFor(job, step, previous);
+  if (job.quality) input.quality = job.quality;
+  const stepInput = step.input || {};
+  /*
+   * QUÉ FAMILIA DE PROVEEDORES ADMITE ESTE PASO, SI LO DICE.
+   *
+   * El Router lleva desde siempre obedeciendo `prefs.allowedProviders`
+   * —salta cualquier eslabón que no esté en la lista— y tres sitios de
+   * producción ya lo usan: el Weë Video Engine fija la familia Seedance,
+   * el Weë Image Engine fija el proveedor del modelo elegido, y Weë
+   * Brain fija DeepSeek. Lo que faltaba no era el mecanismo: era que un
+   * paso del plan pudiera declararlo.
+   *
+   * Sin esto, un paso que cae en la rama genérica —voz, texto— no puede
+   * acotar su cadena, así que si el primer proveedor falla el Router
+   * prueba el siguiente. Para casi todo eso es lo que se quiere; para
+   * medir si UN proveedor concreto funciona, no: el respaldo esconde
+   * justo lo que se está midiendo.
+   *
+   * ── Lo que NO hace ────────────────────────────────────────────────
+   *
+   * No decide nada. No conoce ninguna capacidad ni ningún proveedor: si
+   * el paso no lo declara, `prefs` sale exactamente igual que antes y el
+   * enrutamiento no cambia para nadie. Y el vídeo y la imagen siguen
+   * poniendo la suya después, que es la que manda para ellos.
+   *
+   * ── Una lista vacía ───────────────────────────────────────────────
+   *
+   * Se transporta tal cual, porque el Router ya tiene una respuesta para
+   * ella: con `[]` no hay eslabón que pase el filtro y la petición acaba
+   * en NOT_AVAILABLE. Inventar aquí que «vacía significa sin
+   * restricción» sería darle un segundo significado a un dato que ya
+   * tiene uno.
+   */
+  const familiaDelPaso = stepInput.allowedProviders;
+  const soloEstos = Array.isArray(familiaDelPaso) && familiaDelPaso.every((p) => typeof p === 'string')
+    ? (familiaDelPaso as string[])
+    : undefined;
+  const prefs: RoutingPrefs = {
+    quality: (stepInput.quality as RoutingPrefs['quality']) || 'auto',
+    durationSec: stepInput.durationSec ? Number(stepInput.durationSec) : undefined,
+    ...(soloEstos ? { allowedProviders: soloEstos } : {}),
+  };
+  return { input, prefs };
+};
+
+/**
+ * La petición que un paso manda al Router, armada IGUAL que en la ejecución (misma capacidad y mismas preferencias,
+ * de `entradaDelPaso`; el vídeo, normalizado como lo hace el Weë Video Engine; la imagen, con el plan del Weë Image
+ * Engine), para preguntar por la ruta ANTES de cobrar. El texto de los pasos posteriores aún no existe; no cambia
+ * la ruta, solo el prompt.
+ */
+export const peticionDelPaso = (
+  job: CreatorJob, step: JobStep, uid: string, settings: Awaited<ReturnType<typeof loadConfig>>['settings'], previous: string[] = [],
+): EngineRequest => {
+  const { input, prefs } = entradaDelPaso(job, step, previous);
+  if (step.capability.startsWith('video.')) {
+    const n = normalizeVideoRequest(videoRequestFromStep(step.capability, input), settings);
+    return { userId: uid, capability: n.capability, input: n.input, prefs: n.prefs };
+  }
+  if (step.capability.startsWith('image.')) {
+    const planned = planImage({ capability: step.capability, input });
+    return { userId: uid, capability: step.capability, input: planned.input, prefs: { ...prefs, ...planned.prefs } };
+  }
+  return { userId: uid, capability: step.capability, input, prefs };
+};
+
+/** Las peticiones de todo el plan, para la ruta previa de `creatorRun` (`exigirRutaElegible`). */
+export const peticionesDelPlan = (job: CreatorJob, uid: string, settings: Awaited<ReturnType<typeof loadConfig>>['settings']): EngineRequest[] =>
+  job.steps.map((step) => peticionDelPaso(job, step, uid, settings, []));
+
 export const creatorRun = onCall(
   { region: 'us-central1', timeoutSeconds: PLAZO_DE_EJECUCION_MS / 1000, memory: '1GiB', secrets: AI_SECRETS },
   async (request) => {
@@ -556,6 +640,8 @@ export const creatorRun = onCall(
     const deadlineAt = empezado + PLAZO_DE_EJECUCION_MS - RESERVA_PARA_LIQUIDAR_MS;
     try {
       if (!request.auth) throw new EngineError('UNAUTHORIZED');
+      /* Cuenta Weë válida (identity/sesion.ts): autenticada y enrolada (registro 18+ con país). Única condición; sin edad aquí. */
+      await exigirCuentaWeeValida(request.auth);
       const uid = request.auth.uid;
       const jobId = String((request.data || {}).jobId || '');
       if (!jobId) throw new EngineError('INVALID_REQUEST', 'Falta el trabajo.');
@@ -609,6 +695,8 @@ export const creatorRun = onCall(
         exigirFotoSiHaceFalta(job);
         // Límites de uso por persona (antes de cobrar y de llamar a la IA)
         const { settings } = await loadConfig();
+        /* La ruta antes del dinero (creator/rutaPrevia.ts): sin ruta elegible para algún paso, ni cupo ni reserva. */
+        await exigirRutaElegible(peticionesDelPlan(job, uid, settings));
         await limiter.reserve(uid, modalityCounts(job.steps), settings.limits);
         const reserva = await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
         /*
@@ -651,51 +739,10 @@ export const creatorRun = onCall(
           const previous = results
             .filter((r) => (next.dependsOn || []).includes(r.stepId))
             .map((r) => r.content || r.url || '');
-          // Weë Brain arma el input interno del paso (prompt, foto, narración); la persona nunca lo ve
-          const input = stepInputFor(job, next, previous);
-          // El nivel que la persona eligió en el presupuesto manda sobre el de la plantilla
-          if (job.quality) input.quality = job.quality;
+          // Weë Brain arma el input interno del paso (prompt, foto, narración) y sus preferencias de ruta con la MISMA
+          // función que la ruta previa (`entradaDelPaso`): lo que se aprobó antes de cobrar es lo que se ejecuta.
+          const { input, prefs } = entradaDelPaso(job, next, previous);
           const stepInput = next.input || {};
-          /*
-           * QUÉ FAMILIA DE PROVEEDORES ADMITE ESTE PASO, SI LO DICE.
-           *
-           * El Router lleva desde siempre obedeciendo `prefs.allowedProviders`
-           * —salta cualquier eslabón que no esté en la lista— y tres sitios de
-           * producción ya lo usan: el Weë Video Engine fija la familia Seedance,
-           * el Weë Image Engine fija el proveedor del modelo elegido, y Weë
-           * Brain fija DeepSeek. Lo que faltaba no era el mecanismo: era que un
-           * paso del plan pudiera declararlo.
-           *
-           * Sin esto, un paso que cae en la rama genérica —voz, texto— no puede
-           * acotar su cadena, así que si el primer proveedor falla el Router
-           * prueba el siguiente. Para casi todo eso es lo que se quiere; para
-           * medir si UN proveedor concreto funciona, no: el respaldo esconde
-           * justo lo que se está midiendo.
-           *
-           * ── Lo que NO hace ────────────────────────────────────────────────
-           *
-           * No decide nada. No conoce ninguna capacidad ni ningún proveedor: si
-           * el paso no lo declara, `prefs` sale exactamente igual que antes y el
-           * enrutamiento no cambia para nadie. Y el vídeo y la imagen siguen
-           * poniendo la suya después, que es la que manda para ellos.
-           *
-           * ── Una lista vacía ───────────────────────────────────────────────
-           *
-           * Se transporta tal cual, porque el Router ya tiene una respuesta para
-           * ella: con `[]` no hay eslabón que pase el filtro y la petición acaba
-           * en NOT_AVAILABLE. Inventar aquí que «vacía significa sin
-           * restricción» sería darle un segundo significado a un dato que ya
-           * tiene uno.
-           */
-          const familiaDelPaso = stepInput.allowedProviders;
-          const soloEstos = Array.isArray(familiaDelPaso) && familiaDelPaso.every((p) => typeof p === 'string')
-            ? (familiaDelPaso as string[])
-            : undefined;
-          const prefs: RoutingPrefs = {
-            quality: (stepInput.quality as RoutingPrefs['quality']) || 'auto',
-            durationSec: stepInput.durationSec ? Number(stepInput.durationSec) : undefined,
-            ...(soloEstos ? { allowedProviders: soloEstos } : {}),
-          };
           const stepCtx = { ...ctx, stepId: next.id, prefs, requestId: `${jobId}:${next.id}`, service: serviceForCapability(next.capability, stepInput) };
           // Video (Weë Studio): pasa por el Weë Video Engine, que solo usa la familia Seedance
           let run: GatewayRun;

@@ -350,7 +350,20 @@ a ciegas: la web carga Firebase, el inicio de sesión de Google, Cloudinary y R2
 inicio de sesión sin que ninguna prueba local lo viera. El camino es `Content-Security-Policy-Report-Only` contra la
 web viva, leer qué bloquearía, y solo entonces imponerla. Llegan con el próximo despliegue de la web y del hosting.
 
+### Seguridad de `users` y cuenta Weë válida (integración 2026-10-07, sin desplegar)
+
+- `users/{id}` solo lo leerán su dueño y el servidor en la fase 2 (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo); la cara pública es `publicProfiles/{id}` (lista blanca, escrita solo por `espejoDelPerfilPublico`, `list` limitado). Ver DD-15 en [DECISIONES-DELIBERADAS.md](DECISIONES-DELIBERADAS.md). Pruebas: `functions/test/users-privado.emulator.mjs` (las dos fases) y `functions/test/users-fases.test.mjs` (el bloqueo del orden).
+- Las callables que generan o cobran exigen **cuenta Weë válida** (`exigirCuentaWeeValida`, `functions/src/identity/sesion.ts`): sesión no anónima + `private/account.birthDate` que la regla pura única (`identity/edad.ts`) da por 18+ HOY + país del catálogo. Una fecha histórica de menor, inválida, futura o ausente → `ACCOUNT_REQUIRED` (corrección F). Auditoría de solo lectura: `scripts/auditoria-edades.mjs` (solo conteos).
+
 ## 7. Pendiente (requiere al dueño)
+
+- **Destino de las fechas de nacimiento históricas** (las de `private/account` anteriores a la regla de 18+ y los `birthDate` heredados en `users/{id}`): sin decidir si se conservan, se anonimizan o se borran.
+- **Cuentas sin país**: no pasan «cuenta Weë válida» (`ACCOUNT_REQUIRED`); sin decidir cómo se les pide.
+- **Flujo UX para completar el enrolamiento** de una cuenta autenticada que no lo terminó (fecha o país): hoy solo ve `ACCOUNT_REQUIRED`.
+- **Transición de las apps nativas antiguas** que aún leen perfiles ajenos de `users`.
+- **Segundo proveedor de vídeo** (hoy solo la familia Seedance).
+- **Cierre definitivo de `users`** (retirar la caída de transición del cliente y lo heredado del documento).
+- **Limpieza de datos legacy** de `users` (`scripts/limpiar-cuenta-en-users.mjs`, preparado, no ejecutado).
 
 - **Identidad propia de Claude**, sin Owner, sin facturación, sin IAM y sin
   secretos. La autonomía crece por automatización, no por privilegios.

@@ -239,8 +239,9 @@ console.log('\n── Fronteras de autorización ──');
    * los campos de cuenta que recoge el registro; borrar, nadie desde el cliente.
    */
   check('el subárbol privado de una cuenta existe y solo lo lee y escribe su dueño',
-    /match \/private\/\{documento\} \{[\s\S]{0,200}?allow read: if esDuenyoDelPerfil\(userId\);[\s\S]{0,300}?allow delete: if false;/.test(reglas)
-    && /allow create, update: if esDuenyoDelPerfil\(userId\) && documento == 'account'/.test(reglas));
+    /match \/private\/\{documento\} \{[\s\S]{0,200}?allow read: if esDuenyoDelPerfil\(userId\);[\s\S]{0,800}?allow delete: if false;/.test(reglas)
+    && /allow create: if esDuenyoDelPerfil\(userId\) && documento == 'account'/.test(reglas)
+    && /allow update: if esDuenyoDelPerfil\(userId\) && documento == 'account'/.test(reglas));
 
   check('el callable que autoriza Credits sin liquidarlos está marcado como no habilitado',
     /NO HABILITADO COMO RUTA DE PRODUCTO/.test(read('functions/src/credits/index.ts')));
@@ -353,7 +354,8 @@ console.log('\n── Lo de la cuenta, fuera del perfil público ──');
     && /allow update: if isAuthenticated\(\) && !touchesCreditFields\(\) && !touchesEcontactFields\(\) && !touchesAccountFields\(\)/.test(reglas));
   check('lo privado del dueño se reconoce por el campo uid del perfil, no por el id del documento',
     /get\(\/databases\/\$\(database\)\/documents\/users\/\$\(idDePerfil\)\)\.data\.uid == request\.auth\.uid/.test(reglas)
-    && /allow create, update: if esDuenyoDelPerfil\(userId\) && documento == 'account' &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(camposPrivadosDeCuenta\(\)\)/.test(reglas));
+    && /allow create: if esDuenyoDelPerfil\(userId\) && documento == 'account' &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(camposPrivadosDeCuenta\(\)\)/.test(reglas)
+    && /allow update: if esDuenyoDelPerfil\(userId\) && documento == 'account' &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(camposPrivadosDeCuenta\(\)\)/.test(reglas));
   check('el perfil se crea sin email y el registro guarda lo privado aparte',
     !/email: user\.email/.test(contexto) && !/email: '',/.test(perfiles)
     && /guardarDatosPrivados\(userProfile\.id, \{\s*\n\s*realName: realName\.trim\(\),\s*\n\s*birthDate: getBirthDateISO\(\),\s*\n\s*gender,/.test(registro)

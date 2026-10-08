@@ -9,6 +9,7 @@ import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { useResponsive } from '../hooks/useResponsive';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { EDAD_MINIMA } from '../utils/edadMinima';
 
 interface FaqItem {
   emoji: string;
@@ -62,6 +63,11 @@ const FAQ: FaqItem[] = [
     emoji: '📝',
     question: 'help.q9',
     answer: 'help.a9',
+  },
+  {
+    emoji: '🔞',
+    question: 'help.q10',
+    answer: 'help.a10',
   },
 ];
 
@@ -125,7 +131,7 @@ const HelpScreen: React.FC = () => {
               <Text style={[styles.question, { color: theme.colors.text }]}>
                 {item.emoji} {t(item.question)}
               </Text>
-              <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>{t(item.answer, item.answer === 'help.a3' ? especialistas : undefined)}</Text>
+              <Text style={[styles.answer, { color: theme.colors.textSecondary }]}>{t(item.answer, item.answer === 'help.a3' ? especialistas : item.answer === 'help.a10' ? { edad: EDAD_MINIMA } : undefined)}</Text>
             </View>
           ))}
         </View>

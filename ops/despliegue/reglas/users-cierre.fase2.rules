@@ -1,0 +1,15 @@
+      // SOLO SU DUEÑO LO LEE (seguridad de `users`, FASE 2). Lo que ven los
+      // demás —con sesión o sin ella— es `publicProfiles/{id}`, la copia con
+      // lista blanca que mantiene el servidor. Aquí siguen el saldo, el país,
+      // el idioma, `linkedAccountId` y lo heredado: nada de eso es de nadie más.
+      // El dueño es la CUENTA de cualquiera de sus dos caras (el campo `uid`);
+      // un documento que aún no existe solo lo «lee» la cuenta cuyo id lleva,
+      // que es lo que hace la creación idempotente dentro de su transacción.
+      // El listado solo vale para consultas que se restringen a sus propias caras
+      // (`where('uid', '==', <la suya>)`). El servidor lee con Admin, por encima.
+      // Solo se publica cuando `ops/produccion.json` → `cierreDeUsers` cumple
+      // las tres condiciones (ops/despliegue/cierre-users.mjs).
+      allow get: if isAuthenticated() &&
+        ((resource == null && (userId == request.auth.uid || userId == ('hidi_' + request.auth.uid))) ||
+         (resource != null && esCaraDeLaCuenta(resource.data)));
+      allow list: if isAuthenticated() && esCaraDeLaCuenta(resource.data);

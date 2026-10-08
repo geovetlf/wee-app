@@ -251,6 +251,8 @@ export const errorDelMundo3D = (error: unknown): ErrorDelMundo3D | null => {
       return fallo('entrada', 'motor.invalidRequest', false);
     }
     case 'UNAUTHORIZED': return fallo('sesion', 'weeai.errSignIn', false);
+    /* Guest AI Gate: una sesión de invitado no crea; se le pide iniciar sesión o crear su cuenta. */
+    case 'ACCOUNT_REQUIRED': return fallo('sesion', 'weeai.errAccountRequired', false);
     case 'ACCOUNT_NOT_FOUND': return fallo('sesion', 'weeai.errNoAccount', false);
     case 'DUPLICATE_REQUEST': return fallo('duplicado', 'weeai.errDuplicate', false);
     /* El cupo de mundos es del DÍA (`details.modality === '3d'`): reintentar en un momento no sirve, y se dice. */

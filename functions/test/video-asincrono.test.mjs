@@ -39,6 +39,8 @@ import { crearCargador } from './filmmaker-cliente.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const lib = (p) => require(path.resolve(RAIZ, 'functions/lib', p));
 const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
 const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
@@ -230,7 +232,7 @@ const pasada = () => rt.mantenimientoDeWee({
 const CUENTAS = ['pruebaB0001', 'pruebaJ0001', 'pruebaR0001', 'pruebaG0001', 'pruebaF0001', 'pruebaD0001', 'pruebaC0001', 'pruebaE0001', 'pruebaI0001', 'pruebaA0001', 'pruebaBrain0001', 'pruebaX0001', 'pruebaS0001', 'pruebaT0001'];
 const SALDO = 5000;
 for (const uid of CUENTAS) {
-  base.docs.set(`users/doc_${uid}`, { uid, displayName: uid });
+  base.docs.set(`users/doc_${uid}`, { uid, displayName: uid, profileType: 'real', country: 'ES' }); // Fase 1: Perfil Real con país permitido (Seedance es territorial)
   await creditEngine.ensureAccount(uid);
   base.docs.get(`users/doc_${uid}`).creditsBalance = SALDO;
 }
@@ -238,7 +240,7 @@ base.docs.set('aiSettings/runtime', { habilitado: true, porCapacidad: { 'video.g
 olvidarLaPuerta();
 
 const PETICION = { prompt: 'Un faro al amanecer, olas suaves', durationSec: 5, aspectRatio: '16:9' };
-const pedir = (uid, requestId, extra = {}) => intento(() => video.generateVideo.run({ auth: { uid }, data: { ...PETICION, requestId, ...extra } }));
+const pedir = (uid, requestId, extra = {}) => intento(() => video.generateVideo.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data: { ...PETICION, requestId, ...extra } }));
 const saldo = (uid) => base.docs.get(`users/doc_${uid}`).creditsBalance;
 const uso = (requestId) => base.leer(`creditTransactions/usage_${requestId}`);
 const reembolso = (requestId) => base.leer(`creditTransactions/refund_${requestId}`);
@@ -305,15 +307,24 @@ const VIDEO = sinComentarios(VIDEO_SRC);
    *   lo que no es un CreditError y su causa al registro con `sanitizeForLog` (money/error-interno-al-cliente);
    *   credits/index.ts +5 −3: `balance` → `readBalance` y `failed` → `assertLimit`. Bloques exactos en job-queue 63k/63p.
    */
-  const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
+  /*
+   * + Guest AI Gate (2026-10-07, rama fix/guest-sin-ia): credits/index.ts +26 (antes 19/3): un invitado (Firebase
+   *   Anonymous) lee su saldo con `readBalance` —sin inicializar la cuenta, así que sin bienvenida— y no compra ni
+   *   gasta (`guardarCuenta` en validatePurchase y spendCredits). El Credit Engine, sin tocar.
+   */
+  const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n45\t3\tfunctions/src/credits/index.ts';
   /*
    * + misión fal (2026-10-05), con autorización del dueño: core/router.ts +2 −2 (la modalidad '3d' en la lista del
    *   Router del Core y en su guardia) y credits/creditCosts.ts +8 (el servicio `ai_world`: precio de prueba, etiqueta y
    *   capacidad). Ni gasto, ni cobro, ni reembolso. Líneas exactas en job-queue 63fal.
    */
   const DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
-  check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068) y el servicio ai_world de la misión fal, del tamaño exacto',
-    git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r/g, '') === `${DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
+  /* + corrección P0 Seedance (2026-10-07), autorizada: aiPricing.ts 69/20, el precio del vídeo lee la petición efectiva del cuerpo. */
+  const DE_LA_CORRECCION_P0 = '69\t20\tfunctions/src/credits/aiPricing.ts';
+  const ordenadas = (s) => s.split('\n').sort().join('\n');
+  check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068), el servicio ai_world de la misión fal y el precio de vídeo de la corrección P0 de Seedance, del tamaño exacto',
+    ordenadas(git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r/g, ''))
+      === ordenadas(`${DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}\n${DE_LA_CORRECCION_P0}`));
   const medios = sinComentarios(leer('functions/src/runtime/medios.ts'));
   const ayudante = medios.slice(medios.indexOf('export const trabajoDelMedio'), medios.indexOf('const sinNada'));
   check('A14) la pregunta nueva de la puerta es de SOLO lectura: `porIdempotencia`, y nada más',
@@ -598,7 +609,8 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a));
   };
   const antes = git(`show ${ANTES}:functions/src/creator/video.ts`);
-  check('H1) la rama legacy de generateVideo es byte a byte la de antes', bloque(VIDEO_SRC).length > 500 && bloque(VIDEO_SRC) === bloque(antes));
+  /* + corrección P0 Seedance (2026-10-07): el motor recibe el `normalizado` con el que se cotizó; es la única diferencia admitida. */
+  check('H1) la rama legacy de generateVideo es byte a byte la de antes (salvo el `normalizado` de la corrección P0)', bloque(VIDEO_SRC).length > 500 && bloque(VIDEO_SRC).replace('requestId, service, normalizado, creditTransactionId', 'requestId, service, creditTransactionId') === bloque(antes));
   /*
    * F1-D mueve DOS piezas del motor, con autorización y solo esas: el cupo cuenta
    * una operación repetida UNA vez (`limits.ts`, decisión 14) y el adaptador de
@@ -614,13 +626,13 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * Y el Harness: su tamaño es el del diff combinado.
    */
   const MOTOR_F1D_Y_HARNESS = {
-    'functions/src/creator/credits.ts': '45\t4', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
-    'functions/src/creator/index.ts': '157\t23', // misión mundo3d (+17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo que atendió y anota las variantes de UN resultado (y se exporta para probarlo) · C-1 2026-10-05 (+16 −5, antes 124/16): creatorQuote en transacción, solo con el trabajo `planned`, sin reclamo reciente ni reserva · segunda auditoría de cierre 2026-10-01 (+7 −1, antes 117/15): vozSinNarracion antes del vídeo · 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
+    'functions/src/creator/credits.ts': '54\t17', // corrección P0 Seedance 2026-10-07 (+9 −13, antes 45/4): el presupuesto cotiza con la petición efectiva · 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
+    'functions/src/creator/index.ts': '250\t69', // reanclaje pre-commit 2026-10-07, autorizado (corrección 4, +53 −44, antes 197/25): `entradaDelPaso` es la ÚNICA función que arma input + prefs del paso para la ruta previa (`peticionDelPaso`) y para el bucle de creatorRun; el bloque de allowedProviders se mueve del bucle a ella, sin tocar pricing, Router, reserva/cobro ni proveedor (equivalencia en creator-entrada-del-paso) · simplificación definitiva 2026-10-07 (+37 −2, antes 160/23): Guest Gate, la condición única `exigirCuentaWeeValida` en lugar de la edad, y la ruta antes del dinero en creatorRun (`peticionesDelPlan` + `exigirRutaElegible`) · edad mínima 18 (+3, antes 157/23): la puerta elegibilidadDeCuenta en creatorChat y creatorRun y su import · misión mundo3d (+17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo que atendió y anota las variantes de UN resultado (y se exporta para probarlo) · C-1 2026-10-05 (+16 −5, antes 124/16): creatorQuote en transacción, solo con el trabajo `planned`, sin reclamo reciente ni reserva · segunda auditoría de cierre 2026-10-01 (+7 −1, antes 117/15): vozSinNarracion antes del vídeo · 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
     'functions/src/engine/admin.ts': '11\t4', // 0ad8500 (#19) · 5e87b80 (FASE 8) · cierre post-auditoría 2026-10-01 (+2 −2, antes 9/2): engineAdmin monta MODEL_SECRETS
     'functions/src/engine/config.ts': '36\t1', // 8193184 (#20) · misión fal: '3d' entra en la lista de modalidades que ya añadió #20 (no cambia la cifra)
     'functions/src/engine/derechos.ts': '26\t0', // misión mundo3d (nuevo): los derechos de lo que generó una implementación, de los datos de SU modelo; una regla para los tres caminos
-    'functions/src/engine/elegibilidad.ts': '212\t0', // misión gobernanza 2026-10-06 (+2, antes 210/0): el comentario de los grupos dice que un territorio con código propio no está en el catálogo de países (JURISDICTION_UNKNOWN) · misión fal (nuevo): la regla común de elegibilidad —gobierno, revisión, activación y jurisdicción— · misión mundo3d (+17, antes 193/0): `elegibleEnAlgunaJurisdiccion`, para el catálogo y para explicar un «no»
-    'functions/src/engine/errors.ts': '92\t2', // misión cost accounting 2026-10-06, revisión de calidad (+33, antes 59/2): `costeTrasUnFallo` (H0 #22) se muda aquí desde el router, con la clasificación de errores, para que el ejecutor del Gateway la use sin arrastrar el router, y `tareaEnElProveedor`, el «despachado» en un solo sitio · i18n da-DK: el rechazo de entrada sin «el proveedor» · misión mundo3d (+58 −1, antes 1/1): el motivo PÚBLICO de un NOT_AVAILABLE (cinco, cerrados, con su frase) y lo que nunca sale hacia la app en los detalles de un error
+    'functions/src/engine/elegibilidad.ts': '240\t0', // Fase 1 jurisdicción 2026-10-07 (+28, antes 212/0): `estadoTerritorial`, los cinco estados territoriales traducidos de la regla común · misión gobernanza 2026-10-06 (+2, antes 210/0): el comentario de los grupos dice que un territorio con código propio no está en el catálogo de países (JURISDICTION_UNKNOWN) · misión fal (nuevo): la regla común de elegibilidad —gobierno, revisión, activación y jurisdicción— · misión mundo3d (+17, antes 193/0): `elegibleEnAlgunaJurisdiccion`, para el catálogo y para explicar un «no»
+    'functions/src/engine/errors.ts': '96\t3', // simplificación 2026-10-07 (+4 −1, antes 92/2): ACCOUNT_REQUIRED del Guest Gate y los motivos territoriales que pasan al genérico · misión cost accounting 2026-10-06, revisión de calidad (+33, antes 59/2): `costeTrasUnFallo` (H0 #22) se muda aquí desde el router, con la clasificación de errores, para que el ejecutor del Gateway la use sin arrastrar el router, y `tareaEnElProveedor`, el «despachado» en un solo sitio · i18n da-DK: el rechazo de entrada sin «el proveedor» · misión mundo3d (+58 −1, antes 1/1): el motivo PÚBLICO de un NOT_AVAILABLE (cinco, cerrados, con su frase) y lo que nunca sale hacia la app en los detalles de un error
     'functions/src/engine/gateway.ts': '59\t17', // misión cost accounting 2026-10-06, revisión de calidad (+31 −13, antes 28/4): el ejecutor del motor decide el coste de un fallo con el error ORIGINAL (`costeTrasUnFallo`, H0 #22, como despachado si el proveedor ya dio nombre a la tarea), PRIMERO y en un catch que no puede salir sin anotar, y lo anota en el error (`details.costeDelFallo`), para que el conductor lo lea y no lo reconstruya · misión mundo3d (+18 −2, antes 10/2): el ejecutor del Core pregunta la elegibilidad de un modelo territorial CON la jurisdicción de la cuenta (falla cerrado sin ella) · 0ad8500 (#19) · misión fal (+8 −2, antes 2/0): el ejecutor pregunta a la regla común y los ajustes no tocan identidad ni gobierno
     'functions/src/engine/http.ts': '191\t24', // revisión de seguridad 2026-10-06, urls del Storage (+165 −23, antes 26/1): UNA regla para una dirección del Storage que llega de fuera —host y cubo de Weë, carpeta de la cuenta, reescrita desde piezas comprobadas (`direccionDeLaCuenta`)—, el lector sin segundo intento por HTTP para nada con forma de Storage (`objetoDelStorageDeWee`, `readImage`), lo que falla al leer como entrada inservible (400, coste cero) y la descarga por HTTPS sin seguir redirecciones · 16ca1ae (#3)
     'functions/src/engine/imageMeta.ts': '8\t5', // revisión de seguridad 2026-10-06, urls del Storage (nuevo en el mapa): las medidas de la foto se leen solo del cubo de Weë, con la misma regla que el lector
@@ -637,13 +649,14 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     'functions/src/engine/providers/fal.ts': '486\t0', // misión mundo3d FASE 5 (+7, antes 479/0): el nombre de la operación sin «/» (con «:», lo que admite la etiqueta del Core) y el resolutor que sabe pedir parada · misión mundo3d (+55, antes 424/0): la salida por PAPELES (el mundo principal y sus variantes) en la ejecución y en el aviso, y la cola configurable solo a https o a esta máquina · misión fal (nuevo): el adaptador de fal (cola, fotos en línea, avisos firmados, cancelación, reconciliación) · misión mundo3d (+31, antes 393/0): traduce la entrada de Weë con los datos del mapeo y no escribe ningún campo de fal
     'functions/src/engine/providers/gemini.ts': '4\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
     'functions/src/engine/providers/openai.ts': '3\t2', // cierre post-auditoría 2026-10-01 (nuevo en el mapa): el sistema por defecto neutro y `format: 'text'` respetado
-    'functions/src/engine/providers/seedance.ts': '33\t19', // F1-D (ficha 6) + 8a9f098 (#21)
+    'functions/src/engine/providers/seedance.ts': '261	48', // Fase 1 jurisdicción 2026-10-07 (+24 −4): TERRITORIO_DE_SEEDANCE (US, IN, CN) y `territorio` en sus cuatro modelos · corrección P0 Seedance 2026-10-07 (antes 33/19 → 237/44): neutralizarParametrosEnLinea (el texto no puede llevar --rs/--rt/--dur/--wm…) y peticionEfectivaDeSeedance, la única verdad del cuerpo y del precio · F1-D (ficha 6) + 8a9f098 (#21)
     'functions/src/engine/registry.ts': '29\t2', // misión mundo3d (+12 −1, antes 17/1): RESOLUTORES_DE_ESTADO, quién sabe preguntarle a cada proveedor (Seedance y fal), junto a los adaptadores · 0ad8500 (#19) · misión fal (+15 −1, antes 2/0): fal en ADAPTERS (apagado), la cadena de world.generate y el plazo de la modalidad 3d
     'functions/src/engine/router.ts': '126\t25', // misión cost accounting 2026-10-06, revisión de calidad (−18, antes 144/25): `costeTrasUnFallo` se muda a engine/errors.ts y el router la reexporta · misión mundo3d (+22 −12, antes 122/13): cada descarte con su CAUSA y, si es territorial, si en otra jurisdicción valdría; NOT_AVAILABLE con su motivo público en vez de «inténtalo más tarde» · 0ad8500 (#19) · 5e87b80 (FASE 8) · i18n da-DK · harness/fase-2 (H0 #22) · cierre post-auditoría 2026-10-01 · F2-C1 (+2, antes 57/4) · misión fal (+63 −9, antes 59/4): la elegibilidad con las jurisdicciones de la operación —de la petición o de la cuenta, solo si algún modelo las necesita—, el descarte con su escalón y su modelo, NOT_AVAILABLE «sin_modelo_elegible» y la decisión al libro (auditoría)
     'functions/src/engine/types.ts': '219\t3', // misión cost accounting 2026-10-06 (+7, antes 212/3): `providerCostStatus` y `providerCostEstimated` declarados en la fila del libro · misión mundo3d (+63, antes 149/3): la causa de un descarte del Router (+18) y el papel de un archivo de salida, las variantes de un resultado y el origen de un campo del proveedor en la entrada de Weë · 0ad8500 (#19) · 5e87b80 (FASE 8) · F2-C1 (+10, antes 19/0) · misión fal (+120 −3, antes 29/0): gobierno y territorio del modelo, escalones de elegibilidad, jurisdicciones de la operación, la decisión en el libro, modalidad 3d
     'functions/src/engine/verification.ts': '8\t0', // misión fal (nuevo en el mapa): la ficha de fal, documentada y sin verificar con la API real
+    'functions/src/engine/video.ts': '35\t7', // corrección P0 Seedance 2026-10-07 (nuevo en el mapa): el modelo ya no lo eligen palabras del prompt; videoParamsForQuote; el motor acepta el `normalizado` ya cotizado
     'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
-    'functions/src/generateAvatar.ts': '132\t15', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar) · cierre post-auditoría 2026-10-01 (+3 −3, antes 129/12): el avatar monta AVATAR_SECRETS (solo Gemini)
+    'functions/src/generateAvatar.ts': '152\t15', // simplificación definitiva 2026-10-07 (+15, antes 137/15): la cuenta Weë válida (autenticada + enrolada) en lugar de la edad, su comentario y sus imports · edad mínima 18 (+5, antes 132/15): la puerta elegibilidadDeCuenta en las dos callables, su comentario y su import · a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar) · cierre post-auditoría 2026-10-01 (+3 −3, antes 129/12): el avatar monta AVATAR_SECRETS (solo Gemini)
   };
   /*
    * Y la integración i18n da-DK (rama i18n/da-dk, 2026-10-01), también por nombre y tamaño: el locale de la app viaja
@@ -677,7 +690,11 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts|651\t0\tfunctions/src/core/content/linaje.ts';
   /* Las dos listas juntas, en el orden en que las da git: por ruta. */
-  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|')]
+  /* + Guest AI Gate (2026-10-07): core/errors.ts +2, el código nuevo del motor ACCOUNT_REQUIRED tiene destino en el Core (AUTH_ERROR, core-contracts 44). Aditivo; ningún contrato sube de versión. */
+  const CORE_DEL_GUEST_GATE = '2\t0\tfunctions/src/core/errors.ts';
+  /* + reanclaje pre-commit (2026-10-07, autorizado): core/backup.ts +5, publicProfiles clasificada DERIVED (seguridad de users). Solo una entrada de datos. */
+  const CORE_DE_LA_SEGURIDAD_DE_USERS = '5\t0\tfunctions/src/core/backup.ts';
+  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), CORE_DEL_GUEST_GATE, CORE_DE_LA_SEGURIDAD_DE_USERS]
     .sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');
   check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal y el linaje del ciclo de vida 3D, del tamaño exacto',
     git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions`).trim() === ''

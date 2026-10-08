@@ -6,6 +6,8 @@
  */
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { exigirCuentaWeeValida } from './identity/sesion';
+import { toEngineHttpsError } from './engine/errors';
 import { AVATAR_SECRETS } from './secrets';
 import { creditEngine } from './credits/creditEngine';
 import { CreditService } from './credits/creditCosts';
@@ -195,6 +197,15 @@ export const generateAvatarWithGemini = onCall(
     if (!request.auth) {
       throw new HttpsError('unauthenticated', 'Must be authenticated');
     }
+    /*
+     * Cuenta Weë válida (identity/sesion.ts): autenticada —un invitado no genera avatar— y enrolada (registro 18+ con
+     * país). Es la única condición; la edad no se recalcula aquí. Va ANTES del cobro y del proveedor.
+     */
+    try {
+      await exigirCuentaWeeValida(request.auth);
+    } catch (error) {
+      throw toEngineHttpsError(error);
+    }
 
     const { prompt, selections } = request.data;
     const requestId = requestIdFrom(request.data?.requestId);
@@ -272,6 +283,15 @@ export const avatarReplacement = onCall(
     // Validate authentication
     if (!request.auth) {
       throw new HttpsError('unauthenticated', 'Must be authenticated');
+    }
+    /*
+     * Cuenta Weë válida (identity/sesion.ts): autenticada —un invitado no genera avatar— y enrolada (registro 18+ con
+     * país). Es la única condición; la edad no se recalcula aquí. Va ANTES del cobro y del proveedor.
+     */
+    try {
+      await exigirCuentaWeeValida(request.auth);
+    } catch (error) {
+      throw toEngineHttpsError(error);
     }
 
     const requestId = requestIdFrom(request.data?.requestId);

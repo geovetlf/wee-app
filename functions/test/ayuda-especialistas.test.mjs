@@ -55,7 +55,7 @@ console.log('\n── A · Una sola fuente ──');
   const ayuda = leer('screens/HelpScreen.tsx');
   check('2) y la Ayuda toma de ahí el número y los nombres',
     /contador: WEE_EXPERIENCES\.length/.test(ayuda) && /lista: formato\.lista\(WEE_EXPERIENCES\.map\(\(e\) => e\.name\)\)/.test(ayuda)
-    && /t\(item\.answer, item\.answer === 'help\.a3' \? especialistas : undefined\)/.test(ayuda), `${N}: ${NOMBRES.join(', ')}`);
+    && /t\(item\.answer, item\.answer === 'help\.a3' \? especialistas : (item\.answer === 'help\.a10' \? \{ edad: EDAD_MINIMA \} : )?undefined\)/.test(ayuda), `${N}: ${NOMBRES.join(', ')}`);
 }
 
 console.log('\n── B · Ningún idioma escribe la cifra ni la lista a mano ──');

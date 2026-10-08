@@ -90,7 +90,11 @@ export const montajes = (compilado) => {
 };
 
 /** Las funciones que el código monta pero aún NO se despliegan (ops/despliegue/grupos.json): no son servicios de Cloud Run. */
-const sinDesplegar = () => new Set(JSON.parse(fs.readFileSync(path.join(RAIZ, 'ops/despliegue/grupos.json'), 'utf8')).no_se_despliegan.map((n) => n.funcion));
+const sinDesplegar = () => {
+  const g = JSON.parse(fs.readFileSync(path.join(RAIZ, 'ops/despliegue/grupos.json'), 'utf8'));
+  /* Un primer despliegue declarado (primeros_despliegues) tampoco es servicio de Cloud Run hasta que se despliega. */
+  return new Set([...g.no_se_despliegan, ...(g.primeros_despliegues || [])].flatMap((n) => n.funciones || [n.funcion]));
+};
 
 /**
  * Los servicios VIVOS que montan unos secretos: lo que el código monta MENOS lo que aún no se despliega. La rotación

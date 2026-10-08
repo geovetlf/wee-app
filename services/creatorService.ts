@@ -196,6 +196,12 @@ export const creatorErrorCode = (error: unknown): string => {
   return String(details?.code || '');
 };
 
+/**
+ * ¿El servidor pidió una cuenta? (Guest AI Gate: la sesión es de invitado y Weë AI no genera para invitados.)
+ * La pantalla lo usa para ofrecer «Iniciar sesión o crear cuenta» con el inicio de sesión de siempre.
+ */
+export const pideCuentaAutenticada = (error: unknown): boolean => creatorErrorCode(error) === 'ACCOUNT_REQUIRED';
+
 /** true si la llamada se cortó por tiempo en la app: el trabajo sigue en el servidor y llega por Firestore. */
 export const isClientTimeout = (error: unknown): boolean => {
   const code = String((error as any)?.code || '');
@@ -209,6 +215,7 @@ export const isClientTimeout = (error: unknown): boolean => {
 const FRASE_DEL_CODIGO: Record<string, string> = {
   INVALID_REQUEST: 'motor.invalidRequest',
   UNAUTHORIZED: 'motor.unauthorized',
+  ACCOUNT_REQUIRED: 'weeai.errAccountRequired',
   PROVIDER_ERROR: 'motor.providerError',
   GENERATION_FAILED: 'motor.generationFailed',
   NOT_AVAILABLE: 'motor.notAvailable',
@@ -237,6 +244,8 @@ export const humanizeCreatorError = (error: unknown, t: Traductor | ((clave: str
   const message = String((error as any)?.message || '');
   if (creditsShortfall(error)) return t('weeai.errNotEnoughCredits');
   const controlled = creatorErrorCode(error);
+  /* Guest AI Gate: por su código, antes que por la frase; la pantalla añade el botón de iniciar sesión. */
+  if (controlled === 'ACCOUNT_REQUIRED') return t('weeai.errAccountRequired');
   /* «No disponible» se explica por su MOTIVO, no por la frase: la frase de antes decía «inténtalo más tarde» siempre. */
   if (controlled === 'NOT_AVAILABLE') return t(claveDeNoDisponible(error));
   // Los errores controlados del servidor ya vienen con una frase amable
