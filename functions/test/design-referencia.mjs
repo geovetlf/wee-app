@@ -274,7 +274,7 @@ export const comprobarLaReferenciaDeDesign = async (check) => {
   check('I15) el mapa maestro y la matriz de cobertura son los que salen del registro (node scripts/design-cobertura.mjs)', distintos.length === 0,
     distintos.join(', ') || Object.keys(docs).join(', '));
   check('I15) cada celda de la matriz es YES, NO, N/A o PENDING', caps.every((c) => Object.values(U.coberturaDe(c)).every((v) => VALORES.has(v)))
-    && U.COLUMNAS_DE_COBERTURA.length === 12);
+    && U.COLUMNAS_DE_COBERTURA.length === 16);
   const descripciones = JSON.parse(leer('docs/wee-design-capacidades.json')).descripciones;
   check('I15) cada capacidad tiene su descripción en los documentos, y ninguna sobra',
     ids.every((id) => typeof descripciones[id] === 'string' && descripciones[id].length > 20) && Object.keys(descripciones).every((id) => ids.includes(id)));
@@ -377,4 +377,219 @@ export const comprobarLaReferenciaDeDesign = async (check) => {
     && caps.filter((c) => c.ejecutaPor === 'externo').every((c) => c.perfil === 'externo' && c.elegibilidad === 'no_aplica'));
   check('I20) la matriz solo pide proveedor a lo que pasa por el motor',
     caps.filter((c) => c.ejecutaPor !== 'motor').every((c) => U.coberturaDe(c).Provider === 'N/A'));
+  /* ── I21 · Línea B: el espacio de trabajo (regiones, Composer, agente, trabajos, 3D Design) ── */
+  const W = cargar('constants/designWorkspace.ts');
+  const ws = leer('constants/designWorkspace.ts');
+  const piezasDe = Object.values(W.REGIONES_DEL_WORKSPACE).flatMap((r) => r.piezas);
+  const faltanPiezas = piezasDe.filter((p) => !existe(`components/designReferencia/${p}.tsx`));
+  check('I21) las cinco regiones (arriba, izquierda, centro, derecha, barra contextual) y cada pieza existe',
+    W.REGIONES.length === 5 && faltanPiezas.length === 0, faltanPiezas.join(', '));
+  const malAcc = W.ACCIONES_DEL_COMPOSER.filter((a) => { const c = C.capacidadPorId(a.capacidad); return !c || !c.enDesign || c.grupo !== a.grupo; });
+  check('I21) cada acción del Composer (12 verbos, con el mundo 3D) va a una capacidad del registro, de Weë Design y de su grupo',
+    W.ACCIONES_DEL_COMPOSER.length === 12 && malAcc.length === 0 && new Set(W.ACCIONES_DEL_COMPOSER.map((a) => a.id)).size === 12, malAcc.map((a) => a.id).join(', '));
+  const acciones = leer('components/designReferencia/AccionesDelComposer.tsx');
+  check('I21) pulsar una acción usa o explica (onCapacidad), nunca nada; y la barra va dentro de la caja anclada',
+    acciones.includes('onPress={() => onCapacidad(cap)}') && pantalla.includes('<AccionesDelComposer estadoDe={estadoDe} onCapacidad={pulsar} />'));
+  const agente = leer('components/designReferencia/PanelDelAgente.tsx');
+  check('I21) el Design Agent no es otro cerebro: sin campo propio ni brainService, y sigue por la caja de siempre (enviar → CreatorFlow)',
+    !/<TextInput|brainService|useBrainChat|httpsCallable/.test(agente) && /const continuarConBrain = \(\) => \{[\s\S]*?enviar\(\);/.test(pantalla)
+    && pantalla.includes('onContinuar={continuarConBrain}'));
+  const FASES = ['QUEUED', 'RUNNING', 'PROGRESS', 'CANCEL_REQUESTED', 'COMPLETED', 'FAILED', 'CANCELLED'];
+  check('I21) las siete fases visibles se derivan de los estados del registro; PROGRESS solo con avance informado',
+    FASES.every((x) => W.CLAVE_DE_LA_FASE[x]) && W.faseVisible('PROCESSING') === 'RUNNING' && W.faseVisible('PROCESSING', true) === 'PROGRESS'
+    && W.faseVisible('CANCEL_REQUESTED') === 'CANCEL_REQUESTED' && W.faseVisible('RECONCILING') === 'RUNNING' && W.faseVisible('QUEUED') === 'QUEUED' && W.faseVisible('IDLE') === null
+    && U.ESTADOS_DE_TRABAJO.every((e) => W.faseVisible(e) === null || FASES.includes(W.faseVisible(e)))
+    && leer('components/designReferencia/FranjaDeTrabajos.tsx').includes('faseVisible(estado, j.steps.some'));
+  check('I21) del JobState del Core: pedir parar es CANCEL_REQUESTED (no CANCELLED), y nada cae fuera de las siete fases',
+    W.FASE_DESDE_JOB_DEL_CORE.cancel_requested === 'CANCEL_REQUESTED' && Object.values(W.FASE_DESDE_JOB_DEL_CORE).every((x) => FASES.includes(x)));
+  check('I21) el contrato del espacio de trabajo no nombra proveedores ni precios ni llama a nada',
+    !PROVEEDOR.test(sinComentarios(ws)) && !PRECIO.test(sinComentarios(ws)) && !/from 'firebase|httpsCallable|Service'/.test(ws));
+  check('I21) el teléfono es la misma pantalla: cada región tiene su sitio, sin segunda app',
+    W.REGIONES.every((r) => ['pestana', 'pie', 'cabecera'].includes(W.MOVIL_COMPANERO[r])) && W.MOVIL_COMPANERO.barraContextual === 'pie');
+  const clavesWs = [...Object.values(W.REGIONES_DEL_WORKSPACE).map((r) => r.clave), ...W.ACCIONES_DEL_COMPOSER.map((a) => a.clave),
+    ...Object.values(W.CLAVE_DE_LA_FASE), ...W.PANELES_IZQUIERDOS.map((p) => p.clave),
+    'designRef.wsBrief', 'designRef.wsBriefOpen', 'designRef.wsSuggestions', 'designRef.wsNoSuggestions', 'designRef.wsContinueWithBrain',
+    'designRef.wsAgentHint', 'designRef.wsWriteFirst'].map((k) => k.slice('designRef.'.length));
+  const sinTraducir = DICCIONARIOS.flatMap((d) => clavesWs.filter((k) => !new RegExp(`\\b${k}:`).test(leer(d))).map((k) => `${d}:${k}`));
+  check('I21) todas las claves del espacio de trabajo existen en los dieciséis diccionarios', sinTraducir.length === 0, sinTraducir.slice(0, 5).join(', '));
+
+  /* ── I22 · Bloque 3D: fuente única, world.generate, cobertura, versiones, estados del Job ── */
+  const D3 = cargar('constants/design3d.ts');
+  const X3 = cargar('utils/design3d.ts');
+  const tres = D3.capacidades3D();
+  const del3dEnElCore = CAPABILITY_CATALOG.filter((e) => e.category === '3d').map((e) => String(e.id));
+  check('I22) las capacidades 3D son las del catálogo del Core (filtradas, no copiadas) más las propuestas; ninguna fila copiada',
+    del3dEnElCore.every((id) => tres.some((x) => x.id === id && x.enElCatalogo && x.enElCatalogo === porIdDelCore.get(id)))
+    && tres.filter((x) => !x.enElCatalogo).map((x) => x.id).sort().join() === [...C.CAPACIDADES_PROPUESTAS].sort().join()
+    && !/e\('3d\.|status: 'DECLARED'|status: 'ROUTABLE'/.test(sinComentarios(leer('constants/design3d.ts'))), tres.map((x) => x.id).join(', '));
+  check('I22) la clasificación usa solo los siete estados del dueño y nadie está IMPLEMENTADA sin una fila EXISTING',
+    tres.every((x) => D3.CLASES_3D.includes(x.clase))
+    && tres.filter((x) => x.clase === 'IMPLEMENTADA').every((x) => x.usadaPor.some((id) => C.capacidadPorId(id).estado === 'EXISTING')));
+  check('I22) world.generate es PARCIAL (enrutable y apagado); 3d.export/3d.convert PENDING_BACKEND; las propuestas CANDIDATA',
+    D3.clasificar3D('world.generate') === 'PARCIAL' && D3.clasificar3D('3d.export') === 'PENDING_BACKEND' && D3.clasificar3D('3d.convert') === 'PENDING_BACKEND'
+    && D3.clasificar3D('3d.segment') === 'CANDIDATA' && D3.clasificar3D('3d.generate') === 'PENDING_PROVIDER');
+  /* CONTROL: la clase se mueve con el catálogo: sin la entrada → CANDIDATA; sin filas → PLANEADA. */
+  const catalogoFalso = CAPABILITY_CATALOG.filter((e) => String(e.id) !== '3d.rig');
+  check('I22) CONTROL: la clase se mueve con el catálogo (sin la entrada → CANDIDATA; sin filas → PLANEADA)',
+    D3.clasificar3D('3d.rig', catalogoFalso) === 'CANDIDATA' && D3.clasificar3D('render.scene') === 'PLANEADA');
+  const capacidadTipada = leer('functions/src/core/capability.ts');
+  check('I22) la lista tipada del Core NO se amplía con 3d.* (cambiaría el Router de producción): solo world.generate',
+    /\| 'world\.generate'/.test(capacidadTipada) && !/'3d\.[a-z]+'/.test(sinComentarios(capacidadTipada)));
+  const catalogados = new Set(CAPABILITY_CATALOG.map((e) => String(e.id)));
+  check('I22) 3d.convert (representación) y 3d.export (salida externa) son dos capacidades distintas del catálogo, ninguna enrutable',
+    D3.SEMANTICA_3D['3d.convert'] === 'representacion' && D3.SEMANTICA_3D['3d.export'] === 'salida_externa'
+    && catalogados.has('3d.convert') && catalogados.has('3d.export')
+    && !D3.tresEstados3D('3d.convert').enrutable && !D3.tresEstados3D('3d.export').enrutable
+    && D3.COMPOSICIONES_3D.every((x) => C.capacidadPorId(x.fila).capacidades.join() === x.capacidades.join()));
+  const variantesDeGenerar = CAPABILITY_CATALOG.find((e) => String(e.id) === '3d.generate')?.variants ?? [];
+  check('I22) 3d.generate ≠ 3d.segment: segment divide lo existente y es propuesta; «parts» no es modalidad del contrato real',
+    D3.SEMANTICA_3D['3d.generate'] === 'recurso_nuevo' && D3.SEMANTICA_3D['3d.segment'] === 'dividir_existente'
+    && !catalogados.has('3d.segment') && C.CAPACIDADES_PROPUESTAS.includes('3d.segment')
+    && !variantesDeGenerar.some((v) => v.key === 'parts') && C.capacidadPorId('generateInParts').variantePropuesta === 'parts'
+    && C.capacidadPorId('splitParts').capacidades.join() === '3d.segment');
+  check('I22) CAD no es una capacidad: ni en el catálogo ni en las propuestas; solo variante propuesta de sus filas',
+    ![...catalogados, ...C.CAPACIDADES_PROPUESTAS].some((id) => /cad/i.test(id)) && D3.ATRIBUTOS_NO_CAPACIDAD.includes('cad')
+    && ['cadFromText', 'cadFromImage', 'meshToCad'].every((id) => C.capacidadPorId(id).variantePropuesta === 'cad'));
+  check('I22) catalogada ≠ implementada ≠ enrutable: ninguna 3d.* enrutable ni implementada; el mundo implementado pero gobernado',
+    tres.filter((x) => String(x.id).startsWith('3d.')).every((x) => { const e = D3.tresEstados3D(String(x.id)); return !e.enrutable && !e.implementada; })
+    && D3.tresEstados3D('3d.segment').catalogada === false && D3.tresEstados3D('world.generate').implementada === true
+    && !/design\.generateWorld/.test(archivosDeLaApp().map((r) => leer(r)).join('\n')));
+  const contratos = D3.CONTRATOS_3D.map((k) => D3.contrato3D(k));
+  check('I22) el contrato 3D de Design cubre los nueve casos, cada uno con fila, Job, resultado, Asset y Version, sin nada implementado',
+    contratos.length === 9 && contratos.every((e) => C.capacidadPorId(e.fila) && e.trabajo && e.resultado && e.material && e.version && e.clase !== 'IMPLEMENTADA')
+    && contratos.every((e) => !e.capacidadDelCore || porIdDelCore.has(e.capacidadDelCore)) && !PROVEEDOR.test(sinComentarios(leer('constants/design3d.ts'))));
+  check('I22) exportar GLB/USDZ es PENDING_BACKEND y reutiliza la descarga que existe; no hay exportador paralelo',
+    D3.EXPORTACION_3D.estado === 'PENDING_BACKEND' && C.capacidadPorId(D3.EXPORTACION_3D.reutiliza)?.integracion.tipo === 'descargar'
+    && !/USDZExporter|GLTFExporter|gltfExporter|toUsdz/.test(archivosDeLaApp().map((r) => leer(r)).join('\n')));
+  /* world.generate desde Design */
+  const mundo = X3.estadoDelMundoEnDesign();
+  check('I22) world.generate desde Design: la misma capacidad (environment), el mismo lector del contrato, apagado y con su motivo real',
+    X3.CONTEXTO_DEL_MUNDO_EN_DESIGN.capacidad === 'world.generate' && C.capacidadPorId('environment').capacidades.includes('world.generate')
+    && W.ACCIONES_DEL_COMPOSER.some((a) => a.id === 'mundo' && a.capacidad === 'environment')
+    && mundo.disponible === false && mundo.enrutable === true && mundo.motivos.includes('gobernado_por_el_servidor') && mundo.motivos.includes('referencia_cerrada')
+    && X3.estadoDelMundoEnDesign(true, []).motivos.join() === 'no_enrutable'
+    && /peticionDelMundo3D\(entrada, cuenta\)/.test(leer('utils/design3d.ts')) && !/httpsCallable|mundoService|'generateWorld'/.test(sinComentarios(leer('utils/design3d.ts')))
+    && X3.destinoDelMundoDesdeDesign(' casa ', null).pantalla === 'Mundo3D' && X3.destinoDelMundoDesdeDesign(' casa ').params.descripcion === 'casa');
+  check('I22) la hoja de la capacidad dice el estado real del mundo (motivos por clave)',
+    leer('components/designReferencia/HojaDeCapacidad.tsx').includes('estadoDelMundoEnDesign().motivos.map'));
+  /* Cobertura: error, reintento y cancelación; detecciones automáticas */
+  const filaDe = (id) => U.coberturaDe(C.capacidadPorId(id));
+  check('I22) la matriz tiene Error, Retry, Cancel Request y Cancelled; pedir parar ≠ cancelado; N/A sin trabajo',
+    ['Error', 'Retry', 'Cancel Request', 'Cancelled'].every((k) => U.COLUMNAS_DE_COBERTURA.includes(k))
+    && filaDe('concept')['Cancel Request'] === 'NO' && filaDe('download')['Cancel Request'] === 'N/A' && filaDe('environment')['Cancel Request'] === 'PENDING',
+    `${filaDe('concept')['Cancel Request']} ${filaDe('download')['Cancel Request']} ${filaDe('environment')['Cancel Request']}`);
+  const det = U.detecciones();
+  check('I22) las once detecciones automáticas existen y solo nombran capacidades de Weë Design',
+    U.DETECCIONES.length === 11 && U.DETECCIONES.every((k) => Array.isArray(det[k]) && det[k].every((id) => C.capacidadPorId(id)?.enDesign)));
+  /* CONTROL: con trabajo y sin error ni resultado ni parada, se detecta; sin trabajo en el motor, también. */
+  const dFalsa = U.deteccionesDe({ ...C.capacidadPorId('concept'), pasos: { error: 'NO', resultado: 'NO' } });
+  const sinTrabajo = U.deteccionesDe({ ...C.capacidadPorId('concept'), pasos: { trabajo: 'NO' } });
+  check('I22) CONTROL: las detecciones saltan (error sin UI, Job sin resultado, sin cancelación, capacidad sin Job)',
+    dFalsa.includes('error_sin_ui') && dFalsa.includes('trabajo_sin_resultado') && dFalsa.includes('sin_cancelacion') && sinTrabajo.includes('capacidad_sin_trabajo')
+    && U.deteccionesDe(C.capacidadPorId('model3dFromText')).includes('cancelacion_sin_confirmacion')
+    && !U.deteccionesDe(C.capacidadPorId('environment')).includes('cancelacion_sin_confirmacion')
+    && U.deteccionesDe(C.capacidadPorId('versions')).includes('version_sin_backend'),
+    `${dFalsa.join(', ')} | ${sinTrabajo.join(', ')}`);
+  /* Estados del Job: derivados del Core, CANCEL_REQUESTED ≠ CANCELLED */
+  const jobCore = leer('functions/src/core/job.ts');
+  const estadosDelCore = [...(jobCore.match(/export type JobState =([\s\S]*?);/)?.[1] ?? '').matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+  check('I22) todos los estados del Job Engine (core/job.ts) tienen fase visible, y ninguna sobra',
+    estadosDelCore.length === 8 && estadosDelCore.every((e) => W.FASE_DESDE_JOB_DEL_CORE[e])
+    && Object.keys(W.FASE_DESDE_JOB_DEL_CORE).every((e) => estadosDelCore.includes(e)), estadosDelCore.join(', '));
+  const P = (f) => W.presentacionDeLaFase(f);
+  check('I22) cada fase dice cargando/progreso/error/reintento/pedir parar/resultado/final, y solo lo suyo',
+    W.FASES_VISIBLES.length === 7 && P('PROGRESS').progreso && !P('RUNNING').progreso && P('FAILED').reintento && P('FAILED').error
+    && P('CANCEL_REQUESTED').cargando && !P('CANCEL_REQUESTED').pedirParar && !P('CANCEL_REQUESTED').final && P('COMPLETED').resultado
+    && W.FASES_VISIBLES.filter((f) => P(f).final).sort().join() === 'CANCELLED,COMPLETED,FAILED');
+  check('I22) CANCEL_REQUESTED solo pasa a CANCELLED si el Job Engine lo confirma; un final no se reabre; un estado desconocido no mueve nada',
+    W.faseTrasElJobEngine('CANCEL_REQUESTED', 'running') === 'CANCEL_REQUESTED' && W.faseTrasElJobEngine('CANCEL_REQUESTED', 'waiting') === 'CANCEL_REQUESTED'
+    && W.faseTrasElJobEngine('CANCEL_REQUESTED', 'cancelled') === 'CANCELLED' && W.faseTrasElJobEngine('CANCEL_REQUESTED', 'completed') === 'COMPLETED'
+    && W.faseTrasElJobEngine('CANCELLED', 'running') === 'CANCELLED' && W.faseTrasElJobEngine('RUNNING', 'inventado') === 'RUNNING'
+    && W.faseTrasElJobEngine('RUNNING', 'cancel_requested') === 'CANCEL_REQUESTED');
+  /* Versiones: sin camino legítimo al linaje del Core, NO DISPONIBLES; nunca un éxito local */
+  const x3 = leer('utils/design3d.ts');
+  check('I22) versiones, restaurar y derivar: no disponibles, con la dependencia dicha; sin recorrer previousVersionId (no hay segundo sistema)',
+    Object.values(X3.OPERACIONES_DE_VERSION).every((v) => v === 'no_disponible') && X3.DEPENDENCIA_DE_VERSIONES.restaurar.startsWith('servidor:')
+    && !/previousVersionId/.test(sinComentarios(x3)) && !/lineaDeVersiones|derivadosDe/.test(sinComentarios(x3))
+    && !/lineaDeVersiones|linaje/.test(leer('services/escena3d.ts'))
+    && /<PanelDeVersiones \/>/.test(leer('components/designReferencia/Inspector.tsx'))
+    && !/onPress|setSeleccion|notify/.test(leer('components/designReferencia/PanelDeVersiones.tsx')));
+  check('I22) el espejo de Filmmaker no se amplió: sigue sin el linaje',
+    !existe('services/filmmaker/espejo/core/content/linaje.ts') && !/linaje/.test(leer('scripts/espejo-filmmaker.mjs')));
+  /* Cancelar en CreatorFlow: contrato y puerta, sin backend; nada se marca cancelado desde React */
+  const reactDesign = COMPONENTES.map((r) => leer(r)).join('\n') + pantalla;
+  check('I22) cancelar CreatorFlow: no disponible (falta creator/index.ts), y ningún componente escribe CANCELLED ni cancelled',
+    W.CANCELAR_CREATORFLOW.disponible === false && W.CANCELAR_CREATORFLOW.dependencia === 'functions/src/creator/index.ts'
+    && !/(status|estado|fase)\s*[:=]\s*'(cancelled|CANCELLED)'|set\w*\(\s*'(cancelled|CANCELLED)'/.test(reactDesign)
+    && C.capacidadPorId('concept').cancelar === 'no_existe');
+  const claves3d = ['actWorld', 'worldGateClosed', 'worldNotRoutable', 'worldGoverned', 'verTitle', 'verUnavailable', 'verRestorePending', 'verDeriveHint'];
+  const faltan3d = DICCIONARIOS.flatMap((d) => claves3d.filter((k) => !new RegExp(`\\b${k}:`).test(leer(d))).map((k) => `${d}:${k}`));
+  check('I22) las claves del bloque 3D existen en los dieciséis diccionarios', DICCIONARIOS.length === 16 && faltan3d.length === 0, faltan3d.slice(0, 5).join(', '));
+
+  /* ── I23 · Corrección de UX tras la captura (sin backend) ── */
+  const piezas = leer('components/designReferencia/piezas.tsx');
+  check('I23) las pestañas son una fila que no crece en alto (sin óvalos): flexGrow 0, alto fijo y objetivo táctil',
+    /style=\{estilos\.filaDePestanas\}/.test(piezas) && /filaDePestanas: \{ flexGrow: 0, flexShrink: 0 \}/.test(piezas)
+    && /pestana: \{ height: 36, minHeight: 36, minWidth: 44/.test(piezas));
+  const lienzoSrc = leer('components/designReferencia/Lienzo.tsx');
+  check('I23) el lienzo y la caja van en flujo (el lienzo no encoge por debajo de lo suyo y la columna se desplaza) y no usa posición absoluta ni zIndex para la caja',
+    /flex: \{ flexGrow: 1, flexShrink: 0 \}/.test(lienzoSrc) && (pantalla.match(/<ScrollView style=\{estilos\.centro\} contentContainerStyle=\{estilos\.centroDentro\}/g) ?? []).length === 2 && /minHeight: scale\(112\)/.test(lienzoSrc)
+    && !/zIndex|position: 'absolute'/.test(sinComentarios(lienzoSrc)) && !/zIndex|marginTop: -/.test(sinComentarios(pantalla)));
+  const accionesSrc = leer('components/designReferencia/AccionesDelComposer.tsx');
+  check('I23) a 800 px las acciones se alcanzan: fila desplazable con indicador visible, sin crecer en alto, todas renderizadas',
+    /showsHorizontalScrollIndicator style=\{estilos\.contenedor\}/.test(accionesSrc) && /contenedor: \{ flexGrow: 0, flexShrink: 0 \}/.test(accionesSrc)
+    && /ACCIONES_DEL_COMPOSER\.map/.test(accionesSrc) && !/slice\(/.test(accionesSrc));
+  const hojaSrc = leer('components/designReferencia/HojaDeCapacidad.tsx');
+  check('I23) la hoja enseña el NOMBRE de lo que usa, nunca el id del Core (world.generate no se pinta)',
+    !/cap\.capacidades\.join/.test(hojaSrc) && /clavesDeLoQueUsa\(cap\.capacidades\)/.test(hojaSrc)
+    && U.clavesDeLoQueUsa(['world.generate']).join() === 'creaciones.kindWorld'
+    && U.clavesDeLoQueUsa(['3d.generate', '3d.edit', 'image.generate']).join() === 'designRef.famModel3d,creaciones.kindImage'
+    && C.CAPACIDADES_DE_DESIGN.every((c) => U.clavesDeLoQueUsa(c.capacidades).length === new Set(c.capacidades.map((x) => String(x).split('.')[0])).size)
+    && DICCIONARIOS.every((d) => !/world\.generate/.test(leer(d))));
+  check('I23) world.generate sigue sin poder ejecutarse desde Design (enrutable en el catálogo, apagado y gobernado aquí)',
+    X3.estadoDelMundoEnDesign(true).disponible === false && X3.estadoDelMundoEnDesign(true).motivos.join() === 'gobernado_por_el_servidor');
+  const es = leer('i18n/textos/es/designRef.ts');
+  check('I23) la simulación se dice antes de pulsar: insignia «Simulado» + «no se genera nada, no se cobra nada y no se llama a nadie»',
+    /<Insignia clave="designRef\.simulatedBadge" tono="aviso" \/>\s*<Pista clave="designRef\.simBanner" \/>/.test(hojaSrc)
+    && /simBanner: 'Simulación: no se genera nada, no se cobra nada y no se llama a nadie\.'/.test(es)
+    && !/simulate: '[^']*(crear|generar)/i.test(es));
+  const franjaSrc = leer('components/designReferencia/FranjaDeTrabajos.tsx');
+  const F = U;
+  check('I23) trabajo fallido: claramente fallido, «Reintentar: aún no disponible» y ningún botón que finja reintentar',
+    W.REINTENTAR_CREATORFLOW.disponible === false && F.fallidoSinReintento({ status: 'failed' }) && !F.fallidoSinReintento({ status: 'done' })
+    && /j\.status === 'failed' \? 'aviso'/.test(franjaSrc) && !/onPress=\{[^}]*reintentar[^}]*\}[^<]*wsRetryUnavailable/i.test(franjaSrc)
+    && !/<BotonDeTexto[^>]*wsRetry/.test(reactDesign) && U.deteccionesDe(C.capacidadPorId('concept')).includes('sin_cancelacion'));
+  check('I23) ningún componente de React escribe cancelled/CANCELLED (tras la corrección)',
+    !/(status|estado|fase)\s*[:=]\s*'(cancelled|CANCELLED)'|set\w*\(\s*'(cancelled|CANCELLED)'/.test(COMPONENTES.map((r) => leer(r)).join('\n') + pantalla));
+  const clavesUx = ['famVision', 'sheetUses', 'wsRetryUnavailable'];
+  const faltanUx = DICCIONARIOS.flatMap((d) => clavesUx.filter((k) => !new RegExp(`\\b${k}:`).test(leer(d))).map((k) => `${d}:${k}`));
+  check('I23) las claves de la corrección existen en los dieciséis diccionarios, y sheetCore (el id) ya no', faltanUx.length === 0
+    && DICCIONARIOS.every((d) => !/\bsheetCore:/.test(leer(d))), faltanUx.slice(0, 5).join(', '));
+
+  /* ── I24 · Corrección final: pie a 800 px, D7, familia 3D, tableta ── */
+  const dsrc = leer('screens/DesignReferenciaScreen.tsx');
+  check('I24) a 800 px el lienzo tiene su alto completo y la página se desplaza (sin altura fija ni scroll anidado en columnas)',
+    !/altoDelLienzo \+ scale\(120\)/.test(dsrc) && /lienzo\(altoDelLienzo\)/.test(dsrc));
+  check('I24) D7 no se enseña: la hoja muestra el estado en palabras, nunca los ids de decisión',
+    !/cap\.decisiones\.join/.test(leer('components/designReferencia/HojaDeCapacidad.tsx')) && /sheetDecisionOpen/.test(leer('components/designReferencia/HojaDeCapacidad.tsx')));
+  check('I24) la familia 3D tiene nombre de producto (Modelo 3D), y el id interno no cambia',
+    U.clavesDeLoQueUsa(['3d.generate']).join() === 'designRef.famModel3d' && C.capacidadPorId('model3dFromText').capacidades.includes('3d.generate'));
+  const claves24 = ['sheetDecisionOpen', 'famModel3d'];
+  const faltan24 = DICCIONARIOS.flatMap((d) => claves24.filter((k) => !new RegExp(`\\b${k}:`).test(leer(d))).map((k) => `${d}:${k}`));
+  check('I24) las claves nuevas existen en los dieciséis diccionarios', faltan24.length === 0, faltan24.slice(0, 5).join(', '));
+  check('I24) «qué produce» de la familia 3D se nombra igual que la familia («Modelo 3D»), sin tocar el registro',
+    U.CLAVE_DE_LO_QUE_PRODUCE.model3d === 'designRef.famModel3d' && U.CLAVE_DE_LO_QUE_PRODUCE.world === C.CLAVE_DE_LA_SALIDA.world
+    && !/CLAVE_DE_LA_SALIDA\[/.test(leer('components/designReferencia/HojaDeCapacidad.tsx') + leer('components/designReferencia/Lienzo.tsx') + leer('components/designReferencia/Inspector.tsx')));
+  /* ── I25 · Micro-fix de tableta: las pestañas de la columna lateral estrecha bajan de línea, nada más ── */
+  const pz = leer('components/designReferencia/piezas.tsx');
+  const pb = leer('components/designReferencia/PanelDeBiblioteca.tsx');
+  check('I25) Pestanas: «envolver» es opcional y por defecto sigue siendo la fila que se desplaza (escritorio sin cambios)',
+    /envolver = false/.test(pz) && /\bif \(envolver\)/.test(pz) && /flexWrap: 'wrap'/.test(pz) && /horizontal showsHorizontalScrollIndicator=\{false\} style=\{estilos\.filaDePestanas\}/.test(pz));
+  check('I25) la biblioteca pasa la opción a sus dos filas de pestañas, y no a otra cosa',
+    /envolver=\{p\.envolverPestanas\}/.test(pb) && (pb.match(/envolver=\{p\.envolverPestanas\}/g) ?? []).length === 2);
+  check('I25) la pantalla la activa solo en la columna lateral estrecha (dos columnas y no escritorio): la tableta',
+    /const lateralEstrecha = disposicion === 'dosColumnas' && !isDesktop;/.test(dsrc)
+    && (dsrc.match(/envolver=\{lateralEstrecha\}/g) ?? []).length === 2 && (dsrc.match(/envolverPestanas=\{lateralEstrecha\}/g) ?? []).length === 1);
+  check('I25) sin estrechez, las pestañas no cambian: ningún «envolver» fijo a true ni en la pantalla ni en la biblioteca',
+    !/envolver(Pestanas)?=\{true\}/.test(dsrc + pb) && !/envolver = true/.test(pz));
 };

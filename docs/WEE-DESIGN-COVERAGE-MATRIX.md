@@ -12,115 +12,115 @@ Una capacidad está **cubierta** cuando tiene todo el recorrido: CAPACIDAD → O
 
 ## 1. Matriz A — cobertura por capacidad
 
-| Capability | Entry | Composer | Panel | Job | Progress | Result | Next Action | Asset | Version | Export | Mobile | Provider |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| C01 · `concept` | YES | YES | YES | YES | YES | YES | YES | YES | PENDING | YES | YES | YES |
-| C02 · `multiview` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
-| C03 · `model3dFromText` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C06 · `styleReference` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
-| C12 · `anotherVersion` | YES | N/A | YES | YES | YES | YES | YES | YES | PENDING | YES | YES | YES |
-| C37 · `batchTo3d` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C41 · `generateScene` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C08 · `model3dFromImage` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C09 · `model3dFromViews` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C75 · `reconstructObject` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C76 · `generateInParts` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C81 · `regenerate3d` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C82 · `variations3d` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C88 · `parametricTemplate` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C94 · `cadFromText` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C95 · `cadFromImage` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C106 · `customStyle3d` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C107 · `searchModelLibrary` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C72 · `gaussianSplat` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C15 · `editModel` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C17 · `optimizeMesh` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C18 · `splitParts` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C19 · `realScale` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C20 · `stylize` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C42 · `mergeParts` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C43 · `repairMesh` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C44 · `transformObject` | YES | N/A | YES | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
-| C80 · `refineModel` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C86 · `parametricAdjust` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C96 · `meshToCad` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C97 · `measureModel` | YES | N/A | YES | N/A | PENDING | PENDING | YES | N/A | N/A | N/A | YES | N/A |
-| C16 · `texture` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C38 · `retouchRegion` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C45 · `unwrapUv` | N/A | N/A | N/A | N/A | N/A | PENDING | N/A | PENDING | PENDING | N/A | N/A | PENDING |
-| C46 · `materialProperties` | YES | N/A | YES | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
-| C90 · `paintTexture` | YES | N/A | YES | N/A | PENDING | PENDING | YES | PENDING | PENDING | N/A | YES | N/A |
-| C92 · `tileableTexture` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
-| C21 · `rig` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C22 · `animate` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C23 · `motionFromText` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C47 · `pose` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C77 · `articulate` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C98 · `motionFromVideo` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C99 · `editMotion` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C100 · `avatarFromPhoto` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C101 · `lipSync` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C93 · `platformAvatar` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C24 · `composeScene` | YES | N/A | YES | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
-| C25 · `cameras` | YES | N/A | YES | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
-| C26 · `lights` | YES | N/A | YES | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
-| C05 · `environment` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C48 · `sceneBackground` | YES | N/A | YES | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
-| C87 · `skybox360` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C102 · `editWorld` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C103 · `interactiveWorldVideo` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C104 · `cameraTrackFromVideo` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C79 · `objectStructure` | YES | N/A | YES | N/A | PENDING | PENDING | YES | N/A | N/A | N/A | YES | N/A |
-| C27 · `viewer` | YES | N/A | YES | N/A | PENDING | PENDING | YES | N/A | N/A | N/A | YES | N/A |
-| C28 · `viewModes` | YES | N/A | YES | N/A | PENDING | PENDING | YES | N/A | N/A | N/A | YES | N/A |
-| C04 · `photoRender` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C49 · `snapshot3d` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
-| C50 · `turntable` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
-| C89 · `spriteSheet` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
-| C10 · `presentationVideo` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
-| C29 · `beforeAfter` | YES | N/A | YES | N/A | N/A | YES | YES | YES | PENDING | YES | YES | YES |
-| C32 · `print3d` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C51 · `printability` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C52 · `multicolorPrint` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C91 · `printBase` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C53 · `sendToSlicer` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | YES | N/A |
-| C71 · `physicalProduct` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C07 · `restyleSpace` | YES | YES | YES | YES | YES | YES | YES | YES | PENDING | YES | YES | YES |
-| C11 · `editImage` | YES | N/A | YES | YES | YES | YES | YES | YES | PENDING | YES | YES | YES |
-| C13 · `removeBackground` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
-| C14 · `upscale` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
-| C39 · `inpaintImage` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
-| C40 · `sketchToImage` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
-| C83 · `imageFor3d` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
-| C105 · `depthFromImage` | N/A | N/A | N/A | N/A | N/A | PENDING | N/A | PENDING | PENDING | N/A | N/A | PENDING |
-| C54 · `designAgent` | YES | YES | YES | YES | YES | YES | YES | YES | PENDING | YES | YES | YES |
-| C55 · `contextualSuggestions` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
-| C56 · `capabilityDiscovery` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
-| C57 · `costConfirmation` | YES | YES | YES | YES | YES | YES | YES | YES | PENDING | YES | YES | N/A |
-| C74 · `providerAgent` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C84 · `chainToObject` | YES | YES | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C85 · `externalAgents` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C58 · `assetBrowser` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
-| C36 · `versions` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | PENDING | N/A | YES | N/A |
-| C59 · `lineage` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | PENDING | N/A | YES | N/A |
-| C60 · `reuseAsset` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
-| C61 · `favorites` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | N/A | YES | N/A |
-| C62 · `searchAssets` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | N/A | YES | N/A |
-| C63 · `filterAssets` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
-| C35 · `importModel` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
-| C34 · `saveToProject` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
-| C73 · `remixPublicModel` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C64 · `createProject` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
-| C65 · `switchProject` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
-| C66 · `projectHistory` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
-| C67 · `projectFolders` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
-| C68 · `projectSnapshot` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | PENDING | N/A | YES | N/A |
-| C69 · `projectDelivery` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
-| C30 · `download` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | YES | YES | N/A |
-| C31 · `exportFor` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
-| C33 · `publish` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
-| C70 · `externalTools` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | YES | N/A |
-| C78 · `simulationReady` | YES | N/A | YES | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| Capability | Entry | Composer | Panel | Job | Progress | Error | Retry | Cancel Request | Cancelled | Result | Next Action | Asset | Version | Export | Mobile | Provider |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| C01 · `concept` | YES | YES | YES | YES | YES | YES | YES | NO | NO | YES | YES | YES | PENDING | YES | YES | YES |
+| C02 · `multiview` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | NO | NO | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
+| C03 · `model3dFromText` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C06 · `styleReference` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | NO | NO | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
+| C12 · `anotherVersion` | YES | N/A | YES | YES | YES | YES | YES | NO | NO | YES | YES | YES | PENDING | YES | YES | YES |
+| C37 · `batchTo3d` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C41 · `generateScene` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C08 · `model3dFromImage` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C09 · `model3dFromViews` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C75 · `reconstructObject` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C76 · `generateInParts` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C81 · `regenerate3d` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C82 · `variations3d` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C88 · `parametricTemplate` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C94 · `cadFromText` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C95 · `cadFromImage` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C106 · `customStyle3d` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C107 · `searchModelLibrary` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C72 · `gaussianSplat` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C15 · `editModel` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C17 · `optimizeMesh` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C18 · `splitParts` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C19 · `realScale` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C20 · `stylize` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C42 · `mergeParts` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C43 · `repairMesh` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C44 · `transformObject` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
+| C80 · `refineModel` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C86 · `parametricAdjust` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C96 · `meshToCad` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C97 · `measureModel` | YES | N/A | YES | N/A | PENDING | PENDING | PENDING | N/A | N/A | PENDING | YES | N/A | N/A | N/A | YES | N/A |
+| C16 · `texture` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C38 · `retouchRegion` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C45 · `unwrapUv` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | PENDING | N/A | PENDING | PENDING | N/A | N/A | PENDING |
+| C46 · `materialProperties` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
+| C90 · `paintTexture` | YES | N/A | YES | N/A | PENDING | PENDING | PENDING | N/A | N/A | PENDING | YES | PENDING | PENDING | N/A | YES | N/A |
+| C92 · `tileableTexture` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | NO | NO | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
+| C21 · `rig` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C22 · `animate` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C23 · `motionFromText` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C47 · `pose` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C77 · `articulate` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C98 · `motionFromVideo` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C99 · `editMotion` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C100 · `avatarFromPhoto` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C101 · `lipSync` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C93 · `platformAvatar` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C24 · `composeScene` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
+| C25 · `cameras` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
+| C26 · `lights` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
+| C05 · `environment` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C48 · `sceneBackground` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | YES | N/A | N/A | PENDING | YES | N/A |
+| C87 · `skybox360` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | NO | NO | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C102 · `editWorld` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C103 · `interactiveWorldVideo` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C104 · `cameraTrackFromVideo` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C79 · `objectStructure` | YES | N/A | YES | N/A | PENDING | PENDING | PENDING | N/A | N/A | PENDING | YES | N/A | N/A | N/A | YES | N/A |
+| C27 · `viewer` | YES | N/A | YES | N/A | PENDING | PENDING | PENDING | N/A | N/A | PENDING | YES | N/A | N/A | N/A | YES | N/A |
+| C28 · `viewModes` | YES | N/A | YES | N/A | PENDING | PENDING | PENDING | N/A | N/A | PENDING | YES | N/A | N/A | N/A | YES | N/A |
+| C04 · `photoRender` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C49 · `snapshot3d` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | N/A | N/A | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
+| C50 · `turntable` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | N/A | N/A | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
+| C89 · `spriteSheet` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | N/A | N/A | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
+| C10 · `presentationVideo` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | NO | NO | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
+| C29 · `beforeAfter` | YES | N/A | YES | N/A | N/A | YES | N/A | N/A | N/A | YES | YES | YES | PENDING | YES | YES | YES |
+| C32 · `print3d` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C51 · `printability` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C52 · `multicolorPrint` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C91 · `printBase` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C53 · `sendToSlicer` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | YES | N/A |
+| C71 · `physicalProduct` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C07 · `restyleSpace` | YES | YES | YES | YES | YES | YES | YES | NO | NO | YES | YES | YES | PENDING | YES | YES | YES |
+| C11 · `editImage` | YES | N/A | YES | YES | YES | YES | YES | NO | NO | YES | YES | YES | PENDING | YES | YES | YES |
+| C13 · `removeBackground` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | NO | NO | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
+| C14 · `upscale` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | NO | NO | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
+| C39 · `inpaintImage` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | NO | NO | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
+| C40 · `sketchToImage` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | NO | NO | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
+| C83 · `imageFor3d` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | NO | NO | PENDING | YES | PENDING | PENDING | PENDING | YES | YES |
+| C105 · `depthFromImage` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | PENDING | N/A | PENDING | PENDING | N/A | N/A | PENDING |
+| C54 · `designAgent` | YES | YES | YES | YES | YES | YES | YES | NO | NO | YES | YES | YES | PENDING | YES | YES | YES |
+| C55 · `contextualSuggestions` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
+| C56 · `capabilityDiscovery` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
+| C57 · `costConfirmation` | YES | YES | YES | YES | YES | YES | YES | NO | NO | YES | YES | YES | PENDING | YES | YES | N/A |
+| C74 · `providerAgent` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C84 · `chainToObject` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C85 · `externalAgents` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C58 · `assetBrowser` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
+| C36 · `versions` | YES | N/A | YES | N/A | N/A | PENDING | PENDING | N/A | N/A | PENDING | N/A | N/A | PENDING | N/A | YES | N/A |
+| C59 · `lineage` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | PENDING | N/A | YES | N/A |
+| C60 · `reuseAsset` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | N/A | N/A | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
+| C61 · `favorites` | YES | N/A | YES | N/A | N/A | PENDING | PENDING | N/A | N/A | PENDING | N/A | N/A | N/A | N/A | YES | N/A |
+| C62 · `searchAssets` | YES | N/A | YES | N/A | N/A | PENDING | PENDING | N/A | N/A | PENDING | N/A | N/A | N/A | N/A | YES | N/A |
+| C63 · `filterAssets` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
+| C35 · `importModel` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | N/A | N/A | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
+| C34 · `saveToProject` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
+| C73 · `remixPublicModel` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C64 · `createProject` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
+| C65 · `switchProject` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
+| C66 · `projectHistory` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
+| C67 · `projectFolders` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| C68 · `projectSnapshot` | YES | N/A | YES | N/A | N/A | PENDING | PENDING | N/A | N/A | PENDING | N/A | N/A | PENDING | N/A | YES | N/A |
+| C69 · `projectDelivery` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | N/A |
+| C30 · `download` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | N/A | YES | YES | N/A |
+| C31 · `exportFor` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
+| C33 · `publish` | YES | N/A | YES | N/A | N/A | YES | YES | N/A | N/A | YES | N/A | N/A | N/A | N/A | YES | N/A |
+| C70 · `externalTools` | YES | N/A | YES | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | N/A | N/A | N/A | PENDING | YES | N/A |
+| C78 · `simulationReady` | YES | N/A | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING | PENDING | PENDING | YES | PENDING |
 
 Totales por columna:
 
@@ -129,6 +129,10 @@ Totales por columna:
 - Panel: YES 92 · PENDING 0 · N/A 15 · NO 0
 - Job: YES 6 · PENDING 57 · N/A 44 · NO 0
 - Progress: YES 6 · PENDING 62 · N/A 39 · NO 0
+- Error: YES 18 · PENDING 74 · N/A 15 · NO 0
+- Retry: YES 17 · PENDING 66 · N/A 24 · NO 0
+- Cancel Request: YES 0 · PENDING 42 · N/A 49 · NO 16
+- Cancelled: YES 0 · PENDING 42 · N/A 49 · NO 16
 - Result: YES 18 · PENDING 76 · N/A 13 · NO 0
 - Next Action: YES 75 · PENDING 0 · N/A 32 · NO 0
 - Asset: YES 7 · PENDING 60 · N/A 40 · NO 0
@@ -249,13 +253,17 @@ Totales por columna:
 | C70 · `externalTools` | YES | YES | YES | PENDING | PENDING | N/A | N/A | N/A | N/A | N/A | PENDING | N/A | PENDING | N/A | N/A | N/A | N/A | N/A | PENDING |
 | C78 · `simulationReady` | YES | YES | YES | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | YES | PENDING |
 
-## 3. Lo que falta (434 celdas NO o PENDING en la Matriz A)
+## 3. Lo que falta (690 celdas NO o PENDING en la Matriz A)
 
 - **Entry**: nada
 - **Composer**: nada
 - **Panel**: nada
 - **Job** (57): `multiview`, `model3dFromText`, `styleReference`, `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `refineModel`, `parametricAdjust`, `meshToCad`, `texture`, `retouchRegion`, `tileableTexture`, `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `environment`, `skybox360`, `photoRender`, `snapshot3d`, `turntable`, `spriteSheet`, `presentationVideo`, `print3d`, `printability`, `multicolorPrint`, `printBase`, `removeBackground`, `upscale`, `inpaintImage`, `sketchToImage`, `imageFor3d`, `chainToObject`, `reuseAsset`, `importModel`, `projectDelivery`, `exportFor`, `simulationReady`
 - **Progress** (62): `multiview`, `model3dFromText`, `styleReference`, `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `refineModel`, `parametricAdjust`, `meshToCad`, `measureModel`, `texture`, `retouchRegion`, `paintTexture`, `tileableTexture`, `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `environment`, `skybox360`, `objectStructure`, `viewer`, `viewModes`, `photoRender`, `snapshot3d`, `turntable`, `spriteSheet`, `presentationVideo`, `print3d`, `printability`, `multicolorPrint`, `printBase`, `removeBackground`, `upscale`, `inpaintImage`, `sketchToImage`, `imageFor3d`, `chainToObject`, `reuseAsset`, `importModel`, `projectDelivery`, `exportFor`, `simulationReady`
+- **Error** (74): `multiview`, `model3dFromText`, `styleReference`, `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `transformObject`, `refineModel`, `parametricAdjust`, `meshToCad`, `measureModel`, `texture`, `retouchRegion`, `materialProperties`, `paintTexture`, `tileableTexture`, `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `composeScene`, `cameras`, `lights`, `environment`, `sceneBackground`, `skybox360`, `objectStructure`, `viewer`, `viewModes`, `photoRender`, `snapshot3d`, `turntable`, `spriteSheet`, `presentationVideo`, `print3d`, `printability`, `multicolorPrint`, `printBase`, `sendToSlicer`, `removeBackground`, `upscale`, `inpaintImage`, `sketchToImage`, `imageFor3d`, `chainToObject`, `versions`, `reuseAsset`, `favorites`, `searchAssets`, `importModel`, `projectSnapshot`, `projectDelivery`, `exportFor`, `externalTools`, `simulationReady`
+- **Retry** (66): `multiview`, `model3dFromText`, `styleReference`, `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `refineModel`, `parametricAdjust`, `meshToCad`, `measureModel`, `texture`, `retouchRegion`, `paintTexture`, `tileableTexture`, `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `environment`, `skybox360`, `objectStructure`, `viewer`, `viewModes`, `photoRender`, `snapshot3d`, `turntable`, `spriteSheet`, `presentationVideo`, `print3d`, `printability`, `multicolorPrint`, `printBase`, `removeBackground`, `upscale`, `inpaintImage`, `sketchToImage`, `imageFor3d`, `chainToObject`, `versions`, `reuseAsset`, `favorites`, `searchAssets`, `importModel`, `projectSnapshot`, `projectDelivery`, `exportFor`, `simulationReady`
+- **Cancel Request** (58): `concept` (NO), `multiview` (NO), `model3dFromText`, `styleReference` (NO), `anotherVersion` (NO), `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `refineModel`, `parametricAdjust`, `meshToCad`, `texture`, `retouchRegion`, `tileableTexture` (NO), `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `environment`, `skybox360` (NO), `photoRender`, `presentationVideo` (NO), `print3d`, `printability`, `multicolorPrint`, `printBase`, `restyleSpace` (NO), `editImage` (NO), `removeBackground` (NO), `upscale` (NO), `inpaintImage` (NO), `sketchToImage` (NO), `imageFor3d` (NO), `designAgent` (NO), `costConfirmation` (NO), `chainToObject`, `projectDelivery`, `exportFor`, `simulationReady`
+- **Cancelled** (58): `concept` (NO), `multiview` (NO), `model3dFromText`, `styleReference` (NO), `anotherVersion` (NO), `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `refineModel`, `parametricAdjust`, `meshToCad`, `texture`, `retouchRegion`, `tileableTexture` (NO), `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `environment`, `skybox360` (NO), `photoRender`, `presentationVideo` (NO), `print3d`, `printability`, `multicolorPrint`, `printBase`, `restyleSpace` (NO), `editImage` (NO), `removeBackground` (NO), `upscale` (NO), `inpaintImage` (NO), `sketchToImage` (NO), `imageFor3d` (NO), `designAgent` (NO), `costConfirmation` (NO), `chainToObject`, `projectDelivery`, `exportFor`, `simulationReady`
 - **Result** (76): `multiview`, `model3dFromText`, `styleReference`, `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `transformObject`, `refineModel`, `parametricAdjust`, `meshToCad`, `measureModel`, `texture`, `retouchRegion`, `unwrapUv`, `materialProperties`, `paintTexture`, `tileableTexture`, `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `composeScene`, `cameras`, `lights`, `environment`, `sceneBackground`, `skybox360`, `objectStructure`, `viewer`, `viewModes`, `photoRender`, `snapshot3d`, `turntable`, `spriteSheet`, `presentationVideo`, `print3d`, `printability`, `multicolorPrint`, `printBase`, `sendToSlicer`, `removeBackground`, `upscale`, `inpaintImage`, `sketchToImage`, `imageFor3d`, `depthFromImage`, `chainToObject`, `versions`, `reuseAsset`, `favorites`, `searchAssets`, `importModel`, `projectSnapshot`, `projectDelivery`, `exportFor`, `externalTools`, `simulationReady`
 - **Next Action**: nada
 - **Asset** (60): `multiview`, `model3dFromText`, `styleReference`, `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `refineModel`, `parametricAdjust`, `meshToCad`, `texture`, `retouchRegion`, `unwrapUv`, `paintTexture`, `tileableTexture`, `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `environment`, `skybox360`, `photoRender`, `snapshot3d`, `turntable`, `spriteSheet`, `presentationVideo`, `print3d`, `printability`, `multicolorPrint`, `printBase`, `removeBackground`, `upscale`, `inpaintImage`, `sketchToImage`, `imageFor3d`, `depthFromImage`, `chainToObject`, `reuseAsset`, `importModel`, `projectDelivery`, `exportFor`, `simulationReady`
@@ -263,6 +271,24 @@ Totales por columna:
 - **Export** (65): `multiview`, `model3dFromText`, `styleReference`, `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `transformObject`, `refineModel`, `parametricAdjust`, `meshToCad`, `texture`, `retouchRegion`, `materialProperties`, `tileableTexture`, `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `composeScene`, `cameras`, `lights`, `environment`, `sceneBackground`, `skybox360`, `photoRender`, `snapshot3d`, `turntable`, `spriteSheet`, `presentationVideo`, `print3d`, `printability`, `multicolorPrint`, `printBase`, `sendToSlicer`, `removeBackground`, `upscale`, `inpaintImage`, `sketchToImage`, `imageFor3d`, `chainToObject`, `reuseAsset`, `importModel`, `projectDelivery`, `exportFor`, `externalTools`, `simulationReady`
 - **Mobile**: nada
 - **Provider** (44): `model3dFromText`, `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `refineModel`, `parametricAdjust`, `meshToCad`, `texture`, `retouchRegion`, `unwrapUv`, `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `environment`, `skybox360`, `photoRender`, `print3d`, `printability`, `multicolorPrint`, `printBase`, `depthFromImage`, `chainToObject`, `exportFor`, `simulationReady`
+
+## 3b. Detecciones automáticas
+
+Cruces de columnas de la Matriz A (`deteccionesDe`), sin opinión: YES y PENDING cuentan como «hay»; NO y N/A como «no hay». Error, Retry, Cancel Request y Cancelled son columnas propias: **CANCEL REQUEST ≠ CANCELLED** (pedir parar no es haber parado; solo el Job Engine confirma la parada).
+
+| Detección | Capacidades | Cuáles |
+| --- | --- | --- |
+| UI sin backend (se ve y se pulsa; el trabajo no existe todavía) | 65 | `multiview`, `model3dFromText`, `styleReference`, `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `mergeParts`, `repairMesh`, `refineModel`, `parametricAdjust`, `meshToCad`, `measureModel`, `texture`, `retouchRegion`, `paintTexture`, `tileableTexture`, `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `composeScene`, `lights`, `skybox360`, `photoRender`, `snapshot3d`, `turntable`, `spriteSheet`, `print3d`, `printability`, `multicolorPrint`, `printBase`, `sendToSlicer`, `removeBackground`, `upscale`, `inpaintImage`, `sketchToImage`, `imageFor3d`, `chainToObject`, `versions`, `reuseAsset`, `favorites`, `searchAssets`, `importModel`, `saveToProject`, `projectSnapshot`, `projectDelivery`, `exportFor`, `externalTools`, `simulationReady` |
+| Backend sin UI (hay trabajo y nadie lo abre) | 0 | — |
+| Capacidad del motor sin Job | 3 | `unwrapUv`, `beforeAfter`, `depthFromImage` |
+| Job sin resultado | 0 | — |
+| Resultado sin Asset | 6 | `transformObject`, `materialProperties`, `composeScene`, `cameras`, `lights`, `sceneBackground` |
+| Asset sin Version | 0 | — |
+| Error sin UI | 0 | — |
+| Sin retry | 9 | `transformObject`, `materialProperties`, `composeScene`, `cameras`, `lights`, `sceneBackground`, `beforeAfter`, `sendToSlicer`, `externalTools` |
+| Sin cancelación (hay trabajo y no se puede pedir parar) | 16 | `concept`, `multiview`, `styleReference`, `anotherVersion`, `tileableTexture`, `skybox360`, `presentationVideo`, `restyleSpace`, `editImage`, `removeBackground`, `upscale`, `inpaintImage`, `sketchToImage`, `imageFor3d`, `designAgent`, `costConfirmation` |
+| Cancelación pedida sin confirmación del Job Engine | 41 | `model3dFromText`, `batchTo3d`, `generateScene`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `editModel`, `optimizeMesh`, `splitParts`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `refineModel`, `parametricAdjust`, `meshToCad`, `texture`, `retouchRegion`, `rig`, `animate`, `motionFromText`, `pose`, `articulate`, `motionFromVideo`, `editMotion`, `photoRender`, `print3d`, `printability`, `multicolorPrint`, `printBase`, `chainToObject`, `projectDelivery`, `exportFor`, `simulationReady` |
+| Operación de versión sin backend | 7 | `multiview`, `anotherVersion`, `model3dFromImage`, `editImage`, `chainToObject`, `versions`, `lineage` |
 
 ## 4. Matriz B — elegibilidad de proveedor (dato de la Línea B; no decide nada)
 
@@ -401,6 +427,56 @@ La cadena, simulada de punta a punta (`recorrerCadena`): cada resultado entra en
 | 4 | `sim-model3dFromImage-4` | `sim-job-model3dFromImage-4` | `sim-multiview-3` | derivado | concept › editImage › multiview › model3dFromImage |
 | 5 | `sim-texture-5` | `sim-job-texture-5` | `sim-model3dFromImage-4` | version | concept › editImage › multiview › model3dFromImage › texture |
 | 6 | `sim-exportFor-6` | `sim-job-exportFor-6` | `sim-texture-5` | variante | concept › editImage › multiview › model3dFromImage › texture › exportFor |
+
+## 5b. Capacidades 3D — una sola fuente
+
+Las del catálogo del Core de categoría `3d` (filtradas de `CAPABILITY_CATALOG`, no copiadas) más las propuestas del registro de Design. La clase se DERIVA del estado del catálogo y de las filas que la usan (`clasificar3D`). La lista tipada del Core (`CapabilityId`) solo nombra `world.generate`: las `3d.*` no se añaden porque las haría enrutables sin adaptador (cambiaría producción).
+
+| Capacidad | En el catálogo | Clase | Filas de Design |
+| --- | --- | --- | --- |
+| `3d.generate` | DECLARED | **PENDING_PROVIDER** | `model3dFromText`, `batchTo3d`, `model3dFromImage`, `model3dFromViews`, `reconstructObject`, `generateInParts`, `regenerate3d`, `variations3d`, `parametricTemplate`, `cadFromText`, `cadFromImage`, `customStyle3d`, `pose`, `chainToObject` |
+| `3d.edit` | DECLARED | **PENDING_PROVIDER** | `editModel`, `realScale`, `stylize`, `mergeParts`, `repairMesh`, `refineModel`, `parametricAdjust`, `unwrapUv`, `print3d`, `printBase` |
+| `3d.analyze` | DECLARED | **PENDING_PROVIDER** | `print3d`, `printability` |
+| `3d.texture` | DECLARED | **PENDING_PROVIDER** | `texture`, `retouchRegion` |
+| `3d.retopology` | DECLARED | **PENDING_PROVIDER** | `optimizeMesh` |
+| `3d.rig` | DECLARED | **PENDING_PROVIDER** | `rig`, `articulate` |
+| `3d.convert` | DECLARED | **PENDING_BACKEND** | `meshToCad`, `print3d`, `exportFor` |
+| `3d.export` | DECLARED | **PENDING_BACKEND** | `multicolorPrint`, `exportFor`, `simulationReady` |
+| `world.generate` | ROUTABLE | **PARCIAL** | `environment` |
+| `3d.segment` | no (propuesta) | **CANDIDATA** | `splitParts`, `print3d` |
+| `3d.animate` | no (propuesta) | **CANDIDATA** | `animate`, `motionFromText`, `motionFromVideo`, `editMotion` |
+
+Capacidades distintas, no alias (`SEMANTICA_3D`): `3d.convert` = representacion · `3d.export` = salida_externa · `3d.generate` = recurso_nuevo · `3d.segment` = dividir_existente. No son capacidades (atributo de la fila): `cad`, `parts`. Composiciones (cadena, no alias): `exportFor` = 3d.convert → 3d.export.
+
+| Capacidad | Catalogada | Implementada | Enrutable |
+| --- | --- | --- | --- |
+| `3d.generate` | Sí | No | No |
+| `3d.edit` | Sí | No | No |
+| `3d.analyze` | Sí | No | No |
+| `3d.texture` | Sí | No | No |
+| `3d.retopology` | Sí | No | No |
+| `3d.rig` | Sí | No | No |
+| `3d.convert` | Sí | No | No |
+| `3d.export` | Sí | No | No |
+| `world.generate` | Sí | Sí (apagada) | Sí |
+| `3d.segment` | No | No | No |
+| `3d.animate` | No | No | No |
+
+## 5c. Contrato 3D de Design
+
+Design Capability → parámetros → capacidad del Core → Job → resultado → Asset → Version. Sin APIs externas; nada marcado como implementado. Exportación GLB/USDZ: **PENDING_BACKEND** (sin exportador en el Core; se reutiliza `download`).
+
+| Contrato | Fila | Capacidad del Core | Parámetros | Job | Resultado | Asset | Version | Clase |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| imagenA3D | `model3dFromImage` | `3d.generate` | text, image, requestId | Trabajo asíncrono (motor) | 3D | Derivado | material_derivado | **PENDING_PROVIDER** |
+| textoA3D | `model3dFromText` | `3d.generate` | text, image, requestId | Trabajo asíncrono (motor) | 3D | Nuevo | nuevo | **PENDING_PROVIDER** |
+| variasImagenesA3D | `model3dFromViews` | `3d.generate` | text, image, requestId | Trabajo asíncrono (motor) | 3D | Derivado | material_derivado | **PENDING_PROVIDER** |
+| textura | `texture` | `3d.texture` | image, text, requestId | Trabajo asíncrono (motor) | 3D | Versión | nueva_version | **PENDING_PROVIDER** |
+| material | `materialProperties` | — (Weë, sin IA) | requestId | Núcleo de escena (Weë) | Escena | Ninguno | ninguno | **WEE_SIN_IA** |
+| remallado | `optimizeMesh` | `3d.retopology` | image, requestId | Trabajo asíncrono (motor) | 3D | Versión | nueva_version | **PENDING_PROVIDER** |
+| escena | `environment` | `world.generate` | image, text, requestId | Trabajo asíncrono (motor) | Mundo 3D | Nuevo | nuevo | **PARCIAL** |
+| visualizacion | `photoRender` | `render.product` | image, text, requestId | Trabajo asíncrono (motor) | Imagen | Derivado | material_derivado | **PENDING_PROVIDER** |
+| exportacion | `exportFor` | `3d.convert` | image, requestId | Trabajo asíncrono (motor) | Archivo | Variante | variante | **PENDING_BACKEND** |
 
 ## 6. Seed3D 2.0 — inventario funcional → capacidades de Weë
 

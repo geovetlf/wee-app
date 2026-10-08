@@ -17,10 +17,11 @@ import type { CreatorJob, JobStatus } from '../services/creatorService';
 import type { AssetDoc } from '../services/vistaDeAsset';
 import type { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
 import { destinoDeIntencion } from './destinoDeIntencion';
+import { REINTENTAR_CREATORFLOW, faseVisible, presentacionDeLaFase } from '../constants/designWorkspace';
 import {
   CADENA_DE_DESIGN, CAPACIDADES_DE_DESIGN, QUE_SE_DISENA, SIGUIENTES_POR_RESULTADO, capacidadPorId, eslabonDeLaCapacidad,
   CapacidadDeDesign, EslabonDeLaCadena, IdDeEslabon, ImpactoEnMaterial, Necesita, Paso, EstadoDelPaso, PerfilDeFlujo,
-  SeccionDelInspector, Superficie, TipoDeResultado,
+  SeccionDelInspector, Superficie, TipoDeResultado, CLAVE_DE_LA_SALIDA,
 } from '../constants/designReferencia';
 
 /* ── Disponibilidad de una capacidad ───────────────────────────────────────── */
@@ -215,10 +216,11 @@ export const RECORRIDO_POR_PERFIL: Readonly<Record<PerfilDeFlujo, Readonly<Recor
 export const recorridoDe = (cap: CapacidadDeDesign): Readonly<Record<Paso, EstadoDelPaso>> =>
   Object.freeze({ ...RECORRIDO_POR_PERFIL[cap.perfil], ...(cap.pasos ?? {}) });
 
-/* ── La matriz de cobertura (13 columnas del dueño) ────────────────────────── */
+/* ── La matriz de cobertura (columnas del dueño + error, reintento y cancelación) ── */
 
 export const COLUMNAS_DE_COBERTURA = Object.freeze([
-  'Entry', 'Composer', 'Panel', 'Job', 'Progress', 'Result', 'Next Action', 'Asset', 'Version', 'Export', 'Mobile', 'Provider',
+  'Entry', 'Composer', 'Panel', 'Job', 'Progress', 'Error', 'Retry', 'Cancel Request', 'Cancelled', 'Result', 'Next Action', 'Asset',
+  'Version', 'Export', 'Mobile', 'Provider',
 ] as const);
 
 export type ColumnaDeCobertura = typeof COLUMNAS_DE_COBERTURA[number];
@@ -230,12 +232,25 @@ export const coberturaDe = (cap: CapacidadDeDesign): Readonly<Record<ColumnaDeCo
   const proveedor: EstadoDelPaso =
     cap.ejecutaPor !== 'motor' || cap.elegibilidad === 'no_aplica' ? 'N/A' : cap.elegibilidad === 'cadena_de_wee' ? 'YES' : 'PENDING';
   const movil: EstadoDelPaso = cap.movil === 'no_aplica' ? 'N/A' : 'YES';
+  /*
+   * PEDIR PARAR y CANCELADO son dos celdas (CANCEL_REQUESTED ≠ CANCELLED). Sin trabajo, N/A. Con trabajo y sin
+   * forma de pararlo (`no_existe`), NO: falta y se dice. Si se puede pedir, la celda es la del paso «cancelar» del
+   * recorrido. CANCELADO solo existe si se puede pedir: con parada lo confirma el Job Engine; con la lógica de Weë,
+   * Weë deja de esperar.
+   */
+  const pedirParar: EstadoDelPaso =
+    cap.cancelar === 'no_aplica' || r.trabajo === 'N/A' ? 'N/A' : cap.cancelar === 'no_existe' ? 'NO' : r.cancelar === 'N/A' ? 'NO' : r.cancelar;
+  const cancelado: EstadoDelPaso = pedirParar;
   return Object.freeze({
     Entry: r.entrada,
     Composer: cap.entrada === 'composer' ? 'YES' : 'N/A',
     Panel: r.superficie,
     Job: r.trabajo,
     Progress: r.progreso,
+    Error: r.error,
+    Retry: r.reintento,
+    'Cancel Request': pedirParar,
+    Cancelled: cancelado,
     Result: r.resultado,
     'Next Action': r.siguientes,
     Asset: r.material,
@@ -252,6 +267,95 @@ export const loQueFalta = (caps: readonly CapacidadDeDesign[] = CAPACIDADES_DE_D
     const fila = coberturaDe(cap);
     return COLUMNAS_DE_COBERTURA.filter((col) => fila[col] === 'NO' || fila[col] === 'PENDING').map((col) => ({ id: cap.id, columna: col, estado: fila[col] }));
   });
+
+/* ── Lo que una capacidad usa por dentro, dicho para una persona ──────────── */
+
+/**
+ * EL NOMBRE, NO EL ID. La hoja de una capacidad decía `world.generate`: el id del
+ * Core es para el Router y los contratos, no para la persona. Aquí solo se elige
+ * qué CLAVE de texto lo nombra, por su familia (`familia.verbo`), reutilizando las
+ * que ya existen (los tipos de creación, «Escena», «Render fotorrealista») y una
+ * sola nueva. El id no cambia ni se reescribe en ningún sitio.
+ */
+export const CLAVE_DE_LA_FAMILIA: Readonly<Record<string, string>> = Object.freeze({
+  image: 'creaciones.kindImage',
+  vision: 'designRef.famVision',
+  video: 'creaciones.kindVideo',
+  text: 'creaciones.kindText',
+  '3d': 'designRef.famModel3d',
+  world: 'creaciones.kindWorld',
+  scene: 'designRef.groupScene',
+  render: 'designRef.capPhotoRender',
+});
+
+/**
+ * LO QUE PRODUCE, PARA LA PERSONA. El registro dice `model3d` (el tipo de resultado); aquí se nombra con el mismo
+ * nombre de producto de la familia 3D («Modelo 3D»), sin tocar el registro ni el id.
+ */
+export const CLAVE_DE_LO_QUE_PRODUCE: Readonly<Record<TipoDeResultado, string>> = Object.freeze({
+  ...CLAVE_DE_LA_SALIDA,
+  model3d: 'designRef.famModel3d',
+});
+
+/** Las claves (sin repetir, en orden) de lo que usan estas capacidades. Una familia sin nombre no se enseña como id. */
+export const clavesDeLoQueUsa = (ids: readonly string[]): string[] =>
+  [...new Set(ids.map((id) => CLAVE_DE_LA_FAMILIA[String(id).split('.')[0]]).filter((k): k is string => !!k))];
+
+/** Un trabajo de CreatorFlow que falló y cuyo reintento no tiene backend: se dice «no disponible», sin botón. */
+export const fallidoSinReintento = (j: Pick<CreatorJob, 'status'>): boolean => {
+  const fase = faseVisible(ESTADO_DESDE_CREATOR_JOB[j.status]);
+  return !!fase && presentacionDeLaFase(fase).reintento && !REINTENTAR_CREATORFLOW.disponible;
+};
+
+/* ── Las detecciones automáticas del mapa ─────────────────────────────────── */
+
+/**
+ * LO QUE EL MAPA DESCUBRE SOLO, celda a celda (sin opinión: solo cruza columnas).
+ * `YES` y `PENDING` cuentan como «hay pieza o está diseñada»; `NO` y `N/A`, como
+ * «no hay». Cada detección dice qué capacidad la dispara.
+ */
+export type Deteccion =
+  | 'ui_sin_backend' | 'backend_sin_ui' | 'capacidad_sin_trabajo' | 'trabajo_sin_resultado' | 'resultado_sin_material'
+  | 'material_sin_version' | 'error_sin_ui' | 'sin_reintento' | 'sin_cancelacion' | 'cancelacion_sin_confirmacion'
+  | 'version_sin_backend';
+
+export const DETECCIONES: readonly Deteccion[] = Object.freeze([
+  'ui_sin_backend', 'backend_sin_ui', 'capacidad_sin_trabajo', 'trabajo_sin_resultado', 'resultado_sin_material',
+  'material_sin_version', 'error_sin_ui', 'sin_reintento', 'sin_cancelacion', 'cancelacion_sin_confirmacion', 'version_sin_backend',
+]);
+
+const hay = (e: EstadoDelPaso): boolean => e === 'YES' || e === 'PENDING';
+
+/** Las detecciones de UNA capacidad. Fuera de Weë Design no se detecta nada. */
+export const deteccionesDe = (cap: CapacidadDeDesign): readonly Deteccion[] => {
+  if (!cap.enDesign) return Object.freeze([]);
+  const f = coberturaDe(cap);
+  const d: Deteccion[] = [];
+  /* Se ve y se pulsa, pero lo que haría necesita un servidor que no está (el trabajo no es YES). */
+  if (f.Entry === 'YES' && cap.requiere.includes('servidor') && f.Job !== 'YES') d.push('ui_sin_backend');
+  /* Hay trabajo de verdad y nadie lo puede abrir. */
+  if (f.Job === 'YES' && f.Entry !== 'YES') d.push('backend_sin_ui');
+  /* Pasa por el motor y no tiene trabajo ni diseñado. */
+  if (cap.ejecutaPor === 'motor' && !hay(f.Job)) d.push('capacidad_sin_trabajo');
+  if (hay(f.Job) && !hay(f.Result)) d.push('trabajo_sin_resultado');
+  if (hay(f.Result) && cap.salida !== 'none' && cap.salida !== 'informe' && cap.salida !== 'file' && !hay(f.Asset)) d.push('resultado_sin_material');
+  if (hay(f.Asset) && !hay(f.Version)) d.push('material_sin_version');
+  if (hay(f.Job) && !hay(f.Error)) d.push('error_sin_ui');
+  if (hay(f.Error) && !hay(f.Retry)) d.push('sin_reintento');
+  if (hay(f.Job) && f['Cancel Request'] === 'NO') d.push('sin_cancelacion');
+  /* Se puede pedir parar, pero nadie confirma la parada (solo la con parada la confirma el Job Engine). */
+  if (hay(f['Cancel Request']) && cap.cancelar !== 'con_parada') d.push('cancelacion_sin_confirmacion');
+  /* Opera sobre versiones o linaje y el servidor que lo sostiene no existe (la celda de versión no es YES). */
+  if (cap.requiere.includes('linaje') && f.Version !== 'YES') d.push('version_sin_backend');
+  return Object.freeze(d);
+};
+
+/** Todas, agrupadas por detección (en el orden de `DETECCIONES`). */
+export const detecciones = (caps: readonly CapacidadDeDesign[] = CAPACIDADES_DE_DESIGN): Readonly<Record<Deteccion, readonly string[]>> => {
+  const o = Object.fromEntries(DETECCIONES.map((k) => [k, [] as string[]])) as Record<Deteccion, string[]>;
+  for (const cap of caps) for (const k of deteccionesDe(cap)) o[k].push(cap.id);
+  return Object.freeze(o);
+};
 
 /* ── Los estados de un trabajo ─────────────────────────────────────────────── */
 

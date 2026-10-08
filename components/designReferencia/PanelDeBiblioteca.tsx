@@ -43,6 +43,8 @@ interface Props {
   onCapacidad: (cap: CapacidadDeDesign) => void;
   onReintentar: () => void;
   onIniciarSesion: () => void;
+  /** Columna estrecha (tableta): sus pestañas bajan a otra línea en vez de cortarse. */
+  envolverPestanas?: boolean;
 }
 
 const PESTANAS = PESTANAS_DE_BIBLIOTECA.map((id) => ({ id, clave: CLAVE_DE_LA_PESTANA[id] }));
@@ -96,11 +98,11 @@ const PanelDeBiblioteca: React.FC<Props> = (p) => {
 
   return (
     <View style={estilos.panel}>
-      <Pestanas opciones={PESTANAS} elegida={p.pestana} onElegir={p.onPestana} etiqueta={t('designRef.surfLibrary')} />
+      <Pestanas opciones={PESTANAS} elegida={p.pestana} onElegir={p.onPestana} etiqueta={t('designRef.surfLibrary')} envolver={p.envolverPestanas} />
       <ScrollView contentContainerStyle={estilos.dentro} showsVerticalScrollIndicator={false} nestedScrollEnabled>
         {p.pestana === 'creaciones' && (
           <>
-            <Pestanas opciones={FILTROS} elegida={p.filtro} onElegir={p.onFiltro} etiqueta={t('creaciones.filterLabel')} />
+            <Pestanas opciones={FILTROS} elegida={p.filtro} onElegir={p.onFiltro} etiqueta={t('creaciones.filterLabel')} envolver={p.envolverPestanas} />
             {estadoDeCarga(p.creaciones, 'designRef.emptyCreations')}
             {filtrarCreaciones(p.creaciones.items, p.filtro).map((a) => {
               const url = a.kind === 'image' ? p.urlDe(a) : null;

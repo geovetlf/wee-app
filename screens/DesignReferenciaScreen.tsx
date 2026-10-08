@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, LayoutChangeEvent } from 'react-native';
+import { View, Text, StyleSheet, LayoutChangeEvent, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -18,6 +18,9 @@ import Lienzo from '../components/designReferencia/Lienzo';
 import ComposerDeDesign from '../components/designReferencia/ComposerDeDesign';
 import Inspector from '../components/designReferencia/Inspector';
 import FranjaDeTrabajos from '../components/designReferencia/FranjaDeTrabajos';
+import AccionesDelComposer from '../components/designReferencia/AccionesDelComposer';
+import PanelDelAgente from '../components/designReferencia/PanelDelAgente';
+import { PANELES_IZQUIERDOS, PanelIzquierdo } from '../constants/designWorkspace';
 import HojaDeCapacidad from '../components/designReferencia/HojaDeCapacidad';
 import HojaDeCapacidades from '../components/designReferencia/HojaDeCapacidades';
 import { Pestanas } from '../components/designReferencia/piezas';
@@ -86,6 +89,7 @@ const EspacioDeTrabajo: React.FC = () => {
   const [grupo, setGrupo] = useState<GrupoDeComandos>(grupoPedido);
   const [superficie, setSuperficie] = useState<Superficie>('lienzo');
   const [lado, setLado] = useState<Lado>('biblioteca');
+  const [izquierdo, setIzquierdo] = useState<PanelIzquierdo>('agente');
   const [pestana, setPestana] = useState<PestanaDeBiblioteca>('creaciones');
   const [seccion, setSeccion] = useState<SeccionDelInspector | null>(null);
   const [intencion, setIntencion] = useState<IntencionDeDesign>('crear');
@@ -145,6 +149,8 @@ const EspacioDeTrabajo: React.FC = () => {
   const disposicion = ancho > 0
     ? disposicionDelWorkspace(ancho, { biblioteca: scale(280), inspector: scale(320), lienzoMinimo: scale(400) })
     : isDesktop ? 'tresColumnas' : 'unaSuperficie';
+  /* La columna lateral estrecha: solo la tableta (dos columnas por debajo del escritorio). Escritorio no cambia. */
+  const lateralEstrecha = disposicion === 'dosColumnas' && !isDesktop;
   const altoEscritorio = Math.max(scale(560), height - scale(64) - SPACING.xl * 2);
   /* La cadena, la barra y las acciones viven dentro del lienzo: necesita sitio también en el teléfono. */
   const altoDelLienzo = Math.min(scale(680), Math.max(scale(460), height * 0.62));
@@ -153,6 +159,7 @@ const EspacioDeTrabajo: React.FC = () => {
   const mostrar = useCallback((s: Superficie) => {
     setSuperficie(s);
     if (s !== 'lienzo') setLado(s);
+    if (s === 'biblioteca') setIzquierdo('biblioteca');
   }, []);
 
   const irAlGrupo = useCallback((g: GrupoDeComandos) => {
@@ -255,6 +262,12 @@ const EspacioDeTrabajo: React.FC = () => {
     setAdjuntos((antes) => [...antes, { clase: 'fotoDeUnEspacio', uri: foto.uri, nombre: foto.fileName ?? undefined }]);
   };
 
+  /** El Design Agent sigue en Weë Brain por la caja de siempre; sin nada escrito, lo dice. */
+  const continuarConBrain = () => {
+    if (!texto.trim()) { notify(t('designRef.wsWriteFirst')); return; }
+    enviar();
+  };
+
   const elegirMaterial = (asset: AssetDoc) => { setSeleccion({ tipo: 'material', asset }); setSeccion('objeto'); if (disposicion === 'unaSuperficie') mostrar('lienzo'); };
   const elegirTrabajo = (job: CreatorJob) => { setSeleccion({ tipo: 'trabajo', job }); setSeccion('objeto'); if (disposicion === 'unaSuperficie') mostrar('lienzo'); };
 
@@ -284,7 +297,7 @@ const EspacioDeTrabajo: React.FC = () => {
     <PanelDeBiblioteca
       pestana={pestana} onPestana={setPestana} creaciones={creaciones} filtro={filtro} onFiltro={setFiltro} urlDe={urlDe}
       elegidoId={seleccion?.tipo === 'material' ? seleccion.asset.assetId : null} onElegirMaterial={elegirMaterial}
-      proyecto={proyecto?.name ?? null} trabajosDelProyecto={delProyecto} onElegirTrabajo={elegirTrabajo}
+      proyecto={proyecto?.name ?? null} trabajosDelProyecto={delProyecto} onElegirTrabajo={elegirTrabajo} envolverPestanas={lateralEstrecha}
       adjuntos={adjuntos} onQuitarAdjunto={(i) => setAdjuntos((antes) => antes.filter((_, j) => j !== i))}
       estadoDe={estadoDe} onCapacidad={pulsar} onReintentar={() => setRecarga((n) => n + 1)} onIniciarSesion={() => navigation.navigate('Login')}
     />
@@ -295,13 +308,28 @@ const EspacioDeTrabajo: React.FC = () => {
       onVerCreaciones={() => navigation.navigate('MisCreaciones')} alto={alto}
     />
   );
+  const agente = (
+    <PanelDelAgente
+      intencion={intencion} que={que} texto={texto} ajustes={palabras} adjuntos={adjuntos.length} proyecto={proyecto?.name ?? null}
+      seleccion={seleccion} estadoDe={estadoDe} onCapacidad={pulsar} onContinuar={continuarConBrain}
+    />
+  );
+  const izquierda = (
+    <>
+      <Pestanas opciones={PANELES_IZQUIERDOS} elegida={izquierdo} onElegir={setIzquierdo} etiqueta={t('designRef.wsLeft')} envolver={lateralEstrecha} />
+      {izquierdo === 'agente' ? agente : biblioteca}
+    </>
+  );
   const composer = (
+    <View style={estilos.espacio}>
+    <AccionesDelComposer estadoDe={estadoDe} onCapacidad={pulsar} />
     <ComposerDeDesign
       intencion={intencion} onIntencion={setIntencion} que={que} onQue={setQue} texto={texto} onTexto={setTexto}
       adjuntos={adjuntos} onQuitarAdjunto={(i) => setAdjuntos((antes) => antes.filter((_, j) => j !== i))}
       ajustes={palabras} onAjustes={() => setAjustesAbiertos(true)} onAdjuntar={() => { void adjuntar(); }} onEnviar={enviar}
       puedeEscribir={puedeEscribir} estadoDe={estadoDe} onCapacidad={pulsar}
     />
+    </View>
   );
   const inspector = (
     <Inspector seleccion={seleccion} tipo={tipo} seccion={seccion} onSeccion={setSeccion} estadoDe={estadoDe} onCapacidad={pulsar} />
@@ -312,7 +340,7 @@ const EspacioDeTrabajo: React.FC = () => {
       estadoDe={estadoDe} onCapacidad={pulsar} onReintentar={() => setRecarga((n) => n + 1)} horizontal={horizontal}
     />
   );
-  const panelLateral = (l: Lado) => (l === 'biblioteca' ? biblioteca : l === 'inspector' ? inspector : franja(false));
+  const panelLateral = (l: Lado) => (l === 'biblioteca' ? izquierda : l === 'inspector' ? inspector : franja(false));
 
   const medir = (e: LayoutChangeEvent) => {
     const w = Math.round(e.nativeEvent.layout.width);
@@ -331,11 +359,12 @@ const EspacioDeTrabajo: React.FC = () => {
       <View style={[estilos.espacio, { height: altoEscritorio }]}>
         {barra}
         <View style={estilos.columnas}>
-          <View style={[estilos.lateral, { width: scale(280) }]}>{biblioteca}</View>
-          <View style={estilos.centro} onLayout={medirColumna}>
+          <View style={[estilos.lateral, { width: scale(280) }]}>{izquierda}</View>
+          {/* La columna central se desplaza si no cabe: el lienzo y la caja van uno detrás de otro, nunca uno encima del otro. */}
+          <ScrollView style={estilos.centro} contentContainerStyle={estilos.centroDentro} onLayout={medirColumna}>
             {lienzo()}
             <CajaAnclada alto={topeDeLaCaja}>{composer}</CajaAnclada>
-          </View>
+          </ScrollView>
           <View style={[estilos.lateral, { width: scale(320) }]}>{inspector}</View>
         </View>
         <View style={{ height: scale(132) }}>{franja(true)}</View>
@@ -345,13 +374,22 @@ const EspacioDeTrabajo: React.FC = () => {
     cuerpo = (
       <View style={[estilos.espacio, isDesktop ? { height: altoEscritorio } : null]}>
         {barra}
-        <View style={[estilos.columnas, !isDesktop ? { height: altoDelLienzo + scale(120) } : null]}>
-          <View style={estilos.centro} onLayout={medirColumna}>
-            {lienzo()}
-            {isDesktop ? <CajaAnclada alto={topeDeLaCaja}>{composer}</CajaAnclada> : null}
-          </View>
+        {/*
+          Sin escritorio la página se desplaza entera y el pie va debajo de ella: el lienzo tiene su alto completo
+          y no hay altura fija ni scroll anidado que lo recorte. En escritorio, la columna central sí se desplaza
+          por dentro, con la caja anclada.
+        */}
+        <View style={estilos.columnas}>
+          {isDesktop ? (
+            <ScrollView style={estilos.centro} contentContainerStyle={estilos.centroDentro} onLayout={medirColumna}>
+              {lienzo()}
+              <CajaAnclada alto={topeDeLaCaja}>{composer}</CajaAnclada>
+            </ScrollView>
+          ) : (
+            <View style={estilos.centro} onLayout={medirColumna}>{lienzo(altoDelLienzo)}</View>
+          )}
           <View style={[estilos.lateral, { width: scale(320) }]}>
-            <Pestanas opciones={LADO.map((id) => ({ id, clave: CLAVE_DE_LA_SUPERFICIE[id] }))} elegida={lado} onElegir={setLado} etiqueta={t('designRef.surfacePicker')} />
+            <Pestanas opciones={LADO.map((id) => ({ id, clave: CLAVE_DE_LA_SUPERFICIE[id] }))} elegida={lado} onElegir={setLado} etiqueta={t('designRef.surfacePicker')} envolver={lateralEstrecha} />
             {panelLateral(lado)}
           </View>
         </View>
@@ -434,7 +472,8 @@ const estilos = StyleSheet.create({
   espacio: { gap: SPACING.sm },
   columnas: { flex: 1, flexDirection: 'row', gap: SPACING.md, minHeight: 0 },
   lateral: { gap: SPACING.xs },
-  centro: { flex: 1, minWidth: 0, gap: SPACING.sm },
+  centro: { flex: 1, minWidth: 0 },
+  centroDentro: { flexGrow: 1, gap: SPACING.sm },
 });
 
 /* La referencia es de la CUENTA, como el resto del taller: se ve clara con las dos caras. */

@@ -12,8 +12,9 @@ import {
 } from '../../constants/designReferencia';
 import {
   CLAVE_DE_LA_RELACION, CLAVE_DEL_ESTADO_DE_TRABAJO, ESTADO_DESDE_CREATOR_JOB, EstadoDeLaCapacidad, SECCIONES_POR_SELECCION,
-  SeleccionDeDesign, TipoDeSeleccion, capacidadesDeLaSeccion,
+  SeleccionDeDesign, TipoDeSeleccion, capacidadesDeLaSeccion, fallidoSinReintento, CLAVE_DE_LO_QUE_PRODUCE,
 } from '../../utils/designReferencia';
+import PanelDeVersiones from './PanelDeVersiones';
 import { BotonDeCapacidad, Insignia, ListaDeAjustes, Pestanas, Pista, TituloDeBloque } from './piezas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -74,7 +75,7 @@ const Inspector: React.FC<Props> = ({ seleccion, tipo, seccion, onSeccion, estad
       return (
         <>
           <Insignia clave="designRef.simulatedBadge" tono="aviso" />
-          {dato('designRef.propKind', t(CLAVE_DE_LA_SALIDA[seleccion.salida]))}
+          {dato('designRef.propKind', t(CLAVE_DE_LO_QUE_PRODUCE[seleccion.salida]))}
           {dato('designRef.propRelation', t(CLAVE_DE_LA_RELACION[seleccion.relacion], { origen: nombre(padre?.capacidadId) }))}
           {dato('designRef.propJob', t('designRef.jobSimulated'))}
           {seleccion.linaje.length > 1 ? dato('designRef.propLineage', seleccion.linaje.map((p) => nombre(p.capacidadId)).join(' › ')) : null}
@@ -89,6 +90,7 @@ const Inspector: React.FC<Props> = ({ seleccion, tipo, seccion, onSeccion, estad
         <>
           {dato('designRef.propGoal', j.goal)}
           {dato('designRef.propState', t(CLAVE_DEL_ESTADO_DE_TRABAJO[ESTADO_DESDE_CREATOR_JOB[j.status]]))}
+          {fallidoSinReintento(j) ? <Insignia clave="designRef.wsRetryUnavailable" tono="aviso" /> : null}
         </>
       );
     }
@@ -101,6 +103,7 @@ const Inspector: React.FC<Props> = ({ seleccion, tipo, seccion, onSeccion, estad
         {dato('designRef.propOrigin', t(CLAVE_DEL_ORIGEN[origenDe(a)]))}
         {dato('designRef.propCreated', formato.fecha(new Date(a.createdAt)))}
         {dato('designRef.stepVersion', t(a.previousVersionId ? 'designRef.versionHasPrevious' : 'designRef.versionFirst'))}
+        <PanelDeVersiones />
         {frases.length > 0 ? (
           <View style={estilos.dato}>
             <Text style={[estilos.etiqueta, { color: theme.colors.textSecondary }]}>{t('creaciones.rightsTitle')}</Text>

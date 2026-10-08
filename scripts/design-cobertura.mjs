@@ -73,6 +73,7 @@ export const generar = () => {
   const cargar = crearCargador();
   const C = cargar('constants/designReferencia.ts');
   const U = cargar('utils/designReferencia.ts');
+  const D3 = cargar('constants/design3d.ts');
   const texto = crearTextos(cargar);
   const descripciones = leerJson('docs/wee-design-capacidades.json').descripciones;
   const P = leerJson('docs/wee-design-proveedores.json');
@@ -219,6 +220,22 @@ export const generar = () => {
     e.falta.map((f) => texto(C.CLAVE_DE_LO_QUE_FALTA[f])).join('; ') || '—',
   ]);
   const recorrida = U.recorrerCadena();
+  const det = U.detecciones();
+  const NOMBRE_DE_DETECCION = Object.freeze({
+    ui_sin_backend: 'UI sin backend (se ve y se pulsa; el trabajo no existe todavía)',
+    backend_sin_ui: 'Backend sin UI (hay trabajo y nadie lo abre)',
+    capacidad_sin_trabajo: 'Capacidad del motor sin Job',
+    trabajo_sin_resultado: 'Job sin resultado',
+    resultado_sin_material: 'Resultado sin Asset',
+    material_sin_version: 'Asset sin Version',
+    error_sin_ui: 'Error sin UI',
+    sin_reintento: 'Sin retry',
+    sin_cancelacion: 'Sin cancelación (hay trabajo y no se puede pedir parar)',
+    cancelacion_sin_confirmacion: 'Cancelación pedida sin confirmación del Job Engine',
+    version_sin_backend: 'Operación de versión sin backend',
+  });
+  const tres = D3.capacidades3D();
+  const contratos = D3.CONTRATOS_3D.map((k) => D3.contrato3D(k));
   const PASOS = U.PASOS;
 
   const matriz = [
@@ -255,6 +272,15 @@ export const generar = () => {
     '',
     ...faltaPorColumna,
     '',
+    '## 3b. Detecciones automáticas',
+    '',
+    'Cruces de columnas de la Matriz A (`deteccionesDe`), sin opinión: YES y PENDING cuentan como «hay»; NO y N/A como «no hay». '
+      + 'Error, Retry, Cancel Request y Cancelled son columnas propias: **CANCEL REQUEST ≠ CANCELLED** (pedir parar no es haber parado; '
+      + 'solo el Job Engine confirma la parada).',
+    '',
+    tabla(['Detección', 'Capacidades', 'Cuáles'], U.DETECCIONES.map((k) => [NOMBRE_DE_DETECCION[k], String(det[k].length),
+      det[k].map((id) => `\`${id}\``).join(', ') || '—'])),
+    '',
     '## 4. Matriz B — elegibilidad de proveedor (dato de la Línea B; no decide nada)',
     '',
     'La capacidad es de Weë; esta tabla solo dice quién PODRÍA servirla y cómo: **API** (candidato con API), **solo web** (no integrable: '
@@ -278,6 +304,34 @@ export const generar = () => {
       String(i + 1), `\`${r.materialId}\``, `\`${r.trabajoId}\``, r.padreId ? `\`${r.padreId}\`` : '—', r.relacion,
       r.linaje.map((p) => p.capacidadId).join(' › '),
     ])),
+    '',
+    '## 5b. Capacidades 3D — una sola fuente',
+    '',
+    'Las del catálogo del Core de categoría `3d` (filtradas de `CAPABILITY_CATALOG`, no copiadas) más las propuestas del registro de Design. '
+      + 'La clase se DERIVA del estado del catálogo y de las filas que la usan (`clasificar3D`). La lista tipada del Core (`CapabilityId`) '
+      + 'solo nombra `world.generate`: las `3d.*` no se añaden porque las haría enrutables sin adaptador (cambiaría producción).',
+    '',
+    tabla(['Capacidad', 'En el catálogo', 'Clase', 'Filas de Design'], tres.map((x) => [`\`${x.id}\``,
+      x.enElCatalogo ? x.enElCatalogo.status : 'no (propuesta)', `**${x.clase}**`, x.usadaPor.map((id) => `\`${id}\``).join(', ') || '—'])),
+    '',
+    'Capacidades distintas, no alias (`SEMANTICA_3D`): '
+      + Object.entries(D3.SEMANTICA_3D).map(([k, v]) => `\`${k}\` = ${v}`).join(' · ')
+      + `. No son capacidades (atributo de la fila): ${D3.ATRIBUTOS_NO_CAPACIDAD.map((a) => `\`${a}\``).join(', ')}. `
+      + `Composiciones (cadena, no alias): ${D3.COMPOSICIONES_3D.map((x) => `\`${x.fila}\` = ${x.capacidades.join(' → ')}`).join(', ')}.`,
+    '',
+    tabla(['Capacidad', 'Catalogada', 'Implementada', 'Enrutable'], tres.map((x) => {
+      const e = D3.tresEstados3D(String(x.id));
+      return [`\`${x.id}\``, e.catalogada ? 'Sí' : 'No', e.implementada ? 'Sí (apagada)' : 'No', e.enrutable ? 'Sí' : 'No'];
+    })),
+    '',
+    '## 5c. Contrato 3D de Design',
+    '',
+    'Design Capability → parámetros → capacidad del Core → Job → resultado → Asset → Version. Sin APIs externas; nada marcado como implementado. '
+      + `Exportación GLB/USDZ: **${D3.EXPORTACION_3D.estado}** (sin exportador en el Core; se reutiliza \`${D3.EXPORTACION_3D.reutiliza}\`).`,
+    '',
+    tabla(['Contrato', 'Fila', 'Capacidad del Core', 'Parámetros', 'Job', 'Resultado', 'Asset', 'Version', 'Clase'], contratos.map((e) => [
+      e.contrato, `\`${e.fila}\``, e.capacidadDelCore ? `\`${e.capacidadDelCore}\`` : '— (Weë, sin IA)', e.parametros.join(', '), PERFIL[e.trabajo],
+      texto(C.CLAVE_DE_LA_SALIDA[e.resultado]), IMPACTO[e.material], e.version, `**${e.clase}**`])),
     '',
     '## 6. Seed3D 2.0 — inventario funcional → capacidades de Weë',
     '',

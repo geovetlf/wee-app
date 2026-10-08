@@ -7,7 +7,8 @@ import { useT } from '../../contexts/IdiomaContext';
 import type { AssetDoc } from '../../services/vistaDeAsset';
 import { CLAVE_DE_TIPO } from '../../services/vistaDeAsset';
 import { TarjetaTresD } from '../creator/TarjetaTresD';
-import { CapacidadDeDesign, CLAVE_DE_LA_SALIDA, capacidadPorId } from '../../constants/designReferencia';
+import { CapacidadDeDesign, capacidadPorId } from '../../constants/designReferencia';
+import { CLAVE_DE_LO_QUE_PRODUCE } from '../../utils/designReferencia';
 import {
   CLAVE_DE_LA_RELACION, CLAVE_DEL_ESTADO_DE_TRABAJO, ESTADO_DESDE_CREATOR_JOB, EstadoDeLaCapacidad, SeleccionDeDesign,
   capacidadesDeLaBarraDelLienzo, salidaDeSeleccion, siguientesDe,
@@ -67,7 +68,7 @@ const Lienzo: React.FC<Props> = ({ seleccion, urlDe, estadoDe, onCapacidad, onVe
       return (
         <View style={[estilos.centro, estilos.simulado, { borderColor: theme.colors.warning }]}>
           <Insignia clave="designRef.simulatedBadge" tono="aviso" />
-          <Text style={[estilos.grande, { color: theme.colors.text }]}>{t(CLAVE_DE_LA_SALIDA[seleccion.salida])}</Text>
+          <Text style={[estilos.grande, { color: theme.colors.text }]}>{t(CLAVE_DE_LO_QUE_PRODUCE[seleccion.salida])}</Text>
           <Text style={[estilos.objetivo, { color: theme.colors.text }]}>
             {t(CLAVE_DE_LA_RELACION[seleccion.relacion], { origen: nombreDe(padre?.capacidadId, t) })}
           </Text>
@@ -116,14 +117,14 @@ const Lienzo: React.FC<Props> = ({ seleccion, urlDe, estadoDe, onCapacidad, onVe
   return (
     <View style={[estilos.lienzo, alto ? { height: alto } : estilos.flex]}>
       <CadenaDeDesign seleccion={seleccion} onAbrir={onDetalle} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.barra} accessibilityLabel={t('designRef.canvasBar')}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={estilos.fila} contentContainerStyle={estilos.barra} accessibilityLabel={t('designRef.canvasBar')}>
         {BARRA.map((cap) => <BotonDeCapacidad key={cap.id} cap={cap} estado={estadoDe(cap)} onPress={onCapacidad} compacto />)}
       </ScrollView>
       <View style={[estilos.marco, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>{contenido()}</View>
       {siguientes.length > 0 && SUGERENCIAS ? (
         <View style={estilos.acciones}>
           <Text style={[estilos.accionesTitulo, { color: theme.colors.textSecondary }]}>{t('designRef.stepNext')}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.barra} accessibilityLabel={t(SUGERENCIAS.clave)}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={estilos.fila} contentContainerStyle={estilos.barra} accessibilityLabel={t(SUGERENCIAS.clave)}>
             {siguientes.map((cap) => <BotonDeCapacidad key={cap.id} cap={cap} estado={estadoDe(cap)} onPress={onCapacidad} compacto />)}
           </ScrollView>
         </View>
@@ -134,9 +135,11 @@ const Lienzo: React.FC<Props> = ({ seleccion, urlDe, estadoDe, onCapacidad, onVe
 
 const estilos = StyleSheet.create({
   lienzo: { gap: SPACING.xs, minHeight: scale(240) },
-  flex: { flex: 1 },
-  barra: { gap: SPACING.xs, paddingVertical: scale(2) },
-  marco: { flex: 1, borderRadius: BORDER_RADIUS.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', minHeight: scale(160) },
+  /* Con la caja debajo: crece si sobra sitio y nunca encoge por debajo de lo suyo (la columna se desplaza); así no desborda sobre la caja. */
+  flex: { flexGrow: 1, flexShrink: 0 },
+  barra: { gap: SPACING.xs, paddingVertical: scale(2), alignItems: 'center' },
+  fila: { flexGrow: 0, flexShrink: 0 },
+  marco: { flex: 1, borderRadius: BORDER_RADIUS.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', minHeight: scale(112) },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, padding: SPACING.lg },
   simulado: { margin: SPACING.md, borderWidth: 1, borderStyle: 'dashed', borderRadius: BORDER_RADIUS.md },
   grande: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold },

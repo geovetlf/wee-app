@@ -4,8 +4,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import type { CreatorJob } from '../../services/creatorService';
 import { CapacidadDeDesign, capacidadPorId } from '../../constants/designReferencia';
-import { CLAVE_DEL_ESTADO_DE_TRABAJO, ESTADO_DESDE_CREATOR_JOB, EstadoDeLaCapacidad } from '../../utils/designReferencia';
+import { CLAVE_DEL_ESTADO_DE_TRABAJO, ESTADO_DESDE_CREATOR_JOB, EstadoDeLaCapacidad, fallidoSinReintento } from '../../utils/designReferencia';
 import type { Carga } from './PanelDeBiblioteca';
+import { CLAVE_DE_LA_FASE, faseVisible } from '../../constants/designWorkspace';
 import { BotonDeCapacidad, CURSOR, Insignia, Pestanas, Pista } from './piezas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -17,6 +18,13 @@ const PESTANAS: { id: Pestana; clave: string }[] = [
   { id: 'versiones', clave: 'designRef.capVersions' },
 ];
 const VERSIONES = capacidadPorId('versions');
+
+/** La etiqueta de un trabajo: su fase visible (QUEUED…CANCELLED) si está en el ciclo; si no, su estado del registro. */
+const claveDelTrabajo = (j: CreatorJob): string => {
+  const estado = ESTADO_DESDE_CREATOR_JOB[j.status];
+  const fase = faseVisible(estado, j.steps.some((s) => s.status === 'done'));
+  return fase ? CLAVE_DE_LA_FASE[fase] : CLAVE_DEL_ESTADO_DE_TRABAJO[estado];
+};
 
 interface Props {
   trabajos: Carga<CreatorJob>;
@@ -69,7 +77,8 @@ const FranjaDeTrabajos: React.FC<Props> = ({ trabajos, elegidoId, onElegirTrabaj
           ]}
         >
           <Text style={[estilos.objetivo, { color: theme.colors.text }]} numberOfLines={2}>{j.goal}</Text>
-          <Insignia clave={CLAVE_DEL_ESTADO_DE_TRABAJO[ESTADO_DESDE_CREATOR_JOB[j.status]]} tono={j.status === 'done' ? 'activo' : 'apagado'} />
+          <Insignia clave={claveDelTrabajo(j)} tono={j.status === 'done' ? 'activo' : j.status === 'failed' ? 'aviso' : 'apagado'} />
+          {fallidoSinReintento(j) ? <Pista clave="designRef.wsRetryUnavailable" /> : null}
         </TouchableOpacity>
       );
     });

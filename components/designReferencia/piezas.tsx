@@ -77,36 +77,47 @@ export const Insignia: React.FC<{ clave: string; tono?: 'activo' | 'apagado' | '
 };
 
 /** Pestañas o segmentos: uno elegido, todos con nombre. */
-export const Pestanas = <T extends string>({ opciones, elegida, onElegir, etiqueta }: {
+export const Pestanas = <T extends string>({ opciones, elegida, onElegir, etiqueta, envolver = false }: {
   opciones: readonly { id: T; clave: string }[];
   elegida: T | null;
   onElegir: (id: T) => void;
   etiqueta: string;
+  /**
+   * En una columna estrecha (la lateral de la tableta): las pestañas bajan a otra línea en vez de cortarse al
+   * borde. Por defecto, la fila se desplaza en horizontal, como en el escritorio.
+   */
+  envolver?: boolean;
 }) => {
   const { theme } = useTheme();
   const t = useT();
+  const botones = opciones.map((o) => {
+    const activa = o.id === elegida;
+    return (
+      <TouchableOpacity
+        key={o.id}
+        onPress={() => onElegir(o.id)}
+        activeOpacity={0.75}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: activa }}
+        accessibilityLabel={t(o.clave)}
+        style={[
+          estilos.pestana,
+          { borderColor: activa ? theme.colors.text : theme.colors.border, backgroundColor: activa ? theme.colors.text : theme.colors.card },
+          CURSOR,
+        ]}
+      >
+        <Text style={[estilos.pestanaTexto, { color: activa ? theme.colors.background : theme.colors.text }]} numberOfLines={1}>{t(o.clave)}</Text>
+      </TouchableOpacity>
+    );
+  });
+  if (envolver) {
+    return (
+      <View accessibilityLabel={etiqueta} accessibilityRole="tablist" style={[estilos.pestanas, estilos.envueltas]}>{botones}</View>
+    );
+  }
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.pestanas} accessibilityLabel={etiqueta} accessibilityRole="tablist">
-      {opciones.map((o) => {
-        const activa = o.id === elegida;
-        return (
-          <TouchableOpacity
-            key={o.id}
-            onPress={() => onElegir(o.id)}
-            activeOpacity={0.75}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: activa }}
-            accessibilityLabel={t(o.clave)}
-            style={[
-              estilos.pestana,
-              { borderColor: activa ? theme.colors.text : theme.colors.border, backgroundColor: activa ? theme.colors.text : theme.colors.card },
-              CURSOR,
-            ]}
-          >
-            <Text style={[estilos.pestanaTexto, { color: activa ? theme.colors.background : theme.colors.text }]} numberOfLines={1}>{t(o.clave)}</Text>
-          </TouchableOpacity>
-        );
-      })}
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={estilos.filaDePestanas} contentContainerStyle={estilos.pestanas} accessibilityLabel={etiqueta} accessibilityRole="tablist">
+      {botones}
     </ScrollView>
   );
 };
@@ -220,8 +231,11 @@ const estilos = StyleSheet.create({
   chipTexto: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.medium, maxWidth: scale(180) },
   insignia: { paddingHorizontal: SPACING.sm, paddingVertical: scale(2), borderRadius: BORDER_RADIUS.full, borderWidth: StyleSheet.hairlineWidth },
   insigniaTexto: { fontSize: scale(11), fontWeight: FONT_WEIGHT.semibold },
-  pestanas: { gap: SPACING.xs, paddingVertical: SPACING.xs },
-  pestana: { minHeight: 36, paddingHorizontal: SPACING.md, justifyContent: 'center', borderRadius: BORDER_RADIUS.full, borderWidth: StyleSheet.hairlineWidth },
+  /* Una fila: sin esto, en una columna flexible el ScrollView horizontal crece en alto y estira cada pestaña en un óvalo. */
+  filaDePestanas: { flexGrow: 0, flexShrink: 0 },
+  pestanas: { gap: SPACING.xs, paddingVertical: SPACING.xs, alignItems: 'center' },
+  envueltas: { flexDirection: 'row', flexWrap: 'wrap' },
+  pestana: { height: 36, minHeight: 36, minWidth: 44, paddingHorizontal: SPACING.md, justifyContent: 'center', borderRadius: BORDER_RADIUS.full, borderWidth: StyleSheet.hairlineWidth },
   pestanaTexto: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold },
   titulo: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.sm },
   pista: { fontSize: FONT_SIZE.xs, lineHeight: scale(17) },

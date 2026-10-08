@@ -5,13 +5,15 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import {
   AJUSTES_DE_ENTREGA, AJUSTES_DE_GENERACION_3D, CapacidadDeDesign, CLAVE_DE_LA_CLASE, CLAVE_DE_LA_ELEGIBILIDAD, CLAVE_DE_LA_ENTRADA,
-  CLAVE_DE_LA_SALIDA, CLAVE_DE_LO_QUE_FALTA, CLAVE_DEL_IMPACTO, CLAVE_DEL_REQUISITO, ELEGIR_QUIEN_LO_HACE_EN_LA_APP, FORMATOS_DE_ENTREGA,
+  CLAVE_DE_LO_QUE_FALTA, CLAVE_DEL_IMPACTO, CLAVE_DEL_REQUISITO, ELEGIR_QUIEN_LO_HACE_EN_LA_APP, FORMATOS_DE_ENTREGA,
   capacidadPorId, eslabonDeLaCapacidad,
 } from '../../constants/designReferencia';
 import {
   CLAVE_DEL_ESTADO_DE_TRABAJO, CLAVE_DEL_ESTADO_DEL_PASO, CLAVE_DEL_NIVEL, CLAVE_DEL_PASO, EstadoDeLaCapacidad, PASOS,
   cancelacionEn, estadosSimulados, recorridoDe, siguientesDe,
 } from '../../utils/designReferencia';
+import { CLAVE_DE_LO_QUE_PRODUCE, clavesDeLoQueUsa } from '../../utils/designReferencia';
+import { CLAVE_DEL_MOTIVO_DEL_MUNDO, CONTEXTO_DEL_MUNDO_EN_DESIGN, estadoDelMundoEnDesign } from '../../utils/design3d';
 import { CURSOR, Insignia, ListaDeAjustes, Pista, TituloDeBloque, nombreDeIcono } from './piezas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -89,28 +91,37 @@ const HojaDeCapacidad: React.FC<Props> = ({ cap, estado, onCerrar, onUsar, onAbr
               <Insignia clave="designRef.rowLabel" valores={{ fila: cap.fila }} />
             </View>
             {!!estado.motivo && <Text style={[estilos.motivo, { color: theme.colors.text }]}>{t(estado.motivo)}</Text>}
+            {(cap.capacidades as readonly string[]).includes(CONTEXTO_DEL_MUNDO_EN_DESIGN.capacidad)
+              ? estadoDelMundoEnDesign().motivos.map((m) => <Pista key={m} clave={CLAVE_DEL_MOTIVO_DEL_MUNDO[m]} />)
+              : null}
 
             {!simulando ? (
               <>
                 <Dato etiqueta="designRef.sheetWhere" valor={t(CLAVE_DE_LA_ENTRADA[cap.entrada])} />
-                <Dato etiqueta="designRef.sheetOutput" valor={t(CLAVE_DE_LA_SALIDA[cap.salida])} />
+                <Dato etiqueta="designRef.sheetOutput" valor={t(CLAVE_DE_LO_QUE_PRODUCE[cap.salida])} />
                 <Dato etiqueta="designRef.sheetAsset" valor={t(CLAVE_DEL_IMPACTO[cap.impacto])} />
                 <Dato etiqueta="designRef.sheetWho" valor={t(CLAVE_DE_LA_ELEGIBILIDAD[cap.elegibilidad])} />
                 {ELEGIR_QUIEN_LO_HACE_EN_LA_APP && <EleccionDeGobierno />}
                 {cap.requiere.length > 0 && (
                   <Dato etiqueta="designRef.sheetNeeds" valor={cap.requiere.map((r) => t(CLAVE_DEL_REQUISITO[r])).join(' · ')} />
                 )}
-                {cap.decisiones.length > 0 && <Dato etiqueta="designRef.sheetDecisions" valor={cap.decisiones.join(' · ')} />}
+                {cap.decisiones.length > 0 && <Dato etiqueta="designRef.sheetDecisions" valor={t('designRef.sheetDecisionOpen')} />}
                 {eslabon && <Dato etiqueta="designRef.chainTitle" valor={`${t(eslabon.clave)} · ${t(CLAVE_DE_LA_CLASE[eslabon.clase])}`} />}
                 {eslabon && eslabon.falta.length > 0 && (
                   <Dato etiqueta="designRef.chainMissing" valor={eslabon.falta.map((x) => t(CLAVE_DE_LO_QUE_FALTA[x])).join(' · ')} />
                 )}
-                {cap.capacidades.length > 0 && <Dato etiqueta="designRef.sheetCore" valor={cap.capacidades.join(' · ')} tecnico />}
+                {cap.capacidades.length > 0 && <Dato etiqueta="designRef.sheetUses" valor={clavesDeLoQueUsa(cap.capacidades).map((k) => t(k)).join(' · ')} />}
                 {creaEn3d && <ListaDeAjustes titulo="designRef.genTitle" ajustes={AJUSTES_DE_GENERACION_3D} motivo="designRef.genPending" />}
                 {cap.id === 'exportFor' && (
                   <ListaDeAjustes titulo="designRef.deliveryTitle" ajustes={AJUSTES_DE_ENTREGA} motivo="designRef.deliveryPending" etiquetas={FORMATOS_DE_ENTREGA} />
                 )}
 
+                {cap.enDesign ? (
+                  <View style={estilos.avisoSimulacion}>
+                    <Insignia clave="designRef.simulatedBadge" tono="aviso" />
+                    <Pista clave="designRef.simBanner" />
+                  </View>
+                ) : null}
                 <TituloDeBloque clave="designRef.sheetFlow" />
                 <View style={estilos.recorrido}>
                   {PASOS.map((p) => (
@@ -254,6 +265,7 @@ const estilos = StyleSheet.create({
   dato: { gap: scale(2) },
   datoEtiqueta: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold },
   datoValor: { fontSize: FONT_SIZE.sm, lineHeight: scale(20) },
+  avisoSimulacion: { gap: SPACING.xs, alignItems: 'flex-start' },
   tecnico: { fontFamily: Platform.OS === 'web' ? 'ui-monospace, Consolas, monospace' : (Platform.OS === 'ios' ? 'Menlo' : 'monospace'), fontSize: FONT_SIZE.xs },
   recorrido: { gap: scale(6) },
   paso: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.sm, paddingBottom: scale(6), borderBottomWidth: StyleSheet.hairlineWidth },
