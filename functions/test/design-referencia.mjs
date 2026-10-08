@@ -592,4 +592,136 @@ export const comprobarLaReferenciaDeDesign = async (check) => {
     && (dsrc.match(/envolver=\{lateralEstrecha\}/g) ?? []).length === 2 && (dsrc.match(/envolverPestanas=\{lateralEstrecha\}/g) ?? []).length === 1);
   check('I25) sin estrechez, las pestañas no cambian: ningún «envolver» fijo a true ni en la pantalla ni en la biblioteca',
     !/envolver(Pestanas)?=\{true\}/.test(dsrc + pb) && !/envolver = true/.test(pz));
+
+  /* ── I26 · DEC-05: la franja busca sus trabajos paginando por createdAt, y no pierde los de su experiencia ── */
+  const PT = cargar('utils/paginarTrabajos.ts');
+  const CS = leer('services/creatorService.ts');
+  const trabajo = (id, createdAt, experienceId) => ({ id, createdAt, experienceId });
+  /* Un índice de Firestore en miniatura: userId fijo, createdAt descendente, desempate por id. El cursor es el documento. */
+  const indiceFalso = (trabajos) => {
+    const orden = [...trabajos].sort((a, b) => (b.createdAt - a.createdAt) || (a.id < b.id ? 1 : -1));
+    const lecturas = [];
+    const pedirPagina = async (cursor, tamano) => {
+      let desde = 0;
+      if (cursor !== undefined) {
+        const i = orden.findIndex((t) => t.id === cursor.id);
+        if (i < 0) throw new Error('cursor desconocido');
+        desde = i + 1;
+      }
+      const pagina = orden.slice(desde, desde + tamano);
+      lecturas.push({ desde, cursor: cursor?.id ?? null });
+      return { trabajos: pagina, cursor: pagina[pagina.length - 1] };
+    };
+    return { pedirPagina, lecturas, orden };
+  };
+  const propia = (t) => t.experienceId === 'design';
+  const ajenosYPropios = (ajenos, propios) => [
+    ...Array.from({ length: ajenos }, (_, i) => trabajo(`a${i}`, 10000 - i, 'chef')),
+    ...Array.from({ length: propios }, (_, i) => trabajo(`p${i}`, 100 - i, 'design')),
+  ];
+  const enOrden = (items) => items.every((t, i) => i === 0 || items[i - 1].createdAt >= t.createdAt);
+  const sinRepetir = (items) => new Set(items.map((t) => t.id)).size === items.length;
+
+  /* El caso del bug, tal cual: 60 ajenos más recientes que los 3 propios. */
+  const caso = indiceFalso(ajenosYPropios(60, 3));
+  const antes = caso.orden.slice(0, 30).filter(propia);
+  const despues = await PT.buscarTrabajos({ pedirPagina: caso.pedirPagina, pertenece: propia, cantidad: 30, tamano: 30 });
+  check('I26) CONTROL: con 60 ajenos delante, la consulta de siempre (30 y filtrar) no encuentra ninguno de los 3 propios',
+    antes.length === 0);
+  check('I26) 60 ajenos + 3 propios: se devuelven los 3 propios, en orden, y ningún ajeno',
+    despues.items.map((t) => t.id).join() === 'p0,p1,p2' && despues.items.every(propia));
+  check('I26) el caso 60 + 3 atraviesa páginas con cursor real: la segunda lectura parte del último documento de la primera',
+    despues.paginas === 3 && caso.lecturas[1].desde === 30 && caso.lecturas[1].cursor === 'a29' && despues.agotado === true);
+
+  /* Casos mínimos de la matriz: cero, menos de una página, exactamente una, mezclados entre páginas, ausencia total. */
+  const vacio = await PT.buscarTrabajos({ pedirPagina: indiceFalso([]).pedirPagina, pertenece: propia, cantidad: 30, tamano: 30 });
+  check('I26) cero trabajos: lista vacía, una sola lectura y agotada', vacio.items.length === 0 && vacio.paginas === 1 && vacio.agotado === true);
+  const pocos = await PT.buscarTrabajos({ pedirPagina: indiceFalso(ajenosYPropios(3, 2)).pedirPagina, pertenece: propia, cantidad: 30, tamano: 30 });
+  check('I26) menos de una página: devuelve los propios y no pide más', pocos.items.map((t) => t.id).join() === 'p0,p1' && pocos.paginas === 1 && pocos.agotado === true);
+  const justa = await PT.buscarTrabajos({ pedirPagina: indiceFalso(ajenosYPropios(26, 4)).pedirPagina, pertenece: propia, cantidad: 30, tamano: 30 });
+  check('I26) exactamente una página llena: devuelve los 4 propios, sin repetirlos, y la página vacía que sigue marca el final',
+    justa.items.length === 4 && sinRepetir(justa.items) && justa.paginas === 2 && justa.agotado === true);
+  const repartidos = indiceFalso(Array.from({ length: 100 }, (_, i) => trabajo(`d${i}`, 1000 - i, [5, 40, 75].includes(i) ? 'design' : 'chef')));
+  const mezclados = await PT.buscarTrabajos({ pedirPagina: repartidos.pedirPagina, pertenece: propia, cantidad: 30, tamano: 30 });
+  check('I26) propios repartidos entre páginas: se recogen todos, en orden, sin repetir',
+    mezclados.items.map((t) => t.id).join() === 'd5,d40,d75' && sinRepetir(mezclados.items) && mezclados.paginas === 4 && enOrden(mezclados.items));
+  const ausente = await PT.buscarTrabajos({ pedirPagina: indiceFalso(ajenosYPropios(200, 0)).pedirPagina, pertenece: propia, cantidad: 5, tamano: 30, maxPaginas: 6 });
+  check('I26) ausencia total: devuelve lista vacía y se para en el límite de páginas (sin leer sin fin)',
+    ausente.items.length === 0 && ausente.paginas === 6 && ausente.leidos === 180 && ausente.agotado === false);
+  const colmado = indiceFalso(Array.from({ length: 60 }, (_, i) => trabajo(`d${i}`, 1000 - i, 'design')));
+  const parada = await PT.buscarTrabajos({ pedirPagina: colmado.pedirPagina, pertenece: propia, cantidad: 8, tamano: 30 });
+  check('I26) al reunir lo pedido se detiene: 8 de 8 en una sola lectura, sin pedir la página siguiente',
+    parada.items.map((t) => t.id).join() === 'd0,d1,d2,d3,d4,d5,d6,d7' && parada.paginas === 1 && parada.agotado === false);
+  const repetidor = await PT.buscarTrabajos({
+    pedirPagina: async () => ({ trabajos: colmado.orden.slice(0, 30), cursor: colmado.orden[29] }), pertenece: propia, cantidad: 50, tamano: 30, maxPaginas: 3,
+  });
+  check('I26) CONTROL: si una página se repite, no hay duplicados y la búsqueda termina por su límite',
+    sinRepetir(repetidor.items) && repetidor.items.length === 30 && repetidor.paginas === 3);
+  check('I26) el límite de seguridad es finito y razonable (páginas y tamaño acotados)',
+    Number.isInteger(PT.MAX_PAGINAS_DE_TRABAJOS) && PT.MAX_PAGINAS_DE_TRABAJOS >= 1 && PT.MAX_PAGINAS_DE_TRABAJOS <= 10
+    && Number.isInteger(PT.TAMANO_DE_PAGINA_DE_TRABAJOS) && PT.TAMANO_DE_PAGINA_DE_TRABAJOS >= 1 && PT.TAMANO_DE_PAGINA_DE_TRABAJOS <= 50);
+
+  /* Chef, Especialista y Design: en el caso normal, la misma lista que antes en una sola lectura; y donde antes faltaban, ahora están. */
+  const mezcla = () => indiceFalso(Array.from({ length: 50 }, (_, i) => trabajo(`m${i}`, 5000 - i, ['chef', 'design', 'home', 'otra'][i % 4])));
+  /* Chef: aquí hay 10 de los 20 primeros, así que el caso normal es el que se pinta. */
+  const mezclaDensa = () => indiceFalso(Array.from({ length: 50 }, (_, i) => trabajo(`m${i}`, 5000 - i, ['chef', 'chef', 'design', 'otra'][i % 4])));
+  const chefAntes = mezclaDensa().orden.slice(0, 20).filter((t) => t.experienceId === 'chef').slice(0, 8);
+  const chefAhora = await PT.buscarTrabajos({ pedirPagina: mezclaDensa().pedirPagina, pertenece: (t) => t.experienceId === 'chef', cantidad: 8, tamano: 20 });
+  check('I26) Chef: en el caso normal, los mismos 8 trabajos y en una sola lectura de 20',
+    JSON.stringify(chefAhora.items.map((t) => t.id)) === JSON.stringify(chefAntes.map((t) => t.id)) && chefAhora.paginas === 1);
+  const otraAntes = mezcla().orden.slice(0, 20).filter((t) => t.experienceId === 'otra').slice(0, 4);
+  const otraAhora = await PT.buscarTrabajos({ pedirPagina: mezcla().pedirPagina, pertenece: (t) => t.experienceId === 'otra', cantidad: 4, tamano: 20 });
+  check('I26) Especialista: en el caso normal, los mismos 4 trabajos y en una sola lectura de 20',
+    JSON.stringify(otraAhora.items.map((t) => t.id)) === JSON.stringify(otraAntes.map((t) => t.id)) && otraAhora.paginas === 1);
+  const disenoAntes = mezcla().orden.slice(0, 30).filter(U.esDeDesign);
+  const disenoAhora = await PT.buscarTrabajos({ pedirPagina: mezcla().pedirPagina, pertenece: U.esDeDesign, cantidad: 30, tamano: 30 });
+  const prefijo = disenoAhora.items.length >= disenoAntes.length && disenoAntes.every((t, i) => disenoAhora.items[i].id === t.id);
+  check('I26) Design: lo que se veía antes es el principio de la lista nueva, en el mismo orden, y ahora aparecen los que faltaban',
+    prefijo && disenoAhora.items.length > disenoAntes.length && disenoAhora.items.length <= 30);
+
+  /* Estáticas: la consulta usa el índice que ya existe, no añade ningún where por experiencia, y las pantallas están cableadas. */
+  check('I26) creatorService: búsqueda por userId + createdAt con startAfter, sin where por experiencia (no hay índice nuevo)',
+    /getMyJobsDe:/.test(CS) && /where\('userId', '==', uid\)/.test(CS) && /orderBy\('createdAt', 'desc'\)/.test(CS)
+    && /startAfter\(cursor as DocumentSnapshot\)/.test(CS) && !/where\('experienceId'/.test(CS));
+  check('I26) getMyJobs se queda como estaba: la usa WeeCreatorScreen, que no filtra por experiencia',
+    /getMyJobs: async \(uid: string, max = 10\)/.test(CS) && /limit\(max\)/.test(leer('services/creatorService.ts'))
+    && /creatorService\s*\.getMyJobs\(user\.uid, 6\)/.test(leer('screens/WeeCreatorScreen.tsx')));
+  const consumidores = [leer('screens/ChefScreen.tsx'), leer('screens/SpecialistScreen.tsx'), pantalla];
+  check('I26) Chef, Especialista y Design usan la misma búsqueda y ya no filtran después de un límite fijo',
+    consumidores.every((s) => /getMyJobsDe\(/.test(s) && !/getMyJobs\(user\.uid, (20|30)\)/.test(s) && !/\.filter\(\(job\) => job\.experienceId/.test(s)));
+  check('I26) Design pide 30 trabajos como antes (el límite visual de la franja) y su predicado es el de siempre (design y home)',
+    /getMyJobsDe\(user\.uid, esDeDesign, 30, 30\)/.test(pantalla) && U.EXPERIENCIAS_DE_DESIGN.length === 2 && typeof U.esDeDesign === 'function' && !('sonDeDesign' in U));
+
+  /* Ampliación autorizada: las rutas que no pintan la lista no consultan trabajos (Brain, business, studio, design, chef y sin especialista). */
+  const ESP = leer('screens/SpecialistScreen.tsx');
+  const definicion = (ESP.match(/const sinListaDeTrabajos = ([^;]+);/) || [])[1] || '';
+  const terminosDeLaGuarda = definicion.split('||').map((s) => s.trim());
+  const salidasAnticipadas = [...ESP.matchAll(/^  if \(([^)]*)\) return </gm)].map((m) => m[1].trim());
+  check('I26) Especialista: la guarda cubre exactamente las rutas que no pintan la lista (sin especialista y cada salida anticipada), y ninguna más',
+    terminosDeLaGuarda[0] === '!spec' && terminosDeLaGuarda.length === salidasAnticipadas.length + 1
+    && salidasAnticipadas.every((s) => terminosDeLaGuarda.includes(s)) && salidasAnticipadas.length === 5);
+  check('I26) Especialista: la guarda va ANTES de getMyJobsDe y es la única que decide si se consulta',
+    ESP.includes('if (!user || sinListaDeTrabajos) {') && ESP.indexOf('if (!user || sinListaDeTrabajos)') < ESP.indexOf('getMyJobsDe(user.uid'));
+  check('I26) Especialista: las rutas con lista siguen consultando con su experiencia, cuatro trabajos y página de veinte',
+    /getMyJobsDe\(user\.uid, \(job\) => job\.experienceId === id, 4, 20\)/.test(ESP) && /if \(!cancelled\) setMyJobs\(jobs\);/.test(ESP));
+  check('I26) Chef: su consulta propia sigue (ocho trabajos, página de veinte) y Especialista no la duplica para «chef»',
+    /getMyJobsDe\(user\.uid, \(job\) => job\.experienceId === 'chef', 8, 20\)/.test(leer('screens/ChefScreen.tsx')) && terminosDeLaGuarda.includes("id === 'chef'"));
+  const hookEsp = leer('hooks/useEspecialista.ts');
+  check('I26) el especialista se resuelve de forma síncrona (useMemo, sin efectos ni async): «!spec» es fijo para cada id y no llega tarde',
+    /useMemo/.test(hookEsp) && !/useEffect|async|await/.test(hookEsp));
+  /* La guarda, evaluada de verdad sobre el catálogo real: cada id de especialista, y uno que no existe. */
+  const catalogo = leer('constants/specialists.ts');
+  const cuerpoDelCatalogo = catalogo.slice(catalogo.indexOf('export const SPECIALISTS'), catalogo.indexOf('export const SPECIALIST_ORDER'));
+  const idsDelCatalogo = [...cuerpoDelCatalogo.matchAll(/^  ([a-z]+): \{/gm)].map((m) => m[1]);
+  const saleAntes = (spec, id) => new Function('spec', 'isBrain', 'id', `return ${definicion};`)(spec, id === 'brain', id);
+  const excluidos = idsDelCatalogo.filter((id) => saleAntes({}, id)).sort();
+  const conLista = idsDelCatalogo.filter((id) => !saleAntes({}, id)).sort();
+  check('I26) guarda sobre el catálogo real: se leen los once especialistas (sin atajos que den una lista vacía)', idsDelCatalogo.length === 11);
+  check('I26) guarda sobre el catálogo real: sale antes de consultar exactamente brain, business, studio, design y chef',
+    JSON.stringify(excluidos) === JSON.stringify(['brain', 'business', 'chef', 'design', 'studio']));
+  check('I26) guarda sobre el catálogo real: photo, music, home, beauty, writer y travel (las que pintan la lista) llegan a getMyJobsDe',
+    JSON.stringify(conLista) === JSON.stringify(['beauty', 'home', 'music', 'photo', 'travel', 'writer']));
+  check('I26) sin especialista (id que no existe, spec nulo) también sale antes de consultar', saleAntes(null, 'inexistente') === true);
+  check('I26) Especialista tiene una sola llamada a getMyJobsDe, y va después de la guarda (ninguna consulta antes de un early return)',
+    ESP.split('getMyJobsDe(user.uid').length - 1 === 1 && ESP.indexOf('getMyJobsDe(user.uid') > ESP.indexOf('if (!user || sinListaDeTrabajos)'));
 };

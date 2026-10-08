@@ -91,9 +91,9 @@ const ChefScreen: React.FC = () => {
       }
       let cancelado = false;
       creatorService
-        .getMyJobs(user.uid, 20)
+        .getMyJobsDe(user.uid, (job) => job.experienceId === 'chef', 8, 20)
         .then((jobs) => {
-          if (!cancelado) setProyectos(jobs.filter((job) => job.experienceId === 'chef').slice(0, 8));
+          if (!cancelado) setProyectos(jobs);
         })
         .catch((error) => console.warn('No se pudieron cargar tus proyectos:', error));
       return () => { cancelado = true; };

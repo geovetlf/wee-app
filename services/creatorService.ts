@@ -1,9 +1,11 @@
 import { httpsCallable } from 'firebase/functions';
-import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, startAfter, where } from 'firebase/firestore';
+import type { DocumentSnapshot } from 'firebase/firestore';
 import { db, functions } from '../config/firebase';
 import { creditsShortfall } from './creditsService';
 import type { Traductor } from '../i18n/traducir';
 import { claveDeNoDisponible } from '../utils/noDisponible';
+import { buscarTrabajos } from '../utils/paginarTrabajos';
 import { textoDelServidorLegible } from '../i18n/servidor';
 
 /**
@@ -297,5 +299,33 @@ export const creatorService = {
     const q = query(collection(db, 'creatorJobs'), where('userId', '==', uid), orderBy('createdAt', 'desc'), limit(max));
     const snap = await getDocs(q);
     return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CreatorJob));
+  },
+
+  /**
+   * Los trabajos del usuario que cumplen `pertenece`, los más recientes primero. Pagina por createdAt con un cursor: el
+   * último documento de la página anterior. Puede atravesar varias páginas hasta reunir `cantidad` resultados. Se detiene
+   * al reunir `cantidad`, al agotarse los documentos o al llegar al límite de MAX_PAGINAS_DE_TRABAJOS páginas (6 como
+   * máximo; utils/paginarTrabajos.ts). Si llega a ese límite, devuelve lo encontrado y el llamador no recibe ninguna señal
+   * de que se alcanzó el tope. Lee el índice userId + createdAt que ya existe; no filtra en servidor por experiencia, así
+   * que no necesita índice nuevo.
+   */
+  getMyJobsDe: async (uid: string, pertenece: (job: CreatorJob) => boolean, cantidad: number, tamano?: number): Promise<CreatorJob[]> => {
+    const { items } = await buscarTrabajos<CreatorJob>({
+      pedirPagina: async (cursor, n) => {
+        const porUsuario = [where('userId', '==', uid), orderBy('createdAt', 'desc')];
+        const q = cursor
+          ? query(collection(db, 'creatorJobs'), ...porUsuario, startAfter(cursor as DocumentSnapshot), limit(n))
+          : query(collection(db, 'creatorJobs'), ...porUsuario, limit(n));
+        const snap = await getDocs(q);
+        return {
+          trabajos: snap.docs.map((d) => ({ id: d.id, ...d.data() } as CreatorJob)),
+          cursor: snap.docs[snap.docs.length - 1],
+        };
+      },
+      pertenece,
+      cantidad,
+      tamano,
+    });
+    return items;
   },
 };

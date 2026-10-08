@@ -41,6 +41,12 @@ const SpecialistScreen: React.FC = () => {
   const id: string = route.params?.id || 'brain';
   const spec = useEspecialista(id);
   const isBrain = id === 'brain';
+  /*
+   * Estas rutas no pintan la lista de trabajos: o no hay especialista, o la pantalla
+   * de abajo es otra. Son las mismas salidas anticipadas del render. Buscar para ellas
+   * sería leer para nada: Chef ya consulta sus propios trabajos en su pantalla.
+   */
+  const sinListaDeTrabajos = !spec || isBrain || id === 'business' || id === 'studio' || id === 'design' || id === 'chef';
 
   const [myJobs, setMyJobs] = useState<CreatorJob[]>([]);
   /*
@@ -56,21 +62,21 @@ const SpecialistScreen: React.FC = () => {
       // primero que se ve es la comunidad. Se cierra durante la transición, así
       // que nadie ve moverse la página bajo el dedo.
       setHerramientasAbiertas(false);
-      if (!user) {
+      if (!user || sinListaDeTrabajos) {
         setMyJobs([]);
         return;
       }
       let cancelled = false;
       creatorService
-        .getMyJobs(user.uid, 20)
+        .getMyJobsDe(user.uid, (job) => job.experienceId === id, 4, 20)
         .then((jobs) => {
-          if (!cancelled) setMyJobs(jobs.filter((job) => job.experienceId === id).slice(0, 4));
+          if (!cancelled) setMyJobs(jobs);
         })
         .catch((error) => console.warn('No se pudieron cargar tus creaciones:', error));
       return () => {
         cancelled = true;
       };
-    }, [user, id])
+    }, [user, id, sinListaDeTrabajos])
   );
 
   /*

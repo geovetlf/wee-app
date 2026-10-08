@@ -783,9 +783,8 @@ export const salidaDeSeleccion = (s: SeleccionDeDesign): TipoDeResultado => {
   return k === 'image' || k === 'model3d' || k === 'world' || k === 'video' ? k : 'none';
 };
 
-/** Lo que se ve en la franja: solo los trabajos de Weë Design (y Hogar & Diseño). */
-export const sonDeDesign = (jobs: readonly CreatorJob[]): CreatorJob[] =>
-  jobs.filter((j) => EXPERIENCIAS_DE_DESIGN.includes(j.experienceId));
+/** Lo que se ve en la franja: solo los trabajos de Weë Design (y Hogar & Diseño). Predicado, para buscarlos paginando. */
+export const esDeDesign = (job: CreatorJob): boolean => EXPERIENCIAS_DE_DESIGN.includes(job.experienceId);
 
 /** Las clases de material que Weë Design enseña en su biblioteca. */
 export const CLASES_DE_LA_BIBLIOTECA: readonly ('image' | 'model3d' | 'world')[] = Object.freeze(['image', 'model3d', 'world']);

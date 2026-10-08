@@ -33,7 +33,7 @@ import {
 } from '../constants/designReferencia';
 import {
   DESTINO_DEL_GRUPO, FiltroDeBiblioteca, SeleccionDeDesign, contextoDeDesign, contextoParaAbrir, contextoParaCambiar,
-  disposicionDelWorkspace, estadoDeLaCapacidad, resumenDeSeleccion, simularResultado, sonDeDesign, tipoDeSeleccion,
+  disposicionDelWorkspace, esDeDesign, estadoDeLaCapacidad, resumenDeSeleccion, simularResultado, tipoDeSeleccion,
 } from '../utils/designReferencia';
 import { assetsService, AssetDoc } from '../services/assetsService';
 import { creatorService, CreatorJob } from '../services/creatorService';
@@ -126,8 +126,8 @@ const EspacioDeTrabajo: React.FC = () => {
     assetsService.listar(user.uid, {})
       .then((pagina) => { if (vivo) setCreaciones({ estado: 'listo', items: pagina.items }); })
       .catch((error) => { console.warn('Referencia de Weë Design: creaciones', error); if (vivo) setCreaciones({ estado: 'error', items: [] }); });
-    creatorService.getMyJobs(user.uid, 30)
-      .then((jobs) => { if (vivo) setTrabajos({ estado: 'listo', items: sonDeDesign(jobs) }); })
+    creatorService.getMyJobsDe(user.uid, esDeDesign, 30, 30)
+      .then((jobs) => { if (vivo) setTrabajos({ estado: 'listo', items: jobs }); })
       .catch((error) => { console.warn('Referencia de Weë Design: trabajos', error); if (vivo) setTrabajos({ estado: 'error', items: [] }); });
     return () => { vivo = false; };
   }, [user, recarga]);
