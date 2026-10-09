@@ -2,31 +2,49 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    // === Política contra la sobrescritura (línea A2 · activos-politicas) ===
+    // Ningún cliente SOBRESCRIBE, CAMBIA ni BORRA un objeto. Cada subida de la app
+    // crea un nombre nuevo (marca de tiempo + azar) y la regla lo exige con
+    // `resource == null`: sobre un objeto que ya existe, la creación no se cumple y
+    // la subida se deniega. `update` y `delete` van en `if false`. Quien borra es el
+    // servidor con Admin SDK (`deleteAsset`, `burnViewOnce`), que no pasa por estas
+    // reglas. Ver docs/ACTIVOS-POLITICA-STORAGE.md.
+    //
     // === Imágenes de posts (legacy — nuevas subidas van a Cloudinary) ===
+    // La lectura sigue pública: las publicaciones antiguas enlazan estas URLs.
+    // Ninguna subida de la app actual escribe aquí; se conserva solo la creación
+    // de nombres nuevos, para builds antiguos.
     match /images/posts/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.size < 5 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && resource == null
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if false;
     }
 
     // === Imágenes de perfil (legacy — nuevas subidas van a Cloudinary) ===
+    // Misma política que las imágenes de posts: lectura pública, creación de nombres nuevos.
     match /images/profile/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.size < 2 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && resource == null
+                    && request.resource.size < 2 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if false;
     }
 
     // === Face-swap: selfie subida por el usuario ===
     match /users/{userId}/face-swap/{fileName} {
       allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && resource == null
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if false;
     }
 
     // === AI Avatar generado por Cloud Function (lectura pública, escritura solo backend) ===
@@ -66,21 +84,26 @@ service firebase.storage {
     }
 
     // === Fotos que la persona sube para Weë Creator (Photo, Home, Beauty, Chef, Studio) ===
+    // Sobre `resource == null`: la subida solo crea un nombre nuevo (ver la política arriba).
     match /users/{userId}/creator-inputs/{fileName} {
       allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && resource == null
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if false;
     }
 
     // === Fotos adjuntas en Weë Brain ===
     match /users/{userId}/brain-attachments/{fileName} {
       allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && resource == null
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if false;
     }
 
     // === WeeTalk: la foto que se ve una sola vez (Fase 11, C3) ===
@@ -98,12 +121,19 @@ service firebase.storage {
     match /users/{userId}/weetalk/{conversationId}/{fileName} {
       allow read: if request.auth != null
                   && (request.auth.uid == userId || participaEn(conversationId));
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+      // La foto se crea una vez: ni se sobrescribe ni se borra desde la app.
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && resource == null
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if false;
     }
 
-    // Sin catch-all — cualquier otra ruta queda denegada por defecto.
+    // Catch-all explícito: cualquier otra ruta queda denegada. Un `allow` que no
+    // concede nada no cambia el resultado de las demás reglas.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
   }
 }

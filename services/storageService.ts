@@ -16,7 +16,6 @@ import { Platform } from 'react-native';
 import {
   ref,
   getDownloadURL,
-  deleteObject,
   uploadBytes,
 } from 'firebase/storage';
 import { storage } from '../config/firebase';
@@ -166,27 +165,13 @@ export const uploadPostVideo = async (
 
 // ─── Firebase Storage utils (for old files) ─────────────────────────
 
+/*
+ * Los borrados de Storage desde el cliente se retiraron (línea A2): no tenían llamadores, y las reglas
+ * ya no permiten borrar desde la app. El borrado físico lo hace el servidor (docs/ACTIVOS-POLITICA-STORAGE.md).
+ */
 export const storageService = {
   async getDownloadUrl(path: string): Promise<string> {
     const storageRef = ref(storage, path);
     return getDownloadURL(storageRef);
-  },
-
-  async deleteFile(path: string): Promise<void> {
-    try {
-      const storageRef = ref(storage, path);
-      await deleteObject(storageRef);
-    } catch (error) {
-      console.error('Error deleting file:', error);
-    }
-  },
-
-  async deleteFileByUrl(url: string): Promise<void> {
-    try {
-      const storageRef = ref(storage, url);
-      await deleteObject(storageRef);
-    } catch (error) {
-      console.error('Error deleting file by URL:', error);
-    }
   },
 };
