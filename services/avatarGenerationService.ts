@@ -159,8 +159,10 @@ export async function uploadImageForSwap(
   imageUri: string,
   _base64Data?: string | null
 ): Promise<string> {
+  // Nombre nuevo (marca de tiempo + azar): las reglas de Storage no permiten sobrescribir (docs/ACTIVOS-POLITICA-STORAGE.md).
   const timestamp = Date.now();
-  const storagePath = `users/${userId}/face-swap/source_${timestamp}.jpg`;
+  const azar = Math.random().toString(36).slice(2, 8);
+  const storagePath = `users/${userId}/face-swap/source_${timestamp}-${azar}.jpg`;
   const storageRef = ref(storage, storagePath);
 
   // fetch local file URI → blob (works reliably in React Native)
