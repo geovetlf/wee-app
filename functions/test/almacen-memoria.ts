@@ -6,7 +6,7 @@
  * prueba comprueba que el índice sigue íntegro. El `respaldo` es un Map que se
  * puede compartir entre instancias: así una «reapertura» lee lo persistido.
  */
-import { ErrorAlmacenLocal, esTemporal, SUFIJO_TEMPORAL, validarClave, type AlmacenLocal, type EntradaDelAlmacen, type EstadoDelAlmacen } from './tipos';
+import { ErrorAlmacenLocal, esTemporal, SUFIJO_TEMPORAL, validarClave, type AlmacenLocal, type EntradaDelAlmacen, type EstadoDelAlmacen } from '../../services/almacenLocal/tipos';
 
 export type PasoDeEscritura = 'escribir-temporal' | 'renombrar' | 'borrar' | 'leer';
 

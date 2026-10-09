@@ -108,7 +108,7 @@ export const base64Codificar = (bytes: Uint8Array): string => {
 
 /** base64 → bytes. Lanza `Error` si el texto no es base64 válido: quien lo llama decide qué significa. */
 export const base64Decodificar = (texto: string): Uint8Array => {
-  if (texto.length % 4 !== 0) throw new Error('base64: longitud no válida');
+  if (texto.length % 4 !== 0) throw new Error('base64:longitud');
   const relleno = texto.endsWith('==') ? 2 : texto.endsWith('=') ? 1 : 0;
   const total = (texto.length / 4) * 3 - relleno;
   const salida = new Uint8Array(total);
@@ -118,7 +118,7 @@ export const base64Decodificar = (texto: string): Uint8Array => {
     const valores = [texto.charCodeAt(i), texto.charCodeAt(i + 1), texto.charCodeAt(i + 2), texto.charCodeAt(i + 3)].map((c, k) => {
       if (ultimo && k >= 4 - relleno && texto[i + k] === '=') return 0;
       const v = c < 128 ? VALOR_DE_CARACTER[c] : -1;
-      if (v < 0) throw new Error('base64: carácter no válido');
+      if (v < 0) throw new Error('base64:caracter');
       return v;
     });
     const n = (valores[0] << 18) | (valores[1] << 12) | (valores[2] << 6) | valores[3];

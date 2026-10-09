@@ -14,7 +14,7 @@ import { importarFuente } from './_cargador-local-first.mjs';
 
 const { abrirCatalogoLocal } = await importarFuente('utils/catalogoLocal.ts');
 const { codificarBundle, decodificarBundle, ErrorDelBundle } = await importarFuente('utils/bundleLocal.ts');
-const { crearAlmacenMemoria } = await importarFuente('services/almacenLocal/memoria.ts');
+const { crearAlmacenMemoria } = await importarFuente('functions/test/almacen-memoria.ts');
 
 let fallos = 0;
 const check = (nombre, cond, extra = '') => {

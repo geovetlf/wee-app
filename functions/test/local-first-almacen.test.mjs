@@ -11,7 +11,7 @@
  */
 import { importarFuente } from './_cargador-local-first.mjs';
 
-const { crearAlmacenMemoria } = await importarFuente('services/almacenLocal/memoria.ts');
+const { crearAlmacenMemoria } = await importarFuente('functions/test/almacen-memoria.ts');
 const { ErrorAlmacenLocal, validarClave } = await importarFuente('services/almacenLocal/tipos.ts');
 
 let fallos = 0;

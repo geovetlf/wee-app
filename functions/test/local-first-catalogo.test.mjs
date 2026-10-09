@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 import { importarFuente } from './_cargador-local-first.mjs';
 
 const { abrirCatalogoLocal, CLAVE_DEL_INDICE, ESQUEMA_DEL_INDICE } = await importarFuente('utils/catalogoLocal.ts');
-const { crearAlmacenMemoria } = await importarFuente('services/almacenLocal/memoria.ts');
+const { crearAlmacenMemoria } = await importarFuente('functions/test/almacen-memoria.ts');
 const { ErrorAlmacenLocal } = await importarFuente('services/almacenLocal/tipos.ts');
 
 let fallos = 0;
