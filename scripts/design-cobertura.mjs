@@ -122,8 +122,9 @@ export const generar = () => {
     if (ex) partes.push(`no cuentan (${ex.motivo}): ${ex.origenes.map((o) => P.origenes[o].nombre).join(', ')}`);
     return partes.join(' · ') || '—';
   };
+  /* El mapa es ESTÁTICO (el registro, sin cuenta): se pinta lo que Design mostraría si el servidor confirmara. La disponibilidad real por cuenta es del servidor (DEC-06). */
   const estadoHoy = (cap) => {
-    const e = U.estadoDeLaCapacidad(cap);
+    const e = U.estadoDeLaCapacidad(cap, undefined, undefined, () => true);
     const nivel = texto(U.CLAVE_DEL_NIVEL[e.nivel]);
     return e.motivo ? `${nivel}: ${texto(e.motivo)}` : nivel;
   };

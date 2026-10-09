@@ -57,4 +57,8 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   tomaNoGenerable: 'That take can’t be generated like this.',
   creacionNoEncontrada: 'We couldn’t find that creation.',
   debesIniciarSesion: 'You need to sign in',
+  versionNoLista: 'That creation isn’t ready to have versions yet.',
+  versionOtroTipo: 'A version has to be the same kind of material, and the file has to say what kind it is.',
+  archivoYaUsado: 'That file is already one of your materials.',
+  archivoNoEnAlmacen: 'That file isn’t in your Weë storage.',
 };

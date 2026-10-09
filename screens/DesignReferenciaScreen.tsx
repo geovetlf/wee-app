@@ -33,8 +33,10 @@ import {
 } from '../constants/designReferencia';
 import {
   DESTINO_DEL_GRUPO, FiltroDeBiblioteca, SeleccionDeDesign, contextoDeDesign, contextoParaAbrir, contextoParaCambiar,
-  disposicionDelWorkspace, esDeDesign, estadoDeLaCapacidad, resumenDeSeleccion, simularResultado, tipoDeSeleccion,
+  capacidadesQueConsultaDesign, disposicionDelWorkspace, esDeDesign, estadoDeLaCapacidad, resumenDeSeleccion, simularResultado,
+  tipoDeSeleccion,
 } from '../utils/designReferencia';
+import { disponibilidadService } from '../services/disponibilidadService';
 import { assetsService, AssetDoc } from '../services/assetsService';
 import { creatorService, CreatorJob } from '../services/creatorService';
 import { projectsService, WeeProject } from '../services/projectsService';
@@ -174,9 +176,28 @@ const EspacioDeTrabajo: React.FC = () => {
   /* El grupo que trae la dirección (`/design/referencia/<grupo>`), una vez. */
   useEffect(() => { irAlGrupo(grupoPedido); }, [grupoPedido, irAlGrupo]);
 
+  /* La disponibilidad real de las capacidades de la cuenta (DEC-06): la dice el servidor, no el catálogo. Sin respuesta, cierra. */
+  const [disponibilidad, setDisponibilidad] = useState<{ listo: boolean; mapa: Record<string, boolean> }>({ listo: false, mapa: {} });
+  useEffect(() => {
+    if (!user) return;
+    let vivo = true;
+    disponibilidadService
+      .consultar(capacidadesQueConsultaDesign())
+      .then((mapa) => { if (vivo) setDisponibilidad({ listo: true, mapa }); })
+      .catch((error) => {
+        console.warn('Referencia de Weë Design: disponibilidad', error);
+        if (vivo) setDisponibilidad({ listo: false, mapa: {} });
+      });
+    return () => { vivo = false; };
+  }, [user]);
+  const disponibleEnServidor = useCallback(
+    (id: string) => disponibilidad.listo && disponibilidad.mapa[id] === true,
+    [disponibilidad],
+  );
+
   const estadoDe = useCallback(
-    (cap: CapacidadDeDesign) => estadoDeLaCapacidad(cap, resumenDeSeleccion(seleccion, urlDe)),
-    [seleccion],
+    (cap: CapacidadDeDesign) => estadoDeLaCapacidad(cap, resumenDeSeleccion(seleccion, urlDe), undefined, disponibleEnServidor),
+    [seleccion, disponibleEnServidor],
   );
 
   const palabras = useMemo(() => Object.entries(ajustes).flatMap(([grupoDeAjuste, opcion]) => {

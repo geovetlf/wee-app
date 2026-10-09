@@ -113,6 +113,7 @@ export { evalRun } from './evals';
  */
 export { publicPostPage } from './public/postPage';
 export { engineAdmin } from './engine/admin';
+export { disponibilidadDeCapacidades } from './engine/disponibilidad';
 
 // Content Core (Fase 11): retirar un material propio, objeto incluido.
 export { deleteAsset } from './content';

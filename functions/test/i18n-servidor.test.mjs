@@ -162,7 +162,7 @@ const rellenarCon = (m, valores) => {
     name: nombres,
     max: ['4000', '3000'],
   };
-  const archivos = ['creator/index.ts', 'creator/inputs.ts', 'creator/brain.ts', 'creator/video.ts', 'engine/errors.ts', 'engine/router.ts', 'engine/video.ts', 'content/index.ts']
+  const archivos = ['creator/index.ts', 'creator/inputs.ts', 'creator/brain.ts', 'creator/video.ts', 'engine/errors.ts', 'engine/router.ts', 'engine/video.ts', 'content/index.ts', 'content/versiones.ts', 'engine/disponibilidad.ts']
     .map((a) => `functions/src/${a}`);
   const mensajes = [...Object.values(ENGINE_MESSAGES), ...mensajesDelCodigo(archivos).flatMap((m) => rellenarCon(m, valores))]
     // Lo que no es una frase para una persona (códigos, mensajes en inglés de diagnóstico).

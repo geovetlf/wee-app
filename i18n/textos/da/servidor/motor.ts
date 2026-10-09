@@ -75,4 +75,8 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   tomaNoGenerable: 'Den version kan ikke genereres på den måde.',
   creacionNoEncontrada: 'Vi kunne ikke finde den kreation.',
   debesIniciarSesion: 'Du skal logge ind',
+  versionNoLista: 'Kreationen er ikke klar til at få versioner endnu.',
+  versionOtroTipo: 'En version skal være samme slags materiale, og filen skal sige, hvilken slags den er.',
+  archivoYaUsado: 'Den fil er allerede et af dine materialer.',
+  archivoNoEnAlmacen: 'Filen findes ikke i dit Weë-lager.',
 };

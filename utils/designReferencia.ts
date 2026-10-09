@@ -93,6 +93,7 @@ export const estadoDeLaCapacidad = (
   cap: CapacidadDeDesign,
   seleccion: ResumenDeSeleccion = SIN_SELECCION,
   catalogo: readonly CatalogEntry[] = CAPABILITY_CATALOG,
+  disponibleEnServidor: (id: string) => boolean = () => false,
 ): EstadoDeLaCapacidad => {
   const porId = new Map<string, CatalogEntry>(catalogo.map((x) => [String(x.id), x]));
   const propuestas = cap.capacidades.filter((id) => !porId.has(id)).map(String);
@@ -125,8 +126,19 @@ export const estadoDeLaCapacidad = (
   const nivel: NivelDeCapacidad = cap.requiere.length > 0 ? 'parcial' : 'conectada';
   const motivo = falta(cap.necesita, seleccion);
   if (motivo) return { disponible: false, nivel, motivo, porSeleccion: true, propuestas, noEnrutables };
+  /*
+   * La disponibilidad la dice el SERVIDOR por cuenta (DEC-06), no el catálogo: una capacidad sin ruta real para esta
+   * cuenta no está disponible, aunque el catálogo la marque ROUTABLE. Sin respuesta del servidor, cierra.
+   */
+  if (!cap.capacidades.every((id) => disponibleEnServidor(id))) {
+    return { disponible: false, nivel, motivo: 'weeai.errNotAvailable', porSeleccion: false, propuestas, noEnrutables };
+  }
   return { disponible: true, nivel, motivo: null, porSeleccion: false, propuestas, noEnrutables };
 };
+
+/** Las capacidades del Core que Weë Design consulta al servidor: las de sus filas que se ven en la pantalla. */
+export const capacidadesQueConsultaDesign = (): string[] =>
+  [...new Set(CAPACIDADES_DE_DESIGN.filter((c) => c.enDesign).flatMap((c) => c.capacidades))];
 
 /* ── Los diecinueve pasos ──────────────────────────────────────────────────── */
 

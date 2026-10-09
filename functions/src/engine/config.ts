@@ -58,8 +58,9 @@ export const defaultConfig = (): EngineConfig => ({
   source: 'defaults',
 });
 
-export async function loadConfig(force = false): Promise<EngineConfig> {
-  if (!force && cache && Date.now() - cache.at < CACHE_MS) return cache.config;
+export async function loadConfig(force = false, estado?: { fallo: boolean; ajustes: boolean }): Promise<EngineConfig> {
+  // Con `estado` siempre se lee: quien lo pasa necesita la lectura de hoy, nunca una caché que no sabe si estaba bien.
+  if (!force && !estado && cache && Date.now() - cache.at < CACHE_MS) return cache.config;
   const config = defaultConfig();
   try {
     const [providers, routing, settings] = await Promise.all([
@@ -95,12 +96,29 @@ export async function loadConfig(force = false): Promise<EngineConfig> {
         },
       };
     }
+    if (estado) estado.ajustes = settings.exists;
     // Solo cuenta como Firestore si hay algo guardado allí
     config.source = providers.size > 0 || routing.size > 0 || settings.exists ? 'firestore' : 'defaults';
   } catch (error) {
     console.warn('WEË AI ENGINE: no se pudo leer la configuración, se usan los valores por defecto:', error);
+    if (estado) estado.fallo = true;
   }
-  cache = { at: Date.now(), config };
+  if (!estado) cache = { at: Date.now(), config };
+  return config;
+}
+
+/** No se pudo leer la configuración de IA, o falta `aiSettings/global`: no se puede decidir con certeza. */
+export class ConfiguracionNoLegible extends Error {}
+
+/**
+ * Para decidir si una capacidad está DISPONIBLE (Availability). Si la lectura falla, o si no existe `aiSettings/global`
+ * (el interruptor de la IA), LANZA. No usa la caché: cada decisión lee de nuevo, así que un fallo no se recuerda.
+ */
+export async function loadConfigEstricta(): Promise<EngineConfig> {
+  const estado = { fallo: false, ajustes: false };
+  const config = await loadConfig(true, estado);
+  if (estado.fallo) throw new ConfiguracionNoLegible('la lectura de la configuración de IA ha fallado');
+  if (!estado.ajustes) throw new ConfiguracionNoLegible('falta aiSettings/global');
   return config;
 }
 

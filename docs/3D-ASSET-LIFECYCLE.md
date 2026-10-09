@@ -51,11 +51,11 @@ expone `vieneDe` (la versión anterior).
 
 ### 1.2 Dónde se guardan y se retiran: `functions/src/content/`
 
-- `crearMaterialDesdeUrl` crea la ficha (acepta `provenance` y `derechos`; **no** acepta `previousVersionId` ni
-  `variants`). `tipoPorMime` respeta `world`/`model3d` declarados.
+- `crearMaterialDesdeUrl` crea la ficha (acepta `provenance`, `derechos` y `previousVersionId`; **no** acepta
+  `variants`). `previousVersionId` lo pasa a esa función solo `crearVersionDeMaterial` (`content/versiones.ts`, sin exportar). `tipoPorMime` respeta `world`/`model3d` declarados.
 - `leerMaterial` solo lee ids `asset_<32 hex>` (el contrato admite cualquier `[A-Za-z0-9_-]{4,128}`).
-- `retirarMaterial` marca la ficha y **borra por clave los objetos de ese material**, sin mirar si alguien más lo usa ni
-  si otra ficha apunta al mismo objeto. `anotarVariante` añade una variante.
+- `retirarMaterial` marca la ficha y **borra los objetos de ese material salvo los que otra ficha viva usa** (E-1: lo decide una comprobación local en `content/index.ts`, copia de la regla 4 del Core —`core/content/linaje.ts`—, porque ninguna función de ese módulo se usa fuera de `core/`),
+  lo que queda compartido queda pendiente. `anotarVariante` añade una variante.
 - Media Cloud (`core/media/`): las claves nacen de cuenta + material + pieza (`accounts/<cuenta>/assets/<material>/<pieza>`);
   la recolección protege ante la duda y ya distingue referencias de material, variante y versión.
 
@@ -172,7 +172,7 @@ línea tuviera que listarse en una sola consulta (P6, aplazado).
    que Filmmaker con `stale`: nada pagado se rehace solo.
 5. **Volver atrás** es volver a apuntar la referencia (`volver_a_una_version` → `referencia`) o editar desde la versión
    vieja (una rama). Nunca se modifica ni se borra una versión más nueva, y **nunca se «restaura» compartiendo los bytes
-   de la vieja**: `retirarMaterial` borra por clave, así que dos fichas con el mismo objeto se lo borrarían la una a la
+   de la vieja**: `retirarMaterial` no borra un objeto que otra ficha viva usa (E-1), así que dos fichas con el mismo objeto no se lo borran la una a la
    otra (regla 4, `objeto_compartido`).
 6. **Retirar una versión** deja su ficha: no renumera nada y la vigente pasa a la más nueva que siga lista. Antes de
    retirar hay que preguntar quién la usa (P5).

@@ -36,13 +36,24 @@ const ref = (p) => ({
   get: async () => ({ exists: docs.has(p), data: () => docs.get(p) }),
   set: async (d, opts) => { docs.set(p, opts?.merge ? { ...(docs.get(p) || {}), ...d } : { ...d }); },
 });
-const baseFalsa = { collection: (c) => ({ doc: (id) => ref(`${c}/${id}`) }) };
+const baseFalsa = { collection: (c) => ({
+  doc: (id) => ref(`${c}/${id}`),
+  where: (campo, _op, valor) => {
+    const coincidencias = () => [...docs.entries()]
+      .filter(([p, d]) => p.startsWith(`${c}/`) && campo.split('.').reduce((o, k) => (o == null ? undefined : o[k]), d) === valor)
+      .map(([p, d]) => ({ id: p.slice(c.length + 1), data: () => d }));
+    const instantanea = async () => { const lista = coincidencias(); return { docs: lista, empty: lista.length === 0 }; };
+    return { get: instantanea, limit: () => ({ get: instantanea }) };
+  },
+}) };
 const getFirestoreReal = firestore.getFirestore;
 firestore.getFirestore = () => baseFalsa;
 
 const http = lib('engine/http.js');
 const objetos = new Map(); // objectKey → { contentType, size }
 const borrados = [];
+const noBorrables = new Set(); // claves cuyo borrado falla: la prueba de la marca pendiente lo usa
+const noExistentes = new Set(); // claves cuya comprobación de existencia falla: la prueba de la revisión posterior lo usa
 const storageBucketReal = http.storageBucket;
 http.storageBucket = () => ({
   name: 'get-wee.firebasestorage.app',
@@ -51,7 +62,14 @@ http.storageBucket = () => ({
       if (!objetos.has(key)) throw new Error('No such object');
       return [objetos.get(key)];
     },
-    delete: async () => { borrados.push(key); objetos.delete(key); },
+    exists: async () => {
+      if (noExistentes.has(key)) throw new Error('el almacén no responde a la comprobación de existencia');
+      return [objetos.has(key)];
+    },
+    delete: async () => {
+      if (noBorrables.has(key)) throw new Error('el almacén no permite borrar este objeto');
+      borrados.push(key); objetos.delete(key);
+    },
   }),
 });
 
@@ -152,6 +170,48 @@ console.log('\n── C · Retirar: es tuyo, se marca, se borra — en ese orden
     rc.status === 'retirado' && rc.pendientes === 1 && rc.objetosBorrados === 0
     && docs.get(`assets/${cloudId}`).pendingPhysicalDeletion === true,
     'borrar allí exige su API de administración con secreto, que Weë no tiene');
+
+    /* 24 · Una variante viva de otra ficha de la cuenta protege su objeto aunque otra ficha lo tenga como archivo (E-1). */
+    const ORIGEN_24 = 'users/uAna/ai-generations/original-24.png';
+    const VARIANTE_24 = 'users/uAna/ai-generations/variante-24.png';
+    for (const k of [ORIGEN_24, VARIANTE_24]) objetos.set(k, { contentType: 'image/png', size: 10 });
+    const urlDe24 = (k) => `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${encodeURIComponent(k)}?alt=media&token=abc-123`;
+    const duena24 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDe24(ORIGEN_24), kind: 'image', provenance: { createdAt: 1 } });
+    await content.anotarVariante('uAna', duena24.assetId, { kind: 'thumbnail', storageRef: { provider: 'wee', bucket: BUCKET, objectKey: VARIANTE_24 }, mimeType: 'image/png' });
+    const porArchivo24 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDe24(VARIANTE_24), kind: 'image', provenance: { createdAt: 2 } });
+    const r24 = await content.retirarMaterial('uAna', porArchivo24.assetId);
+    check('24 una variante viva de otra ficha de la cuenta no se borra al retirar la ficha que la tiene como archivo',
+      r24.status === 'retirado' && objetos.has(VARIANTE_24) && !borrados.includes(VARIANTE_24), `objeto presente: ${objetos.has(VARIANTE_24)}`);
+
+    /* 25 · Otro proveedor con la misma clave no es el mismo objeto: no bloquea el borrado (identidad del Core).
+       La ficha de Cloudinary copia bucket y objectKey de la de Weë: lo único que cambia es el proveedor. */
+    const CLAVE_25 = 'users/uAna/ai-generations/clave-25.png';
+    objetos.set(CLAVE_25, { contentType: 'image/png', size: 10 });
+    const fichaWee25 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDe24(CLAVE_25), kind: 'image', provenance: { createdAt: 3 } });
+    const refWee25 = docs.get(`assets/${fichaWee25.assetId}`).storageRef;
+    docs.set('assets/cloud-25', { assetId: 'cloud-25', ownerAccountId: 'uBeto', kind: 'image', status: 'ready', storageRef: { ...refWee25, provider: 'cloudinary' }, provenance: { createdAt: 3 } });
+    const refCloud25 = docs.get('assets/cloud-25').storageRef;
+
+    const r25 = await content.retirarMaterial('uAna', fichaWee25.assetId);
+    check('25 una ficha de otro proveedor con la misma clave no bloquea el borrado del objeto de Weë (solo cambia el proveedor)',
+      refWee25.provider === 'wee' && refCloud25.provider === 'cloudinary' && refCloud25.bucket === refWee25.bucket
+      && refCloud25.objectKey === refWee25.objectKey && r25.status === 'retirado' && !objetos.has(CLAVE_25) && borrados.includes(CLAVE_25),
+      `objeto presente: ${objetos.has(CLAVE_25)}`);
+
+    /* 26 · Una ficha que pierde uno de sus dos objetos sigue pendiente mientras el otro siga en el almacén. */
+    const K26 = 'users/uAna/ai-generations/k26.png';
+    const L26 = 'users/uAna/ai-generations/l26.png';
+    objetos.set(K26, { contentType: 'image/png', size: 10 });
+    objetos.set(L26, { contentType: 'image/png', size: 10 });
+    noBorrables.add(L26);
+    const x26 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDe24(K26), kind: 'image', provenance: { createdAt: 4 } });
+    const y26 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDe24(K26), kind: 'image', provenance: { createdAt: 5 } });
+    await content.anotarVariante('uAna', x26.assetId, { kind: 'thumbnail', storageRef: { provider: 'wee', bucket: BUCKET, objectKey: L26 }, mimeType: 'image/png' });
+    const rx26 = await content.retirarMaterial('uAna', x26.assetId);
+    const ry26 = await content.retirarMaterial('uAna', y26.assetId);
+    check('26 la ficha que pierde uno de sus dos objetos sigue pendiente mientras el otro siga en el almacén',
+      rx26.pendientes === 2 && ry26.status === 'retirado' && objetos.has(L26) && docs.get(`assets/${x26.assetId}`).pendingPhysicalDeletion === true,
+      `pendientes al retirar: ${rx26.pendientes}, marca final: ${docs.get(`assets/${x26.assetId}`).pendingPhysicalDeletion}`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -173,6 +233,62 @@ console.log('\n── D · El callable, ejecutado ──');
   check('27) su dueña lo retira, objeto incluido',
     ok.status === 'deleted' && ok.already === false && !objetos.has('users/uCaro/ai-generations/2-weel.mp4'));
   check('28) y otra vez es `already`', (await correr('uCaro', video.assetId)).already === true);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── E · Borrado y revisión posterior: fallos por separado (H-6) y la limpieza de la marca (H-8) ──');
+// ════════════════════════════════════════════════════════════════════════════
+{
+  const urlDeE = (k) => `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${encodeURIComponent(k)}?alt=media&token=abc-123`;
+
+  /* H-8 · La limpieza. x e y usan el mismo objeto. Al retirar x queda pendiente, porque y lo usa. Al retirar y, que es la
+     última ficha viva, el objeto se borra y la revisión quita la marca de x. Sin esa revisión, x seguiría marcada. */
+  const K8 = 'users/uAna/ai-generations/k8.png';
+  objetos.set(K8, { contentType: 'image/png', size: 10 });
+  const x8 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDeE(K8), kind: 'image', provenance: { createdAt: 6 } });
+  const y8 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDeE(K8), kind: 'image', provenance: { createdAt: 7 } });
+  await content.retirarMaterial('uAna', x8.assetId);
+  check('H-8 · precondición: mientras y usa el objeto, x queda pendiente y el objeto sigue',
+    docs.get(`assets/${x8.assetId}`).pendingPhysicalDeletion === true && objetos.has(K8));
+  const ry8 = await content.retirarMaterial('uAna', y8.assetId);
+  check('H-8 · la última ficha que lo usa borra el objeto y quita la marca de la ficha retirada que lo tenía pendiente',
+    ry8.status === 'retirado' && ry8.objetosBorrados === 1 && ry8.pendientes === 0 && !objetos.has(K8)
+    && docs.get(`assets/${x8.assetId}`).pendingPhysicalDeletion === false,
+    `marca de x: ${docs.get(`assets/${x8.assetId}`).pendingPhysicalDeletion}`);
+  check('H-8 · y su propia marca queda limpia tras su retirada',
+    docs.get(`assets/${y8.assetId}`).pendingPhysicalDeletion === false);
+
+  /* H-6a · FALLO DE BORRADO. El objeto no se puede borrar: sigue en el almacén, no cuenta como borrado y la ficha queda pendiente. */
+  const K6 = 'users/uAna/ai-generations/k6.png';
+  objetos.set(K6, { contentType: 'image/png', size: 10 });
+  const x6 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDeE(K6), kind: 'image', provenance: { createdAt: 8 } });
+  const y6 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDeE(K6), kind: 'image', provenance: { createdAt: 9 } });
+  await content.retirarMaterial('uAna', x6.assetId);
+  noBorrables.add(K6);
+  const ry6 = await content.retirarMaterial('uAna', y6.assetId);
+  noBorrables.delete(K6);
+  check('H-6a · FALLO DE BORRADO: el objeto sigue, no cuenta como borrado y la ficha queda pendiente',
+    ry6.status === 'retirado' && ry6.objetosBorrados === 0 && ry6.pendientes === 1 && objetos.has(K6)
+    && docs.get(`assets/${y6.assetId}`).pendingPhysicalDeletion === true,
+    `objetosBorrados: ${ry6.objetosBorrados}, pendientes: ${ry6.pendientes}`);
+
+  /* H-6b · FALLO DE REVISIÓN POSTERIOR. El borrado va bien y falla la revisión de la marca de x. El objeto ya no está, así que
+     y NO se marca como pendiente por ese fallo. x conserva su marca porque la revisión no llegó a quitarla: es el residuo
+     documentado (D1), y también prueba que el fallo sucedió de verdad. */
+  const K7 = 'users/uAna/ai-generations/k7.png';
+  objetos.set(K7, { contentType: 'image/png', size: 10 });
+  const x7 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDeE(K7), kind: 'image', provenance: { createdAt: 10 } });
+  const y7 = await content.crearMaterialDesdeUrl({ ownerAccountId: 'uAna', url: urlDeE(K7), kind: 'image', provenance: { createdAt: 11 } });
+  await content.retirarMaterial('uAna', x7.assetId);
+  noExistentes.add(K7);
+  const ry7 = await content.retirarMaterial('uAna', y7.assetId);
+  noExistentes.delete(K7);
+  check('H-6b · FALLO DE REVISIÓN POSTERIOR: el borrado cuenta como hecho y y NO queda pendiente por el fallo de la revisión',
+    ry7.status === 'retirado' && ry7.objetosBorrados === 1 && ry7.pendientes === 0 && !objetos.has(K7)
+    && docs.get(`assets/${y7.assetId}`).pendingPhysicalDeletion === false,
+    `objetosBorrados: ${ry7.objetosBorrados}, pendientes: ${ry7.pendientes}`);
+  check('H-6b · prueba de que el fallo llegó a la revisión: x conserva la marca que ya tenía (residuo D1)',
+    docs.get(`assets/${x7.assetId}`).pendingPhysicalDeletion === true);
 }
 
 http.storageBucket = storageBucketReal;

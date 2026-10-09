@@ -55,4 +55,8 @@ export const motor = {
   tomaNoGenerable: 'Esa toma no se puede generar así.',
   creacionNoEncontrada: 'No encontramos esa creación.',
   debesIniciarSesion: 'Debes iniciar sesión',
+  versionNoLista: 'Esa creación no está lista para tener versiones.',
+  versionOtroTipo: 'La versión tiene que ser del mismo tipo de material, y el archivo tiene que decir qué tipo es.',
+  archivoYaUsado: 'Ese archivo ya es un material tuyo.',
+  archivoNoEnAlmacen: 'Ese archivo no está en tu almacén de Weë.',
 };

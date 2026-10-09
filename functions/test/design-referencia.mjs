@@ -137,18 +137,18 @@ export const comprobarLaReferenciaDeDesign = async (check) => {
   /* ── I7 · Nada bloqueado se presenta como disponible ──────────────────── */
   const TODO_ENRUTABLE = CAPABILITY_CATALOG.map((e) => ({ ...e, status: 'ROUTABLE' }));
   const SELECCIONES = [U.SIN_SELECCION, { hayTrabajo: true, hayTrabajoDeMaterial: true, hayEntrega: true, esImagen: true }];
-  const disponibleAlgunaVez = (c, estado = U.estadoDeLaCapacidad) => SELECCIONES.some((s) => estado(c, s).disponible || estado(c, s, TODO_ENRUTABLE).disponible);
+  const disponibleAlgunaVez = (c, estado = (cap, sel, cat) => U.estadoDeLaCapacidad(cap, sel, cat, () => true)) => SELECCIONES.some((s) => estado(c, s).disponible || estado(c, s, TODO_ENRUTABLE).disponible);
   const bloqueadas = caps.filter((c) => BLOQUEO.has(c.elegibilidad));
   const mal = bloqueadas.filter((c) => disponibleAlgunaVez(c));
   check('I7) lo pendiente de autorización, en revisión o sin candidato nunca se ofrece como disponible (ni con todo el catálogo enrutable)',
     bloqueadas.length > 0 && mal.length === 0, mal.map((c) => c.id).join(', ') || `${bloqueadas.length} bloqueadas`);
   const propuestas = caps.filter((c) => c.variantePropuesta || c.capacidades.some((id) => C.CAPACIDADES_PROPUESTAS.includes(id)));
   check('I7) ni una propuesta (capacidad o variante que el Core todavía no tiene)', propuestas.length > 0 && propuestas.every((c) => !disponibleAlgunaVez(c)));
-  const disponibles = caps.filter((c) => SELECCIONES.some((s) => U.estadoDeLaCapacidad(c, s).disponible));
+  const disponibles = caps.filter((c) => SELECCIONES.some((s) => U.estadoDeLaCapacidad(c, s, undefined, () => true).disponible));
   check('I7) lo disponible tiene manejador de verdad y es de Weë Design', disponibles.every((c) => c.enDesign && c.integracion.tipo !== 'ninguna'),
     disponibles.map((c) => c.id).join(', '));
   /* Una capacidad conectada de verdad que pasara a «pendiente de autorización»: la disponibilidad real la apaga; una que ignorase la elegibilidad, no. */
-  const ignoraLaElegibilidad = (c, s, cat) => U.estadoDeLaCapacidad({ ...c, elegibilidad: 'cadena_de_wee' }, s, cat);
+  const ignoraLaElegibilidad = (c, s, cat) => U.estadoDeLaCapacidad({ ...c, elegibilidad: 'cadena_de_wee' }, s, cat, () => true);
   const sinAutorizar = { ...C.capacidadPorId('concept'), elegibilidad: 'requiere_acuerdo' };
   check('I7) CONTROL: una disponibilidad que ignorase la elegibilidad se caza',
     !disponibleAlgunaVez(sinAutorizar) && disponibleAlgunaVez(sinAutorizar, ignoraLaElegibilidad));
@@ -353,7 +353,7 @@ export const comprobarLaReferenciaDeDesign = async (check) => {
   const claseCuadra = (e) => {
     const c = capDe(e);
     switch (e.clase) {
-      case 'EXISTING': return U.estadoDeLaCapacidad(c).disponible && e.falta.length === 0;
+      case 'EXISTING': return U.estadoDeLaCapacidad(c, undefined, undefined, () => true).disponible && e.falta.length === 0;
       case 'PARTIAL': return c.estado === 'PARTIAL';
       case 'BACKEND_REQUIRED': return c.requiere.includes('servidor') && !['requiere_acuerdo', 'en_revision'].includes(c.elegibilidad);
       case 'PROVIDER_REQUIRED': return BLOQUEO.has(c.elegibilidad) && c.requiere.includes('proveedor');
@@ -724,4 +724,38 @@ export const comprobarLaReferenciaDeDesign = async (check) => {
   check('I26) sin especialista (id que no existe, spec nulo) también sale antes de consultar', saleAntes(null, 'inexistente') === true);
   check('I26) Especialista tiene una sola llamada a getMyJobsDe, y va después de la guarda (ninguna consulta antes de un early return)',
     ESP.split('getMyJobsDe(user.uid').length - 1 === 1 && ESP.indexOf('getMyJobsDe(user.uid') > ESP.indexOf('if (!user || sinListaDeTrabajos)'));
+
+  /* ── I27 · DEC-06: la disponibilidad la dice el SERVIDOR, por cuenta; el catálogo ya no decide ─────────────── */
+  const SERVIDOR_SI = () => true;
+  const SERVIDOR_NO = () => false;
+  const sinCapacidad = (c) => ({ ...c, capacidades: [] });
+  const conCapacidadOk = caps.find((c) => c.capacidades.length > 0 && U.estadoDeLaCapacidad(sinCapacidad(c), U.SIN_SELECCION).disponible);
+  check('I27) hay al menos una fila con capacidad del servidor que lo estático deja disponible (para verificar lo demás)', !!conCapacidadOk);
+  if (conCapacidadOk) {
+    check('I27) sin respuesta del servidor, cierra: una fila con capacidad no está disponible por defecto',
+      U.estadoDeLaCapacidad(conCapacidadOk, U.SIN_SELECCION).disponible === false);
+    check('I27) con el servidor confirmando, queda disponible; con el servidor negando, no, y el motivo es el público, no un proveedor',
+      U.estadoDeLaCapacidad(conCapacidadOk, U.SIN_SELECCION, undefined, SERVIDOR_SI).disponible === true
+      && U.estadoDeLaCapacidad(conCapacidadOk, U.SIN_SELECCION, undefined, SERVIDOR_NO).motivo === 'weeai.errNotAvailable');
+    check('I27) el catálogo ROUTABLE ya no decide: con todo el catálogo enrutable y el servidor negando, no está disponible',
+      U.estadoDeLaCapacidad(conCapacidadOk, U.SIN_SELECCION, TODO_ENRUTABLE, SERVIDOR_NO).disponible === false);
+  }
+  const sinCapacidadDelServidor = caps.filter((c) => c.capacidades.length === 0);
+  check('I27) las filas sin capacidad del servidor siguen sus reglas estáticas, y no dependen del servidor',
+    sinCapacidadDelServidor.length > 0 && sinCapacidadDelServidor.every((c) =>
+      U.estadoDeLaCapacidad(c, U.SIN_SELECCION, undefined, SERVIDOR_NO).disponible === U.estadoDeLaCapacidad(c, U.SIN_SELECCION, undefined, SERVIDOR_SI).disponible));
+  const consulta = U.capacidadesQueConsultaDesign();
+  check('I27) la lista que se pide al servidor es la de las filas de Design: sin repetidos y con text.generate (la de Generar)',
+    consulta.length > 0 && new Set(consulta).size === consulta.length && consulta.includes('text.generate'));
+  check('I27) la pantalla consulta al servidor en el espacio de trabajo (no en la vista cerrada) y pasa la respuesta a la estructura',
+    /disponibilidadService\s*\.consultar\(capacidadesQueConsultaDesign\(\)\)/.test(pantalla)
+    && /estadoDeLaCapacidad\(cap, resumenDeSeleccion\(seleccion, urlDe\), undefined, disponibleEnServidor\)/.test(pantalla)
+    && !/disponibilidadService/.test(pantalla.slice(pantalla.indexOf('const ReferenciaCerrada'), pantalla.indexOf('const EspacioDeTrabajo'))));
+  const servicio = leer('services/disponibilidadService.ts');
+  check('I27) el servicio llama al callable del servidor por su nombre, y solo lee (sin escrituras)',
+    /httpsCallable[\s\S]*'disponibilidadDeCapacidades'/.test(servicio) && !/\.(set|update|add|delete)\(/.test(servicio));
+  check('I27) el callable está exportado por el índice de Functions con ese nombre',
+    /export \{ disponibilidadDeCapacidades \} from '\.\/engine\/disponibilidad';/.test(leer('functions/src/index.ts')));
+  const faltaWeeai = DICCIONARIOS.filter((d) => !/errNotAvailable:/.test(leer(d.replace('designRef', 'weeai'))));
+  check('I27) la frase pública de «no disponible» existe en los dieciséis idiomas (weeai.errNotAvailable)', faltaWeeai.length === 0, faltaWeeai.slice(0, 3).join(', '));
 };

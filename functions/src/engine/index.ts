@@ -1,7 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { CapabilityId } from '../creator/types';
 import { ADAPTERS } from './registry';
-import { loadConfig } from './config';
+import { EngineConfig, loadConfig } from './config';
 import { firestoreLedger } from './ledger';
 import { createRouter, memoryHealth } from './router';
 import { dayKey } from './limits';
@@ -47,7 +47,8 @@ export interface ProviderStatus {
 
 export const engine = {
   generate: (request: EngineRequest): Promise<EngineResult> => router.execute(request),
-  route: (request: EngineRequest): Promise<RouteDecision> => router.route(request),
+  /** `preloaded`: la configuración que el llamador ya tiene (la disponibilidad pasa la suya, leída de forma estricta). */
+  route: (request: EngineRequest, preloaded?: EngineConfig): Promise<RouteDecision> => router.route(request, preloaded),
   /** Ajustes vivos (aiSettings/global + defaults). */
   settings: async () => (await loadConfig()).settings,
   health,

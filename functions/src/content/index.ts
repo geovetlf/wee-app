@@ -163,7 +163,7 @@ export interface AssetDoc extends Asset {
 const limpiar = <T extends object>(o: T): T =>
   Object.fromEntries(Object.entries(o as Record<string, unknown>).filter(([, v]) => v !== undefined)) as T;
 
-const tipoPorMime = (mime: string | undefined, porDefecto: AssetKind): AssetKind => {
+export const tipoPorMime = (mime: string | undefined, porDefecto: AssetKind): AssetKind => {
   /*
    * Un mundo o un objeto 3D viajan en archivos de cualquier tipo —un PNG de panorama, una malla Draco o PLY en
    * application/octet-stream—: manda lo que se declaró. Sin esto, un mundo se guardaba como imagen o como documento.
@@ -198,6 +198,11 @@ export interface NuevoMaterialDesdeUrl {
   url: string;
   kind: AssetKind;
   provenance: Provenance;
+  /**
+   * La creación de la que es VERSIÓN, si lo es (DEC-03). Lo fija `crearVersionDeMaterial` (`content/versiones.ts`), que comprueba que es de la
+   * misma cuenta, está lista y es de la misma clase. Nunca lo envía el cliente.
+   */
+  previousVersionId?: string;
   /** La licencia ajena que lo acompaña (del gobierno del modelo que lo generó). */
   derechos?: DerechosDelMaterial;
   name?: string;
@@ -284,6 +289,8 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
     createdAt: at,
     updatedAt: at,
     delivery,
+    /* La relación de versión, si la hay: explícita, la fija solo crearVersionDeMaterial (content/versiones.ts). */
+    ...(datos.previousVersionId !== undefined ? { previousVersionId: datos.previousVersionId } : {}),
   };
   const doc = limpiar(bruto);
   if (!materialValido(doc)) {
@@ -553,15 +560,71 @@ export type ResultadoDeRetirada =
   | { status: 'no_existe' };
 
 /**
- * RETIRAR UN MATERIAL. La única forma de borrar lo generado, y por fin existe.
+ * ¿OTRA FICHA VIVA USA ESTE OBJETO? (E-1). Dos fichas pueden apuntar al mismo objeto (una versión y su original, o dos
+ * creaciones con la misma clave): retirar una no puede borrarlo mientras la otra siga viva. Se mira en las fichas de la
+ * cuenta (archivo y variantes), leídas UNA vez por operación, y en las fichas de cualquier cuenta que tengan la misma clave.
  *
- * El orden importa y es a propósito: primero se marca la ficha como retirada
- * y DESPUÉS se borran los objetos. Si el proceso muere entre medias, queda una
- * ficha `deleted` con `pendingPhysicalDeletion`, que es recuperable; al revés
- * quedaría un objeto borrado con una ficha `ready`, que es una mentira.
+ * «Mismo objeto» es la regla 4 del Core (`mismoObjeto`, en core/content/linaje.ts): mismo proveedor, contenedor y clave.
+ * Se copia aquí porque ese módulo no está conectado a ningún camino de producción.
+ * Conectarlo es una decisión del dueño; entonces esta copia se sustituye por la del Core.
+ */
+
+/** Las fichas tal como las lee el servidor: el identificador es el id del documento, que escribe el servidor. */
+const fichaDelDocumento = (d: { id: string; data: () => unknown }): AssetDoc => ({ ...(d.data() as AssetDoc), assetId: d.id });
+
+/** Las referencias de una ficha: su archivo y los de sus variantes (lo que `retirar` borraría). */
+const objetosDeLaFicha = (f: Pick<AssetDoc, 'storageRef' | 'variants'>): StorageRef[] =>
+  [f.storageRef, ...(f.variants ?? []).map((v) => v.storageRef)].filter((r): r is StorageRef => esStorageRef(r));
+
+/** Mismo objeto: mismo proveedor, contenedor y clave (la regla 4 del Core; ver la nota de arriba). */
+const mismoObjeto = (a: StorageRef, b: StorageRef): boolean =>
+  a.provider === b.provider && (a.bucket ?? '') === (b.bucket ?? '') && a.objectKey === b.objectKey;
+
+/** Las fichas de una cuenta, leídas UNA vez por operación (no una por objeto). */
+export const fichasDeLaCuenta = async (owner: string): Promise<AssetDoc[]> =>
+  (await assets().where('ownerAccountId', '==', owner).get()).docs.map(fichaDelDocumento);
+
+/** ¿Comparte `ref` objeto con alguna ficha viva de `fichas`? */
+const compartenObjeto = (ref: StorageRef, fichas: readonly AssetDoc[]): boolean =>
+  fichas.some((f) => f.status !== 'deleted' && objetosDeLaFicha(f).some((r) => mismoObjeto(r, ref)));
+
+/** Otra ficha viva usa `ref`: de la cuenta (como archivo o como variante) o de cualquier cuenta (como archivo, por clave). */
+export const fichaVivaUsaElObjeto = async (fichas: readonly AssetDoc[], assetId: string, ref: StorageRef): Promise<boolean> => {
+  const deOtrasCuentas = (await assets().where('storageRef.objectKey', '==', ref.objectKey).get()).docs.map(fichaDelDocumento);
+  return compartenObjeto(ref, [...fichas, ...deOtrasCuentas].filter((f) => f.assetId !== assetId));
+};
+
+/**
+ * Cuando un objeto se borra de verdad, se revisa la marca de pendiente de las fichas DE LA MISMA CUENTA que lo tenían: una
+ * ficha sigue pendiente mientras le quede algo que no es de Weë o que todavía existe en el almacén. Así, una ficha con dos
+ * objetos no pierde la marca por borrarse uno solo, y una ficha retirada no sigue diciendo «pendiente» de algo que ya no
+ * existe.
+ */
+const revisarPendientesDelObjeto = async (fichas: readonly AssetDoc[], assetId: string, ref: StorageRef): Promise<void> => {
+  const candidatas = fichas.filter((d) => d.assetId !== assetId && d.status === 'deleted' && d.pendingPhysicalDeletion === true
+    && objetosDeLaFicha(d).some((r) => mismoObjeto(r, ref)));
+  await Promise.all(candidatas.map(async (d) => {
+    const quedan = await Promise.all(objetosDeLaFicha(d).map(async (r) => r.provider !== PROVEEDOR_WEE || (await storageBucket().file(r.objectKey).exists())[0]));
+    if (!quedan.some(Boolean)) await assets().doc(d.assetId).set({ pendingPhysicalDeletion: false }, { merge: true });
+  }));
+};
+
+/**
+ * RETIRAR UN MATERIAL. La única forma de borrar lo generado.
  *
- * La propiedad se comprueba contra la CUENTA del Principal, leída de la
- * ficha. Un `assetId` que llega de fuera no prueba nada por sí mismo.
+ * El orden importa y es a propósito: primero se marca la ficha como retirada y DESPUÉS se mira y se borra el objeto. La
+ * ficha lleva `pendingPhysicalDeletion` desde el primer paso si hay algo que borrar, así que si el proceso muere entre
+ * medias queda una ficha `deleted` con esa marca. La marca dice que algo puede seguir en el almacén. NO es una retirada
+ * recuperable: no hay ninguna operación que la complete, la reintente o restaure la ficha. La muestra la copia de «Mis
+ * creaciones» y la cuenta el inventario de medios, pero ninguna operación borra un objeto por verla: completar esa
+ * retirada es una decisión pendiente (D1). Al revés quedaría un objeto borrado con una ficha `ready`, que es una mentira.
+ *
+ * E-1: un objeto que otra ficha viva todavía usa NO se borra. Queda pendiente y se borra con la última ficha que lo use.
+ * Como cada retirada marca su ficha ANTES de mirar, dos retiradas simultáneas no pueden dejar el objeto sin borrar: la que
+ * mira en segundo lugar ve a la otra ya retirada.
+ *
+ * La propiedad se comprueba contra la CUENTA del Principal, leída de la ficha. Un `assetId` que llega de fuera no prueba
+ * nada por sí mismo.
  */
 export const retirarMaterial = async (accountId: string, assetId: string): Promise<ResultadoDeRetirada> => {
   const doc = await leerMaterial(assetId);
@@ -572,32 +635,54 @@ export const retirarMaterial = async (accountId: string, assetId: string): Promi
   if (!decision) return { status: 'ya_retirado' };
 
   /*
-   * Solo se borra físicamente lo que es de Weë Y vive bajo la propia cuenta. Una
-   * referencia que no cumpla las dos cosas se retira de la ficha pero queda
-   * anotada como pendiente: antes que borrar el objeto equivocado, no borrar.
+   * Solo se borra físicamente lo que es de Weë Y vive bajo la propia cuenta. Una referencia que no cumpla las dos cosas
+   * se retira de la ficha pero queda anotada como pendiente: antes que borrar el objeto equivocado, no borrar.
    */
   const paraBorrar = decision.borrar.filter((r) => r.provider === PROVEEDOR_WEE && esDeLaCuenta(r, doc.ownerAccountId));
-  const pendientes = decision.borrar.length - paraBorrar.length;
+  let pendientes = decision.borrar.length - paraBorrar.length;
 
-  const retirado: AssetDoc = limpiar({
-    ...doc,
-    ...decision.asset,
-    delivery: undefined,
-    ...(pendientes > 0 ? { pendingPhysicalDeletion: true } : {}),
-  });
+  /* 1) La ficha queda retirada antes de mirar quién más usa el objeto, y marcada si hay algo que borrar. */
+  const hayQueBorrar = decision.borrar.length > 0;
+  const retirado: AssetDoc = limpiar({ ...doc, ...decision.asset, delivery: undefined, pendingPhysicalDeletion: hayQueBorrar ? true : undefined });
   await assets().doc(assetId).set(retirado);
 
-  let objetosBorrados = 0;
+  /* 2) Lo que otra ficha viva usa no se borra: queda pendiente y se borra con la última. Las fichas de la cuenta se leen una vez. */
+  const fichas = await fichasDeLaCuenta(doc.ownerAccountId);
+  const libres: StorageRef[] = [];
   for (const r of paraBorrar) {
+    if (await fichaVivaUsaElObjeto(fichas, assetId, r)) pendientes++;
+    else libres.push(r);
+  }
+
+  /*
+   * 3) Lo libre se borra, en dos pasos que fallan por separado.
+   *    A) El borrado: si falla, el objeto sigue ahí y la ficha queda pendiente.
+   *    B) La revisión de la marca de las demás fichas de la cuenta que lo tenían: si falla DESPUÉS de un borrado bueno, el
+   *       objeto ya no está, así que esta ficha no se marca como pendiente por ese fallo. Se registra y no se reintenta
+   *       (D1): las demás fichas de ese objeto pueden conservar una marca que ya no corresponde.
+   */
+  let objetosBorrados = 0;
+  for (const r of libres) {
     try {
       await storageBucket().file(r.objectKey).delete({ ignoreNotFound: true });
       objetosBorrados++;
     } catch (error) {
       console.error('Content: no se pudo borrar el objeto', r.objectKey, error);
+      pendientes++;
       await assets().doc(assetId).set({ pendingPhysicalDeletion: true }, { merge: true });
+      continue;
+    }
+    try {
+      await revisarPendientesDelObjeto(fichas, assetId, r);
+    } catch (error) {
+      console.error('Content: no se pudo revisar la marca de las demás fichas', r.objectKey, error);
     }
   }
-  return { status: 'retirado', asset: retirado, objetosBorrados, pendientes };
+
+  /* 4) Si no queda nada pendiente, la ficha lo dice: se baja la marca que puso el paso 1. */
+  if (hayQueBorrar && pendientes === 0) await assets().doc(assetId).set({ pendingPhysicalDeletion: false }, { merge: true });
+  const final: AssetDoc = limpiar({ ...retirado, pendingPhysicalDeletion: pendientes > 0 ? true : undefined });
+  return { status: 'retirado', asset: final, objetosBorrados, pendientes };
 };
 
 /**
