@@ -58,6 +58,16 @@ export type CapacidadDeAlmacen =
    * ajeno disfrazada de mantenimiento.
    */
   | 'object.list'
+  /**
+   * H5/H2 · BORRAR SOLO SI EL OBJETO SIGUE SIENDO EL QUE SE DECIDIÓ BORRAR.
+   *
+   * Es una capacidad aparte de `object.delete` a propósito: un adaptador que no
+   * sabe exigir la generación al proveedor tiene que DECIRLO, porque si ignorara
+   * la precondición en silencio borraría unos bytes nuevos escritos en la misma
+   * clave. Quien pide un borrado condicional comprueba esto antes (el barrido y
+   * la retirada con cerrojo lo hacen); sin ella, no se borra.
+   */
+  | 'object.conditionalDelete'
   /* Declaradas para que el registro pueda describirlas; NO implementadas. */
   | 'object.get'
   | 'object.copy'
@@ -140,6 +150,15 @@ export interface ObjetoGuardado {
    */
   suma?: SumaDeComprobacion;
   actualizadoEn?: number;
+  /**
+   * H5/H2 · LA GENERACIÓN DEL OBJETO, cuando el proveedor la da. Cambia cada vez
+   * que alguien escribe en la clave, así que distingue «el objeto que se decidió
+   * borrar» de «unos bytes nuevos con el mismo nombre». Opaca: se compara por
+   * igualdad y se devuelve tal cual al pedir un borrado condicional.
+   */
+  generacion?: string;
+  /** Cuándo nació el objeto en el proveedor, en milisegundos. La cobertura de nacimiento se mide con esto. */
+  creadoEn?: number;
 }
 
 export type DesenlaceDeGuardado =
@@ -260,6 +279,27 @@ export type DesenlaceDeBorrado =
   | { ok: true; yaNoEstaba: boolean }
   | { ok: false; error: WeeError };
 
+/**
+ * H5/H2 · LO QUE SE PIDE AL BORRAR CON CERROJO.
+ *
+ * `generacion` es la que quedó registrada en la ficha del objeto. Si la del
+ * proveedor es otra, el proveedor NO borra y contesta `precondicion_fallida`:
+ * alguien escribió en esa clave después de decidir el borrado, y esos bytes no
+ * son los que se decidió borrar. Un objeto que ya no existe sigue siendo
+ * `yaNoEstaba`, igual que sin precondición.
+ */
+export interface OpcionesDeBorrado {
+  generacion: string;
+}
+
+/** ¿Este fallo dice que la generación no era la pedida? Es la única respuesta que devuelve el objeto a `candidato` sin contar un intento. */
+export const esPrecondicionFallida = (d: DesenlaceDeBorrado | undefined): boolean =>
+  !!d && d.ok === false && d.error?.details?.reason === 'precondicion_fallida';
+
+/** ¿Sabe este adaptador exigir la generación al borrar? Sin esto no se le pide un borrado con cerrojo. */
+export const sabeBorrarConGeneracion = (p: Pick<PuertoDeAlmacenamiento, 'capacidades'> | undefined): boolean =>
+  !!p && Array.isArray(p.capacidades) && p.capacidades.includes('object.conditionalDelete');
+
 /* ── El puerto ─────────────────────────────────────────────────────────────── */
 
 /**
@@ -288,6 +328,13 @@ export interface PuertoDeAlmacenamiento {
   guardar(peticion: PeticionDeGuardado): Promise<DesenlaceDeGuardado>;
   mirar(ref: StorageRef): Promise<DesenlaceDeLectura>;
   borrar(ref: StorageRef): Promise<DesenlaceDeBorrado>;
+  /**
+   * H5/H2 · El mismo borrado, con la generación como precondición. Solo lo
+   * cumple un adaptador que declara `object.conditionalDelete`: uno que no la
+   * declara recibe la llamada sin enterarse de la condición, y por eso nadie se
+   * la pide (`sabeBorrarConGeneracion`).
+   */
+  borrar(ref: StorageRef, opciones: OpcionesDeBorrado): Promise<DesenlaceDeBorrado>;
 
   /**
    * MC-2 · LA LLAVE TEMPORAL. Opcional porque no todo proveedor sabe firmar:
@@ -347,7 +394,11 @@ export type MotivoDeAlmacen =
   /* El proveedor contestó algo que no se entiende. */
   | 'respuesta_ilegible'
   /* No está configurado: falta credencial, contenedor o dirección. */
-  | 'no_configurado';
+  | 'no_configurado'
+  /* H5/H2 · La generación del objeto no es la pedida: no se borró nada (412). */
+  | 'precondicion_fallida'
+  /* H5/H2 · Se pidió un borrado condicional a quien no sabe hacerlo: no se borró nada. */
+  | 'precondicion_no_soportada';
 
 /** Un error del almacén, con la forma de error que ya usa todo Weë. */
 export const falloDeAlmacen = (

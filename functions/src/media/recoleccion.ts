@@ -1,4 +1,5 @@
 import {
+  EsperadoDelObjeto,
   InformeDeRecoleccion,
   MediaObject,
   PoliticaDeRecoleccion,
@@ -8,12 +9,30 @@ import {
   claveEsDeLaCuenta,
   MedidorDeUso,
   decidirRecoleccion,
+  esPrecondicionFallida,
   informeVacio,
   objetoEsDeLaCuenta,
   referenciaDeAlmacenDe,
+  sabeBorrarConGeneracion,
   usoDeOperacion,
+  vistaParaElBarrido,
 } from '../core';
 import { JobState } from '../core/job';
+
+/**
+ * H5/H2 · LO QUE DEVUELVE RECLAMAR UN OBJETO ANTES DE BORRARLO.
+ *
+ * La reclamación es la «segunda pregunta» de MC-5 hecha de una vez y dentro de
+ * una transacción: lee las filas vivas, la cobertura y el estado del cerrojo en
+ * el mismo documento que escribe. Si concede, el objeto queda `borrando` con
+ * una concesión, y el borrado lleva la generación registrada como precondición.
+ */
+export type ReclamacionDelBarrido =
+  | { ok: true; concesionId: string; generacion: string; esperado: EsperadoDelObjeto }
+  | { ok: false; motivo: string };
+
+/** Por qué se devuelve a `candidato` lo que se reclamó y no se borró. */
+export type MotivoDeDevolucion = 'generacion_distinta' | 'error_transitorio' | 'precondicion_no_soportada';
 
 /**
  * MC-5 · EL BARRIDO. Quien ejecuta lo que `recoleccion.ts` decide.
@@ -61,8 +80,12 @@ export interface DepsDeRecoleccion {
    * certeza — y eso protege, no autoriza.
    */
   referencias: (objeto: MediaObject) => Promise<readonly ReferenciaLogica[] | undefined>;
-  /** En qué estado están los trabajos que podrían producir o necesitar estos bytes. */
-  operaciones: (objeto: MediaObject) => Promise<readonly JobState[]>;
+  /**
+   * En qué estado están los trabajos que podrían producir o necesitar estos
+   * bytes. `undefined` cuando no hay una fuente clara para saberlo: no saber
+   * PROTEGE (H5/H2), igual que con las referencias.
+   */
+  operaciones: (objeto: MediaObject) => Promise<readonly JobState[] | undefined>;
   /** Los adaptadores de verdad, por su identidad. El barrido no sabe de proveedores. */
   almacenes: Readonly<Record<string, PuertoDeAlmacenamiento>>;
   /**
@@ -84,6 +107,23 @@ export interface DepsDeRecoleccion {
    * de contar lo mismo.
    */
   medidor?: MedidorDeUso;
+
+  /*
+   * ── H5/H2 · CON EL ÍNDICE Y EL CERROJO ──────────────────────────────────
+   *
+   * Si están las tres, el barrido trabaja sobre los objetos del cerrojo
+   * (`candidato`, o `borrando` con la concesión caducada) y NO borra nada que
+   * no haya reclamado antes: la reclamación revalida dentro de su transacción,
+   * el borrado pide la generación registrada al proveedor, y solo un cierre con
+   * la concesión propia cuenta el objeto como borrado. Sin ellas, el barrido es
+   * el de MC-5 de siempre.
+   */
+  /** Reclamar el objeto (T2). Sustituye a la segunda decisión: la misma pregunta, atómica. */
+  reclamar?: (objeto: MediaObject) => Promise<ReclamacionDelBarrido>;
+  /** Cerrar con la concesión propia (T3). Sustituye a `marcarBorrado` cuando hubo reclamación. */
+  cerrar?: (objeto: MediaObject, concesionId: string, esperado: EsperadoDelObjeto, at: number) => Promise<boolean>;
+  /** Devolver a `candidato` lo reclamado que no se borró; un error del proveedor cuenta un intento. */
+  devolver?: (objeto: MediaObject, concesionId: string, esperado: EsperadoDelObjeto, motivo: MotivoDeDevolucion, at: number) => Promise<boolean>;
 }
 
 const sumar = (m: Record<string, number>, k: string): Record<string, number> => ({ ...m, [k]: (m[k] ?? 0) + 1 });
@@ -122,17 +162,41 @@ export const recogerObjetosHuerfanos = async (
       continue;
     }
 
+    /*
+     * H5/H2 · Con el cerrojo, MC-5 decide sobre la vista que sabe decidir: un
+     * `candidato`, o un `borrando` cuya concesión caducó, como bytes guardados.
+     * Lo demás del cerrojo no se puede reclamar ahora y se deja quieto.
+     */
+    const conCerrojo = !!(deps.reclamar && deps.cerrar && deps.devolver);
+    const vista = conCerrojo ? vistaParaElBarrido(objeto, deps.ahora()) : objeto;
+    if (!vista) {
+      informe.protegidos++;
+      informe.porMotivo = sumar(informe.porMotivo, 'estado_no_reclamable');
+      continue;
+    }
+
+    /* `inciertas`: no hay fuente clara de operaciones. No saber protege, igual que con las referencias. */
     const reunir = async () => {
       const refs = await deps.referencias(objeto);
+      const operaciones = await deps.operaciones(objeto);
       return {
-        objeto,
-        referencias: refs ?? [],
-        referenciasCompletas: refs !== undefined,
-        operaciones: await deps.operaciones(objeto),
+        inciertas: operaciones === undefined,
+        entrada: {
+          objeto: vista,
+          referencias: refs ?? [],
+          referenciasCompletas: refs !== undefined,
+          operaciones: operaciones ?? [],
+        },
       };
     };
 
-    const primera = decidirRecoleccion(await reunir(), politica, deps.ahora());
+    const hechos = await reunir();
+    if (hechos.inciertas) {
+      informe.protegidos++;
+      informe.porMotivo = sumar(informe.porMotivo, 'operaciones_inciertas');
+      continue;
+    }
+    const primera = decidirRecoleccion(hechos.entrada, politica, deps.ahora());
 
     if (primera.accion === 'proteger') {
       informe.protegidos++;
@@ -154,21 +218,44 @@ export const recogerObjetosHuerfanos = async (
      * decir `borrar`, se protege y se sigue — sin borrar nada.
      */
     informe.candidatos++;
-    const segunda = decidirRecoleccion(await reunir(), politica, deps.ahora());
-    if (segunda.accion !== 'borrar') {
-      informe.protegidos++;
-      informe.porMotivo = sumar(informe.porMotivo, segunda.accion === 'proteger' ? segunda.motivo : 'referenciado');
-      continue;
+
+    /*
+     * H5/H2 · LA SEGUNDA PREGUNTA, ATÓMICA. Con el cerrojo, en vez de volver a
+     * decidir con lo leído fuera, se RECLAMA: la transacción vuelve a leer las
+     * filas vivas, la cobertura y el estado en el mismo documento que escribe.
+     * Una referencia que aparezca después ya no puede nacer (el objeto está
+     * `borrando`), y una que apareció antes impide la reclamación.
+     */
+    let reclamacion: ReclamacionDelBarrido | undefined;
+    if (conCerrojo) {
+      reclamacion = await deps.reclamar!(objeto);
+      if (!reclamacion.ok) {
+        informe.protegidos++;
+        informe.porMotivo = sumar(informe.porMotivo, reclamacion.motivo);
+        continue;
+      }
+    } else {
+      const otra = await reunir();
+      const segunda = otra.inciertas ? undefined : decidirRecoleccion(otra.entrada, politica, deps.ahora());
+      if (!segunda || segunda.accion !== 'borrar') {
+        informe.protegidos++;
+        informe.porMotivo = sumar(informe.porMotivo, !segunda ? 'operaciones_inciertas' : segunda.accion === 'proteger' ? segunda.motivo : 'referenciado');
+        continue;
+      }
     }
 
     const puerto = deps.almacenes[objeto.providerId];
-    if (!puerto) {
+    if (!puerto || (reclamacion?.ok && !sabeBorrarConGeneracion(puerto))) {
+      /* Sin adaptador, o con uno que no sabe exigir la generación: no se borra, y lo reclamado vuelve a esperar. */
+      if (reclamacion?.ok) await deps.devolver!(objeto, reclamacion.concesionId, reclamacion.esperado, 'precondicion_no_soportada', deps.ahora());
       informe.protegidos++;
-      informe.porMotivo = sumar(informe.porMotivo, 'sin_adaptador');
+      informe.porMotivo = sumar(informe.porMotivo, puerto ? 'precondicion_no_soportada' : 'sin_adaptador');
       continue;
     }
 
-    const borrado = await puerto.borrar(referenciaDeAlmacenDe(objeto));
+    const borrado = reclamacion?.ok
+      ? await puerto.borrar(referenciaDeAlmacenDe(objeto), { generacion: reclamacion.generacion })
+      : await puerto.borrar(referenciaDeAlmacenDe(objeto));
     const at = deps.ahora();
 
     if (borrado.ok) {
@@ -178,7 +265,10 @@ export const recogerObjetosHuerfanos = async (
        * y la ficha se cierra igual. Así, repetir el barrido converge.
        */
       if (borrado.yaNoEstaba) informe.yaNoEstaban++; else informe.borrados++;
-      if (!(await deps.marcarBorrado(objeto.objectRef, objeto.accountId, at))) informe.fichasNoCerradas++;
+      const cerrada = reclamacion?.ok
+        ? await deps.cerrar!(objeto, reclamacion.concesionId, reclamacion.esperado, at)
+        : await deps.marcarBorrado(objeto.objectRef, objeto.accountId, at);
+      if (!cerrada) informe.fichasNoCerradas++;
       /*
        * MC-7 · El borrado se mide SIEMPRE, incluso cuando el objeto ya no
        * estaba: la petición salió y el proveedor la cobra igual. Medir solo los
@@ -198,13 +288,26 @@ export const recogerObjetosHuerfanos = async (
     }
 
     /*
+     * H5/H2 · 412: la generación no era la registrada. Alguien escribió en la
+     * clave después de decidir: esos bytes no son los que se decidió borrar. No
+     * se borró nada, no es un fallo del proveedor y no cuenta un intento.
+     */
+    if (reclamacion?.ok && esPrecondicionFallida(borrado)) {
+      await deps.devolver!(objeto, reclamacion.concesionId, reclamacion.esperado, 'generacion_distinta', at);
+      informe.protegidos++;
+      informe.porMotivo = sumar(informe.porMotivo, 'generacion_distinta');
+      continue;
+    }
+
+    /*
      * No se pudo. Se anota el intento y se deja para más adelante; la decisión
      * de si merece otro intento o ya no, la toma el Core en el próximo barrido
      * con la cuenta delante. Aquí no se decide eso.
      */
     informe.errores++;
     const intentos = (typeof objeto.intentosDeBorrado === 'number' ? objeto.intentosDeBorrado : 0) + 1;
-    await deps.anotarIntento(objeto.objectRef, objeto.accountId, intentos, at);
+    if (reclamacion?.ok) await deps.devolver!(objeto, reclamacion.concesionId, reclamacion.esperado, 'error_transitorio', at);
+    else await deps.anotarIntento(objeto.objectRef, objeto.accountId, intentos, at);
     if (intentos >= politica.maxIntentos) informe.atascados++; else informe.reintentables++;
   }
 

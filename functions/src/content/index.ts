@@ -13,6 +13,7 @@ import {
   RAIZ_DE_CUENTAS,
   claveEsDeLaCuenta,
   esStorageRef,
+  flagAbiertaPara,
   materialEsDeLaCuenta,
   materialValido,
   puedePasarA,
@@ -20,6 +21,19 @@ import {
 } from '../core';
 import { parseStorageUrl, storageBucket } from '../engine/http';
 import { sanitizeForLog } from '../engine/sanitize';
+import {
+  DepsDelIndice,
+  HechosDelObjeto,
+  anotarVarianteConIndice,
+  consumidoresDeProduccion,
+  crearFichaConIndice,
+  hechosDeMetadata,
+  huellaDelIndice,
+  leerFlagDelAlmacen,
+  operacionesDeProduccion,
+  puertoDelStorageDeWee,
+  retirarConIndice,
+} from './indice';
 
 /**
  * ¿ESTE FALLO DE `create` DICE QUE EL DOCUMENTO YA EXISTÍA? (cierre post-auditoría 2026-10-01,
@@ -84,6 +98,31 @@ export const esDeLaCuenta = (ref: StorageRef, accountId: unknown): boolean =>
 const db = () => getFirestore();
 const assets = () => db().collection('assets');
 const ahora = () => Date.now();
+
+/**
+ * H5/H2 · QUÉ ENTRA EN EL ÍNDICE: lo que Weë puede borrar desde aquí, y solo
+ * dentro de la cuenta. Del Storage de Weë, la carpeta `users/<cuenta>/`
+ * (`esDeLaCuenta`); de Media Cloud, la de `accounts/<cuenta>/`
+ * (`claveEsDeLaCuenta`). Ninguna de las dos se relaja: se usan tal cual.
+ */
+export const entraEnElIndice = (ref: StorageRef, cuenta: string): boolean =>
+  (ref.provider === PROVEEDOR_WEE && esDeLaCuenta(ref, cuenta)) || claveEsDeLaCuenta(ref.objectKey, cuenta);
+
+/**
+ * LAS DEPENDENCIAS DE PRODUCCIÓN DEL ÍNDICE. Consumidores y operaciones
+ * contestan «no se sabe» (D-G): con la flag abierta, una retirada saca el
+ * material de la biblioteca y CONSERVA sus objetos, con el motivo anotado.
+ */
+export const depsDelIndice = (): DepsDelIndice => ({
+  db: db(),
+  huella: huellaDelIndice,
+  indexable: entraEnElIndice,
+  almacenes: { [PROVEEDOR_WEE]: puertoDelStorageDeWee(PROVEEDOR_WEE) },
+  consumidores: consumidoresDeProduccion,
+  operaciones: operacionesDeProduccion,
+  ahora,
+  sortear: () => randomUUID().replace(/-/g, ''),
+});
 
 /* ── Del mundo a la referencia ─────────────────────────────────────────────── */
 
@@ -217,49 +256,19 @@ export interface NuevoMaterialDesdeUrl {
 }
 
 /**
- * CREAR LA FICHA DE UN ARCHIVO QUE YA ESTÁ EN UN ALMACÉN.
+ * LA FICHA DE UN ARCHIVO QUE YA ESTÁ, CONSTRUIDA Y VALIDADA — sin escribir nada.
  *
- * Es lo que le faltaba a cada resultado de IA: el archivo ya existía en
- * `users/{uid}/ai-generations/…`; lo que no existía era su identidad. Aquí no
- * se sube nada ni se copia nada — se REFERENCIA lo que hay y se le da dueño.
- *
- * Para el Storage de Weë se lee la metadata del objeto (tamaño, tipo) con una
- * sola llamada; para Cloudinary se guarda lo que la URL dice y nada más.
- *
- * Devuelve `null` si la URL no es de ningún almacén conocido: un resultado de
- * un proveedor de prueba, o una URL ajena, no se convierte en material.
+ * La comparten la creación desde URL y la versión con el índice (DEC-03 · H2):
+ * una versión nace con EXACTAMENTE la misma ficha que habría creado
+ * `crearMaterialDesdeUrl`, aunque se escriba en otra transacción. `null` si la
+ * identidad calculada viene mal formada o la ficha no cumple el contrato.
  */
-export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promise<AssetDoc | null> => {
-  const ref = referenciaDesdeUrl(datos.url);
-  if (!ref) return null;
-
-  /*
-   * UNA FICHA `wee` SOLO PUEDE APUNTAR DENTRO DE SU PROPIA CUENTA. La clave del
-   * objeto se convierte más tarde en autoridad para borrar (`retirarMaterial`),
-   * así que nunca se acepta una referencia al Storage de Weë fuera de
-   * `users/<ownerAccountId>/`: no se crea la ficha. Hoy todas las URLs de este
-   * camino las produce el motor bajo ese prefijo; esto garantiza que siga así
-   * venga la URL de donde venga.
-   */
-  if (ref.provider === PROVEEDOR_WEE && !esDeLaCuenta(ref, datos.ownerAccountId)) {
-    console.warn('Content: referencia fuera del namespace de la cuenta; no se crea la ficha', ref.objectKey);
-    return null;
-  }
-
-  let mimeType = datos.mimeType;
-  let bytes: number | undefined;
-  if (ref.provider === PROVEEDOR_WEE) {
-    try {
-      const [meta] = await storageBucket().file(ref.objectKey).getMetadata();
-      mimeType = mimeType ?? (typeof meta.contentType === 'string' ? meta.contentType : undefined);
-      bytes = typeof meta.size === 'string' ? Number(meta.size) : typeof meta.size === 'number' ? meta.size : undefined;
-    } catch (error) {
-      /* Sin metadata no hay material: un objeto que no se puede leer no está listo. */
-      console.warn('Content: no se pudo leer la metadata del objeto', ref.objectKey, error);
-      return null;
-    }
-  }
-
+export const construirFichaDesdeUrl = (
+  datos: NuevoMaterialDesdeUrl,
+  ref: StorageRef,
+  mimeType: string | undefined,
+  bytes: number | undefined,
+): AssetDoc | null => {
   const at = ahora();
   /* Calculada por quien llama, o sorteada. Si viene mal formada no se inventa otra: no se crea nada. */
   if (datos.assetId !== undefined && !FORMA_DE_ID_DE_MATERIAL.test(datos.assetId)) {
@@ -296,6 +305,77 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
   if (!materialValido(doc)) {
     console.error('Content: el material construido no cumple el contrato', assetId);
     return null;
+  }
+  return doc;
+};
+
+/**
+ * CREAR LA FICHA DE UN ARCHIVO QUE YA ESTÁ EN UN ALMACÉN.
+ *
+ * Es lo que le faltaba a cada resultado de IA: el archivo ya existía en
+ * `users/{uid}/ai-generations/…`; lo que no existía era su identidad. Aquí no
+ * se sube nada ni se copia nada — se REFERENCIA lo que hay y se le da dueño.
+ *
+ * Para el Storage de Weë se lee la metadata del objeto (tamaño, tipo) con una
+ * sola llamada; para Cloudinary se guarda lo que la URL dice y nada más.
+ *
+ * Devuelve `null` si la URL no es de ningún almacén conocido: un resultado de
+ * un proveedor de prueba, o una URL ajena, no se convierte en material.
+ */
+export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promise<AssetDoc | null> => {
+  const ref = referenciaDesdeUrl(datos.url);
+  if (!ref) return null;
+
+  /*
+   * UNA FICHA `wee` SOLO PUEDE APUNTAR DENTRO DE SU PROPIA CUENTA. La clave del
+   * objeto se convierte más tarde en autoridad para borrar (`retirarMaterial`),
+   * así que nunca se acepta una referencia al Storage de Weë fuera de
+   * `users/<ownerAccountId>/`: no se crea la ficha. Hoy todas las URLs de este
+   * camino las produce el motor bajo ese prefijo; esto garantiza que siga así
+   * venga la URL de donde venga.
+   */
+  if (ref.provider === PROVEEDOR_WEE && !esDeLaCuenta(ref, datos.ownerAccountId)) {
+    console.warn('Content: referencia fuera del namespace de la cuenta; no se crea la ficha', ref.objectKey);
+    return null;
+  }
+
+  let mimeType = datos.mimeType;
+  let bytes: number | undefined;
+  let hechos: HechosDelObjeto | undefined;
+  if (ref.provider === PROVEEDOR_WEE) {
+    try {
+      const [meta] = await storageBucket().file(ref.objectKey).getMetadata();
+      mimeType = mimeType ?? (typeof meta.contentType === 'string' ? meta.contentType : undefined);
+      bytes = typeof meta.size === 'string' ? Number(meta.size) : typeof meta.size === 'number' ? meta.size : undefined;
+      hechos = hechosDeMetadata(meta as Record<string, unknown>);
+    } catch (error) {
+      /* Sin metadata no hay material: un objeto que no se puede leer no está listo. */
+      console.warn('Content: no se pudo leer la metadata del objeto', ref.objectKey, error);
+      return null;
+    }
+  }
+
+  const doc = construirFichaDesdeUrl(datos, ref, mimeType, bytes);
+  if (!doc) return null;
+  const assetId = doc.assetId;
+
+  /*
+   * H5/H2 · CON LA FLAG ABIERTA PARA ESTA CUENTA, la ficha nace con su fila del
+   * índice y el registro de su objeto, en una transacción. Se pregunta DESPUÉS
+   * de ver el objeto: así ninguna referencia a un objeto nacido con la flag ya
+   * abierta sale por el camino de siempre (es lo que sostiene la cobertura de
+   * nacimiento). Con la flag cerrada, nada de esto existe: lo de siempre.
+   */
+  if (ref.provider === PROVEEDOR_WEE && flagAbiertaPara((await leerFlagDelAlmacen(db())).config, datos.ownerAccountId)) {
+    try {
+      const r = await crearFichaConIndice(depsDelIndice(), doc, { soloSiNoExiste: datos.assetId !== undefined, hechos });
+      if (r.status === 'creada' || r.status === 'ya_estaba') return r.status === 'creada' ? doc : r.doc;
+      if (r.status === 'rechazada') console.warn('Content: el índice no admite una ficha nueva sobre ese objeto', assetId, r.motivo);
+      return null;
+    } catch (error) {
+      console.error('Content: no se pudo crear la ficha con su índice', assetId, sanitizeForLog(error, 300));
+      return null;
+    }
   }
   /*
    * CON IDENTIDAD CALCULADA, SE CREA SOLO SI NO ESTÁ.
@@ -412,6 +492,21 @@ export const crearMaterialParaSubida = async (datos: NuevoMaterialParaSubida): P
     updatedAt: at,
   });
   if (!materialValido(doc)) return { status: 'invalido' };
+
+  /*
+   * H5/H2 · Con la flag abierta, la ficha nace con su fila del índice: la clave
+   * queda reclamada por este material desde antes de que lleguen los bytes. El
+   * registro del objeto no se crea aquí: nace al confirmarse la subida. Un error
+   * que no es «ya existía» se lanza igual que en el camino de siempre.
+   */
+  if (entraEnElIndice(ref, datos.ownerAccountId) && flagAbiertaPara((await leerFlagDelAlmacen(db())).config, datos.ownerAccountId)) {
+    const r = await crearFichaConIndice(depsDelIndice(), doc, { soloSiNoExiste: true, sinRegistro: true });
+    if (r.status === 'creada') return { status: 'creado', material: doc };
+    if (r.status === 'ya_estaba') return { status: 'ya_estaba', material: r.doc };
+    if (r.status === 'ajena') return { status: 'no_es_tuyo' };
+    console.warn('Content: el índice no admite una subida sobre esa clave', datos.assetId, r.motivo);
+    return { status: 'invalido' };
+  }
 
   try {
     await assets().doc(datos.assetId).create(doc);
@@ -625,8 +720,18 @@ const revisarPendientesDelObjeto = async (fichas: readonly AssetDoc[], assetId: 
  *
  * La propiedad se comprueba contra la CUENTA del Principal, leída de la ficha. Un `assetId` que llega de fuera no prueba
  * nada por sí mismo.
+ *
+ * H5/H2 · Con `aiSettings/almacenActivos` abierta para la cuenta (CERRADA por defecto), la retirada va por el índice y el
+ * cerrojo (`retirarConIndice`, en `content/indice.ts`): T1 retira la ficha y apaga sus filas, T2 reclama, el almacén borra
+ * con la generación registrada y T3 cierra con la concesión propia. Cerrada, todo lo de abajo sigue EXACTAMENTE igual.
  */
 export const retirarMaterial = async (accountId: string, assetId: string): Promise<ResultadoDeRetirada> => {
+  if (flagAbiertaPara((await leerFlagDelAlmacen(db())).config, accountId)) {
+    const r = await retirarConIndice(depsDelIndice(), accountId, assetId);
+    return r.status === 'retirado'
+      ? { status: 'retirado', asset: r.asset, objetosBorrados: r.objetosBorrados, pendientes: r.pendientes }
+      : r;
+  }
   const doc = await leerMaterial(assetId);
   if (!doc) return { status: 'no_existe' };
   if (!materialEsDeLaCuenta(doc, accountId)) return { status: 'no_es_tuyo' };
@@ -706,14 +811,39 @@ export const deleteAsset = onCall({ region: 'us-central1', timeoutSeconds: 60 },
  * Anotar una variante que ya existe en un almacén. NO la genera: generarla es
  * una tarea del Job Engine (`media.thumbnail`), que la Fase 11 deja preparada
  * y no ejecuta. Esto es solo cómo se escribe cuando exista.
+ *
+ * H5/H2 · EN UNA TRANSACCIÓN, con o sin flag. Leer la ficha, calcular las
+ * variantes y escribirlas iba en tres pasos sueltos: dos anotaciones a la vez
+ * leían el mismo array y la segunda borraba la primera (experimento A4). Ahora
+ * la lectura y la escritura van juntas y, si alguien escribe entre medias, la
+ * transacción se repite con lo que hay. La semántica no cambia: una variante
+ * por tipo, y nada sobre un material ajeno o retirado.
+ *
+ * Con la flag abierta para la cuenta, además, la variante nueva tiene su fila
+ * del índice y la sustituida deja la suya apagada (`anotarVarianteConIndice`).
  */
 export const anotarVariante = async (accountId: string, assetId: string, variante: AssetVariant): Promise<boolean> => {
-  const doc = await leerMaterial(assetId);
-  if (!doc || !materialEsDeLaCuenta(doc, accountId) || doc.status === 'deleted') return false;
-  if (!esStorageRef(variante.storageRef)) return false;
-  const variants = [...(doc.variants ?? []).filter((v) => v.kind !== variante.kind), variante];
-  await assets().doc(assetId).set({ variants, updatedAt: ahora() }, { merge: true });
-  return true;
+  if (typeof assetId !== 'string' || !/^asset_[a-f0-9]{32}$/.test(assetId)) return false;
+  if (esStorageRef(variante?.storageRef) && entraEnElIndice(variante.storageRef, accountId)
+    && flagAbiertaPara((await leerFlagDelAlmacen(db())).config, accountId)) {
+    const deps = depsDelIndice();
+    const puerto = deps.almacenes[variante.storageRef.provider];
+    const visto = puerto ? await puerto.mirar(variante.storageRef) : undefined;
+    const hechos: HechosDelObjeto | undefined = visto?.ok
+      ? { existe: true, ...(visto.objeto.generacion ? { generacion: visto.objeto.generacion } : {}), ...(visto.objeto.creadoEn !== undefined ? { creadoEn: visto.objeto.creadoEn } : {}) }
+      : visto && !visto.ok && visto.motivo === 'no_existe' ? { existe: false } : undefined;
+    return anotarVarianteConIndice(deps, accountId, assetId, variante, hechos);
+  }
+  const ref = assets().doc(assetId);
+  return db().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const doc = snap.exists ? (snap.data() as AssetDoc) : null;
+    if (!doc || !materialEsDeLaCuenta(doc, accountId) || doc.status === 'deleted') return false;
+    if (!esStorageRef(variante.storageRef)) return false;
+    const variants = [...(doc.variants ?? []).filter((v) => v.kind !== variante.kind), variante];
+    tx.set(ref, { variants, updatedAt: ahora() }, { merge: true });
+    return true;
+  });
 };
 
 /**

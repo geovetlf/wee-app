@@ -690,13 +690,28 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const DEL_COSTE_DE_LO_ACEPTADO = ['functions/src/engine/pricing.ts', 'functions/src/runtime/barrendero.ts'];
   /* + DEC-03 y DEC-06 (registro autorizado 2026-10-08): los dos módulos nuevos, el versionado y la disponibilidad. */
   const DE_VERSIONES_Y_DISPONIBILIDAD = ['functions/src/content/versiones.ts', 'functions/src/engine/disponibilidad.ts'];
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado, y de los módulos de versiones y disponibilidad (DEC-03 y DEC-06)',
+  /*
+   * + NÚCLEO DE ACTIVOS H5/H2 (línea trk-s, integración autorizada por el dueño el 2026-10-10), por nombre: EXACTAMENTE
+   * los catorce archivos de functions/src del parche de A1 (scratchpad/parches-activos-core/activos-core.patch) —el
+   * índice de referencias por objeto y su cerrojo, detrás de `aiSettings/almacenActivos`, CERRADA por defecto—, que es
+   * también donde viven las dos correcciones de la integración (B1, el cubo; B2, las marcas de subida en transacción:
+   * content/index.ts y content/indice-almacen.ts). content/index.ts y content/versiones.ts ya estaban nombrados (DEL_CIERRE
+   * y DE_VERSIONES_Y_DISPONIBILIDAD); se repiten para que la lista diga el parche entero. Un archivo más, y esto falla.
+   * Ver docs/ACTIVOS-CERCAS.md § F1.
+   */
+  const DEL_NUCLEO_DE_ACTIVOS = ['functions/src/content/index.ts', 'functions/src/content/indice-almacen.ts', 'functions/src/content/indice-reconciliacion.ts',
+    'functions/src/content/indice.ts', 'functions/src/content/versiones.ts',
+    'functions/src/core/media/index.ts', 'functions/src/core/media/indice.ts', 'functions/src/core/media/objeto.ts', 'functions/src/core/media/puerto.ts',
+    'functions/src/core/media/recoleccion.ts', 'functions/src/core/media/reconciliacion.ts', 'functions/src/core/media/subida.ts',
+    'functions/src/media/barrido.ts', 'functions/src/media/recoleccion.ts'];
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado, de los módulos de versiones y disponibilidad (DEC-03 y DEC-06) y del núcleo de activos (H5/H2)',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
       ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_VERSIONES_Y_DISPONIBILIDAD,
+      ...DEL_NUCLEO_DE_ACTIVOS,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 

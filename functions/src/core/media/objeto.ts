@@ -140,8 +140,45 @@ export const FORMA_DE_REFERENCIA_DE_OBJETO = /^mob_[0-9a-f]{32}$/;
  * Un material puede estar `ready` mientras su objeto está `borrado` —porque se
  * retiró— o al revés. Son dos ciclos y se cuentan por separado: mezclarlos es
  * como se acaba con un archivo que «no se puede borrar porque está publicado».
+ *
+ * H5/H2 · EL CERROJO (`core/media/indice.ts`). Los dos estados nuevos son el
+ * cerrojo de transición del índice de referencias, y no un segundo campo de
+ * estado:
+ *
+ *   guardado    vivo; puede tener filas vivas o no
+ *   candidato   sin filas vivas; pendiente de una decisión de borrado
+ *   borrando    reclamado para borrar, con una concesión que caduca
+ *   borrado     terminal: un objeto nuevo tiene una clave nueva
+ *
+ * Toda transición entre ellos va en una transacción que lee antes de escribir
+ * y comprueba el estado y la versión esperados. Lo que no es `guardado` no se
+ * entrega ni se procesa (`entrega.ts`, `proceso.ts`): un objeto sin filas vivas
+ * no tiene material vivo que lo pida.
  */
-export type EstadoDelObjeto = 'guardado' | 'borrado';
+export type EstadoDelObjeto = 'guardado' | 'candidato' | 'borrando' | 'borrado';
+
+export const ESTADOS_DEL_OBJETO: readonly EstadoDelObjeto[] = Object.freeze(['guardado', 'candidato', 'borrando', 'borrado'] as const);
+
+/**
+ * H5/H2 · QUIÉN BORRA, Y HASTA CUÁNDO. `id` se sortea por intento —lo pone quien
+ * compone, el Core no tiene azar— y `hasta` es la hora del servidor más un margen.
+ * Cerrar exige que la concesión sea la propia: si caducó y otro la tomó, el cierre
+ * se descarta.
+ */
+export interface ConcesionDeBorrado {
+  id: string;
+  hasta: number;
+}
+
+/**
+ * H5/H2 · LAS MARCAS QUE DEJA LA RECONCILIACIÓN DEL ÍNDICE. Una marca nunca
+ * borra nada: detiene la decisión de borrado hasta que alguien la mire.
+ */
+export type MarcaDelObjeto = 'fila_duplicada' | 'ficha_sin_bytes' | 'estado_imposible' | 'generacion_distinta' | 'de_otra_cuenta';
+
+export const MARCAS_DEL_OBJETO: readonly MarcaDelObjeto[] = Object.freeze([
+  'fila_duplicada', 'ficha_sin_bytes', 'estado_imposible', 'generacion_distinta', 'de_otra_cuenta',
+] as const);
 
 /**
  * LA FICHA DE UN OBJETO FÍSICO. Lo justo para saber dónde está y de quién es lo
@@ -183,6 +220,28 @@ export interface MediaObject {
    */
   intentosDeBorrado?: number;
   ultimoIntentoDeBorradoEn?: number;
+
+  /*
+   * ── H5/H2 · LOS CAMPOS DEL ÍNDICE (`core/media/indice.ts`). Todos opcionales:
+   * una ficha anterior al índice no los tiene, y su ausencia PROTEGE (sin
+   * cobertura y sin generación no se decide ningún borrado).
+   */
+  /** Contador de transiciones. Cada transición del cerrojo lo sube en uno; sin él, cero. */
+  version?: number;
+  /** Cuándo pasó a `candidato`. La gracia de los candidatos se mide desde aquí. */
+  candidatoDesde?: number;
+  /** Solo en `borrando`: quién lo reclamó y hasta cuándo. */
+  concesion?: ConcesionDeBorrado;
+  /** La generación del almacén verificada por última vez. Un borrado exige esta y ninguna otra. */
+  generacion?: string;
+  /** `completa` cuando las filas son TODAS las referencias del objeto. Solo `completa` autoriza un borrado. */
+  cobertura?: 'completa' | 'pendiente';
+  /** Cuándo se dio por completa. Una marca anterior a la última vez que cambió la flag no vale. */
+  coberturaEn?: number;
+  coberturaOrigen?: 'nacimiento' | 'reconciliacion';
+  /** Por qué un borrado sigue pendiente: un literal del Core, nunca una frase ni una clave. */
+  pendiente?: { motivo: string; en: number };
+  marcas?: readonly MarcaDelObjeto[];
 }
 
 /** La referencia del almacén que corresponde a una ficha. La misma forma que usa la Fase 11. */
@@ -200,19 +259,63 @@ export const referenciaDeAlmacenDe = (o: MediaObject): StorageRef => ({
  * su cuenta**. Una ficha que diga pertenecer a una cuenta y apunte a la carpeta
  * de otra es exactamente el fallo que el aislamiento existe para impedir.
  */
-export const objetoValido = (huella: Huella, o: MediaObject | undefined): boolean => {
+export const objetoValido = (huella: Huella, o: MediaObject | undefined): boolean =>
+  objetoValidoCon(huella, o, claveEsDeLaCuenta);
+
+const FORMA_DE_CONCESION = /^[A-Za-z0-9_-]{1,128}$/;
+const FORMA_DE_MOTIVO = /^[a-z][a-z_]{0,47}$/;
+const finitoSiEsta = (v: unknown): boolean => v === undefined || (typeof v === 'number' && Number.isFinite(v));
+
+/**
+ * H5/H2 · LOS CAMPOS DEL ÍNDICE, si están, con su forma. Una ficha sin ellos sigue
+ * siendo válida: es una ficha de antes del índice, y su ausencia protege.
+ */
+const camposDelIndiceValidos = (o: MediaObject): boolean => {
+  if (o.version !== undefined && (!Number.isSafeInteger(o.version) || o.version < 0)) return false;
+  if (!finitoSiEsta(o.candidatoDesde) || !finitoSiEsta(o.coberturaEn)) return false;
+  if (o.generacion !== undefined && (typeof o.generacion !== 'string' || !o.generacion || o.generacion.length > 64)) return false;
+  if (o.cobertura !== undefined && o.cobertura !== 'completa' && o.cobertura !== 'pendiente') return false;
+  if (o.coberturaOrigen !== undefined && o.coberturaOrigen !== 'nacimiento' && o.coberturaOrigen !== 'reconciliacion') return false;
+  if (o.concesion !== undefined) {
+    const c = o.concesion;
+    if (!c || typeof c !== 'object' || typeof c.id !== 'string' || !FORMA_DE_CONCESION.test(c.id) || !Number.isFinite(c.hasta)) return false;
+  }
+  if (o.pendiente !== undefined) {
+    const p = o.pendiente;
+    if (!p || typeof p !== 'object' || typeof p.motivo !== 'string' || !FORMA_DE_MOTIVO.test(p.motivo) || !Number.isFinite(p.en)) return false;
+  }
+  if (o.marcas !== undefined && (!Array.isArray(o.marcas) || !o.marcas.every((m) => (MARCAS_DEL_OBJETO as readonly string[]).includes(m)))) return false;
+  /* Un objeto `borrando` sin concesión, o `candidato` sin fecha, no se sostiene: nadie sabría quién borra ni desde cuándo espera. */
+  if (o.estado === 'borrando' && o.concesion === undefined) return false;
+  return !(o.estado === 'candidato' && o.candidatoDesde === undefined);
+};
+
+/**
+ * LA VALIDACIÓN, CON LA PREGUNTA DE LA CUENTA COMO PARÁMETRO.
+ *
+ * `objetoValido` la hace con `claveEsDeLaCuenta` —la carpeta de Media Cloud— y
+ * eso no cambia. El índice de referencias (`indice.ts`) la hace con su propia
+ * pregunta, que además admite el espacio heredado del Storage de Weë. Una sola
+ * validación y dos preguntas, en vez de dos validaciones que acaban divergiendo.
+ */
+export const objetoValidoCon = (
+  huella: Huella,
+  o: MediaObject | undefined,
+  claveEnLaCuenta: (objectKey: unknown, accountId: unknown) => boolean,
+): boolean => {
   if (!o || typeof o !== 'object') return false;
   if (!FORMA_DE_REFERENCIA_DE_OBJETO.test(o.objectRef)) return false;
   if (!esStorageRef(referenciaDeAlmacenDe(o))) return false;
   if (!FORMA_DE_SEGMENTO.test(o.accountId) || !FORMA_DE_SEGMENTO.test(o.assetId)) return false;
   if (!FORMA_DE_PIEZA.test(o.pieza)) return false;
-  if (o.estado !== 'guardado' && o.estado !== 'borrado') return false;
+  if (!(ESTADOS_DEL_OBJETO as readonly string[]).includes(o.estado)) return false;
   if (!Number.isFinite(o.createdAt) || !Number.isFinite(o.updatedAt)) return false;
   if (o.bytes !== undefined && (!Number.isFinite(o.bytes) || o.bytes < 0)) return false;
+  if (!camposDelIndiceValidos(o)) return false;
   /* La ficha tiene que decir la verdad sobre su propia referencia. */
   if (referenciaDelObjeto(huella, referenciaDeAlmacenDe(o)) !== o.objectRef) return false;
   /* Y la clave tiene que vivir donde dice su cuenta. */
-  return claveEsDeLaCuenta(o.objectKey, o.accountId);
+  return claveEnLaCuenta(o.objectKey, o.accountId);
 };
 
 /** ¿Es de esta cuenta? Estructural, sobre lo ya leído. Un `assetId` que llega de fuera no prueba nada. */

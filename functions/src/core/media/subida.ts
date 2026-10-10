@@ -184,7 +184,8 @@ export const decidirSubida = (p: PeticionDeDecisionDeSubida): DecisionDeSubida =
    * subida anterior. No se concede permiso para pisarlos. Quien repita la misma
    * intención recibirá esto, y no un segundo objeto.
    */
-  if (p.objeto && p.objeto.estado === 'guardado') return no('ficha_ya_existe');
+  /* H5/H2 · Un objeto en el cerrojo (`candidato`, `borrando`) tampoco admite bytes nuevos: se está decidiendo su borrado. */
+  if (p.objeto && p.objeto.estado !== 'borrado') return no('ficha_ya_existe');
 
   if (typeof p.providerId !== 'string' || !p.providerId) return no('sin_proveedor');
   /*
