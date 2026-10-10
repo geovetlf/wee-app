@@ -44,7 +44,7 @@ Búsqueda: en `services/`, `screens/`, `components/`, `utils/`, `hooks/`, `conte
 - **Semántica de `moveAsync` (código nativo instalado):**
   - Android: `File.renameTo` (`android/src/main/java/expo/modules/filesystem/legacy/FileSystemLegacyModule.kt:266-279`). Sustituye el destino dentro del mismo volumen.
   - iOS: borra el destino y después llama a `FileManager.moveItem` (`ios/Legacy/FileSystemLegacyModule.swift:92-105`). **No es atómico:** si se corta entre los dos pasos, el destino no existe. Consecuencia: el índice se recupera desde las copias de cada proyecto (§7).
-- **Espacio libre:** en nativo, `getFreeDiskStorageAsync`. En web, `navigator.storage.estimate()`, que la app todavía no usa.
+- **Espacio libre:** en nativo, `getFreeDiskStorageAsync` (disco del aparato; en Android SAF no hay dato y es `null`). En web, `navigator.storage.estimate()` solo para OPFS (cuota del origen). La carpeta del ordenador no tiene espacio libre conocido (`null`): mostrar la cuota del origen habría sido engañoso.
 - **Compartir y galería:** `expo-sharing` 14.0.8 (`components/PostCard.tsx:29`, `services/assetDownload.ts:4`) y `expo-media-library` 18.2.1 (`services/assetDownload.ts:3`).
 - **Instalados sin uso en este bloque:** `expo-image-picker` 17.0.11 y `expo-image-manipulator` 14.0.8 (miniaturas). Su uso para la carátula no se ha verificado.
 - **No instalados:** `expo-crypto` (SHA-256 nativo) y `expo-document-picker` (selector de archivos). Añadirlos exige autorización del dueño; este bloque no los añade.

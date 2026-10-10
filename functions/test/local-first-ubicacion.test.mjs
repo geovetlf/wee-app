@@ -259,5 +259,77 @@ const hijosDe = (carpeta) => fs.readdirSync(carpeta).sort();
   fs.rmSync(destinoDir, { recursive: true, force: true });
 }
 
+/* ── Recuperar: un fallo al leer o comprobar el registro no escapa de la máquina de estados ── */
+{
+  const tiendaRota = { async leer() { throw new Error('almacenamiento del aparato caído'); }, async guardar() {}, async borrar() {} };
+  const puertoSano = { plataforma: 'android', async comprobarReferencia() { return 'concedida'; } };
+  let lanzo = false;
+  let r = null;
+  try {
+    r = await recuperarUbicacion(puertoSano, tiendaRota);
+  } catch {
+    lanzo = true;
+  }
+  check('R1) un fallo al leer el registro guardado no lanza: queda «error recuperable», sin registro (la sección no queda en blanco)',
+    !lanzo && r?.estado === 'error_recuperable' && r.registro === null, `${lanzo}/${r?.estado}`);
+
+  const registroGuardado = { plataforma: 'web-carpeta', referenciaPadre: 'idb:carpeta', referenciaWee: 'idb:carpeta/WEE', creadaEn: 1, verificadaEn: 1 };
+  const puertoRoto = { plataforma: 'web-carpeta', async comprobarReferencia() { throw new Error('queryPermission falló'); } };
+  const conRegistro = await recuperarUbicacion(puertoRoto, tiendaEnMemoria(new Map([['registro', registroGuardado]])));
+  check('R2) si la comprobación falla con un registro guardado: «error recuperable» con registro, nunca «sin configurar» con registro',
+    conRegistro.estado === 'error_recuperable' && conRegistro.registro !== null && conRegistro.motivo === 'desconocido', `${conRegistro.estado}/${conRegistro.motivo}`);
+  check('T4) sin_configurar + error → error_recuperable (una transición válida, no un estado congelado)',
+    transicionar('sin_configurar', 'error').valida === true && transicionar('sin_configurar', 'error').estado === 'error_recuperable');
+}
+
+/* ── Android: el nombre de cada hijo SAF se deduce de su URI (no hay API de nombres) ── */
+{
+  /* Una URI de documento como la devuelve Android: el árbol lleva el volumen y el documento lleva «volumen:ruta». */
+  const uriDeDocumento = (idDeDocumento) => {
+    const volumen = idDeDocumento.slice(0, idDeDocumento.indexOf(':') + 1);
+    return `content://com.android.externalstorage.documents/tree/${encodeURIComponent(volumen)}/document/${encodeURIComponent(idDeDocumento)}`;
+  };
+  check('N1) carpeta dentro de Documentos → su nombre', puertos.nombreDeUriSAF(uriDeDocumento('primary:Documents/WEE')) === 'WEE');
+  check('N2) hijo directo de la raíz del almacenamiento («primary:WEE») → «WEE», no «primary:WEE» (antes se duplicaba la carpeta)',
+    puertos.nombreDeUriSAF(uriDeDocumento('primary:WEE')) === 'WEE', puertos.nombreDeUriSAF(uriDeDocumento('primary:WEE')));
+  check('N3) archivo a varios niveles → su nombre', puertos.nombreDeUriSAF(uriDeDocumento('primary:Documents/WEE/proyectos/abc/recursos/x.bin')) === 'x.bin');
+  check('N4) tarjeta SD (XXXX-XXXX) → nombre tras el volumen', puertos.nombreDeUriSAF(uriDeDocumento('1234-ABCD:DCIM/Camera')) === 'Camera');
+  check('N5) nombres con % y con «:» en la raíz se conservan tal cual',
+    puertos.nombreDeUriSAF(uriDeDocumento('primary:Documents/100%')) === '100%' && puertos.nombreDeUriSAF(uriDeDocumento('primary:Notas: 1')) === 'Notas: 1');
+  check('N6) una URI con codificación rota no lanza', typeof puertos.nombreDeUriSAF('content://x/document/%E0%A4%A') === 'string');
+}
+
+/* ── Android: un proveedor cuyos ids no dan el nombre no crea carpetas en cada escritura ── */
+{
+  const saf = crearDobleSAF();
+  const opacos = { ...saf.operaciones, async hijos(uri) { return (await saf.operaciones.hijos(uri)).map((hijo) => ({ ...hijo, nombre: `id-${hijo.uri.length}` })); } };
+  const puerto = puertos.crearUbicacionSAF({ elegirCarpeta: () => saf.elegirCarpeta(), puedeLeer: async () => true, operaciones: opacos });
+  let fallo = null;
+  try {
+    await puerto.crearWee(saf.raizUri);
+  } catch (error) {
+    fallo = error;
+  }
+  const sobrantes = saf.controles.nombresDelPadre(saf.raizUri);
+  check('O4) nombres no legibles: crearWee falla con no_disponible y no deja la carpeta creada',
+    fallo instanceof ErrorAlmacenLocal && fallo.codigo === 'no_disponible' && sobrantes.length === 0, `${fallo?.codigo}/${sobrantes.join(',')}`);
+  const activada = await activarUbicacion(puerto, tiendaEnMemoria(), reloj());
+  check('O5) la activación con esa carpeta termina en no_disponible sin registro: se puede elegir otra', activada.estado === 'no_disponible' && activada.registro === null, activada.estado);
+}
+
+/* ── Web: el espacio libre de la carpeta del ordenador es desconocido (no la cuota del origen) ── */
+{
+  globalThis.indexedDB = {};
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { storage: { estimate: async () => ({ quota: 1000, usage: 400 }) } } });
+  globalThis.showDirectoryPicker = async () => {
+    throw new Error('no usado en esta prueba');
+  };
+  const web = await importarFuente('services/almacenLocal/ubicacion.web.ts');
+  const puertoWeb = web.puertoDeUbicacionDelDispositivo;
+  const libreEnLaCarpeta = await puertoWeb?.puertoDeArchivos('idb:carpeta/WEE').espacioLibre();
+  check('W-espacio) carpeta del ordenador: el espacio libre es desconocido (null), no la cuota del origen (600)',
+    puertoWeb?.plataforma === 'web-carpeta' && libreEnLaCarpeta === null, `${puertoWeb?.plataforma}/${libreEnLaCarpeta}`);
+}
+
 console.log(fallos ? `\n✘ ${fallos} fallo(s)` : '\n✔ todo bien');
 process.exit(fallos ? 1 : 0);

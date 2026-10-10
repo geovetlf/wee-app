@@ -22,9 +22,10 @@ import {
   activarSeccion,
   cargarSeccion,
   crearProyectoEnSeccion,
+  crearTurno,
   duplicarProyectoEnSeccion,
   eliminarProyectoEnSeccion,
-  exportarProyectoEnSeccion,
+  entregarProyectoEnSeccion,
   nombreDeArchivoDeExportacion,
   volverAPermitirSeccion,
   type DependenciasDeLaSeccion,
@@ -35,6 +36,9 @@ import {
 } from '../utils/seccionDelDispositivo';
 
 const ES_WEB = Platform.OS === 'web';
+
+/** Un único turno para toda la sección: ninguna carga ni acción corre a la vez que otra (ver `crearTurno`). */
+const turno = crearTurno();
 
 /** Las dependencias reales. Una sola vez por operación: cada una abre lo que necesita. */
 const crearDependencias = (cuentaId: string | undefined): DependenciasDeLaSeccion => {
@@ -86,7 +90,8 @@ export const useSeccionDelDispositivo = (): SeccionDelDispositivo => {
     setVista(nueva);
   }, []);
 
-  const recargar = useCallback(async () => {
+  /* Carga sin turno: solo la llaman operaciones que ya corren dentro del turno. */
+  const cargarAhora = useCallback(async () => {
     try {
       aplicar(await cargarSeccion(crearDependencias(cuentaId)));
     } catch (fallo) {
@@ -95,6 +100,8 @@ export const useSeccionDelDispositivo = (): SeccionDelDispositivo => {
       setCargando(false);
     }
   }, [cuentaId, aplicar]);
+
+  const recargar = useCallback(() => turno(cargarAhora), [cargarAhora]);
 
   useFocusEffect(
     useCallback(() => {
@@ -111,26 +118,34 @@ export const useSeccionDelDispositivo = (): SeccionDelDispositivo => {
     }
   };
 
-  /** Ejecuta una acción sobre el catálogo abierto y recarga la sección después. */
-  const ejecutar = async <T>(operacion: (catalogo: CatalogoLocal) => Promise<ResultadoDeAccion<T>>): Promise<ResultadoDeAccion<T>> => {
-    const catalogo = catalogoRef.current;
-    if (!catalogo) return { ok: false, error: 'errorNoDisponible' };
-    const resultado = await operacion(catalogo);
-    setError(resultado.ok ? null : resultado.error);
-    await recargar();
-    return resultado;
-  };
+  /** Ejecuta una acción sobre el catálogo abierto y recarga la sección después, dentro del mismo turno. */
+  const ejecutar = <T>(operacion: (catalogo: CatalogoLocal) => Promise<ResultadoDeAccion<T>>): Promise<ResultadoDeAccion<T>> =>
+    turno(async () => {
+      const catalogo = catalogoRef.current;
+      if (!catalogo) {
+        const sinCatalogo: ResultadoDeAccion<T> = { ok: false, error: 'errorNoDisponible' };
+        return sinCatalogo;
+      }
+      const resultado = await operacion(catalogo);
+      setError(resultado.ok ? null : resultado.error);
+      await cargarAhora();
+      return resultado;
+    });
 
   const activar = () =>
-    conOcupado(async () => {
-      aplicar(await activarSeccion(crearDependencias(cuentaId)));
-    });
+    conOcupado(() =>
+      turno(async () => {
+        aplicar(await activarSeccion(crearDependencias(cuentaId)));
+      })
+    );
 
   const volverAPermitir = () =>
-    conOcupado(async () => {
-      const registro = vista?.estado.registro;
-      if (registro) aplicar(await volverAPermitirSeccion(crearDependencias(cuentaId), registro));
-    });
+    conOcupado(() =>
+      turno(async () => {
+        const registro = vista?.estado.registro;
+        if (registro) aplicar(await volverAPermitirSeccion(crearDependencias(cuentaId), registro));
+      })
+    );
 
   const crearProyecto = async (nombre: string): Promise<boolean> => {
     let creado = false;
@@ -168,8 +183,10 @@ export const useSeccionDelDispositivo = (): SeccionDelDispositivo => {
     let entregado = false;
     await conOcupado(async () => {
       const nombre = vista?.estado.proyectos.find((proyecto) => proyecto.projectId === projectId)?.name ?? '';
-      const resultado = await ejecutar((catalogo) => exportarProyectoEnSeccion(catalogo, projectId, Date.now()));
-      if (resultado.ok) entregado = await entregarArchivo(nombreDeArchivoDeExportacion(nombre), resultado.valor);
+      const resultado = await ejecutar((catalogo) =>
+        entregarProyectoEnSeccion(catalogo, projectId, nombreDeArchivoDeExportacion(nombre), entregarArchivo, Date.now())
+      );
+      entregado = resultado.ok;
     });
     return entregado;
   };

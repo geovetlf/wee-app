@@ -21,7 +21,7 @@ import { ErrorAlmacenLocal } from './tipos';
 import type { EntradaDelPuerto } from './puertoDeArchivos';
 import type { OperacionesDeRuta } from './puertoDeRuta';
 import type { HijoSAF, OperacionesSAF } from './puertoSAF';
-import { crearUbicacionSAF, crearUbicacionSandbox } from './puertosDeUbicacion';
+import { crearUbicacionSAF, crearUbicacionSandbox, nombreDeUriSAF } from './puertosDeUbicacion';
 import type { PuertoDeUbicacion, RegistroDeUbicacion, TiendaDeUbicacion } from '../../utils/ubicacionWee';
 
 const CLAVE_DEL_REGISTRO = 'wee.almacen.ubicacion.v1';
@@ -74,17 +74,6 @@ const operacionesDeRuta: OperacionesDeRuta = {
   },
 };
 
-/** El nombre de un hijo SAF, a partir de su URI de documento (que lleva el nombre codificado). */
-const nombreDeUri = (uri: string): string => {
-  let decodificada = uri;
-  try {
-    decodificada = decodeURIComponent(uri);
-  } catch {
-    decodificada = uri;
-  }
-  return decodificada.replace(/\/+$/, '').split('/').pop() ?? '';
-};
-
 const esCarpetaSAF = async (uri: string): Promise<boolean> => {
   try {
     await FileSystem.StorageAccessFramework.readDirectoryAsync(uri);
@@ -98,7 +87,7 @@ const operacionesSAF: OperacionesSAF = {
   async hijos(uriCarpeta) {
     const hijos: HijoSAF[] = [];
     for (const uri of await FileSystem.StorageAccessFramework.readDirectoryAsync(uriCarpeta)) {
-      hijos.push({ uri, nombre: nombreDeUri(uri), esCarpeta: await esCarpetaSAF(uri), tamano: null });
+      hijos.push({ uri, nombre: nombreDeUriSAF(uri), esCarpeta: await esCarpetaSAF(uri), tamano: null });
     }
     return hijos;
   },

@@ -26,7 +26,11 @@ const almacenamiento = (): AlmacenamientoConOpfs | null =>
   typeof navigator !== 'undefined' && navigator.storage ? (navigator.storage as unknown as AlmacenamientoConOpfs) : null;
 const hayOpfs = (): boolean => typeof almacenamiento()?.getDirectory === 'function';
 
-const espacioLibre = async (): Promise<number | null> => {
+/*
+ * `navigator.storage.estimate()` mide la cuota del ORIGEN (lo que el navegador guarda para Weë),
+ * no el disco del usuario. Solo sirve para OPFS, que sí vive en ese origen.
+ */
+const espacioDelOrigen = async (): Promise<number | null> => {
   try {
     const estimacion = await navigator.storage.estimate();
     return typeof estimacion.quota === 'number' && typeof estimacion.usage === 'number' ? Math.max(0, estimacion.quota - estimacion.usage) : null;
@@ -34,6 +38,9 @@ const espacioLibre = async (): Promise<number | null> => {
     return null;
   }
 };
+
+/* La carpeta del ordenador no da su espacio libre (File System Access no lo expone): desconocido, nunca 0 ni la cuota del origen. */
+const espacioDesconocidoDelDisco = async (): Promise<number | null> => null;
 
 const ubicacionCarpeta: PuertoDeUbicacion | null =
   registro && typeof ventana.showDirectoryPicker === 'function'
@@ -44,7 +51,7 @@ const ubicacionCarpeta: PuertoDeUbicacion | null =
           if (!selector) throw new ErrorAlmacenLocal('no_disponible', 'sin File System Access');
           return selector({ mode: 'readwrite' });
         },
-        espacioLibre,
+        espacioLibre: espacioDesconocidoDelDisco,
       })
     : null;
 
@@ -54,7 +61,7 @@ const ubicacionPrivada: PuertoDeUbicacion | null = hayOpfs()
         const getDirectory = almacenamiento()?.getDirectory;
         return getDirectory ? getDirectory() : null;
       },
-      espacioLibre,
+      espacioLibre: espacioDelOrigen,
     })
   : null;
 

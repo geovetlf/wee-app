@@ -14,7 +14,7 @@ Estado (2026-10-10, línea I «Mis proyectos», rama `wee/trk-i-mis-proyectos`):
 
 ## Fuentes oficiales consultadas
 
-- **Expo, `expo-file-system`:** https://docs.expo.dev/versions/latest/sdk/filesystem/ — la sección de configuración documenta las opciones del plugin `enableFileSharing` (por defecto `false`) y `supportsOpeningDocumentsInPlace` (por defecto `false`), y dice que activan `UIFileSharingEnabled` y `LSSupportsOpeningDocumentsInPlace` en `Info.plist`. Weë **no usa el plugin**: declara las dos claves directamente en `ios.infoPlist` de `app.json`, que es la forma que pedía el encargo. No hay conflicto porque el plugin no está en `plugins`.
+- **Expo, `expo-file-system`:** https://docs.expo.dev/versions/latest/sdk/filesystem/. **Versión instalada: 19.0.24** (`package.json`: `~19.0.21`). Revisado contra el paquete instalado (2026-10-10): su plugin (`plugin/build/withFileSystem.js`) **no tiene opciones de iOS**. `enableFileSharing` y `supportsOpeningDocumentsInPlace` no aparecen en ningún fichero del paquete, y el plugin solo añade `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE` e `INTERNET`. La cita de la documentación en línea no corresponde a esta versión. Weë no lista ese plugin en `plugins`: declara `UIFileSharingEnabled` y `LSSupportsOpeningDocumentsInPlace` directamente en `ios.infoPlist` de `app.json`, que es la forma que pedía el encargo.
 - **Apple, `UIFileSharingEnabled`:** https://developer.apple.com/documentation/bundleresources/information_property_list/uifilesharingenabled
 - **Apple, `LSSupportsOpeningDocumentsInPlace`:** https://developer.apple.com/documentation/bundleresources/information_property_list/lssupportsopeningdocumentsinplace
 
@@ -28,26 +28,29 @@ Las dos páginas de Apple devolvieron solo su título al consultarlas, así que 
 - **Permiso:** no es automático al volver a abrir la página. Hay que pedirlo de nuevo con un gesto del usuario. La pantalla lo explica y ofrece «Volver a permitir el acceso».
 - **Sin soporte:** OPFS (`navigator.storage.getDirectory()`). Es un espacio PRIVADO del origen, real y persistente para el navegador, pero NO es una carpeta visible en el sistema de archivos. La pantalla lo dice con el texto `permisoPrivado`.
 - **Índice y copias:** van a AsyncStorage, que en la web es el `localStorage` del origen (cuota de unos 5 MB). Nunca aparecen en la carpeta elegida.
+- **Espacio libre:** la carpeta del ordenador no lo expone, así que la sección dice «no se puede medir» (`null`, nunca 0). `navigator.storage.estimate()` solo se usa en OPFS, donde mide la cuota del origen, que sí es el espacio disponible para Weë.
 - **Límite:** solo la carpeta que el usuario selecciona. No se crea nada en una ubicación arbitraria.
 
 ### Android (nativo)
 
-- **API:** `StorageAccessFramework` de `expo-file-system/legacy`. `requestDirectoryPermissionsAsync` abre el selector del sistema. `makeDirectoryAsync` crea `WEE` dentro de la carpeta elegida; `readDirectoryAsync` lista el contenido.
-- **Permiso:** el usuario elige la carpeta en el selector del sistema. No se piden `READ_EXTERNAL_STORAGE` ni `MANAGE_EXTERNAL_STORAGE`. `app.json` no declara permisos de Android.
-- **Índice y copias:** van a AsyncStorage, no a la carpeta.
+- **API:** `StorageAccessFramework` de `expo-file-system/legacy`. `requestDirectoryPermissionsAsync` abre el selector del sistema. `makeDirectoryAsync` crea `WEE` dentro de la carpeta elegida; `readDirectoryAsync` lista el contenido. El nombre de cada hijo se deduce de su URI (`nombreDeUriSAF`, `services/almacenLocal/puertosDeUbicacion.ts`), porque la API no da el nombre visible.
+- **Permiso:** el usuario elige la carpeta en el selector del sistema, y el permiso se guarda con `takePersistableUriPermission` (verificado en `expo-file-system/android/.../legacy/FileSystemLegacyModule.kt`, rama `OnActivityResult`). El flujo SAF no pide permisos generales. `app.json` no declara ningún permiso de Android.
+- **Manifiesto generado (no versionado; lo produce el build):** sí trae permisos de almacenamiento general que la carpeta WEE no necesita. `READ_EXTERNAL_STORAGE` y `WRITE_EXTERNAL_STORAGE` llegan de los manifiestos de `expo-file-system`, `expo-media-library` y `expo-image-picker`; `expo-image-picker` añade además `CAMERA`, y el plugin de `expo-media-library` añade `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO` y `READ_MEDIA_AUDIO`. Son de la galería, no de WEE. `MANAGE_EXTERNAL_STORAGE` no aparece en ningún manifiesto instalado. Retirar los genéricos exige una decisión de producto (ver «Pendiente»).
+- **Revocación:** al reabrir, `comprobarReferencia` intenta leer la carpeta. Si el sistema ya no la deja leer, la sección pasa a «permiso perdido». En Android el permiso perdido no se concede en sitio: «Volver a permitir» lleva a elegir la carpeta otra vez (`volverAPermitirSeccion`). Antes ese botón devolvía el mismo estado y la sección quedaba bloqueada.
+- **Proveedores de documentos:** Android da ids de documento. Si el proveedor no usa ids con forma de ruta (`volumen:ruta`), el nombre no se puede leer, y `crearWee` lo detecta: borra la carpeta recién creada y falla con `no_disponible`, en vez de crear carpetas nuevas en cada escritura. No se ha probado en un dispositivo qué proveedores dan nombres legibles.
 - **Límites:** no hay acceso a rutas restringidas del sistema ni a `Android/data`. Solo la carpeta elegida.
 - **Desinstalación:** la carpeta elegida (por ejemplo `Documentos/WEE`) está fuera del almacenamiento de la app, así que sus archivos pueden seguir ahí. Pero el índice y las copias están en AsyncStorage y se borran con la app. Resultado: tras reinstalar, Weë **no lista** esos archivos y **no los borra** (ver la regresión de `utils/catalogoLocal.ts` en `docs/LOCAL-FIRST-AUDITORIA.md`). Volver a importarlos no está implementado (DEFERIDO). PENDIENTE DE DISPOSITIVO.
 
 ### iOS (nativo)
 
 - **Carpeta de la app:** `WEE` dentro del directorio de documentos de la app (`expo-file-system` `documentDirectory`). No requiere permiso y se crea sin acción del usuario. No hay selector de carpetas: `expo-document-picker` no está instalada.
-- **Visibilidad:** `app.json` → `ios.infoPlist` declara `UIFileSharingEnabled: true` y `LSSupportsOpeningDocumentsInPlace: true`. Con ellas, la app Archivos muestra la carpeta de documentos de Weë, y dentro está `WEE`. Según la documentación de Expo, `UIFileSharingEnabled` la expone también por el uso compartido de archivos de iTunes (Finder, al conectar el iPhone a un ordenador).
+- **Visibilidad:** `app.json` → `ios.infoPlist` declara `UIFileSharingEnabled: true` y `LSSupportsOpeningDocumentsInPlace: true`. Con ellas, la app Archivos debería mostrar la carpeta de documentos de Weë, y dentro `WEE` (comportamiento esperado de iOS, PENDIENTE DE DISPOSITIVO: no hay un iPhone conectado). Que `UIFileSharingEnabled` la exponga también por el uso compartido de archivos de iTunes (Finder, al conectar el iPhone a un ordenador) es una afirmación no verificada en esta versión: PENDIENTE DE DISPOSITIVO.
 - **Índice y copias:** van a AsyncStorage (el almacén de preferencias de la app, fuera de los documentos). Así nada interno aparece en Archivos.
 - **Desinstalación:** elimina el sandbox y su contenido. Es irreversible sin una exportación previa. PENDIENTE DE DISPOSITIVO.
 
 #### Efecto de compartir los documentos en iOS
 
-Lo que ve la persona en la app Archivos, en «En mi iPhone › Weë»: la carpeta `WEE` con una subcarpeta por proyecto (`proyectos/<id>/recursos/`). Puede abrir los archivos, editarlos y borrarlos desde Archivos. Weë no lo impide, y eso es lo que significa `LSSupportsOpeningDocumentsInPlace`: la app trabaja sobre el archivo en su sitio.
+Lo que debería ver la persona en la app Archivos, en «En mi iPhone › Weë» (PENDIENTE DE DISPOSITIVO): la carpeta `WEE` con una subcarpeta por proyecto (`proyectos/<id>/recursos/`). Puede abrir los archivos, editarlos y borrarlos desde Archivos. Weë no lo impide, y eso es lo que significa `LSSupportsOpeningDocumentsInPlace`: la app trabaja sobre el archivo en su sitio.
 
 Consecuencias que la app asume:
 - Si la persona **edita** un archivo desde Archivos, Weë lo detecta al comprobarlo: cada archivo se verifica por tamaño y huella SHA-256 registrados al guardarlo. Un archivo cambiado sale como «archivo dañado»; el proyecto no aparece «disponible».
@@ -86,3 +89,16 @@ Consecuencias que la app asume:
 - No abre el contenido de los archivos dentro de Weë: «Abrir» verifica que cada archivo se puede leer y lo muestra con su estado; el visor de contenido es otra línea.
 - No cambia permisos de Android, ni añade dependencias, ni toca `functions/src`.
 - No prueba nada en un dispositivo real.
+
+## Pendiente (revisión del 2026-10-10)
+
+**Solo se verifica en un dispositivo** (hoy no hay ninguno conectado; las pruebas usan dobles):
+- Android: que el permiso SAF sobreviva a un reinicio; qué pasa al revocarlo desde los ajustes del sistema; qué proveedores de documentos dan nombres legibles (`nombreDeUriSAF`); y si la app destino puede leer el `.weeproy` después de que `shareAsync` resuelva, porque el temporal de la caché se borra en ese momento.
+- iOS: que la app Archivos muestre `WEE` y solo eso; que ninguna librería escriba en `documentDirectory`; y que un corte deje como mucho un `.tmp`/`.anterior` visible hasta la siguiente apertura.
+- Web (Chromium real): renovar el permiso con el gesto; y el comportamiento si la persona borra la carpeta elegida desde el sistema.
+
+**Decisiones de producto abiertas** (no se cambian en esta línea):
+- Quitar `READ_EXTERNAL_STORAGE`/`WRITE_EXTERNAL_STORAGE` del manifiesto generado. Lo traen las librerías de medios; quitarlos puede afectar a guardar en la galería en versiones antiguas de Android (hay que verificarlo en un dispositivo).
+- Mostrar el espacio libre de la carpeta web como «no se puede medir» (lo que hace ahora) o buscar otra fuente.
+- Nombres de SAF fiables en cualquier proveedor: exige un módulo nativo que lea el nombre visible (`DocumentFile`) o `expo-document-picker`, que no está instalado y requiere autorización.
+- Limpieza del temporal de exportación en Android: hoy se borra al resolver la hoja de compartir; la alternativa es borrarlo en la siguiente exportación o al arrancar.

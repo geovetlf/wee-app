@@ -201,9 +201,11 @@ const SeccionDelDispositivo: React.FC = () => {
       case 'no_disponible':
         // Con registro, la carpeta guardada ya no está: se ofrece elegir otra. Sin registro, el aparato no puede.
         if (!estado.registro) {
+          // Sin botón la sección se quedaba sin salida: con un aparato que sí tiene puerto, se puede reintentar.
           return (
             <View style={tarjeta}>
               <Text style={[styles.texto, { color: theme.colors.text }]}>{t('biblioteca.ubicacionNoDisponible')}</Text>
+              {estado.plataforma ? boton(t('biblioteca.permisoReintentar'), seccion.activar, true) : null}
             </View>
           );
         }

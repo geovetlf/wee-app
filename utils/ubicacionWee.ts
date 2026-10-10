@@ -54,7 +54,7 @@ export type EventoDeUbicacion =
   | 'error';
 
 const TRANSICIONES: Record<EstadoDeUbicacion, Partial<Record<EventoDeUbicacion, EstadoDeUbicacion>>> = {
-  sin_configurar: { iniciar: 'pidiendo_permiso', comprobada: 'disponible', requiere_gesto: 'permiso_perdido', no_disponible: 'no_disponible' },
+  sin_configurar: { iniciar: 'pidiendo_permiso', comprobada: 'disponible', requiere_gesto: 'permiso_perdido', no_disponible: 'no_disponible', error: 'error_recuperable' },
   pidiendo_permiso: { carpeta_elegida: 'creando', denegada: 'permiso_denegado', no_disponible: 'no_disponible', error: 'error_recuperable' },
   creando: { carpeta_lista: 'verificando', sin_espacio: 'sin_espacio', no_disponible: 'no_disponible', error: 'error_recuperable' },
   verificando: { verificada: 'disponible', sin_espacio: 'sin_espacio', no_disponible: 'no_disponible', permiso_perdido: 'permiso_perdido', error: 'error_recuperable' },
@@ -177,8 +177,6 @@ export const activarUbicacion = async (puerto: PuertoDeUbicacion, tienda: Tienda
 
 /** Reapertura: comprueba la carpeta guardada SIN crear nada ni preguntar. */
 export const recuperarUbicacion = async (puerto: PuertoDeUbicacion, tienda: TiendaDeUbicacion): Promise<ResultadoDeUbicacion> => {
-  const registro = await tienda.leer();
-  if (!registro) return { estado: 'sin_configurar', registro: null, motivo: null, recorrido: [] };
   const recorrido: EstadoDeUbicacion[] = [];
   let estado: EstadoDeUbicacion = 'sin_configurar';
   const avanzar = (evento: EventoDeUbicacion): void => {
@@ -188,7 +186,11 @@ export const recuperarUbicacion = async (puerto: PuertoDeUbicacion, tienda: Tien
       recorrido.push(estado);
     }
   };
+  // Leer el registro también puede fallar (almacenamiento del aparato): no debe escapar de aquí.
+  let registro: RegistroDeUbicacion | null = null;
   try {
+    registro = await tienda.leer();
+    if (!registro) return { estado, registro: null, motivo: null, recorrido };
     const comprobacion = await puerto.comprobarReferencia(registro.referenciaWee);
     if (comprobacion === 'concedida') avanzar('comprobada');
     else if (comprobacion === 'requiere_gesto') avanzar('requiere_gesto');

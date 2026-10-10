@@ -55,6 +55,27 @@ export interface DependenciasDeSAF {
   operaciones: OperacionesSAF;
 }
 
+/**
+ * El nombre de un hijo SAF a partir de su URI de documento. Android no da el nombre visible: se
+ * deduce del id de documento, con forma «volumen:ruta» (p. ej. «primary:Documents/WEE»). El nombre
+ * es el último trozo de la ruta, sin el volumen; así también sale bien un hijo directo de la raíz
+ * («primary:WEE» → «WEE»). Si el proveedor usa ids que no son rutas, el nombre no coincide y
+ * `crearWee` lo detecta en vez de duplicar carpetas.
+ */
+export const nombreDeUriSAF = (uri: string): string => {
+  let decodificada = uri;
+  try {
+    decodificada = decodeURIComponent(uri);
+  } catch {
+    decodificada = uri;
+  }
+  const sinBarra = decodificada.replace(/\/+$/, '');
+  const marca = '/document/';
+  const posicion = sinBarra.lastIndexOf(marca);
+  const id = posicion >= 0 ? sinBarra.slice(posicion + marca.length) : sinBarra;
+  return id.replace(/^[^:/]*:/, '').split('/').pop() ?? '';
+};
+
 export const crearUbicacionSAF = (dependencias: DependenciasDeSAF): PuertoDeUbicacion => ({
   plataforma: 'android',
   elegirCarpeta: () => dependencias.elegirCarpeta(),
@@ -63,7 +84,15 @@ export const crearUbicacionSAF = (dependencias: DependenciasDeSAF): PuertoDeUbic
     const hijos: HijoSAF[] = await dependencias.operaciones.hijos(referenciaPadre);
     const existente = hijos.find((hijo) => hijo.esCarpeta && hijo.nombre === CARPETA_WEE);
     if (existente) return existente.uri;
-    return dependencias.operaciones.crearCarpeta(referenciaPadre, CARPETA_WEE);
+    const creada = await dependencias.operaciones.crearCarpeta(referenciaPadre, CARPETA_WEE);
+    // La carpeta creada debe leerse por su nombre. Si no, el proveedor no da nombres legibles: cada
+    // escritura crearía carpetas nuevas dentro de WEE. Se retira la que se acaba de crear y se falla.
+    const tras: HijoSAF[] = await dependencias.operaciones.hijos(referenciaPadre);
+    if (!tras.some((hijo) => hijo.esCarpeta && hijo.nombre === CARPETA_WEE)) {
+      await dependencias.operaciones.borrar(creada);
+      throw new ErrorAlmacenLocal('no_disponible', 'la carpeta elegida no da nombres legibles');
+    }
+    return creada;
   },
   async comprobarReferencia(referenciaWee): Promise<ComprobacionDeReferencia> {
     return (await dependencias.puedeLeer(referenciaWee)) ? 'concedida' : 'requiere_gesto';

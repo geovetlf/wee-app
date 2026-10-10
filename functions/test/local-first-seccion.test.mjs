@@ -31,7 +31,9 @@ const {
   duplicarProyectoEnSeccion,
   eliminarProyectoEnSeccion,
   exportarProyectoEnSeccion,
+  entregarProyectoEnSeccion,
   nombreDeArchivoDeExportacion,
+  crearTurno,
 } = await importarFuente('utils/seccionDelDispositivo.ts');
 
 let fallos = 0;
@@ -101,7 +103,7 @@ const carpetaPadre = () => {
 const crearUbicacionDePrueba = ({ plataforma, padre, eleccion, flags }) => ({
   plataforma,
   async elegirCarpeta() {
-    return eleccion === 'denegada' ? null : padre;
+    return eleccion === 'denegada' || flags.denegarEleccion ? null : padre;
   },
   async crearWee(referenciaPadre) {
     const wee = path.join(referenciaPadre, 'WEE');
@@ -129,7 +131,7 @@ const crearUbicacionDePrueba = ({ plataforma, padre, eleccion, flags }) => ({
 /** Un entorno completo: ubicación, registro, metadatos y la carpeta WEE en un directorio temporal. */
 const entorno = ({ plataforma = 'android', eleccion = 'concedida', capacidad = null } = {}) => {
   const padre = carpetaPadre();
-  const flags = { comprobacion: 'concedida', pedirDeNuevo: true, sinAcceso: false, noLegibles: new Set() };
+  const flags = { comprobacion: 'concedida', pedirDeNuevo: true, sinAcceso: false, denegarEleccion: false, noLegibles: new Set() };
   const kv = crearKv();
   const tienda = crearTiendaMemoria();
   const puerto = crearUbicacionDePrueba({ plataforma, padre, eleccion, flags });
@@ -211,24 +213,51 @@ const ES_ARCHIVO_DEL_USUARIO = /^proyectos\/[^/]+\/recursos\/[^/]+$/;
 }
 
 {
-  const e = entorno();
+  // Web: el navegador concede el permiso con un gesto de la persona.
+  const e = entorno({ plataforma: 'web-carpeta' });
   await activarSeccion(e.deps);
   e.flags.comprobacion = 'requiere_gesto';
   e.flags.pedirDeNuevo = true;
   const perdida = await cargarSeccion(e.deps);
   const recuperada = await volverAPermitirSeccion(e.deps, perdida.estado.registro);
-  check('S8) permiso perdido: volver a permitir con un gesto devuelve la sección a «disponible»',
+  check('S8) web · permiso perdido: volver a permitir con un gesto devuelve la sección a «disponible»',
     perdida.estado.ubicacion === 'permiso_perdido' && recuperada.estado.ubicacion === 'disponible' && recuperada.catalogo !== null);
 }
 
 {
-  const e = entorno();
+  // Web: la persona niega el permiso. Sigue en «permiso perdido», pero puede volver a intentarlo.
+  const e = entorno({ plataforma: 'web-carpeta' });
   await activarSeccion(e.deps);
   e.flags.comprobacion = 'requiere_gesto';
   e.flags.pedirDeNuevo = false;
   const perdida = await cargarSeccion(e.deps);
   const sigue = await volverAPermitirSeccion(e.deps, perdida.estado.registro);
-  check('S9) si la persona no vuelve a permitir, la sección sigue en «permiso perdido» y no bloquea', sigue.estado.ubicacion === 'permiso_perdido' && sigue.catalogo === null);
+  check('S9) web · si la persona niega el permiso, la sección sigue en «permiso perdido» y no bloquea', sigue.estado.ubicacion === 'permiso_perdido' && sigue.catalogo === null);
+}
+
+{
+  // Android: el SAF no concede nada en sitio (su puerto devuelve false en pedirDeNuevo). Antes «volver a permitir»
+  // devolvía el mismo estado (callejón sin salida).
+  const e = entorno({ plataforma: 'android' });
+  await activarSeccion(e.deps);
+  e.flags.comprobacion = 'requiere_gesto';
+  e.flags.pedirDeNuevo = false;
+  const perdida = await cargarSeccion(e.deps);
+  const recuperada = await volverAPermitirSeccion(e.deps, perdida.estado.registro);
+  check('S30) Android · permiso perdido: «volver a permitir» lleva a elegir la carpeta y la sección vuelve a «disponible»',
+    perdida.estado.ubicacion === 'permiso_perdido' && recuperada.estado.ubicacion === 'disponible' && recuperada.catalogo !== null, recuperada.estado.ubicacion);
+}
+
+{
+  const e = entorno({ plataforma: 'android' });
+  await activarSeccion(e.deps);
+  e.flags.comprobacion = 'requiere_gesto';
+  e.flags.pedirDeNuevo = false;
+  const perdida = await cargarSeccion(e.deps);
+  e.flags.denegarEleccion = true;
+  const cerrada = await volverAPermitirSeccion(e.deps, perdida.estado.registro);
+  check('S31) Android · si la persona cierra el selector al volver a permitir, la sección dice «permiso denegado» y sigue usable',
+    cerrada.estado.ubicacion === 'permiso_denegado' && cerrada.catalogo === null, cerrada.estado.ubicacion);
 }
 
 {
@@ -356,6 +385,123 @@ const proyectoConArchivo = async (e) => {
   check('S23) el nombre del archivo exportado no lleva barras ni caracteres prohibidos',
     nombreDeArchivoDeExportacion('Mi/restaurante: "final"?') === 'Mi-restaurante- -final--.weeproy' && nombreDeArchivoDeExportacion('   ') === 'proyecto.weeproy',
     nombreDeArchivoDeExportacion('Mi/restaurante: "final"?'));
+}
+
+/* E. Entrega de un proyecto exportado: la entrega va inyectada y nunca lanza hacia la pantalla. */
+
+{
+  const e = entorno();
+  const { proyectoId } = await proyectoConArchivo(e);
+  const { catalogo } = await cargarSeccion(e.deps);
+  let recibido = null;
+  const entregado = await entregarProyectoEnSeccion(
+    catalogo,
+    proyectoId,
+    'Logo.weeproy',
+    async (nombre, datos) => {
+      recibido = { nombre, paquete: decodificarBundle(datos) };
+      return true;
+    },
+    1_700_000_000_000,
+  );
+  check('S32) entregar pasa el nombre del archivo y un paquete wee-proyecto@1 verificable',
+    entregado.ok && recibido?.nombre === 'Logo.weeproy' && recibido.paquete.formato === 'wee-proyecto@1' && recibido.paquete.entrada.name === 'Logo', JSON.stringify(entregado));
+}
+
+{
+  const e = entorno();
+  const { proyectoId } = await proyectoConArchivo(e);
+  const { catalogo } = await cargarSeccion(e.deps);
+  const sinCompartir = await entregarProyectoEnSeccion(catalogo, proyectoId, 'Logo.weeproy', async () => false, 1);
+  check('S33) si el sistema no puede compartir, la sección lo dice (antes no pasaba nada y no había aviso)', !sinCompartir.ok && sinCompartir.error === 'errorNoDisponible', JSON.stringify(sinCompartir));
+}
+
+{
+  const e = entorno();
+  const { proyectoId } = await proyectoConArchivo(e);
+  const { catalogo } = await cargarSeccion(e.deps);
+  let lanzo = false;
+  let fallida = null;
+  try {
+    fallida = await entregarProyectoEnSeccion(catalogo, proyectoId, 'Logo.weeproy', async () => {
+      throw new Error('sin espacio en la caché');
+    }, 1);
+  } catch {
+    lanzo = true;
+  }
+  check('S34) si la entrega falla, el resultado lo dice y no se lanza hacia la pantalla', !lanzo && fallida?.ok === false && fallida.error === 'errorDesconocido', JSON.stringify(fallida));
+}
+
+{
+  const e = entorno();
+  const { proyectoId } = await proyectoConArchivo(e);
+  const { catalogo } = await cargarSeccion(e.deps);
+  fs.rmSync(path.join(e.wee, 'proyectos', proyectoId, 'recursos'), { recursive: true, force: true });
+  let llamada = false;
+  const faltan = await entregarProyectoEnSeccion(catalogo, proyectoId, 'Logo.weeproy', async () => {
+    llamada = true;
+    return true;
+  }, 1);
+  check('S35) un proyecto con un archivo que falta no se entrega, y se dice cuál es el problema',
+    !faltan.ok && faltan.error === 'errorArchivoNoDisponible' && !llamada, JSON.stringify(faltan));
+}
+
+/* T. Un turno: dos aperturas del catálogo nunca escriben a la vez. */
+
+/** Duplica un proyecto con una carga de la sección en mitad de la copia. Devuelve el estado de la copia. */
+const copiaConCargaEnMedio = async (conTurno) => {
+  const e = entorno();
+  const { proyectoId } = await proyectoConArchivo(e);
+  const turno = crearTurno();
+  const original = e.deps.archivosDe;
+  let disparado = false;
+  let recargaEncolada = null;
+  e.deps.archivosDe = (referenciaWee) => {
+    const almacen = original(referenciaWee);
+    return {
+      ...almacen,
+      async escribir(clave, datos) {
+        await almacen.escribir(clave, datos);
+        const archivoDeLaCopia = /^proyectos\/[^/]+\/recursos\//.test(clave) && !clave.startsWith(`proyectos/${proyectoId}/`);
+        if (!disparado && archivoDeLaCopia) {
+          disparado = true;
+          if (conTurno) recargaEncolada = turno(() => cargarSeccion(e.deps));
+          else await cargarSeccion(e.deps);
+        }
+      },
+    };
+  };
+  const { catalogo } = await cargarSeccion(e.deps);
+  const copia = conTurno ? await turno(() => duplicarProyectoEnSeccion(catalogo, proyectoId, 'Copia')) : await duplicarProyectoEnSeccion(catalogo, proyectoId, 'Copia');
+  if (recargaEncolada) await recargaEncolada;
+  const vista = await cargarSeccion(e.deps);
+  return { copia: copia.ok, estadoDeLaCopia: vista.estado.proyectos.find((p) => p.name === 'Copia')?.estado ?? 'sin copia' };
+};
+
+{
+  const conTurno = await copiaConCargaEnMedio(true);
+  check('S36) con turno: una carga en mitad de una copia no barre lo que la copia escribe: la copia sale «disponible»',
+    conTurno.copia && conTurno.estadoDeLaCopia === 'disponible', JSON.stringify(conTurno));
+  const sinTurno = await copiaConCargaEnMedio(false);
+  check('S37) sin turno, esa misma carga borra el archivo de la copia en vuelo (el riesgo que el turno evita)',
+    sinTurno.estadoDeLaCopia !== 'disponible', JSON.stringify(sinTurno));
+}
+
+{
+  const turno = crearTurno();
+  const orden = [];
+  const primera = turno(async () => {
+    await new Promise((resolver) => setTimeout(resolver, 15));
+    orden.push('a');
+    throw new Error('falla a propósito');
+  }).catch(() => undefined);
+  const segunda = turno(async () => {
+    orden.push('b');
+    return 7;
+  });
+  const valor = await segunda;
+  await primera;
+  check('S38) crearTurno: las operaciones van en orden y un fallo no para la cola', orden.join('') === 'ab' && valor === 7, orden.join(''));
 }
 
 /* C. Carpeta y reglas de almacenamiento. */
