@@ -20,7 +20,8 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import * as ImagePicker from 'expo-image-picker';
-import { generateAvatarWithGemini, saveGeneratedAvatar, performAvatarReplacement, uploadImageForSwap, saveFaceSwapResult } from '../services/avatarGenerationService';
+import { generateAvatarWithGemini, saveGeneratedAvatar, performAvatarReplacement, uploadImageForSwap, saveFaceSwapResult, cuboDeWee } from '../services/avatarGenerationService';
+import { decidirFotoDePerfil } from '../utils/fotoDePerfil';
 import { usersService } from '../services/firestoreService';
 import { creditsService, creditsShortfall } from '../services/creditsService';
 import { useWallet } from '../hooks/useWallet';
@@ -160,6 +161,8 @@ const AiAvatarScreen: React.FC = () => {
 
   // Generated URL from Gemini (single image)
   const [generatedAvatarUrl, setGeneratedAvatarUrl] = useState<string | null>(null);
+  // Vista previa de la foto subida: el URI LOCAL del picker. Nunca es un campo del perfil (docs/PRIVACIDAD-FACE-SWAP.md).
+  const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
 
   const step1Complete = selectedGender && selectedSkinTone && selectedHairStyle && selectedAgeRange;
   const step2Complete = selectedEyeColor && selectedFaceShape && selectedExpression;
@@ -215,6 +218,7 @@ const AiAvatarScreen: React.FC = () => {
     setLoadingMessage(t('aiAvatar.creatingAvatar'));
     try {
       const imageUrl = await generateAvatarWithGemini(selections);
+      setVistaPrevia(null);
       setGeneratedAvatarUrl(imageUrl);
       setGenerated(true);
 
@@ -241,6 +245,7 @@ const AiAvatarScreen: React.FC = () => {
     }
     setGenerated(false);
     setGeneratedAvatarUrl(null);
+    setVistaPrevia(null);
     setStep(1);
     setShowWizard(true);
   };
@@ -267,19 +272,11 @@ const AiAvatarScreen: React.FC = () => {
     setLoading(true);
     setLoadingMessage(t('aiAvatar.uploadingPhoto'));
     try {
-      const uploadedUrl = await uploadImageForSwap(user.uid, asset.uri, asset.base64);
-      await usersService.update(userProfile.id, {
-        photoURL: uploadedUrl,
-        photoURLThumbnail: uploadedUrl,
-        aiAvatarPortraitUrl: uploadedUrl,
-      });
-      updateLocalProfile({
-        photoURL: uploadedUrl,
-        photoURLThumbnail: uploadedUrl,
-        aiAvatarPortraitUrl: uploadedUrl,
-        avatarType: 'custom',
-      });
-      setGeneratedAvatarUrl(uploadedUrl);
+      // El ORIGINAL es privado: se guarda en su carpeta, pero no se asigna a ningún campo del perfil. La vista previa sale
+      // del URI local; la RUTA queda como base para generar. El perfil solo cambia si la persona elige un resultado generado.
+      const rutaDelOriginal = await uploadImageForSwap(user.uid, asset.uri, asset.base64);
+      setVistaPrevia(asset.uri);
+      setGeneratedAvatarUrl(rutaDelOriginal);
       setGenerated(true);
       setShowWizard(false);
     } catch (error: any) {
@@ -295,6 +292,7 @@ const AiAvatarScreen: React.FC = () => {
     if (!step1Complete || !step2Complete) {
       setGenerated(false);
       setGeneratedAvatarUrl(null);
+      setVistaPrevia(null);
       setStep(1);
       return;
     }
@@ -309,6 +307,7 @@ const AiAvatarScreen: React.FC = () => {
     setLoadingMessage(t('aiAvatar.creatingAnother'));
     try {
       const imageUrl = await generateAvatarWithGemini(getSelections());
+      setVistaPrevia(null);
       setGeneratedAvatarUrl(imageUrl);
       setGenerated(true);
 
@@ -329,6 +328,8 @@ const AiAvatarScreen: React.FC = () => {
 
   const handleUseAsAvatar = async () => {
     if (!generatedAvatarUrl || !user?.uid || !userProfile?.id) return;
+    // Solo un RESULTADO generado puede ser el avatar del perfil: nunca el original privado ni una vista previa local.
+    if (!decidirFotoDePerfil({ referencia: generatedAvatarUrl, origen: 'resultado-generado', bucket: cuboDeWee() }).ok) return;
 
     setLoading(true);
     setLoadingMessage(t('aiAvatar.savingAvatar'));
@@ -400,9 +401,10 @@ const AiAvatarScreen: React.FC = () => {
     setLoading(true);
     setLoadingMessage(t('aiAvatar.uploadingPhoto'));
     try {
-      const uploadedUrl = await uploadImageForSwap(user.uid, asset.uri, asset.base64);
+      // La selfie original va por RUTA (privada): el intercambio devuelve solo el resultado generado.
+      const selfiePath = await uploadImageForSwap(user.uid, asset.uri, asset.base64);
       setLoadingMessage(t('aiAvatar.swapping'));
-      const generatedImageUrl = await performAvatarReplacement(uploadedUrl, avatarUrl);
+      const generatedImageUrl = await performAvatarReplacement(selfiePath, avatarUrl);
       setLoadingMessage(t('aiAvatar.savingResult'));
       const savedUrl = await saveFaceSwapResult(user.uid, generatedImageUrl);
       setSwapResultUrl(savedUrl);
@@ -418,17 +420,18 @@ const AiAvatarScreen: React.FC = () => {
   // Save the swapped photo as profile photo + save avatar selections
   const handleUseSwapAsProfile = async () => {
     if (!swapResultUrl || !user?.uid || !userProfile?.id || !generatedAvatarUrl) return;
+    // Solo el RESULTADO del intercambio puede ser la foto de perfil (docs/PRIVACIDAD-FACE-SWAP.md).
+    if (!decidirFotoDePerfil({ referencia: swapResultUrl, origen: 'resultado-generado', bucket: cuboDeWee() }).ok) return;
+    // La base solo se guarda como avatar si es un resultado generado: si es el original privado, no se guarda.
+    const baseEsResultado = decidirFotoDePerfil({ referencia: generatedAvatarUrl, origen: 'resultado-generado', bucket: cuboDeWee() }).ok;
 
     setLoading(true);
     setLoadingMessage(t('aiAvatar.savingProfilePhoto'));
     try {
-      // Save avatar to Firebase
-      const { avatarUrl } = await saveGeneratedAvatar(
-        user.uid,
-        userProfile.id,
-        generatedAvatarUrl,
-        getSelections(),
-      );
+      // Save avatar to Firebase (solo si la base es un resultado generado)
+      const avatarUrl = baseEsResultado
+        ? (await saveGeneratedAvatar(user.uid, userProfile.id, generatedAvatarUrl, getSelections())).avatarUrl
+        : undefined;
       // Update profile with the swap result as photoURL
       await usersService.update(userProfile.id, {
         photoURL: swapResultUrl,
@@ -437,8 +440,7 @@ const AiAvatarScreen: React.FC = () => {
       updateLocalProfile({
         photoURL: swapResultUrl,
         photoURLThumbnail: swapResultUrl,
-        aiAvatarPortraitUrl: avatarUrl,
-        aiAvatarSelections: getSelections(),
+        ...(avatarUrl ? { aiAvatarPortraitUrl: avatarUrl, aiAvatarSelections: getSelections() } : {}),
         avatarType: 'custom',
       });
       navigation.goBack();
@@ -584,6 +586,7 @@ const AiAvatarScreen: React.FC = () => {
               style={[styles.primaryButton, { backgroundColor: theme.colors.accent, marginTop: SPACING.md }]}
               onPress={async () => {
                 if (!swapResultUrl || !userProfile?.id) return;
+                if (!decidirFotoDePerfil({ referencia: swapResultUrl, origen: 'resultado-generado', bucket: cuboDeWee() }).ok) return;
                 setLoading(true);
                 setLoadingMessage(t('aiAvatar.updatingProfilePhoto'));
                 try {
@@ -860,9 +863,9 @@ const AiAvatarScreen: React.FC = () => {
             <>
               {/* Avatar preview - single image from Gemini */}
               <View style={styles.previewContainer}>
-                {!!generatedAvatarUrl && (
+                {!!(vistaPrevia || generatedAvatarUrl) && (
                   <Image
-                    source={{ uri: generatedAvatarUrl }}
+                    source={{ uri: vistaPrevia ?? generatedAvatarUrl ?? '' }}
                     style={styles.previewImagePortrait}
                     resizeMode="cover"
                   />
@@ -896,16 +899,18 @@ const AiAvatarScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Skip face swap — use avatar directly */}
-              <TouchableOpacity
-                style={[styles.skipLink]}
-                onPress={handleUseAsAvatar}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.skipLinkText, { color: theme.colors.textSecondary }]}>
-                  {t('aiAvatar.skipAndUse')}
-                </Text>
-              </TouchableOpacity>
+              {/* Skip face swap — use avatar directly. Con la vista previa de una foto subida no hay resultado que guardar: no se muestra. */}
+              {!vistaPrevia && (
+                <TouchableOpacity
+                  style={[styles.skipLink]}
+                  onPress={handleUseAsAvatar}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.skipLinkText, { color: theme.colors.textSecondary }]}>
+                    {t('aiAvatar.skipAndUse')}
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               {/* Regenerate */}
               <TouchableOpacity
