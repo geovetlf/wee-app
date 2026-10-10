@@ -107,17 +107,17 @@ const lee = await intentar(getBytes(original));
 check('E1) la dueña LEE su selfie original', lee.ok && lee.v.byteLength === 3, lee.ok ? `${lee.v.byteLength} bytes` : lee.code);
 
 const otraLee = await intentar(getBytes(ref(ajena.storage, ORIGINAL)));
-check('E2a) otra persona NO la lee', !otraLee.ok, otraLee.ok ? 'SE LEYÓ' : otraLee.code);
+check('E2a) otra persona NO la lee (la regla lo deniega: storage/unauthorized)', otraLee.code === 'storage/unauthorized', otraLee.ok ? 'SE LEYÓ' : otraLee.code);
 const otraDireccion = await intentar(getDownloadURL(ref(ajena.storage, ORIGINAL)));
-check('E2b) otra persona NO consigue una dirección de descarga suya', !otraDireccion.ok, otraDireccion.ok ? 'SE OBTUVO' : otraDireccion.code);
+check('E2b) otra persona NO consigue una dirección de descarga suya (storage/unauthorized)', otraDireccion.code === 'storage/unauthorized', otraDireccion.ok ? 'SE OBTUVO' : otraDireccion.code);
 
 const sinSesionLee = await intentar(getBytes(ref(anonimo.storage, ORIGINAL)));
-check('E3) sin sesión NO la lee', !sinSesionLee.ok, sinSesionLee.ok ? 'SE LEYÓ' : sinSesionLee.code);
+check('E3) sin sesión NO la lee (storage/unauthorized)', sinSesionLee.code === 'storage/unauthorized', sinSesionLee.ok ? 'SE LEYÓ' : sinSesionLee.code);
 
 const sobrescribe = await intentar(uploadBytes(original, new Uint8Array([1, 1, 1]), { contentType: 'image/jpeg' }));
-check('E4a) la dueña NO sobrescribe su selfie (create-only)', !sobrescribe.ok, sobrescribe.ok ? 'SE SOBRESCRIBIÓ' : sobrescribe.code);
+check('E4a) la dueña NO sobrescribe su selfie (create-only: storage/unauthorized)', sobrescribe.code === 'storage/unauthorized', sobrescribe.ok ? 'SE SOBRESCRIBIÓ' : sobrescribe.code);
 const borra = await intentar(deleteObject(original));
-check('E4b) la dueña NO borra su selfie desde la app', !borra.ok, borra.ok ? 'SE BORRÓ' : borra.code);
+check('E4b) la dueña NO borra su selfie desde la app (storage/unauthorized)', borra.code === 'storage/unauthorized', borra.ok ? 'SE BORRÓ' : borra.code);
 const intacto = await intentar(getBytes(original));
 check('E4c) y el contenido sigue siendo el original', intacto.ok && intacto.v.byteLength === 3 && new Uint8Array(intacto.v)[0] === 9,
   intacto.ok ? `${intacto.v.byteLength} bytes` : intacto.code);
@@ -129,7 +129,7 @@ check('E5a) la dueña sube una entrada de Creator con nombre nuevo', entradaSube
 const entradaUrl = await intentar(getDownloadURL(entrada));
 check('E5b) y pide su dirección de descarga (el flujo de creación completo)', entradaUrl.ok && entradaUrl.v.includes('/v0/b/'), entradaUrl.ok ? '' : entradaUrl.code);
 const entradaAjena = await intentar(getBytes(ref(ajena.storage, entrada.fullPath)));
-check('E5c) otra persona NO lee esa entrada', !entradaAjena.ok, entradaAjena.ok ? 'SE LEYÓ' : entradaAjena.code);
+check('E5c) otra persona NO lee esa entrada (storage/unauthorized)', entradaAjena.code === 'storage/unauthorized', entradaAjena.ok ? 'SE LEYÓ' : entradaAjena.code);
 
 console.log('\n── E6/E7 · El riesgo del testigo y su remedio ──');
 const testigo = await intentar(getDownloadURL(original));
