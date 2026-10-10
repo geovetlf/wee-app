@@ -222,10 +222,32 @@ export const activarSeccion = async (deps: DependenciasDeLaSeccion): Promise<Vis
   return vistaDesde(deps, await activarUbicacion(deps.puerto, deps.tienda, deps.ahora));
 };
 
-/** Permiso perdido: se vuelve a pedir con un gesto de la persona. */
+/**
+ * Permiso perdido: se vuelve a pedir con un gesto de la persona. En Android el puerto no puede
+ * concederlo en sitio (`pedirDeNuevo` es false): la única salida es elegir la carpeta otra vez, así
+ * que el botón «Volver a permitir» lleva a elegirla. Sin esto, la sección se quedaba bloqueada.
+ */
 export const volverAPermitirSeccion = async (deps: DependenciasDeLaSeccion, registro: RegistroDeUbicacion): Promise<VistaDeLaSeccion> => {
   if (!deps.puerto) return sinPuerto();
+  if (deps.puerto.plataforma === 'android') return activarSeccion(deps);
   return vistaDesde(deps, await reconcederUbicacion(deps.puerto, registro));
+};
+
+/**
+ * Un turno: las operaciones corren una detrás de otra, en el orden en que se piden. Así dos
+ * catálogos nunca escriben a la vez: cada apertura barre lo que no figura en su índice, y eso
+ * borraría la copia que otra operación está escribiendo en ese momento.
+ */
+export const crearTurno = (): (<T>(operacion: () => Promise<T>) => Promise<T>) => {
+  let cola: Promise<unknown> = Promise.resolve();
+  return <T>(operacion: () => Promise<T>): Promise<T> => {
+    const resultado = cola.then(operacion);
+    cola = resultado.then(
+      () => undefined,
+      () => undefined,
+    );
+    return resultado;
+  };
 };
 
 /* ── Acciones sobre los proyectos ──────────────────────────────────────────── */
@@ -315,5 +337,26 @@ export const exportarProyectoEnSeccion = async (catalogo: CatalogoLocal, project
     return ok(bytes);
   } catch (error) {
     return fallo(error);
+  }
+};
+
+/**
+ * Empaqueta el proyecto y lo entrega (hoja de compartir en nativo, descarga en web). La entrega va
+ * inyectada. Nunca lanza: si el sistema no puede compartir, o la entrega falla, el resultado lo dice
+ * para que la pantalla lo muestre (antes, un fallo de la entrega quedaba sin aviso).
+ */
+export const entregarProyectoEnSeccion = async (
+  catalogo: CatalogoLocal,
+  projectId: string,
+  nombreDelArchivo: string,
+  entregar: (nombre: string, datos: Uint8Array) => Promise<boolean>,
+  exportadoEn: number,
+): Promise<ResultadoDeAccion> => {
+  const empaquetado = await exportarProyectoEnSeccion(catalogo, projectId, exportadoEn);
+  if (!empaquetado.ok) return { ok: false, error: empaquetado.error };
+  try {
+    return (await entregar(nombreDelArchivo, empaquetado.valor)) ? ok(undefined) : { ok: false, error: 'errorNoDisponible' };
+  } catch {
+    return { ok: false, error: 'errorDesconocido' };
   }
 };
