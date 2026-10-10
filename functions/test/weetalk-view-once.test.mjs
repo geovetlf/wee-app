@@ -48,8 +48,9 @@ const URL_CLOUD = 'https://res.cloudinary.com/dnrj1guvs/image/upload/v1699999999
  * (`hidi_…`, identificador heredado) solo resuelve si se declara aquí, igual
  * que en producción solo resuelve si `users` tiene el puente escrito.
  */
-const mundo = ({ participants = ['uAna', 'uBea'], mensajes = {}, fallaBorrado = false, objetos: existentes = [CLAVE], cuentas = {} } = {}) => {
+const mundo = ({ participants = ['uAna', 'uBea'], mensajes = {}, fallaBorrado = false, objetos: existentes = [CLAVE], cuentas = {}, usado = false } = {}) => {
   const diario = [];
+  const consultasUso = [];
   const docs = { ...mensajes };
   const objetos = new Set(existentes);
   const puertos = {
@@ -68,9 +69,14 @@ const mundo = ({ participants = ['uAna', 'uBea'], mensajes = {}, fallaBorrado = 
       if (fallaBorrado) throw new Error('storage caído');
       objetos.delete(key);
     },
+    /* A-2 / C-2: lo que otro usa (índice, ficha viva, otro mensaje) protege. Por defecto nadie lo usa. */
+    usadoPorOtros: async (objectKey, url, conversacion, mensajeId) => {
+      consultasUso.push([objectKey, url, conversacion, mensajeId]);
+      return usado;
+    },
     ahora: () => 1_700_000_500_000,
   };
-  return { quemador: weetalk.crearQuemador(puertos), docs, objetos, diario };
+  return { quemador: weetalk.crearQuemador(puertos), docs, objetos, diario, consultasUso };
 };
 
 const unica = (extra = {}) => ({ type: 'image', viewOnce: true, senderId: 'uAna', imageUrl: URL_WEE, ...extra });
@@ -269,10 +275,35 @@ console.log('\n── F · S1: solo se borra la foto única de SU remitente, en 
   check('41) claveDeFotoUnica acepta exactamente la ruta legítima', SI.every(([k, s, c]) => clave(k, s, c) === true));
   check('41) y rechaza todo lo demás: otra carpeta, otra cuenta, otra conversación, prefijos parecidos, `..`, subcarpetas, codificados, barras iniciales, ids inválidos y remitentes con separadores', NO.every(([k, s, c]) => clave(k, s, c) === false), NO.filter(([k, s, c]) => clave(k, s, c) !== false).map((x) => x[0]).join(' | ') || 'todos rechazados');
 
+  /* G · A-2 / C-2: lo que otro usa NO se borra. La foto queda pendiente y la ficha se quema igual. */
+  console.log('\n── G · Si otro usa el objeto, la foto no se borra (A-2 / C-2) ──');
+  {
+    const usada = mundo({ mensajes: { m1: unica() }, usado: true });
+    const r = await usada.quemador.quemar('uBea', 'c1', 'm1');
+    check('G1 si otro usa el objeto, la ficha se quema pero el objeto NO se borra',
+      r.status === 'quemada' && r.pendingPhysicalDeletion === true && usada.objetos.has(CLAVE) && !usada.diario.some((d) => d[0] === 'objeto'), JSON.stringify(r));
+    check('G1 la consulta de uso recibe la clave, la dirección, la conversación y el mensaje',
+      usada.consultasUso.length === 1 && usada.consultasUso[0][0] === CLAVE && usada.consultasUso[0][2] === 'c1' && usada.consultasUso[0][3] === 'm1',
+      JSON.stringify(usada.consultasUso));
+    check('G1 la dirección ya no está en el mensaje, y queda anotado como pendiente',
+      usada.docs.m1.imageUrl === undefined && usada.docs.m1.pendingPhysicalDeletion === true);
+
+    const libre = mundo({ mensajes: { m1: unica() }, usado: false });
+    const r2 = await libre.quemador.quemar('uBea', 'c1', 'm1');
+    check('G2 sin otros usos, la foto única sí se borra (la regla de siempre)',
+      r2.status === 'quemada' && r2.pendingPhysicalDeletion === false && !libre.objetos.has(CLAVE), JSON.stringify(r2));
+
+    check('G3 repetir no vuelve a consultar ni a borrar: ya_quemada',
+      (await usada.quemador.quemar('uBea', 'c1', 'm1')).status === 'ya_quemada' && usada.consultasUso.length === 1);
+  }
+
   /* El sink, en el código: una sola llamada, detrás de la comprobación. */
   const fuente = leer('functions/src/social/weetalk.ts');
-  check('42) `borrarObjeto` se llama UNA vez y solo detrás de `enSuSitio`', (fuente.match(/p\.borrarObjeto\(/g) || []).length === 1 && /if \(enSuSitio\) \{\s*\n\s*try \{\s*\n\s*await p\.borrarObjeto\(ref\.objectKey\)/.test(fuente));
+  check('42) `borrarObjeto` se llama UNA vez y solo detrás de `enSuSitio`', (fuente.match(/p\.borrarObjeto\(/g) || []).length === 1 && /if \(enSuSitio && !usado\) \{\s*\n\s*try \{\s*\n\s*await p\.borrarObjeto\(ref\.objectKey\)/.test(fuente));
+  check('42) la comprobación de uso va antes del borrado y consulta el mismo objeto', /const usado = enSuSitio && ref \? await p\.usadoPorOtros\(ref\.objectKey, url, conversationId, messageId\) : false;/.test(fuente));
   check('42) y el prefijo se construye entero antes de comparar', /const prefijo = `users\/\$\{senderId\}\/weetalk\/\$\{conversationId\}\/`;/.test(fuente) && /objectKey\.startsWith\(prefijo\)/.test(fuente) && !/includes\(senderId\)|startsWith\(senderId\)/.test(fuente));
+  check('43) el rango por prefijo de usadoPorOtrosEn termina en U+F8FF: sin él, la consulta no encuentra ningún token distinto',
+    fuente.includes('${base}' + String.fromCharCode(92) + 'uf8ff') && fuente.includes('usadoPorOtrosEn'));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeeTalk: la foto única desaparece de verdad, solo cuando la ve quien debe, y solo la foto que es');

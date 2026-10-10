@@ -747,14 +747,21 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
   /* + ciclo de vida 3D (2026-10-05): el linaje del material (nuevo) y su línea de exportación en la puerta del Content Core. */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts\n651\t0\tfunctions/src/core/content/linaje.ts';
+  /* Reanclaje del 2026-10-10 (docs/ACTIVOS-CERCAS.md § 6). Cifras NETAS del árbol contra b023f24, cada una atribuida a un
+   * commit autorizado de esta integración: DEC-03 (9469e3a), H5/H2 (30855bf, fa98a29), C-1 (3f52c5e) y A-2 (3c8ac7b).
+   * Antes: content/index.ts 68/3 y content/materializador.ts 126/4 (F3 en rojo desde la base); core sin core/media. */
+  const CORE_DEL_NUCLEO_DE_ACTIVOS = '1\t0\tfunctions/src/core/media/index.ts\n747\t0\tfunctions/src/core/media/indice.ts\n107\t4\tfunctions/src/core/media/objeto.ts'
+    + '\n52\t1\tfunctions/src/core/media/puerto.ts\n7\t1\tfunctions/src/core/media/recoleccion.ts\n255\t1\tfunctions/src/core/media/reconciliacion.ts\n2\t1\tfunctions/src/core/media/subida.ts';
+  const CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS = '388\t101\tfunctions/src/content/index.ts\n298\t0\tfunctions/src/content/indice-almacen.ts'
+    + '\n392\t0\tfunctions/src/content/indice-reconciliacion.ts\n709\t0\tfunctions/src/content/indice.ts\n126\t4\tfunctions/src/content/materializador.ts\n223\t0\tfunctions/src/content/versiones.ts';
   /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
   const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
-  check('F3) ni F1-A ni productions; del Core, solo la misión fal y el linaje del ciclo de vida 3D; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',
+  check('F3) ni F1-A ni productions; del Core, la misión fal, el linaje 3D y el núcleo de activos (H5/H2); del contenido, la adopción de F1-D, el cierre, los derechos, DEC-03 y el núcleo de activos (H5/H2)',
     git(`diff --name-only ${RUTA} -- functions/src/filmmaker functions/src/productions`).trim() === ''
-    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D)
+    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DEL_NUCLEO_DE_ACTIVOS)
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
-    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '68\t3\tfunctions/src/content/index.ts\n126\t4\tfunctions/src/content/materializador.ts');
+    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS);
     /* + FASE 5: materializador.ts +2 (antes 124/4): el nombre del material, las palabras de quien lo pidió. */
     /* + misión mundo3d (2026-10-05): content/index.ts +27 (antes 41/3), las variantes de UN resultado; materializador.ts +62 −2 (antes 62/2), los derechos al material y sus variantes después. */
   const legacy = (s) => {
