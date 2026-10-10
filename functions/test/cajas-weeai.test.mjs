@@ -113,6 +113,7 @@ const superficies = [
 const NO_SON_PROMPT = {
   'components/creator/ProjectPicker.tsx': 'nombre de un proyecto nuevo: una línea, no un prompt',
   'screens/ProjectsScreen.tsx': 'nombre de un proyecto nuevo: una línea, no un prompt',
+  'components/creator/SeccionDelDispositivo.tsx': 'nombre de un proyecto nuevo en este dispositivo: una línea, no un prompt',
   'screens/ProjectScreen.tsx': 'renombrar un proyecto: una línea, no un prompt',
   'screens/WeeCreatorScreen.tsx': 'buscador de la portada de Weë AI: filtra experiencias mientras se escribe',
   'screens/WriterEditorScreen.tsx': 'editor de documentos de Weë Writer: el documento ya es la pantalla entera',

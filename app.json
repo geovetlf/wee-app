@@ -85,7 +85,9 @@
         "NSPhotoLibraryUsageDescription": "Weë necesita acceso a tu galería para que puedas seleccionar fotos y videos para tus publicaciones, tu perfil, WeeTalk y Weë AI.",
         "NSPhotoLibraryAddUsageDescription": "Weë necesita permiso para guardar en tu galería las imágenes y los videos que descargas de Weë AI.",
         "ITSAppUsesNonExemptEncryption": false,
-        "CFBundleAllowMixedLocalizations": true
+        "CFBundleAllowMixedLocalizations": true,
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
       },
       "buildNumber": "2"
     },

@@ -58,7 +58,7 @@ Búsqueda: en `services/`, `screens/`, `components/`, `utils/`, `hooks/`, `conte
 ## 6. Hallazgos que condicionan el diseño
 
 1. **`Alert.alert` no muestra nada en web** (`utils/notify.ts:16`). `ProjectScreen.tsx:85-87` ya separa `window.confirm` de `Alert.alert`. La sección local usa `confirmAction` de `utils/notify.ts`.
-2. **`i18n/huella.json` fija las huellas de `es/app` y `en/app`.** Cualquier clave nueva las cambia (`functions/test/i18n-huella.test.mjs`). La aceptación la hace una persona revisando el cambio (`scripts/i18n-huella.mjs`). Este bloque **no** regenera la huella: la interfaz local queda sin commit hasta esa aceptación.
+2. **`i18n/huella.json` fija las huellas de los catálogos.** Cualquier clave nueva las cambia (`functions/test/i18n-huella.test.mjs`). La regeneración se hace con `scripts/i18n-huella.mjs` después de verificar los textos. B1 no la regeneró; la línea I (§9) sí, en un commit aparte, y ahí están los 19 catálogos que cambiaron.
 3. **`Diccionarios` admite idiomas incompletos** (`i18n/traducir.ts:42`). Una clave nueva obliga solo a `es` y `en` (`i18n/textos/en/index.ts`, tipo `FormaDelDiccionario`).
 4. **Weë Writer sin sesión guarda en el dispositivo y migra a la nube** la primera vez que hay sesión (`services/documentsService.ts:45-56`). Va contra el principio de nube opcional. Está fuera del alcance de B1: se documenta y no se cambia.
 5. **Hash SHA-256 sin dependencia:** se implementa en TypeScript puro. Su rendimiento con archivos grandes en el teléfono **no se ha medido**.
@@ -81,3 +81,28 @@ Búsqueda: en `services/`, `screens/`, `components/`, `utils/`, `hooks/`, `conte
 - **Importar desde archivos del teléfono en la interfaz:** BLOQUEADO por autorización. Requiere `expo-document-picker`, no instalado. En web sería posible con un selector de archivos del navegador; no se hace en B1.
 - **Añadir archivos a un proyecto local desde la galería:** pendiente de decisión del dueño. `expo-image-picker` ya está instalado, pero no forma parte de las acciones de la tarjeta que pide el brief.
 - **Cobros y Credits:** ninguno. Los Credits no se tocan.
+
+## 9. Línea I («Mis proyectos» con la carpeta WEE)
+
+Rama `wee/trk-i-mis-proyectos`, desde la integración `8fcc5c0`. Validación en dispositivo: PENDIENTE (no hay iPhone ni Android conectados).
+
+**Decisiones.**
+
+- **Índice, copias y carátulas fuera de la carpeta.** `services/almacenLocal/almacenDeMetadatos.ts` implementa el contrato `AlmacenLocal` sobre AsyncStorage. El índice (`indice.json`), las copias (`proyectos/<id>/proyecto.json`), las carátulas y la cuarentena van ahí. La razón: `UIFileSharingEnabled` expone toda la carpeta de documentos de la app en Archivos (iOS), así que dentro solo puede haber archivos del usuario.
+- **Un solo contrato, repartido por clave.** `services/almacenLocal/almacenEnrutado.ts` presenta al catálogo un único `AlmacenLocal` que manda `proyectos/<id>/recursos/<recursoId>` a la carpeta WEE y todo lo demás a los metadatos. No es una segunda capa: es el mismo contrato repartido.
+- **Carátula = emoji del proyecto.** La carátula de imagen del catálogo es regenerable y no se muestra todavía.
+- **«Disponible» exige verificación.** Un proyecto sale «disponible» solo si todos sus archivos existen, tienen el tamaño y la huella registrados, y se pueden leer (`verificarRecurso`). Un proyecto sin archivos sale «sin archivos»: no es «disponible» ni «no encontrado». Esto se comprueba cada vez que se entra en la sección, así que el coste crece con los bytes guardados (no se ha medido).
+- **Acciones de la tarjeta:** «Abrir» lee de verdad cada archivo y muestra su estado; «Duplicar» (copia con sus archivos); «Exportar» empaqueta en `wee-proyecto@1` y lo entrega como `.weeproy` (hoja de compartir en nativo, descarga en web, caché transitoria); «Eliminar» pide confirmación.
+- **Permiso explicado antes de pedirlo.** La sección muestra el texto de la plataforma (`permisoAndroid`, `permisoIos`, `permisoWeb` o `permisoPrivado`) y un botón «Continuar». Si se deniega, la pantalla sigue usable y ofrece reintentar o elegir otra carpeta. Con la carpeta guardada perdida, ofrece elegir otra.
+- **Unificación de exportaciones.** `services/almacenLocal/ubicacion.ts` y `ubicacion.web.ts` exportan el mismo nombre y tipo: `puertoDeUbicacionDelDispositivo` y `tiendaDeUbicacion`, ambos anulables.
+
+**Regresión corregida (B1).** `utils/catalogoLocal.ts` consideraba fiable el índice cuando no existía y no había copias. Eso permitía que `borrarHuerfanos` borrara todo lo que hubiera bajo `proyectos/` en la carpeta. Con el almacén dividido, el caso es alcanzable: al desinstalar, AsyncStorage se borra pero la carpeta WEE de Android sobrevive. Ahora `fiable` solo es verdadero si el índice se leyó. Prueba: `functions/test/local-first-metadatos.test.mjs` (C5, C6) y `functions/test/local-first-seccion.test.mjs` (S26). Se verificó con una mutación: sin el arreglo, C5 y S26 fallan.
+
+**Configuración de iOS.** `app.json` → `expo.ios.infoPlist`: `UIFileSharingEnabled: true` y `LSSupportsOpeningDocumentsInPlace: true`. Fuentes y límites en `docs/CARPETA-WEE-PLATAFORMAS.md`. Se invierte la comprobación Q10 de `functions/test/local-first-politicas.test.mjs`, que antes exigía que no estuvieran.
+
+**Límites abiertos.**
+
+- Desinstalar la app pierde el índice; los archivos de la carpeta siguen pero no se listan. Volver a importarlos está DEFERIDO: decidir si un manifiesto dentro de la carpeta es aceptable (hoy no lo es: sería una base de datos interna visible).
+- `estadoSoloEnLaNube` está en los textos pero no es alcanzable mientras la nube esté desactivada (forma reservada; lo vigila `functions/test/local-first-seccion-textos.test.mjs`).
+- El visor del contenido no existe en esta línea: «Abrir» verifica y lista.
+- Los suites nuevos (`local-first-metadatos`, `local-first-seccion`, `local-first-seccion-textos`) no están en `functions/package.json`: lo registra el integrador.

@@ -9,6 +9,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { projectsService, WeeProject, PROJECT_EMOJIS } from '../services/projectsService';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle } from '../components/creator/ui';
+import SeccionDelDispositivo from '../components/creator/SeccionDelDispositivo';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -153,6 +154,11 @@ const ProjectsScreen: React.FC = () => {
             ))}
           </View>
         )}
+      </View>
+
+      {/* Lo que vive en el aparato (la carpeta WEE). Va después de los proyectos de la cuenta y no los toca. */}
+      <View style={styles.section}>
+        <SeccionDelDispositivo />
       </View>
     </CreatorShell>
   );

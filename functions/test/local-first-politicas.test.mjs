@@ -4,7 +4,8 @@
  *   · los proyectos locales NO entran en mediaObjects ni en el índice de referencias;
  *   · la capa no depende de Firebase ni de functions/src (funciona sin conexión);
  *   · no se pide ningún permiso de almacenamiento general (READ/WRITE_EXTERNAL_STORAGE);
- *   · app.json no cambia: la carpeta de iOS no es visible en Archivos (decisión pendiente del dueño).
+ *   · app.json declara compartir los documentos de iOS: la carpeta WEE se ve en Archivos (decisión del
+ *     dueño, línea I). Por eso los documentos de la app solo pueden tener archivos del usuario.
  *
  * No importa código: lee los ficheros. Así comprueba lo que de verdad está escrito.
  *
@@ -28,6 +29,11 @@ const CAPA = [
   'utils/ubicacionWee.ts',
   'utils/catalogoLocal.ts',
   'utils/bundleLocal.ts',
+  'services/almacenLocal/almacenDeMetadatos.ts',
+  'services/almacenLocal/almacenEnrutado.ts',
+  'services/almacenLocal/entrega.ts',
+  'services/almacenLocal/entrega.web.ts',
+  'utils/seccionDelDispositivo.ts',
 ];
 
 let fallos = 0;
@@ -45,7 +51,7 @@ const codigo = (texto) =>
 
 const fuentes = CAPA.map((ruta) => ({ ruta, texto: leer(ruta), codigo: codigo(leer(ruta)) }));
 
-check('Q1) la capa existe completa (12 ficheros)', fuentes.every((f) => f.texto.length > 0), `${fuentes.length} ficheros`);
+check('Q1) la capa existe completa', fuentes.every((f) => f.texto.length > 0), `${fuentes.length} ficheros`);
 
 const importan = (f, patron) => f.codigo.split('\n').some((linea) => /^\s*import\b/.test(linea) && patron.test(linea));
 const usan = (f, patron) => patron.test(f.codigo);
@@ -59,8 +65,11 @@ check('Q7) el Android usa el Storage Access Framework (la persona elige la carpe
 check('Q8) iOS guarda en la sandbox de la app, sin selector de carpetas', leer('services/almacenLocal/ubicacion.ts').includes('documentDirectory') && !usan(fuentes[7], /DocumentPicker|showDirectoryPicker/));
 check('Q9) el navegador: OPFS se etiqueta como privado, nunca como carpeta del sistema', leer('services/almacenLocal/ubicacion.web.ts').includes('ESPACIO PRIVADO') || leer('services/almacenLocal/ubicacion.web.ts').includes('PRIVADO'));
 
-const appJson = leer('app.json');
-check('Q10) app.json no declara compartir archivos de iOS (la carpeta no aparece en Archivos)', !appJson.includes('UIFileSharingEnabled') && !appJson.includes('LSSupportsOpeningDocumentsInPlace'));
+const infoPlist = JSON.parse(leer('app.json')).expo.ios.infoPlist;
+check(
+  'Q10) app.json declara UIFileSharingEnabled y LSSupportsOpeningDocumentsInPlace en true (decisión del dueño: la carpeta WEE se ve en Archivos)',
+  infoPlist.UIFileSharingEnabled === true && infoPlist.LSSupportsOpeningDocumentsInPlace === true,
+);
 check('Q11) la nube queda desactivada por defecto en los ajustes de almacenamiento', leer('utils/ubicacionWee.ts').includes("nube: 'desactivada'"));
 check('Q12) la capa no toca app.json ni .claude ni la identidad: no importa nada de identity/edad/jurisdicción', fuentes.every((f) => !importan(f, /identity|jurisdiccion|elegibilidad|edad/i)));
 
