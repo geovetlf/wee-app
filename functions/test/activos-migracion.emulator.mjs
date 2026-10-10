@@ -18,6 +18,10 @@ import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { proyectoDeEmulador } from './_emulador.mjs';
 
+/* Cuánto tarda cada sección: la cadena de emuladores corta una suite a los 300 s (_emuladores.mjs, --limite-s). */
+const T0 = Date.now();
+const reloj = () => `(${((Date.now() - T0) / 1000).toFixed(1)} s)`;
+
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -89,7 +93,7 @@ const borrarIndiceDe = async (cuenta) => {
 };
 
 /* ═══ A · SE NIEGA ═══════════════════════════════════════════════════════════ */
-console.log('\n── A · Fuera de un demo-* con emulador, no corre ──');
+console.log('\n── A · Fuera de un demo-* con emulador, no corre ──', reloj());
 {
   const correr = (env) => spawnSync(process.execPath, [path.resolve(RAIZ, 'scripts/indice-activos.mjs'), '--modo', 'backfill'], { env, encoding: 'utf8' });
   const base = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot };
@@ -106,7 +110,7 @@ console.log('\n── A · Fuera de un demo-* con emulador, no corre ──');
 }
 
 /* ═══ B · DRY-RUN CON 1 000 MATERIALES ═══════════════════════════════════════ */
-console.log('\n── B · dry-run: lo que haría, sin escribir nada ──');
+console.log('\n── B · dry-run: lo que haría, sin escribir nada ──', reloj());
 {
   const CUENTA = 'uMigDry';
   const fichas = Array.from({ length: 1000 }, (_, i) => fixture(CUENTA, i));
@@ -132,7 +136,7 @@ console.log('\n── B · dry-run: lo que haría, sin escribir nada ──');
 }
 
 /* ═══ C · BACKFILL: INTERRUMPIDO Y REANUDADO = DE UNA VEZ ═══════════════════ */
-console.log('\n── C · backfill reanudable e idempotente ──');
+console.log('\n── C · backfill reanudable e idempotente ──', reloj());
 {
   const CUENTA = 'uMigInt';
   await sembrar(Array.from({ length: 350 }, (_, i) => fixture(CUENTA, i)));
@@ -157,7 +161,7 @@ console.log('\n── C · backfill reanudable e idempotente ──');
 }
 
 /* ═══ D · CAMBIOS DURANTE EL BACKFILL ═══════════════════════════════════════ */
-console.log('\n── D · El índice final es la verdad aunque todo cambie mientras tanto ──');
+console.log('\n── D · El índice final es la verdad aunque todo cambie mientras tanto ──', reloj());
 {
   const CUENTA = 'uMigVivo';
   await db.collection('aiSettings').doc('almacenActivos').set({ habilitado: true, cuentas: [CUENTA], coberturaDesde: 0 });
@@ -188,7 +192,7 @@ console.log('\n── D · El índice final es la verdad aunque todo cambie mien
 }
 
 /* ═══ E · SOMBRA ═════════════════════════════════════════════════════════════ */
-console.log('\n── E · sombra: dos decisiones, ninguna acción ──');
+console.log('\n── E · sombra: dos decisiones, ninguna acción ──', reloj());
 {
   const CUENTA = 'uMigSombra';
   const k = (s) => `users/${CUENTA}/mig/${RUN}-${s}.png`;
@@ -221,5 +225,5 @@ console.log('\n── E · sombra: dos decisiones, ninguna acción ──');
   check('E2 y ninguna decisión se tocó: fichas, registros y filas idénticos', sinEjecuciones(antes) === sinEjecuciones(despues));
 }
 
-console.log(fallos ? `\n✘ ${fallos} fallo(s) de ${n}` : `\n✔ todo bien (${n} comprobaciones)`);
+console.log(fallos ? `\n✘ ${fallos} fallo(s) de ${n}` : `\n✔ todo bien (${n} comprobaciones)`, reloj());
 process.exit(fallos ? 1 : 0);

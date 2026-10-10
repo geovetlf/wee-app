@@ -20,6 +20,10 @@ import { fileURLToPath } from 'node:url';
 import { proyectoDeEmulador } from './_emulador.mjs';
 import { crearPuertoConGeneracion } from './_activos-falsos.mjs';
 
+/* Cuánto tarda cada sección: la cadena de emuladores corta una suite a los 300 s (_emuladores.mjs, --limite-s). */
+const T0 = Date.now();
+const reloj = () => `(${((Date.now() - T0) / 1000).toFixed(1)} s)`;
+
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lib = (p) => require(path.resolve(here, '../lib', p));
@@ -88,7 +92,7 @@ await db.collection('aiSettings').doc('almacenActivos').set({ habilitado: true, 
 await new Promise((r) => setTimeout(r, 1500));
 
 /* ═══ A · BORRA, CON LA PRECONDICIÓN, Y CIERRA ═══════════════════════════════ */
-console.log('\n── A · La tarea, llamada directamente ──');
+console.log('\n── A · La tarea, llamada directamente ──', reloj());
 const x1 = await sembrar();
 const x2 = await sembrar();
 const viva = await sembrar({ viva: true });
@@ -105,12 +109,12 @@ check('A2 cada borrado llevó la generación REGISTRADA como precondición', pre
 check('A3 y sus registros quedan `borrado`, sin concesión colgando', (await registro(x1)).estado === 'borrado' && (await registro(x2)).estado === 'borrado' && (await registro(x1)).concesion === undefined);
 
 /* ═══ B · LO QUE NO TOCA ═════════════════════════════════════════════════════ */
-console.log('\n── B · Lo que no toca ──');
+console.log('\n── B · Lo que no toca ──', reloj());
 check('B2 una fila viva protege su objeto', P.objetos.has(viva.objectKey) && (await registro(viva)).estado === 'candidato' && !pre.has(viva.objectKey));
 check('B3 D-C: una clave users/ no se barre: sus bytes siguen en el Storage del emulador', (await bucket.file(deUsuarios.objectKey).exists())[0] && (await registro(deUsuarios)).estado === 'candidato');
 
 /* ═══ C · FLAG CERRADA ═══════════════════════════════════════════════════════ */
-console.log('\n── C · Con la flag cerrada ──');
+console.log('\n── C · Con la flag cerrada ──', reloj());
 const x3 = await sembrar();
 await db.collection('aiSettings').doc('almacenActivos').delete();
 const antes = P.llamadas.borrar.length;
@@ -123,7 +127,7 @@ check('C1 no mira nada: ni un borrado pedido', P.llamadas.borrar.length === ante
  * y no se puede comprobar aquí: el emulador no es Google. Lo que sí se comprueba es lo que depende del código —que el
  * puerto lee la generación y que no borra en otro cubo— y se APUNTA lo que hace el emulador con la precondición.
  */
-console.log('\n── D · El puerto del Storage de Weë frente al emulador (medida) ──');
+console.log('\n── D · El puerto del Storage de Weë frente al emulador (medida) ──', reloj());
 {
   const puerto = indice.puertoDelStorageDeWee('wee');
   const ref = (c) => ({ provider: 'wee', bucket: BUCKET, objectKey: c });
@@ -140,5 +144,5 @@ console.log('\n── D · El puerto del Storage de Weë frente al emulador (med
   check('D2 una referencia de otro cubo no se borra aquí aunque la clave coincida', !otroCubo.ok);
 }
 
-console.log(fallos ? `\n✘ ${fallos} fallo(s) de ${n}` : `\n✔ todo bien (${n} comprobaciones)`);
+console.log(fallos ? `\n✘ ${fallos} fallo(s) de ${n}` : `\n✔ todo bien (${n} comprobaciones)`, reloj());
 process.exit(fallos ? 1 : 0);
