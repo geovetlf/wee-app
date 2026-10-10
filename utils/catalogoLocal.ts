@@ -367,7 +367,13 @@ export const abrirCatalogoLocal = async (almacen: AlmacenLocal, opciones: Opcion
 
   let indice: IndiceLocal = { esquema: ESQUEMA_DEL_INDICE, proyectos: [] };
   let modoLectura = false;
-  let fiable = true;
+  /*
+   * FIABLE solo si el índice se leyó. Sin índice no sabemos qué archivos son
+   * nuestros: pueden ser de una instalación anterior (en Android la carpeta WEE
+   * sobrevive a la desinstalación y el índice, en AsyncStorage, no). Por eso
+   * `borrarHuerfanos` no corre sin índice, aunque no haya copias.
+   */
+  let fiable = false;
   let reescribir = false;
 
   const bytesDelIndice = (await almacen.existe(CLAVE_DEL_INDICE)) ? await almacen.leer(CLAVE_DEL_INDICE) : null;
@@ -375,16 +381,17 @@ export const abrirCatalogoLocal = async (almacen: AlmacenLocal, opciones: Opcion
     indice = { esquema: ESQUEMA_DEL_INDICE, proyectos: await cargarCopias(almacen, avisos) };
     if (indice.proyectos.length > 0) {
       avisos.push('indice_reconstruido');
-      fiable = false;
       reescribir = true;
     }
   } else {
     const lectura = interpretarIndice(bytesDelIndice);
     if (lectura.tipo === 'ok') {
       indice = lectura.indice;
+      fiable = true;
     } else if (lectura.tipo === 'antiguo') {
       await almacen.escribir(claveDeCuarentena(`esquema-${lectura.esquemaOriginal}`, marca()), bytesDelIndice);
       indice = lectura.indice;
+      fiable = true;
       reescribir = true;
       avisos.push('migrado');
     } else if (lectura.tipo === 'mas_nuevo') {
