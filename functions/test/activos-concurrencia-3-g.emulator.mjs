@@ -48,25 +48,37 @@ await abrirAlmacenParaAna();
 console.log('\n── G · El control: la misma carrera sin transacción (experimento C) ──', reloj());
 {
   const rondas = 60;
+  /* Las lecturas y escrituras SIN transacción de este control pueden recibir del emulador «Transaction lock timeout»
+   * (ABORTED, código 10) mientras otra ronda retiene el bloqueo de la colección. Sin reintento, la excepción escapa, tumba
+   * la suite y no prueba nada (primera ejecución del barrido: 88,8 s). Se reintenta SOLO ese error, con la misma operación:
+   * el control sigue sin transacción, y cualquier otro error sale tal cual. */
+  const sinBloqueo = async (operacion) => {
+    for (let intento = 1; ; intento++) {
+      try { return await operacion(); } catch (error) {
+        if (error?.code !== 10 || intento >= 20) throw error;
+        await esperar(5 * intento);
+      }
+    }
+  };
   /* G1 · anotar dos variantes leyendo, esperando y escribiendo el array leído: lo que hacía anotarVariante. */
   const sinTransaccion = async (id, kind, ms) => {
     const ref = db.collection('assets').doc(id);
-    const s = await ref.get();
+    const s = await sinBloqueo(() => ref.get());
     await esperar(ms);
     const variants = [...(s.data().variants ?? []).filter((v) => v.kind !== kind), { kind, storageRef: { provider: 'wee', bucket: BUCKET, objectKey: `users/${ANA}/x/${kind}` } }];
-    await ref.set({ variants }, { merge: true });
+    await sinBloqueo(() => ref.set({ variants }, { merge: true }));
   };
   const porRonda = await enTandas(rondas, async (i) => {
     const c = clave(); await subir(c);
     const m = await crear(c);
     await Promise.all([sinTransaccion(m.assetId, 'thumbnail', 15), sinTransaccion(m.assetId, 'poster', 0)]);
-    const sin = ((await ficha(m.assetId)).variants ?? []).length !== 2;
+    const sin = ((await sinBloqueo(() => ficha(m.assetId))).variants ?? []).length !== 2;
     const m2 = await crear(c);
     await Promise.all([
       content.anotarVariante(ANA, m2.assetId, { kind: 'thumbnail', storageRef: { provider: 'wee', bucket: BUCKET, objectKey: `users/${ANA}/x/t${i}` } }),
       content.anotarVariante(ANA, m2.assetId, { kind: 'poster', storageRef: { provider: 'wee', bucket: BUCKET, objectKey: `users/${ANA}/x/p${i}` } }),
     ]);
-    return { sin, con: ((await ficha(m2.assetId)).variants ?? []).length !== 2 };
+    return { sin, con: ((await sinBloqueo(() => ficha(m2.assetId))).variants ?? []).length !== 2 };
   });
   const perdidasSin = porRonda.filter((x) => x.sin).length;
   const perdidasCon = porRonda.filter((x) => x.con).length;
@@ -77,11 +89,11 @@ console.log('\n── G · El control: la misma carrera sin transacción (experi
   const rondasG3 = 60;
   const violadas = await enTandas(rondasG3, async (i) => {
     const ref = db.collection('pruebaCerrojo').doc(`${RUN}-${i}`);
-    await ref.set({ estado: 'candidato', vivas: 0 });
-    const crearFila = (async () => { const s = await ref.get(); if (s.data().estado !== 'guardado' && s.data().estado !== 'candidato') return; await esperar(Math.random() * 3); await ref.update({ estado: 'guardado', vivas: s.data().vivas + 1 }); })();
-    const reclamarSin = (async () => { const s = await ref.get(); if (s.data().estado !== 'candidato' || s.data().vivas > 0) return; await esperar(Math.random() * 3); await ref.update({ estado: 'borrando' }); })();
+    await sinBloqueo(() => ref.set({ estado: 'candidato', vivas: 0 }));
+    const crearFila = (async () => { const s = await sinBloqueo(() => ref.get()); if (s.data().estado !== 'guardado' && s.data().estado !== 'candidato') return; await esperar(Math.random() * 3); await sinBloqueo(() => ref.update({ estado: 'guardado', vivas: s.data().vivas + 1 })); })();
+    const reclamarSin = (async () => { const s = await sinBloqueo(() => ref.get()); if (s.data().estado !== 'candidato' || s.data().vivas > 0) return; await esperar(Math.random() * 3); await sinBloqueo(() => ref.update({ estado: 'borrando' })); })();
     await Promise.all([crearFila, reclamarSin]);
-    const fin = (await ref.get()).data();
+    const fin = (await sinBloqueo(() => ref.get())).data();
     return fin.estado === 'borrando' && fin.vivas > 0;
   });
   const violacionesSin = violadas.filter(Boolean).length;
