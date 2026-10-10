@@ -21,7 +21,7 @@ ningún objeto se borra físicamente mientras no haya consumidores integrados (D
 | Listas | `media-core` 135/136 · `media-proceso-core` 153/154 · `media-upload-core` 149/150 · `media-delivery-core` 108/109 | `core/media`: 12 archivos · `media`: 19 | `core/media`: **13** (+ `indice.ts`) · `media`: **20** (+ `barrido.ts`) | los dos archivos nuevos del parche en esas carpetas |
 | Mapa | `runtime-map` · 91, 92, 99 (ahora 91, 92, 99–102) | `objeto.js` 8 símbolos · `puerto.js` 2 · sin `indice.js`, `recoleccion.js` ni `reconciliacion.js` | `objeto.js` 9 · `puerto.js` 4 · `indice.js` 19 · `recoleccion.js` 1 · `reconciliacion.js` 1 | `deleteAsset` carga ahora `content/indice*.js`, que nombran esos símbolos del Core |
 
-Lo que **no** se ha cambiado: F3 de `puente-pre-f1d` (heredada, ver § 6), `ci-workflow` 13 (§ 7) y ninguna otra cerca.
+Lo que **no** se ha cambiado: `ci-workflow` 13 (§ 7) y ninguna otra cerca. F3 de `puente-pre-f1d` (comprobación 39) se reancló el 2026-10-10, con su atribución (§ 6).
 
 ## 1. F1 — `functions/test/puente-pre-f1d.test.mjs`, comprobación 37
 
@@ -159,20 +159,53 @@ respecto al árbol tal cual, donde ya fallaba F3 (heredada).
 Después de los siete, las siete suites dan exactamente lo mismo que antes, y `git status` está vacío. Herramienta:
 `scratchpad/activos-core-trabajo/cercas-muerden.mjs` (de trabajo, fuera del repositorio).
 
-## 6. Lo que NO se cambia: F3 de `puente-pre-f1d` (comprobación 39)
+## 6. F3 de `puente-pre-f1d` (comprobación 39): reanclada el 2026-10-10
 
-F3 compara `git diff --numstat b023f24` de `functions/src/core` y de `functions/src/content` con valores fijos. **Ya
-fallaba en la base** `8fcc5c0`, antes de esta línea: espera `68 3 content/index.ts` y `126 4 content/materializador.ts`,
-y la base tiene `173 23 content/index.ts`, `126 4 content/materializador.ts` y `154 0 content/versiones.ts` (DEC-03 y lo
-que se integró después). No está en la lista autorizada, así que sigue en rojo y **no se toca**. Con esta integración
-difiere además en el Core (`core/media`). Si el dueño decide reanclarla, estas son las cifras del árbol de trk-s:
+**Estado anterior.** F3 compara el `git diff --numstat b023f24` de `functions/src/core` y de `functions/src/content` con cifras fijas. Ya estaba en rojo en la base `8fcc5c0`, que esperaba `68 3 content/index.ts` y `126 4 content/materializador.ts`. Después la integración añadió DEC-03, el núcleo H5/H2 y los dos cambios de este cierre (C-1 y A-2) sin reanclar la cerca. Su intención escrita era «del contenido, solo F1-D, el cierre y los derechos», y no incluía DEC-03 ni H5/H2.
 
-```
-content:  400 93 content/index.ts · 298 0 content/indice-almacen.ts · 392 0 content/indice-reconciliacion.ts
-          700 0 content/indice.ts · 126 4 content/materializador.ts · 223 0 content/versiones.ts
-core:     las doce de siempre + 1 0 core/media/index.ts · 747 0 core/media/indice.ts · 107 4 core/media/objeto.ts
-          52 1 core/media/puerto.ts · 7 1 core/media/recoleccion.ts · 249 1 core/media/reconciliacion.ts · 2 1 core/media/subida.ts
-```
+**Reanclaje.** Por instrucción del dueño (revisar F3 y reanclarla si está justificado), las cifras esperadas pasan a ser las NETAS del árbol contra `b023f24`. Cada una se atribuye a los commits que la producen:
+
+| Archivo | Antes | Ahora | Commits que lo cambian |
+|---|---|---|---|
+| `content/index.ts` | 68 / 3 | 388 / 101 | `14d1beb` (cierre), `3faee56` (misión fal), `e526226` (mundo3d), `9469e3a` (DEC-03), `30855bf` y `fa98a29` (H5/H2), `3f52c5e` (C-1) |
+| `content/indice-almacen.ts` | archivo nuevo | 298 / 0 | `30855bf`, `fa98a29` (H5/H2) |
+| `content/indice-reconciliacion.ts` | archivo nuevo | 392 / 0 | `30855bf` (H5/H2) |
+| `content/indice.ts` | archivo nuevo | 709 / 0 | `30855bf`, `fa98a29` (H5/H2); `3c8ac7b` (A-2, +9) |
+| `content/materializador.ts` | 126 / 4 | 126 / 4 | sin cambio |
+| `content/versiones.ts` | archivo nuevo | 223 / 0 | `9469e3a` (DEC-03) |
+| `core/media/index.ts` | archivo nuevo | 1 / 0 | `30855bf` (H5/H2) |
+| `core/media/indice.ts` | archivo nuevo | 747 / 0 | `30855bf`, `fa98a29` (H5/H2) |
+| `core/media/objeto.ts` | fuera de la cerca | 107 / 4 | H5/H2 |
+| `core/media/puerto.ts` | fuera de la cerca | 52 / 1 | H5/H2 |
+| `core/media/recoleccion.ts` | fuera de la cerca | 7 / 1 | H5/H2 |
+| `core/media/reconciliacion.ts` | fuera de la cerca | 255 / 1 | H5/H2 (`30855bf`); A-2 (`3c8ac7b`) lo llevó de 249/1 a 255/1, la misma cifra que fija H3 |
+| `core/media/subida.ts` | fuera de la cerca | 2 / 1 | H5/H2 |
+
+**Justificación.**
+
+1. Ningún cambio de `functions/src/content` o `functions/src/core` queda fuera de la lista. Desde `b023f24` hay 15 commits sin fusión que los tocan (`git log --no-merges -- functions/src/content functions/src/core`), y todos están en la tabla.
+2. Las cifras son la suma neta del árbol. No se inventa ninguna: se leen de `git diff --numstat` con el árbol de integración limpio.
+3. La cerca sigue siendo de cifras exactas. Un archivo nuevo rastreado o un cambio de tamaño no declarado la rompe (sabotajes S1, S3 y S6 abajo).
+
+**Lo que el reanclaje NO certifica.** Fija el árbol tal cual, no lo aprueba:
+
+- No certifica DEC-03 ni H5/H2. Según el mensaje de `9469e3a`, DEC-03 dejó dos hallazgos abiertos de E-1 (H5 y H-2) que bloquean desplegar E-1. Esta cerca no los cierra ni los acredita; su estado se verifica por separado.
+- No ve un archivo nuevo sin `git add` (S2) ni uno fuera de `content/core` (S5). Los caza F1 (comprobación 37).
+- No ve una reedición de mismo recuento (S4). La cerca mide cifras, no contenido.
+
+**Sabotajes medidos** (`scratchpad/cierre/F3-sabotajes.json`, worktree temporal detached en `3c8ac7b`, retirado al terminar):
+
+| Escenario | F1 (37) | F3 (39) |
+|---|---|---|
+| S0 árbol tal cual | PASA | PASA |
+| S1 archivo nuevo con `git add` en `functions/src/content` | FALLA | FALLA |
+| S2 archivo nuevo sin `git add` en `functions/src/content` | FALLA | PASA (lo caza F1) |
+| S3 una línea más en `content/materializador.ts` | PASA | FALLA |
+| S4 una línea reeditada en `content/indice.ts`, mismo recuento | PASA | PASA (límite conocido) |
+| S5 archivo nuevo sin `git add` en `functions/src/filmmaker` | FALLA | PASA (lo caza F1) |
+| S6 una línea más en `core/media/subida.ts` | PASA | FALLA |
+
+**Cambio de intención.** La intención de F3 pasa a ser: del contenido, la adopción de F1-D, el cierre, los derechos, DEC-03 y el núcleo H5/H2; del Core, la misión fal, el linaje 3D y el núcleo H5/H2. Cambia la intención, no la sensibilidad: el número de comprobaciones y la forma de la comparación son las de antes. El dueño puede deshacer el reanclaje con `git revert` del commit de F3; la cerca volvería a rojo.
 
 ## 7. Lo que NO se cambia: `ci-workflow` (comprobación 13)
 
