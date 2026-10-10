@@ -65,14 +65,18 @@ console.log('\n── H · Las marcas de subida frente a la retirada (B2) ──
   const original = db.runTransaction.bind(db);
   check('H0 la marca usa la misma instancia de Firestore que esta prueba (si no, el intercalado no se podría hacer)', getFirestore() === db);
 
-  /* La marca de ANTES, para el control: leer, esperar y escribir sin transacción. */
-  const marcarComoAntes = async (id, ms) => {
+  /*
+   * La marca de ANTES, para el control: lee el estado, deja que la retirada corra entera y escribe sin transacción. Así la
+   * pérdida de la actualización ocurre siempre, en vez de depender de una ventana de tiempo que la retirada con transacción
+   * casi nunca cae dentro (H5 CONTROL, flag abierta, 0/15 en el grupo 4 antes de este cambio).
+   */
+  const marcarComoAntes = async (id, retirar) => {
     const ref = db.collection('assets').doc(id);
     const s = await ref.get();
-    if (s.data()?.status !== 'uploading') return 'estado_incompatible';
-    await esperar(ms);
+    if (s.data()?.status !== 'uploading') return { estado: 'estado_incompatible' };
+    const rr = await retirar();
     await ref.update({ status: 'ready', updatedAt: Date.now() });
-    return 'listo';
+    return { estado: 'listo', rr };
   };
 
   let h = 0;
@@ -156,14 +160,16 @@ console.log('\n── H · Las marcas de subida frente a la retirada (B2) ──
     }
 
     /*
-     * EL CONTROL: la misma carrera con la marca de ANTES resucita fichas retiradas. Si este control no viera ninguna,
-     * las rondas de arriba no probarían nada.
+     * EL CONTROL: la marca de ANTES, sin transacción, resucita fichas retiradas. Si este control no viera ninguna, las
+     * rondas de arriba no probarían nada. Es determinista: en cada ronda la marca lee `uploading` ANTES de que empiece la
+     * retirada, y escribe `ready` DESPUÉS de que la retirada haya escrito `deleted`. Las 15 rondas y la aserción (> 0) son
+     * las de siempre; cambia el mecanismo, que antes dependía de una ventana de 5–29 ms.
      */
     const control = 15;
-    const resucitadasPorRonda = await enTandas(control, async (i) => {
+    const resucitadasPorRonda = await enTandas(control, async () => {
       const id = await paraSubir();
-      const [rr] = await Promise.all([content.retirarMaterial(ANA, id), marcarComoAntes(id, 5 + ((i * 7) % 25))]);
-      return rr.status === 'retirado' && (await ficha(id))?.status === 'ready';
+      const { estado, rr } = await marcarComoAntes(id, () => content.retirarMaterial(ANA, id));
+      return estado === 'listo' && rr.status === 'retirado' && (await ficha(id))?.status === 'ready';
     });
     const resucitadas = resucitadasPorRonda.filter(Boolean).length;
     check(`H${++h} CONTROL (${modo}): la marca SIN transacción resucita fichas retiradas (la prueba muerde): ${resucitadas}/${control}`, resucitadas > 0);
