@@ -523,7 +523,7 @@ console.log('\n── I · Qué NO se ha construido ──');
   /* MC-5 añadió `recoleccion.ts` a cada lado: la decisión de cuándo unos bytes dejan de hacer falta, y su barrido. */
   check('el Core de medios son trece archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,indice.ts,migracion.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,reconciliacion.ts,registro.ts,subida.ts,uso.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, veinte', fuera.join(',') === 'almacen.ts,barrido.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,reconciliacion.ts,subida.ts,uso.ts', fuera.join(','));
+  check('y la composición, veintiuno', fuera.join(',') === 'almacen.ts,barrido.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,optimizador,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,reconciliacion.ts,subida.ts,uso.ts', fuera.join(','));
 
   /* R2 vive en UN sitio. */
   const nombraR2 = ['functions/src'].flatMap(() => {

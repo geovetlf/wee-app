@@ -186,3 +186,41 @@ corta una suite a los 300 s (ver el informe de la línea sobre sus duraciones).
 
 No se tocó ninguna otra comprobación de `puente-pre-f1d` (E4, F2, F3, F4…), ni H2 de `video-asincrono`, ni otras
 suites, ni `ops/revision/baseline.json`: la puerta G3 pasa sin reanclar nada.
+
+## Línea M (integrador, 2026-10-10): F1 de medios, composición y lectura recursiva
+
+Autorizado por el dueño: «F1 / puente-pre-f1d» y «las listas de archivos de medios afectadas», con cambios mínimos y justificables.
+
+### F1 · functions/test/puente-pre-f1d.test.mjs, comprobación 37
+
+- Valor anterior: la lista de 120 ficheros nominales del parche de A1 y de las demás líneas.
+- Valor nuevo: la misma lista más `DE_LA_LINEA_M`, con EXACTAMENTE cuatro ficheros de functions/src:
+  `functions/src/media/procesador.ts`, `functions/src/media/optimizador/coste.ts`, `functions/src/media/optimizador/plan.ts` y `functions/src/media/optimizador/transcodificacion.ts`.
+- Motivo: la corrección EXIF del procesador y los tres módulos nuevos del optimizador (plan de variantes, coste sin tarifas y contrato de transcodificación).
+- Efectividad demostrada (sabotajes temporales en el worktree de integración, borrados después):
+  - Archivo nuevo en functions/src/media/ (sin autorizar): la comprobación 37 FALLA.
+  - Archivo nuevo dentro de functions/src/media/optimizador/ (sin autorizar): la comprobación 37 FALLA (la detección de cambios de F1 usa git y es recursiva).
+
+### Composición de media · media-core (136), media-proceso-core (154), media-upload-core (150)
+
+- Valor anterior: 20 entradas en la raíz de functions/src/media («veinte»).
+- Valor nuevo: 21 entradas, con `optimizador` (subcarpeta) entre `migracion.ts` y `procesador-falso.ts` («veintiuno»).
+- Motivo: la subcarpeta nueva del optimizador aparece como una entrada en la lectura de la raíz.
+- Efectividad: un archivo nuevo en la raíz de functions/src/media/ hace fallar la composición y F1. Límite conocido: la composición no lista dentro de subcarpetas; esos ficheros los cubre F1 (ver arriba).
+
+### Lectura de fases futuras · media-delivery-core, comprobación 32 («ninguna fase futura se coló en el código»)
+
+- Valor anterior: lectura plana de functions/src/media/ y functions/src/core/media/. Con la subcarpeta `optimizador/`, la lectura fallaba con EISDIR (la prueba cae, no falla limpiamente).
+- Valor nuevo: lectura recursiva de ambas carpetas (`archivosRecursivos`). La cobertura AUMENTA: ahora se revisan también los ficheros de subcarpetas.
+- Efectividad demostrada: una palabra de fase futura (`lifecycle`) en functions/src/media/optimizador/zz-sabotaje.ts hace FALLAR la comprobación 32 (numeración global 106). Sabotaje borrado después.
+
+### Cadena de pruebas (functions/package.json, scripts.test)
+
+- Registradas: activos-indice, activos-caminos, activos-barrido, activos-mutacion (commit de la integración de S) y medios-optimizador-imagen, -plan, -coste y -transcodificacion (este commit).
+- Efectividad: ci-workflow comprobación 13 («toda suite *.test.mjs está en la cadena») pasa; sin el registro falla.
+
+### Pruebas tras el ajuste (worktree de integración)
+
+- puente-pre-f1d: solo falla la comprobación 39 (F3), heredada de 9469e3a.
+- media-core, media-proceso-core, media-upload-core, media-delivery-core, media-canary, media-migracion, media-uso, media-reconciliacion: exit 0.
+- ci-workflow, runtime-map, video-asincrono: exit 0.

@@ -441,7 +441,9 @@ console.log('\n── I · Muchas a la vez, y qué NO se ha construido ──');
   check('26 · y no cobra nada', !/[Cc]redit|spendCredits|ledger|cobrar/.test(ENT) && !/[Cc]redit/.test(sinComentarios(leer('functions/src/core/media/entrega.ts'))));
 
   /* 32 · Fases futuras que NO se han implementado. */
-  const TODO = ['media', 'core/media'].map((d) => fs.readdirSync(path.resolve(RAIZ, 'functions/src', d)).map((x) => leer(`functions/src/${d}/${x}`)).join('\n')).join('\n');
+  /* Recursivo: la línea M añadió `media/optimizador/`, y una subcarpeta no puede quedar fuera de esta lectura. */
+  const archivosRecursivos = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? archivosRecursivos(path.join(dir, e.name)) : [path.join(dir, e.name)]));
+  const TODO = ['media', 'core/media'].map((d) => archivosRecursivos(path.resolve(RAIZ, 'functions/src', d)).map((ruta) => fs.readFileSync(ruta, 'utf8')).join('\n')).join('\n');
   const SIN_COMENTARIOS = sinComentarios(TODO);
   /*  y  salieron de esta lista en MC-4: ya no son futuro, son derivados. */
   /* `migrat` salió en MC-6, por lo mismo: la migración ya está construida, así que dejó de ser futuro. */
@@ -456,7 +458,7 @@ console.log('\n── I · Muchas a la vez, y qué NO se ha construido ──');
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
   check('el Core de medios son trece archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,indice.ts,migracion.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,reconciliacion.ts,registro.ts,subida.ts,uso.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, veinte', fuera.join(',') === 'almacen.ts,barrido.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,reconciliacion.ts,subida.ts,uso.ts', fuera.join(','));
+  check('y la composición, veintiuno', fuera.join(',') === 'almacen.ts,barrido.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,optimizador,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,reconciliacion.ts,subida.ts,uso.ts', fuera.join(','));
 
   /* 13 · R2 no se menciona fuera de su adaptador. */
   /*

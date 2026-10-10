@@ -646,7 +646,7 @@ console.log('\n── K · Qué NO se ha construido ──');
   const delCore = fs.readdirSync(path.resolve(RAIZ, 'functions/src/core/media')).sort();
   check('el Core de medios son trece archivos y ninguno más', delCore.join(',') === 'entrega.ts,index.ts,indice.ts,migracion.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,recoleccion.ts,reconciliacion.ts,registro.ts,subida.ts,uso.ts', delCore.join(','));
   const fuera = fs.readdirSync(path.resolve(RAIZ, 'functions/src/media')).sort();
-  check('y la composición, veinte', fuera.join(',') === 'almacen.ts,barrido.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,reconciliacion.ts,subida.ts,uso.ts', fuera.join(','));
+  check('y la composición, veintiuno', fuera.join(',') === 'almacen.ts,barrido.ts,canary.ts,catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,optimizador,procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,reconciliacion.ts,subida.ts,uso.ts', fuera.join(','));
 
   /* La subida NO tiene puerta propia: la única de Media Cloud es la del canary. */
   check('AE · la subida no está expuesta: ninguna Function la llama',

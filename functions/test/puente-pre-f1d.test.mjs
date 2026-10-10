@@ -704,6 +704,13 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     'functions/src/core/media/index.ts', 'functions/src/core/media/indice.ts', 'functions/src/core/media/objeto.ts', 'functions/src/core/media/puerto.ts',
     'functions/src/core/media/recoleccion.ts', 'functions/src/core/media/reconciliacion.ts', 'functions/src/core/media/subida.ts',
     'functions/src/media/barrido.ts', 'functions/src/media/recoleccion.ts'];
+  /*
+   * + LÍNEA M (medios, trk-m, integración autorizada por el dueño el 2026-10-10), por nombre: EXACTAMENTE los cuatro
+   * archivos de functions/src que toca el optimizador de medios: la corrección EXIF del procesador y los tres módulos
+   * nuevos (plan de variantes, coste sin tarifas y contrato de transcodificación). Ver docs/ACTIVOS-CERCAS.md § F1.
+   */
+  const DE_LA_LINEA_M = ['functions/src/media/procesador.ts', 'functions/src/media/optimizador/coste.ts',
+    'functions/src/media/optimizador/plan.ts', 'functions/src/media/optimizador/transcodificacion.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado, de los módulos de versiones y disponibilidad (DEC-03 y DEC-06) y del núcleo de activos (H5/H2)',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
@@ -712,6 +719,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
       ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_VERSIONES_Y_DISPONIBILIDAD,
       ...DEL_NUCLEO_DE_ACTIVOS,
+      ...DE_LA_LINEA_M,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
