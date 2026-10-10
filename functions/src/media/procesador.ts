@@ -115,7 +115,14 @@ export const crearProcesadorDeImagen = (deps: DepsDelProcesador = {}): PuertoDeP
          * Números y palabras de un catálogo. Nada que venga de fuera se
          * concatena en nada: se pasan como argumentos a una función.
          */
-        const tuberia = sharp(peticion.cuerpo).resize(t.ancho, t.alto, {
+        /*
+         * Orientación EXIF: `rotate()` sin argumentos gira los píxeles según la
+         * etiqueta de orientación del origen ANTES de redimensionar, y la salida no
+         * la conserva. Sin esto, una foto de móvil con orientación 6 sale tumbada en
+         * el derivado. La salida no lleva metadatos (ni GPS ni datos de cámara):
+         * sharp los descarta por defecto y aquí nunca se pide conservarlos.
+         */
+        const tuberia = sharp(peticion.cuerpo).rotate().resize(t.ancho, t.alto, {
           fit: AJUSTE[t.ajuste],
           withoutEnlargement: true,
         });
