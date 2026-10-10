@@ -55,14 +55,23 @@ const firebaseTools = () => {
   return ['firebase'];
 };
 
+/* Al cortar por tiempo hay que matar el ÁRBOL, no solo el CLI: `firebase emulators:exec` lanza el emulador Java como
+ * hijo. Matar solo el CLI dejaba el emulador vivo con los puertos ocupados, y la suite siguiente fallaba con «port taken»
+ * aunque no tuviera ningún defecto (ocurrió en la pasada de H5/H2 del 10 de octubre). */
+const matarArbol = (pid) => {
+  if (!pid) return;
+  if (process.platform === 'win32') spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true });
+  else { try { process.kill(-pid, 'SIGKILL'); } catch { /* ya terminó */ } }
+};
+
 const correrUna = (lanzador, suite, cmd, env, limiteMs) => new Promise((resolve) => {
   const inicio = Date.now();
   const args = [...lanzador.slice(1), 'emulators:exec', '--only', cmd.solo.join(','), '--project', cmd.proyecto, `node ${cmd.nodo.join(' ')}`];
-  const hijo = spawn(lanzador[0], args, { cwd: RAIZ, env });
+  const hijo = spawn(lanzador[0], args, { cwd: RAIZ, env, detached: process.platform !== 'win32' });
   let salida = '';
   hijo.stdout.on('data', (d) => { salida += d; });
   hijo.stderr.on('data', (d) => { salida += d; });
-  const reloj = setTimeout(() => { salida += `\n[emuladores] más de ${limiteMs / 1000} s: se corta`; hijo.kill(); }, limiteMs);
+  const reloj = setTimeout(() => { salida += `\n[emuladores] más de ${limiteMs / 1000} s: se corta`; matarArbol(hijo.pid); hijo.kill(); }, limiteMs);
   hijo.on('error', (e) => { salida += `\n[emuladores] no arranca: ${e.message}`; });
   hijo.on('close', (codigo) => { clearTimeout(reloj); resolve({ suite, ok: codigo === 0, codigo, ms: Date.now() - inicio, salida }); });
 });
