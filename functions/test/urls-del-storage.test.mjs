@@ -439,7 +439,7 @@ console.log('\n── E · Una sola regla, en el código ──');
     !/\bfetch\(/.test(VERTEX) && /await readImage\(url, 'avatar'\)/.test(VERTEX)
     && /import \{ downloadUrlFor, readImage \} from '\.\/engine\/http';/.test(VERTEX) && !/import\('\.\/engine\/http'\)/.test(VERTEX));
   check('E5) WeeTalk usa los mismos hosts: la regla vive en un solo sitio',
-    /import \{ esDireccionDelStorageDeWee, storageBucket \} from '\.\.\/engine\/http';/.test(leer('functions/src/social/weetalk.ts'))
+    /import \{ downloadUrlFor, esDireccionDelStorageDeWee, storageBucket \} from '\.\.\/engine\/http';/.test(leer('functions/src/social/weetalk.ts'))
     && !/FORMA_DE_DIRECCION_DE_WEE/.test(sinComentarios(leer('functions/src/social/weetalk.ts'))));
 
   /* Cada puerta que recibe una dirección de la persona la pasa por la regla común. */

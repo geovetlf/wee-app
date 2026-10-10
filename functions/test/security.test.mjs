@@ -305,7 +305,7 @@ console.log('\n── Fronteras de autorización ──');
       && /claveDeFotoUnica\(ref\.objectKey, cuenta, conversationId\)/.test(weetalk)
       && /ref\.bucket === p\.bucketDeWee\(\)/.test(weetalk)
       && (weetalk.match(/p\.borrarObjeto\(/g) || []).length === 1
-      && /if \(enSuSitio\) \{\s*\n\s*try \{\s*\n\s*await p\.borrarObjeto\(ref\.objectKey\)/.test(weetalk));
+      && /if \(enSuSitio && !usado\) \{\s*\n\s*try \{\s*\n\s*await p\.borrarObjeto\(ref\.objectKey\)/.test(weetalk));
     check('y la cuenta del remitente se resuelve con el resolutor canónico, sin recortar prefijos',
       /cuentaDeIdentidad\(senderId, d\.data\(\) as PerfilDeIdentidad\)/.test(weetalk)
       && !/replace\(\/\^hidi_|slice\(5\)|split\('hidi_'\)/.test(weetalk));
