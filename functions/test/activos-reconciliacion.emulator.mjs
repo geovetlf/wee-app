@@ -18,6 +18,10 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { proyectoDeEmulador } from './_emulador.mjs';
 
+/* Cuánto tarda cada sección: la cadena de emuladores corta una suite a los 300 s (_emuladores.mjs, --limite-s). */
+const T0 = Date.now();
+const reloj = () => `(${((Date.now() - T0) / 1000).toFixed(1)} s)`;
+
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lib = (p) => require(path.resolve(here, '../lib', p));
@@ -141,14 +145,14 @@ const contarTodo = async () => ({
 const antes = await contarTodo();
 
 /* ═══ A · DETECCIÓN DEL 100 % ═══════════════════════════════════════════════ */
-console.log('\n── A · Las nueve clases, detectadas ──');
+console.log('\n── A · Las nueve clases, detectadas ──', reloj());
 const informe = await indice.reconciliarIndiceDeCuentaEnFirestore(deps, ANA);
 const clases = informe.porClase;
 for (const c of core.CLASES_DEL_INDICE) check(`A· detecta ${c}`, (clases[c] ?? 0) >= 1, `${clases[c] ?? 0}`);
 check('A10 la pasada se vio entera', informe.completo === true);
 
 /* ═══ B · REPARA SIN BORRAR ═════════════════════════════════════════════════ */
-console.log('\n── B · Lo que se repara, y lo que no se borra ──');
+console.log('\n── B · Lo que se repara, y lo que no se borra ──', reloj());
 {
   check('B1 fila_ausente: la fila viva y el registro, creados', (await fila(K.ausente, `material_${fAusente.assetId}_original`))?.viva === true && (await reg(K.ausente))?.estado === 'guardado');
   check('B2 fila_huerfana (D-B): la fila se apaga y el objeto queda candidato por una retirada interrumpida',
@@ -170,7 +174,7 @@ console.log('\n── B · Lo que se repara, y lo que no se borra ──');
 }
 
 /* ═══ C · REPETIR NO REPARA DOS VECES ═══════════════════════════════════════ */
-console.log('\n── C · Idempotente ──');
+console.log('\n── C · Idempotente ──', reloj());
 {
   const segunda = await indice.reconciliarIndiceDeCuentaEnFirestore(deps, ANA);
   const reparadas = Object.values(segunda.reparadas).reduce((a, b) => a + b, 0);
@@ -178,7 +182,7 @@ console.log('\n── C · Idempotente ──');
 }
 
 /* ═══ D · CERO FALSOS POSITIVOS ═════════════════════════════════════════════ */
-console.log('\n── D · Una cuenta limpia ──');
+console.log('\n── D · Una cuenta limpia ──', reloj());
 {
   const limpio = await indice.reconciliarIndiceDeCuentaEnFirestore(deps, CARO);
   check('D1 cuatro materiales creados por los caminos nuevos: CERO hallazgos', limpio.hallazgos.length === 0 && limpias.every(Boolean), JSON.stringify(limpio.porClase));
@@ -186,7 +190,7 @@ console.log('\n── D · Una cuenta limpia ──');
 }
 
 /* ═══ E · SOLO INFORMAR ═════════════════════════════════════════════════════ */
-console.log('\n── E · Con reparar:false, solo informa ──');
+console.log('\n── E · Con reparar:false, solo informa ──', reloj());
 {
   const kNueva = clave(ANA); const fNueva = fichaDe(ANA, kNueva);
   await sembrar(ANA, kNueva, { ficha: fNueva });
@@ -194,5 +198,5 @@ console.log('\n── E · Con reparar:false, solo informa ──');
   check('E1 detecta la fila que falta y no la crea', (soloInforme.porClase.fila_ausente ?? 0) >= 1 && !(await fila(kNueva, `material_${fNueva.assetId}_original`)));
 }
 
-console.log(fallos ? `\n✘ ${fallos} fallo(s) de ${n}` : `\n✔ todo bien (${n} comprobaciones)`);
+console.log(fallos ? `\n✘ ${fallos} fallo(s) de ${n}` : `\n✔ todo bien (${n} comprobaciones)`, reloj());
 process.exit(fallos ? 1 : 0);
