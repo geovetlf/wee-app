@@ -155,8 +155,9 @@ console.log('\n── C · Retirar: es tuyo, se marca, se borra — en ese orden
   check('19) y el objeto sigue intacto tras el intento ajeno', objetos.has(CLAVE) && borrados.length === 0);
 
   const r = await content.retirarMaterial('uAna', creado.assetId);
-  check('20) la dueña sí: la ficha queda retirada y el objeto se borra',
-    r.status === 'retirado' && r.objetosBorrados === 1 && borrados[0] === CLAVE && !objetos.has(CLAVE));
+  /* C-1 (revisión A): con la flag cerrada no se borra el objeto; queda pendiente porque sin índice no hay prueba de que nadie más lo use. */
+  check('20) la dueña sí: la ficha queda retirada y el objeto queda pendiente, sin borrarse con la flag cerrada',
+    r.status === 'retirado' && r.objetosBorrados === 0 && r.pendientes === 1 && borrados.length === 0 && objetos.has(CLAVE));
   const ficha = docs.get(`assets/${creado.assetId}`);
   check('21) la ficha se queda —dueño, procedencia, referencia— y la entrega desaparece',
     ficha.status === 'deleted' && typeof ficha.deletedAt === 'number' && ficha.ownerAccountId === 'uAna'
@@ -194,9 +195,9 @@ console.log('\n── C · Retirar: es tuyo, se marca, se borra — en ese orden
     const refCloud25 = docs.get('assets/cloud-25').storageRef;
 
     const r25 = await content.retirarMaterial('uAna', fichaWee25.assetId);
-    check('25 una ficha de otro proveedor con la misma clave no bloquea el borrado del objeto de Weë (solo cambia el proveedor)',
+    check('25 una ficha de otro proveedor con la misma clave: con la flag cerrada el objeto de Weë queda sin borrar (solo cambia el proveedor)',
       refWee25.provider === 'wee' && refCloud25.provider === 'cloudinary' && refCloud25.bucket === refWee25.bucket
-      && refCloud25.objectKey === refWee25.objectKey && r25.status === 'retirado' && !objetos.has(CLAVE_25) && borrados.includes(CLAVE_25),
+      && refCloud25.objectKey === refWee25.objectKey && r25.status === 'retirado' && objetos.has(CLAVE_25) && !borrados.includes(CLAVE_25),
       `objeto presente: ${objetos.has(CLAVE_25)}`);
 
     /* 26 · Una ficha que pierde uno de sus dos objetos sigue pendiente mientras el otro siga en el almacén. */
@@ -231,8 +232,8 @@ console.log('\n── D · El callable, ejecutado ──');
   let e2 = null; try { await correr('uAna', video.assetId); } catch (e) { e2 = e; }
   check('26) de un material ajeno no se dice ni que exista', e2?.code === 'not-found');
   const ok = await correr('uCaro', video.assetId);
-  check('27) su dueña lo retira, objeto incluido',
-    ok.status === 'deleted' && ok.already === false && !objetos.has('users/uCaro/ai-generations/2-weel.mp4'));
+  check('27) su dueña lo retira; el objeto queda en el almacén (flag cerrada: no se borra sin índice)',
+    ok.status === 'deleted' && ok.already === false && objetos.has('users/uCaro/ai-generations/2-weel.mp4'));
   check('28) y otra vez es `already`', (await correr('uCaro', video.assetId)).already === true);
 }
 
@@ -252,12 +253,14 @@ console.log('\n── E · Borrado y revisión posterior: fallos por separado (H
   check('H-8 · precondición: mientras y usa el objeto, x queda pendiente y el objeto sigue',
     docs.get(`assets/${x8.assetId}`).pendingPhysicalDeletion === true && objetos.has(K8));
   const ry8 = await content.retirarMaterial('uAna', y8.assetId);
-  check('H-8 · la última ficha que lo usa borra el objeto y quita la marca de la ficha retirada que lo tenía pendiente',
-    ry8.status === 'retirado' && ry8.objetosBorrados === 1 && ry8.pendientes === 0 && !objetos.has(K8)
-    && docs.get(`assets/${x8.assetId}`).pendingPhysicalDeletion === false,
+  /* C-1: con la flag cerrada la última ficha NO borra el objeto (sin índice no hay prueba de que no quede otro uso): sigue
+   * pendiente y la marca de x también. La limpieza de la marca solo ocurre tras un borrado real, que aquí no hay. */
+  check('H-8 · con la flag cerrada, la última ficha que lo usa no borra el objeto: queda pendiente y la marca de x sigue',
+    ry8.status === 'retirado' && ry8.objetosBorrados === 0 && ry8.pendientes === 1 && objetos.has(K8)
+    && docs.get(`assets/${x8.assetId}`).pendingPhysicalDeletion === true,
     `marca de x: ${docs.get(`assets/${x8.assetId}`).pendingPhysicalDeletion}`);
-  check('H-8 · y su propia marca queda limpia tras su retirada',
-    docs.get(`assets/${y8.assetId}`).pendingPhysicalDeletion === false);
+  check('H-8 · y su propia marca queda pendiente mientras el objeto siga en el almacén',
+    docs.get(`assets/${y8.assetId}`).pendingPhysicalDeletion === true);
 
   /* H-6a · FALLO DE BORRADO. El objeto no se puede borrar: sigue en el almacén, no cuenta como borrado y la ficha queda pendiente. */
   const K6 = 'users/uAna/ai-generations/k6.png';
@@ -284,9 +287,11 @@ console.log('\n── E · Borrado y revisión posterior: fallos por separado (H
   noExistentes.add(K7);
   const ry7 = await content.retirarMaterial('uAna', y7.assetId);
   noExistentes.delete(K7);
-  check('H-6b · FALLO DE REVISIÓN POSTERIOR: el borrado cuenta como hecho y y NO queda pendiente por el fallo de la revisión',
-    ry7.status === 'retirado' && ry7.objetosBorrados === 1 && ry7.pendientes === 0 && !objetos.has(K7)
-    && docs.get(`assets/${y7.assetId}`).pendingPhysicalDeletion === false,
+  /* C-1 (revisión A): con la flag cerrada no hay borrado, así que la revisión posterior ni se alcanza: el objeto queda y y
+   * su ficha quedan pendientes. Antes esta prueba fijaba el borrado y el fallo de la revisión después de él. */
+  check('H-6b · con la flag cerrada no hay borrado ni revisión posterior: el objeto queda y y su ficha queda pendiente',
+    ry7.status === 'retirado' && ry7.objetosBorrados === 0 && ry7.pendientes === 1 && objetos.has(K7)
+    && docs.get(`assets/${y7.assetId}`).pendingPhysicalDeletion === true,
     `objetosBorrados: ${ry7.objetosBorrados}, pendientes: ${ry7.pendientes}`);
   check('H-6b · prueba de que el fallo llegó a la revisión: x conserva la marca que ya tenía (residuo D1)',
     docs.get(`assets/${x7.assetId}`).pendingPhysicalDeletion === true);

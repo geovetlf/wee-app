@@ -188,8 +188,10 @@ check('V28 con sesión propia: la relación es la del servidor, no la que envió
 /* ── G · Después: retirar la anterior no toca el archivo de la versión ─────── */
 const resultadoRetirada = await content.retirarMaterial('uAna', ANTERIOR);
 check('V29 retirar la creación anterior la retira', resultadoRetirada.status === 'retirado', resultadoRetirada.status);
-check('V30 borra solo el archivo de la anterior: el de la versión sigue en el almacén',
-  borrados.includes(CLAVE_ANTERIOR) && !borrados.includes(CLAVE_V1) && objetos.has(CLAVE_V1));
+/* C-1 (revisión A): con la flag cerrada no se borra nada. El archivo de la anterior queda pendiente en el almacén, y el de la
+ * versión sigue ahí. Antes esta prueba fijaba el borrado de la anterior. */
+check('V30 con la flag cerrada no borra ni el archivo de la anterior (queda pendiente) ni el de la versión',
+  !borrados.includes(CLAVE_ANTERIOR) && objetos.has(CLAVE_ANTERIOR) && !borrados.includes(CLAVE_V1) && objetos.has(CLAVE_V1));
 const versionTrasRetirar = docs.get(`assets/${v1.asset.assetId}`);
 check('V31 la versión sigue lista y conserva la relación como historia',
   versionTrasRetirar?.status === 'ready' && versionTrasRetirar?.previousVersionId === ANTERIOR);

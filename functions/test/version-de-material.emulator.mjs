@@ -146,8 +146,9 @@ check('B1 la misma llamada repetida tras el éxito: creada, la MISMA ficha y nin
   await content.retirarMaterial(ANA, v.asset.assetId);
   const sigueAhi = await existe(clave);
   const otro = await crear(ANA, anteriorA, clave);
-  check('C1 versión retirada, objeto borrado: no se puede versionar otra vez ese archivo (archivo_en_uso, sin resucitarla)',
-    sigueAhi === false && otro.status === 'archivo_en_uso' && (await vivasSobre(clave)).length === 0,
+  /* C-1 (revisión A): con la flag cerrada el objeto NO se borra al retirar; sigue en el almacén, pendiente. */
+  check('C1 versión retirada, objeto sin borrar (flag cerrada): no se puede versionar otra vez ese archivo (archivo_en_uso, sin resucitarla)',
+    sigueAhi === true && otro.status === 'archivo_en_uso' && (await vivasSobre(clave)).length === 0,
     `objeto presente: ${sigueAhi}, nuevo intento: ${otro.status}`);
 }
 {
@@ -282,7 +283,9 @@ check('D6 dirección de Cloudinary → archivo_ajeno',
   await subir(clave, 'image/png');
   const unica = await content.crearMaterialDesdeUrl({ ownerAccountId: ANA, url: urlDe(clave), kind: 'image', mimeType: 'image/png', provenance: { createdAt: 1 } });
   const r = await content.retirarMaterial(ANA, unica.assetId);
-  check('F2 una sola ficha: retirarla borra el objeto', r.status === 'retirado' && (await existe(clave)) === false, `objetos borrados: ${r.objetosBorrados}`);
+  /* C-1: con la flag cerrada, retirar la única ficha NO borra el objeto: queda pendiente. */
+  check('F2 una sola ficha: retirarla NO borra el objeto con la flag cerrada (queda pendiente)',
+    r.status === 'retirado' && (await existe(clave)) === true && r.objetosBorrados === 0 && r.pendientes === 1, `objetos borrados: ${r.objetosBorrados}, pendientes: ${r.pendientes}`);
 }
 {
   const clave = K(ANA, 'f3.png');
@@ -299,10 +302,11 @@ check('D6 dirección de Cloudinary → archivo_ajeno',
   await content.retirarMaterial(ANA, ids[2]);
   const trasTercera = await existe(clave);
   const primeraSigueMarcada = (await docDe(ids[0])).pendingPhysicalDeletion === true;
-  check('F3 tres fichas sobre el mismo objeto: el objeto sobrevive mientras quede una viva y se borra con la última',
-    trasPrimera === true && trasSegunda === true && trasTercera === false, `tras 1.ª: ${trasPrimera}, tras 2.ª: ${trasSegunda}, tras 3.ª: ${trasTercera}`);
-  check('F4 al borrarse el objeto, las retiradas anteriores dejan de figurar como pendientes',
-    primeraSigueMarcada === false && (await docDe(ids[1])).pendingPhysicalDeletion !== true, `pendiente en la 1.ª: ${primeraSigueMarcada}`);
+  /* C-1: con la flag cerrada el objeto sobrevive a las tres retiradas (ninguna borra), y cada ficha retirada queda pendiente. */
+  check('F3 tres fichas sobre el mismo objeto con la flag cerrada: el objeto sobrevive a las tres retiradas, sin borrarse',
+    trasPrimera === true && trasSegunda === true && trasTercera === true, `tras 1.ª: ${trasPrimera}, tras 2.ª: ${trasSegunda}, tras 3.ª: ${trasTercera}`);
+  check('F4 con la flag cerrada, las retiradas siguen marcadas como pendientes mientras el objeto exista',
+    primeraSigueMarcada === true && (await docDe(ids[1])).pendingPhysicalDeletion === true, `pendiente en la 1.ª: ${primeraSigueMarcada}`);
 }
 
 {
@@ -329,17 +333,18 @@ check('D6 dirección de Cloudinary → archivo_ajeno',
   const ajena = `asset_${'e'.repeat(32)}`;
   await db.collection('assets').doc(ajena).set({ assetId: ajena, ownerAccountId: BETO, status: 'deleted', pendingPhysicalDeletion: true, storageRef: { provider: 'wee', bucket: BUCKET, objectKey: clave } });
   const r = await content.retirarMaterial(ANA, unica.assetId);
-  check('F6 al borrarse el objeto, la marca pendiente de otra cuenta no se toca',
-    r.status === 'retirado' && (await existe(clave)) === false && (await docDe(ajena)).pendingPhysicalDeletion === true, `objeto presente: ${await existe(clave)}`);
+  check('F6 con la flag cerrada, retirar no toca la marca pendiente de otra cuenta (y el objeto sigue, sin borrarse)',
+    r.status === 'retirado' && (await existe(clave)) === true && (await docDe(ajena)).pendingPhysicalDeletion === true, `objeto presente: ${await existe(clave)}`);
 }
 {
-  /* F7 · Retirar la última ficha de un objeto no la deja pendiente: la marca del paso 1 se baja al borrarse el objeto. */
+  /* F7 · Retirar la última ficha de un objeto (flag cerrada): el objeto no se borra y la ficha queda pendiente (C-1). */
   const clave = K(ANA, 'f7.png');
   await subir(clave, 'image/png');
   const unica = await content.crearMaterialDesdeUrl({ ownerAccountId: ANA, url: urlDe(clave), kind: 'image', mimeType: 'image/png', provenance: { createdAt: 1 } });
   const r = await content.retirarMaterial(ANA, unica.assetId);
-  check('F7 retirar la última ficha de un objeto no la deja pendiente',
-    r.status === 'retirado' && r.pendientes === 0 && (await docDe(unica.assetId)).pendingPhysicalDeletion !== true, `pendientes: ${r.pendientes}`);
+  /* C-1: con la flag cerrada la última ficha NO borra el objeto: la ficha queda pendiente (no se puede probar que nadie más lo use). */
+  check('F7 con la flag cerrada, retirar la última ficha deja su objeto pendiente en vez de borrarlo',
+    r.status === 'retirado' && r.pendientes === 1 && (await docDe(unica.assetId)).pendingPhysicalDeletion === true, `pendientes: ${r.pendientes}`);
 }
 
 console.log(fallos ? `\n✘ ${fallos} fallo(s) de ${n}` : `\n✔ todo bien (${n} comprobaciones)`);

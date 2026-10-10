@@ -187,7 +187,8 @@ const ajeno = await intento(() => contenido.deleteAsset.run({ auth: { uid: cuent
 check('`deleteAsset` de otra cuenta no lo encuentra, y el objeto sigue', !ajeno.ok && ajeno.error.code === 'not-found' && (await admin.storage().bucket().file(ficha.storageRef.objectKey).exists())[0] === true);
 const borrado = await intento(() => contenido.deleteAsset.run({ auth: { uid: cuentaDe('B') }, data: { assetId } }));
 const sigue = await admin.storage().bucket().file(ficha.storageRef.objectKey).exists();
-check('`deleteAsset` de su dueño lo retira y BORRA el objeto del Storage', borrado.ok && borrado.valor.status === 'deleted' && sigue[0] === false
+/* C-1 (revisión A): con la flag cerrada el objeto NO se borra del Storage: la ficha se retira y el objeto queda pendiente. */
+check('`deleteAsset` de su dueño retira la ficha; con la flag cerrada el objeto NO se borra (queda pendiente)', borrado.ok && borrado.valor.status === 'deleted' && sigue[0] === true
   && (await contenido.leerMaterial(assetId))?.status === 'deleted', borrado.ok ? borrado.valor.status : borrado.error.code);
 
 console.log('\n── FAILED ──');
