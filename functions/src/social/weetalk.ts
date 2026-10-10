@@ -31,7 +31,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { FieldValue, Firestore, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { referenciaDesdeUrlDeWee } from '../content';
-import { esDireccionDelStorageDeWee, storageBucket } from '../engine/http';
+import { downloadUrlFor, esDireccionDelStorageDeWee, storageBucket } from '../engine/http';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './econtact';
 import { identidadHeredadaEsDeLaCuenta, identidadesHeredadasDeLaCuenta } from '../identity/compatibilidad';
 
@@ -270,11 +270,12 @@ export const usadoPorOtrosEn = (db: Firestore, bucket: string) => async (
     if (fichas.docs.some((d) => (d.data() as { status?: unknown }).status !== 'deleted')) return true;
     /*
      * Otro mensaje de la misma conversación que apunte al MISMO objeto: con la misma dirección exacta, o con otro token
-     * sobre la misma clave. El rango va de `base` a `base` + U+F8FF, es decir, todo lo que empieza por `base`; el `?` final
+     * sobre la misma clave. El rango va de `base` a `base` + U+F8FF, es decir, todo lo que empieza por `base`; el `?alt=media` que sigue a la clave
      * impide confundir `foto.jpg` con `foto.jpg2`. Sin el U+F8FF el rango queda vacío y no encuentra ningún token distinto.
      */
     const mensajes = db.collection('conversations').doc(conversacion).collection('messages');
-    const base = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(objectKey)}?`;
+    /* La forma de la dirección la fija downloadUrlFor (engine/http.ts), la misma con la que Weë escribe las suyas. */
+    const base = downloadUrlFor(bucket, objectKey);
     const exactos = await mensajes.where('imageUrl', '==', url).limit(3).get();
     const mismaClave = await mensajes.where('imageUrl', '>=', base).where('imageUrl', '<', `${base}\uf8ff`).limit(3).get();
     return [...exactos.docs, ...mismaClave.docs].some((d) => d.id !== mensajeId);

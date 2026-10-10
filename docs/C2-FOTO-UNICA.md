@@ -36,7 +36,9 @@ presencia de U+F8FF, y el mutante del fallo original la hace caer (ver la tabla 
    - el índice: un registro en `mediaObjects` con esa `objectKey`;
    - las fichas vivas con esa clave, de cualquier cuenta (`assets`, hasta 25; a partir de ahí protege);
    - los mensajes de la misma conversación que apunten al mismo objeto, con la misma dirección exacta o con otro token
-     sobre la misma clave (rango por prefijo con U+F8FF; el `?` final impide confundir `foto.jpg` con `foto.jpg2`).
+     sobre la misma clave (rango por prefijo con U+F8FF sobre la dirección que fija `downloadUrlFor`, en `engine/http.ts`;
+     su `?alt=media` impide confundir `foto.jpg` con `foto.jpg2`). WeeTalk no escribe la forma `/v0/b/`: la regla de la
+     cadena de pruebas (urls-del-storage E8) lo prohíbe, y el constructor canónico la cumple.
    Pruebas de dobles: G1 (un uso protege; la consulta recibe clave, dirección, conversación y mensaje) y G2 (sin usos se
    borra). Pruebas de emulador: comprobaciones 1 a 9 de `weetalk-foto-unica.emulator.mjs`.
 5. **Que el borrado no toca un objeto compartido.** Lo mismo que el punto 4, en la misma condición: `enSuSitio && !usado`
@@ -65,7 +67,7 @@ emulador. El resultado de cada uno está en `scratchpad/cierre/` (`C2-sabotajes-
 |---|---|---|
 | E0 · línea base | nada | ninguna (sale con 0) |
 | E1 · cota del rango sin U+F8FF | el fallo original | 3 |
-| E2 · sin el `?` final | `foto.jpg` coincide con `foto.jpg2` | 4 |
+| E2 · sin `?alt=media` en `downloadUrlFor` (`engine/http.js`) | `foto.jpg` coincide con `foto.jpg2` | 4 |
 | E3 · las fichas borradas cuentan | una ficha muerta protege | 8 |
 | E4 · un error no protege | el fallo de la base de datos borra | 10 |
 | E5 · el propio mensaje cuenta | la foto se protege a sí misma | 1, 4, 5, 8 |
