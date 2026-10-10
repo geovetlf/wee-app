@@ -102,13 +102,31 @@ const MUTACIONES = [
     id: 'M15', que: 'B2 · marcarMaterialFallido lee la ficha FUERA de su transacción', suites: ['activos-caminos'],
     cambios: [['content/index.js', 'const leida = await tx.get(fichaQueFalla);', 'const leida = await fichaQueFalla.get();', 1]],
   },
+  /*
+   * M16 y M17 se reapuntaron el 10 de octubre (A-2). Sus objetivos anteriores, el borrado por clave del camino de siempre y
+   * la revisión por clave de ese mismo camino, dejaron de existir como efecto observable al no borrarse nada con la
+   * bandera cerrada (C-1): el mutante era equivalente y no podía morir. Ahora atacan la ruta con índice, donde sí hay
+   * regresiones reales. Pruebas: `activos-dos-cuentas.test.mjs`.
+   */
   {
-    id: 'M16', que: 'B1 · el camino de siempre borra por clave aunque la ficha diga otro cubo', suites: ['activos-caminos'],
-    cambios: [['content/index.js', ' && (0, indice_1.esDelCuboDeWee)(r));', ');', 1]],
+    id: 'M16', que: 'A-2 · la retirada con índice ignora las fichas vivas de OTRAS cuentas sobre la clave', suites: ['activos-dos-cuentas'],
+    cambios: [['content/indice.js', '(d) => d.id !== assetId', '(d) => d.id !== assetId && d.data().ownerAccountId === cuenta', 1]],
   },
   {
-    id: 'M17', que: 'B1 · la revisión de marcas mira por clave en el nuestro lo que vive en otro cubo', suites: ['activos-caminos'],
-    cambios: [['content/index.js', 'r.provider !== exports.PROVEEDOR_WEE || !(0, indice_1.esDelCuboDeWee)(r)', 'r.provider !== exports.PROVEEDOR_WEE', 1]],
+    id: 'M17', que: 'A-2 · la revisión de marcas tras un borrado toca las marcas pendientes de OTRAS cuentas', suites: ['activos-dos-cuentas'],
+    cambios: [['content/indice.js', 'if (!d || d.ownerAccountId !== cuenta || d.status !== \'deleted\' || d.pendingPhysicalDeletion !== true)', 'if (!d || d.status !== \'deleted\' || d.pendingPhysicalDeletion !== true)', 1]],
+  },
+  {
+    id: 'M20', que: 'A-2 · el borrado MC-5 no cuenta las fichas vivas por clave (solo las filas)', suites: ['activos-dos-cuentas'],
+    cambios: [['content/indice.js', 'filasVivas: vivas.size + fichasVivas', 'filasVivas: vivas.size', 1]],
+  },
+  {
+    id: 'M21', que: 'A-2 · la reconciliación no cuenta el uso ajeno (filas o fichas vivas de otra cuenta)', suites: ['activos-dos-cuentas'],
+    cambios: [['core/media/reconciliacion.js', 'const usoAjeno = ajenas.some((f) => f.viva) || (typeof o.referenciasAjenas === \'number\' && o.referenciasAjenas > 0);', 'const usoAjeno = false;', 1]],
+  },
+  {
+    id: 'M22', que: 'A-2 · un recuento ajeno desconocido se trata como ausencia de uso (objeto huérfano)', suites: ['activos-dos-cuentas'],
+    cambios: [['core/media/reconciliacion.js', '!usoAjeno && typeof o.referenciasAjenas === \'number\'', '!usoAjeno', 1]],
   },
   /* Los dos hallazgos de la verificación del punto C: «una referencia desconocida se trata como protegida». */
   {
@@ -135,7 +153,7 @@ try {
 
   /* La copia sin mutar tiene que pasar entera: si no, lo que falle no lo habría matado ninguna mutación. */
   console.log('\n── La copia, sin mutar ──');
-  for (const suite of ['activos-indice', 'activos-caminos', 'activos-barrido']) {
+  for (const suite of ['activos-indice', 'activos-caminos', 'activos-barrido', 'activos-dos-cuentas']) {
     const r = correr(suite);
     check(`la copia sin mutar pasa ${suite}`, r.status === 0, r.status === 0 ? '' : primerFallo(r.stdout) || String(r.stderr).slice(0, 200));
   }

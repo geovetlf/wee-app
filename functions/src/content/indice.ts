@@ -371,8 +371,17 @@ export const reclamarParaBorrar = async (
     const o = snap.data() as MediaObject;
     if (!registroDelIndiceValido(deps.huella, o)) return { reclamado: false, motivo: 'ficha_invalida' };
     if (!flagAbiertaPara(flag.config, cuenta)) return { reclamado: false, motivo: 'flag_cerrada' };
+    /*
+     * FICHAS VIVAS POR CLAVE, DE CUALQUIER CUENTA (A-2, defensa en profundidad): una ficha viva que apunta al objeto es un
+     * uso aunque no tenga fila (heredada del camino de siempre, o contradictoria). Sin esta lectura, un objeto que llegara a
+     * candidato por error se borraba con la ficha viva de otra cuenta encima. Un límite alcanzado cuenta como uso.
+     */
+    const conLaClave = await tx.get(fichasConLaClave(db, o.objectKey));
+    const fichasVivas = conLaClave.size >= LIMITE_DE_FICHAS_POR_CLAVE ? LIMITE_DE_FICHAS_POR_CLAVE
+      : conLaClave.docs.filter((d) => (d.data() as AssetDoc).status !== 'deleted'
+        && mismoObjeto((d.data() as AssetDoc).storageRef, referenciaDeAlmacenDe(o))).length;
     const decision = decidirBorradoFisico({
-      objeto: o, cuenta, marcaDeCobertura: flag.marca, filasVivas: vivas.size, operaciones, consumidores,
+      objeto: o, cuenta, marcaDeCobertura: flag.marca, filasVivas: vivas.size + fichasVivas, operaciones, consumidores,
     }, politica, at);
     if (!decision.borrar) {
       if (o.estado === 'candidato' && o.pendiente?.motivo !== decision.motivo) {

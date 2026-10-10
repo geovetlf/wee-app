@@ -685,14 +685,18 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * «sin usos»—) y su línea de exportación (index +1); en el
    * registro del objeto, los campos del cerrojo y su validación (objeto +107 −4); en el puerto, la capacidad de borrar
    * con generación y el reconocimiento del 412 (puerto +52 −1); la clase de referencia `consumidor` en MC-5
-   * (recoleccion +7 −1); el cruce de la reconciliación del índice (reconciliacion +249 −1); y que un objeto en el
+   * (recoleccion +7 −1); el cruce de la reconciliación del índice (reconciliacion +255 −1); y que un objeto en el
    * cerrojo (`candidato`, `borrando`) tampoco admita bytes nuevos (subida +2 −1).
    * Cifras de `git diff --numstat 8e91daa` sobre el árbol con el parche y las correcciones de la integración. Ningún
    * contrato sube de versión.
+   * A-2 (10 de octubre de 2026): reconciliacion.ts pasa de +249 −1 a +255 −1. Valor anterior 249/1, nuevo 255/1. Motivo:
+   * el uso ajeno (una fila viva de otra cuenta, o una ficha viva sobre la clave) cuenta como uso y no deja clasificar el
+   * objeto como huérfano. Solo añade condiciones: la protección sube, no baja. Pruebas: activos-dos-cuentas II3 (falla
+   * sin el cambio), y el sabotaje de la condición en activos-mutacion M21.
    * Ver docs/ACTIVOS-CERCAS.md § H3.
    */
   const CORE_DEL_NUCLEO_DE_ACTIVOS = '1\t0\tfunctions/src/core/media/index.ts|747\t0\tfunctions/src/core/media/indice.ts|107\t4\tfunctions/src/core/media/objeto.ts'
-    + '|52\t1\tfunctions/src/core/media/puerto.ts|7\t1\tfunctions/src/core/media/recoleccion.ts|249\t1\tfunctions/src/core/media/reconciliacion.ts'
+    + '|52\t1\tfunctions/src/core/media/puerto.ts|7\t1\tfunctions/src/core/media/recoleccion.ts|255\t1\tfunctions/src/core/media/reconciliacion.ts'
     + '|2\t1\tfunctions/src/core/media/subida.ts';
   /* Las tres listas juntas, en el orden en que las da git: por ruta. */
   const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), ...CORE_DEL_NUCLEO_DE_ACTIVOS.split('|')]
