@@ -2,9 +2,11 @@
  * UBICACIÓN WEE, NATIVA (iOS y Android). Solo conecta APIs reales con las fábricas
  * puras de `puertosDeUbicacion.ts` (la lógica y sus pruebas están allí).
  *
- * iOS. La carpeta WEE vive dentro de los documentos de la app. Es PRIVADA: no
- * aparece en la app Archivos porque app.json no declara compartir archivos (decisión
- * de producto del dueño, no tomada aquí). No hay selector: no se pide ningún permiso.
+ * iOS. La carpeta WEE vive dentro de los documentos de la app y se ve en la app Archivos
+ * porque app.json declara UIFileSharingEnabled y LSSupportsOpeningDocumentsInPlace
+ * (decisión del dueño, línea I). Por eso dentro de los documentos solo puede haber
+ * archivos del usuario: el índice y las copias van a AsyncStorage (`almacenDeMetadatos`).
+ * No hay selector: no se pide ningún permiso.
  *
  * Android. Storage Access Framework: la persona elige una carpeta (p. ej. Documentos)
  * y Weë crea WEE dentro. No se pide READ/WRITE_EXTERNAL_STORAGE. El permiso SAF dura
@@ -135,7 +137,7 @@ const ubicacionAndroid = crearUbicacionSAF({
 });
 
 /** El registro de la ubicación es una preferencia del aparato (AsyncStorage). */
-export const tiendaDeUbicacionNativa: TiendaDeUbicacion = {
+const tiendaNativa: TiendaDeUbicacion = {
   async leer() {
     const crudo = await AsyncStorage.getItem(CLAVE_DEL_REGISTRO);
     return crudo ? (JSON.parse(crudo) as RegistroDeUbicacion) : null;
@@ -148,5 +150,13 @@ export const tiendaDeUbicacionNativa: TiendaDeUbicacion = {
   },
 };
 
+/*
+ * Mismos nombres y tipos que `ubicacion.web.ts`, para que quien importa no sepa en qué
+ * plataforma está. En el nativo siempre hay ubicación; en la web puede no haberla.
+ */
+
 /** La ubicación de este aparato: iOS (sandbox) o Android (SAF). */
-export const puertoDeUbicacionDelDispositivo: PuertoDeUbicacion = Platform.OS === 'android' ? ubicacionAndroid : ubicacionIOS;
+export const puertoDeUbicacionDelDispositivo: PuertoDeUbicacion | null = Platform.OS === 'android' ? ubicacionAndroid : ubicacionIOS;
+
+/** El registro de la ubicación del aparato (AsyncStorage). */
+export const tiendaDeUbicacion: TiendaDeUbicacion | null = tiendaNativa;

@@ -61,5 +61,8 @@ const ubicacionPrivada: PuertoDeUbicacion | null = hayOpfs()
 /** La ubicación de este navegador, o null si no tiene ni carpeta del ordenador ni OPFS. */
 export const puertoDeUbicacionDelDispositivo: PuertoDeUbicacion | null = ubicacionCarpeta ?? ubicacionPrivada;
 
-/** El registro de la ubicación y el manejador de la carpeta viven en IndexedDB. */
-export const tiendaDeUbicacionWeb: TiendaDeUbicacion | null = registro ? crearTiendaDeUbicacionEnRegistro(registro) : null;
+/**
+ * El registro de la ubicación y el manejador de la carpeta viven en IndexedDB. Mismo nombre
+ * que en `ubicacion.ts`; aquí puede ser null (navegador sin IndexedDB).
+ */
+export const tiendaDeUbicacion: TiendaDeUbicacion | null = registro ? crearTiendaDeUbicacionEnRegistro(registro) : null;
