@@ -4,6 +4,7 @@ import { usersService, UserProfile } from '../services/firestoreService';
 import { Timestamp } from 'firebase/firestore';
 import { updateUserCache } from '../hooks/useUserById';
 import { identidadWeeDe } from '../utils/econtactModel';
+import { retiradaDeOriginal } from '../utils/fotoDePerfil';
 
 /*
  * LAS DOS CARAS DE UNA CUENTA: Perfil Real y Perfil Weë.
@@ -60,6 +61,23 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
 
   // Perfil activo basado en el tipo seleccionado
   const userProfile = activeProfileType === 'hidi' && weeProfile ? weeProfile : realProfile;
+
+  // Retirada (línea P · H-2): una selfie privada de Face Swap que un perfil guarda como foto se quita de su documento, y el
+  // perfil vuelve al avatar predefinido. Va en efectos aparte (la carga no cambia); es la misma escritura de la auto-corrección.
+  useEffect(() => {
+    const retirada = realProfile ? retiradaDeOriginal(realProfile) : null;
+    if (!realProfile?.id || !retirada) return;
+    console.log('🔒 [UserProfileContext] Quitando del perfil una selfie privada de Face Swap');
+    setRealProfile((previo) => (previo ? { ...previo, ...retirada } : previo));
+    usersService.update(realProfile.id, retirada).catch((error) => console.error('[UserProfileContext] no se pudo quitar la foto privada del perfil', error));
+  }, [realProfile]);
+
+  useEffect(() => {
+    const retirada = weeProfile ? retiradaDeOriginal(weeProfile) : null;
+    if (!weeProfile?.id || !retirada) return;
+    setWeeProfileState((previo) => (previo ? { ...previo, ...retirada } : previo));
+    usersService.update(weeProfile.id, retirada).catch((error) => console.error('[UserProfileContext] no se pudo quitar la foto privada del Perfil Weë', error));
+  }, [weeProfile]);
 
   useEffect(() => {
     /*

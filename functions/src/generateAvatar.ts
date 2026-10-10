@@ -12,6 +12,7 @@ import { CreditService } from './credits/creditCosts';
 import type { CreditTransaction } from './credits/creditTransactions';
 import { operacionAbandonada } from './core';
 import { assertInputImageUrl } from './creator/inputs';
+import { direccionDeLaCuenta, nombreDelCuboDeWee } from './engine/http';
 import { toHttpsError } from './credits/creditValidation';
 import { loadConfig } from './engine/config';
 import {
@@ -251,15 +252,99 @@ export const generateAvatarWithGemini = onCall(
 // CLOUD FUNCTION: Avatar Replacement with Vertex AI
 // ============================================
 
+/*
+ * EL ORIGEN DE LA SELFIE (línea P · privacidad de Face Swap, H-2).
+ *
+ * La selfie original es PRIVADA: vive en `users/<uid>/face-swap/`, la lee este servidor con el Admin SDK y nunca sale de
+ * Weë con una dirección de descarga. Antes el cliente pedía una URL con testigo para la selfie y la ponía como foto de
+ * perfil: el testigo salta las reglas de Storage, así que la selfie quedaba pública.
+ *
+ * El callable recibe la RUTA del original (`selfiePath`). Una dirección antigua (`selfieUrl`) se acepta solo si es de la
+ * propia cuenta y se convierte a ruta: su testigo se descarta, no se usa ni se guarda. Lo demás se rechaza antes de
+ * cobrar y antes de leer nada, con un único código: a quien llama no se le dice por qué.
+ */
+const RUTA_DE_ORIGEN_NO_VALIDA = 'selfie_no_valida';
+
+/** Un original validado: su ruta, que es lo único que se guarda, y la misma como `gs://` para leerla con el Admin SDK. */
+export interface OrigenDeSelfie {
+  readonly path: string;
+  readonly gs: string;
+}
+
+/** Una ruta sin trucos: ni barras invertidas, ni `%` (ruta codificada), ni caracteres de control, ni segmentos vacíos o `..`. */
+const rutaDeSelfieLimpia = (ruta: string): boolean =>
+  ruta.length > 0 && ruta.length <= 1024 && !/[\\%\u0000-\u001f\u007f]/.test(ruta) && !ruta.startsWith('/')
+  && ruta.split('/').every((segmento) => segmento !== '' && segmento !== '.' && segmento !== '..');
+
+/**
+ * LA PUERTA DE LA SELFIE: devuelve el original de ESTA cuenta o lanza `invalid-argument`. Solo la carpeta
+ * `users/<uid>/face-swap/`: nada de otra cuenta, de otra carpeta, ni de una dirección ajena al cubo de Weë.
+ */
+export const resolverOrigenDeSelfie = (uid: string, datos: { selfiePath?: unknown; selfieUrl?: unknown } | undefined): OrigenDeSelfie => {
+  const rechazar = (): never => {
+    throw new HttpsError('invalid-argument', RUTA_DE_ORIGEN_NO_VALIDA, { reason: RUTA_DE_ORIGEN_NO_VALIDA });
+  };
+  const cubo = nombreDelCuboDeWee();
+  const comoOrigen = (path: string): OrigenDeSelfie => {
+    if (!path.startsWith(`users/${uid}/face-swap/`)) return rechazar();
+    return { path, gs: `gs://${cubo}/${path.split('/').map(encodeURIComponent).join('/')}` };
+  };
+  if (typeof datos?.selfiePath === 'string' && datos.selfiePath.trim()) {
+    const ruta = datos.selfiePath.trim();
+    if (!rutaDeSelfieLimpia(ruta)) return rechazar();
+    const direccion = direccionDeLaCuenta(`gs://${cubo}/${ruta}`, uid);
+    if (!direccion.ok) return rechazar();
+    return comoOrigen(direccion.path);
+  }
+  if (typeof datos?.selfieUrl === 'string' && datos.selfieUrl.trim()) {
+    /* Legado: una dirección de la propia cuenta se convierte a ruta. Su testigo no se usa. */
+    const direccion = direccionDeLaCuenta(datos.selfieUrl.trim(), uid);
+    if (!direccion.ok) return rechazar();
+    return comoOrigen(direccion.path);
+  }
+  return rechazar();
+};
+
+/** Las dependencias del reemplazo: en producción, las reales; en las pruebas, un almacén falso. */
+export interface DepsDelReemplazo {
+  readonly leerImagen: (direccion: string) => Promise<{ base64: string; mimeType: string }>;
+  readonly reemplazar: (selfieBase64: string, selfieMime: string, avatarBase64: string, avatarMime: string) => Promise<string>;
+  readonly guardarResultado: (imagenDataUrl: string, ruta: string) => Promise<string>;
+}
+
+/**
+ * EL REEMPLAZO, sin cobrar ni validar la petición (eso lo hace el callable antes). Lee la selfie por su `gs://` (Admin SDK,
+ * sin testigo), el avatar por la dirección que ya validó la puerta, genera, y guarda el RESULTADO en `avatar-replacement`.
+ * Devuelve solo la dirección del resultado: nunca la del original, su ruta ni su testigo.
+ */
+export const reemplazoDeAvatar = async (
+  deps: DepsDelReemplazo,
+  uid: string,
+  origen: OrigenDeSelfie,
+  avatarUrl: string,
+): Promise<{ imageUrl: string }> => {
+  const [selfie, avatar] = await Promise.all([deps.leerImagen(origen.gs), deps.leerImagen(avatarUrl)]);
+  const imagen = await deps.reemplazar(selfie.base64, selfie.mimeType, avatar.base64, avatar.mimeType);
+  const imageUrl = await deps.guardarResultado(imagen, `users/${uid}/avatar-replacement/result_${Date.now()}.png`);
+  return { imageUrl };
+};
+
+const DEPS_DEL_REEMPLAZO: DepsDelReemplazo = {
+  leerImagen: (direccion) => urlToBase64(direccion),
+  reemplazar: (selfieBase64, selfieMime, avatarBase64, avatarMime) => replacePersonWithAvatar(selfieBase64, selfieMime, avatarBase64, avatarMime),
+  guardarResultado: (imagenDataUrl, ruta) => uploadImageToStorage(imagenDataUrl, ruta),
+};
+
 /**
  * Replaces a person in a photo with the user's avatar
  *
  * Pipeline:
- * 1. Download both images
+ * 1. Read the ORIGINAL selfie (path validated) and the avatar, with the Admin SDK
  * 2. Send both to Gemini with a simple replacement prompt
+ * 3. Store the RESULT under avatar-replacement and return its address
  *
- * Input: selfieUrl, avatarUrl
- * Output: Public Storage URL of result
+ * Input: selfiePath (or a legacy selfieUrl of the caller's own), avatarUrl
+ * Output: { imageUrl }: the address of the RESULT. Never the original's address, path or token.
  */
 export const avatarReplacement = onCall(
   {
@@ -275,66 +360,30 @@ export const avatarReplacement = onCall(
     }
 
     const requestId = requestIdFrom(request.data?.requestId);
-
-    /*
-     * LAS DOS FOTOS TIENEN QUE SER SUYAS, Y DE WEË.
-     *
-     * Antes bastaba con que fueran cadenas: el servidor descargaba CUALQUIER
-     * URL que mandara el cliente —incluida una de la red interna— y el
-     * resultado acababa en `users/{uid}/avatar-replacement/`, que es de lectura
-     * pública. Eso es una petición del lado del servidor a donde diga otro, con
-     * la respuesta publicada.
-     *
-     * `assertInputImageUrl` es el mismo guardia que ya usa el resto de Weë AI
-     * (`creator/inputs.ts`): exige que la URL sea de Storage y que su ruta
-     * empiece por `users/{uid}/`. No hace falta nada nuevo; hacía falta usarlo.
-     */
-    const selfieUrl = assertInputImageUrl(request.data?.selfieUrl, request.auth.uid);
-    const avatarUrl = assertInputImageUrl(request.data?.avatarUrl, request.auth.uid);
-
-    console.log('═══════════════════════════════════════════════════════════');
-    console.log('     AVATAR REPLACEMENT (Gemini 2.5 Flash Image)          ');
-    console.log('═══════════════════════════════════════════════════════════');
-    console.log('Selfie URL:', selfieUrl.substring(0, 80) + '...');
-    console.log('Avatar URL:', avatarUrl.substring(0, 80) + '...');
-    const startTime = Date.now();
     const userId = request.auth.uid;
 
+    // La selfie. Legado: una dirección de la selfie de antes pasa por la MISMA puerta que el resto de Weë AI (de Weë y de la
+    // cuenta) y después debe ser el ORIGINAL de la cuenta. Nueva: la ruta del original. Antes de cobrar y antes de leer nada.
+    const selfieUrl = typeof request.data?.selfieUrl === 'string' ? assertInputImageUrl(request.data?.selfieUrl, request.auth.uid) : undefined;
+    const origen = resolverOrigenDeSelfie(userId, { selfiePath: request.data?.selfiePath, selfieUrl });
+    // El avatar: la misma puerta que el resto de Weë AI (una dirección de Weë, de la cuenta).
+    const avatarUrl = assertInputImageUrl(request.data?.avatarUrl, request.auth.uid);
+
+    console.log('AVATAR REPLACEMENT (Gemini 2.5 Flash Image) · selfie de origen privado');
+    const startTime = Date.now();
+
     return withCredits(userId, 'ai_image_enhance', requestId, 'Foto con tu avatar Weë', async () => {
-    try {
-      // Step 1: Download images
-      console.log('\n[1/2] Downloading images...');
-      const [selfieData, avatarData] = await Promise.all([
-        urlToBase64(selfieUrl),
-        urlToBase64(avatarUrl),
-      ]);
-      console.log('    ✓ Images downloaded');
-
-      // Step 2: Replace person with Gemini 2.5 Flash Image
-      console.log('\n[2/2] Replacing person with Gemini 2.5 Flash Image...');
-      const resultDataUrl = await replacePersonWithAvatar(
-        selfieData.base64,
-        selfieData.mimeType,
-        avatarData.base64,
-        avatarData.mimeType,
-      );
-      console.log('    ✓ Person replaced');
-
-      // Upload result to Cloud Storage and return public URL
-      const storagePath = `users/${userId}/avatar-replacement/result_${Date.now()}.png`;
-      const publicUrl = await uploadImageToStorage(resultDataUrl, storagePath);
-
-      const totalTime = Date.now() - startTime;
-      console.log(`\n✓ Avatar replacement completed and uploaded in ${totalTime}ms`);
-
-      return { imageUrl: publicUrl };
-    } catch (error: any) {
-      console.error('Avatar replacement failed:', error);
-      /* El detalle del proveedor se queda en el log: al cliente solo le llega un código. */
-      throw new HttpsError('internal', 'replacement_failed', { reason: 'replacement_failed' });
-    }
+      try {
+        const resultado = await reemplazoDeAvatar(DEPS_DEL_REEMPLAZO, userId, origen, avatarUrl);
+        console.log(`✓ Avatar replacement completed in ${Date.now() - startTime}ms`);
+        return resultado;
+      } catch (error: any) {
+        console.error('Avatar replacement failed:', error);
+        /* El detalle del proveedor se queda en el log: al cliente solo le llega un código. */
+        throw new HttpsError('internal', 'replacement_failed', { reason: 'replacement_failed' });
+      }
     });
-  }
+  },
 );
 
 // ============================================

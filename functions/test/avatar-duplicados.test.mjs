@@ -99,6 +99,14 @@ check('10) los errores de esta puerta llevan un CÓDIGO, no una frase (la pantal
 check('11) el fallo del proveedor no viaja al cliente: solo «generation_failed»',
   r7.e.message === 'generation_failed' && !/proveedor no respondió/.test(JSON.stringify({ m: r7.e.message, d: r7.e.details })));
 
+/* 7 · El reemplazo de persona, la otra puerta del avatar: la misma regla, en el camino que reescribió la línea P (privacidad). */
+process.env.STORAGE_BUCKET = 'demo-wee.appspot.com';
+reiniciar();
+gasto = () => ({ transactionId: 'usage_swap_a12', status: 'AUTHORIZED', amount: 5, duplicate: true });
+const r8 = await avatarMod.avatarReplacement.run({ auth: { uid: 'u1' }, data: { requestId: 'swap_a12', selfiePath: 'users/u1/face-swap/source_1-a.jpg', avatarUrl: 'gs://demo-wee.appspot.com/users/u1/ai-avatar/a.png' } }).then(() => ({ ok: true }), (e) => ({ ok: false, e }));
+check('12) el reemplazo de persona: la misma operación TODAVÍA EN MARCHA responde «ya está en marcha», sin reembolsar la reserva ajena ni volver a generar o completar',
+  !r8.ok && r8.e.code === 'already-exists' && r8.e.details?.reason === 'in_progress' && c.genera === 0 && c.completa === 0 && c.reembolsa === 0, JSON.stringify(c));
+
 Object.assign(motor, originales);
 vertexMod.generateAvatarWithImagen = originales.gen;
 vertexMod.uploadImageToStorage = originales.subir;

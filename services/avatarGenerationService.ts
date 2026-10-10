@@ -1,5 +1,5 @@
 import { httpsCallable } from 'firebase/functions';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes } from 'firebase/storage';
 import { functions, storage } from '../config/firebase';
 import { usersService } from './firestoreService';
 import { newRequestId } from './creditsService';
@@ -133,10 +133,27 @@ export async function generateAvatarWithGemini(
 
 // --- Avatar Replacement ---
 
-// Cloud function now returns a public Storage URL (not data URL)
+/** El cubo de Weë: con él se decide qué referencia puede ser la foto de perfil (utils/fotoDePerfil.ts). */
+export const cuboDeWee = (): string | undefined => storage?.app?.options?.storageBucket;
+
+/**
+ * Una ruta de Storage (`users/<uid>/…`) como `gs://` del cubo de Weë, que el servidor lee con el Admin SDK sin testigo.
+ * Cualquier otra referencia (ya `gs://` o una dirección https) se devuelve tal cual.
+ */
+const comoDireccionDeWee = (referencia: string): string => {
+  if (!referencia.startsWith('users/')) return referencia;
+  const cubo = cuboDeWee();
+  if (!cubo) throw new Error('storage-sin-inicializar');
+  return `gs://${cubo}/${referencia}`;
+};
+
+/*
+ * El ORIGINAL se manda por RUTA (`users/<uid>/face-swap/…`), nunca como dirección con testigo. Lo que vuelve es la
+ * dirección del RESULTADO generado: el original no vuelve nunca (docs/PRIVACIDAD-FACE-SWAP.md).
+ */
 export async function performAvatarReplacement(
-  selfieUrl: string,
-  avatarUrl: string,
+  selfiePath: string,
+  avatarRef: string,
   requestId: string = newRequestId('swap'),
 ): Promise<string> {
   if (!functions) {
@@ -144,16 +161,17 @@ export async function performAvatarReplacement(
   }
   console.log('Calling avatarReplacement cloud function...');
   const callable = httpsCallable<
-    { selfieUrl: string; avatarUrl: string; requestId: string },
+    { selfiePath: string; avatarUrl: string; requestId: string },
     { imageUrl: string }
   >(functions, 'avatarReplacement', { timeout: 300_000 });
-  const result = await callable({ selfieUrl, avatarUrl, requestId });
-  return result.data.imageUrl; // Returns public Storage URL
+  const result = await callable({ selfiePath, avatarUrl: comoDireccionDeWee(avatarRef), requestId });
+  return result.data.imageUrl; // La dirección del RESULTADO generado
 }
 
 // --- Upload helpers ---
 
-// Upload selfie for face swap using blob from local URI (React Native compatible)
+// Sube la selfie ORIGINAL a su carpeta privada y devuelve su RUTA. No pide dirección de descarga: una dirección con testigo
+// salta las reglas de Storage y deja la selfie pública (docs/PRIVACIDAD-FACE-SWAP.md).
 export async function uploadImageForSwap(
   userId: string,
   imageUri: string,
@@ -170,7 +188,7 @@ export async function uploadImageForSwap(
   const blob = await response.blob();
 
   await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-  return getDownloadURL(storageRef);
+  return storagePath;
 }
 
 // Save face swap result - now receives a URL, just returns it
