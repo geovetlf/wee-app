@@ -29,7 +29,7 @@
  * misma forma que el Credit Engine y las encuestas.
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Firestore, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { referenciaDesdeUrlDeWee } from '../content';
 import { esDireccionDelStorageDeWee, storageBucket } from '../engine/http';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './econtact';
@@ -69,6 +69,12 @@ export interface PuertosDelQuemador {
   quemarFicha(conversationId: string, messageId: string, datos: { abiertoEn: number; pendiente: boolean }): Promise<void>;
   anotarPendiente(conversationId: string, messageId: string): Promise<void>;
   borrarObjeto(objectKey: string): Promise<void>;
+  /**
+   * ¿Hay algo más que use este objeto? Sí si el índice lo registra, si hay una ficha viva con su clave (de cualquier
+   * cuenta), o si otro mensaje de la conversación apunta a la misma dirección. Lo desconocido es «sí»: una comprobación
+   * que falla protege.
+   */
+  usadoPorOtros(objectKey: string, url: string, conversationId: string, messageId: string): Promise<boolean>;
   /** El nombre del bucket del Storage de Weë: la dirección tiene que ser de ESE bucket y de ningún otro. */
   bucketDeWee(): string;
   /**
@@ -114,6 +120,8 @@ export interface PuertosDelQuemador {
  * borrar el objeto equivocado, no borrar ninguno.
  */
 const FORMA_DE_REMITENTE = /^[A-Za-z0-9]{1,128}$/;
+/* Cuántas fichas con la misma clave se miran antes de declarar «demasiadas» (y protege sin contarlas). Igual que el índice. */
+const LIMITE_DE_FICHAS_PARA_EL_QUEMADO = 25;
 const FORMA_DE_ARCHIVO = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
 /*
  * Solo los hosts del Storage de Weë: un host ajeno con la forma correcta no es una dirección de Weë. La regla vivía
@@ -210,13 +218,20 @@ export const crearQuemador = (p: PuertosDelQuemador) => ({
         conversationId, messageId, objectKey: referenciaDesdeUrlDeWee(url)?.objectKey, bucket: referenciaDesdeUrlDeWee(url)?.bucket,
       });
     }
-    let pendiente = !enSuSitio;
+    /*
+     * LA EXCEPCIÓN SOLO BORRA SI NADIE MÁS USA EL OBJETO (A-2 / C-2). Una foto única no pasa por el índice de H5/H2, así
+     * que sin esta comprobación el remitente podría haberla registrado como creación suya (su prefijo se lo permite) y el
+     * destinatario la quemaría bajo una ficha viva. Un uso, o una comprobación que falla, protege: el objeto se conserva
+     * pendiente, no se borra.
+     */
+    const usado = enSuSitio && ref ? await p.usadoPorOtros(ref.objectKey, url, conversationId, messageId) : false;
+    let pendiente = !enSuSitio || usado;
 
     /* 1. Primero la ficha: la dirección deja de existir para todo el mundo. */
     await p.quemarFicha(conversationId, messageId, { abiertoEn: p.ahora(), pendiente });
 
-    /* 2. Después el objeto, SOLO si es el que tiene que ser. Si falla, queda anotado; no se finge. */
-    if (enSuSitio) {
+    /* 2. Después el objeto, SOLO si es el que tiene que ser y nadie más lo usa. Si falla, queda anotado; no se finge. */
+    if (enSuSitio && !usado) {
       try {
         await p.borrarObjeto(ref.objectKey);
       } catch (error) {
@@ -229,6 +244,45 @@ export const crearQuemador = (p: PuertosDelQuemador) => ({
     return { status: 'quemada', pendingPhysicalDeletion: pendiente, ...(insegura ? { referenciaInsegura: true as const } : {}) };
   },
 });
+
+/* ── La comprobación de otros usos (A-2 / C-2) ───────────────────────────── */
+
+/**
+ * ¿Tiene la foto única OTROS usos? Mira el índice (`mediaObjects`), las fichas vivas con esa clave de cualquier cuenta
+ * (`assets`) y los demás mensajes de la MISMA conversación que apunten al mismo objeto. Un error, o un recuento que no se
+ * puede mirar entero, PROTEGE: lo desconocido cuenta como uso.
+ *
+ * `db` y `bucket` llegan explícitos para que la prueba de emulador ejerza la misma consulta que producción.
+ */
+export const usadoPorOtrosEn = (db: Firestore, bucket: string) => async (
+  objectKey: string,
+  url: string,
+  conversacion: string,
+  mensajeId: string,
+): Promise<boolean> => {
+  try {
+    /* El índice: un objeto registrado es material de alguien, no una foto de un solo uso. */
+    const registrado = await db.collection('mediaObjects').where('objectKey', '==', objectKey).limit(1).get();
+    if (!registrado.empty) return true;
+    /* Una ficha viva con esa clave, de cualquier cuenta. Si hay demasiadas para mirarlas, protege. */
+    const fichas = await db.collection('assets').where('storageRef.objectKey', '==', objectKey).limit(LIMITE_DE_FICHAS_PARA_EL_QUEMADO).get();
+    if (fichas.size >= LIMITE_DE_FICHAS_PARA_EL_QUEMADO) return true;
+    if (fichas.docs.some((d) => (d.data() as { status?: unknown }).status !== 'deleted')) return true;
+    /*
+     * Otro mensaje de la misma conversación que apunte al MISMO objeto: con la misma dirección exacta, o con otro token
+     * sobre la misma clave. El rango va de `base` a `base` + U+F8FF, es decir, todo lo que empieza por `base`; el `?` final
+     * impide confundir `foto.jpg` con `foto.jpg2`. Sin el U+F8FF el rango queda vacío y no encuentra ningún token distinto.
+     */
+    const mensajes = db.collection('conversations').doc(conversacion).collection('messages');
+    const base = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(objectKey)}?`;
+    const exactos = await mensajes.where('imageUrl', '==', url).limit(3).get();
+    const mismaClave = await mensajes.where('imageUrl', '>=', base).where('imageUrl', '<', `${base}\uf8ff`).limit(3).get();
+    return [...exactos.docs, ...mismaClave.docs].some((d) => d.id !== mensajeId);
+  } catch (error) {
+    console.error('WeeTalk: no se pudo comprobar si la foto única tiene otros usos; se protege', error);
+    return true;
+  }
+};
 
 /* ── Composición sobre Firestore y el Storage de Weë ─────────────────────── */
 
@@ -259,6 +313,7 @@ const puertos = (): PuertosDelQuemador => {
     borrarObjeto: async (objectKey) => {
       await storageBucket().file(objectKey).delete({ ignoreNotFound: true });
     },
+    usadoPorOtros: usadoPorOtrosEn(db, storageBucket().name),
     /* El mismo bucket en el que se borra: si la dirección nombra otro, no es una foto única de Weë. */
     bucketDeWee: () => storageBucket().name,
     /*
