@@ -36,7 +36,8 @@ const ref = (p) => ({
   get: async () => ({ exists: docs.has(p), data: () => docs.get(p) }),
   set: async (d, opts) => { docs.set(p, opts?.merge ? { ...(docs.get(p) || {}), ...d } : { ...d }); },
 });
-const baseFalsa = { collection: (c) => ({
+/* H5/H2: `anotarVariante` va en una transacción. Aquí, una sola a la vez: lee y escribe por las mismas referencias. */
+const baseFalsa = { runTransaction: async (fn) => fn({ get: (r) => r.get(), set: (r, d, o) => r.set(d, o) }), collection: (c) => ({
   doc: (id) => ref(`${c}/${id}`),
   where: (campo, _op, valor) => {
     const coincidencias = () => [...docs.entries()]

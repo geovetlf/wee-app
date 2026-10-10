@@ -50,7 +50,13 @@ import { MediaObject } from './objeto';
  * de dónde viene para poder explicarlo en un informe, y nada más — la decisión
  * solo necesita saber CUÁNTAS hay y si siguen vivas.
  */
-export type ClaseDeReferencia = 'material' | 'variante' | 'version';
+export type ClaseDeReferencia = 'material' | 'variante' | 'version'
+  /*
+   * H5/H2 · UN USO de un consumidor integrado en el índice (`indice.ts`): una
+   * fila viva de esta clase protege los bytes igual que la de un material. Hoy
+   * ningún consumidor está integrado, así que nadie la escribe todavía.
+   */
+  | 'consumidor';
 
 export interface ReferenciaLogica {
   clase: ClaseDeReferencia;

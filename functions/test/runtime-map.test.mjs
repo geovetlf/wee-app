@@ -271,8 +271,28 @@ const OTROS_DEL_CORE = {
    * Function de administración enciende la cadena que MC-1..MC-4 construyeron,
    * y estas listas son la prueba de qué usa de verdad y qué no.
    */
-  'core/media/objeto.js': ['PIEZA_ORIGINAL', 'RAIZ_DE_CUENTAS', 'claveDelObjeto', 'claveEsDeLaCuenta', 'objetoEsDeLaCuenta', 'objetoValido', 'prefijoDeCuenta', 'referenciaDelObjeto'],
-  'core/media/puerto.js': ['CAPACIDADES_DE_MC1', 'falloDeAlmacen'],
+  /*
+   * H5/H2 · EL ÍNDICE DE REFERENCIAS (línea trk-s, 2026-10-10, autorizado por el dueño). `deleteAsset` vive en
+   * `content/index.js`, que ahora carga `content/indice.js` —y este reexporta `indice-almacen.js` e
+   * `indice-reconciliacion.js`—. Por ESOS tres módulos, y solo por ellos, producción nombra lo que se añade aquí:
+   * `referenciaDeAlmacenDe` (objeto), `esPrecondicionFallida` y `sabeBorrarConGeneracion` (puerto), el modelo puro
+   * del índice entero (`core/media/indice.js`), la política de recolección (solo su edad mínima, para la
+   * reconciliación) y `reconciliarIndiceDeCuenta`. Que se NOMBREN no es que se EJECUTEN: con `aiSettings/almacenActivos`
+   * CERRADA —su estado por defecto y ante cualquier campo mal formado— la retirada sigue por el camino de siempre y
+   * nada del índice corre; abierta para una cuenta, consumidores sin integrar ⇒ el objeto se conserva (D-G). El barrido
+   * del índice (`media/barrido.js`) y la recolección MC-5 (`media/recoleccion.js`) NO son alcanzables: ninguna
+   * Function los exporta, y por eso `decidirRecoleccion` y compañía no aparecen.
+   *
+   * Cómo se generó: con estas tres claves vacías y las dos de arriba sin tocar, la propia sección C de esta suite
+   * lista lo que «sobra» por módulo; esas listas se copiaron tal cual y se cotejaron con una réplica de solo lectura
+   * de esta medida que además dice QUIÉN nombra cada símbolo (docs/ACTIVOS-CERCAS.md § runtime-map).
+   */
+  'core/media/objeto.js': ['PIEZA_ORIGINAL', 'RAIZ_DE_CUENTAS', 'claveDelObjeto', 'claveEsDeLaCuenta', 'objetoEsDeLaCuenta', 'objetoValido', 'prefijoDeCuenta', 'referenciaDelObjeto',
+    /* + H5/H2: la referencia de almacén de un registro, para volver a mirar y borrar el objeto (content/indice*). */
+    'referenciaDeAlmacenDe'],
+  'core/media/puerto.js': ['CAPACIDADES_DE_MC1', 'falloDeAlmacen',
+    /* + H5/H2: ¿sabe el adaptador borrar con generación?, y ¿este fallo es un 412? (content/indice.js). */
+    'esPrecondicionFallida', 'sabeBorrarConGeneracion'],
   'core/media/registro.js': ['crearRegistroDeMedios'],
   'core/media/subida.js': ['decidirSubida', 'identidadDeIntento', 'tamanoAprobado', 'tipoDeContenidoAceptable', 'topeDeSubida', 'vigenciaDeSubidaAprobada'],
   'core/media/proceso.js': ['CAPACIDADES_DE_MC4', 'LIMITES_DE_TRANSFORMACION', 'decidirProceso', 'leerPaqueteDeProceso', 'transformacionValida', 'varianteDeResultado'],
@@ -280,6 +300,14 @@ const OTROS_DEL_CORE = {
   'core/media/uso.js': ['usoDeEscritura', 'usoDeLectura', 'usoDeOperacion'],
   'core/media/procesador.js': ['falloDeProceso'],
   'core/media/entrega.js': ['decidirEntrega', 'huellaDeEntrega'],
+  /* H5/H2 (ver arriba): el modelo puro del índice, por content/indice*.js. */
+  'core/media/indice.js': ['POLITICA_DEL_BORRADO_INMEDIATO', 'REGISTRO_DE_CONSUMIDORES', 'cerrar', 'coberturaVigente', 'comoCrearFilaViva', 'decidirBorradoFisico', 'devolver',
+    'filasEsperadasDeLaFicha', 'flagAbiertaPara', 'leerFlagDelAlmacenDeActivos', 'marcaDeCobertura', 'naceCubierto', 'pasarACandidato', 'reclamar', 'registroDelIndiceValido',
+    'registroEsDeLaCuenta', 'rescatar', 'resumirConsumidores', 'versionDe'],
+  /* H5/H2: de MC-5, solo su edad mínima (la reconciliación no concluye huérfano lo que es más joven). La decisión de MC-5 sigue sin alcanzarse. */
+  'core/media/recoleccion.js': ['POLITICA_DE_RECOLECCION'],
+  /* H5/H2: el cruce puro de la reconciliación del índice (content/indice-reconciliacion.js). */
+  'core/media/reconciliacion.js': ['reconciliarIndiceDeCuenta'],
 };
 
 /* Las Functions que producción expone, y de qué módulo sale cada una. */

@@ -677,10 +677,27 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * sin conectar) y su línea de exportación en la puerta del Content Core. Ningún contrato sube de versión.
    */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts|651\t0\tfunctions/src/core/content/linaje.ts';
-  /* Las dos listas juntas, en el orden en que las da git: por ruta. */
-  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|')]
+  /*
+   * + NÚCLEO DE ACTIVOS H5/H2 (línea trk-s, integración autorizada por el dueño el 2026-10-10), por nombre y tamaño:
+   * EXACTAMENTE los siete archivos de functions/src/core del parche de A1. El modelo puro del índice de referencias
+   * (`core/media/indice.ts`, nuevo, sin Firestore ni reloj: 741 líneas en el parche y 747 con la corrección de
+   * `resumirConsumidores` que encontró la verificación —un registro vacío o un uso de un tipo desconocido no son
+   * «sin usos»—) y su línea de exportación (index +1); en el
+   * registro del objeto, los campos del cerrojo y su validación (objeto +107 −4); en el puerto, la capacidad de borrar
+   * con generación y el reconocimiento del 412 (puerto +52 −1); la clase de referencia `consumidor` en MC-5
+   * (recoleccion +7 −1); el cruce de la reconciliación del índice (reconciliacion +249 −1); y que un objeto en el
+   * cerrojo (`candidato`, `borrando`) tampoco admita bytes nuevos (subida +2 −1).
+   * Cifras de `git diff --numstat 8e91daa` sobre el árbol con el parche y las correcciones de la integración. Ningún
+   * contrato sube de versión.
+   * Ver docs/ACTIVOS-CERCAS.md § H3.
+   */
+  const CORE_DEL_NUCLEO_DE_ACTIVOS = '1\t0\tfunctions/src/core/media/index.ts|747\t0\tfunctions/src/core/media/indice.ts|107\t4\tfunctions/src/core/media/objeto.ts'
+    + '|52\t1\tfunctions/src/core/media/puerto.ts|7\t1\tfunctions/src/core/media/recoleccion.ts|249\t1\tfunctions/src/core/media/reconciliacion.ts'
+    + '|2\t1\tfunctions/src/core/media/subida.ts';
+  /* Las tres listas juntas, en el orden en que las da git: por ruta. */
+  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), ...CORE_DEL_NUCLEO_DE_ACTIVOS.split('|')]
     .sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');
-  check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal y el linaje del ciclo de vida 3D, del tamaño exacto',
+  check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal, el linaje del ciclo de vida 3D y el núcleo de activos (H5/H2), del tamaño exacto',
     git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions`).trim() === ''
     && git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|') === coreEsperado,
     git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').join('|'));

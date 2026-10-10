@@ -1,8 +1,22 @@
 import { createHash } from 'crypto';
+import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
-import { materialEsDeLaCuenta } from '../core';
+import { flagAbiertaPara, materialEsDeLaCuenta } from '../core';
 import { direccionDeLaCuenta, storageBucket } from '../engine/http';
-import { AssetDoc, crearMaterialDesdeUrl, fichaVivaUsaElObjeto, fichasDeLaCuenta, leerMaterial, PROVEEDOR_WEE, tipoPorMime } from './index';
+import { sanitizeForLog } from '../engine/sanitize';
+import {
+  AssetDoc,
+  construirFichaDesdeUrl,
+  crearMaterialDesdeUrl,
+  depsDelIndice,
+  fichaVivaUsaElObjeto,
+  fichasDeLaCuenta,
+  leerMaterial,
+  PROVEEDOR_WEE,
+  referenciaDesdeUrlDeWee,
+  tipoPorMime,
+} from './index';
+import { HechosDelObjeto, crearVersionConIndice, esObjetoAusente, hechosDeMetadata, leerFlagDelAlmacen } from './indice';
 
 /**
  * GUARDAR COMO VERSIÓN (DEC-03): un archivo NUEVO del propio usuario que pasa a ser la siguiente versión de un material
@@ -85,17 +99,29 @@ export const crearVersionDeMaterial = async (
     return misma ? { status: 'creada', asset: existente } : { status: 'archivo_en_uso' };
   }
 
+  /*
+   * H5/H2 · Con la flag abierta para la cuenta, la versión va por el índice: la anterior, el objeto, sus filas y las fichas
+   * con la misma clave se leen DENTRO de una transacción, y ficha, fila y registro se escriben juntos (INV-9). Nada de
+   * leer todas las fichas de la cuenta (H5). Cerrada, lo de siempre.
+   */
+  if (flagAbiertaPara((await leerFlagDelAlmacen(getFirestore())).config, cuenta)) {
+    return crearVersionConElIndice(cuenta, anterior, { id, url: direccion.url, objectKey });
+  }
+
   /* 2) Otra ficha viva usa el objeto: de la cuenta (como archivo o variante) o de otra cuenta (como archivo). No se comparte. */
   const archivo = { provider: PROVEEDOR_WEE, bucket: storageBucket().name, objectKey };
   if (await fichaVivaUsaElObjeto(await fichasDeLaCuenta(cuenta), id, archivo)) return { status: 'archivo_en_uso' };
 
-  /* 3) La metadata del objeto y su clase, antes de crear. */
+  /*
+   * 3) La metadata del objeto y su clase, antes de crear. «No existe» (404) es un archivo que no está en el almacén de la
+   *    cuenta; cualquier otro fallo es pasajero y se puede reintentar (`no_creada`): no dice nada del archivo.
+   */
   let mimeType: string | undefined;
   try {
     const [meta] = await storageBucket().file(objectKey).getMetadata();
     mimeType = typeof meta.contentType === 'string' ? meta.contentType : undefined;
-  } catch {
-    return { status: 'archivo_ajeno' };
+  } catch (error) {
+    return esObjetoAusente(error) ? { status: 'archivo_ajeno' } : { status: 'no_creada' };
   }
   if (!mimeType || !esDeLaClase(mimeType, anterior.kind)) return { status: 'clase_distinta' };
 
@@ -121,6 +147,49 @@ export const crearVersionDeMaterial = async (
   }
   if (nueva.status === 'deleted' || nueva.previousVersionId !== anterior.assetId) return { status: 'archivo_en_uso' };
   return { status: 'creada', asset: nueva };
+};
+
+/**
+ * LA VERSIÓN POR EL ÍNDICE (H2). Fuera de la transacción solo se mira el almacén —una vez—: si el archivo está, cuál es
+ * su generación y de qué clase es. Dentro, `crearVersionConIndice` vuelve a leer la anterior y decide con el objeto y
+ * sus filas delante. La ficha es la misma que habría creado `crearMaterialDesdeUrl`.
+ */
+const crearVersionConElIndice = async (
+  cuenta: string,
+  anterior: AssetDoc,
+  archivo: { id: string; url: string; objectKey: string },
+): Promise<ResultadoDeVersion> => {
+  let hechos: HechosDelObjeto;
+  let mimeType: string | undefined;
+  try {
+    const [meta] = await storageBucket().file(archivo.objectKey).getMetadata();
+    hechos = hechosDeMetadata(meta as Record<string, unknown>);
+    mimeType = hechos.contentType;
+  } catch (error) {
+    return esObjetoAusente(error) ? { status: 'archivo_ajeno' } : { status: 'no_creada' };
+  }
+  if (!mimeType || !esDeLaClase(mimeType, anterior.kind)) return { status: 'clase_distinta' };
+  const ref = referenciaDesdeUrlDeWee(archivo.url);
+  if (!ref) return { status: 'archivo_ajeno' };
+  const doc = construirFichaDesdeUrl({
+    assetId: archivo.id,
+    ownerAccountId: cuenta,
+    url: archivo.url,
+    kind: anterior.kind,
+    provenance: { createdAt: Date.now() },
+    mimeType,
+    previousVersionId: anterior.assetId,
+    name: anterior.name,
+    derechos: anterior.derechos,
+  }, ref, mimeType, hechos.bytes);
+  if (!doc) return { status: 'no_creada' };
+  try {
+    return await crearVersionConIndice(depsDelIndice(), { cuenta, anteriorId: anterior.assetId, doc, hechos });
+  } catch (error) {
+    /* Una transacción que no se pudo confirmar no ha escrito nada: se puede reintentar. */
+    console.error('Content: la versión no se pudo escribir con su índice', archivo.id, sanitizeForLog(error, 300));
+    return { status: 'no_creada' };
+  }
 };
 
 /**
