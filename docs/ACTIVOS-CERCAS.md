@@ -1,0 +1,188 @@
+# Cercas actualizadas por la integración del núcleo de activos (H5 · H2)
+
+**Línea trk-s · rama `wee/trk-s-activos` · desde la integración `wee/almacenamiento-activos` (`8fcc5c0`) · 2026-10-10.**
+Autorización del dueño: integrar el núcleo de activos de A1 (`docs/ACTIVOS-INDICE.md`) y actualizar, con cambios
+mínimos y justificables, **F1** de `puente-pre-f1d`, **H3** de `video-asincrono`, las **listas de archivos de Media
+Cloud** que el parche movía y el **mapa de `runtime-map`**. `ci-workflow` no se edita: el registro de suites en la
+cadena lo hace el integrador para todas las líneas. Condiciones: no desactivar controles, no reducir cobertura, no
+eliminar reglas de seguridad, no ampliar el alcance de escritura sin justificación, no ocultar hallazgos, no reanclar
+una baseline para silenciar una regresión, y conservar la capacidad de detectar cambios futuros no autorizados. Toda
+lista nueva es **exacta**: ni vacía ni un «cualquiera».
+
+Nada de esto está desplegado. La flag `aiSettings/almacenActivos` sigue **cerrada por defecto**, y con ella abierta
+ningún objeto se borra físicamente mientras no haya consumidores integrados (D-G).
+
+## Resumen
+
+| Cerca | Suite · comprobación | Antes | Ahora | Por qué |
+|---|---|---|---|---|
+| F1 | `puente-pre-f1d` · 37 | doce listas nominales + once archivos sueltos: **108** archivos distintos | lo mismo + `DEL_NUCLEO_DE_ACTIVOS`, los **14** archivos de `functions/src` del parche: **120** (12 nuevos para la cerca; `content/index.ts` y `content/versiones.ts` ya estaban) | el parche crea 5 archivos y modifica 9 en `functions/src` |
+| H3 | `video-asincrono` · 58 | 12 líneas de `numstat` de `functions/src/core` (misión fal + ciclo de vida 3D) | 19: + `CORE_DEL_NUCLEO_DE_ACTIVOS`, los **7** de `core/media` con su tamaño exacto | el parche toca 6 archivos de `core/media` y crea `core/media/indice.ts` |
+| Listas | `media-core` 135/136 · `media-proceso-core` 153/154 · `media-upload-core` 149/150 · `media-delivery-core` 108/109 | `core/media`: 12 archivos · `media`: 19 | `core/media`: **13** (+ `indice.ts`) · `media`: **20** (+ `barrido.ts`) | los dos archivos nuevos del parche en esas carpetas |
+| Mapa | `runtime-map` · 91, 92, 99 (ahora 91, 92, 99–102) | `objeto.js` 8 símbolos · `puerto.js` 2 · sin `indice.js`, `recoleccion.js` ni `reconciliacion.js` | `objeto.js` 9 · `puerto.js` 4 · `indice.js` 19 · `recoleccion.js` 1 · `reconciliacion.js` 1 | `deleteAsset` carga ahora `content/indice*.js`, que nombran esos símbolos del Core |
+
+Lo que **no** se ha cambiado: F3 de `puente-pre-f1d` (heredada, ver § 6), `ci-workflow` 13 (§ 7) y ninguna otra cerca.
+
+## 1. F1 — `functions/test/puente-pre-f1d.test.mjs`, comprobación 37
+
+**Qué vigila.** Qué archivos de `functions/src` se tocaron desde `b023f24` —`git diff --name-only b023f24 --
+functions/src` más los archivos nuevos sin seguimiento— y exige que sean exactamente los de las listas nominales.
+
+**Valor anterior.** `[...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS,
+...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D, <once archivos de F1-D>, ...DEL_CICLO_DE_VIDA_3D,
+...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO,
+...DE_VERSIONES_Y_DISPONIBILIDAD]`, sin repetidos y ordenada: 108 archivos.
+
+**Valor nuevo.** La misma expresión con `...DEL_NUCLEO_DE_ACTIVOS` al final (120 archivos), y la etiqueta de la
+comprobación nombra la lista nueva. La condición no cambia: igualdad exacta de las dos listas ordenadas.
+
+```js
+const DEL_NUCLEO_DE_ACTIVOS = ['functions/src/content/index.ts', 'functions/src/content/indice-almacen.ts',
+  'functions/src/content/indice-reconciliacion.ts', 'functions/src/content/indice.ts', 'functions/src/content/versiones.ts',
+  'functions/src/core/media/index.ts', 'functions/src/core/media/indice.ts', 'functions/src/core/media/objeto.ts',
+  'functions/src/core/media/puerto.ts', 'functions/src/core/media/recoleccion.ts', 'functions/src/core/media/reconciliacion.ts',
+  'functions/src/core/media/subida.ts', 'functions/src/media/barrido.ts', 'functions/src/media/recoleccion.ts'];
+```
+
+**Motivo.** Son exactamente los catorce archivos de `functions/src` del parche de A1 (5 nuevos: `content/indice.ts`,
+`content/indice-almacen.ts`, `content/indice-reconciliacion.ts`, `core/media/indice.ts`, `media/barrido.ts`; 9
+modificados). Las correcciones de la integración (B1, B2 y el hallazgo de C) viven en tres de ellos y no añaden ningún
+archivo. `content/index.ts` (DEL_CIERRE) y `content/versiones.ts` (DE_VERSIONES_Y_DISPONIBILIDAD) ya estaban: se repiten
+para que la lista diga el parche entero; la expresión quita los repetidos.
+
+**Archivos afectados.** `functions/test/puente-pre-f1d.test.mjs` (la lista y la etiqueta de F1). Nada más de esa suite.
+
+## 2. H3 — `functions/test/video-asincrono.test.mjs`, comprobación 58
+
+**Qué vigila.** `git diff --numstat 8e91daa -- functions/src/core`, línea a línea: qué archivos del Core cambiaron y
+**cuánto** (líneas añadidas y quitadas), y que F1-A y productions sigan sin tocar.
+
+**Valor anterior.** `CORE_DE_LA_MISION_FAL` (10 líneas) + `CORE_DEL_CICLO_DE_VIDA_3D` (2), ordenadas por ruta: 12 líneas.
+
+**Valor nuevo.** Las mismas + `CORE_DEL_NUCLEO_DE_ACTIVOS`: 19 líneas. La etiqueta nombra el núcleo de activos.
+
+| `numstat` (desde `8e91daa`) | Archivo | Qué es |
+|---|---|---|
+| `1 0` | `core/media/index.ts` | `export * from './indice'` |
+| `747 0` | `core/media/indice.ts` | el modelo puro del índice (nuevo): 741 en el parche (commit `30855bf`) + 6 de la corrección de `resumirConsumidores` (§ 8c de ACTIVOS-INDICE) |
+| `107 4` | `core/media/objeto.ts` | estados `candidato`/`borrando` y campos del cerrojo |
+| `52 1` | `core/media/puerto.ts` | borrar con generación y reconocer el 412 |
+| `7 1` | `core/media/recoleccion.ts` | la clase de referencia `consumidor` |
+| `249 1` | `core/media/reconciliacion.ts` | el cruce puro de la reconciliación del índice |
+| `2 1` | `core/media/subida.ts` | un objeto en el cerrojo no admite bytes nuevos |
+
+**Motivo.** Son exactamente los siete archivos de `functions/src/core` del parche, con su tamaño real. Ningún contrato
+sube de versión.
+
+**Archivos afectados.** `functions/test/video-asincrono.test.mjs` (la constante nueva, la expresión que junta las listas
+y la etiqueta de H3). H2 y el resto de la suite, sin tocar.
+
+## 3. Las listas de archivos de Media Cloud
+
+**Qué vigilan.** `fs.readdirSync` de `functions/src/core/media` y de `functions/src/media`, comparado con una lista
+escrita entera: cualquier archivo de más o de menos falla. Las cuatro suites repiten las dos comprobaciones.
+
+| Suite | Comprobaciones |
+|---|---|
+| `media-core.test.mjs` | 135 y 136 |
+| `media-proceso-core.test.mjs` | 153 y 154 |
+| `media-upload-core.test.mjs` | 149 y 150 |
+| `media-delivery-core.test.mjs` | 108 y 109 |
+
+**Valor anterior.** `core/media`: `entrega.ts,index.ts,migracion.ts,objeto.ts,procesador.ts,proceso.ts,puerto.ts,
+recoleccion.ts,reconciliacion.ts,registro.ts,subida.ts,uso.ts` («doce archivos»). `media`: `almacen.ts,canary.ts,
+catalogo.ts,cloudinary.ts,entrega.ts,falso.ts,firma.ts,fuente-falsa.ts,huella.ts,index.ts,migracion.ts,
+procesador-falso.ts,procesador.ts,proceso.ts,r2.ts,recoleccion.ts,reconciliacion.ts,subida.ts,uso.ts` («diecinueve»).
+
+**Valor nuevo.** Las mismas listas con `indice.ts` (en su sitio alfabético) en `core/media` —«trece archivos»— y
+`barrido.ts` en `media` —«veinte»—, y una nota que dice de dónde vienen. Ningún comodín: siguen siendo listas enteras.
+
+**Motivo.** Los dos únicos archivos nuevos del parche en esas carpetas. `media/barrido.ts` es la tarea programada del
+barrido, **preparada y sin exportar** desde `functions/src/index.ts` (A-11 es una autorización pendiente).
+
+**Archivos afectados.** Las cuatro suites, solo esas dos comprobaciones y la nota.
+
+## 4. El mapa de `runtime-map` — `functions/test/runtime-map.test.mjs`
+
+**Qué vigila.** Mide el compilado (`functions/lib`): recorre los `require` desde `lib/index.js` y comprueba que los
+símbolos del Core que nombra el código vivo de fuera del Core son exactamente los declarados, módulo a módulo, y que
+ningún módulo del Core se usa sin figurar en el mapa.
+
+**Valor anterior.** `core/media/objeto.js`: `PIEZA_ORIGINAL, RAIZ_DE_CUENTAS, claveDelObjeto, claveEsDeLaCuenta,
+objetoEsDeLaCuenta, objetoValido, prefijoDeCuenta, referenciaDelObjeto`. `core/media/puerto.js`: `CAPACIDADES_DE_MC1,
+falloDeAlmacen`. Ninguna entrada para `core/media/indice.js`, `core/media/recoleccion.js` ni
+`core/media/reconciliacion.js`.
+
+**Valor nuevo.**
+
+| Módulo del Core | Se añade | Quién lo nombra (todos los alcanza `deleteAsset`) |
+|---|---|---|
+| `core/media/objeto.js` | `referenciaDeAlmacenDe` | `content/indice.js`, `content/indice-reconciliacion.js` |
+| `core/media/puerto.js` | `esPrecondicionFallida`, `sabeBorrarConGeneracion` | `content/indice.js` |
+| `core/media/indice.js` (nuevo en el mapa) | `POLITICA_DEL_BORRADO_INMEDIATO`, `REGISTRO_DE_CONSUMIDORES`, `cerrar`, `coberturaVigente`, `comoCrearFilaViva`, `decidirBorradoFisico`, `devolver`, `filasEsperadasDeLaFicha`, `flagAbiertaPara`, `leerFlagDelAlmacenDeActivos`, `marcaDeCobertura`, `naceCubierto`, `pasarACandidato`, `reclamar`, `registroDelIndiceValido`, `registroEsDeLaCuenta`, `rescatar`, `resumirConsumidores`, `versionDe` | `content/index.js`, `content/indice.js`, `content/indice-almacen.js`, `content/indice-reconciliacion.js` |
+| `core/media/recoleccion.js` (nuevo en el mapa) | `POLITICA_DE_RECOLECCION` (solo su edad mínima) | `content/indice-reconciliacion.js` |
+| `core/media/reconciliacion.js` (nuevo en el mapa) | `reconciliarIndiceDeCuenta` | `content/indice-reconciliacion.js` |
+
+Las comprobaciones siguen siendo las mismas; como hay tres entradas más en `OTROS_DEL_CORE`, la de «ningún otro módulo
+del Core está siendo usado por producción sin figurar en el mapa» pasa de la 99 a la 102.
+
+**Motivo.** `deleteAsset` (`content/index.js`) carga `content/indice.js`, que reexporta `indice-almacen.js` e
+`indice-reconciliacion.js`. **Nombrar no es ejecutar**: con la flag cerrada nada de eso corre. `media/barrido.js` y
+`media/recoleccion.js` no son alcanzables (ninguna Function los exporta), y por eso `decidirRecoleccion` y el resto de
+MC-5 no aparecen.
+
+**Cómo se generó.** (1) Con las tres claves nuevas vacías y las dos de arriba sin tocar, la propia suite, sobre el
+compilado del árbol con el parche, lista lo que «sobra» por módulo; esas listas se copiaron tal cual. (2) Se cotejaron
+con una réplica de solo lectura de la misma medida (el grafo de `require` desde `lib/index.js` y los símbolos
+`core_N.simbolo` de cada módulo vivo de fuera del Core) que además dice quién nombra cada símbolo: es la tabla de arriba.
+(3) La suite entera pasa con el mapa nuevo.
+
+**Archivos afectados.** `functions/test/runtime-map.test.mjs`, solo `OTROS_DEL_CORE` y su comentario.
+
+## 5. Las cercas siguen mordiendo
+
+Cada escenario mete en el árbol un cambio **no autorizado**, corre las siete suites de las cercas y deja cada archivo
+exactamente como estaba (contenido y fecha de modificación, comprobados con SHA-256; sin `git checkout`). Ejecutado
+sobre el commit `30855bf` (árbol limpio, compilado al día). Solo se enumeran las comprobaciones que fallan **de más**
+respecto al árbol tal cual, donde ya fallaba F3 (heredada).
+
+| Escenario | Fallan de más |
+|---|---|
+| S1 · archivo nuevo en `functions/src/core/media` | F1 (37); «el Core de medios son trece archivos» en las cuatro suites (135, 153, 149, 108); `runtime-map` 2 (fuente sin compilar) |
+| S2 · archivo nuevo en `functions/src/media` | F1 (37); «la composición, veinte» en las cuatro suites (136, 154, 150, 109); `runtime-map` 2 |
+| S3 · archivo nuevo en `functions/src/content` | F1 (37); `runtime-map` 2 |
+| S4 · una línea más en `core/media/uso.ts` (no autorizado) | F1 (37); H3 (58); `runtime-map` 2 |
+| S5 · una línea más en `core/media/indice.ts` (autorizado, otro **tamaño**) | H3 (58); `runtime-map` 2. F1 no, porque el nombre sí está autorizado: el tamaño lo vigila H3 |
+| S6 · producción nombra un símbolo del Core no declarado (`decidirRecoleccion`, añadido al compilado de `content/indice-almacen.js`) | `runtime-map` 100 (`core/media/recoleccion.js: símbolos nombrados`) |
+| S7 · producción nombra un módulo del Core que el mapa no tiene (`decidirMigracion`, de `core/media/migracion.js`) | `runtime-map` 102 (ningún otro módulo del Core sin figurar en el mapa) |
+
+Después de los siete, las siete suites dan exactamente lo mismo que antes, y `git status` está vacío. Herramienta:
+`scratchpad/activos-core-trabajo/cercas-muerden.mjs` (de trabajo, fuera del repositorio).
+
+## 6. Lo que NO se cambia: F3 de `puente-pre-f1d` (comprobación 39)
+
+F3 compara `git diff --numstat b023f24` de `functions/src/core` y de `functions/src/content` con valores fijos. **Ya
+fallaba en la base** `8fcc5c0`, antes de esta línea: espera `68 3 content/index.ts` y `126 4 content/materializador.ts`,
+y la base tiene `173 23 content/index.ts`, `126 4 content/materializador.ts` y `154 0 content/versiones.ts` (DEC-03 y lo
+que se integró después). No está en la lista autorizada, así que sigue en rojo y **no se toca**. Con esta integración
+difiere además en el Core (`core/media`). Si el dueño decide reanclarla, estas son las cifras del árbol de trk-s:
+
+```
+content:  400 93 content/index.ts · 298 0 content/indice-almacen.ts · 392 0 content/indice-reconciliacion.ts
+          700 0 content/indice.ts · 126 4 content/materializador.ts · 223 0 content/versiones.ts
+core:     las doce de siempre + 1 0 core/media/index.ts · 747 0 core/media/indice.ts · 107 4 core/media/objeto.ts
+          52 1 core/media/puerto.ts · 7 1 core/media/recoleccion.ts · 249 1 core/media/reconciliacion.ts · 2 1 core/media/subida.ts
+```
+
+## 7. Lo que NO se cambia: `ci-workflow` (comprobación 13)
+
+`functions/package.json` no se edita. La comprobación 13 sigue en rojo con exactamente cuatro suites fuera de la cadena:
+`activos-indice`, `activos-caminos`, `activos-barrido` y `activos-mutacion`. Las registra el integrador en
+`scripts.test`. Las cuatro de emulador (`activos-concurrencia`, `activos-reconciliacion`, `activos-barrido`,
+`activos-migracion`) no necesitan registro: `functions/test/_emuladores.mjs` recoge todo `*.emulator.mjs` por existir, y
+corta una suite a los 300 s (ver el informe de la línea sobre sus duraciones).
+
+## 8. Ninguna otra cerca
+
+No se tocó ninguna otra comprobación de `puente-pre-f1d` (E4, F2, F3, F4…), ni H2 de `video-asincrono`, ni otras
+suites, ni `ops/revision/baseline.json`: la puerta G3 pasa sin reanclar nada.

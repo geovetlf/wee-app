@@ -2,7 +2,7 @@
 
 **Línea A1 · rama `wee/activos-core` · base `9469e3a`.** Diseño de partida: `scratchpad/INFORME-H5-H2.md` (alternativa D). Este documento dice qué existe de verdad, qué está probado y qué falta. Nada de esto está desplegado ni activado.
 
-> **Estado de integración.** El código de servidor (`functions/src/**`) **no está en ningún commit**: la comprobación F1 de `functions/test/puente-pre-f1d.test.mjs` compara los ficheros de `functions/src` con una lista fija y el dueño tiene que autorizar su reanclaje antes. Ese código se entrega como parche en `scratchpad/parches-activos-core/`. En la rama solo están las pruebas (`functions/test/`), la herramienta de migración (`scripts/indice-activos.mjs`) y este documento.
+> **Estado de integración (línea trk-s, rama `wee/trk-s-activos`, desde `8fcc5c0`, 2026-10-10).** Con la autorización del dueño, el código de servidor de A1 (los catorce archivos de `functions/src` del parche `scratchpad/parches-activos-core/activos-core.patch`) **está en la rama**, junto con sus pruebas, y las cercas autorizadas —F1 de `puente-pre-f1d`, H3 de `video-asincrono`, las listas de archivos de Media Cloud y el mapa de `runtime-map`— se actualizaron por nombre y tamaño: valor anterior, valor nuevo, motivo y la prueba de que siguen mordiendo, en [`docs/ACTIVOS-CERCAS.md`](ACTIVOS-CERCAS.md). La flag `aiSettings/almacenActivos` sigue **CERRADA por defecto** y nada está desplegado. Encima del parche, la integración corrige dos defectos de H2 que A1 encontró (§8b) y dos huecos que encontró la verificación (§8c).
 
 ## 1. Qué resuelve
 
@@ -77,16 +77,18 @@
 
 ## 7. Pruebas
 
-| Suite | Tipo | Resultado (verificado en el worktree con el parche aplicado) |
-|---|---|---|
-| `activos-indice.test.mjs` | pura | 134/134 |
-| `activos-caminos.test.mjs` | determinista (Firestore transaccional y Storage de mentira) | 47/47 |
-| `activos-barrido.test.mjs` | determinista | 18/18 |
-| `activos-mutacion.test.mjs` | 13 mutaciones sobre una copia temporal del compilado | 17/17: las 13 mueren en una comprobación concreta |
-| `activos-concurrencia.emulator.mjs` | emulador (firestore, storage) | pasa (727 s) |
-| `activos-reconciliacion.emulator.mjs` | emulador | 25/25 |
-| `activos-barrido.emulator.mjs` | emulador | 9/9 + una medida |
-| `activos-migracion.emulator.mjs` | emulador | 21/21 |
+| Suite | Tipo | En A1 (worktree con el parche) | En trk-s (rama `wee/trk-s-activos`, `fa98a29`) |
+|---|---|---|---|
+| `activos-indice.test.mjs` | pura | 134/134 | 137/137 |
+| `activos-caminos.test.mjs` | determinista (Firestore transaccional y Storage de mentira) | 47/47 | 60/60 |
+| `activos-barrido.test.mjs` | determinista | 18/18 | 18/18 |
+| `activos-mutacion.test.mjs` | mutaciones sobre una copia temporal del compilado | 17/17: 13 mutaciones mueren | 23/23: 19 mutaciones mueren, cada una en una comprobación concreta |
+| `activos-concurrencia.emulator.mjs` | emulador (firestore, storage) | pasa (727 s) | con la sección H (B2) en su revisión sin tandas: 25/25 dos veces (757 s y 838 s). La revisión final, con tandas para bajar de los 300 s de `_emuladores.mjs`, está **pendiente de puertos** y sin commit (`scratchpad/parches-trk-s/emuladores-pendientes.patch`) |
+| `activos-reconciliacion.emulator.mjs` | emulador | 25/25 | pendiente de puertos |
+| `activos-barrido.emulator.mjs` | emulador | 9/9 + una medida | pendiente de puertos |
+| `activos-migracion.emulator.mjs` | emulador | 21/21 | pendiente de puertos |
+
+**Duración.** `_emuladores.mjs` (la CI, nivel 2) corta una suite a los **300 s**, y `activos-concurrencia` en la forma de A1 tarda 727–838 s en este equipo: entrar así en la CI la haría fallar por tiempo. La causa medida es la espera del cliente cuando una transacción pierde y se repite (el SDK espera 1 s, 1,5 s… con azar) sumada ronda a ronda; la revisión pendiente corre las rondas independientes en tandas de cinco y baja moderadamente su número, sin quitar ninguna comprobación.
 
 Comandos: `node functions/test/<suite>.test.mjs` y `node functions/test/_emuladores.mjs --solo <nombre>` (un emulador cada vez).
 
@@ -98,21 +100,31 @@ Comandos: `node functions/test/<suite>.test.mjs` y `node functions/test/_emulado
 - **Referencias de otras cuentas en variantes** no se pueden consultar; las de archivo sí (consulta exacta por clave).
 - **El barrido no guarda cursor entre pasadas**: recorre como mucho 50 lotes de 100 por pasada.
 - **Concurrencia de producción** no medida (el emulador no reproduce su contención).
+- **Lo que el emulador de Firestore hizo con la marca intercalada** (activos-concurrencia H): retuvo la escritura de la retirada hasta que confirmó la transacción de la marca (bloqueo pesimista), así que ahí la serialización fue «marca → retirada»; la otra («retirada → marca», con la marca contestando `estado_incompatible`) se vio en la carrera libre. Las dos dejan la ficha `deleted`. Cómo serializa Firestore de verdad no se ha medido aquí.
 
-## 9. Controles que el parche cambia (necesitan autorización del dueño)
+## 8b. Dos defectos de H2 corregidos en la integración
 
-Con el parche aplicado, la cadena (`node test/_cadena.mjs`, 280 suites) da 10 suites en rojo; en la base eran 2 (`puente-pre-f1d` F3, `i18n-huella`):
+| Defecto (lo encontró A1) | Corrección | Pruebas |
+|---|---|---|
+| `retirarMaterial` por el camino de siempre borraba por **clave** en el cubo de Weë aunque la ficha dijera **otro cubo** | Una sola regla, `esDelCuboDeWee` (`content/indice-almacen.ts`), para el índice y para el camino de siempre: se borra solo si la referencia no dice cubo o dice el configurado (`nombreDelCuboDeWee`). Lo demás queda pendiente. La revisión de las marcas de las demás fichas tampoco mira en el nuestro lo que vive en otro cubo | `activos-caminos` A5 (otro cubo: no se borra nada), A6 (el configurado y sin cubo: se borra), A7 (la marca de pendiente no se baja por mirar en el cubo equivocado); mutaciones M16, M17 |
+| `marcarMaterialSubido` y `marcarMaterialFallido` leían y escribían por separado: un material retirado entre medias volvía a `ready` o `failed` | Las dos leen y escriben **en la misma transacción**; si alguien escribe la ficha entre medias, se repiten y un material `deleted` contesta `estado_incompatible` (`puedePasarA`) | `activos-caminos` I1–I8 (carrera intercalada con la flag cerrada y abierta, repetición, ids inválidos y el texto); mutaciones M14, M15; emulador `activos-concurrencia` H (carrera libre, intercalada y el control con la marca de antes, que sí resucita fichas: 19–27 de 30): pasó dos veces en su revisión sin tandas; la revisión final, pendiente de puertos (§7) |
 
-- `puente-pre-f1d` **F1** (ficheros nuevos y tocados en `functions/src`) y **F3** (tamaños de `core/` y `content/`).
-- `video-asincrono` **H3** (tamaños de `functions/src/core`).
-- `media-core`, `media-delivery-core`, `media-upload-core`, `media-proceso-core`: «el Core de medios son doce archivos» y «la composición, diecinueve» (nuevos `core/media/indice.ts` y `media/barrido.ts`).
-- `runtime-map` 91, 92, 99: el cierre de producción de `deleteAsset` (y de quien crea materiales) usa ahora símbolos y módulos del Core que el mapa no declara.
-- `ci-workflow` 13: las cuatro suites nuevas `*.test.mjs` no están en `scripts.test` (las añade el integrador).
+## 8c. Dos huecos que encontró la verificación (punto C del encargo)
+
+«Una referencia desconocida se trata como protegida, nunca como ausencia de consumidores.» `resumirConsumidores` (`core/media/indice.ts`) daba `sin_usos` con un registro **vacío** (todos los del registro —ninguno— dijeron que no) e **ignoraba** un uso dicho por un tipo que el registro no conoce. Las dos cosas habrían autorizado un borrado si el registro se vaciara o un consumidor nuevo contestara antes de registrarse. Ahora un registro vacío o roto es `desconocido` y un uso de un tipo desconocido es `con_usos`. Pruebas: `activos-indice` I8–I10; mutaciones M18, M19. En producción no cambia nada: el registro tiene doce tipos y ninguno integrado, así que la respuesta ya era `desconocido`.
+
+## 9. Controles que el parche cambiaba, y cómo quedan
+
+Con el parche aplicado, la cadena (`node test/_cadena.mjs`, 280 suites) daba 10 suites en rojo; en la base eran 2 (`puente-pre-f1d` F3, `i18n-huella`). Tras la integración de trk-s:
+
+- `puente-pre-f1d` **F1**, `video-asincrono` **H3**, las listas de `media-core`, `media-delivery-core`, `media-upload-core` y `media-proceso-core` y `runtime-map` 91, 92 y 99: **actualizadas** con la autorización del dueño, por nombre y tamaño, y con la prueba de que siguen mordiendo ([`ACTIVOS-CERCAS.md`](ACTIVOS-CERCAS.md)).
+- `puente-pre-f1d` **F3**: sigue en rojo. Ya lo estaba en la base (`8fcc5c0`) y no está en la lista autorizada; ACTIVOS-CERCAS.md dice qué líneas haría falta añadirle.
+- `ci-workflow` 13: sigue en rojo hasta que el integrador añada las cuatro suites nuevas `*.test.mjs` a `scripts.test` (no se edita `functions/package.json`).
 
 ## 10. Pendiente y autorizaciones
 
-- Reanclar F1/F3/H3, las listas de `core/media` y `media`, y el mapa de `runtime-map` (dueño).
-- Añadir a `scripts.test`: `activos-indice`, `activos-caminos`, `activos-barrido`, `activos-mutacion` (integrador).
+- F3 de `puente-pre-f1d` (heredada) y el registro de las suites en la cadena (integrador).
+- Añadir a `scripts.test`: `activos-indice`, `activos-caminos`, `activos-barrido`, `activos-mutacion` (integrador). Las cuatro de emulador las recoge `_emuladores.mjs` solo por existir.
 - Decisiones D-A…D-O del diseño; en especial **D-G/D-H** (integrar consumidores) para que algún borrado físico sea posible.
 - A-01/A-02 (lectura de producción y del cubo), A-04 (regla explícita para `referencias`, hoy cerrada por defecto), A-05 (despliegue), A-07/A-08/A-09/A-10 (flag, backfill, sombra, corte), A-11 (programar el barrido), A-15 (exponer `guardarComoVersion`).
 - Comprobar el 412 de Google en un cubo de prueba no productivo antes de cualquier activación.
