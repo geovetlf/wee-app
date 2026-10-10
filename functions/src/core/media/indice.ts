@@ -574,20 +574,26 @@ export type EstadoDeConsumidores =
 /**
  * RESUMIR LO QUE DIJO CADA CONSUMIDOR. Un tipo sin integrar es `desconocido`
  * diga lo que diga; uno integrado que no contestó, también. `sin_usos` solo si
- * TODOS los del registro son integrados y TODOS contestaron que no.
+ * TODOS los del registro son integrados y TODOS contestaron que no — y hay
+ * registro: sin él no se sabe a quién preguntar, y eso es `desconocido`, nunca
+ * un «todos dijeron que no» por vacío. Un uso que dice un tipo que el registro
+ * no conoce también protege: es una referencia desconocida, no una ausencia.
  */
 export const resumirConsumidores = (
   registro: readonly ConsumidorDelIndice[],
   respuestas: readonly RespuestaDeConsumidor[],
 ): EstadoDeConsumidores => {
+  if (!Array.isArray(registro) || registro.length === 0) return { estado: 'desconocido', tipos: Object.freeze([]) };
+  const lista = Array.isArray(respuestas) ? respuestas : [];
   const conUsos: string[] = [];
   const desconocidos: string[] = [];
-  for (const c of Array.isArray(registro) ? registro : []) {
-    const r = (Array.isArray(respuestas) ? respuestas : []).find((x) => x && x.tipo === c.tipo);
+  for (const c of registro) {
+    const r = lista.find((x) => x && x.tipo === c.tipo);
     if (!c.integrado || !r || r.estado === 'desconocido') desconocidos.push(c.tipo);
     else if (r.estado === 'con_usos') conUsos.push(c.tipo);
     else if (r.estado !== 'sin_usos') desconocidos.push(c.tipo);
   }
+  for (const r of lista) if (r && r.estado === 'con_usos' && !registro.some((c) => c && c.tipo === r.tipo)) conUsos.push(String(r.tipo));
   if (conUsos.length) return { estado: 'con_usos', tipos: Object.freeze(conUsos) };
   if (desconocidos.length) return { estado: 'desconocido', tipos: Object.freeze(desconocidos) };
   return { estado: 'sin_usos' };

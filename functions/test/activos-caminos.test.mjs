@@ -5,13 +5,17 @@
  * `_activos-falsos.mjs`, que cumplen las reglas que importan: transacciones optimistas que se repiten si lo leído
  * cambió, `create` atómico, 404 / 412 / 503 del almacén y PAUSAS para intercalar operaciones en un punto exacto.
  *
- *   A · Flag cerrada: los caminos de siempre, sin una fila ni un registro de más.
+ *   A · Flag cerrada: los caminos de siempre, sin una fila ni un registro de más; y (B1) el camino de siempre solo
+ *       borra en el cubo configurado.
  *   B · Flag abierta: la ficha nace con su fila y el registro de su objeto; cobertura de nacimiento.
- *   C · Retirada con cerrojo (D-A): borra con la generación registrada; con los consumidores de producción, conserva (D-G).
+ *   C · Retirada con cerrojo (D-A): borra con la generación registrada; con los consumidores de producción, conserva (D-G);
+ *       con el índice ausente o inconsistente, protege.
  *   D · Versión con cerrojo (H2): la anterior y el objeto se leen DENTRO; A1 y A2 ya no crean versiones imposibles.
  *   E · Variantes: A4 (dos a la vez) y A5 (retirada a la vez) ya no pierden nada ni dejan huérfanos.
  *   F · El fallo de metadata: «no existe» (404) frente a fallo pasajero (503), con y sin flag.
  *   G · H5 medido: las lecturas de la retirada y de la versión no crecen con la cuenta.
+ *   H · Lo que este bloque no toca.
+ *   I · (B2) Confirmar o fallar una subida a la vez que se retira: la marca va en transacción y no resucita la ficha.
  *
  * `WEE_LIB_ACTIVOS` permite correr esto contra una COPIA del compilado (lo usa `activos-mutacion.test.mjs`).
  * Necesita `functions/lib` recién compilado: `npm run build` antes.
@@ -103,6 +107,49 @@ try {
     const c3 = clave(); S.subir(c3);
     check('A4 abierta solo para otra cuenta: para esta, cerrada', (await crear(ANA, c3)) && F.rutas('mediaObjects/').length === 0);
     cerrarFlag();
+  }
+  {
+    /*
+     * B1 · EL CAMINO DE SIEMPRE SOLO BORRA EN EL CUBO CONFIGURADO. Borra por CLAVE en el cubo de Weë, así que una ficha
+     * que diga otro cubo no puede autorizarlo: con la misma clave hay un objeto NUESTRO que no es el suyo.
+     */
+    const OTRO_CUBO = 'otro-cubo.appspot.com';
+    const fichaDirecta = (id, storageRef, extra = {}) => F.poner(`assets/${id}`, { assetId: id, ownerAccountId: ANA, status: 'ready', kind: 'image', storageRef,
+      provenance: { createdAt: 1 }, contract: '1.0', createdAt: 1, updatedAt: 1, ...extra });
+    const cOtro = clave(); S.subir(cOtro);
+    const idOtro = 'asset_' + 'b1'.repeat(16);
+    fichaDirecta(idOtro, { provider: 'wee', bucket: OTRO_CUBO, objectKey: cOtro });
+    const borradosAntes = S.llamadas.delete;
+    const rOtro = await content.retirarMaterial(ANA, idOtro);
+    check('A5 B1 · una ficha que dice OTRO cubo no borra por clave en el nuestro: retirada, objeto intacto, ni un borrado, pendiente',
+      rOtro.status === 'retirado' && rOtro.objetosBorrados === 0 && rOtro.pendientes === 1 && S.existe(cOtro) && S.llamadas.delete === borradosAntes
+      && ficha(idOtro).status === 'deleted' && ficha(idOtro).pendingPhysicalDeletion === true, JSON.stringify(rOtro.status === 'retirado' ? [rOtro.objetosBorrados, rOtro.pendientes] : rOtro));
+    /* El otro caso: el cubo configurado, con su nombre explícito, y una referencia SIN cubo, que es el único del proveedor. */
+    const cMismo = clave(); S.subir(cMismo);
+    const idMismo = 'asset_' + 'b4'.repeat(16);
+    fichaDirecta(idMismo, { provider: 'wee', bucket: BUCKET, objectKey: cMismo });
+    const rMismo = await content.retirarMaterial(ANA, idMismo);
+    const cSin = clave(); S.subir(cSin);
+    const idSin = 'asset_' + 'b2'.repeat(16);
+    fichaDirecta(idSin, { provider: 'wee', objectKey: cSin });
+    const rSin = await content.retirarMaterial(ANA, idSin);
+    check('A6 B1 · el cubo configurado sí se borra: con su nombre explícito y sin cubo (el único contenedor del proveedor)',
+      rMismo.status === 'retirado' && rMismo.objetosBorrados === 1 && rMismo.pendientes === 0 && !S.existe(cMismo)
+      && rSin.status === 'retirado' && rSin.objetosBorrados === 1 && rSin.pendientes === 0 && !S.existe(cSin));
+    /*
+     * B1 · la revisión de las marcas tampoco mira por clave en el nuestro lo que vive en otro cubo: que no esté aquí no
+     * dice nada de allí. X tiene el objeto compartido con Y y una miniatura en otro cubo; al borrarse el compartido, X
+     * sigue pendiente.
+     */
+    const comp = clave(); S.subir(comp);
+    const idX = 'asset_' + 'b3'.repeat(16);
+    fichaDirecta(idX, refWee(comp), { variants: [{ kind: 'thumbnail', storageRef: { provider: 'wee', bucket: OTRO_CUBO, objectKey: clave() } }] });
+    const y = await crear(ANA, comp);
+    const rx = await content.retirarMaterial(ANA, idX);
+    const ry = await content.retirarMaterial(ANA, y.assetId);
+    check('A7 B1 · borrado el objeto compartido, la ficha que aún tiene algo en OTRO cubo sigue pendiente',
+      rx.status === 'retirado' && rx.pendientes === 2 && ry.status === 'retirado' && ry.objetosBorrados === 1 && !S.existe(comp) && ficha(idX).pendingPhysicalDeletion === true,
+      JSON.stringify([rx.pendientes, ry.objetosBorrados, ficha(idX).pendingPhysicalDeletion]));
   }
 
   /* ═══ B · FLAG ABIERTA: CREAR ═══════════════════════════════════════════════ */
@@ -212,6 +259,31 @@ try {
     const sinGenerar = depsCiertos({ almacenes: { wee: { ...indice.puertoDelStorageDeWee('wee'), capacidades: ['object.head', 'object.delete'] } } });
     const r = await indice.retirarConIndice(sinGenerar, ANA, m.assetId);
     check('C13 un adaptador que no sabe borrar con generación no borra: vuelve a candidato', r.motivos.precondicion_no_soportada === 1 && S.existe(c) && registroDe(c).estado === 'candidato');
+  }
+  {
+    /*
+     * ÍNDICE AUSENTE: una ficha heredada (nacida con la flag cerrada) sin fila ni registro. Aun con consumidores y
+     * operaciones CIERTOS, que el índice no sepa nada de un objeto no es «nadie lo usa»: se retira y el objeto se queda.
+     */
+    const c = clave(); S.subir(c);
+    const legado = 'asset_' + '3'.repeat(32);
+    F.poner(`assets/${legado}`, { assetId: legado, ownerAccountId: ANA, status: 'ready', kind: 'image', storageRef: refWee(c), provenance: { createdAt: 1 }, contract: '1.0', createdAt: 1, updatedAt: 1 });
+    const r = await indice.retirarConIndice(depsCiertos(), ANA, legado);
+    check('C14 índice ausente: sin fila ni registro, se retira y el objeto se CONSERVA (sin_registro), sin crear un registro que no sabe',
+      r.status === 'retirado' && r.motivos.sin_registro === 1 && r.objetosBorrados === 0 && S.existe(c) && ficha(legado).status === 'deleted'
+      && ficha(legado).pendingPhysicalDeletion === true && registroDe(c) === undefined, JSON.stringify(r.motivos));
+  }
+  {
+    /*
+     * ÍNDICE INCONSISTENTE: una fila viva que sigue apuntando a una ficha que ya no está (la borró alguien a mano). La
+     * fila manda: el objeto está «referenciado» y no se borra. Repararla es de la reconciliación (fila_huerfana, L5).
+     */
+    const c = clave(); S.subir(c);
+    const x = await crear(ANA, c); const yFantasma = await crear(ANA, c);
+    F.quitar(`assets/${yFantasma.assetId}`);
+    const r = await indice.retirarConIndice(depsCiertos(), ANA, x.assetId);
+    check('C15 índice inconsistente (fila viva de una ficha que ya no existe): protege, referenciado, objeto intacto',
+      r.status === 'retirado' && r.motivos.referenciado === 1 && r.objetosBorrados === 0 && S.existe(c) && registroDe(c).estado === 'guardado', JSON.stringify(r.motivos));
   }
 
   /* ═══ D · VERSIONES CON CERROJO ══════════════════════════════════════════ */
@@ -419,6 +491,65 @@ try {
       indexSinCambios = true;
     } catch { indexSinCambios = false; }
     check('H4 functions/src/index.ts, idéntico a la base (9469e3a)', indexSinCambios);
+  }
+
+  /* ═══ I · LAS MARCAS DE SUBIDA, EN TRANSACCIÓN (B2) ═══════════════════════ */
+  console.log('\n── I · Confirmar o fallar la subida a la vez que se retira (B2) ──');
+  {
+    let subidas = 0;
+    /* Un material que espera sus bytes, con identidad calculada (fuera del rango de ids de G). */
+    const paraSubir = async () => {
+      const c = clave();
+      const id = `asset_b2${(++subidas).toString(16).padStart(30, '0')}`;
+      const r = await content.crearMaterialParaSubida({ ownerAccountId: ANA, assetId: id, kind: 'image', storageRef: refWee(c), provenance: { createdAt: 1 }, mimeType: 'image/png' });
+      if (r.status !== 'creado') throw new Error(`no se pudo preparar la subida: ${r.status}`);
+      return { id, c };
+    };
+    const marcar = (marca, id) => (marca === 'subido'
+      ? content.marcarMaterialSubido(ANA, id, { bytes: 10, mimeType: 'image/png' })
+      : content.marcarMaterialFallido(ANA, id, 'caducado'));
+    let i = 0;
+    for (const abierta of [false, true]) {
+      if (abierta) abrirFlag(); else cerrarFlag();
+      for (const marca of ['subido', 'fallido']) {
+        const { id, c } = await paraSubir();
+        S.subir(c); // los bytes llegan
+        /*
+         * La marca lee la ficha y se queda ahí; la retirada entra entera; la marca sigue. La pausa coincide con CUALQUIER
+         * lectura de la ficha (dentro o fuera de una transacción), para que la mutación que lee fuera también se pare aquí.
+         */
+        const pausa = F.pausar((q) => q.tipo === 'doc' && q.ruta === `assets/${id}`);
+        const pm = marcar(marca, id);
+        if (!(await llegar(pausa))) throw new Error('la pausa no llegó: la marca no leyó la ficha');
+        const rr = await content.retirarMaterial(ANA, id);
+        pausa.soltar();
+        const rm = await pm;
+        const otraVez = await marcar(marca, id);
+        check(`I${++i} (${abierta ? 'flag abierta' : 'flag cerrada'}) «${marca}» a la vez que se retira: la retirada no se pisa, la ficha sigue retirada`,
+          rr.status === 'retirado' && rm.status === 'estado_incompatible' && rm.actual === 'deleted' && ficha(id).status === 'deleted'
+          && otraVez.status === 'estado_incompatible', `${rr.status}/${rm.status}/${ficha(id).status}`);
+      }
+    }
+    cerrarFlag();
+    const { id, c } = await paraSubir(); S.subir(c);
+    const a = await content.marcarMaterialSubido(ANA, id, { bytes: 10, mimeType: 'image/png' });
+    const b = await content.marcarMaterialSubido(ANA, id, { bytes: 99 });
+    const ajena = await content.marcarMaterialSubido(BETO, id, {});
+    check('I5 sin carrera: listo; confirmar otra vez no pisa nada (ya_estaba_listo); otra cuenta, no_es_tuyo',
+      a.status === 'listo' && b.status === 'ya_estaba_listo' && ficha(id).status === 'ready' && ficha(id).bytes === 10 && ajena.status === 'no_es_tuyo');
+    const { id: id2 } = await paraSubir();
+    const f1 = await content.marcarMaterialFallido(ANA, id2, 'caducado');
+    const f2 = await content.marcarMaterialFallido(ANA, id2, 'otro');
+    check('I6 fallido una vez; la segunda es ya_estaba y no pisa el motivo; la identidad se queda',
+      f1.status === 'fallido' && f2.status === 'ya_estaba' && ficha(id2).failedReason === 'caducado' && ficha(id2).assetId === id2 && ficha(id2).status === 'failed');
+    check('I7 un id con otra forma o que no existe: no_encontrado, sin escribir',
+      (await content.marcarMaterialSubido(ANA, 'mat_x', {})).status === 'no_encontrado' && (await content.marcarMaterialFallido(ANA, 'asset_X', 'm')).status === 'no_encontrado'
+      && (await content.marcarMaterialSubido(ANA, `asset_${'f'.repeat(32)}`, {})).status === 'no_encontrado' && ficha(`asset_${'f'.repeat(32)}`) === undefined);
+    const fuente = sinComentarios(leer('functions/src/content/index.ts'));
+    const cuerpo = (nombre) => (fuente.match(new RegExp(`export const ${nombre}[\\s\\S]*?\\n\\};`)) ?? [''])[0];
+    check('I8 las dos marcas leen y escriben DENTRO de su transacción (ninguna escritura suelta de la ficha)',
+      ['marcarMaterialSubido', 'marcarMaterialFallido'].every((f) => /db\(\)\.runTransaction\(/.test(cuerpo(f)) && /tx\.get\(/.test(cuerpo(f)) && /tx\.update\(/.test(cuerpo(f))
+        && !/assets\(\)\.doc\(assetId\)\.(update|set)\(/.test(cuerpo(f))));
   }
 } catch (error) {
   /* Una suite que se interrumpe es un fallo con su motivo, no un cuelgue ni un rastro suelto. */

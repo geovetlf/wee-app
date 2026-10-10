@@ -93,6 +93,32 @@ const MUTACIONES = [
     id: 'M13', que: 'la retirada lee la ficha FUERA de su transacción (T1, experimento A5)', suites: ['activos-caminos'],
     cambios: [['content/indice.js', "    const t1 = await db.runTransaction(async (tx) => {\n        var _a, _b;\n        const at = deps.ahora();\n        const snap = await tx.get(fichaRef);", "    const t1 = await db.runTransaction(async (tx) => {\n        var _a, _b;\n        const at = deps.ahora();\n        const snap = await fichaRef.get();", 1]],
   },
+  /* Las dos correcciones de la integración (trk-s): B1, el cubo; B2, las marcas de subida en transacción. */
+  {
+    id: 'M14', que: 'B2 · marcarMaterialSubido lee la ficha FUERA de su transacción (vuelve a resucitar un retirado)', suites: ['activos-caminos'],
+    cambios: [['content/index.js', 'const vista = await tx.get(fichaQueSube);', 'const vista = await fichaQueSube.get();', 1]],
+  },
+  {
+    id: 'M15', que: 'B2 · marcarMaterialFallido lee la ficha FUERA de su transacción', suites: ['activos-caminos'],
+    cambios: [['content/index.js', 'const leida = await tx.get(fichaQueFalla);', 'const leida = await fichaQueFalla.get();', 1]],
+  },
+  {
+    id: 'M16', que: 'B1 · el camino de siempre borra por clave aunque la ficha diga otro cubo', suites: ['activos-caminos'],
+    cambios: [['content/index.js', ' && (0, indice_1.esDelCuboDeWee)(r));', ');', 1]],
+  },
+  {
+    id: 'M17', que: 'B1 · la revisión de marcas mira por clave en el nuestro lo que vive en otro cubo', suites: ['activos-caminos'],
+    cambios: [['content/index.js', 'r.provider !== exports.PROVEEDOR_WEE || !(0, indice_1.esDelCuboDeWee)(r)', 'r.provider !== exports.PROVEEDOR_WEE', 1]],
+  },
+  /* Los dos hallazgos de la verificación del punto C: «una referencia desconocida se trata como protegida». */
+  {
+    id: 'M18', que: 'C · un registro de consumidores vacío vuelve a decir «sin_usos» por vacío', suites: ['activos-indice'],
+    cambios: [['core/media/indice.js', "    if (!Array.isArray(registro) || registro.length === 0)\n        return { estado: 'desconocido', tipos: Object.freeze([]) };\n", '', 1]],
+  },
+  {
+    id: 'M19', que: 'C · un uso dicho por un tipo que el registro no conoce se vuelve a ignorar', suites: ['activos-indice'],
+    cambios: [['core/media/indice.js', "    for (const r of lista)\n        if (r && r.estado === 'con_usos' && !registro.some((c) => c && c.tipo === r.tipo))\n            conUsos.push(String(r.tipo));\n", '', 1]],
+  },
 ];
 
 const copia = fs.mkdtempSync(path.join(os.tmpdir(), 'wee-activos-mutantes-'));

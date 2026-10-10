@@ -27,6 +27,7 @@ import {
   anotarVarianteConIndice,
   consumidoresDeProduccion,
   crearFichaConIndice,
+  esDelCuboDeWee,
   hechosDeMetadata,
   huellaDelIndice,
   leerFlagDelAlmacen,
@@ -555,6 +556,9 @@ export const anotarPermisoDeSubida = async (
   return true;
 };
 
+/** La forma del id que escribe el servidor. Lo que no la tiene no se busca: ni se lee ni se marca. */
+const esIdDeFicha = (assetId: unknown): assetId is string => typeof assetId === 'string' && /^asset_[a-f0-9]{32}$/.test(assetId);
+
 export type ResultadoDeMaterialFallido =
   | { status: 'fallido'; material: AssetDoc }
   /* Ya estaba fallido: repetir no es un error, es un no-op. Y no se pisa el motivo original. */
@@ -574,27 +578,38 @@ export type ResultadoDeMaterialFallido =
  * **No borra la identidad.** La ficha se queda entera —su id, su dueño, su
  * procedencia— con el motivo y la fecha escritos al lado. Un material fallido
  * sigue explicando qué se intentó; borrarlo dejaría un hueco sin explicación.
+ *
+ * H2 · LA LECTURA Y LA ESCRITURA, EN LA MISMA TRANSACCIÓN. Leída fuera, una
+ * retirada que llegaba entre la lectura y la escritura se quedaba debajo: el
+ * material ya retirado volvía a `failed`. Dentro, si alguien escribe la ficha
+ * entre medias, la transacción se repite con lo que hay, y un material retirado
+ * no puede pasar a `failed` (`puedePasarA`): contesta `estado_incompatible`.
  */
 export const marcarMaterialFallido = async (
   accountId: string,
   assetId: string,
   motivo: string,
 ): Promise<ResultadoDeMaterialFallido> => {
-  const doc = await leerMaterial(assetId);
-  if (!doc) return { status: 'no_encontrado' };
-  if (!materialEsDeLaCuenta(doc, accountId)) return { status: 'no_es_tuyo' };
-  if (doc.status === 'failed') return { status: 'ya_estaba', material: doc };
-  if (!puedePasarA(doc.status, 'failed')) return { status: 'estado_incompatible', actual: doc.status };
+  if (!esIdDeFicha(assetId)) return { status: 'no_encontrado' };
+  const fichaQueFalla = assets().doc(assetId);
+  return db().runTransaction(async (tx): Promise<ResultadoDeMaterialFallido> => {
+    const leida = await tx.get(fichaQueFalla);
+    if (!leida.exists) return { status: 'no_encontrado' };
+    const doc = leida.data() as AssetDoc;
+    if (!materialEsDeLaCuenta(doc, accountId)) return { status: 'no_es_tuyo' };
+    if (doc.status === 'failed') return { status: 'ya_estaba', material: doc };
+    if (!puedePasarA(doc.status, 'failed')) return { status: 'estado_incompatible', actual: doc.status };
 
-  const at = ahora();
-  const cambios = limpiar<Partial<AssetDoc>>({
-    status: 'failed',
-    failedReason: typeof motivo === 'string' && motivo.length > 0 && motivo.length <= 64 ? motivo : 'desconocido',
-    failedAt: at,
-    updatedAt: at,
+    const at = ahora();
+    const cambios = limpiar<Partial<AssetDoc>>({
+      status: 'failed',
+      failedReason: typeof motivo === 'string' && motivo.length > 0 && motivo.length <= 64 ? motivo : 'desconocido',
+      failedAt: at,
+      updatedAt: at,
+    });
+    tx.update(fichaQueFalla, cambios);
+    return { status: 'fallido', material: { ...doc, ...cambios } as AssetDoc };
   });
-  await assets().doc(assetId).update(cambios);
-  return { status: 'fallido', material: { ...doc, ...cambios } as AssetDoc };
 };
 
 export type ResultadoDeSubidaConfirmada =
@@ -616,32 +631,41 @@ export type ResultadoDeSubidaConfirmada =
  *
  * Confirmar dos veces deja el material igual y lo dice; no se vuelve a escribir
  * la fecha ni se pisa nada.
+ *
+ * H2 · Como `marcarMaterialFallido`: se lee y se escribe en la misma
+ * transacción, así que un material retirado entre medias no vuelve a `ready`
+ * (la transacción se repite, lo ve `deleted` y contesta `estado_incompatible`).
  */
 export const marcarMaterialSubido = async (
   accountId: string,
   assetId: string,
   medido: { bytes?: number; mimeType?: string },
 ): Promise<ResultadoDeSubidaConfirmada> => {
-  const doc = await leerMaterial(assetId);
-  if (!doc) return { status: 'no_encontrado' };
-  if (!materialEsDeLaCuenta(doc, accountId)) return { status: 'no_es_tuyo' };
-  if (doc.status === 'ready') return { status: 'ya_estaba_listo', material: doc };
-  if (!puedePasarA(doc.status, 'ready')) return { status: 'estado_incompatible', actual: doc.status };
+  if (!esIdDeFicha(assetId)) return { status: 'no_encontrado' };
+  const fichaQueSube = assets().doc(assetId);
+  return db().runTransaction(async (tx): Promise<ResultadoDeSubidaConfirmada> => {
+    const vista = await tx.get(fichaQueSube);
+    if (!vista.exists) return { status: 'no_encontrado' };
+    const doc = vista.data() as AssetDoc;
+    if (!materialEsDeLaCuenta(doc, accountId)) return { status: 'no_es_tuyo' };
+    if (doc.status === 'ready') return { status: 'ya_estaba_listo', material: doc };
+    if (!puedePasarA(doc.status, 'ready')) return { status: 'estado_incompatible', actual: doc.status };
 
-  const at = ahora();
-  const cambios = limpiar<Partial<AssetDoc>>({
-    status: 'ready',
-    bytes: Number.isSafeInteger(medido.bytes) ? medido.bytes : undefined,
-    mimeType: medido.mimeType ?? doc.mimeType,
-    updatedAt: at,
+    const at = ahora();
+    const cambios = limpiar<Partial<AssetDoc>>({
+      status: 'ready',
+      bytes: Number.isSafeInteger(medido.bytes) ? medido.bytes : undefined,
+      mimeType: medido.mimeType ?? doc.mimeType,
+      updatedAt: at,
+    });
+    tx.update(fichaQueSube, cambios);
+    return { status: 'listo', material: { ...doc, ...cambios } as AssetDoc };
   });
-  await assets().doc(assetId).update(cambios);
-  return { status: 'listo', material: { ...doc, ...cambios } as AssetDoc };
 };
 
 /** La ficha, o nada. Nunca lanza por un id que no existe. */
 export const leerMaterial = async (assetId: string): Promise<AssetDoc | null> => {
-  if (typeof assetId !== 'string' || !/^asset_[a-f0-9]{32}$/.test(assetId)) return null;
+  if (!esIdDeFicha(assetId)) return null;
   const snap = await assets().doc(assetId).get();
   return snap.exists ? (snap.data() as AssetDoc) : null;
 };
@@ -691,15 +715,16 @@ export const fichaVivaUsaElObjeto = async (fichas: readonly AssetDoc[], assetId:
 
 /**
  * Cuando un objeto se borra de verdad, se revisa la marca de pendiente de las fichas DE LA MISMA CUENTA que lo tenían: una
- * ficha sigue pendiente mientras le quede algo que no es de Weë o que todavía existe en el almacén. Así, una ficha con dos
- * objetos no pierde la marca por borrarse uno solo, y una ficha retirada no sigue diciendo «pendiente» de algo que ya no
- * existe.
+ * ficha sigue pendiente mientras le quede algo que no es de Weë, que vive en OTRO cubo (no se puede mirar por clave en el
+ * nuestro: que no esté aquí no dice nada de allí) o que todavía existe en el almacén. Así, una ficha con dos objetos no
+ * pierde la marca por borrarse uno solo, y una ficha retirada no sigue diciendo «pendiente» de algo que ya no existe.
  */
 const revisarPendientesDelObjeto = async (fichas: readonly AssetDoc[], assetId: string, ref: StorageRef): Promise<void> => {
   const candidatas = fichas.filter((d) => d.assetId !== assetId && d.status === 'deleted' && d.pendingPhysicalDeletion === true
     && objetosDeLaFicha(d).some((r) => mismoObjeto(r, ref)));
   await Promise.all(candidatas.map(async (d) => {
-    const quedan = await Promise.all(objetosDeLaFicha(d).map(async (r) => r.provider !== PROVEEDOR_WEE || (await storageBucket().file(r.objectKey).exists())[0]));
+    const quedan = await Promise.all(objetosDeLaFicha(d).map(async (r) => r.provider !== PROVEEDOR_WEE || !esDelCuboDeWee(r)
+      || (await storageBucket().file(r.objectKey).exists())[0]));
     if (!quedan.some(Boolean)) await assets().doc(d.assetId).set({ pendingPhysicalDeletion: false }, { merge: true });
   }));
 };
@@ -740,10 +765,12 @@ export const retirarMaterial = async (accountId: string, assetId: string): Promi
   if (!decision) return { status: 'ya_retirado' };
 
   /*
-   * Solo se borra físicamente lo que es de Weë Y vive bajo la propia cuenta. Una referencia que no cumpla las dos cosas
-   * se retira de la ficha pero queda anotada como pendiente: antes que borrar el objeto equivocado, no borrar.
+   * Solo se borra físicamente lo que es de Weë, vive bajo la propia cuenta Y está en el cubo configurado. El borrado va
+   * por CLAVE en el cubo de Weë (`storageBucket()`), así que una ficha que diga otro cubo no puede autorizarlo: su clave
+   * podría coincidir con la de un objeto nuestro que no es el suyo. Una referencia que no cumpla las tres cosas se retira
+   * de la ficha pero queda anotada como pendiente: antes que borrar el objeto equivocado, no borrar.
    */
-  const paraBorrar = decision.borrar.filter((r) => r.provider === PROVEEDOR_WEE && esDeLaCuenta(r, doc.ownerAccountId));
+  const paraBorrar = decision.borrar.filter((r) => r.provider === PROVEEDOR_WEE && esDeLaCuenta(r, doc.ownerAccountId) && esDelCuboDeWee(r));
   let pendientes = decision.borrar.length - paraBorrar.length;
 
   /* 1) La ficha queda retirada antes de mirar quién más usa el objeto, y marcada si hay algo que borrar. */

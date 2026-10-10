@@ -269,6 +269,19 @@ console.log('\n── I · Quién más puede necesitar los bytes ──');
   check('I6 uno integrado que no contestó, o que contestó «desconocido»: desconocido', resumirConsumidores(integrados, [{ tipo: 'proyecto', estado: 'sin_usos' }]).estado === 'desconocido'
     && resumirConsumidores(integrados, [{ tipo: 'proyecto', estado: 'sin_usos' }, { tipo: 'plano', estado: 'desconocido' }]).estado === 'desconocido');
   check('I7 un tipo sin integrar es desconocido diga lo que diga', resumirConsumidores([{ tipo: 'avatar', integrado: false, referencia: 'direccion' }], [{ tipo: 'avatar', estado: 'sin_usos' }]).estado === 'desconocido');
+  /*
+   * Hallazgos de la verificación (trk-s, punto C: «una referencia desconocida se trata como protegida, nunca como
+   * ausencia de consumidores»). Antes, un registro vacío daba «sin_usos» por vacío —todos los del registro (ninguno)
+   * dijeron que no— y un uso dicho por un tipo que el registro no conoce se ignoraba. Las dos cosas habrían autorizado
+   * un borrado.
+   */
+  check('I8 un registro vacío o roto es «desconocido», nunca «sin_usos» por vacío',
+    [[], undefined, null, 'x'].every((r) => resumirConsumidores(r, [{ tipo: 'proyecto', estado: 'sin_usos' }]).estado === 'desconocido'));
+  const conUnoDeFuera = resumirConsumidores(integrados, [{ tipo: 'proyecto', estado: 'sin_usos' }, { tipo: 'plano', estado: 'sin_usos' }, { tipo: 'escena', estado: 'con_usos' }]);
+  check('I9 un uso que dice un tipo que el registro no conoce protege (con_usos), aunque todos los del registro digan que no',
+    conUnoDeFuera.estado === 'con_usos' && conUnoDeFuera.tipos.includes('escena'), JSON.stringify(conUnoDeFuera));
+  check('I10 y un «sin usos» de un tipo que no está en el registro no tapa a uno del registro que no contestó',
+    resumirConsumidores(integrados, [{ tipo: 'proyecto', estado: 'sin_usos' }, { tipo: 'escena', estado: 'sin_usos' }]).estado === 'desconocido');
 }
 
 /* ═══ J · LA DECISIÓN DE BORRADO FÍSICO: cada motivo ══════════════════════════ */

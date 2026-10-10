@@ -165,6 +165,16 @@ export const hechosDeMetadata = (meta: Record<string, unknown> | undefined): Hec
 };
 
 /**
+ * ¿VIVE ESTA REFERENCIA EN EL CUBO DE WEË? Una sola regla para el índice y para
+ * el camino de siempre (`retirarMaterial`): o no dice cubo —el único contenedor
+ * del proveedor— o dice exactamente el configurado (`nombreDelCuboDeWee`). Una
+ * referencia que diga OTRO cubo nunca se mira ni se borra por clave en el
+ * nuestro, aunque la clave coincida con una nuestra.
+ */
+export const esDelCuboDeWee = (ref: StorageRef): boolean =>
+  ref.bucket === undefined || ref.bucket === nombreDelCuboDeWee();
+
+/**
  * EL STORAGE DE WEË COMO PUERTO DE ALMACENAMIENTO: mirar y borrar, con la
  * generación. No guarda: aquí nadie escribe bytes por este puerto, y decirlo es
  * mejor que fingirlo.
@@ -174,7 +184,7 @@ export const hechosDeMetadata = (meta: Record<string, unknown> | undefined): Hec
  */
 export const puertoDelStorageDeWee = (providerId: string): PuertoDeAlmacenamiento => {
   const deEsteCubo = (ref: StorageRef): boolean =>
-    esStorageRef(ref) && ref.provider === providerId && (ref.bucket === undefined || ref.bucket === nombreDelCuboDeWee());
+    esStorageRef(ref) && ref.provider === providerId && esDelCuboDeWee(ref);
   return {
     providerId,
     capacidades: Object.freeze(['object.head', 'object.delete', 'object.conditionalDelete'] as const),
