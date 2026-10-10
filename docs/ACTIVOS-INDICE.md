@@ -65,13 +65,13 @@
 
 | Inv. | Cómo se cumple | Prueba |
 |---|---|---|
-| INV-1 objeto con fila viva ⇒ `guardado` | Crear una fila viva exige `guardado` o rescate; la reconciliación marca lo contrario | `activos-indice` H22, `activos-concurrencia` B/C, `activos-reconciliacion` B6 |
+| INV-1 objeto con fila viva ⇒ `guardado` | Crear una fila viva exige `guardado` o rescate; la reconciliación marca lo contrario | `activos-indice` H22, `activos-concurrencia-*` B/C, `activos-reconciliacion` B6 |
 | INV-2 material no retirado ⇒ fila viva por objeto | Ficha y fila en la misma transacción; backfill y reconciliación | `activos-caminos` B1, `activos-migracion` C7/D2 |
 | INV-3 `borrado` terminal | Ninguna transición sale de `borrado` | `activos-indice` H21/H22 |
 | INV-4 reclamar con 0 filas vivas y cobertura, leídas en la misma transacción | `reclamarParaBorrar` | `activos-barrido` B2 (T-03); mutación M8 |
 | INV-5 borrado solo con la generación registrada | Puerto con `ifGenerationMatch`; capacidad obligatoria | `activos-caminos` C1/C10, `activos-barrido` A2/B3; mutaciones M3/M7. **Ver §8: el emulador de Storage no la aplica** |
 | INV-6 toda transición lee y comprueba estado y versión | Transiciones puras con errores tipados | `activos-indice` H1–H23 |
-| INV-7 idempotencia por identidades deterministas | `refId`, `objectRef`, `assetId` calculado, concesión | `activos-concurrencia` F, `activos-migracion` C5 |
+| INV-7 idempotencia por identidades deterministas | `refId`, `objectRef`, `assetId` calculado, concesión | `activos-concurrencia-*` F, `activos-migracion` C5 |
 | INV-8 sin cobertura no se decide un borrado | `decidirBorradoFisico` y `reclamar` | `activos-caminos` C12; mutación M4 |
 | INV-9 versión sobre `guardado`, con la anterior lista, leídas juntas | `crearVersionConIndice` | `activos-caminos` D1–D8 (D3b: retirada dentro de la ventana); mutaciones M2/M6 |
 
@@ -83,12 +83,12 @@
 | `activos-caminos.test.mjs` | determinista (Firestore transaccional y Storage de mentira) | 47/47 | 60/60 |
 | `activos-barrido.test.mjs` | determinista | 18/18 | 18/18 |
 | `activos-mutacion.test.mjs` | mutaciones sobre una copia temporal del compilado | 17/17: 13 mutaciones mueren | 23/23: 19 mutaciones mueren, cada una en una comprobación concreta |
-| `activos-concurrencia.emulator.mjs` | emulador (firestore, storage) | pasa (727 s) | con la sección H (B2) en su revisión sin tandas: 25/25 dos veces (757 s y 838 s). La revisión final, con tandas para bajar de los 300 s de `_emuladores.mjs`, está **pendiente de puertos** y sin commit (`scratchpad/parches-trk-s/emuladores-pendientes.patch`) |
+| `activos-concurrencia-*.emulator.mjs` | emulador (firestore, storage) | pasa (727 s) | con la sección H (B2) en su revisión sin tandas: 25/25 dos veces (757 s y 838 s). La revisión final, con tandas para bajar de los 300 s de `_emuladores.mjs`, está **pendiente de puertos** y sin commit (`scratchpad/parches-trk-s/emuladores-pendientes.patch`) |
 | `activos-reconciliacion.emulator.mjs` | emulador | 25/25 | pendiente de puertos |
 | `activos-barrido.emulator.mjs` | emulador | 9/9 + una medida | pendiente de puertos |
 | `activos-migracion.emulator.mjs` | emulador | 21/21 | pendiente de puertos |
 
-**Duración.** `_emuladores.mjs` (la CI, nivel 2) corta una suite a los **300 s**, y `activos-concurrencia` en la forma de A1 tarda 727–838 s en este equipo: entrar así en la CI la haría fallar por tiempo. La causa medida es la espera del cliente cuando una transacción pierde y se repite (el SDK espera 1 s, 1,5 s… con azar) sumada ronda a ronda; la revisión pendiente corre las rondas independientes en tandas de cinco y baja moderadamente su número, sin quitar ninguna comprobación.
+**Duración.** `_emuladores.mjs` (la CI, nivel 2) corta una suite a los **300 s**, y `activos-concurrencia-*` en la forma de A1 tarda 727–838 s en este equipo: entrar así en la CI la haría fallar por tiempo. La causa medida es la espera del cliente cuando una transacción pierde y se repite (el SDK espera 1 s, 1,5 s… con azar) sumada ronda a ronda; la revisión pendiente corre las rondas independientes en tandas de cinco y baja moderadamente su número, sin quitar ninguna comprobación.
 
 Comandos: `node functions/test/<suite>.test.mjs` y `node functions/test/_emuladores.mjs --solo <nombre>` (un emulador cada vez).
 
@@ -100,14 +100,14 @@ Comandos: `node functions/test/<suite>.test.mjs` y `node functions/test/_emulado
 - **Referencias de otras cuentas en variantes** no se pueden consultar; las de archivo sí (consulta exacta por clave).
 - **El barrido no guarda cursor entre pasadas**: recorre como mucho 50 lotes de 100 por pasada.
 - **Concurrencia de producción** no medida (el emulador no reproduce su contención).
-- **Lo que el emulador de Firestore hizo con la marca intercalada** (activos-concurrencia H): retuvo la escritura de la retirada hasta que confirmó la transacción de la marca (bloqueo pesimista), así que ahí la serialización fue «marca → retirada»; la otra («retirada → marca», con la marca contestando `estado_incompatible`) se vio en la carrera libre. Las dos dejan la ficha `deleted`. Cómo serializa Firestore de verdad no se ha medido aquí.
+- **Lo que el emulador de Firestore hizo con la marca intercalada** (activos-concurrencia-* H): retuvo la escritura de la retirada hasta que confirmó la transacción de la marca (bloqueo pesimista), así que ahí la serialización fue «marca → retirada»; la otra («retirada → marca», con la marca contestando `estado_incompatible`) se vio en la carrera libre. Las dos dejan la ficha `deleted`. Cómo serializa Firestore de verdad no se ha medido aquí.
 
 ## 8b. Dos defectos de H2 corregidos en la integración
 
 | Defecto (lo encontró A1) | Corrección | Pruebas |
 |---|---|---|
 | `retirarMaterial` por el camino de siempre borraba por **clave** en el cubo de Weë aunque la ficha dijera **otro cubo** | Una sola regla, `esDelCuboDeWee` (`content/indice-almacen.ts`), para el índice y para el camino de siempre: se borra solo si la referencia no dice cubo o dice el configurado (`nombreDelCuboDeWee`). Lo demás queda pendiente. La revisión de las marcas de las demás fichas tampoco mira en el nuestro lo que vive en otro cubo | `activos-caminos` A5 (otro cubo: no se borra nada), A6 (el configurado y sin cubo: se borra), A7 (la marca de pendiente no se baja por mirar en el cubo equivocado); mutaciones M16, M17 |
-| `marcarMaterialSubido` y `marcarMaterialFallido` leían y escribían por separado: un material retirado entre medias volvía a `ready` o `failed` | Las dos leen y escriben **en la misma transacción**; si alguien escribe la ficha entre medias, se repiten y un material `deleted` contesta `estado_incompatible` (`puedePasarA`) | `activos-caminos` I1–I8 (carrera intercalada con la flag cerrada y abierta, repetición, ids inválidos y el texto); mutaciones M14, M15; emulador `activos-concurrencia` H (carrera libre, intercalada y el control con la marca de antes, que sí resucita fichas: 19–27 de 30): pasó dos veces en su revisión sin tandas; la revisión final, pendiente de puertos (§7) |
+| `marcarMaterialSubido` y `marcarMaterialFallido` leían y escribían por separado: un material retirado entre medias volvía a `ready` o `failed` | Las dos leen y escriben **en la misma transacción**; si alguien escribe la ficha entre medias, se repiten y un material `deleted` contesta `estado_incompatible` (`puedePasarA`) | `activos-caminos` I1–I8 (carrera intercalada con la flag cerrada y abierta, repetición, ids inválidos y el texto); mutaciones M14, M15; emulador `activos-concurrencia-*` H (carrera libre, intercalada y el control con la marca de antes, que sí resucita fichas: 19–27 de 30): pasó dos veces en su revisión sin tandas; la revisión final, pendiente de puertos (§7) |
 
 ## 8c. Dos huecos que encontró la verificación (punto C del encargo)
 

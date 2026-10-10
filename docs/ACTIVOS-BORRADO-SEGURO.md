@@ -49,5 +49,5 @@ Cifras de `git diff --numstat b023f24 -- functions/src/content` tras el cambio:
 ## Lo que no se ha probado todavía
 
 Los emuladores de las suites que llaman a la ruta cerrada: `version-de-material.emulator`, `video-asincrono.emulator`,
-`fronteras-rules.emulator`, `urls-del-storage.emulator` y las de activos (`activos-migracion`, `activos-concurrencia`).
+`fronteras-rules.emulator`, `urls-del-storage.emulator` y las de activos (`activos-migracion`, `activos-concurrencia-*`).
 Hasta ejecutarlas, este cambio está verificado solo con pruebas unitarias.

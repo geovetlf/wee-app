@@ -1,7 +1,7 @@
 # Dos cuentas y una misma clave de Storage (A-2)
 
 Estado: **invariante aplicado en código, probado con dobles, con dos huecos corregidos.** La concurrencia real con emulador
-se prueba en `activos-concurrencia` (ver el apartado de límites). No desplegado.
+se prueba en `activos-concurrencia-*` (ver el apartado de límites). No desplegado.
 
 ## La pregunta
 
@@ -49,7 +49,7 @@ puede existir por una escritura directa, un camino futuro o un fallo. Para ese c
 3. **Más de 25 fichas sobre una misma clave**: la cuenta queda como «desconocida» y el objeto no se clasifica ni se borra
    por esa vía. Es la política deliberada del límite.
 4. **Concurrencia real**: las pruebas de dos cuentas de este documento son de dobles con transacciones optimistas. Las
-   intercalaciones con emulador están en `activos-concurrencia`.
+   intercalaciones con emulador están en `activos-concurrencia-*`.
 
 ## Cómo se verifica
 

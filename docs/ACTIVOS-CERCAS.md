@@ -211,7 +211,7 @@ Después de los siete, las siete suites dan exactamente lo mismo que antes, y `g
 
 `functions/package.json` no se edita. La comprobación 13 sigue en rojo con exactamente cuatro suites fuera de la cadena:
 `activos-indice`, `activos-caminos`, `activos-barrido` y `activos-mutacion`. Las registra el integrador en
-`scripts.test`. Las cuatro de emulador (`activos-concurrencia`, `activos-reconciliacion`, `activos-barrido`,
+`scripts.test`. Las cuatro de emulador (`activos-concurrencia-*`, `activos-reconciliacion`, `activos-barrido`,
 `activos-migracion`) no necesitan registro: `functions/test/_emuladores.mjs` recoge todo `*.emulator.mjs` por existir, y
 corta una suite a los 300 s (ver el informe de la línea sobre sus duraciones).
 
