@@ -592,7 +592,12 @@ export const reconciliarIndiceDeCuenta = (
     if (typeof o.referenciasAjenas !== 'number') bloquea = true;
     const vivas = validas.filter((f) => f.ownerAccountId === cuenta && f.viva);
     const vivaPorRefId = new Map(vivas.map((f) => [f.refId, f]));
-    const usoVivo = vivas.length > 0 || esperadasVivas.length > 0;
+    /*
+     * USO AJENO (A-2): una fila viva de OTRA cuenta sobre el objeto, o una ficha viva de otra cuenta sobre su clave, es un
+     * uso. Un objeto con uso ajeno nunca es huérfano de esta cuenta, aunque esta no tenga ninguna fila ni ficha suya.
+     */
+    const usoAjeno = ajenas.some((f) => f.viva) || (typeof o.referenciasAjenas === 'number' && o.referenciasAjenas > 0);
+    const usoVivo = vivas.length > 0 || esperadasVivas.length > 0 || usoAjeno;
 
     /* fila_ausente */
     for (const e of esperadasVivas) {
@@ -648,8 +653,9 @@ export const reconciliarIndiceDeCuenta = (
 
     /* objeto_huerfano: sin uso vivo, con cobertura que vale y con la edad cumplida. Lo decide MC-5, no esto. */
     const edadCumplida = reg !== undefined && Number.isFinite(reg.createdAt) && at - reg.createdAt >= entrada.graciaDeHuerfanoMs;
-    if (reg && reg.estado === 'guardado' && !usoVivo && entrada.completo === true && o.filasCompletas === true
-      && coberturaVigente(reg, entrada.marcaDeCobertura) && edadCumplida) {
+    /* Huérfano solo si se ha visto TODO el uso, propio y ajeno: un uso ajeno desconocido no es ausencia de uso (A-2). */
+    if (reg && reg.estado === 'guardado' && !usoVivo && !usoAjeno && typeof o.referenciasAjenas === 'number'
+      && entrada.completo === true && o.filasCompletas === true && coberturaVigente(reg, entrada.marcaDeCobertura) && edadCumplida) {
       anotar({ clase: 'objeto_huerfano', objectRef: ref, reparacion: 'a_candidato' });
     }
 
