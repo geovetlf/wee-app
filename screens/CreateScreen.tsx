@@ -350,9 +350,10 @@ const CreateScreen: React.FC = () => {
 
     setFaceSwapLoading(true);
     try {
-      const uploadedUrl = await uploadImageForSwap(user.uid, asset.uri, asset.base64);
+      // La selfie original va por RUTA (privada); lo que se adjunta al componer es solo el resultado generado.
+      const selfiePath = await uploadImageForSwap(user.uid, asset.uri, asset.base64);
       const avatarImageUrl = userProfile.aiAvatarPortraitUrl;
-      const swappedUrl = await performAvatarReplacement(uploadedUrl, avatarImageUrl);
+      const swappedUrl = await performAvatarReplacement(selfiePath, avatarImageUrl);
       const savedUrl = await saveFaceSwapResult(user.uid, swappedUrl);
 
       setAttachedMedia(prev => [...prev, {
