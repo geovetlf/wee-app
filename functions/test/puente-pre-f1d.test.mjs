@@ -268,8 +268,9 @@ const idB = identidadDelMaterial('job-puente-b', 'job-puente-b#1');
   const ajeno = await intento(() => contenido.deleteAsset.run({ auth: { uid: 'puenteOtra0001' }, data: { assetId: idB } }));
   check('A5) `deleteAsset` de OTRA cuenta no lo encuentra, ni lo toca', !ajeno.ok && ajeno.error.code === 'not-found' && objetos.has(claveB) && (await contenido.leerMaterial(idB))?.status === 'ready');
   const borrado = await intento(() => contenido.deleteAsset.run({ auth: { uid: DUENO }, data: { assetId: idB } }));
-  check('A6) `deleteAsset` de su dueño lo localiza y lo retira: la ficha queda retirada y el objeto borrado',
-    borrado.ok && borrado.valor.status === 'deleted' && borrado.valor.already === false && (await contenido.leerMaterial(idB))?.status === 'deleted' && !objetos.has(claveB), codigo(borrado));
+  /* C-1 (revisión A): con la flag cerrada la ficha se retira pero el objeto NO se borra: queda pendiente sin índice. */
+  check('A6) `deleteAsset` de su dueño lo localiza y retira la ficha; con la flag cerrada el objeto NO se borra (queda pendiente)',
+    borrado.ok && borrado.valor.status === 'deleted' && borrado.valor.already === false && (await contenido.leerMaterial(idB))?.status === 'deleted' && objetos.has(claveB), codigo(borrado));
   const conRef = (assetId) => ({
     ...M.produccionVacia({ title: 'Puente', aspectRatio: '16:9' }),
     references: [{ id: 'ref-video', kind: 'video', role: 'motion', assetId }],

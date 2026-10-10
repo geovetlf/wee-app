@@ -96,9 +96,13 @@ try {
     const c = clave(); S.subir(c);
     const m = await crear(ANA, c);
     check('A1 se crea la ficha de siempre y ni una fila ni un registro', m && ficha(m.assetId)?.status === 'ready' && F.rutas('mediaObjects/').length === 0);
+    const delAntesA2 = S.llamadas.delete;
     const r = await content.retirarMaterial(ANA, m.assetId);
-    check('A2 retirar borra el objeto como siempre, SIN precondición, y sigue sin índice', r.status === 'retirado' && r.objetosBorrados === 1 && !S.existe(c)
-      && S.llamadas.precondiciones.at(-1).ifGenerationMatch === undefined && F.rutas('mediaObjects/').length === 0);
+    /* C-1 (revisión A): con la flag cerrada NO se borra el objeto. Sin índice nadie prueba que ningún otro uso queda: queda
+     * pendiente, la ficha se retira y el objeto sigue en el almacén. Antes esta prueba fijaba el borrado. */
+    check('A2 retirar NO borra el objeto con la flag cerrada: la ficha se retira, queda pendiente, sin llamada de borrado y sin índice',
+      r.status === 'retirado' && r.objetosBorrados === 0 && r.pendientes === 1 && S.existe(c) && S.llamadas.delete === delAntesA2
+      && ficha(m.assetId)?.pendingPhysicalDeletion === true && F.rutas('mediaObjects/').length === 0);
     F.poner('aiSettings/almacenActivos', { habilitado: 'si', cuentas: [ANA] });
     const c2 = clave(); S.subir(c2);
     const m2 = await crear(ANA, c2);
@@ -133,9 +137,10 @@ try {
     const idSin = 'asset_' + 'b2'.repeat(16);
     fichaDirecta(idSin, { provider: 'wee', objectKey: cSin });
     const rSin = await content.retirarMaterial(ANA, idSin);
-    check('A6 B1 · el cubo configurado sí se borra: con su nombre explícito y sin cubo (el único contenedor del proveedor)',
-      rMismo.status === 'retirado' && rMismo.objetosBorrados === 1 && rMismo.pendientes === 0 && !S.existe(cMismo)
-      && rSin.status === 'retirado' && rSin.objetosBorrados === 1 && rSin.pendientes === 0 && !S.existe(cSin));
+    /* C-1: con la flag cerrada, ni el cubo configurado se borra: queda pendiente hasta que haya índice que lo pruebe. */
+    check('A6 B1 · el cubo configurado NO se borra con la flag cerrada: con su nombre explícito y sin cubo, queda pendiente',
+      rMismo.status === 'retirado' && rMismo.objetosBorrados === 0 && rMismo.pendientes === 1 && S.existe(cMismo)
+      && rSin.status === 'retirado' && rSin.objetosBorrados === 0 && rSin.pendientes === 1 && S.existe(cSin));
     /*
      * B1 · la revisión de las marcas tampoco mira por clave en el nuestro lo que vive en otro cubo: que no esté aquí no
      * dice nada de allí. X tiene el objeto compartido con Y y una miniatura en otro cubo; al borrarse el compartido, X
@@ -147,9 +152,11 @@ try {
     const y = await crear(ANA, comp);
     const rx = await content.retirarMaterial(ANA, idX);
     const ry = await content.retirarMaterial(ANA, y.assetId);
-    check('A7 B1 · borrado el objeto compartido, la ficha que aún tiene algo en OTRO cubo sigue pendiente',
-      rx.status === 'retirado' && rx.pendientes === 2 && ry.status === 'retirado' && ry.objetosBorrados === 1 && !S.existe(comp) && ficha(idX).pendingPhysicalDeletion === true,
-      JSON.stringify([rx.pendientes, ry.objetosBorrados, ficha(idX).pendingPhysicalDeletion]));
+    /* C-1: con la flag cerrada el objeto compartido tampoco se borra: Y queda pendiente y X sigue pendiente (su otro cubo). */
+    check('A7 B1 · sin borrar nada con la flag cerrada, la ficha que aún tiene algo en OTRO cubo sigue pendiente',
+      rx.status === 'retirado' && rx.pendientes === 2 && ry.status === 'retirado' && ry.objetosBorrados === 0 && ry.pendientes === 1
+      && S.existe(comp) && ficha(idX).pendingPhysicalDeletion === true,
+      JSON.stringify([rx.pendientes, ry.objetosBorrados, ry.pendientes, ficha(idX).pendingPhysicalDeletion]));
   }
 
   /* ═══ B · FLAG ABIERTA: CREAR ═══════════════════════════════════════════════ */

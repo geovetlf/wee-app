@@ -713,21 +713,6 @@ export const fichaVivaUsaElObjeto = async (fichas: readonly AssetDoc[], assetId:
   return compartenObjeto(ref, [...fichas, ...deOtrasCuentas].filter((f) => f.assetId !== assetId));
 };
 
-/**
- * Cuando un objeto se borra de verdad, se revisa la marca de pendiente de las fichas DE LA MISMA CUENTA que lo tenían: una
- * ficha sigue pendiente mientras le quede algo que no es de Weë, que vive en OTRO cubo (no se puede mirar por clave en el
- * nuestro: que no esté aquí no dice nada de allí) o que todavía existe en el almacén. Así, una ficha con dos objetos no
- * pierde la marca por borrarse uno solo, y una ficha retirada no sigue diciendo «pendiente» de algo que ya no existe.
- */
-const revisarPendientesDelObjeto = async (fichas: readonly AssetDoc[], assetId: string, ref: StorageRef): Promise<void> => {
-  const candidatas = fichas.filter((d) => d.assetId !== assetId && d.status === 'deleted' && d.pendingPhysicalDeletion === true
-    && objetosDeLaFicha(d).some((r) => mismoObjeto(r, ref)));
-  await Promise.all(candidatas.map(async (d) => {
-    const quedan = await Promise.all(objetosDeLaFicha(d).map(async (r) => r.provider !== PROVEEDOR_WEE || !esDelCuboDeWee(r)
-      || (await storageBucket().file(r.objectKey).exists())[0]));
-    if (!quedan.some(Boolean)) await assets().doc(d.assetId).set({ pendingPhysicalDeletion: false }, { merge: true });
-  }));
-};
 
 /**
  * RETIRAR UN MATERIAL. La única forma de borrar lo generado.
@@ -748,7 +733,8 @@ const revisarPendientesDelObjeto = async (fichas: readonly AssetDoc[], assetId: 
  *
  * H5/H2 · Con `aiSettings/almacenActivos` abierta para la cuenta (CERRADA por defecto), la retirada va por el índice y el
  * cerrojo (`retirarConIndice`, en `content/indice.ts`): T1 retira la ficha y apaga sus filas, T2 reclama, el almacén borra
- * con la generación registrada y T3 cierra con la concesión propia. Cerrada, todo lo de abajo sigue EXACTAMENTE igual.
+ * con la generación registrada y T3 cierra con la concesión propia. Cerrada, la ficha se retira igual, pero NO se borra
+ * ningún objeto: lo libre queda pendiente (la regla de seguridad exige la prueba de índice completo para borrar).
  */
 export const retirarMaterial = async (accountId: string, assetId: string): Promise<ResultadoDeRetirada> => {
   if (flagAbiertaPara((await leerFlagDelAlmacen(db())).config, accountId)) {
@@ -793,22 +779,16 @@ export const retirarMaterial = async (accountId: string, assetId: string): Promi
    *       objeto ya no está, así que esta ficha no se marca como pendiente por ese fallo. Se registra y no se reintenta
    *       (D1): las demás fichas de ese objeto pueden conservar una marca que ya no corresponde.
    */
-  let objetosBorrados = 0;
-  for (const r of libres) {
-    try {
-      await storageBucket().file(r.objectKey).delete({ ignoreNotFound: true });
-      objetosBorrados++;
-    } catch (error) {
-      console.error('Content: no se pudo borrar el objeto', r.objectKey, error);
-      pendientes++;
-      await assets().doc(assetId).set({ pendingPhysicalDeletion: true }, { merge: true });
-      continue;
-    }
-    try {
-      await revisarPendientesDelObjeto(fichas, assetId, r);
-    } catch (error) {
-      console.error('Content: no se pudo revisar la marca de las demás fichas', r.objectKey, error);
-    }
+  /*
+   * Con la bandera CERRADA no hay índice que pruebe que el objeto está completo ni que ningún otro uso queda: el borrado
+   * físico exige esa prueba (regla de seguridad de la línea de activos). Por eso aquí NO se borra nada: lo libre queda
+   * pendiente, el objeto se queda en Storage y la marca espera a la reconciliación cuando la bandera esté abierta.
+   * Antes, esta rama borraba con la única comprobación de las fichas de la propia cuenta (CRÍTICO C-1, revisión A).
+   */
+  const objetosBorrados = 0;
+  if (libres.length > 0) {
+    pendientes += libres.length;
+    await assets().doc(assetId).set({ pendingPhysicalDeletion: true }, { merge: true });
   }
 
   /* 4) Si no queda nada pendiente, la ficha lo dice: se baja la marca que puso el paso 1. */
