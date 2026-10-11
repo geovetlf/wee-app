@@ -41,8 +41,97 @@ de transacciones del emulador bajo concurrencia) y se reabre.
 
 ## Lo que no está cubierto aquí
 
-- **Dos cuentas en concurrencia real.** Los escenarios de dos cuentas no se añadieron a los grupos. La cobertura de dos
-  cuentas está en `activos-dos-cuentas.test.mjs` (dobles, 11 comprobaciones, con mutantes M16, M17 y M20–M22 en
-  `activos-mutacion.test.mjs`) y en `activos-reconciliacion.emulator.mjs` (emulador, reconciliación).
-- La cuenta «BETO» que citaba el encargo no existe en la suite: solo hay ANA. Añadirla sería un escenario nuevo, no una
-  división.
+Los escenarios de dos cuentas (ANA y BETO) no están en estos cuatro grupos: tienen su propia suite, descrita más abajo.
+La cobertura previa de dos cuentas sigue en `activos-dos-cuentas.test.mjs` (dobles) y en
+`activos-reconciliacion.emulator.mjs` (emulador, reconciliación).
+
+## Dos cuentas: concurrencia lógica en el emulador (A-2)
+
+Suite: `functions/test/activos-dos-cuentas-concurrencia.emulator.mjs`. Se ejecuta con el runner oficial:
+`node functions/test/_emuladores.mjs --solo activos-dos-cuentas-concurrencia`.
+
+**Escenarios.** ANA es la dueña de sus objetos; BETO es la otra cuenta.
+
+- S1: BETO no registra, retira, reclama ni anota variantes sobre la clave de ANA.
+- S2: retirada de ANA con una fila viva de BETO entre la decisión y la reclamación.
+- S3: retirada de ANA con una creación nueva de ANA (dos órdenes).
+- S4: reconciliación de ANA con una creación nueva (dos órdenes).
+- S4d: reconciliación de BETO con una referencia nueva de ANA (dos órdenes).
+- S3b: barrido MC-5 con una creación de ANA sobre el candidato.
+- S5: índice incompleto, registro desactualizado y referencia ajena.
+- S6: error transitorio del almacén y reintentos, con el reloj de la política.
+- S7: dos retiradas simultáneas de la única referencia de ANA.
+- S8: retirada de BETO mientras ANA conserva su referencia viva (dos órdenes).
+- S9: sin otras referencias, la ruta autorizada borra y no se repite.
+- S10: consumidores caídos (incertidumbre) y, después, borrado autorizado.
+
+**Órdenes de intercalado.** Una lectura de la transacción probada se intercepta (`db.runTransaction` con un proxy de
+`tx.get`), y en ese punto entra la operación de la otra cuenta, en uno de dos órdenes fijos:
+
+- `ajena_dentro`: la otra operación se completa dentro de la transacción probada, que sigue cuando ella termina. Solo
+  es posible si la otra operación no escribe en un rango que la transacción ya ha consultado: el emulador bloquea esas
+  escrituras hasta que la transacción confirma.
+- `probada_primero`: la otra operación arranca en el mismo punto y espera a que la probada termine.
+
+S2 y S3b intercalan en la segunda lectura del registro. S3 intercala en la lectura de la ficha propia, que es la primera
+de la retirada, porque leer el registro bloqueaba. S7 lanza dos retiradas a la vez sin punto de control: se afirma el
+resultado (una retira, la otra ve `ya_retirado`). S3 comprueba que el orden obtenido es el previsto.
+
+**Garantías comprobadas en el emulador.** Ninguna cuenta registra, retira ni reclama lo de la otra. Un objeto con una
+referencia viva de cualquiera de las dos cuentas no se borra, en los órdenes descritos. Un error, un índice incompleto o
+un estado desconocido no autorizan el borrado. Los reintentos no duplican ni borran de más. Cuando desaparecen las
+referencias legítimas, la ruta autorizada sí borra.
+
+**Límites del emulador y de la prueba.**
+
+- El emulador no hace cumplir `ifGenerationMatch`: un borrado con una generación falsa se completa (medido). Ninguna
+  comprobación afirma que la generación proteja una sobrescritura.
+- No aplica índices compuestos.
+- Las dependencias de producción de consumidores y operaciones responden «desconocido». Los caminos de borrado usan
+  consumidores de prueba `sin_usos`.
+- Los intercalados ocurren dentro de un solo proceso. Son deterministas, pero no son concurrencia real entre instancias.
+- Las identidades son de prueba, en el proyecto `demo-wee`. La fila viva de BETO sobre la clave de ANA es un estado
+  contradictorio que la creación no produce (S1a lo impide); sirve para probar la defensa del borrado.
+
+**No cubierto por esta suite.** La caída del proceso entre dos pasos (la suite de recuperación la simula con excepciones
+en puntos concretos, no con la muerte del proceso). La concurrencia entre procesos o instancias de Cloud Functions. El
+almacén real. Los consumidores reales. Las combinaciones de MC-9 (ver la suite de verificación más abajo).
+
+**Por qué no equivale a aprobación de producción.** Todo lo anterior se prueba con dobles, un emulador y un solo proceso.
+Las garantías de generación del Storage real, la latencia, la concurrencia entre instancias y los consumidores reales no
+están demostrados. Esta suite no declara la integración lista para producción.
+
+## Cierre técnico: recuperación, MC-9 y generaciones
+
+Tres suites nuevas. Cada una declara sus límites en la cabecera del fichero.
+
+| Suite | Qué fija | Resultado |
+|---|---|---|
+| `activos-recuperacion-caida.emulator.mjs` | Caídas entre reclamar, borrar y cerrar; reintentos; errores transitorios y repetidos; dos recuperadores; incertidumbre; cuentas cruzadas | 30 de 30. Antes de la corrección, 13 de 28 comprobaciones de la versión previa fallaban (el defecto); después se añadieron dos comprobaciones |
+| `activos-mc9-verificacion.emulator.mjs` | Los doce casos de MC-9 del encargo | 32 de 32. Sin defectos de reconciliación |
+| `activos-generacion-sdk.emulator.mjs` | La precondición de generación hasta la frontera del SDK | 16 de 16. Antes de la corrección, un borrado sin generación salía sin precondición (G8) |
+
+**Recuperación de un borrado a medias.** La retirada deja la ficha en `deleted` con `pendingPhysicalDeletion`. Si el
+proceso cae después de reclamar, el registro queda en `borrando` con una concesión que caduca, y nada lo volvía a
+intentar: repetir la retirada respondía `ya_retirado`. Ahora, si la ficha sigue marcada, repetir la retirada completa esos
+objetos con el mismo `completarBorrado` de la retirada: la decisión de MC-5, el borrado con la generación registrada y el
+cierre con la concesión propia. Lo que protege la decisión protege igual. El llamador recibe `pendingPhysicalDeletion`
+solo cuando hay una reanudación.
+
+**Límite del disparador.** La reanudación ocurre cuando alguien repite la retirada. El barrido MC-5 no procesa claves
+`users/` (decisión D-C), y `reconciliarIndiceDeCuentaEnFirestore` no tiene llamador en `src`. Un disparador automático para
+`users/` es una decisión del dueño.
+
+**Borrado sin generación.** El adaptador del Storage de Weë borraba incondicionalmente si `borrar` se llamaba sin
+opciones. Ahora lo rechaza sin pedir nada al SDK. Medido en la frontera: la petición `DELETE` salía sin
+`ifGenerationMatch`.
+
+**Frontera del SDK.** La suite intercepta `ServiceObject.prototype.request`, el punto donde el SDK construye la petición
+HTTP. Verifica que `ifGenerationMatch` sale con la generación registrada, y que un 412, un 404, un 503 y un 403 se mapean a
+los resultados del índice. Las respuestas del Storage se inyectan. La semántica de GCS (un 412 real cuando la generación
+no coincide) no se puede comprobar en el emulador; queda pendiente de una prueba de integración real con autorización.
+
+**Dos observaciones no corregidas.** El colector MC-5 tiene una rama sin cerrojo que borra sin generación. Hoy no es
+alcanzable: su único llamador, el barrido de índice, siempre pasa cerrojo. El adaptador de Weë ya la rechaza. Una propuesta
+de huérfano no exige que los bytes se hayan confirmado en el almacén. No autoriza un borrado, porque el borrado sigue
+pasando por la decisión completa de MC-5.

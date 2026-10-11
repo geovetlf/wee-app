@@ -61,6 +61,14 @@
 
 **Consecuencia hoy, con la flag abierta:** como ningún consumidor está integrado (`REGISTRO_DE_CONSUMIDORES`, todos `integrado: false`) y no hay una fuente clara de operaciones por objeto, la decisión protege siempre: **ningún objeto se borra físicamente**. Es la regla literal de D-G, no un fallo.
 
+**Reanudación de un borrado a medias (trabajo A).** Si la retirada deja la ficha con `pendingPhysicalDeletion`, repetir la
+retirada completa esos objetos con el mismo `completarBorrado`. La decisión de MC-5 sigue siendo la única que autoriza un
+borrado. El adaptador del Storage de Weë rechaza cualquier borrado sin generación registrada.
+
+**Tensión abierta entre D-B y D-C.** D-B dice que la reconciliación deja el objeto `candidato` para que decida MC-5. D-C
+excluye las claves `users/` del barrido de MC-5. Para esos objetos, la decisión final no tiene un disparador automático
+más que repetir la retirada. Elegir uno es una decisión del dueño: no la ha tomado esta ronda.
+
 ## 6. Invariantes
 
 | Inv. | Cómo se cumple | Prueba |
