@@ -20,6 +20,7 @@ import DesignPanel from '../components/design/DesignPanel';
 import { siempreSePregunta } from '../constants/ajustesContextuales';
 import { AJUSTES_DE_DESIGN, CREACIONES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
 import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../constants/design';
+import { notify } from '../utils/notify';
 import { scale } from '../utils/scale';
 
 /** Cuánto tarda la creación de mentira. Lo justo para ver el estado. */
@@ -191,7 +192,13 @@ const DesignScreen: React.FC = () => {
                 onCambiar={setPrompt}
                 onAjustes={() => setAjustesAbiertos(true)}
                 onReferencia={alAnadirReferencia}
-                onVoz={alAnadirReferencia}
+                /*
+                  «Dictar» no añade una referencia: no hay dictado conectado en Weë Design
+                  (auditoría UIUX H-1, 2026-10-07) y un botón que no hace lo que dice no
+                  puede hacer otra cosa en silencio. Dice la verdad con la frase de siempre,
+                  como Weë Business, hasta que haya dictado de verdad.
+                */
+                onVoz={() => notify(t('common.comingSoon'))}
                 onCrear={alCrear}
                 ocupado={estado === 'creando'}
               />

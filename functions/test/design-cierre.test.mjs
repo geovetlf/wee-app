@@ -89,5 +89,49 @@ check('CONTROL: un ajuste que abriera con una opción concreta sería detectado'
 check('CONTROL: una clave que falte en un idioma se vería', faltan(['design.noExisteEstaClave']).length === LOCALES.length);
 check('CONTROL: un texto con el nombre de un proveedor se vería', PROVEEDOR.test("title: 'Hecho con Gemini'") && !PROVEEDOR.test("title: 'Diseña sin límites.'"));
 
-console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Design: el catálogo de la pantalla montada es el que dice ser');
+console.log('\n─── B. La pantalla montada, leída: cada botón hace lo que dice ───');
+
+const pantalla = leer('screens/DesignScreen.tsx');
+const codigo = sinComentarios(pantalla);
+/** Lo que se le pasa a una propiedad de la caja: `onVoz={…}` → `…`. Sin llaves dentro: son manejadores de una línea. */
+const manejadorDe = (src, propiedad) => ((src.match(new RegExp(`\\b${propiedad}=\\{([^}]+)\\}`)) || [])[1] || '').trim();
+
+/*
+ * «CREACIÓN LISTA» SOLO SI SE HA CREADO.
+ *
+ * Mientras `alCrear` sea el temporizador de demostración (auditoría H-0, DESIGN.md §1), el aviso tiene que seguir diciendo
+ * que no hay nada generado de verdad; el día que `alCrear` lleve a `CreatorFlow` el temporizador desaparece y esto sigue
+ * siendo verdad sin tocarlo. Lo que no puede pasar nunca es quitar la frase y dejar el temporizador.
+ */
+const hayTemporizadorDeDemo = (src) => /setTimeout\(\s*\(\)\s*=>\s*setEstado\('listo'\)/.test(src);
+const quitaElAvisoDeDemo = (src) => /clavePista=\{null\}/.test(src);
+const diceLaVerdad = (src) => !hayTemporizadorDeDemo(src) || !quitaElAvisoDeDemo(src);
+check('B1) Weë Design no dice «Creación lista» sin haber creado: si queda un temporizador de demostración, el aviso de que lo es se queda',
+  diceLaVerdad(codigo), hayTemporizadorDeDemo(codigo) ? 'demostración, con su aviso' : 'sin temporizador');
+
+/* La pantalla no mueve dinero ni llama a nadie: crear es ir a `CreatorFlow`, que es donde está el precio, la reserva y el reembolso. */
+const LLAMA_POR_SU_CUENTA = /spendCredits|completeCredits|refundCredits|creditsService|useWallet|httpsCallable|getFunctions\(|from 'firebase\/|creatorService|assetsService|projectsService|brainService/;
+check('B2) la pantalla no llama a Firebase, a un servicio ni a los Credits por su cuenta: crear es ir a CreatorFlow',
+  !LLAMA_POR_SU_CUENTA.test(codigo), (codigo.match(LLAMA_POR_SU_CUENTA) || ['ninguna llamada'])[0]);
+
+/* H-1 de la auditoría UIUX (2026-10-07): «Dictar» añadía una referencia falsa. Un botón que no hace lo que dice no se pone así. */
+const alReferenciar = manejadorDe(codigo, 'onReferencia');
+const alDictar = manejadorDe(codigo, 'onVoz');
+check('B3) «Dictar» no hace lo mismo que «Referencia»: no añade una imagen de mentira',
+  alDictar !== '' && alReferenciar !== '' && alDictar !== alReferenciar, `onVoz={${alDictar}} · onReferencia={${alReferenciar}}`);
+check('B3) y si todavía no dicta, lo dice con la frase de siempre (`common.comingSoon`), como Weë Business',
+  /notify\(t\('common\.comingSoon'\)\)/.test(alDictar) && /import \{[^}]*\bnotify\b[^}]*\} from '\.\.\/utils\/notify'/.test(codigo)
+  && faltan(['common.comingSoon']).length === 0, 'common.comingSoon en los dieciséis idiomas');
+
+/* CONTROLES */
+check('CONTROL: un temporizador de demostración sin su aviso sería detectado',
+  !diceLaVerdad("setTimeout(() => setEstado('listo'), 1);\n<AvisoDeCreacion clavePista={null} />") && diceLaVerdad("<AvisoDeCreacion estado={estado} />"),
+  'si esto pasara, B1 no protegería nada');
+check('CONTROL: una pantalla que llamara a los Credits o a un servicio se vería',
+  LLAMA_POR_SU_CUENTA.test("await spendCredits({ jobId })") && LLAMA_POR_SU_CUENTA.test("import { creatorService } from '../services/creatorService'") && !LLAMA_POR_SU_CUENTA.test("navigation.navigate('CreatorFlow', contexto)"));
+check('CONTROL: un micrófono que repitiera el manejador de la referencia se vería',
+  manejadorDe('<X onReferencia={alAnadirReferencia} onVoz={alAnadirReferencia} />', 'onVoz') === manejadorDe('<X onReferencia={alAnadirReferencia} onVoz={alAnadirReferencia} />', 'onReferencia'),
+  'si esto pasara, B3 no protegería nada');
+
+console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Design: el catálogo de la pantalla montada es el que dice ser, y sus botones hacen lo que dicen');
 process.exit(failures ? 1 : 0);
