@@ -206,9 +206,14 @@ vaya el emulador, y cada una comprueba su premisa.
   del dueño.
 - La detención de A es una compuerta de prueba, no un fallo del proceso real.
 - Una negativa de A no devuelve el objeto: la reclamación queda hasta que caduque `hasta` y la recuperación posterior no
-  puede reclamar antes. Es lo conservador: A no sabe si la concesión sigue siendo suya.
-- La comprobación no vuelve a leer la flag `aiSettings/almacenActivos` ni la marca de cobertura: cerrar la flag no detiene
-  un borrado ya reclamado, que dura como mucho lo que la concesión.
+  puede reclamar antes. Es lo conservador: A no sabe si la concesión sigue siendo suya. Con `marcado`, `referenciado` o
+  `referencias_inciertas`, el objeto queda además `borrando` mientras no cambie la causa (la decisión de MC-5 lo vuelve a
+  proteger), y un objeto `borrando` no se entrega por el camino de entrega de MC (`core/media/entrega.ts`): lo resuelve
+  una persona o la reconciliación, que hoy no tiene llamador. Solo ocurre en estados contradictorios o con una lectura
+  fallida, y es mejor que el borrado de los bytes que evitaba.
+- La comprobación no vuelve a leer la flag `aiSettings/almacenActivos`, la marca de cobertura ni las fichas vivas por clave
+  (la reclamación sí las cuenta): cerrar la flag no detiene un borrado ya reclamado, que dura como mucho lo que la
+  concesión.
 - La comprobación vive en `completarBorrado`, la ruta de la retirada y de la recuperación. El colector MC-5
   (`media/recoleccion.ts`) tiene su propio camino de borrado y no la hace: no se tocó porque el encargo pedía el arreglo mínimo
   y su barrido no está activado.
@@ -220,6 +225,11 @@ vaya el emulador, y cada una comprueba su premisa.
   precondición, pero el índice no le pide un borrado sin que declare que sabe hacerlo con generación.
 - Una propuesta de huérfano no exige que los bytes se hayan confirmado en el almacén. No autoriza un borrado, porque el
   borrado sigue pasando por la decisión completa de MC-5.
+- Sin demostrar contra el Storage real: qué contesta a un `DELETE` condicional de un objeto que ya no existe, 404 o 412.
+  Con un 404 el borrado físico completado cuyo cierre falló se cierra como «ya no estaba» (K8, recuperación B); con un 412 se
+  devolvería con `generacion_distinta` sin cerrarse jamás. Falla cerrado: no borra de más.
+- `esObjetoAusente` (`content/indice-almacen.ts`) toma cualquier 404, también el de un cubo inexistente, por «ya no estaba», y
+  el puerto sigue declarando `object.delete` aunque un `borrar` sin generación ya no pueda prosperar.
 - Una búsqueda de las llamadas de borrado de Cloud Storage y de R2 en `functions/src` (`.file(…).delete(`, `deleteFiles(`,
   `.borrar(`, `method: 'DELETE'`) encuentra cinco: el puerto de Weë, `completarBorrado`, el adaptador de R2, el colector MC-5
   y el de la foto única de WeeTalk (`burnViewOnce`, `social/weetalk.ts`). Los cuatro primeros están tratados arriba. El

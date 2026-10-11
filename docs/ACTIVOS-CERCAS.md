@@ -219,13 +219,119 @@ tocan pruebas o documentos no mueven ninguna cifra (análisis commit a commit en
 | `content/indice-almacen.ts` | 298 / 0 | 303 / 0 | `7316fcf` (el adaptador no borra sin generación) |
 | `content/indice.ts` | 709 / 0 | 812 / 0 | `b952ab8` (+59), `b41999f` (+36: la concesión se comprueba antes del borrado físico) y `f96212a` (+8: también las marcas y las filas vivas) |
 
-**No se ha reanclado.** El reanclaje exige la autorización del dueño. Una copia temporal del test con solo esas tres cifras
-pasa entera; el test real y sus cifras no se tocaron. La alerta no es una regresión: cada corrección se demuestra con su
-suite, quitándola del código final (`activos-recuperacion-caida`: fallan 13 de 30; `activos-generacion-sdk`: 2 de 16;
-`activos-lease-antiguo`: 26 de 59 quitando la comprobación entera y 4 de 59 quitando solo las marcas y las filas), y la cadena y
-el barrido, por lo demás, pasan. Conservar las cuatro correcciones con las cifras actuales solo sería posible reeditando
-otras líneas de los mismos ficheros hasta igualar el recuento (el límite S4 de arriba), y eso vaciaría la cerca de sentido: no
-se hace.
+### Auditoría del 2026-10-11 y decisión de reanclar
+
+El dueño autorizó el 2026-10-11 reanclar F3 **en la rama local** solo si una auditoría independiente demostraba que las
+diferencias son legítimas, que las correcciones deben conservarse y que la nueva referencia representa exactamente el
+estado aprobado. La auditoría se hizo sobre `238ad84` (árbol limpio). Antes de editar nada se registraron el estado de Git,
+la salida completa del fallo y su desglose por archivo; la cerca no se tocó hasta cerrar la auditoría.
+
+**Las tres cifras, reproducidas.** Con el comando de la propia cerca (`git diff --numstat b023f24 -- functions/src/content`)
+y por otros caminos (`r5-auditoria-cifras.log`, `r5-index-ts-algoritmos.log`):
+
+| Cifra | Antes | Ahora | Cómo se reprodujo | Qué lo causa |
+|---|---|---|---|---|
+| `content/index.ts` | 388 / 101 | 393 / 103 | el comando de la cerca; el cambio de la rama es +5 / −2 con el algoritmo por defecto, `--minimal`, `--patience` e `--histogram` | `b952ab8`: el tipo de `ya_retirado` (1 línea) y el campo `pendingPhysicalDeletion` de la respuesta del callable |
+| `content/indice-almacen.ts` | 298 / 0 | 303 / 0 | el comando de la cerca, y contando las líneas del archivo (nuevo respecto a la base) | `7316fcf`: el borrado sin generación se rechaza (+7 / −2) |
+| `content/indice.ts` | 709 / 0 | 812 / 0 | el comando de la cerca, y contando las líneas del archivo (nuevo respecto a la base) | `b952ab8` (+59: la reanudación), `b41999f` (+36: la comprobación previa de la concesión) y `f96212a` (+8: las marcas y las filas vivas) |
+
+Los valores «Antes» son los de la constante de la cerca y coinciden con lo que git daba en `a2b7832`, donde F3 estaba verde.
+Ninguna cifra sale de la copia temporal del diagnóstico anterior: el reanclaje se hace con lo que da el comando sobre la rama
+real. Los otros tres archivos de `content/` (`indice-reconciliacion.ts` 392 / 0, `materializador.ts` 126 / 4,
+`versiones.ts` 223 / 0), los 19 de `core/` y `filmmaker`/`productions` no cambian. `git log a2b7832..238ad84 -- functions/src`
+son exactamente los cuatro commits de arriba, y el test de F3 es byte a byte el de `a2b7832`; tampoco cambiaron
+`ops/revision/baseline.json`, `functions/package.json` ni el corredor de la cadena.
+
+**Una advertencia sobre la propia cerca.** El nivel absoluto de `content/index.ts` depende del algoritmo de diff por defecto
+de git: con `--minimal`, `--patience` o `--histogram` el archivo da 384 / 97 en `a2b7832` y 389 / 99 en HEAD, y con el
+algoritmo por defecto 388 / 101 y 393 / 103 (la misma diferencia de 4 / 4 líneas en los dos puntos). La cerca mide con el
+algoritmo por defecto y el reanclaje conserva su método; lo que no depende del algoritmo es el cambio, +5 / −2. No está
+demostrado que otra versión de git (la de la CI) dé las mismas cifras. En los otros dos archivos, nuevos respecto a la
+base, todos los algoritmos coinciden.
+
+**Las correcciones, revisadas.** Cuatro commits de producción, 117 líneas añadidas (31 de comentarios). Se revisaron a
+mano, con una revisión independiente de solo lectura de los cuatro y otra anterior de la comprobación previa y de su
+suite (sin pasarles mis conclusiones), con las pruebas y con la prueba inversa:
+
+- `b952ab8` (repetir la retirada reanuda el borrado pendiente): solo llama a `completarBorrado`, así que se aplican la
+  misma reclamación y la misma decisión de MC-5 (marcas, concesión, cobertura, filas vivas, consumidores); un reintento no
+  borra nada que la decisión proteja; solo el dueño lo dispara (el callable exige sesión y T1 comprueba la cuenta antes de
+  reanudar); la marca `pendingPhysicalDeletion` solo baja cuando no queda nada pendiente. Es idempotente. Quitada del
+  código final, fallan 13 de 30 de `activos-recuperacion-caida`.
+- `7316fcf` (el adaptador no borra sin generación): cerrado por defecto. Sin generación, vacía o que no sea texto no se
+  pide nada al SDK; un estado desconocido no autoriza un borrado. Quitada, fallan 2 de 16 de `activos-generacion-sdk`.
+- `b41999f` y `f96212a` (la comprobación previa al borrado físico): solo puede impedir un borrado que MC-5 ya había
+  autorizado, y toda lectura fallida lo impide. Quitada entera, fallan 26 de 59 de `activos-lease-antiguo`; quitadas solo
+  las marcas y las filas, 4 de 59. Cada condición rota por separado en el código compilado hace fallar la suite (11 de 11
+  mutantes que cambian el comportamiento; el único que sobrevive es equivalente).
+- Con cada corrección quitada y restaurada, los ficheros compilados vuelven a tener el mismo hash.
+- Ninguna rebaja una protección frente a `a2b7832`; el Core (`core/`) es idéntico. Ninguna cambia consumidores, flags,
+  reglas ni Credits (el diff de producción se limita a tres archivos de `content/`).
+
+**Lo que la revisión encontró y no se corrige aquí.** Todo es latente: en producción los consumidores se declaran
+desconocidos y ninguna reclamación prospera, y la reconciliación no tiene llamador. Se anota para quien siga:
+
+- El barrido y el colector MC-5 (`media/barrido.ts`, `media/recoleccion.ts`) reclaman y borran sin la comprobación
+  previa. No están cableados (severidad media si se cablearan).
+- La ventana entre la comprobación y la petición: el SDK reintenta (tres veces, hasta 600 s) las peticiones con
+  precondición de generación y `rescatar` conserva la generación. No hay margen mínimo de concesión.
+- La comprobación no relee las fichas vivas por clave (las que la reclamación cuenta), la flag ni la cobertura.
+- Una negativa por `marcado`, `referenciado` o `referencias_inciertas` no devuelve el objeto: queda `borrando`, y un
+  objeto `borrando` no se entrega por el camino de entrega de MC (`core/media/entrega.ts`). Solo ocurre en estados
+  contradictorios o con una lectura fallida; lo resuelve la caducidad de la concesión, la reconciliación o una persona.
+- `b952ab8`: la reanudación no tiene disparador automático ni en el cliente (`MisCreacionesScreen` quita el elemento tras
+  una llamada); una lectura fallida a mitad del bucle rechaza el callable tras cerrar algún objeto (se puede repetir); no
+  repasa las marcas de otras fichas por los objetos que cerró una pasada interrumpida; el registro de la ficha se lee sin
+  forzar su `assetId`, igual que la primera retirada.
+- Un comentario de `content/index.ts` (el de `retirarMaterial`, «no hay ninguna operación que la complete…») ya no es
+  cierto con la flag abierta. Reescribirlo con las mismas líneas no mueve la cifra de este archivo (comprobado sobre una
+  copia temporal: 393 / 103 antes y después); si cambia el número de líneas, hay que mover el ancla otra vez.
+- `7316fcf`: `esObjetoAusente` toma cualquier 404 (también un cubo inexistente) por «ya no estaba», y el puerto sigue
+  declarando `object.delete`.
+- Sin demostrar en infraestructura real: si el Storage contesta 404 o 412 a un DELETE condicional de un objeto ya borrado.
+  Con un 412, un borrado físico completado cuyo cierre falló se devolvería con `generacion_distinta` sin cerrarse jamás
+  (falla cerrado, no borra de más).
+- Fuera de esta rama, alcanzable hoy: el borrado de la foto única de WeeTalk (`burnViewOnce`) no usa índice, concesión ni
+  generación (ver `docs/ACTIVOS-CONCURRENCIA.md`).
+
+**La suite G del barrido falló una vez.** En la regresión final (`r4-barrido.log`) el barrido dio 39 / 40: cayó
+`activos-concurrencia-3-g` con el `Transaction lock timeout` del emulador de Firestore, el fallo que su propia cabecera
+documenta («Sin reintento, la excepción escapa, tumba la suite y no prueba nada»). Se repitió con el corredor oficial sobre
+el mismo código: 5 de 6 pasan y la cuarta cae con la misma firma (`r5-g-hardening-run*.log`); con la salida completa, una
+pasa y otra cae a los 26 s con un `ECONNABORTED` al subir al emulador de Storage, sin ejecutar ninguna comprobación. Después,
+con la máquina quieta, el código final pasó 8 de 8 (118–149 s) y el de `a2b7832`, 8 de 8 (128–146 s). En total, el código
+final dio 3 fallos en 17 ejecuciones (dos con la firma de bloqueo y uno de arranque) y la base ninguno en 8. Es la
+intermitencia que la suite ya documentaba, pero no se puede atribuir ni descartar al código nuevo: G4 retira con el código
+de verdad (`retirarMaterial`) y vuelve a llamar a `completarBorrado` con el puerto real, y la comprobación previa añade dos
+lecturas en cada borrado (siempre dentro de un `try`, así que no pueden ser la excepción que escapa). Todavía no se ha
+capturado de qué operación sale esa excepción, porque el corredor solo enseña la cola de una suite que falla. No se ha
+tocado la suite.
+
+**Decisión: reanclar.** Se cumplen las siete condiciones (cifras reproducidas, causa de cada una identificada, correcciones
+revisadas y probadas, las otras dos condiciones de F3 intactas, alcance de F3 sin cambios, propuesta correspondiente a
+`238ad84` y a los mismos ficheros compilados, y ninguna señal de que se normalice una regresión). El reanclaje es un
+commit aparte que solo toca `functions/test/puente-pre-f1d.test.mjs`: las tres cifras de
+`CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS` y su comentario de historial, con los valores anteriores. No se añade ninguna
+exclusión, no se cambia ningún `git diff` de la cerca ni se toca ninguna otra comprobación, cerca o baseline.
+
+**Huellas del estado aprobado** (para el registro: la cerca mide tamaños, estas huellas fijan el contenido).
+
+| Archivo (`functions/src/content/`) | blob de git en `238ad84` | blob en `a2b7832` |
+|---|---|---|
+| `index.ts` | `545c6f21cc1ae90ffd486a6ad2f0834ce813415d` | `0dc2fcb391ab54cf57026877d2cfc5ec8e1fe602` |
+| `indice-almacen.ts` | `eec934da207d87f0eb134d908d4a78b5a1238fd7` | `b16909040fee49a0b2c0a53498ed561289e10a7f` |
+| `indice.ts` | `424d254cf5110c4e777cff9804abe13b033fbe38` | `f63a9d838713e4ea35004685f433c83dc4b34aa7` |
+| `indice-reconciliacion.ts` | `a21853914d35bf2e5bae1d5b264389ac29591032` | igual |
+| `materializador.ts` | `646a6497accfa5186d1aa83728af4c2975ad5e2c` | igual |
+| `versiones.ts` | `b7d61f9e2333c50212eaf47433bbbb047e8321fc` | igual |
+
+Compilado (sha256 de `functions/lib/content`): `indice.js` `e91cd7f8235f637f4ae97867127079d5a35855893647d5953c4a01ccf4df13d6`, `index.js`
+`9adde7e44bf6ee02897f52595131f43215837e902b7b35b59fb44b54765d7934`, `indice-almacen.js` `3d0637c3acf58731be218cd84189b7e8ca6d6be5ac52e91648273647622ba8e9`.
+
+**Lo que el reanclaje no certifica.** Fija el árbol tal cual, no lo aprueba para producción. La cerca sigue midiendo
+tamaños, no contenido: una edición del mismo tamaño pasa desapercibida (el límite S4 de arriba). Siguen sin demostrar en
+infraestructura real la garantía de `ifGenerationMatch`, los reintentos del SDK, la ventana entre la comprobación y la
+petición, y la latencia y la concurrencia entre instancias de Cloud Functions.
 
 ## 7. Lo que NO se cambia: `ci-workflow` (comprobación 13)
 
