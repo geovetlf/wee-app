@@ -294,18 +294,33 @@ desconocidos y ninguna reclamación prospera, y la reconciliación no tiene llam
 - Fuera de esta rama, alcanzable hoy: el borrado de la foto única de WeeTalk (`burnViewOnce`) no usa índice, concesión ni
   generación (ver `docs/ACTIVOS-CONCURRENCIA.md`).
 
-**La suite G del barrido falló una vez.** En la regresión final (`r4-barrido.log`) el barrido dio 39 / 40: cayó
-`activos-concurrencia-3-g` con el `Transaction lock timeout` del emulador de Firestore, el fallo que su propia cabecera
-documenta («Sin reintento, la excepción escapa, tumba la suite y no prueba nada»). Se repitió con el corredor oficial sobre
-el mismo código: 5 de 6 pasan y la cuarta cae con la misma firma (`r5-g-hardening-run*.log`); con la salida completa, una
-pasa y otra cae a los 26 s con un `ECONNABORTED` al subir al emulador de Storage, sin ejecutar ninguna comprobación. Después,
-con la máquina quieta, el código final pasó 8 de 8 (118–149 s) y el de `a2b7832`, 8 de 8 (128–146 s). En total, el código
-final dio 3 fallos en 17 ejecuciones (dos con la firma de bloqueo y uno de arranque) y la base ninguno en 8. Es la
-intermitencia que la suite ya documentaba, pero no se puede atribuir ni descartar al código nuevo: G4 retira con el código
-de verdad (`retirarMaterial`) y vuelve a llamar a `completarBorrado` con el puerto real, y la comprobación previa añade dos
-lecturas en cada borrado (siempre dentro de un `try`, así que no pueden ser la excepción que escapa). Todavía no se ha
-capturado de qué operación sale esa excepción, porque el corredor solo enseña la cola de una suite que falla. No se ha
-tocado la suite.
+**La suite G del barrido: tres barridos, dos fallos.** `activos-concurrencia-3-g` obtuvo ✔ en 164,9 s en el barrido de
+`382b604` (`r3-barrido.log`, 40 / 40), ✘ en 82,6 s en el de `238ad84` (`r4-barrido.log`, 39 / 40), ✘ en 115,2 s en el de
+`bba4363` (`r5-barrido.log`, 39 / 40) y ✔ en 134,6 s en un tercero sobre `bba4363` con el diagnóstico cargado
+(`r5-barrido-diag.log`, 40 / 40; ya estaba en marcha cuando se pidió no lanzar más barridos y no se lanzó ninguno después).
+Los dos fallos tienen la misma firma: `Transaction lock timeout`, código 10, «not classified as transient». Es la que la
+cabecera de la propia suite documenta desde antes de esta rama («Sin reintento, la excepción escapa, tumba la suite y no
+prueba nada»). La producción de `238ad84` y la de `bba4363` es la misma (mismos hashes compilados).
+
+Lo que se midió sobre la causa, con el diagnóstico `r5-diag-ab-resumen.txt` y `r5-barrido-diag.lock10.log`:
+
+- En una ejecución que pasa, la suite recibe de 3 a 10 rechazos con código 10, de 8 a 10 s de espera cada uno. En el tercer
+  barrido fueron 10: nueve en la transacción de la reclamación (`reclamarParaBorrar`, `indice.js:294`), que `completarBorrado`
+  captura, y uno en la primera transacción de `retirarConIndice` (`indice.js:559`), que en esa ejecución no hizo fallar la
+  suite. Ninguno es de las dos lecturas de la comprobación previa, que están en un `try` y no pueden ser la excepción que
+  escapa.
+- Con el código de producción de `a2b7832` (sin las cuatro correcciones) la suite, aislada, recibe un número parecido de
+  rechazos (7, 3 y 3 frente a 3, 5, 5 y 4 con el final) y pasa las tres veces.
+- Aislada y con la máquina quieta pasa 8 de 8 con el código final y 8 de 8 con el de la base; el grupo de las cuatro
+  suites de concurrencia, 2 de 2.
+- Con el código final, 26 ejecuciones: 22 ✔ y 4 ✘ (tres con esa firma y una de arranque, un `ECONNABORTED` al subir al
+  emulador de Storage sin ejecutar ninguna comprobación). Con el de la base, 11 ✔ y 0 ✘. El brazo «sin `f96212a`» del
+  experimento no se ejecutó por un error de nombre de archivo de mi script.
+
+Conclusión: es la intermitencia del emulador bajo bloqueos que la suite ya documentaba, y las correcciones no cambian cuántos
+bloqueos recibe. No se midió la tasa de fallo de la base con potencia suficiente, así que no se descarta que las correcciones
+la aumenten algo, y por eso el barrido no se da por verde: el resultado es 40 / 40 una vez y 39 / 40 dos veces, y la suite
+queda como intermitente. No se ha tocado la suite.
 
 **Decisión: reanclar.** Se cumplen las siete condiciones (cifras reproducidas, causa de cada una identificada, correcciones
 revisadas y probadas, las otras dos condiciones de F3 intactas, alcance de F3 sin cambios, propuesta correspondiente a
@@ -327,6 +342,27 @@ exclusión, no se cambia ningún `git diff` de la cerca ni se toca ninguna otra 
 
 Compilado (sha256 de `functions/lib/content`): `indice.js` `e91cd7f8235f637f4ae97867127079d5a35855893647d5953c4a01ccf4df13d6`, `index.js`
 `9adde7e44bf6ee02897f52595131f43215837e902b7b35b59fb44b54765d7934`, `indice-almacen.js` `3d0637c3acf58731be218cd84189b7e8ca6d6be5ac52e91648273647622ba8e9`.
+
+**Resultado tras el reanclaje (`bba4363`).** El commit solo cambia `functions/test/puente-pre-f1d.test.mjs` (+7 / −2): cinco
+líneas de comentario y las dos de la constante `CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS`. El código de la comprobación, los
+`git diff` que compara y las demás comprobaciones son los de antes.
+
+| | Antes (`238ad84`) | Después (`bba4363`) |
+|---|---|---|
+| F3 aislada (`node test/puente-pre-f1d.test.mjs`) | exit 1 · 40 ✔ · 1 ✘ (la 39) | exit 0 · 41 ✔ · 0 ✘ |
+| Cadena sin emulador (`node test/_cadena.mjs`) | 299 / 300 · 19 995 ✔ · 343 s (solo F3) | 300 / 300 · 19 996 ✔ · 440 s |
+
+Pasa por la corrección y no por una relajación: la evaluación de las tres condiciones con las constantes del propio test da
+`=` en los 19 archivos de `core/` y en los 6 de `content/`, y la cerca sigue mordiendo. Con el árbol ya reanclado, una línea
+más en `content/indice.ts` (S1) o en `core/media/indice.ts` (S2) la hace fallar, y una en `productions` (S3) hace fallar F1 y
+F3. Un cambio de contenido con el mismo número de líneas (S4) no lo ve: el límite ya documentado. Con el árbol de
+`a2b7832`, la referencia nueva no se cumple: fallan exactamente las tres cifras (`r5-f3-referencia-nueva-contra-a2b7832.log`).
+
+Regresión posterior, sobre código de producción idéntico al de `238ad84` (mismos hashes de lo compilado): build y `tsc`
+con salida 0; recuperación 30 / 30, MC-9 32 / 32, A-2 70 / 70, frontera del SDK 16 / 16 y lease 59 / 59, con el corredor
+oficial; `media-objetos`; las tres puertas ligeras y las 23 políticas. No se repitió la exportación web (92 ficheros, sin
+secretos ni código del servidor, huella idéntica a la de las rondas anteriores), ni el grupo `activos-`, ni el barrido
+completo más allá de los tres descritos: el reanclaje solo toca un test y documentos.
 
 **Lo que el reanclaje no certifica.** Fija el árbol tal cual, no lo aprueba para producción. La cerca sigue midiendo
 tamaños, no contenido: una edición del mismo tamaño pasa desapercibida (el límite S4 de arriba). Siguen sin demostrar en
