@@ -98,7 +98,13 @@ console.log('\n── G · El control: la misma carrera sin transacción (experi
   });
   const violacionesSin = violadas.filter(Boolean).length;
   check(`G3 SIN transacción, reclamar y crear una fila a la vez deja «borrando con fila viva»: ${violacionesSin}/${rondasG3}`, violacionesSin > 0);
-  /* G4 · lo mismo con el código de verdad (transaccional): ficha nueva sobre un candidato frente a su reclamación. */
+  /* G4 · lo mismo con el código de verdad (transaccional): ficha nueva sobre un candidato frente a su reclamación.
+   * Las rondas van UNA TRAS OTRA (tanda 1). Lo que se verifica es la carrera DENTRO de cada ronda (crear frente a completarBorrado
+   * sobre el mismo objeto) y esa sigue siendo concurrente; cada ronda trabaja sobre su propio objeto, así que correr cinco a la vez
+   * no añadía nada a lo que se comprueba. Lo que sí añadía: el emulador hace esperar a las transacciones que se pisan, y con cinco
+   * rondas a la vez la primera transacción de `retirarMaterial` esperaba en esa cola de 12 a 27 s; si agotaba los reintentos del
+   * SDK, su «Transaction lock timeout» (ABORTED, código 10) salía de esta llamada del arnés, que no tiene protección, y tumbaba la
+   * suite antes de la comprobación. Medida y comparación en docs/ACTIVOS-CONCURRENCIA.md («Diagnóstico de la intermitencia del grupo G»). */
   const rondasG4 = 15;
   const violacionesPorRonda = await enTandas(rondasG4, async () => {
     const c = clave(); await subir(c);
@@ -111,7 +117,7 @@ console.log('\n── G · El control: la misma carrera sin transacción (experi
     if (vivasHay > 0 && (reg.estado === 'borrando' || reg.estado === 'borrado')) violaciones++;
     if (nueva && !(await existe(c))) violaciones++;
     return violaciones;
-  });
+  }, 1);
   const violacionesCon = violacionesPorRonda.reduce((s, x) => s + x, 0);
   check(`G4 ${rondasG4} rondas CON el código de verdad: 0 «borrando con fila viva» y 0 fichas vivas sin bytes`, violacionesCon === 0, `violaciones: ${violacionesCon}`);
 }

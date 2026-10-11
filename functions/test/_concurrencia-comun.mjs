@@ -55,12 +55,13 @@ export const cerrar = () => {
 
 export const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/* Rondas independientes, en tandas a la vez. Devuelve lo que devuelve cada ronda, en orden. */
+/* Rondas independientes, en tandas a la vez. Devuelve lo que devuelve cada ronda, en orden. `tanda` es cuántas rondas corren
+ * a la vez (por defecto TANDA; 1 = una tras otra, para las secciones cuyas transacciones el emulador serializa entre rondas). */
 const TANDA = 5;
-export const enTandas = async (total, ronda) => {
+export const enTandas = async (total, ronda, tanda = TANDA) => {
   const salida = [];
-  for (let i = 0; i < total; i += TANDA) {
-    salida.push(...await Promise.all(Array.from({ length: Math.min(TANDA, total - i) }, (_, j) => ronda(i + j))));
+  for (let i = 0; i < total; i += tanda) {
+    salida.push(...await Promise.all(Array.from({ length: Math.min(tanda, total - i) }, (_, j) => ronda(i + j))));
   }
   return salida;
 };
