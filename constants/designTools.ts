@@ -77,29 +77,41 @@ export const PUERTAS_DE_DESIGN: PuertaDeDesign[] = [
  * No son los de una imagen cualquiera: a un diseño se le pregunta el estilo, de
  * qué está hecho y con qué luz se enseña. Formato y calidad se comparten con el
  * Studio porque significan lo mismo y ya tienen sus textos.
+ *
+ * ── Todos abren con «Automático» ─────────────────────────────────────────────
+ *
+ * La hoja de ajustes marca como puesta la PRIMERA opción de un grupo mientras
+ * nadie toque nada (`AjustesContextuales`: «siempre hay una puesta»). Cuando la
+ * primera era «Moderno», «Madera», «Natural» o «Estándar», quien no había elegido
+ * nada leía «Estilo: Moderno · Materiales: Madera · Luz: Natural» como si fueran
+ * suyos, y una vez tocado un grupo no había forma de volver a «que decida Weë».
+ * Es la misma regla que fija `ajustes-weeai` 6 para la hoja común: cada grupo
+ * abre con «Automático», que es lo que de verdad pasa si nadie decide.
  */
 const o = (id: string, clave: string) => ({ id, clave });
+
+const AUTO = o('auto', 'studio.valAuto');
 
 export const AJUSTES_DE_DESIGN: AjusteDeStudio[] = [
   {
     id: 'style', clave: 'design.optStyle',
-    opciones: [o('modern', 'design.valModern'), o('minimal', 'design.valMinimal'), o('classic', 'design.valClassic'), o('industrial', 'design.valIndustrial')],
+    opciones: [AUTO, o('modern', 'design.valModern'), o('minimal', 'design.valMinimal'), o('classic', 'design.valClassic'), o('industrial', 'design.valIndustrial')],
   },
   {
     id: 'materials', clave: 'design.optMaterials',
-    opciones: [o('wood', 'design.valWood'), o('metal', 'design.valMetal'), o('glass', 'design.valGlass'), o('mixed', 'design.valMixed')],
+    opciones: [AUTO, o('wood', 'design.valWood'), o('metal', 'design.valMetal'), o('glass', 'design.valGlass'), o('mixed', 'design.valMixed')],
   },
   {
     id: 'lighting', clave: 'design.optLighting',
-    opciones: [o('natural', 'design.valNatural'), o('warm', 'design.valWarm'), o('studio', 'design.valStudioLight')],
+    opciones: [AUTO, o('natural', 'design.valNatural'), o('warm', 'design.valWarm'), o('studio', 'design.valStudioLight')],
   },
   {
     id: 'format', clave: 'studio.optFormat',
-    opciones: [o('auto', 'studio.valAuto'), o('square', 'studio.valSquare'), o('portrait', 'studio.valPortrait'), o('landscape', 'studio.valLandscape')],
+    opciones: [AUTO, o('square', 'studio.valSquare'), o('portrait', 'studio.valPortrait'), o('landscape', 'studio.valLandscape')],
   },
   {
     id: 'quality', clave: 'studio.optQuality',
-    opciones: [o('standard', 'studio.valStandard'), o('high', 'studio.valHigh')],
+    opciones: [AUTO, o('standard', 'studio.valStandard'), o('high', 'studio.valHigh')],
   },
 ];
 
