@@ -461,6 +461,34 @@ const anotarFallo = (que: string, objectRef: string) => (error: unknown): boolea
 };
 
 /**
+ * ¿LA CONCESIÓN QUE OBTUVE SIGUE SIENDO LA DEL REGISTRO? Lo mismo que exigen `cerrar` y `devolver` (estado, versión e `id`
+ * de la concesión) más la caducidad, que hasta ahora solo miraba quien quería reclamar de nuevo. El almacén no sabe de
+ * concesiones: quien la sostiene tiene que comprobarla justo antes de pedirle el borrado. Cualquier duda (lectura fallida,
+ * registro incompleto, otra cuenta) es «no».
+ */
+const concesionSigueSiendoMia = async (
+  deps: DepsDelIndice,
+  objectRef: string,
+  cuenta: string,
+  concesionId: string,
+  esperado: EsperadoDelObjeto,
+): Promise<boolean> => {
+  try {
+    const snap = await refDeObjeto(deps.db, objectRef).get();
+    if (!snap.exists) return false;
+    const o = snap.data() as MediaObject;
+    return registroEsDeLaCuenta(o, cuenta)
+      && o.estado === esperado.estado
+      && versionDe(o) === esperado.version
+      && o.concesion?.id === concesionId
+      && Number.isFinite(o.concesion.hasta) && o.concesion.hasta > deps.ahora();
+  } catch (error) {
+    anotarFallo('no se pudo confirmar la concesión; el objeto queda como estaba', objectRef)(error);
+    return false;
+  }
+};
+
+/**
  * EL BORRADO DE UN OBJETO, ENTERO: T2 → borrado con generación → T3. Lo usa la
  * retirada (D-A, sin gracia) y lo puede usar el barrido. Ante cualquier duda el
  * objeto se queda, con su motivo, y no se afirma que se borró: solo un cierre
@@ -486,6 +514,14 @@ export const completarBorrado = async (
     await devolverBorrado(deps, objectRef, cuenta, r.concesionId, r.esperado, 'precondicion_no_soportada', false)
       .catch(anotarFallo('no se pudo devolver el objeto a candidato', objectRef));
     return { estado: 'devuelto', motivo: 'precondicion_no_soportada' };
+  }
+  /*
+   * Entre reclamar y pedir el borrado puede pasar más que la concesión: una pausa larga, o un recuperador que ya reclamó de
+   * nuevo. Una concesión caducada, superada o que no se puede leer no autoriza el borrado: no se toca ni el almacén ni el
+   * registro, y el objeto queda pendiente para quien tenga la concesión o para la recuperación posterior.
+   */
+  if (!(await concesionSigueSiendoMia(deps, objectRef, cuenta, r.concesionId, r.esperado))) {
+    return { estado: 'protegido', motivo: 'concesion_perdida' };
   }
   let d: DesenlaceDeBorrado;
   try {
