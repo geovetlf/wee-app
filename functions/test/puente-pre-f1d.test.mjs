@@ -752,8 +752,13 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * Antes: content/index.ts 68/3 y content/materializador.ts 126/4 (F3 en rojo desde la base); core sin core/media. */
   const CORE_DEL_NUCLEO_DE_ACTIVOS = '1\t0\tfunctions/src/core/media/index.ts\n747\t0\tfunctions/src/core/media/indice.ts\n107\t4\tfunctions/src/core/media/objeto.ts'
     + '\n52\t1\tfunctions/src/core/media/puerto.ts\n7\t1\tfunctions/src/core/media/recoleccion.ts\n255\t1\tfunctions/src/core/media/reconciliacion.ts\n2\t1\tfunctions/src/core/media/subida.ts';
-  const CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS = '388\t101\tfunctions/src/content/index.ts\n298\t0\tfunctions/src/content/indice-almacen.ts'
-    + '\n392\t0\tfunctions/src/content/indice-reconciliacion.ts\n709\t0\tfunctions/src/content/indice.ts\n126\t4\tfunctions/src/content/materializador.ts\n223\t0\tfunctions/src/content/versiones.ts';
+  /* Reanclaje del 2026-10-11, autorizado por el dueño tras la auditoría de docs/ACTIVOS-CERCAS.md § 6 («Auditoría del
+   * 2026-10-11 y decisión de reanclar»). Cifras NETAS del árbol contra b023f24 de tres archivos, cada una atribuida a un
+   * commit revisado de la rama cierre/almacenamiento-recuperacion: content/index.ts 388/101 → 393/103 (b952ab8),
+   * content/indice-almacen.ts 298/0 → 303/0 (7316fcf) y content/indice.ts 709/0 → 812/0 (b952ab8 +59, b41999f +36 y
+   * f96212a +8). Los otros tres archivos y las otras dos condiciones de F3 no cambian. */
+  const CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS = '393\t103\tfunctions/src/content/index.ts\n303\t0\tfunctions/src/content/indice-almacen.ts'
+    + '\n392\t0\tfunctions/src/content/indice-reconciliacion.ts\n812\t0\tfunctions/src/content/indice.ts\n126\t4\tfunctions/src/content/materializador.ts\n223\t0\tfunctions/src/content/versiones.ts';
   /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
   const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
   check('F3) ni F1-A ni productions; del Core, la misión fal, el linaje 3D y el núcleo de activos (H5/H2); del contenido, la adopción de F1-D, el cierre, los derechos, DEC-03 y el núcleo de activos (H5/H2)',
