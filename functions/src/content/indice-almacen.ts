@@ -207,11 +207,16 @@ export const puertoDelStorageDeWee = (providerId: string): PuertoDeAlmacenamient
     },
     async borrar(ref: StorageRef, opciones?: OpcionesDeBorrado): Promise<DesenlaceDeBorrado> {
       if (!deEsteCubo(ref)) return { ok: false, error: falloDeAlmacen(providerId, 'peticion_invalida', { field: 'ref' }) };
-      if (opciones !== undefined && (typeof opciones.generacion !== 'string' || !opciones.generacion)) {
+      /*
+       * Cerrado por defecto: sin una generación no hay precondición, y sin precondición no se pide ningún borrado al Storage de
+       * Weë. Antes, `borrar(ref)` sin opciones borraba incondicionalmente (medido en la frontera del SDK: la petición salía sin
+       * `ifGenerationMatch`), y una sobrescritura entre la decisión y el borrado podía llevarse una generación que nadie decidió.
+       */
+      if (typeof opciones?.generacion !== 'string' || !opciones.generacion) {
         return { ok: false, error: falloDeAlmacen(providerId, 'peticion_invalida', { field: 'generacion' }) };
       }
       try {
-        const precondicion = opciones ? ({ ifGenerationMatch: opciones.generacion } as unknown as DeleteFileOptions) : undefined;
+        const precondicion = { ifGenerationMatch: opciones.generacion } as unknown as DeleteFileOptions;
         await storageBucket().file(ref.objectKey).delete(precondicion);
         return { ok: true, yaNoEstaba: false };
       } catch (error) {
