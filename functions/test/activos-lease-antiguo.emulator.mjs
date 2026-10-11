@@ -35,7 +35,7 @@
  *   K7   dos recuperadores y A con el orden fijado por compuertas → un solo borrado efectivo
  *   K8   el borrado físico se completó pero el cierre falló, y A despierta → A no actúa; el siguiente recuperador cierra
  *   K9   consumidores desconocidos para el recuperador nuevo y A caducada → nadie borra
- *   K10  cada condición de la comprobación, aislada: registro ausente, otra cuenta, otra versión, otro estado, caducidad ilegible
+ *   K10  cada condición de la comprobación, aislada: registro ausente, otra cuenta, otra versión, otro estado, caducidad ilegible, otro id de concesión
  *   K11  la reconciliación marca el objeto mientras A tiene la concesión vigente → A no borra (va la última: repara la cuenta)
  *
  * Qué es tiempo real y qué no. El orden entre A y los demás actores lo fijan compuertas (promesas que la prueba abre) y
@@ -532,6 +532,7 @@ await aislar('K10b', 'la cuenta dueña', (doc) => doc.update({ accountId: BETO }
 await aislar('K10c', 'la versión', async (doc) => doc.update({ version: ((await doc.get()).data().version ?? 0) + 1 }));
 await aislar('K10d', 'el estado', (doc) => doc.update({ estado: 'candidato' }));
 await aislar('K10e', 'la caducidad ilegible', (doc) => doc.update({ 'concesion.hasta': 'ilegible' }));
+await aislar('K10f', 'el id de la concesión', (doc) => doc.update({ 'concesion.id': `ajena-${RUN}` }));
 
 /* ═══ K11 · LA RECONCILIACIÓN MARCA EL OBJETO MIENTRAS A TIENE LA CONCESIÓN VIGENTE ═══════════════════════════════
  * La marca de la reconciliación no sube la versión ni toca la concesión (MC-9, M7): el token de A sigue siendo válido. El
