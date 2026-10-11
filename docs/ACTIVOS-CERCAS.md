@@ -322,6 +322,17 @@ bloqueos recibe. No se midió la tasa de fallo de la base con potencia suficient
 la aumenten algo, y por eso el barrido no se da por verde: el resultado es 40 / 40 una vez y 39 / 40 dos veces, y la suite
 queda como intermitente. No se ha tocado la suite.
 
+*Actualización del 2026-10-11 (la conclusión de arriba se conserva como estaba; lo que cambia es lo medido después).* Una
+ronda posterior, con el mismo corredor y un diagnóstico que no cambia el comportamiento, **reprodujo la muerte con la
+producción de la base** (`a2b7832`, sin ninguna de las cuatro correcciones) y capturó por primera vez la operación que la
+causa: la primera transacción de `retirarMaterial` de una ronda de G4 (`activos-concurrencia-3-g.emulator.mjs:106`), 22,4 s
+en la cola del emulador con las otras rondas de su tanda, sin protección en el arnés. No hay regresión demostrada; las
+muertes anteriores tienen la misma firma pero su operación es UNKNOWN. El arnés se corrigió (las rondas de G4 van de una en
+una; ningún cambio en producción, rondas ni aserciones) y tres ejecuciones posteriores pasaron con 3–6 transacciones de más
+de 5 s en vez de 12–22. El barrido completo no se repitió y sigue sin declararse verde. El detalle, la tabla de las trece
+ejecuciones y lo que no se demostró están en `docs/ACTIVOS-CONCURRENCIA.md` («Diagnóstico de la intermitencia del grupo G»).
+Este párrafo no mueve ninguna cifra ni ancla de F3: solo toca documentación y `functions/test/`.
+
 **Decisión: reanclar.** Se cumplen las siete condiciones (cifras reproducidas, causa de cada una identificada, correcciones
 revisadas y probadas, las otras dos condiciones de F3 intactas, alcance de F3 sin cambios, propuesta correspondiente a
 `238ad84` y a los mismos ficheros compilados, y ninguna señal de que se normalice una regresión). El reanclaje es un
