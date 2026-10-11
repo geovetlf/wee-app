@@ -84,6 +84,7 @@ const DesignScreen: React.FC = () => {
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
   const [ajustes, setAjustes] = useState<Record<string, string>>({});
   const [referencias, setReferencias] = useState<string[]>([]);
+  const numeroDeReferencia = useRef(0);
   const [estado, setEstado] = useState<EstadoDeCreacion>('quieto');
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -119,8 +120,19 @@ const DesignScreen: React.FC = () => {
   }, [t]);
 
   const alAnadirReferencia = useCallback(() => {
-    /* Sin selector de archivos todavía: una de muestra, para ver la forma. */
-    setReferencias((antes) => [...antes, `referencia-${antes.length + 1}.png`]);
+    /*
+     * Sin selector de archivos todavía: una de muestra, para ver la forma. El número
+     * sale de un contador y no del largo de la lista: al quitar una y añadir otra,
+     * dos fichas no pueden acabar llamándose igual.
+     */
+    numeroDeReferencia.current += 1;
+    const nombre = `referencia-${numeroDeReferencia.current}.png`;
+    setReferencias((antes) => [...antes, nombre]);
+  }, []);
+
+  /* Lo que se adjunta se puede soltar: como en Weë Studio, tocar la ficha la quita. */
+  const alQuitarReferencia = useCallback((posicion: number) => {
+    setReferencias((antes) => antes.filter((_, j) => j !== posicion));
   }, []);
 
   /*
@@ -208,7 +220,13 @@ const DesignScreen: React.FC = () => {
             {referencias.length > 0 && (
               <View style={styles.referencias}>
                 {referencias.map((r, i) => (
-                  <FichaDeContexto key={`${r}-${i}`} icono="image-outline" texto={r} />
+                  <FichaDeContexto
+                    key={`${r}-${i}`}
+                    icono="image-outline"
+                    texto={r}
+                    onQuitar={() => alQuitarReferencia(i)}
+                    etiquetaQuitar={t('studio.removeContext')}
+                  />
                 ))}
               </View>
             )}

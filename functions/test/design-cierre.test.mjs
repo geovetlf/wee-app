@@ -123,7 +123,27 @@ check('B3) y si todavía no dicta, lo dice con la frase de siempre (`common.comi
   /notify\(t\('common\.comingSoon'\)\)/.test(alDictar) && /import \{[^}]*\bnotify\b[^}]*\} from '\.\.\/utils\/notify'/.test(codigo)
   && faltan(['common.comingSoon']).length === 0, 'common.comingSoon en los dieciséis idiomas');
 
+/*
+ * LO QUE SE ADJUNTA SE PUEDE QUITAR.
+ *
+ * `FichaDeContexto` ya sabe soltarse (`onQuitar`) y Weë Studio se lo pasa a las suyas: «un contexto invisible que cambia el
+ * resultado es un contexto que la persona no puede corregir». En Weë Design las fichas de referencia no la llevaban, así que
+ * añadir era un camino de ida (auditoría UIUX 3.2). Y quitar una no puede dejar nombres repetidos al añadir otra: el nombre
+ * no sale del largo de la lista, sale de un contador.
+ */
+const fichasDeReferencia = (src) => (src.match(/<FichaDeContexto\b[\s\S]*?\/>/g) || []).filter((f) => /icono="image-outline"/.test(f));
+const sePuedeQuitar = (f) => /onQuitar=\{/.test(f) && /etiquetaQuitar=\{t\('studio\.removeContext'\)\}/.test(f);
+const nombraPorElLargo = (src) => /referencia-\$\{[^}]*\.length/.test(src);
+check('B4) lo que se adjunta se puede quitar: cada ficha de referencia lleva su aspa y su etiqueta (`studio.removeContext`)',
+  fichasDeReferencia(codigo).length > 0 && fichasDeReferencia(codigo).every(sePuedeQuitar), `${fichasDeReferencia(codigo).length} ficha(s) de referencia`);
+check('B4) y quitar una no repite nombres al añadir otra: el nombre no sale del largo de la lista', !nombraPorElLargo(codigo));
+
 /* CONTROLES */
+check('CONTROL: una ficha de referencia sin aspa, o con nombres sacados del largo de la lista, se vería',
+  !sePuedeQuitar('<FichaDeContexto key={r} icono="image-outline" texto={r} />')
+  && sePuedeQuitar("<FichaDeContexto icono=\"image-outline\" texto={r} onQuitar={() => quitar(i)} etiquetaQuitar={t('studio.removeContext')} />")
+  && nombraPorElLargo('`referencia-${antes.length + 1}.png`') && !nombraPorElLargo('`referencia-${++numero.current}.png`'),
+  'si esto pasara, B4 no protegería nada');
 check('CONTROL: un temporizador de demostración sin su aviso sería detectado',
   !diceLaVerdad("setTimeout(() => setEstado('listo'), 1);\n<AvisoDeCreacion clavePista={null} />") && diceLaVerdad("<AvisoDeCreacion estado={estado} />"),
   'si esto pasara, B1 no protegería nada');
