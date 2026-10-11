@@ -63,7 +63,9 @@
 
 **Reanudación de un borrado a medias (trabajo A).** Si la retirada deja la ficha con `pendingPhysicalDeletion`, repetir la
 retirada completa esos objetos con el mismo `completarBorrado`. La decisión de MC-5 sigue siendo la única que autoriza un
-borrado. El adaptador del Storage de Weë rechaza cualquier borrado sin generación registrada.
+borrado. El adaptador del Storage de Weë rechaza cualquier borrado sin generación registrada. Quien sostiene la concesión
+la comprueba (estado, versión, `id` y caducidad) justo antes de pedir el borrado físico: una concesión caducada, superada o
+ilegible no autoriza nada, y el objeto queda pendiente para quien tenga la concesión o para la recuperación posterior.
 
 **Tensión abierta entre D-B y D-C.** D-B dice que la reconciliación deja el objeto `candidato` para que decida MC-5. D-C
 excluye las claves `users/` del barrido de MC-5. Para esos objetos, la decisión final no tiene un disparador automático
@@ -128,7 +130,7 @@ Con el parche aplicado, la cadena (`node test/_cadena.mjs`, 280 suites) daba 10 
 - `puente-pre-f1d` **F1**, `video-asincrono` **H3**, las listas de `media-core`, `media-delivery-core`, `media-upload-core` y `media-proceso-core` y `runtime-map` 91, 92 y 99: **actualizadas** con la autorización del dueño, por nombre y tamaño, y con la prueba de que siguen mordiendo ([`ACTIVOS-CERCAS.md`](ACTIVOS-CERCAS.md)).
 - `puente-pre-f1d` **F3**: sigue en rojo. Ya lo estaba en la base (`8fcc5c0`) y no está en la lista autorizada; ACTIVOS-CERCAS.md dice qué líneas haría falta añadirle.
 - **Actualización (cierre técnico de recuperación).** `puente-pre-f1d` **F3** se reancló después (ACTIVOS-CERCAS.md §6) y
-  estaba verde en `a2b7832`. Vuelve a rojo desde `b952ab8` y `7316fcf` por tres cifras de `content/`. No se reancla sin la
+  estaba verde en `a2b7832`. Vuelve a rojo desde `b952ab8`, `7316fcf` y `b41999f` por tres cifras de `content/`. No se reancla sin la
   autorización del dueño: la tabla con las cifras exactas está en ACTIVOS-CERCAS.md §6, «Estado posterior».
 - `ci-workflow` 13: sigue en rojo hasta que el integrador añada las cuatro suites nuevas `*.test.mjs` a `scripts.test` (no se edita `functions/package.json`).
 

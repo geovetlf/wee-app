@@ -103,13 +103,14 @@ están demostrados. Esta suite no declara la integración lista para producción
 
 ## Cierre técnico: recuperación, MC-9 y generaciones
 
-Tres suites nuevas. Cada una declara sus límites en la cabecera del fichero.
+Cuatro suites nuevas. Cada una declara sus límites en la cabecera del fichero.
 
 | Suite | Qué fija | Resultado |
 |---|---|---|
 | `activos-recuperacion-caida.emulator.mjs` | Caídas entre reclamar, borrar y cerrar; reintentos; errores transitorios y repetidos; dos recuperadores; incertidumbre; cuentas cruzadas | 30 de 30. Antes de la corrección, 13 de 28 comprobaciones de la versión previa fallaban (el defecto); después se añadieron dos comprobaciones |
 | `activos-mc9-verificacion.emulator.mjs` | Los doce casos de MC-9 del encargo | 32 de 32. Sin defectos de reconciliación |
 | `activos-generacion-sdk.emulator.mjs` | La precondición de generación hasta la frontera del SDK | 16 de 16. Antes de la corrección, un borrado sin generación salía sin precondición (G8) |
+| `activos-lease-antiguo.emulator.mjs` | Un lease antiguo no actúa sobre una reclamación nueva (diez escenarios, K0–K9) | 27 de 27. Antes de la corrección, 12 de 27 fallaban: la operación con la concesión caducada o sustituida pedía igualmente el borrado físico |
 
 **Recuperación de un borrado a medias.** La retirada deja la ficha en `deleted` con `pendingPhysicalDeletion`. Si el
 proceso cae después de reclamar, el registro queda en `borrando` con una concesión que caduca, y nada lo volvía a
@@ -130,6 +131,40 @@ opciones. Ahora lo rechaza sin pedir nada al SDK. Medido en la frontera: la peti
 HTTP. Verifica que `ifGenerationMatch` sale con la generación registrada, y que un 412, un 404, un 503 y un 403 se mapean a
 los resultados del índice. Las respuestas del Storage se inyectan. La semántica de GCS (un 412 real cuando la generación
 no coincide) no se puede comprobar en el emulador; queda pendiente de una prueba de integración real con autorización.
+
+**Un lease antiguo no actúa.** Reclamar un objeto lo pasa a `borrando` y le escribe una concesión `{ id, hasta }` y una
+versión nueva. Ese par (el `id` y la versión) es el token que exigen `cerrarBorrado` y `devolverBorrado`: con otro `id` o
+con otra versión no escriben nada y responden `concesion_ajena`. `hasta` solo deja que OTRO reclame cuando caduca. Lo que
+faltaba era la petición de borrado físico: quien sostenía una concesión caducada o sustituida la pedía igualmente al
+almacén, porque el almacén no conoce las concesiones y la concesión solo guardaba las transiciones del registro. La
+suite lo reproduce con la secuencia siguiente, sin dormir ni depender del azar:
+
+1. A reclama legítimamente y obtiene L1. La prueba la lee del registro.
+2. Una compuerta (una promesa que la prueba abre) detiene a A justo después de que la reclamación se confirme, antes de
+   pedir el borrado. El reloj inyectado pasa la caducidad de L1.
+3. El flujo real de recuperación (repetir la retirada) reclama de nuevo y genera L2. Ese recuperador cae justo después de
+   reclamar, así que L2 sigue vigente.
+4. A despierta con L1 e intenta continuar. Debe quedar rechazada: ninguna petición al almacén y ningún cambio en el
+   registro, y L2 sigue siendo procesable por su propietario.
+
+Los escenarios, cada uno con su objeto: K0 control (con la concesión vigente, A completa el borrado, así que la
+comprobación nueva no estorba al camino normal), K1 justo antes de la transición (L1 caducó y nadie reclamó todavía), K2
+justo después (L2 vigente; L1 reintentada tres veces no cierra ni devuelve; L2 la completa su dueño), K3 el objeto sigue
+siendo necesario (referencia viva de otra cuenta), K4 L2 se completa y A vuelve (no toca nada ni resucita el objeto), K5 la
+lectura del estado falla, K6 la lectura devuelve el registro incompleto, K7 dos recuperadores compiten y A despierta (un
+solo borrado efectivo), K8 el borrado físico se completó pero el cierre falló y A despierta (el siguiente recuperador
+cierra), K9 consumidores desconocidos para el recuperador nuevo y A con la concesión caducada (nadie borra).
+
+La corrección es mínima y no crea una segunda autoridad de borrado: `completarBorrado` relee el registro justo antes de
+pedir el borrado y solo sigue si el estado, la versión y el `id` de la concesión son los suyos, el registro es de la
+cuenta y `hasta` no ha pasado. Si la lectura falla o el registro llega incompleto, no borra y el objeto queda como estaba,
+recuperable. La decisión sigue siendo la de MC-5 y el cierre sigue exigiendo la concesión.
+
+Límites. El emulador no hace cumplir `ifGenerationMatch` y esta suite no lo usa como protección. Entre la comprobación y
+la petición (y durante la propia petición) queda una ventana mínima que solo se cierra del lado del almacén, y aquí no se
+demuestra. La detención de A es una compuerta de prueba, no un fallo del proceso real. La comprobación vive en
+`completarBorrado`, la ruta de la retirada y de la recuperación. El colector MC-5 (`media/recoleccion.ts`) tiene su propio
+camino de borrado y no la hace: no se tocó porque el encargo pedía el arreglo mínimo y su barrido no está activado.
 
 **Dos observaciones no corregidas.** El colector MC-5 tiene una rama sin cerrojo que borra sin generación. Hoy no es
 alcanzable: su único llamador, el barrido de índice, siempre pasa cerrojo. El adaptador de Weë ya la rechaza. Una propuesta
