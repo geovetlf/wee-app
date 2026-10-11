@@ -513,7 +513,7 @@ export const completarBorrado = async (
 
 export type ResultadoDeRetiradaConIndice =
   | { status: 'retirado'; asset: AssetDoc; objetosBorrados: number; pendientes: number; motivos: Readonly<Record<string, number>> }
-  | { status: 'ya_retirado' }
+  | { status: 'ya_retirado'; objetosBorrados?: number; pendientes?: number; motivos?: Readonly<Record<string, number>> }
   | { status: 'no_es_tuyo' }
   | { status: 'no_existe' };
 
@@ -521,6 +521,63 @@ const objetosDeLaFicha = (f: Pick<AssetDoc, 'storageRef' | 'variants'>): Storage
   [f.storageRef, ...(f.variants ?? []).map((v) => v.storageRef)].filter((r): r is StorageRef => esStorageRef(r));
 
 const sumar = (m: Record<string, number>, k: string): void => { m[k] = (m[k] ?? 0) + 1; };
+
+/**
+ * REANUDAR UN BORRADO A MEDIAS. Repetir una retirada ya hecha no retira nada más, pero si la ficha dice que queda algo
+ * por borrar (`pendingPhysicalDeletion`), completa esos objetos con el MISMO borrado que usa la retirada: `completarBorrado`
+ * reclama con la decisión de MC-5, borra con la generación registrada y cierra con la concesión propia. Así no aparece
+ * ninguna regla nueva: lo que protege la decisión protege aquí igual, y una caída o una incertidumbre deja el objeto
+ * pendiente, nunca borrado. Un `borrando` cuya concesión caducó se vuelve a reclamar; uno con la concesión vigente lo lleva
+ * otro recuperador, y cuenta como pendiente. Lo que no entra en el índice sigue pendiente, como en la retirada.
+ */
+const reanudarBorradoPendiente = async (
+  deps: DepsDelIndice,
+  cuenta: string,
+  assetId: string,
+  asset: AssetDoc,
+): Promise<ResultadoDeRetiradaConIndice> => {
+  const db = deps.db;
+  const motivos: Record<string, number> = {};
+  let pendientes = 0;
+  let objetosBorrados = 0;
+  const borrados: string[] = [];
+  const objetos = [...new Set(filasEsperadasDeLaFicha(deps.huella, asset, deps.indexable).map((e) => e.objectRef))];
+  for (const objectRef of objetos) {
+    const reg = await refDeObjeto(db, objectRef).get();
+    if (!reg.exists) {
+      pendientes++;
+      sumar(motivos, 'sin_registro');
+      continue;
+    }
+    if ((reg.data() as MediaObject).estado === 'borrado') {
+      objetosBorrados++;
+      continue;
+    }
+    const fin = await completarBorrado(deps, objectRef, cuenta, POLITICA_DEL_BORRADO_INMEDIATO);
+    if (fin.estado === 'borrado' || fin.estado === 'ya_no_estaba') {
+      objetosBorrados++;
+      borrados.push(objectRef);
+      continue;
+    }
+    pendientes++;
+    sumar(motivos, 'motivo' in fin ? fin.motivo : fin.estado);
+  }
+  const noIndexables = objetosDeLaFicha(asset).filter((r) => !deps.indexable(r, cuenta)).length;
+  if (noIndexables > 0) {
+    pendientes += noIndexables;
+    motivos.fuera_del_indice = noIndexables;
+  }
+  for (const objectRef of borrados) {
+    await revisarMarcasDeOtrasFichas(deps, objectRef, cuenta, assetId)
+      .catch(anotarFallo('no se pudo revisar la marca de las demás fichas', objectRef));
+  }
+  if (pendientes === 0) {
+    await db.collection(COLECCION_DE_MATERIALES_DEL_INDICE).doc(assetId).set({ pendingPhysicalDeletion: false }, { merge: true })
+      .catch(anotarFallo('no se pudo bajar la marca de pendiente', assetId));
+  }
+  if (Object.keys(motivos).length) console.warn('Content/índice: reanudación con objetos pendientes', assetId, JSON.stringify(motivos));
+  return { status: 'ya_retirado', objetosBorrados, pendientes, motivos: Object.freeze({ ...motivos }) };
+};
 
 /**
  * RETIRAR UN MATERIAL CON EL ÍNDICE (D-A: borrado inmediato con el mismo cerrojo).
@@ -555,7 +612,8 @@ export const retirarConIndice = async (
     const doc = snap.data() as AssetDoc;
     if (!materialEsDeLaCuenta(doc, accountId)) return { status: 'no_es_tuyo' as const };
     const decision = retirar(doc, at);
-    if (!decision) return { status: 'ya_retirado' as const };
+    /* Ya retirado: si la ficha dice que queda algo por borrar, se reanuda ese borrado (ver `reanudarBorradoPendiente`). */
+    if (!decision) return doc.pendingPhysicalDeletion === true ? { status: 'ya_retirado' as const, reanudar: doc } : { status: 'ya_retirado' as const };
 
     const esperadas = filasEsperadasDeLaFicha(deps.huella, doc, deps.indexable);
     const porObjeto = new Map<string, FilaEsperada[]>();
@@ -605,6 +663,7 @@ export const retirarConIndice = async (
       lecturas: lecturas.map(({ objectRef, propias, registro, otras }): Lectura => ({ objectRef, propias, registro, otras })),
     };
   });
+  if (t1.status === 'ya_retirado' && 'reanudar' in t1 && t1.reanudar) return reanudarBorradoPendiente(deps, accountId, assetId, t1.reanudar);
   if (t1.status !== 'retirado') return t1;
 
   const motivos: Record<string, number> = {};

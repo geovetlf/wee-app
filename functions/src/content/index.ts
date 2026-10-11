@@ -674,7 +674,7 @@ export const leerMaterial = async (assetId: string): Promise<AssetDoc | null> =>
 
 export type ResultadoDeRetirada =
   | { status: 'retirado'; asset: AssetDoc; objetosBorrados: number; pendientes: number }
-  | { status: 'ya_retirado' }
+  | { status: 'ya_retirado'; objetosBorrados?: number; pendientes?: number }
   | { status: 'no_es_tuyo' }
   | { status: 'no_existe' };
 
@@ -808,7 +808,10 @@ export const deleteAsset = onCall({ region: 'us-central1', timeoutSeconds: 60 },
     /* De un material ajeno no se dice ni que exista: la misma regla que el Job Engine. */
     throw new HttpsError('not-found', 'No encontramos esa creación.');
   }
-  if (r.status === 'ya_retirado') return { assetId, status: 'deleted', already: true };
+  /* Un reintento que reanuda un borrado a medias dice si todavía queda algo; sin reanudación, la respuesta de siempre. */
+  if (r.status === 'ya_retirado') {
+    return { assetId, status: 'deleted', already: true, ...(r.pendientes !== undefined ? { pendingPhysicalDeletion: r.pendientes > 0 } : {}) };
+  }
   return { assetId, status: 'deleted', already: false, pendingPhysicalDeletion: r.pendientes > 0 };
 });
 
