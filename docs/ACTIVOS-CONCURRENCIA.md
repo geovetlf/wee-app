@@ -295,12 +295,13 @@ Las ejecuciones «sin carga añadida» no tuvieron la máquina quieta del todo (
    base: la diferencia no se distingue del azar (prueba exacta de Fisher, p ≈ 0,65), así que no se puede ni afirmar ni
    descartar una diferencia pequeña de tasa.
 2. **La operación que mata, capturada una vez (EB2).** `[TX FALLÓ] #301 tras 22 366 ms · código 10 · retirarConIndice` ←
-   `Object.retirarMaterial` ← `activos-concurrencia-3-g.emulator.mjs:106` ← `enTandas`. La primera transacción de
-   `retirarMaterial` de una ronda de G4 estuvo 22,4 s en la cola del emulador con las otras rondas de su tanda (en ese instante
-   seguían en curso #303, también `retirarConIndice`, con 22,4 s, y #311, `reclamarParaBorrar`, con 10,6 s); su error final,
-   después de los reintentos del SDK, salió de `await content.retirarMaterial(...)`, una llamada del arnés sin protección, y
-   de ahí a `enTandas` y al nivel superior del módulo. El proceso murió con G1–G3 ✔ y G4 sin evaluar. Las tres muertes
-   anteriores tienen la misma firma pero se produjeron sin el diagnóstico: la operación de cada una es **UNKNOWN**.
+   `Object.retirarMaterial` ← `activos-concurrencia-3-g.emulator.mjs:106` (numeración anterior al arreglo; hoy es la línea
+   112) ← `enTandas`. La primera transacción de `retirarMaterial` de una ronda de G4 estuvo 22,4 s en la cola del emulador
+   con las otras rondas de su tanda (en ese instante seguían en curso #303, también `retirarConIndice`, con 22,4 s, y #311,
+   `reclamarParaBorrar`, con 10,6 s); su error final, después de los reintentos del SDK, salió de
+   `await content.retirarMaterial(...)`, una llamada del arnés sin protección, y de ahí a `enTandas` y al nivel superior del
+   módulo. El proceso murió con G1–G3 ✔ y G4 sin evaluar. Las tres muertes anteriores tienen la misma firma pero se
+   produjeron sin el diagnóstico: la operación de cada una es **UNKNOWN**.
 3. **La causa es contención del emulador entre rondas, no un defecto funcional.** En las diez ejecuciones previas al arreglo
    hubo entre 12 y 22 transacciones de más de 5 s por ejecución (163 en total: 110 de `retirarConIndice`, hasta 27,5 s; 32 de
    `reclamarParaBorrar`, hasta 11,8 s; 21 de `anotarVarianteConIndice`, hasta 7,4 s).
@@ -328,11 +329,12 @@ Las ejecuciones «sin carga añadida» no tuvieron la máquina quieta del todo (
 antes) y las 15 rondas de G4 van de una en una (`, 1`). Las rondas, las aserciones, la carrera de dentro de cada ronda y el
 código de producción son los mismos; no se añade reintento, espera ni excepción alguna, así que ninguna protección de
 referencias, concesión o generación se debilita. Efecto medido: de 12–22 transacciones de más de 5 s por ejecución (hasta
-27,5 s; 110 de las 163, el 68 %, eran de `retirarConIndice`) a 3–6 (hasta 10,4 s) y **ninguna** de `retirarConIndice`; tres de tres ejecuciones
-pasan (dos con carga y una sin ella), en 105,5–133,8 s de reloj de la suite frente a un límite de la CI de 300 s. La prueba de
-la reproducción es ese protocolo, no una prueba determinista del repositorio: la muerte es probabilística (1 de 10 ejecuciones
-con diagnóstico), así que la reproducción la da el diagnóstico (qué transacciones esperan y cuánto) y no el resultado de una
-sola ejecución. Una edición posterior de los comentarios de G4 no cambió ninguna línea de código.
+27,5 s; 110 de las 163, el 68 %, eran de `retirarConIndice`) a 3–6 (hasta 10,4 s) y **ninguna** de `retirarConIndice`; tres
+de tres ejecuciones pasan (dos con carga y una sin ella), en 105,5–133,8 s de reloj de la suite frente a un límite de la CI
+de 300 s. La reproducción es ese protocolo, no una prueba determinista del repositorio: la muerte es probabilística (1 de 10
+ejecuciones con diagnóstico), así que lo que demuestra el arreglo es lo que dice el diagnóstico (qué transacciones esperan y
+cuánto), no el resultado de una sola ejecución. Una edición posterior de los comentarios de G4 no cambió ninguna línea de
+código.
 
 **Lo que el arreglo no resuelve, y lo que sigue sin demostrarse.**
 
