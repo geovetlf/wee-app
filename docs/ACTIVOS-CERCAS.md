@@ -208,22 +208,24 @@ Después de los siete, las siete suites dan exactamente lo mismo que antes, y `g
 **Cambio de intención.** La intención de F3 pasa a ser: del contenido, la adopción de F1-D, el cierre, los derechos, DEC-03 y el núcleo H5/H2; del Core, la misión fal, el linaje 3D y el núcleo H5/H2. Cambia la intención, no la sensibilidad: el número de comprobaciones y la forma de la comparación son las de antes. El dueño puede deshacer el reanclaje con `git revert` del commit de F3; la cerca volvería a rojo.
 
 **Estado posterior (cierre técnico de recuperación, rama `cierre/almacenamiento-recuperacion`).** F3 estaba verde en
-`a2b7832` y en `6687f59` (solo pruebas). Tres correcciones de producción la ponen en rojo, y solo por la tercera de sus
-condiciones, la del `numstat` de `content/`. Las otras dos (ningún cambio en `filmmaker` ni `productions`, y el `numstat` de
-`core/`) se cumplen en todos los commits de la rama.
+`a2b7832` y en `6687f59` (solo pruebas). Cuatro commits de producción la ponen en rojo (`b952ab8`, `7316fcf`, `b41999f` y
+`f96212a`), y solo por la tercera de sus condiciones, la del `numstat` de `content/`. Las otras dos (ningún cambio en
+`filmmaker` ni `productions`, y el `numstat` de `core/`) se cumplen en todos los commits de la rama, y los commits que solo
+tocan pruebas o documentos no mueven ninguna cifra (análisis commit a commit en `r4-f3-por-commit.log`).
 
 | Archivo | La cerca fija | Real | Commits |
 |---|---|---|---|
 | `content/index.ts` | 388 / 101 | 393 / 103 | `b952ab8` (reanudar el borrado pendiente) |
 | `content/indice-almacen.ts` | 298 / 0 | 303 / 0 | `7316fcf` (el adaptador no borra sin generación) |
-| `content/indice.ts` | 709 / 0 | 804 / 0 | `b952ab8` (+59) y `b41999f` (+36: la concesión se comprueba antes del borrado físico) |
+| `content/indice.ts` | 709 / 0 | 812 / 0 | `b952ab8` (+59), `b41999f` (+36: la concesión se comprueba antes del borrado físico) y `f96212a` (+8: también las marcas y las filas vivas) |
 
 **No se ha reanclado.** El reanclaje exige la autorización del dueño. Una copia temporal del test con solo esas tres cifras
 pasa entera; el test real y sus cifras no se tocaron. La alerta no es una regresión: cada corrección se demuestra con su
-suite (`activos-recuperacion-caida`: con el código anterior fallan 13 de 30 comprobaciones; `activos-generacion-sdk`: 2 de
-16; `activos-lease-antiguo`: 12 de 27) y la cadena y el barrido, por lo demás, pasan. Conservar las tres correcciones con las cifras actuales solo sería posible
-reeditando otras líneas de los mismos ficheros hasta igualar el recuento (el límite S4 de arriba), y eso vaciaría la cerca de
-sentido: no se hace.
+suite, quitándola del código final (`activos-recuperacion-caida`: fallan 13 de 30; `activos-generacion-sdk`: 2 de 16;
+`activos-lease-antiguo`: 26 de 59 quitando la comprobación entera y 4 de 59 quitando solo las marcas y las filas), y la cadena y
+el barrido, por lo demás, pasan. Conservar las cuatro correcciones con las cifras actuales solo sería posible reeditando
+otras líneas de los mismos ficheros hasta igualar el recuento (el límite S4 de arriba), y eso vaciaría la cerca de sentido: no
+se hace.
 
 ## 7. Lo que NO se cambia: `ci-workflow` (comprobación 13)
 
