@@ -461,30 +461,38 @@ const anotarFallo = (que: string, objectRef: string) => (error: unknown): boolea
 };
 
 /**
- * ¿LA CONCESIÓN QUE OBTUVE SIGUE SIENDO LA DEL REGISTRO? Lo mismo que exigen `cerrar` y `devolver` (estado, versión e `id`
- * de la concesión) más la caducidad, que hasta ahora solo miraba quien quería reclamar de nuevo. El almacén no sabe de
- * concesiones: quien la sostiene tiene que comprobarla justo antes de pedirle el borrado. Cualquier duda (lectura fallida,
- * registro incompleto, otra cuenta) es «no».
+ * ANTES DE PEDIR EL BORRADO FÍSICO: ¿SIGUE TODO COMO CUANDO SE RECLAMÓ? El almacén no sabe de concesiones ni de referencias:
+ * quien sostiene la concesión lo comprueba justo antes de pedirle el borrado. Se relee el registro y se exige lo mismo que
+ * `cerrar` y `devolver` (cuenta, estado, versión e `id` de la concesión) más lo que ellos no miran y la reclamación SÍ
+ * decidió: que la concesión no haya caducado (hasta ahora solo lo miraba quien quería reclamar de nuevo), que la
+ * reconciliación no haya marcado el objeto (una marca no sube la versión: el token seguiría siendo válido) y que ninguna fila
+ * viva lo reclame (la creación no las produce sobre un `borrando`, pero un estado contradictorio no debe acabar en bytes
+ * borrados). Devuelve por qué NO se debe pedir el borrado, o `undefined` si todo sigue igual. Cualquier duda (lectura
+ * fallida, registro incompleto, otra cuenta) es un motivo.
  */
-const concesionSigueSiendoMia = async (
+const porQueNoPedirElBorrado = async (
   deps: DepsDelIndice,
   objectRef: string,
   cuenta: string,
   concesionId: string,
   esperado: EsperadoDelObjeto,
-): Promise<boolean> => {
+): Promise<'concesion_perdida' | 'marcado' | 'referenciado' | 'referencias_inciertas' | undefined> => {
+  let o: MediaObject | undefined;
   try {
     const snap = await refDeObjeto(deps.db, objectRef).get();
-    if (!snap.exists) return false;
-    const o = snap.data() as MediaObject;
-    return registroEsDeLaCuenta(o, cuenta)
-      && o.estado === esperado.estado
-      && versionDe(o) === esperado.version
-      && o.concesion?.id === concesionId
-      && Number.isFinite(o.concesion.hasta) && o.concesion.hasta > deps.ahora();
+    o = snap.exists ? snap.data() as MediaObject : undefined;
   } catch (error) {
     anotarFallo('no se pudo confirmar la concesión; el objeto queda como estaba', objectRef)(error);
-    return false;
+    return 'concesion_perdida';
+  }
+  if (!o || !registroEsDeLaCuenta(o, cuenta) || o.estado !== esperado.estado || versionDe(o) !== esperado.version
+    || o.concesion?.id !== concesionId || !Number.isFinite(o.concesion.hasta) || o.concesion.hasta <= deps.ahora()) return 'concesion_perdida';
+  if (Array.isArray(o.marcas) && o.marcas.length > 0) return 'marcado';
+  try {
+    return (await filasVivasDe(deps.db, objectRef, 1).get()).empty ? undefined : 'referenciado';
+  } catch (error) {
+    anotarFallo('no se pudieron leer las referencias; el objeto queda como estaba', objectRef)(error);
+    return 'referencias_inciertas';
   }
 };
 
@@ -516,13 +524,13 @@ export const completarBorrado = async (
     return { estado: 'devuelto', motivo: 'precondicion_no_soportada' };
   }
   /*
-   * Entre reclamar y pedir el borrado puede pasar más que la concesión: una pausa larga, o un recuperador que ya reclamó de
-   * nuevo. Una concesión caducada, superada o que no se puede leer no autoriza el borrado: no se toca ni el almacén ni el
-   * registro, y el objeto queda pendiente para quien tenga la concesión o para la recuperación posterior.
+   * Entre reclamar y pedir el borrado puede pasar más que la concesión: una pausa larga, un recuperador que ya reclamó de
+   * nuevo, una marca de la reconciliación o una referencia que no debería existir. Nada de eso autoriza el borrado: no se
+   * toca ni el almacén ni el registro, y el objeto queda pendiente para quien tenga la concesión o para la recuperación
+   * posterior. Solo puede impedir un borrado que MC-5 ya había autorizado; no autoriza ninguno.
    */
-  if (!(await concesionSigueSiendoMia(deps, objectRef, cuenta, r.concesionId, r.esperado))) {
-    return { estado: 'protegido', motivo: 'concesion_perdida' };
-  }
+  const noBorrar = await porQueNoPedirElBorrado(deps, objectRef, cuenta, r.concesionId, r.esperado);
+  if (noBorrar) return { estado: 'protegido', motivo: noBorrar };
   let d: DesenlaceDeBorrado;
   try {
     d = await puerto.borrar(r.ref, { generacion: r.generacion });
