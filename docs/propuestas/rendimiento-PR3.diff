@@ -1,0 +1,28 @@
+--- a/functions/src/creator/credits.ts
++++ b/functions/src/creator/credits.ts
+@@ -209,10 +209,25 @@
+   return (await estimatePlan(plan, userId)).total;
+ }
+ 
++/**
++ * CUÁNTO SE RECUERDA QUE UNA CUENTA YA ESTÁ INICIALIZADA.
++ *
++ * `creditEngine.ensureAccount` es una transacción de lectura (una consulta, la lectura del documento de bienvenida y un
++ * Commit vacío: tres llamadas EN SERIE) que se repetía en cada mensaje de Weë Brain y en cada trabajo nuevo, cuando
++ * solo hace algo la primera vez de la vida de una cuenta. Inicializada, no se desinicializa: se recuerda en la memoria
++ * de la instancia. Una instancia nueva, o pasado el plazo, vuelve a comprobarlo como siempre.
++ */
++const VIGENCIA_DE_CUENTA_ASEGURADA_MS = 10 * 60_000;
++const MAX_CUENTAS_ASEGURADAS = 5_000;
++const cuentasAseguradas = new Map<string, number>();
++
+ /** Garantiza la cuenta de Credits (migra la billetera anterior y otorga la bienvenida la primera vez). */
+ export async function ensureAccount(userId: string): Promise<void> {
++  if ((cuentasAseguradas.get(userId) ?? 0) > Date.now()) return;
+   try {
+     await creditEngine.ensureAccount(userId);
++    cuentasAseguradas.set(userId, Date.now() + VIGENCIA_DE_CUENTA_ASEGURADA_MS);
++    if (cuentasAseguradas.size > MAX_CUENTAS_ASEGURADAS) cuentasAseguradas.delete(cuentasAseguradas.keys().next().value as string);
+   } catch (error) {
+     // Sin perfil todavía (cuenta recién creada): el trabajo puede seguir; el cobro fallará con un error claro
+     if (error instanceof CreditError && error.code === 'ACCOUNT_NOT_FOUND') return;

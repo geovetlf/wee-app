@@ -1,0 +1,53 @@
+--- a/functions/src/engine/ledger.ts
++++ b/functions/src/engine/ledger.ts
+@@ -194,6 +194,22 @@
+  */
+ const stripUndefined = strip;
+ 
++/**
++ * LO QUE `close` NECESITA DE UNA FILA QUE ESTA INSTANCIA ACABA DE ABRIR.
++ *
++ * `close` leía la fila que `open` había escrito unos milisegundos antes solo para saber el día, el proveedor y la
++ * capacidad con los que sumar al uso del día. Esos tres datos no cambian nunca después de `open`, y quien cierra es la
++ * misma llamada que abrió (el Router abre y cierra en el mismo `execute`), así que se recuerdan aquí. Si la instancia
++ * no los tiene —otra instancia abrió, o el proceso se reinició entre medias— `close` lee la fila como siempre.
++ */
++type FilaAbiertaAqui = Pick<GenerationRecord, 'createdAt' | 'provider' | 'capability' | 'attribution'>;
++const abiertasAqui = new Map<string, FilaAbiertaAqui>();
++const MAX_ABIERTAS_AQUI = 500;
++const recordarApertura = (id: string, fila: FilaAbiertaAqui): void => {
++  abiertasAqui.set(id, fila);
++  if (abiertasAqui.size > MAX_ABIERTAS_AQUI) abiertasAqui.delete(abiertasAqui.keys().next().value as string);
++};
++
+ export const firestoreLedger: Ledger = {
+   async open(record) {
+     const ref = db().collection('aiGenerations').doc();
+@@ -211,6 +227,7 @@
+         updatedAt: now,
+       })
+     );
++    recordarApertura(ref.id, { createdAt: now, provider: record.provider, capability: record.capability, attribution: record.attribution });
+     return ref.id;
+   },
+   async progress(id, patch) {
+@@ -219,8 +236,8 @@
+   settle: settleFirestore,
+   async close(id, patch) {
+     const ref = db().collection('aiGenerations').doc(id);
+-    const snap = await ref.get();
+-    const record = (snap.data() || {}) as Partial<GenerationRecord>;
++    const recordada = abiertasAqui.get(id);
++    const record: Partial<GenerationRecord> = recordada ?? ((await ref.get()).data() || {}) as Partial<GenerationRecord>;
+     const now = Timestamp.now();
+     const clean = stripUndefined({ ...patch, updatedAt: now, completedAt: patch.status === 'COMPLETED' ? now : undefined });
+     const uso = sumaAlUsoDelDia(record, patch, now);
+@@ -228,6 +245,8 @@
+       ref.set(clean, { merge: true }),
+       db().collection(uso.coleccion).doc(uso.dia).set(uso.datos, { merge: true }),
+     ]);
++    /* Solo cuando se escribió: si falla, quien reintente el cierre todavía tiene los datos. */
++    abiertasAqui.delete(id);
+   },
+   closeAccepted: closeAcceptedFirestore,
+ };
