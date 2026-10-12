@@ -102,6 +102,9 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: 'Fjern',
   tryAgain: 'Prøv igen',
   itDidNotWork: 'Det lykkedes ikke. Der er ikke trukket nogen Credits.',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: 'Vi kunne ikke finde dette job, eller det er ikke længere tilgængeligt.',
+  startOver: 'Start forfra',
   notEnoughCredits: 'Du har ikke nok Credits',
   getCredits: 'Få Credits',
   calculatingCost: 'Beregner prisen…',

@@ -56,6 +56,9 @@ export const weeai = {
   remove: 'Quitar',
   tryAgain: 'Probar otra vez',
   itDidNotWork: 'No me salió bien. No te cobré.',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: 'No encontramos este trabajo, o ya no está disponible.',
+  startOver: 'Empezar de nuevo',
   notEnoughCredits: 'No tienes suficientes Credits',
   getCredits: 'Obtener Credits',
   calculatingCost: 'Calculando el costo…',

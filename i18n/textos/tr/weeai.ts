@@ -104,6 +104,9 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: 'Kaldır',
   tryAgain: 'Yeniden dene',
   itDidNotWork: 'İstediğim gibi olmadı. Senden Credits almadım.',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: 'Bu işi bulamadık ya da artık kullanılamıyor.',
+  startOver: 'Baştan başla',
   notEnoughCredits: 'Credits bakiyen yetersiz',
   getCredits: 'Credits al',
   calculatingCost: 'Maliyet hesaplanıyor…',

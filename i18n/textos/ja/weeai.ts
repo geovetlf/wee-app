@@ -76,6 +76,9 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: '削除',
   tryAgain: 'もう一度試す',
   itDidNotWork: 'うまくいきませんでした。Creditsは消費されていません。',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: 'この作業が見つからないか、もう利用できません。',
+  startOver: '最初からやり直す',
   notEnoughCredits: 'Creditsが不足しています',
   getCredits: 'Creditsをチャージ',
   calculatingCost: '必要なCreditsを計算中…',

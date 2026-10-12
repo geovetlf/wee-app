@@ -58,6 +58,9 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: 'Togli',
   tryAgain: 'Riprova',
   itDidNotWork: 'Non è venuta bene. Non ti ho addebitato nulla.',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: 'Non abbiamo trovato questo lavoro, oppure non è più disponibile.',
+  startOver: 'Ricomincia',
   notEnoughCredits: 'Non hai abbastanza Credits',
   getCredits: 'Ottieni Credits',
   calculatingCost: 'Sto calcolando il costo…',

@@ -14,7 +14,7 @@ import JobProgress from '../components/creator/JobProgress';
 import ResultCard from '../components/creator/ResultCard';
 import ProjectPicker from '../components/creator/ProjectPicker';
 import { projectsService } from '../services/projectsService';
-import { creatorService, Answer, CreatorJob, PlanPricing, QualityChoice, Question, humanizeCreatorError, isClientTimeout } from '../services/creatorService';
+import { creatorService, Answer, CreatorJob, PlanPricing, QualityChoice, Question, claveDelEstado, creatorErrorCode, humanizeCreatorError, isClientTimeout } from '../services/creatorService';
 import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
 import { uploadCreatorImage } from '../services/creatorUploads';
 import { documentsService } from '../services/documentsService';
@@ -102,6 +102,15 @@ const CreatorFlowScreen: React.FC = () => {
   const [quoting, setQuoting] = useState(false);
   const uploadedUrl = useRef<string | undefined>(undefined);
   const savedDocFor = useRef<string | null>(null);
+  /*
+   * REABRIR UN TRABAJO (R9 · E2, trazabilidad). `reabierto` se fija al montar: solo cuenta lo que llegó por la ruta
+   * (Mis creaciones, un proyecto, WEË AI, recargar la página), no el `jobId` que esta pantalla escribe al empezar.
+   * `presupuestoPedido` evita pedir dos veces el presupuesto del mismo trabajo. `trabajoPerdido` = el trabajo no existe
+   * o no se puede leer: sin esto la pantalla decía «está pensando…» para siempre.
+   */
+  const reabierto = useRef(!!params.jobId);
+  const presupuestoPedido = useRef<string | null>(null);
+  const [trabajoPerdido, setTrabajoPerdido] = useState(false);
 
   // Nombre del proyecto donde está guardada la creación
   useEffect(() => {
@@ -241,8 +250,46 @@ const CreatorFlowScreen: React.FC = () => {
 
   useEffect(() => {
     if (!jobId) return;
-    return creatorService.subscribeToJob(jobId, setJob);
+    setTrabajoPerdido(false);
+    return creatorService.subscribeToJob(jobId, (actual) => {
+      setJob(actual);
+      setTrabajoPerdido(actual === null);
+    });
   }, [jobId]);
+
+  /*
+   * EL PRESUPUESTO DE UN TRABAJO REABIERTO (R9 · E2).
+   *
+   * El desglose y los niveles de calidad llegan con la respuesta de `creatorChat`, que al reabrir no se repite: la
+   * tarjeta del plan salía sin niveles y con el precio guardado, y el nivel elegido antes se perdía de la vista. Se
+   * vuelve a pedir el presupuesto al servidor (`creatorQuote`) con el MISMO nivel que el trabajo tiene guardado, así que
+   * no cambia nada de lo elegido; no reserva ni cobra. Si el servidor dice que ya no se puede cambiar (está arrancando),
+   * se queda lo que había.
+   */
+  useEffect(() => {
+    if (!reabierto.current || !job || job.status !== 'planned' || !job.plan || pricing || presupuestoPedido.current === job.id) return;
+    presupuestoPedido.current = job.id;
+    let vigente = true;
+    creatorService
+      .quote(job.id, job.quality ?? undefined)
+      .then((response) => {
+        if (!vigente) return;
+        setPricing(response.pricing ?? null);
+        setQuality(response.quality ?? null);
+      })
+      .catch((e) => console.warn('No se pudo recuperar el presupuesto del trabajo:', creatorErrorCode(e) || e));
+    return () => {
+      vigente = false;
+    };
+  }, [job, pricing]);
+
+  /* Empezar de nuevo cuando el trabajo que se quería abrir no existe: se suelta ese `jobId` y se abre uno nuevo. */
+  const empezarDeNuevo = () => {
+    setTrabajoPerdido(false);
+    setJobId(null);
+    (navigation as any).setParams({ jobId: undefined });
+    start(params.goal);
+  };
 
   // Cuando se abre un trabajo existente, la pregunta pendiente sale del propio trabajo
   useEffect(() => {
@@ -677,9 +724,24 @@ const CreatorFlowScreen: React.FC = () => {
           />
         )}
 
-        {status === 'failed' && job && !error && (
+        {trabajoPerdido && !job && !error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText ? textoDelServidor(job.progressText, { t, locale, experiencia: experience.id }) : t('weeai.itDidNotWork')}</Text>
+            <Text style={[styles.errorText, { color: theme.colors.text }]}>{t('weeai.jobNotFound')}</Text>
+            <TouchableOpacity
+              onPress={empezarDeNuevo}
+              style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
+              activeOpacity={0.85}
+              accessibilityLabel={t('weeai.startOver')}
+            >
+              <Text style={styles.retryText}>{t('weeai.startOver')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Un trabajo cancelado se cuenta como uno que no salió: con su estado y la salida de siempre. Hoy nadie lo escribe (functions/src/creator/types.ts). */}
+        {(status === 'failed' || status === 'cancelled') && job && !error && (
+          <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText ? textoDelServidor(job.progressText, { t, locale, experiencia: experience.id }) : status === 'cancelled' ? t(claveDelEstado.cancelled) : t('weeai.itDidNotWork')}</Text>
             <TouchableOpacity
               onPress={() => start(job.goal)}
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
@@ -720,7 +782,7 @@ const CreatorFlowScreen: React.FC = () => {
           </>
         )}
 
-        {(!status || status === 'asking') && !error && (
+        {(!status || status === 'asking') && !error && !trabajoPerdido && (
           <GuidedQuestion
             experienceName={nombre}
             experienceId={experience.id}

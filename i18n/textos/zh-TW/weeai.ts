@@ -81,6 +81,9 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: '移除',
   tryAgain: '再試一次',
   itDidNotWork: '這次沒做好，沒有扣除 Credits。',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: '找不到這個任務，或它已無法使用。',
+  startOver: '重新開始',
   notEnoughCredits: 'Credits 不夠了',
   getCredits: '取得 Credits',
   calculatingCost: '正在計算費用…',

@@ -74,6 +74,9 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: '移除',
   tryAgain: '再试一次',
   itDidNotWork: '这次没做好，没有扣除 Credits。',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: '找不到这个任务，或者它已不再可用。',
+  startOver: '重新开始',
   notEnoughCredits: 'Credits 不够了',
   getCredits: '获取 Credits',
   calculatingCost: '正在计算费用…',

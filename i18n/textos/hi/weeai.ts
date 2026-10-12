@@ -110,6 +110,9 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: 'हटाएँ',
   tryAgain: 'फिर से कोशिश करें',
   itDidNotWork: 'यह ठीक से नहीं बना. आपके Credits नहीं काटे गए.',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: 'यह काम नहीं मिला, या अब उपलब्ध नहीं है.',
+  startOver: 'फिर से शुरू करें',
   notEnoughCredits: 'आपके पास काफ़ी Credits नहीं हैं',
   getCredits: 'Credits पाएँ',
   calculatingCost: 'कीमत निकाली जा रही है…',

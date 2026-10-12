@@ -69,6 +69,9 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: '삭제',
   tryAgain: '다시 시도',
   itDidNotWork: '잘 되지 않았어요. Credits 차감은 없었어요.',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: '이 작업을 찾을 수 없거나 더 이상 사용할 수 없어요.',
+  startOver: '처음부터 다시',
   notEnoughCredits: 'Credits 잔액이 부족해요',
   getCredits: 'Credits 충전하기',
   calculatingCost: '비용을 계산하는 중…',
