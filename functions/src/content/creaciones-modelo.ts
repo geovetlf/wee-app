@@ -204,3 +204,51 @@ export const decidirReabrir = (e: {
  * otra operación (`deleteAsset`), explícita.
  */
 export const assetsQueRetiraEliminarCreacion = (_creacion: CreacionGuardadaMinima): readonly string[] => [];
+
+/* ── D-4 · Creaciones SOLO LOCALES (decisión del dueño, 2026-10-12) ───────── */
+
+/** Lo que una creación local referencia: un recurso del catálogo local (línea C). Nunca bytes, nunca una subida. */
+export interface ReferenciaLocal {
+  projectId: string;
+  recursoId: string;
+  /** Huella del recurso cuando se finalizó: si el archivo cambia o se pierde, se sabe. */
+  sha256: string;
+}
+
+/** Local ≠ sincronizado. Hoy nada se sincroniza: toda creación local es `solo_local`. */
+export type EstadoDeSincronizacion = 'solo_local' | 'sincronizada';
+
+const FORMA_DE_ID_LOCAL = /^[A-Za-z0-9_-]{3,64}$/;
+const FORMA_DE_SHA256 = /^[a-f0-9]{64}$/;
+
+/** La clave de una referencia local, con la misma forma que un id de asset (para reutilizar `decidirFinalizar`). */
+export const claveDeReferenciaLocal = (r: ReferenciaLocal): string | null =>
+  r && FORMA_DE_ID_LOCAL.test(r.projectId) && FORMA_DE_ID_LOCAL.test(r.recursoId) && FORMA_DE_SHA256.test(r.sha256)
+    ? `${r.projectId}__${r.recursoId}`
+    : null;
+
+/** El conjunto de referencias, normalizado (como `conjuntoDeAssets`). `null` si alguna no es válida. */
+export const conjuntoDeReferenciasLocales = (refs: unknown): string[] | null => {
+  if (!Array.isArray(refs) || refs.length === 0) return null;
+  const claves = refs.map((r) => claveDeReferenciaLocal(r as ReferenciaLocal));
+  if (claves.some((c) => c === null)) return null;
+  return conjuntoDeAssets(claves);
+};
+
+/** Id determinista de una creación local (FNV-1a de 2×32 bits sobre la clave del conjunto): el mismo conjunto, la misma. */
+export const idDeCreacionLocal = (claves: readonly string[]): string => {
+  const texto = claves.join(',');
+  let a = 0x811c9dc5; let b = 0x01000193 ^ 0x5bd1e995;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193) >>> 0;
+    b = Math.imul(b ^ c, 0x5bd1e995) >>> 0;
+  }
+  return `local_${a.toString(16).padStart(8, '0')}${b.toString(16).padStart(8, '0')}`;
+};
+
+export type AccionLocal = 'finalizar_local' | 'listar_local' | 'eliminar_local' | 'sincronizar' | 'publicar' | 'reabrir_en_nube';
+
+/** Lo que necesita conexión. Finalizar, listar y eliminar una creación local NO: la nube no es obligatoria. */
+export const requiereConexion = (accion: AccionLocal): boolean =>
+  accion === 'sincronizar' || accion === 'publicar' || accion === 'reabrir_en_nube';

@@ -590,6 +590,8 @@ export const abrirCatalogoLocal = async (almacen: AlmacenLocal, opciones: Opcion
         const nombre = normalizarNombre(name, LIMITE_DEL_NOMBRE);
         const nuevo = clonar(indice);
         const proyecto = buscar(nuevo, projectId);
+        // Sin cambio real no se escribe nada (R9-C): ni índice ni copia, ni `updatedAt` nuevo.
+        if (proyecto.name === nombre) return clonar(proyecto);
         proyecto.name = nombre;
         proyecto.updatedAt = ahora();
         await aplicar(nuevo, [], [proyecto]);
@@ -671,6 +673,15 @@ export const abrirCatalogoLocal = async (almacen: AlmacenLocal, opciones: Opcion
         const existente = buscar(indice, projectId);
         if (!esDeLista(TIPOS_DE_RECURSO, recurso.tipo)) throw new ErrorDelCatalogo('tipo_no_valido', recurso.tipo);
         const nombre = normalizarNombre(recurso.nombre, LIMITE_DEL_NOMBRE_DE_ARCHIVO);
+        // REINTENTO IDEMPOTENTE (R9-C): el mismo archivo (mismo nombre, tamaño y huella) que ya
+        // está guardado y COMPROBADO en el disco no se vuelve a escribir: se devuelve el que hay.
+        // Un reintento tras un corte de red o un doble toque no duplica bytes. Si la copia
+        // anterior falta o está dañada, se guarda una nueva como siempre.
+        const huella = sha256Hex(recurso.datos);
+        const igual = existente.recursos.find(
+          (r) => r.nombre === nombre && r.tamano === recurso.datos.byteLength && r.sha256 === huella,
+        );
+        if (igual && (await comprobar(projectId, igual)).estado === 'local') return clonar(igual);
         const recursoId = await idLibre(
           async (id) => existente.recursos.some((r) => r.recursoId === id) || (await almacen.existe(claveDelRecurso(projectId, id))),
         );
@@ -681,7 +692,7 @@ export const abrirCatalogoLocal = async (almacen: AlmacenLocal, opciones: Opcion
           tipo: recurso.tipo,
           mimeType: (recurso.mimeType ?? '').slice(0, LIMITE_DEL_MIME),
           tamano: recurso.datos.byteLength,
-          sha256: sha256Hex(recurso.datos),
+          sha256: huella,
           estado: 'local',
           creadoEn: ts,
           modificadoEn: ts,

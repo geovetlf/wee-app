@@ -337,6 +337,11 @@ const FUNCTIONS = {
    */
   './evals': ['evalRun'],
   './content': ['deleteAsset'],
+  /*
+   * R9 · Mis creaciones (D-2, AUTORIZACIÓN DEL DUEÑO 2026-10-12: conectar el callable y modificar esta cerca). NO está
+   * desplegada (ops/despliegue/grupos.json → no_se_despliegan): está en el mapa porque el código la exporta.
+   */
+  './content/creaciones': ['cicloDeTrabajo'],
   './social/polls': ['votePoll'],
   './social/weetalk': ['burnViewOnce'],
   './social/econtact': ['requestEContact', 'acceptEContact'],
@@ -655,6 +660,8 @@ console.log('\n── E · Quién llama desde la app ──');
     creatorChat: 'services/creatorService.ts', creatorQuote: 'services/creatorService.ts', creatorRun: 'services/creatorService.ts',
     brainChat: 'services/brainService.ts', brainQuote: 'services/brainService.ts',
     generateVideo: 'services/videoService.ts', deleteAsset: 'services/assetsService.ts',
+    /* R9 · D-2 (autorización del dueño, 2026-10-12): Mis creaciones tiene UN servicio en la app, el contrato. */
+    cicloDeTrabajo: 'services/cicloDeTrabajo.ts',
     /* + misión mundo3d: la tercera puerta del conductor tiene UN servicio en la app (sin desplegar, y su pantalla tras su puerta). */
     generateWorld: 'services/mundoService.ts',
   };

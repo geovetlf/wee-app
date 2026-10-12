@@ -1,6 +1,6 @@
 # Weë — Mis proyectos / Mis creaciones (R9 · línea A · dominio)
 
-Estado: **construido y probado en local, sin desplegar, sin conectar al índice de producción.**
+Estado: **construido y probado en local; callable conectado en el índice (D-2) y SIN DESPLEGAR.** Todo Weë corre en `get-wee` (producción); no hay entorno remoto de desarrollo. La validación de reglas, índice y callable es SOLO en emuladores locales (`demo-*`).
 Rama `r9/pc-dominio`. Ninguna migración, ningún dato borrado, ningún precio ni cobro.
 
 ## 1. Definiciones (obligatorias)
@@ -138,6 +138,11 @@ Decisión del dueño, 2026-10-12, transmitida por el coordinador de R9. Sustituy
 - `assignJob` en un lote (trabajo + proyecto, atómico).
 - «Mis proyectos» filtra los archivados ANTES de limitar (`listAll` + filtro + tope 100) y cuenta los trabajos exactos
   con `count()` por proyecto; no usa el campo `demo` del trabajo (significa trabajo real en modo simulado).
+
+## 6c. Procedimiento PROPUESTO de despliegue en get-wee (requiere autorización expresa del dueño; NO ejecutado)
+
+1. El coordinador ejecuta en local `firebase emulators:exec --only firestore --project demo-wee "node functions/test/pc-dominio-reglas.emulator.mjs firestore.rules"` y las suites `pc-dominio-*`.
+2. Con autorización expresa del dueño: reglas (`creations`, `creatorJobs`), índice `creations`, y la función `cicloDeTrabajo` (sacarla de `no_se_despliegan` y meterla en un grupo de `ops/despliegue/grupos.json`), por el flujo gobernado de despliegue (`despliegue.yml`), nunca a mano.
 
 ## 7. Pruebas
 

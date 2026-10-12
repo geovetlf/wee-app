@@ -324,6 +324,9 @@ const proyectos = (ls) => ls.map((l) => proyectoDe(l) ?? '—').join(' · ') || 
     /* Lo mismo que pide `projectsService.jobsForProject`: los trabajos de ESA persona en ESE proyecto. */
     const delProyecto = async (uid, proyecto) => (await base.collection('creatorJobs').where('userId', '==', uid).where('projectId', '==', proyecto).get()).docs.map((d) => d.id);
 
+    /* D-6 (decisión del dueño, 2026-10-12): el servidor solo guarda un proyecto que EXISTE y es de quien pide. */
+    base.docs.set('creatorProjects/proj-1', { userId: ANA, name: 'Mi cafetería', emoji: '📁' });
+    base.docs.set('creatorProjects/proyecto-de-bea', { userId: BEA, name: 'Lo de Bea', emoji: '📁' });
     const conProyecto = await chat({ experienceId: 'design', goal: 'Un logo para mi cafetería', projectId: 'proj-1', locale: 'es' });
     const doc = base.leer(`creatorJobs/${conProyecto.jobId}`);
     check('B10 · SERVIDOR (ejecutado) · creatorChat guarda el projectId en el trabajo al crearlo, antes de terminar nada', doc?.projectId === 'proj-1' && doc?.status !== 'done', `status ${doc?.status} · projectId ${doc?.projectId}`);
@@ -333,9 +336,15 @@ const proyectos = (ls) => ls.map((l) => proyectoDe(l) ?? '—').join(' · ') || 
     check('CONTROL · B10 · SERVIDOR · sin projectId el trabajo no entra en ningún proyecto', !('projectId' in base.leer(`creatorJobs/${sinProyecto.jobId}`)) && (await delProyecto(ANA, 'proj-1')).length === 1);
     const ajeno = await chat({ experienceId: 'design', goal: 'Un logo para mi cafetería', projectId: 'proyecto-de-bea', locale: 'es' });
     check('B10 · SERVIDOR · un projectId que no es de la persona no mete su trabajo en la lista de otra: la lista filtra por dueño',
-      (await delProyecto(BEA, 'proyecto-de-bea')).length === 0 && (await delProyecto(ANA, 'proyecto-de-bea')).join() === ajeno.jobId);
-    aviso(`OBSERVACIÓN CL-20 (H B-12): el servidor guardó projectId «${base.leer(`creatorJobs/${ajeno.jobId}`)?.projectId}» —un proyecto que ANA no tiene— sin comprobar nada (creator/index.ts:329), y firestore.rules:1064-1066 tampoco lo comprueba al moverlo.`);
-    aviso('  El riesgo es acotado (el trabajo es de quien lo crea y el proyecto ajeno no lo lista); lo que queda es un trabajo con un proyecto que su dueña no puede leer. Validarlo es cambio de servidor y de reglas: propuesta en el informe, no se toca aquí.');
+      (await delProyecto(BEA, 'proyecto-de-bea')).length === 0 && (await delProyecto(ANA, 'proyecto-de-bea')).length === 0);
+    /* D-6 (2026-10-12): antes esto era una OBSERVACIÓN (CL-20 / H B-12: el servidor guardaba el projectId ajeno). Ahora es una comprobación. */
+    check('B10 · D-6 · SERVIDOR · un projectId de OTRA cuenta no se guarda: el trabajo nace sin proyecto (se crea igual, no se bloquea)',
+      !!ajeno.jobId && !('projectId' in base.leer(`creatorJobs/${ajeno.jobId}`)), `projectId ${base.leer(`creatorJobs/${ajeno.jobId}`)?.projectId}`);
+    const fantasma = await chat({ experienceId: 'design', goal: 'Un logo para mi cafetería', projectId: 'proyecto-que-no-existe', locale: 'es' });
+    check('B10 · D-6 · SERVIDOR · ni uno que no existe', !('projectId' in base.leer(`creatorJobs/${fantasma.jobId}`)));
+    const deBea = await chat({ experienceId: 'design', goal: 'Un logo para mi tienda', projectId: 'proyecto-de-bea', locale: 'es' }, BEA);
+    check('CONTROL · B10 · D-6 · la dueña de ese proyecto sí crea dentro de él (acceso cruzado: solo cambia quién pide)',
+      base.leer(`creatorJobs/${deBea.jobId}`)?.projectId === 'proyecto-de-bea' && (await delProyecto(BEA, 'proyecto-de-bea')).join() === deBea.jobId);
   } finally {
     consola.restaurar();
     deshacerLasEsperas();

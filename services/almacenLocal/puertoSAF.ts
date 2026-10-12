@@ -20,6 +20,7 @@
  * un teléfono real queda pendiente (sin dispositivo Android conectado).
  */
 import { ErrorAlmacenLocal } from './tipos';
+import { iguales } from '../../utils/bytes';
 import type { EntradaDelPuerto, PuertoDeArchivos, TipoDeEntrada } from './puertoDeArchivos';
 
 export interface HijoSAF {
@@ -113,8 +114,15 @@ export const crearPuertoSAF = (uriRaiz: string, operaciones: OperacionesSAF): Pu
     },
 
     async mover(desde, hasta) {
+      // Copiar, VERIFICAR y solo entonces borrar el origen (R9-C): si la copia no
+      // quedó idéntica se retira y el origen sigue intacto. Antes se borraba sin comprobar.
       const contenido = await this.leer(desde);
       await this.escribir(hasta, contenido);
+      const copiado = await this.leer(hasta);
+      if (!iguales(copiado, contenido)) {
+        await this.borrar(hasta);
+        throw new ErrorAlmacenLocal('corrupto', hasta);
+      }
       await this.borrar(desde);
     },
 

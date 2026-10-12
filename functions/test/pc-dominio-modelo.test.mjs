@@ -93,6 +93,20 @@ for (const [nombre, M] of [['cliente', cliente], ['servidor', servidor]]) {
   const r3 = M.decidirReabrir({ creationId: 'c1', proyectoOrigenId: 'reab_c1', estadoDelOrigen: 'en_proceso', estadoDelVinculado: 'en_proceso' });
   check(`${nombre} 20) reabrir otra vez reutiliza el vinculado`, r3.accion === 'abrir' && r3.proyectoId === 'reab_c1');
   check(`${nombre} 21) eliminar una creación no retira NINGÚN asset`, M.assetsQueRetiraEliminarCreacion(viva).length === 0);
+
+  /* D-4 · local */
+  const sha = 'a'.repeat(64);
+  const r1l = { projectId: 'proyLocal1', recursoId: 'rec001', sha256: sha };
+  const r2l = { projectId: 'proyLocal1', recursoId: 'rec002', sha256: 'b'.repeat(64) };
+  check(`${nombre} 24) D-4 · una referencia local válida tiene clave`, M.claveDeReferenciaLocal(r1l) === 'proyLocal1__rec001');
+  check(`${nombre} 24c) CONTROL · sin huella sha256 válida no hay clave (no se finaliza «a ciegas»)`, M.claveDeReferenciaLocal({ ...r1l, sha256: 'x' }) === null && M.conjuntoDeReferenciasLocales([r1l, { ...r2l, recursoId: 'a/b' }]) === null);
+  const k1 = M.conjuntoDeReferenciasLocales([r2l, r1l, r1l]);
+  check(`${nombre} 25) el conjunto local se normaliza y su id es determinista`, JSON.stringify(k1) === '["proyLocal1__rec001","proyLocal1__rec002"]'
+    && M.idDeCreacionLocal(k1) === M.idDeCreacionLocal(M.conjuntoDeReferenciasLocales([r1l, r2l])) && /^local_[a-f0-9]{16}$/.test(M.idDeCreacionLocal(k1)));
+  check(`${nombre} 25c) CONTROL · otro conjunto, otro id`, M.idDeCreacionLocal(k1) !== M.idDeCreacionLocal(M.conjuntoDeReferenciasLocales([r1l])));
+  check(`${nombre} 26) finalizar/listar/eliminar en local NO requieren conexión; sincronizar y publicar sí`,
+    !M.requiereConexion('finalizar_local') && !M.requiereConexion('listar_local') && !M.requiereConexion('eliminar_local')
+    && M.requiereConexion('sincronizar') && M.requiereConexion('publicar') && M.requiereConexion('reabrir_en_nube'));
 }
 
 /* Espejo: los dos contestan lo mismo en una tabla de entradas. */

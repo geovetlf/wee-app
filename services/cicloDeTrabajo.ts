@@ -16,7 +16,7 @@
  * `ErrorDeCiclo('no_disponible')`: nunca devuelven datos inventados.
  *
  * Códigos de `ErrorDeCiclo` (la interfaz los traduce con t()):
- *   invalido · no_encontrado · conflicto (requestId reutilizado con otros assets) · no_disponible
+ *   invalido · no_encontrado · conflicto (requestId reutilizado con otros datos) · referenciado (D-5) · no_disponible
  */
 
 import {
@@ -26,7 +26,11 @@ import {
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase';
 import { projectsService } from './projectsService';
-import { estadoDeProyecto } from '../utils/cicloDeTrabajo';
+import { estadoDeProyecto, interpretarAsset } from '../utils/cicloDeTrabajo';
+import type { EstadoDeSincronizacion, ReferenciaLocal } from '../utils/cicloDeTrabajo';
+import type { CreacionLocal } from '../utils/creacionesLocales';
+import { assetsService, CREACIONES_POR_PAGINA } from './assetsService';
+import type { AssetDoc } from './assetsService';
 
 /** Estado del TRABAJO (no de la ubicación del archivo). */
 export type EstadoDeTrabajo = 'en_proceso' | 'final';
@@ -59,6 +63,10 @@ export interface CreacionFinal {
   finalizadaEn: number;
   proyectoOrigenId?: string | null;
   ubicacion: UbicacionDeRecurso;
+  /** D-4: en una creación SOLO LOCAL (`ubicacion: 'local'`), sus recursos del dispositivo; `assetIds` va vacío. */
+  referenciasLocales?: ReferenciaLocal[];
+  /** D-4: local ≠ sincronizado. Las de Weë Cloud no lo llevan. */
+  sincronizacion?: EstadoDeSincronizacion;
 }
 
 export interface EntradaFinalizar {
@@ -87,10 +95,13 @@ export interface PaginaDeCreacionesFinales {
 /** Error con código estable, para que la interfaz decida qué texto (i18n) pinta. */
 export class ErrorDeCiclo extends Error {
   code: string;
-  constructor(code: string, mensaje?: string) {
+  /** D-5: con `referenciado`, el impacto que bloqueó el borrado. */
+  detalle?: unknown;
+  constructor(code: string, mensaje?: string, detalle?: unknown) {
     super(mensaje ?? code);
     this.name = 'ErrorDeCiclo';
     this.code = code;
+    this.detalle = detalle;
   }
 }
 
@@ -186,14 +197,60 @@ export async function listarCreacionesFinales(uid: string, cursor?: unknown): Pr
   };
 }
 
+/* ── D-1 · Sin decidir (decisión del dueño, 2026-10-12) ─────────────────────── */
+
+export interface PaginaSinDecidir {
+  assets: AssetDoc[];
+  /** Opaco. Lleva el cursor de `assets` y el conjunto ya leído de lo que está en creaciones. */
+  siguiente?: unknown;
+}
+
+interface CursorSinDecidir {
+  pagina: Awaited<ReturnType<typeof assetsService.listar>>['cursor'];
+  enCreaciones: string[];
+}
+
+/** Cuántas páginas de `assets` se piden como mucho por llamada para llenar una de «sin decidir». */
+const PAGINAS_POR_LLAMADA = 3;
+
+/**
+ * SIN DECIDIR: los assets de la cuenta que no forman parte de ninguna creación final y no están eliminados. Se
+ * muestran aparte; no se migran, no se borran y no se mezclan con las creaciones nuevas.
+ *
+ * Lecturas: la primera llamada lee una vez las creaciones finales de la cuenta (para saber qué assets ya están
+ * decididos) y lo arrastra en el cursor; cada llamada lee como mucho `PAGINAS_POR_LLAMADA` páginas de `assets` con la
+ * MISMA consulta e índice que `assetsService.listar` (cuenta + estados listables + fecha). Nada se escribe.
+ */
+export async function listarSinDecidir(uid: string, cursor?: unknown): Promise<PaginaSinDecidir> {
+  const previo = cursor as CursorSinDecidir | undefined;
+  let enCreaciones: string[];
+  if (previo && Array.isArray(previo.enCreaciones)) {
+    enCreaciones = previo.enCreaciones;
+  } else {
+    const snap = await getDocs(query(collection(db, 'creations'), where('ownerAccountId', '==', uid), where('status', '==', 'final')));
+    enCreaciones = [...new Set(snap.docs.flatMap((d) => ((d.data() as { assetIds?: string[] }).assetIds ?? [])))];
+  }
+  const decididos = new Set(enCreaciones);
+  const salida: AssetDoc[] = [];
+  let pagina = previo?.pagina ?? null;
+  let hayMas = true;
+  for (let i = 0; i < PAGINAS_POR_LLAMADA && hayMas && salida.length < CREACIONES_POR_PAGINA; i++) {
+    const r = await assetsService.listar(uid, {}, pagina);
+    salida.push(...r.items.filter((a) => a.status !== 'deleted' && interpretarAsset(a.assetId, decididos) === 'sin_decidir'));
+    pagina = r.cursor;
+    hayMas = r.hayMas;
+  }
+  return { assets: salida, ...(hayMas ? { siguiente: { pagina, enCreaciones } as CursorSinDecidir } : {}) };
+}
+
 /** El callable del servidor (`functions/src/content/creaciones.ts`). Sus errores llegan con `details.code`. */
 const llamar = async <T,>(datos: Record<string, unknown>): Promise<T> => {
   try {
     const fn = httpsCallable(functions, 'cicloDeTrabajo', { timeout: 60_000 });
     return (await fn(datos)).data as T;
   } catch (e) {
-    const err = e as { code?: string; details?: { code?: string } };
-    if (err?.details?.code) throw new ErrorDeCiclo(err.details.code);
+    const err = e as { code?: string; details?: { code?: string; impacto?: unknown } };
+    if (err?.details?.code) throw new ErrorDeCiclo(err.details.code, undefined, err.details.impacto);
     /* Sin `details`: la Function no está (aún no desplegada). Nunca se inventa un resultado. */
     if (err?.code === 'functions/not-found' || err?.code === 'functions/unimplemented') throw new ErrorDeCiclo('no_disponible');
     throw e;
@@ -218,3 +275,76 @@ export async function eliminarCreacion(creacionId: string): Promise<{ creacionId
 /** Archivar / desarchivar un proyecto (sale / vuelve a «Mis proyectos»). No toca sus trabajos ni ninguna creación. */
 export const archivarProyecto = (projectId: string): Promise<void> => projectsService.archive(projectId);
 export const desarchivarProyecto = (projectId: string): Promise<void> => projectsService.unarchive(projectId);
+
+/* ── D-3 · Texto final como asset (decisión del dueño, 2026-10-12) ─────────── */
+
+export interface EntradaTextoFinal {
+  /** El resultado FINAL que la persona eligió conservar (nunca cada respuesta provisional). */
+  texto: string;
+  /** experienceId de la herramienta: 'chef' | 'writer' | 'business' | 'travel' … */
+  herramienta: string;
+  proyectoOrigenId?: string | null;
+  nombre?: string;
+  requestId: string;
+}
+
+/** Crea el asset de texto (Content Core) y su creación. Idempotente por `requestId`; otro texto con el mismo id = `conflicto`. */
+export async function guardarTextoFinal(entrada: EntradaTextoFinal): Promise<{ creacionId: string; assetId: string; yaExistia: boolean }> {
+  return llamar({ accion: 'guardarTexto', ...entrada });
+}
+
+/* ── D-5 · Borrar un asset con su impacto (decisión del dueño, 2026-10-12) ─── */
+
+export interface ImpactoDeBorrado {
+  assetId: string;
+  irreversible: true;
+  requiereConfirmacion: true;
+  /** Creaciones que pierden este asset; `quedaVacia` = esa creación desaparece porque era su único asset. */
+  creaciones: { creacionId: string; nombre: string; quedaVacia: boolean; assetsQueQuedan: number }[];
+  /** Si hay alguno, el borrado se bloquea (`ErrorDeCiclo('referenciado')`) para no romper esas referencias. */
+  bloqueos: { tipo: 'elemento' | 'plano'; id: string }[];
+}
+
+/** Qué pasaría si se borrara este asset. No cambia nada. */
+export async function impactoDeBorrarAsset(assetId: string): Promise<ImpactoDeBorrado> {
+  return llamar({ accion: 'impactoDeBorrado', assetId });
+}
+
+export type ResultadoBorrarAsset =
+  | { hecho: false; necesitaConfirmacion: true; impacto: ImpactoDeBorrado }
+  | { hecho: true; impacto: ImpactoDeBorrado; sustituciones: Record<string, string | null>; pendingPhysicalDeletion: boolean };
+
+/**
+ * Borrar un asset sin romper nada: sin `confirmar: true` solo devuelve el impacto (la interfaz lo explica y pide
+ * confirmación); con él, saca el asset de cada creación (nunca borra una creación entera en cascada) y lo retira.
+ * `sustituciones`: creación anterior → creación nueva (o null si quedó vacía).
+ */
+export async function borrarAsset(assetId: string, confirmar: boolean): Promise<ResultadoBorrarAsset> {
+  return llamar({ accion: 'borrarAsset', assetId, confirmar: confirmar === true });
+}
+
+/* ── D-4 · Creaciones SOLO LOCALES (decisión del dueño, 2026-10-12) ───────── */
+
+/*
+ * Finalizar, listar y eliminar una creación que solo está en el dispositivo: `utils/creacionesLocales.ts`, sobre el
+ * mismo `AlmacenLocal` que el catálogo local. No llama al servidor, no sube bytes y no necesita conexión. Lo que sí la
+ * necesita lo dice `requiereConexion` (la interfaz lo informa y el resultado local no se toca).
+ */
+export { abrirCreacionesLocales, recursoLocalPresente, ErrorDeCreacionLocal } from '../utils/creacionesLocales';
+export type { CreacionLocal, CreacionesLocales, EntradaFinalizarLocal } from '../utils/creacionesLocales';
+export { requiereConexion } from '../utils/cicloDeTrabajo';
+export type { ReferenciaLocal, EstadoDeSincronizacion } from '../utils/cicloDeTrabajo';
+
+/** Una creación local con la forma de `CreacionFinal`, para pintarla junto a las de Weë Cloud distinguiendo su ubicación. */
+export const creacionLocalComoFinal = (c: CreacionLocal): CreacionFinal => ({
+  id: c.creationId,
+  assetIds: [],
+  nombre: c.nombre,
+  tipo: c.tipo,
+  herramienta: c.herramienta,
+  finalizadaEn: c.finalizadaEn,
+  proyectoOrigenId: c.proyectoOrigenId,
+  ubicacion: 'local',
+  referenciasLocales: c.referencias,
+  sincronizacion: c.sincronizacion,
+});
