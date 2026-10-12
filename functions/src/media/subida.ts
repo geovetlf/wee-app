@@ -17,6 +17,7 @@ import {
   identidadDeIntento,
   referenciaDelObjeto,
   tamanoAprobado,
+  tipoAdmitidoParaLaClase,
   tipoDeContenidoAceptable,
   topeDeSubida,
   vigenciaDeSubidaAprobada,
@@ -242,6 +243,8 @@ export const solicitarSubida = async (
     return no('peticion_invalida', { accountId, detalle: 'vigencia' });
   }
   if (!tipoDeContenidoAceptable(peticion.contentType)) return no('peticion_invalida', { accountId, detalle: 'tipo' });
+  /* MEDIA-F · el tipo tiene que ser de la familia de su clase, y nunca contenido activo (HTML, SVG, JS). */
+  if (!tipoAdmitidoParaLaClase(peticion.kind, peticion.contentType)) return no('peticion_invalida', { accountId, detalle: 'tipo' });
   if (tamanoAprobado(peticion.bytes, tope) === undefined) return no('peticion_invalida', { accountId, detalle: 'tamano' });
 
   /* 4 · Dónde. TODO derivado en el servidor: ni contenedor ni clave llegan de fuera. */
@@ -301,6 +304,13 @@ export const solicitarSubida = async (
     contentType: decision.contentType,
     vigenciaSegundos: decision.vigenciaSegundos,
     maxBytes: decision.maxBytes,
+    /*
+     * MEDIA-F · el tamaño DECLARADO va firmado: quien suba otro número de bytes
+     * recibe un rechazo del proveedor en vez de llenar el destino con lo que
+     * quiera hasta el tope físico. Implementado y probado contra un doble S3;
+     * contra R2 real queda PENDIENTE del próximo canary (docs/MEDIA-CLOUD-R2.md).
+     */
+    bytesExactos: decision.maxBytes,
     /* Que el destino sea de UNA sola escritura lo hace cumplir el proveedor. */
     siNoExiste: true,
   });

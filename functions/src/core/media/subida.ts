@@ -1,4 +1,4 @@
-import { Asset, FORMA_DE_MIME, MAXIMO_DE_BYTES_DE_MATERIAL, materialEsDeLaCuenta } from '../content/asset';
+import { Asset, AssetKind, FORMA_DE_MIME, MAXIMO_DE_BYTES_DE_MATERIAL, materialEsDeLaCuenta } from '../content/asset';
 import { Huella } from '../moderation';
 import { MediaObject } from './objeto';
 import { MetodoDeSubida } from './puerto';
@@ -98,6 +98,50 @@ export const tamanoAprobado = (bytes: unknown, tope: number): number | undefined
  */
 export const tipoDeContenidoAceptable = (contentType: unknown): contentType is string =>
   typeof contentType === 'string' && contentType.length <= 128 && FORMA_DE_MIME.test(contentType);
+
+/**
+ * MEDIA-F (2026-10-12) · ¿ESE TIPO CORRESPONDE A ESA CLASE DE MATERIAL?
+ *
+ * `tipoDeContenidoAceptable` solo mira la FORMA. Con eso, una subida directa
+ * declarada como `image` podía pedir permiso para `text/html` o
+ * `application/javascript`, y la URL firmada de entrega serviría después ese
+ * contenido activo. Esto cierra esa puerta en la SUBIDA NUEVA, antes de firmar:
+ *
+ *   · cada clase admite su familia (`image/*`, `video/*`, `audio/*`…);
+ *   · el contenido ACTIVO —HTML, XHTML, SVG, JavaScript, XML— no se admite
+ *     nunca, para ninguna clase, porque un navegador lo EJECUTA al abrirlo;
+ *   · lo desconocido no se adivina: una clase sin lista se rechaza.
+ *
+ * Sigue sin mirar los bytes (ver arriba): decide sobre lo declarado, que el
+ * proveedor después EXIGE porque va firmado. No se aplica a la migración de
+ * lo histórico (`migracion.ts`), que copia lo que ya existe y no lo juzga.
+ */
+export const TIPOS_ACTIVOS: ReadonlySet<string> = new Set([
+  'text/html', 'application/xhtml+xml', 'image/svg+xml', 'application/javascript',
+  'text/javascript', 'application/ecmascript', 'text/ecmascript', 'application/xml', 'text/xml',
+]);
+
+const esenciaDe = (contentType: string): string => contentType.split(';')[0].trim().toLowerCase();
+
+export const TIPOS_POR_CLASE: Readonly<Record<AssetKind, (esencia: string) => boolean>> = Object.freeze({
+  image: (t: string) => t.startsWith('image/'),
+  video: (t: string) => t.startsWith('video/'),
+  audio: (t: string) => t.startsWith('audio/'),
+  text: (t: string) => t === 'text/plain' || t === 'text/markdown',
+  document: (t: string) => t === 'application/pdf' || t === 'text/plain' || t === 'text/markdown',
+  model3d: (t: string) => t.startsWith('model/') || t === 'application/octet-stream',
+  world: (t: string) => t.startsWith('model/') || t === 'application/octet-stream',
+});
+
+export const tipoAdmitidoParaLaClase = (kind: unknown, contentType: unknown): boolean => {
+  if (!tipoDeContenidoAceptable(contentType)) return false;
+  const esencia = esenciaDe(contentType);
+  if (TIPOS_ACTIVOS.has(esencia)) return false;
+  const admite = typeof kind === 'string' && Object.prototype.hasOwnProperty.call(TIPOS_POR_CLASE, kind)
+    ? (TIPOS_POR_CLASE as Record<string, (t: string) => boolean>)[kind]
+    : undefined;
+  return typeof admite === 'function' && admite(esencia);
+};
 
 /* ── 2 · Por qué no ────────────────────────────────────────────────────────── */
 
