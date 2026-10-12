@@ -23,6 +23,8 @@ import { ContextoDeExperiencia } from '../constants/weeWorkspaces';
 import type { MainStackParamList } from '../navigation/MainStackNavigator';
 import { claveDelValor, filtrarCreativo } from '../constants/camaraCinematica';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
+import GuardarTextoFinal from '../components/creator/GuardarTextoFinal';
+import { guardarTextoFinal, EXPERIENCIAS_CON_TEXTO_FINAL, requestIdDelTextoFinal } from '../services/textoFinalDeWeeAi';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -519,6 +521,10 @@ const CreatorFlowScreen: React.FC = () => {
   }, [experience.id, params.preset?.optionId, t]);
 
   const status = job?.status;
+  /* El texto final de un trabajo terminado: lo que no es audio ni archivo. Es lo que se conserva (D-3). */
+  const textoFinal = job && job.status === 'done'
+    ? job.results.filter((r) => r.content && r.kind !== 'audio' && !r.url).map((r) => r.content).join('\n\n').trim()
+    : '';
 
   /*
    * ¿Este trabajo transforma la foto de un espacio? (fase 2E-63)
@@ -736,6 +742,19 @@ const CreatorFlowScreen: React.FC = () => {
               <Text style={styles.retryText}>{t('weeai.startOver')}</Text>
             </TouchableOpacity>
           </View>
+        )}
+
+        {/*
+          CONSERVAR EL TEXTO FINAL (decisión D-3). Solo Writer, Business y Travel, solo con el trabajo terminado y solo si
+          la persona lo pide. El `requestId` es el del trabajo: un segundo toque o un reintento no duplican.
+        */}
+        {status === 'done' && job && EXPERIENCIAS_CON_TEXTO_FINAL.includes(experience.id) && !!textoFinal && (
+          <GuardarTextoFinal
+            entrada={{ texto: textoFinal, herramienta: experience.id, proyectoOrigenId: job.projectId ?? null, requestId: requestIdDelTextoFinal(job.id) }}
+            guardar={guardarTextoFinal}
+            t={t}
+            colores={theme.colors}
+          />
         )}
 
         {/* Un trabajo cancelado se cuenta como uno que no salió: con su estado y la salida de siempre. Hoy nadie lo escribe (functions/src/creator/types.ts). */}

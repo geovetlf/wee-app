@@ -73,10 +73,13 @@ export const cargarBase = base;
  * @param {object} [o.params]                         `useRoute().params`.
  * @param {object|null} [o.usuario]
  * @param {'es'|'en'} [o.idioma]
+ * @param {(t: Function) => void} [o.antes]
  */
-export const montarConEfectos = async ({ pantalla, dobles, params = {}, usuario = { uid: 'u1' }, idioma = 'es', movil = true }) => {
+export const montarConEfectos = async ({ pantalla, dobles, params = {}, usuario = { uid: 'u1' }, idioma = 'es', movil = true, antes }) => {
   const g = crearGanchos();
   const t = traductorDe(idioma);
+  /* `antes(t)`: lo que hay que preparar con el traductor antes del primer dibujado (p. ej. las propiedades de un envoltorio). */
+  if (typeof antes === 'function') antes(t);
   const entorno = crearEntorno({
     pantalla,
     usuario,

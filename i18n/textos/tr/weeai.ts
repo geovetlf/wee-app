@@ -107,6 +107,11 @@ export const weeai: typeof import('../es/weeai').weeai = {
   /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
   jobNotFound: 'Bu işi bulamadık ya da artık kullanılamıyor.',
   startOver: 'Baştan başla',
+  /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
+  saveTextToCreations: 'Oluşturduklarıma kaydet',
+  savingText: 'Kaydediliyor…',
+  textSaved: 'Oluşturduklarıma kaydedildi',
+  saveTextNotYet: 'Oluşturduklarıma kaydet: henüz kullanılamıyor',
   notEnoughCredits: 'Credits bakiyen yetersiz',
   getCredits: 'Credits al',
   calculatingCost: 'Maliyet hesaplanıyor…',

@@ -59,6 +59,11 @@ export const weeai = {
   /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
   jobNotFound: 'No encontramos este trabajo, o ya no está disponible.',
   startOver: 'Empezar de nuevo',
+  /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
+  saveTextToCreations: 'Guardar en Mis creaciones',
+  savingText: 'Guardando…',
+  textSaved: 'Guardado en Mis creaciones',
+  saveTextNotYet: 'Guardar en Mis creaciones: todavía no disponible',
   notEnoughCredits: 'No tienes suficientes Credits',
   getCredits: 'Obtener Credits',
   calculatingCost: 'Calculando el costo…',

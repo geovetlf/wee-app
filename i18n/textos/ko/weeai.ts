@@ -72,6 +72,11 @@ export const weeai: typeof import('../es/weeai').weeai = {
   /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
   jobNotFound: '이 작업을 찾을 수 없거나 더 이상 사용할 수 없어요.',
   startOver: '처음부터 다시',
+  /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
+  saveTextToCreations: '내 창작물에 저장',
+  savingText: '저장 중…',
+  textSaved: '내 창작물에 저장했어요',
+  saveTextNotYet: '내 창작물에 저장: 아직 사용할 수 없어요',
   notEnoughCredits: 'Credits 잔액이 부족해요',
   getCredits: 'Credits 충전하기',
   calculatingCost: '비용을 계산하는 중…',
