@@ -98,4 +98,5 @@ export const design: typeof import('../es/design').design = {
   samplePineHouse: 'House among the pines',
   sampleYacht: '15-metre yacht',
   sampleArmchair: 'Wooden armchair',
+  examplesTitle: 'Examples',
 };

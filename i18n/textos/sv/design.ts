@@ -115,4 +115,5 @@ export const design: typeof import('../es/design').design = {
   samplePineHouse: 'Hus bland tallar',
   sampleYacht: '15 meter lång yacht',
   sampleArmchair: 'Fåtölj i trä',
+  examplesTitle: 'Exempel',
 };

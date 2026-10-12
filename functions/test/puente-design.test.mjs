@@ -61,6 +61,21 @@ const SERVICIOS_VIGILADOS = [
   '../services/creatorService', '../services/creditsService', '../services/assetsService', '../services/projectsService',
   '../services/brainService', '../hooks/useWallet', '../hooks/useBrainChat',
 ];
+/*
+ * R8 · P3 Y EL PUENTE CONVIVEN. La fila «Mis creaciones» de la pantalla (`hooks/useCreacionesDeDesign`) LEE los trabajos de la cuenta con
+ * `creatorService.getMyJobsDe` al enfocar la pantalla: es lo único que la pantalla puede tocar de ese servicio. Se deja pasar —sin trabajos— y
+ * se apunta APARTE (`lecturas`); cualquier otra cosa —crear, responder, cotizar, ejecutar— sigue siendo un acceso vigilado, y tocar «Crear» no
+ * puede añadir ninguna lectura (A14). `claveDelEstado` es el mapa de claves de estado: leerlo no es llamar a nadie.
+ */
+const lecturas = [];
+const creatorServiceConLectura = () => ({
+  creatorService: new Proxy({}, { get: (_, k) => {
+    if (k === 'getMyJobsDe') return async (...argumentos) => { lecturas.push(argumentos); return []; };
+    if (k !== '__esModule' && k !== 'then') llamadas.push(`../services/creatorService.creatorService.${String(k)}`);
+    return () => undefined;
+  } }),
+  claveDelEstado: new Proxy({}, { get: (_, k) => `weeai.job.${String(k)}` }),
+});
 
 /*
  * Los dobles de la pantalla. Se sustituyen las piezas COMPARTIDAS de Weë AI (lo que cada una hace por dentro lo vigilan sus
@@ -80,6 +95,7 @@ const doblesDeDesign = (idioma) => (ctx) => {
     '../hooks/useResponsive': { useResponsive: () => ({ isMobile: movil, isTablet: false, isDesktop: !movil }) },
     '../components/BarraInferior': { ALTO_BARRA: 64 },
     ...Object.fromEntries(SERVICIOS_VIGILADOS.map((s) => [s, vigilado(s)])),
+    '../services/creatorService': creatorServiceConLectura(),
     '../components/creator/CajaQueCrece': { PaginaDeCajas: capturar('PaginaDeCajas') },
     '../components/studio/StudioHeader': capturar('StudioHeader'),
     /* La caja de siempre, con su regla: el botón de crear se apaga mientras no haya nada escrito (`CajaDePrompt.puedeEnviar`). */
@@ -299,10 +315,23 @@ const IDEA = 'Un salón con chimenea';
 }
 {
   /* Nada de lo que la pantalla NO debe hacer por su cuenta. */
-  check('A14) crear no llama a ningún servicio de creación, de Credits, de materiales ni de proyectos, ni a Weë Brain (ni un acceso)',
+  check('A14) crear no llama a ningún servicio de creación, de Credits, de materiales ni de proyectos, ni a Weë Brain (ni un acceso; la fila «Mis creaciones» solo LEE con `getMyJobsDe`, y se anota aparte)',
     llamadas.length === 0, llamadas.slice(0, 4).join(' · ') || 'ninguna llamada');
-  check('A14) no avisa de nada («próximamente», errores…) ni consulta trabajos de la cuenta',
-    entornos.every((e) => e.avisos.length === 0 && e.consultasDeTrabajos.length === 0), entornos.flatMap((e) => e.avisos).join(' · ') || 'sin avisos');
+  check('A14) no avisa de nada («próximamente», errores…)',
+    entornos.every((e) => e.avisos.length === 0), entornos.flatMap((e) => e.avisos).join(' · ') || 'sin avisos');
+  {
+    /* R8 · P3 y el puente conviven: la única lectura es la de la fila de creaciones, al enfocar; tocar «Crear» no añade ninguna. */
+    const e = pantalla();
+    const antes = lecturas.length;
+    e.dibujar();
+    e.enfocar();
+    const alEnfocar = lecturas.length - antes;
+    escribir(e, IDEA);
+    crear(e);
+    const alCrear = lecturas.length - antes - alEnfocar;
+    check('A14) la única lectura de la pantalla es la de la fila «Mis creaciones» (los trabajos de la cuenta, al enfocarla): tocar «Crear» no añade ninguna',
+      alEnfocar === 1 && alCrear === 0 && e.navegacion.length === 1 && e.navegacion[0][1] === 'CreatorFlow', `${alEnfocar} al enfocar · ${alCrear} al crear`);
+  }
   check('A14) y no deja ningún temporizador: ya no hay creación de mentira que esperar',
     temporizadores.length === 0, `${temporizadores.length} temporizador(es)`);
   const e = pantalla();
@@ -317,6 +346,15 @@ const IDEA = 'Un salón con chimenea';
   const mordio = llamadas.length === antesDelControl + 1;
   llamadas.length = antesDelControl;
   check('CONTROL: un acceso a un servicio vigilado QUEDARÍA anotado', mordio, 'si esto pasara, A14 no protegería nada');
+  /* CONTROL de la lectura: `getMyJobsDe` se anota aparte, y cualquier otro método del servicio de trabajos sigue siendo un acceso vigilado. */
+  const lecturasAntes = lecturas.length;
+  creatorServiceConLectura().creatorService.getMyJobsDe();
+  const leyo = lecturas.length === lecturasAntes + 1 && llamadas.length === antesDelControl;
+  lecturas.length = lecturasAntes;
+  creatorServiceConLectura().creatorService.start;
+  const vigiloElResto = llamadas.length === antesDelControl + 1;
+  llamadas.length = antesDelControl;
+  check('CONTROL: leer los trabajos queda anotado como LECTURA y cualquier otra cosa del servicio (`start`, `run`…) como acceso vigilado', leyo && vigiloElResto, 'si esto pasara, A14 no distinguiría leer de crear');
 }
 
 console.log('\n─── B. El contexto neutro, ejecutado ───');
@@ -420,12 +458,19 @@ const hayDemostracion = (c) => /AvisoDeCreacion|EstadoDeCreacion|useAlturaDelTec
 const llevaEstructura = (c) => /\b(presets?|adjuntos|imageUri|creative|jobId)\b/.test(c);
 const llamaPorSuCuenta = (c) => /spendCredits|completeCredits|refundCredits|creditsBalance|creditsService|useWallet|httpsCallable|getFunctions\(|from 'firebase\/|creatorService|assetsService|projectsService|brainService|useBrainChat/.test(c);
 const sabeDeLaReferencia = (c) => /designReferencia|DesignReferencia/.test(c);
+/*
+ * R8 · P3 y el puente conviven. La fila «Mis creaciones» REABRE un trabajo ya hecho por su `jobId` (`alAbrirCreacion`): es otro camino, el de
+ * volver a algo que ya existe, y no el de crear. Lo que no puede pasar es que el de CREAR lleve un trabajo, una experiencia escrita a mano ni
+ * estructura: por eso C2 y C3 miran la pantalla sin ese manejador (que vigila `design-mis-creaciones` E2: solo experiencia y trabajo, ni
+ * proyecto ni texto).
+ */
+const sinReabrirCreaciones = (c) => c.replace(/const alAbrirCreacion = useCallback\([\s\S]*?\n  \}, \[[^\]]*\]\);/, '');
 check('C1) crear es ir a CreatorFlow con el objeto que arma `contextoDeDesign`, no con uno escrito al lado',
   /const contexto = contextoDeDesign\(\{/.test(codigo) && /navigation\.navigate\('CreatorFlow', contexto\);/.test(codigo));
-check('C2) el contexto sale de UN solo sitio: la pantalla no escribe la experiencia ni el lugar de trabajo a mano',
-  !/experienceId\s*:/.test(codigo) && !/workspace\s*:/.test(codigo));
-check('C3) la pantalla no construye presets, adjuntos, foto, controles creativos ni reabre trabajos: solo lo escrito y los ajustes',
-  !llevaEstructura(codigo));
+check('C2) el contexto sale de UN solo sitio: la pantalla no escribe la experiencia ni el lugar de trabajo a mano al CREAR (reabrir una creación ya hecha, que sí lleva su experiencia, es otro camino)',
+  !/experienceId\s*:/.test(sinReabrirCreaciones(codigo)) && !/workspace\s*:/.test(sinReabrirCreaciones(codigo)));
+check('C3) la pantalla no construye presets, adjuntos, foto, controles creativos ni reabre trabajos al CREAR: solo lo escrito y los ajustes (reabrir una creación ya hecha es otro camino)',
+  !llevaEstructura(sinReabrirCreaciones(codigo)));
 check('C4) ya no hay creación de mentira: ni temporizador, ni aviso de demostración, ni su estado, ni el teclado del aviso',
   !hayTemporizador(codigo) && !hayDemostracion(codigo));
 check('C5) la pantalla no mueve dinero ni llama a nadie por su cuenta: ni Credits, ni servicios, ni Firebase, ni Weë Brain',
@@ -462,6 +507,10 @@ check('CONTROL: un temporizador de demostración, un aviso de demostración o un
 check('CONTROL: un preset, una foto o un trabajo en el contexto se verían',
   llevaEstructura("{ presets: [{ questionId: 'what', optionId: que }] }") && llevaEstructura('{ imageUri: foto }') && llevaEstructura('{ adjuntos }') && llevaEstructura('{ creative }')
   && !llevaEstructura("{ goal: texto }"), 'si esto pasara, C3 no protegería nada');
+check('CONTROL: el `jobId` de reabrir una creación solo se perdona DENTRO de `alAbrirCreacion`: en `alCrear` se vería',
+  !llevaEstructura(sinReabrirCreaciones('const alAbrirCreacion = useCallback((id) => {\n    navigate("CreatorFlow", { experienceId, jobId: id });\n  }, [navigation]);'))
+  && llevaEstructura(sinReabrirCreaciones('const alCrear = useCallback(() => {\n    navigate("CreatorFlow", { goal, jobId: id });\n  }, [navigation]);')),
+  'si esto pasara, C3 perdonaría un trabajo en el contexto de crear');
 check('CONTROL: una llamada a Credits, a un servicio o a Firebase se vería',
   llamaPorSuCuenta('await spendCredits({ jobId })') && llamaPorSuCuenta("import { creatorService } from '../services/creatorService'") && llamaPorSuCuenta("from 'firebase/functions'")
   && !llamaPorSuCuenta("navigation.navigate('CreatorFlow', contexto)"), 'si esto pasara, C5 no protegería nada');
@@ -472,8 +521,11 @@ check('CONTROL: una dependencia que falte en `alCrear` se vería',
   dependenciasSinDeclarar(['const alCrear = useCallback(() => {', '    const c = { prompt, ajustes };', '  }, [prompt]);'].join('\n'), 'alCrear', ['prompt', 'ajustes']).join() === 'ajustes'
   && dependenciasSinDeclarar(['const alCrear = useCallback(() => {', '    const c = { prompt, ajustes };', '  }, [prompt, ajustes]);'].join('\n'), 'alCrear', ['prompt', 'ajustes']).length === 0,
   'si esto pasara, C10 no protegería nada');
-check('CONTROL: un contexto armado a mano con la experiencia se vería',
-  /experienceId\s*:/.test("const c = { experienceId: 'design', goal }") && !/experienceId\s*:/.test('const contexto = contextoDeDesign({ intencion })'), 'si esto pasara, C2 no protegería nada');
+check('CONTROL: un contexto armado a mano con la experiencia se vería (salvo dentro de `alAbrirCreacion`, que reabre un trabajo ya hecho)',
+  /experienceId\s*:/.test("const c = { experienceId: 'design', goal }") && !/experienceId\s*:/.test('const contexto = contextoDeDesign({ intencion })')
+  && /experienceId\s*:/.test(sinReabrirCreaciones('const alCrear = useCallback(() => {\n    navigate("CreatorFlow", { experienceId: "design", goal });\n  }, [navigation]);'))
+  && !/experienceId\s*:/.test(sinReabrirCreaciones('const alAbrirCreacion = useCallback((id) => {\n    navigate("CreatorFlow", { experienceId: "design", jobId: id });\n  }, [navigation]);')),
+  'si esto pasara, C2 no protegería nada');
 
 console.log('\n─── D. El contrato con la experiencia común y con el servidor ───');
 

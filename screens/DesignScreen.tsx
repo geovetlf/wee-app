@@ -7,6 +7,7 @@ import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
+import { useCreacionesDeDesign } from '../hooks/useCreacionesDeDesign';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
 import StudioPromptComposer from '../components/studio/StudioPromptComposer';
@@ -69,6 +70,15 @@ const AJUSTES = siempreSePregunta(AJUSTES_DE_DESIGN);
  * referencias (son nombres de muestra: D6), ni formato y calidad como estructura
  * (el plan solo los lee como palabras). Qué presupone este puente y cómo se
  * cambia con otra respuesta: `docs/WEE-DESIGN-PUENTE.md`.
+ *
+ * ── Mis creaciones es de la persona, y las muestras son ejemplos ─────────────
+ *
+ * La fila de abajo enseña lo que ESTA persona ha creado aquí —en Weë Design y en
+ * Hogar & Diseño, de su cuenta— con el camino que ya usa Weë Chef
+ * (`useCreacionesDeDesign`). Mientras llega, dice que carga; si falla, lo dice y
+ * deja reintentar. Las cuatro muestras solo se ven sin sesión o sin nada creado, y
+ * rotuladas «Ejemplos»: «Mis creaciones» solo se dice de lo que es suyo. Crear no
+ * depende de esa fila: funciona igual mientras carga o si falló.
  */
 const DesignScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -96,6 +106,13 @@ const DesignScreen: React.FC = () => {
   const numeroDeReferencia = useRef(0);
 
   /*
+   * LO QUE ESTA PERSONA HA CREADO. Sin sesión, o con sesión y nada creado, la fila enseña las muestras como lo que son:
+   * ejemplos. Mientras carga, o si falló, no enseña ninguna (ni las muestras ni un «no tienes nada»).
+   */
+  const mias = useCreacionesDeDesign();
+  const deMuestra = mias.fase === 'sinSesion' || (mias.fase === 'lista' && mias.creaciones.length === 0);
+
+  /*
    * Tres por fila cuando hay sitio, dos en el teléfono. Con tarjetas compactas
    * tres cabrían a 430, pero a 360 la pista se partiría en cuatro líneas: dos
    * por fila se lee igual de bien en todos los teléfonos.
@@ -108,7 +125,7 @@ const DesignScreen: React.FC = () => {
    *
    * Lo escrito y los ajustes elegidos, en palabras, viajan a `CreatorFlow`: allí se pregunta lo que falta, se enseña el plan con su
    * precio y solo después de que la persona lo confirme se reserva un Credit. Llegar no cuesta nada: esta pantalla no toca el
-   * dinero ni llama a nadie.
+   * dinero ni llama a nadie para crear (lo único que lee es lo ya creado, para la fila «Mis creaciones» de abajo).
    *
    * El contexto lo arma `contextoDeDesign`, el mismo de la referencia funcional (un solo sitio), y NO lleva la puerta por la que se
    * pasó ni foto alguna: ver la cabecera de la pantalla.
@@ -155,6 +172,16 @@ const DesignScreen: React.FC = () => {
   const alQuitarReferencia = useCallback((posicion: number) => {
     setReferencias((antes) => antes.filter((_, j) => j !== posicion));
   }, []);
+
+  /*
+   * Tocar una creación la REABRE donde estaba, con su resultado: el mismo trabajo, en su experiencia (Design u Hogar & Diseño).
+   * Ni crea otro, ni manda un proyecto ni un texto: lo que ya hay se abre por su identificador, como en Weë Chef y en Mis
+   * creaciones.
+   */
+  const alAbrirCreacion = useCallback((id: string) => {
+    const trabajo = mias.trabajoDe(id);
+    if (trabajo) navigation.navigate('CreatorFlow', { experienceId: trabajo.experienceId, jobId: trabajo.id });
+  }, [mias, navigation]);
 
   /*
    * ATRÁS DESHACE UN PASO, NO LA SECCIÓN.
@@ -261,9 +288,18 @@ const DesignScreen: React.FC = () => {
 
               Un poco más ancha y más baja que la del Studio, porque un diseño se
               reconoce por lo ancho y un video por lo alto.
+
+              Enseña lo que esta persona ha creado (`useCreacionesDeDesign`). Las
+              muestras solo salen sin sesión o sin nada creado, y dicen que son
+              ejemplos. «Ver todas» sigue yendo a donde iba (F-01, decisión del
+              dueño: `docs/WEE-DESIGN-CIERRE.md`).
             */}
             <FilaDeCreaciones
-              creaciones={CREACIONES_DE_DESIGN}
+              creaciones={deMuestra ? CREACIONES_DE_DESIGN : mias.creaciones}
+              claveDelTitulo={deMuestra ? 'design.examplesTitle' : undefined}
+              estado={mias.fase === 'cargando' ? 'cargando' : mias.fase === 'error' ? 'error' : undefined}
+              onReintentar={mias.recargar}
+              onAbrir={deMuestra ? undefined : alAbrirCreacion}
               ancho={scale(140)}
               alto={scale(120)}
               onVerTodas={() => navigation.navigate('Projects')}

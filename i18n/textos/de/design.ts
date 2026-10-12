@@ -98,4 +98,5 @@ export const design: typeof import('../es/design').design = {
   samplePineHouse: 'Haus im Kiefernwald',
   sampleYacht: '15-Meter-Yacht',
   sampleArmchair: 'Sessel aus Holz',
+  examplesTitle: 'Beispiele',
 };

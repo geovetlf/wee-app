@@ -103,4 +103,5 @@ export const design: typeof import('../es/design').design = {
   samplePineHouse: '소나무 숲속의 집',
   sampleYacht: '15미터 요트',
   sampleArmchair: '원목 안락의자',
+  examplesTitle: '예시',
 };

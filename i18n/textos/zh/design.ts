@@ -106,4 +106,5 @@ export const design: typeof import('../es/design').design = {
   samplePineHouse: '松林间的房子',
   sampleYacht: '15 米游艇',
   sampleArmchair: '木质扶手椅',
+  examplesTitle: '示例',
 };

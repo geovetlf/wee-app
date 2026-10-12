@@ -12,8 +12,8 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
 
 **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
 Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
-28 criterios de cierre, **13 se cumplen, 4 están abiertos, 8 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
-**Con el puente de [WEE-DESIGN-PUENTE.md](WEE-DESIGN-PUENTE.md) aplicado, «Crear» ya llega a `CreatorFlow` (CL-01 y CL-03 pasan a CUMPLIDO: de ahí el 13, el 4 y el 8; sin el puente eran 11, 5 y 9). Lo que sigue describe la pantalla montada ANTES de él (`d867774`).**
+28 criterios de cierre, **14 se cumplen, 3 están abiertos, 8 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
+**Con el puente de [WEE-DESIGN-PUENTE.md](WEE-DESIGN-PUENTE.md) aplicado, «Crear» ya llega a `CreatorFlow` (CL-01 y CL-03 pasan a CUMPLIDO) y, con «Mis creaciones» enseñando lo creado (CL-04, R8), de ahí el 14, el 3 y el 8; sin ellos eran 11, 5 y 9. Lo que sigue describe la pantalla montada ANTES de ellos (`d867774`).**
 
 ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
 
@@ -285,7 +285,7 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
 | CL-01 | bloqueador | «Crear» de la pantalla llega a `CreatorFlow` (no es un temporizador) | dueño (D1, D2, D7) y línea de Design | `screens/DesignScreen.tsx`, `utils/contextoDeDesign.ts`, `puente-design.test.mjs` | bloqueador real | CUMPLIDO |
 | CL-02 | bloqueador | Hay una puerta desde Design a Hogar & Diseño | dueño (D2) y línea de Design | `screens/DesignScreen.tsx`, `components/design/*` | bloqueador real | DECISIÓN |
 | CL-03 | bloqueador | Lo elegido (qué se diseña, ajustes en palabras) viaja con la petición | línea de Design | `screens/DesignScreen.tsx`, `utils/contextoDeDesign.ts` | bloqueador real | CUMPLIDO |
-| CL-04 | bloqueador | «Mis creaciones» enseña lo creado (carga, vacío, error); las muestras, rotuladas | línea de Design | `screens/DesignScreen.tsx`, `FilaDeCreaciones.tsx`, `i18n/textos/*/design.ts` | bloqueador real | ABIERTO |
+| CL-04 | bloqueador | «Mis creaciones» enseña lo creado (carga, vacío, error); las muestras, rotuladas | hecho (R8, PAN, rama `r8/pantalla`; P3) | `screens/DesignScreen.tsx`, `hooks/useCreacionesDeDesign.ts`, `utils/creacionesDeDesign.ts`, `FilaDeCreaciones.tsx`, `i18n/textos/*/design.ts` | bloqueador real (arreglado) | CUMPLIDO |
 | CL-05 | bloqueador | Las puertas prometen lo que el motor hace hoy (D1, D7) | dueño | `docs/DESIGN.md §4`, `constants/designTools.ts` | bloqueador real (decisión) | DECISIÓN |
 | CL-06 | defecto | Los ajustes abren con «Automático» | hecho (`3da4a95`) | `constants/designTools.ts` | defecto reproducible (arreglado) | CUMPLIDO |
 | CL-07 | defecto | «Dictar» no añade una referencia de mentira | hecho (`407bd31`); quitarlo: P5 | `screens/DesignScreen.tsx` | defecto reproducible (arreglado) | CUMPLIDO |
