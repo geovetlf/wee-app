@@ -164,7 +164,7 @@ const CreatorFlowScreen: React.FC = () => {
       try {
         const imageUrl = imageUri ? await uploadPhoto(imageUri) : undefined;
         /* `params.projectId`: si se viene de un proyecto, el trabajo NACE en él (CL-20); lo que se empiece desde aquí —otra versión, un ajuste, un reintento— también. */
-        const response = await creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl, locale, params.projectId);
+        const response = await creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl, params.projectId, locale);
         setJobId(response.jobId);
         /* El trabajo ya existe: queda en la dirección, y recargar la página lo reabre en vez de empezar otro. */
         (navigation as any).setParams({ jobId: response.jobId });

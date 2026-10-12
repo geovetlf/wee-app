@@ -265,7 +265,7 @@ export const CRITERIOS = [
       const desde = servicio.indexOf('start:');
       const cuerpo = servicio.slice(desde, servicio.indexOf('answer:', desde));
       const manda = /call<ChatResponse>\('creatorChat',\s*\{[\s\S]*?\.\.\.\(projectId \? \{ projectId \} : \{\}\)/.test(cuerpo);
-      const loPasa = /creatorService\.start\([^\n]*params\.projectId\)/.test(sinComentarios(leer('screens/CreatorFlowScreen.tsx')));
+      const loPasa = /creatorService\.start\([^\n]*params\.projectId,\s*locale\)/.test(sinComentarios(leer('screens/CreatorFlowScreen.tsx')));
       const declarado = /export interface ContextoDeExperiencia \{[\s\S]*?\n  projectId\?: string;/.test(leer('constants/weeWorkspaces.ts'));
       const entradas = fs.readdirSync(path.resolve(RAIZ, 'screens')).filter((f) => /\.tsx$/.test(f) && f !== 'CreatorFlowScreen.tsx'
         && /(navigate|push)\('CreatorFlow',[^;]*projectId/.test(sinComentarios(leer(`screens/${f}`))));

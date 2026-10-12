@@ -264,7 +264,7 @@ export const creatorService = {
    * «Mis proyectos» en el que nace el trabajo: el servidor lo guarda al crearlo (`creator/index.ts`), así que el proyecto lo lista
    * aunque la persona se vaya a medias. Sin proyecto no viaja la clave: ni vacía ni nula.
    */
-  start: (experienceId: string, goal: string | undefined, presetAnswers: Answer[] | undefined, imageUrl: string | undefined, locale: string, projectId?: string) =>
+  start: (experienceId: string, goal: string | undefined, presetAnswers: Answer[] | undefined, imageUrl: string | undefined, projectId: string | undefined, locale: string) =>
     call<ChatResponse>('creatorChat', {
       experienceId,
       goal: goal || '',
