@@ -612,6 +612,14 @@ console.log('\n── A3 · La estructura: cabeceras, viñetas bajo «Pasos:», 
   check('sin cabeceras, una viñeta DESPUÉS de los pasos no es un ingrediente: va a `otras`', r2 !== null && r2.ingredientes.length === 1 && igual(r2.otras, ['Una nota suelta tras los pasos']));
   const r3 = leerReceta(T('🍲 Guiso', 'Ingredientes:', '• 2 huevos', 'Pasos:', '1. Bate.', 'Consejos:', '• Usa huevos del día.', '• No batas de más.'));
   check('bajo «Consejos:» las viñetas se unen al consejo (no son ingredientes ni pasos)', r3 !== null && r3.consejo === 'Usa huevos del día. No batas de más.' && r3.pasos.length === 1 && r3.ingredientes.length === 1, r3 ? JSON.stringify(r3.consejo) : 'null');
+  /* R9-2: bajo «Consejos:», unos consejos NUMERADOS tampoco son pasos (antes se añadían a `pasos` y la tarjeta los habría
+     pintado como los pasos 2 y 3). Misma regla que las viñetas de arriba. */
+  const r3b = leerReceta(T('🍲 Guiso', 'Ingredientes:', '• 2 huevos', 'Pasos:', '1. Bate.', 'Consejos:', '1. Usa huevos del día.', '2. No batas de más.'));
+  check('R9-2 · bajo «Consejos:» los consejos NUMERADOS se unen al consejo, como las viñetas: no se cuentan como pasos',
+    r3b !== null && r3b.consejo === 'Usa huevos del día. No batas de más.' && igual(r3b.pasos, ['Bate.']), r3b ? JSON.stringify({ pasos: r3b.pasos, consejo: r3b.consejo }) : 'null');
+  const r3c = leerReceta(T('🍲 Guiso', 'Ingredientes:', '• 2 huevos', 'Pasos:', '1. Bate.', 'Consejo:', '1. Usa huevos del día.', 'Pasos:', '2. Sirve.'));
+  check('R9-2 · CONTROL · una cabecera «Pasos:» después del consejo vuelve a abrir los pasos',
+    r3c !== null && r3c.consejo === 'Usa huevos del día.' && igual(r3c.pasos, ['Bate.', 'Sirve.']), r3c ? JSON.stringify({ pasos: r3c.pasos, consejo: r3c.consejo }) : 'null');
   const r4 = leerReceta(T('🍲 Guiso', 'Ingredientes:', '• 2 huevos', '400 g de harina', 'Sal y pimienta', 'Para la salsa:', '• 1 tomate', 'Pasos:', '1. Bate.'));
   check('bajo la cabecera, una línea SIN viñeta que empieza con una cantidad también es ingrediente; las que no («Sal y pimienta», «Para la salsa:») van a `otras`',
     r4 !== null && igual(r4.ingredientes.map((x) => x.texto), ['2 huevos', '400 g de harina', '1 tomate']) && igual(r4.otras, ['Sal y pimienta', 'Para la salsa:']), r4 ? JSON.stringify(r4.otras) : 'null');
@@ -1301,6 +1309,20 @@ console.log('\n── G · leerLista ──');
 
   const vacias = leerLista(T('SECCIÓN: Vacía', 'SECCIÓN: Con algo', '• 2 limones'));
   check('una sección sin líneas no sale', vacias !== null && vacias.secciones.length === 1 && vacias.secciones[0].nombre === 'Con algo');
+
+  /* R9-2: una marca «SECCIÓN:» SIN nombre (o con un nombre que se queda en nada: «""», solo un emoji) es un cambio de
+     sección igual: lo que viene debajo NO es de la sección anterior. Antes se ignoraba y la leche salía en «Frutas». */
+  const marcaSinNombre = leerLista(T('SECCIÓN: Frutas', '• 2 manzanas', 'SECCIÓN:', '• 1 l de leche'));
+  check('R9-2 · una marca «SECCIÓN:» sin nombre cierra la sección anterior: lo de debajo va a una sección sin nombre, no a «Frutas»',
+    marcaSinNombre !== null && igual(marcaSinNombre.secciones.map((s) => [s.nombre, s.lineas.map((x) => x.texto)]), [['Frutas', ['2 manzanas']], ['', ['1 l de leche']]]),
+    marcaSinNombre ? JSON.stringify(marcaSinNombre.secciones.map((s) => [s.nombre, s.lineas.length])) : 'null');
+  const marcasQueSeVacian = ['SECCIÓN: ""', 'SECCIÓN: 🥛', 'SECCIÓN: <>', 'SECCION:'].map((m) => leerLista(T('SECCIÓN: Frutas', '• 2 manzanas', m, '• 1 l de leche')));
+  check('R9-2 · …y lo mismo si el nombre se queda en nada («""», solo un emoji, «<>», sin tilde)',
+    marcasQueSeVacian.every((l) => l !== null && l.secciones.length === 2 && l.secciones[0].lineas.length === 1 && l.secciones[1].nombre === ''),
+    JSON.stringify(marcasQueSeVacian.map((l) => l && l.secciones.map((s) => [s.nombre, s.lineas.length]))));
+  const marcaSinNombreAlPrincipio = leerLista(T('SECCIÓN:', '• 1 l de leche'));
+  check('R9-2 · CONTROL · al principio, como antes: una sección sin nombre con su línea',
+    marcaSinNombreAlPrincipio !== null && igual(marcaSinNombreAlPrincipio.secciones.map((s) => [s.nombre, s.lineas.length]), [['', 1]]));
 
   const casillas = leerLista(T('SECCIÓN: Fruta', '[ ] 2 limones', '[x] 3 peras', '☐ 1 melón', '☑ 4 kiwis'));
   check('las casillas («[ ]», «[x]», «☐», «☑») no entran en el texto de la línea', casillas !== null && casillas.secciones[0].lineas.map((x) => x.texto).join('|') === '2 limones|3 peras|1 melón|4 kiwis');

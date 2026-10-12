@@ -510,6 +510,8 @@ export const leerReceta = (texto: string): RecetaLeida | null => {
 
     consejoPendiente = false;
     if (linea.tipo === 'numerada') {
+      /* Bajo «Consejo(s):», unos consejos numerados son consejo, como sus viñetas: no pasos que la tarjeta enseñaría (R9-2). */
+      if (estado === 'consejo') { consejo = consejo ? `${consejo} ${linea.texto}` : linea.texto; continue; }
       if (estado === 'ingredientes') estado = 'pasos';
       pasos.push(linea.texto);
       continue;
@@ -705,8 +707,8 @@ export const leerLista = (texto: string): ListaLeida | null => {
     }
     const marca = MARCA_DE_SECCION.exec(c.texto);
     if (marca) {
-      const nombre = nombreDeSeccion(marca[1]);
-      if (nombre) nueva(nombre);
+      /* Sin nombre (o con uno que se queda en nada) sigue siendo un cambio de sección: lo de debajo no es de la anterior (R9-2). */
+      nueva(nombreDeSeccion(marca[1]));
       return;
     }
     if (siguienteEsLinea(k) && pareceTituloDeSeccion(c.texto)) { nueva(nombreDeSeccion(c.texto)); return; }
