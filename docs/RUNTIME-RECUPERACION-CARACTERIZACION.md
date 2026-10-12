@@ -2,7 +2,7 @@
 
 > **Qué es esto.** Una medida, no un arreglo. Fija lo que el código hace HOY cuando un proceso muere con un trabajo a medias,
 > cuando un aviso llega dos veces o cuando el barrido no llega a un trabajo, y lo deja escrito en una suite que corre en la
-> cadena (`functions/test/runtime-recuperacion-caracterizacion.test.mjs`: 110 comprobaciones —86 contratos y 24 banderas—, ~3 s, sin emulador, sin red).
+> cadena (`functions/test/runtime-recuperacion-caracterizacion.test.mjs`: 111 comprobaciones —87 contratos y 24 banderas—, ~3 s, sin emulador, sin red).
 > **No toca `functions/src` ni `functions/lib`** (`git diff d867774 --stat -- functions/src` es vacío) y **no crea ningún
 > mecanismo nuevo**: donde propone algo, reutiliza lo que ya existe (`barrerRecuperables`, `evaluar`, el barrido, el
 > reconciliador, `operacionAbandonada`). Es la base sobre la que se decidirá **M-05**; ninguna de sus piezas está autorizada.
@@ -105,7 +105,7 @@ presupuesto; P6 alertas). Las **cercas** que movería cada pieza están en § 6.
 | **S5e** | Entrega repetida de la cola | Tres avisos del mismo trabajo a la vez: **una ejecución**, un intento; las otras dos pierden (`claim_race`) (G8) | Una ejecución | G8; `worker.ts:148-153`; CORROBORADO por `runtime-conductor` | Bajo | — | EJECUTADO |
 | **S6a** | Cancelar un huérfano | `queued`: se cancela en el acto y el barrido devuelve (H1). `running` sin salir: `cancel_requested`; **solo si alguien evalúa** se consuma y devuelve (H2). **Salió sin referencia: cancelar NO libera la reserva** (no hay a quién pedirle parar; acaba `timed_out` y «a reconciliar»; Seedance no tiene `cancelar`) (H3). **La puerta de vídeo no ofrece cancelar** (A13) | Cancelar converge | H1–H3, A13; `core/job.ts:2371,2488` | Medio | **P1** cierra H2; H3 depende de P2. Exponer cancelar en `generateVideo` sería una decisión de producto | EJECUTADO |
 | **S6b** | Cancelar y recuperar a la vez | Desde la misma revisión **gana UNA transición** (compare-and-set); la otra pierde sin error (H4). Con el proveedor trabajando: se pide parar y **manda el final que él diga** (cancelada → devuelve exacta; terminó → gana el final y se cobra) (H5, H6) | Una transición; si el resultado ya existe, no se tira | H4–H6; CORROBORADO por `mundo3d-asincrono` | Bajo | — | EJECUTADO |
-| **S7** | Inanición del barrido | Con **1 000** trabajos que solo esperan delante, **3 pasadas** miran 1 000 cada una, dejan «quedan páginas» y **no llegan** al completado con dinero por cobrar (I1). El reconciliador hace **las mismas 12 preguntas, en el mismo orden**, y un aceptado cuyo proveedor ya terminó no recibe turno (I2). El cursor **no se guarda** (I3). Acaba cuando se cierran los de delante: con 3 cerrados, la pasada siguiente lo cobra (I4). El orden es el del identificador del documento —una composición legible con prefijos de longitud, primero la cuenta y luego la petición (`almacen.ts:85`, `core/job.ts:895`)—, **no** la antigüedad ni un hash | Un trabajo cerrable se liquida en ≤ 2 pasadas | I0–I4; `barrendero.ts:104-105`, `reconciliador.ts:123`, `almacen.ts:204-226` | Bajo hoy (12 vídeos/día/persona); Medio a escala; **los huérfanos de S1 ocupan la ventana sin salir** | **P5** (cursor persistido en un documento cerrado de `aiSettings` y presupuesto de tiempo). Mientras tanto, cerrar huérfanos (P1) lo alivia | EJECUTADO |
+| **S7** | Inanición del barrido | Con **1 000** trabajos que solo esperan delante, **3 pasadas** miran 1 000 cada una, dejan «quedan páginas» y **no llegan** al completado con dinero por cobrar (I1). El reconciliador hace **las mismas 12 preguntas, en el mismo orden**, y un aceptado cuyo proveedor ya terminó no recibe turno (I2). El cursor **no se guarda** (I3). Acaba cuando se cierran los de delante: con 3 cerrados, la pasada siguiente lo cobra (I4). Y la recuperación (si se conectara) hereda la ventana: `barrerRecuperables` lee una página por llamada y con mil `waiting` delante hacen falta 11 llamadas para llegar a un `queued` huérfano (I5). El orden es el del identificador del documento —una composición legible con prefijos de longitud, primero la cuenta y luego la petición (`almacen.ts:85`, `core/job.ts:895`)—, **no** la antigüedad ni un hash | Un trabajo cerrable se liquida en ≤ 2 pasadas | I0–I4; `barrendero.ts:104-105`, `reconciliador.ts:123`, `almacen.ts:204-226` | Bajo hoy (12 vídeos/día/persona); Medio a escala; **los huérfanos de S1 ocupan la ventana sin salir** | **P5** (cursor persistido en un documento cerrado de `aiSettings` y presupuesto de tiempo). Mientras tanto, cerrar huérfanos (P1) lo alivia; P1 debe **recorrer con el cursor** (§ 6) | EJECUTADO |
 | **S8** | Proveedor mudo (E3) | Con referencia: se le pregunta cada 5 min; **pasadas las 2 h 15 nadie vence el trabajo** (sigue `waiting`, `AUTHORIZED`); a los **7 días ModelArk ya no recuerda y el reconciliador se rinde**, sin cerrar nada, 30 días después igual (E9, E10). Si ModelArk contesta `expired` (la tarea pidió expirar a las 2 h), falla y **devuelve exacto** (E11). Un final bueno que llega pasado el plazo del trabajo (a las 3 h) **sí se cierra y se cobra** mientras nadie evalúe (E12) | Una tarea sin final tiene dueño tras el horizonte | E9–E12; `reconciliacion.ts:134`, `plazos.ts:86` | Medio | **Decisión del dueño** (RUNTIME §21.4): qué hacer tras `rendirse`; **no** evaluar los `waiting` (B8) | EJECUTADO |
 | **S9** | Desfase de reloj y zombi (E7) | Con 90 s de desfase: el trabajador adelantado recupera una concesión viva y **no ejecuta nada**; solo sale A (un POST); el **informe tardío de A con la referencia SÍ aterriza** (el intento `unknown` sigue abierto) (F7, F8). Si A no había marcado el envío: B cierra el intento y A pierde la carrera al marcar (`dispatch_mark_race`), **0 POST** con un intento (F9) o **un POST** de B con tres (F10). **Nunca doble POST** | Un POST | F7–F10; `worker.ts:158-164`; CORROBORADO por `runtime-conductor` (zombi) | Bajo | — (el desfase real entre instancias es **UNKNOWN**) | EJECUTADO (desfase simulado); desfase real INFERIDO |
 | **S10** | Camino legacy (E10): el vivo con la puerta cerrada | Reserva `AUTHORIZED` + hueco ocupado, **ningún trabajo del Core**; el barrido no la ve (0 mirados, 30 d); el informe manual sí; se cierra **solo si la persona repite** (5 min: `DUPLICATE_REQUEST`; 26 min: devuelve) (J1–J5). La tarea de ModelArk sigue y se factura (inferido, RUNTIME:500) | La reserva converge | J1–J5; `video.ts:680-728`; CORROBORADO por `plazos-y-liquidacion` | **Alto** (es lo que corre hoy) | Ninguna pieza de M-05 (no hay trabajo): informe manual programado o devolver al reintento antes de 25 min — **decisión** | EJECUTADO; facturación de la tarea INFERIDA |
@@ -139,6 +139,30 @@ ninguna modificación porque no hay ninguna (`src` intacto). Hay que **medirlas 
 | **P5** Cursor persistido y presupuesto de tiempo | `runtime/reconciliador.ts`, `runtime/barrendero.ts`, un documento cerrado de `aiSettings` | guardas de `runtime-liquidacion` («no es un bucle», «no reclama»), `firestore.rules` si el documento es nuevo | caen I1, I2 |
 | **P6** Severidad y lista | `settlement/programado.ts`, `ops/observabilidad/*` | las del programador (no decide); `observabilidad*.test` | caen D4, D5 |
 
+**Esbozo de P1 (NO aplicado; es lo que la suite ya ejercita desde fuera, en las mutaciones de § 8):**
+
+```ts
+// functions/src/runtime/index.ts — esbozo
+import { barrerRecuperables } from '../job/worker';
+
+/** Recuperar lo que un trabajador puede mover, y SOLO eso: `queued` y `running`. Nunca `waiting` (B8). */
+export const recuperacionDeWee = (deps: { db?: Firestore; ahora?: () => number } = {}) => {
+  const db = deps.db ?? getFirestore();
+  const ahora = deps.ahora ?? (() => Date.now());
+  const almacen = almacenDeTrabajos(db);
+  const movibles = { ...almacen, async recuperables(q) { const r = await almacen.recuperables(q); return { ...r, jobs: r.jobs.filter((j) => j.state === 'queued' || j.state === 'running') }; } };
+  return async () => { /* recorrer con el cursor, con tope de páginas: UNA llamada lee UNA página (I5) */ };
+};
+// mantenimientoDeWee: antes de `preguntar`, envuelta como la reconciliación (un fallo se cuenta y no impide liquidar).
+```
+
+Cuatro advertencias, **medidas**: (1) `barrerRecuperables` lee **una página (100) por llamada** y deja un cursor; con mil `waiting` delante hacen falta
+**once** llamadas para llegar a un `queued` huérfano (I5); (2) filtrar después de leer la página **hereda la ventana de S7**; la alternativa es
+consultar por estado (`state == 'queued'|'running'` más el orden por id: sin índice compuesto, el mismo patrón que ya usa `terminal`), que toca
+`runtime/almacen.ts` y mueve la cerca F1; (3) el motor es el de siempre (`crearMotorDeTrabajosDeWee()`): la política de cada trabajo viaja
+**dentro** del trabajo, y la mutación con el motor por defecto cae en las mismas 7 (`mutacion-barrido-filtrado-motor-por-defecto.log`);
+(4) los avisos que re-encola van a una cola de invocación que nadie consume y, con la política de vídeo, no hay `queued` que reejecutar.
+
 **Sobre la cola durable.** `barrerRecuperables` re-encola un aviso por cada trabajo que queda `queued` tras recuperarlo (medido en B: 1 aviso
 en la cola de invocación, que no consume nadie). Con la política de vídeo (UN intento) un reclamo muerto no vuelve a `queued`: se cierra
 `failed`, así que P1 **no necesita consumidor ni cola durable** para devolver el dinero —solo mueve estados, sin ningún POST—. Una cola
@@ -171,7 +195,7 @@ despliega sin su autorización** (CLAUDE.md §10: la puerta `aiSettings/runtime`
 - **Línea base** (15 suites, una a una, antes de tocar nada) y **línea final** (las mismas 15 más la nueva, una a una): las 16 en verde.
   `ci-workflow` va incluida y su comprobación 13 («toda suite `*.test.mjs` está en la cadena de `npm test`») pasa con la nueva. Los
   logs están en `R7\C-m04\linea-base-*` y `linea-final-*`.
-- **Determinismo**: 12 ejecuciones en serie, salida normalizada **idéntica** (misma huella SHA-256; solo se descartan las líneas de registro del propio código bajo prueba, que llevan tiempos), 110 comprobaciones `✔`, 0 `✘`.
+- **Determinismo**: 12 ejecuciones en serie, salida normalizada **idéntica** (misma huella SHA-256; solo se descartan las líneas de registro del propio código bajo prueba, que llevan tiempos), 111 comprobaciones `✔`, 0 `✘`.
 - **Mutación** (solo en una copia temporal de la suite, no en `src`/`lib`; `R7\C-m04\mutacion-*.log`, `mutacion-diff.txt`): conectar el
   barrido al `barrerRecuperables` existente (a) filtrado a `queued|running` → caen exactamente 7, todas banderas de huérfanos (C7, C8,
   C9, C11, C12, C14, C18); (b) sin filtrar (también los `waiting`) → caen 12: las mismas 7 más D6 y E10 (banderas) y **E9, E11 y E12

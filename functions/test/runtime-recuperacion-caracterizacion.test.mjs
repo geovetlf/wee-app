@@ -1248,6 +1248,26 @@ console.log('\n── I · Mil trabajos esperando delante: el que sí se puede c
   const alivio = informeDeBarrido(await barrido());
   check('I4) La inanición NO es para siempre: al cerrarse tres de los de delante, el cobrable entra en la ventana de 1 000 y la SIGUIENTE pasada lo cobra (el atraso dura lo que tarden en cerrarse los de delante, no hay cursor que lo adelante)',
     alivio.cobrados === 1 && uso(ridCobrable).status === 'COMPLETED' && (await sembrado(ridTerminado)).state === 'waiting');
+
+  /*
+   * SI SE CONECTARA `barrerRecuperables` CON UN HUÉRFANO AL FINAL. Recorre UNA página por llamada y devuelve un cursor; y filtrar
+   * por estado DESPUÉS de leer la página (lo que hace falta para no evaluar los `waiting`, B8) hereda la ventana de arriba: con mil
+   * esperando delante, una sola llamada no llega al `queued` huérfano, y recorrer con el cursor son once lecturas de cien.
+   */
+  const ridHuerfano = despuesDeTodos('vid-i-huerfano');
+  await reservar(U, ridHuerfano);
+  await store.crearSiAusente(motorDeVideo.crear(peticionDeTrabajo(U, ridHuerfano)).job);
+  adelanto = 4 * HORA;
+  const soloMovibles = { ...store, async recuperables(q) { const r = await store.recuperables(q); return { ...r, jobs: r.jobs.filter((j) => j.state === 'queued' || j.state === 'running') }; } };
+  const depsDeRecuperacion = { store: soloMovibles, queue: colaDeInvocacion(() => Date.now()), engine: motorDeVideo, now: () => Date.now() };
+  const unaPagina = await barrerRecuperables(depsDeRecuperacion, { limit: 100 });
+  const sinTocar = (await sembrado(ridHuerfano)).state;
+  let cursor = unaPagina.cursor; let paginas = 1; let recuperados = unaPagina.recuperados;
+  while (cursor && paginas < 50) { const r = await barrerRecuperables(depsDeRecuperacion, { limit: 100, cursor }); recuperados += r.recuperados; cursor = r.cursor; paginas++; }
+  medida(`I5 recuperar con un huérfano al final: una página → ${JSON.stringify({ revisados: unaPagina.revisados, recuperados: unaPagina.recuperados, cursor: !!unaPagina.cursor })} · huérfano ${sinTocar}; recorriendo con el cursor: ${paginas} llamadas, ${recuperados} recuperado(s) → ${(await sembrado(ridHuerfano)).state}`);
+  check('I5) SI SE CONECTARA, `barrerRecuperables` lee UNA página (100) por llamada y filtrar DESPUÉS hereda la ventana: con mil `waiting` delante una llamada no llega al `queued` huérfano (`revisados: 0`, deja cursor) y hacen falta ONCE llamadas con el cursor para vencerlo',
+    unaPagina.revisados === 0 && unaPagina.recuperados === 0 && !!unaPagina.cursor && sinTocar === 'queued' && paginas === 11 && recuperados === 1 && (await sembrado(ridHuerfano)).state === 'timed_out');
+  adelanto = 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
