@@ -223,4 +223,10 @@ export interface ContextoDeExperiencia {
   imageUri?: string;
   /** El documento del editor que pidió ayuda (Weë Writer). */
   editorDocId?: string;
+  /**
+   * El proyecto de «Mis proyectos» desde el que se crea. Lo que esta pantalla empiece NACE dentro de él (viaja en la primera
+   * llamada, `creatorChat`, y el servidor lo guarda en el trabajo): no entra al terminar, si la persona se acuerda de
+   * «Guardar en proyecto». Un identificador, no un nombre: el nombre lo escribió la persona y se lee del proyecto.
+   */
+  projectId?: string;
 }

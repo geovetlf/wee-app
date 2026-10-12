@@ -45,6 +45,14 @@ interface Props {
  * aviso lo dice en voz alta en vez de hacer como que sí. Cuando una sección se
  * conecte de verdad, pasa `clavePista={null}` y la línea desaparece; lo que no
  * se hace nunca es quitarla antes de que sea cierto.
+ *
+ * ── Y se anuncia y se lee (CL-24) ───────────────────────────────────────────
+ *
+ * La lámina es una región viva «cortés» (`accessibilityLiveRegion="polite"`, lo mismo que ya usan el guardado y los avisos
+ * de la producción): quien escucha la pantalla oye «Creando…» y «Creación lista» sin tener que ir a buscarlos, y sin que le
+ * interrumpan, porque es un estado y no un error. Y su acción se lee con `text`: antes llevaba el dorado oscuro, que sobre
+ * la tarjeta blanca da 2,24:1 (no llega al 4,5:1 de AA). `text` pasa en los dos temas —14,68:1 el claro, 18,88:1 el
+ * oscuro— y no inventa ningún color. El dorado se queda en el icono, que es decorativo: lo que dice el aviso lo dice el texto.
  */
 const AvisoDeCreacion: React.FC<Props> = ({ estado, bottom, onCerrar, clavePista = 'studio.readyHint' }) => {
   const { theme } = useTheme();
@@ -53,7 +61,7 @@ const AvisoDeCreacion: React.FC<Props> = ({ estado, bottom, onCerrar, clavePista
   if (estado === 'quieto') return null;
 
   return (
-    <View style={[styles.aviso, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, bottom }]}>
+    <View accessibilityLiveRegion="polite" style={[styles.aviso, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, bottom }]}>
       {estado === 'creando' ? (
         <>
           <Ionicons name="sparkles" size={scale(18)} color={theme.colors.accentDark} />
@@ -75,7 +83,7 @@ const AvisoDeCreacion: React.FC<Props> = ({ estado, bottom, onCerrar, clavePista
             accessibilityRole="button"
             style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
           >
-            <Text style={[styles.avisoCerrar, { color: theme.colors.accentDark }]}>{t('studio.dismiss')}</Text>
+            <Text style={[styles.avisoCerrar, { color: theme.colors.text }]}>{t('studio.dismiss')}</Text>
           </TouchableOpacity>
         </>
       )}

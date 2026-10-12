@@ -259,13 +259,18 @@ export const humanizeCreatorError = (error: unknown, t: Traductor | ((clave: str
 };
 
 export const creatorService = {
-  /** Empieza una conversación con un especialista (crea el trabajo); la foto ya subida va como URL. */
-  start: (experienceId: string, goal: string | undefined, presetAnswers: Answer[] | undefined, imageUrl: string | undefined, locale: string) =>
+  /**
+   * Empieza una conversación con un especialista (crea el trabajo); la foto ya subida va como URL. `projectId` es el proyecto de
+   * «Mis proyectos» en el que nace el trabajo: el servidor lo guarda al crearlo (`creator/index.ts`), así que el proyecto lo lista
+   * aunque la persona se vaya a medias. Sin proyecto no viaja la clave: ni vacía ni nula.
+   */
+  start: (experienceId: string, goal: string | undefined, presetAnswers: Answer[] | undefined, imageUrl: string | undefined, projectId: string | undefined, locale: string) =>
     call<ChatResponse>('creatorChat', {
       experienceId,
       goal: goal || '',
       presetAnswers: presetAnswers || [],
       ...(imageUrl ? { imageUrl } : {}),
+      ...(projectId ? { projectId } : {}),
       /* El idioma de la app: el trabajo lo guarda y sus textos salen en él (`instruccionDeSalida` en el servidor).
          Obligatorio en las tres llamadas: un llamador que lo olvide no compila. */
       locale,

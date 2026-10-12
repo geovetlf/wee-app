@@ -28,6 +28,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { RAIZ, crearCargador, leer, sinComentarios } from './filmmaker-cliente.mjs';
+import { temasDeLaApp, contraste, AA_TEXTO } from './_contraste-wcag.mjs';
 
 const require = createRequire(import.meta.url);
 const existe = (rel) => fs.existsSync(path.resolve(RAIZ, rel));
@@ -171,10 +172,18 @@ export const CRITERIOS = [
   },
   {
     id: 'CL-12', tipo: 'defecto', titulo: '«Intentar de nuevo» tras un fallo al cambiar de nivel vuelve a cotizar, no crea ni reserva Credits (H-3)',
-    responsable: 'dueño de CreatorFlow (pantalla compartida)', archivos: ['screens/CreatorFlowScreen.tsx:279-296, 615-626'],
+    responsable: 'hecho (R7-Design, tarea C); pantalla compartida: la revisa el dueño de CreatorFlow', archivos: ['screens/CreatorFlowScreen.tsx:80-92, 295-312, 635-642'],
     comprueba: () => {
-      const roto = /status === 'planned' \? handleCreate\(\)/.test(sinComentarios(leer('screens/CreatorFlowScreen.tsx')));
-      return { ok: !roto, evidencia: roto ? `${lineaDe('screens/CreatorFlowScreen.tsx', /status === 'planned' \? handleCreate\(\)/)}: el reintento del cuadro de error crea cuando el trabajo está planificado, venga el error de cotizar o de crear` : 'el reintento distingue de dónde viene el error' };
+      /*
+       * Mirada de texto: el reintento del cuadro de error pregunta de dónde viene el error ANTES de crear. Que de verdad
+       * vuelva a cotizar —el mismo trabajo y el último nivel pedido, sin crear ni abrir otro— lo ejecuta
+       * `weeai-cliente-cierre.test.mjs` (A).
+       */
+      const fuente = sinComentarios(leer('screens/CreatorFlowScreen.tsx'));
+      const creaSiempre = /status === 'planned' \? handleCreate\(\)/.test(fuente);
+      const distingue = /fallo\??\.cotizando\s*\?\s*handleQuality\(/.test(fuente);
+      const roto = creaSiempre && !distingue;
+      return { ok: !roto, evidencia: roto ? `${lineaDe('screens/CreatorFlowScreen.tsx', /status === 'planned' \? handleCreate\(\)/)}: el reintento del cuadro de error crea cuando el trabajo está planificado, venga el error de cotizar o de crear` : 'el reintento vuelve a cotizar si el error vino de cotizar (`fallo.cotizando`); ejecutado en weeai-cliente-cierre A' };
     },
   },
   {
@@ -244,11 +253,26 @@ export const CRITERIOS = [
     },
   },
   {
-    id: 'CL-20', tipo: 'integración', titulo: 'Crear desde dentro de un proyecto guarda el trabajo en ese proyecto (el servidor ya acepta `projectId`; el cliente no lo manda)',
-    responsable: 'línea de Design y Weë AI (sin decisión pendiente)', archivos: ['services/creatorService.ts (start)', 'screens/ProjectScreen.tsx:145', 'screens/CreatorFlowScreen.tsx'],
+    id: 'CL-20', tipo: 'integración', titulo: 'Crear desde dentro de un proyecto guarda el trabajo en ese proyecto (el servidor ya acepta `projectId` y el cliente lo manda en la primera llamada)',
+    responsable: 'hecho (R7-Design, tarea C) en el cliente; conectar «Añadir» de un proyecto es la propuesta P11', archivos: ['services/creatorService.ts:263-277 (start)', 'screens/CreatorFlowScreen.tsx:105-123, 166-167, 406', 'constants/weeWorkspaces.ts:231', 'App.tsx:278 (parse de CreatorFlow)', 'screens/ProjectScreen.tsx:157'],
     comprueba: () => {
-      const manda = /projectId/.test((leer('services/creatorService.ts').match(/start:[\s\S]*?\}\),/) || [''])[0]);
-      return { ok: manda, evidencia: manda ? 'creatorService.start manda projectId' : 'creatorService.start no manda projectId (functions/src/creator/index.ts:329 lo acepta); un trabajo solo entra en un proyecto con assignJob al terminar' };
+      /*
+       * Mirada de texto, en tres puntas: el servicio manda la clave solo si hay proyecto, la pantalla se la pasa desde la ruta y
+       * la ruta la declara. Que de verdad llegue a la carga del callable y que el servidor la guarde lo ejecuta
+       * `weeai-cliente-cierre.test.mjs` (B). Y se cuenta quién la pasa hoy, para que un «cumplido» no esconda que nadie la manda.
+       */
+      const servicio = sinComentarios(leer('services/creatorService.ts'));
+      const desde = servicio.indexOf('start:');
+      const cuerpo = servicio.slice(desde, servicio.indexOf('answer:', desde));
+      const manda = /call<ChatResponse>\('creatorChat',\s*\{[\s\S]*?\.\.\.\(projectId \? \{ projectId \} : \{\}\)/.test(cuerpo);
+      const loPasa = /creatorService\.start\([^\n]*params\.projectId,\s*locale\)/.test(sinComentarios(leer('screens/CreatorFlowScreen.tsx')));
+      const declarado = /export interface ContextoDeExperiencia \{[\s\S]*?\n  projectId\?: string;/.test(leer('constants/weeWorkspaces.ts'));
+      const entradas = fs.readdirSync(path.resolve(RAIZ, 'screens')).filter((f) => /\.tsx$/.test(f) && f !== 'CreatorFlowScreen.tsx'
+        && /(navigate|push)\('CreatorFlow',[^;]*projectId/.test(sinComentarios(leer(`screens/${f}`))));
+      const ok = manda && loPasa && declarado;
+      return { ok, evidencia: ok
+        ? `creatorService.start manda projectId, CreatorFlowScreen se lo pasa desde la ruta y la ruta lo declara; ejecutado en weeai-cliente-cierre B. Lo pasan hoy: ${entradas.join(', ') || 'ninguna pantalla'} («Añadir» del proyecto no: P11)`
+        : `creatorService.start ${manda ? 'manda' : 'NO manda'} projectId · CreatorFlowScreen ${loPasa ? 'se lo pasa' : 'NO se lo pasa'} · la ruta ${declarado ? 'lo declara' : 'NO lo declara'} (functions/src/creator/index.ts:329 lo acepta); un trabajo solo entra en un proyecto con assignJob al terminar` };
     },
   },
   {
@@ -272,13 +296,22 @@ export const CRITERIOS = [
     },
   },
   {
-    id: 'CL-24', tipo: 'resto', titulo: 'Accesibilidad compartida: el aviso de la creación se anuncia (región viva) y su texto de acción pasa el contraste AA (hoy 2,24:1)',
-    responsable: 'línea de Design + tema compartido', archivos: ['components/creator/AvisoDeCreacion.tsx', 'contexts/ThemeContext.tsx (accentDark)'],
+    id: 'CL-24', tipo: 'resto', titulo: 'Accesibilidad compartida: el aviso de la creación se anuncia (región viva) y su texto de acción pasa el contraste AA en los dos temas (antes 2,24:1 en el claro)',
+    responsable: 'hecho (R7-Design, tarea C); componente compartido con Weë Studio: avisar a su dueño', archivos: ['components/creator/AvisoDeCreacion.tsx:73-89', 'contexts/ThemeContext.tsx (solo se lee: no cambia ningún token)'],
     comprueba: () => {
+      /*
+       * Mirada de texto más una CUENTA: qué color del tema usa la acción del aviso («Entendido») y cuánto contrasta con el fondo
+       * del aviso en cada tema —los colores se leen de `ThemeContext.tsx`, no se copian—. Lo que el componente de verdad
+       * pinta, con todos sus textos y en los dos temas, lo ejecuta `weeai-cliente-cierre.test.mjs` (C).
+       */
       const a = sinComentarios(leer('components/creator/AvisoDeCreacion.tsx'));
       const viva = /accessibilityLiveRegion|accessibilityRole="alert"|aria-live/.test(a);
-      const dorado = /accentDark/.test(a);
-      return { ok: viva && !dorado, evidencia: `región viva: ${viva ? 'sí' : 'no'} · texto de acción en accentDark (#E5A020 sobre blanco = 2,24:1): ${dorado ? 'sí' : 'no'}` };
+      const colorDeLaAccion = (a.match(/styles\.avisoCerrar,\s*\{\s*color:\s*theme\.colors\.(\w+)/) || [])[1];
+      const colorDelFondo = (a.match(/styles\.aviso,\s*\{[^}]*?backgroundColor:\s*theme\.colors\.(\w+)/) || [])[1];
+      const temas = temasDeLaApp();
+      const cuentas = Object.entries(temas).map(([tema, c]) => ({ tema, ratio: colorDeLaAccion && colorDelFondo && c[colorDeLaAccion] && c[colorDelFondo] ? contraste(c[colorDeLaAccion], c[colorDelFondo]) : 0 }));
+      const pasa = cuentas.length === 2 && cuentas.every((x) => x.ratio >= AA_TEXTO);
+      return { ok: viva && pasa, evidencia: `región viva: ${viva ? 'sí' : 'no'} · texto de acción en «${colorDeLaAccion ?? '?'}» sobre «${colorDelFondo ?? '?'}»: ${cuentas.map((x) => `${x.tema} ${x.ratio.toFixed(2)}:1`).join(' · ')} (AA = ${AA_TEXTO}:1)` };
     },
   },
   {

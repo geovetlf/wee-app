@@ -153,7 +153,8 @@ const ProjectScreen: React.FC = () => {
                 return (
                   <TouchableOpacity
                     key={job.id}
-                    onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id })}
+                    /* Con el proyecto: lo que se pida desde aquí —otra versión, un ajuste— nace en él y no se pierde entre las creaciones sueltas (CL-20). */
+                    onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id, projectId: id })}
                     activeOpacity={0.8}
                     style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
                   >

@@ -208,6 +208,8 @@ const falsos = filasDelDoc.filter((f) => f.hoy === 'CUMPLIDO' && estados[f.id] !
 check('C3) nada que el documento dé por CUMPLIDO deja de serlo (el corredor lo comprueba)', falsos.length === 0, falsos.join(', ') || 'ninguno');
 check('C3) y lo cerrado en esta rama —ajustes, micrófono, fichas— sigue cerrado, en el documento y en el corredor',
   ['CL-06', 'CL-07', 'CL-08'].every((id) => estados[id] === 'CUMPLIDO' && norma(filasDelDoc.find((f) => f.id === id)?.hoy) === 'CUMPLIDO'));
+check('C3) y lo cerrado en R7-Design por el cliente de Weë AI —reintento tras fallar la cotización, proyecto al crear, aviso que se anuncia y se lee— también (se ejecuta en weeai-cliente-cierre)',
+  ['CL-12', 'CL-20', 'CL-24'].every((id) => estados[id] === 'CUMPLIDO' && norma(filasDelDoc.find((f) => f.id === id)?.hoy) === 'CUMPLIDO'));
 const cumplidos = CRITERIOS.filter((c) => estados[c.id] === 'CUMPLIDO').length;
 const dicho = doc.match(/De\s+los\s+(\d+)\s+criterios\s+de\s+cierre,\s+\*\*(\d+)\s+se\s+cumplen/);
 check('C3) y el veredicto del documento cuenta lo mismo que el corredor: cuántos criterios hay y cuántos se cumplen',
