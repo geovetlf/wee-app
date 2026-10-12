@@ -12,8 +12,8 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
 
 **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
 Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
-28 criterios de cierre, **14 se cumplen, 3 están abiertos, 8 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
-**Con el puente de [WEE-DESIGN-PUENTE.md](WEE-DESIGN-PUENTE.md) aplicado, «Crear» ya llega a `CreatorFlow` (CL-01 y CL-03 pasan a CUMPLIDO) y, con «Mis creaciones» enseñando lo creado (CL-04, R8), de ahí el 14, el 3 y el 8; sin ellos eran 11, 5 y 9. Lo que sigue describe la pantalla montada ANTES de ellos (`d867774`).**
+28 criterios de cierre, **16 se cumplen, 2 están abiertos, 8 esperan una decisión del dueño y 2 son manuales** (E: `_design-cierre.mjs`).
+**Ensayo R9 (rama `r9/ensayo-puente`, NO integrada): con el puente aplicado sobre la integración de R8, «Crear» ya llega a `CreatorFlow` (CL-01 y CL-03 pasan a CUMPLIDO) con el proyecto de la ruta (P11); de ahí el 16, el 2 y el 8; sin el puente eran 14, 3 y 9. Lo que sigue describe la pantalla montada ANTES de ellos (`d867774`).**
 
 ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
 

@@ -281,7 +281,8 @@ for (const [rel, src] of [['screens/StudioScreen.tsx', studio]]) {
  * lo que la persona pidió se ve siempre.
  */
 check('23) screens/DesignScreen.tsx ya no monta un aviso de demostración ni el teclado que lo subía: crear es ir a CreatorFlow',
-  !/<AvisoDeCreacion|useAlturaDelTeclado|setTimeout/.test(design) && /navigation\.navigate\('CreatorFlow', contexto\)/.test(design));
+  /* P11 (ensayo R9): el contexto viaja con el proyecto de la ruta, si lo hay. */
+  !/<AvisoDeCreacion|useAlturaDelTeclado|setTimeout/.test(design) && /navigation\.navigate\('CreatorFlow', (contexto|\{ \.\.\.contexto, \.\.\.\(projectId \? \{ projectId \} : \{\}\) \})\)/.test(design));
 /*
  * El aviso también es UNO desde B3.10 (`components/creator/AvisoDeCreacion.tsx`):
  * antes estaba copiado renglón por renglón en las dos pantallas. Así que la
