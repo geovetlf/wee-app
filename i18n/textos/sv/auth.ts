@@ -49,6 +49,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: 'Ogiltig e-postadress',
   errUserDisabled: 'Kontot har inaktiverats',
   googleFailed: 'Det gick inte att logga in med Google. Försök igen.',
+  googleNotConfigured: 'Inloggning med Google är inte konfigurerad i den här versionen än. Fortsätt med din e-post eller som gäst.',
   anonymousFailed: 'Det gick inte att fortsätta som gäst. Försök igen.',
   emailRequiredTitle: 'E-postadress krävs',
   emailRequired: 'Ange din e-postadress för att återställa lösenordet',

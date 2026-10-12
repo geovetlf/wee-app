@@ -37,6 +37,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: 'メールアドレスの形式が正しくありません',
   errUserDisabled: 'このアカウントは無効になっています',
   googleFailed: 'Googleでログインできませんでした。もう一度お試しください。',
+  googleNotConfigured: 'このバージョンでは、Googleでのログインはまだ設定されていません。メールアドレスまたはゲストとして続けてください。',
   anonymousFailed: 'ゲストとしてログインできませんでした。もう一度お試しください。',
   emailRequiredTitle: 'メールアドレスが必要です',
   emailRequired: 'パスワードを再設定するには、メールアドレスを入力してください',

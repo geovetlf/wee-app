@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth, googleSignInDisponible } from '../contexts/AuthContext';
+import { useAuth, googleSignInDisponible, GOOGLE_NO_CONFIGURADO } from '../contexts/AuthContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useNavigation } from '@react-navigation/native';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
@@ -27,11 +27,11 @@ const LoginScreen: React.FC = () => {
 
   const { user, signIn, signInWithGoogle, signInAnonymously, resetPassword } = useAuth();
   /*
-   * Un botón que no puede funcionar no se ofrece.
-   *
-   * Mientras Google no esté activado como proveedor en Firebase, el módulo nativo
-   * se queda sin configurar y tocar el botón solo devolvía un error del SDK. Se
-   * esconde, y quedan los dos caminos que sí funcionan: el correo y el invitado.
+   * «Continuar con Google» se ofrece SIEMPRE, debajo de «Iniciar sesión» y antes
+   * de «Entrar como invitado» (decisión del usuario, 2026-09-28, que sustituye a
+   * la de esconderlo). Cuando esta versión no trae Google configurado —falta el
+   * identificador del cliente web, o la huella de la app no está registrada—, el
+   * botón no finge un acceso: lo dice, y quedan el correo y el invitado.
    */
   const conGoogle = googleSignInDisponible();
   const navigation = useNavigation<any>();
@@ -104,15 +104,32 @@ const LoginScreen: React.FC = () => {
     }
   };
 
+  const avisarGoogleNoConfigurado = () => {
+    const message = t('auth.googleNotConfigured');
+    if (Platform.OS === 'web') {
+      alert(message);
+    } else {
+      notify(t('auth.googleFailedTitle'), message);
+    }
+  };
+
   const handleGoogleLogin = async () => {
+    if (!conGoogle) {
+      avisarGoogleNoConfigurado();
+      return;
+    }
     setLoading(true);
     try {
-      await signInWithGoogle();
-      // Login exitoso - cerrar el modal
-      if (navigation.canGoBack()) {
+      const entro = await signInWithGoogle();
+      // Login exitoso - cerrar el modal (si cerró el selector de Google, se queda aquí)
+      if (entro && navigation.canGoBack()) {
         navigation.goBack();
       }
     } catch (error: any) {
+      if (error?.code === GOOGLE_NO_CONFIGURADO) {
+        avisarGoogleNoConfigurado();
+        return;
+      }
       console.warn('Google Sign-In fallido:', error?.code || error);
       const message = t('auth.googleFailed');
       if (Platform.OS === 'web') {
@@ -287,17 +304,15 @@ const LoginScreen: React.FC = () => {
                 <View style={styles.dividerLine} />
               </View>
 
-              {/* Google Login Button: solo si de verdad puede funcionar */}
-              {conGoogle && (
-                <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
-                  <Image
-                    source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
-                    style={styles.googleLogo}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
-                </TouchableOpacity>
-              )}
+              {/* Google Login Button: siempre; si esta versión no lo trae configurado, lo dice al tocarlo */}
+              <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
+                <Image
+                  source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
+                  style={styles.googleLogo}
+                  resizeMode="contain"
+                />
+                <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
+              </TouchableOpacity>
 
               {/* Anonymous Login Button */}
               <TouchableOpacity style={styles.anonymousButton} onPress={handleAnonymousLogin}>

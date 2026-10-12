@@ -51,6 +51,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: 'ईमेल पता सही नहीं है',
   errUserDisabled: 'यह खाता बंद कर दिया गया है',
   googleFailed: 'Google से साइन इन नहीं हो सका. फिर से कोशिश करें.',
+  googleNotConfigured: 'इस संस्करण में Google से साइन इन अभी सेट अप नहीं है. अपने ईमेल से या मेहमान के रूप में जारी रखें.',
   anonymousFailed: 'मेहमान के रूप में साइन इन नहीं हो सका. फिर से कोशिश करें.',
   emailRequiredTitle: 'ईमेल ज़रूरी है',
   emailRequired: 'पासवर्ड रीसेट करने के लिए, अपना ईमेल डालें',

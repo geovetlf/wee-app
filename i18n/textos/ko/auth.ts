@@ -45,6 +45,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: '이메일 형식이 올바르지 않아요',
   errUserDisabled: '이 계정은 사용이 중지됐어요',
   googleFailed: 'Google로 로그인하지 못했어요. 다시 시도해 주세요.',
+  googleNotConfigured: '이 버전에서는 아직 Google 로그인이 설정되지 않았어요. 이메일로 로그인하거나 게스트로 입장해 주세요.',
   anonymousFailed: '게스트로 입장하지 못했어요. 다시 시도해 주세요.',
   emailRequiredTitle: '이메일이 필요해요',
   emailRequired: '비밀번호를 재설정하려면 이메일을 입력해 주세요',

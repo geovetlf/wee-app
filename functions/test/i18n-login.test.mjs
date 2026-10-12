@@ -246,8 +246,18 @@ console.log('\n── F · Ni el diseño, ni el teclado, ni la autenticación �
     /const \{ user, signIn, signInWithGoogle, signInAnonymously, resetPassword \} = useAuth\(\);/.test(LOGIN)
     && /await signIn\(email, password\);/.test(LOGIN) && /await signInWithGoogle\(\);/.test(LOGIN)
     && /await signInAnonymously\(\);/.test(LOGIN) && /await resetPassword\(email, idioma\);/.test(LOGIN));
-  check('18) y el botón de Google sigue apareciendo solo si puede funcionar',
-    /const conGoogle = googleSignInDisponible\(\);/.test(LOGIN) && /\{conGoogle && \(/.test(LOGIN));
+  /*
+   * 18 · «CONTINUAR CON GOOGLE» SE OFRECE SIEMPRE. Hasta el 2026-09-28 se
+   * escondía si no podía funcionar; ese día el usuario decidió lo contrario:
+   * aparece siempre, debajo de «Iniciar sesión» y antes de «Entrar como
+   * invitado», y si esta versión no lo trae configurado lo dice (sección G).
+   */
+  const posicion = (patron) => LOGIN.search(patron);
+  check('18) y el botón de Google aparece siempre, entre «Iniciar sesión» y «Entrar como invitado»',
+    /const conGoogle = googleSignInDisponible\(\);/.test(LOGIN) && !/\{conGoogle && \(/.test(LOGIN)
+    && posicion(/\{t\('menu\.signIn'\)\}/) > 0
+    && posicion(/\{t\('menu\.signIn'\)\}/) < posicion(/\{t\('auth\.continueWithGoogle'\)\}/)
+    && posicion(/\{t\('auth\.continueWithGoogle'\)\}/) < posicion(/\{t\('auth\.enterAsGuest'\)\}/));
 
   /* 19 y 24 · Las rutas y la salida de la modal. */
   check('19) la navegación no cambió',
@@ -302,6 +312,63 @@ console.log('\n── F · Ni el diseño, ni el teclado, ni la autenticación �
     /<Text style=\{styles\.loginButtonText\}>\{t\('menu\.signIn'\)\}<\/Text>/.test(leer('components/Header.tsx'))
     && /t\('auth\.createAccountButton'\)/.test(leer('screens/RegisterScreen.tsx'))
     && !/'Crear cuenta'/.test(leer('screens/RegisterScreen.tsx')));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── G · Continuar con Google: el flujo oficial, y la verdad cuando falta configuración ──');
+// ════════════════════════════════════════════════════════════════════════════
+{
+  /*
+   * Decisión del usuario del 2026-09-28: el botón se ofrece siempre y tiene que
+   * funcionar en Android nativo con el flujo oficial —el paquete nativo de Google
+   * da el token, Firebase lo convierte en sesión—. Si esta versión no puede entrar
+   * con Google —falta el identificador del cliente web, o Google contesta
+   * DEVELOPER_ERROR porque la huella de la app no está registrada—, NO se finge un
+   * acceso: se dice, y quedan el correo y el invitado.
+   */
+  const CTX_CRUDO = leer('contexts/AuthContext.tsx');
+  const CTX = soloCodigo(CTX_CRUDO);
+
+  check('25) sin configurar no se intenta: se avisa antes de abrir nada',
+    /if \(!conGoogle\) \{\s*\n\s*avisarGoogleNoConfigurado\(\);\s*\n\s*return;/.test(LOGIN)
+    && /const message = t\('auth\.googleNotConfigured'\);/.test(LOGIN)
+    /* `notify` (utils/notify.ts): en el teléfono es el Alert de siempre y en la web no se queda mudo. */
+    && /notify\(t\('auth\.googleFailedTitle'\), message\)/.test(LOGIN));
+  check('25) y si Google contesta que la versión no está registrada, se dice lo mismo',
+    /if \(error\?\.code === GOOGLE_NO_CONFIGURADO\) \{\s*\n\s*avisarGoogleNoConfigurado\(\);/.test(LOGIN)
+    && /if \(String\(error\?\.code\) === '10'\)[\s\S]{0,200}throw googleNoConfigurado\(error\);/.test(CTX));
+  check('26) cerrar el selector de Google no es un error ni cierra la pantalla',
+    /if \(signInResult\?\.type === 'cancelled'\) \{[\s\S]{0,80}return false;/.test(CTX)
+    && /if \(esCancelacionDeGoogle\(error\)\) \{[\s\S]{0,80}return false;/.test(CTX)
+    && /const entro = await signInWithGoogle\(\);\s*\n\s*if \(entro && navigation\.canGoBack\(\)\)/.test(LOGIN));
+  check('27) el flujo es el oficial: token de Google → credencial → Firebase; popup en la web',
+    /const webClientId = process\.env\.EXPO_PUBLIC_GOOGLE_CLIENT_ID;/.test(CTX)
+    && /modulo\.configure\(\{ webClientId, offlineAccess: true \}\)/.test(CTX)
+    && /const credential = GoogleAuthProvider\.credential\(idToken\);\s*\n\s*await signInWithCredential\(auth, credential\);/.test(CTX)
+    && /await signInWithPopup\(auth, provider\);/.test(CTX));
+  check('27) y no se finge nada: ni token inventado, ni usuario de mentira',
+    !/GoogleAuthProvider\.credential\(\s*['"`{]/.test(CTX) && !/idToken\s*=\s*['"`]/.test(CTX)
+    && !/setUser\(\{/.test(CTX));
+  check('28) el contexto no escribe frases para la persona: el aviso sale del diccionario',
+    !/Entra con tu correo o como invitado/.test(CTX) && !/googleNoDisponible/.test(CTX_CRUDO)
+    && /export const GOOGLE_NO_CONFIGURADO = 'wee\/google-no-configurado';/.test(CTX));
+
+  const IDIOMAS = ['es', 'en', 'pt', 'pt-PT', 'fr', 'de', 'it', 'ru', 'ko', 'zh', 'zh-TW'];
+  const sinClave = IDIOMAS.filter((l) => !String(textosDe(l).auth?.googleNotConfigured ?? '').trim());
+  check('29) el aviso está en los once diccionarios', sinClave.length === 0, sinClave.join(' '));
+  const malas = IDIOMAS.filter((l) => {
+    const a = textosDe(l).auth || {};
+    return !/Google/.test(a.googleNotConfigured || '') || /\{\{/.test(a.googleNotConfigured || '')
+      || a.googleNotConfigured === a.googleFailed;
+  });
+  check('29) entero, con «Google» sin traducir y distinto del fallo', malas.length === 0, malas.join(' '));
+  check('29) y se lee en los dos idiomas: ' + ES('auth.googleNotConfigured'),
+    ES('auth.googleNotConfigured') === esT.auth.googleNotConfigured
+    && EN('auth.googleNotConfigured') === enT.auth.googleNotConfigured
+    && ES('auth.googleNotConfigured') !== EN('auth.googleNotConfigured'));
+
+  check('30) al salir también se sale de Google en el teléfono, si estaba configurado',
+    /if \(GoogleSignin\) \{\s*\n\s*try \{\s*\n\s*await GoogleSignin\.signOut\(\);/.test(CTX));
 }
 
 console.log('\n' + (failures ? `✘ ${failures} fallo(s)` : '✔ todo bien'));

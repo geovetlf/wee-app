@@ -48,6 +48,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: 'E-mailadressen er ikke gyldig.',
   errUserDisabled: 'Denne konto er deaktiveret.',
   googleFailed: 'Vi kunne ikke logge dig ind med Google. Prøv igen.',
+  googleNotConfigured: 'Log ind med Google er endnu ikke sat op i denne version. Fortsæt med din e-mail eller som gæst.',
   anonymousFailed: 'Vi kunne ikke logge dig ind som gæst. Prøv igen.',
   emailRequiredTitle: 'E-mailadresse mangler',
   emailRequired: 'Skriv din e-mailadresse for at nulstille din adgangskode.',

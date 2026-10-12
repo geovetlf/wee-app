@@ -37,6 +37,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: 'E-mail invalide',
   errUserDisabled: 'Ce compte a été désactivé',
   googleFailed: 'La connexion avec Google n’a pas abouti. Réessaie.',
+  googleNotConfigured: 'La connexion avec Google n’est pas encore configurée dans cette version. Continue avec ton e-mail ou en invité.',
   anonymousFailed: 'L’accès en tant qu’invité n’a pas abouti. Réessaie.',
   emailRequiredTitle: 'E-mail requis',
   emailRequired: 'Saisis ton e-mail pour réinitialiser ton mot de passe',

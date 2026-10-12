@@ -33,6 +33,7 @@ export const auth = {
   errInvalidEmail: 'Email inválido',
   errUserDisabled: 'Esta cuenta ha sido deshabilitada',
   googleFailed: 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.',
+  googleNotConfigured: 'Iniciar sesión con Google todavía no está configurado en esta versión. Entra con tu correo o como invitado.',
   anonymousFailed: 'No se pudo entrar como invitado. Inténtalo de nuevo.',
   emailRequiredTitle: 'Email requerido',
   emailRequired: 'Por favor ingresa tu email para restablecer la contraseña',

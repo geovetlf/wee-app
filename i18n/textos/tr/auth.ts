@@ -49,6 +49,7 @@ export const auth: typeof import('../es/auth').auth = {
   errInvalidEmail: 'Geçersiz e-posta adresi',
   errUserDisabled: 'Bu hesap devre dışı bırakıldı',
   googleFailed: 'Google ile giriş yapılamadı. Yeniden dene.',
+  googleNotConfigured: 'Google ile giriş bu sürümde henüz ayarlanmadı. E-postanla ya da misafir olarak devam et.',
   anonymousFailed: 'Misafir olarak giriş yapılamadı. Yeniden dene.',
   emailRequiredTitle: 'E-posta gerekli',
   emailRequired: 'Şifreni sıfırlamak için e-posta adresini gir',
