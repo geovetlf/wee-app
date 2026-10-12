@@ -168,6 +168,21 @@ console.log('\n── B · El flujo guiado de Weë AI (CreatorFlow) ──');
     errores.map((d) => ts.flattenDiagnosticMessageText(d.messageText, ' ')).slice(0, 2).join(' · '));
 }
 
+console.log('\n── C · El selector de Weë AI y la ficha de cada especialista (P11, R8) ──');
+{
+  /* «Añadir» y «Crear algo nuevo» de un proyecto llevan `projectId` por estas dos rutas hasta CreatorFlow: tienen que declararlo, y nadie manda otra clave. */
+  const selector = declaradas('WeeCreator');
+  check('15) MainStackParamList declara la ruta WeeCreator con su categoría y el proyecto', !!selector && selector.includes('category') && selector.includes('projectId'), (selector || []).join(', '));
+  const a = sobrantes('WeeCreator');
+  check(`16) ninguna de las ${a.llamadas.length} llamadas que abren WeeCreator manda una clave que la ruta no declare`, a.llamadas.length >= 8 && a.malas.length === 0, a.malas.join(' · '));
+  const ficha = declaradas('Specialist');
+  check('17) MainStackParamList declara la ruta Specialist con su id y el proyecto', !!ficha && ficha.includes('id') && ficha.includes('projectId'), (ficha || []).join(', '));
+  const b = sobrantes('Specialist');
+  check(`18) ninguna de las ${b.llamadas.length} llamadas que abren Specialist manda una clave que la ruta no declare`, b.llamadas.length >= 4 && b.malas.length === 0, b.malas.join(' · '));
+  const conProyecto = [...a.llamadas, ...b.llamadas].filter((l) => l.params && clavesDe(l.params, l.src).includes('projectId')).map((l) => l.sitio);
+  check('19) y lo mandan, por lo menos, la página de un proyecto (×2), el selector (×1), la ficha (×1) y los satélites de Weë Brain (×1)', conProyecto.length >= 5, conProyecto.join(' · '));
+}
+
 /* CONTROL: la guarda ve el fallo. Una clave que la ruta no declara, aunque vaya con `as any`, se detecta. */
 {
   const permitidas = new Set(declaradas('Create') || []);
