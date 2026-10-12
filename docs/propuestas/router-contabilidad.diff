@@ -1,0 +1,63 @@
+diff --git a/functions/src/engine/router.ts b/functions/src/engine/router.ts
+index ce734ad..b639ec1 100644
+--- a/functions/src/engine/router.ts
++++ b/functions/src/engine/router.ts
+@@ -1,7 +1,7 @@
+ import { presupuestoDeIntento } from '../core';
+ import { CapabilityId } from '../creator/types';
+ import { EngineConfig } from './config';
+-import { Ledger } from './ledger';
++import { CloseRecord, Ledger } from './ledger';
+ import { creditsFor, estimateUsd } from './pricing';
+ import { recordRealSuccess } from './verification';
+ import { sanitizeForLog } from './sanitize';
+@@ -483,7 +483,7 @@ export function createRouter(deps: RouterDeps) {
+         // Quien conoce el desenlace lo escribe después, en ledger.settle().
+         // Una respuesta real es lo único que asciende un proveedor a REAL_API_VERIFIED
+         if (!demo) void recordRealSuccess(candidate.provider, result.model || candidate.model.id, capability, generationId);
+-        await deps.ledger.close(generationId, {
++        const cierre: CloseRecord = {
+           status: 'COMPLETED',
+           providerCost: result.costUSD,
+           /*
+@@ -504,11 +504,38 @@ export function createRouter(deps: RouterDeps) {
+           height: typeof result.meta?.height === 'number' ? result.meta.height : undefined,
+           providerTokens: typeof result.meta?.actualTokens === 'number' ? result.meta.actualTokens : undefined,
+           providerMeta: result.meta,
+-        });
++        };
++        /*
++         * LA CONTABILIDAD NO PUEDE DESCARTAR LO QUE EL PROVEEDOR YA ENTREGÓ.
++         *
++         * Hasta aquí todo es del proveedor: si algo lanzara, el `catch` de abajo es el que corresponde (cierra FAILED,
++         * cuenta contra su salud y prueba el siguiente). Desde aquí hay un RESULTADO, y casi seguro ya pagado. Escribir el
++         * libro o el uso es contabilidad NUESTRA: si Firestore falla, el proveedor no tiene la culpa. Antes caía en el
++         * mismo `catch`, que descartaba el resultado, reescribía la fila COMPLETED como FAILED con providerCost 0,
++         * penalizaba a un proveedor sano y pasaba al siguiente candidato —pagando otra vez, o, sin él, contestando «no te
++         * cobré» por algo que sí salió—.
++         *
++         * Tampoco se traga: `sinCerrar` lo dice con lo necesario para reparar la fila a mano (el registro, quién atendió,
++         * el coste y los Credits del paso). El cierre se ARMA arriba, fuera de estos `try`: un resultado malformado del
++         * adaptador sigue siendo un fallo suyo y cae al `catch` de siempre. La salud cuenta lo que hizo el proveedor, no lo
++         * que hizo Firestore.
++         */
++        const sinCerrar = (paso: string, queReparar: string, causa: unknown): void => {
++          console.error(`WEË AI ENGINE: resultado DEVUELTO con la contabilidad SIN CERRAR (${paso}): ${candidate.provider}/${result.model || candidate.model.id} produjo ${capability} — registro ${generationId}, intento ${attempt}, providerCost USD ${cierre.providerCost}, ${cierre.creditsEstimated} Credits del paso, ${durationMs} ms. ${queReparar} Causa: ${sanitizeForLog(causa, 300)}`);
++        };
++        try {
++          await deps.ledger.close(generationId, cierre);
++        } catch (error) {
++          sinCerrar('cierre del libro', `Reparar a mano aiGenerations/${generationId}: status COMPLETED con estas cifras (aiUsage y creatorUsage se rehacen desde el libro).`, error);
++        }
+         deps.health.success(candidate.provider);
+         console.log(`WEË AI ENGINE: ${candidate.provider}/${result.model || candidate.model.id} atendió ${capability} en ${durationMs} ms (${credits} Credits, registro ${generationId}, intento ${attempt})`);
+         if (request.record) {
+-          await request.record({ capability, provider: candidate.provider, costUSD: result.costUSD, latencyMs: result.latencyMs, usage: result.usage || {} });
++          try {
++            await request.record({ capability, provider: candidate.provider, costUSD: result.costUSD, latencyMs: result.latencyMs, usage: result.usage || {} });
++          } catch (error) {
++            sinCerrar('registro de uso', 'El libro quedó cerrado; falta apuntar este paso en el uso del trabajo y en creatorUsage.', error);
++          }
+         }
+         return { ...result, provider: candidate.provider, modelId: result.model || candidate.model.id, credits, generationId, attempts: attempt, demo, decision };
+       } catch (error) {
