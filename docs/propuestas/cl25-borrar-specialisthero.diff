@@ -1,0 +1,284 @@
+PROPUESTA · CL-25 (3): borrar `components/creator/SpecialistHero.tsx`  (R8, tarea NAV) — NO APLICADA, a la espera del dueño.
+
+Qué es. `SpecialistHero` es la cabecera «compact» de las fichas de especialista (fase 2E-40). Hoy no la importa nadie: las secciones usan
+`CabeceraDeSeccion`. Es, además, lo único del repositorio que se parece a un hero de sección, y la alternativa C de la estructura visual de
+Weë Design («hero propio + secciones plegables», `docs/WEE-DESIGN-DECISIONES-DEL-DUENO.md` §4.3) dejaría de poder partir de él si se borra.
+Por eso borrarlo es una decisión de estructura visual del dueño y CL-25 sigue ABIERTO por esa sola razón: los otros dos restos de CL-25 (el
+comentario del muro y la rama inalcanzable de Design) ya están hechos en esta rama.
+
+Qué toca (5 archivos). Borra el componente; `cierre-cliente` 4 (ya no «se queda por decisión»); `catalogo-i18n` 38 y 39 (las dos listas de piezas
+compartidas lo nombran: sin el archivo, leerlas revienta); el detector de CL-25 de `_design-cierre.mjs` (sin el archivo no hay «sin importadores»
+que contar, y CL-25 no se cerraría nunca); y la fila de CL-25 y el veredicto de `docs/WEE-DESIGN-CIERRE.md` (11 → 12 cumplidos), que
+`design-cierre` C3 exige iguales a lo que dice el corredor. No toca `ops/revision/baseline.json`: su entrada PREEXISTENTE de este módulo saldrá
+como `absent` (corregido) en la próxima revisión.
+
+Verificado. `git apply --check` limpio sobre el HEAD de `r8/navegacion` (sin aplicar). Aplicado en una COPIA desechable de ese HEAD (`git archive`,
+nunca en la rama): CL-25 CUMPLIDO, el corredor completo da 12 cumplidos · 4 abiertos · 9 esperan una decisión · 3 manuales, y pasan 10 suites
+(design-cierre, cierre-cliente, catalogo-i18n, creator, travel, proyecto-en-las-entradas, ci-workflow, revision-detectores, chef-caracterizacion
+y aceptacion-pantallas).
+
+Para aplicarlo, solo si el dueño decide borrarlo:  git apply docs/propuestas/cl25-borrar-specialisthero.diff
+(Está hecho contra el HEAD de `r8/navegacion`; sobre otra base, `git apply --3way`. Las líneas de arriba, antes del primer `diff --git`, las ignora git.)
+
+diff --git a/components/creator/SpecialistHero.tsx b/components/creator/SpecialistHero.tsx
+deleted file mode 100644
+index 7569c25..0000000
+--- a/components/creator/SpecialistHero.tsx
++++ /dev/null
+@@ -1,183 +0,0 @@
+-import React from 'react';
+-import { View, Text, StyleSheet } from 'react-native';
+-import { useTheme } from '../../contexts/ThemeContext';
+-import { useResponsive } from '../../hooks/useResponsive';
+-import { SpecialistConfig } from '../../constants/specialists';
+-import { WeeExperience } from '../../constants/weeExperiences';
+-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
+-import { scale } from '../../utils/scale';
+-import MockMedia from './MockMedia';
+-import { Chip, Handwritten } from './ui';
+-
+-interface SpecialistHeroProps {
+-  spec: SpecialistConfig & { experience: WeeExperience };
+-  /**
+-   * Cabecera baja, para las secciones cuyo muro social manda (fase 2E-40).
+-   * Presenta la sección igual —nombre, frase, sellos e imagen— pero ocupando
+-   * poco más de la mitad de alto, para que la comunidad se vea al entrar sin
+-   * tener que desplazarse. Las secciones sin muro conservan su cabecera grande.
+-   */
+-  compact?: boolean;
+-}
+-
+-/** Cabecera del especialista: nombre, frase, sellos e ilustración (referencias). */
+-const SpecialistHero: React.FC<SpecialistHeroProps> = ({ spec, compact }) => {
+-  const { theme } = useTheme();
+-  const { isDesktop } = useResponsive();
+-  const word = spec.experience.name.replace(/^Weë\s+/i, '');
+-  const tone = spec.examples?.[0]?.tone ?? ['#F5B731', '#FFE08A'];
+-
+-  return (
+-    <View
+-      style={[
+-        styles.card,
+-        { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+-        isDesktop && styles.cardDesktop,
+-        compact && styles.cardCompact,
+-        compact && isDesktop && styles.cardCompactDesktop,
+-      ]}
+-    >
+-      <View style={[styles.body, compact && styles.bodyCompact]}>
+-        <View style={styles.titleRow}>
+-          <View style={[styles.iconCircle, compact && styles.iconCircleCompact, { backgroundColor: theme.colors.accent + '33' }]}>
+-            <Text style={[styles.iconEmoji, compact && styles.iconEmojiCompact]}>{spec.experience.emoji}</Text>
+-          </View>
+-          <Text style={[styles.title, compact && styles.titleCompact, { color: theme.colors.text }]}>
+-            Weë <Text style={{ color: theme.colors.accent }}>{word}</Text>
+-          </Text>
+-        </View>
+-        <Text style={[styles.headline, compact && styles.headlineCompact, { color: theme.colors.text }]}>{spec.headline}</Text>
+-        <Text style={[styles.intro, compact && styles.introCompact, { color: theme.colors.textSecondary }]} numberOfLines={compact ? 2 : undefined}>
+-          {spec.intro}
+-        </Text>
+-        {/* Con cabecera baja los sellos sobran: repiten lo que ya dice la frase. */}
+-        {!compact && (
+-          <View style={styles.chips}>
+-            {spec.chips.map((chip) => (
+-              <Chip key={chip} label={chip} icon="checkmark-circle-outline" />
+-            ))}
+-          </View>
+-        )}
+-        {!isDesktop && !compact && (
+-          <View style={{ marginTop: SPACING.sm }}>
+-            <Handwritten text={spec.note} align="left" />
+-          </View>
+-        )}
+-      </View>
+-      {isDesktop && (
+-        <View style={[styles.illustration, compact && styles.illustrationCompact]}>
+-          <MockMedia
+-            emoji={spec.heroEmoji}
+-            tone={tone}
+-            aspectRatio={compact ? 2.4 : 1.35}
+-            emojiSize={scale(compact ? 48 : 72)}
+-            style={styles.illustrationMedia}
+-          />
+-          <View style={styles.note}>
+-            <Handwritten text={spec.note} align="right" />
+-          </View>
+-        </View>
+-      )}
+-    </View>
+-  );
+-};
+-
+-const styles = StyleSheet.create({
+-  card: {
+-    borderRadius: BORDER_RADIUS.lg,
+-    borderWidth: 1,
+-    padding: SPACING.lg,
+-    gap: SPACING.lg,
+-  },
+-  cardDesktop: {
+-    flexDirection: 'row',
+-    alignItems: 'center',
+-    padding: SPACING.xl,
+-  },
+-  cardCompact: {
+-    padding: SPACING.lg,
+-    gap: SPACING.md,
+-  },
+-  cardCompactDesktop: {
+-    padding: SPACING.lg,
+-  },
+-  body: {
+-    flex: 1,
+-    gap: SPACING.sm,
+-    minWidth: 0,
+-  },
+-  bodyCompact: {
+-    gap: scale(6),
+-  },
+-  titleRow: {
+-    flexDirection: 'row',
+-    alignItems: 'center',
+-    gap: SPACING.md,
+-  },
+-  iconCircle: {
+-    width: scale(52),
+-    height: scale(52),
+-    borderRadius: scale(26),
+-    alignItems: 'center',
+-    justifyContent: 'center',
+-  },
+-  iconCircleCompact: {
+-    width: scale(40),
+-    height: scale(40),
+-    borderRadius: scale(20),
+-  },
+-  iconEmoji: {
+-    fontSize: scale(26),
+-  },
+-  iconEmojiCompact: {
+-    fontSize: scale(20),
+-  },
+-  title: {
+-    fontSize: scale(34),
+-    fontWeight: FONT_WEIGHT.bold,
+-    letterSpacing: -0.8,
+-  },
+-  titleCompact: {
+-    fontSize: scale(26),
+-  },
+-  headline: {
+-    fontSize: scale(20),
+-    fontWeight: FONT_WEIGHT.bold,
+-    lineHeight: scale(26),
+-  },
+-  headlineCompact: {
+-    fontSize: scale(17),
+-    lineHeight: scale(22),
+-  },
+-  intro: {
+-    fontSize: FONT_SIZE.sm,
+-    lineHeight: scale(21),
+-    maxWidth: scale(560),
+-  },
+-  introCompact: {
+-    lineHeight: scale(19),
+-    maxWidth: scale(620),
+-  },
+-  chips: {
+-    flexDirection: 'row',
+-    flexWrap: 'wrap',
+-    gap: SPACING.sm,
+-    marginTop: SPACING.xs,
+-  },
+-  illustration: {
+-    width: scale(320),
+-    gap: SPACING.sm,
+-  },
+-  illustrationCompact: {
+-    width: scale(300),
+-    gap: scale(4),
+-  },
+-  illustrationMedia: {
+-    borderRadius: BORDER_RADIUS.lg,
+-  },
+-  note: {
+-    alignItems: 'flex-end',
+-  },
+-});
+-
+-export default SpecialistHero;
+diff --git a/docs/WEE-DESIGN-CIERRE.md b/docs/WEE-DESIGN-CIERRE.md
+index fa3c53b..0bb68ad 100644
+--- a/docs/WEE-DESIGN-CIERRE.md
++++ b/docs/WEE-DESIGN-CIERRE.md
+@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
+ 
+ **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
+ Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
+-28 criterios de cierre, **11 se cumplen, 5 están abiertos, 9 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
++28 criterios de cierre, **12 se cumplen, 4 están abiertos, 9 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
+ 
+ ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
+ 
+@@ -305,7 +305,7 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
+ | CL-22 | integración | Canario gobernado del recorrido de imágenes en `get-wee` | dueño e infraestructura | `docs/DESIGN.md «Antes de lanzar»`, `ops/produccion.json` | pendiente bloqueado por infraestructura | MANUAL |
+ | CL-23 | resto | D1–D9 y DEC-01, 02, 05, 06 registradas como DECIDIDAS | dueño | `docs/DESIGN.md`, `docs/WEE-DESIGN-UIUX-DECISIONS.md` | bloqueador real (decisión) | DECISIÓN |
+ | CL-24 | resto | Aviso con región viva y contraste AA en su acción | hecho (R7-Design, tarea C); componente compartido con Weë Studio | `AvisoDeCreacion.tsx:64,86` (`ThemeContext.tsx` solo se lee) | defecto reproducible (arreglado) | CUMPLIDO |
+-| CL-25 | resto | Sin código ni comentarios de lo que ya no existe (muro, `SpecialistHero`): el comentario del muro y la rama inalcanzable de Design están hechos (R8); queda `SpecialistHero.tsx`, sin importadores, que es una decisión de estructura visual del dueño (el diff que lo borra está en `docs/propuestas/cl25-borrar-specialisthero.diff`, sin aplicar) | línea de Design (R8, tarea NAV); dueño, para `SpecialistHero` | `specialists.ts`, `SpecialistScreen.tsx`, `SpecialistHero.tsx` | deuda técnica | ABIERTO |
++| CL-25 | resto | Sin código ni comentarios de lo que ya no existe (muro, `SpecialistHero`): el comentario del muro y la rama inalcanzable de Design están hechos (R8); `SpecialistHero.tsx`, sin importadores, se borró por decisión del dueño (estructura visual) | línea de Design (R8, tarea NAV); dueño, para `SpecialistHero` | `specialists.ts`, `SpecialistScreen.tsx`, `SpecialistHero.tsx` | deuda técnica | CUMPLIDO |
+ | CL-26 | resto | Verificación visual en móvil, tableta y escritorio | quien tenga web con emuladores | `DesignScreen.tsx`, `components/design/*` | pendiente bloqueado por infraestructura | MANUAL |
+ | CL-27 | resto | `tsc --noEmit` de la app en 0 errores | cualquiera que toque `.ts/.tsx` | todo `.ts/.tsx` | verificación | CUMPLIDO |
+ | CL-28 | resto | La cadena entera y las cercas, en verde | quien integre | `functions/package.json`, `puente-pre-f1d.test.mjs` | verificación | MANUAL |
+diff --git a/functions/test/_design-cierre.mjs b/functions/test/_design-cierre.mjs
+index fc01e8b..59620ff 100644
+--- a/functions/test/_design-cierre.mjs
++++ b/functions/test/_design-cierre.mjs
+@@ -330,7 +330,7 @@ export const CRITERIOS = [
+       if (/spec\.id === 'design'/.test(leer('screens/SpecialistScreen.tsx'))) restos.push('SpecialistScreen.tsx:214 rama de design inalcanzable');
+       const importadores = ['screens', 'components', 'navigation'].flatMap((d) => fs.readdirSync(path.resolve(RAIZ, d), { recursive: true }).map((f) => `${d}/${String(f).split(path.sep).join('/')}`))
+         .filter((f) => /\.tsx?$/.test(f) && f !== 'components/creator/SpecialistHero.tsx' && /SpecialistHero/.test(leer(f)));
+-      if (importadores.length === 0) restos.push('SpecialistHero.tsx sin ningún importador (borrarlo o no es una decisión de estructura visual del dueño: docs/propuestas/cl25-borrar-specialisthero.diff, sin aplicar)');
++      if (existe('components/creator/SpecialistHero.tsx') && importadores.length === 0) restos.push('SpecialistHero.tsx sin ningún importador (borrarlo o no es una decisión de estructura visual del dueño: docs/propuestas/cl25-borrar-specialisthero.diff, sin aplicar)');
+       return { ok: restos.length === 0, evidencia: restos.join(' · ') || 'limpio' };
+     },
+   },
+diff --git a/functions/test/catalogo-i18n.test.mjs b/functions/test/catalogo-i18n.test.mjs
+index 674b227..b2ea0bd 100644
+--- a/functions/test/catalogo-i18n.test.mjs
++++ b/functions/test/catalogo-i18n.test.mjs
+@@ -332,14 +332,14 @@ console.log('\n── G · Las pantallas piden el catálogo ya traducido ──'
+ 
+   /* Y nadie más lee el catálogo por su cuenta saltándose la traducción. */
+   const sospechosos = ['components/creator/ActionGrid.tsx', 'components/creator/ExamplesRow.tsx',
+-    'components/creator/IdeaBox.tsx', 'components/creator/SpecialistHero.tsx',
++    'components/creator/IdeaBox.tsx',
+     'components/creator/UploadBox.tsx', 'components/creator/TravelLauncher.tsx']
+     .filter((p) => /getSpecialist\(|SPECIALISTS\[/.test(soloCodigo(leer(p))));
+   check('38) las piezas compartidas reciben el texto, no van a buscarlo',
+     sospechosos.length === 0, sospechosos.join(' '));
+ 
+   /* Los componentes tampoco vuelven a traducir lo que ya les llega traducido. */
+-  const rehacen = ['components/creator/ActionGrid.tsx', 'components/creator/SpecialistHero.tsx',
++  const rehacen = ['components/creator/ActionGrid.tsx',
+     'components/creator/ExamplesRow.tsx']
+     .filter((p) => /t\((action|spec|example|config)\./.test(soloCodigo(leer(p))));
+   check('39) y no lo traducen dos veces', rehacen.length === 0, rehacen.join(' '));
+diff --git a/functions/test/cierre-cliente.test.mjs b/functions/test/cierre-cliente.test.mjs
+index 2f32a80..ad2c6c4 100644
+--- a/functions/test/cierre-cliente.test.mjs
++++ b/functions/test/cierre-cliente.test.mjs
+@@ -131,9 +131,9 @@ console.log('\n── A · El código muerto se retiró y no vuelve ──');
+   const likes = sinComentarios(leer('services/likesService.ts'));
+   check('3) likesService solo lee: escribir y vigilar likes era de useLikes, retirado',
+     /async getUserLikedPostsWithData\(/.test(likes) && !/likePost|unlikePost|toggleLike|hasUserLiked|subscribeToPostLikes|deleteUserLikes|deletePostLikes|recalculatePostLikes|getPostLikers/.test(likes));
+-  /* Lo que se QUEDA a propósito: el Home está pendiente de decisión del dueño (CLAUDE.md) y la tarjeta de sección
+-     la exige catalogo-i18n. Si se borran, que sea por decisión y no por arrastre. */
+-  check('4) se quedan, por decisión: HeroCarousel y SpecialistHero', existe('components/HeroCarousel.tsx') && existe('components/creator/SpecialistHero.tsx'));
++  /* Lo que se QUEDA a propósito: el Home está pendiente de decisión del dueño (CLAUDE.md). Si se borra, que sea por decisión y no por arrastre.
++     `SpecialistHero` se borró por decisión del dueño (CL-25, docs/WEE-DESIGN-CIERRE.md): ya no hay tarjeta de sección que lo exija. */
++  check('4) se queda, por decisión: HeroCarousel', existe('components/HeroCarousel.tsx'));
+ }
+ 
+ /* ════════════════════════════════════════════════════════════════════════ */
