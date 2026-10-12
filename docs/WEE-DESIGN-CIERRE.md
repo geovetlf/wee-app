@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
 
 **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
 Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
-28 criterios de cierre, **3 se cumplen, 11 están abiertos, 9 esperan una decisión del dueño y 5 son manuales** (E: `_design-cierre.mjs`).
+28 criterios de cierre, **4 se cumplen, 11 están abiertos, 9 esperan una decisión del dueño y 4 son manuales** (E: `_design-cierre.mjs`).
 
 ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
 
@@ -49,8 +49,8 @@ referencia, que **sí** manda la caja a `CreatorFlow` (`DesignReferenciaScreen.t
 | Capa | Suites (resultado en esta rama) | Qué fija | Qué NO cubre |
 |---|---|---|---|
 | Plantilla `design` y `home` (servidor) | `creator` 640/640, `planner` 37/37, `techo-de-propuestas` 78/78 (E) | Las siete intenciones y conversaciones, `infer`, `buildPlan`, tres propuestas, el techo y el coste de repetir | `aspectRatio`, texto en la imagen, «No sé» en las seis preguntas (CL-10), `infer` de «marca» (CL-11): hoy están **sin fijar** o fijados al revés |
-| Pantalla montada | `cajas-weeai` 52/52, `ajustes-weeai` 50/50, `credits-weeai` 37/37, `navegacion-enlaces` 44/44 (E) y la nueva `design-cierre` 36/36 (E) | La caja que crece, atrás deshace un paso, el aviso sube con el teclado, la hoja de ajustes, el saldo por la vía permitida, y ahora el catálogo, los botones y las fichas | El **comportamiento** en pantalla: no hay framework de UI (CLAUDE.md §5 de la ronda), todo es estructura y texto |
-| Referencia funcional (puerta cerrada) | `foundation-de-experiencias` grupo I, `design-referencia.mjs`: 217/217 (E) | Registro, recorrido, estados, elegibilidad, la puerta cerrada, ningún segundo sistema | Que la pantalla **montada** use algo de ella (I17 lo prohíbe a propósito) |
+| Pantalla montada | `cajas-weeai` 52/52, `ajustes-weeai` 50/50, `credits-weeai` 37/37, `navegacion-enlaces` 44/44 (E) y la nueva `design-cierre` 36/36 (E) | La caja que crece, atrás deshace un paso, el aviso sube con el teclado, la hoja de ajustes, el saldo por la vía permitida, y ahora el catálogo, los botones y las fichas | El **comportamiento** en pantalla: no hay framework de UI en el repositorio (y la ronda no admite añadirlo): todo es estructura y texto |
+| Referencia funcional (puerta cerrada) | `foundation-de-experiencias` 217/217 (E); su grupo I ejecuta `design-referencia.mjs` (165 `check(` en 761 líneas) | Registro, recorrido, estados, elegibilidad, la puerta cerrada, ningún segundo sistema | Que la pantalla **montada** use algo de ella (I17 lo prohíbe a propósito) |
 | Créditos y motor | `credits-weeai`; `puente-pre-f1d` 42/42 (cercas) (E) | Que la pantalla no mueva dinero; las cercas del Credit Engine, el Router y `creatorRun` | El recorrido completo de Design con dinero |
 | **Integración** | **Ninguna.** Ninguna de las 40 suites `*.emulator.mjs` menciona `creatorRun` (E, CL-18) | — | `creatorChat → creatorQuote → creatorRun` de `design`/`home` contra Firestore: precio antes, reserva, cobro, reembolso, abandono |
 | **Flujo de UI real** | **Ninguna automática** | — | Todo lo visual: móvil, tableta, escritorio, teclado |
@@ -69,7 +69,7 @@ referencia, que **sí** manda la caja a `CreatorFlow` (`DesignReferenciaScreen.t
 | Falta el dominio `design` del Eval Engine (F0) | **Vigente**: `ops/evals/dominios/` solo tiene `router.mjs` | E, CL-17 |
 | «Este camino nunca ha corrido en producción»; hace falta suite de emulador y canario | **Vigente**: ninguna suite de emulador lo recorre; sin canario | E, CL-18, CL-22 |
 | D1–D9 pendientes del dueño | **Vigentes**: ninguna está escrita como DECIDIDA | E, CL-23 |
-| Los «estado verificado» son de `main` = `e50464a` | Desde entonces el repositorio añadió la referencia funcional (2026-10-07/08); `DesignScreen` **no cambió** desde 2026-09-23 | L, `git log` |
+| El «estado verificado» es de `main` = `e50464a` | Desde entonces el repositorio añadió la referencia funcional (2026-10-07/08); `DesignScreen` **no cambió** desde 2026-09-23 | L, `git log` |
 
 > **Aviso de nombres.** «D9» es dos cosas: el D9 de DESIGN.md (uso comercial y moderación propia) y el «cobro proporcional (D9)» del
 > Algorithm Engine en `DECISIONES-PENDIENTES.md`. Aquí, D1–D9 son siempre los de DESIGN.md §4; lo otro se llama «cobro
@@ -256,7 +256,7 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
 | CL-24 | resto | Aviso con región viva y contraste AA en su acción | línea de Design y tema | `AvisoDeCreacion.tsx`, `ThemeContext.tsx` | defecto reproducible | ABIERTO |
 | CL-25 | resto | Sin código ni comentarios de lo que ya no existe (muro, `SpecialistHero`) | línea de Design | `specialists.ts:286,295-301`, `SpecialistScreen.tsx:214-215`, `SpecialistHero.tsx` | deuda técnica | ABIERTO |
 | CL-26 | resto | Verificación visual en móvil, tableta y escritorio | quien tenga web con emuladores | `DesignScreen.tsx`, `components/design/*` | pendiente bloqueado por infraestructura | MANUAL |
-| CL-27 | resto | `tsc --noEmit` de la app en 0 errores | cualquiera que toque `.ts/.tsx` | todo `.ts/.tsx` | verificación | MANUAL |
+| CL-27 | resto | `tsc --noEmit` de la app en 0 errores | cualquiera que toque `.ts/.tsx` | todo `.ts/.tsx` | verificación | CUMPLIDO |
 | CL-28 | resto | La cadena entera y las cercas, en verde | quien integre | `functions/package.json`, `puente-pre-f1d.test.mjs` | verificación | MANUAL |
 
 **Clase** usa el vocabulario del encargo: bloqueador real para cerrar Design · defecto reproducible · integración incompleta ·
@@ -292,14 +292,15 @@ Weë Music y cualquier despliegue a producción (CL-22 solo exige el canario).
 ## 10. Registro de cierre
 
 Lo escribe quien ejecuta cada comprobación manual. Una fila cuenta cuando dice **REGISTRADO** y trae la ruta de su log; el corredor
-lo lee.
+lo lee. **Un registro vale para el commit que anota:** si el código cambia después, se vuelve a ejecutar y se anota otra vez (en una
+rama integrada, `tsc` y la cadena se repiten sobre ella).
 
 | CL | Comando | Resultado | Log | Quién y cuándo |
 |---|---|---|---|---|
 | CL-21 | `node ops/reconciliacion/reservas-colgadas.mjs` | pendiente | — | — |
 | CL-22 | runbook de canario (infraestructura) | pendiente | — | — |
 | CL-26 | web `demo-wee` en 360, 768 y 1280 px | pendiente (**no ejecutado en la ronda R7**: pesado, y necesita variables de entorno que no se leen) | — | — |
-| CL-27 | `NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit` | pendiente | — | — |
+| CL-27 | `NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit` | **REGISTRADO**: 0 errores en 142 s, sobre `e97f758` (los commits posteriores solo tocan documentos) | `R7/F-design/logs/tsc-app-final.log` | agente F, 2026-10-11 |
 | CL-28 | `node functions/test/_cadena.mjs` | pendiente | — | — |
 
 ## 11. Duplicados con otras tareas y límites de esta auditoría
