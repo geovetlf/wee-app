@@ -350,7 +350,14 @@ const design: ExperienceTemplate = {
    * futuro", la época ya está dicha y volver a preguntarla es no haber escuchado.
    */
   questions: [
-    // Solo se pregunta en "No sé qué diseñar": las otras seis llegan contestadas.
+    /*
+     * Solo se pregunta en "No sé qué diseñar": las otras seis llegan contestadas.
+     *
+     * Y también lleva "No sé" (CL-10): quien llega por esa puerta ya está perdido, y esta pregunta es la ayuda; si
+     * tampoco sabe por dónde empezar, el botón es su única salida —la caja de texto de la pregunta guiada se retiró
+     * el 2026-09-15— y sin él tendría que elegir un camino al azar y pagar tres propuestas de algo que no quiere.
+     * `buildPlan` ya traía la rama (`what.idk`); no se podía llegar a ella.
+     */
     q('what', 'Cuéntame qué necesitas y te propongo por dónde empezar', [
       opt('logo', '🔤 Un logo o mi marca · si todavía no tienes una'),
       opt('poster', '🪧 Algo para redes o publicidad · para anunciar algo'),
@@ -358,6 +365,7 @@ const design: ExperienceTemplate = {
       opt('object', '🏎️ Un vehículo o una máquina · autos, aviones, inventos'),
       opt('scene', '🏙️ Un lugar o un escenario · casas, locales, paisajes'),
       opt('character', '🧑‍🚀 Un personaje · mascotas, héroes, criaturas'),
+      IDK,
     ]),
 
     // 🔤 Un logo o mi marca
@@ -377,6 +385,7 @@ const design: ExperienceTemplate = {
       opt('event', '📅 Un evento'),
       opt('launch', '🆕 Un producto nuevo'),
       opt('news', '🕒 Un horario o una novedad'),
+      IDK,
     ], true, (a) => a.what === 'poster'),
     q('where', '¿Dónde vas a publicarlo?', [
       opt('feed', '📱 Instagram o Facebook'),
@@ -392,6 +401,7 @@ const design: ExperienceTemplate = {
       opt('furniture', '🛋️ Un mueble'),
       opt('clothes', '👟 Ropa o calzado'),
       opt('gadget', '📱 Algo de tecnología'),
+      IDK,
     ], true, (a) => a.what === 'product'),
     q('look', '¿Cómo lo imaginas?', [
       opt('clean', '✨ Moderno y limpio'),
@@ -408,6 +418,7 @@ const design: ExperienceTemplate = {
       opt('air', '🚁 Algo que vuela'),
       opt('bike', '🏍️ Una moto'),
       opt('engine', '⚙️ Un motor o una pieza'),
+      IDK,
     ], true, (a) => a.what === 'object'),
     // Solo si no se sabe ya: quien escribe "del futuro" no debe repetirlo.
     q('era', '¿De qué época?', [
@@ -424,6 +435,7 @@ const design: ExperienceTemplate = {
       opt('shop', '🏪 Un local o negocio'),
       opt('city', '🌆 Una ciudad'),
       opt('nature', '🌄 Un paisaje'),
+      IDK,
     ], true, (a) => a.what === 'scene'),
     q('inout', '¿Es un espacio interior o exterior?', [
       opt('outside', '🏠 Por fuera'),
@@ -438,6 +450,7 @@ const design: ExperienceTemplate = {
       opt('hero', '🦸 Un héroe o protagonista'),
       opt('robot', '🤖 Un robot'),
       opt('creature', '🐉 Una criatura'),
+      IDK,
     ], true, (a) => a.what === 'character'),
     q('draw', '¿Qué estilo visual quieres?', [
       opt('cartoon', '🎨 Dibujo animado'),
@@ -528,6 +541,14 @@ const design: ExperienceTemplate = {
 
     const what = resp('what');
     const count = 3;
+    /*
+     * "No sé" a lo que se diseña (CL-10): Weë lo dice, con la misma coletilla de las demás experiencias (`decided`).
+     * Es UNA frase para las seis preguntas porque en las seis hace lo mismo: elige él qué diseñar, y el paso del
+     * concepto lo decide a partir de lo que la persona contó. Lo que viaja al modelo no es nuevo: es el valor que
+     * cada rama ya traía para "no contestó" ('un producto', 'un vehículo', 'un lugar', 'un personaje', 'una pieza
+     * para redes') y, sin intención, 'lo que me describiste'. Nada se decide aquí por la persona.
+     */
+    const eligio = (id: string) => decided(resp(id).idk, 'elijo yo qué diseñar');
 
     const RAMAS: Record<string, () => { brief: string; explica: string; nombre: string }> = {
       logo: () => {
@@ -542,37 +563,40 @@ const design: ExperienceTemplate = {
       poster: () => {
         const que = suyo('message').toLowerCase();
         const donde = frase('where');
+        // Sin saber qué anunciar se dice "algo", como ya dice el botón de este camino ("para anunciar algo"); al modelo
+        // le sigue llegando lo de siempre, una pieza para redes.
+        const anuncio = que || (resp('message').idk ? 'algo' : '');
         return {
           brief: [que ? `una pieza para anunciar ${que}` : 'una pieza para redes', donde].filter(Boolean).join(', '),
-          explica: `Voy a crear ${count} propuestas${que ? ` para anunciar ${que}` : ''}${donde ? `, ${donde}` : ''}.`,
+          explica: `Voy a crear ${count} propuestas${anuncio ? ` para anunciar ${anuncio}` : ''}${donde ? `, ${donde}` : ''}.${eligio('message')}`,
           nombre: 'propuestas',
         };
       },
       product: () => {
         const cosa = suyo('item').toLowerCase() || 'un producto';
         const aspecto = frase('look');
-        return { brief: [cosa, aspecto].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${cosa}${aspecto ? `, ${aspecto}` : ''}.`, nombre: 'propuestas' };
+        return { brief: [cosa, aspecto].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${cosa}${aspecto ? `, ${aspecto}` : ''}.${eligio('item')}`, nombre: 'propuestas' };
       },
       object: () => {
         const cosa = suyo('machine').toLowerCase() || 'un vehículo';
         const epoca = frase('era');
-        return { brief: [cosa, epoca].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${cosa}${epoca ? `, ${epoca}` : ''}.`, nombre: 'propuestas' };
+        return { brief: [cosa, epoca].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${cosa}${epoca ? `, ${epoca}` : ''}.${eligio('machine')}`, nombre: 'propuestas' };
       },
       scene: () => {
         const sitio = suyo('place').toLowerCase() || 'un lugar';
         const vista = frase('inout');
-        return { brief: [sitio, vista].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${sitio}${vista ? `, ${vista}` : ''}.`, nombre: 'propuestas' };
+        return { brief: [sitio, vista].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${sitio}${vista ? `, ${vista}` : ''}.${eligio('place')}`, nombre: 'propuestas' };
       },
       character: () => {
         const quien = suyo('who').toLowerCase() || 'un personaje';
         const trazo = frase('draw');
-        return { brief: [quien, trazo].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${quien}${trazo ? `, ${trazo}` : ''}.`, nombre: 'propuestas' };
+        return { brief: [quien, trazo].filter(Boolean).join(', '), explica: `Voy a crear ${count} propuestas de ${quien}${trazo ? `, ${trazo}` : ''}.${eligio('who')}`, nombre: 'propuestas' };
       },
     };
 
     // Si escribió su idea con sus palabras en vez de elegir, esa idea es el encargo.
     const suelto = what.idk ? 'lo que me describiste' : what.label.toLowerCase();
-    const rama = (RAMAS[what.id] || (() => ({ brief: suelto, explica: `Voy a crear ${count} propuestas de ${suelto}.`, nombre: 'propuestas' })))();
+    const rama = (RAMAS[what.id] || (() => ({ brief: suelto, explica: `Voy a crear ${count} propuestas de ${suelto}.${eligio('what')}`, nombre: 'propuestas' })))();
 
     return {
       experience: 'design',

@@ -1,5 +1,5 @@
 /*
- * DANÉS — Opciones del flujo guiado de Weë AI (233): los botones con los que se le contesta a Weë.
+ * DANÉS — Opciones del flujo guiado de Weë AI (239): los botones con los que se le contesta a Weë.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila. Cada etiqueta conserva EXACTAMENTE el
  * emoji del español y UN espacio detrás, porque el servidor y `i18n/servidor.ts` lo quitan con /^\S+\s+/; las que
@@ -72,6 +72,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designWhatObject: '🏎️ Et køretøj eller en maskine · biler, fly, opfindelser',
   designWhatScene: '🏙️ Et sted eller et miljø · huse, lokaler, landskaber',
   designWhatCharacter: '🧑‍🚀 En karakter · maskotter, helte, væsener',
+  designWhatIdk: '🤷 Ved ikke',
   designFeelSerious: '🏛️ Seriøst og troværdigt',
   designFeelModern: '✨ Moderne',
   designFeelClose: '🎈 Imødekommende og sjovt',
@@ -82,6 +83,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designMessageEvent: '📅 Et arrangement',
   designMessageLaunch: '🆕 Et nyt produkt',
   designMessageNews: '🕒 Åbningstider eller en nyhed',
+  designMessageIdk: '🤷 Ved ikke',
   designWhereFeed: '📱 På Instagram eller Facebook',
   designWhereStory: '📖 I en story',
   designWhereWhatsapp: '💬 På WhatsApp',
@@ -91,6 +93,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designItemFurniture: '🛋️ Et møbel',
   designItemClothes: '👟 Tøj eller sko',
   designItemGadget: '📱 Et stykke elektronik',
+  designItemIdk: '🤷 Ved ikke',
   designLookClean: '✨ Moderne og stilrent',
   designLookNatural: '🌿 Naturligt',
   designLookLuxury: '💎 Luksuriøst',
@@ -101,6 +104,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designMachineAir: '🚁 Noget, der flyver',
   designMachineBike: '🏍️ En motorcykel',
   designMachineEngine: '⚙️ En motor eller en komponent',
+  designMachineIdk: '🤷 Ved ikke',
   designEraFuture: '🚀 Fra fremtiden',
   designEraNow: '🏁 Fra nutiden',
   designEraClassic: '🕰️ Klassisk',
@@ -110,6 +114,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designPlaceShop: '🏪 En butik eller et lokale',
   designPlaceCity: '🌆 En by',
   designPlaceNature: '🌄 Et landskab',
+  designPlaceIdk: '🤷 Ved ikke',
   designInoutOutside: '🏠 Udefra',
   designInoutInside: '🛋️ Indefra',
   designInoutWide: '🌄 Et bredt udsyn',
@@ -118,6 +123,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designWhoHero: '🦸 En helt eller hovedperson',
   designWhoRobot: '🤖 En robot',
   designWhoCreature: '🐉 Et væsen',
+  designWhoIdk: '🤷 Ved ikke',
   designDrawCartoon: '🎨 Tegnefilm',
   designDrawReal: '📷 Realistisk',
   designDrawGame: '🕹️ Som et computerspil',

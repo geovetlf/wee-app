@@ -1,5 +1,5 @@
 /*
- * ESPAÑOL — Opciones del flujo guiado de Weë AI (233).
+ * ESPAÑOL — Opciones del flujo guiado de Weë AI (239).
  *
  * GENERADO por `scripts/i18n-guia-del-servidor.mjs` a partir de
  * `functions/src/creator/templates.ts`: no se edita a mano. Dice exactamente lo
@@ -15,6 +15,7 @@ export const opciones = {
   designWhatObject: '🏎️ Un vehículo o una máquina · autos, aviones, inventos',
   designWhatScene: '🏙️ Un lugar o un escenario · casas, locales, paisajes',
   designWhatCharacter: '🧑‍🚀 Un personaje · mascotas, héroes, criaturas',
+  designWhatIdk: '🤷 No sé',
   designFeelSerious: '🏛️ Seria y confiable',
   designFeelModern: '✨ Moderna',
   designFeelClose: '🎈 Cercana y divertida',
@@ -25,6 +26,7 @@ export const opciones = {
   designMessageEvent: '📅 Un evento',
   designMessageLaunch: '🆕 Un producto nuevo',
   designMessageNews: '🕒 Un horario o una novedad',
+  designMessageIdk: '🤷 No sé',
   designWhereFeed: '📱 Instagram o Facebook',
   designWhereStory: '📖 Una historia',
   designWhereWhatsapp: '💬 WhatsApp',
@@ -34,6 +36,7 @@ export const opciones = {
   designItemFurniture: '🛋️ Un mueble',
   designItemClothes: '👟 Ropa o calzado',
   designItemGadget: '📱 Algo de tecnología',
+  designItemIdk: '🤷 No sé',
   designLookClean: '✨ Moderno y limpio',
   designLookNatural: '🌿 Natural',
   designLookLuxury: '💎 De lujo',
@@ -44,6 +47,7 @@ export const opciones = {
   designMachineAir: '🚁 Algo que vuela',
   designMachineBike: '🏍️ Una moto',
   designMachineEngine: '⚙️ Un motor o una pieza',
+  designMachineIdk: '🤷 No sé',
   designEraFuture: '🚀 Del futuro',
   designEraNow: '🏁 De ahora',
   designEraClassic: '🕰️ Clásico',
@@ -53,6 +57,7 @@ export const opciones = {
   designPlaceShop: '🏪 Un local o negocio',
   designPlaceCity: '🌆 Una ciudad',
   designPlaceNature: '🌄 Un paisaje',
+  designPlaceIdk: '🤷 No sé',
   designInoutOutside: '🏠 Por fuera',
   designInoutInside: '🛋️ Por dentro',
   designInoutWide: '🌄 Una vista amplia',
@@ -61,6 +66,7 @@ export const opciones = {
   designWhoHero: '🦸 Un héroe o protagonista',
   designWhoRobot: '🤖 Un robot',
   designWhoCreature: '🐉 Una criatura',
+  designWhoIdk: '🤷 No sé',
   designDrawCartoon: '🎨 Dibujo animado',
   designDrawReal: '📷 Realista',
   designDrawGame: '🕹️ De videojuego',

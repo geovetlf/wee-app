@@ -44,11 +44,12 @@ export const planVisual = {
   designAlmaNatural: 'con un aire natural',
 
   /*
-   * Design · «Algo para redes o publicidad» (rama `poster`). Siempre hay algo que anunciar (la pregunta no tiene
-   * «No sé»).
+   * Design · «Algo para redes o publicidad» (rama `poster`).
    *  {{numero}}: cuántas propuestas (hoy 3).
    *  {{anuncio}}: lo que se anuncia, la opción elegida en minúscula («una promoción», «un evento», «un producto
-   *  nuevo», «un horario o una novedad»); o lo que escribió la persona, en minúscula.
+   *  nuevo», «un horario o una novedad»); lo que escribió la persona, en minúscula; o, si dijo «No sé», la pieza
+   *  `designAnuncioAlgo` («algo», como el botón de este camino: «para anunciar algo»). Con «No sé» se añade la
+   *  coletilla `designDecisionElijoYo`.
    *  {{donde}}: dónde se publica, una de las piezas `designDonde…` («en vertical, para una historia»); o lo que
    *  escribió la persona, en minúscula. Si dijo «No sé», no hay {{donde}} y la frase es la corta.
    */
@@ -68,7 +69,10 @@ export const planVisual = {
    *  envase», «un mueble», «ropa o calzado», «algo de tecnología»), un vehículo («un auto», «algo que vuela», «una
    *  moto», «un motor o una pieza»), un lugar («una casa», «un local o negocio», «una ciudad», «un paisaje») o un
    *  personaje («una mascota para mi marca», «un héroe o protagonista», «un robot», «una criatura»); o lo que escribió
-   *  la persona, en minúscula.
+   *  la persona, en minúscula. Si dijo «No sé» a la cosa, la pieza `designCosa…` con el valor que la plantilla ya traía
+   *  para «no contestó» —`designCosaProducto`, `designCosaVehiculo`, `designCosaLugar`, `designCosaPersonaje`—; y si
+   *  dijo «No sé» a «¿qué necesitas?», `designCosaDescrito`. En los dos casos se añade la coletilla
+   *  `designDecisionElijoYo`.
    *  {{matiz}}: el matiz que la persona eligió para esa cosa, una de las piezas `designMatiz…`: el aspecto de un
    *  producto (`…Look…`), la época de un vehículo (`…Era…`), la vista de un lugar (`…Inout…`) o el estilo de un
    *  personaje (`…Draw…`); o lo que escribió la persona, en minúscula. Si dijo «No sé», no hay {{matiz}} y la frase
@@ -93,6 +97,20 @@ export const planVisual = {
   designMatizDrawGame: 'con estética de videojuego',
   designMatizDrawPencil: 'dibujado a lápiz',
   designMatizDrawCute: 'con un aire tierno',
+
+  /*
+   * Design · lo que Weë pone cuando la persona dice «No sé» a lo que se diseña (`what`, `message`, `item`, `machine`,
+   * `place`, `who`). No son valores nuevos: son los que cada rama de la plantilla ya traía para «no contestó», y
+   * entran en los huecos {{cosa}} y {{anuncio}} de arriba. La coletilla es la misma para las seis preguntas, porque en
+   * las seis Weë hace lo mismo (elige qué diseñar); va dentro de «Como no estabas seguro, {{decision}}.».
+   */
+  designCosaDescrito: 'lo que me describiste',
+  designCosaProducto: 'un producto',
+  designCosaVehiculo: 'un vehículo',
+  designCosaLugar: 'un lugar',
+  designCosaPersonaje: 'un personaje',
+  designAnuncioAlgo: 'algo',
+  designDecisionElijoYo: 'elijo yo qué diseñar',
 
   /*
    * Design · los pasos. Primero el concepto y después las imágenes: «logos» en la rama del logo, «propuestas» en

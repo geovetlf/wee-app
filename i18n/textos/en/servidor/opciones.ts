@@ -1,5 +1,5 @@
 /*
- * ENGLISH — Opciones del flujo guiado de Weë AI (233): los botones con emoji que acompañan a cada pregunta.
+ * ENGLISH — Opciones del flujo guiado de Weë AI (239): los botones con emoji que acompañan a cada pregunta.
  * Ver `../../es/servidor/opciones.ts`.
  *
  * El emoji y su espacio son los del servidor, tal cual. Sin el emoji, la etiqueta entra además dentro de las frases
@@ -16,6 +16,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designWhatObject: '🏎️ A vehicle or a machine · cars, planes, inventions',
   designWhatScene: '🏙️ A place or a setting · houses, venues, landscapes',
   designWhatCharacter: '🧑‍🚀 A character · pets, heroes, creatures',
+  designWhatIdk: '🤷 Not sure',
   designFeelSerious: '🏛️ Serious and trustworthy',
   designFeelModern: '✨ Modern',
   designFeelClose: '🎈 Friendly and fun',
@@ -26,6 +27,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designMessageEvent: '📅 An event',
   designMessageLaunch: '🆕 A new product',
   designMessageNews: '🕒 Opening hours or news',
+  designMessageIdk: '🤷 Not sure',
   designWhereFeed: '📱 Instagram or Facebook',
   designWhereStory: '📖 A story',
   designWhereWhatsapp: '💬 WhatsApp',
@@ -35,6 +37,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designItemFurniture: '🛋️ A piece of furniture',
   designItemClothes: '👟 Clothes or shoes',
   designItemGadget: '📱 A tech gadget',
+  designItemIdk: '🤷 Not sure',
   designLookClean: '✨ Modern and clean',
   designLookNatural: '🌿 Natural',
   designLookLuxury: '💎 Luxurious',
@@ -45,6 +48,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designMachineAir: '🚁 Something that flies',
   designMachineBike: '🏍️ A motorbike',
   designMachineEngine: '⚙️ An engine or a part',
+  designMachineIdk: '🤷 Not sure',
   designEraFuture: '🚀 From the future',
   designEraNow: '🏁 Present day',
   designEraClassic: '🕰️ Classic',
@@ -54,6 +58,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designPlaceShop: '🏪 A shop or venue',
   designPlaceCity: '🌆 A city',
   designPlaceNature: '🌄 A landscape',
+  designPlaceIdk: '🤷 Not sure',
   designInoutOutside: '🏠 From the outside',
   designInoutInside: '🛋️ From the inside',
   designInoutWide: '🌄 A wide view',
@@ -62,6 +67,7 @@ export const opciones: typeof import('../../es/servidor/opciones').opciones = {
   designWhoHero: '🦸 A hero or main character',
   designWhoRobot: '🤖 A robot',
   designWhoCreature: '🐉 A creature',
+  designWhoIdk: '🤷 Not sure',
   designDrawCartoon: '🎨 Cartoon',
   designDrawReal: '📷 Realistic',
   designDrawGame: '🕹️ Video game style',
