@@ -1,0 +1,108 @@
+--- a/functions/src/creator/brain.ts
++++ b/functions/src/creator/brain.ts
+@@ -13,7 +13,7 @@
+ import { DEEPSEEK_TEXT_MODEL } from '../engine/providers/deepseek';
+ import { creditEngine } from '../credits/creditEngine';
+ import { assertRequestId, CreditError } from '../credits/creditValidation';
+-import { bloqueDe, cobroYaCerradoSinCobro, contarRespuesta, deshacerRespuesta, queHacerConElCobro, RESPUESTAS_POR_CREDIT } from './brainUsage';
++import { BloqueDeBrain, bloqueDe, cobroYaCerradoSinCobro, contarRespuesta, deshacerRespuesta, queHacerConElCobro, RESPUESTAS_POR_CREDIT } from './brainUsage';
+ import { usageTransactionId } from '../credits/creditTransactions';
+ import { firestoreLedger } from '../engine/ledger';
+ import { ensureAccount } from './credits';
+@@ -323,20 +323,18 @@
+     const audioUrl = data.audioUrl ? assertAttachmentUrl(data.audioUrl, uid, 'audio') : undefined;
+ 
+     const db = getFirestore();
+-    let chatRef;
+-    let isNew = false;
+-    if (data.chatId) {
+-      chatRef = db.collection('brainChats').doc(String(data.chatId));
+-      const snap = await chatRef.get();
+-      if (!snap.exists || snap.data()?.userId !== uid) throw new EngineError('INVALID_REQUEST', 'No encontramos esta conversación.');
+-    } else {
+-      chatRef = db.collection('brainChats').doc();
+-      isNew = true;
+-    }
++    const isNew = !data.chatId;
++    const chatRef = data.chatId ? db.collection('brainChats').doc(String(data.chatId)) : db.collection('brainChats').doc();
+     const messages = chatRef.collection('messages');
+ 
++    /*
++     * La conversación y «¿este mensaje ya se contestó?» no dependen una de otra: se leen A LA VEZ (una ronda menos).
++     * Si la conversación no es de la persona, se rechaza igual que antes; la lectura de más no escribe nada.
++     */
++    const [snapDelChat, existing] = await Promise.all([isNew ? Promise.resolve(undefined) : chatRef.get(), messages.doc(`${messageId}_wee`).get()]);
++    if (snapDelChat && (!snapDelChat.exists || snapDelChat.data()?.userId !== uid)) throw new EngineError('INVALID_REQUEST', 'No encontramos esta conversación.');
++
+     // Misma petición repetida (doble toque, reintento): se devuelve la respuesta ya dada
+-    const existing = await messages.doc(`${messageId}_wee`).get();
+     if (existing.exists) {
+       const prev = existing.data() || {};
+       return { chatId: chatRef.id, messageId: existing.id, text: prev.text, sources: prev.sources || [], suggestedExperience: prev.suggestedExperience ?? null, credits: prev.credits || 0, demo: !!prev.demo, duplicate: true, bloque: await bloqueDe(uid) };
+@@ -344,15 +342,24 @@
+ 
+     // Límites y Credits antes de llamar a la IA
+     const { settings } = await loadConfig();
+-    await limiter.reserve(uid, { text: 1 }, settings.limits);
+-    await ensureAccount(uid);
+     /* El mismo servicio con el que se cotizó: lo que se enseña y lo que se cobra son uno. */
+     const service = webSearch ? 'ai_search' : 'ai_brain';
+     const requestId = `brain_${messageId}`;
+ 
+-    // El historial se lee ANTES de cobrar: encarece la petición y tiene que
+-    // estar dentro del precio, igual que las fotos y los documentos adjuntos.
+-    const history = await readHistory(messages);
++    /*
++     * El cupo, la cuenta de Credits, el historial y por dónde va el bloque son CUATRO lecturas independientes entre sí
++     * (cada una toca sus propios documentos): se hacen a la vez y no una detrás de otra. Si el cupo está agotado, lanza
++     * lo mismo de siempre; lo demás ya leído no se usa y no cobra nada.
++     *
++     * El historial se lee ANTES de cobrar: encarece la petición y tiene que
++     * estar dentro del precio, igual que las fotos y los documentos adjuntos.
++     */
++    const [, , history, bloqueAntes] = await Promise.all([
++      limiter.reserve(uid, { text: 1 }, settings.limits),
++      ensureAccount(uid),
++      readHistory(messages),
++      webSearch ? Promise.resolve(undefined) : bloqueDe(uid),
++    ]);
+     const engineInput = brainInput(message, history, { imageUrl, documentUrl, audioUrl }, data.locale);
+     const { price } = await priceBrainMessage(engineInput, webSearch);
+ 
+@@ -378,6 +385,8 @@
+     /* Lo que de verdad pasó en ESTA invocación: el `catch` decide el cobro con esto (`queHacerConElCobro`). */
+     let contadaAqui = false;
+     let entregada = false;
++    /* Por dónde queda el bloque de doce tras contar ESTA respuesta (solo la conversación lo tiene; la búsqueda no cuenta). */
++    let bloqueFinal: BloqueDeBrain | undefined;
+     /* El cobro de este mensaje ya había terminado SIN cobrar (reembolsado o fallido): no hay nada que cerrar. */
+     let cerradoSinCobro = false;
+     /*
+@@ -395,7 +404,7 @@
+      * llamar al modelo, y decirle al libro lo que de verdad se le cobra. Así lo
+      * que ve la persona, lo que se cobra y lo que queda anotado son el mismo número.
+      */
+-    const cierraElBloque = !webSearch && (await bloqueDe(uid)).usadas === RESPUESTAS_POR_CREDIT - 1;
++    const cierraElBloque = !webSearch && bloqueAntes !== undefined && bloqueAntes.usadas === RESPUESTAS_POR_CREDIT - 1;
+     const creditsDelMensaje = webSearch || cierraElBloque ? price.credits : 0;
+     if (webSearch) {
+       spend = await creditEngine.spendCredits({
+@@ -707,6 +716,9 @@
+       if (!webSearch) {
+         const consumo = await contarRespuesta(uid, messageId);
+         contadaAqui = true;
++        /* Por dónde queda el bloque se sabe AQUÍ: la que cobra lo deja en 0 y las demás en su puesto. Leerlo otra vez al final era una ronda más. */
++        const usadasTrasContar = consumo.cobrada ? 0 : Math.min(RESPUESTAS_POR_CREDIT - 1, Math.max(0, consumo.posicion));
++        bloqueFinal = { usadas: usadasTrasContar, total: RESPUESTAS_POR_CREDIT, restantes: RESPUESTAS_POR_CREDIT - usadasTrasContar };
+         if (consumo.cobrada) {
+           let cobroDelBloque: { amount: number; duplicate: boolean; status?: string };
+           try {
+@@ -760,7 +772,7 @@
+       }
+       /* Por dónde pasó, para quien lea los registros. NO va en la respuesta: a la persona el camino no le cambia nada. */
+       console.log(`WEË BRAIN · ruta=${porElCore ? 'CORE' : 'LEGACY'} motivo=${puerta.motivo} capacidad=${capacidad} requestId=${requestId} chat=${chatRef.id} generacion=${salida.generationId ?? '-'} credits=${credits}`);
+-      return { chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience ?? null, credits, demo: salida.demo, duplicate: false, bloque: await bloqueDe(uid) };
++      return { chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience ?? null, credits, demo: salida.demo, duplicate: false, bloque: bloqueFinal ?? (await bloqueDe(uid)) };
+     } catch (error) {
+       /*
+        * Solo se reembolsa lo que se llegó a cobrar. En la conversación por bloques
