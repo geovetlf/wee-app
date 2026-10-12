@@ -138,7 +138,29 @@ check('B4) lo que se adjunta se puede quitar: cada ficha de referencia lleva su 
   fichasDeReferencia(codigo).length > 0 && fichasDeReferencia(codigo).every(sePuedeQuitar), `${fichasDeReferencia(codigo).length} ficha(s) de referencia`);
 check('B4) y quitar una no repite nombres al añadir otra: el nombre no sale del largo de la lista', !nombraPorElLargo(codigo));
 
+/*
+ * LO QUE LEE UN LECTOR DE PANTALLA (F-05 del cierre).
+ *
+ * Las etiquetas y los roles de las puertas, las filas y los botones ya estaban (auditoría UIUX 3.12). Faltaban dos cosas pequeñas
+ * que sí marcan diferencia al recorrer la pantalla sin verla: que «Explora» y el título de cada panel sean TÍTULOS (el
+ * `accessibilityRole="header"` que ya usan quince pantallas de la app), y que la pista de cada puerta, que se ve debajo de su
+ * nombre, también se lea: como `accessibilityHint`, sin tocar la etiqueta, que es el nombre.
+ */
+const explora = sinComentarios(leer('components/design/DesignExplore.tsx'));
+const panelDe = sinComentarios(leer('components/design/DesignPanel.tsx'));
+const tituloEs = (src, contenido) => new RegExp(`<Text[^>]*accessibilityRole="header"[^>]*>\\s*\\{${contenido}`).test(src);
+check('B5) «Explora» y el título de cada panel son títulos para el lector de pantalla',
+  tituloEs(explora, "t\\('design\\.exploreTitle'\\)") && tituloEs(panelDe, 'esTodas \\?'));
+check('B5) y la pista de cada puerta y de cada fila se lee como pista, sin tocar su nombre',
+  /accessibilityLabel=\{t\(puerta\.clave\)\}/.test(explora) && /accessibilityHint=\{t\(puerta\.claveHint\)\}/.test(explora)
+  && /accessibilityLabel=\{t\(clave\)\}/.test(panelDe) && /accessibilityHint=\{pista \? t\(pista\) : undefined\}/.test(panelDe));
+
 /* CONTROLES */
+check('CONTROL: un título sin su rol, o una puerta sin su pista, se vería',
+  !tituloEs('<Text style={x}>{t(\'design.exploreTitle\')}</Text>', "t\\('design\\.exploreTitle'\\)")
+  && tituloEs('<Text accessibilityRole="header" style={x}>{t(\'design.exploreTitle\')}</Text>', "t\\('design\\.exploreTitle'\\)")
+  && !/accessibilityHint=\{t\(puerta\.claveHint\)\}/.test('<TouchableOpacity accessibilityLabel={t(puerta.clave)} />'),
+  'si esto pasara, B5 no protegería nada');
 check('CONTROL: una ficha de referencia sin aspa, o con nombres sacados del largo de la lista, se vería',
   !sePuedeQuitar('<FichaDeContexto key={r} icono="image-outline" texto={r} />')
   && sePuedeQuitar("<FichaDeContexto icono=\"image-outline\" texto={r} onQuitar={() => quitar(i)} etiquetaQuitar={t('studio.removeContext')} />")
@@ -152,6 +174,5 @@ check('CONTROL: una pantalla que llamara a los Credits o a un servicio se vería
 check('CONTROL: un micrófono que repitiera el manejador de la referencia se vería',
   manejadorDe('<X onReferencia={alAnadirReferencia} onVoz={alAnadirReferencia} />', 'onVoz') === manejadorDe('<X onReferencia={alAnadirReferencia} onVoz={alAnadirReferencia} />', 'onReferencia'),
   'si esto pasara, B3 no protegería nada');
-
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Design: el catálogo de la pantalla montada es el que dice ser, y sus botones hacen lo que dicen');
 process.exit(failures ? 1 : 0);

@@ -34,7 +34,7 @@ const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
   return (
     <View style={styles.bloque}>
       <View style={styles.cabecera}>
-        <Text style={[styles.seccion, { color: theme.colors.text }]}>{t('design.exploreTitle')}</Text>
+        <Text accessibilityRole="header" style={[styles.seccion, { color: theme.colors.text }]}>{t('design.exploreTitle')}</Text>
         <TouchableOpacity
           onPress={onVerTodas}
           activeOpacity={0.7}
@@ -59,6 +59,8 @@ const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel={t(puerta.clave)}
+              /* La pista se ve debajo del nombre; quien no ve la pantalla la oye aparte, sin que el nombre cambie. */
+              accessibilityHint={t(puerta.claveHint)}
             >
               <Ionicons name={puerta.icono as any} size={scale(24)} color={theme.colors.text} />
               <View style={styles.tarjetaTexto}>
