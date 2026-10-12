@@ -1,5 +1,9 @@
 # Weë Chef · lote 1 — fichas para empezar (CHEF-01, 02, 03a, 03b, 04) y las dos decisiones que lo frenan
 
+> **Estado (ronda R9, 2026-10-12, agente CHF3, rama `r9/chef` desde `9365153a`, sin integrar):** CHEF-01 comprobada con la suite nueva `chef-lista` (instrucción ↔ `leerLista`), que encontró y corrigió un defecto de `leerLista` (nombres de sección con comillas o ángulos, `eac002fb`); CHEF-02: contrato de `contextoDeChef` revisado frente a `ChefScreen` y `CreatorFlowScreen`, prueba de pantalla **pendiente** (`functions/test/chef-pantalla-contexto.test.mjs.pendiente`) y diff exacto por opción de D-1; CHEF-03b: `utils/necesitaFoto.ts` (la regla `needsPhoto` como función pura, sin cambiarla, `27187472`); CHEF-03a/03b: plan por opción de D-3 y D-1. **Nada de esto decide D-1, D-3, la regla 7 ni el texto de CHEF-01.** Bloques «R9 (CHF3)» en cada ficha.
+>
+> **Cómo contar las comprobaciones (R9):** las suites de Chef imprimen una línea `✔ todo bien` al final; los informes de R8 la contaron como una comprobación más (399 · 32 · 47 · 47). Las comprobaciones reales son **398** (`chef-receta`) · **31** (`chef-contexto`) · **46** (`chef-caracterizacion`) · **46** (`chef-weeai`), y así se citan desde R9. No falta ninguna.
+>
 > **Estado (ronda R8, 2026-10-12, agente CHF2, rama `r8/chef-lote` desde `50d1b9f6`, sin integrar): CHEF-01 IMPLEMENTADA con la salida (A) (`1c60b30e`; texto de la instrucción PENDIENTE de revisión de producto) y la parte pura de CHEF-02 (`utils/contextoDeChef.ts` + `chef-contexto`, `c5e98117`); la pantalla y la caja de CHEF-02, y CHEF-03a/03b, siguen PREPARADAS (esperan D-1/D-3). Bloques «Hecho en R8 (CHF2)» en cada ficha.**
 >
 > **Estado (ronda R8, 2026-10-12, agente CHF): CHEF-04 IMPLEMENTADA en la rama `r8/chef` (`3bb91118`, sin integrar); CHEF-01, 02, 03a y 03b PREPARADAS, nada empezado.** Citas re-verificadas contra `c3f7f9a7` (las desplazadas, corregidas) y medidas `[M]` de 03a re-hechas en esa base; cada ficha lleva un bloque «Al día en R8».
@@ -165,6 +169,26 @@ Se mantienen tal cual `CONTRATO · esa instrucción es la de Weë Home y a Home 
 - **Pendiente para quien integre:** `docs/WEE-ACEPTACION.md` ACE-C-12 (sigue como HUECO) y el comentario de `aceptacion-conversacion.test.mjs:236-242` que todavía describe D-CHEF-3 como abierto; no los toqué (no son de esta tarea).
 - **Riesgo residual:** con un locale distinto del español, `recordatorioDeIdioma` no incluye «SECCIÓN» entre las marcas que se copian tal cual; si el modelo la traduce, `leerLista` sigue leyendo los títulos sueltos, pero no la marca. Añadirla cambiaría el prompt de todas las experiencias: no se hizo.
 
+**R9 (CHF3, 2026-10-12) — comprobada con pruebas; un defecto de `leerLista` CORREGIDO EN RAMA AISLADA (`eac002fb`).**
+- *Suite nueva* `functions/test/chef-lista.test.mjs` (34 comprobaciones, en la cadena, al final del script `test`), en cuatro grupos: **A** lo que pide la instrucción (secciones del supermercado con la marca «SECCIÓN:», el mismo ingrediente de varias recetas en una línea con las cantidades sumadas «con su unidad», sin tope, precio con fuente o «dilo»; y el texto byte a byte, para que cambiarlo sea una decisión); **B** cómo viaja (plan de menú real + `stepInputFor` real, sin idioma, `es`, `en` y `da`: la instrucción va UNA vez en `list` y en `prices`; con datos incompletos —sin respuestas guiadas, sin `brief`, sin material previo, con objetivo vacío— el prompt la sigue llevando y no deja `undefined`/`null`/`""`); **C** las dos puntas hablan el mismo formato (las siete secciones que nombra la instrucción, escritas con su marca, se leen como siete secciones en su orden); **D** `leerLista` con listas de compra escritas a mano (repetidos, cantidades sin unidad, decimales y fracciones, líneas sin cantidad, nada se pierde). Los textos de lista son **escritos a mano, NO salida de un modelo**; la calidad real sigue **NO VERIFICADO** (canary CHEF-18).
+- *Defecto demostrado y corregido:* la instrucción enseña la marca **entre comillas** y con el marcador `<nombre>`; si un modelo la copia así, `leerLista` devolvía `Frutas y verduras"` (la comilla inicial la comía la marca, la final no) o `<Frutas y verduras>`. **Rojo:** 4 ✘ (comillas, ángulos, comillas latinas, comillas solo en el nombre). **Cambio mínimo:** `nombreDeSeccion` quita comillas y ángulos de los dos extremos, con un bucle (`sinEnvoltura`): una primera versión con `[…]+$` era cuadrática (sonda: 0,05 s → 0,33 s con 24 líneas de 800 signos); la del bucle, ≤ 0,02 s. **Verde:** `chef-lista` 34 ✔, `chef-receta` 398 ✔ (sin cambios).
+- *Lo que la suite fija como `HOY` (para producto, no lo decide):* la instrucción no dice qué hacer si falta una cantidad o si dos unidades no se pueden sumar (200 g + 1 taza); no fija el orden «cantidad, unidad, ingrediente» que `leerLista` necesita (con «Tomates: 6» la línea se conserva, pero sin cantidad); dice «lista de la compra **del menú**» (CHEF-03a, con su lista de un paso sin menú, tendrá que revisarlo); y con otro idioma el recordatorio final no pide copiar «SECCIÓN» (si el modelo escribe «SECTION: Produce», sale como título suelto con la palabra dentro).
+
+**El texto literal, para la revisión de producto (PENDIENTE DE DECISIÓN; no se ha cambiado):**
+
+```
+Escribe la lista de la compra del menú agrupada por secciones del supermercado (frutas y verduras, carnes y pescados, lácteos y huevos, panadería, despensa, congelados, otros), con una línea "SECCIÓN: <nombre>" delante de cada grupo. Junta en una sola línea el mismo ingrediente aunque salga en varias recetas y suma sus cantidades con su unidad. Sin tope de elementos: que no falte nada de lo que hay que comprar. Si la tarea es mirar precios, pon junto a cada línea el precio que encuentres con su fuente y, si no lo encuentras, dilo: nunca inventes un precio.
+```
+
+Observaciones para quien revise (ninguna aplicada):
+1. **Comillas y `<nombre>`:** enseñan la marca con un envoltorio que el modelo puede copiar. El lector ya lo tolera (arreglo de arriba); si se reescribe, una forma sin envoltorio («una línea que empiece por SECCIÓN: y el nombre») evita el problema en origen.
+2. **Orden de la línea:** sin «empieza cada línea por la cantidad y la unidad», una lista con el ingrediente delante se lee pero no se puede escalar ni sumar en el dispositivo (CHEF-08).
+3. **Datos que faltan:** no dice qué hacer si el menú no da una cantidad («arroz») ni si las unidades no se suman (gramos y tazas del mismo ingrediente). Propuesta para revisar: «si no sabes la cantidad, escribe solo el ingrediente; si las unidades no se pueden sumar, deja las dos en la misma línea».
+4. **«del menú»:** sirve al plan de hoy (`menu → prices → list`); para la lista de un solo paso de CHEF-03a habrá que quitarlo o pasar a la salida (B).
+5. **Precios en el paso `list`:** el paso `list` recibe como material el resultado de `prices`; la frase «si la tarea es mirar precios» deja al modelo decidir si los repite. Si producto quiere la lista SIN precios, es la salida (B) (una frase por capacidad).
+6. **Secciones:** siete, de supermercado europeo/latino genérico; «otros» recoge lo demás. Son texto para el modelo (no interfaz): no pasan por i18n; el idioma de la respuesta lo pone `recordatorioDeIdioma`.
+7. **Unidades del lector:** `leerLista` lee g, kg, ml, l, cucharada, cucharadita, taza, vaso y pizca en español; «docena», «dl», «oz» se conservan sin cantidad, y «2 latas de tomate» o «1 paquete de arroz» se leen como piezas (2 · «latas de tomate»). Si producto quiere otras unidades, es trabajo de CHEF-04, no de la instrucción.
+
 
 ---
 
@@ -267,6 +291,199 @@ export const largoParaElServidor = (objetivo: string): number;   // objetivo.tri
 - **Sigue igual a propósito:** `chef-caracterizacion` D-CHEF-4 y D-CHEF-5 (HOY): la pantalla no llama todavía a `contextoDeChef` (lo fija una comprobación de `chef-contexto`, que habrá que invertir al cablear la pantalla).
 - **Lo que queda (espera a D-1 = A y a la regla 7):** `ChefScreen.abrirFlujo` debe esparcir `contextoDeChef(...)` manteniendo el literal `experienceId: 'chef'` y el `projectId` que ya añade la pantalla; la prop `maximo` de `CajaDePrompt`; invertir D-CHEF-4/5 y las aditivas de `aceptacion-pantallas`.
 
+**R9 (CHF3, 2026-10-12) — contrato revisado; prueba de pantalla PREPARADA (no activa); diff por opción de D-1 PREPARADO (no aplicado). PENDIENTE DE DECISIÓN: D-1 y la regla 7.**
+
+*Revisión del contrato de `contextoDeChef` frente a las dos pantallas (leídas, no modificadas):*
+
+| Punto | `ChefScreen` (hoy) | `CreatorFlowScreen` (hoy) | `contextoDeChef` | Veredicto |
+|---|---|---|---|---|
+| Literal de la llamada | `navigation.navigate('CreatorFlow', { experienceId: 'chef', …` en `abrirFlujo` | — | no devuelve `experienceId` (`Omit<…, 'experienceId'>`) | compatible: el literal se queda en la pantalla (regla 4) |
+| `preset` suelto | lo manda la tarjeta (`alElegirTarjeta` → `abrirFlujo(undefined, tarjeta.preset)`) | `needsPhoto` lee `params.preset?.optionId` (cook/edit) y `:459` (edit) | lo devuelve suelto **y** dentro de `presets` | compatible (regla 1) |
+| `presets` | no se manda | `start(…, yaDichas ?? params.presets ?? [params.preset])` (`:167`): no suma | solo si hay un ajuste que viaja | compatible; sin ajustes, la llamada es la de hoy |
+| `workspace` | no se manda | **nadie lo lee** (ni esta pantalla ni ninguna otra del cliente: `grep params.workspace` = 0; Studio también lo manda) | `workspace: 'chef'` siempre | inocuo: AC-12 se cumple, pero hoy no cambia nada en el flujo (*inferido* por lectura) |
+| `projectId` (P11) | `...(projectId ? { projectId } : {})` | `start(…, params.projectId, …)` | no lo devuelve | el diff conserva el spread de la pantalla |
+| `imageUri` | `imagen ?? foto ?? undefined` | `useState(params.imageUri)` | lo copia si viene | compatible |
+| `goal` de la tarjeta | `undefined` | `start(params.goal)` | no pone `goal` si `objetivo` es `undefined` | compatible (ACE-C-02 intacto) |
+| **Tarjeta + ajustes** | **hoy la tarjeta ignora los ajustes** (ni texto ni respuesta) | — | con el diff, la tarjeta manda también personas/tiempo como `presets` | **cambio de comportamiento a revisar con D-1**: es lo que pide la ficha (fixture «tarjeta `recipe`, people 4»), pero hoy no pasa |
+| «Otra versión» / reintento | — | `handleAnotherVersion` → `start(goal)` sin `yaDichas` → vuelve a usar `params.presets` | — | las respuestas no se pierden al repetir |
+| «Continuar con…» | — | `handleContinue` empuja `presets` propios desde `job.answers` | — | no le afecta |
+
+*Prueba de pantalla pendiente:* `functions/test/chef-pantalla-contexto.test.mjs.pendiente` (no está en la cadena; se renombra y se registra al aplicar el diff). Usa el arnés de `aceptacion-pantallas` (`_pantallas.mjs`) con el `ChefScreen` de verdad. Variante `A` (10 comprobaciones): AC-11 (personas y tiempo como `presets`, también con una idea en inglés), AC-12, regla 5 (la unión no cambia), regla 1 (tarjeta + personas), auto/dieta/nivel no viajan, ACE-C-02 y ACE-C-05 intactos, P11 (`projectId`) intacto. Variante `A-maximo` (+4): `maximo` = 300 sin ajustes, 300 − lo que añade la ficha con «Sin gluten», bloquear por encima (regla 8, variante «bloquear») y en el límite el servidor lee la dieta entera.
+**Ejecutado (copia temporal `_tmp`, borrada):** contra la pantalla de hoy, **11 ✘ de 14** (`logs/5-pendiente-hoy-Amax.log`, el rojo de CHEF-02); con el diff A aplicado en el worktree (temporal, restaurado con `git checkout --`), **10/10**; con A-maximo, **14/14**. Con el diff aplicado caen, como se espera, exactamente dos comprobaciones a invertir: `chef-caracterizacion` «HOY · D-CHEF-4 · la pantalla manda al flujo solo experienceId, goal, preset e imageUri…» (cae de verdad: exige `goal: objetivo` literal) y `chef-contexto` «PENDIENTE DE DECISIÓN (D-1) · la pantalla todavía NO la usa». `chef-weeai`, `aceptacion-pantallas`, `cajas-weeai` y `brain-vivo`: verdes con A y con A-maximo. `tsc --noEmit`: **0** con A-maximo aplicado.
+
+*Diff exacto por opción de D-1 (NO aplicado):*
+
+**D-1 = A, sin la caja a 300 (si la regla 7 se descarta o se aplaza)** — solo `screens/ChefScreen.tsx`:
+
+```diff
+diff --git a/screens/ChefScreen.tsx b/screens/ChefScreen.tsx
+index f55bafe3..fb863c18 100644
+--- a/screens/ChefScreen.tsx
++++ b/screens/ChefScreen.tsx
+@@ -25,6 +25,7 @@ import {
+ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+ import { notify } from '../utils/notify';
+ import { scale } from '../utils/scale';
++import { contextoDeChef } from '../utils/contextoDeChef';
+ 
+ const isWeb = Platform.OS === 'web';
+ 
+@@ -135,15 +136,14 @@ const ChefScreen: React.FC = () => {
+         navigation.navigate('Login');
+         return;
+       }
++      /* Personas y tiempo viajan además como respuestas que el servidor ya entiende (CHEF-02): `contextoDeChef`. */
+       navigation.navigate('CreatorFlow', {
+         experienceId: 'chef',
+-        goal: objetivo,
+-        preset,
+-        imageUri: imagen ?? foto ?? undefined,
++        ...contextoDeChef({ objetivo, preset, ajustes, imageUri: imagen ?? foto ?? undefined }),
+         ...(projectId ? { projectId } : {}),
+       });
+     },
+-    [user, navigation, foto, projectId]
++    [user, navigation, foto, projectId, ajustes]
+   );
+ 
+   const alEnviar = useCallback(() => {
+```
+
+**D-1 = A, con la caja a 300 (si el dueño elige esa de las tres salidas de la regla 7; regla 8 en su variante «bloquear»)** — `screens/ChefScreen.tsx` + `components/creator/CajaDePrompt.tsx` (prop opcional; las otras seis secciones no la pasan y su caja no cambia):
+
+```diff
+diff --git a/components/creator/CajaDePrompt.tsx b/components/creator/CajaDePrompt.tsx
+index 890e6907..b5bdada7 100644
+--- a/components/creator/CajaDePrompt.tsx
++++ b/components/creator/CajaDePrompt.tsx
+@@ -62,6 +62,13 @@ interface Props {
+    * ninguna otra sección se entera.
+    */
+   sinMarco?: boolean;
++  /**
++   * LO QUE CABE: un tope y su contador (`n/máximo`, sin palabras, como `CampoQueCrece`).
++   *
++   * Solo Weë Chef lo pasa (CHEF-02): el servidor lee 300 unidades del objetivo y lo que la pantalla pega al final
++   * se descuenta. Se cuenta como el servidor —tras `trim()`, en unidades UTF-16—. Sin él, la caja es la de siempre.
++   */
++  maximo?: number;
+ }
+ 
+ /**
+@@ -90,13 +97,14 @@ interface Props {
+  * largo que sea el prompt. Eso lo resuelve `useCajaQueCrece`.
+  */
+ const CajaDePrompt: React.FC<Props> = ({
+-  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco,
++  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco, maximo,
+ }) => {
+   const { theme } = useTheme();
+   const hayTexto = valor.trim().length > 0;
+   /* Sin nada escrito, la caja vuelve a medir una línea. No se fía de la medida vieja. */
+   const caja = useCajaQueCrece({ altoMinimo: ALTO_MINIMO, vacia: !hayTexto });
+-  const puedeEnviar = hayTexto && !ocupado && editable !== false;
++  const pasaDelMaximo = maximo !== undefined && valor.trim().length > maximo;
++  const puedeEnviar = hayTexto && !ocupado && editable !== false && !pasaDelMaximo;
+ 
+   /*
+    * Al enviar, el teclado se retira.
+@@ -135,6 +143,7 @@ const CajaDePrompt: React.FC<Props> = ({
+         placeholderTextColor={theme.colors.textSecondary}
+         editable={editable}
+         accessibilityLabel={etiqueta ?? placeholder}
++        {...(maximo !== undefined ? { maxLength: maximo } : null)}
+         /* Donde escribir es el principio de algo, Intro lo empieza; donde es redactar, hace salto de línea. */
+         {...(enviarConIntro ? { onSubmitEditing: enviar, blurOnSubmit: true, returnKeyType: 'send' as const } : null)}
+       />
+@@ -146,6 +155,10 @@ const CajaDePrompt: React.FC<Props> = ({
+         puntos. Lo que se encoge es el hueco ENTRE botones, nunca el botón: el
+         dedo sigue teniendo sus 42 y sus 50, que es lo que no se puede tocar.
+       */}
++      {maximo !== undefined && (
++        <Text style={[styles.cuenta, { color: theme.colors.textSecondary }]}>{`${valor.trim().length}/${maximo}`}</Text>
++      )}
++
+       <View style={[styles.acciones, (acciones?.length ?? 0) + (accionesDerecha?.length ?? 0) >= 5 && styles.accionesJuntas]}>
+         {(acciones ?? []).map((accion) => (
+           <TouchableOpacity
+@@ -230,6 +243,8 @@ const styles = StyleSheet.create({
+     gap: SPACING.sm,
+   },
+   accionesJuntas: { gap: SPACING.xs },
++  /* El contador de lo que cabe: pequeño, a la derecha, con cifras de ancho fijo (como `CampoQueCrece`). */
++  cuenta: { alignSelf: 'flex-end', fontSize: FONT_SIZE.xs, fontVariant: ['tabular-nums'] },
+   accion: {
+     width: scale(42),
+     height: scale(42),
+diff --git a/screens/ChefScreen.tsx b/screens/ChefScreen.tsx
+index f55bafe3..f95c3b79 100644
+--- a/screens/ChefScreen.tsx
++++ b/screens/ChefScreen.tsx
+@@ -25,6 +25,7 @@ import {
+ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+ import { notify } from '../utils/notify';
+ import { scale } from '../utils/scale';
++import { contextoDeChef, largoParaElServidor, LARGO_QUE_LEE_EL_SERVIDOR } from '../utils/contextoDeChef';
+ 
+ const isWeb = Platform.OS === 'web';
+ 
+@@ -135,17 +136,27 @@ const ChefScreen: React.FC = () => {
+         navigation.navigate('Login');
+         return;
+       }
++      /* Personas y tiempo viajan además como respuestas que el servidor ya entiende (CHEF-02): `contextoDeChef`. */
+       navigation.navigate('CreatorFlow', {
+         experienceId: 'chef',
+-        goal: objetivo,
+-        preset,
+-        imageUri: imagen ?? foto ?? undefined,
++        ...contextoDeChef({ objetivo, preset, ajustes, imageUri: imagen ?? foto ?? undefined }),
+         ...(projectId ? { projectId } : {}),
+       });
+     },
+-    [user, navigation, foto, projectId]
++    [user, navigation, foto, projectId, ajustes]
+   );
+ 
++  /*
++   * LO QUE EL SERVIDOR LEE, CONTADO ANTES DE ENVIAR (CHEF-02, regla 7).
++   *
++   * El servidor lee 300 unidades del objetivo y lo elegido va AL FINAL: lo que la ficha añade se descuenta del
++   * máximo de la caja, para que la dieta no sea lo primero que se corta. Se mide con la misma frase que se enviará.
++   */
++  const anadidoPorLosAjustes = puestos.length
++    ? largoParaElServidor(t('chef.goalWith', { idea: 'x', ajustes: formato.lista(puestos.map((p) => t(p.clave))) })) - 1
++    : 0;
++  const maximoDeLaCaja = LARGO_QUE_LEE_EL_SERVIDOR - anadidoPorLosAjustes;
++
+   const alEnviar = useCallback(() => {
+     const idea = prompt.trim();
+     if (!idea) return;
+@@ -153,6 +164,8 @@ const ChefScreen: React.FC = () => {
+     const objetivo = puestos.length
+       ? t('chef.goalWith', { idea, ajustes: formato.lista(puestos.map((p) => t(p.clave))) })
+       : idea;
++    /* Regla 8, variante «bloquear»: si con lo elegido ya no cabe, no se envía (el contador de la caja lo enseña). */
++    if (largoParaElServidor(objetivo) > LARGO_QUE_LEE_EL_SERVIDOR) return;
+     abrirFlujo(objetivo);
+   }, [prompt, puestos, t, formato, abrirFlujo]);
+ 
+@@ -272,6 +285,7 @@ const ChefScreen: React.FC = () => {
+                 valor={prompt}
+                 onCambiar={setPrompt}
+                 onEnviar={alEnviar}
++                maximo={maximoDeLaCaja}
+                 etiquetaEnviar={t('chef.sendLabel')}
+                 placeholder=""
+                 etiqueta={t('chef.placeholder')}
+```
+
+Variante «dejar enviar con aviso» de la regla 8: quitar `&& !pasaDelMaximo` de `puedeEnviar` y la línea `if (largoParaElServidor(objetivo) > LARGO_QUE_LEE_EL_SERVIDOR) return;` (el servidor seguiría cortando: ACE-C-09 sigue como HUECO). El contador no cambia de color al pasarse: `theme.colors.error` (#EF4444) sobre blanco da < 4,5:1 con 12 px; lo que avisa es el botón apagado. Es una cifra sin palabras (`n/máximo`) como `CampoQueCrece`, sin clave i18n; si producto quiere una frase, 1 clave × 16 idiomas.
+
+**D-1 = B (hero + muro):** no hay diff exacto posible: la pantalla de destino no existe. Lo que sobrevive tal cual es `utils/contextoDeChef.ts` y su suite (no dependen de la estructura); la nueva pantalla debe navegar con `{ experienceId: 'chef', ...contextoDeChef({ objetivo, preset, ajustes, imageUri }), ...(projectId ? { projectId } : {}) }` y la prueba pendiente se reescribe con sus etiquetas (se conservan sus casos: AC-11/12/13, reglas 1, 5 y 8, P11, foto). Además caen las 46 de `chef-weeai` y `aceptacion-pantallas` A–D (§1.3).
+
+*Al activar (D-1 = A):* aplicar el diff elegido; renombrar la prueba a `.test.mjs` y añadir su paso al final del script `test`; invertir las dos comprobaciones de arriba (y dividir D-CHEF-5 si entra la caja); `docs/WEE-ACEPTACION.md` ACE-C-04/07/09; `tsc` con candado.
+
 
 ---
 
@@ -368,6 +585,18 @@ Sin variantes nuevas en el catálogo del Core (F3 intacta) y sin archivos nuevos
 
 **Los seis puntos de R7-Design que la tocan:** `people`/`time` (punto 3) **sigue** (`:1225`, `:1231`): bloquea el inicio hasta fijar los `when`, **no necesita al dueño**; «Para la semana» (punto 4) **sigue** (`:1241`): **necesita al dueño** (o mandar `what: menu` desde esas entradas); `answer` compartido (punto 2) sigue: técnica, no del dueño.
 
+**R9 (CHF3, 2026-10-12) — análisis técnico y plan por opción. Nada implementado: PENDIENTE DE DECISIÓN (D-3; y «Para la semana»).**
+- *¿Hay algo de 03a que no dependa de D-3 ni de D-1 y sea puro?* **No.** Todo 03a vive en `templates.ts`/`prompts.ts` y en los diccionarios del servidor, y cambia planes que fijan ocho suites: no es una función pura. Las partes que no dependen de D-3 (`swap`, `shopping`, los `when` de `people`/`time`, la instrucción de Chef para `answer`) **fijan cómo se comporta la experiencia** (qué se pregunta, qué texto recibe el modelo) y añadirían opciones sin pantalla que las use: no se adelantan. La instrucción `answer` de Chef sería hoy código muerto (ningún plan de Chef usa `answer`) y la pin `instruccionDe('chef','answer') === KIND_INSTRUCTIONS.answer` de `chef-caracterizacion` caería. D-1 no afecta a 03a (servidor).
+- *Lo que CHEF-01 deja para 03a (R9):* la instrucción de `shopping` dice «del menú» (observación 4 de CHEF-01): con `shopping` de un paso hay que quitarlo o pasar a la salida (B). `chef-lista` B lo fija como `HOY` y caerá a propósito.
+
+| Opción de D-3 | Plan de 03a (servidor) | Pines | Cercas / autorización |
+|---|---|---|---|
+| **A** — estimación rotulada | las tres opciones de la tabla de arriba en un solo commit; `nutrition` = `facts:text.generate(answer)` con brief «estimación por porción»; `when` de `people`/`time` según el punto 1; instrucción `answer` de Chef (borrador de arriba) | las ocho suites, un commit (35→36 formas, 74→75 pasos…, re-medido en R8) | ninguna se mueve (sin archivo nuevo en `functions/src`, sin variante nueva) |
+| **B** — con búsqueda con fuentes | partir: `swap` + `shopping` primero (mismos pines, cifras de dos opciones), `nutrition` después como `text.search` con una variante nueva (CHEF-16) | dos rondas de pines (o esperar y una) | **mueve F3** (variante nueva en `core/registry/capabilities.ts`) y los pines de variantes: **requiere autorización del dueño y reanclaje de F3**; no se prepara el diff de F3 aquí |
+| **C** — no ofrecerla | solo `swap` + `shopping` (dos opciones); además la pantalla quita la tarjeta y el panel de nutrición (eso es de 03b, cliente) | pines con dos opciones (a re-medir con `simula-chef.mjs`; no medido en R9) | ninguna en el servidor |
+
+«Para la semana»/«De un menú» (punto 4) sigue siendo del dueño en las tres: si se quiere que sigan en el plan de menú, 03b manda `what: menu` desde esas dos entradas (mapa por entrada).
+
 
 ---
 
@@ -435,6 +664,26 @@ En la pantalla: un estado (`useState`) con `{ panel, inicio }` que se pone al el
 
 **Los seis puntos de R7-Design que la tocan:** «las tres tarjetas llevan `preset`» (punto 5) **sigue**: se resuelve con el mapa aparte, no necesita al dueño; la prueba textual de `:189-194` (punto 7) **sigue**: se invierte a propósito; «Para la semana» (punto 4): **necesita al dueño**.
 
+**R9 (CHF3, 2026-10-12) — la parte pura, HECHA EN RAMA AISLADA (`27187472`); el resto PREPARADO por opción.**
+- `utils/necesitaFoto.ts` (nuevo, puro): la regla `needsPhoto` de `CreatorFlowScreen.tsx:65-74` **sin cambiar nada** —no fija ninguna experiencia: es la de hoy—. La pantalla **no la usa** todavía. Suite `functions/test/chef-necesita-foto.test.mjs` (en la cadena): rojo (ENOENT) → **10 ✔**; **equivalencia** con la expresión que se corta del fuente de la pantalla y se evalúa, en **3 200 combinaciones** (experiencia × puerta × objetivo, con las 25 frases reales de los tres paneles); fija `HOY · D-CHEF-2` (la frase de «Sustituir ingredientes» pide foto, y la seguiría pidiendo con una puerta `swap`). Sabotaje (quitar «refri» de la función): la equivalencia cae con 8 combinaciones distintas; restaurado. Resuelve el punto 7 de §5 para 03b: la inversión será de comportamiento, no textual.
+- *El arreglo de 03b en la función* (una línea, NO aplicado; espera a 03a, que crea las puertas `swap`/`nutrition`/`shopping`):
+
+```diff
+   (experienceId === 'chef' &&
+     (preset?.optionId === 'cook' ||
+       preset?.optionId === 'edit' ||
+-      /ingredientes|nevera|refri|foto/i.test(goal || '')));
++      (!preset && /ingredientes|nevera|refri|foto/i.test(goal || ''))));
+```
+
+  y en `CreatorFlowScreen.tsx` (compartido; una sola sustitución, sin tocar otros hunks): `import { necesitaFoto } from '../utils/necesitaFoto';` y `const needsPhoto = necesitaFoto({ experienceId: experience.id, preset: params.preset, goal: params.goal });` en lugar de las diez líneas de hoy. Pruebas al aplicarlo: invertir los dos `HOY · D-CHEF-2` de `chef-necesita-foto` y `chef-caracterizacion:189-194`; la equivalencia pasa a comprobar que la pantalla LLAMA a la función.
+
+| Opción | Qué hace 03b en la pantalla |
+|---|---|
+| **D-1 = A**, D-3 = A o B | `PRESET_DE_PANEL` con `nutrition`, `swap`, `shopping` en `constants/chefTools.ts`; en `ChefScreen` un `useState` con `{ panel, inicio }` (o `null`) que pone `alElegirEntrada` (con `inicio` = la frase `chef.panelStart` que ya calcula) y que `alEnviar` usa: `preset = prompt.startsWith(inicio) ? PRESET_DE_PANEL[panel] : undefined`, pasado a `abrirFlujo(objetivo, preset)` → `contextoDeChef` (CHEF-02). Casos en proceso para `aceptacion-pantallas`: §«Qué se puede preparar». Diff de pantalla: se escribe sobre el de CHEF-02 una vez aplicado (los dos tocan `abrirFlujo`/`alEnviar`); no se adelanta para no fijar dos diffs que se pisan. |
+| **D-1 = A**, D-3 = C | igual sin `nutrition`; además la tarjeta y el panel de nutrición salen de `TARJETAS_DE_CHEF`/`ENTRADAS_POR_PANEL` (caen `chef-weeai` #1, #2, #5, #18, #19 y ACE-C-01/03: «ocho funciones» → siete; las claves `chef.nutrition*` quedan sin uso) |
+| **D-1 = B** | la pantalla se reescribe: sobreviven `PRESET_DE_PANEL`, `necesitaFoto` (con su arreglo) y `contextoDeChef`; la memoria del panel y sus pruebas se rehacen en la pantalla nueva |
+
 
 ---
 
@@ -501,6 +750,28 @@ Lo añadido al contrato y por qué: `hasta` (un rango «2–3» no cabe en un n�
 **Reglas culinarias: siguen `[P]` y SIN REVISAR por alguien que cocine** (UNKNOWN su validez). Lo implementado: g/ml a 0,5 / 1 / 5 según salga < 10 / ≥ 10 / ≥ 100; kg y l a 0,05; cucharadas, cucharaditas, tazas y vasos a ¼; piezas al entero; mitades hacia arriba; nunca a cero (el mínimo medible, con «≈»); «al gusto», pizca, chorrito, poco, puñado y el tamaño de un molde, intactos; pasos, minutos, temperaturas y molde, sin tocar. No se lee (se conserva y avisa): «1.000 g», unidades que v1 no conoce (dl, cl, oz, lb, cups…), «docena», «par», «cuartos», otra cantidad dentro («1 taza (240 ml)»), calificativos («rasa», «sopera»), «1 taza y media», aproximados («unos 200 g»).
 
 **Esfuerzo real:** una sesión (frente a la estimación M). **Pendiente para darla por terminada del todo:** la revisión culinaria de las reglas y su integración (la hace el coordinador).
+
+**R9 (CHF3, 2026-10-12).** Un defecto de `leerLista` encontrado al atar la lista con la instrucción de CHEF-01 y corregido (`eac002fb`; detalle en CHEF-01 «R9»): nombres de sección con comillas o ángulos. `chef-receta` sigue en **398** comprobaciones (los informes de R8 decían 399 contando la línea final «todo bien»).
+
+**Revisión culinaria — sigue PENDIENTE.** Lista concreta para una persona que cocine (cada punto: la regla implementada, un ejemplo ejecutado con `escalarReceta` sobre una receta de 4 porciones, y la pregunta). Ejemplos de `herramientas/sonda-escalado.mjs` (R9), textos escritos a mano:
+
+| # | Regla implementada | Ejemplo (4 → n) | Pregunta para validar |
+|---|---|---|---|
+| 1 | g y ml: a 0,5 si < 10; a 1 si ≥ 10; a 5 si ≥ 100 | 250 g de harina → 63 g (×¼) · 33 ml → 8,5 ml (×¼) | ¿esa precisión es útil en una cocina doméstica o hay que redondear más (p. ej. a 5 g desde 20 g)? |
+| 2 | kg y l: a 0,05 | 1,5 kg de patatas → 0,4 kg (×¼) | ¿mejor pasar a gramos por debajo de 1 kg («375 g»)? |
+| 3 | cucharada, cucharadita, taza y vaso: a ¼ | 1 cucharadita de canela → ¼ (×¼) · → 3 (×3) | ¿¼ de cucharadita es medible? ¿3 cucharaditas deberían decirse «1 cucharada»? |
+| 4 | piezas: al entero, mitades hacia arriba, con «≈» | 3 huevos → ≈5 (×1,5) · → ≈1 (×¼) | ¿4,5 huevos → 5, o 4 + «un huevo batido a medias»? |
+| 5 | nunca a cero: el mínimo medible, con «≈» | 1 huevo → ≈1 (×¼) | ¿una receta para 1 con 1 huevo entero (en vez de ¼) es aceptable? |
+| 6 | rangos: los dos extremos, y si se juntan queda uno | 2–3 dientes de ajo → 3–5 (×1,5) · → ≈1 (×¼) | ¿correcto? |
+| 7 | «pizca» no se escala (unidad que se conserva) | 2 pizcas de sal → 2 pizcas (×3) | ¿la sal y las especias deberían escalar menos que lo lineal, o quedarse? |
+| 8 | levadura, bicarbonato, sal: escalan **lineal** como cualquier g/pieza | 7 g de levadura seca → 21 g (×3) · 1 sobre → ≈2 (×1,5) | la masa madre/levadura y la sal suelen NO escalar lineal en grandes cantidades: ¿se marca con aviso o se deja? |
+| 9 | «al gusto», «un chorrito», «un poco», «un puñado»: intactos | sal al gusto → igual | ¿correcto? |
+| 10 | molde, tiempos y temperaturas: **no** se escalan; la tarjeta avisa si el factor es > 2 o < 0,5 (`pideRevisarTiempos`) | molde de 22 cm igual con ×3; 180 °C/35 min igual | ¿los umbrales 2 y 0,5 son los correctos para avisar? ¿hay que sugerir otro molde? |
+| 11 | factor admitido 0,25–10 (fuera → no se escala) | 4 → 1 sí; 4 → 48 no | ¿el rango es razonable (de 1 a 40 porciones con una base de 4)? |
+| 12 | líquidos de cocción y reducciones: escalan lineal | 33 ml de leche → 99 ml (×3); igual 1 l de caldo → 3 l | en guisos y arroces el líquido no escala lineal (evaporación): ¿aviso? |
+| 13 | el nombre no se conjuga | 1 huevo ×1,5 → «≈2 huevo» | la tarjeta (CHEF-07) debe pluralizar o mostrar el texto original: ¿qué prefiere producto? |
+
+Hasta esa revisión las reglas siguen `[P]` y rotuladas «sin revisar» en el código.
 
 
 ---
@@ -576,6 +847,11 @@ Todas las cifras de Credits de la especificación son del **catálogo de PRUEBA,
 | 16 (R8) | `leerReceta` no sabe de qué paso viene el texto: un menú con viñetas y números podría leerse como receta | `utils/recetaDeChef.ts` | La tarjeta la llama solo con el resultado del paso `recipe` | CHEF-07 |
 | 17 (R8) | La instrucción de compra de CHEF-01 puede pedir la marca «SECCIÓN:» que ya lee `leerLista` | `prompts.ts`, `utils/recetaDeChef.ts` | Incluirla en el borrador de CHEF-01 si producto lo acepta | producto / quien haga 01 |
 | 18 (R8) | `sinMarcasInternas` (reutilizada) tiene retroceso cuadrático con tiras largas de espacios (≈1,6 s con 19 000) | `utils/textoDeResultado.ts:19` | `recetaDeChef` se protege colapsando las tiras antes de llamarla; el resultado genérico (`ResultCard`) sigue expuesto: arreglo aparte, fuera de Chef | quien lleve `textoDeResultado` |
+| 19 (R9) | La instrucción de compra enseña la marca entre comillas y con `<nombre>`; `leerLista` dejaba el nombre sucio | `prompts.ts` (`INSTRUCCION_PROPIA`), `utils/recetaDeChef.ts` (`nombreDeSeccion`) | Corregido en el lector (`eac002fb`); producto puede quitar el envoltorio del texto | producto (texto) |
+| 20 (R9) | La instrucción no fija «cantidad delante», ni qué hacer con cantidades desconocidas o unidades que no se suman | `prompts.ts` | Observaciones 2 y 3 de CHEF-01 «R9»; fijadas como `HOY` en `chef-lista` | producto |
+| 21 (R9) | `workspace: 'chef'` viaja pero nadie lo lee en el cliente (`CreatorFlowScreen` no usa `params.workspace`) | `screens/CreatorFlowScreen.tsx` | Inocuo; AC-12 se cumple sin efecto. Si se quiere que signifique algo, es otra tarea | quien lleve `ContextoDeExperiencia` |
+| 22 (R9) | Con el diff de CHEF-02, una tarjeta manda también personas/tiempo (hoy los ignora) | `screens/ChefScreen.tsx` (`alElegirTarjeta`) | Es lo que pide la ficha; señalado como cambio de comportamiento para D-1 | dueño (con D-1) |
+| 23 (R9) | Los informes de R8 contaron la línea «✔ todo bien» como comprobación | suites de Chef | Cifras reales: 398 · 31 · 46 · 46 | — |
 
 ---
 
