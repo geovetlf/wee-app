@@ -5,6 +5,11 @@
 > no se han tocado**. Base de referencia: `a64ff24` (rama `r7/integracion`, descendiente de `main` `dad0ca2`); los siete diffs
 > aplican en seco (`git apply --check`, §8). Complementa a `docs/ROUTER-CONTABILIDAD.md` (el informe técnico de D) con lo que hace falta
 > para decidir: qué se mueve, qué prueba, cómo se deshace.
+>
+> **Verificación R8 (2026-10-12, agente RTR) sobre `c3f7f9a7`:** `functions/src/engine` sigue idéntico al de `a64ff24`, los siete diffs siguen
+> aplicando en seco y la matriz de cercas S0–S12 da lo mismo que aquí; lo único desfasado con la base eran las cifras de la cadena de
+> `npm test` (§6.2: hoy 315 pasos, 316 con la prueba nueva), corregidas abajo. Para decidir sin releer este dossier:
+> `docs/ROUTER-M01-DECISION-BREVE.md`.
 
 **Etiquetas de evidencia.** **[L]** leído en el código de esta base, con `archivo:línea`. **[E]** ejecutado por mí en esta ronda; los logs
 están en `C:\Users\Geovet\AppData\Local\Temp\bloque\integracion\cierre\ronda-r7-design\R-docs\logs\` (carpeta de la ronda, fuera del repositorio; `LEEME.txt` dice qué es cada uno) y cada cifra dice de qué log sale. **[D]** heredado de la
@@ -371,7 +376,7 @@ nada contra producción.
 |---|---|---|---|---|
 | 1 | `git apply docs/propuestas/router-contabilidad.diff` | el parche | inmediato | `router.ts` = blob `b639ec19…` (`git hash-object functions/src/engine/router.ts`) |
 | 2 | `git apply docs/propuestas/reanclaje-borrador-D.diff` (o `-D+I` con PR1–PR3 aplicados) y cambiar «pendiente» por la autorización (§5.1) | las dos cifras | inmediato | solo `puente-pre-f1d.test.mjs` y `video-asincrono.test.mjs` cambian |
-| 3 | `git mv functions/test/router-contabilidad.repro.mjs functions/test/router-contabilidad.test.mjs`; en `functions/package.json`, añadir ` && node test/router-contabilidad.test.mjs` **detrás** de `node test/router.test.mjs` (el paso 108 de 311, índice 107 → la cadena pasa a 312); actualizar el encabezado de la prueba, que dice «en ROJO … fuera de la cadena» | `ci-workflow` 13 exige que toda suite esté en la cadena | 1 min | `ci-workflow` 41/41 |
+| 3 | `git mv functions/test/router-contabilidad.repro.mjs functions/test/router-contabilidad.test.mjs`; en `functions/package.json`, añadir ` && node test/router-contabilidad.test.mjs` **detrás** de `node test/router.test.mjs` (el paso 108, índice 107, de 315 en `c3f7f9a7` —311 en `a64ff24`: las suites nuevas se añadieron al final— → la cadena pasa a 316); actualizar el encabezado de la prueba, que dice «en ROJO … fuera de la cadena» | `ci-workflow` 13 exige que toda suite esté en la cadena | 1 min | `ci-workflow` 41/41 |
 | 4 ✋ | `cd functions && npm run build` | que `lib` refleje `src` (las suites corren contra `lib`) | 45–70 s | `exit 0` |
 | 5 | `node functions/test/router-contabilidad.test.mjs` | el defecto, ahora vigilado | 0,4 s | **86 ✔ · 0 ✘** |
 | 6 | `node functions/test/router.test.mjs` · `router-parity` · `router-politica` · `router-frontera-real` · `ledger` · `idempotencia-de-cobro` · `credits` · `evals-router` · `brain-bloque` · `contabilidad-frontera` (una a una) | el Router, el libro, el cobro y los textos que leen `router.ts` | ≈ 1 s cada una | 95 · 48 · 36 · 25 · 92 · 48 · 256 · 24 · 40 · 29 ✔, 0 ✘ |
@@ -381,7 +386,7 @@ nada contra producción.
 | 10 | `node functions/test/ci-workflow.test.mjs` | el registro de suites | ≈ 1–14 s | 41 ✔ |
 | 11 | `node scripts/escaneo-secretos.mjs` | que la prueba no escriba una clave con forma de clave | ≈ 2 s | «Ningún secreto en … archivos versionados» (la repro construye su clave falsa al ejecutar) |
 | 12 | `node functions/test/harness-guardian.test.mjs` | las guardas del harness (lista de D) | 41–316 s según la carga | 29 ✔ [E en la copia con M-01: 41 s; D: 73 s base y 316 s con la máquina cargada] |
-| 13 ✋ | `node functions/test/_cadena.mjs` | todo | ≈ 7–12 min (421 s la última vez) | **312 de 312** |
+| 13 ✋ | `node functions/test/_cadena.mjs` | todo | ≈ 7–12 min (421 s la última vez) | **316 de 316** en `c3f7f9a7` (312 de 312 sobre `a64ff24`) |
 
 **Qué no debe moverse**: ninguna comprobación de F1, F2, F3, F4, H1, H3, `runtime-map`, `job-queue` ni `media-*`; ninguna cifra de `ledger.ts`, `verification.ts` ni `credits.ts` si solo se autoriza M-01; ningún archivo de `functions/src` salvo `engine/router.ts`; ningún pin de otra suite.
 Con M-01 sola, **el único** archivo de producción que cambia es `engine/router.ts`: `git diff --stat -- functions/src` debe decir `1 file changed, 31 insertions(+), 4 deletions(-)`.
