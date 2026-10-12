@@ -645,8 +645,25 @@ export const escalarReceta = (r: RecetaLeida, porciones: number): RecetaLeida | 
 
 const MARCA_DE_SECCION = /^[^\p{L}\p{N}]*secci[oó]n\s*:\s*([\s\S]*)$/iu;
 
-/** El nombre de una sección: sin emoji, sin los dos puntos del final. */
-const nombreDeSeccion = (texto: string): string => separarEmoji(texto).resto.replace(/[\s:：.]+$/u, '').trim();
+/**
+ * Las comillas o el marcador que envuelven un nombre: la instrucción de compra (CHEF-01) enseña la marca como
+ * `"SECCIÓN: <nombre>"`, y un modelo puede copiar las comillas o los ángulos tal cual.
+ */
+const ENVOLTURA_INICIAL = '"\'«“‘<';
+const ENVOLTURA_FINAL = ':：."\'»”’>';
+
+/** Recorta por los dos lados con un bucle, no con `[…]+$`: una tira larga de esos signos no vuelve cuadrática la lectura. */
+const sinEnvoltura = (texto: string): string => {
+  const espacio = (c: string): boolean => /\s/u.test(c);
+  let i = 0;
+  let j = texto.length;
+  while (i < j && (espacio(texto[i]) || ENVOLTURA_INICIAL.includes(texto[i]))) i++;
+  while (j > i && (espacio(texto[j - 1]) || ENVOLTURA_FINAL.includes(texto[j - 1]))) j--;
+  return texto.slice(i, j);
+};
+
+/** El nombre de una sección: sin emoji, sin comillas ni ángulos alrededor, sin los dos puntos del final. */
+const nombreDeSeccion = (texto: string): string => sinEnvoltura(separarEmoji(sinEnvoltura(texto)).resto);
 
 /** ¿Es un título de grupo por sí solo? Corto, sin punto final, y con viñetas justo debajo. */
 const pareceTituloDeSeccion = (l: string): boolean => {
