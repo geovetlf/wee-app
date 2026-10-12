@@ -1,6 +1,8 @@
 # Weë Chef · lote 1 — fichas para empezar (CHEF-01, 02, 03a, 03b, 04) y las dos decisiones que lo frenan
 
-> **Estado (ronda R7-Design, 2026-10-11 noche, agente R): PREPARADO, NADA EMPEZADO.** Estas fichas no cambian `functions/src`, `screens/`, `constants/`
+> **Estado (ronda R8, 2026-10-12, agente CHF): CHEF-04 IMPLEMENTADA en la rama `r8/chef` (`3bb91118`, sin integrar); CHEF-01, 02, 03a y 03b PREPARADAS, nada empezado.** Citas re-verificadas contra `c3f7f9a7` (las desplazadas, corregidas) y medidas `[M]` de 03a re-hechas en esa base; cada ficha lleva un bloque «Al día en R8».
+>
+> **Estado anterior (ronda R7-Design, 2026-10-11 noche, agente R): PREPARADO, NADA EMPEZADO.** Estas fichas no cambian `functions/src`, `screens/`, `constants/`
 > ni ninguna prueba: nombran los archivos que habrá que tocar, el contrato que se propone y las pruebas que habrá que escribir.
 > Base: `a64ff24`. Parte de `docs/WEE-CHEF-ESPECIFICACION.md` (no se reescribe; se cita por línea) y de `functions/test/chef-caracterizacion.test.mjs`
 > (42 ✔ hoy). **Pendiente del dueño: D-1 y D-3 (§1). Ninguna de las dos se da por aprobada aquí.**
@@ -9,8 +11,8 @@
 (los logs están en `C:\Users\Geovet\AppData\Local\Temp\bloque\integracion\cierre\ronda-r7-design\R-docs\logs\`; `LEEME.txt` dice qué es cada uno). `[M]` medido en una simulación **en memoria**
 (no escribe ningún archivo del repositorio). `AC-nn`, `D-CHEF-n`, `R-n`, `CHEF-nn` y `D-n` son los identificadores de la especificación. «Estimación» = rotulada como tal, no medida.
 
-**Lo que ya existe y estas fichas reutilizan (nada de lo siguiente se vuelve a escribir) `[X]`:** `ContextoDeExperiencia` (`constants/weeWorkspaces.ts:181-226`), `WorkspaceId` incluye `'chef'` (`:49`);
-`TEMPLATES.chef` con `q()`, `opt()`, `step()`, `chosen()`, `decided()` (`functions/src/creator/templates.ts:36-80,1160-1328`); `Plan`/`PlanStep`; `buildTextPrompt` y `KIND_INSTRUCTIONS` (`prompts.ts:425,495`);
+**Lo que ya existe y estas fichas reutilizan (nada de lo siguiente se vuelve a escribir) `[X]`:** `ContextoDeExperiencia` (`constants/weeWorkspaces.ts:181-232`; desde R7-Design trae también `projectId?`, `:226-231`), `WorkspaceId` incluye `'chef'` (`:49`);
+`TEMPLATES.chef` con `q()`, `opt()`, `step()`, `chosen()`, `decided()` (`functions/src/creator/templates.ts:36-80,1190-1358`); `Plan`/`PlanStep`; `buildTextPrompt` y `KIND_INSTRUCTIONS` (`prompts.ts:425,495`);
 `AJUSTES_DE_COCINA`, `TARJETAS_DE_CHEF`, `PanelDeChef`, `ENTRADAS_POR_PANEL` (`constants/chefTools.ts`); `AjustesContextuales`; `CajaDePrompt`/`useCajaQueCrece`; `creatorService.start(…, presetAnswers, …)` →
 `creatorChat` (`creator/index.ts:342-350`) → `respuestaPara` (`planner.ts:83-92`); el Credit Engine por el camino de siempre (`creatorQuote` → `creatorRun`); `sinMarcasInternas` (`utils/textoDeResultado.ts:28`);
 `contextoDeDesign` (`utils/designReferencia.ts:523-545`), el precedente de una función pura que arma un `ContextoDeExperiencia`. **Ninguna ficha crea un segundo Brain, Planner, Router, Job Engine, Credits ni almacén.**
@@ -90,7 +92,7 @@ Orden de lectura de cada ficha: objetivo · qué cambia para la persona · archi
 
 **Archivos.**
 - *Modificar:* `functions/src/creator/prompts.ts` y nada más del servidor: una tabla por experiencia junto a `KIND_INSTRUCTIONS` (`:425-484`) y una línea en `buildTextPrompt` (`:510`).
-- *Leer:* `functions/src/creator/inputs.ts:107-129` (`stepInputFor`), `creator/necesidades.ts:57,72`, `creator/templates.ts:1303-1315`.
+- *Leer:* `functions/src/creator/inputs.ts:107-129` (`stepInputFor`), `creator/necesidades.ts:57,72`, `creator/templates.ts:1333-1345`.
 - *Pruebas:* `functions/test/chef-caracterizacion.test.mjs:200-213`.
 - *No tocar:* `KIND_INSTRUCTIONS` (lo lee `necesidades.ts:57,72` y lo fija `puente-necesidades.test.mjs:325`: `/KIND_INSTRUCTIONS\[kind\]/` en `necesidades.ts` y `export const KIND_INSTRUCTIONS` en `prompts.ts`), `core/registry/capabilities.ts`, `inputs.ts`.
 
@@ -109,7 +111,7 @@ export const instruccionDe = (experienceId: ExperienceId, kind: string): string 
 
 Entrada/salida: `(experiencia, kind)` → la instrucción propia o la genérica; nada más cambia. **El texto de la instrucción no es copy final** (lo revisa quien conozca el producto). Ningún archivo nuevo en `functions/src`: F1 lo prohíbe y cuenta los archivos nuevos aunque no estén en un commit (`puente-pre-f1d.test.mjs:578-579,715`).
 
-**Hallazgo que la especificación no recoge — el menú usa `shopping` en DOS pasos.** El plan de menú es `menu → prices → list` y **dos de sus pasos llevan `kind: 'shopping'`**: `prices` (`text.search`, `templates.ts:1310`) y `list` (`text.generate`, `:1311`).
+**Hallazgo que la especificación no recoge — el menú usa `shopping` en DOS pasos.** El plan de menú es `menu → prices → list` y **dos de sus pasos llevan `kind: 'shopping'`**: `prices` (`text.search`, `templates.ts:1340`) y `list` (`text.generate`, `:1341`).
 `stepInputFor` llama a `buildTextPrompt` con la misma `kind` para las dos capacidades (`inputs.ts:117-120`), así que **hoy el paso de precios recibe también la instrucción de Home** `[E]` (ejecuté `stepInputFor` sobre el plan de menú real: `logs/stepInputFor-menu-chef.log`), y con la tabla propuesta recibiría también la de Chef.
 Dos salidas, **a decidir antes de empezar**: **(A)** una sola instrucción de Chef para `shopping` que valga para la lista y para los precios (lo que midió G y mi prototipo); **(B)** indexar la tabla por `(experiencia, capacidad, kind)` y que `inputs.ts` pase la capacidad (un archivo más y una firma, y una segunda frase para los precios).
 
@@ -132,6 +134,27 @@ Se mantienen tal cual `CONTRATO · esa instrucción es la de Weë Home y a Home 
 
 **Lista para empezar:** la salida (A) o (B) para `prices` elegida; el texto de la instrucción revisado por producto (su calidad con un modelo real es UNKNOWN: solo un canary la mide, CHEF-18). **Terminada:** el HOY invertido en verde; las 27 suites sin cambios; `escaneo-secretos` y `ci-workflow` en verde.
 
+**Al día en R8 (2026-10-12, base `c3f7f9a7`).** Citas re-verificadas (`prompts.ts`, `inputs.ts` y `necesidades.ts` no han cambiado desde `a64ff24`; `templates.ts` sí, +30 líneas por la región de Design ya integrada). Re-medido `[M]` con `simula-chef.mjs instruccion-chef` sobre las 8 suites de plan: **solo cae `chef-caracterizacion` D-CHEF-3** (logs en `RD8\CHF-chef\logs\simulacion\`).
+
+| Archivo | Leer / modificar / no tocar | Propiedad frente a las otras fichas y al cierre de Design |
+|---|---|---|
+| `functions/src/creator/prompts.ts` | **modificar** (tabla `INSTRUCCION_PROPIA` junto a `KIND_INSTRUCTIONS`, una línea en `buildTextPrompt`) | de la persona 1 (01 → 03a); la región de Design no lo toca hoy |
+| `functions/test/chef-caracterizacion.test.mjs` | modificar solo `:203-208` | compartido con 02/03a/03b, cada una en sus líneas |
+| `inputs.ts`, `necesidades.ts`, `core/registry/capabilities.ts`, `KIND_INSTRUCTIONS` | no tocar | cercas F1/F3 y `puente-necesidades` |
+
+**Contrato.** `[X]` `buildTextPrompt(experienceId, kind, brief, goal, purpose, previous, locale)` (`prompts.ts:495-518`) y `KIND_INSTRUCTIONS` (`:425`); `[P]` `instruccionDe(experienceId, kind)`, la tabla de arriba. **Ningún motor paralelo:** el paso sigue `creatorRun` → WEË AI ENGINE → Router → adaptador; no hay ni otro prompt-builder ni otra capa: es una entrada de tabla. Los Credits salen igual (`creatorQuote`).
+
+**Qué decisión la bloquea.** Ninguna del dueño (ni D-1 ni D-3). Solo la elección técnica (A)/(B) para `prices` y la revisión de producto del texto.
+
+**Qué se puede preparar sin tocar código funcional.**
+- *Borrador de la instrucción para revisión de producto* (no es copy final; el idioma de la respuesta lo pone `recordatorioDeIdioma`): «Escribe la lista de la compra del menú: agrupa los ingredientes por sección del supermercado (frutas y verduras, carnes y pescados, lácteos y huevos, panadería, despensa, congelados, otros) con una línea «SECCIÓN: <nombre>» delante de cada grupo; junta en una sola línea el mismo ingrediente aunque salga en varias recetas y suma sus cantidades con su unidad; no pongas tope de elementos; no inventes precios.» — la marca «SECCIÓN:» es la que ya lee `leerLista` (CHEF-04, implementada): si producto la acepta, la lista sale lista para CHEF-08 sin otro paso.
+- *Para `prices` (salida A):* la misma instrucción vale como guía de qué buscar; *(salida B):* segunda frase «Busca el precio actual de cada ingrediente de la lista, con su fuente; si no lo encuentras, dilo».
+- *Pines antes/después:* `chef-caracterizacion` D-CHEF-3 se invierte; el resto de suites, sin cambio (medido arriba).
+- *Orden de commits:* 1) la comprobación ARREGLADO en rojo; 2) la tabla + la línea de `buildTextPrompt`; 3) `docs/WEE-ACEPTACION.md` (AC-08).
+
+**Los seis puntos de R7-Design que la tocan:** el prompt de `prices` (punto 1 de §5) **sigue igual** (`inputs.ts:117-120`, `templates.ts:1340-1341`): bloquea el inicio hasta elegir (A)/(B), **no necesita al dueño**.
+
+
 ---
 
 ### CHEF-02 — Los ajustes de cocina viajan como respuestas y la caja no deja perder la dieta
@@ -143,7 +166,7 @@ Se mantienen tal cual `CONTRATO · esa instrucción es la de Weë Home y a Home 
 **Archivos.**
 - *Modificar:* `constants/chefTools.ts`; `screens/ChefScreen.tsx` (`abrirFlujo` `:130-144`, `alEnviar` `:146-154`, el montaje de la caja `:268-288`); `components/creator/CajaDePrompt.tsx` (Props `:22-65`, `TextInput` `:125-140`: una prop opcional).
 - *Crear:* `utils/contextoDeChef.ts` `[P: nombre]`, cliente (F1 mira `functions/src`: no le afecta). Mismo patrón que `contextoDeDesign` (`utils/designReferencia.ts:523-545`).
-- *Leer:* `constants/weeWorkspaces.ts:181-226`; `screens/CreatorFlowScreen.tsx:52,71-74,136-165,441`; `functions/src/creator/index.ts:310,342-350`; `planner.ts:83-131`; `components/creator/CampoQueCrece.tsx:69-74` (el precedente de un contador).
+- *Leer:* `constants/weeWorkspaces.ts:181-232`; `screens/CreatorFlowScreen.tsx:52,71-74,151-182,459`; `functions/src/creator/index.ts:310,342-350`; `planner.ts:83-131`; `components/creator/CampoQueCrece.tsx:69-74` (el precedente de un contador).
 - *Pruebas:* `chef-caracterizacion.test.mjs` (grupo B), `chef-weeai.test.mjs`, `aceptacion-pantallas.test.mjs` (aditivo) y una suite nueva.
 
 **Contrato `[P]`** (la firma es una propuesta; lo que ya existe se reutiliza):
@@ -172,7 +195,7 @@ export const largoParaElServidor = (objetivo: string): number;   // objetivo.tri
 ```
 
 **Reglas del contrato**, cada una verificada `[L]`/`[E]`:
-1. **`preset` (singular) se conserva además de `presets`.** `CreatorFlowScreen.tsx:71-74` (`needsPhoto`) y `:441` leen `params.preset?.optionId`; y `:151` hace `yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined)`: **no los suma**. Si se manda `presets`, el `preset` de la tarjeta debe ir también **dentro** de `presets`, o se pierde.
+1. **`preset` (singular) se conserva además de `presets`.** `CreatorFlowScreen.tsx:71-74` (`needsPhoto`) y `:459` leen `params.preset?.optionId`; y `:167` hace `yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined)`: **no los suma**. Si se manda `presets`, el `preset` de la tarjeta debe ir también **dentro** de `presets`, o se pierde.
 2. **Una respuesta por pregunta**: el servidor las empuja a `job.answers` sin deduplicar (`creator/index.ts:342-350`).
 3. **Contar como el servidor**: `String(data.goal).trim().slice(0, 300)` cuenta unidades UTF-16 y tras `trim()` (`:310`); un contador por puntos de código (`Array.from`, como `CampoQueCrece.tsx:74`) dejaría pasar un emoji de más.
 4. **El literal de la llamada se conserva** — `navigation.navigate('CreatorFlow', { experienceId: 'chef', …` (lo fijan `chef-weeai.test.mjs:138-139`, #15, y `chef-caracterizacion` `:130-133`, que corta el código entre `const abrirFlujo` y `const alEnviar`): `contextoDeChef` devuelve el resto, que se esparce, y esos dos nombres y su orden no cambian.
@@ -202,6 +225,30 @@ export const largoParaElServidor = (objetivo: string): number;   // objetivo.tri
 
 **Lista para empezar:** D-1 = A; la regla 7 confirmada (o el contador fuera); la regla 8 elegida. **Terminada:** las comprobaciones invertidas y nuevas en verde; `chef-weeai` 47/47 y `aceptacion-pantallas` 68/68 (más las aditivas); `cajas-weeai` y `brain-vivo` en verde; `tsc` 0; `docs/WEE-ACEPTACION.md` actualizado (ACE-C-04, C-07 y C-09 con su matiz).
 
+**Al día en R8 (2026-10-12, base `c3f7f9a7`).** `ChefScreen.tsx`, `chefTools.ts`, `CajaDePrompt.tsx` y `CampoQueCrece.tsx` no han cambiado desde `a64ff24`; `CreatorFlowScreen.tsx` sí (tarea C de R7-Design: CL-12 y CL-20), pero la regla 1 **sigue valiendo**: la llamada es ahora `creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl, params.projectId, locale)` (`CreatorFlowScreen.tsx:167`): `presets` y `preset` siguen sin sumarse. `ContextoDeExperiencia` trae además `projectId?` (`weeWorkspaces.ts:226-231`): `contextoDeChef` no lo necesita (se viene de Chef, no de un proyecto). **Aviso:** NAV (R8) toca `ChefScreen.tsx` en otras líneas (P11/CL-25): re-verificar `:130-154` y `:268-288` al empezar.
+
+| Archivo | Leer / modificar / no tocar | Propiedad |
+|---|---|---|
+| `utils/contextoDeChef.ts` `[P: nombre]` | **crear** (función pura) | persona 2 (02 → 03b) |
+| `constants/chefTools.ts` | modificar (`AJUSTES_QUE_SON_PREGUNTA`) | persona 2; 03b añade `PRESET_DE_PANEL` en el mismo archivo, después |
+| `screens/ChefScreen.tsx` | modificar `abrirFlujo`/`alEnviar`/montaje de la caja | persona 2; **NAV (R8) también lo toca**: hunks mínimos |
+| `components/creator/CajaDePrompt.tsx` | modificar (prop opcional `maximo`) | compartido con seis secciones: solo la prop |
+| `screens/CreatorFlowScreen.tsx`, `functions/src/**` | **no tocar** | — |
+
+**Contrato.** `[X]` `ContextoDeExperiencia` (`weeWorkspaces.ts:181-232`), `AJUSTES_DE_COCINA`, `creatorService.start(…, presetAnswers, imageUrl, projectId, locale)`, `creatorChat` → `respuestaPara`, el precedente `contextoDeDesign`; `[P]` `contextoDeChef`, `largoParaElServidor`, `AJUSTES_QUE_SON_PREGUNTA`, la prop `maximo`. **Ningún motor paralelo:** las respuestas viajan por el `presetAnswers` que el servidor ya entiende; no se crea ni otro Brain, ni otro planificador, ni otro canal de contexto.
+
+**Qué decisión la bloquea.** **D-1 = A** (PENDIENTE DE DECISIÓN): edita `ChefScreen.tsx`, que D-1 = B reescribiría. Y la regla 7 (la caja que avisa a 300 es una de las tres salidas *BLOCKED — HUMAN DECISION*): **PENDIENTE DE DECISIÓN** del dueño. **Sin D-1 puede empezar** `utils/contextoDeChef.ts` con su suite (pura, sin pantalla) y `AJUSTES_QUE_SON_PREGUNTA`; la pantalla y la caja esperan.
+
+**Qué se puede preparar sin tocar código funcional.**
+- *Tabla de datos* (sale de `chefTools.ts` y de la plantilla, `templates.ts:1219-1231`): `people` → `1·2·4·8`; `time` → `15·30·60`; `auto` no viaja; `diet` y `level` no viajan (sin pregunta hasta CHEF-06).
+- *Fixtures de la suite `chef-contexto`:* { tarjeta `recipe`, people 4, time auto } → `presets = [{what:recipe},{people:4}]` y `preset = {what:recipe}`; { sin tarjeta, people 2, time 30 } → `presets = [{people:2},{time:30}]`, sin `preset`; { panel (tras 03b), people auto } → solo el del panel. Objetivos en danés e inglés para AC-11.
+- *i18n:* **ninguna clave** si el contador es solo `n/300`; si producto quiere una frase de aviso, 1 clave × 16 diccionarios (`chef.limiteDeCaracteres` `[P]`).
+- *Pines antes/después:* `chef-caracterizacion` `:131-133` y `:143-145` (se invierten de forma explícita, no por casualidad); `chef-weeai` 47/47 y `aceptacion-pantallas` 68/68 sin cambio.
+- *Orden de commits:* 1) `contextoDeChef` + su suite (puede ir antes de D-1); 2) tras D-1: pantalla + caja + las comprobaciones invertidas; 3) `WEE-ACEPTACION.md`.
+
+**Los seis puntos de R7-Design que la tocan:** `presets ?? [preset]` (punto 6) **sigue igual** (`:167`): no bloquea, la regla 1 lo resuelve; las pruebas textuales (punto 7) **siguen** en `:131-133`: no bloquea, se invierten a propósito; la caja que avisa a 300 (punto 9) **sigue siendo de las tres opciones bloqueadas**: necesita al dueño; el contador por UTF-16 (punto 11) sigue (`creator/index.ts:310`): no bloquea.
+
+
 ---
 
 ### CHEF-03a — Servidor: nutrición, sustituir y lista de compras con plan propio, sin foto
@@ -211,7 +258,7 @@ export const largoParaElServidor = (objetivo: string): number;   // objetivo.tri
 **Qué cambia para la persona.** Con CHEF-03b, cada panel da lo que promete: un resultado de texto, más corto y de menos pasos que «receta + foto del plato». **Sola**, 03a solo añade tres opciones a la pregunta guiada «¿Qué quieres hacer?»: por eso se integran juntas.
 
 **Archivos.**
-- *Modificar:* `functions/src/creator/templates.ts` (Chef `:1160-1328`: opciones de `what` `:1165-1173`; `buildPlan` `:1247-1327`; condiciones `when` de `people` `:1195` y `time` `:1201`); `functions/src/creator/prompts.ts` (las instrucciones: el mecanismo de CHEF-01); `i18n/textos/{es,en,da}/servidor/opciones.ts` y `…/servidor/plan/casa.ts`; `docs/WEE-ACEPTACION.md` (estado de ACE-C-11/12/13).
+- *Modificar:* `functions/src/creator/templates.ts` (Chef `:1190-1358`: opciones de `what` `:1195-1203`; `buildPlan` `:1277-1357`; condiciones `when` de `people` `:1225` y `time` `:1231`); `functions/src/creator/prompts.ts` (las instrucciones: el mecanismo de CHEF-01); `i18n/textos/{es,en,da}/servidor/opciones.ts` y `…/servidor/plan/casa.ts`; `docs/WEE-ACEPTACION.md` (estado de ACE-C-11/12/13).
 - *Se GENERAN, no se editan a mano:* `i18n/textos/es/servidor/opciones.ts` y `preguntas.ts` (`node scripts/i18n-guia-del-servidor.mjs`, tras `npm run build`) e `i18n/huella.json` (`node scripts/i18n-huella.mjs`).
 - *Pruebas:* `chef-caracterizacion.test.mjs` (grupos A y C) y los pines de §«Pines».
 
@@ -232,7 +279,7 @@ q('what', '¿Qué quieres hacer?', [
   opt('shopping', '🛒 Lista de compras'),
   IDK,                                                   // sigue siendo la última
 ]),
-// buildPlan, antes del tramo de menú y receta (`kind = what.idk ? 'recipe' : what.id`, templates.ts:1252):
+// buildPlan, antes del tramo de menú y receta (`kind = what.idk ? 'recipe' : what.id`, templates.ts:1282):
 //   nutrition → step('facts', 'text.generate', '<propósito>', { input: { kind: 'answer',   brief: '<regla de nutrición>' } })
 //   swap      → step('swap',  'text.generate', '<propósito>', { input: { kind: 'answer',   brief: '<regla de sustitución>' } })
 //   shopping  → step('list',  'text.generate', 'Hacer la lista de compras', { input: { kind: 'shopping', brief: '<regla de compra>' } })
@@ -242,13 +289,13 @@ q('what', '¿Qué quieres hacer?', [
 Sin variantes nuevas en el catálogo del Core (F3 intacta) y sin archivos nuevos en `functions/src` (F1). `buildPlan` devuelve el `Plan` de siempre (`{ experience: 'chef', goal, steps: [PlanStep], explainToUser }`); la persona ve `purpose` y `explainToUser`, no `facts`/`swap`/`list`. Los ids `nutrition`, `swap` y `shopping` son los mismos que `PanelDeChef` (`constants/chefTools.ts:41`): **ese es el «acuerdo de ids» con 03b**. **Ningún precio se escribe**: el coste sale de `estimatePlan` → `creatorQuote`.
 
 **Puntos de contrato que la especificación no cierra** (cerrarlos antes de empezar; propuesta `[P]`):
-1. **`people`/`time` para las opciones nuevas.** Hoy `people` se pregunta si `what ≠ edit` (`:1195`) y `time` si `what` no es `menu` ni `edit` (`:1201`): sin tocar las condiciones, las tres opciones nuevas preguntarían «¿Para cuántas personas?» y «¿Cuánto tiempo tienes?». `[P]` `nutrition` y `swap`: ninguna de las dos; `shopping`: solo `people` (las cantidades dependen de cuántos comen). `[M]` no cambia qué suites se mueven (las mismas ocho), solo el número de planes que enumera `i18n-servidor` (1 403 hoy → 1 493 sin tocar `when` → 1 411 con la propuesta).
+1. **`people`/`time` para las opciones nuevas.** Hoy `people` se pregunta si `what ≠ edit` (`:1225`) y `time` si `what` no es `menu` ni `edit` (`:1231`): sin tocar las condiciones, las tres opciones nuevas preguntarían «¿Para cuántas personas?» y «¿Cuánto tiempo tienes?». `[P]` `nutrition` y `swap`: ninguna de las dos; `shopping`: solo `people` (las cantidades dependen de cuántos comen). `[M]` no cambia qué suites se mueven (las mismas ocho), solo el número de planes que enumera `i18n-servidor` (1 435 hoy → 1 525 sin tocar `when` → 1 443 con la propuesta; re-medido en `c3f7f9a7` en la ronda R8: en `a64ff24` eran 1 403 → 1 493 → 1 411, la diferencia son las opciones nuevas de Design).
 2. **Dos opciones comparten `kind: 'answer'`** y la tabla de CHEF-01 se indexa por `(experiencia, kind)`: `nutrition` y `swap` recibirían la misma instrucción de Chef para `answer`. La genérica (`KIND_INSTRUCTIONS.answer`, `prompts.ts:455-456`) acaba con «Próximos pasos» y 3 acciones y **recomienda a Weë Chef**: no sirve. `[P]` una instrucción de Chef para `answer` válida para ambas y la regla concreta de cada una en el `brief` del paso (`input.brief`, que llega al modelo como «Lo que eligió: …», `prompts.ts:508`); alternativa: clave por paso (toca `inputs.ts`).
 3. **`infer`:** `[P]` **no añadir palabras clave** para las tres (podrían secuestrar frases de receta: «un pollo bajo en calorías»). Con 03b el panel manda el `preset`, y el planificador con LLM ya ve las opciones nuevas.
-4. **La entrada «Para la semana» (y «De un menú») del panel de compras** hoy llega al plan de menú —menú, precios y lista— por las palabras «semana» y «menú» (`templates.ts:1211`); con `shopping` pasaría al plan de un solo paso. Si no se quiere ese cambio, el panel manda `what: menu` para esas entradas (03b admite un mapa por entrada). **Pregunta abierta.**
+4. **La entrada «Para la semana» (y «De un menú») del panel de compras** hoy llega al plan de menú —menú, precios y lista— por las palabras «semana» y «menú» (`templates.ts:1241`); con `shopping` pasaría al plan de un solo paso. Si no se quiere ese cambio, el panel manda `what: menu` para esas entradas (03b admite un mapa por entrada). **Pregunta abierta.**
 5. **D-3.** La opción `nutrition` y su frase del plan dependen de la opción que se elija (§1).
 
-**Dependencias.** **CHEF-01** (el mecanismo); **D-3** (solo `nutrition`, *inferido*); acuerdo de ids con 03b; D-1 no. **Cierre de Design — archivos compartidos:** `templates.ts` lo toca también la tarea **S** (CL-10 «No sé» y CL-11 en la región de Design, `:331-590`; BRIEF-S) y esta ficha la de Chef (`:1160-1328`): regiones distintas. Pero **`i18n/textos/*/servidor/opciones.ts` y `preguntas.ts` y `i18n/huella.json` son generados**: quien integre el segundo **los regenera** con los dos scripts en lugar de resolver el conflicto a mano.
+**Dependencias.** **CHEF-01** (el mecanismo); **D-3** (solo `nutrition`, *inferido*); acuerdo de ids con 03b; D-1 no. **Cierre de Design — archivos compartidos:** `templates.ts` lo toca también la tarea **S** (CL-10 «No sé» y CL-11 en la región de Design; **ya integrada en `c3f7f9a7`**, desplazó la de Chef +30 líneas) y esta ficha la de Chef (`:1190-1358`): regiones distintas. Pero **`i18n/textos/*/servidor/opciones.ts` y `preguntas.ts` y `i18n/huella.json` son generados**: quien integre el segundo **los regenera** con los dos scripts en lugar de resolver el conflicto a mano.
 
 **Pruebas en rojo primero.**
 - Invertir `chef-caracterizacion.test.mjs:176-178` — `HOY · D-CHEF-1 · «Información nutricional» acaba en el plan de una receta CON foto del plato (no hay un plan de nutrición)` — a `ARREGLADO · D-CHEF-1 · con la respuesta what=nutrition el plan es un solo paso de texto, sin ningún image.*`; `:179-181` («De una receta» → receta + foto) a `…con what=shopping, un paso shopping y sin image.*`; `:182-184` («Para la semana») según el punto 4. Las comprobaciones deben pasar **`presetAnswers`** (`{ questionId: 'what', optionId }`), no solo el texto, porque `infer` no cambia.
@@ -267,7 +314,7 @@ Sin variantes nuevas en el catálogo del Core (F3 intacta) y sin archivos nuevos
 | `pistas-de-paso.test.mjs` | `:200` (`conPista === 12 && pasos === 65`) | 65→**66** |
 | `puente-necesidades.test.mjs` | `:97-98` (`FORMAS.length === 35 && TOTAL_PASOS === 74 && TOTAL_ARISTAS === 41`) y `:218-219` (`fieles === 32 && … === 35`) | 36 · 75 · 41 aristas · fieles **33** de 36 |
 | `i18n-servidor.test.mjs` | `:97` (la guía del catálogo = la del servidor) y `:224` (todo plan posible se reconoce) | no son cifras: exigen las tres opciones y las frases y pasos nuevos en español (y traducidos en en/da) |
-| `i18n-auditoria.test.mjs` | `:267` (el flujo guiado, en danés: «43 preguntas, 233 opciones» → 236) | idem: faltan las claves `chef…` en danés |
+| `i18n-auditoria.test.mjs` | `:267` (el flujo guiado, en danés: «43 preguntas, 242 opciones» → 245; eran 233 en `a64ff24`) | idem: faltan las claves `chef…` en danés |
 | `chef-caracterizacion.test.mjs` | `:84-85`, `:112-114` y los HOY de D-CHEF-1 | como arriba |
 
 (G midió **seis** suites con una sola opción de una frase; con las tres opciones y los diccionarios completos se mueven **ocho**: se añade `i18n-auditoria`, que valida el flujo guiado en danés. Los números exactos dependen de que cada paso lleve `kind` y `brief`; se confirman al implementar.)
@@ -279,6 +326,29 @@ Sin variantes nuevas en el catálogo del Core (F3 intacta) y sin archivos nuevos
 **Esfuerzo (estimación).** M (0,5–1,5 días): ocho suites y tres traducciones.
 
 **Lista para empezar:** D-3 (§1); CHEF-01 integrada; los puntos 1–4 cerrados; el texto de las tres instrucciones, de las tres frases y de los tres nombres revisado por producto. **Terminada:** los HOY de D-CHEF-1 invertidos; las ocho suites actualizadas y en verde; `i18n-huella` e `i18n-servidor-fuentes` en verde; cercas intactas; `docs/WEE-ACEPTACION.md`: ACE-C-12 y C-13 → PASA (con 03b, C-11).
+
+**Al día en R8 (2026-10-12, base `c3f7f9a7`).** La plantilla de Chef está ahora en `templates.ts:1190-1358` (+30 por la región de Design integrada); su contenido no ha cambiado. **Re-medido `[M]`** con `simula-chef.mjs` (en memoria) sobre las 8 suites de plan: se mueven **las mismas ocho** con los **mismos pines** (35→36, 74→75, 67→68, 68→69, 64→65, 47→48, 65→66, fieles 32→33); cambian dos cifras derivadas, ya corregidas arriba: los planes de `i18n-servidor` (1 435 → 1 525 sin tocar `when`, → 1 443 con la propuesta) y las opciones del flujo guiado en danés de `i18n-auditoria` (242 → 245).
+
+| Archivo | Leer / modificar / no tocar | Propiedad |
+|---|---|---|
+| `functions/src/creator/templates.ts` (solo Chef, `:1190-1358`) | **modificar** | persona 1, después de 01; la región de Design no se toca |
+| `functions/src/creator/prompts.ts` | modificar (las instrucciones `answer`/`shopping` de Chef en la tabla de 01) | persona 1 |
+| `i18n/textos/{es,en,da}/servidor/opciones.ts`, `plan/casa.ts` | modificar (es a mano solo lo que no se genera) | persona 1; los generados, con los scripts |
+| las 8 suites de pines | **una persona, un commit** | solo 03a |
+| `core/registry/capabilities.ts`, `creator/index.ts`, `engine/*`, `credits/*` | **no tocar** | cercas F1–F4/E4 |
+
+**Contrato.** `[X]` `TEMPLATES.chef` con `q()`/`opt()`/`step()`, `Plan`/`PlanStep`, las variantes `answer` y `shopping` ya declaradas en el catálogo del Core, `estimatePlan` → `creatorQuote`; `[P]` las tres opciones y las tres ramas de `buildPlan` de la tabla de arriba. **Ningún motor paralelo:** tres ramas de la plantilla de siempre, ejecutadas por `creatorRun` y el WEË AI ENGINE; sin variante nueva, sin archivo nuevo en `functions/src`, sin precio escrito.
+
+**Qué decisión la bloquea.** **D-3** (PENDIENTE DE DECISIÓN) para la opción `nutrition` y su frase. **Sin D-3 pueden empezar `swap` y `shopping`** (*inferido*: no dependen de la nutrición), con la misma ronda de pines repetida cuando entre `nutrition` —o, mejor, esperar y hacer un solo commit de pines—. D-1 no la bloquea.
+
+**Qué se puede preparar sin tocar código funcional.**
+- *Borradores para revisión de producto* (no son copy final): opciones — «🔢 Información nutricional», «🔁 Sustituir ingredientes», «🛒 Lista de compras»; frases del plan — «Voy a calcular la información nutricional por porción: es una estimación, no un análisis.», «Voy a proponerte cómo sustituir lo que pides sin que el plato pierda su sentido.», «Voy a hacerte la lista de compras, por secciones del supermercado.»; nombres de paso — «Calcular la información nutricional», «Proponer cómo sustituir los ingredientes», y la lista reutiliza `chefPasoListaDeCompras`. *Instrucción `answer` de Chef:* «Responde a lo que se pide sobre cocina en menos de 200 palabras, sin «Próximos pasos» y sin recomendar otros especialistas. Si das cifras de nutrición, son una ESTIMACIÓN por porción y lo dices; nunca un consejo médico. Si se pide sustituir por una alergia, no afirmes que el resultado es seguro para esa alergia.» (R-10).
+- *Claves de i18n por idioma (servidor, es/en/da):* `chefWhatNutrition`, `chefWhatSwap`, `chefWhatShopping` (las genera la guía) + `chefExplicaNutricion`, `chefExplicaSustituir`, `chefExplicaCompra` `[P]` + dos nombres de paso `[P]` ≈ 8 × 3; cliente: ninguna.
+- *Pines antes/después:* la tabla de §«Pines», confirmada en `c3f7f9a7`.
+- *Orden de commits:* 1) los HOY de D-CHEF-1 invertidos en rojo (con `presetAnswers`); 2) plantilla + instrucciones + diccionarios + scripts generadores; 3) **un** commit con los 8 pines; 4) `WEE-ACEPTACION.md`.
+
+**Los seis puntos de R7-Design que la tocan:** `people`/`time` (punto 3) **sigue** (`:1225`, `:1231`): bloquea el inicio hasta fijar los `when`, **no necesita al dueño**; «Para la semana» (punto 4) **sigue** (`:1241`): **necesita al dueño** (o mandar `what: menu` desde esas entradas); `answer` compartido (punto 2) sigue: técnica, no del dueño.
+
 
 ---
 
@@ -309,7 +379,7 @@ En la pantalla: un estado (`useState`) con `{ panel, inicio }` que se pone al el
 
 **Puntos abiertos.** (a) «Para la semana» y «De un menú» del panel de compras: ver CHEF-03a punto 4. (b) `alElegirEntrada` sigue llamando a `setPrompt(t('chef.panelStart', { panel: …, que: … }))` tal cual: lo fija `chef-weeai` #21 (`:158-159`). (c) Si D-3 = C, la tarjeta de nutrición desaparece (§1.3).
 
-**Dependencias.** **CHEF-03a** (los ids: sin 03a un `preset` `swap` no existe en la plantilla y `respuestaPara` lo descarta, `planner.ts:83-92`, y se vuelve a `infer`); **CHEF-02** (`contextoDeChef`, y que `preset` vaya también dentro de `presets`); **D-1 = A**; D-3. **Cierre de Design — archivo compartido:** `CreatorFlowScreen.tsx` lo editan la tarea **C** (CL-12 reintento de cotización, `:279-296` y `:600-731`; CL-20 `projectId`, `:109-118`, y `creatorService`) y, después, CHEF-05 (`:335`, `:352-363`; espera a la decisión D3 de Design). Los hunks son distintos del de `:65-74`, pero es **un mismo archivo**: integrar después de C y revisar con `git diff` que ningún hunk se pisa.
+**Dependencias.** **CHEF-03a** (los ids: sin 03a un `preset` `swap` no existe en la plantilla y `respuestaPara` lo descarta, `planner.ts:83-92`, y se vuelve a `infer`); **CHEF-02** (`contextoDeChef`, y que `preset` vaya también dentro de `presets`); **D-1 = A**; D-3. **Cierre de Design — archivo compartido:** `CreatorFlowScreen.tsx`: la tarea **C** de R7-Design (CL-12 reintento de cotización, CL-20 `projectId`) **ya está integrada en `c3f7f9a7`** (sus hunks quedan en `:80-92`, `:115-117`, `:166-167`, `:306`, `:405-406`, `:637-639`); después vendrá CHEF-05 (`:351`, `:368-379`; espera a la decisión D3 de Design). El hunk de 03b (`:71-74`) no toca ninguno, pero es **un mismo archivo**: revisar con `git diff` que ningún hunk se pisa y comprobar al empezar si alguna tarea de R8 lo cambió.
 
 **Pruebas en rojo primero.**
 - Invertir `chef-caracterizacion.test.mjs:186-188` — `HOY · D-CHEF-2 · «Sustituir ingredientes» se deduce como «cocinar con lo que tengo»: el plan empieza mirando una foto` — a `ARREGLADO · D-CHEF-2 · con what=swap el plan no empieza por vision.describe y no necesita foto`.
@@ -324,6 +394,28 @@ En la pantalla: un estado (`useState`) con `{ panel, inicio }` que se pone al el
 **Esfuerzo (estimación).** S (≤ 4 h), una vez 02 y 03a están.
 
 **Lista para empezar:** 02 y 03a integradas; D-1 = A; el punto (a) resuelto; `CreatorFlowScreen.tsx` al día con la tarea C. **Terminada:** invertidas y nuevas en verde; `chef-weeai` 47/47; `aceptacion-pantallas` 68/68 más las nuevas; ACE-C-11 → PASA en `docs/WEE-ACEPTACION.md`; `tsc` 0.
+
+**Al día en R8 (2026-10-12, base `c3f7f9a7`).** `needsPhoto` sigue en `CreatorFlowScreen.tsx:65-74` con la misma forma: `preset cook` ‖ `preset edit` ‖ la expresión de las palabras, sin mirar si llega otro `preset` (`:74`); el cambio propuesto (`!params.preset && …`) sigue siendo una línea. La tarea C ya está integrada: la espera «después de C» está cumplida. NAV (R8) toca `ChefScreen.tsx`: re-verificar `:146-170` al empezar.
+
+| Archivo | Leer / modificar / no tocar | Propiedad |
+|---|---|---|
+| `constants/chefTools.ts` | modificar (`PRESET_DE_PANEL`) | persona 2, tras 02 |
+| `screens/ChefScreen.tsx` | modificar (recordar el panel, mandarlo en `alEnviar`) | persona 2; NAV también lo toca |
+| `screens/CreatorFlowScreen.tsx` | **una línea** de `needsPhoto` (o una función pura de `utils/`, mejor) | compartido; revisar hunks |
+| `components/chef/ChefPanel.tsx`, `functions/src/**` | no tocar | — |
+
+**Contrato.** `[X]` `PanelDeChef` (`chefTools.ts:41`), `TARJETAS_DE_CHEF` (sin cambio), `t('chef.panelStart', …)`, `params.preset`; `[P]` `PRESET_DE_PANEL`, el estado `{ panel, inicio }`, la guarda de `needsPhoto`. **Ningún motor paralelo:** la intención viaja como la respuesta `what` que el planificador ya entiende.
+
+**Qué decisión la bloquea.** **D-1 = A** y **D-3** (la tarjeta de nutrición): PENDIENTES DE DECISIÓN. Depende además de 03a (los ids) y de 02 (`contextoDeChef`). **Sin decisiones** puede prepararse la función pura de `needsPhoto` con su prueba (no cambia comportamiento hasta que se use).
+
+**Qué se puede preparar sin tocar código funcional.**
+- *La tabla `PRESET_DE_PANEL`* (arriba), y *el mapa por entrada* si el dueño quiere que «Para la semana» y «De un menú» sigan en el menú: `{ shopping: { week: 'menu', menu: 'menu' } }` `[P]` (ids de entrada de `chefTools.ts:143-150`).
+- *Casos en proceso para `aceptacion-pantallas`:* elegir «Sin lactosa» en Sustituir → `preset {what: swap}` y dentro de `presets`; borrar la frase → ya no; sin panel → como hoy.
+- *i18n:* ninguna clave.
+- *Orden de commits:* 1) la guarda de `needsPhoto` como función pura + prueba; 2) `PRESET_DE_PANEL` + pantalla, tras 03a/02; 3) `WEE-ACEPTACION.md` (ACE-C-11).
+
+**Los seis puntos de R7-Design que la tocan:** «las tres tarjetas llevan `preset`» (punto 5) **sigue**: se resuelve con el mapa aparte, no necesita al dueño; la prueba textual de `:189-194` (punto 7) **sigue**: se invierte a propósito; «Para la semana» (punto 4): **necesita al dueño**.
+
 
 ---
 
@@ -367,6 +459,31 @@ Reutiliza `[X]`: `sinMarcasInternas`, el formato que el prompt de receta ya pide
 
 **Lista para empezar:** ya (ninguna decisión). **Terminada:** suite en verde y en la cadena; el sabotaje la rompe; `tsc` 0; `escaneo-secretos` y `ci-workflow` en verde; reglas de escalado revisadas por una persona que cocine (o rotuladas «sin revisar»).
 
+**IMPLEMENTADA en la rama `r8/chef` (R8, 2026-10-12) — CORREGIDO EN RAMA AISLADA, NO integrada.** Commit `3bb91118` sobre `c3f7f9a7`: `utils/recetaDeChef.ts` + `functions/test/chef-receta.test.mjs` (399 comprobaciones, en la cadena: paso al final de `functions/package.json`). Nadie más crea ni importa el archivo (comprobado en las ramas y en los worktrees de R8). Detalle y evidencia: `RD8\CHF-chef\informe.md`.
+
+**API real** (afina el contrato `[P]` de arriba, sin quitarle nada; las razones, en el informe):
+
+```ts
+export type UnidadDeCocina = 'g' | 'kg' | 'ml' | 'l' | 'cucharada' | 'cucharadita' | 'taza' | 'vaso' | 'pizca';
+export interface LineaConCantidad { texto: string; cantidad?: number; hasta?: number; unidad?: UnidadDeCocina; nombre?: string }
+export interface IngredienteLeido extends LineaConCantidad { aproximado?: boolean; sinEscalar?: boolean }
+export interface RecetaLeida { titulo: string; emoji?: string; porciones?: number; minutos?: number;
+  ingredientes: IngredienteLeido[]; pasos: string[]; consejo?: string; otras?: string[] }        // todo `readonly`
+export interface ListaLeida { secciones: { nombre: string; lineas: LineaConCantidad[] }[]; otras?: string[] }
+export const leerReceta: (texto: string) => RecetaLeida | null;
+export const escalarReceta: (r: RecetaLeida, porciones: number) => RecetaLeida | null;
+export const leerLista: (texto: string) => ListaLeida | null;
+export const factorDeEscala: (base: number, nuevas: number) => number | null;   // null fuera de 0,25–10
+export const pideRevisarTiempos: (factor: number) => boolean;                   // > 2 o < 0,5: la tarjeta escribe el aviso
+```
+
+Lo añadido al contrato y por qué: `hasta` (un rango «2–3» no cabe en un número), `aproximado` (el «≈» de §2.5), `sinEscalar` (la línea que no se entendió se conserva y la tarjeta tiene que poder avisarlo), `otras` (lo que no es título, porciones, ingrediente, paso ni consejo no se tira en silencio), `nombre` también en las líneas de lista, y las dos funciones auxiliares (la condición del aviso no se reescribe en la tarjeta). **Contrato con quien pinte (CHEF-07):** `texto` nunca se reescribe; una línea con `cantidad` se pinta con `cantidad` + `unidad` + `nombre`; se escala siempre desde la receta leída (una ya escalada con redondeos devuelve `null`); el nombre no se conjuga («1 huevo» ×3 sigue siendo «huevo»: lo resuelve la tarjeta o una tabla revisada); `leerReceta` se llama solo con el resultado del paso `recipe` (un menú con viñetas y números podría leerse como receta).
+
+**Reglas culinarias: siguen `[P]` y SIN REVISAR por alguien que cocine** (UNKNOWN su validez). Lo implementado: g/ml a 0,5 / 1 / 5 según salga < 10 / ≥ 10 / ≥ 100; kg y l a 0,05; cucharadas, cucharaditas, tazas y vasos a ¼; piezas al entero; mitades hacia arriba; nunca a cero (el mínimo medible, con «≈»); «al gusto», pizca, chorrito, poco, puñado y el tamaño de un molde, intactos; pasos, minutos, temperaturas y molde, sin tocar. No se lee (se conserva y avisa): «1.000 g», unidades que v1 no conoce (dl, cl, oz, lb, cups…), «docena», «par», «cuartos», otra cantidad dentro («1 taza (240 ml)»), calificativos («rasa», «sopera»), «1 taza y media», aproximados («unos 200 g»).
+
+**Esfuerzo real:** una sesión (frente a la estimación M). **Pendiente para darla por terminada del todo:** la revisión culinaria de las reglas y su integración (la hace el coordinador).
+
+
 ---
 
 ## 3. Orden y paralelismo
@@ -377,9 +494,9 @@ Reutiliza `[X]`: `sinMarcasInternas`, el formato que el prompt de receta ya pide
 |---|---|---|
 | **1 — servidor** | CHEF-01 → CHEF-03a | `functions/src/creator/prompts.ts` y `templates.ts`; `i18n/textos/{es,en,da}/servidor/*`; los pines de §03a |
 | **2 — pantalla** | CHEF-02 → CHEF-03b | `constants/chefTools.ts`; `screens/ChefScreen.tsx`; `components/creator/CajaDePrompt.tsx`; `utils/contextoDeChef.ts`; **una línea** de `screens/CreatorFlowScreen.tsx` |
-| **3 — funciones puras** | CHEF-04 | `utils/recetaDeChef.ts` y su suite nueva |
+| **3 — funciones puras** | CHEF-04 — **hecha en `r8/chef` (R8)**; la persona 3 queda libre para la función pura de `contextoDeChef` (02) o la de `needsPhoto` (03b), que no esperan a D-1 | `utils/recetaDeChef.ts` y su suite nueva |
 
-**Qué espera a qué.** 01 → 03a (el mecanismo de instrucciones por experiencia). 02 → 03b (`contextoDeChef`). **03a antes que 03b** (los ids: sin 03a, el `preset` de un panel no existe y se descarta; sin 03b, 03a solo añade opciones a la pregunta). D-1 = A → 02 y 03b. D-3 → la opción `nutrition` de 03a y la tarjeta de nutrición de 03b. La tarea C (Design, cliente) → antes del merge de 03b (`CreatorFlowScreen.tsx`). La tarea S (Design, servidor) → quien integre la segunda regenera los diccionarios generados y `i18n/huella.json`. CHEF-05 (reintento y «otra versión» sin perder lo contestado; no es una de estas fichas) espera al cierre de Design y a su decisión D3: toca las mismas líneas que CL-13 (`CreatorFlowScreen.tsx:335,352-363`).
+**Qué espera a qué.** 01 → 03a (el mecanismo de instrucciones por experiencia). 02 → 03b (`contextoDeChef`). **03a antes que 03b** (los ids: sin 03a, el `preset` de un panel no existe y se descarta; sin 03b, 03a solo añade opciones a la pregunta). D-1 = A → 02 y 03b. D-3 → la opción `nutrition` de 03a y la tarjeta de nutrición de 03b. La tarea C (Design, cliente) → **ya integrada en `c3f7f9a7`**: esa espera está cumplida (`CreatorFlowScreen.tsx`). La tarea S (Design, servidor) → también integrada en `c3f7f9a7`; si otra tarea vuelve a tocar los textos del servidor, quien integre la segunda regenera los diccionarios generados y `i18n/huella.json`. CHEF-05 (reintento y «otra versión» sin perder lo contestado; no es una de estas fichas) espera al cierre de Design y a su decisión D3: toca las mismas líneas que CL-13 (`CreatorFlowScreen.tsx:351,368-379`).
 **Camino crítico:** 01 → 03a → 03b.
 
 **Archivos que sí comparten varias fichas o varias tareas — coordinar:**
@@ -413,6 +530,7 @@ Todas las cifras de Credits de la especificación son del **catálogo de PRUEBA,
 | **R-14** `main` no es producción y no hay suite de emulador del recorrido de Chef | **Sigue**: CHEF-14 (lote 2). Todo el lote se prueba con `node functions/test/…` sobre `functions/lib` y `tsc`. |
 | **R-15** precios de prueba | Ningún número de Chef se comunica; `no son precios`. |
 | **R-16** textos del servidor en 13 idiomas salen en inglés | Los textos nuevos del servidor existen solo en es/en/da (como todos). |
+| **R-1 (CHEF-04, R8)** | `escalarReceta` ya existe: cambiar de 4 a 6 porciones podrá hacerse en el dispositivo, sin trabajo nuevo ni cobro, cuando la tarjeta (CHEF-07) la use. Hasta entonces, nada cambia en el coste. Sin ningún precio. |
 | R-2, R-4, R-8, R-9, R-11, R-12 | No los toca el lote. |
 
 ---
@@ -421,12 +539,12 @@ Todas las cifras de Credits de la especificación son del **catálogo de PRUEBA,
 
 | # | Qué | Dónde | Propuesta `[P]` | Quién cierra |
 |---|---|---|---|---|
-| 1 | El paso `prices` (búsqueda) también recibe la instrucción de `shopping` | `inputs.ts:117-120`, `templates.ts:1310-1311` | Elegir (A) una instrucción para los dos o (B) por capacidad | quien implemente 01, antes de empezar |
+| 1 | El paso `prices` (búsqueda) también recibe la instrucción de `shopping` | `inputs.ts:117-120`, `templates.ts:1340-1341` | Elegir (A) una instrucción para los dos o (B) por capacidad | quien implemente 01, antes de empezar |
 | 2 | `nutrition` y `swap` comparten `kind: 'answer'` | `prompts.ts:455-456` | Una instrucción de Chef para `answer` + la regla de cada una en el `brief` | quien implemente 03a |
-| 3 | `people`/`time` se preguntarían para las opciones nuevas | `templates.ts:1195,1201` | `when` que las excluya (ninguna / solo `people` para compras) | 03a |
-| 4 | «Para la semana» y «De un menú» cambiarían de plan (menú → lista) | `templates.ts:1211`, `chef-caracterizacion.test.mjs:182-184` | Decidirlo o mandar `what: menu` desde esas entradas | dueño o quien implemente 03a/03b |
+| 3 | `people`/`time` se preguntarían para las opciones nuevas | `templates.ts:1225,1231` | `when` que las excluya (ninguna / solo `people` para compras) | 03a |
+| 4 | «Para la semana» y «De un menú» cambiarían de plan (menú → lista) | `templates.ts:1241`, `chef-caracterizacion.test.mjs:182-184` | Decidirlo o mandar `what: menu` desde esas entradas | dueño o quien implemente 03a/03b |
 | 5 | «Las tres tarjetas llevan `preset`» rompe `chef-weeai` #3 y #6 | `chef-weeai.test.mjs:72-76,88` | El mapa aparte `PRESET_DE_PANEL` | 03b |
-| 6 | `params.presets ?? [params.preset]`: si se manda `presets`, el `preset` se pierde | `CreatorFlowScreen.tsx:151` | `contextoDeChef` pone el `preset` **dentro** de `presets` y como `preset` | 02 |
+| 6 | `params.presets ?? [params.preset]`: si se manda `presets`, el `preset` se pierde | `CreatorFlowScreen.tsx:167` | `contextoDeChef` pone el `preset` **dentro** de `presets` y como `preset` | 02 |
 | 7 | Dos comprobaciones HOY son textuales y siguen en verde tras el arreglo | `chef-caracterizacion.test.mjs:131-133,189-194` | Invertirlas explícitamente (función pura o pantalla en proceso) | 02 y 03b |
 | 8 | La comprobación «cuatro formas / 9 pasos» cuenta por `firma`, no por secuencia de capacidades | `chef-caracterizacion.test.mjs:112-114` | Reescribirla por secuencia (cinco formas y diez pasos con 03a) | 03a |
 | 9 | La caja que avisa es **una de las tres** opciones que J dejó como *BLOCKED — HUMAN DECISION* | `aceptacion-recorrido-servidor.test.mjs:371-372` | Confirmar con el dueño, o retirar el contador de 02 | dueño |
@@ -434,6 +552,11 @@ Todas las cifras de Credits de la especificación son del **catálogo de PRUEBA,
 | 11 | El contador por puntos de código no coincide con el corte del servidor (UTF-16) | `CampoQueCrece.tsx:74` frente a `creator/index.ts:310` | Contar con `trim().length` | 02 |
 | 12 | `i18n-auditoria` es una octava suite que se mueve | `i18n-auditoria.test.mjs:267` | Incluirla en el commit de pines | 03a |
 | 13 | «Alérgenos» y «Calorías, macros y alérgenos» prometen más que una estimación sin fuentes | `chefTools.ts:128`, `i18n/textos/es/chef.ts` | Señalarlo en D-3 y en R-10 | dueño |
+| 14 (R8) | Las reglas culinarias de `escalarReceta` están implementadas y SIN REVISAR por alguien que cocine | `utils/recetaDeChef.ts` (`pasoDe`, `esIntacta`) | Revisión de una persona que cocine antes de que la tarjeta las use | dueño / producto |
+| 15 (R8) | El nombre de una pieza no se conjuga al escalar («1 huevo» → 3 «huevo») | `utils/recetaDeChef.ts` | Resolverlo en la tarjeta (CHEF-07) o con una tabla de plurales revisada | quien haga CHEF-07 |
+| 16 (R8) | `leerReceta` no sabe de qué paso viene el texto: un menú con viñetas y números podría leerse como receta | `utils/recetaDeChef.ts` | La tarjeta la llama solo con el resultado del paso `recipe` | CHEF-07 |
+| 17 (R8) | La instrucción de compra de CHEF-01 puede pedir la marca «SECCIÓN:» que ya lee `leerLista` | `prompts.ts`, `utils/recetaDeChef.ts` | Incluirla en el borrador de CHEF-01 si producto lo acepta | producto / quien haga 01 |
+| 18 (R8) | `sinMarcasInternas` (reutilizada) tiene retroceso cuadrático con tiras largas de espacios (≈1,6 s con 19 000) | `utils/textoDeResultado.ts:19` | `recetaDeChef` se protege colapsando las tiras antes de llamarla; el resultado genérico (`ResultCard`) sigue expuesto: arreglo aparte, fuera de Chef | quien lleve `textoDeResultado` |
 
 ---
 
@@ -448,6 +571,11 @@ Todas las cifras de Credits de la especificación son del **catálogo de PRUEBA,
 | Lo mismo con las condiciones `when` de la propuesta | las mismas 8 | `sim-tresW-T.tsv` |
 | Simulación `[M]` de CHEF-01 (31 suites) y prototipo desechable en la copia `[E]` (27 suites, con `runtime-map`, `ci-workflow`, `puente-pre-f1d`, `video-asincrono`) | solo `chef-caracterizacion` D-CHEF-3 | `sim-instr-P.tsv`, `suites-chef01-prototipo.tsv` |
 | `stepInputFor` real sobre el plan de menú de Chef | `prices` y `list` reciben la instrucción de Home | `stepInputFor-menu-chef.log` |
+| **R8 · CHEF-04** `chef-receta` (rojo con el módulo ausente → verde) | 399 ✔ · 0 ✘ · exit 0 | `RD8\CHF-chef\logs\rojo-1-sin-modulo.log`, `verde-8.log` |
+| **R8 · CHEF-04** defecto «1 taza y media» (rojo → verde) | 7 ✘ → 0 ✘ | `rojo-2-y-media.log`, `verde-3-tras-y-media.log` |
+| **R8 · CHEF-04** sabotaje (85 mutantes; el pedido: otro redondeo de g/ml) | 85/85 caen; el pedido tumba 8 comprobaciones; módulo restaurado con `git checkout --`, limpio | `mutantes-4.log` |
+| **R8** re-medida `[M]` de 03a (dos modos) y de 01 sobre `c3f7f9a7` | las mismas 8 suites y los mismos pines; 1 435 → 1 525 / 1 443 planes; 01: solo D-CHEF-3 | `logs\simulacion\` |
+| **R8** `tsc --noEmit` de la app (candado) · `escaneo-secretos` · `ci-workflow` | 0 errores · 0 secretos (2 071 archivos) · 41 ✔ | `tsc-app.log`, `escaneo-secretos-2.log`, `ci-workflow-2.log` |
 
 **Reproducible con** `R7-Design\R-docs\herramientas\simula-chef.mjs <modo> <suite>` (parchea el módulo ya compilado **en memoria**, no escribe nada) y `barrido-simulado.sh`. **No se ha implementado nada de Chef**: ni `src`, ni `screens`, ni `constants`, ni pruebas nuevas; el prototipo de CHEF-01 vivió solo en una copia desechable fuera de todo worktree y no se conserva en el repositorio.
 **No ejecutado:** `tsc --noEmit` de la app (no hay código nuevo); la cadena entera; emuladores; ningún proveedor real; ninguna calidad del modelo (UNKNOWN hasta un canary autorizado, CHEF-18).
