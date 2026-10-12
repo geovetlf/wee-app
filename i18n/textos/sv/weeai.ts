@@ -109,6 +109,14 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: 'Ta bort',
   tryAgain: 'Försök igen',
   itDidNotWork: 'Det blev inte bra. Inga Credits har dragits.',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: 'Vi hittade inte det här jobbet, eller så är det inte längre tillgängligt.',
+  startOver: 'Börja om',
+  /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
+  saveTextToCreations: 'Spara i Mina skapelser',
+  savingText: 'Sparar…',
+  textSaved: 'Sparat i Mina skapelser',
+  saveTextNotYet: 'Spara i Mina skapelser: inte tillgängligt än',
   notEnoughCredits: 'Du har inte tillräckligt med Credits',
   getCredits: 'Skaffa Credits',
   calculatingCost: 'Beräknar kostnaden…',

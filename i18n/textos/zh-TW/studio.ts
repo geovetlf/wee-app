@@ -273,6 +273,10 @@ export const studio: typeof import('../es/studio').studio = {
   ready: '創作完成',
   readyHint: '這是示範：還沒有真正生成任何內容。',
   dismiss: '知道了',
+  /* R9 · E2: lo escrito no encaja con ningún sitio del Studio; se dice y se ofrece Weë Brain. */
+  noDestination: '我不知道該把這個帶到 Studio 的哪裡',
+  noDestinationHint: '選擇從哪裡開始，或告訴 Weë Brain。',
+  askBrain: '問問 Weë Brain',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
   soon: '即將上線',

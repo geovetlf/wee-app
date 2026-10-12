@@ -65,6 +65,14 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: 'Remover',
   tryAgain: 'Tentar outra vez',
   itDidNotWork: 'Não me saiu bem. Não te cobrei nada.',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  jobNotFound: 'Não encontrámos este trabalho, ou já não está disponível.',
+  startOver: 'Começar de novo',
+  /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
+  saveTextToCreations: 'Guardar nas minhas criações',
+  savingText: 'A guardar…',
+  textSaved: 'Guardado nas minhas criações',
+  saveTextNotYet: 'Guardar nas minhas criações: ainda não disponível',
   notEnoughCredits: 'Não tens Credits suficientes',
   getCredits: 'Obter Credits',
   calculatingCost: 'A calcular o custo…',
