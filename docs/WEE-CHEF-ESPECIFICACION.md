@@ -30,6 +30,9 @@ que la use o sin servidor detrás) · `FALTA` · `REQ. NO DEFINIDO` (no hay requ
    confirmaciones del dueño. Lo que **no** se puede hacer sin su autorización (entrada cruzada entre trabajos, variantes nuevas en el
    catálogo del Core, memoria persistente) está descrito como propuesta con su diff previsto, no implementado.
 
+**Si vas a implementar:** lee este resumen, §6.1 y §8; ejecuta `node functions/test/chef-caracterizacion.test.mjs` (es tu «antes»); cada tarea nombra sus archivos, sus pruebas y lo que depende de ella.
+**Identificadores:** `D-CHEF-n` defectos (§1.4) · `R-n` riesgos (§7) · `AC-nn` aceptación (§5) · `CHEF-nn` tareas (§6) · `D-n` decisiones del dueño (§8).
+
 ### 0.1 Premisas del encargo que NO se sostienen en `d867774`
 
 | Premisa (BRIEF-F / BRIEF-G) | Lo que hay | Evidencia |
@@ -189,10 +192,10 @@ reserva, ejecuta los pasos en orden y liquida o reembolsa (`:552-833`).
 
 | Forma | Pasos (id · capacidad · variante) | Foto de la persona | Credits de prueba |
 |---|---|---|---|
-| A · receta | `recipe` text.generate/recipe → `dish` image.generate/dish | no | 2 + 3 = **5** |
-| B · cocinar con lo que tengo | `look` vision.describe/describe → A | **sí** | 2 + 2 + 3 = **7** |
-| C · menú | `menu` text.generate/menu → `prices` text.search/shopping → `list` text.generate/shopping | no | 2 + 3 + 2 = **7** |
-| D · retocar el plato | `dish` image.edit/dish_edit | **sí** | **3** |
+| A · receta | `recipe` text.generate/recipe → `dish` image.generate/dish | no | `ai_text` 2 + `ai_image_lite` 3 = **5** |
+| B · cocinar con lo que tengo | `look` vision.describe/describe → A | **sí** | `ai_text` 2 + 2 + `ai_image_lite` 3 = **7** |
+| C · menú | `menu` text.generate/menu → `prices` text.search/shopping → `list` text.generate/shopping | no | `ai_text` 2 + `ai_search` 3 + `ai_text` 2 = **7** |
+| D · retocar el plato | `dish` image.edit/dish_edit | **sí** | `ai_image_enhance_lite` **3** |
 
 Esos números son placeholders del Credit Engine (`creditCosts.ts:20-71`; `pricingMode: simulated` por defecto) y los fija
 `estimate-plan.test.mjs:56-125` (que además mide 3 en modo real para la forma A). **No son precios**: no se comunican ni se copian a ninguna pantalla.
