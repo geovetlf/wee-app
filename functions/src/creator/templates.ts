@@ -463,8 +463,14 @@ const design: ExperienceTemplate = {
   ],
   infer: (goal) => {
     const answers: Record<string, string> = {};
+    /*
+     * "marca" es una palabra DÉBIL (CL-11): casi cualquier encargo de una empresa la lleva y casi nunca dice qué se
+     * quiere. Antes estaba en la lista del logo, que se mira la primera, y "un post para mi marca", "una mascota para mi
+     * marca" o "un envase para mi marca" salían logo. Ahora se lee DESPUÉS: primero las palabras fuertes de cada
+     * intención, en el orden de siempre, y solo si ninguna aparece, "marca" sola significa un logo ("diseñar mi marca").
+     */
     const what = inferByKeywords(goal, {
-      logo: ['logo', 'logotipo', 'identidad', 'marca'],
+      logo: ['logo', 'logotipo', 'identidad'],
       poster: ['afiche', 'flyer', 'poster', 'póster', 'post ', 'publicidad', 'anuncio', 'redes', 'instagram', 'portada'],
       character: ['personaje', 'criatura', 'mascota', 'héroe', 'heroe', 'robot', 'monstruo', 'avatar'],
       /*
@@ -484,7 +490,7 @@ const design: ExperienceTemplate = {
       scene: ['mundo', 'escena', 'paisaje', 'ciudad', 'ambiente', 'planeta', 'casa', 'hogar', 'departamento', 'edificio', 'fachada', 'terraza', 'jardín', 'jardin', 'patio', 'interiores'],
       product: ['botella', 'vaso', 'envase', 'empaque', 'packaging', 'zapatilla', 'ropa', 'mueble', 'silla', 'mesa', 'lámpara', 'lampara', 'producto', 'celular', 'reloj', 'juguete'],
       object: ['auto', 'carro', 'coche', 'vehículo', 'vehiculo', 'moto', 'helicóptero', 'helicoptero', 'avión', 'avion', 'dron', 'nave', 'máquina', 'maquina', 'motor', 'invento'],
-    });
+    }) ?? inferByKeywords(goal, { logo: ['marca'] });
     if (what) answers.what = what;
     /*
      * Lo que se deduce aquí deja de preguntarse: cada una de estas respuestas

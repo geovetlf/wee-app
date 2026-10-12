@@ -202,9 +202,13 @@ titulo('C · Las 35 formas de empezar de Weë Design: cuántas entiende el servi
 /* ═══ D · HUECOS CONOCIDOS ════════════════════════════════════════════════ */
 titulo('D · Huecos conocidos (lo que una persona esperaría y hoy no pasa)');
 {
-  /* D1 · «mascota para mi marca» es un personaje, no un logo. */
+  /*
+   * D1 · «mascota para mi marca» es un personaje, no un logo. HUECO CERRADO por CL-11 (R7-Design, tarea S): «marca» es una
+   * palabra débil y `infer` la lee la última, así que le ganan las fuertes («mascota»). Pasa a comprobación ordinaria;
+   * el detalle, con otras once frases, lo fija `design-infer-marca.test.mjs`.
+   */
   const frase = 'Una mascota tierna para mi marca de helados';
-  hueco('ACE-D-07b', 'una mascota «para mi marca» se entiende como un personaje, no como un logo (hoy «marca» gana a «mascota» porque el logo se comprueba primero)',
+  check('ACE-D-07b · una mascota «para mi marca» se entiende como un personaje, no como un logo (CERRADO: «marca» ya no gana a «mascota»)',
     TEMPLATES.design.infer(frase).what === 'character', `deduce what=${TEMPLATES.design.infer(frase).what}`);
 
   /* D2 · el formato de «historia». */

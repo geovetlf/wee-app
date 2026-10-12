@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
 
 **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
 Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
-28 criterios de cierre, **5 se cumplen, 10 están abiertos, 9 esperan una decisión del dueño y 4 son manuales** (E: `_design-cierre.mjs`).
+28 criterios de cierre, **6 se cumplen, 9 están abiertos, 9 esperan una decisión del dueño y 4 son manuales** (E: `_design-cierre.mjs`).
 
 ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
 
@@ -48,7 +48,7 @@ referencia, que **sí** manda la caja a `CreatorFlow` (`DesignReferenciaScreen.t
 
 | Capa | Suites (resultado en esta rama) | Qué fija | Qué NO cubre |
 |---|---|---|---|
-| Plantilla `design` y `home` (servidor) | `creator` 640/640, `planner` 37/37, `techo-de-propuestas` 78/78 y, desde la tarea S de R7-Design, `design-preguntas` 41/41 (E) | Las siete intenciones y conversaciones, `infer`, `buildPlan`, tres propuestas, el techo y el coste de repetir; y que toda pregunta con botones lleve «No sé» y que cada «No sé» llegue a un plan válido, con su precio y su frase (CL-10) | `aspectRatio`, texto en la imagen, `infer` de «marca» (CL-11): hoy están **sin fijar** o fijados al revés |
+| Plantilla `design` y `home` (servidor) | `creator` 640/640, `planner` 37/37, `techo-de-propuestas` 78/78 y, desde la tarea S de R7-Design, `design-preguntas` 41/41 y `design-infer-marca` 16/16 (E) | Las siete intenciones y conversaciones, `infer`, `buildPlan`, tres propuestas, el techo y el coste de repetir; que toda pregunta con botones lleve «No sé» y que cada «No sé» llegue a un plan válido, con su precio y su frase (CL-10); y que «marca» no gane a las palabras fuertes de `infer` (CL-11) | `aspectRatio` y texto en la imagen: hoy están **sin fijar** o fijados al revés. Tampoco que `infer` case por palabra y no por subcadena (F-10) |
 | Pantalla montada | `cajas-weeai` 52/52, `ajustes-weeai` 50/50, `credits-weeai` 37/37, `navegacion-enlaces` 44/44 (E) y la nueva `design-cierre` 36/36 (E) | La caja que crece, atrás deshace un paso, el aviso sube con el teclado, la hoja de ajustes, el saldo por la vía permitida, y ahora el catálogo, los botones y las fichas | El **comportamiento** en pantalla: no hay framework de UI en el repositorio (y la ronda no admite añadirlo): todo es estructura y texto |
 | Referencia funcional (puerta cerrada) | `foundation-de-experiencias` 217/217 (E); su grupo I ejecuta `design-referencia.mjs` (165 `check(` en 761 líneas) | Registro, recorrido, estados, elegibilidad, la puerta cerrada, ningún segundo sistema | Que la pantalla **montada** use algo de ella (I17 lo prohíbe a propósito) |
 | Créditos y motor | `credits-weeai`; `puente-pre-f1d` 42/42 (cercas) (E) | Que la pantalla no mueva dinero; las cercas del Credit Engine, el Router y `creatorRun` | El recorrido completo de Design con dinero |
@@ -119,6 +119,7 @@ La suite nueva `functions/test/design-cierre.test.mjs` (36 comprobaciones: el ca
 | F-07 | riesgo del puente | `CreatorFlow` enseña «Foto lista» para cualquier foto que llegue (`CreatorFlowScreen.tsx:589-598`), pero el plan de `design` la ignora: por eso `contextoDeDesign` no manda foto al CREAR (`designReferencia.ts:519-521`) y el puente de P1 tampoco debe | L |
 | F-08 | acoplamiento | I17 (`design-referencia.mjs:313`) prohíbe que `DesignScreen` mencione `designReferencia`; reutilizar `contextoDeDesign` exige extraerlo a un módulo neutro o aflojar esa guarda (decisión DEC-01/02) | L |
 | F-09 | UNKNOWN | Cómo se ven las pistas de dos líneas de `DesignExplore` a 320–360 px con textos largos (alemán, ruso, hindi): no hay captura. Mediría: web con emuladores `demo-wee` a 320, 360, 390, 768 y 1024 | CL-26 |
+| F-10 | defecto menor reproducible (no es criterio de cierre; apareció al arreglar CL-11, de otra causa) | `infer` busca cada palabra como SUBCADENA (`lower.includes(w)`), no como palabra: «Un catálogo de productos» y «Un diálogo entre dos personas» salen logo (`logo` dentro de «catálogo» y «diálogo»), «Un marcador para mi oficina» también (`marca` dentro de «marcador»), y «Un post» —sin nada detrás— no se entiende, porque la palabra del afiche es `post ` con el espacio. **No se tocó**: no es la precedencia de CL-11 sino la forma de casar las palabras, y cambiarla puede mover lo que el servidor entiende hoy de las frases de las puertas (el trinquete «13 de 35» de `aceptacion-conversacion` C cuenta frases entendidas; I) y pide su propia ronda de pruebas | `inferByKeywords` (`templates.ts:48-54`); E: `design.infer(…)` con la plantilla compilada |
 
 ## 7. Propuestas (cambios funcionales: NO implementados)
 
@@ -240,7 +241,7 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
 | CL-08 | defecto | Lo que se adjunta se puede quitar | hecho (`99ef9bc`) | `screens/DesignScreen.tsx` | defecto reproducible (arreglado) | CUMPLIDO |
 | CL-09 | defecto | Las referencias son reales o el botón no está | dueño (D6) y línea de Design | `screens/DesignScreen.tsx`, `inputs.ts` | defecto reproducible | DECISIÓN |
 | CL-10 | defecto | Toda pregunta de `design` con opciones lleva «No sé» (H-2) | hecho (tarea S de R7-Design, rama `r7d/servidor`) | `functions/src/creator/templates.ts:352-470`, `i18n/textos/{es,en,da}/servidor/{opciones,plan/visual}.ts`, `design-preguntas.test.mjs` | defecto reproducible (arreglado) | CUMPLIDO |
-| CL-11 | defecto | «Un post para mi marca» es un afiche, no un logo (H-6) | servidor | `functions/src/creator/templates.ts:451-475` | defecto reproducible | ABIERTO |
+| CL-11 | defecto | «Un post para mi marca» es un afiche, no un logo (H-6) | hecho (tarea S de R7-Design, rama `r7d/servidor`) | `functions/src/creator/templates.ts:464-476`, `design-infer-marca.test.mjs` | defecto reproducible (arreglado) | CUMPLIDO |
 | CL-12 | defecto | Reintentar tras un fallo de cotización vuelve a cotizar (H-3) | dueño de `CreatorFlow` | `screens/CreatorFlowScreen.tsx:279-296,615-626` | defecto reproducible | ABIERTO |
 | CL-13 | defecto | Editar o «otra versión» conserva respuestas y deja linaje (H-4, D3) | dueño (D3), servidor y `CreatorFlow` | `CreatorFlowScreen.tsx:335-363`, `creator/index.ts:500-550` | integración incompleta | DECISIÓN |
 | CL-14 | integración | El formato elegido llega como `aspectRatio` (D5, F1) | dueño (D5) y servidor | `templates.ts:511-586`, `imageModels.ts:346-352` | integración incompleta | DECISIÓN |
@@ -268,7 +269,7 @@ CL-01, CL-05 · D8 y D9 → nada que construir hoy (D9: política de uso comerci
 05 y 06 → solo si se promueve la referencia a pantalla montada. Para marcar una decisión: escribir `**DECIDIDA (fecha): opción**`
 en su fila de `docs/DESIGN.md` §4 o de `docs/WEE-DESIGN-UIUX-DECISIONS.md`; el corredor la lee.
 
-**Orden recomendado si el dueño acepta las recomendaciones de DESIGN.md:** F0 (CL-17) y CL-11/20 no esperan a nadie (CL-10 ya está hecho) →
+**Orden recomendado si el dueño acepta las recomendaciones de DESIGN.md:** F0 (CL-17) y CL-20 no esperan a nadie (CL-10 y CL-11 ya están hechos) →
 CL-01 + CL-02 + CL-03 (P1, P2) con CL-18 (P10) → CL-04 (P3) → CL-14 y CL-15 (P7, P8) → CL-09, CL-13 y CL-16 (P4) → resto.
 
 ## 9. Definición de «Weë Design terminado»
