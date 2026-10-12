@@ -58,7 +58,8 @@ const esPermisoDenegado = (error: unknown): boolean =>
   typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'permission-denied';
 
 export interface PushNotificationData {
-  type: 'like' | 'comment' | 'follow' | 'mention' | 'repost' | 'reply' | 'message';
+  /* `econtact_request` y `econtact_accepted` los manda el servidor (`functions/src/social/avisos.ts`) desde que existe ËContact. */
+  type: 'like' | 'comment' | 'follow' | 'mention' | 'repost' | 'reply' | 'message' | 'econtact_request' | 'econtact_accepted';
   postId?: string;
   commentId?: string;
   senderId?: string;

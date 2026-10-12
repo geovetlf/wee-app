@@ -110,6 +110,20 @@ export const PushNotificationProvider: React.FC<{ children: React.ReactNode }> =
             navigation.navigate('UserProfile', { userId: data.senderId });
           }
           break;
+        /*
+         * ËContact (R9 · E1): el servidor ya enviaba estos avisos y al tocarlos no pasaba nada. Una solicitud se
+         * contesta en la agenda de ËContact, donde están aceptar y rechazar; una aceptada abre el perfil de quien aceptó.
+         */
+        case 'econtact_request':
+          navigation.navigate('EContact');
+          break;
+        case 'econtact_accepted':
+          if (data.senderId) {
+            navigation.navigate('UserProfile', { userId: data.senderId });
+          } else {
+            navigation.navigate('EContact');
+          }
+          break;
         case 'message':
           if (data.conversationId) {
             // Navigate to nested Conversation screen inside Inbox tab
