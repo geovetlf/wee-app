@@ -175,6 +175,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en danés que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['wall.demoBadge', '«Demo» es la palabra danesa (etiqueta del modo demo)'],
     ['aiAvatar.faceOval', '«Oval» es la palabra danesa'],
     ['aiAvatar.accPiercing', '«Piercing» es la palabra danesa'],
     ['business.shortcutAnalyze', '«Analyse», el sustantivo danés'],

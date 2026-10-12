@@ -151,6 +151,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en sueco que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['wall.demoBadge', '«Demo» es la palabra sueca (etiqueta del modo demo)'],
     ['filmmaker.presetTiktok', 'TikTok es el nombre de la plataforma'],
     ['filmmaker.presetYoutube', 'YouTube es el nombre de la plataforma'],
     ['filmmaker.presetShorts', 'YouTube Shorts es el nombre del producto de la plataforma'],
