@@ -135,7 +135,8 @@ console.log('\n── B · Español e inglés, completos ──');
    * aunque lo arme CreatorFlowScreen.
    */
   /* Y la distancia a un lugar, que ahora se escribe en su unidad y en su idioma fuera de la pantalla. */
-  const PUERTAS = ['screens/HelpScreen.tsx', 'screens/CreatorFlowScreen.tsx', 'utils/distanciaParaLeer.ts'];
+  /* R9-H: el creador de Weëls (screens/CrearWeelScreen.tsx) usa los avisos de Weël del compositor (weelHint, weelTooLong, weelMaxDuration). */
+  const PUERTAS = ['screens/HelpScreen.tsx', 'screens/CreatorFlowScreen.tsx', 'utils/distanciaParaLeer.ts', 'screens/CrearWeelScreen.tsx'];
   const desdeFuera = PUERTAS.map((p) => leer(p)).join(String.fromCharCode(10));
   const pedidasFuera = [...desdeFuera.matchAll(/'(composer\.[A-Za-z0-9_]+)'/g)].map((m) => m[1]);
   const usadas = new Set([...pedidas, ...pedidasFuera].filter((c) => c.startsWith('composer.')).map((c) => c.split('.')[1]));
@@ -241,7 +242,8 @@ console.log('\n── E · Nada funcional se movió ──');
   /* Los límites de multimedia salen de la lógica, no de la frase. */
   check('23) diez fotos y quince segundos siguen mandando',
     /const maxImages = 10;/.test(C[CREAR]) && /const maxVideoDurationSeconds = 15;/.test(C[CREAR])
-    && /\{ segundos: maxVideoDurationSeconds \}/.test(C[CREAR])
+    /* R9-H: la pista de 15 s del Weël se fue con el modo Weël al creador de Weëls, con el mismo tope. */
+    && /t\('composer\.weelHint', \{ segundos: MAX_SEGUNDOS_WEEL \}\)/.test(leer('screens/CrearWeelScreen.tsx')) && /export const MAX_SEGUNDOS_WEEL = 15;/.test(leer('utils/crearWeel.ts'))
     && /\{ maximo: maxVideoDurationSeconds, duracion: lasted \}/.test(C[CREAR]));
   check('23) y el tope se calcula igual que siempre',
     /const topeImagenes = poll \? MAX_IMAGENES_CON_ENCUESTA : maxImages;/.test(C[CREAR]));

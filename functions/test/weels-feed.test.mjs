@@ -7,11 +7,12 @@
  *
  *  A. EL FEED, EJECUTADO (`screens/ReelsScreen.tsx` con `_pantallas.mjs` y un `postsService` doble): al entrar pide su
  *     primera página al servicio de siempre; sin Weëls dice que no hay y ofrece crear; si falla, lo dice y deja reintentar;
- *     con Weëls no pinta ningún estado encima; crear es un botón aparte que lleva al compositor EN MODO WEËL; y abrir el
- *     feed sin vídeo de partida no se rompe.
+ *     con Weëls no pinta ningún estado encima; crear es un botón aparte que lleva al CREADOR DE WEËLS (`CrearWeel`, ya no
+ *     el compositor en modo Weël: weels-crear.test.mjs); y abrir el feed sin vídeo de partida no se rompe.
  *  B. LA VISIBILIDAD (`utils/visibilidadDeWeels.ts`): sin vídeo o privado, no se enseña.
  *  C. LA NAVEGACIÓN, LEÍDA: ver Weëls lleva siempre a `Reels` (Android y web, menú incluido) y nunca al compositor; crear
- *     Weël sigue siendo `Create` con `kind: 'weel'`; el Wall conserva su compositor (`Create` con su `kind`) y sus encuestas.
+ *     Weël es `CrearWeel` (R9-H: antes `Create` con `kind: 'weel'`, que era el compositor del Wall); el Wall conserva su
+ *     compositor (`Create` con su `kind`) y sus encuestas.
  *
  * Cada detector lleva su CONTROL. Sin red ni emulador.
  */
@@ -105,8 +106,9 @@ console.log('\n─── A. El feed, ejecutado ───');
   check('A3) y la pantalla de Weëls no es el compositor: ni «Nueva publicación», ni encuestas, ni destinos',
     !/Nueva publicación|Encuesta|Publicar en/i.test(d.texto) && e.navegacion.length === 0, d.texto.slice(0, 160));
   e.tocar(tEs('weels.create'));
-  check('A4) crear es una acción aparte: el + lleva al compositor EN MODO WEËL (`Create` con `kind: weel`)',
-    e.navegacion.length === 1 && e.navegacion[0][1] === 'Create' && e.navegacion[0][2]?.kind === 'weel', JSON.stringify(e.navegacion));
+  /* R9-H: antes esto fijaba `Create` con `kind: 'weel'` —el compositor del Wall—; crear un Weël tiene ahora su flujo propio. */
+  check('A4) crear es una acción aparte: el + lleva al CREADOR DE WEËLS (`CrearWeel`), nunca al compositor',
+    e.navegacion.length === 1 && e.navegacion[0][1] === 'CrearWeel' && e.navegacion[0][2] === undefined, JSON.stringify(e.navegacion));
 }
 {
   const svc = servicio([{ documents: [], lastDoc: null, hasMore: false }]);
@@ -169,11 +171,12 @@ check('C1) Android: ver Weëls (menú, «Ver todos», un vídeo) lleva SIEMPRE a
   /navigate\('Reels'/.test(abrirAndroid) && !llevaAlCompositor(abrirAndroid), abrirAndroid.slice(0, 160));
 check('C2) web: lo mismo', /navigate\('Reels'/.test(abrirWeb) && !llevaAlCompositor(abrirWeb), abrirWeb.slice(0, 160));
 check('C3) el menú «Weëls» entra por el visor (`openWeels`), no por el compositor', /openWeels: true/.test(menu) && /abrirElVisor\(\);/.test(landing));
-check('C4) crear Weël sigue siendo una acción propia: `Create` con `kind: weel` (Android y web)',
-  /navigate\(user \? 'Create' : 'Login', user \? \{ kind: 'weel' \} : undefined\)/.test(landing) && /irAlCompositor\(\{ kind: 'weel' \}\)/.test(web));
+/* R9-H: antes fijaba `Create` con `kind: 'weel'`; ahora crear Weël es su propia pantalla, y el compositor no aparece. */
+check('C4) crear Weël es una acción propia: `CrearWeel` (Android y web), nunca el compositor',
+  /navigate\(user \? 'CrearWeel' : 'Login'\)/.test(landing) && /navigate\('CrearWeel'\)/.test(web) && !/kind: 'weel'/.test(landing) && !/kind: 'weel'/.test(web));
 const compositor = sinComentarios(leer('screens/CreateScreen.tsx'));
 check('C5) el Wall conserva su compositor: «Crear publicación» del Home va a `Create` con su `kind`, y el compositor sigue teniendo encuestas',
-  /navigate\('Create', \{ kind \}\)/.test(landing) && /poll/.test(compositor) && /presetKind === 'weel'/.test(compositor));
+  /navigate\('Create', \{ kind \}\)/.test(landing) && /poll/.test(compositor) && /destinosDisponibles\(\)/.test(compositor) && !/presetKind === 'weel'/.test(compositor));
 check('C6) la ruta `Reels` acepta abrirse sin parámetros (el feed entero)', /Reels: \{\s*initialPost\?: Post;\s*initialVideoPosts\?: Post\[\];[\s\S]*?\} \| undefined;/.test(leer('navigation/MainStackNavigator.tsx')));
 check('CONTROL: un visor que manda al compositor se vería',
   llevaAlCompositor("const abrirElVisor = useCallback(() => { if (n === 0) return crearWeel(); navigate('Reels') }") && !llevaAlCompositor("navigate('Reels', undefined)"));
