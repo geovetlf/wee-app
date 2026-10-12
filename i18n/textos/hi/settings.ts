@@ -48,6 +48,7 @@ export const settings: typeof import('../es/settings').settings = {
   sectionAccount: 'खाता',
   privacyPolicyHint: 'हम आपके डेटा का क्या करते हैं, आसान शब्दों में',
   pushNotificationsHint: 'नए मैसेज और गतिविधि की सूचनाएँ पाएँ',
+  pushNotificationsSystemHint: 'इन्हें अपने डिवाइस की सेटिंग में चालू या बंद करें',
   aboutHint: 'Weë क्या है और आपके पास कौन-सा वर्शन है',
   helpHint: 'अक्सर पूछे जाने वाले सवाल और संपर्क',
   signOutHint: 'अपने खाते से बाहर निकलें',

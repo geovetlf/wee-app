@@ -42,7 +42,12 @@ const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<SettingsNavigationProp>();
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsive();
-  const [allowPrivateReplies, setAllowPrivateReplies] = useState(true);
+  /*
+   * «Respuestas privadas» y el interruptor de «Notificaciones push» se fueron (R9 · E1): los dos eran un `useState`
+   * que no se guardaba y que nada leía —ni la mensajería ni los avisos—. Lo que sí apaga los avisos de verdad es el
+   * permiso del sistema, y la fila de notificaciones lleva ahí. Una preferencia de mensajes privados de verdad necesita
+   * reglas o servidor: decisión del dueño.
+   */
   /*
    * La ubicación se lee del contexto, no de un useState local como los demás
    * interruptores de esta pantalla: aquí lo que se enciende no es una opción de
@@ -50,7 +55,6 @@ const SettingsScreen: React.FC = () => {
    */
   const ubicacion = useLocation();
   const [pidiendoUbicacion, setPidiendoUbicacion] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   // Panel del WEË AI ENGINE: visible en desarrollo o para quien ya entró como administración
   const [engineAdmin, setEngineAdmin] = useState<boolean>(__DEV__);
   useEffect(() => {
@@ -280,20 +284,6 @@ const SettingsScreen: React.FC = () => {
           
           <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
             {renderSettingItem(
-              'lock-closed',
-              t('settings.privateReplies'),
-              t('settings.privateRepliesHint'),
-              undefined,
-              <Switch
-                value={allowPrivateReplies}
-                onValueChange={setAllowPrivateReplies}
-                trackColor={{ false: theme.colors.border, true: theme.colors.accent + '40' }}
-                thumbColor={allowPrivateReplies ? theme.colors.accent : theme.colors.textSecondary}
-              />,
-              false
-            )}
-            
-            {renderSettingItem(
               'location',
               t('settings.location'),
               textoUbicacion,
@@ -317,7 +307,8 @@ const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Notificaciones */}
+        {/* Notificaciones: el permiso del sistema es el interruptor real; en la web no hay avisos push que gestionar. */}
+        {hayAjustesDelSistema && (
         <View style={styles.section}>
           <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
             {t('settings.sectionNotifications')}
@@ -327,18 +318,12 @@ const SettingsScreen: React.FC = () => {
             {renderSettingItem(
               'notifications',
               t('settings.pushNotifications'),
-              t('settings.pushNotificationsHint'),
-              undefined,
-              <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
-                trackColor={{ false: theme.colors.border, true: theme.colors.accent + '40' }}
-                thumbColor={notificationsEnabled ? theme.colors.accent : theme.colors.textSecondary}
-              />,
-              false
+              t('settings.pushNotificationsSystemHint'),
+              () => { void abrirAjustesDelSistema(); }
             )}
           </View>
         </View>
+        )}
 
         {/* Información */}
         <View style={styles.section}>

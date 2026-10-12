@@ -86,10 +86,10 @@ console.log('\n── B · Las nueve filas, título y subtítulo ──');
      * escrita a mano—, solo que ahora de una función más fina.
      */
     ['2) Idioma', /t\('settings\.language'\),\s*\n\s*varianteDelLocale\(locale\)/],
-    ['2) Respuestas privadas', /t\('settings\.privateReplies'\),\s*\n\s*t\('settings\.privateRepliesHint'\)/],
     ['2) Ubicación', /t\('settings\.location'\),\s*\n\s*textoUbicacion/],
     ['2) Política de privacidad', /t\('settings\.privacyPolicy'\),\s*\n\s*t\('settings\.privacyPolicyHint'\)/],
-    ['3) Notificaciones push', /t\('settings\.pushNotifications'\),\s*\n\s*t\('settings\.pushNotificationsHint'\)/],
+    /* R9 · E1: ya no es un interruptor que no hacía nada; abre el permiso del sistema y lo dice. */
+    ['3) Notificaciones push', /t\('settings\.pushNotifications'\),\s*\n\s*t\('settings\.pushNotificationsSystemHint'\),\s*\n\s*\(\) => \{ void abrirAjustesDelSistema\(\); \}/],
     ['3) Acerca de Weë', /t\('settings\.about'\),\s*\n\s*t\('settings\.aboutHint'\)/],
     ['3) Ayuda', /t\('settings\.help'\),\s*\n\s*t\('settings\.helpHint'\)/],
     ['3) Weë AI Engine', /'Weë AI Engine',\s*\n\s*t\('engine\.rowSubtitle'\)/],
@@ -139,7 +139,8 @@ console.log('\n── C · Las claves: reutilizadas, completas, sin duplicar ─
 
   /* 6, 7 y 8 · Completas en los dos idiomas. */
   const TODAS = Object.keys(esT.settings || {});
-  check('6) el módulo settings está completo en español', TODAS.length === 40, String(TODAS.length));
+  /* 41 desde R9 · E1: `pushNotificationsSystemHint`, la fila que abre el permiso del sistema. */
+  check('6) el módulo settings está completo en español', TODAS.length === 41, String(TODAS.length));
   const faltanEn = TODAS.filter((k) => !enT.settings?.[k]);
   check('7) y cuadrado en inglés', faltanEn.length === 0, faltanEn.join(' '));
   const vacias = TODAS.filter((k) => !String(enT.settings[k] ?? '').trim() || !String(esT.settings[k] ?? '').trim());
@@ -192,9 +193,10 @@ console.log('\n── D · Idioma, ubicación, push, motor y sesión ──');
     ES('settings.location') + ' / ' + EN('settings.location'));
 
   /* 11 · Push: solo la interfaz. */
-  check('11) push traducido, y su interruptor sin tocar',
+  /* R9 · E1: el interruptor no guardaba nada; la fila abre ahora el permiso del sistema, que es el interruptor real. */
+  check('11) push traducido, y la fila abre el permiso del sistema',
     ES('settings.pushNotifications') === 'Notificaciones push' && EN('settings.pushNotifications') === 'Push notifications'
-    && /onValueChange=\{setNotificationsEnabled\}/.test(AJUSTES));
+    && !/setNotificationsEnabled/.test(AJUSTES) && /abrirAjustesDelSistema\(\)/.test(AJUSTES));
 
   /* 12 · El motor usa la clave de la 5J. */
   check('12) el motor usa engine.rowSubtitle',
@@ -257,14 +259,15 @@ console.log('\n── E · Lo dinámico, lo técnico y lo que no se movió ─�
 
   /* 20 y 21 · La lógica y la navegación, donde estaban. */
   check('20) la lógica de la pantalla no cambió',
-    /const \[allowPrivateReplies, setAllowPrivateReplies\] = useState\(true\);/.test(AJUSTES)
+    /* R9 · E1: los dos interruptores de mentira se fueron. */
+    !/allowPrivateReplies|notificationsEnabled/.test(AJUSTES)
     && /await ubicacion\.activar\('aproximada'\)/.test(AJUSTES) && /await ubicacion\.desactivar\(\)/.test(AJUSTES)
     && /AsyncStorage\.getItem\(ENGINE_ADMIN_FLAG\)/.test(AJUSTES)
     && /const ubicacionNecesitaAjustes =/.test(AJUSTES));
   check('20) ni los interruptores ni sus estados',
     /value=\{ubicacion\.preferencia !== 'off'\}/.test(AJUSTES)
     && /disabled=\{ubicacion\.cargando \|\| pidiendoUbicacion\}/.test(AJUSTES)
-    && /onValueChange=\{cambiarUbicacion\}/.test(AJUSTES) && /onValueChange=\{setAllowPrivateReplies\}/.test(AJUSTES));
+    && /onValueChange=\{cambiarUbicacion\}/.test(AJUSTES) && !/onValueChange=\{setAllowPrivateReplies\}/.test(AJUSTES));
   check('21) y la navegación tampoco',
     /navigation\.navigate\('CommunitiesManagement'\)/.test(AJUSTES)
     && /\(navigation as any\)\.navigate\('Help', \{ section: 'legal' \}\)/.test(AJUSTES)

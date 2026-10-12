@@ -40,6 +40,7 @@ export const settings: typeof import('../es/settings').settings = {
   sectionAccount: 'Hesap',
   privacyPolicyHint: 'Verilerinle ne yaptığımız, sade bir dille',
   pushNotificationsHint: 'Yeni mesajlar ve etkinlikler için bildirim al',
+  pushNotificationsSystemHint: 'Cihaz ayarlarından aç veya kapat',
   aboutHint: 'Weë\'nin ne olduğu ve kullandığın sürüm',
   helpHint: 'Sık sorulan sorular ve iletişim',
   signOutHint: 'Hesabından çıkış yap',

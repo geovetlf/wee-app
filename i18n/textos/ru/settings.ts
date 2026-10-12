@@ -63,6 +63,7 @@ export const settings: ConPlurales<typeof import('../es/settings').settings> = {
   sectionAccount: 'Аккаунт',
   privacyPolicyHint: 'Что мы делаем с вашими данными, простыми словами',
   pushNotificationsHint: 'Получайте уведомления о новых сообщениях и активности',
+  pushNotificationsSystemHint: 'Включайте и выключайте их в настройках вашего устройства',
   aboutHint: 'Что такое Weë и какая у вас версия',
   helpHint: 'Частые вопросы и контакты',
   signOutHint: 'Выйти из вашего аккаунта',

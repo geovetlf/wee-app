@@ -45,6 +45,7 @@ export const settings: typeof import('../es/settings').settings = {
   sectionAccount: 'Conta',
   privacyPolicyHint: 'O que fazemos com os teus dados, em palavras simples',
   pushNotificationsHint: 'Recebe notificações de novas mensagens e de atividade',
+  pushNotificationsSystemHint: 'Ativa ou desativa nas definições do teu dispositivo',
   aboutHint: 'O que é o Weë e em que versão estás',
   helpHint: 'Perguntas frequentes e contacto',
   signOutHint: 'Sair da tua conta',

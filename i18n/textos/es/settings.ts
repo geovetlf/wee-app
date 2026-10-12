@@ -32,6 +32,7 @@ export const settings = {
   sectionAccount: 'Cuenta',
   privacyPolicyHint: 'Qué hacemos con tus datos, en palabras simples',
   pushNotificationsHint: 'Recibe notificaciones de nuevos mensajes y actividad',
+  pushNotificationsSystemHint: 'Actívalas o desactívalas en los ajustes de tu dispositivo',
   aboutHint: 'Qué es Weë y en qué versión estás',
   helpHint: 'Preguntas frecuentes y contacto',
   signOutHint: 'Salir de tu cuenta',

@@ -45,6 +45,7 @@ export const settings: typeof import('../es/settings').settings = {
   sectionAccount: 'Konto',
   privacyPolicyHint: 'Vad vi gör med dina uppgifter – enkelt förklarat',
   pushNotificationsHint: 'Få aviseringar om nya meddelanden och aktivitet',
+  pushNotificationsSystemHint: 'Slå på eller av dem i enhetens inställningar',
   aboutHint: 'Vad Weë är och vilken version du har',
   helpHint: 'Vanliga frågor och kontakt',
   signOutHint: 'Logga ut från ditt konto',

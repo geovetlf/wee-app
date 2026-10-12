@@ -61,6 +61,7 @@ export const settings: typeof import('../es/settings').settings = {
   sectionAccount: '帳號',
   privacyPolicyHint: '用簡單的話說明我們怎麼處理你的資料',
   pushNotificationsHint: '接收新訊息和最新動態的通知',
+  pushNotificationsSystemHint: '在裝置設定裡開啟或關閉',
   aboutHint: '了解 Weë 是什麼，以及你現在用的版本',
   helpHint: '常見問題與聯絡方式',
   signOutHint: '登出你的帳號',
