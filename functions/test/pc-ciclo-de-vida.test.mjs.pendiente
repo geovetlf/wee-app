@@ -1,0 +1,460 @@
+/**
+ * MIS PROYECTOS / MIS CREACIONES — EL CICLO DE VIDA CONTRA EL CONTRATO (R9 · línea D).
+ *
+ * ── ESTADO: PENDIENTE DE INTEGRACIÓN ─────────────────────────────────────────
+ *
+ * Esta suite prueba `services/cicloDeTrabajo.ts` (contrato de la línea A, rama `r9/pc-dominio`) y el servidor que lo
+ * atiende (`functions/src/content/creaciones.ts`). Sobre la base 42663be5 esos archivos no existen o son stubs que
+ * lanzan `pendiente`, así que vive FUERA de la cadena con la extensión `.pendiente`.
+ *
+ * ACTIVARLA (lo hace el coordinador al integrar `r9/pc-dominio`):
+ *   1. git mv functions/test/pc-ciclo-de-vida.test.mjs.pendiente functions/test/pc-ciclo-de-vida.test.mjs
+ *   2. añadir `node test/pc-ciclo-de-vida.test.mjs` a la cadena de `functions/package.json` (junto a pc-regresion).
+ *   3. node test/pc-ciclo-de-vida.test.mjs   (desde functions/; sin emulador, sin red, sin compilar functions)
+ * Si el contrato sigue en stubs, la suite lo dice en la primera comprobación y falla: nunca da un verde vacío.
+ *
+ * ── Cómo prueba ──────────────────────────────────────────────────────────────
+ *
+ * De punta a punta y en memoria: el CLIENTE de verdad (`services/cicloDeTrabajo.ts`, `services/projectsService.ts`,
+ * `services/firestoreService.ts`, transpilados por `filmmaker-cliente.mjs`) habla con una Firestore modular doblada
+ * que escribe en la MISMA `BaseEnMemoria` (`_firestore-en-memoria.mjs`) que usa el SERVIDOR de verdad
+ * (`functions/src/content/creaciones.ts`, también transpilado). El callable `cicloDeTrabajo` se enruta al manejador del
+ * servidor con la sesión de quien llama: la cuenta la pone la sesión, nunca el cliente. «Reabrir la app» es cargar
+ * el cliente otra vez desde cero sobre la misma base.
+ *
+ *   1 · crear un proyecto → está en Mis proyectos y NO en Mis creaciones
+ *   2 · editarlo (renombrar, añadir trabajos) → sigue en Mis proyectos
+ *   3 · reabrir la app → se recupera
+ *   4 · finalizar → aparece en Mis creaciones, referenciando los assets, y el proyecto SIGUE en Mis proyectos
+ *   5 · finalizar dos veces (mismo requestId, o mismo conjunto) → una sola creación, ningún asset copiado ni tocado
+ *   6 · volver a editar → abre el proyecto de origen y la creación conserva la relación
+ *   7 · eliminar la creación → sale de Mis creaciones; el proyecto y los assets siguen
+ *   8 · borrar o archivar el proyecto → la creación sigue intacta; reabrir crea UN proyecto vinculado (o desarchiva)
+ *  17 · aislamiento: otra cuenta no ve, no finaliza, no reabre ni elimina nada ajeno
+ *  18 · lo privado no está en el Wäll ni en Weëls: nada de esto escribe en `posts` ni lo lee el muro
+ *  19 · publicar no destruye ni mueve: el Weël referencia, la creación, el proyecto y los assets quedan igual
+ *  20 · lo de demostración va aparte: el trabajo simulado (`demo: true`) de la persona sigue en Mis proyectos; el
+ *       contenido sembrado (`procedenciaDemo`, cuentas `demo_*`) nunca entra en su biblioteca
+ *   U · local / Weë Cloud es UBICACIÓN: una creación local y una en la nube son igual de finales
+ *
+ * Cada negativo va con su CONTROL positivo (lo mismo, hecho por quien sí puede, funciona), para que «falla» no
+ * signifique «todo falla».
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { crearCargador, RAIZ } from './filmmaker-cliente.mjs';
+import { BaseEnMemoria } from './_firestore-en-memoria.mjs';
+
+const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8').replace(/\r\n/g, '\n');
+const existe = (p) => fs.existsSync(path.resolve(RAIZ, p));
+const sinComentarios = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+let failures = 0;
+let total = 0;
+const check = (name, cond, extra = '') => {
+  total++;
+  if (!cond) failures++;
+  console.log(`${cond ? '✔' : '✘'} ${name}${extra ? ` — ${extra}` : ''}`);
+};
+const fin = () => {
+  console.log(`\n${failures === 0 ? '✔' : '✘'} pc-ciclo-de-vida: ${total - failures}/${total}${failures ? ` — ${failures} fallo(s)` : ''}`);
+  process.exit(failures ? 1 : 0);
+};
+
+const CLIENTE = 'services/cicloDeTrabajo.ts';
+const SERVIDOR = 'functions/src/content/creaciones.ts';
+
+console.log('\n── 0 · El contrato está y está implementado ──');
+check(`0a) existe ${CLIENTE}`, existe(CLIENTE));
+check(`0b) existe ${SERVIDOR}`, existe(SERVIDOR));
+if (!existe(CLIENTE) || !existe(SERVIDOR)) fin();
+{
+  const src = sinComentarios(leer(CLIENTE));
+  const exporta = (n) => new RegExp(`export (async function|const|function) ${n}\\b`).test(src);
+  const faltan = ['listarProyectosEnCurso', 'listarCreacionesFinales', 'finalizarCreacion', 'reabrirParaEditar'].filter((n) => !exporta(n));
+  check('0c) el contrato exporta listarProyectosEnCurso, listarCreacionesFinales, finalizarCreacion y reabrirParaEditar', faltan.length === 0, faltan.join(', '));
+  check("0d) los tipos del contrato están: EstadoDeTrabajo = 'en_proceso' | 'final' y UbicacionDeRecurso = 'local' | 'wee_cloud' | 'remoto_legado'",
+    /export type EstadoDeTrabajo = 'en_proceso' \| 'final';/.test(src) && /export type UbicacionDeRecurso = 'local' \| 'wee_cloud' \| 'remoto_legado';/.test(src));
+}
+
+/* ─────────────── el mundo en memoria ─────────────── */
+let reloj = 1_000;
+const tic = () => (reloj += 1_000);
+class TS {
+  constructor(ms) { this.ms = ms; }
+  toMillis() { return this.ms; }
+}
+const milis = (v) => (typeof v === 'number' ? v : v && typeof v.toMillis === 'function' ? v.toMillis() : 0);
+const BORRAR = Symbol('deleteField');
+const leerCampo = (d, f) => f.split('.').reduce((o, k) => (o == null ? undefined : o[k]), d);
+
+class HttpsError extends Error {
+  constructor(code, message, details) { super(message); this.code = code; this.details = details; }
+}
+
+const base = new BaseEnMemoria();
+const sinBorrar = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== BORRAR));
+
+/* El servidor de verdad, sobre la base. `leerMaterial` lee la ficha de `assets` como el de content/index.ts. */
+const cargarServidor = () => crearCargador({
+  reales: ['crypto'],
+  dobles: {
+    'firebase-admin/firestore': { getFirestore: () => base, Timestamp: { now: () => new TS(tic()), fromMillis: (ms) => new TS(ms) }, FieldValue: { serverTimestamp: () => new TS(tic()), delete: () => BORRAR } },
+    'firebase-functions/v2/https': { onCall: (_opciones, manejador) => manejador, HttpsError },
+    'firebase-functions/v2': { logger: { info() {}, warn() {}, error() {} } },
+    'firebase-functions/logger': { info() {}, warn() {}, error() {} },
+    './index': { leerMaterial: async (id) => base.leer(`assets/${id}`) ?? null },
+  },
+})(SERVIDOR);
+let servidor;
+try {
+  servidor = cargarServidor();
+} catch (e) {
+  check('0e) el servidor se carga en Node con sus dobles', false, String(e?.message || e));
+  fin();
+}
+
+/* La Firestore MODULAR del cliente, escribiendo en la misma base que el servidor. */
+const crearFirestoreCliente = () => {
+  const col = (_db, nombre) => ({ __col: nombre });
+  const ref = (a, b, c) => {
+    if (a && a.__col) return { __ref: `${a.__col}/${b ?? `auto_${++base.auto}`}` };
+    return { __ref: `${b}/${c}` };
+  };
+  const snapDoc = (p, d) => ({ id: p.split('/').pop(), ref: { __ref: p }, exists: () => d !== undefined, data: () => d, get: (f) => leerCampo(d, f) });
+  const ejecutar = (q) => {
+    let filas = base.de(q.__col).map(({ id, ...d }) => [`${q.__col}/${id}`, d]);
+    for (const p of q.partes ?? []) {
+      if (p.t === 'where') {
+        filas = filas.filter(([, d]) => {
+          const v = leerCampo(d, p.f);
+          if (p.op === '==') return v === p.v;
+          if (p.op === 'in') return p.v.includes(v);
+          if (p.op === 'array-contains') return Array.isArray(v) && v.includes(p.v);
+          if (p.op === '!=') return v !== p.v;
+          throw new Error(`operador no doblado: ${p.op}`);
+        });
+      }
+    }
+    const orden = (q.partes ?? []).filter((p) => p.t === 'orderBy');
+    if (orden.length) {
+      filas.sort((a, b) => {
+        for (const o of orden) {
+          const x = leerCampo(a[1], o.f); const y = leerCampo(b[1], o.f);
+          const dx = milis(x) || x; const dy = milis(y) || y;
+          if (dx < dy) return o.dir === 'desc' ? 1 : -1;
+          if (dx > dy) return o.dir === 'desc' ? -1 : 1;
+        }
+        return 0;
+      });
+    }
+    const despues = (q.partes ?? []).find((p) => p.t === 'startAfter');
+    if (despues) {
+      const i = filas.findIndex(([p]) => p === despues.c?.ref?.__ref);
+      filas = filas.slice(i + 1);
+    }
+    const tope = (q.partes ?? []).find((p) => p.t === 'limit');
+    if (tope) filas = filas.slice(0, tope.n);
+    const docs = filas.map(([p, d]) => snapDoc(p, d));
+    return { docs, empty: !docs.length, size: docs.length, forEach: (fn) => docs.forEach(fn) };
+  };
+  const api = {
+    collection: col,
+    doc: ref,
+    where: (f, op, v) => ({ t: 'where', f, op, v }),
+    orderBy: (f, dir = 'asc') => ({ t: 'orderBy', f, dir }),
+    limit: (n) => ({ t: 'limit', n }),
+    startAfter: (c) => ({ t: 'startAfter', c }),
+    query: (c, ...partes) => ({ ...c, partes: [...(c.partes ?? []), ...partes] }),
+    getDocs: async (q) => ejecutar(q),
+    getDoc: async (r) => snapDoc(r.__ref, base.leer(r.__ref)),
+    addDoc: async (c, datos) => { const r = ref(c); base.docs.set(r.__ref, sinBorrar(datos)); return { id: r.__ref.split('/').pop() }; },
+    setDoc: async (r, datos, opciones) => { base.docs.set(r.__ref, sinBorrar(opciones?.merge ? { ...(base.leer(r.__ref) ?? {}), ...datos } : datos)); },
+    updateDoc: async (r, datos) => {
+      const previo = base.leer(r.__ref);
+      if (!previo) throw Object.assign(new Error(`not-found: ${r.__ref}`), { code: 'not-found' });
+      const nuevo = { ...previo };
+      for (const [k, v] of Object.entries(datos)) { if (v === BORRAR) delete nuevo[k]; else nuevo[k] = v; }
+      base.docs.set(r.__ref, nuevo);
+    },
+    deleteDoc: async (r) => { base.docs.delete(r.__ref); },
+    deleteField: () => BORRAR,
+    serverTimestamp: () => new TS(tic()),
+    increment: (n) => n,
+    arrayUnion: (...v) => v,
+    arrayRemove: () => [],
+    Timestamp: { now: () => new TS(tic()), fromMillis: (ms) => new TS(ms), fromDate: (d) => new TS(+d) },
+  };
+  return new Proxy(api, { get: (t, k) => (k in t ? t[k] : () => { throw new Error(`firebase/firestore.${String(k)} no doblado`); }) });
+};
+
+/* El callable, con la sesión de quien llama. Un HttpsError llega como lo entrega el SDK: `functions/<code>` + details. */
+const crearFunctionsCliente = (sesion) => ({
+  httpsCallable: (_f, nombre) => async (datos) => {
+    const manejador = servidor[nombre];
+    if (typeof manejador !== 'function') throw Object.assign(new Error('not-found'), { code: 'functions/not-found' });
+    try {
+      return { data: await manejador({ auth: sesion ? { uid: sesion } : undefined, data: datos }) };
+    } catch (e) {
+      if (e instanceof HttpsError) throw Object.assign(new Error(e.message), { code: `functions/${e.code}`, details: e.details });
+      throw e;
+    }
+  },
+});
+
+/* Un cliente = la app abierta con una sesión. Cargarlo otra vez = cerrar y reabrir la app. */
+const abrirApp = (uid) => {
+  const firestore = crearFirestoreCliente();
+  const config = { db: { __db: true }, functions: { __functions: true }, auth: { currentUser: uid ? { uid } : null }, storage: {} };
+  const cargar = crearCargador({
+    dobles: {
+      'firebase/firestore': firestore,
+      'firebase/functions': crearFunctionsCliente(uid),
+      '../config/firebase': config,
+    },
+  });
+  return { ciclo: cargar(CLIENTE), proyectos: cargar('services/projectsService.ts').projectsService, posts: cargar('services/firestoreService.ts').postsService };
+};
+
+/* Lo que el SERVIDOR escribe al generar (no hay cliente que lo haga): un trabajo y su asset. */
+const sembrarTrabajo = (uid, jobId, { projectId, experienceId = 'design', demo = true, extra = {} } = {}) => {
+  base.docs.set(`creatorJobs/${jobId}`, {
+    id: jobId, userId: uid, experienceId, goal: 'un logo', status: 'done', demo, results: [{ kind: 'image', url: `https://x/${jobId}.png` }],
+    ...(projectId ? { projectId } : {}), createdAt: new TS(tic()), updatedAt: new TS(reloj), ...extra,
+  });
+};
+const sembrarAsset = (uid, assetId, { jobId, provider = 'wee', kind = 'image', extra = {} } = {}) => {
+  base.docs.set(`assets/${assetId}`, {
+    assetId, ownerAccountId: uid, kind, status: 'ready', name: 'Logo', mimeType: 'image/png', bytes: 1234,
+    storageRef: provider ? { provider, path: `users/${uid}/ai-generations/${assetId}.png` } : null,
+    provenance: jobId ? { jobId, origin: 'generated' } : { origin: 'uploaded' },
+    metadata: { experienceId: 'design' }, createdAt: tic(), ...extra,
+  });
+};
+const huella = (prefijo) => JSON.stringify(base.de(prefijo).sort((a, b) => (a.id < b.id ? -1 : 1)));
+const codigo = async (promesa) => { try { await promesa; return 'ok'; } catch (e) { return e?.code ?? e?.message ?? String(e); } };
+
+/* ─────────────── 1–3 · en proceso ─────────────── */
+let ana = abrirApp('ana');
+{
+  const r = await codigo(ana.ciclo.listarProyectosEnCurso('ana'));
+  check('0f) listarProyectosEnCurso está IMPLEMENTADA (no lanza «pendiente»)', r === 'ok', r);
+  if (r !== 'ok') fin();
+}
+console.log('\n── 1–3 · Mis proyectos = en proceso y continuable ──');
+const p1 = await ana.proyectos.create('ana', 'Mi restaurante', '🍔');
+{
+  const enCurso = await ana.ciclo.listarProyectosEnCurso('ana');
+  const fila = enCurso.find((p) => p.id === p1.id);
+  check('1) crear un proyecto → está en Mis proyectos, en proceso', !!fila && fila.estado === 'en_proceso' && fila.nombre === 'Mi restaurante', JSON.stringify(fila));
+  const finales = await ana.ciclo.listarCreacionesFinales('ana');
+  check('1b) …y NO está en Mis creaciones (nada terminado todavía)', Array.isArray(finales.creaciones) && finales.creaciones.length === 0);
+}
+await ana.proyectos.rename(p1.id, 'Mi restaurante italiano');
+sembrarTrabajo('ana', 'job_ana_1', { projectId: p1.id });
+sembrarAsset('ana', 'asset_ana_1', { jobId: 'job_ana_1' });
+sembrarTrabajo('ana', 'job_ana_2', { projectId: p1.id });
+sembrarAsset('ana', 'asset_ana_2', { jobId: 'job_ana_2' });
+{
+  const fila = (await ana.ciclo.listarProyectosEnCurso('ana')).find((p) => p.id === p1.id);
+  check('2) editar (renombrar, dos trabajos dentro) → sigue en Mis proyectos, con su nombre nuevo y sus trabajos',
+    !!fila && fila.estado === 'en_proceso' && fila.nombre === 'Mi restaurante italiano' && fila.trabajos === 2, JSON.stringify(fila));
+  check('2b) …y sigue sin estar en Mis creaciones', (await ana.ciclo.listarCreacionesFinales('ana')).creaciones.length === 0);
+}
+ana = abrirApp('ana');
+{
+  const fila = (await ana.ciclo.listarProyectosEnCurso('ana')).find((p) => p.id === p1.id);
+  check('3) reabrir la app (cliente nuevo, misma persistencia) → el proyecto se recupera tal cual', !!fila && fila.nombre === 'Mi restaurante italiano' && fila.trabajos === 2);
+}
+
+/* ─────────────── 4–5 · finalizar ─────────────── */
+console.log('\n── 4–5 · Finalizar = Mis creaciones, sin duplicar ni copiar ──');
+const assetsAntes = huella('assets');
+const r1 = await ana.ciclo.finalizarCreacion({ assetIds: ['asset_ana_1'], proyectoOrigenId: p1.id, requestId: 'req-ana-0001' });
+{
+  const finales = (await ana.ciclo.listarCreacionesFinales('ana')).creaciones;
+  const c = finales.find((x) => x.id === r1.creacionId);
+  check('4) finalizar → aparece en Mis creaciones', r1.yaExistia === false && !!c, JSON.stringify(r1));
+  check('4b) …referenciando el asset por id y recordando el proyecto de origen', !!c && JSON.stringify(c.assetIds) === '["asset_ana_1"]' && c.proyectoOrigenId === p1.id, JSON.stringify(c));
+  check('4c) …y el proyecto SIGUE en Mis proyectos (finalizar no lo cierra)', (await ana.ciclo.listarProyectosEnCurso('ana')).some((p) => p.id === p1.id));
+}
+{
+  const r2 = await ana.ciclo.finalizarCreacion({ assetIds: ['asset_ana_1'], proyectoOrigenId: p1.id, requestId: 'req-ana-0001' });
+  const r3 = await ana.ciclo.finalizarCreacion({ assetIds: ['asset_ana_1'], requestId: 'req-ana-0002' });
+  const docs = base.de('creations').filter((d) => d.ownerAccountId === 'ana');
+  check('5) finalizar otra vez (mismo requestId) → la misma creación, yaExistia', r2.creacionId === r1.creacionId && r2.yaExistia === true);
+  check('5b) finalizar el mismo conjunto con otro requestId → la misma creación, yaExistia', r3.creacionId === r1.creacionId && r3.yaExistia === true);
+  check('5c) …hay UN solo documento de creación y Mis creaciones lo enseña una vez', docs.length === 1 && (await ana.ciclo.listarCreacionesFinales('ana')).creaciones.length === 1, String(docs.length));
+  check('5d) …y ningún asset se creó, copió ni cambió (bytes y fichas idénticos)', huella('assets') === assetsAntes);
+  const conflicto = await codigo(ana.ciclo.finalizarCreacion({ assetIds: ['asset_ana_2'], requestId: 'req-ana-0001' }));
+  check('5e) reutilizar un requestId para OTRO conjunto es un conflicto, no una segunda creación', conflicto !== 'ok' && base.de('creations').length === 1, conflicto);
+  /* CONTROL: otro conjunto con su propio requestId SÍ crea otra creación (el «uno solo» de arriba no es que nunca cree). */
+  const r4 = await ana.ciclo.finalizarCreacion({ assetIds: ['asset_ana_2'], proyectoOrigenId: p1.id, requestId: 'req-ana-0003' });
+  check('5f) CONTROL: otro conjunto con su requestId SÍ es otra creación', r4.yaExistia === false && r4.creacionId !== r1.creacionId && base.de('creations').length === 2);
+}
+check('5g) el servidor de creaciones no escribe en Storage ni crea assets (no importa Storage ni escribe en `assets`)',
+  !/firebase-admin\/storage|getStorage|\.bucket\(/.test(sinComentarios(leer(SERVIDOR))) && !/collection\(\s*['"]assets['"]\s*\)\s*\.doc\([^)]*\)\s*\.(set|update|delete)/.test(sinComentarios(leer(SERVIDOR))));
+
+/* ─────────────── 6 · volver a editar ─────────────── */
+console.log('\n── 6 · Volver a editar conserva la relación ──');
+{
+  const r = await ana.ciclo.reabrirParaEditar(r1.creacionId);
+  check('6) reabrir una creación abre su proyecto de origen (no crea otro)', r.proyectoId === p1.id && r.nuevo === false, JSON.stringify(r));
+  const c = (await ana.ciclo.listarCreacionesFinales('ana')).creaciones.find((x) => x.id === r1.creacionId);
+  check('6b) …la creación sigue en Mis creaciones y conserva proyectoOrigenId', !!c && c.proyectoOrigenId === p1.id);
+  check('6c) …y el proyecto sigue en Mis proyectos', (await ana.ciclo.listarProyectosEnCurso('ana')).some((p) => p.id === p1.id));
+}
+
+/* ─────────────── 7 · eliminar una creación ─────────────── */
+console.log('\n── 7 · Eliminar una creación no borra el proyecto ──');
+{
+  const proyectosAntes = huella('creatorProjects');
+  const trabajosAntes = huella('creatorJobs');
+  const assetsAntes7 = huella('assets');
+  const tieneEliminar = typeof ana.ciclo.eliminarCreacion === 'function';
+  check('7a) el contrato ofrece eliminar una creación', tieneEliminar);
+  if (tieneEliminar) {
+    const r4id = base.de('creations').find((d) => d.ownerAccountId === 'ana' && d.assetIds.includes('asset_ana_2')).creationId;
+    await ana.ciclo.eliminarCreacion(r4id);
+    const finales = (await ana.ciclo.listarCreacionesFinales('ana')).creaciones;
+    check('7) eliminar una creación → sale de Mis creaciones', !finales.some((x) => x.id === r4id) && finales.some((x) => x.id === r1.creacionId));
+    check('7b) …el proyecto sigue (en Mis proyectos y su documento intacto)', huella('creatorProjects') === proyectosAntes && (await ana.ciclo.listarProyectosEnCurso('ana')).some((p) => p.id === p1.id));
+    check('7c) …ningún asset se retira ni cambia, y ningún trabajo se toca', huella('assets') === assetsAntes7 && huella('creatorJobs') === trabajosAntes);
+    const again = await ana.ciclo.eliminarCreacion(r4id);
+    check('7d) eliminarla dos veces no rompe nada (idempotente)', !!again && huella('assets') === assetsAntes7);
+  }
+}
+
+/* ─────────────── 8 · borrar / archivar el proyecto ─────────────── */
+console.log('\n── 8 · Borrar o archivar el proyecto no rompe la creación ──');
+{
+  /* Archivar */
+  const p2 = await ana.proyectos.create('ana', 'Viaje', '✈️');
+  sembrarTrabajo('ana', 'job_ana_3', { projectId: p2.id, experienceId: 'travel' });
+  sembrarAsset('ana', 'asset_ana_3', { jobId: 'job_ana_3' });
+  const c2 = await ana.ciclo.finalizarCreacion({ assetIds: ['asset_ana_3'], requestId: 'req-ana-0004' });
+  const creacionAntes = JSON.stringify(base.leer(`creations/${c2.creacionId}`));
+  check('8pre) sin decirle el proyecto, la creación toma el de su trabajo de origen', base.leer(`creations/${c2.creacionId}`)?.proyectoOrigenId === p2.id);
+  const archivar = typeof ana.ciclo.archivarProyecto === 'function' ? (id) => ana.ciclo.archivarProyecto(id) : typeof ana.proyectos.archive === 'function' ? (id) => ana.proyectos.archive(id) : null;
+  check('8a) se puede archivar un proyecto', !!archivar);
+  if (archivar) {
+    await archivar(p2.id);
+    check('8) archivar el proyecto → sale de Mis proyectos', !(await ana.ciclo.listarProyectosEnCurso('ana')).some((p) => p.id === p2.id));
+    check('8b) …la creación sigue en Mis creaciones, sin cambiar', JSON.stringify(base.leer(`creations/${c2.creacionId}`)) === creacionAntes
+      && (await ana.ciclo.listarCreacionesFinales('ana')).creaciones.some((x) => x.id === c2.creacionId));
+    const r = await ana.ciclo.reabrirParaEditar(c2.creacionId);
+    check('8c) volver a editar un proyecto archivado lo devuelve a Mis proyectos (el mismo, no uno nuevo)', r.proyectoId === p2.id && r.nuevo === false
+      && (await ana.ciclo.listarProyectosEnCurso('ana')).some((p) => p.id === p2.id));
+  }
+  /* Borrar */
+  const proyectosAntesDeBorrar = base.de('creatorProjects').length;
+  await ana.proyectos.remove(p1.id);
+  const c = (await ana.ciclo.listarCreacionesFinales('ana')).creaciones.find((x) => x.id === r1.creacionId);
+  check('8d) borrar el proyecto de origen → la creación sigue en Mis creaciones con sus assets', !!c && JSON.stringify(c.assetIds) === '["asset_ana_1"]' && base.leer('assets/asset_ana_1')?.status === 'ready');
+  const ra = await ana.ciclo.reabrirParaEditar(r1.creacionId);
+  const rb = await ana.ciclo.reabrirParaEditar(r1.creacionId);
+  check('8e) volver a editar sin proyecto de origen crea UN proyecto vinculado, de la persona, en Mis proyectos', ra.nuevo === true && ra.proyectoId !== p1.id
+    && base.leer(`creatorProjects/${ra.proyectoId}`)?.userId === 'ana' && (await ana.ciclo.listarProyectosEnCurso('ana')).some((p) => p.id === ra.proyectoId), JSON.stringify(ra));
+  check('8f) reabrir otra vez da el MISMO proyecto vinculado (no un segundo)', rb.proyectoId === ra.proyectoId && rb.nuevo === false
+    && base.de('creatorProjects').length === proyectosAntesDeBorrar, JSON.stringify(rb));
+  const cTras = (await ana.ciclo.listarCreacionesFinales('ana')).creaciones.find((x) => x.id === r1.creacionId);
+  check('8g) …y la creación queda relacionada con ese proyecto', cTras?.proyectoOrigenId === ra.proyectoId);
+}
+
+/* ─────────────── 17 · aislamiento ─────────────── */
+console.log('\n── 17 · Aislamiento entre cuentas ──');
+const beto = abrirApp('beto');
+{
+  sembrarTrabajo('beto', 'job_beto_1', {});
+  sembrarAsset('beto', 'asset_beto_1', { jobId: 'job_beto_1' });
+  const pb = await beto.proyectos.create('beto', 'Lo de Beto', '📁');
+  check('17) Beto no ve los proyectos de Ana; solo el suyo', (await beto.ciclo.listarProyectosEnCurso('beto')).map((p) => p.id).join() === pb.id);
+  check('17b) Beto no ve las creaciones de Ana', (await beto.ciclo.listarCreacionesFinales('beto')).creaciones.length === 0);
+  const antes = huella('creations');
+  const robo = await codigo(beto.ciclo.finalizarCreacion({ assetIds: ['asset_ana_1'], requestId: 'req-beto-0001' }));
+  check('17c) Beto NO puede finalizar un asset de Ana (contesta como si no existiera)', robo !== 'ok' && huella('creations') === antes, robo);
+  const mezcla = await codigo(beto.ciclo.finalizarCreacion({ assetIds: ['asset_beto_1'], proyectoOrigenId: base.de('creatorProjects').find((p) => p.userId === 'ana').id, requestId: 'req-beto-0002' }));
+  check('17d) Beto NO puede colgar su creación de un proyecto de Ana', mezcla !== 'ok' && huella('creations') === antes, mezcla);
+  const reab = await codigo(beto.ciclo.reabrirParaEditar(r1.creacionId));
+  const elim = typeof beto.ciclo.eliminarCreacion === 'function' ? await codigo(beto.ciclo.eliminarCreacion(r1.creacionId)) : 'sin-eliminar';
+  check('17e) Beto NO reabre ni elimina una creación de Ana, y nada cambia', reab !== 'ok' && elim !== 'ok' && huella('creations') === antes, `${reab} / ${elim}`);
+  const sinSesion = abrirApp(null);
+  const anon = await codigo(sinSesion.ciclo.finalizarCreacion({ assetIds: ['asset_ana_1'], requestId: 'req-anon-001' }));
+  check('17f) sin sesión no se finaliza nada', anon !== 'ok' && huella('creations') === antes, anon);
+  /* CONTROL: lo mismo, con lo suyo, a Beto SÍ le funciona. */
+  const propio = await beto.ciclo.finalizarCreacion({ assetIds: ['asset_beto_1'], proyectoOrigenId: pb.id, requestId: 'req-beto-0003' });
+  check('17g) CONTROL: Beto SÍ finaliza lo suyo y lo ve él, y Ana no', propio.yaExistia === false
+    && (await beto.ciclo.listarCreacionesFinales('beto')).creaciones.some((x) => x.id === propio.creacionId)
+    && !(await ana.ciclo.listarCreacionesFinales('ana')).creaciones.some((x) => x.id === propio.creacionId));
+}
+
+/* ─────────────── 18–19 · lo privado no es público; publicar no destruye ─────────────── */
+console.log('\n── 18–19 · Fuera del Wäll y de Weëls; publicar no destruye ni mueve ──');
+{
+  check('18) nada del ciclo de vida escribió en posts', base.de('posts').length === 0);
+  const fuentes = [CLIENTE, SERVIDOR, 'services/projectsService.ts'].map((f) => sinComentarios(leer(f)));
+  check("18b) ni el contrato ni su servidor nombran la colección posts", fuentes.every((s) => !/['"]posts['"]/.test(s)));
+  const muro = ['screens/HomeScreen.tsx', 'screens/LandingScreen.tsx', 'screens/WebLandingScreen.tsx', 'screens/ReelsScreen.tsx', 'components/WeelsRow.tsx', 'services/firestoreService.ts'];
+  const leen = muro.filter((f) => /cicloDeTrabajo|['"]creations['"]|creatorProjects|assetsService/.test(sinComentarios(leer(f))));
+  check('18c) el muro y los Weëls no leen creaciones, proyectos ni la biblioteca', leen.length === 0, leen.join(', '));
+  check('18d) CONTROL: el detector de 18c ve una lectura de creations', /['"]creations['"]/.test("collection(db, 'creations')"));
+
+  const huellas = { creations: huella('creations'), creatorProjects: huella('creatorProjects'), assets: huella('assets'), creatorJobs: huella('creatorJobs') };
+  const idPost = await ana.posts.create({
+    userId: 'ana', content: 'mi logo', imageUrls: [], videoUrl: 'https://res.cloudinary.com/x/video/upload/v1/w.mp4', isWeel: true,
+    assetIds: ['asset_ana_1'], videoAssetId: 'asset_ana_1', likes: 0, comments: 0, shares: 0, views: 0, isPrivate: false, hashtags: [],
+    createdAt: new TS(tic()), updatedAt: new TS(reloj),
+  });
+  const post = base.leer(`posts/${idPost}`);
+  check('19) publicar un Weël con un asset de una creación crea UN post que lo referencia por id', base.de('posts').length === 1 && JSON.stringify(post?.assetIds) === '["asset_ana_1"]');
+  check('19b) …y la creación, el proyecto, el trabajo y el asset quedan EXACTAMENTE igual (ni se finaliza, ni se mueve, ni se borra)',
+    huella('creations') === huellas.creations && huella('creatorProjects') === huellas.creatorProjects && huella('assets') === huellas.assets && huella('creatorJobs') === huellas.creatorJobs);
+  check('19c) …y sigue en Mis creaciones', (await ana.ciclo.listarCreacionesFinales('ana')).creaciones.some((x) => x.id === r1.creacionId));
+}
+
+/* ─────────────── 20 · demo aparte ─────────────── */
+console.log('\n── 20 · Lo de demostración va aparte ──');
+{
+  /* El trabajo simulado de la persona (`demo: true` en creatorJobs = modo de ejecución) es SUYO y sigue en su biblioteca. */
+  const pd = await ana.proyectos.create('ana', 'Sin claves', '📁');
+  sembrarTrabajo('ana', 'job_ana_demo', { projectId: pd.id, demo: true });
+  const fila = (await ana.ciclo.listarProyectosEnCurso('ana')).find((p) => p.id === pd.id);
+  check('20) un proyecto cuyo trabajo se SIMULÓ (demo: true) sigue en Mis proyectos de su dueña', !!fila && fila.trabajos === 1, JSON.stringify(fila));
+  /* El contenido sembrado del modo demo: de cuentas demo_*, con procedenciaDemo. */
+  base.docs.set('creatorProjects/demo_proj_1', { userId: 'demo_creadora', name: 'Demo', emoji: '📁', demo: true, procedenciaDemo: 'wee-demo-r9', createdAt: new TS(tic()), updatedAt: new TS(reloj) });
+  sembrarAsset('demo_creadora', 'demo_asset_1', { extra: { demo: true, procedenciaDemo: 'wee-demo-r9' } });
+  base.docs.set('creations/demo_creation_1', { contract: 1, creationId: 'demo_creation_1', ownerAccountId: 'demo_creadora', assetIds: ['demo_asset_1'], nombre: 'Demo', tipo: 'image', herramienta: null, ubicacion: 'wee_cloud', proyectoOrigenId: null, requestId: 'demo-req-0001', status: 'final', finalizadaEn: tic(), createdAt: reloj, updatedAt: reloj, demo: true, procedenciaDemo: 'wee-demo-r9' });
+  const proyectosAna = await ana.ciclo.listarProyectosEnCurso('ana');
+  const creacionesAna = (await ana.ciclo.listarCreacionesFinales('ana')).creaciones;
+  check('20b) nada sembrado por el modo demo entra en Mis proyectos ni en Mis creaciones de Ana',
+    !proyectosAna.some((p) => p.id.startsWith('demo_')) && !creacionesAna.some((c) => c.id.startsWith('demo_') || c.assetIds.some((a) => a.startsWith('demo_'))));
+  const adopta = await codigo(ana.ciclo.finalizarCreacion({ assetIds: ['demo_asset_1'], requestId: 'req-ana-demo1' }));
+  check('20c) Ana no puede convertir un asset de demostración en creación suya', adopta !== 'ok', adopta);
+  check('20d) CONTROL: la cuenta demo SÍ ve lo suyo (el filtro es por cuenta, no un listado vacío)',
+    (await abrirApp('demo_creadora').ciclo.listarCreacionesFinales('demo_creadora')).creaciones.some((c) => c.id === 'demo_creation_1'));
+}
+
+/* ─────────────── U · ubicación ≠ estado ─────────────── */
+console.log('\n── U · Local / Weë Cloud es ubicación, no estado ──');
+{
+  sembrarAsset('ana', 'asset_ana_local', { provider: null });
+  sembrarAsset('ana', 'asset_ana_nube', { provider: 'wee' });
+  const l = await ana.ciclo.finalizarCreacion({ assetIds: ['asset_ana_local'], requestId: 'req-ana-loc1' });
+  const n = await ana.ciclo.finalizarCreacion({ assetIds: ['asset_ana_nube'], requestId: 'req-ana-nub1' });
+  const finales = (await ana.ciclo.listarCreacionesFinales('ana')).creaciones;
+  const cl = finales.find((x) => x.id === l.creacionId);
+  const cn = finales.find((x) => x.id === n.creacionId);
+  check("U1) una creación de un archivo LOCAL es final y dice ubicacion 'local'", cl?.ubicacion === 'local', JSON.stringify(cl));
+  check("U2) una en Weë Cloud es igual de final y dice 'wee_cloud'", cn?.ubicacion === 'wee_cloud', JSON.stringify(cn));
+  check('U3) las dos están en la misma lista (la ubicación no decide si algo está terminado)', !!cl && !!cn);
+}
+
+/* ─────────────── reglas de la colección nueva ─────────────── */
+console.log('\n── R · Las reglas de la colección de creaciones ──');
+{
+  const reglas = leer('firestore.rules').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  const m = reglas.match(/match \/creations\/\{creationId\} \{([^}]*)\}/);
+  check('R1) creations: cada cuenta lee solo lo suyo y el cliente no escribe (lo escribe el callable)',
+    !!m && /allow read: if isAuthenticated\(\) && resource\.data\.ownerAccountId == request\.auth\.uid;/.test(m[1]) && /allow create, update, delete: if false;/.test(m[1]) && !/if true/.test(m[1]));
+}
+
+fin();
