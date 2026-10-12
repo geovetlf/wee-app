@@ -103,7 +103,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   emptyKeepText: 'Här visas de resultat som du gör klart och väljer att behålla med ”{{accion}}”.',
   listPending: 'Vi kan inte visa Mina skapelser än. Dina resultat finns kvar i sina jobb.',
   locationLocal: 'På den här enheten',
-  locationCloud: 'I Weë Cloud',
+  locationCloud: 'Synkroniserat med Weë Cloud',
   locationLegacy: 'Tidigare lagring',
   locationLabel: 'Var den finns: {{lugar}}',
   fromProject: 'Från projektet {{proyecto}}',
@@ -112,4 +112,15 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   editAgainOf: 'Redigera {{nombre}} igen',
   editAgainPending: 'Det går inte att redigera igen än.',
   editAgainFailed: 'Vi kunde inte öppna den för redigering. Försök igen.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Inte bestämt',
+  undecidedText: 'Material som du skapade innan du kunde välja vad du ville behålla. Inget har flyttats eller raderats: behåll det du vill som en skapelse.',
+  undecidedFailed: 'Vi kunde inte ladda ditt material som inte är bestämt.',
+  undecidedRetry: 'Försök ladda material som inte är bestämt igen',
+  undecidedPending: 'Vi kan inte visa ditt material som inte är bestämt än. Inget har raderats.',
+  undecidedEmpty: 'Du har inget material som inte är bestämt.',
+  undecidedLoadMore: 'Ladda mer material som inte är bestämt',
+  keepAsCreation: 'Behåll som skapelse',
+  keepAsCreationOf: 'Behåll {{nombre}} som skapelse',
 };

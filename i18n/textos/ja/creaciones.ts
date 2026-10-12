@@ -97,7 +97,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   emptyKeepText: '完成させて「{{accion}}」で残すことにした結果がここに表示されます。',
   listPending: 'マイ作品はまだ表示できません。結果はそれぞれの作業に保存されたままです。',
   locationLocal: 'この端末',
-  locationCloud: 'Weë Cloud',
+  locationCloud: 'Weë Cloudと同期済み',
   locationLegacy: '以前のストレージ',
   locationLabel: '保存場所：{{lugar}}',
   fromProject: 'プロジェクト「{{proyecto}}」から',
@@ -106,4 +106,15 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   editAgainOf: '{{nombre}}をもう一度編集',
   editAgainPending: 'もう一度編集する機能はまだ利用できません。',
   editAgainFailed: '編集用に開けませんでした。もう一度お試しください。',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: '未決定',
+  undecidedText: '残すものを選べるようになる前に作った素材です。移動も削除もされていません。残したいものを作品として保存できます。',
+  undecidedFailed: '未決定の素材を読み込めませんでした。',
+  undecidedRetry: '未決定の素材をもう一度読み込む',
+  undecidedPending: '未決定の素材はまだ表示できません。何も削除されていません。',
+  undecidedEmpty: '未決定の素材はありません。',
+  undecidedLoadMore: '未決定の素材をさらに読み込む',
+  keepAsCreation: '作品として残す',
+  keepAsCreationOf: '{{nombre}}を作品として残す',
 };

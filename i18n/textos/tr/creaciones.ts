@@ -101,7 +101,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   emptyKeepText: 'Bitirip “{{accion}}” ile saklamaya karar verdiğin sonuçlar burada görünür.',
   listPending: 'Oluşturduklarım’ı henüz gösteremiyoruz. Sonuçların kendi işlerinde kayıtlı durmaya devam ediyor.',
   locationLocal: 'Bu cihazda',
-  locationCloud: 'Weë Cloud’da',
+  locationCloud: 'Weë Cloud ile eşitlendi',
   locationLegacy: 'Önceki depolama',
   locationLabel: 'Konumu: {{lugar}}',
   fromProject: 'Proje: {{proyecto}}',
@@ -110,4 +110,15 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   editAgainOf: '{{nombre}} öğesini yeniden düzenle',
   editAgainPending: 'Yeniden düzenleme henüz kullanılamıyor.',
   editAgainFailed: 'Düzenlemek için açamadık. Tekrar dene.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Karar verilmedi',
+  undecidedText: 'Neyi saklayacağını seçebilmeden önce oluşturduğun içerikler. Hiçbir şey taşınmadı ya da silinmedi: istediğini eser olarak sakla.',
+  undecidedFailed: 'Karar verilmemiş içeriklerini yükleyemedik.',
+  undecidedRetry: 'Karar verilmemiş içerikleri yeniden yüklemeyi dene',
+  undecidedPending: 'Karar verilmemiş içeriklerini henüz gösteremiyoruz. Hiçbir şey silinmedi.',
+  undecidedEmpty: 'Karar verilmemiş içeriğin yok.',
+  undecidedLoadMore: 'Daha fazla karar verilmemiş içerik yükle',
+  keepAsCreation: 'Eser olarak sakla',
+  keepAsCreationOf: '{{nombre}} öğesini eser olarak sakla',
 };

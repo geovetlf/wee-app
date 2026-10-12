@@ -1,17 +1,23 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { listarCreacionesFinales, reabrirParaEditar, CreacionFinal } from '../services/cicloDeTrabajo';
+import { listarCreacionesFinales, reabrirParaEditar, finalizarCreacion, CreacionFinal } from '../services/cicloDeTrabajo';
+import { assetsService, AssetDoc } from '../services/assetsService';
+import { CLAVE_DE_ESTADO, CLAVE_DE_TIPO, vistaDeAsset } from '../services/vistaDeAsset';
+import { descargarCreacion } from '../services/assetDownload';
+import { frasesDeDerechos } from '../utils/derechosDelMaterial';
+import { formatearLista, nombreDeLaRegion } from '../i18n/formato';
 import { projectsService } from '../services/projectsService';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, Chip } from '../components/creator/ui';
-import { RejillaDeCreacionesFinales, CreacionVisible } from '../components/creator/RejillaDeCreaciones';
-import { esNoDisponible } from '../components/creator/conservar';
-import { notify } from '../utils/notify';
+import { RejillaDeCreaciones, RejillaDeCreacionesFinales, CreacionVisible } from '../components/creator/RejillaDeCreaciones';
+import { esNoDisponible, peticionDeConservar } from '../components/creator/conservar';
+import { listarSinDecidir } from '../components/creator/cicloOpcional';
+import { confirmAction, notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -45,6 +51,14 @@ import { scale } from '../utils/scale';
  * —en este dispositivo, en Weë Cloud o en el almacenamiento anterior—, que es
  * un dato y no un estado. Y una sola acción, que hace lo que dice: «Volver a
  * editar», que abre su proyecto.
+ *
+ * ── «Sin decidir» (D-1 del dueño, 2026-10-12) ──────────────────────────────
+ *
+ * El material creado antes de poder elegir se enseña APARTE, en su sección, y
+ * nunca mezclado con las creaciones: no se migra, no se borra y no se marca
+ * como conservado por inferencia. Cada uno se puede abrir (como antes) y,
+ * si la persona quiere, «Conservar como creación» (`finalizarCreacion`). La
+ * sección tiene sus propios estados; un fallo suyo no tapa las creaciones.
  */
 
 type Estado =
@@ -52,6 +66,12 @@ type Estado =
   | { fase: 'error' }
   | { fase: 'pendiente' }
   | { fase: 'lista'; items: CreacionVisible[]; siguiente: unknown; cargandoMas: boolean };
+
+type EstadoSinDecidir =
+  | { fase: 'cargando' }
+  | { fase: 'error' }
+  | { fase: 'pendiente' }
+  | { fase: 'lista'; items: AssetDoc[]; siguiente: unknown; cargandoMas: boolean };
 
 type Filtro = 'all' | 'image' | 'video' | 'audio' | 'document' | 'model3d' | 'world';
 
@@ -81,6 +101,7 @@ export const visibleDeCreacion = (c: CreacionFinal, nombres: Map<string, string>
 const MisCreacionesScreen: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
+  const { locale } = useIdioma();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { isDesktop, isTablet } = useResponsive();
@@ -88,6 +109,10 @@ const MisCreacionesScreen: React.FC = () => {
   const [filtro, setFiltro] = useState<Filtro>('all');
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' });
   const [abriendo, setAbriendo] = useState<string | null>(null);
+  const [sinDecidir, setSinDecidir] = useState<EstadoSinDecidir>({ fase: 'cargando' });
+  const [conservando, setConservando] = useState<string | null>(null);
+  const conservandoAhora = useRef<string | null>(null);
+  const peticionSinDecidir = useRef(0);
   /* Una petición que llega tarde no pisa a la que la persona pidió después. */
   const peticion = useRef(0);
   const abriendoAhora = useRef<string | null>(null);
@@ -123,7 +148,107 @@ const MisCreacionesScreen: React.FC = () => {
     }
   }, [user]);
 
-  useFocusEffect(useCallback(() => { cargar(); }, [cargar]));
+  /* «Sin decidir» va por su cuenta: su fallo o su «todavía no» no tapan las creaciones. */
+  const cargarSinDecidir = useCallback(async () => {
+    if (!user) {
+      setSinDecidir({ fase: 'lista', items: [], siguiente: undefined, cargandoMas: false });
+      return;
+    }
+    const mia = ++peticionSinDecidir.current;
+    setSinDecidir({ fase: 'cargando' });
+    try {
+      const pagina = await listarSinDecidir(user.uid);
+      if (mia !== peticionSinDecidir.current) return;
+      setSinDecidir({ fase: 'lista', items: pagina.assets, siguiente: pagina.siguiente, cargandoMas: false });
+    } catch (error) {
+      if (mia !== peticionSinDecidir.current) return;
+      if (esNoDisponible(error)) {
+        setSinDecidir({ fase: 'pendiente' });
+        return;
+      }
+      console.warn('Mis creaciones: no se pudo cargar lo que está sin decidir', error);
+      setSinDecidir({ fase: 'error' });
+    }
+  }, [user]);
+
+  useFocusEffect(useCallback(() => { cargar(); cargarSinDecidir(); }, [cargar, cargarSinDecidir]));
+
+  const cargarMasSinDecidir = async () => {
+    if (!user || sinDecidir.fase !== 'lista' || !sinDecidir.siguiente || sinDecidir.cargandoMas) return;
+    const anterior = sinDecidir;
+    setSinDecidir({ ...anterior, cargandoMas: true });
+    try {
+      const pagina = await listarSinDecidir(user.uid, anterior.siguiente);
+      setSinDecidir({ fase: 'lista', items: [...anterior.items, ...pagina.assets], siguiente: pagina.siguiente, cargandoMas: false });
+    } catch (error) {
+      console.warn('Mis creaciones: no se pudo cargar más de lo que está sin decidir', error);
+      setSinDecidir({ ...anterior, cargandoMas: false });
+      notify(t('creaciones.undecidedFailed'));
+    }
+  };
+
+  /* Conservar un material antiguo como creación: la misma decisión y la misma petición que desde su resultado. */
+  const conservarComoCreacion = async (asset: AssetDoc) => {
+    if (conservandoAhora.current) return;
+    conservandoAhora.current = asset.assetId;
+    setConservando(asset.assetId);
+    try {
+      await finalizarCreacion({
+        assetIds: [asset.assetId],
+        proyectoOrigenId: null,
+        requestId: peticionDeConservar(asset.provenance?.jobId ?? 'sin-trabajo', [asset.assetId]),
+      });
+      setSinDecidir((v) => (v.fase === 'lista' ? { ...v, items: v.items.filter((a) => a.assetId !== asset.assetId) } : v));
+      notify(t('creaciones.savedInCreations'));
+      cargar();
+    } catch (error) {
+      if (esNoDisponible(error)) notify(t('creaciones.keepPending'));
+      else {
+        console.warn('Mis creaciones: no se pudo conservar', error);
+        notify(t('creaciones.keepFailed'));
+      }
+    } finally {
+      conservandoAhora.current = null;
+      setConservando(null);
+    }
+  };
+
+  /*
+   * Abrir un material «sin decidir», como se abría antes en esta pantalla: en su trabajo si se sabe; un mundo o un modelo
+   * 3D se descarga (Weë no tiene visor 3D y lo dice); si no, el archivo; y sin dirección, por qué todavía no se puede ver.
+   */
+  const abrir = (asset: AssetDoc) => {
+    const experienceId = typeof asset.metadata?.experienceId === 'string' ? asset.metadata.experienceId : undefined;
+    if (asset.provenance?.jobId && experienceId) {
+      navigation.navigate('CreatorFlow', { experienceId, jobId: asset.provenance.jobId });
+      return;
+    }
+    const url = assetsService.urlDeEntrega(asset);
+    if (url && (asset.kind === 'world' || asset.kind === 'model3d')) {
+      void abrirTresD(asset, asset.kind, url);
+      return;
+    }
+    if (url) {
+      Linking.openURL(url).catch(() => notify(t('creaciones.loadFailed')));
+      return;
+    }
+    const vista = vistaDeAsset(asset);
+    const claveDeEstado = vista.estado === 'disponible' ? 'creaciones.loadFailed' : CLAVE_DE_ESTADO[vista.estado];
+    notify(vista.nombre || t('creaciones.title'), t(claveDeEstado));
+  };
+
+  const abrirTresD = async (asset: AssetDoc, tipo: 'world' | 'model3d', url: string) => {
+    const derechos = frasesDeDerechos(asset.derechos).map((f) => (f.lugares
+      ? t(f.clave, { lugares: formatearLista(f.lugares.map((c) => nombreDeLaRegion(c, locale)), locale) })
+      : t(f.clave)));
+    const titulo = asset.name || t(CLAVE_DE_TIPO[tipo]);
+    const ok = await confirmAction(titulo, [t('creaciones.noViewer3d'), ...derechos].join('\n'), t('creaciones.download'), false, t);
+    if (!ok) return;
+    const resultado = await descargarCreacion(url, tipo, asset.mimeType);
+    if (resultado === 'guardado') notify(t('creaciones.downloaded'));
+    else if (resultado === 'sin_permiso') notify(t('creaciones.downloadPermission'));
+    else if (resultado === 'error') notify(t('creaciones.downloadFailed'));
+  };
 
   const cargarMas = async () => {
     if (!user || estado.fase !== 'lista' || !estado.siguiente || estado.cargandoMas) return;
@@ -236,6 +361,50 @@ const MisCreacionesScreen: React.FC = () => {
           </>
         )}
       </View>
+
+      {/* «Sin decidir» (D-1): aparte, con su explicación y sus propios estados. Nunca mezclado con las creaciones. */}
+      <View style={[styles.section, styles.sinDecidir]}>
+        <SectionTitle title={t('creaciones.undecidedTitle')} />
+        <Text style={[styles.boxText, styles.izquierda, { color: theme.colors.textSecondary }]}>{t('creaciones.undecidedText')}</Text>
+        {sinDecidir.fase === 'cargando' ? (
+          <View style={styles.centro}>
+            <ActivityIndicator color={theme.colors.accent} />
+          </View>
+        ) : sinDecidir.fase === 'error' ? (
+          <View style={[styles.box, { backgroundColor: theme.colors.card, borderColor: theme.colors.error }]}>
+            <Text style={[styles.boxTitle, { color: theme.colors.text }]}>{t('creaciones.undecidedFailed')}</Text>
+            <TouchableOpacity onPress={cargarSinDecidir} style={[styles.button, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={t('creaciones.undecidedRetry')}>
+              <Text style={styles.buttonText}>{t('creaciones.retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : sinDecidir.fase === 'pendiente' ? (
+          <View style={[styles.box, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            <Text style={[styles.boxText, { color: theme.colors.text }]}>{t('creaciones.undecidedPending')}</Text>
+          </View>
+        ) : sinDecidir.items.length === 0 ? (
+          <Text style={[styles.boxText, styles.izquierda, { color: theme.colors.textSecondary }]}>{t('creaciones.undecidedEmpty')}</Text>
+        ) : (
+          <>
+            <RejillaDeCreaciones items={sinDecidir.items} columnas={columnas} onOpen={abrir} onKeep={conservarComoCreacion} conservando={conservando} />
+            {!!sinDecidir.siguiente && (
+              <TouchableOpacity
+                onPress={cargarMasSinDecidir}
+                disabled={sinDecidir.cargandoMas}
+                style={[styles.more, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={t('creaciones.undecidedLoadMore')}
+              >
+                {sinDecidir.cargandoMas ? (
+                  <ActivityIndicator color={theme.colors.accent} />
+                ) : (
+                  <Text style={[styles.moreText, { color: theme.colors.text }]}>{t('creaciones.loadMore')}</Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+      </View>
     </CreatorShell>
   );
 };
@@ -253,6 +422,12 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: SPACING.md,
+  },
+  sinDecidir: {
+    marginTop: SPACING.xl,
+  },
+  izquierda: {
+    textAlign: 'left',
   },
   filtros: {
     flexDirection: 'row',

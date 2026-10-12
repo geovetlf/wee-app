@@ -88,7 +88,7 @@ export const creaciones = {
   emptyKeepText: '你完成並透過「{{accion}}」決定保留的結果會顯示在這裡。',
   listPending: '暫時還無法顯示我的作品。你的結果仍儲存在各自的任務中。',
   locationLocal: '在此裝置上',
-  locationCloud: '在 Weë Cloud 中',
+  locationCloud: '已同步到 Weë Cloud',
   locationLegacy: '舊的儲存空間',
   locationLabel: '位置：{{lugar}}',
   fromProject: '來自專案 {{proyecto}}',
@@ -97,4 +97,15 @@ export const creaciones = {
   editAgainOf: '再次編輯：{{nombre}}',
   editAgainPending: '暫時還不能再次編輯。',
   editAgainFailed: '無法開啟進行編輯，請再試一次。',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: '未決定',
+  undecidedText: '在可以選擇保留什麼之前你建立的素材。沒有任何內容被移動或刪除：想保留的可以儲存為作品。',
+  undecidedFailed: '無法載入你未決定的素材。',
+  undecidedRetry: '重新載入未決定的素材',
+  undecidedPending: '暫時還無法顯示你未決定的素材。沒有任何內容被刪除。',
+  undecidedEmpty: '你沒有未決定的素材。',
+  undecidedLoadMore: '載入更多未決定的素材',
+  keepAsCreation: '保留為作品',
+  keepAsCreationOf: '將{{nombre}}保留為作品',
 };

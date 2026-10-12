@@ -41,6 +41,22 @@ export const materialesParaConservar = (
 export const peticionDeConservar = (jobId: string, assetIds: string[]): string =>
   `conservar:${jobId}:${[...assetIds].sort().join(',')}`;
 
+/*
+ * La petición de un TEXTO final (D-3): del trabajo y de una huella del texto. Otro texto del mismo trabajo (otra versión)
+ * es otra petición; el mismo texto guardado dos veces, la misma. La huella es un hash corto (FNV-1a), no criptografía:
+ * solo distingue versiones del mismo trabajo, y la idempotencia de verdad la hace el servidor con el requestId.
+ */
+export const huellaDeTexto = (texto: string): string => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < texto.length; i++) {
+    h ^= texto.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+};
+
+export const peticionDeTexto = (jobId: string, texto: string): string => `texto:${jobId}:${huellaDeTexto(texto)}`;
+
 /**
  * ¿El contrato dice que esto todavía no existe? `pendiente` (sin implementar) y `no_disponible` (la Function no está
  * desplegada) se dicen con honestidad —«todavía no está disponible»— y nunca como un éxito ni como un fallo de red.

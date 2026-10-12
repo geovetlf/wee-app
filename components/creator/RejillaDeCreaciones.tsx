@@ -53,9 +53,13 @@ interface TarjetaProps {
   ancho: string;
   onOpen: (asset: AssetDoc) => void;
   onDelete?: (asset: AssetDoc) => void;
+  /** «Conservar como creación» (R9, D-1): solo en «Sin decidir». Sin ella, no se ofrece. */
+  onKeep?: (asset: AssetDoc) => void;
+  /** Mientras se conserva, el botón queda ocupado. */
+  conservando?: boolean;
 }
 
-const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDelete }) => {
+const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDelete, onKeep, conservando }) => {
   const { theme } = useTheme();
   const { t, locale } = useIdioma();
   /* El nombre de una creación es el paso del plan que la hizo, escrito por el servidor: en el idioma de quien mira. */
@@ -134,6 +138,21 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
             </TouchableOpacity>
           )}
         </View>
+        {!!onKeep && (
+          <TouchableOpacity
+            onPress={() => onKeep(asset)}
+            disabled={conservando}
+            activeOpacity={0.85}
+            style={[styles.editar, styles.conservar, { borderColor: theme.colors.accent, backgroundColor: theme.colors.accent + '1A' }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('creaciones.keepAsCreationOf', { nombre: nombreDe(asset.name) || t(claveDeTipo) })}
+          >
+            <Ionicons name="bookmark-outline" size={scale(14)} color={theme.colors.text} />
+            <Text style={[styles.editarTexto, { color: theme.colors.text }]} numberOfLines={1}>
+              {conservando ? t('creaciones.keeping') : t('creaciones.keepAsCreation')}
+            </Text>
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -145,14 +164,17 @@ interface RejillaProps {
   columnas: 2 | 3 | 4;
   onOpen: (asset: AssetDoc) => void;
   onDelete?: (asset: AssetDoc) => void;
+  onKeep?: (asset: AssetDoc) => void;
+  /** El material que se está conservando, si alguno. */
+  conservando?: string | null;
 }
 
-export const RejillaDeCreaciones: React.FC<RejillaProps> = ({ items, columnas, onOpen, onDelete }) => {
+export const RejillaDeCreaciones: React.FC<RejillaProps> = ({ items, columnas, onOpen, onDelete, onKeep, conservando }) => {
   const ancho = `${(100 / columnas).toFixed(2)}%`;
   return (
     <View style={[styles.grid, { marginHorizontal: -SPACING.xs }]}>
       {items.map((asset) => (
-        <TarjetaDeCreacion key={asset.assetId} asset={asset} ancho={ancho} onOpen={onOpen} onDelete={onDelete} />
+        <TarjetaDeCreacion key={asset.assetId} asset={asset} ancho={ancho} onOpen={onOpen} onDelete={onDelete} onKeep={onKeep} conservando={conservando === asset.assetId} />
       ))}
     </View>
   );
@@ -333,6 +355,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
+  },
+  conservar: {
+    marginHorizontal: SPACING.sm,
+    marginBottom: SPACING.sm,
+    marginTop: 0,
   },
   editarTexto: {
     fontSize: FONT_SIZE.xs,

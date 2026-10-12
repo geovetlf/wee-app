@@ -5,7 +5,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { finalizarCreacion } from '../../services/cicloDeTrabajo';
 import { notify } from '../../utils/notify';
-import { esNoDisponible, peticionDeConservar } from './conservar';
+import { esNoDisponible, peticionDeConservar, peticionDeTexto } from './conservar';
+import { guardarTextoFinal } from './cicloOpcional';
 import { FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SPACING } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -20,13 +21,19 @@ import { scale } from '../../utils/scale';
  *     («Guardando…») y un segundo toque no sale;
  *   · cuando queda guardada lo dice —y lleva a la biblioteca si se le da cómo—; si se elige otra propuesta, la petición es
  *     otra y vuelve a ofrecerse;
+ *   · un TEXTO final (Chef, Business, Travel… D-3) se guarda con `guardarTextoFinal`, que crea su asset de texto y la
+ *     creación; nunca se guarda solo: es la persona quien pulsa;
  *   · si el contrato dice que todavía no existe (`pendiente` / `no_disponible`) lo dice con honestidad; un fallo de verdad
  *     se dice con su texto. Nunca finge que quedó guardada.
  */
+/** Lo que se conserva: materiales que ya existen, o el texto final de un trabajo (D-3). */
+export type ContenidoAConservar =
+  | { tipo: 'materiales'; assetIds: string[] }
+  | { tipo: 'texto'; texto: string; herramienta: string };
+
 interface Props {
   jobId: string;
-  /** Los materiales que se conservan (`materialesParaConservar`). */
-  materiales: string[];
+  contenido: ContenidoAConservar;
   proyectoOrigenId?: string | null;
   /** Abrir «Mis creaciones» cuando ya está guardada. Sin él, la constancia se ve pero no es un botón. */
   onOpenCreations?: () => void;
@@ -37,10 +44,10 @@ interface Props {
   style?: StyleProp<ViewStyle>;
 }
 
-const BotonConservar: React.FC<Props> = ({ jobId, materiales, proyectoOrigenId, onOpenCreations, disabled, variante = 'relleno', style }) => {
+const BotonConservar: React.FC<Props> = ({ jobId, contenido, proyectoOrigenId, onOpenCreations, disabled, variante = 'relleno', style }) => {
   const { theme } = useTheme();
   const t = useT();
-  const peticion = peticionDeConservar(jobId, materiales);
+  const peticion = contenido.tipo === 'materiales' ? peticionDeConservar(jobId, contenido.assetIds) : peticionDeTexto(jobId, contenido.texto);
   const [conservada, setConservada] = useState<string | null>(null);
   const [conservando, setConservando] = useState(false);
   const enCurso = useRef(false);
@@ -51,7 +58,11 @@ const BotonConservar: React.FC<Props> = ({ jobId, materiales, proyectoOrigenId, 
     enCurso.current = true;
     setConservando(true);
     try {
-      await finalizarCreacion({ assetIds: materiales, proyectoOrigenId: proyectoOrigenId ?? null, requestId: peticion });
+      if (contenido.tipo === 'materiales') {
+        await finalizarCreacion({ assetIds: contenido.assetIds, proyectoOrigenId: proyectoOrigenId ?? null, requestId: peticion });
+      } else {
+        await guardarTextoFinal({ texto: contenido.texto, herramienta: contenido.herramienta, proyectoOrigenId: proyectoOrigenId ?? null, requestId: peticion });
+      }
       setConservada(peticion);
     } catch (error) {
       if (esNoDisponible(error)) notify(t('creaciones.keepPending'));

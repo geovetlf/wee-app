@@ -88,7 +88,7 @@ export const creaciones = {
   emptyKeepText: 'Les résultats que tu termines et décides de garder avec « {{accion}} » apparaissent ici.',
   listPending: 'Nous ne pouvons pas encore afficher Mes créations. Tes résultats restent enregistrés dans leurs travaux.',
   locationLocal: 'Sur cet appareil',
-  locationCloud: 'Dans Weë Cloud',
+  locationCloud: 'Synchronisé dans Weë Cloud',
   locationLegacy: 'Ancien stockage',
   locationLabel: 'Emplacement : {{lugar}}',
   fromProject: 'Du projet {{proyecto}}',
@@ -97,4 +97,15 @@ export const creaciones = {
   editAgainOf: 'Modifier à nouveau {{nombre}}',
   editAgainPending: 'La modification n’est pas encore disponible.',
   editAgainFailed: 'Impossible de l’ouvrir pour la modifier. Réessaie.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Non décidé',
+  undecidedText: 'Du contenu que tu as créé avant de pouvoir choisir quoi garder. Rien n’a été déplacé ni supprimé : garde comme création ce que tu veux.',
+  undecidedFailed: 'Impossible de charger ton contenu non décidé.',
+  undecidedRetry: 'Réessayer de charger le contenu non décidé',
+  undecidedPending: 'Nous ne pouvons pas encore afficher ton contenu non décidé. Rien n’a été supprimé.',
+  undecidedEmpty: 'Tu n’as aucun contenu non décidé.',
+  undecidedLoadMore: 'Charger plus de contenu non décidé',
+  keepAsCreation: 'Garder comme création',
+  keepAsCreationOf: 'Garder {{nombre}} comme création',
 };

@@ -88,7 +88,7 @@ export const creaciones = {
   emptyKeepText: 'The results you finish and decide to keep with “{{accion}}” show up here.',
   listPending: 'We can’t show My creations yet. Your results are still saved in their jobs.',
   locationLocal: 'On this device',
-  locationCloud: 'In Weë Cloud',
+  locationCloud: 'Synced to Weë Cloud',
   locationLegacy: 'Previous storage',
   locationLabel: 'Where it is: {{lugar}}',
   fromProject: 'From the project {{proyecto}}',
@@ -97,4 +97,15 @@ export const creaciones = {
   editAgainOf: 'Edit {{nombre}} again',
   editAgainPending: 'Editing again isn’t available yet.',
   editAgainFailed: 'We couldn’t open it for editing. Please try again.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Undecided',
+  undecidedText: 'Material you made before you could choose what to keep. Nothing was moved or deleted: keep whatever you want as a creation.',
+  undecidedFailed: 'We couldn’t load your undecided material.',
+  undecidedRetry: 'Try loading your undecided material again',
+  undecidedPending: 'We can’t show your undecided material yet. Nothing has been deleted.',
+  undecidedEmpty: 'You have no undecided material.',
+  undecidedLoadMore: 'Load more undecided material',
+  keepAsCreation: 'Keep as a creation',
+  keepAsCreationOf: 'Keep {{nombre}} as a creation',
 };

@@ -94,7 +94,7 @@ export const creaciones = {
   emptyKeepText: 'Здесь появляются результаты, которые вы завершили и решили сохранить через «{{accion}}».',
   listPending: 'Мы пока не можем показать «Мои работы». Ваши результаты по-прежнему хранятся в своих задачах.',
   locationLocal: 'На этом устройстве',
-  locationCloud: 'В Weë Cloud',
+  locationCloud: 'Синхронизировано с Weë Cloud',
   locationLegacy: 'Прежнее хранилище',
   locationLabel: 'Где хранится: {{lugar}}',
   fromProject: 'Из проекта {{proyecto}}',
@@ -103,4 +103,15 @@ export const creaciones = {
   editAgainOf: 'Снова редактировать: {{nombre}}',
   editAgainPending: 'Повторное редактирование пока недоступно.',
   editAgainFailed: 'Не удалось открыть для редактирования. Попробуйте ещё раз.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Без решения',
+  undecidedText: 'Материалы, созданные до того, как появилась возможность выбирать, что сохранить. Ничего не перемещено и не удалено: сохраните как работу то, что хотите.',
+  undecidedFailed: 'Не удалось загрузить материалы без решения.',
+  undecidedRetry: 'Повторить загрузку материалов без решения',
+  undecidedPending: 'Пока не можем показать материалы без решения. Ничего не удалено.',
+  undecidedEmpty: 'У вас нет материалов без решения.',
+  undecidedLoadMore: 'Загрузить ещё материалы без решения',
+  keepAsCreation: 'Сохранить как работу',
+  keepAsCreationOf: 'Сохранить {{nombre}} как работу',
 };

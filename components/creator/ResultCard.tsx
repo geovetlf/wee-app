@@ -387,6 +387,15 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
     trabajoDeEspacio && job.plan?.steps.some((s) => s.id === stepId && s.capability === 'vision.describe') === true;
 
   const texts = job.results.filter((r) => r.content && r.kind !== 'audio' && !narracionInterna(r.stepId));
+  /*
+   * EL TEXTO FINAL (D-3 del dueño, 2026-10-12). Una receta de Weë Chef, un plan de Weë Business o un itinerario de Weë
+   * Travel que salen por aquí son el resultado terminado de un trabajo, y la persona puede elegir conservarlos en «Mis
+   * creaciones». Solo si el trabajo terminó, no es de muestra y no tiene materiales (si los tiene, se conservan ellos).
+   * Nada se guarda solo: lo provisional de una conversación nunca llega a esta tarjeta y el botón lo pulsa la persona.
+   */
+  const textoFinal = !materiales && job.status === 'done' && !job.demo
+    ? texts.filter((r) => !r.url && !r.demo).map((r) => (r.content || '').trim()).filter(Boolean).join('\n\n')
+    : '';
 
   /*
    * El orden de la pantalla lo decide de qué es el trabajo (fase 2E-63).
@@ -705,7 +714,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
           </TouchableOpacity>
       </View>
 
-      {(!!publicable || !!materiales) && (
+      {(!!publicable || !!materiales || !!textoFinal) && (
         <View style={styles.creacionRow}>
           {publicable && (
             <TouchableOpacity
@@ -721,7 +730,10 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             </TouchableOpacity>
           )}
           {!!materiales && (
-            <BotonConservar jobId={job.id} materiales={materiales} proyectoOrigenId={job.projectId ?? null} onOpenCreations={onOpenCreations} disabled={busy} />
+            <BotonConservar jobId={job.id} contenido={{ tipo: 'materiales', assetIds: materiales }} proyectoOrigenId={job.projectId ?? null} onOpenCreations={onOpenCreations} disabled={busy} />
+          )}
+          {!!textoFinal && (
+            <BotonConservar jobId={job.id} contenido={{ tipo: 'texto', texto: textoFinal, herramienta: job.experienceId }} proyectoOrigenId={job.projectId ?? null} onOpenCreations={onOpenCreations} disabled={busy} />
           )}
         </View>
       )}

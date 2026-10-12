@@ -212,7 +212,7 @@ const ProjectScreen: React.FC = () => {
                     <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
                   {/* «Guardar en Mis creaciones»: el mismo botón y la misma petición que en el resultado (R9). Solo sin propuestas que elegir. */}
-                  {!!materiales && <BotonConservar jobId={job.id} materiales={materiales} proyectoOrigenId={id} variante="suave" style={styles.keepRow} />}
+                  {!!materiales && <BotonConservar jobId={job.id} contenido={{ tipo: 'materiales', assetIds: materiales }} proyectoOrigenId={id} variante="suave" style={styles.keepRow} />}
                   </View>
                 );
               })

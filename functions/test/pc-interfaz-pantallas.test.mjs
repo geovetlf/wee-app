@@ -88,7 +88,15 @@ const crearContrato = () => {
     listarCreacionesFinales: (uid, cursor) => { c.llamadas.push(['listarCreacionesFinales', uid, cursor]); return responder('listarCreacionesFinales', { creaciones: c.creaciones, ...(c.siguiente ? { siguiente: c.siguiente } : {}) }); },
     finalizarCreacion: (entrada) => { c.llamadas.push(['finalizarCreacion', entrada]); return responder('finalizarCreacion', c.finalizar); },
     reabrirParaEditar: (id) => { c.llamadas.push(['reabrirParaEditar', id]); return responder('reabrirParaEditar', c.reabrir); },
+    __esModule: true,
+    ErrorDeCiclo: class ErrorDeCiclo extends Error { constructor(code, m) { super(m ?? code); this.code = code; } },
   };
+  /* D-1 / D-3: las dos funciones que la línea A todavía no ha publicado. Sin `publicar()` no existen en el módulo. */
+  c.sinDecidir = []; c.siguienteSinDecidir = undefined;
+  c.publicar = () => Object.assign(c.modulo, {
+    listarSinDecidir: (uid, cursor) => { c.llamadas.push(['listarSinDecidir', uid, cursor]); return responder('listarSinDecidir', { assets: c.sinDecidir, ...(c.siguienteSinDecidir ? { siguiente: c.siguienteSinDecidir } : {}) }); },
+    guardarTextoFinal: (entrada) => { c.llamadas.push(['guardarTextoFinal', entrada]); return responder('guardarTextoFinal', { creacionId: 'c-texto', yaExistia: false }); },
+  });
   c.de = (nombre) => c.llamadas.filter((l) => l[0] === nombre);
   return c;
 };
@@ -287,7 +295,7 @@ const P = crearMontaje('screens/ProjectsScreen.tsx');
 
 /* ═══ B · MIS CREACIONES ════════════════════════════════════════════════════ */
 grupo('B · Mis creaciones: lo que se decidió conservar');
-const C = crearMontaje('screens/MisCreacionesScreen.tsx');
+const C = crearMontaje('screens/MisCreacionesScreen.tsx', () => ({ '../services/assetDownload': { descargarCreacion: async () => 'guardado' } }));
 const creacion = (extra = {}) => ({ id: 'c1', assetIds: ['a1'], nombre: 'Logo final', tipo: 'image', herramienta: 'design', finalizadaEn: AHORA - 60_000, proyectoOrigenId: 'p1', ubicacion: 'wee_cloud', ...extra });
 {
   await prueba('B1) mientras carga, lo dice', async () => {
@@ -502,10 +510,10 @@ const GUARDAR = t('creaciones.keep');
     const d = R.dibujar(props);
     return [R.avisos.includes(t('creaciones.keepFailed')) && !R.avisos.includes(t('creaciones.keepPending')) && !!R.boton(d, GUARDAR), JSON.stringify(R.avisos)];
   });
-  await prueba('C7) lo de muestra (demo) o sin material no se puede «guardar»: no hay botón', async () => {
+  await prueba('C7) lo de muestra (demo), o un resultado sin material ni texto, no se puede «guardar»: no hay botón', async () => {
     R.reiniciar();
     const demo = R.dibujar(propsDe(trabajo({ demo: true, results: [{ stepId: 'logo', kind: 'image', title: 'Logo', url: 'https://x.test/logo.png', demo: true, assetIds: ['a1'] }] })));
-    const texto = R.dibujar(propsDe(trabajo({ results: [{ stepId: 'txt', kind: 'text', title: 'Idea', content: 'Hola' }] })));
+    const texto = R.dibujar(propsDe(trabajo({ results: [{ stepId: 'txt', kind: 'text', title: 'Idea', content: '' }] })));
     return [!R.boton(demo, GUARDAR) && !R.boton(texto, GUARDAR), ''];
   });
   await prueba('C8) CONTROL: el mismo trabajo con material real sí lo ofrece (el detector de C7 ve el botón cuando existe)', async () => {
@@ -584,6 +592,129 @@ const PJ = crearMontaje('screens/ProjectScreen.tsx');
 }
 
 /* ═══ E · LAS FUNCIONES PURAS ═══════════════════════════════════════════════ */
+/* ═══ H · «SIN DECIDIR» (D-1) ═══════════════════════════════════════════════ */
+grupo('H · Sin decidir: el material anterior, aparte, sin migrar ni borrar (D-1)');
+const asset = (extra = {}) => ({
+  assetId: 'as1', ownerAccountId: 'u1', kind: 'image', status: 'ready', name: 'Cartel viejo',
+  delivery: { url: 'https://x.test/cartel.png' }, provenance: { createdAt: 1, jobId: 'jv' }, metadata: { experienceId: 'design' }, ...extra,
+});
+{
+  await prueba('H1) sin `listarSinDecidir` publicada: la sección lo dice con honestidad y las creaciones siguen viéndose', async () => {
+    C.reiniciar();
+    C.estado.contrato.creaciones = [creacion()];
+    const d = await C.montar();
+    return [d.texto.includes(t('creaciones.undecidedTitle')) && d.texto.includes(t('creaciones.undecidedPending')) && d.texto.includes('Logo final'), d.texto.slice(-260)];
+  });
+  await prueba('H2) publicada: el material sale APARTE (tras su título y su explicación), sin contarse como creación', async () => {
+    C.reiniciar();
+    C.estado.contrato.publicar();
+    C.estado.contrato.creaciones = [creacion()];
+    C.estado.contrato.sinDecidir = [asset()];
+    const d = await C.montar();
+    const iTitulo = d.texto.indexOf(t('creaciones.undecidedTitle'));
+    const ok = iTitulo > d.texto.indexOf('Logo final') && d.texto.indexOf('Cartel viejo') > iTitulo
+      && d.texto.includes(t('creaciones.undecidedText')) && d.texto.includes(t('creaciones.count', { contador: 1 }))
+      && !!C.boton(d, t('creaciones.keepAsCreationOf', { nombre: 'Cartel viejo' }));
+    return [ok, d.texto.slice(-300)];
+  });
+  await prueba('H3) «Conservar como creación»: una petición con ESE material y la misma petición que desde su resultado; sale de «Sin decidir» y se recarga la lista', async () => {
+    C.reiniciar();
+    C.estado.contrato.publicar();
+    C.estado.contrato.sinDecidir = [asset()];
+    const d = await C.montar();
+    const etiqueta = t('creaciones.keepAsCreationOf', { nombre: 'Cartel viejo' });
+    C.tocar(d, etiqueta);
+    C.tocar(d, etiqueta);
+    await calma();
+    const d2 = C.dibujar();
+    const e = C.estado.contrato.de('finalizarCreacion');
+    return [e.length === 1 && JSON.stringify(e[0][1].assetIds) === '["as1"]' && e[0][1].requestId === 'conservar:jv:as1' && e[0][1].proyectoOrigenId === null
+      && !d2.texto.includes('Cartel viejo') && C.estado.contrato.de('listarCreacionesFinales').length === 2 && C.avisos.includes(t('creaciones.savedInCreations')), JSON.stringify(e)];
+  });
+  await prueba('H4) conservar con el callable sin conectar (`no_disponible`): lo dice y el material se queda donde estaba', async () => {
+    C.reiniciar();
+    C.estado.contrato.publicar();
+    C.estado.contrato.sinDecidir = [asset()];
+    C.estado.contrato.falla.finalizarCreacion = () => Object.assign(new Error('no_disponible'), { code: 'no_disponible' });
+    const d = await C.montar();
+    C.tocar(d, t('creaciones.keepAsCreationOf', { nombre: 'Cartel viejo' }));
+    await calma();
+    const d2 = C.dibujar();
+    return [C.avisos.includes(t('creaciones.keepPending')) && d2.texto.includes('Cartel viejo') && !C.avisos.includes(t('creaciones.savedInCreations')), JSON.stringify(C.avisos)];
+  });
+  await prueba('H5) un fallo de «Sin decidir» se dice con su reintento y NO tapa las creaciones', async () => {
+    C.reiniciar();
+    C.estado.contrato.publicar();
+    C.estado.contrato.creaciones = [creacion()];
+    C.estado.contrato.falla.listarSinDecidir = sinRed;
+    const d = await C.montar();
+    return [d.texto.includes(t('creaciones.undecidedFailed')) && d.texto.includes('Logo final') && !!C.boton(d, t('creaciones.undecidedRetry')), ''];
+  });
+  await prueba('H6) abrir un material sin decidir lo lleva a su trabajo, como antes', async () => {
+    C.reiniciar();
+    C.estado.contrato.publicar();
+    C.estado.contrato.sinDecidir = [asset()];
+    const d = await C.montar();
+    C.tocar(d, t('creaciones.openCreation', { nombre: 'Cartel viejo' }));
+    return [JSON.stringify(C.navegacion) === JSON.stringify([['navigate', 'CreatorFlow', { experienceId: 'design', jobId: 'jv' }]]), JSON.stringify(C.navegacion)];
+  });
+  await prueba('H7) en «Sin decidir» no se ofrece borrar (D-5: sin la vista previa de lo que se eliminaría, no hay botón)', async () => {
+    C.reiniciar();
+    C.estado.contrato.publicar();
+    C.estado.contrato.sinDecidir = [asset()];
+    const d = await C.montar();
+    return [!C.boton(d, t('creaciones.delete')), ''];
+  });
+  await prueba('H8) «Sincronizado» frente a «En este dispositivo» (D-4), con el dato de la creación', async () => {
+    C.reiniciar();
+    C.estado.contrato.creaciones = [creacion({ id: 'l', ubicacion: 'local' }), creacion({ id: 'w', ubicacion: 'wee_cloud' })];
+    const d = await C.montar();
+    return [d.texto.includes(t('creaciones.locationLocal')) && d.texto.includes(t('creaciones.locationCloud')) && /Sincronizado/.test(t('creaciones.locationCloud')), t('creaciones.locationCloud')];
+  });
+}
+
+/* ═══ I · TEXTOS FINALES (D-3) ══════════════════════════════════════════════ */
+grupo('I · El texto final se puede guardar; lo provisional, no (D-3)');
+{
+  const receta = (extra = {}) => trabajo({ experienceId: 'chef', results: [{ stepId: 'recipe', kind: 'text', title: 'Receta', content: 'Tortilla: huevos, patatas.' }], ...extra });
+  const conPropiedades = (job) => propsDe(job, { onOpenCreations: () => {} });
+  await prueba('I1) un trabajo de TEXTO terminado ofrece «Guardar en Mis creaciones» y llama a `guardarTextoFinal` con su texto y su herramienta', async () => {
+    R.reiniciar();
+    R.estado.contrato.publicar();
+    const props = conPropiedades(receta());
+    R.tocar(R.dibujar(props), GUARDAR);
+    await calma();
+    const e = R.estado.contrato.de('guardarTextoFinal')[0]?.[1];
+    const d = R.dibujar(props);
+    return [e?.texto === 'Tortilla: huevos, patatas.' && e?.herramienta === 'chef' && e?.proyectoOrigenId === 'p1' && /^texto:j1:[0-9a-f]{8}$/.test(e?.requestId || '')
+      && R.estado.contrato.de('finalizarCreacion').length === 0 && d.texto.includes(t('creaciones.savedInCreations')), JSON.stringify(e)];
+  });
+  await prueba('I2) sin `guardarTextoFinal` publicada: avisa que todavía no está disponible y no finge éxito', async () => {
+    R.reiniciar();
+    const props = conPropiedades(receta());
+    R.tocar(R.dibujar(props), GUARDAR);
+    await calma();
+    const d = R.dibujar(props);
+    return [R.avisos.includes(t('creaciones.keepPending')) && !d.texto.includes(t('creaciones.savedInCreations')), JSON.stringify(R.avisos)];
+  });
+  await prueba('I3) lo provisional (trabajo sin terminar) y lo de muestra NO ofrecen guardar', async () => {
+    R.reiniciar();
+    const enCurso = R.dibujar(conPropiedades(receta({ status: 'running' })));
+    const muestra = R.dibujar(conPropiedades(receta({ demo: true })));
+    return [!R.boton(enCurso, GUARDAR) && !R.boton(muestra, GUARDAR), ''];
+  });
+  await prueba('I4) CONTROL: con materiales, se conservan los materiales (no el texto): un solo botón y `finalizarCreacion`', async () => {
+    R.reiniciar();
+    R.estado.contrato.publicar();
+    const job = trabajo({ results: [...trabajo().results, { stepId: 'idea', kind: 'text', title: 'Idea', content: 'Un texto' }] });
+    const d = R.dibujar(conPropiedades(job));
+    const cuantos = d.botones.filter((b) => b.etiqueta === GUARDAR).length;
+    R.tocar(d, GUARDAR);
+    await calma();
+    return [cuantos === 1 && R.estado.contrato.de('finalizarCreacion').length === 1 && R.estado.contrato.de('guardarTextoFinal').length === 0, `${cuantos} botón(es)`];
+  });
+}
+
 grupo('E · conservar.ts');
 {
   const k = base('components/creator/conservar.ts');
@@ -643,7 +774,7 @@ grupo('G · Dieciséis idiomas');
   const IDIOMAS = fs.readdirSync(path.resolve(RAIZ, 'i18n/textos')).filter((d) => fs.existsSync(path.resolve(RAIZ, 'i18n/textos', d, 'projects.ts')));
   const NUEVAS = {
     projects: ['loading', 'loadFailed', 'retry', 'emptyStart', 'stateInProgress', 'updatedAgo', 'continue', 'continueProject', 'noThumbnail', 'loadProjectFailed', 'jobsLoadFailed'],
-    creaciones: ['introKept', 'keep', 'keeping', 'keepPending', 'keepFailed', 'emptyKeepText', 'listPending', 'locationLocal', 'locationCloud', 'locationLegacy', 'locationLabel', 'fromProject', 'savedAgo', 'editAgain', 'editAgainOf', 'editAgainPending', 'editAgainFailed'],
+    creaciones: ['introKept', 'keep', 'keeping', 'keepPending', 'keepFailed', 'emptyKeepText', 'listPending', 'locationLocal', 'locationCloud', 'locationLegacy', 'locationLabel', 'fromProject', 'savedAgo', 'editAgain', 'editAgainOf', 'editAgainPending', 'editAgainFailed', 'undecidedTitle', 'undecidedText', 'undecidedFailed', 'undecidedRetry', 'undecidedPending', 'undecidedEmpty', 'undecidedLoadMore', 'keepAsCreation', 'keepAsCreationOf'],
   };
   const valor = (idioma, modulo, clave) => {
     const fuente = leer(`i18n/textos/${idioma}/${modulo}.ts`);

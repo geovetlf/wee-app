@@ -106,7 +106,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   emptyKeepText: 'जिन नतीजों को आप पूरा करके “{{accion}}” से रखना चुनते हैं, वे यहाँ दिखते हैं।',
   listPending: 'हम अभी मेरी रचनाएँ नहीं दिखा सकते। आपके नतीजे उनके कामों में सेव हैं।',
   locationLocal: 'इस डिवाइस पर',
-  locationCloud: 'Weë Cloud में',
+  locationCloud: 'Weë Cloud के साथ सिंक किया गया',
   locationLegacy: 'पुराना स्टोरेज',
   locationLabel: 'कहाँ है: {{lugar}}',
   fromProject: 'प्रोजेक्ट {{proyecto}} से',
@@ -115,4 +115,15 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   editAgainOf: '{{nombre}} फिर से एडिट करें',
   editAgainPending: 'फिर से एडिट करना अभी उपलब्ध नहीं है।',
   editAgainFailed: 'हम इसे एडिट करने के लिए नहीं खोल पाए। फिर से कोशिश करें।',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'तय नहीं',
+  undecidedText: 'वह सामग्री जो आपने यह चुन पाने से पहले बनाई थी कि क्या रखना है। कुछ भी हटाया या खिसकाया नहीं गया है: जो चाहें, उसे रचना के रूप में रखें।',
+  undecidedFailed: 'हम आपकी तय न की गई सामग्री लोड नहीं कर पाए।',
+  undecidedRetry: 'तय न की गई सामग्री फिर से लोड करें',
+  undecidedPending: 'हम अभी आपकी तय न की गई सामग्री नहीं दिखा सकते। कुछ भी हटाया नहीं गया है।',
+  undecidedEmpty: 'आपके पास तय न की गई कोई सामग्री नहीं है।',
+  undecidedLoadMore: 'तय न की गई और सामग्री लोड करें',
+  keepAsCreation: 'रचना के रूप में रखें',
+  keepAsCreationOf: '{{nombre}} को रचना के रूप में रखें',
 };
