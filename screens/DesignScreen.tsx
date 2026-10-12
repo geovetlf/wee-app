@@ -18,10 +18,11 @@ import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import { ALTO_BARRA } from '../components/BarraInferior';
 import DesignExplore from '../components/design/DesignExplore';
 import DesignPanel from '../components/design/DesignPanel';
+import DesignHogar from '../components/design/DesignHogar';
 import { siempreSePregunta } from '../constants/ajustesContextuales';
-import { AJUSTES_DE_DESIGN, CREACIONES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
+import { AJUSTES_DE_DESIGN, CREACIONES_DE_DESIGN, CategoriaDeDesign, PUERTAS_DE_DESIGN, PuntoDePartida, QUE_DE_DESIGN } from '../constants/designTools';
 import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../constants/design';
-import { contextoDeDesign, palabrasDeLosAjustes } from '../utils/contextoDeDesign';
+import { contextoDeDesign, entradaAHogar, palabrasDeLosAjustes } from '../utils/contextoDeDesign';
 import { notify } from '../utils/notify';
 import { scale } from '../utils/scale';
 
@@ -34,6 +35,13 @@ const SITIO_DE_LA_BARRA = scale(96);
  * del panel común una sola vez, fuera del componente: es una tabla, no cambia.
  */
 const AJUSTES = siempreSePregunta(AJUSTES_DE_DESIGN);
+
+/** El catálogo de la pregunta `what` de la plantilla: sin él, ninguna puerta viaja como respuesta (ver `contextoDeDesign`). */
+const IDS_DE_QUE: ReadonlySet<string> = new Set(QUE_DE_DESIGN);
+
+/** La intención que pide un punto: lo que hace otra experiencia se va a ella (D7), lo demás se crea aquí. */
+const intencionDe = (punto: PuntoDePartida | undefined): 'crear' | 'transformar' | 'presentar' =>
+  punto?.lleva === 'home' ? 'transformar' : punto?.lleva === 'studio' ? 'presentar' : 'crear';
 
 /**
  * WEË DESIGN — DISEÑAR CASI CUALQUIER COSA.
@@ -63,13 +71,20 @@ const AJUSTES = siempreSePregunta(AJUSTES_DE_DESIGN);
  * Planner propio, ni trabajo propio, ni Credits propios: todo eso existe una vez y
  * está detrás de esa experiencia (`puente-design.test.mjs`).
  *
+ * ── La puerta por la que se pasó (decisiones del dueño del 2026-10-12) ───────
+ *
+ * D1 = A: quien empieza por un punto de partida lleva consigo QUÉ se diseña
+ * (la puerta → la respuesta `what` de la plantilla), para que Weë Brain no lo
+ * vuelva a preguntar. D7 = A: «Un antes y después» lleva a Hogar & Diseño
+ * (posible porque D2 = B le dio su puerta, el renglón bajo las puertas) y «Un
+ * recorrido» a Weë Studio (posible porque DEC-12 = A). La elección dura lo que
+ * dura la idea empezada: con la caja vacía se olvida.
+ *
  * ── Lo que todavía no viaja ──────────────────────────────────────────────────
  *
- * Ni la puerta por la que se pasó (llevar cada puerta a una intención de la
- * plantilla es una decisión del dueño: D1 y D7 de `docs/DESIGN.md` §4), ni las
- * referencias (son nombres de muestra: D6), ni formato y calidad como estructura
- * (el plan solo los lee como palabras). Qué presupone este puente y cómo se
- * cambia con otra respuesta: `docs/WEE-DESIGN-PUENTE.md`.
+ * Ni las referencias (son nombres de muestra: D6), ni formato y calidad como
+ * estructura (el plan solo los lee como palabras). Qué presupone el puente:
+ * `docs/WEE-DESIGN-PUENTE.md`.
  *
  * ── Mis creaciones es de la persona, y las muestras son ejemplos ─────────────
  *
@@ -90,6 +105,17 @@ const DesignScreen: React.FC = () => {
   const { isMobile, isDesktop } = useResponsive();
 
   const [prompt, setPrompt] = useState('');
+  /*
+   * EL PUNTO DE PARTIDA QUE EMPEZÓ LA IDEA, Y SU PUERTA (D1 y D7).
+   *
+   * Solo lo es si dejó la idea empezada: si ya había algo escrito, el punto no lo pisa y tampoco decide nada. Con la caja vacía se
+   * olvida, porque la idea que empezó ya no está.
+   */
+  const [eleccion, setEleccion] = useState<{ puerta: CategoriaDeDesign; punto: PuntoDePartida } | null>(null);
+  const alEscribir = useCallback((texto: string) => {
+    setPrompt(texto);
+    if (!texto.trim()) setEleccion(null);
+  }, []);
   /*
    * DÓNDE ESTÁS DENTRO DE DESIGN, EN ORDEN.
    *
@@ -144,20 +170,36 @@ const DesignScreen: React.FC = () => {
    */
   const alCrear = useCallback(() => {
     const contexto = contextoDeDesign({
-      intencion: 'crear',
+      intencion: intencionDe(eleccion?.punto),
       texto: prompt,
+      que: PUERTAS_DE_DESIGN.find((p) => p.id === eleccion?.puerta)?.que ?? null,
+      idsDeQue: IDS_DE_QUE,
       ajustesEnPalabras: palabrasDeLosAjustes(ajustes, t).join(', '),
     });
     if (!contexto) return;
     if (!user) { navigation.navigate('Login'); return; }
     navigation.navigate('CreatorFlow', { ...contexto, ...(projectId ? { projectId } : {}) });
-  }, [prompt, ajustes, user, navigation, t, projectId]);
+  }, [prompt, eleccion, ajustes, user, navigation, t, projectId]);
 
   const alElegirPunto = useCallback((punto: PuntoDePartida) => {
-    /* La idea queda empezada, para terminarla con palabras propias. */
+    /* La idea queda empezada, para terminarla con palabras propias. Si ya había algo escrito, el punto no lo pisa ni decide nada. */
     setCamino([]);
-    setPrompt((antes) => (antes.trim() ? antes : `${t(punto.clave)} `));
-  }, [t]);
+    if (prompt.trim()) return;
+    const puerta = PUERTAS_DE_DESIGN.find((p) => p.puntos.some((x) => x.id === punto.id && x.clave === punto.clave));
+    setPrompt(`${t(punto.clave)} `);
+    setEleccion(puerta ? { puerta: puerta.id, punto } : null);
+  }, [prompt, t]);
+
+  /*
+   * LA PUERTA A HOGAR & DISEÑO (D2 = B): transformar la foto de un espacio. No hace falta haber escrito nada —`CreatorFlow` empieza
+   * pidiendo la foto—; el contexto sale del mismo módulo que el de crear, y el proyecto de la ruta viaja igual (P11).
+   */
+  const alAbrirHogar = useCallback(() => {
+    const contexto = entradaAHogar();
+    if (!contexto) return;
+    if (!user) { navigation.navigate('Login'); return; }
+    navigation.navigate('CreatorFlow', { ...contexto, ...(projectId ? { projectId } : {}) });
+  }, [user, navigation, projectId]);
 
   const alAnadirReferencia = useCallback(() => {
     /*
@@ -251,7 +293,7 @@ const DesignScreen: React.FC = () => {
               <StudioPromptComposer
                 placeholder={t('design.placeholder')}
                 valor={prompt}
-                onCambiar={setPrompt}
+                onCambiar={alEscribir}
                 onAjustes={() => setAjustesAbiertos(true)}
                 onReferencia={alAnadirReferencia}
                 /*
@@ -281,6 +323,9 @@ const DesignScreen: React.FC = () => {
             )}
 
             <DesignExplore porFila={porFila} onAbrir={abrir} onVerTodas={() => abrir('todas')} />
+
+            {/* Hogar & Diseño, con su puerta (D2 = B): transformar la foto de un espacio que ya existe. */}
+            <DesignHogar onAbrir={alAbrirHogar} />
 
             {/*
               La misma fila que la de Weë Studio —es la misma fila— con lo que

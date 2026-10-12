@@ -33,7 +33,7 @@ export const design: typeof import('../es/design').design = {
   productHint: 'どんなモノや商品もデザインできます。',
   vehiclesTitle: '乗り物',
   vehiclesHint: '車、バイク、船、飛行機などをデザインできます。',
-  rendersTitle: 'レンダリングと3D',
+  rendersTitle: 'レンダリング',
   rendersHint: 'アイデアを、写真のようなリアルさで表現できます。',
 
   inLiving: 'リビング',
@@ -67,7 +67,7 @@ export const design: typeof import('../es/design').design = {
   vePlane: '飛行機',
   veDrone: 'ドローン',
   reRealistic: 'リアルなレンダリング',
-  reModel: '3Dモデル',
+  reModel: 'コンセプト画像',
   reAerial: '空からの眺め',
   reWalkthrough: 'ウォークスルー動画',
   reBeforeAfter: 'ビフォーアフター',

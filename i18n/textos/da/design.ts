@@ -55,7 +55,7 @@ export const design: typeof import('../es/design').design = {
   productHint: 'Design alle slags genstande og produkter.',
   vehiclesTitle: 'Køretøjer',
   vehiclesHint: 'Biler, motorcykler, både, fly og mere.',
-  rendersTitle: 'Renderinger og 3D',
+  rendersTitle: 'Renderinger',
   rendersHint: 'Visualiser dine idéer fotorealistisk.',
 
   /* ── Por dónde empezar, en cada una ───────────────────────────────────── */
@@ -90,7 +90,7 @@ export const design: typeof import('../es/design').design = {
   vePlane: 'Et fly',
   veDrone: 'En drone',
   reRealistic: 'En realistisk rendering',
-  reModel: 'En 3D-model',
+  reModel: 'Et konceptbillede',
   reAerial: 'Et fugleperspektiv',
   reWalkthrough: 'En virtuel rundvisning',
   reBeforeAfter: 'Et før og efter-billede',

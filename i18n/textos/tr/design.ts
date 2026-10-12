@@ -50,7 +50,7 @@ export const design: typeof import('../es/design').design = {
   productHint: 'Her türlü nesneyi ya da ürünü tasarla.',
   vehiclesTitle: 'Araçlar',
   vehiclesHint: 'Arabalar, motosikletler, tekneler, uçaklar ve daha fazlası.',
-  rendersTitle: 'Render ve 3D',
+  rendersTitle: 'Render',
   rendersHint: 'Fikirlerini son derece gerçekçi biçimde görselleştir.',
 
   /* ── Por dónde empezar, en cada una ───────────────────────────────────── */
@@ -85,7 +85,7 @@ export const design: typeof import('../es/design').design = {
   vePlane: 'Uçak',
   veDrone: 'Dron',
   reRealistic: 'Gerçekçi render',
-  reModel: '3D maket',
+  reModel: 'Konsept görsel',
   reAerial: 'Kuşbakışı görünüm',
   reWalkthrough: 'Sanal tur',
   reBeforeAfter: 'Öncesi ve sonrası',

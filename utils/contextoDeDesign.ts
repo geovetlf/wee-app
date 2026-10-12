@@ -18,11 +18,15 @@
  * y traerse su lógica —y con ella su registro entero de capacidades— sería saberlo. Este módulo no importa nada de la referencia: solo
  * el contrato del contexto, el catálogo de la propia pantalla y el destino de siempre.
  *
+ * ── La puerta como respuesta ya dada ─────────────────────────────────────────
+ *
+ * Llevar cada puerta de la pantalla a una intención de la plantilla lo decidió el dueño (D1 = A y D7 = A de `docs/DESIGN.md` §4,
+ * 2026-10-12): la puerta viaja como `presets` de `what`. Quien la manda pasa `que` JUNTO CON `idsDeQue` —el catálogo de la plantilla:
+ * `QUE_DE_DESIGN` en la pantalla, `QUE_SE_DISENA` en la referencia—; con `que` a secas, o con un `que` fuera del catálogo, no sale
+ * ningún preset. Así nadie suelta uno por descuido.
+ *
  * ── Lo que NO viaja, a propósito ─────────────────────────────────────────────
  *
- * · Una puerta como respuesta ya dada (`presets`): llevar cada puerta de la pantalla a una intención de la plantilla es D1 y D7 de
- *   `docs/DESIGN.md` §4, del dueño. Quien quiera mandarla pasa `que` JUNTO CON `idsDeQue` —el catálogo de la plantilla, que solo la
- *   referencia conoce—; con `que` a secas, o sin catálogo, no sale ningún preset. Así la pantalla montada no puede soltar uno por descuido.
  * · Una foto al CREAR: la plantilla `design` la ignora y la persona vería «Foto lista» para una foto que no se usa (F-07 de
  *   `docs/WEE-DESIGN-CIERRE.md`). Solo al TRANSFORMAR un espacio entra la foto, por el camino de siempre (`imageUri` → `creatorUploads`).
  */
@@ -56,8 +60,11 @@ export const palabrasDeLosAjustes = (
   });
 
 export interface EntradaDelContexto {
-  /** `crear` desde cero (experiencia `design`) o `transformar` un espacio con su foto (experiencia `home`, Hogar & Diseño). */
-  intencion: 'crear' | 'transformar';
+  /**
+   * `crear` desde cero (experiencia `design`), `transformar` un espacio con su foto (experiencia `home`, Hogar & Diseño) o
+   * `presentar` un diseño en vídeo (experiencia `studio`, Weë Studio: DEC-12 = A, decisión del dueño del 2026-10-12).
+   */
+  intencion: 'crear' | 'transformar' | 'presentar';
   /** Lo que la persona escribió, tal cual. Sin nada escrito no hay contexto. */
   texto: string;
   /** Qué quiere diseñar, si la puerta lo dice: un `optionId` de la pregunta `what` de la plantilla. Solo viaja con `idsDeQue`. */
@@ -69,18 +76,32 @@ export interface EntradaDelContexto {
   adjuntos?: readonly Adjunto[];
 }
 
+/** La experiencia que DECLARA cada intención. Una declaración de puerta no se filtra por `dentroDe` (ver `destinoDeIntencion`). */
+const EXPERIENCIA_DE: Readonly<Record<EntradaDelContexto['intencion'], string>> = { crear: 'design', transformar: 'home', presentar: 'studio' };
+
+/**
+ * ENTRAR EN HOGAR & DISEÑO SIN HABER ESCRITO NADA (D2 = B, decisión del dueño del 2026-10-12).
+ *
+ * La puerta de Hogar & Diseño no necesita una idea: `CreatorFlow` empieza pidiendo la foto del espacio. Sale del destino de
+ * siempre, declarado por la puerta, igual que un contexto con texto; solo que sin objetivo.
+ */
+export const entradaAHogar = (): ContextoDeExperiencia | null => {
+  const destino = destinoDeIntencion('', { declaradaPorLaPuerta: EXPERIENCIA_DE.transformar, dentroDe: 'design' });
+  return destino ? { experienceId: destino.experienceId, workspace: 'design' } : null;
+};
+
 /**
  * EL CONTEXTO QUE VIAJA A `CreatorFlow`.
  *
  * El destino lo decide `destinoDeIntencion` con la experiencia que DECLARA la intención (`design` para crear, `home` para transformar
- * un espacio) y sin salir de Weë Design. Lo que la persona escribe no se toca: los ajustes van detrás, en palabras, como en Weë Studio.
- * Devuelve `null` sin nada escrito.
+ * un espacio, `studio` para presentarlo en vídeo). Lo que la persona escribe no se toca: los ajustes van detrás, en palabras, como en
+ * Weë Studio. Devuelve `null` sin nada escrito.
  */
 export const contextoDeDesign = (e: EntradaDelContexto): ContextoDeExperiencia | null => {
   const texto = e.texto.trim();
   if (!texto) return null;
   const destino = destinoDeIntencion(texto, {
-    declaradaPorLaPuerta: e.intencion === 'crear' ? 'design' : 'home',
+    declaradaPorLaPuerta: EXPERIENCIA_DE[e.intencion],
     dentroDe: 'design',
   });
   if (!destino) return null;

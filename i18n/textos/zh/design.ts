@@ -40,7 +40,7 @@ export const design: typeof import('../es/design').design = {
   productHint: '设计任何物件或产品。',
   vehiclesTitle: '交通工具',
   vehiclesHint: '汽车、摩托车、船、飞机等等。',
-  rendersTitle: '渲染与 3D',
+  rendersTitle: '渲染',
   rendersHint: '以高真实感呈现你的想法。',
 
   /* ── Por dónde empezar, en cada una ───────────────────────────────────── */
@@ -75,7 +75,7 @@ export const design: typeof import('../es/design').design = {
   vePlane: '飞机',
   veDrone: '无人机',
   reRealistic: '写实渲染图',
-  reModel: '3D 模型',
+  reModel: '概念图',
   reAerial: '鸟瞰图',
   reWalkthrough: '空间漫游',
   reBeforeAfter: '前后对比',

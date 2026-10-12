@@ -56,17 +56,18 @@ Reglas que mandan sobre todo lo de abajo (CLAUDE.md):
 
 ## 4. Decisiones de producto pendientes (del dueño)
 
-Cada una lleva un valor por defecto **recomendado** que no se ha aplicado.
+Cada una lleva un valor por defecto **recomendado** que no se ha aplicado. **El 2026-10-12 el dueño respondió D1 = A, D2 = B y D7 = A**
+(y DEC-12 = A en [WEE-DESIGN-UIUX-DECISIONS.md](WEE-DESIGN-UIUX-DECISIONS.md)); las demás siguen sin decidir.
 
 | | Pregunta | Opciones | Recomendado |
 |---|---|---|---|
-| D1 | ¿Qué es Weë Design? Hoy se contradicen el menú (gráfico), la referencia visual (todo), la pantalla (físico) y la plantilla (gráfico + concepto). | A) Todo «lo que imagines» · B) Solo lo físico y los espacios · C) Solo diseño gráfico | **A**, con cada puerta llevada a una intención de la plantilla |
-| D2 | Entregables de la primera versión | A) Las 6 intenciones de la plantilla · B) A + Hogar & Diseño con puerta propia · C) Solo logo, post y concepto | **B** |
+| D1 | ¿Qué es Weë Design? Hoy se contradicen el menú (gráfico), la referencia visual (todo), la pantalla (físico) y la plantilla (gráfico + concepto). | A) Todo «lo que imagines» · B) Solo lo físico y los espacios · C) Solo diseño gráfico | **A**, con cada puerta llevada a una intención de la plantilla · **DECIDIDA: A** (dueño, 2026-10-12) |
+| D2 | Entregables de la primera versión | A) Las 6 intenciones de la plantilla · B) A + Hogar & Diseño con puerta propia · C) Solo logo, post y concepto | **B** · **DECIDIDA: B** (dueño, 2026-10-12) |
 | D3 | Editar después de generar | A) Recrear desde cero · B) Editar la propuesta elegida (`image.edit`, con linaje) · C) Las frases rápidas editan y «Otra versión» recrea | **C** |
 | D4 | Texto dentro de la imagen, y el nivel de los logos | A) Solo logos y afiches, con un modelo que escriba texto (el afiche se cotiza más caro) · B) Nunca · C) Siempre que se escriba | **A**, logos en el nivel alto |
 | D5 | Formatos | A) 1:1, 4:5, 9:16 y 16:9 · B) A + impresión · C) Solo 1:1 y 9:16 | **A** |
 | D6 | Referencias que sube la persona | A) Inspiración de estilo (`image.reference`) · B) Una base que se transforma · C) Ocultar el botón hasta decidir | **A** |
-| D7 | Puertas sin capacidad detrás (maqueta 3D, recorrido, antes/después) | A) Llevarlas a lo que existe (Studio, Hogar & Diseño, imagen) · B) Retirarlas · C) Esperar a un proveedor 3D | **A** |
+| D7 | Puertas sin capacidad detrás (maqueta 3D, recorrido, antes/después) | A) Llevarlas a lo que existe (Studio, Hogar & Diseño, imagen) · B) Retirarlas · C) Esperar a un proveedor 3D | **A** · **DECIDIDA: A** con sus condiciones: «antes y después» solo con D2 = B, «recorrido» solo con DEC-12 = A, y la maqueta 3D se dice «imagen conceptual» mientras no haya 3D real (dueño, 2026-10-12) |
 | D8 | Memoria de marca o brand kit | A) Nada en la primera versión · B) Memoria de proyecto compartida con Weë Business · C) Solo en Weë Business | **A ahora, B después** |
 | D9 | Uso comercial y moderación propia | A) No prometer exclusividad, cláusula en los términos y revisión legal antes de anunciar logos · B) Etiquetar los logos como «propuesta» · C) Una regla que rechace imitar marcas o personas reales | **A + C** |
 

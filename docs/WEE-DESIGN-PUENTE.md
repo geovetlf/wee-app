@@ -1,4 +1,18 @@
-# Weë Design — el puente «Crear» → `CreatorFlow` (PREPARADO, no integrado)
+# Weë Design — el puente «Crear» → `CreatorFlow`
+
+**Estado (R9, 2026-10-12): INTEGRADO en la rama local `r9/integracion-puente`, con las respuestas del dueño D1 = A, D2 = B, D7 = A y
+DEC-12 = A** (registradas como DECIDIDAS en [DESIGN.md](DESIGN.md) §4 y [WEE-DESIGN-UIUX-DECISIONS.md](WEE-DESIGN-UIUX-DECISIONS.md)). Sin push ni
+despliegue. Lo que se hizo con cada respuesta, sobre el puente tal cual (fusión de `r8/puente` + la línea P11 del ensayo verde):
+
+| Respuesta | Qué se hizo | Dónde |
+|---|---|---|
+| D1 = A | Cada puerta lleva su respuesta `what` de la plantilla: Interiores, Arquitectura y Espacios → `scene`; Mobiliario y Producto → `product`; Vehículos → `object`; Renders, ninguna. Viaja solo si el punto de partida empezó la idea; con la caja vacía se olvida | `constants/designTools.ts` (`que`, `QUE_DE_DESIGN`), `screens/DesignScreen.tsx` (`eleccion`), `utils/contextoDeDesign.ts` |
+| D2 = B | Un renglón «Hogar & Diseño» bajo las puertas, con los textos que ya tenía el catálogo; lleva a `CreatorFlow` con `home`, que pide la foto | `components/design/DesignHogar.tsx`, `ENTRADA_A_HOGAR`, `entradaAHogar()` |
+| D7 = A (con D2 = B) | «Un antes y después» → Hogar & Diseño (`home`) | `PuntoDePartida.lleva = 'home'` |
+| D7 = A (con DEC-12 = A) | «Un recorrido» → Weë Studio (`studio`), intención `presentar` | `PuntoDePartida.lleva = 'studio'` |
+| D7 = A (3) | «Una maqueta 3D» → «Una imagen conceptual», y la puerta deja de llamarse «… y 3D», en los 16 idiomas (pendiente de revisión nativa como todo texto nuevo) | `i18n/textos/*/design.ts` (`reModel`, `rendersTitle`) |
+
+Pruebas: `puente-design` (A10, A15–A17, B10–B11, D5). Sin cercas movidas. Lo que sigue es la historia de R7-Design y R8.
 
 **Estado (R8, 2026-10-12).** PREPARADO y PENDIENTE DE DECISIÓN (D1, D2, D7) en la rama `r8/puente` (ver §0). Origen: rama `r7d/puente`, desde `a64ff24` (ronda R7-Design, 2026-10-11, tarea P). Está **preparado, probado y listo para un solo `git merge`**,
 y **no se integra** hasta que el dueño responda D1, D2 y D7 de [DESIGN.md](DESIGN.md) §4. No toma ninguna de esas decisiones, no escribe en ninguna de sus

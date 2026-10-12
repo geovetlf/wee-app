@@ -33,7 +33,7 @@ export const design: typeof import('../es/design').design = {
   productHint: 'Gestalte jedes Objekt und jedes Produkt.',
   vehiclesTitle: 'Fahrzeuge',
   vehiclesHint: 'Autos, Motorräder, Boote, Flugzeuge und mehr.',
-  rendersTitle: 'Renders und 3D',
+  rendersTitle: 'Renders',
   rendersHint: 'Visualisiere deine Ideen fotorealistisch.',
 
   /* ── Por dónde empezar, en cada una ───────────────────────────────────── */
@@ -68,7 +68,7 @@ export const design: typeof import('../es/design').design = {
   vePlane: 'Ein Flugzeug',
   veDrone: 'Eine Drohne',
   reRealistic: 'Ein realistischer Render',
-  reModel: 'Ein 3D-Modell',
+  reModel: 'Ein Konzeptbild',
   reAerial: 'Eine Luftaufnahme',
   reWalkthrough: 'Ein Rundgang',
   reBeforeAfter: 'Ein Vorher-Nachher',

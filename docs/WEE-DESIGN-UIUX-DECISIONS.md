@@ -32,7 +32,7 @@ Qué se decidió en esta misión (y por qué), qué **espera al dueño**, y qué
 | **DEC-09** | ¿Qué visor 3D? | A) El preparado en `filmmaker/core` (`VisorDeModelo3d`, web sobre `<model-viewer>`/three.js) para TODO Weë · B) Otro | **A**: uno solo, nunca uno de Design |
 | **DEC-10** | Precio y cupo diario de los modelos 3D | Medir `providerCost` primero | Ninguno hasta medir (CLAUDE.md §7) |
 | **DEC-11** | ¿Dónde se guardan las escenas de diseño? (también [3D-EXPERIENCIA.md](3D-EXPERIENCIA.md) §19 #8) | Colección propia (no `scenes`), por proyecto | Colección propia por proyecto (P7 de [3D-ASSET-LIFECYCLE.md](3D-ASSET-LIFECYCLE.md)) |
-| **DEC-12** | ¿Weë Design lleva a Weë Studio para presentar un diseño en vídeo? | A) Sí, con contexto · B) No | **A** |
+| **DEC-12** | ¿Weë Design lleva a Weë Studio para presentar un diseño en vídeo? | A) Sí, con contexto · B) No | **A** · **DECIDIDA: A** (dueño, 2026-10-12) |
 | **DEC-13** | ¿Productos físicos a medida (figuras, llaveros…)? | Fuera del alcance de hoy | No ahora |
 | **DEC-14** | ¿Estilizar modelos (bloques, voxel…)? | Sin caso de uso | No ahora |
 | **DEC-17** | Al fusionar con la Línea A: la suite propia en la cadena | — | Sí (ver DEC-16a) |

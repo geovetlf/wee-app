@@ -38,7 +38,7 @@ export const design = {
   productHint: 'Diseña cualquier objeto o producto.',
   vehiclesTitle: 'Vehículos',
   vehiclesHint: 'Autos, motos, barcos, aviones y más.',
-  rendersTitle: 'Renders y 3D',
+  rendersTitle: 'Renders',
   rendersHint: 'Visualiza tus ideas en alto realismo.',
 
   /* ── Por dónde empezar, en cada una ───────────────────────────────────── */
@@ -73,7 +73,7 @@ export const design = {
   vePlane: 'Un avión',
   veDrone: 'Un dron',
   reRealistic: 'Un render realista',
-  reModel: 'Una maqueta 3D',
+  reModel: 'Una imagen conceptual',
   reAerial: 'Una vista aérea',
   reWalkthrough: 'Un recorrido',
   reBeforeAfter: 'Un antes y después',

@@ -41,10 +41,11 @@ export const textoDelHtml = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&#x
  * @param {boolean} [o.movil]                  Teléfono (`useResponsive`).
  * @param {Array} [o.trabajos]                 Los `creatorJobs` que devolvería `getMyJobsDe`.
  * @param {object} [o.fotos]                   Lo que contestan el permiso y el selector de fotos.
+ * @param {object} [o.params]                 Los parámetros de la ruta (`useRoute().params`); sin ellos, los de quien entra por el menú.
  * @param {string} [o.pantalla]                Ruta de la pantalla desde la raíz del repo.
  * @param {(ctx: object) => object} o.dobles   Los dobles propios de esa pantalla (componentes y constantes que no se cargan de verdad).
  */
-export const crearEntorno = ({ so = 'android', usuario = { uid: 'u1' }, movil = true, trabajos = [], fotos = {}, pantalla, dobles }) => {
+export const crearEntorno = ({ so = 'android', usuario = { uid: 'u1' }, movil = true, trabajos = [], fotos = {}, params, pantalla, dobles }) => {
   /* ── el estado que sobrevive entre dibujados ── */
   let almacen = [];
   let indice = 0;
@@ -113,7 +114,7 @@ export const crearEntorno = ({ so = 'android', usuario = { uid: 'u1' }, movil = 
       }),
       useFocusEffect: (cb) => { enfoques.push(cb); },
       /* La ruta de quien entra por el menú: sin parámetros. Weë Chef y las demás pantallas de especialista leen de ella el proyecto del que vienen (P11, R8). */
-      useRoute: () => ({ params: undefined }),
+      useRoute: () => ({ params }),
     },
     'expo-image-picker': selector,
     'firebase/functions': { httpsCallable: () => { throw new Error('sin red'); } },

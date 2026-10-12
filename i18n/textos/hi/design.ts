@@ -57,7 +57,7 @@ export const design: typeof import('../es/design').design = {
   productHint: 'कोई भी चीज़ या प्रोडक्ट डिज़ाइन करें.',
   vehiclesTitle: 'वाहन',
   vehiclesHint: 'कार, बाइक, नाव, हवाई जहाज़ और बहुत कुछ.',
-  rendersTitle: 'रेंडर और 3D',
+  rendersTitle: 'रेंडर',
   rendersHint: 'अपने आइडिया को बिल्कुल असली जैसा देखें.',
 
   /* ── Por dónde empezar, en cada una ───────────────────────────────────── */
@@ -92,7 +92,7 @@ export const design: typeof import('../es/design').design = {
   vePlane: 'हवाई जहाज़',
   veDrone: 'ड्रोन',
   reRealistic: 'असली जैसा रेंडर',
-  reModel: '3D मॉडल',
+  reModel: 'कॉन्सेप्ट इमेज',
   reAerial: 'एरियल व्यू',
   reWalkthrough: 'वर्चुअल टूर',
   reBeforeAfter: 'पहले और बाद',

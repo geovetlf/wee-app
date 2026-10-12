@@ -37,7 +37,7 @@ export const design: typeof import('../es/design').design = {
   productHint: '어떤 사물이나 제품이든 디자인해요.',
   vehiclesTitle: '탈것',
   vehiclesHint: '자동차, 오토바이, 배, 비행기까지.',
-  rendersTitle: '렌더와 3D',
+  rendersTitle: '렌더',
   rendersHint: '아이디어를 실사에 가깝게 시각화해요.',
 
   /* ── Por dónde empezar, en cada una ───────────────────────────────────── */
@@ -72,7 +72,7 @@ export const design: typeof import('../es/design').design = {
   vePlane: '비행기',
   veDrone: '드론',
   reRealistic: '사실적인 렌더',
-  reModel: '3D 모형',
+  reModel: '콘셉트 이미지',
   reAerial: '조감도',
   reWalkthrough: '공간 투어',
   reBeforeAfter: '비포 애프터',

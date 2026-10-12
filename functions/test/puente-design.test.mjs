@@ -18,10 +18,11 @@
  *  C. LA FORMA DE LA PANTALLA, leída: ni presets ni foto ni servicios ni proveedores ni la referencia, y ya sin demostración.
  *  D. EL CONTRATO con la experiencia común y con el servidor.
  *
- * ── BLOCKED — HUMAN DECISION ───────────────────────────────────────────────
- * Dos comprobaciones fijan el comportamiento de hoy de algo que espera una decisión del dueño: que NO viaje ningún preset de
- * puerta (D1 y D7 de `docs/DESIGN.md` §4) y que las referencias de la caja, que son nombres de muestra, NO viajen (D6). Cuando
- * se decidan se invierten SOLO esas dos; ninguna otra depende del resultado.
+ * ── DECISIONES DEL DUEÑO (2026-10-12): D1 = A, D2 = B, D7 = A, DEC-12 = A ──────
+ * La puerta por la que se empezó viaja como la respuesta `what` de la plantilla (D1); «Un antes y después» lleva a Hogar & Diseño
+ * y «Un recorrido» a Weë Studio (D7, condicionadas a D2 = B y DEC-12 = A); Hogar & Diseño tiene su renglón (D2); «Una maqueta 3D»
+ * ya no se promete. Lo comprueban A10, A15–A17, B10–B11 y E. Sigue BLOCKED — HUMAN DECISION una sola cosa: que las referencias
+ * de la caja, nombres de muestra, NO viajen (D6).
  *
  * Cada detector lleva su CONTROL, para que un verde no pueda ser un verde vacío. Sin red ni emulador: unos 10 s.
  */
@@ -113,6 +114,7 @@ const doblesDeDesign = (idioma) => (ctx) => {
     '../components/EspacioDeEscritura': { __esModule: true, default: capturar('EspacioDeEscritura'), useAlturaDelTeclado: () => 0 },
     '../components/design/DesignExplore': capturar('DesignExplore'),
     '../components/design/DesignPanel': capturar('DesignPanel'),
+    '../components/design/DesignHogar': capturar('DesignHogar'),
   };
 };
 const entornos = [];
@@ -252,8 +254,95 @@ const IDEA = 'Un salón con chimenea';
   crear(con);
   check('A10) y si ya había algo escrito, el punto NO lo pisa: «Crear» manda lo que la persona escribió',
     con.navegacion.length === 1 && con.navegacion[0][2]?.goal === 'Una butaca de cuero', JSON.stringify(con.navegacion[0]?.[2]?.goal));
-  check('A10) la puerta por la que se pasó NO viaja (la elección de puerta a intención de la plantilla es D1 y D7: BLOCKED — HUMAN DECISION)',
-    !('presets' in (e.navegacion[0]?.[2] ?? {})) && !('preset' in (e.navegacion[0]?.[2] ?? {})));
+  check('A10) la puerta por la que se empezó viaja como la respuesta `what` de la plantilla (D1 = A): Interiores → «un lugar» (`scene`)',
+    igual(e.navegacion[0]?.[2]?.presets, [{ questionId: 'what', optionId: 'scene' }]) && e.navegacion[0]?.[2]?.experienceId === 'design',
+    JSON.stringify(e.navegacion[0]?.[2]));
+  check('A10) y si el punto no empezó la idea (ya había algo escrito), su puerta no decide nada: no viaja ningún preset',
+    !('presets' in (con.navegacion[0]?.[2] ?? {})) && !('preset' in (con.navegacion[0]?.[2] ?? {})));
+  /* La caja vaciada olvida la elección: lo que se escriba después es otra idea. */
+  const vaciada = pantalla();
+  vaciada.dibujar();
+  vaciada.capturas.DesignExplore.onAbrir('vehicles');
+  vaciada.dibujar();
+  vaciada.capturas.DesignPanel.onElegirPunto(DESIGN.PUERTAS_DE_DESIGN.find((p) => p.id === 'vehicles').puntos[0]);
+  escribir(vaciada, '');
+  escribir(vaciada, 'Una lámpara de pie');
+  crear(vaciada);
+  check('A10) con la caja vaciada la elección se olvida: la idea nueva sale sin la puerta de antes',
+    vaciada.navegacion.length === 1 && !('presets' in (vaciada.navegacion[0]?.[2] ?? {})) && vaciada.navegacion[0]?.[2]?.goal === 'Una lámpara de pie',
+    JSON.stringify(vaciada.navegacion[0]?.[2]));
+}
+{
+  /* D1 = A, puerta por puerta: cada una con su respuesta de la plantilla; Renders sin ninguna (un render es una forma de enseñar). */
+  const esperado = { interiors: 'scene', architecture: 'scene', spaces: 'scene', furniture: 'product', product: 'product', vehicles: 'object', renders: undefined };
+  const fallos = [];
+  for (const puerta of DESIGN.PUERTAS_DE_DESIGN) {
+    const punto = puerta.puntos.find((x) => !x.lleva);
+    const e = pantalla();
+    e.dibujar();
+    e.capturas.DesignExplore.onAbrir(puerta.id);
+    e.dibujar();
+    e.capturas.DesignPanel.onElegirPunto(punto);
+    e.dibujar();
+    crear(e);
+    const enviado = e.navegacion[0]?.[2] ?? {};
+    const que = enviado.presets?.[0]?.optionId;
+    if (enviado.experienceId !== 'design' || que !== esperado[puerta.id]) fallos.push(`${puerta.id}: ${enviado.experienceId}/${que}`);
+  }
+  check('A15) cada puerta manda su respuesta `what` (Interiores, Arquitectura y Espacios → lugar; Mobiliario y Producto → producto; Vehículos → vehículo; Renders → ninguna)',
+    fallos.length === 0 && Object.keys(esperado).length === DESIGN.PUERTAS_DE_DESIGN.length, fallos.join(' · ') || `${DESIGN.PUERTAS_DE_DESIGN.length} puertas`);
+}
+{
+  /* D7 = A: lo que el diseño de imágenes no hace se va a quien lo hace. */
+  const renders = DESIGN.PUERTAS_DE_DESIGN.find((p) => p.id === 'renders');
+  const por = (id) => {
+    const e = pantalla();
+    e.dibujar();
+    e.capturas.DesignExplore.onAbrir('renders');
+    e.dibujar();
+    e.capturas.DesignPanel.onElegirPunto(renders.puntos.find((x) => x.id === id));
+    e.dibujar();
+    crear(e);
+    return e.navegacion[0]?.[2] ?? {};
+  };
+  const antesYDespues = por('beforeAfter');
+  const recorrido = por('walkthrough');
+  const concepto = por('model');
+  check('A16) «Un antes y después» lleva a Hogar & Diseño (`home`), sin preset de diseño y sin foto inventada: CreatorFlow pide la foto (D7 con D2 = B)',
+    antesYDespues.experienceId === 'home' && antesYDespues.workspace === 'design' && antesYDespues.goal === tEs('design.reBeforeAfter')
+    && !('presets' in antesYDespues) && !('imageUri' in antesYDespues), JSON.stringify(antesYDespues));
+  check('A16) «Un recorrido» lleva a Weë Studio (`studio`) con lo escrito, para presentarlo en vídeo (D7 con DEC-12 = A)',
+    recorrido.experienceId === 'studio' && recorrido.goal === tEs('design.reWalkthrough') && !('presets' in recorrido), JSON.stringify(recorrido));
+  check('A16) «Una imagen conceptual» (antes «Una maqueta 3D») se queda en Weë Design y ya no promete 3D en ningún idioma de la app',
+    concepto.experienceId === 'design' && !/3d|maqueta/i.test(tEs('design.reModel')) && !/3d/i.test(tEn('design.reModel'))
+    && !/3d/i.test(tEs('design.rendersTitle')) && !/3d/i.test(tEn('design.rendersTitle')), `${tEs('design.reModel')} · ${tEn('design.reModel')} · ${tEs('design.rendersTitle')}`);
+  const conIdea = pantalla();
+  escribir(conIdea, 'Mi terraza con plantas');
+  conIdea.capturas.DesignExplore.onAbrir('renders');
+  conIdea.dibujar();
+  conIdea.capturas.DesignPanel.onElegirPunto(renders.puntos.find((x) => x.id === 'walkthrough'));
+  conIdea.dibujar();
+  crear(conIdea);
+  check('A16) y con algo ya escrito, el punto no cambia el destino: lo escrito se crea en Weë Design',
+    conIdea.navegacion[0]?.[2]?.experienceId === 'design' && conIdea.navegacion[0]?.[2]?.goal === 'Mi terraza con plantas', JSON.stringify(conIdea.navegacion[0]?.[2]));
+}
+{
+  /* D2 = B: Hogar & Diseño tiene su renglón. */
+  const e = pantalla();
+  e.dibujar();
+  const hay = typeof e.capturas.DesignHogar?.onAbrir === 'function';
+  if (hay) e.capturas.DesignHogar.onAbrir();
+  check('A17) el renglón de Hogar & Diseño lleva a CreatorFlow con la experiencia `home` y nada más (CreatorFlow empieza pidiendo la foto)',
+    hay && e.navegacion.length === 1 && e.navegacion[0][1] === 'CreatorFlow' && igual(e.navegacion[0][2], { experienceId: 'home', workspace: 'design' }),
+    hay ? JSON.stringify(e.navegacion[0]) : 'la pantalla no pinta DesignHogar');
+  const sin = pantalla({ usuario: null });
+  sin.dibujar();
+  sin.capturas.DesignHogar?.onAbrir?.();
+  check('A17) sin sesión, el renglón lleva a Login como «Crear»', sin.navegacion.length === 1 && sin.navegacion[0][1] === 'Login', JSON.stringify(sin.navegacion[0]));
+  const conProyecto = pantalla({ params: { projectId: 'p-1' } });
+  conProyecto.dibujar();
+  conProyecto.capturas.DesignHogar?.onAbrir?.();
+  check('A17) y desde un proyecto, lo que se transforme nace en él (P11)', conProyecto.navegacion[0]?.[2]?.projectId === 'p-1', JSON.stringify(conProyecto.navegacion[0]));
 }
 {
   /* El doble toque: dos órdenes iguales a la navegación de verdad dejan UNA sola creación. */
@@ -420,6 +509,19 @@ const MATRIZ = [
   { intencion: 'transformar', texto: 'Otro suelo', que: 'logo', adjuntos: [FOTO] },
   { intencion: 'transformar', texto: '' },
 ];
+check('B10) presentar en vídeo va a Weë Studio (`studio`) con lo escrito y los ajustes, sin preset de diseño ni foto (DEC-12 = A)',
+  igual(contexto({ intencion: 'presentar', texto: IDEA, que: 'scene', idsDeQue: IDS_DE_QUE, adjuntos: [FOTO], ajustesEnPalabras: 'Natural' }),
+    { experienceId: 'studio', workspace: 'design', goal: `${IDEA} · Natural` }));
+check('B10) entrar en Hogar & Diseño sin idea da la experiencia `home` y el lugar de trabajo, sin objetivo inventado (D2 = B)',
+  typeof N.entradaAHogar === 'function' && igual(N.entradaAHogar(), { experienceId: 'home', workspace: 'design' }));
+/* El catálogo de la pantalla no puede separarse ni del de la plantilla del servidor ni del de la referencia funcional. */
+const idsDePantalla = [...(DESIGN.QUE_DE_DESIGN ?? [])].sort().join();
+const idsDelServidor = intentar(() => requerir(path.resolve(RAIZ, 'functions/lib/creator/templates.js')).TEMPLATES.design.questions.find((q) => q.id === 'what').options.map((o) => o.id).filter((id) => id !== 'idk').sort().join(), null);
+check('B11) `QUE_DE_DESIGN` de la pantalla es exactamente la pregunta `what` de la plantilla compilada (sin «No sé») y la `QUE_SE_DISENA` de la referencia',
+  idsDePantalla !== '' && idsDePantalla === idsDelServidor && idsDePantalla === [...IDS_DE_QUE].sort().join(), `${idsDePantalla} · servidor ${idsDelServidor ?? 'sin lib'}`);
+check('B11) y toda puerta con `que` usa uno de ellos; todo punto con `lleva` va a `home` o a `studio`',
+  DESIGN.PUERTAS_DE_DESIGN.every((p) => p.que === undefined || DESIGN.QUE_DE_DESIGN.includes(p.que))
+  && DESIGN.PUERTAS_DE_DESIGN.flatMap((p) => p.puntos).every((x) => x.lleva === undefined || ['home', 'studio'].includes(x.lleva)));
 const distintos = MATRIZ.filter((e) => !igual(REF.contextoDeDesign(e), contextoDeAntes(e)));
 check('B6) la referencia funcional da EXACTAMENTE lo mismo que antes de extraer la función, en las 15 entradas que la ejercitan',
   distintos.length === 0 && typeof REF.contextoDeDesign === 'function', distintos.length ? `difiere en ${JSON.stringify(distintos[0])}` : `${MATRIZ.length} entradas iguales`);
@@ -470,7 +572,7 @@ check('C1) crear es ir a CreatorFlow con el objeto que arma `contextoDeDesign` (
   /const contexto = contextoDeDesign\(\{/.test(codigo) && /navigation\.navigate\('CreatorFlow', \{ \.\.\.contexto, \.\.\.\(projectId \? \{ projectId \} : \{\}\) \}\);/.test(codigo));
 check('C2) el contexto sale de UN solo sitio: la pantalla no escribe la experiencia ni el lugar de trabajo a mano al CREAR (reabrir una creación ya hecha, que sí lleva su experiencia, es otro camino)',
   !/experienceId\s*:/.test(sinReabrirCreaciones(codigo)) && !/workspace\s*:/.test(sinReabrirCreaciones(codigo)));
-check('C3) la pantalla no construye presets, adjuntos, foto, controles creativos ni reabre trabajos al CREAR: solo lo escrito y los ajustes (reabrir una creación ya hecha es otro camino)',
+check('C3) la pantalla no ARMA a mano presets, adjuntos, foto, controles creativos ni reabre trabajos al CREAR: la puerta viaja por `contextoDeDesign` (que/idsDeQue), no como estructura escrita aquí',
   !llevaEstructura(sinReabrirCreaciones(codigo)));
 check('C4) ya no hay creación de mentira: ni temporizador, ni aviso de demostración, ni su estado, ni el teclado del aviso',
   !hayTemporizador(codigo) && !hayDemostracion(codigo));
@@ -495,9 +597,9 @@ const dependenciasSinDeclarar = (src, nombre, usados) => {
   const declaradas = src.slice(fin + '\n  }, ['.length, src.indexOf(']);', fin)).split(',').map((x) => x.trim()).filter(Boolean);
   return usados.filter((u) => new RegExp(`\\b${u}\\b`).test(cuerpo) && !declaradas.includes(u));
 };
-const USADOS_AL_CREAR = ['prompt', 'ajustes', 'user', 'navigation', 't', 'projectId'];
+const USADOS_AL_CREAR = ['prompt', 'eleccion', 'ajustes', 'user', 'navigation', 't', 'projectId'];
 const sinDeclarar = dependenciasSinDeclarar(codigo, 'alCrear', USADOS_AL_CREAR);
-check('C10) `alCrear` declara en sus dependencias todo lo que lee (la idea, los ajustes, la sesión, la navegación, el traductor y el proyecto de la ruta): nunca manda lo de antes',
+check('C10) `alCrear` declara en sus dependencias todo lo que lee (la idea, el punto elegido, los ajustes, la sesión, la navegación, el traductor y el proyecto de la ruta): nunca manda lo de antes',
   sinDeclarar.length === 0 && /const alCrear = useCallback/.test(codigo), sinDeclarar.join(', ') || 'completas');
 
 /* CONTROLES: cada detector tiene que morder. */
@@ -564,12 +666,12 @@ check('D4) lo que la pantalla manda es lo que arma el contexto compartido con la
     return e.navegacion.length === 1 && igual(e.navegacion[0][2], REF.contextoDeDesign({ intencion: 'crear', texto: IDEA, ajustesEnPalabras: tEs('design.valMinimal') }));
   })());
 
-check('D5) el documento que la pantalla cita existe, dice qué presupone (D1, D2 y D7) y no marca ninguna decisión como tomada',
+check('D5) el documento que la pantalla cita existe y registra las respuestas del dueño con su fecha: D1 = A, D2 = B, D7 = A y DEC-12 = A',
   (() => {
     const ruta = path.resolve(RAIZ, 'docs/WEE-DESIGN-PUENTE.md');
     if (!fs.existsSync(ruta)) return false;
     const doc = fs.readFileSync(ruta, 'utf8');
-    return /\bD1\b/.test(doc) && /\bD2\b/.test(doc) && /\bD7\b/.test(doc) && !/DECID[IÍ]D[AO]/i.test(doc);
+    return /D1 = A/.test(doc) && /D2 = B/.test(doc) && /D7 = A/.test(doc) && /DEC-12 = A/.test(doc) && /2026-10-12/.test(doc);
   })());
 
 globalThis.setTimeout = setTimeoutReal;

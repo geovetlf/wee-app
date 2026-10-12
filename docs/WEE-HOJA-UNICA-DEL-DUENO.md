@@ -158,7 +158,7 @@ Las trece que lee CL-23 (`functions/test/_design-cierre.mjs:298-303`). Fuentes d
 - **Dependencias.** DEC-01 (qué pantalla); se contesta con D2 y D7.
 - **Recomendación técnica [O]: A**, sin añadir puertas gráficas en la primera versión.
 - **Si se aplaza.** «Crear» sigue siendo una demostración de 1,6 s (`screens/DesignScreen.tsx:129`); el puente no se integra; CL-01 y CL-05 siguen esperando.
-- **Respuesta del dueño: ____**
+- **Respuesta del dueño: A** (2026-10-12).
 
 ### D2 — Entregables de la primera versión
 
@@ -173,7 +173,7 @@ Las trece que lee CL-23 (`functions/test/_design-cierre.mjs:298-303`). Fuentes d
 - **Dependencias.** D1; D7-A necesita esta puerta para «Un antes y después».
 - **Recomendación técnica [O]: B.**
 - **Si se aplaza.** CL-02 sigue esperando; Hogar & Diseño solo se alcanza escribiéndolo en Weë AI o Weë Brain.
-- **Respuesta del dueño: ____**
+- **Respuesta del dueño: B** (2026-10-12).
 
 ### D7 — Puertas sin capacidad detrás
 
@@ -190,7 +190,7 @@ Las trece que lee CL-23 (`functions/test/_design-cierre.mjs:298-303`). Fuentes d
 - **Recomendación técnica [O]: A condicionada**: (1) «antes y después» a Hogar & Diseño solo si D2 = B; (2) «recorrido» a Studio solo si DEC-12 = A; si no, B
   para esos dos; (3) «maqueta 3D» se renombra o se retira mientras no haya 3D.
 - **Si se aplaza.** Las puertas siguen prometiendo lo que no existe; CL-05 sigue esperando; el puente no puede integrarse con honestidad.
-- **Respuesta del dueño: ____**
+- **Respuesta del dueño: A**, con sus condiciones (2026-10-12): «antes y después» solo con D2 = B; «recorrido» solo con DEC-12 = A; «maqueta 3D» se dice «imagen conceptual» mientras no haya 3D real.
 
 ### D6 — Referencias que sube la persona
 
@@ -342,7 +342,7 @@ Las trece que lee CL-23 (`functions/test/_design-cierre.mjs:298-303`). Fuentes d
 |---|---|---|---|---|
 | **13a** D3 · linaje | ¿CL-13 se cierra con linaje (escalón 2, autorizando F4 o F3) o sin él (se reescribe su texto)? | sí · no (v2, ficha de D3) | **sí**, en el escalón 2: el texto de CL-13 lo pide | ____ |
 | **13b** D6 · parada | ¿«C como parada» significa que el trabajo se detiene en C si la referencia no llega o no se nota, si el precio exige tocar F2, o si DEC-24 no está contestada? | sí · no (la lectura está en `docs/WEE-DESIGN-DECISIONES-DEL-DUENO.md:541`) | **sí** | ____ |
-| **13c** DEC-12 | ¿Weë Design lleva a Weë Studio para presentar un diseño en vídeo? | «A) Sí, con contexto · B) No» (`docs/WEE-DESIGN-UIUX-DECISIONS.md:35`) | **A** (condiciona «Un recorrido» de D7) | ____ |
+| **13c** DEC-12 | ¿Weë Design lleva a Weë Studio para presentar un diseño en vídeo? | «A) Sí, con contexto · B) No» (`docs/WEE-DESIGN-UIUX-DECISIONS.md:35`) | **A** (condiciona «Un recorrido» de D7) | **A** (2026-10-12) |
 | **13d** DEC-24 | ¿Se manda a un candidato el vídeo o la foto de una persona real? | «A) No sin revisión legal (biometría, transferencia internacional) · B) Sí con consentimiento» (`docs/WEE-DESIGN-UIUX-DECISIONS.md:44`) | **A** (dispara la parada de D6) | ____ |
 | **13e** DEC-18 | ¿Reintentos gratis tras un resultado? | «A) No: «otra versión» se cotiza y se cobra (hoy) · B) N gratis por resultado, a cargo de Weë» (`docs/WEE-DESIGN-UIUX-DECISIONS.md:39`) | **A** hasta medir el coste real | ____ |
 
