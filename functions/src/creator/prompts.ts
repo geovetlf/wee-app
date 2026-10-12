@@ -483,6 +483,26 @@ export const KIND_INSTRUCTIONS: Record<string, string> = {
   mixnotes: 'Anota, en lenguaje sencillo, qué ajustes de mezcla y máster convendrían (volumen, graves, claridad de voz, espacio) según lo que describe la persona.',
 };
 
+/**
+ * INSTRUCCIONES PROPIAS DE UNA EXPERIENCIA: solo donde la de `KIND_INSTRUCTIONS` no le sirve.
+ *
+ * `KIND_INSTRUCTIONS` no se toca: la lee `necesidades.ts` para derivar las marcas y Home usa su `shopping` tal cual.
+ * La lista de compras de Weë Chef (CHEF-01, D-CHEF-3) recibía la de Home —«zona del espacio», «6–8 elementos»—.
+ * El menú de Chef usa `shopping` en DOS pasos (`prices`, una búsqueda, y `list`), y los dos reciben esta misma
+ * instrucción (salida A de la ficha); por eso vale para hacer la lista y para buscar precios sin inventarlos.
+ * El texto está PENDIENTE de revisión de producto: no es copy final.
+ */
+const INSTRUCCION_PROPIA: Partial<Record<ExperienceId, Record<string, string>>> = {
+  chef: {
+    shopping:
+      'Escribe la lista de la compra del menú agrupada por secciones del supermercado (frutas y verduras, carnes y pescados, lácteos y huevos, panadería, despensa, congelados, otros), con una línea "SECCIÓN: <nombre>" delante de cada grupo. Junta en una sola línea el mismo ingrediente aunque salga en varias recetas y suma sus cantidades con su unidad. Sin tope de elementos: que no falte nada de lo que hay que comprar. Si la tarea es mirar precios, pon junto a cada línea el precio que encuentres con su fuente y, si no lo encuentras, dilo: nunca inventes un precio.',
+  },
+};
+
+/** La instrucción de un paso: la propia de la experiencia si la tiene; si no, la genérica de `KIND_INSTRUCTIONS`. */
+export const instruccionDe = (experienceId: ExperienceId, kind: string): string | undefined =>
+  INSTRUCCION_PROPIA[experienceId]?.[kind] ?? KIND_INSTRUCTIONS[kind];
+
 const FORMAT_RULES =
   'Formato: texto plano con títulos cortos, listas con • y pasos numerados cuando ayuden. Sin símbolos de markdown como # o **. Emojis con moderación.';
 
@@ -507,7 +527,7 @@ export const buildTextPrompt = (
     `Objetivo de la persona: "${goal}".`,
     brief ? `Lo que eligió: ${brief}.` : '',
     `Tarea: ${purpose}.`,
-    KIND_INSTRUCTIONS[kind] || 'Entrega el mejor resultado posible, completo y listo para usar.',
+    instruccionDe(experienceId, kind) || 'Entrega el mejor resultado posible, completo y listo para usar.',
     previous.length > 0
       ? `Material de los pasos anteriores (úsalo, no lo repitas):\n${previous.map((p, i) => `[${i + 1}] ${p}`).join('\n\n')}`
       : '',

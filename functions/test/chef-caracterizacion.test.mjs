@@ -62,7 +62,7 @@ gateway.runCapability = async (capability) => { llamadasAlGateway.push(capabilit
 const { TEMPLATES } = lib('creator/templates.js');
 const { templatePlanner } = lib('creator/planner.js');
 const { needsInputImage } = lib('creator/inputs.js');
-const { KIND_INSTRUCTIONS, buildTextPrompt } = lib('creator/prompts.js');
+const { KIND_INSTRUCTIONS, buildTextPrompt, instruccionDe } = lib('creator/prompts.js');
 const { CAPABILITY_CATALOG } = lib('core/registry/capabilities.js');
 const { todosLosPlanes } = await import(pathToFileURL(path.resolve(here, '_planes.mjs')).href);
 
@@ -203,9 +203,31 @@ console.log('\n── C · Los paneles nuevos ──');
   /* Se mira el prompt que SE ARMA para el paso de Chef (no la constante): así la comprobación se invierte con el arreglo real,
      que será una instrucción propia de Chef y no un cambio de la genérica. */
   const pasoDeChef = buildTextPrompt('chef', lista.input.kind, lista.input.brief, plan.goal, lista.purpose, ['(el menú del paso anterior)']).prompt;
-  check('HOY · D-CHEF-3 · el prompt del paso `list` de Chef (kind `shopping`) habla de «zona del espacio» y «6–8 elementos»',
-    lista.input.kind === 'shopping' && /zona del espacio/.test(pasoDeChef) && /6–8 elementos/.test(pasoDeChef),
-    pasoDeChef.split('\n').find((l) => /zona del espacio/.test(l)));
+  /* Arreglado en CHEF-01 (ronda R8): Chef tiene su propia instrucción para `shopping`; la genérica (la de Home) no se toca. */
+  const deHome = /zona del espacio|6–8 elementos|nivel de gasto/;
+  check('ARREGLADO · D-CHEF-3 · el prompt del paso `list` de Chef pide secciones del supermercado y cantidades, y no habla de «zona del espacio» ni de «6–8 elementos»',
+    lista.input.kind === 'shopping' && /secci[oó]n(es)? del supermercado/i.test(pasoDeChef) && /cantidades/.test(pasoDeChef)
+    && /sin tope/i.test(pasoDeChef) && !deHome.test(pasoDeChef),
+    pasoDeChef.split('\n').find((l) => /supermercado|zona del espacio/.test(l)));
+  /* El menú usa `shopping` en DOS pasos (`prices`, `text.search`, y `list`): con la salida (A) de la ficha, la misma
+     instrucción de Chef sirve a los dos, así que tiene que valer también para buscar precios sin inventarlos. */
+  const precios = plan.steps.find((s) => s.id === 'prices');
+  const pasoDePrecios = buildTextPrompt('chef', precios.input.kind, precios.input.brief, plan.goal, precios.purpose, ['(el menú del paso anterior)']).prompt;
+  check('CONTRATO · CHEF-01 (A) · el paso `prices` de Chef (también `shopping`) recibe la misma instrucción de Chef: precio con su fuente y nunca inventado',
+    precios.input.kind === 'shopping' && precios.capability === 'text.search' && !deHome.test(pasoDePrecios)
+    && /supermercado/.test(pasoDePrecios) && /fuente/.test(pasoDePrecios) && /nunca inventes un precio/i.test(pasoDePrecios));
+  check('CONTRATO · CHEF-01 · la instrucción propia se elige por experiencia: `instruccionDe` da la de Chef a Chef y la genérica a todas las demás',
+    typeof instruccionDe === 'function'
+    && instruccionDe('chef', 'shopping') !== KIND_INSTRUCTIONS.shopping
+    && ['home', 'brain', 'business', 'travel'].every((e) => instruccionDe(e, 'shopping') === KIND_INSTRUCTIONS.shopping)
+    && ['recipe', 'menu', 'describe', 'answer'].every((k) => instruccionDe('chef', k) === KIND_INSTRUCTIONS[k])
+    && instruccionDe('chef', 'no-existe') === undefined);
+  check('CONTRATO · CHEF-01 · la instrucción genérica de `shopping` sigue byte a byte la de hoy (la lee `necesidades.ts` y la usa Home)',
+    KIND_INSTRUCTIONS.shopping === 'Escribe la lista de cambios y compras: agrupa por zona del espacio, prioriza 6–8 elementos, y marca cada uno con un nivel de gasto (bajo, medio o alto).');
+  check('CONTRATO · CHEF-01 · la instrucción de Chef no pide ninguna marca («IMAGEN:», «PROBAR:», «NARRACIÓN:»): `necesidades.ts` deriva las marcas de la genérica y no tiene que cambiar',
+    typeof instruccionDe === 'function' && !/"(IMAGEN|PROBAR|NARRACIÓN):"/.test(instruccionDe('chef', 'shopping') ?? ''));
+  check('CONTRATO · CHEF-01 · los demás pasos de Chef (receta, menú, foto) arman el mismo prompt que con la genérica',
+    ['recipe', 'menu', 'describe'].every((k) => buildTextPrompt('chef', k, 'b', 'g', 'p', []).prompt.includes(KIND_INSTRUCTIONS[k])));
   check('CONTRATO · esa instrucción es la de Weë Home y a Home le sirve: el arreglo de Chef no puede tocar la suya',
     /zona del espacio/.test(buildTextPrompt('home', 'shopping', 'sala moderna', 'Redecorar mi sala', 'Armar la lista de cambios y compras', ['(la foto)']).prompt)
     && /zona del espacio/.test(KIND_INSTRUCTIONS.shopping));
