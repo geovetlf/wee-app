@@ -27,6 +27,8 @@ import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase';
 import { projectsService } from './projectsService';
 import { estadoDeProyecto, interpretarAsset } from '../utils/cicloDeTrabajo';
+import type { EstadoDeSincronizacion, ReferenciaLocal } from '../utils/cicloDeTrabajo';
+import type { CreacionLocal } from '../utils/creacionesLocales';
 import { assetsService, CREACIONES_POR_PAGINA } from './assetsService';
 import type { AssetDoc } from './assetsService';
 
@@ -61,6 +63,10 @@ export interface CreacionFinal {
   finalizadaEn: number;
   proyectoOrigenId?: string | null;
   ubicacion: UbicacionDeRecurso;
+  /** D-4: en una creación SOLO LOCAL (`ubicacion: 'local'`), sus recursos del dispositivo; `assetIds` va vacío. */
+  referenciasLocales?: ReferenciaLocal[];
+  /** D-4: local ≠ sincronizado. Las de Weë Cloud no lo llevan. */
+  sincronizacion?: EstadoDeSincronizacion;
 }
 
 export interface EntradaFinalizar {
@@ -316,3 +322,29 @@ export type ResultadoBorrarAsset =
 export async function borrarAsset(assetId: string, confirmar: boolean): Promise<ResultadoBorrarAsset> {
   return llamar({ accion: 'borrarAsset', assetId, confirmar: confirmar === true });
 }
+
+/* ── D-4 · Creaciones SOLO LOCALES (decisión del dueño, 2026-10-12) ───────── */
+
+/*
+ * Finalizar, listar y eliminar una creación que solo está en el dispositivo: `utils/creacionesLocales.ts`, sobre el
+ * mismo `AlmacenLocal` que el catálogo local. No llama al servidor, no sube bytes y no necesita conexión. Lo que sí la
+ * necesita lo dice `requiereConexion` (la interfaz lo informa y el resultado local no se toca).
+ */
+export { abrirCreacionesLocales, recursoLocalPresente, ErrorDeCreacionLocal } from '../utils/creacionesLocales';
+export type { CreacionLocal, CreacionesLocales, EntradaFinalizarLocal } from '../utils/creacionesLocales';
+export { requiereConexion } from '../utils/cicloDeTrabajo';
+export type { ReferenciaLocal, EstadoDeSincronizacion } from '../utils/cicloDeTrabajo';
+
+/** Una creación local con la forma de `CreacionFinal`, para pintarla junto a las de Weë Cloud distinguiendo su ubicación. */
+export const creacionLocalComoFinal = (c: CreacionLocal): CreacionFinal => ({
+  id: c.creationId,
+  assetIds: [],
+  nombre: c.nombre,
+  tipo: c.tipo,
+  herramienta: c.herramienta,
+  finalizadaEn: c.finalizadaEn,
+  proyectoOrigenId: c.proyectoOrigenId,
+  ubicacion: 'local',
+  referenciasLocales: c.referencias,
+  sincronizacion: c.sincronizacion,
+});
