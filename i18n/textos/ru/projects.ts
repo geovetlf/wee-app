@@ -24,8 +24,8 @@
 import { ConPlurales } from './plurales';
 
 export const projects: ConPlurales<typeof import('../es/projects').projects> = {
-  introTitle: 'Ваши работы, разложенные по проектам',
-  introText: 'В проекте могут быть логотип, фото, реклама, видео, музыка и документы. Сохраняйте каждый результат в свой проект через «{{accion}}».',
+  introTitle: 'Ваша текущая работа',
+  introText: 'Здесь остаётся то, что вы делаете в Weë AI, чтобы продолжить в любой момент. Сохраняйте каждый результат в его проект через «{{accion}}»; то, что вы завершите и решите сохранить, попадёт в «Мои работы».',
   sectionTitle: 'Проекты',
   emojiLabel: 'Эмодзи {{emoji}}',
   namePlaceholder: 'Например: Мой ресторан',

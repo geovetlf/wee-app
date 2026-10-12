@@ -95,6 +95,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsBlockedIn: 'Den får inte användas eller visas på följande platser: {{lugares}}.',
 
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Resultaten som du har gjort klart och valt att behålla. De hör till ditt konto: du ser samma från din riktiga profil och din Weë-profil.',
   keep: 'Spara i Mina skapelser',
   keeping: 'Sparar …',
   keepPending: 'Det går inte att spara i Mina skapelser än. Ditt resultat finns kvar i sitt jobb.',

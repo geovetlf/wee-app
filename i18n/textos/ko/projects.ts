@@ -20,8 +20,8 @@
  * el hueco: entre medias va la palabra fija 버튼.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: '프로젝트로 정리된 나의 창작물',
-  introText: '하나의 프로젝트에 로고, 사진, 광고, 영상, 음악, 문서를 모을 수 있어요. "{{accion}}" 버튼을 눌러 결과를 각자의 프로젝트에 담아 두세요.',
+  introTitle: '진행 중인 작업',
+  introText: 'Weë AI로 만들고 있는 것이 여기에 남아 언제든 이어서 할 수 있어요. 각 결과는 “{{accion}}”에서 프로젝트에 저장하고, 완성해서 남기기로 한 것은 내 창작물로 가요.',
   sectionTitle: '프로젝트',
   emojiLabel: '이모지 {{emoji}}',
   namePlaceholder: '예: 내 레스토랑',

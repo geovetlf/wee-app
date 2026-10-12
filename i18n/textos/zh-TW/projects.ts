@@ -27,8 +27,8 @@
  * cambia la palabra, aquí cambia también.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: '你的作品，依專案整理好',
-  introText: '一個專案裡可以有 logo、照片、廣告、影片、音樂和文件。在結果上點「{{accion}}」，把每個結果放進它該去的專案。',
+  introTitle: '進行中的工作',
+  introText: '你用 Weë AI 正在做的內容會留在這裡，隨時可以繼續。透過「{{accion}}」把每個結果儲存到對應專案；完成並決定保留的內容會進入我的作品。',
   sectionTitle: '專案',
   emojiLabel: '表情符號 {{emoji}}',
   namePlaceholder: '例：我的餐廳',

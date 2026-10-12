@@ -9,8 +9,8 @@
  * singular, por eso `_one` lleva `{{contador}}` y nunca un 1 escrito a mano.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Tes créations, classées par projet',
-  introText: 'Un projet peut contenir un logo, des photos, des annonces, des vidéos, de la musique et des documents. Enregistre chaque résultat dans le sien depuis "{{accion}}".',
+  introTitle: 'Ton travail en cours',
+  introText: 'Ce que tu fais avec Weë AI reste ici pour que tu le reprennes quand tu veux. Enregistre chaque résultat dans son projet depuis « {{accion}} » ; ce que tu termines et décides de garder va dans Mes créations.',
   sectionTitle: 'Projets',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Exemple : Mon restaurant',

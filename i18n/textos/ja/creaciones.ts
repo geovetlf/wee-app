@@ -89,6 +89,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsBlockedIn: '次の地域では使用も表示もできません：{{lugares}}。',
 
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: '完成させて、残すことにした結果です。アカウントのものなので、リアルプロフィールでもWeëプロフィールでも同じものが表示されます。',
   keep: 'マイ作品に保存',
   keeping: '保存中…',
   keepPending: 'マイ作品への保存はまだ利用できません。結果は元の作業に保存されたままです。',

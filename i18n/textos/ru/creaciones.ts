@@ -86,6 +86,7 @@ export const creaciones = {
   rightsBlockedIn: 'Нельзя использовать и показывать в этих странах и регионах: {{lugares}}.',
 
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Результаты, которые вы завершили и решили сохранить. Они принадлежат вашему аккаунту: вы видите одно и то же в Реальном профиле и в Профиле Weë.',
   keep: 'Сохранить в «Мои работы»',
   keeping: 'Сохраняем…',
   keepPending: 'Сохранение в «Мои работы» пока недоступно. Ваш результат по-прежнему хранится в своей задаче.',

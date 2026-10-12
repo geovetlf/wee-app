@@ -14,8 +14,8 @@
  * «1 skapelse», «3 skapelser».
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Dina skapelser, sorterade efter projekt',
-  introText: 'Ett projekt kan innehålla logga, foton, annonser, videor, musik och dokument. Spara varje resultat i rätt projekt med ”{{accion}}”.',
+  introTitle: 'Ditt pågående arbete',
+  introText: 'Det du gör med Weë AI finns kvar här så att du kan fortsätta när du vill. Spara varje resultat i sitt projekt via ”{{accion}}”; det du gör klart och väljer att behålla hamnar i Mina skapelser.',
   sectionTitle: 'Projekt',
   emojiLabel: 'Emojin {{emoji}}',
   namePlaceholder: 'T.ex. Min restaurang',

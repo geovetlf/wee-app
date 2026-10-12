@@ -6,8 +6,8 @@
  * translator; they arrive by interpolation.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Your creations, sorted by project',
-  introText: 'A project can hold a logo, photos, ads, videos, music and documents. Save each result into its own from "{{accion}}".',
+  introTitle: 'Your work in progress',
+  introText: 'What you’re making with Weë AI stays here so you can continue whenever you like. Save each result into its project from "{{accion}}"; what you finish and decide to keep goes to My creations.',
   sectionTitle: 'Projects',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Example: My restaurant',

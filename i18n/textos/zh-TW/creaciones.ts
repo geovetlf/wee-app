@@ -80,6 +80,7 @@ export const creaciones = {
   rightsBlockedIn: '不能在以下地區使用或展示：{{lugares}}。',
 
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: '你完成並決定保留的結果。它們屬於你的帳號：在真實檔案和 Weë 檔案中看到的都一樣。',
   keep: '儲存到我的作品',
   keeping: '正在儲存…',
   keepPending: '暫時還不能儲存到我的作品。你的結果仍儲存在原本的任務中。',

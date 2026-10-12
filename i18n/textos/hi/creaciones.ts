@@ -98,6 +98,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsBlockedIn: 'इन जगहों पर इसका इस्तेमाल या प्रदर्शन नहीं किया जा सकता: {{lugares}}.',
 
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'वे नतीजे जिन्हें आपने पूरा किया और रखने का फ़ैसला किया। ये आपके अकाउंट के हैं: असली प्रोफ़ाइल और Weë प्रोफ़ाइल, दोनों से आपको यही दिखते हैं।',
   keep: 'मेरी रचनाएँ में सेव करें',
   keeping: 'सेव हो रहा है…',
   keepPending: 'मेरी रचनाएँ में सेव करना अभी उपलब्ध नहीं है। आपका नतीजा उसके काम में सेव है।',

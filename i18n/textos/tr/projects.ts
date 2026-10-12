@@ -11,8 +11,8 @@
  * cifra en las dos formas.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'İçeriklerini projelere göre düzenle',
-  introText: 'Bir projede logo, fotoğraf, reklam, video, müzik ve belge olabilir. Her sonucu “{{accion}}” seçeneğiyle kendi projesine ekle.',
+  introTitle: 'Devam eden çalışman',
+  introText: 'Weë AI ile yaptıkların burada kalır; istediğin zaman devam edebilirsin. Her sonucu “{{accion}}” ile kendi projesine kaydet; bitirip saklamaya karar verdiklerin Oluşturduklarım’a gider.',
   sectionTitle: 'Projeler',
   emojiLabel: '{{emoji}} emojisi',
   namePlaceholder: 'Örnek: Restoranım',

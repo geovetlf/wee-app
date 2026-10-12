@@ -8,8 +8,8 @@
  * persona: entre 「」 y sin さん.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: '作品をプロジェクトごとに整理',
-  introText: 'プロジェクトには、ロゴ、写真、広告、動画、音楽、ドキュメントをまとめられます。結果は「{{accion}}」から、それぞれのプロジェクトに振り分けられます。',
+  introTitle: '作業中のもの',
+  introText: 'Weë AIで作っているものはここに残り、いつでも続きから再開できます。各結果は「{{accion}}」からプロジェクトに保存し、完成して残すことにしたものはマイ作品に入ります。',
   sectionTitle: 'プロジェクト',
   emojiLabel: '絵文字{{emoji}}',
   namePlaceholder: '例：わたしのレストラン',

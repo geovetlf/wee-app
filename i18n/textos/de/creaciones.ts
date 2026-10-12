@@ -80,6 +80,7 @@ export const creaciones = {
   rightsBlockedIn: 'Nutzung und Anzeige sind in diesen Regionen nicht erlaubt: {{lugares}}.',
 
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Die Ergebnisse, die du fertiggestellt und behalten hast. Sie gehören zu deinem Konto: Du siehst dieselben im Real-Profil und im Weë-Profil.',
   keep: 'In Meine Kreationen speichern',
   keeping: 'Wird gespeichert …',
   keepPending: 'Das Speichern in Meine Kreationen ist noch nicht verfügbar. Dein Ergebnis bleibt in seinem Auftrag gespeichert.',

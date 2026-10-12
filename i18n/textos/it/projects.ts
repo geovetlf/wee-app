@@ -9,8 +9,8 @@
  * plural, igual que en español, así que `_one` es solo el 1.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Le tue creazioni, ordinate per progetto',
-  introText: 'Un progetto può contenere un logo, foto, annunci, video, musica e documenti. Salva ogni risultato nel suo da "{{accion}}".',
+  introTitle: 'Il tuo lavoro in corso',
+  introText: 'Quello che stai facendo con Weë AI resta qui, così puoi continuarlo quando vuoi. Salva ogni risultato nel suo progetto da «{{accion}}»; ciò che completi e decidi di conservare va in Le mie creazioni.',
   sectionTitle: 'Progetti',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Esempio: Il mio ristorante',

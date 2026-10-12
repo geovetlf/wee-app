@@ -80,6 +80,7 @@ export const creaciones = {
   rightsBlockedIn: 'Não pode ser usado nem exibido nestes locais: {{lugares}}.',
 
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Os resultados que você terminou e decidiu guardar. São da sua conta: você vê os mesmos no Perfil Real e no Perfil Weë.',
   keep: 'Salvar em Minhas criações',
   keeping: 'Salvando…',
   keepPending: 'Salvar em Minhas criações ainda não está disponível. Seu resultado continua salvo no trabalho dele.',

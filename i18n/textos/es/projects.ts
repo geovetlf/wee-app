@@ -14,8 +14,8 @@
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
  */
 export const projects = {
-  introTitle: 'Tus creaciones, ordenadas por proyecto',
-  introText: 'Un proyecto puede tener logo, fotos, anuncios, videos, música y documentos. Guarda cada resultado en el suyo desde "{{accion}}".',
+  introTitle: 'Tu trabajo en proceso',
+  introText: 'Aquí sigue lo que estás haciendo con Weë AI, para continuarlo cuando quieras. Guarda cada resultado en su proyecto desde "{{accion}}"; lo que termines y decidas conservar va a Mis creaciones.',
   sectionTitle: 'Proyectos',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Ejemplo: Mi restaurante',

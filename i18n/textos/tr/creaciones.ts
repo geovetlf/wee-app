@@ -93,6 +93,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsBlockedIn: 'Şu yerlerde kullanılamaz ve gösterilemez: {{lugares}}.',
 
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Bitirip saklamaya karar verdiğin sonuçlar. Hesabına aittirler: Gerçek profilinden de Weë profilinden de aynılarını görürsün.',
   keep: 'Oluşturduklarım’a kaydet',
   keeping: 'Kaydediliyor…',
   keepPending: 'Oluşturduklarım’a kaydetme henüz kullanılamıyor. Sonucun kendi işinde kayıtlı durmaya devam ediyor.',

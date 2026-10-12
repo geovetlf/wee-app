@@ -8,8 +8,8 @@
  * dos formas y quien elige es `Intl.PluralRules`.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Deine Kreationen, nach Projekt sortiert',
-  introText: 'Ein Projekt kann Logo, Fotos, Anzeigen, Videos, Musik und Dokumente enthalten. Speichere jedes Ergebnis über "{{accion}}" im passenden Projekt.',
+  introTitle: 'Deine laufende Arbeit',
+  introText: 'Was du mit Weë AI machst, bleibt hier, damit du jederzeit weitermachen kannst. Speichere jedes Ergebnis über „{{accion}}“ in seinem Projekt; was du fertigstellst und behalten möchtest, kommt in Meine Kreationen.',
   sectionTitle: 'Projekte',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Beispiel: Mein Restaurant',

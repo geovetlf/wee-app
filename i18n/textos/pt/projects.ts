@@ -10,8 +10,8 @@
  * mano. Apóstrofo tipográfico ’ siempre.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Suas criações, organizadas por projeto',
-  introText: 'Um projeto pode ter logo, fotos, anúncios, vídeos, música e documentos. Salve cada resultado no seu a partir de "{{accion}}".',
+  introTitle: 'Seu trabalho em andamento',
+  introText: 'O que você está fazendo com o Weë AI fica aqui para você continuar quando quiser. Salve cada resultado no projeto dele em "{{accion}}"; o que você terminar e decidir guardar vai para Minhas criações.',
   sectionTitle: 'Projetos',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Exemplo: Meu restaurante',

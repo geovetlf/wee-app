@@ -20,8 +20,8 @@
  * «3 kreationer».
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Dine kreationer, sorteret efter projekt',
-  introText: 'Et projekt kan indeholde logo, fotos, annoncer, videoer, musik og dokumenter. Gem hvert resultat i det rigtige projekt med knappen ”{{accion}}”.',
+  introTitle: 'Dit igangværende arbejde',
+  introText: 'Det, du laver med Weë AI, bliver her, så du kan fortsætte, når du vil. Gem hvert resultat i sit projekt fra “{{accion}}”; det, du gør færdigt og vælger at beholde, kommer i Mine kreationer.',
   sectionTitle: 'Projekter',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Fx Min restaurant',

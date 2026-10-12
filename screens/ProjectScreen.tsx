@@ -9,6 +9,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { projectsService, WeeProject } from '../services/projectsService';
 import { CreatorJob, claveDelEstado } from '../services/creatorService';
 import { getExperienceById } from '../constants/weeExperiences';
+import { materialesParaConservar } from '../components/creator/conservar';
+import BotonConservar from '../components/creator/BotonConservar';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, ClosingBanner } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -87,6 +89,11 @@ const ProjectScreen: React.FC = () => {
 
   const saveName = async () => {
     if (!project || !name.trim()) return;
+    /* Sin cambio real no se escribe: guardar el mismo nombre solo cierra el campo. */
+    if (name.trim() === project.name) {
+      setRenaming(false);
+      return;
+    }
     await projectsService.rename(project.id, name);
     setProject({ ...project, name: name.trim() });
     setRenaming(false);
@@ -182,9 +189,11 @@ const ProjectScreen: React.FC = () => {
             ) : (
               jobs.map((job) => {
                 const exp = getExperienceById(job.experienceId);
+                /* Solo un trabajo terminado, con material real y sin propuestas que elegir, se puede conservar desde aquí. */
+                const materiales = job.status === 'done' ? materialesParaConservar(job.results) : null;
                 return (
+                  <View key={job.id} style={styles.jobBlock}>
                   <TouchableOpacity
-                    key={job.id}
                     /* Con el proyecto: lo que se pida desde aquí —otra versión, un ajuste— nace en él y no se pierde entre las creaciones sueltas (CL-20). */
                     onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id, projectId: id })}
                     activeOpacity={0.8}
@@ -202,6 +211,9 @@ const ProjectScreen: React.FC = () => {
                     </View>
                     <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
+                  {/* «Guardar en Mis creaciones»: el mismo botón y la misma petición que en el resultado (R9). Solo sin propuestas que elegir. */}
+                  {!!materiales && <BotonConservar jobId={job.id} materiales={materiales} proyectoOrigenId={id} variante="suave" style={styles.keepRow} />}
+                  </View>
                 );
               })
             )}
@@ -307,6 +319,12 @@ const styles = StyleSheet.create({
   jobMeta: {
     fontSize: FONT_SIZE.xs,
     marginTop: scale(2),
+  },
+  jobBlock: {
+    gap: scale(6),
+  },
+  keepRow: {
+    alignSelf: 'flex-start',
   },
   errorBox: {
     alignItems: 'center',

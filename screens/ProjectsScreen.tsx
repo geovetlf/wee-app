@@ -9,6 +9,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { projectsService, WeeProject, PROJECT_EMOJIS } from '../services/projectsService';
 import { getExperienceById, experienceLabel } from '../constants/weeExperiences';
+import { listarProyectosEnCurso, ProyectoEnCurso } from '../services/cicloDeTrabajo';
+import { esNoDisponible } from '../components/creator/conservar';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle } from '../components/creator/ui';
 import SeccionDelDispositivo from '../components/creator/SeccionDelDispositivo';
@@ -40,7 +42,8 @@ import { scale } from '../utils/scale';
 export interface ProyectoVisible {
   id: string;
   name: string;
-  emoji: string;
+  /** El emoji que eligió la persona, si el origen lo trae. Sin él se ve una carpeta: no es un dato que se invente. */
+  emoji: string | null;
   herramienta: string | null;
   actualizadoEn: number | null;
   miniatura: string | null;
@@ -56,6 +59,33 @@ const milisegundos = (v: unknown): number | null => {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
   if (v && typeof (v as { toMillis?: unknown }).toMillis === 'function') return (v as { toMillis: () => number }).toMillis();
   return null;
+};
+
+/* El contrato no trae el emoji del proyecto (todavía): sin él se ve la carpeta, no uno inventado. */
+export const visibleDeProyectoEnCurso = (p: ProyectoEnCurso): ProyectoVisible => ({
+  id: p.id,
+  name: p.nombre,
+  emoji: null,
+  herramienta: p.herramienta,
+  actualizadoEn: p.actualizadoEn > 0 ? p.actualizadoEn : null,
+  miniatura: p.miniatura ?? null,
+});
+
+/*
+ * De dónde sale la lista. Del CONTRATO (`listarProyectosEnCurso`), que sabe qué proyectos siguen en
+ * proceso, con qué herramienta y con qué miniatura. Mientras el contrato diga que todavía no está
+ * (`pendiente` / `no_disponible`), los proyectos guardados de la cuenta —los mismos documentos, sin
+ * esos datos extra—: datos reales, nunca inventados. Un fallo de verdad sigue siendo un fallo.
+ */
+const proyectosDe = async (user: { uid: string }): Promise<ProyectoVisible[]> => {
+  let enCurso: ProyectoEnCurso[];
+  try {
+    enCurso = await listarProyectosEnCurso(user.uid);
+  } catch (error) {
+    if (!esNoDisponible(error)) throw error;
+    return (await projectsService.list(user.uid)).map(visibleDeProyectoGuardado);
+  }
+  return enCurso.map(visibleDeProyectoEnCurso);
 };
 
 export const visibleDeProyectoGuardado = (p: WeeProject): ProyectoVisible => ({
@@ -91,11 +121,11 @@ const ProjectsScreen: React.FC = () => {
     const mia = ++peticion.current;
     setEstado({ fase: 'cargando' });
     try {
-      const projects = (await projectsService.list(user.uid)).map(visibleDeProyectoGuardado);
+      const projects = await proyectosDe(user);
       if (mia !== peticion.current) return;
       setEstado({ fase: 'lista', projects });
     } catch (error) {
-      console.warn('Mis proyectos: no se pudieron cargar', error);
+      console.warn('ProjectsScreen: no se pudieron cargar los proyectos', error);
       if (mia === peticion.current) setEstado({ fase: 'error' });
     }
   }, [user]);
@@ -138,7 +168,7 @@ const ProjectsScreen: React.FC = () => {
           ) : (
             /* Sin miniatura se ve el emoji del proyecto: el proyecto existe, lo que no hay es una imagen. */
             <View style={[styles.cardEmoji, { backgroundColor: theme.colors.accent + '33' }]} accessibilityLabel={t('projects.noThumbnail')}>
-              <Text style={styles.cardEmojiText}>{project.emoji}</Text>
+              {project.emoji ? <Text style={styles.cardEmojiText}>{project.emoji}</Text> : <Ionicons name="folder-open-outline" size={scale(22)} color={theme.colors.text} />}
             </View>
           )}
           <Text style={[styles.cardName, { color: theme.colors.text }]} numberOfLines={2}>{project.name}</Text>

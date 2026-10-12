@@ -80,6 +80,7 @@ export const creaciones = {
   rightsBlockedIn: '다음 지역에서는 사용하거나 보여 줄 수 없어요: {{lugares}}.',
 
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: '완성한 뒤 남기기로 한 결과예요. 계정에 속하므로 실제 프로필과 Weë 프로필 어디서든 똑같이 보여요.',
   keep: '내 창작물에 저장',
   keeping: '저장 중…',
   keepPending: '내 창작물에 저장하기는 아직 사용할 수 없어요. 결과는 원래 작업에 그대로 저장되어 있어요.',
