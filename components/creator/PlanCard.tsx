@@ -78,7 +78,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, experienceId, plan,
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
-      <TextoEnMayusculas style={[styles.who, { color: theme.colors.accentDark }]}>{experienceName}</TextoEnMayusculas>
+      <TextoEnMayusculas style={[styles.who, { color: theme.colors.text }]}>{experienceName}</TextoEnMayusculas>
       <Text style={[styles.explain, { color: theme.colors.text }]}>{leer(plan.explainToUser)}</Text>
 
       <View style={styles.steps}>
@@ -139,7 +139,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, experienceId, plan,
         {!!costHint && <Text style={[styles.costHint, { color: theme.colors.textSecondary }]}>{costHint}</Text>}
         <View style={styles.actions}>
           <TouchableOpacity onPress={onChange} disabled={busy} activeOpacity={0.7} style={styles.linkButton}>
-            <Text style={[styles.linkText, { color: theme.colors.accentDark }]}>{t('weeai.changeSomething')}</Text>
+            <Text style={[styles.linkText, { color: theme.colors.text }]}>{t('weeai.changeSomething')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onCreate}

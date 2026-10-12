@@ -195,7 +195,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
           </TouchableOpacity>
           {mark}
           <View style={styles.headerTitles}>
-            {!!overline && <Text style={[styles.overline, { color: theme.colors.accentDark }]}>{overline}</Text>}
+            {!!overline && <Text style={[styles.overline, { color: theme.colors.text }]}>{overline}</Text>}
             <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>{title}</Text>
           </View>
           {/*

@@ -143,7 +143,7 @@ export const Pastilla: React.FC<{
     >
       {!!icono && <Ionicons name={icono as any} size={scale(15)} color={puesta ? theme.colors.accentDark : theme.colors.text} />}
       <Text
-        style={[styles.pastillaTexto, { color: puesta ? theme.colors.accentDark : theme.colors.text }, puesta && styles.pastillaPuesta]}
+        style={[styles.pastillaTexto, { color: theme.colors.text }, puesta && styles.pastillaPuesta]}
         numberOfLines={1}
       >
         {etiqueta}

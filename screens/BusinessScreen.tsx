@@ -410,7 +410,7 @@ const BusinessScreen: React.FC = () => {
                 accessibilityLabel={producto}
               >
                 <Ionicons name="pricetag-outline" size={scale(14)} color={theme.colors.accentDark} />
-                <Text style={[styles.fichaTexto, { color: theme.colors.accentDark }]} numberOfLines={1}>{producto}</Text>
+                <Text style={[styles.fichaTexto, { color: theme.colors.text }]} numberOfLines={1}>{producto}</Text>
                 <Ionicons name="close" size={scale(14)} color={theme.colors.accentDark} />
               </TouchableOpacity>
             </View>

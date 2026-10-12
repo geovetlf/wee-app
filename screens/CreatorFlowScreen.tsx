@@ -610,7 +610,7 @@ const CreatorFlowScreen: React.FC = () => {
             <Text style={[styles.attachmentText, { color: theme.colors.textSecondary }]}>{uploadingPhoto ? t('weeai.uploadingPhoto') : t('weeai.photoReady')}</Text>
             {status !== 'done' && status !== 'running' && (
               <TouchableOpacity onPress={() => setImageUri(undefined)} accessibilityLabel={t('weeai.changePhoto')} style={styles.attachmentAction}>
-                <Text style={[styles.attachmentText, { color: theme.colors.accentDark, fontWeight: '700' }]}>{t('weeai.change')}</Text>
+                <Text style={[styles.attachmentText, { color: theme.colors.text, fontWeight: '700' }]}>{t('weeai.change')}</Text>
               </TouchableOpacity>
             )}
           </View>
