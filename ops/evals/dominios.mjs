@@ -9,8 +9,9 @@
  */
 import { motor } from './motor.mjs';
 import { dominioRouter } from './dominios/router.mjs';
+import { dominioDesign } from './dominios/design.mjs';
 
 export const { validarDominio, validarSuperficie, crearRegistroDeDominios, resolverDominio, decidirCaso, calificarCaso, decidirYCalificar } = motor('dominios');
 
-/** Los dominios registrados. El Router es el primero; uno nuevo es un adaptador y una línea más aquí. */
-export const DOMINIOS = crearRegistroDeDominios([dominioRouter]);
+/** Los dominios registrados. El Router es el primero; uno nuevo es un adaptador y una línea más aquí (Design, el segundo, es CL-17). */
+export const DOMINIOS = crearRegistroDeDominios([dominioRouter, dominioDesign]);

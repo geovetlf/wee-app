@@ -1,0 +1,567 @@
+{
+  "version": 1,
+  "dominio": "design",
+  "descripcion": "Casos deterministas de la experiencia `design` del servidor (functions/src/creator/templates.ts, con el planificador de plantillas y el precio de lista que ya existen). Un caso es lo que haría una persona: un texto (`goal`), lo que ya trae elegido de su puerta (`presets`) y lo que contestaría cuando se le pregunte (`respuestas`); el dominio recorre la conversación y mide lo que deduce, lo que pregunta, el plan que arma y lo que costaría. Coste $0: no se ejecuta ningún adaptador. Las frases de las puertas y de los chips de la portada (español, inglés y danés: i18n/textos/<idioma>/catalogo.ts) y las de las suites del repositorio (functions/test/creator.test.mjs) son las reales; el resto son variantes escritas en el mismo estilo. Etiquetas: `hueco` = defecto medido (H-n de docs/WEE-DESIGN-UIUX-AUDIT.md), `cierre` = criterio de docs/WEE-DESIGN-CIERRE.md, `conocido` + `decision` = lo que hoy falta y cuyo arreglo depende de una decisión del dueño (D4, D5 o D6 de docs/DESIGN.md §4): sale en rojo y NO es un criterio de aceptación.",
+  "casos": [
+    {
+      "evalCaseId": "design-flujo-logo",
+      "name": "Un logo, de la puerta al plan",
+      "description": "Entra por «Un logo o mi marca» con la frase del catálogo; contesta el nombre y cómo debe sentirse. Un concepto y tres logos, con el texto dentro de la imagen y sin bajar del coste de lista.",
+      "tags": ["flujo", "es"],
+      "goal": "Diseñar un logo y la identidad de mi marca",
+      "presets": { "what": "logo" },
+      "respuestas": { "name": "Panadería La Espiga", "feel": "natural" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true, "sueloDeCoste": true, "sinRepreguntar": true, "noSe": ["feel"], "textoEnImagen": true }
+    },
+    {
+      "evalCaseId": "design-flujo-afiche",
+      "name": "Una pieza para redes, de la puerta al plan",
+      "description": "Entra por «Algo para redes o publicidad»; contesta qué anunciar y dónde publicarlo («Instagram o Facebook»).",
+      "tags": ["flujo", "es"],
+      "goal": "Diseñar una pieza para redes o publicidad",
+      "presets": { "what": "poster" },
+      "respuestas": { "message": "promo", "where": "feed" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true, "sueloDeCoste": true, "sinRepreguntar": true, "noSe": ["where"] }
+    },
+    {
+      "evalCaseId": "design-flujo-producto",
+      "name": "Un producto, de la puerta al plan",
+      "description": "Entra por «Un producto»; contesta qué producto y cómo lo imagina.",
+      "tags": ["flujo", "es"],
+      "goal": "Diseñar un producto",
+      "presets": { "what": "product" },
+      "respuestas": { "item": "pack", "look": "natural" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true, "sueloDeCoste": true, "sinRepreguntar": true, "noSe": ["look"] }
+    },
+    {
+      "evalCaseId": "design-flujo-vehiculo",
+      "name": "Un vehículo, de la puerta al plan",
+      "description": "Entra por «Un vehículo o una máquina»; contesta cuál y de qué época.",
+      "tags": ["flujo", "es"],
+      "goal": "Diseñar un vehículo o una máquina",
+      "presets": { "what": "object" },
+      "respuestas": { "machine": "car", "era": "future" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true, "sueloDeCoste": true, "sinRepreguntar": true, "noSe": ["era"] }
+    },
+    {
+      "evalCaseId": "design-flujo-lugar",
+      "name": "Un lugar, de la puerta al plan",
+      "description": "Entra por «Un lugar o un escenario»; contesta cuál y si es por dentro o por fuera.",
+      "tags": ["flujo", "es"],
+      "goal": "Diseñar un lugar o un escenario",
+      "presets": { "what": "scene" },
+      "respuestas": { "place": "house", "inout": "outside" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true, "sueloDeCoste": true, "sinRepreguntar": true, "noSe": ["inout"] }
+    },
+    {
+      "evalCaseId": "design-flujo-personaje",
+      "name": "Un personaje, de la puerta al plan",
+      "description": "Entra por «Un personaje»; contesta quién es y qué estilo visual quiere.",
+      "tags": ["flujo", "es"],
+      "goal": "Diseñar un personaje",
+      "presets": { "what": "character" },
+      "respuestas": { "who": "robot", "draw": "cartoon" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true, "sueloDeCoste": true, "sinRepreguntar": true, "noSe": ["draw"] }
+    },
+    {
+      "evalCaseId": "design-flujo-no-se-que-disenar",
+      "name": "«No sé qué diseñar»: se descubre y se llega al plan",
+      "description": "La séptima conversación: sin camino previo, la primera pregunta es por dónde empezar; elige un producto y contesta «No sé» a cómo lo imagina.",
+      "tags": ["flujo", "es"],
+      "goal": "Quiero diseñar algo pero no sé qué",
+      "respuestas": { "what": "product", "item": "furniture", "look": "idk" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true, "sueloDeCoste": true, "sinRepreguntar": true, "noSe": ["look"] }
+    },
+
+    {
+      "evalCaseId": "design-texto-auto-del-futuro",
+      "name": "«Un auto del futuro»: deduce el vehículo y la época, y no la repite",
+      "description": "El chip de la portada. Sabiendo la época, solo queda preguntar qué máquina.",
+      "tags": ["deduccion", "repregunta", "es"],
+      "goal": "Un auto del futuro",
+      "respuestas": { "machine": "car" },
+      "expected": { "inferido": { "what": "object", "era": "future" }, "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-helicoptero-de-rescate",
+      "name": "«Un helicóptero de rescate» es una máquina",
+      "description": "El chip de la portada: un helicóptero va al camino de los vehículos.",
+      "tags": ["deduccion", "es"],
+      "goal": "Un helicóptero de rescate",
+      "respuestas": { "machine": "air", "era": "now" },
+      "expected": { "inferido": { "what": "object" }, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-vaso-innovador",
+      "name": "«Un vaso innovador» es un producto",
+      "description": "El chip de la portada: un vaso va al camino de los productos.",
+      "tags": ["deduccion", "es"],
+      "goal": "Un vaso innovador",
+      "respuestas": { "item": "pack", "look": "fun" },
+      "expected": { "inferido": { "what": "product" }, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-casa-de-playa",
+      "name": "«Una casa de playa» es un lugar, no una máquina",
+      "description": "Desde 2E-56 una casa es un lugar: quien imagina una desde cero no pasa por el camino de los vehículos.",
+      "tags": ["deduccion", "es"],
+      "goal": "Una casa de playa",
+      "respuestas": { "place": "house", "inout": "outside" },
+      "expected": { "inferido": { "what": "scene" }, "noInferido": { "what": "object" }, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-personaje-de-videojuego",
+      "name": "«Un personaje de videojuego»: deduce el personaje y el trazo, y no lo repite",
+      "description": "El chip de la portada. Sabiendo el estilo visual, solo queda preguntar quién es.",
+      "tags": ["deduccion", "repregunta", "es"],
+      "goal": "Un personaje de videojuego",
+      "respuestas": { "who": "hero" },
+      "expected": { "inferido": { "what": "character", "draw": "game" }, "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-ciudad-del-futuro",
+      "name": "«Una ciudad del futuro»: deduce el lugar, la época y la vista amplia",
+      "description": "Tres deducciones a la vez; solo queda preguntar qué lugar.",
+      "tags": ["deduccion", "repregunta", "es"],
+      "goal": "Una ciudad del futuro",
+      "respuestas": { "place": "city" },
+      "expected": { "inferido": { "what": "scene", "era": "future", "inout": "wide" }, "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-deportivo-del-futuro",
+      "name": "«Un deportivo del futuro»: la época se deduce aunque el vehículo no",
+      "description": "«Deportivo» no está entre las palabras de los vehículos, pero «del futuro» sí dice la época: se pregunta qué diseñar y luego la máquina, nunca la época.",
+      "tags": ["deduccion", "repregunta", "es"],
+      "goal": "Diseñar un deportivo del futuro",
+      "respuestas": { "what": "object", "machine": "car" },
+      "expected": { "inferido": { "era": "future" }, "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-casa-moderna-no-es-maquina",
+      "name": "«Una casa moderna» no acaba en el camino de las máquinas",
+      "description": "Regresión de 2E-56: una casa es un lugar.",
+      "tags": ["deduccion", "es"],
+      "goal": "una casa moderna",
+      "respuestas": { "place": "house", "inout": "outside" },
+      "expected": { "inferido": { "what": "scene" }, "noInferido": { "what": "object" }, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-sala-no-es-maquina",
+      "name": "«Quiero remodelar mi sala» no acaba en el camino de las máquinas",
+      "description": "Regresión de 2E-56: un cuarto de la casa no es un vehículo. No se sabe qué diseñar y se pregunta; lo de dentro o fuera sí se deduce.",
+      "tags": ["deduccion", "es"],
+      "goal": "quiero remodelar mi sala",
+      "respuestas": { "what": "scene", "place": "house" },
+      "expected": { "noInferido": { "what": "object" }, "inferido": { "inout": "inside" }, "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-packaging",
+      "name": "«Un packaging» es un producto",
+      "description": "Una de las catorce palabras antiguas que siguen llegando a su sitio.",
+      "tags": ["deduccion", "es"],
+      "goal": "Quiero diseñar un packaging",
+      "respuestas": { "item": "pack", "look": "luxury" },
+      "expected": { "inferido": { "what": "product" }, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-moto-futurista",
+      "name": "«Una moto futurista»: vehículo y época",
+      "description": "Deduce la máquina y la época; solo queda preguntar cuál.",
+      "tags": ["deduccion", "repregunta", "es"],
+      "goal": "quiero una moto futurista",
+      "respuestas": { "machine": "bike" },
+      "expected": { "inferido": { "what": "object", "era": "future" }, "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-paisaje-a-lapiz",
+      "name": "«Un paisaje a lápiz»: lugar y vista amplia, sin repreguntar",
+      "description": "El paisaje ya dice que es una vista amplia; solo queda qué lugar.",
+      "tags": ["deduccion", "repregunta", "es"],
+      "goal": "Un paisaje a lápiz",
+      "respuestas": { "place": "nature" },
+      "expected": { "inferido": { "what": "scene", "inout": "wide" }, "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-robot-tierno",
+      "name": "«Un robot tierno»: personaje y trazo, sin repreguntar",
+      "description": "Deduce el personaje y el estilo; solo queda preguntar quién es.",
+      "tags": ["deduccion", "repregunta", "es"],
+      "goal": "Un robot tierno",
+      "respuestas": { "who": "robot" },
+      "expected": { "inferido": { "what": "character", "draw": "cute" }, "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-botella-retro",
+      "name": "«Una botella retro»: una deducción suelta no reabre ninguna pregunta",
+      "description": "Deduce un producto y además una época que solo importa a los vehículos: esa deducción sobrante no debe volver a preguntarse ni cambiar el camino.",
+      "tags": ["deduccion", "repregunta", "es"],
+      "goal": "Una botella retro",
+      "respuestas": { "item": "pack", "look": "natural" },
+      "expected": { "inferido": { "what": "product" }, "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-texto-afiche-para-un-evento",
+      "name": "«Un afiche para mi evento» es una pieza para redes",
+      "description": "«Afiche» lleva al camino de las piezas para redes o publicidad.",
+      "tags": ["deduccion", "es"],
+      "goal": "Un afiche para mi evento",
+      "respuestas": { "message": "event", "where": "whatsapp" },
+      "expected": { "inferido": { "what": "poster" }, "capacidades": ["text.generate", "image.generate"] }
+    },
+
+    {
+      "evalCaseId": "design-h6-post-para-mi-marca",
+      "name": "«Un post para mi marca» es una pieza para redes, no un logo",
+      "description": "H-6 (CL-11): `infer` mira «marca» en las palabras del logo antes que «post» en las del afiche, así que hoy lo lleva al camino del logo.",
+      "tags": ["hueco", "marca", "es"],
+      "hueco": "H-6",
+      "cierre": "CL-11",
+      "goal": "Un post para mi marca",
+      "expected": { "inferido": { "what": "poster" } }
+    },
+    {
+      "evalCaseId": "design-h6-publicidad-para-mi-marca",
+      "name": "«Publicidad para mi marca» es una pieza para redes, no un logo",
+      "description": "H-6, misma causa con otra palabra de afiche: «publicidad». Hoy acaba en el camino del logo.",
+      "tags": ["hueco", "marca", "es"],
+      "hueco": "H-6",
+      "goal": "Publicidad para mi marca",
+      "expected": { "inferido": { "what": "poster" } }
+    },
+    {
+      "evalCaseId": "design-h6-flyer-para-la-marca",
+      "name": "«Un flyer para la marca» es una pieza para redes, no un logo",
+      "description": "H-6, misma causa con otra palabra de afiche: «flyer». Hoy acaba en el camino del logo.",
+      "tags": ["hueco", "marca", "es"],
+      "hueco": "H-6",
+      "goal": "Un flyer para la marca",
+      "expected": { "inferido": { "what": "poster" } }
+    },
+    {
+      "evalCaseId": "design-h6-control-un-logo-para-mi-marca",
+      "name": "Control de H-6: «Un logo para mi marca» sigue siendo un logo",
+      "description": "El chip de la portada. Un arreglo de H-6 que mandara toda «marca» al afiche rompería esto.",
+      "tags": ["marca", "control", "es"],
+      "goal": "Un logo para mi marca",
+      "expected": { "inferido": { "what": "logo" } }
+    },
+    {
+      "evalCaseId": "design-h6-control-logo-e-identidad",
+      "name": "Control de H-6: «un logo y la identidad de mi marca» sigue siendo un logo",
+      "description": "La frase de la puerta del catálogo, sin el camino previo.",
+      "tags": ["marca", "control", "es"],
+      "goal": "Diseñar un logo y la identidad de mi marca",
+      "expected": { "inferido": { "what": "logo" } }
+    },
+    {
+      "evalCaseId": "design-h6-control-identidad-de-marca",
+      "name": "Control de H-6: «La identidad de mi marca» sigue siendo un logo",
+      "description": "Sin la palabra «logo»: la identidad de una marca es su logo.",
+      "tags": ["marca", "control", "es"],
+      "goal": "La identidad de mi marca",
+      "expected": { "inferido": { "what": "logo" } }
+    },
+    {
+      "evalCaseId": "design-h6-control-post-de-ropa",
+      "name": "Control de H-6: «Un post para mi tienda de ropa» es una pieza para redes, no un producto",
+      "description": "«Ropa» es una palabra de producto, pero «post» va antes: hoy ya se entiende bien.",
+      "tags": ["marca", "control", "es"],
+      "goal": "Quiero un post para mi tienda de ropa",
+      "expected": { "inferido": { "what": "poster" } }
+    },
+
+    {
+      "evalCaseId": "design-h2-what",
+      "name": "«¿Por dónde empezar?» ofrece «No sé»",
+      "description": "H-2 (CL-10): quien llega por «No sé qué diseñar» ya está perdido, y hoy la pregunta que le ayuda ofrece seis caminos y ninguna salida.",
+      "tags": ["hueco", "no-se", "es"],
+      "hueco": "H-2",
+      "cierre": "CL-10",
+      "goal": "Quiero diseñar algo pero no sé qué",
+      "expected": { "noSe": ["what"] }
+    },
+    {
+      "evalCaseId": "design-h2-message",
+      "name": "«¿Qué quieres anunciar?» ofrece «No sé»",
+      "description": "H-2 (CL-10): hoy ofrece cuatro opciones (promoción, evento, producto nuevo, horario) y ninguna es «No sé».",
+      "tags": ["hueco", "no-se", "es"],
+      "hueco": "H-2",
+      "cierre": "CL-10",
+      "goal": "Diseñar una pieza para redes o publicidad",
+      "presets": { "what": "poster" },
+      "expected": { "noSe": ["message"] }
+    },
+    {
+      "evalCaseId": "design-h2-item",
+      "name": "«¿Qué producto quieres diseñar?» ofrece «No sé»",
+      "description": "H-2 (CL-10): hoy ofrece cuatro opciones (envase, mueble, ropa, tecnología) y ninguna es «No sé».",
+      "tags": ["hueco", "no-se", "es"],
+      "hueco": "H-2",
+      "cierre": "CL-10",
+      "goal": "Diseñar un producto",
+      "presets": { "what": "product" },
+      "expected": { "noSe": ["item"] }
+    },
+    {
+      "evalCaseId": "design-h2-machine",
+      "name": "«¿Qué vehículo o máquina imaginas?» ofrece «No sé»",
+      "description": "H-2 (CL-10): hoy ofrece cuatro opciones (auto, algo que vuela, moto, motor) y ninguna es «No sé».",
+      "tags": ["hueco", "no-se", "es"],
+      "hueco": "H-2",
+      "cierre": "CL-10",
+      "goal": "Diseñar un vehículo o una máquina",
+      "presets": { "what": "object" },
+      "expected": { "noSe": ["machine"] }
+    },
+    {
+      "evalCaseId": "design-h2-place",
+      "name": "«¿Qué lugar o escenario quieres crear?» ofrece «No sé»",
+      "description": "H-2 (CL-10): hoy ofrece cuatro opciones (casa, local, ciudad, paisaje) y ninguna es «No sé».",
+      "tags": ["hueco", "no-se", "es"],
+      "hueco": "H-2",
+      "cierre": "CL-10",
+      "goal": "Diseñar un lugar o un escenario",
+      "presets": { "what": "scene" },
+      "expected": { "noSe": ["place"] }
+    },
+    {
+      "evalCaseId": "design-h2-who",
+      "name": "«¿Quién o qué personaje quieres crear?» ofrece «No sé»",
+      "description": "H-2 (CL-10): hoy ofrece cuatro opciones (mascota, héroe, robot, criatura) y ninguna es «No sé».",
+      "tags": ["hueco", "no-se", "es"],
+      "hueco": "H-2",
+      "cierre": "CL-10",
+      "goal": "Diseñar un personaje",
+      "presets": { "what": "character" },
+      "expected": { "noSe": ["who"] }
+    },
+    {
+      "evalCaseId": "design-h2-respuesta-idk-en-what",
+      "name": "Un «No sé» a qué diseñar no se cuela en el encargo",
+      "description": "Consecuencia de H-2: el servidor acepta «idk» aunque la pregunta no lo ofrezca, y `buildPlan` solo sabe tratarlo donde es una opción: hoy promete «tres propuestas de idk».",
+      "tags": ["hueco", "no-se", "es"],
+      "hueco": "H-2",
+      "cierre": "CL-10",
+      "goal": "Quiero diseñar algo pero no sé qué",
+      "respuestas": { "what": "idk" },
+      "expected": { "encargoLimpio": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-h2-respuesta-idk-en-message",
+      "name": "Un «No sé» a qué anunciar no se cuela en el encargo",
+      "description": "Consecuencia de H-2: hoy el encargo pide «una pieza para anunciar idk».",
+      "tags": ["hueco", "no-se", "es"],
+      "hueco": "H-2",
+      "cierre": "CL-10",
+      "goal": "Diseñar una pieza para redes o publicidad",
+      "presets": { "what": "poster" },
+      "respuestas": { "message": "idk", "where": "story" },
+      "expected": { "encargoLimpio": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-h2-respuesta-idk-en-place",
+      "name": "Un «No sé» a qué lugar no se cuela en el encargo",
+      "description": "Consecuencia de H-2: hoy el encargo pide «idk, por dentro».",
+      "tags": ["hueco", "no-se", "es"],
+      "hueco": "H-2",
+      "cierre": "CL-10",
+      "goal": "Diseñar un lugar o un escenario",
+      "presets": { "what": "scene" },
+      "respuestas": { "place": "idk", "inout": "inside" },
+      "expected": { "encargoLimpio": true, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-h2-control-no-se-en-feel",
+      "name": "Control de H-2: «No sé» a cómo debe sentirse la marca ya se trata bien",
+      "description": "Donde «No sé» sí es una opción, el encargo no lo recoge: así debe quedar en las seis preguntas que hoy no lo ofrecen.",
+      "tags": ["no-se", "control", "es"],
+      "goal": "Diseñar un logo y la identidad de mi marca",
+      "presets": { "what": "logo" },
+      "respuestas": { "name": "Café Alba", "feel": "idk" },
+      "expected": { "encargoLimpio": true, "noSe": ["feel"], "capacidades": ["text.generate", "image.generate"] }
+    },
+
+    {
+      "evalCaseId": "design-d5-historia-vertical",
+      "name": "Una historia sale en vertical (9:16)",
+      "description": "CL-14 (D5, F1): el encargo dice «en vertical, para una historia», pero el paso de imagen no lleva `aspectRatio`. Es lo que ya promete la plantilla; qué formatos se ofrecen es del dueño.",
+      "tags": ["conocido", "formato", "es"],
+      "cierre": "CL-14",
+      "decision": "D5",
+      "conocido": true,
+      "goal": "Diseñar una pieza para redes o publicidad",
+      "presets": { "what": "poster" },
+      "respuestas": { "message": "event", "where": "story" },
+      "expected": { "aspectRatio": "9:16", "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-d4-afiche-con-texto",
+      "name": "Un afiche escribe su texto dentro de la imagen",
+      "description": "CL-15 (D4, F3): el afiche pide un `kind` que no es de los que llevan texto, va al nivel estándar y ningún modelo de ese nivel escribe texto. Si el afiche lleva texto o no es del dueño.",
+      "tags": ["conocido", "texto-en-imagen", "es"],
+      "cierre": "CL-15",
+      "decision": "D4",
+      "conocido": true,
+      "goal": "Diseñar una pieza para redes o publicidad",
+      "presets": { "what": "poster" },
+      "respuestas": { "message": "promo", "where": "feed" },
+      "expected": { "textoEnImagen": true }
+    },
+    {
+      "evalCaseId": "design-d4-control-logo-con-texto",
+      "name": "Control de D4: un logo ya escribe su texto con un modelo que sabe",
+      "description": "El logo pide el `kind` «logo», sube al nivel alto y el modelo elegido escribe texto: lo que el afiche aún no tiene.",
+      "tags": ["texto-en-imagen", "control", "es"],
+      "cierre": "CL-15",
+      "goal": "Diseñar un logo y la identidad de mi marca",
+      "presets": { "what": "logo" },
+      "respuestas": { "name": "Café Alba", "feel": "modern" },
+      "expected": { "textoEnImagen": true }
+    },
+    {
+      "evalCaseId": "design-d6-referencia-afiche",
+      "name": "La foto de referencia de un afiche se usa",
+      "description": "CL-16 (D6, F4): se sube y se ignora, porque `image.generate` no está entre las capacidades que admiten una foto de entrada. Qué se hace con ella (estilo, base, ocultar el botón) es del dueño.",
+      "tags": ["conocido", "referencia", "es"],
+      "cierre": "CL-16",
+      "decision": "D6",
+      "conocido": true,
+      "referencia": true,
+      "goal": "Diseñar una pieza para redes o publicidad",
+      "presets": { "what": "poster" },
+      "respuestas": { "message": "promo", "where": "feed" },
+      "expected": { "usaReferencia": true }
+    },
+    {
+      "evalCaseId": "design-d6-referencia-producto",
+      "name": "La foto de referencia de un producto se usa",
+      "description": "CL-16 (D6, F4): la misma regla para otra intención: la referencia que sube la persona no llega a ningún paso que la lea.",
+      "tags": ["conocido", "referencia", "es"],
+      "cierre": "CL-16",
+      "decision": "D6",
+      "conocido": true,
+      "referencia": true,
+      "goal": "Diseñar un producto",
+      "presets": { "what": "product" },
+      "respuestas": { "item": "gadget", "look": "clean" },
+      "expected": { "usaReferencia": true }
+    },
+
+    {
+      "evalCaseId": "design-en-logo-para-mi-marca",
+      "name": "En inglés, «A logo for my brand» se entiende",
+      "description": "El chip de la portada en inglés: «logo» coincide con las palabras del servidor, que son españolas.",
+      "tags": ["idioma", "en"],
+      "goal": "A logo for my brand",
+      "respuestas": { "name": "Alba", "feel": "idk" },
+      "expected": { "inferido": { "what": "logo" }, "capacidades": ["text.generate", "image.generate"], "encargoLimpio": true }
+    },
+    {
+      "evalCaseId": "design-da-logo-til-mit-brand",
+      "name": "En danés, «Et logo til mit brand» se entiende",
+      "description": "El chip de la portada en danés: «logo» coincide con las palabras del servidor, que son españolas.",
+      "tags": ["idioma", "da"],
+      "goal": "Et logo til mit brand",
+      "respuestas": { "name": "Alba", "feel": "idk" },
+      "expected": { "inferido": { "what": "logo" }, "capacidades": ["text.generate", "image.generate"], "encargoLimpio": true }
+    },
+    {
+      "evalCaseId": "design-en-pieza-por-su-puerta",
+      "name": "En inglés, la puerta de redes lleva al plan aunque el texto no se entienda",
+      "description": "La frase de la puerta en inglés no trae palabras que el servidor reconozca: el camino lo pone la puerta (`presets`), no el texto.",
+      "tags": ["idioma", "en"],
+      "goal": "Design a piece for social media or advertising",
+      "presets": { "what": "poster" },
+      "respuestas": { "message": "promo", "where": "feed" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true }
+    },
+    {
+      "evalCaseId": "design-da-pieza-por-su-puerta",
+      "name": "En danés, la puerta de redes lleva al plan aunque el texto no se entienda",
+      "description": "La frase de la puerta en danés no trae palabras que el servidor reconozca: el camino lo pone la puerta (`presets`), no el texto.",
+      "tags": ["idioma", "da"],
+      "goal": "Design noget til sociale medier eller reklame",
+      "presets": { "what": "poster" },
+      "respuestas": { "message": "promo", "where": "feed" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true }
+    },
+    {
+      "evalCaseId": "design-en-texto-libre-llega-al-plan",
+      "name": "En inglés, un texto libre llega al plan por cualquiera de los dos caminos",
+      "description": "«A rescue helicopter» no se deduce hoy (no hay palabras en inglés): se pregunta qué diseñar. Las respuestas valen para los dos mundos —se entienda o no—, y de los dos se llega al plan sin repreguntar.",
+      "tags": ["idioma", "en"],
+      "goal": "A rescue helicopter",
+      "respuestas": { "what": "object", "machine": "air", "era": "now" },
+      "expected": { "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"], "encargoLimpio": true }
+    },
+    {
+      "evalCaseId": "design-da-texto-libre-llega-al-plan",
+      "name": "En danés, un texto libre llega al plan por cualquiera de los dos caminos",
+      "description": "«En redningshelikopter» no se deduce hoy (no hay palabras en danés): se pregunta qué diseñar. Las respuestas valen para los dos mundos —se entienda o no—, y de los dos se llega al plan sin repreguntar.",
+      "tags": ["idioma", "da"],
+      "goal": "En redningshelikopter",
+      "respuestas": { "what": "object", "machine": "air", "era": "now" },
+      "expected": { "sinRepreguntar": true, "capacidades": ["text.generate", "image.generate"], "encargoLimpio": true }
+    },
+    {
+      "evalCaseId": "design-en-no-se-que-disenar",
+      "name": "En inglés, «No sé qué diseñar» llega al plan por la pregunta de por dónde empezar",
+      "description": "La frase de la puerta de «No sé qué diseñar» en inglés, sin pistas para el servidor.",
+      "tags": ["idioma", "en"],
+      "goal": "I want to design something but I don’t know what",
+      "respuestas": { "what": "logo", "name": "Alba", "feel": "idk" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true }
+    },
+
+    {
+      "evalCaseId": "design-limite-objetivo-vacio",
+      "name": "Sin texto, se pregunta por dónde empezar",
+      "description": "Un objetivo vacío se sustituye por el de la plantilla, del que no se deduce nada.",
+      "tags": ["limite"],
+      "goal": "",
+      "expected": { "espera": "what", "sinRepreguntar": true }
+    },
+    {
+      "evalCaseId": "design-limite-objetivo-por-defecto",
+      "name": "El objetivo de la plantilla no se deduce a sí mismo",
+      "description": "«Diseñar algo que imagino» es el texto de relleno de la plantilla: no dice nada, y se pregunta por dónde empezar.",
+      "tags": ["limite", "es"],
+      "goal": "Diseñar algo que imagino",
+      "expected": { "espera": "what", "sinRepreguntar": true }
+    },
+    {
+      "evalCaseId": "design-limite-mayusculas",
+      "name": "Las mayúsculas no cambian lo que se entiende",
+      "description": "«UN LOGO PARA MI MARCA» se lee como «un logo para mi marca».",
+      "tags": ["limite", "es"],
+      "goal": "UN LOGO PARA MI MARCA",
+      "expected": { "inferido": { "what": "logo" } }
+    },
+    {
+      "evalCaseId": "design-limite-sin-acentos",
+      "name": "Escribir sin acentos no cambia lo que se entiende",
+      "description": "«disenar un helicoptero» se lee igual que con acentos y eñe.",
+      "tags": ["limite", "es"],
+      "goal": "disenar un helicoptero para rescate",
+      "respuestas": { "machine": "air", "era": "now" },
+      "expected": { "inferido": { "what": "object" }, "capacidades": ["text.generate", "image.generate"] }
+    },
+    {
+      "evalCaseId": "design-limite-solo-emojis",
+      "name": "Un texto sin palabras no deduce nada",
+      "description": "Solo emojis: no hay nada que entender, y se pregunta por dónde empezar.",
+      "tags": ["limite"],
+      "goal": "🎨✨",
+      "expected": { "espera": "what", "sinRepreguntar": true }
+    },
+    {
+      "evalCaseId": "design-limite-varias-ideas",
+      "name": "Dos ideas en una frase llegan al plan por el camino que se entienda",
+      "description": "«Un logo para mi marca y un afiche para Instagram» mezcla dos intenciones: sea cual sea la que gane, la conversación llega al plan con las respuestas de las dos.",
+      "tags": ["limite", "es"],
+      "goal": "Un logo para mi marca y un afiche para Instagram",
+      "respuestas": { "name": "La Espiga", "feel": "idk", "message": "promo", "where": "idk" },
+      "expected": { "capacidades": ["text.generate", "image.generate"], "propuestas": 3, "encargoLimpio": true, "sueloDeCoste": true }
+    }
+  ]
+}

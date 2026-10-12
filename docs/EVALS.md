@@ -22,7 +22,7 @@ El motor es **uno**: `functions/src/evals/motor/` (TypeScript). Vive ahí porque
 - `comparar.mjs` — baseline (inmutable) ↔ candidate → veredicto `ACCEPT` / `REJECT` / `NO_CHANGE` / `REVIEW_REQUIRED`. Es de ingeniería (el eval-gate, el CLI y el hillclimb comparan; `evalRun` no), así que vive aquí, una vez, y no viaja a producción.
 - `runner.mjs` — la línea de órdenes de desarrollo: corre el corredor común con el registro de desarrollo.
 - `gobernanza.mjs` — la corrida gobernada del motor con el registro de desarrollo, el almacén en memoria y el coste simulado.
-- `dominios.mjs` + `dominios/router.mjs` — el registro de dominios de desarrollo y el adaptador del Router sin coste (ver «Dominios», abajo).
+- `dominios.mjs` + `dominios/router.mjs` + `dominios/design.mjs` — el registro de dominios de desarrollo y los adaptadores del Router y de Design, sin coste (ver «Dominios» y «Dominio `design`», abajo).
 - `config.json` — pesos y umbrales (**configurables**, no fijados en el código).
 - `datasets/router/v1.json` — dataset versionado (hash canónico; 13 casos).
 - `datasets/router/mundo-v1.json` — misión mundo3d (2026-10-05): la elegibilidad de `world.generate` (8 casos, mundo sintético): un modelo territorial se elige solo donde está aprobado, sin jurisdicción falla cerrado, otro proveedor aprobado lo sustituye, y cada «no disponible» lleva su **motivo público** (grader `router/motivo-publico`). El escenario pasa las reglas territoriales de cada modelo y la jurisdicción de la operación. Baseline propia (`baseline/router-mundo.json`); gate en `functions/test/evals-mundo3d.test.mjs`. El v1 y su baseline no cambian.
@@ -68,6 +68,54 @@ El Eval Engine es **infraestructura de todo Weë**, no del Router: el Router es 
 Hay **dos registros y un solo mecanismo**: el de desarrollo (`ops/evals/dominios.mjs`, dominios que deciden sin ejecutar adaptadores, $0) y el real (`functions/src/evals/dominios.ts`, los que `evalRun` corre con el proveedor de verdad). Los dos se crean con el mismo `crearRegistroDeDominios` y se resuelven con el mismo `resolverDominio`.
 
 **Añadir un dominio** (Orchestrator, Planner, generación, Design, Music…) es un adaptador y una línea en el registro que toque: **el motor no se toca**. Sin carga dinámica: un dataset solo nombra un dominio registrado (`dataset.dominio`) y cualquier otro nombre falla cerrado; del dataset nunca sale código. El motor comprueba lo que devuelve cada dominio (ejecuciones y dimensiones), así que un dominio no puede esconder un gasto ni inventarse una dimensión. Lo fija `functions/test/evals-dominios.test.mjs`, con un dominio de prueba que no es de Weë; la misma suite comprueba que cada pieza del motor existe una vez y que hay **un solo bucle de casos** en todo el código de evals.
+
+## Dominio `design` (CL-17, F0 de [DESIGN.md](DESIGN.md) §5) — el segundo dominio, a $0
+
+`design` mide lo que la experiencia `design` del servidor (`functions/src/creator/templates.ts`) hace con lo que una persona le cuenta: qué deduce de su texto (`infer`), qué le pregunta, qué plan arma (`buildPlan`) y cuánto costaría ese plan. Es la **misma plantilla, el mismo planificador de plantillas (`templatePlanner`) y el mismo cálculo de precio (`priceImage`, `priceOperation`)** que usa el servidor, cargados de `functions/lib`, no una copia: si cambia `templates.ts`, el eval lo ve (con `npm run build --prefix functions` al día). Sin proveedor, sin red, sin reloj, sin azar; los precios solo se LEEN (nada se cobra ni se reserva). No declara superficie: el corredor lo evalúa, pero Hillclimb no lo optimiza (se niega con «no declara superficie»; no hay nada que aplicar).
+
+| Pieza | Dónde |
+|---|---|
+| Adaptador (una entrada en el registro de `dominios.mjs`) | `ops/evals/dominios/design.mjs` |
+| Dataset versionado | `ops/evals/datasets/design/v1.json` (57 casos) |
+| Baseline, del comportamiento de HOY (`a64ff24`) | `ops/evals/baseline/design.json` |
+| Suite, en la cadena de `npm test` | `functions/test/evals-design.test.mjs` |
+
+**Qué es un caso.** Lo que haría una persona: un texto (`goal`), lo que ya trae elegido de la puerta por la que entró (`presets`, como los `presetAnswers` de `creatorChat`) y lo que contestaría cuando se le pregunte (`respuestas`). El dominio recorre la conversación como `creatorChat` —deduce, pregunta lo que falta y, sin nada que preguntar, arma el plan— y se queda esperando en la primera pregunta que el caso no contesta. Un caso activa SOLO los graders cuyas claves `expected.*` trae:
+
+| Grader (dimensión) | Pasa si… |
+|---|---|
+| `design/deduce` (QUALITY) | lo que `infer` deduce del texto es lo esperado (`inferido`) y no es lo prohibido (`noInferido`) |
+| `design/sin-repreguntar` (QUALITY) | lo deducido no se vuelve a preguntar: ni en la conversación ni por el `when` de una pregunta (cada `!a.<id>`) |
+| `design/no-se` (QUALITY) | cada pregunta nombrada se llega a hacer y ofrece «🤷 No sé» (H-2) |
+| `design/encargo-limpio` (QUALITY) | ni «idk», ni «undefined», ni comas o espacios de más en lo que viaja al modelo ni en lo que se promete |
+| `design/espera` (RELIABILITY) | la conversación se queda esperando justo la pregunta que se dice |
+| `design/plan` (RELIABILITY) | las capacidades del plan son las esperadas, en orden |
+| `design/propuestas` (COST) | las propuestas (`count`) son las esperadas y no pasan del techo del Core (`MAX_PROPUESTAS_POR_PASO`) |
+| `design/suelo-de-coste` (COST) | el precio no baja del coste de lista, en los dos modos de precios y en cada paso |
+| `design/aspect-ratio`, `design/texto-en-imagen`, `design/referencia` (QUALITY) | los tres casos conocidos de abajo |
+
+**Las etiquetas del dataset** dicen por qué un caso está en rojo, y el detalle de cada fallo empieza por ellas (`[H-2 · CL-10] «message» ofrece 4 opciones (…) y ninguna es «No sé»`):
+- `hueco` (`H-n` de [WEE-DESIGN-UIUX-AUDIT.md](WEE-DESIGN-UIUX-AUDIT.md)) y `cierre` (`CL-nn` de [WEE-DESIGN-CIERRE.md](WEE-DESIGN-CIERRE.md)): un defecto medido que no depende de ninguna decisión. Hoy: **H-2** (las preguntas `what`, `message`, `item`, `machine`, `place` y `who` no ofrecen «No sé», y un «idk» contestado igualmente se cuela en el encargo) y **H-6** (`infer('Un post para mi marca')` da logo). Los arregla la rama del servidor (`r7d/servidor`, CL-10 y CL-11).
+- `conocido` + `decision` (`D4`, `D5` o `D6` de [DESIGN.md](DESIGN.md) §4): **lo que hoy falta y cuyo arreglo es del dueño** —el `aspectRatio` de una historia, el texto dentro de la imagen de un afiche, la foto de referencia que se sube y se ignora—. Salen en rojo a propósito y **no son criterio de aceptación**: nada los exige. El caso dice qué falta, no qué se decidió; el veredicto de una comparación solo mira si algo empeora o mejora frente a la baseline.
+- `control`: casos que hoy pasan y que un arreglo mal hecho rompería (por ejemplo, que «Un logo para mi marca» siga siendo un logo cuando se arregle H-6).
+
+**Cómo se usa** (desarrollo, $0; los tres comandos son los del Eval Engine común):
+```bash
+# a) ejecutar el dominio: imprime la puntuación y cada grader en rojo con su causa
+node ops/evals/runner.mjs --dataset design
+# b) compararlo con la baseline: sale 0 con NO_CHANGE o ACCEPT, 1 con REJECT, 3 con REVIEW_REQUIRED
+node ops/evals/runner.mjs --dataset design --contra ops/evals/baseline/design.json
+# c) refrescar la baseline, de forma explícita y con motivo (ver abajo)
+node ops/evals/runner.mjs --dataset design --guardar-baseline ops/evals/baseline/design.json
+```
+
+**Al fusionar la rama que arregla H-2 y H-6.** Reconstruir `functions/lib` (`npm run build --prefix functions`) y repetir (b): la comparación tiene que dar **ACCEPT (MEJORA)** —los nueve casos de H-2 y los tres de H-6 pasan a verde— y ningún caso puede empeorar. Con `REJECT`, algo se rompió: el detalle dice qué caso y qué grader. La suite `evals-design` da lo mismo antes y después de esa fusión (el gate acepta NO_CHANGE y ACCEPT; los sabotajes y los arreglos simulados se miden contra la corrida viva).
+
+**Refrescar la baseline** es una decisión, no un trámite: se hace cuando el comportamiento cambió A PROPÓSITO y (b) dio ACCEPT. En el mismo cambio: (1) ejecutar (c); (2) actualizar `ROJOS_DE_LA_BASELINE` en `functions/test/evals-design.test.mjs` —la suite compara los rojos de la baseline con esa lista a propósito, para que un refresco no pueda esconder sin que alguien lo lea que un caso pasó de verde a rojo—; (3) decir el motivo y el commit que arregló el comportamiento en el mensaje del commit. Si cambia el dataset, cambia su hash y hay que refrescar. El CLI pone la hora en `generado`; lo que se compara es el hash del dataset y las puntuaciones.
+
+**Reproducibilidad.** La baseline de hoy se midió sobre `functions/lib` compilada desde `a64ff24` (huellas de las piezas que mide: `creator/templates.js` `019a92d6…`, `creator/planner.js` `d73267b8…`, `engine/imageModels.js` `180fcfea…`, `credits/aiPricing.js` `f2de486e…`). Mismo dataset (hash canónico de sus casos) + mismo servidor → mismas puntuaciones: doce corridas seguidas dan la misma huella, y una corrida con `Date`, `Math.random`, `fetch` y los sockets prohibidos da la misma. El modo de precios no sale del entorno: el dominio cotiza siempre en `simulated` y en `real`.
+
+**Lo que no hace.** No evalúa la calidad visual de lo que generaría (eso es de un juez, que no existe), no cobra ni reserva nada, no aplica ningún arreglo y no decide ninguna de D1–D9.
 
 ## Estado: F2-C1 (entregado, SIN desplegar) — el camino real, sobre el motor común
 

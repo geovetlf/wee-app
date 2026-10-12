@@ -1,0 +1,526 @@
+{
+  "version": 1,
+  "dominio": "design",
+  "datasetVersion": 1,
+  "datasetHash": "57f923b3165bb6b75a3ad2844a3ef92aae130e986cdc6a35d85ea8defee3e340",
+  "generado": "2026-10-12T04:43:22.098Z",
+  "scores": {
+    "overall": 0.754386,
+    "perDimension": {
+      "QUALITY": 0.719298,
+      "COST": 1,
+      "LATENCY": null,
+      "RELIABILITY": 1
+    },
+    "porCaso": [
+      {
+        "evalCaseId": "design-flujo-logo",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-flujo-afiche",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-flujo-producto",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-flujo-vehiculo",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-flujo-lugar",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-flujo-personaje",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-flujo-no-se-que-disenar",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-auto-del-futuro",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-helicoptero-de-rescate",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-vaso-innovador",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-casa-de-playa",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-personaje-de-videojuego",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-ciudad-del-futuro",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-deportivo-del-futuro",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-casa-moderna-no-es-maquina",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-sala-no-es-maquina",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-packaging",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-moto-futurista",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-paisaje-a-lapiz",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-robot-tierno",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-botella-retro",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-texto-afiche-para-un-evento",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-h6-post-para-mi-marca",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h6-publicidad-para-mi-marca",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h6-flyer-para-la-marca",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h6-control-un-logo-para-mi-marca",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-h6-control-logo-e-identidad",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-h6-control-identidad-de-marca",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-h6-control-post-de-ropa",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-h2-what",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h2-message",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h2-item",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h2-machine",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h2-place",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h2-who",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h2-respuesta-idk-en-what",
+        "score": 0.5,
+        "dims": {
+          "QUALITY": 0,
+          "RELIABILITY": 1
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h2-respuesta-idk-en-message",
+        "score": 0.5,
+        "dims": {
+          "QUALITY": 0,
+          "RELIABILITY": 1
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h2-respuesta-idk-en-place",
+        "score": 0.5,
+        "dims": {
+          "QUALITY": 0,
+          "RELIABILITY": 1
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-h2-control-no-se-en-feel",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-d5-historia-vertical",
+        "score": 0.5,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-d4-afiche-con-texto",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-d4-control-logo-con-texto",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-d6-referencia-afiche",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-d6-referencia-producto",
+        "score": 0,
+        "dims": {
+          "QUALITY": 0
+        },
+        "aprobado": false
+      },
+      {
+        "evalCaseId": "design-en-logo-para-mi-marca",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-da-logo-til-mit-brand",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-en-pieza-por-su-puerta",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-da-pieza-por-su-puerta",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-en-texto-libre-llega-al-plan",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-da-texto-libre-llega-al-plan",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-en-no-se-que-disenar",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-limite-objetivo-vacio",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-limite-objetivo-por-defecto",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-limite-mayusculas",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-limite-sin-acentos",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-limite-solo-emojis",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "design-limite-varias-ideas",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      }
+    ],
+    "n": 57,
+    "aprobados": 41
+  }
+}
