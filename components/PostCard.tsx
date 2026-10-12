@@ -48,6 +48,7 @@ import { Timestamp } from 'firebase/firestore';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from './avatars/AvatarDisplay';
+import EtiquetaDemo from './EtiquetaDemo';
 import ImageViewer from './ImageViewer';
 import ReportSheet from './ReportSheet';
 import Poll from './Poll';
@@ -1339,6 +1340,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 ? t('common.loading')
                 : postAuthor?.displayName || t('common.anonymousUser')
               }
+              <EtiquetaDemo de={[post, postAuthor]} color={theme.colors.accent} />
             </Text>
             <View style={styles.metaRow}>
               <Text style={[styles.timestamp, { color: theme.colors.textSecondary }]}>

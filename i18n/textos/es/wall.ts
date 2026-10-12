@@ -74,4 +74,6 @@ export const wall = {
   hidePrompt: 'Ocultar prompt',
   copyPrompt: 'Copiar prompt',
   promptCopied: 'Copiado',
+  demoBadge: 'Demo',
+  demoBadgeLabel: 'Contenido de demostración',
 };

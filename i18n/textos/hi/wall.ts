@@ -95,4 +95,6 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'प्रॉम्प्ट छिपाएँ',
   copyPrompt: 'प्रॉम्प्ट कॉपी करें',
   promptCopied: 'कॉपी किया गया',
+  demoBadge: 'डेमो',
+  demoBadgeLabel: 'डेमो सामग्री',
 };

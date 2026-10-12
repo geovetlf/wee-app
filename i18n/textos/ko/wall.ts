@@ -90,4 +90,6 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: '프롬프트 숨기기',
   copyPrompt: '프롬프트 복사',
   promptCopied: '복사됨',
+  demoBadge: '데모',
+  demoBadgeLabel: '데모 콘텐츠',
 };

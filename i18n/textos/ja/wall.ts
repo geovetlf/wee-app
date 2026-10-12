@@ -79,4 +79,6 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'プロンプトを隠す',
   copyPrompt: 'プロンプトをコピー',
   promptCopied: 'コピー済み',
+  demoBadge: 'デモ',
+  demoBadgeLabel: 'デモ用のコンテンツ',
 };
