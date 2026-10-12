@@ -527,11 +527,25 @@ await prueba('E2) y la pantalla de Design no lleva su propio texto de carga, de 
   const keys = [...pantalla.matchAll(/t\('([\w.]+)'\)/g)].map((m) => m[1]);
   return [!keys.some((k) => /^design\.(loading|error|empty|retry)/.test(k)), keys.join()];
 });
-await prueba('E3) (g) Weë Studio sigue pasándole a la fila lo MISMO que antes: `creaciones`, `onVerTodas` y `onOpciones`, ninguna propiedad nueva', async () => {
+/*
+ * E3 · R9 (2026-10-12), auditoría de trazabilidad E2 aprobada por el dueño: antes esta comprobación OBLIGABA a Weë Studio a
+ * pasar a la fila las cuatro creaciones de MUESTRA (`CREACIONES_DEL_STUDIO`) bajo «Mis creaciones», con un «⋯» que no hacía
+ * nada: una simulación presentada como real. Ahora Studio enseña lo que la cuenta creó de verdad (su gancho lee los trabajos
+ * con el mismo servicio que Design), con error y reintento, y abrir una creación la reabre por su trabajo. Se exige eso, y el
+ * CONTROL demuestra que volver a las muestras haría fallar la comprobación.
+ */
+const filaDelStudio = (src) => (src.match(/<FilaDeCreaciones\b([\s\S]*?)\/>/) || [])[1] || '';
+const studioEnseñaLoReal = (uso) => /creaciones=\{mias\.creaciones\}/.test(uso) && !/CREACIONES_DEL_STUDIO/.test(uso)
+  && /onReintentar=\{mias\.recargar\}/.test(uso)
+  && /navigation\.navigate\('CreatorFlow', \{ experienceId: trabajo\.experienceId, jobId: trabajo\.id \}\)/.test(uso);
+await prueba('E3) (g) Weë Studio pasa a la fila sus creaciones REALES (no muestras), con error y reintento, y abrir una las reabre por su trabajo', async () => {
   const studio = sinComentarios(leer('screens/StudioScreen.tsx'));
-  const uso = (studio.match(/<FilaDeCreaciones\b([\s\S]*?)\/>/) || [])[1] || '';
-  const props = [...uso.matchAll(/\b([a-zA-Z]+)=[{"']/g)].map((m) => m[1]);
-  return [props.join() === 'creaciones,onVerTodas,onOpciones' && /creaciones=\{CREACIONES_DEL_STUDIO\}/.test(uso) && /onVerTodas=\{\(\) => navigation\.navigate\('Projects'\)\}/.test(uso), props.join()];
+  const uso = filaDelStudio(studio);
+  return [studioEnseñaLoReal(uso) && /useCreacionesDelStudio\(\)/.test(studio), uso.replace(/\s+/g, ' ').trim().slice(0, 160) || 'Studio no pinta la fila'];
+});
+await prueba('E3) CONTROL: volver a las creaciones de muestra se vería', async () => {
+  const conMuestras = filaDelStudio('<FilaDeCreaciones creaciones={CREACIONES_DEL_STUDIO} onVerTodas={() => navigation.navigate(\'Projects\')} onOpciones={() => {}} />');
+  return [!studioEnseñaLoReal(conMuestras), 'si esto pasara, E3 no protegería nada'];
 });
 
 /* ═══ F · EL CIERRE EJECUTABLE ════════════════════════════════════════════ */
