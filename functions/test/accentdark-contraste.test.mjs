@@ -16,6 +16,9 @@
  *  D. LO CORREGIDO SIGUE CORREGIDO: cada texto que pasó al color del texto sigue ahí y sigue pasando AA sobre su
  *     superficie, calculado con la fórmula de WCAG sobre los colores de `ThemeContext.tsx` (el mismo cálculo de C).
  *  E. SABOTAJE: devolver el dorado a cada texto corregido, en memoria, tiene que hacer caer el candado.
+ *  F. LO QUE SE DIBUJA: los dos componentes cuya LÓGICA cambió (`Chip` de la producción, con sus cinco tonos, y `Pastilla` de
+ *     Business, puesta y sin poner) se dibujan en proceso con los colores del tema claro, y se mira lo que pintan: el cambio
+ *     del texto y que lo demás —los otros tonos, el borde, el icono, el fondo— sigue igual.
  *
  * El alcance de «Weë AI» es el de las demás suites de cierre: las carpetas de sus componentes y toda pantalla que se
  * monta sobre `CreatorShell` o se exporta con `enTemaClaro` —así una sección nueva entra sola en la vigilancia—.
@@ -391,6 +394,88 @@ for (const c of CORREGIDOS) {
   const r = 'components/creator/JobProgress.tsx';
   const mutado = `${leer(r)}\nconst Nuevo = () => { const { theme } = useTheme(); return (<Text style={{ color: theme.colors.accentDark }}>{t('x.nuevo')}</Text>); };\n`;
   check('E2) un texto dorado NUEVO en una pieza de Weë AI también hace fallar B5', sinListar(analizar(r, mutado).usos).length === 1);
+}
+
+/* ───────────────────────────── F. lo que se dibuja de verdad ───────────────────────────── */
+console.log('\n─── F. Lo que se DIBUJA: los dos componentes cuya lógica cambió, con lo que pintan en el tema claro ───');
+/*
+ * Los demás cambios son un color por otro; estos dos tocaron una CONDICIÓN (`Chip`: la guarda del color del texto; `Pastilla`:
+ * un ternario que se quita). Se dibujan tal como están, con los colores del tema claro leídos de `ThemeContext.tsx`, y se mira
+ * lo que sale: el color de su texto, de su borde y de su icono. Solo se sustituye React Native por piezas que dejan ver el estilo.
+ */
+const { React, h } = await import('./_pantallas.mjs');
+const { renderToStaticMarkup } = createRequire(path.resolve(RAIZ, 'package.json'))('react-dom/server');
+const { crearCargador } = await import('./filmmaker-cliente.mjs');
+const aplanarEstilo = (s) => (Array.isArray(s) ? Object.assign({}, ...s.map(aplanarEstilo)) : (s && typeof s === 'object' ? s : {}));
+const textoDe = (c) => (Array.isArray(c) ? c.map(textoDe).join('') : typeof c === 'string' || typeof c === 'number' ? String(c) : '');
+const glowTexto = `rgba(${glowClaro.rgb.join(', ')}, ${glowClaro.alfa})`;
+const dibujarPieza = (archivo, exportada, props, rutas) => {
+  const visto = { textos: [], vistas: [], iconos: [] };
+  const colores = { ...claro, glow: glowTexto };
+  const cargar = crearCargador({
+    dobles: {
+      react: React,
+      'react-native': {
+        View: (p) => { visto.vistas.push(aplanarEstilo(p.style)); return h('div', null, p.children); },
+        Text: (p) => { visto.textos.push({ texto: textoDe(p.children), ...aplanarEstilo(p.style) }); return h('span', null, p.children); },
+        TouchableOpacity: (p) => { visto.vistas.push(aplanarEstilo(p.style)); return h('button', null, p.children); },
+        StyleSheet: { create: (s) => s, hairlineWidth: 1 },
+        Platform: { OS: 'android', select: (o) => o.android ?? o.default },
+      },
+      '@expo/vector-icons': { Ionicons: (p) => { visto.iconos.push({ nombre: p.name, color: p.color }); return h('i'); } },
+      [rutas.tema]: { useTheme: () => ({ theme: { colors: colores } }) },
+      ...(rutas.extra ?? {}),
+    },
+  });
+  const Pieza = cargar(archivo)[exportada];
+  renderToStaticMarkup(h(Pieza, props));
+  return visto;
+};
+
+{
+  const chip = (tono) => dibujarPieza('components/studio/produccion/ProductionPiezas.tsx', 'Chip', { texto: 'Borrador', icono: 'create-outline', tono }, {
+    tema: '../../../contexts/ThemeContext',
+    extra: { '../../TextoEnMayusculas': { default: (p) => h('span', null, p.children) } },
+  });
+  /* tono → [color del texto, del borde, del icono] que debe pintar */
+  const ESPERADO = {
+    acento: [claro.text, claro.accentDark, claro.accentDark],
+    neutro: [claro.text, claro.border, claro.textSecondary],
+    aviso: [claro.warning, claro.warning, claro.warning],
+    error: [claro.error, claro.error, claro.error],
+    ok: [claro.success, claro.success, claro.success],
+  };
+  for (const [tono, [texto, borde, icono]] of Object.entries(ESPERADO)) {
+    const v = chip(tono);
+    const pintado = [v.textos[0]?.color, v.vistas[0]?.borderColor, v.iconos[0]?.color];
+    check(`F1) Chip «${tono}»: texto ${texto}, borde ${borde}, icono ${icono}`, pintado.join() === [texto, borde, icono].join(), `pinta ${pintado.join(' · ')}`);
+  }
+  const acento = chip('acento');
+  const fondoDelChip = acento.vistas[0]?.backgroundColor;
+  check('F1) y el texto del chip «acento» pasa AA sobre el fondo con que el chip se pinta de verdad (no el que se supone)',
+    fondoDelChip === claro.surface && contraste(acento.textos[0].color, fondoDelChip) >= AA_TEXTO, `${acento.textos[0].color} sobre ${fondoDelChip} = ${f2(contraste(acento.textos[0].color, fondoDelChip))}:1`);
+  check('F1) CONTROL: el chip «acento» con el dorado en el texto NO pasaría (el candado no está dibujando un verde vacío)',
+    contraste(claro.accentDark, fondoDelChip) < AA_TEXTO, `${f2(contraste(claro.accentDark, fondoDelChip))}:1`);
+}
+{
+  const pastilla = (puesta) => dibujarPieza('components/business/BusinessPanel.tsx', 'Pastilla', { etiqueta: 'Instagram', icono: 'logo-instagram', puesta, onPress: () => {} }, {
+    tema: '../../contexts/ThemeContext',
+    extra: { '../../contexts/IdiomaContext': { useT: () => (k) => k } },
+  });
+  const puesta = pastilla(true);
+  const sin = pastilla(false);
+  check('F2) Pastilla puesta: el texto va en el color del texto y el estado sigue marcado por el fondo teñido, el borde dorado, el icono dorado y el semibold',
+    puesta.textos[0]?.color === claro.text && puesta.vistas[0]?.backgroundColor === glowTexto && puesta.vistas[0]?.borderColor === claro.accent
+    && puesta.iconos[0]?.color === claro.accentDark && String(puesta.textos[0]?.fontWeight) === '600',
+    `texto ${puesta.textos[0]?.color} · fondo ${puesta.vistas[0]?.backgroundColor} · borde ${puesta.vistas[0]?.borderColor} · icono ${puesta.iconos[0]?.color} · peso ${puesta.textos[0]?.fontWeight}`);
+  check('F2) Pastilla sin poner: no cambia nada (texto, fondo de tarjeta, borde gris, icono del texto, sin semibold)',
+    sin.textos[0]?.color === claro.text && sin.vistas[0]?.backgroundColor === claro.card && sin.vistas[0]?.borderColor === claro.border
+    && sin.iconos[0]?.color === claro.text && sin.textos[0]?.fontWeight === undefined,
+    `texto ${sin.textos[0]?.color} · fondo ${sin.vistas[0]?.backgroundColor} · borde ${sin.vistas[0]?.borderColor} · icono ${sin.iconos[0]?.color}`);
+  const peor = Math.min(...PAGINA.map((p) => contraste(puesta.textos[0].color, componer(glowClaro.rgb, glowClaro.alfa, FONDOS[p]()))));
+  const antes = Math.min(...PAGINA.map((p) => contraste(claro.accentDark, componer(glowClaro.rgb, glowClaro.alfa, FONDOS[p]()))));
+  check('F2) y el texto de la pastilla puesta pasa AA sobre el fondo teñido que se pinta, en las dos páginas de Weë AI, donde el dorado no pasaba',
+    peor >= AA_TEXTO && antes < AA_TEXTO, `lo que pinta ${f2(peor)}:1 frente a accentDark ${f2(antes)}:1`);
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nEl dorado oscuro no vuelve a ser texto en Weë AI: lo corregido sigue pasando AA y lo que queda está listado con su motivo');

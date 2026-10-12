@@ -249,7 +249,7 @@ aquí solo se mide para decidir con datos.
 
 ## 9. El candado
 
-`functions/test/accentdark-contraste.test.mjs` (70 comprobaciones; paso de la cadena `npm test`). Lee el código con el compilador de TypeScript, no con expresiones regulares, y vigila cinco cosas:
+`functions/test/accentdark-contraste.test.mjs` (80 comprobaciones; paso de la cadena `npm test`). Lee el código con el compilador de TypeScript, no con expresiones regulares, y vigila seis cosas:
 
 | Grupo | Qué vigila |
 |---|---|
@@ -258,15 +258,16 @@ aquí solo se mide para decidir con datos.
 | C | **sin fantasmas**: lo pendiente tiene que seguir existiendo; si se corrige, se quita de la lista (la lista no se queda vieja) |
 | D | **lo corregido sigue corregido y pasa AA** sobre su superficie, calculado con la fórmula de C sobre `ThemeContext.tsx`, y lo pendiente sigue siendo un fallo medido (si el token pasara AA, el candado avisa de que ya no hace falta) |
 | E | **sabotaje**: devolver el dorado, en memoria, a cada uno de los textos corregidos —y añadir uno nuevo— hace caer B |
+| F | **lo que se dibuja de verdad** (comportamiento en proceso, con los colores del tema claro): los dos componentes cuya LÓGICA cambió —`Chip` de la producción en sus cinco tonos y `Pastilla` de Business puesta y sin poner— pintan el texto en `text` y **todo lo demás igual** (los tonos aviso/error/ok, el borde, el icono, el fondo teñido y el semibold), y su texto pasa AA sobre el fondo con que se pintan |
 
 Cada uso se identifica por una **huella que no depende del número de línea** (`archivo · etiqueta · hoja de estilo · lo que pinta`), para que otras tareas puedan editar esos archivos sin romperla. Un falso positivo
 vigilado: el chip de `ProductionPiezas.tsx` guarda en `color` el tono del borde y del icono (dorado en «acento») y lo usa en el texto de los tonos aviso/error/ok; en «acento» el texto va en `text` y una expresión
 vigilada lo demuestra (el detector sigue la variable sin evaluar la condición).
 
-**Evidencia** (E, rama `r8/contraste`): contra las fuentes de `c3f7f9a7` la suite da **30 comprobaciones en rojo y 40 en verde** (los 13 sitios aún con el dorado: B5 y D1, más el fantasma de «Cambiar» y los sabotajes, que no encuentran el color corregido);
-con los 13 cambios, **70 de 70 en verde**, en menos de dos segundos. Sabotaje real fuera de la suite: devolver `accentDark` a `JobProgress.tsx:40` en el árbol y correrla da B5 en rojo.
+**Evidencia** (E, rama `r8/contraste`): contra las fuentes de `c3f7f9a7` la suite da **34 comprobaciones en rojo y 46 en verde** (los 13 sitios aún con el dorado: B5 y D1, más el fantasma de «Cambiar», los sabotajes que no encuentran el color corregido y el dibujado de `Chip` «acento» y `Pastilla` puesta, que pintan `#E5A020` en el texto);
+con los 13 cambios, **80 de 80 en verde**, en unos dos segundos. **Sabotaje real, fuera de la suite:** se devolvió `accentDark` a `JobProgress.tsx:40` en el árbol (sobre `c89c6704`) y la suite cayó en B5 —nombrando el uso exacto—, D1, E1 y E2 (4 comprobaciones); `git checkout -- components/creator/JobProgress.tsx` lo restauró, el árbol quedó limpio y volvió a verde.
 
-**Regresión** (E, `node test/<suite>` desde `functions/`, de una en una, sin emuladores): 48 suites y scripts que leen los archivos tocados o vigilan la seguridad —las que nombra el encargo (`cajas-weeai`, `ajustes-weeai`, `credits-weeai`, `aceptacion-pantallas`, `navegacion-enlaces`, `foundation-de-experiencias`, `design-cierre`, `weeai-cliente-cierre`, `chef-weeai`, `chef-caracterizacion`, `puente-pre-f1d`), todas las que mencionan un archivo corregido (`grep -l`), `ci-workflow` y `scripts/escaneo-secretos.mjs`— terminan con **0 fallos** (48 en verde, 4479 comprobaciones ✔). El corredor `node functions/test/_design-cierre.mjs` sale con código 1 porque Weë Design no está terminado, y da **exactamente las cifras de la línea base** (11 · 5 · 9 · 3: cumplidos · abiertos · esperan una decisión · manuales); CL-24 sigue CUMPLIDO. Ningún pin de estilo de una suite existente fijaba un color corregido, así que no hubo que tocar ninguna. `tsc --noEmit` y la cadena entera (`_cadena.mjs`, la lanza el coordinador) no se corrieron todavía.
+**Regresión** (E, `node test/<suite>` desde `functions/`, de una en una, sin emuladores): 48 suites y scripts que leen los archivos tocados o vigilan la seguridad —las que nombra el encargo (`cajas-weeai`, `ajustes-weeai`, `credits-weeai`, `aceptacion-pantallas`, `navegacion-enlaces`, `foundation-de-experiencias`, `design-cierre`, `weeai-cliente-cierre`, `chef-weeai`, `chef-caracterizacion`, `puente-pre-f1d`), todas las que mencionan un archivo corregido (`grep -l`), `ci-workflow` y `scripts/escaneo-secretos.mjs`— terminan con **0 fallos** (48 en verde, 4489 comprobaciones ✔). El corredor `node functions/test/_design-cierre.mjs` sale con código 1 porque Weë Design no está terminado, y da **exactamente las cifras de la línea base** (11 · 5 · 9 · 3: cumplidos · abiertos · esperan una decisión · manuales); CL-24 sigue CUMPLIDO. Ningún pin de estilo de una suite existente fijaba un color corregido, así que no hubo que tocar ninguna. `tsc --noEmit` y la cadena entera (`_cadena.mjs`, la lanza el coordinador) no se corrieron todavía.
 
 ## 10. Hallazgos adyacentes (fuera del encargo, NO tocados)
 
