@@ -1,5 +1,7 @@
 # Weë Chef · lote 1 — fichas para empezar (CHEF-01, 02, 03a, 03b, 04) y las dos decisiones que lo frenan
 
+> **Estado (ronda R9-2, 2026-10-12, rama `r9/chef-2` desde `508666fb` = `r9/integracion-puente`, sin integrar):** lo de CHF3 (abajo) **ya está integrado** en `508666fb`. Esta ronda solo hizo lo que no depende de ninguna decisión: **dos defectos de lectura de CHEF-04 corregidos** (`82939866`: consejos numerados bajo «Consejos:» que se contaban como pasos; una marca «SECCIÓN:» sin nombre que dejaba sus líneas en la sección anterior), documentación al día con el código (`4f4e72e5` ACE-C-01/10/12 y un comentario de `aceptacion-conversacion`; `eb0cf831` estado de AC-08/11/12/13/15/16/17 en la especificación) y la **re-verificación de los diffs PREPARADOS de CHEF-02** sobre esta base (aplican; con ellos la prueba pendiente pasa: A 10/10, A-maximo 14/14; sin ellos, roja). Cifras desde R9-2: `chef-receta` **403**. Bloque «R9-2» en CHEF-04 y filas 24–26 de §5. **No decide D-1, D-3, la regla 7, «Para la semana» ni el texto de CHEF-01; no hace la revisión culinaria.**
+>
 > **Estado (ronda R9, 2026-10-12, agente CHF3, rama `r9/chef` desde `9365153a`, sin integrar):** CHEF-01 comprobada con la suite nueva `chef-lista` (instrucción ↔ `leerLista`), que encontró y corrigió un defecto de `leerLista` (nombres de sección con comillas o ángulos, `eac002fb`); CHEF-02: contrato de `contextoDeChef` revisado frente a `ChefScreen` y `CreatorFlowScreen`, prueba de pantalla **pendiente** (`functions/test/chef-pantalla-contexto.test.mjs.pendiente`) y diff exacto por opción de D-1; CHEF-03b: `utils/necesitaFoto.ts` (la regla `needsPhoto` como función pura, sin cambiarla, `27187472`); CHEF-03a/03b: plan por opción de D-3 y D-1. **Nada de esto decide D-1, D-3, la regla 7 ni el texto de CHEF-01.** Bloques «R9 (CHF3)» en cada ficha.
 >
 > **Cómo contar las comprobaciones (R9):** las suites de Chef imprimen una línea `✔ todo bien` al final; los informes de R8 la contaron como una comprobación más (399 · 32 · 47 · 47). Las comprobaciones reales son **398** (`chef-receta`) · **31** (`chef-contexto`) · **46** (`chef-caracterizacion`) · **46** (`chef-weeai`), y así se citan desde R9. No falta ninguna.
@@ -773,6 +775,11 @@ Lo añadido al contrato y por qué: `hasta` (un rango «2–3» no cabe en un n�
 
 Hasta esa revisión las reglas siguen `[P]` y rotuladas «sin revisar» en el código.
 
+**R9-2 (2026-10-12, `r9/chef-2`) — dos defectos de LECTURA (no culinarios) CORREGIDOS EN RAMA AISLADA (`82939866`).** Encontrados con sondas de casos de borde (textos escritos a mano; `ronda-r9\CHF\r9-2\sonda*.mjs`):
+1. *`leerReceta`:* bajo «Consejo(s):», las viñetas ya se unían al consejo (`chef-receta` A3), pero **los consejos numerados** («1. Usa huevos del día.») se añadían a `pasos`: la tarjeta los habría pintado como pasos. Ahora se unen al consejo, como las viñetas; una cabecera «Pasos:» posterior vuelve a abrir los pasos (CONTROL).
+2. *`leerLista`:* una marca «SECCIÓN:» **sin nombre** (o con uno que se queda en nada: `""`, solo un emoji, `<>`) se ignoraba y sus líneas caían en la sección **anterior** («1 l de leche» en «Frutas»). Ahora abre una sección sin nombre (`''`, lo mismo que ya pasaba si la marca vacía era la primera: CONTROL).
+Rojo → verde: **4 ✘** antes del cambio → `chef-receta` **403 ✔** (398 + 5). `chef-lista` 34, `chef-contexto` 31, `chef-necesita-foto` 10, `chef-weeai` 46, `chef-caracterizacion` 46, `aceptacion-conversacion` 31 (+4 huecos conocidos), `aceptacion-pantallas` 65, `ci-workflow` 41, `i18n-variantes` 13, `escaneo-secretos` 10: verdes; `tsc --noEmit` de la app: 0. **Ninguna de las 13 reglas culinarias cambia** y la revisión sigue PENDIENTE.
+
 
 ---
 
@@ -852,6 +859,9 @@ Todas las cifras de Credits de la especificación son del **catálogo de PRUEBA,
 | 21 (R9) | `workspace: 'chef'` viaja pero nadie lo lee en el cliente (`CreatorFlowScreen` no usa `params.workspace`) | `screens/CreatorFlowScreen.tsx` | Inocuo; AC-12 se cumple sin efecto. Si se quiere que signifique algo, es otra tarea | quien lleve `ContextoDeExperiencia` |
 | 22 (R9) | Con el diff de CHEF-02, una tarjeta manda también personas/tiempo (hoy los ignora) | `screens/ChefScreen.tsx` (`alElegirTarjeta`) | Es lo que pide la ficha; señalado como cambio de comportamiento para D-1 | dueño (con D-1) |
 | 23 (R9) | Los informes de R8 contaron la línea «✔ todo bien» como comprobación | suites de Chef | Cifras reales: 398 · 31 · 46 · 46 | — |
+| 24 (R9-2) | `leerReceta` contaba como pasos los consejos numerados bajo «Consejos:»; `leerLista` dejaba las líneas de una «SECCIÓN:» sin nombre en la sección anterior | `utils/recetaDeChef.ts` | Corregidos en `82939866` (CHEF-04 «R9-2») | — |
+| 25 (R9-2) | `aceptacion-pantallas` tiene hoy **65** comprobaciones, no las 68 que citan CHEF-02 y CHEF-03b («68/68») | `functions/test/aceptacion-pantallas.test.mjs` | Revisar la cifra al integrar 02/03b (no investigado: no es de Chef) | quien integre 02/03b |
+| 26 (R9-2) | Los diffs PREPARADOS de CHEF-02 siguen aplicando sobre `508666fb` y la prueba pendiente pasa con ellos (A 10/10, A-maximo 14/14) y falla sin ellos (7 y 11 ✘) | `ChefScreen.tsx`, `CajaDePrompt.tsx` | Nada que hacer hasta D-1 y la regla 7 | dueño |
 
 ---
 
