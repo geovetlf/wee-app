@@ -28,6 +28,7 @@ import { Post, postsService } from '../services/firestoreService';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
+import EtiquetaDemo from '../components/EtiquetaDemo';
 import { scale } from '../utils/scale';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
 import { useT, useIdioma } from '../contexts/IdiomaContext';
@@ -300,6 +301,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
               )}
               <Text style={styles.username} numberOfLines={1}>
                 {postAuthor?.displayName || t('common.user')}
+                <EtiquetaDemo de={[post, postAuthor]} color="#F5B731" />
               </Text>
               <Text style={styles.timeAgo}>
                 {getRelativeTime(post.createdAt.toDate(), locale)}

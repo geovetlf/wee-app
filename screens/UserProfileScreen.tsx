@@ -23,6 +23,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useUserById, updateUserCache } from '../hooks/useUserById';
 import { useEContact, mensajeDeEContact } from '../hooks/useEContact';
+import EtiquetaDemo from '../components/EtiquetaDemo';
 import { postsService, Post, repostsService } from '../services/firestoreService';
 import { likesService } from '../services/likesService';
 import { formatNumber } from '../utils/formatoCorto';
@@ -556,6 +557,7 @@ const UserProfileScreen: React.FC = () => {
           {/* Nombre y bio */}
           <Text style={[styles.displayName, { color: theme.colors.text }]}>
             {userProfile.displayName}
+            <EtiquetaDemo de={[userProfile]} color={theme.colors.accent} />
           </Text>
 
           {!!userProfile.bio && (
