@@ -4,6 +4,11 @@
 (`e50464a`). Las decisiones de producto están marcadas como **pendientes del dueño**, con un valor por defecto recomendado
 que **no** se ha aplicado.
 
+> **Actualización 2026-10-11 (ronda R7).** Lo que este documento llama «estado verificado» está contrastado con el código de hoy
+> en [WEE-DESIGN-CIERRE.md](WEE-DESIGN-CIERRE.md) §3 (casi todo sigue vigente; C-1 está corregido), y lo que falta para cerrar
+> Weë Design —con las decisiones de §4 que lo desbloquean— se ejecuta con `node functions/test/_design-cierre.mjs`. Para registrar
+> una decisión de §4, escribe `**DECIDIDA (fecha): opción**` en su fila: el corredor la lee.
+
 Reglas que mandan sobre todo lo de abajo (CLAUDE.md):
 - las interfaces de Weë AI son la referencia visual definitiva y no se rediseñan: todo se conecta por debajo;
 - todas las cajas son el mismo Weë Brain: no hay otro asistente, ni otro router, ni otro motor de contexto;

@@ -174,5 +174,65 @@ check('CONTROL: una pantalla que llamara a los Credits o a un servicio se vería
 check('CONTROL: un micrófono que repitiera el manejador de la referencia se vería',
   manejadorDe('<X onReferencia={alAnadirReferencia} onVoz={alAnadirReferencia} />', 'onVoz') === manejadorDe('<X onReferencia={alAnadirReferencia} onVoz={alAnadirReferencia} />', 'onReferencia'),
   'si esto pasara, B3 no protegería nada');
-console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Design: el catálogo de la pantalla montada es el que dice ser, y sus botones hacen lo que dicen');
+
+console.log('\n─── C. El cierre escrito y el cierre ejecutable dicen lo mismo ───');
+
+/*
+ * `docs/WEE-DESIGN-CIERRE.md` define cuándo está terminado Weë Design y `_design-cierre.mjs` lo comprueba. Si uno cambia sin el otro,
+ * el documento miente o el corredor mide otra cosa. Aquí se vigila que sean la misma lista, que nada marcado CUMPLIDO deje de
+ * serlo, y que cada criterio sea comprobable: tenga una función, o un comando y su fila en el «Registro de cierre».
+ */
+const cierre = await import('./_design-cierre.mjs');
+const { CRITERIOS, evaluar, filaDelRegistro, decisionesSinTomar } = cierre;
+const doc = leer(cierre.CIERRE_MD);
+const desdeLista = doc.search(/^##\s+8\.\s+Lista de cierre/m);
+const hastaLista = doc.search(/^##\s+9\./m);
+const filasDelDoc = (desdeLista >= 0 && hastaLista > desdeLista ? doc.slice(desdeLista, hastaLista) : '').split('\n')
+  .filter((l) => /^\|\s*CL-\d\d\s*\|/.test(l))
+  .map((l) => { const c = l.split('|').map((x) => x.trim()); return { id: c[1], tipo: c[2], hoy: c[c.length - 2] }; });
+const ORDEN = ['bloqueador', 'defecto', 'integración', 'resto'];
+
+check('C1) la lista de cierre del documento y el corredor tienen los mismos criterios, en el mismo orden',
+  filasDelDoc.length > 0 && filasDelDoc.map((f) => f.id).join() === CRITERIOS.map((c) => c.id).join(), `${filasDelDoc.length} en el documento · ${CRITERIOS.length} en el corredor`);
+check('C1) con el mismo tipo, y ordenados: bloqueadores, defectos, integración, resto',
+  filasDelDoc.every((f, i) => f.tipo === CRITERIOS[i]?.tipo) && CRITERIOS.every((c, i) => i === 0 || ORDEN.indexOf(CRITERIOS[i - 1].tipo) <= ORDEN.indexOf(c.tipo)));
+check('C2) cada criterio dice quién lo desbloquea y qué archivos toca, y tiene su comprobación (una función, o un comando manual)',
+  CRITERIOS.every((c) => /^CL-\d\d$/.test(c.id) && c.titulo && c.responsable && Array.isArray(c.archivos) && c.archivos.length > 0
+    && (typeof c.comprueba === 'function') !== (typeof c.manual === 'string' && c.manual.length > 0)));
+const manuales = CRITERIOS.filter((c) => c.manual);
+check('C2) cada criterio manual tiene su fila en el «Registro de cierre» para anotar el resultado', manuales.length > 0 && manuales.every((c) => filaDelRegistro(c.id) !== ''),
+  manuales.map((c) => c.id).join(', '));
+const estados = Object.fromEntries(CRITERIOS.map((c) => [c.id, evaluar(c).estado]));
+const norma = (hoy) => (hoy === 'DECISIÓN' ? 'DECISION' : hoy);
+const falsos = filasDelDoc.filter((f) => f.hoy === 'CUMPLIDO' && estados[f.id] !== 'CUMPLIDO').map((f) => f.id);
+check('C3) nada que el documento dé por CUMPLIDO deja de serlo (el corredor lo comprueba)', falsos.length === 0, falsos.join(', ') || 'ninguno');
+check('C3) y lo cerrado en esta rama —ajustes, micrófono, fichas— sigue cerrado, en el documento y en el corredor',
+  ['CL-06', 'CL-07', 'CL-08'].every((id) => estados[id] === 'CUMPLIDO' && norma(filasDelDoc.find((f) => f.id === id)?.hoy) === 'CUMPLIDO'));
+const cumplidos = CRITERIOS.filter((c) => estados[c.id] === 'CUMPLIDO').length;
+const dicho = doc.match(/De\s+los\s+(\d+)\s+criterios\s+de\s+cierre,\s+\*\*(\d+)\s+se\s+cumplen/);
+check('C3) y el veredicto del documento cuenta lo mismo que el corredor: cuántos criterios hay y cuántos se cumplen',
+  !!dicho && Number(dicho[1]) === CRITERIOS.length && Number(dicho[2]) === cumplidos,
+  `documento: ${dicho ? `${dicho[2]} de ${dicho[1]}` : 'no encuentro el veredicto'} · corredor: ${cumplidos} de ${CRITERIOS.length}`);
+
+/* Las decisiones se leen de filas que existen: si una fila cambiara de nombre, la decisión se ignoraría en silencio. */
+const filaConId = (archivo, id) => leer(archivo).split('\n').some((l) => new RegExp(`^\\|\\s*\\**${id}\\**\\s*\\|`).test(l));
+const sinFila = [
+  ...['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9'].filter((d) => !filaConId('docs/DESIGN.md', d)).map((d) => `DESIGN.md ${d}`),
+  ...['DEC-01', 'DEC-02', 'DEC-05', 'DEC-06'].filter((d) => !filaConId('docs/WEE-DESIGN-UIUX-DECISIONS.md', d)).map((d) => `DECISIONES ${d}`),
+];
+check('C4) cada decisión que el corredor lee (D1–D9, DEC-01, 02, 05 y 06) tiene su fila donde la busca', sinFila.length === 0, sinFila.join(', ') || '13 filas');
+
+/* El comando de cada criterio es real: sale con 0 si se cumple, con 1 si no, y con 2 si no existe. */
+const { spawnSync } = await import('node:child_process');
+const correr = (...args) => spawnSync(process.execPath, [path.resolve(RAIZ, 'functions/test/_design-cierre.mjs'), ...args], { encoding: 'utf8' });
+check('C5) `--solo` sale con 0 para lo cumplido y con 2 para un criterio que no existe', correr('--solo', 'CL-06,CL-07,CL-08').status === 0 && correr('--solo', 'CL-99').status === 2);
+
+/* CONTROLES */
+const sinFalsos = (filas, estadoDe) => filas.filter((f) => f.hoy === 'CUMPLIDO' && estadoDe(f.id) !== 'CUMPLIDO').length === 0;
+check('CONTROL: un criterio que el documento diera por cumplido sin estarlo se vería',
+  !sinFalsos([{ id: 'CL-01', hoy: 'CUMPLIDO' }], () => 'ABIERTO') && sinFalsos([{ id: 'CL-01', hoy: 'CUMPLIDO' }], () => 'CUMPLIDO'), 'si esto pasara, C3 no protegería nada');
+check('CONTROL: un criterio manual sin fila registrada sigue siendo MANUAL, y uno sin decisión escrita sigue esperándola',
+  evaluar({ id: 'CL-ZZ', manual: 'un comando' }).estado === 'MANUAL' && decisionesSinTomar({ decision: ['DEC-99'] }).includes('DEC-99'));
+
+console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeë Design: el catálogo de la pantalla montada es el que dice ser, sus botones hacen lo que dicen y el cierre se puede ejecutar');
 process.exit(failures ? 1 : 0);
