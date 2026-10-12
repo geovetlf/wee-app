@@ -140,3 +140,14 @@ export const CREACIONES_DE_DESIGN: CreacionDeDesign[] = [
   { id: 'd3', claveTipo: 'design.kindBoat', icono: 'boat-outline', titulo: 'Yate de 15 metros', claveTitulo: 'design.sampleYacht', tono: '#DDE6EE' },
   { id: 'd4', claveTipo: 'design.kindFurniture', icono: 'bed-outline', titulo: 'Butaca de madera', claveTitulo: 'design.sampleArmchair', tono: '#ECEBE8' },
 ];
+
+/*
+ * LAS CREACIONES DE VERDAD.
+ *
+ * Las de la persona no traen color ni icono: los pone esta pantalla, y solo se ven mientras no hay una miniatura que enseñar
+ * —lo que se está haciendo, o un resultado que no es una imagen—. Neutros a propósito, el de las muestras; y el icono dice de
+ * qué experiencia es: una imagen para Weë Design y una casa para Hogar & Diseño. Las muestras de arriba solo se enseñan sin
+ * sesión o sin nada creado, rotuladas como ejemplos (`design.examplesTitle`).
+ */
+export const TONO_DE_UNA_CREACION = '#ECEBE8';
+export const ICONO_DE_UNA_CREACION: Record<string, string> = { design: 'image-outline', home: 'home-outline' };
