@@ -455,10 +455,30 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
     void cargarPrimeraPagina();
   }, [pedida, cargarPrimeraPagina]));
 
-  /* Crear es una acción aparte: el compositor en modo Weël (vídeo de hasta 15 s), o entrar si no hay sesión. */
+  /*
+   * Crear es una acción aparte: el creador de Weëls (`CrearWeel`, vídeo vertical de hasta 15 s), nunca el compositor del
+   * Wall; o entrar si no hay sesión. Desde los Weëls de una comunidad, el Weël nace en esa comunidad.
+   */
   const crearWeel = useCallback(() => {
-    (navigation as any).navigate(user ? 'Create' : 'Login', user ? { kind: 'weel' } : undefined);
-  }, [navigation, user]);
+    (navigation as any).navigate(user ? 'CrearWeel' : 'Login', user ? (communitySlug ? { communitySlug } : undefined) : undefined);
+  }, [navigation, user, communitySlug]);
+
+  /*
+   * EL WEËL RECIÉN PUBLICADO, EL PRIMERO. `CrearWeel` vuelve aquí con `recienPublicado`: se pone delante sin volver a
+   * pedir la página (la siguiente lo descarta por `loadedIds`) y la lista vuelve arriba para verlo.
+   */
+  const listaRef = useRef<FlatList<Post>>(null);
+  const recienPublicado = params.recienPublicado;
+  useEffect(() => {
+    if (!recienPublicado?.id || !esVisibleEnWeels(recienPublicado) || loadedIds.current.has(recienPublicado.id)) return;
+    loadedIds.current.add(recienPublicado.id);
+    setVideoPosts((prev) => [recienPublicado, ...prev.filter((p) => p.id !== recienPublicado.id)]);
+    setActiveIndex(0);
+    setFase('lista');
+    setTimeout(() => listaRef.current?.scrollToOffset({ offset: 0, animated: false }), 0);
+    // Solo cuando llega otro: el objeto cambia de identidad en cada render de la ruta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recienPublicado?.id]);
 
   // Swipe horizontal para volver al wall (solo desde borde izquierdo)
   const translateX = useRef(new Animated.Value(0)).current;
@@ -646,6 +666,7 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
       {/* Sin medida no hay lista: el primer Weël ya nace del alto exacto del visor. */}
       {viewport && fase === 'lista' && videoPosts.length > 0 && (
         <FlatList
+          ref={listaRef}
           data={videoPosts}
           renderItem={renderItem}
           keyExtractor={keyExtractor}

@@ -37,7 +37,6 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   generalWall: 'Общий Wäll',
   placeholderPollExtra: 'Добавьте что-нибудь ещё, если хотите (необязательно)…',
   placeholderQuestion: 'О чём хотите спросить сообщество?',
-  placeholderWeel: 'Расскажите, что вы создали для своего Weël и с какой ИИ…',
   placeholderVideo: 'Расскажите, что вы создали и с какой ИИ…',
   placeholderImage: 'Покажите изображение и расскажите, как вы его сделали…',
   placeholderText: 'Поделитесь текстом, промптом или идеей…',

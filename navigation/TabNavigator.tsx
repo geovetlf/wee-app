@@ -71,6 +71,8 @@ const CreateTabButton = ({ href: _href, onPress: _onPress, ...props }: any) => {
 
   const handleSelect = (kind: CreateKind) => {
     setSheetVisible(false);
+    /* Un Weël tiene su propio creador (screens/CrearWeelScreen.tsx); todo lo demás, el compositor del Wall. */
+    if (kind === 'weel') return void setTimeout(() => rootNavigate('CrearWeel'), isWeb ? 0 : 150);
     setTimeout(() => rootNavigate('Create', { kind }), isWeb ? 0 : 150);
   };
 

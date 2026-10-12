@@ -47,7 +47,6 @@ export const composer: typeof import('../es/composer').composer = {
   generalWall: '公共 Wäll',
   placeholderPollExtra: '还想补充点什么（可选）…',
   placeholderQuestion: '想问社区什么？',
-  placeholderWeel: '说说你的 Weël 做了什么，用了哪些 AI…',
   placeholderVideo: '说说你创作了什么，用了哪些 AI…',
   placeholderImage: '展示你的图片，说说是怎么做出来的…',
   placeholderText: '分享一段文字、一个提示词或一个想法…',
