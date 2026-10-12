@@ -440,6 +440,14 @@ suite de emulador** (AC-26) `[L]`.
 | AC-30 | El texto publicado no lleva `IMAGEN:`, no pasa de 500 y empieza por el título | prueba de `handlePublish` extraído | sí | ROJO | CHEF-12 |
 | AC-31 | Publicar desde Chef marca `sourceSection: 'chef'` y `aiTools: ['Weë Chef']`; el Wäll con el filtro «Weë Chef» lo muestra | `home`, `muro`, `chef-caracterizacion` §E | sí | VERDE | — |
 
+> **Al día en R9-2 (2026-10-12, rama `r9/chef-2` desde `508666fb`; la columna «Hoy» de arriba es la de `d867774` y no se reescribe).** Ejecutado con `node functions/test/<x>.test.mjs` sobre `functions/lib` recién compilado:
+> - **AC-08 → VERDE en el prompt** (CHEF-01 integrada, `1c60b30e`): `chef-caracterizacion` «ARREGLADO · D-CHEF-3» y `chef-lista` (34). El **texto** de la instrucción sigue **PENDIENTE de revisión de producto**; lo que escribe un modelo real, sin verificar (CHEF-18). Por lo mismo, la fila 17 de §1.2 («con la instrucción de Weë Home») y la fila D-CHEF-3 de §1.4 describen el estado de `d867774`.
+> - **AC-11 y AC-12 → VERDES en la función pura** (`utils/contextoDeChef.ts`, `chef-contexto` 31: presets con los ids del servidor; con ellos el planificador real no repregunta, con objetivos en inglés y en danés). **En la pantalla siguen ROJOS**: `ChefScreen` no la llama (lo fija `chef-contexto` «PENDIENTE DE DECISIÓN (D-1)»). Espera a **D-1**.
+> - **AC-13 → ROJO**: solo existe `largoParaElServidor` (cuenta como el servidor); la caja que avisa es una de las tres salidas *BLOCKED — HUMAN DECISION* (regla 7 de CHEF-02).
+> - **AC-15 y AC-16 → VERDES** (CHEF-04, `chef-receta` 403 con los textos escritos a mano, **no** salida de un modelo); las **reglas culinarias** del escalado siguen **SIN REVISAR** por alguien que cocine (13 preguntas en `docs/WEE-CHEF-TAREAS-LOTE-1.md`, CHEF-04).
+> - **AC-17 → VERDE la parte de las funciones** (`null` cuando no se puede leer); «no hay control de porciones en pantalla» es de CHEF-07 (N/A).
+> - **AC-04…07, AC-14, AC-19, AC-20, AC-29, AC-30:** sin cambio (esperan a CHEF-03a/03b —D-3, D-1, «Para la semana»—, CHEF-05 —aplazada—, CHEF-06/07/11/12).
+
 **Línea base ejecutada en `d867774` (todo verde):** `chef-weeai` 47 · `estimate-plan` 22 · `planner` 37 · `creator` 640 · `puente-pre-f1d` 42 · `credits-weeai` 37 · `cajas-weeai` 52 ·
 `home` 362 · `muro` 165 · `composer` 144 · `catalogo-i18n` 48 · `experiencias-i18n` 43 · `i18n-servidor` 26 · `brain-pasos` 36 · `pasos-repetidos` 54 · `entrada-de-paso` 28 · `pistas-de-paso` 26 ·
 `puente-necesidades` 39 · `ci-workflow` 41 · **`chef-caracterizacion` 42 (nueva)**. Duraciones de 0 a 17 s cada una `[E]`.
