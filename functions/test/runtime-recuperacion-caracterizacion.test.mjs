@@ -386,6 +386,9 @@ const quienLo = (re, lista = SRC, excluye = []) => lista.filter((f) => !excluye.
   const evaluadores = quienLo(/\bengine\.evaluar\(/, SRC, ['functions/src/core/job.ts']);
   check('A5) `evaluar` del Job Engine (la concesión caducada → recuperar) solo se invoca desde el trabajador: dentro de `atenderEntrega` y de `barrerRecuperables`',
     mismo(evaluadores, ['job/worker.ts']) && (sinComentarios(leer('functions/src/job/worker.ts')).match(/\bengine\.evaluar\(/g) || []).length === 2, evaluadores.join(', '));
+  /* El «sigo vivo» renueva la concesión cada 20 s, pero su resultado se IGNORA: quien perdió la suya sigue esperando a su proveedor (F7, F8). */
+  check('A5b) el latido del ejecutor renueva la concesión y IGNORA lo que le contesta (`renovar` → `false` no aborta nada): el trabajador que perdió su concesión sigue esperando a su proveedor',
+    /void control\.renovar\(\)\.catch\(\(\) => false\)/.test(limpio('functions/src/runtime/ejecutor.ts')) && /LATIDO_POR_DEFECTO_MS = 20_000/.test(limpio('functions/src/runtime/ejecutor.ts')));
   const quienAtiende = quienLo(/\batenderEntrega\b/, SRC, SIN_WORKER);
   check('A6) y `atenderEntrega` solo la invocan DOS composiciones: el conductor (dentro de una invocación) y el canary de Media Cloud',
     mismo(quienAtiende.sort(), ['media/canary.ts', 'runtime/conductor.ts']), quienAtiende.join(', '));
@@ -834,6 +837,38 @@ console.log('\n── E · Cerrar una reserva huérfana: a mano, y con el `barre
   const rep = await barrido();
   check('E11) si ModelArk contesta `expired` (la tarea pidió expirar a las 2 h) el trabajo falla y el barrido DEVUELVE exacto: es el único final automático de una tarea que no termina',
     (await trabajoDe('colaE7', 'vid-e7')).state === 'failed' && uso('vid-e7').status === 'REFUNDED' && saldo('colaE7') === SALDO && rep.liquidacion.refunded === 1);
+
+  /* Y mientras NADIE evalúe, un final bueno que llega pasado el plazo del trabajo todavía se cierra y se cobra: lo que B8 pierde si se evalúa. */
+  await mundoNuevo('colaE8');
+  await pedir('colaE8', 'vid-e8');
+  const tarea3 = (await trabajoDe('colaE8', 'vid-e8')).attempts[0].providerRef.operationId;
+  adelanto = 3 * HORA;
+  enModelArk.set(tarea3, cuerpo(tarea3, 'succeeded', { content: { video_url: `https://modelark.invalid/${tarea3}.mp4` } }));
+  await barrido();
+  check('E12) un final bueno que llega a las 3 h (pasado el plazo de 2 h 15 del trabajo) SÍ se cierra: se trae el vídeo, el trabajo se completa y se COBRA una vez — mientras nadie evalúe, el plazo del trabajo no cierra la puerta al resultado',
+    (await trabajoDe('colaE8', 'vid-e8')).state === 'completed' && uso('vid-e8').status === 'COMPLETED' && traidos.length === 1);
+}
+{
+  /*
+   * ADOPTAR UNA TAREA HUÉRFANA CON LO QUE YA EXISTE. La referencia que el trabajo no guardó SÍ está en la fila del libro, y el
+   * aviso del proveedor (`recibirEvento`, el mismo que usa el barrido) sabe anotarla en el intento. No es un mecanismo nuevo: es lo que
+   * ya hay, sin nadie que lo use. Con ella el reconciliador vuelve a poder preguntar.
+   */
+  const e = await escenarioDeMuerte('P3r', 'colaE9', 'vid-e9', 4);
+  const tarea = e.libro?.providerTaskId;
+  dejarPasar(2 * MINUTO);
+  const antes = await trabajoDe('colaE9', 'vid-e9');
+  const adopcion = motorDeVideo.recibirEvento(antes, { eventId: 'adopcion-0001', jobId: antes.jobId, attemptId: antes.attempts[0].attemptId, kind: 'accepted', at: Date.now(), providerRef: { providerId: 'seedance', operationId: tarea } }, Date.now());
+  const escrito = await almacenDeTrabajos(base).aplicar(adopcion.transition);
+  const adoptado = await trabajoDe('colaE9', 'vid-e9');
+  medida(`E13 adoptar la tarea del libro (${tarea}): evento ${adopcion.status} · aplicado ${escrito.applied} · trabajo ${JSON.stringify(resumenDe(adoptado))}`);
+  check('E13) SE PUEDE ADOPTAR con lo que ya existe: la referencia del libro (`aiGenerations.providerTaskId`) anotada con un evento `accepted` (`recibirEvento`) deja el trabajo `waiting` CON referencia, sin segundo POST',
+    !!tarea && adopcion.status === 'transition' && escrito.applied && adoptado.state === 'waiting' && adoptado.attempts[0].providerRef?.operationId === tarea && llamadas.length === 1);
+  enModelArk.set(tarea, cuerpo(tarea, 'succeeded', { content: { video_url: `https://modelark.invalid/${tarea}.mp4` } }));
+  dejarPasar(10 * MINUTO);
+  await barrido();
+  check('E14) y entonces el barrido de siempre la recoge: pregunta, ModelArk dice «terminó», se trae el vídeo, se completa y se COBRA una vez — la tarea viva sin dueño de P3b es reparable con las piezas que ya hay (hoy nadie las usa)',
+    resolutor.preguntas.includes(tarea) && (await trabajoDe('colaE9', 'vid-e9')).state === 'completed' && uso('vid-e9').status === 'COMPLETED' && saldo('colaE9') === SALDO - e.precio);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
