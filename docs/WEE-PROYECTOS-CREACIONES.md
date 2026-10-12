@@ -95,9 +95,23 @@ a él (guardando `proyectoOrigenInicialId`) y mueve a él los trabajos de la cre
   Convertirlos exige decidir si van como `crearMaterialDeTexto` en el camino síncrono.
 - **D-4 · Resultados solo locales** (local-first, línea C): ubicación `local`; para finalizarlos hace falta que
   tengan un asset en el servidor (subida explícita) o un registro local de creación. No implementado.
+- **D-6 · `creatorChat` acepta cualquier `projectId`** (`functions/src/creator/index.ts:329`): el servidor guarda el que
+  mande el cliente sin comprobar que el proyecto es de la cuenta. Las reglas del cliente ya lo impiden al MOVER (R9),
+  pero al NACER el trabajo no. Validarlo cambia el comportamiento que fija `weeai-cliente-cierre` (B10 usa un proyecto
+  que no existe en su base) — se deja documentado, no se toca aquí.
 - **D-5 · Retirar un asset que está en una creación** (`deleteAsset`): hoy la creación queda apuntando a un asset
   retirado. Propuesta: que la interfaz lo muestre como «archivo retirado» y que `retirarMaterial` consulte `creations`
   como consumidor (`ConsumidorDeMaterial`), lo que toca el Core y el índice de activos (fuera de esta línea).
+
+## 6b. Correcciones de R9 en lo existente (seguras, sin migración)
+
+- Borrar un proyecto (`projectsService.remove`) suelta sus trabajos (`projectId` fuera) en el MISMO lote que borra el
+  proyecto: ya no quedan `creatorJobs` apuntando a un proyecto inexistente. Los ya huérfanos de antes no se tocan
+  (sin migración); «reabrir» los recoge si son de una creación.
+- `firestore.rules` `creatorJobs`: mover un trabajo solo a un proyecto de la MISMA cuenta (o sacarlo con null/quitar).
+- `assignJob` en un lote (trabajo + proyecto, atómico).
+- «Mis proyectos» filtra los archivados ANTES de limitar (`listAll` + filtro + tope 100) y cuenta los trabajos exactos
+  con `count()` por proyecto; no usa el campo `demo` del trabajo (significa trabajo real en modo simulado).
 
 ## 7. Pruebas
 

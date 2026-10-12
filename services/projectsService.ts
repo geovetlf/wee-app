@@ -12,6 +12,7 @@ import {
   Timestamp,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { CreatorJob } from './creatorService';
@@ -86,18 +87,45 @@ export const projectsService = {
 
   /** Borra el proyecto. Las creaciones que salieron de él siguen (guardan `proyectoOrigenId`; «reabrir» crea uno vinculado). */
   remove: async (id: string): Promise<void> => {
-    await deleteDoc(doc(db, 'creatorProjects', id));
+    /*
+     * R9: borrar un proyecto dejaba sus trabajos apuntando a un documento que ya no existe. Ahora, en el MISMO lote,
+     * se borra el proyecto y sus trabajos quedan sin proyecto (la regla de `creatorJobs` permite quitar el campo).
+     * Un proyecto con más de 400 trabajos se suelta por tandas antes del lote final.
+     */
+    const proyecto = await getDoc(doc(db, 'creatorProjects', id));
+    if (!proyecto.exists()) return;
+    const uid = (proyecto.data() as { userId?: string }).userId;
+    if (!uid) { await deleteDoc(proyecto.ref); return; }
+    const TANDA = 400;
+    for (;;) {
+      const snap = await getDocs(query(collection(db, 'creatorJobs'), where('userId', '==', uid), where('projectId', '==', id), limit(TANDA)));
+      const lote = writeBatch(db);
+      snap.docs.forEach((d) => lote.update(d.ref, { projectId: deleteField(), updatedAt: Timestamp.now() }));
+      if (snap.docs.length < TANDA) {
+        lote.delete(proyecto.ref);
+        await lote.commit();
+        return;
+      }
+      await lote.commit();
+    }
   },
 
   /** Mueve una creación a un proyecto (o la saca con null). */
   assignJob: async (jobId: string, projectId: string | null): Promise<void> => {
-    await updateDoc(doc(db, 'creatorJobs', jobId), {
+    /* R9: en un solo lote — o se mueve el trabajo y se toca el proyecto, o no pasa nada. */
+    const lote = writeBatch(db);
+    lote.update(doc(db, 'creatorJobs', jobId), {
       projectId: projectId ?? deleteField(),
       updatedAt: Timestamp.now(),
     });
-    if (projectId) {
-      await updateDoc(doc(db, 'creatorProjects', projectId), { updatedAt: Timestamp.now() });
-    }
+    if (projectId) lote.update(doc(db, 'creatorProjects', projectId), { updatedAt: Timestamp.now() });
+    await lote.commit();
+  },
+
+  /** Todos los proyectos de la persona (hasta `tope`), sin cortar antes de filtrar. Lo usa «Mis proyectos». */
+  listAll: async (uid: string, tope = 500): Promise<WeeProject[]> => {
+    const snap = await getDocs(query(projects(), where('userId', '==', uid), orderBy('updatedAt', 'desc'), limit(tope)));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as WeeProject));
   },
 
   jobsForProject: async (uid: string, projectId: string): Promise<CreatorJob[]> => {

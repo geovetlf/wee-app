@@ -160,6 +160,19 @@ check('9c) y lo que publica no conoce las creaciones', !/creations|cicloDeTrabaj
 const reglas = leer('firestore.rules');
 check('9d) reglas: `creations` solo la lee su dueño y el cliente no escribe', /match \/creations\/\{creationId\} \{\s*allow read: if isAuthenticated\(\) && resource\.data\.ownerAccountId == request\.auth\.uid;\s*allow create, update, delete: if false;/.test(reglas));
 
+const bloqueJobs = reglas.slice(reglas.indexOf('match /creatorJobs/{jobId}'), reglas.indexOf('match /capabilities/{capabilityId}'));
+check('9e) reglas: mover un trabajo solo a un proyecto de la MISMA cuenta (o sacarlo)', /hasOnly\(\['projectId', 'updatedAt'\]\)/.test(bloqueJobs)
+  && bloqueJobs.includes('get(/databases/$(database)/documents/creatorProjects/$(request.resource.data.projectId)).data.userId == request.auth.uid')
+  && bloqueJobs.includes('request.resource.data.projectId == null'));
+check('9e-c) CONTROL · la cerradura antigua sigue (el cliente solo toca projectId y updatedAt; ni crea ni borra)', /allow create, delete: if false/.test(bloqueJobs));
+const ps = leer('services/projectsService.ts');
+check('9f) borrar un proyecto suelta sus trabajos en el mismo lote (no deja projectId colgando)', /remove:[\s\S]*?writeBatch\(db\)[\s\S]*?projectId: deleteField\(\)[\s\S]*?lote\.delete\(proyecto\.ref\)/.test(ps));
+check('9g) mover un trabajo es atómico (un lote)', /assignJob:[\s\S]*?writeBatch\(db\)[\s\S]*?lote\.commit\(\)/.test(ps));
+const cdt = leer('services/cicloDeTrabajo.ts');
+const listar = cdt.slice(cdt.indexOf('export async function listarProyectosEnCurso'), cdt.indexOf('export async function listarCreacionesFinales'));
+check('9h) Mis proyectos filtra los archivados ANTES de limitar y cuenta exacto', /listAll\(uid\)\)\s*\.filter\([\s\S]*?\)\s*\.slice\(0, PROYECTOS_EN_CURSO_MAXIMO\)/.test(listar) && /getCountFromServer/.test(listar));
+check('9i) y no usa el campo `demo` del trabajo', !/\bdemo\b/.test(listar.replace(/\/\*[\s\S]*?\*\//g, '')));
+
 /* ── 10 · el callable ─────────────────────────────────────────────────── */
 console.log('\n── 10 · callable ──');
 const sinSesion = await intento(() => C.cicloDeTrabajo.run({ data: { accion: 'finalizar' } }));
@@ -168,15 +181,23 @@ const raro = await intento(() => C.cicloDeTrabajo.run({ auth: { uid: ANA }, data
 check('10b) acción desconocida: invalid-argument con details.code', !raro.ok && raro.error.code === 'invalid-argument' && raro.error.details?.code === 'invalido');
 const viaCall = await intento(() => C.cicloDeTrabajo.run({ auth: { uid: BETO }, data: { accion: 'reabrir', creacionId: f1.creacionId } }));
 check('10c) por el callable, lo ajeno es not-found con la frase catalogada', !viaCall.ok && viaCall.error.code === 'not-found' && viaCall.error.message === 'No encontramos esa creación.' && viaCall.error.details?.code === 'no_encontrado');
-const okCall = await intento(() => C.cicloDeTrabajo.run({ auth: { uid: ANA }, data: { accion: 'finalizar', assetIds: ['asset_ana_b'], requestId: 'req-ana-0007' } }));
+/* Por el callable lee el Content Core de verdad (`leerMaterial`), que solo acepta ids con forma `asset_<32 hex>`. */
+const REAL_ANA = 'asset_' + 'a'.repeat(32);
+const REAL_BETO = 'asset_' + 'b'.repeat(32);
+base.docs.set(`assets/${REAL_ANA}`, ficha(REAL_ANA, ANA));
+base.docs.set(`assets/${REAL_BETO}`, ficha(REAL_BETO, BETO));
+const okCall = await intento(() => C.cicloDeTrabajo.run({ auth: { uid: ANA }, data: { accion: 'finalizar', assetIds: [REAL_ANA], requestId: 'req-ana-0007' } }));
 check('10d) CONTROL · por el callable, lo propio funciona (la cuenta la pone la sesión)', okCall.ok && !!okCall.valor.creacionId && base.leer(`creations/${okCall.valor.creacionId}`).ownerAccountId === ANA);
-const suplantar = await intento(() => C.cicloDeTrabajo.run({ auth: { uid: BETO }, data: { accion: 'finalizar', assetIds: ['asset_ana_b'], requestId: 'req-beto-009', ownerAccountId: ANA } }));
+const suplantar = await intento(() => C.cicloDeTrabajo.run({ auth: { uid: BETO }, data: { accion: 'finalizar', assetIds: [REAL_ANA], requestId: 'req-beto-009', ownerAccountId: ANA } }));
 check('10e) mandar otra cuenta en los datos no sirve de nada', !suplantar.ok && suplantar.error.code === 'not-found');
+
+const cruzado = await intento(() => C.cicloDeTrabajo.run({ auth: { uid: ANA }, data: { accion: 'finalizar', assetIds: [REAL_BETO], requestId: 'req-ana-0008' } }));
+check('10f) por el callable, Ana no finaliza un asset real de Beto', !cruzado.ok && cruzado.error.code === 'not-found' && deCuenta(ANA).every((c) => !c.assetIds.includes(REAL_BETO)));
 
 /* ── 11 · estado de despliegue ────────────────────────────────────────── */
 console.log('\n── 11 · despliegue ──');
-check('11) el callable NO está en el índice de producción (runtime-map intacto; conectarlo es decisión del coordinador)', !/cicloDeTrabajo|creaciones/.test(leer('functions/src/index.ts')));
-check('11b) y content/index.ts no carga creaciones (el grafo de deleteAsset no cambia)', !/creaciones/.test(leer('functions/src/content/index.ts')));
+check('11) el callable NO está en el índice de producción (runtime-map intacto; conectarlo es decisión del coordinador)', !/cicloDeTrabajo|content\/creaciones/.test(leer('functions/src/index.ts')));
+check('11b) y content/index.ts no carga creaciones (el grafo de deleteAsset no cambia)', !/from '\.\/creaciones/.test(leer('functions/src/content/index.ts')));
 
 deshacer();
 console.log(failures === 0 ? '\nOK pc-dominio-ciclo' : `\n${failures} fallo(s) en pc-dominio-ciclo`);

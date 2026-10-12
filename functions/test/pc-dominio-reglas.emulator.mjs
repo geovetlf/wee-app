@@ -70,5 +70,14 @@ await esperar('8) y lo desarchiva (archivedAt null)', 'PERMITE', await escribir(
 await esperar('9) Beto NO archiva el proyecto de Ana', 'DENIEGA', await escribir('/creatorProjects/proj_ana', BETO, { archivedAt: new Date() }));
 await esperar('10) CONTROL · Ana tampoco se lo regala a Beto al archivar', 'DENIEGA', await escribir('/creatorProjects/proj_ana', ANA, { archivedAt: new Date(), userId: BETO }));
 
+console.log('── mover un trabajo de proyecto ──');
+await sembrar('/creatorProjects/proj_beto', { userId: BETO, name: 'Lo de Beto', emoji: '📁', createdAt: new Date(), updatedAt: new Date() });
+await sembrar('/creatorJobs/job_ana', { userId: ANA, experienceId: 'design', status: 'done' });
+await esperar('11) Ana mueve su trabajo a SU proyecto', 'PERMITE', await escribir('/creatorJobs/job_ana', ANA, { projectId: 'proj_ana', updatedAt: new Date() }));
+await esperar('12) Ana NO mueve su trabajo al proyecto de Beto', 'DENIEGA', await escribir('/creatorJobs/job_ana', ANA, { projectId: 'proj_beto', updatedAt: new Date() }));
+await esperar('13) ni a un proyecto que no existe', 'DENIEGA', await escribir('/creatorJobs/job_ana', ANA, { projectId: 'proj_fantasma', updatedAt: new Date() }));
+await esperar('14) CONTROL · sacarlo del proyecto (null) sigue permitido', 'PERMITE', await escribir('/creatorJobs/job_ana', ANA, { projectId: null, updatedAt: new Date() }));
+await esperar('15) CONTROL · Beto no toca el trabajo de Ana aunque el proyecto sea suyo', 'DENIEGA', await escribir('/creatorJobs/job_ana', BETO, { projectId: 'proj_beto', updatedAt: new Date() }));
+
 console.log(failures === 0 ? '\nOK pc-dominio-reglas (emulador)' : `\n${failures} fallo(s)`);
 process.exit(failures === 0 ? 0 : 1);

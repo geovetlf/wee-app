@@ -20,7 +20,7 @@
  */
 
 import {
-  collection, getDocs, limit, orderBy, query, startAfter, where,
+  collection, getCountFromServer, getDocs, limit, orderBy, query, startAfter, where,
   QueryDocumentSnapshot, DocumentData,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -108,27 +108,37 @@ const milis = (v: unknown): number => {
 };
 
 /**
- * Mis proyectos: los `creatorProjects` de la persona que siguen en proceso (los
- * archivados no salen; lo existente sin `archivedAt` está en proceso). Los
- * trabajos se cuentan con UNA consulta de sus últimos trabajos, no una por
- * proyecto.
+ * Mis proyectos: los `creatorProjects` de la persona que siguen en proceso. Se
+ * FILTRA antes de limitar (los archivados no se comen el hueco de los vivos) y
+ * se devuelven hasta `PROYECTOS_EN_CURSO_MAXIMO`. `trabajos` es el recuento
+ * exacto de cada proyecto (una agregación `count()` por proyecto, sobre los
+ * índices de una sola igualdad). La miniatura y la herramienta salen, como
+ * pista, de los últimos trabajos de la cuenta; no se usa el campo `demo` del
+ * trabajo (significa «trabajo real en modo simulado», no «contenido de muestra»).
  */
+export const PROYECTOS_EN_CURSO_MAXIMO = 100;
+
 export async function listarProyectosEnCurso(uid: string): Promise<ProyectoEnCurso[]> {
-  const proyectos = (await projectsService.list(uid)).filter((p) => estadoDeProyecto(p) === 'en_proceso');
+  const proyectos = (await projectsService.listAll(uid))
+    .filter((p) => estadoDeProyecto(p) === 'en_proceso')
+    .slice(0, PROYECTOS_EN_CURSO_MAXIMO);
   if (proyectos.length === 0) return [];
   const snap = await getDocs(query(collection(db, 'creatorJobs'), where('userId', '==', uid), orderBy('createdAt', 'desc'), limit(TRABAJOS_QUE_SE_MIRAN)));
-  const porProyecto = new Map<string, { n: number; herramientas: Set<string>; miniatura: string | null }>();
+  const pistas = new Map<string, { herramientas: Set<string>; miniatura: string | null }>();
   for (const d of snap.docs) {
-    const j = d.data() as { projectId?: string; experienceId?: string; results?: { kind?: string; url?: string; demo?: boolean }[] };
+    const j = d.data() as { projectId?: string; experienceId?: string; results?: { kind?: string; url?: string }[] };
     if (!j.projectId) continue;
-    const e = porProyecto.get(j.projectId) ?? { n: 0, herramientas: new Set<string>(), miniatura: null };
-    e.n += 1;
+    const e = pistas.get(j.projectId) ?? { herramientas: new Set<string>(), miniatura: null };
     if (j.experienceId) e.herramientas.add(j.experienceId);
-    if (!e.miniatura) e.miniatura = (j.results ?? []).find((r) => r.kind === 'image' && r.url && !r.demo)?.url ?? null;
-    porProyecto.set(j.projectId, e);
+    if (!e.miniatura) e.miniatura = (j.results ?? []).find((r) => r.kind === 'image' && r.url)?.url ?? null;
+    pistas.set(j.projectId, e);
   }
-  return proyectos.map((p) => {
-    const e = porProyecto.get(p.id);
+  const recuentos = await Promise.all(proyectos.map(async (p) => {
+    const c = await getCountFromServer(query(collection(db, 'creatorJobs'), where('userId', '==', uid), where('projectId', '==', p.id)));
+    return c.data().count;
+  }));
+  return proyectos.map((p, i) => {
+    const e = pistas.get(p.id);
     return {
       id: p.id,
       nombre: p.name,
@@ -136,7 +146,7 @@ export async function listarProyectosEnCurso(uid: string): Promise<ProyectoEnCur
       actualizadoEn: milis(p.updatedAt),
       estado: 'en_proceso' as const,
       miniatura: e?.miniatura ?? null,
-      trabajos: e?.n ?? 0,
+      trabajos: recuentos[i],
     };
   });
 }

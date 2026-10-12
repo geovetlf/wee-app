@@ -1061,9 +1061,13 @@ service cloud.firestore {
     match /creatorJobs/{jobId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create, delete: if false;
-      // La persona solo puede mover su creación a un proyecto
+      // La persona solo puede mover su creación a un proyecto, y solo a uno SUYO (R9 · línea A):
+      // antes valía cualquier `projectId`, también el de otra cuenta. Sacarla de un proyecto
+      // (quitar el campo o ponerlo a null) sigue permitido.
       allow update: if isAuthenticated() && resource.data.userId == request.auth.uid &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['projectId', 'updatedAt']);
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['projectId', 'updatedAt']) &&
+        (!('projectId' in request.resource.data) || request.resource.data.projectId == null ||
+          get(/databases/$(database)/documents/creatorProjects/$(request.resource.data.projectId)).data.userId == request.auth.uid);
 
       match /private/{document} {
         allow read, write: if false;
