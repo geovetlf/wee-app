@@ -106,6 +106,20 @@ Los cuatro defectos son de la pantalla montada, locales, sin cercas ni contratos
 La suite nueva `functions/test/design-cierre.test.mjs` (36 comprobaciones: el catálogo, la pantalla y el cierre; cada detector con su CONTROL) está en la cadena de
 `npm test`. Logs de rojo y verde: `R7/F-design/logs/rojo-*.log` y `verde-*.log`.
 
+### 5.1 Correcciones de R7-Design: el cliente de Weë AI (tarea C)
+
+Tres defectos del cliente que la ronda anterior solo pudo leer, ahora EJECUTADOS con `functions/test/weeai-cliente-cierre.test.mjs` (55 comprobaciones): la pantalla y el servicio de verdad con un servidor de mentira que
+anota cada llamada (`functions/test/_creatorflow-en-proceso.mjs`: efectos, referencias y memos que sobreviven entre dibujados). Cada defecto, en su commit y con su prueba en rojo antes del arreglo.
+
+| Defecto | Prueba | Rojo (antes) | Arreglo | Verde y regresión | Commit |
+|---|---|---|---|---|---|
+| **«Probar otra vez» tras fallar la cotización creaba** (CL-12): con el trabajo planificado llamaba a `creatorRun` (crear y reservar Credits sin ver el precio nuevo) y sin estado de trabajo abría otro | A | 7 de 16: `creatorRun(job-1)` en vez de `creatorQuote(job-1, high)`; un `creatorChat` nuevo si la escucha del trabajo se corta | El error lleva dentro su origen (`fallo.cotizando`); el reintento vuelve a cotizar el último nivel pedido | 16/16 y dos mutaciones del arreglo atrapadas (A5, A8) | `4e73775` |
+| **El proyecto no viajaba al crear** (CL-20): un trabajo solo entraba en un proyecto con `assignJob` al terminar | B | 10 de 38: ni la primera llamada, ni «otra versión», ni el ajuste, ni el puente, ni la fila del proyecto llevaban `projectId` | `creatorService.start` lo manda si hay proyecto; la pantalla lo toma de la ruta (`ContextoDeExperiencia`, validado en la dirección); la fila de un proyecto lo pasa | 38/38 (con el servidor compilado ejecutado: lo guarda y lo lista); `navegacion-enlaces` 15b (rojo 1) | `a0dea40`, `e2ba73e` |
+| **El aviso no se anunciaba y su acción no se leía** (CL-24): sin región viva y `accentDark` sobre blanco, 2,24:1 | C | 6 de 55: cuatro de región viva y dos del contraste en el tema claro (el oscuro ya pasaba, 8,44:1) | `accessibilityLiveRegion="polite"` y la acción en `text` (14,68:1 / 18,88:1) | 55/55; contraste calculado sobre los colores de `ThemeContext.tsx` | `7a2d804` |
+
+**Regresión de la tarea** (una a una, sobre `e2ba73e`): las suites que leen los archivos tocados o recorren `screens/` y `components/`, las 44 `i18n*`, `puente-pre-f1d` y `ci-workflow`; `tsc --noEmit` de la app, 0 errores (103 s);
+`navegacion-parametros` 15/15. Nada en `functions/src`. Dos pines existentes se tocaron, con su motivo escrito en la propia prueba: `proyectos-i18n` 25 (la fila del proyecto lleva `projectId`) y casos nuevos en `navegacion-enlaces` (15b).
+
 ## 6. Hallazgos que no son criterio de cierre
 
 | Id | Clase | Hallazgo | Evidencia |
