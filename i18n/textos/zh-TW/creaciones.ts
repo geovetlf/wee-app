@@ -78,4 +78,22 @@ export const creaciones = {
   rightsCommercialNotAllowed: '不能用於商業用途。',
   rightsAttribution: '授權條款要求註明出處。',
   rightsBlockedIn: '不能在以下地區使用或展示：{{lugares}}。',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  keep: '儲存到我的作品',
+  keeping: '正在儲存…',
+  keepPending: '暫時還不能儲存到我的作品。你的結果仍儲存在原本的任務中。',
+  keepFailed: '無法儲存到我的作品，請再試一次。',
+  emptyKeepText: '你完成並透過「{{accion}}」決定保留的結果會顯示在這裡。',
+  listPending: '暫時還無法顯示我的作品。你的結果仍儲存在各自的任務中。',
+  locationLocal: '在此裝置上',
+  locationCloud: '在 Weë Cloud 中',
+  locationLegacy: '舊的儲存空間',
+  locationLabel: '位置：{{lugar}}',
+  fromProject: '來自專案 {{proyecto}}',
+  savedAgo: '儲存於{{cuando}}',
+  editAgain: '再次編輯',
+  editAgainOf: '再次編輯：{{nombre}}',
+  editAgainPending: '暫時還不能再次編輯。',
+  editAgainFailed: '無法開啟進行編輯，請再試一次。',
 };

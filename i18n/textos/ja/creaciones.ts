@@ -87,4 +87,22 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsCommercialNotAllowed: '商用利用はできません。',
   rightsAttribution: 'ライセンスにより、出典の表示が必要です。',
   rightsBlockedIn: '次の地域では使用も表示もできません：{{lugares}}。',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  keep: 'マイ作品に保存',
+  keeping: '保存中…',
+  keepPending: 'マイ作品への保存はまだ利用できません。結果は元の作業に保存されたままです。',
+  keepFailed: 'マイ作品に保存できませんでした。もう一度お試しください。',
+  emptyKeepText: '完成させて「{{accion}}」で残すことにした結果がここに表示されます。',
+  listPending: 'マイ作品はまだ表示できません。結果はそれぞれの作業に保存されたままです。',
+  locationLocal: 'この端末',
+  locationCloud: 'Weë Cloud',
+  locationLegacy: '以前のストレージ',
+  locationLabel: '保存場所：{{lugar}}',
+  fromProject: 'プロジェクト「{{proyecto}}」から',
+  savedAgo: '保存：{{cuando}}',
+  editAgain: 'もう一度編集',
+  editAgainOf: '{{nombre}}をもう一度編集',
+  editAgainPending: 'もう一度編集する機能はまだ利用できません。',
+  editAgainFailed: '編集用に開けませんでした。もう一度お試しください。',
 };

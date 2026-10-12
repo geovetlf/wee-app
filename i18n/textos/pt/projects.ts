@@ -16,7 +16,6 @@ export const projects: typeof import('../es/projects').projects = {
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Exemplo: Meu restaurante',
   emptyTitle: 'Você ainda não tem projetos',
-  emptyText: 'Crie o primeiro ou salve uma criação em um projeto a partir do resultado dela.',
   emptyAction: 'Criar meu primeiro projeto',
   open: 'Abrir',
   fallbackTitle: 'Projeto',
@@ -34,4 +33,17 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'O que está faltando neste projeto?',
   whatIsMissingNote: 'Um logo, fotos, um anúncio, um vídeo, música ou um documento: qualquer especialista do Weë pode somar aqui.',
   createSomethingNew: 'Criar algo novo',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'Carregando seus projetos…',
+  loadFailed: 'Não conseguimos carregar seus projetos.',
+  retry: 'Tentar de novo',
+  emptyStart: 'Um projeto é um trabalho em andamento que você pode retomar quando quiser. Crie um aqui ou salve um resultado em um projeto em “{{accion}}”.',
+  stateInProgress: 'Em andamento',
+  updatedAgo: 'Modificado {{cuando}}',
+  continue: 'Continuar',
+  continueProject: 'Continuar {{nombre}}',
+  noThumbnail: 'Sem prévia',
+  loadProjectFailed: 'Não conseguimos abrir este projeto.',
+  jobsLoadFailed: 'Não conseguimos carregar o que há neste projeto.',
 };

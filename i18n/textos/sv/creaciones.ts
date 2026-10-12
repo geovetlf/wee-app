@@ -93,4 +93,22 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsCommercialNotAllowed: 'Den får inte användas kommersiellt.',
   rightsAttribution: 'Licensen kräver att du anger källan.',
   rightsBlockedIn: 'Den får inte användas eller visas på följande platser: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  keep: 'Spara i Mina skapelser',
+  keeping: 'Sparar …',
+  keepPending: 'Det går inte att spara i Mina skapelser än. Ditt resultat finns kvar i sitt jobb.',
+  keepFailed: 'Vi kunde inte spara den i Mina skapelser. Försök igen.',
+  emptyKeepText: 'Här visas de resultat som du gör klart och väljer att behålla med ”{{accion}}”.',
+  listPending: 'Vi kan inte visa Mina skapelser än. Dina resultat finns kvar i sina jobb.',
+  locationLocal: 'På den här enheten',
+  locationCloud: 'I Weë Cloud',
+  locationLegacy: 'Tidigare lagring',
+  locationLabel: 'Var den finns: {{lugar}}',
+  fromProject: 'Från projektet {{proyecto}}',
+  savedAgo: 'Sparad {{cuando}}',
+  editAgain: 'Redigera igen',
+  editAgainOf: 'Redigera {{nombre}} igen',
+  editAgainPending: 'Det går inte att redigera igen än.',
+  editAgainFailed: 'Vi kunde inte öppna den för redigering. Försök igen.',
 };

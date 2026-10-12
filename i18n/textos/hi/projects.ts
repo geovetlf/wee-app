@@ -23,7 +23,6 @@ export const projects: typeof import('../es/projects').projects = {
   emojiLabel: '{{emoji}} इमोजी',
   namePlaceholder: 'जैसे: मेरा रेस्टोरेंट',
   emptyTitle: 'अभी तक कोई प्रोजेक्ट नहीं है',
-  emptyText: 'पहला प्रोजेक्ट बनाएँ या कोई भी नतीजा सीधे किसी प्रोजेक्ट में सेव करें.',
   emptyAction: 'अपना पहला प्रोजेक्ट बनाएँ',
   open: 'खोलें',
   fallbackTitle: 'प्रोजेक्ट',
@@ -41,4 +40,17 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'इस प्रोजेक्ट में और क्या चाहिए?',
   whatIsMissingNote: 'लोगो, फ़ोटो, विज्ञापन, वीडियो, संगीत या कोई दस्तावेज़: Weë का कोई भी एक्सपर्ट यहाँ कुछ जोड़ सकता है.',
   createSomethingNew: 'कुछ नया बनाएँ',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'आपके प्रोजेक्ट लोड हो रहे हैं…',
+  loadFailed: 'हम आपके प्रोजेक्ट लोड नहीं कर पाए।',
+  retry: 'फिर से कोशिश करें',
+  emptyStart: 'प्रोजेक्ट एक चलता हुआ काम है, जिसे आप जब चाहें फिर से शुरू कर सकते हैं। यहाँ एक बनाएँ या किसी नतीजे को “{{accion}}” से किसी प्रोजेक्ट में सेव करें।',
+  stateInProgress: 'जारी है',
+  updatedAgo: 'बदला गया: {{cuando}}',
+  continue: 'जारी रखें',
+  continueProject: '{{nombre}} जारी रखें',
+  noThumbnail: 'कोई प्रीव्यू नहीं',
+  loadProjectFailed: 'हम यह प्रोजेक्ट नहीं खोल पाए।',
+  jobsLoadFailed: 'हम इस प्रोजेक्ट की सामग्री लोड नहीं कर पाए।',
 };

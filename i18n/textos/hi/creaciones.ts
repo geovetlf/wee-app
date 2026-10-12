@@ -96,4 +96,22 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsCommercialNotAllowed: 'इसका कमर्शियल इस्तेमाल नहीं किया जा सकता.',
   rightsAttribution: 'इसके लाइसेंस में श्रेय देना ज़रूरी है.',
   rightsBlockedIn: 'इन जगहों पर इसका इस्तेमाल या प्रदर्शन नहीं किया जा सकता: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  keep: 'मेरी रचनाएँ में सेव करें',
+  keeping: 'सेव हो रहा है…',
+  keepPending: 'मेरी रचनाएँ में सेव करना अभी उपलब्ध नहीं है। आपका नतीजा उसके काम में सेव है।',
+  keepFailed: 'हम इसे मेरी रचनाएँ में सेव नहीं कर पाए। फिर से कोशिश करें।',
+  emptyKeepText: 'जिन नतीजों को आप पूरा करके “{{accion}}” से रखना चुनते हैं, वे यहाँ दिखते हैं।',
+  listPending: 'हम अभी मेरी रचनाएँ नहीं दिखा सकते। आपके नतीजे उनके कामों में सेव हैं।',
+  locationLocal: 'इस डिवाइस पर',
+  locationCloud: 'Weë Cloud में',
+  locationLegacy: 'पुराना स्टोरेज',
+  locationLabel: 'कहाँ है: {{lugar}}',
+  fromProject: 'प्रोजेक्ट {{proyecto}} से',
+  savedAgo: 'सेव किया गया: {{cuando}}',
+  editAgain: 'फिर से एडिट करें',
+  editAgainOf: '{{nombre}} फिर से एडिट करें',
+  editAgainPending: 'फिर से एडिट करना अभी उपलब्ध नहीं है।',
+  editAgainFailed: 'हम इसे एडिट करने के लिए नहीं खोल पाए। फिर से कोशिश करें।',
 };

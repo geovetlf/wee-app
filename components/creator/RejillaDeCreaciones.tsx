@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 /* `expo-image`, como el resto del muro: caché en disco, decodificación fuera del hilo de JS y reciclado por tarjeta. */
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { useIdioma } from '../../contexts/IdiomaContext';
 import { textoDelServidor } from '../../i18n/servidor';
 import { AssetDoc, assetsService } from '../../services/assetsService';
 import { CLAVE_DE_ESTADO, CLAVE_DE_TIPO, vistaDeAsset } from '../../services/vistaDeAsset';
+import { getExperienceById, experienceLabel } from '../../constants/weeExperiences';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -157,7 +158,186 @@ export const RejillaDeCreaciones: React.FC<RejillaProps> = ({ items, columnas, o
   );
 };
 
+/* ═══ LAS CREACIONES FINALES (R9) ═══════════════════════════════════════════
+ *
+ * «Mis creaciones» enseña lo que la persona DECIDIÓ conservar, no cada archivo
+ * que salió de una generación. Una creación final es una referencia a uno o
+ * varios materiales de la cuenta, con su nombre, tipo, herramienta, proyecto de
+ * origen y UBICACIÓN —dónde está el archivo, que no es su estado—.
+ *
+ * La forma es la del contrato (`services/cicloDeTrabajo.ts` · `CreacionFinal`)
+ * más lo que la pantalla ya resolvió: el nombre del proyecto de origen (si lo
+ * sabe) y la miniatura (solo si existe de verdad). Lo que falta no se pinta.
+ */
+
+export type UbicacionVisible = 'local' | 'wee_cloud' | 'remoto_legado';
+
+export interface CreacionVisible {
+  id: string;
+  nombre: string;
+  tipo: string;
+  herramienta: string | null;
+  finalizadaEn: number;
+  ubicacion: UbicacionVisible;
+  /** El nombre del proyecto de origen, ya resuelto. Lo escribió la persona: no se traduce. */
+  proyectoOrigen?: string | null;
+  miniatura?: string | null;
+}
+
+export const CLAVE_DE_UBICACION: Record<UbicacionVisible, string> = {
+  local: 'creaciones.locationLocal',
+  wee_cloud: 'creaciones.locationCloud',
+  remoto_legado: 'creaciones.locationLegacy',
+};
+
+const ICONO_DE_UBICACION: Record<UbicacionVisible, keyof typeof Ionicons.glyphMap> = {
+  local: 'phone-portrait-outline',
+  wee_cloud: 'cloud-outline',
+  remoto_legado: 'link-outline',
+};
+
+const esTipoConocido = (tipo: string): tipo is AssetDoc['kind'] => tipo in CLAVE_DE_TIPO;
+
+interface TarjetaFinalProps {
+  creacion: CreacionVisible;
+  ancho: string;
+  /** «Volver a editar». Si falta, no se ofrece: ningún botón que no haga lo que dice. */
+  onEditAgain?: (creacion: CreacionVisible) => void;
+  /** Mientras se abre para editar, el botón queda ocupado. */
+  ocupada?: boolean;
+}
+
+const TarjetaDeCreacionFinal: React.FC<TarjetaFinalProps> = ({ creacion, ancho, onEditAgain, ocupada }) => {
+  const { theme } = useTheme();
+  const { t, formato } = useIdioma();
+  const tipo = esTipoConocido(creacion.tipo) ? creacion.tipo : null;
+  const claveDeTipo = tipo ? CLAVE_DE_TIPO[tipo] : null;
+  const conImagen = !!creacion.miniatura && (tipo === 'image' || tipo === 'video');
+  const experiencia = creacion.herramienta ? getExperienceById(creacion.herramienta) : undefined;
+  const lugar = t(CLAVE_DE_UBICACION[creacion.ubicacion]);
+
+  return (
+    <View style={{ width: ancho as never, padding: SPACING.xs }}>
+      <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+        <View style={[styles.media, { backgroundColor: theme.colors.surface }]}>
+          {conImagen ? (
+            <Image
+              source={{ uri: creacion.miniatura as string }}
+              style={styles.image}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              recyclingKey={creacion.id}
+              transition={150}
+              accessibilityIgnoresInvertColors
+            />
+          ) : (
+            <View style={styles.placeholder}>
+              <Ionicons name={tipo ? ICONO_POR_TIPO[tipo] : 'sparkles-outline'} size={scale(34)} color={theme.colors.textSecondary} />
+            </View>
+          )}
+          {!!claveDeTipo && (
+            <View style={[styles.kindBadge, { backgroundColor: 'rgba(31, 41, 55, 0.72)' }]}>
+              <Text style={styles.kindText}>{t(claveDeTipo)}</Text>
+            </View>
+          )}
+          {/* Dónde está el archivo: un dato, no un estado. Se dice también en voz alta. */}
+          <View
+            style={[styles.statusBadge, styles.lugar, { backgroundColor: theme.colors.card }]}
+            accessibilityLabel={t('creaciones.locationLabel', { lugar })}
+          >
+            <Ionicons name={ICONO_DE_UBICACION[creacion.ubicacion]} size={scale(12)} color={theme.colors.text} />
+            <Text style={[styles.statusText, { color: theme.colors.text }]} numberOfLines={1}>{lugar}</Text>
+          </View>
+        </View>
+        <View style={styles.cuerpo}>
+          <Text style={[styles.name, { color: theme.colors.text }]} numberOfLines={2}>{creacion.nombre}</Text>
+          {!!experiencia && (
+            <Text style={[styles.meta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+              {t('creaciones.createdWith', { nombre: experienceLabel(experiencia, t) })}
+            </Text>
+          )}
+          {!!creacion.proyectoOrigen && (
+            <Text style={[styles.meta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+              {t('creaciones.fromProject', { proyecto: creacion.proyectoOrigen })}
+            </Text>
+          )}
+          <Text style={[styles.meta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+            {t('creaciones.savedAgo', { cuando: formato.tiempoRelativo(creacion.finalizadaEn) })}
+          </Text>
+          {!!onEditAgain && (
+            <TouchableOpacity
+              onPress={() => onEditAgain(creacion)}
+              disabled={ocupada}
+              activeOpacity={0.85}
+              style={[styles.editar, { borderColor: theme.colors.accent, backgroundColor: theme.colors.accent + '1A' }]}
+              accessibilityRole="button"
+              accessibilityLabel={t('creaciones.editAgainOf', { nombre: creacion.nombre })}
+            >
+              {ocupada ? (
+                <ActivityIndicator color={theme.colors.accentDark} />
+              ) : (
+                <>
+                  <Ionicons name="create-outline" size={scale(14)} color={theme.colors.text} />
+                  <Text style={[styles.editarTexto, { color: theme.colors.text }]} numberOfLines={1}>{t('creaciones.editAgain')}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+};
+
+interface RejillaFinalProps {
+  items: CreacionVisible[];
+  columnas: 2 | 3 | 4;
+  onEditAgain?: (creacion: CreacionVisible) => void;
+  /** La creación que se está abriendo para editar, si alguna. */
+  abriendo?: string | null;
+}
+
+export const RejillaDeCreacionesFinales: React.FC<RejillaFinalProps> = ({ items, columnas, onEditAgain, abriendo }) => {
+  const ancho = `${(100 / columnas).toFixed(2)}%`;
+  return (
+    <View style={[styles.grid, { marginHorizontal: -SPACING.xs }]}>
+      {items.map((creacion) => (
+        <TarjetaDeCreacionFinal key={creacion.id} creacion={creacion} ancho={ancho} onEditAgain={onEditAgain} ocupada={abriendo === creacion.id} />
+      ))}
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
+  cuerpo: {
+    gap: scale(4),
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.sm,
+  },
+  meta: {
+    fontSize: scale(11),
+  },
+  lugar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    maxWidth: '70%',
+  },
+  editar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(4),
+    minHeight: scale(34),
+    marginTop: scale(4),
+    paddingHorizontal: SPACING.sm,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+  },
+  editarTexto: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -78,4 +78,22 @@ export const creaciones = {
   rightsCommercialNotAllowed: 'Tu ne peux pas l’utiliser à des fins commerciales.',
   rightsAttribution: 'Sa licence exige une attribution.',
   rightsBlockedIn: 'Utilisation et affichage interdits dans ces régions : {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  keep: 'Enregistrer dans Mes créations',
+  keeping: 'Enregistrement…',
+  keepPending: 'L’enregistrement dans Mes créations n’est pas encore disponible. Ton résultat reste enregistré dans son travail.',
+  keepFailed: 'Impossible de l’enregistrer dans Mes créations. Réessaie.',
+  emptyKeepText: 'Les résultats que tu termines et décides de garder avec « {{accion}} » apparaissent ici.',
+  listPending: 'Nous ne pouvons pas encore afficher Mes créations. Tes résultats restent enregistrés dans leurs travaux.',
+  locationLocal: 'Sur cet appareil',
+  locationCloud: 'Dans Weë Cloud',
+  locationLegacy: 'Ancien stockage',
+  locationLabel: 'Emplacement : {{lugar}}',
+  fromProject: 'Du projet {{proyecto}}',
+  savedAgo: 'Enregistrée {{cuando}}',
+  editAgain: 'Modifier à nouveau',
+  editAgainOf: 'Modifier à nouveau {{nombre}}',
+  editAgainPending: 'La modification n’est pas encore disponible.',
+  editAgainFailed: 'Impossible de l’ouvrir pour la modifier. Réessaie.',
 };

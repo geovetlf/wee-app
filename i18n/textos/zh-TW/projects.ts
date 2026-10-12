@@ -33,7 +33,6 @@ export const projects: typeof import('../es/projects').projects = {
   emojiLabel: '表情符號 {{emoji}}',
   namePlaceholder: '例：我的餐廳',
   emptyTitle: '你還沒有專案',
-  emptyText: '建立第一個專案，或者在作品的結果上把它儲存進一個專案。',
   emptyAction: '建立我的第一個專案',
   open: '開啟',
   fallbackTitle: '專案',
@@ -51,4 +50,17 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: '這個專案還少了什麼？',
   whatIsMissingNote: 'logo、照片、廣告、影片、音樂或文件：Weë 的每一位專家都能往這裡加點東西。',
   createSomethingNew: '創作新東西',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: '正在載入你的專案…',
+  loadFailed: '無法載入你的專案。',
+  retry: '重試',
+  emptyStart: '專案是可以隨時繼續的進行中工作。在這裡建立一個，或透過「{{accion}}」把結果儲存到專案中。',
+  stateInProgress: '進行中',
+  updatedAgo: '修改於{{cuando}}',
+  continue: '繼續',
+  continueProject: '繼續：{{nombre}}',
+  noThumbnail: '無預覽',
+  loadProjectFailed: '無法開啟此專案。',
+  jobsLoadFailed: '無法載入此專案的內容。',
 };

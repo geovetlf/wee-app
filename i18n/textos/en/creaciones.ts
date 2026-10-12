@@ -78,4 +78,22 @@ export const creaciones = {
   rightsCommercialNotAllowed: 'It can’t be used commercially.',
   rightsAttribution: 'Its license requires attribution.',
   rightsBlockedIn: 'It can’t be used or shown in: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  keep: 'Save to My creations',
+  keeping: 'Saving…',
+  keepPending: 'Saving to My creations isn’t available yet. Your result is still saved in its job.',
+  keepFailed: 'We couldn’t save it to My creations. Please try again.',
+  emptyKeepText: 'The results you finish and decide to keep with “{{accion}}” show up here.',
+  listPending: 'We can’t show My creations yet. Your results are still saved in their jobs.',
+  locationLocal: 'On this device',
+  locationCloud: 'In Weë Cloud',
+  locationLegacy: 'Previous storage',
+  locationLabel: 'Where it is: {{lugar}}',
+  fromProject: 'From the project {{proyecto}}',
+  savedAgo: 'Saved {{cuando}}',
+  editAgain: 'Edit again',
+  editAgainOf: 'Edit {{nombre}} again',
+  editAgainPending: 'Editing again isn’t available yet.',
+  editAgainFailed: 'We couldn’t open it for editing. Please try again.',
 };

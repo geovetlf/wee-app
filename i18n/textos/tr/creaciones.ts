@@ -91,4 +91,22 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsCommercialNotAllowed: 'Ticari amaçla kullanılamaz.',
   rightsAttribution: 'Lisansı atıf yapılmasını gerektiriyor.',
   rightsBlockedIn: 'Şu yerlerde kullanılamaz ve gösterilemez: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  keep: 'Oluşturduklarım’a kaydet',
+  keeping: 'Kaydediliyor…',
+  keepPending: 'Oluşturduklarım’a kaydetme henüz kullanılamıyor. Sonucun kendi işinde kayıtlı durmaya devam ediyor.',
+  keepFailed: 'Oluşturduklarım’a kaydedemedik. Tekrar dene.',
+  emptyKeepText: 'Bitirip “{{accion}}” ile saklamaya karar verdiğin sonuçlar burada görünür.',
+  listPending: 'Oluşturduklarım’ı henüz gösteremiyoruz. Sonuçların kendi işlerinde kayıtlı durmaya devam ediyor.',
+  locationLocal: 'Bu cihazda',
+  locationCloud: 'Weë Cloud’da',
+  locationLegacy: 'Önceki depolama',
+  locationLabel: 'Konumu: {{lugar}}',
+  fromProject: 'Proje: {{proyecto}}',
+  savedAgo: 'Kaydedildi: {{cuando}}',
+  editAgain: 'Yeniden düzenle',
+  editAgainOf: '{{nombre}} öğesini yeniden düzenle',
+  editAgainPending: 'Yeniden düzenleme henüz kullanılamıyor.',
+  editAgainFailed: 'Düzenlemek için açamadık. Tekrar dene.',
 };

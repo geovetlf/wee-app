@@ -30,7 +30,6 @@ export const projects: ConPlurales<typeof import('../es/projects').projects> = {
   emojiLabel: 'Эмодзи {{emoji}}',
   namePlaceholder: 'Например: Мой ресторан',
   emptyTitle: 'У вас пока нет проектов',
-  emptyText: 'Создайте первый или сохраните работу в проект прямо из результата.',
   emptyAction: 'Создать первый проект',
   open: 'Открыть',
   fallbackTitle: 'Проект',
@@ -50,4 +49,17 @@ export const projects: ConPlurales<typeof import('../es/projects').projects> = {
   whatIsMissing: 'Чего не хватает этому проекту?',
   whatIsMissingNote: 'Логотип, фото, реклама, видео, музыка или документ — здесь пригодится любой специалист Weë.',
   createSomethingNew: 'Создать что-то новое',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'Загружаем ваши проекты…',
+  loadFailed: 'Не удалось загрузить ваши проекты.',
+  retry: 'Повторить',
+  emptyStart: 'Проект — это незавершённая работа, к которой можно вернуться в любой момент. Создайте проект здесь или сохраните результат в проект через «{{accion}}».',
+  stateInProgress: 'В работе',
+  updatedAgo: 'Изменено {{cuando}}',
+  continue: 'Продолжить',
+  continueProject: 'Продолжить: {{nombre}}',
+  noThumbnail: 'Нет превью',
+  loadProjectFailed: 'Не удалось открыть этот проект.',
+  jobsLoadFailed: 'Не удалось загрузить содержимое этого проекта.',
 };

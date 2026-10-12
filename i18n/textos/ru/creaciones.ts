@@ -84,4 +84,22 @@ export const creaciones = {
   rightsCommercialNotAllowed: 'Нельзя использовать в коммерческих целях.',
   rightsAttribution: 'Лицензия требует указывать авторство.',
   rightsBlockedIn: 'Нельзя использовать и показывать в этих странах и регионах: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  keep: 'Сохранить в «Мои работы»',
+  keeping: 'Сохраняем…',
+  keepPending: 'Сохранение в «Мои работы» пока недоступно. Ваш результат по-прежнему хранится в своей задаче.',
+  keepFailed: 'Не удалось сохранить в «Мои работы». Попробуйте ещё раз.',
+  emptyKeepText: 'Здесь появляются результаты, которые вы завершили и решили сохранить через «{{accion}}».',
+  listPending: 'Мы пока не можем показать «Мои работы». Ваши результаты по-прежнему хранятся в своих задачах.',
+  locationLocal: 'На этом устройстве',
+  locationCloud: 'В Weë Cloud',
+  locationLegacy: 'Прежнее хранилище',
+  locationLabel: 'Где хранится: {{lugar}}',
+  fromProject: 'Из проекта {{proyecto}}',
+  savedAgo: 'Сохранено {{cuando}}',
+  editAgain: 'Снова редактировать',
+  editAgainOf: 'Снова редактировать: {{nombre}}',
+  editAgainPending: 'Повторное редактирование пока недоступно.',
+  editAgainFailed: 'Не удалось открыть для редактирования. Попробуйте ещё раз.',
 };

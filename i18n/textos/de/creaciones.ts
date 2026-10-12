@@ -78,4 +78,22 @@ export const creaciones = {
   rightsCommercialNotAllowed: 'Kommerzielle Nutzung ist nicht erlaubt.',
   rightsAttribution: 'Die Lizenz verlangt eine Namensnennung.',
   rightsBlockedIn: 'Nutzung und Anzeige sind in diesen Regionen nicht erlaubt: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  keep: 'In Meine Kreationen speichern',
+  keeping: 'Wird gespeichert …',
+  keepPending: 'Das Speichern in Meine Kreationen ist noch nicht verfügbar. Dein Ergebnis bleibt in seinem Auftrag gespeichert.',
+  keepFailed: 'Es konnte nicht in Meine Kreationen gespeichert werden. Versuch es noch einmal.',
+  emptyKeepText: 'Hier erscheinen die Ergebnisse, die du fertigstellst und mit „{{accion}}“ behalten möchtest.',
+  listPending: 'Meine Kreationen können noch nicht angezeigt werden. Deine Ergebnisse bleiben in ihren Aufträgen gespeichert.',
+  locationLocal: 'Auf diesem Gerät',
+  locationCloud: 'In der Weë Cloud',
+  locationLegacy: 'Früherer Speicher',
+  locationLabel: 'Speicherort: {{lugar}}',
+  fromProject: 'Aus dem Projekt {{proyecto}}',
+  savedAgo: 'Gespeichert {{cuando}}',
+  editAgain: 'Erneut bearbeiten',
+  editAgainOf: '{{nombre}} erneut bearbeiten',
+  editAgainPending: 'Erneutes Bearbeiten ist noch nicht verfügbar.',
+  editAgainFailed: 'Es konnte nicht zum Bearbeiten geöffnet werden. Versuch es noch einmal.',
 };
