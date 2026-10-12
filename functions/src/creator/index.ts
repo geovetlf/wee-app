@@ -74,6 +74,23 @@ const EXPERIENCES = new Set<string>(Object.keys(TEMPLATES));
 
 const db = () => getFirestore();
 const jobs = () => db().collection('creatorJobs');
+
+/**
+ * D-6 (decisión del dueño, 2026-10-12): EL PROYECTO TIENE QUE SER DE QUIEN PIDE. Antes se guardaba el `projectId` que
+ * mandara el cliente, también el de otra cuenta (CL-20 / H B-12). Se comprueba en el servidor en cada solicitud que lo
+ * trae: un proyecto que no existe o que es de otra cuenta NO se guarda — el trabajo nace sin proyecto (la creación no
+ * se pierde ni se bloquea, y nadie mete nada en un proyecto ajeno). Devuelve el id si es propio; si no, `null`.
+ */
+export const proyectoPropio = async (uid: string, projectId: unknown): Promise<string | null> => {
+  if (typeof projectId !== 'string' || !/^[A-Za-z0-9_-]{4,128}$/.test(projectId)) return null;
+  try {
+    const snap = await db().collection('creatorProjects').doc(projectId).get();
+    return snap.exists && (snap.data() as { userId?: unknown }).userId === uid ? projectId : null;
+  } catch (error) {
+    console.warn('creatorChat: no se pudo comprobar el proyecto; el trabajo nace sin proyecto', sanitizeForLog(error, 200));
+    return null;
+  }
+};
 const now = () => Timestamp.now();
 
 /**
@@ -309,6 +326,7 @@ export const creatorChat = onCall(
         if (!EXPERIENCES.has(experienceId)) throw new EngineError('INVALID_REQUEST', 'Experiencia desconocida.');
         const goal = String(data.goal || '').trim().slice(0, 300) || TEMPLATES[experienceId].defaultGoal;
         await ensureAccount(uid);
+        const proyecto = data.projectId ? await proyectoPropio(uid, data.projectId) : null;
         ref = jobs().doc();
         job = {
           id: ref.id,
@@ -326,7 +344,7 @@ export const creatorChat = onCall(
           creditsCharged: 0,
           demo: true,
           pricingMode: await pricingMode(),
-          ...(data.projectId ? { projectId: String(data.projectId) } : {}),
+          ...(proyecto ? { projectId: proyecto } : {}),
           ...(data.imageUrl ? { inputImageUrl: assertInputImageUrl(data.imageUrl, uid) } : {}),
           createdAt: now(),
           updatedAt: now(),
