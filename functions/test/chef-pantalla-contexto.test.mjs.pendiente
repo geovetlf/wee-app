@@ -1,0 +1,149 @@
+/*
+ * WEË CHEF · LA PANTALLA MANDA EL CONTEXTO (CHEF-02, parte de pantalla) — PRUEBA PENDIENTE DE D-1.
+ *
+ * ESTE ARCHIVO NO ESTÁ ACTIVO: termina en `.pendiente`, no está en la cadena y nadie lo ejecuta. Se ACTIVA cuando el dueño
+ * decida D-1 = A (mantener el lugar de trabajo de Chef) y se aplique el diff de pantalla de `docs/WEE-CHEF-TAREAS-LOTE-1.md`
+ * (CHEF-02, «Preparado en R9»): se renombra a `chef-pantalla-contexto.test.mjs` y se añade su paso al final del script `test`
+ * de `functions/package.json`. Con D-1 = B (hero + muro) la pantalla se reescribe y esta prueba se reescribe con ella: lo que
+ * sobrevive es el contrato de `contextoDeChef` (suite `chef-contexto`), no estas etiquetas.
+ *
+ *   node test/chef-pantalla-contexto.test.mjs                 (variante A: solo el contexto)
+ *   CHEF_D1=A-maximo node test/chef-pantalla-contexto.test.mjs  (A + la caja que avisa a 300: regla 7, otra decisión)
+ *
+ * Contra la pantalla de HOY sale en ROJO (la pantalla no llama a `contextoDeChef`): ese es el rojo de CHEF-02.
+ * Usa el arnés de `aceptacion-pantallas` (`_pantallas.mjs`): el código de verdad de `ChefScreen`, sin red, sin emulador.
+ */
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { crearComprobador } from './_aceptacion.mjs';
+import { crearEntorno } from './_pantallas.mjs';
+import { crearCargador } from './filmmaker-cliente.mjs';
+
+const { check, titulo, terminar } = crearComprobador();
+const VARIANTE = process.env.CHEF_D1 || 'A';
+const aqui = path.dirname(fileURLToPath(import.meta.url));
+void createRequire; void aqui;
+
+const base = crearCargador({ dobles: { 'react-native': { Platform: { OS: 'android', select: (o) => o.android ?? o.default }, Dimensions: { get: () => ({ width: 390, height: 800 }) } } } });
+const { crearTraductor } = base('i18n/traducir.ts');
+const DICCIONARIOS = { es: base('i18n/textos/es/index.ts').es, en: base('i18n/textos/en/index.ts').en };
+const formatoReal = base('i18n/formato.ts');
+const traductorDe = (idioma) => crearTraductor(idioma, DICCIONARIOS, {});
+const formatoDe = (idioma) => ({ numero: (v, o) => formatoReal.formatearNumero(v, idioma, o), lista: (c, tipo) => formatoReal.formatearLista(c, idioma, tipo) });
+const CHEF = base('constants/chefTools.ts');
+const { LARGO_QUE_LEE_EL_SERVIDOR, largoParaElServidor } = base('utils/contextoDeChef.ts');
+const tEs = traductorDe('es');
+
+/* Los mismos dobles que `aceptacion-pantallas` (C · Weë Chef), más una ruta con parámetros para el proyecto. */
+const doblesDeChef = (idioma, params) => (ctx) => {
+  const { h: hh, capturar, Toque, trabajos, consultasDeTrabajos, usuario, movil, colores, navegacion } = ctx;
+  const t = traductorDe(idioma);
+  const tema = { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (C) => C };
+  const habla = { useT: () => t, useIdioma: () => ({ t, formato: formatoDe(idioma), locale: idioma }) };
+  return {
+    '../contexts/ThemeContext': tema, '../../contexts/ThemeContext': tema,
+    '../contexts/IdiomaContext': habla, '../../contexts/IdiomaContext': habla,
+    '../contexts/AuthContext': { useAuth: () => ({ user: usuario }) },
+    '../hooks/useResponsive': { useResponsive: () => ({ isMobile: movil, isTablet: false, isDesktop: !movil }) },
+    '../components/BarraInferior': { ALTO_BARRA: 64 },
+    '../hooks/useEspecialista': { useEspecialista: () => ({ headline: 'La cocina, sin complicarte' }) },
+    '../services/creatorService': { creatorService: { getMyJobsDe: async (uid, pertenece, cantidad, tamano) => { consultasDeTrabajos.push({ uid, cantidad, tamano }); return trabajos.filter(pertenece).slice(0, cantidad); } } },
+    '../components/creator/CajaQueCrece': { PaginaDeCajas: capturar('PaginaDeCajas') },
+    '../components/creator/CabeceraDeSeccion': capturar('CabeceraDeSeccion', (p) => hh('header', null, p.nombre)),
+    '../components/creator/CajaDePrompt': capturar('CajaDePrompt', (p) => hh('div', { 'data-componente': 'CajaDePrompt' },
+      ...p.acciones.map((a) => hh(Toque, { key: a.etiqueta, accessibilityLabel: a.etiqueta, onPress: a.alPulsar }, a.icono)))),
+    '../components/creator/AjustesContextuales': capturar('AjustesContextuales'),
+    '../components/EspacioDeEscritura': capturar('EspacioDeEscritura'),
+    '@react-navigation/native': {
+      useNavigation: () => ({ navigate: (...a) => navegacion.push(['navigate', ...a]), push: (...a) => navegacion.push(['push', ...a]), goBack: () => navegacion.push(['goBack']), canGoBack: () => true }),
+      useFocusEffect: () => {},
+      useRoute: () => ({ params }),
+    },
+  };
+};
+const chef = ({ idioma = 'es', params, ...extra } = {}) => crearEntorno({ pantalla: 'screens/ChefScreen.tsx', dobles: doblesDeChef(idioma, params), ...extra });
+
+const enviar = (e, idea, ajustes = {}) => {
+  e.reiniciar();
+  e.dibujar();
+  for (const [g, o] of Object.entries(ajustes)) { e.dibujar(); e.capturas.AjustesContextuales.onElegir(g, o); }
+  e.capturas.CajaDePrompt?.onCambiar?.(idea);
+  e.dibujar();
+  e.capturas.CajaDePrompt.onEnviar();
+  return e.navegacion[0]?.[2];
+};
+
+titulo(`CHEF-02 · la pantalla manda el contexto (D-1 = ${VARIANTE})`);
+{
+  const e = chef();
+  const p = enviar(e, 'Una cena para mis amigos', { people: '4', time: '30', diet: 'glutenFree' });
+  check('AC-11 · personas y tiempo elegidos viajan como `presets` con los ids del servidor; dieta no (no hay pregunta hasta CHEF-06)',
+    JSON.stringify(p?.presets) === JSON.stringify([{ questionId: 'people', optionId: '4' }, { questionId: 'time', optionId: '30' }]), JSON.stringify(p));
+  check('AC-12 · el contexto lleva `workspace: \'chef\'` y el `experienceId` de siempre', p?.workspace === 'chef' && p?.experienceId === 'chef');
+  check('regla 5 · la unión «idea (ajustes)» no cambia: el objetivo lleva la idea y lo elegido, escritos',
+    typeof p?.goal === 'string' && p.goal.startsWith('Una cena para mis amigos (') && p.goal.includes(tEs('chef.valGlutenFree')), p?.goal);
+  check('sin tarjeta no hay `preset` suelto', p && !('preset' in p) || p?.preset === undefined);
+
+  const soloAuto = enviar(e, 'Un postre', { people: 'auto', diet: 'vegan', level: 'easy' });
+  check('auto, dieta y nivel no viajan como respuestas: sin `presets` (la llamada es la de hoy más `workspace`)',
+    soloAuto && soloAuto.presets === undefined && soloAuto.workspace === 'chef' && soloAuto.goal.startsWith('Un postre'), JSON.stringify(soloAuto));
+
+  /* Una tarjeta con su opción: el `preset` sigue suelto (lo lee `needsPhoto`) y va DENTRO de `presets` (regla 1). */
+  const receta = CHEF.TARJETAS_DE_CHEF.find((t) => t.preset?.optionId === 'recipe');
+  e.reiniciar(); e.dibujar();
+  e.capturas.AjustesContextuales.onElegir('people', '2');
+  e.dibujar();
+  e.tocar(tEs(receta.claveTitulo));
+  const deTarjeta = e.navegacion[0]?.[2];
+  check('regla 1 · tarjeta + personas: `preset` suelto Y dentro de `presets`, primero',
+    JSON.stringify(deTarjeta?.preset) === JSON.stringify({ questionId: 'what', optionId: 'recipe' })
+    && JSON.stringify(deTarjeta?.presets) === JSON.stringify([{ questionId: 'what', optionId: 'recipe' }, { questionId: 'people', optionId: '2' }]), JSON.stringify(deTarjeta));
+  e.reiniciar(); e.dibujar();
+  e.tocar(tEs(receta.claveTitulo));
+  const tarjetaSola = e.navegacion[0]?.[2];
+  check('ACE-C-02 intacto · una tarjeta sin ajustes navega como hoy (`preset`, sin `presets`, sin objetivo) más `workspace`',
+    tarjetaSola?.preset?.optionId === 'recipe' && tarjetaSola.presets === undefined && tarjetaSola.goal === undefined && tarjetaSola.workspace === 'chef', JSON.stringify(tarjetaSola));
+
+  /* En inglés la idea no la entiende el deductor local: por eso las respuestas viajan aparte. */
+  const en = chef({ idioma: 'en' });
+  const pEn = enviar(en, 'Dinner for my friends', { people: '8', time: '60' });
+  check('AC-11 · en inglés viajan las mismas respuestas (no dependen del idioma de la idea)',
+    JSON.stringify(pEn?.presets) === JSON.stringify([{ questionId: 'people', optionId: '8' }, { questionId: 'time', optionId: '60' }]), JSON.stringify(pEn));
+
+  /* Lo que la pantalla ya mandaba se conserva: el proyecto (P11) y la foto. */
+  const conProyecto = chef({ params: { projectId: 'p1' } });
+  const pProy = enviar(conProyecto, 'Una cena', { people: '4' });
+  check('P11 intacto · el `projectId` de la ruta sigue viajando', pProy?.projectId === 'p1' && pProy.presets?.length === 1, JSON.stringify(pProy));
+  const conFoto = chef({ fotos: { resultado: { canceled: false, assets: [{ uri: 'file:///nevera.jpg' }] } } });
+  conFoto.dibujar();
+  conFoto.tocar(tEs('chef.cameraLabel'));
+  await conFoto.calma();
+  conFoto.dibujar();
+  conFoto.capturas.CajaDePrompt.onEnviar();
+  check('ACE-C-05 intacto · la foto sigue viajando como `imageUri`', conFoto.navegacion[0]?.[2]?.imageUri === 'file:///nevera.jpg', JSON.stringify(conFoto.navegacion[0]));
+}
+
+if (VARIANTE === 'A-maximo') {
+  titulo('CHEF-02 · regla 7 (la caja avisa a 300) — solo si el dueño la elige');
+  const e = chef();
+  e.reiniciar(); e.dibujar();
+  check('AC-13 · sin ajustes, la caja recibe `maximo` = lo que lee el servidor', e.capturas.CajaDePrompt.maximo === LARGO_QUE_LEE_EL_SERVIDOR, String(e.capturas.CajaDePrompt.maximo));
+  e.capturas.AjustesContextuales.onElegir('diet', 'glutenFree');
+  e.dibujar();
+  const anadido = largoParaElServidor(tEs('chef.goalWith', { idea: 'x', ajustes: tEs('chef.valGlutenFree') })) - 1;
+  check('AC-13 · con «Sin gluten», `maximo` = 300 − lo que añade la ficha (la dieta, al final, ya no se pierde)',
+    e.capturas.CajaDePrompt.maximo === LARGO_QUE_LEE_EL_SERVIDOR - anadido, `${e.capturas.CajaDePrompt.maximo} (añade ${anadido})`);
+  e.capturas.CajaDePrompt.onCambiar('a'.repeat(LARGO_QUE_LEE_EL_SERVIDOR));
+  e.dibujar();
+  e.capturas.CajaDePrompt.onEnviar();
+  check('regla 8 (variante «bloquear») · un texto que, con la dieta, pasa de 300 no se envía', e.navegacion.length === 0, JSON.stringify(e.navegacion[0]));
+  e.capturas.CajaDePrompt.onCambiar('a'.repeat(LARGO_QUE_LEE_EL_SERVIDOR - anadido));
+  e.dibujar();
+  e.capturas.CajaDePrompt.onEnviar();
+  const enviado = e.navegacion[0]?.[2]?.goal ?? '';
+  check('regla 3 · justo en el límite se envía y el servidor lee la dieta entera (contando como `slice(0, 300)` tras `trim`)',
+    e.navegacion.length === 1 && largoParaElServidor(enviado) === LARGO_QUE_LEE_EL_SERVIDOR && enviado.trim().slice(0, 300).endsWith(`(${tEs('chef.valGlutenFree')})`), String(largoParaElServidor(enviado)));
+}
+
+terminar();
