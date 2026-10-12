@@ -6,8 +6,9 @@ Es la tarea CON de la ronda R8 (2026-10-12), sobre `c3f7f9a7` (rama `r8/contrast
 se puede hacer sin decidir de diseño; **el arreglo de fondo —un color de texto dorado que sí pase— sigue pendiente de quien decide el diseño (§8).**
 
 **Cómo se lee la evidencia.** Igual que en `WEE-DESIGN-CIERRE.md`: **E** ejecutado (lo corrí y dio eso), **L** leído (código leído, sin ejecutar), **M** medido
-(una cifra calculada), **I** inferido (razonado o deducido por un script, sin leerlo a mano). Los `archivo:línea` son de `c3f7f9a7` salvo que se diga lo contrario:
-los doce archivos corregidos cambian una línea cada uno (PlanCard, dos), así que los demás números de línea no se mueven.
+(una cifra calculada), **I** inferido (razonado o deducido por un script, sin leerlo a mano). Los `archivo:línea` son de `c3f7f9a7`, la base. La rama cambia una sola
+línea en cada uno de los doce archivos corregidos (PlanCard, dos), así que ahí no se mueve ningún número; la excepción es `ProductionPiezas.tsx`, que gana además un comentario de cuatro líneas antes del `return`
+de `Chip`: sus líneas 40 en adelante se corren cuatro en la rama (el `:43` de este documento es el `:47` allí).
 
 ## 1. Resumen
 

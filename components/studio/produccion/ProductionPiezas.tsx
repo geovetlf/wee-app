@@ -37,6 +37,10 @@ export const Chip: React.FC<{ texto: string; icono?: string; tono?: Tono }> = ({
       : tono === 'error' ? theme.colors.error
         : tono === 'ok' ? theme.colors.success
           : theme.colors.textSecondary;
+  /*
+   * El texto de «acento» va en el color del texto, como el neutro: el dorado oscuro sobre `surface` da 2,12:1 y AA pide 4,5:1.
+   * El borde y el icono siguen dorados, que es lo que dice que es un estado (docs/WEE-ACCENTDARK-AUDITORIA.md).
+   */
   return (
     <View style={[styles.chip, { borderColor: tono === 'neutro' ? theme.colors.border : color, backgroundColor: theme.colors.surface }]}>
       {!!icono && <Ionicons name={icono as any} size={scale(13)} color={color} />}
