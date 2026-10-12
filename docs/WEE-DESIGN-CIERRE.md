@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
 
 **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
 Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
-28 criterios de cierre, **13 se cumplen, 3 están abiertos, 9 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
+28 criterios de cierre, **14 se cumplen, 3 están abiertos, 9 esperan una decisión del dueño y 2 son manuales** (E: `_design-cierre.mjs`).
 
 ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
 
@@ -350,7 +350,7 @@ rama integrada, `tsc` y la cadena se repiten sobre ella).
 |---|---|---|---|---|
 | CL-21 | `node ops/reconciliacion/reservas-colgadas.mjs` | pendiente | — | — |
 | CL-22 | runbook de canario (infraestructura) | pendiente | — | — |
-| CL-26 | web `demo-wee` en 360, 768 y 1280 px | pendiente (**no ejecutado en la ronda R7**: pesado, y necesita variables de entorno que no se leen) | — | — |
+| CL-26 | web `demo-wee-design` (emuladores Auth+Firestore locales, Metro web) en 390×844, 768×1024 y 1024 px | **REGISTRADO**: en los tres anchos, portada → puerta «Interiores» → punto de partida → hoja de ajustes (Automático primero; la opción elegida se distingue por fondo y borde) → «Crear» → aviso «Creando…/Creación lista» dentro de la pantalla y por encima de la barra inferior; sin desbordes horizontales (lo que sobresale está en filas con desplazamiento horizontal). Sobre `50d1b9f6`. **Límites:** navegador integrado con el ancho emulado, NO un dispositivo físico; como invitado (sin sesión: «Mis creaciones» se vio solo como «Ejemplos»); «Crear» sigue siendo la demostración porque el puente no está integrado (D1, D2, D7) | `ronda-r8/verificacion/cl26-*.log` y capturas de la sesión | coordinador R8, 2026-10-12 |
 | CL-27 | `NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit` | **REGISTRADO**: 0 errores en 65 s, sobre `78fd958` (rama `r7/design-cierre`, la integración de R7-Design; los commits posteriores solo tocan documentos). La anterior, sobre `e97f758`, queda como historial | `ronda-r7-design/verificacion/tsc-integracion.log` | coordinador R7-Design, 2026-10-12 |
 | CL-28 | `node functions/test/_cadena.mjs` | **REGISTRADO**: 315 de 315 suites y 20 926 comprobaciones en verde, 650 s, sobre `78fd958` (`puente-pre-f1d` 42/42 y `video-asincrono` 64/64: ninguna cerca se movió; `functions/src` solo cambia en `creator/templates.ts`) | `ronda-r7-design/verificacion/cadena-integracion.log` | coordinador R7-Design, 2026-10-12 |
 
