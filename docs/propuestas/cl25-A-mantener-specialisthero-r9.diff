@@ -1,0 +1,80 @@
+PROPUESTA · CL-25 alternativa A (R9, agente DSN): conservar components/creator/SpecialistHero.tsx sin importadores, sin describir el muro, y quitar su cláusula del detector. NO APLICADA: decisión de estructura visual del dueño.
+Hecha sobre 9365153a. Verificada en una copia desechable: corredor 15 · 2 · 9 · 2 (CL-25 CUMPLIDO) y 9 suites en verde; el detector nuevo muerde (ver docs/propuestas/CL-25-alternativas.md).
+Aplicar solo si el dueño decide conservarlo:  git apply docs/propuestas/cl25-A-mantener-specialisthero-r9.diff
+
+diff --git a/components/creator/SpecialistHero.tsx b/components/creator/SpecialistHero.tsx
+index 7569c25c..577ce302 100644
+--- a/components/creator/SpecialistHero.tsx
++++ b/components/creator/SpecialistHero.tsx
+@@ -12,15 +12,21 @@ import { Chip, Handwritten } from './ui';
+ interface SpecialistHeroProps {
+   spec: SpecialistConfig & { experience: WeeExperience };
+   /**
+-   * Cabecera baja, para las secciones cuyo muro social manda (fase 2E-40).
+-   * Presenta la sección igual —nombre, frase, sellos e imagen— pero ocupando
+-   * poco más de la mitad de alto, para que la comunidad se vea al entrar sin
+-   * tener que desplazarse. Las secciones sin muro conservan su cabecera grande.
++   * Cabecera baja: presenta la sección igual —nombre, frase, sellos e imagen—
++   * ocupando poco más de la mitad de alto. (Nació en la fase 2E-40 para las
++   * secciones con muro; el muro de sección se retiró el 2026-09-13.)
+    */
+   compact?: boolean;
+ }
+ 
+-/** Cabecera del especialista: nombre, frase, sellos e ilustración (referencias). */
++/**
++ * Cabecera del especialista: nombre, frase, sellos e ilustración (referencias).
++ *
++ * HOY NO LA MONTA NINGUNA PANTALLA (las secciones usan `CabeceraDeSeccion`). Se conserva a propósito: es lo único del
++ * repositorio con forma de cabecera de sección y la estructura visual de Weë Design está pendiente del dueño
++ * (docs/WEE-DESIGN-DECISIONES-DEL-DUENO.md §4.3). Ya se dejó así en el cierre post-auditoría del 2026-10-01
++ * (`cierre-cliente` 4). Si se decide borrarla: docs/propuestas/cl25-B-borrar-specialisthero-r9.diff.
++ */
+ const SpecialistHero: React.FC<SpecialistHeroProps> = ({ spec, compact }) => {
+   const { theme } = useTheme();
+   const { isDesktop } = useResponsive();
+diff --git a/docs/WEE-DESIGN-CIERRE.md b/docs/WEE-DESIGN-CIERRE.md
+index 71687c1e..bb65548d 100644
+--- a/docs/WEE-DESIGN-CIERRE.md
++++ b/docs/WEE-DESIGN-CIERRE.md
+@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
+ 
+ **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
+ Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
+-28 criterios de cierre, **14 se cumplen, 3 están abiertos, 9 esperan una decisión del dueño y 2 son manuales** (E: `_design-cierre.mjs`).
++28 criterios de cierre, **15 se cumplen, 2 están abiertos, 9 esperan una decisión del dueño y 2 son manuales** (E: `_design-cierre.mjs`).
+ 
+ ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
+ 
+@@ -305,7 +305,7 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
+ | CL-22 | integración | Canario gobernado del recorrido de imágenes en `get-wee` | dueño e infraestructura | `docs/DESIGN.md «Antes de lanzar»`, `ops/produccion.json` | pendiente bloqueado por infraestructura | MANUAL |
+ | CL-23 | resto | D1–D9 y DEC-01, 02, 05, 06 registradas como DECIDIDAS | dueño | `docs/DESIGN.md`, `docs/WEE-DESIGN-UIUX-DECISIONS.md` | bloqueador real (decisión) | DECISIÓN |
+ | CL-24 | resto | Aviso con región viva y contraste AA en su acción | hecho (R7-Design, tarea C); componente compartido con Weë Studio | `AvisoDeCreacion.tsx:64,86` (`ThemeContext.tsx` solo se lee) | defecto reproducible (arreglado) | CUMPLIDO |
+-| CL-25 | resto | Sin código ni comentarios de lo que ya no existe (muro, `SpecialistHero`): el comentario del muro y la rama inalcanzable de Design están hechos (R8); queda `SpecialistHero.tsx`, sin importadores, que es una decisión de estructura visual del dueño (el diff que lo borra está en `docs/propuestas/cl25-borrar-specialisthero.diff`, sin aplicar) | línea de Design (R8, tarea NAV); dueño, para `SpecialistHero` | `specialists.ts`, `SpecialistScreen.tsx`, `SpecialistHero.tsx` | deuda técnica | ABIERTO |
++| CL-25 | resto | Sin código ni comentarios de lo que ya no existe (muro, `SpecialistHero`): el comentario del muro y la rama inalcanzable de Design están hechos (R8); `SpecialistHero.tsx` se conserva sin importadores y sin describir el muro (alternativa A de `docs/propuestas/CL-25-alternativas.md`) | línea de Design (R8, tarea NAV); dueño, para `SpecialistHero` | `specialists.ts`, `SpecialistScreen.tsx`, `SpecialistHero.tsx` | deuda técnica | CUMPLIDO |
+ | CL-26 | resto | Verificación visual en móvil, tableta y escritorio | quien tenga web con emuladores | `DesignScreen.tsx`, `components/design/*` | pendiente bloqueado por infraestructura | MANUAL |
+ | CL-27 | resto | `tsc --noEmit` de la app en 0 errores | cualquiera que toque `.ts/.tsx` | todo `.ts/.tsx` | verificación | CUMPLIDO |
+ | CL-28 | resto | La cadena entera y las cercas, en verde | quien integre | `functions/package.json`, `puente-pre-f1d.test.mjs` | verificación | MANUAL |
+diff --git a/functions/test/_design-cierre.mjs b/functions/test/_design-cierre.mjs
+index fc01e8bf..2048dc1b 100644
+--- a/functions/test/_design-cierre.mjs
++++ b/functions/test/_design-cierre.mjs
+@@ -323,14 +323,14 @@ export const CRITERIOS = [
+   },
+   {
+     id: 'CL-25', tipo: 'resto', titulo: 'Sin código ni comentarios que describan lo que ya no existe en Weë Design (muro propio, ficha de especialista, `SpecialistHero`)',
+-    responsable: 'línea de Design (R8, tarea NAV: el comentario del muro y la rama inalcanzable); el dueño, para `SpecialistHero` (estructura visual)', archivos: ['constants/specialists.ts', 'screens/SpecialistScreen.tsx', 'components/creator/SpecialistHero.tsx (decisión: docs/propuestas/cl25-borrar-specialisthero.diff)'],
++    responsable: 'línea de Design (R8, tarea NAV: el comentario del muro y la rama inalcanzable); el dueño, para `SpecialistHero` (estructura visual)', archivos: ['constants/specialists.ts', 'screens/SpecialistScreen.tsx', 'components/creator/SpecialistHero.tsx (se conserva sin importadores, alternativa A de docs/propuestas/CL-25-alternativas.md)'],
+     comprueba: () => {
+       const restos = [];
+       if (/estrena el muro social/.test(leer('constants/specialists.ts'))) restos.push('specialists.ts:286 «estrena el muro social»');
+       if (/spec\.id === 'design'/.test(leer('screens/SpecialistScreen.tsx'))) restos.push('SpecialistScreen.tsx:214 rama de design inalcanzable');
+-      const importadores = ['screens', 'components', 'navigation'].flatMap((d) => fs.readdirSync(path.resolve(RAIZ, d), { recursive: true }).map((f) => `${d}/${String(f).split(path.sep).join('/')}`))
+-        .filter((f) => /\.tsx?$/.test(f) && f !== 'components/creator/SpecialistHero.tsx' && /SpecialistHero/.test(leer(f)));
+-      if (importadores.length === 0) restos.push('SpecialistHero.tsx sin ningún importador (borrarlo o no es una decisión de estructura visual del dueño: docs/propuestas/cl25-borrar-specialisthero.diff, sin aplicar)');
++      /* SpecialistHero se conserva sin importadores (alternativa A): lo que no puede es describir el muro como vigente. */
++      const heroe = 'components/creator/SpecialistHero.tsx';
++      if (fs.existsSync(path.resolve(RAIZ, heroe)) && /cuyo muro social manda|Las secciones sin muro/.test(leer(heroe))) restos.push('SpecialistHero.tsx describe el muro de sección como vigente');
+       return { ok: restos.length === 0, evidencia: restos.join(' · ') || 'limpio' };
+     },
+   },
