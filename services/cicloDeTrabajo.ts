@@ -266,3 +266,20 @@ export async function eliminarCreacion(creacionId: string): Promise<{ creacionId
 /** Archivar / desarchivar un proyecto (sale / vuelve a «Mis proyectos»). No toca sus trabajos ni ninguna creación. */
 export const archivarProyecto = (projectId: string): Promise<void> => projectsService.archive(projectId);
 export const desarchivarProyecto = (projectId: string): Promise<void> => projectsService.unarchive(projectId);
+
+/* ── D-3 · Texto final como asset (decisión del dueño, 2026-10-12) ─────────── */
+
+export interface EntradaTextoFinal {
+  /** El resultado FINAL que la persona eligió conservar (nunca cada respuesta provisional). */
+  texto: string;
+  /** experienceId de la herramienta: 'chef' | 'writer' | 'business' | 'travel' … */
+  herramienta: string;
+  proyectoOrigenId?: string | null;
+  nombre?: string;
+  requestId: string;
+}
+
+/** Crea el asset de texto (Content Core) y su creación. Idempotente por `requestId`; otro texto con el mismo id = `conflicto`. */
+export async function guardarTextoFinal(entrada: EntradaTextoFinal): Promise<{ creacionId: string; assetId: string; yaExistia: boolean }> {
+  return llamar({ accion: 'guardarTexto', ...entrada });
+}

@@ -2,7 +2,7 @@ import { Firestore, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { createHash } from 'crypto';
 import type { AssetDoc } from './index';
-import { leerMaterial } from './index';
+import { crearMaterialDeTexto, leerMaterial, leerTextoDelMaterial } from './index';
 import {
   CreacionGuardadaMinima,
   EstadoDeCreacion,
@@ -102,6 +102,10 @@ export interface DepsDeCreaciones {
   db?: Firestore;
   material?: (assetId: string) => Promise<AssetDoc | null>;
   ahora?: () => number;
+  /** D-3: crear la ficha de texto (por defecto, la del Content Core). */
+  crearTexto?: typeof crearMaterialDeTexto;
+  /** D-3: leer el texto de una ficha propia (por defecto, la del Content Core). */
+  leerTexto?: typeof leerTextoDelMaterial;
 }
 
 const laBase = (d: DepsDeCreaciones) => d.db ?? getFirestore();
@@ -203,7 +207,8 @@ export const finalizarCreacionDeCuenta = async (
       nombre,
       tipo: String(primero.kind),
       herramienta,
-      ubicacion: ubicacionDe(primero.storageRef),
+      /* Una ficha de `assets` está en el servidor: sin `storageRef` (un texto) sigue siendo Weë Cloud, no local. */
+      ubicacion: primero.storageRef ? ubicacionDe(primero.storageRef) : 'wee_cloud',
       proyectoOrigenId,
       requestId,
       status: 'final',
@@ -322,6 +327,56 @@ export const eliminarCreacionDeCuenta = async (
   return { creacionId: c.creationId, yaEstaba: false };
 };
 
+/* ── D-3 · Guardar un texto final (decisión del dueño, 2026-10-12) ───────────── */
+
+export const MAXIMO_DE_TEXTO_FINAL = 100_000;
+const FORMA_DE_HERRAMIENTA = /^[a-z][a-z0-9_-]{1,39}$/;
+
+/** La identidad del asset de texto sale de la petición: la misma petición es el mismo asset (idempotente). */
+export const idDeTextoFinal = (cuenta: string, requestId: string): string =>
+  `asset_${createHash('sha256').update(`texto\n${cuenta}\n${requestId}`).digest('hex').slice(0, 32)}`;
+
+/**
+ * GUARDAR UN RESULTADO FINAL DE TEXTO (receta de Chef, Writer, Business, Travel) como asset de texto del Content Core
+ * y su creación, SOLO porque la persona eligió conservarlo — nunca cada respuesta provisional (esto no se llama desde
+ * ningún camino de generación). Idempotente por `requestId`: repetir la misma petición devuelve el mismo asset y la
+ * misma creación; reutilizarla con OTRO texto es `conflicto`.
+ */
+export const guardarTextoFinalDeCuenta = async (
+  cuenta: string,
+  entrada: { texto: unknown; herramienta: unknown; proyectoOrigenId?: unknown; requestId: unknown; nombre?: unknown },
+  deps: DepsDeCreaciones = {},
+): Promise<{ creacionId: string; assetId: string; yaExistia: boolean }> => {
+  if (!cuentaValida(cuenta)) throw new ErrorDeCiclo('invalido');
+  if (typeof entrada.texto !== 'string' || !entrada.texto.trim() || entrada.texto.length > MAXIMO_DE_TEXTO_FINAL) throw new ErrorDeCiclo('invalido');
+  if (typeof entrada.herramienta !== 'string' || !FORMA_DE_HERRAMIENTA.test(entrada.herramienta)) throw new ErrorDeCiclo('invalido');
+  if (typeof entrada.requestId !== 'string' || !FORMA_DE_REQUEST_ID.test(entrada.requestId)) throw new ErrorDeCiclo('invalido');
+  const db = laBase(deps);
+  if (entrada.proyectoOrigenId !== undefined && entrada.proyectoOrigenId !== null) {
+    if (typeof entrada.proyectoOrigenId !== 'string') throw new ErrorDeCiclo('invalido');
+    const p = await leerProyecto(db, cuenta, entrada.proyectoOrigenId);
+    if (!p || estadoDeProyecto(p) === 'eliminado') throw new ErrorDeCiclo('no_encontrado');
+  }
+  const nombre = typeof entrada.nombre === 'string' ? entrada.nombre.trim().slice(0, MAXIMO_DE_NOMBRE) : '';
+  const assetId = idDeTextoFinal(cuenta, entrada.requestId);
+  const ficha = await (deps.crearTexto ?? crearMaterialDeTexto)({
+    assetId,
+    ownerAccountId: cuenta,
+    contenido: entrada.texto,
+    name: nombre || undefined,
+    metadata: { experienceId: entrada.herramienta, origen: 'texto_final' },
+    provenance: { createdAt: elReloj(deps)(), requestId: entrada.requestId },
+  });
+  if (!ficha) throw new ErrorDeCiclo('invalido');
+  /* La misma petición con otro texto no es la misma petición. */
+  const guardado = await (deps.leerTexto ?? leerTextoDelMaterial)(cuenta, assetId);
+  if (guardado !== entrada.texto) throw new ErrorDeCiclo('conflicto');
+  const r = await finalizarCreacionDeCuenta(cuenta, {
+    assetIds: [assetId], proyectoOrigenId: entrada.proyectoOrigenId ?? null, nombre: nombre || undefined, requestId: entrada.requestId,
+  }, deps);
+  return { creacionId: r.creacionId, assetId, yaExistia: r.yaExistia };
+};
+
 /* ── El callable ───────────────────────────────────────────────────────────── */
 
 const comoHttps = (e: unknown): never => {
@@ -334,7 +389,7 @@ const comoHttps = (e: unknown): never => {
 };
 
 /**
- * `cicloDeTrabajo` — `{ accion: 'finalizar' | 'reabrir' | 'eliminar', … }`. Lo
+ * `cicloDeTrabajo` — `{ accion: 'finalizar' | 'reabrir' | 'eliminar' | 'guardarTexto', … }`. Lo
  * único que trae el cliente es QUÉ; QUIÉN lo pone la sesión. Exportado (D-2) y
  * sin desplegar (ver la cabecera).
  */
@@ -350,6 +405,11 @@ export const cicloDeTrabajo = onCall({ region: 'us-central1', timeoutSeconds: 60
     }
     if (data.accion === 'reabrir') return await reabrirCreacionDeCuenta(cuenta, data.creacionId);
     if (data.accion === 'eliminar') return await eliminarCreacionDeCuenta(cuenta, data.creacionId);
+    if (data.accion === 'guardarTexto') {
+      return await guardarTextoFinalDeCuenta(cuenta, {
+        texto: data.texto, herramienta: data.herramienta, proyectoOrigenId: data.proyectoOrigenId, requestId: data.requestId, nombre: data.nombre,
+      });
+    }
     throw new ErrorDeCiclo('invalido');
   } catch (e) {
     return comoHttps(e);
