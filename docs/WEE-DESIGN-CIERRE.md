@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
 
 **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
 Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
-28 criterios de cierre, **4 se cumplen, 11 están abiertos, 9 esperan una decisión del dueño y 4 son manuales** (E: `_design-cierre.mjs`).
+28 criterios de cierre, **5 se cumplen, 10 están abiertos, 9 esperan una decisión del dueño y 4 son manuales** (E: `_design-cierre.mjs`).
 
 ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
 
@@ -38,7 +38,7 @@ referencia, que **sí** manda la caja a `CreatorFlow` (`DesignReferenciaScreen.t
 | R5 | Persistencia y referencias de activos | Cada archivo de un resultado se referencia como material de la cuenta con su procedencia (`jobId`, `stepId`, `requestId`, `capability`, `provider`) y `metadata.experienceId`; en demostración no se crea ninguno (`index.ts:500-550`). **Sin linaje** (`previousVersionId`/`sourceAssetIds` sin escritor) ni versiones. El servidor acepta `projectId` al empezar (`:329`) pero el cliente no lo manda (`creatorService.ts:263-272`); el trabajo entra en un proyecto con `assignJob` al terminar (`CreatorFlowScreen.tsx:109-118`) | CL-20 (E), CL-13; R6-A filas 5 y 7 |
 | R6 | Créditos: precio antes de crear, reserva, cobro, reembolso, errores | **Completo en el motor.** Precio en la respuesta de `creatorChat` (`index.ts:229-238`) y `creatorQuote` con transacción (C-1 corregido: `:462-476`); `PlanCard` lo enseña con «precio de prueba» en modo simulado (`PlanCard.tsx:73-75`). Reserva idempotente por `requestId: jobId` (`credits.ts:236-254`); cobro o reembolso (`:257-271`; `index.ts:799,817`); liquidación fallida anotada (`credits.ts:288-306`). Falta de saldo → «Conseguir Credits» (`CreatorFlowScreen.tsx:317-319,600-614`). Un fallo a medias reembolsa **todo** aunque haya pasos hechos (`index.ts:810-817`): la política proporcional espera al dueño (DECISIONES-PENDIENTES #7, #8). **La pantalla de Design no toca Credits** | B2 (E); `credits-weeai` (E, 37/37) |
 | R7 | Continuidad entre proyectos, escenas, planes y elementos | Un proyecto contiene **trabajos**, no materiales (`ProjectItem` sin escritor); `Escena3D` de perfil `design` es contrato sin persistencia; el plan queda en el trabajo (`creatorJobs.plan`), sin recetas (DEC-19); los Elements de Filmmaker no tocan Design | R6-A fila 7; `docs/WEE-DESIGN-UIUX-AUDIT.md` §3.9-3.11 (L) |
-| R8 | Estados de carga, error, vacío, éxito y reintento en la UI | **Pantalla montada:** carga ✗ (no carga nada), error ✗, vacío ✗ (siempre las cuatro muestras), éxito = «Creación lista» con su aviso de demostración, reintento ✗. **`CreatorFlow`:** los cinco (pensando, subiendo, cotizando; caja de error con reintento; saldo insuficiente; progreso; resultado), con los defectos CL-12 y CL-13 | `DesignScreen.tsx:245-260` (L); `CreatorFlowScreen.tsx:600-731` (L) |
+| R8 | Estados de carga, error, vacío, éxito y reintento en la UI | **Pantalla montada:** carga ✗ (no carga nada), error ✗, vacío ✗ (siempre las cuatro muestras), éxito = «Creación lista» con su aviso de demostración, reintento ✗. **`CreatorFlow`:** los cinco (pensando, subiendo, cotizando; caja de error con reintento; saldo insuficiente; progreso; resultado), con CL-13 abierto (CL-12, el reintento tras un fallo de cotización, se corrigió en R7-Design) | `DesignScreen.tsx:245-260` (L); `CreatorFlowScreen.tsx:600-731` (L) |
 | R9 | Responsive: móvil, tableta 768–1023, escritorio | Dos puertas por fila por debajo de 768; tres desde 768, con ancho máximo de 720 (`DesignScreen.tsx:99-100`; `useResponsive.ts:15-19,51-53`). Sin barra lateral de Weë AI en escritorio (no usa `CreatorShell`). **Sin verificación visual ejecutada** | CL-26 (manual, NO ejecutado: web con emuladores y variables que no se leen) |
 | R10 | Accesibilidad básica | Roles y etiquetas presentes en puertas (`DesignExplore.tsx:42,60-61`), filas (`DesignPanel.tsx:51-53,75-76`), botones de la caja (`CajaDePrompt.tsx:157-186`), aspa (`FichaDeContexto.tsx:46-47`) y campo (`CajaDePrompt.tsx:137`) (L). **Contraste medido (M, fórmula WCAG sobre `ThemeContext.tsx:37-45`):** texto 14,68:1 · textSecondary 4,83:1 · texto sobre el acento 8,18:1 · **`accentDark` sobre blanco 2,24:1 (no pasa AA)**, usado por «Entendido» (`AvisoDeCreacion.tsx:78`). Sin región viva en el aviso. Los títulos de sección no eran títulos para el lector de pantalla y la pista de cada puerta no se leía: **corregido** en `90721bd` (`DesignExplore.tsx:37,60-63`, `DesignPanel.tsx:51-53,84`; B5 de `design-cierre`, E) | CL-24 (E) |
 | R11 | Consistencia con las demás secciones | Misma familia que Weë Studio (cabecera, caja, hoja de ajustes, aviso, fila de creaciones) y que Weë Chef (cabecera, caja, puertas, proyectos); `enTemaClaro` la deja clara con las dos caras. Diverge en que no monta `CreatorShell` | `DesignScreen.tsx` (L); `ChefScreen.tsx:257-345` (L) |
@@ -181,7 +181,17 @@ corredor pasan a aceptar «sin micrófono». **Dry-run (E, parche desechable, `R
 `studio-capas` 44/44, `puente-studio` 63/63, `i18n-textos-a-mano` 6/6 y `ci-workflow` 41/41; ninguna comprobación existente se
 mueve. Componente compartido con Studio: avisar a su dueño. Cercas: ninguna. `tsc` no ejecutado sobre el parche.
 
-### P6 — Reintentar tras un fallo de cotización (CL-12, H-3)
+### P6 — Reintentar tras un fallo de cotización (CL-12, H-3) · **HECHO en R7-Design (tarea C)**
+
+**Hecho, con otra forma que la propuesta.** `screens/CreatorFlowScreen.tsx`: el error pasa a ser un estado `fallo` (`{ texto, cotizando? }`) y el origen viaja DENTRO del propio error
+(`cotizando` = el nivel que se pidió), no en un `errorDe` aparte con su `useRef` y su `useEffect`: un origen que vive al lado solo se limpia cuando el error se limpia, y un error
+que sustituye a otro sin pasar por «sin error» lo dejaría viejo; el que va dentro no puede quedarse atrás. «Probar otra vez» repite `handleQuality(fallo.cotizando)` y, si el error no
+vino de cotizar, hace lo de siempre. **Ejecutado** (`weeai-cliente-cierre.test.mjs` A, 16 comprobaciones: 7 en rojo sobre el original, 16 en verde): con el trabajo planificado
+el botón llamaba a `creatorRun` —**crear y reservar Credits sin que la persona hubiera visto el precio nuevo**—, y sin estado de trabajo a la vista abría otro con `creatorChat`
+(esta segunda es la que describía el encargo); ahora vuelve a cotizar el MISMO trabajo con el ÚLTIMO nivel pedido, y tras fallar al crear o al empezar sigue repitiendo eso. Dos
+mutaciones del arreglo —una referencia que nunca se limpia, y un arreglo que solo vale con el trabajo planificado— las atrapan A5 y A8.
+
+*La propuesta, tal como se escribió antes de hacerlo:*
 
 `screens/CreatorFlowScreen.tsx`: un estado `errorDe: 'cotizar' | 'otro'` que se pone en el `catch` de `handleQuality` y se limpia solo
 cuando el error se limpia (un `useEffect` sobre `error`), el último nivel pedido en una referencia, y el reintento del cuadro de error
@@ -241,7 +251,7 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
 | CL-09 | defecto | Las referencias son reales o el botón no está | dueño (D6) y línea de Design | `screens/DesignScreen.tsx`, `inputs.ts` | defecto reproducible | DECISIÓN |
 | CL-10 | defecto | Toda pregunta de `design` con opciones lleva «No sé» (H-2) | servidor | `functions/src/creator/templates.ts:352-450` | defecto reproducible | ABIERTO |
 | CL-11 | defecto | «Un post para mi marca» es un afiche, no un logo (H-6) | servidor | `functions/src/creator/templates.ts:451-475` | defecto reproducible | ABIERTO |
-| CL-12 | defecto | Reintentar tras un fallo de cotización vuelve a cotizar (H-3) | dueño de `CreatorFlow` | `screens/CreatorFlowScreen.tsx:279-296,615-626` | defecto reproducible | ABIERTO |
+| CL-12 | defecto | Reintentar tras un fallo de cotización vuelve a cotizar (H-3) | hecho (R7-Design, tarea C) | `screens/CreatorFlowScreen.tsx:80-92,290-308,627-635` | defecto reproducible (arreglado) | CUMPLIDO |
 | CL-13 | defecto | Editar o «otra versión» conserva respuestas y deja linaje (H-4, D3) | dueño (D3), servidor y `CreatorFlow` | `CreatorFlowScreen.tsx:335-363`, `creator/index.ts:500-550` | integración incompleta | DECISIÓN |
 | CL-14 | integración | El formato elegido llega como `aspectRatio` (D5, F1) | dueño (D5) y servidor | `templates.ts:511-586`, `imageModels.ts:346-352` | integración incompleta | DECISIÓN |
 | CL-15 | integración | Afiches y logos escriben su texto con un modelo que sabe (D4, F3) | dueño (D4) y servidor | `templates.ts:582`, `imageModels.ts:208`, `prompts.ts:567` | integración incompleta | DECISIÓN |

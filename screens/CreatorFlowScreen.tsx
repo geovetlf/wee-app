@@ -77,7 +77,19 @@ const CreatorFlowScreen: React.FC = () => {
   const [job, setJob] = useState<CreatorJob | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  /*
+   * EL ERROR QUE SE ENSEÑA Y DE DÓNDE VIENE (CL-12, H-3 de la auditoría UIUX).
+   *
+   * «Probar otra vez» repite lo que falló. Si falló el cambio de nivel, repetirlo es volver a COTIZAR ese nivel del
+   * mismo trabajo. Antes el botón no lo distinguía: con el trabajo planificado llamaba a `handleCreate` —crear y
+   * reservar Credits sin que la persona hubiera visto el precio nuevo— y sin trabajo a la vista abría otro.
+   *
+   * El origen va DENTRO del propio error (`cotizando` = el nivel que se pidió) y no en un estado al lado: cualquier
+   * otro error que llegue después lo sustituye entero, así que el reintento nunca repite algo que ya pasó.
+   */
+  const [fallo, setFallo] = useState<{ texto: string; cotizando?: QualityChoice } | null>(null);
+  const error = fallo ? fallo.texto : null;
+  const setError = useCallback((texto: string | null) => setFallo(texto === null ? null : { texto }), []);
   /** Saldo insuficiente al crear: se muestra el aviso con saldo, costo y tienda (docs/CREDITS.md). */
   const [shortfall, setShortfall] = useState<CreditsShortfall | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -287,7 +299,7 @@ const CreatorFlowScreen: React.FC = () => {
         setPricing(response.pricing ?? null);
         setJob((current) => (current ? { ...current, creditsEstimated: response.creditsEstimated } : current));
       } catch (e) {
-        setError(humanizeCreatorError(e, t, locale));
+        setFallo({ texto: humanizeCreatorError(e, t, locale), cotizando: next });
       } finally {
         setQuoting(false);
       }
@@ -616,7 +628,9 @@ const CreatorFlowScreen: React.FC = () => {
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={[styles.errorText, { color: theme.colors.text }]}>{error}</Text>
             <TouchableOpacity
-              onPress={() => (status === 'planned' ? handleCreate() : start(job?.goal || params.goal))}
+              onPress={() => (fallo?.cotizando
+                ? handleQuality(fallo.cotizando)
+                : status === 'planned' ? handleCreate() : start(job?.goal || params.goal))}
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
             >

@@ -171,10 +171,18 @@ export const CRITERIOS = [
   },
   {
     id: 'CL-12', tipo: 'defecto', titulo: '«Intentar de nuevo» tras un fallo al cambiar de nivel vuelve a cotizar, no crea ni reserva Credits (H-3)',
-    responsable: 'dueño de CreatorFlow (pantalla compartida)', archivos: ['screens/CreatorFlowScreen.tsx:279-296, 615-626'],
+    responsable: 'hecho (R7-Design, tarea C); pantalla compartida: la revisa el dueño de CreatorFlow', archivos: ['screens/CreatorFlowScreen.tsx:80-92, 290-308, 627-635'],
     comprueba: () => {
-      const roto = /status === 'planned' \? handleCreate\(\)/.test(sinComentarios(leer('screens/CreatorFlowScreen.tsx')));
-      return { ok: !roto, evidencia: roto ? `${lineaDe('screens/CreatorFlowScreen.tsx', /status === 'planned' \? handleCreate\(\)/)}: el reintento del cuadro de error crea cuando el trabajo está planificado, venga el error de cotizar o de crear` : 'el reintento distingue de dónde viene el error' };
+      /*
+       * Mirada de texto: el reintento del cuadro de error pregunta de dónde viene el error ANTES de crear. Que de verdad
+       * vuelva a cotizar —el mismo trabajo y el último nivel pedido, sin crear ni abrir otro— lo ejecuta
+       * `weeai-cliente-cierre.test.mjs` (A).
+       */
+      const fuente = sinComentarios(leer('screens/CreatorFlowScreen.tsx'));
+      const creaSiempre = /status === 'planned' \? handleCreate\(\)/.test(fuente);
+      const distingue = /fallo\??\.cotizando\s*\?\s*handleQuality\(/.test(fuente);
+      const roto = creaSiempre && !distingue;
+      return { ok: !roto, evidencia: roto ? `${lineaDe('screens/CreatorFlowScreen.tsx', /status === 'planned' \? handleCreate\(\)/)}: el reintento del cuadro de error crea cuando el trabajo está planificado, venga el error de cotizar o de crear` : 'el reintento vuelve a cotizar si el error vino de cotizar (`fallo.cotizando`); ejecutado en weeai-cliente-cierre A' };
     },
   },
   {
