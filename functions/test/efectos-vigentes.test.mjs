@@ -184,7 +184,8 @@ await escenario('Perfil ajeno (las publicaciones del perfil de antes)', 'screens
     d, valor: [{ id: 'de-otra-persona' }],
     escribe: () => setUserPosts.llamadas.length > 0 || setLoadingPosts.llamadas.some(([v]) => v === false),
     alcance: {
-      userId: 'persona-a', setLoadingPosts, setPostsError: espia(), setUserPosts, setUserReposts: espia(), setUserLikedPosts: espia(),
+      /* R9 · E1: las publicaciones se piden con el uid de la cara ya resuelto (`uidDelAutor`), no con la referencia de la ruta. */
+      userId: 'persona-a', uidDelAutor: 'persona-a', setLoadingPosts, setPostsError: espia(), setUserPosts, setUserReposts: espia(), setUserLikedPosts: espia(),
       postsService: { getByUserId: () => d.promesa }, repostsService: { getUserReposts: async () => [] },
       likesService: { getUserLikedPostsWithData: async () => [] }, console: consola,
     },

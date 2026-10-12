@@ -34,6 +34,9 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import { confirmAction, notify } from '../utils/notify';
 import TextoEnMayusculas from '../components/TextoEnMayusculas';
+import ReportSheet from '../components/ReportSheet';
+import { esReferenciaDeEntidad } from '../utils/identidadPublica';
+import { cuentaDeIdentidad } from '../utils/econtactModel';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_HEIGHT = 160;
@@ -73,24 +76,34 @@ const UserProfileScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'posts' | 'reposts' | 'photos' | 'polls' | 'likes'>('posts');
   const [showAvatarViewer, setShowAvatarViewer] = useState(false);
   const [showBannerViewer, setShowBannerViewer] = useState(false);
+  /* Denunciar este perfil (R9 · E1): el ⋯ era un botón sin acción y el servidor ya atendía las entidades. */
+  const [denunciando, setDenunciando] = useState(false);
+
+  /*
+   * DE QUIÉN SON LAS PUBLICACIONES. La ruta trae la referencia PÚBLICA del perfil —su entidad (`ent_…`) cuando la
+   * tiene—, pero las publicaciones, los reposts y los «me gusta» están guardados con el `uid` de la cara. Consultar
+   * con la referencia devolvía una lista vacía en todo perfil con entidad (R9 · E1). Se consulta con el `uid` del
+   * perfil ya resuelto, y mientras no ha llegado, con lo que trae la ruta si no es una entidad.
+   */
+  const uidDelAutor = userProfile?.uid || (esReferenciaDeEntidad(userId) ? undefined : userId);
 
   // Cargar posts del usuario. Ir de un perfil a otro reutiliza la pantalla: lo que llegue tarde del perfil de antes
   // no puede pintar sus publicaciones en el nuevo.
   useEffect(() => {
     let vivo = true;
     const loadUserPosts = async () => {
-      if (!userId) return;
+      if (!uidDelAutor) return;
 
       try {
         setLoadingPosts(true);
         setPostsError(null);
-        console.log('🔍 Cargando posts del usuario:', userId);
+        console.log('🔍 Cargando posts del usuario:', uidDelAutor);
 
         // Cargar cada servicio por separado para identificar errores
         console.log('📋 Cargando posts propios...');
         let posts: Post[] = [];
         try {
-          posts = await postsService.getByUserId(userId);
+          posts = await postsService.getByUserId(uidDelAutor);
           console.log('📋 Posts encontrados:', posts.length);
         } catch (e) {
           console.error('❌ Error cargando posts:', e);
@@ -99,7 +112,7 @@ const UserProfileScreen: React.FC = () => {
         console.log('🔄 Cargando reposts...');
         let reposts: Post[] = [];
         try {
-          reposts = await repostsService.getUserReposts(userId);
+          reposts = await repostsService.getUserReposts(uidDelAutor);
           console.log('🔄 Reposts encontrados:', reposts.length);
         } catch (e) {
           console.error('❌ Error cargando reposts:', e);
@@ -108,7 +121,7 @@ const UserProfileScreen: React.FC = () => {
         console.log('❤️ Cargando liked posts...');
         let likedPosts: Post[] = [];
         try {
-          likedPosts = await likesService.getUserLikedPostsWithData(userId);
+          likedPosts = await likesService.getUserLikedPostsWithData(uidDelAutor);
           console.log('❤️ Liked posts encontrados:', likedPosts.length);
         } catch (e) {
           console.error('❌ Error cargando liked posts:', e);
@@ -132,7 +145,7 @@ const UserProfileScreen: React.FC = () => {
     return () => {
       vivo = false;
     };
-  }, [userId]);
+  }, [uidDelAutor]);
 
   const handleShareProfile = async () => {
     if (!userProfile) return;
@@ -198,14 +211,19 @@ const UserProfileScreen: React.FC = () => {
     }
   };
 
-  const handlePrivateMessage = (userId: string) => {
+  /*
+   * Escribir al AUTOR de una publicación de la lista. La tarjeta pasa sus datos; antes se ignoraban y se guardaban
+   * siempre el nombre y el avatar del dueño de este perfil, también al escribir a quien publicó un repost (R9 · E1).
+   */
+  const handlePrivateMessage = (autorId: string, datosDelAutor?: { displayName: string; avatarType?: string; avatarId?: string; photoURL?: string }) => {
+    const esElDueno = !!userProfile && autorId === userProfile.uid;
     navigation.navigate('Main', {
       screen: 'Inbox',
       params: {
         screen: 'Conversation',
         params: {
-          otherUserId: userId,
-          otherUserData: {
+          otherUserId: autorId,
+          otherUserData: datosDelAutor && !esElDueno ? datosDelAutor : {
             displayName: userProfile?.displayName,
             avatarType: userProfile?.avatarType,
             avatarId: userProfile?.avatarId,
@@ -481,8 +499,13 @@ const UserProfileScreen: React.FC = () => {
     );
   }
 
-  // Verificar si es el perfil del usuario actual
-  const isOwnProfile = user?.uid === userId;
+  /*
+   * ¿Es una cara MÍA? La ruta puede traer la entidad en vez del uid, así que no basta con comparar la ruta con la
+   * sesión: la cuenta de la cara se LEE con el resolutor canónico, nunca recortando el prefijo (R9 · E1).
+   */
+  const isOwnProfile = !!user && (user.uid === userId || cuentaDeIdentidad(userProfile.uid, userProfile as any) === user.uid);
+  /* Solo se puede denunciar lo que el servidor sabe resolver: un perfil con entidad. */
+  const sePuedeDenunciar = !isOwnProfile && esReferenciaDeEntidad(userProfile.entityId);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -614,13 +637,17 @@ const UserProfileScreen: React.FC = () => {
                 <Ionicons name="chatbubble-outline" size={20} color={theme.colors.text} />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.moreButton, { borderColor: theme.colors.border }]}
-                onPress={() => {/* Menu de opciones */}}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.text} />
-              </TouchableOpacity>
+              {sePuedeDenunciar && (
+                <TouchableOpacity
+                  style={[styles.moreButton, { borderColor: theme.colors.border }]}
+                  onPress={() => (user ? setDenunciando(true) : navigation.navigate('Login' as any))}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('moderation.report')}
+                >
+                  <Ionicons name="flag-outline" size={20} color={theme.colors.text} />
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -695,6 +722,16 @@ const UserProfileScreen: React.FC = () => {
           visible={showBannerViewer}
           imageUrls={[userProfile.bannerURL]}
           onClose={() => setShowBannerViewer(false)}
+        />
+      )}
+
+      {/* Denunciar el perfil: la misma hoja de toda la app, con la entidad como objetivo. */}
+      {denunciando && sePuedeDenunciar && (
+        <ReportSheet
+          visible={denunciando}
+          onClose={() => setDenunciando(false)}
+          objetivo={{ type: 'ENTITY', id: userProfile.entityId! }}
+          surface="profile"
         />
       )}
     </View>

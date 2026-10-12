@@ -153,8 +153,10 @@ console.log('\n── B · El botón de aceptar del perfil ajeno ──');
    * 14 · NO SE AÑADIÓ NINGUNA ETIQUETA NUEVA. El perfil tenía tres y sigue
    * teniendo tres: las dos de ËContact y la del botón de estado.
    */
-  check('14) el perfil sigue teniendo exactamente tres etiquetas de accesibilidad',
-    (PERFIL_CRUDO.match(/accessibilityLabel=/g) || []).length === 3
+  /* Cuatro desde R9 · E1: el botón de denunciar el perfil (antes un ⋯ sin acción ni nombre) dice lo que hace. */
+  check('14) el perfil tiene exactamente cuatro etiquetas de accesibilidad (la cuarta, «Denunciar»)',
+    (PERFIL_CRUDO.match(/accessibilityLabel=/g) || []).length === 4
+    && /accessibilityLabel=\{t\('moderation\.report'\)\}/.test(PERFIL_CRUDO)
     && (PERFIL_CRUDO.match(/accessibilityHint=/g) || []).length === 0);
   check('14) y las tres siguen saliendo de donde las dejó la fase 5I',
     /accessibilityLabel=\{t\('econtact\.acceptLabel', \{ lista: nombreLista \}\)\}/.test(PERFIL)
