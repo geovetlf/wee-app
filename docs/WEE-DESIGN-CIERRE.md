@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
 
 **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
 Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
-28 criterios de cierre, **11 se cumplen, 5 están abiertos, 9 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
+28 criterios de cierre, **12 se cumplen, 4 están abiertos, 9 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
 
 ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
 
@@ -298,7 +298,7 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
 | CL-15 | integración | Afiches y logos escriben su texto con un modelo que sabe (D4, F3) | dueño (D4) y servidor | `templates.ts:582`, `imageModels.ts:208`, `prompts.ts:567` | integración incompleta | DECISIÓN |
 | CL-16 | integración | Una referencia de estilo se USA (D6, F4) | dueño (D6) y servidor | `inputs.ts:14-23`, `templates.ts` | integración incompleta | DECISIÓN |
 | CL-17 | integración | Dominio `design` del Eval Engine, a $0, con dataset y baseline (F0) | hecho (R7-Design, E) | `ops/evals/dominios/design.mjs`, `dominios.mjs`, `datasets/design/` | integración incompleta (completada) | CUMPLIDO |
-| CL-18 | integración | Suite de emulador de `creatorChat → creatorQuote → creatorRun` (mock) | infraestructura / almacenamiento (solapa con J) | `functions/test/design-recorrido.emulator.mjs` | pendiente bloqueado por infraestructura | ABIERTO |
+| CL-18 | integración | Suite de emulador de `creatorChat → creatorQuote → creatorRun` (mock) | hecho (R8, agente EMU) | `functions/test/design-recorrido.emulator.mjs` | pendiente bloqueado por infraestructura (completada) | CUMPLIDO |
 | CL-19 | integración | Cancelar con regla clara para el dinero y reintentar el MISMO trabajo | servidor y dueño (H0 #6) | `functions/src/creator/index.ts`, `services/creatorService.ts` | integración incompleta | ABIERTO |
 | CL-20 | integración | Crear desde un proyecto guarda el trabajo en él (la pantalla lo manda en la primera llamada si lo recibe; hoy lo pasa la fila de un proyecto, no «Añadir»: P11) | hecho (R7-Design, tarea C) en el cliente; «Añadir»: P11 | `services/creatorService.ts:263-277`, `CreatorFlowScreen.tsx:166-167`, `ProjectScreen.tsx:157`, `App.tsx:278` | integración incompleta (arreglada en la pantalla) | CUMPLIDO |
 | CL-21 | integración | Sin reservas de Credits colgadas (informe de solo lectura del dueño) | dueño | `ops/reconciliacion/reservas-colgadas.mjs` | pendiente bloqueado por infraestructura | MANUAL |
