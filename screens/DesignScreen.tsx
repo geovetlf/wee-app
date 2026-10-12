@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
@@ -84,6 +84,8 @@ const DesignScreen: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
   const navigation = useNavigation<any>();
+  /* El proyecto desde el que se llegó (`Specialist` lo trae en su ruta): lo que se cree desde aquí nace en él (P11). Sin proyecto no viaja la clave. */
+  const projectId: string | undefined = useRoute<any>().params?.projectId;
   const { user } = useAuth();
   const { isMobile, isDesktop } = useResponsive();
 
@@ -148,8 +150,8 @@ const DesignScreen: React.FC = () => {
     });
     if (!contexto) return;
     if (!user) { navigation.navigate('Login'); return; }
-    navigation.navigate('CreatorFlow', contexto);
-  }, [prompt, ajustes, user, navigation, t]);
+    navigation.navigate('CreatorFlow', { ...contexto, ...(projectId ? { projectId } : {}) });
+  }, [prompt, ajustes, user, navigation, t, projectId]);
 
   const alElegirPunto = useCallback((punto: PuntoDePartida) => {
     /* La idea queda empezada, para terminarla con palabras propias. */

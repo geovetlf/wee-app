@@ -465,8 +465,9 @@ const sabeDeLaReferencia = (c) => /designReferencia|DesignReferencia/.test(c);
  * proyecto ni texto).
  */
 const sinReabrirCreaciones = (c) => c.replace(/const alAbrirCreacion = useCallback\([\s\S]*?\n  \}, \[[^\]]*\]\);/, '');
-check('C1) crear es ir a CreatorFlow con el objeto que arma `contextoDeDesign`, no con uno escrito al lado',
-  /const contexto = contextoDeDesign\(\{/.test(codigo) && /navigation\.navigate\('CreatorFlow', contexto\);/.test(codigo));
+/* P11 (ensayo R9): el proyecto de la ruta viaja con el contexto, como en Weë Chef; sin proyecto no viaja la clave. */
+check('C1) crear es ir a CreatorFlow con el objeto que arma `contextoDeDesign` (y el proyecto de la ruta, si lo hay: P11), no con uno escrito al lado',
+  /const contexto = contextoDeDesign\(\{/.test(codigo) && /navigation\.navigate\('CreatorFlow', \{ \.\.\.contexto, \.\.\.\(projectId \? \{ projectId \} : \{\}\) \}\);/.test(codigo));
 check('C2) el contexto sale de UN solo sitio: la pantalla no escribe la experiencia ni el lugar de trabajo a mano al CREAR (reabrir una creación ya hecha, que sí lleva su experiencia, es otro camino)',
   !/experienceId\s*:/.test(sinReabrirCreaciones(codigo)) && !/workspace\s*:/.test(sinReabrirCreaciones(codigo)));
 check('C3) la pantalla no construye presets, adjuntos, foto, controles creativos ni reabre trabajos al CREAR: solo lo escrito y los ajustes (reabrir una creación ya hecha es otro camino)',
@@ -494,9 +495,9 @@ const dependenciasSinDeclarar = (src, nombre, usados) => {
   const declaradas = src.slice(fin + '\n  }, ['.length, src.indexOf(']);', fin)).split(',').map((x) => x.trim()).filter(Boolean);
   return usados.filter((u) => new RegExp(`\\b${u}\\b`).test(cuerpo) && !declaradas.includes(u));
 };
-const USADOS_AL_CREAR = ['prompt', 'ajustes', 'user', 'navigation', 't'];
+const USADOS_AL_CREAR = ['prompt', 'ajustes', 'user', 'navigation', 't', 'projectId'];
 const sinDeclarar = dependenciasSinDeclarar(codigo, 'alCrear', USADOS_AL_CREAR);
-check('C10) `alCrear` declara en sus dependencias todo lo que lee (la idea, los ajustes, la sesión, la navegación y el traductor): nunca manda lo de antes',
+check('C10) `alCrear` declara en sus dependencias todo lo que lee (la idea, los ajustes, la sesión, la navegación, el traductor y el proyecto de la ruta): nunca manda lo de antes',
   sinDeclarar.length === 0 && /const alCrear = useCallback/.test(codigo), sinDeclarar.join(', ') || 'completas');
 
 /* CONTROLES: cada detector tiene que morder. */
