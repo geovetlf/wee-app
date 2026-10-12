@@ -213,65 +213,44 @@ diff --git a/docs/WEE-DESIGN-CIERRE.md b/docs/WEE-DESIGN-CIERRE.md
 index fa3c53b..0bb68ad 100644
 --- a/docs/WEE-DESIGN-CIERRE.md
 +++ b/docs/WEE-DESIGN-CIERRE.md
-@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
- 
- **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
+@@ -14,3 +14,3 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
  Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
 -28 criterios de cierre, **11 se cumplen, 5 están abiertos, 9 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
 +28 criterios de cierre, **12 se cumplen, 4 están abiertos, 9 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
  
- ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
- 
-@@ -305,7 +305,7 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
- | CL-22 | integración | Canario gobernado del recorrido de imágenes en `get-wee` | dueño e infraestructura | `docs/DESIGN.md «Antes de lanzar»`, `ops/produccion.json` | pendiente bloqueado por infraestructura | MANUAL |
- | CL-23 | resto | D1–D9 y DEC-01, 02, 05, 06 registradas como DECIDIDAS | dueño | `docs/DESIGN.md`, `docs/WEE-DESIGN-UIUX-DECISIONS.md` | bloqueador real (decisión) | DECISIÓN |
+@@ -307,3 +307,3 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
  | CL-24 | resto | Aviso con región viva y contraste AA en su acción | hecho (R7-Design, tarea C); componente compartido con Weë Studio | `AvisoDeCreacion.tsx:64,86` (`ThemeContext.tsx` solo se lee) | defecto reproducible (arreglado) | CUMPLIDO |
 -| CL-25 | resto | Sin código ni comentarios de lo que ya no existe (muro, `SpecialistHero`): el comentario del muro y la rama inalcanzable de Design están hechos (R8); queda `SpecialistHero.tsx`, sin importadores, que es una decisión de estructura visual del dueño (el diff que lo borra está en `docs/propuestas/cl25-borrar-specialisthero.diff`, sin aplicar) | línea de Design (R8, tarea NAV); dueño, para `SpecialistHero` | `specialists.ts`, `SpecialistScreen.tsx`, `SpecialistHero.tsx` | deuda técnica | ABIERTO |
 +| CL-25 | resto | Sin código ni comentarios de lo que ya no existe (muro, `SpecialistHero`): el comentario del muro y la rama inalcanzable de Design están hechos (R8); `SpecialistHero.tsx`, sin importadores, se borró por decisión del dueño (estructura visual) | línea de Design (R8, tarea NAV); dueño, para `SpecialistHero` | `specialists.ts`, `SpecialistScreen.tsx`, `SpecialistHero.tsx` | deuda técnica | CUMPLIDO |
  | CL-26 | resto | Verificación visual en móvil, tableta y escritorio | quien tenga web con emuladores | `DesignScreen.tsx`, `components/design/*` | pendiente bloqueado por infraestructura | MANUAL |
- | CL-27 | resto | `tsc --noEmit` de la app en 0 errores | cualquiera que toque `.ts/.tsx` | todo `.ts/.tsx` | verificación | CUMPLIDO |
- | CL-28 | resto | La cadena entera y las cercas, en verde | quien integre | `functions/package.json`, `puente-pre-f1d.test.mjs` | verificación | MANUAL |
 diff --git a/functions/test/_design-cierre.mjs b/functions/test/_design-cierre.mjs
 index fc01e8b..59620ff 100644
 --- a/functions/test/_design-cierre.mjs
 +++ b/functions/test/_design-cierre.mjs
-@@ -330,7 +330,7 @@ export const CRITERIOS = [
-       if (/spec\.id === 'design'/.test(leer('screens/SpecialistScreen.tsx'))) restos.push('SpecialistScreen.tsx:214 rama de design inalcanzable');
-       const importadores = ['screens', 'components', 'navigation'].flatMap((d) => fs.readdirSync(path.resolve(RAIZ, d), { recursive: true }).map((f) => `${d}/${String(f).split(path.sep).join('/')}`))
+@@ -332,3 +332,3 @@ export const CRITERIOS = [
          .filter((f) => /\.tsx?$/.test(f) && f !== 'components/creator/SpecialistHero.tsx' && /SpecialistHero/.test(leer(f)));
 -      if (importadores.length === 0) restos.push('SpecialistHero.tsx sin ningún importador (borrarlo o no es una decisión de estructura visual del dueño: docs/propuestas/cl25-borrar-specialisthero.diff, sin aplicar)');
 +      if (existe('components/creator/SpecialistHero.tsx') && importadores.length === 0) restos.push('SpecialistHero.tsx sin ningún importador (borrarlo o no es una decisión de estructura visual del dueño: docs/propuestas/cl25-borrar-specialisthero.diff, sin aplicar)');
        return { ok: restos.length === 0, evidencia: restos.join(' · ') || 'limpio' };
-     },
-   },
 diff --git a/functions/test/catalogo-i18n.test.mjs b/functions/test/catalogo-i18n.test.mjs
 index 674b227..b2ea0bd 100644
 --- a/functions/test/catalogo-i18n.test.mjs
 +++ b/functions/test/catalogo-i18n.test.mjs
-@@ -332,14 +332,14 @@ console.log('\n── G · Las pantallas piden el catálogo ya traducido ──'
- 
-   /* Y nadie más lee el catálogo por su cuenta saltándose la traducción. */
+@@ -334,3 +334,3 @@ console.log('\n── G · Las pantallas piden el catálogo ya traducido ──'
    const sospechosos = ['components/creator/ActionGrid.tsx', 'components/creator/ExamplesRow.tsx',
 -    'components/creator/IdeaBox.tsx', 'components/creator/SpecialistHero.tsx',
 +    'components/creator/IdeaBox.tsx',
      'components/creator/UploadBox.tsx', 'components/creator/TravelLauncher.tsx']
-     .filter((p) => /getSpecialist\(|SPECIALISTS\[/.test(soloCodigo(leer(p))));
-   check('38) las piezas compartidas reciben el texto, no van a buscarlo',
-     sospechosos.length === 0, sospechosos.join(' '));
- 
+@@ -341,3 +341,3 @@ console.log('\n── G · Las pantallas piden el catálogo ya traducido ──'
    /* Los componentes tampoco vuelven a traducir lo que ya les llega traducido. */
 -  const rehacen = ['components/creator/ActionGrid.tsx', 'components/creator/SpecialistHero.tsx',
 +  const rehacen = ['components/creator/ActionGrid.tsx',
      'components/creator/ExamplesRow.tsx']
-     .filter((p) => /t\((action|spec|example|config)\./.test(soloCodigo(leer(p))));
-   check('39) y no lo traducen dos veces', rehacen.length === 0, rehacen.join(' '));
 diff --git a/functions/test/cierre-cliente.test.mjs b/functions/test/cierre-cliente.test.mjs
 index 2f32a80..ad2c6c4 100644
 --- a/functions/test/cierre-cliente.test.mjs
 +++ b/functions/test/cierre-cliente.test.mjs
-@@ -131,9 +131,9 @@ console.log('\n── A · El código muerto se retiró y no vuelve ──');
-   const likes = sinComentarios(leer('services/likesService.ts'));
-   check('3) likesService solo lee: escribir y vigilar likes era de useLikes, retirado',
+@@ -133,5 +133,5 @@ console.log('\n── A · El código muerto se retiró y no vuelve ──');
      /async getUserLikedPostsWithData\(/.test(likes) && !/likePost|unlikePost|toggleLike|hasUserLiked|subscribeToPostLikes|deleteUserLikes|deletePostLikes|recalculatePostLikes|getPostLikers/.test(likes));
 -  /* Lo que se QUEDA a propósito: el Home está pendiente de decisión del dueño (CLAUDE.md) y la tarjeta de sección
 -     la exige catalogo-i18n. Si se borran, que sea por decisión y no por arrastre. */
@@ -280,5 +259,3 @@ index 2f32a80..ad2c6c4 100644
 +     `SpecialistHero` se borró por decisión del dueño (CL-25, docs/WEE-DESIGN-CIERRE.md): ya no hay tarjeta de sección que lo exija. */
 +  check('4) se queda, por decisión: HeroCarousel', existe('components/HeroCarousel.tsx'));
  }
- 
- /* ════════════════════════════════════════════════════════════════════════ */
