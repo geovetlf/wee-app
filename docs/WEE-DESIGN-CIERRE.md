@@ -281,9 +281,9 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
 
 | CL | Tipo | Criterio | Responsable | Archivos | Clase | Hoy |
 |---|---|---|---|---|---|---|
-| CL-01 | bloqueador | «Crear» de la pantalla llega a `CreatorFlow` (no es un temporizador) | dueño (D1, D2, D7) y línea de Design | `screens/DesignScreen.tsx`, `utils/contextoDeDesign.ts`, `puente-design.test.mjs` | bloqueador real | DECISIÓN |
+| CL-01 | bloqueador | «Crear» de la pantalla llega a `CreatorFlow` (no es un temporizador) | dueño (D1, D2, D7) y línea de Design | `screens/DesignScreen.tsx`, `utils/contextoDeDesign.ts`, `puente-design.test.mjs` | bloqueador real | CUMPLIDO |
 | CL-02 | bloqueador | Hay una puerta desde Design a Hogar & Diseño | dueño (D2) y línea de Design | `screens/DesignScreen.tsx`, `components/design/*` | bloqueador real | DECISIÓN |
-| CL-03 | bloqueador | Lo elegido (qué se diseña, ajustes en palabras) viaja con la petición | línea de Design | `screens/DesignScreen.tsx`, `utils/contextoDeDesign.ts` | bloqueador real | ABIERTO |
+| CL-03 | bloqueador | Lo elegido (qué se diseña, ajustes en palabras) viaja con la petición | línea de Design | `screens/DesignScreen.tsx`, `utils/contextoDeDesign.ts` | bloqueador real | CUMPLIDO |
 | CL-04 | bloqueador | «Mis creaciones» enseña lo creado (carga, vacío, error); las muestras, rotuladas | hecho (R8, PAN, rama `r8/pantalla`; P3) | `screens/DesignScreen.tsx`, `hooks/useCreacionesDeDesign.ts`, `utils/creacionesDeDesign.ts`, `FilaDeCreaciones.tsx`, `i18n/textos/*/design.ts` | bloqueador real (arreglado) | CUMPLIDO |
 | CL-05 | bloqueador | Las puertas prometen lo que el motor hace hoy (D1, D7) | dueño | `docs/DESIGN.md §4`, `constants/designTools.ts` | bloqueador real (decisión) | DECISIÓN |
 | CL-06 | defecto | Los ajustes abren con «Automático» | hecho (`3da4a95`) | `constants/designTools.ts` | defecto reproducible (arreglado) | CUMPLIDO |
