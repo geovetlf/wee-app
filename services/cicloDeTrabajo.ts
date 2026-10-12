@@ -16,7 +16,7 @@
  * `ErrorDeCiclo('no_disponible')`: nunca devuelven datos inventados.
  *
  * Códigos de `ErrorDeCiclo` (la interfaz los traduce con t()):
- *   invalido · no_encontrado · conflicto (requestId reutilizado con otros datos) · no_disponible
+ *   invalido · no_encontrado · conflicto (requestId reutilizado con otros datos) · referenciado (D-5) · no_disponible
  */
 
 import {
@@ -89,10 +89,13 @@ export interface PaginaDeCreacionesFinales {
 /** Error con código estable, para que la interfaz decida qué texto (i18n) pinta. */
 export class ErrorDeCiclo extends Error {
   code: string;
-  constructor(code: string, mensaje?: string) {
+  /** D-5: con `referenciado`, el impacto que bloqueó el borrado. */
+  detalle?: unknown;
+  constructor(code: string, mensaje?: string, detalle?: unknown) {
     super(mensaje ?? code);
     this.name = 'ErrorDeCiclo';
     this.code = code;
+    this.detalle = detalle;
   }
 }
 
@@ -240,8 +243,8 @@ const llamar = async <T,>(datos: Record<string, unknown>): Promise<T> => {
     const fn = httpsCallable(functions, 'cicloDeTrabajo', { timeout: 60_000 });
     return (await fn(datos)).data as T;
   } catch (e) {
-    const err = e as { code?: string; details?: { code?: string } };
-    if (err?.details?.code) throw new ErrorDeCiclo(err.details.code);
+    const err = e as { code?: string; details?: { code?: string; impacto?: unknown } };
+    if (err?.details?.code) throw new ErrorDeCiclo(err.details.code, undefined, err.details.impacto);
     /* Sin `details`: la Function no está (aún no desplegada). Nunca se inventa un resultado. */
     if (err?.code === 'functions/not-found' || err?.code === 'functions/unimplemented') throw new ErrorDeCiclo('no_disponible');
     throw e;
@@ -282,4 +285,34 @@ export interface EntradaTextoFinal {
 /** Crea el asset de texto (Content Core) y su creación. Idempotente por `requestId`; otro texto con el mismo id = `conflicto`. */
 export async function guardarTextoFinal(entrada: EntradaTextoFinal): Promise<{ creacionId: string; assetId: string; yaExistia: boolean }> {
   return llamar({ accion: 'guardarTexto', ...entrada });
+}
+
+/* ── D-5 · Borrar un asset con su impacto (decisión del dueño, 2026-10-12) ─── */
+
+export interface ImpactoDeBorrado {
+  assetId: string;
+  irreversible: true;
+  requiereConfirmacion: true;
+  /** Creaciones que pierden este asset; `quedaVacia` = esa creación desaparece porque era su único asset. */
+  creaciones: { creacionId: string; nombre: string; quedaVacia: boolean; assetsQueQuedan: number }[];
+  /** Si hay alguno, el borrado se bloquea (`ErrorDeCiclo('referenciado')`) para no romper esas referencias. */
+  bloqueos: { tipo: 'elemento' | 'plano'; id: string }[];
+}
+
+/** Qué pasaría si se borrara este asset. No cambia nada. */
+export async function impactoDeBorrarAsset(assetId: string): Promise<ImpactoDeBorrado> {
+  return llamar({ accion: 'impactoDeBorrado', assetId });
+}
+
+export type ResultadoBorrarAsset =
+  | { hecho: false; necesitaConfirmacion: true; impacto: ImpactoDeBorrado }
+  | { hecho: true; impacto: ImpactoDeBorrado; sustituciones: Record<string, string | null>; pendingPhysicalDeletion: boolean };
+
+/**
+ * Borrar un asset sin romper nada: sin `confirmar: true` solo devuelve el impacto (la interfaz lo explica y pide
+ * confirmación); con él, saca el asset de cada creación (nunca borra una creación entera en cascada) y lo retira.
+ * `sustituciones`: creación anterior → creación nueva (o null si quedó vacía).
+ */
+export async function borrarAsset(assetId: string, confirmar: boolean): Promise<ResultadoBorrarAsset> {
+  return llamar({ accion: 'borrarAsset', assetId, confirmar: confirmar === true });
 }

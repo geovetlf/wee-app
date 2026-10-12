@@ -2,7 +2,7 @@ import { Firestore, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { createHash } from 'crypto';
 import type { AssetDoc } from './index';
-import { crearMaterialDeTexto, leerMaterial, leerTextoDelMaterial } from './index';
+import { crearMaterialDeTexto, leerMaterial, leerTextoDelMaterial, retirarMaterial } from './index';
 import {
   CreacionGuardadaMinima,
   EstadoDeCreacion,
@@ -92,7 +92,7 @@ export interface CreacionDoc {
 
 /** Error con código estable. El callable lo traduce a HttpsError con una frase ya catalogada y `details.code`. */
 export class ErrorDeCiclo extends Error {
-  constructor(public readonly code: 'invalido' | 'no_encontrado' | 'conflicto', mensaje?: string) {
+  constructor(public readonly code: 'invalido' | 'no_encontrado' | 'conflicto' | 'referenciado', mensaje?: string, public readonly detalle?: unknown) {
     super(mensaje ?? code);
     this.name = 'ErrorDeCiclo';
   }
@@ -106,6 +106,8 @@ export interface DepsDeCreaciones {
   crearTexto?: typeof crearMaterialDeTexto;
   /** D-3: leer el texto de una ficha propia (por defecto, la del Content Core). */
   leerTexto?: typeof leerTextoDelMaterial;
+  /** D-5: retirar el material (por defecto, `retirarMaterial`, el mismo camino que `deleteAsset`). */
+  retirar?: typeof retirarMaterial;
 }
 
 const laBase = (d: DepsDeCreaciones) => d.db ?? getFirestore();
@@ -377,19 +379,111 @@ export const guardarTextoFinalDeCuenta = async (
   return { creacionId: r.creacionId, assetId, yaExistia: r.yaExistia };
 };
 
+/* ── D-5 · Borrar un asset con su impacto (decisión del dueño, 2026-10-12) ──── */
+
+export interface ImpactoDeBorrado {
+  assetId: string;
+  /** Retirar un asset es irreversible (la ficha queda retirada; los bytes, pendientes de borrado físico). */
+  irreversible: true;
+  /** Siempre: sin `confirmar` no se borra nada. */
+  requiereConfirmacion: true;
+  /** Creaciones finales que lo contienen: pierden ESE asset; si era el único, la creación queda eliminada. */
+  creaciones: { creacionId: string; nombre: string; quedaVacia: boolean; assetsQueQuedan: number }[];
+  /** Lo que no se puede arreglar desde aquí y por eso BLOQUEA el borrado: se conserva lo referenciado. */
+  bloqueos: { tipo: 'elemento' | 'plano'; id: string }[];
+}
+
+export const impactoDeBorrarAsset = async (cuenta: string, assetId: unknown, deps: DepsDeCreaciones = {}): Promise<ImpactoDeBorrado> => {
+  if (!cuentaValida(cuenta)) throw new ErrorDeCiclo('invalido');
+  if (typeof assetId !== 'string' || !FORMA_DE_ASSET_ID.test(assetId)) throw new ErrorDeCiclo('invalido');
+  const m = await elMaterial(deps)(assetId);
+  if (!m || m.ownerAccountId !== cuenta || m.status === 'deleted') throw new ErrorDeCiclo('no_encontrado');
+  const db = laBase(deps);
+  /* Consultas de una o dos igualdades (sin índice compuesto), acotadas a la cuenta. */
+  const creaciones = (await db.collection(COLECCION_DE_CREACIONES).where('ownerAccountId', '==', cuenta).where('status', '==', 'final').get()).docs
+    .map((d) => d.data() as CreacionDoc)
+    .filter((c) => Array.isArray(c.assetIds) && c.assetIds.includes(assetId))
+    .map((c) => ({ creacionId: c.creationId, nombre: c.nombre ?? '', quedaVacia: c.assetIds.length === 1, assetsQueQuedan: c.assetIds.length - 1 }));
+  const elementos = (await db.collection('elements').where('ownerAccountId', '==', cuenta).get()).docs
+    .filter((d) => ((d.data() as { refs?: { assetId?: string }[] }).refs ?? []).some((r) => r && r.assetId === assetId))
+    .map((d) => ({ tipo: 'elemento' as const, id: d.id }));
+  const planos = (await db.collection('shots').where('ownerAccountId', '==', cuenta).where('producedAssetId', '==', assetId).get()).docs
+    .map((d) => ({ tipo: 'plano' as const, id: d.id }));
+  return { assetId, irreversible: true, requiereConfirmacion: true, creaciones, bloqueos: [...elementos, ...planos] };
+};
+
+/**
+ * BORRAR UN ASSET SIN ROMPER NADA. Nunca borra en cascada una creación entera: cada creación que lo contiene pierde
+ * ESE asset (y, si era el único, queda eliminada — una creación vacía no existe). Lo que lo referencia y no se puede
+ * arreglar aquí (un Element, un plano) BLOQUEA el borrado. Sin `confirmar: true` solo devuelve el impacto.
+ *
+ * El id de una creación sale de su conjunto de assets; al cambiar el conjunto, la creación pasa al id del conjunto
+ * nuevo (si ya existía viva, se reutiliza) y la anterior queda eliminada con `sustituidaPor`. Así se conserva la
+ * idempotencia de «finalizar» sin duplicados. El orden es a propósito: primero las creaciones, luego `retirarMaterial`
+ * — si la retirada fallara, el asset sigue vivo y vuelve a «sin decidir»; nunca queda una creación apuntando a un
+ * asset retirado.
+ */
+export const borrarAssetDeCuenta = async (
+  cuenta: string,
+  assetId: unknown,
+  confirmar: unknown,
+  deps: DepsDeCreaciones = {},
+): Promise<
+  | { hecho: false; necesitaConfirmacion: true; impacto: ImpactoDeBorrado }
+  | { hecho: true; impacto: ImpactoDeBorrado; sustituciones: Record<string, string | null>; pendingPhysicalDeletion: boolean }
+> => {
+  const impacto = await impactoDeBorrarAsset(cuenta, assetId, deps);
+  if (impacto.bloqueos.length > 0) throw new ErrorDeCiclo('referenciado', undefined, impacto);
+  if (confirmar !== true) return { hecho: false, necesitaConfirmacion: true, impacto };
+  const id = impacto.assetId;
+  const db = laBase(deps);
+  const coleccion = db.collection(COLECCION_DE_CREACIONES);
+  const at = elReloj(deps)();
+  const sustituciones: Record<string, string | null> = {};
+  for (const afectada of impacto.creaciones) {
+    await db.runTransaction(async (tx) => {
+      const ref = coleccion.doc(afectada.creacionId);
+      const snap = await tx.get(ref);
+      const c = snap.exists ? (snap.data() as CreacionDoc) : null;
+      if (!c || c.ownerAccountId !== cuenta || c.status !== 'final' || !c.assetIds.includes(id)) {
+        sustituciones[afectada.creacionId] = c?.creationId ?? null;
+        return;
+      }
+      const quedan = c.assetIds.filter((x) => x !== id);
+      if (quedan.length === 0) {
+        tx.set(ref, { status: 'eliminada', deletedAt: at, updatedAt: at, assetsRetirados: [id] }, { merge: true });
+        sustituciones[afectada.creacionId] = null;
+        return;
+      }
+      const nuevoId = idDeCreacion(cuenta, quedan);
+      const nuevoRef = coleccion.doc(nuevoId);
+      const ya = await tx.get(nuevoRef);
+      if (!ya.exists || (ya.data() as CreacionDoc).status !== 'final') {
+        tx.set(nuevoRef, { ...c, creationId: nuevoId, assetIds: quedan, status: 'final', updatedAt: at, deletedAt: null, sustituyeA: c.creationId });
+      }
+      tx.set(ref, { status: 'eliminada', deletedAt: at, updatedAt: at, sustituidaPor: nuevoId, assetsRetirados: [id] }, { merge: true });
+      sustituciones[afectada.creacionId] = nuevoId;
+    });
+  }
+  const r = await (deps.retirar ?? retirarMaterial)(cuenta, id);
+  if (r.status === 'no_existe' || r.status === 'no_es_tuyo') throw new ErrorDeCiclo('no_encontrado');
+  const pendientes = r.status === 'retirado' ? r.pendientes : (r.pendientes ?? 0);
+  return { hecho: true, impacto, sustituciones, pendingPhysicalDeletion: pendientes > 0 };
+};
+
 /* ── El callable ───────────────────────────────────────────────────────────── */
 
 const comoHttps = (e: unknown): never => {
   if (e instanceof ErrorDeCiclo) {
     if (e.code === 'no_encontrado') throw new HttpsError('not-found', 'No encontramos esa creación.', { code: e.code });
-    throw new HttpsError(e.code === 'conflicto' ? 'failed-precondition' : 'invalid-argument',
-      'Falta algo en tu pedido. Revísalo e inténtalo de nuevo.', { code: e.code });
+    throw new HttpsError(e.code === 'conflicto' || e.code === 'referenciado' ? 'failed-precondition' : 'invalid-argument',
+      'Falta algo en tu pedido. Revísalo e inténtalo de nuevo.', { code: e.code, ...(e.detalle !== undefined ? { impacto: e.detalle } : {}) });
   }
   throw e;
 };
 
 /**
- * `cicloDeTrabajo` — `{ accion: 'finalizar' | 'reabrir' | 'eliminar' | 'guardarTexto', … }`. Lo
+ * `cicloDeTrabajo` — `{ accion: 'finalizar' | 'reabrir' | 'eliminar' | 'guardarTexto' | 'impactoDeBorrado' | 'borrarAsset', … }`. Lo
  * único que trae el cliente es QUÉ; QUIÉN lo pone la sesión. Exportado (D-2) y
  * sin desplegar (ver la cabecera).
  */
@@ -410,6 +504,8 @@ export const cicloDeTrabajo = onCall({ region: 'us-central1', timeoutSeconds: 60
         texto: data.texto, herramienta: data.herramienta, proyectoOrigenId: data.proyectoOrigenId, requestId: data.requestId, nombre: data.nombre,
       });
     }
+    if (data.accion === 'impactoDeBorrado') return await impactoDeBorrarAsset(cuenta, data.assetId);
+    if (data.accion === 'borrarAsset') return await borrarAssetDeCuenta(cuenta, data.assetId, data.confirmar);
     throw new ErrorDeCiclo('invalido');
   } catch (e) {
     return comoHttps(e);
