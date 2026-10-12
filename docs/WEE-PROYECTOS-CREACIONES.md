@@ -79,7 +79,33 @@ a él (guardando `proyectoOrigenInicialId`) y mueve a él los trabajos de la cre
 - `projectsService.archive / unarchive` (campo `archivedAt`, permitido por la regla actual de `creatorProjects`).
 - Índice: `creations (ownerAccountId ↑, status ↑, finalizadaEn ↓)`.
 
-## 6. Decisiones del dueño (comportamiento conservador aplicado mientras tanto)
+## 6.0 DECISIONES DEL DUEÑO (2026-10-12) — vigentes
+
+Decisión del dueño, 2026-10-12, transmitida por el coordinador de R9. Sustituyen al comportamiento conservador de § 6.
+
+- **D-1 · Sin decidir.** Los assets antiguos se muestran en una sección separada «Sin decidir». No se migran, no se
+  borran y no se mezclan con las creaciones nuevas; conservan propiedad, accesibilidad y trazabilidad. Contrato:
+  `listarSinDecidir(uid, cursor?)` — assets de la cuenta que no forman parte de ninguna creación ni están eliminados,
+  paginado y barato en lecturas. La pantalla la hace la línea B.
+- **D-2 · Conectar `cicloDeTrabajo`.** AUTORIZADO exportarlo en `functions/src/index.ts`, modificar la cerca
+  `runtime-map` con sus entradas y preparar reglas e índices. NO se despliega en ningún proyecto remoto; la prueba de
+  reglas en emulador la ejecuta el coordinador.
+- **D-3 · Textos finales como assets.** Los resultados finales de texto de Chef, Writer, Business y Travel pueden
+  guardarse como ASSETS DE TEXTO (tipo, propietario, fecha, procedencia, vínculo con proyecto) por el Content Core
+  existente, SOLO cuando la persona elige conservarlo — nunca cada respuesta provisional. Contrato:
+  `guardarTextoFinal({ texto, herramienta, proyectoOrigenId?, requestId })`, idempotente, crea el asset y la creación.
+- **D-4 · Creaciones solo locales.** Se puede finalizar y guardar un resultado que solo está en el dispositivo,
+  distinguiendo local de sincronizado; la nube no es obligatoria; si algo requiere conexión se informa y el resultado
+  local se protege. Contrato: `ubicacion: 'local'` con referencia local, sin subir bytes.
+- **D-5 · Borrar un asset de una creación.** No borra en cascada la creación entera; se verifican permisos y
+  referencias compartidas; se devuelve qué se eliminará para que la interfaz lo explique; se conserva lo referenciado;
+  sin referencias rotas ni huérfanos; confirmación explícita (flag en el callable) cuando el borrado es irreversible
+  o afecta a otros recursos.
+- **D-6 · `projectId` ajeno en `creatorChat`.** AUTORIZADO corregirlo: el servidor comprueba la propiedad del
+  proyecto en CADA solicitud; se actualizan B10 de `weeai-cliente-cierre` y las pruebas antiguas al comportamiento
+  seguro (sin debilitar controles) y se añaden pruebas de acceso cruzado.
+
+## 6. Propuestas originales (histórico; ver § 6.0 para lo decidido)
 
 - **D-1 · Los assets existentes que hoy salen en «Mis creaciones».** Opciones: (a) tratarlos todos como finales
   (crear sus creaciones en una migración); (b) dejarlos como «sin decidir» y mostrarlos aparte («Historial» / «Todo tu
