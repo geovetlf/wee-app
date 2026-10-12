@@ -95,7 +95,7 @@ cruza.
 8. **La pantalla de Chef hace lo que dice**, tocada de verdad: ocho funciones en su orden, en español y en inglés; las cinco que
    abren la conversación llevan su opción de siempre y esa opción existe en la plantilla del servidor; las tres de panel no
    navegan; sin sesión llevan a entrar; el gesto de atrás de Android cierra el panel antes de salir; el micrófono avisa
-   «próximamente» y no finge dictar (`aceptacion-pantallas`, 65 comprobaciones).
+   «próximamente» y no finge dictar (`aceptacion-pantallas`, 67 comprobaciones).
 
 ## 3. Weë Design
 
@@ -165,7 +165,7 @@ especificación de G (rama `r7/g-chef-preparacion`, sin fusionar a la hora de es
 | **ACE-C-19** | P3 | **Muro social dentro de Chef** | NO EXISTE por decisión | G `D-2`, `D-CHEF-10` |
 | **ACE-C-20** | P1 | **Los 16 idiomas.** Pantalla, funciones, paneles y errores salen en el idioma de la persona | PASA el cliente · el servidor solo escribe es/en/da (el resto cae al inglés: G fila 36) | **a** `catalogo-i18n`, `experiencias-i18n`, `chef-weeai` E · **b** `aceptacion-pantallas` A (en inglés), `aceptacion-errores-y-estados` B |
 | **ACE-C-21** | P2 | **Accesibilidad:** cada función es un botón con su nombre; la caja tiene nombre para quien la escucha | PASA por estructura · lector real **sin verificar** | **b** `aceptacion-pantallas` A · **d** lector de pantalla |
-| **ACE-C-22** | P1 | **Fallo a medias** (la foto del plato falla tras escribir la receta): el trabajo falla, se reembolsa todo y la receta se conserva | PASA (caracterizado) | G `chef-caracterizacion` §F, `AC-22` · **b** `aceptacion-recorrido-servidor` C (mismo camino) |
+| **ACE-C-22** | P1 | **Fallo a medias** (la foto del plato falla tras escribir la receta): el trabajo falla, se reembolsa todo y la receta se conserva | PASA (caracterizado) | G `chef-caracterizacion` §F, `AC-22` · el mismo código de reembolso que `ACE-D-10` (`aceptacion-recorrido-servidor` C lo ejecuta con un plan de Design, no con el de Chef) |
 | **ACE-C-23** | P0 | **Llegar a Chef escribiendo.** «Una receta de pasta con lo que tengo en la nevera», en la caja del Studio o en la búsqueda de Weë AI, lleva a Weë Chef (o a Weë Brain), no a Weë Beauty | **HUECO**: va a Weë Beauty por un prefijo («una» → `unas`; `constants/weeExperiences.ts:132`; H `B-02`). **Lo arregla K en el cliente (TDD, otro worktree)** | **b** *no se escribe aquí* (de K) · H `sonda-destino.log`, `sonda-palabras.log` |
 
 ## 5. Transversales
@@ -192,7 +192,7 @@ compilado: `npm --prefix functions run build` antes.
 | `aceptacion-recorrido-servidor.test.mjs` | Ejecuta `creatorChat` → `creatorQuote` → `creatorRun` COMPILADOS con el Credit Engine y el libro de verdad y el proveedor de prueba; solo sustituye dónde se guardan los documentos. Design (un logo de una frase a su cobro), Chef (receta, menú, con y sin foto), el proveedor que falla, no alcanzan los Credits, doble pulsación, sin sesión y sesión ajena | 51 · 3 | 4–10 s |
 | `aceptacion-conversacion.test.mjs` | Los 604 planes posibles de Design, Hogar & Diseño y Chef recorridos como los recorre una persona; 14 frases reales con su trinquete («nunca pregunta más ni entiende menos»); las 35 puertas de Design; los huecos de Design y de las restricciones de Chef | 30 · 5 | 2–3 s |
 | `aceptacion-errores-y-estados.test.mjs` | Cada causa de error (servidor → Firebase → app) en los 16 idiomas; los seis estados; los textos de progreso y de «no te cobré» de las 28 capacidades | 22 · 0 | 5–6 s |
-| `aceptacion-pantallas.test.mjs` | Dibuja con `react-dom/server` la pantalla de Chef (funciones, paneles, ajustes, foto, mis proyectos, en español y en inglés) y la de Design (puertas, atrás, ajustes, referencias, «Crear») y TOCA cada botón por su etiqueta | 65 · 1 | 7–13 s |
+| `aceptacion-pantallas.test.mjs` | Dibuja con `react-dom/server` la pantalla de Chef (funciones, paneles, ajustes, foto, mis proyectos, en español y en inglés) y la de Design (puertas, atrás, ajustes, referencias, «Crear») y TOCA cada botón por su etiqueta | 67 · 1 | 7–13 s |
 
 Módulos de apoyo (no son suites): `_aceptacion.mjs` (el comprobador con `hueco()`, las esperas aceleradas y el detector de
 proveedores), `_firestore-en-memoria.mjs` y `_pantallas.mjs`.

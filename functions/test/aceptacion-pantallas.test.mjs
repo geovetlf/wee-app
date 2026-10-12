@@ -103,6 +103,9 @@ const chefEs = chef();
     caja.valor === '' && caja.placeholder === '' && caja.etiqueta === tEs('chef.placeholder')
     && caja.acciones.map((a) => a.icono).join() === 'add,camera-outline,image-outline,mic-outline,options-outline', caja.acciones.map((a) => a.icono).join());
   check('ACE-C-01 · el botón de enviar se llama «Cocinar»', caja.etiquetaEnviar === tEs('chef.sendLabel') && /Cocinar/.test(caja.etiquetaEnviar));
+  const deFunciones = d.botones.filter((b) => titulos.includes(b.etiqueta));
+  check('ACE-C-21 · cada función es un botón con su nombre (rol «button» y etiqueta no vacía), y la caja tiene nombre para quien la escucha',
+    deFunciones.length === 8 && deFunciones.every((b) => b.rol === 'button' && !!String(b.etiqueta).trim()) && !!String(chefEs.capturas.CajaDePrompt.etiqueta).trim());
   const mitad = (d.html.match(/data-ancho="50%"/g) || []).length;
   check('ACE-C-01 · en el teléfono, dos funciones por fila (cada hueco ocupa la mitad)', mitad === 8, `${mitad} huecos al 50 %`);
   check('ACE-C-01 · entrar no llama a nadie ni navega a ninguna parte', chefEs.navegacion.length === 0 && chefEs.consultasDeTrabajos.length === 0);
@@ -348,9 +351,9 @@ const design = crearEntorno({ pantalla: 'screens/DesignScreen.tsx', dobles: dobl
   check('ACE-D-01 · la pantalla de Design entrega su cabecera, su caja, sus puertas y su galería, y empieza «quieta» (nada creándose)',
     c.StudioHeader.nombre === 'Design' && c.StudioPromptComposer.valor === '' && c.StudioPromptComposer.placeholder === tEs('design.placeholder') && c.StudioPromptComposer.ocupado === false
     && !!c.DesignExplore && c.AvisoDeCreacion.estado === 'quieto' && c.FilaDeCreaciones.creaciones.length === 4 && !c.DesignPanel);
-  check('ACE-D-01 · las puertas de la portada se abren con la puerta que se toca y «Ver todas» las enseña todas; la galería es de MUESTRA (sus títulos son claves, no contenido de nadie)',
+  check('ACE-D-20 · ACE-D-01 · las puertas de la portada se abren con la puerta que se toca y «Ver todas» las enseña todas; la galería es de MUESTRA (sus títulos son claves, no contenido de nadie)',
     typeof c.DesignExplore.onAbrir === 'function' && typeof c.DesignExplore.onVerTodas === 'function' && c.FilaDeCreaciones.creaciones.every((x) => typeof x.claveTitulo === 'string'));
-  check('ACE-D-01 · en el teléfono, dos puertas por fila', c.DesignExplore.porFila === 2, String(c.DesignExplore.porFila));
+  check('ACE-D-24 · ACE-D-01 · en el teléfono, dos puertas por fila', c.DesignExplore.porFila === 2, String(c.DesignExplore.porFila));
   check('ACE-D-01 · «Ver todas» (las creaciones) lleva a Mis proyectos', (c.FilaDeCreaciones.onVerTodas(), design.navegacion.some((n) => n[1] === 'Projects')));
 }
 {
@@ -449,6 +452,13 @@ titulo('F · Weë Design: las puertas, los puntos de partida, el gesto de atrás
   const conReferencias = design.dibujar();
   check('ACE-D-05 · añadir una referencia la deja a la vista como ficha, y se pueden añadir varias', (conReferencias.html.match(/data-ficha=/g) || []).length === 2 && design.capturas.AjustesContextuales.referencias === 2);
   aviso('OBSERVACIÓN ACE-D-05 (H B-03 iii): las referencias de la pantalla montada son nombres de MUESTRA (no hay selector de archivos) y el botón del micrófono (`onVoz`) está enganchado a la misma función: pulsar el micrófono también «añade una referencia». Es cosa de Weë Design (tarea F); aquí no se pina porque un arreglo local lo cambiaría con razón.');
+}
+
+{
+  const almacenes = /AsyncStorage|localStorage|sessionStorage|SecureStore|expo-file-system/;
+  const fuentes = ['screens/DesignScreen.tsx', 'screens/ChefScreen.tsx'].map((p) => leer(p));
+  check('ACE-D-19 · lo escrito, los ajustes, las referencias y la foto de Weë Design y de Weë Chef son estado de la pantalla: ninguna de las dos los guarda en ningún almacén (se pierden al cerrar la sección; los trabajos y los materiales sí persisten, en el servidor)',
+    fuentes.every((src) => !almacenes.test(src)));
 }
 
 globalThis.setTimeout = setTimeoutReal;

@@ -87,7 +87,7 @@ titulo('A · Lo que lee una persona en español, por cada causa');
   const t = traductorDe('es');
   const frases = new Map(CASOS.map((c) => [c.id, CREATOR.humanizeCreatorError(c.error, t, 'es')]));
   const lista = [...frases.entries()];
-  check(`ACE-T-02 · las ${CASOS.length} causas se convierten en una frase entera, sin espacios sobrantes`,
+  check(`ACE-T-02 · ACE-D-21 · las ${CASOS.length} causas se convierten en una frase entera, sin espacios sobrantes`,
     lista.every(([, f]) => typeof f === 'string' && f.trim() === f && f.length >= 12), lista.filter(([, f]) => !f || f.length < 12).map(([id]) => id).join());
   const CODIGO = /\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b|functions\/|undefined|\[object|\{\{|\bat\s+\S+:\d+|\bTypeError\b|sk-123|secreto|Failed to fetch/;
   check('ACE-T-02 · ninguna deja escapar un código, una traza, un secreto, un hueco sin rellenar ni el texto en inglés de la red',

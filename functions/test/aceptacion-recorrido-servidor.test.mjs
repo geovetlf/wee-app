@@ -133,7 +133,7 @@ titulo('A · Weë Design: de una frase a un logo pagado');
   /* Crear. */
   const hecho = await crear({ jobId: plan.jobId, locale: 'es' });
   const j = trabajo(plan.jobId);
-  check('ACE-D-09 · crear termina bien: el trabajo queda hecho, con el concepto y las tres propuestas',
+  check('ACE-D-09 · ACE-T-08 · crear termina bien, sin ninguna clave de proveedor (el modo demo termina el trabajo): queda hecho, con el concepto y las tres propuestas',
     hecho.status === 'done' && j.status === 'done' && j.results.length === 2 && j.results[0].kind === 'text'
     && j.results[1].kind === 'image' && (j.results[1].urls || []).length === 3 && j.steps.every((s) => s.status === 'done'),
     JSON.stringify(j.results.map((x) => `${x.kind}${x.urls ? `×${x.urls.length}` : ''}`)));
@@ -184,7 +184,7 @@ titulo('B · Weë Chef: receta, menú y cocinar con lo que tengo');
   check('ACE-C-06 · y no pide foto: nadie tiene que subir nada para una receta', !plan.plan.steps.some((s) => s.capability === 'vision.describe' || s.capability === 'image.edit'));
   const hecho = await crear({ jobId: plan.jobId, locale: 'es' });
   const j = trabajo(plan.jobId);
-  check('ACE-C-06 · crear: la receta y la foto del plato, y el cobro es el precio visto',
+  check('ACE-C-06 · ACE-T-08 · crear (en modo demo, sin claves): la receta y la foto del plato, y el cobro es el precio visto',
     hecho.status === 'done' && j.results.map((x) => x.kind).join() === 'text,image' && j.creditsCharged === plan.pricing.total
     && saldoDe(base, ANA) === inicial - plan.pricing.total && usos().length === 1 && usos()[0].status === 'COMPLETED',
     `${inicial} → ${saldoDe(base, ANA)} (precio ${plan.pricing.total})`);
@@ -377,7 +377,7 @@ titulo('F · Huecos conocidos');
     .map((f) => fs.readFileSync(path.resolve(RAIZ, 'functions/src', carpeta, f), 'utf8'));
   const programadas = ['settlement', 'runtime', 'media'].flatMap(fuentes).filter((s) => /onSchedule\(/.test(s) || /barrido|barrendero/i.test(s));
   check('ACE-T-04 · (la prueba mira de verdad: hay tareas programadas y barredores que revisar)', programadas.length >= 2, `${programadas.length} archivos`);
-  hueco('ACE-T-04', 'un trabajo de Weë AI que se quedó «en marcha» porque murió el proceso se cierra y se devuelve SOLO, sin esperar a que la persona vuelva a pulsar',
+  hueco('ACE-T-04', 'ACE-D-14 · un trabajo de Weë AI que se quedó «en marcha» porque murió el proceso se cierra y se devuelve SOLO, sin esperar a que la persona vuelva a pulsar',
     programadas.some((s) => /creatorJobs/.test(s)), 'ninguna tarea programada ni barredor lee `creatorJobs`: solo se repara al volver a llamar a creatorRun (plazos-y-liquidacion) y la pantalla no lo ofrece');
 }
 {
