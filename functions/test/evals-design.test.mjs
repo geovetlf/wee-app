@@ -284,10 +284,11 @@ const lasRespuestas = (c) => ({ ...(c.presets || {}), ...c.respuestas });
 check('E4 el plan medido es el que arma `buildPlan` con las mismas respuestas: capacidades, propuestas y tipo de imagen',
   flujos.every((id) => { const c = casoDe(id); const p = detalleDe(run, id).decision.plan; const d = planDirecto(lasRespuestas(c)); const imagen = d.steps.find((s) => s.capability.startsWith('image.'));
     return JSON.stringify(p.capacidades) === JSON.stringify(d.steps.map((s) => s.capability)) && p.propuestas === imagen.input.count && p.kind === imagen.input.kind && p.explica === d.explainToUser; }));
-check('E5 el precio medido sale del cálculo que ya existe: cada paso de imagen cuesta lo que dice `priceImage` y el suelo es el coste de lista redondeado hacia arriba',
-  flujos.every((id) => { const p = detalleDe(run, id).decision.plan; const imagen = p.precio.simulado.find((x) => x.paso === 'images');
-    const directo = lib.priceImage({ capability: 'image.generate', count: p.propuestas, kind: p.kind, references: 0 }, { ...lib.DEFAULT_SETTINGS, pricingMode: 'simulated' });
-    return imagen.credits === directo.credits && imagen.usd === directo.usd && imagen.suelo === Math.ceil(directo.usd * lib.DEFAULT_SETTINGS.creditsPerUsd); }));
+check('E5 el precio medido sale del cálculo que ya existe, en los DOS modos de precios: cada paso de imagen cuesta lo que dice `priceImage` y el suelo es el coste de lista redondeado hacia arriba',
+  flujos.every((id) => [['simulado', 'simulated'], ['real', 'real']].every(([clave, modo]) => {
+    const p = detalleDe(run, id).decision.plan; const imagen = p.precio[clave].find((x) => x.paso === 'images');
+    const directo = lib.priceImage({ capability: 'image.generate', count: p.propuestas, kind: p.kind, references: 0 }, { ...lib.DEFAULT_SETTINGS, pricingMode: modo });
+    return imagen.credits === directo.credits && imagen.usd === directo.usd && imagen.suelo === Math.ceil(directo.usd * lib.DEFAULT_SETTINGS.creditsPerUsd); })));
 const rojoDeHoy = run.detalle.filter((d) => d.graders.some((x) => !x.ok));
 const sinCausa = rojoDeHoy.filter((d) => d.graders.filter((x) => !x.ok).some((x) => !x.detail || x.detail.length < 20));
 check('E6 cada fallo explica qué falla y por qué (con su etiqueta de origen), para poder leerlo sin abrir el dominio', sinCausa.length === 0 && rojoDeHoy.every((d) => d.graders.filter((x) => !x.ok).every((x) => /^\[[^\]]+\] /.test(x.detail))), sinCausa.map((d) => d.evalCaseId).join());
