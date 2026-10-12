@@ -54,7 +54,7 @@ referencia, que **sí** manda la caja a `CreatorFlow` (`DesignReferenciaScreen.t
 | Créditos y motor | `credits-weeai`; `puente-pre-f1d` 42/42 (cercas) (E) | Que la pantalla no mueva dinero; las cercas del Credit Engine, el Router y `creatorRun` | El recorrido completo de Design con dinero |
 | **Integración** | **Ninguna.** Ninguna de las 40 suites `*.emulator.mjs` menciona `creatorRun` (E, CL-18) | — | `creatorChat → creatorQuote → creatorRun` de `design`/`home` contra Firestore: precio antes, reserva, cobro, reembolso, abandono |
 | **Flujo de UI real** | **Ninguna automática** | — | Todo lo visual: móvil, tableta, escritorio, teclado |
-| Dominio `design` del Eval Engine (R7-Design, E) | `evals-design` 59/59 y `_design-cierre --solo CL-17` (E) | Lo que la plantilla de `design` deduce, pregunta, planifica y cuesta, medido a $0 con 57 casos y una baseline: H-2 y H-6 en rojo hoy, y los casos conocidos de D4, D5 y D6 | La calidad de lo que se generaría (no hay juez) y la pantalla |
+| Dominio `design` del Eval Engine (R7-Design, E) | `evals-design` 60/60 y `_design-cierre --solo CL-17` (E) | Lo que la plantilla de `design` deduce, pregunta, planifica y cuesta, medido a $0 con 57 casos y una baseline: H-2 y H-6 ya en verde (se midieron en rojo antes de arreglarlos), y los casos conocidos de D4, D5 y D6 aún en rojo | La calidad de lo que se generaría (no hay juez) y la pantalla |
 
 ## 3. DESIGN.md (2026-10-05) frente al código de hoy
 
@@ -240,14 +240,15 @@ precios del Credit Engine (CLAUDE.md §7: no se inventan precios). Pruebas: `cre
 
 `ops/evals/dominios/design.mjs` (un adaptador, como `router.mjs`), una línea en `ops/evals/dominios.mjs`, un dataset
 `ops/evals/datasets/design/v1.json` y su baseline por hash. Decide a $0 con `TEMPLATES.design.infer/buildPlan`. Sin decisiones; sin
-cercas. Ya contiene los casos que hoy fallan: H-2 y H-6 (E, §2.1).
+cercas. Al proponerlo ya contenía los casos que fallaban: H-2 y H-6 (E, §2.1; arreglados después, CL-10 y CL-11).
 
 **Hecho (R7-Design, tarea E).** Segundo dominio registrado del Eval Engine: 57 casos etiquetados (`hueco`, `cierre`, `conocido` +
-`decision`), baseline `ops/evals/baseline/design.json` del comportamiento de `a64ff24` (overall 0,754; 16 casos en rojo: los nueve de
-H-2, los tres de H-6 y los cuatro conocidos de D4, D5 y D6, que **no** son criterio de aceptación) y la suite `evals-design`, en la
-cadena. **Cómo se usa:** `node ops/evals/runner.mjs --dataset design` (ejecuta), `… --contra ops/evals/baseline/design.json` (compara:
-con `r7d/servidor` fusionada y `functions/lib` reconstruida debe dar ACCEPT, nunca REJECT) y `… --guardar-baseline …` (refresca, a
-propósito y con motivo). El detalle, en [EVALS.md](EVALS.md) «Dominio `design`».
+`decision`), baseline `ops/evals/baseline/design.json` (la primera, del comportamiento de `a64ff24`: overall 0,754 y 16 casos en rojo —los nueve de
+H-2, los tres de H-6 y los cuatro conocidos de D4, D5 y D6, que **no** son criterio de aceptación—; **refrescada el 2026-10-12**
+al integrar la rama del servidor: ACCEPT, overall 0,939, los doce casos de H-2 y H-6 en verde y solo los cuatro conocidos en rojo) y
+la suite `evals-design`, en la cadena. **Cómo se usa:** `node ops/evals/runner.mjs --dataset design` (ejecuta),
+`… --contra ops/evals/baseline/design.json` (compara: hoy da NO_CHANGE; un REJECT es una regresión) y `… --guardar-baseline …`
+(refresca, a propósito y con motivo, y con la lista `ROJOS_DE_LA_BASELINE` de la suite en el mismo cambio). El detalle, en [EVALS.md](EVALS.md) «Dominio `design`».
 
 ### P10 — Suite de emulador `design-recorrido.emulator.mjs` (CL-18)
 
