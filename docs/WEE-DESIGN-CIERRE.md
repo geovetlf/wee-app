@@ -174,15 +174,23 @@ quedan solo sin sesión o sin creaciones, rotuladas «Ejemplos»: **una clave nu
 ### P5 — Quitar el micrófono de verdad (complementa CL-07)
 
 `components/studio/StudioPromptComposer.tsx`: `onVoz?: () => void` y la acción `mic-outline` solo si llega; Weë Studio sigue
-pasándola. `DesignScreen.tsx` deja de pasar `onVoz`. `design-cierre` B3 pasa a aceptar «sin micrófono». Componente compartido con
-Studio: avisar. Cercas: ninguna. ~6 líneas.
+pasándola. `DesignScreen.tsx` deja de pasar `onVoz` (y su `import` de `notify`). `design-cierre` B3 y el criterio CL-07 del
+corredor pasan a aceptar «sin micrófono». **Dry-run (E, parche desechable, `R7/F-design/propuestas/P5-quitar-el-microfono.patch`):**
+`design-cierre` 36/36, `ajustes-weeai` 50/50, `cajas-weeai` 52/52, `credits-weeai` 37/37, `foundation-de-experiencias` 217/217,
+`studio-capas` 44/44, `puente-studio` 63/63, `i18n-textos-a-mano` 6/6 y `ci-workflow` 41/41; ninguna comprobación existente se
+mueve. Componente compartido con Studio: avisar a su dueño. Cercas: ninguna. `tsc` no ejecutado sobre el parche.
 
 ### P6 — Reintentar tras un fallo de cotización (CL-12, H-3)
 
-`screens/CreatorFlowScreen.tsx`: un estado `origenDelError: 'cotizar' | 'crear' | 'otro'` puesto en el `catch` de `handleQuality`
-(`:289-292`) y en el de `handleCreate` (`:314-321`); el reintento del cuadro de error (`:619`) hace `handleQuality(quality ?? undefined)`
-si viene de cotizar, `handleCreate()` si viene de crear y `start(...)` en el resto. ~12 líneas y una comprobación de estructura.
-Pantalla compartida: la decide el dueño de `CreatorFlow`. Cercas: ninguna.
+`screens/CreatorFlowScreen.tsx`: un estado `errorDe: 'cotizar' | 'otro'` que se pone en el `catch` de `handleQuality` y se limpia solo
+cuando el error se limpia (un `useEffect` sobre `error`), el último nivel pedido en una referencia, y el reintento del cuadro de error
+(`:619`) que, si el error vino de cotizar, repite `handleQuality(ultimoNivel)` y, si no, hace lo de siempre. **Dry-run (E, parche
+desechable, `R7/F-design/propuestas/P6-reintentar-tras-fallo-de-cotizacion.patch`, +16 −1 en la pantalla):** `design-cierre` 36/36
+—con el criterio CL-12 del corredor y el veredicto del documento puestos al día en el mismo parche—, `credits-weeai` 37/37,
+`cajas-weeai` 52/52, `ajustes-weeai` 50/50, `navegacion-parametros` 16/16, `navegacion-enlaces` 44/44, `creator` 640/640,
+`ci-workflow` 41/41 y `foundation-de-experiencias` 217/217. **Solo estructura:** el comportamiento (quitar la red a mitad de un cambio de
+nivel y pulsar «Intentar de nuevo») no se probó en pantalla. Pantalla compartida: la decide el dueño de `CreatorFlow`. Cercas:
+ninguna. `tsc` no ejecutado sobre el parche.
 
 ### P7 — `aspectRatio` según el destino (CL-14, F1) · D5
 
@@ -219,36 +227,40 @@ El estado «Hoy» es el de `node functions/test/_design-cierre.mjs` a la fecha d
 `design-cierre.test.mjs` vigila que esta tabla y el corredor tengan los mismos criterios y que nada marcado CUMPLIDO aquí deje de
 serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --solo CL-xx` (sale con 0 si se cumple).
 
-| CL | Tipo | Criterio | Responsable | Archivos | Hoy |
-|---|---|---|---|---|---|
-| CL-01 | bloqueador | «Crear» de la pantalla llega a `CreatorFlow` (no es un temporizador) | dueño (D1, D2, D7) y línea de Design | `screens/DesignScreen.tsx`, `utils/contextoDeDesign.ts`, `puente-design.test.mjs` | DECISIÓN |
-| CL-02 | bloqueador | Hay una puerta desde Design a Hogar & Diseño | dueño (D2) y línea de Design | `screens/DesignScreen.tsx`, `components/design/*` | DECISIÓN |
-| CL-03 | bloqueador | Lo elegido (qué se diseña, ajustes en palabras) viaja con la petición | línea de Design | `screens/DesignScreen.tsx`, `utils/contextoDeDesign.ts` | ABIERTO |
-| CL-04 | bloqueador | «Mis creaciones» enseña lo creado (carga, vacío, error); las muestras, rotuladas | línea de Design | `screens/DesignScreen.tsx`, `FilaDeCreaciones.tsx`, `i18n/textos/*/design.ts` | ABIERTO |
-| CL-05 | bloqueador | Las puertas prometen lo que el motor hace hoy (D1, D7) | dueño | `docs/DESIGN.md §4`, `constants/designTools.ts` | DECISIÓN |
-| CL-06 | defecto | Los ajustes abren con «Automático» | hecho (`3da4a95`) | `constants/designTools.ts` | CUMPLIDO |
-| CL-07 | defecto | «Dictar» no añade una referencia de mentira | hecho (`407bd31`); quitarlo: P5 | `screens/DesignScreen.tsx` | CUMPLIDO |
-| CL-08 | defecto | Lo que se adjunta se puede quitar | hecho (`99ef9bc`) | `screens/DesignScreen.tsx` | CUMPLIDO |
-| CL-09 | defecto | Las referencias son reales o el botón no está | dueño (D6) y línea de Design | `screens/DesignScreen.tsx`, `inputs.ts` | DECISIÓN |
-| CL-10 | defecto | Toda pregunta de `design` con opciones lleva «No sé» (H-2) | servidor | `functions/src/creator/templates.ts:352-450` | ABIERTO |
-| CL-11 | defecto | «Un post para mi marca» es un afiche, no un logo (H-6) | servidor | `functions/src/creator/templates.ts:451-475` | ABIERTO |
-| CL-12 | defecto | Reintentar tras un fallo de cotización vuelve a cotizar (H-3) | dueño de `CreatorFlow` | `screens/CreatorFlowScreen.tsx:279-296,615-626` | ABIERTO |
-| CL-13 | defecto | Editar o «otra versión» conserva respuestas y deja linaje (H-4, D3) | dueño (D3), servidor y `CreatorFlow` | `CreatorFlowScreen.tsx:335-363`, `creator/index.ts:500-550` | DECISIÓN |
-| CL-14 | integración | El formato elegido llega como `aspectRatio` (D5, F1) | dueño (D5) y servidor | `templates.ts:511-586`, `imageModels.ts:346-352` | DECISIÓN |
-| CL-15 | integración | Afiches y logos escriben su texto con un modelo que sabe (D4, F3) | dueño (D4) y servidor | `templates.ts:582`, `imageModels.ts:208`, `prompts.ts:567` | DECISIÓN |
-| CL-16 | integración | Una referencia de estilo se USA (D6, F4) | dueño (D6) y servidor | `inputs.ts:14-23`, `templates.ts` | DECISIÓN |
-| CL-17 | integración | Dominio `design` del Eval Engine, a $0, con dataset y baseline (F0) | línea de Design | `ops/evals/dominios/design.mjs`, `dominios.mjs`, `datasets/design/` | ABIERTO |
-| CL-18 | integración | Suite de emulador de `creatorChat → creatorQuote → creatorRun` (mock) | infraestructura / almacenamiento (solapa con J) | `functions/test/design-recorrido.emulator.mjs` | ABIERTO |
-| CL-19 | integración | Cancelar con regla clara para el dinero y reintentar el MISMO trabajo | servidor y dueño (H0 #6) | `functions/src/creator/index.ts`, `services/creatorService.ts` | ABIERTO |
-| CL-20 | integración | Crear desde un proyecto guarda el trabajo en él | línea de Design y Weë AI | `services/creatorService.ts`, `ProjectScreen.tsx:145` | ABIERTO |
-| CL-21 | integración | Sin reservas de Credits colgadas (informe de solo lectura del dueño) | dueño | `ops/reconciliacion/reservas-colgadas.mjs` | MANUAL |
-| CL-22 | integración | Canario gobernado del recorrido de imágenes en `get-wee` | dueño e infraestructura | `docs/DESIGN.md «Antes de lanzar»`, `ops/produccion.json` | MANUAL |
-| CL-23 | resto | D1–D9 y DEC-01, 02, 05, 06 registradas como DECIDIDAS | dueño | `docs/DESIGN.md`, `docs/WEE-DESIGN-UIUX-DECISIONS.md` | DECISIÓN |
-| CL-24 | resto | Aviso con región viva y contraste AA en su acción | línea de Design y tema | `AvisoDeCreacion.tsx`, `ThemeContext.tsx` | ABIERTO |
-| CL-25 | resto | Sin código ni comentarios de lo que ya no existe (muro, `SpecialistHero`) | línea de Design | `specialists.ts:286,295-301`, `SpecialistScreen.tsx:214-215`, `SpecialistHero.tsx` | ABIERTO |
-| CL-26 | resto | Verificación visual en móvil, tableta y escritorio | quien tenga web con emuladores | `DesignScreen.tsx`, `components/design/*` | MANUAL |
-| CL-27 | resto | `tsc --noEmit` de la app en 0 errores | cualquiera que toque `.ts/.tsx` | todo `.ts/.tsx` | MANUAL |
-| CL-28 | resto | La cadena entera y las cercas, en verde | quien integre | `functions/package.json`, `puente-pre-f1d.test.mjs` | MANUAL |
+| CL | Tipo | Criterio | Responsable | Archivos | Clase | Hoy |
+|---|---|---|---|---|---|---|
+| CL-01 | bloqueador | «Crear» de la pantalla llega a `CreatorFlow` (no es un temporizador) | dueño (D1, D2, D7) y línea de Design | `screens/DesignScreen.tsx`, `utils/contextoDeDesign.ts`, `puente-design.test.mjs` | bloqueador real | DECISIÓN |
+| CL-02 | bloqueador | Hay una puerta desde Design a Hogar & Diseño | dueño (D2) y línea de Design | `screens/DesignScreen.tsx`, `components/design/*` | bloqueador real | DECISIÓN |
+| CL-03 | bloqueador | Lo elegido (qué se diseña, ajustes en palabras) viaja con la petición | línea de Design | `screens/DesignScreen.tsx`, `utils/contextoDeDesign.ts` | bloqueador real | ABIERTO |
+| CL-04 | bloqueador | «Mis creaciones» enseña lo creado (carga, vacío, error); las muestras, rotuladas | línea de Design | `screens/DesignScreen.tsx`, `FilaDeCreaciones.tsx`, `i18n/textos/*/design.ts` | bloqueador real | ABIERTO |
+| CL-05 | bloqueador | Las puertas prometen lo que el motor hace hoy (D1, D7) | dueño | `docs/DESIGN.md §4`, `constants/designTools.ts` | bloqueador real (decisión) | DECISIÓN |
+| CL-06 | defecto | Los ajustes abren con «Automático» | hecho (`3da4a95`) | `constants/designTools.ts` | defecto reproducible (arreglado) | CUMPLIDO |
+| CL-07 | defecto | «Dictar» no añade una referencia de mentira | hecho (`407bd31`); quitarlo: P5 | `screens/DesignScreen.tsx` | defecto reproducible (arreglado) | CUMPLIDO |
+| CL-08 | defecto | Lo que se adjunta se puede quitar | hecho (`99ef9bc`) | `screens/DesignScreen.tsx` | defecto reproducible (arreglado) | CUMPLIDO |
+| CL-09 | defecto | Las referencias son reales o el botón no está | dueño (D6) y línea de Design | `screens/DesignScreen.tsx`, `inputs.ts` | defecto reproducible | DECISIÓN |
+| CL-10 | defecto | Toda pregunta de `design` con opciones lleva «No sé» (H-2) | servidor | `functions/src/creator/templates.ts:352-450` | defecto reproducible | ABIERTO |
+| CL-11 | defecto | «Un post para mi marca» es un afiche, no un logo (H-6) | servidor | `functions/src/creator/templates.ts:451-475` | defecto reproducible | ABIERTO |
+| CL-12 | defecto | Reintentar tras un fallo de cotización vuelve a cotizar (H-3) | dueño de `CreatorFlow` | `screens/CreatorFlowScreen.tsx:279-296,615-626` | defecto reproducible | ABIERTO |
+| CL-13 | defecto | Editar o «otra versión» conserva respuestas y deja linaje (H-4, D3) | dueño (D3), servidor y `CreatorFlow` | `CreatorFlowScreen.tsx:335-363`, `creator/index.ts:500-550` | integración incompleta | DECISIÓN |
+| CL-14 | integración | El formato elegido llega como `aspectRatio` (D5, F1) | dueño (D5) y servidor | `templates.ts:511-586`, `imageModels.ts:346-352` | integración incompleta | DECISIÓN |
+| CL-15 | integración | Afiches y logos escriben su texto con un modelo que sabe (D4, F3) | dueño (D4) y servidor | `templates.ts:582`, `imageModels.ts:208`, `prompts.ts:567` | integración incompleta | DECISIÓN |
+| CL-16 | integración | Una referencia de estilo se USA (D6, F4) | dueño (D6) y servidor | `inputs.ts:14-23`, `templates.ts` | integración incompleta | DECISIÓN |
+| CL-17 | integración | Dominio `design` del Eval Engine, a $0, con dataset y baseline (F0) | línea de Design | `ops/evals/dominios/design.mjs`, `dominios.mjs`, `datasets/design/` | integración incompleta | ABIERTO |
+| CL-18 | integración | Suite de emulador de `creatorChat → creatorQuote → creatorRun` (mock) | infraestructura / almacenamiento (solapa con J) | `functions/test/design-recorrido.emulator.mjs` | pendiente bloqueado por infraestructura | ABIERTO |
+| CL-19 | integración | Cancelar con regla clara para el dinero y reintentar el MISMO trabajo | servidor y dueño (H0 #6) | `functions/src/creator/index.ts`, `services/creatorService.ts` | integración incompleta | ABIERTO |
+| CL-20 | integración | Crear desde un proyecto guarda el trabajo en él | línea de Design y Weë AI | `services/creatorService.ts`, `ProjectScreen.tsx:145` | integración incompleta | ABIERTO |
+| CL-21 | integración | Sin reservas de Credits colgadas (informe de solo lectura del dueño) | dueño | `ops/reconciliacion/reservas-colgadas.mjs` | pendiente bloqueado por infraestructura | MANUAL |
+| CL-22 | integración | Canario gobernado del recorrido de imágenes en `get-wee` | dueño e infraestructura | `docs/DESIGN.md «Antes de lanzar»`, `ops/produccion.json` | pendiente bloqueado por infraestructura | MANUAL |
+| CL-23 | resto | D1–D9 y DEC-01, 02, 05, 06 registradas como DECIDIDAS | dueño | `docs/DESIGN.md`, `docs/WEE-DESIGN-UIUX-DECISIONS.md` | bloqueador real (decisión) | DECISIÓN |
+| CL-24 | resto | Aviso con región viva y contraste AA en su acción | línea de Design y tema | `AvisoDeCreacion.tsx`, `ThemeContext.tsx` | defecto reproducible | ABIERTO |
+| CL-25 | resto | Sin código ni comentarios de lo que ya no existe (muro, `SpecialistHero`) | línea de Design | `specialists.ts:286,295-301`, `SpecialistScreen.tsx:214-215`, `SpecialistHero.tsx` | deuda técnica | ABIERTO |
+| CL-26 | resto | Verificación visual en móvil, tableta y escritorio | quien tenga web con emuladores | `DesignScreen.tsx`, `components/design/*` | pendiente bloqueado por infraestructura | MANUAL |
+| CL-27 | resto | `tsc --noEmit` de la app en 0 errores | cualquiera que toque `.ts/.tsx` | todo `.ts/.tsx` | verificación | MANUAL |
+| CL-28 | resto | La cadena entera y las cercas, en verde | quien integre | `functions/package.json`, `puente-pre-f1d.test.mjs` | verificación | MANUAL |
+
+**Clase** usa el vocabulario del encargo: bloqueador real para cerrar Design · defecto reproducible · integración incompleta ·
+deuda técnica que puede esperar · pendiente bloqueado por almacenamiento o infraestructura compartida. Las mejoras visuales
+opcionales están en §6 (F-01, F-02, F-05).
 
 **Mapa de decisiones.** D1 → CL-01, CL-05 · D2 → CL-01, CL-02 · D3 → CL-13 · D4 → CL-15 · D5 → CL-14 · D6 → CL-09, CL-16 · D7 →
 CL-01, CL-05 · D8 y D9 → nada que construir hoy (D9: política de uso comercial y moderación, no el «cobro proporcional») · DEC-01, 02,
