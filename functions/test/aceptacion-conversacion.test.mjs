@@ -235,10 +235,12 @@ titulo('D · Huecos conocidos (lo que una persona esperaría y hoy no pasa)');
 
   /*
    * LO QUE NO ESTÁ AQUÍ A PROPÓSITO. Los tres paneles de Chef que no tienen plan propio —«Sustituir ingredientes» pide la
-   * foto de la nevera (D-CHEF-2), «Lista de compras» recibe la instrucción de Hogar & Diseño (D-CHEF-3) e «Información
-   * nutricional» acaba en una receta con foto (D-CHEF-1)— los fija con el mismo código la caracterización de la tarea G
-   * (`chef-caracterizacion.test.mjs`, rama r7/g-chef-preparacion). Se citan en el catálogo (ACE-C-11, ACE-C-12, ACE-C-13) y
-   * no se repiten aquí: dos suites que se invierten a la vez son dos sitios que mantener.
+   * foto de la nevera (D-CHEF-2), «Lista de compras» recibía la instrucción de Hogar & Diseño (D-CHEF-3; desde CHEF-01,
+   * `1c60b30e`, Chef tiene la suya, con el texto pendiente de revisión de producto) e «Información nutricional» acaba en
+   * una receta con foto (D-CHEF-1)— los fija con el mismo código la caracterización de la tarea G
+   * (`chef-caracterizacion.test.mjs`; la de D-CHEF-3 ya está invertida a ARREGLADO, y `chef-lista.test.mjs` ata esa
+   * instrucción con `leerLista`). Se citan en el catálogo (ACE-C-11, ACE-C-12, ACE-C-13) y no se repiten aquí: dos suites
+   * que se invierten a la vez son dos sitios que mantener.
    */
 }
 
