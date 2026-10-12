@@ -44,6 +44,14 @@ Nada de esto sale de leer comentarios ni de suponer.
    campo y enumeraciones; ningún texto de nadie) de las colecciones que escribiría
    cada runtime, y la lista de Functions desplegadas.
 4. **Paridad.** Los dos motores, enfrentados con las mismas entradas, sin red.
+5. **El alcance de las fuentes** (M-03, ronda R7). Una sola medida va por `functions/src` y no
+   por `lib`: la sección H de `runtime-map.test.mjs` exige que todo `.ts` —también el del
+   Core— se alcance desde `index.ts` siguiendo imports (leídos con el parser de TypeScript) o
+   figure en `HUERFANOS_ADMITIDOS`, una lista exacta con clase, motivo y respaldo (23 hoy;
+   `DECISIONES-DELIBERADAS.md` DD-03 explica casi todas). Va por las fuentes porque `tsc` borra
+   los imports de tipo y emite `require('./x')` con comillas simples para `import()`: sobre
+   `lib` esos archivos saldrían huérfanos sin serlo. No mide que algo se ejecute, solo que no
+   hay archivos sueltos.
 
 La cadena de evidencia de cada fila es:
 `CONTRATO → IMPLEMENTACIÓN → IMPORT → CONSUMIDOR → RUTA DE EJECUCIÓN → EVIDENCIA DE PRODUCCIÓN`.

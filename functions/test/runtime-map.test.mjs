@@ -35,6 +35,7 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { hostsDeProveedores, patronDeHosts } from '../../ops/revision/hosts-de-proveedores.mjs';
 
@@ -82,7 +83,8 @@ const DE_PRODUCTIONS = {
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * EL MAPA. Es la única parte de este archivo que se edita a mano.
+ * EL MAPA. Es la única parte de este archivo que se edita a mano (junto con la lista
+ * HUERFANOS_ADMITIDOS de la sección H, que es de otra medida: el alcance de las FUENTES).
  *
  *   canonico     módulos del Core que definen la pieza
  *   composicion  quien le enchufa el mundo (Firestore, reloj, registro…)
@@ -728,6 +730,452 @@ console.log('\n── G · El mapa escrito dice lo mismo que el medido ──');
     && /creator\/sombra\.ts/.test(filaDelAlgoritmo),
     filaDelAlgoritmo ? 'la fila no lo dice' : '(sin fila)');
   check(`${n++}) esta suite está en la cadena de \`npm test\``, leer('functions/package.json').includes('node test/runtime-map.test.mjs'));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * H · EL ALCANCE DE TODO `functions/src`: NINGÚN ARCHIVO HUÉRFANO (M-03, ronda R7, 2026-10-11)
+ *
+ * Las secciones de arriba miden lo que producción CARGA y qué símbolos del Core nombra. Ninguna
+ * miraba lo contrario: un archivo que nadie importa. Hoy hay 23 (auditoría de integración de R6,
+ * hallazgo 8) y todos son deliberados o tienen dueño, pero nada impedía el 24.º, ni que borrar un
+ * `import` dejara huérfano a un archivo que estaba conectado. Lo que había alrededor no lo cubre:
+ *   · la cerca F1 de `puente-pre-f1d` vigila QUÉ ARCHIVOS SE TOCAN (por nombre, contra su ancla), no
+ *     si lo nuevo está conectado, y se reancla con autorización;
+ *   · `muerto/modulo-sin-importador` (`ops/revision`) sí los ve, pero es de severidad BAJA y la
+ *     puerta G3 solo bloquea NUEVO alto o bloqueante (docs/REVISION.md): pasa con huérfanos nuevos.
+ *
+ * LO QUE EXIGE. Todo `.ts` de `functions/src` se alcanza desde `index.ts` siguiendo imports, o figura
+ * en HUERFANOS_ADMITIDOS con su clase, su motivo y su respaldo. La lista es EXACTA en los dos sentidos:
+ * un huérfano sin entrada falla, y una entrada que ya se alcanza, o cuyo archivo ya no existe, también
+ * —la lista no se pudre—. Entra `core/`: el barril `core/index.ts` lo hace TODO alcanzable (por eso la
+ * alcanzabilidad no dice si producción USA algo del Core: eso lo miden los símbolos de la sección C),
+ * pero un archivo del Core que ni el barril exporta ni nadie importa sí es un huérfano, y la sección C
+ * no lo ve. Hoy son 0 de 97.
+ *
+ * POR QUÉ SOBRE LAS FUENTES Y NO SOBRE `lib` (medido en d867774):
+ *   · `tsc` borra los imports que solo se usan como tipo, y emite `require('./x')` con comillas SIMPLES
+ *     para un `import('./x')`, que el `require\("…"\)` del grafo de `lib` (VIVOS) no reconoce. Sobre
+ *     `lib` saldrían tres falsos huérfanos: `creator/types.ts` y `gateway/types.ts` (solo se importan
+ *     como tipo) y `engine/referencias-de-wee.ts` (la carga `engine/gateway.ts` con `import()`). El
+ *     alcance lo decide quien escribió el `import`, no lo que `tsc` emita.
+ *   · el huérfano sale por su NOMBRE aunque el compilado esté desfasado o sin compilar ese archivo (2).
+ *   · no depende de la versión ni del estilo de emisión de `tsc`.
+ *  Lo que se pierde: no distingue «importado solo por tipos» (cuenta como conectado). Se compensa con la
+ *  comprobación cruzada 197: todo lo que `lib` carga lo alcanzan también las fuentes; si no, al
+ *  extractor se le escapó una forma de import. (Esto no hace la suite independiente de `lib`: el
+ *  resto del archivo la exige. Lo que no depende de `lib` es la medida y el nombre del huérfano.)
+ *
+ * QUÉ CUENTA COMO CONEXIÓN: cualquier especificador RELATIVO que escribe el código —`import … from`,
+ * `export … from`, `export * from`, `import './x'`, `import x = require()`, `require()` e `import()` con
+ * cadena literal, y `import('./x').T` dentro de un tipo—, también los de solo tipo. Se lee con el parser
+ * de TypeScript, no con expresiones regulares: un `import` dentro de un comentario o de una cadena no
+ * conecta nada. Un `import()` o `require()` con una expresión no se puede seguir, y se cuenta aparte.
+ *
+ * LO QUE NO PRUEBA: que el archivo se EJECUTE (eso lo miden B–D sobre `lib`), ni que lo conectado tenga
+ * un llamador: una función muerta dentro de un archivo conectado no se ve desde aquí (`gatewayDeWee`
+ * carga `engine/referencias-de-wee.ts` y nadie llama a `gatewayDeWee`).
+ *
+ * SI ESTA SECCIÓN FALLA: huérfano nuevo → conéctalo (que lo importe un módulo que llegue a `index.ts`) o
+ * añade su entrada con clase, motivo y respaldo, y la decisión que la sostiene; entrada obsoleta →
+ * quítala. No se reancla ninguna cerca por esto: si conectar mueve F1, H2 o H3, es otro paso con su
+ * autorización.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Las cuatro clases de huérfano admitido. Cada una trae su propio respaldo (ver `problemasDeRespaldo`):
+ *   HUERFANO_REAL               nadie lo usa; solo una prueba comprueba que existe. Candidato a retirar, con aprobación.
+ *   CONSUMIDOR_FUERA_DEL_GRAFO  lo consume algo que el despliegue no recorre (un script generador y la copia que usa la app).
+ *   SOLO_PRUEBAS                preparado y probado; producción aún no lo carga. Lo ejercita al menos una suite de la cadena.
+ *   PLANEADO_CERRADO            preparado para conectarse, a la espera de una decisión del dueño o de una puerta cerrada.
+ */
+const CLASES_DE_HUERFANO = ['HUERFANO_REAL', 'CONSUMIDOR_FUERA_DEL_GRAFO', 'SOLO_PRUEBAS', 'PLANEADO_CERRADO'];
+
+/**
+ * LA LISTA. Es la otra parte de este archivo que se edita a mano, y es EXACTA: ni un archivo inalcanzable
+ * sin entrada, ni una entrada de algo que ya se alcanza o que ya no existe.
+ *
+ *   ruta        relativa a `functions/src`
+ *   clase       una de CLASES_DE_HUERFANO
+ *   motivo      por qué está así y de dónde sale la decisión (docs/DECISIONES-DELIBERADAS.md DD-03, RUNTIME.md…)
+ *   suites      suites de la cadena de `npm test` que cargan o leen el archivo (SOLO_PRUEBAS y PLANEADO_CERRADO: al menos una)
+ *   fijadoPor   (HUERFANO_REAL) la prueba que solo comprueba que existe; nadie más puede usarlo
+ *   consumidor  (CONSUMIDOR_FUERA_DEL_GRAFO) el script que lo lee, y `copia`: lo que genera para la app
+ *
+ * Añadir una entrada no es el camino fácil: pide clase, motivo y una comprobación que se mantenga cierta. Lo normal
+ * es conectar el archivo, no listarlo.
+ */
+const HUERFANOS_ADMITIDOS = [
+  /* ── Un residuo: nadie lo usa ─────────────────────────────────────────────── */
+  { ruta: 'engine/pipelines/drama.ts', clase: 'HUERFANO_REAL', fijadoPor: ['brain-canary.test.mjs'],
+    motivo: 'Blueprint de AI Drama sin interfaz: no lo importa ningún módulo ni lo ejercita ninguna prueba (solo brain-canary comprueba que existe). Candidato a retirada con aprobación (docs/RUNTIME.md § 9); no es una decisión deliberada (docs/DECISIONES-DELIBERADAS.md, «No son decisiones deliberadas»).' },
+
+  /* ── Lo consume algo que el despliegue no recorre ────────────────────────── */
+  { ruta: 'filmmaker/recomendaciones.ts', clase: 'CONSUMIDOR_FUERA_DEL_GRAFO', suites: ['filmmaker-modelo.test.mjs'],
+    consumidor: 'scripts/espejo-filmmaker.mjs', copia: 'services/filmmaker/espejo/filmmaker/recomendaciones.ts',
+    motivo: 'Las recomendaciones de Weë Filmmaker las usa la app por su copia generada (services/filmmaker/espejo/), que sale de este archivo con scripts/espejo-filmmaker.mjs; el servidor aún no las pide.' },
+  { ruta: 'filmmaker/requisitos.ts', clase: 'CONSUMIDOR_FUERA_DEL_GRAFO', suites: ['filmmaker-modelo.test.mjs'],
+    consumidor: 'scripts/espejo-filmmaker.mjs', copia: 'services/filmmaker/espejo/filmmaker/requisitos.ts',
+    motivo: 'Los requisitos de una producción de Weë Filmmaker los usa la app por su copia generada (services/filmmaker/espejo/), que sale de este archivo con scripts/espejo-filmmaker.mjs; el servidor aún no los pide.' },
+
+  /* ── Preparado, probado y sin conectar: el Core y Media Cloud (DD-03) ─────── */
+  { ruta: 'financial/index.ts', clase: 'SOLO_PRUEBAS', suites: ['core-financial.test.mjs'],
+    motivo: 'Composición del Financial Core: preparada y NO conectada (DD-03; RUNTIME § 3, «Financial NOT CONNECTED»). El motor de Credits en uso es credits/creditEngine.ts; el MAPA de arriba (financial, cargada: false) vigila que producción no la cargue.' },
+  { ruta: 'media/cloudinary.ts', clase: 'SOLO_PRUEBAS', suites: ['media-migracion.test.mjs'],
+    motivo: 'MC-6: la fuente histórica del traslado de medios; el traslado no se conecta (DD-03, functions/src/media/ preparada, sin Function ni programador).' },
+  { ruta: 'media/falso.ts', clase: 'SOLO_PRUEBAS', suites: ['media-core.test.mjs'],
+    motivo: 'Doble de prueba (almacén en memoria) que vive en src a propósito para que las suites lo carguen desde lib (DD-03); no se compone en producción.' },
+  { ruta: 'media/fuente-falsa.ts', clase: 'SOLO_PRUEBAS', suites: ['media-migracion.test.mjs'],
+    motivo: 'Doble de prueba (fuente histórica de mentira) que vive en src a propósito (DD-03); no se compone en producción.' },
+  { ruta: 'media/index.ts', clase: 'SOLO_PRUEBAS', suites: ['media-core.test.mjs'],
+    motivo: 'Composición de Media Cloud (MC-1): «nada de producción pasa por aquí todavía» (cabecera del archivo; DD-03). Lo que sí llega a producción es media/canary.ts, que compone las piezas por su cuenta.' },
+  { ruta: 'media/migracion.ts', clase: 'SOLO_PRUEBAS', suites: ['media-migracion.test.mjs'],
+    motivo: 'MC-6: el traslado de la fuente histórica al almacén de Weë, sin Function ni programador (DD-03).' },
+  { ruta: 'media/procesador-falso.ts', clase: 'SOLO_PRUEBAS', suites: ['media-proceso-core.test.mjs'],
+    motivo: 'Doble de prueba (procesador de mentira) que vive en src a propósito (DD-03); «no se compone en producción».' },
+  { ruta: 'media/recoleccion.ts', clase: 'SOLO_PRUEBAS', suites: ['media-recoleccion.test.mjs'],
+    motivo: 'MC-5: la recolección de objetos huérfanos de Media Cloud, sin programador: «el GC no corre» (DD-03). Solo la importa media/barrido.ts, también sin conectar.' },
+  { ruta: 'media/reconciliacion.ts', clase: 'SOLO_PRUEBAS', suites: ['media-reconciliacion.test.mjs'],
+    motivo: 'MC-9: la reconciliación del índice de referencias de Media Cloud, ejecutable y sin programador (DD-03).' },
+  { ruta: 'media/uso.ts', clase: 'SOLO_PRUEBAS', suites: ['media-uso.test.mjs'],
+    motivo: 'MC-7: dónde se apunta lo medido de Media Cloud y cómo se suma. Nadie pasa un medidor en producción («medir sigue apagado»; ver OTROS_DEL_CORE de arriba) y media/ está preparada sin conectar (DD-03).' },
+  { ruta: 'router/index.ts', clase: 'SOLO_PRUEBAS', suites: ['runtime-paridad.test.mjs', 'core-router.test.mjs'],
+    motivo: 'Composición del Router del Core: preparada y NO conectada (DD-03). Producción decide con engine/router.ts; el conductor construye crearRouter por su cuenta (MAPA, router, cargada: false). La ejercita runtime-paridad (resolverConContexto, el ensayo de paridad con el router vivo) y core-router la lee.' },
+  { ruta: 'router/politica.ts', clase: 'SOLO_PRUEBAS', suites: ['router-politica.test.mjs'],
+    motivo: 'Frontera de política del Router del Core (S6-C): DEUDA DECLARADA frente a runtime/resolucion.ts, que es la que usa el conductor; antes de conectar router/ se elige UNA (docs/RUNTIME.md § 11.11; docs/DECISIONES-DELIBERADAS.md).' },
+  { ruta: 'runtime/cola-durable.ts', clase: 'SOLO_PRUEBAS', suites: ['cola-durable.test.mjs'],
+    motivo: 'La cola durable del Job Engine: preparada, con reglas e índice y sin importador (DD-03: runtime/cola*.ts). El conductor usa runtime/cola.ts.' },
+  { ruta: 'skills/index.ts', clase: 'SOLO_PRUEBAS', suites: ['skills.test.mjs'],
+    motivo: 'Composición de Skills: el mecanismo está listo y el catálogo vacío a propósito (DD-03; docs/CAPABILITY-MAP.md § A).' },
+  { ruta: 'workflow/index.ts', clase: 'SOLO_PRUEBAS', suites: ['core-workflow.test.mjs'],
+    motivo: 'Composición del Workflow Engine del Core: preparada y NO conectada (DD-03). El conductor usa dos piezas sueltas del Core, no esta composición (MAPA, workflow, cargada: false).' },
+
+  /* ── Planeado: a la espera de una decisión del dueño o de una puerta cerrada ─ */
+  { ruta: 'content/versiones.ts', clase: 'PLANEADO_CERRADO', suites: ['version-de-material.test.mjs'],
+    motivo: 'La callable guardarComoVersion (DEC-03), preparada y probada y sin exportar desde index.ts: «el export llega con la pantalla y el cupo» (decisión de superficie pendiente del dueño; cabecera del archivo).' },
+  { ruta: 'media/barrido.ts', clase: 'PLANEADO_CERRADO', suites: ['activos-barrido.test.mjs'],
+    motivo: 'La tarea programada del barrido del índice de referencias (H5/H2): preparada y sin exportar desde index.ts; A-11 es una autorización pendiente y el índice vive tras aiSettings/almacenActivos, cerrada por defecto (docs/ACTIVOS-CERCAS.md).' },
+  { ruta: 'media/optimizador/coste.ts', clase: 'PLANEADO_CERRADO', suites: ['medios-optimizador-coste.test.mjs'],
+    motivo: 'Optimizador de medios (línea M): estimación de coste SIN tarifas aprobadas. Implementado y probado; integrarlo está BLOQUEADO por las cercas, y reanclarlas es autorización del dueño (docs/MEDIOS-OPTIMIZADOR.md § 1 y § 10).' },
+  { ruta: 'media/optimizador/plan.ts', clase: 'PLANEADO_CERRADO', suites: ['medios-optimizador-plan.test.mjs'],
+    motivo: 'Optimizador de medios (línea M): el plan de variantes de imagen, puro. Implementado y probado; integrarlo está BLOQUEADO por la cerca F1 (docs/MEDIOS-OPTIMIZADOR.md § 1 y § 10; scripts/benchmark-optimizador.mjs).' },
+  { ruta: 'media/optimizador/transcodificacion.ts', clase: 'PLANEADO_CERRADO', suites: ['medios-optimizador-transcodificacion.test.mjs'],
+    motivo: 'Optimizador de medios (línea M): la costura del procesador de vídeo y audio, sin dependencia; FFmpeg espera autorización (docs/MEDIOS-OPTIMIZADOR.md § 8).' },
+];
+
+console.log('\n── H · El alcance de todo functions/src: ningún archivo huérfano (M-03) ──');
+{
+  const ts = createRequire(import.meta.url)('typescript');
+  const RAIZ_DEL_ALCANCE = 'index.ts';
+
+  /* ── PURAS: sin disco, sin estado; reciben el mapa y devuelven lo medido ──────────────────────────────────────── */
+
+  /**
+   * Los especificadores de módulo que un texto TypeScript nombra, en cualquier forma, y cuántos `import()` o
+   * `require()` hay con una expresión en vez de una cadena (no se pueden seguir). Con el parser, no con regex.
+   */
+  const importsDeTexto = (nombre, texto) => {
+    const sf = ts.createSourceFile(nombre, texto, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
+    const literal = (n) => (n && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) ? n.text : null);
+    const especificadores = [];
+    let noLiterales = 0;
+    const anotar = (s) => { if (s === null) noLiterales++; else especificadores.push(s); };
+    const visitar = (n) => {
+      if (ts.isImportDeclaration(n) || (ts.isExportDeclaration(n) && n.moduleSpecifier)) anotar(literal(n.moduleSpecifier));
+      else if (ts.isImportEqualsDeclaration(n) && ts.isExternalModuleReference(n.moduleReference)) anotar(literal(n.moduleReference.expression));
+      else if (ts.isCallExpression(n) && n.arguments.length > 0
+        && (n.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(n.expression) && n.expression.text === 'require'))) anotar(literal(n.arguments[0]));
+      else if (ts.isImportTypeNode(n)) anotar(ts.isLiteralTypeNode(n.argument) ? literal(n.argument.literal) : null);
+      ts.forEachChild(n, visitar);
+    };
+    visitar(sf);
+    return { especificadores, noLiterales };
+  };
+
+  const esRelativo = (spec) => spec === '.' || spec === '..' || spec.startsWith('./') || spec.startsWith('../');
+
+  /** Como TypeScript con `module: commonjs`: `./x` es `x.ts`; si no existe, el directorio `x/index.ts`. Nada más: un destino que no encaja se informa. */
+  const resolverEnSrc = (desde, spec, existeEnSrc) => {
+    const base = path.posix.normalize(path.posix.join(path.posix.dirname(desde), spec)).replace(/\/$/, '');
+    for (const candidato of [`${base}.ts`, `${base}/index.ts`]) if (existeEnSrc(candidato)) return candidato;
+    return null;
+  };
+
+  /**
+   * EL ALCANCE. Recibe archivo → especificadores tal como se escriben, y devuelve:
+   *   alcanzados   los archivos a los que se llega desde `raiz` siguiendo cualquier import (no basta con «tiene importador»:
+   *                dos huérfanos que se importan entre sí no se alcanzan);
+   *   huerfanos    el resto, ordenados;
+   *   sinResolver  los especificadores relativos que no apuntan a ningún archivo del mapa («desde → spec»): una arista perdida.
+   */
+  const alcanceDe = (importsPorArchivo, raiz) => {
+    const existeEnSrc = (r) => importsPorArchivo.has(r);
+    const aristas = new Map();
+    const sinResolver = [];
+    for (const [desde, specs] of importsPorArchivo) {
+      const destinos = new Set();
+      for (const spec of specs) {
+        if (!esRelativo(spec)) continue; /* un paquete (`sharp`, `firebase-admin`…): no es de este repositorio */
+        const destino = resolverEnSrc(desde, spec, existeEnSrc);
+        if (destino) destinos.add(destino); else sinResolver.push(`${desde} → ${spec}`);
+      }
+      aristas.set(desde, destinos);
+    }
+    const alcanzados = new Set(existeEnSrc(raiz) ? [raiz] : []);
+    const cola = [...alcanzados];
+    while (cola.length) for (const h of aristas.get(cola.shift())) if (!alcanzados.has(h)) { alcanzados.add(h); cola.push(h); }
+    return { aristas, alcanzados, huerfanos: [...importsPorArchivo.keys()].filter((r) => !alcanzados.has(r)).sort(), sinResolver };
+  };
+
+  /** Lo mismo sin los imports que llevan a `destino` (borrar la arista, o las aristas, que lo conectaban). */
+  const sinAristasHacia = (importsPorArchivo, destino) => {
+    const existeEnSrc = (r) => importsPorArchivo.has(r);
+    return new Map([...importsPorArchivo].map(([desde, specs]) => [desde,
+      specs.filter((spec) => !(esRelativo(spec) && resolverEnSrc(desde, spec, existeEnSrc) === destino))]));
+  };
+
+  /** La lista contra lo medido. Tres fallos posibles, cada uno con su nombre. */
+  const conciliar = (huerfanos, admitidos, existentes) => {
+    const enLista = new Set(admitidos.map((a) => a.ruta));
+    const inalcanzables = new Set(huerfanos);
+    return {
+      sinMotivo: huerfanos.filter((r) => !enLista.has(r)),
+      yaAlcanzable: [...enLista].filter((r) => existentes.has(r) && !inalcanzables.has(r)).sort(),
+      inexistente: [...enLista].filter((r) => !existentes.has(r)).sort(),
+    };
+  };
+
+  /** ¿Está bien formada la lista? Clases conocidas, un motivo por archivo, rutas canónicas, sin repetidos. */
+  const problemasDeLaLista = (lista) => {
+    const problemas = [];
+    const vistas = new Set();
+    for (const e of lista) {
+      const quien = e && typeof e.ruta === 'string' ? e.ruta : JSON.stringify(e);
+      if (!e || typeof e.ruta !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._/-]*\.ts$/.test(e.ruta) || e.ruta.startsWith('functions/')) problemas.push(`${quien}: ruta no canónica (relativa a functions/src y acabada en .ts)`);
+      else if (vistas.has(e.ruta)) problemas.push(`${quien}: repetida`);
+      else vistas.add(e.ruta);
+      if (!e || !CLASES_DE_HUERFANO.includes(e.clase)) problemas.push(`${quien}: clase desconocida «${e && e.clase}»`);
+      if (!e || typeof e.motivo !== 'string' || e.motivo.trim().length < 40) problemas.push(`${quien}: sin motivo (una frase que diga por qué y de dónde sale la decisión)`);
+    }
+    return problemas;
+  };
+
+  /** El código de un archivo sin sus líneas de comentario entero (`//`, `/*`, ` * `): una cabecera que NOMBRA un archivo no lo carga. */
+  const sinLineasDeComentario = (texto) => texto.split('\n').filter((l) => !/^\s*(?:\/\/|\/\*|\*)/.test(l)).join('\n');
+
+  /** Cómo se nombra un archivo cuando un código lo CARGA o lo LEE: `lib('x/y.js')`, `../lib/x/y.js`, `functions/src/x/y.ts`, `x/index` también como directorio. */
+  const patronDeCarga = (ruta) => {
+    const sin = ruta.replace(/\.ts$/, '');
+    const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const completo = `(?:lib/|src/|['"\`])${esc(sin)}(?:\\.(?:js|ts))?(?=['"\`])`;
+    const directorio = sin.endsWith('/index') ? `|(?:lib/|src/)${esc(sin.slice(0, -'/index'.length))}(?=['"\`])` : '';
+    return new RegExp(completo + directorio);
+  };
+
+  /**
+   * El respaldo de una entrada: lo que la hace verdad y se mantiene verdad. Devuelve los problemas (vacío = en orden).
+   * `repo` es la vista del repositorio: { texto(ruta del repo) → string|null, enCadena(suite) → bool, codigoFueraDeSrc() → [{ r, texto }] }.
+   */
+  const problemasDeRespaldo = (e, repo, importadoresEnSrc) => {
+    const problemas = [];
+    const carga = patronDeCarga(e.ruta);
+    const suite = (nombre, como) => {
+      const texto = repo.texto(`functions/test/${nombre}`);
+      if (texto === null) problemas.push(`${como} ${nombre}: no existe`);
+      else {
+        if (!repo.enCadena(nombre)) problemas.push(`${como} ${nombre}: no está en la cadena de \`npm test\``);
+        if (!carga.test(sinLineasDeComentario(texto))) problemas.push(`${como} ${nombre}: ya no nombra ${e.ruta}`);
+      }
+    };
+    for (const s of e.suites || []) suite(s, 'suite');
+    if ((e.clase === 'SOLO_PRUEBAS' || e.clase === 'PLANEADO_CERRADO') && !(e.suites || []).length) problemas.push('ninguna suite de la cadena lo ejercita');
+    if (e.clase === 'CONSUMIDOR_FUERA_DEL_GRAFO') {
+      const texto = e.consumidor ? repo.texto(e.consumidor) : null;
+      if (texto === null) problemas.push(`consumidor ${e.consumidor || '(ninguno)'}: no existe`);
+      else if (!sinLineasDeComentario(texto).includes(e.ruta)) problemas.push(`consumidor ${e.consumidor}: ya no nombra ${e.ruta}`);
+      if (!e.copia || repo.texto(e.copia) === null) problemas.push(`copia ${e.copia || '(ninguna)'}: no existe`);
+    }
+    if (e.clase === 'HUERFANO_REAL') {
+      const pines = e.fijadoPor || [];
+      if (!pines.length) problemas.push('ninguna prueba fija que existe');
+      for (const s of pines) suite(s, 'fijado por');
+      const otros = repo.codigoFueraDeSrc().filter((f) => !pines.some((s) => f.r === `functions/test/${s}`) && carga.test(sinLineasDeComentario(f.texto))).map((f) => f.r);
+      if (otros.length) problemas.push(`lo usa algo más (${otros.join(', ')}): ¿sigue siendo un residuo?`);
+      if (importadoresEnSrc.length) problemas.push(`lo importa ${importadoresEnSrc.join(', ')}: ¿sigue siendo un residuo?`);
+    }
+    return problemas;
+  };
+
+  /* ── El árbol real, leído una vez ──────────────────────────────────────────────────────────────────────────────── */
+
+  const relSrc = (abs) => path.relative(SRC, abs).split(path.sep).join('/');
+  /* TODO lo que hay, también un `.d.ts` (que `andar` aparta): lo que el guardián no sabe leer tiene que verse, no callarse. */
+  const listarTodo = (dir, out = []) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory()) listarTodo(p, out); else out.push(p); }
+    return out;
+  };
+  const todosLosArchivos = listarTodo(SRC).sort();
+  const esFuente = (a) => a.endsWith('.ts') && !a.endsWith('.d.ts');
+  const fuentes = new Map(todosLosArchivos.filter(esFuente).map((a) => [relSrc(a), fs.readFileSync(a, 'utf8')]));
+  const extraidos = new Map([...fuentes].map(([r, t]) => [r, importsDeTexto(r, t)]));
+  const importsDeSrc = new Map([...extraidos].map(([r, e]) => [r, e.especificadores]));
+  const existentes = new Set(importsDeSrc.keys());
+  const alcance = alcanceDe(importsDeSrc, RAIZ_DEL_ALCANCE);
+  const importadoresDe = (ruta) => [...alcance.aristas].filter(([, destinos]) => destinos.has(ruta)).map(([desde]) => desde).sort();
+
+  const suitesDeLaCadena = new Set(JSON.parse(leer('functions/package.json')).scripts.test.split('&&').map((p) => p.trim())
+    .filter((p) => /^node test\/\S+$/.test(p)).map((p) => p.slice('node test/'.length)));
+  let codigoDeFuera = null;
+  const repoReal = {
+    texto: (r) => (existe(r) ? leer(r) : null),
+    enCadena: (s) => suitesDeLaCadena.has(s),
+    /* Lo que podría usar un archivo de src sin pasar por el grafo: las suites, los scripts y las operaciones. Sin esta suite: nombra todos los de la lista. */
+    codigoFueraDeSrc: () => (codigoDeFuera ||= ['functions/test', 'scripts', 'ops'].flatMap((d) => andar(path.resolve(RAIZ, d), '.mjs'))
+      .filter((abs) => abs !== fileURLToPath(import.meta.url))
+      .map((abs) => ({ r: path.relative(RAIZ, abs).split(path.sep).join('/'), texto: fs.readFileSync(abs, 'utf8') }))),
+  };
+  const conciliacion = conciliar(alcance.huerfanos, HUERFANOS_ADMITIDOS, existentes);
+
+  /* ── Lo medido sobre el árbol real ─────────────────────────────────────────────────────────────────────────────── */
+
+  const noTs = todosLosArchivos.filter((a) => !esFuente(a)).map(relSrc);
+  check(`190) el guardián mira todo lo que hay en functions/src: ${todosLosArchivos.length} archivos y todos son .ts (ningún .js, .tsx, .d.ts o .json se queda sin mirar)`,
+    todosLosArchivos.length > 0 && noTs.length === 0, noTs.join(', '));
+  check('191) el grafo se recorre: el índice existe y se alcanzan más de doscientos archivos',
+    existentes.has(RAIZ_DEL_ALCANCE) && alcance.alcanzados.size > 200,
+    `${alcance.alcanzados.size} alcanzados de ${existentes.size} · ${alcance.huerfanos.length} huérfanos · ${[...existentes].filter((r) => r.startsWith('core/')).length} del Core, todos alcanzados: ${[...existentes].filter((r) => r.startsWith('core/')).every((r) => alcance.alcanzados.has(r))}`);
+  const dinamicos = [...extraidos].filter(([, e]) => e.noLiterales > 0).map(([r, e]) => `${r} (${e.noLiterales})`);
+  check('192) toda arista se resuelve: ningún import relativo apunta a un archivo que no está en src, y ningún import()/require() lleva una expresión en vez de una cadena',
+    alcance.sinResolver.length === 0 && dinamicos.length === 0, [...alcance.sinResolver, ...dinamicos].join(', '));
+  check('193) los archivos que nadie alcanza desde index.ts están TODOS en la lista: ningún huérfano sin motivo',
+    conciliacion.sinMotivo.length === 0,
+    conciliacion.sinMotivo.length ? `huérfano nuevo: ${conciliacion.sinMotivo.join(', ')} → conéctalo (que lo importe un módulo que llegue a index.ts) o añade su entrada a HUERFANOS_ADMITIDOS` : '');
+  check('194) y la lista no se pudre: ninguna entrada es ya alcanzable ni de un archivo que ya no existe',
+    conciliacion.yaAlcanzable.length === 0 && conciliacion.inexistente.length === 0,
+    [conciliacion.yaAlcanzable.length ? `ya se alcanza: ${conciliacion.yaAlcanzable.join(', ')} → quita su entrada` : '',
+      conciliacion.inexistente.length ? `ya no existe: ${conciliacion.inexistente.join(', ')} → quita su entrada` : ''].filter(Boolean).join(' · '));
+  const deLaLista = problemasDeLaLista(HUERFANOS_ADMITIDOS);
+  const porClase = CLASES_DE_HUERFANO.map((c) => `${HUERFANOS_ADMITIDOS.filter((e) => e.clase === c).length} ${c}`).join(' · ');
+  check(`195) la lista está bien formada: ${HUERFANOS_ADMITIDOS.length} entradas (${porClase}), con motivo, rutas canónicas y sin repetidos`, deLaLista.length === 0, deLaLista.join(' · '));
+  const sinRespaldo = HUERFANOS_ADMITIDOS.flatMap((e) => problemasDeRespaldo(e, repoReal, importadoresDe(e.ruta)).map((p) => `${e.ruta}: ${p}`));
+  check('196) cada motivo está respaldado: las suites que lo ejercitan existen, están en la cadena y lo nombran; el consumidor de fuera del grafo existe y lo nombra; el residuo no lo usa nadie',
+    sinRespaldo.length === 0, sinRespaldo.join(' · '));
+  const cargadosPorLib = [...VIVOS].filter((r) => r.endsWith('.js')).map((r) => r.replace(/\.js$/, '.ts')).filter((r) => existentes.has(r));
+  const seEscaparon = cargadosPorLib.filter((r) => !alcance.alcanzados.has(r));
+  check(`197) el extractor no se deja ninguna arista: lo que carga el compilado (${cargadosPorLib.length} módulos) lo alcanzan también las fuentes`, seEscaparon.length === 0,
+    seEscaparon.length ? `cargados por lib y sin alcanzar en src: ${seEscaparon.join(', ')} → el extractor no reconoce alguna forma de import` : '');
+
+  /* ── Las dos pruebas del control, sobre grafos de mentira ──────────────────────────────────────────────────────── */
+
+  const delTexto = (arbol) => new Map([...arbol].map(([r, t]) => [r, importsDeTexto(r, t).especificadores]));
+  const huerfanosDe = (arbol) => alcanceDe(delTexto(arbol), 'index.ts').huerfanos;
+  const nada = '';
+
+  /* (a) un archivo conectado de CUALQUIERA de las formas no se rechaza */
+  const FORMAS = [
+    ['import … from', `import { x } from './destino';`, ['destino.ts']],
+    ['import por defecto y espacio de nombres', `import d from './destino';\nimport * as ns from './destino';`, ['destino.ts']],
+    ['export * from', `export * from './destino';`, ['destino.ts']],
+    ['export { … } from', `export { x } from './destino';`, ['destino.ts']],
+    ['export * as ns from', `export * as ns from './destino';`, ['destino.ts']],
+    ['import() con cadena literal', `export const carga = async () => (await import('./destino')).x;`, ['destino.ts']],
+    ['import() con plantilla sin sustituciones', 'export const carga = () => import(`./destino`);', ['destino.ts']],
+    ['import de efecto', `import './destino';`, ['destino.ts']],
+    ['import type', `import type { T } from './destino';`, ['destino.ts']],
+    ['import con especificador de tipo', `import { type T } from './destino';`, ['destino.ts']],
+    ['export type … from', `export type { T } from './destino';`, ['destino.ts']],
+    ['import x = require()', `import destino = require('./destino');`, ['destino.ts']],
+    ['require() con cadena literal', `const destino = require('./destino');`, ['destino.ts']],
+    ['import() dentro de un tipo', `export type T = import('./destino').Tipo;`, ['destino.ts']],
+    ['extensión implícita (x → x.ts)', `import './subcarpeta/pieza';`, ['subcarpeta/pieza.ts']],
+    ['index.ts de directorio', `import './subcarpeta';`, ['subcarpeta/index.ts']],
+    ['index.ts de directorio con barra final', `import './subcarpeta/';`, ['subcarpeta/index.ts']],
+    ['hacia arriba (../)', `import './intermedio/puente';`, ['intermedio/puente.ts', 'destino.ts'], { 'intermedio/puente.ts': `import '../destino';` }],
+    ['encadenado (a → b → c)', `import './a';`, ['a.ts', 'b.ts', 'c.ts'], { 'a.ts': `import './b';`, 'b.ts': `export * from './c';` }],
+  ];
+  const formasQueFallan = FORMAS.filter(([, texto, archivos, textos]) => {
+    const arbol = new Map([['index.ts', texto], ...archivos.map((a) => [a, (textos && textos[a]) || nada])]);
+    return huerfanosDe(arbol).length !== 0;
+  }).map(([nombre]) => nombre);
+  check(`198) un archivo conectado de cualquiera de las ${FORMAS.length} formas soportadas NO se rechaza (grafo de mentira)`, formasQueFallan.length === 0, formasQueFallan.join(', '));
+
+  const sinConectar = [
+    ['un archivo que nadie importa', new Map([['index.ts', nada], ['suelto.ts', nada]]), ['suelto.ts']],
+    ['dos huérfanos que se importan entre sí: tener importador no es estar alcanzado', new Map([['index.ts', nada], ['a.ts', `import './b';`], ['b.ts', `import './a';`]]), ['a.ts', 'b.ts']],
+    ['un huérfano que importa algo conectado no se conecta por ello (las aristas tienen sentido)', new Map([['index.ts', `import './real';`], ['real.ts', nada], ['suelto.ts', `import './real';`]]), ['suelto.ts']],
+    ['lo que solo menciona un comentario o una cadena', new Map([['index.ts', `// import './fantasma';\n/* import './fantasma'; */\nexport const t = "import './fantasma'";`], ['fantasma.ts', nada]]), ['fantasma.ts']],
+    ['un paquete con el mismo nombre que un archivo', new Map([['index.ts', `import 'sharp';`], ['sharp.ts', nada]]), ['sharp.ts']],
+    ['solo lo importa algo de fuera de src (una suite, un script): no es una arista', new Map([['index.ts', nada], ['solo-pruebas.ts', nada]]), ['solo-pruebas.ts']],
+    ['un archivo con el nombre del directorio pero sin ser su index', new Map([['index.ts', `import './x';`], ['x/index.ts', nada], ['x/otro.ts', nada]]), ['x/otro.ts']],
+  ];
+  const sinConectarMal = sinConectar.filter(([, arbol, esperados]) => !igual(huerfanosDe(arbol), esperados)).map(([nombre]) => nombre);
+  check(`199) y un huérfano SÍ se detecta, también cuando tiene importador o un comentario lo nombra (${sinConectar.length} casos de mentira)`, sinConectarMal.length === 0, sinConectarMal.join(' · '));
+  const sinResolverDeMentira = alcanceDe(delTexto(new Map([['index.ts', `import './no-existe';\nimport './existe';`], ['existe.ts', nada]])), 'index.ts').sinResolver;
+  check('199b) una arista perdida (un import relativo que no apunta a nada) se informa, no se calla', igual(sinResolverDeMentira, ['index.ts → ./no-existe']), sinResolverDeMentira.join(', '));
+
+  /* ── Sabotajes: el control FALLA cuando debe. Sobre el árbol real, en memoria (no se toca el disco) ───────────── */
+
+  /* Cada sabotaje se juzga por lo que AÑADE a los fallos del árbol real: así un árbol ya roto ni disfraza ni duplica el sabotaje. */
+  const fallosNuevos = (c) => ({
+    sinMotivo: c.sinMotivo.filter((r) => !conciliacion.sinMotivo.includes(r)),
+    yaAlcanzable: c.yaAlcanzable.filter((r) => !conciliacion.yaAlcanzable.includes(r)),
+    inexistente: c.inexistente.filter((r) => !conciliacion.inexistente.includes(r)),
+  });
+  const sabotajes = [];
+  /* i) añadir un huérfano */
+  {
+    const m = new Map(importsDeSrc).set('zz-huerfano-de-prueba.ts', ['./index']);
+    const nuevos = fallosNuevos(conciliar(alcanceDe(m, RAIZ_DEL_ALCANCE).huerfanos, HUERFANOS_ADMITIDOS, new Set(m.keys())));
+    sabotajes.push(['(i) añadir un huérfano de prueba', igual(nuevos.sinMotivo, ['zz-huerfano-de-prueba.ts']) && nuevos.yaAlcanzable.length === 0 && nuevos.inexistente.length === 0]);
+  }
+  /* ii) dejar en la lista un archivo ya alcanzable: una entrada de un archivo conectado, y conectar uno de los listados sin quitar su entrada */
+  {
+    const nuevos = fallosNuevos(conciliar(alcance.huerfanos, [...HUERFANOS_ADMITIDOS, { ruta: 'creator/index.ts', clase: 'SOLO_PRUEBAS', motivo: nada }], existentes));
+    sabotajes.push(['(ii) una entrada de un archivo ya conectado (creator/index.ts)', igual(nuevos.yaAlcanzable, ['creator/index.ts']) && nuevos.sinMotivo.length === 0]);
+  }
+  {
+    const elegido = HUERFANOS_ADMITIDOS.find((e) => e.clase === 'SOLO_PRUEBAS').ruta;
+    const m = new Map(importsDeSrc).set(RAIZ_DEL_ALCANCE, [...importsDeSrc.get(RAIZ_DEL_ALCANCE), `./${elegido.replace(/\.ts$/, '')}`]);
+    const nuevos = fallosNuevos(conciliar(alcanceDe(m, RAIZ_DEL_ALCANCE).huerfanos, HUERFANOS_ADMITIDOS, existentes));
+    sabotajes.push([`(ii) conectar un archivo de la lista (${elegido}) sin quitar su entrada`, nuevos.yaAlcanzable.includes(elegido) && nuevos.sinMotivo.length === 0]);
+  }
+  {
+    const nuevos = fallosNuevos(conciliar(alcance.huerfanos, [...HUERFANOS_ADMITIDOS, { ruta: 'ya-no-existe.ts', clase: 'SOLO_PRUEBAS', motivo: nada }], existentes));
+    sabotajes.push(['(ii) una entrada de un archivo que ya no existe', igual(nuevos.inexistente, ['ya-no-existe.ts']) && nuevos.sinMotivo.length === 0]);
+  }
+  /* iii) borrar el import que conectaba un archivo: uno alcanzado con un único importador (el primero por nombre) */
+  const conectadoPorUno = [...alcance.alcanzados].sort().find((r) => r !== RAIZ_DEL_ALCANCE && importadoresDe(r).length === 1 && alcance.alcanzados.has(importadoresDe(r)[0]));
+  {
+    const nuevos = fallosNuevos(conciliar(alcanceDe(sinAristasHacia(importsDeSrc, conectadoPorUno), RAIZ_DEL_ALCANCE).huerfanos, HUERFANOS_ADMITIDOS, existentes));
+    sabotajes.push([`(iii) borrar el import que conectaba ${conectadoPorUno} (lo importaba solo ${importadoresDe(conectadoPorUno)[0]})`, nuevos.sinMotivo.includes(conectadoPorUno)]);
+  }
+  /* y las que miden la lista y el respaldo */
+  sabotajes.push(['(iv) una entrada sin motivo, con clase inventada o repetida', problemasDeLaLista([{ ruta: 'a.ts', clase: 'SOLO_PRUEBAS', motivo: 'corto' }]).length === 1
+    && problemasDeLaLista([{ ruta: 'a.ts', clase: 'INVENTADA', motivo: 'x'.repeat(50) }]).length === 1
+    && problemasDeLaLista([{ ruta: 'a.ts', clase: 'SOLO_PRUEBAS', motivo: 'x'.repeat(50) }, { ruta: 'a.ts', clase: 'SOLO_PRUEBAS', motivo: 'x'.repeat(50) }]).length === 1
+    && problemasDeLaLista([{ ruta: 'functions/src/a.ts', clase: 'SOLO_PRUEBAS', motivo: 'x'.repeat(50) }]).length === 1]);
+  {
+    const falso = (textos, cadena, fuera = []) => ({ texto: (r) => (r in textos ? textos[r] : null), enCadena: (s) => cadena.includes(s), codigoFueraDeSrc: () => fuera });
+    const solo = { ruta: 'x/y.ts', clase: 'SOLO_PRUEBAS', suites: ['y.test.mjs'] };
+    const bien = falso({ 'functions/test/y.test.mjs': `const y = lib('x/y.js');` }, ['y.test.mjs']);
+    const respaldo = [
+      problemasDeRespaldo(solo, bien, []).length === 0,
+      problemasDeRespaldo(solo, falso({}, ['y.test.mjs']), []).length === 1, /* la suite desapareció */
+      problemasDeRespaldo(solo, falso({ 'functions/test/y.test.mjs': `const y = lib('x/y.js');` }, []), []).length === 1, /* ya no está en la cadena */
+      problemasDeRespaldo(solo, falso({ 'functions/test/y.test.mjs': `const z = lib('core/x/y.js');` }, ['y.test.mjs']), []).length === 1, /* nombra OTRO x/y */
+      problemasDeRespaldo(solo, falso({ 'functions/test/y.test.mjs': `// const y = lib('x/y.js');\n/**\n * ver lib('x/y.js')\n */` }, ['y.test.mjs']), []).length === 1, /* solo un comentario lo nombra */
+      problemasDeRespaldo({ ruta: 'x/y.ts', clase: 'PLANEADO_CERRADO', suites: [] }, bien, []).length === 1, /* sin ninguna suite */
+      problemasDeRespaldo({ ruta: 'f/g.ts', clase: 'CONSUMIDOR_FUERA_DEL_GRAFO', consumidor: 'scripts/gen.mjs', copia: 'app/f/g.ts' }, falso({ 'scripts/gen.mjs': `['f/g.ts']`, 'app/f/g.ts': nada }, []), []).length === 0,
+      problemasDeRespaldo({ ruta: 'f/g.ts', clase: 'CONSUMIDOR_FUERA_DEL_GRAFO', consumidor: 'scripts/gen.mjs', copia: 'app/f/g.ts' }, falso({ 'scripts/gen.mjs': `['otro.ts']`, 'app/f/g.ts': nada }, []), []).length === 1, /* el script ya no lo nombra */
+      problemasDeRespaldo({ ruta: 'f/g.ts', clase: 'CONSUMIDOR_FUERA_DEL_GRAFO', consumidor: 'scripts/gen.mjs', copia: 'app/f/g.ts' }, falso({ 'scripts/gen.mjs': `['f/g.ts']` }, []), []).length === 1, /* la copia no existe */
+    ];
+    sabotajes.push(['(v) el respaldo de una entrada se cae si la suite desaparece, sale de la cadena, deja de nombrarlo (o solo lo nombra un comentario) o el script ya no lo lee', respaldo.every(Boolean)]);
+    const residuo = { ruta: 'r/z.ts', clase: 'HUERFANO_REAL', fijadoPor: ['pin.test.mjs'] };
+    const pin = falso({ 'functions/test/pin.test.mjs': `fs.existsSync('functions/src/r/z.ts')` }, ['pin.test.mjs']);
+    const conOtro = falso({ 'functions/test/pin.test.mjs': `fs.existsSync('functions/src/r/z.ts')` }, ['pin.test.mjs'], [{ r: 'functions/test/otra.test.mjs', texto: `lib('r/z.js')` }]);
+    sabotajes.push(['(vi) un residuo deja de serlo si otra suite lo carga o un módulo lo importa',
+      problemasDeRespaldo(residuo, pin, []).length === 0 && problemasDeRespaldo(residuo, conOtro, []).length === 1 && problemasDeRespaldo(residuo, pin, ['a.ts']).length === 1]);
+  }
+  sabotajes.forEach(([nombre, muerde], i) => check(`${200 + i}) sabotaje ${nombre}: el control falla y nombra lo que corresponde`, muerde));
 }
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
