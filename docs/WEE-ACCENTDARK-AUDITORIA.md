@@ -41,6 +41,9 @@ de `Chip`: sus líneas 40 en adelante se corren cuatro en la rama (el `:43` de e
   WriterEditor— y todo componente de `components/creator|business|studio|…` que lleva un texto dorado solo lo importan esas pantallas (L: `git grep`). Dentro del
   taller **el tema oscuro no se ve nunca**: por eso el 8,44:1 que pasa en el oscuro no cuenta para Weë AI, y lo que decide es el contraste del claro. (La suite lo vigila:
   B3.) En Home, Perfil, Create, comentarios y menú sí se ve el oscuro cuando el Perfil Weë está activo.
+- **Cómo reproducirlo.** `node functions/test/accentdark-contraste.test.mjs` reproduce lo esencial: la detección de cada texto, su huella, el contraste de los corregidos y de los pendientes sobre su superficie
+  y el dibujado de `Chip` y `Pastilla`. La tabla completa de §4 (tamaño, superficie compuesta, los dos temas) la generó un script de análisis de solo lectura que vive en la carpeta de evidencia de la ronda R8
+  (`ronda-r8\CON-contraste\inventario.mjs` y `medir.mjs`), fuera del repositorio.
 - **Lo que es inferido (I).** La superficie de los iconos y los bordes (§6) se dedujo con un script desde el ancestro más cercano con `backgroundColor` del mismo
   archivo; no se leyó a mano: son adornos que no se tocan y su cifra es solo informativa (WCAG 1.4.11 pediría 3:1 si el icono fuera la única señal).
 
@@ -129,6 +132,10 @@ El dorado de los iconos, los bordes y los fondos de esos mismos elementos **no s
 | `ResultCard.tsx:404` «Cambiar»/«Elegir» (fila del proyecto) | La frase de al lado va en semibold del color del texto y la acción en bold de 12 px: sin el dorado solo las separaría un punto de tamaño y un escalón de peso | ídem |
 
 Los tres siguen fallando AA (2,12–2,24:1) y la suite los lista con su motivo.
+
+**El criterio es mío y se puede revisar.** «No pierde significado» es un juicio razonado fila a fila, no una medida. Los tres corregidos más discutibles son las acciones secundarias de un par —`PlanCard.tsx:142` y
+`WeeCreatorScreen.tsx:239`, junto a un botón principal amarillo, y `CreatorFlowScreen.tsx:613`, tras un texto gris—: sin el dorado queda su posición, su color y su peso, pero son «enlaces» en el sentido del encargo. Si se
+prefieren dorados, basta revertir su línea (`text` → `accentDark`) y mover su huella de `CORREGIDOS` a `PENDIENTES` en la suite.
 
 **Cómo comprobarlo a mano** (NO VERIFICADO visualmente: no se levantó web ni emulador, que es trabajo PESADO fuera de este encargo; lo verificado es lo que cada `<Text>` pinta y su
 contraste calculado). Dónde se ve cada cambio:
@@ -268,7 +275,7 @@ vigilada lo demuestra (el detector sigue la variable sin evaluar la condición).
 **Evidencia** (E, rama `r8/contraste`): contra las fuentes de `c3f7f9a7` la suite da **34 comprobaciones en rojo y 46 en verde** (los 13 sitios aún con el dorado: B5 y D1, más el fantasma de «Cambiar», los sabotajes que no encuentran el color corregido y el dibujado de `Chip` «acento» y `Pastilla` puesta, que pintan `#E5A020` en el texto);
 con los 13 cambios, **80 de 80 en verde**, en unos dos segundos. **Sabotaje real, fuera de la suite:** se devolvió `accentDark` a `JobProgress.tsx:40` en el árbol (sobre `c89c6704`) y la suite cayó en B5 —nombrando el uso exacto—, D1, E1 y E2 (4 comprobaciones); `git checkout -- components/creator/JobProgress.tsx` lo restauró, el árbol quedó limpio y volvió a verde.
 
-**Regresión** (E, `node test/<suite>` desde `functions/`, de una en una, sin emuladores): 48 suites y scripts que leen los archivos tocados o vigilan la seguridad —las que nombra el encargo (`cajas-weeai`, `ajustes-weeai`, `credits-weeai`, `aceptacion-pantallas`, `navegacion-enlaces`, `foundation-de-experiencias`, `design-cierre`, `weeai-cliente-cierre`, `chef-weeai`, `chef-caracterizacion`, `puente-pre-f1d`), todas las que mencionan un archivo corregido (`grep -l`), `ci-workflow` y `scripts/escaneo-secretos.mjs`— terminan con **0 fallos** (48 en verde, 4489 comprobaciones ✔). El corredor `node functions/test/_design-cierre.mjs` sale con código 1 porque Weë Design no está terminado, y da **exactamente las cifras de la línea base** (11 · 5 · 9 · 3: cumplidos · abiertos · esperan una decisión · manuales); CL-24 sigue CUMPLIDO. Ningún pin de estilo de una suite existente fijaba un color corregido, así que no hubo que tocar ninguna. `tsc --noEmit` y la cadena entera (`_cadena.mjs`, la lanza el coordinador) no se corrieron todavía.
+**Regresión** (E, `node test/<suite>` desde `functions/`, de una en una, sin emuladores): 48 suites y scripts que leen los archivos tocados o vigilan la seguridad —las que nombra el encargo (`cajas-weeai`, `ajustes-weeai`, `credits-weeai`, `aceptacion-pantallas`, `navegacion-enlaces`, `foundation-de-experiencias`, `design-cierre`, `weeai-cliente-cierre`, `chef-weeai`, `chef-caracterizacion`, `puente-pre-f1d`), todas las que mencionan un archivo corregido (`grep -l`), `ci-workflow` y `scripts/escaneo-secretos.mjs`— terminan con **0 fallos** (48 en verde, 4489 comprobaciones ✔). El corredor `node functions/test/_design-cierre.mjs` sale con código 1 porque Weë Design no está terminado, y da **exactamente las cifras de la línea base** (11 · 5 · 9 · 3: cumplidos · abiertos · esperan una decisión · manuales); CL-24 sigue CUMPLIDO. Ningún pin de estilo de una suite existente fijaba un color corregido, así que no hubo que tocar ninguna. `NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit` da **0 errores** (E, 853 s). La cadena entera (`_cadena.mjs`) la lanza el coordinador y no se corrió aquí.
 
 ## 10. Hallazgos adyacentes (fuera del encargo, NO tocados)
 
@@ -276,6 +283,7 @@ con los 13 cambios, **80 de 80 en verde**, en unos dos segundos. **Sabotaje real
 |---|---|---|
 | `theme.colors.accent`/`primary` (`#F5B731`) también se usa como color de texto, peor que `accentDark` | 1,79:1 sobre blanco; 31 líneas `color: theme.colors.accent\|primary` en 18 archivos de `screens/` y `components/` (M: `git grep -n -E "color: theme\.colors\.(accent\|primary)\b" -- screens components`). En Weë AI solo tres, todos la palabra resaltada de un título: `CabeceraDeSeccion.tsx:216`, `SpecialistHero.tsx:46`, `CabeceraDeWeeBrain.tsx:83` (posible excepción de logotipo) | `WeeBiz*`, `AiAvatarScreen`, `SearchScreen`, `PostCard`… |
 | Los demás tonos del chip de producción usan como texto colores de estado claros sobre `surface` | `warning` 2,04:1, `success` 2,16:1, `error` 3,57:1 (`ProductionPiezas.tsx:35-39`; mismo problema, otros colores) | `ProductionStatus`, `ProductionShotCard`, `ProductionSceneCard` |
+| El icono del `Chip` ACTIVO de Weë AI es dorado oscuro sobre el fondo dorado del propio chip | `ui.tsx:47` pinta el icono con `accentDark` y `ui.tsx:39` rellena el chip activo con `accent`: 1,25:1 (M). El texto del chip va en `text` y lo dice igual, así que el icono es decorativo; pero casi no se ve (p. ej. los chips activos «Ir a Weë …» y «Obtener Credits» de `BrainChatScreen.tsx:535,556`) | `components/creator/ui.tsx`, `BrainChatScreen` |
 | El mismo dorado como literal, sin pasar por el token | `HomeScreen.tsx:236` (`color: '#E5A020'`), `WeelsRow.tsx:131`, `AvatarSVGs.tsx:71,121` | Home |
 | `#1F2937` escrito a mano donde existe `text` | `PlanCard.tsx` (texto sobre el acento), `StudioControles.tsx` | Weë AI |
 | En el oscuro, `BusinessPanel.tsx:146` y `BusinessScreen.tsx:413` bajan a 4,29:1 sobre `glow` | solo se vería si el taller dejara de ser siempre claro (§2) | Weë AI |

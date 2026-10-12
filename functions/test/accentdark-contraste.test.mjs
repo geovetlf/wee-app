@@ -208,11 +208,11 @@ console.log('\n─── A. El detector clasifica bien (antes de fiarse de él) 
   const sinDorado = caso('<Text style={[styles.titulo, { color: theme.colors.text }]}>{t("a.b")}</Text>');
   check('A10) un texto en el color del texto no es un uso del dorado', sinDorado.length === 0);
   const destructurado = analizar('components/creator/Prueba.tsx', 'const X = () => { const { accentDark } = useTheme().theme.colors; return (<Text style={{ color: accentDark }}>{t("a.b")}</Text>); };').usos;
-  check('A12) el dorado desestructurado (`const { accentDark } = …`) no se esconde: se anota como «otro» y hará fallar el candado', destructurado.some((u) => u.tipo === 'otro'), JSON.stringify(destructurado.map((u) => u.tipo)));
+  check('A11) el dorado desestructurado (`const { accentDark } = …`) no se esconde: se anota como «otro» y hará fallar el candado', destructurado.some((u) => u.tipo === 'otro'), JSON.stringify(destructurado.map((u) => u.tipo)));
   const porIndice = caso('<Text style={{ color: theme.colors[\'accentDark\'] }}>{t("a.b")}</Text>');
-  check('A13) ni el escrito como theme.colors[\'accentDark\']', porIndice.some((u) => u.tipo === 'otro'), JSON.stringify(porIndice.map((u) => u.tipo)));
+  check('A12) ni el escrito como theme.colors[\'accentDark\']', porIndice.some((u) => u.tipo === 'otro'), JSON.stringify(porIndice.map((u) => u.tipo)));
   const aTexto = analizar('components/creator/Prueba.tsx', 'const X = () => (<Text style={[styles.a, { color: theme.colors.text }]}>{t("a.b")}</Text>);').textos;
-  check('A11) y el inventario de textos sí lo ve, con el token que usa', aTexto.length === 1 && aTexto[0].tokens.join() === 'text', JSON.stringify(aTexto.map((x) => x.tokens)));
+  check('A13) y el inventario de textos sí lo ve, con el token que usa', aTexto.length === 1 && aTexto[0].tokens.join() === 'text', JSON.stringify(aTexto.map((x) => x.tokens)));
 }
 
 /* ───────────────────────────── el alcance: Weë AI ───────────────────────────── */
