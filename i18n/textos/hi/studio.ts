@@ -251,6 +251,10 @@ export const studio: typeof import('../es/studio').studio = {
   ready: 'आपकी रचना तैयार है',
   readyHint: 'यह एक डेमो है: अभी तक असल में कुछ भी जनरेट नहीं किया गया है.',
   dismiss: 'ठीक है',
+  /* R9 · E2: lo escrito no encaja con ningún sitio del Studio; se dice y se ofrece Weë Brain. */
+  noDestination: 'समझ नहीं आया कि इसे Studio में कहाँ ले जाएँ',
+  noDestinationHint: 'चुनें कि कहाँ से शुरू करना है, या Weë Brain को बताएँ.',
+  askBrain: 'Weë Brain से पूछें',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
   soon: 'जल्द ही',

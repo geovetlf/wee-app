@@ -256,6 +256,10 @@ export const studio: typeof import('../es/studio').studio = {
   ready: 'Din kreation er klar',
   readyHint: 'Dette er en demo: Der er ikke genereret noget for alvor endnu.',
   dismiss: 'Forstået',
+  /* R9 · E2: lo escrito no encaja con ningún sitio del Studio; se dice y se ofrece Weë Brain. */
+  noDestination: 'Jeg ved ikke, hvor i Studio det her skal hen',
+  noDestinationHint: 'Vælg, hvor du vil starte, eller fortæl det til Weë Brain.',
+  askBrain: 'Spørg Weë Brain',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
   soon: 'Kommer snart',

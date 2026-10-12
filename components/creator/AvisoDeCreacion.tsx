@@ -8,8 +8,14 @@ import { scale } from '../../utils/scale';
 
 const isWeb = Platform.OS === 'web';
 
-/** Quieto no se ve nada; creando y listo son los dos estados que se cuentan. */
-export type EstadoDeCreacion = 'quieto' | 'creando' | 'listo';
+/**
+ * Quieto no se ve nada; creando y listo son los dos estados que se cuentan.
+ *
+ * `sinDestino` (R9 · E2): lo escrito no encaja con ningún sitio del Studio. No se finge una creación —antes un
+ * temporizador decía «Creación lista» sin haber creado nada—: se dice la verdad y se ofrece una salida real
+ * (`claveAccion` + `onAccion`, hoy «Preguntar a Weë Brain»).
+ */
+export type EstadoDeCreacion = 'quieto' | 'creando' | 'listo' | 'sinDestino';
 
 interface Props {
   estado: EstadoDeCreacion;
@@ -26,6 +32,9 @@ interface Props {
    * pasa y el aviso deja de darla solo.
    */
   clavePista?: string | null;
+  /** Solo en `sinDestino`: la salida que se ofrece, como clave de i18n, y lo que hace. */
+  claveAccion?: string;
+  onAccion?: () => void;
 }
 
 /**
@@ -54,7 +63,7 @@ interface Props {
  * la tarjeta blanca da 2,24:1 (no llega al 4,5:1 de AA). `text` pasa en los dos temas —14,68:1 el claro, 18,88:1 el
  * oscuro— y no inventa ningún color. El dorado se queda en el icono, que es decorativo: lo que dice el aviso lo dice el texto.
  */
-const AvisoDeCreacion: React.FC<Props> = ({ estado, bottom, onCerrar, clavePista = 'studio.readyHint' }) => {
+const AvisoDeCreacion: React.FC<Props> = ({ estado, bottom, onCerrar, clavePista = 'studio.readyHint', claveAccion, onAccion }) => {
   const { theme } = useTheme();
   const t = useT();
 
@@ -62,7 +71,37 @@ const AvisoDeCreacion: React.FC<Props> = ({ estado, bottom, onCerrar, clavePista
 
   return (
     <View accessibilityLiveRegion="polite" style={[styles.aviso, { backgroundColor: theme.colors.card, borderColor: theme.colors.border, bottom }]}>
-      {estado === 'creando' ? (
+      {estado === 'sinDestino' ? (
+        <>
+          <Ionicons name="information-circle" size={scale(18)} color={theme.colors.accentDark} />
+          <View style={styles.avisoCuerpo}>
+            <Text style={[styles.avisoTexto, { color: theme.colors.text }]}>{t('studio.noDestination')}</Text>
+            <Text style={[styles.avisoPista, { color: theme.colors.textSecondary }]}>{t('studio.noDestinationHint')}</Text>
+          </View>
+          {!!claveAccion && !!onAccion && (
+            <TouchableOpacity
+              onPress={onAccion}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={t(claveAccion)}
+              style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
+            >
+              <Text style={[styles.avisoCerrar, { color: theme.colors.text }]}>{t(claveAccion)}</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            onPress={onCerrar}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={t('studio.dismiss')}
+            style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
+          >
+            <Text style={[styles.avisoCerrar, { color: theme.colors.text }]}>{t('studio.dismiss')}</Text>
+          </TouchableOpacity>
+        </>
+      ) : estado === 'creando' ? (
         <>
           <Ionicons name="sparkles" size={scale(18)} color={theme.colors.accentDark} />
           <Text style={[styles.avisoTexto, { color: theme.colors.text }]}>{t('studio.creating')}</Text>
