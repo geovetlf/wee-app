@@ -348,9 +348,10 @@ const design = crearEntorno({ pantalla: 'screens/DesignScreen.tsx', dobles: dobl
 {
   design.dibujar();
   const c = design.capturas;
-  check('ACE-D-01 · la pantalla de Design entrega su cabecera, su caja, sus puertas y su galería, y empieza «quieta» (nada creándose)',
-    c.StudioHeader.nombre === 'Design' && c.StudioPromptComposer.valor === '' && c.StudioPromptComposer.placeholder === tEs('design.placeholder') && c.StudioPromptComposer.ocupado === false
-    && !!c.DesignExplore && c.AvisoDeCreacion.estado === 'quieto' && c.FilaDeCreaciones.creaciones.length === 4 && !c.DesignPanel);
+  /* Sin aviso de demostración ni caja «ocupada»: desde el puente (R7-Design) crear es ir a CreatorFlow y no hay nada que esperar aquí. */
+  check('ACE-D-01 · la pantalla de Design entrega su cabecera, su caja, sus puertas y su galería, y empieza quieta (sin aviso de demostración y nada creándose)',
+    c.StudioHeader.nombre === 'Design' && c.StudioPromptComposer.valor === '' && c.StudioPromptComposer.placeholder === tEs('design.placeholder') && !c.StudioPromptComposer.ocupado
+    && !!c.DesignExplore && !c.AvisoDeCreacion && c.FilaDeCreaciones.creaciones.length === 4 && !c.DesignPanel);
   check('ACE-D-20 · ACE-D-01 · las puertas de la portada se abren con la puerta que se toca y «Ver todas» las enseña todas; la galería es de MUESTRA (sus títulos son claves, no contenido de nadie)',
     typeof c.DesignExplore.onAbrir === 'function' && typeof c.DesignExplore.onVerTodas === 'function' && c.FilaDeCreaciones.creaciones.every((x) => typeof x.claveTitulo === 'string'));
   check('ACE-D-24 · ACE-D-01 · en el teléfono, dos puertas por fila', c.DesignExplore.porFila === 2, String(c.DesignExplore.porFila));
@@ -361,26 +362,24 @@ const design = crearEntorno({ pantalla: 'screens/DesignScreen.tsx', dobles: dobl
   design.dibujar();
   design.capturas.StudioPromptComposer.onCrear();
   design.dibujar();
-  check('ACE-D-06 · «Crear» con la caja vacía no hace nada: ni estado de «creando», ni temporizador, ni navegación',
-    design.capturas.AvisoDeCreacion.estado === 'quieto' && temporizadores.length === 0 && design.navegacion.length === 0);
+  check('ACE-D-06 · «Crear» con la caja vacía no hace nada: ni temporizador, ni navegación',
+    temporizadores.length === 0 && design.navegacion.length === 0);
   design.capturas.StudioPromptComposer.onCambiar('Un yate de quince metros');
   design.dibujar();
   design.capturas.StudioPromptComposer.onCrear();
   design.dibujar();
-  check('ACE-D-06 · «Crear» con una idea pasa a «creando» (la caja se queda ocupada y el aviso lo dice)',
-    design.capturas.AvisoDeCreacion.estado === 'creando' && design.capturas.StudioPromptComposer.ocupado === true);
+  /*
+   * EL HUECO SE CERRÓ (R7-Design, tarea P; H B-01): «Crear» de la pantalla montada abre la conversación de Weë AI. Como pide el
+   * procedimiento de `_aceptacion.mjs`, el hueco `ACE-D-06` pasa a ser una comprobación normal —y se marca PASA en el catálogo—.
+   * Lo detallado (ajustes en palabras, sin sesión, doble toque, nada de presets ni foto…) lo ejecuta `puente-design.test.mjs`.
+   */
+  check('ACE-D-06 · «Crear» con una idea abre la conversación de Weë AI (CreatorFlow, experiencia «design») con lo escrito, y la caja no queda ocupada',
+    design.navegacion.length === 1 && design.navegacion[0][0] === 'navigate' && design.navegacion[0][1] === 'CreatorFlow'
+    && design.navegacion[0][2].experienceId === 'design' && design.navegacion[0][2].goal === 'Un yate de quince metros' && !design.capturas.StudioPromptComposer.ocupado,
+    JSON.stringify(design.navegacion[0]));
   const importaciones = leer('screens/DesignScreen.tsx').split('\n').filter((l) => /^import /.test(l)).join('\n');
-  check('ACE-D-06 · y lo que espera es UN TEMPORIZADOR, no una respuesta del servidor: la pantalla ni siquiera importa un servicio, un hook de Credits ni Firebase',
-    temporizadores.length === 1 && typeof temporizadores[0].fn === 'function' && !/services\/|useWallet|useBrain|firebase|creditsService/i.test(importaciones), `${importaciones.split('\n').length} importaciones`);
-  temporizadores[0].fn();
-  design.dibujar();
-  check('ACE-D-06 · al vencer, pasa a «lista» sin resultado alguno: no hay ningún trabajo, ningún Credit movido ni ninguna navegación a CreatorFlow',
-    design.capturas.AvisoDeCreacion.estado === 'listo' && design.navegacion.length === 0 && design.capturas.StudioPromptComposer.ocupado === false);
-  design.capturas.AvisoDeCreacion.onCerrar();
-  design.dibujar();
-  check('ACE-D-06 · y el aviso se cierra tocándolo', design.capturas.AvisoDeCreacion.estado === 'quieto');
-  hueco('ACE-D-06', 'BLOCKED — HUMAN DECISION (H B-01): el botón «Crear» de la pantalla montada de Weë Design crea de verdad: abre la conversación de Weë AI (CreatorFlow, experiencia «design») con lo escrito y lo elegido (hoy es una demostración con temporizador, y los ajustes y las referencias no viajan a ninguna parte)',
-    design.navegacion.some((n) => n[1] === 'CreatorFlow'), 'ver docs/DESIGN.md §1 y la fase F2 (decisiones D1, D2 y D7 del dueño); H B-01; lo cierra la tarea F o el dueño, no esta');
+  check('ACE-D-06 · y no espera nada por su cuenta: ni un temporizador, ni un servicio, ni un hook de Credits, ni Firebase (el precio, la reserva y el reembolso son de CreatorFlow)',
+    temporizadores.length === 0 && !/services\/|useWallet|useBrain|firebase|creditsService/i.test(importaciones), `${importaciones.split('\n').length} importaciones`);
 }
 
 /* ═══ F · WEË DESIGN: LAS PUERTAS ═════════════════════════════════════════ */
