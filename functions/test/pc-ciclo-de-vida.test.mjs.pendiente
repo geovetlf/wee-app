@@ -351,13 +351,14 @@ console.log('\n── 8 · Borrar o archivar el proyecto no rompe la creación �
   const c = (await ana.ciclo.listarCreacionesFinales('ana')).creaciones.find((x) => x.id === r1.creacionId);
   check('8d) borrar el proyecto de origen → la creación sigue en Mis creaciones con sus assets', !!c && JSON.stringify(c.assetIds) === '["asset_ana_1"]' && base.leer('assets/asset_ana_1')?.status === 'ready');
   const ra = await ana.ciclo.reabrirParaEditar(r1.creacionId);
+  /* La relación se mira JUSTO después del primer reabrir: que un segundo reabrir la arregle no basta. */
+  const cTras = (await ana.ciclo.listarCreacionesFinales('ana')).creaciones.find((x) => x.id === r1.creacionId);
   const rb = await ana.ciclo.reabrirParaEditar(r1.creacionId);
   check('8e) volver a editar sin proyecto de origen crea UN proyecto vinculado, de la persona, en Mis proyectos', ra.nuevo === true && ra.proyectoId !== p1.id
     && base.leer(`creatorProjects/${ra.proyectoId}`)?.userId === 'ana' && (await ana.ciclo.listarProyectosEnCurso('ana')).some((p) => p.id === ra.proyectoId), JSON.stringify(ra));
   check('8f) reabrir otra vez da el MISMO proyecto vinculado (no un segundo)', rb.proyectoId === ra.proyectoId && rb.nuevo === false
     && base.de('creatorProjects').length === proyectosAntesDeBorrar, JSON.stringify(rb));
-  const cTras = (await ana.ciclo.listarCreacionesFinales('ana')).creaciones.find((x) => x.id === r1.creacionId);
-  check('8g) …y la creación queda relacionada con ese proyecto', cTras?.proyectoOrigenId === ra.proyectoId);
+  check('8g) …y en cuanto se reabre, la creación queda relacionada con ese proyecto', cTras?.proyectoOrigenId === ra.proyectoId);
 }
 
 /* ─────────────── 17 · aislamiento ─────────────── */
