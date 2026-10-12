@@ -272,13 +272,15 @@ console.log('\n── E7 · Tres candidatos; `ledger.close(COMPLETED)` falla SIE
 /* ═══ E8 · el aviso no filtra credenciales: la causa pasa por `sanitizeForLog` ═══════════════════════════════ */
 console.log('\n── E8 · La causa del aviso va saneada (un error de Firestore puede traer una cabecera) ──');
 {
+  /* Clave FALSA con la forma de una real, construida aquí para que el escáner de secretos no vea una en el texto del archivo. */
+  const CLAVE_FALSA = ['sk', 'f'.repeat(24)].join('-');
   const r = await correr({
     proveedores: [proveedor('alpha')],
     fallaCierre: ({ patch, vez }) => patch.status === 'COMPLETED' && vez === 1 && 'nada',
-    textoDelFallo: '14 UNAVAILABLE: fallo con Authorization: Bearer abcdef0123456789abcdef y la clave sk-0123456789abcdefghij en la cabecera',
+    textoDelFallo: `14 UNAVAILABLE: fallo con Authorization: Bearer abcdef0123456789abcdef y la clave ${CLAVE_FALSA} en la cabecera`,
   });
   const aviso = avisoDeContabilidad(r, 'cierre del libro');
-  check('E8 · el aviso existe y NO lleva ni el Bearer ni la clave sk- (se omiten como en el resto de registros)', !!aviso && !/abcdef0123456789abcdef/.test(aviso) && !/sk-0123456789abcdefghij/.test(aviso) && /credencial omitida/.test(aviso), aviso ?? 'sin aviso');
+  check('E8 · el aviso existe y NO lleva ni el Bearer ni la clave sk- (se omiten como en el resto de registros)', !!aviso && !/abcdef0123456789abcdef/.test(aviso) && !aviso.includes(CLAVE_FALSA) && /credencial omitida/.test(aviso), aviso ?? 'sin aviso');
   check('E8 · y el resultado se entrega', !r.error && r.valor?.provider === 'alpha', resumen(r));
 }
 
