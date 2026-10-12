@@ -390,4 +390,4 @@ export const crearProyecto = async ({ id, trabajos = [], proyecto = { id, userId
   pantalla: 'screens/ProjectScreen.tsx', piezas: piezasDelProyecto, params: { id }, usuario, idioma, servidor, escenario: { proyecto, trabajos },
 });
 
-export { textoDelHtml, h };
+export { textoDelHtml, textoDe, h };

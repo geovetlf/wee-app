@@ -28,6 +28,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { RAIZ, crearCargador, leer, sinComentarios } from './filmmaker-cliente.mjs';
+import { temasDeLaApp, contraste, AA_TEXTO } from './_contraste-wcag.mjs';
 
 const require = createRequire(import.meta.url);
 const existe = (rel) => fs.existsSync(path.resolve(RAIZ, rel));
@@ -295,13 +296,22 @@ export const CRITERIOS = [
     },
   },
   {
-    id: 'CL-24', tipo: 'resto', titulo: 'Accesibilidad compartida: el aviso de la creación se anuncia (región viva) y su texto de acción pasa el contraste AA (hoy 2,24:1)',
-    responsable: 'línea de Design + tema compartido', archivos: ['components/creator/AvisoDeCreacion.tsx', 'contexts/ThemeContext.tsx (accentDark)'],
+    id: 'CL-24', tipo: 'resto', titulo: 'Accesibilidad compartida: el aviso de la creación se anuncia (región viva) y su texto de acción pasa el contraste AA en los dos temas (antes 2,24:1 en el claro)',
+    responsable: 'hecho (R7-Design, tarea C); componente compartido con Weë Studio: avisar a su dueño', archivos: ['components/creator/AvisoDeCreacion.tsx:73-89', 'contexts/ThemeContext.tsx (solo se lee: no cambia ningún token)'],
     comprueba: () => {
+      /*
+       * Mirada de texto más una CUENTA: qué color del tema usa la acción del aviso («Entendido») y cuánto contrasta con el fondo
+       * del aviso en cada tema —los colores se leen de `ThemeContext.tsx`, no se copian—. Lo que el componente de verdad
+       * pinta, con todos sus textos y en los dos temas, lo ejecuta `weeai-cliente-cierre.test.mjs` (C).
+       */
       const a = sinComentarios(leer('components/creator/AvisoDeCreacion.tsx'));
       const viva = /accessibilityLiveRegion|accessibilityRole="alert"|aria-live/.test(a);
-      const dorado = /accentDark/.test(a);
-      return { ok: viva && !dorado, evidencia: `región viva: ${viva ? 'sí' : 'no'} · texto de acción en accentDark (#E5A020 sobre blanco = 2,24:1): ${dorado ? 'sí' : 'no'}` };
+      const colorDeLaAccion = (a.match(/styles\.avisoCerrar,\s*\{\s*color:\s*theme\.colors\.(\w+)/) || [])[1];
+      const colorDelFondo = (a.match(/styles\.aviso,\s*\{[^}]*?backgroundColor:\s*theme\.colors\.(\w+)/) || [])[1];
+      const temas = temasDeLaApp();
+      const cuentas = Object.entries(temas).map(([tema, c]) => ({ tema, ratio: colorDeLaAccion && colorDelFondo && c[colorDeLaAccion] && c[colorDelFondo] ? contraste(c[colorDeLaAccion], c[colorDelFondo]) : 0 }));
+      const pasa = cuentas.length === 2 && cuentas.every((x) => x.ratio >= AA_TEXTO);
+      return { ok: viva && pasa, evidencia: `región viva: ${viva ? 'sí' : 'no'} · texto de acción en «${colorDeLaAccion ?? '?'}» sobre «${colorDelFondo ?? '?'}»: ${cuentas.map((x) => `${x.tema} ${x.ratio.toFixed(2)}:1`).join(' · ')} (AA = ${AA_TEXTO}:1)` };
     },
   },
   {

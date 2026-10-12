@@ -13,6 +13,9 @@
  *   B · CL-20 · crear desde un proyecto: la primera llamada al servidor lleva el `projectId` y el trabajo nace DENTRO del
  *       proyecto (no entra al terminar, si la persona se acuerda de «Guardar en proyecto»). Del cliente a la carga del
  *       callable, y del callable al documento: la mitad del servidor se ejecuta con sus funciones compiladas.
+ *   C · CL-24 · el aviso de la creación (`AvisoDeCreacion`, compartido con Weë Studio): se ANUNCIA (región viva) y todo su
+ *       texto pasa el contraste AA en los DOS temas, calculado con la fórmula de WCAG sobre los colores que el código
+ *       declara en `ThemeContext.tsx` —no sobre una cifra copiada— y sobre lo que el componente de verdad pinta.
  *
  * Cada defecto trae su CONTROL, para que un verde no pueda ser un verde vacío. Sin red, sin emulador, sin secretos.
  *
@@ -23,9 +26,15 @@
  * contesta lo mínimo; lo que decide el servidor con la carga que recibe se comprueba, ejecutado, en B.
  */
 import { crearComprobador, acelerarLasEsperasCortas, apuntarLaConsola } from './_aceptacion.mjs';
-import { crearFlujo, crearProyecto, crearServidor, errorDeRed, trabajoTerminado } from './_creatorflow-en-proceso.mjs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { crearFlujo, crearProyecto, crearServidor, errorDeRed, trabajoTerminado, traductorDe, textoDe } from './_creatorflow-en-proceso.mjs';
 import { BaseEnMemoria, instalarLaBase, darDeAlta, lib } from './_firestore-en-memoria.mjs';
-import { leer } from './filmmaker-cliente.mjs';
+import { React, h } from './_pantallas.mjs';
+import { temasDeLaApp, contraste, AA_TEXTO } from './_contraste-wcag.mjs';
+import { RAIZ, crearCargador, leer } from './filmmaker-cliente.mjs';
+
+const { renderToStaticMarkup } = createRequire(path.resolve(RAIZ, 'package.json'))('react-dom/server');
 
 const { check, titulo, aviso, terminar } = crearComprobador();
 
@@ -332,6 +341,86 @@ const proyectos = (ls) => ls.map((l) => proyectoDe(l) ?? '—').join(' · ') || 
     deshacerLasEsperas();
     deshacerLaBase();
   }
+}
+
+/* ═══ C · CL-24 · EL AVISO DE LA CREACIÓN SE ANUNCIA Y SE LEE ════════════════════════════════════════════════════ */
+titulo('C · CL-24 · el aviso de la creación: región viva y contraste AA en los dos temas');
+const TEMAS = temasDeLaApp();
+const aplanar = (s) => (Array.isArray(s) ? Object.assign({}, ...s.map(aplanar)) : s || {});
+/**
+ * Dibuja `components/creator/AvisoDeCreacion.tsx` TAL COMO ESTÁ con los colores de un tema de verdad y apunta lo que pinta: la
+ * lámina de fuera (su fondo y si es una región viva), cada texto con su color, cada botón y cada icono. Solo se sustituye
+ * React Native por piezas que dejan ver el estilo y las propiedades de accesibilidad.
+ */
+const dibujarAviso = (estado, tema, props = {}) => {
+  const colores = TEMAS[tema];
+  const visto = { raiz: null, textos: [], botones: [], iconos: [] };
+  let cerrado = 0;
+  const t = traductorDe('es');
+  const cargar = crearCargador({
+    dobles: {
+      react: React,
+      'react-native': {
+        View: (p) => { visto.raiz ??= { estilo: aplanar(p.style), vivo: p.accessibilityLiveRegion, rol: p.accessibilityRole }; return h('div', null, p.children); },
+        Text: (p) => { visto.textos.push({ texto: textoDe(p.children), color: aplanar(p.style).color }); return h('span', null, p.children); },
+        TouchableOpacity: (p) => { visto.botones.push({ etiqueta: textoDe(p.children), rol: p.accessibilityRole, tocar: p.onPress }); return h('button', null, p.children); },
+        StyleSheet: { create: (s) => s, hairlineWidth: 1 },
+        Platform: { OS: 'android', select: (o) => o.android ?? o.default },
+      },
+      '@expo/vector-icons': { Ionicons: (p) => { visto.iconos.push({ nombre: p.name, color: p.color }); return h('i'); } },
+      '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }) },
+      '../../contexts/IdiomaContext': { useT: () => t },
+    },
+  });
+  const Aviso = cargar('components/creator/AvisoDeCreacion.tsx').default;
+  const html = renderToStaticMarkup(h(Aviso, { estado, bottom: 0, onCerrar: () => { cerrado++; }, ...props }));
+  return { ...visto, html, t, colores, cerrados: () => cerrado };
+};
+const es = traductorDe('es');
+const claro = TEMAS.claro;
+const oscuro = TEMAS.oscuro;
+
+{
+  check('CONTROL · C0 · los dos temas se leen del código (ThemeContext.tsx) con los colores que el aviso usa: el fondo de la tarjeta, el texto y el acento oscuro',
+    ['card', 'text', 'textSecondary', 'accentDark'].every((k) => /^#[0-9A-F]{6}$/.test(claro[k]) && /^#[0-9A-F]{6}$/.test(oscuro[k])), `claro: card ${claro.card} · texto ${claro.text} · acentoOscuro ${claro.accentDark} — oscuro: card ${oscuro.card} · texto ${oscuro.text} · acentoOscuro ${oscuro.accentDark}`);
+  check('CONTROL · C0 · y la fórmula es la de WCAG: negro sobre blanco 21:1, y el dorado de antes sobre blanco no pasaba (2,24:1) pero sí sobre el fondo oscuro',
+    Math.abs(contraste('#000000', '#FFFFFF') - 21) < 0.001 && contraste(claro.accentDark, claro.card) < AA_TEXTO && contraste(oscuro.accentDark, oscuro.card) >= AA_TEXTO,
+    `claro ${contraste(claro.accentDark, claro.card).toFixed(2)}:1 · oscuro ${contraste(oscuro.accentDark, oscuro.card).toFixed(2)}:1`);
+}
+{
+  const quieto = dibujarAviso('quieto', 'claro');
+  check('CONTROL · C1 · quieto no dibuja nada (el aviso no existe hasta que hay algo que contar)', quieto.html === '' && !quieto.raiz);
+  for (const estado of ['creando', 'listo']) {
+    const a = dibujarAviso(estado, 'claro');
+    check(`C1 · «${estado}» se ANUNCIA: la lámina del aviso es una región viva, para que un lector de pantalla lo diga sin que la persona lo busque`,
+      a.raiz?.vivo === 'polite' || a.raiz?.vivo === 'assertive' || a.raiz?.rol === 'alert', JSON.stringify(a.raiz && { vivo: a.raiz.vivo, rol: a.raiz.rol }));
+    check(`C1 · y es «cortés» (polite) y no interrumpe: es un estado, no un error`, a.raiz?.vivo === 'polite' && a.raiz?.rol !== 'alert');
+  }
+}
+for (const [tema, colores] of [['claro', claro], ['oscuro', oscuro]]) {
+  const listo = dibujarAviso('listo', tema);
+  const creando = dibujarAviso('creando', tema);
+  const fondo = listo.raiz?.estilo.backgroundColor;
+  check(`C2 · tema ${tema} · el aviso se pinta sobre el fondo de la tarjeta de ese tema (${colores.card})`, fondo === colores.card, String(fondo));
+  const accion = listo.textos.find((x) => x.texto === es('studio.dismiss'));
+  const ratioAccion = accion?.color ? contraste(accion.color, fondo) : 0;
+  check(`C2 · tema ${tema} · el texto de la acción («${es('studio.dismiss')}») pasa AA (≥ ${AA_TEXTO}:1) sobre el fondo del aviso`, ratioAccion >= AA_TEXTO, `${accion?.color ?? '(sin color)'} sobre ${fondo} = ${ratioAccion.toFixed(2)}:1`);
+  const sueltos = [...listo.textos, ...creando.textos].filter((x) => !x.color || contraste(x.color, fondo) < AA_TEXTO);
+  check(`C2 · tema ${tema} · y todo el texto del aviso —el título, la pista, la acción y el «creando»— también (${[...listo.textos, ...creando.textos].length} textos)`,
+    sueltos.length === 0, sueltos.map((x) => `«${x.texto}» ${x.color ?? '(sin color)'} = ${x.color ? contraste(x.color, fondo).toFixed(2) : '—'}:1`).join(' · ') || 'todos ≥ 4,5:1');
+}
+{
+  /* La estructura no cambia: lo que se pinta y lo que se puede tocar es lo de siempre. */
+  const listo = dibujarAviso('listo', 'claro');
+  check('CONTROL · C3 · el aviso listo sigue siendo lo que era: un título, su pista y UNA acción que lo cierra (rol «button»)',
+    listo.textos.map((x) => x.texto).join(' | ') === [es('studio.ready'), es('studio.readyHint'), es('studio.dismiss')].join(' | ')
+    && listo.botones.length === 1 && listo.botones[0].rol === 'button' && listo.botones[0].etiqueta === es('studio.dismiss'), listo.textos.map((x) => x.texto).join(' | '));
+  listo.botones[0].tocar();
+  check('CONTROL · C3 · tocar la acción cierra el aviso (onCerrar, una vez)', listo.cerrados() === 1);
+  const sinPista = dibujarAviso('listo', 'claro', { clavePista: null });
+  check('CONTROL · C3 · sin pista (cuando la sección ya crea de verdad) desaparece solo la pista, y lo demás sigue', !sinPista.textos.some((x) => x.texto === es('studio.readyHint')) && sinPista.botones.length === 1);
+  const creando = dibujarAviso('creando', 'claro');
+  check('CONTROL · C3 · y «creando» sigue sin acción: solo el icono y su texto', creando.botones.length === 0 && creando.textos.map((x) => x.texto).join() === es('studio.creating') && creando.iconos.length === 1);
 }
 
 terminar();
