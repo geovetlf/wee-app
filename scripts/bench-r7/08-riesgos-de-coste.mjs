@@ -187,6 +187,28 @@ const nuevoMundo = () => { E.reiniciarBase(); E.enfriarCaches(); E.sembrarCuenta
     });
   }
 }
+/* ═══ RF · el mismo trabajo pedido dos veces a la vez (reintento del cliente, doble toque en «Crear») ═══ */
+{
+  nuevoMundo();
+  simularProveedoresDeCreador(E, { tiempos: CERO });
+  const jobId = 'trabajoRF0000001';
+  await E.preparar(() => sembrarTrabajo(E, { uid, experiencia: 'design', jobId }));
+  const antes = acumulados(E);
+  const r = await E.medir(() => Promise.all([
+    creator.creatorRun.run({ auth: { uid }, data: { jobId, locale: 'es' } }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e })),
+    creator.creatorRun.run({ auth: { uid }, data: { jobId, locale: 'es' } }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e })),
+  ]));
+  const [a, b] = r.valor;
+  const tx = banco.leer(`creditTransactions/usage_${jobId}`);
+  const libro = leerLibro(E, { uid, jobId, antes });
+  casos.push({
+    caso: 'RF · creatorRun pedido DOS VECES A LA VEZ con el mismo trabajo',
+    resultados: `${a.ok ? 'hecho' : String(a.e.message).slice(0, 40)} / ${b.ok ? 'hecho' : String(b.e.message).slice(0, 40)}`,
+    llamadasAlProveedor: r.proveedor, filasDelLibro: filasDelLibro().join(' · '), cobrado: tx?.finalAmount, estadoDeLaReserva: tx?.status,
+    sumaProviderCost: libro.sumaProviderCost, rpcTotales: r.resumen.rpc,
+    nota: 'El reclamo en transacción (creator/index.ts:94-116) deja pasar a UNA llamada: el plan se ejecuta una vez (las 2 llamadas al proveedor son los 2 pasos de Weë Design) y se cobra una vez. Contraste con brainChat (B2 en 01), donde la repetición simultánea llama al proveedor dos veces.',
+  });
+}
 E.restaurar();
 
 const md = [];

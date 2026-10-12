@@ -139,6 +139,31 @@ for (const modo of ['simulated', 'real']) {
     }
   }
 }
+/*
+ * ── REPRODUCCIÓN MÍNIMA de los dos desajustes, sin ejecutar nada ───────────────────────────────────────────────
+ * 1) Weë Photo («enhance», 2K): la cotización sube a «Alta calidad» (flux-2-pro) porque la plantilla PIDE 2K; el motor, al ejecutar,
+ *    marca esa resolución como «puesta por el motor» (`resolutionFromEngine`, engine/image.ts:54) y `creditsFor` (engine/pricing.ts:110)
+ *    la vuelve a cotizar SIN subir de nivel: sale el precio del nivel estándar, mientras que el modelo que se ejecuta sigue siendo flux-2-pro.
+ * 2) Weë Studio con calidad explícita: la cotización usa `priceVideo` (modelo, resolución, duración); el precio por fila al ejecutar usa el
+ *    catálogo plano del servicio (`serviceForCapability`), que no mira ni la resolución ni la duración.
+ */
+const reproduccion = (() => {
+  const { planImage } = lib('engine/image.js');
+  const { creditsFor } = lib('engine/pricing.js');
+  const salida = {};
+  const edit = TEMPLATES.photo.buildPlan(TEMPLATES.photo.defaultGoal, { detail: 'natural', what: 'enhance' }).steps.find((s) => s.capability === 'image.edit');
+  const entrada = { ...edit.input, purpose: edit.purpose, previous: [], imageUrl: 'https://firebasestorage.googleapis.com/v0/b/demo-wee.firebasestorage.app/o/users%2Fu%2Ffoto.jpg?alt=media' };
+  const plan = planImage({ capability: 'image.edit', input: entrada });
+  const cotizacion = priceImage({ capability: 'image.edit', count: edit.input.count, quality: edit.input.quality, resolution: edit.input.resolution, kind: edit.input.kind, references: 1 }, DEFAULT_SETTINGS);
+  salida.photo = {
+    entradaDelPaso: edit.input, modeloQueSeEjecuta: plan.choice.model.modelId, nivelAlPlanear: plan.choice.tier,
+    cotizacion: { service: cotizacion.service, credits: cotizacion.credits, usdPorImagen: cotizacion.detail.usdPerImage, nivel: cotizacion.detail.tier },
+    creditsForAlEjecutar: creditsFor('image.edit', cotizacion.usd, DEFAULT_SETTINGS, false, { ...plan.input, prompt: 'x' }),
+    resolutionFromEngine: plan.input.resolutionFromEngine,
+  };
+  return salida;
+})();
+
 E.restaurar();
 
 /* ── análisis ── */
@@ -176,6 +201,7 @@ md.push(`\nEjecuciones con pasos INTERNOS sin cobro (traducción del prompt para
 md.push('\n## Resumen por modo\n');
 md.push(tabla(['Modo', 'Corridas', 'Filas ≠ cotización', 'Filas por debajo', 'Filas por encima', 'Cobrado ≠ cotización', 'Cobrado < coste de lista', 'Peor brecha (credits)'], resumenes.map((r) => [r.modo, r.corridas, r.filasDistintasDeLaCotizacion, r.filasPorDebajo, r.filasPorEncima, r.cobraDistintoDeLaCotizacion, r.cobraMenosQueElCosteDeLista, r.peorBrechaEnCredits])));
 const ejemplos = (lista, n = 12) => lista.slice(0, n).map((c) => [c.modo, c.experiencia, c.variacion, c.quality, c.cotizacion, c.filas, c.cobrado, c.costeEnCredits, c.detalleFilas.join(' · ')]);
+md.push('\n## Reproducción mínima del desajuste de Weë Photo (sin ejecutar nada)\n```json\n' + JSON.stringify(reproduccion.photo, null, 1) + '\n```');
 md.push('\n## Filas ≠ cotización (primeras 12; el resto en el JSON)\n');
 md.push(tabla(['Modo', 'Experiencia', 'Variación', 'Calidad', 'Cotización', 'Σ filas estimado', 'Cobrado', 'Coste lista (credits)', 'Detalle por fila'], ejemplos(filasDistintasDeLaCotizacion)));
 md.push('\n## Cobrado < coste de lista (primeras 12)\n');
@@ -186,7 +212,7 @@ if (fallos.length) {
 }
 md.push('\n## Violaciones de I1 (primeras 10)\n');
 md.push(tabla(['Modo', 'Experiencia', 'Variación', 'Calidad', 'Cobrado', 'Σ creditsCharged de las filas', 'Detalle'], invariantes.I1_filasCobradasIgualCobrado.slice(0, 10).map((c) => [c.modo, c.experiencia, c.variacion, c.quality, c.cobrado, c.creditsFilas, c.detalleFilas.join(' · ')])));
-const dir = guardar('07-coherencia', { internasSinCobro: { ejecuciones: conInternas.length }, resumenes, violacionesI1: invariantes.I1_filasCobradasIgualCobrado, invariantes: Object.fromEntries(Object.entries(invariantes).map(([k, v]) => [k, v.length])), filasDistintasDeLaCotizacion, cobraMenosQueElCoste, fallos, corridas }, md.join('\n'));
+const dir = guardar('07-coherencia', { reproduccion, internasSinCobro: { ejecuciones: conInternas.length }, resumenes, violacionesI1: invariantes.I1_filasCobradasIgualCobrado, invariantes: Object.fromEntries(Object.entries(invariantes).map(([k, v]) => [k, v.length])), filasDistintasDeLaCotizacion, cobraMenosQueElCoste, fallos, corridas }, md.join('\n'));
 console.log(md.join('\n'));
 console.log(`\n(salidas en ${dir})`);
 process.exit(0);

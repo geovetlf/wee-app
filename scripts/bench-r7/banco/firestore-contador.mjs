@@ -307,9 +307,26 @@ class Tx {
     this.empezada = false;
   }
   async get(objetivo) {
+    /*
+     * Como el SDK real: la PRIMERA lectura empieza la transacción y las siguientes esperan a que vuelva su identificador.
+     * Si dos `tx.get` se lanzan a la vez, la segunda sale cuando termina la primera (no corren en paralelo).
+     */
+    const anterior = this.cola ?? Promise.resolve();
+    const esta = anterior.then(() => {
+      this.empezada = true;
+      return objetivo instanceof Consulta ? this.banco._consultar(objetivo, this) : this.banco._leerDoc(objetivo, this);
+    });
+    this.cola = esta.catch(() => undefined);
+    return esta;
+  }
+  /**
+   * Varios documentos en UNA llamada. Es la única forma de leer dos documentos de una transacción en paralelo:
+   * dos `tx.get` a la vez NO lo son, porque el segundo espera a que el primero devuelva el identificador de la
+   * transacción (`withLazyStartedTransaction`).
+   */
+  async getAll(...refs) {
     this.empezada = true;
-    if (objetivo instanceof Consulta) return this.banco._consultar(objetivo, this);
-    return this.banco._leerDoc(objetivo, this);
+    return this.banco._leerVarios(refs, this);
   }
   create(ref, datos) {
     this.escrituras.push({ tipo: 'create', ref, datos });
@@ -395,11 +412,8 @@ export function crearBanco({ reloj, latencia = {} }) {
     collection: (ruta) => new Consulta(banco, ruta),
     doc: (ruta) => new Ref(banco, ruta),
     batch: () => new Lote(banco),
-    async getAll(...refs) {
-      const salida = [];
-      for (const r of refs) salida.push(await r.get());
-      return salida;
-    },
+    /** `getAll` es UNA llamada (BatchGetDocuments) con todos los documentos: no es un `get` por documento. */
+    getAll: (...refs) => banco._leerVarios(refs, null),
     runTransaction: (fn, opciones = {}) => banco._transaccion(fn, opciones),
 
     /* ── Utilidades de la prueba (no cuentan ni tardan) ────────────────── */
@@ -493,6 +507,16 @@ export function crearBanco({ reloj, latencia = {} }) {
       if (tx) tx.leidas.set(ref.path, d ? d.version : 0);
       e.existe = !!d;
       return banco._snapDoc(ref, d);
+    },
+    async _leerVarios(refs, tx) {
+      if (tx) for (const p of [...new Set(refs.map((r) => r.path))].sort()) await banco._adquirir(p, `tx${tx.numero}`);
+      const e = await banco._rpc({ tipo: tx ? 'tx-get-varios' : 'get-varios', lee: refs.map((r) => r.path), tx: tx?.numero ?? null }, banco.latencia.get);
+      return refs.map((ref) => {
+        const d = banco.docs.get(ref.path);
+        if (tx) tx.leidas.set(ref.path, d ? d.version : 0);
+        e.existe = [...(e.existe ?? []), !!d];
+        return banco._snapDoc(ref, d);
+      });
     },
     _filtrar(consulta) {
       const { filtros, orden, tope, despues } = consulta.estado;

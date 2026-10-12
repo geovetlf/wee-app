@@ -1,0 +1,34 @@
+--- a/functions/src/creator/brainUsage.ts
++++ b/functions/src/creator/brainUsage.ts
+@@ -77,6 +77,8 @@
+ }
+ interface ContadorTx {
+   get(ref: ContadorRef): Promise<ContadorDoc>;
++  /** Varios documentos en UNA llamada (la única lectura de dos documentos de una transacción que no se hace en serie). */
++  getAll(...refs: ContadorRef[]): Promise<ContadorDoc[]>;
+   set(ref: ContadorRef, data: Record<string, unknown>, options?: { merge?: boolean }): void;
+   delete(ref: ContadorRef): void;
+ }
+@@ -103,14 +105,19 @@
+   const registro = registroDe(userId, messageId);
+ 
+   return deps.db().runTransaction(async (tx) => {
+-    /* ¿Ya se contó esta misma respuesta? Entonces no se cuenta otra vez: se repite la respuesta de antes. */
+-    const yaContada = await tx.get(registro);
++    /*
++     * ¿Ya se contó esta misma respuesta? Entonces no se cuenta otra vez: se repite la respuesta de antes.
++     *
++     * El apunte y el contador se leen EN UNA SOLA LLAMADA: dos `tx.get` seguidos eran dos viajes en serie (el segundo
++     * espera a que el primero devuelva el identificador de la transacción). El contador se lee aunque el apunte ya
++     * exista (una lectura de un documento diminuto, a cambio de un viaje menos en el caso normal).
++     */
++    const [yaContada, snap] = await tx.getAll(registro, contador);
+     if (yaContada.exists) {
+       const previo = yaContada.data() || {};
+       return { posicion: Number(previo.posicion || 0), cobrada: previo.cobrada === true };
+     }
+ 
+-    const snap = await tx.get(contador);
+     const usadas = Number(snap.data()?.bloque ?? 0);
+     const posicion = usadas + 1;
+     const cobrada = posicion >= RESPUESTAS_POR_CREDIT;

@@ -27,7 +27,12 @@ import { crearBanco, crearAlmacenDoble, resumir } from './firestore-contador.mjs
 export const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 export const FUNCTIONS = path.join(RAIZ, 'functions');
 export const requerir = createRequire(path.join(FUNCTIONS, 'package.json'));
-export const lib = (rel) => requerir(path.join(FUNCTIONS, 'lib', rel));
+/**
+ * El `lib` que se mide. Por defecto, el compilado de este árbol. `BENCH_R7_LIB=<carpeta>` apunta a otro (una copia con
+ * un PROTOTIPO de optimización, hecha fuera del árbol; ver `scripts/bench-r7/14-prototipos.mjs`).
+ */
+export const LIB = process.env.BENCH_R7_LIB ? path.resolve(process.env.BENCH_R7_LIB) : path.join(FUNCTIONS, 'lib');
+export const lib = (rel) => requerir(path.join(LIB, rel));
 
 process.env.GCLOUD_PROJECT = 'demo-wee';
 process.env.GOOGLE_CLOUD_PROJECT = 'demo-wee';
