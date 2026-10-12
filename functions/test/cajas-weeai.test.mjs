@@ -270,10 +270,18 @@ check('22) y no deja a nadie encerrado si no hay atrás',
   /navigation\.canGoBack\(\) \? navigation\.goBack\(\) : navigation\.navigate\('Main'\)/.test(cabecera));
 
 /* El estado de la creación se ve siempre: sube con el teclado, que además se va al enviar. */
-for (const [rel, src] of [['screens/StudioScreen.tsx', studio], ['screens/DesignScreen.tsx', design]]) {
+for (const [rel, src] of [['screens/StudioScreen.tsx', studio]]) {
   check(`23) ${rel} sube el aviso con el teclado`,
     /<AvisoDeCreacion[\s\S]{0,120}bottom=\{SITIO_DE_LA_BARRA \+ alturaTeclado\}/.test(src) && /useAlturaDelTeclado/.test(src));
 }
+/*
+ * Weë Design ya no tiene aviso que subir con el teclado (puente R7-Design, `puente-design.test.mjs`): «Crear» lleva a
+ * `CreatorFlow`, que enseña su propio progreso, así que ya no hay una creación de mentira que anunciar. Lo que se vigila es que
+ * no quede a medias —ni el aviso, ni el teclado que lo subía, ni un temporizador que lo encienda—: la regla sigue siendo que
+ * lo que la persona pidió se ve siempre.
+ */
+check('23) screens/DesignScreen.tsx ya no monta un aviso de demostración ni el teclado que lo subía: crear es ir a CreatorFlow',
+  !/<AvisoDeCreacion|useAlturaDelTeclado|setTimeout/.test(design) && /navigation\.navigate\('CreatorFlow', contexto\)/.test(design));
 /*
  * El aviso también es UNO desde B3.10 (`components/creator/AvisoDeCreacion.tsx`):
  * antes estaba copiado renglón por renglón en las dos pantallas. Así que la

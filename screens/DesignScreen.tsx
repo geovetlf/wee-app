@@ -1,31 +1,29 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useCreacionesDeDesign } from '../hooks/useCreacionesDeDesign';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
 import StudioPromptComposer from '../components/studio/StudioPromptComposer';
 import AjustesContextuales from '../components/creator/AjustesContextuales';
-import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDeCreacion';
 import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
-import EspacioDeEscritura, { useAlturaDelTeclado } from '../components/EspacioDeEscritura';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import { ALTO_BARRA } from '../components/BarraInferior';
 import DesignExplore from '../components/design/DesignExplore';
 import DesignPanel from '../components/design/DesignPanel';
 import { siempreSePregunta } from '../constants/ajustesContextuales';
 import { AJUSTES_DE_DESIGN, CREACIONES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
 import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../constants/design';
+import { contextoDeDesign, palabrasDeLosAjustes } from '../utils/contextoDeDesign';
 import { notify } from '../utils/notify';
 import { scale } from '../utils/scale';
-
-/** Cuánto tarda la creación de mentira. Lo justo para ver el estado. */
-const LO_QUE_TARDA_LA_DEMO = 1600;
 
 /** El hueco que deja la barra global de abajo. */
 const SITIO_DE_LA_BARRA = scale(96);
@@ -57,25 +55,37 @@ const AJUSTES = siempreSePregunta(AJUSTES_DE_DESIGN);
  * límites—, sus ajustes —estilo, materiales, luz— y su galería. Así Weë Design
  * puede crecer hacia donde necesite sin arrastrar la estructura del Studio.
  *
+ * ── Crear es irse a crear ────────────────────────────────────────────────────
+ *
+ * Esta pantalla no genera nada: `alCrear` lleva lo escrito y los ajustes elegidos
+ * —dichos en palabras— a `CreatorFlow`, que es donde están las preguntas, el plan
+ * con su precio, la reserva, el progreso y el resultado. No hay Brain propio, ni
+ * Planner propio, ni trabajo propio, ni Credits propios: todo eso existe una vez y
+ * está detrás de esa experiencia (`puente-design.test.mjs`).
+ *
+ * ── Lo que todavía no viaja ──────────────────────────────────────────────────
+ *
+ * Ni la puerta por la que se pasó (llevar cada puerta a una intención de la
+ * plantilla es una decisión del dueño: D1 y D7 de `docs/DESIGN.md` §4), ni las
+ * referencias (son nombres de muestra: D6), ni formato y calidad como estructura
+ * (el plan solo los lee como palabras). Qué presupone este puente y cómo se
+ * cambia con otra respuesta: `docs/WEE-DESIGN-PUENTE.md`.
+ *
  * ── Mis creaciones es de la persona, y las muestras son ejemplos ─────────────
  *
  * La fila de abajo enseña lo que ESTA persona ha creado aquí —en Weë Design y en
  * Hogar & Diseño, de su cuenta— con el camino que ya usa Weë Chef
  * (`useCreacionesDeDesign`). Mientras llega, dice que carga; si falla, lo dice y
  * deja reintentar. Las cuatro muestras solo se ven sin sesión o sin nada creado, y
- * rotuladas «Ejemplos»: «Mis creaciones» solo se dice de lo que es suyo.
- *
- * ── Lo que todavía no hay ────────────────────────────────────────────────────
- *
- * No hay IA. Crear enseña "Creando..." y luego "Creación lista", nada más. El
- * punto por donde entrará Weë Brain es `alCrear`.
+ * rotuladas «Ejemplos»: «Mis creaciones» solo se dice de lo que es suyo. Crear no
+ * depende de esa fila: funciona igual mientras carga o si falló.
  */
 const DesignScreen: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
   const { isMobile, isDesktop } = useResponsive();
-  const alturaTeclado = useAlturaDelTeclado();
 
   const [prompt, setPrompt] = useState('');
   /*
@@ -94,8 +104,6 @@ const DesignScreen: React.FC = () => {
   const [ajustes, setAjustes] = useState<Record<string, string>>({});
   const [referencias, setReferencias] = useState<string[]>([]);
   const numeroDeReferencia = useRef(0);
-  const [estado, setEstado] = useState<EstadoDeCreacion>('quieto');
-  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /*
    * LO QUE ESTA PERSONA HA CREADO. Sin sesión, o con sesión y nada creado, la fila enseña las muestras como lo que son:
@@ -103,9 +111,6 @@ const DesignScreen: React.FC = () => {
    */
   const mias = useCreacionesDeDesign();
   const deMuestra = mias.fase === 'sinSesion' || (mias.fase === 'lista' && mias.creaciones.length === 0);
-
-  /* Un temporizador pendiente no puede sobrevivir a la pantalla. */
-  useEffect(() => () => { if (temporizador.current) clearTimeout(temporizador.current); }, []);
 
   /*
    * Tres por fila cuando hay sitio, dos en el teléfono. Con tarjetas compactas
@@ -115,19 +120,36 @@ const DesignScreen: React.FC = () => {
   const porFila = isMobile ? 2 : 3;
   const anchoMaximo = isMobile ? undefined : scale(720);
 
+  /**
+   * CREAR EN WEË DESIGN ES IRSE A CREAR, NO CREAR AQUÍ.
+   *
+   * Lo escrito y los ajustes elegidos, en palabras, viajan a `CreatorFlow`: allí se pregunta lo que falta, se enseña el plan con su
+   * precio y solo después de que la persona lo confirme se reserva un Credit. Llegar no cuesta nada: esta pantalla no toca el
+   * dinero ni llama a nadie para crear (lo único que lee es lo ya creado, para la fila «Mis creaciones» de abajo).
+   *
+   * El contexto lo arma `contextoDeDesign`, el mismo de la referencia funcional (un solo sitio), y NO lleva la puerta por la que se
+   * pasó ni foto alguna: ver la cabecera de la pantalla.
+   *
+   * ── Los casos de borde ────────────────────────────────────────────────
+   *
+   * · Caja vacía: no hace nada. El botón ya está apagado (la caja lo apaga mientras no haya texto: `CajaDePrompt`), así que esto
+   *   es solo la red de seguridad; no se inventa un objetivo para quien no escribió nada.
+   * · Un punto de partida sin más texto: `alElegirPunto` ya dejó la idea empezada en la caja y esa es la que sale.
+   * · Sin sesión: a entrar, como el resto de pantallas de Weë AI. Con la caja vacía ni eso.
+   * · Doble toque: dos `navigate` iguales dejan UNA sola `CreatorFlow` (la pila reutiliza la pantalla que ya está arriba). Con
+   *   `push` serían dos creaciones: por eso es `navigate`.
+   * · Volver atrás: la pantalla queda debajo con su caja, sus ajustes y sus referencias; no se vacía nada al irse.
+   */
   const alCrear = useCallback(() => {
-    if (!prompt.trim()) return;
-    setEstado('creando');
-    /*
-     * AQUÍ ENTRA WEË BRAIN EL DÍA QUE SE CONECTE.
-     *
-     * Lo que hoy es un temporizador será mandar `prompt`, `ajustes` y
-     * `referencias` a Brain, que decide el plan, y de ahí al WEE AI Gateway y al
-     * modelo. La pantalla ya tiene esos datos reunidos y un estado que enseñar
-     * mientras tanto.
-     */
-    temporizador.current = setTimeout(() => setEstado('listo'), LO_QUE_TARDA_LA_DEMO);
-  }, [prompt]);
+    const contexto = contextoDeDesign({
+      intencion: 'crear',
+      texto: prompt,
+      ajustesEnPalabras: palabrasDeLosAjustes(ajustes, t).join(', '),
+    });
+    if (!contexto) return;
+    if (!user) { navigation.navigate('Login'); return; }
+    navigation.navigate('CreatorFlow', contexto);
+  }, [prompt, ajustes, user, navigation, t]);
 
   const alElegirPunto = useCallback((punto: PuntoDePartida) => {
     /* La idea queda empezada, para terminarla con palabras propias. */
@@ -238,7 +260,6 @@ const DesignScreen: React.FC = () => {
                 */
                 onVoz={() => notify(t('common.comingSoon'))}
                 onCrear={alCrear}
-                ocupado={estado === 'creando'}
               />
             </View>
 
@@ -286,13 +307,6 @@ const DesignScreen: React.FC = () => {
           </View>
         </PaginaDeCajas>
       </EspacioDeEscritura>
-
-      {/* Como en el Studio: el aviso sube con el teclado y nunca se queda detrás. */}
-      <AvisoDeCreacion
-        estado={estado}
-        bottom={SITIO_DE_LA_BARRA + alturaTeclado}
-        onCerrar={() => setEstado('quieto')}
-      />
 
       {/*
         El panel de ajustes es el común de Weë AI, con el catálogo de Weë Design

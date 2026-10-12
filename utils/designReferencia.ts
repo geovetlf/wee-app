@@ -15,8 +15,9 @@ import { CAPABILITY_CATALOG } from '../services/escena3d';
 import type { CatalogEntry, EstadoDeMundo3D } from '../services/escena3d';
 import type { CreatorJob, JobStatus } from '../services/creatorService';
 import type { AssetDoc } from '../services/vistaDeAsset';
-import type { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
-import { destinoDeIntencion } from './destinoDeIntencion';
+import type { ContextoDeExperiencia } from '../constants/weeWorkspaces';
+import { contextoDeDesign as contextoNeutro } from './contextoDeDesign';
+import type { EntradaDelContexto } from './contextoDeDesign';
 import { REINTENTAR_CREATORFLOW, faseVisible, presentacionDeLaFase } from '../constants/designWorkspace';
 import {
   CADENA_DE_DESIGN, CAPACIDADES_DE_DESIGN, QUE_SE_DISENA, SIGUIENTES_POR_RESULTADO, capacidadPorId, eslabonDeLaCapacidad,
@@ -510,39 +511,13 @@ const IDS_DE_QUE = new Set(QUE_SE_DISENA.map((q) => q.id));
 /**
  * LO QUE VIAJA A `CreatorFlow` DESDE LA CAJA DE LA REFERENCIA.
  *
- * El destino lo decide `destinoDeIntencion` con la experiencia que DECLARA la
- * intención (`design` para crear, `home` para transformar un espacio) y sin salir
- * de Weë Design; no hay un router nuevo. Lo que la persona escribe no se toca: los
- * ajustes van detrás, en palabras, como en Weë Studio, porque el plan todavía no
- * los lee como estructura.
- *
- * Al CREAR no viaja ninguna foto: la plantilla `design` la ignora (la referencia de
- * estilo es C06, pendiente) y subirla para nada sería mentir. Al TRANSFORMAR, la
- * foto del espacio entra por el camino de siempre (`imageUri` → `creatorUploads`).
+ * La función es la de `utils/contextoDeDesign.ts`, que comparte con la pantalla montada de Weë Design (allí se explica qué viaja y
+ * qué no), con una sola diferencia: aquí se le da el catálogo de `QUE_SE_DISENA` como respuestas válidas de `what`. La referencia sí
+ * manda la puerta elegida como respuesta ya dada, y solo ella sabe cuáles existen. Da lo mismo que daba cuando vivía en este archivo:
+ * `puente-design.test.mjs` (B6) lo ejecuta contra el cuerpo de antes.
  */
-export const contextoDeDesign = (e: {
-  intencion: 'crear' | 'transformar';
-  texto: string;
-  que?: string | null;
-  ajustesEnPalabras?: string;
-  adjuntos?: readonly Adjunto[];
-}): ContextoDeExperiencia | null => {
-  const texto = e.texto.trim();
-  if (!texto) return null;
-  const destino = destinoDeIntencion(texto, {
-    declaradaPorLaPuerta: e.intencion === 'crear' ? 'design' : 'home',
-    dentroDe: 'design',
-  });
-  if (!destino) return null;
-  const fotos = e.intencion === 'transformar' ? (e.adjuntos ?? []).filter((a) => a.clase === 'fotoDeUnEspacio') : [];
-  return {
-    experienceId: destino.experienceId,
-    workspace: 'design',
-    goal: e.ajustesEnPalabras ? `${texto} · ${e.ajustesEnPalabras}` : texto,
-    ...(e.intencion === 'crear' && e.que && IDS_DE_QUE.has(e.que) ? { presets: [{ questionId: 'what', optionId: e.que }] } : {}),
-    ...(fotos.length ? { adjuntos: [...fotos], imageUri: fotos[0].uri } : {}),
-  };
-};
+export const contextoDeDesign = (e: Omit<EntradaDelContexto, 'idsDeQue'>): ContextoDeExperiencia | null =>
+  contextoNeutro({ ...e, idsDeQue: IDS_DE_QUE });
 
 /** Cambiar con palabras un trabajo ya hecho: lo mismo que hacen las ediciones rápidas del resultado. */
 export const contextoParaCambiar = (trabajo: { experienceId: string }, objetivoConCambio: string): ContextoDeExperiencia => ({

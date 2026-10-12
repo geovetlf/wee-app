@@ -328,8 +328,12 @@ export const comprobarLaReferenciaDeDesign = async (check) => {
     conCampo.join(', '));
   check('I18) y crece como todas: anclada en la columna en escritorio, en el pie de CreatorShell en el teléfono (CLAUDE.md §9)',
     /<CajaAnclada alto=\{topeDeLaCaja\}>\{composer\}<\/CajaAnclada>/.test(pantalla) && /<CreatorShell\b/.test(pantalla));
+  /*
+   * `contextoDeDesign` vive ahora en `utils/contextoDeDesign.ts` (R7-Design, puente de la pantalla montada): la referencia lo
+   * re-exporta con su catálogo, así que el destino de siempre se busca en el módulo neutro además de en la lógica de la referencia.
+   */
   check('I18) a Weë Brain se llega por CreatorFlow, con el destino de siempre (destinoDeIntencion), sin otro router',
-    /destinoDeIntencion\(/.test(logica) && /navigation\.navigate\('CreatorFlow'/.test(pantalla) && !/brainService|useBrainChat|creatorChat\b/.test(CODIGO.map(leer).join('\n')));
+    /destinoDeIntencion\(/.test(logica + leer('utils/contextoDeDesign.ts')) && /navigation\.navigate\('CreatorFlow'/.test(pantalla) && !/brainService|useBrainChat|creatorChat\b/.test(CODIGO.map(leer).join('\n')));
   check('I18) y no toca el motor de algoritmos ni la sombra', !/core\/algorithm|sombra|algorithm/i.test(CODIGO.map((f) => sinComentarios(leer(f))).join('\n')));
 
   /* ── I19 · De la imagen al objeto: la cadena, agnóstica de modelo ─────── */
