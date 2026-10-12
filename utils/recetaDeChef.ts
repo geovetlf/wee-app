@@ -183,6 +183,12 @@ const sinCeros = <T extends object>(objeto: T): T =>
 
 /* ═══ Porciones y tiempo ══════════════════════════════════════════════════════════════════════════════════════ */
 
+/**
+ * Minúsculas de una palabra española SIN depender del idioma del dispositivo: `toLowerCase()` cambia en turco (I → ı) y
+ * `toLocaleLowerCase` no es puro. Las mayúsculas del español (A–Z, ÁÉÍÓÚÜÑ) están a 32 puntos de su minúscula.
+ */
+const aMinusculas = (s: string): string => s.replace(/[A-ZÁÉÍÓÚÜÑ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 32));
+
 const NUMEROS_EN_PALABRAS: Readonly<Record<string, number>> = {
   un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12,
   medio: 0.5, media: 0.5,
@@ -202,7 +208,7 @@ const PORCIONES_B = new RegExp(`^(?:${NOMBRE_DE_PORCION}|rinde|rendimiento|sirve
 const leerPorciones = (segmento: string): number | null => {
   const m = PORCIONES_A.exec(segmento) ?? PORCIONES_B.exec(segmento);
   if (!m) return null;
-  const n = /^\d+$/.test(m[1]) ? Number(m[1]) : NUMEROS_EN_PALABRAS[m[1].toLowerCase()];
+  const n = /^\d+$/.test(m[1]) ? Number(m[1]) : NUMEROS_EN_PALABRAS[aMinusculas(m[1])];
   return Number.isInteger(n) && n >= 1 && n <= 99 ? n : null;
 };
 
@@ -345,7 +351,7 @@ const leerCantidad = (texto: string): CantidadLeida | null => {
   let fin: number;
   const palabra = NUMERO_EN_PALABRA.exec(texto);
   if (palabra) {
-    cantidad = NUMEROS_EN_PALABRAS[palabra[1].toLowerCase()];
+    cantidad = NUMEROS_EN_PALABRAS[aMinusculas(palabra[1])];
     fin = palabra[0].length;
   } else {
     const n = leerNumero(texto);
