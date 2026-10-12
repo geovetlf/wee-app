@@ -1302,6 +1302,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // === R9 · MIS CREACIONES: la decisión «esto lo conservo» ===
+    // Un documento por creación final, que REFERENCIA assets por id (nunca bytes).
+    // Lo escribe SOLO el callable `cicloDeTrabajo` (functions/src/content/creaciones.ts)
+    // con la cuenta de la sesión; el cliente lee lo suyo y nada más. No es `posts`:
+    // una creación nunca aparece en el Wäll ni en Weëls.
+    match /creations/{creationId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
     // === WEË CREATOR: PROYECTOS ("Mis proyectos") ===
     match /creatorProjects/{projectId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;

@@ -29,6 +29,10 @@ export interface WeeProject {
   emoji: string;
   createdAt: any;
   updatedAt: any;
+  /** Archivado: sale de «Mis proyectos» sin borrarse. Ausente o null (todo lo existente) = en proceso. */
+  archivedAt?: any;
+  /** Creado por «reabrir» desde esa creación (lo escribe el servidor). */
+  reabiertoDeCreacionId?: string;
 }
 
 export const PROJECT_EMOJIS = ['📁', '🍔', '🎵', '🚗', '🏷️', '🏠', '💼', '🎬', '📚', '💄', '🌟'];
@@ -71,6 +75,16 @@ export const projectsService = {
     await updateDoc(doc(db, 'creatorProjects', id), { name: name.trim().slice(0, 60) || 'Mi proyecto', ...(emoji ? { emoji } : {}), updatedAt: Timestamp.now() });
   },
 
+  /** Archivar: deja de estar en proceso. No toca trabajos ni creaciones. */
+  archive: async (id: string): Promise<void> => {
+    await updateDoc(doc(db, 'creatorProjects', id), { archivedAt: Timestamp.now(), updatedAt: Timestamp.now() });
+  },
+
+  unarchive: async (id: string): Promise<void> => {
+    await updateDoc(doc(db, 'creatorProjects', id), { archivedAt: null, updatedAt: Timestamp.now() });
+  },
+
+  /** Borra el proyecto. Las creaciones que salieron de él siguen (guardan `proyectoOrigenId`; «reabrir» crea uno vinculado). */
   remove: async (id: string): Promise<void> => {
     await deleteDoc(doc(db, 'creatorProjects', id));
   },
