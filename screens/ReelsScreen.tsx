@@ -17,7 +17,7 @@ import { isWeb } from '../utils/platform';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,6 +31,7 @@ import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
 import { useT, useIdioma } from '../contexts/IdiomaContext';
+import { esVisibleEnWeels } from '../utils/visibilidadDeWeels';
 
 /* Solo para el gesto de volver (umbral y recorrido); el tamaño de cada Weël NO sale de aquí. */
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -66,10 +67,12 @@ interface ReelItemProps {
   viewport: Viewport;
   onBack: () => void;
   onComment: (postId: string) => void;
+  /** Crear un Weël: una acción aparte del visor, que lleva al compositor en modo Weël (o a entrar). */
+  onCreate: () => void;
   initialPositionMillis?: number;
 }
 
-const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, initialPositionMillis }) => {
+const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, onCreate, initialPositionMillis }) => {
   const t = useT();
   const { locale, idioma } = useIdioma();
   const { user } = useAuth();
@@ -262,7 +265,9 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
           <Ionicons name="arrow-back" size={scale(26)} color="white" />
         </TouchableOpacity>
         <Text style={styles.topTitle}>{t('weels.title')}</Text>
-        <View style={{ width: scale(26) }} />
+        <TouchableOpacity onPress={onCreate} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
+          <Ionicons name="add-circle-outline" size={scale(26)} color="white" />
+        </TouchableOpacity>
       </LinearGradient>
 
       {/* Progress bar */}
@@ -407,12 +412,51 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
     setViewport((actual) => (actual && actual.width === width && actual.height === height ? actual : { width, height }));
   }, []);
 
-  const [videoPosts, setVideoPosts] = useState<Post[]>(initialVideoPosts);
+  const { user } = useAuth();
+  const t = useT();
+  const insets = useSafeAreaInsets();
+  const [videoPosts, setVideoPosts] = useState<Post[]>(() => initialVideoPosts.filter(esVisibleEnWeels));
+  /*
+   * EL FEED CARGA LO SUYO. Antes el visor solo enseñaba la lista que le pasaba quien lo abría, y quien lo abría, si no
+   * tenía Weëls cargados, mandaba al compositor en vez de al feed. Ahora, sin lista de entrada, pide la primera página
+   * al servicio de siempre (`postsService.getVideoPostsPaginated`) y dice en qué estado está: cargando, error o vacío.
+   */
+  const [fase, setFase] = useState<'cargando' | 'lista' | 'error'>(initialVideoPosts.length > 0 ? 'lista' : 'cargando');
   const [loadingMore, setLoadingMore] = useState(false);
+  const [falloAlCargarMas, setFalloAlCargarMas] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const loadedIds = useRef(new Set<string>(initialVideoPosts.map(p => p.id!)));
+
+  const cargarPrimeraPagina = useCallback(async () => {
+    setFase('cargando');
+    try {
+      const result = await postsService.getVideoPostsPaginated(15, undefined, communitySlug);
+      const visibles = result.documents.filter(esVisibleEnWeels);
+      loadedIds.current = new Set(visibles.map(p => p.id!));
+      setVideoPosts(visibles);
+      setLastDoc(result.lastDoc);
+      setHasMore(!!result.hasMore);
+      setFase('lista');
+    } catch (err) {
+      console.error('Error cargando los Weëls:', err);
+      setFase('error');
+    }
+  }, [communitySlug]);
+
+  /* Una sola vez, al entrar en el feed: con lista de entrada no se vuelve a pedir lo que ya se tiene. */
+  const [pedida, setPedida] = useState(initialVideoPosts.length > 0);
+  useFocusEffect(useCallback(() => {
+    if (pedida) return;
+    setPedida(true);
+    void cargarPrimeraPagina();
+  }, [pedida, cargarPrimeraPagina]));
+
+  /* Crear es una acción aparte: el compositor en modo Weël (vídeo de hasta 15 s), o entrar si no hay sesión. */
+  const crearWeel = useCallback(() => {
+    (navigation as any).navigate(user ? 'Create' : 'Login', user ? { kind: 'weel' } : undefined);
+  }, [navigation, user]);
 
   // Swipe horizontal para volver al wall (solo desde borde izquierdo)
   const translateX = useRef(new Animated.Value(0)).current;
@@ -459,7 +503,9 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
 
   // Calculate initial scroll index
   const initialIndex = useMemo(() => {
-    const idx = initialVideoPosts.findIndex(p => p.id === initialPost.id);
+    /* Sin Weël de partida (se abrió el feed, no un vídeo concreto) se empieza por el primero. */
+    if (!initialPost) return 0;
+    const idx = videoPosts.findIndex(p => p.id === initialPost.id);
     return idx >= 0 ? idx : 0;
   }, []);
 
@@ -494,29 +540,33 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
     }
   }).current;
 
-  // Load more videos
-  const handleEndReached = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+  // Load more videos. `forzar` es el reintento tras un fallo: el final de la lista ya no se vuelve a alcanzar solo.
+  const cargarMas = useCallback(async (forzar: boolean) => {
+    if (fase !== 'lista' || loadingMore || !hasMore || (falloAlCargarMas && !forzar)) return;
+    setFalloAlCargarMas(false);
 
     setLoadingMore(true);
     try {
       const result = await postsService.getVideoPostsPaginated(15, lastDoc || undefined, communitySlug);
-      const newPosts = result.documents.filter(p => !loadedIds.current.has(p.id!));
-
+      const newPosts = result.documents.filter(p => esVisibleEnWeels(p) && !loadedIds.current.has(p.id!));
+      setLastDoc(result.lastDoc);
       if (newPosts.length > 0) {
         newPosts.forEach(p => loadedIds.current.add(p.id!));
         setVideoPosts(prev => [...prev, ...newPosts]);
-        setLastDoc(result.lastDoc);
-        setHasMore(newPosts.length > 0);
-      } else {
-        setHasMore(false);
       }
+      /* Lo que dice el servicio: si quedan publicaciones por recorrer, aunque esta vuelta no trajera vídeos nuevos. */
+      setHasMore(!!result.hasMore);
     } catch (err) {
       console.error('Error loading more reels:', err);
+      /* Un fallo no cierra el feed: se avisa al final de la lista y se puede reintentar. */
+      setFalloAlCargarMas(true);
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, lastDoc, communitySlug]);
+  }, [fase, loadingMore, hasMore, falloAlCargarMas, lastDoc, communitySlug]);
+
+  const handleEndReached = useCallback(() => { void cargarMas(false); }, [cargarMas]);
+  const reintentarCargarMas = useCallback(() => { void cargarMas(true); }, [cargarMas]);
 
   /* La misma medida para el alto de cada Weël y para la posición de cada uno: así las páginas coinciden. */
   const altoDelWeel = viewport?.height ?? 0;
@@ -533,9 +583,10 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
       viewport={viewport as Viewport}
       onBack={handleBack}
       onComment={handleComment}
+      onCreate={crearWeel}
       initialPositionMillis={index === initialIndex ? initialPositionMillis : undefined}
     />
-  ), [activeIndex, viewport, handleBack, handleComment, initialIndex, initialPositionMillis]);
+  ), [activeIndex, viewport, handleBack, handleComment, crearWeel, initialIndex, initialPositionMillis]);
 
   const keyExtractor = useCallback((item: Post) => item.id!, []);
 
@@ -551,8 +602,47 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
   return (
     <ContainerComponent style={containerStyle} onLayout={medirViewport} {...containerProps}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      {/*
+        Mientras no hay Weëls que enseñar, el feed dice por qué —cargando, un fallo con su reintento, o que todavía no hay
+        ninguno— con la misma cabecera que cada Weël: volver, el título y crear. Nunca un compositor en su lugar.
+      */}
+      {(fase !== 'lista' || videoPosts.length === 0) && (
+        <View style={styles.estado}>
+          <View style={[styles.estadoCabecera, { paddingTop: insets.top + scale(8) }]}>
+            <TouchableOpacity onPress={handleBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
+              <Ionicons name="arrow-back" size={scale(26)} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.topTitle}>{t('weels.title')}</Text>
+            <TouchableOpacity onPress={crearWeel} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
+              <Ionicons name="add-circle-outline" size={scale(26)} color="white" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.estadoCuerpo}>
+            {fase === 'cargando' ? (
+              <ActivityIndicator size="large" color="#F5B731" />
+            ) : fase === 'error' ? (
+              <>
+                <Ionicons name="cloud-offline-outline" size={scale(44)} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.estadoTitulo}>{t('weels.loadFailed')}</Text>
+                <TouchableOpacity style={styles.estadoBoton} onPress={() => void cargarPrimeraPagina()} accessibilityRole="button">
+                  <Text style={styles.estadoBotonTexto}>{t('common.retry')}</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Ionicons name="film-outline" size={scale(44)} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.estadoTitulo}>{t('weels.empty')}</Text>
+                <Text style={styles.estadoPista}>{t('weels.emptyHint')}</Text>
+                <TouchableOpacity style={styles.estadoBoton} onPress={crearWeel} accessibilityRole="button">
+                  <Text style={styles.estadoBotonTexto}>{t('weels.create')}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      )}
       {/* Sin medida no hay lista: el primer Weël ya nace del alto exacto del visor. */}
-      {viewport && (
+      {viewport && fase === 'lista' && videoPosts.length > 0 && (
         <FlatList
           data={videoPosts}
           renderItem={renderItem}
@@ -573,6 +663,13 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
               <View style={[styles.loadingFooter, { height: altoDelWeel * 0.3 }]}>
                 <ActivityIndicator size="large" color="#F5B731" />
               </View>
+            ) : falloAlCargarMas ? (
+              <View style={[styles.loadingFooter, { height: altoDelWeel * 0.3 }]}>
+                <Text style={styles.estadoTitulo}>{t('weels.loadFailed')}</Text>
+                <TouchableOpacity style={styles.estadoBoton} onPress={reintentarCargarMas} accessibilityRole="button">
+                  <Text style={styles.estadoBotonTexto}>{t('common.retry')}</Text>
+                </TouchableOpacity>
+              </View>
             ) : null
           }
         />
@@ -586,6 +683,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  estado: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000' },
+  estadoCabecera: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: scale(16), paddingBottom: scale(16) },
+  estadoCuerpo: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: scale(12), paddingHorizontal: scale(32) },
+  estadoTitulo: { color: 'white', fontSize: scale(17), fontWeight: '600', textAlign: 'center' },
+  estadoPista: { color: 'rgba(255,255,255,0.75)', fontSize: scale(14), textAlign: 'center' },
+  estadoBoton: { marginTop: scale(8), backgroundColor: '#F5B731', borderRadius: scale(22), paddingHorizontal: scale(22), paddingVertical: scale(11) },
+  estadoBotonTexto: { color: '#1F2937', fontSize: scale(15), fontWeight: '600' },
   /* Ancho y alto los pone el viewport medido, por props; aquí solo el fondo. */
   reelContainer: {
     backgroundColor: '#000',

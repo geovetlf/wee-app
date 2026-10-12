@@ -337,9 +337,11 @@ const LandingScreen: React.FC = () => {
    * y se entra a ella a propósito: tocando una tarjeta de la fila de Weëls,
    * "Ver todos →", un vídeo del muro o "Explora → Weëls" en el menú.
    *
-   * Es la pantalla de siempre, intacta; se le pasa por dónde empezar y la lista
-   * que ya está cargada, igual que hacen el perfil y la comunidad. Sin Weëls
-   * cargados no hay nada que ver: se va a crear el primero, como en la web.
+   * Es la pantalla de siempre; se le pasa por dónde empezar y la lista que ya
+   * está cargada, igual que hacen el perfil y la comunidad. Sin Weëls cargados
+   * se abre IGUAL: el feed pide los suyos y dice si carga, si falló o si no hay
+   * ninguno. Ver Weëls nunca lleva al compositor; crear un Weël es otra acción
+   * (`crearWeel`, la tarjeta «Tu primer Weël» y el + del propio feed).
    */
   const crearWeel = useCallback(() => {
     const mainNavigation = navigation.getParent()?.getParent();
@@ -347,10 +349,11 @@ const LandingScreen: React.FC = () => {
   }, [navigation, user]);
 
   const abrirElVisor = useCallback((desde?: Post) => {
-    if (videoPosts.length === 0) return crearWeel();
     const raiz = navigation.getParent()?.getParent();
-    (raiz as any)?.navigate('Reels', { initialPost: desde || videoPosts[0], initialVideoPosts: videoPosts });
-  }, [videoPosts, navigation, crearWeel]);
+    (raiz as any)?.navigate('Reels', videoPosts.length > 0
+      ? { initialPost: desde || videoPosts[0], initialVideoPosts: videoPosts }
+      : undefined);
+  }, [videoPosts, navigation]);
 
   const handleVideoPress = useCallback((post: Post) => abrirElVisor(post), [abrirElVisor]);
 
