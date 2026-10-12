@@ -380,7 +380,8 @@ await prueba('A11) la caja, las puertas y todo lo demás de la pantalla siguen d
   const w = montar({ trabajos: SUYAS });
   const v = await entrar(w);
   const c = w.env.capturas;
-  return [c.StudioHeader.nombre === 'Design' && c.StudioPromptComposer.placeholder === tEs('design.placeholder') && !!c.DesignExplore && c.AvisoDeCreacion.estado === 'quieto'
+  /* El aviso de la creación de mentira, si la pantalla aún lo monta, está quieto: esta fila no lo toca (y el puente de Weë Design lo quita del todo). */
+  return [c.StudioHeader.nombre === 'Design' && c.StudioPromptComposer.placeholder === tEs('design.placeholder') && !!c.DesignExplore && (!c.AvisoDeCreacion || c.AvisoDeCreacion.estado === 'quieto')
     && v.fila.ancho === 140 && v.fila.alto === 120, `${v.fila.ancho}×${v.fila.alto}`];
 });
 
