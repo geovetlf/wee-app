@@ -16,7 +16,7 @@
  * `ErrorDeCiclo('no_disponible')`: nunca devuelven datos inventados.
  *
  * Códigos de `ErrorDeCiclo` (la interfaz los traduce con t()):
- *   invalido · no_encontrado · conflicto (requestId reutilizado con otros assets) · no_disponible
+ *   invalido · no_encontrado · conflicto (requestId reutilizado con otros datos) · no_disponible
  */
 
 import {
@@ -26,7 +26,9 @@ import {
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase';
 import { projectsService } from './projectsService';
-import { estadoDeProyecto } from '../utils/cicloDeTrabajo';
+import { estadoDeProyecto, interpretarAsset } from '../utils/cicloDeTrabajo';
+import { assetsService, CREACIONES_POR_PAGINA } from './assetsService';
+import type { AssetDoc } from './assetsService';
 
 /** Estado del TRABAJO (no de la ubicación del archivo). */
 export type EstadoDeTrabajo = 'en_proceso' | 'final';
@@ -184,6 +186,52 @@ export async function listarCreacionesFinales(uid: string, cursor?: unknown): Pr
     }),
     ...(hayMas ? { siguiente: pagina[pagina.length - 1] } : {}),
   };
+}
+
+/* ── D-1 · Sin decidir (decisión del dueño, 2026-10-12) ─────────────────────── */
+
+export interface PaginaSinDecidir {
+  assets: AssetDoc[];
+  /** Opaco. Lleva el cursor de `assets` y el conjunto ya leído de lo que está en creaciones. */
+  siguiente?: unknown;
+}
+
+interface CursorSinDecidir {
+  pagina: Awaited<ReturnType<typeof assetsService.listar>>['cursor'];
+  enCreaciones: string[];
+}
+
+/** Cuántas páginas de `assets` se piden como mucho por llamada para llenar una de «sin decidir». */
+const PAGINAS_POR_LLAMADA = 3;
+
+/**
+ * SIN DECIDIR: los assets de la cuenta que no forman parte de ninguna creación final y no están eliminados. Se
+ * muestran aparte; no se migran, no se borran y no se mezclan con las creaciones nuevas.
+ *
+ * Lecturas: la primera llamada lee una vez las creaciones finales de la cuenta (para saber qué assets ya están
+ * decididos) y lo arrastra en el cursor; cada llamada lee como mucho `PAGINAS_POR_LLAMADA` páginas de `assets` con la
+ * MISMA consulta e índice que `assetsService.listar` (cuenta + estados listables + fecha). Nada se escribe.
+ */
+export async function listarSinDecidir(uid: string, cursor?: unknown): Promise<PaginaSinDecidir> {
+  const previo = cursor as CursorSinDecidir | undefined;
+  let enCreaciones: string[];
+  if (previo && Array.isArray(previo.enCreaciones)) {
+    enCreaciones = previo.enCreaciones;
+  } else {
+    const snap = await getDocs(query(collection(db, 'creations'), where('ownerAccountId', '==', uid), where('status', '==', 'final')));
+    enCreaciones = [...new Set(snap.docs.flatMap((d) => ((d.data() as { assetIds?: string[] }).assetIds ?? [])))];
+  }
+  const decididos = new Set(enCreaciones);
+  const salida: AssetDoc[] = [];
+  let pagina = previo?.pagina ?? null;
+  let hayMas = true;
+  for (let i = 0; i < PAGINAS_POR_LLAMADA && hayMas && salida.length < CREACIONES_POR_PAGINA; i++) {
+    const r = await assetsService.listar(uid, {}, pagina);
+    salida.push(...r.items.filter((a) => a.status !== 'deleted' && interpretarAsset(a.assetId, decididos) === 'sin_decidir'));
+    pagina = r.cursor;
+    hayMas = r.hayMas;
+  }
+  return { assets: salida, ...(hayMas ? { siguiente: { pagina, enCreaciones } as CursorSinDecidir } : {}) };
 }
 
 /** El callable del servidor (`functions/src/content/creaciones.ts`). Sus errores llegan con `details.code`. */
