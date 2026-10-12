@@ -40,7 +40,7 @@ export const Chip: React.FC<{ texto: string; icono?: string; tono?: Tono }> = ({
   return (
     <View style={[styles.chip, { borderColor: tono === 'neutro' ? theme.colors.border : color, backgroundColor: theme.colors.surface }]}>
       {!!icono && <Ionicons name={icono as any} size={scale(13)} color={color} />}
-      <Text style={[styles.chipTexto, { color: tono === 'neutro' ? theme.colors.text : color }]} numberOfLines={1}>{texto}</Text>
+      <Text style={[styles.chipTexto, { color: tono === 'neutro' || tono === 'acento' ? theme.colors.text : color }]} numberOfLines={1}>{texto}</Text>
     </View>
   );
 };

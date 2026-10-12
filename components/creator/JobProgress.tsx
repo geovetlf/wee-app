@@ -37,7 +37,7 @@ const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job }) => {
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-      <TextoEnMayusculas style={[styles.who, { color: theme.colors.accentDark }]}>{t('creaciones.progressWorking', { nombre: experienceName })}</TextoEnMayusculas>
+      <TextoEnMayusculas style={[styles.who, { color: theme.colors.text }]}>{t('creaciones.progressWorking', { nombre: experienceName })}</TextoEnMayusculas>
       <Text style={[styles.title, { color: theme.colors.text }]}>{job.progressText ? leer(job.progressText) : t('creaciones.progressStarting')}</Text>
       <Text style={[styles.counter, { color: theme.colors.textSecondary }]}>
         {t('creaciones.progressSteps', { hechos: doneCount, total: job.steps.length })}

@@ -325,7 +325,7 @@ const ChefScreen: React.FC = () => {
                       accessibilityLabel={t(clave)}
                     >
                       <Text
-                        style={[styles.fichaTexto, styles.fichaPuesta, { color: theme.colors.accentDark }]}
+                        style={[styles.fichaTexto, styles.fichaPuesta, { color: theme.colors.text }]}
                         numberOfLines={1}
                       >
                         {t(clave)}

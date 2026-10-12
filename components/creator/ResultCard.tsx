@@ -437,7 +437,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
         <Text style={[styles.title, { color: theme.colors.text }]}>✨ {t('common.done')}</Text>
         {job.demo && (
           <View style={[styles.demoTag, { backgroundColor: theme.colors.accent + '33' }]}>
-            <Text style={[styles.demoTagText, { color: theme.colors.accentDark }]}>{t('weeai.previewDemo')}</Text>
+            <Text style={[styles.demoTagText, { color: theme.colors.text }]}>{t('weeai.previewDemo')}</Text>
           </View>
         )}
       </View>

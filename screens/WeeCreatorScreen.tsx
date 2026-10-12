@@ -236,7 +236,7 @@ const WeeCreatorScreen: React.FC = () => {
                   style={styles.detailLink}
                   accessibilityLabel={selectedInterested ? t('weeai.stopNotifying') : t('weeai.notifyMe')}
                 >
-                  <Text style={[styles.detailLinkText, { color: theme.colors.accentDark }]}>
+                  <Text style={[styles.detailLinkText, { color: theme.colors.text }]}>
                     {selectedInterested ? t('weeai.willNotifyYou') : t('weeai.notifyMeReal')}
                   </Text>
                 </TouchableOpacity>

@@ -151,7 +151,7 @@ const AjustesContextuales: React.FC<Props> = ({
                           <Text
                             style={[
                               styles.opcionTexto,
-                              { color: puesta ? theme.colors.accentDark : theme.colors.text },
+                              { color: theme.colors.text },
                               puesta && styles.opcionTextoPuesta,
                             ]}
                             numberOfLines={1}

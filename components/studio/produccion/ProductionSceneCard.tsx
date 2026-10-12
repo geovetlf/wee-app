@@ -59,7 +59,7 @@ const ProductionSceneCard: React.FC<{
         style={[styles.cabecera, isWeb && ({ cursor: 'pointer' } as any)]}
       >
         <View style={styles.titulos}>
-          <TextoEnMayusculas style={[styles.numero, { color: theme.colors.accentDark }]}>{nombre}</TextoEnMayusculas>
+          <TextoEnMayusculas style={[styles.numero, { color: theme.colors.text }]}>{nombre}</TextoEnMayusculas>
           <Text style={[styles.titulo, { color: escena.title ? theme.colors.text : theme.colors.textSecondary }]} numberOfLines={1}>
             {escena.title ?? t('filmmaker.untitledScene')}
           </Text>
