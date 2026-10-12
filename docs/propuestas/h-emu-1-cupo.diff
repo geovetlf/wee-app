@@ -1,0 +1,37 @@
+diff --git a/functions/src/creator/index.ts b/functions/src/creator/index.ts
+index 118c4c73..e1f074d9 100644
+--- a/functions/src/creator/index.ts
++++ b/functions/src/creator/index.ts
+@@ -20,7 +20,7 @@ import { imageDimensions } from '../engine/imageMeta';
+ import { resolveForModel } from '../engine/resolutionPolicy';
+ import { adaptPromptForProvider } from '../engine/promptLanguage';
+ import { entradaDeAdaptacion, imageEnglishPart } from './prompts';
+-import { limiter } from '../engine/limits';
++import { dayKey, limiter } from '../engine/limits';
+ import { loadConfig } from '../engine/config';
+ import { serviceForCapability } from '../credits/creditCosts';
+ import { imageServiceFor } from '../credits/aiPricing';
+@@ -605,11 +605,14 @@ export const creatorRun = onCall(
+       if (!job.plan) throw new EngineError('INVALID_REQUEST', 'Este trabajo todavía no tiene plan.');
+ 
+       const description = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
++      const operacionDelCupo = `creatorRun:${jobId}:${runId}`;
++      const diaDelCupo = dayKey();
+       try {
+         exigirFotoSiHaceFalta(job);
+         // Límites de uso por persona (antes de cobrar y de llamar a la IA)
+         const { settings } = await loadConfig();
+-        await limiter.reserve(uid, modalityCounts(job.steps), settings.limits);
++        /* H-EMU-1: el cupo se reserva con nombre de operación para poder devolverlo si este intento no llega a ejecutar. */
++        await limiter.reserve(uid, modalityCounts(job.steps), settings.limits, operacionDelCupo, diaDelCupo);
+         const reserva = await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
+         /*
+          * Una reserva que ya existía, con el trabajo reclamado por esta llamada, es
+@@ -623,6 +626,7 @@ export const creatorRun = onCall(
+         }
+         await arrancarTrabajo(ref, runId, deadlineAt);
+       } catch (error) {
++        await limiter.liberar(uid, operacionDelCupo, diaDelCupo).catch(() => false);
+         await soltarReclamo(ref, runId);
+         throw error;
+       }

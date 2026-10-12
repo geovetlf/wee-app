@@ -536,9 +536,11 @@ titulo('G · Cobertura: cada llamada a CreatorFlow, Specialist o WeeCreator de e
 
   /* Weë Design: es de otra tarea y su «Crear» todavía no llega a CreatorFlow. Cuando llegue, tiene que llevar el proyecto como las demás. */
   const sinComentarios = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
-  const cumpleConElProyecto = (texto) => !/navigate\(\s*['"]CreatorFlow['"]/.test(texto) || /projectId/.test(texto);
+  /* Reabrir una creación por su `jobId` (la fila «Mis creaciones», CL-04) no es «Crear»: abre lo que ya existe, como las excepciones de G1. */
+  const sinReabrir = (texto) => texto.replace(/navigate\(\s*['"]CreatorFlow['"]\s*,\s*\{[^}]*jobId[^}]*\}\s*\)/g, ' ');
+  const cumpleConElProyecto = (texto) => !/navigate\(\s*['"]CreatorFlow['"]/.test(sinReabrir(texto)) || /projectId/.test(texto);
   const design = sinComentarios(leer('screens/DesignScreen.tsx'));
-  const navegaAlFlujo = /navigate\(\s*['"]CreatorFlow['"]/.test(design);
+  const navegaAlFlujo = /navigate\(\s*['"]CreatorFlow['"]/.test(sinReabrir(design));
   check('G4 · Weë Design: si su «Crear» ya navega a CreatorFlow, lleva el proyecto (si todavía es un temporizador —CL-01—, no hay nada que llevar)',
     cumpleConElProyecto(design), navegaAlFlujo ? 'navega a CreatorFlow' : 'hoy no navega a CreatorFlow (CL-01 abierto: lo conecta la tarea del puente)');
   if (!navegaAlFlujo) aviso('PENDIENTE (tarea del puente): cuando DesignScreen navegue a CreatorFlow, el proyecto de su ruta (`useRoute().params.projectId`) tiene que viajar con él: es UNA línea, como en Weë Chef.');
@@ -552,7 +554,9 @@ titulo('G · Cobertura: cada llamada a CreatorFlow, Specialist o WeeCreator de e
   check('CONTROL · G4: Weë Design navegando a CreatorFlow sin proyecto incumpliría la guarda; con él, o sin navegar todavía, la cumple',
     !cumpleConElProyecto("navigation.navigate('CreatorFlow', { experienceId: 'design' })")
     && cumpleConElProyecto("navigation.navigate('CreatorFlow', { experienceId: 'design', ...(projectId ? { projectId } : {}) })")
-    && cumpleConElProyecto('setTimeout(() => setEstado(1), 1)'));
+    && cumpleConElProyecto('setTimeout(() => setEstado(1), 1)')
+    && cumpleConElProyecto("navigation.navigate('CreatorFlow', { experienceId: t.experienceId, jobId: t.id })")
+    && !cumpleConElProyecto("navigation.navigate('CreatorFlow', { experienceId: t.experienceId, jobId: t.id }); navigation.navigate('CreatorFlow', { experienceId: 'design', goal })"));
   check('CONTROL · C-E: una llamada con `projectId: undefined` no es la que no manda la clave, y el orden de las claves cuenta (la suite compara la forma, no solo los valores)',
     !igual({ id: 'x', projectId: undefined }, { id: 'x' }) && igual({ id: 'x' }, { id: 'x' }) && !igual({ a: 1, b: 2 }, { b: 2, a: 1 }));
 }

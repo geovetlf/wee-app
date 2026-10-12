@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
 
 **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
 Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
-28 criterios de cierre, **12 se cumplen, 4 están abiertos, 9 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
+28 criterios de cierre, **13 se cumplen, 3 están abiertos, 9 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
 
 ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
 
