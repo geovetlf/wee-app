@@ -283,7 +283,6 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
       { id: 'idk', icon: 'bulb-outline', emoji: '💡', title: 'designAcIdkTitle', subtitle: 'designAcIdkSubtitle', goal: 'designAcIdkGoal', idk: true },
     ],
     inputs: ['text'],
-    // Weë Design estrena el muro social después de Weë Chef (fase 2E-43).
     idea: {
       title: 'designIdeaTitle',
       subtitle: 'designIdeaSubtitle',
@@ -293,10 +292,9 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     examplesTitle: 'designExamplesTitle',
     /*
      * Vacío a propósito. Aquí había siete tarjetas que parecían diseños y eran
-     * degradados de color con un emoji encima. Debajo de un muro con trabajos
-     * reales de otras personas dejarían de ilustrar posibilidades para parecer
+     * degradados de color con un emoji encima: ilustraban posibilidades con
      * diseños falsos, justo en la sección donde la credibilidad visual lo es todo.
-     * No se sustituyen por nada: el muro enseña lo que hay.
+     * No se sustituyen por nada.
      */
     examples: [],
   },

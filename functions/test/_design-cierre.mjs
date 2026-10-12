@@ -323,14 +323,14 @@ export const CRITERIOS = [
   },
   {
     id: 'CL-25', tipo: 'resto', titulo: 'Sin código ni comentarios que describan lo que ya no existe en Weë Design (muro propio, ficha de especialista, `SpecialistHero`)',
-    responsable: 'línea de Design (archivos compartidos con specialists)', archivos: ['constants/specialists.ts:286,295-301', 'screens/SpecialistScreen.tsx:214-215', 'components/creator/SpecialistHero.tsx'],
+    responsable: 'línea de Design (R8, tarea NAV: el comentario del muro y la rama inalcanzable); el dueño, para `SpecialistHero` (estructura visual)', archivos: ['constants/specialists.ts', 'screens/SpecialistScreen.tsx', 'components/creator/SpecialistHero.tsx (decisión: docs/propuestas/cl25-borrar-specialisthero.diff)'],
     comprueba: () => {
       const restos = [];
       if (/estrena el muro social/.test(leer('constants/specialists.ts'))) restos.push('specialists.ts:286 «estrena el muro social»');
       if (/spec\.id === 'design'/.test(leer('screens/SpecialistScreen.tsx'))) restos.push('SpecialistScreen.tsx:214 rama de design inalcanzable');
       const importadores = ['screens', 'components', 'navigation'].flatMap((d) => fs.readdirSync(path.resolve(RAIZ, d), { recursive: true }).map((f) => `${d}/${String(f).split(path.sep).join('/')}`))
         .filter((f) => /\.tsx?$/.test(f) && f !== 'components/creator/SpecialistHero.tsx' && /SpecialistHero/.test(leer(f)));
-      if (importadores.length === 0) restos.push('SpecialistHero.tsx sin ningún importador');
+      if (importadores.length === 0) restos.push('SpecialistHero.tsx sin ningún importador (borrarlo o no es una decisión de estructura visual del dueño: docs/propuestas/cl25-borrar-specialisthero.diff, sin aplicar)');
       return { ok: restos.length === 0, evidencia: restos.join(' · ') || 'limpio' };
     },
   },

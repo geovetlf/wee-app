@@ -16,6 +16,7 @@
  *   E · Weë Studio, Weë Chef, Weë Business y Weë Brain: cada una lleva el proyecto de SU ruta a `CreatorFlow`.
  *   F · De punta a punta: lo que navega cada entrada entra en `CreatorFlow` y sale hacia `creatorChat` con el proyecto.
  *   G · Cobertura: ninguna llamada nueva a `CreatorFlow`/`Specialist`/`WeeCreator` de estas pantallas se queda sin decidir.
+ *   H · CL-25: los restos de lo que ya no existe en Weë Design no vuelven (el comentario del muro y la rama inalcanzable).
  *
  * Cada entrada se prueba DOS veces: con proyecto en la ruta (lo lleva) y sin él (la llamada es EXACTAMENTE la de siempre: ni la
  * clave `projectId` vacía ni con valor `undefined`; se comparan las claves y su orden). Sin red, sin emulador, sin secretos.
@@ -554,6 +555,20 @@ titulo('G · Cobertura: cada llamada a CreatorFlow, Specialist o WeeCreator de e
     && cumpleConElProyecto('setTimeout(() => setEstado(1), 1)'));
   check('CONTROL · C-E: una llamada con `projectId: undefined` no es la que no manda la clave, y el orden de las claves cuenta (la suite compara la forma, no solo los valores)',
     !igual({ id: 'x', projectId: undefined }, { id: 'x' }) && igual({ id: 'x' }, { id: 'x' }) && !igual({ a: 1, b: 2 }, { b: 2, a: 1 }));
+}
+
+/* ═══ H · CL-25: LO QUE YA NO EXISTE EN WEË DESIGN NO VUELVE ══════════════════════════════════════════════════════════ */
+titulo('H · CL-25: nada que describa lo que ya no existe en Weë Design');
+{
+  const catalogo = leer('constants/specialists.ts');
+  const ficha_ = leer('screens/SpecialistScreen.tsx');
+  check('H1 · `constants/specialists.ts` ya no dice que Weë Design «estrena el muro social»: el muro de sección se retiró el 2026-09-13 (`4ff271e`) y Design no tiene muro propio',
+    !/estrena el muro social/.test(catalogo) && !/Debajo de un muro con trabajos/.test(catalogo) && !/el muro enseña lo que hay/.test(catalogo));
+  check('H2 · `SpecialistScreen` ya no tiene la rama de Weë Design que no se podía alcanzar (devuelve `DesignScreen` antes de llegar a ella)',
+    !/spec\.id === 'design'/.test(ficha_) && /if \(id === 'design'\) return <DesignScreen \/>;/.test(ficha_));
+  /* Lo que SÍ tiene que seguir (pines de otras suites): el comentario del piloto del muro de Chef, hasta que Chef lo invierta (D-CHEF-10). */
+  check('H3 · y lo que otras suites fijan sigue: el comentario del piloto del muro de Weë Chef (D-CHEF-10) y la rama de Design de `SpecialistScreen` hacia su pantalla',
+    /Weë Chef es el piloto del muro social dentro de una sección/.test(catalogo) && /sinListaDeTrabajos = [^;]*id === 'design'/.test(ficha_));
 }
 
 check('esta suite está en la cadena de `npm test`', /proyecto-en-las-entradas\.test\.mjs/.test(leer('functions/package.json')));

@@ -214,12 +214,7 @@ const SpecialistScreen: React.FC = () => {
         />
       ) : (
         <View style={styles.section}>
-          <SectionTitle
-            title={spec.gridTitle}
-            hint={spec.gridHint}
-            action={spec.id === 'design' ? t('weeai.describeYourIdea') : undefined}
-            onAction={spec.id === 'design' ? () => startFlow() : undefined}
-          />
+          <SectionTitle title={spec.gridTitle} hint={spec.gridHint} />
           <ActionGrid actions={spec.actions} layout={spec.actionLayout} onPress={handleAction} />
         </View>
       )}
