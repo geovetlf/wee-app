@@ -529,7 +529,7 @@ await prueba('E2) y la pantalla de Design no lleva su propio texto de carga, de 
 await prueba('E3) (g) Weë Studio sigue pasándole a la fila lo MISMO que antes: `creaciones`, `onVerTodas` y `onOpciones`, ninguna propiedad nueva', async () => {
   const studio = sinComentarios(leer('screens/StudioScreen.tsx'));
   const uso = (studio.match(/<FilaDeCreaciones\b([\s\S]*?)\/>/) || [])[1] || '';
-  const props = [...uso.matchAll(/\b([a-zA-Z]+)=\{/g)].map((m) => m[1]);
+  const props = [...uso.matchAll(/\b([a-zA-Z]+)=[{"']/g)].map((m) => m[1]);
   return [props.join() === 'creaciones,onVerTodas,onOpciones' && /creaciones=\{CREACIONES_DEL_STUDIO\}/.test(uso) && /onVerTodas=\{\(\) => navigation\.navigate\('Projects'\)\}/.test(uso), props.join()];
 });
 
