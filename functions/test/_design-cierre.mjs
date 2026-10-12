@@ -171,7 +171,7 @@ export const CRITERIOS = [
   },
   {
     id: 'CL-12', tipo: 'defecto', titulo: '«Intentar de nuevo» tras un fallo al cambiar de nivel vuelve a cotizar, no crea ni reserva Credits (H-3)',
-    responsable: 'hecho (R7-Design, tarea C); pantalla compartida: la revisa el dueño de CreatorFlow', archivos: ['screens/CreatorFlowScreen.tsx:80-92, 290-308, 627-635'],
+    responsable: 'hecho (R7-Design, tarea C); pantalla compartida: la revisa el dueño de CreatorFlow', archivos: ['screens/CreatorFlowScreen.tsx:80-92, 295-312, 635-642'],
     comprueba: () => {
       /*
        * Mirada de texto: el reintento del cuadro de error pregunta de dónde viene el error ANTES de crear. Que de verdad
@@ -252,11 +252,26 @@ export const CRITERIOS = [
     },
   },
   {
-    id: 'CL-20', tipo: 'integración', titulo: 'Crear desde dentro de un proyecto guarda el trabajo en ese proyecto (el servidor ya acepta `projectId`; el cliente no lo manda)',
-    responsable: 'línea de Design y Weë AI (sin decisión pendiente)', archivos: ['services/creatorService.ts (start)', 'screens/ProjectScreen.tsx:145', 'screens/CreatorFlowScreen.tsx'],
+    id: 'CL-20', tipo: 'integración', titulo: 'Crear desde dentro de un proyecto guarda el trabajo en ese proyecto (el servidor ya acepta `projectId` y el cliente lo manda en la primera llamada)',
+    responsable: 'hecho (R7-Design, tarea C) en el cliente; conectar «Añadir» de un proyecto es la propuesta P11', archivos: ['services/creatorService.ts:263-277 (start)', 'screens/CreatorFlowScreen.tsx:105-123, 166-167, 406', 'constants/weeWorkspaces.ts:231', 'App.tsx:278 (parse de CreatorFlow)', 'screens/ProjectScreen.tsx:157'],
     comprueba: () => {
-      const manda = /projectId/.test((leer('services/creatorService.ts').match(/start:[\s\S]*?\}\),/) || [''])[0]);
-      return { ok: manda, evidencia: manda ? 'creatorService.start manda projectId' : 'creatorService.start no manda projectId (functions/src/creator/index.ts:329 lo acepta); un trabajo solo entra en un proyecto con assignJob al terminar' };
+      /*
+       * Mirada de texto, en tres puntas: el servicio manda la clave solo si hay proyecto, la pantalla se la pasa desde la ruta y
+       * la ruta la declara. Que de verdad llegue a la carga del callable y que el servidor la guarde lo ejecuta
+       * `weeai-cliente-cierre.test.mjs` (B). Y se cuenta quién la pasa hoy, para que un «cumplido» no esconda que nadie la manda.
+       */
+      const servicio = sinComentarios(leer('services/creatorService.ts'));
+      const desde = servicio.indexOf('start:');
+      const cuerpo = servicio.slice(desde, servicio.indexOf('answer:', desde));
+      const manda = /call<ChatResponse>\('creatorChat',\s*\{[\s\S]*?\.\.\.\(projectId \? \{ projectId \} : \{\}\)/.test(cuerpo);
+      const loPasa = /creatorService\.start\([^\n]*params\.projectId\)/.test(sinComentarios(leer('screens/CreatorFlowScreen.tsx')));
+      const declarado = /export interface ContextoDeExperiencia \{[\s\S]*?\n  projectId\?: string;/.test(leer('constants/weeWorkspaces.ts'));
+      const entradas = fs.readdirSync(path.resolve(RAIZ, 'screens')).filter((f) => /\.tsx$/.test(f) && f !== 'CreatorFlowScreen.tsx'
+        && /(navigate|push)\('CreatorFlow',[^;]*projectId/.test(sinComentarios(leer(`screens/${f}`))));
+      const ok = manda && loPasa && declarado;
+      return { ok, evidencia: ok
+        ? `creatorService.start manda projectId, CreatorFlowScreen se lo pasa desde la ruta y la ruta lo declara; ejecutado en weeai-cliente-cierre B. Lo pasan hoy: ${entradas.join(', ') || 'ninguna pantalla'} («Añadir» del proyecto no: P11)`
+        : `creatorService.start ${manda ? 'manda' : 'NO manda'} projectId · CreatorFlowScreen ${loPasa ? 'se lo pasa' : 'NO se lo pasa'} · la ruta ${declarado ? 'lo declara' : 'NO lo declara'} (functions/src/creator/index.ts:329 lo acepta); un trabajo solo entra en un proyecto con assignJob al terminar` };
     },
   },
   {

@@ -141,6 +141,11 @@ console.log('\n── Los parámetros: forma estable, recuperable al recargar, y
     leer1('preset=%7B%22questionId%22%3A%22x%22%7D').preset === undefined && leer1('preset=%5Bobject%20Object%5D').preset === undefined
     && leer1('jobId=job%20malo').jobId === undefined && leer1('presets=%5B%5D').presets === undefined
     && leer1('creative=%7B%22a%22%3A%7B%22b%22%3A1%7D%7D').creative === undefined);
+  /* + R7-Design (CL-20): el proyecto desde el que se crea es un identificador y entra por la dirección como los demás: validado. */
+  const rutaConProyecto = escribir({ routes: [{ name: 'Main' }, { name: 'CreatorFlow', params: { experienceId: 'design', jobId: 'job_1', projectId: 'proj_9' } }], index: 1 });
+  check('15b) el proyecto desde el que se crea va y vuelve al recargar, como el trabajo', /projectId=proj_9/.test(rutaConProyecto) && ultima(leerRuta(rutaConProyecto))?.params?.projectId === 'proj_9', rutaConProyecto);
+  check('15b) y uno con otra forma no se cuela: un id con espacios, un «[object Object]» o uno demasiado largo',
+    leer1('projectId=proyecto%20malo').projectId === undefined && leer1('projectId=%5Bobject%20Object%5D').projectId === undefined && leer1(`projectId=${'a'.repeat(129)}`).projectId === undefined);
 
   /* El compositor: el lugar —público— va y vuelve; la zona y el borrador, nunca. */
   const lugar = { kind: 'catalog', id: 'DK-CPH', label: 'Copenhague', countryCode: 'DK' };

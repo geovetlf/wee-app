@@ -275,6 +275,7 @@ const linking: any = {
         parse: {
           experienceId: (v: string) => (esId(v) ? v : undefined),
           jobId: (v: string) => (esId(v) ? v : undefined),
+          projectId: (v: string) => (esId(v) ? v : undefined),
           workspace: (v: string) => (esId(v) ? v : undefined),
           editorDocId: (v: string) => (esId(v) ? v : undefined),
           preset: (v: string) => leerJson(v, esRespuesta),

@@ -112,6 +112,9 @@ const CreatorFlowScreen: React.FC = () => {
     let cancelled = false;
     projectsService.get(job.projectId).then((project) => {
       if (!cancelled) setProjectName(project?.name);
+    }).catch(() => {
+      /* Un proyecto que ya no existe, o que no es de la persona, no se puede leer (las reglas lo niegan): el trabajo se ve igual, sin nombre. */
+      if (!cancelled) setProjectName(undefined);
     });
     return () => {
       cancelled = true;
@@ -160,7 +163,8 @@ const CreatorFlowScreen: React.FC = () => {
       setQuestion(null);
       try {
         const imageUrl = imageUri ? await uploadPhoto(imageUri) : undefined;
-        const response = await creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl, locale);
+        /* `params.projectId`: si se viene de un proyecto, el trabajo NACE en él (CL-20); lo que se empiece desde aquí —otra versión, un ajuste, un reintento— también. */
+        const response = await creatorService.start(experience.id, goal, yaDichas ?? params.presets ?? (params.preset ? [params.preset] : undefined), imageUrl, locale, params.projectId);
         setJobId(response.jobId);
         /* El trabajo ya existe: queda en la dirección, y recargar la página lo reabre en vez de empezar otro. */
         (navigation as any).setParams({ jobId: response.jobId });
@@ -398,6 +402,8 @@ const CreatorFlowScreen: React.FC = () => {
       goal: job.goal,
       presets: [{ questionId: 'what', optionId }, ...yaDichas],
       imageUri: uploadedUrl.current || imageUri,
+      /* Sigue en el mismo proyecto: otra pantalla de Weë AI para seguir donde se estaba, no para salirse de él. */
+      ...(params.projectId ? { projectId: params.projectId } : {}),
     });
   };
 
