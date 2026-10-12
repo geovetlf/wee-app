@@ -23,6 +23,8 @@ import { creatorService, CreatorJob, claveDelEstado } from '../services/creatorS
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { notify } from '../utils/notify';
+import { disponibilidadService } from '../services/disponibilidadService';
+import { capacidadPrincipalDe } from '../utils/capacidadDeExperiencia';
 
 /**
  * Weë Creator — "El usuario elige el resultado. Weë elige la IA." (docs/CREATOR.md)
@@ -57,6 +59,34 @@ const WeeCreatorScreen: React.FC = () => {
   const [interestedIds, setInterestedIds] = useState<string[]>([]);
   const [savingInterestId, setSavingInterestId] = useState<string | null>(null);
   const selectedInterested = !!selected && interestedIds.includes(selected.id);
+
+  /*
+   * ¿ESTA EXPERIENCIA FUNCIONA DE VERDAD PARA ESTA CUENTA? (R9 · E2)
+   *
+   * La ficha decía siempre «modo demo, sin gastar Credits». Ahora lo dice el servidor (`disponibilidadDeCapacidades`:
+   * solo lee, no cobra ni genera) por la capacidad que define a la experiencia (`utils/capacidadDeExperiencia.ts`).
+   * Mientras no contesta no se afirma nada; si no contesta, cierra: no disponible (la misma regla que el servidor).
+   */
+  const [disponible, setDisponible] = useState<'consultando' | 'si' | 'no' | null>(null);
+  const capacidadElegida = capacidadPrincipalDe(selected?.id);
+  useEffect(() => {
+    if (!user || !capacidadElegida) {
+      setDisponible(null);
+      return;
+    }
+    let vigente = true;
+    setDisponible('consultando');
+    disponibilidadService
+      .consultar([capacidadElegida])
+      .then((mapa) => { if (vigente) setDisponible(mapa[capacidadElegida] === true ? 'si' : 'no'); })
+      .catch((error) => {
+        console.warn('Weë AI: no se pudo consultar la disponibilidad:', error);
+        if (vigente) setDisponible('no');
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [user, capacidadElegida]);
 
   useEffect(() => {
     if (!user) {
@@ -231,21 +261,26 @@ const WeeCreatorScreen: React.FC = () => {
                 >
                   <Text style={styles.detailButtonText}>{t('weeai.start')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleNotifyMe(selected)}
-                  disabled={savingInterestId === selected.id}
-                  activeOpacity={0.7}
-                  style={styles.detailLink}
-                  accessibilityLabel={selectedInterested ? t('weeai.stopNotifying') : t('weeai.notifyMe')}
-                >
-                  <Text style={[styles.detailLinkText, { color: theme.colors.text }]}>
-                    {selectedInterested ? t('weeai.willNotifyYou') : t('weeai.notifyMeReal')}
-                  </Text>
-                </TouchableOpacity>
+                {/* «Avísame» solo tiene sentido si la experiencia NO funciona hoy para esta cuenta. */}
+                {disponible === 'no' && (
+                  <TouchableOpacity
+                    onPress={() => handleNotifyMe(selected)}
+                    disabled={savingInterestId === selected.id}
+                    activeOpacity={0.7}
+                    style={styles.detailLink}
+                    accessibilityLabel={selectedInterested ? t('weeai.stopNotifying') : t('weeai.notifyMe')}
+                  >
+                    <Text style={[styles.detailLinkText, { color: theme.colors.text }]}>
+                      {selectedInterested ? t('weeai.willNotifyYou') : t('weeai.notifyMeReal')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              <Text style={[styles.detailNote, { color: theme.colors.textSecondary }]}>
-                {t('weeai.demoToday')}
-              </Text>
+              {(disponible === 'si' || disponible === 'no') && (
+                <Text style={[styles.detailNote, { color: theme.colors.textSecondary }]}>
+                  {disponible === 'si' ? t('weeai.creditsNote') : t('weeai.errNotAvailable')}
+                </Text>
+              )}
             </View>
           </View>
         )}
