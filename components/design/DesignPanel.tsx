@@ -50,6 +50,7 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={t(clave)}
+      accessibilityHint={pista ? t(pista) : undefined}
     >
       {!!icono && (
         <View style={[styles.icono, { backgroundColor: theme.colors.surface }]}>
@@ -80,7 +81,7 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.dentro}>
-        <Text style={[styles.titulo, { color: theme.colors.text }]}>
+        <Text accessibilityRole="header" style={[styles.titulo, { color: theme.colors.text }]}>
           {esTodas ? t('design.allTitle') : t(puerta?.clave ?? '')}
         </Text>
         <Text style={[styles.pista, { color: theme.colors.textSecondary }]}>
