@@ -249,8 +249,10 @@ export const WEE_EXPERIENCES: WeeExperience[] = (() => {
  *  · se comparan con más cuidado que las españolas (`encajaEnSuIdioma`): una frase solo cuenta entera y como
  *    palabras sueltas —«my home» no está dentro de «my homework»—; una palabra cuenta si lo escrito empieza por ella
  *    («opskrifter»), si va dentro de una palabra compuesta y tiene al menos cuatro letras («aftensmadsopskrift»), o
- *    si alguien la está tecleando y ya lleva cuatro letras («opsk»). Con tres letras no basta: «lav», «mor» o «mit»
- *    son palabras de cada día y no el principio de una búsqueda;
+ *    si alguien la está tecleando y ya lleva cuatro letras («opsk»). «Tecleando» es el FINAL del texto: una
+ *    palabra con otra detrás ya está escrita y no se completa («skøn» en «en skøn sang» no es «skønhed»; «make» en
+ *    «make me a logo» no es «makeup»; véase `leerLoEscrito`). Con tres letras no basta: «lav», «mor» o «mit» son palabras de cada día y no
+ *    el principio de una búsqueda;
  *  · y aun así no entran palabras que son el principio de otras de uso diario: ni «mad» (sería Madrid), ni «hus»
  *    (huske), ni «tog» (el pasado de «tage»), ni «look» (looking), ni «train» (training), ni «hjem» (hjemmeside), ni
  *    «klip» (klipning), ni «bage» (bagefter), ni «kunst» (kunstig intelligens), ni «hair» (chair), ni «work»
@@ -276,7 +278,7 @@ export const PALABRAS_POR_IDIOMA: Readonly<Record<'da' | 'en', Readonly<Record<s
     photo: ['photo', 'picture', 'image', 'retouch', 'enhance', 'background', 'restore', 'portrait', 'filter', 'remove', 'avatar', 'selfie', 'profile picture', 'sharpen', 'quality', 'blurry'],
     writer: ['text', 'script', 'write', 'story', 'book', 'ebook', 'novel', 'blog', 'article', 'caption', 'post', 'description', 'biography', 'poem', 'letter', 'email', 'proofread', 'idea'],
     music: ['music', 'song', 'jingle', 'beat', 'melody', 'instrumental', 'audio', 'sound', 'voice', 'voiceover', 'podcast', 'narration', 'dubbing'],
-    beauty: ['beauty', 'makeup', 'hairstyle', 'haircut', 'hair color', 'my hair', 'outfit', 'clothes', 'nails', 'skin', 'fashion', 'beard', 'glasses'],
+    beauty: ['beauty', 'makeup', 'hairstyle', 'haircut', 'hair color', 'hair colour', 'my hair', 'outfit', 'clothes', 'nails', 'skin', 'fashion', 'beard', 'glasses'],
     chef: ['recipe', 'cooking', 'cook', 'food', 'meal', 'menu', 'dish', 'ingredients', 'diet', 'healthy', 'dinner', 'lunch', 'breakfast', 'dessert', 'restaurant', 'substitute', 'chef', 'baking'],
     home: ['house', 'my home', 'home decor', 'decor', 'decorate', 'living room', 'bedroom', 'interior', 'furniture', 'garden', 'remodel', 'renovate', 'renovation', 'office', 'bathroom', 'kitchen', 'outdoor', 'patio'],
     business: ['business', 'startup', 'entrepreneur', 'marketing', 'sales', 'sell', 'presentation', 'pitch', 'campaign', 'customer', 'client', 'shop', 'store', 'company', 'strategy', 'advertising', 'price', 'pricing', 'resume', 'cv', 'document', 'analysis', 'job'],
@@ -296,10 +298,49 @@ const fraseEntera = (k: string): RegExp => {
   return re;
 };
 
+/**
+ * Lo escrito, partido en palabras de tres letras o más (las demás no dicen nada) y con lo que todavía se está TECLEANDO.
+ *
+ * Lo que se teclea es el FINAL del texto: desde alguna palabra hasta el último carácter, y solo si el texto no acaba en
+ * un signo («Escribe una historia.» ya está dicho; un guion no cuenta, la palabra sigue: «make-»). Para una clave de
+ * una palabra es la última palabra; para una de varias («color de cabello») son las últimas, de modo que «color de ca»
+ * sigue yendo hacia ella.
+ *
+ * Esto es lo que separa completar de enrutar. Quien teclea «rec» va hacia «receta» y el buscador se lo enseña; pero
+ * «una», «make» o «ver» en mitad de una frase no van hacia «unas», «makeup» o «verme»: ya están escritas, y lo que
+ * tienen detrás no continúa ninguna clave. Sin esta distinción, «Una canción relajante para estudiar» acababa en Weë
+ * Beauty por la palabra «una», con `dentroDe: 'studio'` (B-02, ronda R7).
+ */
+interface LoEscrito {
+  /** El texto entero, sin espacios sobrantes y en minúsculas. */
+  q: string;
+  /** Sus palabras de tres letras o más. */
+  words: string[];
+  /** Los finales del texto que pueden estar a medio teclear: uno por cada palabra de tres letras o más. */
+  tecleando: string[];
+}
+
+const leerLoEscrito = (query: string): LoEscrito => {
+  const q = query.trim().toLowerCase();
+  const largas = [...q.matchAll(/[\p{L}\p{N}]+/gu)].filter((m) => m[0].length >= 3);
+  return {
+    q,
+    words: largas.map((m) => m[0]),
+    tecleando: /[\p{L}\p{N}-]$/u.test(q) ? largas.map((m) => q.slice(m.index)) : [],
+  };
+};
+
+/**
+ * Si una clave española encaja con lo escrito: porque el texto la lleva dentro, porque una palabra es la clave o
+ * empieza por ella («recetas»), o porque lo que se está tecleando es su principio («rec»).
+ */
+const encajaEnEspanol = (k: string, { q, words, tecleando }: LoEscrito): boolean =>
+  q.includes(k) || words.some((w) => w.startsWith(k)) || tecleando.some((t) => k.startsWith(t));
+
 /** Si una palabra de `PALABRAS_POR_IDIOMA` encaja con lo escrito (las reglas, arriba de la tabla). */
-const encajaEnSuIdioma = (k: string, q: string, words: string[]): boolean => {
+const encajaEnSuIdioma = (k: string, { q, words, tecleando }: LoEscrito): boolean => {
   if (k.includes(' ')) return fraseEntera(k).test(q);
-  return words.some((w) => w.startsWith(k) || (w.length >= 4 && k.startsWith(w))) || (k.length >= 4 && q.includes(k));
+  return words.some((w) => w.startsWith(k)) || tecleando.some((t) => t.length >= 4 && k.startsWith(t)) || (k.length >= 4 && q.includes(k));
 };
 
 /** Las palabras de un idioma de la app, o ninguna: el español ya está en `keywords`. */
@@ -364,17 +405,21 @@ export const getExperienceById = (id: string): WeeExperience | undefined =>
  * quiere lograr. Busca entre todas a propósito: quien escribe "maquillaje" o
  * "retocar" tiene que llegar a esa capacidad aunque su sección ya no esté en el
  * menú. Esconder una sección no es esconder lo que sabe hacer.
+ *
+ * La busca el buscador "¿Qué quieres crear?" mientras se teclea y la usa también
+ * el destino de la caja del Studio (`utils/destinoDeIntencion.ts`) al pulsar
+ * Crear. Por eso completa solo lo que se está tecleando —el final del texto—:
+ * "rec" ofrece Weë Chef, pero "una" a mitad de frase no ofrece Weë Beauty por
+ * "unas".
  */
 export const matchExperiences = (query: string, idioma?: string): WeeExperience[] => {
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-  const words = q.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3);
-  const encaja = (k: string) => q.includes(k) || words.some((w) => k.startsWith(w) || w.startsWith(k));
+  const escrito = leerLoEscrito(query);
+  if (!escrito.q) return [];
   const suyas = palabrasDelIdioma(idioma);
   return ALL_EXPERIENCES.filter(
     (e) =>
-      e.name.toLowerCase().includes(q) ||
-      e.keywords.some(encaja) ||
-      !!suyas?.[e.id]?.some((k) => encajaEnSuIdioma(k, q, words))
+      e.name.toLowerCase().includes(escrito.q) ||
+      e.keywords.some((k) => encajaEnEspanol(k, escrito)) ||
+      !!suyas?.[e.id]?.some((k) => encajaEnSuIdioma(k, escrito))
   );
 };
