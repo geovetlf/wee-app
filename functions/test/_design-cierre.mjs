@@ -254,7 +254,7 @@ export const CRITERIOS = [
   },
   {
     id: 'CL-20', tipo: 'integración', titulo: 'Crear desde dentro de un proyecto guarda el trabajo en ese proyecto (el servidor ya acepta `projectId` y el cliente lo manda en la primera llamada)',
-    responsable: 'hecho (R7-Design, tarea C) en el cliente; conectar «Añadir» de un proyecto es la propuesta P11', archivos: ['services/creatorService.ts:263-277 (start)', 'screens/CreatorFlowScreen.tsx:105-123, 166-167, 406', 'constants/weeWorkspaces.ts:231', 'App.tsx:278 (parse de CreatorFlow)', 'screens/ProjectScreen.tsx:157'],
+    responsable: 'hecho (R7-Design, tarea C) en el cliente; «Añadir» y «Crear algo nuevo» llegan hasta CreatorFlow desde R8 (tarea NAV, P11); Weë Design lo recibirá con su puente', archivos: ['services/creatorService.ts:263-277 (start)', 'screens/CreatorFlowScreen.tsx:105-123, 166-167, 406', 'constants/weeWorkspaces.ts:231', 'App.tsx:278 (parse de CreatorFlow)', 'screens/ProjectScreen.tsx', 'screens/WeeCreatorScreen.tsx', 'screens/SpecialistScreen.tsx', 'screens/StudioScreen.tsx · ChefScreen.tsx · BusinessScreen.tsx · BrainChatScreen.tsx'],
     comprueba: () => {
       /*
        * Mirada de texto, en tres puntas: el servicio manda la clave solo si hay proyecto, la pantalla se la pasa desde la ruta y
@@ -267,11 +267,18 @@ export const CRITERIOS = [
       const manda = /call<ChatResponse>\('creatorChat',\s*\{[\s\S]*?\.\.\.\(projectId \? \{ projectId \} : \{\}\)/.test(cuerpo);
       const loPasa = /creatorService\.start\([^\n]*params\.projectId,\s*locale\)/.test(sinComentarios(leer('screens/CreatorFlowScreen.tsx')));
       const declarado = /export interface ContextoDeExperiencia \{[\s\S]*?\n  projectId\?: string;/.test(leer('constants/weeWorkspaces.ts'));
-      const entradas = fs.readdirSync(path.resolve(RAIZ, 'screens')).filter((f) => /\.tsx$/.test(f) && f !== 'CreatorFlowScreen.tsx'
-        && /(navigate|push)\('CreatorFlow',[^;]*projectId/.test(sinComentarios(leer(`screens/${f}`))));
+      /* Quién lo pasa: una pantalla que navega a CreatorFlow y lleva `projectId` (en su literal, o por una variable como `contexto` en Weë Studio). */
+      const entradas = fs.readdirSync(path.resolve(RAIZ, 'screens')).filter((f) => {
+        if (!/\.tsx$/.test(f) || f === 'CreatorFlowScreen.tsx') return false;
+        const c = sinComentarios(leer(`screens/${f}`));
+        return /(navigate|push)\('CreatorFlow'/.test(c) && /(projectId: id\b|\.\.\.\(projectId \? \{ projectId \} : \{\}\))/.test(c);
+      });
+      /* Weë Design es de la tarea del puente: mientras su «Crear» no navegue a CreatorFlow no hay nada que llevar, y cuando lo haga tiene que llevarlo (proyecto-en-las-entradas G4). */
+      const diseno = pantalla();
+      const deDesign = !/navigate\('CreatorFlow'/.test(diseno) ? ' · Weë Design todavía no navega a CreatorFlow (CL-01): cuando lo haga, tiene que llevar el proyecto' : /projectId/.test(diseno) ? ' · Weë Design también' : ' · Weë Design navega a CreatorFlow SIN el proyecto';
       const ok = manda && loPasa && declarado;
       return { ok, evidencia: ok
-        ? `creatorService.start manda projectId, CreatorFlowScreen se lo pasa desde la ruta y la ruta lo declara; ejecutado en weeai-cliente-cierre B. Lo pasan hoy: ${entradas.join(', ') || 'ninguna pantalla'} («Añadir» del proyecto no: P11)`
+        ? `creatorService.start manda projectId, CreatorFlowScreen se lo pasa desde la ruta y la ruta lo declara; ejecutado en weeai-cliente-cierre B y en proyecto-en-las-entradas. Lo pasan hoy: ${entradas.join(', ') || 'ninguna pantalla'}${deDesign}`
         : `creatorService.start ${manda ? 'manda' : 'NO manda'} projectId · CreatorFlowScreen ${loPasa ? 'se lo pasa' : 'NO se lo pasa'} · la ruta ${declarado ? 'lo declara' : 'NO lo declara'} (functions/src/creator/index.ts:329 lo acepta); un trabajo solo entra en un proyecto con assignJob al terminar` };
     },
   },

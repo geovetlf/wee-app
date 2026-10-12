@@ -69,14 +69,15 @@ check('A7) `imageUri` es un parámetro REAL de la ruta: `CreatorFlow` recibe un 
 console.log('\n── B · El código real de `goToSpecialist`, contra conversaciones de verdad ──');
 /*
  * No se monta la pantalla (es de React Native): se toma el texto de la función tal como está en el archivo, se le quitan los
- * tipos con el compilador de TypeScript y se ejecuta con las tres cosas que lee de fuera: `bubbles`, `lastUserText` y
- * `navigation`. Si alguien cambia la función, esto ejecuta el cambio.
+ * tipos con el compilador de TypeScript y se ejecuta con las cuatro cosas que lee de fuera: `bubbles`, `lastUserText`,
+ * `navigation` y —desde R8 (P11)— `projectId`, el proyecto del que se llegó (la pantalla lo lee de su ruta; `undefined` si no hay).
+ * Si alguien cambia la función, esto ejecuta el cambio.
  */
-const ejecutar = ({ bubbles, lastUserText }) => {
+const ejecutar = ({ bubbles, lastUserText, projectId }) => {
   const llamadas = [];
   const navigation = { navigate: (...args) => llamadas.push(args) };
   const js = ts.transpileModule(derivacion, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS } }).outputText;
-  new Function('bubbles', 'lastUserText', 'navigation', `${js}\ngoToSpecialist({ id: 'home' });`)(bubbles, lastUserText, navigation);
+  new Function('bubbles', 'lastUserText', 'navigation', 'projectId', `${js}\ngoToSpecialist({ id: 'home' });`)(bubbles, lastUserText, navigation, projectId);
   return llamadas;
 };
 const ALMACEN = 'https://firebasestorage.googleapis.com/v0/b/demo-wee.appspot.com/o/users%2Fu1%2Fbrain-attachments%2F';
@@ -122,6 +123,13 @@ const weeDice = (key, text, extra = {}) => ({ key, role: 'wee', text, ...extra }
 {
   const r = ejecutar({ lastUserText: '', bubbles: [] });
   check('B8) una conversación vacía no rompe nada', r.length === 1 && r[0][1].imageUri === undefined && !('imageUri' in r[0][1]));
+}
+{
+  /* + R8 (P11): desde un proyecto, el proyecto viaja con lo dicho y con la foto; sin proyecto no viaja la clave (B2 y B8 lo fijan). */
+  const r = ejecutar({ lastUserText: 'mira mi sala', projectId: 'proj-1', bubbles: [persona('1', 'mira mi sala', SALA), weeDice('2', 'Eso lo hace mejor Weë Design', { suggestedExperience: 'home' })] });
+  const params = r[0]?.[1] ?? {};
+  check('B9) desde un proyecto: la experiencia, lo dicho, la foto Y el proyecto',
+    r.length === 1 && params.experienceId === 'home' && params.goal === 'mira mi sala' && params.imageUri === SALA && params.projectId === 'proj-1', JSON.stringify(params));
 }
 
 /* ═══ C · EL CONTRATO DE PUNTA A PUNTA ═════════════════════════════════════ */
@@ -180,8 +188,9 @@ check('C4) y el servidor guarda en el mensaje de la persona esa dirección, ya c
 
 /* ═══ D · LO QUE NO CAMBIA ═════════════════════════════════════════════════ */
 console.log('\n── D · Lo que no cambia, y la cadena ──');
+/* + R8 (P11): lo único que se añade a la llamada es el proyecto del que se llegó, si hay uno (`...(projectId ? { projectId } : {})`); sin foto y sin nada más. */
 check('D1) tocar un satélite sigue usando la ruta de siempre (`Specialist`), sin foto: no es una derivación',
-  /const irASatelite = \(exp: WeeExperience\) => navigation\.navigate\('Specialist', \{ id: exp\.id \}\);/.test(codigo));
+  /const irASatelite = \(exp: WeeExperience\) => navigation\.navigate\('Specialist', \{ id: exp\.id(?:, \.\.\.\(projectId \? \{ projectId \} : \{\}\))? \}\);/.test(codigo));
 check('D2) la propuesta del servidor sigue mandando: `suggestion` sale de `suggestedExperience` y nunca es Weë Brain',
   /getExperienceById\(lastWee\.suggestedExperience\)/.test(codigo) && /exp && exp\.id !== 'brain' \? exp : null/.test(codigo));
 check('D3) Weë Brain sigue sin saber de Credits ni de precios (lo vigila brain-vivo): la derivación no mete nada de eso', !/Credits|credit|precio|spend/i.test(derivacionSinComentarios));

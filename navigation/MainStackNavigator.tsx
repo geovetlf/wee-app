@@ -79,7 +79,12 @@ export type MainStackParamList = {
   Create: { communitySlug?: string; sourceSection?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string; media?: { type: 'image' | 'video'; uri: string; aspectRatio?: number; assetId?: string }[] }; lugarElegido?: PostPlace | null; ubicacionElegida?: UbicacionPublica | null; selloUbicacion?: string } | undefined;
   /** El lugar y la zona que ya trae el compositor, para poder enseñarlos y quitarlos. */
   AgregarUbicacion: { place?: PostPlace; ubicacion?: UbicacionPublica } | undefined;
-  WeeCreator: { category?: string } | undefined;
+  /**
+   * `projectId` es el proyecto de «Mis proyectos» desde el que se llegó («Añadir» y «Crear algo nuevo» de su página). El selector, la
+   * ficha de cada especialista y las pantallas de Weë Studio, Chef, Business y Brain lo reenvían hasta `CreatorFlow`, donde el
+   * trabajo nace dentro de él (P11, CL-20). Sin proyecto no viaja la clave. Un identificador, nunca un nombre.
+   */
+  WeeCreator: { category?: string; projectId?: string } | undefined;
   SavedPosts: undefined;
   /** ËContact: las conexiones de Weë entre personas. */
   EContact: undefined;
@@ -98,7 +103,8 @@ export type MainStackParamList = {
    * de App.tsx lo descarta— y entonces el flujo abre la primera experiencia.
    */
   CreatorFlow: ContextoDeExperiencia;
-  Specialist: { id: string };
+  /* `projectId`: el proyecto que viene de `WeeCreator` (ver arriba). La ficha lo lee con `useRoute()` y cada pantalla que dibuja, también. */
+  Specialist: { id: string; projectId?: string };
   /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
   Studio: undefined;
   /**

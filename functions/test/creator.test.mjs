@@ -2272,7 +2272,8 @@ console.log('\n── W · Weë Writer vive dentro de Weë Studio ──');
    */
   check('W3) la tarjeta abre la pantalla de Weë Writer, no su conversación',
     /opens: 'writer', opensSection: true/.test(studio)
-    && /if \(action\.opensSection && action\.opens\) \{\s*navigation\.navigate\('Specialist', \{ id: action\.opens \}\);/.test(pantalla));
+    /* + R8 (P11): la llamada lleva además el proyecto del que se llegó, si hay uno (`...(projectId ? { projectId } : {})`); a la misma pantalla y con el mismo `id`. */
+    && /if \(action\.opensSection && action\.opens\) \{\s*navigation\.navigate\('Specialist', \{ id: action\.opens(?:, \.\.\.\(projectId \? \{ projectId \} : \{\}\))? \}\);/.test(pantalla));
   check('W3) que es la misma ruta a la que llevaba el menú', /navigateRoot\('Specialist', \{ id: category \}\)/.test(cajon));
   check('W3) y allí sigue estando "Mis documentos"',
     /\{spec\.id === 'writer' && <WriterDocuments \/>\}/.test(pantalla) && /navigation\.navigate\('WriterEditor'/.test(leer4('components/creator/WriterDocuments.tsx')));

@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
@@ -85,6 +85,11 @@ const StudioScreen: React.FC = () => {
   const { theme } = useTheme();
   const { t, locale } = useIdioma();
   const navigation = useNavigation<any>();
+  /*
+   * El proyecto desde el que se llegó: `Specialist` lo trae en su ruta («Añadir» de un proyecto, por el selector); la dirección /studio
+   * no. Viaja con lo que se cree desde aquí hasta CreatorFlow (P11) y sin proyecto no viaja la clave.
+   */
+  const projectId: string | undefined = useRoute<any>().params?.projectId;
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const alturaTeclado = useAlturaDelTeclado();
 
@@ -275,6 +280,8 @@ const StudioScreen: React.FC = () => {
          * QUÉ CLASE es cada material, que es lo que ese camino no sabe.
          */
         ...(adjuntos[0] ? { imageUri: adjuntos[0].uri } : {}),
+        /* Si se llegó desde un proyecto, lo que se cree nace en él (P11, CL-20). */
+        ...(projectId ? { projectId } : {}),
       };
 
       /*
@@ -288,7 +295,7 @@ const StudioScreen: React.FC = () => {
 
     setEstado('creando');
     temporizador.current = setTimeout(() => setEstado('listo'), LO_QUE_TARDA_LA_DEMO);
-  }, [prompt, experiencia, entrada, controles, adjuntos, navigation, t, locale]);
+  }, [prompt, experiencia, entrada, controles, adjuntos, navigation, t, locale, projectId]);
 
   /**
    * LO ELEGIDO DENTRO DE UNA PUERTA VUELVE AL COMPOSITOR.

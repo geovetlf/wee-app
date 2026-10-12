@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { formatearHora, formatearNumero, formatearPorcentaje } from '../i18n/formato';
@@ -93,6 +93,8 @@ const BusinessScreen: React.FC = () => {
   };
   const { user } = useAuth();
   const navigation = useNavigation<any>();
+  /* El proyecto desde el que se llegó (`Specialist` lo trae en su ruta): lo que se cree desde aquí nace en él (P11). Sin proyecto no viaja la clave. */
+  const projectId: string | undefined = useRoute<any>().params?.projectId;
   const { isMobile, isDesktop } = useResponsive();
   const spec = useEspecialista('business');
 
@@ -165,7 +167,7 @@ const BusinessScreen: React.FC = () => {
       navigation.navigate('Login');
       return;
     }
-    navigation.navigate('CreatorFlow', { experienceId: 'business', goal, preset });
+    navigation.navigate('CreatorFlow', { experienceId: 'business', goal, preset, ...(projectId ? { projectId } : {}) });
   };
 
   /*

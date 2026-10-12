@@ -112,6 +112,8 @@ export const crearEntorno = ({ so = 'android', usuario = { uid: 'u1' }, movil = 
         goBack: () => navegacion.push(['goBack']), setParams: (...a) => navegacion.push(['setParams', ...a]), canGoBack: () => true,
       }),
       useFocusEffect: (cb) => { enfoques.push(cb); },
+      /* La ruta de quien entra por el menú: sin parámetros. Weë Chef y las demás pantallas de especialista leen de ella el proyecto del que vienen (P11, R8). */
+      useRoute: () => ({ params: undefined }),
     },
     'expo-image-picker': selector,
     'firebase/functions': { httpsCallable: () => { throw new Error('sin red'); } },

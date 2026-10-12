@@ -194,7 +194,8 @@ console.log('\n── C · Los identificadores técnicos siguen donde estaban �
    * los imports y los datos que ya existen. Se quedan.
    */
   const pila = leer('navigation/MainStackNavigator.tsx');
-  check('9) la ruta sigue llamándose WeeCreator, y sigue siendo una', (pila.match(/name="WeeCreator"/g) || []).length === 1 && /WeeCreator: \{ category\?: string \} \| undefined;/.test(pila));
+  /* + R8 (P11): la ruta declara además el proyecto desde el que se llega («Añadir» de un proyecto): `projectId?: string`. Su nombre y su unicidad no cambian. */
+  check('9) la ruta sigue llamándose WeeCreator, y sigue siendo una', (pila.match(/name="WeeCreator"/g) || []).length === 1 && /WeeCreator: \{ category\?: string(?:; projectId\?: string)? \} \| undefined;/.test(pila));
   check('9) y la monta la misma pantalla de siempre', /import WeeCreatorScreen from '\.\.\/screens\/WeeCreatorScreen'/.test(pila) && /component=\{WeeCreatorScreen\}/.test(pila));
   check('10) el id del menú sigue siendo `creator`', /creator: \{ id: 'creator'/.test(leer('constants/weeMenu.ts')));
   check('11) las colecciones y la ruta del Storage no se tocan',

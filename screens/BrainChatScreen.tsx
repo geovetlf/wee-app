@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -126,6 +126,8 @@ const BrainChatScreen: React.FC = () => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const navigation = useNavigation<any>();
+  /* El proyecto desde el que se llegó (`Specialist` lo trae en su ruta): viaja al especialista que se elija, sea por la sugerencia o por un satélite (P11). Sin proyecto no viaja la clave. */
+  const projectId: string | undefined = useRoute<any>().params?.projectId;
   const { isDesktop } = useResponsive();
   const spec = useEspecialista('brain');
   const chat = useBrainChat();
@@ -253,14 +255,14 @@ const BrainChatScreen: React.FC = () => {
    */
   const goToSpecialist = (exp: WeeExperience) => {
     const imageUri = [...bubbles].reverse().find((b) => b.role === 'user' && !!b.imageUrl)?.imageUrl;
-    navigation.navigate('CreatorFlow', { experienceId: exp.id, goal: lastUserText || undefined, ...(imageUri ? { imageUri } : {}) });
+    navigation.navigate('CreatorFlow', { experienceId: exp.id, goal: lastUserText || undefined, ...(imageUri ? { imageUri } : {}), ...(projectId ? { projectId } : {}) });
   };
 
   /*
    * Tocar un satélite abre esa sección, por la misma puerta que el menú ☰ y la
    * barra lateral: `Specialist` con su identificador. No hay ruta nueva.
    */
-  const irASatelite = (exp: WeeExperience) => navigation.navigate('Specialist', { id: exp.id });
+  const irASatelite = (exp: WeeExperience) => navigation.navigate('Specialist', { id: exp.id, ...(projectId ? { projectId } : {}) });
 
   /*
    * UNA BURBUJA, Y LO QUE VA DEBAJO (decisión del usuario, 2026-09-16).

@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
@@ -64,6 +64,8 @@ const ChefScreen: React.FC = () => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const navigation = useNavigation<any>();
+  /* El proyecto desde el que se llegó (`Specialist` lo trae en su ruta): lo que se cocine desde aquí nace en él (P11). Sin proyecto no viaja la clave. */
+  const projectId: string | undefined = useRoute<any>().params?.projectId;
   const { user } = useAuth();
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const spec = useEspecialista('chef');
@@ -138,9 +140,10 @@ const ChefScreen: React.FC = () => {
         goal: objetivo,
         preset,
         imageUri: imagen ?? foto ?? undefined,
+        ...(projectId ? { projectId } : {}),
       });
     },
-    [user, navigation, foto]
+    [user, navigation, foto, projectId]
   );
 
   const alEnviar = useCallback(() => {

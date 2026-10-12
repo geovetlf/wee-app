@@ -299,13 +299,13 @@ const proyectos = (ls) => ls.map((l) => proyectoDe(l) ?? '—').join(' · ') || 
     servidor.de('creatorChat').length === 1 && proyectoDe(servidor.de('creatorChat')[0]) === 'proj-1', proyectos(servidor.de('creatorChat')));
   f.cerrar();
 
-  /* Lo que NO está conectado, dicho por lo que la pantalla hace hoy. */
+  /* + R8 (P11): lo que era una observación impresa («Añadir» y «Crear algo nuevo» van al selector SIN el proyecto) ya es una comprobación. Qué hacen después el selector y cada especialista con él: `proyecto-en-las-entradas`. */
   const q = await crearProyecto({ id: 'proj-1', trabajos: [] });
   q.capturas.SectionTitle.onAction();
   q.capturas.ClosingBanner.onPress();
   const alHub = q.navegacion.filter((n) => n[1] === 'WeeCreator');
-  aviso(`OBSERVACIÓN CL-20: «Añadir» y «Crear algo nuevo» de la página de un proyecto llevan al selector de Weë AI (WeeCreator) ${alHub.every((n) => n.length === 2) ? 'SIN el proyecto' : 'con algo más'}: ${JSON.stringify(alHub)}.`);
-  aviso('  El selector y las pantallas de cada especialista abren CreatorFlow por su cuenta y ninguna reenvía un proyecto: conectar «Añadir» toca unas ocho pantallas (entre ellas DesignScreen, de otra tarea). Propuesta en docs/WEE-DESIGN-CIERRE.md §7 (P11).');
+  check('B11 · «Añadir» y «Crear algo nuevo» de la página de un proyecto abren el selector de Weë AI LLEVANDO el proyecto (P11)',
+    alHub.length === 2 && alHub.every((n) => n[2]?.projectId === 'proj-1'), JSON.stringify(alHub));
   q.cerrar();
 }
 {
