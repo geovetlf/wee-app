@@ -45,3 +45,30 @@ completar lo que se teclea.
    Beauty. Es un dato (`keywords`), no el prefijo; quitarla o sustituirla es una decisión de producto.
 3. La clave «cena» (Chef) está dentro de «escena» (`q.includes(k)`, subcadena, otra regla): «una escena de película» sigue marcando Chef.
 4. Mientras no haya destino, la caja sigue mostrando la demostración (R-01b, decisión del dueño: ofrecer Weë Brain).
+
+## 2. La foto de Weë Brain llega al especialista (R-08 · B-10)
+
+**Qué pasaba.** Weë Brain propone un especialista y la persona lo toca. `BrainChatScreen.goToSpecialist` navegaba a `CreatorFlow` con
+`experienceId` y `goal` y nada más: la foto adjunta a Brain se quedaba en la conversación y el especialista volvía a pedirla. Ejecutando
+la función real con una conversación con foto salía `{"experienceId":"home","goal":"mira mi sala"}`.
+
+**Por qué la foto no tenía por qué perderse.** Ya iba por todo el camino: `useBrainChat` la sube a `users/<uid>/brain-attachments/…`,
+`brainChat` guarda en el mensaje esa dirección (ya comprobada por `assertInputImageUrl`), `uploadCreatorImage` devuelve tal cual una
+dirección que ya es del Storage de Weë (no la sube otra vez) y `creatorChat` admite esa misma carpeta (el UNKNOWN de R6, medido por H y
+fijado ahora: `assertInputImageUrl` es idempotente sobre lo que Brain guardó, y rechaza la de otra cuenta, otro cubo y otro sitio).
+
+**Qué es ahora.** `goToSpecialist` añade `imageUri` —el parámetro que ya tiene `ContextoDeExperiencia`, el tipo de la ruta— con la foto
+del ÚLTIMO mensaje de la PERSONA que tenga una (no una imagen de Weë; y si el último mensaje no lleva foto, la de uno anterior). Quien
+no adjuntó nada navega exactamente como antes: la clave ni siquiera existe. Solo cliente: ni servidor, ni Credits, ni rutas.
+
+**Qué hace el servidor con ella** (por diseño, no es nuevo): la guarda como `inputImageUrl` del trabajo; los especialistas que trabajan
+sobre una foto (Photo, Home, Beauty, el vídeo de una foto en Studio) la usan sin pedirla; en `video.generate` se pasa además como imagen
+de referencia (`creator/inputs.ts`, `stepInputFor`); las plantillas y el planificador no miran si hay foto.
+
+**Prueba.** `functions/test/brain-foto-al-especialista.test.mjs` (30 comprobaciones): la función leída y EJECUTADA (se extrae el código real de
+`goToSpecialist` y se corre con ocho conversaciones: con una foto, sin ninguna, varias, solo en un mensaje anterior, de Weë, sin texto,
+dirección local y vacía); el contrato de punta a punta con el `uploadCreatorImage` real (dobles de Storage) y el `assertInputImageUrl`
+compilado. Falla (8) antes del arreglo; tres mutaciones —la primera foto, la de cualquiera, la clave siempre— la hacen fallar.
+
+**Lo que no se arregla aquí.** El HISTORIAL de la conversación sigue sin viajar al especialista: `creatorChat` no tiene dónde recibirlo
+(`ChatInput`); crearlo sería otro canal (R-03/R-02, decisión aparte). Y el contexto de lo que Brain entendió tampoco (B-04).

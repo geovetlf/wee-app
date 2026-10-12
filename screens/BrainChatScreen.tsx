@@ -239,8 +239,21 @@ const BrainChatScreen: React.FC = () => {
     }
   };
 
+  /*
+   * LA FOTO QUE LA PERSONA ENSEÑÓ A WEË BRAIN VIAJA AL ESPECIALISTA (R-08 · B-10, ronda R7).
+   *
+   * Brain propone un especialista y la persona lo toca: lo que ya dijo (`goal`) y la foto que ya
+   * enseñó van con ella, para que el especialista no vuelva a pedirlos. Aquí no se sube nada: esa
+   * foto ya está en el Storage de Weë (`users/<uid>/brain-attachments/…`, lo que guardó el
+   * mensaje), `CreatorFlow` la trata como cualquier otra —`uploadCreatorImage` devuelve tal cual
+   * una dirección que ya está subida— y el servidor admite esa carpeta.
+   *
+   * Es la última que la PERSONA adjuntó, no la última imagen de la conversación: una imagen de Weë
+   * no es su foto, y la pregunta de después («¿y qué hago con ella?») no lleva foto propia.
+   */
   const goToSpecialist = (exp: WeeExperience) => {
-    navigation.navigate('CreatorFlow', { experienceId: exp.id, goal: lastUserText || undefined });
+    const imageUri = [...bubbles].reverse().find((b) => b.role === 'user' && !!b.imageUrl)?.imageUrl;
+    navigation.navigate('CreatorFlow', { experienceId: exp.id, goal: lastUserText || undefined, ...(imageUri ? { imageUri } : {}) });
   };
 
   /*
