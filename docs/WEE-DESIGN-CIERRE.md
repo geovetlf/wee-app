@@ -54,6 +54,7 @@ referencia, que **sí** manda la caja a `CreatorFlow` (`DesignReferenciaScreen.t
 | Créditos y motor | `credits-weeai`; `puente-pre-f1d` 42/42 (cercas) (E) | Que la pantalla no mueva dinero; las cercas del Credit Engine, el Router y `creatorRun` | El recorrido completo de Design con dinero |
 | **Integración** | **Ninguna.** Ninguna de las 40 suites `*.emulator.mjs` menciona `creatorRun` (E, CL-18) | — | `creatorChat → creatorQuote → creatorRun` de `design`/`home` contra Firestore: precio antes, reserva, cobro, reembolso, abandono |
 | **Flujo de UI real** | **Ninguna automática** | — | Todo lo visual: móvil, tableta, escritorio, teclado |
+| Dominio `design` del Eval Engine (R7-Design, E) | `evals-design` 59/59 y `_design-cierre --solo CL-17` (E) | Lo que la plantilla de `design` deduce, pregunta, planifica y cuesta, medido a $0 con 57 casos y una baseline: H-2 y H-6 en rojo hoy, y los casos conocidos de D4, D5 y D6 | La calidad de lo que se generaría (no hay juez) y la pantalla |
 
 ## 3. DESIGN.md (2026-10-05) frente al código de hoy
 
