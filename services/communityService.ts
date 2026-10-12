@@ -171,13 +171,21 @@ export const communityService = {
   joinCommunity: async (userId: string, communityId: string): Promise<void> => {
     try {
       const batch = writeBatch(db);
+      /*
+       * UNIRSE DOS VECES NO SUMA DOS (R9 · E1). El contador subía en cada llamada, también si la identidad ya estaba
+       * dentro (un doble toque, o crear y unirse). Si su membresía ya existe, solo se asegura la lista del perfil.
+       */
+      const membershipRef = doc(db, `communities/${communityId}/members`, userId);
+      const yaEsMiembro = (await getDoc(membershipRef)).exists();
 
       // Incrementar memberCount en la comunidad
       const communityRef = doc(db, 'communities', communityId);
-      batch.update(communityRef, {
-        memberCount: increment(1),
-        updatedAt: Timestamp.now(),
-      });
+      if (!yaEsMiembro) {
+        batch.update(communityRef, {
+          memberCount: increment(1),
+          updatedAt: Timestamp.now(),
+        });
+      }
 
       // Agregar communityId al array del usuario
       const userQuery = query(
@@ -196,13 +204,14 @@ export const communityService = {
       }
 
       // Crear membership en subcolección (opcional, para más datos)
-      const membershipRef = doc(db, `communities/${communityId}/members`, userId);
-      batch.set(membershipRef, {
-        userId: userId,
-        joinedAt: Timestamp.now(),
-        postCount: 0,
-        reputation: 0,
-      });
+      if (!yaEsMiembro) {
+        batch.set(membershipRef, {
+          userId: userId,
+          joinedAt: Timestamp.now(),
+          postCount: 0,
+          reputation: 0,
+        });
+      }
 
       await batch.commit();
     } catch (error) {
@@ -215,13 +224,18 @@ export const communityService = {
   leaveCommunity: async (userId: string, communityId: string): Promise<void> => {
     try {
       const batch = writeBatch(db);
+      /* Y salir sin estar dentro no resta (R9 · E1). */
+      const membershipRef = doc(db, `communities/${communityId}/members`, userId);
+      const eraMiembro = (await getDoc(membershipRef)).exists();
 
       // Decrementar memberCount
       const communityRef = doc(db, 'communities', communityId);
-      batch.update(communityRef, {
-        memberCount: increment(-1),
-        updatedAt: Timestamp.now(),
-      });
+      if (eraMiembro) {
+        batch.update(communityRef, {
+          memberCount: increment(-1),
+          updatedAt: Timestamp.now(),
+        });
+      }
 
       // Remover communityId del array del usuario
       const userQuery = query(
@@ -240,8 +254,7 @@ export const communityService = {
       }
 
       // Eliminar membership
-      const membershipRef = doc(db, `communities/${communityId}/members`, userId);
-      batch.delete(membershipRef);
+      if (eraMiembro) batch.delete(membershipRef);
 
       await batch.commit();
     } catch (error) {
@@ -329,7 +342,8 @@ export const communityService = {
           text,
           order: index + 1,
         })),
-        memberCount: 1, // El creador es el primer miembro
+        /* Nace a cero: el creador entra justo después con `joinCommunity`, que es quien cuenta (R9 · E1; antes nacía en 1 y se sumaba otra vez). */
+        memberCount: 0,
         postCount: 0,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),

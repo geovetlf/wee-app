@@ -20,7 +20,6 @@ import { paraBuscar } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { communityService, Community } from '../services/communityService';
-import { POPULAR_COMMUNITIES } from '../constants/communityCategories';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
@@ -36,23 +35,11 @@ const CommunitiesManagementScreen: React.FC = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
-  // Comunidades populares de ejemplo (simulan comunidades creadas por usuarios)
-  const EXAMPLE_COMMUNITIES: Community[] = POPULAR_COMMUNITIES.map((c) => ({
-    id: 'ex-' + c.id,
-    name: c.name,
-    slug: c.slug,
-    description: c.description,
-    icon: c.icon.replace('-outline', ''),
-    rules: [],
-    memberCount: c.members,
-    postCount: 0,
-    createdAt: {} as any,
-    updatedAt: {} as any,
-    isOfficial: false,
-    moderators: [],
-    status: 'active' as const,
-  }));
-
+  /*
+   * SIN COMUNIDADES DE EJEMPLO (R9 · E1). Aquí se mezclaban, con las reales, unas comunidades inventadas con miles de
+   * miembros falsos (ids `ex-…` que no existen en Firestore): unirse a ellas fallaba siempre, y si la carga fallaba eran
+   * lo único que se veía. La lista enseña solo lo que existe; si no hay nada, se ve el estado vacío y «+ Crear».
+   */
   // Desde el Home: buscar una comunidad o crear la tuya
   const homeParams = (useRoute<any>().params || {}) as { query?: string; create?: boolean };
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -75,19 +62,13 @@ const CommunitiesManagementScreen: React.FC = () => {
 
   const loadCommunities = useCallback(async () => {
     try {
-      // Cargar comunidades reales creadas por usuarios
+      // Las comunidades reales creadas por usuarios: nada más.
       const realCommunities = await communityService.getUserCommunities();
-
-      // Combinar reales + ejemplo (reales primero)
-      const exampleIds = new Set(EXAMPLE_COMMUNITIES.map(c => c.slug));
-      const filteredExamples = EXAMPLE_COMMUNITIES.filter(
-        ex => !realCommunities.some(r => r.slug === ex.slug)
-      );
-      setCommunities([...realCommunities, ...filteredExamples]);
+      setCommunities(realCommunities);
     } catch (error) {
       console.error('Error loading communities:', error);
-      // Si falla la carga, mostrar al menos las de ejemplo
-      setCommunities(EXAMPLE_COMMUNITIES);
+      setCommunities([]);
+      notify(t('common.error'), t('communities.actionFailed'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -178,7 +159,11 @@ const CommunitiesManagementScreen: React.FC = () => {
     return (
       <TouchableOpacity
         style={[styles.communityItem, { backgroundColor: theme.colors.card }]}
-        onPress={() => (navigation as any).navigate('Feed', { communitySlug: item.slug })}
+        /*
+         * A la comunidad, por su ruta de la pila principal (R9 · E1). Antes iba a `Feed`, que solo existe en la pila del
+         * Inicio: abierta desde Configuración o desde el ☰ en Perfil/WeeTalk, tocar la tarjeta no hacía nada.
+         */
+        onPress={() => item.id && (navigation as any).navigate('Community', { communityId: item.id })}
         activeOpacity={0.7}
       >
         {item.imageUrl ? (
@@ -425,9 +410,11 @@ const CommunitiesManagementScreen: React.FC = () => {
                      */
                     createdBy: user.uid,
                   });
-                  // Auto-join the community
+                  /*
+                   * Quien crea ya queda dentro: `createCommunity` lo une. Unirlo otra vez aquí sumaba un miembro
+                   * fantasma —una comunidad recién creada mostraba 3— (R9 · E1). Aquí solo se refleja en pantalla.
+                   */
                   if (communityId) {
-                    await communityService.joinCommunity(user.uid, communityId);
                     const newJoined = [...joinedCommunityIds, communityId];
                     updateLocalProfile({ joinedCommunities: newJoined });
                   }

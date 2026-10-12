@@ -136,8 +136,9 @@ console.log('\n── C · El diálogo de salir y los tres avisos ──');
    * arreglo). Los tres siguen reutilizando common.error.
    */
   /* + cierre 2026-10-01: el de crear también pasa a `notify` (Alert.alert no se ve en la web); mismas claves. */
-  check('15) y los tres avisos de error reutilizan common.error',
-    (PANTALLA.match(/(?:notify|Alert\.alert)\(t\('common\.error'\)/g) || []).length === 3
+  /* Cuatro desde R9 · E1: la carga que falla ya no se rellena con comunidades de ejemplo, se dice. */
+  check('15) y los cuatro avisos de error reutilizan common.error',
+    (PANTALLA.match(/(?:notify|Alert\.alert)\(t\('common\.error'\)/g) || []).length === 4
     && /notify\(t\('common\.error'\), t\('communities\.leaveFailed'\)\)/.test(PANTALLA)
     && /notify\(t\('common\.error'\), t\('communities\.actionFailed'\)\)/.test(PANTALLA)
     && /notify\(t\('common\.error'\), t\('communities\.createFailed'\)\)/.test(PANTALLA)
@@ -186,7 +187,8 @@ console.log('\n── D · Los nombres de las comunidades no se traducen ──'
 
   /* 13 · Las rutas y los registros técnicos, intactos. */
   check('13) las rutas y los console.error no se tradujeron',
-    /'Register'/.test(PANTALLA) && /'Feed'/.test(PANTALLA)
+    /* R9 · E1: la tarjeta abre `Community` (pila principal); `Feed` solo existía en la pila del Inicio. */
+    /'Register'/.test(PANTALLA) && /'Community'/.test(PANTALLA) && !/'Feed'/.test(PANTALLA)
     && /console\.error\('Error loading communities:'/.test(CRUDO)
     && !/t\('Register'\)|navigate\(t\(/.test(PANTALLA));
 }
@@ -217,7 +219,8 @@ console.log('\n── E · Plurales, accesibilidad y lo que no se movió ──'
   /* 16 y 17 · La lógica y la navegación, donde estaban. */
   check('16) la lógica de comunidades no cambió',
     /await communityService\.leaveCommunity\(user\.uid, community\.id!\)/.test(PANTALLA)
-    && /await communityService\.joinCommunity\(user\.uid, communityId\)/.test(PANTALLA)
+    /* R9 · E1: crear ya une a quien crea; la segunda unión desde la pantalla sumaba un miembro fantasma. */
+    && !/await communityService\.joinCommunity\(user\.uid, communityId\)/.test(PANTALLA)
     && /await communityService\.createCommunity\(\{/.test(PANTALLA)
     && /updateLocalProfile\(\{ joinedCommunities: newJoined \}\)/.test(PANTALLA));
   check('16) ni los límites del formulario, ni el auto-join',
