@@ -82,12 +82,12 @@ console.log('\n── A · La bandeja vacía de WeeTalk ──');
 
   /* 8, 9 y 10 · CONTROL: la bandeja funciona como funcionaba. */
   check('8) control: las conversaciones se siguen escuchando igual',
-    /messagesService\./.test(BANDEJA)
+    /useConversaciones\(/.test(BANDEJA)
     && /const unread = last && !last\.read && last\.senderId !== activeUid;/.test(BANDEJA));
   check('9) control: la navegación al chat no cambió',
     /const openChat = \(c: Conversation\) => \{/.test(BANDEJA) && /nav\.navigate\('Conversation'/.test(BANDEJA));
-  check('10) control: borrar y buscar siguen donde estaban',
-    /messagesService\.deleteConversation\(id\)/.test(BANDEJA) && /const filtered = search\.trim\(\)/.test(BANDEJA));
+  check('10) control: buscar sigue donde estaba, y el borrado vacío ya no está (R9 · E1)',
+    !/deleteConversation/.test(BANDEJA) && /const filtered = search\.trim\(\)/.test(BANDEJA));
   check('10) y el título del estado vacío sigue saliendo de su clave de siempre',
     /\{t\('weetalk\.noConversations'\)\}/.test(BANDEJA) && /\{t\('weetalk\.noConversationsHint'\)\}/.test(BANDEJA));
 }

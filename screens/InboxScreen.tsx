@@ -14,11 +14,10 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { paraBuscar } from '../i18n/caja';
-import { confirmAction } from '../utils/notify';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { messagesService, Conversation, claveDeAvisoGuardado } from '../services/messagesService';
+import { Conversation, claveDeAvisoGuardado } from '../services/messagesService';
 import { useConversaciones } from '../hooks/useConversaciones';
 import { getRelativeTime } from '../utils/formatoCorto';
 import { InboxStackParamList } from '../navigation/InboxStackNavigator';
@@ -72,14 +71,11 @@ const InboxScreen = () => {
   };
 
   /*
-   * BORRAR UNA CONVERSACIÓN (pulsación larga). Con `Alert.alert` y el borrado en el `onPress` de su botón, en la web
-   * no salía nada y no se borraba: allí `Alert.alert` no pinta ni llama a nadie. `confirmAction` es el mismo diálogo
-   * en el teléfono y `window.confirm` en la web.
+   * BORRAR UNA CONVERSACIÓN: RETIRADO (R9 · E1). La pulsación larga pedía confirmación y llamaba a un borrado que no
+   * borraba nada —escrituras vacías, porque las reglas cierran el borrado de conversaciones y mensajes—, así que la
+   * conversación seguía ahí sin aviso. Hasta que exista un «ocultar para mí» de verdad (necesita reglas o servidor:
+   * decisión del dueño) no se ofrece un botón que no hace lo que dice.
    */
-  const deleteChat = async (id: string) => {
-    if (!(await confirmAction(t('weetalk.deleteConversation'), t('weetalk.areYouSure'), t('common.delete'), true, t))) return;
-    messagesService.deleteConversation(id).catch(console.error);
-  };
 
   const filtered = search.trim()
     ? conversations.filter(c => {
@@ -109,7 +105,6 @@ const InboxScreen = () => {
       <TouchableOpacity
         style={[styles.item, { borderColor: theme.colors.border }]}
         onPress={() => openChat(item)}
-        onLongPress={() => deleteChat(item.id!)}
         activeOpacity={0.7}
       >
         <AvatarDisplay

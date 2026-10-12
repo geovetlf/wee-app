@@ -129,7 +129,7 @@ const ticks = async (n = 5) => { for (let i = 0; i < n; i++) await new Promise((
 const forma = (a) => a && JSON.stringify([a[0], a[1], (a[2] || []).map((b) => [b.text, b.style || null])]);
 
 /*
- * LAS CUATRO CONFIRMACIONES DE BORRAR. Cada una, con el diálogo que tenía en el teléfono y lo que tiene que pasar si se
+ * LAS CONFIRMACIONES DE BORRAR (eran cuatro; la de la bandeja de WeeTalk se retiró en R9 · E1). Cada una, con el diálogo que tenía en el teléfono y lo que tiene que pasar si se
  * confirma.
  */
 const BORRADOS = [
@@ -142,15 +142,7 @@ const BORRADOS = [
     },
     argumentos: [],
   },
-  {
-    nombre: 'borrar una conversación', archivo: 'screens/InboxScreen.tsx', funcion: 'deleteChat',
-    dialogo: ['weetalk.deleteConversation', 'weetalk.areYouSure', [['common.cancel', 'cancel'], ['common.delete', 'destructive']]],
-    alcance: () => {
-      const messagesService = { deleteConversation: espia(async () => {}) };
-      return { alcance: { messagesService }, hecho: () => messagesService.deleteConversation.llamadas.length === 1 && messagesService.deleteConversation.llamadas[0][0] === 'conv-1' };
-    },
-    argumentos: ['conv-1'],
-  },
+  /* «Borrar una conversación» salió de aquí en R9 · E1: no borraba nada y la bandeja ya no lo ofrece (i18n-inbox-preview). */
   {
     nombre: 'borrar un producto', archivo: 'screens/WeeBizProductsScreen.tsx', funcion: 'handleDeleteProduct',
     dialogo: ['weebiz.deleteProductTitle', 'weebiz.deleteProductConfirm{"nombre":"Tarta"}', [['common.cancel', 'cancel'], ['common.delete', 'destructive']]],
@@ -434,10 +426,10 @@ console.log('\n── D · Crear el Perfil Weë vuelve atrás ──');
 console.log('\n── E · El arreglo es el canónico ──');
 {
   /* `utils/notify.ts` es el arreglo de CLAUDE.md para la web; nadie se escribió su propio `window.confirm`. */
-  const ARCHIVOS = ['components/PostCard.tsx', 'screens/InboxScreen.tsx', 'screens/WeeBizProductsScreen.tsx', 'screens/WeeBizProfileScreen.tsx',
+  const ARCHIVOS = ['components/PostCard.tsx', 'screens/WeeBizProductsScreen.tsx', 'screens/WeeBizProfileScreen.tsx',
     'screens/CommunitiesManagementScreen.tsx', 'screens/WeeBizRegisterScreen.tsx', 'screens/WeeProfileCreationScreen.tsx'];
   const sinNotify = ARCHIVOS.filter((a) => !/import \{[^}]*\b(?:confirmAction|notify)\b[^}]*\} from '\.\.\/utils\/notify';/.test(leer(a)));
-  check('33) los siete archivos usan utils/notify.ts', sinNotify.length === 0, sinNotify.join(' · '));
+  check('33) los seis archivos usan utils/notify.ts', sinNotify.length === 0, sinNotify.join(' · '));
   const propios = ARCHIVOS.filter((a) => /window\.(?:confirm|alert)\(/.test(leer(a)));
   check('34) y ninguno llama a window.confirm/window.alert por su cuenta', propios.length === 0, propios.join(' · '));
   /* CONTROL: la prueba ve el fallo. Un manejador con su trabajo dentro de un Alert.alert, en la web, no hace nada. */

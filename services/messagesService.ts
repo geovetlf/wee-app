@@ -578,29 +578,10 @@ class MessagesService {
     }
   }
 
-  /**
-   * Eliminar una conversación
+  /*
+   * `deleteConversation` se retiró (R9 · E1): hacía `updateDoc(…, {})` sobre cada mensaje y sobre la conversación,
+   * que no borra nada, y las reglas cierran el borrado (`allow delete: if false`). La bandeja ya no lo ofrece.
    */
-  async deleteConversation(conversationId: string): Promise<void> {
-    try {
-      // Primero eliminar todos los mensajes
-      const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-      const messagesSnapshot = await getDocs(messagesRef);
-
-      const deletePromises = messagesSnapshot.docs.map((document) =>
-        updateDoc(doc(db, 'conversations', conversationId, 'messages', document.id), {})
-      );
-
-      await Promise.all(deletePromises);
-
-      // Luego eliminar la conversación
-      const conversationRef = doc(db, 'conversations', conversationId);
-      await updateDoc(conversationRef, {});
-    } catch (error) {
-      console.error('Error eliminando conversación:', error);
-      throw error;
-    }
-  }
 }
 
 export const messagesService = new MessagesService();

@@ -52,25 +52,14 @@ console.log('\n── A · El diálogo de borrar una conversación ──');
    * las mismas claves: su Cancelar lo pone `confirmAction` con `common.cancel`, y `common.delete` es el botón
    * destructivo. Lo que pasa de verdad, en la web y en el teléfono, lo ejecuta `avisos-en-la-web.test.mjs`.
    */
-  const AVISO = leer('utils/notify.ts');
-  const DIALOGO = /confirmAction\(t\('weetalk\.deleteConversation'\), t\('weetalk\.areYouSure'\), t\('common\.delete'\), true, t\)/;
-  check('1) "Cancelar" sale de common.cancel',
-    DIALOGO.test(BANDEJA)
-    && /\{ text: t\('common\.cancel'\), style: 'cancel', onPress: \(\) => resolve\(false\) \}/.test(AVISO)
-    && ES('common.cancel') === 'Cancelar' && EN('common.cancel') === 'Cancel',
-    ES('common.cancel') + ' / ' + EN('common.cancel'));
-  check('2) "Eliminar" sale de common.delete',
-    DIALOGO.test(BANDEJA)
-    && /\{ text: confirmLabel, style: destructive \? 'destructive' : 'default', onPress: \(\) => resolve\(true\) \}/.test(AVISO)
-    && ES('common.delete') === 'Eliminar' && EN('common.delete') === 'Delete',
-    ES('common.delete') + ' / ' + EN('common.delete'));
-  check('3) ninguna de las dos sigue escrita a mano',
-    !/text: 'Cancelar'/.test(BANDEJA) && !/text: 'Eliminar'/.test(BANDEJA));
-
-  /* Y el diálogo hace exactamente lo que hacía. */
-  check('3) control: borra la misma conversación, con el mismo estilo',
-    /if \(!\(await confirmAction\(t\('weetalk\.deleteConversation'\), t\('weetalk\.areYouSure'\), t\('common\.delete'\), true, t\)\)\) return;\s*\n\s*messagesService\.deleteConversation\(id\)\.catch\(console\.error\);/.test(BANDEJA)
-    && !/Alert\.alert\(/.test(BANDEJA));
+  /*
+   * R9 · E1: el borrado que confirmaba este diálogo no borraba nada (escrituras vacías; las reglas cierran el borrado
+   * de conversaciones). Se retiró el gesto entero, así que ahora se comprueba que NO se ofrece y que las claves, que
+   * siguen en el diccionario para el día en que haya un «ocultar para mí» de verdad, no se pintan en ningún sitio.
+   */
+  check('1) la bandeja ya no ofrece un borrado que no borra', !/deleteConversation|onLongPress|confirmAction/.test(BANDEJA));
+  check('2) y el servicio ya no tiene el borrado vacío', !/deleteConversation\s*\(/.test(soloCodigo(leer('services/messagesService.ts'))));
+  check('3) control: las claves siguen existiendo en los dos idiomas', ES('weetalk.deleteConversation') !== 'weetalk.deleteConversation' && EN('common.delete') === 'Delete');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -157,12 +146,11 @@ console.log('\n── D · Nada más se movió ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   check('14) control: las conversaciones se siguen escuchando igual',
-    /messagesService\./.test(BANDEJA)
+    /useConversaciones\(/.test(BANDEJA)
     && /const unread = last && !last\.read && last\.senderId !== activeUid;/.test(BANDEJA)
     && /const activeUid = userProfile\?\.uid \|\| user\?\.uid;/.test(BANDEJA));
-  check('15) control: borrar sigue siendo el mismo camino',
-    /const deleteChat = async \(id: string\) => \{/.test(BANDEJA)
-    && /onLongPress=\{\(\) => deleteChat\(item\.id!\)\}/.test(BANDEJA));
+  check('15) control: no queda ningún gesto de borrar (R9 · E1)',
+    !/const deleteChat/.test(BANDEJA) && !/onLongPress=/.test(BANDEJA));
   check('16) control: la navegación al chat no cambió',
     /const openChat = \(c: Conversation\) => \{/.test(BANDEJA) && /nav\.navigate\('Conversation'/.test(BANDEJA));
   check('17) control: el buscador y el estado vacío siguen donde estaban',

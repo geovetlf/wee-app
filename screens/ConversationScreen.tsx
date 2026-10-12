@@ -62,20 +62,35 @@ const ConversationScreen = () => {
   const [ephemeral, setEphemeral] = useState(false);
   const [chatThemeId, setChatThemeId] = useState('classic');
   const [chatWallpaper, setChatWallpaper] = useState<string | null>(null);
+  /* Quiénes están en la conversación, tal como la guardó Weë: de ahí sale la otra persona cuando la ruta no la trae. */
+  const [participantes, setParticipantes] = useState<Pick<Conversation, 'participants' | 'participantsData'> | null>(null);
   const [showThemePicker, setShowThemePicker] = useState(false);
 
   // Get current theme
   const chatTheme = getThemeById(chatThemeId);
 
   const myUid = userProfile?.uid || user?.uid;
+  /*
+   * LA OTRA PERSONA. Al abrir el chat desde un aviso push la ruta solo trae la conversación, y la cabecera salía con
+   * «Usuario» y el avatar genérico (R9 · E1). Si la ruta no la trae, se lee de la conversación guardada; el respaldo
+   * genérico queda solo para el instante en que aún no ha llegado.
+   */
+  const otroId = otherUserId || participantes?.participants?.find((id) => id !== myUid);
+  const otroGuardado = otroId ? participantes?.participantsData?.[otroId] : undefined;
   /* El respaldo solo se PINTA en la cabecera (no se guarda en ningún sitio): por eso sí pasa por t(). */
-  const other = otherUserData || { displayName: t('common.user'), avatarType: 'predefined' as const, avatarId: 'male' };
+  const other = otherUserData || otroGuardado || { displayName: t('common.user'), avatarType: 'predefined' as const, avatarId: 'male' };
+  /* Tocar el nombre o el avatar abre su perfil, como en cualquier chat. Antes el botón no tenía acción. */
+  const abrirPerfilDelOtro = useCallback(() => {
+    if (!otroId) return;
+    (nav as any).navigate('UserProfile', { userId: otroId });
+  }, [nav, otroId]);
 
   // ─── Subscribe to conversation metadata (ephemeral state, theme) ───
   useEffect(() => {
     if (!convId) return;
     return messagesService.subscribeToConversation(convId, (conv) => {
       setEphemeral(!!conv.ephemeral);
+      setParticipantes({ participants: conv.participants || [], participantsData: conv.participantsData || {} });
       if (conv.chatTheme) setChatThemeId(conv.chatTheme);
       if (conv.chatWallpaper !== undefined) setChatWallpaper(conv.chatWallpaper || null);
     });
@@ -183,13 +198,15 @@ const ConversationScreen = () => {
   // ─── Real-time messages ───
   useEffect(() => {
     if (!convId) return;
-    let firstLoad = true;
     const unsub = messagesService.subscribeToMessages(convId, (msgs) => {
       setMessages([...msgs].filter(m => !(m as any).deleted).reverse());
       if (!messagesLoaded) setMessagesLoaded(true);
-      // Only mark as read on first load, not on every new message
-      if (firstLoad && myUid) {
-        firstLoad = false;
+      /*
+       * LEÍDO MIENTRAS SE MIRA (R9 · E1). Antes solo se marcaba al abrir: lo que llegaba con el chat abierto se quedaba
+       * «sin leer» para siempre —un solo check para quien lo envió, y la bandeja contándolo como nuevo—. Ahora se marca
+       * cada vez que entra un mensaje ajeno sin leer, y solo entonces: los propios y los ya leídos no cuestan escrituras.
+       */
+      if (myUid && msgs.some((m) => m.senderId !== myUid && !m.read)) {
         messagesService.markAsRead(convId, myUid).catch(() => {});
       }
     });
@@ -371,8 +388,10 @@ const ConversationScreen = () => {
     } catch (e) {
       console.error('Error sending audio:', e);
       setSending(false);
+      /* Como el texto y la imagen: si el audio no salió, se dice (R9 · E1). */
+      notify(t('weetalk.sendFailed'));
     }
-  }, [convId, myUid, pulseAnim]);
+  }, [convId, myUid, pulseAnim, t]);
 
   const handleCameraSend = useCallback(async (uri: string, viewOnce: boolean) => {
     setCameraOpen(false);
@@ -573,7 +592,14 @@ const ConversationScreen = () => {
           <Ionicons name="chevron-back" size={26} color={chatTheme.headerText} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.headerUser} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.headerUser}
+          activeOpacity={0.7}
+          onPress={abrirPerfilDelOtro}
+          disabled={!otroId}
+          accessibilityRole="button"
+          accessibilityLabel={other.displayName}
+        >
           <AvatarDisplay size={34} avatarType={other.avatarType || 'predefined'} avatarId={other.avatarId || 'male'}
             photoURL={typeof other.photoURL === 'string' ? other.photoURL : undefined}
             backgroundColor={chatTheme.accent} showBorder={false} />
