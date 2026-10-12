@@ -61,7 +61,7 @@ const LAS_SEIS = ['what', 'message', 'item', 'machine', 'place', 'who'];
 /** La coletilla que Weë añade cuando es ÉL quien elige (la de las demás experiencias, `decided` en templates.ts). */
 const ELIJO = 'Como no estabas seguro, elijo yo qué diseñar.';
 
-/** Qué preguntas con botones no ofrecen «No sé». Es el criterio CL-10 del corredor, sin copiarlo: el mismo recorrido. */
+/** Qué preguntas con botones no ofrecen «No sé»: lo mismo que mide el corredor (CL-10 de `_design-cierre.mjs`), escrito aquí para que esta suite no dependa de él. */
 const sinNoSe = (preguntas) => preguntas.filter((q) => (q.options || []).length > 0 && !q.options.some((o) => o.id === 'idk')).map((q) => q.id);
 
 /**
