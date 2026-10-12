@@ -72,3 +72,36 @@ compilado. Falla (8) antes del arreglo; tres mutaciones —la primera foto, la d
 
 **Lo que no se arregla aquí.** El HISTORIAL de la conversación sigue sin viajar al especialista: `creatorChat` no tiene dónde recibirlo
 (`ChatInput`); crearlo sería otro canal (R-03/R-02, decisión aparte). Y el contexto de lo que Brain entendió tampoco (B-04).
+
+## 3. La prueba del camino (R-11): `camino-e2e.test.mjs`
+
+Las sondas de la tarea H vivían fuera del repositorio y «CONECTADO» se decidía leyendo. Ahora `functions/test/camino-e2e.test.mjs`
+(en la cadena, 44 comprobaciones) las EJECUTA cada vez: en memoria, sin red y sin emulador.
+
+**De verdad:** el Credit Engine, el libro `aiGenerations`, el router, el limitador, los callables (`creatorChat`, `creatorRun`,
+`brainChat`, `generateVideo`), el conductor, el Job Engine y el barrendero (`functions/lib`). **De mentira:** Firestore (en memoria,
+`functions/test/_firestore-en-memoria.mjs`, la base de `video-asincrono` ampliada), el Storage (solo sabe el tamaño de una foto) y el
+proveedor (sin claves el router cae al de PRUEBA; en la sección C, un doble de DeepSeek). Cualquier intento de red, de usar un proveedor
+real o de escribir en el Storage hace fallar la suite.
+
+| Sección | Qué fija | Sonda de H |
+|---|---|---|
+| A · puertas | Sin configuración (y con `habilitado: false`) nada va por el Core; cada capacidad abre solo la suya y solo para sus cuentas; solo TRES archivos preguntan por la puerta (Brain, vídeo, mundo) y las once experiencias (`creator/index.ts`) no importan el conductor | S1 |
+| B · cajas | Design, Chef y Studio (animar una foto) completan por `creatorChat` → `creatorRun` con el dinero cuadrado (asiento, saldo y libro) y **cero** documentos en `jobs`, `workflowRuns` y `jobQueue`; el vídeo con voz de Studio, sin claves, o termina o falla DEVOLVIENDO todo (B-11) | S4 |
+| C · Brain | Por la puerta cerrada y por la abierta contesta con la misma forma; el Core deja un trabajo y una ejecución de un solo paso y no usa `router.execute`; una cuenta fuera de la lista no entra; repetir un mensaje no vuelve a llamar al proveedor | S5 |
+| D · vídeo | `generateVideo` con la puerta cerrada completa por el camino de siempre y no toca el Core | S6 |
+| E · Gateway | La composición del conductor no lleva `upstream`, `recursos` ni `referencias`; sin resolutor, un paso que depende de otro llega al proveedor sin el material y se da por completado | S3 |
+
+**Dos comprobaciones fijan algo que hoy es lo INDESEADO**, con la etiqueta «BLOCKED — HUMAN DECISION». Cuando la decisión se tome,
+fallarán a propósito y su mensaje dice qué actualizar (se comprobó con una mutación de `functions/lib` para cada una):
+- **B-06 · R-05** (E): el Gateway del conductor no rechaza un paso con dependencias si no hay resolutor. Arreglarlo mueve cercas
+  (`engine/gateway.ts`, `runtime/index.ts`) y el cableado completo espera al cierre de almacenamiento.
+- **B-05 · R-04** (C): una respuesta gratis de Brain por el Core deja un trabajo que el barrido no sabe cerrar
+  (`TRANSACTION_NOT_FOUND`, un error por pasada). Arreglarlo exige reanclar cercas (`brain-canary`, `runtime-liquidacion`, `job-queue`).
+
+**Medidas** (en esta máquina, cargada): ~8 s por corrida —casi todo es el proveedor de prueba, que duerme 0,6–1,1 s por generación—;
+12 corridas seguidas con la salida idéntica (misma huella sha256); tres mutaciones del compilado (puerta abierta por defecto, arreglo de
+B-05, arreglo de B-06) hacen fallar 11, 2 y 2 comprobaciones.
+
+**Lo que no cubre:** el camino asíncrono del Core (vídeo y mundo: `video-asincrono`, `f1d-generacion`), el almacén real (`assets` queda a
+0 con resultados de prueba), la interfaz, ni los proveedores reales.
