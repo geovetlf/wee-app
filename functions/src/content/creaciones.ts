@@ -60,10 +60,9 @@ import {
  *
  * ── Estado de despliegue ────────────────────────────────────────────────────
  *
- * El callable `cicloDeTrabajo` está construido y probado, pero NO se exporta
- * desde `functions/src/index.ts`: añadir una Function nueva cambia el mapa de
- * producción que vigila `runtime-map` (cerca). Conectarlo es decisión del
- * coordinador / dueño (docs/WEE-PROYECTOS-CREACIONES.md § 7).
+ * D-2 (decisión del dueño, 2026-10-12): el callable `cicloDeTrabajo` se exporta desde `functions/src/index.ts` y
+ * figura en el mapa de `runtime-map`, pero NO está desplegado (`ops/despliegue/grupos.json` → `no_se_despliegan`).
+ * Se valida en emuladores locales (`demo-*`); desplegarlo en get-wee exige autorización expresa del dueño.
  */
 
 export const COLECCION_DE_CREACIONES = 'creations';
@@ -336,8 +335,8 @@ const comoHttps = (e: unknown): never => {
 
 /**
  * `cicloDeTrabajo` — `{ accion: 'finalizar' | 'reabrir' | 'eliminar', … }`. Lo
- * único que trae el cliente es QUÉ; QUIÉN lo pone la sesión. NO exportado desde
- * `functions/src/index.ts` (ver la cabecera).
+ * único que trae el cliente es QUÉ; QUIÉN lo pone la sesión. Exportado (D-2) y
+ * sin desplegar (ver la cabecera).
  */
 export const cicloDeTrabajo = onCall({ region: 'us-central1', timeoutSeconds: 60 }, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión');

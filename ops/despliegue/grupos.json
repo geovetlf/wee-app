@@ -44,6 +44,10 @@
   ],
   "no_se_despliegan": [
     {
+      "funcion": "cicloDeTrabajo",
+      "porque": "Mis creaciones (R9, D-2, decisión del dueño 2026-10-12): finalizar, reabrir y eliminar creaciones, guardar un texto final y borrar un asset con su impacto. Está en el código y NO en producción: sería una función nueva. Se valida solo en emuladores locales (proyecto demo-*); desplegarla en get-wee, junto con las reglas de `creations` y su índice, requiere autorización expresa del dueño. Detalle en docs/WEE-PROYECTOS-CREACIONES.md."
+    },
+    {
       "funcion": "elements",
       "porque": "Está en el código de main y NO en producción: sería una función nueva. Es una capacidad de producto (Elements de Weë Studio/Filmmaker): se despliega solo con decisión del dueño."
     },

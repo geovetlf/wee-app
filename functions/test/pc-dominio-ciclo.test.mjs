@@ -196,7 +196,9 @@ check('10f) por el callable, Ana no finaliza un asset real de Beto', !cruzado.ok
 
 /* ── 11 · estado de despliegue ────────────────────────────────────────── */
 console.log('\n── 11 · despliegue ──');
-check('11) el callable NO está en el índice de producción (runtime-map intacto; conectarlo es decisión del coordinador)', !/cicloDeTrabajo|content\/creaciones/.test(leer('functions/src/index.ts')));
+check('11) D-2 · el callable está conectado en el índice (autorizado por el dueño, 2026-10-12)', /export \{ cicloDeTrabajo \} from '\.\/content\/creaciones';/.test(leer('functions/src/index.ts')) && typeof lib('index.js').cicloDeTrabajo?.run === 'function');
+check('11-c) y NO se despliega: está en no_se_despliegan', JSON.parse(leer('ops/despliegue/grupos.json')).no_se_despliegan.some((x) => x.funcion === 'cicloDeTrabajo')
+  && !JSON.parse(leer('ops/despliegue/grupos.json')).grupos.some((g) => g.funciones.includes('cicloDeTrabajo')));
 check('11b) y content/index.ts no carga creaciones (el grafo de deleteAsset no cambia)', !/from '\.\/creaciones/.test(leer('functions/src/content/index.ts')));
 
 deshacer();
