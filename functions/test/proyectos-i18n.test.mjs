@@ -240,8 +240,9 @@ console.log('\n── F · Ni una ruta, ni un identificador, ni una acción ─�
     && /projectsService\.remove\(project\.id\)/.test(CODIGO[DETALLE]));
 
   /* + R7-Design (CL-20): reabrir una creación DESDE el proyecto lleva el proyecto (`projectId: id`), para que lo que se pida desde ahí —otra versión, un ajuste— nazca en él. El resto del literal es el de siempre. */
+  /* + R8 (P11): y los dos botones que abren el selector («Añadir» y «Crear algo nuevo») llevan también el proyecto: `navigate('WeeCreator', { projectId: id })`. Siguen siendo dos, al mismo destino. */
   check('25) y sus dos destinos',
-    (CODIGO[DETALLE].match(/navigation\.navigate\('WeeCreator'\)/g) || []).length === 2
+    (CODIGO[DETALLE].match(/navigation\.navigate\('WeeCreator', \{ projectId: id \}\)/g) || []).length === 2
     && /navigation\.navigate\('CreatorFlow', \{ experienceId: job\.experienceId, jobId: job\.id, projectId: id \}\)/.test(CODIGO[DETALLE]));
 
   check('26) los once emojis de proyecto no se han tocado',

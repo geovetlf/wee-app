@@ -39,6 +39,12 @@ const SpecialistScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const id: string = route.params?.id || 'brain';
+  /*
+   * El proyecto desde el que se llegó («Añadir» de su página, por el selector): viaja con lo que se abra desde la ficha (P11). Sin
+   * proyecto no viaja la clave. Las pantallas que esta ficha reparte —Studio, Chef, Business, Brain y Design— se dibujan DENTRO de esta
+   * misma ruta, así que cada una lo lee de ella con su `useRoute()`: aquí no se les pasa nada por propiedades.
+   */
+  const projectId: string | undefined = route.params?.projectId;
   const spec = useEspecialista(id);
   const isBrain = id === 'brain';
   /*
@@ -129,7 +135,7 @@ const SpecialistScreen: React.FC = () => {
       navigation.navigate('Login');
       return;
     }
-    navigation.navigate('CreatorFlow', { experienceId: opens || spec.id, goal, preset, imageUri });
+    navigation.navigate('CreatorFlow', { experienceId: opens || spec.id, goal, preset, imageUri, ...(projectId ? { projectId } : {}) });
   };
 
   /*
@@ -140,7 +146,7 @@ const SpecialistScreen: React.FC = () => {
    */
   const handleAction = (action: SpecialistAction) => {
     if (action.opensSection && action.opens) {
-      navigation.navigate('Specialist', { id: action.opens });
+      navigation.navigate('Specialist', { id: action.opens, ...(projectId ? { projectId } : {}) });
       return;
     }
     startFlow(action.goal, action.preset, undefined, action.opens);
@@ -208,12 +214,7 @@ const SpecialistScreen: React.FC = () => {
         />
       ) : (
         <View style={styles.section}>
-          <SectionTitle
-            title={spec.gridTitle}
-            hint={spec.gridHint}
-            action={spec.id === 'design' ? t('weeai.describeYourIdea') : undefined}
-            onAction={spec.id === 'design' ? () => startFlow() : undefined}
-          />
+          <SectionTitle title={spec.gridTitle} hint={spec.gridHint} />
           <ActionGrid actions={spec.actions} layout={spec.actionLayout} onPress={handleAction} />
         </View>
       )}

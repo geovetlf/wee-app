@@ -41,6 +41,8 @@ const WeeCreatorScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const initialCategory: string | undefined = route.params?.category;
+  /* El proyecto desde el que se llegó («Añadir» de su página): viaja con lo que se abra desde aquí hasta CreatorFlow (P11). Sin proyecto no viaja la clave. */
+  const projectId: string | undefined = route.params?.projectId;
 
   /* El saldo es de la CUENTA: sin uid, que es como se pide siempre en Weë. */
   const { balance } = useWallet();
@@ -74,7 +76,7 @@ const WeeCreatorScreen: React.FC = () => {
   }, [user]);
 
   const handleCategoryPress = (cat: WeeExperience) => {
-    navigation.navigate('Specialist', { id: cat.id });
+    navigation.navigate('Specialist', { id: cat.id, ...(projectId ? { projectId } : {}) });
   };
 
   // Registra (o quita) el interés en una categoría: así sabemos qué AI Apps
@@ -106,7 +108,7 @@ const WeeCreatorScreen: React.FC = () => {
       navigation.navigate('Login');
       return;
     }
-    navigation.navigate('CreatorFlow', { experienceId: exp.id, goal: query.trim() || undefined });
+    navigation.navigate('CreatorFlow', { experienceId: exp.id, goal: query.trim() || undefined, ...(projectId ? { projectId } : {}) });
   };
 
   // Mis creaciones: últimos trabajos de la persona

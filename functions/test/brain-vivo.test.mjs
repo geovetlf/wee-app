@@ -397,8 +397,9 @@ check('33d) el amarillo de la marca no se toca',
 
 check('34) el cerebro no sabe de Credits ni de precios',
   !/Credits|credit|precio|spend/i.test(codigo));
+/* + R8 (P11): si se llegó a Weë Brain desde un proyecto, el satélite lleva ese proyecto a la sección (`...(projectId ? { projectId } : {})`); sin él, la llamada es la de siempre. La ruta y el id no cambian. */
 check('35) tocar un satélite usa la ruta de siempre',
-  /navigation\.navigate\('Specialist', \{ id: exp\.id \}\)/.test(pantalla));
+  /navigation\.navigate\('Specialist', \{ id: exp\.id(?:, \.\.\.\(projectId \? \{ projectId \} : \{\}\))? \}\)/.test(pantalla));
 check('36) y la pantalla sigue pidiendo el precio antes de enviar',
   /refreshQuote\(/.test(pantalla) && /chat\.quote/.test(pantalla));
 check('37) la caja es la común, no una copia',

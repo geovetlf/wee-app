@@ -142,7 +142,8 @@ const ProjectScreen: React.FC = () => {
           </View>
 
           <View style={styles.section}>
-            <SectionTitle title={t('projects.creationsTitle')} action={t('projects.add')} onAction={() => navigation.navigate('WeeCreator')} />
+            {/* «Añadir» lleva el proyecto por el selector y la ficha del especialista hasta CreatorFlow: lo que se cree desde aquí nace en él (CL-20, P11). */}
+            <SectionTitle title={t('projects.creationsTitle')} action={t('projects.add')} onAction={() => navigation.navigate('WeeCreator', { projectId: id })} />
             {jobs.length === 0 ? (
               <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>
                 {t('projects.noCreations')}
@@ -179,7 +180,8 @@ const ProjectScreen: React.FC = () => {
             title={t('projects.whatIsMissing')}
             subtitle={t('projects.whatIsMissingNote')}
             button={t('projects.createSomethingNew')}
-            onPress={() => navigation.navigate('WeeCreator')}
+            /* Igual que «Añadir»: con el proyecto (P11). */
+            onPress={() => navigation.navigate('WeeCreator', { projectId: id })}
           />
         </>
       )}
