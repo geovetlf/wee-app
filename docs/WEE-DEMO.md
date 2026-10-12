@@ -18,8 +18,11 @@ Firebase real, no usa Cloudinary ni Firebase Storage y no llama a ningún provee
 | Acuerdos (la reacción que pinta la app) | 162 | `votes/demo_creador_NN_<post>` (`type: 'agree'`) |
 | Seguimientos entre creadores | 30 | `follows/demo_creador_NN_demo_creador_MM` |
 
-Los recuentos son los de una siembra con los 26 medios presentes (449 documentos). Todo documento lleva `demo: true`,
-`procedenciaDemo: 'wee-demo-r9'` e id `demo_…`; las publicaciones declaran `isPrivate: false`. Las fechas se reparten
+Los recuentos son los de una siembra con los 26 medios presentes (449 documentos). Todo documento lleva
+`procedenciaDemo: 'wee-demo-r9'`, `demo: true` e id `demo_…`. **La marca que decide es `procedenciaDemo`**, nunca
+`demo: true`: en `creatorJobs` ese campo ya existe con otro significado (un trabajo REAL hecho en modo simulado, sin
+claves de proveedor), así que ni la app (`esContenidoDemo`), ni el filtro de feeds, ni `--retirar` miran `demo`; el
+prefijo `demo_` es solo apoyo; las publicaciones declaran `isPrivate: false`. Las fechas se reparten
 en los últimos 10 días contados desde el momento de sembrar. Las secciones (`sourceSection`) son Weë Studio, Weë
 Design, Weë Chef y Weë Travel; arte, tecnología, moda, ciudad, naturaleza y música van como temas (`tags`).
 

@@ -180,13 +180,15 @@ const require = createRequire(path.join(RAIZ, 'functions/package.json'));
 const ts = require('typescript');
 const js = ts.transpileModule(leer('utils/contenidoDemo.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
 const app = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
-check('40) esContenidoDemo reconoce la marca (demo:true o la procedencia) y no lo demás',
-  app.esContenidoDemo({ demo: true }) && app.esContenidoDemo({ procedenciaDemo: 'wee-demo-r9' }) && !app.esContenidoDemo({ demo: 'true' })
-  && !app.esContenidoDemo({}) && !app.esContenidoDemo(null) && !app.esContenidoDemo(undefined));
+check('40) esContenidoDemo decide por procedenciaDemo wee-demo-r9 y no por lo demás',
+  app.esContenidoDemo({ procedenciaDemo: 'wee-demo-r9' }) && app.esContenidoDemo({ procedenciaDemo: 'wee-demo-r9', demo: true })
+  && !app.esContenidoDemo({ procedenciaDemo: 'otra' }) && !app.esContenidoDemo({}) && !app.esContenidoDemo(null) && !app.esContenidoDemo(undefined));
+check('40b) CONTROL: `demo: true` sin procedencia NO es contenido demo (en creatorJobs significa «trabajo real en modo simulado»)',
+  !app.esContenidoDemo({ demo: true }) && !app.esContenidoDemo({ demo: true, id: 'demo_post_01' }));
 check('41) la procedencia es la misma en la app y en el sembrador', app.PROCEDENCIA_DEMO === PROCEDENCIA_DEMO);
-const lista = [{ id: 'a' }, { id: 'b', demo: true }, { id: 'c', procedenciaDemo: 'wee-demo-r9' }];
-check('42) fuera de demo-* (get-wee, wee-dev-geovet, sin proyecto) el filtro descarta lo demo',
-  ['get-wee', 'wee-dev-geovet', undefined, ''].every((p) => JSON.stringify(app.filtrarContenidoDemo(lista, p).map((x) => x.id)) === '["a"]'));
+const lista = [{ id: 'a' }, { id: 'b', demo: true }, { id: 'c', procedenciaDemo: 'wee-demo-r9', demo: true }];
+check('42) fuera de demo-* (get-wee, wee-dev-geovet, sin proyecto) el filtro descarta lo marcado con la procedencia, y deja un `demo: true` suelto',
+  ['get-wee', 'wee-dev-geovet', undefined, ''].every((p) => JSON.stringify(app.filtrarContenidoDemo(lista, p).map((x) => x.id)) === '["a","b"]'));
 check('43) CONTROL: en un proyecto demo-* se enseña todo', app.filtrarContenidoDemo(lista, 'demo-wee-design').length === 3);
 {
   const servicio = leer('services/firestoreService.ts');
