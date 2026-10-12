@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
 
 **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
 Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
-28 criterios de cierre, **10 se cumplen, 5 están abiertos, 9 esperan una decisión del dueño y 4 son manuales** (E: `_design-cierre.mjs`).
+28 criterios de cierre, **11 se cumplen, 5 están abiertos, 9 esperan una decisión del dueño y 3 son manuales** (E: `_design-cierre.mjs`).
 
 ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
 
@@ -351,8 +351,8 @@ rama integrada, `tsc` y la cadena se repiten sobre ella).
 | CL-21 | `node ops/reconciliacion/reservas-colgadas.mjs` | pendiente | — | — |
 | CL-22 | runbook de canario (infraestructura) | pendiente | — | — |
 | CL-26 | web `demo-wee` en 360, 768 y 1280 px | pendiente (**no ejecutado en la ronda R7**: pesado, y necesita variables de entorno que no se leen) | — | — |
-| CL-27 | `NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit` | **REGISTRADO**: 0 errores en 142 s, sobre `e97f758` (los commits posteriores solo tocan documentos) | `R7/F-design/logs/tsc-app-final.log` | agente F, 2026-10-11 |
-| CL-28 | `node functions/test/_cadena.mjs` | pendiente | — | — |
+| CL-27 | `NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit` | **REGISTRADO**: 0 errores en 65 s, sobre `78fd958` (rama `r7/design-cierre`, la integración de R7-Design; los commits posteriores solo tocan documentos). La anterior, sobre `e97f758`, queda como historial | `ronda-r7-design/verificacion/tsc-integracion.log` | coordinador R7-Design, 2026-10-12 |
+| CL-28 | `node functions/test/_cadena.mjs` | **REGISTRADO**: 315 de 315 suites y 20 926 comprobaciones en verde, 650 s, sobre `78fd958` (`puente-pre-f1d` 42/42 y `video-asincrono` 64/64: ninguna cerca se movió; `functions/src` solo cambia en `creator/templates.ts`) | `ronda-r7-design/verificacion/cadena-integracion.log` | coordinador R7-Design, 2026-10-12 |
 
 ## 11. Duplicados con otras tareas y límites de esta auditoría
 
