@@ -78,6 +78,20 @@ export const planVisual: typeof import('../../../es/servidor/plan/visual').planV
   designMatizDrawPencil: 'tegnet med blyant',
   designMatizDrawCute: 'med et nuttet udtryk',
 
+  /*
+   * Lo que Weë pone cuando la persona dice «Ved ikke» a lo que se diseña: «forslag til et produkt», «forslag, der
+   * annoncerer noget». Con su artículo y su género, como las opciones de `../opciones.ts`; «et køretøj» y «et sted»
+   * son las mismas palabras de «Et køretøj eller en maskine» y «Et sted eller et miljø». La coletilla invierte detrás de
+   * «Da du ikke var sikker, …» como todas las demás: verbo y sujeto («vælger jeg selv, hvad vi skal designe»).
+   */
+  designCosaDescrito: 'det, du har beskrevet',
+  designCosaProducto: 'et produkt',
+  designCosaVehiculo: 'et køretøj',
+  designCosaLugar: 'et sted',
+  designCosaPersonaje: 'en karakter',
+  designAnuncioAlgo: 'noget',
+  designDecisionElijoYo: 'vælger jeg selv, hvad vi skal designe',
+
   designPasoConcepto: 'Fastlægge konceptet',
   designPasoLogos: 'Lave {{numero}} logoer',
   designPasoPropuestas: 'Lave {{numero}} forslag',

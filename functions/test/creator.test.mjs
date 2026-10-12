@@ -950,8 +950,11 @@ console.log('\n── Weë Design · siete conversaciones, una mesa ──');
   {
     check('4) lo único que se pregunta es por dónde empezar', pide({}).join(',') === 'what');
     const what = design.questions.find((q) => q.id === 'what');
-    check('4) ofrece los seis caminos', what.options.map((o) => o.id).join(',') === 'logo,poster,product,object,scene,character');
-    check('4) cada camino explica por qué', what.options.every((o) => o.label.includes(' · ')), what.options.map((o) => o.label).join(' | '));
+    // CL-10: toda pregunta con botones lleva «🤷 No sé», también esta; es el botón de quien tampoco sabe por dónde empezar.
+    check('4) ofrece los seis caminos y, al final, «No sé»', what.options.map((o) => o.id).join(',') === 'logo,poster,product,object,scene,character,idk');
+    // El «No sé» no es un camino: no lleva explicación. Los seis caminos sí.
+    const caminos = what.options.filter((o) => o.id !== 'idk');
+    check('4) cada camino explica por qué', caminos.length === 6 && caminos.every((o) => o.label.includes(' · ')), caminos.map((o) => o.label).join(' | '));
     check('4) y se puede contar la situación con palabras propias', what.allowFreeText !== false);
     // No genera nada por el hecho de elegir: sigue la conversación de esa intención.
     check('4) elegir un camino lleva a sus preguntas, no a crear', pide({ what: 'poster' }).join(',') === 'message,where');

@@ -44,6 +44,15 @@ export const planVisual: typeof import('../../../es/servidor/plan/visual').planV
   designMatizDrawPencil: 'drawn in pencil',
   designMatizDrawCute: 'with a cute look',
 
+  /* What Weë puts in when you answer «Not sure» to what is being designed: «designs for a product», «to announce something». */
+  designCosaDescrito: 'what you described',
+  designCosaProducto: 'a product',
+  designCosaVehiculo: 'a vehicle',
+  designCosaLugar: 'a place',
+  designCosaPersonaje: 'a character',
+  designAnuncioAlgo: 'something',
+  designDecisionElijoYo: 'I’ll choose what to design',
+
   designPasoConcepto: 'Define the concept',
   designPasoLogos: 'Create {{numero}} logos',
   designPasoPropuestas: 'Create {{numero}} designs',
