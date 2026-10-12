@@ -299,7 +299,8 @@ const fraseEntera = (k: string): RegExp => {
 };
 
 /**
- * Lo escrito, partido en palabras de tres letras o más (las demás no dicen nada) y con lo que todavía se está TECLEANDO.
+ * Lo escrito, partido en palabras (todas, y las de tres letras o más: las más cortas no sirven para encajar un principio) y
+ * con lo que todavía se está TECLEANDO.
  *
  * Lo que se teclea es el FINAL del texto: desde alguna palabra hasta el último carácter, y solo si el texto no acaba en
  * un signo («Escribe una historia.» ya está dicho; un guion no cuenta, la palabra sigue: «make-»). Para una clave de
@@ -314,6 +315,8 @@ const fraseEntera = (k: string): RegExp => {
 interface LoEscrito {
   /** El texto entero, sin espacios sobrantes y en minúsculas. */
   q: string;
+  /** TODAS sus palabras, también las de una o dos letras («cv»). */
+  todas: string[];
   /** Sus palabras de tres letras o más. */
   words: string[];
   /** Los finales del texto que pueden estar a medio teclear: uno por cada palabra de tres letras o más. */
@@ -322,20 +325,37 @@ interface LoEscrito {
 
 const leerLoEscrito = (query: string): LoEscrito => {
   const q = query.trim().toLowerCase();
-  const largas = [...q.matchAll(/[\p{L}\p{N}]+/gu)].filter((m) => m[0].length >= 3);
+  const palabras = [...q.matchAll(/[\p{L}\p{N}]+/gu)];
+  const largas = palabras.filter((m) => m[0].length >= 3);
   return {
     q,
+    todas: palabras.map((m) => m[0]),
     words: largas.map((m) => m[0]),
     tecleando: /[\p{L}\p{N}-]$/u.test(q) ? largas.map((m) => q.slice(m.index)) : [],
   };
 };
 
 /**
- * Si una clave española encaja con lo escrito: porque el texto la lleva dentro, porque una palabra es la clave o
- * empieza por ella («recetas»), o porque lo que se está tecleando es su principio («rec»).
+ * Los idiomas que forman palabras PEGANDO otras —«festlook», «Profilfoto», «musikvideo», «affärsplan»— o no las separan con
+ * espacios —«设计logo», «動画video»—. En ellos las claves españolas, que son sus préstamos (logo, video, foto, look, plan…),
+ * valen también DENTRO de otra palabra, y quitárselo les haría perder aciertos de verdad (medido sobre sus propios textos).
+ * En el resto —español, inglés, francés, italiano, portugués, turco…— una clave dentro de otra palabra es casi siempre un
+ * accidente: «unas» en «algunas», «ropa» en «europa», «cena» en «escena», «arte» en «comparte».
  */
-const encajaEnEspanol = (k: string, { q, words, tecleando }: LoEscrito): boolean =>
-  q.includes(k) || words.some((w) => w.startsWith(k)) || tecleando.some((t) => k.startsWith(t));
+const IDIOMAS_DE_PALABRAS_PEGADAS: readonly string[] = ['da', 'de', 'sv', 'ja', 'ko', 'zh'];
+const pegaPalabras = (idioma?: string): boolean => {
+  const base = /^([a-z]{2,3})(?:[-_]|$)/i.exec(idioma ?? '')?.[1]?.toLowerCase();
+  return !!base && IDIOMAS_DE_PALABRAS_PEGADAS.includes(base);
+};
+
+/**
+ * Si una clave española encaja con lo escrito. Una clave de varias palabras («color de cabello») encaja si el texto la lleva
+ * entera. Una de una sola encaja si alguna palabra ES la clave o EMPIEZA por ella («recetas»): no si la lleva DENTRO, salvo
+ * en los idiomas que pegan palabras (`IDIOMAS_DE_PALABRAS_PEGADAS`), donde se conserva la regla de siempre. Y cualquiera,
+ * si lo que se está tecleando es su principio («rec»).
+ */
+const encajaEnEspanol = (k: string, { q, todas, tecleando }: LoEscrito, dentroDePalabras: boolean): boolean =>
+  (k.includes(' ') || dentroDePalabras ? q.includes(k) : todas.some((w) => w.startsWith(k))) || tecleando.some((t) => k.startsWith(t));
 
 /** Si una palabra de `PALABRAS_POR_IDIOMA` encaja con lo escrito (las reglas, arriba de la tabla). */
 const encajaEnSuIdioma = (k: string, { q, words, tecleando }: LoEscrito): boolean => {
@@ -416,10 +436,11 @@ export const matchExperiences = (query: string, idioma?: string): WeeExperience[
   const escrito = leerLoEscrito(query);
   if (!escrito.q) return [];
   const suyas = palabrasDelIdioma(idioma);
+  const pegadas = pegaPalabras(idioma);
   return ALL_EXPERIENCES.filter(
     (e) =>
       e.name.toLowerCase().includes(escrito.q) ||
-      e.keywords.some((k) => encajaEnEspanol(k, escrito)) ||
+      e.keywords.some((k) => encajaEnEspanol(k, escrito, pegadas)) ||
       !!suyas?.[e.id]?.some((k) => encajaEnSuIdioma(k, escrito))
   );
 };

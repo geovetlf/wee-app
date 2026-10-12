@@ -12,6 +12,10 @@
  * («color de ca»)— y solo eso completa el principio de una clave. Lo anterior ya está escrito: tiene que ser la clave entera
  * o empezar por ella («recetas»). El buscador sigue completando lo que se teclea; lo escrito deja de completarse.
  *
+ * Y UN RESIDUO DE LA MISMA FAMILIA (aviso del coordinador, ronda R7): `q.includes(k)` dejaba que una clave de UNA palabra contara
+ * por estar DENTRO de otra («unas» en «algunas», «ropa» en «europa», «cena» en «escena»). Ahora una clave de una palabra cuenta si
+ * alguna palabra del texto ES la clave o EMPIEZA por ella; la de varias («color de cabello») sigue valiendo si el texto la lleva entera.
+ *
  *   A · Las doce frases de la sonda de H, por la caja del Studio (tres iban a Beauty por error).
  *   B · Fuera del Studio (búsqueda libre) el destino es el de siempre.
  *   C · Lo que SÍ es de Beauty sigue yendo a Beauty, en los tres idiomas.
@@ -20,6 +24,8 @@
  *   F · El arreglo solo QUITA, y solo lo escrito: nunca añade ni reordena (frente a la regla de antes, como referencia), lo que
  *       se teclea da lo de siempre y los ejemplos que la propia app enseña siguen llevando a su experiencia.
  *   G · Lo que no cambia: dónde vive el arreglo y que esta suite está en la cadena.
+ *   H · Una clave de una palabra DENTRO de otra palabra no cuenta («algunas» no es «unas», «europa» no es «ropa»), y lo que sí cuenta
+ *       —la clave entera, una palabra que empieza por ella, la de dos letras, la de varias palabras— sigue contando.
  *
  * Todo en memoria: el código REAL de la app (`constants/weeExperiences.ts`, `utils/destinoDeIntencion.ts`) cargado con el
  * cargador de las suites de la app. Sin red, sin emulador, sin Firebase.
@@ -251,6 +257,91 @@ check('G2) `matchExperiences` sigue buscando entre TODAS las experiencias, no so
 check('G3) las palabras clave españolas no se tocaron: «unas» sigue siendo clave de Beauty (la teclea quien escribe «unas» sin eñe) junto a «uñas»',
   W.ALL_EXPERIENCES.find((e) => e.id === 'beauty').keywords.includes('unas') && W.ALL_EXPERIENCES.find((e) => e.id === 'beauty').keywords.includes('uñas'));
 check('G4) esta suite está en la cadena de `npm test`', /enrutado-por-palabras\.test\.mjs/.test(leer('functions/package.json')));
+
+/* ═══ H · UNA CLAVE DE UNA PALABRA DENTRO DE OTRA PALABRA NO CUENTA ═══════════════════════════════════════ */
+console.log('\n── H · Una clave de una palabra DENTRO de otra palabra no cuenta ──');
+/*
+ * El residuo que avisó el coordinador: `matchExperiences` conservaba `q.includes(k)` para las claves de UNA palabra, así que «unas»
+ * (uñas) estaba «dentro» de «algunas», «ropa» dentro de «europa», «cena» dentro de «escena», «arte» dentro de «comparte» y «visa»
+ * dentro de «revisa». Medido: 39 de las 2 508 palabras de los textos españoles de la app llevan una clave dentro sin empezar por ella.
+ * Una clave de una palabra cuenta si alguna palabra del texto ES la clave o EMPIEZA por ella («recetas»); la de varias («color de
+ * cabello») sigue valiendo si el texto la lleva entera.
+ *
+ * [frase, la experiencia que NO debe encajar, la que SÍ debe seguir encajando (o null)].
+ */
+const DENTRO = [
+  ['dame algunas ideas', 'beauty', 'writer'],
+  ['cómo hacer un viaje a europa', 'beauty', 'travel'],
+  ['cuéntame algunas cosas de europa', 'beauty', null],
+  ['una escena de película', 'chef', 'studio'],
+  ['comparte esto con tu familia', 'design', null],
+  ['la parte de arriba de mi casa', 'design', 'home'],
+  ['revisa mi texto antes de enviarlo', 'travel', 'writer'],
+  ['el diálogo de mi guion', 'design', 'writer'],
+  ['un catálogo de productos', 'design', null],
+  ['la ensalada de mi abuela', 'home', null],
+  ['un post para facebook', 'writer', 'design'],
+  ['hace un descuento por mi cumpleaños', 'writer', null],
+  ['no puedo moverme', 'beauty', null],
+  ['un paseo urbano', 'home', null],
+];
+DENTRO.forEach(([frase, espuria, legitima], i) => {
+  const r = ids(frase);
+  check(`H${i + 1}) «${frase}»: ya no encaja ${espuria}${legitima ? ` y sigue encajando ${legitima}` : ''}`, !r.includes(espuria) && (!legitima || r.includes(legitima)), r.join(',') || '(nada)');
+});
+check('H15) en la caja del Studio, «cómo hacer un viaje a europa» y «cuéntame algunas cosas de europa» ya no van a Weë Beauty (iban por «ropa» en «europa»)',
+  enElStudio('cómo hacer un viaje a europa') === null && enElStudio('cuéntame algunas cosas de europa') === null,
+  `${enElStudio('cómo hacer un viaje a europa')} · ${enElStudio('cuéntame algunas cosas de europa')}`);
+check('H16) y «dame algunas ideas» va a Weë Writer, sin Beauty por «unas» en «algunas»', enElStudio('dame algunas ideas') === 'writer', String(enElStudio('dame algunas ideas')));
+/* CONTROLES: lo que sí es de Beauty, la clave de dos letras y lo que empieza por la clave siguen encajando. */
+check('H17) CONTROL: «ropa para una boda» y «maquillaje de noche» SIGUEN yendo a Weë Beauty',
+  enElStudio('ropa para una boda') === 'beauty' && enElStudio('maquillaje de noche') === 'beauty', `${enElStudio('ropa para una boda')} · ${enElStudio('maquillaje de noche')}`);
+check('H18) CONTROL: una clave de DOS letras sigue siendo una palabra: «cv» en «Mi CV actualizado» lleva a Weë Business',
+  ids('Mi CV actualizado').includes('business') && ids('mi cv').includes('business') && ids('cv').includes('business'));
+check('H19) CONTROL: una palabra que EMPIEZA por la clave sigue valiendo: «videoclip» (video), «recetas» (receta), «fotos» (foto), «logos» (logo)',
+  ids('quiero un videoclip').includes('studio') && ids('unas recetas buenas').includes('chef') && ids('quiero fotos de mi gato').includes('photo') && ids('mis logos nuevos').includes('design'));
+check('H20) CONTROL: la clave ENTERA en mitad de una frase sigue valiendo, aunque dentro de otras palabras haya otra: «una cena romántica» lleva a Weë Chef',
+  ids('una cena romántica').includes('chef') && ids('para la cena de hoy').includes('chef'));
+check('H21) CONTROL: una clave de varias palabras, entera en mitad de una frase, sigue valiendo: «color de cabello» y «historia visual»',
+  ids('quiero probar un color de cabello nuevo').includes('beauty') && ids('quiero una historia visual de mi viaje').includes('studio'));
+check('H21b) y es la regla de quien usa Weë en español, con o sin región: «dame algunas ideas» tampoco da Beauty con `es`, `es-PE` ni `es-419`',
+  ['es', 'es-PE', 'es-419'].every((i) => !ids('dame algunas ideas', i).includes('beauty') && !ids('cómo hacer un viaje a europa', i).includes('beauty')));
+/*
+ * LOS IDIOMAS QUE PEGAN PALABRAS CONSERVAN LA REGLA DE SIEMPRE: la clave española, que es su préstamo, vale también DENTRO de otra
+ * palabra. Con la regla estricta para todos, «Et festlook» —el ejemplo en danés que la propia app enseña bajo Weë Beauty— dejaba de
+ * llevar a Beauty (solo llegaba por «look» dentro de «festlook»); y el alemán, el sueco y el japonés, medidos sobre sus propios
+ * textos de interfaz, perdían aciertos de verdad: «Profilfoto» (foto), «musikvideo» (video), «affärsplan» (plan), «Weëls» pegado a
+ * la partícula japonesa. En el resto —español, inglés, francés, italiano, portugués, turco…— una clave dentro de otra palabra es
+ * casi siempre un accidente («started» lleva «arte»; «impostare», «post»; «hesaplanıyor», «plan»).
+ */
+const PEGADAS = [
+  ['da', 'Et festlook', 'beauty'], ['da-DK', 'Et festlook', 'beauty'], ['sv', 'Generera en hel musikvideo', 'studio'], ['sv-SE', 'Skriv en affärsplan', 'business'],
+  ['de', 'Als Profilfoto verwenden', 'photo'], ['de-DE', 'ein Firmenlogo', 'design'], ['de_AT', 'Hochzeitsfoto', 'photo'],
+  ['ja', '商品を紹介するWeëls', 'studio'], ['ja-JP', 'どんなWeëlsを作る', 'studio'], ['zh', '设计logo', 'design'], ['zh-TW', '設計logo', 'design'],
+];
+const sinPegar = [
+  ['en', 'Not started', 'design'], ['en-US', 'Strengths and weaknesses', 'travel'], ['fr', 'Facebook', 'writer'],
+  ['it', 'Inserisci la tua e-mail per reimpostare la password', 'design'], ['pt-BR', 'Revisar minhas despesas', 'travel'], ['pt-PT', 'Revisar as minhas despesas', 'travel'],
+  ['tr', 'Fiyat hesaplanıyor', 'business'], ['ru', 'Facebook Story', 'writer'], ['hi', 'Facebook पोस्ट', 'writer'],
+];
+const malasPegadas = PEGADAS.filter(([idioma, frase, debe]) => !ids(frase, idioma).includes(debe));
+check(`H23) CONTROL: en los idiomas que pegan palabras (danés, sueco, alemán, japonés, chino) se conserva la regla de siempre: ${PEGADAS.length} frases —«Et festlook», «musikvideo», «Firmenlogo»…— siguen llevando a su experiencia`,
+  malasPegadas.length === 0, malasPegadas.map(([i, f, d]) => `${i}: ${f} (${d})`).join(' | '));
+const malasSinPegar = sinPegar.filter(([idioma, frase, espuria]) => ids(frase, idioma).includes(espuria));
+check(`H24) y en los demás idiomas (inglés, francés, italiano, portugués, turco, ruso, hindi) la clave DENTRO de otra palabra tampoco cuenta: ${sinPegar.length} frases ya no encajan lo que no es`,
+  malasSinPegar.length === 0, malasSinPegar.map(([i, f, d]) => `${i}: ${f} (${d})`).join(' | '));
+{
+  /* Exhaustivo: cada clave española —de una o de varias palabras—, escrita entera en mitad de una frase, lleva a su experiencia. */
+  const perdidas = [];
+  let probadas = 0;
+  for (const e of W.ALL_EXPERIENCES) {
+    for (const k of e.keywords) {
+      probadas++;
+      if (!ids(`quiero ${k} para mi negocio`).includes(e.id)) perdidas.push(`${k}→${e.id}`);
+    }
+  }
+  check(`H25) CONTROL: cada una de las ${probadas} claves españolas, escrita entera en mitad de una frase, sigue llevando a su experiencia`, perdidas.length === 0, perdidas.slice(0, 8).join(' '));
+}
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : `\n✔ El enrutado por palabras de la caja del Studio no manda frases corrientes a Weë Beauty (${n} comprobaciones)`);
 process.exit(failures ? 1 : 0);

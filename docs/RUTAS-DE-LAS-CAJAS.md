@@ -30,21 +30,43 @@ ca»)—, y solo eso completa el principio de una clave. Lo anterior ya está es
 Para mantener el ejemplo en inglés que la propia app enseña («Try a different hair colour»), que solo llegaba a Beauty por ese mismo
 accidente («hair» → «hairstyle» a mitad de frase), se añadió la clave inglesa «hair colour» a `PALABRAS_POR_IDIOMA`.
 
-**Prueba.** `functions/test/enrutado-por-palabras.test.mjs` (87 comprobaciones): las doce frases de la sonda de H por la caja del Studio,
+**Cuarta línea (aviso del coordinador): una clave DENTRO de otra palabra.** `matchExperiences` conservaba `q.includes(k)` para las
+claves de UNA palabra, así que «unas» estaba «dentro» de «algunas», «ropa» dentro de «europa», «cena» dentro de «escena», «arte» dentro
+de «comparte» y «visa» dentro de «revisa». Medido sobre los textos de la propia app: 39 de las 2 508 palabras españolas llevan una
+clave dentro sin empezar por ella, y 106 de 2 790 cadenas de interfaz en español encajaban una experiencia por eso. Ahora una clave de
+una palabra encaja si alguna palabra del texto ES la clave o EMPIEZA por ella; la de varias («color de cabello») sigue valiendo si el
+texto la lleva entera; la de dos letras («cv») es una palabra más. Frente a la regla anterior no gana ni una cadena y pierde solo esas.
+
+**Con una excepción medida: los idiomas que pegan palabras** (`IDIOMAS_DE_PALABRAS_PEGADAS`: danés, alemán, sueco, japonés, coreano y
+chino) conservan la regla de siempre. Sus préstamos —logo, video, foto, look, plan— valen dentro de otra palabra («festlook»,
+«Profilfoto», «musikvideo», «affärsplan», «Weëls» pegado a la partícula japonesa): con la regla estricta para todos, «Et festlook»
+(el ejemplo en danés que la app enseña bajo Weë Beauty) dejaba de llevar a Beauty, y el alemán, el sueco y el japonés perdían aciertos
+de verdad. En el resto (inglés, francés, italiano, portugués, turco, ruso, hindi) rige la regla estricta: ahí lo que desaparece son
+accidentes («started» lleva «arte»; «impostare», «post»; «hesaplanıyor», «plan»; «Facebook», «ebook»). Es una lista de idiomas escrita
+en `constants/weeExperiences.ts` (como `PALABRAS_POR_IDIOMA`), no una deducción de «español»: el resolutor de idioma
+(`idiomaDe`, `i18n/resolver.ts`) no se puede importar ahí sin romper las suites que cargan ese archivo suelto.
+
+**Prueba.** `functions/test/enrutado-por-palabras.test.mjs` (112 comprobaciones): las doce frases de la sonda de H por la caja del Studio,
 lo que sí es de Beauty en es/en/da, lo que se teclea, lo que ya no se completa, y —frente a una copia de la regla de antes como
-referencia— que el arreglo solo QUITA resultados de lo escrito, nunca añade ni reordena (5 893 frases) y que de los 99 ejemplos que la
-app enseña ninguno deja de llevar a su experiencia. Falla (18) contra el código anterior y falla (28) si se «arregla de más» dejando de
-completar lo que se teclea.
+referencia— que el arreglo solo QUITA resultados, nunca añade ni reordena (5 893 frases) y que de los 99 ejemplos que la app enseña
+ninguno deja de llevar a su experiencia; y, de la cuarta línea, 14 frases corrientes con su clave dentro de otra palabra, la regla por
+idioma y los controles (Beauty sigue en «ropa para una boda» y «maquillaje de noche»; «cv», «videoclip», «recetas»; cada una de las 244
+claves, entera en mitad de una frase). Falla (35) contra el código original y (17) contra el de las tres primeras entregas; y cuatro
+mutaciones —sin la excepción de los idiomas (3), sin las claves de varias palabras (4), la regla de antes (17) y dejar de completar lo
+que se teclea (28)— la hacen fallar.
 
 **Lo que NO se arregla aquí (conocido, medido).**
 1. La última palabra de una frase completa sigue contando como «a medio teclear»: «Hazme una canción para mi bar» sigue yendo a
    Beauty por «bar» → «barba», y «Escribe una historia» al Studio por «historia» → «historia visual». Un `matchExperiences` que no
    sabe quién lo llama no puede distinguirlo. Arreglo completo (propuesto, no aplicado: toca `utils/destinoDeIntencion.ts` y una
    guarda estructural existente): que el destino pida el texto como COMPLETO (`matchExperiences(goal, idioma, { completo: true })`).
-2. La clave «unas» (Beauty, para quien escribe «unas» sin eñe) es también el artículo: «unas canciones relajantes» sigue yendo a
-   Beauty. Es un dato (`keywords`), no el prefijo; quitarla o sustituirla es una decisión de producto.
-3. La clave «cena» (Chef) está dentro de «escena» (`q.includes(k)`, subcadena, otra regla): «una escena de película» sigue marcando Chef.
-4. Mientras no haya destino, la caja sigue mostrando la demostración (R-01b, decisión del dueño: ofrecer Weë Brain).
+2. La clave «unas» (Beauty, para quien escribe «unas» sin eñe) es también el artículo ENTERO: «unas canciones relajantes» sigue yendo
+   a Beauty. Es un dato (`keywords`), no el prefijo ni la subcadena; quitarla o sustituirla es una decisión de producto.
+3. Una clave de VARIAS palabras sigue valiendo como subcadena entre palabras: «uno se va» contiene «no se» (Weë Brain, que no es un
+   destino). Efecto invisible en la caja del Studio; se arreglaría con la frase entera entre límites de palabra, como el diccionario.
+4. En los idiomas que pegan palabras, y en el resto de los accidentes de otras lenguas que no son subcadenas de una clave española,
+   rige lo de siempre: su falso positivo se arregla con su propio diccionario, no aquí.
+5. Mientras no haya destino, la caja sigue mostrando la demostración (R-01b, decisión del dueño: ofrecer Weë Brain).
 
 ## 2. La foto de Weë Brain llega al especialista (R-08 · B-10)
 
