@@ -3,10 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
-import { finalizarCreacion } from '../../services/cicloDeTrabajo';
 import { notify } from '../../utils/notify';
 import { esNoDisponible, peticionDeConservar, peticionDeTexto } from './conservar';
-import { guardarTextoFinal } from './cicloOpcional';
+import { finalizarCreacion, guardarTextoFinal } from '../../services/cicloDeTrabajo';
 import { FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SPACING } from '../../constants/design';
 import { scale } from '../../utils/scale';
 

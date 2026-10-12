@@ -88,10 +88,13 @@ const crearContrato = () => {
     listarCreacionesFinales: (uid, cursor) => { c.llamadas.push(['listarCreacionesFinales', uid, cursor]); return responder('listarCreacionesFinales', { creaciones: c.creaciones, ...(c.siguiente ? { siguiente: c.siguiente } : {}) }); },
     finalizarCreacion: (entrada) => { c.llamadas.push(['finalizarCreacion', entrada]); return responder('finalizarCreacion', c.finalizar); },
     reabrirParaEditar: (id) => { c.llamadas.push(['reabrirParaEditar', id]); return responder('reabrirParaEditar', c.reabrir); },
+    /* Como hoy en la app: el callable `cicloDeTrabajo` no está exportado y lo que va por él contesta `no_disponible`. */
+    listarSinDecidir: (uid, cursor) => { c.llamadas.push(['listarSinDecidir', uid, cursor]); return Promise.reject(Object.assign(new Error('no_disponible'), { code: 'no_disponible' })); },
+    guardarTextoFinal: (entrada) => { c.llamadas.push(['guardarTextoFinal', entrada]); return Promise.reject(Object.assign(new Error('no_disponible'), { code: 'no_disponible' })); },
     __esModule: true,
     ErrorDeCiclo: class ErrorDeCiclo extends Error { constructor(code, m) { super(m ?? code); this.code = code; } },
   };
-  /* D-1 / D-3: las dos funciones que la línea A todavía no ha publicado. Sin `publicar()` no existen en el módulo. */
+  /* D-1 / D-3: listarSinDecidir y guardarTextoFinal (publicadas por la línea A). `publicar()` las añade; sin él, el escenario las hace fallar con `no_disponible` (callable sin exportar). */
   c.sinDecidir = []; c.siguienteSinDecidir = undefined;
   c.publicar = () => Object.assign(c.modulo, {
     listarSinDecidir: (uid, cursor) => { c.llamadas.push(['listarSinDecidir', uid, cursor]); return responder('listarSinDecidir', { assets: c.sinDecidir, ...(c.siguienteSinDecidir ? { siguiente: c.siguienteSinDecidir } : {}) }); },
@@ -599,7 +602,7 @@ const asset = (extra = {}) => ({
   delivery: { url: 'https://x.test/cartel.png' }, provenance: { createdAt: 1, jobId: 'jv' }, metadata: { experienceId: 'design' }, ...extra,
 });
 {
-  await prueba('H1) sin `listarSinDecidir` publicada: la sección lo dice con honestidad y las creaciones siguen viéndose', async () => {
+  await prueba('H1) `listarSinDecidir` no disponible: la sección lo dice con honestidad y las creaciones siguen viéndose', async () => {
     C.reiniciar();
     C.estado.contrato.creaciones = [creacion()];
     const d = await C.montar();
@@ -689,7 +692,7 @@ grupo('I · El texto final se puede guardar; lo provisional, no (D-3)');
     return [e?.texto === 'Tortilla: huevos, patatas.' && e?.herramienta === 'chef' && e?.proyectoOrigenId === 'p1' && /^texto:j1:[0-9a-f]{8}$/.test(e?.requestId || '')
       && R.estado.contrato.de('finalizarCreacion').length === 0 && d.texto.includes(t('creaciones.savedInCreations')), JSON.stringify(e)];
   });
-  await prueba('I2) sin `guardarTextoFinal` publicada: avisa que todavía no está disponible y no finge éxito', async () => {
+  await prueba('I2) `guardarTextoFinal` sin el callable conectado (`no_disponible`): avisa que todavía no está disponible y no finge éxito', async () => {
     R.reiniciar();
     const props = conPropiedades(receta());
     R.tocar(R.dibujar(props), GUARDAR);
