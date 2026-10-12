@@ -12,7 +12,7 @@ línea de `DesignScreen.tsx` son de esta rama, ya con las cuatro correcciones. L
 
 **Veredicto: Weë Design NO está terminado.** La pantalla montada es una portada de demostración desconectada del motor; el motor de
 Design (plantilla, precio, reserva, reembolso, materiales) existe y funciona, pero ninguna puerta de esa pantalla llega a él. De los
-28 criterios de cierre, **6 se cumplen, 9 están abiertos, 9 esperan una decisión del dueño y 4 son manuales** (E: `_design-cierre.mjs`).
+28 criterios de cierre, **7 se cumplen, 8 están abiertos, 9 esperan una decisión del dueño y 4 son manuales** (E: `_design-cierre.mjs`).
 
 ## 1. Lo que hay hoy: dos Weë Design que siguen sin hablarse
 
@@ -54,6 +54,7 @@ referencia, que **sí** manda la caja a `CreatorFlow` (`DesignReferenciaScreen.t
 | Créditos y motor | `credits-weeai`; `puente-pre-f1d` 42/42 (cercas) (E) | Que la pantalla no mueva dinero; las cercas del Credit Engine, el Router y `creatorRun` | El recorrido completo de Design con dinero |
 | **Integración** | **Ninguna.** Ninguna de las 40 suites `*.emulator.mjs` menciona `creatorRun` (E, CL-18) | — | `creatorChat → creatorQuote → creatorRun` de `design`/`home` contra Firestore: precio antes, reserva, cobro, reembolso, abandono |
 | **Flujo de UI real** | **Ninguna automática** | — | Todo lo visual: móvil, tableta, escritorio, teclado |
+| Dominio `design` del Eval Engine (R7-Design, E) | `evals-design` 59/59 y `_design-cierre --solo CL-17` (E) | Lo que la plantilla de `design` deduce, pregunta, planifica y cuesta, medido a $0 con 57 casos y una baseline: H-2 y H-6 en rojo hoy, y los casos conocidos de D4, D5 y D6 | La calidad de lo que se generaría (no hay juez) y la pantalla |
 
 ## 3. DESIGN.md (2026-10-05) frente al código de hoy
 
@@ -66,7 +67,7 @@ referencia, que **sí** manda la caja a `CreatorFlow` (`DesignReferenciaScreen.t
 | «Historia» o «imprimir» solo añaden una frase; el paso no lleva `aspectRatio` | **Vigente** | E, CL-14 |
 | «Editar» abre un trabajo nuevo desde cero | **Vigente** (`CreatorFlowScreen.tsx:335,353-363`) | L, CL-13 |
 | C-1: `creatorQuote` podía dejar Credits retenidos, «se corrige en su propio PR» | **Superado**: corregido con una transacción (`creator/index.ts:462-476`) | L |
-| Falta el dominio `design` del Eval Engine (F0) | **Vigente**: `ops/evals/dominios/` solo tiene `router.mjs` | E, CL-17 |
+| Falta el dominio `design` del Eval Engine (F0) | **Superado** (R7-Design, tarea E): `ops/evals/dominios/design.mjs`, 57 casos y baseline `ops/evals/baseline/design.json` | E, CL-17 |
 | «Este camino nunca ha corrido en producción»; hace falta suite de emulador y canario | **Vigente**: ninguna suite de emulador lo recorre; sin canario | E, CL-18, CL-22 |
 | D1–D9 pendientes del dueño | **Vigentes**: ninguna está escrita como DECIDIDA | E, CL-23 |
 | El «estado verificado» es de `main` = `e50464a` | Desde entonces el repositorio añadió la referencia funcional (2026-10-07/08); `DesignScreen` **no cambió** desde 2026-09-23 | L, `git log` |
@@ -214,6 +215,13 @@ precios del Credit Engine (CLAUDE.md §7: no se inventan precios). Pruebas: `cre
 `ops/evals/datasets/design/v1.json` y su baseline por hash. Decide a $0 con `TEMPLATES.design.infer/buildPlan`. Sin decisiones; sin
 cercas. Ya contiene los casos que hoy fallan: H-2 y H-6 (E, §2.1).
 
+**Hecho (R7-Design, tarea E).** Segundo dominio registrado del Eval Engine: 57 casos etiquetados (`hueco`, `cierre`, `conocido` +
+`decision`), baseline `ops/evals/baseline/design.json` del comportamiento de `a64ff24` (overall 0,754; 16 casos en rojo: los nueve de
+H-2, los tres de H-6 y los cuatro conocidos de D4, D5 y D6, que **no** son criterio de aceptación) y la suite `evals-design`, en la
+cadena. **Cómo se usa:** `node ops/evals/runner.mjs --dataset design` (ejecuta), `… --contra ops/evals/baseline/design.json` (compara:
+con `r7d/servidor` fusionada y `functions/lib` reconstruida debe dar ACCEPT, nunca REJECT) y `… --guardar-baseline …` (refresca, a
+propósito y con motivo). El detalle, en [EVALS.md](EVALS.md) «Dominio `design`».
+
 ### P10 — Suite de emulador `design-recorrido.emulator.mjs` (CL-18)
 
 Molde: `mundo3d.emulator.mjs` (`firebase emulators:exec --only firestore,storage --project demo-wee-design "node …"`, handlers con
@@ -247,7 +255,7 @@ serlo. Cada criterio se comprueba con `node functions/test/_design-cierre.mjs --
 | CL-14 | integración | El formato elegido llega como `aspectRatio` (D5, F1) | dueño (D5) y servidor | `templates.ts:511-586`, `imageModels.ts:346-352` | integración incompleta | DECISIÓN |
 | CL-15 | integración | Afiches y logos escriben su texto con un modelo que sabe (D4, F3) | dueño (D4) y servidor | `templates.ts:582`, `imageModels.ts:208`, `prompts.ts:567` | integración incompleta | DECISIÓN |
 | CL-16 | integración | Una referencia de estilo se USA (D6, F4) | dueño (D6) y servidor | `inputs.ts:14-23`, `templates.ts` | integración incompleta | DECISIÓN |
-| CL-17 | integración | Dominio `design` del Eval Engine, a $0, con dataset y baseline (F0) | línea de Design | `ops/evals/dominios/design.mjs`, `dominios.mjs`, `datasets/design/` | integración incompleta | ABIERTO |
+| CL-17 | integración | Dominio `design` del Eval Engine, a $0, con dataset y baseline (F0) | hecho (R7-Design, E) | `ops/evals/dominios/design.mjs`, `dominios.mjs`, `datasets/design/` | integración incompleta (completada) | CUMPLIDO |
 | CL-18 | integración | Suite de emulador de `creatorChat → creatorQuote → creatorRun` (mock) | infraestructura / almacenamiento (solapa con J) | `functions/test/design-recorrido.emulator.mjs` | pendiente bloqueado por infraestructura | ABIERTO |
 | CL-19 | integración | Cancelar con regla clara para el dinero y reintentar el MISMO trabajo | servidor y dueño (H0 #6) | `functions/src/creator/index.ts`, `services/creatorService.ts` | integración incompleta | ABIERTO |
 | CL-20 | integración | Crear desde un proyecto guarda el trabajo en él | línea de Design y Weë AI | `services/creatorService.ts`, `ProjectScreen.tsx:145` | integración incompleta | ABIERTO |
