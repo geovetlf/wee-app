@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
+import { useCreacionesDeDesign } from '../hooks/useCreacionesDeDesign';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
 import StudioPromptComposer from '../components/studio/StudioPromptComposer';
@@ -56,6 +57,14 @@ const AJUSTES = siempreSePregunta(AJUSTES_DE_DESIGN);
  * límites—, sus ajustes —estilo, materiales, luz— y su galería. Así Weë Design
  * puede crecer hacia donde necesite sin arrastrar la estructura del Studio.
  *
+ * ── Mis creaciones es de la persona, y las muestras son ejemplos ─────────────
+ *
+ * La fila de abajo enseña lo que ESTA persona ha creado aquí —en Weë Design y en
+ * Hogar & Diseño, de su cuenta— con el camino que ya usa Weë Chef
+ * (`useCreacionesDeDesign`). Mientras llega, dice que carga; si falla, lo dice y
+ * deja reintentar. Las cuatro muestras solo se ven sin sesión o sin nada creado, y
+ * rotuladas «Ejemplos»: «Mis creaciones» solo se dice de lo que es suyo.
+ *
  * ── Lo que todavía no hay ────────────────────────────────────────────────────
  *
  * No hay IA. Crear enseña "Creando..." y luego "Creación lista", nada más. El
@@ -87,6 +96,13 @@ const DesignScreen: React.FC = () => {
   const numeroDeReferencia = useRef(0);
   const [estado, setEstado] = useState<EstadoDeCreacion>('quieto');
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /*
+   * LO QUE ESTA PERSONA HA CREADO. Sin sesión, o con sesión y nada creado, la fila enseña las muestras como lo que son:
+   * ejemplos. Mientras carga, o si falló, no enseña ninguna (ni las muestras ni un «no tienes nada»).
+   */
+  const mias = useCreacionesDeDesign();
+  const deMuestra = mias.fase === 'sinSesion' || (mias.fase === 'lista' && mias.creaciones.length === 0);
 
   /* Un temporizador pendiente no puede sobrevivir a la pantalla. */
   useEffect(() => () => { if (temporizador.current) clearTimeout(temporizador.current); }, []);
@@ -134,6 +150,16 @@ const DesignScreen: React.FC = () => {
   const alQuitarReferencia = useCallback((posicion: number) => {
     setReferencias((antes) => antes.filter((_, j) => j !== posicion));
   }, []);
+
+  /*
+   * Tocar una creación la REABRE donde estaba, con su resultado: el mismo trabajo, en su experiencia (Design u Hogar & Diseño).
+   * Ni crea otro, ni manda un proyecto ni un texto: lo que ya hay se abre por su identificador, como en Weë Chef y en Mis
+   * creaciones.
+   */
+  const alAbrirCreacion = useCallback((id: string) => {
+    const trabajo = mias.trabajoDe(id);
+    if (trabajo) navigation.navigate('CreatorFlow', { experienceId: trabajo.experienceId, jobId: trabajo.id });
+  }, [mias, navigation]);
 
   /*
    * ATRÁS DESHACE UN PASO, NO LA SECCIÓN.
@@ -241,9 +267,18 @@ const DesignScreen: React.FC = () => {
 
               Un poco más ancha y más baja que la del Studio, porque un diseño se
               reconoce por lo ancho y un video por lo alto.
+
+              Enseña lo que esta persona ha creado (`useCreacionesDeDesign`). Las
+              muestras solo salen sin sesión o sin nada creado, y dicen que son
+              ejemplos. «Ver todas» sigue yendo a donde iba (F-01, decisión del
+              dueño: `docs/WEE-DESIGN-CIERRE.md`).
             */}
             <FilaDeCreaciones
-              creaciones={CREACIONES_DE_DESIGN}
+              creaciones={deMuestra ? CREACIONES_DE_DESIGN : mias.creaciones}
+              claveDelTitulo={deMuestra ? 'design.examplesTitle' : undefined}
+              estado={mias.fase === 'cargando' ? 'cargando' : mias.fase === 'error' ? 'error' : undefined}
+              onReintentar={mias.recargar}
+              onAbrir={deMuestra ? undefined : alAbrirCreacion}
               ancho={scale(140)}
               alto={scale(120)}
               onVerTodas={() => navigation.navigate('Projects')}

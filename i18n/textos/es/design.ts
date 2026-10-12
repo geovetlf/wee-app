@@ -103,4 +103,9 @@ export const design = {
   samplePineHouse: 'Casa entre pinos',
   sampleYacht: 'Yate de 15 metros',
   sampleArmchair: 'Butaca de madera',
+  /*
+   * El título de la fila de creaciones de esta pantalla cuando lo que se ve son MUESTRAS —sin sesión, o con sesión y nada
+   * creado todavía—: «Mis creaciones» (`studio.creationsTitle`) solo se dice de lo que es de la persona.
+   */
+  examplesTitle: 'Ejemplos',
 };

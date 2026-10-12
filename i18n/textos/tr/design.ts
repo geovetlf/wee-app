@@ -115,4 +115,5 @@ export const design: typeof import('../es/design').design = {
   samplePineHouse: 'Çamlar arasında ev',
   sampleYacht: '15 metrelik yat',
   sampleArmchair: 'Ahşap koltuk',
+  examplesTitle: 'Örnekler',
 };

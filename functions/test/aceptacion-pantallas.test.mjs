@@ -336,6 +336,12 @@ const doblesDeDesign = (idioma) => (ctx) => {
     '../components/EspacioDeEscritura': { __esModule: true, default: capturar('EspacioDeEscritura'), useAlturaDelTeclado: () => 0 },
     '../components/design/DesignExplore': capturar('DesignExplore'),
     '../components/design/DesignPanel': capturar('DesignPanel'),
+    /*
+     * R8 (CL-04): la fila «Mis creaciones» ya enseña lo que la persona creó, y eso —cargando, vacío, error, lo suyo— se ejecuta entero
+     * en `design-mis-creaciones.test.mjs`. Aquí el gancho que la lee se sustituye por uno SIN SESIÓN, que es el estado en que la pantalla
+     * enseña las cuatro muestras (rotuladas como ejemplos): esta suite mira el resto de la pantalla, no esa fila.
+     */
+    '../hooks/useCreacionesDeDesign': { useCreacionesDeDesign: () => ({ fase: 'sinSesion', creaciones: [], trabajoDe: () => undefined, recargar() {} }) },
   };
 };
 /* Los temporizadores de la pantalla se APUNTAN en vez de esperarse: así se sabe qué espera y se puede disparar sin reloj. */

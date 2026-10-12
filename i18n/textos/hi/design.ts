@@ -122,4 +122,5 @@ export const design: typeof import('../es/design').design = {
   samplePineHouse: 'चीड़ के पेड़ों के बीच घर',
   sampleYacht: '15 मीटर यॉट',
   sampleArmchair: 'लकड़ी की आरामकुर्सी',
+  examplesTitle: 'उदाहरण',
 };
