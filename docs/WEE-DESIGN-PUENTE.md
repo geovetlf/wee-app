@@ -1,10 +1,87 @@
 # Weë Design — el puente «Crear» → `CreatorFlow` (PREPARADO, no integrado)
 
-**Estado.** Rama `r7d/puente`, desde `a64ff24` (ronda R7-Design, 2026-10-11, tarea P). Está **preparado, probado y listo para un solo `git merge`**,
+**Estado (R8, 2026-10-12).** PREPARADO y PENDIENTE DE DECISIÓN (D1, D2, D7) en la rama `r8/puente` (ver §0). Origen: rama `r7d/puente`, desde `a64ff24` (ronda R7-Design, 2026-10-11, tarea P). Está **preparado, probado y listo para un solo `git merge`**,
 y **no se integra** hasta que el dueño responda D1, D2 y D7 de [DESIGN.md](DESIGN.md) §4. No toma ninguna de esas decisiones, no escribe en ninguna de sus
 filas y no deja el puente activado en ninguna otra rama: lo que hace es **presuponer** una respuesta y decir cuál (§3) y qué cambiaría con otra.
 
 **Marcas** (las de [WEE-DESIGN-CIERRE.md](WEE-DESIGN-CIERRE.md)): **E** ejecutado (lo corrí y dio eso) · **L** leído (código leído, sin ejecutar) · **I** inferido.
+
+## 0. Al día (R8, 2026-10-12): qué hay ahora, cómo se aplica y qué presupone
+
+**Esta sección manda sobre las demás donde se contradigan**; las §1–§10 conservan el texto de R7-Design (rama `r7d/puente`, `e1381734`) con
+los números que ya no valen corregidos en su sitio.
+
+### 0.1 Qué hay en esta rama (`r8/puente`, desde `c3f7f9a7`)
+
+| Commit | Qué |
+|---|---|
+| `8bb03e8` | `git merge --no-ff r7d/puente`: el puente tal cual. Dos conflictos, los previstos: `functions/package.json` (unión de pasos con `resolver-package.mjs`) y el veredicto de `WEE-DESIGN-CIERRE.md` (recalculado con el corredor) |
+| `76cd75a` | `git merge --no-ff r8/pantalla`: «Mis creaciones» de verdad (P3, CL-04). Tres conflictos: `DesignScreen.tsx` (se conservan AMBOS cambios), el veredicto y las filas CL-03/CL-04 del cierre, y `package.json`. `puente-design` se adapta a P3 con su motivo escrito (abajo) |
+| `3deb062` | Refuerzo: `puente-design-punta-a-punta.test.mjs` (8 comprobaciones): lo que sale de «Crear» entra bien en el servidor COMPILADO |
+| (este documento) | Puesta al día |
+
+### 0.2 Qué hay ahora en la base que el puente de R7-Design no tenía
+
+| | Antes (cuando se escribió el puente, `a64ff24`) | Ahora (`c3f7f9a7`) | Ejecutado aquí |
+|---|---|---|---|
+| CL-10 «No sé» en toda pregunta de `design` con botones | faltaba en seis | **corregido** (`a9ed3bf`) | E: `puente-design-punta-a-punta` E4 — en cinco conversaciones que salen de «Crear», 7 preguntas con botones, todas con «No sé» |
+| CL-11 «Un post para mi marca» | salía logo | **corregido** (`17546b7`): afiche | E: E2 — también «A post for my brand» |
+| CL-12 reintento tras fallo de cotización | creaba y reservaba | **corregido** (R7-Design, tarea C) | L (lo ejecuta `weeai-cliente-cierre` A) |
+| CL-20 `projectId` al crear | no viajaba | el cliente lo manda si llega por la ruta | E: E1 — del puente NO sale (contrato), y el servicio no inventa uno |
+| CL-24 aviso accesible | — | corregido; con el puente Design ya no monta el aviso | — |
+| Puntos de partida que el servidor entiende sin repreguntar «qué» | 13/35 (es), 3/35 (en) | **13/35 y 3/35** (sin cambio: CL-11 no los toca) | E: `TEMPLATES.design.infer` sobre los 35 |
+
+Siguen abiertos y el puente los expone: CL-13 (editar abre un trabajo nuevo), CL-19 (no se puede cancelar), CL-14/15/16 (formato, texto en la
+imagen, referencia), CL-18 (ninguna suite de emulador recorre `creatorRun` de `design`; la prepara la tarea EMU de R8) y CL-22 (canario).
+
+### 0.3 P3 y el puente conviven
+
+La fila «Mis creaciones» lee los trabajos de la cuenta (`hooks/useCreacionesDeDesign` → `creatorService.getMyJobsDe`, solo lectura) y «Crear»
+sigue llevando SOLO `{experienceId:'design', workspace:'design', goal}`. Lo que eso movió en las pruebas del puente, con su motivo en la prueba:
+
+- `puente-design` A14: el servicio de trabajos deja pasar la única lectura de la fila (`getMyJobsDe`) y la anota APARTE; todo lo demás del
+  servicio sigue vigilado, y tocar «Crear» no añade ninguna lectura (comprobación nueva + CONTROL).
+- `puente-design` C2/C3: miran la pantalla sin `alAbrirCreacion` (reabrir una creación ya hecha lleva `experienceId` y `jobId`: es otro camino,
+  no el de crear) + CONTROL de que en `alCrear` un trabajo se seguiría viendo.
+- `puente-design-punta-a-punta` F1–F3: con creaciones a la vista «Crear» lleva solo lo escrito; reabrir no pasa por el servidor ni cuesta
+  nada; mientras la fila carga, o si falla, «Crear» funciona igual.
+- `design-mis-creaciones` A11 (en `r8/pantalla`) ya no depende de si la pantalla monta el aviso de demostración.
+
+### 0.4 Cómo se aplica sobre `r8/design-cierre`
+
+```
+git merge --no-ff r8/puente      # SOLO cuando el dueño responda D1, D2 y D7; trae también r8/pantalla si aún no estaba
+```
+
+- Si `r8/pantalla` ya está integrada (es independiente de las decisiones y debería ir antes), sus commits son los mismos: no chocan.
+- **Conflictos esperables:** el veredicto de `docs/WEE-DESIGN-CIERRE.md` y sus filas CL-01/CL-03 (se recalculan con
+  `node functions/test/_design-cierre.mjs | tail -3`; `design-cierre` C3 lo exige), la línea `test` de `functions/package.json`
+  (`resolver-package.mjs`) y `docs/WEE-ACEPTACION.md` (ACE-D-04/06) si otra rama lo tocó. `i18n/huella.json` NO se resuelve a mano: se
+  regenera con `node scripts/i18n-huella.mjs` tras la fusión (viene de P3).
+- **Acoplamiento con P11 (tarea NAV, `r8/navegacion`):** su suite `proyecto-en-las-entradas` (G4) exige que, en cuanto el «Crear» de Design
+  navegue a `CreatorFlow`, lleve el `projectId` de su ruta. El puente, a propósito, NO lo manda (contrato de esta tarea). Por tanto **fusionar
+  `r8/puente` después de `r8/navegacion` pone G4 en rojo** salvo que en la misma integración se aplique la línea de P11 en `DesignScreen`
+  (`const projectId = useRoute<any>().params?.projectId;` y `navigate('CreatorFlow', projectId ? { ...contexto, projectId } : contexto)`,
+  con `projectId` en las dependencias de `alCrear`), ajustando `puente-design` C1/C10 a esa forma. Ese diff NO se entrega aplicado ni como
+  archivo: no se ha demostrado que compile y pase contra la ruta tal como queda tras P11 (haría falta fusionar `r8/navegacion`, que sigue
+  moviéndose). Es la siguiente acción de quien integre.
+- **Revertir:** `git revert -m 1 <merge>`; solo cliente, sin datos ni configuración que deshacer.
+
+### 0.5 Pruebas que deben pasar sobre la rama (ejecutadas aquí, una a una)
+
+`puente-design` (71), `puente-design-punta-a-punta` (8), `design-mis-creaciones` (53), `design-cierre`, `aceptacion-pantallas`, `cajas-weeai`,
+`ajustes-weeai`, `credits-weeai`, `foundation-de-experiencias`, `navegacion-enlaces`, `i18n-huella`, `puente-pre-f1d` (ninguna cerca se mueve:
+`functions/src` no cambia), `ci-workflow`, `escaneo-secretos`, `_design-cierre.mjs --solo CL-01,CL-03,CL-04` (CUMPLIDO) y `tsc --noEmit`.
+La cadena tiene ahora 318 pasos; la lanza quien integra.
+
+### 0.6 Qué presupone de D1, D2 y D7, y qué cambiaría con otra respuesta
+
+| | Presupone | Con otra respuesta |
+|---|---|---|
+| D1 | Que el texto libre de las puertas físicas vaya a la plantilla gráfica `design` | A: falta el mapa puerta → intención (se enchufa en `contextoDeDesign({que, idsDeQue})`). B: Interiores/Arquitectura/Espacios/Mobiliario irían a `home` con foto (sin selector de foto hoy). C: se retiran puertas en `designTools.ts` |
+| D2 | Solo `design`; Hogar & Diseño sin puerta (CL-02) | B: puerta a `home` (P2). P3 ya ENSEÑA los trabajos de `home` en «Mis creaciones» con cualquier respuesta |
+| D7 | Renders («Maqueta 3D», «Recorrido», «Antes y después») salen como tres imágenes y se cobran como imágenes | A: cada punto a su destino; B: retirarlos; C: esperar al proveedor 3D |
+| — | **P3 no presupone ninguna**: solo F-01 (adónde va «Ver todas») es del dueño, y se mantiene en Mis proyectos | — |
 
 ## 1. Qué hace
 
@@ -41,7 +118,7 @@ ni dependencias, ni estructura visual: la pantalla se ve igual salvo que ya no s
 | Una foto al crear, ni las referencias de la caja | La plantilla `design` la ignora (L: `inputs.ts:14-23`) y `CreatorFlow` enseñaría «Foto lista» para una foto que no se usa (F-07). Las referencias de la caja son además nombres de muestra (CL-09, D6) (E: A13) |
 | Formato y calidad como estructura | El plan solo los lee como palabras del objetivo: no cambian el `aspectRatio` (CL-14, D5) ni el nivel que se cotiza (eso se elige en la tarjeta del plan, en `CreatorFlow`) |
 | Credits | La pantalla no los toca y llegar no cuesta ninguno: `creatorChat` crea el trabajo con `creditsEstimated: 0, creditsCharged: 0` y solo `creatorRun` reserva (L: `creator/index.ts:325-326, 613`). Esto es lo que la pantalla de Design **no** hace (E: A14, C5) |
-| `projectId` | Crear desde un proyecto es CL-20 (otra tarea); el trabajo entra en un proyecto con `assignJob` al terminar |
+| `projectId` | No sale de la pantalla (contrato). Crear desde un proyecto lo conecta P11 (tarea NAV): ver §0.4, el acoplamiento con su suite G4 |
 
 ## 3. Qué presupone — decisión por decisión
 
@@ -91,7 +168,7 @@ git merge --no-ff r7d/puente          # sobre la rama de integración, con el á
 | R4 | **Las puertas prometen más de lo que el motor hace** (CL-05, D7): «Una maqueta 3D», «Un recorrido», «Un antes y después», «Un render realista» y «Una vista aérea» acaban en la plantilla gráfica, que siempre propone **un concepto y tres imágenes** (L: `buildPlan`, `templates.ts:577-585`). Además, de los 35 puntos de partida solo **13** (es) / **3** (en) fijan «qué» sin repreguntar (E: `TEMPLATES.design.infer` sobre cada texto, el mismo 13/35 y 3/35 de `ACE-D-03`): los demás llegan a la primera pregunta de la plantilla. Es el hueco D1/D7, no un defecto del puente, pero el puente lo pone delante de la gente | E, L |
 | R5 | **Las referencias de la caja no hacen nada** (D6, CL-09): la persona ve su ficha, con su aspa, y la creación no la usa. Antes el aviso decía «demostración»; ahora no hay nada que lo diga | E (A13) |
 | R6 | **El recorte a 300 y la posición de los ajustes** (`B-03 (i)`): con una idea de más de ~240 caracteres los ajustes se pierden. «Alta» y «Estándar» tampoco dicen de qué grupo son («Calidad») cuando van en la frase | L |
-| R7 | **`CreatorFlow` tiene defectos conocidos que el puente expone a más gente**: sin «No sé» en seis preguntas de `design` (CL-10), «Un post para mi marca» sale logo (CL-11), el reintento tras un fallo de cotización crea en vez de cotizar (CL-12), «Editar» abre un trabajo nuevo desde cero (CL-13), no se puede cancelar (CL-19). Otras tareas de la ronda cierran algunos; ninguno es del puente | L (CL del corredor) |
+| R7 | **`CreatorFlow` tiene defectos conocidos que el puente expone a más gente**: sin «No sé» en seis preguntas de `design` (CL-10), «Un post para mi marca» sale logo (CL-11), el reintento tras un fallo de cotización crea en vez de cotizar (CL-12), «Editar» abre un trabajo nuevo desde cero (CL-13), no se puede cancelar (CL-19). R8: CL-10, CL-11 y CL-12 ya están corregidos en la base y E2/E4 de `puente-design-punta-a-punta` lo ejecutan desde «Crear»; siguen CL-13 y CL-19 | E (R8), L |
 | R8 | **El estado «CUMPLIDO» de CL-01 y CL-03 es de máquina, no de producto**: el corredor mide que el código navega, no que D1, D2 y D7 estén respondidas (CL-05 y CL-23 siguen en DECISION) | E |
 
 ## 7. Pruebas y documentos que cambian, y por qué
@@ -120,7 +197,7 @@ git merge --no-ff r7d/puente          # sobre la rama de integración, con el á
 | CL-09 referencias reales | DECISIÓN | DECISIÓN | D6 (R5) |
 | CL-23 D1–D9 y DEC-xx registradas | DECISIÓN | DECISIÓN | Del dueño |
 
-El corredor pasa de **4 cumplidos · 11 abiertos · 9 en decisión · 4 manuales** a **6 · 10 · 8 · 4**. (Detalle: `node functions/test/_design-cierre.mjs --solo CL-01,CL-03` da CUMPLIDO para los dos. El corredor solo lee la primera aparición de `--solo`: con dos —`--solo CL-01 --solo CL-03`— ejecuta solo CL-01 y lo dice con «Ejecución parcial (1 de 28)»; la forma documentada es con coma.)
+El corredor pasaba (R7-Design) de **4 · 11 · 9 · 4** a **6 · 10 · 8 · 4**; en R8, sobre `c3f7f9a7` y con P3, `r8/puente` da **14 cumplidos · 3 abiertos · 8 en decisión · 3 manuales**. (Detalle: `node functions/test/_design-cierre.mjs --solo CL-01,CL-03` da CUMPLIDO para los dos. El corredor solo lee la primera aparición de `--solo`: con dos —`--solo CL-01 --solo CL-03`— ejecuta solo CL-01 y lo dice con «Ejecución parcial (1 de 28)»; la forma documentada es con coma.)
 
 ## 9. Pruebas que deben pasar tras aplicarlo
 
@@ -140,7 +217,7 @@ node functions/test/ci-workflow.test.mjs                    # 13: toda suite est
 node scripts/escaneo-secretos.mjs
 node functions/test/_design-cierre.mjs --solo CL-01,CL-03   # CUMPLIDO los dos
 NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit     # 0 errores (PESADO)
-node functions/test/_cadena.mjs                             # 312 pasos (PESADO): quien integra
+node functions/test/_cadena.mjs                             # 318 pasos en r8/puente (PESADO): quien integra
 ```
 
 ## 10. Lo ejecutado frente a lo inferido
