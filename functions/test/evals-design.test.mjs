@@ -61,15 +61,13 @@ const rojos = (run) => run.detalle.filter((d) => d.graders.some((g) => !g.ok)).m
 const fallosDe = (run) => run.detalle.flatMap((d) => d.graders.filter((g) => !g.ok).map((g) => `${d.evalCaseId}:${g.id}`));
 
 /*
- * LOS ROJOS DE LA BASELINE, FIJADOS A PROPÓSITO. La baseline es del comportamiento de HOY (a64ff24): los huecos H-2 y H-6 medidos
- * y los cuatro casos conocidos de D4, D5 y D6. Cuando la rama del servidor arregle H-2/H-6 y alguien REFRESQUE la baseline (ver
- * docs/EVALS.md), esta lista se actualiza en el mismo cambio: un refresco no puede esconder, sin que alguien lo lea, que un caso
- * pasó de verde a rojo o que desapareció uno que no se arregló.
+ * LOS ROJOS DE LA BASELINE, FIJADOS A PROPÓSITO. La baseline se refrescó el 2026-10-12 tras fusionar la rama del servidor (H-2 y H-6,
+ * CL-10 y CL-11: a9ed3bf y 17546b7): los doce casos de esos dos huecos pasaron a verde y lo que queda en rojo son los cuatro casos
+ * conocidos de D4, D5 y D6, que son del dueño y no criterio de aceptación. Hasta el refresco la lista traía además esos doce (la
+ * baseline era del comportamiento de a64ff24). Un refresco de la baseline actualiza esta lista en el mismo cambio (ver docs/EVALS.md):
+ * no puede esconder, sin que alguien lo lea, que un caso pasó de verde a rojo o que desapareció uno que no se arregló.
  */
 const ROJOS_DE_LA_BASELINE = [
-  'design-h6-post-para-mi-marca', 'design-h6-publicidad-para-mi-marca', 'design-h6-flyer-para-la-marca',
-  'design-h2-what', 'design-h2-message', 'design-h2-item', 'design-h2-machine', 'design-h2-place', 'design-h2-who',
-  'design-h2-respuesta-idk-en-what', 'design-h2-respuesta-idk-en-message', 'design-h2-respuesta-idk-en-place',
   'design-d5-historia-vertical', 'design-d4-afiche-con-texto', 'design-d6-referencia-afiche', 'design-d6-referencia-producto',
 ];
 

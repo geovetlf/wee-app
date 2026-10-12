@@ -3,11 +3,11 @@
   "dominio": "design",
   "datasetVersion": 1,
   "datasetHash": "57f923b3165bb6b75a3ad2844a3ef92aae130e986cdc6a35d85ea8defee3e340",
-  "generado": "2026-10-12T04:43:22.098Z",
+  "generado": "2026-10-12T05:46:28.025Z",
   "scores": {
-    "overall": 0.754386,
+    "overall": 0.938596,
     "perDimension": {
-      "QUALITY": 0.719298,
+      "QUALITY": 0.929825,
       "COST": 1,
       "LATENCY": null,
       "RELIABILITY": 1
@@ -220,27 +220,27 @@
       },
       {
         "evalCaseId": "design-h6-post-para-mi-marca",
-        "score": 0,
+        "score": 1,
         "dims": {
-          "QUALITY": 0
+          "QUALITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h6-publicidad-para-mi-marca",
-        "score": 0,
+        "score": 1,
         "dims": {
-          "QUALITY": 0
+          "QUALITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h6-flyer-para-la-marca",
-        "score": 0,
+        "score": 1,
         "dims": {
-          "QUALITY": 0
+          "QUALITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h6-control-un-logo-para-mi-marca",
@@ -276,78 +276,78 @@
       },
       {
         "evalCaseId": "design-h2-what",
-        "score": 0,
+        "score": 1,
         "dims": {
-          "QUALITY": 0
+          "QUALITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h2-message",
-        "score": 0,
+        "score": 1,
         "dims": {
-          "QUALITY": 0
+          "QUALITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h2-item",
-        "score": 0,
+        "score": 1,
         "dims": {
-          "QUALITY": 0
+          "QUALITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h2-machine",
-        "score": 0,
+        "score": 1,
         "dims": {
-          "QUALITY": 0
+          "QUALITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h2-place",
-        "score": 0,
+        "score": 1,
         "dims": {
-          "QUALITY": 0
+          "QUALITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h2-who",
-        "score": 0,
+        "score": 1,
         "dims": {
-          "QUALITY": 0
+          "QUALITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h2-respuesta-idk-en-what",
-        "score": 0.5,
+        "score": 1,
         "dims": {
-          "QUALITY": 0,
+          "QUALITY": 1,
           "RELIABILITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h2-respuesta-idk-en-message",
-        "score": 0.5,
+        "score": 1,
         "dims": {
-          "QUALITY": 0,
+          "QUALITY": 1,
           "RELIABILITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h2-respuesta-idk-en-place",
-        "score": 0.5,
+        "score": 1,
         "dims": {
-          "QUALITY": 0,
+          "QUALITY": 1,
           "RELIABILITY": 1
         },
-        "aprobado": false
+        "aprobado": true
       },
       {
         "evalCaseId": "design-h2-control-no-se-en-feel",
@@ -521,6 +521,6 @@
       }
     ],
     "n": 57,
-    "aprobados": 41
+    "aprobados": 53
   }
 }
