@@ -3,8 +3,13 @@
  *
  * Antes «Crear Weël» abría el compositor del Wall (`CreateScreen` con `kind: 'weel'`): «Nueva publicación», texto largo,
  * Cámara de fotos, Multimedia, ËContact, Ubicación, Encuesta, Mis proyectos y «Publicar en» con las secciones de Weë AI.
- * Un Weël no es eso. Aquí hay tres cosas y en este orden: el vídeo (grabarlo o elegirlo), una descripción corta y
+ * Un Weël no es eso. Aquí hay tres cosas y en este orden: el vídeo (elegido de la galería), una descripción corta y
  * Publicar.
+ *
+ * GRABAR CON LA CÁMARA, PENDIENTE DE AUTORIZACIÓN DEL DUEÑO. Grabar vídeo pide el permiso nativo del MICRÓFONO, y hoy el
+ * micrófono solo está autorizado para las notas de voz de WeeTalk (functions/test/i18n-permisos-ios.test.mjs, F1–F3).
+ * Añadirlo exige su autorización, la frase del permiso en cada idioma y recompilar la app nativa; hasta entonces el
+ * Weël se elige de la galería (o llega ya hecho como material de la cuenta, con `video`).
  *
  * NADA NUEVO POR DEBAJO. El vídeo se sube con `uploadVideoToCloudinary` —la misma subida del compositor— y el Weël se
  * guarda con `postsService.create` como cualquier publicación, con `isWeel: true` (`utils/crearWeel.ts` arma el
@@ -27,6 +32,7 @@ import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
+import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import { postsService } from '../services/firestoreService';
 import { uploadVideoToCloudinary } from '../services/cloudinaryService';
 import { notify, confirmAction } from '../utils/notify';
@@ -100,11 +106,10 @@ const CrearWeelScreen: React.FC = () => {
   };
 
   /** En web, un `<input type="file">` de vídeo; las dimensiones y la duración salen de sus metadatos. */
-  const elegirEnWeb = (camara: boolean) => new Promise<void>((resolve) => {
+  const elegirEnWeb = (): Promise<void> => new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'video/*';
-    if (camara) input.setAttribute('capture', 'environment');
     input.onchange = async (e: Event) => {
       const archivo = (e.target as HTMLInputElement).files?.[0];
       if (!archivo || !archivo.type.startsWith('video/')) return resolve();
@@ -122,27 +127,9 @@ const CrearWeelScreen: React.FC = () => {
     input.click();
   });
 
-  const grabarVideo = async () => {
-    try {
-      if (Platform.OS === 'web') return await elegirEnWeb(true);
-      const permiso = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permiso.granted) return notify(t('composer.permissionsNeeded'), t('weels.cameraForVideo'));
-      const r = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['videos'],
-        videoMaxDuration: MAX_SEGUNDOS_WEEL,
-        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
-        allowsEditing: false,
-      });
-      const a = !r.canceled ? r.assets?.[0] : undefined;
-      if (a) await aceptarVideo({ uri: a.uri, segundos: (a.duration || 0) / 1000 || undefined, ancho: a.width, alto: a.height });
-    } catch {
-      notify(t('common.error'), t('composer.pickImagesFailed'));
-    }
-  };
-
   const elegirDeGaleria = async () => {
     try {
-      if (Platform.OS === 'web') return await elegirEnWeb(false);
+      if (Platform.OS === 'web') return await elegirEnWeb();
       const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permiso.granted) return notify(t('composer.permissionsNeeded'), t('weels.galleryForVideo'));
       const r = await ImagePicker.launchImageLibraryAsync({
@@ -249,13 +236,9 @@ const CrearWeelScreen: React.FC = () => {
     <View style={[styles.marco, styles.marcoVacio, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
       <Ionicons name="videocam-outline" size={40} color={theme.colors.textSecondary} />
       <Text style={[styles.requisitos, { color: theme.colors.textSecondary }]}>{t('weels.requirements', { segundos: MAX_SEGUNDOS_WEEL })}</Text>
-      <TouchableOpacity onPress={grabarVideo} style={[styles.boton, { backgroundColor: theme.colors.accent }]} accessibilityRole="button" accessibilityLabel={t('weels.recordVideo')}>
-        <Ionicons name="videocam" size={18} color="#1F2937" />
-        <Text style={styles.botonTexto}>{t('weels.recordVideo')}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={elegirDeGaleria} style={[styles.boton, styles.botonSecundario, { borderColor: theme.colors.border }]} accessibilityRole="button" accessibilityLabel={t('weels.pickVideo')}>
-        <Ionicons name="images-outline" size={18} color={theme.colors.text} />
-        <Text style={[styles.botonTexto, { color: theme.colors.text }]}>{t('weels.pickVideo')}</Text>
+      <TouchableOpacity onPress={elegirDeGaleria} style={[styles.boton, { backgroundColor: theme.colors.accent }]} accessibilityRole="button" accessibilityLabel={t('weels.pickVideo')}>
+        <Ionicons name="images-outline" size={18} color="#1F2937" />
+        <Text style={styles.botonTexto}>{t('weels.pickVideo')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -278,12 +261,14 @@ const CrearWeelScreen: React.FC = () => {
   return (
     <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
       {cabecera}
+      {/* La descripción va debajo del vídeo: el espacio se acomoda al teclado como en el compositor, sin taparla. */}
+      <EspacioDeEscritura style={styles.pantalla}>
       <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
         {lamina}
         {estado}
         <TextInput
           style={[styles.descripcion, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
-          placeholder={t('weels.descriptionPlaceholder')}
+          placeholder={t('composer.placeholderWeel')}
           placeholderTextColor={theme.colors.textSecondary}
           value={descripcion}
           onChangeText={setDescripcion}
@@ -295,6 +280,7 @@ const CrearWeelScreen: React.FC = () => {
         <Text style={[styles.contador, { color: theme.colors.textSecondary }]}>{descripcion.length}/{MAX_DESCRIPCION_WEEL}</Text>
         <Text style={[styles.pie, { color: theme.colors.textSecondary }]}>{t('composer.weelHint', { segundos: MAX_SEGUNDOS_WEEL })}</Text>
       </ScrollView>
+      </EspacioDeEscritura>
     </SafeAreaView>
   );
 };
@@ -313,7 +299,6 @@ const styles = StyleSheet.create({
   video: { width: '100%', height: '100%' },
   requisitos: { fontSize: 14, textAlign: 'center', marginBottom: 8 },
   boton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 44, borderRadius: 22, paddingHorizontal: 20, alignSelf: 'center' },
-  botonSecundario: { borderWidth: 1, backgroundColor: 'transparent' },
   botonTexto: { fontSize: 15, fontWeight: '600', color: '#1F2937' },
   cambiar: { position: 'absolute', right: 12, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8 },
   cambiarTexto: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },

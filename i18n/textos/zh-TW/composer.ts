@@ -60,6 +60,7 @@ export const composer: typeof import('../es/composer').composer = {
   generalWall: '公共 Wäll',
   placeholderPollExtra: '還想補充點什麼（選填）…',
   placeholderQuestion: '想問社群什麼？',
+  placeholderWeel: '說說你的 Weël 做了什麼，用了哪些 AI…',
   placeholderVideo: '說說你創作了什麼，用了哪些 AI…',
   placeholderImage: '展示你的圖片，說說是怎麼做出來的…',
   placeholderText: '分享一段文字、一個提示詞或一個想法…',

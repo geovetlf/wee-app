@@ -39,6 +39,7 @@ export const composer: typeof import('../es/composer').composer = {
   generalWall: '전체 Wäll',
   placeholderPollExtra: '덧붙일 말이 있으면 적어주세요 (선택)…',
   placeholderQuestion: '커뮤니티에 무엇을 물어볼까요?',
+  placeholderWeel: 'Weël로 무엇을 만들었는지, 어떤 AI를 썼는지 들려주세요…',
   placeholderVideo: '무엇을 만들었는지, 어떤 AI를 썼는지 들려주세요…',
   placeholderImage: '이미지를 보여주고 어떻게 만들었는지 알려주세요…',
   placeholderText: '글이나 프롬프트, 아이디어를 나눠보세요…',

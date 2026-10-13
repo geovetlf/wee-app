@@ -30,6 +30,7 @@ export const composer = {
   generalWall: 'Wäll general',
   placeholderPollExtra: 'Añade algo más si quieres (opcional)…',
   placeholderQuestion: '¿Qué quieres preguntarle a la comunidad?',
+  placeholderWeel: 'Cuenta qué creaste para tu Weël y con qué IA…',
   placeholderVideo: 'Cuenta qué creaste y con qué IA…',
   placeholderImage: 'Muestra tu imagen y cómo la hiciste…',
   placeholderText: 'Comparte un texto, un prompt o una idea…',
