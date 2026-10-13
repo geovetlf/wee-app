@@ -26,6 +26,7 @@ import { auth, db, functions } from '../config/firebase';
 import { asegurarPerfilReal, asegurarPerfilWee, conUnaSolaEnVuelo, idDelPerfilReal, idDelPerfilWee, PerfilAsegurado, PuertosDeCreacion } from '../utils/perfilCanonico';
 import { identidadWeeDe } from '../utils/econtactModel';
 import { campoQueResuelve } from '../utils/identidadPublica';
+import type { PasoGuardado } from '../utils/comoLoHice';
 import { ErrorConClave } from '../i18n/servidor';
 
 // Tipos para las colecciones principales
@@ -107,7 +108,12 @@ export interface Post {
   // === Cómo lo hice (creaciones con IA) ===
   aiTools?: string[]; // Herramientas de IA usadas (ej. ["Kling", "ElevenLabs"])
   aiPrompt?: string; // Prompt que usó el autor (se puede copiar)
-  aiProcess?: string; // Breve explicación del proceso
+  aiProcess?: string; // Breve explicación del proceso (los pasos, uno por línea, en el idioma de quien publicó)
+  /**
+   * Los mismos pasos en forma traducible (R9): los que generó Weë se dicen en el idioma de quien mira; los que
+   * escribió la persona van como texto. Opcional: sin él se lee `aiProcess`. Ver `utils/comoLoHice.ts`.
+   */
+  aiSteps?: PasoGuardado[];
 
   // === NUEVO: Sistema de comunidades ===
   communityId?: string; // ID de la comunidad (requerido para nuevos posts)

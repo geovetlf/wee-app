@@ -3,12 +3,13 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ScrollView,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import HowIMadeIt from './HowIMadeIt';
 import EspacioDeEscritura from './EspacioDeEscritura';
 import {
   BorradorComoLoHice,
   datosParaPublicar,
+  textoDePaso,
   MAX_PASOS,
   MAX_LARGO_PASO,
   MAX_LARGO_HERRAMIENTA,
@@ -43,16 +44,18 @@ interface Props {
  */
 const ComoLoHiceRevision: React.FC<Props> = ({ visible, borrador, onCambiar, onCerrar, cargandoHistorial = false }) => {
   const { theme } = useTheme();
-  const t = useT();
+  const { t, locale } = useIdioma();
+  const lector = { t, locale };
 
   /* Todo cambio cuenta como edición: lo que llegue después del historial ya no lo pisa. */
   const cambiar = (parcial: Partial<BorradorComoLoHice>) => onCambiar({ ...borrador, ...parcial, editado: true });
-  const cambiarPaso = (i: number, texto: string) => cambiar({ pasos: borrador.pasos.map((p, j) => (j === i ? texto : p)) });
+  /* Un paso que se edita deja de ser de Weë: pasa a texto de la persona, que no se traduce. */
+  const cambiarPaso = (i: number, texto: string) => cambiar({ pasos: borrador.pasos.map((p, j) => (j === i ? { texto } : p)) });
   const quitarPaso = (i: number) => cambiar({ pasos: borrador.pasos.filter((_, j) => j !== i) });
-  const anadirPaso = () => cambiar({ pasos: [...borrador.pasos, ''] });
+  const anadirPaso = () => cambiar({ pasos: [...borrador.pasos, { texto: '' }] });
 
   /* Lo que se publicaría, dibujado como en el Wäll. */
-  const vistaPrevia = datosParaPublicar({ ...borrador, activo: true });
+  const vistaPrevia = datosParaPublicar({ ...borrador, activo: true }, lector);
   const hayVistaPrevia = Object.keys(vistaPrevia).length > 0;
 
   const avisoDePasos = cargandoHistorial
@@ -152,7 +155,7 @@ const ComoLoHiceRevision: React.FC<Props> = ({ visible, borrador, onCambiar, onC
                 <Text style={[styles.pasoNumero, { color: theme.colors.text }]}>{t('wall.howStepNumber', { n: i + 1 })}</Text>
                 <TextInput
                   style={[campo, styles.pasoCampo]}
-                  value={paso}
+                  value={textoDePaso(paso, lector)}
                   onChangeText={(v) => cambiarPaso(i, v)}
                   placeholder={t('composer.howStepPlaceholder', { n: i + 1 })}
                   placeholderTextColor={theme.colors.textSecondary}
