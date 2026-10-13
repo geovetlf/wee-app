@@ -17,6 +17,7 @@ import {
   identidadDeIntento,
   referenciaDelObjeto,
   tamanoAprobado,
+  tipoAdmitidoParaLaClase,
   tipoDeContenidoAceptable,
   topeDeSubida,
   vigenciaDeSubidaAprobada,
@@ -236,12 +237,15 @@ export const solicitarSubida = async (
   /*
    * 3 · Lo que se puede rechazar SIN tocar nada. Se hace antes de escribir para
    * que una petición mal formada no deje un material a medias en la base de
-   * datos. Son las mismas funciones puras que vuelve a aplicar la decisión.
+   * datos. Son las mismas funciones puras que vuelve a aplicar la decisión,
+   * que además cruza el tipo con la clase y el tipo del material ya guardado.
    */
   if (vigenciaDeSubidaAprobada(peticion.vigenciaSegundos, deps.politica) === undefined) {
     return no('peticion_invalida', { accountId, detalle: 'vigencia' });
   }
   if (!tipoDeContenidoAceptable(peticion.contentType)) return no('peticion_invalida', { accountId, detalle: 'tipo' });
+  /* MEDIA-F · el tipo tiene que ser de la familia de su clase, y nunca contenido activo (HTML, SVG, JS). */
+  if (!tipoAdmitidoParaLaClase(peticion.kind, peticion.contentType)) return no('peticion_invalida', { accountId, detalle: 'tipo' });
   if (tamanoAprobado(peticion.bytes, tope) === undefined) return no('peticion_invalida', { accountId, detalle: 'tamano' });
 
   /* 4 · Dónde. TODO derivado en el servidor: ni contenedor ni clave llegan de fuera. */
@@ -301,6 +305,13 @@ export const solicitarSubida = async (
     contentType: decision.contentType,
     vigenciaSegundos: decision.vigenciaSegundos,
     maxBytes: decision.maxBytes,
+    /*
+     * MEDIA-F · el tamaño DECLARADO va firmado: quien suba otro número de bytes
+     * recibe un rechazo del proveedor en vez de llenar el destino con lo que
+     * quiera hasta el tope físico. Implementado y probado contra un doble S3;
+     * contra R2 real queda PENDIENTE del próximo canary (docs/MEDIA-CLOUD-R2.md).
+     */
+    bytesExactos: decision.maxBytes,
     /* Que el destino sea de UNA sola escritura lo hace cumplir el proveedor. */
     siNoExiste: true,
   });
