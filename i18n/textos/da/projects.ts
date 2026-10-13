@@ -20,13 +20,12 @@
  * «3 kreationer».
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Dine kreationer, sorteret efter projekt',
-  introText: 'Et projekt kan indeholde logo, fotos, annoncer, videoer, musik og dokumenter. Gem hvert resultat i det rigtige projekt med knappen ”{{accion}}”.',
+  introTitle: 'Dit igangværende arbejde',
+  introText: 'Det, du laver med Weë AI, bliver her, så du kan fortsætte, når du vil. Gem hvert resultat i sit projekt fra “{{accion}}”; det, du gør færdigt og vælger at beholde, kommer i Mine kreationer.',
   sectionTitle: 'Projekter',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Fx Min restaurant',
   emptyTitle: 'Ingen projekter endnu',
-  emptyText: 'Opret et her, eller gem en kreation i et projekt direkte fra resultatet.',
   emptyAction: 'Opret dit første projekt',
   open: 'Åbn',
   fallbackTitle: 'Projekt',
@@ -44,4 +43,17 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'Hvad mangler projektet?',
   whatIsMissingNote: 'Et logo, fotos, en annonce, en video, musik eller et dokument: Alle Weë-specialister kan bidrage her.',
   createSomethingNew: 'Lav noget nyt',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'Indlæser dine projekter …',
+  loadFailed: 'Vi kunne ikke indlæse dine projekter.',
+  retry: 'Prøv igen',
+  emptyStart: 'Et projekt er et igangværende arbejde, som du kan tage op igen, når du vil. Opret et her, eller gem et resultat i et projekt fra “{{accion}}”.',
+  stateInProgress: 'I gang',
+  updatedAgo: 'Ændret {{cuando}}',
+  continue: 'Fortsæt',
+  continueProject: 'Fortsæt {{nombre}}',
+  noThumbnail: 'Ingen forhåndsvisning',
+  loadProjectFailed: 'Vi kunne ikke åbne dette projekt.',
+  jobsLoadFailed: 'Vi kunne ikke indlæse indholdet af dette projekt.',
 };

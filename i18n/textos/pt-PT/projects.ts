@@ -16,13 +16,12 @@
  * `{{contador}}` y nunca un 1 escrito a mano. Apóstrofo tipográfico ’ siempre.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'As tuas criações, organizadas por projeto',
-  introText: 'Um projeto pode ter logótipo, fotos, anúncios, vídeos, música e documentos. Guarda cada resultado no seu a partir de "{{accion}}".',
+  introTitle: 'O teu trabalho em curso',
+  introText: 'O que estás a fazer com o Weë AI fica aqui para continuares quando quiseres. Guarda cada resultado no respetivo projeto a partir de «{{accion}}»; o que terminares e decidires guardar vai para As minhas criações.',
   sectionTitle: 'Projetos',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Exemplo: O meu restaurante',
   emptyTitle: 'Ainda não tens projetos',
-  emptyText: 'Cria o primeiro ou guarda uma criação num projeto a partir do resultado dela.',
   emptyAction: 'Criar o meu primeiro projeto',
   open: 'Abrir',
   fallbackTitle: 'Projeto',
@@ -40,4 +39,17 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'O que falta a este projeto?',
   whatIsMissingNote: 'Um logótipo, fotos, um anúncio, um vídeo, música ou um documento: qualquer especialista do Weë pode somar aqui.',
   createSomethingNew: 'Criar algo novo',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'A carregar os teus projetos…',
+  loadFailed: 'Não conseguimos carregar os teus projetos.',
+  retry: 'Tentar novamente',
+  emptyStart: 'Um projeto é um trabalho em curso que podes retomar quando quiseres. Cria um aqui ou guarda um resultado num projeto a partir de «{{accion}}».',
+  stateInProgress: 'Em curso',
+  updatedAgo: 'Modificado {{cuando}}',
+  continue: 'Continuar',
+  continueProject: 'Continuar {{nombre}}',
+  noThumbnail: 'Sem pré-visualização',
+  loadProjectFailed: 'Não conseguimos abrir este projeto.',
+  jobsLoadFailed: 'Não conseguimos carregar o que há neste projeto.',
 };

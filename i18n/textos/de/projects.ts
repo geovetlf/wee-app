@@ -8,13 +8,12 @@
  * dos formas y quien elige es `Intl.PluralRules`.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Deine Kreationen, nach Projekt sortiert',
-  introText: 'Ein Projekt kann Logo, Fotos, Anzeigen, Videos, Musik und Dokumente enthalten. Speichere jedes Ergebnis über "{{accion}}" im passenden Projekt.',
+  introTitle: 'Deine laufende Arbeit',
+  introText: 'Was du mit Weë AI machst, bleibt hier, damit du jederzeit weitermachen kannst. Speichere jedes Ergebnis über „{{accion}}“ in seinem Projekt; was du fertigstellst und behalten möchtest, kommt in Meine Kreationen.',
   sectionTitle: 'Projekte',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Beispiel: Mein Restaurant',
   emptyTitle: 'Du hast noch keine Projekte',
-  emptyText: 'Erstelle das erste, oder speichere eine Kreation aus ihrem Ergebnis in einem Projekt.',
   emptyAction: 'Mein erstes Projekt erstellen',
   open: 'Öffnen',
   fallbackTitle: 'Projekt',
@@ -32,4 +31,17 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'Was fehlt diesem Projekt?',
   whatIsMissingNote: 'Ein Logo, Fotos, eine Anzeige, ein Video, Musik oder ein Dokument: Jeder Spezialist von Weë kann hier etwas beitragen.',
   createSomethingNew: 'Etwas Neues erstellen',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'Deine Projekte werden geladen …',
+  loadFailed: 'Deine Projekte konnten nicht geladen werden.',
+  retry: 'Erneut versuchen',
+  emptyStart: 'Ein Projekt ist eine laufende Arbeit, die du jederzeit fortsetzen kannst. Erstelle hier eins oder speichere ein Ergebnis über „{{accion}}“ in einem Projekt.',
+  stateInProgress: 'In Arbeit',
+  updatedAgo: 'Geändert {{cuando}}',
+  continue: 'Fortsetzen',
+  continueProject: '{{nombre}} fortsetzen',
+  noThumbnail: 'Keine Vorschau',
+  loadProjectFailed: 'Dieses Projekt konnte nicht geöffnet werden.',
+  jobsLoadFailed: 'Der Inhalt dieses Projekts konnte nicht geladen werden.',
 };

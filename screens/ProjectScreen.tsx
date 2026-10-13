@@ -9,6 +9,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { projectsService, WeeProject } from '../services/projectsService';
 import { CreatorJob, claveDelEstado } from '../services/creatorService';
 import { getExperienceById } from '../constants/weeExperiences';
+import { materialesParaConservar } from '../components/creator/conservar';
+import BotonConservar from '../components/creator/BotonConservar';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, ClosingBanner } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -41,23 +43,40 @@ const ProjectScreen: React.FC = () => {
   const [project, setProject] = useState<WeeProject | null>(null);
   const [jobs, setJobs] = useState<CreatorJob[]>([]);
   const [loading, setLoading] = useState(true);
+  /*
+   * Un fallo no es un vacío (R9). Antes, si no se podía leer el proyecto, la
+   * pantalla decía «No encontramos este proyecto»; y si no se podían leer sus
+   * trabajos, «Todavía no hay creaciones aquí». Las dos eran mentira: el
+   * proyecto existía y tenía trabajos. Ahora cada fallo se dice y se reintenta.
+   */
+  const [fallo, setFallo] = useState(false);
+  const [falloDeTrabajos, setFalloDeTrabajos] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState('');
 
   const load = useCallback(async () => {
-    if (!user || !id) return;
+    if (!user || !id) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setFallo(false);
+    setFalloDeTrabajos(false);
     try {
       const found = await projectsService.get(id);
       setProject(found);
       setName(found?.name || '');
     } catch (error) {
       console.warn('No se pudo cargar el proyecto:', error);
+      setFallo(true);
+      setLoading(false);
+      return;
     }
     try {
       setJobs(await projectsService.jobsForProject(user.uid, id));
     } catch (error) {
-      // Si el índice todavía se está creando, el proyecto se muestra sin creaciones
       console.warn('No se pudieron cargar las creaciones del proyecto:', error);
+      setFalloDeTrabajos(true);
     }
     setLoading(false);
   }, [user, id]);
@@ -70,6 +89,11 @@ const ProjectScreen: React.FC = () => {
 
   const saveName = async () => {
     if (!project || !name.trim()) return;
+    /* Sin cambio real no se escribe: guardar el mismo nombre solo cierra el campo. */
+    if (name.trim() === project.name) {
+      setRenaming(false);
+      return;
+    }
     await projectsService.rename(project.id, name);
     setProject({ ...project, name: name.trim() });
     setRenaming(false);
@@ -102,6 +126,13 @@ const ProjectScreen: React.FC = () => {
     <CreatorShell activeId="projects" overline={t('weeai.myProjects')} title={title} breadcrumb={t('weeai.myProjects')}>
       {loading ? (
         <ActivityIndicator color={theme.colors.accent} />
+      ) : fallo ? (
+        <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.error }]}>
+          <Text style={[styles.errorText, { color: theme.colors.text }]}>{t('projects.loadProjectFailed')}</Text>
+          <TouchableOpacity onPress={load} style={[styles.smallButton, { backgroundColor: theme.colors.accent }]} accessibilityRole="button" accessibilityLabel={t('projects.retry')}>
+            <Text style={styles.smallButtonText}>{t('projects.retry')}</Text>
+          </TouchableOpacity>
+        </View>
       ) : !project ? (
         <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>{t('projects.notFound')}</Text>
       ) : (
@@ -144,19 +175,29 @@ const ProjectScreen: React.FC = () => {
           <View style={styles.section}>
             {/* «Añadir» lleva el proyecto por el selector y la ficha del especialista hasta CreatorFlow: lo que se cree desde aquí nace en él (CL-20, P11). */}
             <SectionTitle title={t('projects.creationsTitle')} action={t('projects.add')} onAction={() => navigation.navigate('WeeCreator', { projectId: id })} />
-            {jobs.length === 0 ? (
+            {falloDeTrabajos ? (
+              <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.error }]}>
+                <Text style={[styles.errorText, { color: theme.colors.text }]}>{t('projects.jobsLoadFailed')}</Text>
+                <TouchableOpacity onPress={load} style={[styles.smallButton, { backgroundColor: theme.colors.accent }]} accessibilityRole="button" accessibilityLabel={t('projects.retry')}>
+                  <Text style={styles.smallButtonText}>{t('projects.retry')}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : jobs.length === 0 ? (
               <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>
                 {t('projects.noCreations')}
               </Text>
             ) : (
               jobs.map((job) => {
                 const exp = getExperienceById(job.experienceId);
+                /* Solo un trabajo terminado, con material real y sin propuestas que elegir, se puede conservar desde aquí. */
+                const materiales = job.status === 'done' ? materialesParaConservar(job.results) : null;
                 return (
+                  <View key={job.id} style={styles.jobBlock}>
                   <TouchableOpacity
-                    key={job.id}
                     /* Con el proyecto: lo que se pida desde aquí —otra versión, un ajuste— nace en él y no se pierde entre las creaciones sueltas (CL-20). */
                     onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id, projectId: id })}
                     activeOpacity={0.8}
+                    accessibilityHint={t('projects.open')}
                     style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
                   >
                     <View style={[styles.jobIcon, { backgroundColor: theme.colors.accent + '26' }]}>
@@ -170,6 +211,9 @@ const ProjectScreen: React.FC = () => {
                     </View>
                     <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
+                  {/* «Guardar en Mis creaciones»: el mismo botón y la misma petición que en el resultado (R9). Solo sin propuestas que elegir. */}
+                  {!!materiales && <BotonConservar jobId={job.id} contenido={{ tipo: 'materiales', assetIds: materiales }} proyectoOrigenId={id} variante="suave" style={styles.keepRow} />}
+                  </View>
                 );
               })
             )}
@@ -275,6 +319,24 @@ const styles = StyleSheet.create({
   jobMeta: {
     fontSize: FONT_SIZE.xs,
     marginTop: scale(2),
+  },
+  jobBlock: {
+    gap: scale(6),
+  },
+  keepRow: {
+    alignSelf: 'flex-start',
+  },
+  errorBox: {
+    alignItems: 'center',
+    gap: SPACING.sm,
+    padding: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+  },
+  errorText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.semibold,
+    textAlign: 'center',
   },
 });
 

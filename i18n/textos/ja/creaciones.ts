@@ -87,4 +87,38 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsCommercialNotAllowed: '商用利用はできません。',
   rightsAttribution: 'ライセンスにより、出典の表示が必要です。',
   rightsBlockedIn: '次の地域では使用も表示もできません：{{lugares}}。',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: '完成させて、残すことにした結果です。アカウントのものなので、リアルプロフィールでもWeëプロフィールでも同じものが表示されます。',
+  keep: 'マイ作品に保存',
+  keeping: '保存中…',
+  keepPending: 'マイ作品への保存はまだ利用できません。結果は元の作業に保存されたままです。',
+  keepFailed: 'マイ作品に保存できませんでした。もう一度お試しください。',
+  emptyKeepText: '完成させて「{{accion}}」で残すことにした結果がここに表示されます。',
+  listPending: 'マイ作品はまだ表示できません。結果はそれぞれの作業に保存されたままです。',
+  locationLocal: 'この端末',
+  locationCloud: 'Weë Cloudと同期済み',
+  locationLegacy: '以前のストレージ',
+  locationLabel: '保存場所：{{lugar}}',
+  fromProject: 'プロジェクト「{{proyecto}}」から',
+  savedAgo: '保存：{{cuando}}',
+  editAgain: 'もう一度編集',
+  editAgainOf: '{{nombre}}をもう一度編集',
+  editAgainPending: 'もう一度編集する機能はまだ利用できません。',
+  editAgainFailed: '編集用に開けませんでした。もう一度お試しください。',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: '未決定',
+  undecidedText: '残すものを選べるようになる前に作った素材です。移動も削除もされていません。残したいものを作品として保存できます。',
+  undecidedFailed: '未決定の素材を読み込めませんでした。',
+  undecidedRetry: '未決定の素材をもう一度読み込む',
+  undecidedPending: '未決定の素材はまだ表示できません。何も削除されていません。',
+  undecidedEmpty: '未決定の素材はありません。',
+  undecidedLoadMore: '未決定の素材をさらに読み込む',
+  keepAsCreation: '作品として残す',
+  keepAsCreationOf: '{{nombre}}を作品として残す',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'すでにマイ作品にありました',
+  keepRetry: 'マイ作品への保存をもう一度試す',
 };

@@ -78,4 +78,38 @@ export const creaciones = {
   rightsCommercialNotAllowed: '不能用於商業用途。',
   rightsAttribution: '授權條款要求註明出處。',
   rightsBlockedIn: '不能在以下地區使用或展示：{{lugares}}。',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: '你完成並決定保留的結果。它們屬於你的帳號：在真實檔案和 Weë 檔案中看到的都一樣。',
+  keep: '儲存到我的作品',
+  keeping: '正在儲存…',
+  keepPending: '暫時還不能儲存到我的作品。你的結果仍儲存在原本的任務中。',
+  keepFailed: '無法儲存到我的作品，請再試一次。',
+  emptyKeepText: '你完成並透過「{{accion}}」決定保留的結果會顯示在這裡。',
+  listPending: '暫時還無法顯示我的作品。你的結果仍儲存在各自的任務中。',
+  locationLocal: '在此裝置上',
+  locationCloud: '已同步到 Weë Cloud',
+  locationLegacy: '舊的儲存空間',
+  locationLabel: '位置：{{lugar}}',
+  fromProject: '來自專案 {{proyecto}}',
+  savedAgo: '儲存於{{cuando}}',
+  editAgain: '再次編輯',
+  editAgainOf: '再次編輯：{{nombre}}',
+  editAgainPending: '暫時還不能再次編輯。',
+  editAgainFailed: '無法開啟進行編輯，請再試一次。',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: '未決定',
+  undecidedText: '在可以選擇保留什麼之前你建立的素材。沒有任何內容被移動或刪除：想保留的可以儲存為作品。',
+  undecidedFailed: '無法載入你未決定的素材。',
+  undecidedRetry: '重新載入未決定的素材',
+  undecidedPending: '暫時還無法顯示你未決定的素材。沒有任何內容被刪除。',
+  undecidedEmpty: '你沒有未決定的素材。',
+  undecidedLoadMore: '載入更多未決定的素材',
+  keepAsCreation: '保留為作品',
+  keepAsCreationOf: '將{{nombre}}保留為作品',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: '已經在你的作品中了',
+  keepRetry: '重新嘗試儲存到我的作品',
 };

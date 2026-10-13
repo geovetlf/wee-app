@@ -94,4 +94,38 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsCommercialNotAllowed: 'Den må ikke bruges kommercielt.',
   rightsAttribution: 'Licensen kræver kreditering.',
   rightsBlockedIn: 'Den må ikke bruges eller vises følgende steder: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'De resultater, du har gjort færdige og valgt at beholde. De hører til din konto: du ser de samme fra din ægte profil og fra din Weë-profil.',
+  keep: 'Gem i Mine kreationer',
+  keeping: 'Gemmer …',
+  keepPending: 'Det er endnu ikke muligt at gemme i Mine kreationer. Dit resultat er stadig gemt i sit job.',
+  keepFailed: 'Vi kunne ikke gemme den i Mine kreationer. Prøv igen.',
+  emptyKeepText: 'Her vises de resultater, du gør færdige og vælger at beholde med “{{accion}}”.',
+  listPending: 'Vi kan endnu ikke vise Mine kreationer. Dine resultater er stadig gemt i deres job.',
+  locationLocal: 'På denne enhed',
+  locationCloud: 'Synkroniseret med Weë Cloud',
+  locationLegacy: 'Tidligere lager',
+  locationLabel: 'Hvor den ligger: {{lugar}}',
+  fromProject: 'Fra projektet {{proyecto}}',
+  savedAgo: 'Gemt {{cuando}}',
+  editAgain: 'Redigér igen',
+  editAgainOf: 'Redigér {{nombre}} igen',
+  editAgainPending: 'Det er endnu ikke muligt at redigere igen.',
+  editAgainFailed: 'Vi kunne ikke åbne den til redigering. Prøv igen.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Ikke besluttet',
+  undecidedText: 'Materiale, du lavede, før du kunne vælge, hvad du ville beholde. Intet er flyttet eller slettet: behold det, du vil, som en kreation.',
+  undecidedFailed: 'Vi kunne ikke indlæse dit materiale, der ikke er besluttet.',
+  undecidedRetry: 'Prøv at indlæse materiale, der ikke er besluttet, igen',
+  undecidedPending: 'Vi kan endnu ikke vise dit materiale, der ikke er besluttet. Intet er slettet.',
+  undecidedEmpty: 'Du har intet materiale, der ikke er besluttet.',
+  undecidedLoadMore: 'Indlæs mere materiale, der ikke er besluttet',
+  keepAsCreation: 'Behold som kreation',
+  keepAsCreationOf: 'Behold {{nombre}} som kreation',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Den var allerede i dine kreationer',
+  keepRetry: 'Prøv at gemme i Mine kreationer igen',
 };

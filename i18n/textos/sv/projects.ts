@@ -14,13 +14,12 @@
  * «1 skapelse», «3 skapelser».
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Dina skapelser, sorterade efter projekt',
-  introText: 'Ett projekt kan innehålla logga, foton, annonser, videor, musik och dokument. Spara varje resultat i rätt projekt med ”{{accion}}”.',
+  introTitle: 'Ditt pågående arbete',
+  introText: 'Det du gör med Weë AI finns kvar här så att du kan fortsätta när du vill. Spara varje resultat i sitt projekt via ”{{accion}}”; det du gör klart och väljer att behålla hamnar i Mina skapelser.',
   sectionTitle: 'Projekt',
   emojiLabel: 'Emojin {{emoji}}',
   namePlaceholder: 'T.ex. Min restaurang',
   emptyTitle: 'Inga projekt ännu',
-  emptyText: 'Skapa ditt första projekt eller spara en skapelse i ett projekt direkt från resultatet.',
   emptyAction: 'Skapa mitt första projekt',
   open: 'Öppna',
   fallbackTitle: 'Projekt',
@@ -38,4 +37,17 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'Vad saknas i projektet?',
   whatIsMissingNote: 'En logga, foton, en annons, en video, musik eller ett dokument: alla Weë-experter kan bidra här.',
   createSomethingNew: 'Skapa något nytt',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'Laddar dina projekt …',
+  loadFailed: 'Vi kunde inte ladda dina projekt.',
+  retry: 'Försök igen',
+  emptyStart: 'Ett projekt är ett pågående arbete som du kan återuppta när du vill. Skapa ett här eller spara ett resultat i ett projekt via ”{{accion}}”.',
+  stateInProgress: 'Pågår',
+  updatedAgo: 'Ändrat {{cuando}}',
+  continue: 'Fortsätt',
+  continueProject: 'Fortsätt med {{nombre}}',
+  noThumbnail: 'Ingen förhandsvisning',
+  loadProjectFailed: 'Vi kunde inte öppna det här projektet.',
+  jobsLoadFailed: 'Vi kunde inte ladda innehållet i det här projektet.',
 };

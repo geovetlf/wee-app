@@ -357,6 +357,8 @@ const piezasDelProyecto = ({ h: hh, capturar }, actual) => ({
     SectionTitle: capturar('SectionTitle', (p) => hh('h2', null, p.title)),
     ClosingBanner: capturar('ClosingBanner', (p) => hh('aside', null, p.title)),
   },
+  /* R9 (línea B): «Guardar en Mis creaciones» de cada trabajo es una pieza propia; se prueba en `pc-interfaz-pantallas`. Aquí se captura. */
+  '../components/creator/BotonConservar': { __esModule: true, default: capturar('BotonConservar') },
   '../services/projectsService': {
     projectsService: { get: async () => actual.proyecto, jobsForProject: async () => actual.trabajos, rename: async () => {}, remove: async () => {} },
   },

@@ -78,4 +78,38 @@ export const creaciones = {
   rightsCommercialNotAllowed: 'Não pode ser usado para fins comerciais.',
   rightsAttribution: 'A licença exige atribuição.',
   rightsBlockedIn: 'Não pode ser usado nem mostrado nestes locais: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Os resultados que terminaste e decidiste guardar. São da tua conta: vês os mesmos no Perfil Real e no Perfil Weë.',
+  keep: 'Guardar em «As minhas criações»',
+  keeping: 'A guardar…',
+  keepPending: 'Guardar em «As minhas criações» ainda não está disponível. O teu resultado continua guardado no respetivo trabalho.',
+  keepFailed: 'Não conseguimos guardá-la em «As minhas criações». Tenta novamente.',
+  emptyKeepText: 'Aqui aparecem os resultados que terminas e decides guardar com «{{accion}}».',
+  listPending: 'Ainda não conseguimos mostrar «As minhas criações». Os teus resultados continuam guardados nos respetivos trabalhos.',
+  locationLocal: 'Neste dispositivo',
+  locationCloud: 'Sincronizado com Weë Cloud',
+  locationLegacy: 'Armazenamento anterior',
+  locationLabel: 'Onde está: {{lugar}}',
+  fromProject: 'Do projeto {{proyecto}}',
+  savedAgo: 'Guardada {{cuando}}',
+  editAgain: 'Voltar a editar',
+  editAgainOf: 'Voltar a editar {{nombre}}',
+  editAgainPending: 'Voltar a editar ainda não está disponível.',
+  editAgainFailed: 'Não conseguimos abri-la para edição. Tenta novamente.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Por decidir',
+  undecidedText: 'Material que criaste antes de poderes escolher o que guardar. Nada foi movido nem apagado: guarda como criação o que quiseres.',
+  undecidedFailed: 'Não conseguimos carregar o teu material por decidir.',
+  undecidedRetry: 'Tentar carregar novamente o material por decidir',
+  undecidedPending: 'Ainda não conseguimos mostrar o teu material por decidir. Nada foi apagado.',
+  undecidedEmpty: 'Não tens material por decidir.',
+  undecidedLoadMore: 'Carregar mais material por decidir',
+  keepAsCreation: 'Guardar como criação',
+  keepAsCreationOf: 'Guardar {{nombre}} como criação',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Já estava nas tuas criações',
+  keepRetry: 'Tentar novamente guardar em «As minhas criações»',
 };

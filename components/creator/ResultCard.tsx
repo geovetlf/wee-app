@@ -14,6 +14,8 @@ import { scale } from '../../utils/scale';
 import { descargarCreacion } from '../../services/assetDownload';
 import { notify } from '../../utils/notify';
 import { TarjetaTresD } from './TarjetaTresD';
+import { materialesParaConservar } from './conservar';
+import BotonConservar from './BotonConservar';
 
 /** Forma de onda decorativa del reproductor. */
 const WAVE = [8, 14, 20, 12, 26, 18, 10, 22, 16, 28, 12, 20, 9, 24, 14, 18, 26, 11, 17, 22, 13, 19, 8, 15];
@@ -346,14 +348,20 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
   const aconsejo = !!onContinue && !visuals.length && job.plan?.steps.some((s) => s.id === 'advice') === true;
 
   /*
-   * DESCARGAR Y «YA ESTÁ GUARDADA» (Fase 11, §23).
+   * DESCARGAR Y «GUARDAR EN MIS CREACIONES» (Fase 11, §23 → R9).
    *
    * Lo que Weë genera ya es material de la cuenta desde que existe: el
-   * servidor lo guarda una vez, con su ficha y su id, y aparece en «Mis
-   * creaciones». Por eso aquí no hay un botón «Guardar» que cree otra copia:
-   * hay la constancia de que ya lo está —con el camino a la biblioteca— y
-   * la descarga del archivo tal cual. Sin porcentaje: la descarga no lo da.
+   * servidor lo guarda una vez, con su ficha y su id. Pero un material no es
+   * una CREACIÓN: «Mis creaciones» es lo que la persona DECIDIÓ conservar (R9).
+   * Por eso aquí hay un botón que toma esa decisión —`finalizarCreacion`, que
+   * referencia los materiales y no copia ningún archivo— y, cuando ya está
+   * tomada, la constancia con el camino a la biblioteca. Es idempotente: el
+   * doble toque no duplica (el botón se ocupa mientras confirma y el
+   * `requestId` sale del trabajo y de lo elegido). Si el contrato todavía no
+   * lo ofrece, se dice; nunca se finge que quedó guardada.
    */
+  const materiales = materialesParaConservar(job.results, chosen);
+
   const [descargando, setDescargando] = useState(false);
   const descargar = async () => {
     if (!publicable || descargando) return;
@@ -379,6 +387,15 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
     trabajoDeEspacio && job.plan?.steps.some((s) => s.id === stepId && s.capability === 'vision.describe') === true;
 
   const texts = job.results.filter((r) => r.content && r.kind !== 'audio' && !narracionInterna(r.stepId));
+  /*
+   * EL TEXTO FINAL (D-3 del dueño, 2026-10-12). Una receta de Weë Chef, un plan de Weë Business o un itinerario de Weë
+   * Travel que salen por aquí son el resultado terminado de un trabajo, y la persona puede elegir conservarlos en «Mis
+   * creaciones». Solo si el trabajo terminó, no es de muestra y no tiene materiales (si los tiene, se conservan ellos).
+   * Nada se guarda solo: lo provisional de una conversación nunca llega a esta tarjeta y el botón lo pulsa la persona.
+   */
+  const textoFinal = !materiales && job.status === 'done' && !job.demo
+    ? texts.filter((r) => !r.url && !r.demo).map((r) => (r.content || '').trim()).filter(Boolean).join('\n\n')
+    : '';
 
   /*
    * El orden de la pantalla lo decide de qué es el trabajo (fase 2E-63).
@@ -697,31 +714,26 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
           </TouchableOpacity>
       </View>
 
-      {publicable && (
+      {(!!publicable || !!materiales || !!textoFinal) && (
         <View style={styles.creacionRow}>
-          <TouchableOpacity
-            onPress={descargar}
-            disabled={busy || descargando}
-            style={[styles.creacionBoton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={t('creaciones.download')}
-          >
-            <Ionicons name="download-outline" size={scale(16)} color={theme.colors.text} />
-            <Text style={[styles.creacionTexto, { color: theme.colors.text }]}>{t('creaciones.download')}</Text>
-          </TouchableOpacity>
-          {!!(publicable.assetId && onOpenCreations) && (
+          {publicable && (
             <TouchableOpacity
-              onPress={onOpenCreations}
-              disabled={busy}
-              style={[styles.creacionBoton, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
+              onPress={descargar}
+              disabled={busy || descargando}
+              style={[styles.creacionBoton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
               activeOpacity={0.8}
               accessibilityRole="button"
-              accessibilityLabel={t('creaciones.savedInCreations')}
+              accessibilityLabel={t('creaciones.download')}
             >
-              <Ionicons name="checkmark-circle" size={scale(16)} color={theme.colors.accentDark} />
-              <Text style={[styles.creacionTexto, { color: theme.colors.text }]}>{t('creaciones.savedInCreations')}</Text>
+              <Ionicons name="download-outline" size={scale(16)} color={theme.colors.text} />
+              <Text style={[styles.creacionTexto, { color: theme.colors.text }]}>{t('creaciones.download')}</Text>
             </TouchableOpacity>
+          )}
+          {!!materiales && (
+            <BotonConservar jobId={job.id} contenido={{ tipo: 'materiales', assetIds: materiales }} proyectoOrigenId={job.projectId ?? null} onOpenCreations={onOpenCreations} disabled={busy} />
+          )}
+          {!!textoFinal && (
+            <BotonConservar jobId={job.id} contenido={{ tipo: 'texto', texto: textoFinal, herramienta: job.experienceId }} proyectoOrigenId={job.projectId ?? null} onOpenCreations={onOpenCreations} disabled={busy} />
           )}
         </View>
       )}

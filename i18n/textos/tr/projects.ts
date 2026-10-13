@@ -11,13 +11,12 @@
  * cifra en las dos formas.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'İçeriklerini projelere göre düzenle',
-  introText: 'Bir projede logo, fotoğraf, reklam, video, müzik ve belge olabilir. Her sonucu “{{accion}}” seçeneğiyle kendi projesine ekle.',
+  introTitle: 'Devam eden çalışman',
+  introText: 'Weë AI ile yaptıkların burada kalır; istediğin zaman devam edebilirsin. Her sonucu “{{accion}}” ile kendi projesine kaydet; bitirip saklamaya karar verdiklerin Oluşturduklarım’a gider.',
   sectionTitle: 'Projeler',
   emojiLabel: '{{emoji}} emojisi',
   namePlaceholder: 'Örnek: Restoranım',
   emptyTitle: 'Henüz projen yok',
-  emptyText: 'İlk projeni oluştur ya da bir içeriği, sonuç ekranından bir projeye kaydet.',
   emptyAction: 'İlk projemi oluştur',
   open: 'Aç',
   fallbackTitle: 'Proje',
@@ -35,4 +34,17 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'Bu projede ne eksik?',
   whatIsMissingNote: 'Bir logo, fotoğraflar, bir reklam, bir video, müzik ya da bir belge: Weë\'nin her uzmanı buraya bir şey katabilir.',
   createSomethingNew: 'Yeni bir şey oluştur',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'Projelerin yükleniyor…',
+  loadFailed: 'Projelerini yükleyemedik.',
+  retry: 'Tekrar dene',
+  emptyStart: 'Proje, istediğin zaman kaldığın yerden devam edebileceğin, süren bir çalışmadır. Burada bir tane oluştur ya da bir sonucu “{{accion}}” ile bir projeye kaydet.',
+  stateInProgress: 'Devam ediyor',
+  updatedAgo: 'Değiştirildi: {{cuando}}',
+  continue: 'Devam et',
+  continueProject: '{{nombre}} ile devam et',
+  noThumbnail: 'Önizleme yok',
+  loadProjectFailed: 'Bu projeyi açamadık.',
+  jobsLoadFailed: 'Bu projenin içeriğini yükleyemedik.',
 };
