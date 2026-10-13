@@ -195,6 +195,90 @@ const cruzado = await intento(() => C.cicloDeTrabajo.run({ auth: { uid: ANA }, d
 check('10f) por el callable, Ana no finaliza un asset real de Beto', !cruzado.ok && cruzado.error.code === 'not-found' && deCuenta(ANA).every((c) => !c.assetIds.includes(REAL_BETO)));
 
 /* ── 11 · estado de despliegue ────────────────────────────────────────── */
+/* ── 12 · D-3 · texto final como asset ─────────────────────────────────── */
+console.log('\n── 12 · D-3 · texto final ──');
+/* El Content Core crea la ficha de texto con `create` (solo si no existe): la base en memoria lo aprende aquí. */
+Object.getPrototypeOf(base.doc('x/y')).create = async function create(data) {
+  if (this.base.docs.has(this.path)) { const e = new Error('ya existe'); e.code = 6; throw e; }
+  this.base.docs.set(this.path, JSON.parse(JSON.stringify(data)));
+};
+base.docs.set('creatorProjects/proj_ana_chef', { userId: ANA, name: 'Cenas', emoji: '📁', createdAt: 1, updatedAt: 1 });
+const receta = 'Pollo al horno\n1. Precalienta a 200 °C.\n2. Hornea 45 min.';
+const assetsAntesTexto = base.de('assets').length;
+const t1 = await C.guardarTextoFinalDeCuenta(ANA, { texto: receta, herramienta: 'chef', proyectoOrigenId: 'proj_ana_chef', requestId: 'req-texto-0001', nombre: 'Pollo al horno' }, deps);
+const fichaTexto = base.leer(`assets/${t1.assetId}`);
+check('12) guardar un texto final crea UN asset de texto de la cuenta, con fecha, procedencia y herramienta',
+  !t1.yaExistia && fichaTexto?.kind === 'text' && fichaTexto.ownerAccountId === ANA && fichaTexto.contenido === receta
+  && fichaTexto.provenance?.requestId === 'req-texto-0001' && fichaTexto.metadata?.experienceId === 'chef' && Number.isFinite(fichaTexto.createdAt)
+  && base.de('assets').length === assetsAntesTexto + 1);
+const cTexto = base.leer(`creations/${t1.creacionId}`);
+check('12b) y su creación final, vinculada al proyecto, en Weë Cloud (no «local»)',
+  cTexto?.status === 'final' && JSON.stringify(cTexto.assetIds) === JSON.stringify([t1.assetId]) && cTexto.proyectoOrigenId === 'proj_ana_chef'
+  && cTexto.tipo === 'text' && cTexto.herramienta === 'chef' && cTexto.ubicacion === 'wee_cloud' && cTexto.nombre === 'Pollo al horno');
+const t2 = await C.guardarTextoFinalDeCuenta(ANA, { texto: receta, herramienta: 'chef', proyectoOrigenId: 'proj_ana_chef', requestId: 'req-texto-0001', nombre: 'Pollo al horno' }, deps);
+check('12c) repetir la misma petición no duplica ni el asset ni la creación', t2.yaExistia && t2.assetId === t1.assetId && t2.creacionId === t1.creacionId && base.de('assets').length === assetsAntesTexto + 1);
+const t3 = await intento(() => C.guardarTextoFinalDeCuenta(ANA, { texto: 'Otra receta', herramienta: 'chef', requestId: 'req-texto-0001' }, deps));
+check('12d) la misma petición con OTRO texto es conflicto (no pisa el guardado)', !t3.ok && t3.error.code === 'conflicto' && base.leer(`assets/${t1.assetId}`).contenido === receta);
+const t4 = await intento(() => C.guardarTextoFinalDeCuenta(ANA, { texto: receta, herramienta: 'chef', proyectoOrigenId: 'proj_beto_1', requestId: 'req-texto-0002' }, deps));
+check('12e) no se cuelga del proyecto de otra cuenta', !t4.ok && t4.error.code === 'no_encontrado' && !base.leer(`assets/${C.idDeTextoFinal(ANA, 'req-texto-0002')}`));
+const t5 = await intento(() => C.guardarTextoFinalDeCuenta(ANA, { texto: '   ', herramienta: 'chef', requestId: 'req-texto-0003' }, deps));
+const t6 = await intento(() => C.guardarTextoFinalDeCuenta(ANA, { texto: 'x'.repeat(C.MAXIMO_DE_TEXTO_FINAL + 1), herramienta: 'chef', requestId: 'req-texto-0004' }, deps));
+check('12f) CONTROL · un texto vacío o desmesurado no se guarda', !t5.ok && t5.error.code === 'invalido' && !t6.ok && t6.error.code === 'invalido');
+check('12g) mismo requestId en dos cuentas = dos assets distintos', C.idDeTextoFinal(ANA, 'r') !== C.idDeTextoFinal(BETO, 'r'));
+const genera = leer('functions/src/creator/index.ts') + leer('functions/src/creator/brain.ts') + leer('functions/src/runtime/index.ts');
+check('12h) NINGÚN camino de generación guarda textos finales: solo la decisión de la persona (callable)', !/guardarTextoFinal/.test(genera));
+const viaTexto = await intento(() => C.cicloDeTrabajo.run({ auth: { uid: BETO }, data: { accion: 'guardarTexto', texto: 'Itinerario', herramienta: 'travel', requestId: 'req-texto-beto1' } }));
+check('12i) por el callable, la cuenta la pone la sesión', viaTexto.ok && base.leer(`assets/${viaTexto.valor.assetId}`)?.ownerAccountId === BETO && base.leer(`creations/${viaTexto.valor.creacionId}`)?.ownerAccountId === BETO);
+
+/* ── 13 · D-5 · borrar un asset con su impacto ─────────────────────────── */
+console.log('\n── 13 · D-5 · borrar un asset ──');
+const retiradas = [];
+const depsBorrar = { ...deps, retirar: async (cuenta, id) => { retiradas.push(id); const f = base.leer(`assets/${id}`); base.docs.set(`assets/${id}`, { ...f, status: 'deleted' }); return { status: 'retirado', asset: f, objetosBorrados: 0, pendientes: 1 }; } };
+base.docs.set('assets/asset_ana_x', ficha('asset_ana_x', ANA, { provenance: { createdAt: 1 } }));
+base.docs.set('assets/asset_ana_y', ficha('asset_ana_y', ANA, { provenance: { createdAt: 1 } }));
+const par = await C.finalizarCreacionDeCuenta(ANA, { assetIds: ['asset_ana_x', 'asset_ana_y'], requestId: 'req-borrar-01' }, deps);
+const solo = await C.finalizarCreacionDeCuenta(ANA, { assetIds: ['asset_ana_x'], requestId: 'req-borrar-02' }, deps);
+const imp = await C.impactoDeBorrarAsset(ANA, 'asset_ana_x', deps);
+check('13) el impacto dice qué creaciones lo pierden y cuál queda vacía, sin cambiar nada',
+  imp.irreversible === true && imp.requiereConfirmacion === true && imp.creaciones.length === 2
+  && imp.creaciones.find((c) => c.creacionId === par.creacionId)?.quedaVacia === false && imp.creaciones.find((c) => c.creacionId === solo.creacionId)?.quedaVacia === true
+  && base.leer('assets/asset_ana_x').status === 'ready' && base.leer(`creations/${par.creacionId}`).status === 'final');
+const sinConfirmar = await C.borrarAssetDeCuenta(ANA, 'asset_ana_x', undefined, depsBorrar);
+check('13b) sin confirmar no se borra nada: devuelve el impacto', sinConfirmar.hecho === false && sinConfirmar.necesitaConfirmacion && retiradas.length === 0 && base.leer('assets/asset_ana_x').status === 'ready');
+const conTexto = await C.borrarAssetDeCuenta(ANA, 'asset_ana_x', 'true', depsBorrar);
+check('13c) CONTROL · «confirmar» tiene que ser true de verdad, no algo que lo parezca', conTexto.hecho === false && retiradas.length === 0);
+const hecho = await C.borrarAssetDeCuenta(ANA, 'asset_ana_x', true, depsBorrar);
+const nuevaPar = hecho.sustituciones[par.creacionId];
+check('13d) con confirmación: la creación con dos assets NO se borra entera — sigue viva con el otro', hecho.hecho && !!nuevaPar
+  && base.leer(`creations/${nuevaPar}`)?.status === 'final' && JSON.stringify(base.leer(`creations/${nuevaPar}`).assetIds) === '["asset_ana_y"]'
+  && base.leer('assets/asset_ana_y').status === 'ready');
+check('13e) la que solo tenía ese asset queda eliminada (no hay creaciones vacías)', hecho.sustituciones[solo.creacionId] === null && base.leer(`creations/${solo.creacionId}`).status === 'eliminada');
+check('13f) ninguna creación final apunta al asset retirado (sin referencias rotas)', base.de('creations').filter((c) => c.status === 'final').every((c) => !c.assetIds.includes('asset_ana_x')) && retiradas.join() === 'asset_ana_x');
+check('13g) la nueva sigue el id de su conjunto: finalizar lo que quedó devuelve esa, sin duplicar', nuevaPar === C.idDeCreacion(ANA, ['asset_ana_y'])
+  && (await C.finalizarCreacionDeCuenta(ANA, { assetIds: ['asset_ana_y'], requestId: 'req-borrar-03' }, deps)).creacionId === nuevaPar);
+check('13h) y la anterior recuerda por cuál la sustituyeron', base.leer(`creations/${par.creacionId}`).sustituidaPor === nuevaPar && base.leer(`creations/${par.creacionId}`).status === 'eliminada');
+base.docs.set('assets/asset_ana_z', ficha('asset_ana_z', ANA, { provenance: { createdAt: 1 } }));
+base.docs.set('elements/el_ana_1', { ownerAccountId: ANA, status: 'active', refs: [{ assetId: 'asset_ana_z', role: 'reference', kind: 'image' }] });
+base.docs.set('assets/asset_ana_w', ficha('asset_ana_w', ANA, { provenance: { createdAt: 1 } }));
+base.docs.set('shots/shot_ana_1', { ownerAccountId: ANA, producedAssetId: 'asset_ana_w' });
+const bloqEl = await intento(() => C.borrarAssetDeCuenta(ANA, 'asset_ana_z', true, depsBorrar));
+const bloqPl = await intento(() => C.borrarAssetDeCuenta(ANA, 'asset_ana_w', true, depsBorrar));
+check('13i) lo que un Element o un plano referencia se conserva: el borrado se bloquea aunque se confirme',
+  !bloqEl.ok && bloqEl.error.code === 'referenciado' && bloqEl.error.detalle?.bloqueos?.[0]?.tipo === 'elemento'
+  && !bloqPl.ok && bloqPl.error.code === 'referenciado' && bloqPl.error.detalle?.bloqueos?.[0]?.tipo === 'plano'
+  && !retiradas.includes('asset_ana_z') && !retiradas.includes('asset_ana_w'));
+base.docs.set('elements/el_beto_1', { ownerAccountId: BETO, status: 'active', refs: [{ assetId: 'asset_ana_y', role: 'reference', kind: 'image' }] });
+const impY = await C.impactoDeBorrarAsset(ANA, 'asset_ana_y', deps);
+check('13j) CONTROL · un Element de OTRA cuenta no cuenta (ni se ve)', impY.bloqueos.length === 0);
+const ajenoB = await intento(() => C.borrarAssetDeCuenta(BETO, 'asset_ana_y', true, depsBorrar));
+check('13k) Beto no puede borrar ni ver el impacto de un asset de Ana', !ajenoB.ok && ajenoB.error.code === 'no_encontrado' && base.leer('assets/asset_ana_y').status === 'ready');
+/* Por el callable lee el Content Core de verdad: id con forma `asset_<32 hex>`. */
+const REAL_Z = 'asset_' + 'c'.repeat(32);
+base.docs.set(`assets/${REAL_Z}`, ficha(REAL_Z, ANA, { provenance: { createdAt: 1 } }));
+base.docs.set('elements/el_ana_2', { ownerAccountId: ANA, status: 'active', refs: [{ assetId: REAL_Z, role: 'reference', kind: 'image' }] });
+const viaRef = await intento(() => C.cicloDeTrabajo.run({ auth: { uid: ANA }, data: { accion: 'borrarAsset', assetId: REAL_Z, confirmar: true } }));
+check('13l) por el callable, el bloqueo llega como failed-precondition con el impacto en details', !viaRef.ok && viaRef.error.code === 'failed-precondition' && viaRef.error.details?.code === 'referenciado' && viaRef.error.details?.impacto?.bloqueos?.length === 1);
+
 console.log('\n── 11 · despliegue ──');
 check('11) D-2 · el callable está conectado en el índice (autorizado por el dueño, 2026-10-12)', /export \{ cicloDeTrabajo \} from '\.\/content\/creaciones';/.test(leer('functions/src/index.ts')) && typeof lib('index.js').cicloDeTrabajo?.run === 'function');
 check('11-c) y NO se despliega: está en no_se_despliegan', JSON.parse(leer('ops/despliegue/grupos.json')).no_se_despliegan.some((x) => x.funcion === 'cicloDeTrabajo')

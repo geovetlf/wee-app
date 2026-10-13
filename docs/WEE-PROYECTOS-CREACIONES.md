@@ -105,6 +105,17 @@ Decisión del dueño, 2026-10-12, transmitida por el coordinador de R9. Sustituy
   proyecto en CADA solicitud; se actualizan B10 de `weeai-cliente-cierre` y las pruebas antiguas al comportamiento
   seguro (sin debilitar controles) y se añaden pruebas de acceso cruzado.
 
+### Cómo quedó implementado cada decisión (rama `r9/pc-dominio`, sin desplegar)
+
+| Decisión | Implementación | Prueba |
+|---|---|---|
+| D-1 | `listarSinDecidir(uid, cursor?)` en `services/cicloDeTrabajo.ts`: misma consulta e índice que `assetsService.listar`; lee las creaciones finales UNA vez y las arrastra en el cursor; hasta 3 páginas de assets por llamada. Una creación `eliminada` no decide: sus assets vuelven a «Sin decidir». | `pc-dominio-cliente` |
+| D-2 | `export { cicloDeTrabajo }` en `functions/src/index.ts`; `runtime-map` (FUNCTIONS + ESPERADO) modificada con autorización; `ops/despliegue/grupos.json` → `no_se_despliegan`. Reglas `creations` + `creatorJobs` e índice `creations` preparados; emulador `pc-dominio-reglas.emulator.mjs` listo para el coordinador. | `pc-dominio-ciclo` § 11, `runtime-map` |
+| D-3 | Acción `guardarTexto` → `guardarTextoFinalDeCuenta`: asset de texto por `crearMaterialDeTexto` (id derivado del `requestId`, `metadata.experienceId`, `provenance.requestId`), y su creación; otro texto con el mismo `requestId` = `conflicto`. Ningún camino de generación lo llama. Contrato `guardarTextoFinal`. | `pc-dominio-ciclo` § 12 |
+| D-4 | `utils/creacionesLocales.ts` (archivo `creaciones-locales.json` en el `AlmacenLocal`), modelo `ReferenciaLocal` / `idDeCreacionLocal` / `requiereConexion`, contrato `abrirCreacionesLocales` + `creacionLocalComoFinal` (`ubicacion: 'local'`, `sincronizacion: 'solo_local'`). No toca los módulos de la línea C. | `pc-dominio-local`, `pc-dominio-modelo` |
+| D-5 | Acciones `impactoDeBorrado` y `borrarAsset` (`confirmar === true` obligatorio). Cada creación pierde SOLO ese asset (pasa al id de su nuevo conjunto; vacía → eliminada); Elements y planos que lo usan BLOQUEAN (`referenciado`, con el impacto en `details`); luego `retirarMaterial`. `deleteAsset` sigue igual para no mover su cerca: la interfaz debe usar `borrarAsset`. | `pc-dominio-ciclo` § 13, `pc-dominio-cliente` |
+| D-6 | `proyectoPropio` en `creator/index.ts`: el `projectId` solo se guarda si existe y es de quien pide; si no, el trabajo nace sin proyecto. B10 de `weeai-cliente-cierre` convertido en comprobación con acceso cruzado. | `weeai-cliente-cierre` |
+
 ## 6. Propuestas originales (histórico; ver § 6.0 para lo decidido)
 
 - **D-1 · Los assets existentes que hoy salen en «Mis creaciones».** Opciones: (a) tratarlos todos como finales
