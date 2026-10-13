@@ -345,7 +345,8 @@ const LandingScreen: React.FC = () => {
    */
   const crearWeel = useCallback(() => {
     const mainNavigation = navigation.getParent()?.getParent();
-    (mainNavigation as any)?.navigate(user ? 'Create' : 'Login', user ? { kind: 'weel' } : undefined);
+    /* El creador de Weëls (`CrearWeel`): su propio flujo de vídeo vertical, no el compositor del Wall. */
+    (mainNavigation as any)?.navigate(user ? 'CrearWeel' : 'Login');
   }, [navigation, user]);
 
   const abrirElVisor = useCallback((desde?: Post) => {

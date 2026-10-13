@@ -78,4 +78,6 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'Nascondi il prompt',
   copyPrompt: 'Copia il prompt',
   promptCopied: 'Copiato',
+  demoBadge: 'Demo',
+  demoBadgeLabel: 'Contenuto dimostrativo',
 };

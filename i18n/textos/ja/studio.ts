@@ -232,6 +232,10 @@ export const studio: typeof import('../es/studio').studio = {
   ready: '作成完了',
   readyHint: 'これはデモです。実際にはまだ何も生成されていません。',
   dismiss: 'わかりました',
+  /* R9 · E2: lo escrito no encaja con ningún sitio del Studio; se dice y se ofrece Weë Brain. */
+  noDestination: 'これをStudioのどこに持っていけばいいかわかりません',
+  noDestinationHint: '始める場所を選ぶか、Weë Brainに話してください。',
+  askBrain: 'Weë Brainに聞く',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
   soon: '準備中',

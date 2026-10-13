@@ -78,4 +78,38 @@ export const creaciones = {
   rightsCommercialNotAllowed: 'It can’t be used commercially.',
   rightsAttribution: 'Its license requires attribution.',
   rightsBlockedIn: 'It can’t be used or shown in: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'The results you finished and decided to keep. They belong to your account: you see the same ones from the Real profile and the Weë profile.',
+  keep: 'Save to My creations',
+  keeping: 'Saving…',
+  keepPending: 'Saving to My creations isn’t available yet. Your result is still saved in its job.',
+  keepFailed: 'We couldn’t save it to My creations. Please try again.',
+  emptyKeepText: 'The results you finish and decide to keep with “{{accion}}” show up here.',
+  listPending: 'We can’t show My creations yet. Your results are still saved in their jobs.',
+  locationLocal: 'On this device',
+  locationCloud: 'Synced to Weë Cloud',
+  locationLegacy: 'Previous storage',
+  locationLabel: 'Where it is: {{lugar}}',
+  fromProject: 'From the project {{proyecto}}',
+  savedAgo: 'Saved {{cuando}}',
+  editAgain: 'Edit again',
+  editAgainOf: 'Edit {{nombre}} again',
+  editAgainPending: 'Editing again isn’t available yet.',
+  editAgainFailed: 'We couldn’t open it for editing. Please try again.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Undecided',
+  undecidedText: 'Material you made before you could choose what to keep. Nothing was moved or deleted: keep whatever you want as a creation.',
+  undecidedFailed: 'We couldn’t load your undecided material.',
+  undecidedRetry: 'Try loading your undecided material again',
+  undecidedPending: 'We can’t show your undecided material yet. Nothing has been deleted.',
+  undecidedEmpty: 'You have no undecided material.',
+  undecidedLoadMore: 'Load more undecided material',
+  keepAsCreation: 'Keep as a creation',
+  keepAsCreationOf: 'Keep {{nombre}} as a creation',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'It was already in your creations',
+  keepRetry: 'Try saving to My creations again',
 };

@@ -299,9 +299,13 @@ console.log('\n── B · Un post, varios sitios donde se lee ──');
   // Un vídeo, quince segundos, comprobados ANTES de subir y sin tocar el archivo.
   check('123) quince segundos, todos los vídeos', /const maxVideoDurationSeconds = 15;/.test(crearCrudo));
   check('123) se rechaza diciendo cuánto dura',
-    /t\(isWeel \? 'composer\.weelMaxDuration' : 'composer\.videoMaxDuration',/.test(crearCrudo)
+    /*
+     * R9-H: sin modo Weël en el compositor (va a CrearWeel), el aviso es siempre el de vídeo. Se mira el fuente SIN
+     * resolver: resuelto, `t('composer.videoMaxDuration', {…})` queda en la frase y sus valores no se ven.
+     */
+    /t\('composer\.videoMaxDuration', \{ maximo: maxVideoDurationSeconds, duracion: lasted \}\)/.test(leerCrudo('screens/CreateScreen.tsx'))
     && /no puede durar más de \{\{maximo\}\} segundos\. Tu video dura \{\{duracion\}\}\./.test(ES.composer.videoMaxDuration)
-    && /\{ maximo: maxVideoDurationSeconds, duracion: lasted \}/.test(crearCrudo));
+    && /\{ maximo: maxVideoDurationSeconds, duracion: lasted \}/.test(leerCrudo('screens/CreateScreen.tsx')));
   // Ojo con la vara: 'trim' a secas cazaba las llamadas a .trim() del propio código.
   check('123) y no se recorta ni se convierte con IA', !/ffmpeg|transcode|videoTrim|recortarVideo|trimVideo/i.test(crear));
 

@@ -154,6 +154,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en turco que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['wall.demoBadge', '«Demo» es la palabra turca (etiqueta del modo demo)'],
     ['filmmaker.presetShorts', '«YouTube Shorts» es el nombre de la plataforma, que no se traduce, y ya dice que es vídeo (con «videosu» se corta en su casilla)'],
     ['composer.kindVideo', '«Video» es la palabra turca (glosario § 10.1)'],
     ['engine.modalityVideo', '«video» es la palabra turca (glosario § 10.1)'],
@@ -440,6 +441,8 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* «En proceso» (R9): el estado de un PROYECTO que sigue abierto para retomarlo, no una transacción de Credits que se está procesando (credits.txPending). */
+    'projects.stateInProgress',
     /* «Personas» como estilo de avatar son personas; en el Chef, «Personas» es cuántos comen. */
     'avatar.stylePeople',
     /* «Subir»/«Bajar» en Filmmaker reordenan escenas y planos (Yukarı/Aşağı taşı); en Studio son la grúa de la cámara (Yükselme/Alçalma). */

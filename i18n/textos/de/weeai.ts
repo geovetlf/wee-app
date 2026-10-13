@@ -57,6 +57,14 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: 'Entfernen',
   tryAgain: 'Noch einmal versuchen',
   itDidNotWork: 'Das hat nicht geklappt. Dir wurde nichts berechnet.',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  reopenNotFound: 'Wir haben diesen Auftrag nicht gefunden, oder er ist nicht mehr verfügbar.',
+  startOver: 'Neu beginnen',
+  /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
+  saveTextToCreations: 'In Meine Kreationen speichern',
+  savingText: 'Wird gespeichert…',
+  textSaved: 'In Meine Kreationen gespeichert',
+  saveTextNotYet: 'In Meine Kreationen speichern: noch nicht verfügbar',
   notEnoughCredits: 'Du hast nicht genug Credits',
   getCredits: 'Credits holen',
   calculatingCost: 'Kosten werden ermittelt…',

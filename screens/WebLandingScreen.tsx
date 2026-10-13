@@ -154,7 +154,8 @@ const WebLandingScreen: React.FC = () => {
   // ── Weëls ──
   const handleCreateWeel = () => {
     if (!user) return navigation.navigate('Login');
-    irAlCompositor({ kind: 'weel' });
+    /* El creador de Weëls (`CrearWeel`), no el compositor: sin «Publicar en», encuesta, ËContact ni ubicación. */
+    (navigation as any).navigate('CrearWeel');
   };
   /* Ver Weëls abre siempre el feed; sin Weëls cargados, el feed pide los suyos y dice si no hay. Crear es `handleCreateWeel`. */
   const handleOpenWeels = () => {

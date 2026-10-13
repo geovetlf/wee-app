@@ -8,13 +8,12 @@
  * persona: entre 「」 y sin さん.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: '作品をプロジェクトごとに整理',
-  introText: 'プロジェクトには、ロゴ、写真、広告、動画、音楽、ドキュメントをまとめられます。結果は「{{accion}}」から、それぞれのプロジェクトに振り分けられます。',
+  introTitle: '作業中のもの',
+  introText: 'Weë AIで作っているものはここに残り、いつでも続きから再開できます。各結果は「{{accion}}」からプロジェクトに保存し、完成して残すことにしたものはマイ作品に入ります。',
   sectionTitle: 'プロジェクト',
   emojiLabel: '絵文字{{emoji}}',
   namePlaceholder: '例：わたしのレストラン',
   emptyTitle: 'プロジェクトはまだありません',
-  emptyText: '最初のプロジェクトを作成するか、作品の結果画面からプロジェクトに保存しましょう。',
   emptyAction: '最初のプロジェクトを作成',
   open: '開く',
   fallbackTitle: 'プロジェクト',
@@ -32,4 +31,18 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'このプロジェクトに足りないものは？',
   whatIsMissingNote: 'ロゴ、写真、広告、動画、音楽、ドキュメントなど、Weëのどのスペシャリストでもここに追加できます。',
   createSomethingNew: '新規作成',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'プロジェクトを読み込んでいます…',
+  loadFailed: 'プロジェクトを読み込めませんでした。',
+  retry: '再試行',
+  emptyText: '最初のプロジェクトを作成するか、作品の結果画面からプロジェクトに保存しましょう。',
+  emptyStart: 'プロジェクトは、いつでも続きから再開できる作業中のものです。',
+  stateInProgress: '作業中',
+  updatedAgo: '更新：{{cuando}}',
+  continue: '続ける',
+  continueProject: '{{nombre}}を続ける',
+  noThumbnail: 'プレビューなし',
+  loadProjectFailed: 'このプロジェクトを開けませんでした。',
+  jobsLoadFailed: 'このプロジェクトの内容を読み込めませんでした。',
 };

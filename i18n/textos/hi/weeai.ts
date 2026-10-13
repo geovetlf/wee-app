@@ -110,6 +110,14 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: 'हटाएँ',
   tryAgain: 'फिर से कोशिश करें',
   itDidNotWork: 'यह ठीक से नहीं बना. आपके Credits नहीं काटे गए.',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  reopenNotFound: 'यह काम नहीं मिला, या अब उपलब्ध नहीं है.',
+  startOver: 'फिर से शुरू करें',
+  /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
+  saveTextToCreations: 'मेरी रचनाएँ में सहेजें',
+  savingText: 'सेव हो रहा है…',
+  textSaved: 'मेरी रचनाएँ में सहेजा गया',
+  saveTextNotYet: 'मेरी रचनाएँ में सहेजें: अभी उपलब्ध नहीं',
   notEnoughCredits: 'आपके पास काफ़ी Credits नहीं हैं',
   getCredits: 'Credits पाएँ',
   calculatingCost: 'कीमत निकाली जा रही है…',

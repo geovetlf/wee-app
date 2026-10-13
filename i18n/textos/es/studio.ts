@@ -224,6 +224,10 @@ export const studio = {
   ready: 'Creación lista',
   readyHint: 'Esto es una demostración: todavía no hay nada generado de verdad.',
   dismiss: 'Entendido',
+  /* R9 · E2: lo escrito no encaja con ningún sitio del Studio; se dice y se ofrece Weë Brain. */
+  noDestination: 'No sé a qué parte del Studio llevar esto',
+  noDestinationHint: 'Elige el punto de partida, o cuéntale a Weë Brain lo que necesitas y él te ayuda.',
+  askBrain: 'Preguntar a Weë Brain',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
   soon: 'Pronto',

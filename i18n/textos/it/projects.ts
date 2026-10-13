@@ -9,13 +9,12 @@
  * plural, igual que en español, así que `_one` es solo el 1.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Le tue creazioni, ordinate per progetto',
-  introText: 'Un progetto può contenere un logo, foto, annunci, video, musica e documenti. Salva ogni risultato nel suo da "{{accion}}".',
+  introTitle: 'Il tuo lavoro in corso',
+  introText: 'Quello che stai facendo con Weë AI resta qui, così puoi continuarlo quando vuoi. Salva ogni risultato nel suo progetto da «{{accion}}»; ciò che completi e decidi di conservare va in Le mie creazioni.',
   sectionTitle: 'Progetti',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Esempio: Il mio ristorante',
   emptyTitle: 'Non hai ancora progetti',
-  emptyText: 'Crea il primo, oppure salva una creazione in un progetto dal suo risultato.',
   emptyAction: 'Crea il mio primo progetto',
   open: 'Apri',
   fallbackTitle: 'Progetto',
@@ -33,4 +32,18 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'Cosa manca a questo progetto?',
   whatIsMissingNote: 'Un logo, delle foto, un annuncio, un video, della musica o un documento: qualsiasi specialista di Weë può aggiungere qualcosa qui.',
   createSomethingNew: 'Crea qualcosa di nuovo',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'Caricamento dei tuoi progetti…',
+  loadFailed: 'Non siamo riusciti a caricare i tuoi progetti.',
+  retry: 'Riprova',
+  emptyText: 'Crea il primo, oppure salva una creazione in un progetto dal suo risultato.',
+  emptyStart: 'Un progetto è un lavoro in corso che puoi riprendere quando vuoi.',
+  stateInProgress: 'In corso',
+  updatedAgo: 'Modificato {{cuando}}',
+  continue: 'Continua',
+  continueProject: 'Continua {{nombre}}',
+  noThumbnail: 'Nessuna anteprima',
+  loadProjectFailed: 'Non siamo riusciti ad aprire questo progetto.',
+  jobsLoadFailed: 'Non siamo riusciti a caricare il contenuto di questo progetto.',
 };

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +21,9 @@ import { ControlesElegidos } from '../components/studio/StudioControles';
 import { AreaDeStudio } from '../constants/studioTools';
 import { EntradaDeStudio, abreElMundo3D, abreLaProduccion, entradaPorId } from '../constants/studioExperiences';
 import { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
-import { CREACIONES_DEL_STUDIO } from '../constants/studioMocks';
+import { useCreacionesDelStudio } from '../hooks/useCreacionesDelStudio';
+import { palabrasDeLosAjustesDelStudio } from '../utils/ajustesDelStudio';
+import { notify } from '../utils/notify';
 import { contextoDeCreacion, duracionEnElTexto } from '../utils/contextoDeCreacion';
 import { destinoDeIntencion } from '../utils/destinoDeIntencion';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
@@ -39,9 +41,6 @@ const nombreDelControl = (ruta: string, valor: string, t: (c: string) => string)
   const clave = claveDelValor(ruta, valor);
   return clave ? t(clave) : '';
 };
-
-/** Cuánto tarda la creación de mentira. Lo justo para ver el estado, no para esperar. */
-const LO_QUE_TARDA_LA_DEMO = 1600;
 
 /** El hueco que deja la barra global de abajo. */
 const SITIO_DE_LA_BARRA = scale(96);
@@ -133,7 +132,11 @@ const StudioScreen: React.FC = () => {
    */
   const [adjuntos, setAdjuntos] = useState<Adjunto[]>([]);
   const [estado, setEstado] = useState<EstadoDeCreacion>('quieto');
-  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /*
+   * «MIS CREACIONES», LAS DE VERDAD (R9 · E2). Antes la fila enseñaba cuatro piezas de muestra como si fueran de la
+   * persona; ahora son sus trabajos de Weë Studio, leídos de la cuenta. Tocar una la reabre donde está.
+   */
+  const mias = useCreacionesDelStudio();
 
   /*
    * Dos por fila en el teléfono, tres en cuanto hay sitio. No más: con cuatro o
@@ -183,8 +186,10 @@ const StudioScreen: React.FC = () => {
    *
    * ── Y si no hay destino, se dice ────────────────────────────────────────
    *
-   * No se inventa uno. Mientras no haya a dónde ir, el aviso sigue diciendo la
-   * verdad: que esto todavía es una demostración.
+   * No se inventa uno, y tampoco se finge una creación (R9 · E2): antes un
+   * temporizador encendía «Creación lista» sin haber creado nada. Ahora el
+   * aviso dice que lo escrito no encaja con ningún sitio del Studio y ofrece
+   * una salida real: contárselo a Weë Brain, que es quien entiende y deriva.
    */
   const alCrear = useCallback(() => {
     const texto = prompt.trim();
@@ -217,6 +222,12 @@ const StudioScreen: React.FC = () => {
       return;
     }
 
+    /*
+     * Los ajustes elegidos en la hoja, en palabras (R9 · E2). Se calculan AQUÍ, fuera del bloque de abajo, porque allí
+     * `contexto` pasa a ser el contexto de la experiencia que viaja y aquí todavía es el de la creación (imagen, vídeo…).
+     */
+    const ajustesEnPalabras = palabrasDeLosAjustesDelStudio(ajustes, contexto, t).map((palabra) => palabra.toLocaleLowerCase(locale));
+
     const destino = destinoDeIntencion(texto, {
       /*
        * La puerta declara su experiencia SOLO si se pasó por una. Sin puerta no
@@ -248,7 +259,14 @@ const StudioScreen: React.FC = () => {
        * detrás con qué, y lo suyo queda entero en medio.
        */
       const creative = filtrarCreativo(controles);
-      const conPalabras = creativoEnPalabras(creative, t, locale);
+      /*
+       * Los AJUSTES de la hoja viajan igual que los controles de cámara: en palabras (R9 · E2). Antes se elegían y se
+       * quedaban aquí. Solo los que la hoja pregunta en este contexto, y «Automático» no dice nada.
+       */
+      const conPalabras = [
+        creativoEnPalabras(creative, t, locale),
+        ...ajustesEnPalabras,
+      ].filter(Boolean).join(', ');
       const nombre = experiencia ? t(experiencia.clave) : '';
 
       const contexto: ContextoDeExperiencia = {
@@ -293,9 +311,20 @@ const StudioScreen: React.FC = () => {
       return;
     }
 
-    setEstado('creando');
-    temporizador.current = setTimeout(() => setEstado('listo'), LO_QUE_TARDA_LA_DEMO);
-  }, [prompt, experiencia, entrada, controles, adjuntos, navigation, t, locale, projectId]);
+    setEstado('sinDestino');
+  }, [prompt, experiencia, entrada, controles, ajustes, contexto, adjuntos, navigation, t, locale, projectId]);
+
+  /* La salida del aviso «sin destino»: Weë Brain, con el proyecto si se venía de uno. Lo escrito se queda en la caja. */
+  const alPreguntarABrain = useCallback(() => {
+    setEstado('quieto');
+    navigation.navigate('Specialist', { id: 'brain', ...(projectId ? { projectId } : {}) });
+  }, [navigation, projectId]);
+
+  /*
+   * EL MICRÓFONO DICE LA VERDAD (R9 · E2). Estaba enganchado al selector de fotos: pulsarlo «añadía una referencia».
+   * Dictar todavía no existe en Weë, así que se dice con las mismas palabras que Weë Brain, en vez de hacer otra cosa.
+   */
+  const alDictar = useCallback(() => notify(t('weeai.comingVerySoon'), t('weeai.speakComingSoon')), [t]);
 
   /**
    * LO ELEGIDO DENTRO DE UNA PUERTA VUELVE AL COMPOSITOR.
@@ -430,7 +459,7 @@ const StudioScreen: React.FC = () => {
                 onCambiar={setPrompt}
                 onAjustes={() => setAjustesAbiertos(true)}
                 onReferencia={alAnadirReferencia}
-                onVoz={alAnadirReferencia}
+                onVoz={alDictar}
                 onCrear={alCrear}
                 ocupado={estado === 'creando'}
               />
@@ -477,11 +506,18 @@ const StudioScreen: React.FC = () => {
 
             <StudioEntradas porFila={porFila} onAbrir={(entrada) => setPanel(entrada)} />
 
-            <FilaDeCreaciones
-              creaciones={CREACIONES_DEL_STUDIO}
-              onVerTodas={() => navigation.navigate('Projects')}
-              onOpciones={() => {}}
-            />
+            {((mias.fase === 'lista' && mias.creaciones.length > 0) || mias.fase === 'error') && (
+              <FilaDeCreaciones
+                creaciones={mias.creaciones}
+                estado={mias.fase === 'error' ? 'error' : undefined}
+                onReintentar={mias.recargar}
+                onAbrir={(id) => {
+                  const trabajo = mias.trabajoDe(id);
+                  if (trabajo) navigation.navigate('CreatorFlow', { experienceId: trabajo.experienceId, jobId: trabajo.id });
+                }}
+                onVerTodas={() => navigation.navigate('MisCreaciones')}
+              />
+            )}
           </View>
         </PaginaDeCajas>
       </EspacioDeEscritura>
@@ -501,6 +537,8 @@ const StudioScreen: React.FC = () => {
         estado={estado}
         bottom={SITIO_DE_LA_BARRA + alturaTeclado}
         onCerrar={() => setEstado('quieto')}
+        claveAccion="studio.askBrain"
+        onAccion={alPreguntarABrain}
       />
 
       <AjustesContextuales

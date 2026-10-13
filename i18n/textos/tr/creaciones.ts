@@ -91,4 +91,38 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   rightsCommercialNotAllowed: 'Ticari amaçla kullanılamaz.',
   rightsAttribution: 'Lisansı atıf yapılmasını gerektiriyor.',
   rightsBlockedIn: 'Şu yerlerde kullanılamaz ve gösterilemez: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Bitirip saklamaya karar verdiğin sonuçlar. Hesabına aittirler: Gerçek profilinden de Weë profilinden de aynılarını görürsün.',
+  keep: 'Oluşturduklarıma kaydet',
+  keeping: 'Kaydediliyor…',
+  keepPending: 'Oluşturduklarım’a kaydetme henüz kullanılamıyor. Sonucun kendi işinde kayıtlı durmaya devam ediyor.',
+  keepFailed: 'Oluşturduklarım’a kaydedemedik. Tekrar dene.',
+  emptyKeepText: 'Bitirip “{{accion}}” ile saklamaya karar verdiğin sonuçlar burada görünür.',
+  listPending: 'Oluşturduklarım’ı henüz gösteremiyoruz. Sonuçların kendi işlerinde kayıtlı durmaya devam ediyor.',
+  locationLocal: 'Bu cihazda',
+  locationCloud: 'Weë Cloud ile eşitlendi',
+  locationLegacy: 'Önceki depolama',
+  locationLabel: 'Konumu: {{lugar}}',
+  fromProject: 'Proje: {{proyecto}}',
+  savedAgo: 'Kaydedildi: {{cuando}}',
+  editAgain: 'Yeniden düzenle',
+  editAgainOf: '{{nombre}} öğesini yeniden düzenle',
+  editAgainPending: 'Yeniden düzenleme henüz kullanılamıyor.',
+  editAgainFailed: 'Düzenlemek için açamadık. Tekrar dene.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Henüz karar verilmedi',
+  undecidedText: 'Neyi saklayacağını seçebilmeden önce oluşturduğun içerikler. Hiçbir şey taşınmadı ya da silinmedi: istediğini eser olarak sakla.',
+  undecidedFailed: 'Karar verilmemiş içeriklerini yükleyemedik.',
+  undecidedRetry: 'Karar verilmemiş içerikleri yeniden yüklemeyi dene',
+  undecidedPending: 'Karar verilmemiş içeriklerini henüz gösteremiyoruz. Hiçbir şey silinmedi.',
+  undecidedEmpty: 'Karar verilmemiş içeriğin yok.',
+  undecidedLoadMore: 'Daha fazla karar verilmemiş içerik yükle',
+  keepAsCreation: 'Eser olarak sakla',
+  keepAsCreationOf: '{{nombre}} öğesini eser olarak sakla',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Zaten oluşturduklarının arasındaydı',
+  keepRetry: 'Oluşturduklarım’a kaydetmeyi yeniden dene',
 };

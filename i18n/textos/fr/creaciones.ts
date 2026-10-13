@@ -78,4 +78,38 @@ export const creaciones = {
   rightsCommercialNotAllowed: 'Tu ne peux pas l’utiliser à des fins commerciales.',
   rightsAttribution: 'Sa licence exige une attribution.',
   rightsBlockedIn: 'Utilisation et affichage interdits dans ces régions : {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Les résultats que tu as terminés et décidé de garder. Ils appartiennent à ton compte : tu vois les mêmes depuis le profil Réel et le profil Weë.',
+  keep: 'Enregistrer dans Mes créations',
+  keeping: 'Enregistrement…',
+  keepPending: 'L’enregistrement dans Mes créations n’est pas encore disponible. Ton résultat reste enregistré dans son travail.',
+  keepFailed: 'Impossible de l’enregistrer dans Mes créations. Réessaie.',
+  emptyKeepText: 'Les résultats que tu termines et décides de garder avec « {{accion}} » apparaissent ici.',
+  listPending: 'Nous ne pouvons pas encore afficher Mes créations. Tes résultats restent enregistrés dans leurs travaux.',
+  locationLocal: 'Sur cet appareil',
+  locationCloud: 'Synchronisé dans Weë Cloud',
+  locationLegacy: 'Ancien stockage',
+  locationLabel: 'Emplacement : {{lugar}}',
+  fromProject: 'Du projet {{proyecto}}',
+  savedAgo: 'Enregistrée {{cuando}}',
+  editAgain: 'Modifier à nouveau',
+  editAgainOf: 'Modifier à nouveau {{nombre}}',
+  editAgainPending: 'La modification n’est pas encore disponible.',
+  editAgainFailed: 'Impossible de l’ouvrir pour la modifier. Réessaie.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Non décidé',
+  undecidedText: 'Du contenu que tu as créé avant de pouvoir choisir quoi garder. Rien n’a été déplacé ni supprimé : garde comme création ce que tu veux.',
+  undecidedFailed: 'Impossible de charger ton contenu non décidé.',
+  undecidedRetry: 'Réessayer de charger le contenu non décidé',
+  undecidedPending: 'Nous ne pouvons pas encore afficher ton contenu non décidé. Rien n’a été supprimé.',
+  undecidedEmpty: 'Tu n’as aucun contenu non décidé.',
+  undecidedLoadMore: 'Charger plus de contenu non décidé',
+  keepAsCreation: 'Garder comme création',
+  keepAsCreationOf: 'Garder {{nombre}} comme création',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'C’était déjà dans tes créations',
+  keepRetry: 'Réessayer d’enregistrer dans Mes créations',
 };

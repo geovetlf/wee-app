@@ -515,6 +515,7 @@ titulo('G · Cobertura: cada llamada a CreatorFlow, Specialist o WeeCreator de e
     { rel: 'screens/SpecialistScreen.tsx', destino: 'CreatorFlow', args: '{ experienceId: job.experienceId, jobId: job.id }', cuantas: 1, motivo: 'REABRIR una creación de «Mis creaciones» (igual que en el selector).' },
     { rel: 'screens/SpecialistScreen.tsx', destino: 'WeeCreator', args: '', cuantas: 2, motivo: 'volver al selector: la ficha que no existe y «Ver todas» (mirar creaciones, no crear). Perder aquí el proyecto se arregla con «Guardar en proyecto»; llevarlo por error a un proyecto que no se buscaba no se deshace igual de fácil.' },
     { rel: 'screens/ChefScreen.tsx', destino: 'CreatorFlow', args: '{ experienceId: job.experienceId, jobId: job.id }', cuantas: 1, motivo: 'REABRIR una creación de cocina («Mis proyectos» dentro de Weë Chef son sus creaciones, no los proyectos de «Mis proyectos»).' },
+    { rel: 'screens/StudioScreen.tsx', destino: 'CreatorFlow', args: '{ experienceId: trabajo.experienceId, jobId: trabajo.id }', cuantas: 1, motivo: 'REABRIR una creación de la fila «Mis creaciones» de Weë Studio (R9 · E2): el trabajo ya existe y guarda su proyecto (igual que en el selector y en la ficha).' },
   ];
   const todas = ARCHIVOS.flatMap(llamadasDe);
   const sinDecidir = [];

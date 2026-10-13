@@ -84,4 +84,38 @@ export const creaciones = {
   rightsCommercialNotAllowed: 'Нельзя использовать в коммерческих целях.',
   rightsAttribution: 'Лицензия требует указывать авторство.',
   rightsBlockedIn: 'Нельзя использовать и показывать в этих странах и регионах: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Результаты, которые вы завершили и решили сохранить. Они принадлежат вашему аккаунту: вы видите одно и то же в Реальном профиле и в Профиле Weë.',
+  keep: 'Сохранить в «Мои работы»',
+  keeping: 'Сохраняем…',
+  keepPending: 'Сохранение в «Мои работы» пока недоступно. Ваш результат по-прежнему хранится в своей задаче.',
+  keepFailed: 'Не удалось сохранить в «Мои работы». Попробуйте ещё раз.',
+  emptyKeepText: 'Здесь появляются результаты, которые вы завершили и решили сохранить через «{{accion}}».',
+  listPending: 'Мы пока не можем показать «Мои работы». Ваши результаты по-прежнему хранятся в своих задачах.',
+  locationLocal: 'На этом устройстве',
+  locationCloud: 'Синхронизировано с Weë Cloud',
+  locationLegacy: 'Прежнее хранилище',
+  locationLabel: 'Где хранится: {{lugar}}',
+  fromProject: 'Из проекта {{proyecto}}',
+  savedAgo: 'Сохранено {{cuando}}',
+  editAgain: 'Снова редактировать',
+  editAgainOf: 'Снова редактировать: {{nombre}}',
+  editAgainPending: 'Повторное редактирование пока недоступно.',
+  editAgainFailed: 'Не удалось открыть для редактирования. Попробуйте ещё раз.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Без решения',
+  undecidedText: 'Материалы, созданные до того, как появилась возможность выбирать, что сохранить. Ничего не перемещено и не удалено: сохраните как работу то, что хотите.',
+  undecidedFailed: 'Не удалось загрузить материалы без решения.',
+  undecidedRetry: 'Повторить загрузку материалов без решения',
+  undecidedPending: 'Пока не можем показать материалы без решения. Ничего не удалено.',
+  undecidedEmpty: 'У вас нет материалов без решения.',
+  undecidedLoadMore: 'Загрузить ещё материалы без решения',
+  keepAsCreation: 'Сохранить как работу',
+  keepAsCreationOf: 'Сохранить {{nombre}} как работу',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Это уже было в ваших работах',
+  keepRetry: 'Повторить сохранение в «Мои работы»',
 };

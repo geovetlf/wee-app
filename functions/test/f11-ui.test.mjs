@@ -47,12 +47,65 @@ console.log('\n── A · «Mis creaciones»: sus estados, y de quién es ─�
   check('1) hay un estado por cada situación, y no un puñado de booleanos', /\| \{ fase: 'cargando' \}/.test(pantalla) && /\| \{ fase: 'error' \}/.test(pantalla) && /fase: 'lista'/.test(pantalla));
   check('2) cargando se enseña', /estado\.fase === 'cargando' \?/.test(pantalla) && /t\('creaciones\.loading'\)|ActivityIndicator/.test(pantalla));
   check('3) el error se enseña y se puede reintentar', /estado\.fase === 'error' \?/.test(pantalla) && /t\('creaciones\.loadFailed'\)/.test(pantalla) && /t\('creaciones\.retry'\)/.test(pantalla));
-  check('4) el vacío distingue «nada» de «nada de este tipo»', /filtro === 'all' \? t\('creaciones\.emptyTitle'\) : t\('creaciones\.emptyFiltered'\)/.test(pantalla));
-  check('5) la lista pinta la rejilla y ofrece más solo si hay más', /<RejillaDeCreaciones items=\{estado\.items\}/.test(pantalla) && /estado\.pagina\.hayMas && \(/.test(pantalla) && /t\('creaciones\.loadMore'\)/.test(pantalla));
-  check('6) una respuesta tardía de una petición vieja se descarta', /const mia = \+\+peticion\.current;/.test(pantalla) && /if \(mia !== peticion\.current\) return;/.test(pantalla));
-  check('7) es de la CUENTA: se pide con user.uid, nunca con la cara activa', /assetsService\.listar\(user\.uid,/.test(pantalla) && !/hidi_|weeProfile|activeUid/.test(sinComentarios(pantalla)));
-  check('8) filtrar por tipo y ordenar vuelven a cargar desde el principio', /useEffect\(\(\) => \{ cargar\(\); \}, \[filtro, orden, cargar\]\);/.test(pantalla));
-  check('9) borrar pide confirmación que funciona también en web', /confirmAction\(t\('creaciones\.delete'\), t\('creaciones\.deleteConfirm'\), t\('creaciones\.delete'\), true, t\)/.test(pantalla) && /assetsService\.eliminar\(asset\.assetId\)/.test(pantalla));
+  /*
+   * 4–9 REESCRITAS (R9, línea B) con la AUTORIZACIÓN DEL DUEÑO del 2026-10-12, a la definición oficial:
+   *   · Mis proyectos = trabajos en curso y borradores que se retoman, con su contexto;
+   *   · Mis creaciones = resultados finalizados que la persona DECIDIÓ conservar, reales (nunca muestras presentadas
+   *     como suyas), con su proyecto de origen, reabribles/editables, y que pueden ser solo locales sin subir bytes;
+   *   · estado del trabajo y ubicación son conceptos separados.
+   * Antes fijaban «Mis creaciones = cada asset generado» (assetsService.listar, borrar el asset desde la lista). Cada una
+   * lleva su CONTROL: el mismo detector aplicado a la semántica antigua (o a muestras ficticias) tiene que FALLAR.
+   */
+  const contrato = sinComentarios(leer('services/cicloDeTrabajo.ts'));
+  const proyectos = sinComentarios(leer('screens/ProjectsScreen.tsx'));
+  const codigo = sinComentarios(pantalla);
+  /* Lo que había: la pantalla de antes de R9, resumida en las líneas que la definían. */
+  const ANTIGUA = [
+    "const pagina = await assetsService.listar(user.uid, { kind: filtro === 'all' ? undefined : filtro, orden });",
+    "{filtro === 'all' ? t('creaciones.emptyTitle') : t('creaciones.emptyFiltered')}",
+    "<Text>{t('creaciones.emptyText')}</Text>",
+    '<RejillaDeCreaciones items={estado.items} columnas={columnas} onOpen={abrir} onDelete={eliminar} />',
+    '{estado.pagina.hayMas && (',
+    'const r = await assetsService.eliminar(asset.assetId);',
+  ].join('\n');
+  const MUESTRAS = "const MUESTRAS = DESIGN.CREACIONES_DE_DESIGN.map((c) => t(c.claveTitulo));\n<RejillaDeCreacionesFinales items={MUESTRAS} />";
+
+  const vacioDeLoDecidido = (src) => /estado\.items\.length === 0 \?/.test(src) && /t\('creaciones\.emptyKeepText', \{ accion: t\('creaciones\.keep'\) \}\)/.test(src)
+    && /visibles\.length === 0 \?/.test(src) && /t\('creaciones\.emptyFiltered'\)/.test(src) && !/t\('creaciones\.emptyText'\)/.test(src);
+  check('4) el vacío distingue «nada conservado todavía» (cómo se conserva) de «nada de este tipo»', vacioDeLoDecidido(codigo));
+  check('4) CONTROL: el vacío antiguo («todo lo que hagas aparecerá aquí») no pasa', !vacioDeLoDecidido(ANTIGUA));
+
+  const listaDeFinales = (src) => /<RejillaDeCreacionesFinales items=\{visibles\}/.test(src) && /!!estado\.siguiente && \(/.test(src)
+    && /listarCreacionesFinales\(user\.uid, anterior\.siguiente\)/.test(src) && /t\('creaciones\.loadMore'\)/.test(src)
+    && !/<RejillaDeCreaciones items=\{estado\.items\}/.test(src);
+  check('5) la lista pinta las creaciones FINALES y ofrece más solo si el contrato dice que hay más (con su cursor)', listaDeFinales(codigo));
+  check('5) CONTROL: la rejilla de todos los assets como lista principal no pasa', !listaDeFinales(ANTIGUA));
+
+  const descartaLoTardio = (src) => /const mia = \+\+peticion\.current;/.test(src) && /if \(mia !== peticion\.current\) return;/.test(src);
+  check('6) una respuesta tardía de una petición vieja se descarta', descartaLoTardio(codigo));
+  check('6) CONTROL: sin la guardia, no pasa', !descartaLoTardio(codigo.replace(/if \(mia !== peticion\.current\) return;/g, '')));
+
+  const soloLoDecidido = (pant, cont) => /listarCreacionesFinales\(user\.uid\)/.test(pant) && !/assetsService\.listar\(/.test(pant)
+    && !/hidi_|weeProfile|activeUid/.test(pant)
+    && /collection\(db, 'creations'\)/.test(cont) && /where\('ownerAccountId', '==', uid\)/.test(cont) && /where\('status', '==', 'final'\)/.test(cont);
+  check('7) es de la CUENTA y es SOLO lo que la persona decidió conservar (`creations` con status final), nunca cada asset', soloLoDecidido(codigo, contrato));
+  check('7) CONTROL: «todo asset es creación» (assetsService.listar) no pasa', !soloLoDecidido(ANTIGUA, contrato));
+
+  const ubicacionSeparada = (rej, cont) => /export type EstadoDeTrabajo = 'en_proceso' \| 'final';/.test(cont)
+    && /export type UbicacionDeRecurso = 'local' \| 'wee_cloud' \| 'remoto_legado';/.test(cont)
+    && /ubicacion: 'local',/.test(cont) && /assetIds: \[\],/.test(cont)
+    && /CLAVE_DE_UBICACION\[creacion\.ubicacion\]/.test(rej) && /local: 'creaciones\.locationLocal'/.test(rej) && /wee_cloud: 'creaciones\.locationCloud'/.test(rej)
+    && !/ubicacion[^\n]*status|status[^\n]*ubicacion/.test(rej);
+  check('8) estado del trabajo y ubicación van por separado; una creación puede ser solo local, sin subir bytes (assetIds vacío)', ubicacionSeparada(sinComentarios(rejilla), contrato));
+  check('8) CONTROL: una ubicación deducida del estado no pasa', !ubicacionSeparada("const lugar = asset.status === 'ready' ? 'wee_cloud' : 'local'; CLAVE_DE_UBICACION[creacion.ubicacion]", contrato));
+
+  const realesYReabribles = (pant, proy) => /const \{ proyectoId \} = await reabrirParaEditar\(creacion\.id\);/.test(pant)
+    && /navigation\.navigate\('Project', \{ id: proyectoId \}\)/.test(pant)
+    && /proyectoOrigen: c\.proyectoOrigenId \? nombres\.get\(c\.proyectoOrigenId\) \?\? null : null/.test(pant)
+    && !/CREACIONES_DE_|MUESTRAS|claveTitulo/.test(pant)
+    && /listarProyectosEnCurso\(user\.uid\)/.test(proy) && /t\('projects\.continue'\)/.test(proy) && /t\('projects\.stateInProgress'\)/.test(proy);
+  check('9) las creaciones son reales, con su proyecto de origen y reabribles; Mis proyectos son trabajos en curso con «Continuar»', realesYReabribles(codigo, proyectos));
+  check('9) CONTROL: muestras ficticias presentadas como suyas no pasan', !realesYReabribles(codigo + '\n' + MUESTRAS, proyectos));
   check('10) abrir una creación vuelve a su trabajo, si lo tiene', /navigation\.navigate\('CreatorFlow', \{ experienceId, jobId: asset\.provenance\.jobId \}\)/.test(pantalla));
   check('11) vive dentro de Weë AI, con su entrada en el menú', /activeId="creations"/.test(pantalla) && /creations/.test(leer('constants/weeMenu.ts')));
   check('12) y todos sus textos pasan por i18n', !/(title|label)=["'][A-Za-zÁ-ú ]{4,}["']/.test(sinComentarios(pantalla).replace(/t\([^)]*\)/g, '')));
@@ -88,7 +141,14 @@ console.log('\n── C · La tarjeta de resultado: descargar, y «ya está guar
 // ════════════════════════════════════════════════════════════════════════════
 {
   check('20) hay descarga del archivo, con el servicio de descargas', /descargarCreacion\(publicable\.uri, publicable\.type\)/.test(tarjeta) && /t\('creaciones\.download'\)/.test(tarjeta));
-  check('21) y la constancia de que ya está en «Mis creaciones», que lleva allí', /!!\(publicable\.assetId && onOpenCreations\) && \(/.test(tarjeta) && /t\('creaciones\.savedInCreations'\)/.test(tarjeta) && /onOpenCreations=\{\(\) => navigation\.navigate\('MisCreaciones'\)\}/.test(flujo));
+  /*
+   * 21 REESCRITA (R9, línea B) con la AUTORIZACIÓN DEL DUEÑO del 2026-10-12. Antes exigía que la tarjeta dijera «Guardada
+   * en tus creaciones» en cuanto un resultado tenía `assetId`: generar equivalía a guardar. Con la definición oficial,
+   * «Mis creaciones» es lo que la persona DECIDE conservar, así que la 21 se EJECUTA (ResultCard y BotonConservar de
+   * verdad, con `_pc-interfaz-montaje.mjs` y el contrato doblado) y demuestra (a)–(f), cada una con su CONTROL.
+   */
+  const r21 = await comprobacion21();
+  for (const [nombre, ok, extra] of r21) check(`21${nombre}`, ok, extra);
   check('22) NO hay un botón que guarde una segunda copia', !/t\('creaciones\.save'\)/.test(tarjeta) && !/crearMaterial|createAsset|saveAsset/.test(tarjeta));
   check('23) «Usar en proyecto» sigue siendo el selector de proyectos que ya existía', /onSaveToProject=\{\(\) => setPickerVisible\(true\)\}/.test(flujo) && /t\('weeai\.saveToProject'\)/.test(tarjeta));
   check('24) lo que pasa al descargar se dice con sus textos, no con un porcentaje', /notify\(t\('creaciones\.downloaded'\)\)/.test(tarjeta) && /notify\(t\('creaciones\.downloadPermission'\)\)/.test(tarjeta) && /notify\(t\('creaciones\.downloadFailed'\)\)/.test(tarjeta));
@@ -139,9 +199,133 @@ console.log('\n── E · El Weël cabe en el modelo, ejecutado con el Core ─
   check('35) y su publicación en «Weëls», firmada por el Perfil Weë de la MISMA cuenta, es válida', core.publicacionValida(publicacion) === true && core.publicacionEsDeLaCuenta(publicacion, 'uAna') === true);
   check('36) publicada y pública: visible para terceros', core.estaPublicada(publicacion) === true && core.visibleParaTerceros(publicacion) === true);
   check('37) otra cuenta no es su dueña, aunque la cara coincida en nombre', core.publicacionEsDeLaCuenta(publicacion, 'uBea') === false && core.materialEsDeLaCuenta(video, 'uBea') === false);
-  check('38) el compositor lleva el material del vídeo al post (`videoAssetId`) y lo marca Weël', /\.\.\.\(videoAssetId \? \{ videoAssetId \} : \{\}\)/.test(crear) && /\.\.\.\(videoUrl && isWeel \? \{ isWeel: true \} : \{\}\)/.test(crear));
+  /* R9-H: marcar un Weël ya no es del compositor del Wall sino de su creador (utils/crearWeel.ts), que conserva el material igual. */
+  check('38) el compositor lleva el material del vídeo al post (`videoAssetId`), y el creador de Weëls lo lleva y lo marca Weël',
+    /\.\.\.\(videoAssetId \? \{ videoAssetId \} : \{\}\)/.test(crear)
+    && /\.\.\.\(d\.videoAssetId \? \{ videoAssetId: d\.videoAssetId \} : \{\}\)/.test(leer('utils/crearWeel.ts')) && /isWeel: true as const/.test(leer('utils/crearWeel.ts')));
   check('39) y `Post` declara ambos enlaces', /assetIds\?: \(string \| null\)\[\];/.test(leer('services/firestoreService.ts')) && /videoAssetId\?: string;/.test(leer('services/firestoreService.ts')));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nFase 11 en pantalla: estados de verdad, material de la cuenta, y ningún número inventado');
 process.exit(failures ? 1 : 0);
+
+
+/* ── 21 · «Guardada» solo tras decidir y confirmar (ejecutado; ver el comentario junto a la comprobación) ── */
+async function comprobacion21() {
+  const { calma, base, t, crearMontaje } = await import('./_pc-interfaz-montaje.mjs');
+  const salida = [];
+  const anota = (nombre, ok, extra = '') => salida.push([nombre, ok === true, extra]);
+  const K = base('components/creator/conservar.ts');
+  const FORMA = /^[A-Za-z0-9_.:-]{8,128}$/;
+  const GUARDAR = t('creaciones.keep');
+  const GUARDADA = t('creaciones.savedInCreations');
+  const dobles = ({ h: hh }) => ({
+    '../../i18n/servidor': { textoDelServidor: (s) => s, textoDeObjetivo: (_t, _e, g) => g },
+    '../../services/assetDownload': { descargarCreacion: async () => 'guardado' },
+    './TarjetaTresD': { TarjetaTresD: () => hh('div') },
+  });
+  const trabajo = (extra = {}) => ({
+    id: 'j1', userId: 'u1', experienceId: 'design', goal: 'Un logo', questions: [], answers: [], plan: null, steps: [], status: 'done',
+    results: [{ stepId: 'logo', kind: 'image', title: 'Logo', url: 'https://x.test/logo.png', assetIds: ['a1'] }],
+    progressText: '', creditsEstimated: 2, creditsCharged: 2, demo: false, projectId: 'p1', ...extra,
+  });
+  const props = (job) => ({ experienceName: 'Weë Design', job, busy: false, onAnotherVersion: () => {}, onEdit: () => {}, onPublish: () => {}, onOpenCreations: () => {} });
+  const R = crearMontaje('components/creator/ResultCard.tsx', dobles);
+
+  /* (a) generar ≠ guardar. El detector: hay botón de decidir, no dice «Guardada» y nadie llamó al contrato. */
+  const noAfirmaAntes = (d, llamadas) => !!d.botones.find((b) => b.etiqueta === GUARDAR) && !d.texto.includes(GUARDADA) && llamadas === 0;
+  R.reiniciar();
+  const a = R.dibujar(props(trabajo()));
+  anota('a) generar un resultado NO es guardarlo: «Guardar en Mis creaciones» y ninguna «Guardada» antes de decidir', noAfirmaAntes(a, R.estado.contrato.llamadas.length));
+  /* CONTROL: la tarjeta de antes (la constancia en cuanto hay assetId) no pasa el detector. */
+  const viejaDibujada = { botones: [], texto: GADA_ANTIGUA(GUARDADA) };
+  anota('a) CONTROL: la semántica antigua («Guardada» con solo tener assetId) no pasa', !noAfirmaAntes(viejaDibujada, 0));
+
+  /* (b) «Guardada» solo tras la decisión y la confirmación. */
+  R.reiniciar();
+  R.estado.contrato.diferir.finalizarCreacion = true;
+  const pb = props(trabajo());
+  R.tocar(R.dibujar(pb), GUARDAR);
+  const mientras = R.dibujar(pb);
+  const sinConfirmar = !mientras.texto.includes(GUARDADA) && mientras.texto.includes(t('creaciones.keeping'));
+  R.estado.contrato.pendientes.forEach((x) => x.ok());
+  await calma();
+  const despues = R.dibujar(pb);
+  anota('b) «Guardada» aparece solo tras pulsar Y tras la confirmación del contrato (antes: «Guardando…»)', sinConfirmar && despues.texto.includes(GUARDADA) && R.estado.contrato.de('finalizarCreacion').length === 1);
+  anota('b) CONTROL: sin confirmación (promesa sin resolver) no hay «Guardada»', !mientras.texto.includes(GUARDADA));
+
+  /* (c) lo que se ve es lo que dijo quien persistió. */
+  R.reiniciar();
+  R.estado.contrato.finalizar = { creacionId: 'c-1', yaExistia: true };
+  const pc = props(trabajo());
+  R.tocar(R.dibujar(pc), GUARDAR);
+  await calma();
+  const ya = R.dibujar(pc);
+  R.reiniciar();
+  R.estado.contrato.finalizar = { creacionId: 'c-2', yaExistia: false };
+  R.tocar(R.dibujar(pc), GUARDAR);
+  await calma();
+  const nueva = R.dibujar(pc);
+  anota('c) con `yaExistia: true` dice «Ya estaba en tus creaciones» (no «Guardada»)', ya.texto.includes(t('creaciones.alreadyKept')) && !ya.texto.includes(GUARDADA));
+  anota('c) CONTROL: con `yaExistia: false` dice «Guardada» (no «Ya estaba»)', nueva.texto.includes(GUARDADA) && !nueva.texto.includes(t('creaciones.alreadyKept')));
+
+  /* (d) si falla: sin éxito falso, «Reintentar» con el MISMO requestId. */
+  R.reiniciar();
+  R.estado.contrato.falla.finalizarCreacion = () => Object.assign(new Error('sin red'), { code: 'unavailable' });
+  const pd = props(trabajo());
+  R.tocar(R.dibujar(pd), GUARDAR);
+  await calma();
+  const fallo = R.dibujar(pd);
+  const sinExitoFalso = !fallo.texto.includes(GUARDADA) && fallo.texto.includes(t('creaciones.retry')) && !!fallo.botones.find((b) => b.etiqueta === t('creaciones.keepRetry'));
+  delete R.estado.contrato.falla.finalizarCreacion;
+  R.tocar(fallo, t('creaciones.keepRetry'));
+  await calma();
+  const peticiones = R.estado.contrato.de('finalizarCreacion').map((l) => l[1].requestId);
+  const tras = R.dibujar(pd);
+  anota('d) si el guardado falla no hay «Guardada»; aparece «Reintentar» y reintenta con el MISMO requestId', sinExitoFalso && peticiones.length === 2 && peticiones[0] === peticiones[1] && FORMA.test(peticiones[0]) && tras.texto.includes(GUARDADA), JSON.stringify(peticiones));
+  anota('d) CONTROL: otro conjunto de materiales es OTRA petición (el «mismo» no es casualidad)', K.peticionDeConservar('j1', ['a1']) === peticiones[0] && K.peticionDeConservar('j1', ['a2']) !== peticiones[0]);
+
+  /* (e) nada de muestras ficticias como si fueran de la persona. */
+  const DESIGN = base('constants/designTools.ts');
+  const MUESTRAS = DESIGN.CREACIONES_DE_DESIGN.map((c) => t(c.claveTitulo));
+  const muestraComoSuya = (texto) => MUESTRAS.some((m) => texto.includes(m));
+  R.reiniciar();
+  const demo = R.dibujar(props(trabajo({ demo: true, results: [{ stepId: 'logo', kind: 'image', title: 'Logo', url: 'https://x.test/logo.png', demo: true, assetIds: ['a1'] }] })));
+  const C = crearMontaje('screens/MisCreacionesScreen.tsx', () => ({ '../services/assetDownload': { descargarCreacion: async () => 'guardado' } }));
+  C.reiniciar();
+  const vacia = await C.montar();
+  C.reiniciar();
+  C.estado.contrato.creaciones = MUESTRAS.map((nombre, i) => ({ id: `m${i}`, assetIds: [], nombre, tipo: 'image', herramienta: 'design', finalizadaEn: 1, proyectoOrigenId: null, ubicacion: 'wee_cloud' }));
+  const conMuestras = await C.montar();
+  anota('e) una muestra no se ofrece ni se da por guardada, y «Mis creaciones» vacía no enseña muestras como suyas',
+    !demo.botones.find((b) => b.etiqueta === GUARDAR) && !demo.texto.includes(GUARDADA) && MUESTRAS.length > 0 && !muestraComoSuya(vacia.texto));
+  anota('e) CONTROL: si las muestras volvieran a pintarse como creaciones, el detector lo ve', muestraComoSuya(conMuestras.texto));
+
+  /* (f) una creación solo local no sube nada. */
+  let nube = 0;
+  const contarNube = () => ({
+    'firebase/functions': { httpsCallable: () => { nube++; return async () => ({ data: {} }); } },
+    'firebase/storage': new Proxy({}, { get: () => () => { nube++; } }),
+  });
+  const B = crearMontaje('components/creator/BotonConservar.tsx', contarNube);
+  const finalizadas = [];
+  const locales = { finalizar: async (e) => { finalizadas.push(e); return { creacionId: 'l1', yaExistia: false }; } };
+  const referencias = [{ projectId: 'proy_1', recursoId: 'rec_1', sha256: 'a'.repeat(64) }];
+  B.reiniciar();
+  const pf = { jobId: 'j1', contenido: { tipo: 'local', referencias, tipoDeRecurso: 'image', herramienta: 'design', locales } };
+  B.tocar(B.dibujar(pf), GUARDAR);
+  await calma();
+  const local = B.dibujar(pf);
+  const tocoLaNube = () => nube > 0 || B.estado.contrato.de('finalizarCreacion').length + B.estado.contrato.de('guardarTextoFinal').length > 0;
+  anota('f) guardar una creación SOLO LOCAL va al archivo del dispositivo y no llama a la nube ni a ningún servicio de subida',
+    finalizadas.length === 1 && JSON.stringify(finalizadas[0].referencias) === JSON.stringify(referencias) && FORMA.test(finalizadas[0].requestId) && !tocoLaNube() && local.texto.includes(GUARDADA));
+  B.reiniciar();
+  const pr = { jobId: 'j1', contenido: { tipo: 'materiales', assetIds: ['a1'] } };
+  B.tocar(B.dibujar(pr), GUARDAR);
+  await calma();
+  anota('f) CONTROL: un resultado de Weë Cloud sí va al contrato (el detector de «tocó la nube» funciona)', tocoLaNube());
+  return salida;
+}
+
+/* El texto que pintaba la tarjeta de antes con solo tener `assetId` (sin decisión ni confirmación). */
+function GADA_ANTIGUA(guardada) { return `Descargar ${guardada}`; }

@@ -87,4 +87,6 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: '隐藏提示词',
   copyPrompt: '复制提示词',
   promptCopied: '已复制',
+  demoBadge: '演示',
+  demoBadgeLabel: '演示内容',
 };

@@ -239,6 +239,10 @@ export const studio: typeof import('../es/studio').studio = {
   ready: '만들기 완료',
   readyHint: '지금은 데모예요. 아직 실제로 생성된 결과는 없어요.',
   dismiss: '확인',
+  /* R9 · E2: lo escrito no encaja con ningún sitio del Studio; se dice y se ofrece Weë Brain. */
+  noDestination: '이걸 Studio의 어디로 가져가야 할지 모르겠어요',
+  noDestinationHint: '어디서 시작할지 고르거나 Weë Brain에게 말해 주세요.',
+  askBrain: 'Weë Brain에게 묻기',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */
   soon: '준비 중',

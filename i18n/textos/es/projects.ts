@@ -14,13 +14,12 @@
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
  */
 export const projects = {
-  introTitle: 'Tus creaciones, ordenadas por proyecto',
-  introText: 'Un proyecto puede tener logo, fotos, anuncios, videos, música y documentos. Guarda cada resultado en el suyo desde "{{accion}}".',
+  introTitle: 'Tu trabajo en proceso',
+  introText: 'Aquí sigue lo que estás haciendo con Weë AI, para continuarlo cuando quieras. Guarda cada resultado en su proyecto desde "{{accion}}"; lo que termines y decidas conservar va a Mis creaciones.',
   sectionTitle: 'Proyectos',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Ejemplo: Mi restaurante',
   emptyTitle: 'Todavía no tienes proyectos',
-  emptyText: 'Crea el primero o guarda una creación en un proyecto desde su resultado.',
   emptyAction: 'Crear mi primer proyecto',
   open: 'Abrir',
   fallbackTitle: 'Proyecto',
@@ -38,4 +37,18 @@ export const projects = {
   whatIsMissing: '¿Qué le falta a este proyecto?',
   whatIsMissingNote: 'Un logo, fotos, un anuncio, un video, música o un documento: cualquier especialista de Weë puede sumar aquí.',
   createSomethingNew: 'Crear algo nuevo',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'Cargando tus proyectos…',
+  loadFailed: 'No pudimos cargar tus proyectos.',
+  retry: 'Reintentar',
+  emptyText: 'Crea el primero o guarda una creación en un proyecto desde su resultado.',
+  emptyStart: 'Un proyecto es un trabajo en proceso que puedes retomar cuando quieras.',
+  stateInProgress: 'En proceso',
+  updatedAgo: 'Modificado {{cuando}}',
+  continue: 'Continuar',
+  continueProject: 'Continuar {{nombre}}',
+  noThumbnail: 'Sin vista previa',
+  loadProjectFailed: 'No pudimos abrir este proyecto.',
+  jobsLoadFailed: 'No pudimos cargar lo que hay en este proyecto.',
 };

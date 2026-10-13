@@ -1,5 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import { StackActions, useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { ActivityIndicator, Animated, View, StyleSheet, Platform } from 'react-native';
@@ -25,6 +26,7 @@ import RegisterScreen from '../screens/RegisterScreen';
 import WeeProfileCreationScreen from '../screens/WeeProfileCreationScreen';
 import AiAvatarScreen from '../screens/AiAvatarScreen';
 import ReelsScreen from '../screens/ReelsScreen';
+import CrearWeelScreen, { CrearWeelParams } from '../screens/CrearWeelScreen';
 import CreditStoreScreen from '../screens/CreditStoreScreen';
 import WalletScreen from '../screens/WalletScreen';
 import WeeCreatorScreen from '../screens/WeeCreatorScreen';
@@ -160,7 +162,11 @@ export type MainStackParamList = {
     initialVideoPosts?: Post[];
     communitySlug?: string | null;
     initialPositionMillis?: number;
+    /* El Weël que `CrearWeel` acaba de publicar: el feed lo pone el primero. */
+    recienPublicado?: Post;
   } | undefined;
+  /* Crear un Weël: su propio flujo de vídeo vertical (screens/CrearWeelScreen.tsx), no el compositor del Wall. */
+  CrearWeel: CrearWeelParams | undefined;
   Auth: {
     screen?: 'Login' | 'Register';
   } | undefined;
@@ -218,13 +224,34 @@ const SearchWrapper = () => {
   );
 };
 
+const pideWeel = (r: { params?: object }) => (r.params as { kind?: string } | undefined)?.kind === 'weel';
+
 const CreateWrapper = () => {
   const { isDesktop } = useResponsive();
+  if (pideWeel(useRoute())) return <HaciaCrearWeel />;
   return isDesktop ? (
     <DesktopLayout><CreateScreen /></DesktopLayout>
   ) : (
     <CreateScreen />
   );
+};
+
+/*
+ * `Create` con `kind: 'weel'` ya no es el compositor del Wall en modo Weël: es una puerta vieja —una URL guardada
+ * (`/publicar?kind=weel`), una recarga, una entrada que todavía no se ha cambiado— y se sustituye por `CrearWeel` sin
+ * pintar ni un fotograma del compositor. Así ningún camino vuelve a enseñar «Nueva publicación» al crear un Weël.
+ */
+const HaciaCrearWeel = () => {
+  const navigation = useNavigation();
+  React.useEffect(() => {
+    navigation.dispatch(StackActions.replace('CrearWeel'));
+  }, [navigation]);
+  return null;
+};
+
+const CrearWeelWrapper = () => {
+  const { isDesktop } = useResponsive();
+  return isDesktop ? <DesktopLayout><CrearWeelScreen /></DesktopLayout> : <CrearWeelScreen />;
 };
 
 const MainStackNavigator: React.FC = () => {
@@ -358,6 +385,11 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen
         name="Create"
         component={CreateWrapper}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="CrearWeel"
+        component={CrearWeelWrapper}
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />

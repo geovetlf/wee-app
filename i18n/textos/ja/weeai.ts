@@ -76,6 +76,14 @@ export const weeai: typeof import('../es/weeai').weeai = {
   remove: '削除',
   tryAgain: 'もう一度試す',
   itDidNotWork: 'うまくいきませんでした。Creditsは消費されていません。',
+  /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
+  reopenNotFound: 'この作業が見つからないか、もう利用できません。',
+  startOver: '最初からやり直す',
+  /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
+  saveTextToCreations: 'マイ作品に保存',
+  savingText: '保存中…',
+  textSaved: 'マイ作品に保存しました',
+  saveTextNotYet: 'マイ作品に保存：まだ利用できません',
   notEnoughCredits: 'Creditsが不足しています',
   getCredits: 'Creditsをチャージ',
   calculatingCost: '必要なCreditsを計算中…',

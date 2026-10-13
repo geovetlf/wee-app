@@ -116,6 +116,11 @@ export interface CreatorJob {
   pricingMode?: 'simulated' | 'real';
   /** Foto de la persona (Storage de Weë) sobre la que trabaja el plan. */
   inputImageUrl?: string;
+  /**
+   * El nivel de calidad que la persona eligió antes de crear (lo guarda `creatorQuote` en el servidor). Al reabrir un
+   * trabajo planificado se vuelve a pedir el presupuesto CON este nivel, para no perderlo (R9 · E2).
+   */
+  quality?: QualityChoice | null;
   createdAt: any;
   updatedAt: any;
   finishedAt?: any;

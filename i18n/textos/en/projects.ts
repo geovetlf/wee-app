@@ -6,13 +6,12 @@
  * translator; they arrive by interpolation.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Your creations, sorted by project',
-  introText: 'A project can hold a logo, photos, ads, videos, music and documents. Save each result into its own from "{{accion}}".',
+  introTitle: 'Your work in progress',
+  introText: 'What you’re making with Weë AI stays here so you can continue whenever you like. Save each result into its project from "{{accion}}"; what you finish and decide to keep goes to My creations.',
   sectionTitle: 'Projects',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Example: My restaurant',
   emptyTitle: 'You don’t have any projects yet',
-  emptyText: 'Create the first one, or save a creation into a project from its result.',
   emptyAction: 'Create my first project',
   open: 'Open',
   fallbackTitle: 'Project',
@@ -30,4 +29,18 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'What’s missing from this project?',
   whatIsMissingNote: 'A logo, photos, an ad, a video, music or a document: any Weë specialist can add to this.',
   createSomethingNew: 'Create something new',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'Loading your projects…',
+  loadFailed: 'We couldn’t load your projects.',
+  retry: 'Try again',
+  emptyText: 'Create the first one, or save a creation into a project from its result.',
+  emptyStart: 'A project is work in progress that you can pick up whenever you like.',
+  stateInProgress: 'In progress',
+  updatedAgo: 'Edited {{cuando}}',
+  continue: 'Continue',
+  continueProject: 'Continue {{nombre}}',
+  noThumbnail: 'No preview',
+  loadProjectFailed: 'We couldn’t open this project.',
+  jobsLoadFailed: 'We couldn’t load what’s in this project.',
 };

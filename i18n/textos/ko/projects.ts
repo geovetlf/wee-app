@@ -20,13 +20,12 @@
  * el hueco: entre medias va la palabra fija 버튼.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: '프로젝트로 정리된 나의 창작물',
-  introText: '하나의 프로젝트에 로고, 사진, 광고, 영상, 음악, 문서를 모을 수 있어요. "{{accion}}" 버튼을 눌러 결과를 각자의 프로젝트에 담아 두세요.',
+  introTitle: '진행 중인 작업',
+  introText: 'Weë AI로 만들고 있는 것이 여기에 남아 언제든 이어서 할 수 있어요. 각 결과는 “{{accion}}”에서 프로젝트에 저장하고, 완성해서 남기기로 한 것은 내 창작물로 가요.',
   sectionTitle: '프로젝트',
   emojiLabel: '이모지 {{emoji}}',
   namePlaceholder: '예: 내 레스토랑',
   emptyTitle: '아직 프로젝트가 없어요',
-  emptyText: '첫 프로젝트를 만들거나, 창작물의 결과 화면에서 프로젝트에 담아 보세요.',
   emptyAction: '내 첫 프로젝트 만들기',
   open: '열기',
   fallbackTitle: '프로젝트',
@@ -44,4 +43,18 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: '이 프로젝트에 무엇이 더 필요할까요?',
   whatIsMissingNote: '로고, 사진, 광고, 영상, 음악, 문서 — Weë의 어떤 전문가든 여기에 보탤 수 있어요.',
   createSomethingNew: '새로 만들기',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: '프로젝트를 불러오는 중…',
+  loadFailed: '프로젝트를 불러오지 못했어요.',
+  retry: '다시 시도',
+  emptyText: '첫 프로젝트를 만들거나, 창작물의 결과 화면에서 프로젝트에 담아 보세요.',
+  emptyStart: '프로젝트는 언제든 이어서 할 수 있는 진행 중인 작업이에요.',
+  stateInProgress: '진행 중',
+  updatedAgo: '수정됨: {{cuando}}',
+  continue: '이어서 하기',
+  continueProject: '{{nombre}} 이어서 하기',
+  noThumbnail: '미리보기 없음',
+  loadProjectFailed: '이 프로젝트를 열지 못했어요.',
+  jobsLoadFailed: '이 프로젝트의 내용을 불러오지 못했어요.',
 };

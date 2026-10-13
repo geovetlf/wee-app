@@ -1106,7 +1106,14 @@ console.log('\n── Weë · publicar lo que se acaba de crear ──');
   check('11) las otras propuestas siguen ahí y se pueden elegir', /setChosen\(\(prev\) => \(\{ \.\.\.prev, \[result\.stepId\]: index \}\)\)/.test(tarjeta));
   check('11) y la elegida sigue viéndose en grande', /chosenFrame/.test(tarjeta));
   check('12) PostCard no ha cambiado de forma', !/prefill/.test(leer('components/PostCard.tsx')));
-  check('12) la publicación manual conserva sus caminos', /presetKind === 'question'/.test(crear) && /presetKind === 'weel'/.test(crear) && /const \[poll, setPoll\]/.test(crear));
+  /*
+   * R9-H: el camino del Weël se trasladó del compositor a su creador propio (screens/CrearWeelScreen.tsx). Se sigue
+   * protegiendo, ahora donde vive: `Create` con `kind: 'weel'` se sustituye por `CrearWeel` y ese creador publica Weëls.
+   */
+  const pila = leer('navigation/MainStackNavigator.tsx');
+  check('12) la publicación manual conserva sus caminos', /presetKind === 'question'/.test(crear) && /const \[poll, setPoll\]/.test(crear)
+    && /=== 'weel'/.test(pila) && /StackActions\.replace\('CrearWeel'\)/.test(pila) && /name="CrearWeel"/.test(pila)
+    && /isWeel: true/.test(leer('utils/crearWeel.ts')) && /postsService\.create\(/.test(leer('screens/CrearWeelScreen.tsx')));
 }
 
 // ── WEË STUDIO REÚNE FOTOS, VIDEOS Y BEAUTY ─────────────────────────────────

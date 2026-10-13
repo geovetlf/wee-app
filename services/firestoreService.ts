@@ -50,6 +50,14 @@ import type { PostPlace } from '../data/places';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
 import { paginaDelMuroGeneral, sobreconsulta } from '../utils/sectionFeed';
 import { paraBuscar } from '../i18n/caja';
+import { filtrarContenidoDemo } from '../utils/contenidoDemo';
+
+/*
+ * Defensa en profundidad del modo demo (docs/WEE-DEMO.md): fuera de un proyecto `demo-*` ningún feed enseña una
+ * publicación marcada como demo. En producción no debería existir ninguna.
+ */
+const sinDemoFueraDeLosEmuladores = <T extends { demo?: unknown; procedenciaDemo?: unknown }>(docs: T[]): T[] =>
+  filtrarContenidoDemo(docs, process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID);
 
 /*
  * Una encuesta dentro de una publicación.
@@ -215,6 +223,9 @@ export interface Post {
   originalPostId?: string; // ID del post original (solo para reposts)
   repostComment?: string; // Comentario opcional al repostear
   // Datos del post original se cargan dinámicamente, no se duplican
+  /** Solo en los EMULADORES: sembrado por el modo demo (`utils/contenidoDemo.ts`, docs/WEE-DEMO.md). */
+  demo?: boolean;
+  procedenciaDemo?: string;
 }
 
 export interface UserProfile {
@@ -325,6 +336,9 @@ export interface UserProfile {
   bannerURL?: string;
   username?: string;
   verified?: boolean; // Contador de generaciones de avatar IA (límite temporal)
+  /** Solo en los EMULADORES: perfil de un creador de demostración (`utils/contenidoDemo.ts`). */
+  demo?: boolean;
+  procedenciaDemo?: string;
 }
 
 export interface Comment {
@@ -595,12 +609,14 @@ export const postsService = {
    * del cursor todavía quedan documentos. Es la diferencia entre una página corta
    * y el final del muro, y confundirlas esconde publicaciones.
    */
-  getMuroGeneralPaginado: async (visiblesQueQueremos = 15, lastDoc?: DocumentSnapshot) =>
-    paginaDelMuroGeneral(
+  getMuroGeneralPaginado: async (visiblesQueQueremos = 15, lastDoc?: DocumentSnapshot) => {
+    const pagina = await paginaDelMuroGeneral(
       (desde) => postsService.getPublicPostsPaginated(sobreconsulta(visiblesQueQueremos), desde as DocumentSnapshot | undefined),
       visiblesQueQueremos,
       lastDoc
-    ),
+    );
+    return { ...pagina, visibles: sinDemoFueraDeLosEmuladores(pagina.visibles) };
+  },
 
   /*
    * No hay método para el muro de una SECCIÓN porque ya no hay muros de
@@ -719,7 +735,7 @@ export const postsService = {
       'createdAt',
       'desc'
     );
-    return result;
+    return { ...result, documents: sinDemoFueraDeLosEmuladores(result.documents) };
   },
 
   // Obtener posts de una comunidad con paginación (por communitySlug)
@@ -732,7 +748,7 @@ export const postsService = {
       'createdAt',
       'desc'
     );
-    return result;
+    return { ...result, documents: sinDemoFueraDeLosEmuladores(result.documents) };
   },
 
   // Obtener posts de múltiples comunidades (para feed "Mis comunidades")
@@ -808,7 +824,7 @@ export const postsService = {
 
       if (result.documents.length === 0) { hayMasPosts = false; break; }
 
-      const videoPosts = result.documents.filter(p => !!p.videoUrl);
+      const videoPosts = sinDemoFueraDeLosEmuladores(result.documents.filter(p => !!p.videoUrl));
       allVideoPosts = [...allVideoPosts, ...videoPosts];
       lastVisible = result.lastDoc;
       cursor = result.lastDoc || undefined;

@@ -226,11 +226,12 @@ const reiniciar = () => {
 
   /* El aviso de vídeo largo del compositor, ejecutado. */
   const largo = funcionDe('screens/CreateScreen.tsx', 'notifyVideoTooLong');
-  const avisar = (n, isWeel, segundos) => ejecutable(largo, { t, isWeel, maxVideoDurationSeconds: 15, notify: n, Math })(segundos);
+  /* R9-H: el compositor ya no tiene modo Weël (crear un Weël es screens/CrearWeelScreen.tsx), así que su aviso es siempre el de vídeo. */
+  const avisar = (n, _isWeel, segundos) => ejecutable(largo, { t, maxVideoDurationSeconds: 15, notify: n, Math })(segundos);
   reiniciar();
   avisar(WEB.notify, true, 20);
   check('10) vídeo largo en la web: título y mensaje, como antes',
-    ventana.avisos[0] === 'composer.weelTooLong\n\ncomposer.weelMaxDuration{"maximo":15,"duracion":"composer.seconds{\\"contador\\":20}"}', ventana.avisos[0]);
+    ventana.avisos[0] === 'composer.videoTooLong\n\ncomposer.videoMaxDuration{"maximo":15,"duracion":"composer.seconds{\\"contador\\":20}"}', ventana.avisos[0]);
   reiniciar();
   avisar(MOVIL.notify, false, 125);
   check('10) y en el teléfono el mismo Alert de título y mensaje',

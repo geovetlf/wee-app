@@ -310,6 +310,29 @@ const linking: any = {
           ubicacionElegida: nuncaEnLaUrl,
         },
       },
+      /*
+       * WEËLS. El feed tiene dirección propia —antes `/Reels`, que se escribía pero no se sabía leer: recargar llevaba
+       * al Inicio— y el creador de Weëls también. Ninguna publicación viaja en la dirección: el feed carga las suyas.
+       */
+      Reels: {
+        path: 'weels',
+        alias: ['Reels'],
+        parse: { communitySlug: (v: string) => (esId(v) ? v : undefined) },
+        /*
+         * Solo se declara la forma de lo que viaja (la comunidad). Las publicaciones (`initialPost`, `initialVideoPosts`,
+         * `recienPublicado`) no se declaran a propósito: la red de seguridad (`sinObjetosSueltos`) las deja en memoria y
+         * fuera de la dirección (navegacion-enlaces 24).
+         */
+        stringify: {
+          /* `null` (el feed de todos) no se escribe: volvería al recargar como la comunidad «null». */
+          communitySlug: (v: unknown) => (typeof v === 'string' && esId(v) ? v : nuncaEnLaUrl()),
+        },
+      },
+      CrearWeel: {
+        path: 'weels/crear',
+        parse: { communitySlug: (v: string) => (esId(v) ? v : undefined) },
+        stringify: { video: nuncaEnLaUrl, prefill: nuncaEnLaUrl },
+      },
       AgregarUbicacion: {
         path: 'publicar/lugar',
         parse: { place: (v: string) => leerJson(v, esLugar) },

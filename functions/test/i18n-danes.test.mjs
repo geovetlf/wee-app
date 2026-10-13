@@ -175,6 +175,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en danés que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['wall.demoBadge', '«Demo» es la palabra danesa (etiqueta del modo demo)'],
     ['aiAvatar.faceOval', '«Oval» es la palabra danesa'],
     ['aiAvatar.accPiercing', '«Piercing» es la palabra danesa'],
     ['business.shortcutAnalyze', '«Analyse», el sustantivo danés'],
@@ -482,6 +483,8 @@ console.log('\n── K · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* «En proceso» (R9): el estado de un PROYECTO que sigue abierto para retomarlo, no una transacción de Credits que se está procesando (credits.txPending). */
+    'projects.stateInProgress',
     /* «Subir»/«Bajar» reordenan escenas y klip (Flyt op/ned); en Studio son la grúa de la cámara (Kran op/ned). */
     'filmmaker.moveUp', 'filmmaker.moveDown',
     /* «Historias» como formato de redes es «Stories»; studio.wrStories («Historier») son relatos escritos. */

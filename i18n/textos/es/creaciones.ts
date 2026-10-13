@@ -100,4 +100,38 @@ export const creaciones = {
   rightsCommercialNotAllowed: 'No se puede usar con fines comerciales.',
   rightsAttribution: 'Su licencia pide atribución.',
   rightsBlockedIn: 'No se puede usar ni mostrar en: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Los resultados que terminaste y decidiste conservar. Son de tu cuenta: los ves igual desde el Perfil Real y desde el Perfil Weë.',
+  keep: 'Guardar en Mis creaciones',
+  keeping: 'Guardando…',
+  keepPending: 'Guardar en Mis creaciones todavía no está disponible. Tu resultado sigue guardado en su trabajo.',
+  keepFailed: 'No pudimos guardarla en Mis creaciones. Intenta de nuevo.',
+  emptyKeepText: 'Aquí aparecen los resultados que terminas y decides conservar con «{{accion}}».',
+  listPending: 'Todavía no podemos mostrar Mis creaciones. Tus resultados siguen guardados en sus trabajos.',
+  locationLocal: 'En este dispositivo',
+  locationCloud: 'Sincronizado en Weë Cloud',
+  locationLegacy: 'Almacenamiento anterior',
+  locationLabel: 'Dónde está: {{lugar}}',
+  fromProject: 'Del proyecto {{proyecto}}',
+  savedAgo: 'Guardada {{cuando}}',
+  editAgain: 'Volver a editar',
+  editAgainOf: 'Volver a editar {{nombre}}',
+  editAgainPending: 'Volver a editar todavía no está disponible.',
+  editAgainFailed: 'No pudimos abrirla para editar. Intenta de nuevo.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Sin decidir',
+  undecidedText: 'Material que creaste antes de poder elegir qué conservar. No se ha movido ni borrado: conserva como creación lo que quieras.',
+  undecidedFailed: 'No pudimos cargar tu material sin decidir.',
+  undecidedRetry: 'Reintentar cargar lo que está sin decidir',
+  undecidedPending: 'Todavía no podemos mostrar tu material sin decidir. No se ha borrado nada.',
+  undecidedEmpty: 'No tienes material sin decidir.',
+  undecidedLoadMore: 'Cargar más material sin decidir',
+  keepAsCreation: 'Conservar como creación',
+  keepAsCreationOf: 'Conservar {{nombre}} como creación',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Ya estaba en tus creaciones',
+  keepRetry: 'Reintentar guardar en Mis creaciones',
 };

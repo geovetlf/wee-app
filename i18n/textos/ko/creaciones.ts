@@ -78,4 +78,38 @@ export const creaciones = {
   rightsCommercialNotAllowed: '상업적으로 사용할 수 없어요.',
   rightsAttribution: '라이선스에 따라 출처를 표시해야 해요.',
   rightsBlockedIn: '다음 지역에서는 사용하거나 보여 줄 수 없어요: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: '완성한 뒤 남기기로 한 결과예요. 계정에 속하므로 실제 프로필과 Weë 프로필 어디서든 똑같이 보여요.',
+  keep: '내 창작물에 저장',
+  keeping: '저장 중…',
+  keepPending: '내 창작물에 저장하기는 아직 사용할 수 없어요. 결과는 원래 작업에 그대로 저장되어 있어요.',
+  keepFailed: '내 창작물에 저장하지 못했어요. 다시 시도해 주세요.',
+  emptyKeepText: '완성한 뒤 “{{accion}}”(으)로 남기기로 한 결과가 여기에 표시돼요.',
+  listPending: '아직 내 창작물을 보여 드릴 수 없어요. 결과는 각 작업에 그대로 저장되어 있어요.',
+  locationLocal: '이 기기에',
+  locationCloud: 'Weë Cloud와 동기화됨',
+  locationLegacy: '이전 저장소',
+  locationLabel: '저장 위치: {{lugar}}',
+  fromProject: '{{proyecto}} 프로젝트에서',
+  savedAgo: '저장됨: {{cuando}}',
+  editAgain: '다시 편집',
+  editAgainOf: '{{nombre}} 다시 편집',
+  editAgainPending: '다시 편집하기는 아직 사용할 수 없어요.',
+  editAgainFailed: '편집용으로 열지 못했어요. 다시 시도해 주세요.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: '결정 안 함',
+  undecidedText: '무엇을 남길지 고를 수 있기 전에 만든 자료예요. 아무것도 옮기거나 삭제하지 않았어요. 원하는 것을 창작물로 남기세요.',
+  undecidedFailed: '결정하지 않은 자료를 불러오지 못했어요.',
+  undecidedRetry: '결정하지 않은 자료 다시 불러오기',
+  undecidedPending: '아직 결정하지 않은 자료를 보여 드릴 수 없어요. 삭제된 것은 없어요.',
+  undecidedEmpty: '결정하지 않은 자료가 없어요.',
+  undecidedLoadMore: '결정하지 않은 자료 더 불러오기',
+  keepAsCreation: '창작물로 남기기',
+  keepAsCreationOf: '{{nombre}} 창작물로 남기기',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: '이미 내 창작물에 있었어요',
+  keepRetry: '내 창작물에 다시 저장해 보기',
 };

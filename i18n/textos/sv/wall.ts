@@ -90,4 +90,6 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'Dölj prompt',
   copyPrompt: 'Kopiera prompt',
   promptCopied: 'Kopierat!',
+  demoBadge: 'Demo',
+  demoBadgeLabel: 'Demoinnehåll',
 };

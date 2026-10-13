@@ -27,13 +27,12 @@
  * cambia la palabra, aquí cambia también.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: '你的作品，依專案整理好',
-  introText: '一個專案裡可以有 logo、照片、廣告、影片、音樂和文件。在結果上點「{{accion}}」，把每個結果放進它該去的專案。',
+  introTitle: '進行中的工作',
+  introText: '你用 Weë AI 正在做的內容會留在這裡，隨時可以繼續。透過「{{accion}}」把每個結果儲存到對應專案；完成並決定保留的內容會進入我的作品。',
   sectionTitle: '專案',
   emojiLabel: '表情符號 {{emoji}}',
   namePlaceholder: '例：我的餐廳',
   emptyTitle: '你還沒有專案',
-  emptyText: '建立第一個專案，或者在作品的結果上把它儲存進一個專案。',
   emptyAction: '建立我的第一個專案',
   open: '開啟',
   fallbackTitle: '專案',
@@ -51,4 +50,18 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: '這個專案還少了什麼？',
   whatIsMissingNote: 'logo、照片、廣告、影片、音樂或文件：Weë 的每一位專家都能往這裡加點東西。',
   createSomethingNew: '創作新東西',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: '正在載入你的專案…',
+  loadFailed: '無法載入你的專案。',
+  retry: '重試',
+  emptyText: '建立第一個專案，或者在作品的結果上把它儲存進一個專案。',
+  emptyStart: '專案是可以隨時繼續的進行中工作。',
+  stateInProgress: '進行中',
+  updatedAgo: '修改於{{cuando}}',
+  continue: '繼續',
+  continueProject: '繼續：{{nombre}}',
+  noThumbnail: '無預覽',
+  loadProjectFailed: '無法開啟此專案。',
+  jobsLoadFailed: '無法載入此專案的內容。',
 };

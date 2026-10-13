@@ -78,4 +78,38 @@ export const creaciones = {
   rightsCommercialNotAllowed: 'Kommerzielle Nutzung ist nicht erlaubt.',
   rightsAttribution: 'Die Lizenz verlangt eine Namensnennung.',
   rightsBlockedIn: 'Nutzung und Anzeige sind in diesen Regionen nicht erlaubt: {{lugares}}.',
+
+  /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
+  introKept: 'Die Ergebnisse, die du fertiggestellt und behalten hast. Sie gehören zu deinem Konto: Du siehst dieselben im Real-Profil und im Weë-Profil.',
+  keep: 'In Meine Kreationen speichern',
+  keeping: 'Wird gespeichert …',
+  keepPending: 'Das Speichern in Meine Kreationen ist noch nicht verfügbar. Dein Ergebnis bleibt in seinem Auftrag gespeichert.',
+  keepFailed: 'Es konnte nicht in Meine Kreationen gespeichert werden. Versuch es noch einmal.',
+  emptyKeepText: 'Hier erscheinen die Ergebnisse, die du fertigstellst und mit „{{accion}}“ behalten möchtest.',
+  listPending: 'Meine Kreationen können noch nicht angezeigt werden. Deine Ergebnisse bleiben in ihren Aufträgen gespeichert.',
+  locationLocal: 'Auf diesem Gerät',
+  locationCloud: 'Mit der Weë Cloud synchronisiert',
+  locationLegacy: 'Früherer Speicher',
+  locationLabel: 'Speicherort: {{lugar}}',
+  fromProject: 'Aus dem Projekt {{proyecto}}',
+  savedAgo: 'Gespeichert {{cuando}}',
+  editAgain: 'Erneut bearbeiten',
+  editAgainOf: '{{nombre}} erneut bearbeiten',
+  editAgainPending: 'Erneutes Bearbeiten ist noch nicht verfügbar.',
+  editAgainFailed: 'Es konnte nicht zum Bearbeiten geöffnet werden. Versuch es noch einmal.',
+
+  /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
+  undecidedTitle: 'Nicht entschieden',
+  undecidedText: 'Material, das du erstellt hast, bevor du auswählen konntest, was du behältst. Nichts wurde verschoben oder gelöscht: Behalte als Kreation, was du möchtest.',
+  undecidedFailed: 'Dein nicht entschiedenes Material konnte nicht geladen werden.',
+  undecidedRetry: 'Nicht entschiedenes Material erneut laden',
+  undecidedPending: 'Dein nicht entschiedenes Material kann noch nicht angezeigt werden. Nichts wurde gelöscht.',
+  undecidedEmpty: 'Du hast kein nicht entschiedenes Material.',
+  undecidedLoadMore: 'Mehr nicht entschiedenes Material laden',
+  keepAsCreation: 'Als Kreation behalten',
+  keepAsCreationOf: '{{nombre}} als Kreation behalten',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Das war schon in deinen Kreationen',
+  keepRetry: 'Erneut in Meine Kreationen speichern',
 };

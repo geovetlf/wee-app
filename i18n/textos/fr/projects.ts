@@ -9,13 +9,12 @@
  * singular, por eso `_one` lleva `{{contador}}` y nunca un 1 escrito a mano.
  */
 export const projects: typeof import('../es/projects').projects = {
-  introTitle: 'Tes créations, classées par projet',
-  introText: 'Un projet peut contenir un logo, des photos, des annonces, des vidéos, de la musique et des documents. Enregistre chaque résultat dans le sien depuis "{{accion}}".',
+  introTitle: 'Ton travail en cours',
+  introText: 'Ce que tu fais avec Weë AI reste ici pour que tu le reprennes quand tu veux. Enregistre chaque résultat dans son projet depuis « {{accion}} » ; ce que tu termines et décides de garder va dans Mes créations.',
   sectionTitle: 'Projets',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Exemple : Mon restaurant',
   emptyTitle: 'Tu n’as pas encore de projets',
-  emptyText: 'Crée le premier, ou enregistre une création dans un projet depuis son résultat.',
   emptyAction: 'Créer mon premier projet',
   open: 'Ouvrir',
   fallbackTitle: 'Projet',
@@ -33,4 +32,18 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'Que manque-t-il à ce projet ?',
   whatIsMissingNote: 'Un logo, des photos, une annonce, une vidéo, de la musique ou un document : n’importe quel spécialiste de Weë peut contribuer ici.',
   createSomethingNew: 'Créer quelque chose de nouveau',
+
+  /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
+  loading: 'Chargement de tes projets…',
+  loadFailed: 'Impossible de charger tes projets.',
+  retry: 'Réessayer',
+  emptyText: 'Crée le premier, ou enregistre une création dans un projet depuis son résultat.',
+  emptyStart: 'Un projet est un travail en cours que tu peux reprendre quand tu veux.',
+  stateInProgress: 'En cours',
+  updatedAgo: 'Modifié {{cuando}}',
+  continue: 'Continuer',
+  continueProject: 'Continuer {{nombre}}',
+  noThumbnail: 'Pas d’aperçu',
+  loadProjectFailed: 'Impossible d’ouvrir ce projet.',
+  jobsLoadFailed: 'Impossible de charger le contenu de ce projet.',
 };
