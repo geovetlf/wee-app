@@ -698,12 +698,35 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
   const CORE_DEL_NUCLEO_DE_ACTIVOS = '1\t0\tfunctions/src/core/media/index.ts|747\t0\tfunctions/src/core/media/indice.ts|107\t4\tfunctions/src/core/media/objeto.ts'
     + '|52\t1\tfunctions/src/core/media/puerto.ts|7\t1\tfunctions/src/core/media/recoleccion.ts|255\t1\tfunctions/src/core/media/reconciliacion.ts'
     + '|2\t1\tfunctions/src/core/media/subida.ts';
-  /* Las tres listas juntas, en el orden en que las da git: por ruta. */
-  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), ...CORE_DEL_NUCLEO_DE_ACTIVOS.split('|')]
-    .sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');
-  check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal, el linaje del ciclo de vida 3D y el núcleo de activos (H5/H2), del tamaño exacto',
+  /*
+   * + MEDIA CLOUD · R9 (2026-10-12, autorización del dueño), por nombre y tamaño: `core/media/puerto.ts` +9 (el campo
+   * opcional `bytesExactos` de PeticionDeSubidaDirecta: el tamaño que el adaptador mete en la firma) y
+   * `core/media/subida.ts` +62 −1 (`tipoAdmitidoParaLaClase`, TIPOS_ACTIVOS, TIPOS_POR_CLASE y, en `decidirSubida`, el
+   * cruce del tipo con la clase y el mimeType del material ya guardado: la regla vive en el Core). Ningún contrato sube.
+   */
+  const CORE_DE_MEDIA_CLOUD_R9 = '9\t0\tfunctions/src/core/media/puerto.ts|62\t1\tfunctions/src/core/media/subida.ts';
+  /*
+   * Reconciliación F ↔ pila R9 (decisión del dueño 2026-10-13): core/media/puerto.ts y core/media/subida.ts los tocan el
+   * núcleo de activos (52/1 y 2/1) y Media Cloud R9 (9/0 y 62/1) en bloques distintos, y git da UNA línea por archivo con
+   * la suma: 61/1 y 64/2, aquí escritas tal cual. Las dos constantes de origen siguen con sus cifras; `sumarPorRuta` junta
+   * las líneas de la misma ruta sumando, y la suma de esos dos archivos tiene que ser EXACTAMENTE la escrita.
+   */
+  const CORE_DE_ACTIVOS_Y_MEDIA_CLOUD_R9 = '61\t1\tfunctions/src/core/media/puerto.ts|64\t2\tfunctions/src/core/media/subida.ts';
+  const sumarPorRuta = (...listas) => {
+    const suma = new Map();
+    for (const l of listas.join('|').split('|')) {
+      const [a, d, ruta] = l.split('\t'); const s = suma.get(ruta) || [0, 0];
+      suma.set(ruta, [s[0] + Number(a), s[1] + Number(d)]);
+    }
+    return [...suma].map(([ruta, [a, d]]) => `${a}\t${d}\t${ruta}`).sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');
+  };
+  const rutasCompartidas = CORE_DE_ACTIVOS_Y_MEDIA_CLOUD_R9.split('|').map((l) => l.split('\t')[2]);
+  /* Las cuatro listas juntas, en el orden en que las da git (por ruta), con los dos archivos compartidos sumados. */
+  const coreEsperado = sumarPorRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DEL_NUCLEO_DE_ACTIVOS, CORE_DE_MEDIA_CLOUD_R9);
+  check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal, el linaje del ciclo de vida 3D, el núcleo de activos (H5/H2) y Media Cloud R9, del tamaño exacto',
     git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions`).trim() === ''
-    && git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|') === coreEsperado,
+    && git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|') === coreEsperado
+    && sumarPorRuta(CORE_DEL_NUCLEO_DE_ACTIVOS, CORE_DE_MEDIA_CLOUD_R9).split('|').filter((l) => rutasCompartidas.includes(l.split('\t')[2])).join('|') === CORE_DE_ACTIVOS_Y_MEDIA_CLOUD_R9,
     git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').join('|'));
 }
 
