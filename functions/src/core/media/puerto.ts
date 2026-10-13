@@ -180,6 +180,15 @@ export interface PeticionDeSubidaDirecta {
   maxBytes: number;
   /** Escribir solo si la clave está libre: lo mismo que hace guardar, por lo mismo. */
   siNoExiste?: boolean;
+  /**
+   * MEDIA-F (2026-10-12) · EL TAMAÑO EXACTO QUE SE AUTORIZA, cuando se conoce.
+   *
+   * Opcional. Un adaptador que sabe firmarlo lo mete en la firma (`content-length`)
+   * y entonces subir otro número de bytes invalida el permiso; uno que no sabe,
+   * lo ignora y el tamaño real se comprueba al confirmar, como hasta ahora.
+   * Nunca puede ser mayor que `maxBytes`.
+   */
+  bytesExactos?: number;
 }
 
 /**

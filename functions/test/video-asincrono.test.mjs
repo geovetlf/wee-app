@@ -676,10 +676,17 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * sin conectar) y su línea de exportación en la puerta del Content Core. Ningún contrato sube de versión.
    */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts|651\t0\tfunctions/src/core/content/linaje.ts';
-  /* Las dos listas juntas, en el orden en que las da git: por ruta. */
-  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|')]
+  /*
+   * + MEDIA CLOUD · R9 (2026-10-12, autorización del dueño), por nombre y tamaño: `core/media/puerto.ts` +9 (el campo
+   * opcional `bytesExactos` de PeticionDeSubidaDirecta: el tamaño que el adaptador mete en la firma) y
+   * `core/media/subida.ts` +62 −1 (`tipoAdmitidoParaLaClase`, TIPOS_ACTIVOS, TIPOS_POR_CLASE y, en `decidirSubida`, el
+   * cruce del tipo con la clase y el mimeType del material ya guardado: la regla vive en el Core). Ningún contrato sube.
+   */
+  const CORE_DE_MEDIA_CLOUD_R9 = '9\t0\tfunctions/src/core/media/puerto.ts|62\t1\tfunctions/src/core/media/subida.ts';
+  /* Las tres listas juntas, en el orden en que las da git: por ruta. */
+  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), ...CORE_DE_MEDIA_CLOUD_R9.split('|')]
     .sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');
-  check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal y el linaje del ciclo de vida 3D, del tamaño exacto',
+  check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal, el linaje del ciclo de vida 3D y Media Cloud R9, del tamaño exacto',
     git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions`).trim() === ''
     && git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|') === coreEsperado,
     git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').join('|'));
