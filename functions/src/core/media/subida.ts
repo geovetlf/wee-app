@@ -137,6 +137,13 @@ export const tipoAdmitidoParaLaClase = (kind: unknown, contentType: unknown): bo
   if (!tipoDeContenidoAceptable(contentType)) return false;
   const esencia = esenciaDe(contentType);
   if (TIPOS_ACTIVOS.has(esencia)) return false;
+  /*
+   * Cualquier subtipo `…+xml` es un documento XML para el navegador (WHATWG MIME
+   * Sniffing) y puede llevar `<script>` en el espacio de nombres de XHTML:
+   * `image/x+xml`, `image/vnd.svg+xml`, `model/x3d+xml`… Se rechazan todos, no
+   * solo los de la lista (revisión independiente R9, M-1).
+   */
+  if (esencia.endsWith('+xml')) return false;
   const admite = typeof kind === 'string' && Object.prototype.hasOwnProperty.call(TIPOS_POR_CLASE, kind)
     ? (TIPOS_POR_CLASE as Record<string, (t: string) => boolean>)[kind]
     : undefined;
@@ -222,6 +229,16 @@ export const decidirSubida = (p: PeticionDeDecisionDeSubida): DecisionDeSubida =
   if (!p.material) return no('sin_material');
   if (!materialEsDeLaCuenta(p.material, p.accountId)) return no('no_es_tuyo');
   if (!ESTADOS_QUE_ADMITEN_SUBIDA.includes(p.material.status)) return no('material_no_admite_bytes');
+
+  /*
+   * MEDIA-F (revisión R9, B-2) · EL TIPO SE CRUZA CON EL MATERIAL YA GUARDADO.
+   * Repetir un `operationId` devuelve el material que ya existía; sin esto se
+   * firmaba el tipo NUEVO aunque el material fuese de otra clase o de otro tipo.
+   * La clase manda (`tipoAdmitidoParaLaClase`) y, si el material ya declara su
+   * tipo, el que se firma tiene que ser exactamente ese.
+   */
+  if (!tipoAdmitidoParaLaClase(p.material.kind, p.contentType)) return { permitida: false, motivo: 'peticion_invalida', detalle: 'tipo' };
+  if (p.material.mimeType !== undefined && p.material.mimeType !== p.contentType) return { permitida: false, motivo: 'peticion_invalida', detalle: 'tipo' };
 
   /*
    * Si ya hay ficha de objeto, los bytes YA están: se registró al confirmar una

@@ -39,7 +39,7 @@ let failures = 0; let n = 0;
 const check = (name, cond, extra = '') => { n++; console.log((cond ? '✔ ' : '✘ ') + `${n}) ${name}` + (extra ? ' — ' + extra : '')); if (!cond) failures++; };
 
 const core = lib('core/index.js');
-const { claveDelObjeto, crearRegistroDeMedios, referenciaDelObjeto, tipoAdmitidoParaLaClase } = core;
+const { claveDelObjeto, crearRegistroDeMedios, decidirSubida, referenciaDelObjeto, tipoAdmitidoParaLaClase } = core;
 const { crearAdaptadorDeR2, DESCRIPTOR_DE_R2, R2_PROVIDER_ID, anfitrionDeR2, metadatosTransmisibles } = lib('media/r2.js');
 const { firmar, firmarConsulta } = lib('media/firma.js');
 const { huellaDeMedios } = lib('media/huella.js');
@@ -253,6 +253,9 @@ console.log('\n── D · Metadatos que no caben en una cabecera: rechazo antes
   check('D2 · un salto de línea (inyección de cabeceras) tampoco', !salto.ok && salto.error.details.field === 'metadatos');
   const espacio = await r2Mudo.guardar({ destino: ref, cuerpo: Buffer.from('x'), contentType: 'image/png', metadatos: { 'mi clave': 'v' } });
   check('D3 · ni un nombre con espacios', !espacio.ok && espacio.error.details.field === 'metadatos');
+  const dobles = await r2Mudo.guardar({ destino: ref, cuerpo: Buffer.from('x'), contentType: 'image/png', metadatos: { nota: 'a  b' } });
+  check('D5 · dos espacios seguidos dentro del valor (SigV4 los colapsa y `firmar` no): rechazo, no una firma que falla siempre',
+    !dobles.ok && dobles.error.details.field === 'metadatos' && !metadatosTransmisibles({ 'x-amz-meta-nota': 'a  b' }) && metadatosTransmisibles({ 'x-amz-meta-nota': 'a b' }));
   const muchos = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`x-amz-meta-k${i}`, 'v'.repeat(250)]));
   check('D4 · el total respeta el límite publicado (8.192 bytes)', !metadatosTransmisibles(muchos) && metadatosTransmisibles({ 'x-amz-meta-assetid': 'asset_1' }));
 }
@@ -359,12 +362,31 @@ console.log('\n── G · Subir, confirmar y entregar, con la red de verdad y R
   const html = await solicitarSubida(deps, { principalId: ANA, operationId: 'op-ana-html-0001', kind: 'image', contentType: 'text/html', bytes: 10 });
   const svg = await solicitarSubida(deps, { principalId: ANA, operationId: 'op-ana-svg-00001', kind: 'image', contentType: 'image/svg+xml', bytes: 10 });
   const cruzado = await solicitarSubida(deps, { principalId: ANA, operationId: 'op-ana-cruz-0001', kind: 'image', contentType: 'video/mp4', bytes: 10 });
-  check('G9 · ni HTML, ni SVG, ni un tipo de otra clase: rechazo ANTES de crear material o firmar',
-    [html, svg, cruzado].every((r) => !r.ok && r.motivo === 'peticion_invalida' && r.traza.detalle === 'tipo') && materiales.size === 1);
+  const xmlImagen = await solicitarSubida(deps, { principalId: ANA, operationId: 'op-ana-xml-00001', kind: 'image', contentType: 'image/foo+xml', bytes: 10 });
+  const xmlModelo = await solicitarSubida(deps, { principalId: ANA, operationId: 'op-ana-xml-00002', kind: 'model3d', contentType: 'model/x3d+xml', bytes: 10 });
+  check('G9 · ni HTML, ni SVG, ni `…+xml`, ni un tipo de otra clase: rechazo ANTES de crear material o firmar',
+    [html, svg, cruzado, xmlImagen, xmlModelo].every((r) => !r.ok && r.motivo === 'peticion_invalida' && r.traza.detalle === 'tipo') && materiales.size === 1);
   check('G10 · la política por clase admite lo normal de cada una',
     tipoAdmitidoParaLaClase('image', 'image/webp') && tipoAdmitidoParaLaClase('video', 'video/mp4') && tipoAdmitidoParaLaClase('audio', 'audio/mp4')
     && tipoAdmitidoParaLaClase('document', 'application/pdf') && tipoAdmitidoParaLaClase('model3d', 'model/gltf-binary')
     && !tipoAdmitidoParaLaClase('document', 'text/html') && !tipoAdmitidoParaLaClase('inventada', 'image/png') && !tipoAdmitidoParaLaClase('toString', 'image/png'));
+  check('G10b · cualquier subtipo `…+xml` se rechaza en toda clase, también en mayúsculas o con parámetros',
+    [['image', 'image/foo+xml'], ['image', 'image/vnd.svg+xml'], ['video', 'video/x+xml'], ['model3d', 'model/x3d+xml'], ['model3d', 'model/vnd.collada+xml'],
+      ['world', 'model/x3d+xml'], ['image', 'IMAGE/SVG+XML'], ['image', 'Image/Foo+XML'], ['image', 'image/svg+xml; charset=utf-8'], ['video', 'video/x+xml;charset=utf-8']]
+      .every(([k, t]) => !tipoAdmitidoParaLaClase(k, t)));
+
+  /* B-2 · repetir un operationId no puede firmar un tipo que no es el del material ya creado. */
+  const otroTipo = await solicitarSubida(deps, { principalId: ANA, operationId: 'op-ana-foto-0002', kind: 'image', contentType: 'image/png', bytes: 10 });
+  const otraClase = await solicitarSubida(deps, { principalId: ANA, operationId: 'op-ana-foto-0002', kind: 'model3d', contentType: 'application/octet-stream', bytes: 10 });
+  const mismoOpOtroMime = otroTipo.ok ? await solicitarSubida(deps, { principalId: ANA, operationId: 'op-ana-foto-0002', kind: 'image', contentType: 'image/webp', bytes: 10 }) : { ok: true };
+  const mismoOpIgual = otroTipo.ok ? await solicitarSubida(deps, { principalId: ANA, operationId: 'op-ana-foto-0002', kind: 'image', contentType: 'image/png', bytes: 10 }) : { ok: false };
+  check('G11 · mismo operationId con otra clase u otro tipo: no se firma (se cruza con el material guardado); con el mismo, sí',
+    !otraClase.ok && otraClase.traza.detalle === 'tipo' && otroTipo.ok && !mismoOpOtroMime.ok && mismoOpOtroMime.traza.detalle === 'tipo' && mismoOpIgual.ok
+    && materiales.get(otroTipo.intento.assetId).mimeType === 'image/png');
+  const sinMime = { ...materiales.get(otroTipo.intento.assetId) }; delete sinMime.mimeType;
+  const dec = (contentType) => decidirSubida({ accountId: ANA, material: sinMime, objeto: undefined, registro, providerId: R2_PROVIDER_ID, contentType, bytes: 10 });
+  check('G12 · la decisión cruza el tipo con la CLASE del material aunque no tenga `mimeType`',
+    dec('application/octet-stream').permitida === false && dec('application/octet-stream').detalle === 'tipo' && dec('image/png').permitida === true);
 }
 
 /* ═══ H · COMPATIBILIDAD CON LO HISTÓRICO ═════════════════════════════════ */

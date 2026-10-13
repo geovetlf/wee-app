@@ -237,7 +237,8 @@ export const solicitarSubida = async (
   /*
    * 3 · Lo que se puede rechazar SIN tocar nada. Se hace antes de escribir para
    * que una petición mal formada no deje un material a medias en la base de
-   * datos. Son las mismas funciones puras que vuelve a aplicar la decisión.
+   * datos. Son las mismas funciones puras que vuelve a aplicar la decisión,
+   * que además cruza el tipo con la clase y el tipo del material ya guardado.
    */
   if (vigenciaDeSubidaAprobada(peticion.vigenciaSegundos, deps.politica) === undefined) {
     return no('peticion_invalida', { accountId, detalle: 'vigencia' });

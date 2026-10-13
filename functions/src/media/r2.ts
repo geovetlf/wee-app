@@ -548,6 +548,8 @@ export const metadatosTransmisibles = (metadatos: Readonly<Record<string, string
   for (const [k, v] of Object.entries(metadatos)) {
     if (!/^x-amz-meta-[a-z0-9!#$&'*+.^_`|~-]{1,128}$/.test(k)) return false;
     if (typeof v !== 'string' || !/^[\x20-\x7e]*$/.test(v)) return false;
+    /* SigV4 colapsa los espacios seguidos al canonicalizar y `firmar` no: con dos seguidos la firma no coincidiría nunca (revisión R9, B-3). */
+    if (/ {2}/.test(v)) return false;
     total += Buffer.byteLength(k, 'utf8') + Buffer.byteLength(v, 'utf8');
   }
   return total <= (DESCRIPTOR_DE_R2.limites?.maxBytesDeMetadatos ?? 0);
