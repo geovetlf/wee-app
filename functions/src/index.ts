@@ -118,6 +118,10 @@ export { disponibilidadDeCapacidades } from './engine/disponibilidad';
 // Content Core (Fase 11): retirar un material propio, objeto incluido.
 export { deleteAsset } from './content';
 
+// Mis creaciones (R9 · D-2, decisión del dueño 2026-10-12): finalizar, reabrir, eliminar una creación, guardar un
+// texto final y borrar un asset con su impacto. NO desplegada (ops/despliegue/grupos.json → no_se_despliegan).
+export { cicloDeTrabajo } from './content/creaciones';
+
 // Encuestas: la única puerta para votar. Función social, sin IA ni Credits.
 export { votePoll } from './social/polls';
 export { burnViewOnce } from './social/weetalk';

@@ -337,6 +337,11 @@ const FUNCTIONS = {
    */
   './evals': ['evalRun'],
   './content': ['deleteAsset'],
+  /*
+   * R9 · Mis creaciones (D-2, AUTORIZACIÓN DEL DUEÑO 2026-10-12: conectar el callable y modificar esta cerca). NO está
+   * desplegada (ops/despliegue/grupos.json → no_se_despliegan): está en el mapa porque el código la exporta.
+   */
+  './content/creaciones': ['cicloDeTrabajo'],
   './social/polls': ['votePoll'],
   './social/weetalk': ['burnViewOnce'],
   './social/econtact': ['requestEContact', 'acceptEContact'],
@@ -427,7 +432,8 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y ocho: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar), generateWorld (misión mundo3d, sin desplegar) y disponibilidadDeCapacidades (DEC-06, sin desplegar)', reales.length === 38, `${reales.length}`);
+  /* + R9 · D-2 (autorización del dueño, 2026-10-12): cicloDeTrabajo, Mis creaciones, sin desplegar. */
+  check('5) y son treinta y nueve: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar), generateWorld (misión mundo3d, sin desplegar), disponibilidadDeCapacidades (DEC-06, sin desplegar) y cicloDeTrabajo (R9 · D-2, sin desplegar)', reales.length === 39, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *
@@ -655,6 +661,8 @@ console.log('\n── E · Quién llama desde la app ──');
     creatorChat: 'services/creatorService.ts', creatorQuote: 'services/creatorService.ts', creatorRun: 'services/creatorService.ts',
     brainChat: 'services/brainService.ts', brainQuote: 'services/brainService.ts',
     generateVideo: 'services/videoService.ts', deleteAsset: 'services/assetsService.ts',
+    /* R9 · D-2 (autorización del dueño, 2026-10-12): Mis creaciones tiene UN servicio en la app, el contrato. */
+    cicloDeTrabajo: 'services/cicloDeTrabajo.ts',
     /* + misión mundo3d: la tercera puerta del conductor tiene UN servicio en la app (sin desplegar, y su pantalla tras su puerta). */
     generateWorld: 'services/mundoService.ts',
   };

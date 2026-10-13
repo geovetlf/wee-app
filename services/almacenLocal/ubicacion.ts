@@ -22,6 +22,7 @@ import type { EntradaDelPuerto } from './puertoDeArchivos';
 import type { OperacionesDeRuta } from './puertoDeRuta';
 import type { HijoSAF, OperacionesSAF } from './puertoSAF';
 import { crearUbicacionSAF, crearUbicacionSandbox, nombreDeUriSAF } from './puertosDeUbicacion';
+import { conErroresTraducidos } from './erroresNativos';
 import type { PuertoDeUbicacion, RegistroDeUbicacion, TiendaDeUbicacion } from '../../utils/ubicacionWee';
 
 const CLAVE_DEL_REGISTRO = 'wee.almacen.ubicacion.v1';
@@ -29,7 +30,8 @@ const BASE64 = { encoding: FileSystem.EncodingType.Base64 };
 
 const separadorFinal = (ruta: string): string => (ruta.endsWith('/') ? '' : '/');
 
-const operacionesDeRuta: OperacionesDeRuta = {
+// Los fallos del sistema salen como ErrorAlmacenLocal (permiso, espacio, ausente): `erroresNativos.ts`.
+const operacionesDeRuta: OperacionesDeRuta = conErroresTraducidos<OperacionesDeRuta>({
   async tipoDe(ruta) {
     const info = await FileSystem.getInfoAsync(ruta);
     if (!info.exists) return null;
@@ -72,7 +74,7 @@ const operacionesDeRuta: OperacionesDeRuta = {
       return null;
     }
   },
-};
+});
 
 const esCarpetaSAF = async (uri: string): Promise<boolean> => {
   try {
@@ -83,7 +85,7 @@ const esCarpetaSAF = async (uri: string): Promise<boolean> => {
   }
 };
 
-const operacionesSAF: OperacionesSAF = {
+const operacionesSAF: OperacionesSAF = conErroresTraducidos<OperacionesSAF>({
   async hijos(uriCarpeta) {
     const hijos: HijoSAF[] = [];
     for (const uri of await FileSystem.StorageAccessFramework.readDirectoryAsync(uriCarpeta)) {
@@ -102,7 +104,7 @@ const operacionesSAF: OperacionesSAF = {
   async borrar(uri) {
     await FileSystem.deleteAsync(uri, { idempotent: true });
   },
-};
+});
 
 const ubicacionIOS = crearUbicacionSandbox({
   carpetaDelSistema: async () => FileSystem.documentDirectory,
