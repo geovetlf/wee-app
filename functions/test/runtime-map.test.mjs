@@ -296,7 +296,14 @@ const OTROS_DEL_CORE = {
     /* + H5/H2: ¿sabe el adaptador borrar con generación?, y ¿este fallo es un 412? (content/indice.js). */
     'esPrecondicionFallida', 'sabeBorrarConGeneracion'],
   'core/media/registro.js': ['crearRegistroDeMedios'],
-  'core/media/subida.js': ['decidirSubida', 'identidadDeIntento', 'tamanoAprobado', 'tipoDeContenidoAceptable', 'topeDeSubida', 'vigenciaDeSubidaAprobada'],
+  /*
+   * + MEDIA CLOUD · R9 (2026-10-12, autorización del dueño): el cableado de la subida (media/subida.ts) nombra
+   * `tipoAdmitidoParaLaClase` para rechazar antes de escribir un tipo que no es de la familia de su clase o es contenido
+   * activo. La regla vive en el Core y `decidirSubida` la vuelve a aplicar contra el material ya guardado.
+   * TIPOS_ACTIVOS y TIPOS_POR_CLASE se exportan pero el código vivo no los nombra: no están aquí, y si alguien los
+   * nombra, esto falla.
+   */
+  'core/media/subida.js': ['decidirSubida', 'identidadDeIntento', 'tamanoAprobado', 'tipoAdmitidoParaLaClase', 'tipoDeContenidoAceptable', 'topeDeSubida', 'vigenciaDeSubidaAprobada'],
   'core/media/proceso.js': ['CAPACIDADES_DE_MC4', 'LIMITES_DE_TRANSFORMACION', 'decidirProceso', 'leerPaqueteDeProceso', 'transformacionValida', 'varianteDeResultado'],
   /* MC-7 · los mide MC-4, que SÍ se despliega por el canary. Medir sigue apagado: nadie pasa medidor. */
   'core/media/uso.js': ['usoDeEscritura', 'usoDeLectura', 'usoDeOperacion'],
