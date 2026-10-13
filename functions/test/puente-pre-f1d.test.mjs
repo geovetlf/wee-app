@@ -712,6 +712,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    */
   const DE_LA_LINEA_M = ['functions/src/media/procesador.ts', 'functions/src/media/optimizador/coste.ts',
     'functions/src/media/optimizador/plan.ts', 'functions/src/media/optimizador/transcodificacion.ts'];
+  /* + R9 · Mis creaciones (AUTORIZACIÓN DEL DUEÑO, 2026-10-12: reconocer SOLO estos dos archivos nuevos de functions/src/content en F1/F3). */
+  const DE_MIS_CREACIONES = ['functions/src/content/creaciones-modelo.ts', 'functions/src/content/creaciones.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado, de los módulos de versiones y disponibilidad (DEC-03 y DEC-06) y del núcleo de activos (H5/H2)',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
@@ -721,6 +723,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_VERSIONES_Y_DISPONIBILIDAD,
       ...DEL_NUCLEO_DE_ACTIVOS,
       ...DE_LA_LINEA_M,
+      ...DE_MIS_CREACIONES,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -759,6 +762,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * f96212a +8). Los otros tres archivos y las otras dos condiciones de F3 no cambian. */
   const CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS = '393\t103\tfunctions/src/content/index.ts\n303\t0\tfunctions/src/content/indice-almacen.ts'
     + '\n392\t0\tfunctions/src/content/indice-reconciliacion.ts\n812\t0\tfunctions/src/content/indice.ts\n126\t4\tfunctions/src/content/materializador.ts\n223\t0\tfunctions/src/content/versiones.ts';
+  /* + R9 · Mis creaciones (AUTORIZACIÓN DEL DUEÑO, 2026-10-12: reconocer SOLO estos dos archivos nuevos de functions/src/content en F1/F3): sus cifras exactas del árbol contra b023f24. */
+  const CONTENIDO_DE_MIS_CREACIONES = '254\t0\tfunctions/src/content/creaciones-modelo.ts\n513\t0\tfunctions/src/content/creaciones.ts';
   /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
   const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
   check('F3) ni F1-A ni productions; del Core, la misión fal, el linaje 3D y el núcleo de activos (H5/H2); del contenido, la adopción de F1-D, el cierre, los derechos, DEC-03 y el núcleo de activos (H5/H2)',
@@ -766,7 +771,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DEL_NUCLEO_DE_ACTIVOS)
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
-    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS);
+    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === porRuta(CONTENIDO_DE_MIS_CREACIONES, CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS));
     /* + FASE 5: materializador.ts +2 (antes 124/4): el nombre del material, las palabras de quien lo pidió. */
     /* + misión mundo3d (2026-10-05): content/index.ts +27 (antes 41/3), las variantes de UN resultado; materializador.ts +62 −2 (antes 62/2), los derechos al material y sus variantes después. */
   const legacy = (s) => {
