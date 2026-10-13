@@ -18,7 +18,7 @@
  */
 export const projects: typeof import('../es/projects').projects = {
   introTitle: 'आपका चल रहा काम',
-  introText: 'Weë AI के साथ आप जो बना रहे हैं, वह यहाँ रहता है, ताकि आप जब चाहें उसे जारी रख सकें। हर नतीजे को “{{accion}}” से उसके प्रोजेक्ट में सेव करें; जो आप पूरा करके रखना चुनें, वह मेरी रचनाएँ में जाता है।',
+  introText: 'Weë AI के साथ आप जो बना रहे हैं, वह यहाँ रहता है, ताकि आप जब चाहें उसे जारी रख सकें. हर नतीजे को “{{accion}}” से उसके प्रोजेक्ट में सेव करें; जो आप पूरा करके रखना चुनें, वह मेरी रचनाएँ में जाता है.',
   sectionTitle: 'प्रोजेक्ट',
   emojiLabel: '{{emoji}} इमोजी',
   namePlaceholder: 'जैसे: मेरा रेस्टोरेंट',
@@ -43,14 +43,15 @@ export const projects: typeof import('../es/projects').projects = {
 
   /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
   loading: 'आपके प्रोजेक्ट लोड हो रहे हैं…',
-  loadFailed: 'हम आपके प्रोजेक्ट लोड नहीं कर पाए।',
+  loadFailed: 'हम आपके प्रोजेक्ट लोड नहीं कर पाए.',
   retry: 'फिर से कोशिश करें',
-  emptyStart: 'प्रोजेक्ट एक चलता हुआ काम है, जिसे आप जब चाहें फिर से शुरू कर सकते हैं। यहाँ एक बनाएँ या किसी नतीजे को “{{accion}}” से किसी प्रोजेक्ट में सेव करें।',
+  emptyText: 'पहला प्रोजेक्ट बनाएँ या कोई भी नतीजा सीधे किसी प्रोजेक्ट में सेव करें.',
+  emptyStart: 'प्रोजेक्ट एक चलता हुआ काम है, जिसे आप जब चाहें फिर से शुरू कर सकते हैं.',
   stateInProgress: 'जारी है',
   updatedAgo: 'बदला गया: {{cuando}}',
   continue: 'जारी रखें',
   continueProject: '{{nombre}} जारी रखें',
-  noThumbnail: 'कोई प्रीव्यू नहीं',
-  loadProjectFailed: 'हम यह प्रोजेक्ट नहीं खोल पाए।',
-  jobsLoadFailed: 'हम इस प्रोजेक्ट की सामग्री लोड नहीं कर पाए।',
+  noThumbnail: 'कोई झलक नहीं',
+  loadProjectFailed: 'हम यह प्रोजेक्ट नहीं खोल पाए.',
+  jobsLoadFailed: 'हम इस प्रोजेक्ट की सामग्री लोड नहीं कर पाए.',
 };

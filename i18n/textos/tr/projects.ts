@@ -38,8 +38,9 @@ export const projects: typeof import('../es/projects').projects = {
   /* Mis proyectos = trabajo EN PROCESO (R9): estados de la lista, vacío que explica cómo empezar y la tarjeta con «Continuar». */
   loading: 'Projelerin yükleniyor…',
   loadFailed: 'Projelerini yükleyemedik.',
-  retry: 'Tekrar dene',
-  emptyStart: 'Proje, istediğin zaman kaldığın yerden devam edebileceğin, süren bir çalışmadır. Burada bir tane oluştur ya da bir sonucu “{{accion}}” ile bir projeye kaydet.',
+  retry: 'Yeniden dene',
+  emptyText: 'İlk projeni oluştur ya da bir içeriği, sonuç ekranından bir projeye kaydet.',
+  emptyStart: 'Proje, istediğin zaman kaldığın yerden devam edebileceğin, süren bir çalışmadır.',
   stateInProgress: 'Devam ediyor',
   updatedAgo: 'Değiştirildi: {{cuando}}',
   continue: 'Devam et',

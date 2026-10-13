@@ -529,6 +529,10 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* «En proceso» (R9): el estado de un PROYECTO que sigue abierto para retomarlo, no una transacción de Credits que se está procesando (credits.txPending). */
+    'projects.stateInProgress',
+    /* «Continuar» (R9): retomar un trabajo a medias (続ける), no pasar al paso siguiente del onboarding (onboarding.continueStep, 次へ). */
+    'projects.continue',
     /* «Personas» como estilo de avatar es «人物»; la del Chef cuenta comensales («人数»). */
     'avatar.stylePeople',
     /* «Nuevo producto» de muestra en el calendario de un restaurante es un plato nuevo («新メニュー»); el título del formulario de Weë Biz es «商品の追加». */

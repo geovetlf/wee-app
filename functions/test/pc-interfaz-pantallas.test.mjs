@@ -58,8 +58,8 @@ const P = crearMontaje('screens/ProjectsScreen.tsx');
   await prueba('A2) vacío: explica qué es un proyecto y cómo empezar, con su botón', async () => {
     P.reiniciar();
     const d = await P.montar();
-    const empezar = t('projects.emptyStart', { accion: t('weeai.saveToProject') });
-    return [d.texto.includes(t('projects.emptyTitle')) && d.texto.includes(empezar) && !!P.boton(d, t('projects.emptyAction'))
+    const empezar = t('projects.emptyStart');
+    return [d.texto.includes(t('projects.emptyTitle')) && d.texto.includes(empezar) && d.texto.includes(t('projects.emptyText')) && !!P.boton(d, t('projects.emptyAction'))
       && !d.texto.includes(t('creaciones.emptyKeepText', { accion: t('creaciones.keep') })), empezar];
   });
   await prueba('A3) un fallo de red NO se disfraza de vacío: dice que falló y ofrece reintentar', async () => {
@@ -144,12 +144,12 @@ const creacion = (extra = {}) => ({ id: 'c1', assetIds: ['a1'], nombre: 'Logo fi
     C.reiniciar();
     const d = await C.montar();
     const guardar = t('creaciones.emptyKeepText', { accion: t('creaciones.keep') });
-    return [d.texto.includes(guardar) && !d.texto.includes(t('projects.emptyStart', { accion: t('weeai.saveToProject') })) && !!C.boton(d, t('creaciones.emptyAction')), guardar];
+    return [d.texto.includes(guardar) && !d.texto.includes(t('projects.emptyStart')) && !!C.boton(d, t('creaciones.emptyAction')), guardar];
   });
-  check('B2) CONTROL: los dos vacíos son frases distintas y cada uno nombra su acción',
-    t('creaciones.emptyKeepText', { accion: t('creaciones.keep') }) !== t('projects.emptyStart', { accion: t('weeai.saveToProject') })
+  check('B2) CONTROL: los dos vacíos son frases distintas; el de creaciones nombra cómo se conserva y el de proyectos dice qué es un proyecto',
+    t('creaciones.emptyKeepText', { accion: t('creaciones.keep') }) !== t('projects.emptyStart')
     && t('creaciones.emptyKeepText', { accion: t('creaciones.keep') }).includes(t('creaciones.keep'))
-    && t('projects.emptyStart', { accion: t('weeai.saveToProject') }).includes(t('weeai.saveToProject')));
+    && !t('projects.emptyStart').includes(t('creaciones.keep')) && t('projects.emptyStart') !== t('projects.emptyText'));
   await prueba('B3) contrato `pendiente`: lo dice con honestidad, sin creaciones inventadas ni «vacío»', async () => {
     C.reiniciar();
     C.estado.contrato.falla.listarCreacionesFinales = pendiente;

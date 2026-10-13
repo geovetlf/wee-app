@@ -21,7 +21,7 @@
  */
 export const projects: typeof import('../es/projects').projects = {
   introTitle: 'Dit igangværende arbejde',
-  introText: 'Det, du laver med Weë AI, bliver her, så du kan fortsætte, når du vil. Gem hvert resultat i sit projekt fra “{{accion}}”; det, du gør færdigt og vælger at beholde, kommer i Mine kreationer.',
+  introText: 'Det, du laver med Weë AI, bliver her, så du kan fortsætte, når du vil. Gem hvert resultat i sit projekt fra ”{{accion}}”; det, du gør færdigt og vælger at beholde, kommer i Mine kreationer.',
   sectionTitle: 'Projekter',
   emojiLabel: 'Emoji {{emoji}}',
   namePlaceholder: 'Fx Min restaurant',
@@ -48,7 +48,8 @@ export const projects: typeof import('../es/projects').projects = {
   loading: 'Indlæser dine projekter …',
   loadFailed: 'Vi kunne ikke indlæse dine projekter.',
   retry: 'Prøv igen',
-  emptyStart: 'Et projekt er et igangværende arbejde, som du kan tage op igen, når du vil. Opret et her, eller gem et resultat i et projekt fra “{{accion}}”.',
+  emptyText: 'Opret et her, eller gem en kreation i et projekt direkte fra resultatet.',
+  emptyStart: 'Et projekt er et igangværende arbejde, som du kan tage op igen, når du vil.',
   stateInProgress: 'I gang',
   updatedAgo: 'Ændret {{cuando}}',
   continue: 'Fortsæt',

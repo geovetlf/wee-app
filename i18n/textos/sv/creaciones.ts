@@ -97,7 +97,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
   introKept: 'Resultaten som du har gjort klart och valt att behålla. De hör till ditt konto: du ser samma från din riktiga profil och din Weë-profil.',
   keep: 'Spara i Mina skapelser',
-  keeping: 'Sparar …',
+  keeping: 'Sparar…',
   keepPending: 'Det går inte att spara i Mina skapelser än. Ditt resultat finns kvar i sitt jobb.',
   keepFailed: 'Vi kunde inte spara den i Mina skapelser. Försök igen.',
   emptyKeepText: 'Här visas de resultat som du gör klart och väljer att behålla med ”{{accion}}”.',
@@ -114,7 +114,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   editAgainFailed: 'Vi kunde inte öppna den för redigering. Försök igen.',
 
   /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
-  undecidedTitle: 'Inte bestämt',
+  undecidedTitle: 'Inte bestämt än',
   undecidedText: 'Material som du skapade innan du kunde välja vad du ville behålla. Inget har flyttats eller raderats: behåll det du vill som en skapelse.',
   undecidedFailed: 'Vi kunde inte ladda ditt material som inte är bestämt.',
   undecidedRetry: 'Försök ladda material som inte är bestämt igen',

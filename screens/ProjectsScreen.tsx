@@ -265,7 +265,8 @@ const ProjectsScreen: React.FC = () => {
           <View style={[styles.empty, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={styles.emptyEmoji}>📁</Text>
             <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{t('projects.emptyTitle')}</Text>
-            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>{t('projects.emptyStart', { accion: t('weeai.saveToProject') })}</Text>
+            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>{t('projects.emptyStart')}</Text>
+            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>{t('projects.emptyText')}</Text>
             <TouchableOpacity onPress={() => setCreating(true)} style={[styles.createButton, { backgroundColor: theme.colors.accent, marginTop: SPACING.sm }]} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={t('projects.emptyAction')}>
               <Text style={styles.createText}>{t('projects.emptyAction')}</Text>
             </TouchableOpacity>
