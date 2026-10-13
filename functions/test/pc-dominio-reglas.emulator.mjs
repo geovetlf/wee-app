@@ -26,9 +26,14 @@ const sesion = (uid) => {
     firebase: { identities: {}, sign_in_provider: 'custom' },
   }) + '.';
 };
-const pedir = async (metodo, ruta, { uid, body } = {}) => (await fetch(base + ruta, {
+/*
+ * `admin: true` = la credencial de administrador del emulador (`Bearer owner`), que se salta las reglas: solo para
+ * SEMBRAR. Sin `uid` ni `admin` la petición va SIN sesión de verdad (sin cabecera Authorization); antes caía en
+ * `owner` y la 3) «sin sesión» leía como administrador.
+ */
+const pedir = async (metodo, ruta, { uid, body, admin } = {}) => (await fetch(base + ruta, {
   method: metodo,
-  headers: { Authorization: `Bearer ${uid ? sesion(uid) : 'owner'}`, 'Content-Type': 'application/json' },
+  headers: { ...(uid ? { Authorization: `Bearer ${sesion(uid)}` } : admin ? { Authorization: 'Bearer owner' } : {}), 'Content-Type': 'application/json' },
   ...(body ? { body: JSON.stringify(body) } : {}),
 })).status;
 const v = (x) => {
@@ -39,7 +44,7 @@ const v = (x) => {
   return { nullValue: null };
 };
 const doc = (o) => ({ fields: Object.fromEntries(Object.entries(o).map(([k, x]) => [k, v(x)])) });
-const sembrar = (ruta, datos) => pedir('PATCH', ruta, { body: doc(datos) });
+const sembrar = (ruta, datos) => pedir('PATCH', ruta, { admin: true, body: doc(datos) });
 const escribir = (ruta, uid, datos) => pedir('PATCH', `${ruta}?${Object.keys(datos).map((k) => `updateMask.fieldPaths=${k}`).join('&')}`, { uid, body: doc(datos) });
 
 let failures = 0;
@@ -59,6 +64,8 @@ console.log('── creations ──');
 await esperar('1) Ana lee su creación', 'PERMITE', await pedir('GET', '/creations/creation_ana', { uid: ANA }));
 await esperar('2) Beto NO lee la creación de Ana', 'DENIEGA', await pedir('GET', '/creations/creation_ana', { uid: BETO }));
 await esperar('3) sin sesión, nadie la lee', 'DENIEGA', await pedir('GET', '/creations/creation_ana', {}));
+/* CONTROL de la 3): la misma lectura como administrador del emulador SÍ pasa; prueba que la 3) mide la regla y no la cabecera. */
+await esperar('3b) CONTROL · como administrador del emulador sí se lee (se salta las reglas)', 'PERMITE', await pedir('GET', '/creations/creation_ana', { admin: true }));
 await esperar('4) Ana NO crea una creación desde el cliente (solo el callable)', 'DENIEGA',
   await pedir('PATCH', '/creations/creation_falsa', { uid: ANA, body: doc({ ownerAccountId: ANA, assetIds: ['asset_a'], status: 'final' }) }));
 await esperar('5) Ana NO se cambia el estado (finalizar/eliminar es del servidor)', 'DENIEGA', await escribir('/creations/creation_ana', ANA, { status: 'eliminada' }));
