@@ -9,7 +9,8 @@
  *
  * Ahora:
  *  A. EL CREADOR, EJECUTADO (`screens/CrearWeelScreen.tsx` con `_pantallas.mjs`): sin «Publicar en», encuesta, ËContact,
- *     ubicación ni proyectos; graba o elige un VÍDEO, rechaza > 15 s y fotos, avisa de horizontal; publica con la subida y
+ *     ubicación ni proyectos; elige un VÍDEO de la galería (grabar con la cámara espera la autorización del permiso de
+ *     micrófono: i18n-permisos-ios F3), rechaza > 15 s y fotos, avisa de horizontal; publica con la subida y
  *     el `postsService.create` de siempre como `Post` con `isWeel: true` en el muro general; si falla lo dice y reintenta
  *     sin volver a subir lo ya subido; un vídeo que ya es material de la cuenta no se sube; vuelve al feed con el nuevo.
  *  B. LAS REGLAS, PURAS (`utils/crearWeel.ts`).
@@ -115,17 +116,20 @@ console.log('\n─── A. El creador de Weëls, ejecutado ───');
   check('A1) abre el creador de Weëls: su título es «Crear Weël»', d.texto.includes(tEs('weels.create')), d.texto.slice(0, 120));
   check('A1) y NO es el compositor del Wall: ni «Nueva publicación», ni «Publicar en», ni encuesta, ËContact, ubicación ni proyectos',
     !pareceElWall(d.texto), DEL_WALL.filter((x) => d.texto.includes(x)).join(' · '));
-  check('A1) ofrece las dos maneras de conseguir el vídeo: grabarlo o elegirlo',
-    d.botones.some((b) => b.etiqueta === tEs('weels.recordVideo')) && d.botones.some((b) => b.etiqueta === tEs('weels.pickVideo')));
+  check('A1) ofrece elegir el vídeo de la galería, y NO grabarlo (el permiso de micrófono no está autorizado)',
+    d.botones.some((b) => b.etiqueta === tEs('weels.pickVideo')) && !d.botones.some((b) => /grabar|record/i.test(b.etiqueta || '')));
+  check('A1) la descripción reutiliza la ayuda de siempre del Weël (`composer.placeholderWeel`, viva en producción)',
+    /placeholder=\{t\('composer\.placeholderWeel'\)\}/.test(leer('screens/CrearWeelScreen.tsx')));
   check('A1) y dice el requisito: vertical, hasta 15 s', d.texto.includes(tEs('weels.requirements', { segundos: 15 })));
   check('A1) sin vídeo no se puede publicar', d.botones.find((b) => b.etiqueta === tEs('weels.publish'))?.apagado === true);
   check('CONTROL: el detector de «esto es el Wall» caza la pantalla vieja', pareceElWall('Nueva publicación Publicar en Wall general') && !pareceElWall(d.texto));
 }
 {
   const e = creador({ elegido: VIDEO() });
-  await e.tocar(tEs('weels.recordVideo'));
-  check('A2) grabar pide a la cámara VÍDEO, con el tope de 15 s (la cámara del Wall solo hacía fotos)',
-    JSON.stringify(e.reg.camara?.mediaTypes) === '["videos"]' && e.reg.camara?.videoMaxDuration === 15, JSON.stringify(e.reg.camara));
+  await e.tocar(tEs('weels.pickVideo'));
+  check('A2) la cámara no se abre nunca (grabar vídeo exige el micrófono, pendiente de autorización)', e.reg.camara === undefined);
+  check('A2) CONTROL: una pantalla que grabase con la cámara se cazaría (la misma vara que i18n-permisos-ios F3)',
+    /launchCameraAsync\(\{[^}]*videos/.test("launchCameraAsync({ mediaTypes: ['videos'] })") && !/launchCameraAsync|recordAsync/.test(leer('screens/CrearWeelScreen.tsx')));
   const d = e.dibujar();
   check('A2) con un vídeo vertical de 10 s: vista previa, «Cambiar video» y Publicar encendido',
     !!e.capturas.Video && d.botones.some((b) => b.etiqueta === tEs('weels.changeVideo')) && d.botones.find((b) => b.etiqueta === tEs('weels.publish'))?.apagado === false);
@@ -273,8 +277,11 @@ check('C3) la puerta vieja (`/publicar?kind=weel`, una recarga, la barra lateral
   /if \(pideWeel\(useRoute\(\)\)\) return <HaciaCrearWeel \/>;\s*return isDesktop/.test(envoltorio) && /StackActions\.replace\('CrearWeel'\)/.test(envoltorio)
   && /=== 'weel'/.test(pila.slice(pila.indexOf('const pideWeel'), pila.indexOf('const pideWeel') + 160)));
 check('C3) `CrearWeel` es una ruta propia de la pila principal, registrada una vez', (pila.match(/name="CrearWeel"\s*component=\{CrearWeelWrapper\}/g) || []).length === 1);
+/* Las publicaciones de `Reels` no declaran forma a propósito: la red de seguridad las deja fuera (navegacion-enlaces 24 lo ejecuta). */
+const enlaceReels = app.slice(app.indexOf("Reels: {\n        path: 'weels'"), app.indexOf('CrearWeel: {'));
 check('C3) y la web sabe leer sus direcciones: /weels (con /Reels de alias) y /weels/crear, sin publicaciones ni vídeos en la URL',
-  /Reels: \{\s*path: 'weels',\s*alias: \['Reels'\]/.test(app) && /CrearWeel: \{\s*path: 'weels\/crear'/.test(app) && /video: nuncaEnLaUrl, prefill: nuncaEnLaUrl/.test(app) && /recienPublicado: nuncaEnLaUrl/.test(app));
+  /Reels: \{\s*path: 'weels',\s*alias: \['Reels'\]/.test(app) && /CrearWeel: \{\s*path: 'weels\/crear'/.test(app) && /video: nuncaEnLaUrl, prefill: nuncaEnLaUrl/.test(app)
+  && /communitySlug: \(v: unknown\) =>/.test(enlaceReels) && !/initialPost|initialVideoPosts|recienPublicado/.test(enlaceReels));
 
 /* Ver Weëls: cada entrada, a `Reels`. */
 const menu = codigo('components/DrawerMenu.tsx');
@@ -291,12 +298,14 @@ check('C5) el Wall conserva su compositor: «Publicar en» con sus destinos, enc
   /destinosDisponibles\(\)/.test(compositor) && /t\('composer\.publishIn'\)/.test(compositor) && /construirPoll/.test(compositor) && /econtacts/.test(compositor) && /AgregarUbicacion/.test(compositor)
   && /useState<string\[\]>\(\(\) => \[sourceSection \|\| MURO_GENERAL\]\)/.test(compositor));
 check('C5) y ya no publica Weëls: ni marca `isWeel`, ni tiene modo Weël', !/isWeel/.test(compositor) && !/'weel'/.test(compositor) && !/placeholderWeel/.test(compositor));
-check('C5) la clave que pintaba «Cuenta qué creaste para tu Weël…» ya no existe', !('placeholderWeel' in ES.composer) && !('placeholderWeel' in EN.composer));
+check('C5) la frase «Cuenta qué creaste para tu Weël…» sigue viva, ahora como ayuda de la descripción del creador (no del compositor)',
+  typeof ES.composer.placeholderWeel === 'string' && typeof EN.composer.placeholderWeel === 'string' && /composer\.placeholderWeel/.test(nuevo));
 
 /* Sin duplicados. */
 check('C6) el creador usa los servicios de siempre: `uploadVideoToCloudinary` y `postsService.create`',
   /import \{ uploadVideoToCloudinary \} from '\.\.\/services\/cloudinaryService'/.test(nuevo) && /postsService\.create\(/.test(nuevo) && /import \{ postsService \} from '\.\.\/services\/firestoreService'/.test(nuevo));
 check('C6) sin otra colección, otro almacén, ni otra subida', !/collection\(|addDoc|setDoc|fetch\(|uploadBytes|AsyncStorage|localStorage/.test(nuevo));
+check('C6b) se acomoda al teclado como el resto de pantallas con campos (`EspacioDeEscritura`)', /<EspacioDeEscritura/.test(nuevo));
 check('C6) y sin nada del Wall dentro: ni destinos, ni encuesta, ni ËContact, ni ubicación, ni proyectos',
   !/destinosDisponibles|pollDraft|SelectorDeEContacts|AgregarUbicacion|'Projects'|publishIn/.test(nuevo));
 check('C6) un solo feed de vídeos: solo `ReelsScreen` pide `getVideoPostsPaginated` entre las pantallas de Weëls',
@@ -314,7 +323,7 @@ check('C8) el feed pone delante el Weël recién publicado sin volver a pedir la
   && /recienPublicado\?: Post;/.test(pila));
 
 /* i18n. */
-const CLAVES = ['recordVideo', 'pickVideo', 'changeVideo', 'preview', 'requirements', 'descriptionLabel', 'descriptionPlaceholder', 'publish', 'uploading', 'publishing', 'publishFailed', 'horizontalTitle', 'horizontalBody', 'horizontalAccept', 'cameraForVideo', 'galleryForVideo'];
+const CLAVES = ['pickVideo', 'changeVideo', 'preview', 'requirements', 'descriptionLabel', 'publish', 'uploading', 'publishing', 'publishFailed', 'horizontalTitle', 'horizontalBody', 'horizontalAccept', 'galleryForVideo'];
 check('C9) los textos del creador salen del i18n (es y en)', CLAVES.every((k) => typeof ES.weels[k] === 'string' && typeof EN.weels[k] === 'string' && ES.weels[k] !== EN.weels[k]));
 
 check('esta suite está en la cadena de `npm test`', /weels-crear\.test\.mjs/.test(leer('functions/package.json')));
