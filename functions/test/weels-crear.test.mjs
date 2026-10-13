@@ -19,6 +19,8 @@
  *     ubicación y ya no marca Weëls; sin segundo feed, ni segundo servicio, ni arrastre de estado.
  *  D. R9 EN EL TELÉFONO: la ayuda de la descripción se ve entera (el marco se mide contra el alto visible), la vista
  *     previa no recorta lo que no es vertical, y el ✕ / Atrás vuelven al feed de Weëls, nunca al compositor.
+ *     D7–D8 (teléfono, 3237752c): manda la última medida del desplazable (no «solo crecer»), y la barra global se
+ *     oculta en «Crear Weël» como en el compositor, para que el marco y la caja entera quepan en reposo.
  *
  * Cada detector lleva su CONTROL. Sin red ni emulador.
  */
@@ -382,8 +384,46 @@ const plano = (st) => (Array.isArray(st) ? Object.assign({}, ...st.flat(Infinity
   check('D3) en una pantalla muy baja (teléfono girado) el marco no desaparece: suelo de 240 y la pantalla se desplaza',
     bajo.height === W.ALTO_MINIMO_DEL_MARCO && forma(bajo));
   check('D3) en una pantalla alta no crece más que antes (360 de ancho máximo)', W.medidaDelMarcoDelWeel(1280, 2000, 72).width === 360);
-  check('D3) el teclado no encoge el vídeo: con el mismo ancho solo se acepta crecer',
-    /v && v\.ancho === ancho && v\.alto >= alto \? v : \{ ancho, alto \}/.test(nuevo));
+  /*
+   * R9, teléfono con 3237752c: la caja seguía cortada en reposo. La regla «con el mismo ancho solo se acepta crecer» se
+   * quedaba con la PRIMERA medida, que llega antes de que se reserve el sitio de la barra global (~100 puntos más). Ahora
+   * manda la última medida, salvo la del teclado mientras se escribe; y la barra global ya no se pinta en «Crear Weël».
+   */
+  const M = (ancho, alto) => ({ ancho, alto });
+  const sigue = (medidas, escribiendo = false) => medidas.reduce((v, m) => W.siguienteMedidaVisible(v, m, escribiendo), null);
+  /* Z Flip3: ventana ≈ 411 × 1003 dp. Sin la barra global, el desplazable mide la ventana menos barra de estado (≈29),
+   * cabecera (56) y barra de navegación del sistema (≈48): ≈ 870. Con la barra reservada eran ≈ 770 (y el teléfono enseñaba ≈ 734). */
+  const flip3SinBarra = sigue([M(411, 870)]);
+  check('D7) Z Flip3 sin la barra global: el marco y la caja ENTERA con su contador caben en reposo, sin desplazar',
+    cabe(flip3SinBarra.ancho, flip3SinBarra.alto, 72), `${Math.round(W.medidaDelMarcoDelWeel(411, 870, 72).height)} + ${reserva(72)} ≤ 870`);
+  const reservaTardia = sigue([M(411, 870), M(411, 734)]);
+  check('D7) si el hueco encoge después de la primera medida (p. ej. se reserva una barra), manda la ÚLTIMA y la caja sigue entera',
+    reservaTardia.alto === 734 && cabe(reservaTardia.ancho, reservaTardia.alto, 72), JSON.stringify(reservaTardia));
+  const soloCrecer = (medidas) => medidas.reduce((v, m) => (v && v.ancho === m.ancho && v.alto >= m.alto ? v : m), null);
+  const latch = soloCrecer([M(411, 870), M(411, 734)]);
+  check('CONTROL: la regla de 3237752c («solo crecer») se quedaba con 870 y en el teléfono la caja salía cortada',
+    latch.alto === 870 && !(W.medidaDelMarcoDelWeel(411, 870, 72).height + reserva(72) <= 734), JSON.stringify(latch));
+  const tecleando = sigue([M(411, 870), M(411, 520)], true);
+  check('D3) el teclado no encoge el vídeo: mientras se escribe, una medida más baja con el mismo ancho se ignora',
+    tecleando.alto === 870 && sigue([M(411, 870), M(411, 520)], false).alto === 520 && sigue([M(411, 870), M(800, 400)], true).alto === 400);
+  const bajaSinBarra = sigue([M(360, 520)]);
+  check('D7) en una pantalla baja el marco baja hasta su suelo y la pantalla se desplaza (sin cortar la caja: la caja va en el desplazable)',
+    W.medidaDelMarcoDelWeel(bajaSinBarra.ancho, bajaSinBarra.alto, 72).height === Math.max(520 - reserva(72), W.ALTO_MINIMO_DEL_MARCO));
+  check('D7) la pantalla usa esa regla con el estado de «escribiendo» de la descripción (onFocus/onBlur)',
+    /setVisible\(\(v\) => siguienteMedidaVisible\(v, \{ ancho, alto \}, escribiendo\)\)/.test(nuevo) && /onFocus=\{\(\) => setEscribiendo\(true\)\}/.test(nuevo) && /onBlur=\{\(\) => setEscribiendo\(false\)\}/.test(nuevo));
+  check('D7) y la estimación inicial ya no descuenta la barra global (no se pinta aquí)', !/ALTO_DE_LA_BARRA_INFERIOR/.test(nuevo));
+}
+{
+  /* La barra global, oculta en «Crear Weël» como en el compositor, y de vuelta al salir (es por ruta). */
+  const global = sinComentarios(leer('navigation/NavegacionGlobal.tsx'));
+  const lista = global.match(/const SIN_BARRA = new Set\(\[([\s\S]*?)\]\)/)?.[1] || '';
+  const ocultas = [...lista.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  check('D8) la barra global se oculta en «Crear Weël» (`CrearWeel` en SIN_BARRA, igual que `Create`)', ocultas.includes('CrearWeel') && ocultas.includes('Create'), ocultas.join(', '));
+  /* La regla de la barra, ejecutada: `oculta` depende de la ruta raíz; al volver a `Reels` (también oculta) o a `Main`, decide la ruta. */
+  const oculta = (ruta) => ocultas.includes(ruta);
+  check('D8) es por ruta: al salir de «Crear Weël» al Wäll (`Main`) la barra vuelve sola; en Weëls (`Reels`) sigue oculta como siempre',
+    oculta('CrearWeel') && !oculta('Main') && oculta('Reels') && /SIN_BARRA\.has\(rutaRaiz\)/.test(global));
+  check('CONTROL: con la lista de antes (sin `CrearWeel`) la barra se pintaba sobre «Crear Weël»', !['Login', 'Register', 'Create', 'Reels', 'Settings', 'WeeProfileCreation', 'AiAvatar'].includes('CrearWeel'));
 }
 {
   /* La vista previa: vertical llena, apaisado o cuadrado entero. */

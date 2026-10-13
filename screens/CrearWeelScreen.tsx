@@ -40,14 +40,15 @@ import {
   MAX_DESCRIPCION_WEEL,
   MAX_SEGUNDOS_WEEL,
   VideoElegido,
+  MedidaVisible,
   altoMinimoDeLaDescripcion,
   datosDelWeel,
   medidaDelMarcoDelWeel,
+  siguienteMedidaVisible,
   validarVideoDeWeel,
 } from '../utils/crearWeel';
 import { ajusteDelVideoEnWeels, proporcionDeLaMedida } from '../utils/videoDimensionCache';
 import { salirDeCrearWeel } from '../utils/salidaDeWeels';
-import { ALTO_DE_LA_BARRA_INFERIOR } from '../utils/medidaDelMedio';
 
 /** El alto mínimo de la cabecera (`styles.cabecera`). */
 const ALTO_DE_LA_CABECERA = 56;
@@ -88,21 +89,28 @@ const CrearWeelScreen: React.FC = () => {
 
   /*
    * Lo que de verdad enseña la pantalla debajo de la cabecera. Hasta que el desplazable se mide, se estima con la
-   * ventana (menos los huecos del sistema, la cabecera y la barra inferior global, que esta pantalla enseña); después
-   * manda su `onLayout`. Con el mismo ancho solo se acepta CRECER: el teclado encoge el desplazable
-   * y el vídeo no debe encogerse mientras se escribe (girar el teléfono cambia el ancho y vuelve a medir).
+   * ventana (menos los huecos del sistema y la cabecera: la barra global no se pinta aquí, ver `SIN_BARRA`); después
+   * manda su `onLayout`, SIEMPRE la última medida (`siguienteMedidaVisible`). La única que se ignora es la que llega
+   * mientras se escribe en la descripción: es el teclado encogiendo el desplazable, y el vídeo no debe encogerse
+   * mientras se escribe (girar el teléfono cambia el ancho y sí vuelve a medir).
+   *
+   * R9 (teléfono, 3237752c): antes, con el mismo ancho, solo se aceptaba CRECER. Pero la primera medida llega antes de
+   * que la pila reserve el sitio de la barra global (se viene de Weëls, que no la tiene), así que se quedaba con un
+   * alto ~100 puntos mayor que el visible y la caja seguía cortada en reposo. Ahora la barra no se pinta aquí (decisión
+   * del dueño) y, aunque cambiara el hueco, manda la última medida.
    */
   const ventana = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const [visible, setVisible] = useState<{ ancho: number; alto: number } | null>(null);
+  const [visible, setVisible] = useState<MedidaVisible | null>(null);
+  const [escribiendo, setEscribiendo] = useState(false);
   const alMedirElDesplazable = (e: LayoutChangeEvent) => {
     const { width: ancho, height: alto } = e.nativeEvent.layout;
-    setVisible((v) => (v && v.ancho === ancho && v.alto >= alto ? v : { ancho, alto }));
+    setVisible((v) => siguienteMedidaVisible(v, { ancho, alto }, escribiendo));
   };
   const altoDescripcion = altoMinimoDeLaDescripcion(PixelRatio.getFontScale());
   const marco = medidaDelMarcoDelWeel(
     visible?.ancho ?? ventana.width,
-    visible?.alto ?? ventana.height - insets.top - insets.bottom - ALTO_DE_LA_CABECERA - ALTO_DE_LA_BARRA_INFERIOR,
+    visible?.alto ?? ventana.height - insets.top - insets.bottom - ALTO_DE_LA_CABECERA,
     altoDescripcion,
   );
 
@@ -332,6 +340,8 @@ const CrearWeelScreen: React.FC = () => {
           value={descripcion}
           onChangeText={setDescripcion}
           maxLength={MAX_DESCRIPCION_WEEL}
+          onFocus={() => setEscribiendo(true)}
+          onBlur={() => setEscribiendo(false)}
           multiline
           editable={!ocupado}
           accessibilityLabel={t('weels.descriptionLabel')}

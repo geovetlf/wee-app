@@ -16,6 +16,9 @@
  *  D. R9 EN EL TELÉFONO: un vídeo que no es vertical se ve completo (contain) y uno vertical llena (cover), sin tocar
  *     las fotos; la flecha ← es inequívoca (círculo propio, 48 de zona, rol y etiqueta) y, como el Atrás de Android,
  *     sale por el historial o, sin él, al Wäll (`utils/salidaDeWeels.ts`); paginación, duplicados y autoplay siguen.
+ *  E. R9, COMENTARIOS DENTRO DEL WEËL: el icono abre la hoja de comentarios de siempre (`HojaDeComentarios` +
+ *     `ComentariosContext`) encima del vídeo, transparente, sin navegar; el Weël sigue montado y en silencio; ✕, fuera,
+ *     deslizar y Atrás la cierran en el mismo Weël y la misma posición; el contador sube con lo que cuenta la hoja.
  *
  * Cada detector lleva su CONTROL. Sin red ni emulador.
  */
@@ -55,6 +58,21 @@ const animado = () => {
   return { Value: function Value() { return valor(); }, View: null, timing: anim, spring: anim, sequence: anim, parallel: anim };
 };
 
+/**
+ * La hoja de comentarios de siempre (`ComentariosContext`), doblada: apunta qué se abre y qué se cierra. `estado.abierta`
+ * es el id de la publicación abierta y `estado.contadores` lo que contó la hoja (R9, comentarios dentro del Weël).
+ */
+const comentariosDoble = () => {
+  const estado = { abiertas: [], cerradas: 0, abierta: null, contadores: {} };
+  estado.valor = () => ({
+    abrirComentarios: (post, como) => { estado.abiertas.push([post.id, como]); estado.abierta = post.id; },
+    cerrarComentarios: () => { estado.cerradas++; estado.abierta = null; },
+    publicacionAbierta: estado.abierta,
+    contadores: estado.contadores,
+  });
+  return estado;
+};
+
 const pantalla = (svc, extra = {}) => crearEntorno({
   pantalla: 'screens/ReelsScreen.tsx',
   ...extra,
@@ -62,14 +80,25 @@ const pantalla = (svc, extra = {}) => crearEntorno({
     const { h, Caja, capturar, usuario } = ctx;
     const A = animado();
     A.View = Caja;
+    /*
+     * `conLista`: el visor monta su lista cuando mide su hueco (`onLayout`), y un dibujado estático no mide. Aquí el
+     * contenedor «mide» 390×800 al dibujarse y la lista pinta sus Weëls, para poder tocar los de dentro (sección E).
+     */
+    if (extra.conLista) {
+      const Medido = (p) => { if (p.onLayout) p.onLayout({ nativeEvent: { layout: { width: 390, height: 800 } } }); return Caja(p); };
+      A.View = Medido;
+      ctx.reactNative.View = Medido;
+      ctx.reactNative.FlatList = ({ data, renderItem }) => h('div', { 'data-lista': 'weels' }, (data || []).map((item, index) => h(ctx.React.Fragment, { key: item.id }, renderItem({ item, index }))));
+    }
     ctx.reactNative.Animated = A;
     ctx.reactNative.StatusBar = () => null;
+    const coment = extra.comentarios || comentariosDoble();
     const habla = { useT: () => tEs, useIdioma: () => ({ t: tEs, locale: 'es', idioma: 'es' }) };
     return {
       'react-native': ctx.reactNative,
       'react-native-safe-area-context': { SafeAreaView: Caja, useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) },
       '../utils/platform': { isWeb: false },
-      'expo-av': { Video: capturar('Video'), ResizeMode: { COVER: 'cover', CONTAIN: 'contain' }, Audio: { setAudioModeAsync: async () => {} } },
+      'expo-av': { Video: (p) => { if (extra.videos && p.source?.uri) extra.videos[p.source.uri] = p; return capturar('Video')(p); }, ResizeMode: { COVER: 'cover', CONTAIN: 'contain' }, Audio: { setAudioModeAsync: async () => {} } },
       'expo-linear-gradient': { LinearGradient: Caja },
       '../contexts/AuthContext': { useAuth: () => ({ user: usuario }) },
       '../contexts/UserProfileContext': { useUserProfile: () => ({ userProfile: null }) },
@@ -82,6 +111,7 @@ const pantalla = (svc, extra = {}) => crearEntorno({
       '../utils/scale': { scale: (x) => x },
       '../utils/compartirFuera': { compartirFueraDeWee: async () => {} },
       '../contexts/IdiomaContext': habla,
+      '../contexts/ComentariosContext': { useComentariosDeLaPublicacion: () => coment.valor() },
       _h: h,
     };
   },
@@ -285,6 +315,96 @@ check('CONTROL: el Weël de antes (`resizeMode={ResizeMode.COVER}` fijo) se caza
   check('D7) siguen la paginación (`getVideoPostsPaginated` con `lastDoc`), el descarte de duplicados (`loadedIds`) y el autoplay por visibilidad',
     /getVideoPostsPaginated\(15, lastDoc \|\| undefined, communitySlug\)/.test(feed)
     &&/loadedIds\.current\.has\(/.test(feed) && /isActive && !isPaused/.test(feed) && /onViewableItemsChanged/.test(feed));
+}
+
+console.log('\n─── E. R9: los comentarios se abren ENCIMA del Weël, sin salir de él ───');
+/*
+ * En el teléfono (3237752c) tocar el icono de comentarios de un Weël navegaba a «Publicación» (PostDetail): se salía del
+ * Weël. El dueño: que se vea en transparente, sin salir. Se reutiliza la hoja de comentarios del muro
+ * (`HojaDeComentarios` + `ComentariosContext` + `useComentarios`), en su modo `sobreVideo`.
+ */
+{
+  const coment = comentariosDoble();
+  const videos = {};
+  const svc = servicio([{ documents: [WEEL('w1', { comments: 3, createdAt: { toDate: () => new Date(0) } }), WEEL('w2', { comments: 7, createdAt: { toDate: () => new Date(0) } })], lastDoc: { id: 'c' }, hasMore: false }]);
+  const e = pantalla(svc, { conLista: true, comentarios: coment, videos, pila: ['Main', 'Reels'] });
+  e.dibujar(); e.enfocar(); await e.calma();
+  e.dibujar();
+  let d = e.dibujar();
+  const iconos = d.botones.filter((b) => b.etiqueta === tEs('wall.comment'));
+  check('E1) cada Weël pinta su icono de comentarios, con rol y etiqueta (`wall.comment`)', iconos.length === 2 && iconos.every((b) => b.rol === 'button'), `${iconos.length} iconos`);
+  const activoAntes = Object.values(videos).map((v) => !!v.shouldPlay).join(',');
+  e.olvidar();
+  iconos[0].tocar();
+  check('E2) tocar el icono NO navega (ni a PostDetail ni a ningún sitio): abre la hoja de ESE Weël, sobre el vídeo',
+    e.navegacion.length === 0 && coment.abiertas.length === 1 && coment.abiertas[0][0] === 'w1' && coment.abiertas[0][1]?.sobreVideo === true,
+    JSON.stringify({ nav: e.navegacion, abiertas: coment.abiertas }));
+  d = e.dibujar();
+  check('E3) el Weël sigue montado detrás (no se desmonta) y sigue reproduciéndose, en silencio mientras la hoja está abierta',
+    !!videos['https://x/w1.mp4'] && videos['https://x/w1.mp4'].isMuted === true && videos['https://x/w2.mp4'].isMuted === false && !!d.html.includes('data-lista'),
+    JSON.stringify({ w1: videos['https://x/w1.mp4']?.isMuted, w2: videos['https://x/w2.mp4']?.isMuted }));
+  /* Atrás con la hoja abierta: la cierra y NO sale de Weëls. */
+  e.enfocar();
+  const devuelto = e.atras();
+  check('E4) el Atrás de Android con la hoja abierta la CIERRA y no sale de Weëls', devuelto === true && coment.cerradas === 1 && e.navegacion.length === 0,
+    JSON.stringify({ devuelto, cerradas: coment.cerradas, nav: e.navegacion }));
+  d = e.dibujar();
+  const activoDespues = Object.values(videos).map((v) => !!v.shouldPlay).join(',');
+  check('E5) cerrada, el mismo Weël: misma posición en el feed (el activo no cambia) y vuelve el sonido',
+    activoAntes === activoDespues && videos['https://x/w1.mp4'].isMuted === false, `${activoAntes} → ${activoDespues}`);
+  e.enfocar();
+  e.olvidar();
+  e.atras();
+  check('E5) y con la hoja cerrada, Atrás vuelve a la regla de salida de Weëls (al Wäll por el historial)', JSON.stringify(e.navegacion) === '[["goBack"]]', JSON.stringify(e.navegacion));
+  /* El contador sube al comentar: lo que cuenta la hoja manda sobre el número guardado en la publicación. */
+  coment.contadores.w1 = 4;
+  d = e.dibujar();
+  check('E6) el contador del icono sube al comentar (lo que cuenta la hoja: 3 → 4); el del otro Weël no cambia',
+    /<span>4<\/span>/.test(d.html) && /<span>7<\/span>/.test(d.html) && !/<span>3<\/span>/.test(d.html), d.texto.slice(0, 200));
+}
+{
+  const item = feed.slice(feed.indexOf('const ReelItem'), feed.indexOf('const ReelsScreen'));
+  const manejador = feed.slice(feed.indexOf('const handleComment'), feed.indexOf('const handleComment') + 400);
+  check('E7) comentar usa la hoja de siempre (`useComentariosDeLaPublicacion` → `abrirComentarios(post, { sobreVideo: true })`), no otra',
+    /abrirComentarios\(post, \{ sobreVideo: true \}\)/.test(manejador) && !/navigate\('PostDetail'/.test(manejador) && /useComentariosDeLaPublicacion\(\)/.test(item));
+  const viejo = "const handleComment = useCallback((postId) => { const post = videoPosts.find(p => p.id === postId); if (post) { navigation.navigate('PostDetail', { postId: post.id, post }); } }, []);";
+  check('CONTROL: el icono de antes (navegar a PostDetail) se cazaría', /navigate\('PostDetail'/.test(viejo) && !/navigate\('PostDetail'/.test(manejador));
+  check('E7) sin segunda hoja ni segundo servicio: Weëls no monta `HojaDeComentarios` ni llama a `commentsService`',
+    !/<HojaDeComentarios|commentsService|useComentarios\(/.test(feed));
+}
+{
+  /* La hoja, la de siempre, con su modo sobre vídeo. */
+  const hoja = sinComentarios(leer('components/HojaDeComentarios.tsx'));
+  const contexto = sinComentarios(leer('contexts/ComentariosContext.tsx'));
+  check('E8) la hoja es un `Modal` transparente que sube desde abajo, con su cierre por fuera, por la ✕ y por Atrás (`onRequestClose`)',
+    /<Modal visible=\{visible\} transparent animationType=\{isWeb \? 'none' : 'slide'\} onRequestClose=\{onClose\}>/.test(hoja)
+    && /style=\{\[styles\.atenuado, sobreVideo && styles\.atenuadoSobreVideo\]\} activeOpacity=\{1\} onPress=\{onClose\}/.test(hoja)
+    && (hoja.match(/accessibilityLabel=\{t\('wall\.closeComments'\)\}/g) || []).length >= 2);
+  check('E8) sobre un Weël el fondo apenas se atenúa, la hoja es algo transparente y no pasa del 70 %',
+    /atenuadoSobreVideo: \{\s*backgroundColor: 'rgba\(0,0,0,0\.12\)'/.test(hoja) && /hojaSobreVideo: \{\s*maxHeight: '70%'/.test(hoja)
+    && /sobreVideo \? fondoSobreVideo\(theme\.colors\.background\)/.test(hoja));
+  /* La hoja cargada con dobles (solo se ejecutan sus reglas puras: el fondo y el umbral del arrastre). */
+  const numeros = new Proxy({}, { get: () => new Proxy({}, { get: () => 8 }) });
+  const H = crearCargador({ dobles: {
+    react: { __esModule: true, default: {}, useEffect() {}, useMemo: (f) => f(), useRef: (v) => ({ current: v }) },
+    'react-native': { StyleSheet: { create: (x) => x, absoluteFillObject: {}, hairlineWidth: 1 }, Platform: { OS: 'android' }, Animated: {}, PanResponder: {} },
+    'expo-image': {}, '@expo/vector-icons': {}, 'react-native-safe-area-context': {},
+    '../contexts/ThemeContext': {}, '../contexts/IdiomaContext': {}, '../contexts/UserProfileContext': {}, '../services/firestoreService': {},
+    '../hooks/useComentarios': {}, './avatars/AvatarDisplay': {}, './CommentCard': {}, './EspacioDeEscritura': {},
+    '../constants/design': { SPACING: numeros.x, FONT_SIZE: numeros.x, FONT_WEIGHT: numeros.x, BORDER_RADIUS: numeros.x, ICON_SIZE: numeros.x },
+    '../utils/scale': { scale: (x) => x },
+  } })('components/HojaDeComentarios.tsx');
+  check('E8) el fondo transparente se calcula sobre el color del tema (#RRGGBB → 90 %), sin romper otros formatos',
+    H.fondoSobreVideo('#FFFFFF') === '#FFFFFFE6' && H.fondoSobreVideo('#0A0A0A') === '#0A0A0AE6' && H.fondoSobreVideo('white') === 'white');
+  check('E9) deslizar hacia abajo cierra: el gesto vive en el asa y la cabecera (la lista conserva su scroll) y vuelve a su sitio si no basta',
+    /<View \{\.\.\.gestoDeCerrar\.panHandlers\}>/.test(hoja) && /g\.dy > ARRASTRE_PARA_CERRAR \|\| g\.vy > VELOCIDAD_PARA_CERRAR\) onClose\(\)/.test(hoja)
+    && /Animated\.spring\(arrastre, \{ toValue: 0/.test(hoja) && H.ARRASTRE_PARA_CERRAR === 80
+    && hoja.indexOf('gestoDeCerrar.panHandlers') < hoja.indexOf('<FlatList'));
+  check('E10) la conversación sale de `useComentarios` (el mismo camino que el muro y PostDetail) y su recuento vuelve al contexto',
+    /useComentarios\(visible \? post : null\)/.test(hoja) && /onContar\?\.\(postId, comentarios\.length\)/.test(hoja)
+    && /sobreVideo=\{sobreVideo\} onContar=\{alContar\}/.test(contexto) && /publicacionAbierta, contadores/.test(contexto));
+  check('E10) el muro sigue abriéndola igual (sin `sobreVideo`): su aspecto de siempre no cambia',
+    /abrirComentarios\(post\)/.test(sinComentarios(leer('screens/LandingScreen.tsx'))) && /backgroundColor: 'rgba\(31,41,55,0\.45\)'/.test(hoja));
 }
 
 check('esta suite está en la cadena de `npm test`', /weels-feed\.test\.mjs/.test(leer('functions/package.json')));

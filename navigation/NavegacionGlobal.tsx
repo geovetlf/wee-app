@@ -30,6 +30,8 @@ const SIN_BARRA = new Set([
   'Login',
   'Register',
   'Create',
+  /* Crear un Weël, como el compositor: pantalla de escribir sin la barra encima (decisión del dueño, R9 2026-10-13). */
+  'CrearWeel',
   'Reels',
   'Settings',
   'WeeProfileCreation',

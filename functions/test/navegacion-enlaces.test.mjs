@@ -166,7 +166,8 @@ console.log('\n── Los parámetros: forma estable, recuperable al recargar, y
     !E.esPublicacion('[object Object]') && E.esPublicacion({ id: 'abc' }) && /const hasPost = esPublicacion\(route\.params\?\.post\);/.test(leer('screens/PostDetailScreen.tsx')));
   const llamadas = [...['CommunityScreen', 'HomeScreen', 'LandingScreen', 'ProfileScreen', 'ReelsScreen', 'SavedPostsScreen', 'SearchScreen', 'UserProfileScreen', 'WebLandingScreen']
     .flatMap((p) => [...leer(`screens/${p}.tsx`).matchAll(/navigate\('PostDetail', \{([^}]*)\}\)/g)].map((m) => m[1]))];
-  check('23) cada pantalla que abre una publicación da su id', llamadas.length >= 13 && llamadas.every((m) => /postId/.test(m)), `${llamadas.length} llamadas`);
+  /* R9: eran 13; Weëls (`ReelsScreen`) ya no abre la publicación al comentar —abre la hoja de comentarios encima del Weël (weels-feed E)—, así que quedan 12. */
+  check('23) cada pantalla que abre una publicación da su id', llamadas.length >= 12 && llamadas.every((m) => /postId/.test(m)), `${llamadas.length} llamadas`);
 
   /* La red de seguridad: en una pantalla sin dirección propia, ningún objeto sale como texto. */
   const { estado, quitados } = E.sinObjetosSueltos({ routes: [{ name: 'Main' }, { name: 'Reels', params: { initialPost: { id: '1' }, initialVideoPosts: [{ id: '1' }], communitySlug: 'cine' } }], index: 1 }, config.screens);

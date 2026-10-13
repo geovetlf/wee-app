@@ -120,6 +120,24 @@ export const altoMinimoDeLaDescripcion = (escalaDeLetra: number): number => {
   return Math.max(72, Math.ceil(2 * LINEA_DE_LA_DESCRIPCION * escala) + 24 + 2);
 };
 
+/** Lo que mide el desplazable de «Crear Weël» (su `onLayout`). */
+export interface MedidaVisible {
+  ancho: number;
+  alto: number;
+}
+
+/**
+ * Qué medida del desplazable manda. Siempre la última, para que el marco siga al alto VISIBLE de verdad (la primera
+ * medida llega antes de que la pila reserve la barra global y es ~100 puntos mayor). La única excepción: mientras se
+ * escribe, una medida más baja con el mismo ancho es el teclado, y se ignora para que el vídeo no encoja al escribir.
+ */
+export const siguienteMedidaVisible = (actual: MedidaVisible | null, nueva: MedidaVisible, escribiendo: boolean): MedidaVisible => {
+  if (!(nueva.ancho > 0) || !(nueva.alto > 0)) return actual ?? nueva;
+  if (actual && actual.ancho === nueva.ancho && actual.alto === nueva.alto) return actual;
+  if (actual && escribiendo && actual.ancho === nueva.ancho && nueva.alto < actual.alto) return actual;
+  return nueva;
+};
+
 /** Por poco alto que haya (un teléfono girado), el marco no baja de aquí: entonces la pantalla se desplaza, como siempre. */
 export const ALTO_MINIMO_DEL_MARCO = 240;
 /** El ancho de siempre del marco y de la columna (estilos de `CrearWeelScreen`). */

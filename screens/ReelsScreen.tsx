@@ -35,6 +35,7 @@ import { compartirFueraDeWee } from '../utils/compartirFuera';
 import { useT, useIdioma } from '../contexts/IdiomaContext';
 import { esVisibleEnWeels } from '../utils/visibilidadDeWeels';
 import { salirDeWeels } from '../utils/salidaDeWeels';
+import { useComentariosDeLaPublicacion } from '../contexts/ComentariosContext';
 import {
   ajusteDelVideoEnWeels,
   fetchAndCacheVideoAspectRatio,
@@ -97,6 +98,15 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
   const tapIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progress, setProgress] = useState(0);
   const insets = useSafeAreaInsets();
+  /*
+   * LOS COMENTARIOS SE ABREN ENCIMA DEL WEËL (R9, decisión del dueño). Mientras su hoja está abierta el vídeo sigue
+   * reproduciéndose detrás, EN SILENCIO: se ve por la parte de arriba y a través de la hoja, que es lo que dice «sigues
+   * en el Weël», y su sonido no compite con lo que se lee. Al cerrarla vuelve el sonido donde iba, sin saltos. El
+   * contador del icono es el que cuenta la hoja (la misma suscripción que pinta la lista), así sube al comentar.
+   */
+  const { publicacionAbierta, contadores } = useComentariosDeLaPublicacion();
+  const comentariosAbiertos = !!post.id && publicacionAbierta === post.id;
+  const totalDeComentarios = (post.id && contadores[post.id] !== undefined ? contadores[post.id] : post.comments) || 0;
 
   // Double tap for like
   const lastTap = useRef<number>(0);
@@ -242,7 +252,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
         style={StyleSheet.absoluteFill}
         resizeMode={ajuste === 'cover' ? ResizeMode.COVER : ResizeMode.CONTAIN}
         shouldPlay={isActive}
-        isMuted={false}
+        isMuted={comentariosAbiertos}
         isLooping
         progressUpdateIntervalMillis={100}
         onPlaybackStatusUpdate={handlePlaybackStatus}
@@ -388,10 +398,10 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
             </TouchableOpacity>
 
             {/* Comment */}
-            <TouchableOpacity style={styles.sidebarBtn} onPress={() => onComment(post.id!)}>
+            <TouchableOpacity style={styles.sidebarBtn} onPress={() => onComment(post.id!)} accessibilityRole="button" accessibilityLabel={t('wall.comment')}>
               <Ionicons name="chatbubble-outline" size={scale(26)} color="white" />
               <Text style={styles.sidebarCount}>
-                {formatNumber(post.comments, locale)}
+                {formatNumber(totalDeComentarios, locale)}
               </Text>
             </TouchableOpacity>
 
@@ -582,21 +592,29 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
     if (props.onBack) props.onBack();
     else salirDeWeels(navigation as any);
   }, [navigation, props.onBack]);
+  /*
+   * Con la hoja de comentarios abierta, Atrás la CIERRA y te deja en el mismo Weël; no sale de Weëls. (La hoja es un
+   * `Modal` y su `onRequestClose` ya lo hace; esto es la red por si el Atrás llega aquí.)
+   */
+  const { abrirComentarios, cerrarComentarios, publicacionAbierta } = useComentariosDeLaPublicacion();
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      handleBack();
+      if (publicacionAbierta) cerrarComentarios();
+      else handleBack();
       return true;
     });
     return () => sub.remove();
-  }, [handleBack]));
+  }, [handleBack, publicacionAbierta, cerrarComentarios]));
 
+  /*
+   * Comentar NO sale del Weël: abre la hoja de comentarios de siempre (`HojaDeComentarios`, la del muro, con su
+   * `useComentarios`) encima del vídeo, en su modo transparente. Antes navegaba a la pantalla de la publicación.
+   */
   const handleComment = useCallback((postId: string) => {
     const post = videoPosts.find(p => p.id === postId);
-    if (post) {
-      (navigation as any).navigate('PostDetail', { postId: post.id, post });
-    }
-  }, [videoPosts, navigation]);
+    if (post) abrirComentarios(post, { sobreVideo: true });
+  }, [videoPosts, abrirComentarios]);
 
   // Viewability tracking
   const viewabilityConfig = useRef({

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
+  Animated,
+  PanResponder,
   View,
   Text,
   StyleSheet,
@@ -33,7 +35,21 @@ interface HojaDeComentariosProps {
   onClose: () => void;
   /** Abrir el perfil de quien escribió un comentario. Opcional: si no se pasa, no se ofrece. */
   onAbrirPerfil?: (userId: string) => void;
+  /**
+   * Abierta encima de un Weël (R9): el fondo casi no se atenúa, la hoja es algo transparente y no pasa del 70 % del
+   * alto, para que el vídeo siga a la vista detrás y se entienda que no se ha salido de él.
+   */
+  sobreVideo?: boolean;
+  /** Cuántos comentarios tiene la conversación abierta, cada vez que cambia (el contador del icono que la abrió). */
+  onContar?: (postId: string, total: number) => void;
 }
+
+/** Lo que hay que arrastrar la hoja hacia abajo (o la velocidad) para que se cierre. */
+export const ARRASTRE_PARA_CERRAR = 80;
+const VELOCIDAD_PARA_CERRAR = 0.8;
+
+/** El fondo de la hoja sobre un vídeo: el color del tema con algo de transparencia (solo si es un #RRGGBB). */
+export const fondoSobreVideo = (color: string): string => (/^#[0-9a-f]{6}$/i.test(color) ? color + 'E6' : color);
 
 /**
  * LA CONVERSACIÓN DE UNA PUBLICACIÓN, EN UNA HOJA QUE SUBE DESDE ABAJO.
@@ -68,7 +84,7 @@ interface HojaDeComentariosProps {
  * mueve de su sitio y la conversación se desplaza por detrás de él, con teclado
  * o sin él.
  */
-const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, onClose, onAbrirPerfil }) => {
+const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, onClose, onAbrirPerfil, sobreVideo = false, onContar }) => {
   const t = useT();
   const { theme } = useTheme();
   const { userProfile } = useUserProfile();
@@ -86,6 +102,28 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
     enviar,
   } = useComentarios(visible ? post : null);
 
+  /* El recuento de verdad (la misma suscripción que pinta la lista) vuelve a quien abrió la hoja. */
+  const postId = post?.id;
+  useEffect(() => {
+    if (visible && postId && !cargando) onContar?.(postId, comentarios.length);
+  }, [visible, postId, cargando, comentarios.length, onContar]);
+
+  /*
+   * ARRASTRAR HACIA ABAJO CIERRA. Solo desde el asa y la cabecera: la lista conserva su propio desplazamiento.
+   * Si no se arrastra lo bastante, la hoja vuelve a su sitio.
+   */
+  const arrastre = useRef(new Animated.Value(0)).current;
+  useEffect(() => { if (visible) arrastre.setValue(0); }, [visible, arrastre]);
+  const gestoDeCerrar = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_e, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderMove: (_e, g) => arrastre.setValue(Math.max(0, g.dy)),
+    onPanResponderRelease: (_e, g) => {
+      if (g.dy > ARRASTRE_PARA_CERRAR || g.vy > VELOCIDAD_PARA_CERRAR) onClose();
+      else Animated.spring(arrastre, { toValue: 0, useNativeDriver: !isWeb }).start();
+    },
+    onPanResponderTerminate: () => Animated.spring(arrastre, { toValue: 0, useNativeDriver: !isWeb }).start(),
+  }), [arrastre, onClose]);
+
   const pintarComentario = ({ item }: { item: Comment }) => (
     <CommentCard comment={item} onProfilePress={onAbrirPerfil} />
   );
@@ -99,9 +137,16 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
       */}
       <EspacioDeEscritura style={styles.marco} activo={visible}>
         {/* Tocar fuera cierra, y de paso deja ver la publicación de la que se habla. */}
-        <TouchableOpacity style={styles.atenuado} activeOpacity={1} onPress={onClose} accessibilityLabel={t('wall.closeComments')} />
+        <TouchableOpacity style={[styles.atenuado, sobreVideo && styles.atenuadoSobreVideo]} activeOpacity={1} onPress={onClose} accessibilityLabel={t('wall.closeComments')} />
 
-        <View style={[styles.hoja, { backgroundColor: theme.colors.background }]}>
+        <Animated.View
+          style={[
+            styles.hoja,
+            sobreVideo && styles.hojaSobreVideo,
+            { backgroundColor: sobreVideo ? fondoSobreVideo(theme.colors.background) : theme.colors.background, transform: [{ translateY: arrastre }] },
+          ]}
+        >
+          <View {...gestoDeCerrar.panHandlers}>
           <View style={[styles.asa, { backgroundColor: theme.colors.border }]} />
 
           {/* Cabecera: qué es esto, cuántos hay y por dónde se sale. */}
@@ -129,6 +174,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
             >
               <Ionicons name="close" size={ICON_SIZE.md} color={theme.colors.text} />
             </TouchableOpacity>
+          </View>
           </View>
 
           {/*
@@ -242,7 +288,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </EspacioDeEscritura>
     </Modal>
   );
@@ -271,6 +317,14 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     overflow: 'hidden',
+  },
+  /* Sobre un Weël el vídeo tiene que seguir viéndose: apenas se atenúa. */
+  atenuadoSobreVideo: {
+    backgroundColor: 'rgba(0,0,0,0.12)',
+  },
+  /* Y la hoja se queda en un 55–70 % del alto: el vídeo asoma siempre por arriba. */
+  hojaSobreVideo: {
+    maxHeight: '70%',
   },
   asa: {
     width: scale(38),
