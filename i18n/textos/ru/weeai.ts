@@ -67,7 +67,7 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   tryAgain: 'Попробовать ещё раз',
   itDidNotWork: 'Не получилось. Ничего не списано.',
   /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
-  jobNotFound: 'Мы не нашли эту работу, или она больше недоступна.',
+  reopenNotFound: 'Мы не нашли эту работу, или она больше недоступна.',
   startOver: 'Начать заново',
   /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
   saveTextToCreations: 'Сохранить в «Мои работы»',

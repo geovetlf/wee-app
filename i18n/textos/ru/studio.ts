@@ -239,7 +239,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   dismiss: 'Понятно',
   /* R9 · E2: lo escrito no encaja con ningún sitio del Studio; se dice y se ofrece Weë Brain. */
   noDestination: 'Не знаю, в какой раздел Studio это отправить',
-  noDestinationHint: 'Выбери, с чего начать, или расскажи об этом Weë Brain.',
+  noDestinationHint: 'Выберите, с чего начать, или расскажите об этом Weë Brain.',
   askBrain: 'Спросить Weë Brain',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */

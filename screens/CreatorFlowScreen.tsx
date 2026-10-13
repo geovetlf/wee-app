@@ -732,7 +732,7 @@ const CreatorFlowScreen: React.FC = () => {
 
         {trabajoPerdido && !job && !error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Text style={[styles.errorText, { color: theme.colors.text }]}>{t('weeai.jobNotFound')}</Text>
+            <Text style={[styles.errorText, { color: theme.colors.text }]}>{t('weeai.reopenNotFound')}</Text>
             <TouchableOpacity
               onPress={empezarDeNuevo}
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}

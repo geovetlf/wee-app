@@ -103,7 +103,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   tryAgain: 'Prøv igen',
   itDidNotWork: 'Det lykkedes ikke. Der er ikke trukket nogen Credits.',
   /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
-  jobNotFound: 'Vi kunne ikke finde dette job, eller det er ikke længere tilgængeligt.',
+  reopenNotFound: 'Vi kunne ikke finde dette job, eller det er ikke længere tilgængeligt.',
   startOver: 'Start forfra',
   /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
   saveTextToCreations: 'Gem i Mine kreationer',
