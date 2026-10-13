@@ -244,3 +244,38 @@ export const lecturaDePublicacion = (
   const prompt = texto(post?.aiPrompt).trim();
   return { herramientas, pasos, prompt, vacio: herramientas.length === 0 && pasos.length === 0 && !prompt };
 };
+
+/*
+ * ─── ¿HAY «CÓMO LO HICE»? SOLO CON ORIGEN EN WEË (regla del dueño, 2026-10-13) ─────────────────────────────────────
+ *
+ * «Cómo lo hice» existe cuando la persona publica un trabajo recién terminado en una sección de Weë AI o un material de
+ * sus creaciones. Si escribe directo al muro, sube archivos propios o solo escribe, NO hay esa opción: ni la fila, ni el
+ * interruptor, ni la revisión, ni una vía para escribir el proceso a mano.
+ *
+ * El origen lo dice quien abre el compositor, nunca lo que se escribe:
+ *   · Weë AI (`CreatorFlow`) trae el trabajo: `prefill.jobId`, `aiTools`, `aiResumen` o `aiProcess`.
+ *   · Un material de la cuenta (Mis creaciones / biblioteca de Weë Design) llega como `prefill.media[]` con `assetId`.
+ * Y si vino con material de Weë, la fila vive MIENTRAS quede alguno en el borrador: quitar el último material de Weë y
+ * dejar solo fotos propias la retira (añadir fotos propias a un trabajo de Weë no la quita: el origen manda).
+ */
+export interface OrigenDelBorrador {
+  jobId?: unknown;
+  aiTools?: unknown;
+  aiProcess?: unknown;
+  aiResumen?: unknown;
+  media?: unknown;
+}
+
+export const tieneOrigenDeWee = (prefill: OrigenDelBorrador | null | undefined, adjuntos: { assetId?: string }[]): boolean => {
+  const p = prefill || {};
+  const traiaMaterial = Array.isArray(p.media) && (p.media as unknown[]).some((m) => esObjeto(m) && typeof m.assetId === 'string' && m.assetId.length > 0);
+  if (traiaMaterial) return adjuntos.some((m) => typeof m.assetId === 'string' && m.assetId.length > 0);
+  return (typeof p.jobId === 'string' && p.jobId.length > 0)
+    || (Array.isArray(p.aiTools) && (p.aiTools as unknown[]).some((x) => texto(x).trim().length > 0))
+    || !!pasoValido(p.aiResumen)
+    || pasosDeTexto(p.aiProcess).length > 0;
+};
+
+/** Lo que viaja a la publicación teniendo en cuenta el origen: sin origen en Weë, nada, esté como esté el borrador. */
+export const datosDeComoLoHice = (b: BorradorComoLoHice | null | undefined, lector: Lector, conOrigen: boolean) =>
+  (conOrigen ? datosParaPublicar(b, lector) : {});

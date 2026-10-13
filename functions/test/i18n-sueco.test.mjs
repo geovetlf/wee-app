@@ -172,8 +172,8 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['settings.sectionInfo', '«Information» es la palabra sueca'],
     ['settings.engineAdmin', '«Weë AI Engine» es el nombre del producto (el WEË AI ENGINE)'],
     ['help.footer', 'la marca, «World Encode Entity» y la versión: solo cambia «version», que en sueco se escribe igual'],
-    ['composer.kindVideo', '«Video» es la palabra sueca'],
-    ['composer.kindText', '«Text» es la palabra sueca'],
+    ['composer.toolVideo', '«Video» es la palabra sueca'],
+    ['composer.toolPhoto', '«Foto» es la palabra sueca'],
     ['credits.free', '«Gratis» es la palabra sueca'],
     ['credits.balanceAfter', '«Saldo» es la palabra sueca de la banca'],
     ['studio.optFormat', '«Format» es la palabra sueca'],
@@ -411,6 +411,8 @@ console.log('\n── J · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* R9: «Foto» en la barra del compositor es el adjunto (cámara o galería), no el «hacer una foto» de WeeTalk. */
+    'composer.toolPhoto',
     /* «En proceso» (R9): el estado de un PROYECTO que sigue abierto para retomarlo, no una transacción de Credits que se está procesando (credits.txPending). */
     'projects.stateInProgress',
     /* Weë Filmmaker, revisado por un segundo traductor (2026-10-01): la misma frase española, otro sentido. */

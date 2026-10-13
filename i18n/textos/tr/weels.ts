@@ -42,4 +42,14 @@ export const weels: typeof import('../es/weels').weels = {
   horizontalBody: 'Weëls dikey ve tam ekran izlenir. Yine de kullanmak ister misin?',
   horizontalAccept: 'Yine de kullan',
   galleryForVideo: 'Weël’inin videosunu seçmek için Weë’nin galerine erişmesi gerekiyor.',
+  /* R9 · Crear */
+  tabUpload: 'Video yükle',
+  uploadTitle: 'Cihazından bir video seç',
+  dimensions: '{{ancho}} × {{alto}} px',
+  creationUntitled: 'Başlıksız video',
+  creationLabel: '{{nombre}}, {{herramienta}} ile oluşturuldu',
+  creationMeta: '{{herramienta}} · {{fecha}}',
+  creationsEmptyTitle: 'Henüz Weë ile oluşturulmuş videon yok',
+  creationsEmptyBody: 'Weë Studio’da bir tane oluştur veya cihazından bir video yükle.',
+  creationsOpenStudio: 'Weë Studio’yu aç',
 };

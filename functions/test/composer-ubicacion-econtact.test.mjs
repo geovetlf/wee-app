@@ -118,10 +118,11 @@ check(
 // ═══════════════════════════════════════════════════════════════════════════
 console.log('\n─── B. La ubicación: el compositor y su pantalla ───');
 
-check('el botón Ubicación sigue existiendo', /texto="Ubicación"/.test(crear));
+/* R9: la ubicación es la fila «Agregar ubicación ›», que dice lo puesto (el lugar o «Zona aproximada»). */
+check('la fila Agregar ubicación existe', /texto="Agregar ubicación"/.test(crear));
 check(
-  'y se enciende cuando ya hay lugar o zona',
-  /activa=\{!!place \|\| !!ubicacion\}/.test(crear)
+  'y dice lo que ya hay: el lugar o la zona',
+  /valor=\{valorDeUbicacion\}/.test(crear) && /const valorDeUbicacion = place \? etiquetaDeLugar\(\{ place \}, locale\) \|\| undefined : ubicacion \? 'Zona aproximada' : undefined;/.test(crear)
 );
 check('lleva a la pantalla de ubicación', /navigate\('AgregarUbicacion'/.test(crear));
 
@@ -236,10 +237,11 @@ check(
 // ═══════════════════════════════════════════════════════════════════════════
 console.log('\n─── D. ËContact, en el compositor ───');
 
-const bloque = crear.slice(crear.indexOf('texto="ËContact"'), crear.indexOf('texto="ËContact"') + 280);
-check('el botón ya no está apagado', !/apagada/.test(bloque));
-check('y abre la agenda', /setShowEContacts/.test(bloque));
-check('el botón dice ËContact, el nombre universal', /texto="ËContact"/.test(crear) && !/texto="ẄContact"/.test(crear));
+/* R9 (referencia del dueño): la agenda de ËContact se abre desde la fila «Etiquetar personas». */
+const bloque = crear.slice(crear.indexOf('texto="Etiquetar personas"'), crear.indexOf('texto="Etiquetar personas"') + 280);
+check('la fila no está apagada', !/apagada/.test(bloque));
+check('y abre la agenda', /setShowEContacts/.test(bloque) && /<SelectorDeEContacts/.test(crear));
+check('la fila dice «Etiquetar personas» y nunca el nombre de una cara (ẄContact)', /texto="Etiquetar personas"/.test(crear) && !/texto="ẄContact"/.test(crear));
 
 check('la lista sale del sistema que ya existe', /useMisEContacts\(\)/.test(selectorCodigo));
 check(
@@ -478,17 +480,18 @@ console.log('\n─── G. El orden del compositor no se movió ───');
 
 const orden = [...crear.matchAll(/texto="([^"]+)"/g)].map((m) => m[1]);
 check(
-  'Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos',
-  orden.join(' · ') === 'Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos',
+  'R9: Foto · Vídeo · Archivo · Enlace · Hashtag · Encuesta, y las filas',
+  orden.join(' · ') === 'Foto · Vídeo · Archivo · Enlace · Hashtag · Encuesta · ¿Quién puede ver esta publicación? · Agregar ubicación · Etiquetar personas · Publicar en',
   orden.join(' · ')
 );
-/* El lugar ya no es un panel entre los de abajo: es un chip bajo el texto. El
-   panel de ËContact sigue detrás de las acciones, como su botón. */
+/* El lugar es un chip bajo el texto y lo adjunto. El panel de ËContact va justo tras su fila, dentro de las filas. */
+const filas = crear.slice(crear.indexOf('const renderFilas'), crear.indexOf('const nombreDelDestino'));
 check(
-  'el chip de lugar va bajo el texto y el panel de ËContact tras las acciones',
+  'el chip de lugar va bajo el texto y el panel de ËContact tras su fila',
   crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderLugar()}') &&
     crear.indexOf('{renderLugar()}') < crear.indexOf('{renderAcciones()}') &&
-    crear.indexOf('{renderAcciones()}') < crear.indexOf('{renderEContacts()}')
+    crear.indexOf('{renderAcciones()}') < crear.indexOf('{renderFilas()}') &&
+    filas.indexOf('texto="Etiquetar personas"') < filas.indexOf('{renderEContacts()}')
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -501,7 +504,8 @@ check('existe el chip', desdeChip > 0 && chip.length > 0);
 /* Dónde va: bajo lo que escribes, antes de las acciones, en la publicación. */
 check('el chip va justo debajo del campo de texto', crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderLugar()}'));
 check('y antes de los botones de acciones', crear.indexOf('{renderLugar()}') < crear.indexOf('{renderAcciones()}'));
-check('y antes de la previsualización de medios, como parte del post', crear.indexOf('{renderLugar()}') < crear.indexOf('{renderMediaPreview()}'));
+/* R9: tras la tira de adjuntos (el orden de la referencia: texto, lo adjunto y, debajo, lo demás). */
+check('y tras la tira de adjuntos, como parte del post', crear.indexOf('{renderMediaPreview()}') < crear.indexOf('{renderLugar()}'));
 
 /* Lo que ya no existe. */
 check('no existe la tarjeta antigua', !/placeChosen|renderPlace\b/.test(crear));
@@ -515,7 +519,7 @@ check(
 /* Qué hace el aspa: quita SOLO el lugar; la zona tiene la suya. */
 check('el aspa del lugar quita únicamente el lugar', /onPress=\{\(\) => setPlace\(undefined\)\}/.test(chip));
 check('y la zona se quita por separado, con su propio aspa', /onPress=\{\(\) => setUbicacion\(undefined\)\}/.test(chip) && /accessibilityLabel="Quitar mi ubicación"/.test(chip));
-check('cambiar de lugar es volver a tocar "Ubicación"', /texto="Ubicación"[\s\S]{0,120}onPress=\{abrirUbicacion\}/.test(crear));
+check('cambiar de lugar es volver a tocar «Agregar ubicación»', /texto="Agregar ubicación"[\s\S]{0,120}onPress=\{abrirUbicacion\}/.test(crear));
 
 /* Diseño: compacto, redondeado, amarillo suave, aguanta nombres largos. */
 check('fondo suave del amarillo Weë', /accent \+ '1F'/.test(chip));

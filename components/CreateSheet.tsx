@@ -1,40 +1,42 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
-export type CreateKind = 'post' | 'weel' | 'image' | 'video' | 'text' | 'question';
+/*
+ * Lo que la hoja puede pedir. Desde R9 (referencia del dueño) son DOS: subir una publicación (el compositor del Wäll,
+ * `CreateScreen`) o subir un Weël (`CrearWeelScreen`). Las seis entradas de antes —Publicación, Weël, Imagen, Vídeo,
+ * Texto y Pregunta— se quitaron de AQUÍ; el compositor sigue aceptando esos `kind` por la ruta (la Ayuda abre
+ * `question`, Weë AI abre `image`/`video` con su resultado), así que ninguna otra puerta cambia.
+ */
+export type CreateKind = 'post' | 'weel';
 
 interface CreateSheetProps {
   visible: boolean;
   onClose: () => void;
   /** El usuario eligió qué crear. */
   onSelect: (kind: CreateKind) => void;
-  /** El usuario necesita una herramienta de IA. */
+  /** La nota del pie lleva a WEË AI, la misma entrada que el menú ☰. No es una tercera opción. */
   onOpenCreator: () => void;
 }
 
 /*
- * Las seis maneras de compartir. Guardan la CLAVE de su nombre, no el nombre:
- * esta lista se construye al cargar el archivo, fuera de React, y una frase
- * puesta aquí se quedaría con el idioma del arranque. El `kind` es el
- * identificador y no cambia nunca: con él viaja lo que se va a crear.
+ * Las dos opciones. Guardan CLAVES, no frases: esta lista se construye al cargar el archivo, fuera de React, y una
+ * frase puesta aquí se quedaría con el idioma del arranque. El `kind` y el icono se copian tal cual.
  */
-const OPTIONS: { kind: CreateKind; emoji: string; clave: string }[] = [
-  { kind: 'post', emoji: '📝', clave: 'composer.kindPost' },
-  { kind: 'weel', emoji: '📹', clave: 'composer.kindWeel' },
-  { kind: 'image', emoji: '🖼️', clave: 'composer.kindImage' },
-  { kind: 'video', emoji: '🎥', clave: 'composer.kindVideo' },
-  { kind: 'text', emoji: '✍️', clave: 'composer.kindText' },
-  { kind: 'question', emoji: '❓', clave: 'composer.kindQuestion' },
+const OPCIONES: { kind: CreateKind; icono: string; clave: string; claveNota: string }[] = [
+  { kind: 'post', icono: 'create-outline', clave: 'composer.sheetOptionPost', claveNota: 'composer.sheetOptionPostHint' },
+  { kind: 'weel', icono: 'play-circle-outline', clave: 'composer.sheetOptionWeel', claveNota: 'composer.sheetOptionWeelHint' },
 ];
 
 /**
- * Hoja "Crear" del botón +: seis maneras de compartir, y un atajo a Weë Creator
- * por si el usuario necesita una herramienta de IA antes de publicar.
+ * Hoja "Crear" del botón +: blanca, esquinas de arriba redondas, el asa, «Crear» grande y DOS tarjetas con icono de
+ * trazo, nombre, frase y chevrón. Sin emojis, sin bloques oscuros, sin rejilla. Las herramientas de IA siguen en su
+ * sitio (WEË AI en el menú ☰); aquí solo queda una nota discreta que lleva allí.
  */
 const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, onOpenCreator }) => {
   const { theme } = useTheme();
@@ -56,37 +58,41 @@ const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, o
         >
           <View style={[styles.handle, { backgroundColor: theme.colors.border }]} />
           <View style={styles.titles}>
-            <Text style={[styles.title, { color: theme.colors.text }]}>{t('composer.sheetTitle')}</Text>
+            <Text style={[styles.title, { color: theme.colors.text }]} accessibilityRole="header">{t('composer.sheetTitle')}</Text>
             <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{t('composer.sheetSubtitle')}</Text>
           </View>
 
-          <View style={styles.grid}>
-            {OPTIONS.map((opt) => (
+          <View style={styles.opciones}>
+            {OPCIONES.map((op) => (
               <TouchableOpacity
-                key={opt.kind}
-                style={[styles.option, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
-                onPress={() => onSelect(opt.kind)}
-                activeOpacity={0.8}
+                key={op.kind}
+                style={[styles.opcion, { borderColor: theme.colors.border, backgroundColor: theme.colors.background }]}
+                onPress={() => onSelect(op.kind)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={t(op.clave)}
+                accessibilityHint={t(op.claveNota)}
               >
-                <Text style={styles.optionEmoji}>{opt.emoji}</Text>
-                <Text style={[styles.optionLabel, { color: theme.colors.text }]}>{t(opt.clave)}</Text>
+                <Ionicons name={op.icono as any} size={scale(30)} color={theme.colors.text} />
+                <View style={styles.opcionTextos}>
+                  <Text style={[styles.opcionTitulo, { color: theme.colors.text }]}>{t(op.clave)}</Text>
+                  <Text style={[styles.opcionNota, { color: theme.colors.textSecondary }]}>{t(op.claveNota)}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={scale(20)} color={theme.colors.text} />
               </TouchableOpacity>
             ))}
           </View>
 
+          <View style={[styles.separador, { backgroundColor: theme.colors.border }]} />
           <TouchableOpacity
-            style={[styles.creatorRow, { backgroundColor: theme.colors.text }]}
+            style={styles.nota}
             onPress={onOpenCreator}
-            activeOpacity={0.85}
+            activeOpacity={0.7}
+            accessibilityRole="link"
+            accessibilityLabel={t('composer.sheetToolsNote')}
           >
-            <Text style={styles.creatorEmoji}>🤖</Text>
-            <View style={styles.creatorBody}>
-              <Text style={styles.creatorTitle}>{t('composer.needAiTool')}</Text>
-              <Text style={styles.creatorText}>{t('composer.needAiToolNote')}</Text>
-            </View>
-            <View style={[styles.creatorButton, { backgroundColor: theme.colors.accent }]}>
-              <Text style={styles.creatorButtonText}>Weë AI ›</Text>
-            </View>
+            <Ionicons name="information-circle-outline" size={scale(20)} color={theme.colors.textSecondary} />
+            <Text style={[styles.notaTexto, { color: theme.colors.textSecondary }]}>{t('composer.sheetToolsNote')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -120,71 +126,55 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   titles: {
-    gap: scale(2),
+    gap: scale(4),
+    marginTop: SPACING.sm,
   },
   title: {
-    fontSize: FONT_SIZE.lg,
+    fontSize: FONT_SIZE.xxl,
     fontWeight: FONT_WEIGHT.bold,
   },
   subtitle: {
-    fontSize: FONT_SIZE.sm,
+    fontSize: FONT_SIZE.md,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
+  opciones: {
+    gap: SPACING.md,
   },
-  option: {
-    width: '31%',
-    flexGrow: 1,
-    height: scale(88),
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: scale(6),
-  },
-  optionEmoji: {
-    fontSize: scale(26),
-    lineHeight: scale(30),
-  },
-  optionLabel: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: FONT_WEIGHT.semibold,
-  },
-  creatorRow: {
+  /* Sin alto fijo: con letra grande o un idioma largo la tarjeta crece y nada se corta. */
+  opcion: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-  },
-  creatorEmoji: {
-    fontSize: scale(22),
-  },
-  creatorBody: {
-    flex: 1,
-    gap: scale(1),
-  },
-  creatorTitle: {
-    color: 'white',
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.bold,
-  },
-  creatorText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: FONT_SIZE.xs,
-  },
-  creatorButton: {
-    height: scale(34),
+    minHeight: scale(84),
+    paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.full,
-    justifyContent: 'center',
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
   },
-  creatorButtonText: {
-    color: '#1F2937',
-    fontSize: FONT_SIZE.xs,
+  opcionTextos: {
+    flex: 1,
+    minWidth: 0,
+    gap: scale(3),
+  },
+  opcionTitulo: {
+    fontSize: FONT_SIZE.md,
     fontWeight: FONT_WEIGHT.bold,
+  },
+  opcionNota: {
+    fontSize: FONT_SIZE.sm,
+    lineHeight: FONT_SIZE.sm * 1.35,
+  },
+  separador: {
+    height: StyleSheet.hairlineWidth,
+  },
+  nota: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    minHeight: 44,
+  },
+  notaTexto: {
+    flex: 1,
+    fontSize: FONT_SIZE.sm,
   },
 });
 

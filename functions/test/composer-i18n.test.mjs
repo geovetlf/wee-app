@@ -204,12 +204,13 @@ console.log('\n── D · Lo que NO se traduce ──');
   check('17) ni el nombre de un ËContact', /\{persona\.perfil\.displayName\}/.test(C[AGENDA]) && !/t\(persona\.perfil/.test(C[AGENDA]));
   /* El lugar se ESCRIBE en el idioma de quien mira con su nombre en ese idioma (`opcionEnSuIdioma`, «København»), no con el traductor. */
   check('17) ni el nombre de un lugar del catálogo', /\{visible\.label\}/.test(C[LUGAR]) && /opcionEnSuIdioma\(opcion, locale\)/.test(C[LUGAR]) && !/t\((?:opcion|visible)\.label\)/.test(C[LUGAR]));
-  check('17) ni el nombre de quien publica', /userProfile\?\.displayName \|\| t\('composer\.you'\)/.test(C[CREAR]));
+  /* R9: el compositor ya no pinta la fila de identidad; ni el nombre de nadie pasa por el traductor. */
+  check('17) ni el nombre de quien publica', !/t\(userProfile/.test(C[CREAR]));
 
   /* Las marcas, iguales en los dos idiomas. */
   check('18) ËContact y Weël se escriben igual en los dos',
     ES.composer.econtact === 'ËContact' && EN.composer.econtact === 'ËContact'
-    && ES.composer.kindWeel === 'Weël' && EN.composer.kindWeel === 'Weël');
+    && /Weël/.test(ES.composer.sheetOptionWeel) && /Weël/.test(EN.composer.sheetOptionWeel));
   const conWee = Object.keys(ES.composer).filter((k) => /Weë/.test(ES.composer[k]));
   check('18) y las ' + conWee.length + ' frases que nombran a Weë la siguen nombrando en inglés',
     conWee.every((k) => /Weë/.test(EN.composer[k])), conWee.filter((k) => !/Weë/.test(EN.composer[k])).join(' '));
@@ -230,8 +231,8 @@ console.log('\n── E · Nada funcional se movió ──');
   /* El orden aprobado de la fila de acciones del espacio de crear. */
   const acciones = [...C[CREAR].matchAll(/<Accion\s+icono="([a-z-]+)"[\s\S]{0,220}?texto=\{t\('([a-z]+\.[A-Za-z]+)'\)\}/g)]
     .map((m) => ES[m[2].split('.')[0]][m[2].split('.')[1]]);
-  check('20) Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos',
-    acciones.join(' · ') === 'Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos',
+  check('20) R9: Foto · Vídeo · Archivo · Enlace · Hashtag · Encuesta',
+    acciones.join(' · ') === 'Foto · Vídeo · Archivo · Enlace · Hashtag · Encuesta',
     acciones.join(' · '));
 
   /* Y el de la entrada del Home, que es el suyo y tampoco se ha tocado. */
@@ -328,7 +329,7 @@ console.log('\n── F · El inglés, en inglés ──');
 
   /* Y al revés: nada quedó copiado, salvo lo que no tiene idioma. */
   const soloHuecos = (v) => !/[A-Za-zÀ-ÿ]/.test(String(v).replace(/\{\{[^}]*\}\}/g, ''));
-  const MISMA = /^(Weël|ËContact|Video|Marketing|Multimedia)$/;
+  const MISMA = /^(Weël|ËContact|Video|Marketing|Multimedia|Hashtag)$/;
   const iguales = Object.keys(ES.composer).filter((k) => ES.composer[k] === EN.composer[k]
     && !soloHuecos(ES.composer[k]) && !MISMA.test(ES.composer[k]));
   check('33) el módulo está traducido de verdad, no copiado', iguales.length === 0, iguales.map((k) => k + '=' + ES.composer[k]).join(' | '));
@@ -345,7 +346,7 @@ console.log('\n── G · Cambiar de idioma sin reiniciar ──');
   check('34) ninguna frase se congela en el estado',
     !/useState\([^)]*\bt\('/.test(TODO) && !/useMemo\(\(\) => t\(/.test(TODO));
   check('34) y las listas guardan claves, no frases',
-    /clave: 'composer\.kindPost'/.test(C[HOJA]) && /clave: 'composer\.camera'/.test(C[ENTRADA])
+    /clave: 'composer\.sheetOptionPost'/.test(C[HOJA]) && /clave: 'composer\.camera'/.test(C[ENTRADA])
     && /'composer\.pollErrEmptyQuestion'/.test(C[BORRADOR]));
 
   /* Y ningún formato clavado a un idioma. */

@@ -132,7 +132,8 @@ console.log('\n── B · Ningún "Cancelar" hace de Back ──');
     // Eran 2 (permisos de galería y de cámara). La de la cámara confirma ahora con `confirmAction` —la cámara también
     // se abre en la web, donde un `Alert.alert` con botones no hace nada— y su Cancelar es el de la 6 (cierre
     // post-auditoría, 2026-10-01). Queda la de la galería, que solo corre en el teléfono.
-    'screens/CreateScreen.tsx': 1, // alerta de permisos de galería (solo nativo)
+    // R9: + el aviso de «Foto» (cámara o galería), que solo se abre en el teléfono: en web Foto va directo al explorador.
+    'screens/CreateScreen.tsx': 2, // alerta de permisos de galería y elección de Foto (solo nativo)
     'screens/ProjectScreen.tsx': 1, // alerta: eliminar un proyecto
     'screens/ProjectsScreen.tsx': 1, // cierra el formulario de proyecto nuevo (acción de SectionTitle)
   };

@@ -42,4 +42,14 @@ export const weels: typeof import('../es/weels').weels = {
   horizontalBody: 'Weëls 以直式全螢幕觀看。仍要使用嗎？',
   horizontalAccept: '仍要使用',
   galleryForVideo: '要為 Weël 選擇影片，Weë 需要存取你的相簿。',
+  /* R9 · Crear */
+  tabUpload: '上傳影片',
+  uploadTitle: '從你的裝置選擇影片',
+  dimensions: '{{ancho}} × {{alto}} 像素',
+  creationUntitled: '未命名影片',
+  creationLabel: '{{nombre}}，使用 {{herramienta}} 創作',
+  creationMeta: '{{herramienta}} · {{fecha}}',
+  creationsEmptyTitle: '你還沒有用 Weë 創作的影片',
+  creationsEmptyBody: '在 Weë Studio 創作一個，或從裝置上傳影片。',
+  creationsOpenStudio: '開啟 Weë Studio',
 };

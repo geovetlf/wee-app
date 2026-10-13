@@ -156,3 +156,89 @@ export const medidaDelMarcoDelWeel = (anchoVisible: number, altoVisible: number,
   const height = Math.max(Math.min(porAncho, altoVisible - reserva), Math.min(ALTO_MINIMO_DEL_MARCO, porAncho));
   return { width: height * 9 / 16, height };
 };
+
+/*
+ * ─── «MIS CREACIONES» EN CREAR WEËL (R9) ─────────────────────────────────────
+ *
+ * La segunda pestaña de «Crear Weël» enseña los vídeos que la persona YA creó con las herramientas de Weë: el material
+ * de la cuenta (`assets`, `services/assetsService.ts`, solo lectura). Elegir uno NO genera nada, NO copia el archivo y
+ * NO cobra Credits: el Weël referencia el material con su URL de entrega y su `assetId`, exactamente como ya lo hacía
+ * un vídeo que llega de Weë AI (`CrearWeelParams.video`) y como el compositor publica el material desde la Fase 11.
+ *
+ * Qué entra: vídeo, listo, con URL de entrega, HECHO CON WEË (con capacidad o derivado: no lo que la persona subió
+ * como entrada) y que valga como Weël (`validarVideoDeWeel`: lo de más de 15 s no se ofrece). La herramienta es la de
+ * `metadata.experienceId` (Weë Studio, Weë Chef, Weë Design…), así que solo aparecen las que de verdad tienen vídeos.
+ */
+export interface MaterialDeVideo {
+  assetId: string;
+  kind: string;
+  status: string;
+  delivery?: { url?: string } | null;
+  provenance?: { capability?: string; sourceAssetIds?: string[] } | null;
+  durationSec?: number;
+  width?: number;
+  height?: number;
+  name?: string;
+  metadata?: Record<string, unknown> | null;
+  createdAt?: number;
+}
+
+export interface VideoDeMisCreaciones {
+  assetId: string;
+  url: string;
+  nombre?: string;
+  /** Solo el identificador de la experiencia (`studio`, `chef`…): el nombre de marca lo pone quien pinta. */
+  experienceId?: string;
+  creadoEn?: number;
+  segundos?: number;
+  ancho?: number;
+  alto?: number;
+}
+
+const hechoConWee = (a: MaterialDeVideo): boolean =>
+  !!a.provenance && (typeof a.provenance.capability === 'string' && a.provenance.capability.length > 0
+    || (Array.isArray(a.provenance.sourceAssetIds) && a.provenance.sourceAssetIds.length > 0));
+
+const numero = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : undefined);
+
+export const videosParaWeel = (materiales: readonly MaterialDeVideo[] | null | undefined): VideoDeMisCreaciones[] =>
+  (materiales || [])
+    .filter((a) => !!a && a.kind === 'video' && a.status === 'ready' && typeof a.delivery?.url === 'string' && a.delivery.url.length > 0 && hechoConWee(a))
+    .map((a) => {
+      const exp = a.metadata?.experienceId;
+      return {
+        assetId: a.assetId,
+        url: a.delivery!.url as string,
+        ...(typeof a.name === 'string' && a.name.trim() ? { nombre: a.name.trim() } : {}),
+        ...(typeof exp === 'string' && /^[a-z]{2,20}$/.test(exp) ? { experienceId: exp } : {}),
+        ...(numero(a.createdAt) ? { creadoEn: a.createdAt } : {}),
+        ...(numero(a.durationSec) ? { segundos: a.durationSec } : {}),
+        ...(numero(a.width) ? { ancho: a.width } : {}),
+        ...(numero(a.height) ? { alto: a.height } : {}),
+      };
+    })
+    .filter((v) => validarVideoDeWeel({ uri: v.url, segundos: v.segundos }).ok);
+
+/** El vídeo elegido a partir de una creación: su URL de entrega y su `assetId`, para referenciarlo sin volver a subirlo. */
+export const videoDeCreacion = (v: VideoDeMisCreaciones): VideoElegido => ({
+  uri: v.url,
+  assetId: v.assetId,
+  ...(v.segundos ? { segundos: v.segundos } : {}),
+  ...(v.ancho ? { ancho: v.ancho } : {}),
+  ...(v.alto ? { alto: v.alto } : {}),
+});
+
+/**
+ * «Cómo lo hice» del Weël (lo apunta Weë, nunca se le pide a la persona) solo viaja si el vídeo que se publica es el
+ * MISMO que trajo Weë AI. Si la persona lo cambia por uno de su galería o por otra creación, el origen ya no es ese
+ * trabajo y no se publica su proceso (regla del dueño, 2026-10-13: sin origen en Weë, no hay «Cómo lo hice»).
+ */
+export const procesoDelWeel = (
+  traido: { assetId?: string; uri?: string } | null | undefined,
+  elegido: VideoElegido | null | undefined,
+  prefill: { aiTools?: string[]; aiProcess?: string } | null | undefined,
+): { aiTools?: string[]; aiProcess?: string } => {
+  if (!traido || !elegido || !prefill) return {};
+  const mismo = traido.assetId ? traido.assetId === elegido.assetId : traido.uri === elegido.uri;
+  return mismo ? { aiTools: prefill.aiTools, aiProcess: prefill.aiProcess } : {};
+};

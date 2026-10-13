@@ -35,4 +35,14 @@ export const weels = {
   horizontalBody: 'Los Weëls se ven en vertical, a pantalla completa. ¿Quieres usarlo igualmente?',
   horizontalAccept: 'Usarlo igualmente',
   galleryForVideo: 'Para elegir el video de tu Weël, Weë necesita acceder a tu galería.',
+  /* R9 · Crear */
+  tabUpload: 'Subir vídeo',
+  uploadTitle: 'Selecciona un vídeo desde tu dispositivo',
+  dimensions: '{{ancho}} × {{alto}} px',
+  creationUntitled: 'Vídeo sin título',
+  creationLabel: '{{nombre}}, creado con {{herramienta}}',
+  creationMeta: '{{herramienta}} · {{fecha}}',
+  creationsEmptyTitle: 'Todavía no tienes vídeos creados con Weë',
+  creationsEmptyBody: 'Crea uno en Weë Studio o sube un vídeo desde tu dispositivo.',
+  creationsOpenStudio: 'Abrir Weë Studio',
 };

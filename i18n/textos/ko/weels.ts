@@ -40,4 +40,14 @@ export const weels: typeof import('../es/weels').weels = {
   horizontalBody: 'Weëls는 세로 전체 화면으로 감상해요. 그래도 사용할까요?',
   horizontalAccept: '그래도 사용',
   galleryForVideo: 'Weël 동영상을 선택하려면 Weë가 갤러리에 접근해야 해요.',
+  /* R9 · Crear */
+  tabUpload: '동영상 올리기',
+  uploadTitle: '기기에서 동영상을 선택하세요',
+  dimensions: '{{ancho}} × {{alto}} px',
+  creationUntitled: '제목 없는 동영상',
+  creationLabel: '{{nombre}} · 만든 도구: {{herramienta}}',
+  creationMeta: '{{herramienta}} · {{fecha}}',
+  creationsEmptyTitle: '아직 Weë로 만든 동영상이 없어요',
+  creationsEmptyBody: 'Weë Studio에서 만들거나 기기에서 동영상을 올려 보세요.',
+  creationsOpenStudio: 'Weë Studio 열기',
 };

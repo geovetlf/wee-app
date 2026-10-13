@@ -40,7 +40,7 @@ const EN = base('i18n/textos/en/index.ts').en;
 const tEs = crearTraductor('es', { es: ES, en: EN }, {});
 
 /** Lo que el compositor del Wall tiene y un Weël no: si se ve uno solo, esto no es el creador de Weëls. */
-const DEL_WALL = [tEs('composer.newPost'), tEs('composer.publishIn'), 'Encuesta', 'ËContact', 'Ubicación', 'Mis proyectos', 'Cuenta qué creaste'];
+const DEL_WALL = ['Nueva publicación', tEs('composer.createPostTitle'), tEs('composer.rowAudience'), tEs('composer.rowTagPeople'), tEs('composer.publishIn'), 'Encuesta', 'ËContact', 'Ubicación', 'Mis proyectos', 'Cuenta qué creaste'];
 const pareceElWall = (texto) => DEL_WALL.some((x) => texto.includes(x));
 
 /**
@@ -48,7 +48,7 @@ const pareceElWall = (texto) => DEL_WALL.some((x) => texto.includes(x));
  * (un Error = falla esa vez); `o.confirmar` lo que contesta la persona al aviso de horizontal.
  */
 const creador = (o = {}) => {
-  const reg = { subidas: [], guardados: [], confirmaciones: [], enfoques: [] };
+  const reg = { subidas: [], guardados: [], confirmaciones: [], enfoques: [], listados: [] };
   /* La pila de pantallas, la de abajo primero: por defecto, abierto con el + de Weëls (R9, salir del creador). */
   const pila = o.pila || ['Reels', 'CrearWeel'];
   let nSubida = 0;
@@ -62,7 +62,8 @@ const creador = (o = {}) => {
       /* La caja de la descripción y el desplazable, capturados: sus propiedades son el contrato que se mira en D. */
       ctx.reactNative.TextInput = capturar('TextInput', () => h('textarea'));
       ctx.reactNative.ScrollView = capturar('ScrollView');
-      const habla = { useT: () => tEs, useIdioma: () => ({ t: tEs, locale: 'es', idioma: 'es' }) };
+      const formato = { numero: (v) => String(v), fecha: () => '12 oct', lista: (xs) => xs.join(', ') };
+      const habla = { useT: () => tEs, useIdioma: () => ({ t: tEs, locale: 'es', idioma: 'es', formato }) };
       return {
         'expo-av': { Video: capturar('Video'), ResizeMode: { COVER: 'cover', CONTAIN: 'contain' } },
         'expo-image-picker': {
@@ -83,6 +84,18 @@ const creador = (o = {}) => {
           useRoute: () => ({ params: o.params }),
         },
         'firebase/firestore': { Timestamp: { now: () => 'AHORA' } },
+        /* «Mis creaciones»: la lectura de `assets` de la cuenta; se apunta cada vez que se pide. */
+        '../services/assetsService': {
+          assetsService: {
+            listar: async (uid, filtro, cursor) => {
+              reg.listados.push({ uid, filtro, cursor });
+              if (o.creacionesFalla) throw new Error('sin red');
+              return { items: o.creaciones || [], cursor: null, hayMas: false };
+            },
+          },
+        },
+        '../constants/weeExperiences': { getExperienceById: (id) => ({ studio: { name: 'Weë Studio' }, chef: { name: 'Weë Chef' }, design: { name: 'Weë Design' } })[id] },
+        '../i18n/servidor': { textoDelServidor: (x) => x },
         '../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }) },
         '../contexts/IdiomaContext': habla,
         '../contexts/AuthContext': { useAuth: () => ({ user: o.usuario === undefined ? { uid: 'u1' } : o.usuario }) },
@@ -118,6 +131,8 @@ const creador = (o = {}) => {
   return e;
 };
 
+const SUBIR = tEs('weels.uploadTitle');
+const SIGUIENTE = tEs('common.next');
 const VIDEO = (extra = {}) => ({ canceled: false, assets: [{ uri: 'file:///v.mp4', type: 'video', duration: 10000, width: 1080, height: 1920, ...extra }] });
 const silenciar = async (f) => { const err = console.error; console.error = () => {}; try { return await f(); } finally { console.error = err; } };
 
@@ -128,59 +143,71 @@ console.log('\n─── A. El creador de Weëls, ejecutado ───');
   check('A1) abre el creador de Weëls: su título es «Crear Weël»', d.texto.includes(tEs('weels.create')), d.texto.slice(0, 120));
   check('A1) y NO es el compositor del Wall: ni «Nueva publicación», ni «Publicar en», ni encuesta, ËContact, ubicación ni proyectos',
     !pareceElWall(d.texto), DEL_WALL.filter((x) => d.texto.includes(x)).join(' · '));
-  check('A1) ofrece elegir el vídeo de la galería, y NO grabarlo (el permiso de micrófono no está autorizado)',
-    d.botones.some((b) => b.etiqueta === tEs('weels.pickVideo')) && !d.botones.some((b) => /grabar|record/i.test(b.etiqueta || '')));
+  check('A1) ofrece elegir el vídeo del dispositivo («Selecciona un vídeo desde tu dispositivo»), y NO grabarlo',
+    d.botones.some((b) => b.etiqueta === SUBIR) && !d.botones.some((b) => /grabar|record/i.test(b.etiqueta || '')));
+  check('A1) R9: dos pestañas, «Subir vídeo» (activa) y «Mis creaciones»', d.botones.some((b) => b.etiqueta === tEs('weels.tabUpload')) && d.botones.some((b) => b.etiqueta === tEs('creaciones.title')));
+  check('A1) R9: abrir la pantalla no sube nada ni lee las creaciones', e.reg.subidas.length === 0 && e.reg.listados.length === 0 && !e.reg.galeria);
   check('A1) la descripción reutiliza la ayuda de siempre del Weël (`composer.placeholderWeel`, viva en producción)',
     /placeholder=\{t\('composer\.placeholderWeel'\)\}/.test(leer('screens/CrearWeelScreen.tsx')));
   check('A1) y dice el requisito: vertical, hasta 15 s', d.texto.includes(tEs('weels.requirements', { segundos: 15 })));
-  check('A1) sin vídeo no se puede publicar', d.botones.find((b) => b.etiqueta === tEs('weels.publish'))?.apagado === true);
+  check('A1) sin vídeo «Siguiente» está apagado (y Publicar ni se ve: es el segundo paso)', d.botones.find((b) => b.etiqueta === SIGUIENTE)?.apagado === true && !d.botones.some((b) => b.etiqueta === tEs('weels.publish')));
   check('CONTROL: el detector de «esto es el Wall» caza la pantalla vieja', pareceElWall('Nueva publicación Publicar en Wall general') && !pareceElWall(d.texto));
 }
 {
   const e = creador({ elegido: VIDEO() });
-  await e.tocar(tEs('weels.pickVideo'));
+  await e.tocar(SUBIR);
   check('A2) la cámara no se abre nunca (grabar vídeo exige el micrófono, pendiente de autorización)', e.reg.camara === undefined);
   check('A2) CONTROL: una pantalla que grabase con la cámara se cazaría (la misma vara que i18n-permisos-ios F3)',
     /launchCameraAsync\(\{[^}]*videos/.test("launchCameraAsync({ mediaTypes: ['videos'] })") && !/launchCameraAsync|recordAsync/.test(leer('screens/CrearWeelScreen.tsx')));
   const d = e.dibujar();
-  check('A2) con un vídeo vertical de 10 s: vista previa, «Cambiar video» y Publicar encendido',
-    !!e.capturas.Video && d.botones.some((b) => b.etiqueta === tEs('weels.changeVideo')) && d.botones.find((b) => b.etiqueta === tEs('weels.publish'))?.apagado === false);
+  check('A2) con un vídeo vertical de 10 s: vista previa, «Cambiar video», «Quitar el vídeo» y «Siguiente» encendido',
+    !!e.capturas.Video && d.botones.some((b) => b.etiqueta === tEs('weels.changeVideo')) && d.botones.some((b) => b.etiqueta === tEs('composer.removeVideo')) && d.botones.find((b) => b.etiqueta === SIGUIENTE)?.apagado === false);
+  check('A2) y dice sus datos: duración y medidas', d.texto.includes(tEs('composer.seconds', { contador: 10 })) && d.texto.includes(tEs('weels.dimensions', { ancho: '1080', alto: '1920' })));
+  await e.tocar(SIGUIENTE);
+  const d2 = e.dibujar();
+  check('A2) «Siguiente» abre la composición de siempre: Publicar encendido y la descripción', d2.botones.find((b) => b.etiqueta === tEs('weels.publish'))?.apagado === false && !!e.capturas.TextInput);
+  await e.tocar(tEs('common.back'));
+  const d3 = e.dibujar();
+  check('A2) la flecha vuelve al primer paso con el vídeo elegido (sin salir ni navegar)', d3.botones.find((b) => b.etiqueta === SIGUIENTE)?.apagado === false && e.navegacion.length === 0);
+  await e.tocar(tEs('composer.removeVideo'));
+  check('A2) quitarlo vuelve a apagar «Siguiente»', e.dibujar().botones.find((b) => b.etiqueta === SIGUIENTE)?.apagado === true);
 }
 {
   const e = creador({ elegido: VIDEO() });
-  await e.tocar(tEs('weels.pickVideo'));
+  await e.tocar(SUBIR);
   check('A3) la galería pide SOLO vídeos y uno', JSON.stringify(e.reg.galeria?.mediaTypes) === '["videos"]' && e.reg.galeria?.allowsMultipleSelection === false, JSON.stringify(e.reg.galeria));
 }
 {
   const e = creador({ elegido: VIDEO({ duration: 20000 }) });
-  await e.tocar(tEs('weels.pickVideo'));
+  await e.tocar(SUBIR);
   const d = e.dibujar();
   check('A4) un vídeo de 20 s se rechaza diciendo cuánto dura, antes de subir nada',
     e.avisos.length === 1 && e.avisos[0].startsWith(tEs('composer.weelTooLong')) && e.avisos[0].includes('20') && !e.capturas.Video && e.reg.subidas.length === 0, e.avisos.join(' | '));
-  check('A4) y Publicar sigue apagado', d.botones.find((b) => b.etiqueta === tEs('weels.publish'))?.apagado === true);
+  check('A4) y «Siguiente» sigue apagado', d.botones.find((b) => b.etiqueta === SIGUIENTE)?.apagado === true);
 }
 {
   const e = creador({ elegido: VIDEO({ type: 'image' }) });
-  await e.tocar(tEs('weels.pickVideo'));
+  await e.tocar(SUBIR);
   e.dibujar();
   check('A5) una foto no es un Weël: no queda elegida', !e.capturas.Video);
 }
 {
   const no = creador({ elegido: VIDEO({ width: 1920, height: 1080 }), confirmar: false });
-  await no.tocar(tEs('weels.pickVideo'));
+  await no.tocar(SUBIR);
   no.dibujar();
   const si = creador({ elegido: VIDEO({ width: 1920, height: 1080 }), confirmar: true });
-  await si.tocar(tEs('weels.pickVideo'));
+  await si.tocar(SUBIR);
   si.dibujar();
   check('A6) un vídeo horizontal pregunta antes de usarse: «no» lo deja fuera, «sí» lo usa',
     no.reg.confirmaciones[0] === tEs('weels.horizontalTitle') && !no.capturas.Video && si.reg.confirmaciones.length === 1 && !!si.capturas.Video);
   const vertical = creador({ elegido: VIDEO() });
-  await vertical.tocar(tEs('weels.pickVideo'));
+  await vertical.tocar(SUBIR);
   check('A6) CONTROL: uno vertical no pregunta nada', vertical.reg.confirmaciones.length === 0);
 }
 {
   const e = creador({ elegido: VIDEO() });
-  await e.tocar(tEs('weels.pickVideo'));
+  await e.tocar(SUBIR);
+  await e.tocar(SIGUIENTE);
   await e.tocar(tEs('weels.publish'));
   await e.calma();
   const g = e.reg.guardados[0] || {};
@@ -198,7 +225,8 @@ console.log('\n─── A. El creador de Weëls, ejecutado ───');
 }
 {
   const e = creador({ elegido: VIDEO(), subidas: [new Error('sin red'), 'https://cdn/v2.mp4'] });
-  await e.tocar(tEs('weels.pickVideo'));
+  await e.tocar(SUBIR);
+  await e.tocar(SIGUIENTE);
   await silenciar(() => e.tocar(tEs('weels.publish')));
   await e.calma();
   const d = e.dibujar();
@@ -211,7 +239,8 @@ console.log('\n─── A. El creador de Weëls, ejecutado ───');
 }
 {
   const e = creador({ elegido: VIDEO(), guardados: [new Error('permiso'), 'post-2'] });
-  await e.tocar(tEs('weels.pickVideo'));
+  await e.tocar(SUBIR);
+  await e.tocar(SIGUIENTE);
   await silenciar(() => e.tocar(tEs('weels.publish')));
   await e.calma();
   e.dibujar();
@@ -237,7 +266,8 @@ console.log('\n─── A. El creador de Weëls, ejecutado ───');
 }
 {
   const e = creador({ usuario: null, elegido: VIDEO() });
-  await e.tocar(tEs('weels.pickVideo'));
+  await e.tocar(SUBIR);
+  await e.tocar(SIGUIENTE);
   const d = e.dibujar();
   check('A12) sin sesión no se publica', d.botones.find((b) => b.etiqueta === tEs('weels.publish'))?.apagado === true);
 }
@@ -346,7 +376,7 @@ console.log('\n─── D. R9 en el teléfono: la descripción entera, la vista
  */
 const plano = (st) => (Array.isArray(st) ? Object.assign({}, ...st.flat(Infinity).filter(Boolean).map(plano)) : (st || {}));
 {
-  const e = creador();
+  const e = creador({ params: { video: { uri: 'https://storage/wee/a.mp4', assetId: 'asset_1', segundos: 8, ancho: 720, alto: 1280 } } });
   e.dibujar();
   const caja = e.capturas.TextInput || {};
   const est = plano(caja.style);
@@ -429,7 +459,8 @@ const plano = (st) => (Array.isArray(st) ? Object.assign({}, ...st.flat(Infinity
   /* La vista previa: vertical llena, apaisado o cuadrado entero. */
   const conVideo = async (ancho, alto) => {
     const e = creador({ elegido: VIDEO({ width: ancho, height: alto }), confirmar: true });
-    await e.tocar(tEs('weels.pickVideo'));
+    await e.tocar(SUBIR);
+    await e.tocar(SIGUIENTE);
     e.dibujar();
     return e;
   };
@@ -445,7 +476,7 @@ const plano = (st) => (Array.isArray(st) ? Object.assign({}, ...st.flat(Infinity
   check('D4) la medida de verdad del reproductor manda: un vertical que el selector dio sin rotar acaba llenando',
     rotado.capturas.Video?.resizeMode === 'cover', rotado.capturas.Video?.resizeMode);
   check('CONTROL: la vista previa de antes (siempre COVER) recortaba el apaisado; ya no queda',
-    /resizeMode=\{ResizeMode\.COVER\}/.test('<Video resizeMode={ResizeMode.COVER} />') && !/resizeMode=\{ResizeMode\.COVER\}/.test(nuevo));
+    /resizeMode=\{ResizeMode\.COVER\}/.test('<Video resizeMode={ResizeMode.COVER} />') && !/resizeMode=\{ResizeMode\.COVER\}/.test(nuevo.slice(nuevo.indexOf('const lamina'), nuevo.indexOf('const estado'))));
 }
 {
   /* Volver del creador. */

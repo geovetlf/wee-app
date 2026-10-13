@@ -18,8 +18,15 @@
  * EL PROGRESO DICE LO QUE SE SABE. `fetch` no cuenta los bytes que salen (services/cloudinaryService.ts), así que no se
  * pinta un porcentaje inventado: se dice «Subiendo tu video…» y después «Publicando tu Weël…», que es lo que de verdad
  * está pasando. Si algo falla, el vídeo sigue elegido y Reintentar no vuelve a subir lo que ya subió.
+ *
+ * DOS PASOS (R9, referencia del dueño). Primero ELEGIR: dos pestañas, «Subir vídeo» (el selector de siempre) y «Mis
+ * creaciones» (los vídeos que la cuenta ya creó con Weë, leídos de `assets`; elegir uno no genera, no copia y no cobra:
+ * se referencia). «Siguiente» se enciende con un vídeo válido y lleva al segundo paso, que es la composición de siempre
+ * —marco medido contra el alto visible, descripción con contador, Publicar—. Los dos pasos son esta misma pantalla y
+ * esta misma ruta: no hay otra ruta ni otro camino de publicar. ✕ (y Atrás) en el primer paso salen como siempre
+ * (`salirDeCrearWeel`); en el segundo, la flecha (y Atrás) vuelven al primero con el vídeo elegido.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, Keyboard, ActivityIndicator, BackHandler, PixelRatio, useWindowDimensions, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,15 +53,32 @@ import {
   medidaDelMarcoDelWeel,
   siguienteMedidaVisible,
   validarVideoDeWeel,
+  VideoDeMisCreaciones,
+  procesoDelWeel,
+  videoDeCreacion,
+  videosParaWeel,
 } from '../utils/crearWeel';
 import { ajusteDelVideoEnWeels, proporcionDeLaMedida } from '../utils/videoDimensionCache';
 import { salirDeCrearWeel } from '../utils/salidaDeWeels';
+import { assetsService } from '../services/assetsService';
+import { getExperienceById } from '../constants/weeExperiences';
+import { textoDelServidor } from '../i18n/servidor';
 
 /** El alto mínimo de la cabecera (`styles.cabecera`). */
 const ALTO_DE_LA_CABECERA = 56;
 
 /** En qué punto está la publicación. `error` guarda en qué paso falló para decirlo y reintentar desde ahí. */
 type Fase = 'editando' | 'subiendo' | 'publicando' | 'error';
+
+/** Los dos pasos (R9): elegir el vídeo y componer el Weël. */
+type Paso = 'elegir' | 'componer';
+type Pestana = 'subir' | 'creaciones';
+/** «Mis creaciones» se lee al abrir su pestaña, no al abrir la pantalla. */
+type Creaciones =
+  | { fase: 'sin-pedir' }
+  | { fase: 'cargando' }
+  | { fase: 'error' }
+  | { fase: 'lista'; items: VideoDeMisCreaciones[]; cursor: unknown; hayMas: boolean; cargandoMas: boolean };
 
 /**
  * Lo que puede traer quien abre esta pantalla. Todo opcional: desde el + llega vacía.
@@ -70,7 +94,7 @@ export interface CrearWeelParams {
 
 const CrearWeelScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { t } = useIdioma();
+  const { t, locale, formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const { triggerRefresh } = useScroll();
@@ -82,6 +106,11 @@ const CrearWeelScreen: React.FC = () => {
     const v = params.video;
     return v && typeof v.uri === 'string' && validarVideoDeWeel(v).ok ? { ...v } : null;
   });
+  /* Con un vídeo ya traído (Weë AI) se entra directo a componer; sin él, a elegir. */
+  const [paso, setPaso] = useState<Paso>(() => (video ? 'componer' : 'elegir'));
+  const [pestana, setPestana] = useState<Pestana>('subir');
+  const [creaciones, setCreaciones] = useState<Creaciones>({ fase: 'sin-pedir' });
+  const peticion = useRef(0);
   const [descripcion, setDescripcion] = useState('');
   const [fase, setFase] = useState<Fase>('editando');
   /* La URL del vídeo ya subido: si después falla guardar el Weël, reintentar NO vuelve a subirlo. */
@@ -126,6 +155,42 @@ const CrearWeelScreen: React.FC = () => {
 
   const ocupado = fase === 'subiendo' || fase === 'publicando';
   const puedePublicar = !!video && !ocupado && descripcion.length <= MAX_DESCRIPCION_WEEL && !!user;
+  /* «Siguiente»: solo con un vídeo elegido que pasa las reglas del Weël. */
+  const puedeSeguir = !!video && validarVideoDeWeel(video).ok;
+
+  /*
+   * MIS CREACIONES: una página de vídeos de la cuenta (`assetsService.listar` con `kind: 'video'`, la misma consulta e
+   * índice que la biblioteca) y, de ella, los que valen como Weël (`videosParaWeel`). Solo lectura.
+   */
+  const cargarCreaciones = async (mas = false) => {
+    if (!user) return setCreaciones({ fase: 'lista', items: [], cursor: null, hayMas: false, cargandoMas: false });
+    const actual = creaciones;
+    if (mas && (actual.fase !== 'lista' || !actual.hayMas || actual.cargandoMas)) return;
+    const mia = ++peticion.current;
+    if (mas && actual.fase === 'lista') setCreaciones({ ...actual, cargandoMas: true });
+    else setCreaciones({ fase: 'cargando' });
+    try {
+      const pagina = await assetsService.listar(user.uid, { kind: 'video' }, mas && actual.fase === 'lista' ? (actual.cursor as never) : null);
+      if (mia !== peticion.current) return;
+      const nuevos = videosParaWeel(pagina.items);
+      setCreaciones({
+        fase: 'lista',
+        items: mas && actual.fase === 'lista' ? [...actual.items, ...nuevos] : nuevos,
+        cursor: pagina.cursor,
+        hayMas: pagina.hayMas,
+        cargandoMas: false,
+      });
+    } catch (error) {
+      if (mia !== peticion.current) return;
+      console.warn('Crear Weël: no se pudieron leer las creaciones', error);
+      setCreaciones({ fase: 'error' });
+    }
+  };
+
+  const abrirPestana = (p: Pestana) => {
+    setPestana(p);
+    if (p === 'creaciones' && creaciones.fase === 'sin-pedir') void cargarCreaciones();
+  };
 
   /* Duración en segundos o minutos con la forma de cada número: las mismas claves que el compositor. */
   const avisarLargo = (segundos: number) => {
@@ -224,8 +289,7 @@ const CrearWeelScreen: React.FC = () => {
           descripcion,
           videoUrl,
           videoAssetId: video.assetId,
-          aiTools: params.prefill?.aiTools,
-          aiProcess: params.prefill?.aiProcess,
+          ...procesoDelWeel(params.video, video, params.prefill),
           ...comunidad,
         }),
         createdAt: Timestamp.now(),
@@ -251,20 +315,47 @@ const CrearWeelScreen: React.FC = () => {
    * se publica, Atrás no hace nada, como el ✕, que está apagado.
    */
   const cerrar = () => salirDeCrearWeel(navigation as any);
+  /* En el segundo paso, volver es volver al primero, con el vídeo elegido. */
+  const volverAElegir = () => {
+    if (ocupado) return;
+    Keyboard.dismiss();
+    setPaso('elegir');
+    abrirPestana(video?.assetId ? 'creaciones' : 'subir');
+  };
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (!ocupado) salirDeCrearWeel(navigation as any);
+      if (ocupado) return true;
+      if (paso === 'componer') volverAElegir();
+      else salirDeCrearWeel(navigation as any);
       return true;
     });
     return () => sub.remove();
-  }, [navigation, ocupado]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, ocupado, paso, video, creaciones]));
 
   /* ── La cabecera: cerrar, el nombre de lo que haces y Publicar. ── */
-  const cabecera = (
+  const cabecera = paso === 'elegir' ? (
     <View style={styles.cabecera}>
-      <TouchableOpacity onPress={cerrar} style={styles.cerrar} accessibilityRole="button" accessibilityLabel={t('common.back')} disabled={ocupado}>
+      <TouchableOpacity onPress={cerrar} style={styles.cerrar} accessibilityRole="button" accessibilityLabel={t('common.back')}>
         <Ionicons name="close" size={26} color={theme.colors.text} />
+      </TouchableOpacity>
+      <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={1}>{t('weels.create')}</Text>
+      <TouchableOpacity
+        onPress={() => puedeSeguir && setPaso('componer')}
+        disabled={!puedeSeguir}
+        style={[styles.publicar, { backgroundColor: puedeSeguir ? theme.colors.text : theme.colors.border }]}
+        accessibilityRole="button"
+        accessibilityLabel={t('common.next')}
+        accessibilityState={{ disabled: !puedeSeguir }}
+      >
+        <Text style={[styles.publicarTexto, { color: puedeSeguir ? theme.colors.background : theme.colors.textSecondary }]}>{t('common.next')}</Text>
+      </TouchableOpacity>
+    </View>
+  ) : (
+    <View style={styles.cabecera}>
+      <TouchableOpacity onPress={volverAElegir} style={styles.cerrar} accessibilityRole="button" accessibilityLabel={t('common.back')} disabled={ocupado}>
+        <Ionicons name="arrow-back" size={26} color={theme.colors.text} />
       </TouchableOpacity>
       <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={1}>{t('weels.create')}</Text>
       <TouchableOpacity
@@ -325,6 +416,152 @@ const CrearWeelScreen: React.FC = () => {
     </View>
   ) : null;
 
+  /*
+   * ── PASO 1 · ELEGIR ────────────────────────────────────────────────────────
+   * Las dos pestañas (la activa en oscuro con su raya debajo; la otra en gris) y su contenido. Nada se sube al abrir:
+   * el selector se abre al tocar la zona, y «Mis creaciones» se lee al abrir su pestaña.
+   */
+  const delDispositivo = video && !video.assetId ? video : null;
+  const datosDelVideo = (v: { segundos?: number; ancho?: number; alto?: number }): string[] => {
+    const datos: string[] = [];
+    if (v.segundos) datos.push(t('composer.seconds', { contador: Math.round(v.segundos) }));
+    if (v.ancho && v.alto) datos.push(t('weels.dimensions', { ancho: formato.numero(v.ancho), alto: formato.numero(v.alto) }));
+    return datos;
+  };
+
+  const pestanas = (
+    <View style={[styles.pestanas, { borderBottomColor: theme.colors.border }]} accessibilityRole="tablist">
+      {(['subir', 'creaciones'] as Pestana[]).map((p) => {
+        const activa = pestana === p;
+        const etiqueta = t(p === 'subir' ? 'weels.tabUpload' : 'creaciones.title');
+        return (
+          <TouchableOpacity
+            key={p}
+            onPress={() => abrirPestana(p)}
+            style={styles.pestana}
+            accessibilityRole="tab"
+            accessibilityLabel={etiqueta}
+            accessibilityState={{ selected: activa }}
+          >
+            <Text style={[styles.pestanaTexto, { color: activa ? theme.colors.text : theme.colors.textSecondary, fontWeight: activa ? '700' : '500' }]} numberOfLines={1}>{etiqueta}</Text>
+            <View style={[styles.pestanaRaya, { backgroundColor: activa ? theme.colors.text : 'transparent' }]} />
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
+  const subir = delDispositivo ? (
+    <View style={styles.elegido}>
+      <View style={[styles.miniaturaElegida, { backgroundColor: '#000000' }]} accessibilityLabel={t('weels.preview')}>
+        <Video source={{ uri: delDispositivo.uri }} style={styles.video} resizeMode={ResizeMode.CONTAIN} isLooping isMuted shouldPlay onReadyForDisplay={alSaberLaFormaDelVideo} />
+      </View>
+      {datosDelVideo(delDispositivo).length > 0 && (
+        <Text style={[styles.datos, { color: theme.colors.textSecondary }]}>{formato.lista(datosDelVideo(delDispositivo))}</Text>
+      )}
+      <View style={styles.acciones}>
+        <TouchableOpacity onPress={elegirDeGaleria} style={[styles.accion, { borderColor: theme.colors.border }]} accessibilityRole="button" accessibilityLabel={t('weels.changeVideo')}>
+          <Ionicons name="swap-horizontal" size={18} color={theme.colors.text} />
+          <Text style={[styles.accionTexto, { color: theme.colors.text }]}>{t('weels.changeVideo')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => { setVideo(null); setVideoSubido(null); }} style={[styles.accion, { borderColor: theme.colors.border }]} accessibilityRole="button" accessibilityLabel={t('composer.removeVideo')}>
+          <Ionicons name="trash-outline" size={18} color={theme.colors.text} />
+          <Text style={[styles.accionTexto, { color: theme.colors.text }]}>{t('composer.removeVideo')}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  ) : (
+    <TouchableOpacity
+      onPress={elegirDeGaleria}
+      activeOpacity={0.7}
+      style={[styles.zonaSubir, { borderColor: theme.colors.border }]}
+      accessibilityRole="button"
+      accessibilityLabel={t('weels.uploadTitle')}
+      accessibilityHint={t('weels.requirements', { segundos: MAX_SEGUNDOS_WEEL })}
+    >
+      <Ionicons name="cloud-upload-outline" size={44} color={theme.colors.text} />
+      <Text style={[styles.zonaTitulo, { color: theme.colors.text }]}>{t('weels.uploadTitle')}</Text>
+      <Text style={[styles.requisitos, { color: theme.colors.textSecondary }]}>{t('weels.requirements', { segundos: MAX_SEGUNDOS_WEEL })}</Text>
+    </TouchableOpacity>
+  );
+
+  /* El nombre de una creación es el paso del plan que la hizo (texto del servidor), dicho en el idioma de quien mira. */
+  const nombreDeCreacion = (c: VideoDeMisCreaciones) =>
+    (c.nombre ? textoDelServidor(c.nombre, { t, locale, experiencia: c.experienceId }) : '') || t('weels.creationUntitled');
+  /* La herramienta es marca (Weë Studio, Weë Chef…) y no se traduce; sin experiencia conocida, Weë AI. */
+  const herramientaDe = (c: VideoDeMisCreaciones) => (c.experienceId && getExperienceById(c.experienceId)?.name) || 'Weë AI';
+
+  const misCreaciones = creaciones.fase === 'lista' && creaciones.items.length > 0 ? (
+    <View>
+      <View style={styles.rejilla}>
+        {creaciones.items.map((c) => {
+          const elegida = video?.assetId === c.assetId;
+          const fecha = c.creadoEn ? formato.fecha(c.creadoEn, { day: 'numeric', month: 'short' }) : null;
+          return (
+            <TouchableOpacity
+              key={c.assetId}
+              onPress={() => void aceptarVideo(videoDeCreacion(c))}
+              activeOpacity={0.8}
+              style={styles.creacion}
+              accessibilityRole="button"
+              accessibilityLabel={t('weels.creationLabel', { nombre: nombreDeCreacion(c), herramienta: herramientaDe(c) })}
+              accessibilityState={{ selected: elegida }}
+            >
+              <View style={[styles.creacionMedia, { backgroundColor: theme.colors.surface, borderColor: elegida ? theme.colors.text : 'transparent' }]}>
+                <Video source={{ uri: c.url }} style={styles.video} resizeMode={ResizeMode.COVER} shouldPlay={false} isMuted />
+                <View style={styles.creacionPlay}><Ionicons name={elegida ? 'checkmark' : 'play'} size={14} color="#FFFFFF" /></View>
+              </View>
+              <Text style={[styles.creacionNombre, { color: theme.colors.text }]} numberOfLines={1}>{nombreDeCreacion(c)}</Text>
+              <Text style={[styles.creacionMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                {fecha ? t('weels.creationMeta', { herramienta: herramientaDe(c), fecha }) : herramientaDe(c)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      {creaciones.hayMas && (
+        <TouchableOpacity onPress={() => void cargarCreaciones(true)} disabled={creaciones.cargandoMas} style={[styles.accion, styles.verMas, { borderColor: theme.colors.border }]} accessibilityRole="button" accessibilityLabel={t('composer.seeMore')}>
+          {creaciones.cargandoMas ? <ActivityIndicator size="small" color={theme.colors.text} /> : <Text style={[styles.accionTexto, { color: theme.colors.text }]}>{t('composer.seeMore')}</Text>}
+        </TouchableOpacity>
+      )}
+    </View>
+  ) : creaciones.fase === 'lista' ? (
+    <View style={styles.vacio}>
+      <Ionicons name="sparkles-outline" size={36} color={theme.colors.textSecondary} />
+      <Text style={[styles.zonaTitulo, { color: theme.colors.text }]}>{t('weels.creationsEmptyTitle')}</Text>
+      <Text style={[styles.requisitos, { color: theme.colors.textSecondary }]}>{t('weels.creationsEmptyBody')}</Text>
+      <View style={styles.acciones}>
+        <TouchableOpacity onPress={() => (navigation as any).navigate('Studio')} style={[styles.accion, { borderColor: theme.colors.border }]} accessibilityRole="button" accessibilityLabel={t('weels.creationsOpenStudio')}>
+          <Text style={[styles.accionTexto, { color: theme.colors.text }]}>{t('weels.creationsOpenStudio')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => abrirPestana('subir')} style={[styles.accion, { borderColor: theme.colors.border }]} accessibilityRole="button" accessibilityLabel={t('weels.tabUpload')}>
+          <Text style={[styles.accionTexto, { color: theme.colors.text }]}>{t('weels.tabUpload')}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  ) : creaciones.fase === 'error' ? (
+    <View style={styles.vacio} accessibilityLiveRegion="polite">
+      <Text style={[styles.requisitos, { color: theme.colors.textSecondary }]}>{t('creaciones.loadFailed')}</Text>
+      <TouchableOpacity onPress={() => void cargarCreaciones()} style={[styles.accion, { borderColor: theme.colors.border }]} accessibilityRole="button" accessibilityLabel={t('common.retry')}>
+        <Text style={[styles.accionTexto, { color: theme.colors.text }]}>{t('common.retry')}</Text>
+      </TouchableOpacity>
+    </View>
+  ) : (
+    <View style={styles.vacio}><ActivityIndicator size="small" color={theme.colors.text} /></View>
+  );
+
+  if (paso === 'elegir') {
+    return (
+      <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
+        {cabecera}
+        {pestanas}
+        <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+          {pestana === 'subir' ? subir : misCreaciones}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom']}>
       {cabecera}
@@ -378,6 +615,28 @@ const styles = StyleSheet.create({
   descripcion: { marginTop: 16, maxHeight: 140, borderWidth: 1, borderRadius: 14, padding: 12, fontSize: 15, lineHeight: 20, textAlignVertical: 'top' },
   contador: { alignSelf: 'flex-end', fontSize: 12, marginTop: 4 },
   pie: { fontSize: 12, marginTop: 12, textAlign: 'center' },
+  /* ── Paso 1 (R9) ── */
+  pestanas: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, width: '100%', maxWidth: 520, alignSelf: 'center' },
+  pestana: { flex: 1, alignItems: 'center', paddingTop: 12, minHeight: 44 },
+  pestanaTexto: { fontSize: 15, paddingHorizontal: 8 },
+  pestanaRaya: { height: 2, alignSelf: 'stretch', marginTop: 10, marginHorizontal: 16, borderRadius: 1 },
+  zonaSubir: { marginTop: 16, borderWidth: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 24, gap: 10, minHeight: 220 },
+  zonaTitulo: { fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  elegido: { marginTop: 16, alignItems: 'center', gap: 12 },
+  /* La vista previa del vídeo elegido: 9:16, sin pasar de 240 de ancho ni del 60 % de la columna. */
+  miniaturaElegida: { width: '60%', maxWidth: 240, aspectRatio: 9 / 16, borderRadius: 16, overflow: 'hidden' },
+  datos: { fontSize: 13, textAlign: 'center' },
+  acciones: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
+  accion: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1 },
+  accionTexto: { fontSize: 14, fontWeight: '600' },
+  verMas: { alignSelf: 'center', marginTop: 12 },
+  rejilla: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 16, marginTop: 16 },
+  creacion: { width: '31%', marginRight: '2.33%' },
+  creacionMedia: { width: '100%', aspectRatio: 3 / 4, borderRadius: 12, overflow: 'hidden', borderWidth: 2 },
+  creacionPlay: { position: 'absolute', right: 6, bottom: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  creacionNombre: { fontSize: 13, fontWeight: '600', marginTop: 6 },
+  creacionMeta: { fontSize: 12, marginTop: 2 },
+  vacio: { marginTop: 32, alignItems: 'center', gap: 12, paddingHorizontal: 8 },
 });
 
 export default CrearWeelScreen;

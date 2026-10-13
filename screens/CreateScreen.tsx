@@ -52,13 +52,12 @@ import {
   puedeLlevarEncuesta,
   validarEncuesta,
 } from '../utils/pollDraft';
-import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import SelectorDeEContacts from '../components/SelectorDeEContacts';
 import { notify, confirmAction } from '../utils/notify';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
 import ComoLoHiceRevision from '../components/ComoLoHiceRevision';
-import { borradorInicial, conHistorial, datosParaPublicar, BorradorComoLoHice } from '../utils/comoLoHice';
+import { borradorInicial, conHistorial, datosDeComoLoHice, tieneOrigenDeWee, BorradorComoLoHice } from '../utils/comoLoHice';
 import { useTrabajoDeOrigen } from '../hooks/useTrabajoDeOrigen';
 
 interface MediaItem {
@@ -73,6 +72,21 @@ interface MediaItem {
    */
   assetId?: string;
 }
+
+/* Qué pide cada puerta de medios de la barra (Foto, Vídeo, Archivo) al MISMO selector. */
+type TipoDeSelector = 'fotos' | 'videos' | 'todo';
+const TIPOS_DEL_SELECTOR: Record<TipoDeSelector, readonly ('images' | 'videos')[]> = {
+  fotos: ['images'],
+  videos: ['videos'],
+  todo: ['images', 'videos'],
+};
+const ACEPTA_EN_WEB: Record<TipoDeSelector, string> = {
+  fotos: 'image/*',
+  videos: 'video/*',
+  todo: 'image/*,video/*',
+};
+/* Un enlace que se puede pegar: http(s), con un punto en el dominio y sin espacios. Va al texto, como siempre. */
+const ES_ENLACE = new RegExp('^https?:[/][/][^\\s/]+[.][^\\s]+$', 'i');
 
 /*
  * La encuesta mientras se escribe vive en `utils/pollDraft.ts`: los límites, qué
@@ -113,7 +127,7 @@ const CreateScreen: React.FC = () => {
     presetKind === 'video' ? 'composer.placeholderVideo' :
     presetKind === 'image' ? 'composer.placeholderImage' :
     presetKind === 'text' ? 'composer.placeholderText' :
-    'composer.placeholderDefault'
+    'home.composerPlaceholder'
   );
 
   const [postText, setPostText] = useState<string>(routeParams.prefill?.content || '');
@@ -169,11 +183,18 @@ const CreateScreen: React.FC = () => {
   const [revisandoComoLoHice, setRevisandoComoLoHice] = useState(false);
   const trabajoDeOrigen: string | undefined = typeof routeParams.prefill?.jobId === 'string' ? routeParams.prefill.jobId : undefined;
   /*
+   * ¿Hay «Cómo lo hice»? Solo si el borrador viene de Weë AI o de un material de la cuenta (regla del dueño,
+   * 2026-10-13; `tieneOrigenDeWee`). Publicar sin origen en Weë —escribir, adjuntar lo propio, un enlace, un hashtag— no lo
+   * tiene: ni fila, ni interruptor, ni proceso escrito a mano. Se recalcula con los adjuntos: si se quita el último
+   * material de Weë, la fila se va.
+   */
+  const conOrigenDeWee = tieneOrigenDeWee(routeParams.prefill, attachedMedia);
+  /*
    * Los pasos que Weë ya apuntó al crear: una lectura del trabajo, solo con el
    * interruptor encendido (`hooks/useTrabajoDeOrigen`). Llegan una vez y se
    * aplican una vez; lo que la persona ya editó no se pisa (`conHistorial`).
    */
-  const historial = useTrabajoDeOrigen(trabajoDeOrigen, comoLoHice.activo);
+  const historial = useTrabajoDeOrigen(trabajoDeOrigen, conOrigenDeWee && comoLoHice.activo);
   const historialAplicado = useRef(false);
   useEffect(() => {
     const trabajo = historial.trabajo;
@@ -258,13 +279,7 @@ const CreateScreen: React.FC = () => {
   const abrirUbicacion = () =>
     (navigation as any).navigate('AgregarUbicacion', { place, ubicacion });
 
-  /*
-   * MIS PROYECTOS. Es la lista de proyectos de Weë Creator que ya existe —la
-   * misma del menú ☰—, abierta encima de esta pantalla: el compositor sigue
-   * montado debajo con todo lo escrito, y Back vuelve aquí. No hay un segundo
-   * sistema de proyectos ni un campo nuevo en la publicación.
-   */
-  const abrirProyectos = () => (navigation as any).navigate('Projects');
+  /* Mis proyectos ya no está en la barra del compositor (R9): sigue en el menú ☰, dentro de WEË AI. */
 
   /*
    * VISIBILIDAD. Hoy toda publicación de Weë es pública —`isPrivate: false` al
@@ -459,16 +474,22 @@ const CreateScreen: React.FC = () => {
     navigation.goBack();
   };
 
-  // Función para seleccionar imagen de la galería
-  const pickImageFromGallery = async () => {
+  /*
+   * EL MISMO SELECTOR PARA FOTO, VÍDEO Y ARCHIVO (R9). La barra del compositor tiene tres puertas de medios y las tres
+   * son esta función, con lo que cada una pide: `fotos`, `videos` o `todo`. No hay otro selector ni otra subida: lo que
+   * se elige se sube al publicar como siempre (Storage para fotos, `uploadVideoToCloudinary` para el vídeo). «Archivo»
+   * es `todo` —el explorador de archivos en web, la galería completa en el teléfono—, porque una publicación solo lleva
+   * fotos y vídeo: un PDF o un documento no tiene dónde guardarse en `posts`, y no se inventa.
+   */
+  const pickImageFromGallery = async (tipo: TipoDeSelector = 'todo') => {
     try {
       // En web, usar input file de HTML
       if (Platform.OS === 'web') {
         return new Promise<void>((resolve) => {
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = 'image/*,video/*';
-          input.multiple = true;
+          input.accept = ACEPTA_EN_WEB[tipo];
+          input.multiple = tipo !== 'videos';
 
           input.onchange = async (e: any) => {
             const files = Array.from(e.target.files) as File[];
@@ -561,8 +582,8 @@ const CreateScreen: React.FC = () => {
          * vídeo. Comprobado con el selector del sistema: pidiendo `video/*`
          * aparecen; pidiendo los dos, aparecen los dos; sin pedir nada, ninguno.
          */
-        mediaTypes: ['images', 'videos'],
-        allowsMultipleSelection: !hasVideo,
+        mediaTypes: [...TIPOS_DEL_SELECTOR[tipo]],
+        allowsMultipleSelection: !hasVideo && tipo !== 'videos',
         selectionLimit: hasVideo ? 0 : topeImagenes - attachedMedia.length,
         quality: 0.8,
         videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
@@ -665,6 +686,44 @@ const CreateScreen: React.FC = () => {
 
   const removeMedia = (mediaId: string) => {
     setAttachedMedia(prev => prev.filter(item => item.id !== mediaId));
+  };
+
+  /*
+   * ─── La barra de R9: Foto · Vídeo · Archivo · Enlace · Hashtag ────────────
+   *
+   * Foto: en el teléfono, la cámara de siempre (`takePhoto`) o la galería; en web no hay cámara y va directa al
+   * explorador. Enlace y Hashtag no son adjuntos: un enlace y un hashtag viven en el TEXTO, y el compositor ya los
+   * saca de ahí al publicar (`detectHashtags`; el Wäll pinta los enlaces del texto). Por eso escriben en el texto y
+   * nada más: ni campo nuevo en `posts` ni otro sistema.
+   */
+  const campoTexto = useRef<TextInput>(null);
+  const [enlaceAbierto, setEnlaceAbierto] = useState(false);
+  const [enlace, setEnlace] = useState('');
+  const [verDestinos, setVerDestinos] = useState(false);
+
+  const elegirFoto = () => {
+    if (Platform.OS === 'web') return void pickImageFromGallery('fotos');
+    Alert.alert(t('composer.toolPhoto'), undefined, [
+      { text: t('composer.camera'), onPress: () => void takePhoto() },
+      { text: t('composer.gallery'), onPress: () => void pickImageFromGallery('fotos') },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
+  };
+
+  const ponerEnlace = () => {
+    const url = enlace.trim();
+    if (!ES_ENLACE.test(url)) {
+      notify(t('composer.toolLink'), t('composer.linkInvalid'));
+      return;
+    }
+    setPostText((p) => (p.trim() ? p.replace(/\s+$/, '') + '\n' : '') + url);
+    setEnlace('');
+    setEnlaceAbierto(false);
+  };
+
+  const ponerHashtag = () => {
+    setPostText((p) => (p.length === 0 || /\s$/.test(p) ? p + '#' : p + ' #'));
+    campoTexto.current?.focus();
   };
 
   const detectHashtags = (text: string): string[] => {
@@ -828,9 +887,10 @@ const CreateScreen: React.FC = () => {
         ...(destinos.length > 0 ? { destinations: destinos } : {}),
         /*
          * «Cómo lo hice»: SOLO lo que la selección autoriza, y nada si el
-         * interruptor está apagado. Los campos de siempre; ni uno nuevo.
+         * interruptor está apagado. Los campos de siempre; ni uno nuevo. Y
+         * sin origen en Weë, nada en ningún caso.
          */
-        ...datosParaPublicar(comoLoHice, { t, locale }),
+        ...datosDeComoLoHice(comoLoHice, { t, locale }, conOrigenDeWee),
         likes: 0,
         comments: 0,
         shares: 0,
@@ -907,9 +967,14 @@ const CreateScreen: React.FC = () => {
    * la esquina de abajo, desde el principio —"0/500"— para que nadie se lleve
    * una sorpresa al final.
    */
+  /*
+   * R9 (referencia del dueño): el papel ya no lleva marco. Es la pantalla misma —«¿Qué quieres compartir?» arriba, mucho
+   * blanco— y el contador sigue en su esquina.
+   */
   const renderTextInput = () => (
-    <View style={[styles.tarjetaTexto, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
+    <View style={styles.tarjetaTexto}>
       <TextInput
+        ref={campoTexto}
         style={[styles.textInput, { color: theme.colors.text }]}
         placeholder={composerPlaceholder}
         placeholderTextColor={theme.colors.textSecondary}
@@ -975,15 +1040,15 @@ const CreateScreen: React.FC = () => {
         style={[
           styles.accionIcono,
           {
-            backgroundColor: activa ? theme.colors.accent + '2E' : theme.colors.surface,
-            borderColor: activa ? theme.colors.accent + '80' : 'transparent',
+            backgroundColor: activa ? theme.colors.surface : theme.colors.background,
+            borderColor: activa ? theme.colors.text : theme.colors.border,
           },
         ]}
       >
         <Ionicons
           name={icono as any}
           size={scale(22)}
-          color={apagada ? theme.colors.textSecondary : activa || acento ? theme.colors.accentDark : theme.colors.text}
+          color={apagada ? theme.colors.textSecondary : acento ? theme.colors.accentDark : theme.colors.text}
         />
         {/*
           El recuento va en la esquina del icono, no dentro del nombre: metido en
@@ -1002,53 +1067,121 @@ const CreateScreen: React.FC = () => {
   );
 
   /*
-   * El orden es el aprobado: Cámara, Multimedia, ËContact, Ubicación, Encuesta y
-   * Mis proyectos. Ninguna se esconde detrás de otra.
+   * R9 (referencia del dueño): Foto · Vídeo · Archivo · Enlace · Hashtag, iconos de trazo fino en un cuadrado de borde
+   * gris claro y su nombre debajo. Las tres primeras son el MISMO selector de siempre con lo que cada una pide; Enlace
+   * abre un campo pequeño que lo pega al texto; Hashtag escribe «#» en el texto.
+   *
+   * La Encuesta sigue al final: es su única puerta en la app (la entrada del Home abre el compositor sin desplegar y no la
+   * enseña) y quitarla dejaría la función viva y sin forma de usarla. ËContact y Ubicación pasan a sus filas, debajo;
+   * Mis proyectos sigue en el menú ☰ (WEË AI) y deja de estar aquí.
    */
+  const conVideo = attachedMedia.some((m) => m.type === 'video');
   const renderAcciones = () => (
     <View style={styles.acciones}>
-      <Accion icono="camera-outline" texto={t('composer.camera')} onPress={takePhoto} apagada={Platform.OS === 'web' || sinSitioParaMedios} />
-      {/*
-        Una sola puerta para foto y vídeo: el selector ya acepta las dos cosas y
-        deja elegir VARIAS de golpe. Cuando ya llevas alguna, dice cuántas y
-        cuántas caben —"3/10"—, que es lo que uno quiere saber antes de volver a
-        abrir la galería.
-      */}
       <Accion
         icono="image-outline"
-        texto={t('composer.multimedia')}
+        texto={t('composer.toolPhoto')}
         insignia={fotosPuestas > 0 ? `${fotosPuestas}/${topeImagenes}` : undefined}
-        onPress={pickImageFromGallery}
+        onPress={elegirFoto}
         apagada={sinSitioParaMedios}
-        activa={attachedMedia.length > 0}
+        activa={fotosPuestas > 0}
       />
-      {/*
-        ËContact es el nombre de la red de conexiones de Weë en todos los
-        idiomas, y este botón ya hace lo que promete: abre la agenda del perfil
-        activo para mencionar a quien quieras. Lo que se enseña dentro se llama
-        ËContact o ẄContact según con qué cara estés publicando, pero el botón
-        dice siempre ËContact: es el nombre universal de la función.
-      */}
       <Accion
-        icono="people-outline"
-        texto={t('composer.econtact')}
-        onPress={() => setShowEContacts((v) => !v)}
-        activa={econtacts.length > 0 || showEContacts}
-        insignia={econtacts.length > 0 ? String(econtacts.length) : undefined}
+        icono="videocam-outline"
+        texto={t('composer.toolVideo')}
+        onPress={() => void pickImageFromGallery('videos')}
+        apagada={attachedMedia.length > 0 || !!poll}
+        activa={conVideo}
       />
-      {/*
-        El nombre NO cambia al elegir sitio: si pusiera el lugar se cortaría a la
-        mitad. El lugar elegido se ve entero en su chip, bajo el texto.
-      */}
-      <Accion icono="location-outline" texto={t('composer.location')} onPress={abrirUbicacion} activa={!!place || !!ubicacion} />
-      {/*
-        La encuesta existe en Weë y hay encuestas publicadas. Esta es su única
-        puerta: quitarla dejaría la función viva y sin forma de usarla.
-      */}
+      <Accion icono="document-text-outline" texto={t('composer.toolFile')} onPress={() => void pickImageFromGallery('todo')} apagada={sinSitioParaMedios} />
+      <Accion icono="link-outline" texto={t('composer.toolLink')} onPress={() => setEnlaceAbierto((v) => !v)} activa={enlaceAbierto} />
+      <Accion icono="pricetag-outline" texto={t('composer.toolHashtag')} onPress={ponerHashtag} />
       <Accion icono="bar-chart-outline" texto={t('composer.poll')} onPress={handlePollPress} activa={!!poll} />
-      <Accion icono="folder-outline" texto={t('weeai.myProjects')} onPress={abrirProyectos} acento />
     </View>
   );
+
+  /* Enlace: un campo de una línea y «Añadir». Lo pegado va al final del texto; un enlace mal formado se dice. */
+  const renderEnlace = () =>
+    enlaceAbierto ? (
+      <View style={[styles.enlaceFila, { borderColor: theme.colors.border }]}>
+        <Ionicons name="link-outline" size={scale(18)} color={theme.colors.textSecondary} />
+        <TextInput
+          style={[styles.enlaceCampo, { color: theme.colors.text }]}
+          value={enlace}
+          onChangeText={setEnlace}
+          placeholder={t('composer.linkPlaceholder')}
+          placeholderTextColor={theme.colors.textSecondary}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          onSubmitEditing={ponerEnlace}
+          accessibilityLabel={t('composer.linkPlaceholder')}
+        />
+        <TouchableOpacity
+          onPress={ponerEnlace}
+          disabled={!enlace.trim()}
+          style={[styles.enlaceBoton, { backgroundColor: enlace.trim() ? theme.colors.text : theme.colors.border }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('composer.linkAdd')}
+          accessibilityState={{ disabled: !enlace.trim() }}
+        >
+          <Text style={[styles.enlaceBotonTexto, { color: enlace.trim() ? theme.colors.background : theme.colors.textSecondary }]}>{t('composer.linkAdd')}</Text>
+        </TouchableOpacity>
+      </View>
+    ) : null;
+
+  /*
+   * ─── Las filas (referencia R9) ────────────────────────────────────────────
+   *
+   * Icono de trazo, la pregunta y, a la derecha, lo que hay puesto y un chevrón. Cada una abre lo que YA existía:
+   *   · ¿Quién puede ver esta publicación? → la explicación de siempre: hoy toda publicación de Weë es pública
+   *     (`isPrivate: false`) y un selector con una sola opción no elegiría nada.
+   *   · Agregar ubicación → la pantalla «Agregar ubicación» (`AgregarUbicacion`), con su vuelta por `merge`.
+   *   · Etiquetar personas → la agenda de ËContact del perfil activo (`SelectorDeEContacts`), desplegada aquí.
+   *   · Publicar en → los destinos de siempre (muro general y secciones), desplegados aquí.
+   */
+  const Fila: React.FC<{ icono: string; texto: string; valor?: string; onPress: () => void; abierta?: boolean }> = ({ icono, texto, valor, onPress, abierta }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      style={styles.fila}
+      accessibilityRole="button"
+      accessibilityLabel={valor ? t('composer.rowWithValue', { fila: texto, valor }) : texto}
+      accessibilityState={abierta === undefined ? undefined : { expanded: abierta }}
+    >
+      <Ionicons name={icono as any} size={scale(22)} color={theme.colors.text} />
+      <Text style={[styles.filaTexto, { color: theme.colors.text }]} numberOfLines={2}>{texto}</Text>
+      {!!valor && <Text style={[styles.filaValor, { color: theme.colors.text }]} numberOfLines={1}>{valor}</Text>}
+      <Ionicons name={abierta ? 'chevron-down' : 'chevron-forward'} size={scale(18)} color={theme.colors.textSecondary} />
+    </TouchableOpacity>
+  );
+
+  const renderFilas = () => {
+    const valorDeUbicacion = place ? etiquetaDeLugar({ place }, locale) || undefined : ubicacion ? t('composer.approxZone') : undefined;
+    const destinosElegidos = destinosDisponibles().filter((d) => destinos.includes(d.id));
+    const valorDeDestinos = destinosElegidos.length === 0
+      ? undefined
+      : destinosElegidos.length === 1
+        ? nombreDelDestino(destinosElegidos[0])
+        : t('composer.destinationsMore', { primero: nombreDelDestino(destinosElegidos[0]), resto: destinosElegidos.length - 1 });
+    return (
+    <View>
+      <View style={[styles.separador, { backgroundColor: theme.colors.border }]} />
+      <Fila icono="people-outline" texto={t('composer.rowAudience')} valor={t('composer.publicVisibility')} onPress={explicarVisibilidad} />
+      <Fila icono="location-outline" texto={t('composer.addLocation')} valor={valorDeUbicacion} onPress={abrirUbicacion} />
+      <Fila
+        icono="happy-outline"
+        texto={t('composer.rowTagPeople')}
+        valor={econtacts.length > 0 ? String(econtacts.length) : undefined}
+        onPress={() => setShowEContacts((v) => !v)}
+        abierta={showEContacts}
+      />
+      {renderEContacts()}
+      <Fila icono="globe-outline" texto={t('composer.rowPublishIn')} valor={valorDeDestinos} onPress={() => setVerDestinos((v) => !v)} abierta={verDestinos} />
+      {verDestinos && renderDestinos()}
+    </View>
+    );
+  };
 
   /*
    * ─── PUBLICAR EN ──────────────────────────────────────────────────────────
@@ -1132,48 +1265,6 @@ const CreateScreen: React.FC = () => {
     </View>
   );
 
-  /*
-   * ─── Publicar: el botón principal de Weë ──────────────────────────────────
-   *
-   * Grande, dorado, con las esquinas redondas del todo y el avión de papel. Va
-   * fijo al pie, dentro del espacio que respeta el teclado, así que se alcanza
-   * con el pulgar y no se queda debajo de nada. Sus estados se ven sin leer:
-   * apagado es amarillo pálido con el texto gris; listo es dorado con sombra
-   * corta; al tocarlo se hunde; publicando enseña la rueda y no admite un
-   * segundo toque —`canPublish` ya es falso mientras se publica—. Lo que pasa
-   * al terminar es lo de siempre: vuelve al muro y lo refresca.
-   */
-  const renderPublicar = () => (
-    <View style={[styles.publicarZona, { backgroundColor: theme.colors.background, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
-      <Animated.View style={{ transform: [{ scale: presion }] }}>
-        <TouchableOpacity
-          onPress={handlePublish}
-          onPressIn={() => canPublish && presionar(0.97)}
-          onPressOut={() => presionar(1)}
-          disabled={!canPublish}
-          activeOpacity={0.9}
-          style={[
-            styles.publicar,
-            canPublish
-              ? [styles.publicarListo, { backgroundColor: theme.colors.accent, shadowColor: theme.colors.accent }]
-              : { backgroundColor: theme.colors.accent + '33' },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={t(isPublishing ? 'composer.publishing' : 'composer.publish')}
-          accessibilityState={{ disabled: !canPublish, busy: isPublishing }}
-        >
-          {isPublishing ? (
-            <ActivityIndicator size="small" color="#1F2937" />
-          ) : (
-            <Ionicons name="paper-plane-outline" size={scale(20)} color={canPublish ? '#1F2937' : theme.colors.textSecondary} />
-          )}
-          <Text style={[styles.publicarTexto, { color: canPublish ? '#1F2937' : theme.colors.textSecondary }]}>
-            {t(isPublishing ? 'composer.publishing' : 'composer.publish')}
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
-  );
 
   /*
    * La agenda solo se monta cuando alguien la abre —o cuando ya hay a quien
@@ -1316,7 +1407,8 @@ const CreateScreen: React.FC = () => {
 
     return (
       <View style={styles.mediaPreviewSection}>
-        <View style={styles.mediaGrid}>
+        {/* R9: una tira que se desliza de lado —se ve la primera grande y se sigue con el dedo—, no una rejilla larga. */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.mediaGrid}>
           {attachedMedia.map((media, index) => (
             <View key={media.id} style={[
               styles.mediaPreviewItem,
@@ -1367,20 +1459,20 @@ const CreateScreen: React.FC = () => {
           {!sinSitioParaMedios && (
             <TouchableOpacity
               style={[styles.mediaAgregar, { borderColor: theme.colors.border }]}
-              onPress={pickImageFromGallery}
+              onPress={() => void pickImageFromGallery(fotosPuestas > 0 ? 'fotos' : 'todo')}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel={t('composer.addMoreMediaLabel', { puestas: fotosPuestas, tope: topeImagenes })}
             >
-              <View style={[styles.mediaAgregarMas, { backgroundColor: theme.colors.accent + '24' }]}>
-                <Ionicons name="add" size={scale(20)} color={theme.colors.accentDark} />
+              <View style={styles.mediaAgregarMas}>
+                <Ionicons name="add" size={scale(26)} color={theme.colors.text} />
               </View>
-              <Text style={[styles.mediaAgregarTexto, { color: theme.colors.textSecondary }]} numberOfLines={2}>
-                {t('composer.addMoreMedia')}
+              <Text style={[styles.mediaAgregarTexto, { color: theme.colors.text }]} numberOfLines={2}>
+                {t('composer.addMoreShort')}
               </Text>
             </TouchableOpacity>
           )}
-        </View>
+        </ScrollView>
       </View>
     );
   };
@@ -1576,10 +1668,11 @@ const CreateScreen: React.FC = () => {
     >
       {/*
         ─── La cabecera ─────────────────────────────────────────────────────
-        Back a la izquierda —el aspa, con el mismo cierre de siempre—, el nombre
-        de lo que estás haciendo en medio y un Publicar rápido a la derecha, que
-        se queda pálido mientras no haya nada que publicar. Sin línea debajo: la
-        pantalla es un solo flujo, no una cabecera y un formulario.
+        Back a la izquierda —el aspa, con el mismo cierre de siempre—, «Crear
+        publicación» en medio y Publicar a la derecha: NEGRO con texto blanco
+        cuando hay algo válido que publicar (las reglas de siempre: `canPublish`)
+        y gris claro, visiblemente apagado, cuando no (R9). Es el único Publicar
+        de la pantalla; se hunde un poco al tocarlo.
       */}
       <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity
@@ -1593,11 +1686,14 @@ const CreateScreen: React.FC = () => {
           <Ionicons name="close" size={scale(26)} color={theme.colors.text} />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitulo, { color: theme.colors.text }]} numberOfLines={1}>{t('composer.newPost')}</Text>
+        <Text style={[styles.headerTitulo, { color: theme.colors.text }]} numberOfLines={1}>{t('composer.createPostTitle')}</Text>
 
+        <Animated.View style={{ transform: [{ scale: presion }] }}>
         <TouchableOpacity
-          style={[styles.postButton, { backgroundColor: canPublish ? theme.colors.accent : theme.colors.accent + '24' }]}
+          style={[styles.postButton, { backgroundColor: canPublish || isPublishing ? theme.colors.text : theme.colors.border }]}
           onPress={handlePublish}
+          onPressIn={() => canPublish && presionar(0.96)}
+          onPressOut={() => presionar(1)}
           disabled={!canPublish}
           activeOpacity={0.8}
           accessibilityRole="button"
@@ -1605,11 +1701,12 @@ const CreateScreen: React.FC = () => {
           accessibilityState={{ disabled: !canPublish, busy: isPublishing }}
         >
           {isPublishing ? (
-            <ActivityIndicator size="small" color="#1F2937" />
+            <ActivityIndicator size="small" color={theme.colors.background} />
           ) : (
-            <Text style={[styles.postButtonText, { color: canPublish ? '#1F2937' : theme.colors.textSecondary }]}>{t('composer.publish')}</Text>
+            <Text style={[styles.postButtonText, { color: canPublish ? theme.colors.background : theme.colors.textSecondary }]}>{t('composer.publish')}</Text>
           )}
         </TouchableOpacity>
+        </Animated.View>
       </View>
 
       <EspacioDeEscritura
@@ -1625,54 +1722,20 @@ const CreateScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           {/*
-            QUIÉN PUBLICA · QUÉ CUENTA · CON QUÉ · Y DÓNDE.
-
-            Ese es el orden de una publicación contada como la contaría una
-            persona, y por eso es el orden de la pantalla. Un solo flujo, sin
-            cajas dentro de cajas: blanco y separadores finos hacen la jerarquía.
+            R9: QUÉ CUENTA · CON QUÉ · Y CÓMO SE COMPARTE. El texto, lo adjunto
+            (galería compacta con «Agregar más»), la barra, las filas y, solo si
+            el borrador viene de Weë, «Compartir cómo lo hice». Publicar vive
+            arriba, en la cabecera: un solo botón.
           */}
-          <View style={styles.identidad}>
-            <AvatarDisplay
-              size={scale(44)}
-              avatarType={userProfile?.avatarType || 'predefined'}
-              avatarId={userProfile?.avatarId || 'male'}
-              photoURL={typeof userProfile?.photoURL === 'string' ? userProfile.photoURL : undefined}
-              photoURLThumbnail={typeof userProfile?.photoURLThumbnail === 'string' ? userProfile.photoURLThumbnail : undefined}
-            />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[styles.identidadNombre, { color: theme.colors.text }]} numberOfLines={1}>
-                {userProfile?.displayName || t('composer.you')}
-              </Text>
-              <Text style={[styles.identidadPie, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                {t('composer.shareWithCommunity')}
-              </Text>
-            </View>
-            {/* Quién puede verla. Píldora fina, blanca y discreta: no compite con nada. */}
-            <TouchableOpacity
-              onPress={explicarVisibilidad}
-              activeOpacity={0.7}
-              style={[styles.visibilidad, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
-              accessibilityRole="button"
-              accessibilityLabel={t('composer.visibilityIs', { estado: t('composer.publicVisibility') })}
-            >
-              <Ionicons name="globe-outline" size={scale(16)} color={theme.colors.text} />
-              <Text style={[styles.visibilidadTexto, { color: theme.colors.text }]}>{t('composer.publicVisibility')}</Text>
-              <Ionicons name="chevron-down" size={scale(14)} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
           {renderTextInput()}
-          {renderLugar()}
           {renderMediaPreview()}
+          {renderLugar()}
           {renderPoll()}
           {renderAcciones()}
-          {renderEContacts()}
-          <View style={[styles.separador, { backgroundColor: theme.colors.border }]} />
-          {renderDestinos()}
-          {renderCompartirProceso()}
+          {renderEnlace()}
+          {renderFilas()}
+          {conOrigenDeWee && renderCompartirProceso()}
         </ScrollView>
-
-        {renderPublicar()}
       </EspacioDeEscritura>
 
       {/* Publishing overlay con animación de pulso */}
@@ -1709,7 +1772,7 @@ const CreateScreen: React.FC = () => {
       )}
 
       {/* La revisión de «Cómo lo hice»: una hoja encima; el borrador sigue aquí. Solo se monta encendido. */}
-      {comoLoHice.activo && (
+      {conOrigenDeWee && comoLoHice.activo && (
         <ComoLoHiceRevision
           visible={revisandoComoLoHice}
           borrador={comoLoHice}
@@ -1842,6 +1905,52 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   /* Un separador de un pelo entre las herramientas y dónde se publica. */
+  /* Las filas de R9: icono, la pregunta, lo puesto y el chevrón; 52 de alto mínimo, sin alto fijo. */
+  fila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    minHeight: 52,
+    paddingVertical: SPACING.sm,
+  },
+  filaTexto: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: FONT_SIZE.base,
+  },
+  filaValor: {
+    maxWidth: '40%',
+    fontSize: FONT_SIZE.sm,
+  },
+  /* El campo de Enlace: una línea con borde fino y «Añadir». */
+  enlaceFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingLeft: SPACING.md,
+    paddingRight: SPACING.xs,
+    minHeight: 48,
+    marginTop: SPACING.md,
+  },
+  enlaceCampo: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: FONT_SIZE.base,
+    paddingVertical: SPACING.sm,
+  },
+  enlaceBoton: {
+    minHeight: 36,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  enlaceBotonTexto: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
   separador: {
     height: StyleSheet.hairlineWidth,
     marginTop: SPACING.xl,
@@ -2098,11 +2207,8 @@ const styles = StyleSheet.create({
   },
   /* El papel donde se escribe: un marco de un punto, esquinas generosas, aire. */
   tarjetaTexto: {
-    borderWidth: 1,
-    borderRadius: BORDER_RADIUS.xl,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.sm,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xs,
   },
   /*
    * Una hoja grande: empieza en 150 —unas seis líneas— y crece con lo que se
@@ -2125,8 +2231,9 @@ const styles = StyleSheet.create({
    */
   mediaGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: SPACING.sm,
+    paddingTop: SPACING.xs,
+    paddingRight: SPACING.xs,
   },
   /*
    * Miniatura cuadrada. Ocupaba el ancho entero y 280 de alto: con las diez que
@@ -2134,9 +2241,9 @@ const styles = StyleSheet.create({
    */
   mediaPreviewItem: {
     position: 'relative',
-    width: scale(100),
-    height: scale(100),
-    borderRadius: BORDER_RADIUS.md,
+    width: scale(150),
+    height: scale(150),
+    borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
     borderWidth: scale(1),
   },
@@ -2154,18 +2261,17 @@ const styles = StyleSheet.create({
   },
   removeMediaButton: {
     position: 'absolute',
-    top: scale(5),
-    right: scale(5),
+    top: scale(8),
+    right: scale(8),
     borderRadius: BORDER_RADIUS.full,
-    padding: scale(3),
+    padding: scale(4),
   },
   /* El hueco punteado del final: está vacío, y se nota que lo está. */
   mediaAgregar: {
-    width: scale(100),
-    height: scale(100),
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: scale(1.5),
-    borderStyle: 'dashed',
+    width: scale(110),
+    height: scale(150),
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: scale(6),

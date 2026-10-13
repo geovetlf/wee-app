@@ -529,6 +529,8 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* R9: «Foto» en la barra del compositor es el adjunto (cámara o galería), no el «hacer una foto» de WeeTalk. */
+    'composer.toolPhoto',
     /* «En proceso» (R9): el estado de un PROYECTO que sigue abierto para retomarlo, no una transacción de Credits que se está procesando (credits.txPending). */
     'projects.stateInProgress',
     /* «Continuar» (R9): retomar un trabajo a medias (続ける), no pasar al paso siguiente del onboarding (onboarding.continueStep, 次へ). */

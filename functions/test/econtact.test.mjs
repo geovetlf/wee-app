@@ -123,7 +123,7 @@ check('0a) el lector no perdona: un archivo que no existe es un error, no un tex
     'screens/ProfileScreen.tsx', 'screens/SearchScreen.tsx', 'screens/EContactScreen.tsx', 'hooks/useEContact.ts', 'services/firestoreService.ts'];
   const comidos = LEIDOS_SIN_COMENTARIOS.filter((f) => identificadores(f, read(f)) !== identificadores(f, sinComentarios(read(f))));
   check('0c) …y en los archivos que esta suite lee sin comentarios no se pierde ni un identificador del código',
-    comidos.length === 0 && sinComentarios(read('screens/CreateScreen.tsx')).includes("input.accept = 'image/*,video/*';"), comidos.join(', '));
+    comidos.length === 0 && /* R9: el selector de web lee el tipo de ACEPTA_EN_WEB; la cadena con «/*» sigue en el código. */ sinComentarios(read('screens/CreateScreen.tsx')).includes("todo: 'image/*,video/*',"), comidos.join(', '));
 }
 
 // El modelo, transpilado y ejecutado.

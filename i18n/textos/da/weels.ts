@@ -44,4 +44,14 @@ export const weels: typeof import('../es/weels').weels = {
   horizontalBody: 'Weëls ses lodret i fuld skærm. Vil du bruge den alligevel?',
   horizontalAccept: 'Brug den alligevel',
   galleryForVideo: 'For at vælge videoen til din Weël skal Weë have adgang til dit galleri.',
+  /* R9 · Crear */
+  tabUpload: 'Upload en video',
+  uploadTitle: 'Vælg en video fra din enhed',
+  dimensions: '{{ancho}} × {{alto}} px',
+  creationUntitled: 'Video uden titel',
+  creationLabel: '{{nombre}}, lavet med {{herramienta}}',
+  creationMeta: '{{herramienta}} · {{fecha}}',
+  creationsEmptyTitle: 'Du har endnu ingen videoer lavet med Weë',
+  creationsEmptyBody: 'Lav en i Weë Studio, eller upload en video fra din enhed.',
+  creationsOpenStudio: 'Åbn Weë Studio',
 };

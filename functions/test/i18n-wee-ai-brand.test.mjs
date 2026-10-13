@@ -99,7 +99,7 @@ console.log('\n── B · Y las que lo nombran lo escriben "Weë AI" ──');
     ['2) el del flujo guiado', 'screens/CreatorFlowScreen.tsx', /overline="🤖 Weë AI"/],
     ['2) el de Mis proyectos', 'screens/ProjectsScreen.tsx', /overline="🤖 Weë AI"/],
     ['2) el del editor', 'screens/WriterEditorScreen.tsx', /overline="🤖 Weë AI"/],
-    ['3) el atajo de la hoja Crear', 'components/CreateSheet.tsx', />Weë AI ›</],
+    /* R9 (referencia del dueño): la hoja Crear ya no lleva el bloque «Weë AI ›»; su nota discreta lleva a WEË AI (r9-crear A4). */
     ['3) la barra lateral de las pantallas de IA', 'components/creator/CreatorSidebar.tsx', /'grid-outline', 'Weë AI', goCreator/],
     /* La Ayuda pasó al diccionario en la fase 6: la marca se mira donde vive. */
     ['4) la Ayuda', 'i18n/textos/es/help.ts', /¿Cómo funciona Weë AI\?/],

@@ -39,4 +39,14 @@ export const weels: typeof import('../es/weels').weels = {
   horizontalBody: 'Weëls 以竖屏全屏观看。仍要使用吗？',
   horizontalAccept: '仍要使用',
   galleryForVideo: '要为 Weël 选择视频，Weë 需要访问你的相册。',
+  /* R9 · Crear */
+  tabUpload: '上传视频',
+  uploadTitle: '从你的设备选择视频',
+  dimensions: '{{ancho}} × {{alto}} 像素',
+  creationUntitled: '未命名视频',
+  creationLabel: '{{nombre}}，使用 {{herramienta}} 创作',
+  creationMeta: '{{herramienta}} · {{fecha}}',
+  creationsEmptyTitle: '你还没有用 Weë 创作的视频',
+  creationsEmptyBody: '在 Weë Studio 中创作一个，或从设备上传视频。',
+  creationsOpenStudio: '打开 Weë Studio',
 };

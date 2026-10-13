@@ -43,4 +43,14 @@ export const weels: typeof import('../es/weels').weels = {
   horizontalBody: 'Weëls वर्टिकल, फ़ुल स्क्रीन में देखे जाते हैं. फिर भी इसका इस्तेमाल करें?',
   horizontalAccept: 'फिर भी इस्तेमाल करें',
   galleryForVideo: 'अपने Weël का वीडियो चुनने के लिए Weë को आपकी गैलरी तक पहुँच चाहिए.',
+  /* R9 · Crear */
+  tabUpload: 'वीडियो अपलोड करें',
+  uploadTitle: 'अपने डिवाइस से वीडियो चुनें',
+  dimensions: '{{ancho}} × {{alto}} px',
+  creationUntitled: 'बिना शीर्षक का वीडियो',
+  creationLabel: '{{nombre}}, {{herramienta}} से बनाया गया',
+  creationMeta: '{{herramienta}} · {{fecha}}',
+  creationsEmptyTitle: 'आपके पास अभी Weë से बने वीडियो नहीं हैं',
+  creationsEmptyBody: 'Weë Studio में एक बनाएँ या अपने डिवाइस से वीडियो अपलोड करें.',
+  creationsOpenStudio: 'Weë Studio खोलें',
 };

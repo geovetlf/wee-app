@@ -315,14 +315,59 @@ const prefillDeChef = { content: 'Ensalada de verano en diez minutos', aiTools: 
   const reapagada = guardados.pop();
   check('B9) y la publicación no comparte el proceso', reapagada && !('aiTools' in reapagada) && !('aiProcess' in reapagada) && !('aiPrompt' in reapagada));
 
-  /* Desde el Wäll, sin Weë AI: encendido sin historia, se escribe a mano. */
-  const e5 = compositor({});
+  /* Con origen en Weë AI pero sin pasos apuntados (solo la herramienta): encendido sin historia, se escriben a mano. */
+  const e5 = compositor({ prefill: { content: 'Hecho con Weë', aiTools: ['Weë Chef'] } });
   e5.dibujar();
   e5.capturas[`Switch:${TITULO}`].onValueChange(true);
   e5.tocar(FILA, e5.dibujar());
   d = e5.dibujar();
-  check('B10) sin historia lo dice, y deja escribir los pasos', d.texto.includes(tEs('composer.howNoHistory')) && d.botones.some((b) => b.etiqueta === tEs('composer.howAddStep')));
-  check('B10) y la vista previa avisa en vez de dibujar un bloque vacío', d.texto.includes(tEs('composer.howPreviewEmpty')));
+  check('B10) con origen y sin historia lo dice, y deja escribir los pasos', d.texto.includes(tEs('composer.howNoHistory')) && d.botones.some((b) => b.etiqueta === tEs('composer.howAddStep')));
+  check('B10) y la vista previa enseña lo que sí hay (la herramienta), sin pasos inventados', d.texto.includes(tEs('wall.howIMadeIt')) && d.texto.includes('Weë Chef') && !d.texto.includes('1. '));
+
+  /*
+   * REGLA DEL DUEÑO (2026-10-13): «Cómo lo hice» SOLO con origen en Weë AI o en Mis creaciones. Publicar directo
+   * —escribir, adjuntar lo propio, un enlace, un hashtag— no tiene fila, ni interruptor, ni proceso a mano.
+   */
+  const directo = compositor({});
+  d = directo.dibujar();
+  check('B11) publicación directa: NO hay «Compartir cómo lo hice», ni su interruptor, ni la fila de revisar',
+    !d.texto.includes(TITULO) && !directo.capturas[`Switch:${TITULO}`] && !d.botones.some((b) => b.etiqueta === FILA));
+  directo.capturas[`Campo:${tEs('composer.postTextLabel')}`]?.onChangeText?.('Mi café favorito del día #cafe');
+  d = directo.dibujar();
+  directo.tocar(PUBLICAR, d);
+  await directo.calma();
+  const directa = guardados.pop();
+  check('B11) y lo publicado no lleva aiTools, aiProcess, aiPrompt ni aiSteps',
+    !!directa && directa.content === 'Mi café favorito del día #cafe' && ['aiTools', 'aiProcess', 'aiPrompt', 'aiSteps'].every((k) => !(k in directa)), JSON.stringify(directa && Object.keys(directa)));
+  check('B11) CONTROL: desde Weë AI la fila SÍ está, apagada', (() => { const w = compositor({ prefill: prefillDeChef }); const x = w.dibujar(); return x.texto.includes(TITULO) && w.capturas[`Switch:${TITULO}`]?.value === false; })());
+
+  /* Desde un material de la cuenta (la biblioteca de Weë Design publica así: media con assetId, sin trabajo). */
+  const material = { media: [{ type: 'image', uri: 'https://firebasestorage.googleapis.com/v0/b/x/o/a.png?alt=media&token=t', assetId: 'asset_1' }] };
+  const m = compositor({ prefill: material, sourceSection: 'design' });
+  d = m.dibujar();
+  check('B12) desde Mis creaciones / biblioteca (material con assetId): la fila está, apagada', d.texto.includes(TITULO) && m.capturas[`Switch:${TITULO}`]?.value === false);
+  /* Quitar el último material de Weë: la fila se va (el origen ya no está en el borrador). */
+  const quitar = d.botones.find((b) => b.etiqueta === tEs('composer.removePhotoNumber', { numero: 1 }));
+  check('B12) CONTROL: hay aspa para quitar ese material', !!quitar);
+  if (quitar) m.tocar(quitar.etiqueta, d);
+  d = m.dibujar();
+  check('B12) sin el material de Weë en el borrador, la fila desaparece', !d.texto.includes(TITULO) && !m.capturas[`Switch:${TITULO}`]);
+}
+
+/* La regla, pura. */
+{
+  const conJob = R.tieneOrigenDeWee({ jobId: 'j1' }, []);
+  const conHerr = R.tieneOrigenDeWee({ aiTools: ['Weë Chef'] }, []);
+  const conMaterial = R.tieneOrigenDeWee({ media: [{ uri: 'u', assetId: 'a1' }] }, [{ assetId: 'a1' }]);
+  const materialQuitado = R.tieneOrigenDeWee({ media: [{ uri: 'u', assetId: 'a1' }] }, [{}]);
+  const trabajoMasFotos = R.tieneOrigenDeWee({ jobId: 'j1', aiTools: ['Weë Studio'] }, [{}, {}]);
+  check('B13) origen: trabajo de Weë AI, herramienta o material de la cuenta → sí', conJob && conHerr && conMaterial);
+  check('B13) sin prefill, o con un prefill sin nada de Weë → no', !R.tieneOrigenDeWee(undefined, []) && !R.tieneOrigenDeWee({ content: 'hola' }, [{}]) && !R.tieneOrigenDeWee({ media: [{ uri: 'u' }] }, [{}]));
+  check('B13) quitar el último material de Weë lo quita; añadir fotos propias a un trabajo de Weë, no', !materialQuitado && trabajoMasFotos);
+  const encendido = { ...R.borradorInicial({ aiTools: ['Weë Chef'], aiProcess: 'Paso' }), activo: true };
+  const lector = { t: tEs, locale: 'es' };
+  check('B13) sin origen, datosDeComoLoHice no publica nada aunque el borrador esté encendido', JSON.stringify(R.datosDeComoLoHice(encendido, lector, false)) === '{}');
+  check('B13) CONTROL: con origen, publica lo autorizado', JSON.stringify(R.datosDeComoLoHice(encendido, lector, true).aiTools) === '["Weë Chef"]');
 }
 
 /* ════════════════════════════════════════════════════════════════════════════ */
@@ -403,7 +448,7 @@ titulo('D · Dónde va, sin IA de más, móvil y diccionarios');
   check('D3) el trabajo se LEE con una suscripción y nada más, nunca se vuelve a ejecutar',
     /creatorService\.subscribeToJob\(jobId/.test(hook) && !/creatorService\.(run|start|answer|quote|attachImage|deleteJob)\(/.test(hook) && !/httpsCallable|spendCredits/.test(hook));
   check('D3) solo con el interruptor encendido, y se suelta al llegar',
-    /useTrabajoDeOrigen\(trabajoDeOrigen, comoLoHice\.activo\)/.test(crear) && /if \(!pedir \|\| !jobId \|\| pedido\.current\) return;/.test(hook) && /if \(dejar\) dejar\(\);/.test(hook));
+    /useTrabajoDeOrigen\(trabajoDeOrigen, conOrigenDeWee && comoLoHice\.activo\)/.test(crear) && /if \(!pedir \|\| !jobId \|\| pedido\.current\) return;/.test(hook) && /if \(dejar\) dejar\(\);/.test(hook));
   const flujo = leer('screens/CreatorFlowScreen.tsx');
   /* Solo la publicación de un resultado (handlePublish): otras navegaciones de la pantalla no son asunto de esta prueba. */
   const publicar = flujo.slice(flujo.indexOf('const handlePublish'), flujo.indexOf('const subidaConfig')).replace(/\/\*[\s\S]*?\*\//g, '');
