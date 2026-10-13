@@ -23,6 +23,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -488,11 +489,25 @@ console.log('\n── E · Estructura: lo que hay, y lo que a propósito no hay 
    * `projectItems`), a 35 con C3 (uno de `scenes` y dos de `shots`) y a 36 con
    * F1-B (el de la lista de `productions`), los siete preparados y NINGUNO
    * desplegado; la parte de moderación —UNO y solo uno—
-   * no se ha movido desde entonces.
+   * no se ha movido desde entonces. A 37 con R9 · D-1/D-4 (autorización del
+   * dueño, 2026-10-12): UNO de `creations` —cuenta + estado + fecha de
+   * finalizar, descendente— para `listarCreacionesFinales` (Mis creaciones),
+   * sin desplegar. Se fija por campos: cambiar uno por otro también se ve.
    */
+  const deCreaciones = indices.filter((i) => i.collectionGroup === 'creations');
   check('111) UN índice nuevo y justificado —la cola: estado + antigüedad—, y los de antes siguen',
-    deReportes.length === 1 && igual(deReportes[0].fields.map((c) => [c.fieldPath, c.order]), [['status', 'ASCENDING'], ['createdAt', 'ASCENDING']]) && indices.length === 36,
-    `${deReportes.length} de reports, ${indices.length} en total`);
+    deReportes.length === 1 && igual(deReportes[0].fields.map((c) => [c.fieldPath, c.order]), [['status', 'ASCENDING'], ['createdAt', 'ASCENDING']]) && indices.length === 37
+    && deCreaciones.length === 1 && igual(deCreaciones[0].fields.map((c) => [c.fieldPath, c.order]), [['ownerAccountId', 'ASCENDING'], ['status', 'ASCENDING'], ['finalizadaEn', 'DESCENDING']])
+    && new Set(indices.map((i) => JSON.stringify(i))).size === indices.length,
+    `${deReportes.length} de reports, ${deCreaciones.length} de creations, ${indices.length} en total`);
+  /*
+   * El total solo no ve un CAMBIO: quitar un índice y poner otro deja 37 (R9: quitar el de `posts` communityId+createdAt
+   * y añadir uno inventado no lo cazaba ninguna suite). La huella fija el CONJUNTO: colección, alcance y campos de cada
+   * índice, ordenados. Si un índice nuevo está justificado, se recalcula con esta misma expresión y se anota aquí su porqué.
+   */
+  const huellaDeIndices = crypto.createHash('sha256').update(indices
+    .map((i) => JSON.stringify([i.collectionGroup, i.queryScope, i.fields.map((c) => [c.fieldPath, c.order ?? c.arrayConfig])])).sort().join('\n')).digest('hex').slice(0, 16);
+  check('111b) y el conjunto de índices es exactamente el declarado (huella): ni uno cambiado por otro', huellaDeIndices === 'c258e5b863fc2e49', huellaDeIndices);
   check('112) el contrato de contenido ya tenía la costura: `moderationStatus` y `moderationCaseId` siguen ahí, sin tocar',
     /export type ModerationStatus = 'clear' \| 'pending' \| 'restricted' \| 'removed';/.test(leer('functions/src/core/content/content.ts')));
   check('113) la documentación existe', existe('docs/MODERATION.md') && /reportContent/.test(leer('docs/MODERATION.md')));
