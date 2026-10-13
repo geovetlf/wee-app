@@ -108,3 +108,57 @@ seguido subiendo. **Antes de cualquier paso de la reconciliación hay que volver
 | Cambiar lo NUEVO a URLs firmadas de GCS | **NO en esta línea**: necesita IAM (`signBlob`) y que el cliente pida la URL en vez de guardarla. Con R2 no hace falta: Media Cloud ya entrega con URL firmada de 300 s por defecto (`core/media/entrega.ts`, máximo 3.600 s) que no se guarda en ningún sitio (probado, `media-r2-integracion` G8) |
 | Camino de salida | T1: los resultados nuevos van por `guardarMaterial` (R2) y se leen con `solicitarEntrega`; los antiguos conservan su token hasta que la reconciliación los copie y verifique, y aun entonces el objeto original no se borra sin autorización |
 | `storage.rules`: `images/posts`, `images/profile` y `ai-avatar` tienen `allow read: if true`, que en Storage incluye **listar** | **PROPUESTA, no aplicada**: cambiar a `allow get` quitaría el listado público sin invalidar ninguna URL (las URLs con token no pasan por las reglas y las públicas usan `get`). No se toca aquí porque las reglas de Storage se están revisando en otra línea (política contra sobrescritura, decisión D-D) y su verificación exige el emulador, que lleva el coordinador |
+
+---
+
+## Anexo A · Qué adaptador usa DE VERDAD cada flujo (verificado en código, 2026-10-12)
+
+Leyenda: **REAL** = dependencia real del código hoy · **OBJETIVO** = arquitectura de destino
+(Media Cloud, sin activar) · **PENDIENTE** = lo que falta para pasar al objetivo. «Token» = URL de descarga de Firebase
+con `token=` (permanente, salta las reglas). **Ningún flujo usa hoy URLs firmadas con caducidad**: solo las emite Media
+Cloud, que no está conectado (`functions/src/index.ts:183`, solo `mediaCanary`).
+
+Configuración: en el cliente, Cloudinary con cloud y preset escritos en `services/cloudinaryService.ts:4,11`, y Firebase
+Storage con el `storage` de `config/firebase`; en el servidor, el bucket de `storageBucket()` (`functions/src/engine/http.ts:168`,
+`STORAGE_BUCKET` o el del proyecto).
+
+| Flujo | Punto de entrada | Servicio | Destino REAL | Tipo de URL | ¿Firebase Storage? | PENDIENTE para pasar a Media Cloud (OBJETIVO) cuando se autorice |
+|---|---|---|---|---|---|---|
+| **Wall — imágenes** | `screens/CreateScreen.tsx:736` | `uploadPostImage` → `uploadBlobToCloudinary` (`services/storageService.ts:57-65`) | **Cloudinary** `posts/<uid>/` (preset sin firmar) | pública de Cloudinary, con transformaciones | No; salvo material de Weë AI, que se referencia por `assetId` sin resubir (`CreateScreen.tsx:721-726`) y conserva su URL con token | Puerta de escritura; exportar `solicitarSubida`/`confirmarSubida`; la publicación guarda `assetIds` y pinta con `solicitarEntrega`; miniaturas como derivados (hoy las hace Cloudinary por URL) |
+| **Wall — vídeo** | `screens/CreateScreen.tsx:696` | `uploadVideoToCloudinary` (`services/cloudinaryService.ts:271`) | **Cloudinary** `videos/` | pública, `c_limit,h_720,q_auto,f_mp4` | No; salvo vídeo de Weë AI referenciado por `assetId` (`CreateScreen.tsx:687-690`) | Lo anterior + derivado de transcodificación 720p (el procesado MC-4 solo hace imagen) |
+| **Weëls — compositor** (`kind: 'weel'`) | `screens/CreateScreen.tsx:696` (mismo camino que el vídeo) | `uploadVideoToCloudinary` | **Cloudinary** | pública | No | Igual que el vídeo; el watermark y la descarga (`videoDownload.ts`) leen la URL de Cloudinary |
+| **Weëls — creador NUEVO** (rama `r9/weels-crear` `21f9c07b`, aún no en `main`) | `screens/CrearWeelScreen.tsx:172` | `uploadVideoToCloudinary` (`:31`); guarda con `postsService.create` e `isWeel` (`utils/crearWeel.ts:10`) | **Cloudinary** | pública | No | Igual que el vídeo. **Cloudinary NO está ausente aquí**: el creador nuevo es una dependencia más del mismo servicio |
+| **Weë Studio** | `screens/StudioScreen.tsx:285` → `CreatorFlow` | entradas `uploadCreatorImage` (`screens/CreatorFlowScreen.tsx:126,175`); resultados por Functions | **Firebase Storage**: entradas `users/<uid>/creator-inputs/`, resultados `users/<uid>/ai-generations/` | token (`services/creatorUploads.ts:67`; `engine/http.ts:189-199`) | **Sí** | Resultados: que `saveGeneratedFile` y el materializador llamen a `guardarMaterial`. Entradas: subida firmada y que el servidor acepte una `StorageRef` de Media Cloud además de su ruta de Storage |
+| **Weë Studio — producción (planos)** | `components/studio/produccion/*` → Function `generateVideo` | adaptador Seedance → `persistRemoteFile` (`engine/providers/seedance.ts:385`) | **Firebase Storage** `ai-generations/` | token | **Sí** | Igual que los resultados de IA |
+| **Weë Design** | `screens/DesignScreen.tsx:100-112` | **ninguno**: la creación es una DEMO con temporizador y las referencias son nombres de muestra (`:120-123`) | — (no sube nada) | — | No | Conectar la pantalla a Weë Brain; desde ese día, entradas por `creatorUploads` (camino actual) o subida firmada (objetivo) |
+| **Weë Chef** | `screens/ChefScreen.tsx:136,347` → `CreatorFlow` | igual que Studio | **Firebase Storage** (entradas y resultados) | token | **Sí** | Igual que Studio |
+| **Weë Brain — adjuntos** | `hooks/useBrainChat.ts:128` | `uploadCreatorImage(…, 'brain-attachments')` | **Firebase Storage** `users/<uid>/brain-attachments/` | token | **Sí** | Subida firmada + aceptar `StorageRef` en el servidor |
+| **Mundo 3D — entrada** | `screens/Mundo3DScreen.tsx:147` | `uploadCreatorImage` | **Firebase Storage** `creator-inputs/` | token | **Sí** | Igual |
+| **Resultados de IA (Functions)** | adaptadores Gemini (`engine/providers/gemini.ts:392`), Seedance (`:385`), Seedream (`:192`), Flux (`:270`), fal (`:252`), ElevenLabs (`:44`), MiniMax (`:49`); material F11 en `content/materializador.ts:166-172` | `saveGeneratedFile` / `persistRemoteFile` / `persistBase64` (`engine/http.ts:189-210`) | **Firebase Storage** `users/<uid>/ai-generations/` | token (`randomUUID`) | **Sí** | Puerta + `guardarMaterial` en el materializador; entrega por `solicitarEntrega`; los antiguos conservan su token (D-3) |
+| **Avatar del Perfil Weë — generado** | `screens/AiAvatarScreen.tsx` → callable de `functions/src/generateAvatar.ts:233-235` | `uploadImageToStorage` (`functions/src/vertexAI.ts:335-360`) | **Firebase Storage** `users/<uid>/ai-avatar/` | token (`uuidv4`); además la regla es `read: if true` | **Sí** | Llevar `uploadImageToStorage` a `guardarMaterial`. El avatar es público: necesita entrega pública, que Media Cloud no define |
+| **Avatar del Perfil Weë — reemplazo con selfie** | `screens/AiAvatarScreen.tsx:270,403`, `screens/CreateScreen.tsx:353` | selfie `uploadImageForSwap` (`services/avatarGenerationService.ts:157-171`); resultado `generateAvatar.ts:324-325` | **Firebase Storage** `face-swap/` (selfie) y `avatar-replacement/` (resultado) | token | **Sí** | Igual |
+| **Avatar del Perfil Weë — foto propia** | `screens/WeeProfileCreationScreen.tsx:76` | `uploadProfileImageFromUri` (`storageService.ts:35-44`) | **Cloudinary** `profile/<identidad>/avatars` | pública | No | Subida firmada; modelar el perfil sobre Assets (`docs/F11-MIGRACION.md` §6) |
+| **Perfil Real — avatar y portada** | `screens/ProfileScreen.tsx:382,466`, `screens/OnboardingScreen.tsx:298` | `uploadProfileImageFromUri` / `uploadBannerImageFromUri` | **Cloudinary** | pública | No | Igual |
+| **WeeTalk — nota de voz** | `screens/ConversationScreen.tsx:368` | `uploadAudioToCloudinary` (`cloudinaryService.ts:237`) | **Cloudinary** `audio/<uid>/` | pública | No | Subida firmada `kind` audio; hoy sin `comprobarBlob` |
+| **WeeTalk — foto normal** | `screens/ConversationScreen.tsx:247,391` | `uploadMessageImageFromUri` (`storageService.ts:91-97`) | **Cloudinary** `messages/<uid>/` | pública | No | Subida firmada; entregar solo a los participantes. Media Cloud aísla por cuenta, no por conversación: **falta diseño** |
+| **WeeTalk — foto de ver una vez** | `screens/ConversationScreen.tsx:247,391` | `uploadViewOncePhoto` (`storageService.ts:111-128`) | **Firebase Storage** `users/<uid>/weetalk/<conv>/` | token; la borra `burnViewOnce` | **Sí** | Igual que la foto normal, con el borrado al verse por `borrar` del puerto |
+| **Comentario con foto** | `hooks/useComentarios.ts:105` | `uploadCommentImage` (`storageService.ts:132-138`) | **Cloudinary** `comments/<uid>/` | pública | No | Subida firmada |
+| **Weë Business — logo y productos** | `screens/WeeBizRegisterScreen.tsx:136`, `screens/WeeBizProductsScreen.tsx:134` | `uploadImageToCloudinary` directo | **Cloudinary** `weebiz-logos/`, `weebiz-products/` | pública | No | Subida firmada. Es material de una Página (entidad del Account), no de la persona: **falta diseño** |
+| **Página pública de una publicación** | `functions/src/public/postPageHtml.ts:128-175` | transformaciones de Cloudinary reescritas en el servidor | (solo lee) Cloudinary | pública | No | Entrega pública de Media Cloud (no existe) |
+
+**Resumen:** hoy hay DOS backends REALES.
+
+- **Cloudinary**: todo lo que la persona publica o manda. Wall, Weëls de los dos creadores, perfiles, comentarios, WeeTalk (salvo la foto de ver una vez) y Weë Business.
+- **Firebase Storage con token permanente**: todo lo que entra o sale de Weë AI, los avatares generados, el selfie y la foto de ver una vez.
+
+Media Cloud + R2 es la arquitectura OBJETIVO y no atiende ningún flujo.
+
+Bloqueos comunes para pasar a ella (PENDIENTE):
+
+- la puerta de escritura;
+- exportar las Functions de subida y entrega;
+- que el cliente pida la URL en vez de guardarla;
+- los derivados (miniaturas y transcodificación de vídeo);
+- entrega pública para lo que hoy es público.
+
+Y dos huecos de diseño: la entrega por conversación (WeeTalk) y el material de las Páginas de negocio.
