@@ -12,6 +12,7 @@ import {
   Platform,
   Image,
   Animated,
+  BackHandler,
 } from 'react-native';
 import { isWeb } from '../utils/platform';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
@@ -33,6 +34,14 @@ import { scale } from '../utils/scale';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
 import { useT, useIdioma } from '../contexts/IdiomaContext';
 import { esVisibleEnWeels } from '../utils/visibilidadDeWeels';
+import { salirDeWeels } from '../utils/salidaDeWeels';
+import {
+  ajusteDelVideoEnWeels,
+  fetchAndCacheVideoAspectRatio,
+  getCachedVideoAspectRatio,
+  proporcionDeLaMedida,
+  setCachedVideoAspectRatio,
+} from '../utils/videoDimensionCache';
 
 /* Solo para el gesto de volver (umbral y recorrido); el tamaño de cada Weël NO sale de aquí. */
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -106,6 +115,34 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
   });
 
   const hasSeekedRef = useRef(false);
+
+  /*
+   * LA FORMA DEL VÍDEO DECIDE CÓMO LLENA LA PANTALLA (decisión del dueño, R9). Un vídeo vertical llena la pantalla como
+   * siempre (COVER); uno apaisado o cuadrado se ve ENTERO, con su proporción y sin deformarlo (CONTAIN), porque llenar
+   * con él la pantalla le cortaba los lados —en el teléfono, la etiqueta y el título del vídeo quedaban fuera—.
+   * La forma sale de las medidas de verdad: la que ya apuntó el muro para esa URL (`videoDimensionCache`), la cabecera
+   * del vídeo en la web y `onReadyForDisplay` → `naturalSize` en el teléfono. Mientras no se sabe, CONTAIN: no recorta
+   * nada, y si el vídeo resulta vertical solo se pasa de entero a lleno, nunca se enseña cortado lo que no lo está.
+   */
+  const urlDelVideo = post.videoUrl;
+  const [proporcionDelVideo, setProporcionDelVideo] = useState<number | undefined>(
+    () => (urlDelVideo ? getCachedVideoAspectRatio(urlDelVideo) : undefined),
+  );
+  useEffect(() => {
+    if (!urlDelVideo || getCachedVideoAspectRatio(urlDelVideo) !== undefined) return;
+    let vigente = true;
+    fetchAndCacheVideoAspectRatio(urlDelVideo, (proporcion) => {
+      if (vigente) setProporcionDelVideo(proporcion);
+    });
+    return () => { vigente = false; };
+  }, [urlDelVideo]);
+  const alSaberLaFormaDelVideo = useCallback((evento: { naturalSize?: { width?: number; height?: number; orientation?: string } }) => {
+    const proporcion = proporcionDeLaMedida(evento?.naturalSize);
+    if (!proporcion || !urlDelVideo) return;
+    setCachedVideoAspectRatio(urlDelVideo, proporcion);
+    setProporcionDelVideo((actual) => (actual === proporcion ? actual : proporcion));
+  }, [urlDelVideo]);
+  const ajuste = ajusteDelVideoEnWeels(proporcionDelVideo);
 
   // Set audio mode once on mount
   useEffect(() => {
@@ -203,20 +240,21 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
         ref={videoRef}
         source={{ uri: post.videoUrl! }}
         style={StyleSheet.absoluteFill}
-        resizeMode={ResizeMode.COVER}
+        resizeMode={ajuste === 'cover' ? ResizeMode.COVER : ResizeMode.CONTAIN}
         shouldPlay={isActive}
         isMuted={false}
         isLooping
         progressUpdateIntervalMillis={100}
         onPlaybackStatusUpdate={handlePlaybackStatus}
+        onReadyForDisplay={alSaberLaFormaDelVideo}
       />
 
-      {/* Poster image — visible until video plays */}
+      {/* Poster image — visible until video plays. Es un fotograma del vídeo: se ajusta igual que él para no saltar. */}
       {!!(post.imageUrls?.[0] && !hasStartedPlaying) && (
         <Image
           source={{ uri: post.imageUrls[0] }}
           style={StyleSheet.absoluteFill}
-          resizeMode="cover"
+          resizeMode={ajuste}
         />
       )}
 
@@ -262,11 +300,11 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
         colors={['rgba(0,0,0,0.5)', 'transparent']}
         style={[styles.topGradient, { paddingTop: insets.top, pointerEvents: 'box-none' }]}
       >
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity onPress={onBack} style={styles.botonDeCabecera} hitSlop={ZONA_EXTRA_DEL_BOTON} accessibilityRole="button" accessibilityLabel={t('common.back')}>
           <Ionicons name="arrow-back" size={scale(26)} color="white" />
         </TouchableOpacity>
         <Text style={styles.topTitle}>{t('weels.title')}</Text>
-        <TouchableOpacity onPress={onCreate} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
+        <TouchableOpacity onPress={onCreate} style={styles.botonDeCabecera} hitSlop={ZONA_EXTRA_DEL_BOTON} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
           <Ionicons name="add-circle-outline" size={scale(26)} color="white" />
         </TouchableOpacity>
       </LinearGradient>
@@ -511,7 +549,7 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
         toValue: SCREEN_WIDTH,
         duration: 200,
         useNativeDriver: true,
-      }).start(() => { if (props.onBack) props.onBack(); else navigation.goBack(); });
+      }).start(() => { if (props.onBack) props.onBack(); else salirDeWeels(navigation as any); });
     } else {
       Animated.spring(translateX, {
         toValue: 0,
@@ -536,10 +574,22 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
     setActiveIndex(initialIndex);
   }, [initialIndex]);
 
+  /*
+   * SALIR DE WEËLS: la flecha ←, el gesto desde el borde y el Atrás de Android van al mismo sitio —por el historial si
+   * lo hay, al Wäll si no (entrada por enlace o tras recargar), y nunca a una pantalla de crear (`utils/salidaDeWeels.ts`)—.
+   */
   const handleBack = useCallback(() => {
     if (props.onBack) props.onBack();
-    else navigation.goBack();
+    else salirDeWeels(navigation as any);
   }, [navigation, props.onBack]);
+  useFocusEffect(useCallback(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleBack]));
 
   const handleComment = useCallback((postId: string) => {
     const post = videoPosts.find(p => p.id === postId);
@@ -631,11 +681,11 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
       {(fase !== 'lista' || videoPosts.length === 0) && (
         <View style={styles.estado}>
           <View style={[styles.estadoCabecera, { paddingTop: insets.top + scale(8) }]}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
+            <TouchableOpacity onPress={handleBack} style={styles.botonDeCabecera} hitSlop={ZONA_EXTRA_DEL_BOTON} accessibilityRole="button" accessibilityLabel={t('common.back')}>
               <Ionicons name="arrow-back" size={scale(26)} color="white" />
             </TouchableOpacity>
             <Text style={styles.topTitle}>{t('weels.title')}</Text>
-            <TouchableOpacity onPress={crearWeel} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
+            <TouchableOpacity onPress={crearWeel} style={styles.botonDeCabecera} hitSlop={ZONA_EXTRA_DEL_BOTON} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
               <Ionicons name="add-circle-outline" size={scale(26)} color="white" />
             </TouchableOpacity>
           </View>
@@ -701,6 +751,9 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
   );
 };
 
+/** Lo que la zona táctil de los botones de la cabecera crece alrededor de su círculo de 44: 48 en total. */
+const ZONA_EXTRA_DEL_BOTON = { top: 2, bottom: 2, left: 2, right: 2 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -757,8 +810,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(16),
     paddingBottom: scale(16),
   },
-  backButton: {
-    padding: scale(4),
+  /*
+   * Volver y crear, encima del vídeo: un círculo oscuro propio para que no se confundan con lo que el vídeo trae pintado
+   * (en el teléfono la flecha se montaba sobre la etiqueta DEMO). 44 de diámetro + `ZONA_EXTRA_DEL_BOTON` = 48 de zona
+   * táctil, y ni un punto más: el resto de la cabecera deja pasar el gesto vertical (`pointerEvents: 'box-none'`).
+   */
+  botonDeCabecera: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   topTitle: {
     flex: 1,

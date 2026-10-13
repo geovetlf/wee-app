@@ -86,3 +86,16 @@ export function proporcionDeLaMedida(
   const [w, h] = deberiaSerVertical && apaisado ? [alto, ancho] : [ancho, alto];
   return w / h;
 }
+
+/*
+ * CÓMO SE AJUSTA UN VÍDEO A UNA PANTALLA VERTICAL (Weëls y su vista previa en «Crear Weël»).
+ *
+ * Decisión del dueño (R9): un vídeo VERTICAL puede llenar la pantalla (`cover`); uno que NO es vertical —apaisado o
+ * cuadrado— se enseña COMPLETO, con su proporción original, sin recortarlo ni deformarlo (`contain`). Mientras la forma
+ * no se sabe, `contain`: es la espera que no corta nada.
+ */
+export type AjusteDelVideo = 'cover' | 'contain';
+
+export function ajusteDelVideoEnWeels(proporcion: number | undefined): AjusteDelVideo {
+  return proporcion !== undefined && Number.isFinite(proporcion) && proporcion > 0 && proporcion < 1 ? 'cover' : 'contain';
+}
