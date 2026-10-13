@@ -318,8 +318,12 @@ const linking: any = {
         path: 'weels',
         alias: ['Reels'],
         parse: { communitySlug: (v: string) => (esId(v) ? v : undefined) },
+        /*
+         * Solo se declara la forma de lo que viaja (la comunidad). Las publicaciones (`initialPost`, `initialVideoPosts`,
+         * `recienPublicado`) no se declaran a propósito: la red de seguridad (`sinObjetosSueltos`) las deja en memoria y
+         * fuera de la dirección (navegacion-enlaces 24).
+         */
         stringify: {
-          initialPost: nuncaEnLaUrl, initialVideoPosts: nuncaEnLaUrl, recienPublicado: nuncaEnLaUrl, initialPositionMillis: nuncaEnLaUrl,
           /* `null` (el feed de todos) no se escribe: volvería al recargar como la comunidad «null». */
           communitySlug: (v: unknown) => (typeof v === 'string' && esId(v) ? v : nuncaEnLaUrl()),
         },
