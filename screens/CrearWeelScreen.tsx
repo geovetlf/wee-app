@@ -26,7 +26,7 @@
  * esta misma ruta: no hay otra ruta ni otro camino de publicar. ✕ (y Atrás) en el primer paso salen como siempre
  * (`salirDeCrearWeel`); en el segundo, la flecha (y Atrás) vuelven al primero con el vídeo elegido.
  */
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, Keyboard, ActivityIndicator, BackHandler, PixelRatio, useWindowDimensions, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,7 +60,7 @@ import {
 } from '../utils/crearWeel';
 import { ajusteDelVideoEnWeels, proporcionDeLaMedida } from '../utils/videoDimensionCache';
 import { salirDeCrearWeel } from '../utils/salidaDeWeels';
-import { assetsService } from '../services/assetsService';
+import { useCreacionesCompartibles } from '../hooks/useCreacionesCompartibles';
 import { getExperienceById } from '../constants/weeExperiences';
 import { textoDelServidor } from '../i18n/servidor';
 
@@ -73,12 +73,7 @@ type Fase = 'editando' | 'subiendo' | 'publicando' | 'error';
 /** Los dos pasos (R9): elegir el vídeo y componer el Weël. */
 type Paso = 'elegir' | 'componer';
 type Pestana = 'subir' | 'creaciones';
-/** «Mis creaciones» se lee al abrir su pestaña, no al abrir la pantalla. */
-type Creaciones =
-  | { fase: 'sin-pedir' }
-  | { fase: 'cargando' }
-  | { fase: 'error' }
-  | { fase: 'lista'; items: VideoDeMisCreaciones[]; cursor: unknown; hayMas: boolean; cargandoMas: boolean };
+
 
 /**
  * Lo que puede traer quien abre esta pantalla. Todo opcional: desde el + llega vacía.
@@ -109,8 +104,10 @@ const CrearWeelScreen: React.FC = () => {
   /* Con un vídeo ya traído (Weë AI) se entra directo a componer; sin él, a elegir. */
   const [paso, setPaso] = useState<Paso>(() => (video ? 'componer' : 'elegir'));
   const [pestana, setPestana] = useState<Pestana>('subir');
-  const [creaciones, setCreaciones] = useState<Creaciones>({ fase: 'sin-pedir' });
-  const peticion = useRef(0);
+  /* «Mis creaciones»: los vídeos de la cuenta que valen como Weël, leídos al abrir su pestaña (el mismo hook que el compositor). */
+  const misVideos = useCreacionesCompartibles(user?.uid, videosParaWeel, 'video');
+  const creaciones = misVideos.estado;
+  const cargarCreaciones = misVideos.cargar;
   const [descripcion, setDescripcion] = useState('');
   const [fase, setFase] = useState<Fase>('editando');
   /* La URL del vídeo ya subido: si después falla guardar el Weël, reintentar NO vuelve a subirlo. */
@@ -158,38 +155,9 @@ const CrearWeelScreen: React.FC = () => {
   /* «Siguiente»: solo con un vídeo elegido que pasa las reglas del Weël. */
   const puedeSeguir = !!video && validarVideoDeWeel(video).ok;
 
-  /*
-   * MIS CREACIONES: una página de vídeos de la cuenta (`assetsService.listar` con `kind: 'video'`, la misma consulta e
-   * índice que la biblioteca) y, de ella, los que valen como Weël (`videosParaWeel`). Solo lectura.
-   */
-  const cargarCreaciones = async (mas = false) => {
-    if (!user) return setCreaciones({ fase: 'lista', items: [], cursor: null, hayMas: false, cargandoMas: false });
-    const actual = creaciones;
-    if (mas && (actual.fase !== 'lista' || !actual.hayMas || actual.cargandoMas)) return;
-    const mia = ++peticion.current;
-    if (mas && actual.fase === 'lista') setCreaciones({ ...actual, cargandoMas: true });
-    else setCreaciones({ fase: 'cargando' });
-    try {
-      const pagina = await assetsService.listar(user.uid, { kind: 'video' }, mas && actual.fase === 'lista' ? (actual.cursor as never) : null);
-      if (mia !== peticion.current) return;
-      const nuevos = videosParaWeel(pagina.items);
-      setCreaciones({
-        fase: 'lista',
-        items: mas && actual.fase === 'lista' ? [...actual.items, ...nuevos] : nuevos,
-        cursor: pagina.cursor,
-        hayMas: pagina.hayMas,
-        cargandoMas: false,
-      });
-    } catch (error) {
-      if (mia !== peticion.current) return;
-      console.warn('Crear Weël: no se pudieron leer las creaciones', error);
-      setCreaciones({ fase: 'error' });
-    }
-  };
-
   const abrirPestana = (p: Pestana) => {
     setPestana(p);
-    if (p === 'creaciones' && creaciones.fase === 'sin-pedir') void cargarCreaciones();
+    if (p === 'creaciones') misVideos.abrir();
   };
 
   /* Duración en segundos o minutos con la forma de cada número: las mismas claves que el compositor. */

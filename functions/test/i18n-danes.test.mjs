@@ -195,9 +195,6 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['weeai.send', '«Send», el imperativo danés de «sende»'],
     ['weetalk.send', '«Send», el imperativo danés de «sende»'],
     ['weeai.sendForCredits', '«Send for … Credits» es la frase danesa'],
-    ['composer.toolVideo', '«Video» es la palabra danesa'],
-    ['composer.toolPhoto', '«Foto» es la palabra danesa'],
-    ['composer.toolLink', '«Link» es la palabra danesa'],
     ['composer.toolHashtag', '«Hashtag» se escribe igual en danés'],
     ['creaciones.kindVideo', '«Video» es la palabra danesa'],
     ['studio.grpVideo', '«Video» es la palabra danesa'],
@@ -486,8 +483,6 @@ console.log('\n── K · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
-    /* R9: «Foto» en la barra del compositor es el adjunto (cámara o galería), no el «hacer una foto» de WeeTalk. */
-    'composer.toolPhoto',
     /* «En proceso» (R9): el estado de un PROYECTO que sigue abierto para retomarlo, no una transacción de Credits que se está procesando (credits.txPending). */
     'projects.stateInProgress',
     /* «Subir»/«Bajar» reordenan escenas y klip (Flyt op/ned); en Studio son la grúa de la cámara (Kran op/ned). */

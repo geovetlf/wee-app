@@ -83,4 +83,10 @@ export const wall = {
   howExpand: 'Mostrar cómo lo hice',
   howCollapse: 'Ocultar cómo lo hice',
   howStepNumber: '{{n}}.',
+  /* R9 · Crear: documentos PDF y «Mis creaciones» en el compositor */
+  documentMeta: '{{tipo}} · {{tamano}}',
+  documentSizeKb: '{{tamano}} KB',
+  documentSizeMb: '{{tamano}} MB',
+  openDocument: 'Abrir «{{nombre}}»',
+  documentOpenFailed: 'No se pudo abrir el documento.',
 };

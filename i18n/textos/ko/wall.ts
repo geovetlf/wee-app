@@ -99,4 +99,10 @@ export const wall: typeof import('../es/wall').wall = {
   howExpand: '만든 과정 보기',
   howCollapse: '만든 과정 숨기기',
   howStepNumber: '{{n}}.',
+  /* R9 · Crear: documentos PDF y «Mis creaciones» en el compositor */
+  documentMeta: '{{tipo}} · {{tamano}}',
+  documentSizeKb: '{{tamano}}KB',
+  documentSizeMb: '{{tamano}}MB',
+  openDocument: '“{{nombre}}” 열기',
+  documentOpenFailed: '문서를 열지 못했어요.',
 };

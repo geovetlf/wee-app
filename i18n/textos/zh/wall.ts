@@ -96,4 +96,10 @@ export const wall: typeof import('../es/wall').wall = {
   howExpand: '显示我是怎么做的',
   howCollapse: '隐藏我是怎么做的',
   howStepNumber: '{{n}}.',
+  /* R9 · Crear: documentos PDF y «Mis creaciones» en el compositor */
+  documentMeta: '{{tipo}} · {{tamano}}',
+  documentSizeKb: '{{tamano}} KB',
+  documentSizeMb: '{{tamano}} MB',
+  openDocument: '打开“{{nombre}}”',
+  documentOpenFailed: '无法打开文档。',
 };

@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
@@ -23,7 +23,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { postsService } from '../services/firestoreService';
-import { uploadPostImage } from '../services/storageService';
+import { uploadPostImage, uploadPostDocument, comprobarPdf, leerDocumento } from '../services/storageService';
+import * as DocumentPicker from 'expo-document-picker';
+import { MAX_DOCUMENTOS, MAX_BYTES_DOCUMENTO, TIPO_PDF, DocumentoDePost, DocumentoElegido, MotivoDeRechazo, cuantosCaben, nombreVisible, tamanoParaLeer, validarDocumento } from '../utils/documentosDePublicacion';
 import { PostPlace, etiquetaDeLugar } from '../data/places';
 import { MURO_GENERAL, destinosDisponibles } from '../utils/sectionFeed';
 import { getExperienceById } from '../constants/weeExperiences';
@@ -59,6 +61,9 @@ import type { UbicacionPublica } from '../utils/locationPrivacy';
 import ComoLoHiceRevision from '../components/ComoLoHiceRevision';
 import { borradorInicial, conHistorial, datosDeComoLoHice, tieneOrigenDeWee, BorradorComoLoHice } from '../utils/comoLoHice';
 import { useTrabajoDeOrigen } from '../hooks/useTrabajoDeOrigen';
+import HojaDeCreaciones from '../components/HojaDeCreaciones';
+import { useCreacionesCompartibles } from '../hooks/useCreacionesCompartibles';
+import { creacionesCompartibles, queCabe, CreacionCompartible } from '../utils/creacionesCompartibles';
 
 interface MediaItem {
   type: 'image' | 'video';
@@ -85,8 +90,6 @@ const ACEPTA_EN_WEB: Record<TipoDeSelector, string> = {
   videos: 'video/*',
   todo: 'image/*,video/*',
 };
-/* Un enlace que se puede pegar: http(s), con un punto en el dominio y sin espacios. Va al texto, como siempre. */
-const ES_ENLACE = new RegExp('^https?:[/][/][^\\s/]+[.][^\\s]+$', 'i');
 
 /*
  * La encuesta mientras se escribe vive en `utils/pollDraft.ts`: los límites, qué
@@ -95,7 +98,7 @@ const ES_ENLACE = new RegExp('^https?:[/][/][^\\s/]+[.][^\\s]+$', 'i');
 
 const CreateScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { t, locale } = useIdioma();
+  const { t, locale, formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const { contentMaxWidth } = useResponsive();
@@ -147,6 +150,9 @@ const CreateScreen: React.FC = () => {
     }))
   );
   const [isPublishing, setIsPublishing] = useState(false);
+  /* Los PDF elegidos (aún sin subir) y los ya subidos en un intento anterior, para no subirlos dos veces al reintentar. */
+  const [documentos, setDocumentos] = useState<DocumentoElegido[]>([]);
+  const [documentosSubidos, setDocumentosSubidos] = useState<Record<string, DocumentoDePost>>({});
   /*
    * Qué se está subiendo, dicho con lo que de verdad se sabe: el archivo
    * {n} de {total}. Antes había una barra con 5 %, 90 % y 100 % inventados
@@ -467,7 +473,7 @@ const CreateScreen: React.FC = () => {
    * con encuesta y sin texto libre se puede publicar, y por eso `hasContent` no
    * mira `postText` cuando hay encuesta.
    */
-  const hasContent = postText.trim().length > 0 || attachedMedia.length > 0 || poll !== null;
+  const hasContent = postText.trim().length > 0 || attachedMedia.length > 0 || poll !== null || documentos.length > 0;
   const canPublish = hasContent && !isTextOverLimit && !isPublishing && isPollValid;
 
   const handleClose = () => {
@@ -689,36 +695,113 @@ const CreateScreen: React.FC = () => {
   };
 
   /*
-   * ─── La barra de R9: Foto · Vídeo · Archivo · Enlace · Hashtag ────────────
+   * ─── La barra de R9 (referencia del dueño): Foto/vídeo · Archivo · Mis creaciones · Encuesta · Hashtag ───
    *
-   * Foto: en el teléfono, la cámara de siempre (`takePhoto`) o la galería; en web no hay cámara y va directa al
-   * explorador. Enlace y Hashtag no son adjuntos: un enlace y un hashtag viven en el TEXTO, y el compositor ya los
-   * saca de ahí al publicar (`detectHashtags`; el Wäll pinta los enlaces del texto). Por eso escriben en el texto y
-   * nada más: ni campo nuevo en `posts` ni otro sistema.
+   * Foto/vídeo: un solo botón. En el teléfono, la cámara de siempre (`takePhoto`) o la galería (fotos y vídeos); en web
+   * no hay cámara y va directa al explorador. Hashtag no es un adjunto: vive en el TEXTO, y el compositor ya lo saca de
+   * ahí al publicar (`detectHashtags`). Un enlace tampoco tiene botón: se pega en el texto, como siempre.
    */
   const campoTexto = useRef<TextInput>(null);
-  const [enlaceAbierto, setEnlaceAbierto] = useState(false);
-  const [enlace, setEnlace] = useState('');
   const [verDestinos, setVerDestinos] = useState(false);
 
-  const elegirFoto = () => {
-    if (Platform.OS === 'web') return void pickImageFromGallery('fotos');
-    Alert.alert(t('composer.toolPhoto'), undefined, [
+  const elegirFotoOVideo = () => {
+    if (Platform.OS === 'web') return void pickImageFromGallery('todo');
+    Alert.alert(t('composer.photoOrVideo'), undefined, [
       { text: t('composer.camera'), onPress: () => void takePhoto() },
-      { text: t('composer.gallery'), onPress: () => void pickImageFromGallery('fotos') },
+      { text: t('composer.gallery'), onPress: () => void pickImageFromGallery('todo') },
       { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
-  const ponerEnlace = () => {
-    const url = enlace.trim();
-    if (!ES_ENLACE.test(url)) {
-      notify(t('composer.toolLink'), t('composer.linkInvalid'));
+  /*
+   * ─── ARCHIVO: documentos PDF de verdad (R9 · D, aprobado por el dueño el 2026-10-13) ───────────────────────
+   *
+   * El selector NATIVO de documentos (`expo-document-picker`; en web, el explorador), nunca la galería. Hasta cinco
+   * PDF de hasta 10 MB (`utils/documentosDePublicacion.ts`). Cada uno se valida al elegirlo —tipo que dice el
+   * sistema, tamaño y la cabecera `%PDF-` de sus primeros bytes— y otra vez al subirlo (`uploadPostDocument`).
+   * Cancelar el selector no cambia nada. Se suben al publicar, al Storage de Weë; si algo falla, «Publicar» otra vez
+   * no vuelve a subir los que ya subieron (`documentosSubidos`).
+   */
+  const CLAVE_DE_RECHAZO: Record<MotivoDeRechazo, string> = {
+    tipo: 'composer.documentNotPdf',
+    cabecera: 'composer.documentNotPdf',
+    grande: 'composer.documentTooBig',
+    vacio: 'composer.documentEmpty',
+    tope: 'composer.documentsTooMany',
+  };
+  const avisarRechazo = (motivo: MotivoDeRechazo, nombre: string) =>
+    notify(t('composer.toolFile'), t(CLAVE_DE_RECHAZO[motivo], { nombre, maximo: motivo === 'tope' ? MAX_DOCUMENTOS : MAX_BYTES_DOCUMENTO / (1024 * 1024) }));
+
+  const elegirDocumentos = async () => {
+    if (documentos.length >= MAX_DOCUMENTOS) return avisarRechazo('tope', '');
+    let resultado: DocumentPicker.DocumentPickerResult;
+    try {
+      resultado = await DocumentPicker.getDocumentAsync({ type: TIPO_PDF, multiple: true, copyToCacheDirectory: true });
+    } catch {
+      notify(t('common.error'), t('composer.documentPickFailed'));
       return;
     }
-    setPostText((p) => (p.trim() ? p.replace(/\s+$/, '') + '\n' : '') + url);
-    setEnlace('');
-    setEnlaceAbierto(false);
+    if (resultado.canceled || !resultado.assets?.length) return;
+    const nuevos: DocumentoElegido[] = [];
+    let rechazo: { motivo: MotivoDeRechazo; nombre: string } | null = null;
+    for (let i = 0; i < resultado.assets.length; i++) {
+      const a = resultado.assets[i];
+      const nombre = nombreVisible(a.name);
+      const v = validarDocumento({ tipo: a.mimeType, bytes: a.size });
+      if (!v.ok) { rechazo = rechazo || { motivo: v.motivo, nombre }; continue; }
+      let esPdf = false;
+      try {
+        esPdf = await comprobarPdf(await leerDocumento({ uri: a.uri, archivo: a.file }));
+      } catch {
+        esPdf = false;
+      }
+      if (!esPdf) { rechazo = rechazo || { motivo: 'cabecera', nombre }; continue; }
+      nuevos.push({ id: `doc_${Date.now()}_${i}`, uri: a.uri, nombre, tipo: TIPO_PDF, bytes: a.size as number, ...(a.file ? { archivo: a.file } : {}) });
+    }
+    const caben = cuantosCaben(documentos.length, nuevos.length);
+    if (caben < nuevos.length) rechazo = rechazo || { motivo: 'tope', nombre: '' };
+    if (caben > 0) setDocumentos((prev) => [...prev, ...nuevos.slice(0, caben)]);
+    if (rechazo) avisarRechazo(rechazo.motivo, rechazo.nombre);
+  };
+  const quitarDocumento = (id: string) => setDocumentos((prev) => prev.filter((d) => d.id !== id));
+
+  /*
+   * MIS CREACIONES: las fotos y los vídeos que la cuenta ya creó con Weë (`hooks/useCreacionesCompartibles`, solo
+   * lectura). Se leen al abrir la hoja. Lo elegido entra en el borrador como material de la cuenta —su URL de entrega y
+   * su `assetId`—, así que al publicar no se sube otra vez (la rama `media.assetId` de siempre), no se genera nada y no
+   * cuesta Credits. Las reglas son las del compositor: un vídeo va solo y las fotos no pasan del tope.
+   */
+  const [verCreaciones, setVerCreaciones] = useState(false);
+  const creaciones = useCreacionesCompartibles(user?.uid, (materiales) => creacionesCompartibles(materiales, ['image', 'video']));
+  const abrirCreaciones = () => {
+    setVerCreaciones(true);
+    creaciones.abrir();
+  };
+  const agregarCreaciones = (elegidas: CreacionCompartible[]) => {
+    setVerCreaciones(false);
+    const { anadir, motivo } = queCabe(elegidas, {
+      fotos: attachedMedia.filter((m) => m.type === 'image').length,
+      video: attachedMedia.some((m) => m.type === 'video'),
+      encuesta: !!poll,
+      tope: topeImagenes,
+    });
+    if (motivo === 'video_con_encuesta') notify(t('composer.notAvailable'), t('composer.pollWithVideo'));
+    else if (motivo === 'video_solo') notify(t('composer.notAvailable'), t('composer.noVideoWithMedia'));
+    else if (motivo === 'tope') notify(t('composer.notAvailable'), t('composer.creationsTooMany', { tope: topeImagenes }));
+    if (anadir.length === 0) return;
+    setAttachedMedia((prev) => [
+      ...prev,
+      ...anadir.map((c) => ({
+        id: `creacion_${c.assetId}`,
+        type: c.tipo === 'video' ? ('video' as const) : ('image' as const),
+        uri: c.url,
+        assetId: c.assetId,
+        ...(c.ancho && c.alto ? { aspectRatio: c.ancho / c.alto } : {}),
+      })).filter((m) => !prev.some((p) => p.id === m.id)),
+    ]);
+    /* La herramienta con la que se hizo se PROPONE en «Cómo lo hice» (apagado): la marca, nunca el proveedor. */
+    const herramienta = anadir.map((c) => (c.experienceId ? getExperienceById(c.experienceId)?.name : undefined)).find(Boolean);
+    if (herramienta) setComoLoHice((b) => (b.editado || b.herramienta ? b : { ...b, herramienta }));
   };
 
   const ponerHashtag = () => {
@@ -764,6 +847,34 @@ const CreateScreen: React.FC = () => {
        */
       const assetIds: (string | null)[] = [];
       let videoAssetId: string | undefined;
+
+      /*
+       * LOS DOCUMENTOS VAN PRIMERO (orden del dueño, R9 · D). Se suben antes que nada y antes de crear la publicación:
+       * si uno falla, NO se crea el post, se dice y «Publicar» se puede volver a tocar; los que ya subieron se reutilizan
+       * (`documentosSubidos`) y no se duplican. Si lo que falla es guardar el post, reintentar publica con esos mismos
+       * documentos ya subidos. Lo que queda sin resolver: un PDF que subió y cuya publicación nunca se crea (la persona
+       * cierra la pantalla) se queda HUÉRFANO en Storage, porque la app no puede borrar (`delete: false`). Limitación
+       * conocida; la propuesta es un barrido de servidor que retire los `documents/posts/*` sin publicación que los
+       * nombre pasadas 24 h (docs/ACTIVOS-POLITICA-STORAGE.md: quien borra es el servidor).
+       */
+      const documents: DocumentoDePost[] = [];
+      for (let i = 0; i < documentos.length; i++) {
+        const d = documentos[i];
+        const yaSubido = documentosSubidos[d.id];
+        if (yaSubido) { documents.push(yaSubido); continue; }
+        try {
+          setSubida({ n: i + 1, total: documentos.length });
+          const { url, bytes } = await uploadPostDocument(d, userProfile?.uid || user.uid);
+          const subido: DocumentoDePost = { url, nombre: d.nombre, tipo: TIPO_PDF, bytes };
+          documents.push(subido);
+          setDocumentosSubidos((prev) => ({ ...prev, [d.id]: subido }));
+        } catch (error) {
+          console.error('Error uploading document:', error);
+          notify(t('composer.documentUploadFailed'), t('composer.uploadErrorBody'));
+          setIsPublishing(false);
+          return;
+        }
+      }
 
       if (attachedMedia.length > 0) {
         const isVideoPost = attachedMedia[0].type === 'video';
@@ -866,6 +977,8 @@ const CreateScreen: React.FC = () => {
          */
         ...(assetIds.some(Boolean) ? { assetIds } : {}),
         ...(videoAssetId ? { videoAssetId } : {}),
+        /* Los PDF: su referencia y lo que se enseña (nombre, tipo, tamaño). Nada del archivo vive en la publicación. */
+        ...(documents.length > 0 ? { documents } : {}),
         // El contexto y el lugar: cada uno por su lado, y solo si existen.
         ...(sourceSection ? { sourceSection } : {}),
         // Solo el lugar estructurado: las publicaciones nuevas no escriben
@@ -941,6 +1054,8 @@ const CreateScreen: React.FC = () => {
       // Limpiar formulario
       setPostText('');
       setAttachedMedia([]);
+      setDocumentos([]);
+      setDocumentosSubidos({});
       setSubida(null);
       setPoll(null);
 
@@ -1015,120 +1130,71 @@ const CreateScreen: React.FC = () => {
   const fotosPuestas = attachedMedia.filter((m) => m.type === 'image').length;
 
   /*
-   * ─── Las herramientas del compositor ──────────────────────────────────────
+   * ─── La barra (referencia del dueño, R9) ──────────────────────────────────
    *
-   * UNA FILA, las seis a la vista, sin "Más" ni "…" ni nada que desplegar. Cada
-   * una es un icono de trazo fino dentro de un cuadrado muy suave y su nombre
-   * debajo: se ve de un golpe todo lo que cabe en una publicación y se toca sin
-   * apuntar. La que ya está puesta se enciende —fondo dorado pálido, icono
-   * dorado—, así que la fila también dice qué lleva la publicación.
-   *
-   * `acento` es para Mis proyectos: no es un adjunto, es una puerta al
-   * ecosistema de Weë Creator, y el icono dorado lo dice sin cambiar la fila.
+   * Una tarjeta blanca de borde fino y esquinas redondeadas con CINCO acciones repartidas a partes iguales: icono de
+   * trazo negro y su nombre debajo. El nombre puede ir en dos líneas, y se parte por el espacio («Mis / creaciones»),
+   * nunca a mitad de palabra: cada columna se lleva su quinta parte y la letra es pequeña. La que ya está puesta se
+   * marca con su recuento o en negrita; la que no cabe se apaga.
    */
-  const Accion: React.FC<{ icono: string; texto: string; onPress: () => void; apagada?: boolean; activa?: boolean; insignia?: string; acento?: boolean }> = ({ icono, texto, onPress, apagada, activa, insignia, acento }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={apagada}
-      activeOpacity={0.7}
-      style={[styles.accion, apagada && styles.accionApagada]}
-      accessibilityRole="button"
-      accessibilityLabel={insignia ? t('composer.actionWithBadge', { accion: texto, insignia }) : texto}
-      accessibilityState={{ disabled: !!apagada, selected: !!activa }}
-    >
-      <View
-        style={[
-          styles.accionIcono,
-          {
-            backgroundColor: activa ? theme.colors.surface : theme.colors.background,
-            borderColor: activa ? theme.colors.text : theme.colors.border,
-          },
-        ]}
+  const Accion: React.FC<{ icono: string; familia?: 'mci'; texto: string; onPress: () => void; apagada?: boolean; activa?: boolean; insignia?: string }> = ({ icono, familia, texto, onPress, apagada, activa, insignia }) => {
+    const color = apagada ? theme.colors.textSecondary : theme.colors.text;
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={apagada}
+        activeOpacity={0.7}
+        style={[styles.accion, apagada && styles.accionApagada]}
+        accessibilityRole="button"
+        accessibilityLabel={insignia ? t('composer.actionWithBadge', { accion: texto, insignia }) : texto}
+        accessibilityState={{ disabled: !!apagada, selected: !!activa }}
       >
-        <Ionicons
-          name={icono as any}
-          size={scale(22)}
-          color={apagada ? theme.colors.textSecondary : acento ? theme.colors.accentDark : theme.colors.text}
-        />
-        {/*
-          El recuento va en la esquina del icono, no dentro del nombre: metido en
-          el texto ("Multimedia 3/10") el nombre no cabía y se cortaba.
-        */}
-        {!!insignia && (
-          <View style={[styles.accionInsignia, { backgroundColor: theme.colors.accent }]}>
-            <Text style={styles.accionInsigniaTexto}>{insignia}</Text>
-          </View>
-        )}
-      </View>
-      <Text style={[styles.accionTexto, { color: activa ? theme.colors.text : theme.colors.textSecondary }]} numberOfLines={1}>
-        {texto}
-      </Text>
-    </TouchableOpacity>
-  );
+        <View style={styles.accionIcono}>
+          {familia === 'mci'
+            ? <MaterialCommunityIcons name={icono as any} size={scale(25)} color={color} />
+            : <Ionicons name={icono as any} size={scale(24)} color={color} />}
+          {/* El recuento va en la esquina del icono, no dentro del nombre. */}
+          {!!insignia && (
+            <View style={[styles.accionInsignia, { backgroundColor: theme.colors.text }]}>
+              <Text style={[styles.accionInsigniaTexto, { color: theme.colors.background }]}>{insignia}</Text>
+            </View>
+          )}
+        </View>
+        <Text style={[styles.accionTexto, { color, fontWeight: activa ? '700' : '400' }]} numberOfLines={2}>
+          {texto}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   /*
-   * R9 (referencia del dueño): Foto · Vídeo · Archivo · Enlace · Hashtag, iconos de trazo fino en un cuadrado de borde
-   * gris claro y su nombre debajo. Las tres primeras son el MISMO selector de siempre con lo que cada una pide; Enlace
-   * abre un campo pequeño que lo pega al texto; Hashtag escribe «#» en el texto.
-   *
-   * La Encuesta sigue al final: es su única puerta en la app (la entrada del Home abre el compositor sin desplegar y no la
-   * enseña) y quitarla dejaría la función viva y sin forma de usarla. ËContact y Ubicación pasan a sus filas, debajo;
-   * Mis proyectos sigue en el menú ☰ (WEË AI) y deja de estar aquí.
+   * Foto/vídeo · Archivo · Mis creaciones · Encuesta · Hashtag. La Encuesta se queda: es su única puerta (decisión del
+   * dueño). ËContact y Ubicación están en sus filas; un enlace se pega en el texto; Mis proyectos sigue en el menú ☰.
    */
   const conVideo = attachedMedia.some((m) => m.type === 'video');
   const renderAcciones = () => (
-    <View style={styles.acciones}>
+    <View style={[styles.acciones, { borderColor: theme.colors.border, backgroundColor: theme.colors.background }]}>
       <Accion
         icono="image-outline"
-        texto={t('composer.toolPhoto')}
+        texto={t('composer.photoOrVideo')}
         insignia={fotosPuestas > 0 ? `${fotosPuestas}/${topeImagenes}` : undefined}
-        onPress={elegirFoto}
+        onPress={elegirFotoOVideo}
         apagada={sinSitioParaMedios}
-        activa={fotosPuestas > 0}
+        activa={attachedMedia.length > 0}
       />
       <Accion
-        icono="videocam-outline"
-        texto={t('composer.toolVideo')}
-        onPress={() => void pickImageFromGallery('videos')}
-        apagada={attachedMedia.length > 0 || !!poll}
-        activa={conVideo}
+        icono="document-text-outline"
+        texto={t('composer.toolFile')}
+        insignia={documentos.length > 0 ? `${documentos.length}/${MAX_DOCUMENTOS}` : undefined}
+        onPress={() => void elegirDocumentos()}
+        apagada={documentos.length >= MAX_DOCUMENTOS}
+        activa={documentos.length > 0}
       />
-      <Accion icono="document-text-outline" texto={t('composer.toolFile')} onPress={() => void pickImageFromGallery('todo')} apagada={sinSitioParaMedios} />
-      <Accion icono="link-outline" texto={t('composer.toolLink')} onPress={() => setEnlaceAbierto((v) => !v)} activa={enlaceAbierto} />
-      <Accion icono="pricetag-outline" texto={t('composer.toolHashtag')} onPress={ponerHashtag} />
+      <Accion icono="folder-open-outline" texto={t('creaciones.title')} onPress={abrirCreaciones} apagada={sinSitioParaMedios} activa={attachedMedia.some((m) => !!m.assetId)} />
       <Accion icono="bar-chart-outline" texto={t('composer.poll')} onPress={handlePollPress} activa={!!poll} />
+      <Accion icono="pound" familia="mci" texto={t('composer.toolHashtag')} onPress={ponerHashtag} />
     </View>
   );
-
-  /* Enlace: un campo de una línea y «Añadir». Lo pegado va al final del texto; un enlace mal formado se dice. */
-  const renderEnlace = () =>
-    enlaceAbierto ? (
-      <View style={[styles.enlaceFila, { borderColor: theme.colors.border }]}>
-        <Ionicons name="link-outline" size={scale(18)} color={theme.colors.textSecondary} />
-        <TextInput
-          style={[styles.enlaceCampo, { color: theme.colors.text }]}
-          value={enlace}
-          onChangeText={setEnlace}
-          placeholder={t('composer.linkPlaceholder')}
-          placeholderTextColor={theme.colors.textSecondary}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          onSubmitEditing={ponerEnlace}
-          accessibilityLabel={t('composer.linkPlaceholder')}
-        />
-        <TouchableOpacity
-          onPress={ponerEnlace}
-          disabled={!enlace.trim()}
-          style={[styles.enlaceBoton, { backgroundColor: enlace.trim() ? theme.colors.text : theme.colors.border }]}
-          accessibilityRole="button"
-          accessibilityLabel={t('composer.linkAdd')}
-          accessibilityState={{ disabled: !enlace.trim() }}
-        >
-          <Text style={[styles.enlaceBotonTexto, { color: enlace.trim() ? theme.colors.background : theme.colors.textSecondary }]}>{t('composer.linkAdd')}</Text>
-        </TouchableOpacity>
-      </View>
-    ) : null;
 
   /*
    * ─── Las filas (referencia R9) ────────────────────────────────────────────
@@ -1402,6 +1468,33 @@ const CreateScreen: React.FC = () => {
     </View>
   );
 
+  /* Los PDF del borrador: icono, nombre, tamaño y su aspa. Van bajo las fotos y el vídeo. */
+  const renderDocumentos = () =>
+    documentos.length > 0 ? (
+      <View style={styles.documentos}>
+        {documentos.map((d) => {
+          const { clave, valor } = tamanoParaLeer(d.bytes);
+          return (
+            <View key={d.id} style={[styles.documento, { borderColor: theme.colors.border }]}>
+              <Ionicons name="document-text-outline" size={scale(22)} color={theme.colors.text} />
+              <View style={styles.documentoTextos}>
+                <Text style={[styles.documentoNombre, { color: theme.colors.text }]} numberOfLines={1}>{d.nombre}</Text>
+                <Text style={[styles.documentoMeta, { color: theme.colors.textSecondary }]}>{t('wall.documentMeta', { tipo: 'PDF', tamano: t(clave, { tamano: formato?.numero ? formato.numero(valor) : String(valor) }) })}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => quitarDocumento(d.id)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel={t('composer.removeDocument', { nombre: d.nombre })}
+              >
+                <Ionicons name="close" size={scale(18)} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </View>
+    ) : null;
+
   const renderMediaPreview = () => {
     if (attachedMedia.length === 0) return null;
 
@@ -1516,6 +1609,7 @@ const CreateScreen: React.FC = () => {
           placeholderTextColor={theme.colors.textSecondary}
           value={poll.question}
           onChangeText={handlePollQuestionChange}
+          accessibilityLabel={t('composer.pollQuestionPlaceholder')}
           maxLength={MAX_PREGUNTA}
           multiline
         />
@@ -1534,6 +1628,7 @@ const CreateScreen: React.FC = () => {
               placeholderTextColor={theme.colors.textSecondary}
               value={option.text}
               onChangeText={(text) => handlePollOptionChange(option.id, text)}
+              accessibilityLabel={t('composer.pollOptionPlaceholder', { numero: index + 1 })}
               maxLength={MAX_OPCION}
             />
             {poll.options.length > minPollOptions && (
@@ -1729,10 +1824,10 @@ const CreateScreen: React.FC = () => {
           */}
           {renderTextInput()}
           {renderMediaPreview()}
+          {renderDocumentos()}
           {renderLugar()}
           {renderPoll()}
           {renderAcciones()}
-          {renderEnlace()}
           {renderFilas()}
           {conOrigenDeWee && renderCompartirProceso()}
         </ScrollView>
@@ -1770,6 +1865,16 @@ const CreateScreen: React.FC = () => {
           </View>
         </View>
       )}
+
+      {/* Mis creaciones: una hoja encima del borrador; lo elegido entra con las reglas del compositor. */}
+      <HojaDeCreaciones
+        visible={verCreaciones}
+        estado={creaciones.estado}
+        onCerrar={() => setVerCreaciones(false)}
+        onReintentar={() => void creaciones.cargar()}
+        onVerMas={() => void creaciones.cargar(true)}
+        onElegir={agregarCreaciones}
+      />
 
       {/* La revisión de «Cómo lo hice»: una hoja encima; el borrador sigue aquí. Solo se monta encendido. */}
       {conOrigenDeWee && comoLoHice.activo && (
@@ -1860,40 +1965,46 @@ const styles = StyleSheet.create({
    * su nombre y se reparten el ancho; si en un teléfono muy estrecho no caben,
    * la última baja de línea en vez de cortarse.
    */
+  /*
+   * La tarjeta de la barra: borde fino gris, esquinas redondeadas, cinco columnas iguales (`flex: 1`). Sin alto fijo: si
+   * un nombre va en dos líneas, la tarjeta crece. La letra es pequeña para que la palabra más larga («creaciones») quepa
+   * entera en su columna en un teléfono de 360 de ancho; se parte por los espacios, no por dentro de la palabra.
+   */
   acciones: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    rowGap: SPACING.md,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: scale(2),
     marginTop: SPACING.lg,
   },
   accion: {
+    flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     gap: scale(6),
-    minWidth: scale(48),
+    minHeight: 44,
   },
   accionApagada: {
-    opacity: 0.4,
+    opacity: 0.45,
   },
-  /* El cuadrado suave del icono: 48 de lado, se toca sin apuntar. */
   accionIcono: {
-    width: scale(48),
-    height: scale(48),
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
+    height: scale(28),
     alignItems: 'center',
     justifyContent: 'center',
   },
   accionTexto: {
     fontSize: scale(11),
-    fontWeight: FONT_WEIGHT.medium,
+    lineHeight: scale(14),
+    textAlign: 'center',
+    paddingHorizontal: 1,
   },
   /* El recuento de fotos, en la esquina del icono y sin tocar el nombre. */
   accionInsignia: {
     position: 'absolute',
     top: -scale(4),
-    right: -scale(4),
+    right: -scale(14),
     paddingHorizontal: scale(5),
     paddingVertical: scale(1),
     borderRadius: BORDER_RADIUS.full,
@@ -1901,10 +2012,35 @@ const styles = StyleSheet.create({
   accionInsigniaTexto: {
     fontSize: scale(10),
     fontWeight: FONT_WEIGHT.bold,
-    color: '#1F2937',
     fontVariant: ['tabular-nums'],
   },
   /* Un separador de un pelo entre las herramientas y dónde se publica. */
+  documentos: {
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+  },
+  documento: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    minHeight: 52,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  documentoTextos: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  documentoNombre: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.semibold,
+  },
+  documentoMeta: {
+    fontSize: FONT_SIZE.xs,
+  },
   /* Las filas de R9: icono, la pregunta, lo puesto y el chevrón; 52 de alto mínimo, sin alto fijo. */
   fila: {
     flexDirection: 'row',
@@ -1921,35 +2057,6 @@ const styles = StyleSheet.create({
   filaValor: {
     maxWidth: '40%',
     fontSize: FONT_SIZE.sm,
-  },
-  /* El campo de Enlace: una línea con borde fino y «Añadir». */
-  enlaceFila: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    borderWidth: 1,
-    borderRadius: BORDER_RADIUS.lg,
-    paddingLeft: SPACING.md,
-    paddingRight: SPACING.xs,
-    minHeight: 48,
-    marginTop: SPACING.md,
-  },
-  enlaceCampo: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: FONT_SIZE.base,
-    paddingVertical: SPACING.sm,
-  },
-  enlaceBoton: {
-    minHeight: 36,
-    paddingHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  enlaceBotonTexto: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: FONT_WEIGHT.semibold,
   },
   separador: {
     height: StyleSheet.hairlineWidth,

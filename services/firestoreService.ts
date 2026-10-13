@@ -27,6 +27,7 @@ import { asegurarPerfilReal, asegurarPerfilWee, conUnaSolaEnVuelo, idDelPerfilRe
 import { identidadWeeDe } from '../utils/econtactModel';
 import { campoQueResuelve } from '../utils/identidadPublica';
 import type { PasoGuardado } from '../utils/comoLoHice';
+import type { DocumentoDePost } from '../utils/documentosDePublicacion';
 import { ErrorConClave } from '../i18n/servidor';
 
 // Tipos para las colecciones principales
@@ -114,6 +115,8 @@ export interface Post {
    * escribió la persona van como texto. Opcional: sin él se lee `aiProcess`. Ver `utils/comoLoHice.ts`.
    */
   aiSteps?: PasoGuardado[];
+  /** Documentos PDF adjuntos (R9 · D): referencia al Storage de Weë, nombre, tipo y tamaño. Ver utils/documentosDePublicacion.ts. */
+  documents?: DocumentoDePost[];
 
   // === NUEVO: Sistema de comunidades ===
   communityId?: string; // ID de la comunidad (requerido para nuevos posts)

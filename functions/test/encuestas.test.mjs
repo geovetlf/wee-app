@@ -692,7 +692,8 @@ check('151) el tope de fotos baja a una cuando hay encuesta', /const topeImagene
 check('152) tener encuesta ya no apaga la cámara por sí solo', !/const sinSitioParaMedios = [^;]*poll !== null/.test(crear));
 // Los tres caminos por los que podría colarse un vídeo: la galería web, la
 // nativa y el propio botón de encuesta cuando ya hay un vídeo puesto.
-check('153) el vídeo con encuesta se rechaza por los tres caminos', (crear.match(/Una encuesta puede llevar una foto, pero no un vídeo/g) || []).length === 3);
+/* R9 · D: el cuarto camino es «Mis creaciones» (un vídeo creado con Weë tampoco entra con encuesta). */
+check('153) el vídeo con encuesta se rechaza por los cuatro caminos', (crear.match(/Una encuesta puede llevar una foto, pero no un vídeo/g) || []).length === 4);
 
 // ═════════════════════════════════════════════════════════════════════════════
 console.log('\n── M) El compositor: entrar en modo encuesta ──');
@@ -719,7 +720,7 @@ check('157) "question" sigue siendo una pregunta de texto, no una encuesta',
 check('158) y no monta ninguna encuesta', !/presetKind === 'question'[\s\S]{0,80}encuestaVacia/.test(crear));
 
 // La encuesta es contenido por sí sola.
-check('159) una encuesta sin texto libre se puede publicar', /const hasContent = postText\.trim\(\)\.length > 0 \|\| attachedMedia\.length > 0 \|\| poll !== null;/.test(crear));
+check('159) una encuesta sin texto libre se puede publicar', /const hasContent = postText\.trim\(\)\.length > 0 \|\| attachedMedia\.length > 0 \|\| poll !== null \|\| documentos\.length > 0;/.test(crear));
 check('160) y una encuesta a medias, no', /const canPublish = hasContent && !isTextOverLimit && !isPublishing && isPollValid;/.test(crear));
 check('161) quien decide si está a medias es el validador ejecutable', /const validacionPoll = poll \? validarEncuesta\(poll\) : /.test(crear));
 check('162) la pantalla no reimplementa ninguna regla de encuesta', !/options\.length >= minPollOptions &&/.test(crear));

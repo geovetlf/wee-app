@@ -935,7 +935,8 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    */
   check('110) las acciones van en mosaicos, no en una barra al fondo', /const renderAcciones = \(\) => \(/.test(crear) && !/renderToolbar/.test(crear));
   /* R9 (referencia del dueño): la barra es Foto · Vídeo · Archivo · Enlace · Hashtag (+ Encuesta). Igual que composer.test.mjs. */
-  check('110) y cada una dice lo que hace, no solo un icono', ['Foto', 'Vídeo', 'Archivo', 'Enlace', 'Hashtag', 'Encuesta'].every((t) => crear.includes(`texto="${t}"`)));
+  /* R9 (referencia del dueño, 2.ª barra): Foto o vídeo · Archivo · Mis creaciones · Encuesta · Hashtag. Sin Enlace: se pega en el texto. */
+  check('110) y cada una dice lo que hace, no solo un icono', ['Foto o vídeo', 'Archivo', 'Mis creaciones', 'Encuesta', 'Hashtag'].every((t) => crear.includes(`texto="${t}"`)) && !crear.includes('texto="Enlace"'));
   // Amigos tiene su sitio pero no engaña: apagado y avisando de que llega después.
   /*
    * ËContact será el nombre de la red de conexiones de Weë en todos los idiomas.
@@ -983,9 +984,9 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * que se arrastraba, y arrastrando se escondían la mitad: quien no lo hacía
    * nunca supo que había encuesta. Ahora las cinco están a la vista en dos filas.
    */
-  check('110) las herramientas van en una sola fila, las seis a la vista y sin arrastrar',
-    /acciones: \{\s*flexDirection: 'row',\s*flexWrap: 'wrap',\s*justifyContent: 'space-between'/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear) && !/accionesFila/.test(crear));
-  check('110) el recuento no se mete dentro del nombre del botón', /texto="Foto"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
+  check('110) las herramientas van en una tarjeta de una fila, las cinco a la vista y sin arrastrar',
+    /acciones: \{\s*flexDirection: 'row',\s*alignItems: 'flex-start',\s*borderWidth: 1,/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear) && !/accionesFila/.test(crear));
+  check('110) el recuento no se mete dentro del nombre del botón', /texto="Foto o vídeo"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
   check('110) y el campo de texto es una hoja grande que crece, no un hueco fijo', /textInput: \{\s*minHeight: scale\(150\),/.test(crear) && !/minHeight: scale\(220\)/.test(crear));
 
   /*
@@ -1008,7 +1009,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    */
   check('111b) el hueco del check está reservado siempre', /styles\.destinoCheck,/.test(crear) && /destinoCheck: \{\s*width: scale\(20\),\s*height: scale\(20\)/.test(crear));
   check('111b) y el peso de la letra no cambia al elegir', !/fontWeight: elegido \?/.test(crear));
-  check('110) el botón se enciende cuando ya lleva algo puesto', /activa=\{fotosPuestas > 0\}/.test(crear) && /activa=\{conVideo\}/.test(crear) && /activa=\{!!poll\}/.test(crear));
+  check('110) el botón se enciende cuando ya lleva algo puesto', /activa=\{attachedMedia\.length > 0\}/.test(crear) && /activa=\{documentos\.length > 0\}/.test(crear) && /activa=\{!!poll\}/.test(crear));
 
   // Publicar exige contenido: ni texto vacío ni una publicación en blanco.
   check('111) no se publica sin contenido', /const canPublish = hasContent && !isTextOverLimit && !isPublishing && isPollValid;/.test(crear));

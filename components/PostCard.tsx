@@ -21,6 +21,7 @@ import { Image } from 'expo-image';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import HowIMadeIt from './HowIMadeIt';
+import DocumentosDelPost from './DocumentosDelPost';
 import WeeTag from './WeeTag';
 import { seccionDe } from '../utils/sectionFeed';
 import { banderaDe, etiquetaDeLugar } from '../data/places';
@@ -1427,6 +1428,8 @@ const PostCard: React.FC<PostCardProps> = ({
         </TouchableOpacity>
         {/* Video rendered outside the content TouchableOpacity so taps reach onVideoPress */}
         {!!(displayPost.videoUrl && onVideoPress) && renderMedia()}
+        {/* Los documentos PDF (R9 · D), fuera del toque del contenido: tocarlos abre el documento, no la publicación. */}
+        <DocumentosDelPost documentos={displayPost.documents} />
       </View>
 
       {/*

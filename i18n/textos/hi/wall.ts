@@ -104,4 +104,10 @@ export const wall: typeof import('../es/wall').wall = {
   howExpand: 'मैंने कैसे बनाया, दिखाएँ',
   howCollapse: 'मैंने कैसे बनाया, छिपाएँ',
   howStepNumber: '{{n}}.',
+  /* R9 · Crear: documentos PDF y «Mis creaciones» en el compositor */
+  documentMeta: '{{tipo}} · {{tamano}}',
+  documentSizeKb: '{{tamano}} KB',
+  documentSizeMb: '{{tamano}} MB',
+  openDocument: '“{{nombre}}” खोलें',
+  documentOpenFailed: 'दस्तावेज़ नहीं खुल सका.',
 };

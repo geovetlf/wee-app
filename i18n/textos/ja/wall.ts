@@ -88,4 +88,10 @@ export const wall: typeof import('../es/wall').wall = {
   howExpand: '作り方を表示',
   howCollapse: '作り方を隠す',
   howStepNumber: '{{n}}.',
+  /* R9 · Crear: documentos PDF y «Mis creaciones» en el compositor */
+  documentMeta: '{{tipo}}・{{tamano}}',
+  documentSizeKb: '{{tamano}}キロバイト',
+  documentSizeMb: '{{tamano}}メガバイト',
+  openDocument: '「{{nombre}}」を開く',
+  documentOpenFailed: '文書を開けませんでした。',
 };

@@ -268,8 +268,14 @@ export interface OrigenDelBorrador {
 
 export const tieneOrigenDeWee = (prefill: OrigenDelBorrador | null | undefined, adjuntos: { assetId?: string }[]): boolean => {
   const p = prefill || {};
+  /*
+   * Un material de la cuenta en el borrador ES origen, llegue con el `prefill` o se elija en el propio compositor
+   * («Creaciones», que solo ofrece lo HECHO CON WEË: `utils/creacionesCompartibles.ts`). Ningún adjunto de la galería
+   * lleva `assetId`.
+   */
+  if (adjuntos.some((m) => typeof m.assetId === 'string' && m.assetId.length > 0)) return true;
   const traiaMaterial = Array.isArray(p.media) && (p.media as unknown[]).some((m) => esObjeto(m) && typeof m.assetId === 'string' && m.assetId.length > 0);
-  if (traiaMaterial) return adjuntos.some((m) => typeof m.assetId === 'string' && m.assetId.length > 0);
+  if (traiaMaterial) return false;
   return (typeof p.jobId === 'string' && p.jobId.length > 0)
     || (Array.isArray(p.aiTools) && (p.aiTools as unknown[]).some((x) => texto(x).trim().length > 0))
     || !!pasoValido(p.aiResumen)

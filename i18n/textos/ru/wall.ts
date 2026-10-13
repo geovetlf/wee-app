@@ -101,4 +101,10 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   howExpand: 'Показать, как это сделано',
   howCollapse: 'Скрыть, как это сделано',
   howStepNumber: '{{n}}.',
+  /* R9 · Crear: documentos PDF y «Mis creaciones» en el compositor */
+  documentMeta: '{{tipo}} · {{tamano}}',
+  documentSizeKb: '{{tamano}} КБ',
+  documentSizeMb: '{{tamano}} МБ',
+  openDocument: 'Открыть «{{nombre}}»',
+  documentOpenFailed: 'Не удалось открыть документ.',
 };

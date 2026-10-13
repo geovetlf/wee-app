@@ -130,6 +130,23 @@ service firebase.storage {
       allow update, delete: if false;
     }
 
+    // === Documentos PDF de las publicaciones (R9 · D, aprobado por el dueño el 2026-10-13) ===
+    // Los sube quien firma la publicación: `userId` es la cara que publica, la misma que `post.userId` —la real
+    // (`<uid>`) o la Weë (`hidi_<uid>`), las dos de ESTA cuenta, igual que exige `firestore.rules` al crear un post—.
+    // Solo PDF (`application/pdf`; el cliente comprueba además la cabecera `%PDF-` antes de subir) y hasta 10 MB.
+    // Lectura pública, como las imágenes de posts: toda publicación de Weë es pública (`posts`: `allow read: if true`)
+    // y el documento se abre desde la publicación. Ni se sobrescribe, ni se cambia, ni se borra desde la app (la
+    // política de arriba); retirarlo es cosa del servidor.
+    match /documents/posts/{userId}/{fileName} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && (request.auth.uid == userId || ("hidi_" + request.auth.uid) == userId)
+                    && resource == null
+                    && request.resource.size <= 10 * 1024 * 1024
+                    && request.resource.contentType == 'application/pdf';
+      allow update, delete: if false;
+    }
+
     // Catch-all explícito: cualquier otra ruta queda denegada. Un `allow` que no
     // concede nada no cambia el resultado de las demás reglas.
     match /{allPaths=**} {

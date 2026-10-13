@@ -88,7 +88,8 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
    */
   check('110) las acciones van en mosaicos, no en una barra al fondo', /const renderAcciones = \(\) => \(/.test(crear) && !/renderToolbar/.test(crear));
   /* R9 (referencia del dueño): la barra es Foto · Vídeo · Archivo · Enlace · Hashtag (+ Encuesta, su única puerta). */
-  check('110) y cada una dice lo que hace, no solo un icono', ['Foto', 'Vídeo', 'Archivo', 'Enlace', 'Hashtag', 'Encuesta'].every((t) => crear.includes(`texto="${t}"`)));
+  /* R9 (referencia del dueño, 2.ª barra): Foto o vídeo · Archivo · Mis creaciones · Encuesta · Hashtag. Sin Enlace: se pega en el texto. */
+  check('110) y cada una dice lo que hace, no solo un icono', ['Foto o vídeo', 'Archivo', 'Mis creaciones', 'Encuesta', 'Hashtag'].every((t) => crear.includes(`texto="${t}"`)) && !crear.includes('texto="Enlace"'));
 
   /*
    * ËContact es el nombre de la red de conexiones de Weë en todos los idiomas.
@@ -109,10 +110,10 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
    * ËContact, Ubicación, Encuesta. Se comprueba sobre el sitio donde se dibujan,
    * no sobre el archivo entero, porque los nombres aparecen también en estilos.
    */
-  const bloqueAcciones = crear.slice(crear.indexOf('const renderAcciones'), crear.indexOf('const renderEnlace'));
+  const bloqueAcciones = crear.slice(crear.indexOf('const renderAcciones'), crear.indexOf('const Fila'));
   const ordenAcciones = [...bloqueAcciones.matchAll(/texto="([^"]+)"/g)].map((m) => m[1]);
-  check('110) las acciones van en el orden de R9', ordenAcciones.join(' · ') === 'Foto · Vídeo · Archivo · Enlace · Hashtag · Encuesta', ordenAcciones.join(' · '));
-  check('110) CONTROL: la barra de antes ya no está (Cámara, Multimedia, ËContact, Ubicación, Mis proyectos)', !['Cámara', 'Multimedia', 'ËContact', 'Ubicación', 'Mis proyectos'].some((t) => bloqueAcciones.includes(`texto="${t}"`)));
+  check('110) las acciones van en el orden de la referencia', ordenAcciones.join(' · ') === 'Foto o vídeo · Archivo · Mis creaciones · Encuesta · Hashtag', ordenAcciones.join(' · '));
+  check('110) CONTROL: la barra de antes ya no está (Cámara, Multimedia, ËContact, Ubicación, Mis proyectos, Enlace, Foto y Vídeo sueltos)', !['Cámara', 'Multimedia', 'ËContact', 'Ubicación', 'Mis proyectos', 'Enlace', 'Foto', 'Vídeo'].some((t) => bloqueAcciones.includes(`texto="${t}"`)));
 
   /*
    * `MediaTypeOptions.All` está obsoleto y en el teléfono llegaba al selector de
@@ -168,9 +169,9 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
    * que se arrastraba, y arrastrando se escondían la mitad: quien no lo hacía
    * nunca supo que había encuesta. Ahora las cinco están a la vista en dos filas.
    */
-  check('110) las herramientas van en una sola fila, las seis a la vista y sin arrastrar',
-    /acciones: \{\s*flexDirection: 'row',\s*flexWrap: 'wrap',\s*justifyContent: 'space-between'/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear) && !/accionesFila/.test(crear));
-  check('110) el recuento no se mete dentro del nombre del botón', /texto="Foto"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
+  check('110) las herramientas van en una tarjeta de una fila, las cinco a la vista y sin arrastrar',
+    /acciones: \{\s*flexDirection: 'row',\s*alignItems: 'flex-start',\s*borderWidth: 1,/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear) && !/accionesFila/.test(crear));
+  check('110) el recuento no se mete dentro del nombre del botón', /texto="Foto o vídeo"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
   check('110) y el campo de texto es una hoja grande que crece, no un hueco fijo', /textInput: \{\s*minHeight: scale\(150\),/.test(crear) && !/minHeight: scale\(220\)/.test(crear));
 
   /*
@@ -192,7 +193,7 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
    */
   check('111b) el hueco del check está reservado siempre', /styles\.destinoCheck,/.test(crear) && /destinoCheck: \{\s*width: scale\(20\),\s*height: scale\(20\)/.test(crear));
   check('111b) y el peso de la letra no cambia al elegir', !/fontWeight: elegido \?/.test(crear));
-  check('110) el botón se enciende cuando ya lleva algo puesto', /activa=\{fotosPuestas > 0\}/.test(crear) && /activa=\{conVideo\}/.test(crear) && /activa=\{!!poll\}/.test(crear));
+  check('110) el botón se enciende cuando ya lleva algo puesto', /activa=\{attachedMedia\.length > 0\}/.test(crear) && /activa=\{documentos\.length > 0\}/.test(crear) && /activa=\{!!poll\}/.test(crear));
   check('110) la fila de ubicación dice lo puesto', /valor=\{valorDeUbicacion\}/.test(crear) && /etiquetaDeLugar\(\{ place \}, locale\)/.test(crear));
 
   // Publicar exige contenido: ni texto vacío ni una publicación en blanco.
@@ -389,7 +390,7 @@ console.log('\n── 127 · El workspace «Crear publicación» (R9) ──');
   const pila = leer('navigation/MainStackNavigator.tsx');
   const pestanas = leer('navigation/TabNavigator.tsx');
   const bloque = (desde, hasta) => crudo.slice(crudo.indexOf(desde), crudo.indexOf(hasta));
-  const acciones = bloque('const renderAcciones', 'const renderEnlace');
+  const acciones = bloque('const renderAcciones', 'const Fila');
   const filas = bloque('const renderFilas', 'const nombreDelDestino');
   const destinosJsx = bloque('const renderDestinos', 'const renderEContacts');
   /* R9: el único Publicar es el de la cabecera. */
@@ -446,14 +447,16 @@ console.log('\n── 127 · El workspace «Crear publicación» (R9) ──');
 
   /* Las herramientas: seis, en una fila, sin Más. */
   const orden = [...acciones.matchAll(/texto="([^"]+)"/g)].map((m) => m[1]);
-  check('127e) las herramientas de R9 en su orden', orden.join(' · ') === 'Foto · Vídeo · Archivo · Enlace · Hashtag · Encuesta', orden.join(' · '));
+  check('127e) las herramientas de la referencia en su orden', orden.join(' · ') === 'Foto o vídeo · Archivo · Mis creaciones · Encuesta · Hashtag', orden.join(' · '));
   check('127e) sin "Más", sin "…", sin chevron', !/texto="Más"|ellipsis-horizontal|chevron-down|>Más<\/Text>/.test(acciones));
   check('127e) cada una es un botón con icono de trazo, cuadrado suave y nombre debajo',
-    /const Accion: React\.FC/.test(crudo) && /accessibilityRole="button"/.test(bloque('const Accion', 'const renderAcciones')) && /styles\.accionIcono/.test(crudo) && /accionIcono: \{\s*width: scale\(48\),\s*height: scale\(48\),/.test(estilos) && /-outline"/.test(acciones));
+    /const Accion: React\.FC/.test(crudo) && /accessibilityRole="button"/.test(bloque('const Accion', 'const renderAcciones')) && /styles\.accionIcono/.test(crudo) && /accionIcono: \{\s*height: scale\(28\),/.test(estilos) && /-outline"/.test(acciones) && /numberOfLines=\{2\}/.test(bloque('const Accion', 'const renderAcciones')));
   check('127e) y anuncia si está puesta o apagada', /accessibilityState=\{\{ disabled: !!apagada, selected: !!activa \}\}/.test(crudo));
-  check('127e) Foto, con su recuento, abre cámara o galería; Vídeo y Archivo, el mismo selector', /texto="Foto"[\s\S]{0,200}onPress=\{elegirFoto\}/.test(acciones) && /insignia=\{fotosPuestas > 0 \? `\$\{fotosPuestas\}\/\$\{topeImagenes\}` : undefined\}/.test(acciones)
-    && /texto="Vídeo"[\s\S]{0,80}pickImageFromGallery\('videos'\)/.test(acciones) && /texto="Archivo" onPress=\{\(\) => void pickImageFromGallery\('todo'\)\}/.test(acciones));
-  check('127e) Enlace abre su campo, Hashtag escribe en el texto y Encuesta la suya', /texto="Enlace" onPress=\{\(\) => setEnlaceAbierto/.test(acciones) && /texto="Hashtag" onPress=\{ponerHashtag\}/.test(acciones) && /texto="Encuesta" onPress=\{handlePollPress\}/.test(acciones));
+  check('127e) Foto o vídeo, con su recuento, abre cámara o galería; Archivo, el selector de DOCUMENTOS; Mis creaciones, su hoja',
+    /texto=\{t\('composer\.photoOrVideo'\)\}[\s\S]{0,200}onPress=\{elegirFotoOVideo\}/.test(leerCrudo('screens/CreateScreen.tsx')) && /insignia=\{fotosPuestas > 0 \? `\$\{fotosPuestas\}\/\$\{topeImagenes\}` : undefined\}/.test(acciones)
+    && /onPress=\{\(\) => void elegirDocumentos\(\)\}/.test(acciones) && /onPress=\{abrirCreaciones\}/.test(acciones)
+    && /DocumentPicker\.getDocumentAsync\(\{ type: TIPO_PDF, multiple: true/.test(crudo));
+  check('127e) Hashtag escribe en el texto y Encuesta abre la suya; un enlace no tiene botón', /texto="Hashtag" onPress=\{ponerHashtag\}/.test(acciones) && /texto="Encuesta" onPress=\{handlePollPress\}/.test(acciones) && !/Enlace|setEnlaceAbierto/.test(acciones));
   check('127e) las filas abren lo que ya existía: explicación, Agregar ubicación, la agenda y los destinos',
     /onPress=\{explicarVisibilidad\}/.test(filas) && /onPress=\{abrirUbicacion\}/.test(filas) && /setShowEContacts\(\(v\) => !v\)/.test(filas) && /setVerDestinos\(\(v\) => !v\)/.test(filas));
 
@@ -497,8 +500,8 @@ console.log('\n── 127 · El workspace «Crear publicación» (R9) ──');
   check('127j) el teclado se acomoda con la pieza común y un solo scroll vertical (la tira de adjuntos es horizontal)', /<EspacioDeEscritura/.test(crudo) && (crudo.match(/<ScrollView/g) || []).length === 2 && (crudo.match(/<ScrollView horizontal/g) || []).length === 1 && !/ScrollView\s+horizontal/.test(acciones));
   check('127j) el scroll deja pasar los toques con el teclado abierto', /keyboardShouldPersistTaps="handled"/.test(crudo));
   check('127j) el contenido tiene su ancho máximo', /maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' \}/.test(crudo.slice(crudo.indexOf('style={styles.content}'))));
-  check('127j) el orden de R9: texto · adjuntos · lugar · encuesta · barra · enlace · filas · Cómo lo hice (solo con origen en Weë)',
-    ['{renderTextInput()}', '{renderMediaPreview()}', '{renderLugar()}', '{renderPoll()}', '{renderAcciones()}', '{renderEnlace()}', '{renderFilas()}', '{conOrigenDeWee && renderCompartirProceso()}'].every((m, i, l) => crudo.indexOf(m) > 0 && (i === 0 || crudo.indexOf(l[i - 1]) < crudo.indexOf(m))));
+  check('127j) el orden de R9: texto · adjuntos · documentos · lugar · encuesta · barra · filas · Cómo lo hice (solo con origen en Weë)',
+    ['{renderTextInput()}', '{renderMediaPreview()}', '{renderDocumentos()}', '{renderLugar()}', '{renderPoll()}', '{renderAcciones()}', '{renderFilas()}', '{conOrigenDeWee && renderCompartirProceso()}'].every((m, i, l) => crudo.indexOf(m) > 0 && (i === 0 || crudo.indexOf(l[i - 1]) < crudo.indexOf(m))));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nCompositor global: un compositor, diez fotos, quince segundos y los destinos que elija quien publica');

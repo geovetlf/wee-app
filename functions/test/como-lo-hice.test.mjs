@@ -190,6 +190,10 @@ const compositor = (params) => crearEntorno({
     '../hooks/useResponsive': { useResponsive: () => ({ contentMaxWidth: 640, isMobile: true }) },
     '../services/firestoreService': { postsService: { create: async (d) => { guardados.push(d); return 'p1'; } } },
     '../services/storageService': { uploadPostImage: async () => { throw new Error('sin subidas en pruebas'); } },
+    /* R9 · D: el compositor también abre documentos y «Mis creaciones»; aquí no se usan. */
+    'expo-document-picker': { getDocumentAsync: async () => ({ canceled: true, assets: null }) },
+    '../services/assetsService': { assetsService: { listar: async () => ({ items: [], cursor: null, hayMas: false }) } },
+    '@expo/vector-icons': { Ionicons: ({ name }) => h('i', { 'data-icono': name }), MaterialCommunityIcons: ({ name }) => h('i', { 'data-icono': name }) },
     '../services/cloudinaryService': { uploadVideoToCloudinary: async () => { throw new Error('sin subidas en pruebas'); } },
     '../services/avatarGenerationService': { performAvatarReplacement() {}, uploadImageForSwap() {}, saveFaceSwapResult() {} },
     /* El hook que lee el trabajo: aquí se apunta CUÁNDO se le pide (en la app es una lectura de Firestore). */

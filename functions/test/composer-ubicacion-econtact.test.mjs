@@ -480,8 +480,8 @@ console.log('\n─── G. El orden del compositor no se movió ───');
 
 const orden = [...crear.matchAll(/texto="([^"]+)"/g)].map((m) => m[1]);
 check(
-  'R9: Foto · Vídeo · Archivo · Enlace · Hashtag · Encuesta, y las filas',
-  orden.join(' · ') === 'Foto · Vídeo · Archivo · Enlace · Hashtag · Encuesta · ¿Quién puede ver esta publicación? · Agregar ubicación · Etiquetar personas · Publicar en',
+  'R9: Foto o vídeo · Archivo · Mis creaciones · Encuesta · Hashtag, y las filas',
+  orden.join(' · ') === 'Foto o vídeo · Archivo · Mis creaciones · Encuesta · Hashtag · ¿Quién puede ver esta publicación? · Agregar ubicación · Etiquetar personas · Publicar en',
   orden.join(' · ')
 );
 /* El lugar es un chip bajo el texto y lo adjunto. El panel de ËContact va justo tras su fila, dentro de las filas. */

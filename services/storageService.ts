@@ -26,6 +26,7 @@ import {
   type AvisoDeSubida,
 } from './cloudinaryService';
 import { uriSinMetadatos, blobSinMetadatos } from '../utils/publicImage';
+import { MAX_BYTES_DOCUMENTO, TIPO_PDF, esCabeceraPdf, rutaDeDocumento } from '../utils/documentosDePublicacion';
 
 export type { AvisoDeSubida, EstadoDeSubida } from './cloudinaryService';
 
@@ -124,6 +125,45 @@ export const uploadViewOncePhoto = async (
   const storageRef = ref(storage, path);
   await uploadBytes(storageRef, blob, { contentType });
   return getDownloadURL(storageRef);
+};
+
+// ─── Post document (PDF) ────────────────────────────────────────────
+
+/*
+ * DOCUMENTOS DE UNA PUBLICACIÓN (R9 · D, aprobado por el dueño el 2026-10-13). Van al Storage de Weë —no a Cloudinary,
+ * que no entrega PDF en su plan y desde donde Weë no puede retirar nada— en `documents/posts/{identidad}/…`, con un
+ * nombre nuevo en cada subida (la política de no sobrescribir de `storage.rules`). `identidad` es la cara que firma la
+ * publicación (`users/<uid>` o `hidi_<uid>`), la misma que `post.userId`: así la ruta no cuenta nada que el post no
+ * diga ya.
+ *
+ * Antes de subir se vuelve a mirar lo que de verdad hay dentro: tamaño real y cabecera `%PDF-`. Una extensión cambiada
+ * o un tipo mal declarado se quedan aquí. Las reglas lo repiten en el servidor (tipo y tamaño).
+ *
+ * OJO: la cabecera `%PDF-` es una validación de TIPO, no de seguridad. No es un antivirus ni comprueba que el PDF esté
+ * sano: un PDF malicioso empieza igual. Weë no abre el documento dentro de la app; lo abre el visor del sistema.
+ */
+export const leerDocumento = async (doc: { uri: string; archivo?: Blob }): Promise<Blob> => {
+  if (doc.archivo) return doc.archivo;
+  const response = await fetch(doc.uri);
+  return response.blob();
+};
+
+export const comprobarPdf = async (blob: Blob): Promise<boolean> => {
+  const cabecera = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
+  return esCabeceraPdf(cabecera);
+};
+
+export const uploadPostDocument = async (
+  doc: { uri: string; archivo?: Blob },
+  identidad: string,
+): Promise<{ url: string; bytes: number }> => {
+  if (!storage) throw new Error('storage-sin-inicializar');
+  const blob = await leerDocumento(doc);
+  if (blob.size <= 0 || blob.size > MAX_BYTES_DOCUMENTO) throw new Error('documento-tamano');
+  if (!(await comprobarPdf(blob))) throw new Error('documento-no-es-pdf');
+  const storageRef = ref(storage, rutaDeDocumento(identidad, Date.now(), Math.random().toString(36).slice(2, 8)));
+  await uploadBytes(storageRef, blob, { contentType: TIPO_PDF });
+  return { url: await getDownloadURL(storageRef), bytes: blob.size };
 };
 
 // ─── Comment image ──────────────────────────────────────────────────

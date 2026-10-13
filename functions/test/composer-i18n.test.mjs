@@ -138,7 +138,8 @@ console.log('\n── B · Español e inglés, completos ──');
    */
   /* Y la distancia a un lugar, que ahora se escribe en su unidad y en su idioma fuera de la pantalla. */
   /* R9-H: el creador de Weëls (screens/CrearWeelScreen.tsx) usa los avisos de Weël del compositor (weelHint, weelTooLong, weelMaxDuration). */
-  const PUERTAS = ['screens/HelpScreen.tsx', 'screens/CreatorFlowScreen.tsx', 'utils/distanciaParaLeer.ts', 'screens/CrearWeelScreen.tsx'];
+  /* R9 · D: la hoja «Mis creaciones» del compositor (components/HojaDeCreaciones.tsx) es una pieza suya. */
+  const PUERTAS = ['screens/HelpScreen.tsx', 'screens/CreatorFlowScreen.tsx', 'utils/distanciaParaLeer.ts', 'screens/CrearWeelScreen.tsx', 'components/HojaDeCreaciones.tsx'];
   const desdeFuera = PUERTAS.map((p) => leer(p)).join(String.fromCharCode(10));
   const pedidasFuera = [...desdeFuera.matchAll(/'(composer\.[A-Za-z0-9_]+)'/g)].map((m) => m[1]);
   const usadas = new Set([...pedidas, ...pedidasFuera].filter((c) => c.startsWith('composer.')).map((c) => c.split('.')[1]));
@@ -231,8 +232,8 @@ console.log('\n── E · Nada funcional se movió ──');
   /* El orden aprobado de la fila de acciones del espacio de crear. */
   const acciones = [...C[CREAR].matchAll(/<Accion\s+icono="([a-z-]+)"[\s\S]{0,220}?texto=\{t\('([a-z]+\.[A-Za-z]+)'\)\}/g)]
     .map((m) => ES[m[2].split('.')[0]][m[2].split('.')[1]]);
-  check('20) R9: Foto · Vídeo · Archivo · Enlace · Hashtag · Encuesta',
-    acciones.join(' · ') === 'Foto · Vídeo · Archivo · Enlace · Hashtag · Encuesta',
+  check('20) R9: Foto o vídeo · Archivo · Mis creaciones · Encuesta · Hashtag',
+    acciones.join(' · ') === 'Foto o vídeo · Archivo · Mis creaciones · Encuesta · Hashtag',
     acciones.join(' · '));
 
   /* Y el de la entrada del Home, que es el suyo y tampoco se ha tocado. */

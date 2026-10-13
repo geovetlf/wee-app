@@ -11,6 +11,7 @@
  * documento. Este módulo no importa ninguno.
  */
 import { MURO_GENERAL } from './sectionFeed';
+import { creacionesCompartibles, CreacionCompartible, MaterialDeLaCuenta } from './creacionesCompartibles';
 
 /** El mismo tope que el compositor aplica a todo vídeo (docs/UX.md: Weëls de hasta 15 s). */
 export const MAX_SEGUNDOS_WEEL = 15;
@@ -169,55 +170,12 @@ export const medidaDelMarcoDelWeel = (anchoVisible: number, altoVisible: number,
  * como entrada) y que valga como Weël (`validarVideoDeWeel`: lo de más de 15 s no se ofrece). La herramienta es la de
  * `metadata.experienceId` (Weë Studio, Weë Chef, Weë Design…), así que solo aparecen las que de verdad tienen vídeos.
  */
-export interface MaterialDeVideo {
-  assetId: string;
-  kind: string;
-  status: string;
-  delivery?: { url?: string } | null;
-  provenance?: { capability?: string; sourceAssetIds?: string[] } | null;
-  durationSec?: number;
-  width?: number;
-  height?: number;
-  name?: string;
-  metadata?: Record<string, unknown> | null;
-  createdAt?: number;
-}
+export type MaterialDeVideo = MaterialDeLaCuenta;
+export type VideoDeMisCreaciones = CreacionCompartible;
 
-export interface VideoDeMisCreaciones {
-  assetId: string;
-  url: string;
-  nombre?: string;
-  /** Solo el identificador de la experiencia (`studio`, `chef`…): el nombre de marca lo pone quien pinta. */
-  experienceId?: string;
-  creadoEn?: number;
-  segundos?: number;
-  ancho?: number;
-  alto?: number;
-}
-
-const hechoConWee = (a: MaterialDeVideo): boolean =>
-  !!a.provenance && (typeof a.provenance.capability === 'string' && a.provenance.capability.length > 0
-    || (Array.isArray(a.provenance.sourceAssetIds) && a.provenance.sourceAssetIds.length > 0));
-
-const numero = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : undefined);
-
+/* El filtro de lo compartible es UNO (`utils/creacionesCompartibles.ts`, también lo usa el compositor); aquí, solo vídeo y que valga como Weël. */
 export const videosParaWeel = (materiales: readonly MaterialDeVideo[] | null | undefined): VideoDeMisCreaciones[] =>
-  (materiales || [])
-    .filter((a) => !!a && a.kind === 'video' && a.status === 'ready' && typeof a.delivery?.url === 'string' && a.delivery.url.length > 0 && hechoConWee(a))
-    .map((a) => {
-      const exp = a.metadata?.experienceId;
-      return {
-        assetId: a.assetId,
-        url: a.delivery!.url as string,
-        ...(typeof a.name === 'string' && a.name.trim() ? { nombre: a.name.trim() } : {}),
-        ...(typeof exp === 'string' && /^[a-z]{2,20}$/.test(exp) ? { experienceId: exp } : {}),
-        ...(numero(a.createdAt) ? { creadoEn: a.createdAt } : {}),
-        ...(numero(a.durationSec) ? { segundos: a.durationSec } : {}),
-        ...(numero(a.width) ? { ancho: a.width } : {}),
-        ...(numero(a.height) ? { alto: a.height } : {}),
-      };
-    })
-    .filter((v) => validarVideoDeWeel({ uri: v.url, segundos: v.segundos }).ok);
+  creacionesCompartibles(materiales, ['video']).filter((v) => validarVideoDeWeel({ uri: v.url, segundos: v.segundos }).ok);
 
 /** El vídeo elegido a partir de una creación: su URL de entrega y su `assetId`, para referenciarlo sin volver a subirlo. */
 export const videoDeCreacion = (v: VideoDeMisCreaciones): VideoElegido => ({
