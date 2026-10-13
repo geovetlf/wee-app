@@ -139,7 +139,10 @@ console.log('\n── E · El Weël cabe en el modelo, ejecutado con el Core ─
   check('35) y su publicación en «Weëls», firmada por el Perfil Weë de la MISMA cuenta, es válida', core.publicacionValida(publicacion) === true && core.publicacionEsDeLaCuenta(publicacion, 'uAna') === true);
   check('36) publicada y pública: visible para terceros', core.estaPublicada(publicacion) === true && core.visibleParaTerceros(publicacion) === true);
   check('37) otra cuenta no es su dueña, aunque la cara coincida en nombre', core.publicacionEsDeLaCuenta(publicacion, 'uBea') === false && core.materialEsDeLaCuenta(video, 'uBea') === false);
-  check('38) el compositor lleva el material del vídeo al post (`videoAssetId`) y lo marca Weël', /\.\.\.\(videoAssetId \? \{ videoAssetId \} : \{\}\)/.test(crear) && /\.\.\.\(videoUrl && isWeel \? \{ isWeel: true \} : \{\}\)/.test(crear));
+  /* R9-H: marcar un Weël ya no es del compositor del Wall sino de su creador (utils/crearWeel.ts), que conserva el material igual. */
+  check('38) el compositor lleva el material del vídeo al post (`videoAssetId`), y el creador de Weëls lo lleva y lo marca Weël',
+    /\.\.\.\(videoAssetId \? \{ videoAssetId \} : \{\}\)/.test(crear)
+    && /\.\.\.\(d\.videoAssetId \? \{ videoAssetId: d\.videoAssetId \} : \{\}\)/.test(leer('utils/crearWeel.ts')) && /isWeel: true as const/.test(leer('utils/crearWeel.ts')));
   check('39) y `Post` declara ambos enlaces', /assetIds\?: \(string \| null\)\[\];/.test(leer('services/firestoreService.ts')) && /videoAssetId\?: string;/.test(leer('services/firestoreService.ts')));
 }
 

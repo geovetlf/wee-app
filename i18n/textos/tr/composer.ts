@@ -63,7 +63,6 @@ export const composer: typeof import('../es/composer').composer = {
   generalWall: 'Genel Wäll',
   placeholderPollExtra: 'İstersen bir şey daha ekle (isteğe bağlı)…',
   placeholderQuestion: 'Topluluğa ne sormak istiyorsun?',
-  placeholderWeel: 'Weëls videonda neyi, hangi yapay zekâyla oluşturduğunu anlat…',
   placeholderVideo: 'Neyi, hangi yapay zekâyla oluşturduğunu anlat…',
   placeholderImage: 'Görselini ve nasıl yaptığını göster…',
   placeholderText: 'Bir metin, prompt ya da fikir paylaş…',

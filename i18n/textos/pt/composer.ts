@@ -29,7 +29,6 @@ export const composer: typeof import('../es/composer').composer = {
   generalWall: 'Wäll geral',
   placeholderPollExtra: 'Acrescente mais alguma coisa, se quiser (opcional)…',
   placeholderQuestion: 'O que você quer perguntar para a comunidade?',
-  placeholderWeel: 'Conte o que você criou para o seu Weël e com qual IA…',
   placeholderVideo: 'Conte o que você criou e com qual IA…',
   placeholderImage: 'Mostre sua imagem e como você fez…',
   placeholderText: 'Compartilhe um texto, um prompt ou uma ideia…',

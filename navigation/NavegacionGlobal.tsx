@@ -250,6 +250,8 @@ const NavegacionGlobal: React.FC = () => {
 
   const crear = (kind: CreateKind) => {
     setHoja(false);
+    /* Un Weël tiene su propio creador (screens/CrearWeelScreen.tsx); todo lo demás, el compositor del Wall. */
+    if (kind === 'weel') return void setTimeout(() => irARaiz('CrearWeel'), isWeb ? 0 : 150);
     setTimeout(() => irARaiz('Create', { kind }), isWeb ? 0 : 150);
   };
 

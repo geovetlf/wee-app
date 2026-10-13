@@ -46,7 +46,6 @@ export const composer: typeof import('../es/composer').composer = {
   generalWall: '総合Wäll',
   placeholderPollExtra: '補足があれば入力（任意）…',
   placeholderQuestion: 'コミュニティに何を質問しますか？',
-  placeholderWeel: 'どんなWeëlsを、どのAIで作ったか書く…',
   placeholderVideo: '何を、どのAIで作ったか書く…',
   placeholderImage: '画像と作り方を紹介…',
   placeholderText: 'テキストやプロンプト、アイデアを投稿…',

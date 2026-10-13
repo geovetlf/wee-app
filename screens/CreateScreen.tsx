@@ -92,7 +92,7 @@ const CreateScreen: React.FC = () => {
    * lo que escriba. Publicar desde el Wall no trae ninguna: es lo normal.
    */
   const sourceSection: string | null = routeParams.sourceSection || null;
-  // Tipo elegido en la hoja Crear (post | weel | image | video | text | question | poll)
+  // Tipo elegido en la hoja Crear (post | image | video | text | question | poll). `weel` no llega: va a CrearWeel.
   const presetKind: string | null = routeParams.kind || null;
   /*
    * `poll` no es una sección nueva de Weë ni una publicación aparte: es una
@@ -106,7 +106,6 @@ const CreateScreen: React.FC = () => {
   const composerPlaceholder = t(
     abreEncuesta ? 'composer.placeholderPollExtra' :
     presetKind === 'question' ? 'composer.placeholderQuestion' :
-    presetKind === 'weel' ? 'composer.placeholderWeel' :
     presetKind === 'video' ? 'composer.placeholderVideo' :
     presetKind === 'image' ? 'composer.placeholderImage' :
     presetKind === 'text' ? 'composer.placeholderText' :
@@ -384,16 +383,19 @@ const CreateScreen: React.FC = () => {
    * publicación. Se comprueba ANTES de subir nada y se rechaza con su duración
    * real: no se recorta, no se convierte y no interviene ninguna IA.
    */
-  const isWeel = presetKind === 'weel';
+  /*
+   * Un Weël ya no se crea aquí: tiene su propio flujo (screens/CrearWeelScreen.tsx) y `Create` con `kind: 'weel'` se
+   * sustituye por él antes de pintar nada (navigation/MainStackNavigator.tsx, `HaciaCrearWeel`). Este compositor es el
+   * del Wall y solo publica publicaciones: nunca marca `isWeel`.
+   */
   const maxVideoDurationSeconds = 15;
   const notifyVideoTooLong = (seconds: number) => {
-    const title = t(isWeel ? 'composer.weelTooLong' : 'composer.videoTooLong');
+    const title = t('composer.videoTooLong');
     /* Segundos o minutos, y con la forma que le toque a cada número. */
     const lasted = seconds < 60
       ? t('composer.seconds', { contador: Math.ceil(seconds) })
       : t('composer.minutes', { contador: Math.ceil(seconds / 60) });
-    const message = t(isWeel ? 'composer.weelMaxDuration' : 'composer.videoMaxDuration',
-      { maximo: maxVideoDurationSeconds, duracion: lasted });
+    const message = t('composer.videoMaxDuration', { maximo: maxVideoDurationSeconds, duracion: lasted });
     notify(title, message);
   };
   const maxPollOptions = MAX_OPCIONES;
@@ -771,7 +773,6 @@ const CreateScreen: React.FC = () => {
         imageUrlsThumbnails: thumbnailUrls,
         ...(imageUrls.length > 0 ? { imageAspectRatios } : {}),
         ...(videoUrl ? { videoUrl } : {}),
-        ...(videoUrl && isWeel ? { isWeel: true } : {}),
         /*
          * De qué material salió cada archivo, cuando ya es material de la
          * cuenta. Por él se llega al trabajo, al paso y a la generación: la
@@ -894,11 +895,6 @@ const CreateScreen: React.FC = () => {
       <Text style={[styles.textoContador, { color: isTextOverLimit ? theme.colors.error : theme.colors.textSecondary }]}>
         {postText.length}/{maxTextLength}
       </Text>
-      {isWeel && (
-        <Text style={[styles.kindHint, { color: theme.colors.textSecondary }]}>
-          {t('composer.weelHint', { segundos: maxVideoDurationSeconds })}
-        </Text>
-      )}
     </View>
   );
 
