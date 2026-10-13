@@ -17,6 +17,10 @@
  *  C. LAS ENTRADAS Y EL WALL, LEÍDOS: todo «crear Weël» va a `CrearWeel` (y `Create` con `kind: 'weel'` se sustituye por
  *     él antes de pintar); todo «ver Weëls» va a `Reels`; el compositor del Wall conserva destinos, encuesta, ËContact y
  *     ubicación y ya no marca Weëls; sin segundo feed, ni segundo servicio, ni arrastre de estado.
+ *  D. R9 EN EL TELÉFONO: la ayuda de la descripción se ve entera (el marco se mide contra el alto visible), la vista
+ *     previa no recorta lo que no es vertical, y el ✕ / Atrás vuelven al feed de Weëls, nunca al compositor.
+ *     D7–D8 (teléfono, 3237752c): manda la última medida del desplazable (no «solo crecer»), y la barra global se
+ *     oculta en «Crear Weël» como en el compositor, para que el marco y la caja entera quepan en reposo.
  *
  * Cada detector lleva su CONTROL. Sin red ni emulador.
  */
@@ -44,7 +48,9 @@ const pareceElWall = (texto) => DEL_WALL.some((x) => texto.includes(x));
  * (un Error = falla esa vez); `o.confirmar` lo que contesta la persona al aviso de horizontal.
  */
 const creador = (o = {}) => {
-  const reg = { subidas: [], guardados: [], confirmaciones: [] };
+  const reg = { subidas: [], guardados: [], confirmaciones: [], enfoques: [] };
+  /* La pila de pantallas, la de abajo primero: por defecto, abierto con el + de Weëls (R9, salir del creador). */
+  const pila = o.pila || ['Reels', 'CrearWeel'];
   let nSubida = 0;
   let nGuardado = 0;
   const e = crearEntorno({
@@ -53,6 +59,9 @@ const creador = (o = {}) => {
     params: o.params,
     dobles: (ctx) => {
       const { h, capturar, navegacion, avisos, colores } = ctx;
+      /* La caja de la descripción y el desplazable, capturados: sus propiedades son el contrato que se mira en D. */
+      ctx.reactNative.TextInput = capturar('TextInput', () => h('textarea'));
+      ctx.reactNative.ScrollView = capturar('ScrollView');
       const habla = { useT: () => tEs, useIdioma: () => ({ t: tEs, locale: 'es', idioma: 'es' }) };
       return {
         'expo-av': { Video: capturar('Video'), ResizeMode: { COVER: 'cover', CONTAIN: 'contain' } },
@@ -67,7 +76,10 @@ const creador = (o = {}) => {
           useNavigation: () => ({
             navigate: (...a) => navegacion.push(['navigate', ...a]), goBack: () => navegacion.push(['goBack']),
             popTo: (...a) => navegacion.push(['popTo', ...a]),
+            canGoBack: () => pila.length > 1,
+            getState: () => ({ index: pila.length - 1, routes: pila.map((name) => ({ name })) }),
           }),
+          useFocusEffect: (cb) => { reg.enfoques.push(cb); },
           useRoute: () => ({ params: o.params }),
         },
         'firebase/firestore': { Timestamp: { now: () => 'AHORA' } },
@@ -325,6 +337,150 @@ check('C8) el feed pone delante el Weël recién publicado sin volver a pedir la
 /* i18n. */
 const CLAVES = ['pickVideo', 'changeVideo', 'preview', 'requirements', 'descriptionLabel', 'publish', 'uploading', 'publishing', 'publishFailed', 'horizontalTitle', 'horizontalBody', 'horizontalAccept', 'galleryForVideo'];
 check('C9) los textos del creador salen del i18n (es y en)', CLAVES.every((k) => typeof ES.weels[k] === 'string' && typeof EN.weels[k] === 'string' && ES.weels[k] !== EN.weels[k]));
+
+console.log('\n─── D. R9 en el teléfono: la descripción entera, la vista previa sin recortar y volver al feed ───');
+/*
+ * Lo que se vio en el Z Flip3 (build 2b0dcaab): la segunda línea de la ayuda de la descripción («…y con qué IA») quedaba
+ * cortada, porque el marco 9:16 se medía con el ANCHO y empujaba la caja fuera de la pantalla. Y el dueño decidió que un
+ * vídeo que no es vertical se ve ENTERO (contain) y que volver del creador lleva al feed de Weëls, nunca al compositor.
+ */
+const plano = (st) => (Array.isArray(st) ? Object.assign({}, ...st.flat(Infinity).filter(Boolean).map(plano)) : (st || {}));
+{
+  const e = creador();
+  e.dibujar();
+  const caja = e.capturas.TextInput || {};
+  const est = plano(caja.style);
+  const dosLineas = 2 * W.LINEA_DE_LA_DESCRIPCION + 24;
+  check('D1) la caja de la descripción es multilínea, sin `numberOfLines` que limite la ayuda y sin alto fijo',
+    caja.multiline === true && caja.numberOfLines === undefined && est.height === undefined, JSON.stringify({ multiline: caja.multiline, numberOfLines: caja.numberOfLines, height: est.height }));
+  check('D1) y mide al menos DOS líneas de su ayuda (alto de línea × 2 + relleno), con su alto de línea declarado',
+    est.lineHeight === W.LINEA_DE_LA_DESCRIPCION && est.minHeight >= dosLineas && est.maxHeight >= est.minHeight, JSON.stringify(est));
+  check('D1) la ayuda es la de siempre (`composer.placeholderWeel`), que en el teléfono ocupa dos líneas',
+    caja.placeholder === tEs('composer.placeholderWeel') && caja.placeholder.length > 40);
+  check('D1) con la letra grande de la persona, la caja crece con ella (escala 1,6 → más de 72; 0,8 → los 72 de siempre)',
+    W.altoMinimoDeLaDescripcion(1.6) > 72 && W.altoMinimoDeLaDescripcion(1.6) >= Math.ceil(2 * W.LINEA_DE_LA_DESCRIPCION * 1.6) + 24 && W.altoMinimoDeLaDescripcion(0.8) === 72);
+  const sv = e.capturas.ScrollView || {};
+  const cont = plano(sv.contentContainerStyle);
+  check('D2) el desplazable sigue siendo el de siempre: sin alto fijo ni `flex` que lo encierre, y se mide con `onLayout`',
+    typeof sv.onLayout === 'function' && cont.height === undefined && cont.flex === undefined && cont.maxHeight === undefined && sv.keyboardShouldPersistTaps === 'handled', JSON.stringify(cont));
+  check('D2) y la descripción está DENTRO del desplazable (se puede bajar hasta ella en cualquier pantalla)',
+    /<ScrollView[\s\S]*?<TextInput[\s\S]*?<\/ScrollView>/.test(nuevo));
+}
+{
+  /* El marco cabe con la descripción entera debajo, en varios altos de pantalla. */
+  const reserva = (alto) => 8 + 16 + alto + 20 + 12;
+  const cabe = (ancho, alto, desc) => { const m = W.medidaDelMarcoDelWeel(ancho, alto, desc); return m.height + reserva(desc) <= alto + 1e-6; };
+  const forma = (m) => Math.abs(m.width / m.height - 9 / 16) < 1e-9;
+  /* El desplazable del Z Flip3, medido sobre la captura t3-mas (1080×2640 a 2,625 px por punto): 411 × 737. */
+  const flip3 = { ancho: 411, alto: 737 };
+  const casos = [[411, 737], [360, 640], [390, 744], [412, 860], [768, 900]];
+  check('D3) en el Z Flip3 y en otros altos, el marco deja la descripción ENTERA a la vista, y sigue siendo 9:16',
+    casos.every(([a, h]) => cabe(a, h, 72) && forma(W.medidaDelMarcoDelWeel(a, h, 72))), casos.map(([a, h]) => `${a}×${h}→${Math.round(W.medidaDelMarcoDelWeel(a, h, 72).height)}`).join(' '));
+  check('D3) con letra grande también', cabe(flip3.ancho, flip3.alto, W.altoMinimoDeLaDescripcion(1.6)));
+  const viejo = (ancho) => Math.min(ancho - 32, 360) * 16 / 9;
+  check('CONTROL: el marco de antes (9:16 sacado del ancho) NO dejaba la caja entera en el Z Flip3',
+    viejo(flip3.ancho) + reserva(72) > flip3.alto, `${Math.round(viejo(flip3.ancho))} + ${reserva(72)} > ${flip3.alto}`);
+  const bajo = W.medidaDelMarcoDelWeel(800, 360, 72);
+  check('D3) en una pantalla muy baja (teléfono girado) el marco no desaparece: suelo de 240 y la pantalla se desplaza',
+    bajo.height === W.ALTO_MINIMO_DEL_MARCO && forma(bajo));
+  check('D3) en una pantalla alta no crece más que antes (360 de ancho máximo)', W.medidaDelMarcoDelWeel(1280, 2000, 72).width === 360);
+  /*
+   * R9, teléfono con 3237752c: la caja seguía cortada en reposo. La regla «con el mismo ancho solo se acepta crecer» se
+   * quedaba con la PRIMERA medida, que llega antes de que se reserve el sitio de la barra global (~100 puntos más). Ahora
+   * manda la última medida, salvo la del teclado mientras se escribe; y la barra global ya no se pinta en «Crear Weël».
+   */
+  const M = (ancho, alto) => ({ ancho, alto });
+  const sigue = (medidas, escribiendo = false) => medidas.reduce((v, m) => W.siguienteMedidaVisible(v, m, escribiendo), null);
+  /* Z Flip3: ventana ≈ 411 × 1003 dp. Sin la barra global, el desplazable mide la ventana menos barra de estado (≈29),
+   * cabecera (56) y barra de navegación del sistema (≈48): ≈ 870. Con la barra reservada eran ≈ 770 (y el teléfono enseñaba ≈ 734). */
+  const flip3SinBarra = sigue([M(411, 870)]);
+  check('D7) Z Flip3 sin la barra global: el marco y la caja ENTERA con su contador caben en reposo, sin desplazar',
+    cabe(flip3SinBarra.ancho, flip3SinBarra.alto, 72), `${Math.round(W.medidaDelMarcoDelWeel(411, 870, 72).height)} + ${reserva(72)} ≤ 870`);
+  const reservaTardia = sigue([M(411, 870), M(411, 734)]);
+  check('D7) si el hueco encoge después de la primera medida (p. ej. se reserva una barra), manda la ÚLTIMA y la caja sigue entera',
+    reservaTardia.alto === 734 && cabe(reservaTardia.ancho, reservaTardia.alto, 72), JSON.stringify(reservaTardia));
+  const soloCrecer = (medidas) => medidas.reduce((v, m) => (v && v.ancho === m.ancho && v.alto >= m.alto ? v : m), null);
+  const latch = soloCrecer([M(411, 870), M(411, 734)]);
+  check('CONTROL: la regla de 3237752c («solo crecer») se quedaba con 870 y en el teléfono la caja salía cortada',
+    latch.alto === 870 && !(W.medidaDelMarcoDelWeel(411, 870, 72).height + reserva(72) <= 734), JSON.stringify(latch));
+  const tecleando = sigue([M(411, 870), M(411, 520)], true);
+  check('D3) el teclado no encoge el vídeo: mientras se escribe, una medida más baja con el mismo ancho se ignora',
+    tecleando.alto === 870 && sigue([M(411, 870), M(411, 520)], false).alto === 520 && sigue([M(411, 870), M(800, 400)], true).alto === 400);
+  const bajaSinBarra = sigue([M(360, 520)]);
+  check('D7) en una pantalla baja el marco baja hasta su suelo y la pantalla se desplaza (sin cortar la caja: la caja va en el desplazable)',
+    W.medidaDelMarcoDelWeel(bajaSinBarra.ancho, bajaSinBarra.alto, 72).height === Math.max(520 - reserva(72), W.ALTO_MINIMO_DEL_MARCO));
+  check('D7) la pantalla usa esa regla con el estado de «escribiendo» de la descripción (onFocus/onBlur)',
+    /setVisible\(\(v\) => siguienteMedidaVisible\(v, \{ ancho, alto \}, escribiendo\)\)/.test(nuevo) && /onFocus=\{\(\) => setEscribiendo\(true\)\}/.test(nuevo) && /onBlur=\{\(\) => setEscribiendo\(false\)\}/.test(nuevo));
+  check('D7) y la estimación inicial ya no descuenta la barra global (no se pinta aquí)', !/ALTO_DE_LA_BARRA_INFERIOR/.test(nuevo));
+}
+{
+  /* La barra global, oculta en «Crear Weël» como en el compositor, y de vuelta al salir (es por ruta). */
+  const global = sinComentarios(leer('navigation/NavegacionGlobal.tsx'));
+  const lista = global.match(/const SIN_BARRA = new Set\(\[([\s\S]*?)\]\)/)?.[1] || '';
+  const ocultas = [...lista.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  check('D8) la barra global se oculta en «Crear Weël» (`CrearWeel` en SIN_BARRA, igual que `Create`)', ocultas.includes('CrearWeel') && ocultas.includes('Create'), ocultas.join(', '));
+  /* La regla de la barra, ejecutada: `oculta` depende de la ruta raíz; al volver a `Reels` (también oculta) o a `Main`, decide la ruta. */
+  const oculta = (ruta) => ocultas.includes(ruta);
+  check('D8) es por ruta: al salir de «Crear Weël» al Wäll (`Main`) la barra vuelve sola; en Weëls (`Reels`) sigue oculta como siempre',
+    oculta('CrearWeel') && !oculta('Main') && oculta('Reels') && /SIN_BARRA\.has\(rutaRaiz\)/.test(global));
+  check('CONTROL: con la lista de antes (sin `CrearWeel`) la barra se pintaba sobre «Crear Weël»', !['Login', 'Register', 'Create', 'Reels', 'Settings', 'WeeProfileCreation', 'AiAvatar'].includes('CrearWeel'));
+}
+{
+  /* La vista previa: vertical llena, apaisado o cuadrado entero. */
+  const conVideo = async (ancho, alto) => {
+    const e = creador({ elegido: VIDEO({ width: ancho, height: alto }), confirmar: true });
+    await e.tocar(tEs('weels.pickVideo'));
+    e.dibujar();
+    return e;
+  };
+  const vertical = await conVideo(1080, 1920);
+  const apaisado = await conVideo(1920, 1080);
+  const cuadrado = await conVideo(1080, 1080);
+  check('D4) vista previa: un vídeo vertical llena el marco (cover)', vertical.capturas.Video?.resizeMode === 'cover', vertical.capturas.Video?.resizeMode);
+  check('D4) uno apaisado o cuadrado se ve ENTERO, sin recortar (contain)', apaisado.capturas.Video?.resizeMode === 'contain' && cuadrado.capturas.Video?.resizeMode === 'contain',
+    `${apaisado.capturas.Video?.resizeMode} · ${cuadrado.capturas.Video?.resizeMode}`);
+  const rotado = await conVideo(1920, 1080);
+  rotado.capturas.Video.onReadyForDisplay({ naturalSize: { width: 1920, height: 1080, orientation: 'portrait' } });
+  rotado.dibujar();
+  check('D4) la medida de verdad del reproductor manda: un vertical que el selector dio sin rotar acaba llenando',
+    rotado.capturas.Video?.resizeMode === 'cover', rotado.capturas.Video?.resizeMode);
+  check('CONTROL: la vista previa de antes (siempre COVER) recortaba el apaisado; ya no queda',
+    /resizeMode=\{ResizeMode\.COVER\}/.test('<Video resizeMode={ResizeMode.COVER} />') && !/resizeMode=\{ResizeMode\.COVER\}/.test(nuevo));
+}
+{
+  /* Volver del creador. */
+  const salir = (pilaDe, como) => {
+    const e = creador({ pila: pilaDe });
+    const d = e.dibujar();
+    if (como === 'flecha') e.tocar(tEs('common.back'), d);
+    else {
+      e.reg.enfoques.at(-1)?.();
+      e.devuelto = e.atras();
+    }
+    return e;
+  };
+  const delMas = salir(['Main', 'Reels', 'CrearWeel'], 'flecha');
+  check('D5) abierto desde Weëls (el botón del feed vacío), el ✕ vuelve al MISMO Weël (`goBack` sobre `Reels`)', JSON.stringify(delMas.navegacion) === '[["goBack"]]', JSON.stringify(delMas.navegacion));
+  const sinPila = salir(['CrearWeel'], 'flecha');
+  check('D5) sin historial (enlace, recarga), el ✕ va al feed de Weëls', sinPila.navegacion.length === 1 && sinPila.navegacion[0][0] === 'popTo' && sinPila.navegacion[0][1] === 'Reels', JSON.stringify(sinPila.navegacion));
+  const trasCompositor = salir(['Main', 'Create', 'CrearWeel'], 'flecha');
+  check('D5) con el compositor del Wäll detrás, NUNCA vuelve a él: va al feed de Weëls',
+    trasCompositor.navegacion.length === 1 && trasCompositor.navegacion[0][0] === 'popTo' && trasCompositor.navegacion[0][1] === 'Reels', JSON.stringify(trasCompositor.navegacion));
+  const atrasMas = salir(['Main', 'Reels', 'CrearWeel'], 'atras');
+  const atrasSin = salir(['CrearWeel'], 'atras');
+  const atrasCompositor = salir(['Main', 'Create', 'CrearWeel'], 'atras');
+  check('D6) el Atrás de Android hace lo mismo que el ✕ (y lo consume: la app no se cierra)',
+    atrasMas.devuelto === true && JSON.stringify(atrasMas.navegacion) === '[["goBack"]]'
+    && atrasSin.devuelto === true && atrasSin.navegacion[0]?.[1] === 'Reels'
+    && atrasCompositor.navegacion[0]?.[1] === 'Reels' && !atrasCompositor.navegacion.some((n) => n[1] === 'Create' || n[0] === 'goBack'),
+    JSON.stringify([atrasMas.navegacion, atrasSin.navegacion, atrasCompositor.navegacion]));
+  const S = base('utils/salidaDeWeels.ts');
+  const viejoCerrar = (nav) => nav.goBack();
+  const nav = (p) => { const n = []; return { n, goBack: () => n.push('goBack'), navigate: (x) => n.push(x), popTo: (x) => n.push(x), canGoBack: () => p.length > 1, getState: () => ({ index: p.length - 1, routes: p.map((name) => ({ name })) }) }; };
+  const a = nav(['Main', 'Create', 'CrearWeel']); viejoCerrar(a);
+  const b = nav(['Main', 'Create', 'CrearWeel']); S.salirDeCrearWeel(b);
+  check('CONTROL: el cerrar de antes (`goBack` a secas) habría reabierto el compositor; el de ahora no', a.n[0] === 'goBack' && b.n[0] === 'Reels');
+}
 
 check('esta suite está en la cadena de `npm test`', /weels-crear\.test\.mjs/.test(leer('functions/package.json')));
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien: crear un Weël es su propio flujo de vídeo y el Wall conserva su compositor');

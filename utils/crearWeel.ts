@@ -97,3 +97,62 @@ export const datosDelWeel = (d: DatosParaPublicar) => {
     disagreementCount: 0,
   };
 };
+
+/*
+ * ─── QUE LA DESCRIPCIÓN SE VEA ENTERA (R9, visto en el teléfono) ─────────────
+ *
+ * El marco del vídeo mide 9:16 sacado del ANCHO de la columna, así que en un teléfono alto y estrecho se comía la
+ * pantalla y la caja de la descripción quedaba cortada por abajo: de su ayuda («Cuenta qué creaste para tu Weël y con
+ * qué IA…») solo asomaba la primera línea. Ahora el marco se mide contra el ALTO que de verdad enseña la pantalla
+ * (el `onLayout` del desplazable) y se queda con lo que sobra después de apartar la descripción: la caja nace entera a
+ * la vista, el vídeo conserva su forma 9:16 y nada cambia de cómo se desplaza la pantalla.
+ */
+
+/** Alto de una línea de la descripción (fuente de 15). */
+export const LINEA_DE_LA_DESCRIPCION = 20;
+
+/**
+ * Lo mínimo que mide la caja de la descripción: DOS líneas de su ayuda con el tamaño de letra que la persona tenga
+ * puesto, más su relleno (12 + 12) y su borde. Nunca menos que los 72 de siempre.
+ */
+export const altoMinimoDeLaDescripcion = (escalaDeLetra: number): number => {
+  const escala = Number.isFinite(escalaDeLetra) && escalaDeLetra > 1 ? escalaDeLetra : 1;
+  return Math.max(72, Math.ceil(2 * LINEA_DE_LA_DESCRIPCION * escala) + 24 + 2);
+};
+
+/** Lo que mide el desplazable de «Crear Weël» (su `onLayout`). */
+export interface MedidaVisible {
+  ancho: number;
+  alto: number;
+}
+
+/**
+ * Qué medida del desplazable manda. Siempre la última, para que el marco siga al alto VISIBLE de verdad (la primera
+ * medida llega antes de que la pila reserve la barra global y es ~100 puntos mayor). La única excepción: mientras se
+ * escribe, una medida más baja con el mismo ancho es el teclado, y se ignora para que el vídeo no encoja al escribir.
+ */
+export const siguienteMedidaVisible = (actual: MedidaVisible | null, nueva: MedidaVisible, escribiendo: boolean): MedidaVisible => {
+  if (!(nueva.ancho > 0) || !(nueva.alto > 0)) return actual ?? nueva;
+  if (actual && actual.ancho === nueva.ancho && actual.alto === nueva.alto) return actual;
+  if (actual && escribiendo && actual.ancho === nueva.ancho && nueva.alto < actual.alto) return actual;
+  return nueva;
+};
+
+/** Por poco alto que haya (un teléfono girado), el marco no baja de aquí: entonces la pantalla se desplaza, como siempre. */
+export const ALTO_MINIMO_DEL_MARCO = 240;
+/** El ancho de siempre del marco y de la columna (estilos de `CrearWeelScreen`). */
+export const ANCHO_MAXIMO_DEL_MARCO = 360;
+export const ANCHO_MAXIMO_DE_LA_COLUMNA = 520;
+export const RELLENO_LATERAL = 16;
+
+/**
+ * Lo que mide el marco del vídeo, 9:16, para que debajo quepa la descripción entera.
+ * Se aparta: el aire del marco (8), el de la descripción (16), la propia caja, su contador (20) y un respiro (12).
+ */
+export const medidaDelMarcoDelWeel = (anchoVisible: number, altoVisible: number, altoDescripcion: number): { width: number; height: number } => {
+  const columna = Math.max(0, Math.min(anchoVisible, ANCHO_MAXIMO_DE_LA_COLUMNA) - 2 * RELLENO_LATERAL);
+  const porAncho = Math.min(columna, ANCHO_MAXIMO_DEL_MARCO) * 16 / 9;
+  const reserva = 8 + 16 + altoDescripcion + 20 + 12;
+  const height = Math.max(Math.min(porAncho, altoVisible - reserva), Math.min(ALTO_MINIMO_DEL_MARCO, porAncho));
+  return { width: height * 9 / 16, height };
+};

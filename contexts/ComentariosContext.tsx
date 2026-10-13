@@ -3,10 +3,19 @@ import { Post } from '../services/firestoreService';
 import { refNavegacion } from '../navigation/refNavegacion';
 import HojaDeComentarios from '../components/HojaDeComentarios';
 
+/** Cómo se abre la hoja. `sobreVideo`: encima de un Weël, más transparente y más baja para que el vídeo siga a la vista. */
+export interface ComoAbrirComentarios {
+  sobreVideo?: boolean;
+}
+
 interface Comentarios {
   /** Abre la conversación de una publicación, encima de donde estés. */
-  abrirComentarios: (post: Post) => void;
+  abrirComentarios: (post: Post, como?: ComoAbrirComentarios) => void;
   cerrarComentarios: () => void;
+  /** El id de la publicación cuya conversación está abierta, o null. */
+  publicacionAbierta: string | null;
+  /** Lo último que contó la hoja de cada publicación abierta: así el contador de quien la abrió sube al comentar. */
+  contadores: Readonly<Record<string, number>>;
 }
 
 const ComentariosContext = createContext<Comentarios | undefined>(undefined);
@@ -25,9 +34,17 @@ const ComentariosContext = createContext<Comentarios | undefined>(undefined);
  */
 export const ComentariosProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [post, setPost] = useState<Post | null>(null);
+  const [sobreVideo, setSobreVideo] = useState(false);
+  const [contadores, setContadores] = useState<Record<string, number>>({});
 
-  const abrirComentarios = useCallback((elegido: Post) => setPost(elegido), []);
+  const abrirComentarios = useCallback((elegido: Post, como?: ComoAbrirComentarios) => {
+    setSobreVideo(!!como?.sobreVideo);
+    setPost(elegido);
+  }, []);
   const cerrarComentarios = useCallback(() => setPost(null), []);
+  const alContar = useCallback((postId: string, total: number) => {
+    setContadores((antes) => (antes[postId] === total ? antes : { ...antes, [postId]: total }));
+  }, []);
 
   /*
    * Desde un comentario se sigue pudiendo ir al perfil de quien lo escribió
@@ -40,12 +57,16 @@ export const ComentariosProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (refNavegacion.isReady()) (refNavegacion as any).navigate('UserProfile', { userId });
   }, []);
 
-  const valor = useMemo(() => ({ abrirComentarios, cerrarComentarios }), [abrirComentarios, cerrarComentarios]);
+  const publicacionAbierta = post?.id ?? null;
+  const valor = useMemo(
+    () => ({ abrirComentarios, cerrarComentarios, publicacionAbierta, contadores }),
+    [abrirComentarios, cerrarComentarios, publicacionAbierta, contadores],
+  );
 
   return (
     <ComentariosContext.Provider value={valor}>
       {children}
-      <HojaDeComentarios visible={!!post} post={post} onClose={cerrarComentarios} onAbrirPerfil={abrirPerfil} />
+      <HojaDeComentarios visible={!!post} post={post} onClose={cerrarComentarios} onAbrirPerfil={abrirPerfil} sobreVideo={sobreVideo} onContar={alContar} />
     </ComentariosContext.Provider>
   );
 };

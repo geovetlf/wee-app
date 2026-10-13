@@ -13,6 +13,14 @@
  *  C. LA NAVEGACIÓN, LEÍDA: ver Weëls lleva siempre a `Reels` (Android y web, menú incluido) y nunca al compositor; crear
  *     Weël es `CrearWeel` (R9-H: antes `Create` con `kind: 'weel'`, que era el compositor del Wall); el Wall conserva su
  *     compositor (`Create` con su `kind`) y sus encuestas.
+ *  D. R9 EN EL TELÉFONO: un vídeo que no es vertical se ve completo (contain) y uno vertical llena (cover), sin tocar
+ *     las fotos; la flecha ← es inequívoca (círculo propio, 48 de zona, rol y etiqueta) y, como el Atrás de Android,
+ *     sale por el historial o, sin él, al Wäll (`utils/salidaDeWeels.ts`); paginación, duplicados y autoplay siguen.
+ *  E. R9, COMENTARIOS DENTRO DEL WEËL: el icono abre la hoja de comentarios de siempre (`HojaDeComentarios` +
+ *     `ComentariosContext`) encima del vídeo, transparente, sin navegar; el Weël sigue montado y en silencio; ✕, fuera,
+ *     deslizar y Atrás la cierran en el mismo Weël y la misma posición; el contador sube con lo que cuenta la hoja.
+ *  F. R9, RESPONDER Y SIN «+»: las respuestas son comentarios con `parentCommentId` (el campo que ya existía),
+ *     pintadas bajo su comentario (un nivel); Weëls ya no tiene «+» arriba; el gesto de cerrar la hoja, ejecutado (E9).
  *
  * Cada detector lleva su CONTROL. Sin red ni emulador.
  */
@@ -52,6 +60,21 @@ const animado = () => {
   return { Value: function Value() { return valor(); }, View: null, timing: anim, spring: anim, sequence: anim, parallel: anim };
 };
 
+/**
+ * La hoja de comentarios de siempre (`ComentariosContext`), doblada: apunta qué se abre y qué se cierra. `estado.abierta`
+ * es el id de la publicación abierta y `estado.contadores` lo que contó la hoja (R9, comentarios dentro del Weël).
+ */
+const comentariosDoble = () => {
+  const estado = { abiertas: [], cerradas: 0, abierta: null, contadores: {} };
+  estado.valor = () => ({
+    abrirComentarios: (post, como) => { estado.abiertas.push([post.id, como]); estado.abierta = post.id; },
+    cerrarComentarios: () => { estado.cerradas++; estado.abierta = null; },
+    publicacionAbierta: estado.abierta,
+    contadores: estado.contadores,
+  });
+  return estado;
+};
+
 const pantalla = (svc, extra = {}) => crearEntorno({
   pantalla: 'screens/ReelsScreen.tsx',
   ...extra,
@@ -59,14 +82,25 @@ const pantalla = (svc, extra = {}) => crearEntorno({
     const { h, Caja, capturar, usuario } = ctx;
     const A = animado();
     A.View = Caja;
+    /*
+     * `conLista`: el visor monta su lista cuando mide su hueco (`onLayout`), y un dibujado estático no mide. Aquí el
+     * contenedor «mide» 390×800 al dibujarse y la lista pinta sus Weëls, para poder tocar los de dentro (sección E).
+     */
+    if (extra.conLista) {
+      const Medido = (p) => { if (p.onLayout) p.onLayout({ nativeEvent: { layout: { width: 390, height: 800 } } }); return Caja(p); };
+      A.View = Medido;
+      ctx.reactNative.View = Medido;
+      ctx.reactNative.FlatList = ({ data, renderItem }) => h('div', { 'data-lista': 'weels' }, (data || []).map((item, index) => h(ctx.React.Fragment, { key: item.id }, renderItem({ item, index }))));
+    }
     ctx.reactNative.Animated = A;
     ctx.reactNative.StatusBar = () => null;
+    const coment = extra.comentarios || comentariosDoble();
     const habla = { useT: () => tEs, useIdioma: () => ({ t: tEs, locale: 'es', idioma: 'es' }) };
     return {
       'react-native': ctx.reactNative,
       'react-native-safe-area-context': { SafeAreaView: Caja, useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) },
       '../utils/platform': { isWeb: false },
-      'expo-av': { Video: capturar('Video'), ResizeMode: { COVER: 'cover', CONTAIN: 'contain' }, Audio: { setAudioModeAsync: async () => {} } },
+      'expo-av': { Video: (p) => { if (extra.videos && p.source?.uri) extra.videos[p.source.uri] = p; return capturar('Video')(p); }, ResizeMode: { COVER: 'cover', CONTAIN: 'contain' }, Audio: { setAudioModeAsync: async () => {} } },
       'expo-linear-gradient': { LinearGradient: Caja },
       '../contexts/AuthContext': { useAuth: () => ({ user: usuario }) },
       '../contexts/UserProfileContext': { useUserProfile: () => ({ userProfile: null }) },
@@ -79,6 +113,7 @@ const pantalla = (svc, extra = {}) => crearEntorno({
       '../utils/scale': { scale: (x) => x },
       '../utils/compartirFuera': { compartirFueraDeWee: async () => {} },
       '../contexts/IdiomaContext': habla,
+      '../contexts/ComentariosContext': { useComentariosDeLaPublicacion: () => coment.valor() },
       _h: h,
     };
   },
@@ -180,6 +215,317 @@ check('C5) el Wall conserva su compositor: «Crear publicación» del Home va a 
 check('C6) la ruta `Reels` acepta abrirse sin parámetros (el feed entero)', /Reels: \{\s*initialPost\?: Post;\s*initialVideoPosts\?: Post\[\];[\s\S]*?\} \| undefined;/.test(leer('navigation/MainStackNavigator.tsx')));
 check('CONTROL: un visor que manda al compositor se vería',
   llevaAlCompositor("const abrirElVisor = useCallback(() => { if (n === 0) return crearWeel(); navigate('Reels') }") && !llevaAlCompositor("navigate('Reels', undefined)"));
+
+console.log('\n─── D. R9 en el teléfono: el vídeo entero si no es vertical, y una flecha que se ve y saca de Weëls ───');
+/*
+ * Lo que se vio en el Z Flip3 (build 2b0dcaab): los vídeos demo, apaisados, se recortaban para llenar la pantalla
+ * (COVER) y la etiqueta DEMO y el título quedaban cortados a la izquierda y bajo la flecha, que iba pintada a pelo
+ * sobre el vídeo. El dueño decidió: lo que NO es vertical se ve completo (contain); lo vertical sigue llenando; la flecha
+ * es inequívoca (círculo propio, 48 de zona táctil, rol y etiqueta) y, como el Atrás de Android, saca de Weëls al Wäll.
+ */
+const V = base('utils/videoDimensionCache.ts');
+check('D1) un vídeo apaisado (16:9) o cuadrado se ve COMPLETO (contain); uno vertical (9:16) llena la pantalla (cover)',
+  V.ajusteDelVideoEnWeels(16 / 9) === 'contain' && V.ajusteDelVideoEnWeels(1) === 'contain' && V.ajusteDelVideoEnWeels(9 / 16) === 'cover');
+check('D1) mientras no se sabe la forma (o es absurda), contain: la espera que no recorta nada',
+  V.ajusteDelVideoEnWeels(undefined) === 'contain' && V.ajusteDelVideoEnWeels(NaN) === 'contain' && V.ajusteDelVideoEnWeels(0) === 'contain' && V.ajusteDelVideoEnWeels(-1) === 'contain');
+check('D1) la forma sale de la medida de verdad del reproductor: un vertical que Android da sin rotar (1920×1080 + portrait) llena',
+  V.ajusteDelVideoEnWeels(V.proporcionDeLaMedida({ width: 1920, height: 1080, orientation: 'portrait' })) === 'cover'
+  && V.ajusteDelVideoEnWeels(V.proporcionDeLaMedida({ width: 1920, height: 1080, orientation: 'landscape' })) === 'contain'
+  && V.ajusteDelVideoEnWeels(V.proporcionDeLaMedida({ width: 1080, height: 1920 })) === 'cover');
+check('CONTROL: la regla de antes (siempre cover) recortaba el apaisado', ((/* antes */) => 'cover')(16 / 9) !== V.ajusteDelVideoEnWeels(16 / 9));
+/*
+ * El visor no monta su lista hasta medir su hueco (`onLayout`), y un dibujado estático no mide: así que el cableado del
+ * vídeo se lee del código del propio Weël, y la regla de arriba es la que se ejecuta.
+ */
+const item = feed.slice(feed.indexOf('const ReelItem'), feed.indexOf('const ReelsScreen'));
+check('D2) el vídeo del Weël se ajusta con esa regla (COVER solo si es vertical) y apunta la medida del reproductor',
+  /resizeMode=\{ajuste === 'cover' \? ResizeMode\.COVER : ResizeMode\.CONTAIN\}/.test(item) && /const ajuste = ajusteDelVideoEnWeels\(proporcionDelVideo\)/.test(item)
+  && /onReadyForDisplay=\{alSaberLaFormaDelVideo\}/.test(item) && /proporcionDeLaMedida\(evento\?\.naturalSize\)/.test(item), item.length + ' caracteres');
+check('D2) y aprovecha lo que ya se sabe de ese vídeo (la caché del muro y, en la web, su cabecera) para no saltar',
+  /getCachedVideoAspectRatio\(urlDelVideo\)/.test(item) && /fetchAndCacheVideoAspectRatio\(urlDelVideo/.test(item) && /setCachedVideoAspectRatio\(urlDelVideo, proporcion\)/.test(item));
+check('D2) el póster (un fotograma del vídeo) se ajusta igual que el vídeo: no salta de recortado a entero al arrancar',
+  /resizeMode=\{ajuste\}/.test(item) && !/resizeMode="cover"/.test(item));
+check('CONTROL: el Weël de antes (`resizeMode={ResizeMode.COVER}` fijo) se cazaría', /resizeMode=\{ResizeMode\.COVER\}/.test('<Video resizeMode={ResizeMode.COVER} />') && !/resizeMode=\{ResizeMode\.COVER\}/.test(item));
+{
+  /* Las fotos, como estaban: el muro no usa la regla de Weëls. */
+  const tarjeta = sinComentarios(leer('components/PostCard.tsx'));
+  const filaDeWeels = sinComentarios(leer('components/WeelsRow.tsx'));
+  check('D3) las fotos y el muro no cambian: `PostCard` sigue con su CONTAIN y su estilo de foto, y ni él ni la fila del Home usan la regla de Weëls',
+    (tarjeta.match(/resizeMode=\{ResizeMode\.CONTAIN\}/g) || []).length === 1 && /resizeMode: 'contain'/.test(tarjeta)
+    && !/ajusteDelVideoEnWeels/.test(tarjeta) && !/ajusteDelVideoEnWeels/.test(filaDeWeels));
+}
+{
+  /* La flecha: rol, etiqueta, círculo propio y 48 de zona táctil sin tapar el gesto. */
+  const svc = servicio([{ documents: [], lastDoc: null, hasMore: false }]);
+  const e = pantalla(svc);
+  e.dibujar(); e.enfocar(); await e.calma();
+  const d = e.dibujar();
+  const flecha = d.botones.find((b) => b.etiqueta === tEs('common.back'));
+  check('D4) la flecha ← existe, es un botón y dice qué hace (`common.back`, del i18n)', !!flecha && flecha.rol === 'button', JSON.stringify(flecha && { etiqueta: flecha.etiqueta, rol: flecha.rol }));
+  const flechas = feed.match(/<TouchableOpacity onPress=\{(onBack|handleBack)\}[^>]*>/g) || [];
+  check('D4) las dos flechas (la de cada Weël y la del estado vacío) llevan rol, etiqueta, círculo propio y zona ampliada',
+    flechas.length === 2 && flechas.every((f) => /accessibilityRole="button"/.test(f) && /accessibilityLabel=\{t\('common\.back'\)\}/.test(f) && /style=\{styles\.botonDeCabecera\}/.test(f) && /hitSlop=\{ZONA_EXTRA_DEL_BOTON\}/.test(f)), flechas.join(' | '));
+  const boton = feed.match(/botonDeCabecera: \{([^}]*)\}/)?.[1] || '';
+  const extra = feed.match(/ZONA_EXTRA_DEL_BOTON = \{ top: (\d+), bottom: (\d+), left: (\d+), right: (\d+) \}/);
+  const lado = Number(boton.match(/width: (\d+)/)?.[1]);
+  const zona = extra ? lado + Number(extra[1]) + Number(extra[2]) : 0;
+  check('D4) con fondo oscuro propio (no se confunde con lo que trae el vídeo) y 44–48 de zona táctil, ni un punto más',
+    /backgroundColor: 'rgba\(0,0,0,0\.\d+\)'/.test(boton) && /borderRadius: 22/.test(boton) && lado === 44 && Number(boton.match(/height: (\d+)/)?.[1]) === 44 && zona >= 44 && zona <= 48, `círculo ${lado} · zona ${zona}`);
+  check('D4) la cabecera deja pasar el gesto vertical fuera de sus botones y respeta la zona segura',
+    /styles\.topGradient, \{ paddingTop: insets\.top, pointerEvents: 'box-none' \}/.test(feed));
+  check('CONTROL: la flecha de antes (sin rol, sin etiqueta, pintada a pelo) se cazaría',
+    !/accessibilityLabel=\{t\('common\.back'\)\}/.test('<TouchableOpacity onPress={onBack} style={styles.backButton}>'));
+}
+{
+  /* Salir de Weëls: la flecha y el Atrás de Android, al mismo sitio. */
+  const salir = async (pila, como) => {
+    const e = pantalla(servicio([{ documents: [], lastDoc: null, hasMore: false }]), { pila });
+    e.dibujar(); e.enfocar(); await e.calma();
+    const d = e.dibujar();
+    e.olvidar();
+    if (como === 'flecha') { e.tocar(tEs('common.back'), d); return { nav: e.navegacion.slice() }; }
+    e.enfocar();
+    const devuelto = e.atras();
+    return { nav: e.navegacion.slice(), devuelto };
+  };
+  const alWall = (n) => n.length === 1 && n[0][0] === 'popTo' && n[0][1] === 'Main' && n[0][2]?.screen === 'Home';
+  const desdeElWall = await salir(['Main', 'Reels'], 'flecha');
+  check('D5) con historial que viene del Wäll, la flecha vuelve por él (`goBack`)', JSON.stringify(desdeElWall.nav) === '[["goBack"]]', JSON.stringify(desdeElWall.nav));
+  const sinHistorial = await salir(['Reels'], 'flecha');
+  check('D5) SIN historial (enlace /weels, recarga, reinicio), la flecha lleva al Wäll explícitamente (`Main` → `Home`)', alWall(sinHistorial.nav), JSON.stringify(sinHistorial.nav));
+  const trasCrear = await salir(['Main', 'CrearWeel', 'Reels'], 'flecha');
+  check('D5) y nunca reabre una pantalla de crear que quedara detrás: va al Wäll', alWall(trasCrear.nav), JSON.stringify(trasCrear.nav));
+  const desdeComunidad = await salir(['Main', 'Community', 'Reels'], 'flecha');
+  check('D5) desde los Weëls de una comunidad, vuelve a la comunidad (historial)', JSON.stringify(desdeComunidad.nav) === '[["goBack"]]', JSON.stringify(desdeComunidad.nav));
+  const atrasWall = await salir(['Main', 'Reels'], 'atras');
+  const atrasSin = await salir(['Reels'], 'atras');
+  check('D6) el Atrás de Android en el feed hace lo MISMO que la flecha, y lo consume (la app no se cierra sin historial)',
+    atrasWall.devuelto === true && JSON.stringify(atrasWall.nav) === '[["goBack"]]' && atrasSin.devuelto === true && alWall(atrasSin.nav),
+    JSON.stringify([atrasWall, atrasSin]));
+  const S = base('utils/salidaDeWeels.ts');
+  const nav = (p, conPopTo = true) => { const n = []; return { n, goBack: () => n.push(['goBack']), navigate: (...a) => n.push(['navigate', ...a]), ...(conPopTo ? { popTo: (...a) => n.push(['popTo', ...a]) } : {}), canGoBack: () => p.length > 1, getState: () => ({ index: p.length - 1, routes: p.map((name) => ({ name })) }) }; };
+  const sinPopTo = nav(['Reels'], false); S.salirDeWeels(sinPopTo);
+  check('D6) sin `popTo` (otro navegador), también llega al Wäll con `navigate`', JSON.stringify(sinPopTo.n) === '[["navigate","Main",{"screen":"Home"}]]', JSON.stringify(sinPopTo.n));
+  const viejo = nav(['Reels']); viejo.goBack();
+  const nuevoNav = nav(['Reels']); S.salirDeWeels(nuevoNav);
+  check('CONTROL: la salida de antes (`goBack` a secas) sin historial dejaba atrapado o cerraba la app; la de ahora va al Wäll',
+    viejo.n[0][0] === 'goBack' && !alWall(viejo.n) && alWall(nuevoNav.n));
+  check('D6) el gesto desde el borde sale por el mismo camino', /\.start\(\(\) => \{ if \(props\.onBack\) props\.onBack\(\); else salirDeWeels\(navigation as any\); \}\)/.test(feed));
+}
+{
+  /* Lo que no se toca: paginación, duplicados, autoplay. */
+  check('D7) siguen la paginación (`getVideoPostsPaginated` con `lastDoc`), el descarte de duplicados (`loadedIds`) y el autoplay por visibilidad',
+    /getVideoPostsPaginated\(15, lastDoc \|\| undefined, communitySlug\)/.test(feed)
+    &&/loadedIds\.current\.has\(/.test(feed) && /isActive && !isPaused/.test(feed) && /onViewableItemsChanged/.test(feed));
+}
+
+console.log('\n─── E. R9: los comentarios se abren ENCIMA del Weël, sin salir de él ───');
+/*
+ * En el teléfono (3237752c) tocar el icono de comentarios de un Weël navegaba a «Publicación» (PostDetail): se salía del
+ * Weël. El dueño: que se vea en transparente, sin salir. Se reutiliza la hoja de comentarios del muro
+ * (`HojaDeComentarios` + `ComentariosContext` + `useComentarios`), en su modo `sobreVideo`.
+ */
+{
+  const coment = comentariosDoble();
+  const videos = {};
+  const svc = servicio([{ documents: [WEEL('w1', { comments: 3, createdAt: { toDate: () => new Date(0) } }), WEEL('w2', { comments: 7, createdAt: { toDate: () => new Date(0) } })], lastDoc: { id: 'c' }, hasMore: false }]);
+  const e = pantalla(svc, { conLista: true, comentarios: coment, videos, pila: ['Main', 'Reels'] });
+  e.dibujar(); e.enfocar(); await e.calma();
+  e.dibujar();
+  let d = e.dibujar();
+  const iconos = d.botones.filter((b) => b.etiqueta === tEs('wall.comment'));
+  check('E1) cada Weël pinta su icono de comentarios, con rol y etiqueta (`wall.comment`)', iconos.length === 2 && iconos.every((b) => b.rol === 'button'), `${iconos.length} iconos`);
+  const activoAntes = Object.values(videos).map((v) => !!v.shouldPlay).join(',');
+  e.olvidar();
+  iconos[0].tocar();
+  check('E2) tocar el icono NO navega (ni a PostDetail ni a ningún sitio): abre la hoja de ESE Weël, sobre el vídeo',
+    e.navegacion.length === 0 && coment.abiertas.length === 1 && coment.abiertas[0][0] === 'w1' && coment.abiertas[0][1]?.sobreVideo === true,
+    JSON.stringify({ nav: e.navegacion, abiertas: coment.abiertas }));
+  d = e.dibujar();
+  check('E3) el Weël sigue montado detrás (no se desmonta) y sigue reproduciéndose, en silencio mientras la hoja está abierta',
+    !!videos['https://x/w1.mp4'] && videos['https://x/w1.mp4'].isMuted === true && videos['https://x/w2.mp4'].isMuted === false && !!d.html.includes('data-lista'),
+    JSON.stringify({ w1: videos['https://x/w1.mp4']?.isMuted, w2: videos['https://x/w2.mp4']?.isMuted }));
+  /* Atrás con la hoja abierta: la cierra y NO sale de Weëls. */
+  e.enfocar();
+  const devuelto = e.atras();
+  check('E4) el Atrás de Android con la hoja abierta la CIERRA y no sale de Weëls', devuelto === true && coment.cerradas === 1 && e.navegacion.length === 0,
+    JSON.stringify({ devuelto, cerradas: coment.cerradas, nav: e.navegacion }));
+  d = e.dibujar();
+  const activoDespues = Object.values(videos).map((v) => !!v.shouldPlay).join(',');
+  check('E5) cerrada, el mismo Weël: misma posición en el feed (el activo no cambia) y vuelve el sonido',
+    activoAntes === activoDespues && videos['https://x/w1.mp4'].isMuted === false, `${activoAntes} → ${activoDespues}`);
+  e.enfocar();
+  e.olvidar();
+  e.atras();
+  check('E5) y con la hoja cerrada, Atrás vuelve a la regla de salida de Weëls (al Wäll por el historial)', JSON.stringify(e.navegacion) === '[["goBack"]]', JSON.stringify(e.navegacion));
+  /* El contador sube al comentar: lo que cuenta la hoja manda sobre el número guardado en la publicación. */
+  coment.contadores.w1 = 4;
+  d = e.dibujar();
+  check('E6) el contador del icono sube al comentar (lo que cuenta la hoja: 3 → 4); el del otro Weël no cambia',
+    /<span>4<\/span>/.test(d.html) && /<span>7<\/span>/.test(d.html) && !/<span>3<\/span>/.test(d.html), d.texto.slice(0, 200));
+}
+{
+  const item = feed.slice(feed.indexOf('const ReelItem'), feed.indexOf('const ReelsScreen'));
+  const manejador = feed.slice(feed.indexOf('const handleComment'), feed.indexOf('const handleComment') + 400);
+  check('E7) comentar usa la hoja de siempre (`useComentariosDeLaPublicacion` → `abrirComentarios(post, { sobreVideo: true })`), no otra',
+    /abrirComentarios\(post, \{ sobreVideo: true \}\)/.test(manejador) && !/navigate\('PostDetail'/.test(manejador) && /useComentariosDeLaPublicacion\(\)/.test(item));
+  const viejo = "const handleComment = useCallback((postId) => { const post = videoPosts.find(p => p.id === postId); if (post) { navigation.navigate('PostDetail', { postId: post.id, post }); } }, []);";
+  check('CONTROL: el icono de antes (navegar a PostDetail) se cazaría', /navigate\('PostDetail'/.test(viejo) && !/navigate\('PostDetail'/.test(manejador));
+  check('E7) sin segunda hoja ni segundo servicio: Weëls no monta `HojaDeComentarios` ni llama a `commentsService`',
+    !/<HojaDeComentarios|commentsService|useComentarios\(/.test(feed));
+}
+{
+  /* La hoja, la de siempre, con su modo sobre vídeo. */
+  const hoja = sinComentarios(leer('components/HojaDeComentarios.tsx'));
+  const contexto = sinComentarios(leer('contexts/ComentariosContext.tsx'));
+  check('E8) la hoja es un `Modal` transparente que sube desde abajo, con su cierre por fuera, por la ✕ y por Atrás (`onRequestClose`)',
+    /<Modal visible=\{visible\} transparent animationType=\{isWeb \? 'none' : 'slide'\} onRequestClose=\{onClose\}>/.test(hoja)
+    && /style=\{\[styles\.atenuado, sobreVideo && styles\.atenuadoSobreVideo\]\} activeOpacity=\{1\} onPress=\{onClose\}/.test(hoja)
+    && (hoja.match(/accessibilityLabel=\{t\('wall\.closeComments'\)\}/g) || []).length >= 2);
+  check('E8) sobre un Weël el fondo apenas se atenúa, la hoja es algo transparente y no pasa del 70 %',
+    /atenuadoSobreVideo: \{\s*backgroundColor: 'rgba\(0,0,0,0\.12\)'/.test(hoja) && /hojaSobreVideo: \{\s*maxHeight: '70%'/.test(hoja)
+    && /sobreVideo \? fondoSobreVideo\(theme\.colors\.background\)/.test(hoja));
+  /* La hoja cargada con dobles (solo se ejecutan sus reglas puras: el fondo y el umbral del arrastre). */
+  const numeros = new Proxy({}, { get: () => new Proxy({}, { get: () => 8 }) });
+  const H = crearCargador({ dobles: {
+    react: { __esModule: true, default: {}, useEffect() {}, useMemo: (f) => f(), useRef: (v) => ({ current: v }) },
+    'react-native': { StyleSheet: { create: (x) => x, absoluteFillObject: {}, hairlineWidth: 1 }, Platform: { OS: 'android' }, Animated: {}, PanResponder: {} },
+    'expo-image': {}, '@expo/vector-icons': {}, 'react-native-safe-area-context': {},
+    '../contexts/ThemeContext': {}, '../contexts/IdiomaContext': {}, '../contexts/UserProfileContext': {}, '../services/firestoreService': {},
+    '../hooks/useComentarios': {}, './avatars/AvatarDisplay': {}, './CommentCard': {}, './EspacioDeEscritura': {},
+    '../constants/design': { SPACING: numeros.x, FONT_SIZE: numeros.x, FONT_WEIGHT: numeros.x, BORDER_RADIUS: numeros.x, ICON_SIZE: numeros.x },
+    '../utils/scale': { scale: (x) => x },
+  } })('components/HojaDeComentarios.tsx');
+  check('E8) el fondo transparente se calcula sobre el color del tema (#RRGGBB → 90 %), sin romper otros formatos',
+    H.fondoSobreVideo('#FFFFFF') === '#FFFFFFE6' && H.fondoSobreVideo('#0A0A0A') === '#0A0A0AE6' && H.fondoSobreVideo('white') === 'white');
+  /*
+   * R9 (teléfono, d1cfda57): deslizar desde el asa o la cabecera NO cerraba. Con solo `onMoveShouldSetPanResponder`
+   * la zona casi nunca recibía el gesto (asa de 4 puntos, vistas de maquetación que Android aplana). El gesto, ejecutado:
+   */
+  {
+    const reg = { movido: [], cerrada: 0, vuelta: 0 };
+    const g = H.configDelGestoDeCerrar((dy) => reg.movido.push(dy), () => reg.cerrada++, () => reg.vuelta++);
+    check('E9) la zona reclama el toque al empezar, gana un arrastre vertical aunque lo empiece una vista de dentro y no lo suelta a medias',
+      g.onStartShouldSetPanResponder() === true && g.onMoveShouldSetPanResponderCapture({}, { dx: 2, dy: 20 }) === true
+      && g.onMoveShouldSetPanResponderCapture({}, { dx: 30, dy: 10 }) === false && g.onPanResponderTerminationRequest() === false);
+    g.onPanResponderMove({}, { dy: 120 }); g.onPanResponderMove({}, { dy: -30 });
+    g.onPanResponderRelease({}, { dy: 450, vy: 0.3 });
+    const cerrada = reg.cerrada;
+    g.onPanResponderRelease({}, { dy: 30, vy: 0.1 });
+    g.onPanResponderRelease({}, { dy: 40, vy: 1.2 });
+    check('E9) deslizar hacia abajo (el swipe del teléfono: ~450 puntos) CIERRA; poco y despacio vuelve a su sitio; rápido también cierra',
+      cerrada === 1 && reg.cerrada === 2 && reg.vuelta === 1 && JSON.stringify(reg.movido) === '[120,0]', JSON.stringify(reg));
+    const soloMover = { onMoveShouldSetPanResponder: (_e, gg) => gg.dy > 6 };
+    check('CONTROL: el gesto de d1cfda57 (solo `onMoveShouldSetPanResponder`) no reclamaba al empezar ni capturaba',
+      soloMover.onStartShouldSetPanResponder === undefined && soloMover.onMoveShouldSetPanResponderCapture === undefined);
+    check('E9) la zona es una vista real (`collapsable={false}`) con el asa, la cabecera y el aire de arriba; la lista queda fuera (su scroll no cambia)',
+      /<View \{\.\.\.gestoDeCerrar\.panHandlers\} collapsable=\{false\} style=\{styles\.zonaDeArrastre\}>/.test(hoja)
+      && /PanResponder\.create\(configDelGestoDeCerrar\(/.test(hoja) && H.ARRASTRE_PARA_CERRAR === 80
+      && hoja.indexOf('gestoDeCerrar.panHandlers') < hoja.indexOf('<FlatList') && /zonaDeArrastre: \{\s*paddingTop: SPACING\.sm/.test(hoja));
+  }
+  check('E10) la conversación sale de `useComentarios` (el mismo camino que el muro y PostDetail) y su recuento vuelve al contexto',
+    /useComentarios\(visible \? post : null\)/.test(hoja) && /onContar\?\.\(postId as string, comentarios\.length\)/.test(hoja)
+    && /sobreVideo=\{sobreVideo\} onContar=\{alContar\}/.test(contexto) && /publicacionAbierta, contadores/.test(contexto));
+  check('E10) el muro sigue abriéndola igual (sin `sobreVideo`): su aspecto de siempre no cambia',
+    /abrirComentarios\(post\)/.test(sinComentarios(leer('screens/LandingScreen.tsx'))) && /backgroundColor: 'rgba\(31,41,55,0\.45\)'/.test(hoja));
+  /*
+   * R9 (navegador, 8e2c46b4): al abrir la hoja, el icono del Weël bajaba a 0 mientras cargaba y volvía a 2. El primer
+   * dibujado tras abrir trae aún el `cargando: false` y la lista vacía de «sin publicación», y la hoja contaba entonces.
+   * Ahora solo cuenta cuando la suscripción de ESA publicación ya ha respondido (`respondidaDe`).
+   */
+  check('E11) antes de la primera respuesta la hoja NO cuenta (el icono sigue con su número); después, sí',
+    H.debeContar(true, 'w1', null) === false && H.debeContar(true, 'w1', 'w2') === false && H.debeContar(false, 'w1', 'w1') === false && H.debeContar(true, 'w1', 'w1') === true);
+  const viejaCondicion = (visible, postId, cargando) => visible && !!postId && !cargando;
+  check('CONTROL: la condición de 8e2c46b4 (`!cargando`) contaba en ese primer dibujado (cargando aún false) y el icono bajaba a 0',
+    viejaCondicion(true, 'w1', false) === true && H.debeContar(true, 'w1', null) === false);
+  const gancho = sinComentarios(leer('hooks/useComentarios.ts'));
+  check('E11) `useComentarios` apunta de qué publicación llegó la respuesta, y lo olvida al cerrarse (reabrir espera otra vez)',
+    /setComentarios\(llegados\);\s*setCargando\(false\);\s*setRespondidaDe\(postId\);/.test(gancho)
+    && /if \(!postId\) \{\s*setComentarios\(\[\]\);\s*setCargando\(false\);\s*setRespondidaDe\(null\);/.test(gancho)
+    && /if \(debeContar\(visible, postId, respondidaDe\)\) onContar/.test(hoja));
+}
+
+console.log('\n─── F. R9: responder a un comentario, y Weëls sin el «+» de arriba ───');
+/*
+ * Peticiones del dueño (2026-10-13): «que se pueda comentar dentro de un comentario» y quitar el «+» de arriba a la
+ * derecha de Weëls (crear un Weël sigue en la fila «Crear Weël» del Home y en la hoja Crear).
+ */
+{
+  const Hi = base('utils/hilosDeComentarios.ts');
+  const c = (id, padre) => ({ id, ...(padre ? { parentCommentId: padre } : {}) });
+  const llegados = [c('a'), c('b'), c('a1', 'a'), c('c'), c('a2', 'a1'), c('b1', 'b'), c('x1', 'borrado')];
+  const lineas = Hi.ordenarEnHilos(llegados);
+  const pinta = lineas.map((l) => (l.esRespuesta ? '  ' : '') + l.comentario.id).join(' | ');
+  check('F1) cada comentario seguido de SUS respuestas, con sangría, en el orden de llegada',
+    pinta === 'a |   a1 |   a2 | b |   b1 | c | x1', pinta);
+  check('F1) un solo nivel: la respuesta a una respuesta cuelga del mismo comentario raíz',
+    lineas.find((l) => l.comentario.id === 'a2').esRespuesta === true && Hi.raizDeRespuesta(c('a2', 'a1'), new Map(llegados.map((x) => [x.id, x]))).id === 'a');
+  check('F1) una respuesta cuyo comentario ya no está se enseña como comentario normal: nada desaparece',
+    lineas.length === llegados.length && lineas.find((l) => l.comentario.id === 'x1').esRespuesta === false);
+  check('F1) sin respuestas, el orden de siempre', Hi.ordenarEnHilos([c('p'), c('q')]).map((l) => l.comentario.id).join() === 'p,q');
+  check('F1) un ciclo de padres (datos raros) no cuelga la pantalla', Hi.ordenarEnHilos([c('m', 'n'), c('n', 'm')]).length === 2);
+  const plano = llegados.map((x) => x.id).join(' | ');
+  check('CONTROL: la lista plana de antes dejaba la respuesta «a1» detrás de «b», lejos de su comentario', plano.indexOf('b') < plano.indexOf('a1') && pinta.indexOf('a1') < pinta.indexOf('b'));
+}
+{
+  const gancho = sinComentarios(leer('hooks/useComentarios.ts'));
+  const hoja = sinComentarios(leer('components/HojaDeComentarios.tsx'));
+  const tarjeta = sinComentarios(leer('components/CommentCard.tsx'));
+  const servicio = sinComentarios(leer('services/firestoreService.ts'));
+  check('F2) una respuesta es un comentario más de `comments` con el `parentCommentId` que el modelo ya tenía (raíz), por `commentsService.create`',
+    /parentCommentId\?: string;/.test(servicio) && /\.\.\.\(respondida && \{ parentCommentId: respondida\.id \}\)/.test(gancho)
+    && /const raiz = comentario\.parentCommentId \|\| comentario\.id;/.test(gancho) && /await commentsService\.create\(nuevo\)/.test(gancho));
+  check('F2) sin colección, servicio ni suscripción nuevos: la hoja sigue leyendo `subscribeToPost` y escribiendo `commentsService.create`',
+    (gancho.match(/commentsService\.(\w+)/g) || []).every((m) => /subscribeToPost|create/.test(m)) && !/collection\(|addDoc|replies/.test(gancho));
+  check('F2) al enviar se suelta a quién se respondía; si falla, vuelve con el texto (no se pierde la respuesta)',
+    /setRespondiendoA\(null\);\s*setEnviando\(true\);/.test(gancho) && (gancho.match(/setRespondiendoA\(respondida\);/g) || []).length === 2);
+  check('F2) el contador del post sigue la regla de siempre: cuenta comentarios Y respuestas (+1 por cada documento creado)',
+    /await postsService\.update\(postId, \{ comments: \(post\?\.comments \|\| 0\) \+ 1 \}\);/.test(gancho) && /onContar\?\.\(postId as string, comentarios\.length\)/.test(hoja));
+  check('F3) cada comentario de la hoja ofrece «Responder» (`wall.reply`) y las respuestas van con sangría',
+    /accessibilityLabel=\{t\('wall\.reply'\)\}/.test(tarjeta) && /\{!!onResponder && \(/.test(tarjeta) && /esRespuesta && styles\.respuesta/.test(tarjeta)
+    && /esRespuesta=\{item\.esRespuesta\}/.test(hoja) && /data=\{lineas\}/.test(hoja) && /ordenarEnHilos\(comentarios\)/.test(hoja));
+  check('F3) la caja dice a quién respondes (`wall.replyingTo`) con un aspa para cancelar (`wall.cancelReply`), y Responder lleva el cursor a la caja',
+    /t\('wall\.replyingTo', \{ nombre: respondiendoA\.nombre \}\)/.test(hoja) && /onPress=\{cancelarRespuesta\}/.test(hoja) && /accessibilityLabel=\{t\('wall\.cancelReply'\)\}/.test(hoja)
+    && /responderA\(item\.comentario, nombre\); campoRef\.current\?\.focus\(\);/.test(hoja));
+  check('F3) la pantalla de la publicación pinta los mismos hilos (sin botón de responder: se responde en la hoja)',
+    /ordenarEnHilos\(comments\)\.map\(\(\{ comentario: comment, esRespuesta \}\)/.test(sinComentarios(leer('screens/PostDetailScreen.tsx'))));
+  const reglas = leer('firestore.rules');
+  const bloque = reglas.slice(reglas.indexOf('match /comments/{commentId}'), reglas.indexOf('match /likes/{likeId}'));
+  check('F4) las reglas de `comments` ya permiten crear con `parentCommentId` (no limitan los campos al crear) y siguen impidiendo cambiarlo después: sin cambio de reglas',
+    /allow create: if isAuthenticated\(\) &&\s*\(request\.resource\.data\.userId == request\.auth\.uid/.test(bloque) && !/allow create[^;]*hasOnly/.test(bloque)
+    && /\.hasAny\(\['userId', 'postId', 'parentCommentId', 'createdAt'\]\)/.test(bloque));
+  const EN = base('i18n/textos/en/index.ts').en;
+  const ES = base('i18n/textos/es/index.ts').es;
+  check('F5) los textos salen del i18n (es/en distintos) y la ayuda dice el nombre por interpolación',
+    ['reply', 'replyingTo', 'cancelReply'].every((k) => typeof ES.wall[k] === 'string' && typeof EN.wall[k] === 'string' && ES.wall[k] !== EN.wall[k])
+    && tEs('wall.replyingTo', { nombre: 'Ana' }) === 'Respondiendo a Ana');
+}
+{
+  /* Sin «+» arriba a la derecha. */
+  const svc = servicio([{ documents: [WEEL('w1', { createdAt: { toDate: () => new Date(0) } })], lastDoc: null, hasMore: false }]);
+  const e = pantalla(svc, { conLista: true });
+  e.dibujar(); e.enfocar(); await e.calma(); e.dibujar();
+  const d = e.dibujar();
+  check('F6) el Weël ya no tiene «+» arriba a la derecha (ningún botón «Crear Weël» en su cabecera), y conserva la flecha',
+    !d.botones.some((b) => b.etiqueta === tEs('weels.create')) && d.botones.some((b) => b.etiqueta === tEs('common.back')), d.botones.map((b) => b.etiqueta).join(' · '));
+  const vacio = pantalla(servicio([{ documents: [], lastDoc: null, hasMore: false }]));
+  vacio.dibujar(); vacio.enfocar(); await vacio.calma();
+  const dv = vacio.dibujar();
+  check('F6) en el feed vacío tampoco hay «+» arriba: solo queda el botón del propio mensaje («Crear Weël»)',
+    dv.botones.filter((b) => b.etiqueta === tEs('weels.create')).length === 1 && !/add-circle-outline/.test(feed));
+  check('CONTROL: la cabecera de antes (con «+») se cazaría',
+    /add-circle-outline/.test('<Ionicons name="add-circle-outline" />') && !/onCreate/.test(feed));
+  const landing = sinComentarios(leer('screens/LandingScreen.tsx'));
+  const global = sinComentarios(leer('navigation/NavegacionGlobal.tsx'));
+  check('F7) crear un Weël sigue en la fila del Home y en la hoja Crear (sin tocar sus rutas)',
+    /navigate\(user \? 'CrearWeel' : 'Login'\)/.test(landing) && /if \(kind === 'weel'\) return void setTimeout\(\(\) => irARaiz\('CrearWeel'\)/.test(global));
+  const S = base('utils/salidaDeWeels.ts');
+  const nav = (p) => { const n = []; return { n, goBack: () => n.push('goBack'), navigate: (x) => n.push(x), popTo: (x) => n.push(x), canGoBack: () => p.length > 1, getState: () => ({ index: p.length - 1, routes: p.map((name) => ({ name })) }) }; };
+  const desdeHome = nav(['Main', 'CrearWeel']); S.salirDeCrearWeel(desdeHome);
+  const desdeHoja = nav(['Main', 'Community', 'CrearWeel']); S.salirDeCrearWeel(desdeHoja);
+  check('F7) cerrar «Crear Weël» abierto desde el Home o desde la hoja Crear vuelve a donde estaba (historial)',
+    desdeHome.n.join() === 'goBack' && desdeHoja.n.join() === 'goBack');
+}
 
 check('esta suite está en la cadena de `npm test`', /weels-feed\.test\.mjs/.test(leer('functions/package.json')));
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien: Weëls abre el feed de vídeos y el Wall conserva su compositor');

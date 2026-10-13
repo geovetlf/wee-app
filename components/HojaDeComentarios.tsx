@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
+  Animated,
+  PanResponder,
   View,
   Text,
   StyleSheet,
@@ -18,6 +20,7 @@ import { useT } from '../contexts/IdiomaContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { Comment, Post } from '../services/firestoreService';
 import { useComentarios } from '../hooks/useComentarios';
+import { LineaDelHilo, ordenarEnHilos } from '../utils/hilosDeComentarios';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import CommentCard from './CommentCard';
 import EspacioDeEscritura from './EspacioDeEscritura';
@@ -33,7 +36,55 @@ interface HojaDeComentariosProps {
   onClose: () => void;
   /** Abrir el perfil de quien escribió un comentario. Opcional: si no se pasa, no se ofrece. */
   onAbrirPerfil?: (userId: string) => void;
+  /**
+   * Abierta encima de un Weël (R9): el fondo casi no se atenúa, la hoja es algo transparente y no pasa del 70 % del
+   * alto, para que el vídeo siga a la vista detrás y se entienda que no se ha salido de él.
+   */
+  sobreVideo?: boolean;
+  /** Cuántos comentarios tiene la conversación abierta, cada vez que cambia (el contador del icono que la abrió). */
+  onContar?: (postId: string, total: number) => void;
 }
+
+/** Lo que hay que arrastrar la hoja hacia abajo (o la velocidad) para que se cierre. */
+export const ARRASTRE_PARA_CERRAR = 80;
+const VELOCIDAD_PARA_CERRAR = 0.8;
+
+/**
+ * EL GESTO DE CERRAR, COMO REGLA PURA (R9, teléfono con d1cfda57: deslizar desde el asa o la cabecera no cerraba).
+ *
+ * Con solo `onMoveShouldSetPanResponder` el gesto casi nunca llegaba a esta zona: el asa mide 4 puntos, el resto de
+ * la cabecera son vistas «solo de maquetación» que Android aplana (y entonces el toque cae en la hoja, que no es
+ * hija de la zona) y nadie más reclamaba el toque al empezar. Ahora la zona:
+ *  · reclama el toque AL EMPEZAR (`onStartShouldSetPanResponder`): la ✕ es más honda y lo reclama antes, así que
+ *    sigue funcionando;
+ *  · gana un arrastre vertical aunque lo empiece otra vista dentro de ella (`…Capture`);
+ *  · no lo suelta a medias (`onPanResponderTerminationRequest` → false);
+ *  · y es una vista de verdad (`collapsable={false}`) con el aire de arriba de la hoja dentro.
+ * La lista no está dentro de la zona: su desplazamiento no cambia.
+ */
+export const configDelGestoDeCerrar = (
+  mover: (dy: number) => void,
+  cerrar: () => void,
+  volver: () => void,
+) => ({
+  onStartShouldSetPanResponder: () => true,
+  onMoveShouldSetPanResponder: (_e: unknown, g: { dx: number; dy: number }) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+  onMoveShouldSetPanResponderCapture: (_e: unknown, g: { dx: number; dy: number }) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+  onPanResponderTerminationRequest: () => false,
+  onPanResponderMove: (_e: unknown, g: { dy: number }) => mover(Math.max(0, g.dy)),
+  onPanResponderRelease: (_e: unknown, g: { dy: number; vy: number }) => {
+    if (g.dy > ARRASTRE_PARA_CERRAR || g.vy > VELOCIDAD_PARA_CERRAR) cerrar();
+    else volver();
+  },
+  onPanResponderTerminate: () => volver(),
+});
+
+/** Si la hoja puede ya contar los comentarios de esta publicación: abierta y con la primera respuesta de SU suscripción. */
+export const debeContar = (visible: boolean, postId: string | undefined, respondidaDe: string | null): boolean =>
+  visible && !!postId && respondidaDe === postId;
+
+/** El fondo de la hoja sobre un vídeo: el color del tema con algo de transparencia (solo si es un #RRGGBB). */
+export const fondoSobreVideo = (color: string): string => (/^#[0-9a-f]{6}$/i.test(color) ? color + 'E6' : color);
 
 /**
  * LA CONVERSACIÓN DE UNA PUBLICACIÓN, EN UNA HOJA QUE SUBE DESDE ABAJO.
@@ -68,7 +119,7 @@ interface HojaDeComentariosProps {
  * mueve de su sitio y la conversación se desplaza por detrás de él, con teclado
  * o sin él.
  */
-const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, onClose, onAbrirPerfil }) => {
+const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, onClose, onAbrirPerfil, sobreVideo = false, onContar }) => {
   const t = useT();
   const { theme } = useTheme();
   const { userProfile } = useUserProfile();
@@ -84,10 +135,44 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
     enviando,
     puedeEnviar,
     enviar,
+    respondidaDe,
+    respondiendoA,
+    responderA,
+    cancelarRespuesta,
   } = useComentarios(visible ? post : null);
+  /* Cada comentario seguido de sus respuestas, con sangría (un solo nivel). */
+  const lineas = useMemo(() => ordenarEnHilos(comentarios), [comentarios]);
 
-  const pintarComentario = ({ item }: { item: Comment }) => (
-    <CommentCard comment={item} onProfilePress={onAbrirPerfil} />
+  /*
+   * El recuento de verdad (la misma suscripción que pinta la lista) vuelve a quien abrió la hoja, pero SOLO cuando esa
+   * suscripción ya ha respondido para esta publicación (`debeContar`): antes, quien la abrió sigue con su número.
+   */
+  const postId = post?.id;
+  useEffect(() => {
+    if (debeContar(visible, postId, respondidaDe)) onContar?.(postId as string, comentarios.length);
+  }, [visible, postId, respondidaDe, comentarios.length, onContar]);
+
+  /*
+   * ARRASTRAR HACIA ABAJO CIERRA. Solo desde el asa y la cabecera: la lista conserva su propio desplazamiento.
+   * Si no se arrastra lo bastante, la hoja vuelve a su sitio.
+   */
+  const arrastre = useRef(new Animated.Value(0)).current;
+  useEffect(() => { if (visible) arrastre.setValue(0); }, [visible, arrastre]);
+  const gestoDeCerrar = useMemo(() => PanResponder.create(configDelGestoDeCerrar(
+    (dy) => arrastre.setValue(dy),
+    onClose,
+    () => Animated.spring(arrastre, { toValue: 0, useNativeDriver: !isWeb }).start(),
+  )), [arrastre, onClose]);
+  /* Tocar «Responder» deja el cursor en la caja: se responde escribiendo, sin buscarla. */
+  const campoRef = useRef<TextInput>(null);
+
+  const pintarComentario = ({ item }: { item: LineaDelHilo<Comment> }) => (
+    <CommentCard
+      comment={item.comentario}
+      onProfilePress={onAbrirPerfil}
+      esRespuesta={item.esRespuesta}
+      onResponder={(nombre) => { responderA(item.comentario, nombre); campoRef.current?.focus(); }}
+    />
   );
 
   return (
@@ -99,9 +184,16 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
       */}
       <EspacioDeEscritura style={styles.marco} activo={visible}>
         {/* Tocar fuera cierra, y de paso deja ver la publicación de la que se habla. */}
-        <TouchableOpacity style={styles.atenuado} activeOpacity={1} onPress={onClose} accessibilityLabel={t('wall.closeComments')} />
+        <TouchableOpacity style={[styles.atenuado, sobreVideo && styles.atenuadoSobreVideo]} activeOpacity={1} onPress={onClose} accessibilityLabel={t('wall.closeComments')} />
 
-        <View style={[styles.hoja, { backgroundColor: theme.colors.background }]}>
+        <Animated.View
+          style={[
+            styles.hoja,
+            sobreVideo && styles.hojaSobreVideo,
+            { backgroundColor: sobreVideo ? fondoSobreVideo(theme.colors.background) : theme.colors.background, transform: [{ translateY: arrastre }] },
+          ]}
+        >
+          <View {...gestoDeCerrar.panHandlers} collapsable={false} style={styles.zonaDeArrastre}>
           <View style={[styles.asa, { backgroundColor: theme.colors.border }]} />
 
           {/* Cabecera: qué es esto, cuántos hay y por dónde se sale. */}
@@ -130,6 +222,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
               <Ionicons name="close" size={ICON_SIZE.md} color={theme.colors.text} />
             </TouchableOpacity>
           </View>
+          </View>
 
           {/*
             La conversación. Es lo único que crece y encoge —`flex: 1`—, así que
@@ -142,8 +235,8 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
             </View>
           ) : (
             <FlatList
-              data={comentarios}
-              keyExtractor={(item) => item.id!}
+              data={lineas}
+              keyExtractor={(item) => item.comentario.id!}
               renderItem={pintarComentario}
               style={styles.lista}
               contentContainerStyle={comentarios.length === 0 ? styles.listaVacia : styles.listaLlena}
@@ -161,6 +254,24 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
                 </View>
               }
             />
+          )}
+
+          {/* A quién se responde, con su aspa para volver a comentar la publicación. */}
+          {!!respondiendoA && (
+            <View style={styles.respondiendo}>
+              <Text style={[styles.respondiendoTexto, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                {t('wall.replyingTo', { nombre: respondiendoA.nombre })}
+              </Text>
+              <TouchableOpacity
+                onPress={cancelarRespuesta}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={t('wall.cancelReply')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
           )}
 
           {/* Lo que se va a enviar, antes de enviarlo, con su aspa para quitarlo. */}
@@ -203,6 +314,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
             )}
             <View style={[styles.campo, { backgroundColor: theme.colors.surface }]}>
               <TextInput
+                ref={campoRef}
                 style={[styles.entrada, { color: theme.colors.text }]}
                 placeholder={t('wall.commentPlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
@@ -242,7 +354,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </EspacioDeEscritura>
     </Modal>
   );
@@ -266,11 +378,22 @@ const styles = StyleSheet.create({
     maxHeight: '92%',
     borderTopLeftRadius: BORDER_RADIUS.xl,
     borderTopRightRadius: BORDER_RADIUS.xl,
-    paddingTop: SPACING.sm,
     maxWidth: 560,
     width: '100%',
     alignSelf: 'center',
     overflow: 'hidden',
+  },
+  /* Sobre un Weël el vídeo tiene que seguir viéndose: apenas se atenúa. */
+  atenuadoSobreVideo: {
+    backgroundColor: 'rgba(0,0,0,0.12)',
+  },
+  /* Y la hoja se queda en un 55–70 % del alto: el vídeo asoma siempre por arriba. */
+  hojaSobreVideo: {
+    maxHeight: '70%',
+  },
+  /* El asa, la cabecera y el aire de arriba de la hoja: todo eso se puede arrastrar. */
+  zonaDeArrastre: {
+    paddingTop: SPACING.sm,
   },
   asa: {
     width: scale(38),
@@ -360,6 +483,17 @@ const styles = StyleSheet.create({
     height: scale(4),
     borderRadius: scale(2),
     marginTop: SPACING.md,
+  },
+  respondiendo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: SPACING.sm,
+  },
+  respondiendoTexto: {
+    flex: 1,
+    fontSize: FONT_SIZE.sm,
   },
   avance: {
     paddingHorizontal: SPACING.xl,

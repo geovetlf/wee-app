@@ -12,6 +12,7 @@ import {
   Platform,
   Image,
   Animated,
+  BackHandler,
 } from 'react-native';
 import { isWeb } from '../utils/platform';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
@@ -33,6 +34,15 @@ import { scale } from '../utils/scale';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
 import { useT, useIdioma } from '../contexts/IdiomaContext';
 import { esVisibleEnWeels } from '../utils/visibilidadDeWeels';
+import { salirDeWeels } from '../utils/salidaDeWeels';
+import { useComentariosDeLaPublicacion } from '../contexts/ComentariosContext';
+import {
+  ajusteDelVideoEnWeels,
+  fetchAndCacheVideoAspectRatio,
+  getCachedVideoAspectRatio,
+  proporcionDeLaMedida,
+  setCachedVideoAspectRatio,
+} from '../utils/videoDimensionCache';
 
 /* Solo para el gesto de volver (umbral y recorrido); el tamaño de cada Weël NO sale de aquí. */
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -68,12 +78,10 @@ interface ReelItemProps {
   viewport: Viewport;
   onBack: () => void;
   onComment: (postId: string) => void;
-  /** Crear un Weël: una acción aparte del visor, que lleva al compositor en modo Weël (o a entrar). */
-  onCreate: () => void;
   initialPositionMillis?: number;
 }
 
-const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, onCreate, initialPositionMillis }) => {
+const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, initialPositionMillis }) => {
   const t = useT();
   const { locale, idioma } = useIdioma();
   const { user } = useAuth();
@@ -88,6 +96,15 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
   const tapIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progress, setProgress] = useState(0);
   const insets = useSafeAreaInsets();
+  /*
+   * LOS COMENTARIOS SE ABREN ENCIMA DEL WEËL (R9, decisión del dueño). Mientras su hoja está abierta el vídeo sigue
+   * reproduciéndose detrás, EN SILENCIO: se ve por la parte de arriba y a través de la hoja, que es lo que dice «sigues
+   * en el Weël», y su sonido no compite con lo que se lee. Al cerrarla vuelve el sonido donde iba, sin saltos. El
+   * contador del icono es el que cuenta la hoja (la misma suscripción que pinta la lista), así sube al comentar.
+   */
+  const { publicacionAbierta, contadores } = useComentariosDeLaPublicacion();
+  const comentariosAbiertos = !!post.id && publicacionAbierta === post.id;
+  const totalDeComentarios = (post.id && contadores[post.id] !== undefined ? contadores[post.id] : post.comments) || 0;
 
   // Double tap for like
   const lastTap = useRef<number>(0);
@@ -106,6 +123,34 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
   });
 
   const hasSeekedRef = useRef(false);
+
+  /*
+   * LA FORMA DEL VÍDEO DECIDE CÓMO LLENA LA PANTALLA (decisión del dueño, R9). Un vídeo vertical llena la pantalla como
+   * siempre (COVER); uno apaisado o cuadrado se ve ENTERO, con su proporción y sin deformarlo (CONTAIN), porque llenar
+   * con él la pantalla le cortaba los lados —en el teléfono, la etiqueta y el título del vídeo quedaban fuera—.
+   * La forma sale de las medidas de verdad: la que ya apuntó el muro para esa URL (`videoDimensionCache`), la cabecera
+   * del vídeo en la web y `onReadyForDisplay` → `naturalSize` en el teléfono. Mientras no se sabe, CONTAIN: no recorta
+   * nada, y si el vídeo resulta vertical solo se pasa de entero a lleno, nunca se enseña cortado lo que no lo está.
+   */
+  const urlDelVideo = post.videoUrl;
+  const [proporcionDelVideo, setProporcionDelVideo] = useState<number | undefined>(
+    () => (urlDelVideo ? getCachedVideoAspectRatio(urlDelVideo) : undefined),
+  );
+  useEffect(() => {
+    if (!urlDelVideo || getCachedVideoAspectRatio(urlDelVideo) !== undefined) return;
+    let vigente = true;
+    fetchAndCacheVideoAspectRatio(urlDelVideo, (proporcion) => {
+      if (vigente) setProporcionDelVideo(proporcion);
+    });
+    return () => { vigente = false; };
+  }, [urlDelVideo]);
+  const alSaberLaFormaDelVideo = useCallback((evento: { naturalSize?: { width?: number; height?: number; orientation?: string } }) => {
+    const proporcion = proporcionDeLaMedida(evento?.naturalSize);
+    if (!proporcion || !urlDelVideo) return;
+    setCachedVideoAspectRatio(urlDelVideo, proporcion);
+    setProporcionDelVideo((actual) => (actual === proporcion ? actual : proporcion));
+  }, [urlDelVideo]);
+  const ajuste = ajusteDelVideoEnWeels(proporcionDelVideo);
 
   // Set audio mode once on mount
   useEffect(() => {
@@ -203,20 +248,21 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
         ref={videoRef}
         source={{ uri: post.videoUrl! }}
         style={StyleSheet.absoluteFill}
-        resizeMode={ResizeMode.COVER}
+        resizeMode={ajuste === 'cover' ? ResizeMode.COVER : ResizeMode.CONTAIN}
         shouldPlay={isActive}
-        isMuted={false}
+        isMuted={comentariosAbiertos}
         isLooping
         progressUpdateIntervalMillis={100}
         onPlaybackStatusUpdate={handlePlaybackStatus}
+        onReadyForDisplay={alSaberLaFormaDelVideo}
       />
 
-      {/* Poster image — visible until video plays */}
+      {/* Poster image — visible until video plays. Es un fotograma del vídeo: se ajusta igual que él para no saltar. */}
       {!!(post.imageUrls?.[0] && !hasStartedPlaying) && (
         <Image
           source={{ uri: post.imageUrls[0] }}
           style={StyleSheet.absoluteFill}
-          resizeMode="cover"
+          resizeMode={ajuste}
         />
       )}
 
@@ -262,13 +308,15 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
         colors={['rgba(0,0,0,0.5)', 'transparent']}
         style={[styles.topGradient, { paddingTop: insets.top, pointerEvents: 'box-none' }]}
       >
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity onPress={onBack} style={styles.botonDeCabecera} hitSlop={ZONA_EXTRA_DEL_BOTON} accessibilityRole="button" accessibilityLabel={t('common.back')}>
           <Ionicons name="arrow-back" size={scale(26)} color="white" />
         </TouchableOpacity>
         <Text style={styles.topTitle}>{t('weels.title')}</Text>
-        <TouchableOpacity onPress={onCreate} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
-          <Ionicons name="add-circle-outline" size={scale(26)} color="white" />
-        </TouchableOpacity>
+        {/*
+          Sin «+» arriba a la derecha (decisión del dueño, R9 2026-10-13): un Weël se crea desde la fila «Crear Weël» del
+          Home y desde la hoja Crear. Un hueco del mismo ancho que la flecha mantiene el título centrado.
+        */}
+        <View style={styles.huecoDeCabecera} />
       </LinearGradient>
 
       {/* Progress bar */}
@@ -350,10 +398,10 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
             </TouchableOpacity>
 
             {/* Comment */}
-            <TouchableOpacity style={styles.sidebarBtn} onPress={() => onComment(post.id!)}>
+            <TouchableOpacity style={styles.sidebarBtn} onPress={() => onComment(post.id!)} accessibilityRole="button" accessibilityLabel={t('wall.comment')}>
               <Ionicons name="chatbubble-outline" size={scale(26)} color="white" />
               <Text style={styles.sidebarCount}>
-                {formatNumber(post.comments, locale)}
+                {formatNumber(totalDeComentarios, locale)}
               </Text>
             </TouchableOpacity>
 
@@ -511,7 +559,7 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
         toValue: SCREEN_WIDTH,
         duration: 200,
         useNativeDriver: true,
-      }).start(() => { if (props.onBack) props.onBack(); else navigation.goBack(); });
+      }).start(() => { if (props.onBack) props.onBack(); else salirDeWeels(navigation as any); });
     } else {
       Animated.spring(translateX, {
         toValue: 0,
@@ -536,17 +584,37 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
     setActiveIndex(initialIndex);
   }, [initialIndex]);
 
+  /*
+   * SALIR DE WEËLS: la flecha ←, el gesto desde el borde y el Atrás de Android van al mismo sitio —por el historial si
+   * lo hay, al Wäll si no (entrada por enlace o tras recargar), y nunca a una pantalla de crear (`utils/salidaDeWeels.ts`)—.
+   */
   const handleBack = useCallback(() => {
     if (props.onBack) props.onBack();
-    else navigation.goBack();
+    else salirDeWeels(navigation as any);
   }, [navigation, props.onBack]);
+  /*
+   * Con la hoja de comentarios abierta, Atrás la CIERRA y te deja en el mismo Weël; no sale de Weëls. (La hoja es un
+   * `Modal` y su `onRequestClose` ya lo hace; esto es la red por si el Atrás llega aquí.)
+   */
+  const { abrirComentarios, cerrarComentarios, publicacionAbierta } = useComentariosDeLaPublicacion();
+  useFocusEffect(useCallback(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (publicacionAbierta) cerrarComentarios();
+      else handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleBack, publicacionAbierta, cerrarComentarios]));
 
+  /*
+   * Comentar NO sale del Weël: abre la hoja de comentarios de siempre (`HojaDeComentarios`, la del muro, con su
+   * `useComentarios`) encima del vídeo, en su modo transparente. Antes navegaba a la pantalla de la publicación.
+   */
   const handleComment = useCallback((postId: string) => {
     const post = videoPosts.find(p => p.id === postId);
-    if (post) {
-      (navigation as any).navigate('PostDetail', { postId: post.id, post });
-    }
-  }, [videoPosts, navigation]);
+    if (post) abrirComentarios(post, { sobreVideo: true });
+  }, [videoPosts, abrirComentarios]);
 
   // Viewability tracking
   const viewabilityConfig = useRef({
@@ -605,10 +673,9 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
       viewport={viewport as Viewport}
       onBack={handleBack}
       onComment={handleComment}
-      onCreate={crearWeel}
       initialPositionMillis={index === initialIndex ? initialPositionMillis : undefined}
     />
-  ), [activeIndex, viewport, handleBack, handleComment, crearWeel, initialIndex, initialPositionMillis]);
+  ), [activeIndex, viewport, handleBack, handleComment, initialIndex, initialPositionMillis]);
 
   const keyExtractor = useCallback((item: Post) => item.id!, []);
 
@@ -631,13 +698,11 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
       {(fase !== 'lista' || videoPosts.length === 0) && (
         <View style={styles.estado}>
           <View style={[styles.estadoCabecera, { paddingTop: insets.top + scale(8) }]}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
+            <TouchableOpacity onPress={handleBack} style={styles.botonDeCabecera} hitSlop={ZONA_EXTRA_DEL_BOTON} accessibilityRole="button" accessibilityLabel={t('common.back')}>
               <Ionicons name="arrow-back" size={scale(26)} color="white" />
             </TouchableOpacity>
             <Text style={styles.topTitle}>{t('weels.title')}</Text>
-            <TouchableOpacity onPress={crearWeel} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
-              <Ionicons name="add-circle-outline" size={scale(26)} color="white" />
-            </TouchableOpacity>
+            <View style={styles.huecoDeCabecera} />
           </View>
           <View style={styles.estadoCuerpo}>
             {fase === 'cargando' ? (
@@ -655,7 +720,7 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
                 <Ionicons name="film-outline" size={scale(44)} color="rgba(255,255,255,0.8)" />
                 <Text style={styles.estadoTitulo}>{t('weels.empty')}</Text>
                 <Text style={styles.estadoPista}>{t('weels.emptyHint')}</Text>
-                <TouchableOpacity style={styles.estadoBoton} onPress={crearWeel} accessibilityRole="button">
+                <TouchableOpacity style={styles.estadoBoton} onPress={crearWeel} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
                   <Text style={styles.estadoBotonTexto}>{t('weels.create')}</Text>
                 </TouchableOpacity>
               </>
@@ -700,6 +765,9 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
     </ContainerComponent>
   );
 };
+
+/** Lo que la zona táctil de los botones de la cabecera crece alrededor de su círculo de 44: 48 en total. */
+const ZONA_EXTRA_DEL_BOTON = { top: 2, bottom: 2, left: 2, right: 2 };
 
 const styles = StyleSheet.create({
   container: {
@@ -757,8 +825,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(16),
     paddingBottom: scale(16),
   },
-  backButton: {
-    padding: scale(4),
+  /*
+   * Volver y crear, encima del vídeo: un círculo oscuro propio para que no se confundan con lo que el vídeo trae pintado
+   * (en el teléfono la flecha se montaba sobre la etiqueta DEMO). 44 de diámetro + `ZONA_EXTRA_DEL_BOTON` = 48 de zona
+   * táctil, y ni un punto más: el resto de la cabecera deja pasar el gesto vertical (`pointerEvents: 'box-none'`).
+   */
+  /* Lo que ocupaba el «+»: el título sigue centrado entre la flecha y este hueco. */
+  huecoDeCabecera: {
+    width: 44,
+    height: 44,
+  },
+  botonDeCabecera: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   topTitle: {
     flex: 1,

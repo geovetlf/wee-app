@@ -40,12 +40,13 @@ export const textoDelHtml = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&#x
  * @param {object|null} [o.usuario]            La sesión (`useAuth().user`); null = sin entrar.
  * @param {boolean} [o.movil]                  Teléfono (`useResponsive`).
  * @param {Array} [o.trabajos]                 Los `creatorJobs` que devolvería `getMyJobsDe`.
+ * @param {string[]} [o.pila]                  La pila de pantallas, la de abajo primero y la propia la última: da `getState`, `canGoBack` y `popTo` (R9, salir de Weëls). Sin ella, como siempre.
  * @param {object} [o.fotos]                   Lo que contestan el permiso y el selector de fotos.
  * @param {object} [o.params]                 Los parámetros de la ruta (`useRoute().params`); sin ellos, los de quien entra por el menú.
  * @param {string} [o.pantalla]                Ruta de la pantalla desde la raíz del repo.
  * @param {(ctx: object) => object} o.dobles   Los dobles propios de esa pantalla (componentes y constantes que no se cargan de verdad).
  */
-export const crearEntorno = ({ so = 'android', usuario = { uid: 'u1' }, movil = true, trabajos = [], fotos = {}, params, pantalla, dobles }) => {
+export const crearEntorno = ({ so = 'android', usuario = { uid: 'u1' }, movil = true, trabajos = [], fotos = {}, params, pantalla, dobles, pila }) => {
   /* ── el estado que sobrevive entre dibujados ── */
   let almacen = [];
   let indice = 0;
@@ -80,6 +81,9 @@ export const crearEntorno = ({ so = 'android', usuario = { uid: 'u1' }, movil = 
     BackHandler: { addEventListener: (_evento, manejador) => { manejadoresDeAtras.push(manejador); return { remove: () => { const i = manejadoresDeAtras.indexOf(manejador); if (i >= 0) manejadoresDeAtras.splice(i, 1); } }; } },
     Keyboard: { dismiss() {}, addListener: () => ({ remove() {} }) },
     Linking: { openURL: async () => {} },
+    /* El alto que enseña la pantalla y la letra de la persona (R9: el marco de «Crear Weël» se mide contra ellos). */
+    useWindowDimensions: () => ({ width: movil ? 390 : 1280, height: 800, scale: 1, fontScale: 1 }),
+    PixelRatio: { getFontScale: () => 1, get: () => 1 },
   };
 
   /* ── el selector de fotos ── */
@@ -105,12 +109,13 @@ export const crearEntorno = ({ so = 'android', usuario = { uid: 'u1' }, movil = 
   const todos = {
     react: { ...React, useState },
     'react-native': reactNative,
-    'react-native-safe-area-context': { SafeAreaView: Caja },
+    'react-native-safe-area-context': { SafeAreaView: Caja, useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) },
     '@expo/vector-icons': { Ionicons: ({ name }) => h('i', { 'data-icono': name }) },
     '@react-navigation/native': {
       useNavigation: () => ({
         navigate: (...a) => navegacion.push(['navigate', ...a]), push: (...a) => navegacion.push(['push', ...a]),
-        goBack: () => navegacion.push(['goBack']), setParams: (...a) => navegacion.push(['setParams', ...a]), canGoBack: () => true,
+        goBack: () => navegacion.push(['goBack']), setParams: (...a) => navegacion.push(['setParams', ...a]), canGoBack: () => (pila ? pila.length > 1 : true),
+        ...(pila ? { getState: () => ({ index: pila.length - 1, routes: pila.map((name) => ({ name })) }), popTo: (...a) => navegacion.push(['popTo', ...a]) } : {}),
       }),
       useFocusEffect: (cb) => { enfoques.push(cb); },
       /* La ruta de quien entra por el menú: sin parámetros. Weë Chef y las demás pantallas de especialista leen de ella el proyecto del que vienen (P11, R8). */

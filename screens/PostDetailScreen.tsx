@@ -39,6 +39,7 @@ import { Video, ResizeMode, Audio } from 'expo-av';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import ImageViewer from '../components/ImageViewer';
 import CommentCard from '../components/CommentCard';
+import { ordenarEnHilos } from '../utils/hilosDeComentarios';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';
 import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } from '../utils/imageDimensionCache';
@@ -638,11 +639,13 @@ const PostDetailContent: React.FC = () => {
             </View>
           ) : (
             <View>
-              {comments.map((comment) => (
+              {/* R9: las respuestas, debajo de su comentario y con sangría, como en la hoja (`utils/hilosDeComentarios.ts`). */}
+              {ordenarEnHilos(comments).map(({ comentario: comment, esRespuesta }) => (
                 <CommentCard
                   key={comment.id}
                   comment={comment}
                   onProfilePress={handleCommentProfilePress}
+                  esRespuesta={esRespuesta}
                 />
               ))}
             </View>

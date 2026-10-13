@@ -694,15 +694,18 @@ console.log('\n── El vídeo del muro conserva su forma ──');
     && !/imageUrls|imageDimensions|fetchAndCacheAspectRatio/.test(bloqueDelVideo));
 
   /*
-   * 7) WEËLSSCREEN NO SE TOCA. Allí el vídeo SÍ llena la pantalla con `COVER`,
-   * que es su diseño, y su tamaño sale del viewport medido. Si esta fase se
-   * hubiera colado ahí, esto lo caza.
+   * 7) WEËLSSCREEN NO SE TOCA CON LAS REGLAS DEL MURO. Allí el vídeo VERTICAL
+   * llena la pantalla con `COVER`, que es su diseño, y su tamaño sale del
+   * viewport medido. R9 (decisión del dueño, 2026-10-13): lo que NO es vertical
+   * se ve completo (`CONTAIN`) con la regla propia de Weëls
+   * (`ajusteDelVideoEnWeels`, weels-feed D) y la medida del reproductor; pero
+   * nada del tamaño del muro (`maxVideoHeight`, la ventana del adelanto) entra ahí.
    */
   const visor = leer('screens/ReelsScreen.tsx');
-  check('20) WeëlsScreen sigue con su vídeo a pantalla completa',
-    /resizeMode=\{ResizeMode\.COVER\}/.test(visor)
+  check('20) WeëlsScreen sigue con su vídeo a pantalla completa (COVER si es vertical) y sin las medidas del muro',
+    /resizeMode=\{ajuste === 'cover' \? ResizeMode\.COVER : ResizeMode\.CONTAIN\}/.test(visor)
     && /<View style=\{\[styles\.reelContainer, \{ width: viewport\.width, height: viewport\.height \}\]\}>/.test(visor)
-    && !/videoDimensionCache|proporcionDelVideo|maxVideoHeight/.test(visor));
+    && !/maxVideoHeight|medidaDelMedio|ventanaDelPreview|topeDelMedio/.test(visor));
 }
 
 console.log('\n── La proporción de un vídeo, ejecutada de verdad ──');

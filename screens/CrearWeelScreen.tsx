@@ -19,13 +19,13 @@
  * pinta un porcentaje inventado: se dice «Subiendo tu video…» y después «Publicando tu Weël…», que es lo que de verdad
  * está pasando. Si algo falla, el vídeo sigue elegido y Reintentar no vuelve a subir lo que ya subió.
  */
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, Keyboard, ActivityIndicator } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, Keyboard, ActivityIndicator, BackHandler, PixelRatio, useWindowDimensions, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Timestamp } from 'firebase/firestore';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
@@ -40,9 +40,18 @@ import {
   MAX_DESCRIPCION_WEEL,
   MAX_SEGUNDOS_WEEL,
   VideoElegido,
+  MedidaVisible,
+  altoMinimoDeLaDescripcion,
   datosDelWeel,
+  medidaDelMarcoDelWeel,
+  siguienteMedidaVisible,
   validarVideoDeWeel,
 } from '../utils/crearWeel';
+import { ajusteDelVideoEnWeels, proporcionDeLaMedida } from '../utils/videoDimensionCache';
+import { salirDeCrearWeel } from '../utils/salidaDeWeels';
+
+/** El alto mínimo de la cabecera (`styles.cabecera`). */
+const ALTO_DE_LA_CABECERA = 56;
 
 /** En qué punto está la publicación. `error` guarda en qué paso falló para decirlo y reintentar desde ahí. */
 type Fase = 'editando' | 'subiendo' | 'publicando' | 'error';
@@ -77,6 +86,43 @@ const CrearWeelScreen: React.FC = () => {
   const [fase, setFase] = useState<Fase>('editando');
   /* La URL del vídeo ya subido: si después falla guardar el Weël, reintentar NO vuelve a subirlo. */
   const [videoSubido, setVideoSubido] = useState<{ uri: string; url: string } | null>(null);
+
+  /*
+   * Lo que de verdad enseña la pantalla debajo de la cabecera. Hasta que el desplazable se mide, se estima con la
+   * ventana (menos los huecos del sistema y la cabecera: la barra global no se pinta aquí, ver `SIN_BARRA`); después
+   * manda su `onLayout`, SIEMPRE la última medida (`siguienteMedidaVisible`). La única que se ignora es la que llega
+   * mientras se escribe en la descripción: es el teclado encogiendo el desplazable, y el vídeo no debe encogerse
+   * mientras se escribe (girar el teléfono cambia el ancho y sí vuelve a medir).
+   *
+   * R9 (teléfono, 3237752c): antes, con el mismo ancho, solo se aceptaba CRECER. Pero la primera medida llega antes de
+   * que la pila reserve el sitio de la barra global (se viene de Weëls, que no la tiene), así que se quedaba con un
+   * alto ~100 puntos mayor que el visible y la caja seguía cortada en reposo. Ahora la barra no se pinta aquí (decisión
+   * del dueño) y, aunque cambiara el hueco, manda la última medida.
+   */
+  const ventana = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const [visible, setVisible] = useState<MedidaVisible | null>(null);
+  const [escribiendo, setEscribiendo] = useState(false);
+  const alMedirElDesplazable = (e: LayoutChangeEvent) => {
+    const { width: ancho, height: alto } = e.nativeEvent.layout;
+    setVisible((v) => siguienteMedidaVisible(v, { ancho, alto }, escribiendo));
+  };
+  const altoDescripcion = altoMinimoDeLaDescripcion(PixelRatio.getFontScale());
+  const marco = medidaDelMarcoDelWeel(
+    visible?.ancho ?? ventana.width,
+    visible?.alto ?? ventana.height - insets.top - insets.bottom - ALTO_DE_LA_CABECERA,
+    altoDescripcion,
+  );
+
+  /* La vista previa se ajusta como en el feed: vertical llena el marco; apaisado o cuadrado, entero (`ajusteDelVideoEnWeels`). */
+  const [formaContada, setFormaContada] = useState<{ uri: string; proporcion: number } | null>(null);
+  const proporcionDelElegido = video
+    ? (formaContada?.uri === video.uri ? formaContada.proporcion : (video.ancho && video.alto ? video.ancho / video.alto : undefined))
+    : undefined;
+  const alSaberLaFormaDelVideo = (evento: { naturalSize?: { width?: number; height?: number; orientation?: string } }) => {
+    const proporcion = proporcionDeLaMedida(evento?.naturalSize);
+    if (proporcion && video) setFormaContada({ uri: video.uri, proporcion });
+  };
 
   const ocupado = fase === 'subiendo' || fase === 'publicando';
   const puedePublicar = !!video && !ocupado && descripcion.length <= MAX_DESCRIPCION_WEEL && !!user;
@@ -199,7 +245,20 @@ const CrearWeelScreen: React.FC = () => {
     }
   };
 
-  const cerrar = () => (navigation as any).goBack();
+  /*
+   * Cerrar (✕) y el Atrás de Android: a donde se abrió —el mismo Weël si fue con el + de Weëls— y, sin historial o con
+   * el compositor del Wäll detrás, al feed de Weëls; nunca a `Create` (`utils/salidaDeWeels.ts`). Mientras se sube o
+   * se publica, Atrás no hace nada, como el ✕, que está apagado.
+   */
+  const cerrar = () => salirDeCrearWeel(navigation as any);
+  useFocusEffect(useCallback(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!ocupado) salirDeCrearWeel(navigation as any);
+      return true;
+    });
+    return () => sub.remove();
+  }, [navigation, ocupado]));
 
   /* ── La cabecera: cerrar, el nombre de lo que haces y Publicar. ── */
   const cabecera = (
@@ -225,15 +284,23 @@ const CrearWeelScreen: React.FC = () => {
 
   /* ── El vídeo: vertical, a lo grande; sin vídeo, las dos maneras de conseguirlo. ── */
   const lamina = video ? (
-    <View style={styles.marco} accessibilityLabel={t('weels.preview')}>
-      <Video source={{ uri: video.uri }} style={styles.video} resizeMode={ResizeMode.COVER} isLooping isMuted shouldPlay={!ocupado} />
+    <View style={[styles.marco, marco]} accessibilityLabel={t('weels.preview')}>
+      <Video
+        source={{ uri: video.uri }}
+        style={styles.video}
+        resizeMode={ajusteDelVideoEnWeels(proporcionDelElegido) === 'cover' ? ResizeMode.COVER : ResizeMode.CONTAIN}
+        isLooping
+        isMuted
+        shouldPlay={!ocupado}
+        onReadyForDisplay={alSaberLaFormaDelVideo}
+      />
       <TouchableOpacity onPress={elegirDeGaleria} disabled={ocupado} style={styles.cambiar} accessibilityRole="button" accessibilityLabel={t('weels.changeVideo')}>
         <Ionicons name="swap-horizontal" size={18} color="#FFFFFF" />
         <Text style={styles.cambiarTexto}>{t('weels.changeVideo')}</Text>
       </TouchableOpacity>
     </View>
   ) : (
-    <View style={[styles.marco, styles.marcoVacio, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
+    <View style={[styles.marco, marco, styles.marcoVacio, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
       <Ionicons name="videocam-outline" size={40} color={theme.colors.textSecondary} />
       <Text style={[styles.requisitos, { color: theme.colors.textSecondary }]}>{t('weels.requirements', { segundos: MAX_SEGUNDOS_WEEL })}</Text>
       <TouchableOpacity onPress={elegirDeGaleria} style={[styles.boton, { backgroundColor: theme.colors.accent }]} accessibilityRole="button" accessibilityLabel={t('weels.pickVideo')}>
@@ -263,16 +330,18 @@ const CrearWeelScreen: React.FC = () => {
       {cabecera}
       {/* La descripción va debajo del vídeo: el espacio se acomoda al teclado como en el compositor, sin taparla. */}
       <EspacioDeEscritura style={styles.pantalla}>
-      <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled" onLayout={alMedirElDesplazable}>
         {lamina}
         {estado}
         <TextInput
-          style={[styles.descripcion, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+          style={[styles.descripcion, { minHeight: altoDescripcion, color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
           placeholder={t('composer.placeholderWeel')}
           placeholderTextColor={theme.colors.textSecondary}
           value={descripcion}
           onChangeText={setDescripcion}
           maxLength={MAX_DESCRIPCION_WEEL}
+          onFocus={() => setEscribiendo(true)}
+          onBlur={() => setEscribiendo(false)}
           multiline
           editable={!ocupado}
           accessibilityLabel={t('weels.descriptionLabel')}
@@ -287,14 +356,14 @@ const CrearWeelScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   pantalla: { flex: 1 },
-  cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 56, paddingHorizontal: 12 },
+  cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: ALTO_DE_LA_CABECERA, paddingHorizontal: 12 },
   cerrar: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   titulo: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', marginHorizontal: 8 },
   publicar: { minWidth: 88, height: 36, borderRadius: 18, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
   publicarTexto: { fontSize: 15, fontWeight: '700' },
   contenido: { paddingHorizontal: 16, paddingBottom: 32, alignItems: 'stretch', width: '100%', maxWidth: 520, alignSelf: 'center' },
-  /* 9:16, el formato de Weëls: lo que se ve aquí es lo que se verá en el feed. */
-  marco: { width: '100%', maxWidth: 360, aspectRatio: 9 / 16, alignSelf: 'center', borderRadius: 20, overflow: 'hidden', backgroundColor: '#000000', marginTop: 8 },
+  /* 9:16, el formato de Weëls: lo que se ve aquí es lo que se verá en el feed. Ancho y alto los pone `medidaDelMarcoDelWeel`. */
+  marco: { alignSelf: 'center', borderRadius: 20, overflow: 'hidden', backgroundColor: '#000000', marginTop: 8 },
   marcoVacio: { borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   video: { width: '100%', height: '100%' },
   requisitos: { fontSize: 14, textAlign: 'center', marginBottom: 8 },
@@ -305,7 +374,8 @@ const styles = StyleSheet.create({
   estado: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 16 },
   estadoError: { flexDirection: 'column' },
   estadoTexto: { fontSize: 14, textAlign: 'center' },
-  descripcion: { marginTop: 16, minHeight: 72, maxHeight: 140, borderWidth: 1, borderRadius: 14, padding: 12, fontSize: 15, textAlignVertical: 'top' },
+  /* Sin alto fijo: el mínimo (dos líneas de la ayuda, con la letra de la persona) lo pone `altoMinimoDeLaDescripcion`. */
+  descripcion: { marginTop: 16, maxHeight: 140, borderWidth: 1, borderRadius: 14, padding: 12, fontSize: 15, lineHeight: 20, textAlignVertical: 'top' },
   contador: { alignSelf: 'flex-end', fontSize: 12, marginTop: 4 },
   pie: { fontSize: 12, marginTop: 12, textAlign: 'center' },
 });

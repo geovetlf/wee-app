@@ -35,6 +35,23 @@ export const useComentarios = (post: Post | null) => {
   const [texto, setTexto] = useState('');
   const [adjunto, setAdjunto] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  /*
+   * De qué publicación ha llegado YA la primera respuesta de la suscripción. `cargando` no basta para saberlo: al abrir
+   * una publicación, el primer dibujado aún trae el `cargando: false` y la lista vacía de «sin publicación», y quien
+   * contara entonces leería 0 (R9: el contador del Weël parpadeaba a 0 al abrir la hoja).
+   */
+  const [respondidaDe, setRespondidaDe] = useState<string | null>(null);
+  /*
+   * A QUIÉN SE RESPONDE (R9). Si está puesto, lo que se envíe lleva `parentCommentId` con el id del comentario RAÍZ
+   * (`utils/hilosDeComentarios.ts`: un solo nivel). El nombre es solo para enseñarlo en la caja.
+   */
+  const [respondiendoA, setRespondiendoA] = useState<{ id: string; nombre: string } | null>(null);
+  const responderA = useCallback((comentario: Comment, nombre: string) => {
+    /* Responder a una respuesta cuelga del mismo comentario raíz: un solo nivel. */
+    const raiz = comentario.parentCommentId || comentario.id;
+    if (raiz) setRespondiendoA({ id: raiz, nombre });
+  }, []);
+  const cancelarRespuesta = useCallback(() => setRespondiendoA(null), []);
 
   const postId = post?.id;
 
@@ -43,12 +60,16 @@ export const useComentarios = (post: Post | null) => {
     if (!postId) {
       setComentarios([]);
       setCargando(false);
+      /* Cerrada: al volver a abrir (aunque sea la misma publicación) hay que esperar otra vez su primera respuesta. */
+      setRespondidaDe(null);
+      setRespondiendoA(null);
       return;
     }
     setCargando(true);
     const cancelar = commentsService.subscribeToPost(postId, (llegados) => {
       setComentarios(llegados);
       setCargando(false);
+      setRespondidaDe(postId);
     });
     return () => cancelar();
   }, [postId]);
@@ -90,10 +111,12 @@ export const useComentarios = (post: Post | null) => {
   const enviar = useCallback(async () => {
     const contenido = texto.trim();
     const imagen = adjunto;
+    const respondida = respondiendoA;
     if ((!contenido && !imagen) || !user || !postId || enviando) return;
 
     setTexto('');
     setAdjunto(null);
+    setRespondiendoA(null);
     setEnviando(true);
 
     try {
@@ -108,6 +131,7 @@ export const useComentarios = (post: Post | null) => {
           notify(t('common.error'), t('wall.commentImageFailed'));
           setTexto(contenido);
           setAdjunto(imagen);
+          setRespondiendoA(respondida);
           setEnviando(false);
           return;
         }
@@ -123,6 +147,8 @@ export const useComentarios = (post: Post | null) => {
         updatedAt: new Date() as any,
         /* Solo si existe: Firestore no acepta `undefined`. */
         ...(imageUrl && { imageUrl }),
+        /* Una respuesta es un comentario más, con el campo que el modelo ya tenía. */
+        ...(respondida && { parentCommentId: respondida.id }),
       };
 
       const comentarioId = await commentsService.create(nuevo);
@@ -150,15 +176,20 @@ export const useComentarios = (post: Post | null) => {
       console.error('❌ Error enviando comentario:', error);
       setTexto(contenido);
       if (imagen) setAdjunto(imagen);
+      setRespondiendoA(respondida);
       notify(t('common.error'), t('wall.commentSendFailed'));
     } finally {
       setEnviando(false);
     }
-  }, [texto, adjunto, user, postId, enviando, userProfile, post, t]);
+  }, [texto, adjunto, respondiendoA, user, postId, enviando, userProfile, post, t]);
 
   return {
     comentarios,
     cargando,
+    respondidaDe,
+    respondiendoA,
+    responderA,
+    cancelarRespuesta,
     texto,
     setTexto,
     adjunto,
