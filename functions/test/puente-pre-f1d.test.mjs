@@ -784,7 +784,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       /* + cierre post-auditoría 2026-10-01: index +6 −5 (creatorChat/creatorQuote con MODEL_SECRETS; la adaptación de idioma de creatorRun con su sistema y `format: 'text'`) y generateAvatar +3 −3 (AVATAR_SECRETS, solo Gemini); creator/credits.ts sin tocar. */
       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
       /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos y las variantes; nada del reclamo ni del cobro. */
-      '45\t4\tfunctions/src/creator/credits.ts|157\t23\tfunctions/src/creator/index.ts|235\t69\tfunctions/src/generateAvatar.ts'
+      /* + R9 · D-6 (decisión del dueño 2026-10-12, que autoriza actualizar las pruebas antiguas al comportamiento seguro; +19 −1, antes 157/23): creatorChat guarda el projectId solo si el proyecto existe y es de quien pide (proyectoPropio); nada del reclamo ni del cobro. */
+      '45\t4\tfunctions/src/creator/credits.ts|176\t24\tfunctions/src/creator/index.ts|235\t69\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 
