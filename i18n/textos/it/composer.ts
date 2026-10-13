@@ -157,5 +157,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: 'Scrivi il prompt che vuoi condividere',
   howPreview: 'Anteprima',
   howPreviewEmpty: 'Seleziona almeno una cosa perché compaia nel tuo post.',
-  howDone: 'Fatto',
 };

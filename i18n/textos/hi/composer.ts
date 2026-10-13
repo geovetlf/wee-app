@@ -202,5 +202,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: 'जो प्रॉम्प्ट शेयर करना है, वह लिखें',
   howPreview: 'प्रीव्यू',
   howPreviewEmpty: 'अपनी पोस्ट में दिखाने के लिए कम से कम एक चीज़ चुनें.',
-  howDone: 'हो गया',
 };

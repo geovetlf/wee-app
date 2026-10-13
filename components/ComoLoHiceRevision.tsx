@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import HowIMadeIt from './HowIMadeIt';
+import EspacioDeEscritura from './EspacioDeEscritura';
 import {
   BorradorComoLoHice,
   datosParaPublicar,
@@ -107,12 +108,14 @@ const ComoLoHiceRevision: React.FC<Props> = ({ visible, borrador, onCambiar, onC
             style={[styles.listo, { backgroundColor: theme.colors.text }]}
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel={t('composer.howDone')}
+            accessibilityLabel={t('common.done')}
           >
-            <Text style={[styles.listoTexto, { color: theme.colors.background }]}>{t('composer.howDone')}</Text>
+            <Text style={[styles.listoTexto, { color: theme.colors.background }]}>{t('common.done')}</Text>
           </TouchableOpacity>
         </View>
 
+        {/* El mismo acomodo del teclado que el compositor: los pasos y el prompt se escriben abajo de la hoja. */}
+        <EspacioDeEscritura style={styles.pantalla}>
         <ScrollView contentContainerStyle={styles.cuerpo} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <Text style={[styles.intro, { color: theme.colors.textSecondary }]}>{t('composer.howReviewIntro')}</Text>
 
@@ -209,6 +212,7 @@ const ComoLoHiceRevision: React.FC<Props> = ({ visible, borrador, onCambiar, onC
             <Text style={[styles.pista, { color: theme.colors.textSecondary }]}>{t('composer.howPreviewEmpty')}</Text>
           )}
         </ScrollView>
+        </EspacioDeEscritura>
       </SafeAreaView>
     </Modal>
   );

@@ -167,5 +167,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: '공유할 프롬프트를 적어 주세요',
   howPreview: '미리보기',
   howPreviewEmpty: '게시물에 보이도록 하나 이상 체크해 주세요.',
-  howDone: '완료',
 };

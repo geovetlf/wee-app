@@ -200,5 +200,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: 'Skriv prompten du vill dela',
   howPreview: 'Förhandsvisning',
   howPreviewEmpty: 'Markera minst en sak så att den syns i ditt inlägg.',
-  howDone: 'Klar',
 };

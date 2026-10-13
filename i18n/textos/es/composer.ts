@@ -158,5 +158,4 @@ export const composer = {
   howPromptPlaceholder: 'Escribe el prompt que quieras compartir',
   howPreview: 'Vista previa',
   howPreviewEmpty: 'Marca al menos una cosa para que se vea en tu publicación.',
-  howDone: 'Listo',
 };

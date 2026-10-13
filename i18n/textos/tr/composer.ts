@@ -191,5 +191,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: 'Paylaşmak istediğin promptu yaz',
   howPreview: 'Önizleme',
   howPreviewEmpty: 'Gönderinde görünmesi için en az bir şeyi işaretle.',
-  howDone: 'Tamam',
 };

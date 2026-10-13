@@ -174,5 +174,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: 'シェアしたいプロンプトを入力',
   howPreview: 'プレビュー',
   howPreviewEmpty: '投稿に表示するには、少なくとも1つチェックしてください。',
-  howDone: '完了',
 };

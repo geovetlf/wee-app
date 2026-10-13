@@ -188,5 +188,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: '寫下你想分享的提示詞',
   howPreview: '預覽',
   howPreviewEmpty: '至少勾選一項，才會顯示在你的貼文中。',
-  howDone: '完成',
 };

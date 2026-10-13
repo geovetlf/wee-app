@@ -175,5 +175,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: '写下你想分享的提示词',
   howPreview: '预览',
   howPreviewEmpty: '至少勾选一项，才会显示在你的动态中。',
-  howDone: '完成',
 };

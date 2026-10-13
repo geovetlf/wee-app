@@ -194,5 +194,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: 'Skriv den prompt, du vil dele',
   howPreview: 'Forhåndsvisning',
   howPreviewEmpty: 'Markér mindst én ting, så den vises i dit opslag.',
-  howDone: 'Færdig',
 };

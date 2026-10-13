@@ -157,5 +157,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: 'Écris le prompt que tu veux partager',
   howPreview: 'Aperçu',
   howPreviewEmpty: 'Coche au moins un élément pour qu’il apparaisse dans ta publication.',
-  howDone: 'Terminé',
 };

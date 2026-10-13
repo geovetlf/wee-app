@@ -157,5 +157,4 @@ export const composer: typeof import('../es/composer').composer = {
   howPromptPlaceholder: 'Schreib den Prompt, den du teilen möchtest',
   howPreview: 'Vorschau',
   howPreviewEmpty: 'Markiere mindestens eine Sache, damit sie in deinem Beitrag erscheint.',
-  howDone: 'Fertig',
 };

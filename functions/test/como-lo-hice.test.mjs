@@ -119,6 +119,7 @@ const comunes = (ctx) => {
     },
     '../contexts/ThemeContext': tema,
     '../contexts/IdiomaContext': habla,
+    './EspacioDeEscritura': { __esModule: true, default: ({ children }) => hh('div', null, children) },
   };
 };
 
@@ -163,7 +164,7 @@ const compositor = (params) => crearEntorno({
 const TITULO = tEs('composer.howShareTitle');
 const FILA = tEs('composer.howReviewRow');
 const PUBLICAR = tEs('composer.publish');
-const LISTO = tEs('composer.howDone');
+const LISTO = tEs('common.done');
 const prefillDeChef = { content: 'Ensalada de verano en diez minutos', aiTools: ['Weë Chef'], aiProcess: 'Creado con Weë Chef en Weë AI', jobId: 'job_1' };
 
 {
