@@ -240,8 +240,8 @@ export const studio: typeof import('../es/studio').studio = {
   readyHint: 'Bu bir demo: Henüz gerçekten oluşturulmuş bir şey yok.',
   dismiss: 'Anladım',
   /* R9 · E2: lo escrito no encaja con ningún sitio del Studio; se dice y se ofrece Weë Brain. */
-  noDestination: "Bunu Studio'da nereye götüreceğimi bilmiyorum",
-  noDestinationHint: "Nereden başlayacağını seç ya da Weë Brain'e anlat.",
+  noDestination: 'Bunu Studio’da nereye götüreceğimi bilmiyorum',
+  noDestinationHint: 'Nereden başlayacağını seç ya da Weë Brain’e anlat.',
   askBrain: "Weë Brain'e sor",
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */

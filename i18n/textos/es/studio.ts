@@ -226,7 +226,7 @@ export const studio = {
   dismiss: 'Entendido',
   /* R9 · E2: lo escrito no encaja con ningún sitio del Studio; se dice y se ofrece Weë Brain. */
   noDestination: 'No sé a qué parte del Studio llevar esto',
-  noDestinationHint: 'Elige por dónde empezar o cuéntaselo a Weë Brain.',
+  noDestinationHint: 'Elige el punto de partida, o cuéntale a Weë Brain lo que necesitas y él te ayuda.',
   askBrain: 'Preguntar a Weë Brain',
 
   /* ── Lo que todavía no está conectado ─────────────────────────────────── */

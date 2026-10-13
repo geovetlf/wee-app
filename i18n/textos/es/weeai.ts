@@ -57,7 +57,7 @@ export const weeai = {
   tryAgain: 'Probar otra vez',
   itDidNotWork: 'No me salió bien. No te cobré.',
   /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
-  jobNotFound: 'No encontramos este trabajo, o ya no está disponible.',
+  reopenNotFound: 'No encontramos este trabajo, o ya no está disponible.',
   startOver: 'Empezar de nuevo',
   /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
   saveTextToCreations: 'Guardar en Mis creaciones',

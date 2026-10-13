@@ -82,7 +82,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   tryAgain: '再試一次',
   itDidNotWork: '這次沒做好，沒有扣除 Credits。',
   /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
-  jobNotFound: '找不到這個任務，或它已無法使用。',
+  reopenNotFound: '找不到這個任務，或它已無法使用。',
   startOver: '重新開始',
   /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
   saveTextToCreations: '儲存到我的作品',

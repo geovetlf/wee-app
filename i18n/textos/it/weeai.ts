@@ -59,7 +59,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   tryAgain: 'Riprova',
   itDidNotWork: 'Non è venuta bene. Non ti ho addebitato nulla.',
   /* R9 · E2: el trabajo que se quería reabrir no existe o no se puede leer. */
-  jobNotFound: 'Non abbiamo trovato questo lavoro, oppure non è più disponibile.',
+  reopenNotFound: 'Non abbiamo trovato questo lavoro, oppure non è più disponibile.',
   startOver: 'Ricomincia',
   /* R9 · E2 · D-3: conservar un texto final de Writer, Business o Travel en Mis creaciones, solo si se pide. */
   saveTextToCreations: 'Salva in Le mie creazioni',

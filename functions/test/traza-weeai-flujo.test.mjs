@@ -97,14 +97,14 @@ titulo('B · un jobId que no existe se dice, y se puede empezar de nuevo');
 {
   const servidor = conDocumentoAusente(crearServidor());
   const f = await crearFlujo({ params: { experienceId: 'design', jobId: 'no-existe' }, servidor });
-  check('B1) se dice que el trabajo no está', f.texto().includes(f.t('weeai.jobNotFound')), f.texto().slice(0, 160));
+  check('B1) se dice que el trabajo no está', f.texto().includes(f.t('weeai.reopenNotFound')), f.texto().slice(0, 160));
   check('B2) y ya no se queda «pensando» (la conversación no se monta)', !f.capturas.GuidedQuestion);
   check('B3) hay una salida: «Empezar de nuevo»', f.hayBoton(f.t('weeai.startOver')));
   check('B4) abrirlo no crea nada por su cuenta', f.servidor.de('creatorChat').length === 0);
   await f.tocar(f.t('weeai.startOver'));
   check('B5) «Empezar de nuevo» suelta el jobId de la dirección y abre UN trabajo nuevo',
     f.navegacion.some((n) => n[0] === 'setParams' && n[1] && n[1].jobId === undefined) && f.servidor.de('creatorChat').length === 1, JSON.stringify(f.navegacion));
-  check('B6) y el aviso desaparece en cuanto hay trabajo', !f.texto().includes(f.t('weeai.jobNotFound')) && !!f.capturas.PlanCard);
+  check('B6) y el aviso desaparece en cuanto hay trabajo', !f.texto().includes(f.t('weeai.reopenNotFound')) && !!f.capturas.PlanCard);
   f.cerrar();
 }
 {
@@ -113,7 +113,7 @@ titulo('B · un jobId que no existe se dice, y se puede empezar de nuevo');
   const f = await crearFlujo({ params: { experienceId: 'design', jobId: 'job-s' }, servidor });
   f.servidor.romperLaEscucha('job-s');
   await f.asentar();
-  check('B7) si la escucha se rompe (permisos, red), también se dice en vez de quedarse en blanco', f.texto().includes(f.t('weeai.jobNotFound')));
+  check('B7) si la escucha se rompe (permisos, red), también se dice en vez de quedarse en blanco', f.texto().includes(f.t('weeai.reopenNotFound')));
   f.cerrar();
 }
 
