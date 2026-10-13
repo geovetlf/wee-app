@@ -769,9 +769,26 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const CORE_DE_MEDIA_CLOUD_R9 = '9\t0\tfunctions/src/core/media/puerto.ts\n62\t1\tfunctions/src/core/media/subida.ts';
   /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
   const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
+  /*
+   * Reconciliación F ↔ pila R9 (decisión del dueño 2026-10-13): core/media/puerto.ts y core/media/subida.ts los tocan el
+   * núcleo de activos (52/1 y 2/1) y Media Cloud R9 (9/0 y 62/1) en bloques distintos, y git da UNA línea por archivo con
+   * la suma: 61/1 y 64/2, aquí escritas tal cual. Las dos constantes de origen siguen con sus cifras; `sumarPorRuta` junta
+   * las líneas de la misma ruta sumando, y la suma de esos dos archivos tiene que ser EXACTAMENTE la escrita.
+   */
+  const CORE_DE_ACTIVOS_Y_MEDIA_CLOUD_R9 = '61\t1\tfunctions/src/core/media/puerto.ts\n64\t2\tfunctions/src/core/media/subida.ts';
+  const sumarPorRuta = (...listas) => {
+    const suma = new Map();
+    for (const l of listas.join('\n').split('\n')) {
+      const [a, d, ruta] = l.split('\t'); const s = suma.get(ruta) || [0, 0];
+      suma.set(ruta, [s[0] + Number(a), s[1] + Number(d)]);
+    }
+    return porRuta(...[...suma].map(([ruta, [a, d]]) => `${a}\t${d}\t${ruta}`));
+  };
+  const rutasCompartidas = CORE_DE_ACTIVOS_Y_MEDIA_CLOUD_R9.split('\n').map((l) => l.split('\t')[2]);
   check('F3) ni F1-A ni productions; del Core, la misión fal, el linaje 3D, el núcleo de activos (H5/H2) y Media Cloud R9; del contenido, la adopción de F1-D, el cierre, los derechos, DEC-03 y el núcleo de activos (H5/H2)',
     git(`diff --name-only ${RUTA} -- functions/src/filmmaker functions/src/productions`).trim() === ''
-    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DEL_NUCLEO_DE_ACTIVOS, CORE_DE_MEDIA_CLOUD_R9)
+    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === sumarPorRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DEL_NUCLEO_DE_ACTIVOS, CORE_DE_MEDIA_CLOUD_R9)
+    && sumarPorRuta(CORE_DEL_NUCLEO_DE_ACTIVOS, CORE_DE_MEDIA_CLOUD_R9).split('\n').filter((l) => rutasCompartidas.includes(l.split('\t')[2])).join('\n') === CORE_DE_ACTIVOS_Y_MEDIA_CLOUD_R9
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
     && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS);
