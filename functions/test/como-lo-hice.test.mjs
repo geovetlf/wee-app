@@ -288,24 +288,27 @@ const bloque = (props, so = 'android') => {
 };
 {
   const post = { aiTools: ['Weë Chef'], aiProcess: 'Le dije los ingredientes que tenía en la nevera.\nWeë me propuso una receta.\nAjusté los pasos y generé la imagen.\nPubliqué el resultado en mi Wäll.' };
+  /* La referencia (3.ª pantalla) lo enseña DESPLEGADO: así empieza en el Wäll. */
   const e = bloque({ post });
   let d = e.dibujar();
-  check('C1) plegado: solo la cabecera «CÓMO LO HICE»', d.texto.includes('CÓMO LO HICE') && !d.texto.includes(tEs('wall.madeWith')) && !d.texto.includes(tEs('wall.process')));
-  check('C1) con el libro abierto y el chevrón hacia abajo', d.html.includes('data-icono="book-outline"') && d.html.includes('data-icono="chevron-down"'));
-  check('C1) la cabecera se anuncia como «Mostrar»', d.botones.some((b) => b.etiqueta === tEs('wall.howExpand') && b.rol === 'button'));
-
-  e.tocar(tEs('wall.howExpand'), d);
-  d = e.dibujar();
-  check('C2) desplegado: «Creado con» y la herramienta', d.texto.includes(tEs('wall.madeWith')) && d.texto.includes('Weë Chef'));
-  check('C2) «Proceso:» con los CUATRO pasos que existen, numerados y en orden', d.texto.includes(tEs('wall.process'))
-    && /1\. Le dije.*2\. Weë me propuso.*3\. Ajusté.*4\. Publiqué/.test(d.texto) && !d.texto.includes('5.'));
-  check('C2) el chevrón cambia hacia arriba y la cabecera dice «Ocultar»', d.html.includes('data-icono="chevron-up"') && d.botones.some((b) => b.etiqueta === tEs('wall.howCollapse')));
-  check('C2) sin prompt autorizado, «Ver prompt» no aparece', !d.texto.includes(tEs('wall.showPrompt')));
-  check('C2) abrirlo no navega ni avisa de nada', e.navegacion.length === 0 && e.avisos.length === 0);
+  check('C1) empieza DESPLEGADO, como en la referencia: «Creado con» y la herramienta', d.texto.includes('CÓMO LO HICE') && d.texto.includes(tEs('wall.madeWith')) && d.texto.includes('Weë Chef'));
+  check('C1) «Proceso:» con los CUATRO pasos que existen, numerados y en orden', d.texto.includes(tEs('wall.process'))
+    && /1. Le dije.*2. Weë me propuso.*3. Ajusté.*4. Publiqué/.test(d.texto) && !d.texto.includes('5.'));
+  check('C1) libro abierto, chevrón hacia arriba y la cabecera dice «Ocultar»', d.html.includes('data-icono="book-outline"') && d.html.includes('data-icono="chevron-up"')
+    && d.botones.some((b) => b.etiqueta === tEs('wall.howCollapse') && b.rol === 'button'));
+  check('C1) sin prompt autorizado, «Ver prompt» no aparece', !d.texto.includes(tEs('wall.showPrompt')));
 
   e.tocar(tEs('wall.howCollapse'), d);
   d = e.dibujar();
-  check('C3) se vuelve a plegar', !d.texto.includes(tEs('wall.madeWith')));
+  check('C2) tocar la cabecera lo pliega: solo la cabecera', d.texto.includes('CÓMO LO HICE') && !d.texto.includes(tEs('wall.madeWith')) && !d.texto.includes(tEs('wall.process')));
+  check('C2) chevrón hacia abajo y la cabecera dice «Mostrar»', d.html.includes('data-icono="chevron-down"') && d.botones.some((b) => b.etiqueta === tEs('wall.howExpand')));
+  check('C2) plegarlo no navega ni avisa de nada', e.navegacion.length === 0 && e.avisos.length === 0);
+
+  e.tocar(tEs('wall.howExpand'), d);
+  d = e.dibujar();
+  check('C3) y vuelve a desplegarse; el estado se mantiene mientras se mira', d.texto.includes(tEs('wall.madeWith')) && e.dibujar().texto.includes(tEs('wall.madeWith')));
+  const plegado = bloque({ post, abiertoAlEmpezar: false }).dibujar();
+  check('C3) CONTROL: con el valor viejo (plegado) solo se ve la cabecera', plegado.texto.includes('CÓMO LO HICE') && !plegado.texto.includes(tEs('wall.madeWith')));
 
   const dos = bloque({ post: { aiTools: ['Weë Studio'], aiProcess: 'Uno.\nDos.' }, abiertoAlEmpezar: true }).dibujar();
   check('C4) solo los pasos que existen: dos son dos', dos.texto.includes('1. Uno.') && dos.texto.includes('2. Dos.') && !dos.texto.includes('3.'));

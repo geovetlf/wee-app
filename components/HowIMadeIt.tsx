@@ -14,8 +14,8 @@ const isWeb = Platform.OS === 'web';
 interface HowIMadeItProps {
   post: Pick<Post, 'aiTools' | 'aiPrompt' | 'aiProcess'>;
   /**
-   * Abierto al dibujarse. En el Wäll empieza plegado (solo la cabecera) y cada quien lo abre; la vista previa del
-   * compositor lo pide abierto para enseñar cómo quedará.
+   * Abierto al dibujarse. Empieza DESPLEGADO, como en la referencia del dueño (3.ª pantalla); tocar la cabecera lo
+   * pliega y lo despliega, y ese estado vive mientras se mira la tarjeta.
    */
   abiertoAlEmpezar?: boolean;
 }
@@ -32,7 +32,7 @@ interface HowIMadeItProps {
  * nada. Las publicaciones antiguas —un párrafo en `aiProcess`— se leen igual: un paso, sin número.
  * El estado abierto/cerrado vive mientras se mira la tarjeta; no se guarda en ninguna parte.
  */
-const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post, abiertoAlEmpezar = false }) => {
+const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post, abiertoAlEmpezar = true }) => {
   const t = useT();
   const { theme } = useTheme();
   const [abierto, setAbierto] = useState(abiertoAlEmpezar);
