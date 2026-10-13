@@ -56,6 +56,10 @@ export const wall: typeof import('../es/wall').wall = {
   removeImage: '이미지 제거',
   attachImage: '이미지 첨부',
   sendComment: '댓글 보내기',
+  /* R9: responder a un comentario (una respuesta es un comentario con `parentCommentId`). */
+  reply: '답글 달기',
+  replyingTo: '{{nombre}}님에게 답글 작성 중',
+  cancelReply: '답글 취소',
   onePost: '게시물',
   loadingComments: '댓글 불러오는 중...',
   beFirstToComment: '첫 댓글을 남겨 보세요',

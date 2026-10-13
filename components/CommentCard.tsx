@@ -17,6 +17,10 @@ import { scale } from '../utils/scale';
 interface CommentCardProps {
   comment: Comment;
   onProfilePress?: (userId: string) => void;
+  /** Responder a este comentario (R9). Si no se pasa, no se ofrece. Recibe el nombre que se pinta, para la caja. */
+  onResponder?: (nombre: string) => void;
+  /** Es una respuesta: va con sangría, debajo de su comentario. */
+  esRespuesta?: boolean;
 }
 
 /**
@@ -33,7 +37,7 @@ interface CommentCardProps {
  * contadores del propio comentario—, así que aquí no hay sistema nuevo: solo
  * la cara que le faltaba.
  */
-const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) => {
+const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress, onResponder, esRespuesta = false }) => {
   const { theme } = useTheme();
   const { t, locale } = useIdioma();
   const { user } = useAuth();
@@ -118,7 +122,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
   };
 
   return (
-    <View style={styles.fila}>
+    <View style={[styles.fila, esRespuesta && styles.respuesta]}>
       <TouchableOpacity onPress={() => onProfilePress?.(referenciaPublicaDe(commentAuthor) ?? comment.userId)} activeOpacity={0.7} disabled={loadingAuthor}>
         {loadingAuthor ? (
           <View style={[styles.avatarVacio, { backgroundColor: theme.colors.surface }]} />
@@ -160,6 +164,18 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
         <View style={styles.acciones}>
           {pulgar('agree', aFavor, t('wall.agreeWithComment'))}
           {pulgar('disagree', enContra, t('wall.disagreeWithComment'))}
+          {!!onResponder && (
+            <TouchableOpacity
+              onPress={() => onResponder(commentAuthor?.displayName || t('common.user'))}
+              activeOpacity={0.6}
+              disabled={!user}
+              accessibilityRole="button"
+              accessibilityLabel={t('wall.reply')}
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            >
+              <Text style={[styles.responder, { color: theme.colors.textSecondary }]}>{t('wall.reply')}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -176,6 +192,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACING.md,
     paddingVertical: SPACING.md,
+  },
+  /* Una respuesta, un nivel hacia dentro: lo que mide el avatar más su hueco, para que quede bajo el texto de su comentario. */
+  respuesta: {
+    marginLeft: scale(34) + SPACING.md,
+  },
+  responder: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   avatarVacio: {
     width: scale(34),

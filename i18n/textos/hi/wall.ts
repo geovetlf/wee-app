@@ -61,6 +61,10 @@ export const wall: typeof import('../es/wall').wall = {
   removeImage: 'इमेज हटाएँ',
   attachImage: 'इमेज अटैच करें',
   sendComment: 'टिप्पणी भेजें',
+  /* R9: responder a un comentario (una respuesta es un comentario con `parentCommentId`). */
+  reply: 'जवाब दें',
+  replyingTo: '{{nombre}} को जवाब दे रहे हैं',
+  cancelReply: 'जवाब रद्द करें',
   onePost: 'पोस्ट',
   loadingComments: 'टिप्पणियाँ लोड हो रही हैं…',
   beFirstToComment: 'सबसे पहले आप टिप्पणी करें',

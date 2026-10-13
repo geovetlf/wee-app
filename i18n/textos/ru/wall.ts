@@ -58,6 +58,10 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   removeImage: 'Убрать изображение',
   attachImage: 'Прикрепить изображение',
   sendComment: 'Отправить комментарий',
+  /* R9: responder a un comentario (una respuesta es un comentario con `parentCommentId`). */
+  reply: 'Ответить',
+  replyingTo: 'Ответ для {{nombre}}',
+  cancelReply: 'Отменить ответ',
   onePost: 'Публикация',
   loadingComments: 'Загружаем комментарии...',
   beFirstToComment: 'Оставьте первый комментарий',

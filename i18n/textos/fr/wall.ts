@@ -44,6 +44,10 @@ export const wall: typeof import('../es/wall').wall = {
   removeImage: 'Retirer l’image',
   attachImage: 'Joindre une image',
   sendComment: 'Envoyer le commentaire',
+  /* R9: responder a un comentario (una respuesta es un comentario con `parentCommentId`). */
+  reply: 'Répondre',
+  replyingTo: 'En réponse à {{nombre}}',
+  cancelReply: 'Annuler la réponse',
   onePost: 'Publication',
   loadingComments: 'Chargement des commentaires...',
   beFirstToComment: 'Sois le premier à commenter',

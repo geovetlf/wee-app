@@ -40,6 +40,10 @@ export const wall = {
   removeImage: 'Quitar la imagen',
   attachImage: 'Adjuntar una imagen',
   sendComment: 'Enviar comentario',
+  /* R9: responder a un comentario (una respuesta es un comentario con `parentCommentId`). */
+  reply: 'Responder',
+  replyingTo: 'Respondiendo a {{nombre}}',
+  cancelReply: 'Cancelar respuesta',
   onePost: 'Publicación',
   loadingComments: 'Cargando comentarios...',
   beFirstToComment: 'Sé el primero en comentar',

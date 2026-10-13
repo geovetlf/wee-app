@@ -45,6 +45,10 @@ export const wall: typeof import('../es/wall').wall = {
   removeImage: '画像を削除',
   attachImage: '画像を添付',
   sendComment: 'コメントを送信',
+  /* R9: responder a un comentario (una respuesta es un comentario con `parentCommentId`). */
+  reply: '返信',
+  replyingTo: '{{nombre}}に返信中',
+  cancelReply: '返信をキャンセル',
   onePost: '投稿',
   loadingComments: 'コメントを読み込み中…',
   beFirstToComment: '最初のコメントを書きましょう',

@@ -53,6 +53,10 @@ export const wall: typeof import('../es/wall').wall = {
   removeImage: '移除图片',
   attachImage: '添加图片',
   sendComment: '发送评论',
+  /* R9: responder a un comentario (una respuesta es un comentario con `parentCommentId`). */
+  reply: '回复',
+  replyingTo: '回复 {{nombre}}',
+  cancelReply: '取消回复',
   onePost: '动态',
   loadingComments: '正在加载评论…',
   beFirstToComment: '来发第一条评论吧',
