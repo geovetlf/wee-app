@@ -12,6 +12,7 @@ import {
   Animated,
   Easing,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -56,6 +57,10 @@ import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import SelectorDeEContacts from '../components/SelectorDeEContacts';
 import { notify, confirmAction } from '../utils/notify';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
+import ComoLoHiceRevision from '../components/ComoLoHiceRevision';
+import { borradorInicial, conHistorial, datosParaPublicar, BorradorComoLoHice } from '../utils/comoLoHice';
+import { useTrabajoDeOrigen } from '../hooks/useTrabajoDeOrigen';
+import { textoDelServidor } from '../i18n/servidor';
 
 interface MediaItem {
   type: 'image' | 'video';
@@ -143,21 +148,47 @@ const CreateScreen: React.FC = () => {
   const [poll, setPoll] = useState<EncuestaBorrador | null>(() => (abreEncuesta ? encuestaVacia() : null));
 
   /*
-   * A NADIE SE LE PREGUNTA CÓMO LO HIZO.
+   * «COMPARTIR CÓMO LO HICE» (R9, referencia del dueño).
    *
-   * "Cómo lo hice" —herramientas de IA, prompt y proceso— ya no se pide al
-   * publicar. Publicar en Weë es contar algo, y ese bloque convertía cada
-   * publicación en una ficha técnica que además nadie estaba obligado a rellenar
-   * pero todos veían (fase 2E-74).
+   * Sigue sin haber una ficha técnica que rellenar al publicar (fase 2E-74): al
+   * fondo del compositor hay UN interruptor, APAGADO al abrir, y nada más. Apagado
+   * se publica como siempre, sin proceso. Encendido aparece una fila que abre la
+   * revisión (`ComoLoHiceRevision`), donde se elige QUÉ se comparte —herramienta,
+   * pasos y, solo a propósito, el prompt— y se pueden cambiar los textos. Encender
+   * no es autorizarlo todo: decide la selección final.
    *
-   * Los tres campos siguen existiendo, pero solo los rellena Weë: cuando una
-   * publicación nace de una generación, el motor YA sabe qué modelo usó y con qué
-   * prompt, así que lo apunta él. Son constantes, no estado: sin interfaz que las
-   * cambie, nada puede moverlas después.
+   * Lo que trae el flujo de Weë AI (`routeParams.prefill?.aiTools`,
+   * `routeParams.prefill?.aiProcess`) solo se PROPONE; los pasos reales se leen
+   * del trabajo (`prefill.jobId` → `creatorJobs`) cuando se enciende. El borrador
+   * es estado de esta pantalla: la revisión es una hoja encima, así que al volver
+   * todo sigue como se dejó. Al publicar viajan solo los campos de siempre
+   * (`aiTools`, `aiProcess`, `aiPrompt`) que la selección autoriza.
    */
-  const aiToolsText: string = (routeParams.prefill?.aiTools || []).join(', ');
-  const aiPrompt = '';
-  const aiProcess: string = routeParams.prefill?.aiProcess || '';
+  const [comoLoHice, setComoLoHice] = useState<BorradorComoLoHice>(() =>
+    borradorInicial({ aiTools: routeParams.prefill?.aiTools, aiProcess: routeParams.prefill?.aiProcess })
+  );
+  const [revisandoComoLoHice, setRevisandoComoLoHice] = useState(false);
+  const trabajoDeOrigen: string | undefined = typeof routeParams.prefill?.jobId === 'string' ? routeParams.prefill.jobId : undefined;
+  /*
+   * Los pasos que Weë ya apuntó al crear: una lectura del trabajo, solo con el
+   * interruptor encendido (`hooks/useTrabajoDeOrigen`). Llegan una vez y se
+   * aplican una vez; lo que la persona ya editó no se pisa (`conHistorial`).
+   */
+  const historial = useTrabajoDeOrigen(trabajoDeOrigen, comoLoHice.activo);
+  const historialAplicado = useRef(false);
+  useEffect(() => {
+    const trabajo = historial.trabajo;
+    if (!trabajo || historialAplicado.current) return;
+    historialAplicado.current = true;
+    setComoLoHice((b) => conHistorial(b, trabajo, (x) => textoDelServidor(x, { t, locale, experiencia: trabajo.experienceId })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historial.trabajo]);
+
+  /* Apagarlo esconde la fila y no comparte nada; lo escrito se queda por si se vuelve a encender. */
+  const alternarComoLoHice = (activo: boolean) => {
+    setComoLoHice((b) => ({ ...b, activo }));
+    if (!activo) setRevisandoComoLoHice(false);
+  };
 
   /*
    * El lugar del que habla la publicación. Empieza vacío SIEMPRE, y lo escribe
@@ -763,8 +794,6 @@ const CreateScreen: React.FC = () => {
         .map(m => m.aspectRatio || 4 / 3);
 
       // Crear el post en Firestore (usar uid del perfil activo)
-      // Herramientas de IA: "Kling, ElevenLabs" -> ["Kling", "ElevenLabs"]
-      const aiToolsList = aiToolsText.split(',').map((t) => t.trim()).filter(Boolean).slice(0, 6);
 
       const postData: any = {
         userId: userProfile?.uid || user.uid,
@@ -780,7 +809,6 @@ const CreateScreen: React.FC = () => {
          */
         ...(assetIds.some(Boolean) ? { assetIds } : {}),
         ...(videoAssetId ? { videoAssetId } : {}),
-        ...(aiToolsList.length > 0 ? { aiTools: aiToolsList } : {}),
         // El contexto y el lugar: cada uno por su lado, y solo si existen.
         ...(sourceSection ? { sourceSection } : {}),
         // Solo el lugar estructurado: las publicaciones nuevas no escriben
@@ -800,8 +828,11 @@ const CreateScreen: React.FC = () => {
         ...(econtacts.length > 0 ? { econtacts } : {}),
         // Dónde quiere aparecer. UN documento, varios sitios donde se lee.
         ...(destinos.length > 0 ? { destinations: destinos } : {}),
-        ...(aiPrompt.trim() ? { aiPrompt: aiPrompt.trim() } : {}),
-        ...(aiProcess.trim() ? { aiProcess: aiProcess.trim() } : {}),
+        /*
+         * «Cómo lo hice»: SOLO lo que la selección autoriza, y nada si el
+         * interruptor está apagado. Los campos de siempre; ni uno nuevo.
+         */
+        ...datosParaPublicar(comoLoHice),
         likes: 0,
         comments: 0,
         shares: 0,
@@ -1240,6 +1271,48 @@ const CreateScreen: React.FC = () => {
    * su aspa y al final está el hueco punteado para seguir añadiendo, que es
    * donde la mano lo busca.
    */
+  /*
+   * ─── «Compartir cómo lo hice» (referencia R9) ────────────────────────────
+   *
+   * Al fondo, tras una línea fina: libro abierto, título en negrita, la frase que
+   * lo explica y el interruptor a la derecha. Blanco, sin tarjeta ni amarillo.
+   * Encendido, debajo, una fila gris muy clara —lista, la frase y un chevrón— que
+   * entera abre la revisión.
+   */
+  const renderCompartirProceso = () => (
+    <View>
+      <View style={[styles.separador, { backgroundColor: theme.colors.border }]} />
+      <View style={styles.comoFila}>
+        <Ionicons name="book-outline" size={scale(26)} color={theme.colors.text} />
+        <View style={styles.comoTextos}>
+          <Text style={[styles.comoTitulo, { color: theme.colors.text }]}>{t('composer.howShareTitle')}</Text>
+          <Text style={[styles.comoPista, { color: theme.colors.textSecondary }]}>{t('composer.howShareHint')}</Text>
+        </View>
+        <Switch
+          value={comoLoHice.activo}
+          onValueChange={alternarComoLoHice}
+          accessibilityLabel={t('composer.howShareTitle')}
+          trackColor={{ false: theme.colors.border, true: theme.colors.text }}
+          thumbColor={theme.dark && comoLoHice.activo ? '#1F2937' : '#FFFFFF'}
+          ios_backgroundColor={theme.colors.border}
+        />
+      </View>
+      {comoLoHice.activo && (
+        <TouchableOpacity
+          style={[styles.comoRevisar, { backgroundColor: theme.colors.surface }]}
+          onPress={() => setRevisandoComoLoHice(true)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('composer.howReviewRow')}
+        >
+          <Ionicons name="list-outline" size={scale(22)} color={theme.colors.text} />
+          <Text style={[styles.comoRevisarTexto, { color: theme.colors.text }]}>{t('composer.howReviewRow')}</Text>
+          <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.text} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   const renderMediaPreview = () => {
     if (attachedMedia.length === 0) return null;
 
@@ -1598,6 +1671,7 @@ const CreateScreen: React.FC = () => {
           {renderEContacts()}
           <View style={[styles.separador, { backgroundColor: theme.colors.border }]} />
           {renderDestinos()}
+          {renderCompartirProceso()}
         </ScrollView>
 
         {renderPublicar()}
@@ -1634,6 +1708,17 @@ const CreateScreen: React.FC = () => {
             )}
           </View>
         </View>
+      )}
+
+      {/* La revisión de «Cómo lo hice»: una hoja encima; el borrador sigue aquí. Solo se monta encendido. */}
+      {comoLoHice.activo && (
+        <ComoLoHiceRevision
+          visible={revisandoComoLoHice}
+          borrador={comoLoHice}
+          onCambiar={setComoLoHice}
+          onCerrar={() => setRevisandoComoLoHice(false)}
+          cargandoHistorial={historial.leyendo}
+        />
       )}
 
       {/* Face swap loading overlay */}
@@ -1762,6 +1847,42 @@ const styles = StyleSheet.create({
   separador: {
     height: StyleSheet.hairlineWidth,
     marginTop: SPACING.xl,
+  },
+  /* «Compartir cómo lo hice»: aire de sobra y nada de caja. */
+  comoFila: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.md,
+    paddingVertical: SPACING.lg,
+  },
+  comoTextos: {
+    flex: 1,
+    minWidth: 0,
+    gap: scale(2),
+  },
+  comoTitulo: {
+    fontSize: FONT_SIZE.base,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  comoPista: {
+    fontSize: FONT_SIZE.sm,
+    lineHeight: scale(18),
+  },
+  comoRevisar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    minHeight: 56,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    marginBottom: SPACING.lg,
+  },
+  comoRevisarTexto: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: FONT_SIZE.sm,
+    lineHeight: scale(19),
   },
   /* PUBLICAR EN: un rótulo pequeño en mayúsculas y, debajo, los destinos. */
   destinos: {

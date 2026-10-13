@@ -914,6 +914,12 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * proceso desapareció del compositor: publicar es contar algo, no rellenar una
    * ficha técnica. Los campos siguen existiendo, pero solo los escribe Weë cuando
    * la publicación nace de una generación suya.
+   *
+   * R9 (decisión del dueño, referencia de tres pantallas): «Cómo lo hice» vuelve
+   * como UN interruptor apagado al fondo y una hoja de revisión aparte, y ahora es
+   * la persona quien decide qué se comparte. Estos tres checks siguen valiendo:
+   * nada de campos de IA sueltos ni del panel que se abría solo. El resto lo vigila
+   * como-lo-hice.test.mjs.
    */
   check('109) no se pregunta "Cómo lo hice" al publicar', !/renderHowIMadeIt|showHowIMadeIt/.test(crear), 'el bloque sigue en el compositor');
   check('109) ni hay campos que rellenar de IA', !/setAiToolsText|setAiPrompt|setAiProcess/.test(crear));

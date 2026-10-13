@@ -491,6 +491,11 @@ const CreatorFlowScreen: React.FC = () => {
         content: content || textoDeObjetivo(t, experience.id, job.goal),
         aiTools: [nombre],
         aiProcess: job.demo ? t('composer.aiProcessDemoPreview', { proceso }) : proceso,
+        /*
+         * El trabajo del que sale: solo su id. Con él, «Compartir cómo lo hice» lee los pasos que ya quedaron
+         * apuntados —si la persona lo enciende—; ni el objetivo ni los pasos viajan por la ruta.
+         */
+        jobId: job.id,
         ...(media ? { media: [{ type: media.type, uri: media.uri, ...(media.assetId ? { assetId: media.assetId } : {}) }] } : {}),
       },
     });

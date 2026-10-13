@@ -81,4 +81,7 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'コピー済み',
   demoBadge: 'デモ',
   demoBadgeLabel: 'デモ用のコンテンツ',
+  howExpand: '作り方を表示',
+  howCollapse: '作り方を隠す',
+  howStepNumber: '{{n}}.',
 };

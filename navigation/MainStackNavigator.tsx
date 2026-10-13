@@ -78,7 +78,7 @@ export type MainStackParamList = {
    * montar y lo que hubiera escrito sigue escrito. `null` significa "quítalo", y
    * el sello distingue dos elecciones seguidas del mismo sitio.
    */
-  Create: { communitySlug?: string; sourceSection?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string; media?: { type: 'image' | 'video'; uri: string; aspectRatio?: number; assetId?: string }[] }; lugarElegido?: PostPlace | null; ubicacionElegida?: UbicacionPublica | null; selloUbicacion?: string } | undefined;
+  Create: { communitySlug?: string; sourceSection?: string; kind?: string; prefill?: { content?: string; aiTools?: string[]; aiProcess?: string; jobId?: string; media?: { type: 'image' | 'video'; uri: string; aspectRatio?: number; assetId?: string }[] }; lugarElegido?: PostPlace | null; ubicacionElegida?: UbicacionPublica | null; selloUbicacion?: string } | undefined;
   /** El lugar y la zona que ya trae el compositor, para poder enseñarlos y quitarlos. */
   AgregarUbicacion: { place?: PostPlace; ubicacion?: UbicacionPublica } | undefined;
   /**

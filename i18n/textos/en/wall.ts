@@ -76,4 +76,7 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'Copied',
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demo content',
+  howExpand: 'Show how I made it',
+  howCollapse: 'Hide how I made it',
+  howStepNumber: '{{n}}.',
 };

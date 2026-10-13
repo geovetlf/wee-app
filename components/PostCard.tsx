@@ -1424,7 +1424,6 @@ const PostCard: React.FC<PostCardProps> = ({
               ))}
             </View>
           )}
-          <HowIMadeIt post={displayPost} />
         </TouchableOpacity>
         {/* Video rendered outside the content TouchableOpacity so taps reach onVideoPress */}
         {!!(displayPost.videoUrl && onVideoPress) && renderMedia()}
@@ -1523,6 +1522,13 @@ const PostCard: React.FC<PostCardProps> = ({
           />
         </TouchableOpacity>
       </View>
+
+      {/*
+        «CÓMO LO HICE» va DEBAJO de la fila de interacciones (referencia R9), con su línea fina encima. Fuera del
+        toque del contenido: abrirlo o cerrarlo no abre la publicación ni toca opinar, comentar, guardar o compartir.
+        Sin nada compartido no dibuja nada.
+      */}
+      <HowIMadeIt post={displayPost} />
 
       {/* Image Viewer Modal */}
       {displayPost.imageUrls && displayPost.imageUrls.length > 0 && (

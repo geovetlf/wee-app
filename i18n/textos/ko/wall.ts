@@ -92,4 +92,7 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: '복사됨',
   demoBadge: '데모',
   demoBadgeLabel: '데모 콘텐츠',
+  howExpand: '만든 과정 보기',
+  howCollapse: '만든 과정 숨기기',
+  howStepNumber: '{{n}}.',
 };

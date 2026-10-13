@@ -94,4 +94,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   promptCopied: 'Скопировано',
   demoBadge: 'Демо',
   demoBadgeLabel: 'Демонстрационный контент',
+  howExpand: 'Показать, как это сделано',
+  howCollapse: 'Скрыть, как это сделано',
+  howStepNumber: '{{n}}.',
 };
