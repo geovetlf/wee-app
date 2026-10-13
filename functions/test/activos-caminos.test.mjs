@@ -492,12 +492,20 @@ try {
     check('H1 content/index.ts sigue sin depender de media/', !/media\//.test(sinComentarios(leer('functions/src/content/index.ts'))));
     check('H2 guardarComoVersion NO se exporta desde functions/src/index.ts (T-15)', !/guardarComoVersion/.test(leer('functions/src/index.ts')));
     check('H3 ni el barrido del índice', !/barridoDeActivos|media\/barrido/.test(leer('functions/src/index.ts')));
-    let indexSinCambios = false;
-    try {
-      execFileSync('git', ['diff', '--quiet', '9469e3a', '--', 'functions/src/index.ts'], { cwd: RAIZ });
-      indexSinCambios = true;
-    } catch { indexSinCambios = false; }
-    check('H4 functions/src/index.ts, idéntico a la base (9469e3a)', indexSinCambios);
+    /*
+     * R9 · D-2 (decisión del dueño, 2026-10-12): el ÚNICO cambio admitido en el índice desde la base es exportar el
+     * callable de Mis creaciones (`cicloDeTrabajo`), con su comentario. Cualquier otra línea añadida o quitada falla.
+     */
+    const ADMITIDAS_D2 = [
+      '+// Mis creaciones (R9 · D-2, decisión del dueño 2026-10-12): finalizar, reabrir, eliminar una creación, guardar un',
+      '+// texto final y borrar un asset con su impacto. NO desplegada (ops/despliegue/grupos.json → no_se_despliegan).',
+      "+export { cicloDeTrabajo } from './content/creaciones';",
+      '+',
+    ];
+    const cambiosDelIndice = execFileSync('git', ['diff', '-U0', '9469e3a', '--', 'functions/src/index.ts'], { cwd: RAIZ, encoding: 'utf8' })
+      .split(/\r?\n/).filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---) /.test(l));
+    check('H4 functions/src/index.ts, idéntico a la base (9469e3a) salvo el export de cicloDeTrabajo (R9 · D-2, autorizado)',
+      JSON.stringify(cambiosDelIndice) === JSON.stringify(ADMITIDAS_D2), cambiosDelIndice.join(' | '));
   }
 
   /* ═══ I · LAS MARCAS DE SUBIDA, EN TRANSACCIÓN (B2) ═══════════════════════ */
