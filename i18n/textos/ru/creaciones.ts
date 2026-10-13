@@ -114,4 +114,8 @@ export const creaciones = {
   undecidedLoadMore: 'Загрузить ещё материалы без решения',
   keepAsCreation: 'Сохранить как работу',
   keepAsCreationOf: 'Сохранить {{nombre}} как работу',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Это уже было в ваших работах',
+  keepRetry: 'Повторить сохранение в «Мои работы»',
 };

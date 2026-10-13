@@ -2,9 +2,9 @@
   "_leeme": "GENERADO por scripts/i18n-huella.mjs. Si una prueba dice que no coincide, revisa el cambio de textos, ejecuta las pruebas de idioma y vuelve a generarlo.",
   "catalogos": {
     "es/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "13a142c83d6b8f5a"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "8985697376fc27d4"
     },
     "es/servidor": {
       "claves": 762,
@@ -12,9 +12,9 @@
       "huellaDeTextos": "4652050cd3892aea"
     },
     "en/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "19ba383a07be1f61"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "16134dfcd3245726"
     },
     "en/servidor": {
       "claves": 762,
@@ -22,69 +22,69 @@
       "huellaDeTextos": "c5ba81971456cff6"
     },
     "de/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "5028e8aa52a4a8f8"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "4ce0e61df8dfdff0"
     },
     "fr/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "7340ce8132d4bb3f"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "806801b48602edff"
     },
     "it/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "576ba3b7080f54b1"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "edb16d020ba9ce29"
     },
     "pt/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "8f961f002a5e3034"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "5984ebe60d3bf2f1"
     },
     "pt-PT/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "671f11f4bdc57737"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "db326af4b0cd5edb"
     },
     "ru/app": {
-      "claves": 3589,
-      "huellaDeClaves": "e73df080d74cd5c5",
-      "huellaDeTextos": "0c5513283757002e"
+      "claves": 3591,
+      "huellaDeClaves": "f8cd9d3bcde3eaf8",
+      "huellaDeTextos": "7ba85668d7d47f32"
     },
     "ko/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "e0e933f952835ab5"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "a16b86939f3ca41a"
     },
     "zh/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "1c290ce047649b7e"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "42dac55ec166a155"
     },
     "zh-TW/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "1b0b7a73f74570ab"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "d0cd819a1cd0d0fa"
     },
     "ja/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "48a9abc30125a30c"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "f4715b23cc2d3502"
     },
     "tr/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "9fdf075c9d1be7f2"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "1137683fcc854690"
     },
     "sv/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "dc533dc217b0742e"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "d48dd15564e20dfa"
     },
     "da/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "2d07444693f10680"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "31e07477dbd5fed9"
     },
     "da/servidor": {
       "claves": 762,
@@ -92,9 +92,9 @@
       "huellaDeTextos": "21fd0615f13e450f"
     },
     "hi/app": {
-      "claves": 3521,
-      "huellaDeClaves": "f03cc7a08749574d",
-      "huellaDeTextos": "27bdd427f1d3bb65"
+      "claves": 3523,
+      "huellaDeClaves": "c991a679a663848b",
+      "huellaDeTextos": "8d5ef7f9cf9f9e60"
     }
   }
 }

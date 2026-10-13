@@ -130,4 +130,8 @@ export const creaciones = {
   undecidedLoadMore: 'Cargar más material sin decidir',
   keepAsCreation: 'Conservar como creación',
   keepAsCreationOf: 'Conservar {{nombre}} como creación',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Ya estaba en tus creaciones',
+  keepRetry: 'Reintentar guardar en Mis creaciones',
 };

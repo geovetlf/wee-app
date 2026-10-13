@@ -42,174 +42,7 @@ const prueba = async (name, fn) => {
   }
 };
 
-const requerir = createRequire(path.resolve(RAIZ, 'package.json'));
-const React = requerir('react');
-const { renderToStaticMarkup } = requerir('react-dom/server');
-const h = React.createElement;
-const textoDelHtml = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&#x27;/g, '’').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
-const calma = async () => { for (let i = 0; i < 20; i++) await new Promise((r) => setImmediate(r)); };
-
-/* ── El traductor y los formatos de VERDAD ── */
-const base = crearCargador({ dobles: { 'react-native': { Platform: { OS: 'android', select: (o) => o.android ?? o.default }, Dimensions: { get: () => ({ width: 390, height: 800 }) } } } });
-const { crearTraductor } = base('i18n/traducir.ts');
-const DICCIONARIOS = {
-  es: { ...base('i18n/textos/es/index.ts').es, ...base('i18n/textos/es/servidor/index.ts').servidor },
-  en: { ...base('i18n/textos/en/index.ts').en, ...base('i18n/textos/en/servidor/index.ts').servidor },
-};
-const formatoReal = base('i18n/formato.ts');
-const t = crearTraductor('es', DICCIONARIOS, {});
-const formato = {
-  numero: (v, o) => formatoReal.formatearNumero(v, 'es', o),
-  tiempoRelativo: (f, a) => formatoReal.formatearTiempoRelativo(f, 'es', a),
-  lista: (c, tipo) => formatoReal.formatearLista(c, 'es', tipo),
-  fecha: (f, o) => formatoReal.formatearFecha(f, 'es', o),
-};
-
-/* ── El contrato de mentira: anota y contesta lo que diga el escenario ── */
-const pendiente = () => Object.assign(new Error('pendiente'), { code: 'pendiente' });
-const sinRed = () => Object.assign(new Error('sin red'), { code: 'unavailable' });
-const crearContrato = () => {
-  const c = {
-    llamadas: [],
-    proyectos: [], creaciones: [], siguiente: undefined,
-    falla: {}, /* nombre → () => Error */
-    diferir: {}, /* nombre → true: la promesa queda colgada en `pendientes` */
-    pendientes: [],
-    reabrir: { proyectoId: 'p-origen', nuevo: false },
-    finalizar: { creacionId: 'c-1', yaExistia: false },
-  };
-  const responder = (nombre, valor) => {
-    if (c.falla[nombre]) return Promise.reject(c.falla[nombre]());
-    if (c.diferir[nombre]) return new Promise((ok, ko) => c.pendientes.push({ ok: () => ok(valor), ko }));
-    return Promise.resolve(valor);
-  };
-  c.modulo = {
-    listarProyectosEnCurso: (uid) => { c.llamadas.push(['listarProyectosEnCurso', uid]); return responder('listarProyectosEnCurso', c.proyectos); },
-    listarCreacionesFinales: (uid, cursor) => { c.llamadas.push(['listarCreacionesFinales', uid, cursor]); return responder('listarCreacionesFinales', { creaciones: c.creaciones, ...(c.siguiente ? { siguiente: c.siguiente } : {}) }); },
-    finalizarCreacion: (entrada) => { c.llamadas.push(['finalizarCreacion', entrada]); return responder('finalizarCreacion', c.finalizar); },
-    reabrirParaEditar: (id) => { c.llamadas.push(['reabrirParaEditar', id]); return responder('reabrirParaEditar', c.reabrir); },
-    /* Como hoy en la app: el callable `cicloDeTrabajo` no está exportado y lo que va por él contesta `no_disponible`. */
-    listarSinDecidir: (uid, cursor) => { c.llamadas.push(['listarSinDecidir', uid, cursor]); return Promise.reject(Object.assign(new Error('no_disponible'), { code: 'no_disponible' })); },
-    guardarTextoFinal: (entrada) => { c.llamadas.push(['guardarTextoFinal', entrada]); return Promise.reject(Object.assign(new Error('no_disponible'), { code: 'no_disponible' })); },
-    __esModule: true,
-    ErrorDeCiclo: class ErrorDeCiclo extends Error { constructor(code, m) { super(m ?? code); this.code = code; } },
-  };
-  /* D-1 / D-3: listarSinDecidir y guardarTextoFinal (publicadas por la línea A). `publicar()` las añade; sin él, el escenario las hace fallar con `no_disponible` (callable sin exportar). */
-  c.sinDecidir = []; c.siguienteSinDecidir = undefined;
-  c.publicar = () => Object.assign(c.modulo, {
-    listarSinDecidir: (uid, cursor) => { c.llamadas.push(['listarSinDecidir', uid, cursor]); return responder('listarSinDecidir', { assets: c.sinDecidir, ...(c.siguienteSinDecidir ? { siguiente: c.siguienteSinDecidir } : {}) }); },
-    guardarTextoFinal: (entrada) => { c.llamadas.push(['guardarTextoFinal', entrada]); return responder('guardarTextoFinal', { creacionId: 'c-texto', yaExistia: false }); },
-  });
-  c.de = (nombre) => c.llamadas.filter((l) => l[0] === nombre);
-  return c;
-};
-
-/* ── Un entorno para dibujar y tocar un componente con props ── */
-const crearMontaje = (rel, extra = () => ({})) => {
-  let almacen = [];
-  let indice = 0;
-  const useState = (inicial) => {
-    const i = indice++;
-    if (!(i in almacen)) almacen[i] = typeof inicial === 'function' ? inicial() : inicial;
-    return [almacen[i], (v) => { almacen[i] = typeof v === 'function' ? v(almacen[i]) : v; }];
-  };
-  let botones = [];
-  let etiquetas = [];
-  let enfoques = [];
-  const navegacion = [];
-  const avisos = [];
-  const estado = { usuario: { uid: 'u1' }, contrato: crearContrato(), proyectosGuardados: [], falloProyectosGuardados: false };
-
-  const Caja = ({ children, accessibilityLabel }) => {
-    if (accessibilityLabel) etiquetas.push(accessibilityLabel);
-    return h('div', { 'aria-label': accessibilityLabel }, children);
-  };
-  const Texto = ({ children }) => h('span', null, children);
-  const Toque = ({ children, onPress, disabled, accessibilityLabel }) => {
-    botones.push({ etiqueta: accessibilityLabel, apagado: !!disabled, tocar: onPress });
-    return h('button', { 'aria-label': accessibilityLabel, disabled: !!disabled }, children);
-  };
-  const reactNative = {
-    View: Caja, Text: Texto, TouchableOpacity: Toque, ScrollView: Caja, ActivityIndicator: () => h('progress'),
-    TextInput: ({ onChangeText }) => { estado.escribir = onChangeText; return h('textarea'); }, Image: () => h('img'),
-    StyleSheet: { create: (s) => s, flatten: (s) => s, hairlineWidth: 1, absoluteFill: {} },
-    Platform: { OS: 'android', select: (o) => o.android ?? o.default },
-    Dimensions: { get: () => ({ width: 390, height: 800 }), addEventListener: () => ({ remove() {} }) },
-    Linking: { openURL: async () => {} }, Alert: { alert: () => {} },
-  };
-  const colores = new Proxy({}, { get: () => '#000000' });
-  const tema = { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (C) => C };
-  const habla = { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) };
-  const proyectosGuardados = {
-    projectsService: {
-      list: async () => { if (estado.falloProyectosGuardados) throw sinRed(); return estado.proyectosGuardados; },
-      create: async () => ({ id: 'nuevo' }), get: async () => estado.proyecto(), jobsForProject: async () => estado.trabajos(), rename: async (...a) => { estado.renombrados.push(a); }, remove: async () => {},
-    },
-    PROJECT_EMOJIS: ['📁', '🍔'],
-  };
-  estado.renombrados = [];
-  estado.proyecto = () => null;
-  estado.trabajos = () => [];
-  const notify = { notify: (m) => avisos.push(m), confirmAction: async () => true };
-  const shell = { __esModule: true, default: ({ children }) => h('main', null, children) };
-  const ui = {
-    SectionTitle: ({ title, action, onAction }) => h('section', null, h('h2', null, title), action ? Toque({ accessibilityLabel: action, onPress: onAction, children: action }) : null),
-    Chip: ({ label, onPress }) => Toque({ accessibilityLabel: label, onPress, children: label }),
-    ClosingBanner: ({ title }) => h('aside', null, title),
-  };
-  const comunes = {
-    react: { ...React, useState },
-    'react-native': reactNative,
-    'expo-image': { Image: () => h('img', { 'data-imagen': '1' }) },
-    'expo-av': { Audio: { Sound: { createAsync: async () => ({ sound: {} }) }, setAudioModeAsync: async () => {} }, ResizeMode: {}, Video: () => h('video') },
-    '@expo/vector-icons': { Ionicons: ({ name }) => h('i', { 'data-icono': name }) },
-    '@react-navigation/native': {
-      useNavigation: () => ({ navigate: (...a) => navegacion.push(['navigate', ...a]), goBack: () => navegacion.push(['goBack']) }),
-      useFocusEffect: (cb) => { enfoques.push(cb); },
-      useRoute: () => ({ params: estado.params ?? {} }),
-    },
-  };
-  for (const pre of ['../', '../../']) {
-    Object.assign(comunes, {
-      [`${pre}contexts/ThemeContext`]: tema,
-      [`${pre}contexts/IdiomaContext`]: habla,
-      [`${pre}contexts/AuthContext`]: { useAuth: () => ({ user: estado.usuario }) },
-      [`${pre}hooks/useResponsive`]: { useResponsive: () => ({ isMobile: true, isTablet: false, isDesktop: false }) },
-      [`${pre}services/cicloDeTrabajo`]: new Proxy({}, { get: (_o, k) => estado.contrato.modulo[k] }),
-      [`${pre}services/projectsService`]: proyectosGuardados,
-      [`${pre}utils/notify`]: notify,
-      [`${pre}config/firebase`]: { db: {}, functions: {}, storage: {} },
-    });
-  }
-  Object.assign(comunes, {
-    '../components/creator/CreatorShell': shell,
-    '../components/creator/ui': ui,
-    '../components/creator/SeccionDelDispositivo': { __esModule: true, default: () => h('aside', { 'data-seccion': 'dispositivo' }) },
-    'firebase/firestore': new Proxy({}, { get: () => () => { throw sinRed(); } }),
-    'firebase/functions': { httpsCallable: () => () => Promise.reject(sinRed()) },
-  }, extra({ h, Toque }));
-  const cargar = crearCargador({ dobles: comunes });
-  const Componente = cargar(rel).default;
-
-  const dibujar = (props = {}) => {
-    botones = []; etiquetas = []; enfoques = []; indice = 0;
-    const html = renderToStaticMarkup(h(Componente, props));
-    return { html, texto: textoDelHtml(html), botones: botones.slice(), etiquetas: etiquetas.slice() };
-  };
-  const boton = (d, etiqueta) => d.botones.find((b) => b.etiqueta === etiqueta);
-  const tocar = (d, etiqueta) => {
-    const b = boton(d, etiqueta);
-    if (!b) throw new Error(`no hay ningún botón «${etiqueta}» (hay: ${d.botones.map((x) => x.etiqueta).join(' · ')})`);
-    if (b.apagado) throw new Error(`el botón «${etiqueta}» está apagado`);
-    return b.tocar();
-  };
-  const enfocar = () => enfoques.map((cb) => cb());
-  const reiniciar = () => { almacen = []; navegacion.length = 0; avisos.length = 0; estado.contrato = crearContrato(); estado.proyectosGuardados = []; estado.falloProyectosGuardados = false; estado.usuario = { uid: 'u1' }; estado.renombrados = []; };
-  /* Montar = dibujar la primera vez, enfocar (cargar) y esperar a que se asiente. */
-  const montar = async (props) => { dibujar(props); enfocar(); await calma(); return dibujar(props); };
-  return { dibujar, tocar, boton, enfocar, reiniciar, montar, navegacion, avisos, estado, cargar };
-};
-
+import { React, h, calma, base, crearTraductor, DICCIONARIOS, t, formato, pendiente, sinRed, crearContrato, crearMontaje } from './_pc-interfaz-montaje.mjs';
 const AHORA = Date.now();
 
 /* ═══ A · MIS PROYECTOS ═════════════════════════════════════════════════════ */
@@ -455,6 +288,8 @@ const trabajo = (extra = {}) => ({
 });
 const propsDe = (job, extra = {}) => ({ experienceName: 'Weë Design', job, busy: false, onAnotherVersion: () => {}, onEdit: () => {}, onPublish: () => {}, ...extra });
 const GUARDAR = t('creaciones.keep');
+const K = base('components/creator/conservar.ts');
+const FORMA_DE_REQUEST_ID = /^[A-Za-z0-9_.:-]{8,128}$/;
 {
   await prueba('C1) con material real, se ofrece «Guardar en Mis creaciones» (y NO «ya guardada» antes de decidirlo)', async () => {
     R.reiniciar();
@@ -469,7 +304,7 @@ const GUARDAR = t('creaciones.keep');
     await calma();
     const [llamada] = R.estado.contrato.de('finalizarCreacion');
     const e = llamada?.[1];
-    return [R.estado.contrato.de('finalizarCreacion').length === 1 && JSON.stringify(e?.assetIds) === '["a1"]' && e?.proyectoOrigenId === 'p1' && e?.requestId === 'conservar:j1:a1', JSON.stringify(e)];
+    return [R.estado.contrato.de('finalizarCreacion').length === 1 && JSON.stringify(e?.assetIds) === '["a1"]' && e?.proyectoOrigenId === 'p1' && e?.requestId === K.peticionDeConservar('j1', ['a1']) && FORMA_DE_REQUEST_ID.test(e?.requestId), JSON.stringify(e)];
   });
   await prueba('C3) doble toque: una sola petición, y el botón queda ocupado («Guardando…») mientras confirma', async () => {
     R.reiniciar();
@@ -504,14 +339,14 @@ const GUARDAR = t('creaciones.keep');
     const d = R.dibujar(props);
     return [R.avisos.includes(t('creaciones.keepPending')) && !d.texto.includes(t('creaciones.savedInCreations')) && R.boton(d, GUARDAR)?.apagado === false, JSON.stringify(R.avisos)];
   });
-  await prueba('C6) fallo de red: lo dice (otro texto) y se puede volver a intentar', async () => {
+  await prueba('C6) fallo de red: lo dice (otro texto) y el botón pasa a «Reintentar»', async () => {
     R.reiniciar();
     R.estado.contrato.falla.finalizarCreacion = sinRed;
     const props = propsDe(trabajo(), { onOpenCreations: () => {} });
     R.tocar(R.dibujar(props), GUARDAR);
     await calma();
     const d = R.dibujar(props);
-    return [R.avisos.includes(t('creaciones.keepFailed')) && !R.avisos.includes(t('creaciones.keepPending')) && !!R.boton(d, GUARDAR), JSON.stringify(R.avisos)];
+    return [R.avisos.includes(t('creaciones.keepFailed')) && !R.avisos.includes(t('creaciones.keepPending')) && !!R.boton(d, t('creaciones.keepRetry')) && d.texto.includes(t('creaciones.retry')), JSON.stringify(R.avisos)];
   });
   await prueba('C7) lo de muestra (demo), o un resultado sin material ni texto, no se puede «guardar»: no hay botón', async () => {
     R.reiniciar();
@@ -549,7 +384,7 @@ const PJ = crearMontaje('screens/ProjectScreen.tsx');
     PJ.tocar(d, GUARDAR);
     await calma();
     const e = PJ.estado.contrato.de('finalizarCreacion')[0]?.[1];
-    return [e?.requestId === 'conservar:j1:a1' && e?.proyectoOrigenId === 'p1', JSON.stringify(e)];
+    return [e?.requestId === K.peticionDeConservar('j1', ['a1']) && FORMA_DE_REQUEST_ID.test(e?.requestId) && e?.proyectoOrigenId === 'p1', JSON.stringify(e)];
   });
   await prueba('D2) con varias propuestas sin elegir, desde el proyecto NO se decide por la persona: no hay botón', async () => {
     const d = await montarProyecto([trabajo({ results: [{ stepId: 'logo', kind: 'image', title: 'Logo', url: 'https://x.test/1.png', urls: ['https://x.test/1.png', 'https://x.test/2.png'], assetIds: ['a1', 'a2'] }] })]);
@@ -631,7 +466,7 @@ const asset = (extra = {}) => ({
     await calma();
     const d2 = C.dibujar();
     const e = C.estado.contrato.de('finalizarCreacion');
-    return [e.length === 1 && JSON.stringify(e[0][1].assetIds) === '["as1"]' && e[0][1].requestId === 'conservar:jv:as1' && e[0][1].proyectoOrigenId === null
+    return [e.length === 1 && JSON.stringify(e[0][1].assetIds) === '["as1"]' && e[0][1].requestId === K.peticionDeConservar('jv', ['as1']) && e[0][1].proyectoOrigenId === null
       && !d2.texto.includes('Cartel viejo') && C.estado.contrato.de('listarCreacionesFinales').length === 2 && C.avisos.includes(t('creaciones.savedInCreations')), JSON.stringify(e)];
   });
   await prueba('H4) conservar con el callable sin conectar (`no_disponible`): lo dice y el material se queda donde estaba', async () => {
@@ -689,7 +524,7 @@ grupo('I · El texto final se puede guardar; lo provisional, no (D-3)');
     await calma();
     const e = R.estado.contrato.de('guardarTextoFinal')[0]?.[1];
     const d = R.dibujar(props);
-    return [e?.texto === 'Tortilla: huevos, patatas.' && e?.herramienta === 'chef' && e?.proyectoOrigenId === 'p1' && /^texto:j1:[0-9a-f]{8}$/.test(e?.requestId || '')
+    return [e?.texto === 'Tortilla: huevos, patatas.' && e?.herramienta === 'chef' && e?.proyectoOrigenId === 'p1' && e?.requestId === K.peticionDeTexto('j1', 'Tortilla: huevos, patatas.') && FORMA_DE_REQUEST_ID.test(e?.requestId)
       && R.estado.contrato.de('finalizarCreacion').length === 0 && d.texto.includes(t('creaciones.savedInCreations')), JSON.stringify(e)];
   });
   await prueba('I2) `guardarTextoFinal` sin el callable conectado (`no_disponible`): avisa que todavía no está disponible y no finge éxito', async () => {
@@ -727,6 +562,12 @@ grupo('E · conservar.ts');
   check('E3) demo y texto no cuentan; sin nada: null', k.materialesParaConservar([{ stepId: 'a', assetIds: ['x'], demo: true }, { stepId: 't' }]) === null);
   check('E4) la petición no depende del orden de los materiales', k.peticionDeConservar('j', ['b', 'a']) === k.peticionDeConservar('j', ['a', 'b']));
   check('E4) CONTROL: otro trabajo u otro material es otra petición', k.peticionDeConservar('j', ['a']) !== k.peticionDeConservar('k', ['a']) && k.peticionDeConservar('j', ['a']) !== k.peticionDeConservar('j', ['b']));
+  const FORMA = /^[A-Za-z0-9_.:-]{8,128}$/;
+  const muchos = Array.from({ length: 50 }, (_, n) => `asset_${n}_abcdefghijklmnop`);
+  check('E6) las tres peticiones cumplen la forma que exige el servidor, aun con 50 materiales',
+    FORMA.test(k.peticionDeConservar('j1', muchos)) && FORMA.test(k.peticionDeTexto('j1', 'x'.repeat(5000)))
+    && FORMA.test(k.peticionDeLocal('j1', [{ projectId: 'p_1', recursoId: 'r/1', sha256: 'a'.repeat(64) }])));
+  check('E6) CONTROL: pegar los ids (la forma de antes) no la cumple', !FORMA.test(`conservar:j1:${muchos.join(',')}`));
   check('E5) `pendiente` y `no_disponible` son «todavía no»; un fallo de red no', k.esNoDisponible(pendiente()) && k.esNoDisponible({ code: 'no_disponible' }) && !k.esNoDisponible(sinRed()) && !k.esNoDisponible(null));
 }
 
@@ -766,7 +607,7 @@ const sueltasDe = (codigo, nombre) => {
   const boton = sinComentarios(leer('components/creator/BotonConservar.tsx'));
   const proyecto = sinComentarios(leer('screens/ProjectScreen.tsx'));
   check('F5) el resultado ya no afirma «guardada» sin que la persona lo haya decidido: la constancia sale solo tras confirmar',
-    /<BotonConservar /.test(tarjeta) && !/publicable\.assetId && onOpenCreations/.test(tarjeta) && /if \(yaConservada\)/.test(boton) && /setConservada\(peticion\)/.test(boton));
+    /<BotonConservar /.test(tarjeta) && !/publicable\.assetId && onOpenCreations/.test(tarjeta) && /if \(yaConservada\)/.test(boton) && /setConservada\(\{ peticion, yaExistia: r\?\.yaExistia === true \}\)/.test(boton));
   check('F6) el resultado y el proyecto usan EL MISMO botón: ni dos lógicas de guardar ni dos requestId',
     /<BotonConservar /.test(proyecto) && !/finalizarCreacion|peticionDeConservar/.test(tarjeta + proyecto));
 }

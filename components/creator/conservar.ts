@@ -38,9 +38,6 @@ export const materialesParaConservar = (
   return ids.length > 0 ? ids : null;
 };
 
-export const peticionDeConservar = (jobId: string, assetIds: string[]): string =>
-  `conservar:${jobId}:${[...assetIds].sort().join(',')}`;
-
 /*
  * La petición de un TEXTO final (D-3): del trabajo y de una huella del texto. Otro texto del mismo trabajo (otra versión)
  * es otra petición; el mismo texto guardado dos veces, la misma. La huella es un hash corto (FNV-1a), no criptografía:
@@ -55,7 +52,21 @@ export const huellaDeTexto = (texto: string): string => {
   return h.toString(16).padStart(8, '0');
 };
 
-export const peticionDeTexto = (jobId: string, texto: string): string => `texto:${jobId}:${huellaDeTexto(texto)}`;
+/*
+ * El requestId tiene la forma que exige el servidor (`FORMA_DE_REQUEST_ID`: [A-Za-z0-9_.:-], 8–128): el conjunto de
+ * materiales entra como HUELLA de su lista ordenada, no pegado (una coma o cincuenta ids lo romperían).
+ */
+/* 64 bits (dos pasadas) para que dos conjuntos distintos no compartan petición por casualidad. */
+const huellaLarga = (s: string): string => huellaDeTexto(s) + huellaDeTexto(s.split('').reverse().join(''));
+const recortar = (s: string): string => s.replace(/[^A-Za-z0-9_.:-]/g, '_').slice(0, 64);
+export const peticionDeConservar = (jobId: string, assetIds: string[]): string =>
+  `conservar:${recortar(jobId)}:${huellaLarga([...assetIds].sort().join('|'))}`;
+
+export const peticionDeTexto = (jobId: string, texto: string): string => `texto:${recortar(jobId)}:${huellaLarga(texto)}`;
+
+/* La petición de una creación SOLO LOCAL (D-4): del trabajo y de sus recursos del dispositivo, ordenados. */
+export const peticionDeLocal = (jobId: string, referencias: { projectId: string; recursoId: string; sha256: string }[]): string =>
+  `local:${recortar(jobId)}:${huellaLarga(referencias.map((r) => `${r.projectId}/${r.recursoId}@${r.sha256}`).sort().join('|'))}`;
 
 /**
  * ¿El contrato dice que esto todavía no existe? `pendiente` (sin implementar) y `no_disponible` (la Function no está

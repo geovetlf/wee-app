@@ -121,4 +121,8 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   undecidedLoadMore: 'Daha fazla karar verilmemiş içerik yükle',
   keepAsCreation: 'Eser olarak sakla',
   keepAsCreationOf: '{{nombre}} öğesini eser olarak sakla',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Zaten oluşturduklarının arasındaydı',
+  keepRetry: 'Oluşturduklarım’a kaydetmeyi yeniden dene',
 };

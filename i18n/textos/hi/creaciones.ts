@@ -126,4 +126,8 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   undecidedLoadMore: 'तय न की गई और सामग्री लोड करें',
   keepAsCreation: 'रचना के रूप में रखें',
   keepAsCreationOf: '{{nombre}} को रचना के रूप में रखें',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'यह पहले से आपकी रचनाओं में था',
+  keepRetry: 'मेरी रचनाएँ में फिर से सेव करने की कोशिश करें',
 };

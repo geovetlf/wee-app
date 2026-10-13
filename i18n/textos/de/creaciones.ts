@@ -108,4 +108,8 @@ export const creaciones = {
   undecidedLoadMore: 'Mehr nicht entschiedenes Material laden',
   keepAsCreation: 'Als Kreation behalten',
   keepAsCreationOf: '{{nombre}} als Kreation behalten',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Das war schon in deinen Kreationen',
+  keepRetry: 'Erneut in Meine Kreationen speichern',
 };

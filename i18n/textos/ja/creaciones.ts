@@ -117,4 +117,8 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   undecidedLoadMore: '未決定の素材をさらに読み込む',
   keepAsCreation: '作品として残す',
   keepAsCreationOf: '{{nombre}}を作品として残す',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'すでにマイ作品にありました',
+  keepRetry: 'マイ作品への保存をもう一度試す',
 };

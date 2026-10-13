@@ -108,4 +108,8 @@ export const creaciones = {
   undecidedLoadMore: '載入更多未決定的素材',
   keepAsCreation: '保留為作品',
   keepAsCreationOf: '將{{nombre}}保留為作品',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: '已經在你的作品中了',
+  keepRetry: '重新嘗試儲存到我的作品',
 };

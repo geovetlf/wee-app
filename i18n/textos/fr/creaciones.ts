@@ -108,4 +108,8 @@ export const creaciones = {
   undecidedLoadMore: 'Charger plus de contenu non décidé',
   keepAsCreation: 'Garder comme création',
   keepAsCreationOf: 'Garder {{nombre}} comme création',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'C’était déjà dans tes créations',
+  keepRetry: 'Réessayer d’enregistrer dans Mes créations',
 };

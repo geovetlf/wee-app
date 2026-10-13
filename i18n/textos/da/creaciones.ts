@@ -124,4 +124,8 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   undecidedLoadMore: 'Indlæs mere materiale, der ikke er besluttet',
   keepAsCreation: 'Behold som kreation',
   keepAsCreationOf: 'Behold {{nombre}} som kreation',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: 'Den var allerede i dine kreationer',
+  keepRetry: 'Prøv at gemme i Mine kreationer igen',
 };

@@ -108,4 +108,8 @@ export const creaciones = {
   undecidedLoadMore: '결정하지 않은 자료 더 불러오기',
   keepAsCreation: '창작물로 남기기',
   keepAsCreationOf: '{{nombre}} 창작물로 남기기',
+
+  /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
+  alreadyKept: '이미 내 창작물에 있었어요',
+  keepRetry: '내 창작물에 다시 저장해 보기',
 };
