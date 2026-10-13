@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { montarConEfectos, cargarBase } from './_traza-weeai.mjs';
 import { crearFlujo, crearServidor, trabajoTerminado } from './_creatorflow-en-proceso.mjs';
-import { RAIZ, leer } from './filmmaker-cliente.mjs';
+import { RAIZ, leer, crearCargador } from './filmmaker-cliente.mjs';
 
 let failures = 0;
 const check = (name, cond, extra = '') => {
@@ -93,7 +93,8 @@ for (const exp of ['writer', 'business', 'travel']) {
   f.cerrar();
 }
 {
-  const { requestIdDelTextoFinal, EXPERIENCIAS_CON_TEXTO_FINAL } = cargarBase('services/textoFinalDeWeeAi.ts');
+  /* Solo los ayudantes puros de la costura: el contrato conectado (Firebase incluido) lo corre traza-weeai-texto-final-conectado. */
+  const { requestIdDelTextoFinal, EXPERIENCIAS_CON_TEXTO_FINAL } = crearCargador({ dobles: { './cicloDeTrabajo': { guardarTextoFinal: async () => { throw new Error('no se llama aquí'); } } } })('services/textoFinalDeWeeAi.ts');
   check('B5) el requestId es estable por trabajo', requestIdDelTextoFinal('abc') === requestIdDelTextoFinal('abc') && requestIdDelTextoFinal('abc') !== requestIdDelTextoFinal('abd'));
   check('B6) y las experiencias son exactamente las de D-3 que son de esta línea', EXPERIENCIAS_CON_TEXTO_FINAL.join() === 'writer,business,travel');
 }
@@ -103,10 +104,13 @@ titulo('C · la costura sigue al contrato');
 {
   const contrato = path.resolve(RAIZ, 'services/cicloDeTrabajo.ts');
   const exporta = fs.existsSync(contrato) && /export\s+(async\s+function|const)\s+guardarTextoFinal\b/.test(fs.readFileSync(contrato, 'utf8'));
-  const costura = leer('services/textoFinalDeWeeAi.ts');
-  const reexporta = /export\s*\{\s*guardarTextoFinal\s*\}\s*from\s*'\.\/cicloDeTrabajo'/.test(costura);
+  /* Sin comentarios: el comentario de cabecera cita la línea de conexión y no debe contar como código. */
+  const costura = leer('services/textoFinalDeWeeAi.ts').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const reexporta = /^export\s*\{\s*guardarTextoFinal\s*\}\s*from\s*'\.\/cicloDeTrabajo';/m.test(costura);
+  const nula = /^export const guardarTextoFinal:.*\| null = null;/m.test(costura);
+  const ok = exporta ? reexporta && !nula : nula;
   check(exporta ? 'C1) el contrato ya exporta guardarTextoFinal: la costura lo re-exporta' : 'C1) el contrato todavía no exporta guardarTextoFinal: la costura es null y la interfaz lo dice',
-    exporta ? reexporta : /export const guardarTextoFinal:.*\| null = null;/.test(costura), exporta ? 'falta: export { guardarTextoFinal } from \'./cicloDeTrabajo\'' : '');
+    ok, ok ? '' : exporta ? 'falta: export { guardarTextoFinal } from \'./cicloDeTrabajo\'' : 'la costura debe seguir en null');
 }
 
 console.log(failures === 0 ? '\n✔ traza-weeai-texto-final: todo en orden' : `\n✘ traza-weeai-texto-final: ${failures} fallo(s)`);

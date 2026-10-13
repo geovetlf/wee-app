@@ -4,14 +4,9 @@
  * Los resultados finales de texto de Weë Writer, Weë Business y Weë Travel pueden conservarse como material de texto en
  * Mis creaciones, SOLO cuando la persona lo elige (nunca cada respuesta provisional). Quien guarda es el contrato de la
  * línea A, `guardarTextoFinal({ texto, herramienta, proyectoOrigenId?, requestId })` en `services/cicloDeTrabajo.ts`
- * (rama `r9/pc-dominio`), que todavía NO existe en esa rama.
- *
- * Mientras no exista, esto es `null` y la interfaz lo dice («todavía no disponible») en vez de fingir que guarda. Al
- * integrar, quien coordina sustituye la línea de abajo por:
- *
- *   export { guardarTextoFinal } from './cicloDeTrabajo';
- *
- * y `traza-weeai-texto-final.test.mjs` (grupo C) deja de aceptar el estado pendiente en cuanto el contrato lo exporte.
+ * (rama `r9/pc-dominio`). Desde la integración R9 la costura lo re-exporta; si alguna vez faltara, la costura volvería a
+ * ser `null` y la interfaz lo diría («todavía no disponible») en vez de fingir que guarda. Lo vigilan
+ * `traza-weeai-texto-final.test.mjs` (grupo C) y, de punta a punta contra el callable, `traza-weeai-texto-final-conectado`.
  */
 export interface EntradaTextoFinal {
   texto: string;
@@ -27,7 +22,8 @@ export interface ResultadoTextoFinal {
   yaExistia: boolean;
 }
 
-export const guardarTextoFinal: ((entrada: EntradaTextoFinal) => Promise<ResultadoTextoFinal>) | null = null;
+/* Conectado al integrar la línea A (5bd85c00, decisión D-3 del dueño): el contrato exporta `guardarTextoFinal` verificado. */
+export { guardarTextoFinal } from './cicloDeTrabajo';
 
 /** Las experiencias cuyo resultado final de texto se puede conservar (D-3). Chef es de otra línea. */
 export const EXPERIENCIAS_CON_TEXTO_FINAL: readonly string[] = ['writer', 'business', 'travel'];
