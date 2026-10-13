@@ -482,6 +482,8 @@ console.log('\n── K · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* «En proceso» (R9): el estado de un PROYECTO que sigue abierto para retomarlo, no una transacción de Credits que se está procesando (credits.txPending). */
+    'projects.stateInProgress',
     /* «Subir»/«Bajar» reordenan escenas y klip (Flyt op/ned); en Studio son la grúa de la cámara (Kran op/ned). */
     'filmmaker.moveUp', 'filmmaker.moveDown',
     /* «Historias» como formato de redes es «Stories»; studio.wrStories («Historier») son relatos escritos. */

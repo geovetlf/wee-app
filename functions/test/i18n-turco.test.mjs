@@ -440,6 +440,8 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* «En proceso» (R9): el estado de un PROYECTO que sigue abierto para retomarlo, no una transacción de Credits que se está procesando (credits.txPending). */
+    'projects.stateInProgress',
     /* «Personas» como estilo de avatar son personas; en el Chef, «Personas» es cuántos comen. */
     'avatar.stylePeople',
     /* «Subir»/«Bajar» en Filmmaker reordenan escenas y planos (Yukarı/Aşağı taşı); en Studio son la grúa de la cámara (Yükselme/Alçalma). */

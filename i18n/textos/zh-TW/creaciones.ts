@@ -107,7 +107,7 @@ export const creaciones = {
   undecidedEmpty: '你沒有未決定的素材。',
   undecidedLoadMore: '載入更多未決定的素材',
   keepAsCreation: '保留為作品',
-  keepAsCreationOf: '將{{nombre}}保留為作品',
+  keepAsCreationOf: '將 {{nombre}} 保留為作品',
 
   /* Lo que dijo quien persistió («ya existía») y el reintento con la misma petición (R9). */
   alreadyKept: '已經在你的作品中了',

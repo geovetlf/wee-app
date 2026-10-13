@@ -94,7 +94,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
 
   /* Mis creaciones = lo que la persona DECIDIÓ conservar (R9): guardarlo, dónde está (ubicación, no estado) y volver a editarlo. */
   introKept: 'Bitirip saklamaya karar verdiğin sonuçlar. Hesabına aittirler: Gerçek profilinden de Weë profilinden de aynılarını görürsün.',
-  keep: 'Oluşturduklarım’a kaydet',
+  keep: 'Oluşturduklarıma kaydet',
   keeping: 'Kaydediliyor…',
   keepPending: 'Oluşturduklarım’a kaydetme henüz kullanılamıyor. Sonucun kendi işinde kayıtlı durmaya devam ediyor.',
   keepFailed: 'Oluşturduklarım’a kaydedemedik. Tekrar dene.',
@@ -112,7 +112,7 @@ export const creaciones: typeof import('../es/creaciones').creaciones = {
   editAgainFailed: 'Düzenlemek için açamadık. Tekrar dene.',
 
   /* «Sin decidir» (D-1 del dueño, 2026-10-12): el material anterior, aparte, sin migrar ni borrar. */
-  undecidedTitle: 'Karar verilmedi',
+  undecidedTitle: 'Henüz karar verilmedi',
   undecidedText: 'Neyi saklayacağını seçebilmeden önce oluşturduğun içerikler. Hiçbir şey taşınmadı ya da silinmedi: istediğini eser olarak sakla.',
   undecidedFailed: 'Karar verilmemiş içeriklerini yükleyemedik.',
   undecidedRetry: 'Karar verilmemiş içerikleri yeniden yüklemeyi dene',

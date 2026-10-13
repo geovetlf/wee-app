@@ -410,6 +410,8 @@ console.log('\n── J · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* «En proceso» (R9): el estado de un PROYECTO que sigue abierto para retomarlo, no una transacción de Credits que se está procesando (credits.txPending). */
+    'projects.stateInProgress',
     /* Weë Filmmaker, revisado por un segundo traductor (2026-10-01): la misma frase española, otro sentido. */
     /* «Subir»/«Bajar» reordenan escenas y planos (Flytta upp/ner); en Studio son la grúa de la cámara (Kran upp/ner). */
     'filmmaker.moveUp', 'filmmaker.moveDown',
