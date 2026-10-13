@@ -712,7 +712,16 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    */
   const DE_LA_LINEA_M = ['functions/src/media/procesador.ts', 'functions/src/media/optimizador/coste.ts',
     'functions/src/media/optimizador/plan.ts', 'functions/src/media/optimizador/transcodificacion.ts'];
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado, de los módulos de versiones y disponibilidad (DEC-03 y DEC-06) y del núcleo de activos (H5/H2)',
+  /*
+   * Los de MEDIA CLOUD · R9 (2026-10-12, autorización del dueño), por nombre: en el Core, el tamaño exacto que se
+   * autoriza (`core/media/puerto.ts`, `bytesExactos` opcional) y el tipo por clase cruzado con el material ya guardado
+   * dentro de `decidirSubida` (`core/media/subida.ts`); fuera del Core, el adaptador de R2 que firma `content-length` y
+   * rechaza metadatos que no se pueden transmitir (`media/r2.ts`) y el cableado que pasa `bytesExactos` y rechaza el
+   * tipo antes de escribir (`media/subida.ts`). Los tamaños del Core, en F3 y en video-asincrono H3.
+   */
+  const DE_MEDIA_CLOUD_R9 = ['functions/src/core/media/puerto.ts', 'functions/src/core/media/subida.ts',
+    'functions/src/media/r2.ts', 'functions/src/media/subida.ts'];
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado, de los módulos de versiones y disponibilidad (DEC-03 y DEC-06), del núcleo de activos (H5/H2) y de Media Cloud R9',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
@@ -721,6 +730,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_VERSIONES_Y_DISPONIBILIDAD,
       ...DEL_NUCLEO_DE_ACTIVOS,
       ...DE_LA_LINEA_M,
+      ...DE_MEDIA_CLOUD_R9,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -754,11 +764,14 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     + '\n52\t1\tfunctions/src/core/media/puerto.ts\n7\t1\tfunctions/src/core/media/recoleccion.ts\n255\t1\tfunctions/src/core/media/reconciliacion.ts\n2\t1\tfunctions/src/core/media/subida.ts';
   const CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS = '388\t101\tfunctions/src/content/index.ts\n298\t0\tfunctions/src/content/indice-almacen.ts'
     + '\n392\t0\tfunctions/src/content/indice-reconciliacion.ts\n709\t0\tfunctions/src/content/indice.ts\n126\t4\tfunctions/src/content/materializador.ts\n223\t0\tfunctions/src/content/versiones.ts';
+  /* + MEDIA CLOUD · R9 (2026-10-12, autorización del dueño): core/media/puerto.ts +9 (`bytesExactos`) y core/media/subida.ts
+     +62 −1 (`tipoAdmitidoParaLaClase`, TIPOS_ACTIVOS, TIPOS_POR_CLASE y el cruce con el material en `decidirSubida`). */
+  const CORE_DE_MEDIA_CLOUD_R9 = '9\t0\tfunctions/src/core/media/puerto.ts\n62\t1\tfunctions/src/core/media/subida.ts';
   /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
   const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
-  check('F3) ni F1-A ni productions; del Core, la misión fal, el linaje 3D y el núcleo de activos (H5/H2); del contenido, la adopción de F1-D, el cierre, los derechos, DEC-03 y el núcleo de activos (H5/H2)',
+  check('F3) ni F1-A ni productions; del Core, la misión fal, el linaje 3D, el núcleo de activos (H5/H2) y Media Cloud R9; del contenido, la adopción de F1-D, el cierre, los derechos, DEC-03 y el núcleo de activos (H5/H2)',
     git(`diff --name-only ${RUTA} -- functions/src/filmmaker functions/src/productions`).trim() === ''
-    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DEL_NUCLEO_DE_ACTIVOS)
+    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DEL_NUCLEO_DE_ACTIVOS, CORE_DE_MEDIA_CLOUD_R9)
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
     && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === CONTENIDO_DE_LA_MISION_Y_DE_LOS_ACTIVOS);

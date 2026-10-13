@@ -698,10 +698,17 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
   const CORE_DEL_NUCLEO_DE_ACTIVOS = '1\t0\tfunctions/src/core/media/index.ts|747\t0\tfunctions/src/core/media/indice.ts|107\t4\tfunctions/src/core/media/objeto.ts'
     + '|52\t1\tfunctions/src/core/media/puerto.ts|7\t1\tfunctions/src/core/media/recoleccion.ts|255\t1\tfunctions/src/core/media/reconciliacion.ts'
     + '|2\t1\tfunctions/src/core/media/subida.ts';
-  /* Las tres listas juntas, en el orden en que las da git: por ruta. */
-  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), ...CORE_DEL_NUCLEO_DE_ACTIVOS.split('|')]
+  /*
+   * + MEDIA CLOUD · R9 (2026-10-12, autorización del dueño), por nombre y tamaño: `core/media/puerto.ts` +9 (el campo
+   * opcional `bytesExactos` de PeticionDeSubidaDirecta: el tamaño que el adaptador mete en la firma) y
+   * `core/media/subida.ts` +62 −1 (`tipoAdmitidoParaLaClase`, TIPOS_ACTIVOS, TIPOS_POR_CLASE y, en `decidirSubida`, el
+   * cruce del tipo con la clase y el mimeType del material ya guardado: la regla vive en el Core). Ningún contrato sube.
+   */
+  const CORE_DE_MEDIA_CLOUD_R9 = '9\t0\tfunctions/src/core/media/puerto.ts|62\t1\tfunctions/src/core/media/subida.ts';
+  /* Las cuatro listas juntas, en el orden en que las da git: por ruta. */
+  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), ...CORE_DEL_NUCLEO_DE_ACTIVOS.split('|'), ...CORE_DE_MEDIA_CLOUD_R9.split('|')]
     .sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');
-  check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal, el linaje del ciclo de vida 3D y el núcleo de activos (H5/H2), del tamaño exacto',
+  check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal, el linaje del ciclo de vida 3D, el núcleo de activos (H5/H2) y Media Cloud R9, del tamaño exacto',
     git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions`).trim() === ''
     && git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|') === coreEsperado,
     git(`diff --numstat ${ANTES} -- functions/src/core`).trim().split('\n').join('|'));
