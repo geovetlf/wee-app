@@ -56,7 +56,7 @@ en las operaciones existentes (§3).
 |---|---|---|
 | Tamaño máximo | 2 GiB de contrato (`MAXIMO_DE_BYTES_DE_MATERIAL`) y 5 GiB de subida simple del proveedor | igual |
 | Tamaño declarado | Se pedía y se aprobaba, pero **no iba en la firma**: quien tuviera la URL podía subir hasta 5 GiB; solo al confirmar se rechazaba lo que pasara de 2 GiB, y esos bytes se quedaban en el proveedor hasta la recolección | **Va firmado** (`content-length`): otro número de bytes rompe la firma (F1, F3, G1). Ver §3.2 sobre su verificación contra R2 real |
-| Tipo | Cualquier MIME bien formado, para cualquier clase (`image` con `text/html` pasaba) | Familia de la clase (`image/*`, `video/*`, `audio/*`, PDF/texto, `model/*`) y **nunca contenido activo** (HTML, XHTML, SVG, JS, XML) (G9, G10). El proveedor lo exige porque va firmado (F2) |
+| Tipo | Cualquier MIME bien formado, para cualquier clase (`image` con `text/html` pasaba) | Familia de la clase (`image/*`, `video/*`, `audio/*`, PDF/texto, `model/*`) y **nunca contenido activo**: HTML, XHTML, SVG, JS, XML y **cualquier subtipo `…+xml`** (`image/x+xml`, `model/x3d+xml`…), en mayúsculas o con parámetros (G9, G10, G10b). Si el `operationId` ya tenía material, el tipo se cruza con su clase y su `mimeType` (G11, G12). El proveedor lo exige porque va firmado (F2) |
 | Una sola escritura | `If-None-Match: *` firmado | igual (F5) |
 
 ### 2.4 Errores y recuperación
@@ -100,17 +100,29 @@ pruebas, es una dependencia nueva que el dueño debe aprobar.
 
 | # | Cambio | Archivos | Prueba |
 |---|---|---|---|
-| 3.1 | Política de tipo por clase + bloqueo de contenido activo en la subida nueva (`tipoAdmitidoParaLaClase`) | `functions/src/core/media/subida.ts`, `functions/src/media/subida.ts` | G9, G10 |
+| 3.1 | Política de tipo por clase + bloqueo de contenido activo y de todo `…+xml` en la subida nueva (`tipoAdmitidoParaLaClase`), aplicada antes de crear material y otra vez en `decidirSubida` contra la clase y el tipo del material guardado | `functions/src/core/media/subida.ts`, `functions/src/media/subida.ts` | G9, G10, G10b, G11, G12 |
 | 3.2 | Tamaño exacto firmado: `PeticionDeSubidaDirecta.bytesExactos` (opcional), firmado por R2 como `content-length`; `solicitarSubida` lo pasa | `functions/src/core/media/puerto.ts`, `functions/src/media/r2.ts`, `functions/src/media/subida.ts` | F1, F3, F6, F7, G1 |
-| 3.3 | Metadatos transmisibles o rechazo (`metadatosTransmisibles`) | `functions/src/media/r2.ts` | D1-D4 |
-| 3.4 | Pruebas de integración contra doble S3 local y vectores oficiales de AWS | `functions/test/media-r2-integracion.test.mjs` | 44 comprobaciones |
+| 3.3 | Metadatos transmisibles o rechazo (`metadatosTransmisibles`), incluidos dos espacios seguidos (SigV4 los colapsa y `firmar` no) | `functions/src/media/r2.ts` | D1-D5 |
+| 3.4 | Pruebas de integración contra doble S3 local y vectores oficiales de AWS | `functions/test/media-r2-integracion.test.mjs` | 48 comprobaciones |
 
 **Sobre 3.2:** SigV4 permite firmar cualquier cabecera y S3 hace cumplir las firmadas; la documentación de R2 **no menciona**
 `content-length` en URLs prefirmadas (ni a favor ni en contra). Está probado contra el doble, **no contra R2 real**. Sin
-`bytesExactos` la llave es exactamente la que verificó el canary del 2026-09-21 (F6). Antes de activar, el canary tiene
-que demostrar las dos cosas: que una subida con el tamaño declarado entra y que una con otro tamaño recibe 403. Si R2
-ignorara la cabecera, la subida seguiría funcionando (el navegador manda el tamaño real) y la protección quedaría en la
-confirmación, como antes; no rompe nada.
+`bytesExactos` la llave es exactamente la que verificó el canary del 2026-09-21 (F6), **pero ningún llamante real la
+emite ya**: `solicitarSubida` —y por tanto `mediaCanary`— pasa siempre `bytesExactos`. F6 solo demuestra que el adaptador
+sigue sabiendo firmar la llave antigua.
+
+Hay TRES desenlaces posibles contra R2 real, y el canary tiene que distinguirlos antes de activar:
+
+1. **Lo hace cumplir** (lo esperado): con el tamaño declarado entra; con otro, 403.
+2. **Lo ignora:** con cualquier tamaño entra. No rompe nada; la protección queda en la confirmación, como antes.
+3. **Lo RECHAZA** (no admite `content-length` en `X-Amz-SignedHeaders`): **toda subida directa falla**, también con el
+   tamaño correcto. En ese caso el próximo redespliegue de `mediaCanary` o una activación romperían todas las subidas;
+   la salida es que `solicitarSubida` deje de pasar `bytesExactos` (una línea) y volver a la llave verificada.
+
+Herramienta: `scripts/canary-medios.mjs` reenvía `intento.cabeceras` tal cual, lo que basta para el caso 1-con-tamaño
+correcto; para probar «otro tamaño» hay que QUITAR la cabecera `content-length` y mandar otro cuerpo (Node rechaza en el
+cliente una discrepancia, `UND_ERR_REQ_CONTENT_LENGTH_MISMATCH`), como hacen F3 y G3. Esa variante del script está por
+preparar.
 
 ## 4. Costes de R2 verificados (fuente oficial, 2026-10-12)
 
@@ -199,7 +211,9 @@ siendo el más barato de aquella comparativa para ese patrón, porque la salida 
    para todos. Propuesta: `aiSettings/mediaCloud` con el mismo patrón que `aiSettings/runtime` (fail-closed, lista de
    cuentas, fecha de caducidad), que gobierne **solo las ESCRITURAS nuevas**.
 4. **Canary ampliado** (la Function `mediaCanary` ya existe): verificar contra R2 real el `content-length` firmado (entra
-   con el tamaño declarado, 403 con otro) y que la política de tipos no rechaza nada legítimo.
+   con el tamaño declarado, 403 con otro) y que la política de tipos no rechaza nada legítimo. **Criterio de bloqueo:**
+   si R2 rechaza la URL con `content-length` firmado incluso con el tamaño correcto (desenlace 3 de §3), no se activa
+   nada hasta retirar `bytesExactos` de `solicitarSubida`.
 
 ### 7.2 Fases
 
