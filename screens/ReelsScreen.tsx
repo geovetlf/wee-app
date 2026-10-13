@@ -78,12 +78,10 @@ interface ReelItemProps {
   viewport: Viewport;
   onBack: () => void;
   onComment: (postId: string) => void;
-  /** Crear un Weël: una acción aparte del visor, que lleva al compositor en modo Weël (o a entrar). */
-  onCreate: () => void;
   initialPositionMillis?: number;
 }
 
-const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, onCreate, initialPositionMillis }) => {
+const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, initialPositionMillis }) => {
   const t = useT();
   const { locale, idioma } = useIdioma();
   const { user } = useAuth();
@@ -314,9 +312,11 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
           <Ionicons name="arrow-back" size={scale(26)} color="white" />
         </TouchableOpacity>
         <Text style={styles.topTitle}>{t('weels.title')}</Text>
-        <TouchableOpacity onPress={onCreate} style={styles.botonDeCabecera} hitSlop={ZONA_EXTRA_DEL_BOTON} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
-          <Ionicons name="add-circle-outline" size={scale(26)} color="white" />
-        </TouchableOpacity>
+        {/*
+          Sin «+» arriba a la derecha (decisión del dueño, R9 2026-10-13): un Weël se crea desde la fila «Crear Weël» del
+          Home y desde la hoja Crear. Un hueco del mismo ancho que la flecha mantiene el título centrado.
+        */}
+        <View style={styles.huecoDeCabecera} />
       </LinearGradient>
 
       {/* Progress bar */}
@@ -673,10 +673,9 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
       viewport={viewport as Viewport}
       onBack={handleBack}
       onComment={handleComment}
-      onCreate={crearWeel}
       initialPositionMillis={index === initialIndex ? initialPositionMillis : undefined}
     />
-  ), [activeIndex, viewport, handleBack, handleComment, crearWeel, initialIndex, initialPositionMillis]);
+  ), [activeIndex, viewport, handleBack, handleComment, initialIndex, initialPositionMillis]);
 
   const keyExtractor = useCallback((item: Post) => item.id!, []);
 
@@ -703,9 +702,7 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
               <Ionicons name="arrow-back" size={scale(26)} color="white" />
             </TouchableOpacity>
             <Text style={styles.topTitle}>{t('weels.title')}</Text>
-            <TouchableOpacity onPress={crearWeel} style={styles.botonDeCabecera} hitSlop={ZONA_EXTRA_DEL_BOTON} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
-              <Ionicons name="add-circle-outline" size={scale(26)} color="white" />
-            </TouchableOpacity>
+            <View style={styles.huecoDeCabecera} />
           </View>
           <View style={styles.estadoCuerpo}>
             {fase === 'cargando' ? (
@@ -723,7 +720,7 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
                 <Ionicons name="film-outline" size={scale(44)} color="rgba(255,255,255,0.8)" />
                 <Text style={styles.estadoTitulo}>{t('weels.empty')}</Text>
                 <Text style={styles.estadoPista}>{t('weels.emptyHint')}</Text>
-                <TouchableOpacity style={styles.estadoBoton} onPress={crearWeel} accessibilityRole="button">
+                <TouchableOpacity style={styles.estadoBoton} onPress={crearWeel} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
                   <Text style={styles.estadoBotonTexto}>{t('weels.create')}</Text>
                 </TouchableOpacity>
               </>
@@ -833,6 +830,11 @@ const styles = StyleSheet.create({
    * (en el teléfono la flecha se montaba sobre la etiqueta DEMO). 44 de diámetro + `ZONA_EXTRA_DEL_BOTON` = 48 de zona
    * táctil, y ni un punto más: el resto de la cabecera deja pasar el gesto vertical (`pointerEvents: 'box-none'`).
    */
+  /* Lo que ocupaba el «+»: el título sigue centrado entre la flecha y este hueco. */
+  huecoDeCabecera: {
+    width: 44,
+    height: 44,
+  },
   botonDeCabecera: {
     width: 44,
     height: 44,

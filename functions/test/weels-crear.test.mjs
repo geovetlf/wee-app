@@ -491,7 +491,7 @@ const plano = (st) => (Array.isArray(st) ? Object.assign({}, ...st.flat(Infinity
     return e;
   };
   const delMas = salir(['Main', 'Reels', 'CrearWeel'], 'flecha');
-  check('D5) abierto con el + de Weëls, el ✕ vuelve al MISMO Weël (`goBack` sobre `Reels`)', JSON.stringify(delMas.navegacion) === '[["goBack"]]', JSON.stringify(delMas.navegacion));
+  check('D5) abierto desde Weëls (el botón del feed vacío), el ✕ vuelve al MISMO Weël (`goBack` sobre `Reels`)', JSON.stringify(delMas.navegacion) === '[["goBack"]]', JSON.stringify(delMas.navegacion));
   const sinPila = salir(['CrearWeel'], 'flecha');
   check('D5) sin historial (enlace, recarga), el ✕ va al feed de Weëls', sinPila.navegacion.length === 1 && sinPila.navegacion[0][0] === 'popTo' && sinPila.navegacion[0][1] === 'Reels', JSON.stringify(sinPila.navegacion));
   const trasCompositor = salir(['Main', 'Create', 'CrearWeel'], 'flecha');

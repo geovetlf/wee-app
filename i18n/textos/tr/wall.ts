@@ -54,6 +54,10 @@ export const wall: typeof import('../es/wall').wall = {
   removeImage: 'Görseli kaldır',
   attachImage: 'Görsel ekle',
   sendComment: 'Yorumu gönder',
+  /* R9: responder a un comentario (una respuesta es un comentario con `parentCommentId`). */
+  reply: 'Yanıtla',
+  replyingTo: '{{nombre}} kişisine yanıt',
+  cancelReply: 'Yanıtı iptal et',
   onePost: 'Gönderi',
   loadingComments: 'Yorumlar yükleniyor…',
   beFirstToComment: 'İlk yorumu sen yap',

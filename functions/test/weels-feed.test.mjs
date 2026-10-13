@@ -19,6 +19,8 @@
  *  E. R9, COMENTARIOS DENTRO DEL WEËL: el icono abre la hoja de comentarios de siempre (`HojaDeComentarios` +
  *     `ComentariosContext`) encima del vídeo, transparente, sin navegar; el Weël sigue montado y en silencio; ✕, fuera,
  *     deslizar y Atrás la cierran en el mismo Weël y la misma posición; el contador sube con lo que cuenta la hoja.
+ *  F. R9, RESPONDER Y SIN «+»: las respuestas son comentarios con `parentCommentId` (el campo que ya existía),
+ *     pintadas bajo su comentario (un nivel); Weëls ya no tiene «+» arriba; el gesto de cerrar la hoja, ejecutado (E9).
  *
  * Cada detector lleva su CONTROL. Sin red ni emulador.
  */
@@ -396,10 +398,31 @@ console.log('\n─── E. R9: los comentarios se abren ENCIMA del Weël, sin s
   } })('components/HojaDeComentarios.tsx');
   check('E8) el fondo transparente se calcula sobre el color del tema (#RRGGBB → 90 %), sin romper otros formatos',
     H.fondoSobreVideo('#FFFFFF') === '#FFFFFFE6' && H.fondoSobreVideo('#0A0A0A') === '#0A0A0AE6' && H.fondoSobreVideo('white') === 'white');
-  check('E9) deslizar hacia abajo cierra: el gesto vive en el asa y la cabecera (la lista conserva su scroll) y vuelve a su sitio si no basta',
-    /<View \{\.\.\.gestoDeCerrar\.panHandlers\}>/.test(hoja) && /g\.dy > ARRASTRE_PARA_CERRAR \|\| g\.vy > VELOCIDAD_PARA_CERRAR\) onClose\(\)/.test(hoja)
-    && /Animated\.spring\(arrastre, \{ toValue: 0/.test(hoja) && H.ARRASTRE_PARA_CERRAR === 80
-    && hoja.indexOf('gestoDeCerrar.panHandlers') < hoja.indexOf('<FlatList'));
+  /*
+   * R9 (teléfono, d1cfda57): deslizar desde el asa o la cabecera NO cerraba. Con solo `onMoveShouldSetPanResponder`
+   * la zona casi nunca recibía el gesto (asa de 4 puntos, vistas de maquetación que Android aplana). El gesto, ejecutado:
+   */
+  {
+    const reg = { movido: [], cerrada: 0, vuelta: 0 };
+    const g = H.configDelGestoDeCerrar((dy) => reg.movido.push(dy), () => reg.cerrada++, () => reg.vuelta++);
+    check('E9) la zona reclama el toque al empezar, gana un arrastre vertical aunque lo empiece una vista de dentro y no lo suelta a medias',
+      g.onStartShouldSetPanResponder() === true && g.onMoveShouldSetPanResponderCapture({}, { dx: 2, dy: 20 }) === true
+      && g.onMoveShouldSetPanResponderCapture({}, { dx: 30, dy: 10 }) === false && g.onPanResponderTerminationRequest() === false);
+    g.onPanResponderMove({}, { dy: 120 }); g.onPanResponderMove({}, { dy: -30 });
+    g.onPanResponderRelease({}, { dy: 450, vy: 0.3 });
+    const cerrada = reg.cerrada;
+    g.onPanResponderRelease({}, { dy: 30, vy: 0.1 });
+    g.onPanResponderRelease({}, { dy: 40, vy: 1.2 });
+    check('E9) deslizar hacia abajo (el swipe del teléfono: ~450 puntos) CIERRA; poco y despacio vuelve a su sitio; rápido también cierra',
+      cerrada === 1 && reg.cerrada === 2 && reg.vuelta === 1 && JSON.stringify(reg.movido) === '[120,0]', JSON.stringify(reg));
+    const soloMover = { onMoveShouldSetPanResponder: (_e, gg) => gg.dy > 6 };
+    check('CONTROL: el gesto de d1cfda57 (solo `onMoveShouldSetPanResponder`) no reclamaba al empezar ni capturaba',
+      soloMover.onStartShouldSetPanResponder === undefined && soloMover.onMoveShouldSetPanResponderCapture === undefined);
+    check('E9) la zona es una vista real (`collapsable={false}`) con el asa, la cabecera y el aire de arriba; la lista queda fuera (su scroll no cambia)',
+      /<View \{\.\.\.gestoDeCerrar\.panHandlers\} collapsable=\{false\} style=\{styles\.zonaDeArrastre\}>/.test(hoja)
+      && /PanResponder\.create\(configDelGestoDeCerrar\(/.test(hoja) && H.ARRASTRE_PARA_CERRAR === 80
+      && hoja.indexOf('gestoDeCerrar.panHandlers') < hoja.indexOf('<FlatList') && /zonaDeArrastre: \{\s*paddingTop: SPACING\.sm/.test(hoja));
+  }
   check('E10) la conversación sale de `useComentarios` (el mismo camino que el muro y PostDetail) y su recuento vuelve al contexto',
     /useComentarios\(visible \? post : null\)/.test(hoja) && /onContar\?\.\(postId as string, comentarios\.length\)/.test(hoja)
     && /sobreVideo=\{sobreVideo\} onContar=\{alContar\}/.test(contexto) && /publicacionAbierta, contadores/.test(contexto));
@@ -420,6 +443,88 @@ console.log('\n─── E. R9: los comentarios se abren ENCIMA del Weël, sin s
     /setComentarios\(llegados\);\s*setCargando\(false\);\s*setRespondidaDe\(postId\);/.test(gancho)
     && /if \(!postId\) \{\s*setComentarios\(\[\]\);\s*setCargando\(false\);\s*setRespondidaDe\(null\);/.test(gancho)
     && /if \(debeContar\(visible, postId, respondidaDe\)\) onContar/.test(hoja));
+}
+
+console.log('\n─── F. R9: responder a un comentario, y Weëls sin el «+» de arriba ───');
+/*
+ * Peticiones del dueño (2026-10-13): «que se pueda comentar dentro de un comentario» y quitar el «+» de arriba a la
+ * derecha de Weëls (crear un Weël sigue en la fila «Crear Weël» del Home y en la hoja Crear).
+ */
+{
+  const Hi = base('utils/hilosDeComentarios.ts');
+  const c = (id, padre) => ({ id, ...(padre ? { parentCommentId: padre } : {}) });
+  const llegados = [c('a'), c('b'), c('a1', 'a'), c('c'), c('a2', 'a1'), c('b1', 'b'), c('x1', 'borrado')];
+  const lineas = Hi.ordenarEnHilos(llegados);
+  const pinta = lineas.map((l) => (l.esRespuesta ? '  ' : '') + l.comentario.id).join(' | ');
+  check('F1) cada comentario seguido de SUS respuestas, con sangría, en el orden de llegada',
+    pinta === 'a |   a1 |   a2 | b |   b1 | c | x1', pinta);
+  check('F1) un solo nivel: la respuesta a una respuesta cuelga del mismo comentario raíz',
+    lineas.find((l) => l.comentario.id === 'a2').esRespuesta === true && Hi.raizDeRespuesta(c('a2', 'a1'), new Map(llegados.map((x) => [x.id, x]))).id === 'a');
+  check('F1) una respuesta cuyo comentario ya no está se enseña como comentario normal: nada desaparece',
+    lineas.length === llegados.length && lineas.find((l) => l.comentario.id === 'x1').esRespuesta === false);
+  check('F1) sin respuestas, el orden de siempre', Hi.ordenarEnHilos([c('p'), c('q')]).map((l) => l.comentario.id).join() === 'p,q');
+  check('F1) un ciclo de padres (datos raros) no cuelga la pantalla', Hi.ordenarEnHilos([c('m', 'n'), c('n', 'm')]).length === 2);
+  const plano = llegados.map((x) => x.id).join(' | ');
+  check('CONTROL: la lista plana de antes dejaba la respuesta «a1» detrás de «b», lejos de su comentario', plano.indexOf('b') < plano.indexOf('a1') && pinta.indexOf('a1') < pinta.indexOf('b'));
+}
+{
+  const gancho = sinComentarios(leer('hooks/useComentarios.ts'));
+  const hoja = sinComentarios(leer('components/HojaDeComentarios.tsx'));
+  const tarjeta = sinComentarios(leer('components/CommentCard.tsx'));
+  const servicio = sinComentarios(leer('services/firestoreService.ts'));
+  check('F2) una respuesta es un comentario más de `comments` con el `parentCommentId` que el modelo ya tenía (raíz), por `commentsService.create`',
+    /parentCommentId\?: string;/.test(servicio) && /\.\.\.\(respondida && \{ parentCommentId: respondida\.id \}\)/.test(gancho)
+    && /const raiz = comentario\.parentCommentId \|\| comentario\.id;/.test(gancho) && /await commentsService\.create\(nuevo\)/.test(gancho));
+  check('F2) sin colección, servicio ni suscripción nuevos: la hoja sigue leyendo `subscribeToPost` y escribiendo `commentsService.create`',
+    (gancho.match(/commentsService\.(\w+)/g) || []).every((m) => /subscribeToPost|create/.test(m)) && !/collection\(|addDoc|replies/.test(gancho));
+  check('F2) al enviar se suelta a quién se respondía; si falla, vuelve con el texto (no se pierde la respuesta)',
+    /setRespondiendoA\(null\);\s*setEnviando\(true\);/.test(gancho) && (gancho.match(/setRespondiendoA\(respondida\);/g) || []).length === 2);
+  check('F2) el contador del post sigue la regla de siempre: cuenta comentarios Y respuestas (+1 por cada documento creado)',
+    /await postsService\.update\(postId, \{ comments: \(post\?\.comments \|\| 0\) \+ 1 \}\);/.test(gancho) && /onContar\?\.\(postId as string, comentarios\.length\)/.test(hoja));
+  check('F3) cada comentario de la hoja ofrece «Responder» (`wall.reply`) y las respuestas van con sangría',
+    /accessibilityLabel=\{t\('wall\.reply'\)\}/.test(tarjeta) && /\{!!onResponder && \(/.test(tarjeta) && /esRespuesta && styles\.respuesta/.test(tarjeta)
+    && /esRespuesta=\{item\.esRespuesta\}/.test(hoja) && /data=\{lineas\}/.test(hoja) && /ordenarEnHilos\(comentarios\)/.test(hoja));
+  check('F3) la caja dice a quién respondes (`wall.replyingTo`) con un aspa para cancelar (`wall.cancelReply`), y Responder lleva el cursor a la caja',
+    /t\('wall\.replyingTo', \{ nombre: respondiendoA\.nombre \}\)/.test(hoja) && /onPress=\{cancelarRespuesta\}/.test(hoja) && /accessibilityLabel=\{t\('wall\.cancelReply'\)\}/.test(hoja)
+    && /responderA\(item\.comentario, nombre\); campoRef\.current\?\.focus\(\);/.test(hoja));
+  check('F3) la pantalla de la publicación pinta los mismos hilos (sin botón de responder: se responde en la hoja)',
+    /ordenarEnHilos\(comments\)\.map\(\(\{ comentario: comment, esRespuesta \}\)/.test(sinComentarios(leer('screens/PostDetailScreen.tsx'))));
+  const reglas = leer('firestore.rules');
+  const bloque = reglas.slice(reglas.indexOf('match /comments/{commentId}'), reglas.indexOf('match /likes/{likeId}'));
+  check('F4) las reglas de `comments` ya permiten crear con `parentCommentId` (no limitan los campos al crear) y siguen impidiendo cambiarlo después: sin cambio de reglas',
+    /allow create: if isAuthenticated\(\) &&\s*\(request\.resource\.data\.userId == request\.auth\.uid/.test(bloque) && !/allow create[^;]*hasOnly/.test(bloque)
+    && /\.hasAny\(\['userId', 'postId', 'parentCommentId', 'createdAt'\]\)/.test(bloque));
+  const EN = base('i18n/textos/en/index.ts').en;
+  const ES = base('i18n/textos/es/index.ts').es;
+  check('F5) los textos salen del i18n (es/en distintos) y la ayuda dice el nombre por interpolación',
+    ['reply', 'replyingTo', 'cancelReply'].every((k) => typeof ES.wall[k] === 'string' && typeof EN.wall[k] === 'string' && ES.wall[k] !== EN.wall[k])
+    && tEs('wall.replyingTo', { nombre: 'Ana' }) === 'Respondiendo a Ana');
+}
+{
+  /* Sin «+» arriba a la derecha. */
+  const svc = servicio([{ documents: [WEEL('w1', { createdAt: { toDate: () => new Date(0) } })], lastDoc: null, hasMore: false }]);
+  const e = pantalla(svc, { conLista: true });
+  e.dibujar(); e.enfocar(); await e.calma(); e.dibujar();
+  const d = e.dibujar();
+  check('F6) el Weël ya no tiene «+» arriba a la derecha (ningún botón «Crear Weël» en su cabecera), y conserva la flecha',
+    !d.botones.some((b) => b.etiqueta === tEs('weels.create')) && d.botones.some((b) => b.etiqueta === tEs('common.back')), d.botones.map((b) => b.etiqueta).join(' · '));
+  const vacio = pantalla(servicio([{ documents: [], lastDoc: null, hasMore: false }]));
+  vacio.dibujar(); vacio.enfocar(); await vacio.calma();
+  const dv = vacio.dibujar();
+  check('F6) en el feed vacío tampoco hay «+» arriba: solo queda el botón del propio mensaje («Crear Weël»)',
+    dv.botones.filter((b) => b.etiqueta === tEs('weels.create')).length === 1 && !/add-circle-outline/.test(feed));
+  check('CONTROL: la cabecera de antes (con «+») se cazaría',
+    /add-circle-outline/.test('<Ionicons name="add-circle-outline" />') && !/onCreate/.test(feed));
+  const landing = sinComentarios(leer('screens/LandingScreen.tsx'));
+  const global = sinComentarios(leer('navigation/NavegacionGlobal.tsx'));
+  check('F7) crear un Weël sigue en la fila del Home y en la hoja Crear (sin tocar sus rutas)',
+    /navigate\(user \? 'CrearWeel' : 'Login'\)/.test(landing) && /if \(kind === 'weel'\) return void setTimeout\(\(\) => irARaiz\('CrearWeel'\)/.test(global));
+  const S = base('utils/salidaDeWeels.ts');
+  const nav = (p) => { const n = []; return { n, goBack: () => n.push('goBack'), navigate: (x) => n.push(x), popTo: (x) => n.push(x), canGoBack: () => p.length > 1, getState: () => ({ index: p.length - 1, routes: p.map((name) => ({ name })) }) }; };
+  const desdeHome = nav(['Main', 'CrearWeel']); S.salirDeCrearWeel(desdeHome);
+  const desdeHoja = nav(['Main', 'Community', 'CrearWeel']); S.salirDeCrearWeel(desdeHoja);
+  check('F7) cerrar «Crear Weël» abierto desde el Home o desde la hoja Crear vuelve a donde estaba (historial)',
+    desdeHome.n.join() === 'goBack' && desdeHoja.n.join() === 'goBack');
 }
 
 check('esta suite está en la cadena de `npm test`', /weels-feed\.test\.mjs/.test(leer('functions/package.json')));
