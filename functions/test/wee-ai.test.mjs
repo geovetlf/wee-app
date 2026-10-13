@@ -81,7 +81,8 @@ console.log('\n── A · El nombre visible es Weë AI ──');
   check('2) y las pantallas que lo llevan encima, también', sinRenombrar.length === 0, sinRenombrar.join(' · '));
 
   /* Los atajos que llevan hasta ahí. */
-  check('3) el atajo de la hoja Crear', new RegExp(`>${NUEVO} ›<`).test(leer('components/CreateSheet.tsx')));
+  /* R9 (referencia del dueño): la hoja Crear ya no lleva «Weë AI ›»; su nota discreta lleva a la misma entrada (r9-crear A4). */
+  check('3) la hoja Crear lleva a WEË AI por su nota, sin el bloque «Weë AI ›»', /onPress=\{onOpenCreator\}/.test(leer('components/CreateSheet.tsx')) && !new RegExp(`>${NUEVO} ›<`).test(leer('components/CreateSheet.tsx')));
   /*
    * LA TARJETA DE LA COLUMNA DERECHA no lleva texto: lleva claves, desde la
    * fase 5C. Se mira la clave Y la frase, en los dos idiomas, porque el nombre

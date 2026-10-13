@@ -934,7 +934,8 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * pantalla del texto en un móvil alto— y dos cajas grandes flotando en medio.
    */
   check('110) las acciones van en mosaicos, no en una barra al fondo', /const renderAcciones = \(\) => \(/.test(crear) && !/renderToolbar/.test(crear));
-  check('110) y cada una dice lo que hace, no solo un icono', ['Cámara', 'Multimedia', 'ËContact', 'Ubicación', 'Encuesta', 'Mis proyectos'].every((t) => crear.includes(`texto="${t}"`)));
+  /* R9 (referencia del dueño): la barra es Foto · Vídeo · Archivo · Enlace · Hashtag (+ Encuesta). Igual que composer.test.mjs. */
+  check('110) y cada una dice lo que hace, no solo un icono', ['Foto', 'Vídeo', 'Archivo', 'Enlace', 'Hashtag', 'Encuesta'].every((t) => crear.includes(`texto="${t}"`)));
   // Amigos tiene su sitio pero no engaña: apagado y avisando de que llega después.
   /*
    * ËContact será el nombre de la red de conexiones de Weë en todos los idiomas.
@@ -943,7 +944,8 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * quedarse apagado. Misma aserción que en `composer.test.mjs`, y las dos
    * tienen que decir lo mismo.
    */
-  const bloqueEContactTravel = crear.slice(crear.indexOf('texto="ËContact"'), crear.indexOf('texto="ËContact"') + 280);
+  /* R9: la agenda de ËContact se abre desde la fila «Etiquetar personas». */
+  const bloqueEContactTravel = crear.slice(crear.indexOf('texto="Etiquetar personas"'), crear.indexOf('texto="Etiquetar personas"') + 280);
   check('110) ËContact ya no está apagado', !/apagada/.test(bloqueEContactTravel));
   check('110) y abre la agenda del perfil activo', /setShowEContacts/.test(bloqueEContactTravel));
   check('110) y ya no se llama Amigos', !/texto="Amigos"/.test(crear));
@@ -956,7 +958,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * Google SIN tipos MIME: solo enseñaba fotos, con el botón diciendo "Foto o
    * vídeo". La lista moderna sí pide las dos cosas. Comprobado en el aparato.
    */
-  check('110) foto y vídeo son la misma puerta, y se dice: Multimedia', /mediaTypes: \['images', 'videos'\]/.test(leer('screens/CreateScreen.tsx')) && /texto="Multimedia"/.test(crear) && !/Foto o vídeo/.test(crear));
+  check('110) Foto, Vídeo y Archivo usan el mismo selector, con la lista moderna de tipos', /todo: \['images', 'videos'\]/.test(leer('screens/CreateScreen.tsx')) && /mediaTypes: \[\.\.\.TIPOS_DEL_SELECTOR\[tipo\]\]/.test(leer('screens/CreateScreen.tsx')));
   // Sobre el USO, no sobre la palabra: el comentario que explica el cambio la nombra.
   check('110) y no queda ningún enum obsoleto pidiendo medios', !/ImagePicker\.MediaTypeOptions/.test(leer('screens/CreateScreen.tsx')));
   /*
@@ -968,14 +970,14 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * Las acciones bajan DEBAJO del texto —arriba parecían una barra técnica— y la
    * identidad abre la pantalla.
    */
-  check('110) primero quién publica', crear.indexOf('styles.identidad') < crear.indexOf('{renderTextInput()}'));
+  check('110) R9: sin bloque de identidad arriba: el papel abre la pantalla', !/styles\.identidad\}/.test(crear));
   check('110) luego lo que cuenta, y después con qué', crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderAcciones()}'));
-  check('110) y al final dónde se comparte', crear.indexOf('{renderAcciones()}') < crear.indexOf('{renderDestinos()}'));
-  check('110) la cabecera dice qué estás haciendo', /Nueva publicación<\/Text>/.test(crear) && /Publicar<\/Text>/.test(crear));
+  check('110) y al final las filas (quién lo ve, ubicación, personas, dónde)', crear.indexOf('{renderAcciones()}') < crear.indexOf('{renderFilas()}') && /verDestinos && renderDestinos\(\)/.test(crear));
+  check('110) la cabecera dice qué estás haciendo', /Crear publicación<\/Text>/.test(crear) && /Publicar<\/Text>/.test(crear));
   /* El lugar elegido es un chip bajo el texto, parte de la publicación; y si
      no hay nada, no se pinta nada. Misma aserción que en composer.test.mjs. */
   check('110) el lugar elegido es un chip, y solo sale si hay algo', /const renderLugar = \(\) =>\s*\n?\s*place \|\| ubicacion \? \(/.test(crear) && /styles\.chipLugar/.test(crear));
-  check('110) y va justo bajo el campo de texto, antes de las acciones', crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderLugar()}') && crear.indexOf('{renderLugar()}') < crear.indexOf('{renderAcciones()}'));
+  check('110) y va bajo el texto y lo adjunto, antes de las acciones', crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderLugar()}') && crear.indexOf('{renderLugar()}') < crear.indexOf('{renderAcciones()}'));
   /*
    * MOSAICOS (fase 2E-76, modelo visual del usuario). Eran píldoras en una fila
    * que se arrastraba, y arrastrando se escondían la mitad: quien no lo hacía
@@ -983,7 +985,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    */
   check('110) las herramientas van en una sola fila, las seis a la vista y sin arrastrar',
     /acciones: \{\s*flexDirection: 'row',\s*flexWrap: 'wrap',\s*justifyContent: 'space-between'/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear) && !/accionesFila/.test(crear));
-  check('110) el recuento no se mete dentro del nombre del botón', /texto="Multimedia"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
+  check('110) el recuento no se mete dentro del nombre del botón', /texto="Foto"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
   check('110) y el campo de texto es una hoja grande que crece, no un hueco fijo', /textInput: \{\s*minHeight: scale\(150\),/.test(crear) && !/minHeight: scale\(220\)/.test(crear));
 
   /*
@@ -1006,7 +1008,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    */
   check('111b) el hueco del check está reservado siempre', /styles\.destinoCheck,/.test(crear) && /destinoCheck: \{\s*width: scale\(20\),\s*height: scale\(20\)/.test(crear));
   check('111b) y el peso de la letra no cambia al elegir', !/fontWeight: elegido \?/.test(crear));
-  check('110) el botón se enciende cuando ya lleva algo puesto', /activa=\{!!place \|\| !!ubicacion\}/.test(crear) && /activa=\{attachedMedia\.length > 0\}/.test(crear));
+  check('110) el botón se enciende cuando ya lleva algo puesto', /activa=\{fotosPuestas > 0\}/.test(crear) && /activa=\{conVideo\}/.test(crear) && /activa=\{!!poll\}/.test(crear));
 
   // Publicar exige contenido: ni texto vacío ni una publicación en blanco.
   check('111) no se publica sin contenido', /const canPublish = hasContent && !isTextOverLimit && !isPublishing && isPollValid;/.test(crear));
@@ -1185,13 +1187,13 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
    * forma de que quepan: a ancho completo y 280 de alto eran casi tres mil
    * píxeles de scroll hasta el botón de publicar.
    */
-  check('125) las fotos van en miniatura, no a ancho completo', /width: scale\(100\),\s*height: scale\(100\)/.test(crearCrudo) && !/height: scale\(280\)/.test(crearCrudo));
+  check('125) las fotos van en miniatura, no a ancho completo', /mediaPreviewItem: \{\s*position: 'relative',\s*width: scale\(150\),\s*height: scale\(150\)/.test(crearCrudo) && !/height: scale\(280\)/.test(crearCrudo));
   check('125) y la rejilla no recorta las aspas de quitar', !/mediaGrid: \{[\s\S]{0,160}overflow: 'hidden'/.test(crearCrudo));
   check('125) el hueco de seguir añadiendo va al final de la tira', crearCrudo.indexOf('styles.mediaAgregar,') > crearCrudo.indexOf('removeMediaButton,'));
   check('125) y desaparece cuando ya no cabe nada', /\{!sinSitioParaMedios && \(/.test(crearCrudo));
 
   // Lo que se escribe vive en una tarjeta con su contador dentro, no en un renglón suelto.
-  check('125) la caja de escribir es una tarjeta cerrada', /tarjetaTexto: \{\s*borderWidth: 1,/.test(crearCrudo));
+  check('125) R9: la caja de escribir ya no lleva marco: es la pantalla', /tarjetaTexto: \{\s*paddingTop/.test(crearCrudo) && !/tarjetaTexto: \{\s*borderWidth/.test(crearCrudo));
   check('125) que dice cuánto llevas de cuánto cabe', /\{postText\.length\}\/\{maxTextLength\}/.test(crearCrudo));
 
   // Dónde publicar es una pregunta con su bloque, no el último campo del formulario.

@@ -68,6 +68,23 @@ export const SUSTITUIDAS = {
   'aiAvatar.generatedWithGemini': { por: 'aiAvatar.generatedWithAi', porque: 'i18n da-DK (2026-10-01): el avatar lo hace «Weë AI»; la persona nunca ve el nombre de un proveedor' },
   'help.a3': { por: 'help.a3_other', porque: 'fallos de UI (2026-10-01): la Ayuda dice el número y los nombres de los especialistas del menú, con su plural' },
   'composer.bizNoAgenda': { por: 'composer.profileNoAgenda', porque: 'i18n da-DK (2026-10-01): el Perfil Biz se eliminó el 2026-09-19; el aviso habla de «este perfil»' },
+  /* R9 · línea D (referencia del dueño, 2026-10-13): la hoja Crear pasa de seis opciones a dos y el compositor se rediseña. */
+  'composer.kindPost': { por: 'composer.sheetOptionPost', porque: 'R9 Crear: la hoja tiene dos opciones; «Publicación» es ahora «Subir publicación»' },
+  'composer.kindWeel': { por: 'composer.sheetOptionWeel', porque: 'R9 Crear: la hoja tiene dos opciones; «Weël» es ahora «Subir Weël»' },
+  'composer.kindImage': { por: 'composer.toolPhoto', porque: 'R9 Crear: «Imagen» sale de la hoja; las fotos se adjuntan con «Foto» en el compositor' },
+  'composer.kindVideo': { por: 'composer.toolVideo', porque: 'R9 Crear: «Vídeo» sale de la hoja; el vídeo se adjunta con «Vídeo» en el compositor' },
+  'composer.kindText': { por: 'home.composerPlaceholder', porque: 'R9 Crear: «Texto» sale de la hoja; escribir es el papel del compositor («¿Qué quieres compartir?»)' },
+  'composer.kindQuestion': { por: 'composer.placeholderQuestion', porque: 'R9 Crear: «Pregunta» sale de la hoja; la Ayuda sigue abriendo el compositor con kind question' },
+  'composer.needAiTool': { por: 'composer.sheetToolsNote', porque: 'R9 Crear: el bloque oscuro de Weë AI se sustituye por la nota discreta que lleva a WEË AI' },
+  'composer.needAiToolNote': { por: 'composer.sheetToolsNote', porque: 'R9 Crear: el bloque oscuro de Weë AI se sustituye por la nota discreta que lleva a WEË AI' },
+  'composer.placeholderDefault': { por: 'home.composerPlaceholder', porque: 'R9 Crear: el papel del compositor dice «¿Qué quieres compartir?», la misma frase de la entrada del Home' },
+  'composer.newPost': { por: 'composer.createPostTitle', porque: 'R9 Crear: la cabecera del compositor dice «Crear publicación» como en la referencia' },
+  'composer.you': { por: 'composer.rowAudience', porque: 'R9 Crear: sin la fila de identidad arriba; quién lo ve es la fila «¿Quién puede ver esta publicación?»' },
+  'composer.shareWithCommunity': { por: 'composer.rowAudience', porque: 'R9 Crear: sin la fila de identidad arriba; quién lo ve es la fila «¿Quién puede ver esta publicación?»' },
+  'composer.visibilityIs': { por: 'composer.rowWithValue', porque: 'R9 Crear: la píldora de visibilidad pasa a la fila con su valor («¿Quién puede ver…?: Público»)' },
+  'composer.multimedia': { por: 'composer.toolFile', porque: 'R9 Crear: «Multimedia» se reparte en Foto, Vídeo y Archivo, el mismo selector' },
+  'composer.addMoreMedia': { por: 'composer.addMoreShort', porque: 'R9 Crear: el hueco del final de la tira dice «Agregar más» como en la referencia' },
+  'composer.publishing': { por: 'composer.publish', porque: 'R9 Crear: un solo Publicar, en la cabecera, con su rueda mientras publica (se retira el botón grande del pie)' },
 };
 
 const faltan = (vivo, propuesto) => [...vivo].filter((x) => !propuesto.has(x) && !(SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por))).sort();
