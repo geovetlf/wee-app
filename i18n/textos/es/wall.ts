@@ -76,4 +76,7 @@ export const wall = {
   promptCopied: 'Copiado',
   demoBadge: 'Demo',
   demoBadgeLabel: 'Contenido de demostración',
+  howExpand: 'Mostrar cómo lo hice',
+  howCollapse: 'Ocultar cómo lo hice',
+  howStepNumber: '{{n}}.',
 };

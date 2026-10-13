@@ -61,7 +61,9 @@ const AGENDA = 'components/SelectorDeEContacts.tsx';
 const LUGAR = 'screens/AgregarUbicacionScreen.tsx';
 const BORRADOR = 'utils/pollDraft.ts';
 const FUENTE_DESTINOS = "utils/sectionFeed.ts";
-const PIEZAS = [HOJA, ENTRADA, CREAR, AGENDA, LUGAR, BORRADOR, FUENTE_DESTINOS];
+/* R9: la hoja «Revisar y seleccionar qué información quieres compartir» es parte del Composer y usa sus claves. */
+const COMO = 'components/ComoLoHiceRevision.tsx';
+const PIEZAS = [HOJA, ENTRADA, CREAR, AGENDA, LUGAR, BORRADOR, FUENTE_DESTINOS, COMO];
 const C = Object.fromEntries(PIEZAS.map((p) => [p, soloCodigo(leer(p))]));
 const TODO = Object.values(C).join('\n');
 
@@ -237,7 +239,15 @@ console.log('\n── E · Nada funcional se movió ──');
   check('21) y los cinco atajos de la entrada conservan su orden',
     atajos.join(' · ') === 'Cámara · Foto o vídeo · ËContact · Ubicación · Encuesta', atajos.join(' · '));
 
-  check('22) "Cómo lo hice" no ha vuelto', !/Cómo lo hice|comoLoHice|HowIMadeIt/.test(TODO));
+  /*
+   * «Cómo lo hice» volvió en R9 con la forma que decidió el dueño (referencia de tres pantallas): UN interruptor
+   * apagado al fondo y una hoja de revisión aparte. Lo que sigue prohibido es lo de antes: los tres campos sueltos de
+   * IA en el propio compositor —ni estado para escribirlos ni el panel que se abría solo (fase 2E-74)—. Lo demás lo
+   * vigila `como-lo-hice.test.mjs`.
+   */
+  check('22) "Cómo lo hice" es un interruptor, no los campos de IA de antes',
+    !/setAiToolsText|setAiPrompt|setAiProcess|showHowIMadeIt|renderHowIMadeIt/.test(TODO)
+    && /<Switch[\s\S]{0,80}value=\{comoLoHice\.activo\}/.test(C[CREAR]) && /borradorInicial\(/.test(C[CREAR]));
 
   /* Los límites de multimedia salen de la lógica, no de la frase. */
   check('23) diez fotos y quince segundos siguen mandando',

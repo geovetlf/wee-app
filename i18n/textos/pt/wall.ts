@@ -80,4 +80,7 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'Copiado',
   demoBadge: 'Demo',
   demoBadgeLabel: 'Conteúdo de demonstração',
+  howExpand: 'Mostrar como eu fiz',
+  howCollapse: 'Ocultar como eu fiz',
+  howStepNumber: '{{n}}.',
 };

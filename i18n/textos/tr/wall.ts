@@ -90,4 +90,7 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'Kopyalandı',
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demo içeriği',
+  howExpand: 'Nasıl yaptığımı göster',
+  howCollapse: 'Nasıl yaptığımı gizle',
+  howStepNumber: '{{n}}.',
 };

@@ -1,34 +1,52 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, LayoutAnimation } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { Post } from '../services/firestoreService';
+import { lecturaDePublicacion } from '../utils/comoLoHice';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
 const isWeb = Platform.OS === 'web';
 
 interface HowIMadeItProps {
-  post: Post;
+  post: Pick<Post, 'aiTools' | 'aiPrompt' | 'aiProcess'>;
+  /**
+   * Abierto al dibujarse. Empieza DESPLEGADO, como en la referencia del dueño (3.ª pantalla); tocar la cabecera lo
+   * pliega y lo despliega, y ese estado vive mientras se mira la tarjeta.
+   */
+  abiertoAlEmpezar?: boolean;
 }
 
 /**
- * "Cómo lo hice": herramientas de IA usadas, prompt (copiable) y proceso.
- * Convierte cada publicación hecha con IA en algo que también enseña.
+ * «CÓMO LO HICE» en una publicación del Wäll (referencia R9, tercera pantalla).
+ *
+ * Va DEBAJO de la fila de interacciones, separado por una línea fina, y se pliega y despliega tocando su cabecera
+ * —libro abierto, «CÓMO LO HICE» y un chevrón que dice si está abierto—. Dentro: «Creado con» y la herramienta en una
+ * píldora gris, «Proceso:» con los pasos numerados (solo los que existen) y, únicamente si quien publicó lo autorizó, el
+ * prompt con «Ver prompt» / «Copiar prompt». Sin nada compartido no se dibuja nada: ni un bloque vacío.
+ *
+ * Lee lo GUARDADO en la publicación (`aiTools`, `aiProcess`, `aiPrompt`) y nada más: abrirlo no consulta ni genera
+ * nada. Las publicaciones antiguas —un párrafo en `aiProcess`— se leen igual: un paso, sin número.
+ * El estado abierto/cerrado vive mientras se mira la tarjeta; no se guarda en ninguna parte.
  */
-const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
+const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post, abiertoAlEmpezar = true }) => {
   const t = useT();
   const { theme } = useTheme();
+  const [abierto, setAbierto] = useState(abiertoAlEmpezar);
   const [promptOpen, setPromptOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const tools = (post.aiTools || []).filter(Boolean);
-  const prompt = (post.aiPrompt || '').trim();
-  const process = (post.aiProcess || '').trim();
+  const { herramientas: tools, pasos, prompt, vacio } = lecturaDePublicacion(post);
+  if (vacio) return null;
 
-  if (tools.length === 0 && !prompt && !process) return null;
+  /* Una animación discreta al abrir y cerrar; en web no hace falta (y RN Web no la tiene). */
+  const alternar = () => {
+    if (!isWeb) LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setAbierto((v) => !v);
+  };
 
   const copyPrompt = async () => {
     if (!prompt || !isWeb) return;
@@ -63,100 +81,161 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
     }
   };
 
+  /* La píldora gris de la referencia: clara en el tema claro, apagada en el oscuro. */
+  const fondoPildora = theme.colors.border + '99';
+
   return (
-    <View style={[styles.box, { backgroundColor: theme.colors.accent + '14', borderColor: theme.colors.accent + '55' }]}>
-      <View style={styles.headerRow}>
-        <Text style={styles.emoji}>🤖</Text>
-        <Text style={[styles.title, { color: theme.colors.accentDark }, sinEspaciadoSiSeUne(t('wall.howIMadeIt'))]}>{t('wall.howIMadeIt')}</Text>
-      </View>
+    <View style={[styles.box, { borderTopColor: theme.colors.border }]}>
+      <TouchableOpacity
+        style={styles.headerRow}
+        onPress={alternar}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: abierto }}
+        accessibilityLabel={t(abierto ? 'wall.howCollapse' : 'wall.howExpand')}
+      >
+        <Ionicons name="book-outline" size={scale(22)} color={theme.colors.text} />
+        <Text style={[styles.title, { color: theme.colors.text }, sinEspaciadoSiSeUne(t('wall.howIMadeIt'))]}>{t('wall.howIMadeIt')}</Text>
+        <Ionicons name={abierto ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.text} />
+      </TouchableOpacity>
 
-      {tools.length > 0 && (
-        <View style={styles.toolsRow}>
-          <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{t('wall.madeWith')}</Text>
-          {tools.map((tool) => (
-            <View key={tool} style={[styles.toolChip, { backgroundColor: theme.colors.card }]}>
-              <Text style={[styles.toolText, { color: theme.colors.text }]}>{tool}</Text>
+      {abierto && (
+        <View style={styles.body}>
+          {tools.length > 0 && (
+            <View style={styles.toolsRow}>
+              <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{t('wall.madeWith')}</Text>
+              {tools.map((tool) => (
+                <View key={tool} style={[styles.toolChip, { backgroundColor: fondoPildora }]}>
+                  <Text style={[styles.toolText, { color: theme.colors.text }]}>{tool}</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
-      )}
+          )}
 
-      {!!prompt && (
-        <View style={styles.promptBlock}>
-          <TouchableOpacity style={styles.promptToggle} onPress={() => setPromptOpen((v) => !v)} activeOpacity={0.7}>
-            <Text style={[styles.promptToggleText, { color: theme.colors.accentDark }]}>
-              {promptOpen ? t('wall.hidePrompt') : t('wall.showPrompt')}
-            </Text>
-            <Ionicons name={promptOpen ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.accentDark} />
-          </TouchableOpacity>
-          {promptOpen && (
-            <View style={[styles.promptBox, { backgroundColor: theme.colors.card }]}>
-              <Text selectable style={[styles.promptText, { color: theme.colors.text }]}>{prompt}</Text>
-              {isWeb ? (
-                <TouchableOpacity
-                  style={[styles.copyButton, { backgroundColor: theme.colors.text }]}
-                  onPress={copyPrompt}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={scale(14)} color="white" />
-                  <Text style={styles.copyText}>{copied ? t('wall.promptCopied') : t('wall.copyPrompt')}</Text>
-                </TouchableOpacity>
+          {pasos.length > 0 && (
+            <View style={styles.processBlock}>
+              <Text style={[styles.processLabel, { color: theme.colors.text }]}>{t('wall.process')}</Text>
+              {pasos.length === 1 ? (
+                <Text style={[styles.processText, { color: theme.colors.text }]}>{pasos[0]}</Text>
               ) : (
-                <Text style={[styles.copyHint, { color: theme.colors.textSecondary }]}>{t('wall.holdToCopy')}</Text>
+                pasos.map((paso, i) => (
+                  <View key={`${i}-${paso.slice(0, 12)}`} style={styles.stepRow}>
+                    <Text style={[styles.stepNumber, { color: theme.colors.text }]}>{t('wall.howStepNumber', { n: i + 1 })}</Text>
+                    <Text style={[styles.processText, styles.stepText, { color: theme.colors.text }]}>{paso}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+
+          {!!prompt && (
+            <View style={styles.promptBlock}>
+              <TouchableOpacity
+                style={styles.promptToggle}
+                onPress={() => setPromptOpen((v) => !v)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: promptOpen }}
+                accessibilityLabel={promptOpen ? t('wall.hidePrompt') : t('wall.showPrompt')}
+              >
+                <Text style={[styles.promptToggleText, { color: theme.colors.text }]}>
+                  {promptOpen ? t('wall.hidePrompt') : t('wall.showPrompt')}
+                </Text>
+                <Ionicons name={promptOpen ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.text} />
+              </TouchableOpacity>
+              {promptOpen && (
+                <View style={[styles.promptBox, { backgroundColor: fondoPildora }]}>
+                  <Text selectable style={[styles.promptText, { color: theme.colors.text }]}>{prompt}</Text>
+                  {isWeb ? (
+                    <TouchableOpacity
+                      style={[styles.copyButton, { backgroundColor: theme.colors.text }]}
+                      onPress={copyPrompt}
+                      activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityLabel={copied ? t('wall.promptCopied') : t('wall.copyPrompt')}
+                    >
+                      <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={scale(14)} color={theme.colors.background} />
+                      <Text style={[styles.copyText, { color: theme.colors.background }]}>{copied ? t('wall.promptCopied') : t('wall.copyPrompt')}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={[styles.copyHint, { color: theme.colors.textSecondary }]}>{t('wall.holdToCopy')}</Text>
+                  )}
+                </View>
               )}
             </View>
           )}
         </View>
-      )}
-
-      {!!process && (
-        <Text style={[styles.processText, { color: theme.colors.text }]}>
-          <Text style={styles.processLabel}>{t('wall.process')} </Text>
-          {process}
-        </Text>
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  /* Una línea fina arriba la separa de la fila de interacciones; fondo el de la tarjeta, sin caja ni borde. */
   box: {
     marginTop: SPACING.md,
-    padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    gap: SPACING.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  emoji: {
-    fontSize: scale(13),
+    gap: SPACING.md,
+    minHeight: scale(48),
+    paddingVertical: SPACING.sm,
   },
   title: {
-    fontSize: scale(11),
+    flex: 1,
+    fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: 0.6,
+  },
+  body: {
+    gap: SPACING.md,
+    paddingBottom: SPACING.xs,
   },
   toolsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: SPACING.xs,
+    gap: SPACING.sm,
   },
   label: {
-    fontSize: FONT_SIZE.xs,
+    fontSize: FONT_SIZE.sm,
   },
   toolChip: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: scale(3),
-    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: scale(4),
+    borderRadius: BORDER_RADIUS.full,
   },
   toolText: {
-    fontSize: FONT_SIZE.xs,
+    fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.semibold,
+  },
+  processBlock: {
+    gap: scale(6),
+  },
+  processLabel: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.bold,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+  },
+  stepNumber: {
+    minWidth: scale(18),
+    fontSize: FONT_SIZE.sm,
+    lineHeight: scale(20),
+  },
+  /* El paso ocupa lo que queda y parte sus líneas solo: nunca empuja la tarjeta hacia los lados. */
+  stepText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  processText: {
+    fontSize: FONT_SIZE.sm,
+    lineHeight: scale(20),
   },
   promptBlock: {
     gap: SPACING.xs,
@@ -166,10 +245,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: scale(2),
     alignSelf: 'flex-start',
-    minHeight: scale(28),
+    minHeight: scale(32),
   },
   promptToggleText: {
-    fontSize: FONT_SIZE.xs,
+    fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.bold,
   },
   promptBox: {
@@ -192,19 +271,11 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
   },
   copyText: {
-    color: 'white',
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.bold,
   },
   copyHint: {
     fontSize: scale(11),
-  },
-  processText: {
-    fontSize: FONT_SIZE.sm,
-    lineHeight: scale(19),
-  },
-  processLabel: {
-    fontWeight: FONT_WEIGHT.bold,
   },
 });
 
