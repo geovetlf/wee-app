@@ -48,6 +48,10 @@ interface HojaDeComentariosProps {
 export const ARRASTRE_PARA_CERRAR = 80;
 const VELOCIDAD_PARA_CERRAR = 0.8;
 
+/** Si la hoja puede ya contar los comentarios de esta publicación: abierta y con la primera respuesta de SU suscripción. */
+export const debeContar = (visible: boolean, postId: string | undefined, respondidaDe: string | null): boolean =>
+  visible && !!postId && respondidaDe === postId;
+
 /** El fondo de la hoja sobre un vídeo: el color del tema con algo de transparencia (solo si es un #RRGGBB). */
 export const fondoSobreVideo = (color: string): string => (/^#[0-9a-f]{6}$/i.test(color) ? color + 'E6' : color);
 
@@ -100,13 +104,17 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
     enviando,
     puedeEnviar,
     enviar,
+    respondidaDe,
   } = useComentarios(visible ? post : null);
 
-  /* El recuento de verdad (la misma suscripción que pinta la lista) vuelve a quien abrió la hoja. */
+  /*
+   * El recuento de verdad (la misma suscripción que pinta la lista) vuelve a quien abrió la hoja, pero SOLO cuando esa
+   * suscripción ya ha respondido para esta publicación (`debeContar`): antes, quien la abrió sigue con su número.
+   */
   const postId = post?.id;
   useEffect(() => {
-    if (visible && postId && !cargando) onContar?.(postId, comentarios.length);
-  }, [visible, postId, cargando, comentarios.length, onContar]);
+    if (debeContar(visible, postId, respondidaDe)) onContar?.(postId as string, comentarios.length);
+  }, [visible, postId, respondidaDe, comentarios.length, onContar]);
 
   /*
    * ARRASTRAR HACIA ABAJO CIERRA. Solo desde el asa y la cabecera: la lista conserva su propio desplazamiento.

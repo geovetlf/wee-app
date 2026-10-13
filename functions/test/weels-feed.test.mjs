@@ -401,10 +401,25 @@ console.log('\n─── E. R9: los comentarios se abren ENCIMA del Weël, sin s
     && /Animated\.spring\(arrastre, \{ toValue: 0/.test(hoja) && H.ARRASTRE_PARA_CERRAR === 80
     && hoja.indexOf('gestoDeCerrar.panHandlers') < hoja.indexOf('<FlatList'));
   check('E10) la conversación sale de `useComentarios` (el mismo camino que el muro y PostDetail) y su recuento vuelve al contexto',
-    /useComentarios\(visible \? post : null\)/.test(hoja) && /onContar\?\.\(postId, comentarios\.length\)/.test(hoja)
+    /useComentarios\(visible \? post : null\)/.test(hoja) && /onContar\?\.\(postId as string, comentarios\.length\)/.test(hoja)
     && /sobreVideo=\{sobreVideo\} onContar=\{alContar\}/.test(contexto) && /publicacionAbierta, contadores/.test(contexto));
   check('E10) el muro sigue abriéndola igual (sin `sobreVideo`): su aspecto de siempre no cambia',
     /abrirComentarios\(post\)/.test(sinComentarios(leer('screens/LandingScreen.tsx'))) && /backgroundColor: 'rgba\(31,41,55,0\.45\)'/.test(hoja));
+  /*
+   * R9 (navegador, 8e2c46b4): al abrir la hoja, el icono del Weël bajaba a 0 mientras cargaba y volvía a 2. El primer
+   * dibujado tras abrir trae aún el `cargando: false` y la lista vacía de «sin publicación», y la hoja contaba entonces.
+   * Ahora solo cuenta cuando la suscripción de ESA publicación ya ha respondido (`respondidaDe`).
+   */
+  check('E11) antes de la primera respuesta la hoja NO cuenta (el icono sigue con su número); después, sí',
+    H.debeContar(true, 'w1', null) === false && H.debeContar(true, 'w1', 'w2') === false && H.debeContar(false, 'w1', 'w1') === false && H.debeContar(true, 'w1', 'w1') === true);
+  const viejaCondicion = (visible, postId, cargando) => visible && !!postId && !cargando;
+  check('CONTROL: la condición de 8e2c46b4 (`!cargando`) contaba en ese primer dibujado (cargando aún false) y el icono bajaba a 0',
+    viejaCondicion(true, 'w1', false) === true && H.debeContar(true, 'w1', null) === false);
+  const gancho = sinComentarios(leer('hooks/useComentarios.ts'));
+  check('E11) `useComentarios` apunta de qué publicación llegó la respuesta, y lo olvida al cerrarse (reabrir espera otra vez)',
+    /setComentarios\(llegados\);\s*setCargando\(false\);\s*setRespondidaDe\(postId\);/.test(gancho)
+    && /if \(!postId\) \{\s*setComentarios\(\[\]\);\s*setCargando\(false\);\s*setRespondidaDe\(null\);/.test(gancho)
+    && /if \(debeContar\(visible, postId, respondidaDe\)\) onContar/.test(hoja));
 }
 
 check('esta suite está en la cadena de `npm test`', /weels-feed\.test\.mjs/.test(leer('functions/package.json')));

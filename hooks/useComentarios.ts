@@ -35,6 +35,12 @@ export const useComentarios = (post: Post | null) => {
   const [texto, setTexto] = useState('');
   const [adjunto, setAdjunto] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  /*
+   * De qué publicación ha llegado YA la primera respuesta de la suscripción. `cargando` no basta para saberlo: al abrir
+   * una publicación, el primer dibujado aún trae el `cargando: false` y la lista vacía de «sin publicación», y quien
+   * contara entonces leería 0 (R9: el contador del Weël parpadeaba a 0 al abrir la hoja).
+   */
+  const [respondidaDe, setRespondidaDe] = useState<string | null>(null);
 
   const postId = post?.id;
 
@@ -43,12 +49,15 @@ export const useComentarios = (post: Post | null) => {
     if (!postId) {
       setComentarios([]);
       setCargando(false);
+      /* Cerrada: al volver a abrir (aunque sea la misma publicación) hay que esperar otra vez su primera respuesta. */
+      setRespondidaDe(null);
       return;
     }
     setCargando(true);
     const cancelar = commentsService.subscribeToPost(postId, (llegados) => {
       setComentarios(llegados);
       setCargando(false);
+      setRespondidaDe(postId);
     });
     return () => cancelar();
   }, [postId]);
@@ -159,6 +168,7 @@ export const useComentarios = (post: Post | null) => {
   return {
     comentarios,
     cargando,
+    respondidaDe,
     texto,
     setTexto,
     adjunto,
