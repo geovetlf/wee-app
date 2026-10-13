@@ -257,6 +257,18 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
       const metadatos = Object.fromEntries(
         Object.entries(peticion.metadatos ?? {}).map(([k, v]) => [`x-amz-meta-${k.toLowerCase()}`, String(v).slice(0, 256)]),
       );
+      /*
+       * MEDIA-F (2026-10-12) · METADATOS QUE SE PUEDEN TRANSMITIR, O NINGUNO.
+       *
+       * Antes, una clave con espacios o un valor con «ñ» o un salto de línea
+       * llegaba hasta `fetch`, que lo rechaza al construir las cabeceras: el
+       * `catch` lo convertía en `proveedor_no_disponible`, que dice «reinténtalo»
+       * para algo que fallará siempre. Ahora es `peticion_invalida` y no se firma
+       * ni se envía nada. El total respeta el límite publicado del proveedor.
+       */
+      if (!metadatosTransmisibles(metadatos)) {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'metadatos' }) };
+      }
 
       const cabeceras = firmar({
         metodo: 'PUT',
@@ -385,6 +397,18 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
         return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'maxBytes' }) };
       }
 
+      /*
+       * MEDIA-F (2026-10-12) · EL TAMAÑO DECLARADO, FIRMADO. Con `content-length`
+       * dentro de la firma, quien suba otro número de bytes rompe la firma. SigV4
+       * lo permite para cualquier cabecera; la documentación de R2 no lo menciona
+       * (ni a favor ni en contra), así que esto está probado contra un doble S3
+       * y queda PENDIENTE de verificar contra R2 real en el próximo canary.
+       */
+      if (peticion.bytesExactos !== undefined
+        && (!Number.isSafeInteger(peticion.bytesExactos) || peticion.bytesExactos < 1 || peticion.bytesExactos > peticion.maxBytes)) {
+        return { ok: false, error: falloDeAlmacen(R2_PROVIDER_ID, 'peticion_invalida', { field: 'bytesExactos' }) };
+      }
+
       const { url, expiraEn, cabecerasObligatorias } = firmarConsulta({
         metodo: 'PUT',
         host: p.host,
@@ -392,6 +416,7 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
         vigenciaSegundos: peticion.vigenciaSegundos,
         cabeceras: {
           'content-type': peticion.contentType,
+          ...(peticion.bytesExactos !== undefined ? { 'content-length': String(peticion.bytesExactos) } : {}),
           ...(peticion.siNoExiste ? { 'if-none-match': '*' } : {}),
         },
       }, { ...p.config, region: R2_REGION, servicio: 's3' }, ahora());
@@ -509,6 +534,25 @@ export const crearAdaptadorDeR2 = (deps: DepsDeR2 = {}): PuertoDeAlmacenamiento 
       }
     },
   };
+};
+
+/**
+ * MEDIA-F · ¿SE PUEDEN MANDAR ESTOS METADATOS COMO CABECERAS?
+ *
+ * Nombre: un `token` de HTTP en minúsculas. Valor: ASCII imprimible (lo que una
+ * cabecera transporta sin codificar). Total: el límite publicado del proveedor
+ * (`maxBytesDeMetadatos`), contando nombres y valores.
+ */
+export const metadatosTransmisibles = (metadatos: Readonly<Record<string, string>>): boolean => {
+  let total = 0;
+  for (const [k, v] of Object.entries(metadatos)) {
+    if (!/^x-amz-meta-[a-z0-9!#$&'*+.^_`|~-]{1,128}$/.test(k)) return false;
+    if (typeof v !== 'string' || !/^[\x20-\x7e]*$/.test(v)) return false;
+    /* SigV4 colapsa los espacios seguidos al canonicalizar y `firmar` no: con dos seguidos la firma no coincidiría nunca (revisión R9, B-3). */
+    if (/ {2}/.test(v)) return false;
+    total += Buffer.byteLength(k, 'utf8') + Buffer.byteLength(v, 'utf8');
+  }
+  return total <= (DESCRIPTOR_DE_R2.limites?.maxBytesDeMetadatos ?? 0);
 };
 
 /** Lo que la API publica como máximo de claves por página. Documentado, no supuesto. */
