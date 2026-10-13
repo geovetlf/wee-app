@@ -496,6 +496,13 @@ const CreatorFlowScreen: React.FC = () => {
          * apuntados —si la persona lo enciende—; ni el objetivo ni los pasos viajan por la ruta.
          */
         jobId: job.id,
+        /*
+         * El mismo resumen en forma traducible: «Cómo lo hice» lo guarda así y cada quien lo lee en SU idioma
+         * (utils/comoLoHice.ts). El texto del plan va como lo escribió el servidor; sin plan, la frase con su clave.
+         */
+        aiResumen: job.plan?.explainToUser
+          ? { servidor: job.plan.explainToUser, experiencia: experience.id, ...(job.demo ? { demo: true } : {}) }
+          : { clave: 'composer.aiProcessCreatedWith', valores: { nombre }, ...(job.demo ? { demo: true } : {}) },
         ...(media ? { media: [{ type: media.type, uri: media.uri, ...(media.assetId ? { assetId: media.assetId } : {}) }] } : {}),
       },
     });

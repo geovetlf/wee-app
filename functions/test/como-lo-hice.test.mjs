@@ -21,12 +21,16 @@ import { crearCargador, leer } from './filmmaker-cliente.mjs';
 
 const { check, titulo, terminar } = crearComprobador();
 
-/* El traductor y los diccionarios de VERDAD. */
+/* El traductor y los diccionarios de VERDAD (los de la app, con los catálogos del servidor). */
 const base = crearCargador({ dobles: { 'react-native': { Platform: { OS: 'android', select: (o) => o.android ?? o.default }, Dimensions: { get: () => ({ width: 390, height: 800 }) } } } });
 const { crearTraductor } = base('i18n/traducir.ts');
+const { DICCIONARIOS } = base('i18n/diccionarios.ts');
 const ES = base('i18n/textos/es/index.ts').es;
 const EN = base('i18n/textos/en/index.ts').en;
-const tEs = crearTraductor('es', { es: ES, en: EN }, {});
+const traductor = (locale) => crearTraductor(locale, DICCIONARIOS, {});
+const tEs = traductor('es');
+const lector = (locale) => ({ t: traductor(locale), locale });
+const LES = lector('es');
 const R = base('utils/comoLoHice.ts');
 
 /* ════════════════════════════════════════════════════════════════════════════ */
@@ -41,35 +45,40 @@ titulo('A · Las reglas, sin pantalla');
   const deWeeAI = R.borradorInicial({ aiTools: ['Weë Chef'], aiProcess: 'Creado con Weë Chef en Weë AI' });
   check('A2) lo que trae Weë AI solo se PROPONE: herramienta y resumen', deWeeAI.herramienta === 'Weë Chef' && deWeeAI.pasos.length === 1 && deWeeAI.origen === 'resumen');
   check('A2) y sigue apagado: proponer no es publicar', deWeeAI.activo === false);
+  const conResumen = R.borradorInicial({ aiTools: ['Weë Chef'], aiProcess: 'texto viejo', aiResumen: { clave: 'composer.aiProcessCreatedWith', valores: { nombre: 'Weë Chef' } } });
+  check('A2) con el resumen traducible, se propone ESE (clave + valores), no el texto', 'clave' in conResumen.pasos[0] && conResumen.pasos.length === 1);
+  check('A2) CONTROL: un resumen sin forma de paso se ignora y queda el texto', 'texto' in R.borradorInicial({ aiProcess: 'x', aiResumen: '[object Object]' }).pasos[0]);
+  check('A2) una clave fuera de la lista cerrada no vale como paso', R.pasoValido({ clave: 'auth.password' }) === null && R.pasoValido({ clave: 'composer.aiProcessCreatedWith' }) !== null);
 
-  check('A3) apagado no publica NADA, aunque haya herramienta y pasos', Object.keys(R.datosParaPublicar(deWeeAI)).length === 0);
+  check('A3) apagado no publica NADA, aunque haya herramienta y pasos', Object.keys(R.datosParaPublicar(deWeeAI, LES)).length === 0);
   const encendido = { ...deWeeAI, activo: true };
-  const datos = R.datosParaPublicar(encendido);
+  const datos = R.datosParaPublicar(encendido, LES);
   check('A3) CONTROL: encendido publica herramienta y proceso', JSON.stringify(datos.aiTools) === '["Weë Chef"]' && datos.aiProcess === 'Creado con Weë Chef en Weë AI');
   check('A3) pero no el prompt, que no se marcó', !('aiPrompt' in datos));
+  check('A3) y si todo lo escribió la persona no hace falta `aiSteps`', !('aiSteps' in datos));
 
   const conPrompt = { ...encendido, prompt: 'Una ensalada fresca con sandía' };
-  check('A4) un prompt escrito y SIN autorizar no se publica', !('aiPrompt' in R.datosParaPublicar(conPrompt)));
-  check('A4) CONTROL: autorizado, sí', R.datosParaPublicar({ ...conPrompt, compartirPrompt: true }).aiPrompt === 'Una ensalada fresca con sandía');
+  check('A4) un prompt escrito y SIN autorizar no se publica', !('aiPrompt' in R.datosParaPublicar(conPrompt, LES)));
+  check('A4) CONTROL: autorizado, sí', R.datosParaPublicar({ ...conPrompt, compartirPrompt: true }, LES).aiPrompt === 'Una ensalada fresca con sandía');
 
-  check('A5) cada elemento se elige por separado: sin herramienta', !('aiTools' in R.datosParaPublicar({ ...encendido, compartirHerramienta: false })));
-  check('A5) y sin proceso', !('aiProcess' in R.datosParaPublicar({ ...encendido, compartirProceso: false })));
-  check('A5) encendido sin nada marcado no deja un bloque vacío', Object.keys(R.datosParaPublicar({ ...encendido, compartirHerramienta: false, compartirProceso: false })).length === 0);
+  check('A5) cada elemento se elige por separado: sin herramienta', !('aiTools' in R.datosParaPublicar({ ...encendido, compartirHerramienta: false }, LES)));
+  check('A5) y sin proceso', !('aiProcess' in R.datosParaPublicar({ ...encendido, compartirProceso: false }, LES)));
+  check('A5) encendido sin nada marcado no deja un bloque vacío', Object.keys(R.datosParaPublicar({ ...encendido, compartirHerramienta: false, compartirProceso: false }, LES)).length === 0);
 
-  /* Los pasos REALES del trabajo: los ejecutados, en el idioma de quien publica. */
+  /* Los pasos REALES del trabajo: los ejecutados, guardados como los escribió el servidor (se traducen al pintar). */
   const trabajo = {
     goal: 'Una ensalada con lo que tengo: sandía, feta y menta',
     experienceId: 'chef',
-    plan: { steps: [{ id: 'a', purpose: 'Mirar los ingredientes' }, { id: 'b', purpose: 'Proponer la receta' }, { id: 'c', purpose: 'Crear la imagen del plato' }] },
+    plan: { steps: [{ id: 'a', purpose: 'Mirar los ingredientes' }, { id: 'b', purpose: 'Escribir la receta paso a paso' }, { id: 'c', purpose: 'Crear la imagen del plato' }] },
     steps: [
       { id: 'a', purpose: 'Mirar los ingredientes', status: 'done' },
-      { id: 'b', purpose: 'Proponer la receta', status: 'done' },
+      { id: 'b', purpose: 'Escribir la receta paso a paso', status: 'done' },
       { id: 'c', purpose: 'Crear la imagen del plato', status: 'failed' },
     ],
   };
-  const leerMayus = (x) => x.toUpperCase();
-  const pasos = R.pasosDelTrabajo(trabajo, leerMayus);
-  check('A6) los pasos salen de lo que se EJECUTÓ, no del plan entero', JSON.stringify(pasos) === '["MIRAR LOS INGREDIENTES","PROPONER LA RECETA"]', JSON.stringify(pasos));
+  const pasos = R.pasosDelTrabajo(trabajo);
+  check('A6) los pasos salen de lo que se EJECUTÓ, no del plan entero', JSON.stringify(pasos.map((p) => p.servidor)) === '["Mirar los ingredientes","Escribir la receta paso a paso"]', JSON.stringify(pasos));
+  check('A6) y se guardan con su experiencia, sin traducir', pasos.every((p) => p.experiencia === 'chef' && !('texto' in p)));
   check('A6) CONTROL: un trabajo que aún no apuntó su avance usa los del plan', R.pasosDelTrabajo({ ...trabajo, steps: [] }).length === 3);
   check('A6) un trabajo de PRUEBA (demo) no tiene pasos de verdad que contar', R.pasosDelTrabajo({ ...trabajo, demo: true }).length === 0);
   check('A6) y sin trabajo no se inventa ninguno', R.pasosDelTrabajo(null).length === 0 && R.pasosDelTrabajo({}).length === 0);
@@ -77,33 +86,70 @@ titulo('A · Las reglas, sin pantalla');
   const completado = R.conHistorial(deWeeAI, trabajo);
   check('A7) la historia sustituye el resumen por los pasos reales', completado.origen === 'historial' && completado.pasos.length === 2);
   check('A7) propone como prompt lo que ESCRIBIÓ la persona, pero no lo marca', completado.prompt === trabajo.goal && completado.compartirPrompt === false && completado.activo === false);
-  const editado = { ...deWeeAI, editado: true, pasos: ['Lo escribí yo'] };
-  check('A7) lo que la persona ya editó no lo pisa la historia', JSON.stringify(R.conHistorial(editado, trabajo).pasos) === '["Lo escribí yo"]');
+  const editado = { ...deWeeAI, editado: true, pasos: [{ texto: 'Lo escribí yo' }] };
+  check('A7) lo que la persona ya editó no lo pisa la historia', JSON.stringify(R.conHistorial(editado, trabajo).pasos) === '[{"texto":"Lo escribí yo"}]');
   check('A7) CONTROL: sin trabajo, el borrador no cambia', R.conHistorial(deWeeAI, null) === deWeeAI);
 
   /* Lo que se guarda se vuelve a leer igual, también después de pasar por Firestore (JSON). */
-  const guardado = JSON.parse(JSON.stringify(R.datosParaPublicar({ ...completado, activo: true, compartirPrompt: true })));
-  const leido = R.lecturaDePublicacion(guardado);
+  const guardado = JSON.parse(JSON.stringify(R.datosParaPublicar({ ...completado, activo: true, compartirPrompt: true }, LES)));
+  const leido = R.lecturaDePublicacion(guardado, LES);
   check('A8) persistido y recuperado: mismos pasos, misma herramienta, el prompt autorizado',
-    JSON.stringify(leido.pasos) === JSON.stringify(completado.pasos) && leido.herramientas[0] === 'Weë Chef' && leido.prompt === trabajo.goal);
-  check('A8) los pasos viajan en el campo de siempre, `aiProcess`, uno por línea', guardado.aiProcess.split('\n').length === 2 && Object.keys(guardado).sort().join() === 'aiProcess,aiPrompt,aiTools');
+    leido.pasos.length === 2 && leido.pasos[1] === 'Escribir la receta paso a paso' && leido.herramientas[0] === 'Weë Chef' && leido.prompt === trabajo.goal);
+  check('A8) `aiProcess` sigue con el texto (clientes viejos) y `aiSteps` con la forma traducible', guardado.aiProcess.split('\n').length === 2
+    && Array.isArray(guardado.aiSteps) && guardado.aiSteps[1].servidor === 'Escribir la receta paso a paso' && Object.keys(guardado).sort().join() === 'aiProcess,aiPrompt,aiSteps,aiTools');
 
-  const antigua = R.lecturaDePublicacion({ aiTools: ['Kling', 'ElevenLabs'], aiProcess: 'Un párrafo de antes, sin pasos.' });
-  check('A9) una publicación ANTIGUA se lee igual: un párrafo es un paso', antigua.pasos.length === 1 && antigua.herramientas.length === 2 && !antigua.vacio);
-  check('A9) y una sin nada está vacía', R.lecturaDePublicacion({}).vacio && R.lecturaDePublicacion({ aiTools: [], aiProcess: '  ', aiPrompt: '' }).vacio);
+  const antigua = R.lecturaDePublicacion({ aiTools: ['Kling', 'ElevenLabs'], aiProcess: 'Un párrafo de antes, sin pasos.' }, lector('en'));
+  check('A9) una publicación ANTIGUA se lee igual en cualquier idioma: un párrafo es un paso', antigua.pasos.length === 1 && antigua.pasos[0] === 'Un párrafo de antes, sin pasos.' && antigua.herramientas.length === 2 && !antigua.vacio);
+  check('A9) y una sin nada está vacía', R.lecturaDePublicacion({}, LES).vacio && R.lecturaDePublicacion({ aiTools: [], aiProcess: '  ', aiPrompt: '' }, LES).vacio);
+  check('A9) `aiSteps` mal formado no rompe: se lee `aiProcess`', R.lecturaDePublicacion({ aiSteps: [{ clave: 'auth.password' }, 7, null], aiProcess: 'Uno' }, LES).pasos.join() === 'Uno');
 
-  const largos = R.datosParaPublicar({ ...encendido, pasos: Array.from({ length: 15 }, (_, i) => `Paso ${i} ${'x'.repeat(400)}`) });
+  const largos = R.datosParaPublicar({ ...encendido, pasos: Array.from({ length: 15 }, (_, i) => ({ texto: `Paso ${i} ${'x'.repeat(400)}` })) }, LES);
   const lineas = largos.aiProcess.split('\n');
   check('A10) como mucho diez pasos y cada uno con su tope', lineas.length === R.MAX_PASOS && lineas.every((l) => l.length <= R.MAX_LARGO_PASO));
 }
 
 /* ════════════════════════════════════════════════════════════════════════════ */
+titulo('L · En el idioma de quien lo ve');
+/* ════════════════════════════════════════════════════════════════════════════ */
+{
+  /* Una publicación como la que guarda el compositor: dos pasos de Weë (uno del servidor, uno con clave) y uno escrito a mano. */
+  const post = {
+    aiTools: ['Weë Chef'],
+    aiProcess: 'Escribir la receta paso a paso\nCreado con Weë Chef en Weë AI\nLo terminé con lima.',
+    aiSteps: [
+      { servidor: 'Escribir la receta paso a paso', experiencia: 'chef' },
+      { clave: 'composer.aiProcessCreatedWith', valores: { nombre: 'Weë Chef' } },
+      { texto: 'Lo terminé con lima.' },
+    ],
+  };
+  const en = R.lecturaDePublicacion(post, lector('en'));
+  const es = R.lecturaDePublicacion(post, LES);
+  const pt = R.lecturaDePublicacion(post, lector('pt-BR'));
+  const da = R.lecturaDePublicacion(post, lector('da'));
+  check('L1) el paso del servidor se dice en el idioma de quien mira: es', es.pasos[0] === 'Escribir la receta paso a paso');
+  check('L1) en', en.pasos[0] === 'Write the step-by-step recipe', en.pasos[0]);
+  check('L1) da (catálogo del servidor propio)', da.pasos[0] === 'Skrive opskriften trin for trin', da.pasos[0]);
+  check('L1) pt-BR: el servidor no tiene catálogo portugués y cae, como en todo Weë, al respaldo inglés (nunca español)', pt.pasos[0] === 'Write the step-by-step recipe', pt.pasos[0]);
+  check('L2) la frase con clave, en cada idioma', es.pasos[1] === 'Creado con Weë Chef en Weë AI' && en.pasos[1] === 'Made with Weë Chef in Weë AI'
+    && pt.pasos[1] === traductor('pt-BR')('composer.aiProcessCreatedWith', { nombre: 'Weë Chef' }) && pt.pasos[1] !== es.pasos[1], pt.pasos[1]);
+  check('L3) lo escrito a mano se ve IGUAL en todos', [es, en, pt, da].every((x) => x.pasos[2] === 'Lo terminé con lima.'));
+  check('L4) el chip de herramienta (marca) no se traduce', [es, en, pt, da].every((x) => x.herramientas.join() === 'Weë Chef'));
+  check('L5) CONTROL: sin `aiSteps`, el mismo post se ve tal cual en inglés (como las antiguas)', R.lecturaDePublicacion({ ...post, aiSteps: undefined }, lector('en')).pasos[0] === 'Escribir la receta paso a paso');
+  const demo = R.textoDePaso({ servidor: 'Escribir la receta paso a paso', experiencia: 'chef', demo: true }, lector('en'));
+  check('L6) el aviso de demo también se traduce', demo === 'Write the step-by-step recipe (demo mode preview)', demo);
+  check('L7) un paso de Weë que se edita pasa a texto de la persona', !R.esPasoDeWee({ texto: 'x' }) && R.esPasoDeWee({ servidor: 'x' }));
+  const reglas = leer('utils/comoLoHice.ts').replace(/\/\*[\s\S]*?\*\//g, '');
+  check('L8) traducir no llama a nadie: solo el diccionario', !/creatorService|httpsCallable|fetch\(|brainService/.test(reglas) && /textoDelServidor\(/.test(reglas));
+}
+
+/* ════════════════════════════════════════════════════════════════════════════ */
 /* Lo común a las pantallas: tema, idioma y los controles que el entorno no trae. */
 /* ════════════════════════════════════════════════════════════════════════════ */
-const comunes = (ctx) => {
+const comunes = (ctx, idioma = 'es') => {
   const { h: hh, reactNative, Caja, capturas } = ctx;
   const tema = { useTheme: () => ({ theme: { dark: false, colors: ctx.colores } }) };
-  const habla = { useT: () => tEs, useIdioma: () => ({ t: tEs, locale: 'es', formato: {} }) };
+  const t = traductor(idioma);
+  const habla = { useT: () => t, useIdioma: () => ({ t, locale: idioma, formato: {} }) };
   const valor = () => ({ setValue() {}, interpolate: () => 0 });
   return {
     'react-native': {
@@ -282,9 +328,9 @@ const prefillDeChef = { content: 'Ensalada de verano en diez minutos', aiTools: 
 /* ════════════════════════════════════════════════════════════════════════════ */
 titulo('C · El bloque del Wäll');
 /* ════════════════════════════════════════════════════════════════════════════ */
-const bloque = (props, so = 'android') => {
+const bloque = (props, so = 'android', idioma = 'es') => {
   globalThis.__comoLoHice = { componente: 'bloque', props };
-  return crearEntorno({ so, pantalla: 'functions/test/_envoltorio-como-lo-hice.ts', dobles: (ctx) => comunes(ctx) });
+  return crearEntorno({ so, pantalla: 'functions/test/_envoltorio-como-lo-hice.ts', dobles: (ctx) => comunes(ctx, idioma) });
 };
 {
   const post = { aiTools: ['Weë Chef'], aiProcess: 'Le dije los ingredientes que tenía en la nevera.\nWeë me propuso una receta.\nAjusté los pasos y generé la imagen.\nPubliqué el resultado en mi Wäll.' };
@@ -387,6 +433,62 @@ titulo('D · Dónde va, sin IA de más, móvil y diccionarios');
   check('D8) el portugués es el de Brasil: «Compartilhar», no «Partilhar»', /howShareTitle: 'Compartilhar como eu fiz'/.test(pt) && !/howShare\w*: '[^']*Partilh/.test(pt));
   check('D8) las marcas no se traducen', IDIOMAS.every((l) => /howToolPlaceholder: '[^']*Weë Studio/.test(leer(`i18n/textos/${l}/composer.ts`))));
   check('D9) en inglés se lee como en la referencia', EN.composer.howShareTitle === 'Share how I made it' && EN.wall.howIMadeIt === 'HOW I MADE IT');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════ */
+titulo('W · Solo en el Wäll: imagen y vídeo, nunca en Weëls; en el idioma de quien mira');
+/* ════════════════════════════════════════════════════════════════════════════ */
+{
+  /* El mismo bloque, pintado por dos lectores: los pasos de Weë cambian de idioma, lo escrito a mano no. */
+  const post = {
+    aiTools: ['Weë Chef'],
+    aiProcess: 'Escribir la receta paso a paso\nLo terminé con lima.',
+    aiSteps: [{ servidor: 'Escribir la receta paso a paso', experiencia: 'chef' }, { texto: 'Lo terminé con lima.' }],
+  };
+  const enEs = bloque({ post }, 'android', 'es').dibujar();
+  const enEn = bloque({ post }, 'android', 'en').dibujar();
+  const enPt = bloque({ post }, 'android', 'pt-BR').dibujar();
+  check('W1) en español: «CÓMO LO HICE», «Creado con» y el paso en español', enEs.texto.includes('CÓMO LO HICE') && enEs.texto.includes('Creado con') && enEs.texto.includes('1. Escribir la receta paso a paso'));
+  check('W1) en inglés: las etiquetas Y el paso de Weë en inglés', enEn.texto.includes('HOW I MADE IT') && enEn.texto.includes('Made with') && enEn.texto.includes('1. Write the step-by-step recipe') && !enEn.texto.includes('Escribir la receta'));
+  check('W1) en portugués de Brasil: las etiquetas del bloque en portugués', enPt.texto.includes('COMO EU FIZ') && enPt.texto.includes('Criado com'));
+  check('W1) lo escrito a mano y la herramienta, iguales para todos', [enEs, enEn, enPt].every((d) => d.texto.includes('2. Lo terminé con lima.') && d.texto.includes('Weë Chef')));
+  check('W1) CONTROL: una publicación antigua (solo aiProcess) se ve tal cual también en inglés', bloque({ post: { aiProcess: 'Uno.\nDos.' } }, 'android', 'en').dibujar().texto.includes('1. Uno.'));
+
+  /* Vídeo en el Wäll: el bloque va igual debajo de la fila de interacciones, fuera de lo que abre Weëls. */
+  const tarjeta = leer('components/PostCard.tsx');
+  const iBloque = tarjeta.indexOf('<HowIMadeIt post={displayPost} />');
+  const iVideoFuera = tarjeta.indexOf('{!!(displayPost.videoUrl && onVideoPress) && renderMedia()}');
+  const iAcciones = tarjeta.indexOf('<View style={styles.actions}>');
+  check('W2) una publicación de VÍDEO también lleva el bloque, y después de las interacciones', iVideoFuera > 0 && iAcciones > iVideoFuera && iBloque > iAcciones);
+  const antes = tarjeta.slice(Math.max(0, iBloque - 400), iBloque).replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+  check('W2) el bloque no depende del tipo de publicación (ni de videoUrl ni de imágenes)', !/videoUrl|imageUrls|isWeel/.test(antes) && /<HowIMadeIt post=\{displayPost\} \/>/.test(tarjeta));
+  const renderMedia = tarjeta.slice(tarjeta.indexOf('const renderMedia'), tarjeta.indexOf('const renderMedia') + 20000);
+  check('W2) el bloque no está dentro del vídeo: tocarlo no dispara onVideoPress', !renderMedia.slice(0, renderMedia.indexOf('\n  };\n')).includes('HowIMadeIt') && /onPress=\{onVideoPress \? \(\) => onVideoPress\(displayPost, playbackPositionRef\.current\) : handleVideoTap\}/.test(tarjeta));
+  const video = bloque({ post: { ...post, videoUrl: 'https://v/a.mp4' } });
+  let d = video.dibujar();
+  video.tocar(tEs('wall.howCollapse'), d);
+  check('W2) tocar la cabecera de un post de vídeo no navega (no abre Weëls)', video.navegacion.length === 0);
+
+  /* En Weëls no se ve: ni la pantalla ni ninguna pieza que monte lo pinta. */
+  const reels = leer('screens/ReelsScreen.tsx');
+  const vistos = new Set();
+  const piezas = [];
+  const recorrer = (rel) => {
+    if (vistos.has(rel)) return;
+    vistos.add(rel);
+    const src = leer(rel);
+    piezas.push([rel, src]);
+    for (const m of src.matchAll(/^import (?!type )[^;]*?from '(\.{1,2}\/[^']+)'/gm)) {
+      const destino = new URL(m[1], 'file:///' + rel).pathname.slice(1);
+      if (!/^components\//.test(destino)) continue;
+      for (const ext of ['.tsx', '.ts', '/index.tsx']) { try { leer(destino + ext); recorrer(destino + ext); break; } catch { /* siguiente */ } }
+    }
+  };
+  recorrer('screens/ReelsScreen.tsx');
+  const conBloque = piezas.filter(([, src]) => /HowIMadeIt|lecturaDePublicacion|ComoLoHice/.test(src)).map(([rel]) => rel);
+  check('W3) Weëls (ReelsScreen y sus componentes) NO pinta «Cómo lo hice»', conBloque.length === 0, conBloque.join(' ') || piezas.length + ' archivos mirados');
+  check('W3) ni monta la tarjeta del Wäll', !/<PostCard|components\/PostCard'/.test(reels));
+  check('W3) CONTROL: el detector sí lo ve donde está (la tarjeta del Wäll)', /HowIMadeIt/.test(tarjeta) && piezas.length >= 2);
 }
 
 terminar();

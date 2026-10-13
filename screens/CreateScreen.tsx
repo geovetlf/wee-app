@@ -60,7 +60,6 @@ import type { UbicacionPublica } from '../utils/locationPrivacy';
 import ComoLoHiceRevision from '../components/ComoLoHiceRevision';
 import { borradorInicial, conHistorial, datosParaPublicar, BorradorComoLoHice } from '../utils/comoLoHice';
 import { useTrabajoDeOrigen } from '../hooks/useTrabajoDeOrigen';
-import { textoDelServidor } from '../i18n/servidor';
 
 interface MediaItem {
   type: 'image' | 'video';
@@ -165,7 +164,7 @@ const CreateScreen: React.FC = () => {
    * (`aiTools`, `aiProcess`, `aiPrompt`) que la selección autoriza.
    */
   const [comoLoHice, setComoLoHice] = useState<BorradorComoLoHice>(() =>
-    borradorInicial({ aiTools: routeParams.prefill?.aiTools, aiProcess: routeParams.prefill?.aiProcess })
+    borradorInicial({ aiTools: routeParams.prefill?.aiTools, aiProcess: routeParams.prefill?.aiProcess, aiResumen: routeParams.prefill?.aiResumen })
   );
   const [revisandoComoLoHice, setRevisandoComoLoHice] = useState(false);
   const trabajoDeOrigen: string | undefined = typeof routeParams.prefill?.jobId === 'string' ? routeParams.prefill.jobId : undefined;
@@ -180,8 +179,7 @@ const CreateScreen: React.FC = () => {
     const trabajo = historial.trabajo;
     if (!trabajo || historialAplicado.current) return;
     historialAplicado.current = true;
-    setComoLoHice((b) => conHistorial(b, trabajo, (x) => textoDelServidor(x, { t, locale, experiencia: trabajo.experienceId })));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setComoLoHice((b) => conHistorial(b, trabajo));
   }, [historial.trabajo]);
 
   /* Apagarlo esconde la fila y no comparte nada; lo escrito se queda por si se vuelve a encender. */
@@ -832,7 +830,7 @@ const CreateScreen: React.FC = () => {
          * «Cómo lo hice»: SOLO lo que la selección autoriza, y nada si el
          * interruptor está apagado. Los campos de siempre; ni uno nuevo.
          */
-        ...datosParaPublicar(comoLoHice),
+        ...datosParaPublicar(comoLoHice, { t, locale }),
         likes: 0,
         comments: 0,
         shares: 0,

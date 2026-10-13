@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, LayoutAnimation } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
 import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { Post } from '../services/firestoreService';
 import { lecturaDePublicacion } from '../utils/comoLoHice';
@@ -12,7 +12,7 @@ import { scale } from '../utils/scale';
 const isWeb = Platform.OS === 'web';
 
 interface HowIMadeItProps {
-  post: Pick<Post, 'aiTools' | 'aiPrompt' | 'aiProcess'>;
+  post: Pick<Post, 'aiTools' | 'aiPrompt' | 'aiProcess' | 'aiSteps'>;
   /**
    * Abierto al dibujarse. Empieza DESPLEGADO, como en la referencia del dueño (3.ª pantalla); tocar la cabecera lo
    * pliega y lo despliega, y ese estado vive mientras se mira la tarjeta.
@@ -28,18 +28,18 @@ interface HowIMadeItProps {
  * píldora gris, «Proceso:» con los pasos numerados (solo los que existen) y, únicamente si quien publicó lo autorizó, el
  * prompt con «Ver prompt» / «Copiar prompt». Sin nada compartido no se dibuja nada: ni un bloque vacío.
  *
- * Lee lo GUARDADO en la publicación (`aiTools`, `aiProcess`, `aiPrompt`) y nada más: abrirlo no consulta ni genera
- * nada. Las publicaciones antiguas —un párrafo en `aiProcess`— se leen igual: un paso, sin número.
+ * Lee lo GUARDADO en la publicación (`aiTools`, `aiProcess`, `aiSteps`, `aiPrompt`) y nada más: abrirlo no consulta ni
+ * genera nada. Los pasos que generó Weë se dicen en el idioma de QUIEN MIRA; los que escribió la persona, tal cual. Las publicaciones antiguas —un párrafo en `aiProcess`— se leen igual: un paso, sin número.
  * El estado abierto/cerrado vive mientras se mira la tarjeta; no se guarda en ninguna parte.
  */
 const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post, abiertoAlEmpezar = true }) => {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const { theme } = useTheme();
   const [abierto, setAbierto] = useState(abiertoAlEmpezar);
   const [promptOpen, setPromptOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const { herramientas: tools, pasos, prompt, vacio } = lecturaDePublicacion(post);
+  const { herramientas: tools, pasos, prompt, vacio } = lecturaDePublicacion(post, { t, locale });
   if (vacio) return null;
 
   /* Una animación discreta al abrir y cerrar; en web no hace falta (y RN Web no la tiene). */
