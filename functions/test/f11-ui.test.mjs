@@ -47,12 +47,65 @@ console.log('\n── A · «Mis creaciones»: sus estados, y de quién es ─�
   check('1) hay un estado por cada situación, y no un puñado de booleanos', /\| \{ fase: 'cargando' \}/.test(pantalla) && /\| \{ fase: 'error' \}/.test(pantalla) && /fase: 'lista'/.test(pantalla));
   check('2) cargando se enseña', /estado\.fase === 'cargando' \?/.test(pantalla) && /t\('creaciones\.loading'\)|ActivityIndicator/.test(pantalla));
   check('3) el error se enseña y se puede reintentar', /estado\.fase === 'error' \?/.test(pantalla) && /t\('creaciones\.loadFailed'\)/.test(pantalla) && /t\('creaciones\.retry'\)/.test(pantalla));
-  check('4) el vacío distingue «nada» de «nada de este tipo»', /filtro === 'all' \? t\('creaciones\.emptyTitle'\) : t\('creaciones\.emptyFiltered'\)/.test(pantalla));
-  check('5) la lista pinta la rejilla y ofrece más solo si hay más', /<RejillaDeCreaciones items=\{estado\.items\}/.test(pantalla) && /estado\.pagina\.hayMas && \(/.test(pantalla) && /t\('creaciones\.loadMore'\)/.test(pantalla));
-  check('6) una respuesta tardía de una petición vieja se descarta', /const mia = \+\+peticion\.current;/.test(pantalla) && /if \(mia !== peticion\.current\) return;/.test(pantalla));
-  check('7) es de la CUENTA: se pide con user.uid, nunca con la cara activa', /assetsService\.listar\(user\.uid,/.test(pantalla) && !/hidi_|weeProfile|activeUid/.test(sinComentarios(pantalla)));
-  check('8) filtrar por tipo y ordenar vuelven a cargar desde el principio', /useEffect\(\(\) => \{ cargar\(\); \}, \[filtro, orden, cargar\]\);/.test(pantalla));
-  check('9) borrar pide confirmación que funciona también en web', /confirmAction\(t\('creaciones\.delete'\), t\('creaciones\.deleteConfirm'\), t\('creaciones\.delete'\), true, t\)/.test(pantalla) && /assetsService\.eliminar\(asset\.assetId\)/.test(pantalla));
+  /*
+   * 4–9 REESCRITAS (R9, línea B) con la AUTORIZACIÓN DEL DUEÑO del 2026-10-12, a la definición oficial:
+   *   · Mis proyectos = trabajos en curso y borradores que se retoman, con su contexto;
+   *   · Mis creaciones = resultados finalizados que la persona DECIDIÓ conservar, reales (nunca muestras presentadas
+   *     como suyas), con su proyecto de origen, reabribles/editables, y que pueden ser solo locales sin subir bytes;
+   *   · estado del trabajo y ubicación son conceptos separados.
+   * Antes fijaban «Mis creaciones = cada asset generado» (assetsService.listar, borrar el asset desde la lista). Cada una
+   * lleva su CONTROL: el mismo detector aplicado a la semántica antigua (o a muestras ficticias) tiene que FALLAR.
+   */
+  const contrato = sinComentarios(leer('services/cicloDeTrabajo.ts'));
+  const proyectos = sinComentarios(leer('screens/ProjectsScreen.tsx'));
+  const codigo = sinComentarios(pantalla);
+  /* Lo que había: la pantalla de antes de R9, resumida en las líneas que la definían. */
+  const ANTIGUA = [
+    "const pagina = await assetsService.listar(user.uid, { kind: filtro === 'all' ? undefined : filtro, orden });",
+    "{filtro === 'all' ? t('creaciones.emptyTitle') : t('creaciones.emptyFiltered')}",
+    "<Text>{t('creaciones.emptyText')}</Text>",
+    '<RejillaDeCreaciones items={estado.items} columnas={columnas} onOpen={abrir} onDelete={eliminar} />',
+    '{estado.pagina.hayMas && (',
+    'const r = await assetsService.eliminar(asset.assetId);',
+  ].join('\n');
+  const MUESTRAS = "const MUESTRAS = DESIGN.CREACIONES_DE_DESIGN.map((c) => t(c.claveTitulo));\n<RejillaDeCreacionesFinales items={MUESTRAS} />";
+
+  const vacioDeLoDecidido = (src) => /estado\.items\.length === 0 \?/.test(src) && /t\('creaciones\.emptyKeepText', \{ accion: t\('creaciones\.keep'\) \}\)/.test(src)
+    && /visibles\.length === 0 \?/.test(src) && /t\('creaciones\.emptyFiltered'\)/.test(src) && !/t\('creaciones\.emptyText'\)/.test(src);
+  check('4) el vacío distingue «nada conservado todavía» (cómo se conserva) de «nada de este tipo»', vacioDeLoDecidido(codigo));
+  check('4) CONTROL: el vacío antiguo («todo lo que hagas aparecerá aquí») no pasa', !vacioDeLoDecidido(ANTIGUA));
+
+  const listaDeFinales = (src) => /<RejillaDeCreacionesFinales items=\{visibles\}/.test(src) && /!!estado\.siguiente && \(/.test(src)
+    && /listarCreacionesFinales\(user\.uid, anterior\.siguiente\)/.test(src) && /t\('creaciones\.loadMore'\)/.test(src)
+    && !/<RejillaDeCreaciones items=\{estado\.items\}/.test(src);
+  check('5) la lista pinta las creaciones FINALES y ofrece más solo si el contrato dice que hay más (con su cursor)', listaDeFinales(codigo));
+  check('5) CONTROL: la rejilla de todos los assets como lista principal no pasa', !listaDeFinales(ANTIGUA));
+
+  const descartaLoTardio = (src) => /const mia = \+\+peticion\.current;/.test(src) && /if \(mia !== peticion\.current\) return;/.test(src);
+  check('6) una respuesta tardía de una petición vieja se descarta', descartaLoTardio(codigo));
+  check('6) CONTROL: sin la guardia, no pasa', !descartaLoTardio(codigo.replace(/if \(mia !== peticion\.current\) return;/g, '')));
+
+  const soloLoDecidido = (pant, cont) => /listarCreacionesFinales\(user\.uid\)/.test(pant) && !/assetsService\.listar\(/.test(pant)
+    && !/hidi_|weeProfile|activeUid/.test(pant)
+    && /collection\(db, 'creations'\)/.test(cont) && /where\('ownerAccountId', '==', uid\)/.test(cont) && /where\('status', '==', 'final'\)/.test(cont);
+  check('7) es de la CUENTA y es SOLO lo que la persona decidió conservar (`creations` con status final), nunca cada asset', soloLoDecidido(codigo, contrato));
+  check('7) CONTROL: «todo asset es creación» (assetsService.listar) no pasa', !soloLoDecidido(ANTIGUA, contrato));
+
+  const ubicacionSeparada = (rej, cont) => /export type EstadoDeTrabajo = 'en_proceso' \| 'final';/.test(cont)
+    && /export type UbicacionDeRecurso = 'local' \| 'wee_cloud' \| 'remoto_legado';/.test(cont)
+    && /ubicacion: 'local',/.test(cont) && /assetIds: \[\],/.test(cont)
+    && /CLAVE_DE_UBICACION\[creacion\.ubicacion\]/.test(rej) && /local: 'creaciones\.locationLocal'/.test(rej) && /wee_cloud: 'creaciones\.locationCloud'/.test(rej)
+    && !/ubicacion[^\n]*status|status[^\n]*ubicacion/.test(rej);
+  check('8) estado del trabajo y ubicación van por separado; una creación puede ser solo local, sin subir bytes (assetIds vacío)', ubicacionSeparada(sinComentarios(rejilla), contrato));
+  check('8) CONTROL: una ubicación deducida del estado no pasa', !ubicacionSeparada("const lugar = asset.status === 'ready' ? 'wee_cloud' : 'local'; CLAVE_DE_UBICACION[creacion.ubicacion]", contrato));
+
+  const realesYReabribles = (pant, proy) => /const \{ proyectoId \} = await reabrirParaEditar\(creacion\.id\);/.test(pant)
+    && /navigation\.navigate\('Project', \{ id: proyectoId \}\)/.test(pant)
+    && /proyectoOrigen: c\.proyectoOrigenId \? nombres\.get\(c\.proyectoOrigenId\) \?\? null : null/.test(pant)
+    && !/CREACIONES_DE_|MUESTRAS|claveTitulo/.test(pant)
+    && /listarProyectosEnCurso\(user\.uid\)/.test(proy) && /t\('projects\.continue'\)/.test(proy) && /t\('projects\.stateInProgress'\)/.test(proy);
+  check('9) las creaciones son reales, con su proyecto de origen y reabribles; Mis proyectos son trabajos en curso con «Continuar»', realesYReabribles(codigo, proyectos));
+  check('9) CONTROL: muestras ficticias presentadas como suyas no pasan', !realesYReabribles(codigo + '\n' + MUESTRAS, proyectos));
   check('10) abrir una creación vuelve a su trabajo, si lo tiene', /navigation\.navigate\('CreatorFlow', \{ experienceId, jobId: asset\.provenance\.jobId \}\)/.test(pantalla));
   check('11) vive dentro de Weë AI, con su entrada en el menú', /activeId="creations"/.test(pantalla) && /creations/.test(leer('constants/weeMenu.ts')));
   check('12) y todos sus textos pasan por i18n', !/(title|label)=["'][A-Za-zÁ-ú ]{4,}["']/.test(sinComentarios(pantalla).replace(/t\([^)]*\)/g, '')));
