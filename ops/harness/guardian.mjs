@@ -5,7 +5,8 @@
  *   node ops/harness/guardian.mjs antes --archivos a,b [--json] [--max-por-nivel N] [--raiz <dir>]
  *   node ops/harness/guardian.mjs cambio --base <ref> [--json] [--max-por-nivel N] [--raiz <dir>]
  *
- * Una CAPA COMÚN QUE COORDINA, no otro guardián: no trae reglas propias ni copia tablas. Junta lo que ya protege
+ * Una CAPA COMÚN QUE COORDINA, no otro guardián: no copia tablas, y su única tabla propia
+ * (ops/harness/guardian-politica.json) solo corrige falsos positivos/negativos MEDIDOS de esas fuentes. Junta lo que ya protege
  * a Weë —el Quality Reviewer (zonas rojas, detectores, frontera, baseline, selector), la guardia de Claude
  * (settings.json + guardia.mjs), el mapa de producción (produccion.json, permitido.mjs, grupos.json, firebase.json),
  * las cercas de cierre que viven en las suites, el mapa de fronteras, las decisiones deliberadas y las extensiones
@@ -20,8 +21,14 @@
  * cabe se LISTA en `omitidos`, nunca se calla. Lo que no sale de una fuente no se dice: una ruta que no conoce nadie
  * no produce nada.
  *
- * INFORMA; NO BLOQUEA. No es una puerta nueva: sale 0 con cualquier informe (también con CRITICAL) y 2 si la entrada
- * no vale. Las puertas siguen siendo G3 (ops/revision/baseline.mjs) y la CI. No escribe nada, no despliega, no hace
+ * POR DEFECTO INFORMA; NO BLOQUEA: sale 0 con cualquier informe (también con CRITICAL) y 2 si algo falla (entrada o
+ * error). Con `--estricto [--bloquear p1,p2]` SÍ es una puerta, y entonces el código dice qué pasó y no se confunde un
+ * fallo con un verde: 0 PASA · 1 BLOQUEA (algún CRITICAL —de `hallazgos` u `omitidos`— cuyo id empieza por uno de los
+ * prefijos de `--bloquear`; sin él, cualquier CRITICAL) · 2 entrada inválida · 3 fallo interno. El informe estricto
+ * lleva `veredicto` (y el texto, su línea VEREDICTO ESTRICTO); el JSON por defecto no cambia. Un consumidor que quiera
+ * fiarse del verde usa `ops/harness/guardian-estricto.mjs`, que además exige que el JSON y el código coincidan (Node
+ * sale 1 si un módulo no carga: el código solo no basta). Las puertas de siempre siguen siendo G3
+ * (ops/revision/baseline.mjs) y la CI. No escribe nada, no despliega, no hace
  * push ni merge, y de git solo lee. JSON canónico (contrato `wee-guardian@1`, sin hora de reloj) y texto que sale del
  * JSON. Funciona sin Claude Code (Node y git; sin git, `antes` sigue con lo que hay en disco). Es de ingeniería: nada
  * de functions/src lo importa. Las fuentes escritas (mapa, decisiones, cercas, settings) se leen con las funciones
@@ -58,6 +65,7 @@ export const CONTRATO = 'wee-guardian@1';
 export const NIVELES = Object.freeze(['CRITICAL', 'IMPORTANT', 'CONTEXT']);
 export const TOPES = Object.freeze({ CRITICAL: 40, IMPORTANT: 25, CONTEXT: 15 });
 export const NOTA = 'Informa; no bloquea: las puertas siguen siendo G3 (ops/revision/baseline.mjs) y la CI.';
+export const NOTA_ESTRICTA = 'Modo estricto: es una puerta; el veredicto y su código de salida van al final (0 PASA · 1 BLOQUEA · 2 entrada · 3 fallo interno).';
 const HARNESS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 /** Prioridad dentro de cada nivel: lo que más importa sobrevive al tope. */
 const ORDEN = ['g3', 'registro', 'ruta-protegida', 'produccion', 'guardia', 'cerca', 'zona-roja', 'exports', 'nuevo', 'arista',
@@ -68,6 +76,45 @@ const PRODUCCION = 'ops/produccion.json';
 const INDICE = 'functions/src/index.ts';
 
 export class ErrorDeEntrada extends Error {}
+
+/* ── El modo estricto: el veredicto como puerta ─────────────────────────── */
+
+/** Los códigos de salida del modo estricto. Sin `--estricto` solo existen 0 (informe) y 2 (cualquier fallo). */
+export const SALIDA = Object.freeze({ PASA: 0, BLOQUEA: 1, ENTRADA: 2, FALLO_INTERNO: 3 });
+const PREFIJO = /^[a-z0-9][a-z0-9-]*(:[^\s,]*)?$/i;
+
+/** `--bloquear a,b` → los prefijos de id de CRITICAL que bloquean; null (sin la opción) = todo CRITICAL bloquea. */
+export const criterioDe = (valor) => {
+  if (valor === undefined || valor === null) return null;
+  const l = lista(valor === true ? '' : valor);
+  if (!l || !l.length) throw new ErrorDeEntrada('--bloquear necesita al menos un prefijo de id de CRITICAL (p. ej. g3:,registro:)');
+  const malos = l.filter((p) => !PREFIJO.test(p));
+  if (malos.length) throw new ErrorDeEntrada(`--bloquear: prefijo no válido ${malos.map((m) => JSON.stringify(m)).join(', ')}`);
+  return unicos(l);
+};
+
+/**
+ * Pura: el veredicto estricto de un informe. Cuenta los CRITICAL de `hallazgos` Y de `omitidos` (el tope no esconde
+ * nada) y LANZA si el informe no es coherente (otro contrato, resumen roto, resumen que no cuadra con lo listado):
+ * sobre un informe roto nunca hay verde.
+ */
+export const veredictoEstricto = (r, { bloquear = null } = {}) => {
+  if (!r || typeof r !== 'object' || r.contrato !== CONTRATO) throw new Error(`el informe no es del contrato ${CONTRATO}`);
+  if (!r.resumen || !NIVELES.every((n) => Number.isInteger(r.resumen[n]) && r.resumen[n] >= 0)) throw new Error('el informe trae un resumen inválido');
+  if (!Array.isArray(r.hallazgos) || !Array.isArray(r.omitidos)) throw new Error('el informe no trae hallazgos u omitidos');
+  const criticos = [...r.hallazgos, ...r.omitidos].filter((x) => x && x.nivel === 'CRITICAL');
+  if (criticos.length !== r.resumen.CRITICAL) throw new Error(`informe incoherente: el resumen dice ${r.resumen.CRITICAL} CRITICAL y hay ${criticos.length} listados`);
+  if (criticos.some((x) => typeof x.id !== 'string' || !x.id)) throw new Error('informe incoherente: un CRITICAL sin id');
+  if (bloquear !== null && (!Array.isArray(bloquear) || !bloquear.length || bloquear.some((p) => typeof p !== 'string' || !PREFIJO.test(p)))) {
+    throw new ErrorDeEntrada('criterio de bloqueo inválido');
+  }
+  const bloquean = unicos(criticos.filter((x) => bloquear === null || bloquear.some((p) => x.id === p || x.id.startsWith(p))).map((x) => x.id));
+  const resultado = bloquean.length ? 'BLOQUEA' : 'PASA';
+  return { modo: 'estricto', resultado, codigo: SALIDA[resultado], criterio: bloquear === null ? 'todo CRITICAL' : bloquear, bloquean };
+};
+
+/** Pura: el código de salida de un error. Sin `--estricto`, 2 siempre (como antes); con él, 2 entrada · 3 fallo interno. */
+export const codigoDeError = (e, estricto) => (!estricto || e instanceof ErrorDeEntrada ? SALIDA.ENTRADA : SALIDA.FALLO_INTERNO);
 
 /* ── Utilidades ─────────────────────────────────────────────────────────── */
 
@@ -84,6 +131,76 @@ const lineaCon = (texto, cita, desde = 1) => {
 /** Una fuente con línea solo si la cita está de verdad en esa línea. */
 const fuenteEnTexto = (archivo, texto, cita, extra = {}) => { const linea = lineaCon(texto, cita); return linea ? { archivo, linea, ...extra, cita } : null; };
 const fuenteRegla = (regla) => ({ archivo: 'ops/revision/reglas.mjs', ...(fuenteEnTexto('ops/revision/reglas.mjs', leerHarness('ops/revision/reglas.mjs'), `id: '${regla}'`) || {}), regla });
+
+/* ── La política PROPIA del Guardian (ops/harness/guardian-politica.json) ─────────────────────────────────────────
+ * La única tabla que trae el Guardian: corrige los falsos positivos y negativos MEDIDOS de sus fuentes comunes, sin
+ * añadir categorías (cada sección vive dentro de `ruta-protegida:deny` o de `registro:`). Se lee del código del
+ * Guardian (HARNESS), no del árbol que se juzga, así que la verificación desde la base usa la política de la BASE.
+ * Cada sección se valida la primera vez que hace falta: rota o ausente LANZA (fallo interno, salida 3 en modo
+ * estricto), nunca un verde. Lo fija functions/test/guardian-bloqueante.test.mjs §G. */
+export const RUTA_POLITICA = 'ops/harness/guardian-politica.json';
+export const CONTRATO_POLITICA = 'wee-guardian-politica@1';
+const politicaEntera = memo(() => {
+  const t = leerHarness(RUTA_POLITICA);
+  if (t === null) throw new Error(`falta ${RUTA_POLITICA}: sin la política propia del Guardian no hay veredicto`);
+  let p;
+  try { p = JSON.parse(t); } catch (e) { throw new Error(`${RUTA_POLITICA} no es JSON válido (${e.message})`); }
+  if (!p || typeof p !== 'object' || p.contrato !== CONTRATO_POLITICA) throw new Error(`${RUTA_POLITICA} no es del contrato ${CONTRATO_POLITICA}`);
+  return p;
+});
+const textosNoVacios = (v) => Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'string' && x.length > 0 && x.trim() === x);
+const SECCIONES_DE_POLITICA = {
+  secretos: (v) => {
+    if (!v || typeof v !== 'object' || !textosNoVacios(v.nombres) || !(Array.isArray(v.excepciones) && (v.excepciones.length === 0 || textosNoVacios(v.excepciones)))) {
+      throw new Error('hace falta { nombres: [globs de nombre de archivo], excepciones: [..] }');
+    }
+    if ([...v.nombres, ...v.excepciones].some((x) => x.includes('/'))) throw new Error('son nombres de archivo: sin «/»');
+    return { nombres: v.nombres.map((x) => x.toLowerCase()), excepciones: v.excepciones.map((x) => x.toLowerCase()) };
+  },
+  documentacion: (v) => {
+    if (!textosNoVacios(v) || v.some((x) => !/^\.[a-z0-9]+$/.test(x))) throw new Error('hace falta una lista de extensiones («.md»)');
+    return v;
+  },
+  neutralizadores: (v) => {
+    if (!textosNoVacios(v)) throw new Error('hace falta una lista de expresiones regulares');
+    return v.map((s) => new RegExp(s, 'gm'));
+  },
+};
+const seccionesLeidas = new Map();
+export const seccionDePolitica = (nombre) => {
+  if (!seccionesLeidas.has(nombre)) {
+    if (!SECCIONES_DE_POLITICA[nombre]) throw new Error(`sección desconocida de la política: ${nombre}`);
+    const p = politicaEntera();
+    try { seccionesLeidas.set(nombre, SECCIONES_DE_POLITICA[nombre](p[nombre])); } catch (e) {
+      throw new Error(`${RUTA_POLITICA} → «${nombre}» no es válida: ${e.message}`);
+    }
+  }
+  return seccionesLeidas.get(nombre);
+};
+/** ¿Es una credencial por su NOMBRE, según la política propia? (FN medidos: `.env` de la raíz, `serviceAccountKey.json`). */
+export const esSecretoPorPolitica = (ruta) => {
+  const { nombres, excepciones } = seccionDePolitica('secretos');
+  const nombre = path.posix.basename(String(ruta).replace(/\\/g, '/')).toLowerCase();
+  return !coincide(nombre, excepciones) && coincide(nombre, nombres);
+};
+/** ¿Es documentación? (FP medido: un `.md` con `gha-creds-`/`service-account` en el nombre no es una credencial). */
+export const esDocumentacion = (ruta) => seccionDePolitica('documentacion').includes(path.posix.extname(String(ruta)).toLowerCase());
+/** Cuántas veces un `run:` se tapa el propio fallo (`|| true`, `|| :`, `|| exit 0`, `|| echo`, `set +e`). FN-1 medido. */
+export const neutralizaciones = (run) => seccionDePolitica('neutralizadores').reduce((n, re) => n + (String(run || '').match(re) || []).length, 0);
+/**
+ * ¿La suite sigue en lo que se va a integrar? En el índice de git Y en el disco como archivo. Un borrado sin preparar
+ * ya no cuenta como «sigue» (FP local medido en el hook Stop). Algo que está en el disco y no es un archivo (una carpeta
+ * con el nombre de la suite) es un estado que el Guardian no sabe juzgar: LANZA (fallo interno), no adivina.
+ */
+export const sigueEnElArbol = (ctx, rel) => {
+  let st;
+  try { st = fs.statSync(path.join(ctx.raiz, rel)); } catch (e) {
+    if (e && (e.code === 'ENOENT' || e.code === 'ENOTDIR')) return false;
+    throw e;
+  }
+  if (!st.isFile()) throw new Error(`estado ambiguo: ${rel} está en el disco y no es un archivo; el Guardian no puede decidir si la suite sigue existiendo`);
+  return ctx.conGit ? ctx.seguidos.has(rel) : true;
+};
 
 /** Una ruta del repositorio, con barras normales; null si está vacía, es absoluta o sale del repositorio. */
 export const normalizarRuta = (r) => {
@@ -272,18 +389,37 @@ const TITULO_PROTEGIDA = {
 };
 const rutasProtegidas = (ctx, rutas, h) => {
   const settings = ctx.json('.claude/settings.json');
+  const negadasPorSettings = new Set();
   for (const p of permisosDeSettings(settings)) {
     const tocadas = rutas.filter((r) => coincide(r, [p.glob]));
     if (!tocadas.length) continue;
+    if (p.lista === 'deny') tocadas.forEach((r) => negadasPorSettings.add(r));
     const fuente = { archivo: '.claude/settings.json', json: `permissions.${p.lista}[${p.indice}]`, valor: p.valor };
     h.poner({ id: `ruta-protegida:${p.lista}`, nivel: 'CRITICAL', tipo: 'ruta-protegida', titulo: TITULO_PROTEGIDA[p.lista], rutas: tocadas, fuentes: [fuente] });
   }
-  /* La guardia de siempre, preguntada como si se fuera a escribir la ruta: su decisión y su motivo, tal cual. */
   for (const r of rutas) {
+    /* La política propia: credenciales por nombre que settings.json y la guardia no niegan (FN medidos). */
+    if (esSecretoPorPolitica(r)) {
+      const fuente = { archivo: RUTA_POLITICA, json: 'secretos.nombres', valor: path.posix.basename(r) };
+      h.poner({ id: 'ruta-protegida:deny', nivel: 'CRITICAL', tipo: 'ruta-protegida', titulo: TITULO_PROTEGIDA.deny, rutas: [r], fuentes: [fuente] });
+      continue;
+    }
+    /* La guardia de siempre, preguntada como si se fuera a escribir la ruta: su decisión y su motivo, tal cual. */
     if (!citable(r)) continue;
     const g = analizarTexto('Bash', `touch "${r}"`);
     if (!g || (g.decision !== 'deny' && g.decision !== 'ask')) continue;
     const fuente = { archivo: '.claude/hooks/guardia.mjs', ref: 'analizarTexto', valor: `${g.decision}: ${g.motivo}` };
+    /* FP medido: la guardia niega por SUBCADENA del nombre (gha-creds-, service-account) sin mirar la extensión. Si es
+       documentación y settings.json no la niega, se dice (IMPORTANT) pero no es una ruta de secretos; su contenido lo
+       mira escaneo-secretos. La guardia sigue negando a Claude tocarla: eso no cambia. */
+    if (g.decision === 'deny' && !negadasPorSettings.has(r) && esDocumentacion(r)) {
+      h.poner({
+        id: 'ruta-protegida:nombre-en-documentacion', nivel: 'IMPORTANT', tipo: 'ruta-protegida',
+        titulo: 'Documentación con nombre de credencial: la guardia la niega por el nombre, pero no es una ruta de secretos (el contenido lo mira escaneo-secretos)',
+        rutas: [r], fuentes: [fuente, { archivo: RUTA_POLITICA, json: 'documentacion' }],
+      });
+      continue;
+    }
     h.poner({ id: `ruta-protegida:${g.decision}`, nivel: 'CRITICAL', tipo: 'ruta-protegida', titulo: TITULO_PROTEGIDA[g.decision], rutas: [r], fuentes: [fuente] });
   }
 };
@@ -558,6 +694,11 @@ export const aTexto = (r) => {
     for (const o of r.omitidos.slice(0, 12)) l.push(`  · ${o.nivel} ${o.id}`);
   }
   if (r.avisos.length) l.push('', 'Avisos:', ...r.avisos.map((a) => `  · ${a}`));
+  if (r.veredicto) {
+    const v = r.veredicto;
+    const criterio = Array.isArray(v.criterio) ? `bloquean los CRITICAL ${v.criterio.join(', ')}` : v.criterio;
+    l.push('', `VEREDICTO ESTRICTO: ${v.resultado} (${criterio}${v.bloquean.length ? `: ${recortar(v.bloquean.join(', '), 300)}` : ''})`);
+  }
   return `${l.join('\n')}\n`;
 };
 
@@ -725,7 +866,18 @@ const registros = (ctx, base, rutas, h) => {
       }
       for (const p of t.pasos) {
         if (hoy.pasos.some((q) => q.run === p.run)) continue;
-        const renombrado = p.nombre && hoy.pasos.some((q) => q.nombre === p.nombre);
+        const mismoNombre = p.nombre ? hoy.pasos.find((q) => q.nombre === p.nombre) : null;
+        const renombrado = Boolean(mismoNombre);
+        /* FN-1 medido: el paso conserva su nombre pero su orden se tapa el fallo (`|| true`…): la puerta ya no puede caer. */
+        if (renombrado && neutralizaciones(mismoNombre.run) > neutralizaciones(p.run)) {
+          h.poner({
+            id: `registro:ci:${t.id}:${p.nombre}:neutralizado`, nivel: 'CRITICAL', tipo: 'registro',
+            titulo: `Un paso de «${t.nombre}» conserva su nombre pero ya no puede fallar: ${recortar(p.nombre, 90)}`,
+            detalle: recortar(`Antes: ${p.run} · Ahora: ${mismoNombre.run}`, 300),
+            rutas: [CI], fuentes: [...fuentesDe(t), { archivo: RUTA_POLITICA, json: 'neutralizadores' }],
+          });
+          continue;
+        }
         h.poner({
           id: `registro:ci:${t.id}:${p.nombre || p.run}`, nivel: renombrado ? 'IMPORTANT' : 'CRITICAL', tipo: 'registro',
           titulo: `${renombrado ? 'Cambia' : 'Desaparece'} un paso de «${t.nombre}» en la CI: ${recortar(p.nombre || p.run, 90)}`, detalle: recortar(`Antes: ${p.run}`, 300),
@@ -743,7 +895,7 @@ const registros = (ctx, base, rutas, h) => {
     if (cadenaHoy.error) h.poner({ id: 'registro:cadena', nivel: 'CRITICAL', tipo: 'registro', titulo: 'La cadena de npm test ya no se entiende', detalle: cadenaHoy.error, rutas: [PKG], fuentes });
     else if (cadenaBase.suites) {
       for (const s of cadenaBase.suites.filter((x) => !cadenaHoy.suites.includes(x))) {
-        const sigue = ctx.existeArchivo(`functions/${s}`);
+        const sigue = sigueEnElArbol(ctx, `functions/${s}`);
         h.poner({
           id: `registro:cadena:${s}`, nivel: sigue ? 'CRITICAL' : 'IMPORTANT', tipo: 'registro',
           titulo: sigue ? `${s} sale de la cadena de npm test y sigue existiendo: nadie la ejecutaría` : `${s} se retira (sale de la cadena y su archivo ya no está)`,
@@ -819,14 +971,19 @@ export const cambio = ({ raiz = RAIZ_POR_DEFECTO, base, max = TOPES, registro = 
 
 /* ── Línea de órdenes ───────────────────────────────────────────────────── */
 
-const USO = 'uso: node ops/harness/guardian.mjs antes --archivos a,b | cambio --base <ref>  [--json] [--max-por-nivel N] [--raiz <dir>]';
+const USO = 'uso: node ops/harness/guardian.mjs antes --archivos a,b | cambio --base <ref>  [--json] [--max-por-nivel N] [--raiz <dir>] [--estricto [--bloquear p1,p2]]';
 
-export const principal = (argv) => {
+/** La línea de órdenes entera: la salida y su código (0 por defecto; con --estricto, el del veredicto). */
+export const correr = (argv) => {
   const [modo, ...resto] = argv;
-  const args = leerArgumentos(resto, ['json']);
+  const args = leerArgumentos(resto, ['json', 'estricto']);
   if (args._.length) throw new ErrorDeEntrada(`argumento suelto: ${args._.join(' ')}\n${USO}`);
-  const desconocidas = Object.keys(args).filter((k) => !['_', 'json', 'archivos', 'base', 'raiz', 'max-por-nivel'].includes(k));
+  const desconocidas = Object.keys(args).filter((k) => !['_', 'json', 'estricto', 'bloquear', 'archivos', 'base', 'raiz', 'max-por-nivel'].includes(k));
   if (desconocidas.length) throw new ErrorDeEntrada(`opción desconocida: ${desconocidas.map((k) => `--${k}`).join(', ')}\n${USO}`);
+  const conBloquear = Object.hasOwn(args, 'bloquear');
+  if (conBloquear && !args.estricto) throw new ErrorDeEntrada('--bloquear solo vale con --estricto');
+  if (conBloquear && (args.bloquear === undefined || args.bloquear === null)) throw new ErrorDeEntrada('--bloquear necesita un valor: p1,p2');
+  const criterio = args.estricto ? criterioDe(args.bloquear) : null;
   const raiz = path.resolve(args.raiz || RAIZ_POR_DEFECTO);
   const max = topesDe(args['max-por-nivel']);
   let r;
@@ -837,15 +994,26 @@ export const principal = (argv) => {
     if (args.archivos !== undefined) throw new ErrorDeEntrada('cambio no lleva --archivos: lee el diff desde --base');
     r = cambio({ raiz, base: args.base, max });
   } else throw new ErrorDeEntrada(USO);
-  return args.json ? aJSON(r) : aTexto(r);
+  let codigo = 0;
+  if (args.estricto) {
+    const veredicto = veredictoEstricto(r, { bloquear: criterio });
+    r = { ...r, nota: NOTA_ESTRICTA, veredicto };
+    codigo = veredicto.codigo;
+  }
+  return { salida: args.json ? aJSON(r) : aTexto(r), codigo };
 };
 
+/** Compatibilidad: la salida en texto o JSON, como siempre. */
+export const principal = (argv) => correr(argv).salida;
+
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  const argv = process.argv.slice(2);
   try {
-    process.stdout.write(principal(process.argv.slice(2)));
-    process.exitCode = 0;
+    const { salida, codigo } = correr(argv);
+    process.stdout.write(salida);
+    process.exitCode = codigo;
   } catch (e) {
-    console.error(`✘ ${e.message}`);
-    process.exitCode = 2;
+    console.error(`✘ ${e && e.message}`);
+    process.exitCode = codigoDeError(e, argv.includes('--estricto'));
   }
 }
