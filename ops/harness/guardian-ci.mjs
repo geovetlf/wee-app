@@ -27,7 +27,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ejecutarGuardianEstricto, TIEMPO_POR_DEFECTO_MS } from './guardian-estricto.mjs';
 import { aTexto } from './guardian.mjs';
-import { verificarDesdeLaBase, ORQUESTACION } from './guardian-base.mjs';
+import { verificarDesdeLaBase, ORQUESTACION, MARCA_ANIDADA } from './guardian-base.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -73,7 +73,7 @@ export const resolverBase = ({ raiz, entorno = process.env } = {}) => {
  */
 export const PROTECCIONES_PROPIAS = Object.freeze([
   'ops/harness/guardian*.mjs', 'ops/harness/guardian-politica.json', 'ops/harness/propuesta-settings-guardian.json', 'ops/revision/**', 'ops/permitido.mjs',
-  '.claude/hooks/**', '.claude/settings.json', '.github/workflows/ci.yml', 'scripts/ci-local.mjs', 'functions/test/_cadena.mjs',
+  '.claude/hooks/**', '.claude/settings.json', '.github/workflows/ci.yml', '.github/workflows/guardian-base.yml', 'ops/github/ruleset-main.json', 'scripts/ci-local.mjs', 'functions/test/_cadena.mjs',
   'functions/test/guardian-*.test.mjs', 'functions/test/harness-guardian.test.mjs',
 ]);
 const globRe = (g) => new RegExp(`^${g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*')}$`);
@@ -113,10 +113,13 @@ export const pasoDeCI = ({ raiz, entorno = process.env, tiempoMs = TIEMPO_POR_DE
   const propias = obs.propias.length ? obs.propias : (r.informe ? [] : tocaProteccionesPropias(rutasDelDiff(raiz, b.base)));
   const vb = propias.length ? verificarBase({ raiz, base: b.base, entorno, tiempoMs }) : { estado: 'NO_APLICA' };
   const juzga = ['PASA', 'BLOQUEA', 'FALLO'].includes(vb.estado);
-  const orquestacion = propias.filter((p) => ORQUESTACION.includes(p));
+  /* Dentro de la verificación de la base (guardian-base.mjs) o del workflow guardian-base.yml, este código ES el de la base. */
+  const desdeLaBase = Boolean(entorno[MARCA_ANIDADA]);
+  const orquestacion = desdeLaBase ? [] : propias.filter((p) => ORQUESTACION.includes(p));
   const lineasObs = [
     obs.criticos.length ? `OBSERVACIÓN (no bloquea): ${obs.criticos.length} CRITICAL fuera de la política: ${obs.criticos.join(', ')}` : null,
-    propias.length ? `OBSERVACIÓN · AUTOPROTECCIÓN: este cambio toca las protecciones del propio Guardian (${propias.join(', ')}); su verde lo da el código que trae el cambio: necesita una revisión humana independiente` : null,
+    propias.length && desdeLaBase ? `OBSERVACIÓN · AUTOPROTECCIÓN: este cambio toca las protecciones del propio Guardian (${propias.join(', ')}); este veredicto es el del Guardian de la BASE: lo que cambien solo cuenta cuando estén en main, y lo revisa una persona` : null,
+    propias.length && !desdeLaBase ? `OBSERVACIÓN · AUTOPROTECCIÓN: este cambio toca las protecciones del propio Guardian (${propias.join(', ')}); su verde lo da el código que trae el cambio: necesita una revisión humana independiente` : null,
     vb.estado === 'NO_DISPONIBLE' ? `OBSERVACIÓN · VERIFICACIÓN INDEPENDIENTE NO DISPONIBLE (no bloquea): ${vb.motivo}` : null,
     juzga ? `VERIFICACIÓN INDEPENDIENTE (Guardian de la base ${b.base}): ${vb.estado} — ${vb.motivo}${vb.estado !== 'PASA' && vb.cola ? `\n${vb.cola}` : ''}` : null,
     orquestacion.length ? `OBSERVACIÓN · AUTOPROTECCIÓN (no bloquea): ${orquestacion.join(', ')} es el camino que ejecuta esta verificación; ningún código del propio cambio lo puede validar: solo una revisión humana (CODEOWNERS)` : null,
