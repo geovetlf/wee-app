@@ -288,6 +288,16 @@ const caminarDisco = (raiz) => {
   return res.sort();
 };
 
+/* Confianza (guardian-pr.mjs): lo que define la política y el mapa de producción —`.claude/`, `ops/`, `docs/`— se LEE del
+ * clon de la base, nunca del árbol del PR: un PR no puede juzgarse con reglas que él mismo cambia. El resto se lee del árbol
+ * juzgado. Sin GUARDIAN_CONFIANZA_RAIZ (uso local) todo sale del árbol, como antes. */
+export const RE_DE_CONFIANZA = /^(\.claude\/|ops\/|docs\/)/;
+export const raizDeLectura = (rel, { raiz, entorno = process.env } = {}) => {
+  const confianza = entorno.GUARDIAN_CONFIANZA_RAIZ;
+  const confiable = Boolean(confianza) && RE_DE_CONFIANZA.test(rel) && !rel.split('/').includes('..');
+  return path.resolve(confiable ? confianza : raiz);
+};
+
 export const crearContexto = ({ raiz = RAIZ_POR_DEFECTO, registro = null, entorno = process.env } = {}) => {
   const r = path.resolve(raiz);
   const avisos = [];
@@ -295,7 +305,7 @@ export const crearContexto = ({ raiz = RAIZ_POR_DEFECTO, registro = null, entorn
   if (!conGit) avisos.push('git no está disponible (o esto no es un repositorio): se lee el disco y permitido.mjs no puede comprobar la ascendencia');
   const seguidos = new Set(conGit ? archivosSeguidos(r) : caminarDisco(r));
   const todos = [...seguidos];
-  const leer = (rel) => { try { return fs.readFileSync(path.join(r, rel), 'utf8'); } catch { return null; } };
+  const leer = (rel) => { try { return fs.readFileSync(path.join(raizDeLectura(rel, { raiz: r, entorno }), rel), 'utf8'); } catch { return null; } };
   const ctx = {
     raiz: r, avisos, conGit, seguidos, leer, entorno,
     aviso: (m) => { if (!avisos.includes(m)) avisos.push(m); },
@@ -305,7 +315,7 @@ export const crearContexto = ({ raiz = RAIZ_POR_DEFECTO, registro = null, entorn
   };
   ctx.json = (rel) => { const t = leer(rel); if (t === null) return null; try { return JSON.parse(t); } catch { ctx.aviso(`${rel} no es JSON válido: no se usa`); return null; } };
   ctx.head = memo(() => (conGit ? String(git(r, ['rev-parse', 'HEAD'], { permitirFallo: true }) || '').trim() || null : null));
-  ctx.registro = memo(() => registro || cargarRegistro({ raiz: r, entorno }));
+  ctx.registro = memo(() => registro || cargarRegistro({ raiz: raizDeLectura('ops/harness/extensiones', { raiz: r, entorno }), entorno }));
   ctx.paquetes = memo(() => ctx.json(RUTA_PAQUETES));
   ctx.mapa = memo(() => filasDelMapa(leer(MAPA)).map((f) => ({ ...f, resueltos: resolverTodos(ctx, f.donde) })));
   ctx.decisiones = memo(() => decisionesDelTexto(leer(DECISIONES)).map((d) => ({ ...d, resueltos: resolverTodos(ctx, d.tokens) })));

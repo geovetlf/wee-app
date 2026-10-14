@@ -91,7 +91,7 @@ const escenario = (cambios, { numero = 7, cabezaDelEvento = null } = {}) => {
   git(O, 'add', '-A');
   git(O, 'commit', '-q', '-m', 'base');
   const C = path.join(tmp, 'clon');
-  execFileSync('git', ['clone', '-q', O, C]);
+  execFileSync('git', ['-c', 'core.autocrlf=false', 'clone', '-q', O, C]); // sin el autocrlf del sistema: el Guardian lee sin él (GIT_CONFIG_NOSYSTEM)
   git(O, 'checkout', '-q', '-b', 'pr');
   for (const [rel, t] of Object.entries(cambios.escribir || {})) escribir(O, rel, t);
   for (const rel of cambios.anadir || []) git(O, 'add', rel);
@@ -137,6 +137,36 @@ check('15) un fallo nunca es verde: la cabeza del evento no es la que se trae (e
 const fuente = leer('ops/harness/guardian-pr.mjs');
 check('16) el script no ejecuta nada del árbol del PR: ni import()/require dinámicos, ni shell, ni `npm`; git siempre por argumentos, sin hooks y sin LFS',
   !/import\(|require\(|shell:\s*true|execSync|exec\(|\bnpm\b['"]/.test(fuente) && /core\.hooksPath=/.test(fuente) && /GIT_LFS_SKIP_SMUDGE/.test(fuente) && /spawnSync\('git'/.test(fuente));
+
+/* ── B bis. Confianza: lo que define la política se lee de la BASE, no del PR (pruebas adversarias) ─────── */
+const guardian = await importar('ops/harness/guardian.mjs');
+const PRUEBA_CONF = fs.mkdtempSync(path.join(os.tmpdir(), 'wee-guardian-confianza-'));
+temporales.push(PRUEBA_CONF);
+const CONF = path.join(PRUEBA_CONF, 'base');
+const ARBOL = path.join(PRUEBA_CONF, 'pr');
+const POLITICA_BASE = '{"permissions":{"deny":["Read(./secretos/**)"]}}\n';
+escribir(CONF, '.claude/settings.json', POLITICA_BASE);
+escribir(CONF, 'docs/nota.md', 'base\n');
+escribir(CONF, 'functions/src/a.ts', 'base\n');
+escribir(ARBOL, '.claude/settings.json', '{"permissions":{"deny":[]}}\n');
+escribir(ARBOL, 'docs/nota.md', 'el PR mete aquí la cita que buscan los anclajes\n');
+escribir(ARBOL, 'functions/src/a.ts', 'pr\n');
+const conBase = guardian.crearContexto({ raiz: ARBOL, entorno: { GUARDIAN_CONFIANZA_RAIZ: CONF } });
+const sinBase = guardian.crearContexto({ raiz: ARBOL, entorno: {} });
+check('18) con la base de confianza, la política sale de la BASE: el PR no puede aflojar .claude/settings.json para su propio juicio',
+  JSON.stringify(conBase.json('.claude/settings.json')) === JSON.stringify(JSON.parse(POLITICA_BASE)));
+check('19) los anclajes de docs/ también salen de la base: una cita metida por el PR no cuenta',
+  conBase.leer('docs/nota.md') === 'base\n');
+check('20) el código que se juzga (functions/…) sigue leyéndose del árbol del PR: se juzga el cambio',
+  conBase.leer('functions/src/a.ts') === 'pr\n');
+check('21) sin base de confianza (uso local) todo sale del árbol, como antes',
+  JSON.stringify(sinBase.json('.claude/settings.json')) === '{"permissions":{"deny":[]}}');
+const sucio = escenario({ escribir: { 'docs/nota.md': '# Nota\n\nOtra.\n' }, anadir: ['docs/nota.md'] });
+escribir(path.join(sucio.tmp, 'clon'), 'sin-confirmar.txt', 'cambio local sin commit\n');
+const rs = spawnSync(process.execPath, [path.join(RAIZ, 'ops/harness/guardian-pr.mjs'), '--evento', path.join(sucio.tmp, 'evento.json'), '--raiz', path.join(sucio.tmp, 'clon'), '--remoto', path.join(sucio.tmp, 'origen')],
+  { cwd: sucio.tmp, encoding: 'utf8', env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: process.env.HOME } });
+check('22) un clon de la base con cambios sin confirmar → FALLO (3): no se juzga con una política que no es la confirmada',
+  rs.status === 3 && /árbol sucio/.test(rs.stdout), "" + rs.status + " " + rs.stdout.slice(-200));
 
 /* ── C. Registro ────────────────────────────────────────────────────────── */
 const pkg = JSON.parse(leer('functions/package.json'));

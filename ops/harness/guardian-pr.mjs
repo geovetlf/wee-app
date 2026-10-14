@@ -23,6 +23,9 @@
  *     Guardian YA es el de la base) y se apaga con GUARDIAN_DESDE_LA_BASE.
  *  6. Borra la carpeta temporal, el worktree y la referencia. Del checkout de la base no cambia ningún archivo.
  *
+ * Confianza: lo que define la política y el mapa (`.claude/`, `ops/`, `docs/`) se lee del clon de la base, no del PR: un PR no
+ *  puede juzgarse con reglas que él mismo cambia (GUARDIAN_CONFIANZA_RAIZ). El clon debe estar limpio, o es FALLO.
+ *
  * Límites (docs y functions/test/guardian-base-workflow.test.mjs): solo actúa cuando main ya tiene este workflow; solo
  * BLOQUEA si su check («Guardian de la base (independiente)») está en los requeridos del ruleset de main, que es una
  * decisión del dueño; y algunas fuentes que el Guardian consulta del árbol juzgado (settings.json, produccion.json…)
@@ -71,6 +74,8 @@ export const juzgarPR = ({ evento, raiz = REPO, remoto = 'origin', entorno = pro
     const sinHooks = path.join(tmp, 'sin-hooks');
     fs.mkdirSync(sinHooks);
     const g = (args) => git(raiz, args, { sinHooks });
+    const sucioDelClon = String(g(['status', '--porcelain']).stdout || '').trim();
+    if (sucioDelClon !== '') return fallo(`el clon de la base tiene cambios sin confirmar: el Guardian lee su política de ahí, así que no se juzga con un árbol sucio (${sucioDelClon.replace(/s+/g, ' ').slice(0, 160)})`);
     const f = g(['fetch', '--quiet', '--no-tags', '--no-recurse-submodules', remoto, `+refs/pull/${d.numero}/head:${REF_LOCAL}`]);
     if (f.status !== 0) return fallo(`no se pudo traer el PR #${d.numero} como datos (${String(f.stderr || '').trim().slice(0, 200)})`);
     const traido = String(g(['rev-parse', '--verify', '--quiet', `${REF_LOCAL}^{commit}`]).stdout || '').trim();
@@ -83,7 +88,7 @@ export const juzgarPR = ({ evento, raiz = REPO, remoto = 'origin', entorno = pro
     if (w.status !== 0) { worktree = null; return fallo(`no se pudo sacar el PR a una carpeta de datos (${String(w.stderr || '').trim().slice(0, 200)})`); }
     const env = {
       PATH: entorno.PATH, HOME: entorno.HOME, SystemRoot: entorno.SystemRoot, NODE_OPTIONS: entorno.NODE_OPTIONS,
-      GUARDIAN_BASE: base, [MARCA_ANIDADA]: '1', GIT_LFS_SKIP_SMUDGE: '1', GIT_TERMINAL_PROMPT: '0',
+      GUARDIAN_BASE: base, GUARDIAN_CONFIANZA_RAIZ: path.resolve(raiz), [MARCA_ANIDADA]: '1', GIT_LFS_SKIP_SMUDGE: '1', GIT_TERMINAL_PROMPT: '0',
     };
     for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k];
     const r = pasoDeCI({ raiz: worktree, entorno: env });
