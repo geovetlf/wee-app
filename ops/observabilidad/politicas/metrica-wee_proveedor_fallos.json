@@ -1,0 +1,20 @@
+{
+  "name": "wee_proveedor_fallos",
+  "description": "Llamadas a un proveedor de IA que fallaron (router legacy y Gateway del Core)",
+  "filter": "resource.type=\"cloud_run_revision\" AND ((textPayload:\"WEË AI ENGINE: \" OR jsonPayload.message:\"WEË AI ENGINE: \") OR (textPayload:\"WEË AI GATEWAY: \" OR jsonPayload.message:\"WEË AI GATEWAY: \")) AND (textPayload:\" falló en \" OR jsonPayload.message:\" falló en \")",
+  "metricDescriptor": {
+    "metricKind": "DELTA",
+    "valueType": "INT64",
+    "unit": "1",
+    "labels": [
+      {
+        "key": "provider",
+        "valueType": "STRING",
+        "description": "Proveedor de IA (gemini, seedance, deepseek…)"
+      }
+    ]
+  },
+  "labelExtractors": {
+    "provider": "REGEXP_EXTRACT(textPayload, \"AI (?:ENGINE|GATEWAY): ([a-z0-9-]+)/\")"
+  }
+}
