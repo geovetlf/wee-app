@@ -137,6 +137,8 @@ for (const [letra, pais] of Object.entries(PAISES)) {
   const uid = cuentaDe(letra);
   await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: uid, ...(pais ? { country: pais } : {}) });
   await creditEngine.ensureAccount(uid);
+  // F-06: el saldo vive en creditAccounts (fuente canónica). El espejo de users lo mantiene el motor.
+  await db.collection('creditAccounts').doc(uid).update({ creditsBalance: SALDO });
   await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: SALDO });
 }
 /* La puerta, abierta SOLO para las cuentas de la prueba (X se queda fuera); fal, encendido en la configuración. */
