@@ -23,12 +23,15 @@ import {
  *
  *   Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
  *
- * Único responsable de leer y mover Credits. El saldo vive en el perfil real
- * de la persona (users/{doc con uid == auth.uid}: creditsBalance,
- * creditsLifetimeEarned, creditsLifetimeSpent) y cada movimiento queda en
- * creditTransactions/{id}. Todo cambio de saldo ocurre dentro de una
- * transacción de Firestore; el saldo nunca baja de cero; cada operación tiene
- * un id determinista (requestId) para que repetirla no cobre dos veces.
+ * Único responsable de leer y mover Credits. El saldo de una cuenta vive en
+ * `creditAccounts/{uid de la cuenta}` (F-06: solo lo lee su dueño y solo lo
+ * escribe el servidor) y cada movimiento queda en creditTransactions/{id}.
+ * Hasta la F-06 vivía en el perfil real (users/{doc con uid == auth.uid}:
+ * creditsBalance, creditsLifetimeEarned, creditsLifetimeSpent), que es un
+ * documento PÚBLICO; la mudanza va por fases (ver `FaseSaldo`). Todo cambio de
+ * saldo ocurre dentro de una transacción de Firestore; el saldo nunca baja de
+ * cero; cada operación tiene un id determinista (requestId) para que repetirla
+ * no cobre dos veces.
  */
 
 // ── Interfaz mínima de Firestore (permite un doble en memoria para las pruebas) ──
@@ -70,7 +73,44 @@ export interface CreditEngineDeps {
   welcomeCredits?: number;
   /** Carga las sobreescrituras de costos (Firestore). Las pruebas pasan un no-op. */
   loadCosts?: () => Promise<unknown>;
+  /** En qué fase de la mudanza del saldo está el motor (F-06). Por defecto, la del entorno. */
+  faseSaldo?: FaseSaldo;
 }
+
+/**
+ * LA MUDANZA DEL SALDO (F-06), POR FASES: expandir → migrar → contraer.
+ *
+ * `users/{id}` es PÚBLICO (`allow read: if true`: el muro pinta nombre y foto
+ * sin sesión) y llevaba el saldo. El saldo se muda a `creditAccounts/{uid}`,
+ * que solo lee su dueño. Sin cortar a nadie a la mitad:
+ *
+ *  · `sombra` (P2): el PERFIL sigue mandando; el motor escribe ADEMÁS
+ *    `creditAccounts` en la misma transacción. Quitar este despliegue no rompe
+ *    nada: `creditAccounts` se ignora.
+ *  · `cuenta` (P4): manda `creditAccounts`; si una cuenta aún no lo tiene, se
+ *    migra PEREZOSAMENTE dentro de la misma transacción que la usa. El perfil
+ *    se sigue ESPEJANDO para las apps viejas, que leen el saldo de ahí.
+ *  · `contrato` (P6, SOLO PREPARADO): manda `creditAccounts` y el perfil ya no
+ *    se escribe. Rompe las apps viejas (verían 0), así que solo se activa a
+ *    propósito (`CREDITS_FASE_SALDO=contrato`) y tras el script de P6.
+ *
+ * En `sombra` y `cuenta` cada operación lee y escribe LOS DOS documentos en la
+ * misma transacción, así que mezclar instancias de las dos fases durante un
+ * despliegue es seguro: solo deciden quién gana si alguna vez difieren.
+ * `creditTransactions`, los ids deterministas (requestId), la bienvenida y
+ * `migration_<uid>` no cambian en ninguna fase: la idempotencia cruza el giro.
+ */
+export type FaseSaldo = 'sombra' | 'cuenta' | 'contrato';
+export const FASES_SALDO: readonly FaseSaldo[] = Object.freeze(['sombra', 'cuenta', 'contrato'] as FaseSaldo[]);
+/** La fase de este código cuando nadie dice otra. P4: manda `creditAccounts` y se espeja el perfil. */
+export const FASE_SALDO_POR_DEFECTO: FaseSaldo = 'cuenta';
+/** La fase del entorno (`CREDITS_FASE_SALDO`). Un valor que no es una fase cae en la de por defecto, nunca en `contrato`. */
+export const faseSaldoDelEntorno = (valor: string | undefined = process.env.CREDITS_FASE_SALDO): FaseSaldo => {
+  const limpio = String(valor ?? '').trim().toLowerCase();
+  return (FASES_SALDO as readonly string[]).includes(limpio) ? (limpio as FaseSaldo) : FASE_SALDO_POR_DEFECTO;
+};
+/** La colección del saldo privado: un documento por cuenta, id = uid de Firebase Auth. */
+export const COLECCION_SALDO = 'creditAccounts';
 
 // ── Contratos ──
 export interface AccountBalance {
@@ -194,65 +234,165 @@ export const strip = <T>(value: T): T => {
   return value;
 };
 
+/*
+ * EL DOCUMENTO QUE GUARDA EL SALDO TIENE QUE SER EL PERFIL REAL DE ESA CUENTA
+ * (Fase 11.x-4A). Lo decide el resolutor canónico, el mismo de ËContact y del
+ * push: el documento dice ser esa identidad y es de tipo real. Un documento
+ * que diga otra cosa —otro tipo, otro uid— no guarda Credits de nadie.
+ */
+const esElPerfilDeLaCuenta = (userId: string, account: { data(): Record<string, any> | undefined }): boolean =>
+  cuentaDeIdentidad(userId, (account.data() || {}) as PerfilDeIdentidad) === userId;
+
+/** Cuántos perfiles de una cuenta se miran a la vez (consulta por `uid`). */
+export const PERFILES_POR_CUENTA = 10;
+
+/*
+ * QUÉ PERFIL GUARDA EL SALDO CUANDO HAY MÁS DE UNO (revisión post-auditoría 2026-10-01,
+ * money/remigracion-por-segundo-perfil).
+ *
+ * Una cuenta puede tener más de un Perfil Real: en producción hay cuentas así
+ * (utils/perfilCanonico.ts), y las reglas dejan crear `users/<uid>` aunque ya
+ * exista uno con id automático, porque no pueden consultar. Firestore devuelve
+ * la consulta por `uid` ordenada por id de documento; quedarse con «el primero»
+ * podía saltar a un perfil vacío y dejar el saldo de verdad inalcanzable (y
+ * `ensureAccount` volvía a migrar la billetera antigua). El saldo vive en el
+ * perfil que YA está inicializado: ese manda. Si ninguno lo está, el primero,
+ * como siempre; si varios lo están, el primero de ellos, como siempre.
+ *
+ * Exportada (F-06) para que los scripts de migración elijan EXACTAMENTE el
+ * mismo perfil que el motor.
+ */
+export const perfilQueGuardaElSaldo = <T extends { data(): Record<string, any> | undefined }>(userId: string, docs: T[]): T | undefined => {
+  const suyos = docs.filter((d) => esElPerfilDeLaCuenta(userId, d));
+  return suyos.find((d) => typeof (d.data() || {}).creditsBalance === 'number') ?? suyos[0];
+};
+
 export function createCreditEngine(deps: CreditEngineDeps) {
   const { increment, now } = deps;
   const db = () => deps.db();
   const welcome = deps.welcomeCredits ?? WELCOME_CREDITS;
   const loadCosts = deps.loadCosts ?? loadCostOverrides;
+  const fase: FaseSaldo = deps.faseSaldo ?? faseSaldoDelEntorno();
 
   const users = () => db().collection('users');
+  const saldos = () => db().collection(COLECCION_SALDO);
   const transactions = () => db().collection('creditTransactions');
   const stats = () => db().collection('creditStats');
 
   const num = (value: unknown): number => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
 
-  /*
-   * EL DOCUMENTO QUE GUARDA EL SALDO TIENE QUE SER EL PERFIL REAL DE ESA CUENTA
-   * (Fase 11.x-4A). Lo decide el resolutor canónico, el mismo de ËContact y del
-   * push: el documento dice ser esa identidad y es de tipo real. Un documento
-   * que diga otra cosa —otro tipo, otro uid— no guarda Credits de nadie.
-   */
-  const esElPerfilDeLaCuenta = (userId: string, account: CreditDocSnap): boolean =>
-    cuentaDeIdentidad(userId, (account.data() || {}) as PerfilDeIdentidad) === userId;
+  /** El perfil que guarda (o guardaba) el saldo: la misma regla que usan los scripts de la F-06. */
+  const perfilDelSaldo = perfilQueGuardaElSaldo;
 
   /*
-   * QUÉ PERFIL GUARDA EL SALDO CUANDO HAY MÁS DE UNO (revisión post-auditoría 2026-10-01,
-   * money/remigracion-por-segundo-perfil).
+   * LA CUENTA DE CREDITS DE UNA PERSONA, LEÍDA DE SUS DOS SITIOS (F-06).
    *
-   * Una cuenta puede tener más de un Perfil Real: en producción hay cuentas así
-   * (utils/perfilCanonico.ts), y las reglas dejan crear `users/<uid>` aunque ya
-   * exista uno con id automático, porque no pueden consultar. Firestore devuelve
-   * la consulta por `uid` ordenada por id de documento; quedarse con «el primero»
-   * podía saltar a un perfil vacío y dejar el saldo de verdad inalcanzable (y
-   * `ensureAccount` volvía a migrar la billetera antigua). El saldo vive en el
-   * perfil que YA está inicializado: ese manda. Si ninguno lo está, el primero,
-   * como siempre; si varios lo están, el primero de ellos, como siempre.
+   * `creditAccounts/{uid}` (el sitio privado) y el Perfil Real (el sitio
+   * público de antes). Cuál manda lo dice la fase; en `sombra` y `cuenta` se
+   * leen siempre los dos para poder escribir los dos en la misma transacción.
+   * En `contrato` el perfil solo se lee si la cuenta aún no tiene su documento
+   * privado: es la migración perezosa de una cuenta que nunca se movió.
+   *
+   * Sin documento privado inicializado hace falta el Perfil Real, como hasta
+   * ahora (`ACCOUNT_NOT_FOUND` si no lo hay): un uid sin perfil no guarda
+   * Credits de nadie, y una cara Weë tampoco.
    */
-  const PERFILES_POR_CUENTA = 10;
-  const perfilDelSaldo = (userId: string, docs: CreditDocSnap[]): CreditDocSnap | undefined => {
-    const suyos = docs.filter((d) => esElPerfilDeLaCuenta(userId, d));
-    return suyos.find((d) => typeof (d.data() || {}).creditsBalance === 'number') ?? suyos[0];
-  };
+  type Lector = Pick<CreditTx, 'get'>;
+  interface Estado { initialized: boolean; balance: number; earned: number; spent: number; initializedAt?: unknown }
+  interface CuentaDeCredits {
+    userId: string;
+    ref: CreditDocRef;
+    existe: boolean;
+    /** Lo que hay guardado en `creditAccounts/{uid}`, tal cual. */
+    privado: Record<string, any>;
+    /** El Perfil Real que guarda (o guardaba) el saldo, si se leyó y existe. */
+    perfil?: CreditDocSnap;
+    /** El saldo que manda en esta fase. */
+    estado: Estado;
+    /** De dónde salió `estado`. */
+    origen: 'cuenta' | 'perfil' | 'ninguno';
+    /** Algún documento que se debe escribir no tiene ya el saldo que manda. */
+    desfasada: boolean;
+  }
 
-  /** Perfil real de la persona (uid == auth uid). Los Credits son por cuenta, no por identidad. */
-  const findAccount = async (tx: CreditTx, userId: string): Promise<CreditDocSnap> => {
-    const snap = await tx.get(users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA));
-    const perfil = perfilDelSaldo(userId, snap.docs);
-    if (!perfil) {
-      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
-    }
-    return perfil;
-  };
-
-  const balanceOf = (account: CreditDocSnap): AccountBalance => {
-    const data = account.data() || {};
+  const estadoDe = (data: Record<string, any> | undefined): Estado => {
+    const d = data || {};
     return {
-      userId: String(data.uid),
-      balance: num(data.creditsBalance),
-      lifetimeEarned: num(data.creditsLifetimeEarned),
-      lifetimeSpent: num(data.creditsLifetimeSpent),
+      initialized: typeof d.creditsBalance === 'number',
+      balance: num(d.creditsBalance),
+      earned: num(d.creditsLifetimeEarned),
+      spent: num(d.creditsLifetimeSpent),
+      ...(d.creditsInitializedAt !== undefined ? { initializedAt: d.creditsInitializedAt } : {}),
     };
   };
+  const mismoSaldo = (a: Estado, b: Estado): boolean =>
+    a.initialized === b.initialized && a.balance === b.balance && a.earned === b.earned && a.spent === b.spent;
+
+  const cargarCuenta = async (lector: Lector, userId: string): Promise<CuentaDeCredits> => {
+    const ref = saldos().doc(userId);
+    const snap = await lector.get(ref);
+    const privado = (snap.exists ? snap.data() : undefined) || {};
+    const enCuenta = estadoDe(privado);
+    let perfil: CreditDocSnap | undefined;
+    if (fase !== 'contrato' || !enCuenta.initialized) {
+      const consulta = await lector.get(users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA));
+      perfil = perfilDelSaldo(userId, consulta.docs);
+    }
+    if (!perfil && !enCuenta.initialized) {
+      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
+    }
+    const enPerfil = estadoDe(perfil?.data());
+    const mandaElPerfil = fase === 'sombra' ? enPerfil.initialized || !enCuenta.initialized : !enCuenta.initialized && enPerfil.initialized;
+    const estado = mandaElPerfil ? enPerfil : enCuenta;
+    const origen: CuentaDeCredits['origen'] = !estado.initialized ? 'ninguno' : mandaElPerfil ? 'perfil' : 'cuenta';
+    const desfasada = estado.initialized && (
+      !snap.exists || !mismoSaldo(enCuenta, estado) || privado.uid !== userId
+      || (fase !== 'contrato' && perfil !== undefined && !mismoSaldo(enPerfil, estado))
+    );
+    return { userId, ref, existe: snap.exists, privado, perfil, estado, origen, desfasada };
+  };
+
+  /*
+   * ESCRIBE EL SALDO DONDE CORRESPONDE EN ESTA FASE, dentro de la transacción.
+   * Siempre en `creditAccounts/{uid}`; en `sombra` y `cuenta`, además en el
+   * Perfil Real (el espejo que leen las apps viejas). Va después de todas las
+   * lecturas de la transacción, como exige Firestore.
+   */
+  const escribirSaldo = (tx: CreditTx, cuenta: CuentaDeCredits, valores: { balance: number; earned: number; spent: number; initializedAt?: unknown }) => {
+    const at = now();
+    const initializedAt = valores.initializedAt ?? cuenta.estado.initializedAt ?? cuenta.privado.creditsInitializedAt;
+    const campos = strip({
+      creditsBalance: valores.balance,
+      creditsLifetimeEarned: valores.earned,
+      creditsLifetimeSpent: valores.spent,
+      creditsInitializedAt: initializedAt,
+    });
+    tx.set(cuenta.ref, strip({
+      ...campos,
+      uid: cuenta.userId,
+      profileRef: cuenta.perfil?.id ?? cuenta.privado.profileRef,
+      ...(!cuenta.existe ? { creadoAt: at, creadoDesde: cuenta.origen === 'perfil' ? 'perfil' : 'motor' } : {}),
+      updatedAt: at,
+    }), { merge: true });
+    if (fase !== 'contrato' && cuenta.perfil) {
+      tx.update(cuenta.perfil.ref, { ...campos, updatedAt: at });
+    }
+  };
+
+  /** Ajusta los documentos que se quedaron atrás sin mover un Credit (migración perezosa). */
+  const sincronizarSiHaceFalta = (tx: CreditTx, cuenta: CuentaDeCredits) => {
+    if (!cuenta.desfasada) return;
+    escribirSaldo(tx, cuenta, { balance: cuenta.estado.balance, earned: cuenta.estado.earned, spent: cuenta.estado.spent });
+  };
+
+  const balanceOf = (cuenta: CuentaDeCredits): AccountBalance => ({
+    userId: cuenta.userId,
+    balance: cuenta.estado.balance,
+    lifetimeEarned: cuenta.estado.earned,
+    lifetimeSpent: cuenta.estado.spent,
+  });
+
+  const sinTransaccion: Lector = { get: ((target: CreditDocRef | CreditQuery) => target.get()) as CreditTx['get'] };
 
   const writeStats = (tx: CreditTx, delta: StatsDelta) => {
     const update = statsUpdate(delta, increment, now);
@@ -274,9 +414,8 @@ export function createCreditEngine(deps: CreditEngineDeps) {
   const ensureAccount = async (rawUserId: string): Promise<AccountBalance & { migrated: number; welcomeGranted: boolean }> => {
     const userId = assertUserId(rawUserId);
     return db().runTransaction(async (tx) => {
-      const account = await findAccount(tx, userId);
-      const data = account.data() || {};
-      const initialized = typeof data.creditsBalance === 'number';
+      const cuenta = await cargarCuenta(tx, userId);
+      const initialized = cuenta.estado.initialized;
       /*
        * La billetera antigua se migra UNA vez por cuenta, no una vez por perfil: si
        * ya hay un `migration_<uid>`, no se vuelve a acreditar (antes se sobrescribía).
@@ -285,14 +424,14 @@ export function createCreditEngine(deps: CreditEngineDeps) {
       const legacy = initialized || yaMigrada ? null : await tx.get(db().collection('wallets').doc(userId));
       const welcomeDoc = welcome > 0 ? await tx.get(transactions().doc(welcomeTransactionId(userId))) : null;
 
-      let balance = num(data.creditsBalance);
-      let earned = num(data.creditsLifetimeEarned);
-      let spent = num(data.creditsLifetimeSpent);
+      let balance = cuenta.estado.balance;
+      let earned = cuenta.estado.earned;
+      let spent = cuenta.estado.spent;
       let migrated = 0;
       let welcomeGranted = false;
       let granted = 0;
       let grantCount = 0;
-      const patch: Record<string, unknown> = {};
+      let initializedAt: unknown;
 
       if (!initialized) {
         const wallet = legacy && legacy.exists ? legacy.data() || {} : {};
@@ -300,7 +439,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         balance = migrated;
         earned = Math.max(0, Math.floor(num(wallet.totalPurchased)));
         spent = Math.max(0, Math.floor(num(wallet.totalSpent)));
-        patch.creditsInitializedAt = now();
+        initializedAt = now();
         if (migrated > 0) {
           granted += migrated;
           grantCount += 1;
@@ -341,7 +480,10 @@ export function createCreditEngine(deps: CreditEngineDeps) {
       // Un solo incremento de acumulados por transacción (migración + bienvenida)
       if (granted > 0) writeStats(tx, { totalGranted: granted, circulating: granted, transactions: { grant: grantCount } });
       if (!initialized || welcomeGranted) {
-        tx.update(account.ref, { ...patch, creditsBalance: balance, creditsLifetimeEarned: earned, creditsLifetimeSpent: spent, updatedAt: now() });
+        escribirSaldo(tx, cuenta, { balance, earned, spent, initializedAt });
+      } else {
+        // Ningún Credit se mueve; pero si la cuenta aún no tiene su documento privado (o el espejo se quedó atrás), se migra aquí.
+        sincronizarSiHaceFalta(tx, cuenta);
       }
       return { userId, balance, lifetimeEarned: earned, lifetimeSpent: spent, migrated, welcomeGranted };
     });
@@ -349,17 +491,17 @@ export function createCreditEngine(deps: CreditEngineDeps) {
 
   const getBalance = async (rawUserId: string): Promise<AccountBalance> => {
     const userId = assertUserId(rawUserId);
-    const snap = await users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA).get();
-    const perfil = perfilDelSaldo(userId, snap.docs);
-    if (!perfil) {
-      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
-    }
-    const data = perfil.data() || {};
-    if (typeof data.creditsBalance !== 'number') {
+    const cuenta = await cargarCuenta(sinTransaccion, userId);
+    /*
+     * Sin inicializar: se inicializa. Inicializada pero sin su documento privado
+     * (o con el espejo atrás): se migra en una transacción. Las dos cosas las hace
+     * `ensureAccount`, que vuelve a leer dentro de la transacción y es idempotente.
+     */
+    if (!cuenta.estado.initialized || cuenta.desfasada) {
       const created = await ensureAccount(userId);
       return { userId, balance: created.balance, lifetimeEarned: created.lifetimeEarned, lifetimeSpent: created.lifetimeSpent };
     }
-    return balanceOf(perfil);
+    return balanceOf(cuenta);
   };
 
   /**
@@ -373,15 +515,11 @@ export function createCreditEngine(deps: CreditEngineDeps) {
    */
   const readBalance = async (rawUserId: string): Promise<AccountBalance & { initialized: boolean }> => {
     const userId = assertUserId(rawUserId);
-    const snap = await users().where('uid', '==', userId).limit(PERFILES_POR_CUENTA).get();
-    const perfil = perfilDelSaldo(userId, snap.docs);
-    if (!perfil) {
-      throw new CreditError('ACCOUNT_NOT_FOUND', 'No encontramos el perfil de esta cuenta', { userId });
-    }
-    if (typeof (perfil.data() || {}).creditsBalance !== 'number') {
+    const cuenta = await cargarCuenta(sinTransaccion, userId);
+    if (!cuenta.estado.initialized) {
       return { userId, balance: 0, lifetimeEarned: 0, lifetimeSpent: 0, initialized: false };
     }
-    return { ...balanceOf(perfil), initialized: true };
+    return { ...balanceOf(cuenta), initialized: true };
   };
 
   /**
@@ -452,9 +590,9 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         };
       }
 
-      const account = await findAccount(tx, userId);
-      const current = balanceOf(account);
-      if (typeof (account.data() || {}).creditsBalance !== 'number') {
+      const cuenta = await cargarCuenta(tx, userId);
+      const current = balanceOf(cuenta);
+      if (!cuenta.estado.initialized) {
         throw new CreditError('ACCOUNT_NOT_FOUND', 'La cuenta de Credits todavía no está inicializada', { userId });
       }
       if (current.balance < amount) {
@@ -480,7 +618,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         fingerprint,
         meta: strip(input.meta),
       });
-      tx.update(account.ref, { creditsBalance: balanceAfter, creditsLifetimeSpent: current.lifetimeSpent + amount, updatedAt: now() });
+      escribirSaldo(tx, cuenta, { balance: balanceAfter, earned: current.lifetimeEarned, spent: current.lifetimeSpent + amount });
       writeStats(tx, { totalSpent: amount, circulating: -amount, byService: { [service]: { spent: amount, count: 1 } }, transactions: { usage: 1 } });
       return { transactionId: id, status: 'AUTHORIZED', amount, balanceBefore: current.balance, balanceAfter, duplicate: false };
     });
@@ -505,8 +643,8 @@ export function createCreditEngine(deps: CreditEngineDeps) {
       const authorized = num(data.authorizedAmount) || Math.abs(num(data.amount));
       const final = input.finalAmount === undefined ? authorized : Math.min(authorized, Math.max(0, Math.floor(input.finalAmount)));
       const diff = authorized - final;
-      const account = await findAccount(tx, userId);
-      const current = balanceOf(account);
+      const cuenta = await cargarCuenta(tx, userId);
+      const current = balanceOf(cuenta);
 
       const history = [...(data.statusHistory || []), { status: 'COMPLETED', at: now() }];
       const meta = input.meta ? { ...(data.meta || {}), ...strip(input.meta) } : data.meta;
@@ -529,8 +667,10 @@ export function createCreditEngine(deps: CreditEngineDeps) {
           requestId,
           refundOf: id,
         });
-        tx.update(account.ref, { creditsBalance: balanceAfter, creditsLifetimeSpent: Math.max(0, current.lifetimeSpent - diff), updatedAt: now() });
+        escribirSaldo(tx, cuenta, { balance: balanceAfter, earned: current.lifetimeEarned, spent: Math.max(0, current.lifetimeSpent - diff) });
         writeStats(tx, { totalRefunded: diff, circulating: diff, byService: data.service ? { [data.service as CreditService]: { refunded: diff } } : undefined, transactions: { refund: 1 } });
+      } else {
+        sincronizarSiHaceFalta(tx, cuenta);
       }
       return { status: 'COMPLETED', refunded: diff, balanceAfter };
     });
@@ -563,8 +703,8 @@ export function createCreditEngine(deps: CreditEngineDeps) {
       const authorized = num(data.authorizedAmount) || Math.abs(num(data.amount));
       const alreadyAdjusted = status === 'COMPLETED' && typeof data.finalAmount === 'number' ? authorized - num(data.finalAmount) : 0;
       const amount = Math.max(0, authorized - alreadyAdjusted);
-      const account = await findAccount(tx, userId);
-      const current = balanceOf(account);
+      const cuenta = await cargarCuenta(tx, userId);
+      const current = balanceOf(cuenta);
       const balanceAfter = current.balance + amount;
 
       const history = [...(data.statusHistory || []), ...(status === 'FAILED' ? [] : [{ status: 'FAILED', at: now() }]), { status: 'REFUNDED', at: now() }];
@@ -584,7 +724,9 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         refundOf: usageId,
       });
       if (amount > 0) {
-        tx.update(account.ref, { creditsBalance: balanceAfter, creditsLifetimeSpent: Math.max(0, current.lifetimeSpent - amount), updatedAt: now() });
+        escribirSaldo(tx, cuenta, { balance: balanceAfter, earned: current.lifetimeEarned, spent: Math.max(0, current.lifetimeSpent - amount) });
+      } else {
+        sincronizarSiHaceFalta(tx, cuenta);
       }
       writeStats(tx, { totalRefunded: amount, circulating: amount, failed: 1, byService: data.service ? { [data.service as CreditService]: { refunded: amount } } : undefined, transactions: { refund: 1 } });
       return { transactionId: refundId, amount, balanceAfter, duplicate: false };
@@ -609,8 +751,8 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         if (data.userId !== userId) throw new CreditError('FORBIDDEN', 'Esta operación pertenece a otra cuenta');
         return { transactionId: id, amount: num(data.amount), balanceAfter: num(data.balanceAfter), duplicate: true };
       }
-      const account = await findAccount(tx, userId);
-      const current = balanceOf(account);
+      const cuenta = await cargarCuenta(tx, userId);
+      const current = balanceOf(cuenta);
       const balanceAfter = current.balance + amount;
       record(tx, id, {
         userId,
@@ -625,7 +767,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
         requestId,
         meta: strip({ ...(input.meta || {}), priceUsd: input.priceUsd }),
       });
-      tx.update(account.ref, { creditsBalance: balanceAfter, creditsLifetimeEarned: current.lifetimeEarned + amount, updatedAt: now() });
+      escribirSaldo(tx, cuenta, { balance: balanceAfter, earned: current.lifetimeEarned + amount, spent: current.lifetimeSpent });
       writeStats(tx, {
         totalPurchased: type === 'purchase' ? amount : 0,
         totalGranted: type === 'grant' ? amount : 0,
@@ -649,7 +791,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
     return getCreditCost(assertService(service));
   };
 
-  return { ensureAccount, getBalance, readBalance, spendCredits, completeCredits, refundCredits, grantCredits, getCreditHistory, getCreditCost: getCost, CREDIT_FIELDS };
+  return { ensureAccount, getBalance, readBalance, spendCredits, completeCredits, refundCredits, grantCredits, getCreditHistory, getCreditCost: getCost, CREDIT_FIELDS, faseSaldo: fase };
 }
 
 export type CreditEngine = ReturnType<typeof createCreditEngine>;
