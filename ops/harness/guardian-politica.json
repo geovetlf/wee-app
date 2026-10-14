@@ -1,0 +1,17 @@
+{
+  "contrato": "wee-guardian-politica@1",
+  "nota": "Política PROPIA del Build Guardian: solo corrige los falsos positivos y negativos MEDIDOS de sus fuentes comunes (settings.json, la guardia de Claude, ci.yml). No añade categorías: cada sección vive dentro de una categoría que ya bloquea (ruta-protegida:deny, registro:). La lee ops/harness/guardian.mjs (seccionDePolitica) y la fija functions/test/guardian-bloqueante.test.mjs §G. Una sección rota o ausente es FALLO (salida 3), nunca verde.",
+  "secretos": {
+    "nota": "Nombres de archivo (sin carpeta, sin distinguir mayúsculas) que son credenciales aunque ni settings.json ni la guardia los nieguen: el .env de la raíz (y sus variantes) y la clave de cuenta de servicio de Firebase. Las plantillas sin secretos quedan fuera.",
+    "nombres": [".env", ".env.*", "*serviceaccountkey*.json"],
+    "excepciones": [".env.example", ".env.sample", ".env.template"]
+  },
+  "documentacion": [".md"],
+  "neutralizadores": [
+    "\\|\\|\\s*(?:/usr)?(?:/bin/)?true\\b",
+    "\\|\\|\\s*:(?=\\s|;|$)",
+    "\\|\\|\\s*exit\\s+0\\b",
+    "\\|\\|\\s*echo\\b",
+    "^\\s*set\\s+\\+e\\b"
+  ]
+}
