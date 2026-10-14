@@ -664,7 +664,7 @@ console.log('\n── K · Qué se añadió, qué NO se tocó y qué sigue sin c
           : { output: { kind: 'video', url: 'https://x/y.mp4' }, costUSD: 0.01, latencyMs: 1 };
       },
     };
-    const config = { providers: {}, settings: DEFAULT_SETTINGS };
+    const config = { providers: {}, settings: { ...DEFAULT_SETTINGS, videoHabilitado: true } };
     const gateway = crearGatewayDelMotor({
       adapters: { espia: adaptador },
       loadConfig: async () => config,

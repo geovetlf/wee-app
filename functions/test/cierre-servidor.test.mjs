@@ -333,7 +333,7 @@ console.log('\n── G · El aviso del Router por un fallo de proveedor va sane
   const config = {
     providers: { alfa: { enabled: true, priority: 1 }, beta: { enabled: true, priority: 2 } },
     routing: { 'video.generate': { capability: 'video.generate', chain: [{ provider: 'alfa' }, { provider: 'beta' }], policy: 'quality-first' } },
-    settings: { ...DEFAULT_SETTINGS }, source: 'test',
+    settings: { ...DEFAULT_SETTINGS, videoHabilitado: true }, source: 'test', // Línea B · X2: aquí se prueba el aviso con el vídeo encendido
   };
   const router = createRouter({ adapters: { alfa: proveedor('alfa', true), beta: proveedor('beta', false) }, loadConfig: async () => config, ledger: memoryLedger(), health: memoryHealth(() => Date.now()), now: () => Date.now() });
   const r = await capturarRegistro(() => router.execute({ capability: 'video.generate', input: { prompt: 'Lima' }, userId: 'u1', jobId: 'j1', stepId: 's1' }));

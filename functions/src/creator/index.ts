@@ -14,7 +14,9 @@ import { UsageEntry } from '../gateway/types';
 import { progressTextFor, friendlyFailure } from '../engine/humanize';
 import { EngineResult, RoutingPrefs } from '../engine/types';
 import { classifyError, EngineError, toEngineHttpsError } from '../engine/errors';
-import { videoEngine, videoRequestFromStep } from '../engine/video';
+import { asegurarVideoPermitido, videoEngine, videoRequestFromStep } from '../engine/video';
+import { cobroDelTrabajo } from './cobro';
+import { PLAZO_DE_EJECUCION_MS, RESERVA_PARA_LIQUIDAR_MS, cerrarAbandonado, cerrarTrabajo, finDelProcesoDe } from './cierre';
 import { planImage } from '../engine/image';
 import { imageDimensions } from '../engine/imageMeta';
 import { resolveForModel } from '../engine/resolutionPolicy';
@@ -50,8 +52,7 @@ import { sanitizeForLog } from '../engine/sanitize';
  * plazo que se gasta hasta el último milisegundo no deja tiempo para lo único
  * que no puede faltar.
  */
-const PLAZO_DE_EJECUCION_MS = 900_000;
-const RESERVA_PARA_LIQUIDAR_MS = 45_000;
+/* Los dos números, y cuándo un trabajo está abandonado de verdad, viven en `creator/cierre.ts` (los comparte el barrido). */
 
 /**
  * Weë Creator — funciones que llama la app.
@@ -577,15 +578,18 @@ export const creatorRun = onCall(
        * (`settleCredits` con 0 usado): idempotente, con su asiento, y auditable.
        * No se inventa un estado ni se convierte un AUTHORIZED en COMPLETED.
        */
-      if (operacionAbandonada(job.status === 'running', job.deadlineAt, empezado)) {
-        const descripcionPrevia = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
-        await settleCredits(uid, jobId, job.creditsEstimated, 0, descripcionPrevia);
-        await ref.update({
+      if (operacionAbandonada(job.status === 'running', finDelProcesoDe(job.deadlineAt), empezado)) {
+        /* Primero la transición (solo una llamada la gana) y después el dinero, que mueve solo quien la ganó. */
+        const cerrado = await cerrarAbandonado(ref, empezado, {
           status: 'failed',
           progressText: 'Se quedó sin tiempo. Te devolví los Credits.',
           creditsCharged: 0,
           updatedAt: now(),
         });
+        if (cerrado) {
+          const descripcionPrevia = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
+          await settleCredits(uid, jobId, Number(cerrado.creditsEstimated ?? job.creditsEstimated) || 0, 0, descripcionPrevia);
+        }
         throw new EngineError('TIMEOUT', 'Ese intento se quedó sin tiempo y te devolví los Credits. Puedes volver a intentarlo.');
       }
       if (job.status === 'running') throw new EngineError('DUPLICATE_REQUEST');
@@ -609,6 +613,8 @@ export const creatorRun = onCall(
         exigirFotoSiHaceFalta(job);
         // Límites de uso por persona (antes de cobrar y de llamar a la IA)
         const { settings } = await loadConfig();
+        /* El interruptor del vídeo (X2): con pasos de vídeo y el vídeo apagado, no se reserva ni se llama a nadie. */
+        if (job.steps.some((s) => String(s.capability).startsWith('video.'))) asegurarVideoPermitido(settings);
         await limiter.reserve(uid, modalityCounts(job.steps), settings.limits);
         const reserva = await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
         /*
@@ -790,21 +796,40 @@ export const creatorRun = onCall(
           await ref.update({ steps: clean(steps), results: clean(results), updatedAt: now() });
         }
 
-        // Modo prueba: se cobra lo estimado. Modo real: lo medido por el engine,
-        // nunca más de lo que la persona vio antes de crear.
-        const measured = results.reduce((sum, r) => sum + (r.credits || 0), 0);
-        // El mismo modo efectivo con el que se cotizó: cotización, fórmula y cobro
-        // no pueden razonar cada uno por su cuenta.
-        const used = (await pricingMode()) === 'real' ? Math.min(job.creditsEstimated, measured) : job.creditsEstimated;
-        await settleCredits(uid, jobId, job.creditsEstimated, used, description);
-        await ref.update({
+        /*
+         * Modo prueba: lo cotizado. Modo real: lo medido, nunca más de lo cotizado.
+         * Y en los DOS, un paso con resultado de muestra (`mock`) vale 0 (B4-03):
+         * lo decide `cobroDelTrabajo`, con el mismo modo efectivo con que se cotizó.
+         */
+        const modo = await pricingMode();
+        const hayDemo = results.some((r) => r.demo === true);
+        const cotizadoPorPaso: Record<string, number> = {};
+        if (hayDemo && modo !== 'real') {
+          const desglose = await estimatePlan(job.plan, uid, job.quality as QualityChoice | undefined).catch((e) => {
+            /* Sin desglose, `cobroDelTrabajo` cobra solo lo real que conoce: el error no le cuesta nada a la persona, pero se registra. */
+            console.error(`Trabajo ${jobId}: no se pudo recotizar el desglose para descontar lo demo:`, sanitizeForLog(e, 300));
+            return null;
+          });
+          for (const paso of desglose?.steps ?? []) cotizadoPorPaso[paso.stepId] = paso.credits;
+        }
+        const used = cobroDelTrabajo(job.creditsEstimated, modo, results, cotizadoPorPaso);
+        /* Primero la transición (solo la gana quien tiene el trabajo), después el dinero. */
+        const cerrado = await cerrarTrabajo(ref, runId, {
           status: 'done',
+          steps: clean(steps),
+          results: clean(results),
           progressText: '✨ Listo',
           creditsCharged: used,
           demo: results.every((r) => r.demo === true),
           finishedAt: now(),
           updatedAt: now(),
         });
+        if (!cerrado) {
+          /* Otro lo cerró (abandono): su cierre ya movió el dinero. Aquí no se cobra ni se devuelve nada. */
+          console.error(`Trabajo ${jobId}: terminó después de que otro lo cerrara; no se liquida dos veces.`);
+          throw new EngineError('TIMEOUT', 'Ese intento se quedó sin tiempo y te devolví los Credits. Puedes volver a intentarlo.');
+        }
+        await settleCredits(uid, jobId, job.creditsEstimated, used, description);
         return { jobId, status: 'done' };
       } catch (error) {
         const failing = steps.find((s) => s.status === 'running');
@@ -813,17 +838,21 @@ export const creatorRun = onCall(
           failing.error = (error instanceof Error ? error.message : String(error)).slice(0, 300);
         }
         console.error(`Trabajo ${jobId} falló:`, error);
-        // FAILED → REFUND: se devuelve exactamente lo autorizado (idempotente)
-        await settleCredits(uid, jobId, job.creditsEstimated, 0, description);
         const classified = classifyError(error);
-        await ref.update({
+        /* FAILED → REFUND, solo si esta llamada sigue siendo la dueña del trabajo (si no, ya lo cerró otro). */
+        const cerrado = await cerrarTrabajo(ref, runId, {
           status: 'failed',
           steps: clean(steps),
           results: clean(results),
           progressText: classified.details?.reason === 'input_rejected' ? classified.message : failing ? friendlyFailure(failing.capability) : 'No me salió bien. No te cobré.',
           creditsCharged: 0,
           updatedAt: now(),
+        }).catch((e) => {
+          console.error(`Trabajo ${jobId}: no se pudo cerrar como fallido; lo cerrará el barrido:`, e);
+          return false;
         });
+        // Se devuelve exactamente lo autorizado (idempotente). Si la transición no se pudo escribir, el barrido la cierra.
+        if (cerrado) await settleCredits(uid, jobId, job.creditsEstimated, 0, description);
         throw error;
       }
     } catch (error) {
