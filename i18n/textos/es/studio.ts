@@ -348,6 +348,11 @@ export const studio = {
   pendMusic: "Weë todavía no compone música. Falta esa pieza, no el vídeo.",
   pendCompose: "Weë todavía no sabe unir varias escenas en un solo vídeo.",
   pendTwoRefs: "Hoy Weë solo puede llevar una imagen de referencia, y esto necesita dos.",
+  /* Herramientas del catálogo sin camino real todavía (Frente F, 2026-10-14): se ven con su motivo y no se abren. */
+  pendVideoEdit: "Weë todavía no trabaja con vídeos que ya existen.",
+  pendAudio: "Weë todavía no trabaja con audio que ya existe.",
+  pendFiles: "Weë todavía no crea archivos como PDF o presentaciones.",
+  pendReadFiles: "Weë todavía no lee archivos que subas aquí.",
   sampleLake: 'Lago entre montañas',
   sampleWarmRoom: 'Salón en tonos cálidos',
   sampleNarration: 'Narración en español',

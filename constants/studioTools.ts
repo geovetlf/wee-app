@@ -27,6 +27,12 @@ export interface HerramientaDeStudio {
   id: string;
   clave: string;
   icono: string;
+  /**
+   * Por qué todavía no se puede, cuando no se puede (la misma regla que `ExperienciaDeStudio.pendiente`).
+   * Se ve apagada con su motivo y no abre nada: sin esto, elegirla escribía su nombre en la caja y el
+   * texto acababa en un plan que hace OTRA cosa —un clip nuevo en vez de unir los tuyos— y la cobraba.
+   */
+  pendiente?: string;
 }
 
 /** Un grupo de herramientas, para los paneles que las ordenan por familia. */
@@ -37,6 +43,28 @@ export interface GrupoDeHerramientas {
 }
 
 const h = (id: string, clave: string, icono: string): HerramientaDeStudio => ({ id, clave, icono });
+
+/*
+ * LO QUE EL CATÁLOGO ENSEÑA Y WEË TODAVÍA NO HACE (Frente F, 2026-10-14). Medido en el servidor, no supuesto:
+ *   - editar un vídeo que ya existe (cortar, silencios, velocidad, fondo, formato, subtítulos encima, extraer
+ *     clips): ninguna plantilla lo hace y `video.vertical` / `video.montage` / `video.compose` no tienen
+ *     proveedor (`functions/src/engine/registry.ts`); el Studio solo adjunta imágenes;
+ *   - unir clips: `video.compose` sin proveedor, el mismo motivo que «Varias escenas»;
+ *   - trabajar con un audio que ya existe (limpiar, ruido, mejorar, transcribir, extraer): ninguna plantilla usa
+ *     `audio.transcribe` y el Studio no adjunta audio;
+ *   - crear un ARCHIVO (PDF, ebook, presentación, catálogo, folleto, convertir): `doc.render` no tiene proveedor
+ *     y solo lo atendería el modo demo;
+ *   - leer un archivo subido (PDF a texto, resumir, preguntar, comparar): ninguna plantilla usa `doc.read` y el
+ *     Studio no adjunta documentos.
+ * El día que haya camino, se quita el motivo y la herramienta vuelve a abrir. Lo que sí tiene camino (texto,
+ * imagen con foto adjunta, voz a partir de texto) no se toca.
+ */
+const VIDEO_EXISTENTE = 'studio.pendVideoEdit';
+const UNIR = 'studio.pendCompose';
+const AUDIO_EXISTENTE = 'studio.pendAudio';
+const CREAR_ARCHIVO = 'studio.pendFiles';
+const LEER_ARCHIVO = 'studio.pendReadFiles';
+const ph = (id: string, clave: string, icono: string, pendiente: string): HerramientaDeStudio => ({ id, clave, icono, pendiente });
 
 export const HERRAMIENTAS_DE_IMAGEN: HerramientaDeStudio[] = [
   h('fromText', 'studio.imgFromText', 'text-outline'),
@@ -116,20 +144,20 @@ export const HERRAMIENTAS_DE_WRITER: HerramientaDeStudio[] = [
 ];
 
 export const HERRAMIENTAS_DE_DOCUMENTOS: HerramientaDeStudio[] = [
-  h('pdf', 'studio.docPdf', 'document-outline'),
+  ph('pdf', 'studio.docPdf', 'document-outline', CREAR_ARCHIVO),
   h('document', 'studio.docDocument', 'document-text-outline'),
-  h('ebook', 'studio.docEbook', 'book-outline'),
+  ph('ebook', 'studio.docEbook', 'book-outline', CREAR_ARCHIVO),
   h('guide', 'studio.docGuide', 'map-outline'),
   h('manual', 'studio.docManual', 'construct-outline'),
-  h('deck', 'studio.docDeck', 'easel-outline'),
-  h('catalog', 'studio.docCatalog', 'albums-outline'),
-  h('brochure', 'studio.docBrochure', 'reader-outline'),
-  h('imageToPdf', 'studio.docImageToPdf', 'image-outline'),
-  h('toPdf', 'studio.docToPdf', 'swap-horizontal-outline'),
-  h('pdfToText', 'studio.docPdfToText', 'text-outline'),
-  h('summarize', 'studio.docSummarize', 'list-outline'),
-  h('ask', 'studio.docAsk', 'help-circle-outline'),
-  h('compare', 'studio.docCompare', 'git-compare-outline'),
+  ph('deck', 'studio.docDeck', 'easel-outline', CREAR_ARCHIVO),
+  ph('catalog', 'studio.docCatalog', 'albums-outline', CREAR_ARCHIVO),
+  ph('brochure', 'studio.docBrochure', 'reader-outline', CREAR_ARCHIVO),
+  ph('imageToPdf', 'studio.docImageToPdf', 'image-outline', CREAR_ARCHIVO),
+  ph('toPdf', 'studio.docToPdf', 'swap-horizontal-outline', CREAR_ARCHIVO),
+  ph('pdfToText', 'studio.docPdfToText', 'text-outline', LEER_ARCHIVO),
+  ph('summarize', 'studio.docSummarize', 'list-outline', LEER_ARCHIVO),
+  ph('ask', 'studio.docAsk', 'help-circle-outline', LEER_ARCHIVO),
+  ph('compare', 'studio.docCompare', 'git-compare-outline', LEER_ARCHIVO),
 ];
 
 /*
@@ -159,27 +187,27 @@ export const GRUPOS_DE_HERRAMIENTAS: GrupoDeHerramientas[] = [
     id: 'video',
     clave: 'studio.grpVideo',
     herramientas: [
-      h('edit', 'studio.tlVidEdit', 'brush-outline'),
-      h('cut', 'studio.tlVidCut', 'cut-outline'),
-      h('join', 'studio.tlVidJoin', 'git-merge-outline'),
-      h('subtitles', 'studio.tlVidSubtitles', 'chatbox-outline'),
-      h('silences', 'studio.tlVidSilences', 'volume-mute-outline'),
-      h('enhance', 'studio.tlVidEnhance', 'sparkles-outline'),
-      h('format', 'studio.tlVidFormat', 'crop-outline'),
-      h('clips', 'studio.tlVidClips', 'albums-outline'),
-      h('speed', 'studio.tlVidSpeed', 'speedometer-outline'),
-      h('background', 'studio.tlVidBackground', 'scan-outline'),
+      ph('edit', 'studio.tlVidEdit', 'brush-outline', VIDEO_EXISTENTE),
+      ph('cut', 'studio.tlVidCut', 'cut-outline', VIDEO_EXISTENTE),
+      ph('join', 'studio.tlVidJoin', 'git-merge-outline', UNIR),
+      ph('subtitles', 'studio.tlVidSubtitles', 'chatbox-outline', VIDEO_EXISTENTE),
+      ph('silences', 'studio.tlVidSilences', 'volume-mute-outline', VIDEO_EXISTENTE),
+      ph('enhance', 'studio.tlVidEnhance', 'sparkles-outline', VIDEO_EXISTENTE),
+      ph('format', 'studio.tlVidFormat', 'crop-outline', VIDEO_EXISTENTE),
+      ph('clips', 'studio.tlVidClips', 'albums-outline', VIDEO_EXISTENTE),
+      ph('speed', 'studio.tlVidSpeed', 'speedometer-outline', VIDEO_EXISTENTE),
+      ph('background', 'studio.tlVidBackground', 'scan-outline', VIDEO_EXISTENTE),
     ],
   },
   {
     id: 'audio',
     clave: 'studio.grpAudio',
     herramientas: [
-      h('clean', 'studio.tlAudClean', 'sparkles-outline'),
-      h('noise', 'studio.tlAudNoise', 'volume-low-outline'),
-      h('enhance', 'studio.voxEnhance', 'mic-outline'),
-      h('transcribe', 'studio.voxTranscribe', 'document-text-outline'),
-      h('extract', 'studio.voxExtract', 'download-outline'),
+      ph('clean', 'studio.tlAudClean', 'sparkles-outline', AUDIO_EXISTENTE),
+      ph('noise', 'studio.tlAudNoise', 'volume-low-outline', AUDIO_EXISTENTE),
+      ph('enhance', 'studio.voxEnhance', 'mic-outline', AUDIO_EXISTENTE),
+      ph('transcribe', 'studio.voxTranscribe', 'document-text-outline', AUDIO_EXISTENTE),
+      ph('extract', 'studio.voxExtract', 'download-outline', AUDIO_EXISTENTE),
       h('tts', 'studio.voxFromText', 'volume-high-outline'),
     ],
   },
@@ -201,11 +229,11 @@ export const GRUPOS_DE_HERRAMIENTAS: GrupoDeHerramientas[] = [
     id: 'files',
     clave: 'studio.grpFiles',
     herramientas: [
-      h('pdfToText', 'studio.docPdfToText', 'text-outline'),
-      h('imageToPdf', 'studio.docImageToPdf', 'image-outline'),
-      h('summarize', 'studio.docSummarize', 'list-outline'),
-      h('ask', 'studio.docAsk', 'help-circle-outline'),
-      h('convert', 'studio.tlFileConvert', 'swap-horizontal-outline'),
+      ph('pdfToText', 'studio.docPdfToText', 'text-outline', LEER_ARCHIVO),
+      ph('imageToPdf', 'studio.docImageToPdf', 'image-outline', CREAR_ARCHIVO),
+      ph('summarize', 'studio.docSummarize', 'list-outline', LEER_ARCHIVO),
+      ph('ask', 'studio.docAsk', 'help-circle-outline', LEER_ARCHIVO),
+      ph('convert', 'studio.tlFileConvert', 'swap-horizontal-outline', CREAR_ARCHIVO),
     ],
   },
 ];

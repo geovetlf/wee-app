@@ -178,7 +178,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
                 <TextoEnMayusculas style={[styles.grupoTitulo, { color: theme.colors.textSecondary }]}>{t(grupo.clave)}</TextoEnMayusculas>
                 <View style={styles.rejilla}>
                   {grupo.herramientas.map((h) =>
-                    tarjeta(h.clave, h.icono, grupo.id + h.id, () => onElegir({ entrada, herramienta: h, controles: {} }))
+                    tarjeta(h.clave, h.icono, grupo.id + h.id, () => onElegir({ entrada, herramienta: h, controles: {} }), h.pendiente)
                   )}
                 </View>
               </View>
@@ -186,7 +186,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
           ) : (
             <View style={styles.rejilla}>
               {(HERRAMIENTAS_POR_AREA[(puerta?.area ?? 'images') as Exclude<AreaDeStudio, 'more'>] ?? []).map((h) =>
-                tarjeta(h.clave, h.icono, h.id, () => onElegir({ entrada, herramienta: h, controles: {} }))
+                tarjeta(h.clave, h.icono, h.id, () => onElegir({ entrada, herramienta: h, controles: {} }), h.pendiente)
               )}
             </View>
           )
