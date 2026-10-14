@@ -124,6 +124,8 @@ for (const uid of CUENTAS) {
   await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: SALDO });
 }
 await db.collection('aiSettings').doc('runtime').set({ habilitado: true, porCapacidad: { 'video.generate': { cuentas: CUENTAS, experiencias: ['studio'] } } });
+// Línea B · X2: el vídeo nace APAGADO. Estas suites prueban el camino legacy cuando SÍ se puede generar; el apagado tiene su suite (linea-b-finanzas).
+await db.collection('aiSettings').doc('global').set({ videoHabilitado: true }, { merge: true });
 olvidarLaPuerta();
 
 const PETICION = { prompt: 'Un faro al amanecer, olas suaves', durationSec: 5, aspectRatio: '16:9' };

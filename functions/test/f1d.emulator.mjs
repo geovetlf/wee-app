@@ -106,6 +106,8 @@ await db.collection('users').doc(`doc_${A}`).set({ uid: A, displayName: A });
 await creditEngine.ensureAccount(A);
 await db.collection('users').doc(`doc_${A}`).update({ creditsBalance: SALDO });
 await db.collection('aiSettings').doc('runtime').set({ habilitado: true, porCapacidad: { 'video.generate': { cuentas: [A], experiencias: ['studio'] } } });
+// Línea B · X2: el vídeo nace APAGADO. Estas suites prueban el camino legacy cuando SÍ se puede generar; el apagado tiene su suite (linea-b-finanzas).
+await db.collection('aiSettings').doc('global').set({ videoHabilitado: true }, { merge: true });
 olvidarLaPuerta();
 
 const saldo = async () => (await db.collection('users').doc(`doc_${A}`).get()).get('creditsBalance');
