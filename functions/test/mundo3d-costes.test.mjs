@@ -183,7 +183,8 @@ const filas = (r) => base.de('aiGenerations').filter((d) => d.creditTransactionI
 const fila = (r) => filas(r)[0];
 const transaccion = (r) => base.leer(`creditTransactions/usage_${r}`);
 const reembolsos = (r) => base.de('creditTransactions').filter((d) => d.requestId === r && d.type === 'refund');
-const saldo = (uid) => base.leer(`users/doc_${uid}`)?.creditsBalance;
+/* F-06: el saldo, y solo si sus dos sitios coinciden (privado y espejo); si no, NaN y la aserción falla. */
+const saldo = (uid) => { const a = base.leer(`users/doc_${uid}`)?.creditsBalance; const b = base.leer(`creditAccounts/${uid}`)?.creditsBalance; return a === b ? a : NaN; };
 const usoDelDia = () => base.leer(`aiUsage/${DIA}`) ?? {};
 const delMundo = () => usoDelDia()['world.generate']?.fal ?? {};
 const hueco = (uid, r) => base.leer(`aiRateLimits/${uid}_${DIA}`)?.operaciones?.[claveDelCupo(operacionDelCupo(r))];
@@ -194,6 +195,7 @@ const cuenta = async (uid) => {
   base.docs.set(`users/doc_${uid}`, { uid, displayName: uid, country: 'US' });
   await creditEngine.ensureAccount(uid);
   base.docs.get(`users/doc_${uid}`).creditsBalance = SALDO;
+  base.docs.get(`creditAccounts/${uid}`).creditsBalance = SALDO; /* F-06: el saldo vive en creditAccounts; el perfil es su espejo */
 };
 
 /* ── Lo que hace la puerta del mundo al crear: reserva el dinero, ocupa el hueco, y el ejecutor abre la fila ── */

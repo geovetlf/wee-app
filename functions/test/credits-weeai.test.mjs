@@ -65,7 +65,8 @@ check('2a) ninguna pieza de Credits deriva la cuenta recortando hidi_',
 check('2b) el servicio recibe la CUENTA y la usa tal cual, sin transformarla',
   /subscribeToBalance\(accountUid: string,/.test(leer('services/creditsService.ts'))
   && /subscribeToTransactions\(accountUid: string,/.test(leer('services/creditsService.ts'))
-  && /where\('uid', '==', accountUid\)/.test(leer('services/creditsService.ts'))
+  /* F-06: el saldo es `creditAccounts/{la cuenta}`, con la cuenta tal cual llega (antes: `users where uid == accountUid`). */
+  && /doc\(db, 'creditAccounts', accountUid\)/.test(leer('services/creditsService.ts'))
   && !/accountUidOf/.test(leer('services/creditsService.ts')));
 check('2c) el hook no acepta un uid de perfil: la cuenta es la sesión', /export const useWallet = \(\) =>/.test(hook));
 check('2d) el servidor resuelve la cuenta por la sesión y por el campo uid, nunca por prefijo',
@@ -223,7 +224,9 @@ check('22) el motor de Credits sigue siendo del servidor',
  */
 check('23) y el saldo se lee de la cuenta, no del documento del Perfil Weë',
   !/replace\(\/\^hidi_/.test(leer('services/creditsService.ts'))
-  && /where\('uid', '==', accountUid\)/.test(leer('services/creditsService.ts')),
+  && /doc\(db, 'creditAccounts', accountUid\)/.test(leer('services/creditsService.ts'))
+  /* y ya no del perfil público (F-06): el servicio no lee `users` para nada */
+  && !/collection\(db, 'users'\)/.test(leer('services/creditsService.ts')),
   'la cuenta llega resuelta desde la sesión; el servicio no la deduce');
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');

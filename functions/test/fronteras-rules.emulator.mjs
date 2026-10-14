@@ -476,7 +476,9 @@ console.log('\n── F-06 · El saldo de Credits es de su dueña, y de nadie m�
   await debe('F18) private/account: la dueña, sí', 'PERMITE', ANA, 'GET', '/users/perfilAnaF06/private/account');
   /* Crear el Perfil Weë sigue exigiendo su vínculo con la cuenta (F-06 no lo toca: D3). */
   await debe('F19) crear el Perfil Weë sin linkedAccountId: no', 'DENIEGA', ANA, 'PATCH', `/users/${WEE_ANA}`, doc({ uid: WEE_ANA, profileType: 'hidi', displayName: 'Ana Weë' }));
-  await debe('F20) con su linkedAccountId: sí', 'PERMITE', ANA, 'PATCH', `/users/${WEE_ANA}`, doc({ uid: WEE_ANA, profileType: 'hidi', displayName: 'Ana Weë', linkedAccountId: ANA }));
+  /* Con OTRA cuenta y otro documento: una escritura que acaba en error de evaluación (F19) deja el documento bloqueado en el emulador (409), como ya les pasa a 26r/26ac. */
+  const CARLA = 'carla0000000000000000000003';
+  await debe('F20) con su linkedAccountId: sí', 'PERMITE', CARLA, 'PATCH', `/users/hidi_${CARLA}`, doc({ uid: `hidi_${CARLA}`, profileType: 'hidi', displayName: 'Carla Weë', linkedAccountId: CARLA }));
 }
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');

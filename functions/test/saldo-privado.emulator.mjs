@@ -94,26 +94,36 @@ await vaciar();
   /* Cuenta antigua: inicializada solo en el perfil (antes de P2), con su bienvenida ya dada. */
   await perfil('vieja', { creditsBalance: 500, creditsLifetimeEarned: 500, creditsLifetimeSpent: 0, creditsInitializedAt: admin.firestore.Timestamp.now() });
   await db.doc('creditTransactions/grant_welcome_vieja').set({ userId: 'vieja', type: 'grant', amount: 500, status: 'COMPLETED', source: 'welcome' });
-  const cobros = await Promise.allSettled(Array.from({ length: 12 }, (_, i) =>
-    (i % 3 ? cuenta : sombra).spendCredits({ userId: 'vieja', service: 'ai_text', amount: 10, requestId: `v_${i}`, source: 'test' })));
+  const cobro = (i) => (i % 3 ? cuenta : sombra).spendCredits({ userId: 'vieja', service: 'ai_text', amount: 10, requestId: `vieja_${i}`, source: 'test' });
+  const cobros = await Promise.allSettled(Array.from({ length: 12 }, (_, i) => cobro(i)));
+  /*
+   * Doce transacciones sobre el mismo documento a la vez agotan a veces los reintentos de Firestore (ABORTED, código 10):
+   * eso es la contención de la base, no del motor, y una transacción abortada no escribe nada. Quien llama reintenta con
+   * el MISMO requestId —es lo que hacen las puertas de Weë AI—, y el resultado tiene que ser 12 cobros exactos, ni uno más.
+   */
+  const abortadas = cobros.map((x, i) => [x, i]).filter(([x]) => x.status === 'rejected');
+  const soloContencion = abortadas.every(([x]) => x.reason?.code === 10 || /contention|ABORTED/i.test(String(x.reason?.message)));
+  for (const [, i] of abortadas) await cobro(i);
   const p = await leer(`${COLECCION_SALDO}/vieja`);
-  check('A2) doce cobros a la vez sobre una cuenta sin migrar: migrada una vez, 12 cobrados, saldo 380 en los dos sitios',
-    cobros.every((x) => x.status === 'fulfilled') && p?.creditsBalance === 380 && p.creditsLifetimeSpent === 120 && (await iguales('vieja')),
-    cobros.filter((x) => x.status === 'rejected').map((x) => x.reason?.code || x.reason?.message).join(',') || String(p?.creditsBalance));
+  check('A2) doce cobros a la vez sobre una cuenta sin migrar (+ reintentos con la misma clave): migrada una vez, 12 cobrados, saldo 380 en los dos sitios',
+    soloContencion && p?.creditsBalance === 380 && p.creditsLifetimeSpent === 120 && (await iguales('vieja'))
+    && (await libro('vieja')).filter((t) => t.type === 'usage').length === 12,
+    `${abortadas.length} abortadas por contención y reintentadas · saldo ${p?.creditsBalance}`);
   check('A3) el libro cuadra con el saldo privado y no apareció otra bienvenida', (await cuadra('vieja'))
     && (await libro('vieja')).filter((t) => t.source === 'welcome').length === 1 && p.creadoDesde === 'perfil');
 
   /* El mismo requestId, a la vez, desde una instancia de cada fase. */
+  const conReintento = async (fn) => { for (let k = 0; ; k++) { try { return await fn(); } catch (e) { if (e?.code !== 10 || k >= 3) throw e; } } };
   const dos = await Promise.allSettled([
-    sombra.spendCredits({ userId: 'vieja', service: 'ai_video', amount: 70, requestId: 'giro_par', source: 'test' }),
-    cuenta.spendCredits({ userId: 'vieja', service: 'ai_video', amount: 70, requestId: 'giro_par', source: 'test' }),
+    conReintento(() => sombra.spendCredits({ userId: 'vieja', service: 'ai_video', amount: 70, requestId: 'giro_par', source: 'test' })),
+    conReintento(() => cuenta.spendCredits({ userId: 'vieja', service: 'ai_video', amount: 70, requestId: 'giro_par', source: 'test' })),
   ]);
   const hechas = dos.filter((x) => x.status === 'fulfilled').map((x) => x.value);
   check('A4) mismo requestId a la vez a los dos lados del giro: un cobro y un duplicado',
     hechas.length === 2 && hechas.filter((x) => !x.duplicate).length === 1 && (await leer(`${COLECCION_SALDO}/vieja`)).creditsBalance === 310 && (await iguales('vieja')));
   const fin = await Promise.allSettled([
-    cuenta.refundCredits({ userId: 'vieja', requestId: 'giro_par', reason: 'x' }),
-    sombra.refundCredits({ userId: 'vieja', requestId: 'giro_par', reason: 'x' }),
+    conReintento(() => cuenta.refundCredits({ userId: 'vieja', requestId: 'giro_par', reason: 'x' })),
+    conReintento(() => sombra.refundCredits({ userId: 'vieja', requestId: 'giro_par', reason: 'x' })),
   ]);
   check('A5) dos reembolsos a la vez de la misma operación: una sola devolución', fin.every((x) => x.status === 'fulfilled')
     && fin.filter((x) => !x.value.duplicate).length === 1 && (await leer(`${COLECCION_SALDO}/vieja`)).creditsBalance === 380 && (await cuadra('vieja')));
@@ -182,7 +192,7 @@ await vaciar();
   await S.migrar(db, admin, { ejecutar: true, tam: TAM });
   /* En contrato el motor deja de escribir el perfil: gasta y el perfil se queda atrás. */
   const contrato = motor('contrato');
-  await contrato.spendCredits({ userId: 'u05', service: 'ai_text', amount: 1, requestId: 'k1', source: 'test' });
+  await contrato.spendCredits({ userId: 'u05', service: 'ai_text', amount: 1, requestId: 'contrato_k1', source: 'test' });
   await db.doc(`${COLECCION_SALDO}/u07`).delete(); // una cuenta que llega a P6 sin documento privado
   const c0 = await S.contraer(db, admin, { tam: TAM });
   check('B12) contraer en simulación: no toca ningún perfil', c0.simulacion && (await leer('users/doc_u05')).creditsBalance === 51);
@@ -203,7 +213,7 @@ await vaciar();
   const sinProyecto = correr(['scripts/saldo-privado.mjs', 'plan']);
   const unaBandera = correr(['scripts/saldo-privado.mjs', 'migrar', '--project', PROY, '--ejecutar']);
   const contraerSinFase = correr(['scripts/saldo-privado.mjs', 'contraer', '--project', PROY, '--ejecutar', '--confirmo-autorizacion']);
-  const real = correr(['scripts/saldo-privado.mjs', 'plan', '--project', 'get-wee']);
+  const real = correr(['scripts/saldo-privado.mjs', 'plan', '--project', 'proyecto-no-demo']);
   check('B17) sin --project, con una sola bandera, contraer sin --fase-contrato-desplegada, o un proyecto real con emulador: se niega (2)',
     sinProyecto.status === 2 && unaBandera.status === 2 && contraerSinFase.status === 2 && real.status === 2);
   const planCli = correr(['scripts/saldo-privado.mjs', 'verificar', '--project', PROY]);
@@ -274,7 +284,7 @@ await vaciar();
   check('C0) reglas cargadas', carga.status === 200);
   await perfil('ana', { photoURL: 'https://x/ana.jpg', email: 'ana@ejemplo.test', realName: 'Ana Real' });
   await motor('cuenta').ensureAccount('ana');
-  await motor('contrato').spendCredits({ userId: 'ana', service: 'ai_text', amount: 2, requestId: 'c1', source: 'test' });
+  await motor('contrato').spendCredits({ userId: 'ana', service: 'ai_text', amount: 2, requestId: 'extrano_c1', source: 'test' });
   const sinSesion = async (ruta) => {
     const r = await fetch(`http://${host}/v1/projects/${PROY}/databases/(default)/documents/${ruta}`);
     return { status: r.status, campos: r.status === 200 ? Object.keys((await r.json()).fields || {}) : [] };
