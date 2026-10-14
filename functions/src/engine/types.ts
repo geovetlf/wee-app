@@ -534,6 +534,20 @@ export interface EngineSettings {
    */
   iaDetenida?: boolean;
   /**
+   * EL INTERRUPTOR DEL VÍDEO (Línea B · X2, 2026-10-14). APAGADO por defecto.
+   *
+   * El camino legacy del vídeo sondea a ModelArk DENTRO de la llamada: si el
+   * plazo vence, un GET de estado falla o la descarga no llega, se reembolsa a la
+   * persona mientras la tarea sigue viva —y cobrándose— en el proveedor, y no hay
+   * forma de cancelar una tarea que ya está en ejecución. Hasta que el vídeo vaya
+   * entero por el camino asíncrono (aceptación + barrido), ninguna ruta del
+   * servidor inicia un vídeo con un proveedor REAL salvo que esto sea `true`:
+   * ni `creatorRun`, ni `generateVideo` (Studio y Filmmaker), ni el conductor del
+   * Core. Se rechaza antes del cupo, de la reserva y del proveedor. El modo demo
+   * (sin clave) no se ve afectado y no cobra. Se cambia con engineAdmin → setSettings.
+   */
+  videoHabilitado?: boolean;
+  /**
    * TOPE DE GASTO DIARIO EN PROVEEDORES, en USD, para todo Weë (FASE 8). Sin
    * valor —o 0— no hay tope. Al alcanzarlo, el router deja de proponer
    * candidatos —ni otro proveedor ni el demo— y la persona ve «no disponible»
