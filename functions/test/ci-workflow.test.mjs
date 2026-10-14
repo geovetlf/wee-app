@@ -66,11 +66,13 @@ check('8) nivel 2, en su propio job: las suites de emulador con Java 21',
 check('9) cada job comprueba primero que el entorno no trae nada real',
   (sinComentarios.match(/node scripts\/ci-sin-secretos\.mjs/g) || []).length === 4);
 const nivel3 = sinComentarios.slice(sinComentarios.indexOf('nivel-3:'));
-const POLITICAS = ['escaneo-secretos', 'guardia-claude', 'entrega-configuracion', 'produccion-mapa', 'despliegue-workflow', 'rotacion-secretos', 'emulador-aislado', 'ci-workflow', 'credits-cliente-cerrado', 'integracion-preparada', 'capacidades-conservadas', 'wif-verificar', 'proteccion-github', 'app-check',
+const POLITICAS = ['escaneo-secretos', 'guardia-claude', 'guardia-vigente', 'guardia-rodeos', 'entrega-configuracion', 'produccion-mapa', 'despliegue-workflow', 'rotacion-secretos', 'emulador-aislado', 'ci-workflow', 'credits-cliente-cerrado', 'integracion-preparada', 'capacidades-conservadas', 'wif-verificar', 'proteccion-github', 'app-check',
   /* revisión post-auditoría 2026-10-01: las cabeceras de seguridad y el revisor determinista */
   'cabeceras-seguridad', 'revision-detectores', 'revision-baseline', 'revision-revisores',
   /* F2: el eval-gate (el router no regresa frente a su baseline), el registro de dominios del Eval Engine y el corredor real (evalRun) sobre el motor común */
-  'evals-router', 'evals-gobernanza', 'evals-dominios', 'evals-presupuesto', 'evals-corredor'];
+  'evals-router', 'evals-gobernanza', 'evals-dominios', 'evals-presupuesto', 'evals-corredor',
+  /* WEE Motor Guardian, fase 1: el Build Guardian en modo bloqueante (un CRITICAL de la política hace fallar el nivel 3) y sus hooks */
+  'guardian-bloqueante', 'guardian-hooks'];
 check('9d) el nivel 3 pasa la revisión determinista contra la baseline (puertas G0 y G3), antes de las políticas',
   /- name: Revisión determinista \(puertas G0 y G3\)\s*\n\s*run: node ops\/revision\/baseline\.mjs/.test(nivel3) && nivel3.indexOf('ops/revision/baseline.mjs') < nivel3.indexOf('- name: Políticas'));
 /*
