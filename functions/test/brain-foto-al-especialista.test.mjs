@@ -143,9 +143,47 @@ const brainHook = sinComentarios(leer('hooks/useBrainChat.ts'));
 check('C3) Brain sube la foto a SU carpeta del Storage de Weë antes de enviar, y al servidor solo le va la dirección',
   /uploadCreatorImage\(user\.uid, options\.imageUri, 'brain-attachments'\)/.test(brainHook) && /brainService\.send\(\{[^}]*imageUrl/.test(brainHook));
 const brainServidor = sinComentarios(leer('functions/src/creator/brain.ts'));
+/*
+ * C4 comprueba el COMPORTAMIENTO, no cómo está escrita la línea (A-02): se ejecuta el `brainChat` compilado sobre una
+ * Firestore en memoria (`_firestore-en-memoria.mjs`) y se mira qué queda guardado. Así un cambio de cómo se guarda el
+ * mensaje no rompe la prueba, y uno que deje de guardar la dirección —o que guarde una sin comprobar— sí.
+ */
+const fotoGuardada = await (async () => {
+  const { BaseEnMemoria, instalarLaBase, darDeAlta } = await import('./_firestore-en-memoria.mjs');
+  const base = new BaseEnMemoria();
+  const deshacer = instalarLaBase(() => base);
+  const fetchOriginal = globalThis.fetch;
+  /* Sin red: el modelo de prueba no la necesita y el mensaje se guarda antes de generar. */
+  globalThis.fetch = async () => { throw new Error('sin red en esta prueba'); };
+  const bucketOriginal = process.env.STORAGE_BUCKET;
+  process.env.STORAGE_BUCKET = 'demo-wee.appspot.com';
+  try {
+    const UID = 'fotoC4AAAAAAAAAAAAAAAAAAAAA1';
+    await darDeAlta(base, UID);
+    const propia = `https://firebasestorage.googleapis.com/v0/b/demo-wee.appspot.com/o/users%2F${UID}%2Fbrain-attachments%2Fsala.jpg?alt=media&token=abc`;
+    const ajena = propia.replace(`users%2F${UID}`, 'users%2FotraCuentaBBBBBBBBBBBBBBBBBBB2');
+    const { brainChat } = lib('creator/brain.js');
+    const r = await brainChat.run({ auth: { uid: UID }, data: { message: 'mira mi sala', messageId: 'foto_c4_01', imageUrl: propia } }).catch((e) => ({ error: e }));
+    const chatId = r.chatId ?? base.de('brainChats').find((c) => c.userId === UID)?.id;
+    const guardado = chatId ? base.leer(`brainChats/${chatId}/messages/foto_c4_01`) : undefined;
+    const esperada = lib('creator/inputs.js').assertInputImageUrl(propia, UID);
+    const rechazo = await brainChat.run({ auth: { uid: UID }, data: { message: 'y esta', messageId: 'foto_c4_02', imageUrl: ajena, chatId } }).then(() => null, (e) => e);
+    return {
+      guardada: guardado?.imageUrl, esperada, rol: guardado?.role,
+      ajenaRechazada: rechazo?.details?.code === 'INVALID_REQUEST',
+      ajenaNoGuardada: !base.leer(`brainChats/${chatId}/messages/foto_c4_02`),
+    };
+  } finally {
+    globalThis.fetch = fetchOriginal;
+    if (bucketOriginal === undefined) delete process.env.STORAGE_BUCKET; else process.env.STORAGE_BUCKET = bucketOriginal;
+    deshacer();
+  }
+})();
 check('C4) y el servidor guarda en el mensaje de la persona esa dirección, ya comprobada: es lo que la pantalla lee después',
   /const imageUrl = data\.imageUrl \? assertInputImageUrl\(data\.imageUrl, uid\) : undefined;/.test(brainServidor)
-  && /messages\.doc\(messageId\)\.set\(stripUndefined\(\{ role: 'user', text: message, imageUrl,/.test(brainServidor));
+  && fotoGuardada.rol === 'user' && !!fotoGuardada.guardada && fotoGuardada.guardada === fotoGuardada.esperada
+  && fotoGuardada.ajenaRechazada && fotoGuardada.ajenaNoGuardada,
+  JSON.stringify(fotoGuardada));
 {
   /* `uploadCreatorImage` de verdad, con el Storage de mentira: una dirección que ya es del Storage no se sube otra vez. */
   const subidas = [];
