@@ -34,6 +34,13 @@ for (const k of ['ANTHROPIC_API_KEY', 'ARK_API_KEY', 'BFL_API_KEY', 'DEEPSEEK_AP
   'MINIMAX_API_KEY', 'OPENAI_API_KEY', 'SEEDANCE_CALLBACK_TOKEN', 'GOOGLE_APPLICATION_CREDENTIALS', 'FIREBASE_AUTH_EMULATOR_HOST',
   'FIREBASE_STORAGE_EMULATOR_HOST', 'FUNCTIONS_EMULATOR', 'FIREBASE_CONFIG', 'GOOGLE_CLOUD_PROJECT']) delete process.env[k];
 process.env.GCLOUD_PROJECT = PROYECTO;
+/*
+ * Sin sondeo del servidor de metadatos de Google Cloud. En los ejecutores Linux de GitHub, la librería de
+ * autenticación intenta detectar si corre en GCE llamando a 169.254.169.254 / metadata.google.internal; la valla de
+ * red de abajo lo cortaba y lo contaba como intento de red (así falló la primera CI). `none` es el valor documentado de
+ * gcp-metadata para «no lo sondees ni lo uses». La valla sigue cortando y contando cualquier otra conexión.
+ */
+process.env.METADATA_SERVER_DETECTION = 'none';
 const intentosDeRed = [];
 globalThis.fetch = async (url) => { intentosDeRed.push(`fetch ${String(url).slice(0, 80)}`); throw new Error('A-02 emu: red cortada'); };
 const conectarOriginal = net.Socket.prototype.connect;
