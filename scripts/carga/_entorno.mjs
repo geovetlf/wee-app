@@ -133,11 +133,21 @@ export const nuevaCuenta = () => `C${RUN}u${++contadorCuentas}`;
 
 const { creditEngine } = lib('credits/creditEngine.js');
 export { creditEngine };
-/** Perfil Real + cuenta de Credits inicializada (bienvenida 240), con saldo opcional. */
+const { welcomeTransactionId } = lib('credits/creditTransactions.js');
+/**
+ * Perfil Real + cuenta de Credits YA inicializada (saldo 240 o el dado), escrita directamente y fuera del reloj: la
+ * misma forma que deja `ensureAccount` (campos de Credits + el asiento de bienvenida, para que nadie la vuelva a dar).
+ * No pasa por el Credit Engine A PROPÓSITO: la primera tanda demostró que dar de alta 25 cuentas a la vez por
+ * `ensureAccount` choca en creditStats/global y aborta (ver estado-lineas.md § Frente I). La bienvenida por el motor
+ * se mide aparte (R4 y getCreditsBalance «primera vez»).
+ */
 export const alta = async (uid, saldo) => {
-  await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: uid });
-  await creditEngine.ensureAccount(uid);
-  if (saldo !== undefined) await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: saldo });
+  const b = db.batch();
+  const ahora = Timestamp.now();
+  b.set(db.collection('users').doc(`doc_${uid}`), { uid, displayName: uid, creditsBalance: saldo ?? 240, creditsLifetimeEarned: 240, creditsLifetimeSpent: 0, creditsInitializedAt: ahora });
+  b.set(db.collection('creditTransactions').doc(welcomeTransactionId(uid)), { id: welcomeTransactionId(uid), userId: uid, type: 'grant', amount: 240, balanceBefore: 0, balanceAfter: 240,
+    reason: 'Credits de bienvenida', source: 'welcome', status: 'COMPLETED', requestId: welcomeTransactionId(uid), createdAt: ahora, updatedAt: ahora });
+  await b.commit();
   return uid;
 };
 export const saldoDe = async (uid) => (await db.collection('users').doc(`doc_${uid}`).get()).data()?.creditsBalance;

@@ -36,10 +36,13 @@ const LIMITE_MS = Number(process.env.CARGA_LIMITE_MS || 270_000);
 const inicio = Date.now();
 const resultados = [];
 
+/** k cuentas nuevas ya inicializadas (alta directa, ver _entorno.mjs), fuera del reloj. */
+const altas = (k) => Promise.all(Array.from({ length: k }, () => alta(nuevaCuenta())));
 const rondasPara = (n) => Math.max(1, Math.ceil(MUESTRAS / n));
 
 /** Mide un escalón: `preparar(ronda)` fuera del reloj; `operaciones(ctx)` devuelve N funciones que se sueltan a la vez. */
 async function escalon({ escenario, variante, n, preparar, operaciones, comprobar }) {
+  if (process.env.CARGA_VARIANTES && !new RegExp(process.env.CARGA_VARIANTES).test(`${escenario}/${variante}`)) return;
   if (Date.now() - inicio > LIMITE_MS) { decir(`  (omitido ${escenario}/${variante} N=${n}: se acaba el tiempo de la tanda)`); return; }
   const rondas = rondasPara(n);
   const lat = [];
@@ -90,7 +93,7 @@ async function escenarioDinero() {
   for (const n of ESCALONES) {
     await escalon({
       escenario: 'dinero', variante: 'cuentas-distintas', n,
-      preparar: async (r, k) => ({ cuentas: await Promise.all(Array.from({ length: k }, () => alta(nuevaCuenta()))) }),
+      preparar: async (r, k) => ({ cuentas: await altas(k) }),
       operaciones: ({ cuentas }) => cuentas.map((u, i) => gastarYCompletar(creditEngine, u, `carga_${RUN}_${u}_${i}`)),
       comprobar: async ({ cuentas }) => {
         for (const u of cuentas.slice(0, 5)) { const f = await invariantesDeDinero(u, 240); if (f) return f; }
@@ -135,7 +138,7 @@ async function escenarioDineroAB() {
     for (const n of ESCALONES) {
       await escalon({
         escenario: 'dinero-ab', variante, n,
-        preparar: async (r, k) => ({ cuentas: await Promise.all(Array.from({ length: k }, () => alta(nuevaCuenta()))) }),
+        preparar: async (r, k) => ({ cuentas: await altas(k) }),
         operaciones: ({ cuentas }) => cuentas.map((u, i) => gastarYCompletar(motor, u, `ab_${RUN}_${variante}_${u}_${i}`)),
       });
     }
@@ -149,7 +152,7 @@ async function escenarioCallables() {
   for (const n of ESCALONES) {
     await escalon({
       escenario: 'getCreditsBalance', variante: 'cuentas-distintas', n,
-      preparar: async (r, k) => ({ cuentas: await Promise.all(Array.from({ length: k }, () => alta(nuevaCuenta()))) }),
+      preparar: async (r, k) => ({ cuentas: await altas(k) }),
       operaciones: ({ cuentas }) => cuentas.map((uid) => () => cred.getCreditsBalance.run({ auth: { uid }, data: {} })),
     });
   }
@@ -203,8 +206,9 @@ async function escenarioCupo() {
         const usado = (await db.collection('aiRateLimits').doc(`${u}_${dia}`).get()).data()?.video ?? 0;
         const ok = rs.filter((x) => x.ok).length;
         const esperado = Math.min(k, DEFAULT_LIMITS.perUserPerDay.video);
-        const soloLimite = rs.filter((x) => !x.ok).every((x) => x.codigo === 'RATE_LIMITED');
-        return ok === esperado && usado === esperado && soloLimite ? null : { ok, usado, esperado, errores: contarErrores(rs) };
+        /* Nunca por encima del tope y el contador = lo concedido. Un ABORTED (contención agotada) no ocupa hueco: se informa, no falla. */
+        const soloLimiteOAbort = rs.filter((x) => !x.ok).every((x) => x.codigo === 'RATE_LIMITED' || x.codigo === '10');
+        return ok <= esperado && usado === ok && soloLimiteOAbort ? null : { ok, usado, esperado, errores: contarErrores(rs) };
       },
     });
   }
@@ -243,7 +247,7 @@ async function escenarioBrain() {
   for (const n of ESCALONES) {
     await escalon({
       escenario: 'brainChat', variante: 'cuentas-distintas', n,
-      preparar: async (r, k) => ({ cuentas: await Promise.all(Array.from({ length: k }, () => alta(nuevaCuenta()))) }),
+      preparar: async (r, k) => ({ cuentas: await altas(k) }),
       operaciones: ({ cuentas }) => cuentas.map((u, i) => enviar(u, { message: `hola ${i}`, messageId: `m_${RUN}_${i}` })),
     });
   }
@@ -284,7 +288,7 @@ async function escenarioCreator() {
   for (const n of ESCALONES) {
     await escalon({
       escenario: 'creatorChat(hasta-plan)', variante: 'cuentas-distintas', n,
-      preparar: async (r, k) => ({ cuentas: await Promise.all(Array.from({ length: k }, () => alta(nuevaCuenta()))) }),
+      preparar: async (r, k) => ({ cuentas: await altas(k) }),
       operaciones: ({ cuentas }) => cuentas.map((u) => async () => { const r = await preguntar(u); if (r.status !== 'planned') throw Object.assign(new Error(`sin plan: ${r.status}`), { code: 'SIN_PLAN' }); return r; }),
     });
   }
@@ -324,7 +328,28 @@ async function escenarioCreator() {
   }
 }
 
-const TABLA = { dinero: escenarioDinero, 'dinero-ab': escenarioDineroAB, callables: escenarioCallables, cupo: escenarioCupo, libro: escenarioLibro, brain: escenarioBrain, creator: escenarioCreator };
+/* ══ sonda del emulador: ¿de dónde sale la contención entre cuentas DISTINTAS? ════════════════════════════
+ * Tres transacciones mínimas sobre cuentas distintas (nada compartido en los datos), que solo cambian en UNA cosa:
+ *   get-por-ref        tx.get(users/doc_X) + tx.update(users/doc_X)
+ *   consulta-uid       tx.get(users where uid == X limit 10) + tx.update(...)   ← lo que hace findAccount del Credit Engine
+ *   ref+global         get-por-ref + tx.set(cargaSonda/global, increment) en merge ← lo que hace writeStats */
+async function escenarioSonda() {
+  decir('▶ sonda');
+  const { FieldValue } = await import('./_entorno.mjs');
+  const variantes = {
+    'get-por-ref': (u) => db.runTransaction(async (tx) => { const r = db.collection('users').doc(`doc_${u}`); const s = await tx.get(r); tx.update(r, { n: (s.data()?.n || 0) + 1 }); }),
+    'consulta-uid': (u) => db.runTransaction(async (tx) => { const q = await tx.get(db.collection('users').where('uid', '==', u).limit(10)); tx.update(q.docs[0].ref, { n: (q.docs[0].data()?.n || 0) + 1 }); }),
+    'ref+global': (u) => db.runTransaction(async (tx) => { const r = db.collection('users').doc(`doc_${u}`); const s = await tx.get(r); tx.update(r, { n: (s.data()?.n || 0) + 1 });
+      tx.set(db.collection('cargaSonda').doc('global'), { n: FieldValue.increment(1) }, { merge: true }); }),
+  };
+  for (const [variante, fn] of Object.entries(variantes)) {
+    for (const n of ESCALONES) {
+      await escalon({ escenario: 'sonda', variante, n, preparar: async (r, k) => ({ cuentas: await altas(k) }), operaciones: ({ cuentas }) => cuentas.map((u) => () => fn(u)) });
+    }
+  }
+}
+
+const TABLA = { sonda: escenarioSonda, dinero: escenarioDinero, 'dinero-ab': escenarioDineroAB, callables: escenarioCallables, cupo: escenarioCupo, libro: escenarioLibro, brain: escenarioBrain, creator: escenarioCreator };
 decir(`Frente I · carga · ejecución ${RUN} · escalones ${ESCALONES.join(',')} · muestras≈${MUESTRAS} · demora mock ${mock.demoraMs} ms · node ${process.version}`);
 for (const e of ESCENARIOS) {
   if (!TABLA[e]) { decir(`escenario desconocido: ${e}`); process.exit(2); }
