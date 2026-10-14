@@ -291,18 +291,14 @@ const blDen = lDen.sha();
 lDen.escribir('docs/rotar-credenciales.md', '# Cómo se rota una credencial (sin credenciales)\n');
 lDen.git('add', 'docs/rotar-credenciales.md');
 const legDen = comoGitHub({ GUARDIAN_RAIZ: lDen.dir, GUARDIAN_BASE: blDen });
-/* Falso positivo CONOCIDO y aceptado (conservador): la guardia niega por subcadena del nombre (gha-creds-, service-account) sin mirar la extensión. */
-lDen.escribir('docs/gha-creds-rotacion.md', '# Documentación, sin credenciales\n');
-lDen.git('add', 'docs/gha-creds-rotacion.md');
-const fpDen = comoGitHub({ GUARDIAN_RAIZ: lDen.dir, GUARDIAN_BASE: blDen });
 check('36) g3: el mismo import del 18, con el archivo nuevo ya versionado, PASA (0)', pasaSin(legG3, 'g3:'), `${legG3.status} ${legG3.stdout.slice(-300)}`);
 check('37) registro: retirar una suite borrando su archivo y cambiar la orden de un paso que conserva su nombre PASA (0): son IMPORTANT, no pérdida de puerta',
   pasaSin(legReg, 'registro:') && /test\/b\.test\.mjs se retira/.test(legReg.stdout) && /Cambia un paso de «Nivel 1 · prueba» en la CI: Dos/.test(legReg.stdout), `${legReg.status} ${legReg.stdout.slice(-400)}`);
 check('38) guardia: el mismo script cambiado para lanzar una orden local inocua PASA (0)', pasaSin(legGua, 'guardia:'), `${legGua.status} ${legGua.stdout.slice(-300)}`);
 check('39) exports: dejar de exportar una función que NO está viva en producción PASA (0) y se informa como IMPORTANT',
   pasaSin(legExp, 'exports:') && /Cambian los exports de functions\/src\/index\.ts/.test(legExp.stdout), `${legExp.status} ${legExp.stdout.slice(-300)}`);
-check('40) ruta-protegida:deny: documentación sobre credenciales con nombre corriente (docs/rotar-credenciales.md) PASA (0); y queda fijado el falso positivo conocido: docs/gha-creds-rotacion.md BLOQUEA (la guardia niega por subcadena del nombre)',
-  pasaSin(legDen, 'ruta-protegida:deny') && bloqueaPor(fpDen, 'ruta-protegida:deny'), `${legDen.status} ${legDen.stdout.slice(-300)} | ${fpDen.status}`);
+check('40) ruta-protegida:deny: documentación sobre credenciales con nombre corriente (docs/rotar-credenciales.md) PASA (0) (el antiguo falso positivo de los nombres gha-creds-*.md está corregido y fijado en §G, 47-49)',
+  pasaSin(legDen, 'ruta-protegida:deny'), `${legDen.status} ${legDen.stdout.slice(-300)}`);
 
 /* ── F. Autoprotección: el cambio que toca el Guardian se juzga también con el Guardian de la BASE ─────────── */
 const gb = await importar('ops/harness/guardian-base.mjs');
@@ -366,6 +362,131 @@ check('35) sin recursión: dentro de la verificación de la base no se vuelve a 
   && gci.peor('PASA', 'BLOQUEA') === 'BLOQUEA' && gci.peor('BLOQUEA', 'FALLO') === 'FALLO' && gci.peor('PASA', 'PASA') === 'PASA'
   && gb.interpretarBase({ status: 1, stdout: '', stderr: 'SyntaxError' }).resultado === 'FALLO'
   && gb.interpretarBase({ status: 0, stdout: 'x' }).resultado === 'FALLO' && gb.interpretarBase({ status: 0, stdout: '✔ PASA: ok\n' }).resultado === 'PASA');
+
+/* ── G. Los cuatro fallos MEDIDOS de la política, corregidos en la política propia (ops/harness/guardian-politica.json)
+   Para cada uno: la infracción real BLOQUEA (1 + diagnóstico), el cambio legítimo comparable PASA (0) y un fallo
+   interno de esa misma regla sale 3 —nunca 0—. El fallo interno se provoca de verdad: una copia del Guardian de este
+   árbol con la sección de su política rota (lo que la CI ejecutaría si alguien la rompiera), o un estado del árbol que
+   el Guardian no sabe juzgar. Los nombres de credencial se arman aquí: este archivo no los lleva escritos. ─────── */
+const ENV = ['.', 'env'].join('');
+const CLAVE_SA = ['service', 'AccountKey.json'].join('');
+const POLITICA = 'ops/harness/guardian-politica.json';
+check('41) la política propia existe, es del contrato wee-guardian-politica@1, está en las protecciones del propio Guardian y sus secciones se validan',
+  JSON.parse(leer(POLITICA)).contrato === g.CONTRATO_POLITICA && gci.tocaProteccionesPropias([POLITICA]).length === 1
+  && g.esSecretoPorPolitica(ENV) && g.esSecretoPorPolitica(`functions/${CLAVE_SA}`) && !g.esSecretoPorPolitica(`${ENV}.example`)
+  && g.esDocumentacion('docs/x.md') && !g.esDocumentacion('config/x.json')
+  && g.neutralizaciones('node a.mjs || true') === 1 && g.neutralizaciones('node a.mjs') === 0 && g.neutralizaciones('grep x || truex') === 0
+  && lanza(() => g.seccionDePolitica('otra')));
+/* Una copia del Guardian de este árbol, con su política cambiada, ejecutada como la CI ejecuta el paso. */
+const pasoConPolitica = (r, base, cambiar) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wee-guardian-politica-'));
+  temporales.push(dir);
+  for (const [rel, texto] of Object.entries(GUARDIAN_COPIA)) {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(dir, rel), texto);
+  }
+  fs.writeFileSync(path.join(dir, POLITICA), JSON.stringify(cambiar(JSON.parse(GUARDIAN_COPIA[POLITICA])), null, 2));
+  return spawnSync(process.execPath, [path.join(dir, 'ops/harness/guardian-ci.mjs'), '--raiz', r.dir], {
+    cwd: dir, encoding: 'utf8',
+    env: {
+      PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: process.env.HOME, GUARDIAN_BASE: base,
+      GUARDIAN_BASE_ANCLA: pathToFileURL(path.join(RAIZ, 'package.json')).href,
+      NODE_OPTIONS: `--import=${pathToFileURL(path.join(dir, 'ops/harness/guardian-base-resolver.mjs')).href}`,
+    },
+  });
+};
+const falloInterno = (x, seccion) => x.status === 3 && /✘ FALLO: el Guardian falló por dentro \(salida 3\)/.test(x.stdout) && x.stdout.includes(seccion) && !/✔ PASA/.test(x.stdout);
+const fin = (x) => `${x.status} ${(x.stdout + x.stderr).slice(-350)}`;
+
+/* G1 · registro: FN-1 — un paso que conserva su nombre y se tapa el fallo. */
+const CI_NEU = CI_MIN.replace('run: node dos.mjs', 'run: node dos.mjs || echo aviso-previo');
+const nuevoReg = () => repo({ ...BASE, '.github/workflows/ci.yml': CI_MIN });
+const n1 = nuevoReg();
+const bn1 = n1.sha();
+const variantes = ['node dos.mjs || true', 'node dos.mjs || :', 'node dos.mjs || exit 0', '|\n          set +e\n          node dos.mjs'].map((run) => {
+  n1.escribir('.github/workflows/ci.yml', CI_MIN.replace('run: node dos.mjs', `run: ${run}`));
+  return comoGitHub({ GUARDIAN_RAIZ: n1.dir, GUARDIAN_BASE: bn1 });
+});
+check('42) registro (FN-1 corregido): el paso «Dos» conserva su nombre y pasa a `|| true` (y `|| :`, `|| exit 0`, `set +e`) → el paso de CI sale 1 con registro:ci:nivel-1:Dos:neutralizado y dice «ya no puede fallar»',
+  variantes.every((x) => bloqueaPor(x, 'registro:ci:nivel-1:Dos:neutralizado') && /ya no puede fallar/.test(x.stdout)), variantes.map(fin).join(' | '));
+const n2 = repo({ ...BASE, '.github/workflows/ci.yml': CI_NEU });
+const bn2 = n2.sha();
+n2.escribir('.github/workflows/ci.yml', CI_NEU.replace('node dos.mjs', 'node dos.mjs --detallado'));
+const legNeu = comoGitHub({ GUARDIAN_RAIZ: n2.dir, GUARDIAN_BASE: bn2 });
+const n3r = nuevoReg();
+const bn3 = n3r.sha();
+n3r.escribir('.github/workflows/ci.yml', CI_MIN.replace('run: node dos.mjs', 'run: node dos.mjs --detallado'));
+const legOrden = comoGitHub({ GUARDIAN_RAIZ: n3r.dir, GUARDIAN_BASE: bn3 });
+check('43) registro: el cambio legítimo comparable PASA (0): cambiar la orden del mismo paso sin taparse el fallo, o cambiarla en un paso que YA se lo tapaba en la base (no aumenta) — siguen siendo IMPORTANT «Cambia un paso»',
+  [legNeu, legOrden].every((x) => pasaSin(x, 'registro:') && /Cambia un paso de «Nivel 1 · prueba» en la CI: Dos/.test(x.stdout)), `${fin(legNeu)} | ${fin(legOrden)}`);
+n3r.escribir('.github/workflows/ci.yml', CI_MIN.replace('run: node dos.mjs', 'run: node dos.mjs || true'));
+const sanaNeu = pasoConPolitica(n3r, bn3, (p) => p);
+const rotaNeu = pasoConPolitica(n3r, bn3, (p) => ({ ...p, neutralizadores: ['('] }));
+const rd2 = repo(BASE);
+const brd2 = rd2.sha();
+rd2.escribir('docs/nota.md', '# Nota\n\nOtra.\n');
+const rotaNeuDocs = pasoConPolitica(rd2, brd2, (p) => ({ ...p, neutralizadores: ['('] }));
+check('44) registro: con la sección «neutralizadores» rota (expresión inválida) el mismo cambio sale 3 (FALLO, nunca 0); la copia sana da 1 y un cambio que no la necesita (solo docs) sigue en 0',
+  sanaNeu.status === 1 && falloInterno(rotaNeu, 'neutralizadores') && rotaNeuDocs.status === 0, `${fin(sanaNeu)} | ${fin(rotaNeu)} | ${fin(rotaNeuDocs)}`);
+
+/* G2 · ruta-protegida:deny: FN — el .env de la raíz y la clave de cuenta de servicio de Firebase. */
+const secretoNuevo = (rel) => {
+  const r = repo({ ...BASE, '.claude/settings.json': leer('.claude/settings.json') });
+  const b = r.sha();
+  r.escribir(rel, 'FALSO=1\n');
+  r.git('add', '-f', rel);
+  return { r, b, x: comoGitHub({ GUARDIAN_RAIZ: r.dir, GUARDIAN_BASE: b }) };
+};
+const sEnv = secretoNuevo(ENV);
+const sSa = secretoNuevo(`functions/${CLAVE_SA}`);
+check('45) ruta-protegida:deny (FN corregido): un .env en la raíz y functions/serviceAccountKey.json que entran en el diff → el paso de CI sale 1 con ruta-protegida:deny, citando la política propia',
+  [sEnv.x, sSa.x].every((x) => bloqueaPor(x, 'ruta-protegida:deny') && x.stdout.includes(POLITICA)), `${fin(sEnv.x)} | ${fin(sSa.x)}`);
+const sEj = secretoNuevo(`${ENV}.example`);
+const sDoc = secretoNuevo('docs/serviceaccountkey-como-rotarla.md');
+check('46) ruta-protegida:deny: lo legítimo comparable PASA (0): la plantilla .env.example y una guía .md sobre la clave (no es la clave)',
+  [sEj.x, sDoc.x].every((x) => pasaSin(x, 'ruta-protegida:deny')), `${fin(sEj.x)} | ${fin(sDoc.x)}`);
+const rotaSec = pasoConPolitica(sEnv.r, sEnv.b, (p) => ({ ...p, secretos: 'no es un objeto' }));
+check('47) ruta-protegida:deny: con la sección «secretos» rota, el mismo cambio sale 3 (FALLO), nunca 0',
+  falloInterno(rotaSec, 'secretos'), fin(rotaSec));
+
+/* G3 · ruta-protegida:deny: FP — documentación cuyo nombre lleva gha-creds- o service-account. */
+const fpGha = secretoNuevo('docs/gha-creds-rotacion.md');
+const fpSa = secretoNuevo('docs/service-account-permisos.md');
+check('48) ruta-protegida (FP corregido): docs/gha-creds-rotacion.md y docs/service-account-permisos.md PASAN (0) y se dicen como IMPORTANT «nombre de credencial en documentación»',
+  [fpGha.x, fpSa.x].every((x) => pasaSin(x, 'ruta-protegida:deny') && /Documentación con nombre de credencial/.test(x.stdout)), `${fin(fpGha.x)} | ${fin(fpSa.x)}`);
+const vpGha = secretoNuevo('docs/gha-creds-rotacion.json');
+const vpSa = secretoNuevo('config/mi-service-account.json');
+check('49) …y la infracción comparable sigue BLOQUEANDO (1): el mismo nombre con extensión de credencial (docs/gha-creds-rotacion.json, config/mi-service-account.json)',
+  [vpGha.x, vpSa.x].every((x) => bloqueaPor(x, 'ruta-protegida:deny')), `${fin(vpGha.x)} | ${fin(vpSa.x)}`);
+const rotaDoc = pasoConPolitica(fpGha.r, fpGha.b, (p) => ({ ...p, documentacion: ['md'] }));
+check('50) ruta-protegida: con la sección «documentacion» rota, el .md que antes pasaba sale 3 (FALLO), nunca 0',
+  falloInterno(rotaDoc, 'documentacion'), fin(rotaDoc));
+
+/* G4 · registro: FP local — un borrado SIN PREPARAR contaba como si la suite siguiera existiendo (hook Stop). */
+const cadena = (...s) => JSON.stringify({ scripts: { test: s.map((x) => `node test/${x}.test.mjs`).join(' && ') } }, null, 2);
+const nuevaCadena = () => {
+  const r = repo({ ...BASE, 'functions/package.json': cadena('a', 'b'), 'functions/test/a.test.mjs': "console.log('a');\n", 'functions/test/b.test.mjs': "console.log('b');\n" });
+  const b = r.sha();
+  r.escribir('functions/package.json', cadena('a'));
+  return { r, b };
+};
+const c1 = nuevaCadena();
+c1.r.escribir('functions/test/b.test.mjs', "console.log('b cambiada');\n");
+const sigueCad = comoGitHub({ GUARDIAN_RAIZ: c1.r.dir, GUARDIAN_BASE: c1.b });
+check('51) registro: la suite sale de la cadena y su archivo sigue (aunque cambie) → sale 1 con registro:cadena:test/b.test.mjs',
+  bloqueaPor(sigueCad, 'registro:cadena:test/b.test.mjs'), fin(sigueCad));
+const c2 = nuevaCadena();
+fs.rmSync(path.join(c2.r.dir, 'functions/test/b.test.mjs'));
+const borradoSinPreparar = comoGitHub({ GUARDIAN_RAIZ: c2.r.dir, GUARDIAN_BASE: c2.b });
+check('52) registro (FP local corregido): la suite sale de la cadena y su archivo se borra SIN PREPARAR (sin git rm) → PASA (0) como retirada (IMPORTANT), igual que con git rm',
+  pasaSin(borradoSinPreparar, 'registro:') && /test\/b\.test\.mjs se retira/.test(borradoSinPreparar.stdout), fin(borradoSinPreparar));
+const c3 = nuevaCadena();
+fs.rmSync(path.join(c3.r.dir, 'functions/test/b.test.mjs'));
+fs.mkdirSync(path.join(c3.r.dir, 'functions/test/b.test.mjs'));
+fs.writeFileSync(path.join(c3.r.dir, 'functions/test/b.test.mjs/dentro.txt'), 'x\n');
+const ambiguo = comoGitHub({ GUARDIAN_RAIZ: c3.r.dir, GUARDIAN_BASE: c3.b });
+check('53) registro: si en el sitio de la suite hay una carpeta (estado que el Guardian no sabe juzgar) sale 3 (FALLO), nunca 0',
+  falloInterno(ambiguo, 'estado ambiguo'), fin(ambiguo));
 
 const pkg = JSON.parse(leer('functions/package.json'));
 const bucle = ((ci.match(/for suite in ([^;\n]+); do/) || [])[1] || '').split(/\s+/);

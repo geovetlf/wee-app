@@ -5,7 +5,8 @@
  *   node ops/harness/guardian.mjs antes --archivos a,b [--json] [--max-por-nivel N] [--raiz <dir>]
  *   node ops/harness/guardian.mjs cambio --base <ref> [--json] [--max-por-nivel N] [--raiz <dir>]
  *
- * Una CAPA COMÚN QUE COORDINA, no otro guardián: no trae reglas propias ni copia tablas. Junta lo que ya protege
+ * Una CAPA COMÚN QUE COORDINA, no otro guardián: no copia tablas, y su única tabla propia
+ * (ops/harness/guardian-politica.json) solo corrige falsos positivos/negativos MEDIDOS de esas fuentes. Junta lo que ya protege
  * a Weë —el Quality Reviewer (zonas rojas, detectores, frontera, baseline, selector), la guardia de Claude
  * (settings.json + guardia.mjs), el mapa de producción (produccion.json, permitido.mjs, grupos.json, firebase.json),
  * las cercas de cierre que viven en las suites, el mapa de fronteras, las decisiones deliberadas y las extensiones
@@ -130,6 +131,76 @@ const lineaCon = (texto, cita, desde = 1) => {
 /** Una fuente con línea solo si la cita está de verdad en esa línea. */
 const fuenteEnTexto = (archivo, texto, cita, extra = {}) => { const linea = lineaCon(texto, cita); return linea ? { archivo, linea, ...extra, cita } : null; };
 const fuenteRegla = (regla) => ({ archivo: 'ops/revision/reglas.mjs', ...(fuenteEnTexto('ops/revision/reglas.mjs', leerHarness('ops/revision/reglas.mjs'), `id: '${regla}'`) || {}), regla });
+
+/* ── La política PROPIA del Guardian (ops/harness/guardian-politica.json) ─────────────────────────────────────────
+ * La única tabla que trae el Guardian: corrige los falsos positivos y negativos MEDIDOS de sus fuentes comunes, sin
+ * añadir categorías (cada sección vive dentro de `ruta-protegida:deny` o de `registro:`). Se lee del código del
+ * Guardian (HARNESS), no del árbol que se juzga, así que la verificación desde la base usa la política de la BASE.
+ * Cada sección se valida la primera vez que hace falta: rota o ausente LANZA (fallo interno, salida 3 en modo
+ * estricto), nunca un verde. Lo fija functions/test/guardian-bloqueante.test.mjs §G. */
+export const RUTA_POLITICA = 'ops/harness/guardian-politica.json';
+export const CONTRATO_POLITICA = 'wee-guardian-politica@1';
+const politicaEntera = memo(() => {
+  const t = leerHarness(RUTA_POLITICA);
+  if (t === null) throw new Error(`falta ${RUTA_POLITICA}: sin la política propia del Guardian no hay veredicto`);
+  let p;
+  try { p = JSON.parse(t); } catch (e) { throw new Error(`${RUTA_POLITICA} no es JSON válido (${e.message})`); }
+  if (!p || typeof p !== 'object' || p.contrato !== CONTRATO_POLITICA) throw new Error(`${RUTA_POLITICA} no es del contrato ${CONTRATO_POLITICA}`);
+  return p;
+});
+const textosNoVacios = (v) => Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'string' && x.length > 0 && x.trim() === x);
+const SECCIONES_DE_POLITICA = {
+  secretos: (v) => {
+    if (!v || typeof v !== 'object' || !textosNoVacios(v.nombres) || !(Array.isArray(v.excepciones) && (v.excepciones.length === 0 || textosNoVacios(v.excepciones)))) {
+      throw new Error('hace falta { nombres: [globs de nombre de archivo], excepciones: [..] }');
+    }
+    if ([...v.nombres, ...v.excepciones].some((x) => x.includes('/'))) throw new Error('son nombres de archivo: sin «/»');
+    return { nombres: v.nombres.map((x) => x.toLowerCase()), excepciones: v.excepciones.map((x) => x.toLowerCase()) };
+  },
+  documentacion: (v) => {
+    if (!textosNoVacios(v) || v.some((x) => !/^\.[a-z0-9]+$/.test(x))) throw new Error('hace falta una lista de extensiones («.md»)');
+    return v;
+  },
+  neutralizadores: (v) => {
+    if (!textosNoVacios(v)) throw new Error('hace falta una lista de expresiones regulares');
+    return v.map((s) => new RegExp(s, 'gm'));
+  },
+};
+const seccionesLeidas = new Map();
+export const seccionDePolitica = (nombre) => {
+  if (!seccionesLeidas.has(nombre)) {
+    if (!SECCIONES_DE_POLITICA[nombre]) throw new Error(`sección desconocida de la política: ${nombre}`);
+    const p = politicaEntera();
+    try { seccionesLeidas.set(nombre, SECCIONES_DE_POLITICA[nombre](p[nombre])); } catch (e) {
+      throw new Error(`${RUTA_POLITICA} → «${nombre}» no es válida: ${e.message}`);
+    }
+  }
+  return seccionesLeidas.get(nombre);
+};
+/** ¿Es una credencial por su NOMBRE, según la política propia? (FN medidos: `.env` de la raíz, `serviceAccountKey.json`). */
+export const esSecretoPorPolitica = (ruta) => {
+  const { nombres, excepciones } = seccionDePolitica('secretos');
+  const nombre = path.posix.basename(String(ruta).replace(/\\/g, '/')).toLowerCase();
+  return !coincide(nombre, excepciones) && coincide(nombre, nombres);
+};
+/** ¿Es documentación? (FP medido: un `.md` con `gha-creds-`/`service-account` en el nombre no es una credencial). */
+export const esDocumentacion = (ruta) => seccionDePolitica('documentacion').includes(path.posix.extname(String(ruta)).toLowerCase());
+/** Cuántas veces un `run:` se tapa el propio fallo (`|| true`, `|| :`, `|| exit 0`, `|| echo`, `set +e`). FN-1 medido. */
+export const neutralizaciones = (run) => seccionDePolitica('neutralizadores').reduce((n, re) => n + (String(run || '').match(re) || []).length, 0);
+/**
+ * ¿La suite sigue en lo que se va a integrar? En el índice de git Y en el disco como archivo. Un borrado sin preparar
+ * ya no cuenta como «sigue» (FP local medido en el hook Stop). Algo que está en el disco y no es un archivo (una carpeta
+ * con el nombre de la suite) es un estado que el Guardian no sabe juzgar: LANZA (fallo interno), no adivina.
+ */
+export const sigueEnElArbol = (ctx, rel) => {
+  let st;
+  try { st = fs.statSync(path.join(ctx.raiz, rel)); } catch (e) {
+    if (e && (e.code === 'ENOENT' || e.code === 'ENOTDIR')) return false;
+    throw e;
+  }
+  if (!st.isFile()) throw new Error(`estado ambiguo: ${rel} está en el disco y no es un archivo; el Guardian no puede decidir si la suite sigue existiendo`);
+  return ctx.conGit ? ctx.seguidos.has(rel) : true;
+};
 
 /** Una ruta del repositorio, con barras normales; null si está vacía, es absoluta o sale del repositorio. */
 export const normalizarRuta = (r) => {
@@ -318,18 +389,37 @@ const TITULO_PROTEGIDA = {
 };
 const rutasProtegidas = (ctx, rutas, h) => {
   const settings = ctx.json('.claude/settings.json');
+  const negadasPorSettings = new Set();
   for (const p of permisosDeSettings(settings)) {
     const tocadas = rutas.filter((r) => coincide(r, [p.glob]));
     if (!tocadas.length) continue;
+    if (p.lista === 'deny') tocadas.forEach((r) => negadasPorSettings.add(r));
     const fuente = { archivo: '.claude/settings.json', json: `permissions.${p.lista}[${p.indice}]`, valor: p.valor };
     h.poner({ id: `ruta-protegida:${p.lista}`, nivel: 'CRITICAL', tipo: 'ruta-protegida', titulo: TITULO_PROTEGIDA[p.lista], rutas: tocadas, fuentes: [fuente] });
   }
-  /* La guardia de siempre, preguntada como si se fuera a escribir la ruta: su decisión y su motivo, tal cual. */
   for (const r of rutas) {
+    /* La política propia: credenciales por nombre que settings.json y la guardia no niegan (FN medidos). */
+    if (esSecretoPorPolitica(r)) {
+      const fuente = { archivo: RUTA_POLITICA, json: 'secretos.nombres', valor: path.posix.basename(r) };
+      h.poner({ id: 'ruta-protegida:deny', nivel: 'CRITICAL', tipo: 'ruta-protegida', titulo: TITULO_PROTEGIDA.deny, rutas: [r], fuentes: [fuente] });
+      continue;
+    }
+    /* La guardia de siempre, preguntada como si se fuera a escribir la ruta: su decisión y su motivo, tal cual. */
     if (!citable(r)) continue;
     const g = analizarTexto('Bash', `touch "${r}"`);
     if (!g || (g.decision !== 'deny' && g.decision !== 'ask')) continue;
     const fuente = { archivo: '.claude/hooks/guardia.mjs', ref: 'analizarTexto', valor: `${g.decision}: ${g.motivo}` };
+    /* FP medido: la guardia niega por SUBCADENA del nombre (gha-creds-, service-account) sin mirar la extensión. Si es
+       documentación y settings.json no la niega, se dice (IMPORTANT) pero no es una ruta de secretos; su contenido lo
+       mira escaneo-secretos. La guardia sigue negando a Claude tocarla: eso no cambia. */
+    if (g.decision === 'deny' && !negadasPorSettings.has(r) && esDocumentacion(r)) {
+      h.poner({
+        id: 'ruta-protegida:nombre-en-documentacion', nivel: 'IMPORTANT', tipo: 'ruta-protegida',
+        titulo: 'Documentación con nombre de credencial: la guardia la niega por el nombre, pero no es una ruta de secretos (el contenido lo mira escaneo-secretos)',
+        rutas: [r], fuentes: [fuente, { archivo: RUTA_POLITICA, json: 'documentacion' }],
+      });
+      continue;
+    }
     h.poner({ id: `ruta-protegida:${g.decision}`, nivel: 'CRITICAL', tipo: 'ruta-protegida', titulo: TITULO_PROTEGIDA[g.decision], rutas: [r], fuentes: [fuente] });
   }
 };
@@ -776,7 +866,18 @@ const registros = (ctx, base, rutas, h) => {
       }
       for (const p of t.pasos) {
         if (hoy.pasos.some((q) => q.run === p.run)) continue;
-        const renombrado = p.nombre && hoy.pasos.some((q) => q.nombre === p.nombre);
+        const mismoNombre = p.nombre ? hoy.pasos.find((q) => q.nombre === p.nombre) : null;
+        const renombrado = Boolean(mismoNombre);
+        /* FN-1 medido: el paso conserva su nombre pero su orden se tapa el fallo (`|| true`…): la puerta ya no puede caer. */
+        if (renombrado && neutralizaciones(mismoNombre.run) > neutralizaciones(p.run)) {
+          h.poner({
+            id: `registro:ci:${t.id}:${p.nombre}:neutralizado`, nivel: 'CRITICAL', tipo: 'registro',
+            titulo: `Un paso de «${t.nombre}» conserva su nombre pero ya no puede fallar: ${recortar(p.nombre, 90)}`,
+            detalle: recortar(`Antes: ${p.run} · Ahora: ${mismoNombre.run}`, 300),
+            rutas: [CI], fuentes: [...fuentesDe(t), { archivo: RUTA_POLITICA, json: 'neutralizadores' }],
+          });
+          continue;
+        }
         h.poner({
           id: `registro:ci:${t.id}:${p.nombre || p.run}`, nivel: renombrado ? 'IMPORTANT' : 'CRITICAL', tipo: 'registro',
           titulo: `${renombrado ? 'Cambia' : 'Desaparece'} un paso de «${t.nombre}» en la CI: ${recortar(p.nombre || p.run, 90)}`, detalle: recortar(`Antes: ${p.run}`, 300),
@@ -794,7 +895,7 @@ const registros = (ctx, base, rutas, h) => {
     if (cadenaHoy.error) h.poner({ id: 'registro:cadena', nivel: 'CRITICAL', tipo: 'registro', titulo: 'La cadena de npm test ya no se entiende', detalle: cadenaHoy.error, rutas: [PKG], fuentes });
     else if (cadenaBase.suites) {
       for (const s of cadenaBase.suites.filter((x) => !cadenaHoy.suites.includes(x))) {
-        const sigue = ctx.existeArchivo(`functions/${s}`);
+        const sigue = sigueEnElArbol(ctx, `functions/${s}`);
         h.poner({
           id: `registro:cadena:${s}`, nivel: sigue ? 'CRITICAL' : 'IMPORTANT', tipo: 'registro',
           titulo: sigue ? `${s} sale de la cadena de npm test y sigue existiendo: nadie la ejecutaría` : `${s} se retira (sale de la cadena y su archivo ya no está)`,

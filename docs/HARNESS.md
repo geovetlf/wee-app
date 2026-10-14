@@ -119,8 +119,22 @@ dice, con su fuente exacta (archivo y línea, regla o ruta JSON), lo que hay que
   copia temporal sacada con `git show`, su política y su guardia) sobre el mismo diff y manda el peor resultado
   (FALLO > BLOQUEA > PASA). Si la base aún no tiene el Guardian estricto, queda «NO DISPONIBLE» y se dice. No protege
   su propio camino (`guardian-ci.mjs`, `guardian-base.mjs`, `ci.yml`): eso solo lo para una revisión humana
-  (CODEOWNERS + protección de rama, configuración remota del dueño). Falso negativo conocido: añadir `|| true` a un
-  paso que conserva su nombre es IMPORTANT (`registro:ci` «cambia un paso»), no bloquea.
+  (CODEOWNERS + protección de rama, configuración remota del dueño). Hoy el ruleset de `main` exige PR y los 4
+  niveles de CI, pero con `require_code_owner_review: false` y 0 aprobaciones: sin cambiar eso, un CODEOWNERS no
+  protege nada, y un PR que modifique a la vez el Guardian, `guardian-base.mjs`, `guardian-ci.mjs` y `ci.yml` (o que
+  simplemente quite el paso) puede saltarse toda la autoprotección.
+- **Política propia (`ops/harness/guardian-politica.json`, contrato `wee-guardian-politica@1`):** la única tabla del
+  Guardian; corrige cuatro fallos MEDIDOS sin añadir categorías. (1) `registro:ci:<trabajo>:<paso>:neutralizado`
+  (CRITICAL): un paso que conserva su nombre y pasa a taparse el fallo (`|| true`, `|| :`, `|| exit 0`, `|| echo`,
+  `set +e`; cuenta que aumenta). (2) `ruta-protegida:deny` también para `.env`, `.env.*` (salvo `.example`/`.sample`/
+  `.template`) y `*serviceAccountKey*.json`, en cualquier carpeta. (3) Un `.md` que la guardia niega solo por el nombre
+  (`gha-creds-`, `service-account`) y que settings.json no niega pasa a IMPORTANT `ruta-protegida:nombre-en-documentacion`
+  (la guardia sigue negando a Claude tocarlo). (4) Una suite fuera de la cadena «sigue» solo si está en el índice Y en el
+  disco: un borrado sin preparar ya no bloquea el Stop. Una sección rota, o una carpeta donde debería estar la suite, es
+  FALLO (3). Siguen sin cubrir (OBSERVACIÓN): `continue-on-error: true` o `if: false` en un paso o trabajo que conserva
+  su nombre y su orden (`trabajos()` de ci-local no lee esas claves); renombrar el paso a la vez ya bloquea como
+  «desaparece un paso». Lo fija
+  `guardian-bloqueante.test.mjs` §G (41-53).
 
 ## Hillclimb (F6)
 

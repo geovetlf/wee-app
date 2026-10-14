@@ -72,7 +72,7 @@ export const resolverBase = ({ raiz, entorno = process.env } = {}) => {
  * su verde no es una verificación independiente. Se dice siempre (OBSERVACIÓN: no bloquea) para que lo mire una persona.
  */
 export const PROTECCIONES_PROPIAS = Object.freeze([
-  'ops/harness/guardian*.mjs', 'ops/harness/propuesta-settings-guardian.json', 'ops/revision/**', 'ops/permitido.mjs',
+  'ops/harness/guardian*.mjs', 'ops/harness/guardian-politica.json', 'ops/harness/propuesta-settings-guardian.json', 'ops/revision/**', 'ops/permitido.mjs',
   '.claude/hooks/**', '.claude/settings.json', '.github/workflows/ci.yml', 'scripts/ci-local.mjs', 'functions/test/_cadena.mjs',
   'functions/test/guardian-*.test.mjs', 'functions/test/harness-guardian.test.mjs',
 ]);
