@@ -103,8 +103,24 @@ dice, con su fuente exacta (archivo y línea, regla o ruta JSON), lo que hay que
   regresiones de registro (extensiones de F3, pasos de la CI, suites que salen de la cadena).
 - **Sin ruido y sin inventar:** un hallazgo por hecho, tope por nivel (lo que no cabe se lista en `omitidos`); un
   nombre ambiguo o demasiado amplio no se atribuye, y una ruta que no conoce nadie no produce nada.
-- **Informa; no bloquea:** sale 0 con cualquier informe y 2 si la entrada no vale. Las puertas siguen siendo G3 y la
-  CI. JSON canónico (`wee-guardian@1`) y texto que sale de él. Sin Claude Code (Node y git) y fuera de `functions/src`.
+- **Por defecto informa; no bloquea:** sale 0 con cualquier informe y 2 si algo falla. JSON canónico (`wee-guardian@1`)
+  y texto que sale de él. Sin Claude Code (Node y git) y fuera de `functions/src`.
+- **Modo estricto (WEE Motor Guardian, fase 1 — propuesta en la rama `guardian/fase-1`):** con `--estricto
+  [--bloquear p1,p2]` es una puerta: 0 PASA · 1 BLOQUEA (CRITICAL de `hallazgos` u `omitidos` cuyo id empieza por un
+  prefijo; sin `--bloquear`, cualquiera) · 2 entrada · 3 fallo interno; el informe lleva `veredicto`.
+  `ops/harness/guardian-estricto.mjs` lo ejecuta con tiempo máximo y solo da verde si código, JSON y veredicto
+  recalculado coinciden (Node sale 1 si un módulo no carga). Lo usan el paso «Build Guardian (modo bloqueante)» del
+  Nivel 3 (`ops/harness/guardian-ci.mjs`, criterio `POLITICA_CI`: `g3:`, `registro:`, `guardia:`, `exports:`,
+  `ruta-protegida:deny`) y los hooks propuestos `.claude/hooks/guardian-post-edit.mjs` (PostToolUse) y
+  `guardian-stop.mjs` (Stop), sin registrar (`ops/harness/propuesta-settings-guardian.json`). Lo fijan
+  `guardian-bloqueante.test.mjs` y `guardian-hooks.test.mjs`.
+- **Autoprotección (verificación desde la base):** si el diff toca las protecciones del propio Guardian
+  (`PROTECCIONES_PROPIAS`), el paso de CI ejecuta además el paso de CI **de la base** (`ops/harness/guardian-base.mjs`,
+  copia temporal sacada con `git show`, su política y su guardia) sobre el mismo diff y manda el peor resultado
+  (FALLO > BLOQUEA > PASA). Si la base aún no tiene el Guardian estricto, queda «NO DISPONIBLE» y se dice. No protege
+  su propio camino (`guardian-ci.mjs`, `guardian-base.mjs`, `ci.yml`): eso solo lo para una revisión humana
+  (CODEOWNERS + protección de rama, configuración remota del dueño). Falso negativo conocido: añadir `|| true` a un
+  paso que conserva su nombre es IMPORTANT (`registro:ci` «cambia un paso»), no bloquea.
 
 ## Hillclimb (F6)
 
