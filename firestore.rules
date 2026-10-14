@@ -43,9 +43,11 @@ service cloud.firestore {
       return [request.auth.uid, identidadWeeHeredadaDe(request.auth.uid)];
     }
 
-    // Credit Engine (docs/CREDITS.md): el saldo vive en el perfil y SOLO lo
-    // escribe el servidor (Cloud Functions). Ninguna escritura del cliente
-    // puede crear, cambiar ni borrar estos campos.
+    // Credit Engine (docs/CREDITS.md): el saldo SOLO lo escribe el servidor
+    // (Cloud Functions). F-06: su sitio es `creditAccounts/{uid}` (abajo), que
+    // solo lee su dueño; mientras dure la transición el perfil lleva una copia
+    // (el espejo de las apps viejas). Ninguna escritura del cliente puede crear,
+    // cambiar ni borrar estos campos en el perfil.
     function creditFields() {
       return ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent', 'creditsInitializedAt'];
     }
@@ -195,6 +197,20 @@ service cloud.firestore {
     // `linkedAccountId` es el peor: es el vínculo entre el Perfil Weë y la
     // cuenta real, así que leerlo deshace la separación de identidades que es
     // la razón de ser del Perfil Weë.
+    //
+    // F-06 (2026-10-14): el SALDO ya tiene su sitio privado, `creditAccounts/{uid}`
+    // (abajo). Hasta el contrato (P6 del runbook docs/F06-RUNBOOK.md) el perfil
+    // sigue llevando una copia para las apps viejas; tras P6 deja de llevarla.
+    //
+    // RIESGO RESIDUAL ACEPTADO Y DOCUMENTADO (F-06, D3): mover `linkedAccountId`
+    // NO cerraría la fuga de identidad. El uid guardado del Perfil Weë ES
+    // `hidi_<uid de la cuenta>` y es público en `users.uid`, `posts.userId`,
+    // conversaciones y avisos (`ownsPost` de arriba lo compara así), de modo que
+    // de un post del Perfil Weë se llega al Perfil Real en dos lecturas, con o sin
+    // `linkedAccountId`. El cierre real son identificadores opacos para el Perfil
+    // Weë con el vínculo solo en el servidor (`entities.ownerAccountId`): una
+    // migración XL de posts, votos, conversaciones, avisos y reglas que es una
+    // fase propia y espera decisión del dueño. No se mueve el campo a medias.
     //
     // NO SE ARREGLA CON UNA REGLA, y por eso aquí solo queda la costura. Se
     // arregla separando lo que nunca debió estar junto: el perfil público en
@@ -938,6 +954,16 @@ service cloud.firestore {
            request.resource.data.locale.matches('^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$')));
       allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
+    // EL SALDO DE UNA CUENTA (F-06). Un documento por cuenta, id = uid de
+    // Firebase Auth. Lo lee SOLO su dueño (la píldora de Credits lo escucha en
+    // tiempo real) y no lo escribe nadie desde fuera: solo el Credit Engine, en
+    // la misma transacción que el libro `creditTransactions`. Ni una sesión
+    // anónima de otra cuenta, ni otra cuenta autenticada, ni nadie sin sesión.
+    match /creditAccounts/{uid} {
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Acumulados para administración: solo servidor / consola
     match /creditStats/{statId} {
       allow read, write: if false;
@@ -949,7 +975,7 @@ service cloud.firestore {
     }
 
     // === WALLETS / TRANSACTIONS (billetera anterior, solo lectura) ===
-    // Migrada al Credit Engine (users.creditsBalance + creditTransactions).
+    // Migrada al Credit Engine (creditAccounts/{uid} + creditTransactions).
     // Se conserva de solo lectura hasta que la migración termine; nadie escribe.
     match /wallets/{walletId} {
       allow read: if isAuthenticated() && request.auth.uid == walletId;
