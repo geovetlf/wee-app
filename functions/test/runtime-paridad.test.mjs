@@ -67,7 +67,9 @@ const { orquestadorDeWee } = lib('orchestrator/index.js');
 const core = lib('core/index.js');
 const { resolverConContexto } = lib('router/index.js');
 const { createRouter, memoryHealth, resolveQuality } = lib('engine/router.js');
-const { ADAPTERS, DEFAULT_PROVIDERS, DEFAULT_ROUTING, DEFAULT_SETTINGS } = lib('engine/registry.js');
+const { ADAPTERS, DEFAULT_PROVIDERS, DEFAULT_ROUTING, DEFAULT_SETTINGS: AJUSTES_DE_FABRICA } = lib('engine/registry.js');
+/* El vídeo encendido (Línea B · X2): esta suite prueba el camino cuando SÍ se puede generar; el apagado tiene su suite (linea-b-finanzas). */
+const DEFAULT_SETTINGS = { ...AJUSTES_DE_FABRICA, videoHabilitado: true };
 const { registroDeWee } = lib('registry/index.js');
 const { resolutorPorCadena, resolutorDelRouter } = lib('runtime/resolucion.js');
 

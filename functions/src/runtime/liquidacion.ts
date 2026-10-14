@@ -84,7 +84,9 @@ export type MotivoDeReembolso =
   /* Nunca salió hacia el proveedor: no hay nada que pagar. */
   | 'no_salio'
   /* Salió, y se sabe que acabó mal. */
-  | 'fallo_definitivo';
+  | 'fallo_definitivo'
+  /* Terminó, pero lo hizo el proveedor de muestra (`mock`): un resultado demo no se cobra (B4-03). */
+  | 'resultado_demo';
 
 export type AccionDeLiquidacion =
   /* No hay reserva que cerrar: este trabajo no cobró nada por adelantado. */
@@ -191,7 +193,11 @@ export const decidirLiquidacion = (job: Job, at: number): AccionDeLiquidacion =>
     return { tipo: 'esperar', motivo: 'recuperable' };
   }
 
-  if (job.state === 'completed') return { tipo: 'liquidar', importe: reservaDe(job)!.importe };
+  if (job.state === 'completed') {
+    /* Lo hizo el demo: se entrega, pero se devuelve la reserva entera (Línea B · B4-03). */
+    if (job.implementation?.providerId === 'mock') return { tipo: 'reembolsar', motivo: 'resultado_demo' };
+    return { tipo: 'liquidar', importe: reservaDe(job)!.importe };
+  }
 
   /*
    * Terminal y no completado —`failed`, `timed_out`, `cancelled`—. Aquí sí se

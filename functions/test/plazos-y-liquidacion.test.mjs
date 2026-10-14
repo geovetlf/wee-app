@@ -112,17 +112,18 @@ console.log('\n── B · «En marcha» y «abandonado» se ven igual ──');
 console.log('\n── C · La cadena, de punta a punta ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  const CREATOR = leer('functions/src/creator/index.ts');
+  /* Los dos números viven desde la Línea B (2026-10-14) en `creator/cierre.ts`, que comparte el barrido; la función los usa. */
+  const CREATOR = leer('functions/src/creator/index.ts') + '\n' + leer('functions/src/creator/cierre.ts');
   const ROUTER = leer('functions/src/engine/router.ts');
 
   /* 12 · UN SOLO sitio declara el plazo, y el de la función sale de él. */
   check('12) el plazo se declara una vez y la función lo usa',
-    /const PLAZO_DE_EJECUCION_MS = 900_000;/.test(CREATOR)
+    /const PLAZO_DE_EJECUCION_MS = 900_000;/.test(CREATOR) && (CREATOR.match(/const PLAZO_DE_EJECUCION_MS =/g) || []).length === 1
     && /timeoutSeconds: PLAZO_DE_EJECUCION_MS \/ 1000/.test(CREATOR),
     'antes eran dos números sin relación: 900 aquí y 1 200 en otra tabla');
 
   check('13) y reserva margen para liquidar',
-    /const RESERVA_PARA_LIQUIDAR_MS = 45_000;/.test(CREATOR)
+    /const RESERVA_PARA_LIQUIDAR_MS = 45_000;/.test(CREATOR) && (CREATOR.match(/const RESERVA_PARA_LIQUIDAR_MS =/g) || []).length === 1
     && /PLAZO_DE_EJECUCION_MS - RESERVA_PARA_LIQUIDAR_MS/.test(CREATOR));
 
   check('14) el plazo baja al motor con cada paso',
@@ -183,7 +184,7 @@ console.log('\n── D · El motor, ejecutado de verdad ──');
   const cfg = {
     providers: { alpha: { enabled: true, priority: 1 } },
     routing: { 'video.generate': { capability: 'video.generate', chain: [{ provider: 'alpha' }], policy: 'balanced' } },
-    settings: { ...DEFAULT_SETTINGS },
+    settings: { ...DEFAULT_SETTINGS, videoHabilitado: true }, // Línea B · X2: el plazo del vídeo se mide con el vídeo encendido
     source: 'test',
   };
   const AHORA = 5_000_000;
@@ -236,7 +237,11 @@ console.log('\n── E · El callable, EJECUTADO: un trabajo abandonado se cier
     set: async (d) => { docs.set(p, { ...(docs.get(p) || {}), ...d }); },
     update: async (d) => { docs.set(p, { ...(docs.get(p) || {}), ...d }); },
   });
-  const baseFalsa = { collection: (c) => ({ doc: (id) => ref(`${c}/${id || 'nuevo'}`) }) };
+  /* Desde la Línea B el cierre por abandono es una transición (`cerrarAbandonado`): la base de mentira la sirve en serie. */
+  const baseFalsa = {
+    collection: (c) => ({ doc: (id) => ref(`${c}/${id || 'nuevo'}`) }),
+    runTransaction: async (fn) => fn({ get: (r) => r.get(), update: (r, d) => { docs.set(r.path, { ...(docs.get(r.path) || {}), ...d }); } }),
+  };
   const getFirestoreReal = firestore.getFirestore;
   firestore.getFirestore = () => baseFalsa;
 
@@ -253,7 +258,8 @@ console.log('\n── E · El callable, EJECUTADO: un trabajo abandonado se cier
   /* Un trabajo que se quedó colgado: en marcha, con el plazo ya vencido. */
   docs.set('creatorJobs/colgado', {
     userId: UID, experienceId: 'design', status: 'running', creditsEstimated: 12,
-    deadlineAt: Date.now() - 60_000, plan: {}, steps: [],
+    /* Línea B · X3: abandonado es pasado el fin del PROCESO (deadlineAt + 45 s para liquidar + 30 s de reloj), no el de trabajar. */
+    deadlineAt: Date.now() - 10 * 60_000, plan: {}, steps: [],
   });
 
   let error = null;
