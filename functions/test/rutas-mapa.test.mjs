@@ -66,7 +66,7 @@ const indice = leer('index.js');
   const t = tramo(creator, 'exports.creatorRun = (0, ');
   const o = enOrden(t, [/if \(!request\.auth\)/, /job\.userId !== uid/, /reclamarTrabajo\)?\(/, /limiter\.reserve\(/, /holdCredits\)\(/, /(videoEngine\.generate|runCapability\)\()/]);
   check('1) creatorRun: auth → dueño → reclamo → cupo → reserva → motor, en ese orden', o.ok, o.p.join(','));
-  check('2) creatorRun: si falla tras reservar, reembolso íntegro (settleCredits con 0) en el catch', /catch \(error\) \{[\s\S]{0,600}settleCredits\)\(uid, jobId, job\.creditsEstimated, 0,/.test(t));
+  check('2) creatorRun: si falla tras reservar, reembolso íntegro (settleCredits con 0) en el catch — desde la Línea B, tras cerrar el trabajo como transición; si no se pudo cerrar, lo cierra el barrido', /catch \(error\) \{[\s\S]{0,2500}?(?:if \(cerrado\) )?await \(0, credits_1\.settleCredits\)\(uid, jobId, job\.creditsEstimated, 0,/.test(t));
   check('3) creatorRun: cada paso lleva la transacción de Credits y un requestId jobId:stepId', /creditTransactionId: \(0, creditTransactions_1\.usageTransactionId\)\(jobId\)/.test(t) && /requestId: `\$\{jobId\}:\$\{next\.id\}`/.test(t));
   conocido('M1a', 'creatorRun no mira iaDetenida antes de cupo+reserva (creator/index.ts:610-613)', !/iaDetenida/.test(t));
 }

@@ -62,7 +62,7 @@ const conocido = (id, name, reproduce, extra = '') => {
   conocidos.push({ id, reproduce });
 };
 
-const config = (settings = {}) => ({ providers: DEFAULT_PROVIDERS, routing: DEFAULT_ROUTING, settings: { ...DEFAULT_SETTINGS, ...settings }, source: 'prueba' });
+const config = (settings = {}) => ({ providers: DEFAULT_PROVIDERS, routing: DEFAULT_ROUTING, settings: { ...DEFAULT_SETTINGS, videoHabilitado: true, ...settings }, source: 'prueba' }); // Línea B · X2: se prueba el enrutado cuando el vídeo SÍ se puede generar; el apagado tiene su suite (linea-b-finanzas)
 const montar = (settings, health = memoryHealth()) => {
   const ledger = memoryLedger();
   return { ledger, health, router: createRouter({ adapters: ADAPTERS, loadConfig: async () => config(settings), ledger, health }) };
@@ -166,8 +166,8 @@ sinClaves();
   check('5c) iaDetenida también corta el demo de música', e2?.code === 'NOT_AVAILABLE' && Object.keys(det.ledger.records).length === 0);
   const musica = await router.route(pedir('music.generate'));
   const credits = musica.candidates[0]?.estimatedCredits ?? 0;
-  conocido('R2', 'B4-03: sin proveedor real, la música la atiende el demo y se cotiza con Credits en modo simulated (pricing.ts: «se cobra el precio de muestra, también con el proveedor demo»)',
-    musica.candidates[0]?.provider === 'mock' && credits > 0 && DEFAULT_SETTINGS.pricingMode === 'simulated', `${musica.candidates[0]?.provider} ${credits} Credits, modo ${DEFAULT_SETTINGS.pricingMode}`);
+  check('R2) B4-03 corregido (Línea B): sin proveedor real, la música la atiende el demo y se cotiza a 0 Credits, también en modo simulated',
+    musica.candidates[0]?.provider === 'mock' && credits === 0 && DEFAULT_SETTINGS.pricingMode === 'simulated', `${musica.candidates[0]?.provider} ${credits} Credits, modo ${DEFAULT_SETTINGS.pricingMode}`);
 }
 conClaves();
 {
