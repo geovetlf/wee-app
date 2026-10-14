@@ -85,6 +85,7 @@ export const CLASIFICACION_DE_DATOS: Readonly<Record<string, ClaseDeDatos>> = Ob
   /* ── Dinero: no se reconstruye, no se compensa, no se inventa ────────── */
   creditTransactions: { criticidad: 'CRITICAL', porque: 'el libro de Credits: cada movimiento, y es la única verdad del saldo' },
   creditStats: { criticidad: 'CRITICAL', porque: 'el circulante y los acumulados; perderlo descuadra la economía entera' },
+  creditAccounts: { criticidad: 'CRITICAL', porque: 'el saldo privado de cada cuenta (F-06); el libro lo explica, pero es el que se cobra' },
   wallets: { criticidad: 'CRITICAL', porque: 'la billetera de la cuenta' },
   transactions: { criticidad: 'CRITICAL', porque: 'libro heredado; mientras exista un documento, es dinero' },
   payments: { criticidad: 'CRITICAL', porque: 'el libro de pagos: dinero de verdad' },
@@ -437,6 +438,7 @@ export const RELACIONES: readonly Relacion[] = Object.freeze([
   { desde: 'entities', campo: 'ownerAccountId', hacia: 'accounts', por: 'id', porque: 'toda cara es de una cuenta' },
   { desde: 'users', campo: 'entityId', hacia: 'entities', por: 'entityId', opcional: true, porque: 'la referencia pública del perfil; las copias históricas no la tienen' },
   { desde: 'creditTransactions', campo: 'userId', hacia: 'users', por: 'uid', porque: 'un movimiento de Credits es de alguien' },
+  { desde: 'creditAccounts', campo: 'uid', hacia: 'users', por: 'uid', porque: 'un saldo es de una cuenta con su Perfil Real (F-06)' },
   { desde: 'reports', campo: 'reporterAccountId', hacia: 'accounts', por: 'id', porque: 'una denuncia la hace una cuenta' },
   { desde: 'reports', campo: 'targetOwnerAccountId', hacia: 'accounts', por: 'id', opcional: true, porque: 'de quién era lo denunciado, cuando se pudo leer' },
   { desde: 'assets', campo: 'ownerAccountId', hacia: 'accounts', por: 'id', porque: 'el material es de una cuenta' },

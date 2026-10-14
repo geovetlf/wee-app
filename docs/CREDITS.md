@@ -37,15 +37,28 @@ Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
 
 ## 2. Datos en Firestore
 
-**`users/{docId}`** (el perfil real; se localiza con `uid == auth.uid`). Los Credits son **por cuenta**: el Perfil Weë (`hidi_<uid>`) comparte el saldo del perfil real.
+**`creditAccounts/{uid}`** (F-06, 2026-10-14: un documento por cuenta, id = uid de Firebase Auth). Lo **lee solo su dueño** y **no lo escribe nadie desde fuera**: solo el motor. Los Credits son **por cuenta**: el Perfil Weë (`hidi_<uid>`) no tiene saldo propio.
 
 ```
 creditsBalance          number   saldo actual (nunca < 0)
 creditsLifetimeEarned   number   total recibido (compras + regalos + bienvenida)
 creditsLifetimeSpent    number   total gastado neto (los reembolsos lo reducen)
 creditsInitializedAt    Timestamp
-createdAt / updatedAt
+uid                     string   la cuenta (igual que el id)
+profileRef              string   id del Perfil Real del que se migró / al que se espeja
+creadoAt, creadoDesde   cuándo y desde dónde nació (motor | perfil | script-p3 | script-p6)
+updatedAt
 ```
+
+**`users/{docId}`** (el perfil real; `uid == auth.uid`) llevaba esos mismos campos y es **público** (`allow read: if true`). Mientras dure la transición los sigue llevando como **espejo** para las apps viejas; tras P6 deja de llevarlos. La mudanza va por fases (`FaseSaldo` en `creditEngine.ts`, variable `CREDITS_FASE_SALDO`; runbook en [`docs/F06-RUNBOOK.md`](F06-RUNBOOK.md)):
+
+| Fase | Quién manda | Qué se escribe en cada operación |
+|---|---|---|
+| `sombra` (P2) | el perfil | perfil **y** `creditAccounts` |
+| `cuenta` (P4, **por defecto**) | `creditAccounts` (si falta, se migra del perfil en la misma transacción) | `creditAccounts` **y** el perfil (espejo) |
+| `contrato` (P6, solo con `CREDITS_FASE_SALDO=contrato`) | `creditAccounts` | solo `creditAccounts` |
+
+Una errata en la variable cae en `cuenta`, nunca en `contrato`.
 
 **`creditTransactions/{transactionId}`** — un documento por movimiento, con id determinista:
 
@@ -79,11 +92,11 @@ completedAt?, refundedAt?
 
 ## 4. Transacciones atómicas y migración
 
-Cada movimiento ocurre dentro de `db.runTransaction`: lee el documento de la operación, lee el perfil, comprueba el saldo y escribe (transacción + perfil + acumulados) en un solo commit. Si dos gastos compiten por el mismo saldo, Firestore reintenta el segundo, que vuelve a leer el saldo ya reducido y falla con `INSUFFICIENT_CREDITS` si no alcanza. **El saldo nunca baja de cero**: si `balance < amount` no se escribe nada.
+Cada movimiento ocurre dentro de `db.runTransaction`: lee el documento de la operación, lee `creditAccounts/{uid}` y el perfil, comprueba el saldo y escribe (transacción + saldo en los sitios de la fase + acumulados) en un solo commit. Si dos gastos compiten por el mismo saldo, Firestore reintenta el segundo, que vuelve a leer el saldo ya reducido y falla con `INSUFFICIENT_CREDITS` si no alcanza. **El saldo nunca baja de cero**: si `balance < amount` no se escribe nada.
 
 **`ensureAccount(uid)`** (idempotente) se ejecuta la primera vez que una cuenta llega al motor (al abrir la app, al crear, al comprar):
 
-1. Si el perfil no tiene `creditsBalance`, lee `wallets/{uid}`: el saldo se migra tal cual (`migration_<uid>`, tipo `grant`, "Saldo anterior") y `totalPurchased` / `totalSpent` pasan a los acumulados.
+1. Si la cuenta no tiene `creditsBalance` (ni en `creditAccounts` ni en el perfil), lee `wallets/{uid}`: el saldo se migra tal cual (`migration_<uid>`, tipo `grant`, "Saldo anterior") y `totalPurchased` / `totalSpent` pasan a los acumulados.
 2. Otorga la bienvenida (`grant_welcome_<uid>`, `CREDITS_WELCOME`, 240 por defecto) una sola vez; una segunda llamada no vuelve a otorgar nada.
 
 ---
@@ -182,7 +195,7 @@ Errores: `HttpsError` con `details.code` (`INSUFFICIENT_CREDITS` trae `required`
 
 ## 9. Cliente
 
-- `hooks/useWallet.ts` escucha el perfil real (`users where uid == auth.uid`) y expone `balance`; si la cuenta no está inicializada pide `getCreditsBalance` una vez.
+- `hooks/useWallet.ts` escucha `creditAccounts/{auth.uid}` en tiempo real (F-06; ya no el perfil público) y expone `balance`; si el documento no existe pide `getCreditsBalance` una vez —que inicializa o migra— y pinta lo que contesta mientras llega la escucha.
 - `services/creditsService.ts`: `subscribeToBalance`, `subscribeToTransactions`, `getHistory`, `getCosts`, `getCost`, `purchase`, `spend`; `describeTransaction` (concepto, monto con signo, saldo resultante) y `newRequestId`.
 - Sin diseño nuevo: la píldora "💳 250 Credits", Mi billetera (saldo, Obtenidos / Usados, historial con fecha · concepto · monto · saldo) y la tienda siguen igual; solo cambia de dónde salen los datos.
 

@@ -113,10 +113,17 @@ const perfil = (base, uid, saldo = 5000) => {
   base.docs.set(`users/doc_${uid}`, { uid, displayName: uid });
   return async (motor) => {
     await motor.ensureAccount(uid);
+    /* F-06: el saldo se siembra en sus dos sitios (el privado manda; el perfil es el espejo de las apps viejas). */
     base.docs.get(`users/doc_${uid}`).creditsBalance = saldo;
+    base.docs.get(`creditAccounts/${uid}`).creditsBalance = saldo;
   };
 };
-const saldoEn = (base, uid) => base.docs.get(`users/doc_${uid}`).creditsBalance;
+/* El saldo, y solo si sus dos sitios dicen lo mismo: un espejo desfasado da NaN y hace fallar la aserción que lo use. */
+const saldoEn = (base, uid) => {
+  const enPerfil = base.docs.get(`users/doc_${uid}`)?.creditsBalance;
+  const enCuenta = base.docs.get(`creditAccounts/${uid}`)?.creditsBalance;
+  return enPerfil === enCuenta ? enPerfil : NaN;
+};
 const huellaDePrueba = (texto) => createHash('sha256').update(texto).digest('hex');
 
 /* ═══ A · EL CREDIT ENGINE ════════════════════════════════════════════════ */

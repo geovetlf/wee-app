@@ -121,6 +121,8 @@ const SALDO = 5000;
 for (const uid of CUENTAS) {
   await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: uid });
   await creditEngine.ensureAccount(uid);
+  // F-06: el saldo vive en creditAccounts (fuente canónica). El espejo de users lo mantiene el motor.
+  await db.collection('creditAccounts').doc(uid).update({ creditsBalance: SALDO });
   await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: SALDO });
 }
 await db.collection('aiSettings').doc('runtime').set({ habilitado: true, porCapacidad: { 'video.generate': { cuentas: CUENTAS, experiencias: ['studio'] } } });
