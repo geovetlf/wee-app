@@ -488,6 +488,162 @@ const ambiguo = comoGitHub({ GUARDIAN_RAIZ: c3.r.dir, GUARDIAN_BASE: c3.b });
 check('53) registro: si en el sitio de la suite hay una carpeta (estado que el Guardian no sabe juzgar) sale 3 (FALLO), nunca 0',
   falloInterno(ambiguo, 'estado ambiguo'), fin(ambiguo));
 
+/* ── H. Las evasiones conocidas de la CI que aún pasaban: la puerta sigue ESCRITA pero ya no puede correr o fallar ──
+   Todas son variantes de registro:ci:* (no hay categoría nueva) y se miden con la política propia («neutralizadores» y
+   «ci»). Primero las piezas puras con cada variante (baratas); después el paso de CI TAL CUAL sobre diffs reales: cada
+   evasión tiene su propio id, así que un mismo diff con varias prueba que CADA UNA bloquea por sí misma; el cambio
+   legítimo comparable de cada una pasa (0); y con la sección «ci» rota, un cambio que la necesita sale 3, nunca 0. */
+const { disparadores: disparadoresCI } = await importar('scripts/ci-local.mjs');
+const N = (run) => g.neutralizaciones(run);
+const tapan = ['node a || { true; }', 'node a || (exit 0)', 'node a || { exit 0; }', 'node a; true', 'node a ; :', 'node a; exit 0', 'node a ||exit "0"', 'node a || return 0',
+  'set +eo pipefail', 'set -x +e', 'node a; set +e', 'set +o errexit', '! node a', 'node a && ! node b', 'node a || { echo aviso; }', 'node a || printf x'];
+const noTapan = ['node a', 'node a || { echo "✘ a"; exit 1; }', 'node a || exit 1', 'if ! node a; then exit 1; fi', '[ ! -f x ] && exit 1', 'set -eo pipefail', 'grep x || truex',
+  'node "functions/test/$suite.test.mjs" > "politica-$suite.log" 2>&1 && echo "✔ $suite" || { echo "✘ $suite"; tail -20 "politica-$suite.log"; fallos=1; }'];
+check('54) neutralizadores: las variantes conocidas (`|| { true; }`, `|| (exit 0)`, `; true`, `|| exit "0"`, `set +eo pipefail`, `set +o errexit`, `! orden`…) cuentan; lo legítimo comparable (fallar con mensaje, `if !`, `[ ! … ]`, el bucle de «Políticas») no; y ci.yml de hoy no tiene ninguna',
+  tapan.every((r) => N(r) > 0) && noTapan.every((r) => N(r) === 0) && trabajos(ci).every((t) => t.pasos.every((p) => N(p.run) === 0)),
+  [...tapan.filter((r) => N(r) === 0).map((r) => `no cuenta: ${r}`), ...noTapan.filter((r) => N(r) > 0).map((r) => `cuenta: ${r}`)].join(' | '));
+const paso0 = { si: null, continuaConError: null };
+const conSi = (si) => g.anulaciones(paso0, { ...paso0, si });
+check('55) anulaciones: `continue-on-error` (true o expresión) y un `if:` nuevo que no está entre los que siempre corren (false, ${{ false }}, 0, una condición cualquiera) anulan la puerta; `if: always()`/`success()`/`!cancelled()`, `continue-on-error: false` o la misma condición que en la base, no',
+  ['false', '${{ false }}', "${{ 'false' }}", '0', "github.event_name != 'pull_request'", '${{ 1 == 2 }}'].every((s) => conSi(s).length === 1)
+  && /no corre nunca/.test(conSi('${{ false }}')[0]) && /puede no correr/.test(conSi("github.event_name == 'push'")[0])
+  && ['true', '${{ true }}', "${{ github.event_name == 'pull_request' }}"].every((v) => g.anulaciones(paso0, { ...paso0, continuaConError: v }).length === 1)
+  && ['always()', '${{ always() }}', 'success()', '${{ !cancelled() }}', 'true # siempre'].every((s) => conSi(s).length === 0)
+  && g.anulaciones(paso0, { ...paso0, continuaConError: 'false' }).length === 0
+  && g.anulaciones({ ...paso0, si: "github.ref == 'refs/heads/main'" }, { ...paso0, si: "${{ github.ref == 'refs/heads/main' }}" }).length === 0);
+const YML_SI = ['jobs:', '  j:', '    name: J', '    if: ${{ false }}', '    continue-on-error: true', '    steps:', '      - if: false', '        name: Uno', '        run: node uno.mjs',
+  '      - name: Dos', '        continue-on-error: ${{ true }}', '        shell: bash {0}', '        run: |-', '          node dos.mjs', '          node tres.mjs', ''].join('\n');
+const [jSi] = trabajos(YML_SI);
+check('56) el lector de la CI (scripts/ci-local.mjs) ve `if:` y `continue-on-error` del trabajo y de cada paso (también `- if:` en la línea del guion), su `shell` y los bloques `|-`',
+  jSi.si === '${{ false }}' && jSi.continuaConError === 'true' && jSi.pasos[0].si === 'false' && jSi.pasos[0].nombre === 'Uno'
+  && jSi.pasos[1].continuaConError === '${{ true }}' && jSi.pasos[1].shell === 'bash {0}' && jSi.pasos[1].run === 'node dos.mjs\nnode tres.mjs', JSON.stringify(jSi));
+const dis = (y) => JSON.stringify([...(disparadoresCI(y) || [])]);
+check('57) los disparadores (`on:`) se leen en sus tres formas y con sus filtros; sin `on:` es null',
+  dis('on: [push, pull_request]\n') === '[["push",""],["pull_request",""]]' && dis('on: pull_request\n') === '[["pull_request",""]]'
+  && dis("on:\n  pull_request:\n    paths: ['docs/**']\n  push:\n    branches: [main] # solo main\n") === '[["pull_request","paths: [\'docs/**\']"],["push","branches: [main]"]]'
+  && dis('"on":\n  push:\n') === '[["push",""]]' && disparadoresCI('name: x\n') === null && dis(ci) === '[["pull_request",""],["push","branches: [main]"],["workflow_dispatch",""]]');
+const RS = JSON.parse(leer('ops/github/ruleset-main.json'));
+check('58) el ruleset como código: requeridosDelRuleset lee los checks requeridos, si está activo y sus excepciones; uno que no se entiende es { error }; y los ajustes que quitan el -e se reconocen (bash {0} sí; bash, bash -e {0} y el de GitHub no)',
+  g.requeridosDelRuleset(JSON.stringify(RS)).contextos.length === 4 && g.requeridosDelRuleset(JSON.stringify(RS)).activo && g.requeridosDelRuleset('no es json').error
+  && g.ajustesQueNeutralizan('        shell: bash {0}\n      - shell: sh {0}\n    env:\n      BASH_ENV: x\n').length === 3
+  && g.ajustesQueNeutralizan('        shell: bash\n        shell: bash -e {0}\n        shell: bash --noprofile --norc -eo pipefail {0}\n').length === 0
+  && g.ajustesQueNeutralizan(ci).length === 0 && JSON.stringify(g.elementosDeBucles('for suite in a b-c d; do\n  x\ndone')) === '["a","b-c","d"]');
+
+/* El paso de CI TAL CUAL sobre diffs reales: una CI con la forma de la de Weë (un Nivel 1, un Nivel 3 con sus pasos
+   protegidos y el bucle de «Políticas») y el ruleset de main como código. */
+const CI_H = ['name: CI', 'on:', '  pull_request:', '  push:', '    branches: [main]', 'permissions:', '  contents: read', 'jobs:',
+  '  nivel-1:', '    name: Nivel 1 · prueba', '    runs-on: ubuntu-latest', '    steps:', '      - name: Uno', '        run: node uno.mjs',
+  '  nivel-3:', '    name: Nivel 3 · seguridad y políticas', '    needs: nivel-1', '    runs-on: ubuntu-latest', '    steps:',
+  '      - uses: actions/checkout@0000000000000000000000000000000000000000', '        with:', '          persist-credentials: false',
+  '      - name: Revisión determinista (puertas G0 y G3)', '        run: node ops/revision/baseline.mjs',
+  '      - name: Build Guardian (modo bloqueante)', '        run: node ops/harness/guardian-ci.mjs',
+  ...[1, 2, 3, 4, 5, 6, 7, 8].flatMap((i) => [`      - name: P${i}`, `        run: node p${i}.mjs`]),
+  '      - name: Políticas', '        run: |', '          fallos=0', '          for suite in a b c; do',
+  '            node "functions/test/$suite.test.mjs" || { echo "✘ $suite"; fallos=1; }', '          done', '          exit $fallos', ''].join('\n');
+const RULESET_H = (cambiar = (r) => r) => `${JSON.stringify(cambiar({
+  name: 'main protegida', enforcement: 'active', bypass_actors: [],
+  rules: [{ type: 'required_status_checks', parameters: { strict_required_status_checks_policy: true, required_status_checks: [{ context: 'Nivel 1 · prueba', integration_id: 15368 }, { context: 'Nivel 3 · seguridad y políticas', integration_id: 15368 }] } }],
+}), null, 2)}\n`;
+const nuevaCI = () => repo({ ...BASE, '.github/workflows/ci.yml': CI_H, 'ops/github/ruleset-main.json': RULESET_H(),
+  'functions/test/a.test.mjs': "console.log('a');\n", 'functions/test/b.test.mjs': "console.log('b');\n", 'functions/test/c.test.mjs': "console.log('c');\n" });
+const cambiar = (texto, pares) => pares.reduce((t, [de, a]) => { if (!t.includes(de)) throw new Error(`la prueba no encuentra «${de}»`); return t.replace(de, a); }, texto);
+const bloqueaTodas = (x, ids) => x.status === 1 && ids.every((id) => (x.stdout.match(/^✘ BLOQUEA: CRITICAL que bloquean: (.*)$/m) || ['', ''])[1].split(', ').includes(id));
+const faltan = (x, ids) => ids.filter((id) => !(x.stdout.match(/^✘ BLOQUEA: CRITICAL que bloquean: (.*)$/m) || ['', ''])[1].split(', ').includes(id)).join(' | ');
+
+/* E1 · en un solo diff: condiciones, continue-on-error, las variantes de neutralización, un shell sin -e, una suite que
+   sale del bucle y un filtro en el disparador del PR. */
+const e1 = nuevaCI();
+const be1 = e1.sha();
+e1.escribir('.github/workflows/ci.yml', cambiar(CI_H, [
+  ['  pull_request:\n', "  pull_request:\n    paths: ['docs/**']\n"],
+  ['    name: Nivel 1 · prueba\n', '    name: Nivel 1 · prueba\n    if: ${{ false }}\n'],
+  ['      - name: Revisión determinista (puertas G0 y G3)\n', "      - if: github.event_name != 'pull_request'\n        name: Revisión determinista (puertas G0 y G3)\n"],
+  ['        run: node ops/harness/guardian-ci.mjs\n', '        run: node ops/harness/guardian-ci.mjs\n        continue-on-error: true\n'],
+  ['run: node p1.mjs', 'run: node p1.mjs || { true; }'], ['run: node p2.mjs', 'run: node p2.mjs; true'], ['run: node p3.mjs', 'run: node p3.mjs || (exit 0)'],
+  ['run: node p4.mjs', 'run: node p4.mjs ||exit "0"'], ['run: node p5.mjs', 'run: |\n          set +eo pipefail\n          node p5.mjs'],
+  ['run: node p6.mjs', 'run: set +o errexit; node p6.mjs'], ['run: node p7.mjs', 'run: node p0.mjs && ! node p7.mjs'],
+  ['        run: node p8.mjs\n', '        shell: bash {0}\n        run: node p8.mjs\n'],
+  ['for suite in a b c; do', 'for suite in a c; do'],
+]));
+const x1 = comoGitHub({ GUARDIAN_RAIZ: e1.dir, GUARDIAN_BASE: be1 });
+const IDS_E1 = ['registro:ci:nivel-1:anulado', 'registro:ci:nivel-3:Revisión determinista (puertas G0 y G3):anulado', 'registro:ci:nivel-3:Build Guardian (modo bloqueante):anulado',
+  ...[1, 2, 3, 4, 5, 6, 7].map((i) => `registro:ci:nivel-3:P${i}:neutralizado`), 'registro:ci:ajustes', 'registro:ci:nivel-3:Políticas:b', 'registro:ci:on:pull_request:filtro'];
+check('59) registro:ci (evasiones): `if: ${{ false }}` en un trabajo, `- if:` en un paso protegido, `continue-on-error: true` en el Build Guardian, `|| { true; }`, `; true`, `|| (exit 0)`, `||exit "0"`, `set +eo pipefail`, `set +o errexit`, `! orden`, `shell: bash {0}`, una suite que sale del bucle de «Políticas» y `paths:` en el disparador del PR → el paso de CI sale 1 con CADA id, y lo explica',
+  bloqueaTodas(x1, IDS_E1) && /puede no correr o no fallar/.test(x1.stdout) && /no corre nunca/.test(x1.stdout) && /continue-on-error: true \(su fallo ya no para nada\)/.test(x1.stdout)
+  && /ya no puede fallar/.test(x1.stdout) && /un fallo ya no los pararía/.test(x1.stdout) && /b sale del paso «Políticas»/.test(x1.stdout) && /restringe cuándo se dispara con «pull_request»/.test(x1.stdout),
+  `${x1.status} faltan: ${faltan(x1, IDS_E1)} ${x1.stdout.slice(-300)}`);
+
+/* E2 · el disparador del PR desaparece (forma en línea), el Nivel 3 entero puede no fallar, y dos pasos protegidos del
+   Nivel 3: uno se borra y otro cambia de nombre Y de orden. */
+const e2 = nuevaCI();
+const be2 = e2.sha();
+e2.escribir('.github/workflows/ci.yml', cambiar(CI_H, [
+  ['on:\n  pull_request:\n  push:\n    branches: [main]\n', 'on: [push]\n'],
+  ['    needs: nivel-1\n', "    needs: nivel-1\n    continue-on-error: ${{ github.event_name == 'pull_request' }}\n"],
+  ['      - name: Build Guardian (modo bloqueante)\n        run: node ops/harness/guardian-ci.mjs\n', ''],
+  ['      - name: Revisión determinista (puertas G0 y G3)\n        run: node ops/revision/baseline.mjs\n', '      - name: Revisión\n        run: node ops/revision/baseline.mjs --solo-avisos\n'],
+]));
+const x2 = comoGitHub({ GUARDIAN_RAIZ: e2.dir, GUARDIAN_BASE: be2 });
+const IDS_E2 = ['registro:ci:on:pull_request', 'registro:ci:nivel-3:anulado', 'registro:ci:nivel-3:Build Guardian (modo bloqueante)', 'registro:ci:nivel-3:Revisión determinista (puertas G0 y G3)'];
+check('60) registro:ci (evasiones): `on: [push]` (la CI ya no corre en los PR), `continue-on-error` con expresión en el Nivel 3, borrar el paso «Build Guardian» y renombrar la revisión determinista cambiando su orden → sale 1 con cada id',
+  bloqueaTodas(x2, IDS_E2) && /deja de dispararse con «pull_request»/.test(x2.stdout) && /Desaparece un paso de «Nivel 3 · seguridad y políticas» en la CI: Build Guardian/.test(x2.stdout),
+  `${x2.status} faltan: ${faltan(x2, IDS_E2)} ${x2.stdout.slice(-300)}`);
+
+/* E3 · los checks requeridos: se quitan del ruleset, se apaga, gana una excepción, otro workflow suplanta uno y el
+   trabajo que emite otro cambia de nombre. */
+const e3 = nuevaCI();
+const be3 = e3.sha();
+e3.escribir('ops/github/ruleset-main.json', RULESET_H((r) => ({ ...r, enforcement: 'disabled', bypass_actors: [{ actor_id: 5, actor_type: 'RepositoryRole', bypass_mode: 'always' }],
+  rules: [{ ...r.rules[0], parameters: { ...r.rules[0].parameters, required_status_checks: r.rules[0].parameters.required_status_checks.slice(0, 1) } }] })));
+e3.escribir('.github/workflows/otro.yml', 'name: Otro\non: [pull_request]\njobs:\n  falso:\n    name: Nivel 1 · prueba\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo verde\n');
+e3.git('add', '.github/workflows/otro.yml');
+e3.escribir('.github/workflows/ci.yml', cambiar(CI_H, [['    name: Nivel 1 · prueba\n', '    name: Nivel 1 · otra\n']]));
+const x3 = comoGitHub({ GUARDIAN_RAIZ: e3.dir, GUARDIAN_BASE: be3 });
+const IDS_E3 = ['registro:ci:requeridos:Nivel 3 · seguridad y políticas', 'registro:ci:requeridos:enforcement', 'registro:ci:requeridos:bypass',
+  'registro:ci:suplanta:.github/workflows/otro.yml', 'registro:ci:requeridos:Nivel 1 · prueba:sin-emisor'];
+check('61) registro:ci (evasiones): quitar un trabajo de los requeridos del ruleset, apagarlo, darle una excepción, que otro workflow emita un check con el nombre de uno requerido y renombrar el trabajo que lo emite → sale 1 con cada id',
+  bloqueaTodas(x3, IDS_E3) && /deja de ser requerido/.test(x3.stdout) && /su verde contaría como el de la CI/.test(x3.stdout),
+  `${x3.status} faltan: ${faltan(x3, IDS_E3)} ${x3.stdout.slice(-300)}`);
+
+/* L · lo legítimo comparable de cada una, en un solo diff: nada de esto deja una puerta sin poder correr o fallar. */
+const l1 = nuevaCI();
+const bl1 = l1.sha();
+l1.escribir('.github/workflows/ci.yml', cambiar(CI_H, [
+  ['  push:\n    branches: [main]\n', '  push:\n    branches: [main]\n  workflow_dispatch:\n'],
+  ['    name: Nivel 1 · prueba\n', '    name: Nivel 1 · prueba\n    if: ${{ always() }}\n'],
+  ['        run: node ops/harness/guardian-ci.mjs\n', '        if: success()\n        continue-on-error: false\n        run: node ops/harness/guardian-ci.mjs\n'],
+  ['      - name: P1\n', '      - name: P1 con otro nombre\n'],
+  ['run: node p2.mjs', 'run: node p2.mjs || { echo "falló p2"; exit 1; }'],
+  ['        run: node p8.mjs\n', '        shell: bash -e {0}\n        run: node p8.mjs\n'],
+  ['for suite in a b c; do', 'for suite in a b; do'],
+]));
+l1.git('rm', '-q', 'functions/test/c.test.mjs');
+l1.escribir('ops/github/ruleset-main.json', RULESET_H((r) => ({ ...r, rules: [{ ...r.rules[0], parameters: { ...r.rules[0].parameters,
+  required_status_checks: [...r.rules[0].parameters.required_status_checks, { context: 'Guardian de la base (independiente)', integration_id: 15368 }] } }] })));
+l1.escribir('.github/workflows/otro.yml', 'name: Otro\non: [pull_request]\njobs:\n  otro:\n    name: Otra cosa\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hola\n');
+l1.git('add', '.github/workflows/otro.yml');
+const xl = comoGitHub({ GUARDIAN_RAIZ: l1.dir, GUARDIAN_BASE: bl1 });
+check('62) lo legítimo comparable PASA (0): `if: always()`/`success()`, `continue-on-error: false`, renombrar un paso sin cambiar su orden, fallar con mensaje (`|| { echo …; exit 1; }`), `shell: bash -e {0}`, añadir workflow_dispatch, retirar una suite del bucle borrando su archivo, requerir un check más y otro workflow con otro nombre — y lo que cambia se sigue diciendo (IMPORTANT)',
+  pasaSin(xl, 'registro:') && /c sale del paso «Políticas» de «Nivel 3 · seguridad y políticas» \(y su archivo ya no está\)/.test(xl.stdout) && /Cambia un paso de «Nivel 3 · seguridad y políticas» en la CI: P2/.test(xl.stdout),
+  fin(xl));
+
+/* F · un fallo interno de esas mismas reglas es FALLO (3), nunca 0: la sección «ci» rota, con un cambio que la necesita
+   (la CI, o solo el ruleset); y un cambio que no la necesita (solo documentación) sigue en 0. */
+const f1h = nuevaCI();
+const bf1h = f1h.sha();
+f1h.escribir('.github/workflows/ci.yml', cambiar(CI_H, [['        run: node ops/harness/guardian-ci.mjs\n', '        run: node ops/harness/guardian-ci.mjs\n        continue-on-error: true\n']]));
+const rotaCI = pasoConPolitica(f1h, bf1h, (p) => ({ ...p, ci: { ...p.ci, siempreCorren: 'no es una lista' } }));
+const f2h = nuevaCI();
+const bf2h = f2h.sha();
+f2h.escribir('ops/github/ruleset-main.json', RULESET_H((r) => ({ ...r, enforcement: 'disabled' })));
+const rotaCIRuleset = pasoConPolitica(f2h, bf2h, (p) => ({ ...p, ci: { ...p.ci, ajustes: ['('] } }));
+const f3h = nuevaCI();
+const bf3h = f3h.sha();
+f3h.escribir('docs/nota.md', '# Nota\n\nOtra.\n');
+const rotaCIDocs = pasoConPolitica(f3h, bf3h, (p) => ({ ...p, ci: 'rota' }));
+check('63) registro:ci: con la sección «ci» de la política rota, un cambio en la CI y otro solo en el ruleset salen 3 (FALLO, nunca 0); solo documentación sigue en 0',
+  falloInterno(rotaCI, '«ci»') && falloInterno(rotaCIRuleset, '«ci»') && rotaCIDocs.status === 0, `${fin(rotaCI)} | ${fin(rotaCIRuleset)} | ${fin(rotaCIDocs)}`);
+
 const pkg = JSON.parse(leer('functions/package.json'));
 const bucle = ((ci.match(/for suite in ([^;\n]+); do/) || [])[1] || '').split(/\s+/);
 check('21) esta suite está en la cadena de `npm test` y en el bucle de políticas del Nivel 3', /guardian-bloqueante\.test\.mjs/.test(pkg.scripts.test) && bucle.includes('guardian-bloqueante'));

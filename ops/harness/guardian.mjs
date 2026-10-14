@@ -54,7 +54,7 @@ import { decidir, DESPLEGABLE_DE } from '../permitido.mjs';
 import { analizarTexto } from '../../.claude/hooks/guardia.mjs';
 import { cargarRegistro, construirRegistro, conCapacidad, CARPETA as EXTENSIONES } from './extensiones.mjs';
 import { suitesDeLaCadena } from '../../functions/test/_cadena.mjs';
-import { trabajos, CI } from '../../scripts/ci-local.mjs';
+import { trabajos, disparadores as disparadoresDeCI, CI } from '../../scripts/ci-local.mjs';
 import {
   recortar, unicos, filasDelMapa, decisionesDelTexto, cercasDeSuite, permisosDeSettings, resolverToken, casa,
 } from './guardian-fuentes.mjs';
@@ -165,6 +165,16 @@ const SECCIONES_DE_POLITICA = {
     if (!textosNoVacios(v)) throw new Error('hace falta una lista de expresiones regulares');
     return v.map((s) => new RegExp(s, 'gm'));
   },
+  ci: (v) => {
+    if (!v || typeof v !== 'object' || !textosNoVacios(v.siempreCorren) || !textosNoVacios(v.disparadores) || !textosNoVacios(v.ajustes)
+      || typeof v.ruleset !== 'string' || !/^[\w.-]+(?:\/[\w.-]+)*\.json$/.test(v.ruleset)) {
+      throw new Error('hace falta { siempreCorren: [..], disparadores: [..], ajustes: [expresiones], ruleset: "ruta.json" }');
+    }
+    return {
+      siempreCorren: v.siempreCorren.map((x) => x.replace(/\s+/g, '').toLowerCase()), disparadores: v.disparadores,
+      ajustes: v.ajustes.map((s) => new RegExp(s, 'gm')), ruleset: v.ruleset,
+    };
+  },
 };
 const seccionesLeidas = new Map();
 export const seccionDePolitica = (nombre) => {
@@ -185,8 +195,50 @@ export const esSecretoPorPolitica = (ruta) => {
 };
 /** ¿Es documentación? (FP medido: un `.md` con `gha-creds-`/`service-account` en el nombre no es una credencial). */
 export const esDocumentacion = (ruta) => seccionDePolitica('documentacion').includes(path.posix.extname(String(ruta)).toLowerCase());
-/** Cuántas veces un `run:` se tapa el propio fallo (`|| true`, `|| :`, `|| exit 0`, `|| echo`, `set +e`). FN-1 medido. */
+/**
+ * Cuántas veces un `run:` se tapa el propio fallo (`|| true`, `|| :`, `|| exit 0`, `|| echo`, `set +e`; FN-1 medido) y sus
+ * variantes (`|| { true; }`, `|| (exit 0)`, `; true`, `set +eo pipefail`, `set +o errexit`, `! orden`).
+ */
 export const neutralizaciones = (run) => seccionDePolitica('neutralizadores').reduce((n, re) => n + (String(run || '').match(re) || []).length, 0);
+/** Pura: el valor de una clave de YAML como expresión: sin comentario, sin `${{ }}`, sin comillas y sin espacios. */
+const expresionYAML = (v) => String(v ?? '').replace(/\s+#.*$/, '').trim()
+  .replace(/^\$\{\{([\s\S]*)\}\}$/, '$1').trim().replace(/^(['"])([\s\S]*)\1$/, '$2').replace(/\s+/g, '');
+/** ¿Una condición `if:` que no salta nunca (política «ci.siempreCorren»)? */
+export const condicionQueSiempreCorre = (v) => seccionDePolitica('ci').siempreCorren.includes(expresionYAML(v).toLowerCase());
+const condicionQueNuncaCorre = (v) => ['false', '0', 'null', "''", '""'].includes(expresionYAML(v).toLowerCase());
+/** ¿Un `continue-on-error:` que tapa el fallo? Todo lo que no sea `false` literal puede valer true (una expresión también). */
+const tapaElFallo = (v) => v !== null && v !== undefined && expresionYAML(v).toLowerCase() !== 'false';
+/**
+ * Pura: por qué una puerta de la CI (paso o trabajo) que sigue escrita ya no puede correr o fallar, comparada con la
+ * base: un `continue-on-error` nuevo, o un `if:` nuevo o cambiado que no está entre los que siempre corren (un paso o un
+ * trabajo SALTADO no falla, y un check requerido saltado cuenta como verde). [] si nada cambia en ese sentido.
+ */
+export const anulaciones = (antes, ahora) => {
+  const m = [];
+  if (tapaElFallo(ahora?.continuaConError) && !tapaElFallo(antes?.continuaConError)) m.push(`continue-on-error: ${ahora.continuaConError} (su fallo ya no para nada)`);
+  const si = ahora?.si ?? null;
+  if (si !== null && expresionYAML(si) !== expresionYAML(antes?.si ?? '') && !condicionQueSiempreCorre(si)) {
+    m.push(`if: ${si} (${condicionQueNuncaCorre(si) ? 'no corre nunca' : 'puede no correr'}: un salto no falla)`);
+  }
+  return m;
+};
+/** Pura: las palabras de los bucles `for x in a b c; do` de una orden (las suites del paso «Políticas»). */
+export const elementosDeBucles = (run) => [...String(run || '').matchAll(/\bfor\s+\w+\s+in\s+([^;\n]+);\s*do\b/g)]
+  .flatMap((m) => m[1].trim().split(/\s+/)).filter((x) => /^[\w.-]+$/.test(x));
+/** Pura: lo que un workflow ajusta para que sus pasos ya no paren al fallar (política «ci.ajustes»), línea a línea. */
+export const ajustesQueNeutralizan = (yml) => seccionDePolitica('ci').ajustes.flatMap((re) => [...String(yml || '').matchAll(re)].map((m) => m[0].trim()));
+/** Pura: lo que dice de los checks requeridos el ruleset de main (ops/github/ruleset-main.json), o { error }. */
+export const requeridosDelRuleset = (texto) => {
+  try {
+    const j = JSON.parse(texto);
+    if (!j || typeof j !== 'object') throw new Error('no es un objeto');
+    const regla = (Array.isArray(j.rules) ? j.rules : []).find((r) => r && r.type === 'required_status_checks');
+    return {
+      contextos: (regla?.parameters?.required_status_checks || []).map((c) => c && c.context).filter((c) => typeof c === 'string'),
+      activo: j.enforcement === 'active', excepciones: Array.isArray(j.bypass_actors) ? j.bypass_actors.length : 0,
+    };
+  } catch (e) { return { error: e.message }; }
+};
 /**
  * ¿La suite sigue en lo que se va a integrar? En el índice de git Y en el disco como archivo. Un borrado sin preparar
  * ya no cuenta como «sigue» (FP local medido en el hook Stop). Algo que está en el disco y no es un archivo (una carpeta
@@ -822,6 +874,133 @@ const disparadores = (ctx, resultado, h) => {
   }
 };
 
+/**
+ * Las variantes de registro:ci:* que dejan una puerta ESCRITA pero sin poder correr o fallar: un trabajo o un paso con
+ * `continue-on-error` o con un `if:` que puede saltarlo, un disparador perdido o restringido, un shell sin -e, una suite
+ * que sale del bucle de «Políticas», un check que deja de ser requerido o que otro workflow suplanta. Se miden con la
+ * sección «ci» de la política propia, que solo se lee si cambia la CI, otro workflow u ops/github (rota → FALLO, 3).
+ */
+const registrosDeLaCI = (ctx, base, rutas, workflows, h) => {
+  const cambia = (p) => rutas.some((r) => r === p || r.startsWith(`${p}/`));
+  const politicaCI = seccionDePolitica('ci');
+  const RULESET = politicaCI.ruleset;
+  const fuenteCI = { archivo: RUTA_POLITICA, json: 'ci' };
+  const textoRulesetBase = contenidosEnBase(ctx.raiz, base, [RULESET]).get(RULESET);
+  const reqBase = textoRulesetBase === undefined || textoRulesetBase === null ? null : requeridosDelRuleset(textoRulesetBase);
+  const reqHoy = cambia(RULESET) ? requeridosDelRuleset(ctx.leer(RULESET) ?? '') : reqBase;
+  /* Los checks requeridos de main: los de la BASE mandan (son los que el cambio no puede escoger); si no hay, los de hoy. */
+  const requeridos = (reqBase && !reqBase.error ? reqBase : reqHoy && !reqHoy.error ? reqHoy : { contextos: [] }).contextos;
+  if (cambia(RULESET) && reqBase && !reqBase.error) {
+    const fuentesR = [{ archivo: RULESET, json: 'rules[required_status_checks]' }, fuenteCI];
+    if (reqHoy.error) {
+      h.poner({ id: 'registro:ci:requeridos', nivel: 'CRITICAL', tipo: 'registro', titulo: `El ruleset de main (${RULESET}) ya no se entiende o desaparece: nadie exige los checks de la CI`, detalle: reqHoy.error, rutas: [RULESET], fuentes: fuentesR });
+    } else {
+      for (const c of reqBase.contextos.filter((x) => !reqHoy.contextos.includes(x))) {
+        h.poner({ id: `registro:ci:requeridos:${c}`, nivel: 'CRITICAL', tipo: 'registro', titulo: `El check «${c}» deja de ser requerido para entrar en main`, rutas: [RULESET], fuentes: fuentesR });
+      }
+      if (reqBase.activo && !reqHoy.activo) h.poner({ id: 'registro:ci:requeridos:enforcement', nivel: 'CRITICAL', tipo: 'registro', titulo: 'El ruleset de main deja de estar activo: los checks requeridos ya no se exigen', rutas: [RULESET], fuentes: fuentesR });
+      if (reqHoy.excepciones > reqBase.excepciones) h.poner({ id: 'registro:ci:requeridos:bypass', nivel: 'CRITICAL', tipo: 'registro', titulo: `El ruleset de main gana excepciones (bypass_actors: ${reqBase.excepciones} → ${reqHoy.excepciones}): alguien podría entrar sin los checks`, rutas: [RULESET], fuentes: fuentesR });
+    }
+  }
+  /* Otro workflow que emite un check con el nombre de uno requerido lo suplanta: su verde vale como el de la CI. */
+  for (const w of workflows.filter((r) => r !== CI)) {
+    const texto = ctx.leer(w);
+    if (texto === null) continue;
+    const nombres = [...texto.matchAll(/^[ \t-]*name:[ \t]*(['"]?)(.+?)\1[ \t]*(?:#.*)?$/gm)].map((m) => m[2]);
+    const suplanta = requeridos.filter((c) => nombres.includes(c));
+    if (suplanta.length) {
+      h.poner({
+        id: `registro:ci:suplanta:${w}`, nivel: 'CRITICAL', tipo: 'registro', titulo: `${w} emite un check con el nombre de uno requerido (${suplanta.join(', ')}): su verde contaría como el de la CI`,
+        rutas: [w], fuentes: [{ archivo: RULESET, json: 'rules[required_status_checks]' }, fuenteCI],
+      });
+    }
+  }
+  if (cambia(CI)) {
+    const textoBase = contenidosEnBase(ctx.raiz, base, [CI]).get(CI) || '';
+    const textoHoy = ctx.leer(CI) || '';
+    const ciBase = trabajos(textoBase);
+    const ciHoy = trabajos(textoHoy);
+    const fuentesDe = (t) => [{ archivo: CI, ref: t.id }, { archivo: 'scripts/ci-local.mjs', ref: 'trabajos' }];
+    const anulado = (t, p, motivos) => h.poner({
+      id: `registro:ci:${t.id}${p ? `:${p.nombre || p.run}` : ''}:anulado`, nivel: 'CRITICAL', tipo: 'registro',
+      titulo: p ? `Un paso de «${t.nombre}» sigue escrito pero puede no correr o no fallar: ${recortar(p.nombre || p.run, 90)}`
+        : `El trabajo «${t.nombre}» sigue en la CI pero puede no correr o no fallar`,
+      detalle: recortar(motivos.join(' · '), 300), rutas: [CI], fuentes: [...fuentesDe(t), fuenteCI],
+    });
+    for (const t of ciBase) {
+      const hoy = ciHoy.find((x) => x.id === t.id);
+      if (!hoy) {
+        h.poner({ id: `registro:ci:${t.id}`, nivel: 'CRITICAL', tipo: 'registro', titulo: `Desaparece el trabajo «${t.nombre}» de la CI`, rutas: [CI], fuentes: fuentesDe(t) });
+        continue;
+      }
+      const delTrabajo = anulaciones(t, hoy);
+      if (delTrabajo.length) anulado(t, null, delTrabajo);
+      /* Un check requerido que nadie emite ya (el trabajo cambia de nombre): un PR que lo quite de la lista ya no lo necesita. */
+      if (requeridos.includes(t.nombre) && hoy.nombre !== t.nombre && !ciHoy.some((x) => x.nombre === t.nombre)) {
+        h.poner({ id: `registro:ci:requeridos:${t.nombre}:sin-emisor`, nivel: 'CRITICAL', tipo: 'registro', titulo: `El check requerido «${t.nombre}» ya no lo emite ningún trabajo (ahora se llama «${hoy.nombre}»)`, rutas: [CI], fuentes: [...fuentesDe(t), { archivo: RULESET, json: 'rules[required_status_checks]' }] });
+      }
+      for (const p of t.pasos) {
+        const iguales = hoy.pasos.filter((q) => q.run === p.run);
+        if (iguales.length) {
+          if (!iguales.some((q) => !anulaciones(p, q).length)) anulado(t, p, anulaciones(p, iguales[0]));
+          continue;
+        }
+        const mismoNombre = p.nombre ? hoy.pasos.find((q) => q.nombre === p.nombre) : null;
+        const renombrado = Boolean(mismoNombre);
+        /* FN-1 medido: el paso conserva su nombre pero su orden se tapa el fallo (`|| true`…): la puerta ya no puede caer. */
+        if (renombrado && neutralizaciones(mismoNombre.run) > neutralizaciones(p.run)) {
+          h.poner({
+            id: `registro:ci:${t.id}:${p.nombre}:neutralizado`, nivel: 'CRITICAL', tipo: 'registro',
+            titulo: `Un paso de «${t.nombre}» conserva su nombre pero ya no puede fallar: ${recortar(p.nombre, 90)}`,
+            detalle: recortar(`Antes: ${p.run} · Ahora: ${mismoNombre.run}`, 300),
+            rutas: [CI], fuentes: [...fuentesDe(t), { archivo: RUTA_POLITICA, json: 'neutralizadores' }],
+          });
+          continue;
+        }
+        if (renombrado && anulaciones(p, mismoNombre).length) { anulado(t, p, anulaciones(p, mismoNombre)); continue; }
+        /* Una suite que sale del bucle del paso (el de «Políticas») y sigue existiendo: nadie la ejecutaría. */
+        if (renombrado) {
+          const quedan = elementosDeBucles(mismoNombre.run);
+          for (const s of unicos(elementosDeBucles(p.run).filter((x) => !quedan.includes(x)))) {
+            const sigue = sigueEnElArbol(ctx, `functions/test/${s}.test.mjs`);
+            h.poner({
+              id: `registro:ci:${t.id}:${p.nombre}:${s}`, nivel: sigue ? 'CRITICAL' : 'IMPORTANT', tipo: 'registro',
+              titulo: sigue ? `${s} sale del paso «${p.nombre}» de «${t.nombre}» y sigue existiendo: nadie la ejecutaría` : `${s} sale del paso «${p.nombre}» de «${t.nombre}» (y su archivo ya no está)`,
+              rutas: [CI], fuentes: fuentesDe(t),
+            });
+          }
+        }
+        h.poner({
+          id: `registro:ci:${t.id}:${p.nombre || p.run}`, nivel: renombrado ? 'IMPORTANT' : 'CRITICAL', tipo: 'registro',
+          titulo: `${renombrado ? 'Cambia' : 'Desaparece'} un paso de «${t.nombre}» en la CI: ${recortar(p.nombre || p.run, 90)}`, detalle: recortar(`Antes: ${p.run}`, 300),
+          rutas: [CI], fuentes: fuentesDe(t),
+        });
+      }
+    }
+    /* Los disparadores: la CI no puede dejar de correr en un PR (o en el push a main), ni restringirse con filtros. */
+    const dBase = disparadoresDeCI(textoBase);
+    if (dBase && textoHoy) {
+      const dHoy = disparadoresDeCI(textoHoy) || new Map();
+      for (const d of politicaCI.disparadores.filter((x) => dBase.has(x))) {
+        if (!dHoy.has(d)) {
+          h.poner({ id: `registro:ci:on:${d}`, nivel: 'CRITICAL', tipo: 'registro', titulo: `La CI deja de dispararse con «${d}»: sus puertas no correrían ahí`, rutas: [CI], fuentes: [{ archivo: CI, ref: 'on' }, fuenteCI] });
+        } else if (dHoy.get(d) !== dBase.get(d) && dHoy.get(d) !== '') {
+          h.poner({
+            id: `registro:ci:on:${d}:filtro`, nivel: 'CRITICAL', tipo: 'registro', titulo: `La CI restringe cuándo se dispara con «${d}» (un filtro puede dejarla sin correr)`,
+            detalle: recortar(`Antes: ${dBase.get(d) || '(sin filtro)'} · Ahora: ${dHoy.get(d)}`, 300), rutas: [CI], fuentes: [{ archivo: CI, ref: 'on' }, fuenteCI],
+          });
+        }
+      }
+    }
+    /* Lo que cambia cómo se ejecutan TODOS los pasos (un shell sin -e, opciones del intérprete por el entorno). */
+    const ajustesBase = ajustesQueNeutralizan(textoBase);
+    const nuevos = ajustesQueNeutralizan(textoHoy).filter((x) => { const i = ajustesBase.indexOf(x); if (i < 0) return true; ajustesBase.splice(i, 1); return false; });
+    if (nuevos.length) {
+      h.poner({ id: 'registro:ci:ajustes', nivel: 'CRITICAL', tipo: 'registro', titulo: 'La CI cambia cómo se ejecutan sus pasos: un fallo ya no los pararía', detalle: recortar(nuevos.join(' · '), 300), rutas: [CI], fuentes: [{ archivo: RUTA_POLITICA, json: 'ci.ajustes' }] });
+    }
+  }
+};
+
 /** ¿Se pierde algún registro de puertas? Las extensiones de F3, la CI y la cadena de npm test, base contra hoy. */
 const registros = (ctx, base, rutas, h) => {
   const cambia = (p) => rutas.some((r) => r === p || r.startsWith(`${p}/`));
@@ -854,38 +1033,10 @@ const registros = (ctx, base, rutas, h) => {
       }
     }
   }
-  if (cambia(CI)) {
-    const ciBase = trabajos(contenidosEnBase(ctx.raiz, base, [CI]).get(CI) || '');
-    const ciHoy = trabajos(ctx.leer(CI) || '');
-    const fuentesDe = (t) => [{ archivo: CI, ref: t.id }, { archivo: 'scripts/ci-local.mjs', ref: 'trabajos' }];
-    for (const t of ciBase) {
-      const hoy = ciHoy.find((x) => x.id === t.id);
-      if (!hoy) {
-        h.poner({ id: `registro:ci:${t.id}`, nivel: 'CRITICAL', tipo: 'registro', titulo: `Desaparece el trabajo «${t.nombre}» de la CI`, rutas: [CI], fuentes: fuentesDe(t) });
-        continue;
-      }
-      for (const p of t.pasos) {
-        if (hoy.pasos.some((q) => q.run === p.run)) continue;
-        const mismoNombre = p.nombre ? hoy.pasos.find((q) => q.nombre === p.nombre) : null;
-        const renombrado = Boolean(mismoNombre);
-        /* FN-1 medido: el paso conserva su nombre pero su orden se tapa el fallo (`|| true`…): la puerta ya no puede caer. */
-        if (renombrado && neutralizaciones(mismoNombre.run) > neutralizaciones(p.run)) {
-          h.poner({
-            id: `registro:ci:${t.id}:${p.nombre}:neutralizado`, nivel: 'CRITICAL', tipo: 'registro',
-            titulo: `Un paso de «${t.nombre}» conserva su nombre pero ya no puede fallar: ${recortar(p.nombre, 90)}`,
-            detalle: recortar(`Antes: ${p.run} · Ahora: ${mismoNombre.run}`, 300),
-            rutas: [CI], fuentes: [...fuentesDe(t), { archivo: RUTA_POLITICA, json: 'neutralizadores' }],
-          });
-          continue;
-        }
-        h.poner({
-          id: `registro:ci:${t.id}:${p.nombre || p.run}`, nivel: renombrado ? 'IMPORTANT' : 'CRITICAL', tipo: 'registro',
-          titulo: `${renombrado ? 'Cambia' : 'Desaparece'} un paso de «${t.nombre}» en la CI: ${recortar(p.nombre || p.run, 90)}`, detalle: recortar(`Antes: ${p.run}`, 300),
-          rutas: [CI], fuentes: fuentesDe(t),
-        });
-      }
-    }
-  }
+  /* Las variantes de registro:ci:* que dejan una puerta ESCRITA pero sin poder correr o fallar se miden con la sección
+     «ci» de la política propia: se lee aquí (una sección rota es FALLO, salida 3) solo si cambia algo que la necesita. */
+  const workflows = rutas.filter((r) => r.startsWith('.github/workflows/') && /\.ya?ml$/.test(r));
+  if (workflows.length || rutas.some((r) => r.startsWith('ops/github/'))) registrosDeLaCI(ctx, base, rutas, workflows, h);
   const PKG = 'functions/package.json';
   if (cambia(PKG)) {
     const cadenaDe = (texto) => { try { return { suites: suitesDeLaCadena(JSON.parse(texto || '{}').scripts?.test) }; } catch (e) { return { error: e.message }; } };

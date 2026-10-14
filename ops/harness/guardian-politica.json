@@ -1,6 +1,6 @@
 {
   "contrato": "wee-guardian-politica@1",
-  "nota": "Política PROPIA del Build Guardian: solo corrige los falsos positivos y negativos MEDIDOS de sus fuentes comunes (settings.json, la guardia de Claude, ci.yml). No añade categorías: cada sección vive dentro de una categoría que ya bloquea (ruta-protegida:deny, registro:). La lee ops/harness/guardian.mjs (seccionDePolitica) y la fija functions/test/guardian-bloqueante.test.mjs §G. Una sección rota o ausente es FALLO (salida 3), nunca verde.",
+  "nota": "Política PROPIA del Build Guardian: solo corrige los falsos positivos y negativos MEDIDOS de sus fuentes comunes (settings.json, la guardia de Claude, ci.yml, el ruleset de main). No añade categorías: cada sección vive dentro de una categoría que ya bloquea (ruta-protegida:deny, registro:). La lee ops/harness/guardian.mjs (seccionDePolitica) y la fija functions/test/guardian-bloqueante.test.mjs §G y §H. Una sección rota o ausente es FALLO (salida 3), nunca verde.",
   "secretos": {
     "nota": "Nombres de archivo (sin carpeta, sin distinguir mayúsculas) que son credenciales aunque ni settings.json ni la guardia los nieguen: el .env de la raíz (y sus variantes) y la clave de cuenta de servicio de Firebase. Las plantillas sin secretos quedan fuera.",
     "nombres": [".env", ".env.*", "*serviceaccountkey*.json"],
@@ -10,8 +10,22 @@
   "neutralizadores": [
     "\\|\\|\\s*(?:/usr)?(?:/bin/)?true\\b",
     "\\|\\|\\s*:(?=\\s|;|$)",
-    "\\|\\|\\s*exit\\s+0\\b",
-    "\\|\\|\\s*echo\\b",
-    "^\\s*set\\s+\\+e\\b"
-  ]
+    "\\|\\|\\s*(?:exit|return)\\s+(?:0\\b|[\"']0[\"'])",
+    "\\|\\|\\s*(?:echo|printf)\\b",
+    "\\|\\|\\s*[({]\\s*(?:(?:/usr)?(?:/bin/)?true\\b|:|(?:exit|return)\\s+0\\b|(?:echo|printf)\\b[^;})\\n]*)\\s*;?\\s*[)}]",
+    ";\\s*(?:(?:/usr)?(?:/bin/)?true\\b|:(?=\\s|;|$)|exit\\s+0\\b)",
+    "(?:^|[;&|]\\s*)set\\s+(?:-[a-zA-Z]+\\s+)*\\+[a-zA-Z]*e",
+    "(?:^|[;&|]\\s*)set\\s+(?:[-+][a-zA-Z]+\\s+)*\\+o\\s+errexit\\b",
+    "(?:^|[;&|(]\\s*)!\\s+[^\\s=]"
+  ],
+  "ci": {
+    "nota": "Lo que hace que una puerta de la CI siga ESCRITA pero ya no pueda correr o fallar (variantes de registro:ci:*). siempreCorren: las condiciones `if:` que no saltan nunca un paso o trabajo que ya existía (cualquier otra nueva puede saltarlo, y un salto no falla). disparadores: los que la CI no puede perder ni restringir (paths, branches, types…). ajustes: expresiones sobre el workflow entero que quitan el -e a los pasos (un shell propio sin -e) o inyectan opciones del intérprete. ruleset: dónde vive, como código, la lista de checks requeridos de main.",
+    "siempreCorren": ["always()", "success()", "!cancelled()", "true"],
+    "disparadores": ["pull_request", "push"],
+    "ajustes": [
+      "^[ \\t-]*shell:[ \\t]*(?:bash|sh)\\b(?![^\\n#]*[ \\t]-[a-zA-Z]*e)[^\\n#]*\\{0\\}",
+      "^[ \\t]*(?:BASH_ENV|ENV|SHELLOPTS|BASHOPTS):"
+    ],
+    "ruleset": "ops/github/ruleset-main.json"
+  }
 }
