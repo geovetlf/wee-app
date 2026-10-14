@@ -738,7 +738,12 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       if (!webSearch) {
         const consumo = await contarRespuesta(uid, operacion.clave, vigia);
         contadaAqui = consumo.nueva;
-        if (consumo.cobrada) {
+        /*
+         * B4-03 (2026-10-14): una respuesta de MUESTRA (el proveedor `mock`, sin IA real
+         * configurada) no se cobra, aunque cierre el bloque de doce. Sigue contando para el
+         * bloque, porque es una respuesta entregada; lo que no se cobra es el Credit.
+         */
+        if (consumo.cobrada && salida.demo !== true) {
           /* La valla antes de cobrar: si otro intento tomó el reclamo, cobra él. */
           if (!(await renovarReclamo(db, reclamoRef, intento))) throw new ReclamoPerdido();
           let cobroDelBloque: { amount: number; duplicate: boolean; status?: string };
@@ -773,6 +778,17 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
           }
           spend = cobroDelBloque;
         }
+      }
+      /*
+       * B4-03: la búsqueda se reservó POR ADELANTADO. Si la respuesta resulta ser de muestra,
+       * la reserva entera se devuelve: nada se cobra, y el libro queda a 0 (como un fallo).
+       */
+      if (webSearch && salida.demo === true && spend && !spend.duplicate) {
+        await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Brain · respuesta de muestra, no se cobra', source: 'weë-brain' });
+        await firestoreLedger
+          .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
+          .catch((error) => console.error('Weë Brain: no se pudo liquidar el libro', requestId, error));
+        spend = null;
       }
       const credits = !spend || spend.duplicate ? 0 : spend.amount;
       /* La valla antes de entregar: un intento que ya no es dueño no escribe la respuesta. */

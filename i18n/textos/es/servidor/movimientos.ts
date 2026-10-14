@@ -26,6 +26,7 @@ export const movimientos = {
   brainRespuestas_one: 'Weë Brain · {{contador}} respuesta',
   brainRespuestas_other: 'Weë Brain · {{contador}} respuestas',
   brainNoPudo: 'Weë Brain · no pudo responder',
+  brainMuestra: 'Weë Brain · respuesta de muestra, no se cobra',
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · el intento anterior se quedó sin tiempo',
   studioNoSePudo: 'Weë Studio · el video no se pudo generar',
