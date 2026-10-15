@@ -4,6 +4,7 @@ import { AI_SECRETS, MODEL_SECRETS } from '../secrets';
 import { onCall } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep, Question } from './types';
 import { PlannerInput, getPlanner, respuestaPara } from './planner';
+import { BaseDelChat, anotarConsumoDelChat, limitesDelChatActuales, reservarTurnoDelChat } from './chatLimite';
 import { configuracionDeLaSombra, entendimientoRealDelBrain, sombraDelPlan } from './sombra';
 import { TEMPLATES, plainQuestion } from './templates';
 import { PlanEstimate, QualityChoice, estimatePlan, estimatePlanCredits, holdCredits, settleCredits, ensureAccount, planOptions, pricingMode } from './credits';
@@ -270,6 +271,13 @@ export const creatorChat = onCall(
       const uid = request.auth.uid;
       const data = (request.data || {}) as ChatInput;
 
+      /*
+       * La conversación es GRATUITA y por eso tiene tope (creator/chatLimite.ts, decisión del dueño 2026-10-14): turnos por minuto y por día,
+       * conversaciones nuevas por día y consumo estimado de modelo por día. Va ANTES de crear el trabajo y de llamar al modelo.
+       */
+      const baseDelChat = db() as unknown as BaseDelChat;
+      await reservarTurnoDelChat(baseDelChat, uid, !data.jobId, await limitesDelChatActuales(baseDelChat));
+
       let ref: DocumentReference;
       let job: CreatorJob;
       // Dato del turno para el planificador; no se persiste (ver planner.ts).
@@ -359,7 +367,17 @@ export const creatorChat = onCall(
         experienceId: job.experienceId,
         goal: job.goal,
         answers: job.answers,
-        gateway: { userId: uid, jobId: job.id, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref) },
+        gateway: {
+          userId: uid,
+          jobId: job.id,
+          experienceId: job.experienceId,
+          goal: job.goal,
+          /* El coste de cada llamada de este turno se anota en el trabajo, como siempre, y se suma al consumo del día de la persona. */
+          record: async (entry) => {
+            await usageRecorder(ref)(entry);
+            await anotarConsumoDelChat(baseDelChat, uid, entry.costUSD);
+          },
+        },
         // Sin turno (trabajo recién creado) el planificador consulta, como siempre.
         ...(turno ? { turn: turno } : {}),
       });

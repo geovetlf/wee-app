@@ -149,6 +149,8 @@ export const weeai = {
   projectsNote: 'Agrupa tus creaciones: logo, fotos, videos, música y documentos en un solo lugar.',
   errNotEnoughCredits: 'No tienes suficientes Credits para este trabajo. Obtén Credits y vuelve a intentarlo.',
   errRateLimited: 'Has hecho muchas creaciones seguidas. Espera un momento e inténtalo de nuevo.',
+  errChatEspera: 'Vas muy rápido. Espera unos segundos e inténtalo de nuevo. No se ha cobrado nada.',
+  errChatLimite: 'Has llegado al límite de conversación de hoy. No se ha cobrado nada. Vuelve a intentarlo mañana.',
   errTimeout: 'Tardó demasiado y lo detuve. No te cobré: inténtalo de nuevo.',
   errNotAvailable: 'Esta función no está disponible actualmente.',
   errNotAvailableNow: 'Esta función no está disponible en este momento. Vuelve a intentarlo dentro de un rato.',

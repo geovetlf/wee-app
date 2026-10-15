@@ -196,6 +196,12 @@ export const creatorErrorCode = (error: unknown): string => {
   return String(details?.code || '');
 };
 
+/** El motivo que el servidor añade a un código controlado (p. ej. `chat_por_dia` en RATE_LIMITED); vacío si no hay. */
+export const creatorErrorReason = (error: unknown): string => {
+  const details = (error as any)?.details || (error as any)?.customData?.details || {};
+  return String(details?.reason || '');
+};
+
 /** true si la llamada se cortó por tiempo en la app: el trabajo sigue en el servidor y llega por Firestore. */
 export const isClientTimeout = (error: unknown): boolean => {
   const code = String((error as any)?.code || '');
@@ -237,6 +243,12 @@ export const humanizeCreatorError = (error: unknown, t: Traductor | ((clave: str
   const message = String((error as any)?.message || '');
   if (creditsShortfall(error)) return t('weeai.errNotEnoughCredits');
   const controlled = creatorErrorCode(error);
+  /* El tope de la conversación gratuita dice la verdad sobre CUÁNDO volver: unos segundos o mañana (functions/src/creator/chatLimite.ts). */
+  if (controlled === 'RATE_LIMITED') {
+    const motivo = creatorErrorReason(error);
+    if (motivo === 'chat_por_minuto') return t('weeai.errChatEspera');
+    if (motivo.startsWith('chat_')) return t('weeai.errChatLimite');
+  }
   /* «No disponible» se explica por su MOTIVO, no por la frase: la frase de antes decía «inténtalo más tarde» siempre. */
   if (controlled === 'NOT_AVAILABLE') return t(claveDeNoDisponible(error));
   // Los errores controlados del servidor ya vienen con una frase amable

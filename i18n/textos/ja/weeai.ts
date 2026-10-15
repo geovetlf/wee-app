@@ -163,6 +163,8 @@ export const weeai: typeof import('../es/weeai').weeai = {
   projectsNote: 'ロゴ、写真、動画、音楽、ドキュメントなどの作品を1か所にまとめられます。',
   errNotEnoughCredits: '作成に必要なCreditsが不足しています。Creditsをチャージして、もう一度お試しください。',
   errRateLimited: '短時間での作成が多すぎます。少し待ってから、もう一度お試しください。',
+  errChatEspera: '操作が速すぎます。数秒待ってから、もう一度お試しください。料金は発生していません。',
+  errChatLimite: '本日の会話の上限に達しました。料金は発生していません。明日もう一度お試しください。',
   errTimeout: '時間がかかりすぎたため、処理を停止しました。Creditsは消費されていません。もう一度お試しください。',
   errNotAvailable: 'この機能は現在ご利用いただけません。',
   errNotAvailableNow: 'この機能はただいまご利用いただけません。しばらくしてから、もう一度お試しください。',

@@ -202,6 +202,8 @@ export const weeai: typeof import('../es/weeai').weeai = {
   projectsNote: 'Samla dina skapelser på ett ställe: logga, foton, videor, musik och dokument.',
   errNotEnoughCredits: 'Du har inte tillräckligt med Credits för det här. Skaffa Credits och försök igen.',
   errRateLimited: 'Du har skapat mycket på kort tid. Vänta en stund och försök igen.',
+  errChatEspera: 'Du går lite för snabbt. Vänta några sekunder och försök igen. Inget har debiterats.',
+  errChatLimite: 'Du har nått dagens gräns för samtal. Inget har debiterats. Försök igen i morgon.',
   errTimeout: 'Det tog för lång tid, så jag stoppade det. Inga Credits har dragits. Försök igen.',
   errNotAvailable: 'Den här funktionen är inte tillgänglig för närvarande.',
   errNotAvailableNow: 'Den här funktionen är inte tillgänglig just nu. Försök igen om en stund.',

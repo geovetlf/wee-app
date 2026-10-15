@@ -195,6 +195,8 @@ export const weeai: typeof import('../es/weeai').weeai = {
   projectsNote: 'Saml dine kreationer på ét sted: logo, fotos, videoer, musik og dokumenter.',
   errNotEnoughCredits: 'Du har ikke nok Credits til denne opgave. Få flere Credits, og prøv igen.',
   errRateLimited: 'Du har lavet mange kreationer i træk. Vent et øjeblik, og prøv igen.',
+  errChatEspera: 'Du er lidt for hurtig. Vent et par sekunder, og prøv igen. Der er ikke trukket noget.',
+  errChatLimite: 'Du har nået dagens grænse for samtaler. Der er ikke trukket noget. Prøv igen i morgen.',
   errTimeout: 'Det tog for lang tid, så jeg stoppede det. Der er ikke trukket nogen Credits. Prøv igen.',
   errNotAvailable: 'Denne funktion er ikke tilgængelig i øjeblikket.',
   errNotAvailableNow: 'Denne funktion er ikke tilgængelig lige nu. Prøv igen om lidt.',

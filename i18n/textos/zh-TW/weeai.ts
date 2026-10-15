@@ -178,6 +178,8 @@ export const weeai: typeof import('../es/weeai').weeai = {
   projectsNote: '把作品集中在一起：logo、照片、影片、音樂和文件，全都在同一個地方。',
   errNotEnoughCredits: '這次創作需要的 Credits 不夠了。取得 Credits 後再試一次。',
   errRateLimited: '你連續創作了太多次，稍等一下再試。',
+  errChatEspera: '你操作得太快了，請稍等幾秒再試。沒有扣費。',
+  errChatLimite: '你已達到今天的對話上限，沒有扣費，請明天再試。',
   errTimeout: '花的時間太久，我把它停下來了。沒有扣除 Credits，再試一次吧。',
   errNotAvailable: '此功能目前無法使用。',
   errNotAvailableNow: '此功能暫時無法使用，請稍後再試。',

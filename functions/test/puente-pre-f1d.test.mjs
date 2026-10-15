@@ -697,13 +697,15 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     'functions/src/engine/video.ts', 'functions/src/runtime/liquidacion.ts', 'functions/src/settlement/programado.ts'];
   /* Los de la F-06 (2026-10-14), por nombre: la copia de seguridad clasifica `creditAccounts` (CRITICAL) y su relación con `users`. */
   const DE_LA_F06 = ['functions/src/core/backup.ts'];
+  /* El tope de la conversación gratuita (2026-10-14): `creatorChat` limita turnos por minuto y por día, conversaciones nuevas y consumo estimado; el módulo es nuevo y vive en creator/. */
+  const DEL_TOPE_DEL_CHAT = ['functions/src/creator/chatLimite.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_LA_LINEA_B, ...DE_LA_F06,
+      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_LA_LINEA_B, ...DE_LA_F06, ...DEL_TOPE_DEL_CHAT,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -762,7 +764,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
       /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos y las variantes; nada del reclamo ni del cobro. */
       /* + Línea B (2026-10-14, integridad financiera): creator/index +47 −18 (cierre del trabajo como transición, abandono desde el fin del PROCESO, interruptor del vídeo antes de reservar, lo demo no se cobra); la rama legacy de generateVideo solo gana la devolución de un vídeo de muestra (B4-03). */
-      '45\t4\tfunctions/src/creator/credits.ts|204\t41\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
+      /* + tope de la conversación gratuita (2026-10-14, +19 −1, antes 204/41): creatorChat reserva su turno ANTES de crear el trabajo y de llamar al modelo y anota el coste de cada llamada (functions/src/creator/chatLimite.ts, archivo nuevo); nada de creatorRun, del reclamo ni del cobro. Comportamiento exacto en chat-limites (C1–C17, D1–D3). */
+      '45\t4\tfunctions/src/creator/credits.ts|223\t42\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 

@@ -855,7 +855,9 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
       /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo y anota las variantes de UN resultado; nada del reclamo ni del cobro. */
       /* + Línea B (2026-10-14, integridad financiera): creator/index +47 −18 (cierre del trabajo como transición, abandono desde el fin del PROCESO, interruptor del vídeo antes de reservar, lo demo no se cobra); la rama legacy de generateVideo solo gana la devolución de un vídeo de muestra (B4-03). */
-      '45\t4\tfunctions/src/creator/credits.ts|204\t41\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
+      /* + tope de la conversación gratuita (2026-10-14, +19 −1, antes 204/41): creatorChat reserva su turno ANTES de crear el trabajo y de llamar al modelo y anota el coste de cada llamada
+       * (functions/src/creator/chatLimite.ts); nada de creatorRun, del reclamo ni del cobro. Comportamiento exacto en chat-limites (C1–C17, D1–D3). */
+      '45\t4\tfunctions/src/creator/credits.ts|223\t42\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
 }
 
