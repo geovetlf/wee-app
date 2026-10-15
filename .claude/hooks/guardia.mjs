@@ -591,9 +591,37 @@ export const sinPatron = (p, w) => {
   return w.filter((_, i) => !fuera.has(i));
 };
 
+/**
+ * ¿Es un LISTADO DE REFERENCIAS de git, de solo lectura (`git branch --list 'guardian/*'`, `git tag -l "v*"`)? Sus patrones son nombres de
+ * rama o de etiqueta que git compara con SUS referencias: `git branch` y `git tag` en modo lista no abren ningún archivo que se les pase, así que
+ * un comodín como `guardian/*` no puede leer ni alcanzar `.env.local` (antes se leía como «toca .env.local» porque un último segmento `*`
+ * encaja con cualquier nombre). Cambio MÍNIMO (Guardian, 2026-10-15): solo se exime del chequeo de COMODINES; el chequeo del NOMBRE literal de un
+ * secreto sigue igual, y se exige una lista blanca de opciones de lectura: cualquier otra opción (-d, -D, -m, -f, -c, -u, --set-upstream-to,
+ * --edit-description…), la ausencia de `--list`/`-l`, otro subcomando o un patrón con expansión dinámica NO se exime. Lo fija
+ * functions/test/guardia-referencias-git.test.mjs.
+ */
+const OPCIONES_DE_LISTA_GIT = /^(--list|-l|-a|--all|-r|--remotes|-v|-vv|--verbose|--no-color|--color(=.*)?|--column(=.*)?|--no-column|-i|--ignore-case|--abbrev(=d+)?|--no-abbrev|--show-current|--merged(=.*)?|--no-merged(=.*)?|--contains(=.*)?|--no-contains(=.*)?|--points-at(=.*)?|--sort(=.*)?|--format(=.*)?|-nd*)$/;
+export const esListadoDeRefsGit = (p, w) => {
+  if (p !== 'git') return false;
+  const resto = w.slice(1);
+  let i = 0;
+  while (i < resto.length && resto[i].startsWith('-')) i += (GIT_GLOBAL_CON_VALOR.has(resto[i]) ? 2 : 1);
+  const sub = (resto[i] || '').toLowerCase();
+  if (sub !== 'branch' && sub !== 'tag') return false;
+  /* Solo `-C <dir>`: un `-c clave=valor` (un alias, una configuración) cambia lo que git ejecuta y no se exime. */
+  if (resto.slice(0, i).some((x) => /^(-c|--config-env|--exec-path|--git-dir|--work-tree)/.test(x))) return false;
+  const args = resto.slice(i + 1);
+  const opciones = args.filter((x) => x.startsWith('-'));
+  if (!opciones.some((x) => /^(--list|-l)$/.test(x))) return false;
+  if (!opciones.every((x) => OPCIONES_DE_LISTA_GIT.test(x))) return false;
+  /* Un patrón con expansión dinámica (un `$(…)`, una variable, un backtick, la marca de lo dinámico) no es un patrón fijo. */
+  return args.filter((x) => !x.startsWith('-')).every((x) => !/[$`]/.test(x) && !x.includes(DINAMICO));
+};
+
 /** ¿Alguna palabra toca (o PUEDE expandirse a) un archivo de secretos? Devuelve el nombre o null. */
 const tocaSecreto = (p, w) => {
   const utiles = sinPatron(p, w).slice(1);
+  const soloRefs = esListadoDeRefsGit(p, w);
   const ultimo = (x) => x.slice(x.replace(/\\/g, '/').lastIndexOf('/') + 1);
   const desescapar = (x) => x.replace(/\\(.)/g, '$1').replace(/\\/g, '/').toLowerCase();
   const aRegex = (g) => '^' + g.replace(/[.+^${}()|]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]').replace(/\[!/g, '[^') + '$';
@@ -601,7 +629,8 @@ const tocaSecreto = (p, w) => {
     const plano = desescapar(a);
     for (const sec of ARCHIVOS_SECRETOS) {
       if (plano.includes(sec)) return sec;
-      if (/[*?[]/.test(plano)) {
+      /* La exención de un listado de referencias es SOLO para un último segmento hecho de asteriscos (`guardian/*`): `.env*`, `*creds*` o `.*` siguen comprobándose. */
+      if (/[*?[]/.test(plano) && !(soloRefs && /^\*+$/.test(ultimo(plano)))) {
         try {
           const re = new RegExp(aRegex(ultimo(plano)), 'i');
           if (re.test(ultimo(sec)) || re.test(sec)) return sec;

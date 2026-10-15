@@ -516,7 +516,8 @@
         "observabilidad-lanzamiento",
         "prelanzamiento",
         "observabilidad-retirada",
-        "carga-separacion"
+        "carga-separacion",
+        "guardia-referencias-git"
       ]
     },
     {

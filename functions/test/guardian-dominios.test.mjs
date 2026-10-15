@@ -312,7 +312,7 @@ console.log('\n── G · La propuesta de check requerido: preparada y NO aplic
 console.log('\n── H · La integración con la CI y la cadena ──');
 {
   const ci = leer('.github/workflows/ci.yml');
-  check('75) las dos suites nuevas están en la cadena de `npm test` y en el bucle de políticas del Nivel 3', ['guardian-dominios', 'guardian-autocorreccion'].every((s) => cadena.includes(s) && new RegExp(`guardian-base-workflow guardian-dominios guardian-autocorreccion; do`).test(ci)));
+  check('75) las dos suites nuevas están en la cadena de `npm test` y en el bucle de políticas del Nivel 3', ['guardian-dominios', 'guardian-autocorreccion'].every((s) => cadena.includes(s) && new RegExp(`guardian-base-workflow guardian-dominios guardian-autocorreccion guardia-referencias-git; do`).test(ci)));
   check('76) la autocorrección NO está en la CI ni en el workflow nuevo (ahí solo se detectaría; nada que se corrija allí persiste)', !/autocorreccion\.mjs/.test(ci.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')) && !/autocorreccion\.mjs/.test(sinComentarios));
   check('77) ops/guardian/** está entre las protecciones propias del Guardian (un cambio ahí se dice como AUTOPROTECCIÓN) y entre las protegidas de la autocorrección', /'ops\/guardian\/\*\*'/.test(leer('ops/harness/guardian-ci.mjs')) && /'ops\/guardian\/\*\*'/.test(leer('ops/guardian/autocorreccion.mjs')));
   check('78) el estado de la autocorrección (ops/guardian/.estado) no se versiona', /^ops\/guardian\/\.estado\/$/m.test(leer('.gitignore')));
