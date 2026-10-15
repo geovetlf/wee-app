@@ -835,6 +835,18 @@ console.log('\n── T · de dónde viene: declarado, no adivinado ──');
   check('T) y una histórica sin nada tampoco se rompe', feed.seccionDe(post()) === undefined);
   check('T) un valor desconocido no inventa un nombre', feed.seccionDe(post({ sourceSection: 'inexistente' })) === undefined);
 
+  // 11b) Weë Business pasó a llamarse Weë Fashion (2026-10-14): el identificador `business` no se movió.
+  check('T) una publicación de Weë Fashion lo dice, con el id de siempre', (() => {
+    const s = feed.seccionDe(post({ sourceSection: 'business' }));
+    return s?.id === 'business' && s?.nombre === 'Weë Fashion';
+  })());
+  check('T) una histórica firmada con el nombre de antes sigue en su sección, y se lee con el nombre de hoy', (() => {
+    const s = feed.seccionDe(post({ aiTools: ['Weë Business'] }));
+    return s?.id === 'business' && s?.nombre === 'Weë Fashion';
+  })());
+  check('T) y la firmada con el nombre nuevo también', feed.seccionDe(post({ aiTools: ['Weë Fashion'] }))?.id === 'business');
+  check('T) control: el nombre de antes solo vale para su sección', feed.seccionDe(post({ aiTools: ['Weë Business'] }))?.id !== 'chef');
+
   // 12–13) Un solo documento, y el contexto no lo duplica.
   const crear = leer('screens/CreateScreen.tsx');
   check('T) el contexto se guarda en el mismo documento', /\.\.\.\(sourceSection \? \{ sourceSection \} : \{\}\)/.test(crear));
