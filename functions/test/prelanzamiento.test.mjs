@@ -314,6 +314,20 @@ console.log('\n── D · lectoresReales con ejecutar y pedir inyectados ──
   check('HTTP 401 → AUTENTICACION', e401 instanceof P.ErrorDeLectura && e401.clase === 'AUTENTICACION' && e401.estado === 401);
   check('HTTP 403 → PERMISOS, con el permiso exacto de ESA API (firebaserules.releases.get y firebaserules.rulesets.get)', e403.clase === 'PERMISOS' && /firebaserules\.releases\.get/.test(e403.permiso) && /firebaserules\.rulesets\.get/.test(e403.permiso), String(e403.permiso));
   check('HTTP 404 → NO_EXISTE, 503 → SERVICIO, 400 → OTRO', e404.clase === 'NO_EXISTE' && e503.clase === 'SERVICIO' && e400.clase === 'OTRO');
+  /* Un 403 NO siempre es falta de permiso: aquí eran (1) falta del proyecto de cuota y (2) una API desactivada. Se distinguen por el CÓDIGO de motivo del cuerpo. */
+  const cuerpo403 = (reason) => ({ error: { code: 403, status: 'PERMISSION_DENIED', message: 'texto libre que no se imprime: secreto-de-prueba', details: [{ reason }] } });
+  const conCuerpo = async (url, c) => intenta(() => P.lectoresReales({ ejecutar: ejecutarCon(() => ok()), pedir: async () => res(403, c) }).http(url));
+  const URL_AC = 'https://firebaseappcheck.googleapis.com/v1/projects/get-wee/services';
+  const eApi = await conCuerpo(URL_AC, cuerpo403('SERVICE_DISABLED'));
+  const ePerm = await conCuerpo(URL_AC, cuerpo403('IAM_PERMISSION_DENIED'));
+  const eVacio = await conCuerpo(URL_AC, 'no es json');
+  check('403 + SERVICE_DISABLED → API_DESACTIVADA (no es un permiso que falte: la API no está activada en el proyecto)', eApi.clase === 'API_DESACTIVADA' && /SERVICE_DISABLED/.test(eApi.message), eApi.clase);
+  check('403 con otro motivo, o con un cuerpo ilegible, sigue siendo PERMISOS', ePerm.clase === 'PERMISOS' && eVacio.clase === 'PERMISOS', `${ePerm.clase} ${eVacio.clase}`);
+  check('del cuerpo solo salen códigos de motivo: el texto libre del error nunca llega al mensaje', !/secreto-de-prueba|texto libre/.test(eApi.message + ePerm.message));
+  check('una API desactivada es un HALLAZGO (FALLA), no un NO-VERIFICABLE: App Check no se está usando', P.resultadoDeFallo(eApi).estado === P.FALLA && P.resultadoDeFallo(ePerm).estado === P.NO_VERIFICABLE, JSON.stringify(P.resultadoDeFallo(eApi)).slice(0, 120));
+  let cabeceras;
+  await P.lectoresReales({ ejecutar: ejecutarCon(() => ok()), pedir: async (url, op) => { cabeceras = op.headers; return res(200, {}); } }).http('https://firebaserules.googleapis.com/v1/projects/get-wee/releases');
+  check('toda lectura va con el proyecto de cuota (x-goog-user-project: get-wee): sin él, firebaserules daba 403 aun siendo propietario', cabeceras['x-goog-user-project'] === 'get-wee');
   check('el permiso de Firestore depende de la operación: runQuery → datastore.entities.list; batchGet → datastore.entities.get',
     P.permisoDeLectura('http', `${FS}:runQuery`) === 'datastore.entities.list' && P.permisoDeLectura('http', `${FS}:batchGet`) === 'datastore.entities.get' && P.permisoDeLectura('http', 'https://firebaseappcheck.googleapis.com/v1/projects/get-wee/services') === 'firebaseappcheck.services.get');
   const caida = await intenta(() => P.lectoresReales({ ejecutar: ejecutarCon(() => ok()), pedir: async () => { const x = new Error('socket hang up'); x.code = 'ECONNRESET'; throw x; } }).http(`${FS}:runQuery`, { method: 'POST', body: '{}' }));

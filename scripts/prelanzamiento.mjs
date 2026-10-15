@@ -79,6 +79,7 @@ export const soloLectura = (tipo, args, opciones = {}) => {
  *   SESION         no hay gcloud o no hay sesión de gcloud.
  *   PERMISOS       la cuenta activa no tiene permiso (403): se arregla con el permiso o con otra cuenta. No dice nada de WEE.
  *   SERVICIO       el servicio no respondió (5xx, sin red, tiempo agotado): se reintenta. Tampoco dice nada de WEE.
+ *   API_DESACTIVADA  403 con SERVICE_DISABLED: la API no está activada en el proyecto (p. ej. App Check). No es un permiso: es un hallazgo.
  *   NO_EXISTE      el recurso no existe (404): ESO sí es un hallazgo sobre WEE.
  *   OTRO           una causa que no se reconoce: se enseña recortada.
  *
@@ -149,6 +150,7 @@ export const resultadoDeFallo = (e) => {
     case 'SESION': return r(NO_VERIFICABLE, `sesión: ${e.message}.`);
     case 'PERMISOS': return r(NO_VERIFICABLE, `permisos: ${e.message}.${permiso} La cuenta activa no puede leerlo; eso no dice nada sobre WEE.`);
     case 'SERVICIO': return r(NO_VERIFICABLE, `servicio: ${e.message}. Reintenta: no es un hallazgo sobre WEE.`);
+    case 'API_DESACTIVADA': return r(FALLA, `la API está desactivada en el proyecto (${e.message}): el servicio no se está usando. Activarla es un cambio en producción: lo decide el dueño.`);
     case 'NO_EXISTE': return r(FALLA, `no existe: ${e.message}`);
     default: return r(NO_VERIFICABLE, `causa sin clasificar: ${e.message}`);
   }
@@ -188,11 +190,17 @@ export const lectoresReales = ({ ejecutar = spawnSync, pedir = (...a) => globalT
     let res;
     try {
       /* La cabecera de autorización va LA ÚLTIMA: la sesión real manda sobre cualquier valor de relleno que traiga quien llama (así fallaban las sondas, todas con 401). */
-      res = await pedir(url, { ...opciones, headers: { 'Content-Type': 'application/json', ...(opciones.headers || {}), Authorization: `Bearer ${token}` } });
+      res = await pedir(url, { ...opciones, headers: { 'Content-Type': 'application/json', 'x-goog-user-project': PROYECTO, ...(opciones.headers || {}), Authorization: `Bearer ${token}` } });
     } catch (e) {
       throw new ErrorDeLectura('SERVICIO', `${anfitrion} no respondió (${(e && (e.code || e.name)) || 'sin red'})`, { anfitrion });
     }
-    if (!res.ok) throw new ErrorDeLectura(claseDeEstadoHttp(res.status), `${anfitrion} respondió ${res.status}`, { estado: res.status, anfitrion, permiso: permisoDeLectura('http', url) });
+    if (!res.ok) {
+      /* Del cuerpo solo se leen los CÓDIGOS de motivo (SERVICE_DISABLED…), nunca texto libre. Un 403 con SERVICE_DISABLED no es falta de permiso: la API está desactivada en el proyecto. */
+      let motivo = '';
+      try { const c = await res.json(); motivo = ((c && c.error && c.error.details) || []).map((d) => d && d.reason).filter((x) => typeof x === 'string' && /^[A-Z_]{3,60}$/.test(x)).join(','); } catch { /* sin cuerpo legible */ }
+      const clase = res.status === 403 && /SERVICE_DISABLED/.test(motivo) ? 'API_DESACTIVADA' : claseDeEstadoHttp(res.status);
+      throw new ErrorDeLectura(clase, `${anfitrion} respondió ${res.status}${motivo ? ` (${motivo})` : ''}`, { estado: res.status, anfitrion, permiso: permisoDeLectura('http', url) });
+    }
     return res.json();
   };
   return { gcloud, gh, http };
