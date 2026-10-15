@@ -77,7 +77,7 @@ export const business: typeof import('../es/business').business = {
   yesterday: '어제',
 
   /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
-  slogan: '비즈니스를 만들고, 관리하고, 알리고, 키워요.',
+  slogan: '패션, 스타일, 뷰티, 비주얼 콘텐츠 제작.',
 
   modMyBusinessHint: '비즈니스를 만들고 관리해요',
   modProductsHint: '내 제품과 가격',
@@ -183,7 +183,7 @@ export const business: typeof import('../es/business').business = {
   shareCommunities: '커뮤니티',
   shareProfile: 'Business Profile',
   shareNothing: '먼저 무언가를 만들면 여기에서 공유할 수 있어요.',
-  shareText: 'Weë Business로 만들었어요',
+  shareText: 'Weë Fashion으로 만들었어요',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: '내 데이터 올리기',

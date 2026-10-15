@@ -13,7 +13,7 @@ export const creator = {
   beauty: 'Maquillaje, cabello, barba, outfits y cambios de look',
   chef: 'Tu chef personal: qué cocinar, recetas y menús',
   home: 'Decoración, diseño interior, remodelación y jardines',
-  business: 'Ideas de negocio, marketing, CV, documentos y presentaciones',
+  business: 'Moda, estilo, belleza y creación de contenido visual.',
   travel: 'Prepara tu viaje: a dónde ir, qué hacer y cómo moverte',
   brain: '¿No sabes dónde buscar? Pregúntale a Weë',
   designEx1: 'Un logo para mi negocio',

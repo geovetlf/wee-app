@@ -22,7 +22,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: '메이크업, 헤어, 수염, 옷차림, 스타일 변신',
   chef: '나만의 셰프: 오늘 뭘 요리할지, 레시피, 식단',
   home: '데코, 인테리어, 리모델링, 정원',
-  business: '사업 아이디어, 마케팅, 이력서, 문서, 발표 자료',
+  business: '패션, 스타일, 뷰티, 비주얼 콘텐츠 제작.',
   travel: '여행 준비: 어디로 갈지, 뭘 할지, 어떻게 다닐지',
   brain: '어디서 찾아야 할지 모르겠나요? Weë에게 물어보세요',
   designEx1: '내 가게 로고',

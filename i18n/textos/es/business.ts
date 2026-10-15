@@ -64,7 +64,7 @@ export const business = {
    * o Weë Writer. Viven en `constants/businessModules.ts`. Lo que sí se traduce
    * es todo lo demás: lo que hace cada uno, sus acciones y sus avisos.
    */
-  slogan: 'Crea, administra, promociona y haz crecer tu negocio.',
+  slogan: 'Moda, estilo, belleza y creación de contenido visual.',
 
   /* Qué hace cada módulo, en una línea. */
   modMyBusinessHint: 'Construye y administra tu negocio',
@@ -175,7 +175,7 @@ export const business = {
   shareCommunities: 'Comunidades',
   shareProfile: 'Business Profile',
   shareNothing: 'Primero crea algo y luego lo compartes desde aquí.',
-  shareText: 'Creado con Weë Business',
+  shareText: 'Creado con Weë Fashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Subir mis datos',
