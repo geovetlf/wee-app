@@ -74,7 +74,7 @@ const POLITICAS = ['escaneo-secretos', 'guardia-claude', 'guardia-vigente', 'gua
   /* WEE Motor Guardian, fase 1: el Build Guardian en modo bloqueante (un CRITICAL de la política hace fallar el nivel 3) y sus hooks */
   'guardian-bloqueante', 'guardian-hooks',
   /* Línea A: el Guardian de la BASE contra el PR (pull_request_target), el único control que no ejecuta código del PR */
-  'guardian-base-workflow'];
+  'guardian-base-workflow', 'guardian-dominios', 'guardian-autocorreccion'];
 check('9d) el nivel 3 pasa la revisión determinista contra la baseline (puertas G0 y G3), antes de las políticas',
   /- name: Revisión determinista \(puertas G0 y G3\)\s*\n\s*run: node ops\/revision\/baseline\.mjs/.test(nivel3) && nivel3.indexOf('ops/revision/baseline.mjs') < nivel3.indexOf('- name: Políticas'));
 /*
@@ -161,7 +161,7 @@ let rara = null;
 try { suitesDeLaCadena('node test/a.test.mjs && npm run build'); } catch (e) { rara = e.message; }
 check('14) un paso de la cadena que no es «node test/<suite>.mjs» es un error, no se adivina', /no es «node test/.test(rara || ''));
 
-/* La segunda oportunidad en solitario: un fallo de carga pasa solo; uno de verdad sigue en rojo. */
+/* La repetición en solitario CLASIFICA, no absuelve: lo que falla y luego pasa es INTERMITENTE (rojo); lo que falla de verdad, rojo. */
 const { correr } = await importar('functions/test/_cadena.mjs');
 const llamadas = {};
 const falsa = async (suite) => {
@@ -171,8 +171,8 @@ const falsa = async (suite) => {
 };
 const conRepeticion = await correr({ suites: ['test/bien.test.mjs', 'test/carga.test.mjs', 'test/rota.test.mjs'], paralelo: 2, limiteMs: 1000, alTerminar: () => {}, correrSuite: falsa });
 const de = (s) => conRepeticion.find((r) => r.suite === s);
-check('15) una suite que falla solo con carga pasa al repetirla sola, y queda marcada (no se esconde)',
-  de('test/carga.test.mjs').ok && de('test/carga.test.mjs').repetida === true && /medida torcida/.test(de('test/carga.test.mjs').salidaConCarga));
+check('15) una suite que falla y pasa al repetirla sola queda INTERMITENTE y en ROJO (ok: false): la repetición no la absuelve, y conserva las dos salidas',
+  de('test/carga.test.mjs').ok === false && de('test/carga.test.mjs').intermitente === true && /medida torcida/.test(de('test/carga.test.mjs').salidaConCarga) && de('test/carga.test.mjs').salidaSola === '✔ bien');
 check('16) una que falla de verdad sigue en rojo tras la repetición, y la que pasa no se repite',
   !de('test/rota.test.mjs').ok && llamadas['test/rota.test.mjs'] === 2 && llamadas['test/bien.test.mjs'] === 1);
 for (const k of Object.keys(llamadas)) delete llamadas[k];

@@ -75,6 +75,8 @@ export const PROTECCIONES_PROPIAS = Object.freeze([
   'ops/harness/guardian*.mjs', 'ops/harness/guardian-politica.json', 'ops/harness/propuesta-settings-guardian.json', 'ops/revision/**', 'ops/permitido.mjs',
   '.claude/hooks/**', '.claude/settings.json', '.github/workflows/ci.yml', '.github/workflows/guardian-base.yml', 'ops/github/ruleset-main.json', 'scripts/ci-local.mjs', 'functions/test/_cadena.mjs',
   'functions/test/guardian-*.test.mjs', 'functions/test/harness-guardian.test.mjs',
+  /* El Guardian por dominios y la autocorrección (docs/GUARDIAN-ESTADO.md): su mapa, sus invariantes, sus huellas y su workflow. */
+  'ops/guardian/**', '.github/workflows/guardian-dominios.yml', 'ops/github/propuesta-guardian-dominios-requerido.json',
 ]);
 const globRe = (g) => new RegExp(`^${g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*')}$`);
 const PROPIAS_RE = PROTECCIONES_PROPIAS.map(globRe);

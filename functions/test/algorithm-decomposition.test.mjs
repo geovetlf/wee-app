@@ -21,6 +21,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { cpuDe } from './_cpu.mjs';
 import { CAPAS_DE_PRODUCCION, PATRON_A2, describirHallazgos, guardaDeConexion } from './guardas.mjs';
 
 const require_ = createRequire(import.meta.url);
@@ -96,11 +97,11 @@ check('14 · y empieza por el id menor', c1[0][0] === 'a', JSON.stringify(c1[0])
 check('15 · un grafo sin ciclos no reporta ninguno', A.detectarCiclos(ABANICO).length === 0);
 /* Acotado: un grafo grande no puede convertir la comprobación en la caída. */
 const enorme = Array.from({ length: 3000 }, (_, i) => paso(`n${i}`, 'text.generate', i ? [`n${i - 1}`] : undefined));
-const t0 = process.hrtime.bigint();
-const sinCiclos = A.detectarCiclos(enorme);
+/* CPU del proceso, no reloj de pared (functions/test/_cpu.mjs): la cota de 200 ms es la de siempre. */
+const { valor: sinCiclos, ms: msCiclos } = cpuDe(() => A.detectarCiclos(enorme));
 check('16 · 3 000 nodos en cadena: sin ciclos y sin reventar la pila',
-  sinCiclos.length === 0 && Number(process.hrtime.bigint() - t0) / 1e6 < 200,
-  `${(Number(process.hrtime.bigint() - t0) / 1e6).toFixed(1)} ms`);
+  sinCiclos.length === 0 && msCiclos < 200,
+  `${msCiclos.toFixed(1)} ms de CPU`);
 
 console.log('\n─── B. Profundidad ───');
 

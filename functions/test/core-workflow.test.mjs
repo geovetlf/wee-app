@@ -24,6 +24,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { cpuDe as cpuMsDe, mejorDe as mejorDeCpu } from './_cpu.mjs';
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -642,23 +643,43 @@ console.log('\n── O · Compatibilidad: Brain → Planner → Workflow, y nad
 
 console.log('\n── P · Escala ──');
 {
+  /*
+   * LA COTA SE MIDE EN TIEMPO DE CPU, NO DE RELOJ (Guardian · intermitentes, 2026-10-15).
+   *
+   * Esta suite falló una vez con «6366 ms» contra una cota de 5000 y pasó sola con ~900 ms: con cuatro suites a la vez
+   * (`_cadena.mjs`) o con otra tarea pesada en la máquina, el reloj de pared cuenta el tiempo que el proceso ESPERA su
+   * turno de CPU, y eso no es trabajo del motor. La causa era la prueba, no el código: medía lo que no debía. Ahora se
+   * mide `process.cpuUsage()` (usuario + sistema de este proceso: lo que el motor trabaja de verdad) y se toma la mejor
+   * de tres pasadas, que quita el ruido de un GC o de una interrupción. NO se subió la cota: sigue en 5000 ms (en vacío
+   * mide ~900) y un motor cinco veces más lento sigue fallando.
+   * Y una precisión sobre el nombre de esta sección: la cadena NO es lineal (250→500→1000 pasos: ~50→210→890 ms), es
+   * cuadrática; la acota el tope de 1000 pasos del motor (`too_many_steps`). Por eso se fija un máximo absoluto de CPU y
+   * no una razón entre tamaños (una razón no distinguiría una regresión de lo que ya es).
+   */
+  const cpuMs = cpuMsDe;
+  const mejorDe = mejorDeCpu;
   const n = 1000;
   const wf = { id: 'wf_big_0001', contract: '1.0', goal: 'grande', steps: Array.from({ length: n }, (_, i) => ({ id: `p${i}`, capability: 'text.generate', purpose: `p${i}`, ...(i ? { dependsOn: [`p${i - 1}`] } : {}) })) };
-  const t0 = performance.now();
-  const w = preparado(wf);
-  let run = w.iniciar(trace).run;
-  for (let i = 0; i < n; i++) {
-    run = w.transitar(run, { stepId: `p${i}`, to: 'running', at: i }).run;
-    run = w.transitar(run, { stepId: `p${i}`, to: 'done', at: i }).run;
-  }
-  const ms = performance.now() - t0;
+  const { valor: run, ms } = mejorDe(3, () => {
+    const w = preparado(wf);
+    let r = w.iniciar(trace).run;
+    for (let i = 0; i < n; i++) {
+      r = w.transitar(r, { stepId: `p${i}`, to: 'running', at: i }).run;
+      r = w.transitar(r, { stepId: `p${i}`, to: 'done', at: i }).run;
+    }
+    return r;
+  });
   check('162) mil pasos en cadena: preparar y dos mil transiciones terminan `done`', run.state === 'done' && run.steps.every((s) => s.state === 'done'));
-  check('163) y en un tiempo razonable (la cota es holgada: mide que no haya un cuadrático escondido)', ms < 5000, `${Math.round(ms)} ms`);
+  check('163) y con un coste de CPU razonable (cota holgada; es CPU del proceso, no reloj de pared: no depende de la carga de la máquina)', ms < 5000, `${Math.round(ms)} ms de CPU`);
+  /* Regresión permanente de la causa: un proceso que ESPERA (turno de CPU perdido, otra tarea pesada) no suma coste. Con el reloj
+     de pared, 400 ms de espera habrían contado 400 ms; con la CPU del proceso, casi nada. */
+  const t0Pared = performance.now();
+  const { ms: msEspera } = cpuMs(() => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 400));
+  check('163b) la medida ignora la espera: 400 ms de pared dormido son menos de 100 ms de CPU (la causa del 6366 ms intermitente)', performance.now() - t0Pared >= 390 && msEspera < 100, `${Math.round(msEspera)} ms de CPU en ${Math.round(performance.now() - t0Pared)} ms de pared`);
   const wide = { id: 'wf_wide_0001', contract: '1.0', goal: 'ancho', steps: [{ id: 'root', capability: 'text.generate', purpose: 'r' }, ...Array.from({ length: n - 1 }, (_, i) => ({ id: `h${i}`, capability: 'image.generate', purpose: `h${i}`, dependsOn: ['root'] }))] };
   const ww = preparado(wide);
-  const t1 = performance.now();
-  const caido = ww.transitar(correr(ww, ww.iniciar(trace).run, [{ stepId: 'root', to: 'running', at: 1 }]), { stepId: 'root', to: 'failed', at: 2, error: fallo });
-  check('164) un fallo con mil dependientes se propaga a todos, con la causa raíz, de una vez', caido.run.steps.slice(1).every((s) => s.state === 'blocked' && s.cause.stepId === 'root') && caido.transitions.length === n && performance.now() - t1 < 2000);
+  const { valor: caido, ms: msCaida } = cpuMs(() => ww.transitar(correr(ww, ww.iniciar(trace).run, [{ stepId: 'root', to: 'running', at: 1 }]), { stepId: 'root', to: 'failed', at: 2, error: fallo }));
+  check('164) un fallo con mil dependientes se propaga a todos, con la causa raíz, de una vez', caido.run.steps.slice(1).every((s) => s.state === 'blocked' && s.cause.stepId === 'root') && caido.transitions.length === n && msCaida < 2000, `${Math.round(msCaida)} ms de CPU`);
 }
 
 /*

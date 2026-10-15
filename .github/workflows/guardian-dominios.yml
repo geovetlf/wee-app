@@ -1,0 +1,140 @@
+# EL GUARDIAN POR DOMINIOS — WEE Motor Guardian (docs/GUARDIAN-ESTADO.md · ops/guardian/).
+#
+# Qué hace, en una frase: en cada PR (y en main, a mano y una vez por semana) comprueba que el MAPA de dominios del Guardian
+# (ops/guardian/dominios.json) sigue cuadrando con la cadena de pruebas y que NINGUNA comprobación de los invariantes críticos
+# ha desaparecido (ops/guardian/huellas.json), y publica un informe comprensible. Con `workflow_dispatch` o por la mañana del lunes
+# también EJECUTA las suites de los dominios y distingue FALLA / INTERMITENTE / ENTORNO (nunca las mezcla con un verde).
+#
+# Lo que NO hace, y por qué es seguro:
+#   · No arregla nada, no hace push, no abre ni fusiona PR, no despliega: el token es de SOLO LECTURA (contents: read) y no hay
+#     ningún paso que escriba en el repositorio. Sin auto-merge. La autocorrección (ops/guardian/autocorreccion.mjs) es local y NO
+#     está en este workflow: dentro de la CI solo detectaría, y nada que se corrija allí persistiría.
+#   · Ningún secreto, ni del repositorio ni de un entorno, y ninguna credencial de producción; el primer paso exige un entorno sin
+#     claves (scripts/ci-sin-secretos.mjs). El checkout no deja credenciales en el disco (persist-credentials: false).
+#   · Ninguna expresión `${{ }}` dentro de un `run:` (las entradas del workflow_dispatch llegan por `env:` y el script las valida).
+#   · Sin ciclos: no escribe en el repositorio, así que no puede dispararse a sí mismo; y un push nuevo cancela la ejecución vieja
+#     (concurrency) salvo en main, donde cada commit lleva su grupo.
+#
+# Para que BLOQUEE, su check «Guardian de dominios (estático)» tiene que entrar en los requeridos del ruleset de main
+# (ops/github/propuesta-guardian-dominios-requerido.json, preparado y NO aplicado: es una decisión del dueño). Por eso este
+# workflow no tiene filtros de rama ni de ruta ni un `if:` en el trabajo que debe llegar siempre: un filtro dejaría PRs esperando
+# para siempre, y un `if:` que lo salte contaría como verde sin haber mirado nada. Lo fija functions/test/guardian-dominios.test.mjs.
+name: Guardian de dominios
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: «estatico» (mapa, invariantes y huellas) o «ejecutar» (además, las suites de los dominios)
+        type: choice
+        options: [estatico, ejecutar]
+        default: estatico
+      dominios:
+        description: Ids de dominio separados por comas (vacío = los críticos)
+        type: string
+        default: ''
+      estabilidad:
+        description: Repeticiones por suite para CAZAR una intermitencia (0 = una ejecución; máximo 50)
+        type: string
+        default: '0'
+  schedule:
+    - cron: '17 5 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guardian-dominios-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  dominios:
+    name: Guardian de dominios (estático)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Sin claves ni credenciales en el entorno
+        run: node scripts/ci-sin-secretos.mjs
+      - name: Dependencias (sin scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verificación estática por dominios (mapa, invariantes y huellas)
+        run: node ops/guardian/verificar.mjs --modo estatico --json guardian-dominios.json --md guardian-dominios.md
+      - name: Informe de autoverificación
+        if: always()
+        run: node ops/guardian/informe.mjs --verificacion guardian-dominios.json --json guardian-informe.json --md guardian-informe.md
+      - name: Resumen del job
+        if: always()
+        run: cat guardian-dominios.md guardian-informe.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Evidencia (informes del Guardian)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: guardian-dominios-estatico
+          path: |
+            guardian-dominios.json
+            guardian-dominios.md
+            guardian-informe.json
+            guardian-informe.md
+          retention-days: 30
+          if-no-files-found: warn
+
+  ejecucion:
+    name: Guardian de dominios (ejecución de suites)
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.modo == 'ejecutar')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # job-queue compara con c3515b3; produccion-mapa mira los tags si los hay
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - name: Sin claves ni credenciales en el entorno
+        run: node scripts/ci-sin-secretos.mjs
+      - name: Dependencias y build
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix functions --no-audit --no-fund
+          npm run build --prefix functions
+      # Los parámetros del workflow_dispatch llegan por el ENTORNO, nunca como texto de un shell; el script los valida (un id de
+      # dominio desconocido o una estabilidad fuera de 0-50 es FALLO, salida 3).
+      - name: Verificación por dominios (suites ejecutadas)
+        env:
+          GUARDIAN_MODO: ejecutar
+          GUARDIAN_DOMINIOS: ${{ inputs.dominios }}
+          GUARDIAN_ESTABILIDAD: ${{ inputs.estabilidad }}
+        run: node ops/guardian/verificar.mjs --criticos --paralelo 2 --json guardian-ejecucion.json --md guardian-ejecucion.md
+      - name: Resumen del job
+        if: always()
+        run: cat guardian-ejecucion.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Evidencia (informe y salidas de lo que falló)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: guardian-dominios-ejecucion
+          path: |
+            guardian-ejecucion.json
+            guardian-ejecucion.md
+          retention-days: 30
+          if-no-files-found: warn

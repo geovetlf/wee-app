@@ -321,13 +321,19 @@ const conBase = (extra = {}) => {
   return { r, b: r.sha() };
 };
 const entornoCI = (b) => ({ PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, HOME: process.env.HOME, GUARDIAN_BASE: b });
-const antesDeRaiz = execFileSync('git', ['-C', RAIZ, 'status', '--porcelain'], { encoding: 'utf8' });
+/* Hermético (Guardian · intermitentes, 2026-10-15): esta comprobación comparaba `git status` del ÁRBOL REAL antes y después de una
+   suite que dura minutos, así que cualquier edición ajena en ese lapso (otra tarea, una persona) la tumbaba sin que el Guardian
+   hubiera escrito nada: una prueba defectuosa, no una regresión. Lo que importa —que la verificación de la base no escribe en el
+   repositorio que juzga— se mide ahora en cada repositorio temporal que se le pasa, justo antes y justo después. */
+const estadoGit = (dir) => execFileSync('git', ['-C', dir, 'status', '--porcelain', '--untracked-files=all'], { encoding: 'utf8' });
+const estadosAntes = {};
 /* 30) Un cambio que toca las reglas del Guardian y además mete un CRITICAL de G3; el Guardian del cambio (simulado
    debilitado: dice PASA) no basta: el de la base lo bloquea. */
 const f1 = conBase();
 f1.r.escribir('ops/revision/reglas.mjs', `${GUARDIAN_COPIA['ops/revision/reglas.mjs']}\n// cambio en las reglas\n`);
 f1.r.escribir('functions/src/a/w.ts', 'export const w = 1;\n');
 f1.r.escribir('functions/src/a/x.ts', "import { w } from './w';\nexport const x = w;\n");
+estadosAntes.f1 = estadoGit(f1.r.dir);
 const p30 = gci.pasoDeCI({ raiz: f1.r.dir, entorno: entornoCI(f1.b), ejecutar: PASA_FALSO });
 check('30) autoprotección: el cambio toca ops/revision/reglas.mjs y mete un G3; aunque el Guardian del cambio diga PASA, el de la BASE bloquea → salida 1 con VERIFICACIÓN INDEPENDIENTE … BLOQUEA',
   p30.codigo === 1 && p30.verificacionBase?.estado === 'BLOQUEA' && /VERIFICACIÓN INDEPENDIENTE \(Guardian de la base [0-9a-f]+\): BLOQUEA — .*g3:/.test(p30.texto) && /✘ BLOQUEA: el Guardian de la base bloquea/.test(p30.texto),
@@ -335,6 +341,7 @@ check('30) autoprotección: el cambio toca ops/revision/reglas.mjs y mete un G3;
 /* 31) El cambio legítimo comparable: solo un comentario en las mismas reglas → la base también pasa. */
 const f2 = conBase();
 f2.r.escribir('ops/revision/reglas.mjs', `${GUARDIAN_COPIA['ops/revision/reglas.mjs']}\n// solo un comentario\n`);
+estadosAntes.f2 = estadoGit(f2.r.dir);
 const p31 = gci.pasoDeCI({ raiz: f2.r.dir, entorno: entornoCI(f2.b) });
 check('31) el cambio legítimo comparable (un comentario en las mismas reglas) pasa con los dos Guardianes → salida 0 con VERIFICACIÓN INDEPENDIENTE … PASA (y la AUTOPROTECCIÓN se sigue diciendo)',
   p31.codigo === 0 && p31.verificacionBase?.estado === 'PASA' && /VERIFICACIÓN INDEPENDIENTE \(Guardian de la base [0-9a-f]+\): PASA/.test(p31.texto) && /OBSERVACIÓN · AUTOPROTECCIÓN: .*ops\/revision\/reglas\.mjs/.test(p31.texto),
@@ -342,6 +349,7 @@ check('31) el cambio legítimo comparable (un comentario en las mismas reglas) p
 /* 32) Si el Guardian de la base no se puede ejecutar (base con guardian.mjs roto), es FALLO (3), no verde. */
 const f3 = conBase({ 'ops/harness/guardian.mjs': 'export const roto = ;\n' });
 f3.r.escribir('ops/revision/reglas.mjs', `${GUARDIAN_COPIA['ops/revision/reglas.mjs']}\n// cambio\n`);
+estadosAntes.f3 = estadoGit(f3.r.dir);
 const p32 = gci.pasoDeCI({ raiz: f3.r.dir, entorno: entornoCI(f3.b), ejecutar: PASA_FALSO });
 check('32) un Guardian de la base que no carga es FALLO (salida 3), aunque el del cambio diga PASA',
   p32.codigo === 3 && p32.verificacionBase?.estado === 'FALLO' && /✘ FALLO: la verificación con el Guardian de la base falló/.test(p32.texto), `${p32.codigo} ${JSON.stringify(p32.verificacionBase).slice(0, 300)}`);
@@ -354,9 +362,8 @@ const p33 = gci.pasoDeCI({ raiz: f4.dir, entorno: entornoCI(b4), ejecutar: () =>
   verificarBase: (a) => { consultada = a; return { estado: 'PASA', motivo: 'stub' }; } });
 check('33) con el Guardian del cambio roto (sin informe) la base se consulta igual (rutas de git) y el resultado sigue siendo FALLO (3): el verde de la base no tapa un fallo',
   consultada?.base === b4 && p33.codigo === 3 && /ops\/harness\/guardian-ci\.mjs es el camino que ejecuta esta verificación/.test(p33.texto), `${p33.codigo} ${p33.texto.slice(-300)}`);
-const despuesDeRaiz = execFileSync('git', ['-C', RAIZ, 'status', '--porcelain'], { encoding: 'utf8' });
 check('34) la verificación de la base no escribe en el repositorio (git status idéntico) y borra su copia temporal',
-  antesDeRaiz === despuesDeRaiz && [p30, p31, p32].every((p) => p.verificacionBase?.directorio && !fs.existsSync(p.verificacionBase.directorio)));
+  estadosAntes.f1 === estadoGit(f1.r.dir) && estadosAntes.f2 === estadoGit(f2.r.dir) && estadosAntes.f3 === estadoGit(f3.r.dir) && [p30, p31, p32].every((p) => p.verificacionBase?.directorio && !fs.existsSync(p.verificacionBase.directorio)));
 check('35) sin recursión: dentro de la verificación de la base no se vuelve a verificar; y el peor resultado manda (FALLO > BLOQUEA > PASA)',
   gb.verificarDesdeLaBase({ raiz: f2.r.dir, base: f2.b, entorno: { [gb.MARCA_ANIDADA]: '1' } }).estado === 'NO_APLICA'
   && gci.peor('PASA', 'BLOQUEA') === 'BLOQUEA' && gci.peor('BLOQUEA', 'FALLO') === 'FALLO' && gci.peor('PASA', 'PASA') === 'PASA'

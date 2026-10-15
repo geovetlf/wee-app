@@ -1,0 +1,588 @@
+{
+  "contrato": "wee-guardian-dominios@1",
+  "nota": "El mapa de DOMINIOS del Guardian: qué suites de la cadena (functions/package.json, scripts.test) vigilan cada parte de Weë. No es otro motor ni otra lista de pruebas: nombra las que ya existen, por dominio y NUNCA por experiencia (regla maestra del Harness: una sola capacidad común por dominios). Lo lee ops/guardian/verificar.mjs y lo fija functions/test/guardian-dominios.test.mjs: una suite citada que no existe, una suite de la cadena sin dominio, o un dominio crítico sin suites es FALLO, nunca verde. `critico` = un dominio que no se pueda verificar BLOQUEA (falla cerrado); en uno no crítico, lo no verificable se informa como pendiente. Una suite puede vigilar varios dominios.",
+  "dominios": [
+    {
+      "id": "tipos-y-build",
+      "nombre": "Tipos, compilación y contratos de la CI",
+      "critico": true,
+      "ambito": "plataforma",
+      "estado": "activo",
+      "alcance": "Alcance de tsconfig, la CI local, el workflow de la CI y los textos sueltos en JSX. El `tsc` de la app, el build de las Functions y el de la web los ejecuta el Nivel 1 de la CI (no se repiten aquí).",
+      "ci": [
+        "Nivel 1 · TypeScript y build"
+      ],
+      "suites": [
+        "ci-workflow",
+        "tsconfig-alcance",
+        "ci-local",
+        "jsx-textos-sueltos"
+      ]
+    },
+    {
+      "id": "contratos-core",
+      "nombre": "Contratos compartidos del Core",
+      "critico": true,
+      "ambito": "motor",
+      "estado": "activo",
+      "alcance": "Contratos y eventos del Weë Core: identidad, contenido, registro, traducción, vista espejo.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "core-contracts",
+        "core-identity-events",
+        "core-content",
+        "vista-espejo",
+        "core-registry",
+        "contabilidad-frontera",
+        "core-translation",
+        "autoridad-core",
+        "upstream-consumidor",
+        "contexto-cerrado"
+      ]
+    },
+    {
+      "id": "identidad-y-autorizacion",
+      "nombre": "Autenticación, autorización, perfiles y aislamiento entre cuentas",
+      "critico": true,
+      "ambito": "plataforma",
+      "estado": "activo",
+      "alcance": "Quién es quién (cuenta, entidad, perfil), qué puede leer y escribir cada cuenta, privacidad del perfil Weë, URLs del Storage que llegan de fuera, App Check y cabeceras.",
+      "ci": [
+        "Nivel 2 · suites",
+        "Nivel 2 · emuladores demo-*"
+      ],
+      "suites": [
+        "econtact",
+        "identidad-sin-biz",
+        "creacion-de-perfil",
+        "identidad-de-cuenta",
+        "cuenta-identidad",
+        "identidad-social",
+        "privacidad-identidad",
+        "seguridad-11x4a",
+        "security",
+        "urls-del-storage",
+        "avatar-duplicados",
+        "cupos-config",
+        "app-check",
+        "cabeceras-seguridad",
+        "credits-perfil-duplicado"
+      ]
+    },
+    {
+      "id": "creditos-y-cobro",
+      "nombre": "Créditos, facturación, idempotencia, reintentos y reembolsos",
+      "critico": true,
+      "ambito": "motor",
+      "estado": "activo",
+      "alcance": "El dinero: un requestId es una operación, cobro-generación-fallo-reembolso, el saldo privado de cada cuenta, lo demo no se cobra, reservas abandonadas, plazos y liquidación.",
+      "ci": [
+        "Nivel 2 · suites",
+        "Nivel 2 · emuladores demo-*"
+      ],
+      "suites": [
+        "runtime-liquidacion",
+        "core-financial",
+        "ledger",
+        "credits",
+        "idempotencia-de-cobro",
+        "puente-pre-f1d",
+        "f1d-generacion",
+        "f1d-cliente",
+        "credits-cliente-cerrado",
+        "techo-de-propuestas",
+        "pricing-mode",
+        "estimate-plan",
+        "plazos-y-liquidacion",
+        "credits-weeai",
+        "creator-reclamo",
+        "interruptor-ia",
+        "coste-de-los-fallos",
+        "reservas-colgadas",
+        "liquidacion-pendiente",
+        "presupuesto-diario",
+        "credits-perfil-duplicado",
+        "reservas-abandonadas",
+        "linea-b-finanzas",
+        "credits-saldo-privado",
+        "brain-demo-no-cobra"
+      ]
+    },
+    {
+      "id": "trabajos-asincronos",
+      "nombre": "Trabajos asíncronos y fallos de proveedores",
+      "critico": true,
+      "ambito": "motor",
+      "estado": "activo",
+      "alcance": "Job Engine, cola, conductor del Runtime, vídeo y 3D asíncronos, sondeo, webhooks, plazos y barrido de liquidación.",
+      "ci": [
+        "Nivel 2 · suites",
+        "Nivel 2 · emuladores demo-*"
+      ],
+      "suites": [
+        "mundo3d-asincrono",
+        "puerta-canario",
+        "core-workflow",
+        "core-orchestrator",
+        "core-job",
+        "job-queue",
+        "cola-durable",
+        "runtime-conductor",
+        "camino-durable",
+        "runtime-premigracion",
+        "brain-canary",
+        "runtime-liquidacion",
+        "runtime-asincrono",
+        "plazo-sincrono",
+        "runtime-map",
+        "runtime-paridad",
+        "video-asincrono",
+        "gateway-plazo",
+        "sondeo-tolerante",
+        "max-instancias",
+        "webhook-seedance",
+        "efectos-vigentes"
+      ]
+    },
+    {
+      "id": "router-gateway-proveedores",
+      "nombre": "Router, Gateway y adaptadores de proveedores",
+      "critico": true,
+      "ambito": "motor",
+      "estado": "activo",
+      "alcance": "Elección de proveedor, respaldo real, resiliencia, elegibilidad por jurisdicción, lo no disponible dicho sin filtrar nada de dentro.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "core-gateway",
+        "gateway-autoridad",
+        "router-parity",
+        "router-politica",
+        "router-frontera-real",
+        "elegibilidad-jurisdiccion",
+        "proveedor-fal",
+        "no-disponible",
+        "listas-por-capacidad",
+        "core-router",
+        "core-provider-verification",
+        "paso-proveedor-permitido",
+        "politica-de-voz",
+        "router",
+        "providers",
+        "rutas-mapa",
+        "rutas-resiliencia",
+        "rutas-respaldo-real",
+        "rutas-creatorrun",
+        "desactivacion-selectiva"
+      ]
+    },
+    {
+      "id": "brain-planner",
+      "nombre": "Brain, Planner y Orchestrator",
+      "critico": false,
+      "ambito": "motor",
+      "estado": "activo",
+      "alcance": "Weë Brain y sus pasos, el Planner, el encadenado de pasos y el vocabulario; una sola inteligencia con muchas puertas.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "core-brain",
+        "core-planner",
+        "guardas-reales",
+        "skills",
+        "creative",
+        "plan-entrada",
+        "plan-recursos",
+        "pasos-repetidos",
+        "necesidades-de-paso",
+        "puente-necesidades",
+        "entrada-de-paso",
+        "pistas-de-paso",
+        "brain-pasos",
+        "vocabulario-entender",
+        "encadenar-pasos",
+        "vocabulario-compatible",
+        "vocabulario-experiencias",
+        "brain-contexto",
+        "brain-canary",
+        "planner",
+        "creator",
+        "brain-vivo",
+        "brain-deepseek",
+        "brain-bloque",
+        "brain-operacion",
+        "brain-demo-no-cobra"
+      ]
+    },
+    {
+      "id": "algoritmo",
+      "nombre": "Algorithm Engine y continuidad",
+      "critico": false,
+      "ambito": "motor",
+      "estado": "activo",
+      "alcance": "Decisión, estrategia, verificación, retroalimentación y contexto del Algorithm Engine; sombra sin autoridad; continuidad entre pasos.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "algorithm-foundation",
+        "algorithm-decision",
+        "algorithm-decomposition",
+        "algorithm-strategy",
+        "algorithm-parallelization",
+        "algorithm-optimization",
+        "algorithm-verification",
+        "algorithm-feedback",
+        "algorithm-context",
+        "algorithm-cycle",
+        "algorithm-agnostic",
+        "algorithm-quality",
+        "contexto-visual",
+        "continuidad",
+        "continuidad-estructural",
+        "continuidad-intencion",
+        "continuidad-transporte",
+        "continuidad-adapter",
+        "continuidad-referencias",
+        "photo-canary",
+        "texto-material",
+        "continuidad-entendida",
+        "sombra-experiencia",
+        "sombra-sin-texto",
+        "canary-sombra-atribucion",
+        "canary-sombra-assets"
+      ]
+    },
+    {
+      "id": "media-y-archivos",
+      "nombre": "Subida, procesamiento, almacenamiento y entrega de archivos",
+      "critico": true,
+      "ambito": "motor",
+      "estado": "activo",
+      "alcance": "Media Cloud: dueño del material, subida, proceso, entrega, recolección, migración, uso y reconciliación; Assets y ciclo de vida del 3D.",
+      "ci": [
+        "Nivel 2 · suites",
+        "Nivel 2 · emuladores demo-*"
+      ],
+      "suites": [
+        "elements-runtime",
+        "planos-runtime",
+        "media-core",
+        "media-delivery-core",
+        "media-upload-core",
+        "media-proceso-core",
+        "media-recoleccion",
+        "media-migracion",
+        "media-uso",
+        "media-reconciliacion",
+        "media-canary",
+        "content",
+        "inventario-media",
+        "ciclo-de-vida-3d"
+      ]
+    },
+    {
+      "id": "social-y-feed",
+      "nombre": "Publicaciones, feed, Weëls, comentarios, perfiles y conexiones",
+      "critico": false,
+      "ambito": "plataforma",
+      "estado": "activo",
+      "alcance": "Muro, Home, composer, encuestas, WeeTalk, comunidades, denuncias, ubicación y navegación.",
+      "ci": [
+        "Nivel 2 · suites",
+        "Nivel 2 · emuladores demo-*"
+      ],
+      "suites": [
+        "moderation",
+        "weetalk-view-once",
+        "composer",
+        "muro",
+        "composer-entry",
+        "composer-ubicacion-econtact",
+        "location",
+        "cercania",
+        "encuestas",
+        "home",
+        "teclado",
+        "back",
+        "pagina-publica",
+        "navegacion-raiz",
+        "navegacion-enlaces",
+        "comunidades-siembra",
+        "composer-i18n",
+        "avisos-cupo",
+        "avisos-en-la-web",
+        "cierre-cliente",
+        "navegacion-parametros",
+        "cierre-servidor",
+        "weetalk-grabacion",
+        "correlacion-logs"
+      ]
+    },
+    {
+      "id": "experiencia-studio",
+      "nombre": "Weë Studio",
+      "critico": false,
+      "ambito": "experiencia",
+      "estado": "activo",
+      "alcance": "Capas de Studio (imagen, vídeo, voz), foundation de experiencias, cajas de prompt de Weë AI y alcance de Weë AI.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "cajas-weeai",
+        "foundation-de-experiencias",
+        "studio-capas",
+        "camara-espejo",
+        "puente-studio",
+        "studio-imagen",
+        "studio-video",
+        "studio-voz",
+        "ajustes-weeai",
+        "credits-weeai",
+        "wee-ai",
+        "ayuda-especialistas",
+        "alcance-wee-ai"
+      ]
+    },
+    {
+      "id": "experiencia-chef",
+      "nombre": "Weë Chef",
+      "critico": false,
+      "ambito": "experiencia",
+      "estado": "activo",
+      "alcance": "La experiencia de Chef sobre el mismo cerebro.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "chef-weeai"
+      ]
+    },
+    {
+      "id": "experiencia-travel",
+      "nombre": "Weë Travel",
+      "critico": false,
+      "ambito": "experiencia",
+      "estado": "activo",
+      "alcance": "La experiencia de Travel sobre el mismo cerebro.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "travel"
+      ]
+    },
+    {
+      "id": "experiencia-filmmaker",
+      "nombre": "Weë Filmmaker",
+      "critico": false,
+      "ambito": "experiencia",
+      "estado": "activo",
+      "alcance": "Modelo, reductor, servicio, navegación, i18n y UI de Filmmaker.",
+      "ci": [
+        "Nivel 2 · suites",
+        "Nivel 2 · emuladores demo-*"
+      ],
+      "suites": [
+        "filmmaker-modelo",
+        "productions-runtime",
+        "filmmaker-espejo",
+        "filmmaker-servicio",
+        "filmmaker-reductor",
+        "filmmaker-ui",
+        "filmmaker-i18n",
+        "filmmaker-navegacion"
+      ]
+    },
+    {
+      "id": "experiencia-3d",
+      "nombre": "Mundos 3D",
+      "critico": false,
+      "ambito": "experiencia",
+      "estado": "activo",
+      "alcance": "Contrato, gobernanza, costes, salidas y app de world.generate; todo apagado.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "mundo3d-contrato",
+        "mundo3d-salidas",
+        "mundo3d-asincrono",
+        "mundo3d-gobernanza",
+        "mundo3d-costes",
+        "escena3d",
+        "crear-mundo-3d",
+        "mundo3d-app",
+        "evals-mundo3d"
+      ]
+    },
+    {
+      "id": "i18n-y-accesibilidad",
+      "nombre": "i18n (16 locales), formatos y accesibilidad",
+      "critico": false,
+      "ambito": "calidad",
+      "estado": "activo",
+      "alcance": "Claves, plurales, formatos, variantes, huella, textos del servidor y accesibilidad; ningún texto escrito a mano.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "variantes-con-significado",
+        "f11-ui",
+        "iconos",
+        "i18n",
+        "i18n-cobertura",
+        "i18n-nombres-propios",
+        "i18n-variantes",
+        "i18n-portugues",
+        "i18n-preferencia-usuario",
+        "i18n-plurales-ru",
+        "i18n-coreano",
+        "i18n-chino",
+        "i18n-japones",
+        "i18n-turco",
+        "i18n-sueco",
+        "i18n-danes",
+        "i18n-hindi",
+        "i18n-servidor",
+        "i18n-auditoria",
+        "i18n-permisos-ios",
+        "i18n-cierre-textos",
+        "i18n-servidor-fuentes",
+        "i18n-idioma-de-salida",
+        "i18n-huella",
+        "i18n-revision",
+        "catalogo-i18n",
+        "experiencias-i18n",
+        "proyectos-i18n",
+        "composer-i18n",
+        "i18n-accesibilidad-tiempo",
+        "i18n-polls",
+        "i18n-navegacion",
+        "i18n-navegacion-sidebar",
+        "i18n-wee-ai-brand",
+        "i18n-inbox-errores",
+        "i18n-inbox-preview",
+        "i18n-marcas-de-mensaje",
+        "i18n-header-sidebar-account",
+        "i18n-login",
+        "i18n-confirmaciones",
+        "i18n-engine-admin-accessibility",
+        "i18n-settings-engine-profile-a11y",
+        "i18n-settings-complete",
+        "i18n-communities-management",
+        "i18n-profile-navigation",
+        "i18n-profile-complete",
+        "i18n-number-format",
+        "i18n-final-migration",
+        "i18n-phase6-migration",
+        "i18n-textos-a-mano",
+        "i18n-idioma-del-locale",
+        "idioma-servidor-coherencia"
+      ]
+    },
+    {
+      "id": "seguridad-y-despliegue",
+      "nombre": "Seguridad, secretos, entrega y operación",
+      "critico": true,
+      "ambito": "plataforma",
+      "estado": "activo",
+      "alcance": "Ningún secreto en el repositorio, aislamiento de emuladores, mapa de producción, workflow de despliegue, protección de GitHub, observabilidad, copia de seguridad, prelanzamiento.",
+      "ci": [
+        "Nivel 3 · seguridad y políticas"
+      ],
+      "suites": [
+        "backup",
+        "entrega-configuracion",
+        "emulador-aislado",
+        "guardia-claude",
+        "guardia-vigente",
+        "guardia-rodeos",
+        "produccion-mapa",
+        "despliegue-workflow",
+        "wif-verificar",
+        "proteccion-github",
+        "rotacion-secretos",
+        "integracion-preparada",
+        "escaneo-secretos",
+        "capacidades-conservadas",
+        "observabilidad",
+        "observabilidad-verificar",
+        "observabilidad-lanzamiento",
+        "prelanzamiento",
+        "observabilidad-retirada",
+        "carga-separacion"
+      ]
+    },
+    {
+      "id": "guardian-y-harness",
+      "nombre": "Guardian, Harness, evaluaciones y revisión",
+      "critico": true,
+      "ambito": "calidad",
+      "estado": "activo",
+      "alcance": "El Build Guardian y su autoprotección, el cierre de misión, las extensiones, los evals, la revisión determinista y Hillclimb.",
+      "ci": [
+        "Nivel 3 · seguridad y políticas"
+      ],
+      "suites": [
+        "revision-baseline",
+        "revision-detectores",
+        "revision-revisores",
+        "harness-extensiones",
+        "harness-cierre",
+        "evals-router",
+        "evals-gobernanza",
+        "evals-dominios",
+        "evals-presupuesto",
+        "evals-mundo3d",
+        "evals-corredor",
+        "harness-guardian",
+        "hillclimb",
+        "guardian-bloqueante",
+        "guardian-hooks",
+        "guardian-base-workflow",
+        "guardian-requerido-propuesta",
+        "guardian-dominios",
+        "guardian-autocorreccion"
+      ]
+    },
+    {
+      "id": "experiencia-design",
+      "nombre": "Weë Design",
+      "critico": false,
+      "ambito": "experiencia",
+      "estado": "pendiente",
+      "pendiente": "No hay ninguna suite de Weë Design en esta base: las reglas generales (cajas de prompt, cobro por spendCredits, i18n) cubren lo común, pero nada vigila su comportamiento propio.",
+      "cuandoExista": "Cuando Design tenga contrato propio: una suite `design-*.test.mjs` en la cadena y esta entrada pasa a `activo`.",
+      "ci": [],
+      "suites": []
+    },
+    {
+      "id": "experiencia-music",
+      "nombre": "Weë Music",
+      "critico": false,
+      "ambito": "experiencia",
+      "estado": "pendiente",
+      "pendiente": "Weë Music la construye otra rama (`music/composer-estudio`, no integrada) y su API no está conectada: no existe nada que verificar en esta base.",
+      "cuandoExista": "Al integrarse: suite propia en la cadena, pasos por spendCredits y ningún dato de muestra presentado como real.",
+      "ci": [],
+      "suites": []
+    },
+    {
+      "id": "experiencia-fashion",
+      "nombre": "Weë Fashion",
+      "critico": false,
+      "ambito": "experiencia",
+      "estado": "pendiente",
+      "pendiente": "Weë Fashion vive en otras ramas (`fashion/composer-v0`, `fashion/renombre-visible`), sin integrar en esta base.",
+      "cuandoExista": "Al integrarse: suite propia en la cadena y esta entrada pasa a `activo`.",
+      "ci": [],
+      "suites": []
+    }
+  ]
+}

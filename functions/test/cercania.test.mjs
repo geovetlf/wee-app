@@ -21,6 +21,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { cpuDe } from './_cpu.mjs';
 import { comoSeLee, textosDe } from './i18n-ayuda.mjs';
 const ES_C = textosDe('es');
 
@@ -124,9 +125,8 @@ console.log('\n─── B. La proximidad se calcula de verdad ───');
 await lugares.cargarMundo();
 
 /* Barranco, Lima. Coordenada pública de un sitio público. */
-const t0 = process.hrtime.bigint();
-const cercaDeBarranco = lugares.lugaresCercanos(-12.146, -77.022, 8);
-const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+/* CPU del proceso, no reloj de pared (functions/test/_cpu.mjs). */
+const { valor: cercaDeBarranco, ms } = cpuDe(() => lugares.lugaresCercanos(-12.146, -77.022, 8));
 
 check('cerca de Barranco sale algo', cercaDeBarranco.length > 0, `${cercaDeBarranco.length} lugares`);
 check(
@@ -163,7 +163,7 @@ check('en mitad del Pacífico no sale nada, y no revienta', Array.isArray(enElPa
 check('una coordenada que no es número devuelve lista vacía', lugares.lugaresCercanos(NaN, 0).length === 0);
 check('y undefined tampoco rompe', lugares.lugaresCercanos(undefined, undefined).length === 0);
 
-check('el cálculo es rápido: una sola pasada por el catálogo', ms < 1500, `${ms.toFixed(0)} ms para 78.771 lugares`);
+check('el cálculo es rápido: una sola pasada por el catálogo', ms < 1500, `${ms.toFixed(0)} ms de CPU para 78.771 lugares`);
 
 /* CONTROL: la distancia cambia si se mueve el punto. Si no cambiara, estaría fija. */
 const desdeOtroSitio = lugares.lugaresCercanos(-12.05, -77.04, 3);
