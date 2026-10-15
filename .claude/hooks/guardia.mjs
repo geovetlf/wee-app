@@ -428,6 +428,9 @@ export const desenvolver = (ps0) => {
         if (opc === '-S' || opc === '--split-string') { if (w.length) w = [...palabras(w[0]), ...w.slice(1)]; break; }
         if (/^--split-string=/.test(opc)) { w = [...palabras(opc.slice('--split-string='.length)), ...w]; break; }
         if (/^-S./.test(opc)) { w = [...palabras(opc.slice(2)), ...w]; break; }
+        /* H6: `-S` dentro de un grupo de opciones cortas (`env -iS 'firebase deploy'`, `env -i0S '…'`, `env -iSfirebase deploy`): el valor sigue siendo la orden. */
+        const grupoS = opc.match(/^-[A-Za-z0-9]+S(.*)$/);
+        if (grupoS) { if (grupoS[1]) w = [...palabras(grupoS[1]), ...w]; else if (w.length) w = [...palabras(w[0]), ...w.slice(1)]; break; }
         if (OPC_CON_VALOR_ENV.has(opc) && w.length) quita(1);
       }
       continue;
@@ -1279,6 +1282,91 @@ const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
 const decidirPeor = (r) => r;
 
 /**
+ * H6 — ENVOLTORIOS NO MODELADOS. `desenvolver` solo conoce los envoltorios de su lista (ENVOLTORIOS, env, xargs, npx…) y de ellos sabe qué
+ * opciones llevan valor. Cualquier OTRO programa que ejecuta una orden (`taskset 1 firebase deploy`, `flock x firebase deploy`, `numactl`, `unshare`,
+ * `nsenter`, `chroot`, `runuser`, `su -c`, `watch`, `strace`, `gdb --args`, `systemd-run`, `script -c`, `parallel`, `ssh host …`, `wsl -e`, `start`…) se
+ * veía como «un programa desconocido» y su orden real no se decidía; y de los ya conocidos, las opciones con valor que la tabla no recoge
+ * (`timeout -s ABRT`, `env -iS 'firebase deploy'`, `timeout 1.5 …`) dejaban el valor como «el programa».
+ *
+ * CORRECCIÓN (aditiva, como H4): cuando la orden empieza por uno de estos programas (o `desenvolver` termina en uno), se analizan ADEMÁS TODAS las
+ * hipótesis posibles de dónde empieza la orden real —cada SUFIJO de palabras que no sea una opción— y, en los envoltorios nuevos, cada palabra con
+ * espacios que pueda ser una orden entre comillas (`su -c 'firebase deploy'`, `watch 'git push'`) como texto de shell. Si una opción «toma valor» o
+ * no, o cuántos operandos posicionales lleva el envoltorio (`taskset MÁSCARA`, `flock ARCHIVO`, `chroot RAÍZ`), da igual: se mira cada punto de
+ * arranque y se toma la PEOR decisión («analizar las dos hipótesis y tomar la peor»). Esto solo puede AÑADIR decisiones: la orden original se
+ * analizó antes. Y solo cuenta lo que el sufijo añade por la identidad del programa (ver el comentario del bucle): lo que ya salía de los argumentos
+ * (secretos, patrones) no se duplica, así que no hay falsos positivos nuevos con `sudo git branch --list 'guardian/*'`.
+ *
+ * Residuo documentado: un operando que coincide con una orden sensible tras uno de estos envoltorios (`strace -o git push`) se lee como la orden
+ * (es el precio de no adivinar la estructura). No se analiza el interior de un `source script`/`. script` (ver el informe de H6).
+ */
+const ENVOLTORIOS_H6 = new Set([...ENVOLTORIOS, 'source', 'env', 'xargs', 'npx', 'pnpx', 'bunx',
+  'taskset', 'flock', 'numactl', 'unshare', 'nsenter', 'chroot', 'runuser', 'su', 'sg', 'newgrp', 'setpriv', 'prlimit', 'pkexec',
+  'watch', 'strace', 'ltrace', 'gdb', 'valgrind', 'perf', 'fakeroot', 'fakechroot', 'proot', 'systemd-run', 'dbus-run-session', 'script', 'cpulimit',
+  'parallel', 'entr', 'xvfb-run', 'winpty', 'wsl', 'cmd', 'start', 'busybox', 'ssh', 'eatmydata', 'torsocks', 'proxychains', 'proxychains4',
+  'dumb-init', 'tini', 'gosu', 'su-exec', 'sshpass', 'arch', 'unbuffer', 'chronic', 'ifne', 'caffeinate', 'tsp', 'cpulimit', 'nsjail', 'firejail', 'bwrap']);
+
+/* Los de ENVOLTORIOS_H6 que `desenvolver` NO modela: solo en estos la cadena entre comillas se lee como orden (ver `porEnvoltorios`). */
+const ENVOLTORIOS_H6_NUEVOS = new Set([...ENVOLTORIOS_H6].filter((x) => !ENVOLTORIOS.has(x) && !['env', 'xargs', 'npx', 'pnpx', 'bunx', 'source'].includes(x)));
+
+/* Los que reciben la orden como UNA cadena que pasan a un shell (`watch 'cmd'`, `parallel 'cmd {}'`, `ssh host 'cmd'`): ahí la palabra con espacios es la orden aunque no lleve `-c`. */
+const ENVOLTORIOS_H6_CADENA = new Map([['watch', 2], ['parallel', 2], ['ssh', 3], ['sshpass', 3]]); /* programa → hasta qué operando puede ser la cadena */
+
+const porEnvoltorios = (herr, etapa, profundidad, raiz) => {
+  let peor = PASA;
+  if (profundidad >= LIM_PROF) return peor;
+  const ps = etapa.palabras;
+  const ini = ps.findIndex((x) => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(x));
+  if (ini < 0 || ini >= ps.length - 1) return peor;
+  const p0 = programa(ps[ini]);
+  const p1 = programa(desenvolver(ps).w[0] || '');
+  const gestor = ['npm', 'pnpm', 'yarn', 'bun'].includes(p0) && ['exec', 'x', 'dlx'].includes(ps[ini + 1]);
+  if (!(ENVOLTORIOS_H6.has(p0) || ENVOLTORIOS_H6.has(p1) || gestor)) return peor;
+  const rk = (r) => (r.decision === 'deny' ? 2 : r.decision === 'ask' ? 1 : 0);
+  const nuevo = ENVOLTORIOS_H6_NUEVOS.has(p0) || ENVOLTORIOS_H6_NUEVOS.has(p1);
+  let posicional = 0;
+  /* Con un envoltorio que `desenvolver` YA modela (sudo, nice, env…) el programa real está donde él lo dejó: lo que viene después son argumentos de ese
+     programa (`sudo echo firebase deploy` no es un despliegue), así que solo se prueban los puntos de arranque HASTA ahí (por si una opción con valor no
+     tabulada se tragó el programa). Con uno nuevo no se sabe dónde acaba el envoltorio y se prueban todos. */
+  let hasta = (nuevo || ENVOLTORIOS_H6.has(p1)) ? ps.length : ps.length - desenvolver(ps).w.length;
+  /* El «programa» que dejó `desenvolver` puede ser en realidad el VALOR de una opción que la tabla no recoge (`timeout -s ABRT 5 firebase deploy`: `ABRT`) o
+     una duración que no reconoce (`timeout 1.5 …`): si va tras una opción, o es un número, se prueba también lo que sigue. Residuo: `sudo -E echo firebase deploy` se lee como un despliegue. */
+  while (hasta < ps.length - 1 && (/^[\d.]+[smhd]?$/i.test(ps[hasta]) || /^-/.test(ps[hasta - 1] || ''))) hasta++;
+  for (let k = ini + 1; k < ps.length && k <= hasta; k++) {
+    const opcion = /^-/.test(ps[k]);
+    if (!opcion) posicional++;
+    /* Una palabra con espacios puede ser una ORDEN entre comillas (`su -c 'firebase deploy'`, `watch -n 5 'git push'`, `ssh host 'git push'`): se analiza como
+       texto, pero SOLO en los envoltorios nuevos y solo si va tras una opción de «orden» (`-c`, `-e`, `--command`…) o es de los tres primeros operandos. Un
+       mensaje (`git commit -m "firebase deploy"`) lleva su cadena más lejos y NO se lee como orden. */
+    const ultima = k === ps.length - 1 || /^::::?$/.test(ps[k + 1]);
+    if (nuevo && /\s/.test(ps[k]) && (/^(-[A-Za-z]*[ceS]|--(command|exec|eval|cmd))$/.test(ps[k - 1] || '') || (ultima && posicional <= Math.max(ENVOLTORIOS_H6_CADENA.get(p0) || 0, ENVOLTORIOS_H6_CADENA.get(p1) || 0)))) {
+      const r = analizarTexto(herr, ps[k], profundidad + 1, raiz);
+      if (r.decision === 'deny') return r;
+      if (r.decision === 'ask' && !peor.decision) peor = r;
+    }
+    if (opcion) continue;
+    const suf = ps.slice(k);
+    const r = analizarOrden(herr, { ...etapa, palabras: suf, crudo: suf.join(' ') }, null, profundidad + 1, raiz);
+    /* Una decisión que sale de los ARGUMENTOS (un comodín que parece un secreto, `print-access-token` en un patrón…) ya la dio el análisis de la orden
+       entera: para saber si sale de la IDENTIDAD del programa se compara con la misma lista de palabras bajo un programa desconocido. Solo cuenta lo que
+       añade. Sin esto, `sudo git branch --list 'guardian/*'` se leería como `branch --list …` y daría un falso positivo. */
+    if (rk(r) === 0) continue;
+    const sin = analizarOrden(herr, { ...etapa, palabras: ['__envoltorio__', ...suf], crudo: ['__envoltorio__', ...suf].join(' ') }, null, profundidad + 1, raiz);
+    if (rk(r) <= rk(sin)) continue;
+    if (r.decision === 'deny') return r;
+    if (r.decision === 'ask' && !peor.decision) peor = r;
+  }
+  /* Un sufijo que EMPIEZA por otro envoltorio (`timeout -s ABRT 5 taskset 1 firebase deploy`) se mira también con sus propias hipótesis. */
+  for (let k = ini + 1; k <= hasta && k < ps.length - 1; k++) {
+    if (/^-/.test(ps[k]) || !ENVOLTORIOS_H6.has(programa(ps[k])) || k === ini) continue;
+    const r = porEnvoltorios(herr, { ...etapa, palabras: ps.slice(k) }, profundidad + 1, raiz);
+    if (r.decision === 'deny') return r;
+    if (r.decision === 'ask' && !peor.decision) peor = r;
+  }
+  return peor;
+};
+
+
+/**
  * Backstop para lo dinámico: si un programa sensible recibe el SUBCOMANDO por una
  * variable/sustitución (o el programa mismo es dinámico), o sus argumentos vienen
  * de `xargs`, y el texto completo trae una palabra sensible → deny. No bloquea las
@@ -1378,6 +1466,12 @@ function analizar(herramienta, texto, profundidad, raiz) {
           if (r2.decision === 'deny') return r2;
           if (r2.decision === 'ask' && !peor.decision) peor = r2;
         }
+      }
+      /* H6: los envoltorios que no modela `desenvolver` (y sus opciones con valor): se analiza cada punto de arranque posible de la orden real. Solo AÑADE decisiones. */
+      for (const pals of (tuberia[k].palabras.some((x) => x.includes('{')) ? [tuberia[k].palabras, expandirPalabras(tuberia[k].palabras)] : [tuberia[k].palabras])) {
+        const r3 = porEnvoltorios(herr, { ...tuberia[k], palabras: pals }, profundidad, raiz);
+        if (r3.decision === 'deny') return r3;
+        if (r3.decision === 'ask' && !peor.decision) peor = r3;
       }
     }
   }

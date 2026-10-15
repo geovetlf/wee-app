@@ -234,10 +234,15 @@ if (!b) {
   check('G2b) …pero con la palabra del programa aún comprobada, `. <secreto>` sigue denegándose (defensa en profundidad: dos comprobaciones distintas)', dec(sinQ, 'Bash', `. ${L}`) === 'deny');
   const sinT = await mutantes([SIN_TODO]);
   check('G3) SABOTAJE a la guardia anterior (`slice(1)` y sin quitadas): vuelven a pasar `. <secreto>` y `xargs -a <secreto> cat`', dec(sinT, 'Bash', `. ${L}`) === 'pasa' && dec(sinT, 'Bash', `xargs -a ${L} cat`) === 'pasa');
+  /* H6: la corrección de los envoltorios no modelados prueba también el punto de arranque que sigue a una opción (`sudo -u root firebase deploy` se lee
+     como `firebase deploy`), y eso cubre por otro camino el valor de opción que G5 mide. Este sabotaje apaga además esa pieza para seguir midiendo SOLO
+     la tabla de H5. En una rama sin H6 no hay nada que apagar. */
+  const H6_LLAMADA = 'const r3 = porEnvoltorios(';
+  const SIN_H6 = texto.includes(H6_LLAMADA) ? [[H6_LLAMADA, 'const r3 = (() => PASA)(']] : [];
   const mt = await mutantes([TIME_CLAVE]);
   check('G4) SABOTAJE con `time` otra vez como palabra clave suelta: `time -p firebase deploy` y `time -p git push --force origin main` vuelven a pasar (C lo detecta)',
     dec(mt, 'Bash', 'time -p firebase deploy') === 'pasa' && dec(mt, 'Bash', 'time -p git push --force origin main') === 'pasa');
-  const mv = await mutantes([SIN_VALORES]);
+  const mv = await mutantes([SIN_VALORES, ...SIN_H6]);
   check('G5) SABOTAJE sin saltar los valores de opción: `sudo -u root firebase deploy` y `exec -a x firebase deploy` vuelven a pasar (C lo detecta)',
     dec(mv, 'Bash', 'sudo -u root firebase deploy') === 'pasa' && dec(mv, 'Bash', 'exec -a x firebase deploy') === 'pasa');
   const mvac = await mutantes([SIN_VACIA]);
