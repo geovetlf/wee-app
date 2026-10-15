@@ -370,6 +370,16 @@ export const programa = (p) => path.basename(String(p).replace(/\\/g, '/')).toLo
 
 const ENVOLTORIOS = new Set(['timeout', 'time', 'nice', 'nohup', 'stdbuf', 'command', 'builtin', 'noglob',
   'exec', 'call', 'setsid', 'ionice', 'chrt', 'sudo', 'doas', '&', '.']);
+/* H5: opciones de envoltorio con valor SEPARADO (`sudo -u root cmd`). Solo las que no se confunden con un número o una señal (esas ya se saltan). */
+const OPC_CON_VALOR_ENVOLTORIO = {
+  time: ['-f', '-o', '--format', '--output'],
+  exec: ['-a'],
+  stdbuf: ['-i', '-o', '-e', '--input', '--output', '--error'],
+  sudo: ['-u', '-g', '-h', '-p', '-r', '-t', '-C', '-D', '-R', '-T', '-U', '--user', '--group', '--host', '--prompt', '--role', '--type',
+    '--chdir', '--chroot', '--close-from', '--command-timeout', '--other-user'],
+  doas: ['-u', '-C'],
+  ionice: ['-c', '-n', '-p', '-P', '-u'],
+};
 const OPC_CON_VALOR_ENV = new Set(['-u', '-C', '--unset', '--chdir']);
 const OPC_CON_VALOR_XARGS = new Set(['-I', '-i', '-n', '-P', '-L', '-d', '-E', '-s', '-a',
   '--max-args', '--max-procs', '--max-lines', '--replace', '--delimiter', '--arg-file']);
@@ -385,50 +395,63 @@ const dinamica = (w) => /\$|`/.test(String(w));
 export const desenvolver = (ps0) => {
   let w = [...ps0];
   let din = false;
+  /* H5: lo que se QUITA (envoltorios, sus opciones y los valores de opción que se saltan). Antes se perdía sin más y el operando que seguía
+     al envoltorio (`. <archivo>`, `exec <archivo>`, `time -o <archivo> …`, `xargs -a <archivo> …`) pasaba a ser «el programa», que
+     `tocaSecreto` y `escribeProtegido` no miran. Ahora se devuelve para que quien decide lo compruebe. */
+  const quitadas = [];
+  const quita = (n) => { quitadas.push(...w.slice(0, n)); w = w.slice(n); };
   for (let vueltas = 0; vueltas < LIM_PROF && w.length; vueltas++) {
+    /* Las asignaciones iniciales (`X=valor orden`) NO se registran en `quitadas`: el valor de una variable no se lee como argumento (brecha conocida y documentada en guardia-rodeos). */
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w[0])) { w = w.slice(1); continue; }
     const p = programa(w[0]);
-    if (PALABRA_CLAVE.has(w[0]) || PALABRA_CLAVE.has(p)) { w = w.slice(1); continue; }
+    /* H5: `time` NO se trata como palabra clave suelta (quitaba solo `time` y dejaba su opción —`-p`, `-f %e`, `-o archivo`— como «el programa»):
+       va por la rama de los envoltorios, que sí salta sus opciones y los valores de opción. */
+    if (p !== 'time' && (PALABRA_CLAVE.has(w[0]) || PALABRA_CLAVE.has(p))) { quita(1); continue; }
     if (ENVOLTORIOS.has(p) || w[0] === '&' || w[0] === '.') {
-      w = w.slice(1);
-      while (w.length && (/^-/.test(w[0]) || /^\d+[smhd]?$/i.test(w[0]) || /^(sig)?[a-z]+$/i.test(w[0]) && /^(timeout|time)$/.test(p) && /^(sig)?(kill|term|int|hup|quit|stop|cont|usr1|usr2|9|15)$/i.test(w[0]))) {
-        w = w.slice(1);
+      quita(1);
+      while (w.length && (/^-/.test(w[0]) || /^\d+[smhd]?$/i.test(w[0]) || /^(sig)?[a-z]+$/i.test(w[0]) && p === 'timeout' && /^(sig)?(kill|term|int|hup|quit|stop|cont|usr1|usr2|9|15)$/i.test(w[0]))) {
+        const opc = w[0];
+        quita(1);
+        /* H5: la opción de un envoltorio que lleva VALOR aparte (`exec -a nombre`, `sudo -u root`, `time -o archivo`, `stdbuf -o L`): el valor no es el
+           programa. Pegado a la opción (`-uroot`, `--user=root`) no hay nada que saltar. Si una opción de la tabla se equivocara, el efecto es más
+           análisis, nunca menos: el valor saltado queda en `quitadas`, que `tocaSecreto`/`escribeProtegido` comprueban. */
+        if (w.length && (OPC_CON_VALOR_ENVOLTORIO[p] || []).includes(opc)) quita(1);
       }
       continue;
     }
     if (p === 'env') {
-      w = w.slice(1);
+      quita(1);
       while (w.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w[0]) || /^-/.test(w[0]))) {
         const opc = w[0];
-        w = w.slice(1);
+        quita(1);
         /* `env -S 'firebase deploy'`: el valor de -S ES la orden (se parte en palabras), no una opción que se salta. */
         if (opc === '-S' || opc === '--split-string') { if (w.length) w = [...palabras(w[0]), ...w.slice(1)]; break; }
         if (/^--split-string=/.test(opc)) { w = [...palabras(opc.slice('--split-string='.length)), ...w]; break; }
         if (/^-S./.test(opc)) { w = [...palabras(opc.slice(2)), ...w]; break; }
-        if (OPC_CON_VALOR_ENV.has(opc) && w.length) w = w.slice(1);
+        if (OPC_CON_VALOR_ENV.has(opc) && w.length) quita(1);
       }
       continue;
     }
     if (p === 'xargs') {
-      w = w.slice(1);
+      quita(1);
       while (w.length && /^-/.test(w[0])) {
         const opc = w[0].split('=')[0];
         const juntos = /^-[IiNPLdEsa]\S/.test(w[0]) || w[0].includes('=');
-        w = w.slice(1);
-        if (!juntos && OPC_CON_VALOR_XARGS.has(opc) && w.length) w = w.slice(1);
+        quita(1);
+        if (!juntos && OPC_CON_VALOR_XARGS.has(opc) && w.length) quita(1);
       }
       din = true; // los argumentos reales entran por la entrada estándar
       continue;
     }
     if (p === 'npx' || p === 'pnpx' || p === 'bunx') {
-      w = w.slice(1);
-      while (w.length && w[0].startsWith('-')) w = w.slice(w[0] === '-p' || w[0] === '--package' ? 2 : 1);
+      quita(1);
+      while (w.length && w[0].startsWith('-')) quita(w[0] === '-p' || w[0] === '--package' ? 2 : 1);
       if (w.length && /^firebase-tools(@.*)?$/.test(w[0])) w = ['firebase', ...w.slice(1)];
       continue;
     }
     if ((p === 'npm' || p === 'pnpm' || p === 'bun' || p === 'yarn') && (w[1] === 'exec' || w[1] === 'x' || w[1] === 'dlx')) {
-      w = w.slice(2);
-      while (w.length && (w[0] === '--' || w[0].startsWith('-'))) w = w.slice(1);
+      quita(2);
+      while (w.length && (w[0] === '--' || w[0].startsWith('-'))) quita(1);
       if (w.length && /^firebase-tools(@.*)?$/.test(w[0])) w = ['firebase', ...w.slice(1)];
       continue;
     }
@@ -436,7 +459,7 @@ export const desenvolver = (ps0) => {
     if ((p === 'python' || p === 'python3' || p === 'py') && w.length > 1 && /gcloud\.py$/i.test(w[1])) { w = ['gcloud', ...w.slice(2)]; continue; }
     break;
   }
-  return { w, dinamica: din };
+  return { w, dinamica: din, quitadas };
 };
 
 /* ── Firmas ─────────────────────────────────────────────────────────────── */
@@ -756,8 +779,17 @@ export const expandirPalabras = (palabras) => {
 };
 
 /** ¿Alguna palabra toca (o PUEDE expandirse a) un archivo de secretos? Devuelve el nombre o null. */
-const tocaSecreto = (p, w) => {
-  const utiles = sinPatron(p, w).slice(1);
+/**
+ * H5: `quitadas` son las palabras que `desenvolver` quitó (envoltorios, opciones y valores de opción saltados). Y la palabra que queda en la
+ * posición del PROGRAMA también se comprueba: tras `. `, `exec`, `time`, `command`, `builtin`, `nohup`, `sudo`, `env`, `xargs`… (y tras el `&` de
+ * PowerShell, que el tokenizador trata como separador; allí el comodín del programa también se mira) ese operando es un ARCHIVO que el envoltorio lee o ejecuta, no un programa. Comprobar de más
+ * solo puede endurecer: lo que se comprueba es el mismo nombre/patrón de secreto que ya se comprobaba en los argumentos.
+ */
+const tocaSecreto = (p, w, quitadas = [], enPowerShell = false) => {
+  /* La palabra del PROGRAMA se comprueba si hay envoltorio delante (cualquier forma, comodines incluidos: `. .e*`) o si es un nombre literal. Sin
+     envoltorio, un COMODÍN en la posición del programa (como `guardian/` seguido de un asterisco) no se lee como «toca un secreto»: eso sería un falso positivo nuevo. */
+  const conPrograma = quitadas.length > 0 || enPowerShell || !/[*?[]/.test(String(w[0] || ''));
+  const utiles = [...quitadas, ...(conPrograma ? sinPatron(p, w) : sinPatron(p, w).slice(1))];
   const soloRefs = esListadoDeRefsGit(p, w);
   const ultimo = (x) => x.slice(x.replace(/\\/g, '/').lastIndexOf('/') + 1);
   const desescapar = (x) => x.replace(/\\(.)/g, '$1').replace(/\\/g, '/').toLowerCase();
@@ -779,12 +811,17 @@ const tocaSecreto = (p, w) => {
 };
 
 /** ¿La orden ESCRIBE en una ruta protegida (redirección, cp/mv/sed -i, node fs.write…)? */
-const escribeProtegido = (p, w, crudo) => {
+const escribeProtegido = (p, w, crudo, quitadas = []) => {
   const norm = String(crudo).replace(/\\/g, '/');
   const protegida = (x) => RUTAS_PROTEGIDAS.test(String(x).replace(/\\/g, '/'));
   /* H4: los argumentos también se miran ya expandidos (`rm {.claude,x}/settings.json`, `cp x .cl{a,}ude/settings.json`). */
   const args = w.slice(1).flatMap((x) => expandirLlaves(x));
-  if (!RUTAS_PROTEGIDAS.test(norm) && !args.some(protegida)) return false;
+  /* H5: lo que se quitó y la palabra que quedó en la posición del programa (solo si hubo envoltorio), también ya expandidos. */
+  const delEnvoltorio = quitadas.length ? [...quitadas, w[0] || ''].flatMap((x) => expandirLlaves(x)) : [];
+  if (!RUTAS_PROTEGIDAS.test(norm) && !args.some(protegida) && !delEnvoltorio.some(protegida)) return false;
+  /* H5: tras un envoltorio, un operando protegido en la posición del programa (`/usr/bin/time -o <ruta> …`, `nohup <ruta>`) o un argumento tras una
+     opción que el envoltorio se salta (`time -o <ruta> …`: GNU time ESCRIBE ese archivo) no es un programa que se mire: pregunta el dueño. */
+  if (delEnvoltorio.some(protegida)) return true;
   if (/>>?\s*["']?[^\s"'|&;]*(\.claude\/|\.git\/|\.firebaserc|creditengine\.ts|core\/financial\/)/i.test(norm)) return true;
   if (ESCRITORES.has(p) && args.some(protegida)) return true;
   if (p === 'sed' && args.some((x) => /^-i/.test(x)) && args.some(protegida)) return true;
@@ -939,8 +976,12 @@ const scriptQueEjecuta = (p, w) => {
 
 /** Analiza UNA etapa ya partida en palabras. */
 const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
-  let { w, dinamica: desdeEntrada } = desenvolver(etapa.palabras);
-  if (!w.length) return PASA;
+  let { w, dinamica: desdeEntrada, quitadas } = desenvolver(etapa.palabras);
+  if (!w.length) {
+    /* H5: una orden que se queda sin programa (`xargs -a <secreto>`, `time -o <secreto>`) ya no suelta en silencio lo que se quitó: si nombra un secreto, se deniega. */
+    const quitado = tocaSecreto('', [], quitadas);
+    return quitado ? decision('deny', `El comando toca ${quitado}: los secretos y credenciales no se leen ni se mueven desde Claude (docs/SECURITY.md).`) : PASA;
+  }
   /*
    * xargs: lo que llega por la entrada son ARGUMENTOS. Si se puede leer (here-string, echo/printf, un archivo), se
    * añaden y la orden se analiza entera (`echo commit | xargs git` = `git commit`). Si el último argumento es el `-c`
@@ -1041,10 +1082,10 @@ const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
   }
 
   /* Escritura en rutas que el dueño protege: pregunta (nunca en silencio). */
-  if (escribeProtegido(p, w, etapa.crudo)) return decision('ask', 'El comando escribe en una ruta protegida (.claude, .git, .firebaserc, el motor de Credits o el Financial Core): lo aprueba el dueño.');
+  if (escribeProtegido(p, w, etapa.crudo, quitadas)) return decision('ask', 'El comando escribe en una ruta protegida (.claude, .git, .firebaserc, el motor de Credits o el Financial Core): lo aprueba el dueño.');
 
   /* Archivos de secretos y credenciales: nunca se leen ni se tocan desde un comando (el patrón de un buscador no cuenta). */
-  const secreto = tocaSecreto(p, w);
+  const secreto = tocaSecreto(p, w, quitadas, herramienta === 'PowerShell');
   if (secreto) return decision('deny', `El comando toca ${secreto}: los secretos y credenciales no se leen ni se mueven desde Claude (docs/SECURITY.md).`);
 
   const todo = sinPatron(p, w).join(' ').replace(/\\/g, '/').toLowerCase();

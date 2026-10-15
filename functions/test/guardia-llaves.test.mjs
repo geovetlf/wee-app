@@ -190,7 +190,11 @@ console.log('\n── G · Sabotajes de la corrección ──');
   check('G2) quitar SOLO el análisis de la orden expandida: los secretos siguen denegados, pero el programa construido con llaves pasa (B lo detecta)', originales.every((c) => dec(m2, 'Bash', c) === 'deny') && dec(m2, 'Bash', '{git,push,--force} origin main') === 'pasa');
   const m3 = await mutantes([SIN_EXP_SECRETO, SIN_ETAPA]);
   check('G3) SABOTAJE sin ninguna de las dos expansiones: `cat .e{n,}v*` vuelve a pasar (A lo detecta)', dec(m3, 'Bash', 'cat .e{n,}v*') === 'pasa');
-  const m4 = await mutantes([REGEX_VIEJA, SIN_EXP_SECRETO, SIN_ETAPA]);
+  /* H5: con la corrección de los envoltorios la palabra del programa también se comprueba, y eso cubre por otro camino la palabra tragada como grupo
+     (`{.env.local,x}` queda como «programa»). Este sabotaje apaga también esa comprobación para seguir midiendo SOLO la pieza de H4. En una rama sin H5 no hay nada que apagar. */
+  const H5_PROGRAMA = 'const utiles = [...quitadas, ...(conPrograma ? sinPatron(p, w) : sinPatron(p, w).slice(1))];';
+  const SIN_H5 = texto.includes(H5_PROGRAMA) ? [[H5_PROGRAMA, 'const utiles = [...quitadas, ...sinPatron(p, w).slice(1)];']] : [];
+  const m4 = await mutantes([REGEX_VIEJA, SIN_EXP_SECRETO, SIN_ETAPA, ...SIN_H5]);
   check('G4) SABOTAJE con la regex antigua del tokenizador (y sin expansiones): `cat {<secreto>,x}` y `cat {a,b} <secreto>` pasan (la palabra se traga como grupo)', dec(m4, 'Bash', `cat {${L},x}`) === 'pasa');
   const m5 = await mutantes([SIN_EXP_PROT, SIN_ETAPA]);
   check('G5) SABOTAJE sin expandir en escribeProtegido (ni la orden entera): `rm {.claude,x}/settings.json` vuelve a pasar (A2 lo detecta)', dec(m5, 'Bash', `rm {${CL},x}/settings.json`) === 'pasa');
