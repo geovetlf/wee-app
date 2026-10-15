@@ -152,14 +152,14 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     keywords: ['casa', 'hogar', 'decoración', 'decoracion', 'decorar', 'sala', 'cuarto', 'habitación', 'habitacion', 'dormitorio', 'interior', 'muebles', 'jardín', 'jardin', 'remodelar', 'remodelación', 'remodelacion', 'espacio', 'oficina', 'baño', 'bano', 'exterior', 'patio'],
   },
   {
-    id: 'business',
+    id: 'fashion',
     icono: 'vestido',
-    claveDescripcion: 'creator.business',
+    claveDescripcion: 'creator.fashion',
     name: 'Weë Fashion',
     emoji: '👗',
     description: 'Moda, estilo, belleza y creación de contenido visual.',
-    examples: ['creator.businessEx1', 'creator.businessEx2', 'creator.businessEx3'],
-    keywords: ['negocio', 'emprendimiento', 'emprender', 'marketing', 'ventas', 'vender', 'presentación', 'presentacion', 'pitch', 'plan', 'campaña', 'campana', 'cliente', 'clientes', 'tienda', 'empresa', 'estrategia', 'publicidad', 'precio', 'cv', 'currículum', 'curriculum', 'documento', 'análisis', 'analisis', 'trabajo'],
+    examples: ['creator.beautyEx1', 'creator.beautyEx2', 'creator.beautyEx3'],
+    keywords: ['moda', 'ropa', 'vestido', 'prenda', 'prendas', 'outfit', 'look', 'estilo', 'estilista', 'zapatos', 'calzado', 'accesorios', 'colección', 'coleccion', 'catálogo', 'catalogo', 'lookbook', 'probarme', 'maquillaje', 'peinado', 'cabello', 'fashion', 'diseñar ropa'],
   },
   {
     id: 'travel',
@@ -219,7 +219,7 @@ export const ORDEN_EN_EL_MENU: string[] = [
   'design',
   'music',
   'chef',
-  'business',
+  'fashion',
   'travel',
 ];
 
@@ -266,7 +266,7 @@ export const PALABRAS_POR_IDIOMA: Readonly<Record<'da' | 'en', Readonly<Record<s
     beauty: ['skønhed', 'makeup', 'make-up', 'frisure', 'klipning', 'hårfarve', 'håret', 'mit hår', 'outfit', 'tøj', 'negle', 'hudpleje', 'skæg', 'briller', 'påklædning'],
     chef: ['opskrift', 'madlavning', 'lave mad', 'madplan', 'aftensmad', 'morgenmad', 'madpakke', 'menu', 'ingredienser', 'kostplan', 'sund', 'frokost', 'dessert', 'restaurant', 'kage', 'bagning', 'kokken'],
     home: ['mit hjem', 'hjemmet', 'derhjemme', 'bolig', 'indretning', 'indrette', 'stue', 'værelse', 'soveværelse', 'interiør', 'møbler', 'haven', 'renovere', 'renovering', 'kontor', 'badeværelse', 'køkken', 'udendørs', 'terrasse', 'altan'],
-    business: ['forretning', 'virksomhed', 'iværksætter', 'markedsføring', 'salg', 'sælge', 'præsentation', 'pitch', 'forretningsplan', 'kampagne', 'kunde', 'butik', 'firma', 'strategi', 'annonce', 'pris', 'cv', 'ansøgning', 'dokument', 'analyse', 'job', 'arbejde'],
+    fashion: ['mode', 'tøj', 'kjole', 'outfit', 'stil', 'sko', 'tilbehør', 'kollektion', 'katalog', 'lookbook', 'makeup', 'frisure', 'beklædning'],
     travel: ['rejse', 'ferie', 'rejseplan', 'destination', 'turisme', 'turist', 'flyrejse', 'flybillet', 'hotel', 'strand', 'backpacker', 'rute', 'udflugt', 'kuffert', 'visum', 'lufthavn', 'togrejse', 'krydstogt', 'guide', 'storby', 'udlandet'],
     brain: ['hjælp', 'spørgsmål', 'tænke', 'lære', 'forklar', 'opsummering', 'opsummere', 'organisere', 'planlægge', 'studere', 'lektier', 'opgave', 'undersøge', 'oversætte', 'oversæt', 'problem', 'råd', 'ved ikke'],
   },
@@ -279,7 +279,7 @@ export const PALABRAS_POR_IDIOMA: Readonly<Record<'da' | 'en', Readonly<Record<s
     beauty: ['beauty', 'makeup', 'hairstyle', 'haircut', 'hair color', 'my hair', 'outfit', 'clothes', 'nails', 'skin', 'fashion', 'beard', 'glasses'],
     chef: ['recipe', 'cooking', 'cook', 'food', 'meal', 'menu', 'dish', 'ingredients', 'diet', 'healthy', 'dinner', 'lunch', 'breakfast', 'dessert', 'restaurant', 'substitute', 'chef', 'baking'],
     home: ['house', 'my home', 'home decor', 'decor', 'decorate', 'living room', 'bedroom', 'interior', 'furniture', 'garden', 'remodel', 'renovate', 'renovation', 'office', 'bathroom', 'kitchen', 'outdoor', 'patio'],
-    business: ['business', 'startup', 'entrepreneur', 'marketing', 'sales', 'sell', 'presentation', 'pitch', 'campaign', 'customer', 'client', 'shop', 'store', 'company', 'strategy', 'advertising', 'price', 'pricing', 'resume', 'cv', 'document', 'analysis', 'job'],
+    fashion: ['fashion', 'outfit', 'clothes', 'clothing', 'dress', 'style', 'stylist', 'shoes', 'accessories', 'collection', 'catalogue', 'catalog', 'lookbook', 'try on', 'makeup', 'hairstyle', 'look'],
     travel: ['trip', 'travel', 'vacation', 'holiday', 'itinerary', 'destination', 'tourism', 'tourist', 'flight', 'hotel', 'beach', 'backpacking', 'route', 'excursion', 'suitcase', 'passport', 'visa', 'airport', 'train ride', 'cruise', 'guide', 'city break', 'abroad'],
     brain: ['help', 'question', 'think', 'learn', 'explain', 'summary', 'summarize', 'organize', 'study', 'homework', 'research', 'translate', 'problem', 'advice', "don't know", 'not sure'],
   },
@@ -327,7 +327,7 @@ const palabrasDelIdioma = (idioma?: string): Readonly<Record<string, readonly st
 export const EXPERIENCE_AREA: Record<string, { section: string; claveEtiqueta: ClaveDeTexto; claveNombre?: ClaveDeTexto }> = {
   photo: { section: 'studio', claveEtiqueta: 'creator.areaStudioPhotos' },
   studio: { section: 'studio', claveEtiqueta: 'creator.areaStudioVideos' },
-  beauty: { section: 'studio', claveEtiqueta: 'creator.areaStudioBeauty' },
+  beauty: { section: 'fashion', claveEtiqueta: 'creator.areaFashionBeauty' },
   /*
    * Weë Home pasa a ser Hogar & Diseño dentro de Weë Design. El nombre propio
    * desaparece de la pantalla —nadie debe leer "Weë Home"—, pero el
@@ -354,8 +354,19 @@ export const experienceLabel = (
 };
 
 /** Resuelve por identificador entre LAS DIEZ: el historial depende de esto. */
-export const getExperienceById = (id: string): WeeExperience | undefined =>
-  ALL_EXPERIENCES.find((e) => e.id === id);
+/**
+ * Identificadores RETIRADOS de la sección de creación y a dónde se resuelven.
+ *
+ * «business» fue la sexta sección de creación y ahora es Weë Fashion. Un enlace, un trabajo o una caché que aún diga
+ * «business» se abre en Fashion; no se crea nada nuevo con él. Esto vale SOLO en este registro de secciones de creación: el directorio
+ * independiente de negocios (WeeBiz: `businesses/*`, `WeeBiz*Screen`) no pasa por este registro y no se toca.
+ */
+export const EXPERIENCIAS_RETIRADAS: Readonly<Record<string, string>> = { business: 'fashion' };
+
+export const getExperienceById = (id: string): WeeExperience | undefined => {
+  const destino = EXPERIENCIAS_RETIRADAS[id] ?? id;
+  return ALL_EXPERIENCES.find((e) => e.id === destino);
+};
 
 
 

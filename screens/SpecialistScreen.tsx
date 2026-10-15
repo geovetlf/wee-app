@@ -14,7 +14,7 @@ import BrainChatScreen from './BrainChatScreen';
 import StudioScreen from './StudioScreen';
 import DesignScreen from './DesignScreen';
 import ChefScreen from './ChefScreen';
-import BusinessScreen from './BusinessScreen';
+import FashionScreen from './FashionScreen';
 import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
 import ActionGrid from '../components/creator/ActionGrid';
 import IdeaBox from '../components/creator/IdeaBox';
@@ -32,7 +32,7 @@ import { scale } from '../utils/scale';
  * hero, "¿Qué quieres hacer hoy?", foto o idea, ejemplos y mis creaciones.
  * Cada acción o idea abre la conversación guiada con Weë Brain.
  */
-const SpecialistScreen: React.FC = () => {
+const SpecialistScreenBase: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
   const { user } = useAuth();
@@ -96,7 +96,6 @@ const SpecialistScreen: React.FC = () => {
     return null;
   }
   if (isBrain) return <BrainChatScreen />;
-  if (id === 'business') return <BusinessScreen />;
   /* "Weë Chef" → "Chef": la cabecera pone la marca y la sección pone su palabra. */
   const nombreCorto = spec.experience.name.replace(/^Weë\s+/i, '');
   /*
@@ -298,4 +297,16 @@ const styles = StyleSheet.create({
  * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
  * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
  */
+/**
+ * La puerta de las secciones de Weë AI. Weë Fashion (y el id retirado «business», que ahora se resuelve a Fashion
+ * solo en Weë AI) tiene pantalla propia y no es una ficha de especialista: se entrega antes de leer ninguna ficha.
+ * El directorio de negocios (WeeBiz) tiene sus propias rutas y no pasa por aquí.
+ */
+const SpecialistScreen: React.FC = () => {
+  const route = useRoute<any>();
+  const id = route.params?.id;
+  if (id === 'fashion' || id === 'business') return <FashionScreen />;
+  return <SpecialistScreenBase />;
+};
+
 export default enTemaClaro(SpecialistScreen);

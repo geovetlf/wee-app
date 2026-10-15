@@ -45,6 +45,7 @@ import { settings } from './settings';
 import { language } from './language';
 import { catalogo } from './catalogo';
 import { business } from './business';
+import { fashion } from './fashion';
 import { projects } from './projects';
 import { creaciones } from './creaciones';
 import { studio } from './studio';
@@ -95,6 +96,7 @@ export const ru: FormaDelDiccionario = {
   language,
   catalogo,
   business,
+  fashion,
   projects,
   creaciones,
   studio,

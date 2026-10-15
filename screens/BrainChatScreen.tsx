@@ -240,6 +240,11 @@ const BrainChatScreen: React.FC = () => {
   };
 
   const goToSpecialist = (exp: WeeExperience) => {
+    /* Beauty vive dentro de Weë Fashion: se entra por su Composer (que dice la verdad sobre lo que ya puede hacer), no directo al flujo de imagen. */
+    if (exp.id === 'beauty' || exp.id === 'fashion') {
+      navigation.navigate('Specialist', { id: 'fashion', modo: exp.id === 'beauty' ? 'beautyHair' : undefined, goal: lastUserText || undefined });
+      return;
+    }
     navigation.navigate('CreatorFlow', { experienceId: exp.id, goal: lastUserText || undefined });
   };
 

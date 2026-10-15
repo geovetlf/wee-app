@@ -217,7 +217,7 @@ check('y sin puerta abierta no se inventa una',
 const experiencias = leer('constants/weeExperiences.ts');
 check('writer sigue resolviéndose entre todas',
   /HIDDEN_AS_SECTION: string\[\] = \[[^\]]*'writer'[^\]]*\]/.test(experiencias)
-  && /getExperienceById = \(id: string\)[\s\S]{0,80}ALL_EXPERIENCES\.find/.test(experiencias));
+  && /getExperienceById = \(id: string\)[\s\S]{0,200}ALL_EXPERIENCES\.find/.test(experiencias));
 for (const id of ['photo', 'home', 'beauty', 'writer']) {
   check(`${id} sigue en el registro`, new RegExp(`id: '${id}'`).test(experiencias));
 }

@@ -46,9 +46,9 @@ import { ALL_EXPERIENCES, EXPERIENCE_AREA, WeeExperience } from './weeExperience
  * viven dentro de otro lugar de trabajo, y sus identificadores siguen enteros
  * justo donde estaban.
  */
-export type WorkspaceId = 'studio' | 'design' | 'travel' | 'chef' | 'business' | 'music';
+export type WorkspaceId = 'studio' | 'design' | 'travel' | 'chef' | 'fashion' | 'music';
 
-export const WORKSPACES: readonly WorkspaceId[] = ['studio', 'design', 'travel', 'chef', 'business', 'music'];
+export const WORKSPACES: readonly WorkspaceId[] = ['studio', 'design', 'travel', 'chef', 'fashion', 'music'];
 
 /**
  * DÓNDE VIVE CADA EXPERIENCIA.
@@ -70,17 +70,19 @@ export const WORKSPACE_DE_LA_EXPERIENCIA: Readonly<Record<string, WorkspaceId>> 
   /* Weë Studio: el hub creativo. Imágenes, video, voz, texto y documentos. */
   studio: 'studio',
   photo: 'studio',
-  beauty: 'studio',
   writer: 'studio',
 
   /* Weë Design: lo que se diseña y se visualiza, dentro y fuera de una casa. */
   design: 'design',
   home: 'design',
 
-  /* Y los cuatro que son uno a uno con su sitio. */
+  /* Weë Fashion: la moda y, dentro, Beauty (su identificador no cambia: con él viajan los trabajos guardados). */
+  fashion: 'fashion',
+  beauty: 'fashion',
+
+  /* Y los tres que son uno a uno con su sitio. */
   travel: 'travel',
   chef: 'chef',
-  business: 'business',
   music: 'music',
 };
 

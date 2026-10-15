@@ -197,7 +197,7 @@ check('el Studio sigue sin llamar a ningún servicio de creación',
   !/creatorService|brainService|httpsCallable/.test(studio));
 /* Voz no es Música, y no se confunden. */
 check('Music sigue siendo un lugar de trabajo aparte',
-  /'studio' \| 'design' \| 'travel' \| 'chef' \| 'business' \| 'music'/.test(leer('constants/weeWorkspaces.ts')));
+  /'studio' \| 'design' \| 'travel' \| 'chef' \| 'fashion' \| 'music'/.test(leer('constants/weeWorkspaces.ts')));
 check('y no es una entrada del Studio',
   !/\{ id: 'music',/.test(capas));
 /* Voz generada no es voz escuchada: dictar sigue siendo otra cosa. */

@@ -48,10 +48,12 @@ export const BRAIN_SPECIALISTS: Record<ExperienceId, string | null> = {
   studio: 'Weë Studio (videos, animar fotos, anuncios en video)',
   photo: 'Weë Photo (mejorar, restaurar, transformar o editar fotos)',
   writer: 'Weë Writer (textos, historias, guiones, emails, CV, traducciones, correcciones)',
-  beauty: 'Weë Beauty (maquillaje, cabello, barba, outfits, cambios de look en tu foto)',
+  /* Weë Fashion: el id sigue siendo «beauty» (viaja con los trabajos guardados); la persona lo ve como Weë Fashion. */
+  beauty: 'Weë Fashion (probar ropa y outfits, maquillaje y cabello, barba, looks completos en tu foto)',
   chef: 'Weë Chef (recetas, menús, cocinar con lo que tienes)',
   home: 'Hogar & Diseño (rediseñar, redecorar o reorganizar espacios de la casa)',
-  business: 'Weë Business (ideas, marketing, contenido para redes, estrategia, documentos de negocio)',
+  /* Retirada de Weë AI: Brain ya no la recomienda. El directorio de negocios (WeeBiz) es otro producto y no pasa por aquí. */
+  business: null,
   /* Las palabras salen de la ficha que cada experiencia ya tiene en la app
      (`constants/weeExperiences.ts`) y de las variantes que el catálogo declara
      para su capacidad; no se ha inventado ninguna descripción nueva. */

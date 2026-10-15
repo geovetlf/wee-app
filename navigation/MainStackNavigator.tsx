@@ -97,7 +97,7 @@ export type MainStackParamList = {
    * de App.tsx lo descarta— y entonces el flujo abre la primera experiencia.
    */
   CreatorFlow: ContextoDeExperiencia;
-  Specialist: { id: string };
+  Specialist: { id: string; modo?: string; goal?: string; imageUri?: string };
   /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
   Studio: undefined;
   /**

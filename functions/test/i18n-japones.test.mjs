@@ -87,7 +87,7 @@ const EN = Object.fromEntries(aplanar(en));
  * nombre de variable), los escapes (`\n` son dos caracteres, y la `n` es una
  * letra latina), y las marcas de Weë, que van en latino por regla.
  */
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Fashion|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits|Weë/gu;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -462,7 +462,7 @@ console.log('\n── I · Las marcas de Weë, exactamente como son ──');
    * LISTA: una ë escrita con la diéresis suelta, o una Ẅ confundida con una W,
    * dejaría pasar exactamente el error que se busca.
    */
-  const LISTA = ['WEE', 'Weë', 'WeëAI', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business',
+  const LISTA = ['WEE', 'Weë', 'WeëAI', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business', 'Weë Fashion',
     'Weë Music', 'Weë Inspira', 'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain',
     'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const bienEscrita = LISTA.every((m) => m === m.normalize('NFC'))

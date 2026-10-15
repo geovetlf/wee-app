@@ -54,7 +54,7 @@ console.log('\n─── A. Cada experiencia tiene un sitio, y uno solo ──�
 
 check('1) el registro sigue teniendo las once', IDS.length === 11, IDS.join(', '));
 check('2) el contrato declara los seis lugares de trabajo',
-  /export type WorkspaceId = 'studio' \| 'design' \| 'travel' \| 'chef' \| 'business' \| 'music';/.test(contrato));
+  /export type WorkspaceId = 'studio' \| 'design' \| 'travel' \| 'chef' \| 'fashion' \| 'music';/.test(contrato));
 
 const sinSitio = IDS.filter((id) => id !== 'brain' && !COLOCADOS[id]);
 check('3) ninguna experiencia se queda sin sitio', sinSitio.length === 0, sinSitio.join(', ') || 'todas colocadas');
@@ -100,7 +100,7 @@ check('8) writer sigue en el registro de identificadores', IDS.includes('writer'
 check('9) y sigue sin puerta en el menú', /HIDDEN_AS_SECTION: string\[\] = \[[^\]]*'writer'[^\]]*\]/.test(experiencias));
 check('10) y el contrato dice que vive en Weë Studio', COLOCADOS.writer === 'studio');
 check('11) y se resuelve entre TODAS, no entre las visibles',
-  /getExperienceById = \(id: string\)[^\n]*\n\s*ALL_EXPERIENCES\.find/.test(experiencias));
+  /getExperienceById = \(id: string\)[\s\S]{0,200}ALL_EXPERIENCES\.find/.test(experiencias));
 check('12) y quien busque por sus palabras la encuentra igual',
   /matchExperiences[\s\S]{0,400}ALL_EXPERIENCES\.filter/.test(experiencias));
 check('13) `experienciasDe` busca entre todas, para que Writer salga en el Studio',

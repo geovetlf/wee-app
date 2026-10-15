@@ -759,7 +759,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
  * siguen usando.
  */
 /* El orden de las secciones con puerta propia. Writer salió al entrar en Studio. */
-export const SPECIALIST_ORDER: SpecialistId[] = ['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'];
+export const SPECIALIST_ORDER: SpecialistId[] = ['brain', 'design', 'music', 'studio', 'fashion', 'chef', 'travel'];
 
 export const getSpecialist = (id: string): (SpecialistConfig & { experience: WeeExperience }) | null => {
   const config = SPECIALISTS[id as SpecialistId];

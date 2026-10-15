@@ -103,7 +103,7 @@ const SATELITES: { id: string; angulo: number; espera: number; viaje: number }[]
   { id: 'studio', angulo: -90, espera: 600, viaje: 2600 },
   { id: 'music', angulo: -30, espera: 900, viaje: 2900 },
   { id: 'design', angulo: 90, espera: 1250, viaje: 2740 },
-  { id: 'business', angulo: 30, espera: 1550, viaje: 3080 },
+  { id: 'fashion', angulo: 30, espera: 1550, viaje: 3080 },
   { id: 'chef', angulo: 150, espera: 1850, viaje: 2820 },
   { id: 'travel', angulo: 210, espera: 2150, viaje: 3200 },
 ];

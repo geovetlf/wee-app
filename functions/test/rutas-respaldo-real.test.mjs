@@ -100,9 +100,11 @@ const mapa = {};
       if (a && DEFAULT_PROVIDERS[link.provider]?.enabled !== false && !a.supports(cap)) muertos.push(`${cap}→${link.provider}`);
     }
   }
-  conocido('R1', 'respaldos declarados en DEFAULT_ROUTING que el adaptador no atiende (registry.ts:93 doc.read→claude; :104 image.try_on→gemini): no hay respaldo real',
+  conocido('R1', 'respaldos declarados en DEFAULT_ROUTING que el adaptador no atiende (registry.ts:93 doc.read→claude): no hay respaldo real. [image.try_on→gemini se CORRIGIÓ el 2026-10-15: ya no se declara]',
     muertos.length > 0, muertos.join(', ') || 'ninguno');
-  check('1g) la lista de respaldos fantasma no crece sin que alguien lo vea', muertos.every((m) => ['doc.read→claude', 'image.try_on→gemini'].includes(m)), muertos.join(', '));
+  check('1g-bis) probarse ropa declara SOLO su proveedor real (flux/vto-v2): sin respaldo fantasma, y el router sigue sin él (R1, mitad try_on, corregida)',
+    JSON.stringify(DEFAULT_ROUTING['image.try_on'].chain.map((l) => l.provider)) === '["flux"]' && !muertos.some((m) => m.startsWith('image.try_on')), JSON.stringify(DEFAULT_ROUTING['image.try_on'].chain.map((l) => l.provider)));
+  check('1g) la lista de respaldos fantasma no crece sin que alguien lo vea', muertos.every((m) => ['doc.read→claude'].includes(m)), muertos.join(', '));
 }
 
 /* ── 2. Con la red caída, el router recorre la cadena en orden ──────────── */

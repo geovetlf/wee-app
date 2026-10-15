@@ -1140,7 +1140,7 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
     check('5) photo ya no es una sección', !visibles.includes('photo'));
     check('6) beauty ya no es una sección', !visibles.includes('beauty'));
     check('7) Studio sí lo es', visibles.includes('studio'));
-    check('7) y las otras cinco no se han movido', ['brain', 'design', 'music', 'studio', 'business', 'chef'].every((id) => visibles.includes(id)), visibles.join(','));
+    check('7) y las otras cinco no se han movido', ['brain', 'design', 'music', 'studio', 'fashion', 'chef'].every((id) => visibles.includes(id)), visibles.join(','));
   }
 
   // 8 a 11) Cuatro áreas, cada una a su experiencia.
@@ -1163,7 +1163,7 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
     // Fuera de Studio, `opens` solo lo usa Weë Design, y solo para Hogar & Diseño.
     check('12) fuera de Studio, opens es solo el de Hogar & Diseño', (fuera.match(/opens: '/g) || []).length === 1 && /opens: 'home'/.test(fuera));
     check('12) y sin opens se abre la propia sección', /const startFlow = \(goal\?: string, preset\?: SpecialistAction\['preset'\], imageUri\?: string, opens\?: SpecialistAction\['opens'\]\)/.test(pantalla));
-    check('12) el orden de secciones pierde cuatro y conserva el resto', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'\]/.test(specialists));
+    check('12) el orden de secciones pierde cuatro y conserva el resto', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'fashion', 'chef', 'travel'\]/.test(specialists));
   }
 
   // 13 a 15) El historial no se rompe y nadie acaba en Brain sin querer.
@@ -1177,10 +1177,10 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
     // Lo que se lee arriba dice dónde está la persona; el id no cambia.
     check('13) la mesa de trabajo se presenta como área de Studio',
       crEs(exp.EXPERIENCE_AREA.photo.claveEtiqueta) === 'Weë Studio · Fotos'
-      && crEs(exp.EXPERIENCE_AREA.beauty.claveEtiqueta) === 'Weë Studio · Beauty'
+      && crEs(exp.EXPERIENCE_AREA.beauty.claveEtiqueta) === 'Weë Fashion · Beauty'
       && crEs(exp.EXPERIENCE_AREA.studio.claveEtiqueta) === 'Weë Studio · Videos',
       exp.EXPERIENCE_AREA.photo.claveEtiqueta);
-    check('13) y la barra lateral marca Studio', ['photo', 'studio', 'beauty'].every((id) => exp.EXPERIENCE_AREA[id].section === 'studio'));
+    check('13) y la barra lateral marca Studio', ['photo', 'studio'].every((id) => exp.EXPERIENCE_AREA[id].section === 'studio') && exp.EXPERIENCE_AREA.beauty.section === 'fashion');
     check('13) la pantalla usa ese contexto', /const area = EXPERIENCE_AREA\[experience\.id\];/.test(mesa) && /activeId=\{area \? area\.section : experience\.id\}/.test(mesa));
   }
 
@@ -1428,7 +1428,7 @@ console.log('\n── Weë Studio · dos caminos y una entrada especializada ─
   check('12) y no como secciones del menú', exp.WEE_EXPERIENCES.length === 7 && !exp.WEE_EXPERIENCES.some((e) => ['photo', 'beauty', 'home', 'writer'].includes(e.id)));
   check('13) un trabajo histórico de Photo resuelve a Weë Photo', exp.getExperienceById('photo')?.name === 'Weë Photo');
   check('13) y uno de Beauty, a Weë Beauty', exp.getExperienceById('beauty')?.name === 'Weë Beauty');
-  check('14) las otras secciones siguen intactas', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'\]/.test(specialists));
+  check('14) las otras secciones siguen intactas', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'fashion', 'chef', 'travel'\]/.test(specialists));
   {
     const fuera = specialists.replace(bloque, '');
     // Fuera de Studio solo Weë Design usa este mecanismo, y solo una vez (2E-56).
@@ -2184,7 +2184,7 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
    * esta lista y nadie mira `isWee` para ordenarla. Y "Mis proyectos" va al
    * final, fuera de la lista, porque no es una experiencia.
    */
-  const ORDEN = 'brain · studio · design · music · chef · business · travel';
+  const ORDEN = 'brain · studio · design · music · chef · fashion · travel';
   check('M6b) el orden de Weë AI es el acordado',
     exp3.WEE_EXPERIENCES.map((e) => e.id).join(' · ') === ORDEN,
     exp3.WEE_EXPERIENCES.map((e) => e.id).join(' · '));
@@ -2250,7 +2250,7 @@ console.log('\n── W · Weë Writer vive dentro de Weë Studio ──');
     && (barraCreator.match(/writer/gi) || []).length === 1 && /^ {2}writer: '[^']+',$/m.test(barraCreator)
     && ['photo', 'beauty', 'home'].every((id) => new RegExp(`^ {2}${id}: '[^']+',$`, 'm').test(barraCreator)));
   check('W1) tampoco está en el orden de secciones con puerta propia',
-    /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'\]/.test(especialistas));
+    /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'fashion', 'chef', 'travel'\]/.test(especialistas));
 
   /* 2) Dentro del selector de Weë Studio, con el patrón que Studio ya usaba. */
   const studio = especialistas.slice(especialistas.indexOf('  studio: {'), especialistas.indexOf('  business: {'));

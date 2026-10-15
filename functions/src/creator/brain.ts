@@ -118,10 +118,11 @@ const KEYWORDS: Partial<Record<ExperienceId, readonly string[]>> = {
   studio: ['video', 'anima', 'reel', 'weel', 'weël', 'anuncio en video', 'clip'],
   photo: ['foto', 'retocar', 'restaurar', 'quitar el fondo', 'fondo de', 'colorizar', 'imagen borrosa'],
   writer: ['escrib', 'redact', 'cuento', 'novela', 'guion', 'guión', 'artículo', 'articulo', 'email', 'correo', 'carta', 'traduc', 'resum', 'corrige', 'corregir', 'cv', 'currícul', 'curricul'],
-  beauty: ['maquill', 'peinado', 'corte de pelo', 'cabello', 'barba', 'outfit', 'uñas', 'look'],
+  beauty: ['maquill', 'peinado', 'corte de pelo', 'cabello', 'barba', 'outfit', 'uñas', 'look', 'moda', 'ropa', 'vestido', 'prenda', 'zapatos', 'probarme', 'estilista'],
   chef: ['receta', 'cocin', 'menú', 'menu semanal', 'ingredientes', 'cena', 'almuerzo', 'postre'],
   home: ['sala', 'dormitorio', 'cuarto', 'cocina', 'decorar', 'remodel', 'jardín', 'jardin', 'mueble'],
-  business: ['negocio', 'emprend', 'marketing', 'vender', 'ventas', 'clientes', 'campaña', 'campana', 'redes de mi', 'estrategia', 'presentación para', 'inversor'],
+  /* Retirada de Weë AI: ya no encamina nada (el directorio WeeBiz no usa esta tabla). */
+  business: [],
 };
 
 /*

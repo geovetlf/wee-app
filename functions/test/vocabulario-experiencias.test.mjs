@@ -175,10 +175,10 @@ check('F20) son dos expresiones distintas sobre la MISMA tabla: pueden diferir',
 check('20) hoy coinciden, y se dice por qué: los dos motivos valen para las dos',
   igual([...EXPERIENCIAS_PARA_DERIVAR], [...EXPERIENCIAS_PARA_SUGERIR]),
   EXPERIENCIAS_PARA_DERIVAR.length + ' cada una: ' + EXPERIENCIAS_PARA_DERIVAR.join(', '));
-check('20) y las nueve son exactamente las ocho de antes más Weë Travel',
+check('20) y las ocho son las de antes menos Weë Business, que ya no se recomienda (Weë Fashion entra por Beauty)',
   igual([...EXPERIENCIAS_PARA_DERIVAR].sort(),
-    ['design', 'studio', 'photo', 'writer', 'beauty', 'chef', 'home', 'business', 'travel'].sort()),
-  'la corrección añade una; no quita ninguna');
+    ['design', 'studio', 'photo', 'writer', 'beauty', 'chef', 'home', 'travel'].sort()),
+  'Weë Business se retiró de la recomendación de Brain (2026-10-15): ya no se deriva ni se sugiere; el resto queda igual');
 
 console.log('\n── Las costuras que consumen el vocabulario ──');
 
@@ -196,7 +196,7 @@ check('F9) ninguna clave de KEYWORDS es una experiencia inexistente',
 const palabrasKeywords = [...bloqueKeywords.matchAll(/'([^']*)'/g)].map((m) => m[1]);
 check('9) y su contenido sigue intacto: se protegieron las claves, no se inventaron palabras',
   igual(clavesKeywords, ['design', 'studio', 'photo', 'writer', 'beauty', 'chef', 'home', 'business'])
-  && palabrasKeywords.length === 79,
+  && palabrasKeywords.length === 74,
   palabrasKeywords.length + ' palabras, las mismas de siempre');
 check('9) y sigue acertando lo de siempre',
   guessExperience('quiero una receta de cena') === 'chef'

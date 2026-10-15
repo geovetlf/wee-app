@@ -342,11 +342,11 @@ console.log('\n── G · Nada funcional se movió ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   check('24) las once experiencias, con su identificador y su orden',
-    EXP.ALL_EXPERIENCES.map((e) => e.id).join(',') === 'design,studio,photo,writer,music,beauty,chef,home,business,travel,brain',
+    EXP.ALL_EXPERIENCES.map((e) => e.id).join(',') === 'design,studio,photo,writer,music,beauty,chef,home,fashion,travel,brain',
     EXP.ALL_EXPERIENCES.map((e) => e.id).join(','));
   check('25) y las que entran por otra sección siguen entrando por la misma',
     Object.entries(EXP.EXPERIENCE_AREA).map(([id, a]) => id + '→' + a.section).join(' ')
-      === 'photo→studio studio→studio beauty→studio home→design');
+      === 'photo→studio studio→studio beauty→fashion home→design');
   check('26) el nombre del área se resuelve con el traductor y el propio no',
     EXP.experienceLabel({ id: 'home', name: 'Weë Home' }, (c) => '@' + c) === '@creator.areaHomeName'
     && EXP.experienceLabel({ id: 'chef', name: 'Weë Chef' }, (c) => '@' + c) === 'Weë Chef');

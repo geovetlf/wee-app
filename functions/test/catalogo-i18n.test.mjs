@@ -205,7 +205,7 @@ console.log('\n── E · Lo funcional no se movió ──');
   check('20) siguen siendo las once experiencias',
     IDS.join(',') === 'brain,design,photo,music,studio,business,chef,home,beauty,writer,travel', IDS.join(','));
   check('21) y el orden de la barra lateral es el mismo',
-    SPECIALIST_ORDER.join(',') === 'brain,design,music,studio,business,chef,travel', SPECIALIST_ORDER.join(','));
+    SPECIALIST_ORDER.join(',') === 'brain,design,music,studio,fashion,chef,travel', SPECIALIST_ORDER.join(','));
 
   /* Los identificadores de cada función: es lo que viaja al servidor y lo que
    * tienen dentro los trabajos que la gente ya guardó. */

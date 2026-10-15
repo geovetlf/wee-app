@@ -100,8 +100,9 @@ export const DEFAULT_ROUTING: Record<CapabilityId, CapabilityRouting> = {
   // Conservar el rostro es lo que decide esta capacidad: Nano Banana Pro fijado.
   'image.identity_edit': routing('image.identity_edit', [{ provider: 'gemini', model: IMAGE_MODEL_PRO }, { provider: 'flux' }], 'quality-first'),
   'image.space_restyle': routing('image.space_restyle', chain('gemini', 'flux', 'seedream'), 'balanced'),
-  // Probarse ropa: modelo dedicado de BFL, con Nano Banana Pro como respaldo
-  'image.try_on': routing('image.try_on', [{ provider: 'flux', model: 'flux-tools/vto-v2' }, { provider: 'gemini', model: IMAGE_MODEL_PRO }], 'quality-first'),
+  // Probarse ropa: modelo dedicado de BFL. NO hay respaldo: el adaptador de Gemini no atiende `image.try_on` (R1, 2026-10-15), así que declararlo era
+  // prometer un camino que el router saltaba siempre. Un segundo motor de prueba virtual es una decisión aparte (docs de Weë Fashion); hasta entonces, si BFL falla, falla con su error.
+  'image.try_on': routing('image.try_on', [{ provider: 'flux', model: 'flux-tools/vto-v2' }], 'quality-first'),
   'image.upscale': routing('image.upscale', chain('gemini'), 'balanced'),
   // Video: exclusivamente Seedance (el Weë Video Engine elige la versión)
   'video.generate': routing('video.generate', chain('seedance'), 'quality-first'),

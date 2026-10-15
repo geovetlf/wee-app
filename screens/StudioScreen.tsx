@@ -21,6 +21,7 @@ import { ControlesElegidos } from '../components/studio/StudioControles';
 import { AreaDeStudio } from '../constants/studioTools';
 import { EntradaDeStudio, abreElMundo3D, abreLaProduccion, entradaPorId } from '../constants/studioExperiences';
 import { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
+import { ENTRADAS_DE_STUDIO_QUE_ABREN_FASHION, modoDeStudio } from '../constants/fashionModes';
 import { CREACIONES_DEL_STUDIO } from '../constants/studioMocks';
 import { contextoDeCreacion, duracionEnElTexto } from '../utils/contextoDeCreacion';
 import { destinoDeIntencion } from '../utils/destinoDeIntencion';
@@ -209,6 +210,20 @@ const StudioScreen: React.FC = () => {
 
     if (abreLaProduccion(experiencia?.id)) {
       navigation.navigate('Production', { intencion: texto, creativo: filtrarCreativo(controles) });
+      return;
+    }
+
+    /*
+     * BEAUTY Y FASHION YA NO TIENEN PANTALLA PROPIA EN STUDIO. Conservan su puerta (descubrir) pero abren el Composer
+     * de Weë Fashion, en el modo que corresponde a lo elegido. Studio sigue sin crear nada.
+     */
+    if ((entrada && ENTRADAS_DE_STUDIO_QUE_ABREN_FASHION.includes(entrada)) || experiencia?.experienceId === 'beauty') {
+      navigation.navigate('Specialist', {
+        id: 'fashion',
+        modo: modoDeStudio(experiencia?.id, entrada ?? undefined),
+        goal: texto,
+        ...(adjuntos[0] ? { imageUri: adjuntos[0].uri } : {}),
+      });
       return;
     }
 

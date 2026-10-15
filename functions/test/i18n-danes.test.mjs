@@ -82,7 +82,7 @@ const DA = aplanar(da);
 const ES = Object.fromEntries(aplanar(es));
 const EN = Object.fromEntries(aplanar(en));
 
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira|Filmmaker)|WeeTalk|Weëls?|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Fashion|Travel|Brain|Credits|Inspira|Filmmaker)|WeeTalk|Weëls?|Wäll|ËContact|ẄContact|Credits|Weë/gu;
 /* Lo que no es danés y está bien que esté: marcas, huecos y los nombres de función de Weë Business. */
 const NOMBRES_DE_PRODUCTO = /WhatsApp|Business Plan|Business Coach|Pricing Assistant|Brand Kit|Customer Insights|Business Ideas|Business Profile|My Business|Products & Catalog|YouTube Shorts|YouTube|TikTok|Instagram|Facebook|LinkedIn|Pinterest|Spotify|Google|Apple|World Encode Entity/g;
 const sinLoAjeno = (v) => String(v)
@@ -175,6 +175,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en danés que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['fashion.optMakeup', '«Makeup» es la palabra danesa, como en catalogo.beautyAcMakeupTitle'],
     ['aiAvatar.faceOval', '«Oval» es la palabra danesa'],
     ['aiAvatar.accPiercing', '«Piercing» es la palabra danesa'],
     ['business.shortcutAnalyze', '«Analyse», el sustantivo danés'],
@@ -386,7 +387,7 @@ console.log('\n── H · El dinero y las marcas ──');
   check('41) «Credits» nunca se traduce (kredit, kreditter)', moneda.length === 0, muestra(moneda) || 'limpio');
   const perdidos = DA.filter(([k, v]) => /Credits/.test(ES[k] || '') && !/Credits/.test(v));
   check('42) cada «Credits» del español sigue en su clave danesa', perdidos.length === 0, perdidos.slice(0, 4).map(([k]) => k).join(' ') || 'todos');
-  const LISTA = ['Weë', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business', 'Weë Music', 'Weë Inspira',
+  const LISTA = ['Weë', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business', 'Weë Fashion', 'Weë Music', 'Weë Inspira',
     'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const escapar = (m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const perdidas = [];

@@ -58,7 +58,7 @@ const idsDe = (marca) => {
 console.log('\n─── A. Weë Studio es un sitio, y no genera ───');
 
 const workspaces = leer('constants/weeWorkspaces.ts');
-check('Studio es uno de los lugares de trabajo', /'studio' \| 'design' \| 'travel' \| 'chef' \| 'business' \| 'music'/.test(workspaces));
+check('Studio es uno de los lugares de trabajo', /'studio' \| 'design' \| 'travel' \| 'chef' \| 'fashion' \| 'music'/.test(workspaces));
 check('y de los que encaminan, no de los que crean', /WORKSPACES_QUE_ENCAMINAN[^=]*= \['studio'\]/.test(workspaces));
 /*
  * La prueba de que no genera no es un comentario: es que al pulsar Crear se
