@@ -92,9 +92,18 @@ check('13) el sondeo de Seedance ya no lee los avisos guardados: el estado y el 
 {
   escritos.clear();
   const primera = await llamar({ body: VALIDO });
-  const enPrimera = JSON.stringify([...escritos.entries()]);
+  /* `receivedAt` es la HORA del aviso y cambia por diseño en cada repetición (la repetición sobrescribe y la actualiza). Compararla tal cual hacía
+   * que esta comprobación fallara cuando el reloj avanzaba un milisegundo entre las dos llamadas (1 de cada ~30 ejecuciones, medido con
+   * ops/guardian/verificar.mjs --estabilidad 30): una carrera con el reloj, no un fallo del código. Se compara TODO menos el valor de la hora, y se
+   * exige que la hora esté. */
+  const instantanea = (mapa) => JSON.stringify([...mapa.entries()].map(([k, v]) => [k, { ...v, receivedAt: v?.receivedAt === undefined ? 'ausente' : 'presente' }]));
+  const enPrimera = instantanea(escritos);
   const segunda = await llamar({ body: VALIDO });
-  const enSegunda = JSON.stringify([...escritos.entries()]);
+  const enSegunda = instantanea(escritos);
+  check('14) la comparación ignora el valor de la hora pero no su ausencia (regresión de la carrera con el reloj)',
+    instantanea(new Map([['d', { provider: 'p', status: 's', receivedAt: 1 }]])) === instantanea(new Map([['d', { provider: 'p', status: 's', receivedAt: 2 }]]))
+    && instantanea(new Map([['d', { provider: 'p', status: 's', receivedAt: 1 }]])) !== instantanea(new Map([['d', { provider: 'p', status: 's' }]]))
+    && instantanea(new Map([['d', { provider: 'p', status: 's', receivedAt: 1 }]])) !== instantanea(new Map([['d', { provider: 'p', status: 'otro', receivedAt: 1 }]])));
   const claves = [...escritos.keys()];
   /* `seedanceCallback` (el que guarda el aviso) contesta 200 con {ok:true}; `avisoDeProveedor` (el del runtime) contesta 202. */
   check('14) un aviso repetido se contesta igual en `seedanceCallback` (200 las dos veces)',
