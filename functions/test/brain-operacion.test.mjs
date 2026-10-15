@@ -66,6 +66,17 @@ ADAPTERS.mock.run = async (req) => {
   return correMock.call(ADAPTERS.mock, req);
 };
 
+/*
+ * B4-03 (2026-10-14): una respuesta de MUESTRA ya no cobra, así que el proveedor `mock` no sirve de vehículo para medir el
+ * dinero del bloque de doce. El vehículo es una IA «real» SIMULADA: DeepSeek (la conversación) y Gemini (la búsqueda) dicen
+ * estar configurados y delegan en el mismo mock contador de arriba. Sigue sin haber red ni claves; lo que cambia es que
+ * sus respuestas NO son de muestra. La regla de que lo de muestra no cobra la fija brain-demo-no-cobra.
+ */
+for (const id of ['deepseek', 'gemini']) {
+  ADAPTERS[id].isConfigured = () => true;
+  ADAPTERS[id].run = async (req) => ADAPTERS.mock.run.call(ADAPTERS.mock, req);
+}
+
 const ANA = 'A02anaAAAAAAAAAAAAAAAAAAAA01';
 const BEA = 'A02beaBBBBBBBBBBBBBBBBBBBB02';
 const enviar = (uid, data, auth = { uid }) => brain.brainChat.run({ auth, data: { locale: 'es', ...data } });

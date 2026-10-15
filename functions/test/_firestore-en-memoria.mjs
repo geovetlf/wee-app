@@ -133,7 +133,12 @@ export const instalarLaBase = (obtener) => {
 export const darDeAlta = async (base, uid, { saldo } = {}) => {
   base.docs.set(`users/doc_${uid}`, { uid, displayName: uid });
   await lib('credits/creditEngine.js').creditEngine.ensureAccount(uid);
-  if (saldo !== undefined) base.docs.get(`users/doc_${uid}`).creditsBalance = saldo;
+  if (saldo !== undefined) {
+    base.docs.get(`users/doc_${uid}`).creditsBalance = saldo;
+    /* F-06: el saldo que manda vive en `creditAccounts/{uid}` (el perfil solo lo espeja); un saldo de prueba que solo toca el perfil no se aplicaría. */
+    const privado = base.docs.get(`creditAccounts/${uid}`);
+    if (privado) privado.creditsBalance = saldo;
+  }
   return base.docs.get(`users/doc_${uid}`).creditsBalance;
 };
 
