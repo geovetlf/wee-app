@@ -15,6 +15,7 @@ import StudioScreen from './StudioScreen';
 import DesignScreen from './DesignScreen';
 import ChefScreen from './ChefScreen';
 import FashionScreen from './FashionScreen';
+import MusicScreen from './MusicScreen';
 import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
 import ActionGrid from '../components/creator/ActionGrid';
 import IdeaBox from '../components/creator/IdeaBox';
@@ -306,6 +307,8 @@ const SpecialistScreen: React.FC = () => {
   const route = useRoute<any>();
   const id = route.params?.id;
   if (id === 'fashion' || id === 'business') return <FashionScreen />;
+  /* Weë Music: portada, Composer y workstation propios (screens/MusicScreen.tsx). */
+  if (id === 'music') return <MusicScreen />;
   return <SpecialistScreenBase />;
 };
 
