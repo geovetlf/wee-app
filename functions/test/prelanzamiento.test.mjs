@@ -108,7 +108,8 @@ console.log('\n── C · Modo producción contra lectores falsos ──');
     servicios: registro.funciones.map((f) => ({
       metadata: { name: f.funcion.toLowerCase() },
       status: { traffic: [{ revisionName: f.revision, percent: 100 }] },
-      spec: { template: { spec: { containers: [{ env: f.funcion === 'brainChat' ? [{ name: 'DEEPSEEK_API_KEY', valueFrom: { secretKeyRef: { name: 'DEEPSEEK_API_KEY', key: 'latest' } } }] : [] }] } } },
+      /* La forma REAL de un servicio de Functions: el nombre del secreto es un alias y la anotación `run.googleapis.com/secrets` lo resuelve. */
+      spec: { template: { metadata: { annotations: { 'run.googleapis.com/secrets': 'secret-a6a8de8a-8ca0-3495-80a4-386c8b778758:projects/get-wee/secrets/DEEPSEEK_API_KEY' } }, spec: { containers: [{ env: f.funcion === 'brainChat' ? [{ name: 'DEEPSEEK_API_KEY', valueFrom: { secretKeyRef: { name: 'secret-a6a8de8a-8ca0-3495-80a4-386c8b778758', key: 'latest' } } }] : [] }] } } },
     })),
     global: { allowMockFallback: { booleanValue: false }, iaDetenida: { booleanValue: false }, maxUsdPerDay: { integerValue: '20' } },
     routing: ['video.generate', 'video.image_to_video', 'video.reference', 'video.compose'].map((c) => ({ name: `x/documents/aiRouting/${c}`, fields: { chain: { arrayValue: { values: [{ mapValue: { fields: { provider: sv('music-pending') } } }] } } } })),
@@ -206,6 +207,16 @@ console.log('\n── C · Modo producción contra lectores falsos ──');
   const v10 = await variante((d) => { d.servicios = null; });
   check('si no puede leer Cloud Run, FALLA (nunca PASA a ciegas)', v10.version.estado === 'FALLA');
   check('el resumen devuelve 1 cuando algo FALLA', P.imprimir(v2, { modo: 'prueba', log: () => {} }) === 1);
+}
+
+/* entornoDe y los alias de Secret Manager (forma real de Cloud Run, comprobada en un servicio vivo; solo nombres). */
+{
+  const con = (secretKeyRef, anot) => ({ spec: { template: { metadata: { annotations: anot }, spec: { containers: [{ env: [{ name: 'X', valueFrom: { secretKeyRef } }] }] } } } });
+  const mapa = 'secret-aaaa:projects/get-wee/secrets/GEMINI_API_KEY,secret-bbbb:projects/get-wee/secrets/ARK_API_KEY';
+  check('entornoDe resuelve el alias `secret-<uuid>` al nombre de Secret Manager', JSON.stringify(P.entornoDe(con({ name: 'secret-aaaa', key: 'latest' }, { 'run.googleapis.com/secrets': mapa })).secretos) === JSON.stringify(['GEMINI_API_KEY']));
+  check('…y un nombre directo (sin alias) se queda como está', JSON.stringify(P.entornoDe(con({ name: 'OPENAI_API_KEY', key: 'latest' }, {})).secretos) === JSON.stringify(['OPENAI_API_KEY']));
+  check('…y un alias que la anotación no conoce se queda como viene (para denunciarlo, no para taparlo)', JSON.stringify(P.entornoDe(con({ name: 'secret-zzzz', key: 'latest' }, { 'run.googleapis.com/secrets': mapa })).secretos) === JSON.stringify(['secret-zzzz']));
+  check('…y sin metadatos ni anotaciones no se rompe', JSON.stringify(P.entornoDe({ spec: { template: { spec: { containers: [{ env: [] }] } } } }).secretos) === '[]' && JSON.stringify(P.entornoDe(null).secretos) === '[]');
 }
 
 const pkg = JSON.parse(leer('functions/package.json'));

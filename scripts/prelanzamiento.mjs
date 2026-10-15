@@ -146,9 +146,13 @@ export const revisionSirviendo = (svc) => {
 
 /** Nombres de secreto (y variables de entorno no secretas, por nombre y valor) de un servicio. Nunca el valor de un secreto. */
 export const entornoDe = (svc) => {
+  const anotaciones = (svc && svc.spec && svc.spec.template && svc.spec.template.metadata && svc.spec.template.metadata.annotations) || {};
+  const alias = Object.fromEntries(String(anotaciones['run.googleapis.com/secrets'] || '').split(',').map((par) => par.trim()).filter(Boolean)
+    .map((par) => { const i = par.indexOf(':'); return i > 0 ? [par.slice(0, i), par.slice(par.lastIndexOf('/') + 1)] : null; }).filter(Boolean));
   const env = ((svc && svc.spec && svc.spec.template && svc.spec.template.spec && svc.spec.template.spec.containers) || []).flatMap((c) => c.env || []);
   return {
-    secretos: env.filter((e) => e.valueFrom && e.valueFrom.secretKeyRef).map((e) => e.valueFrom.secretKeyRef.name),
+    /* `secretKeyRef.name` es un alias (`secret-<uuid>`) en los servicios de Functions: el nombre de Secret Manager va en la anotación `run.googleapis.com/secrets`. Un alias que no está en ella se queda como viene (y se denuncia). */
+    secretos: env.filter((e) => e.valueFrom && e.valueFrom.secretKeyRef).map((e) => alias[e.valueFrom.secretKeyRef.name] || e.valueFrom.secretKeyRef.name),
     pricingMode: (env.find((e) => e.name === 'CREATOR_PRICING_MODE' && typeof e.value === 'string') || {}).value,
   };
 };
