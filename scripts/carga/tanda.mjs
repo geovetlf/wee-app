@@ -1,9 +1,11 @@
 /*
- * FRENTE I · UNA TANDA DE CARGA CON SU PROPIO EMULADOR.
+ * FRENTE I · UNA TANDA DE MEDICIÓN CON SU PROPIO EMULADOR.
  *
  *   node scripts/carga/tanda.mjs <script.mjs> [argumentos del script…]
  *   node scripts/carga/tanda.mjs carga.mjs --escenarios dinero --escalones 1,10,25,50,100 --salida r.json
- *   node scripts/carga/tanda.mjs rafaga-dinero.mjs
+ *
+ * ES MEDICIÓN, NO UNA PRUEBA: no decide ninguna CI y sus números (emulador, ordenador compartido) no concluyen nada sobre
+ * producción. La prueba funcional del dinero bajo ráfaga es otra cosa: functions/test/rafaga-dinero.emulator.mjs.
  *
  * Arranca un emulador de Firestore PROPIO (el jar, sin firebase-tools) en CARGA_PUERTO (18100 por defecto, websocket
  * en +1), comprueba antes que el puerto está libre, lanza el script con FIRESTORE_EMULATOR_HOST y un proyecto demo-*,
@@ -58,6 +60,7 @@ let listo = false;
 for (let i = 0; i < 120 && !listo; i++) { await esperar(500); listo = await ocupado(PUERTO); if (emu.exitCode !== null) break; }
 if (!listo) { console.error('✘ El emulador no arrancó:\n' + registro.slice(-800)); apagar(); process.exit(2); }
 console.log(`emulador Firestore 127.0.0.1:${PUERTO} · ${PROYECTO} · pid ${emu.pid}`);
+console.log('MEDICIÓN, no prueba: números del emulador, no concluyentes para producción (README.md de este directorio).');
 
 const hijo = spawn(process.execPath, ['--max-old-space-size=1024', path.resolve(AQUI, script), ...resto], {
   stdio: 'inherit',

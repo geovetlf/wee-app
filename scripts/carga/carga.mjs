@@ -20,6 +20,11 @@
  *
  * Solo emulador, proyecto demo-*, red cortada, proveedor mock (ver _entorno.mjs). Nada de esto es capacidad en
  * usuarios reales: es contención y lógica.
+ *
+ * ES MEDICIÓN, NO UNA PRUEBA. Ningún tiempo decide la salida: el código de salida depende solo de los invariantes de
+ * dinero/cupo comprobados contra lo guardado y de que no haya habido red. Cada informe lleva `tipo: 'medicion'` y
+ * `concluyente: false`. La prueba funcional del dinero bajo ráfaga (la que SÍ decide una CI) es otra:
+ * functions/test/rafaga-dinero.emulator.mjs.
  */
 import fs from 'node:fs';
 import {
@@ -350,12 +355,14 @@ async function escenarioSonda() {
 }
 
 const TABLA = { sonda: escenarioSonda, dinero: escenarioDinero, 'dinero-ab': escenarioDineroAB, callables: escenarioCallables, cupo: escenarioCupo, libro: escenarioLibro, brain: escenarioBrain, creator: escenarioCreator };
+decir('MEDICIÓN, no prueba: números del emulador en un ordenador compartido; no concluyentes para producción. Ningún tiempo decide la salida.');
 decir(`Frente I · carga · ejecución ${RUN} · escalones ${ESCALONES.join(',')} · muestras≈${MUESTRAS} · demora mock ${mock.demoraMs} ms · node ${process.version}`);
 for (const e of ESCENARIOS) {
   if (!TABLA[e]) { decir(`escenario desconocido: ${e}`); process.exit(2); }
   await TABLA[e]();
 }
-const informe = { run: RUN, fecha: new Date().toISOString(), escalones: ESCALONES, muestras: MUESTRAS, demoraMock: mock.demoraMs, duracionMs: Date.now() - inicio,
+const informe = { tipo: 'medicion', concluyente: false, aviso: 'Medición en emulador, en un ordenador compartido: sirve para comparar ejecuciones de la misma máquina, no para afirmar nada sobre producción.',
+  run: RUN, fecha: new Date().toISOString(), escalones: ESCALONES, muestras: MUESTRAS, demoraMock: mock.demoraMs, duracionMs: Date.now() - inicio,
   red: intentosDeRed.slice(0, 10), avisos: avisos.length, avisosMuestra: [...new Set(avisos)].slice(0, 8), resultados };
 if (SALIDA) fs.writeFileSync(SALIDA, JSON.stringify(informe, null, 2));
 decir(`fin · ${Math.round(informe.duracionMs / 1000)} s · intentos de red ${intentosDeRed.length} · avisos ${avisos.length}`);

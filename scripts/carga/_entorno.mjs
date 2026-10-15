@@ -1,7 +1,8 @@
 /*
  * FRENTE I · CARGA — EL ENTORNO COMÚN (aislamiento + instrumentos).
  *
- * No es una prueba: lo importan `carga.mjs` y `rafaga-dinero.mjs`. Hace tres cosas, en este orden:
+ * No es una prueba ni una medición por sí mismo: lo importan `carga.mjs` (medición, este directorio) y la suite funcional
+ * `functions/test/rafaga-dinero.emulator.mjs` (prueba, nivel 2 de la CI). Hace tres cosas, en este orden:
  *
  *  1. AISLA el proceso ANTES de cargar nada de Weë: proyecto `demo-*`, emulador de Firestore obligatorio en
  *     FIRESTORE_EMULATOR_HOST, sin claves de proveedor, sin sondeo del servidor de metadatos, y la red cortada salvo
