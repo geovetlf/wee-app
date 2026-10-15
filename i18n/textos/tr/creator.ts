@@ -29,6 +29,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: 'Makyaj, saç, sakal, kombin ve tarz değişikliği',
   chef: 'Kişisel şefin: tarifler, menüler ve bugün ne pişireceğin',
   home: 'Dekorasyon, iç mimari, tadilat ve bahçe',
+  business: 'İş fikri, pazarlama, özgeçmiş, belge ve sunum',
   fashion: 'Moda, stil, güzellik ve görsel içerik oluşturma.',
   travel: 'Seyahatini planla: nereye gidilir, ne yapılır, nasıl dolaşılır',
   brain: 'Nerede arayacağını bilmiyor musun? Weë\'ye sor',

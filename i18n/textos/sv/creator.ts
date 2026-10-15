@@ -29,6 +29,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: 'Smink, hår, skägg, outfits och nya looks',
   chef: 'Din personliga kock: vad du ska laga, recept och menyer',
   home: 'Heminredning, interiördesign, renovering och trädgårdar',
+  business: 'Affärsidéer, marknadsföring, cv, dokument och presentationer',
   fashion: 'Mode, stil, skönhet och skapande av visuellt innehåll.',
   travel: 'Planera resan: vart du ska åka, vad du kan göra och hur du tar dig runt',
   brain: 'Vet du inte var du ska leta? Fråga Weë',

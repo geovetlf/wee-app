@@ -13,6 +13,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: 'Make-up, Haare, Bart, Outfits und neue Looks',
   chef: 'Dein persönlicher Koch: was kochen, Rezepte und Menüs',
   home: 'Deko, Innenarchitektur, Umbau und Gärten',
+  business: 'Geschäftsideen, Marketing, Lebenslauf, Dokumente und Präsentationen',
   fashion: 'Mode, Stil, Beauty und die Erstellung visueller Inhalte.',
   travel: 'Plane deine Reise: wohin, was tun und wie hinkommen',
   brain: 'Weißt du nicht, wo du suchen sollst? Frag Weë',

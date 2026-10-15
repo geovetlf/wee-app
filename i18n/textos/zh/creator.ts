@@ -23,6 +23,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: '妆容、发型、胡须、穿搭和造型改造',
   chef: '你的私人厨师：今天吃什么、菜谱和菜单',
   home: '装饰、室内设计、改造和庭院',
+  business: '创业点子、营销、简历、文档和演示文稿',
   fashion: '时尚、风格、美妆和视觉内容创作。',
   travel: '规划你的旅行：去哪儿、玩什么、怎么走',
   brain: '不知道去哪里找？问问 Weë',
