@@ -86,6 +86,17 @@ ADAPTERS.mock.run = async (r) => {
   return correMock.call(ADAPTERS.mock, r);
 };
 
+/*
+ * B4-03 (2026-10-14): una respuesta de MUESTRA ya no cobra, así que el proveedor `mock` no sirve de vehículo para medir el
+ * dinero del bloque de doce. El vehículo es una IA «real» SIMULADA: DeepSeek (la conversación) y Gemini (la búsqueda) dicen estar
+ * configurados y delegan en el mismo mock contador de arriba. Sigue sin haber claves ni red; lo que cambia es que sus respuestas NO
+ * son de muestra. La regla de que lo de muestra no cobra la fija brain-demo-no-cobra.
+ */
+for (const id of ['deepseek', 'gemini']) {
+  ADAPTERS[id].isConfigured = () => true;
+  ADAPTERS[id].run = async (r) => ADAPTERS.mock.run.call(ADAPTERS.mock, r);
+}
+
 const enviar = (uid, data) => brain.brainChat.run({ auth: { uid }, data: { locale: 'es', ...data } });
 const intento = async (fn) => { try { return { ok: true, v: await fn() }; } catch (e) { return { ok: false, e: { code: e.code, motivo: e.details?.code ?? e.code, message: String(e.message).slice(0, 120) } }; } };
 
@@ -108,11 +119,20 @@ const saldoInicial = new Map();
 const alta = async (uid, saldo) => {
   await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: uid });
   await creditEngine.ensureAccount(uid);
-  if (saldo !== undefined) await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: saldo });
+  if (saldo !== undefined) {
+    await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: saldo });
+    /* F-06: el saldo que manda vive en `creditAccounts/{uid}` (el perfil solo lo espeja): un saldo de prueba que solo toca el perfil no se aplicaría. */
+    const privado = db.collection('creditAccounts').doc(uid);
+    if ((await privado.get()).exists) await privado.update({ creditsBalance: saldo });
+  }
   saldoInicial.set(uid, saldo ?? 240);
   return uid;
 };
-const saldo = async (uid) => (await db.collection('users').doc(`doc_${uid}`).get()).data()?.creditsBalance;
+/* F-06: primero la cuenta privada (la que manda); el perfil solo si todavía no existe. */
+const saldo = async (uid) => {
+  const privado = (await db.collection('creditAccounts').doc(uid).get()).data();
+  return typeof privado?.creditsBalance === 'number' ? privado.creditsBalance : (await db.collection('users').doc(`doc_${uid}`).get()).data()?.creditsBalance;
+};
 const txs = async (uid) => (await db.collection('creditTransactions').where('userId', '==', uid).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
 const contador = async (uid) => (await db.collection('brainUsage').doc(uid).get()).data() || {};
 const registros = async (uid) => (await db.collection('brainUsage').doc(uid).collection('respuestas').get()).docs.map((d) => d.data());

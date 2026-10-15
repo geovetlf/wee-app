@@ -6,8 +6,10 @@
  *   node scripts/prelanzamiento.mjs --produccion    # SOLO LEE get-wee y GitHub (gcloud list/describe, REST GET, gh api GET)
  *   node scripts/prelanzamiento.mjs --json          # además, el resultado en JSON (para pegarlo en el registro)
  *
- * Diez puntos, cada uno PASA o FALLA (y SOLO-PRODUCCION cuando en local no hay forma honrada de saberlo). Sale con
- * 1 si alguno FALLA, 0 si no, 2 si no puede ni empezar (p. ej. sin `functions/lib`: npm run build --prefix functions).
+ * Diez puntos, cada uno PASA o FALLA (y SOLO-PRODUCCION cuando en local no hay forma honrada de saberlo; y NO-VERIFICABLE cuando en
+ * producción la sesión, los permisos o el servicio impidieron mirarlo: ni PASA ni hallazgo). Sale con 1 si alguno FALLA; con 3 si
+ * ninguno FALLA pero alguno es NO-VERIFICABLE; con 0 si todo se vio y es conforme; con 2 si no puede ni empezar (p. ej. sin
+ * `functions/lib`: npm run build --prefix functions).
  *
  * Lo que se exige está en ops/observabilidad/prelanzamiento-esperado.json: son DECISIONES, y se cambian allí.
  *
@@ -36,12 +38,14 @@ const REGION = ESPERADO.region;
 export const PASA = 'PASA';
 export const FALLA = 'FALLA';
 export const SOLO_PRODUCCION = 'SOLO-PRODUCCION';
+/** La lectura no se pudo hacer por la sesión, los permisos o el servicio: ni PASA (no se vio) ni FALLA (no se sabe que esté mal). */
+export const NO_VERIFICABLE = 'NO-VERIFICABLE';
 const r = (estado, detalle) => ({ estado, detalle });
 
 /* ═══ La cerradura: solo lectura ═══════════════════════════════════════════ */
 
 const VERBOS_GCLOUD = new Set(['list', 'describe', 'list-configs', 'print-access-token']);
-const PROHIBIDOS = /^(create|update|delete|set|add|remove|deploy|undelete|enable|disable|patch|replace|import|export|restore|update-traffic|set-iam-policy|add-iam-policy-binding|versions)$/;
+const PROHIBIDOS = /^(create|update|delete|set|add|remove|deploy|undelete|enable|disable|patch|replace|import|export|restore|update-traffic|set-iam-policy|add-iam-policy-binding|access|destroy)$/;
 const POST_DE_LECTURA = /:(runQuery|batchGet)$/;
 
 /** ¿Es una lectura? Lanza si no. Pura: la usan los tres lectores y la prueba. */
@@ -66,31 +70,129 @@ export const soloLectura = (tipo, args, opciones = {}) => {
   throw new Error(`lector desconocido: ${tipo}`);
 };
 
-/** Los lectores reales. Inyectables: las pruebas pasan unos falsos con datos de producción simulados. */
-export const lectoresReales = () => {
+/* ═══ Cuando una lectura no se puede hacer ═══════════════════════════════════════════════════════════════════
+ *
+ * «No se pudo leer» no es una sola cosa, y decirlo mal es peor que no decirlo: una cuenta sin permiso no es una producción rota,
+ * y una sesión caducada no es un secreto que falte. Cada lectura que falla lleva su CLASE:
+ *
+ *   AUTENTICACION  la sesión no vale para ese servicio (401, «reauthentication»): se arregla iniciando sesión.
+ *   SESION         no hay gcloud o no hay sesión de gcloud.
+ *   PERMISOS       la cuenta activa no tiene permiso (403): se arregla con el permiso o con otra cuenta. No dice nada de WEE.
+ *   SERVICIO       el servicio no respondió (5xx, sin red, tiempo agotado): se reintenta. Tampoco dice nada de WEE.
+ *   NO_EXISTE      el recurso no existe (404): ESO sí es un hallazgo sobre WEE.
+ *   OTRO           una causa que no se reconoce: se enseña recortada.
+ *
+ * Lo que no es un hallazgo se informa como NO-VERIFICABLE: ni PASA (no se vio) ni FALLA (no se sabe que esté mal). Nunca se imprime un
+ * valor secreto: ni el token de la sesión, ni el cuerpo de una respuesta, ni el valor de un secreto (solo nombres y estados).
+ */
+export class ErrorDeLectura extends Error {
+  constructor(clase, mensaje, { estado, anfitrion, permiso } = {}) {
+    super(mensaje);
+    this.name = 'ErrorDeLectura';
+    this.clase = clase;
+    this.estado = estado;
+    this.anfitrion = anfitrion;
+    this.permiso = permiso;
+  }
+}
+
+export const claseDeEstadoHttp = (estado) => (estado === 401 ? 'AUTENTICACION' : estado === 403 ? 'PERMISOS' : estado === 404 ? 'NO_EXISTE' : estado >= 500 ? 'SERVICIO' : 'OTRO');
+
+/** Lo que escribe gcloud o gh por stderr, a su clase. El orden importa: lo más específico primero. */
+export const claseDeSalida = (texto) => {
+  const t = String(texto || '');
+  if (/UNAUTHENTICATED|reauthenticat|do not currently have an active account|not logged in|gh auth login|invalid_grant|HTTP 401|Bad credentials/i.test(t)) return 'AUTENTICACION';
+  if (/PERMISSION_DENIED|does not have permission|Permission '[^']*' denied|HTTP 403|Resource not accessible|Must have admin rights/i.test(t)) return 'PERMISOS';
+  if (/NOT_FOUND|was not found|HTTP 404|does not exist|Not Found/i.test(t)) return 'NO_EXISTE';
+  if (/UNAVAILABLE|DEADLINE_EXCEEDED|ECONNRESET|ENOTFOUND|ETIMEDOUT|HTTP 5\d\d|timed out|network/i.test(t)) return 'SERVICIO';
+  return 'OTRO';
+};
+
+const PERMISOS_DE_GCLOUD = [
+  [/^run services list/, 'run.services.list'],
+  [/^secrets versions list/, 'secretmanager.versions.list'],
+  [/^secrets list/, 'secretmanager.secrets.list'],
+  [/^firestore databases describe/, 'datastore.databases.getMetadata'],
+  [/^firestore backups schedules list/, 'datastore.backupSchedules.list'],
+  [/^logging metrics list/, 'logging.logMetrics.list'],
+  [/^monitoring uptime list-configs/, 'monitoring.uptimeCheckConfigs.list'],
+  [/^beta monitoring policies list/, 'monitoring.alertPolicies.list'],
+  [/^beta monitoring channels list/, 'monitoring.notificationChannels.list'],
+  [/^monitoring dashboards list/, 'monitoring.dashboards.list'],
+];
+
+/** El permiso que hace falta para una lectura, si se conoce: para decir QUÉ pedir cuando falta. */
+export const permisoDeLectura = (tipo, referencia) => {
+  if (tipo === 'gcloud') {
+    const orden = (referencia || []).filter((a) => !String(a).startsWith('-')).join(' ');
+    const x = PERMISOS_DE_GCLOUD.find(([re]) => re.test(orden));
+    return x ? x[1] : undefined;
+  }
+  if (tipo === 'http') {
+    const u = String(referencia || '');
+    if (/firebaserules\.googleapis\.com/.test(u)) return 'firebaserules.releases.get y firebaserules.rulesets.get';
+    if (/firebaseappcheck\.googleapis\.com/.test(u)) return 'firebaseappcheck.services.get';
+    if (/firestore\.googleapis\.com.*:runQuery$/.test(u)) return 'datastore.entities.list';
+    if (/firestore\.googleapis\.com.*:batchGet$/.test(u)) return 'datastore.entities.get';
+    return undefined;
+  }
+  if (tipo === 'gh') return 'lectura de la configuración del repositorio (permiso «Administration: read» o rol de administrador)';
+  return undefined;
+};
+
+/** Una lectura fallida, a su resultado: NO-VERIFICABLE si no dice nada de WEE; FALLA si es un hallazgo (no existe) o un error que no se esperaba. */
+export const resultadoDeFallo = (e) => {
+  if (!(e instanceof ErrorDeLectura)) return r(FALLA, `no se pudo leer: ${String((e && e.message) || e).slice(0, 200)}`);
+  const permiso = e.permiso ? ` Permiso necesario: ${e.permiso}.` : '';
+  switch (e.clase) {
+    case 'AUTENTICACION': return r(NO_VERIFICABLE, `autenticación: ${e.message}. La sesión no vale para este servicio: renueva «gcloud auth login» (o «gh auth login») y vuelve a ejecutar.${permiso}`);
+    case 'SESION': return r(NO_VERIFICABLE, `sesión: ${e.message}.`);
+    case 'PERMISOS': return r(NO_VERIFICABLE, `permisos: ${e.message}.${permiso} La cuenta activa no puede leerlo; eso no dice nada sobre WEE.`);
+    case 'SERVICIO': return r(NO_VERIFICABLE, `servicio: ${e.message}. Reintenta: no es un hallazgo sobre WEE.`);
+    case 'NO_EXISTE': return r(FALLA, `no existe: ${e.message}`);
+    default: return r(NO_VERIFICABLE, `causa sin clasificar: ${e.message}`);
+  }
+};
+
+/**
+ * Los lectores reales. `ejecutar` (spawnSync) y `pedir` (fetch) se pueden inyectar para probar sin gcloud ni red; las pruebas de
+ * producción pasan lectores falsos enteros. Toda lectura que falla LANZA un `ErrorDeLectura` con su clase: nunca devuelve null a ciegas.
+ */
+export const lectoresReales = ({ ejecutar = spawnSync, pedir = (...a) => globalThis.fetch(...a) } = {}) => {
   let token;
-  const gcloud = (args) => {
-    soloLectura('gcloud', args);
-    const x = spawnSync('gcloud', args, { encoding: 'utf8', shell: process.platform === 'win32', maxBuffer: 64 * 1024 * 1024 });
-    if (x.status !== 0) return null;
-    try { return JSON.parse(x.stdout || 'null'); } catch { return null; }
+  const proceso = (extra = {}) => ({ encoding: 'utf8', shell: process.platform === 'win32', maxBuffer: 64 * 1024 * 1024, ...extra });
+  const falloDe = (herramienta, args, x) => {
+    if (x.error) return new ErrorDeLectura('SESION', `no se pudo ejecutar ${herramienta} (${x.error.code || x.error.message})`);
+    const resumen = String(x.stderr || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    const orden = args.filter((a) => !String(a).startsWith('-')).slice(0, 4).join(' ');
+    return new ErrorDeLectura(claseDeSalida(x.stderr), `${herramienta} ${orden} falló${resumen ? `: ${resumen}` : ''}`, { permiso: permisoDeLectura(herramienta, args) });
   };
-  const gh = (args) => {
-    soloLectura('gh', args);
-    const x = spawnSync('gh', args, { encoding: 'utf8', shell: process.platform === 'win32', maxBuffer: 16 * 1024 * 1024 });
-    if (x.status !== 0) return null;
-    try { return JSON.parse(x.stdout || 'null'); } catch { return null; }
+  const comoJson = (herramienta, args, x) => {
+    if (x.error || x.status !== 0) throw falloDe(herramienta, args, x);
+    try { return JSON.parse(x.stdout || 'null'); } catch { throw new ErrorDeLectura('OTRO', `${herramienta} no devolvió JSON legible`); }
   };
+  const gcloud = (args) => { soloLectura('gcloud', args); return comoJson('gcloud', args, ejecutar('gcloud', args, proceso())); };
+  const gh = (args) => { soloLectura('gh', args); return comoJson('gh', args, ejecutar('gh', args, proceso({ maxBuffer: 16 * 1024 * 1024 }))); };
   const http = async (url, opciones = {}) => {
     soloLectura('http', url, opciones);
     if (!token) {
       soloLectura('gcloud', ['auth', 'print-access-token']);
-      const x = spawnSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8', shell: process.platform === 'win32' });
-      token = (x.stdout || '').trim();
-      if (x.status !== 0 || !token) throw new Error('sin sesión de gcloud');
+      const x = ejecutar('gcloud', ['auth', 'print-access-token'], proceso());
+      token = String(x.stdout || '').trim();
+      if (x.error || x.status !== 0 || !token) {
+        token = undefined;
+        throw new ErrorDeLectura(x.error ? 'SESION' : 'AUTENTICACION', x.error ? `no se pudo ejecutar gcloud (${x.error.code || x.error.message})` : 'no hay una sesión de gcloud utilizable («gcloud auth login»)');
+      }
     }
-    const res = await fetch(url, { ...opciones, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(opciones.headers || {}) } });
-    if (!res.ok) throw new Error(`${new URL(url).hostname} respondió ${res.status}`);
+    const anfitrion = new URL(url).hostname;
+    let res;
+    try {
+      /* La cabecera de autorización va LA ÚLTIMA: la sesión real manda sobre cualquier valor de relleno que traiga quien llama (así fallaban las sondas, todas con 401). */
+      res = await pedir(url, { ...opciones, headers: { 'Content-Type': 'application/json', ...(opciones.headers || {}), Authorization: `Bearer ${token}` } });
+    } catch (e) {
+      throw new ErrorDeLectura('SERVICIO', `${anfitrion} no respondió (${(e && (e.code || e.name)) || 'sin red'})`, { anfitrion });
+    }
+    if (!res.ok) throw new ErrorDeLectura(claseDeEstadoHttp(res.status), `${anfitrion} respondió ${res.status}`, { estado: res.status, anfitrion, permiso: permisoDeLectura('http', url) });
     return res.json();
   };
   return { gcloud, gh, http };
@@ -267,10 +369,13 @@ export const comprobarProduccion = async (l) => {
     const x = await l.http(`${FS}:runQuery`, { method: 'POST', body: JSON.stringify({ structuredQuery: { from: [{ collectionId: nombre }], limit: 100 } }) });
     return (x || []).filter((y) => y.document).map((y) => deFirestore(y.document));
   };
-  const intentar = async (id, fn) => { try { out[id] = await fn(); } catch (e) { out[id] = r(FALLA, `no se pudo leer: ${String((e && e.message) || e).slice(0, 200)}`); } };
+  const intentar = async (id, fn) => { try { out[id] = await fn(); } catch (e) { out[id] = resultadoDeFallo(e); } };
 
-  const servicios = l.gcloud(['run', 'services', 'list', `--region=${REGION}`, P, '--format=json']);
+  let servicios = null;
+  let errorDeServicios = null;
+  try { servicios = l.gcloud(['run', 'services', 'list', `--region=${REGION}`, P, '--format=json']); } catch (e) { errorDeServicios = e; }
   await intentar('version', async () => {
+    if (errorDeServicios) throw errorDeServicios;
     if (!Array.isArray(servicios)) return r(FALLA, 'no se pudieron listar los servicios de Cloud Run');
     const porNombre = Object.fromEntries(servicios.map((s) => [s.metadata && s.metadata.name, s]));
     const dif = [];
@@ -343,13 +448,18 @@ export const comprobarProduccion = async (l) => {
   });
   await intentar('copias', async () => {
     const db = l.gcloud(['firestore', 'databases', 'describe', '--database=(default)', P, '--format=json']);
-    const prog = l.gcloud(['firestore', 'backups', 'schedules', 'list', '--database=(default)', P, '--format=json']);
+    let prog = null;
+    let errorDeProg = null;
+    try { prog = l.gcloud(['firestore', 'backups', 'schedules', 'list', '--database=(default)', P, '--format=json']); } catch (e) { errorDeProg = e; }
     if (!db) return r(FALLA, 'no se pudo describir la base de datos');
     const mal = [];
     if (ESPERADO.copias.pitr && db.pointInTimeRecoveryEnablement !== 'POINT_IN_TIME_RECOVERY_ENABLED') mal.push(`PITR: ${db.pointInTimeRecoveryEnablement || 'desconocido'}`);
     if (ESPERADO.copias.proteccionDeBorrado && db.deleteProtectionState !== 'DELETE_PROTECTION_ENABLED') mal.push(`protección de borrado: ${db.deleteProtectionState || 'desconocida'}`);
-    if (ESPERADO.copias.copiaProgramada && !(Array.isArray(prog) && prog.length)) mal.push('sin copia programada');
-    return mal.length ? r(FALLA, mal.join('; ')) : r(PASA, `PITR activo, protección activa, ${prog.length} copia(s) programada(s)`);
+    if (ESPERADO.copias.copiaProgramada && !errorDeProg && !(Array.isArray(prog) && prog.length)) mal.push('sin copia programada');
+    if (mal.length) return r(FALLA, `${mal.join('; ')}${errorDeProg ? ` · copia programada: no se pudo leer (${errorDeProg.message})` : ''}`);
+    /* Lo demás cumple, pero la copia programada no se pudo ver: no se da por buena. */
+    if (errorDeProg && ESPERADO.copias.copiaProgramada) throw errorDeProg;
+    return r(PASA, `PITR activo, protección activa, ${Array.isArray(prog) ? prog.length : 0} copia(s) programada(s)`);
   });
   await intentar('alertas', async () => {
     const { planificar } = await importar('ops/observabilidad/aplicar.mjs');
@@ -361,12 +471,33 @@ export const comprobarProduccion = async (l) => {
     return mal.length ? r(FALLA, `${mal.length}: ${mal.slice(0, 8).join('; ')}${mal.length > 8 ? '…' : ''} (node ops/observabilidad/aplicar.mjs)`) : r(PASA, 'todas las alertas, métricas, comprobaciones y el panel, con canal verificado');
   });
   await intentar('claves', async () => {
+    if (errorDeServicios) throw errorDeServicios;
     const lista = l.gcloud(['secrets', 'list', P, '--format=json(name)']);
     if (!Array.isArray(lista)) return r(FALLA, 'no se pudieron listar los nombres de Secret Manager');
     const existen = new Set(lista.map((x) => String(x.name).split('/').pop()));
     const montadosVivos = new Set((servicios || []).flatMap((s) => entornoDe(s).secretos));
     const faltan = [...montadosVivos].filter((n) => !existen.has(n));
-    return faltan.length ? r(FALLA, `montados y sin existir en Secret Manager: ${faltan.join(', ')}`) : r(PASA, `${montadosVivos.size} secretos montados en servicios vivos (${[...montadosVivos].sort().join(', ')}); ${existen.size} en Secret Manager`);
+    if (faltan.length) return r(FALLA, `montados y sin existir en Secret Manager: ${faltan.join(', ')}`);
+    /*
+     * El NOMBRE de una clave no es la clave. Que el secreto exista no dice que tenga valor: se mira el estado de su versión más reciente
+     * (metadatos; el valor NUNCA se lee). Y que esa versión esté habilitada tampoco dice que la clave FUNCIONE: eso solo lo dice el
+     * proveedor, con una llamada (que esta herramienta no hace).
+     */
+    const noDisponibles = [];
+    const habilitadas = [];
+    for (const nombre of [...montadosVivos].sort()) {
+      const vs = l.gcloud(['secrets', 'versions', 'list', nombre, P, '--format=json(name,state)']);
+      const versiones = (Array.isArray(vs) ? vs : [])
+        .map((v) => ({ n: Number(String(v.name).split('/').pop()), estado: String(v.state || '').toUpperCase() }))
+        .filter((v) => Number.isFinite(v.n))
+        .sort((a, b) => b.n - a.n);
+      const ultima = versiones[0];
+      if (!ultima) noDisponibles.push(`${nombre}: sin ninguna versión`);
+      else if (ultima.estado !== 'ENABLED') noDisponibles.push(`${nombre}: la versión más reciente (v${ultima.n}) está ${ultima.estado || 'en un estado desconocido'}`);
+      else habilitadas.push(`${nombre} v${ultima.n}`);
+    }
+    if (noDisponibles.length) return r(FALLA, `secretos montados que NO están disponibles: ${noDisponibles.join('; ')}`);
+    return r(PASA, `${montadosVivos.size} secretos montados; todos existen y su versión más reciente está HABILITADA (${habilitadas.join(', ')}). Es lo único que se ve sin llamar a un proveedor: NO se ha comprobado que cada clave FUNCIONE (que sea válida, tenga saldo y permisos); eso exige una llamada autorizada a cada proveedor.`);
   });
   await intentar('ruleset', async () => {
     const { LECTURAS, RULESET, comparar } = await importar('ops/github/proteccion.mjs');
@@ -379,8 +510,23 @@ export const comprobarProduccion = async (l) => {
   await intentar('sondas', async () => {
     const { correrSondas } = await importar('ops/observabilidad/lanzamiento.mjs');
     const { lectorRest } = await importar('ops/observabilidad/sondas.mjs');
-    const lector = lectorRest({ token: 'no-se-usa', pedir: async (url, op) => ({ ok: true, text: async () => JSON.stringify(await l.http(url, op)) }) });
+    const bloqueos = [];
+    const lector = lectorRest({
+      token: 'no-se-usa',
+      pedir: async (url, op) => {
+        try {
+          const cuerpo = await l.http(url, op);
+          return { ok: true, status: 200, text: async () => JSON.stringify(cuerpo) };
+        } catch (e) { bloqueos.push(e); throw e; }
+      },
+    });
     const res = await correrSondas(lector);
+    /* Si una lectura no se pudo hacer (sesión, permisos, servicio), las sondas que dependían de ella no dicen nada de los datos: se informa tal cual, no como «falla». */
+    const bloqueo = bloqueos.find((e) => e instanceof ErrorDeLectura && e.clase !== 'NO_EXISTE');
+    if (bloqueo) {
+      const x = resultadoDeFallo(bloqueo);
+      return r(x.estado, `${x.detalle} (${res.filter((s) => /no se pudo leer/.test(String(s.detalle))).length} de ${res.length} sondas no pudieron leer)`);
+    }
     const malas = res.filter((x) => x.estado !== PASA);
     return malas.length ? r(FALLA, malas.map((x) => `${x.id}: ${x.detalle}`).join('; ')) : r(PASA, `${res.length} sondas pasan`);
   });
@@ -393,10 +539,14 @@ export const imprimir = (resultados, { modo, log = console.log }) => {
     const x = resultados[p.id] || r(FALLA, 'sin resultado');
     log(`${x.estado.padEnd(15)} ${p.titulo}\n${' '.repeat(16)}${x.detalle}`);
   }
-  const fallan = PUNTOS.filter((p) => (resultados[p.id] || {}).estado === FALLA).length;
-  const solo = PUNTOS.filter((p) => (resultados[p.id] || {}).estado === SOLO_PRODUCCION).length;
-  log(`\n${fallan ? `✘ ${fallan} FALLA` : '✔ ninguno FALLA'} · ${PUNTOS.length - fallan - solo} PASA${solo ? ` · ${solo} solo se pueden ver en producción` : ''}`);
-  return fallan ? 1 : 0;
+  const cuenta = (estado) => PUNTOS.filter((p) => (resultados[p.id] || {}).estado === estado).length;
+  const fallan = cuenta(FALLA);
+  const solo = cuenta(SOLO_PRODUCCION);
+  const bloqueados = cuenta(NO_VERIFICABLE);
+  const pasan = PUNTOS.length - fallan - solo - bloqueados;
+  log(`\n${fallan ? `✘ ${fallan} FALLA` : '✔ ninguno FALLA'} · ${pasan} PASA${bloqueados ? ` · ${bloqueados} NO VERIFICABLE (sesión, permisos o servicio: ni PASA ni hallazgo)` : ''}${solo ? ` · ${solo} solo se pueden ver en producción` : ''}`);
+  /* 1: hay hallazgos. 3: no hay hallazgos pero NO todo se pudo ver (una producción no vista no está bien). 0: todo visto y conforme. */
+  return fallan ? 1 : bloqueados ? 3 : 0;
 };
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
