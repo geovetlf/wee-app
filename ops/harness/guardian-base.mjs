@@ -24,7 +24,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 /** Lo que necesita el Guardian de la base para ejecutarse (sus imports relativos). */
-export const RUTAS_DEL_GUARDIAN = Object.freeze(['ops', '.claude/hooks', 'scripts/ci-local.mjs', 'functions/test/_cadena.mjs']);
+export const RUTAS_DEL_GUARDIAN = Object.freeze(['ops', '.claude/hooks', 'scripts/ci-local.mjs', 'scripts/ci-sin-secretos.mjs', 'scripts/emulators.mjs', 'functions/test/_cadena.mjs']);
 /** Sin estos tres en la base no hay paso de CI estricto que ejecutar: la verificación no está disponible. */
 export const IMPRESCINDIBLES = Object.freeze(['ops/harness/guardian-ci.mjs', 'ops/harness/guardian-estricto.mjs', 'ops/harness/guardian-base-resolver.mjs']);
 /** Lo que este mecanismo no puede verificar de forma independiente: su propio camino de ejecución. */

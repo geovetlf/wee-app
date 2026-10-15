@@ -208,8 +208,10 @@ console.log('\n── D · Estabilidad (cazar una intermitencia sin taparla) y e
   check('45) 10 de 10 en verde = PASA; 10 de 10 en rojo = FALLA (no «intermitente»)', (await est([true], 10)).estado === 'PASA' && (await est([false], 10)).estado === 'FALLA');
   const dentro = await ver.verificar({ raiz: RAIZ, modo: 'ejecutar', dominios: ['experiencia-travel'], estabilidad: 4, comprobarEntorno: false, ejecutarSuite: corre([true, false]) });
   check('46) con --estabilidad el informe lo dice por suite, y un solo fallo ya NO es verde (salida 4)', dentro.resultado === 'INTERMITENTE' && dentro.codigo === 4 && dentro.dominios[0].suites[0].estabilidad.fallos === 2);
+  /* El bloque de clave privada se arma en ejecución: el escáner de secretos no debe ver uno en el código fuente. */
+  const G5 = "-----";
   const clave = `AIza${'x'.repeat(35)}`;
-  const f = await ver.verificarSuite(suite, { limiteMs: 1, ejecutarSuite: async () => ({ ms: 1, ok: false, codigo: 1, salida: `✘ 1) mal\nBearer ${'a'.repeat(30)}\nGEMINI ${clave}\n-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\nsk-${'b'.repeat(30)}` }) });
+  const f = await ver.verificarSuite(suite, { limiteMs: 1, ejecutarSuite: async () => ({ ms: 1, ok: false, codigo: 1, salida: `✘ 1) mal\nBearer ${'a'.repeat(30)}\nGEMINI ${clave}\n${G5}BEGIN PRIVATE KEY${G5}\nabc\n${G5}END PRIVATE KEY${G5}\nsk-${'b'.repeat(30)}` }) });
   const texto = JSON.stringify(f);
   check('47) la evidencia que se conserva sale REDACTADA: ni claves de Google, ni Bearer, ni claves privadas, ni sk-…', !texto.includes(clave) && !texto.includes('BEGIN PRIVATE KEY-----\\nabc') && !/Bearer a{30}/.test(texto) && !/sk-b{30}/.test(texto) && /REDACTADO/.test(texto));
   check('48) la firma de un fallo ignora el tiempo medido pero no el resto', ver.firmaDeFallo('✘ x — 120 ms') === ver.firmaDeFallo('✘ x — 9000 ms') && ver.firmaDeFallo('✘ x — 120 ms') !== ver.firmaDeFallo('✘ y — 120 ms') && ver.firmaDeFallo('todo ✔') === '');
