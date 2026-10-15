@@ -71,7 +71,7 @@ export const business: typeof import('../es/business').business = {
   yesterday: 'Dün',
 
   /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
-  slogan: 'İşletmeni kur, yönet, tanıt ve büyüt.',
+  slogan: 'Moda, stil, güzellik ve görsel içerik oluşturma.',
 
   /* Qué hace cada módulo, en una línea. */
   modMyBusinessHint: 'İşletmeni kur ve yönet',
@@ -182,7 +182,7 @@ export const business: typeof import('../es/business').business = {
   shareCommunities: 'Topluluklar',
   shareProfile: 'Business Profile',
   shareNothing: 'Önce bir şey oluştur, sonra buradan paylaş.',
-  shareText: 'Weë Business ile oluşturuldu',
+  shareText: 'Weë Fashion ile oluşturuldu',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Verilerimi yükle',

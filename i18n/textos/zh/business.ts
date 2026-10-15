@@ -79,7 +79,7 @@ export const business: typeof import('../es/business').business = {
   yesterday: '昨天',
 
   /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
-  slogan: '创建、经营、推广，让你的生意成长。',
+  slogan: '时尚、风格、美妆和视觉内容创作。',
 
   modMyBusinessHint: '搭建并经营你的生意',
   modProductsHint: '你的产品和价格',
@@ -185,7 +185,7 @@ export const business: typeof import('../es/business').business = {
   shareCommunities: '社区',
   shareProfile: 'Business Profile',
   shareNothing: '先创作点什么，再从这里分享出去。',
-  shareText: '用 Weë Business 创作',
+  shareText: '用 Weë Fashion 创作',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: '上传我的数据',

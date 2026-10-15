@@ -74,7 +74,7 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
    * Grow, Business Profile, Promote— viven en `constants/businessModules.ts` y
    * no se traducen. Aquí solo lo que hace cada uno.
    */
-  slogan: 'Создавайте, ведите, продвигайте и развивайте свой бизнес.',
+  slogan: 'Мода, стиль, красота и создание визуального контента.',
 
   /* Qué hace cada módulo, en una línea. */
   modMyBusinessHint: 'Создавайте и ведите свой бизнес',
@@ -191,7 +191,7 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
   shareCommunities: 'Сообщества',
   shareProfile: 'Business Profile',
   shareNothing: 'Сначала создайте что-нибудь, а потом поделитесь этим отсюда.',
-  shareText: 'Создано с помощью Weë Business',
+  shareText: 'Создано с помощью Weë Fashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Загрузить мои данные',

@@ -96,7 +96,7 @@ export const business: typeof import('../es/business').business = {
   yesterday: '昨天',
 
   /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
-  slogan: '建立、經營、推廣，讓你的生意成長。',
+  slogan: '時尚、風格、美妝和視覺內容創作。',
 
   modMyBusinessHint: '打造並經營你的生意',
   modProductsHint: '你的產品和價格',
@@ -209,7 +209,7 @@ export const business: typeof import('../es/business').business = {
   shareCommunities: '社群',
   shareProfile: 'Business Profile',
   shareNothing: '先創作些什麼，再從這裡分享出去。',
-  shareText: '用 Weë Business 創作',
+  shareText: '用 Weë Fashion 創作',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   /* 資料 y no 數據; 檔案 y no 文件, que en Taiwán es el documento. */
