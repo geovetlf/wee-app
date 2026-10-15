@@ -224,6 +224,7 @@ for (const uid of CUENTAS) {
   base.docs.set(`users/doc_${uid}`, { uid, displayName: uid });
   await creditEngine.ensureAccount(uid);
   base.docs.get(`users/doc_${uid}`).creditsBalance = SALDO;
+  base.docs.get(`creditAccounts/${uid}`).creditsBalance = SALDO; /* F-06: el saldo vive en creditAccounts; el perfil es su espejo */
 }
 /* El vídeo encendido (Línea B · X2): esta suite prueba el camino cuando SÍ se puede generar; el apagado tiene su suite (linea-b-finanzas). */
 base.docs.set('aiSettings/global', { videoHabilitado: true });
@@ -231,7 +232,8 @@ base.docs.set('aiSettings/runtime', { habilitado: true, porCapacidad: { 'video.g
 olvidarLaPuerta();
 const PETICION = { prompt: 'Un faro al amanecer, olas suaves', durationSec: 5, aspectRatio: '16:9' };
 const pedir = (uid, requestId, extra = {}) => intento(() => video.generateVideo.run({ auth: { uid }, data: { ...PETICION, requestId, ...extra } }));
-const saldo = (uid) => base.docs.get(`users/doc_${uid}`).creditsBalance;
+/* F-06: el saldo, y solo si sus dos sitios coinciden (privado y espejo); si no, NaN y la aserción falla. */
+const saldo = (uid) => { const a = base.docs.get(`users/doc_${uid}`)?.creditsBalance; const b = base.docs.get(`creditAccounts/${uid}`)?.creditsBalance; return a === b ? a : NaN; };
 const uso = (requestId) => base.leer(`creditTransactions/usage_${requestId}`);
 const reembolsos = (requestId) => base.de('creditTransactions').filter((t) => t.requestId === requestId && t.type === 'refund');
 const trabajoDe = (uid, requestId) => rt.trabajoDelMedioDeWee(base, uid, requestId);
@@ -693,13 +695,15 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const DE_LA_LINEA_B = ['functions/src/creator/barrido.ts', 'functions/src/creator/cierre.ts', 'functions/src/creator/cobro.ts', 'functions/src/creator/index.ts',
     'functions/src/engine/admin.ts', 'functions/src/engine/gateway.ts', 'functions/src/engine/registry.ts', 'functions/src/engine/router.ts', 'functions/src/engine/types.ts',
     'functions/src/engine/video.ts', 'functions/src/runtime/liquidacion.ts', 'functions/src/settlement/programado.ts'];
+  /* Los de la F-06 (2026-10-14), por nombre: la copia de seguridad clasifica `creditAccounts` (CRITICAL) y su relación con `users`. */
+  const DE_LA_F06 = ['functions/src/core/backup.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_LA_LINEA_B,
+      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_LA_LINEA_B, ...DE_LA_F06,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -712,7 +716,12 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    *   lo que no es un CreditError y su causa al registro con `sanitizeForLog` (money/error-interno-al-cliente);
    *   credits/index.ts +5 −3: `balance` → `readBalance` y `failed` → `assertLimit`. Bloques exactos en job-queue 63k/63p.
    */
-  const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
+  /*
+   * + F-06 (2026-10-14, el saldo privado en creditAccounts): creditEngine.ts 57/9 → 246/56 sobre la misma base. El
+   *   contenido exacto de esa diferencia lo fija job-queue 63p (bloques REVISION_F06 de _bloques-autorizados.mjs) y su
+   *   comportamiento credits-saldo-privado (cadena) y saldo-privado.emulator. creditValidation e index, sin tocar.
+   */
+  const CREDITS_DEL_HARNESS = '246\t56\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
   /* + misión fal (2026-10-05): core/router.ts +2 −2 (la modalidad 3d) y creditCosts.ts +8 (el servicio ai_world). Líneas exactas en job-queue 63fal. */
   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
   check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; del tamaño exacto',
@@ -726,11 +735,13 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     + '\n6\t0\tfunctions/src/core/registry/capabilities.ts\n6\t2\tfunctions/src/core/registry/types.ts\n2\t2\tfunctions/src/core/router.ts';
   /* + ciclo de vida 3D (2026-10-05): el linaje del material (nuevo) y su línea de exportación en la puerta del Content Core. */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts\n651\t0\tfunctions/src/core/content/linaje.ts';
+  /* + F-06 (2026-10-14): backup.ts +2 (`creditAccounts` CRITICAL y su relación `uid → users`). */
+  const CORE_DE_LA_F06 = '2\t0\tfunctions/src/core/backup.ts';
   /* Varias listas de `numstat`, juntas en el orden en que las da git: por ruta. */
   const porRuta = (...listas) => listas.join('\n').split('\n').sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('\n');
   check('F3) ni F1-A ni productions; del Core, solo la misión fal y el linaje del ciclo de vida 3D; del contenido, solo la adopción de F1-D, el cierre y los derechos del material',
     git(`diff --name-only ${RUTA} -- functions/src/filmmaker functions/src/productions`).trim() === ''
-    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D)
+    && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DE_LA_F06)
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
     && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '68\t3\tfunctions/src/content/index.ts\n126\t4\tfunctions/src/content/materializador.ts');

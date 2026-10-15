@@ -104,6 +104,8 @@ const A = `emuf1dA${marca}`;
 const SALDO = 5000;
 await db.collection('users').doc(`doc_${A}`).set({ uid: A, displayName: A });
 await creditEngine.ensureAccount(A);
+// F-06: el saldo vive en creditAccounts (fuente canónica). El espejo de users lo mantiene el motor.
+await db.collection('creditAccounts').doc(A).update({ creditsBalance: SALDO });
 await db.collection('users').doc(`doc_${A}`).update({ creditsBalance: SALDO });
 await db.collection('aiSettings').doc('runtime').set({ habilitado: true, porCapacidad: { 'video.generate': { cuentas: [A], experiencias: ['studio'] } } });
 // Línea B · X2: el vídeo nace APAGADO. Estas suites prueban el camino legacy cuando SÍ se puede generar; el apagado tiene su suite (linea-b-finanzas).

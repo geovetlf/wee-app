@@ -1,4 +1,4 @@
-import { collection, limit, onSnapshot, orderBy, query, where, Timestamp } from 'firebase/firestore';
+import { collection, doc, limit, onSnapshot, orderBy, query, where, Timestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase';
 
@@ -7,9 +7,10 @@ import { db, functions } from '../config/firebase';
  *
  *   Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
  *
- * La app NUNCA suma, resta ni modifica Credits: solo lee su saldo (perfil real,
- * campos creditsBalance…) y su historial (creditTransactions), y pide al
- * servidor lo demás (inicializar la cuenta, costos, compras, gastos).
+ * La app NUNCA suma, resta ni modifica Credits: solo lee su saldo
+ * (`creditAccounts/{uid}`, que solo puede leer su dueño — F-06) y su historial
+ * (creditTransactions), y pide al servidor lo demás (inicializar la cuenta,
+ * costos, compras, gastos). El saldo ya no se lee del perfil, que es público.
  */
 
 // ─── Tipos (espejo de functions/src/credits) ───
@@ -166,36 +167,62 @@ class CreditsService {
     }
   }
 
-  /** Saldo en tiempo real. `accountUid` es la CUENTA (uid de Firebase Auth), no un perfil. */
+  /**
+   * Saldo en tiempo real. `accountUid` es la CUENTA (uid de Firebase Auth), no un perfil.
+   *
+   * F-06: se escucha `creditAccounts/{uid}` —su documento privado, que solo
+   * puede leer ella— y no el perfil público. Si el documento aún no existe
+   * (cuenta nueva o que todavía no se migró), se pide al servidor que la
+   * inicialice/migre y se PINTA LO QUE CONTESTA mientras llega la escucha:
+   * antes ese resultado se tiraba y la píldora se quedaba en 0.
+   */
   subscribeToBalance(accountUid: string, callback: (account: CreditsBalance) => void): () => void {
     if (!cuentaValida(accountUid) || !db) {
       callback(emptyBalance(accountUid || ''));
       return () => {};
     }
-    const q = query(collection(db, 'users'), where('uid', '==', accountUid), limit(1));
-    return onSnapshot(
-      q,
+    let activa = true;
+    let llegoElDocumento = false;
+    const pedirAlServidor = () => {
+      if (this.ensuring.has(accountUid)) return;
+      this.ensuring.add(accountUid);
+      this.ensureAccount()
+        .then((cuenta) => {
+          if (activa && !llegoElDocumento && cuenta) callback({ ...cuenta, userId: accountUid });
+        })
+        .finally(() => this.ensuring.delete(accountUid));
+    };
+    const unsubscribe = onSnapshot(
+      doc(db, 'creditAccounts', accountUid),
       (snap) => {
-        if (snap.empty) {
+        if (!activa) return;
+        const data = (snap.exists() ? snap.data() : undefined) as Record<string, unknown> | undefined;
+        const initialized = typeof data?.creditsBalance === 'number';
+        if (!initialized) {
           callback(emptyBalance(accountUid));
+          pedirAlServidor();
           return;
         }
-        const data = snap.docs[0].data() as Record<string, unknown>;
-        const initialized = typeof data.creditsBalance === 'number';
+        llegoElDocumento = true;
         callback({
           userId: accountUid,
-          balance: initialized ? (data.creditsBalance as number) : 0,
-          lifetimeEarned: typeof data.creditsLifetimeEarned === 'number' ? (data.creditsLifetimeEarned as number) : 0,
-          lifetimeSpent: typeof data.creditsLifetimeSpent === 'number' ? (data.creditsLifetimeSpent as number) : 0,
-          initialized,
+          balance: data!.creditsBalance as number,
+          lifetimeEarned: typeof data!.creditsLifetimeEarned === 'number' ? (data!.creditsLifetimeEarned as number) : 0,
+          lifetimeSpent: typeof data!.creditsLifetimeSpent === 'number' ? (data!.creditsLifetimeSpent as number) : 0,
+          initialized: true,
         });
-        if (!initialized && !this.ensuring.has(accountUid)) {
-          this.ensuring.add(accountUid);
-          this.ensureAccount().finally(() => this.ensuring.delete(accountUid));
-        }
       },
-      () => callback(emptyBalance(accountUid))
+      () => {
+        if (!activa) return;
+        // Sin permiso o sin red: el saldo lo da el servidor, que es quien lo sabe.
+        callback(emptyBalance(accountUid));
+        pedirAlServidor();
+      }
     );
+    return () => {
+      activa = false;
+      unsubscribe();
+    };
   }
 
   /** Historial en tiempo real (creditTransactions, más recientes primero). `accountUid` es la CUENTA. */

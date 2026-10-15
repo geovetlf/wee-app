@@ -420,5 +420,66 @@ console.log('\n── H · Lo de la cuenta, fuera del perfil público (cierre de
   await esperar('56) y otro documento privado no se crea desde el cliente', 'DENIEGA', 'PATCH', '/users/perfilAna/private/otro', { uid: ANA, body: doc({ realName: 'Ana' }) });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n── F-06 · El saldo de Credits es de su dueña, y de nadie más ──');
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  /*
+   * `creditAccounts/{uid}`: lo lee SOLO su dueña y no lo escribe nadie desde
+   * fuera (solo el Credit Engine, que no pasa por las reglas). Se prueba con
+   * las cuatro clases de visitante: sin sesión, sesión anónima de otra cuenta,
+   * otra cuenta autenticada y la dueña. Y el muro sigue pintando a quien
+   * publicó sin sesión.
+   */
+  const ahora = Math.floor(Date.now() / 1000);
+  const anonima = (uid) => b64({ alg: 'none', typ: 'JWT' }) + '.' + b64({
+    iss: `https://securetoken.google.com/${PROY}`, aud: PROY, auth_time: ahora, user_id: uid, sub: uid, iat: ahora, exp: ahora + 3600,
+    firebase: { identities: {}, sign_in_provider: 'anonymous' },
+  }) + '.';
+  const como = async (quien, metodo, ruta, body) => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (quien === 'nadie') { /* sin cabecera: sin sesión */ } else if (quien.anonima) headers.Authorization = `Bearer ${anonima(quien.anonima)}`;
+    else headers.Authorization = `Bearer ${sesion(quien)}`;
+    const res = await fetch(base + ruta, { method: metodo, headers, ...(body ? { body: JSON.stringify(body) } : {}) });
+    return res.status;
+  };
+  const debe = async (nombre, esperado, quien, metodo, ruta, body) => {
+    const status = await como(quien, metodo, ruta, body);
+    check(nombre, (status < 400) === (esperado === 'PERMITE'), `${esperado} · HTTP ${status}`);
+  };
+  const ANON = 'anon0000000000000000000009';
+  await sembrar('/users/perfilAnaF06', { uid: ANA, displayName: 'Ana', photoURL: 'https://res.cloudinary.com/wee/ana.jpg', profileType: 'real' });
+  await sembrar('/users/perfilAnaF06/private/account', { realName: 'Ana Pérez', birthDate: '1990-01-01', gender: 'female' });
+  await sembrar(`/creditAccounts/${ANA}`, { uid: ANA, creditsBalance: 240, creditsLifetimeEarned: 240, creditsLifetimeSpent: 0 });
+  await sembrar(`/creditAccounts/${ANON}`, { uid: ANON, creditsBalance: 240, creditsLifetimeEarned: 240, creditsLifetimeSpent: 0 });
+  const saldo = doc({ uid: ANA, creditsBalance: 999999, creditsLifetimeEarned: 999999, creditsLifetimeSpent: 0 });
+
+  await debe('F1) sin sesión, el muro lee el perfil público (nombre y foto)', 'PERMITE', 'nadie', 'GET', '/users/perfilAnaF06');
+  await debe('F2) sin sesión, el saldo NO', 'DENIEGA', 'nadie', 'GET', `/creditAccounts/${ANA}`);
+  await debe('F3) una sesión anónima de otra cuenta, tampoco', 'DENIEGA', { anonima: ANON }, 'GET', `/creditAccounts/${ANA}`);
+  await debe('F4) otra cuenta autenticada, tampoco', 'DENIEGA', BETO, 'GET', `/creditAccounts/${ANA}`);
+  await debe('F5) ni listando la colección entera', 'DENIEGA', BETO, 'GET', '/creditAccounts');
+  await debe('F6) ni con el identificador del Perfil Weë de Ana como sesión (el saldo es de la cuenta)', 'DENIEGA', WEE_ANA, 'GET', `/creditAccounts/${ANA}`);
+  await debe('F7) la dueña sí lo lee (la píldora lo escucha en tiempo real)', 'PERMITE', ANA, 'GET', `/creditAccounts/${ANA}`);
+  await debe('F8) y una sesión anónima lee el SUYO, que es su cuenta', 'PERMITE', { anonima: ANON }, 'GET', `/creditAccounts/${ANON}`);
+  await debe('F9) la dueña no se escribe el saldo', 'DENIEGA', ANA, 'PATCH', `/creditAccounts/${ANA}`, saldo);
+  await debe('F10) ni lo crea donde no existe', 'DENIEGA', `${ANON}2`, 'PATCH', `/creditAccounts/${ANON}2`, saldo);
+  await debe('F11) ni lo borra', 'DENIEGA', ANA, 'DELETE', `/creditAccounts/${ANA}`);
+  await debe('F12) ni otra cuenta se lo escribe', 'DENIEGA', BETO, 'PATCH', `/creditAccounts/${ANA}`, saldo);
+  await debe('F13) ni nadie sin sesión', 'DENIEGA', 'nadie', 'PATCH', `/creditAccounts/${ANA}`, saldo);
+  check('F14) el espejo de transición en el perfil sigue vedado al cliente',
+    (await escribir('/users/perfilAnaF06', ANA, { creditsBalance: 999999 })) >= 400);
+  /* Los datos privados de la cuenta: igual de cerrados para los tres visitantes. */
+  await debe('F15) private/account: sin sesión, no', 'DENIEGA', 'nadie', 'GET', '/users/perfilAnaF06/private/account');
+  await debe('F16) private/account: sesión anónima de otra cuenta, no', 'DENIEGA', { anonima: ANON }, 'GET', '/users/perfilAnaF06/private/account');
+  await debe('F17) private/account: otra cuenta autenticada, no', 'DENIEGA', BETO, 'GET', '/users/perfilAnaF06/private/account');
+  await debe('F18) private/account: la dueña, sí', 'PERMITE', ANA, 'GET', '/users/perfilAnaF06/private/account');
+  /* Crear el Perfil Weë sigue exigiendo su vínculo con la cuenta (F-06 no lo toca: D3). */
+  await debe('F19) crear el Perfil Weë sin linkedAccountId: no', 'DENIEGA', ANA, 'PATCH', `/users/${WEE_ANA}`, doc({ uid: WEE_ANA, profileType: 'hidi', displayName: 'Ana Weë' }));
+  /* Con OTRA cuenta y otro documento: una escritura que acaba en error de evaluación (F19) deja el documento bloqueado en el emulador (409), como ya les pasa a 26r/26ac. */
+  const CARLA = 'carla0000000000000000000003';
+  await debe('F20) con su linkedAccountId: sí', 'PERMITE', CARLA, 'PATCH', `/users/hidi_${CARLA}`, doc({ uid: `hidi_${CARLA}`, profileType: 'hidi', displayName: 'Carla Weë', linkedAccountId: CARLA }));
+}
+
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

@@ -233,6 +233,7 @@ for (const uid of CUENTAS) {
   base.docs.set(`users/doc_${uid}`, { uid, displayName: uid });
   await creditEngine.ensureAccount(uid);
   base.docs.get(`users/doc_${uid}`).creditsBalance = SALDO;
+  base.docs.get(`creditAccounts/${uid}`).creditsBalance = SALDO; /* F-06: el saldo vive en creditAccounts; el perfil es su espejo */
 }
 /* El vídeo encendido (Línea B · X2): esta suite prueba el camino cuando SÍ se puede generar. */
 base.docs.set('aiSettings/global', { videoHabilitado: true });
@@ -241,7 +242,8 @@ olvidarLaPuerta();
 
 const PETICION = { prompt: 'Un faro al amanecer, olas suaves', durationSec: 5, aspectRatio: '16:9' };
 const pedir = (uid, requestId, extra = {}) => intento(() => video.generateVideo.run({ auth: { uid }, data: { ...PETICION, requestId, ...extra } }));
-const saldo = (uid) => base.docs.get(`users/doc_${uid}`).creditsBalance;
+/* F-06: el saldo, y solo si sus dos sitios coinciden (privado y espejo); si no, NaN y la aserción falla. */
+const saldo = (uid) => { const a = base.docs.get(`users/doc_${uid}`)?.creditsBalance; const b = base.docs.get(`creditAccounts/${uid}`)?.creditsBalance; return a === b ? a : NaN; };
 const uso = (requestId) => base.leer(`creditTransactions/usage_${requestId}`);
 const reembolso = (requestId) => base.leer(`creditTransactions/refund_${requestId}`);
 const trabajoDe = (uid, requestId) => rt.trabajoDelMedioDeWee(base, uid, requestId);
@@ -310,7 +312,12 @@ const VIDEO = sinComentarios(VIDEO_SRC);
    *   lo que no es un CreditError y su causa al registro con `sanitizeForLog` (money/error-interno-al-cliente);
    *   credits/index.ts +5 −3: `balance` → `readBalance` y `failed` → `assertLimit`. Bloques exactos en job-queue 63k/63p.
    */
-  const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
+  /*
+   * + F-06 (2026-10-14, el saldo privado en creditAccounts): creditEngine.ts 57/9 → 246/56 sobre la misma base. El
+   *   contenido exacto de esa diferencia lo fija job-queue 63p (bloques REVISION_F06 de _bloques-autorizados.mjs) y su
+   *   comportamiento credits-saldo-privado (cadena) y saldo-privado.emulator. creditValidation e index, sin tocar.
+   */
+  const CREDITS_DEL_HARNESS = '246\t56\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
   /*
    * + misión fal (2026-10-05), con autorización del dueño: core/router.ts +2 −2 (la modalidad '3d' en la lista del
    *   Router del Core y en su guardia) y credits/creditCosts.ts +8 (el servicio `ai_world`: precio de prueba, etiqueta y
@@ -685,7 +692,9 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    */
   const CORE_DEL_CICLO_DE_VIDA_3D = '3\t0\tfunctions/src/core/content/index.ts|651\t0\tfunctions/src/core/content/linaje.ts';
   /* Las dos listas juntas, en el orden en que las da git: por ruta. */
-  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|')]
+  /* + F-06 (2026-10-14): backup.ts +2 (`creditAccounts` CRITICAL y su relación `uid → users`). */
+  const CORE_DE_LA_F06 = '2\t0\tfunctions/src/core/backup.ts';
+  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), ...CORE_DE_LA_F06.split('|')]
     .sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');
   check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal y el linaje del ciclo de vida 3D, del tamaño exacto',
     git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions`).trim() === ''
