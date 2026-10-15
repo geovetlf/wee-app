@@ -69,7 +69,7 @@ Uso: `node ops/guardian/autocorreccion.mjs --detectar | --corregir [--aplicar] |
   `despliegue-workflow`… todas con salida 0.
 - Cadena completa `node test/_cadena.mjs --paralelo 3` **antes** de los dos últimos arreglos: **299/301** (892 s, 19 985 comprobaciones); fallaron
   `escaneo-secretos` (la clave privada de PRUEBA de mi suite estaba en el código; ahora se arma en ejecución) y `guardian-bloqueante` 31 (el Guardian de la
-  base no copiaba lo que `verificar.mjs` importa; ahora sí). Ambas, repetidas tras el arreglo, salen 0. La cadena completa final: ver el informe de entrega.
+  base no copiaba lo que `verificar.mjs` importa; ahora sí). Ambas, repetidas tras el arreglo, salen 0. Una segunda cadena completa marcó `webhook-seedance` como INTERMITENTE (hallazgo real, §5) y falló `guardian-dominios` 27 por una comprobación nueva sin re-registrar; corregidas ambas. **Cadena completa final sobre el commit anterior a este documento: `✔ 301/301 suites · 19 990 comprobaciones ✔ · 635 s`, salida 0, sin ninguna intermitente.**
 - Uso real de los CLI: `verificar.mjs --modo ejecutar --dominios experiencia-chef,experiencia-travel` → PASA (salida 0); `autocorreccion.mjs --detectar` → nada que
   corregir en este árbol; `informe.mjs` → las ocho secciones.
 - `node scripts/ci-local.mjs --plan` lee el `ci.yml` modificado (4 niveles). El YAML de `guardian-dominios.yml` se parsea con `yaml` y la suite fija sus propiedades.
