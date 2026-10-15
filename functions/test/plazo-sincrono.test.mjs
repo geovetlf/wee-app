@@ -108,7 +108,7 @@ const ejecuciones = () => {
 const mundo = (caps = ['video.generate', 'text.generate']) => {
   const espia = adaptadorEspia(caps);
   const adapters = { seedance: espia };
-  const config = { providers: {}, settings: ajustes.DEFAULT_SETTINGS };
+  const config = { providers: {}, settings: { ...ajustes.DEFAULT_SETTINGS, videoHabilitado: true } };
   const registro = core.crearRegistro(registroDeWee.datosDelRegistro(adapters, config.providers));
   const gateway = core.crearGateway({
     registry: registro,

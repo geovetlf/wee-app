@@ -97,7 +97,8 @@ const cadena = (capability, links) => ({ [capability]: { capability, policy: 'ba
 const configDelMotor = (routing, provs = proveedores()) => ({
   providers: provs,
   routing,
-  settings: { ...ajustes.DEFAULT_SETTINGS, allowMockFallback: false },
+  /* El vídeo encendido (Línea B · X2): esta suite prueba el camino cuando SÍ se puede generar; el apagado tiene su suite (linea-b-finanzas). */
+  settings: { ...ajustes.DEFAULT_SETTINGS, allowMockFallback: false, videoHabilitado: true },
 });
 
 /** El router del motor, sin Firestore: config inyectada, sin uso diario, sin libro. */

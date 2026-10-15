@@ -37,7 +37,8 @@ const mock = { id: 'mock', name: 'demo', modalities: ['video'], models: [{ id: '
 const config = (overrides = {}) => ({
   providers: { alpha: { enabled: true, priority: 1 }, seedance: { enabled: true, priority: 2 }, gamma: { enabled: true, priority: 3 }, mock: { enabled: true, priority: 99 }, ...(overrides.providers || {}) },
   routing: { 'video.generate': { capability: 'video.generate', chain: [{ provider: 'alpha' }, { provider: 'seedance' }, { provider: 'gamma' }], policy: 'quality-first' }, ...(overrides.routing || {}) },
-  settings: { ...DEFAULT_SETTINGS, ...(overrides.settings || {}) },
+  /* El vídeo encendido (Línea B · X2): aquí se prueba cómo enruta cuando SÍ se puede; el apagado tiene su suite. */
+  settings: { ...DEFAULT_SETTINGS, videoHabilitado: true, ...(overrides.settings || {}) },
   source: 'test',
 });
 
@@ -127,13 +128,14 @@ const req = (extra = {}) => ({ capability: 'video.generate', input: { prompt: 'u
   check('desactivado por admin no se usa y la cadena manda', d.candidates[0].provider === 'gamma' && d.skipped.some((s) => s.provider === 'alpha' && /desactivado/.test(s.reason)));
 }
 
-// 7) Sin ningún proveedor real: modo demo atiende (y cobra precio de prueba)
+// 7) Sin ningún proveedor real: modo demo atiende (y desde B4-03 no cobra)
 {
   const alpha = fake('alpha', [{ id: 'alpha-3', quality: 5 }], { configured: false });
   const { router } = build({ alpha, mock }, config());
   const result = await router.execute(req());
   check('sin claves, atiende el modo demo', result.provider === 'mock' && result.demo === true);
-  check('en modo prueba cobra el precio del catálogo de Credits de la capacidad', result.credits === CREDIT_COSTS[serviceForCapability('video.generate', {})], String(result.credits));
+  /* Línea B · B4-03 (2026-10-14): antes el demo valía el precio de catálogo en modo prueba; un resultado de muestra vale 0. */
+  check('el demo NO se cobra, tampoco en modo prueba (B4-03)', result.credits === 0 && CREDIT_COSTS[serviceForCapability('video.generate', {})] > 0, String(result.credits));
 }
 
 // 8) Nada disponible en modo real sin fallback demo → error claro
