@@ -146,4 +146,5 @@ Nada: el Guardian es herramienta de CI y de desarrollo; **no despliega ni toca p
 
 ## 10 · Cadena completa final de la fase de revisión
 
-(Se rellena con el resultado exacto de `node test/_cadena.mjs` sobre el último commit de código.)
+`node test/_cadena.mjs --paralelo 3` sobre `e697bb7b` (último commit de código): **PASÓ — `✔ 306/306 suites · 20 192 comprobaciones ✔ · 806 s`, salida 0, sin ninguna INTERMITENTE.**
+Una cadena anterior de esta misma fase salió **FALLÓ** (305/306, 907 s): `guardian-dominios` 27 exigía que la huella guardada fuese idéntica a la de hoy tras añadir una comprobación a `guardian-bloqueante`; era una comprobación demasiado estricta (no un fallo del Guardian) y ahora solo exige que la huella crezca; se informa como roja y se corrigió, no se maquilló. **El Guardian NO se declara listo para integrar:** quedan las decisiones R1–R12 del dueño (`GUARDIAN-REVISION-CONTROLES.md`) y todo lo de §7.
