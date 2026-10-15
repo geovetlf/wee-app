@@ -551,7 +551,9 @@
         "guardian-dominios",
         "guardian-autocorreccion",
         "cotas-de-tiempo",
-        "guardian-aserciones"
+        "guardian-aserciones",
+        "guardian-contencion",
+        "guardian-lib-real"
       ]
     },
     {

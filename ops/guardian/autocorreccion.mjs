@@ -133,6 +133,53 @@ export const claveDelHallazgo = (raiz, corrector, hallazgo) => {
   return Object.values(hashes).some((x) => x === null) ? null : claveDe(corrector, { ...hallazgo, archivos }, hashes);
 };
 
+/**
+ * LA FOTO DEL ÁRBOL DEL USUARIO (contención). Antes de tocar nada se anota el estado exacto del árbol: HEAD, `git status` y el hash de cada archivo que
+ * ya estaba sucio (con sus bytes, para poder devolverlo). Un corrector solo debe escribir en su copia aislada; si por un fallo o por malicia escribe en
+ * el árbol del usuario, `revisarArbol` lo DETECTA, lo DEVUELVE a como estaba (solo lo que cambió: un archivo limpio vuelve a su contenido de HEAD, uno que
+ * ya estaba sucio a sus bytes de antes, y uno nuevo se borra) y el intento se rechaza. Nunca un `reset` ni un `checkout` global.
+ */
+export const MAX_ARCHIVOS_SUCIOS_CON_COPIA = 200;
+export const fotoDelArbol = (raiz) => {
+  const estado = git(raiz, ['status', '--porcelain=v1', '-z', '--untracked-files=all']).out;
+  const rutas = estado.split('\0').filter(Boolean).map((l) => l.slice(3));
+  const hashes = {};
+  const copias = new Map();
+  for (const r of rutas) {
+    hashes[r] = hashDe(raiz, r);
+    if (rutas.length <= MAX_ARCHIVOS_SUCIOS_CON_COPIA && hashes[r] !== null) { try { copias.set(r, fs.readFileSync(path.join(raiz, r))); } catch { /* ya no está */ } }
+  }
+  return { head: git(raiz, ['rev-parse', 'HEAD']).out.trim(), estado, hashes, copias, completa: rutas.length <= MAX_ARCHIVOS_SUCIOS_CON_COPIA };
+};
+export const revisarArbol = (raiz, antes) => {
+  const ahora = fotoDelArbol(raiz);
+  const rutas = new Set([...Object.keys(antes.hashes), ...Object.keys(ahora.hashes)]);
+  const cambiados = [...rutas].filter((r) => (r in antes.hashes) !== (r in ahora.hashes) || (antes.hashes[r] ?? null) !== (ahora.hashes[r] ?? null)).sort();
+  if (ahora.head === antes.head && ahora.estado === antes.estado && !cambiados.length) return { ok: true, cambiados: [], restaurados: [], sinRestaurar: [] };
+  const restaurados = [];
+  const sinRestaurar = [];
+  if (ahora.head !== antes.head) sinRestaurar.push('HEAD (la historia cambió: el Guardian no la mueve)');
+  for (const r of cambiados) {
+    const abs = path.join(raiz, r);
+    try {
+      if (antes.hashes[r] === undefined) {
+        /* No estaba sucio: o era tracked y limpio (vuelve a HEAD) o es un archivo nuevo (se borra). */
+        const enHead = git(raiz, ['cat-file', '-e', `HEAD:${r}`], { permitirFallo: true }).status === 0;
+        if (enHead) fs.writeFileSync(abs, Buffer.from(git(raiz, ['show', `HEAD:${r}`]).out, 'utf8'));
+        else fs.rmSync(abs, { force: true });
+        restaurados.push(r);
+      } else if (antes.copias.has(r)) {
+        fs.writeFileSync(abs, antes.copias.get(r));
+        restaurados.push(r);
+      } else sinRestaurar.push(r);
+    } catch { sinRestaurar.push(r); }
+  }
+  /* Lo que no estaba en la foto y ahora aparece como sucio pero no cambió de hash (p. ej. un borrado): también se informa. */
+  const despues = fotoDelArbol(raiz);
+  const igual = despues.head === antes.head && despues.estado === antes.estado && [...new Set([...Object.keys(antes.hashes), ...Object.keys(despues.hashes)])].every((r) => (r in antes.hashes) === (r in despues.hashes) && (antes.hashes[r] ?? null) === (despues.hashes[r] ?? null));
+  return { ok: false, cambiados, restaurados, sinRestaurar, devueltoAlOriginal: igual && !sinRestaurar.length };
+};
+
 /* ── Las comprobaciones del motor (obligatorias) ────────────────────────────────────────────────────────── */
 
 /** Qué exige el motor a cualquier corrector, además de lo suyo. `verificar` añade las que dependen del repositorio. */
@@ -306,10 +353,17 @@ export const corregir = async ({
     return respuesta('ERROR', { clave, motivo: `la rama ${rama} ya existe y no es de este intento: no se pisa` });
   }
   anotar(estadoDir, { ...base, estado: 'EN_CURSO', rama, directorio, pid: process.pid }, ahora);
+  const fotoAntes = fotoDelArbol(raiz);
   const fallar = (estado, motivo, extra = {}) => {
+    /* Contención: lo que sea que el corrector haya escrito en el árbol del usuario se devuelve antes de cerrar el intento. */
+    const { arbolPrevio, ...resto } = extra;
+    const arbol2 = revisarArbol(raiz, fotoAntes);
+    /* Si el corrector ya había escrito fuera de su copia, ya se devolvió en la comprobación: se conserva ESE informe, no el de la segunda pasada (que ya sale limpia). */
+    const arbol = arbolPrevio && !arbolPrevio.ok ? arbolPrevio : arbol2;
     limpiar(raiz, { directorio, rama });
-    const e = anotar(estadoDir, { ...base, estado, motivo, rama, reversible: true, revertido: 'la copia aislada y su rama se borraron; el árbol no se tocó', ...extra }, ahora);
-    return respuesta(estado, { clave, motivo, entrada: e });
+    const aviso = arbol.ok ? '' : ` · el corrector escribió en el árbol del usuario (${arbol.cambiados.join(', ')}): ${arbol.devueltoAlOriginal ? 'devuelto a como estaba' : `NO se pudo devolver ${arbol.sinRestaurar.join(', ')}`}`;
+    const e = anotar(estadoDir, { ...base, estado, motivo: motivo + aviso, rama, reversible: true, revertido: 'la copia aislada y su rama se borraron; el árbol del usuario se comprobó y quedó idéntico a antes', arbolDelUsuario: arbol.ok ? 'intacto' : arbol, requiereHumano: true, ...resto }, ahora);
+    return respuesta(estado, { clave, motivo: motivo + aviso, entrada: e, arbol });
   };
   try {
     git(raiz, ['worktree', 'add', '-b', rama, directorio, 'HEAD']);
@@ -322,9 +376,12 @@ export const corregir = async ({
     const { comprobaciones, cambiados } = comprobacionesDelMotor({ dir: directorio, snapshot, hallazgo: h, controlesAntes });
     const propias2 = await corrector.comprobar({ dir: directorio, hallazgo: h, libDesfasadoDe });
     const extra = comprobaciones.every((c) => c.ok) ? await verificar({ dir: directorio, raiz, cambiados, hallazgo: h, corrector, snapshot }) : [];
-    const todas = [...comprobaciones, ...propias2.map((c) => ({ ...c, nombre: `corrector:${c.nombre}` })), ...extra];
+    /* El árbol del usuario no se toca hasta que TODO pasó: se comprueba aquí, y si el corrector escribió fuera de su copia, es un fallo. */
+    const arbolAhora = revisarArbol(raiz, fotoAntes);
+    const todas = [...comprobaciones, ...propias2.map((c) => ({ ...c, nombre: `corrector:${c.nombre}` })), ...extra,
+      { nombre: 'arbol-del-usuario-intacto', ok: arbolAhora.ok, detalle: arbolAhora.ok ? 'el árbol del usuario es idéntico a antes de empezar' : `escribió en el árbol del usuario: ${arbolAhora.cambiados.join(', ')}` }];
     const malas = todas.filter((c) => !c.ok);
-    if (malas.length) return fallar('RECHAZADA', `no pasó: ${malas.map((m) => m.nombre).join(', ')}`, { verificaciones: todas, requiereHumano: true });
+    if (malas.length) return fallar('RECHAZADA', `no pasó: ${malas.map((m) => m.nombre).join(', ')}`, { verificaciones: todas, requiereHumano: true, arbolPrevio: arbolAhora });
     git(directorio, ['add', '-A']);
     git(directorio, ['commit', '--no-verify', '--no-gpg-sign', '-m', `guardian: ${corrector.id} — ${h.causa}`]);
     const commit = git(directorio, ['rev-parse', 'HEAD']).out.trim();

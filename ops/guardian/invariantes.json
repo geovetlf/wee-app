@@ -28,7 +28,7 @@
       "suites": ["brain-demo-no-cobra", "linea-b-finanzas", "no-disponible", "pricing-mode", "alcance-wee-ai"] },
     { "id": "I-09", "titulo": "Los controles de seguridad se conservan cuando algo se corrige", "dominio": "guardian-y-harness",
       "descripcion": "El Build Guardian, su autoprotección, la guardia de Claude y la autocorrección: una corrección no puede tocar los controles, las huellas ni las pruebas que los vigilan.",
-      "suites": ["guardian-bloqueante", "guardian-hooks", "guardian-base-workflow", "guardia-claude", "guardia-rodeos", "guardian-dominios", "guardian-autocorreccion", "guardian-aserciones", "guardia-referencias-git"] },
+      "suites": ["guardian-bloqueante", "guardian-hooks", "guardian-base-workflow", "guardia-claude", "guardia-rodeos", "guardian-dominios", "guardian-autocorreccion", "guardian-aserciones", "guardia-referencias-git", "guardian-contencion"] },
     { "id": "I-10", "titulo": "Ningún secreto ni credencial en el repositorio, el cliente ni la CI", "dominio": "seguridad-y-despliegue",
       "descripcion": "Escáner de secretos, rotación, emuladores aislados sin proyecto real y cabeceras de seguridad.",
       "suites": ["escaneo-secretos", "rotacion-secretos", "emulador-aislado", "cabeceras-seguridad"] },
