@@ -226,6 +226,8 @@ check('G11 nada llama al Credit Engine desde Music: ni spendCredits, ni creditsS
   !/spendCredits|creditsService|httpsCallable|refundCredits/.test(archivosUI.map(leer).join('\n')));
 check('G12 el único camino que puede consumir Credits es Weë Brain por useBrainChat (una sola referencia)', archivosUI.filter((f) => /useBrainChat/.test(leer(f))).join(',') === 'components/music/MusicComposer.tsx');
 
+check('G13 la canción de ejemplo nunca se presenta como «completada» (ni su audio ni sus pistas)', /esEjemplo \? 'resultadoNoDisponible' : mezcla === 'pistasReales' \? 'completado'/.test(leer('components/music/Workstation.tsx')) && /<ChipDeEstado estado=\{cancion\.audioUrl \? 'completado' : 'resultadoNoDisponible'\} \/>/.test(leer('components/music/Workstation.tsx')));
+
 /* ── H · integración mínima ─────────────────────────────────────────────────────────────────────────────────────────────────── */
 const spec = leer('screens/SpecialistScreen.tsx');
 check('H1 Specialist{id:"music"} entrega a MusicScreen y Fashion sigue entregando a FashionScreen', /if \(id === 'music'\) return <MusicScreen \/>;/.test(spec) && /if \(id === 'fashion' \|\| id === 'business'\) return <FashionScreen \/>;/.test(spec));

@@ -75,7 +75,7 @@ const Workstation: React.FC<Props> = ({ cancion, onCancion, onVolver }) => {
           <Nota>{t('music.overviewBody')}</Nota>
           <View style={s.fila}>
             <ChipDeEstado estado={cancion.audioUrl ? 'completado' : 'resultadoNoDisponible'} />
-            <ChipDeEstado estado={mezcla === 'pistasReales' ? 'completado' : 'noCompatible'} />
+            <ChipDeEstado estado={cancion.esEjemplo ? 'resultadoNoDisponible' : mezcla === 'pistasReales' ? 'completado' : 'noCompatible'} />
           </View>
           <Boton texto={t('music.newVersion')} icono="copy-outline" desactivado motivo={t('music.statePending')} />
           {cancion.versiones.length > 0 && <Nota>{t('music.versionsCount', { cantidad: String(cancion.versiones.length) })}</Nota>}
