@@ -40,7 +40,7 @@ comprobación crítica; autocorrección; informe de autoverificación; tratamien
 | `ops/github/propuesta-guardian-dominios-requerido.json` | Ruleset de hoy + el check de la base + el check de dominios. **Preparado, NO aplicado.** |
 | `functions/test/_cpu.mjs`, `_cadena.mjs` | Cotas de tiempo en CPU del proceso; la cadena ya no absuelve una suite por repetirla (ver §5). |
 | `guardian-ci.mjs`, `guardian-base.mjs` | `ops/guardian/**`, su workflow y su propuesta entran en `PROTECCIONES_PROPIAS`; el Guardian de la base copia también `scripts/ci-sin-secretos.mjs` y `scripts/emulators.mjs`, que `verificar.mjs` importa. |
-| Suites nuevas | `guardian-dominios.test.mjs` (82 comprobaciones, con sabotajes) y `guardian-autocorreccion.test.mjs` (62, con 7 mutantes del motor); en la cadena de `npm test` y en el bucle de políticas del Nivel 3. |
+| Suites nuevas | `guardian-dominios` (82, con sabotajes), `guardian-autocorreccion` (62, 7 mutantes del motor), `guardia-referencias-git` (87), `cotas-de-tiempo` (22), `guardian-aserciones` (58), `guardian-contencion` (26) y `guardian-lib-real` (13, con `tsc` real); todas en la cadena de `npm test`; las tres primeras también en el bucle de políticas del Nivel 3. |
 
 ## 3 · Autocorrección: qué hace y qué no (alineada con las reglas del Auto-fix)
 
@@ -76,6 +76,26 @@ Uso: `node ops/guardian/autocorreccion.mjs --detectar | --corregir [--aplicar] |
 - **No verificado:** el workflow `guardian-dominios.yml` **no ha corrido en GitHub**; los emuladores no se arrancaron; no hay observación real de
   `onFailure:"block"`; el 6366 ms de `core-workflow` no se reprodujo aquí (ver §5).
 
+## 4b · Fase «revisión previa a integración» (2026-10-15): PASÓ / FALLÓ / BLOQUEADO / NO EJECUTADO
+
+Documento de decisiones por cambio para el dueño: [GUARDIAN-REVISION-CONTROLES.md](GUARDIAN-REVISION-CONTROLES.md). Estados: **PASÓ** = ejecutado y verde; **FALLÓ** = ejecutado y rojo (y qué se hizo);
+**BLOQUEADO** = no se pudo ejecutar, con el motivo; **NO EJECUTADO** = no se intentó.
+
+| # | Petición | Estado | Comando / evidencia |
+|---|---|---|---|
+| 1 | Falso positivo de `guardia.mjs` (`git branch --list 'guardian/*'`) sin debilitar el resto | **PASÓ** | `node test/guardia-referencias-git.test.mjs` → 87 ✔: 17 legítimos pasan; ~68 negativos (lecturas/escrituras de `.env*`, secretos, `branch -D`, `push`, comodines que sí alcanzan secretos, ofuscación) siguen denegados; idéntica a la guardia de `d19f8a3c` para todo lo que no es un listado; 4 sabotajes. Regresiones: `guardia-claude`, `guardia-rodeos`, `guardia-vigente`, `guardian-hooks` ✔ |
+| 2 | Revisión línea a línea de los controles | **PASÓ** (documento) | `docs/GUARDIAN-REVISION-CONTROLES.md`: 12 cambios, cada uno con qué hace / por qué / ¿debilita? / decisión. **Pendiente: la decisión del dueño** |
+| 3 | Las cotas de CPU conservan la propiedad | **PASÓ con hallazgo** | Mutante algorítmico ×8/×10 contra la medida antigua (pared) y la nueva (CPU): ninguna de las dos con cota 5000 veía ×8/×10 → `core-workflow` 163 se **recalibró a 3500 ms de CPU** (ahora detecta ×10). `node test/cotas-de-tiempo.test.mjs` → 22 ✔: las seis suites convertidas **fallan** si el código «se vuelve lento». **Declarado:** las otras cotas ya eran muy holgadas con el reloj de pared (no se detectan ni ×16–×100) |
+| 4 | Aserción debilitada con título y nº de llamadas intactos | **PASÓ** | `node test/guardian-aserciones.test.mjs` → 58 ✔: huella por AST (título + condición + condiciones que envuelven la llamada); detecta `true`, literal, `assert(true)`, `|| true`, `?? true`, negación, conjunción acortada, argumento/identificador sustituido, condición quitada, y mover bajo `if (false)`, `if (0)`, `false &&`, bucle vacío, ternario y `catch`; cada caso invisible a la huella antigua; sobre copias de 6 suites reales; 3 sabotajes. **Límite:** solo `check(` |
+| 5 | Rollback ante verificación fallida y contención del parche | **PASÓ** | `node test/guardian-contencion.test.mjs` → 26 ✔, con el **hash de todo el árbol** antes/después: revierte solo su parche (otra corrección aplicada y el trabajo sin guardar quedan intactos); rollback del parche aplicado si no queda como se verificó; 8 correctores que se salen de lo declarado, tocan un control, una prueba o la huella, o escriben en el árbol del usuario (5 variantes) → RECHAZADA y lo escrito se devuelve; sabotaje. **Hallazgo corregido:** un corrector que borraba un archivo limpio del árbol del usuario no se detectaba (un hash `null` igual a «ausente») |
+| 6 | Corrector de `lib` con el compilador REAL | **PASÓ** | `node test/guardian-lib-real.test.mjs` → 13 ✔: copia aislada de `functions/` (280 fuentes) compilada con el `tsc` real; lib desfasado de las tres formas (borrado, más viejo que su fuente, huérfano); detector real (`libDesfasado`); el motor reconstruye con `tsc`; el `lib` resultante es **byte a byte** el de una compilación limpia; lo que git sigue queda idéntico; un error de TypeScript en el fuente → RECHAZADA |
+| 7 | Este documento | **PASÓ** | — |
+| 8 | Sin tocar producción ni protección de rama; sin push/PR/merge/despliegue | **PASÓ** | Todo local; `gh` solo en lectura |
+| — | Cadena completa `node test/_cadena.mjs` | ver §10 | — |
+| — | Emuladores (`*.emulator.mjs`) y el workflow `guardian-dominios.yml` en GitHub | **NO EJECUTADO** | No hay Java/emuladores en esta fase y el workflow no puede correr hasta estar en main |
+| — | `onFailure:"block"` de los hooks `PostToolUse`/`Stop` en sesión real | **NO EJECUTADO** | Requiere registrar los hooks (control protegido) |
+| — | Reproducir el 6366 ms de `core-workflow` bajo la carga de GitHub | **BLOQUEADO** | Solo ocurrió una vez en otro entorno; aquí no se reprodujo ni con 24 procesos en 8 núcleos |
+
 ## 5 · Pruebas intermitentes: no se ocultan
 
 | Caso | Causa | Estado |
@@ -86,7 +106,7 @@ Uso: `node ops/guardian/autocorreccion.mjs --detectar | --corregir [--aplicar] |
 | `webhook-seedance` 14 «UN solo documento, con el mismo contenido» — **hallada por el Guardian**: la cadena estricta la marcó INTERMITENTE y `--estabilidad 30` la reprodujo (1 de 30) | **Prueba defectuosa**: comparaba el JSON de lo escrito, que incluye `receivedAt` (la hora del aviso, que cambia por diseño en cada repetición); fallaba si el reloj avanzaba 1 ms entre las dos llamadas | **Corregida**: se compara todo menos el valor de la hora (que debe existir) + regresión 14 que fija esa comparación. `--estabilidad 150`: 0 fallos. |
 | `_cadena.mjs` «segunda oportunidad» | **Ocultaba**: una suite que fallaba y pasaba sola contaba como verde con una nota | La repetición solo **clasifica**: `INTERMITENTE` = rojo, con las dos salidas; actualizado `ci-workflow` 15 |
 | Duración de `harness-guardian` (60–86 s) y `guardian-bloqueante` (205–240 s) | Trabajo real: decenas de repositorios temporales, procesos `git` y el análisis de TypeScript de `functions/src` | Medido, **sin cambios**; no se tocó ni se aflojó nada para acortarlas |
-| `guardia.mjs` deniega `git branch --list 'guardian/*'` («toca .env.local») | Falso positivo **reproducible** (un comodín entre comillas termina en `/*'`); `ls ops/harness/*.mjs` no. Control con fallo del lado seguro | **No corregido**: la guardia es un control protegido; decisión humana (§7) |
+| `guardia.mjs` deniega `git branch --list 'guardian/*'` («toca .env.local») | Falso positivo **reproducible** (un comodín entre comillas termina en `/*'`); `ls ops/harness/*.mjs` no. Control con fallo del lado seguro | **Corregido de forma mínima** en la fase de revisión (excepción estrecha para `git branch|tag --list`, con 87 comprobaciones): **pendiente de la aprobación del dueño** (R1 de `GUARDIAN-REVISION-CONTROLES.md`) |
 
 ## 6 · C · Pendiente de integración
 
@@ -106,7 +126,7 @@ Uso: `node ops/guardian/autocorreccion.mjs --detectar | --corregir [--aplicar] |
    el mismo `PUT` con `ops/github/ruleset-main.json`. **Cuándo NO:** con el workflow ausente de main (todos los PR quedarían «Expected») o si cambia el nombre del trabajo.
 4. Registrar los hooks `PostToolUse`/`Stop` (`ops/harness/propuesta-settings-guardian.json`) en `.claude/settings.json` (control protegido) y observar `onFailure:"block"` en una sesión real.
 5. Activar CODEOWNERS + `require_code_owner_review`: sin una revisión independiente, un PR que reescriba Guardian y `ci.yml` a la vez puede saltarse la autoprotección.
-6. Decidir el falso positivo de `guardia.mjs` (§5) y si se quiere el modo `ejecutar` semanal (consume minutos de Actions; sin secretos ni proveedores).
+6. Decidir R1–R12 de `GUARDIAN-REVISION-CONTROLES.md` (falso positivo de `guardia.mjs`, política «intermitente = rojo», cotas…) y si se quiere el modo `ejecutar` semanal (consume minutos de Actions; sin secretos ni proveedores).
 
 ## 8 · E · Pendiente de producción
 
@@ -114,10 +134,16 @@ Nada: el Guardian es herramienta de CI y de desarrollo; **no despliega ni toca p
 
 ## 9 · F · Riesgos residuales
 
-- La huella detecta que una comprobación **desaparezca, cambie de título o se encoja**, no que su cuerpo se **debilite** manteniendo título y nº de llamadas.
+- La huella detecta que una comprobación **desaparezca, cambie de título, se encoja o cambie de CONTENIDO** (condición, o lo que la envuelve); **no** ve aserciones que no sean `check(…)`, una `check` redefinida, ni una función con aserciones que nunca se invoca. Toda edición legítima de una aserción de un invariante exige re-anclar con `--autoriza` (decisión humana; queda en `bajas`).
+- Las cotas de tiempo convertidas a CPU, salvo `core-workflow`, **ya eran y siguen siendo holgadas** (no detectan regresiones de ×16–×100): detectan «se rompió», no «se volvió más lenta». Decisión del dueño: sustituirlas por pruebas de complejidad.
+- El corrector `lib-desfasado` ejecuta `tsc`, que **emite aunque haya errores de tipos**: si falla, deja un `lib` parcialmente regenerado (es un artefacto derivado, regenerable, y el intento se RECHAZA y pide a una persona).
 - **Design, Music y Fashion no tienen verificación propia** (pendientes declarados); lo común (cajas de prompt, cobro, i18n) lo cubren las suites generales.
 - Verificación **estática** ≠ suites ejecutadas: el verde del check nuevo solo dice que el mapa y las huellas cuadran; las suites las corre el Nivel 2.
 - Con `_cadena.mjs` estricto, **cualquier intermitencia futura pondrá la CI en rojo** (es lo pedido); las demás suites no se han medido bajo la carga de la CI de GitHub.
 - `process.cpuUsage()` tiene resolución de ~15 ms en Windows: sirve para cotas de cientos de ms o segundos, no para microbenchmarks.
 - Los correctores son tres y muy acotados; el flujo está probado con repositorios temporales, no en un incidente real. `lib-desfasado` está probado con el compilador simulado.
 - Las suites de emulador no se ejecutaron aquí.
+
+## 10 · Cadena completa final de la fase de revisión
+
+(Se rellena con el resultado exacto de `node test/_cadena.mjs` sobre el último commit de código.)

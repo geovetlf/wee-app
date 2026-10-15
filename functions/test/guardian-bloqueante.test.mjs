@@ -10,6 +10,7 @@
  * GitHub, como scripts/ci-local.mjs), sale distinto de 0 con un CRITICAL de la política y hace fallar el Nivel 3.
  */
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync, execFileSync } from 'node:child_process';
@@ -327,6 +328,17 @@ const entornoCI = (b) => ({ PATH: process.env.PATH, SystemRoot: process.env.Syst
    repositorio que juzga— se mide ahora en cada repositorio temporal que se le pasa, justo antes y justo después. */
 const estadoGit = (dir) => execFileSync('git', ['-C', dir, 'status', '--porcelain', '--untracked-files=all'], { encoding: 'utf8' });
 const estadosAntes = {};
+/* Lo que se pierde al hacer 34 hermético es la vigilancia INCIDENTAL del árbol real (que la suite entera no escriba en él). Se recupera de forma acotada y sin
+   carreras con las ediciones ajenas: el CÓDIGO DEL GUARDIAN del árbol real (ops/harness, .claude/hooks) —lo único que esta suite podría estropear al copiarlo— no
+   cambia de contenido entre el principio y el final. (Una persona que edite justo esos archivos durante la suite también la tumbará: es lo deseable.) */
+const codigoDelGuardian = () => {
+  const h = crypto.createHash('sha256');
+  for (const dir of ['ops/harness', '.claude/hooks']) {
+    for (const f of fs.readdirSync(path.join(RAIZ, dir)).filter((x) => /\.(mjs|json)$/.test(x)).sort()) h.update(`${dir}/${f}\0${fs.readFileSync(path.join(RAIZ, dir, f))}\n`);
+  }
+  return h.digest('hex');
+};
+const codigoAntes = codigoDelGuardian();
 /* 30) Un cambio que toca las reglas del Guardian y además mete un CRITICAL de G3; el Guardian del cambio (simulado
    debilitado: dice PASA) no basta: el de la base lo bloquea. */
 const f1 = conBase();
@@ -364,6 +376,7 @@ check('33) con el Guardian del cambio roto (sin informe) la base se consulta igu
   consultada?.base === b4 && p33.codigo === 3 && /ops\/harness\/guardian-ci\.mjs es el camino que ejecuta esta verificación/.test(p33.texto), `${p33.codigo} ${p33.texto.slice(-300)}`);
 check('34) la verificación de la base no escribe en el repositorio (git status idéntico) y borra su copia temporal',
   estadosAntes.f1 === estadoGit(f1.r.dir) && estadosAntes.f2 === estadoGit(f2.r.dir) && estadosAntes.f3 === estadoGit(f3.r.dir) && [p30, p31, p32].every((p) => p.verificacionBase?.directorio && !fs.existsSync(p.verificacionBase.directorio)));
+check('34b) y la suite no ha tocado el código del Guardian del árbol real (ops/harness, .claude/hooks): su contenido es el mismo que al empezar', codigoAntes === codigoDelGuardian());
 check('35) sin recursión: dentro de la verificación de la base no se vuelve a verificar; y el peor resultado manda (FALLO > BLOQUEA > PASA)',
   gb.verificarDesdeLaBase({ raiz: f2.r.dir, base: f2.b, entorno: { [gb.MARCA_ANIDADA]: '1' } }).estado === 'NO_APLICA'
   && gci.peor('PASA', 'BLOQUEA') === 'BLOQUEA' && gci.peor('BLOQUEA', 'FALLO') === 'FALLO' && gci.peor('PASA', 'PASA') === 'PASA'

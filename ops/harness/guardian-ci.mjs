@@ -77,6 +77,8 @@ export const PROTECCIONES_PROPIAS = Object.freeze([
   'functions/test/guardian-*.test.mjs', 'functions/test/harness-guardian.test.mjs',
   /* El Guardian por dominios y la autocorrección (docs/GUARDIAN-ESTADO.md): su mapa, sus invariantes, sus huellas y su workflow. */
   'ops/guardian/**', '.github/workflows/guardian-dominios.yml', 'ops/github/propuesta-guardian-dominios-requerido.json',
+  /* Las pruebas de la guardia de Claude y de las cotas de tiempo, y su medida común. */
+  'functions/test/guardia-*.test.mjs', 'functions/test/cotas-de-tiempo.test.mjs', 'functions/test/_cpu.mjs',
 ]);
 const globRe = (g) => new RegExp(`^${g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*')}$`);
 const PROPIAS_RE = PROTECCIONES_PROPIAS.map(globRe);
