@@ -216,6 +216,11 @@ const PALABRA_CLAVE = new Set(['if', 'then', 'elif', 'else', 'fi', 'for', 'while
  */
 const errorLimite = (msg) => { const e = new RangeError(msg); e.limite = true; return e; };
 
+/* H4: modo LEGADO del tokenizador. Lo activa `analizar` para repetir, ADEMÁS del análisis nuevo, el troceado que hacía la guardia anterior
+   (toda palabra que empieza por `{` era un grupo). Así cualquier denegación que la guardia anterior daba por ese camino —acertada o
+   accidental— se conserva: el análisis nuevo solo AÑADE decisiones, nunca quita. */
+let MODO_LEGADO = false;
+
 const trocear = (herr, texto, salida, prof) => {
   if (prof > LIM_PROF) throw errorLimite('anidamiento excesivo');
   const ps = herr === 'PowerShell';
@@ -233,6 +238,8 @@ const trocear = (herr, texto, salida, prof) => {
   let entradaEtapa = null;
   let entradaArchivo = null;
   let heredocEtapa = false;
+  /* Hasta qué posición ya se analizó el interior de una palabra que empieza por `{` (evita volver a analizarlo: coste lineal por nivel). */
+  let interiorAnalizado = -1;
 
   const finPal = () => {
     if (hayPal) { pals.push(pal); if (dinPal) dinEtapa = true; }
@@ -326,7 +333,12 @@ const trocear = (herr, texto, salida, prof) => {
     if (!ps && c === '`') { marcaDin(); const j = capturarBacktick(s, i + 1); trocear(herr, s.slice(i + 1, j), salida, prof + 1); add('``'); i = j + 1; continue; }
 
     if (c === '(') { finEtapa(i); const j = capturar(s, i + 1, '(', ')', ps); trocear(herr, s.slice(i + 1, j), salida, prof + 1); crudoIni = j + 1; i = j + 1; continue; }
-    if (c === '{' && /\s|\n|$/.test(s[i + 1] || '\n') && !hayPal) { finEtapa(i); const j = capturar(s, i + 1, '{', '}', ps); trocear(herr, s.slice(i + 1, j), salida, prof + 1); crudoIni = j + 1; i = j + 1; continue; }
+    /* Grupo `{ órdenes; }` (la llave va seguida de un espacio). H4: la comprobación antigua era `/\s|\n|$/`, cuyo `$` casaba SIEMPRE, así que
+       cualquier palabra que EMPEZABA por `{` (`{.env,x}`, `{git,push}`) se tragaba como grupo, cerraba la orden anterior y sus palabras
+       desaparecían (`cat {a,b} <secreto>` pasaba). Ahora solo es grupo con espacio detrás; sin él es una palabra normal (expansión de llaves de
+       bash), y su interior se sigue analizando UNA vez como órdenes (como antes: `{cat <secreto>;}` se sigue denegando). */
+    if (c === '{' && !hayPal && (MODO_LEGADO || (i > interiorAnalizado && /\s/.test(s[i + 1] || '\n')))) { finEtapa(i); const j = capturar(s, i + 1, '{', '}', ps); trocear(herr, s.slice(i + 1, j), salida, prof + 1); crudoIni = j + 1; i = j + 1; continue; }
+    if (c === '{' && !hayPal && !MODO_LEGADO && i > interiorAnalizado) { const j = capturar(s, i + 1, '{', '}', ps); trocear(herr, s.slice(i + 1, j), salida, prof + 1); interiorAnalizado = j; }
 
     /* Variable fuera de comillas. */
     if (c === '$') { marcaDin(); add('$'); i++; if (s[i] === '{') { const j = capturar(s, i + 1, '{', '}', ps); add('{' + s.slice(i + 1, j) + '}'); i = j + 1; } else { while (i < n && /[A-Za-z0-9_:.]/.test(s[i])) { add(s[i]); i++; } } continue; }
@@ -618,6 +630,131 @@ export const esListadoDeRefsGit = (p, w) => {
   return args.filter((x) => !x.startsWith('-')).every((x) => !/[$`]/.test(x) && !x.includes(DINAMICO));
 };
 
+/* ── Expansión de llaves de bash (Guardian H4) ──────────────────────────────
+ *
+ * CAUSA (H4): el tokenizador deja una palabra como `{.env.local,x}` ENTERA (la llave es un carácter más de la palabra), y `tocaSecreto`
+ * comparaba esa palabra tal cual: ni `includes` ni el comodín (`aRegex` escapa `{`, `}` y no conoce la coma) la relacionaban con el
+ * nombre del secreto, mientras que bash la expande ANTES de ejecutar a `.env.local x`. Lo mismo `.e{n,}v*` o `{.env,x}*`.
+ *
+ * ARREGLO: `expandirLlaves` replica la expansión de bash (listas con coma, secuencias `a..z`/`1..3[..paso]`, anidadas, con prefijo y
+ * sufijo, varias en una palabra) y cada alternativa se analiza con las MISMAS reglas de siempre. Es una expansión ADITIVA: la palabra
+ * original también se sigue comprobando. Cotas: LIM_LLAVES alternativas y LIM_PROF_LLAVES niveles; si se superan (o si el texto no se
+ * puede analizar), se aplica la aproximación CONSERVADORA —cada grupo de llaves se sustituye por un comodín `*` (`[0-9-]*` si es una
+ * secuencia numérica)— y la guardia decide con el comodín; NUNCA se deja pasar por falta de análisis. Las llaves entre comillas: el
+ * tokenizador pierde esa información y bash no las expande, pero la guardia ya denegaba el nombre literal de un secreto aunque estuviera
+ * entre comillas (`cat '{.env.local,x}'`), así que se mantiene el criterio conservador. */
+const LIM_LLAVES = 256;
+const LIM_PROF_LLAVES = 12;
+const cierreLlave = (s, i) => {
+  let d = 0;
+  for (let k = i; k < s.length; k++) {
+    if (s[k] === '{') d++;
+    else if (s[k] === '}') { d--; if (d === 0) return k; }
+  }
+  return -1;
+};
+const partesLlave = (cuerpo) => {
+  const partes = [];
+  let d = 0; let ini = 0;
+  for (let k = 0; k < cuerpo.length; k++) {
+    const c = cuerpo[k];
+    if (c === '{') d++;
+    else if (c === '}') d--;
+    else if (c === ',' && d === 0) { partes.push(cuerpo.slice(ini, k)); ini = k + 1; }
+  }
+  partes.push(cuerpo.slice(ini));
+  return partes;
+};
+const SECUENCIA = /^(-?\d+|[A-Za-z])\.\.(-?\d+|[A-Za-z])(?:\.\.(-?\d+))?$/;
+/** Alternativas de una llave: lista con coma, secuencia, o null si no es expansión (`{a}`, `{}`). `desborda()` avisa de que se pasó de las cotas. */
+const alternativasLlave = (cuerpo, desborda) => {
+  const m = cuerpo.match(SECUENCIA);
+  if (m) {
+    const numerica = /\d/.test(m[1]);
+    if (numerica !== /\d/.test(m[2])) return null;   // `{a..3}` no es secuencia: bash la deja literal
+    let paso = Math.abs(parseInt(m[3] || '1', 10)) || 1;
+    if (numerica) {
+      const a = parseInt(m[1], 10); const b = parseInt(m[2], 10);
+      if (Math.floor(Math.abs(b - a) / paso) + 1 > LIM_LLAVES) { desborda(); return ['[0-9-]*']; }
+      const ancho = /^-?0\d/.test(m[1]) || /^-?0\d/.test(m[2]) ? Math.max(m[1].length, m[2].length) : 0;
+      const out = [];
+      for (let v = a; a <= b ? v <= b : v >= b; v += a <= b ? paso : -paso) out.push(ancho ? String(v).padStart(ancho, '0') : String(v));
+      return out;
+    }
+    const a = m[1].charCodeAt(0); const b = m[2].charCodeAt(0);
+    const out = [];
+    for (let v = a; a <= b ? v <= b : v >= b; v += a <= b ? paso : -paso) out.push(String.fromCharCode(v));
+    return out;
+  }
+  const partes = partesLlave(cuerpo);
+  return partes.length > 1 ? partes : null;
+};
+/** Sustituye cada grupo de llaves que bash expandiría por un comodín (la aproximación conservadora para lo que excede las cotas). */
+const aproximarLlaves = (s) => {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '{') {
+      const j = cierreLlave(s, i);
+      if (j > i) {
+        const cuerpo = s.slice(i + 1, j);
+        const m = cuerpo.match(SECUENCIA);
+        if ((m && /\d/.test(m[1]) === /\d/.test(m[2])) || partesLlave(cuerpo).length > 1) {
+          out += m && /\d/.test(m[1]) ? '[0-9-]*' : '*';
+          i = j; continue;
+        }
+      }
+    }
+    out += s[i];
+  }
+  /* Los comodines seguidos se funden (un `*` equivale a `**…*`): sin esto, miles de grupos darían un glob gigante que no compila y NO decidiría (fallaría abierto). */
+  const fundido = out.replace(/\*{2,}/g, '*').replace(/(?:\[0-9-\]\*){2,}/g, '[0-9-]*');
+  return fundido.length > 500 ? '*' : fundido;   // un glob desmedido no compila y no decidiría: el comodín total es el más conservador
+};
+/** Lo que bash hace con UNA palabra: `{ lista, aproximada }`. `aproximada` = se pasó de las cotas y `lista` es la aproximación con comodines. Nunca lanza. */
+const expandirNucleo = (palabra) => {
+  const s0 = String(palabra);
+  if (!s0.includes('{')) return { lista: [s0], aproximada: false };
+  let desbordado = false;
+  const desborda = () => { desbordado = true; };
+  const rec = (s, prof) => {
+    if (prof > LIM_PROF_LLAVES) { desborda(); return [s]; }
+    for (let i = 0; i < s.length; i++) {
+      if (s[i] !== '{') continue;
+      const j = cierreLlave(s, i);
+      if (j < 0) continue;
+      const alts = alternativasLlave(s.slice(i + 1, j), desborda);
+      if (!alts) continue;
+      const pre = s.slice(0, i);
+      const colas = rec(s.slice(j + 1), prof + 1);
+      const res = [];
+      for (const a of alts) {
+        for (const x of rec(a, prof + 1)) {
+          for (const y of colas) {
+            res.push(pre + x + y);
+            if (res.length > LIM_LLAVES) { desborda(); return [s]; }
+          }
+        }
+      }
+      return res;
+    }
+    return [s];
+  };
+  try {
+    const r = rec(s0, 0);
+    if (!desbordado) return { lista: r, aproximada: false };
+  } catch { /* se aproxima */ }
+  return { lista: [aproximarLlaves(s0)], aproximada: true };
+};
+/** Todas las palabras a las que bash expandiría `palabra` (la original SIEMPRE va incluida). Nunca lanza. */
+export const expandirLlaves = (palabra) => [...new Set([String(palabra), ...expandirNucleo(palabra).lista])];
+/** La lista de palabras de una orden tal y como la deja bash: cada palabra con llaves se reemplaza EN SU SITIO por sus alternativas
+ *  (`{git,push} --force` → `git push --force`). Si el total supera 4000 palabras, se usa la aproximación 1:1 (una palabra por original). */
+export const expandirPalabras = (palabras) => {
+  const hechas = palabras.map(expandirNucleo);
+  if (hechas.reduce((n, x) => n + x.lista.length, 0) <= 4000) return hechas.flatMap((x) => x.lista);
+  return palabras.map((x) => aproximarLlaves(String(x)));
+};
+
 /** ¿Alguna palabra toca (o PUEDE expandirse a) un archivo de secretos? Devuelve el nombre o null. */
 const tocaSecreto = (p, w) => {
   const utiles = sinPatron(p, w).slice(1);
@@ -625,8 +762,8 @@ const tocaSecreto = (p, w) => {
   const ultimo = (x) => x.slice(x.replace(/\\/g, '/').lastIndexOf('/') + 1);
   const desescapar = (x) => x.replace(/\\(.)/g, '$1').replace(/\\/g, '/').toLowerCase();
   const aRegex = (g) => '^' + g.replace(/[.+^${}()|]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]').replace(/\[!/g, '[^') + '$';
-  for (const a of utiles) {
-    const plano = desescapar(a);
+  /* H4: cada palabra se comprueba también por cada alternativa a la que bash la expandiría (`{.env.local,x}`, `.e{n,}v*`). */
+  for (const plano of utiles.flatMap((a) => expandirLlaves(a)).map(desescapar)) {
     for (const sec of ARCHIVOS_SECRETOS) {
       if (plano.includes(sec)) return sec;
       /* La exención de un listado de referencias es SOLO para un último segmento hecho de asteriscos (`guardian/*`): `.env*`, `*creds*` o `.*` siguen comprobándose. */
@@ -644,10 +781,11 @@ const tocaSecreto = (p, w) => {
 /** ¿La orden ESCRIBE en una ruta protegida (redirección, cp/mv/sed -i, node fs.write…)? */
 const escribeProtegido = (p, w, crudo) => {
   const norm = String(crudo).replace(/\\/g, '/');
-  if (!RUTAS_PROTEGIDAS.test(norm)) return false;
-  if (/>>?\s*["']?[^\s"'|&;]*(\.claude\/|\.git\/|\.firebaserc|creditengine\.ts|core\/financial\/)/i.test(norm)) return true;
-  const args = w.slice(1);
   const protegida = (x) => RUTAS_PROTEGIDAS.test(String(x).replace(/\\/g, '/'));
+  /* H4: los argumentos también se miran ya expandidos (`rm {.claude,x}/settings.json`, `cp x .cl{a,}ude/settings.json`). */
+  const args = w.slice(1).flatMap((x) => expandirLlaves(x));
+  if (!RUTAS_PROTEGIDAS.test(norm) && !args.some(protegida)) return false;
+  if (/>>?\s*["']?[^\s"'|&;]*(\.claude\/|\.git\/|\.firebaserc|creditengine\.ts|core\/financial\/)/i.test(norm)) return true;
   if (ESCRITORES.has(p) && args.some(protegida)) return true;
   if (p === 'sed' && args.some((x) => /^-i/.test(x)) && args.some(protegida)) return true;
   if ((p === 'node' || p === 'python' || p === 'python3' || p === 'py') &&
@@ -1190,6 +1328,29 @@ function analizar(herramienta, texto, profundidad, raiz) {
       const r = analizarOrden(herr, tuberia[k], tuberia[k - 1] || null, profundidad, raiz);
       if (r.decision === 'deny') return r;
       if (r.decision === 'ask' && !peor.decision) peor = r;
+      /* H4: la misma orden con sus llaves ya expandidas (`{git,push} --force` es `git push --force`; `{firebase,deploy}` es un despliegue).
+         Es ADICIONAL: la orden original se analizó arriba, así que esto solo puede añadir decisiones. */
+      if (tuberia[k].palabras.some((x) => x.includes('{'))) {
+        const exp = expandirPalabras(tuberia[k].palabras);
+        if (exp.length !== tuberia[k].palabras.length || exp.some((x, i) => x !== tuberia[k].palabras[i])) {
+          const r2 = analizarOrden(herr, { ...tuberia[k], palabras: exp }, tuberia[k - 1] || null, profundidad, raiz);
+          if (r2.decision === 'deny') return r2;
+          if (r2.decision === 'ask' && !peor.decision) peor = r2;
+        }
+      }
+    }
+  }
+  /* H4: el troceado de la guardia anterior (ver MODO_LEGADO), solo si hay llaves: conserva todas sus decisiones. */
+  if (sinHeredocs(texto).includes('{')) {
+    const legado = [];
+    MODO_LEGADO = true;
+    try { trocear(herr, sinHeredocs(texto), legado, 0); } finally { MODO_LEGADO = false; }
+    for (const tuberia of legado) {
+      for (let k = 0; k < tuberia.length; k++) {
+        const r = analizarOrden(herr, tuberia[k], tuberia[k - 1] || null, profundidad, raiz);
+        if (r.decision === 'deny') return r;
+        if (r.decision === 'ask' && !peor.decision) peor = r;
+      }
     }
   }
   return peor;
