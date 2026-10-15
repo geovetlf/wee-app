@@ -303,5 +303,60 @@ del grupo `g1-cambio-minimo`, con un cambio sin efecto. Anota la revisión, el t
 | `functions/test/desactivacion-selectiva.test.mjs` | Los interruptores de §3 contra el router compilado, las dos trampas y la coincidencia con el prelanzamiento |
 | `functions/test/prelanzamiento.test.mjs` | La cerradura de solo lectura, los lectores reales (la sesión que manda, la clase de cada fallo y el permiso que falta, sin gcloud ni red), el modo local real y el modo producción contra una producción simulada |
 | `functions/test/observabilidad-retirada.test.mjs` | La marcha atrás de las alertas: aplicar → retirar → aplicar sobre un Google Cloud simulado; no toca nada ajeno; orden; cerraduras; fallos |
+| `functions/test/alcance-wee-ai.test.mjs` | Qué es Weë AI para `scripts/alcance-wee-ai.mjs` (la comprobación de alcance de la Fase 1): la clasificación de rutas, que todo `functions/src` está clasificado a propósito, y el comportamiento del script (exit 1 si algo de Weë AI o de lo compartido cambia) |
+| `functions/test/carga-separacion.test.mjs` | La frontera entre la prueba funcional del dinero bajo ráfaga y la medición de rendimiento: la suite funcional no contiene tiempos, la medición no decide su salida por un tiempo ni la lanza ninguna CI |
+| `functions/test/guardian-requerido-propuesta.test.mjs` | El Guardian como check obligatorio, PREPARADO y no aplicado (§8): la propuesta es el ruleset de hoy + un check, con el nombre y el emisor exactos; el check llega siempre; el procedimiento está escrito |
 
-Las cinco están en la cadena de `npm test`. No necesitan red, credenciales ni emuladores.
+Las ocho están en la cadena de `npm test`. No necesitan red, credenciales ni emuladores.
+
+La prueba de dinero **bajo concurrencia** es de emulador (`functions/test/rafaga-dinero.emulator.mjs`, nivel 2 de la CI: la descubre sola
+`functions/test/_emuladores.mjs`). Comprueba contra el Credit Engine compilado y el emulador de Firestore que la misma operación a la vez cobra una
+vez, que no hay sobregiro, que cada operación acaba en un solo desenlace, que la bienvenida se da una vez y que el saldo es la suma de sus
+movimientos. **No mide tiempos.** La medición de rendimiento (`scripts/carga/`) es manual, no concluyente para producción y no la lanza ninguna CI.
+
+## 8. El Guardian de la base como check obligatorio (preparado, NO aplicado)
+
+`guardian-base.yml` es el único control que un PR no puede cambiar para su propia ejecución, pero hoy solo **avisa**. Para
+que **bloquee**, su check «Guardian de la base (independiente)» tiene que ser un check requerido del ruleset «main
+protegida». Cambiar ese ruleset es decisión del dueño, y hacerlo antes de tiempo es peligroso (ver «Cuándo NO»).
+
+**Lo que está preparado.** `ops/github/propuesta-guardian-requerido.json` es el ruleset de hoy (`ops/github/ruleset-main.json`)
+más **un solo check**: «Guardian de la base (independiente)», el nombre exacto del trabajo del workflow, y emitido por
+GitHub Actions (`integration_id` 15368: un estado puesto por otra app no cuenta). **La propuesta NO está aplicada**:
+`proteccion.mjs` no la usa, `ruleset-main.json` sigue exigiendo los cuatro de la CI, y `proteccion.mjs verificar` diría
+«conforme» tanto sin ella como con ella aplicada. Lo fija `functions/test/guardian-requerido-propuesta.test.mjs`: que la
+propuesta es el ruleset de hoy + ese único check, que el nombre coincide con el del trabajo, que el workflow no tiene filtros
+de rama o ruta ni `if:` (el check llega siempre y siempre mira), y que este procedimiento está escrito.
+
+**Lo que se leyó, en solo lectura (2026-10-14).** El ruleset «main protegida» (id 24478241) está activo con los cuatro checks
+de la CI. `.github/workflows/guardian-base.yml` **no existe en main**: pedirlo con `contents/…?ref=main` devuelve 404. Por
+eso **hoy no se puede aplicar**.
+
+**Cuándo NO aplicar** (con cualquiera de estas):
+- `guardian-base.yml` no está en main. Con `pull_request_target`, GitHub lee el workflow de la rama BASE: sin el archivo en
+  main el check no existe, y **todos los PRs** se quedarían en «Expected — Waiting for status to be reported» sin salida.
+- El check no ha reportado todavía en un PR real posterior a fusionar #29.
+- El nombre del trabajo ha cambiado (la suite lo detecta: el contexto del ruleset y el nombre del trabajo tienen que ser
+  idénticos).
+- Hay PRs abiertos antes de fusionar #29 que se quieren fusionar sin tocarlos: no tendrán el check hasta que reciban un commit.
+
+**Orden.**
+1. Fusionar #29 (el dueño, por PR, con los cuatro checks en verde).
+2. Abrir un PR de prueba (en borrador, un cambio de documentación) y comprobar que aparece «Guardian de la base
+   (independiente)» y termina en verde. Solo entonces seguir.
+3. Leer el id del ruleset y aplicar la propuesta:
+
+```bash
+gh api repos/geovetlf/wee-app/rulesets --jq '.[] | select(.name=="main protegida") | .id'
+gh api --method PUT repos/geovetlf/wee-app/rulesets/<id> --input ops/github/propuesta-guardian-requerido.json
+```
+
+4. Comprobar con `node ops/github/proteccion.mjs verificar` (solo GET) y abrir otro PR: el check tiene que figurar como
+   requerido.
+5. A los PRs que ya estuvieran abiertos, empujarles un commit (o cerrarlos y reabrirlos) para que reciban el check.
+
+**Volver atrás** (instantáneo, no pierde nada): el mismo comando con el archivo de hoy.
+
+```bash
+gh api --method PUT repos/geovetlf/wee-app/rulesets/<id> --input ops/github/ruleset-main.json
+```
