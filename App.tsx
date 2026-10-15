@@ -233,6 +233,16 @@ const linking: any = {
       } } : {}),
       /* Con la puerta de «Crear mundo 3D» cerrada, tampoco tiene enlace. Ni la foto (es local) ni las palabras de la persona viajan en la dirección. */
       ...(MUNDO_3D_EN_LA_APP ? { Mundo3D: { path: 'studio/mundo-3d', stringify: { imageUri: nuncaEnLaUrl, descripcion: nuncaEnLaUrl } } } : {}),
+      /*
+       * Especialistas de Weë AI (Weë Fashion incluido). La dirección sigue siendo la de siempre (`/Specialist?id=…`) y
+       * puede llevar el modo; lo que la persona escribió en Studio (`goal`) y su foto (`imageUri`, local) NO viajan en
+       * ella: siguen en la memoria de la navegación (atrás y adelante lo conservan) y el borrador del Composer cubre la recarga.
+       */
+      Specialist: {
+        path: 'Specialist',
+        parse: { id: (v: string) => (esId(v) ? v : undefined), modo: (v: string) => (esId(v) ? v : undefined) },
+        stringify: { goal: nuncaEnLaUrl, imageUri: nuncaEnLaUrl },
+      },
       Design: 'design',
       PostDetail: {
         path: 'post/:postId',

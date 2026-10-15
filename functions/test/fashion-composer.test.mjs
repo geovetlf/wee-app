@@ -179,6 +179,9 @@ check('G6 ninguna imagen remota ni dependencia nueva: la portada usa el vestido 
 check('G7 ningún texto visible escrito a mano en los componentes: solo marca («Weë Fashion», «Fashion», «Weë AI»)',
   archivos.every((f) => { const c = sinComentarios(leer(f)); const textos = [...c.matchAll(/>\s*([^<>{}\n]*[A-Za-zÀ-ÿ]{3,}[^<>{}\n]*)\s*</g)].map((m) => m[1].trim()).filter((x) => x && !/[()?=;]/.test(x)); return textos.length === 0; }));
 
+check('G8 lo que se escribió en Studio (goal) y la foto (imageUri) no viajan en la dirección: el enlace de Specialist los declara nuncaEnLaUrl y conserva id y modo',
+  (() => { const app = leer('App.tsx'); const m = app.match(/Specialist: [{][^]*?stringify: [{]([^}]*)[}]/); return !!m && /goal: nuncaEnLaUrl/.test(m[1]) && /imageUri: nuncaEnLaUrl/.test(m[1]) && !/(id|modo): nuncaEnLaUrl/.test(m[1]); })()
+  && /navigate[(]'Specialist', [{][^]{0,20}?id: 'fashion'/.test(leer('screens/StudioScreen.tsx')));
 check('esta suite está en la cadena de `npm test`', /fashion-composer\.test\.mjs/.test(JSON.parse(leer('functions/package.json')).scripts.test));
 
 process.stdout.write(fallo ? `\n✘ ${fallo} comprobación(es) fallaron\n` : '\n✔ Weë Fashion v0: seis secciones, WeeBiz intacto, Composer honesto y sin ninguna API\n');
