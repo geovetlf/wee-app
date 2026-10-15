@@ -62,7 +62,8 @@ const montar = ({ settings = {}, routing = {}, providers = {} } = {}) => {
   const cfg = {
     providers: { ...DEFAULT_PROVIDERS, alfa: { enabled: true, priority: 1 }, ...providers },
     routing: { ...DEFAULT_ROUTING, 'text.generate': { capability: 'text.generate', chain: [{ provider: 'alfa' }], policy: 'balanced' }, ...routing },
-    settings: { ...DEFAULT_SETTINGS, ...settings },
+    /* El mundo de partida de esta suite es el del vídeo YA ENCENDIDO por el dueño (`videoHabilitado: true`): aquí se prueba apagar con el enrutado. El interruptor propio, apagado por defecto desde la línea B, se prueba aparte (A·bis). */
+    settings: { ...DEFAULT_SETTINGS, videoHabilitado: true, ...settings },
     source: 'test',
   };
   const ledger = memoryLedger();
@@ -86,7 +87,14 @@ console.log('\n── A · aiRouting/<capacidad>.chain = [{provider:"music-pendi
 {
   const antes = montar();
   const v0 = await pedir(antes.router, 'video.generate');
-  check('de partida (como hoy en producción) el vídeo lo atiende Seedance', v0.valor && v0.valor.provider === 'seedance', v0.error && v0.error.code);
+  check('de partida, con el interruptor del vídeo encendido (como hoy en producción), el vídeo lo atiende Seedance', v0.valor && v0.valor.provider === 'seedance', v0.error && v0.error.code);
+  /* A·bis · el interruptor de la línea B (X2): apagado POR DEFECTO, y con un proveedor real configurado el vídeo no se inicia. */
+  check('A·bis) el valor de partida del código es el vídeo APAGADO (videoHabilitado=false)', DEFAULT_SETTINGS.videoHabilitado === false);
+  const sinInterruptor = montar({ settings: { videoHabilitado: false } });
+  const vOff = await pedir(sinInterruptor.router, 'video.generate');
+  check('A·bis) con el interruptor apagado y Seedance configurado, el vídeo contesta NOT_AVAILABLE', vOff.error && vOff.error.code === 'NOT_AVAILABLE', vOff.error ? vOff.error.code : vOff.valor.provider);
+  check('A·bis) …sin llamar a Seedance ni al demo y sin abrir fila en el libro', sinInterruptor.adapters.seedance.calls === 0 && sinInterruptor.adapters.mock.calls === 0 && Object.keys(sinInterruptor.ledger.records).length === 0);
+  check('A·bis) …y el resto de Weë sigue igual: el texto lo atiende su proveedor', (await pedir(sinInterruptor.router, 'text.generate')).valor?.provider === 'alfa');
 
   const m = montar({ routing: apagarVideo });
   const resultados = [];
@@ -111,7 +119,7 @@ console.log('\n── B · Lo que parece apagar y no apaga ──');
   const v = await pedir(m.router, 'video.generate');
   check('B) TRAMPA: apagar el PROVEEDOR (aiProviders/seedance.enabled=false) con allowMockFallback encendido → el demo atiende el vídeo',
     v.valor && v.valor.provider === 'mock' && v.valor.demo === true, v.error ? v.error.code : v.valor.provider);
-  check('B) …y ese resultado demo tiene precio de catálogo (B4-03: se cobraría)', v.valor && v.valor.credits > 0, String(v.valor && v.valor.credits));
+  check('B) …y ese resultado demo vale 0 Credits (B4-03, cerrado en la línea B: lo de muestra no se cobra)', v.valor && v.valor.credits === 0, String(v.valor && v.valor.credits));
   const m2 = montar({ providers: { seedance: { enabled: false, priority: 1 } }, settings: { allowMockFallback: false } });
   const v2 = await pedir(m2.router, 'video.generate');
   check('B) apagar el proveedor SÍ apaga el vídeo cuando allowMockFallback=false', v2.error && v2.error.code === 'NOT_AVAILABLE');
@@ -150,6 +158,8 @@ console.log('\n── D · capacidadApagada (scripts/prelanzamiento.mjs) = route
     ['proveedor apagado con demo', { providers: { seedance: { enabled: false, priority: 1 } } }],
     ['proveedor apagado sin demo', { providers: { seedance: { enabled: false, priority: 1 } }, settings: { allowMockFallback: false } }],
     ['iaDetenida', { settings: { iaDetenida: true } }],
+    ['interruptor del vídeo apagado', { settings: { videoHabilitado: false } }],
+    ['interruptor apagado sin demo', { settings: { videoHabilitado: false, allowMockFallback: false } }],
   ];
   const discrepan = [];
   for (const [nombre, e] of escenarios) {
@@ -168,7 +178,7 @@ console.log('\n── E · engineAdmin y la caché ──');
   check('E) engineAdmin/setRouting acepta `music-pending` (valida contra ADAPTERS, y está)', /if \(!ADAPTERS\[provider\]\)/.test(admin) && !!ADAPTERS['music-pending']);
   check('E) music-pending está apagado y no atiende vídeo (no puede empezar a generar vídeo por error)',
     DEFAULT_PROVIDERS['music-pending'].enabled === false && VIDEO.every((c) => !ADAPTERS['music-pending'].supports(c)));
-  check('E) setSettings deja tocar iaDetenida, allowMockFallback y maxUsdPerDay, y anota quién', /'allowMockFallback'.*'iaDetenida', 'maxUsdPerDay'/.test(admin) && /updatedBy: request\.auth\?\.uid/.test(admin));
+  check('E) setSettings deja tocar iaDetenida, videoHabilitado, allowMockFallback y maxUsdPerDay, y anota quién', /'allowMockFallback'.*'iaDetenida', 'videoHabilitado', 'maxUsdPerDay'/.test(admin) && /updatedBy: request\.auth\?\.uid/.test(admin));
   check('E) el efecto llega a cada instancia en ≤ 60 s (caché de la configuración del motor)', /const CACHE_MS = 60_000;/.test(leer('functions/src/engine/config.ts')));
   check('E) el runbook documenta las dos trampas y el valor exacto', (() => {
     const doc = leer('docs/LANZAMIENTO.md');

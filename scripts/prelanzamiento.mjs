@@ -130,7 +130,9 @@ export const capacidadApagada = ({ settings = {}, routing = {}, providers = {}, 
   const habilitado = (p) => !(providers[p] && providers[p].enabled === false);
   const cadena = routing[cap] && Array.isArray(routing[cap].chain) && routing[cap].chain.length ? routing[cap].chain.map((l) => l.provider) : null;
   const reales = Object.keys(atiende).filter((p) => p !== 'mock' && atiende[p](cap));
-  const candidatos = (cadena || reales).filter((p) => atiende[p] && atiende[p](cap) && habilitado(p));
+  /* Línea B (X2): sin `videoHabilitado === true` el router salta todo proveedor REAL de vídeo (engine/router.ts: «vídeo apagado por administración»). */
+  const videoApagado = String(cap).startsWith('video.') && settings.videoHabilitado !== true;
+  const candidatos = (cadena || reales).filter((p) => atiende[p] && atiende[p](cap) && habilitado(p) && !(videoApagado && p !== 'mock'));
   const realDisponible = reales.some(habilitado);
   const demo = settings.allowMockFallback !== false && !realDisponible;
   return candidatos.length === 0 && !demo;
