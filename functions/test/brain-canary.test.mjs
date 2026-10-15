@@ -268,14 +268,14 @@ console.log('\n── D · Credits: la regla nueva, en el sitio exacto ──');
   check('y que NO lo es cuando salió, lo tiene otro, o ya terminó en otra invocación',
     ['outcome_unknown', 'in_progress_elsewhere', 'completed_elsewhere'].every((mo) => new FalloDelPensador(mo, false, { code: 'PROVIDER_ERROR' }).reembolsoSeguro === false));
   check('el pensador no cobra, no reserva y no reembolsa: solo dice si es seguro', !/spendCredits|completeCredits|refundCredits|creditEngine/.test(sinComentarios(leer('functions/src/runtime/pensador.ts'))));
-  check('el canary NO cambió cuándo se cobra: búsqueda por delante, conversación por bloques de doce', BRAIN.indexOf('if (webSearch) {') < BRAIN.indexOf('engine.generate(') && /const consumo = await contarRespuesta\(uid, operacion\.clave, vigia\);\s*contadaAqui = consumo\.nueva;\s*if \(consumo\.cobrada\)/.test(BRAIN));
+  check('el canary NO cambió cuándo se cobra: búsqueda por delante, conversación por bloques de doce', BRAIN.indexOf('if (webSearch) {') < BRAIN.indexOf('engine.generate(') && /const consumo = await contarRespuesta\(uid, operacion\.clave, vigia\);\s*contadaAqui = consumo\.nueva;\s*if \(consumo\.cobrada(?: && salida\.demo !== true)?\)/.test(BRAIN));
   check('ni el Financial Core, ni el Credit Engine, ni los precios', !/creditEngine\.[a-z]/i.test(sinComentarios(leer('functions/src/runtime/index.ts')) + sinComentarios(leer('functions/src/runtime/conductor.ts'))));
   /* Una sola transacción para los dos caminos: la que abre la fila del libro y la que después se liquida. */
   const enElDeSiempre = BRAIN.slice(BRAIN.indexOf('const pensadorDeSiempre'), BRAIN.indexOf('const pensadorDelConductor'));
   const enElDelConductor = BRAIN.slice(BRAIN.indexOf('const pensadorDelConductor'), BRAIN.indexOf('const cerebro'));
   check('y la transacción que liquida el libro es la MISMA por los dos caminos',
     /creditTransactionId: usageTransactionId\(requestId\)/.test(enElDeSiempre) && /creditTransactionId: usageTransactionId\(requestId\)/.test(enElDelConductor)
-    && BRAIN.match(/settle\(\{ creditTransactionId: usageTransactionId\(requestId\)/g).length === 2);
+    && BRAIN.match(/settle\(\{ creditTransactionId: usageTransactionId\(requestId\)/g).length === 3); /* 2 caminos + la devolución de la búsqueda de muestra (B4-03): la misma transacción */
   check('y el servicio y los Credits estimados viajan igual por los dos: lo que se cotizó es lo que se anota',
     /creditsEstimated: creditsDelMensaje/.test(enElDeSiempre) && /creditsEstimated: creditsDelMensaje/.test(enElDelConductor)
     && /service,/.test(enElDeSiempre) && /service,/.test(enElDelConductor));
