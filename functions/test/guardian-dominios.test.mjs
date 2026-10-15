@@ -283,6 +283,9 @@ const sinComentarios = wf.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
   const cli = spawnSync(process.execPath, [path.join(RAIZ, 'ops/guardian/verificar.mjs'), '--modo', 'estatico', '--json', path.join(os.tmpdir(), `guardian-cli-${process.pid}.json`)], { encoding: 'utf8' });
   const jsonCli = (() => { try { return JSON.parse(fs.readFileSync(path.join(os.tmpdir(), `guardian-cli-${process.pid}.json`), 'utf8')); } catch { return null; } })();
   limpiezas.push(path.join(os.tmpdir(), `guardian-cli-${process.pid}.json`));
+  const { createRequire } = await import('node:module');
+  const yamlLeido = (() => { try { return createRequire(path.join(RAIZ, 'package.json'))('yaml').parse(wf); } catch (e) { return { error: e.message }; } })();
+  check('67b) el workflow es YAML válido con los disparadores y los dos trabajos esperados (parseado de verdad, no con expresiones)', !yamlLeido.error && ['pull_request', 'push', 'workflow_dispatch', 'schedule'].every((k) => k in yamlLeido.on) && Object.keys(yamlLeido.jobs).join() === 'dominios,ejecucion' && yamlLeido.jobs.dominios.steps.length >= 6, yamlLeido.error || '');
   check('68) el CLI real: salida 0, JSON del contrato y el informe dice que no ejecutó suites', cli.status === 0 && jsonCli?.contrato === ver.CONTRATO && jsonCli.ejecucion === 'no-ejecutada', `salida ${cli.status}`);
   const sinSalida = spawnSync(process.execPath, [path.join(RAIZ, 'ops/guardian/verificar.mjs'), '--modo', 'estatico', '--json', path.join(os.tmpdir(), 'no-existe-guardian', 'x.json')], { encoding: 'utf8' });
   check('69) si no se puede escribir el informe (sin evidencia) es FALLO (salida 3), no verde', sinSalida.status === 3 && /no se pudo escribir el informe/.test(sinSalida.stderr));

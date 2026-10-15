@@ -136,6 +136,11 @@ dice, con su fuente exacta (archivo y línea, regla o ruta JSON), lo que hay que
   «desaparece un paso». Lo fija
   `guardian-bloqueante.test.mjs` §G (41-53).
 
+- **Guardian por dominios y autocorrección (`ops/guardian/`, cierre integral 2026-10-15):** mapa de dominios sobre las suites que ya existen,
+  huellas de los invariantes críticos (una comprobación no se quita para que algo pase), verificación estática y de ejecución que distingue
+  PASA / FALLA / INTERMITENTE / ENTORNO, autocorrección aislada y reversible solo de lo local y determinista, e informe de autoverificación.
+  Estado real, qué falta activar y riesgos: [GUARDIAN-ESTADO.md](GUARDIAN-ESTADO.md).
+
 ## Hillclimb (F6)
 
 `ops/hillclimb/hillclimb.mjs` optimiza **cualquier componente** que su dominio describa con una **superficie**
