@@ -70,7 +70,11 @@ const POLITICAS = ['escaneo-secretos', 'guardia-claude', 'guardia-vigente', 'gua
   /* revisión post-auditoría 2026-10-01: las cabeceras de seguridad y el revisor determinista */
   'cabeceras-seguridad', 'revision-detectores', 'revision-baseline', 'revision-revisores',
   /* F2: el eval-gate (el router no regresa frente a su baseline), el registro de dominios del Eval Engine y el corredor real (evalRun) sobre el motor común */
-  'evals-router', 'evals-gobernanza', 'evals-dominios', 'evals-presupuesto', 'evals-corredor'];
+  'evals-router', 'evals-gobernanza', 'evals-dominios', 'evals-presupuesto', 'evals-corredor',
+  /* WEE Motor Guardian, fase 1: el Build Guardian en modo bloqueante (un CRITICAL de la política hace fallar el nivel 3) y sus hooks */
+  'guardian-bloqueante', 'guardian-hooks',
+  /* Línea A: el Guardian de la BASE contra el PR (pull_request_target), el único control que no ejecuta código del PR */
+  'guardian-base-workflow'];
 check('9d) el nivel 3 pasa la revisión determinista contra la baseline (puertas G0 y G3), antes de las políticas',
   /- name: Revisión determinista \(puertas G0 y G3\)\s*\n\s*run: node ops\/revision\/baseline\.mjs/.test(nivel3) && nivel3.indexOf('ops/revision/baseline.mjs') < nivel3.indexOf('- name: Políticas'));
 /*

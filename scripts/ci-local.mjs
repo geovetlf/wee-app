@@ -29,32 +29,86 @@ export const CI = '.github/workflows/ci.yml';
 /** Las instalaciones: lo único que no se repite aquí. */
 export const INSTALACION = /^(npm ci\b|npm install --global firebase-tools@)/;
 
-/** Pura: los trabajos de un workflow sencillo (id, nombre, needs, pasos con `run`). */
+/** ¿Abre un bloque de YAML (`|`, `|-`, `>`, `>+`…)? */
+const BLOQUE = /^[|>][-+]?$/;
+/** El cuerpo de un bloque de YAML que empieza tras la línea `i`, sangrado al menos `sangria` espacios; y dónde acaba. */
+const cuerpoDeBloque = (lineas, i, sangria) => {
+  const cuerpo = [];
+  const dentro = new RegExp(`^ {${sangria}}`);
+  while (i + 1 < lineas.length && (dentro.test(lineas[i + 1]) || lineas[i + 1].trim() === '')) cuerpo.push(lineas[++i].slice(sangria));
+  return { texto: cuerpo.join('\n').trim(), i };
+};
+
+/**
+ * Pura: los trabajos de un workflow sencillo (id, nombre, needs, pasos con `run`). De cada trabajo y de cada paso guarda
+ * también `si` (su `if:` tal cual, o null), `continuaConError` (su `continue-on-error:` tal cual, o null) y, del paso,
+ * `shell`: lo que el Build Guardian (ops/harness/guardian.mjs) compara con la base para ver si una puerta sigue escrita
+ * pero ya no puede correr o ya no puede fallar. Una clave en la línea del guion (`- if: …`) cuenta igual que debajo.
+ */
 export const trabajos = (yml) => {
   const lineas = String(yml).split('\n');
   const out = [];
   let enJobs = false;
   let actual = null;
   let paso = null;
+  /* Una clave de un paso; devuelve dónde sigue la lectura (un `run: |` se come su bloque). */
+  const clavePaso = (clave, valor, i) => {
+    if (clave === 'name') { paso.nombre = valor.trim() || null; return i; }
+    if (clave === 'if') { paso.si = valor.trim(); return i; }
+    if (clave === 'continue-on-error') { paso.continuaConError = valor.trim(); return i; }
+    if (clave === 'shell') { paso.shell = valor.trim(); return i; }
+    if (clave !== 'run') return i;
+    if (BLOQUE.test(valor.trim())) { const b = cuerpoDeBloque(lineas, i, 10); paso.run = b.texto; i = b.i; } else paso.run = valor.trim();
+    if (!actual.pasos.includes(paso)) actual.pasos.push(paso);
+    return i;
+  };
   for (let i = 0; i < lineas.length; i++) {
     const l = lineas[i];
     if (/^jobs:\s*$/.test(l)) { enJobs = true; continue; }
     if (!enJobs) continue;
     let m;
-    if ((m = l.match(/^ {2}([a-z0-9-]+):\s*$/))) { actual = { id: m[1], nombre: m[1], necesita: [], pasos: [] }; out.push(actual); paso = null; continue; }
+    if ((m = l.match(/^ {2}([a-z0-9-]+):\s*$/))) { actual = { id: m[1], nombre: m[1], necesita: [], si: null, continuaConError: null, pasos: [] }; out.push(actual); paso = null; continue; }
     if (!actual) continue;
     if ((m = l.match(/^ {4}name:\s*(.+)$/))) { actual.nombre = m[1].trim(); continue; }
     if ((m = l.match(/^ {4}needs:\s*(.+)$/))) { actual.necesita = m[1].replace(/[[\]]/g, '').split(',').map((s) => s.trim()).filter(Boolean); continue; }
-    if ((m = l.match(/^ {6}- (?:name:\s*(.+))?/))) { paso = { nombre: (m[1] || '').trim() || null }; continue; }
-    if ((m = l.match(/^ {8}name:\s*(.+)$/)) && paso) { paso.nombre = m[1].trim(); continue; }
-    if ((m = l.match(/^ {8}run:\s*(.*)$/)) && paso) {
-      if (m[1].trim() === '|') {
-        const cuerpo = [];
-        while (i + 1 < lineas.length && (/^ {10}/.test(lineas[i + 1]) || lineas[i + 1].trim() === '')) cuerpo.push(lineas[++i].slice(10));
-        paso.run = cuerpo.join('\n').trim();
-      } else paso.run = m[1].trim();
-      actual.pasos.push(paso);
+    if ((m = l.match(/^ {4}if:\s*(.*)$/))) {
+      if (BLOQUE.test(m[1].trim())) { const b = cuerpoDeBloque(lineas, i, 6); actual.si = b.texto; i = b.i; } else actual.si = m[1].trim();
+      continue;
     }
+    if ((m = l.match(/^ {4}continue-on-error:\s*(.*)$/))) { actual.continuaConError = m[1].trim(); continue; }
+    if ((m = l.match(/^ {6}- (?:([a-z-]+):\s*(.*))?/))) {
+      paso = { nombre: null, si: null, continuaConError: null, shell: null };
+      if (m[1]) i = clavePaso(m[1], m[2], i);
+      continue;
+    }
+    if ((m = l.match(/^ {8}([a-z-]+):\s*(.*)$/)) && paso) i = clavePaso(m[1], m[2], i);
+  }
+  return out;
+};
+
+/**
+ * Pura: los disparadores del workflow (`on:`) → Map nombre → su configuración tal cual ('' si no tiene). Acepta `on: x`,
+ * `on: [x, y]` y el bloque (también `"on":`). null si el workflow no declara `on:`.
+ */
+export const disparadores = (yml) => {
+  const lineas = String(yml).split('\n');
+  const i = lineas.findIndex((l) => /^(?:on|"on"|'on'):/.test(l));
+  if (i < 0) return null;
+  const sinComentario = (l) => l.replace(/\s+#.*$/, '');
+  const enLinea = sinComentario(lineas[i].replace(/^(?:on|"on"|'on'):/, '')).trim();
+  const out = new Map();
+  if (enLinea) {
+    for (const x of enLinea.replace(/^\[|\]$/g, '').split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean)) out.set(x, '');
+    return out;
+  }
+  let actual = null;
+  for (let j = i + 1; j < lineas.length && (/^\s/.test(lineas[j]) || lineas[j].trim() === ''); j++) {
+    if (/^\s*#/.test(lineas[j])) continue;
+    const l = sinComentario(lineas[j]);
+    if (!l.trim()) continue;
+    const m = l.match(/^ {2}([A-Za-z_-]+):\s*(.*)$/);
+    if (m) { actual = m[1]; out.set(actual, m[2].trim()); continue; }
+    if (actual) out.set(actual, `${out.get(actual)}\n${l.trim()}`.trim());
   }
   return out;
 };
