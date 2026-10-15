@@ -154,9 +154,35 @@ const fuentesCliente = (() => {
 })();
 const conversacion = existe('screens/ConversationScreen.tsx') ? leer('screens/ConversationScreen.tsx') : '';
 const grabanAudio = fuentesCliente.filter(([, s]) => /Audio\.Recording|requestRecordingPermissionsAsync|useAudioRecorder|useMicrophonePermissions/.test(s)).map(([f]) => f);
-check('F1) el micrófono solo lo pide WeeTalk (las notas de voz de ConversationScreen)',
-  grabanAudio.length === 1 && grabanAudio[0] === 'screens/ConversationScreen.tsx' && /Audio\.requestPermissionsAsync/.test(conversacion), grabanAudio.join(', '));
-check('F2) y la frase del micrófono lo dice: WeeTalk, sin prometer audio en vídeos', /WeeTalk/.test(base.NSMicrophoneUsageDescription || '') && !/v[ií]deo/i.test(base.NSMicrophoneUsageDescription || ''));
+/*
+ * EL MICRÓFONO TIENE DOS USOS, Y SOLO DOS ARCHIVOS LO PIDEN (decisión del dueño, 2026-10-15): las notas de voz de
+ * WeeTalk (ConversationScreen) y Weë Music, que graba ideas musicales, melodías tarareadas y referencias vocales
+ * propias (hooks/useMusicAudio.ts, el único sitio de Music que toca el micrófono). La frase de propósito de iOS tiene
+ * que cubrir los dos usos sin prometer nada más, y la excepción es ESTRECHA: un tercer archivo que grabe falla aquí.
+ */
+const MIC_PERMITIDO = ['hooks/useMusicAudio.ts', 'screens/ConversationScreen.tsx'];
+check('F1) el micrófono solo lo piden las notas de voz de WeeTalk y la grabación de Weë Music (dos archivos, ni uno más)',
+  JSON.stringify([...grabanAudio].sort()) === JSON.stringify(MIC_PERMITIDO) && /Audio\.requestPermissionsAsync/.test(conversacion), grabanAudio.join(', '));
+const musica = existe('hooks/useMusicAudio.ts') ? leer('hooks/useMusicAudio.ts') : '';
+const empezar = (musica.match(/const empezar = useCallback\(async \(\) => \{[\s\S]*?\n  \}, \[parar\]\);/) || [''])[0];
+const semantica = (musica.match(/export const useGrabadoraMusic[\s\S]*?\n\};/) || [''])[0];
+check('F1b) Weë Music pide el permiso SOLO al pulsar «grabar» (dentro de «empezar»), nunca al montar ni al abrir la app',
+  /Audio\.requestPermissionsAsync\(\)/.test(empezar) && (semantica.match(/requestPermissionsAsync/g) || []).length === 1
+  && !/useEffect\(\(\) => \{[^}]*(empezar|requestPermissionsAsync|Recording\.createAsync)\(/.test(semantica)
+  && !/requestPermissionsAsync|Audio\.Recording/.test(leer('App.tsx')) && !/requestPermissionsAsync|Audio\.Recording/.test(leer('index.ts')),
+  empezar ? 'empezar encontrado' : 'no se encontró empezar');
+check('F1c) y la pantalla de Music llama a «empezar» solo desde un botón (onPress), no al montar',
+  /onPress=\{grab\.empezar\}/.test(leer('components/music/MelodiaDeReferencia.tsx')) && !/useEffect\([^)]*grab\.empezar/.test(leer('components/music/MelodiaDeReferencia.tsx')));
+const mic = (l) => (l === 'es' ? base : archivos[l].ios).NSMicrophoneUsageDescription || '';
+const todosMic = ['es', ...Object.keys(archivos).filter((l) => l !== 'es')];
+const menciona = (v) => /m[uú]sic|music|musik|musique|musica|música|музык|音楽|음악|音乐|音樂|संगीत|müzik|musik/i.test(v);
+check('F2) la frase del micrófono (base) habla de música e ideas, cubre los mensajes de voz, no nombra WeeTalk y no promete vídeo',
+  menciona(base.NSMicrophoneUsageDescription || '') && /ideas/.test(base.NSMicrophoneUsageDescription || '') && /mensajes de voz/.test(base.NSMicrophoneUsageDescription || '')
+  && !/WeeTalk/.test(base.NSMicrophoneUsageDescription || '') && !/v[ií]deo/i.test(base.NSMicrophoneUsageDescription || ''));
+check('F2b) en los 16 idiomas la frase habla de música, no nombra WeeTalk y dice que el audio solo se usa si la persona lo decide (dos frases)',
+  todosMic.every((l) => menciona(mic(l)) && !/WeeTalk/.test(mic(l)) && /[.。]/.test(mic(l).slice(0, -1))), todosMic.filter((l) => !(menciona(mic(l)) && !/WeeTalk/.test(mic(l)))).join(', '));
+check('F2c) CONTROL: un archivo nuevo que grabe sería detectado y la frase antigua de WeeTalk no pasaría',
+  ![...grabanAudio, 'components/Otro.tsx'].every((f) => MIC_PERMITIDO.includes(f)) && !(menciona('Weë necesita acceso a tu micrófono para que puedas grabar y enviar audios en WeeTalk.') && !/WeeTalk/.test('Weë necesita acceso a tu micrófono para que puedas grabar y enviar audios en WeeTalk.')));
 const GRABA_VIDEO = /recordAsync\(|launchCameraAsync\(\{[^}]*(videos|MediaTypeOptions\.(All|Videos))/;
 const grabanVideo = fuentesCliente.filter(([, s]) => GRABA_VIDEO.test(s)).map(([f]) => f);
 check('F3) la cámara solo hace fotos: nadie graba vídeo con ella', grabanVideo.length === 0, grabanVideo.join(', '));

@@ -52,7 +52,7 @@ const IDIOMAS = ['da', 'de', 'en', 'es', 'fr', 'hi', 'it', 'ja', 'ko', 'pt', 'pt
 
 /* ── A · honestidad ─────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 check('A1 la generación de música está CERRADA (MUSIC_GENERACION_VALIDADA = false)', CAP.MUSIC_GENERACION_VALIDADA === false && /MUSIC_GENERACION_VALIDADA = false;/.test(leer('constants/musicCapabilities.ts')));
-check('A2 y la grabación en iPhone también (el permiso de micrófono es de WeeTalk)', CAP.MUSIC_GRABACION_EN_IOS_AUTORIZADA === false);
+check('A2 la grabación en iPhone está autorizada (decisión del dueño) y el texto de permiso de iOS lo cubre: música + mensajes de voz, sin WeeTalk', CAP.MUSIC_GRABACION_EN_IOS_AUTORIZADA === true && !/WeeTalk/.test(JSON.parse(leer('app.json')).expo.ios.infoPlist.NSMicrophoneUsageDescription) && /musicales/.test(JSON.parse(leer("app.json")).expo.ios.infoPlist.NSMicrophoneUsageDescription));
 const registro = leer('functions/src/engine/registry.ts');
 check('A3 ningún adaptador musical nuevo está registrado: el registro no nombra «music-minimax», «music-mureka», etc.', !/music-(minimax|elevenlabs|mureka|yinchao)/.test(registro) && /'music\.generate': routing\('music\.generate', chain\('music-pending'\)/.test(registro));
 check('A4 el servidor de Music no se exporta desde functions/src/index.ts', !/\.\/music/.test(leer('functions/src/index.ts')));
@@ -228,11 +228,26 @@ check('G12 el único camino que puede consumir Credits es Weë Brain por useBrai
 
 check('G13 la canción de ejemplo nunca se presenta como «completada» (ni su audio ni sus pistas)', /esEjemplo \? 'resultadoNoDisponible' : mezcla === 'pistasReales' \? 'completado'/.test(leer('components/music/Workstation.tsx')) && /<ChipDeEstado estado=\{cancion\.audioUrl \? 'completado' : 'resultadoNoDisponible'\} \/>/.test(leer('components/music/Workstation.tsx')));
 
+const compo = leer('components/music/MusicComposer.tsx');
+const cuerpoAyuda = (compo.match(/const pedirAyuda = useCallback\(async \(\) => \{[\s\S]*?\n  \}, \[chat, navigation/) || [''])[0];
+check('G14 el doble toque no envía dos veces: guarda SÍNCRONA con useRef puesta antes del primer await y liberada en finally',
+  /const enVuelo = useRef\(false\)/.test(compo) && /if \(enVuelo\.current \|\| chat\.busy\) return;\s*enVuelo\.current = true;/.test(cuerpoAyuda)
+  && cuerpoAyuda.indexOf('enVuelo.current = true') < cuerpoAyuda.indexOf('await chat.send') && /finally \{\s*enVuelo\.current = false;/.test(cuerpoAyuda));
+check('G15 los dos botones de «No sé…» ya no se llaman igual: la caja envía «askBrain» y el botón de la fila «helpMeButton», distintos en los 16 idiomas',
+  /etiquetaEnviar=\{t\('music\.askBrain'\)\}/.test(compo) && IDIOMAS.every((l) => claves(l).get('askBrain') && claves(l).get('askBrain') !== claves(l).get('helpMeButton')));
+check('G16 aviso previo: «ayúdame a elegir» usa Weë Brain y puede consumir Credits por bloques; sin precio inventado en ningún idioma',
+  /<Nota>\{t\('music\.brainNotice'\)\}<\/Nota>/.test(compo) && IDIOMAS.every((l) => /Weë Brain/.test(claves(l).get('brainNotice') ?? '') && /Credits/.test(claves(l).get('brainNotice') ?? '') && !/\d/.test(claves(l).get('brainNotice') ?? '')));
+check('G17 «dejar de esperar»: botón mientras Brain responde; la respuesta tardía y su error dejan de mostrarse y se avisa de que puede contar para el bloque',
+  /music\.stopWaiting/.test(compo) && /pidio && !dejoDeEsperar \? chat\.messages/.test(compo) && /!chat\.busy && pidio && !dejoDeEsperar && chat\.error/.test(compo)
+  && /dejoDeEsperar && <Nota fuerte>\{t\('music\.stopWaitingNote'\)\}/.test(compo) && IDIOMAS.every((l) => claves(l).get('stopWaiting') && claves(l).get('stopWaitingNote')));
+check('G18 el reintento tras un corte reutiliza el mensaje SOLO si useBrainChat lo permitiera: no lo permite y no se tocó el hook compartido (punto de integración documentado)',
+  !/messageId/.test(compo) && !(await import('node:child_process')).execSync('git diff --name-only 2845ea94', { cwd: RAIZ }).toString().split('\n').some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f)) && /MUSIC\.md/.test('MUSIC.md') && /messageId/.test(leer('docs/MUSIC.md')));
+
 /* ── H · integración mínima ─────────────────────────────────────────────────────────────────────────────────────────────────── */
 const spec = leer('screens/SpecialistScreen.tsx');
 check('H1 Specialist{id:"music"} entrega a MusicScreen y Fashion sigue entregando a FashionScreen', /if \(id === 'music'\) return <MusicScreen \/>;/.test(spec) && /if \(id === 'fashion' \|\| id === 'business'\) return <FashionScreen \/>;/.test(spec));
 const tocados = (await import('node:child_process')).execSync('git diff --name-only 2845ea94', { cwd: RAIZ }).toString().trim().split('\n');
-const permitidos = (f) => /^(components\/music\/|constants\/music|utils\/music|hooks\/useMusicAudio|screens\/MusicScreen|functions\/src\/music\/|functions\/test\/(music\.test|i18n-|alcance-wee-ai|puente-pre-f1d)|scripts\/alcance-wee-ai\.mjs|docs\/MUSIC\.md|i18n\/textos\/[^/]+\/(music|index)\.ts|i18n\/huella\.json|functions\/package\.json|screens\/SpecialistScreen\.tsx)/.test(f);
+const permitidos = (f) => /^(components\/music\/|constants\/music|utils\/music|hooks\/useMusicAudio|screens\/MusicScreen|functions\/src\/music\/|functions\/test\/(music\.test|i18n-|alcance-wee-ai|puente-pre-f1d)|app\.json|locales\/[^/]+\.json|scripts\/alcance-wee-ai\.mjs|docs\/MUSIC\.md|i18n\/textos\/[^/]+\/(music|index)\.ts|i18n\/huella\.json|functions\/package\.json|screens\/SpecialistScreen\.tsx)/.test(f);
 check('H2 esta rama solo toca archivos de Music y los puntos de integración declarados', tocados.every(permitidos), tocados.filter((f) => !permitidos(f)).join(','));
 
 console.log(fallo ? `\n✘ ${fallo} fallos` : '\n✔ todo bien');

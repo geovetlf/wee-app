@@ -55,6 +55,10 @@ const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVolver, onVer
   const [avanzadas, setAvanzadas] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [pidio, setPidio] = useState(false);
+  /* «Dejar de esperar»: la respuesta tardía no se enseña. No hay cancelación en Weë Brain: el envío sigue su curso. */
+  const [dejoDeEsperar, setDejoDeEsperar] = useState(false);
+  /* Guarda SÍNCRONA contra el doble toque: el estado `busy` de React llega un render tarde. */
+  const enVuelo = useRef(false);
   const desde = useRef(0);
 
   /* «Continuar borrador» (y el arranque, si ya hay uno) lee el borrador local: solo texto y elecciones. */
@@ -81,11 +85,17 @@ const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVolver, onVer
 
   const pedirAyuda = useCallback(async () => {
     if (!chat.user) { navigation.navigate('Login'); return; }
-    if (chat.busy) return;
-    const brief = armarBriefMusic({ t, lista: (xs) => formato.lista(xs) }, punto, sel, descripcion, letra);
-    desde.current = chat.messages.length;
-    setPidio(true);
-    await chat.send(brief);
+    if (enVuelo.current || chat.busy) return;
+    enVuelo.current = true;
+    try {
+      const brief = armarBriefMusic({ t, lista: (xs) => formato.lista(xs) }, punto, sel, descripcion, letra);
+      desde.current = chat.messages.length;
+      setPidio(true);
+      setDejoDeEsperar(false);
+      await chat.send(brief);
+    } finally {
+      enVuelo.current = false;
+    }
   }, [chat, navigation, t, formato, punto, sel, descripcion, letra]);
 
   const guardar = useCallback(async () => {
@@ -96,7 +106,7 @@ const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVolver, onVer
   }, [punto, descripcion, letra, sel]);
   useEffect(() => { setGuardado(false); }, [punto, descripcion, letra, sel]);
 
-  const respuestas = pidio ? chat.messages.slice(desde.current).filter((m) => m.role === 'wee') : [];
+  const respuestas = pidio && !dejoDeEsperar ? chat.messages.slice(desde.current).filter((m) => m.role === 'wee') : [];
   const ultima = respuestas[respuestas.length - 1];
 
   const lineas = GRUPOS_DE_MUSIC.flatMap((g) => {
@@ -146,7 +156,7 @@ const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVolver, onVer
         valor={descripcion}
         onCambiar={(x) => setDescripcion(x.slice(0, MAX_DESCRIPCION))}
         onEnviar={pedirAyuda}
-        etiquetaEnviar={t('music.helpMe')}
+        etiquetaEnviar={t('music.askBrain')}
         placeholder={t('music.describeHint')}
         ocupado={chat.busy}
       />
@@ -246,6 +256,9 @@ const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVolver, onVer
 
       <View style={s.botones}>
         <Boton texto={t('music.helpMeButton')} icono="sparkles-outline" onPress={pedirAyuda} desactivado={chat.busy} />
+      </View>
+      <Nota>{t('music.brainNotice')}</Nota>
+      <View style={s.botones}>
         <Boton
           texto={t('music.generate')}
           icono="musical-notes"
@@ -273,9 +286,11 @@ const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVolver, onVer
         <View style={s.fila} accessibilityLiveRegion="polite">
           <ActivityIndicator color={theme.colors.accentDark} />
           <Text style={[s.linea, { color: theme.colors.textSecondary }]}>{t('music.helpBusy')}</Text>
+          {!dejoDeEsperar && <Boton texto={t('music.stopWaiting')} icono="close-circle-outline" onPress={() => setDejoDeEsperar(true)} />}
         </View>
       )}
-      {!chat.busy && pidio && chat.error ? <Text accessibilityLiveRegion="assertive" style={[s.linea, { color: theme.colors.error }]}>{chat.error}</Text> : null}
+      {dejoDeEsperar && <Nota fuerte>{t('music.stopWaitingNote')}</Nota>}
+      {!chat.busy && pidio && !dejoDeEsperar && chat.error ? <Text accessibilityLiveRegion="assertive" style={[s.linea, { color: theme.colors.error }]}>{chat.error}</Text> : null}
       {!chat.busy && ultima && (
         <Tarjeta>
           <View accessibilityLiveRegion="polite" style={{ gap: SPACING.xs }}>

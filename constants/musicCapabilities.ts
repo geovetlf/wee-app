@@ -22,12 +22,15 @@
 export const MUSIC_GENERACION_VALIDADA = false;
 
 /**
- * ¿Puede Weë Music grabar con el micrófono en iPhone? Hoy NO: el texto de permiso de iOS (`NSMicrophoneUsageDescription`, 16 idiomas en `locales/`)
- * dice que el micrófono es para las notas de voz de WeeTalk, y `i18n-permisos-ios.test.mjs` (F1/F2) lo vigila. Usarlo para música
- * sin cambiar ese texto sería pedir el permiso con un motivo que no es el real. Cambiarlo es una decisión del dueño (texto de
- * permiso + revisión de App Store). En Android y en la web no se aplica.
+ * ¿Puede Weë Music grabar con el micrófono en iPhone? SÍ (decisión del dueño, 2026-10-15): graba ideas musicales,
+ * melodías tarareadas y referencias vocales propias. Lo que lo hace legítimo, y lo vigila `i18n-permisos-ios.test.mjs`
+ * (F1–F2c): el texto de propósito de iOS (`NSMicrophoneUsageDescription`: `app.json` para el español y `locales/<idioma>.json`
+ * para los otros quince) ya habla de música y de mensajes de voz, y no de una sola función; el permiso se pide solo al
+ * pulsar «grabar»; y solo `hooks/useMusicAudio.ts` y las notas de voz de WeeTalk tocan el micrófono. Queda como
+ * interruptor de emergencia: en false, iPhone vuelve a enseñar «grabar en iPhone queda pendiente» (`refIosPending`).
+ * En Android y en la web no se aplica.
  */
-export const MUSIC_GRABACION_EN_IOS_AUTORIZADA = false;
+export const MUSIC_GRABACION_EN_IOS_AUTORIZADA = true;
 
 /** Versión del contrato interno de Weë Music (espejo de `functions/src/music/contract.ts`). */
 export const MUSIC_CONTRATO_VERSION = '0.1.0';

@@ -160,3 +160,22 @@ descripción, letra, instrucciones) y `CampoQueCrece` (título), `useBrainChat` 
 - Pendientes de decisión del dueño: qué proveedor(es) aprobar (y la restricción de MiniMax a nuevos usuarios), derechos de
   uso comercial, precios medidos, añadir `expo-document-picker`, migración `expo-av → expo-audio`, y si la antigua
   conversación guiada de música debe seguir enlazada desde la portada.
+
+## 10. Micrófono en iPhone y Credits (cierre de riesgos, 2026-10-15)
+
+**Decisión del dueño:** Weë Music puede usar el micrófono en iPhone (ideas musicales, melodías tarareadas, referencias vocales
+propias). Mecanismo del proyecto, sin claves nuevas: `app.json` → `expo.ios.infoPlist.NSMicrophoneUsageDescription` (español,
+base) + `app.json` → `expo.locales` → `locales/<idioma>.json` → `ios.NSMicrophoneUsageDescription` (los otros 15; Expo los
+convierte en `InfoPlist.strings`). El texto cubre los dos usos —música y mensajes de voz— sin nombrar ninguna función y dice que el
+audio solo se usa si la persona lo decide. `MUSIC_GRABACION_EN_IOS_AUTORIZADA = true` queda como interruptor de emergencia. El
+permiso se pide solo al pulsar «Empezar a grabar» (`empezar` en `hooks/useMusicAudio.ts`); `i18n-permisos-ios` F1–F2c lo fija y
+limita el micrófono a dos archivos (WeeTalk y ese hook).
+Verificado: `npx expo config --type introspect` muestra el `infoPlist` fusionado con el texto nuevo, los 16 `locales` y `RECORD_AUDIO`
+en Android. NO verificado: el `Info.plist` y los `InfoPlist.strings` generados por `prebuild` (exige macOS/Xcode), ni el diálogo en un iPhone.
+
+**Credits.** Único consumo posible: «No sé, ayúdame a elegir» → `useBrainChat.send` → `brainChat` (1 Credit por bloque de 12 respuestas;
+la tarifa y el cobro no se tocaron). Corregido en Music: guarda síncrona contra el doble toque (`enVuelo`), dos botones con nombres
+distintos (`askBrain` / `helpMeButton`), aviso previo honesto sin precio (`brainNotice`) y «Dejar de esperar» (no muestra la respuesta
+tardía; NO cancela el envío en el servidor y lo dice). **Siguen abiertos** (punto de integración, requieren tocar `useBrainChat` o
+`brainChat`, fuera de esta rama): el reintento tras un corte de red genera un `messageId` nuevo en `useBrainChat.send` (no se puede
+reutilizar desde fuera), y no existe cancelación real en el servidor.
