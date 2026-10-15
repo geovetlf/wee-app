@@ -13,7 +13,7 @@ import { tarifaDeModeloDeTexto } from '../engine/pricing';
 import { DEEPSEEK_TEXT_MODEL } from '../engine/providers/deepseek';
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId, CreditError } from '../credits/creditValidation';
-import { bloqueDe, cobroYaCerradoSinCobro, contarRespuesta, deshacerRespuesta, queHacerConElCobro, RESPUESTAS_POR_CREDIT } from './brainUsage';
+import { bloqueDe, claveDelMensaje, cobroYaCerradoSinCobro, contarRespuesta, deshacerRespuesta, operacionDeBrain, queHacerConElCobro, reclamarMensaje, ReclamoPerdido, renovarReclamo, RESPUESTAS_POR_CREDIT, soltarMensaje } from './brainUsage';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
@@ -42,7 +42,7 @@ import {
  *   brainChats/{chatId}/messages/{id}  { role: user | wee, text, imageUrl?, sources?, suggestedExperience?, credits?, createdAt }
  *
  * Cada respuesta pasa por el Credit Engine (ai_text, o ai_search con búsqueda):
- * requestId = brain_<messageId>, así que reenviar el mismo mensaje no cobra dos veces.
+ * requestId = brain_<clave de la operación> (brainUsage.ts, operacionDeBrain), así que reenviar el mismo mensaje no cobra dos veces.
  * Motor: WEË AI ENGINE (text.generate / text.search → Gemini; modo demo sin clave).
  */
 /**
@@ -336,11 +336,14 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
     const messages = chatRef.collection('messages');
 
     // Misma petición repetida (doble toque, reintento): se devuelve la respuesta ya dada
-    const existing = await messages.doc(`${messageId}_wee`).get();
-    if (existing.exists) {
+    const respuestaYaDada = async () => {
+      const existing = await messages.doc(`${messageId}_wee`).get();
+      if (!existing.exists) return null;
       const prev = existing.data() || {};
       return { chatId: chatRef.id, messageId: existing.id, text: prev.text, sources: prev.sources || [], suggestedExperience: prev.suggestedExperience ?? null, credits: prev.credits || 0, demo: !!prev.demo, duplicate: true, bloque: await bloqueDe(uid) };
-    }
+    };
+    const yaDada = await respuestaYaDada();
+    if (yaDada) return yaDada;
 
     // Límites y Credits antes de llamar a la IA
     const { settings } = await loadConfig();
@@ -348,7 +351,13 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
     await ensureAccount(uid);
     /* El mismo servicio con el que se cotizó: lo que se enseña y lo que se cobra son uno. */
     const service = webSearch ? 'ai_search' : 'ai_brain';
-    const requestId = `brain_${messageId}`;
+    /*
+     * La operación es ESTE mensaje en ESTA conversación de ESTA cuenta, no el id que
+     * eligió el teléfono (A-02, F-01/F-01b: `operacionDeBrain` en `brainUsage.ts`). De aquí salen el
+     * registro del bloque y el `requestId` del cobro, del libro y del conductor.
+     */
+    const operacion = operacionDeBrain({ userId: uid, chatId: chatRef.id, messageId, service });
+    const requestId = operacion.requestId;
 
     // El historial se lee ANTES de cobrar: encarece la petición y tiene que
     // estar dentro del precio, igual que las fotos y los documentos adjuntos.
@@ -386,67 +395,89 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
      * que decide si se devuelve el dinero.
      */
     let falloDelConductor: FalloDelPensador | undefined;
+
     /*
-     * ¿Le va a costar algo ESTE mensaje? Es la misma cuenta que hace `brainQuote`
-     * para enseñarle el precio a la persona antes de enviar: la búsqueda siempre
-     * cobra, y la conversación solo cuando la respuesta cierra el bloque de doce.
+     * ── EL RECLAMO, ANTES DE COBRAR NADA (A-02: F-01, M-1, M-2, M-3) ──────────
      *
-     * Se calcula una vez y sirve para dos cosas: comprobar el saldo antes de
-     * llamar al modelo, y decirle al libro lo que de verdad se le cobra. Así lo
-     * que ve la persona, lo que se cobra y lo que queda anotado son el mismo número.
+     * Se reclama el MENSAJE antes de reservar la búsqueda y antes de mirar el saldo:
+     * una petición repetida (otra pestaña, un reintento, un cliente que reutiliza el
+     * id) se va con DUPLICATE_REQUEST —o con la respuesta ya dada— sin haber reservado
+     * nada que luego nadie cierre. Todo lo que viene después vive dentro del `try`,
+     * así que cualquier fallo pasa por el `catch`, que compensa y suelta el reclamo
+     * AL FINAL. Ver `reclamarMensaje` en `brainUsage.ts`.
      */
-    const cierraElBloque = !webSearch && (await bloqueDe(uid)).usadas === RESPUESTAS_POR_CREDIT - 1;
-    const creditsDelMensaje = webSearch || cierraElBloque ? price.credits : 0;
-    if (webSearch) {
-      spend = await creditEngine.spendCredits({
-        userId: uid,
-        service,
-        amount: price.credits,
-        requestId,
-        reason: 'Weë Brain · búsqueda',
-        source: 'weë-brain',
-        meta: { chatId: chatRef.id, estimatedUsd: price.usd, ...price.detail },
-      });
-      /*
-       * Este mensaje ya se cobró una vez y se DEVOLVIÓ: esa operación terminó sin cobro.
-       * Se rechaza aquí, ANTES de llamar al modelo: ni respuesta gratis ni coste del proveedor.
-       * Fuera del `try` de abajo a propósito: no hay nada que completar ni que devolver.
-       */
-      if (cobroYaCerradoSinCobro(spend)) throw new EngineError('DUPLICATE_REQUEST');
-    } else if (cierraElBloque) {
-      const saldo = await creditEngine.getBalance(uid);
-      if (saldo.balance < price.credits) {
-        throw new CreditError('INSUFFICIENT_CREDITS', 'No tienes suficientes Credits', {
-          required: price.credits,
-          available: saldo.balance,
-          service,
-        });
-      }
+    const reclamoRef = db.collection('brainUsage').doc(uid).collection('reclamos').doc(claveDelMensaje({ userId: uid, chatId: chatRef.id, messageId }));
+    const reclamo = await reclamarMensaje(db, { reclamo: reclamoRef, respuesta: messages.doc(`${messageId}_wee`) });
+    if (reclamo.estado === 'respondido') {
+      const dada = await respuestaYaDada();
+      if (dada) return dada;
     }
-
-    if (isNew) await chatRef.set({ userId: uid, title: message.slice(0, 60), messageCount: 0, createdAt: now(), updatedAt: now() });
-    await messages.doc(messageId).set(stripUndefined({ role: 'user', text: message, imageUrl, documentUrl, audioUrl, webSearch, createdAt: now() }));
-
-    /*
-     * ── ¿POR EL CORE, O POR DONDE SIEMPRE? ───────────────────────────────────
-     *
-     * Aquí y en ningún otro sitio. Es UNA decisión, antes de pensar, y de ella
-     * sale UN pensador: o el de siempre o el del conductor. Nunca los dos — dos
-     * caminos para el mismo mensaje serían dos llamadas al proveedor y dos
-     * veces su coste.
-     *
-     * La cuenta con la que se decide es la del PRINCIPAL autenticado
-     * (`request.auth.uid`). El cliente no la manda y no podría: lo que llegue en
-     * `data` no se mira para esto.
-     *
-     * Cerrada por defecto: sin configuración, con una que no se entiende, o si
-     * Firestore no contesta, esto contesta `legacy` y no cambia nada.
-     */
-    const capacidad: CapabilityId = webSearch ? 'text.search' : 'text.generate';
-    const puerta = decidirRuntime(await configuracionDeLaPuerta(db), { capability: capacidad, userId: uid, experienceId: EXPERIENCIA_DE_BRAIN });
-    const porElCore = puerta.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY;
+    if (reclamo.estado !== 'reclamado') throw new EngineError('DUPLICATE_REQUEST');
+    const intento = reclamo.intento;
+    /* La valla de los efectos de dinero de ESTE intento. */
+    const vigia = { ref: reclamoRef, intento };
 
     try {
+      /*
+       * ¿Le va a costar algo ESTE mensaje? Es la misma cuenta que hace `brainQuote`
+       * para enseñarle el precio a la persona antes de enviar: la búsqueda siempre
+       * cobra, y la conversación solo cuando la respuesta cierra el bloque de doce.
+       *
+       * Se calcula una vez y sirve para dos cosas: comprobar el saldo antes de
+       * llamar al modelo, y decirle al libro lo que de verdad se le cobra. Así lo
+       * que ve la persona, lo que se cobra y lo que queda anotado son el mismo número.
+       */
+      const cierraElBloque = !webSearch && (await bloqueDe(uid)).usadas === RESPUESTAS_POR_CREDIT - 1;
+      const creditsDelMensaje = webSearch || cierraElBloque ? price.credits : 0;
+      if (webSearch) {
+        spend = await creditEngine.spendCredits({
+          userId: uid,
+          service,
+          amount: price.credits,
+          requestId,
+          reason: 'Weë Brain · búsqueda',
+          source: 'weë-brain',
+          meta: { chatId: chatRef.id, estimatedUsd: price.usd, ...price.detail },
+        });
+        /*
+         * Este mensaje ya se cobró una vez y se DEVOLVIÓ: esa operación terminó sin cobro.
+         * Se rechaza aquí, ANTES de llamar al modelo: ni respuesta gratis ni coste del proveedor.
+         * (El Credit Engine de hoy ya lanza ALREADY_REFUNDED antes de llegar aquí.)
+         */
+        if (cobroYaCerradoSinCobro(spend)) throw new EngineError('DUPLICATE_REQUEST');
+      } else if (cierraElBloque) {
+        const saldo = await creditEngine.getBalance(uid);
+        if (saldo.balance < price.credits) {
+          throw new CreditError('INSUFFICIENT_CREDITS', 'No tienes suficientes Credits', {
+            required: price.credits,
+            available: saldo.balance,
+            service,
+          });
+        }
+      }
+
+      if (isNew) await chatRef.set({ userId: uid, title: message.slice(0, 60), messageCount: 0, createdAt: now(), updatedAt: now() });
+      await messages.doc(messageId).set(stripUndefined({ role: 'user', text: message, imageUrl, documentUrl, audioUrl, webSearch, createdAt: now() }));
+
+      /*
+       * ── ¿POR EL CORE, O POR DONDE SIEMPRE? ───────────────────────────────────
+       *
+       * Aquí y en ningún otro sitio. Es UNA decisión, antes de pensar, y de ella
+       * sale UN pensador: o el de siempre o el del conductor. Nunca los dos — dos
+       * caminos para el mismo mensaje serían dos llamadas al proveedor y dos
+       * veces su coste.
+       *
+       * La cuenta con la que se decide es la del PRINCIPAL autenticado
+       * (`request.auth.uid`). El cliente no la manda y no podría: lo que llegue en
+       * `data` no se mira para esto.
+       *
+       * Cerrada por defecto: sin configuración, con una que no se entiende, o si
+       * Firestore no contesta, esto contesta `legacy` y no cambia nada.
+       */
+      const capacidad: CapabilityId = webSearch ? 'text.search' : 'text.generate';
+      const puerta = decidirRuntime(await configuracionDeLaPuerta(db), { capability: capacidad, userId: uid, experienceId: EXPERIENCIA_DE_BRAIN });
+      const porElCore = puerta.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY;
+
       /*
        * ── QUIÉN PIENSA, Y POR QUÉ VIVE AQUÍ ────────────────────────────────────
        *
@@ -537,7 +568,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
         let fila: string | undefined;
         /*
          * La fila del libro se nombra como la nombraría el camino de siempre
-         * —`brain_<messageId>`, el chat y el mensaje—, no como la nombra el
+         * —`brain_<clave>`, el chat y el mensaje—, no como la nombra el
          * trabajo. Así una generación del canary y una de antes se comparan y se
          * suman sin traducir nada, que es justo lo que un canary necesita. Quién
          * la ejecutó de verdad sigue entero en `jobs/`.
@@ -705,9 +736,16 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * `requestId`, que es el mismo mensaje. Las dos puertas cierran el doble cobro.
        */
       if (!webSearch) {
-        const consumo = await contarRespuesta(uid, messageId);
-        contadaAqui = true;
-        if (consumo.cobrada) {
+        const consumo = await contarRespuesta(uid, operacion.clave, vigia);
+        contadaAqui = consumo.nueva;
+        /*
+         * B4-03 (2026-10-14): una respuesta de MUESTRA (el proveedor `mock`, sin IA real
+         * configurada) no se cobra, aunque cierre el bloque de doce. Sigue contando para el
+         * bloque, porque es una respuesta entregada; lo que no se cobra es el Credit.
+         */
+        if (consumo.cobrada && salida.demo !== true) {
+          /* La valla antes de cobrar: si otro intento tomó el reclamo, cobra él. */
+          if (!(await renovarReclamo(db, reclamoRef, intento))) throw new ReclamoPerdido();
           let cobroDelBloque: { amount: number; duplicate: boolean; status?: string };
           try {
             cobroDelBloque = await creditEngine.spendCredits({
@@ -725,7 +763,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
              * entre la comprobación y el cobro). Se devuelve el bloque a donde
              * estaba: ni doce respuestas regaladas, ni nadie atascado en el 12.
              */
-            await deshacerRespuesta(uid, messageId).catch((e) => console.error('Weë Brain: no se pudo deshacer el bloque', messageId, e));
+            if (consumo.nueva) await deshacerRespuesta(uid, operacion.clave, vigia).catch((e) => console.error('Weë Brain: no se pudo deshacer el bloque', messageId, e));
             throw error;
           }
           /*
@@ -741,11 +779,25 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
           spend = cobroDelBloque;
         }
       }
+      /*
+       * B4-03: la búsqueda se reservó POR ADELANTADO. Si la respuesta resulta ser de muestra,
+       * la reserva entera se devuelve: nada se cobra, y el libro queda a 0 (como un fallo).
+       */
+      if (webSearch && salida.demo === true && spend && !spend.duplicate) {
+        await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Brain · respuesta de muestra, no se cobra', source: 'weë-brain' });
+        await firestoreLedger
+          .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
+          .catch((error) => console.error('Weë Brain: no se pudo liquidar el libro', requestId, error));
+        spend = null;
+      }
       const credits = !spend || spend.duplicate ? 0 : spend.amount;
+      /* La valla antes de entregar: un intento que ya no es dueño no escribe la respuesta. */
+      if (!(await renovarReclamo(db, reclamoRef, intento))) throw new ReclamoPerdido();
       await messages.doc(`${messageId}_wee`).set(
         stripUndefined({ role: 'wee', text: parsed.text, sources, suggestedExperience, credits, generationId: salida.generationId, demo: salida.demo, webSearch, createdAt: now() })
       );
       entregada = true;
+      await soltarMensaje(db, reclamoRef, intento, 'respondido').catch((e) => console.error('Weë Brain: no se pudo cerrar el reclamo', messageId, e));
       await chatRef.set(
         { updatedAt: now(), messageCount: FieldValue.increment(2), lastMessage: parsed.text.slice(0, 120), ...(history.length === 0 ? { title: message.slice(0, 60) } : {}) },
         { merge: true }
@@ -793,10 +845,20 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * atrapa lo que lance el pensador y lo sustituye por otro, así que
        * preguntarle al error que llega sería preguntarle al mensajero.
        */
+      /*
+       * ¿Sigue siendo MÍO el reclamo? Si otro intento lo tomó (este se quedó colgado más
+       * allá del plazo), este no deshace, no devuelve y no completa nada: lo que haya que
+       * hacer con esa operación lo hace el dueño actual (A-02, M-3).
+       */
+      const sigueSiendoMio = error instanceof ReclamoPerdido ? false : await renovarReclamo(db, reclamoRef, intento).catch(() => false);
+      if (!sigueSiendoMio) {
+        console.warn(`WEË BRAIN · reclamo perdido: este intento no compensa nada: requestId=${requestId}`);
+        throw error instanceof ReclamoPerdido ? new EngineError('DUPLICATE_REQUEST') : error;
+      }
       const devolverEsSeguro = !falloDelConductor || falloDelConductor.reembolsoSeguro;
       const cobro = queHacerConElCobro({ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui, cerradoSinCobro });
       if (cobro.deshacerBloque) {
-        await deshacerRespuesta(uid, messageId).catch((e) => console.error('Weë Brain: no se pudo deshacer el bloque', messageId, e));
+        await deshacerRespuesta(uid, operacion.clave, vigia).catch((e) => console.error('Weë Brain: no se pudo deshacer el bloque', messageId, e));
       }
       if (spend && cobro.completar) {
         /* La respuesta ya está en la conversación: es de la persona, y lo que se cobró se queda cobrado. */
@@ -814,6 +876,11 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
         /* Ni se devuelve ni se liquida: la reserva sigue autorizada y quien termine de verdad la cerrará. */
         console.warn(`WEË BRAIN · reserva intacta (reembolso no seguro): requestId=${requestId} motivo=${falloDelConductor?.motivo ?? 'desconocido'}`);
       }
+      /*
+       * El reclamo se suelta AL FINAL, cuando ya se deshizo el bloque y se devolvió lo que
+       * tocaba: ningún reintento cabe en medio de la compensación (A-02, M-2).
+       */
+      if (!entregada) await soltarMensaje(db, reclamoRef, intento, 'fallido').catch((e) => console.error('Weë Brain: no se pudo soltar el reclamo', messageId, e));
       throw error;
     }
   } catch (error) {

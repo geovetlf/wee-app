@@ -100,7 +100,7 @@ console.log('\n── A · Repetir un mensaje ya REEMBOLSADO no lo contesta grat
   check('7) conversación (cobro tras generar): no se guarda la respuesta, se marca y se dice DUPLICATE_REQUEST',
     conversacion > 0 && conversacion < BRAIN.indexOf('await messages.doc(`${messageId}_wee`).set('));
   check('8) y el `catch` recibe la marca: deshace el bloque contado y no completa ni reembolsa',
-    /const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui, cerradoSinCobro \}\);\s*if \(cobro\.deshacerBloque\) \{\s*await deshacerRespuesta\(uid, messageId\)/.test(BRAIN));
+    /const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui, cerradoSinCobro \}\);\s*if \(cobro\.deshacerBloque\) \{\s*await deshacerRespuesta\(uid, operacion\.clave, vigia\)/.test(BRAIN));
 
   /* El motor de hoy ya lanza ALREADY_REFUNDED ante ese duplicado: lo de arriba es la regla de Brain, no un parche del motor. */
   const { createCreditEngine } = lib('credits/creditEngine.js');
@@ -333,7 +333,7 @@ console.log('\n── G · El aviso del Router por un fallo de proveedor va sane
   const config = {
     providers: { alfa: { enabled: true, priority: 1 }, beta: { enabled: true, priority: 2 } },
     routing: { 'video.generate': { capability: 'video.generate', chain: [{ provider: 'alfa' }, { provider: 'beta' }], policy: 'quality-first' } },
-    settings: { ...DEFAULT_SETTINGS }, source: 'test',
+    settings: { ...DEFAULT_SETTINGS, videoHabilitado: true }, source: 'test', // Línea B · X2: aquí se prueba el aviso con el vídeo encendido
   };
   const router = createRouter({ adapters: { alfa: proveedor('alfa', true), beta: proveedor('beta', false) }, loadConfig: async () => config, ledger: memoryLedger(), health: memoryHealth(() => Date.now()), now: () => Date.now() });
   const r = await capturarRegistro(() => router.execute({ capability: 'video.generate', input: { prompt: 'Lima' }, userId: 'u1', jobId: 'j1', stepId: 's1' }));

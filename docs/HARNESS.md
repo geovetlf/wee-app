@@ -27,7 +27,7 @@ espera al dueño). Qué frontera del código vive dónde y si está conectada: [
 | `.github/workflows/ci.yml` | La CI en tres niveles (cuatro checks): TypeScript y build · suites y emuladores `demo-*` · seguridad y políticas | Local (GitHub) |
 | `scripts/ci-local.mjs` | La MISMA CI, aquí: lee `ci.yml` y ejecuta sus pasos (`--plan`, `--nivel`) | Local |
 | `scripts/ci-sin-secretos.mjs` | Para la CI si el entorno trae una clave, una credencial de Google o un proyecto real | Local |
-| `scripts/escaneo-secretos.mjs` | Ningún secreto en los archivos versionados; nunca imprime un valor | Local |
+| `scripts/escaneo-secretos.mjs` | Ningún secreto en los archivos versionados; nunca imprime un valor (solo su huella); lo que admite se fija por la huella del VALOR, no por el tipo de clave | Local |
 | `functions/test/_emuladores.mjs` | Las suites de emulador, cada una en su sesión, solo con proyectos `demo-*` | Local |
 | `.claude/settings.json` + `.claude/hooks/guardia.mjs` | La guardia de Claude: lo que Claude no ejecuta nunca (desplegar, leer secretos, IAM…) | Local |
 | `ops/permitido.mjs` | No desplegar un commit que no contiene lo que está vivo (por ascendencia) | Local |
@@ -103,8 +103,38 @@ dice, con su fuente exacta (archivo y línea, regla o ruta JSON), lo que hay que
   regresiones de registro (extensiones de F3, pasos de la CI, suites que salen de la cadena).
 - **Sin ruido y sin inventar:** un hallazgo por hecho, tope por nivel (lo que no cabe se lista en `omitidos`); un
   nombre ambiguo o demasiado amplio no se atribuye, y una ruta que no conoce nadie no produce nada.
-- **Informa; no bloquea:** sale 0 con cualquier informe y 2 si la entrada no vale. Las puertas siguen siendo G3 y la
-  CI. JSON canónico (`wee-guardian@1`) y texto que sale de él. Sin Claude Code (Node y git) y fuera de `functions/src`.
+- **Por defecto informa; no bloquea:** sale 0 con cualquier informe y 2 si algo falla. JSON canónico (`wee-guardian@1`)
+  y texto que sale de él. Sin Claude Code (Node y git) y fuera de `functions/src`.
+- **Modo estricto (WEE Motor Guardian, fase 1 — propuesta en la rama `guardian/fase-1`):** con `--estricto
+  [--bloquear p1,p2]` es una puerta: 0 PASA · 1 BLOQUEA (CRITICAL de `hallazgos` u `omitidos` cuyo id empieza por un
+  prefijo; sin `--bloquear`, cualquiera) · 2 entrada · 3 fallo interno; el informe lleva `veredicto`.
+  `ops/harness/guardian-estricto.mjs` lo ejecuta con tiempo máximo y solo da verde si código, JSON y veredicto
+  recalculado coinciden (Node sale 1 si un módulo no carga). Lo usan el paso «Build Guardian (modo bloqueante)» del
+  Nivel 3 (`ops/harness/guardian-ci.mjs`, criterio `POLITICA_CI`: `g3:`, `registro:`, `guardia:`, `exports:`,
+  `ruta-protegida:deny`) y los hooks propuestos `.claude/hooks/guardian-post-edit.mjs` (PostToolUse) y
+  `guardian-stop.mjs` (Stop), sin registrar (`ops/harness/propuesta-settings-guardian.json`). Lo fijan
+  `guardian-bloqueante.test.mjs` y `guardian-hooks.test.mjs`.
+- **Autoprotección (verificación desde la base):** si el diff toca las protecciones del propio Guardian
+  (`PROTECCIONES_PROPIAS`), el paso de CI ejecuta además el paso de CI **de la base** (`ops/harness/guardian-base.mjs`,
+  copia temporal sacada con `git show`, su política y su guardia) sobre el mismo diff y manda el peor resultado
+  (FALLO > BLOQUEA > PASA). Si la base aún no tiene el Guardian estricto, queda «NO DISPONIBLE» y se dice. No protege
+  su propio camino (`guardian-ci.mjs`, `guardian-base.mjs`, `ci.yml`): eso solo lo para una revisión humana
+  (CODEOWNERS + protección de rama, configuración remota del dueño). Hoy el ruleset de `main` exige PR y los 4
+  niveles de CI, pero con `require_code_owner_review: false` y 0 aprobaciones: sin cambiar eso, un CODEOWNERS no
+  protege nada, y un PR que modifique a la vez el Guardian, `guardian-base.mjs`, `guardian-ci.mjs` y `ci.yml` (o que
+  simplemente quite el paso) puede saltarse toda la autoprotección.
+- **Política propia (`ops/harness/guardian-politica.json`, contrato `wee-guardian-politica@1`):** la única tabla del
+  Guardian; corrige cuatro fallos MEDIDOS sin añadir categorías. (1) `registro:ci:<trabajo>:<paso>:neutralizado`
+  (CRITICAL): un paso que conserva su nombre y pasa a taparse el fallo (`|| true`, `|| :`, `|| exit 0`, `|| echo`,
+  `set +e`; cuenta que aumenta). (2) `ruta-protegida:deny` también para `.env`, `.env.*` (salvo `.example`/`.sample`/
+  `.template`) y `*serviceAccountKey*.json`, en cualquier carpeta. (3) Un `.md` que la guardia niega solo por el nombre
+  (`gha-creds-`, `service-account`) y que settings.json no niega pasa a IMPORTANT `ruta-protegida:nombre-en-documentacion`
+  (la guardia sigue negando a Claude tocarlo). (4) Una suite fuera de la cadena «sigue» solo si está en el índice Y en el
+  disco: un borrado sin preparar ya no bloquea el Stop. Una sección rota, o una carpeta donde debería estar la suite, es
+  FALLO (3). Siguen sin cubrir (OBSERVACIÓN): `continue-on-error: true` o `if: false` en un paso o trabajo que conserva
+  su nombre y su orden (`trabajos()` de ci-local no lee esas claves); renombrar el paso a la vez ya bloquea como
+  «desaparece un paso». Lo fija
+  `guardian-bloqueante.test.mjs` §G (41-53).
 
 ## Hillclimb (F6)
 

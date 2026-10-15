@@ -417,7 +417,8 @@ console.log('\n── I · El ejecutor del motor: errores reales, adaptadores fa
   const lanza = (e) => async () => { throw e; };
   const lento = () => new Promise(() => {});
 
-  const settings = registroMotor.DEFAULT_SETTINGS;
+  /* Línea B · X2: el ejecutor del motor se prueba con el vídeo encendido (el apagado, en linea-b-finanzas). */
+  const settings = { ...registroMotor.DEFAULT_SETTINGS, videoHabilitado: true };
   const gatewayCon = (adapters, config = { providers: {}, settings }) => core.crearGateway({
     registry: core.crearRegistro(composicion.datosDelRegistro(adapters, config.providers)),
     executor: motor.crearEjecutorDelMotor({ adapters, config: () => config, now }),

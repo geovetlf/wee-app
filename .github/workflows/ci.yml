@@ -155,10 +155,16 @@ jobs:
       # alta o bloqueante y con lo REAPARECIDO (G3). Sin IA, sin red, unos segundos.
       - name: Revisión determinista (puertas G0 y G3)
         run: node ops/revision/baseline.mjs --md revision-determinista.md
+      # Build Guardian (F5) en modo bloqueante sobre el diff de este cambio (base: la del PR, el `before` del push o el
+      # merge-base con origin/main; se lee de GITHUB_EVENT_PATH, sin expresiones). Bloquea solo los CRITICAL de
+      # POLITICA_CI (G3, registros de puertas, scripts que la guardia negaría, exports vivos que se pierden, rutas de
+      # secretos); los demás CRITICAL se listan. Un Guardian roto, sin base o fuera de tiempo es FALLO (salida 3), no verde.
+      - name: Build Guardian (modo bloqueante)
+        run: node ops/harness/guardian-ci.mjs
       - name: Políticas
         run: |
           fallos=0
-          for suite in escaneo-secretos guardia-claude entrega-configuracion produccion-mapa despliegue-workflow rotacion-secretos emulador-aislado ci-workflow credits-cliente-cerrado integracion-preparada capacidades-conservadas wif-verificar proteccion-github app-check cabeceras-seguridad revision-detectores revision-baseline revision-revisores evals-router evals-gobernanza evals-dominios evals-presupuesto evals-corredor; do
+          for suite in escaneo-secretos guardia-claude guardia-vigente guardia-rodeos entrega-configuracion produccion-mapa despliegue-workflow rotacion-secretos emulador-aislado ci-workflow credits-cliente-cerrado integracion-preparada capacidades-conservadas wif-verificar proteccion-github app-check cabeceras-seguridad revision-detectores revision-baseline revision-revisores evals-router evals-gobernanza evals-dominios evals-presupuesto evals-corredor guardian-bloqueante guardian-hooks guardian-base-workflow; do
             node "functions/test/$suite.test.mjs" > "politica-$suite.log" 2>&1 && echo "✔ $suite" || { echo "✘ $suite"; tail -20 "politica-$suite.log"; fallos=1; }
           done
           exit $fallos

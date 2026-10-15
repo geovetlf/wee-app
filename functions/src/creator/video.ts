@@ -4,7 +4,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { assertText, EngineError, toEngineHttpsError } from '../engine/errors';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
-import { chooseSeedanceModel, normalizeVideoRequest, videoEngine, VideoModelPreference, VideoQuality, VideoRequest } from '../engine/video';
+import { asegurarVideoPermitido, chooseSeedanceModel, hayVideoReal, normalizeVideoRequest, videoApagado, videoEngine, VideoModelPreference, VideoQuality, VideoRequest } from '../engine/video';
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId } from '../credits/creditValidation';
 import { priceVideo } from '../credits/aiPricing';
@@ -378,6 +378,16 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     const { settings } = await loadConfig();
 
     /*
+     * EL INTERRUPTOR DEL VÍDEO (X2), antes de todo lo demás: antes del cupo, de
+     * la reserva y del proveedor, y por los dos caminos (el de siempre y el Core).
+     * Una cotización de Filmmaker contesta «no» con su motivo; lo demás, «no disponible».
+     */
+    if (videoApagado(settings) && hayVideoReal()) {
+      if (cotizar && deToma) return { status: 'QUOTED', allowed: false, reason: 'video_disabled', takes: await estadoDeLaToma(deToma) };
+      asegurarVideoPermitido(settings);
+    }
+
+    /*
      * ── LA PUERTA ────────────────────────────────────────────────────────────
      *
      * Una sola decisión, cerrada por defecto, y con la cuenta del PRINCIPAL
@@ -679,6 +689,14 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
 
     try {
       const result = await videoEngine.generate(videoRequest, { userId: uid, experienceId: 'studio', goal: prompt, requestId, service, creditTransactionId: usageTransactionId(requestId), deadlineAt });
+      if (result.demo) {
+        /* Un vídeo de muestra no se cobra (B4-03): se entrega y la reserva se devuelve entera (con un concepto que ya está en el catálogo de movimientos). */
+        await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Reembolso por generación fallida', source: 'weë-studio' });
+        await firestoreLedger
+          .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
+          .catch((error) => console.error('Weë Studio: no se pudo liquidar el libro', requestId, error));
+        return { generationId: result.generationId, assetId: null, url: result.output.url, durationSec: result.output.durationSec ?? null, credits: 0, demo: true, status: 'COMPLETED', duplicate: false };
+      }
       await getFirestore().collection('aiGenerations').doc(result.generationId).set({ videoUrl: result.output.url }, { merge: true });
       /*
        * EL VÍDEO PASA A SER MATERIAL DE LA CUENTA. Antes, un vídeo de Weë Studio

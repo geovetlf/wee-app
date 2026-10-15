@@ -1,0 +1,31 @@
+{
+  "_nota": "Lo que scripts/prelanzamiento.mjs exige para dar PASA. Cada valor es una decisión: si el dueño decide otra cosa, se cambia AQUÍ (en un PR), no en el script. docs/LANZAMIENTO.md § Comprobaciones previas.",
+  "proyecto": "get-wee",
+  "region": "us-central1",
+  "precios": {
+    "pricingMode": "simulated",
+    "allowMockFallback": false,
+    "_porque": "pricingMode: no se inventan precios hasta medir el coste real (CLAUDE.md §6). allowMockFallback=false: con él encendido, una capacidad sin proveedor real responde en modo demo y se cobra a precio de catálogo (B4-03, P0 condicional). Si D9 decide no cobrar lo demo de otra forma, cambiar aquí."
+  },
+  "interruptores": {
+    "iaDetenida": false,
+    "video": "apagado",
+    "_porque": "video=apagado es la mitigación mínima de X2 (P0): el vídeo legacy reembolsa mientras ModelArk sigue cobrando. Si el alcance (D-alcance) lanza vídeo con el camino asíncrono, cambiar a «encendido»."
+  },
+  "capacidadesDeVideo": ["video.generate", "video.image_to_video", "video.reference", "video.compose"],
+  "costes": {
+    "maxUsdPerDayObligatorio": true,
+    "_porque": "Sin tope diario el gasto de proveedor no tiene techo (aiSettings/global.maxUsdPerDay)."
+  },
+  "appCheck": {
+    "funcionesObligatorio": false,
+    "serviciosPermitidos": ["OFF", "UNENFORCED"],
+    "_porque": "docs/SECURITY.md § App Check: primero medir (>90 % de peticiones verificadas), después exigir. Exigirlo antes deja fuera a todo el mundo."
+  },
+  "copias": {
+    "pitr": true,
+    "proteccionDeBorrado": true,
+    "copiaProgramada": true,
+    "_porque": "E5-15 (P1): PITR apagado; la copia diaria está configurada."
+  }
+}
