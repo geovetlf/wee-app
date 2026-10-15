@@ -19,8 +19,23 @@ node scripts/prelanzamiento.mjs --json         # además, el resultado en JSON p
 ```
 
 Once puntos. Cada uno da **PASA** o **FALLA**. En local, dos dan **SOLO-PRODUCCION**: no hay forma honrada de
-saberlos sin el proyecto, y no se dan por buenos. Sale con **1** si alguno FALLA y con **2** si no puede empezar
-(falta `functions/lib`).
+saberlos sin el proyecto, y no se dan por buenos. En producción, un punto que no se pudo **leer** da
+**NO-VERIFICABLE** —ni PASA (no se vio) ni FALLA (no se sabe que esté mal)— y dice por qué:
+
+| Clase de la lectura | Qué es | Cómo se arregla | ¿Hallazgo sobre WEE? |
+|---|---|---|---|
+| autenticación (401) | la sesión no vale para ese servicio | `gcloud auth login` | No |
+| permisos (403) | la cuenta activa no puede leerlo; el informe nombra el permiso exacto | darle el permiso, o usar otra cuenta | No |
+| servicio (5xx, sin red, tiempo) | el servicio no respondió | reintentar | No |
+| no existe (404) | el recurso no existe | — | **Sí** (FALLA) |
+
+Sale con **1** si alguno FALLA, con **3** si ninguno FALLA pero alguno es NO-VERIFICABLE (una producción que no se ha
+visto entera no está «bien»), con **0** solo si todo se vio y es conforme, y con **2** si no puede empezar (falta
+`functions/lib`). Un error del propio script nunca se disfraza de «no verificable»: FALLA.
+
+El **valor** de una clave no se lee nunca. «Claves montadas» mira el nombre, que el secreto exista y el estado de su
+versión más reciente (metadatos), y dice expresamente que **no** ha comprobado que la clave funcione: eso exige una
+llamada al proveedor, que esta herramienta no hace.
 
 | Punto | Local | `--produccion` (solo lectura) |
 |---|---|---|
@@ -110,13 +125,32 @@ node ops/observabilidad/verificar.mjs                    # después: ¿todo exis
 Cómo se protege `aplicar.mjs`:
 - **Aplicar exige tres cosas**: `--aplicar`, el proyecto escrito otra vez y un canal de ese proyecto. Si no ha
   podido leer lo que hay, no aplica.
-- **Nunca borra.**
+- **`--aplicar` nunca borra.** Quitar lo que creó es otro modo, `--retirar`, con sus propias cerraduras (abajo).
 - **Una política que se actualiza conserva sus canales.** Un `update` con archivo reemplaza la política entera, y
   sin canales dejaría de avisar.
 - **Cada `create`/`update` va a una carpeta temporal**, no al repositorio.
 
 Lo fija `functions/test/observabilidad-lanzamiento.test.mjs` con un ejecutor falso: sin `--aplicar` solo corre
 `list`.
+
+**Retirar (la marcha atrás de aplicar).** `--retirar` quita lo que `--aplicar` creó, y solo eso. Simula por defecto.
+
+```
+node ops/observabilidad/aplicar.mjs --retirar                                          # simula: enseña lo que borraría (solo list)
+node ops/observabilidad/aplicar.mjs --retirar --ejecutar --confirmo-proyecto get-wee   # lo ejecuta
+node ops/observabilidad/verificar.mjs                                                  # después: debe decir que faltan
+```
+
+- **Solo borra lo versionado aquí**: una política o una métrica con el nombre exacto; una comprobación o el panel con el nombre
+  **y** la misma forma. Algo que se parece pero no es lo mismo (otra ruta en el mismo host, otro número de mosaicos) se deja y
+  se avisa `revisar-a-mano`. Nunca borra un canal de aviso (no lo creó este código) ni nada de otro equipo.
+- **Orden de dependencias**: primero las políticas (usan las métricas), luego comprobaciones y panel, y las métricas al final.
+- **Ejecutar exige `--ejecutar` y el proyecto escrito otra vez**; `--aplicar` y `--retirar` no se combinan; y si no pudo leer lo
+  que hay, no borra nada (sale 2).
+- **Idempotente**: repetirla sobre un proyecto ya vacío no ejecuta ningún borrado; si un borrado falla, sale 1 y repetirla
+  acaba lo que faltaba.
+- Lo fija `functions/test/observabilidad-retirada.test.mjs`: ejecuta **aplicar → retirar → aplicar** contra un Google Cloud
+  simulado (el proyecto queda vacío y vuelve a quedar igual) y los casos peligrosos (recursos ajenos, lectura imposible, orden).
 
 **Coste.** Son 2 condiciones más. `log_entry_count` es gratis. Las dos métricas nuevas tienen poca cardinalidad:
 un valor de etiqueta por proveedor.
@@ -267,6 +301,7 @@ del grupo `g1-cambio-minimo`, con un cambio sin efecto. Anota la revisión, el t
 | `functions/test/observabilidad-lanzamiento.test.mjs` | Forma de las alertas nuevas; versionado sin deriva; que `aplicar.mjs` solo lee sin `--aplicar` y exige proyecto y canal; sondas con datos de ejemplo |
 | `functions/test/correlacion-logs.test.mjs` | requestId/jobId/traceId de la petición al libro y al log; logs sin credenciales, prompt ni correo; los huecos de §2 |
 | `functions/test/desactivacion-selectiva.test.mjs` | Los interruptores de §3 contra el router compilado, las dos trampas y la coincidencia con el prelanzamiento |
-| `functions/test/prelanzamiento.test.mjs` | La cerradura de solo lectura, el modo local real y el modo producción contra una producción simulada |
+| `functions/test/prelanzamiento.test.mjs` | La cerradura de solo lectura, los lectores reales (la sesión que manda, la clase de cada fallo y el permiso que falta, sin gcloud ni red), el modo local real y el modo producción contra una producción simulada |
+| `functions/test/observabilidad-retirada.test.mjs` | La marcha atrás de las alertas: aplicar → retirar → aplicar sobre un Google Cloud simulado; no toca nada ajeno; orden; cerraduras; fallos |
 
-Las cuatro están en la cadena de `npm test`. No necesitan red, credenciales ni emuladores.
+Las cinco están en la cadena de `npm test`. No necesitan red, credenciales ni emuladores.

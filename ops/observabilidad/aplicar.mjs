@@ -8,6 +8,13 @@
  *   node ops/observabilidad/aplicar.mjs --vivo <instantanea.json>        # simula contra una lectura guardada (sin red)
  *   node ops/observabilidad/aplicar.mjs --aplicar --confirmo-proyecto get-wee --canal projects/get-wee/notificationChannels/<ID>
  *
+ *   node ops/observabilidad/aplicar.mjs --retirar                        # simula la RETIRADA (la marcha atrás): lo que borraría, sin ejecutarlo
+ *   node ops/observabilidad/aplicar.mjs --retirar --ejecutar --confirmo-proyecto get-wee   # la ejecuta
+ *
+ * La retirada solo borra lo que ESTE código creó (nombre exacto y, en comprobaciones y panel, la misma forma), primero las políticas y
+ * las métricas al final; nunca un canal de aviso ni nada ajeno; y si no pudo leer lo que hay, no borra nada. Lo fija
+ * functions/test/observabilidad-retirada.test.mjs, que ejecuta aplicar → retirar → aplicar contra un Google Cloud simulado.
+ *
  * Aplicar exige las TRES cosas: `--aplicar`, el nombre del proyecto escrito otra vez y el canal de aviso (una alerta
  * sin canal no avisa a nadie). Solo crea o actualiza; nunca borra nada que haya en el proyecto y no esté aquí.
  * Decisión del dueño (2026-10-14): NO se aplica a producción desde Claude; este es el comando que lo hace él.
@@ -135,6 +142,65 @@ export const ordenesDelPlan = (acciones, { canal = '<CANAL>' } = {}) => {
   return { ordenes, archivos };
 };
 
+/**
+ * PURA: la RETIRADA de lo que este código creó (la marcha atrás de `--aplicar`). Solo toca recursos que SON los versionados aquí:
+ * una métrica o una política con el nombre exacto, y una comprobación o el panel con el nombre Y la misma forma. Lo que se parece pero
+ * no es lo mismo se deja y se avisa (`revisar-a-mano`); lo que no se pudo leer no se toca (`desconocido`); lo que ya no está se
+ * dice (`ausente`). Nunca borra un canal de aviso (no lo creó este código) ni nada que no esté en ops/observabilidad/.
+ *
+ * El orden es el de las dependencias: primero las políticas (usan las métricas), luego las comprobaciones y el panel, y las métricas
+ * al final. Si una métrica se borrara antes que la política que la usa, la política quedaría con una condición rota.
+ */
+export const planDeRetirada = (vivo) => {
+  const acciones = [];
+  const lista = (clave) => (Array.isArray(vivo[clave]) ? vivo[clave] : null);
+  const desconocido = (recurso, nombre) => acciones.push({ recurso, nombre, accion: 'desconocido', cambios: ['no se pudo leer'] });
+
+  const politicas = lista('politicas');
+  for (const [clave, p] of Object.entries(politicasDeseadas())) {
+    if (!politicas) { desconocido('politica', clave); continue; }
+    const v = politicas.find((x) => x.displayName === p.displayName);
+    acciones.push(v ? { recurso: 'politica', nombre: clave, accion: 'retirar', cambios: [], viva: v.name } : { recurso: 'politica', nombre: clave, accion: 'ausente', cambios: [] });
+  }
+
+  const comprobaciones = lista('comprobaciones');
+  for (const c of COMPROBACIONES) {
+    if (!comprobaciones) { desconocido('comprobacion', c.id); continue; }
+    const v = comprobaciones.find((x) => x.monitoredResource && x.monitoredResource.labels && x.monitoredResource.labels.host === c.host);
+    if (!v) { acciones.push({ recurso: 'comprobacion', nombre: c.id, accion: 'ausente', cambios: [] }); continue; }
+    /* Una comprobación del mismo host que mira otra cosa NO es la que creó este código: no se borra. */
+    const igual = ((v.httpCheck && v.httpCheck.path) || '/') === c.ruta && ((v.httpCheck && v.httpCheck.acceptedResponseStatusCodes) || []).some((x) => x.statusValue === c.codigo);
+    acciones.push(igual ? { recurso: 'comprobacion', nombre: c.id, accion: 'retirar', cambios: [], viva: v.name } : { recurso: 'comprobacion', nombre: c.id, accion: 'revisar-a-mano', cambios: ['no es la que crea este código'] });
+  }
+
+  const paneles = lista('paneles');
+  if (!paneles) desconocido('panel', PANEL.displayName);
+  else {
+    const v = paneles.find((x) => x.displayName === PANEL.displayName);
+    const mismaForma = v && json(v.mosaicLayout && v.mosaicLayout.tiles && v.mosaicLayout.tiles.length) === json(PANEL.mosaicLayout.tiles.length);
+    acciones.push(!v ? { recurso: 'panel', nombre: PANEL.displayName, accion: 'ausente', cambios: [] }
+      : mismaForma ? { recurso: 'panel', nombre: PANEL.displayName, accion: 'retirar', cambios: [], viva: v.name }
+        : { recurso: 'panel', nombre: PANEL.displayName, accion: 'revisar-a-mano', cambios: ['no es el que crea este código'] });
+  }
+
+  const metricas = lista('metricas');
+  for (const m of metricasDeseadas()) {
+    if (!metricas) { desconocido('metrica', m.name); continue; }
+    acciones.push(metricas.some((x) => ultimo(x.name) === m.name) ? { recurso: 'metrica', nombre: m.name, accion: 'retirar', cambios: [] } : { recurso: 'metrica', nombre: m.name, accion: 'ausente', cambios: [] });
+  }
+  return acciones;
+};
+
+/** PURA: las órdenes de gcloud que ejecutaría la retirada, en el orden del plan. Solo acepta acciones `retirar`: nada más se borra. */
+export const ordenesDeRetirada = (acciones) => acciones.map((a) => {
+  if (a.accion !== 'retirar') throw new Error(`solo se retira lo que el plan marca «retirar», no «${a.accion}» (${a.recurso} ${a.nombre})`);
+  if (a.recurso === 'politica') return ['beta', 'monitoring', 'policies', 'delete', a.viva, P, '--quiet'];
+  if (a.recurso === 'comprobacion') return ['monitoring', 'uptime', 'delete', a.viva, P, '--quiet'];
+  if (a.recurso === 'panel') return ['monitoring', 'dashboards', 'delete', a.viva, P, '--quiet'];
+  if (a.recurso === 'metrica') return ['logging', 'metrics', 'delete', a.nombre, P, '--quiet'];
+  throw new Error(`recurso desconocido en la retirada: ${a.recurso}`);
+});
+
 /** Las únicas órdenes que se ejecutan sin `--aplicar`: las de verificar.mjs (todas `list`). */
 export const ORDENES_DE_LECTURA = Object.freeze(Object.values(LECTURAS));
 const esLectura = (args) => ORDENES_DE_LECTURA.some((l) => json(l) === json(args));
@@ -148,12 +214,49 @@ const valor = (argv, k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i +
 const linea = (a) => `${a.accion.padEnd(15)} ${a.recurso.padEnd(12)} ${a.nombre}${a.cambios.length ? `  (${a.cambios.join(', ')})` : ''}`;
 
 /**
+ * La RETIRADA (la marcha atrás de `--aplicar`). Por defecto SIMULA: enseña qué borraría. Para ejecutarla hacen falta `--ejecutar` y el
+ * nombre del proyecto escrito otra vez. Devuelve el código de salida: 0 bien (o nada que retirar), 1 alguna orden falló, 2 uso
+ * incorrecto o lectura imposible (no se borra nada sin haber podido ver lo que hay).
+ */
+const retirada = (vivo, argv, { ejecutar, log }) => {
+  const ejecutarDeVerdad = argv.includes('--ejecutar');
+  const plan = planDeRetirada(vivo);
+  log(`# Weë · alertas como código — ${ejecutarDeVerdad ? 'RETIRAR' : 'SIMULACIÓN DE LA RETIRADA (no se cambia nada)'} sobre ${PROYECTO}\n`);
+  for (const a of plan) log(linea(a));
+  const retirables = plan.filter((a) => a.accion === 'retirar');
+  const desconocidas = plan.filter((a) => a.accion === 'desconocido');
+  const ordenes = ordenesDeRetirada(retirables);
+  log(`\n${retirables.length} por retirar · ${plan.filter((a) => a.accion === 'ausente').length} ya ausentes · ${plan.filter((a) => a.accion === 'revisar-a-mano').length} a revisar a mano (no se tocan) · ${desconocidas.length} sin poder leer`);
+
+  if (!ejecutarDeVerdad) {
+    if (ordenes.length) {
+      log('\n# Lo que haría --retirar --ejecutar (no se ejecuta):');
+      for (const o of ordenes) log(`gcloud ${o.join(' ')}`);
+    }
+    return desconocidas.length ? 2 : 0;
+  }
+  if (valor(argv, '--confirmo-proyecto') !== PROYECTO) { log(`\n✘ Para retirar, escribe el proyecto otra vez: --confirmo-proyecto ${PROYECTO}`); return 2; }
+  if (desconocidas.length) { log('\n✘ No se retira sin haber podido leer lo que hay: no se sabría qué se borra.'); return 2; }
+
+  let fallos = 0;
+  for (const o of ordenes) {
+    const r = ejecutar(o);
+    log(`${r.status === 0 ? '✔' : '✘'} gcloud ${o.join(' ')}${r.status === 0 ? '' : ` — ${plano(r.stderr).slice(0, 300)}`}`);
+    if (r.status !== 0) fallos++;
+  }
+  log(fallos ? `\n✘ ${fallos} orden(es) fallaron` : '\n✔ retirado. Comprueba: node ops/observabilidad/verificar.mjs (debe decir que faltan: ya no existen)');
+  return fallos ? 1 : 0;
+};
+
+/**
  * El programa, con el ejecutor inyectable (las pruebas le pasan uno falso y comprueban que, sin `--aplicar`, solo
  * corre `list`). Devuelve el código de salida: 0 bien (o nada que hacer), 1 alguna orden falló, 2 uso incorrecto o
  * lectura imposible.
  */
 export const principal = (argv, { ejecutar = gcloud, log = console.log, dirTemporal } = {}) => {
   const aplicar = argv.includes('--aplicar');
+  const retirar = argv.includes('--retirar');
+  if (aplicar && retirar) { log('✘ --aplicar y --retirar no se combinan: una cosa o la otra.'); return 2; }
   let vivo;
   if (argv.includes('--sin-leer')) vivo = { metricas: [], politicas: [], comprobaciones: [], paneles: [] };
   else if (valor(argv, '--vivo')) vivo = JSON.parse(fs.readFileSync(valor(argv, '--vivo'), 'utf8'));
@@ -165,6 +268,7 @@ export const principal = (argv, { ejecutar = gcloud, log = console.log, dirTempo
       try { vivo[k] = r.status === 0 ? JSON.parse(r.stdout || '[]') : null; } catch { vivo[k] = null; }
     }
   }
+  if (retirar) return retirada(vivo, argv, { ejecutar, log });
   const plan = planificar(vivo);
   log(`# Weë · alertas como código — ${aplicar ? 'APLICAR' : 'SIMULACIÓN (no se cambia nada)'} sobre ${PROYECTO}\n`);
   for (const a of plan) log(linea(a));
