@@ -549,7 +549,9 @@
         "guardian-base-workflow",
         "guardian-requerido-propuesta",
         "guardian-dominios",
-        "guardian-autocorreccion"
+        "guardian-autocorreccion",
+        "cotas-de-tiempo",
+        "guardian-aserciones"
       ]
     },
     {

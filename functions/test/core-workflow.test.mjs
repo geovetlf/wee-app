@@ -670,7 +670,7 @@ console.log('\n── P · Escala ──');
     return r;
   });
   check('162) mil pasos en cadena: preparar y dos mil transiciones terminan `done`', run.state === 'done' && run.steps.every((s) => s.state === 'done'));
-  check('163) y con un coste de CPU razonable (cota holgada; es CPU del proceso, no reloj de pared: no depende de la carga de la máquina)', ms < 5000, `${Math.round(ms)} ms de CPU`);
+  check('163) y con un coste de CPU razonable (cota holgada; es CPU del proceso, no reloj de pared: no depende de la carga de la máquina)', ms < 3500, `${Math.round(ms)} ms de CPU`);
   /* Regresión permanente de la causa: un proceso que ESPERA (turno de CPU perdido, otra tarea pesada) no suma coste. Con el reloj
      de pared, 400 ms de espera habrían contado 400 ms; con la CPU del proceso, casi nada. */
   const t0Pared = performance.now();

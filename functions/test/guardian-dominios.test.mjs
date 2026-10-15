@@ -98,7 +98,7 @@ const copiaDeInvariantes = () => {
   const h2 = hue.huellaDeSuite("check('7) Hola mundo', true);\ncheck(`9b) coste ${x}`, true);\ncheck(nombre, true);\ncheck('nueva', true);");
   check('18) la huella ignora el número del título y los espacios, cuenta TODAS las llamadas (incluida la de título no literal)', h1.llamadas === 3 && h2.llamadas === 4 && h1.titulos.every((t) => h2.titulos.includes(t)) && hue.normalizarTitulo('34) a   b') === 'a b' && hue.normalizarTitulo('12b) x') === 'x');
   check('19) una comprobación NUEVA no es un problema (la huella solo crece)…', hue.diferencias(h1, h2).length === 0);
-  check('20) …pero una que desaparece, cambia de título o se encoge SÍ', hue.diferencias(h2, h1).some((d) => d.tipo === 'comprobaciones-perdidas') && hue.diferencias(h2, { llamadas: 1, titulos: h2.titulos }).some((d) => d.tipo === 'menos-llamadas') && hue.diferencias(h1, null)[0].tipo === 'suite-ausente');
+  check('20) …pero una que desaparece, cambia de título o se encoge SÍ', hue.diferencias(h2, h1).some((d) => d.tipo === 'comprobaciones-perdidas') && hue.diferencias(h2, { ...h2, llamadas: 1 }).some((d) => d.tipo === 'menos-llamadas') && hue.diferencias(h1, null)[0].tipo === 'suite-ausente');
   /* Sobre copias de las suites reales. */
   const d = copiaDeInvariantes();
   check('21) una copia intacta de las suites reales es conforme', hue.verificarHuellas({ raiz: d }).ok);

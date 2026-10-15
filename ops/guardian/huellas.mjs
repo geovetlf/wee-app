@@ -48,18 +48,49 @@ const tituloDe = (arg) => {
  */
 export const huellaDeSuite = (texto) => {
   const sf = ts.createSourceFile('suite.mjs', String(texto || ''), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  const impresor = ts.createPrinter({ removeComments: true, newLine: ts.NewLineKind.LineFeed });
+  /** El nodo, sin comentarios y con el formato normalizado: reformatear o comentar no cambia la huella; cambiar el código, sí. */
+  const texto1 = (n) => impresor.printNode(ts.EmitHint.Unspecified, n, sf).replace(/\s+/g, ' ').trim();
   const titulos = new Set();
+  const aserciones = new Set();
   let llamadas = 0;
+  /**
+   * Las condiciones que ENVUELVEN a una llamada y deciden si se ejecuta: un `if (…)` (rama `then` → la condición; `else` → su negación), un
+   * ternario, el lado derecho de un `&&`/`||`/`??`, y la cabecera de un bucle. Mover una aserción bajo `if (false)` cambia esto, y por tanto su huella.
+   */
+  const cabeceraDeBucle = (b) => (ts.isForStatement(b) ? [b.initializer, b.condition, b.incrementor] : ts.isForOfStatement(b) || ts.isForInStatement(b) ? [b.initializer, b.expression] : [b.expression]).map((x) => (x ? texto1(x) : '')).join(';');
+  const guardas = (n) => {
+    const g = [];
+    for (let h = n, padre = n.parent; padre; h = padre, padre = padre.parent) {
+      if (ts.isIfStatement(padre)) {
+        if (h === padre.thenStatement) g.push(`if(${texto1(padre.expression)})`);
+        else if (h === padre.elseStatement) g.push(`ifnot(${texto1(padre.expression)})`);
+      } else if (ts.isConditionalExpression(padre)) {
+        if (h === padre.whenTrue) g.push(`?(${texto1(padre.condition)})`);
+        else if (h === padre.whenFalse) g.push(`?not(${texto1(padre.condition)})`);
+      } else if (ts.isBinaryExpression(padre) && h === padre.right && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(padre.operatorToken.kind)) {
+        g.push(`${padre.operatorToken.getText(sf)}(${texto1(padre.left)})`);
+      } else if (ts.isForStatement(padre) || ts.isForOfStatement(padre) || ts.isForInStatement(padre) || ts.isWhileStatement(padre) || ts.isDoStatement(padre)) {
+        if (h === padre.statement) g.push(`bucle(${cabeceraDeBucle(padre)})`);
+      } else if (ts.isTryStatement(padre) && padre.catchClause && h === padre.catchClause) {
+        g.push('catch');
+      }
+    }
+    return g.join('|');
+  };
   const visitar = (n) => {
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'check') {
       llamadas++;
       const t = tituloDe(n.arguments[0]);
       if (t !== null) titulos.add(huellaDeTitulo(t));
+      /* La ASERCIÓN: título + condición (2.º argumento, impreso) + lo que la envuelve. Otro `check` con el mismo título y otra condición es OTRA aserción. */
+      const cond = n.arguments[1] ? texto1(n.arguments[1]) : '(sin condición)';
+      aserciones.add(crypto.createHash('sha1').update(`${normalizarTitulo(t !== null ? t : n.arguments[0] ? texto1(n.arguments[0]) : '')}\0${cond}\0${guardas(n)}`).digest('hex').slice(0, 12));
     }
     ts.forEachChild(n, visitar);
   };
   visitar(sf);
-  return { llamadas, titulos: [...titulos].sort() };
+  return { llamadas, titulos: [...titulos].sort(), aserciones: [...aserciones].sort() };
 };
 
 const leerJSON = (raiz, rel) => {
@@ -99,6 +130,12 @@ export const diferencias = (guardada, actual) => {
   if (!actual) return [{ tipo: 'suite-ausente', detalle: 'la suite ya no existe' }];
   const perdidos = (guardada.titulos || []).filter((h) => !actual.titulos.includes(h));
   if (perdidos.length) out.push({ tipo: 'comprobaciones-perdidas', detalle: `${perdidos.length} comprobación(es) con título guardado ya no están (borradas o con otro título): ${perdidos.slice(0, 5).join(', ')}${perdidos.length > 5 ? '…' : ''}` });
+  /* Contenido: cada aserción guardada (título + condición + lo que la envuelve) tiene que seguir EXACTA. Una condición cambiada —`true`, negada, con `|| true`,
+     con un argumento sustituido— o movida bajo un `if (false)` ya no es la misma aserción, aunque conserve su título y el número de llamadas. */
+  if (Array.isArray(guardada.aserciones)) {
+    const cambiadas = guardada.aserciones.filter((h) => !(actual.aserciones || []).includes(h));
+    if (cambiadas.length) out.push({ tipo: 'aserciones-cambiadas', detalle: `${cambiadas.length} aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): ${cambiadas.slice(0, 5).join(', ')}${cambiadas.length > 5 ? '…' : ''}` });
+  }
   if (actual.llamadas < (guardada.llamadas || 0)) out.push({ tipo: 'menos-llamadas', detalle: `la suite hace ${actual.llamadas} llamadas a check() y tenía ${guardada.llamadas}` });
   return out;
 };
