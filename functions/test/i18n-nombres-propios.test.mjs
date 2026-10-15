@@ -114,6 +114,7 @@ const DEFORMES = [
   [/Weë (Musique|Musik|Musica|Música)/u, 'Weë Music traducido'],
   [/Weë (Cuisinier|Koch|Cuoco|Cozinheiro)/u, 'Weë Chef traducido'],
   [/Weë (Affaires|Geschäft|Negócios|Negocios)/u, 'Weë Business traducido'],
+  [/Weë ?(?:Moda|Mode|Мода|Моды|ファッション|패션|时尚|時尚|फ\u093C?ैशन)(?![\p{L}\p{M}])/u, 'Weë Fashion traducido'],
   /*
    * RUSO. Aquí la tentación no es traducir: es TRANSLITERAR al cirílico, o
    * declinar la marca como si fuera una palabra rusa («нет Кредитов»). Las dos

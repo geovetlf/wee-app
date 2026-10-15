@@ -91,7 +91,7 @@ console.log('\n── C · Lo que se lee, en cada idioma ──');
   }
   check(`4) cada idioma dice ${N} y nombra los ${N} del menú, y ninguno de los que ya no son sección`, malas.length === 0, malas.join(', '));
   const es = traducir.crearTraductor('es-ES', DICCIONARIOS, { modoDesarrollo: false });
-  check('5) ejemplo en español', /Weë AI tiene 7 especialistas: Weë Brain, Weë Studio, Weë Design, Weë Music, Weë Chef, Weë Business y Weë Travel\.$/.test(es('help.a3', { contador: N, lista: formato.formatearLista(NOMBRES, 'es-ES') })) || N !== 7);
+  check('5) ejemplo en español', /Weë AI tiene 7 especialistas: Weë Brain, Weë Studio, Weë Design, Weë Music, Weë Chef, Weë Fashion y Weë Travel\.$/.test(es('help.a3', { contador: N, lista: formato.formatearLista(NOMBRES, 'es-ES') })) || N !== 7);
   const ru = traducir.crearTraductor('ru-RU', DICCIONARIOS, { modoDesarrollo: false });
   check('6) y el ruso concuerda con el número (1 специалист, 3 специалиста, 7 специалистов)',
     /1 специалист:/.test(ru('help.a3', { contador: 1, lista: 'X' })) && /3 специалиста:/.test(ru('help.a3', { contador: 3, lista: 'X' })) && /7 специалистов:/.test(ru('help.a3', { contador: 7, lista: 'X' })));

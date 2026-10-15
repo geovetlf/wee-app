@@ -252,7 +252,7 @@ const BusinessScreen: React.FC = () => {
 
   /* ── Dentro de un módulo: la portada se aparta y manda el módulo ───────── */
   const panel = (contenido: React.ReactNode) => (
-    <CreatorShell activeId="business" overline="🤖 Weë AI" title="💼 Weë Business" breadcrumb="Weë AI" sinFranjaSuperior>
+    <CreatorShell activeId="business" overline="🤖 Weë AI" title="👗 Weë Fashion" breadcrumb="Weë AI" sinFranjaSuperior>
       <CabeceraDelModulo
         nombre={modulo ? modulo.nombre : ''}
         pista={modulo ? t(modulo.claveHint) : ''}
@@ -284,7 +284,7 @@ const BusinessScreen: React.FC = () => {
    */
   if (conversa) {
     return (
-      <CreatorShell activeId="business" overline="🤖 Weë AI" title="💼 Weë Business" breadcrumb="Weë AI" sinFranjaSuperior>
+      <CreatorShell activeId="business" overline="🤖 Weë AI" title="👗 Weë Fashion" breadcrumb="Weë AI" sinFranjaSuperior>
         <CabeceraDelModulo
           nombre={t(conversa.claveTitulo)}
           pista={t(conversa.claveObjetivo)}
@@ -692,7 +692,7 @@ const BusinessScreen: React.FC = () => {
     <CreatorShell
       activeId="business"
       overline="🤖 Weë AI"
-      title="💼 Weë Business"
+      title="👗 Weë Fashion"
       breadcrumb="Weë AI"
       /* En el teléfono, arriba solo va la cabecera de la sección (2026-09-15). */
       sinFranjaSuperior
@@ -702,7 +702,7 @@ const BusinessScreen: React.FC = () => {
         único que cambia es el lema, que ahora es el de Weë Business
         —"Crea, administra, promociona y haz crecer tu negocio."—.
       */}
-      <CabeceraDeSeccion nombre="Business" lema={t('business.slogan')} descripcion={spec.intro} />
+      <CabeceraDeSeccion nombre="Fashion" lema={t('business.slogan')} descripcion={spec.intro} />
 
       {/*
         Y JUSTO DEBAJO, LA CAJA: LO PRIMERO QUE SE VE (decisión del usuario,

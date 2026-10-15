@@ -62,6 +62,7 @@ export type NombreDeIcono =
   | 'belleza'
   | 'gorro'
   | 'maletin'
+  | 'vestido'
   | 'avion';
 
 /*
@@ -224,6 +225,12 @@ export const TRAZOS: Record<NombreDeIcono, string> = {
     + '<path d="M8.6 7.2V5.5a1.8 1.8 0 0 1 1.8-1.8h3.2a1.8 1.8 0 0 1 1.8 1.8v1.7"/>'
     + '<path d="M2.7 12.9h18.6"/>'
     + '<path d="M10.3 12.9h3.4"/>',
+
+  /* Un vestido: dos tirantes, el escote, la cintura y la falda en A. */
+  vestido:
+    '<path d="M9.2 3.3 8.4 7.9l.9 4.7-4.4 8h14.2l-4.4-8 .9-4.7-.8-4.6"/>'
+    + '<path d="M8.4 7.9c1 1.6 2.2 2.4 3.6 2.4s2.6-.8 3.6-2.4"/>'
+    + '<path d="M9.3 12.6h5.4"/>',
 
   /* Un avión visto desde arriba, subiendo hacia la derecha. */
   avion:

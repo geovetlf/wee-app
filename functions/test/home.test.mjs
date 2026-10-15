@@ -71,7 +71,7 @@ console.log('\n── A · Las pastillas del Home son secciones ──');
    */
   check('2) con los nombres de las experiencias',
     JSON.stringify(HOME_SECTION_FILTERS.map((f) => f.label)) ===
-      JSON.stringify(['Todo', 'Weë Studio', 'Weë Travel', 'Weë Music', 'Weë Chef', 'Weë Design', 'Weë Business'])
+      JSON.stringify(['Todo', 'Weë Studio', 'Weë Travel', 'Weë Music', 'Weë Chef', 'Weë Design', 'Weë Fashion'])
   );
   /* Y los identificadores internos, intactos: son los que reparten el muro. */
   check('2) y los identificadores internos no se movieron',

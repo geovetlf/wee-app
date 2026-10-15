@@ -91,7 +91,7 @@ export const HOME_SECTION_FILTERS: { id: HomeSectionId; label: string; clave?: s
   { id: 'music', label: 'Weë Music' },
   { id: 'chef', label: 'Weë Chef' },
   { id: 'design', label: 'Weë Design' },
-  { id: 'business', label: 'Weë Business' },
+  { id: 'business', label: 'Weë Fashion' },
 ];
 
 export const filterBySection = (posts: Post[], filter: HomeSectionId): Post[] =>

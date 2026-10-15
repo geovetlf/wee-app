@@ -282,7 +282,7 @@ console.log('\n── G · Los filtros: identificador ≠ etiqueta ──');
 
   /* 36 · Las etiquetas visibles, con la grafía aprobada de producto. */
   check('36) las seis marcas llevan la grafía aprobada',
-    ['Weë Studio', 'Weë Travel', 'Weë Music', 'Weë Chef', 'Weë Design', 'Weë Business']
+    ['Weë Studio', 'Weë Travel', 'Weë Music', 'Weë Chef', 'Weë Design', 'Weë Fashion']
       .every((n) => FILTROS.includes(`label: '${n}' }`)));
   check('36) y no queda ninguna de las viejas',
     !/WeeStudio|WeeTravel|WeeMusic|WeeChef|WeeDesign|WEEBusiness/.test(FILTROS));

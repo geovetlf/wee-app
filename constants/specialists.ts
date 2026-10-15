@@ -468,7 +468,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     intro: 'businessIntro',
     chips: ['businessChip1', 'businessChip2', 'businessChip3'],
     note: 'businessNote',
-    heroEmoji: '💼',
+    heroEmoji: '👗',
     gridTitle: 'businessGridTitle',
     actionLayout: 'tiles',
     actions: [
