@@ -124,7 +124,8 @@ const copiaDeInvariantes = () => {
   const previa = JSON.parse(leer(hue.RUTA_HUELLAS));
   const textosReales = Object.fromEntries(hue.suitesDeInvariantes(catalogo).map((s) => [s, leer(dom.archivoDeSuite(s))]));
   const igual = hue.construirHuellas({ catalogo, textos: textosReales, previa });
-  check('27) registrar sobre las suites de hoy da la misma huella (reproducible) y no inventa bajas', JSON.stringify(igual.suites) === JSON.stringify(previa.suites) && igual.bajas.length === previa.bajas.length);
+  const otraVez = hue.construirHuellas({ catalogo, textos: textosReales, previa });
+  check('27) registrar sobre las suites de hoy es reproducible, no inventa bajas y solo CRECE respecto a la guardada (una comprobación añadida a una suite de invariantes no obliga a re-anclar con --autoriza)', JSON.stringify(igual) === JSON.stringify(otraVez) && igual.bajas.length === previa.bajas.length && Object.entries(previa.suites).every(([n, g]) => g.titulos.every((t) => igual.suites[n].titulos.includes(t)) && (g.aserciones || []).every((x) => igual.suites[n].aserciones.includes(x))));
   const menos = { ...textosReales, credits: (() => { const ls = textosReales.credits.split('\n'); ls.splice(ls.findIndex((l) => /^\s*check\(/.test(l)), 1); return ls.join('\n'); })() };
   let lanza = false;
   try { hue.construirHuellas({ catalogo, textos: menos, previa }); } catch (e) { lanza = /--autoriza/.test(e.message); }

@@ -3317,8 +3317,9 @@
       ]
     },
     "guardian-bloqueante": {
-      "llamadas": 63,
+      "llamadas": 64,
       "titulos": [
+        "007b99ccd7",
         "0530cdd339",
         "0673bbebc5",
         "078b512e11",
@@ -3390,6 +3391,7 @@
         "12b169649fd9",
         "12e04fdddfd5",
         "1992338d957f",
+        "1e259b872ac6",
         "2069f71d3747",
         "244188bdf565",
         "24d67b4d2e65",
@@ -3521,6 +3523,7 @@
         "5eb92fdbe5",
         "6244c9ac3f",
         "69a1f4e1cd",
+        "6b26396111",
         "6fa711aa00",
         "7069fec2d3",
         "74d079126d",
@@ -3559,7 +3562,6 @@
         "e24fec9792",
         "e265340459",
         "e2890c3316",
-        "e517a03775",
         "e9854554d7",
         "e9ff89ab39",
         "f24cb9cb02",
@@ -3589,6 +3591,7 @@
         "2cc312e7c526",
         "2ce842564e51",
         "2dc001021864",
+        "31c38bf08427",
         "338c678a3b00",
         "361320d265e3",
         "385d6f536957",
@@ -3639,7 +3642,6 @@
         "bc9c0bad5937",
         "c01655ee8057",
         "c7478fb6a35e",
-        "c7558ee69d26",
         "cb2cb51626d7",
         "cbbb592c82fa",
         "cbbee00c5445",
@@ -7414,6 +7416,13 @@
       "motivo": "edicion legitima de una aserción de guardian-dominios (test 20: objeto sintetico con aserciones)",
       "quitado": [
         "guardian-dominios: 1 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): 688360c4e970"
+      ]
+    },
+    {
+      "motivo": "edicion legitima de la comprobacion 27 de guardian-dominios y alta de 34b en guardian-bloqueante",
+      "quitado": [
+        "guardian-dominios: 1 comprobación(es) con título guardado ya no están (borradas o con otro título): e517a03775",
+        "guardian-dominios: 1 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): c7558ee69d26"
       ]
     }
   ]
