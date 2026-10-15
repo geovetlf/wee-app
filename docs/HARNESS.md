@@ -27,7 +27,7 @@ espera al dueño). Qué frontera del código vive dónde y si está conectada: [
 | `.github/workflows/ci.yml` | La CI en tres niveles (cuatro checks): TypeScript y build · suites y emuladores `demo-*` · seguridad y políticas | Local (GitHub) |
 | `scripts/ci-local.mjs` | La MISMA CI, aquí: lee `ci.yml` y ejecuta sus pasos (`--plan`, `--nivel`) | Local |
 | `scripts/ci-sin-secretos.mjs` | Para la CI si el entorno trae una clave, una credencial de Google o un proyecto real | Local |
-| `scripts/escaneo-secretos.mjs` | Ningún secreto en los archivos versionados; nunca imprime un valor | Local |
+| `scripts/escaneo-secretos.mjs` | Ningún secreto en los archivos versionados; nunca imprime un valor (solo su huella); lo que admite se fija por la huella del VALOR, no por el tipo de clave | Local |
 | `functions/test/_emuladores.mjs` | Las suites de emulador, cada una en su sesión, solo con proyectos `demo-*` | Local |
 | `.claude/settings.json` + `.claude/hooks/guardia.mjs` | La guardia de Claude: lo que Claude no ejecuta nunca (desplegar, leer secretos, IAM…) | Local |
 | `ops/permitido.mjs` | No desplegar un commit que no contiene lo que está vivo (por ascendencia) | Local |
