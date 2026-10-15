@@ -175,6 +175,33 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en danés que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['music.startInstrumental', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.groupGenre', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.advTempo', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_pop', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_rock', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_latin', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_jazz', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_folk', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_reggaeton', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.voice_duet', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.result_instrumental', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.result_jingle', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.result_loop', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.refStop', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.toolEq', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.section_intro', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.section_outro', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.instr_guitar', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.instr_synth', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.solo', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.eqTitle', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.fx_limiter', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.trRemix', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.trVariation', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.export_midi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.exportDownload', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.capMidi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
     ['fashion.optMakeup', '«Makeup» es la palabra danesa, como en catalogo.beautyAcMakeupTitle'],
     ['aiAvatar.faceOval', '«Oval» es la palabra danesa'],
     ['aiAvatar.accPiercing', '«Piercing» es la palabra danesa'],
@@ -478,6 +505,8 @@ console.log('\n── K · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* Weë Music: el mismo rótulo español, otro contexto — «Género» musical (no el sexo), «Ambiente» y «Voz» de una canción (no el sonido ambiente ni la voz en off), «Efectos» de audio y «Resumen» de una selección. */
+    'music.groupGenre', 'music.reviewTitle', 'music.groupMood', 'music.groupVoice', 'music.instr_vocals', 'music.fxTitle',
     /* «Subir»/«Bajar» reordenan escenas y klip (Flyt op/ned); en Studio son la grúa de la cámara (Kran op/ned). */
     'filmmaker.moveUp', 'filmmaker.moveDown',
     /* «Historias» como formato de redes es «Stories»; studio.wrStories («Historier») son relatos escritos. */

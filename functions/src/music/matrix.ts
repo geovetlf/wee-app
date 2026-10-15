@@ -59,7 +59,7 @@ export const PROVEEDORES_MUSICALES: readonly FichaDeProveedorMusical[] = [
     fuentes: ['https://platform.minimax.io/docs/api-reference/music-generation'],
     capacidades: {
       ...todas('no_confirmada'),
-      generate: 'documentada', instrumental: 'documentada', referenceAudio: 'documentada', lyrics: 'documentada',
+      generate: 'documentada', instrumental: 'documentada', referenceAudio: 'documentada', lyrics: 'documentada', export: 'documentada',
       sectionEdit: 'no_confirmada', stems: 'no_confirmada', midi: 'no_confirmada', audioProcessing: 'no_soportada',
     },
     modelos: ['music-3.0', 'music-2.6', 'music-cover', '(música gratuita -free: se retira el 2026-08-20)'],

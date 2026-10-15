@@ -51,7 +51,7 @@ check('A8 las listas están congeladas', Object.isFrozen(A.WEE_AI) && Object.isF
  * olvido: son identidad, moderación, pagos, lo social, lo público y las utilidades comunes, que no generan con la IA.
  */
 const DECIDIDOS = {
-  WEE_AI: ['creator', 'engine', 'gateway', 'runtime', 'planner', 'router', 'registry', 'evals', 'settlement', 'brain', 'orchestrator', 'workflow', 'skills', 'generateAvatar.ts', 'vertexAI.ts', 'secrets.ts'],
+  WEE_AI: ['creator', 'engine', 'gateway', 'runtime', 'planner', 'router', 'registry', 'evals', 'settlement', 'brain', 'orchestrator', 'workflow', 'skills', 'music', 'generateAvatar.ts', 'vertexAI.ts', 'secrets.ts'],
   COMPARTIDO: ['core', 'credits', 'financial', 'job', 'content', 'media', 'filmmaker', 'productions', 'shots', 'elements', 'index.ts'],
   OTRO: ['identity', 'moderation', 'payments', 'public', 'social', 'shared', 'opciones.ts'],
 };

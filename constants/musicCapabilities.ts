@@ -21,6 +21,14 @@
  */
 export const MUSIC_GENERACION_VALIDADA = false;
 
+/**
+ * ¿Puede Weë Music grabar con el micrófono en iPhone? Hoy NO: el texto de permiso de iOS (`NSMicrophoneUsageDescription`, 16 idiomas en `locales/`)
+ * dice que el micrófono es para las notas de voz de WeeTalk, y `i18n-permisos-ios.test.mjs` (F1/F2) lo vigila. Usarlo para música
+ * sin cambiar ese texto sería pedir el permiso con un motivo que no es el real. Cambiarlo es una decisión del dueño (texto de
+ * permiso + revisión de App Store). En Android y en la web no se aplica.
+ */
+export const MUSIC_GRABACION_EN_IOS_AUTORIZADA = false;
+
 /** Versión del contrato interno de Weë Music (espejo de `functions/src/music/contract.ts`). */
 export const MUSIC_CONTRATO_VERSION = '0.1.0';
 
@@ -60,7 +68,7 @@ export const CAPACIDADES_MUSIC: readonly CapacidadDeMusic[] = [
   { id: 'sectionEdit', claveTitulo: 'capSection', claveNota: 'capSectionNote', contrato: 'music.editSection', responsable: 'music-engine', proveedores: ['elevenlabs'], estado: 'preparada', coste: 'pendiente' },
   { id: 'instrumentEdit', claveTitulo: 'capInstrument', claveNota: 'capInstrumentNote', contrato: 'music.editSection', responsable: 'music-engine', proveedores: [], estado: 'pendiente', coste: 'pendiente' },
   { id: 'lyrics', claveTitulo: 'capLyrics', claveNota: 'capLyricsNote', contrato: 'music.lyrics', responsable: 'music-engine', proveedores: ['minimax', 'mureka'], estado: 'preparada', coste: 'pendiente' },
-  { id: 'voiceStyle', claveTitulo: 'capVoice', claveNota: 'capVoiceNote', contrato: 'music.generate', responsable: 'music-engine', proveedores: ['minimax', 'elevenlabs', 'mureka'], estado: 'preparada', coste: 'pendiente' },
+  { id: 'voiceStyle', claveTitulo: 'capVoice', claveNota: 'capVoiceNote', contrato: 'music.generate', responsable: 'music-engine', proveedores: ['elevenlabs'], estado: 'preparada', coste: 'pendiente' },
   { id: 'stems', claveTitulo: 'capStems', claveNota: 'capStemsNote', contrato: 'music.stems', responsable: 'music-engine', proveedores: [], estado: 'preparada', coste: 'pendiente' },
   { id: 'audioProcessing', claveTitulo: 'capProcessing', claveNota: 'capProcessingNote', contrato: 'music.process', responsable: 'ninguno', proveedores: [], estado: 'pendiente', coste: 'pendiente' },
   { id: 'export', claveTitulo: 'capExport', claveNota: 'capExportNote', contrato: 'music.export', responsable: 'music-engine', proveedores: ['minimax', 'elevenlabs'], estado: 'preparada', coste: 'pendiente' },

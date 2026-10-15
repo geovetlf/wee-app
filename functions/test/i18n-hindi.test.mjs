@@ -163,6 +163,8 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en hindi que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['music.export_midi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.capMidi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
     ['filmmaker.presetShorts', '«YouTube Shorts» es el nombre del producto de la plataforma, en latino como las marcas; los Shorts ya son vídeos'],
     ['business.formatTikTok', 'el nombre de la red'],
     ['business.shareProfile', '«Business Profile» es nombre de producto (decisión del usuario, 2026-09-16)'],
@@ -438,6 +440,8 @@ console.log('\n── J · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* Weë Music: el mismo rótulo español, otro contexto — «Género» musical (no el sexo), «Ambiente» y «Voz» de una canción (no el sonido ambiente ni la voz en off), «Efectos» de audio y «Resumen» de una selección. */
+    'music.groupGenre', 'music.transformTitle', 'music.groupMood', 'music.fxTitle',
     /* «Personas» como estilo de avatar son personas; en el Chef, «Personas» es cuántos comen. */
     'avatar.stylePeople',
     /* Weë Filmmaker, revisado por un segundo traductor (2026-10-01): la misma frase española, otro sentido. */

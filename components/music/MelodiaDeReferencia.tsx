@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
@@ -8,7 +8,7 @@ import { useGrabadoraMusic, useReproductorMusic, elegirArchivoDeAudio, SELECTOR_
 import { LIMITES_DE_REFERENCIA, reducirPicos, validarAudioDeReferencia, ResultadoDeValidacion } from '../../utils/musicAudio';
 import { tiempoMmSs, EstadoDeCapa } from '../../utils/musicModel';
 import { INTENCIONES_DE_REFERENCIA, IntencionDeReferencia } from '../../constants/musicComposer';
-import { capacidadUsable } from '../../constants/musicCapabilities';
+import { capacidadUsable, MUSIC_GRABACION_EN_IOS_AUTORIZADA } from '../../constants/musicCapabilities';
 import { SPACING, FONT_SIZE } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -52,6 +52,8 @@ const MelodiaDeReferencia: React.FC<Props> = ({ modo, confirmada, intencion, onI
   const play = useReproductorMusic(uriActual);
   const picos = modo === 'record' && grab.grabacion ? reducirPicos(grab.grabacion.picos, 48) : [];
   const intencionesUsables = capacidadUsable('referenceAudio');
+  /* En iPhone el permiso de micrófono de la app es solo de WeeTalk: no se pide para música hasta que el dueño lo decida. */
+  const grabacionBloqueada = modo === 'record' && Platform.OS === 'ios' && !MUSIC_GRABACION_EN_IOS_AUTORIZADA;
 
   const elegir = async () => {
     setErrorDeArchivo(null);
@@ -68,7 +70,8 @@ const MelodiaDeReferencia: React.FC<Props> = ({ modo, confirmada, intencion, onI
   const sePuedeConfirmar = !!uriActual && (problema === null || problema === 'ok');
 
   const estadoDeCapa: EstadoDeCapa =
-    grab.estado === 'sinPermisos' && modo === 'record' ? 'sinPermisos'
+    grabacionBloqueada ? 'noCompatible'
+    : grab.estado === 'sinPermisos' && modo === 'record' ? 'sinPermisos'
     : grab.estado === 'error' && modo === 'record' ? 'error'
     : problema && problema !== 'ok' ? 'archivoIncompatible'
     : modo === 'upload' && !SELECTOR_DE_AUDIO_DISPONIBLE ? 'noCompatible'
@@ -92,7 +95,9 @@ const MelodiaDeReferencia: React.FC<Props> = ({ modo, confirmada, intencion, onI
       </View>
       <Nota>{limites}</Nota>
 
-      {modo === 'record' && !uriActual && (
+      {grabacionBloqueada && <Nota fuerte>{t('music.refIosPending')}</Nota>}
+
+      {modo === 'record' && !uriActual && !grabacionBloqueada && (
         <View accessibilityLiveRegion="polite" style={{ gap: SPACING.sm }}>
           {grab.estado === 'grabando' ? (
             <>
@@ -121,7 +126,7 @@ const MelodiaDeReferencia: React.FC<Props> = ({ modo, confirmada, intencion, onI
 
       {problema && problema !== 'ok' && <Nota fuerte>{t(`music.${CLAVE_DE_ERROR[problema]}`)}</Nota>}
 
-      {uriActual && (
+      {!!uriActual && (
         <View style={{ gap: SPACING.sm }}>
           <Onda
             picos={picos}

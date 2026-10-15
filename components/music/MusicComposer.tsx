@@ -150,7 +150,7 @@ const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVolver, onVer
         placeholder={t('music.describeHint')}
         ocupado={chat.busy}
       />
-      <Nota>{t('music.counter', { actual: formato.numero(descripcion.length), maximo: formato.numero(MAX_DESCRIPCION) })}</Nota>
+      <Nota>{t('music.counter', { cuenta: formato.numero(descripcion.length), maximo: formato.numero(MAX_DESCRIPCION) })}</Nota>
       <View style={s.chips}>
         {EJEMPLOS.map((e) => <Chip key={e} texto={t(`music.${e}`)} onPress={() => setDescripcion(t(`music.${e}`).slice(0, MAX_DESCRIPCION))} />)}
       </View>
@@ -166,7 +166,7 @@ const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVolver, onVer
             etiquetaEnviar={t('music.saveDraft')}
             placeholder={t('music.lyricsHint')}
           />
-          <Nota>{t('music.counter', { actual: formato.numero(letra.length), maximo: formato.numero(MAX_LETRA) })}</Nota>
+          <Nota>{t('music.counter', { cuenta: formato.numero(letra.length), maximo: formato.numero(MAX_LETRA) })}</Nota>
         </View>
       )}
 

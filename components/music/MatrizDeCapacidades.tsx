@@ -34,7 +34,7 @@ const MatrizDeCapacidades: React.FC = () => {
             <Nota>
               {t('music.matrixEnabled', { valor: t(usable ? 'music.yes' : 'music.no') })}
               {' · '}
-              {t('music.matrixProviders', { lista: c.proveedores.length ? formato.lista(c.proveedores.map((p) => t(`music.provider_${p}`))) : t('music.none') })}
+              {t('music.matrixProviders', { lista: c.proveedores.length ? formato.numero(c.proveedores.length) : t('music.none') })}
               {' · '}
               {t(c.coste === 'sinCoste' ? 'music.matrixNoCost' : 'music.costUnknownShort')}
             </Nota>

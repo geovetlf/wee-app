@@ -15,8 +15,8 @@ export type ResultadoDeValidacion = 'ok' | 'badFormat' | 'tooBig' | 'tooLong' | 
 
 export const validarAudioDeReferencia = (a: { mime?: string; nombre?: string; bytes?: number; duracionSec?: number }): ResultadoDeValidacion => {
   if (a.bytes !== undefined && a.bytes <= 0) return 'empty';
-  const ext = (a.nombre ?? '').split('.').pop()?.toLowerCase() ?? '';
-  const mimeOk = !!a.mime && (MIME_ADMITIDOS as readonly string[]).includes(a.mime.toLowerCase());
+  const ext = (a.nombre ?? '').split('.').pop()?.toLocaleLowerCase('en-US') ?? '';
+  const mimeOk = !!a.mime && (MIME_ADMITIDOS as readonly string[]).includes(a.mime.toLocaleLowerCase('en-US'));
   const extOk = (EXTENSIONES_ADMITIDAS as readonly string[]).includes(ext);
   if (!mimeOk && !extOk) return 'badFormat';
   if (a.bytes !== undefined && a.bytes > LIMITES_DE_REFERENCIA.maxBytes) return 'tooBig';
