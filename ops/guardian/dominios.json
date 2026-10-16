@@ -160,6 +160,7 @@
         "core-gateway",
         "gateway-autoridad",
         "router-parity",
+        "router-equivalencia",
         "router-politica",
         "router-frontera-real",
         "elegibilidad-jurisdiccion",
