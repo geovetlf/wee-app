@@ -35,7 +35,7 @@ const REL = '.claude/hooks/guardia.mjs';
 const RUTA = process.env.GUARDIA_CMD_COLGADO_RUTA || path.join(RAIZ, REL);
 const L = ['.env', '.local'].join('');
 const sec = (c) => c.replace(/<S>/g, L);
-const TOPE_HIJO = 30_000;   // el vigilante de cada análisis (ms de pared): por encima de esto el caso cuenta como COLGADO (los reales tardan horas)
+const TOPE_HIJO = 90_000;   // el vigilante de cada análisis (ms de pared): por encima de esto el caso cuenta como COLGADO (los reales tardan horas)
 const COTA_ANALISIS = 1000; // cota de TIEMPO DE CPU del análisis dentro del hijo (ms): las órdenes del hallazgo tardan unos pocos ms. Se mide CPU y no pared para que la carga de la máquina (la cadena corre suites en paralelo) no produzca falsos fallos
 const COTA_PATOLOGICO = 4000; // las patológicas deben terminar con ≤ 4 s de CPU (el presupuesto de la guardia es 3 s de pared)
 const PLAZO_HOOK = 10_000;  // settings.json
@@ -54,8 +54,10 @@ process.stdout.write(JSON.stringify({ d: r.decision || 'pasa', cerrado: !!r.cerr
 `);
 
 /** Analiza `cmd` con la guardia `ruta` en un proceso aparte con vigilante. Devuelve { d, ms, pared, colgado, cerrado, motivo }. */
-const analiza = (ruta, h, cmd, env = {}, tope = TOPE_HIJO) => {
+const analiza = (ruta, h, cmd, env = {}, tope = TOPE_HIJO, reintenta = true) => {
   let r = analiza1(ruta, h, cmd, env, tope);
+  /* Con la máquina saturada un proceso hijo puede tardar decenas de segundos en arrancar: un «colgado» se repite una vez antes de darlo por bueno (un cuelgue real es indefinido y se repite). */
+  if (r.colgado && reintenta) r = analiza1(ruta, h, cmd, env, tope);
   /* El presupuesto de TIEMPO de la guardia (3 s de pared) puede agotarse por pura carga de la máquina (la cadena corre suites en paralelo): la guardia falla
      cerrado, correctamente, pero un comando normal que «deniega por complejo» una vez y pasa al repetir NO es una regresión. El de PASOS es determinista: si
      fuera el culpable se repetiría en los 3 intentos y el caso fallaría. Solo se reintenta cuando la prueba no fija ella misma el presupuesto. */
@@ -124,7 +126,7 @@ console.log('\n── B · Ningún envoltorio con llaves y sin -c/`/c` se cuelga
   let n = 0, lentos = 0; const malos = []; let maxMs = 0;
   for (const w of nom) for (const p of plantillas) {
     const c = p.replace(/^W/, w); n++;
-    const r = analiza(RUTA, 'Bash', c, {}, 20000);
+    const r = analiza(RUTA, 'Bash', c, {}, 60000);
     if (r.colgado) { lentos++; malos.push(`COLGADO ${c}`); continue; }
     maxMs = Math.max(maxMs, r.ms);
     if (r.ms > COTA_ANALISIS) { lentos++; malos.push(`${Math.round(r.ms)}ms ${c}`); }
@@ -148,10 +150,10 @@ console.log('\n── C · Entradas patológicas: acotadas y seguras ──');
     ['llaves entre llaves entre cmd', 'cmd {cmd,cmd} {cmd,cmd} {cmd,cmd} {cmd,cmd} {cmd,cmd} {cmd,cmd} {x}'],
   ];
   for (const [n, c] of casos) {
-    const r = analiza(RUTA, 'Bash', c, {}, 20000);
+    const r = analiza(RUTA, 'Bash', c, {}, 60000);
     registra(n, r);
     check(`C) ${n}: termina en < ${COTA_PATOLOGICO} ms de CPU con una decisión válida`, !r.colgado && r.ms < COTA_PATOLOGICO && ['pasa', 'ask', 'deny'].includes(r.d));
-    const s = analiza(RUTA, 'Bash', `${c} ; cat <S>`, {}, 20000);
+    const s = analiza(RUTA, 'Bash', `${c} ; cat <S>`, {}, 60000);
     check(`C) ${n} + un secreto detrás: se DENIEGA (nunca pasa) y termina en < ${COTA_PATOLOGICO} ms`, !s.colgado && s.ms < COTA_PATOLOGICO && s.d === 'deny');
   }
 }
@@ -226,7 +228,7 @@ if (base) {
   let n = 0, menos = 0, cuelga = 0; const peores = [];
   for (const w of palabras) for (const f of finales) for (const h of ['Bash', 'PowerShell']) {
     const c = `${w} ${f}`.trim(); n++;
-    const a = analiza(RUTA, h, c, {}, 20000), b = analiza(base, h, c, {}, 20000);
+    const a = analiza(RUTA, h, c, {}, 60000), b = analiza(base, h, c, {}, 60000);
     if (a.colgado) { cuelga++; peores.push(`COLGADO ${c}`); continue; }
     if (rk(a.d) < rk(b.d)) { menos++; peores.push(`${b.d}→${a.d} ${h} ${sec(c).replace(L, '<secreto>')}`); }
   }
@@ -250,11 +252,11 @@ console.log('\n── G · Sabotajes de la corrección ──');
   const PRES_PERMITE = "return decision('deny', MOTIVO_PRESUPUESTO, true);";
   /* 1) sin la corrección de `cmd`: la orden vuelve a reanalizarse a sí misma. El presupuesto la corta, pero con DENY: `A` (decide «pasa») lo detecta. */
   const s1 = mut('sin-cmd', [[CMD_CORREGIDO, CMD_ANTIGUO]]);
-  const r1 = analiza(s1, 'Bash', 'cmd ${X}', {}, 20000);
+  const r1 = analiza(s1, 'Bash', 'cmd ${X}', {}, 60000);
   check('G1) SABOTAJE sin la corrección de `cmd`: `cmd ${X}` deja de «pasar» al instante (A lo detecta)', r1.colgado || r1.d !== 'pasa' || r1.ms >= COTA_ANALISIS, `${r1.d} ${Math.round(r1.ms)} ms`);
   /* 2) sin presupuesto (`gasta` no hace nada) y sin la corrección: se cuelga de verdad. */
   const s2 = mut('sin-ninguna', [[CMD_CORREGIDO, CMD_ANTIGUO], [PRES_NULO, 'const gasta = () => { return;']]);
-  const r2 = analiza(s2, 'Bash', 'cmd mkdir -p src/{a,b} ; cat <S>', {}, 15000);
+  const r2 = analiza(s2, 'Bash', 'cmd mkdir -p src/{a,b} ; cat <S>', {}, 15000, false);
   check('G2) SABOTAJE sin la corrección y sin presupuesto: la guardia se CUELGA con `cmd … {a,b} ; cat <secreto>` (el vigilante lo detecta)', r2.colgado, r2.colgado ? 'colgado' : `${r2.d} ${Math.round(r2.ms)} ms`);
   /* 3) sin presupuesto (con la corrección de cmd): D lo detecta, porque nada se agota. */
   const s3 = mut('sin-presupuesto', [[PRES_NULO, 'const gasta = () => { return;']]);
