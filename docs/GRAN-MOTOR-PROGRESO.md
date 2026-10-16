@@ -1,0 +1,45 @@
+# Gran Motor — registro de progreso (misión de cierre integral)
+
+Rama de trabajo: `gran-motor/cierre` (local, sin publicar). Worktree: `C:\Users\Geovet\wee-trabajo\wt-gran-motor`.
+Commit de referencia: `5320cde90db93b29587f599873c4f9ba51711b97` (`guardian/cadena-limites`; contiene `main` local `dad0ca2f` y 274 commits encima: Core/Runtime, Guardian H4–H7 y límites de la cadena).
+Fecha de apertura: 2026-10-16. Este documento es el registro vivo; cada paquete añade su sección. No sobrescribir documentos ajenos.
+
+## 0. Reglas de la misión (resumen operativo)
+- Sin push, PR, merge, despliegue, activación de Guardian, cambios de configuración activa, migraciones destructivas, datos financieros de producción ni credenciales reales. Sin `taskkill /IM node.exe`. Evidencia existente intacta (`_cmd-hang\`, `_validacion-h6\`).
+- Memoria: la máquina (7,7 GB de RAM, 30,6 GB de commit) llegó a 29,46 GB comprometidos en la cadena completa. NO se lanza otra cadena completa. Las suites pesadas (`core-*`, `guardian-*`, `guardia-envoltorios*`, `cotas-de-tiempo`, cualquiera > 60 s) se ejecutan de una en una con el candado compartido: `node C:\Users\Geovet\wee-trabajo\_gran-motor\lock.mjs acquire <agente>` / `release <agente>` (rechaza si el commit > 22 GB). Máximo dos agentes con código a la vez.
+- Estados permitidos por componente: DISEÑADO · IMPLEMENTADO · INTEGRADO · PROBADO · VALIDADO EN FLUJO REAL · DESPLEGADO · PREPARADO PARA PRODUCCIÓN. Clasificación del inventario: COMPLETO Y VERIFICADO · IMPLEMENTADO, PENDIENTE DE INTEGRACIÓN · IMPLEMENTADO, PENDIENTE DE PRUEBAS · PARCIAL · NO IMPLEMENTADO · BLOQUEADO · NO VERIFICABLE CON EL ENTORNO DISPONIBLE.
+
+## 1. Estado inicial (heredado; NO re-verificado hoy salvo donde se indique)
+Datos de sesiones anteriores, con su evidencia. Cada paquete los verifica y corrige esta tabla con evidencia propia.
+
+| Componente | Estado real (heredado) | Evidencia | Diferencia con el objetivo | Riesgo | Dependencias | Acción | Pruebas | Resultado |
+|---|---|---|---|---|---|---|---|---|
+| WeëBrain (`creator/brain.ts`, `core/brain.ts`, `brainChat`) | Producción corre la ruta Legacy; canary `text.generate` por el Core Runtime con puerta CERRADA | CLAUDE.md §10; memoria wee-core-fases | El Core Brain traga el error del pensador (ver `core/brain.ts`); sin migración | Medio | Runtime, Credits | Paquete B | por definir | pendiente |
+| Algorithm Engine A0–A9 (`core/algorithm`) | IMPLEMENTADO y probado en sombra; sin autoridad ni consumidores reales | `docs/ALGORITHM-ENGINE-*.md` (rama `algoritmo/integracion-transversal` 75672a3d: ninguna fila INTEGRADO) | No gobierna Router/Orchestrator/Job/Credits; contrato 1.12 local vs 1.9 en producción | Medio | decisiones del dueño (autoridad, contrato 1.13) | Paquete B (solo verificación; sin dar autoridad) | `algoritmo-cobertura` (rama 75672a3d) | pendiente |
+| Planner (`planner/`, `core/planner.ts`) | Dos implementaciones (Core y Legacy) con diferencias documentadas | `docs/RUNTIME.md` §«paridad»; suites `planner`, `core-planner`, `runtime-paridad` | Equivalencia funcional sin cerrar | Medio | Brain, Router | Paquete B | `planner`, `core-planner` | pendiente |
+| Workflow / Orchestrator (`workflow/`, `orchestrator/`, `core/workflow.ts`, `core/orchestrator.ts`) | IMPLEMENTADO (Core); uso real limitado a las dos puertas canary | `docs/RUNTIME.md` §11–21 | Reanudación, cancelación y estados terminales por verificar en flujos reales | Alto | Job Engine | Paquete D | `core-workflow`, `core-orchestrator` | pendiente |
+| Job Engine (`job/`, `core/job.ts`, `core/job-queue.ts`, `runtime/cola*.ts`) | IMPLEMENTADO; barrido programado `barridoDeLiquidacion` DESPLEGADO (producción, 5 min) | CLAUDE.md §10 | Cancelación real, recuperación de abandonados y backoff por verificar | Alto | Credits | Paquete D | `core-job`, `job-queue` | pendiente |
+| Router Core vs Legacy (`core/router.ts`, `router/`, `engine/router.ts`) | El Router del Core diverge del Legacy en 15 de 28 casos (medición de F12-A) | `docs/RUNTIME.md`; suites `router-parity`, `runtime-paridad`, `core-router` | Equivalencia sin cerrar; NO migrar tráfico | Alto | Registry, Gateway | Paquete A (prioridad alta) | `router-parity`, `runtime-paridad` | pendiente |
+| Gateway y adaptadores (`gateway/`, `engine/providers/`, `core/gateway.ts`) | Cadena WEE → Gateway → adaptador → API oficial; excepciones documentadas fuera del motor: `vertexAI.ts` (SDK de Gemini directo, avatar) y `engine/providers/gemini.ts` | auditoría M3 (guardas-reales) | Llamadas directas que eluden Gateway/ledger/cupo/jurisdicción | Alto | — | Paquete A | `guardas-reales`, `rutas-respaldo-real` | pendiente |
+| Credit Engine / Financial Core (`credits/`, `financial/`, `settlement/`, `core/financial`) | IMPLEMENTADO; `spendCredits` DESPLEGADO por WIF (2026-10-05); diferencias `holdCredits` (creator) vs `spendCredits` documentadas | memoria wee-credit-engine, wee-claude-code-audit | Reserva/liquidación/reembolso/concurrencia por auditar | CRÍTICO | Job, Gateway | Paquete C | `ledger`, `credits*`, `core-financial*` | pendiente |
+| Asset / Content Core y Media Cloud (`content/`, `core/content/`, `media/`) | IMPLEMENTADO; migración de lo legacy preparada y NO ejecutada | `docs/F11-MIGRACION.md`, `docs/CORE.md` | Propiedad, versiones y ciclo de vida por verificar en flujos reales | Medio | Identity | Paquete E | `core-content`, `content*` | pendiente |
+| Identidad / permisos / i18n | IMPLEMENTADO; 16 locales; guardas de identidad (`identidad-sin-biz`) | suites i18n, identidad | Revisión nativa de 14 idiomas pendiente | Medio | — | Paquete F (transversal) | `i18n-*`, `identidad-*` | pendiente |
+| Filmmaker Engine (`filmmaker/`, `shots/`, `productions/`) | IMPLEMENTADO en rama propia (`filmmaker/core`); puertas CERRADAS; R18/R23–R26 esperan autorización | memoria wee-filmmaker | Integración real con Brain/Algorithm/Planner/Workflow sin demostrar | Medio | Router, Gateway, Assets | Paquete G | suites `filmmaker-*` | pendiente |
+| Motor Guardian (candidato `5320cde9`) | Dos cadenas completas consecutivas en verde (310/310; 972 s y 1057 s), con margen de memoria estrecho (26,98 y 29,46 GB de 30,6) | `_cmd-hang\cadena-definitiva*.{log,csv}`, `sonda-cadena*.csv` | NO validado: 186 transiciones `sudo -u root`, 3 redirecciones (`cmd /c`, `bash -c`, `wsl`), `onFailure:"block"` sin probar con sesión, esquema que no lo reconoce, parche H4 sin aplicar limpio | Alto | decisiones del dueño | Paquete F (solo investigar y documentar; no decidir) | específicas | pendiente |
+| Experiencias (Studio, Design, Chef, Travel, Music, Fashion, Feed/Weëls) | UI y rutas existentes; el flujo hasta el Core real está cerrado por diseño (legacy) salvo las dos puertas canary | CLAUDE.md §10; auditoría Algorithm Engine | Fashion y Music viven en ramas locales sin fusionar | Medio | todo lo anterior | Paquete G | por experiencia | pendiente |
+
+## 2. Paquetes, responsables y archivos (reparto sin solapes)
+| Paquete | Alcance | Responsable | Archivos autorizados (escritura) | Estado |
+|---|---|---|---|---|
+| A | Router Core vs Legacy + llamadas directas a proveedores | Agente A (worktree propio) | `functions/src/core/router.ts`, `functions/src/router/**`, `functions/src/engine/router.ts` (solo si hay diferencia demostrada), `functions/src/vertexAI.ts` (solo documentar o encaminar si es seguro), `functions/test/router-*`, `core-router*`, `runtime-paridad*`, `docs/GRAN-MOTOR-A-ROUTER.md` | en curso |
+| C | Credit Engine / Financial Core | Agente C (worktree propio) | `functions/src/credits/**`, `functions/src/financial/**`, `functions/src/settlement/**`, `functions/src/creator/credits.ts`, `functions/test/ledger*`, `credits*`, `core-financial*`, `docs/GRAN-MOTOR-C-CREDITOS.md` | en curso |
+| B | Planner, WeëBrain, equivalencia | (siguiente) | `planner/**`, `core/planner.ts`, `core/brain.ts`, `creator/brain.ts`, tests de planner/brain | en cola (conflicto de archivos con A/C: ninguno) |
+| D | Workflow, Orchestrator, Job Engine | (siguiente) | `workflow/**`, `orchestrator/**`, `job/**`, `core/{workflow,orchestrator,job,job-queue}.ts`, `runtime/cola*` | en cola |
+| E | Asset / Content Core y Media Cloud | (siguiente) | `content/**`, `core/content/**`, `media/**` | en cola |
+| F | Guardian + seguridad/identidad/i18n | (siguiente; solo investigar) | `ops/guardian/**` y suites de guardia: SOLO LECTURA; documentos nuevos | en cola |
+| G | Filmmaker + experiencias | (siguiente) | `filmmaker/**`, `shots/**`, `productions/**`; ramas de Fashion/Music solo lectura | en cola |
+
+Motivo de la cola: dos agentes con código a la vez como máximo (presión de memoria registrada en las dos cadenas completas).
+
+## 3. Registro de ejecución
+(Cada paquete añade aquí: commits, archivos, comandos con código de salida y duración, fallos/intermitencias, decisiones reservadas.)
