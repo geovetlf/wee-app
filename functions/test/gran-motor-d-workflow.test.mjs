@@ -538,5 +538,34 @@ const check = (nombre, ok, evidencia = '') => { if (!ok) fallos++; process.stdou
   void e;
 }
 
+
+/* ── S · Trazabilidad: de la petición al resultado, por identificadores que se pueden seguir ───────────────────
+ *
+ * Un workflow de dos pasos por el conductor de verdad. Para cada paso se sigue la cadena entera con SOLO lo que quedó
+ * guardado o anotado: ejecución (`runId`) → trabajo (`jobId`, clave de idempotencia determinista) → intento (`attemptId`)
+ * → traza del Gateway (`traceId`/`runId`/`stepId`/`attempt`) → fila del libro (`attemptId`). Y que la operación de quien
+ * pidió (`operationId`) viaja con el trabajo: es lo que permite saber de dónde salió una operación al recuperarla.
+ */
+{
+  console.log('\n── S · Trazabilidad de la petición al resultado ──');
+  const M = await import('./_mundo-del-conductor.mjs');
+  const { mundo, adaptador, texto, pedir, workflow, unPaso, trabajosDe, core } = M;
+  const m = mundo({ adapters: { x: adaptador('x', texto()) } });
+  const w = workflow([unPaso({ id: 'a' }), unPaso({ id: 'b', dependsOn: ['a'] })]);
+  const peticion = pedir(w);
+  const r = await m.conductor.ejecutar({ ...peticion, contexto: { operationId: 'op-123', workspaceId: 'ws-1' } });
+  const jobs = trabajosDe(m);
+  check('S1 la ejecución termina y deja UN trabajo por paso', r.estado === 'terminada' && jobs.length === 2);
+  check('S2 cada trabajo apunta a SU ejecución y a su paso (context.workflowRunId / stepId) y lleva la operación de quien pidió', jobs.every((j) => j.context.workflowRunId === r.runId && ['a', 'b'].includes(j.context.stepId) && j.context.operationId === 'op-123' && j.context.workspaceId === 'ws-1'));
+  check('S3 la traza del trabajo es la de la petición: el MISMO traceId en los dos pasos y su runId/stepId', jobs.every((j) => j.trace.traceId === peticion.trace.traceId && j.trace.runId === r.runId && j.trace.stepId === j.context.stepId));
+  check('S4 la clave de idempotencia es DETERMINISTA (runId + paso + intento): se puede recalcular sin consultar nada', jobs.every((j) => j.idempotency.key === core.claveDePaso(r.runId, j.context.stepId, 1)));
+  check('S5 el intento lleva en su identificador el del trabajo (se sigue de intento a trabajo sin tabla)', jobs.every((j) => j.attempts.length === 1 && j.attempts[0].attemptId.includes(j.idempotency.key)));
+  const porPaso = (s) => m.trazas.find((t) => t.stepId === s);
+  check('S6 la traza del Gateway repite traceId, runId, paso y número de intento: se cruza con el trabajo', ['a', 'b'].every((s) => porPaso(s)?.traceId === peticion.trace.traceId && porPaso(s)?.runId === r.runId && porPaso(s)?.attempt === 1));
+  check('S7 y la fila del libro lleva el attemptId del trabajo: del cobro al intento, y de ahí al trabajo', m.filas.length === 2 && m.filas.every((f) => jobs.some((j) => j.attempts[0].attemptId === f.attemptId)));
+  check('S8 NADA de lo que dijo la persona entra en esa cadena: ni el prompt en la traza ni el contenido en el trabajo', !JSON.stringify(m.trazas).includes('hola') && !JSON.stringify(jobs.map((j) => j.result ?? {})).includes('listo'));
+  check('S9 el resultado devuelto repite los identificadores (runId, jobId por paso) para quien tenga que seguirlo', r.runId && r.pasos.every((p) => jobs.some((j) => j.jobId === p.jobId)));
+}
+
 console.log(fallos ? `\n✘ ${fallos} fallos` : '\n✔ todo en orden');
 process.exit(fallos ? 1 : 0);
