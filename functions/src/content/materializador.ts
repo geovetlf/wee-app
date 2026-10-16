@@ -40,6 +40,46 @@ import { sanitizeForLog } from '../engine/sanitize';
 /** Lo más grande que se acepta traer. Un vídeo de 30 s a 1080p no llega a esto. */
 export const MAX_BYTES_DE_RESULTADO = 512 * 1024 * 1024;
 
+/**
+ * ¿PUEDE WEË IR A BUSCAR EL RESULTADO A ESTA DIRECCIÓN? (paquete E del Gran Motor, 2026-10-16).
+ *
+ * El enlace del resultado lo pone el proveedor —o, si el aviso llegara manipulado, quien lo manipulara—, y el
+ * servidor lo pide con sus propias credenciales de red. Sin esta puerta, un enlace hacia el servidor de metadatos
+ * (`169.254.169.254`, `metadata.google.internal`) o hacia la red interna descargaba la respuesta y la dejaba como
+ * «material» legible por la persona: una fuga de las credenciales de la propia Function.
+ *
+ * Regla corta y cerrada, igual que `direccionDeLaCuenta` en el otro sentido: solo HTTPS, sin usuario ni clave en la
+ * dirección, y un NOMBRE de dominio público (con punto, sin sufijos internos). Ninguna dirección numérica, ni IPv4 ni
+ * IPv6: un CDN de proveedor siempre tiene nombre. Las redirecciones no se controlan desde aquí (`fetchBytes` las
+ * sigue); queda como propuesta en el documento del paquete.
+ */
+export const destinoDeResultadoPermitido = (url: unknown): boolean => {
+  if (typeof url !== 'string' || !url.length || url.length > 4096) return false;
+  let u: URL;
+  try { u = new URL(url); } catch { return false; }
+  if (u.protocol !== 'https:' || u.username || u.password) return false;
+  const host = u.hostname.toLowerCase().replace(/\.$/, '');
+  if (!host || !host.includes('.') || host.startsWith('[')) return false;
+  if (/^\d+(\.\d+)*$/.test(host)) return false;
+  if (/(^|\.)(localhost|internal|local|localdomain|home|lan|corp)$/.test(host)) return false;
+  return true;
+};
+
+const NO_ES_UN_MEDIO = /^(text\/|application\/(json|xml|xhtml\+xml|javascript|x-javascript|x-www-form-urlencoded)|multipart\/)/i;
+const NO_ES_UN_MODELO = /^(text\/html|application\/(json|xhtml\+xml))/i;
+
+/**
+ * ¿EL TIPO QUE DECLARA LA RESPUESTA PUEDE SER LO QUE SE PIDIÓ? Una página de error o un JSON no son un vídeo. Es
+ * deliberadamente corto: rechaza lo claramente equivocado y deja pasar `application/octet-stream`, que es lo que
+ * sirven muchos CDN para un vídeo o un modelo. Texto y documentos no pasan por aquí (el texto llega entero).
+ */
+export const contenidoCompatible = (kind: string, contentType: string): boolean => {
+  const ct = String(contentType ?? '').trim();
+  if (kind === 'image' || kind === 'video' || kind === 'audio') return !NO_ES_UN_MEDIO.test(ct);
+  if (kind === 'model3d' || kind === 'world') return !NO_ES_UN_MODELO.test(ct);
+  return true;
+};
+
 /** La ruta, derivada de la identidad del material: la misma llegada escribe siempre el mismo sitio. */
 export const rutaDelResultado = (userId: string, assetId: string, contentType: string): string =>
   `users/${userId}/ai-generations/${assetId}.${extensionFor(contentType)}`;
@@ -143,6 +183,12 @@ const elMaterial: PuertoDeMaterializacion = {
     const adoptado = await adoptarObjeto(peticion);
     if (adoptado) return adoptado;
 
+    /* Solo se sale a la red hacia un destino permitido: el enlace lo pone el proveedor, no Weë. */
+    if (!destinoDeResultadoPermitido(peticion.recurso)) {
+      console.warn('WEË CONTENT: destino del resultado no permitido; no se descarga', peticion.assetId);
+      return { ok: false, motivo: 'rechazado' };
+    }
+
     let bytes: Buffer;
     let contentType: string;
     try {
@@ -160,6 +206,11 @@ const elMaterial: PuertoDeMaterializacion = {
       return { ok: false, motivo: status === 403 || status === 404 || status === 410 ? 'caducado' : 'no_se_pudo_traer' };
     }
     if (!bytes.length || bytes.length > MAX_BYTES_DE_RESULTADO) return { ok: false, motivo: 'rechazado' };
+    /* Una página de error o un JSON no es el vídeo que se pidió: ni se guarda el objeto ni se cierra nada. */
+    if (!contenidoCompatible(peticion.kind, contentType)) {
+      console.warn('WEË CONTENT: el tipo devuelto no es el de lo pedido; no se guarda', peticion.assetId, peticion.kind, contentType);
+      return { ok: false, motivo: 'rechazado' };
+    }
 
     const bucket = storageBucket();
     const ruta = rutaDelResultado(peticion.userId, peticion.assetId, contentType);
@@ -221,6 +272,10 @@ const traerVariantes = async (peticion: PeticionDeMaterializacion, assetId: stri
     try {
       const actual = await leerMaterial(assetId);
       if (!actual || actual.ownerAccountId !== peticion.userId || actual.variants?.some((x) => x.kind === v.kind)) continue;
+      if (!destinoDeResultadoPermitido(v.recurso)) {
+        console.warn(`WEË CONTENT: la variante ${v.kind} del material ${assetId} apunta a un destino no permitido; no se descarga`);
+        continue;
+      }
       const traido = await fetchBytes(v.recurso, { provider: 'materializacion', timeoutMs: 60_000 });
       if (!traido.buffer.length || traido.buffer.length > MAX_BYTES_DE_VARIANTE) continue;
       const bucket = storageBucket();
