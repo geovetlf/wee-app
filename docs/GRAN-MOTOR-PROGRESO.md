@@ -93,3 +93,8 @@ Detalle completo en [`GRAN-MOTOR-E-ASSETS.md`](GRAN-MOTOR-E-ASSETS.md). Local, s
 
 ### Agente H, ronda 2 — paquete E (rama `gran-motor/h2-guardas`, 2026-10-16)
 `puente-pre-f1d` F3: `content/index.ts` 68/3→79/3 y `content/materializador.ts` 126/4→181/4 por el paquete E (`4e0cc1f1`); exactas, aditivas, sin huella afectada. Detalle en [`GRAN-MOTOR-H-GUARDAS.md`](GRAN-MOTOR-H-GUARDAS.md).
+
+### Agente F — pendientes de Guardian y seguridad transversal (rama `gran-motor/f-guardian`, 2026-10-16)
+Detalle en [`GRAN-MOTOR-F-GUARDIAN.md`](GRAN-MOTOR-F-GUARDIAN.md) y [`GRAN-MOTOR-F-SEGURIDAD.md`](GRAN-MOTOR-F-SEGURIDAD.md). Solo documentos; ningún control, hook, workflow ni `ops/guardian/**` tocado; sin `--autoriza`; sin cadena completa. Base `33cd25a2`.
+- Guardian: candidato `5320cde9` con 2 cadenas 310/310 (972 s y 1057 s; commit máx. 26,98 y 29,46 GB de 30,6) leídas con hashes, NO validado. Las 186 transiciones `sudo -u root` verificadas una a una: son 93 entradas × 2 shells, todas la misma orden con 23 envoltorios; recomendación B (aprobar con condiciones). **Hallazgo nuevo (ALTA, preexistente): la clase de redirecciones exteriores** (`bash -c "…" > .firebaserc`, `cmd /c …`, `wsl`, `eval`, `sh -c … > .claude/settings.json`) pasa sin pregunta; corrección mínima probada en copia temporal (15/15 → ask) y NO aplicada.
+- Seguridad: 25 suites de seguridad/identidad/rutas y 48 de i18n, salida 0; 11 hallazgos (F-01 vínculo Real↔Weë público = D3, F-02 App Check apagado, F-03 15 huecos de `sanitize`, F-04 logs sin sanear, F-05 proveedor de compra "test" por nombre de proyecto…). Emuladores NO EJECUTADOS.
