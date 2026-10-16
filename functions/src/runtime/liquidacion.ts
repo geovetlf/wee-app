@@ -263,15 +263,12 @@ export const desenlacesDeLasAceptadas = (job: Job): readonly DesenlaceDeUnaAcept
 /**
  * CÓMO QUEDÓ, no quién lo hizo.
  *
- * `liquidada` significa «la reserva está cerrada y cobrada», no «la cobré yo».
- * La diferencia importa y no se puede fingir: `completeCredits` contesta
- * `COMPLETED` tanto si acaba de cobrar como si ya estaba cobrada, así que desde
- * fuera no hay forma de distinguirlo — y decir lo contrario sería inventar un
- * dato. El reembolso sí lo distingue, porque el motor devuelve `duplicate`.
- *
- * Que no se distinga no afecta a lo que importa: quien cobra de verdad es el
- * Credit Engine, y cobra UNA vez. Solo afecta a cuánto puede presumir el
- * barrendero en su informe, y por eso su informe no presume.
+ * `liquidada` significa «esta llamada terminó el cobro»: o movió el dinero, o —si el dinero ya estaba movido— fue
+ * la que cerró la fila del libro que otra pasada dejó a medias. Una repetición sobre algo ya cobrado y ya cerrado es
+ * `ya_estaba`. Hasta el paquete D (L-5) `completeCredits` contestaba lo mismo cobrando que repitiendo y todas se
+ * contaban `liquidada`; ahora el motor dice `duplicate` y el recuento es honesto. El dinero nunca dependió de esto:
+ * quien cobra de verdad es el Credit Engine, y cobra UNA vez. El libro no es transaccional, así que dos repeticiones
+ * que compitan por cerrar la fila pueden creerse ambas la primera: es un recuento del informe, no una decisión.
  */
 export type DesenlaceDeLiquidacion =
   /* Queda cobrada. Puede haberla cobrado esta llamada o una anterior. */

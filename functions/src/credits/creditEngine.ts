@@ -625,7 +625,8 @@ export function createCreditEngine(deps: CreditEngineDeps) {
   };
 
   // ── Completar (AUTHORIZED → COMPLETED, con ajuste si costó menos) ─────────
-  const completeCredits = async (input: CompleteInput): Promise<{ status: TransactionStatus; refunded: number; balanceAfter: number }> => {
+  /* Gran Motor · D (L-5): `duplicate` dice si esta llamada fue una repetición (la reserva ya no estaba AUTHORIZED) o la que cobró de verdad. Campo opcional y aditivo: quien no lo lee no cambia. */
+  const completeCredits = async (input: CompleteInput): Promise<{ status: TransactionStatus; refunded: number; balanceAfter: number; duplicate?: boolean }> => {
     const userId = assertUserId(input.userId);
     const requestId = assertRequestId(input.requestId);
     /* Gran Motor · C-2: un importe final que no es un número (NaN) no se interpreta: antes dejaba el asiento COMPLETED con `finalAmount: NaN` y la diferencia sin devolver. Se rechaza sin tocar nada. */
@@ -640,7 +641,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
       const status = data.status as TransactionStatus;
       if (status !== 'AUTHORIZED') {
         // COMPLETED: repetición inofensiva. FAILED/REFUNDED: ya se devolvió; no hay nada que completar.
-        return { status, refunded: 0, balanceAfter: num(data.balanceAfter) };
+        return { status, refunded: 0, balanceAfter: num(data.balanceAfter), duplicate: true };
       }
       const authorized = num(data.authorizedAmount) || Math.abs(num(data.amount));
       const final = input.finalAmount === undefined ? authorized : Math.min(authorized, Math.max(0, Math.floor(input.finalAmount)));
@@ -674,7 +675,7 @@ export function createCreditEngine(deps: CreditEngineDeps) {
       } else {
         sincronizarSiHaceFalta(tx, cuenta);
       }
-      return { status: 'COMPLETED', refunded: diff, balanceAfter };
+      return { status: 'COMPLETED', refunded: diff, balanceAfter, duplicate: false };
     });
   };
 

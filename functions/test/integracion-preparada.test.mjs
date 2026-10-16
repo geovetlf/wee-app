@@ -83,7 +83,7 @@ if (!integrada) {
      * + F-06 (2026-10-14): creditEngine.ts pasa a 246/56 (el saldo privado en creditAccounts; bloques exactos en
      *   job-queue 63p, REVISION_F06). Las tres cercas, exactas y la misma.
      */
-    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '246\\t56\\tfunctions\/src\/credits\/creditEngine\.ts\\n10\\t2\\tfunctions\/src\/credits\/creditValidation\.ts\\n19\\t3\\tfunctions\/src\/credits\/index\.ts';/.test(leer(`functions/test/${s}.test.mjs`))));
+    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '252\\t59\\tfunctions\/src\/credits\/creditEngine\.ts\\n10\\t2\\tfunctions\/src\/credits\/creditValidation\.ts\\n19\\t3\\tfunctions\/src\/credits\/index\.ts';/.test(leer(`functions/test/${s}.test.mjs`))));
 }
 
 const ESPERADOS = [

@@ -31,7 +31,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { REVISION_POSTAUDITORIA, REVISION_CIERRE, REVISION_F06 } from './_bloques-autorizados.mjs';
+import { REVISION_POSTAUDITORIA, REVISION_CIERRE, REVISION_F06, REVISION_GRAN_MOTOR } from './_bloques-autorizados.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -622,7 +622,7 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   const conLaRevision = (p, { anclas, texto }) => {
     let t = texto;
     let ok = anclas;
-    for (const b of [...(REVISION_POSTAUDITORIA[p] ?? []), ...(REVISION_CIERRE[p] ?? []), ...(REVISION_F06[p] ?? [])]) {
+    for (const b of [...(REVISION_POSTAUDITORIA[p] ?? []), ...(REVISION_CIERRE[p] ?? []), ...(REVISION_F06[p] ?? []), ...(REVISION_GRAN_MOTOR[p] ?? [])]) {
       const era = b.eran.join('\n');
       const veces = t.split(era).length - 1;
       ok = ok && veces === 1;
