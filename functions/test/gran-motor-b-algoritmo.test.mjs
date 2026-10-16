@@ -97,7 +97,7 @@ for (const [nivel, d] of Object.entries(NIVELES)) {
     existen && exportados && construido && enSuLado && suiteExiste && enCadena,
     JSON.stringify({ existen, exportados, construido, enSuLado, suiteExiste, enCadena }));
 }
-check('hay 10 niveles (A0–A9) y los 33 archivos del motor están repartidos entre ellos, sin huérfanos',
+check('hay 10 niveles (A0–A9) y los 32 archivos del motor están repartidos entre ellos, sin huérfanos',
   Object.keys(NIVELES).length === 10
   && ficheros(path.join(SRC, 'core/algorithm')).map((p) => path.basename(p, '.ts')).filter((b) => b !== 'index')
     .every((b) => Object.values(NIVELES).some((d) => d.archivos.includes(b))),
