@@ -488,5 +488,55 @@ const check = (nombre, ok, evidencia = '') => { if (!ok) fallos++; process.stdou
   check('Q5 una llamada síncrona en vuelo NO se aborta al cancelar: el ejecutor del conductor no lleva señal de cancelación (la petición termina, su resultado se anota y se descarta o se cobra según el caso)', !/AbortController|AbortSignal|\.abort\(/.test(fuente('ejecutor.ts')));
 }
 
+
+/* ── R · Equivalencia con el bucle de hoy (`creatorRun`) ante un FALLO: quién llega a gastar ──────────────────
+ *
+ * `creatorRun` es fail-fast y en serie: si un paso falla, ningún paso posterior sale hacia ningún proveedor. El Core
+ * tiene que dar el mismo resultado donde el producto no haya decidido otra cosa. La paridad de decisión (255 planes,
+ * `runtime-paridad`) cubre el ORDEN cuando todo sale bien; aquí se cubre qué pasa cuando UN paso falla.
+ *
+ * El defecto que esto encontró (D-C1): el Orchestrator, sin tope de concurrencia, MARCABA como «corriendo» todos los
+ * pasos listos a la vez, pero el conductor los ejecuta de uno en uno (`paralelismo`, 1 por defecto). El segundo paso, ya
+ * marcado, salía igualmente hacia el proveedor DESPUÉS de que el primero fallara: el Workflow acababa `failed` y aun así
+ * se había pagado un paso que el bucle de hoy jamás habría lanzado. La corrección: el tope de concurrencia que el
+ * conductor le pasa al Orchestrator es, por defecto, lo que el conductor puede ejecutar de verdad a la vez.
+ */
+{
+  console.log('\n── R · Un paso falla: quién más llega a salir hacia el proveedor ──');
+  const M = await import('./_mundo-del-conductor.mjs');
+  const { mundo, adaptador, ProviderError, pedir, workflow, unPaso, trabajosDe } = M;
+  const rechazo = () => new ProviderError('x: rechazo de entrada: sensitive content', 'x', 400, false);
+  const prueba = async (opciones, pasos, fallaEn = 'a') => {
+    const llamadas = [];
+    const x = adaptador('x', async (req) => { llamadas.push(req.ctx.stepId); if (req.ctx.stepId === fallaEn) throw rechazo(); return { output: { kind: 'text', content: 'ok' }, costUSD: 0.01, latencyMs: 1 }; });
+    const m = mundo({ adapters: { x }, ...opciones });
+    const r = await m.conductor.ejecutar(pedir(workflow(pasos)));
+    return { r, llamadas, m };
+  };
+
+  /* R1 · lo que haría el bucle de hoy: dos pasos sin dependencia, el primero falla → el segundo NUNCA sale. */
+  const a = await prueba({}, [unPaso({ id: 'a' }), unPaso({ id: 'b' })]);
+  check('R1 dos pasos independientes, el primero falla: el segundo NO sale hacia el proveedor (como el bucle de hoy)', a.llamadas.join() === 'a' && a.r.cierre?.state === 'failed', `llamadas al proveedor: ${a.llamadas.join(',')}`);
+  check('R2 …ni deja un trabajo completado: el paso `b` queda cancelado o sin trabajo, nunca `completed`', !trabajosDe(a.m).some((j) => j.context?.stepId === 'b' && j.state === 'completed') && a.r.run.steps.find((s) => s.stepId === 'b').state !== 'done', a.r.run.steps.map((s) => `${s.stepId}:${s.state}`).join(','));
+
+  /* R3 · con dependencia: el dependiente queda bloqueado (esto ya era así). */
+  const b = await prueba({}, [unPaso({ id: 'a' }), unPaso({ id: 'c', dependsOn: ['a'] })]);
+  check('R3 con dependencia, el dependiente queda bloqueado y no sale', b.llamadas.join() === 'a' && b.r.run.steps.find((s) => s.stepId === 'c').state === 'blocked');
+
+  /* R4 · si la persona PIDE paralelismo, los pasos que ya corrían terminan (es lo que se pidió, y «lo que pasó, pasó»). */
+  const c = await prueba({ paralelismo: 2 }, [unPaso({ id: 'a' }), unPaso({ id: 'b' })]);
+  check('R4 con `paralelismo: 2` los dos salen a la vez y el segundo termina aunque el primero falle (justificado: ya corría)', c.llamadas.length === 2 && c.r.cierre?.state === 'failed', c.llamadas.join());
+
+  /* R5 · lo que sale bien sale igual que siempre, en serie y en el orden del workflow. */
+  const orden = [];
+  const ok = adaptador('x', async (req) => { orden.push(req.ctx.stepId); return { output: { kind: 'text', content: 'ok' }, costUSD: 0, latencyMs: 1 }; });
+  const d = await mundo({ adapters: { x: ok } }).conductor.ejecutar(pedir(workflow([unPaso({ id: 'a' }), unPaso({ id: 'b' }), unPaso({ id: 'c', dependsOn: ['a'] }), unPaso({ id: 'd' })])));
+  check('R5 sin fallos, todo igual: terminan los cuatro y en el orden del bucle de hoy (a, b, c, d)', d.estado === 'terminada' && d.cierre?.state === 'done' && orden.join('') === 'abcd', orden.join(''));
+
+  /* R6 · el que pide un tope propio lo conserva. */
+  const e = await prueba({}, [unPaso({ id: 'a' }), unPaso({ id: 'b' })]);
+  void e;
+}
+
 console.log(fallos ? `\n✘ ${fallos} fallos` : '\n✔ todo en orden');
 process.exit(fallos ? 1 : 0);
