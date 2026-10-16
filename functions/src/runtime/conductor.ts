@@ -321,7 +321,15 @@ export const crearConductor = (puertos: PuertosDelConductor): Conductor => {
       principal: preparada.principal,
       run,
       at: ahora(),
-      ...(preparada.maxConcurrent !== undefined ? { maxConcurrent: preparada.maxConcurrent } : {}),
+      /*
+       * EL TOPE DE CONCURRENCIA, por defecto, ES LO QUE ESTE CONDUCTOR PUEDE EJECUTAR A LA VEZ (Gran Motor · D-C1).
+       *
+       * Sin tope, el Orchestrator marcaba como «corriendo» todos los pasos listos, y este conductor los ejecuta de `paralelismo`
+       * en `paralelismo`: el segundo, ya marcado, salía hacia el proveedor DESPUÉS de que el primero fallara y el workflow
+       * acabara `failed` —un gasto que el bucle de hoy (`creatorRun`, en serie y fail-fast) nunca haría—, y salían en otro
+       * orden. Quien pida un tope propio lo conserva; el Orchestrator sigue decidiendo qué paso toca.
+       */
+      maxConcurrent: preparada.maxConcurrent ?? paralelismo,
     });
 
     const recargar = async (): Promise<boolean> => {

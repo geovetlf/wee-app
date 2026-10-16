@@ -317,7 +317,8 @@ const VIDEO = sinComentarios(VIDEO_SRC);
    *   contenido exacto de esa diferencia lo fija job-queue 63p (bloques REVISION_F06 de _bloques-autorizados.mjs) y su
    *   comportamiento credits-saldo-privado (cadena) y saldo-privado.emulator. creditValidation e index, sin tocar.
    */
-  const CREDITS_DEL_HARNESS = '246\t56\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
+  /* + Gran Motor: creditEngine.ts 246/56 → 252/59 (C-2: importe NaN rechazado · D L-5: `duplicate` en completeCredits); ni precios, ni estados, ni idempotencia. Bloques exactos en _bloques-autorizados.mjs (REVISION_GRAN_MOTOR). */
+  const CREDITS_DEL_HARNESS = '252\t59\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
   /*
    * + misión fal (2026-10-05), con autorización del dueño: core/router.ts +2 −2 (la modalidad '3d' en la lista del
    *   Router del Core y en su guardia) y credits/creditCosts.ts +8 (el servicio `ai_world`: precio de prueba, etiqueta y
@@ -628,7 +629,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    * Y el Harness: su tamaño es el del diff combinado.
    */
   const MOTOR_F1D_Y_HARNESS = {
-    'functions/src/creator/credits.ts': '45\t4', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
+    'functions/src/creator/credits.ts': '55\t6', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6 · Gran Motor C-1 (+10 −2: el libro tras una reserva devuelta, c8b5a621)
     'functions/src/creator/index.ts': '204\t41', // Línea B 2026-10-14 (+47 −18, antes 157/23): el cierre del trabajo es una transición (`cerrarTrabajo`/`cerrarAbandonado`, X3), el abandono cuenta desde el fin del PROCESO, el interruptor del vídeo antes del cupo y la reserva (X2), y lo demo no se cobra (`cobroDelTrabajo`, B4-03) · misión mundo3d (+17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo que atendió y anota las variantes de UN resultado (y se exporta para probarlo) · C-1 2026-10-05 (+16 −5, antes 124/16): creatorQuote en transacción, solo con el trabajo `planned`, sin reclamo reciente ni reserva · segunda auditoría de cierre 2026-10-01 (+7 −1, antes 117/15): vozSinNarracion antes del vídeo · 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
     'functions/src/engine/admin.ts': '14\t4', // Línea B 2026-10-14 (+3, antes 11/4): `videoHabilitado` se cambia por setSettings y solo admite true/false · 0ad8500 (#19) · 5e87b80 (FASE 8) · cierre post-auditoría 2026-10-01 (+2 −2, antes 9/2): engineAdmin monta MODEL_SECRETS
     'functions/src/engine/config.ts': '36\t1', // 8193184 (#20) · misión fal: '3d' entra en la lista de modalidades que ya añadió #20 (no cambia la cifra)

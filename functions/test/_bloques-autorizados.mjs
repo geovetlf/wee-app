@@ -861,3 +861,47 @@ export const REVISION_F06 = {
     }
   ]
 };
+
+/*
+ * GRAN MOTOR (2026-10-16) · lo autorizado DESPUÉS de F-06 en `creditEngine.ts`, aplicado el último. Solo datos.
+ * Tres bloques exactos, cada uno único en el texto sobre el que se aplica:
+ *  · C-2 (paquete C): un importe final que no es un número se rechaza (`INVALID_AMOUNT`) antes de tocar nada;
+ *  · L-5 (paquete D): `completeCredits` devuelve además `duplicate` —true si fue una repetición sobre una reserva que
+ *    ya no estaba AUTHORIZED, false si cobró de verdad—. Campo opcional y aditivo; el dinero, la idempotencia y los
+ *    estados no cambian. Lo prueban gran-motor-c-creditos y gran-motor-d-workflow.
+ */
+export const REVISION_GRAN_MOTOR = {
+  "functions/src/credits/creditEngine.ts": [
+    {
+      "eran": [
+        "  const completeCredits = async (input: CompleteInput): Promise<{ status: TransactionStatus; refunded: number; balanceAfter: number }> => {",
+        "    const userId = assertUserId(input.userId);",
+        "    const requestId = assertRequestId(input.requestId);"
+      ],
+      "quedan": [
+        "  /* Gran Motor · D (L-5): `duplicate` dice si esta llamada fue una repetición (la reserva ya no estaba AUTHORIZED) o la que cobró de verdad. Campo opcional y aditivo: quien no lo lee no cambia. */",
+        "  const completeCredits = async (input: CompleteInput): Promise<{ status: TransactionStatus; refunded: number; balanceAfter: number; duplicate?: boolean }> => {",
+        "    const userId = assertUserId(input.userId);",
+        "    const requestId = assertRequestId(input.requestId);",
+        "    /* Gran Motor · C-2: un importe final que no es un número (NaN) no se interpreta: antes dejaba el asiento COMPLETED con `finalAmount: NaN` y la diferencia sin devolver. Se rechaza sin tocar nada. */",
+        "    if (input.finalAmount !== undefined && Number.isNaN(Number(input.finalAmount))) throw new CreditError('INVALID_AMOUNT', 'El importe final debe ser un número', { requestId });"
+      ]
+    },
+    {
+      "eran": [
+        "        return { status, refunded: 0, balanceAfter: num(data.balanceAfter) };"
+      ],
+      "quedan": [
+        "        return { status, refunded: 0, balanceAfter: num(data.balanceAfter), duplicate: true };"
+      ]
+    },
+    {
+      "eran": [
+        "      return { status: 'COMPLETED', refunded: diff, balanceAfter };"
+      ],
+      "quedan": [
+        "      return { status: 'COMPLETED', refunded: diff, balanceAfter, duplicate: false };"
+      ]
+    }
+  ]
+};
