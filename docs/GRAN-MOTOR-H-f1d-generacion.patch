@@ -1,0 +1,24 @@
+diff --git a/functions/test/f1d-generacion.test.mjs b/functions/test/f1d-generacion.test.mjs
+index 7dcbab0c..7dbd54f7 100644
+--- a/functions/test/f1d-generacion.test.mjs
++++ b/functions/test/f1d-generacion.test.mjs
+@@ -839,7 +839,8 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
+    *   contenido exacto de esa diferencia lo fija job-queue 63p (bloques REVISION_F06 de _bloques-autorizados.mjs) y su
+    *   comportamiento credits-saldo-privado (cadena) y saldo-privado.emulator. creditValidation e index, sin tocar.
+    */
+-  const CREDITS_DEL_HARNESS = '246\t56\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
++  /* + Gran Motor C+D (2026-10-16): creditEngine.ts 246/56 → 252/59 (C-2 c8b5a621: importe final NaN rechazado y el libro no registra un cobro sobre una reserva ya devuelta, +2 · D L-5 e3b77353: `duplicate` en completeCredits, +4 −3). Bloques exactos en _bloques-autorizados.mjs (REVISION_GRAN_MOTOR). */
++  const CREDITS_DEL_HARNESS = '252\t59\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
+   /* + misión fal (2026-10-05): core/router.ts +2 −2 (la modalidad 3d) y creditCosts.ts +8 (el servicio ai_world). Líneas exactas en job-queue 63fal. */
+   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
+   check('AI) Credits intactos: el Credit Engine, el Financial Core y el resto; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; del tamaño exacto',
+@@ -855,7 +856,8 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
+       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
+       /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo y anota las variantes de UN resultado; nada del reclamo ni del cobro. */
+       /* + Línea B (2026-10-14, integridad financiera): creator/index +47 −18 (cierre del trabajo como transición, abandono desde el fin del PROCESO, interruptor del vídeo antes de reservar, lo demo no se cobra); la rama legacy de generateVideo solo gana la devolución de un vídeo de muestra (B4-03). */
+-      '45\t4\tfunctions/src/creator/credits.ts|204\t41\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
++      /* + Gran Motor C (2026-10-16, c8b5a621): creator/credits.ts 45/4 → 55/6 (+10 −2: el libro no registra un cobro sobre una reserva ya devuelta). */
++      '55\t6\tfunctions/src/creator/credits.ts|204\t41\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
+     && legacy(leer('functions/src/creator/video.ts')).length > 500 && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
+ }
+ 

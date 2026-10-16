@@ -695,7 +695,9 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
   /* Las dos listas juntas, en el orden en que las da git: por ruta. */
   /* + F-06 (2026-10-14): backup.ts +2 (`creditAccounts` CRITICAL y su relación `uid → users`). */
   const CORE_DE_LA_F06 = '2\t0\tfunctions/src/core/backup.ts';
-  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), ...CORE_DE_LA_F06.split('|')]
+  /* + Gran Motor B (2026-10-16, f8a377b6): core/brain.ts +24 −1 (B-1 una respuesta sin texto no se entrega ni se cobra · B-2 la marca en medio no pega palabras). Una sola vez, exacta; ningún contrato sube de versión. Prueba: gran-motor-b-planner. */
+  const CORE_DE_GRAN_MOTOR_B = '24\t1\tfunctions/src/core/brain.ts';
+  const coreEsperado = [...CORE_DE_LA_MISION_FAL.split('|'), ...CORE_DEL_CICLO_DE_VIDA_3D.split('|'), ...CORE_DE_LA_F06.split('|'), ...CORE_DE_GRAN_MOTOR_B.split('|')]
     .sort((a, b) => (a.split('\t')[2] < b.split('\t')[2] ? -1 : 1)).join('|');
   check('H3) F1-A y productions, sin tocar; y del Core, solo la misión fal y el linaje del ciclo de vida 3D, del tamaño exacto',
     git(`diff --name-only ${ANTES} -- functions/src/filmmaker functions/src/productions`).trim() === ''

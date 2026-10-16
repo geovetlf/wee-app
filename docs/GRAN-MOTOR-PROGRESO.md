@@ -77,3 +77,9 @@ Detalle completo en [`GRAN-MOTOR-D-WORKFLOW.md`](GRAN-MOTOR-D-WORKFLOW.md). Loca
 - Corregido y PROBADO en la rama (NO desplegado): L-5 y D-C1. `job-queue` (que **ya estaba en rojo en la base**), `video-asincrono` A13/H2 y `puente-pre-f1d` F1 reparadas con su cifra exacta.
 - Hallazgos abiertos para el dueño: **D-J1** (nadie evalúa ni recupera los trabajos abandonados en lo desplegado; `barrerRecuperables` existe, está probado contra Firestore y no lo llama nadie), **D-J2** (los barridos miran 1 000 trabajos por pasada sin cursor entre pasadas), **D-X1** (cancelar solo para de verdad lo que está en la cola de Weë; un vídeo de Seedance ya aceptado no se puede parar), **D-X2** (sin respaldo entre proveedores entre intentos), D-J3/D-W2/D-W3 (bajos). `f1d-generacion` 97/98 siguen rojas (huella de Guardian: no se re-ancla) y por eso `integracion-preparada` 3c, verde en la base, avisa ahora de que sus tres cercas difieren.
 - Conflicto previsible con el agente A (Router) en este archivo: solo añadir su sección; no resolver pisando.
+
+### Agente H — guardas de tamaño exacto tras integrar A+B+C+D (rama `gran-motor/h-guardas`, 2026-10-16)
+Detalle en [`GRAN-MOTOR-H-GUARDAS.md`](GRAN-MOTOR-H-GUARDAS.md). Local, sin push/merge. Solo pruebas y documentos.
+- `video-asincrono` H3 y `puente-pre-f1d` F1/F3: cifra exacta de `core/brain.ts` 24/1 (B-1/B-2, `f8a377b6`) añadida de forma aditiva y comentada; verdes; huellas de Guardian en 0.
+- `f1d-generacion` 97/98 (huella protegida) e `integracion-preparada` 3c: NO tocadas. Parche de propuesta `docs/GRAN-MOTOR-H-f1d-generacion.patch` (creditEngine 246/56→252/59, creator/credits 45/4→55/6) y comando de re-anclaje para el dueño en el documento; demostrado en copia efímera que con el parche pasan, y que la huella pide `--registrar --autoriza`.
+- Sabotajes: cada cifra actualizada hace fallar su suite (tabla en el documento).
