@@ -43,3 +43,10 @@ Motivo de la cola: dos agentes con código a la vez como máximo (presión de me
 
 ## 3. Registro de ejecución
 (Cada paquete añade aquí: commits, archivos, comandos con código de salida y duración, fallos/intermitencias, decisiones reservadas.)
+
+### Paquete C — Credit Engine / Financial Core (Agente C, 2026-10-16, rama `gran-motor/c-creditos`)
+Detalle completo en [`GRAN-MOTOR-C-CREDITOS.md`](GRAN-MOTOR-C-CREDITOS.md). Local, sin push/PR/merge/despliegue.
+- Commits: `c8b5a621` fix(creditos) (C-1 libro tras reserva devuelta en `creator/credits.ts`, C-2 `finalAmount` NaN en `credits/creditEngine.ts`, suite nueva `gran-motor-c-creditos` en memoria y en emulador, registro mecánico en `functions/package.json` y `ops/guardian/dominios.json`); commit de documentación del paquete; este registro.
+- Pruebas: la suite nueva falló exactamente en E5 y G3 antes del cambio y pasa después (63 comprobaciones); emulador de Firestore (`demo-wee-filmmaker`) 25/25 en dos ejecuciones consecutivas; `creator-finanzas.emulator` 33/33; suites de dinero existentes, `guardian-dominios` y `guardian-aserciones` en verde. No se lanzó la cadena completa.
+- Hallazgos abiertos para el dueño: D-1 (sin barrido automático para reservas huérfanas de Brain/vídeo/mundo/avatar), D-2 (`video.ts`: reembolso tras entregar si falla el cierre).
+- Estado: correcciones IMPLEMENTADAS y PROBADAS en la rama; NO desplegadas.
