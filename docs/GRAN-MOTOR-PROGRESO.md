@@ -50,3 +50,12 @@ Detalle completo en [`GRAN-MOTOR-C-CREDITOS.md`](GRAN-MOTOR-C-CREDITOS.md). Loca
 - Pruebas: la suite nueva falló exactamente en E5 y G3 antes del cambio y pasa después (63 comprobaciones); emulador de Firestore (`demo-wee-filmmaker`) 25/25 en dos ejecuciones consecutivas; `creator-finanzas.emulator` 33/33; suites de dinero existentes, `guardian-dominios` y `guardian-aserciones` en verde. No se lanzó la cadena completa.
 - Hallazgos abiertos para el dueño: D-1 (sin barrido automático para reservas huérfanas de Brain/vídeo/mundo/avatar), D-2 (`video.ts`: reembolso tras entregar si falla el cierre).
 - Estado: correcciones IMPLEMENTADAS y PROBADAS en la rama; NO desplegadas.
+
+### Paquete A — Router Core frente a Legacy y cadena autorizada (agente A, rama `gran-motor/a-router`, 2026-10-16)
+Detalle completo en `docs/GRAN-MOTOR-A-ROUTER.md`. Commits locales (sin push): `609e4250` test router-equivalencia · `473ed011` test sanitize-huecos + parche · `ff16998c`-equivalente docs del paquete (hash final con `git log`) · este registro.
+* Equivalencia: en la composición real (registro vivo) y en 16 escenarios x 29 capacidades, Core + capa de compatibilidad reproduce la cadena del motor de hoy (0 divergencias); las 15 del Core puro son POLICY DIFFERENCE. Divergencias injustificadas: 0, por eso no se tocó `core/router.ts`, `runtime/resolucion.ts` ni `engine/router.ts`.
+* Cinco diferencias latentes sin consumidor real (calidad deducida del texto, presupuesto del paso, preferCheaper, duración, respaldo entre proveedores) fijadas con prueba; decisiones D-A1..D-A7 reservadas al dueño.
+* Cadena autorizada: único desvío = avatar (`vertexAI.ts`), documentado; propuesta A1/A2 sin aplicar. Cliente sin llamadas a proveedores de IA.
+* Hueco real: `engine/sanitize.ts` (JSON escapado, URL firmadas, refresh/id/session token, PEM). Parche verificado en `docs/GRAN-MOTOR-A-sanitize.patch`, NO aplicado: las guardas `puente-pre-f1d` F1 y `video-asincrono` H2 lo rechazan (decisión del dueño).
+* Registro mecánico fuera del paquete: `functions/package.json` (cadena `test`) y `ops/guardian/dominios.json` (dominio router-gateway-proveedores) con las dos suites nuevas; ninguna aserción tocada ni re-anclada.
+* Ejecución: suites ligeras exit 0; `core-router` 14,2 s, `core-gateway` 23,3 s, `cotas-de-tiempo` 301,5 s con candado, 0 ✘, 15,2-16 GB comprometidos. Sin cadena completa, sin intermitencias observadas. Conocidos sin cambios: M1-M3, K1-K3 (K1/K3: el router legacy paga a un segundo proveedor si falla el bookkeeping), R1.
