@@ -520,7 +520,8 @@
         "guardia-referencias-git",
         "guardia-llaves",
         "guardia-envoltorios",
-        "guardia-envoltorios2"
+        "guardia-envoltorios2",
+        "guardia-cmd-colgado"
       ]
     },
     {

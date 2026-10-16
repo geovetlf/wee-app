@@ -52,6 +52,30 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const LIM_PROF = 30;          // profundidad de desenvolvimiento/anidación
 const LIM_TAM = 200_000;      // tamaño de texto que se analiza de una vez
 const LIM_CMDS = 6000;        // nº de órdenes simples extraídas
+const LIM_CMD_SIN_C = 2;       // H7: reanálisis de `cmd` sin /c (la guardia anterior hacía hasta LIM_PROF=30; con 1 ya no hay órdenes menos estrictas en el corpus)
+let NIVEL_CMD_SIN_C = 0;
+
+/* H7: PRESUPUESTO de análisis. Las cotas de arriba acotan cada estructura por separado, pero no su producto (órdenes que se reanalizan por varios
+   caminos —el modo legado de H4, las hipótesis de H6, la expansión de llaves— multiplican el trabajo por nivel de anidamiento). El hook tiene un
+   plazo (settings.json: 10 s) y, si lo agota, Claude Code CONTINÚA sin bloquear: un análisis que no termina deja pasar. Por eso el análisis entero
+   —de la orden de nivel 0 y de todo lo que de ella se desprende— tiene un presupuesto de pasos y de tiempo MUY inferior a ese plazo; si se agota,
+   no hay decisión parcial: se DENIEGA con código 2 (nunca se permite por falta de análisis). Las env solo pueden BAJARlo (pruebas), nunca subirlo. */
+const LIM_PASOS = 20_000;     // unidades de trabajo (órdenes, troceados, hipótesis y niveles analizados) por comando
+const LIM_MS = 3_000;         // tiempo de pared del análisis de un comando, ≪ el plazo del hook
+const topeEnv = (nombre, defecto) => { const v = Number(process.env[nombre]); return Number.isFinite(v) && v > 0 ? Math.min(defecto, v) : defecto; };
+const PRESUP = { activos: 0, pasos: 0, hasta: 0, agotado: false, topePasos: LIM_PASOS };
+const errorPresupuesto = () => { const e = new RangeError('presupuesto de análisis agotado'); e.presupuesto = true; return e; };
+const arrancaPresupuesto = () => {
+  PRESUP.pasos = 0; PRESUP.agotado = false;
+  PRESUP.topePasos = topeEnv('GUARDIA_PRESUPUESTO_PASOS', LIM_PASOS);
+  PRESUP.hasta = performance.now() + topeEnv('GUARDIA_PRESUPUESTO_MS', LIM_MS);
+};
+/** Una unidad de trabajo. Una vez agotado el presupuesto TODA llamada posterior lanza (aunque un `catch` intermedio se tragara el primer error). */
+const gasta = () => {
+  if (PRESUP.agotado) throw errorPresupuesto();
+  PRESUP.pasos++;
+  if (PRESUP.pasos > PRESUP.topePasos || performance.now() > PRESUP.hasta) { PRESUP.agotado = true; throw errorPresupuesto(); }
+};
 
 /* Palabras sensibles: solo con una de estas en el texto se bloquea lo que el
    analizador no puede resolver del todo (dinámico o fuera de límites). */
@@ -222,6 +246,7 @@ const errorLimite = (msg) => { const e = new RangeError(msg); e.limite = true; r
 let MODO_LEGADO = false;
 
 const trocear = (herr, texto, salida, prof) => {
+  gasta();
   if (prof > LIM_PROF) throw errorLimite('anidamiento excesivo');
   const ps = herr === 'PowerShell';
   const s = texto;
@@ -979,6 +1004,7 @@ const scriptQueEjecuta = (p, w) => {
 
 /** Analiza UNA etapa ya partida en palabras. */
 const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
+  gasta();
   let { w, dinamica: desdeEntrada, quitadas } = desenvolver(etapa.palabras);
   if (!w.length) {
     /* H5: una orden que se queda sin programa (`xargs -a <secreto>`, `time -o <secreto>`) ya no suelta en silencio lo que se quitó: si nombra un secreto, se deniega. */
@@ -1010,7 +1036,20 @@ const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
     const tras = (i) => (i >= 0 && i + 1 < w.length ? w[i + 1] : null);
     let interior = null;
     if (['bash', 'sh', 'zsh', 'dash', 'ksh'].includes(p)) interior = tras(idx(/^-[a-z]*c$/i));
-    else if (p === 'cmd') interior = w.slice(w.findIndex((x) => /^\/[ck]$/i.test(x)) + 1).join(' ') || null;
+    else if (p === 'cmd') {
+      /* H7: sin `/c` ni `/k` NO hay orden interior. `findIndex` daba -1 y el «interior» pasaba a ser la orden ENTERA (`slice(0)`): se reanalizaba a sí
+         misma hasta LIM_PROF (30 niveles; con el modo legado de H4 y las llaves, ≈2^30 análisis: el hook no terminaba y fallaba abierto). Cada
+         nivel de esa cadena volvía a trocear las MISMAS palabras unidas por espacios (sin comillas), y eso destapaba órdenes (`cmd "git push --force"`,
+         `cmd echo "firebase deploy"`). Se conserva, pero acotado a LIM_CMD_SIN_C reanálisis (no 30): lineal, no exponencial. */
+      const c = w.findIndex((x) => /^\/[ck]$/i.test(x));
+      if (c >= 0) interior = w.slice(c + 1).join(' ') || null;
+      else {
+        if (NIVEL_CMD_SIN_C < LIM_CMD_SIN_C) {
+          NIVEL_CMD_SIN_C++;
+          try { const r = decidirPeor(analizarTexto(herramienta, w.join(' '), profundidad + 1, raiz)); if (r.decision) return r; } finally { NIVEL_CMD_SIN_C--; }
+        }
+      }
+    }
     else if (p === 'wsl') interior = w.slice(1).join(' ') || null;
     else if (p === 'eval') interior = resto.join(' ') || null;
     else if (p === 'powershell' || p === 'pwsh') {
@@ -1312,6 +1351,7 @@ const ENVOLTORIOS_H6_NUEVOS = new Set([...ENVOLTORIOS_H6].filter((x) => !ENVOLTO
 const ENVOLTORIOS_H6_CADENA = new Map([['watch', 2], ['parallel', 2], ['ssh', 3], ['sshpass', 3]]); /* programa → hasta qué operando puede ser la cadena */
 
 const porEnvoltorios = (herr, etapa, profundidad, raiz) => {
+  gasta();
   let peor = PASA;
   if (profundidad >= LIM_PROF) return peor;
   const ps = etapa.palabras;
@@ -1391,18 +1431,27 @@ function reglaDinamica(p, w, etapa, desdeEntrada, raiz) {
 /** Analiza el texto completo de un comando de Bash o de PowerShell. */
 export const analizarTexto = (herramienta, texto, profundidad = 0, raiz) => {
   const base = raiz === undefined ? texto : raiz;
+  const propia = PRESUP.activos === 0; // la llamada más externa es la dueña del presupuesto
+  if (propia) arrancaPresupuesto();
+  PRESUP.activos++;
   try {
-    return analizar(herramienta, texto, profundidad, base);
+    const r = analizar(herramienta, texto, profundidad, base);
+    /* Un `catch` intermedio pudo tragarse el error del presupuesto: el análisis está incompleto, no se da por bueno. */
+    if (propia && PRESUP.agotado) return decision('deny', MOTIVO_PRESUPUESTO, true);
+    return r;
   } catch (e) {
+    if (e && e.presupuesto && (propia || profundidad === 0)) return decision('deny', MOTIVO_PRESUPUESTO, true);
     if (profundidad > 0) throw e;
     /* Un exceso de anidamiento/tamaño SIN palabra sensible se deja pasar (no bloquear lo inocuo);
        con palabra sensible, o ante cualquier otro error, se FALLA CERRADO. */
     if (e && e.limite && !SENSIBLE_TXT(base)) return PASA;
     return decision('deny', 'la guardia no pudo analizar este comando; reformúlalo en órdenes simples y explícitas.', true);
-  }
+  } finally { PRESUP.activos--; }
 };
+const MOTIVO_PRESUPUESTO = 'análisis demasiado complejo: la guardia no pudo terminar de revisar este comando a tiempo y no lo deja pasar sin revisar; divídelo en órdenes simples y explícitas.';
 
 function analizar(herramienta, texto, profundidad, raiz) {
+  gasta();
   if (process.env.GUARDIA_PRUEBA_FALLO === '1') throw new Error('punto de prueba: fallo forzado');
   const herr = herramienta === 'Monitor' ? 'Bash' : herramienta;
 
