@@ -195,6 +195,7 @@
       "suites": [
         "core-brain",
         "core-planner",
+        "gran-motor-b-planner",
         "guardas-reales",
         "skills",
         "creative",
@@ -244,6 +245,7 @@
         "algorithm-cycle",
         "algorithm-agnostic",
         "algorithm-quality",
+        "gran-motor-b-algoritmo",
         "contexto-visual",
         "continuidad",
         "continuidad-estructural",
