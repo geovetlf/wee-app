@@ -265,8 +265,16 @@ export async function settleCredits(userId: string, jobId: string, held: number,
      */
     let capturado = 0;
     if (used > 0) {
-      capturado = Math.min(held, used);
-      await creditEngine.completeCredits({ userId, requestId: jobId, finalAmount: capturado });
+      const pedido = Math.min(held, used);
+      const cierre = await creditEngine.completeCredits({ userId, requestId: jobId, finalAmount: pedido });
+      /*
+       * Lo que el libro dice que se cobró es lo que el Credit Engine dice que quedó cobrado (Gran Motor · C-1).
+       * `completeCredits` es idempotente y NO cobra si la reserva ya estaba devuelta (p. ej. el barrido la cerró
+       * justo antes de que este trabajo terminara): en ese caso devuelve su estado (`REFUNDED`) sin mover nada, y
+       * dejar aquí `pedido` escribiría en el libro un cobro que nunca ocurrió. Es la misma regla que ya aplican
+       * `runtime/index.ts` y `creator/barrido.ts`.
+       */
+      capturado = cierre.status === 'COMPLETED' ? pedido : 0;
     } else {
       await creditEngine.refundCredits({ userId, requestId: jobId, reason: `${description} · no se pudo terminar`, source: 'weë-creator' });
     }

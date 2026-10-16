@@ -628,6 +628,8 @@ export function createCreditEngine(deps: CreditEngineDeps) {
   const completeCredits = async (input: CompleteInput): Promise<{ status: TransactionStatus; refunded: number; balanceAfter: number }> => {
     const userId = assertUserId(input.userId);
     const requestId = assertRequestId(input.requestId);
+    /* Gran Motor · C-2: un importe final que no es un número (NaN) no se interpreta: antes dejaba el asiento COMPLETED con `finalAmount: NaN` y la diferencia sin devolver. Se rechaza sin tocar nada. */
+    if (input.finalAmount !== undefined && Number.isNaN(Number(input.finalAmount))) throw new CreditError('INVALID_AMOUNT', 'El importe final debe ser un número', { requestId });
     const id = usageTransactionId(requestId);
 
     return db().runTransaction(async (tx) => {
