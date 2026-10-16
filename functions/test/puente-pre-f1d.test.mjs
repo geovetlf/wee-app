@@ -750,7 +750,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DE_LA_F06, CORE_DE_GRAN_MOTOR_B)
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
-    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '68\t3\tfunctions/src/content/index.ts\n126\t4\tfunctions/src/content/materializador.ts');
+    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '79\t3\tfunctions/src/content/index.ts\n181\t4\tfunctions/src/content/materializador.ts');
+    /* + Gran Motor E (2026-10-16, 4e0cc1f1): content/index.ts 68/3 → 79/3 (+11) y materializador.ts 126/4 → 181/4 (+55): destino y tipo del resultado, cubo de la ficha, borrado del texto. Exactas; prueba: gran-motor-e-assets. */
     /* + FASE 5: materializador.ts +2 (antes 124/4): el nombre del material, las palabras de quien lo pidió. */
     /* + misión mundo3d (2026-10-05): content/index.ts +27 (antes 41/3), las variantes de UN resultado; materializador.ts +62 −2 (antes 62/2), los derechos al material y sus variantes después. */
   const legacy = (s) => {

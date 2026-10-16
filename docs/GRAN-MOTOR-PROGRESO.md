@@ -90,3 +90,6 @@ Detalle completo en [`GRAN-MOTOR-E-ASSETS.md`](GRAN-MOTOR-E-ASSETS.md). Local, s
 - Pruebas: la suite nueva falló en B3, B5, C1-C15, C18, C19 y C28 antes del cambio y pasa después; suites de content/media/ciclo de vida en verde; emuladores (`demo-wee-filmmaker`, candado `agente-E`): fronteras-storage 28, fronteras-rules 137, media-objetos 36, urls-del-storage 12, nueva 35. Rojas preexistentes en la base, no mías: `puente-pre-f1d` F1-F4 y `f1d-generacion` 97-98 (tamaños exactos de `git diff --numstat` desfasados por A/C). Sin cadena completa ni dry-run de migración (lee producción).
 - Cerrado L-7 del paquete C: las URLs de los asientos son del Storage de Weë con token, no firmadas de proveedor.
 - Abiertos para el dueño: D-E1 (borrar fotos subidas: hoy imposible desde el cliente), D-E2 (publicaciones con activo borrado), D-E3 (entrega con caducidad), D-E4 (huérfanos y cuota), D-E5 (redirecciones/tope de `fetchBytes`); hallazgos E-5..E-10 y propuestas P-1..P-4 de reglas sin aplicar.
+
+### Agente H, ronda 2 — paquete E (rama `gran-motor/h2-guardas`, 2026-10-16)
+`puente-pre-f1d` F3: `content/index.ts` 68/3→79/3 y `content/materializador.ts` 126/4→181/4 por el paquete E (`4e0cc1f1`); exactas, aditivas, sin huella afectada. Detalle en [`GRAN-MOTOR-H-GUARDAS.md`](GRAN-MOTOR-H-GUARDAS.md).

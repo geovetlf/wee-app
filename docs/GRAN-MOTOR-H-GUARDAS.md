@@ -51,3 +51,15 @@ Sin sabotaje: las cuatro suites con exit 0 (con el parche aplicado en la copia e
 ## Verificación en la rama
 
 `video-asincrono`, `puente-pre-f1d`: exit 0. `guardian-dominios`, `guardian-aserciones`, `ci-workflow`: exit 0. `huellas.mjs --verificar`: 0. `f1d-generacion` (97, 98) e `integracion-preparada` (3c): siguen en rojo A PROPÓSITO hasta que el dueño aplique el parche. No se lanzó la cadena completa.
+
+## Ronda 2 — paquete E integrado (`164f20e3`, rama `gran-motor/h2-guardas`)
+
+`puente-pre-f1d` F3 cayó: E (`4e0cc1f1`, destino y tipo del resultado, cubo de la ficha, borrado del texto) cambió el tamaño de dos archivos del contenido.
+
+| Archivo | Cifra anterior | Cifra nueva | Causa | Commit | Estado |
+|---|---|---|---|---|---|
+| `content/index.ts` | 68/3 | 79/3 (+11) | Paquete E | `4e0cc1f1` | ARREGLADO en F3, exacta |
+| `content/materializador.ts` | 126/4 | 181/4 (+55) | Paquete E | `4e0cc1f1` | ARREGLADO en F3, exacta |
+
+`puente-pre-f1d` no tiene huella de Guardian; `huellas.mjs --verificar` = 0. Ninguna otra suite fija estos dos tamaños. Sabotajes: una línea más en `content/index.ts` o en `content/materializador.ts` hace caer F3 (exit 1). `f1d-generacion` e `integracion-preparada` NO se tocaron (siguen a la espera del parche y del dueño).
+Nota de entorno: tras un sabotaje sobre `src`, `guardian-dominios` 82 cae con «functions/lib no está al día» hasta recompilar (`npm run build`); no es un defecto de las guardas.
