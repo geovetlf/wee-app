@@ -76,6 +76,24 @@ export const avisoDeLib = ({ faltan, viejos, huerfanos }) => {
   ].join('\n');
 };
 
+/*
+ * LÍMITE POR SUITE (Guardian · cadena, 2026-10-15). El límite de 600 s por suite es un cortafuegos contra cuelgues, no una cota de rendimiento.
+ * Medido (_cmd-hang/instr-*.json, 4 núcleos físicos / 8 lógicos, paralelo 4): las suites que lanzan miles de procesos `node` se vuelven 2-5 veces
+ * más lentas cuando corren a la vez que otras iguales, SIN saturar la CPU (utilización media 44-72 %: el cuello es la creación de procesos, no el
+ * cálculo). `guardia-envoltorios`: 288 s sola, 600 s en cadena (599,8 s en una tanda que pasó por 0,2 s y 600,0 s —cortada— en otras tres);
+ * `guardia-envoltorios2`: 147 s sola, 440-570 s en cadena; `guardia-cmd-colgado`: 97 s sola, 350-477 s en cadena.
+ * SOLO se AMPLÍA el cortafuegos de esas tres (≈ 6× y 8× su tiempo solo); el resto sigue con el global (`--limite-s`, 600 por defecto). NO se
+ * relaja ninguna cota de las suites ni se omite ninguna, y una suite que falle sigue contando como fallo o INTERMITENTE (ver `correr`).
+ * Un límite solo se añade aquí con la medición que lo justifica, por escrito.
+ */
+export const LIMITES_POR_SUITE_S = {
+  'test/guardia-envoltorios.test.mjs': 1800,
+  'test/guardia-envoltorios2.test.mjs': 1200,
+  'test/guardia-cmd-colgado.test.mjs': 1200,
+};
+/** El límite de una suite: el global, o el de `LIMITES_POR_SUITE_S` si es MAYOR (nunca se baja por debajo del global). */
+export const limiteDe = (suite, limiteMs, limites = LIMITES_POR_SUITE_S) => Math.max(limiteMs, (limites[suite] || 0) * 1000);
+
 const correrUna = (suite, limiteMs) => new Promise((resolve) => {
   const inicio = Date.now();
   const hijo = spawn(process.execPath, [suite], { cwd: FUNCIONES, env: process.env });
@@ -105,7 +123,7 @@ export const correr = async ({ suites, paralelo, limiteMs, alTerminar, repetir =
   const trabajador = async () => {
     while (siguiente < suites.length) {
       const i = siguiente++;
-      resultados[i] = await correrSuite(suites[i], limiteMs);
+      resultados[i] = await correrSuite(suites[i], limiteDe(suites[i], limiteMs));
       alTerminar(resultados[i]);
     }
   };
@@ -113,7 +131,7 @@ export const correr = async ({ suites, paralelo, limiteMs, alTerminar, repetir =
   if (repetir) {
     for (let i = 0; i < resultados.length; i++) {
       if (resultados[i].ok) continue;
-      const sola = await correrSuite(suites[i], limiteMs);
+      const sola = await correrSuite(suites[i], limiteDe(suites[i], limiteMs));
       if (sola.ok) {
         resultados[i] = { ...resultados[i], ok: false, intermitente: true, salidaConCarga: resultados[i].salida, salidaSola: sola.salida, msSola: sola.ms };
         alTerminar(resultados[i]);
