@@ -265,17 +265,28 @@ const trocear = (herr, texto, salida, prof) => {
   let heredocEtapa = false;
   /* Hasta qué posición ya se analizó el interior de una palabra que empieza por `{` (evita volver a analizarlo: coste lineal por nivel). */
   let interiorAnalizado = -1;
+  /* S1 (Gran Motor, P0): lo que la REDIRECCIÓN deja en la orden. `salidasEtapa` = destinos de escritura (`> x`, `>> x`, `>| x`, `>& x`, `<> x`)
+     con sus comillas y escapes ya resueltos por este mismo tokenizador (`> .gi''t/HEAD` es `.git/HEAD`); `redirEtapa` = posiciones, en `pals`,
+     de las palabras que son de una redirección (su archivo y el número de descriptor pegado, `2>`), para analizar ADEMÁS la orden sin ellas
+     (`bash -c > o 'orden'`: el `-c` de bash toma `'orden'`, no `o`). `pendRedir` = la próxima palabra es el archivo de una redirección. */
+  let salidasEtapa = [];
+  let redirEtapa = [];
+  let pendRedir = null;
 
   const finPal = () => {
-    if (hayPal) { pals.push(pal); if (dinPal) dinEtapa = true; }
+    if (hayPal) {
+      if (pendRedir) { redirEtapa.push(pals.length); if (pendRedir === 'escribe') salidasEtapa.push(pal); }
+      pals.push(pal); if (dinPal) dinEtapa = true;
+      pendRedir = null;
+    }
     pal = ''; hayPal = false; dinPal = false;
   };
   const finEtapa = (fin) => {
     finPal();
     if (pals.length) {
-      tuberia.push({ palabras: pals, dinamica: dinEtapa, crudo: s.slice(crudoIni, fin).trim(), entrada: entradaEtapa, entradaArchivo, heredoc: heredocEtapa });
+      tuberia.push({ palabras: pals, dinamica: dinEtapa, crudo: s.slice(crudoIni, fin).trim(), entrada: entradaEtapa, entradaArchivo, heredoc: heredocEtapa, salidas: salidasEtapa, redir: redirEtapa });
     }
-    pals = []; dinEtapa = false; entradaEtapa = null; entradaArchivo = null; heredocEtapa = false;
+    pals = []; dinEtapa = false; entradaEtapa = null; entradaArchivo = null; heredocEtapa = false; salidasEtapa = []; redirEtapa = []; pendRedir = null;
   };
   const finTuberia = (fin) => {
     finEtapa(fin);
@@ -372,12 +383,27 @@ const trocear = (herr, texto, salida, prof) => {
        sigue siendo una palabra (lo miran los detectores de secretos) y además se recuerda como ENTRADA de la orden. */
     if (c === '>' || c === '<') {
       const deArchivo = !ps && c === '<';
-      finPal(); i++; if (s[i] === '>') i++; if (s[i] === '&') i++;
+      /* S1: un número PEGADO al operador (`2>`, `1>>`) es el descriptor, no un argumento. */
+      if (hayPal && !dinPal && /^\d+$/.test(pal)) redirEtapa.push(pals.length);
+      finPal(); i++;
+      const lecturaEscritura = c === '<' && s[i] === '>';   // `<>` abre el archivo también para ESCRIBIR
+      if (s[i] === '>') i++; if (s[i] === '&') i++;
       if (deArchivo) {
         let k = i;
         while (k < n && (s[k] === ' ' || s[k] === '\t')) k++;
         const r = palabraLiteral(s, k, ps);
         if (r.texto) entradaArchivo = r.texto;
+      }
+      pendRedir = c === '>' || lecturaEscritura ? 'escribe' : 'lee';
+      /* S1: `>|` (escribir aunque exista) — el `|` NO se consume (la orden se sigue partiendo igual que antes: ninguna decisión se pierde), pero
+         el archivo que sigue al `|` se recuerda como destino de escritura de ESTA orden. (En PowerShell `>|` no es un operador válido; se trata
+         igual por prudencia.) */
+      if (c === '>' && s[i] === '|') {
+        let k = i + 1;
+        while (k < n && (s[k] === ' ' || s[k] === '\t')) k++;
+        const r = palabraLiteral(s, k, ps);
+        if (r.texto) salidasEtapa.push(r.texto);
+        pendRedir = null;
       }
       continue;
     }
@@ -839,17 +865,22 @@ const tocaSecreto = (p, w, quitadas = [], enPowerShell = false) => {
 };
 
 /** ¿La orden ESCRIBE en una ruta protegida (redirección, cp/mv/sed -i, node fs.write…)? */
-const escribeProtegido = (p, w, crudo, quitadas = []) => {
+const escribeProtegido = (p, w, crudo, quitadas = [], salidas = []) => {
   const norm = String(crudo).replace(/\\/g, '/');
   const protegida = (x) => RUTAS_PROTEGIDAS.test(String(x).replace(/\\/g, '/'));
   /* H4: los argumentos también se miran ya expandidos (`rm {.claude,x}/settings.json`, `cp x .cl{a,}ude/settings.json`). */
   const args = w.slice(1).flatMap((x) => expandirLlaves(x));
   /* H5: lo que se quitó y la palabra que quedó en la posición del programa (solo si hubo envoltorio), también ya expandidos. */
   const delEnvoltorio = quitadas.length ? [...quitadas, w[0] || ''].flatMap((x) => expandirLlaves(x)) : [];
-  if (!RUTAS_PROTEGIDAS.test(norm) && !args.some(protegida) && !delEnvoltorio.some(protegida)) return false;
+  /* S1 (P0): los DESTINOS de las redirecciones de escritura que recogió el tokenizador, ya sin comillas ni escapes y también expandidos. La regex
+     sobre el texto crudo (abajo) no los veía si la ruta llevaba comillas partidas (`> .gi''t/HEAD`), llaves (`> .cl{a,}ude/…`) o el operador era
+     `>|`/`>&`: el destino de una redirección se ESCRIBE, sea cual sea el programa. */
+  const destinos = salidas.flatMap((x) => expandirLlaves(x));
+  if (!RUTAS_PROTEGIDAS.test(norm) && !args.some(protegida) && !delEnvoltorio.some(protegida) && !destinos.some(protegida)) return false;
   /* H5: tras un envoltorio, un operando protegido en la posición del programa (`/usr/bin/time -o <ruta> …`, `nohup <ruta>`) o un argumento tras una
      opción que el envoltorio se salta (`time -o <ruta> …`: GNU time ESCRIBE ese archivo) no es un programa que se mire: pregunta el dueño. */
   if (delEnvoltorio.some(protegida)) return true;
+  if (destinos.some(protegida)) return true;
   if (/>>?\s*["']?[^\s"'|&;]*(\.claude\/|\.git\/|\.firebaserc|creditengine\.ts|core\/financial\/)/i.test(norm)) return true;
   if (ESCRITORES.has(p) && args.some(protegida)) return true;
   if (p === 'sed' && args.some((x) => /^-i/.test(x)) && args.some(protegida)) return true;
@@ -860,6 +891,7 @@ const escribeProtegido = (p, w, crudo, quitadas = []) => {
 };
 
 const decision = (d, motivo, cerrado = false) => ({ decision: d, motivo, cerrado });
+const MOTIVO_RUTA_PROTEGIDA = 'El comando escribe en una ruta protegida (.claude, .git, .firebaserc, el motor de Credits o el Financial Core): lo aprueba el dueño.';
 const PASA = { decision: null, motivo: '', cerrado: false };
 
 /* Lo que no es literal en un programa (node/python) que se lee: no puede ser el nombre de un alias de git. */
@@ -1029,6 +1061,13 @@ const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
   const p = programa(w[0]);
   const resto = w.slice(1);
   const sinOpciones = resto.filter((x) => !x.startsWith('-'));
+  /* S1 (P0): la ORDEN EXTERIOR de un intérprete también escribe. `bash -c "…" > .firebaserc`, `cmd /c echo x > .git/HEAD`, `wsl echo x > …`,
+     `eval "…" > …`, `powershell -c|-EncodedCommand … > …`: la redirección es de la orden de FUERA, no entra en el texto interior que se reanaliza, y
+     la rama de los intérpretes devolvía el resultado del interior ANTES de llegar a `escribeProtegido`. Ahora, si el interior no decidió nada, se mira
+     la escritura de la orden exterior (con su texto crudo, lo que se quitó y los destinos de sus redirecciones). Un `deny` o un `ask` del interior se
+     conservan tal cual: esto solo puede AÑADIR un `ask`, nunca rebajar. */
+  const conEscrituraExterior = (r) => (r.decision ? r
+    : escribeProtegido(p, w, etapa.crudo, quitadas, etapa.salidas) ? decision('ask', MOTIVO_RUTA_PROTEGIDA) : r);
 
   /* Intérpretes y lanzadores con un comando dentro: se analiza lo de dentro. */
   if (profundidad < LIM_PROF) {
@@ -1055,7 +1094,7 @@ const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
     else if (p === 'powershell' || p === 'pwsh') {
       const e = idx(/^-(e|ec|enc|encodedcommand)$/i);
       if (e >= 0 && tras(e)) {
-        try { return decidirPeor(analizarTexto('PowerShell', Buffer.from(tras(e), 'base64').toString('utf16le'), profundidad + 1, raiz)); }
+        try { return conEscrituraExterior(decidirPeor(analizarTexto('PowerShell', Buffer.from(tras(e), 'base64').toString('utf16le'), profundidad + 1, raiz))); }
         catch { /* base64 ilegible */ }
       }
       const cc = idx(/^-(c|command)$/i);
@@ -1089,7 +1128,7 @@ const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
     }
     /* `bash -c "$(cat x)"`, `eval "$CMD"`, `iex $codigo`: el programa entero viene de fuera y no se puede leer. */
     if (interior !== null && soloDinamico(interior)) return sinLeer(raiz, `\`${p}\` ejecuta un programa que llega entero de una variable o una sustitución`);
-    if (interior) return decidirPeor(analizarTexto(herramienta, interior, profundidad + 1, raiz));
+    if (interior) return conEscrituraExterior(decidirPeor(analizarTexto(herramienta, interior, profundidad + 1, raiz)));
 
     /*
      * Un intérprete que lee su PROGRAMA de la entrada: un here-string (`bash <<< '…'`), `< archivo`, o la tubería
@@ -1124,7 +1163,7 @@ const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
   }
 
   /* Escritura en rutas que el dueño protege: pregunta (nunca en silencio). */
-  if (escribeProtegido(p, w, etapa.crudo, quitadas)) return decision('ask', 'El comando escribe en una ruta protegida (.claude, .git, .firebaserc, el motor de Credits o el Financial Core): lo aprueba el dueño.');
+  if (escribeProtegido(p, w, etapa.crudo, quitadas, etapa.salidas)) return decision('ask', MOTIVO_RUTA_PROTEGIDA);
 
   /* Archivos de secretos y credenciales: nunca se leen ni se tocan desde un comando (el patrón de un buscador no cuenta). */
   const secreto = tocaSecreto(p, w, quitadas, herramienta === 'PowerShell');
@@ -1521,6 +1560,22 @@ function analizar(herramienta, texto, profundidad, raiz) {
         const r3 = porEnvoltorios(herr, { ...tuberia[k], palabras: pals }, profundidad, raiz);
         if (r3.decision === 'deny') return r3;
         if (r3.decision === 'ask' && !peor.decision) peor = r3;
+      }
+      /* S1 (P0): la misma orden SIN las palabras de sus redirecciones (su archivo y el descriptor pegado). El tokenizador quita el operador pero deja el
+         archivo entre las palabras, y eso descolocaba a quien mira posiciones: en `bash -c > o 'git push --force'` o `bash -c 2>/dev/null '…'` el «interior»
+         era `o`/`2`, y en `echo '…' | bash > o` el archivo parecía el script que bash ejecuta. Es ADICIONAL (la orden original ya se analizó, con su crudo y
+         sus destinos, que esta variante conserva): solo puede añadir decisiones. */
+      const redir = tuberia[k].redir || [];
+      if (redir.length) {
+        const fuera = new Set(redir);
+        const sinRedir = tuberia[k].palabras.filter((_, i) => !fuera.has(i));
+        if (sinRedir.length) {
+          const e = { ...tuberia[k], palabras: sinRedir };
+          for (const r4 of [analizarOrden(herr, e, tuberia[k - 1] || null, profundidad, raiz), porEnvoltorios(herr, e, profundidad, raiz)]) {
+            if (r4.decision === 'deny') return r4;
+            if (r4.decision === 'ask' && !peor.decision) peor = r4;
+          }
+        }
       }
     }
   }
