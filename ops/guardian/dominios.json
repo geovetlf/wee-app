@@ -88,6 +88,7 @@
         "core-financial",
         "ledger",
         "credits",
+        "pagos-proveedor-prueba",
         "idempotencia-de-cobro",
         "puente-pre-f1d",
         "f1d-generacion",

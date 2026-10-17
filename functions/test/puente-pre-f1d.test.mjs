@@ -701,13 +701,15 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const DE_GRAN_MOTOR_D = ['functions/src/runtime/conductor.ts'];
   /* Gran Motor B (2026-10-16, f8a377b6): core/brain.ts (B-1/B-2). Su tamaño exacto lo fija F3. */
   const DE_GRAN_MOTOR_B = ['functions/src/core/brain.ts'];
+  /* Gran Motor S2 · A (2026-10-16, rama gran-motor/s2-pagos-sanitize): el proveedor de compra «test» fail-closed (F-05). Prueba: pagos-proveedor-prueba. */
+  const DE_GRAN_MOTOR_S2 = ['functions/src/payments/providers/test.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_LA_LINEA_B, ...DE_LA_F06, ...DE_GRAN_MOTOR_D, ...DE_GRAN_MOTOR_B,
+      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_LA_LINEA_B, ...DE_LA_F06, ...DE_GRAN_MOTOR_D, ...DE_GRAN_MOTOR_B, ...DE_GRAN_MOTOR_S2,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
