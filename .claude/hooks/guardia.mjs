@@ -689,7 +689,33 @@ export const sinPatron = (p, w) => {
  * --edit-description…), la ausencia de `--list`/`-l`, otro subcomando o un patrón con expansión dinámica NO se exime. Lo fija
  * functions/test/guardia-referencias-git.test.mjs.
  */
-const OPCIONES_DE_LISTA_GIT = /^(--list|-l|-a|--all|-r|--remotes|-v|-vv|--verbose|--no-color|--color(=.*)?|--column(=.*)?|--no-column|-i|--ignore-case|--abbrev(=d+)?|--no-abbrev|--show-current|--merged(=.*)?|--no-merged(=.*)?|--contains(=.*)?|--no-contains(=.*)?|--points-at(=.*)?|--sort(=.*)?|--format(=.*)?|-nd*)$/;
+/*
+ * S1 (Gran Motor, P1) — LA LISTA BLANCA DE LECTURA, en UNA sola definición explícita. Es lo único que decide qué opciones puede llevar un
+ * `git branch|tag` en modo lista para eximirse del chequeo de COMODINES. Cualquier opción que NO esté aquí —las que mutan (-d -D -m -M -c -C -f
+ * -u -t --track --set-upstream-to --unset-upstream --edit-description --create-reflog --delete --move --copy --force…) o una opción nueva de git—
+ * deja la orden SIN exención y se decide como siempre (un comodín que alcanza un secreto se deniega; una que mueve ramas pregunta). Cada entrada es
+ * una opción COMPLETA (se compila anclada con ^…$). Contenido idéntico al de R1 salvo la corrección del hallazgo H1 (revisión R1): en las dos
+ * entradas numéricas se había perdido la barra (`--abbrev(=d+)?` y `-nd*` casaban una «d» literal: `--abbrev=7` y `-n3` no entraban y `--abbrev=d`
+ * sí). No se amplía sin decisión del dueño: functions/test/guardia-lista-blanca-git.test.mjs fija esta lista entrada a entrada.
+ */
+export const LISTA_BLANCA_LECTURA_REFS_GIT = Object.freeze([
+  /* el modo lista: una de las dos es OBLIGATORIA (lo exige `esListadoDeRefsGit`; esa línea se deja literal porque es el ancla del sabotaje E4 de guardia-referencias-git) */
+  '--list', '-l',
+  /* qué referencias: locales, remotas o todas */
+  '-a', '--all', '-r', '--remotes',
+  /* presentación de la salida */
+  '-v', '-vv', '--verbose', '--no-color', '--color(=.*)?', '--column(=.*)?', '--no-column', '-i', '--ignore-case',
+  '--abbrev(=\\d+)?', '--no-abbrev', '--show-current',
+  /* filtros que solo LEEN el grafo de commits */
+  '--merged(=.*)?', '--no-merged(=.*)?', '--contains(=.*)?', '--no-contains(=.*)?', '--points-at(=.*)?',
+  /* orden y formato de la salida */
+  '--sort(=.*)?', '--format(=.*)?',
+  /* `git tag -l -n<núm>`: cuántas líneas de la anotación se muestran */
+  '-n\\d*',
+]);
+const OPCIONES_DE_LISTA_GIT = new RegExp(`^(${LISTA_BLANCA_LECTURA_REFS_GIT.join('|')})$`);
+/* Opciones GLOBALES de git que cambian lo que git ejecuta o sobre qué repositorio actúa: con una de ellas no hay exención (sí con `-C <dir>`). */
+const GLOBALES_SIN_EXENCION_GIT = /^(-c|--config-env|--exec-path|--git-dir|--work-tree)/;
 export const esListadoDeRefsGit = (p, w) => {
   if (p !== 'git') return false;
   const resto = w.slice(1);
@@ -698,7 +724,7 @@ export const esListadoDeRefsGit = (p, w) => {
   const sub = (resto[i] || '').toLowerCase();
   if (sub !== 'branch' && sub !== 'tag') return false;
   /* Solo `-C <dir>`: un `-c clave=valor` (un alias, una configuración) cambia lo que git ejecuta y no se exime. */
-  if (resto.slice(0, i).some((x) => /^(-c|--config-env|--exec-path|--git-dir|--work-tree)/.test(x))) return false;
+  if (resto.slice(0, i).some((x) => GLOBALES_SIN_EXENCION_GIT.test(x))) return false;
   const args = resto.slice(i + 1);
   const opciones = args.filter((x) => x.startsWith('-'));
   if (!opciones.some((x) => /^(--list|-l)$/.test(x))) return false;
