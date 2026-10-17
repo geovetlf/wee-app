@@ -23,7 +23,7 @@ Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
 | `functions/src/credits/index.ts` | Cloud Functions: `getCreditsBalance`, `getCreditHistory`, `getCreditCost`, `spendCredits`, `grantCredits` (admin), `refundCredits` (admin), `validatePurchase`, `restorePurchase`, `creditsAdmin` |
 | `functions/src/payments/purchaseValidation.ts` | Validación de compras, **separada del motor**: cada proveedor verifica su comprobante y solo entonces el motor acredita el paquete (`purchaseId` = idempotencia) |
 | `functions/src/payments/providers/{apple,google,stripe}.ts` | Proveedores preparados (lanzan `NOT_IMPLEMENTED` con la nota de cómo se conectan) |
-| `functions/src/payments/providers/test.ts` | "Recarga de prueba" sin pago; solo con `CREDITS_TEST_PURCHASES=true`, en el emulador o fuera de `get-wee` |
+| `functions/src/payments/providers/test.ts` | "Recarga de prueba" sin pago. **Fail-closed** (Gran Motor S2, F-05): solo si `CREDITS_TEST_PURCHASES` vale exactamente `true` **y** corre en el emulador de Functions **y** Firestore es el emulador (`FIRESTORE_EMULATOR_HOST`) **y** el proyecto, leído sin ambigüedad, es de prueba (`demo-*` o `wee-dev-geovet`) y nunca `get-wee`; cualquier otra cosa = cerrado (prueba: `pagos-proveedor-prueba`) |
 | `functions/src/shared/admin.ts` | `isAdmin` / `assertAdmin` (claim `admin: true` o uid en `WEE_ADMIN_UIDS`), compartido con el WEË AI ENGINE |
 | `functions/src/creator/credits.ts` | WEË AI sobre el motor: estimación del plan, reserva al empezar, completar o reembolsar al terminar |
 | `functions/src/engine/pricing.ts` | En modo `simulated` los Credits de cada capacidad salen del catálogo del motor (antes había una tabla aparte) |
@@ -171,7 +171,7 @@ APPLE / GOOGLE / STRIPE ─► Purchase Validation ─► Credit Engine ─► C
 - **Apple**: App Store Server API con clave de App Store Connect (`APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, `APPLE_BUNDLE_ID`); `purchaseId = transactionId`.
 - **Google Play**: Google Play Developer API con cuenta de servicio (`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`); `purchaseId = orderId`; consumir tras acreditar.
 - **Stripe** (web): Checkout / Payment Intent con `metadata { userId, packageId }` y webhook firmado (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`); `purchaseId = payment_intent`.
-- **test**: recarga de prueba solo en dev (`CREDITS_TEST_PURCHASES`).
+- **test**: recarga de prueba solo en el emulador de un proyecto de prueba con `CREDITS_TEST_PURCHASES=true` explícito (fail-closed; ver la tabla de archivos).
 
 ---
 

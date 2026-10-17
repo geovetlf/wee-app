@@ -32,6 +32,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { referenciaDesdeUrlDeWee } from '../content';
 import { esDireccionDelStorageDeWee, storageBucket } from '../engine/http';
+import { sanitizeForLog } from '../engine/sanitize';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './econtact';
 import { identidadHeredadaEsDeLaCuenta, identidadesHeredadasDeLaCuenta } from '../identity/compatibilidad';
 
@@ -220,7 +221,7 @@ export const crearQuemador = (p: PuertosDelQuemador) => ({
       try {
         await p.borrarObjeto(ref.objectKey);
       } catch (error) {
-        console.error('WeeTalk: no se pudo borrar la foto única', ref.objectKey, error);
+        console.error('WeeTalk: no se pudo borrar la foto única', ref.objectKey, sanitizeForLog(error, 300));
         pendiente = true;
         await p.anotarPendiente(conversationId, messageId);
       }

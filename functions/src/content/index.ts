@@ -259,7 +259,7 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
       bytes = typeof meta.size === 'string' ? Number(meta.size) : typeof meta.size === 'number' ? meta.size : undefined;
     } catch (error) {
       /* Sin metadata no hay material: un objeto que no se puede leer no está listo. */
-      console.warn('Content: no se pudo leer la metadata del objeto', ref.objectKey, error);
+      console.warn('Content: no se pudo leer la metadata del objeto', ref.objectKey, sanitizeForLog(error, 300));
       return null;
     }
   }
@@ -604,7 +604,7 @@ export const retirarMaterial = async (accountId: string, assetId: string): Promi
       await storageBucket().file(r.objectKey).delete({ ignoreNotFound: true });
       objetosBorrados++;
     } catch (error) {
-      console.error('Content: no se pudo borrar el objeto', r.objectKey, error);
+      console.error('Content: no se pudo borrar el objeto', r.objectKey, sanitizeForLog(error, 300));
       await assets().doc(assetId).set({ pendingPhysicalDeletion: true }, { merge: true });
     }
   }
