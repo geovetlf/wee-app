@@ -22,11 +22,17 @@ export const REDACTED = '[credencial omitida]';
  * antes de recortarlo, para que un secreto no sobreviva partido por la mitad.
  */
 const PATTERNS: { re: RegExp; replace: string }[] = [
-  // Cabeceras de autorización, en JSON o en texto plano
-  { re: /("?authorization"?\s*[:=]\s*"?)([^"\n,}]+)/gi, replace: `$1${REDACTED}` },
-  { re: /("?(?:x-api-key|xi-api-key|x-key|api[_-]?key|apikey|access[_-]?token|secret|password)"?\s*[:=]\s*"?)([^"\n,}]+)/gi, replace: `$1${REDACTED}` },
+  // Claves privadas PEM (cuenta de servicio, clave RSA…), también truncadas: sin la línea de cierre, hasta el final del texto
+  { re: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g, replace: REDACTED },
+  /*
+   * Cabeceras de autorización, en JSON o en texto plano. `\\*"?` es la comilla con sus barras opcionales: el cuerpo de
+   * error de un proveedor suele traer la petición como CADENA (`{"error":"… {\"api_key\":\"…\"} …"}`), y ahí las
+   * comillas llegan escapadas. El valor no admite barra invertida para no llevarse la que cierra el escape.
+   */
+  { re: /(\\*"?authorization\\*"?\s*[:=]\s*\\*"?)([^"\\\n,}]+)/gi, replace: `$1${REDACTED}` },
+  { re: /(\\*"?(?:x-api-key|xi-api-key|x-key|api[_-]?key|apikey|(?:access|refresh|id|session)[_-]?token|private[_-]?key|secret|password)\\*"?\s*[:=]\s*\\*"?)([^"\\\n,}]+)/gi, replace: `$1${REDACTED}` },
   // Cookies
-  { re: /("?(?:set-)?cookie"?\s*[:=]\s*"?)([^"\n]+)/gi, replace: `$1${REDACTED}` },
+  { re: /(\\*"?(?:set-)?cookie\\*"?\s*[:=]\s*\\*"?)([^"\\\n]+)/gi, replace: `$1${REDACTED}` },
   // Tokens portadores sueltos
   { re: /\bBearer\s+[A-Za-z0-9._\-+/=]{8,}/gi, replace: `Bearer ${REDACTED}` },
   // Formas conocidas de clave: OpenAI, Google, Anthropic, ElevenLabs
@@ -37,7 +43,24 @@ const PATTERNS: { re: RegExp; replace: string }[] = [
   { re: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, replace: REDACTED },
   // La clave en una URL, aunque Weë nunca la manda así
   { re: /([?&](?:key|api_key|apikey|token|access_token)=)([^&\s"]+)/gi, replace: `$1${REDACTED}` },
+  /*
+   * URL FIRMADAS (Google `X-Goog-*`, AWS `X-Amz-*`, BytePlus `X-Tos-*`, SAS de Azure `sig`): la firma, la credencial y
+   * el token de seguridad son capacidades portadoras, así que no salen a un registro. Se conservan el host, la ruta y
+   * el resto de parámetros, que es lo que sirve para depurar.
+   */
+  { re: /([?&](?:[\w-]*(?:signature|credential|security[_-]?token)|sig|(?:refresh|id|session)[_-]?token)=)([^&\s"\\]+)/gi, replace: `$1${REDACTED}` },
+  /*
+   * Gran Motor S2: un `token`, `sig` o `signature` SUELTO como clave (`{"token":"…"}`, `token=…`). Solo si la palabra
+   * empieza ahí (ni `max_token`, ni `token_count`, ni `tokens usados`) y va seguida de `:` o `=`.
+   */
+  { re: /((?<![A-Za-z0-9_-])\\*"?(?:token|sig|signature)\\*"?\s*[:=]\s*\\*"?)([^"\\\n,}&\s]+)/gi, replace: `$1${REDACTED}` },
+  // Gran Motor S2: usuario y contraseña dentro de una URL (`https://usuario:clave@host/…`)
+  { re: /(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/@:"\\]+:[^\s/@"\\]+@/gi, replace: `$1${REDACTED}@` },
 ];
+
+/** Marca para un correo electrónico: es un dato personal, no una credencial, y no sirve para depurar. */
+export const EMAIL_REDACTED = '[correo omitido]';
+const EMAIL = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
 
 /** Quita el usuario, la contraseña y la cadena de consulta de una URL. */
 export function safeUrl(url: string): string {
@@ -55,7 +78,9 @@ export function safeUrl(url: string): string {
 /**
  * Deja un texto listo para registrar: sin credenciales y con un tamaño acotado.
  * Censura además el valor real de cualquier secreto configurado, por si el
- * proveedor lo devolviera sin una forma reconocible.
+ * proveedor lo devolviera sin una forma reconocible. De un `Error` solo se toma
+ * `message`: ni `stack`, ni `cause`, ni lo que un SDK cuelgue (`response.data`,
+ * `config.headers`) llegan al texto.
  */
 export function sanitizeForLog(value: unknown, maxLength = MAX_LOG_LENGTH): string {
   let text = typeof value === 'string' ? value : value instanceof Error ? value.message : String(value ?? '');
@@ -65,6 +90,7 @@ export function sanitizeForLog(value: unknown, maxLength = MAX_LOG_LENGTH): stri
     if (secret.length >= 8) text = text.split(secret).join(REDACTED);
   }
   for (const { re, replace } of PATTERNS) text = text.replace(re, replace);
+  text = text.replace(EMAIL, EMAIL_REDACTED);
 
   const trimmed = text.replace(/\s+/g, ' ').trim();
   return trimmed.length > maxLength ? `${trimmed.slice(0, maxLength)}…` : trimmed;

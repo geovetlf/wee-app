@@ -231,6 +231,10 @@ cambiar y con qué tamaño); ampliarlas es decisión del dueño y por eso el par
 `git apply docs/GRAN-MOTOR-A-sanitize.patch`, añadir `functions/src/engine/sanitize.ts` a las listas nominales de esas dos
 guardas con el nombre de la misión, y pasar `sanitize-huecos` a «corregido».
 
+> **Actualización (Gran Motor S2, 2026-10-16, rama `gran-motor/s2-pagos-sanitize`):** parche APLICADO y ampliado; guardas
+> `puente-pre-f1d` E4/F1 (E4 también lo rechazaba) y `video-asincrono` H2 reconciliadas de forma aditiva; los 15 huecos son
+> ya comprobaciones que exigen el saneo. Detalle en [`GRAN-MOTOR-S2-PAGOS-SANITIZE.md`](GRAN-MOTOR-S2-PAGOS-SANITIZE.md).
+
 ## 8. Selección de modelos (manual y automática) y decisiones reservadas
 
 Cubierto con pruebas (`router-equivalencia` B y E; `router`, `router-politica`, `core-router`, `elegibilidad-jurisdiccion`,

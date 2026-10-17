@@ -563,7 +563,12 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * + Línea B (2026-10-14): el interruptor del vídeo (admin +3, gateway +4, registry +2, router +2, types +14, video.ts
        * nuevo en la lista, +24) y lo demo a 0 Credits (pricing +10 −3). Ni proveedor ni cadena nuevos: Seedance sigue sola.
        */
-      === '14\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|212\t0\tfunctions/src/engine/elegibilidad.ts|92\t2\tfunctions/src/engine/errors.ts|63\t17\tfunctions/src/engine/gateway.ts|191\t24\tfunctions/src/engine/http.ts|8\t5\tfunctions/src/engine/imageMeta.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|188\t29\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|18\t3\tfunctions/src/engine/pricing.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|31\t2\tfunctions/src/engine/registry.ts|128\t25\tfunctions/src/engine/router.ts|233\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|24\t0\tfunctions/src/engine/video.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      /*
+       * + Gran Motor S2 (2026-10-16, rama gran-motor/s2-pagos-sanitize): sanitize.ts nuevo en la lista, +31 −5 sobre b023f24
+       * (el parche de A, docs/GRAN-MOTOR-A-sanitize.patch, más token/sig/signature sueltos, usuario:clave en una URL y
+       * correos; F-03). Solo el saneador: ni proveedor, ni cadena, ni el router. Prueba: sanitize-huecos y logs-sin-secretos.
+       */
+      === '14\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|212\t0\tfunctions/src/engine/elegibilidad.ts|92\t2\tfunctions/src/engine/errors.ts|63\t17\tfunctions/src/engine/gateway.ts|191\t24\tfunctions/src/engine/http.ts|8\t5\tfunctions/src/engine/imageMeta.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|188\t29\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|18\t3\tfunctions/src/engine/pricing.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|31\t2\tfunctions/src/engine/registry.ts|128\t25\tfunctions/src/engine/router.ts|31\t5\tfunctions/src/engine/sanitize.ts|233\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|24\t0\tfunctions/src/engine/video.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 
@@ -701,8 +706,14 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const DE_GRAN_MOTOR_D = ['functions/src/runtime/conductor.ts'];
   /* Gran Motor B (2026-10-16, f8a377b6): core/brain.ts (B-1/B-2). Su tamaño exacto lo fija F3. */
   const DE_GRAN_MOTOR_B = ['functions/src/core/brain.ts'];
-  /* Gran Motor S2 · A (2026-10-16, rama gran-motor/s2-pagos-sanitize): el proveedor de compra «test» fail-closed (F-05). Prueba: pagos-proveedor-prueba. */
-  const DE_GRAN_MOTOR_S2 = ['functions/src/payments/providers/test.ts'];
+  /*
+   * Gran Motor S2 (2026-10-16, rama gran-motor/s2-pagos-sanitize): el proveedor de compra «test» fail-closed (F-05;
+   * prueba: pagos-proveedor-prueba), el saneador con los 15 huecos de A cerrados (F-03; sanitize-huecos, tamaño exacto en
+   * E4 y en video-asincrono H2) y los registros de riesgo ALTO de F-04 que no fija una guarda con huella (logs-sin-secretos):
+   * creator/planner.ts es el único nuevo en la lista; content/index.ts, index.ts, social/weetalk.ts y vertexAI.ts ya estaban
+   * nombrados (el tamaño de content/index.ts lo fija F3).
+   */
+  const DE_GRAN_MOTOR_S2 = ['functions/src/creator/planner.ts', 'functions/src/engine/sanitize.ts', 'functions/src/payments/providers/test.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
@@ -752,7 +763,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     && git(`diff --numstat ${RUTA} -- functions/src/core`).trim() === porRuta(CORE_DE_LA_MISION_FAL, CORE_DEL_CICLO_DE_VIDA_3D, CORE_DE_LA_F06, CORE_DE_GRAN_MOTOR_B)
     /* + cierre post-auditoría 2026-10-01: content/index.ts +32 −3, `yaExistia` en los tres `create` (server/errores-tragados). */
     /* + misión fal (2026-10-05): content/index.ts +9 (antes 32/3): el tipo declarado `world`/`model3d` manda sobre el MIME y los derechos viajan al material. */
-    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '79\t3\tfunctions/src/content/index.ts\n181\t4\tfunctions/src/content/materializador.ts');
+    && git(`diff --numstat ${RUTA} -- functions/src/content`).trim().replace(/\r$/, '') === '81\t5\tfunctions/src/content/index.ts\n181\t4\tfunctions/src/content/materializador.ts');
+    /* + Gran Motor S2 (2026-10-16, rama gran-motor/s2-pagos-sanitize): content/index.ts 79/3 → 81/5 (+2 −2): los dos errores de Storage (metadata y borrado) se registran con sanitizeForLog (F-04, riesgo ALTO). Exacta; prueba: logs-sin-secretos D5. */
     /* + Gran Motor E (2026-10-16, 4e0cc1f1): content/index.ts 68/3 → 79/3 (+11) y materializador.ts 126/4 → 181/4 (+55): destino y tipo del resultado, cubo de la ficha, borrado del texto. Exactas; prueba: gran-motor-e-assets. */
     /* + FASE 5: materializador.ts +2 (antes 124/4): el nombre del material, las palabras de quien lo pidió. */
     /* + misión mundo3d (2026-10-05): content/index.ts +27 (antes 41/3), las variantes de UN resultado; materializador.ts +62 −2 (antes 62/2), los derechos al material y sus variantes después. */

@@ -292,7 +292,8 @@ export const sendPushNotification = onDocumentCreated(
       const result = await sendExpoPush(pushToken, aviso.title, aviso.body, data);
 
       if (result?.data?.status === 'error') {
-        console.error('Error en push:', result.data.message);
+        /* Gran Motor S2: sin `message`; en DeviceNotRegistered Expo mete ahí el token del aparato. */
+        console.error('Error en push:', resumenDeRespuestaDeExpo(result));
 
         if (result.data.details?.error === 'DeviceNotRegistered') {
           await db.collection('pushTokens').doc(cuenta).delete();

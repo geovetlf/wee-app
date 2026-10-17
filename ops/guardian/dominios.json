@@ -64,6 +64,7 @@
         "seguridad-11x4a",
         "security",
         "sanitize-huecos",
+        "logs-sin-secretos",
         "urls-del-storage",
         "avatar-duplicados",
         "cupos-config",

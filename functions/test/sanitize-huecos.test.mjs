@@ -12,15 +12,14 @@
  *   · TOKENS QUE NO SON `access_token`: `refresh_token`, `id_token`, `session_token`.
  *   · CLAVES PRIVADAS PEM.
  *
- * POR QUÉ ES «CONOCIDO» Y NO UN ARREGLO: el cambio es de `engine/sanitize.ts`, y las
- * guardas de frontera (`puente-pre-f1d` F1, `video-asincrono` H2) fijan QUÉ archivos
- * del motor se pueden tocar y con qué tamaño. Ampliarlas es una decisión del
- * dueño, no de esta misión. El parche está listo y verificado en
- * `docs/GRAN-MOTOR-A-sanitize.patch`; y esta suite demuestra, sin tocar el motor,
- * que los patrones propuestos cierran TODOS los huecos sin cambiar lo que ya salía.
- *
- * Se informa con ✘ (conocido) sin parar la cadena; si deja de reproducirse (se
- * aplicó el parche) avisa con ✔ (¿corregido?) para que se actualice el registro.
+ * Gran Motor S2 (2026-10-16): el parche de A (`docs/GRAN-MOTOR-A-sanitize.patch`) se
+ * aplicó en `engine/sanitize.ts`, ampliado (token/sig/signature sueltos, usuario y
+ * contraseña en una URL, correos), y las guardas de frontera (`puente-pre-f1d` E4/F1,
+ * `video-asincrono` H2) se reconciliaron de forma aditiva. Los 15 huecos dejaron de
+ * ser «conocidos»: ahora son comprobaciones normales que EXIGEN el saneo (con el
+ * `sanitize.ts` de 8fcaccdc fallaban las 15; ver docs/GRAN-MOTOR-S2-PAGOS-SANITIZE.md).
+ * Las secciones P y D siguen: la propuesta de A sigue cerrándolos y lo que ya
+ * funcionaba no se rompe. La sección E añade sondas nuevas, positivas y negativas.
  */
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -38,13 +37,7 @@ const check = (name, cond, extra = '') => {
   console.log((cond ? '✔ ' : '✘ ') + name + (extra ? ' — ' + extra : ''));
   if (!cond) failures++;
 };
-const conocidos = [];
-const conocido = (id, name, reproduce, extra = '') => {
-  console.log((reproduce ? '✘ (conocido ' + id + ') ' : '✔ (¿corregido? ' + id + ') ') + name + (extra ? ' — ' + extra : ''));
-  conocidos.push({ id, reproduce });
-};
-
-const { sanitizeForLog, providerLog, REDACTED } = lib('engine/sanitize.js');
+const { sanitizeForLog, providerLog, REDACTED, EMAIL_REDACTED } = lib('engine/sanitize.js');
 const limpio = (texto, secreto) => !sanitizeForLog(texto, 600).includes(secreto);
 
 /*
@@ -95,8 +88,8 @@ const HUECOS = [
   ['C5', 'private_key de una cuenta de servicio en JSON', `{"private_key":"${PEM}\\nMIIEvgSECRETO\\n${PEM_FIN}\\n"}`, 'MIIEvgSECRETO'],
 ];
 
-console.log('\n── A–C · Lo que se escapa hoy (defectos conocidos) ──');
-for (const [id, nombre, texto, secreto] of HUECOS) conocido(id, nombre, !limpio(texto, secreto));
+console.log('\n── A–C · Los 15 huecos de A: el secreto NO sobrevive (antes, defectos conocidos) ──');
+for (const [id, nombre, texto, secreto] of HUECOS) check(`${id}) ${nombre}: el secreto no sobrevive al saneo`, limpio(texto, secreto), sanitizeForLog(texto, 600));
 
 console.log('\n── P · La propuesta (docs/GRAN-MOTOR-A-sanitize.patch) los cierra todos ──');
 {
@@ -124,9 +117,59 @@ console.log('\n── D · Lo que ya funciona hoy y no se puede romper ──');
   check('D6) el parche está donde se dice y toca SOLO engine/sanitize.ts', /^diff --git a\/functions\/src\/engine\/sanitize\.ts/m.test(parche) && (parche.match(/^diff --git/gm) || []).length === 1);
 }
 
+console.log('\n── E · Gran Motor S2: sondas nuevas (valores sintéticos) ──');
+{
+  const QQ = String.raw`\\\"`; // comilla escapada DOS veces, como llega un cuerpo de error dentro de otro
+  const PEM_EC = '-----BEGIN EC ' + 'PRIVATE KEY-----';
+  const PEM_EC_FIN = '-----END EC ' + 'PRIVATE KEY-----';
+  const POSITIVOS = [
+    ['E1', 'JSON escapado dos veces: api_key', `{"e":"{${QQ}api_key${QQ}:${QQ}zzSECRETOdoble01${QQ}}"}`, 'zzSECRETOdoble01'],
+    ['E2', 'JSON escapado: Authorization Bearer', `{${Q}Authorization${Q}:${Q}Bearer abcdefSECRETO0123${Q}}`, 'abcdefSECRETO0123'],
+    ['E3', '`"token":"…"` suelto', '{"token":"tok_sintetico_0123456789"}', 'tok_sintetico_0123456789'],
+    ['E4', '`token=` en una URL', 'https://firebasestorage.googleapis.com/v0/b/demo/o/x?alt=media&token=1234abcdSECRETO', '1234abcdSECRETO'],
+    ['E5', '`sig=` (SAS) en una URL', 'https://cuenta.blob.core.windows.net/c/v.mp4?sv=2024&sig=AbCdSECRETO%3D', 'AbCdSECRETO%3D'],
+    ['E6', '`access_token=` en una URL', 'https://api.example.com/v1?access_token=ya29SINTETICOSECRETO', 'ya29SINTETICOSECRETO'],
+    ['E7', 'X-Amz-Security-Token', 'https://s3.example.com/o?X-Amz-Security-Token=FQoSINTETICOSECRETO&X-Amz-Expires=60', 'FQoSINTETICOSECRETO'],
+    ['E8', 'usuario:contraseña en una URL', 'connect postgres://usuario:claveSINTETICA99@db.example.com:5432/x', 'claveSINTETICA99'],
+    ['E9', 'refresh_token en un formulario', 'grant_type=refresh_token&refresh_token=1//SINTETICOSECRETO&client_id=x', '1//SINTETICOSECRETO'],
+    ['E10', 'client_secret en JSON', '{"client_id":"abc.apps","client_secret":"SINTETICO-client-SECRETO"}', 'SINTETICO-client-SECRETO'],
+    ['E11', 'correo en el cuerpo de un error', 'invalid user persona.sintetica@example.com', 'persona.sintetica@example.com'],
+    ['E12', 'PEM de clave EC', `${PEM_EC}\nMHcCAQEEISINTETICO\n${PEM_EC_FIN}`, 'MHcCAQEEISINTETICO'],
+    ['E13', 'cabecera x-goog-api-key escapada', `{${Q}x-goog-api-key${Q}:${Q}SINTETICOgoog0123456789${Q}}`, 'SINTETICOgoog0123456789'],
+  ];
+  for (const [id, nombre, texto, secreto] of POSITIVOS) check(`${id}) ${nombre}: el secreto no sobrevive`, limpio(texto, secreto), sanitizeForLog(texto, 600));
+
+  /* Errores: de un Error solo sale el mensaje (saneado); ni stack, ni cause, ni lo que cuelga un SDK. */
+  const err = new Error('fallo de proveedor {"api_key":"msgSECRETO0123456"}');
+  err.cause = new Error('causa con Bearer causaSECRETO0123456');
+  err.response = { data: { echo: 'respSECRETO0123456' } };
+  err.config = { headers: { Authorization: 'Bearer cfgSECRETO0123456' } };
+  err.stack = 'Error: x\n    at pilaSECRETO0123456 (archivo.js:1:1)';
+  const deError = sanitizeForLog(err, 2000);
+  check('E14) Error: el mensaje sale saneado y sin cause, stack, response.data ni config.headers',
+    deError.includes('fallo de proveedor') && !['msgSECRETO0123456', 'causaSECRETO0123456', 'respSECRETO0123456', 'cfgSECRETO0123456', 'pilaSECRETO0123456'].some((x) => deError.includes(x)), deError);
+  check('E15) un objeto suelto no se vuelca (no salen sus campos)', !sanitizeForLog({ headers: { authorization: 'Bearer objSECRETO0123456' } }).includes('objSECRETO0123456'));
+  const linea = providerLog({ provider: 'p', endpoint: 'https://storage.googleapis.com/b/o?X-Goog-Signature=sigSECRETO01', message: `{${Q}api_key${Q}:${Q}bodySECRETO01${Q}}` });
+  check('E16) providerLog con una URL firmada como endpoint y un cuerpo escapado no deja nada',
+    !linea.includes('sigSECRETO01') && !linea.includes('bodySECRETO01') && linea.includes('storage.googleapis.com'), linea);
+
+  /* Negativos: lo legítimo sale IGUAL (sin sobre-saneo). */
+  const LEGITIMOS = [
+    'trabajo job_8f3a2c1d paso step-2 requestId=req_123 traceId=tr_456',
+    'modelo=gemini-3.1-flash-lite proveedor=seedance modelo=seedance-2-0-pro',
+    'GET https://storage.googleapis.com/wee-public/posts/a.jpg?width=200&format=webp',
+    'https://example.com/@usuario/videos',
+    'max_tokens: 1200 · token_count=1200 · tokens usados: 900 · prompt_token_count: 30',
+    'firma de la función: signature of fn()',
+    'el proveedor respondió 429; reintenta en 3 s',
+    'aiGenerations/gen_0001 FAILED http=500',
+  ];
+  const cambiados = LEGITIMOS.filter((t) => sanitizeForLog(t, 600) !== t);
+  check('E17) textos legítimos (ids de trabajo, modelos, URL públicas sin firma, recuentos de tokens) salen idénticos', cambiados.length === 0, cambiados.map((t) => `${t} → ${sanitizeForLog(t, 600)}`).join(' | '));
+  check('E18) el correo lleva su propia etiqueta, no la de credencial', sanitizeForLog('a b.c@example.com').includes(EMAIL_REDACTED) && !sanitizeForLog('a b.c@example.com').includes(REDACTED));
+  check('E19) el nombre del parámetro firmado se conserva para depurar', /X-Goog-Signature=\[credencial omitida\]/.test(sanitizeForLog('https://s.example.com/o?X-Goog-Signature=abcSECRETO', 600)));
+}
+
 check('esta suite está en la cadena de `npm test`', /sanitize-huecos\.test\.mjs/.test(leer('functions/package.json')));
-const vivos = conocidos.filter((k) => k.reproduce).map((k) => k.id);
-const corregidos = conocidos.filter((k) => !k.reproduce).map((k) => k.id);
-if (corregidos.length) console.log(`\nℹ huecos que YA NO se reproducen: ${corregidos.join(', ')} — actualiza esta suite y docs/GRAN-MOTOR-A-ROUTER.md`);
-console.log(failures ? `\n✘ ${failures} fallos` : `\n✔ todo bien (huecos conocidos vigentes: ${vivos.length}/${conocidos.length})`);
+console.log(failures ? `\n✘ ${failures} fallos` : `\n✔ todo bien (los ${HUECOS.length} huecos de A, cerrados y exigidos)`);
 process.exit(failures ? 1 : 0);
