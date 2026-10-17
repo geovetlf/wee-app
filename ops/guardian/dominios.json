@@ -534,7 +534,8 @@
         "guardia-envoltorios2",
         "guardia-cmd-colgado",
         "guardia-redirecciones",
-        "guardia-lista-blanca-git"
+        "guardia-lista-blanca-git",
+        "guardia-git-opciones"
       ]
     },
     {
