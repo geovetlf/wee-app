@@ -450,10 +450,13 @@ export const desenvolver = (ps0) => {
      al envoltorio (`. <archivo>`, `exec <archivo>`, `time -o <archivo> …`, `xargs -a <archivo> …`) pasaba a ser «el programa», que
      `tocaSecreto` y `escribeProtegido` no miran. Ahora se devuelve para que quien decide lo compruebe. */
   const quitadas = [];
+  /* S4 (Gran Motor): las asignaciones de variables de entorno que preceden al programa (`GIT_PAGER=sh git log`, `env GIT_DIR=x git …`, `sudo X=1 …`).
+     Solo se RECUERDAN aparte para `variablesGitS4`; no cambian `w`, `quitadas` ni nada de lo que ya se decidía con ellas. */
+  const asignaciones = [];
   const quita = (n) => { quitadas.push(...w.slice(0, n)); w = w.slice(n); };
   for (let vueltas = 0; vueltas < LIM_PROF && w.length; vueltas++) {
     /* Las asignaciones iniciales (`X=valor orden`) NO se registran en `quitadas`: el valor de una variable no se lee como argumento (brecha conocida y documentada en guardia-rodeos). */
-    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w[0])) { w = w.slice(1); continue; }
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w[0])) { asignaciones.push(w[0]); w = w.slice(1); continue; }
     const p = programa(w[0]);
     /* H5: `time` NO se trata como palabra clave suelta (quitaba solo `time` y dejaba su opción —`-p`, `-f %e`, `-o archivo`— como «el programa»):
        va por la rama de los envoltorios, que sí salta sus opciones y los valores de opción. */
@@ -474,6 +477,7 @@ export const desenvolver = (ps0) => {
       quita(1);
       while (w.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w[0]) || /^-/.test(w[0]))) {
         const opc = w[0];
+        if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(opc)) asignaciones.push(opc);   // S4
         quita(1);
         /* `env -S 'firebase deploy'`: el valor de -S ES la orden (se parte en palabras), no una opción que se salta. */
         if (opc === '-S' || opc === '--split-string') { if (w.length) w = [...palabras(w[0]), ...w.slice(1)]; break; }
@@ -513,7 +517,7 @@ export const desenvolver = (ps0) => {
     if ((p === 'python' || p === 'python3' || p === 'py') && w.length > 1 && /gcloud\.py$/i.test(w[1])) { w = ['gcloud', ...w.slice(2)]; continue; }
     break;
   }
-  return { w, dinamica: din, quitadas };
+  return { w, dinamica: din, quitadas, asignaciones };
 };
 
 /* ── Firmas ─────────────────────────────────────────────────────────────── */
@@ -581,6 +585,175 @@ const GIT_CONOCIDOS = new Set(['add', 'am', 'annotate', 'apply', 'archive', 'bis
 const aliasEnLaOrden = (globales) => globales.some((x, k) =>
   (x === '-c' && /^alias\./i.test(globales[k + 1] || '')) || /^-calias\./i.test(x) || /^--config-env(=|$)alias\./i.test(x)
   || (x === '--config-env' && /^alias\./i.test(globales[k + 1] || '')));
+
+/*
+ * ══ S4 (Gran Motor) — opciones GLOBALES y variables de ENTORNO de git que ejecutan un programa o cambian el repositorio ══════════════════════
+ *
+ * CAUSA (demostrado en un repositorio desechable, con un programa que solo escribe un marcador): `git -c core.fsmonitor=<programa> status` y
+ * `git -c diff.external=<programa> diff` EJECUTAN el programa, y la guardia los dejaba pasar porque solo miraba el subcomando (`status`, `diff`) y,
+ * de las opciones globales, únicamente los alias (`aliasEnLaOrden`). Lo mismo con las variables de entorno: `desenvolver` quitaba `GIT_PAGER=…`,
+ * `GIT_EXTERNAL_DIFF=…`, `GIT_DIR=…` delante del programa sin mirarlas (docs/GRAN-MOTOR-S4-GIT-OPCIONES.md, inventario con fuentes).
+ *
+ * REGLA (aditiva: solo puede convertir un «pasa» en «ask», nunca rebajar un ask/deny):
+ *  · `-c clave[=valor]` y `--config-env=clave=VAR` ANTES del subcomando: pasa solo si la clave está en una LISTA BLANCA EXACTA de claves inertes
+ *    (`S4_CLAVES_INERTES`, más los prefijos `color.`/`advice.`, cuyos valores son colores y booleanos); cualquier otra (core.fsmonitor, diff.external,
+ *    core.pager, core.sshCommand, credential.helper, filter.*, diff.*.textconv, gpg.program, safe.directory, una clave desconocida…) → ask. Se
+ *    decide por la clave COMPLETA, nunca por parecido. Excepciones de valor: `core.pager` = `cat`/vacío y `pager.<orden>` booleano.
+ *  · `--exec-path=<ruta>` y `--bare` → ask (`--exec-path` sin valor solo imprime y pasa).
+ *  · `--git-dir`/`--work-tree` → ask si apuntan FUERA del espacio de trabajo (`process.cwd()`), a un nombre protegido o de secreto, o no se pueden
+ *    leer (dinámicas); `--git-dir` además debe nombrar un directorio `.git` (un directorio cualquiera puede traer su propio `config` con un
+ *    `core.fsmonitor`). `-C <ruta>` NO cambia: equivale a un `cd`, que la guardia no restringe (pedir decisión solo empujaría a `cd x && git …`).
+ *  · variables `GIT_*` (como prefijo, tras `env`/`sudo`…, con `export`/`declare`/`set`/`setx`, `$env:X=…`, `Set-Item env:X`,
+ *    `[Environment]::SetEnvironmentVariable`) → ask salvo una lista blanca exacta de inertes (`S4_ENV_INERTES`) y las reglas de ruta/valor de
+ *    GIT_DIR/GIT_COMMON_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_OBJECT_DIRECTORY/GIT_PAGER/GIT_TRACE*. `PAGER`/`EDITOR`/`VISUAL`/`SSH_ASKPASS`
+ *    (genéricas, las usa git y muchos otros programas) → ask solo como prefijo de la propia orden git.
+ * Lo fija functions/test/guardia-git-opciones.test.mjs.
+ */
+const S4_CLAVES_INERTES = new Set([
+  /* fin de línea, rutas y presentación: valores de texto o booleanos que git no ejecuta */
+  'core.autocrlf', 'core.safecrlf', 'core.eol', 'core.quotepath', 'core.longpaths', 'core.abbrev', 'core.ignorecase', 'core.filemode',
+  'core.precomposeunicode', 'core.whitespace', 'core.checkstat', 'core.trustctime', 'core.untrackedcache', 'core.preloadindex', 'core.fscache',
+  'core.commentchar', 'core.commentstring',
+  /* identidad (un commit ya pregunta por sí mismo) */
+  'user.name', 'user.email', 'author.name', 'author.email', 'committer.name', 'committer.email',
+  /* preferencias de subcomandos que no lanzan nada */
+  'init.defaultbranch', 'push.default', 'pull.rebase', 'pull.ff', 'merge.conflictstyle', 'gc.auto', 'column.ui', 'branch.sort', 'tag.sort',
+  'log.date', 'log.decorate', 'log.abbrevcommit', 'log.follow', 'i18n.logoutputencoding', 'i18n.commitencoding',
+  'diff.renames', 'diff.renamelimit', 'diff.algorithm', 'diff.noprefix', 'diff.mnemonicprefix', 'diff.relative', 'diff.indentheuristic',
+  'diff.colormoved', 'diff.context', 'diff.interhunkcontext', 'diff.ignoresubmodules', 'diff.submodule', 'diff.statgraphwidth',
+  'status.showuntrackedfiles', 'status.short', 'status.branch', 'status.relativepaths', 'status.renames', 'status.renamelimit', 'status.aheadbehind',
+  'grep.linenumber', 'grep.extendedregexp', 'grep.patterntype', 'grep.fullname',
+]);
+const S4_PREFIJOS_INERTES = ['color.', 'advice.'];
+const S4_PAGINADOR_INERTE = /^(cat)?$/;
+const S4_BOOLEANO = /^(true|false|yes|no|on|off|0|1)$/i;
+
+/** S4: ¿`clave[=valor]` de un `-c` (o la clave de un `--config-env`) es inerte? Lo dinámico o desconocido NO lo es. */
+export const claveGitInerteS4 = (asignacion) => {
+  const s = String(asignacion);
+  if (dinamica(s) || s.includes(DINAMICO)) return false;
+  const k = s.indexOf('=');
+  const clave = (k < 0 ? s : s.slice(0, k)).toLowerCase();
+  const valor = k < 0 ? null : s.slice(k + 1);
+  if (S4_CLAVES_INERTES.has(clave)) return true;
+  if (S4_PREFIJOS_INERTES.some((p) => clave.startsWith(p) && clave.length > p.length)) return true;
+  if (clave === 'core.pager') return valor !== null && S4_PAGINADOR_INERTE.test(valor);
+  if (/^pager\.[a-z0-9-]+$/.test(clave)) return valor === null || valor === 'cat' || S4_BOOLEANO.test(valor);
+  /* Valores que DESACTIVAN (los usan las propias suites del repo para aislar sus repositorios temporales): sin ganchos, sin firma. */
+  if (clave === 'core.hookspath') return valor === '' || valor === '/dev/null';
+  if (clave === 'commit.gpgsign' || clave === 'tag.gpgsign') return valor !== null && /^(false|no|off|0)$/i.test(valor);
+  return false;
+};
+
+/** S4: nombre protegido o de secreto en una ruta (`.claude`, `.firebaserc`, `.ssh`, `.gnupg`, `.env*`, ARCHIVOS_SECRETOS). */
+const s4Protegida = (v) => {
+  const x = String(v).replace(/\\/g, '/').toLowerCase();
+  return x.split('/').some((s) => ['.claude', '.firebaserc', '.ssh', '.gnupg'].includes(s) || s.startsWith('.env'))
+    || ARCHIVOS_SECRETOS.some((sec) => x.includes(sec));
+};
+/** S4: la ruta resuelta dentro del espacio de trabajo (`process.cwd()`), o null si no se puede saber (vacía, dinámica, `~`). */
+const s4Dentro = (v) => {
+  const s = String(v);
+  if (!s || dinamica(s) || s.includes(DINAMICO) || /^~/.test(s)) return null;
+  const abs = path.resolve(process.cwd(), s.replace(/^\/([a-z])\//i, '$1:/'));
+  const rel = path.relative(process.cwd(), abs);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel)) ? abs : null;
+};
+/** S4: ¿esta ruta de repositorio es segura? `tipo`: 'gitdir' (debe nombrar un `.git`), 'arbol' o 'escritura' (git escribe ahí: ruta protegida completa). */
+const s4RutaSegura = (v, tipo) => {
+  if (v == null || s4Dentro(v) === null || s4Protegida(v)) return false;
+  const x = String(v).replace(/\\/g, '/');
+  if (tipo === 'gitdir') return x.toLowerCase().split('/').includes('.git');
+  if (tipo === 'escritura') return !RUTAS_PROTEGIDAS.test(x);
+  return true;
+};
+
+const MOTIVO_S4_OPCION = (o) => `\`git ${o}\`: una opción global que cambia la configuración, el ejecutable o el repositorio de git puede ejecutar un programa (core.fsmonitor, diff.external, core.pager…) o leer otro repositorio: lo autoriza el dueño.`;
+const MOTIVO_S4_ENTORNO = (n) => `La variable de entorno \`${n}\` cambia el programa que ejecuta git, su configuración o el repositorio que lee: lo autoriza el dueño.`;
+
+/** S4: decisión por las opciones GLOBALES de una orden git (las que van antes del subcomando), o null si todas son inertes. */
+const opcionesGlobalesGitS4 = (globales) => {
+  for (let k = 0; k < globales.length; k++) {
+    const x = globales[k];
+    let malo = null;
+    if (x === '-c') { k++; if (!claveGitInerteS4(globales[k] ?? '')) malo = `-c ${globales[k] ?? ''}`; }
+    else if (/^-c./.test(x)) { if (!claveGitInerteS4(x.slice(2))) malo = x; }
+    else if (x === '--config-env') { k++; if (!claveGitInerteS4(String(globales[k] ?? '').split('=')[0])) malo = `--config-env ${globales[k] ?? ''}`; }
+    else if (/^--config-env=/.test(x)) { if (!claveGitInerteS4(x.slice(13).split('=')[0])) malo = x; }
+    else if (/^--exec-path=/.test(x) || x === '--bare') malo = x;
+    else if (x === '--git-dir' || x === '--work-tree') { k++; if (!s4RutaSegura(globales[k], x === '--git-dir' ? 'gitdir' : 'arbol')) malo = `${x} ${globales[k] ?? ''}`; }
+    else if (/^--(git-dir|work-tree)=/.test(x)) { const v = x.slice(x.indexOf('=') + 1); if (!s4RutaSegura(v, x.startsWith('--git-dir') ? 'gitdir' : 'arbol')) malo = x; }
+    else if (GIT_GLOBAL_CON_VALOR.has(x)) k++;   // `-C <ruta>`, `--namespace <ns>`: sin cambio
+    if (malo) return decision('ask', MOTIVO_S4_OPCION(malo));
+  }
+  return null;
+};
+
+const S4_ENV_INERTES = new Set(['GIT_OPTIONAL_LOCKS', 'GIT_CONFIG_NOSYSTEM', 'GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_AUTHOR_DATE',
+  'GIT_COMMITTER_NAME', 'GIT_COMMITTER_EMAIL', 'GIT_COMMITTER_DATE', 'GIT_TERMINAL_PROMPT', 'GIT_FLUSH', 'GIT_LITERAL_PATHSPECS', 'GIT_GLOB_PATHSPECS',
+  'GIT_NOGLOB_PATHSPECS', 'GIT_ICASE_PATHSPECS', 'GIT_CEILING_DIRECTORIES', 'GIT_DISCOVERY_ACROSS_FILESYSTEM', 'GIT_NAMESPACE', 'GIT_MERGE_VERBOSITY',
+  'GIT_MERGE_AUTOEDIT', 'GIT_DIFF_OPTS', 'GIT_ADVICE', 'GIT_DEFAULT_HASH', 'GIT_NO_REPLACE_OBJECTS', 'GIT_REFLOG_ACTION', 'GIT_PROGRESS_DELAY',
+  'GIT_LFS_SKIP_SMUDGE']);
+
+/** S4: ¿la variable `nombre`=`valor` exige decisión? `antesDeGit` = es prefijo de la propia orden git (para las genéricas). `valor` null = desconocido. */
+export const variableGitS4 = (nombre, valor, antesDeGit) => {
+  const n = String(nombre).toUpperCase();
+  if (!/^GIT_/.test(n)) {
+    if (!antesDeGit) return false;
+    if (n === 'PAGER') return !(valor != null && S4_PAGINADOR_INERTE.test(valor));
+    return ['EDITOR', 'VISUAL', 'SSH_ASKPASS'].includes(n);
+  }
+  if (S4_ENV_INERTES.has(n)) return false;
+  if (n === 'GIT_PAGER') return !(valor != null && S4_PAGINADOR_INERTE.test(valor));
+  if (/^GIT_TRACE/.test(n)) return !(valor != null && /^(|[0-9]|true|false|yes|no|on|off)$/i.test(valor));   // una RUTA = escribe un archivo
+  /* Vacía, una variable de ruta no apunta a ningún sitio (git falla con «not a git repository»): no cambia el repositorio ni ejecuta nada. */
+  if (['GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY'].includes(n) && valor === '') return false;
+  if (n === 'GIT_DIR' || n === 'GIT_COMMON_DIR') return !s4RutaSegura(valor, 'gitdir');
+  if (n === 'GIT_WORK_TREE') return !s4RutaSegura(valor, 'arbol');
+  if (n === 'GIT_INDEX_FILE' || n === 'GIT_OBJECT_DIRECTORY') return !s4RutaSegura(valor, 'escritura');
+  return true;   // GIT_EXTERNAL_DIFF, GIT_EXEC_PATH, GIT_SSH(_COMMAND), GIT_ASKPASS, GIT_EDITOR, GIT_CONFIG_*, GIT_PROXY_COMMAND… y cualquier GIT_* desconocida
+};
+
+const S4_ITEM_PS = new Set(['set-item', 'si', 'new-item', 'ni', 'set-content', 'sc', 'add-content', 'ac', 'copy-item', 'cpi', 'move-item', 'mi', 'rename-item', 'rni']);
+/** S4: decisión por las variables de entorno que FIJA esta etapa (prefijo, env, export/declare/set/setx, `$env:X=…`, `Set-Item env:X`), o null. */
+const variablesGitS4 = (etapa) => {
+  const { w, asignaciones } = desenvolver(etapa.palabras);
+  const p = programa(w[0] || '');
+  const parte = (a) => { const k = a.indexOf('='); return [a.slice(0, k), a.slice(k + 1)]; };
+  const pide = (n, v, antes) => (variableGitS4(n, v, antes) ? decision('ask', MOTIVO_S4_ENTORNO(n)) : null);
+  /* Una asignación SIN programa detrás (`GIT_PAGER=sh` suelta) no llega a ningún proceso hijo mientras no se exporte: solo cuenta si precede a una
+     orden. Exportarla después (`export GIT_PAGER`) sí cuenta: lo mira el bloque de `export` de abajo, con el valor desconocido. */
+  if (w.length) for (const a of asignaciones) { const [n, v] = parte(a); const r = pide(n, v, p === 'git'); if (r) return r; }
+  const args = w.slice(1);
+  if (['export', 'declare', 'typeset', 'readonly', 'local'].includes(p)) {
+    for (const a of args) if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(a)) { const r = pide(a, null, false); if (r) return r; }
+  }
+  if (['export', 'declare', 'typeset', 'readonly', 'local', 'set'].includes(p)) {
+    for (const a of args) if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(a)) { const [n, v] = parte(a); const r = pide(n, v, false); if (r) return r; }
+  }
+  if (p === 'setx') { const pos = args.filter((x) => !/^[-/]/.test(x)); if (pos[0]) { const r = pide(pos[0], pos[1] ?? null, false); if (r) return r; } }
+  if (S4_ITEM_PS.has(p)) {
+    for (const a of args) { const m = String(a).match(/^env:[\\/]?([A-Za-z_][A-Za-z0-9_]*)$/i); if (m) { const r = pide(m[1], null, false); if (r) return r; } }
+  }
+  const ps = etapa.palabras;
+  const m = String(ps[0] || '').match(/^\$\{?env:([A-Za-z_][A-Za-z0-9_]*)\}?(?:(\+?=)([\s\S]*))?$/i);
+  if (m) {
+    const m2 = m[2] ? null : String(ps[1] || '').match(/^(\+?=)([\s\S]*)$/);
+    if (m[2] || m2) {
+      const op = m[2] || m2[1];
+      const v = op === '+=' ? null : m[2] ? m[3] : (m2[2] || (ps[2] ?? ''));
+      const r = pide(m[1], v, false); if (r) return r;
+    }
+  }
+  return null;
+};
+/** S4: `[Environment]::SetEnvironmentVariable('GIT_…', …)` en el texto (PowerShell/.NET). Un nombre que no es literal pide decisión. */
+const entornoDotnetS4 = (texto) => {
+  for (const m of String(texto).matchAll(/\[(?:system\.)?environment\]::setenvironmentvariable\s*\(\s*(['"]?)([^'",)\s]*)/gi)) {
+    if (!m[2] || dinamica(m[2]) || variableGitS4(m[2], null, false)) return decision('ask', MOTIVO_S4_ENTORNO(m[2] || '(nombre dinámico)'));
+  }
+  return null;
+};
 
 /**
  * ¿Esta orden de git crea commits, reescribe la historia o mueve una rama? Devuelve cómo nombrarla o null.
@@ -1060,8 +1233,12 @@ const scriptQueEjecuta = (p, w) => {
   return null;
 };
 
-/** Analiza UNA etapa ya partida en palabras. */
+/** Analiza UNA etapa ya partida en palabras. S4: si la etapa iba a pasar, deciden además las variables de entorno de git que fija (solo añade «ask»). */
 const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
+  const r = analizarOrdenBase(herramienta, etapa, previa, profundidad, raiz);
+  return r.decision ? r : (variablesGitS4(etapa) || r);
+};
+const analizarOrdenBase = (herramienta, etapa, previa, profundidad, raiz) => {
   gasta();
   let { w, dinamica: desdeEntrada, quitadas } = desenvolver(etapa.palabras);
   if (!w.length) {
@@ -1308,6 +1485,8 @@ const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
     if (aliasEnLaOrden(resto.slice(0, i))) {
       return decision('ask', 'Un alias de git definido en la propia orden (`-c alias.…`) puede esconder un commit, un merge o un push: lo autoriza el dueño.');
     }
+    /* S4: la decisión por las opciones globales se calcula aquí y se devuelve SOLO donde la orden iba a pasar (nunca tapa un ask/deny de abajo). */
+    const s4 = opcionesGlobalesGitS4(resto.slice(0, i));
     /* `… | xargs git …` con una entrada que no se puede leer: el subcomando o sus opciones llegan de fuera. */
     if (desdeEntrada && !GIT_ARGS_INOCUOS.has(sub)) {
       return sinLeer(raiz, `\`git ${sub || ''}\` recibe ${sub ? 'sus argumentos' : 'su subcomando'} por la entrada (xargs) y podría crear commits, mover ramas o hacer push`);
@@ -1332,7 +1511,8 @@ const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
       const lanzado = lanzadoPorGit(sub, args);
       if (lanzado) {
         const r = analizarTexto(herramienta, lanzado, profundidad + 1, raiz);
-        if (r.decision === 'deny' || sub !== 'rebase') return decidirPeor(r);
+        if (r.decision === 'deny') return decidirPeor(r);
+        if (sub !== 'rebase') return r.decision ? decidirPeor(r) : (s4 || r);   // S4: donde el interior pasaba, deciden las opciones globales
       }
     }
     const historia = cambiaHistoria(sub, args);
@@ -1343,7 +1523,7 @@ const analizarOrden = (herramienta, etapa, previa, profundidad, raiz) => {
     if (sub && !GIT_CONOCIDOS.has(sub) && sub !== DINAMICO.toLowerCase()) {
       return decision('ask', `\`git ${sub}\` no es un subcomando conocido de git (puede ser un alias de commit, merge o push): lo autoriza el dueño.`);
     }
-    return PASA;
+    return s4 || PASA;   // S4
   }
 
   /* npm: los scripts de despliegue y los que leen producción. */
@@ -1563,6 +1743,9 @@ function analizar(herramienta, texto, profundidad, raiz) {
     const r = heredocsInterpretados(herr, texto, profundidad, raiz);
     if (sumar(r)) return r;
   }
+
+  /* S4: `[Environment]::SetEnvironmentVariable('GIT_…', …)` (PowerShell/.NET) fija una variable de git sin pasar por una asignación de shell. */
+  { const r = entornoDotnetS4(texto); if (r) sumar(r); }
 
   const fuera = [];
   trocear(herr, sinHeredocs(texto), fuera, 0);

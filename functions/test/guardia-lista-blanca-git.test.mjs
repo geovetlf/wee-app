@@ -229,7 +229,10 @@ console.log('\n── J · Sabotajes ──');
     (m) => ["sudo -u root git branch --list --edit-description 'guardian/*'", "sudo -u root git branch --list --track 'guardian/*'"].some((c) => dec(m, 'Bash', c) === 'pasa'));
   await prueba('J4) SABOTAJE sin excluir las globales (`-c`, `--git-dir`…): `git -c core.pager=x branch --list` se exime (D lo detecta)',
     [['if (resto.slice(0, i).some((x) => GLOBALES_SIN_EXENCION_GIT.test(x))) return false;', '']],
-    (m) => dec(m, 'Bash', "sudo -u root git --git-dir=/x branch --list 'guardian/*'") === 'pasa');
+    /* S4 (Gran Motor): `--git-dir=/x` (fuera del espacio de trabajo) ya pregunta por la regla de opciones globales de S4, así que con este sabotaje
+       la orden de D pasa de deny a ask (D lo sigue detectando) en vez de pasar; la que PASA es la que S4 acepta (`--git-dir=.git`). */
+    (m) => dec(m, 'Bash', "sudo -u root git --git-dir=.git branch --list 'guardian/*'") === 'pasa'
+      && dec(m, 'Bash', "sudo -u root git --git-dir=/x branch --list 'guardian/*'") !== 'deny');
   await prueba('J5) SABOTAJE sin exigir el modo lista: `git tag -a \'guardian/*\'` (crear) deja de decidirse por el comodín (deny → ask)',
     [['if (!opciones.some((x) => /^(--list|-l)$/.test(x))) return false;', '']],
     (m) => dec(g, 'Bash', "git tag -a 'guardian/*'") === 'deny' && dec(m, 'Bash', "git tag -a 'guardian/*'") !== 'deny');
