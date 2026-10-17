@@ -89,19 +89,25 @@ const pideFoto = (x) => x.estado === 'planned' && x.error === 'invalid-argument'
 const terminaron = resultados.filter((x) => x.estado === 'done');
 const sinFoto = resultados.filter(pideFoto);
 const fallidos = resultados.filter((x) => x.estado === 'failed');
-check('A2) 20 terminan en demo, 14 piden una foto antes de empezar y 1 falla (ver hueco G-6): ninguna se queda a medias',
-  terminaron.length === 20 && sinFoto.length === 14 && fallidos.length === 1, `done=${terminaron.length} foto=${sinFoto.length} failed=${fallidos.length}`);
+check('A2) 21 terminan en demo, 14 piden una foto antes de empezar y ninguna falla (G-6 cerrado: el guion de muestra trae su «NARRACIÓN:»): ninguna se queda a medias',
+  terminaron.length === 21 && sinFoto.length === 14 && fallidos.length === 0, `done=${terminaron.length} foto=${sinFoto.length} failed=${fallidos.length}`);
 check('A3) las que terminan en demo: marcadas demo, cobran 0 y entregan un resultado por paso',
   terminaron.every((x) => x.demo === true && x.cobrado === 0 && x.resultados === x.pasosDelPlan && x.resultados > 0));
 check('A4) las que piden foto no reservan ni cobran nada: el trabajo sigue `planned`', sinFoto.every((x) => x.cobrado === 0 && x.saldoIgual));
-check('A5) la que falla (Studio: guion→vídeo→voz) no cobra y devuelve lo reservado', fallidos.every((x) => x.cobrado === 0 && x.saldoIgual));
+check('A5) ninguna falla en demo, y si alguna fallara no cobraría y devolvería lo reservado', fallidos.length === 0 && fallidos.every((x) => x.cobrado === 0 && x.saldoIgual));
 check('A6) y el saldo de la persona sigue entero (240) después de los 35 recorridos', saldoDe(base, U) === 240, String(saldoDe(base, U)));
-check('A7) cada una de las 11 experiencias tiene al menos un camino que termina en demo sin foto, salvo Studio y Beauty',
-  ['design', 'photo', 'writer', 'music', 'chef', 'home', 'business', 'travel', 'brain'].every((e) => terminaron.some((x) => x.experienceId === e))
-  && !terminaron.some((x) => x.experienceId === 'beauty') && terminaron.some((x) => x.experienceId === 'studio') === false);
+check('A7) cada una de las 11 experiencias tiene al menos un camino que termina en demo sin foto, salvo Beauty (Studio ya termina por guion→vídeo→voz)',
+  ['design', 'photo', 'writer', 'music', 'chef', 'home', 'business', 'travel', 'brain', 'studio'].every((e) => terminaron.some((x) => x.experienceId === e))
+  && !terminaron.some((x) => x.experienceId === 'beauty'));
 const studioVoz = resultados.find((x) => x.experienceId === 'studio' && x.pasos === 'text.generate>video.generate>voice.tts');
-hueco('G-6', 'Weë Studio con narración (guion→vídeo→voz) termina en modo demo: el guion de muestra no trae «NARRACIÓN:» y la guarda de la voz lo para antes de pagar el vídeo',
-  studioVoz?.estado === 'done', `estado=${studioVoz?.estado}`);
+check('G-6) Weë Studio con narración (guion→vídeo→voz) termina en modo demo: el guion de muestra trae «NARRACIÓN:» como el contrato real',
+  studioVoz?.estado === 'done' && studioVoz?.cobrado === 0, `estado=${studioVoz?.estado}`);
+{
+  /* Y la guarda NO se ha debilitado: un guion sin «NARRACIÓN:» sigue sin narración que leer, así que la voz se pararía antes de pagar el vídeo. */
+  const { narrationFrom } = lib('creator/prompts.js');
+  const guionSinMarca = ['🎬 Guion · prueba', '', 'Escena 1 (0–4 s): plano cercano.', 'Escena 2 (4–8 s): manos.'].join(String.fromCharCode(10));
+  check('G-6b) la guarda sigue en pie: un guion SIN «NARRACIÓN:» no da narración (vozSinNarracion pararía la voz)', narrationFrom([guionSinMarca], 'prueba') === '', JSON.stringify(narrationFrom([guionSinMarca], 'prueba')));
+}
 
 /* ═══ B · adjuntos ════════════════════════════════════════════════════════════ */
 titulo('B · Adjuntos: la foto de la cuenta abre los planes que la piden; la de otra cuenta no');
