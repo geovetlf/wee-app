@@ -772,6 +772,13 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');
     return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a));
   };
+  /*
+   * + Gran Motor P (2026-10-16, parche consolidado del propietario, docs/GRAN-MOTOR-PARCHE-PROPIETARIO.patch; origen S2,
+   *   riesgo ALTO): la ÚNICA línea nueva de la rama legacy de generateVideo es el registro del fallo al catalogar el vídeo,
+   *   con sanitizeForLog. Exactamente una vez; se devuelve a la de antes y el resto del bloque se compara byte a byte.
+   */
+  const LEGACY_P_NUEVA = "          console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));\n";
+  const LEGACY_P_ANTES = "          console.error('Content: no se pudo crear el material del vídeo', requestId, error);\n";
   /* creatorRun y el avatar solo con los arreglos de la FASE 1 del Harness (H0 #9, #11, #15a), por tamaño. */
   check('F4) creatorRun, solo con los arreglos del Harness y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
     git(`diff --numstat ${RUTA} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
@@ -783,8 +790,12 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
       /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos y las variantes; nada del reclamo ni del cobro. */
       /* + Línea B (2026-10-14, integridad financiera): creator/index +47 −18 (cierre del trabajo como transición, abandono desde el fin del PROCESO, interruptor del vídeo antes de reservar, lo demo no se cobra); la rama legacy de generateVideo solo gana la devolución de un vídeo de muestra (B4-03). */
-      '55\t6\tfunctions/src/creator/credits.ts|204\t41\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
-    && legacy(leer('functions/src/creator/video.ts')).length > 500 && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
+      /* + Gran Motor P (2026-10-16, parche del propietario; origen S2): creator/index.ts 204/41 → 207/44 (+3 −3: dos registros
+       * con sanitizeForLog y el error guardado en el paso fallido de creatorJobs, saneado); generateAvatar.ts 132/15 → 135/17
+       * (+3 −2: import y dos registros de fallo del avatar con sanitizeForLog). */
+      '55\t6\tfunctions/src/creator/credits.ts|207\t44\tfunctions/src/creator/index.ts|135\t17\tfunctions/src/generateAvatar.ts'
+    && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')).split(LEGACY_P_NUEVA).length === 2
+    && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
 }
 
 check('esta suite está en la cadena de `npm test`', /puente-pre-f1d\.test\.mjs/.test(leer('functions/package.json')));

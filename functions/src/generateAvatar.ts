@@ -14,6 +14,7 @@ import { operacionAbandonada } from './core';
 import { assertInputImageUrl } from './creator/inputs';
 import { toHttpsError } from './credits/creditValidation';
 import { loadConfig } from './engine/config';
+import { sanitizeForLog } from './engine/sanitize';
 import {
   generateAvatarWithImagen,
   replacePersonWithAvatar,
@@ -239,7 +240,7 @@ export const generateAvatarWithGemini = onCall(
 
         return { imageUrl: publicUrl };
       } catch (error: any) {
-        console.error('Avatar generation failed:', error);
+        console.error('Avatar generation failed:', sanitizeForLog(error, 300));
         /* El detalle del proveedor se queda en el log de arriba: al cliente solo le llega un código. */
         throw new HttpsError('internal', 'generation_failed', { reason: 'generation_failed' });
       }
@@ -329,7 +330,7 @@ export const avatarReplacement = onCall(
 
       return { imageUrl: publicUrl };
     } catch (error: any) {
-      console.error('Avatar replacement failed:', error);
+      console.error('Avatar replacement failed:', sanitizeForLog(error, 300));
       /* El detalle del proveedor se queda en el log: al cliente solo le llega un código. */
       throw new HttpsError('internal', 'replacement_failed', { reason: 'replacement_failed' });
     }

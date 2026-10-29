@@ -11,6 +11,7 @@ import { priceVideo } from '../credits/aiPricing';
 import { techoDeVideoDeEntrada } from '../engine/providers/seedance';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
+import { sanitizeForLog } from '../engine/sanitize';
 import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
@@ -724,7 +725,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
           });
           assetId = material?.assetId ?? null;
         } catch (error) {
-          console.error('Content: no se pudo crear el material del vídeo', requestId, error);
+          console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));
         }
       }
       await creditEngine.completeCredits({ userId: uid, requestId, meta: { generationId: result.generationId, videoUrl: result.output.url } });

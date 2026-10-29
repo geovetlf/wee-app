@@ -535,7 +535,7 @@ export const materialesDeResultado = async (
       });
       if (material) ids.push(material.assetId);
     } catch (error) {
-      console.error(`Content: no se pudo crear el material del paso ${step.id} del trabajo ${jobId}:`, error);
+      console.error(`Content: no se pudo crear el material del paso ${step.id} del trabajo ${jobId}:`, sanitizeForLog(error, 300));
     }
   }
   /*
@@ -835,9 +835,9 @@ export const creatorRun = onCall(
         const failing = steps.find((s) => s.status === 'running');
         if (failing) {
           failing.status = 'failed';
-          failing.error = (error instanceof Error ? error.message : String(error)).slice(0, 300);
+          failing.error = sanitizeForLog(error, 300);
         }
-        console.error(`Trabajo ${jobId} falló:`, error);
+        console.error(`Trabajo ${jobId} falló:`, sanitizeForLog(error, 300));
         const classified = classifyError(error);
         /* FAILED → REFUND, solo si esta llamada sigue siendo la dueña del trabajo (si no, ya lo cerró otro). */
         const cerrado = await cerrarTrabajo(ref, runId, {

@@ -2851,6 +2851,7 @@
         "739970a5346d",
         "741d9aefa5d9",
         "7592da342be6",
+        "76d650f5d2a2",
         "7ba2de60ea13",
         "7e2737a39fa7",
         "831046570038",
@@ -2896,7 +2897,6 @@
         "e1d8d2a114e4",
         "e41ef83ac3c8",
         "e4e7d783abc7",
-        "e58194001d06",
         "efd1081f27d1",
         "f0632ec8282e",
         "f63842f2ea40",
@@ -7322,12 +7322,12 @@
         "2194d5be9078",
         "2493eb000bf6",
         "251ab14f3f63",
-        "2bc90af60cb9",
         "3623d1d4f311",
         "37d854b7b2dd",
         "37f23684591d",
         "38a2ee3413b6",
         "3eccb4c79d31",
+        "41e75b16abf5",
         "4c912e315da7",
         "4cb6ba9b6de6",
         "52dac5a42862",
@@ -7423,6 +7423,13 @@
       "quitado": [
         "guardian-dominios: 1 comprobación(es) con título guardado ya no están (borradas o con otro título): e517a03775",
         "guardian-dominios: 1 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): c7558ee69d26"
+      ]
+    },
+    {
+      "motivo": "Gran Motor P: parche consolidado (sustituye H-f1d-generacion y S2-console-alto). f1d-generacion 98: creator/credits 55/6 (C c8b5a621), creator/index 207/44 y generateAvatar 135/17 (S2: sanitizeForLog en 5 registros ALTO y en el error guardado del paso fallido), y la linea saneada del legacy de generateVideo, exacta y una vez; video-asincrono H1: esa misma linea. Sin quitar comprobaciones.",
+      "quitado": [
+        "f1d-generacion: 1 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): e58194001d06",
+        "video-asincrono: 1 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): 2bc90af60cb9"
       ]
     }
   ]

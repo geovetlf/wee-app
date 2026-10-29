@@ -613,7 +613,16 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
   const antes = git(`show ${ANTES}:functions/src/creator/video.ts`);
   /* Línea B · B4-03 (2026-10-14): lo ÚNICO nuevo en la rama legacy es devolver la reserva de un vídeo de muestra (`if (result.demo) {…}`). */
   const sinDemo = (t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\r?\n      \}\r?\n/, '');
-  check('H1) la rama legacy de generateVideo es byte a byte la de antes (salvo la devolución del demo, B4-03)', bloque(VIDEO_SRC).length > 500 && bloque(VIDEO_SRC) !== bloque(antes) && sinDemo(bloque(VIDEO_SRC)) === bloque(antes));
+  /*
+   * + Gran Motor P (2026-10-16, parche consolidado del propietario, docs/GRAN-MOTOR-PARCHE-PROPIETARIO.patch; origen S2,
+   *   docs/GRAN-MOTOR-S2-PAGOS-SANITIZE.md, riesgo ALTO): la otra línea nueva —y la única además del demo— es el registro
+   *   del fallo al catalogar el vídeo, con sanitizeForLog. Tiene que estar EXACTAMENTE una vez; se devuelve a la de antes y
+   *   el resto del bloque sigue comparándose byte a byte: cualquier otra diferencia cae.
+   */
+  const LEGACY_P_NUEVA = "          console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));\n";
+  const LEGACY_P_ANTES = "          console.error('Content: no se pudo crear el material del vídeo', requestId, error);\n";
+  check('H1) la rama legacy de generateVideo es byte a byte la de antes (salvo la devolución del demo, B4-03)', bloque(VIDEO_SRC).length > 500 && bloque(VIDEO_SRC) !== bloque(antes)
+    && bloque(VIDEO_SRC).split(LEGACY_P_NUEVA).length === 2 && sinDemo(bloque(VIDEO_SRC)).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES) === bloque(antes));
   /*
    * F1-D mueve DOS piezas del motor, con autorización y solo esas: el cupo cuenta
    * una operación repetida UNA vez (`limits.ts`, decisión 14) y el adaptador de
@@ -630,7 +639,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
    */
   const MOTOR_F1D_Y_HARNESS = {
     'functions/src/creator/credits.ts': '55\t6', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6 · Gran Motor C-1 (+10 −2: el libro tras una reserva devuelta, c8b5a621)
-    'functions/src/creator/index.ts': '204\t41', // Línea B 2026-10-14 (+47 −18, antes 157/23): el cierre del trabajo es una transición (`cerrarTrabajo`/`cerrarAbandonado`, X3), el abandono cuenta desde el fin del PROCESO, el interruptor del vídeo antes del cupo y la reserva (X2), y lo demo no se cobra (`cobroDelTrabajo`, B4-03) · misión mundo3d (+17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo que atendió y anota las variantes de UN resultado (y se exporta para probarlo) · C-1 2026-10-05 (+16 −5, antes 124/16): creatorQuote en transacción, solo con el trabajo `planned`, sin reclamo reciente ni reserva · segunda auditoría de cierre 2026-10-01 (+7 −1, antes 117/15): vozSinNarracion antes del vídeo · 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
+    'functions/src/creator/index.ts': '207\t44', // Gran Motor P 2026-10-16 (parche del propietario, origen S2; +3 −3, antes 204/41): el registro del material de un paso y el del trabajo fallido con sanitizeForLog, y el error GUARDADO en el paso fallido de creatorJobs saneado igual (no `error.message.slice(0, 300)`) · Línea B 2026-10-14 (+47 −18, antes 157/23): el cierre del trabajo es una transición (`cerrarTrabajo`/`cerrarAbandonado`, X3), el abandono cuenta desde el fin del PROCESO, el interruptor del vídeo antes del cupo y la reserva (X2), y lo demo no se cobra (`cobroDelTrabajo`, B4-03) · misión mundo3d (+17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo que atendió y anota las variantes de UN resultado (y se exporta para probarlo) · C-1 2026-10-05 (+16 −5, antes 124/16): creatorQuote en transacción, solo con el trabajo `planned`, sin reclamo reciente ni reserva · segunda auditoría de cierre 2026-10-01 (+7 −1, antes 117/15): vozSinNarracion antes del vídeo · 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
     'functions/src/engine/admin.ts': '14\t4', // Línea B 2026-10-14 (+3, antes 11/4): `videoHabilitado` se cambia por setSettings y solo admite true/false · 0ad8500 (#19) · 5e87b80 (FASE 8) · cierre post-auditoría 2026-10-01 (+2 −2, antes 9/2): engineAdmin monta MODEL_SECRETS
     'functions/src/engine/config.ts': '36\t1', // 8193184 (#20) · misión fal: '3d' entra en la lista de modalidades que ya añadió #20 (no cambia la cifra)
     'functions/src/engine/derechos.ts': '26\t0', // misión mundo3d (nuevo): los derechos de lo que generó una implementación, de los datos de SU modelo; una regla para los tres caminos
@@ -660,7 +669,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
     'functions/src/engine/verification.ts': '8\t0', // misión fal (nuevo en el mapa): la ficha de fal, documentada y sin verificar con la API real
     'functions/src/engine/video.ts': '24\t0', // Línea B 2026-10-14 (nuevo en el mapa): el interruptor del vídeo (`videoApagado`, `hayVideoReal`, `asegurarVideoPermitido`) y su comprobación en `videoEngine.generate`, antes de cualquier proveedor (X2)
     'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
-    'functions/src/generateAvatar.ts': '132\t15', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar) · cierre post-auditoría 2026-10-01 (+3 −3, antes 129/12): el avatar monta AVATAR_SECRETS (solo Gemini)
+    'functions/src/generateAvatar.ts': '135\t17', // Gran Motor P 2026-10-16 (parche del propietario, origen S2; +3 −2, antes 132/15): import de sanitizeForLog y los dos registros de fallo del avatar saneados · a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar) · cierre post-auditoría 2026-10-01 (+3 −3, antes 129/12): el avatar monta AVATAR_SECRETS (solo Gemini)
   };
   /*
    * Y la integración i18n da-DK (rama i18n/da-dk, 2026-10-01), también por nombre y tamaño: el locale de la app viaja
