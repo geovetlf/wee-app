@@ -304,6 +304,12 @@ const FUNCTIONS = {
    * desplegada (ops/despliegue/grupos.json → no_se_despliegan): está en el mapa porque el código la exporta.
    */
   './evals': ['evalRun'],
+  /*
+   * Las lecturas de administración de la operación y de las cuentas (autorización del dueño, 2026-10-30). Solo leen y
+   * dejan constancia en `adminAudit`; no ejecutan nada, ni tocan cuentas, Credits o configuración
+   * (`admin-lecturas.test.mjs`). No están desplegadas (ops/despliegue/grupos.json → no_se_despliegan).
+   */
+  './admin': ['opsAdmin', 'accountsAdmin'],
   './content': ['deleteAsset'],
   './social/polls': ['votePoll'],
   './social/weetalk': ['burnViewOnce'],
@@ -395,7 +401,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y siete: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar) y generateWorld (misión mundo3d, sin desplegar)', reales.length === 37, `${reales.length}`);
+  check('5) y son treinta y nueve: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar), generateWorld (misión mundo3d, sin desplegar), y opsAdmin y accountsAdmin (lecturas de administración, sin desplegar)', reales.length === 39, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *
@@ -408,7 +414,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const inventada = [...reales, 'functionQueNadieDeclaro'];
   check('5b) y la guarda SIGUE PROTEGIENDO: una Function sin clasificar se detecta',
     inventada.filter((f) => !declaradas.includes(f)).join(',') === 'functionQueNadieDeclaro'
-    && inventada.length !== 37);
+    && inventada.length !== 39);
 
   const malUbicadas = Object.entries(FUNCTIONS).filter(([mod, fns]) => !igual(fns, porModulo[mod] || []));
   check('6) cada una sale del módulo que el mapa dice', malUbicadas.length === 0, malUbicadas.map(([m]) => m).join(', '));

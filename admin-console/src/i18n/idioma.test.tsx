@@ -68,7 +68,7 @@ describe('cambio de idioma', () => {
 
   it('también cambia dentro de la consola con sesión', async () => {
     montar(ADMIN);
-    expect(await screen.findByRole('heading', { name: 'Resumen' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Panorama' })).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText('Idioma'), 'en');
     expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Sections' })).toBeInTheDocument();
@@ -135,7 +135,7 @@ describe('todos los textos visibles están traducidos', () => {
     const iguales = delEs.filter(([k, v]) => delEn[k] === v).map(([k]) => k).sort();
     expect(iguales).toEqual([
       'admin.app.titulo', 'admin.comun.no', 'admin.comun.sinDato', 'admin.credits.conversionValor', 'admin.credits.costeCredits', 'admin.credits.titulo',
-      'admin.idioma.en', 'admin.idioma.es', 'admin.nav.credits', 'admin.resumen.preciosReal',
+      'admin.cuentas.uid', 'admin.idioma.en', 'admin.idioma.es', 'admin.nav.credits', 'admin.ops.creditsCobrados', 'admin.ops.producciones', 'admin.ops.trabajos', 'admin.panorama.credits', 'admin.panorama.ia', 'admin.panorama.sinFuenteLinea', 'admin.resumen.preciosReal',
     ]);
   });
 
@@ -145,7 +145,7 @@ describe('todos los textos visibles están traducidos', () => {
     expect(document.body.textContent).not.toMatch(patron);
     sesion.unmount();
 
-    for (const ruta of ['resumen', 'credits', 'moderacion']) {
+    for (const ruta of ['panorama', 'resumen', 'credits', 'moderacion', 'operaciones', 'cuentas', 'auditoria']) {
       window.location.hash = `#/${ruta}`;
       const vista = montar(ADMIN, idioma);
       await screen.findByRole('navigation');

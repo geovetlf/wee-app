@@ -44,6 +44,14 @@
   ],
   "no_se_despliegan": [
     {
+      "funcion": "opsAdmin",
+      "porque": "Está en el código y NO en producción: sería una función nueva. Lecturas de administración de la operación (solo leen y dejan constancia en adminAudit). Autorizada para construirse, no para desplegarse: se despliega solo con decisión del dueño, junto con el rol owner."
+    },
+    {
+      "funcion": "accountsAdmin",
+      "porque": "Está en el código y NO en producción: sería una función nueva. Lectura de administración de una cuenta (solo lee y deja constancia en adminAudit). Autorizada para construirse, no para desplegarse: se despliega solo con decisión del dueño, junto con el rol owner."
+    },
+    {
       "funcion": "elements",
       "porque": "Está en el código de main y NO en producción: sería una función nueva. Es una capacidad de producto (Elements de Weë Studio/Filmmaker): se despliega solo con decisión del dueño."
     },

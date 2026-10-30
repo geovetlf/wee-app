@@ -40,6 +40,20 @@ const Totales = () => {
             <Dato etiqueta={t('admin.credits.ingresosUsd')} valor={numero(e.global.ingresosUsd)} />
             <Dato etiqueta={t('admin.credits.fallidas')} valor={numero(e.global.fallidas)} />
           </Datos>
+          {/* Consumo por servicio: lo acumula el Credit Engine en cada gasto y reembolso (creditStats.global.byService). */}
+          <h3>{t('admin.credits.porServicio')}</h3>
+          {e.porServicio.length === 0 ? <p className="estado vacio">{t('admin.credits.sinPorServicio')}</p> : (
+            <Tabla cabeceras={[t('admin.credits.servicio'), t('admin.credits.gastados'), t('admin.credits.operaciones'), t('admin.credits.reembolsados')]}>
+              {e.porServicio.map((s) => (
+                <tr key={s.servicio}>
+                  <th scope="row">{s.servicio}</th>
+                  <td>{numero(s.gastado)}</td>
+                  <td>{numero(s.operaciones)}</td>
+                  <td>{numero(s.reembolsado)}</td>
+                </tr>
+              ))}
+            </Tabla>
+          )}
           {e.diario.length > 0 && (
             <>
               <h3>{t('admin.credits.diario')}</h3>

@@ -91,14 +91,15 @@ const principal = async () => {
 
   const claim = await postJson(
     `${base}/identitytoolkit.googleapis.com/v1/projects/${encodeURIComponent(proyecto)}/accounts:update`,
-    { localId: json.localId, customAttributes: JSON.stringify({ admin: true }) },
+    /* `--owner` añade el rol del personal SOLO en el emulador; sin él, administración sin rol (solo las lecturas de siempre). */
+    { localId: json.localId, customAttributes: JSON.stringify(args.owner === 'true' ? { admin: true, weeRole: 'owner' } : { admin: true }) },
     { authorization: 'Bearer owner' },
   );
   if (!claim.ok) {
     console.error(`✘ El emulador no aceptó el claim (${claim.json?.error?.message ?? 'sin detalle'}).`);
     process.exit(1);
   }
-  console.log(`✔ ${email} (uid ${json.localId}) tiene el claim admin SOLO en el emulador de Auth del proyecto ${proyecto}.`);
+  console.log(`✔ ${email} (uid ${json.localId}) tiene el claim admin${args.owner === 'true' ? ' y el rol owner' : ''} SOLO en el emulador de Auth del proyecto ${proyecto}.`);
   console.log('  Entra en la consola con ese correo (si tenías sesión abierta con él, ciérrala y vuelve a entrar).');
 };
 

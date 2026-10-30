@@ -41,7 +41,7 @@ describe('i18n de la consola', () => {
     const esperadas = [
       ...tipos.map((t) => `admin.errores.${t}`),
       ...ESTADOS_DE_REPORTE.map((s) => `admin.moderacion.estados.${s}`),
-      ...['resumen', 'credits', 'moderacion'].map((r) => `admin.nav.${r}`),
+      ...['panorama', 'resumen', 'credits', 'moderacion', 'operaciones', 'cuentas', 'auditoria'].map((r) => `admin.nav.${r}`),
       'admin.idioma.es', 'admin.idioma.en',
       'admin.arranque.proyectoNoDemo', 'admin.arranque.hostNoLocal', 'admin.arranque.puertoInvalido',
       'admin.login.errorCredenciales', 'admin.login.errorDemasiados', 'admin.login.errorRed', 'admin.login.errorOtro',

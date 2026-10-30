@@ -77,6 +77,7 @@ describe('acceso', () => {
   });
 
   it('si el permiso se pierde a mitad de uso, los datos ya mostrados desaparecen', async () => {
+    window.location.hash = '#/resumen';
     montar({ respuestas: { 'engineAdmin.status': ESTADO_MOTOR, 'creditsAdmin.stats': falla('functions/permission-denied') } });
     expect(await screen.findByText('ProveedorX')).toBeInTheDocument();
     await ir('credits');
@@ -107,7 +108,7 @@ describe('acceso', () => {
     expect(llamadas.map((l) => `${l.callable}.${l.datos.action}`)).toEqual(['engineAdmin.status']);
     await act(async () => { confirmar(ESTADO_MOTOR); });
     expect(await screen.findByRole('navigation')).toBeInTheDocument();
-    expect(await screen.findByText('ProveedorX')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
   });
 
   it('si la comprobación falla por la red, no entra: muestra el error y deja reintentar', async () => {
@@ -121,7 +122,68 @@ describe('acceso', () => {
   });
 });
 
-describe('Resumen', () => {
+describe('Panorama (portada)', () => {
+  const reporte = (i: number) => ({ reportId: `rep_${String(i).padStart(32, '0')}`, status: 'RECEIVED', reason: 'SPAM', createdAt: 1 });
+  const base = {
+    'engineAdmin.status': { ...ESTADO_MOTOR, providers: [...ESTADO_MOTOR.providers, { id: 'apagado', name: 'Apagado', configured: true, enabled: false }] },
+    'creditsAdmin.stats': { global: { circulating: 5000, totalSpent: 120, totalRefunded: 7, failed: 2 }, daily: [] },
+    'moderationAdmin.list': (d: Record<string, unknown>) => ({ reports: d.status === 'RECEIVED' ? Array.from({ length: 50 }, (_, i) => reporte(i)) : d.status === 'ESCALATED' ? [reporte(99)] : [] }),
+  };
+
+  it('es la portada y solo enseña datos con fuente, cada uno con su procedencia y su hora', async () => {
+    montar({ respuestas: base });
+    expect(await screen.findByRole('heading', { name: 'Overview', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByText('5,000')).toBeInTheDocument();
+    /* Con clave Y habilitado: ProveedorX sí, Apagado no. */
+    expect(screen.getByText('1 of 2')).toBeInTheDocument();
+    expect(screen.getByText(/^Source: engineAdmin\.status · read: /)).toBeInTheDocument();
+    expect(screen.getByText(/^Source: creditsAdmin\.stats · read: /)).toBeInTheDocument();
+    expect(await screen.findByText(/^Source: moderationAdmin\.list · read: /)).toBeInTheDocument();
+  });
+
+  it('las denuncias: si el servidor corta en 50 dice «50 o más», nunca un número exacto que no sabe', async () => {
+    montar({ respuestas: base });
+    expect(await screen.findByText('50 or more')).toBeInTheDocument();
+    expect(screen.queryByText('50')).not.toBeInTheDocument();
+  });
+
+  it('lo que no se mide se dice, sin cifras inventadas', async () => {
+    montar({ respuestas: base });
+    const bloque = (await screen.findByRole('heading', { name: 'Not measured yet' })).closest('section')!;
+    expect(within(bloque).getAllByRole('listitem')).toHaveLength(4);
+    expect(within(bloque).getByText('Registered accounts — there is no account aggregate on the server.')).toBeInTheDocument();
+    expect(bloque.textContent).not.toMatch(/\d/);
+  });
+
+  it('si un bloque falla, los demás siguen y el que falla se puede reintentar', async () => {
+    montar({ respuestas: { ...base, 'creditsAdmin.stats': falla('functions/internal') } });
+    expect(await screen.findByText('1 of 2')).toBeInTheDocument();
+    expect(await screen.findByText('50 or more')).toBeInTheDocument();
+    const alerta = await screen.findByRole('alert');
+    expect(alerta).toHaveTextContent('The server failed to respond. Try again.');
+    expect(within(alerta).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('SECRETO');
+  });
+
+  it('un «sin permiso» en cualquier bloque saca de la consola entera', async () => {
+    montar({ respuestas: { ...base, 'moderationAdmin.list': falla('functions/permission-denied') } });
+    expect(await screen.findByRole('heading', { name: 'Access denied' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('5,000');
+  });
+
+  it('solo pide acciones de lectura de la lista permitida', async () => {
+    const { invocar } = montar({ respuestas: base });
+    await screen.findByText('50 or more');
+    const hechas = invocar.mock.calls.map(([c, d]) => `${c}.${d.action}`);
+    expect(new Set(hechas)).toEqual(new Set(['engineAdmin.status', 'opsAdmin.quienSoy', 'creditsAdmin.stats', 'moderationAdmin.list']));
+    expect(invocar).toHaveBeenCalledWith('moderationAdmin', { status: 'RECEIVED', limit: 50, action: 'list' });
+  });
+});
+
+describe('Motor de IA (ruta resumen)', () => {
+  beforeEach(() => { window.location.hash = '#/resumen'; });
+
   it('muestra el estado del motor que informa el servidor', async () => {
     montar({ respuestas: { 'engineAdmin.status': ESTADO_MOTOR } });
     expect(await screen.findByText('ProveedorX')).toBeInTheDocument();
@@ -209,6 +271,20 @@ describe('Credits', () => {
     expect(screen.queryByText(/US\$ 1 =/)).not.toBeInTheDocument();
   });
 
+  it('consumo por servicio: tabla del Credit Engine, de más a menos gastado; vacío si no hay', async () => {
+    montar({ respuestas: { ...respuestas, 'creditsAdmin.stats': { global: { circulating: 9, byService: { ai_text: { spent: 4, count: 2 }, ai_video: { spent: 26, count: 1 } } }, daily: [] } } });
+    await ir('credits');
+    const titulo = await screen.findByRole('heading', { name: 'Consumption by service' });
+    const filas = within(titulo.nextElementSibling as HTMLElement).getAllByRole('row').slice(1).map((r) => r.textContent);
+    expect(filas).toEqual(['ai_video261—', 'ai_text42—']);
+  });
+
+  it('sin consumo por servicio lo dice', async () => {
+    montar({ respuestas });
+    await ir('credits');
+    expect(await screen.findByText('There is no consumption by service yet.')).toBeInTheDocument();
+  });
+
   it('sin estadísticas: dice que todavía no hay, sin ceros inventados', async () => {
     montar({ respuestas: { ...respuestas, 'creditsAdmin.stats': { global: {}, daily: [] } } });
     await ir('credits');
@@ -256,6 +332,108 @@ describe('Credits', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Look up' }));
     expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
     expect(llamadas.some((l) => l.datos.action === 'balance')).toBe(false);
+  });
+});
+
+describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
+  const OWNER = { rol: 'owner', permisos: ['ops.read', 'ai.read', 'finance.read', 'accounts.read', 'audit.read', 'moderation.read'], entorno: 'demo-wee' };
+  const base = { 'engineAdmin.status': ESTADO_MOTOR };
+  const enlaces = async () => within(await screen.findByRole('navigation')).getAllByRole('link').map((a) => a.textContent);
+
+  it('administración sin rol: solo las secciones de siempre', async () => {
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: null, permisos: [] } } });
+    await screen.findByRole('navigation');
+    await act(async () => { await Promise.resolve(); });
+    expect(await enlaces()).toEqual(['Overview', 'AI engine', 'Credits', 'Moderation']);
+  });
+
+  it('owner: también Operaciones, Cuentas y Auditoría, y dice su rol', async () => {
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': OWNER } });
+    expect(await screen.findByRole('link', { name: 'Audit' })).toBeInTheDocument();
+    expect(await enlaces()).toEqual(['Overview', 'AI engine', 'Credits', 'Moderation', 'Operations', 'Accounts', 'Audit']);
+    expect(screen.getByText('Role: owner')).toBeInTheDocument();
+  });
+
+  it('si quienSoy falla, no se enseña más de lo confirmado', async () => {
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': falla('functions/internal') } });
+    await screen.findByRole('navigation');
+    await act(async () => { await Promise.resolve(); });
+    expect(await enlaces()).toEqual(['Overview', 'AI engine', 'Credits', 'Moderation']);
+  });
+
+  it('una ruta directa a una sección sin permiso cae en la portada y no pide sus datos', async () => {
+    window.location.hash = '#/auditoria';
+    const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read', 'ai.read'] } } });
+    expect(await screen.findByRole('heading', { name: 'Overview', level: 1 })).toBeInTheDocument();
+    await act(async () => { await Promise.resolve(); });
+    expect(invocar.mock.calls.some(([c, d]) => c === 'opsAdmin' && d.action === 'auditoria')).toBe(false);
+  });
+
+  it('si el servidor niega una sección nueva, la consola entera se va: ocultarla no era la seguridad', async () => {
+    window.location.hash = '#/auditoria';
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': OWNER, 'opsAdmin.auditoria': falla('functions/permission-denied') } });
+    expect(await screen.findByRole('heading', { name: 'Access denied' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  it('Operaciones: cada bloque solo si hay permiso, y sin pedir lo que no se puede ver', async () => {
+    window.location.hash = '#/operaciones';
+    const { invocar } = montar({ respuestas: {
+      ...base,
+      'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read', 'ai.read'] },
+      'opsAdmin.atascados': { items: [{ jobId: 'job-a', estado: 'running', capacidad: 'video.generate', proveedor: 'seedance', modelo: 'm1', cuenta: 'cuen…23', actualizado: 5, intentos: 2 }], examinados: 2, truncado: false, fuente: 'jobs' },
+      'opsAdmin.creaciones': { items: [{ id: 'c1', experiencia: 'chef', estado: 'running', abandonado: true, pasos: 2, pasosFallidos: 1, creditsCobrados: 0, cuenta: 'cuen…23' }], examinados: 2, truncado: false },
+      'opsAdmin.capacidades': { noDisponibles: [{ id: 'incidentes', motivo: 'x', dependencia: 'registro de incidentes' }] },
+    } });
+    expect(await screen.findByText('job-a')).toBeInTheDocument();
+    expect(await screen.findByText('Abandoned')).toBeInTheDocument();
+    expect(await screen.findByText('2 (1 failed)')).toBeInTheDocument();
+    expect(await screen.findByText('Incidents: an incident record is missing.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Open Credits reservations' })).not.toBeInTheDocument();
+    expect(invocar.mock.calls.some(([, d]) => d.action === 'reservas')).toBe(false);
+  });
+
+  it('Operaciones: el filtro por experiencia llega al servidor, y un fallo de un bloque no tumba los demás', async () => {
+    window.location.hash = '#/operaciones';
+    const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read'] }, 'opsAdmin.atascados': falla('functions/internal'), 'opsAdmin.creaciones': { items: [] }, 'opsAdmin.trabajos': { items: [] } } });
+    expect(await screen.findByText('The server failed to respond. Try again.')).toBeInTheDocument();
+    expect(await screen.findByText('There are no creations with these filters.')).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Experience'), 'travel');
+    await waitFor(() => expect(invocar).toHaveBeenCalledWith('opsAdmin', { experiencia: 'travel', limit: 25, action: 'creaciones' }));
+  });
+
+  it('Cuentas: por uid o por número, con lo que dice el servidor; sin botones de suspender', async () => {
+    window.location.hash = '#/cuentas';
+    const { invocar } = montar({ respuestas: {
+      ...base,
+      'opsAdmin.quienSoy': OWNER,
+      'accountsAdmin.buscar': (d: Record<string, unknown>) => (d.uid === 'nadie' ? { encontrada: false } : {
+        encontrada: true, uid: 'uidAna', correlationId: 'adm_x',
+        perfiles: [{ id: 'r1', tipo: 'real' }, { id: 'hidi_uidAna', tipo: 'wee' }],
+        cuenta: { numero: '123456789', estado: 'ACTIVE' }, acceso: { deshabilitado: false, tieneCorreo: true, correoVerificado: true, proveedores: ['password'] },
+      }),
+    } });
+    await userEvent.type(await screen.findByLabelText('uid or account number'), '123-456-789');
+    await userEvent.click(screen.getByRole('button', { name: 'Look up' }));
+    expect(await screen.findByText('uidAna')).toBeInTheDocument();
+    expect(invocar).toHaveBeenCalledWith('accountsAdmin', { numeroDeCuenta: '123-456-789', action: 'buscar' });
+    expect(screen.getByText('Weë Profile')).toBeInTheDocument();
+    expect(screen.getByText('Query logged: adm_x')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /suspend|restrict|delete|disable/i })).not.toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText('uid or account number'));
+    await userEvent.type(screen.getByLabelText('uid or account number'), 'nadie');
+    await userEvent.click(screen.getByRole('button', { name: 'Look up' }));
+    expect(await screen.findByText('There is no account with that identifier.')).toBeInTheDocument();
+  });
+
+  it('Auditoría: se lee y no ofrece ninguna acción sobre las entradas', async () => {
+    window.location.hash = '#/auditoria';
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': OWNER, 'opsAdmin.auditoria': { items: [{ en: 5, actorUid: 'duena', actorRol: 'owner', accion: 'accountsAdmin.buscar', recurso: { tipo: 'cuenta', id: 'uidAna' }, resultado: 'ok', correlationId: 'adm_1', entorno: 'demo-wee' }], truncado: false } } });
+    expect(await screen.findByText('accountsAdmin.buscar')).toBeInTheDocument();
+    expect(screen.getByText('cuenta · uidAna')).toBeInTheDocument();
+    expect(screen.getByText('adm_1')).toBeInTheDocument();
+    const fila = screen.getByText('adm_1').closest('tr')!;
+    expect(within(fila).queryByRole('button')).not.toBeInTheDocument();
   });
 });
 
@@ -312,6 +490,8 @@ describe('lo que la consola pide al servidor', () => {
         'moderationAdmin.list': { reports: [] },
       },
     });
+    await screen.findByText('Overview', { selector: 'h1' });
+    await ir('resumen');
     await screen.findByText('ProveedorX');
     await ir('credits');
     await screen.findByText('ai_text');

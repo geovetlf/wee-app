@@ -108,12 +108,30 @@ export interface TotalesDeCredits {
 export interface DiaDeCredits extends TotalesDeCredits {
   id: string;
 }
+/** Lo acumulado de un servicio del catálogo (`creditStats.global.byService.{servicio}`, lo escribe el Credit Engine). */
+export interface ConsumoDeServicio {
+  servicio: string;
+  gastado?: number;
+  operaciones?: number;
+  reembolsado?: number;
+}
 export interface EstadisticasDeCredits {
   global: TotalesDeCredits;
   diario: DiaDeCredits[];
+  /** Por servicio, de más a menos gastado. Vacío si el servidor no lo trae. */
+  porServicio: ConsumoDeServicio[];
   /** true si el servidor no devolvió ningún dato (colecciones aún vacías). */
   vacio: boolean;
 }
+
+const porServicio = (r: unknown): ConsumoDeServicio[] => (esRegistro(r) ? Object.entries(r) : [])
+  .filter(([, v]) => esRegistro(v))
+  .map(([servicio, v]) => {
+    const c = v as Registro;
+    return { servicio, gastado: numero(c.spent), operaciones: numero(c.count), reembolsado: numero(c.refunded) };
+  })
+  .filter((c) => c.gastado !== undefined || c.operaciones !== undefined || c.reembolsado !== undefined)
+  .sort((a, b) => (b.gastado ?? 0) - (a.gastado ?? 0) || a.servicio.localeCompare(b.servicio));
 
 const totales = (r: Registro): TotalesDeCredits => ({
   comprados: numero(r.totalPurchased),
@@ -130,7 +148,7 @@ export const leerEstadisticasDeCredits = (crudo: unknown): EstadisticasDeCredits
   const global = esRegistro(raiz.global) ? totales(raiz.global) : {};
   const diario = lista(raiz.daily).filter(esRegistro).map((d) => ({ id: texto(d.id) ?? '?', ...totales(d) }));
   const hayGlobal = Object.values(global).some((v) => v !== undefined);
-  return { global, diario, vacio: !hayGlobal && diario.length === 0 };
+  return { global, diario, porServicio: porServicio(esRegistro(raiz.global) ? raiz.global.byService : undefined), vacio: !hayGlobal && diario.length === 0 };
 };
 
 export interface SaldoVista {

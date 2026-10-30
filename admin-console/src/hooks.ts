@@ -7,7 +7,8 @@ export type EstadoDeCarga<T> =
   | { fase: 'inactivo' }
   | { fase: 'cargando' }
   | { fase: 'vacio' }
-  | { fase: 'ok'; datos: T }
+  /** `leidoEn`: cuándo respondió el servidor (ms). La consola lo enseña para que se sepa lo fresco que es el dato. */
+  | { fase: 'ok'; datos: T; leidoEn: number }
   | { fase: 'error'; error: ErrorDeAdmin };
 
 /**
@@ -42,7 +43,7 @@ export function useAccion<A extends NombreDeAccion, T>(
       (crudo) => {
         if (numero !== ultimo.current) return;
         const datos = leerRef.current(crudo);
-        setEstado(vacioRef.current(datos) ? { fase: 'vacio' } : { fase: 'ok', datos });
+        setEstado(vacioRef.current(datos) ? { fase: 'vacio' } : { fase: 'ok', datos, leidoEn: Date.now() });
       },
       (error) => {
         if (numero !== ultimo.current) return;

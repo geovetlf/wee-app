@@ -9,15 +9,38 @@ import { useIdioma, useT } from '../i18n/i18n';
 import { ContextoDeCliente } from '../servicios';
 import { AccesoDenegado } from './AccesoDenegado';
 import { Credits } from './Credits';
+import { leerIdentidad } from '../api/operaciones';
+import { Auditoria } from './Auditoria';
+import { Cuentas } from './Cuentas';
 import { Moderacion } from './Moderacion';
+import { Operaciones } from './Operaciones';
+import { Panorama } from './Panorama';
 import { Resumen } from './Resumen';
 
-type Ruta = 'resumen' | 'credits' | 'moderacion';
-const RUTAS: Ruta[] = ['resumen', 'credits', 'moderacion'];
+/*
+ * Las secciones son las que tienen datos de verdad detrás (docs/admin-console/WEE_ADMIN_CONSOLE_DOMAIN_MAP.md): no
+ * hay entradas de menú vacías para dominios sin fuente en el servidor. `resumen` es la ruta del Motor de IA (se
+ * conserva el nombre para no romper enlaces guardados); `panorama`, la portada.
+ */
+type Ruta = 'panorama' | 'resumen' | 'credits' | 'moderacion' | 'operaciones' | 'cuentas' | 'auditoria';
+const RUTAS: Ruta[] = ['panorama', 'resumen', 'credits', 'moderacion', 'operaciones', 'cuentas', 'auditoria'];
+/**
+ * Lo que hace falta para VER cada sección nueva, tal como lo informa el servidor (`opsAdmin.quienSoy`). Ocultarla es
+ * comodidad, no seguridad: el servidor comprueba el permiso en cada llamada. Las demás son de cualquier administración.
+ */
+const PERMISO_DE_RUTA: Partial<Record<Ruta, readonly string[]>> = {
+  operaciones: ['ops.read', 'ai.read', 'finance.read'],
+  cuentas: ['accounts.read'],
+  auditoria: ['audit.read'],
+};
+const puedeVer = (ruta: Ruta, permisos: readonly string[]): boolean => {
+  const hacen = PERMISO_DE_RUTA[ruta];
+  return !hacen || hacen.some((p) => permisos.includes(p));
+};
 
 const rutaDelHash = (): Ruta => {
   const h = (typeof window === 'undefined' ? '' : window.location.hash).replace(/^#\/?/, '');
-  return (RUTAS as string[]).includes(h) ? (h as Ruta) : 'resumen';
+  return (RUTAS as string[]).includes(h) ? (h as Ruta) : 'panorama';
 };
 
 /**
@@ -81,14 +104,19 @@ const ComprobacionDePermiso = ({ children }: { children: ReactNode }) => {
   );
 };
 
-const Interior = ({ usuario, sesion, ruta }: { usuario: UsuarioDeSesion; sesion: ServicioDeSesion; ruta: Ruta }) => {
+const Interior = ({ usuario, sesion, ruta: rutaPedida }: { usuario: UsuarioDeSesion; sesion: ServicioDeSesion; ruta: Ruta }) => {
   const { t } = useIdioma();
+  /* Si esto falla, se ven solo las secciones de cualquier administración: nunca más de lo que el servidor confirmó. */
+  const identidad = useAccion('opsAdmin.quienSoy', undefined, leerIdentidad);
+  const permisos = identidad.estado.fase === 'ok' ? identidad.estado.datos.permisos : [];
+  const rol = identidad.estado.fase === 'ok' ? identidad.estado.datos.rol : undefined;
+  const ruta: Ruta = puedeVer(rutaPedida, permisos) ? rutaPedida : 'panorama';
   return (
     <div className="consola">
       <aside className="lateral">
         <Marca />
         <nav aria-label={t('admin.nav.menu')}>
-          {RUTAS.map((r) => (
+          {RUTAS.filter((r) => puedeVer(r, permisos)).map((r) => (
             <a key={r} href={`#/${r}`} className={`enlace${r === ruta ? ' activo' : ''}`} aria-current={r === ruta ? 'page' : undefined}>
               {t(`admin.nav.${r}`)}
             </a>
@@ -96,15 +124,20 @@ const Interior = ({ usuario, sesion, ruta }: { usuario: UsuarioDeSesion; sesion:
         </nav>
         <div className="lateral-pie">
           <span className="insignia">{t('admin.app.lectura')}</span>
+          {rol && <small>{t('admin.sesion.rol', { rol })}</small>}
           <SelectorDeIdioma />
           <small>{t('admin.sesion.conectadoComo', { email: usuario.email ?? t('admin.sesion.sinCorreo') })}</small>
           <button type="button" className="boton" onClick={() => void sesion.salir()}>{t('admin.sesion.salir')}</button>
         </div>
       </aside>
       <main className="contenido">
+        {ruta === 'panorama' && <Panorama />}
         {ruta === 'resumen' && <Resumen />}
         {ruta === 'credits' && <Credits />}
         {ruta === 'moderacion' && <Moderacion />}
+        {ruta === 'operaciones' && <Operaciones permisos={permisos} />}
+        {ruta === 'cuentas' && <Cuentas />}
+        {ruta === 'auditoria' && <Auditoria />}
       </main>
     </div>
   );

@@ -9,7 +9,7 @@
  *   2. no importa pantallas, componentes, servicios, contextos ni hooks de la app de usuario: de fuera de su carpeta
  *      solo lee el traductor puro de Weë (`i18n/traducir|resolver|formato|idiomas`);
  *   3. no usa firebase-admin ni Firestore/Storage/Database: no puede leer ni escribir un documento por su cuenta;
- *   4. `httpsCallable` está en un solo archivo y la lista de acciones es EXACTAMENTE la de la Unidad 1;
+ *   4. `httpsCallable` está en un solo archivo y la lista de acciones es EXACTAMENTE la autorizada, toda de lectura;
  *   5. ninguna acción de escritura aparece en el código del cliente;
  *   6. no hay secretos, claves de proveedor, credenciales ni archivos .env con valores;
  *   7. el texto visible pasa por el traductor (ni texto suelto en el JSX ni atributos accesibles escritos a mano);
@@ -89,17 +89,19 @@ const PAQUETES_PERMITIDOS = [/^react$/, /^react-dom(\/client)?$/, /^react\/jsx-r
 }
 
 /* ── 4 y 5 · la lista permitida ─────────────────────────────────────────── */
+/* Las 8 de la Unidad 1 y las de lectura de `opsAdmin` y `accountsAdmin` (functions/src/admin). Ninguna escribe. */
 const ESPERADAS = [
-  'creditsAdmin.balance', 'creditsAdmin.costs', 'creditsAdmin.failed', 'creditsAdmin.stats', 'creditsAdmin.userHistory',
-  'engineAdmin.status', 'moderationAdmin.history', 'moderationAdmin.list',
+  'accountsAdmin.buscar', 'creditsAdmin.balance', 'creditsAdmin.costs', 'creditsAdmin.failed', 'creditsAdmin.stats', 'creditsAdmin.userHistory',
+      'engineAdmin.status', 'moderationAdmin.history', 'moderationAdmin.list',
+      'opsAdmin.atascados', 'opsAdmin.auditoria', 'opsAdmin.capacidades', 'opsAdmin.creaciones', 'opsAdmin.generaciones', 'opsAdmin.producciones', 'opsAdmin.quienSoy', 'opsAdmin.reservas', 'opsAdmin.trabajos', 'opsAdmin.usoIa',
 ];
 {
   const acciones = sinComentarios(leer(path.join(SRC, 'api/acciones.ts')));
   const pares = [...acciones.matchAll(/'(\w+\.\w+)':\s*\{\s*callable:\s*'(\w+)',\s*accion:\s*'(\w+)'/g)];
   const claves = pares.map((m) => m[1]).sort();
-  check('4a. la lista permitida es exactamente la de la Unidad 1', JSON.stringify(claves) === JSON.stringify(ESPERADAS), claves.join(','));
+  check('4a. la lista permitida es exactamente esta, toda de lectura', JSON.stringify(claves) === JSON.stringify(ESPERADAS), claves.join(','));
   check('4b. cada clave es «callable.accion» de verdad', pares.every((m) => m[1] === `${m[2]}.${m[3]}`));
-  check('4c. solo tres callables', JSON.stringify([...new Set(pares.map((m) => m[2]))].sort()) === JSON.stringify(['creditsAdmin', 'engineAdmin', 'moderationAdmin']));
+  check('4c. solo estas cinco callables', JSON.stringify([...new Set(pares.map((m) => m[2]))].sort()) === JSON.stringify(['accountsAdmin', 'creditsAdmin', 'engineAdmin', 'moderationAdmin', 'opsAdmin']));
   const conHttps = CODIGO_DE_LA_APP.filter((p) => /httpsCallable\s*\(/.test(sinComentarios(leer(p)))).map(rel);
   check('4d. httpsCallable solo está en firebase.ts', conHttps.join() === 'admin-console/src/firebase.ts', conHttps.join());
 

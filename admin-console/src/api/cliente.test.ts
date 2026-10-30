@@ -6,17 +6,18 @@ import { ErrorDeAdmin, clasificarError } from './errores';
 const ID_REPORTE = `rep_${'a'.repeat(32)}`;
 
 describe('la lista permitida de acciones', () => {
-  it('son exactamente las ocho de la Unidad 1', () => {
+  it('son exactamente estas: todas de lectura', () => {
     expect([...NOMBRES_DE_ACCION].sort()).toEqual([
-      'creditsAdmin.balance', 'creditsAdmin.costs', 'creditsAdmin.failed', 'creditsAdmin.stats', 'creditsAdmin.userHistory',
+      'accountsAdmin.buscar', 'creditsAdmin.balance', 'creditsAdmin.costs', 'creditsAdmin.failed', 'creditsAdmin.stats', 'creditsAdmin.userHistory',
       'engineAdmin.status', 'moderationAdmin.history', 'moderationAdmin.list',
+      'opsAdmin.atascados', 'opsAdmin.auditoria', 'opsAdmin.capacidades', 'opsAdmin.creaciones', 'opsAdmin.generaciones', 'opsAdmin.producciones', 'opsAdmin.quienSoy', 'opsAdmin.reservas', 'opsAdmin.trabajos', 'opsAdmin.usoIa',
     ]);
   });
 
   it('ninguna es de escritura', () => {
     const prohibidas = ['seedDefaults', 'setProvider', 'setRouting', 'setSettings', 'resetHealth', 'setCost', 'review', 'grant', 'refund'];
     for (const a of Object.values(ACCIONES)) expect(prohibidas).not.toContain(a.accion);
-    expect(new Set(Object.values(ACCIONES).map((a) => a.callable))).toEqual(new Set(['engineAdmin', 'creditsAdmin', 'moderationAdmin']));
+    expect(new Set(Object.values(ACCIONES).map((a) => a.callable))).toEqual(new Set(['engineAdmin', 'creditsAdmin', 'moderationAdmin', 'opsAdmin', 'accountsAdmin']));
   });
 });
 
@@ -25,6 +26,26 @@ describe('el cliente', () => {
     const invocar = vi.fn(async () => respuesta);
     return { invocar, cliente: crearCliente(invocar) };
   };
+
+  it('las lecturas de operación y de cuentas validan su entrada antes de salir', async () => {
+    const { invocar, cliente } = crear();
+    /* Un uid normal, con cualquier letra (también la «s» y la «d»), y un número de cuenta con separadores. */
+    await cliente.llamar('accountsAdmin.buscar', { uid: 'sdSD1234' });
+    await cliente.llamar('accountsAdmin.buscar', { numeroDeCuenta: '123-456-789' });
+    await cliente.llamar('opsAdmin.usoIa', { dia: '2027-01-15' });
+    await cliente.llamar('opsAdmin.trabajos', { estado: 'running', cursor: 'j.abc-1' });
+    await cliente.llamar('opsAdmin.creaciones', { experiencia: 'chef', estado: 'failed' });
+    await cliente.llamar('opsAdmin.atascados', { minutos: 30 });
+    expect(invocar).toHaveBeenCalledTimes(6);
+    invocar.mockClear();
+    const malas: [Parameters<typeof cliente.llamar>[0], Record<string, unknown>][] = [
+      ['accountsAdmin.buscar', { uid: 'a/b' }], ['accountsAdmin.buscar', { uid: 'a b' }], ['accountsAdmin.buscar', { numeroDeCuenta: 'abc' }],
+      ['opsAdmin.usoIa', { dia: 'ayer' }], ['opsAdmin.usoIa', { dia: 'dddd-dd-dd' }], ['opsAdmin.trabajos', { cursor: 'jx' }], ['opsAdmin.trabajos', { estado: 'nope' }],
+      ['opsAdmin.creaciones', { experiencia: 'design' }], ['opsAdmin.creaciones', { experiencia: 'music' }], ['opsAdmin.atascados', { minutos: 1 }],
+    ];
+    for (const [accion, datos] of malas) await expect(cliente.llamar(accion, datos as never), JSON.stringify(datos)).rejects.toMatchObject({ tipo: 'argumento' });
+    expect(invocar).not.toHaveBeenCalled();
+  });
 
   it('invoca cada acción con su callable y su `action`', async () => {
     const { invocar, cliente } = crear();

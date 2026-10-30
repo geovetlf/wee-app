@@ -1103,6 +1103,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
     // Libro de generaciones: cada persona lee las suyas; escribe solo el servidor
+    // Auditoría de administración: la escribe y la lee solo el servidor (functions/src/admin/auditoria.ts).
+    match /adminAudit/{entradaId} {
+      allow read, write: if false;
+    }
+
     match /aiGenerations/{generationId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow write: if false;

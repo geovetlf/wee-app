@@ -1,5 +1,24 @@
 import { describe, expect, it } from 'vitest';
+import * as Op from './operaciones';
 import { CREDITS_POR_USD_DE_REFERENCIA, fechaEnMs, leerCostes, leerEstadisticasDeCredits, leerEstadoDelMotor, leerHistorial, leerReportes, leerSaldo, leerTransacciones } from './modelos';
+
+describe('los lectores de las lecturas de administración', () => {
+  it('toleran basura sin romper ni inventar datos', () => {
+    for (const basura of [undefined, null, 5, 'x', [], {}, { items: 'no' }, { items: [1, null, 'x'] }]) {
+      for (const leer of [Op.leerTrabajos, Op.leerCreaciones, Op.leerProducciones, Op.leerGeneraciones, Op.leerReservas, Op.leerAuditoria]) expect(leer(basura).items).toEqual([]);
+      expect(Op.leerUsoIa(basura).items).toEqual([]);
+      expect(Op.leerUsoIa(basura).existe).toBe(false);
+      expect(Op.leerCuenta(basura)).toEqual({ encontrada: false });
+      expect(Op.leerIdentidad(basura).permisos).toEqual([]);
+      expect(Op.leerNoDisponibles(basura)).toEqual([]);
+    }
+  });
+
+  it('el coste solo aparece si el servidor lo manda', () => {
+    expect(Op.leerGeneraciones({ items: [{ id: 'g' }] }).items[0].costeUsd).toBeUndefined();
+    expect(Op.leerGeneraciones({ items: [{ id: 'g', costeProveedorUsd: 0.5 }] }).items[0].costeUsd).toBe(0.5);
+  });
+});
 
 describe('los lectores de respuestas', () => {
   it('toleran basura sin romper ni inventar datos', () => {
@@ -52,6 +71,19 @@ describe('los lectores de respuestas', () => {
     expect(CREDITS_POR_USD_DE_REFERENCIA).toBe(100);
     expect(leerEstadoDelMotor({ settings: { creditsPerUsd: 100 } }).creditsPorUsd).toBe(100);
     expect(leerEstadoDelMotor({ settings: {} }).creditsPorUsd).toBeUndefined();
+  });
+
+  it('el consumo por servicio sale de creditStats.global.byService, ordenado por gasto, sin inventar nada', () => {
+    const e = leerEstadisticasDeCredits({ global: { totalSpent: 30, byService: {
+      ai_text: { spent: 4, count: 2 }, ai_video: { spent: 26, count: 1, refunded: 160 }, raro: 'x', vacio: {}, ai_image: { refunded: 10 },
+    } } });
+    expect(e.porServicio).toEqual([
+      { servicio: 'ai_video', gastado: 26, operaciones: 1, reembolsado: 160 },
+      { servicio: 'ai_text', gastado: 4, operaciones: 2, reembolsado: undefined },
+      { servicio: 'ai_image', gastado: undefined, operaciones: undefined, reembolsado: 10 },
+    ]);
+    expect(leerEstadisticasDeCredits({ global: { totalSpent: 1 } }).porServicio).toEqual([]);
+    expect(leerEstadisticasDeCredits({ global: { byService: 'no' } }).porServicio).toEqual([]);
   });
 
   it('leen reportes e historial de moderación', () => {

@@ -684,6 +684,12 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * video-asincrono H2. Ver docs/RUNTIME.md §25c.
    */
   const DEL_COSTE_DE_LO_ACEPTADO = ['functions/src/engine/pricing.ts', 'functions/src/runtime/barrendero.ts'];
+  /*
+   * Las lecturas de administración (autorización del dueño, 2026-10-30): una carpeta NUEVA, por nombre, archivo a
+   * archivo. No modifican ningún motor: solo leen sus colecciones (admin-lecturas.test.mjs, F). Lo único que ganan los
+   * archivos existentes es su exportación en functions/src/index.ts.
+   */
+  const DE_LAS_LECTURAS_DE_ADMINISTRACION = ['functions/src/admin/auditoria.ts', 'functions/src/admin/index.ts', 'functions/src/admin/lecturas.ts', 'functions/src/admin/permisos.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
@@ -693,6 +699,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO,
       /* La retirada de paquetes (2026-10-29, autorizada por el dueño): sus cuatro archivos, por nombre; sus líneas, en job-queue 63ret. */
       ...ARCHIVOS_DE_LA_RETIRADA,
+      ...DE_LAS_LECTURAS_DE_ADMINISTRACION,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 

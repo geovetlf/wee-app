@@ -113,6 +113,11 @@ export { evalRun } from './evals';
  */
 export { publicPostPage } from './public/postPage';
 export { engineAdmin } from './engine/admin';
+/*
+ * Lecturas de administración de la operación y de las cuentas (docs/admin-console/WEE_ADMIN_CONSOLE_API_CONTRACTS.md):
+ * solo leen y dejan constancia en `adminAudit`. No se despliegan todavía (ops/despliegue/grupos.json).
+ */
+export { opsAdmin, accountsAdmin } from './admin';
 
 // Content Core (Fase 11): retirar un material propio, objeto incluido.
 export { deleteAsset } from './content';

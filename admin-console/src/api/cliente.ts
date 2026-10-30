@@ -1,4 +1,4 @@
-import { ACCIONES, ESTADOS_DE_REPORTE, FORMA_DE_ID_DE_REPORTE, LIMITE_MAXIMO, NombreDeAccion, ParametrosPorAccion } from './acciones';
+import { ACCIONES, ESTADOS_DE_CREACION, ESTADOS_DE_REPORTE, ESTADOS_DE_TRABAJO, EXPERIENCIAS_CON_SERVIDOR, FORMA_DE_ID_DE_REPORTE, LIMITE_MAXIMO, NombreDeAccion, ParametrosPorAccion } from './acciones';
 import { ErrorDeAdmin, clasificarError } from './errores';
 
 /*
@@ -34,6 +34,36 @@ const validar = (nombre: string, valor: unknown): unknown => {
     }
     case 'status': {
       if (typeof valor !== 'string' || !(ESTADOS_DE_REPORTE as readonly string[]).includes(valor)) throw argumentoInvalido('status');
+      return valor;
+    }
+    case 'uid': {
+      if (typeof valor !== 'string') throw argumentoInvalido('uid');
+      const limpio = valor.trim();
+      if (!limpio || limpio.length > 200 || /[/\s]/.test(limpio)) throw argumentoInvalido('uid');
+      return limpio;
+    }
+    case 'numeroDeCuenta': {
+      if (typeof valor !== 'string' || !/^[\d\s.-]{9,15}$/.test(valor)) throw argumentoInvalido('numeroDeCuenta');
+      return valor;
+    }
+    case 'estado': {
+      if (typeof valor !== 'string' || !([...ESTADOS_DE_TRABAJO, ...ESTADOS_DE_CREACION] as readonly string[]).includes(valor)) throw argumentoInvalido('estado');
+      return valor;
+    }
+    case 'experiencia': {
+      if (typeof valor !== 'string' || !(EXPERIENCIAS_CON_SERVIDOR as readonly string[]).includes(valor)) throw argumentoInvalido('experiencia');
+      return valor;
+    }
+    case 'minutos': {
+      if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < 5 || valor > 43_200) throw argumentoInvalido('minutos');
+      return valor;
+    }
+    case 'dia': {
+      if (typeof valor !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) throw argumentoInvalido('dia');
+      return valor;
+    }
+    case 'cursor': {
+      if (typeof valor !== 'string' || !/^j\.[A-Za-z0-9_.:-]{1,400}$/.test(valor)) throw argumentoInvalido('cursor');
       return valor;
     }
     case 'reportId': {

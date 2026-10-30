@@ -1,18 +1,24 @@
-# Weë Admin Console — Unidad 1 (solo lectura)
+# Weë Admin Console (solo lectura)
 
 Consola administrativa **privada** de Weë. No es una app para usuarios ni un App Builder: es el panel con el que administración mira cómo está la superapp. Vive en este repositorio como una **app web independiente** (React + TypeScript + Vite) con sus propias dependencias; no importa pantallas, componentes, servicios ni contextos de la app de usuario.
+
+Arquitectura completa, estado de cada dominio, permisos, contratos, seguridad, operaciones y hoja de ruta: [`docs/admin-console/`](../docs/admin-console/WEE_ADMIN_CONSOLE_MASTER_ARCHITECTURE.md).
 
 ## Qué hace (y qué no)
 
 | Vista | Fuente (callable existente → acción) |
 |---|---|
-| **Resumen** | `engineAdmin` → `status` |
+| **Panorama** (portada) | `engineAdmin` → `status` · `creditsAdmin` → `stats` · `moderationAdmin` → `list` (tres estados, techo 50 → «50 o más»). Cada bloque dice su fuente y la hora a la que se leyó; lo que el servidor aún no mide sale en «Lo que aún no se mide», sin cifras |
+| **Motor de IA** (ruta `#/resumen`) | `engineAdmin` → `status` |
 | **Credits** | `engineAdmin` → `status` (solo su `creditsPerUsd`: la conversión) · `creditsAdmin` → `stats`, `balance`, `userHistory`, `failed`, `costs` |
 | **Moderación** | `moderationAdmin` → `list`, `history` |
+| **Operaciones** (según permiso) | `opsAdmin` → `atascados`, `trabajos`, `creaciones`, `producciones`, `generaciones`, `usoIa`, `reservas`, `capacidades` |
+| **Cuentas** (según permiso) | `accountsAdmin` → `buscar` (uid o número de cuenta) |
+| **Auditoría** (según permiso) | `opsAdmin` → `auditoria` |
 
 **Credits en Weë:** son la unidad de consumo; la referencia es **US$ 1 = 100 Credits** (decisión de producto). No hay planes, niveles, suscripciones ni paquetes. La vista Credits enseña la conversión que informa el motor (`creditsPerUsd`) y avisa si no es 100; de `creditsAdmin.costs` solo pinta el coste en Credits de cada servicio. El campo `packages` que ese callable aún devuelve (el catálogo heredado `CREDIT_PACKAGES` del Credit Engine) se ignora a propósito: retirarlo del servidor es una decisión aparte del motor central, no de esta consola.
 
-Son **exactamente ocho acciones**, todas de lectura (`src/api/acciones.ts`). El cliente solo acepta una clave de esa lista y solo envía los parámetros declarados para ella. **No hay** conceder ni devolver Credits, cambiar proveedores o ajustes, resolver denuncias ni ninguna otra escritura. No accede a Firestore ni a Storage (solo importa `firebase/auth` y `firebase/functions`), no usa `firebase-admin` y no lleva ninguna clave.
+La lista cerrada de acciones, todas de lectura, está en `src/api/acciones.ts`. `opsAdmin` y `accountsAdmin` piden además un permiso concreto y dejan constancia en `adminAudit`; `opsAdmin.quienSoy` dice qué secciones enseñar (ocultarlas es comodidad: el servidor comprueba cada llamada). El cliente solo acepta una clave de esa lista y solo envía los parámetros declarados para ella. **No hay** conceder ni devolver Credits, cambiar proveedores o ajustes, resolver denuncias ni ninguna otra escritura. No accede a Firestore ni a Storage (solo importa `firebase/auth` y `firebase/functions`), no usa `firebase-admin` y no lleva ninguna clave.
 
 La autorización real la hace el servidor: cada callable llama a `assertAdmin` (`functions/src/shared/admin.ts`: claim `admin` en el token o uid en `WEE_ADMIN_UIDS`). La consola no puede saltarse eso; al entrar, NO pinta el menú hasta que una lectura al servidor confirma el permiso («Comprobando permisos…»). Si el servidor responde «sin permiso», muestra *Acceso denegado*; si responde «sin sesión», pide volver a iniciar sesión. En los dos casos, sin menú ni datos.
 
@@ -59,6 +65,7 @@ node scripts/admin-local.mjs --email admin@demo-wee.local --password <elige-una-
 - Crea o reutiliza el usuario en el emulador y le pone `admin: true` con la API local del emulador. No usa credenciales, no corre fuera de un proyecto `demo-*` ni de un host local, y no existe contra producción.
 - La contraseña no tiene valor por defecto ni se guarda.
 - Después, entra en la consola con ese correo. Si ya tenías sesión con ese usuario, ciérrala y vuelve a entrar (el claim viaja en el token).
+- Con `--owner` le pone además el rol `owner` (solo en el emulador), y verás Operaciones, Cuentas y Auditoría. Sin él, administración sin rol: solo las secciones de siempre.
 - Para ver **Acceso denegado**, entra con un usuario sin claim (créalo en el emulador sin ejecutar el script).
 
 Las vistas estarán vacías o con ceros mientras los emuladores no tengan datos: la consola no inventa nada. Los datos de `creditsAdmin`, `moderationAdmin` y `engineAdmin` son los que haya en el emulador.
@@ -78,4 +85,4 @@ Las pruebas de las vistas usan un invocador simulado: **no** hablan con el servi
 
 ## Qué falta (a propósito)
 
-Roles, auditoría de acciones, un callable de lectura propio con paginación, resumen de cuenta/perfiles, trabajos y generaciones, alertas, escritura de cualquier tipo, CI y hosting propios. Cada uno es una unidad posterior con su autorización.
+Incidentes y Motor Guardian, alertas, escritura de cualquier tipo, CI y hosting propios. Cada uno es una unidad posterior con su autorización.
