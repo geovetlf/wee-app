@@ -68,7 +68,22 @@ export const SUSTITUIDAS = {
   'aiAvatar.generatedWithGemini': { por: 'aiAvatar.generatedWithAi', porque: 'i18n da-DK (2026-10-01): el avatar lo hace «Weë AI»; la persona nunca ve el nombre de un proveedor' },
   'help.a3': { por: 'help.a3_other', porque: 'fallos de UI (2026-10-01): la Ayuda dice el número y los nombres de los especialistas del menú, con su plural' },
   'composer.bizNoAgenda': { por: 'composer.profileNoAgenda', porque: 'i18n da-DK (2026-10-01): el Perfil Biz se eliminó el 2026-09-19; el aviso habla de «este perfil»' },
-};
+  /*
+   * Retirada de paquetes, 2026-10-29 (decisión y autorización del dueño): Weë no tiene planes ni paquetes de Credits
+   * (US$ 1 = 100 Credits de referencia) y las recargas están cerradas. La tienda de paquetes de CreditStoreScreen pasa
+   * a ser una pantalla informativa en la misma ruta; sus textos se sustituyen por los de esa pantalla.
+   */
+  'credits.pkgBasic': { por: 'credits.referenceRateNote', porque: 'retirada de paquetes (2026-10-29): no hay plan «Básico»; la nota dice que no hay planes ni paquetes' },
+  'credits.badgePopular': { por: 'credits.referenceRateNote', porque: 'retirada de paquetes (2026-10-29): sin paquetes no hay uno «Popular» que destacar' },
+  'credits.badgeBestValue': { por: 'credits.referenceRateNote', porque: 'retirada de paquetes (2026-10-29): sin paquetes no hay uno de «Mejor valor»' },
+  'credits.terms': { por: 'credits.referenceRateNote', porque: 'retirada de paquetes (2026-10-29): las condiciones de la recarga de prueba dan paso a la nota de la conversión' },
+  'credits.testPrices': { por: 'credits.referenceRate', porque: 'retirada de paquetes (2026-10-29): el aviso de precios de prueba da paso a la conversión de referencia' },
+  'credits.free': { por: 'credits.purchasesComingSoon', porque: 'retirada de paquetes (2026-10-29): ya no hay recarga «Gratis»; la pantalla dice que las recargas aún no están' },
+  'credits.testTopUp': { por: 'credits.purchasesComingSoon', porque: 'retirada de paquetes (2026-10-29): la recarga de prueba ya no concede Credits' },
+  'credits.testTopUpReady': { por: 'credits.purchasesComingSoon', porque: 'retirada de paquetes (2026-10-29): no hay recarga de prueba que terminar' },
+  'credits.testTopUpDone': { por: 'credits.purchasesComingSoon', porque: 'retirada de paquetes (2026-10-29): ninguna operación simulada añade Credits' },
+  'credits.topUpButton': { por: 'credits.purchasesComingSoon', porque: 'retirada de paquetes (2026-10-29): sin botón de compra; el aviso lo explica' },
+  'credits.topUpFailed': { por: 'credits.purchasesComingSoon', porque: 'retirada de paquetes (2026-10-29): sin recarga no hay recarga fallida' },};
 
 const faltan = (vivo, propuesto) => [...vivo].filter((x) => !propuesto.has(x) && !(SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por))).sort();
 const sustituidas = (vivo, propuesto) => [...vivo].filter((x) => !propuesto.has(x) && SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por)).sort();

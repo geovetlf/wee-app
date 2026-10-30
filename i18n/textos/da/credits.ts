@@ -19,23 +19,19 @@
  * «Sin movimientos» es «Ingen bevægelser endnu», la palabra de los extractos
  * bancarios daneses (kontobevægelser).
  *
- * «Ups» es «Hovsa», sin exclamación: es el título de un fallo (§ 9.5). «Mi
- * billetera» es «Min tegnebog»; «Básico», «Basis»; «Mejor valor», «Mest for
- * pengene». Los nombres de los otros paquetes («Plus», «Black Pro») no pasan
- * por aquí.
+ * «Mi billetera» es «Min tegnebog». Weë no tiene planes ni paquetes de Credits
+ * (2026-10-29): la nota de la conversión dice «abonnementer» y «pakker», solo
+ * para decir que no existen; «Últimos movimientos» es «Seneste bevægelser»,
+ * la misma palabra de los extractos que «Ingen bevægelser endnu».
  *
- * `balanceAfter` («Saldo: {{saldo}}») y `free` («Gratis») se escriben igual
- * que en español: son las palabras danesas.
+ * `balanceAfter` («Saldo: {{saldo}}») se escribe igual que en español: es la
+ * palabra danesa.
  */
 export const credits: typeof import('../es/credits').credits = {
   title: 'Credits',
   available: 'Tilgængelige Credits',
   yourBalance: 'Din saldo',
   currentBalance: 'Aktuel saldo',
-  free: 'Gratis',
-  testTopUp: 'Testoptankning',
-  testTopUpReady: 'Testoptankningen er klar',
-  testPrices: 'Testpriser, mens vi bygger Weë AI',
   topUp: 'Tank op',
   seeHistory: 'Vis historik →',
   seeHistoryLabel: 'Vis historik',
@@ -44,21 +40,17 @@ export const credits: typeof import('../es/credits').credits = {
   earned: 'Modtaget',
   spent: 'Brugt',
   noMovements: 'Ingen bevægelser endnu',
-  testTopUpDone: '{{cantidad}} Credits er føjet til din konto. Det er en testoptankning, så der er ikke trukket nogen penge.',
   balanceAfter: 'Saldo: {{saldo}}',
-  topUpFailed: 'Optankningen kunne ikke gennemføres. Prøv igen.',
-  terms: 'Det er en testoptankning, så der trækkes ingen penge endnu. De endelige priser kommer, når Weë AI bruger rigtige AI-modeller. Indtil da kan du se testprisen på hver kreation, før du går i gang.',
   youHaveLabel: 'Du har {{saldo}} Credits',
-  topUpButton: 'Tank op med {{cantidad}} Credits · test',
   txPurchase: 'Køb af Credits',
   txGrant: 'Modtagne Credits',
   txRefund: 'Refundering',
   txUsage: 'Brug af Credits',
   txRefunded: 'Refunderet',
   txPending: 'Behandles',
-  pkgBasic: 'Basis',
-  badgePopular: 'Populær',
-  badgeBestValue: 'Mest for pengene',
+  referenceRate: 'Referenceomregning',
+  referenceRateValue: '{{usd}} = {{creditos}} Credits',
+  referenceRateNote: 'Credits er forbrugsenheden i Weë. Der er ingen abonnementer eller pakker med Credits.',
+  recentMovements: 'Seneste bevægelser',
   purchasesComingSoon: 'Snart kan du købe Credits. Indtil videre kan du ikke tanke op her.',
-  topUpFailedTitle: 'Hovsa',
 };

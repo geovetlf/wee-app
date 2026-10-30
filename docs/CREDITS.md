@@ -17,13 +17,13 @@ Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
 | Archivo | Qué hace |
 |---|---|
 | `functions/src/credits/creditEngine.ts` | El motor: `ensureAccount`, `getBalance`, `spendCredits`, `completeCredits`, `refundCredits`, `grantCredits`, `getCreditHistory`, `getCreditCost`. Fábrica `createCreditEngine({ db, increment, now, loadCosts })` con dependencias inyectadas (las pruebas usan un Firestore en memoria) y la instancia `creditEngine` sobre Firestore real |
-| `functions/src/credits/creditCosts.ts` | Catálogo de costos por servicio (placeholder), etiquetas, Credits de bienvenida (`CREDITS_WELCOME`), paquetes de compra, `serviceForCapability` (capacidad del WEË AI ENGINE → servicio del catálogo) y sobreescrituras desde Firestore (`creditCosts/{servicio}`) con caché de 60 s |
+| `functions/src/credits/creditCosts.ts` | Catálogo de costos por servicio (placeholder), etiquetas, Credits de bienvenida (`CREDITS_WELCOME`), la conversión de referencia (`CREDITS_POR_USD_DE_REFERENCIA` = 100), `serviceForCapability` (capacidad del WEË AI ENGINE → servicio del catálogo) y sobreescrituras desde Firestore (`creditCosts/{servicio}`) con caché de 60 s |
 | `functions/src/credits/creditTransactions.ts` | Tipos de transacción, ids deterministas (`usage_<requestId>`, `refund_<requestId>`, `adjust_<requestId>`, `grant_<requestId>`, `purchase_<purchaseId>`, `grant_welcome_<uid>`, `migration_<uid>`) y acumulados para administración (`creditStats/global`, `creditStats/daily_YYYY-MM-DD`) |
 | `functions/src/credits/creditValidation.ts` | `CreditError` con códigos (`INSUFFICIENT_CREDITS`, `ACCOUNT_NOT_FOUND`, `INVALID_AMOUNT`, `INVALID_REQUEST`, `INVALID_SERVICE`, `TRANSACTION_NOT_FOUND`, `ALREADY_REFUNDED`, `NOT_REFUNDABLE`, `FORBIDDEN`, `PURCHASE_INVALID`, `NOT_IMPLEMENTED`), conversión a `HttpsError` y validadores (montos enteros positivos, `requestId`, servicio, textos) |
 | `functions/src/credits/index.ts` | Cloud Functions: `getCreditsBalance`, `getCreditHistory`, `getCreditCost`, `spendCredits`, `grantCredits` (admin), `refundCredits` (admin), `validatePurchase`, `restorePurchase`, `creditsAdmin` |
-| `functions/src/payments/purchaseValidation.ts` | Validación de compras, **separada del motor**: cada proveedor verifica su comprobante y solo entonces el motor acredita el paquete (`purchaseId` = idempotencia) |
+| `functions/src/payments/purchaseValidation.ts` | Validación de compras, **separada del motor**. **Recargas cerradas** (2026-10-29): `validatePurchase` y `restorePurchase` responden `NOT_IMPLEMENTED` sin llamar al proveedor, sin inicializar la cuenta y sin acreditar nada (§ 7) |
 | `functions/src/payments/providers/{apple,google,stripe}.ts` | Proveedores preparados (lanzan `NOT_IMPLEMENTED` con la nota de cómo se conectan) |
-| `functions/src/payments/providers/test.ts` | "Recarga de prueba" sin pago; solo con `CREDITS_TEST_PURCHASES=true`, en el emulador o fuera de `get-wee` |
+| `functions/src/payments/providers/test.ts` | Proveedor de prueba **retirado como recarga**: ya no concede Credits por una compra simulada, ni en dev ni en el emulador (`NOT_IMPLEMENTED`) |
 | `functions/src/shared/admin.ts` | `isAdmin` / `assertAdmin` (claim `admin: true` o uid en `WEE_ADMIN_UIDS`), compartido con el WEË AI ENGINE |
 | `functions/src/creator/credits.ts` | WEË AI sobre el motor: estimación del plan, reserva al empezar, completar o reembolsar al terminar |
 | `functions/src/engine/pricing.ts` | En modo `simulated` los Credits de cada capacidad salen del catálogo del motor (antes había una tabla aparte) |
@@ -31,7 +31,7 @@ Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
 | `functions/test/credits.test.mjs` | Pruebas del motor con Firestore en memoria (`npm run test:engine`) |
 | `firestore.rules`, `firestore.indexes.json` | Bloqueo de escritura desde el cliente e índices de `creditTransactions` |
 | `services/creditsService.ts`, `hooks/useWallet.ts` | Cliente: escucha saldo e historial, llama a las funciones; helpers `creditsShortfall`, `describeTransaction`, `newRequestId` |
-| `screens/WalletScreen.tsx`, `screens/CreditStoreScreen.tsx`, `screens/CreatorFlowScreen.tsx`, `screens/AiAvatarScreen.tsx` | Pantallas: saldo, historial, recarga y aviso "No tienes suficientes Credits" |
+| `screens/WalletScreen.tsx`, `screens/CreditStoreScreen.tsx`, `screens/CreatorFlowScreen.tsx`, `screens/AiAvatarScreen.tsx` | Pantallas: saldo, historial, la pantalla informativa de Credits (saldo, conversión US$ 1 = 100 Credits, aviso de recargas cerradas, últimos movimientos) y aviso "No tienes suficientes Credits" |
 
 ---
 
@@ -143,22 +143,24 @@ Quién lo usa hoy:
 
 Para cambiarlos **sin tocar el motor**: editar el catálogo, o escribir `creditCosts/{servicio} { credits }` en Firestore (también con `creditsAdmin { action: 'setCost' }`). El cliente nunca los conoce por su cuenta: los consulta con `getCreditCost`. La correspondencia capacidad del WEË AI ENGINE → servicio está en `serviceForCapability` (p. ej. `video.generate` con calidad `max` → `ai_video_advanced`). Cuando haya costes reales medidos (`creatorUsage/{día}`, `aiUsage`), el modo `real` del engine (`CREATOR_PRICING_MODE=real`) calcula Credits = USD × `creditsPerUsd` × (1 + margen).
 
-Paquetes (`CREDIT_PACKAGES`): Básico 40 / $4.99, Plus 90 / $9.99, Black Pro 200 / $19.90 (`zone.wee.credits.*`).
+**Sin planes ni paquetes** (decisión de producto, 2026-10-29). Los Credits son la unidad de consumo de Weë y la conversión de referencia es **US$ 1 = 100 Credits** (`CREDITS_POR_USD_DE_REFERENCIA` en `creditCosts.ts`, igual a `creditsPerUsd` por defecto del motor; en la app, `constants/credits.ts`). No hay planes ni paquetes diferenciados de Credits: el catálogo heredado de paquetes se retiró del motor, de la app y de la consola. `functions/test/sin-paquetes.test.mjs` vigila que no vuelva.
 
 ---
 
-## 7. Compras (preparado, no conectado)
+## 7. Compras (cerradas hasta el sistema de pagos definitivo)
 
 ```
 APPLE / GOOGLE / STRIPE ─► Purchase Validation ─► Credit Engine ─► Credits
 ```
 
-`validatePurchase({ provider, packageId, payload })`: el proveedor verifica el comprobante con su API oficial y devuelve `{ purchaseId, productId }`; el motor acredita el paquete como `purchase_<provider>_<purchaseId>` (una compra nunca se acredita dos veces). `restorePurchase` recorre las compras válidas del proveedor y acredita las que falten. Cada proveedor documenta en su archivo qué se necesita para conectarlo:
+**Hoy las recargas están cerradas.** Con los paquetes se fue lo único que decía cuántos Credits daba una compra, así que `validatePurchase` y `restorePurchase` conservan su nombre, su entrada y su forma de error, pero rechazan todo con `NOT_IMPLEMENTED` (en la app, `unimplemented` → «las compras llegarán pronto») **antes** de llamar al proveedor o al motor: no inicializan la cuenta, no llaman a `grantCredits` y un `packageId` antiguo no cuenta como prueba de pago. Las compras ya guardadas (`creditTransactions` de tipo `purchase`, con su `meta.packageId`) no se tocan y se siguen mostrando por su tipo.
+
+La regla para el día que se diseñe el sistema de pagos definitivo no cambia: el proveedor verifica el comprobante con su API oficial y solo entonces el motor acredita, con `purchase_<provider>_<purchaseId>` (una compra nunca se acredita dos veces). Cuántos Credits da una compra lo decidirá ese diseño, sobre la referencia US$ 1 = 100 Credits. Lo que cada proveedor necesitará para conectarse:
 
 - **Apple**: App Store Server API con clave de App Store Connect (`APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, `APPLE_BUNDLE_ID`); `purchaseId = transactionId`.
 - **Google Play**: Google Play Developer API con cuenta de servicio (`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`); `purchaseId = orderId`; consumir tras acreditar.
-- **Stripe** (web): Checkout / Payment Intent con `metadata { userId, packageId }` y webhook firmado (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`); `purchaseId = payment_intent`.
-- **test**: recarga de prueba solo en dev (`CREDITS_TEST_PURCHASES`).
+- **Stripe** (web): Checkout / Payment Intent con `metadata { userId, … }` y webhook firmado (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`); `purchaseId = payment_intent`.
+- **test**: ya no es una recarga de prueba: no concede Credits (una operación simulada no puede crear saldo).
 
 ---
 
@@ -168,13 +170,13 @@ APPLE / GOOGLE / STRIPE ─► Purchase Validation ─► Credit Engine ─► C
 |---|---|---|
 | `getCreditsBalance` | — | `{ userId, balance, lifetimeEarned, lifetimeSpent }` (crea/migra la cuenta si hace falta) |
 | `getCreditHistory` | `{ limit? }` | `{ items: CreditTransaction[] }` (más recientes primero) |
-| `getCreditCost` | `{ service? }` | `{ service, credits }` o `{ costs, packages }` |
+| `getCreditCost` | `{ service? }` | `{ service, credits }` o `{ costs }` (sin `packages` desde el 2026-10-29) |
 | `spendCredits` (admin) | `{ service, requestId, reason?, generationId? }` | `{ transactionId, status, amount, balanceBefore, balanceAfter, duplicate }` |
 | `grantCredits` (admin) | `{ userId, amount, reason?, requestId? }` | `{ transactionId, amount, balanceAfter, duplicate }` |
 | `refundCredits` (admin) | `{ userId, requestId, reason?, force? }` | `{ transactionId, amount, balanceAfter, duplicate }` |
-| `validatePurchase` | `{ provider, packageId?, payload? }` | `{ …grant, credits, packageId }` |
-| `restorePurchase` | `{ provider, payload? }` | `{ restored, credited }` |
-| `creditsAdmin` (admin) | `{ action: stats \| userHistory \| balance \| failed \| costs \| setCost, … }` | según acción |
+| `validatePurchase` | `{ provider, packageId?, payload? }` | hoy siempre `unimplemented` (recargas cerradas); proveedor desconocido → `failed-precondition` |
+| `restorePurchase` | `{ provider, payload? }` | hoy siempre `unimplemented` (recargas cerradas) |
+| `creditsAdmin` (admin) | `{ action: stats \| userHistory \| balance \| failed \| costs \| setCost, … }` | según acción (`costs` → `{ costs }`, sin `packages`) |
 
 Errores: `HttpsError` con `details.code` (`INSUFFICIENT_CREDITS` trae `required`, `available`, `service`). En la app, `creditsShortfall(error)` lo traduce.
 
@@ -183,17 +185,17 @@ Errores: `HttpsError` con `details.code` (`INSUFFICIENT_CREDITS` trae `required`
 ## 9. Cliente
 
 - `hooks/useWallet.ts` escucha el perfil real (`users where uid == auth.uid`) y expone `balance`; si la cuenta no está inicializada pide `getCreditsBalance` una vez.
-- `services/creditsService.ts`: `subscribeToBalance`, `subscribeToTransactions`, `getHistory`, `getCosts`, `getCost`, `purchase`, `spend`; `describeTransaction` (concepto, monto con signo, saldo resultante) y `newRequestId`.
-- Sin diseño nuevo: la píldora "💳 250 Credits", Mi billetera (saldo, Obtenidos / Usados, historial con fecha · concepto · monto · saldo) y la tienda siguen igual; solo cambia de dónde salen los datos.
+- `services/creditsService.ts`: `subscribeToBalance`, `subscribeToTransactions`, `getHistory`, `getCosts` (solo costes), `getCost`, `spend` (ya no hay `purchase`); `describeTransaction` (concepto, monto con signo, saldo resultante) y `newRequestId`.
+- La píldora "💳 250 Credits" y Mi billetera (saldo, Obtenidos / Usados, historial con fecha · concepto · monto · saldo) siguen igual. La antigua tienda (`CreditStoreScreen`, ruta `CreditStore`, la de todos los enlaces «Recargar») es desde el 2026-10-29 una pantalla **informativa**: saldo, conversión de referencia, aviso de que las recargas aún no están disponibles y los últimos movimientos. Cada movimiento lo pinta `components/billetera/FilaDeMovimiento.tsx`, la misma fila de Mi billetera, por su tipo y su concepto: nunca por un catálogo.
 
 ---
 
 ## 10. Configuración pendiente (lo que debe completar la persona dueña)
 
 1. **Producción (`get-wee`)**: activar el plan Blaze y desplegar Functions y reglas/índices por el único camino de [`DEPLOYMENT.md`](DEPLOYMENT.md). Los atajos `npm run deploy:prod:*` se retiraron: desplegaban todo desde cualquier carpeta. Sin Functions en producción la app muestra el saldo que haya y no puede iniciar cuentas ni cobrar.
-2. `functions/.env.get-wee` (no versionado): `WEE_ADMIN_UIDS=<tu uid>`, `CREDITS_TEST_PURCHASES=false`, `CREDITS_WELCOME=<bienvenida definitiva>`.
+2. `functions/.env.get-wee` (no versionado): `WEE_ADMIN_UIDS=<tu uid>`, `CREDITS_WELCOME=<bienvenida definitiva>`. (`CREDITS_TEST_PURCHASES` ya no lo lee nadie.)
 3. **Precios definitivos**: medir costes reales y ajustar `creditCosts.ts` o `creditCosts/{servicio}`.
-4. **Pagos**: crear los productos `zone.wee.credits.*` en App Store Connect / Google Play / Stripe, poner las claves en `functions/.env.local` y `.env.get-wee`, e implementar `verify` en cada proveedor.
+4. **Pagos**: diseñar y aprobar el sistema de pagos definitivo (cuántos Credits da una compra, sobre US$ 1 = 100 Credits, sin planes ni paquetes diferenciados); después, poner las claves en `functions/.env.local` y `.env.get-wee`, implementar `verify` en cada proveedor y reabrir las recargas en `purchaseValidation.ts`.
 5. Opcional: claim `admin: true` para el equipo de administración; panel visual sobre `creditsAdmin`.
 
 ---

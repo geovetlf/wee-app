@@ -121,12 +121,15 @@ console.log('\n── B · Y las que lo nombran lo escriben "Weë AI" ──');
 console.log('\n── C · El nombre no se traduce; la frase sí ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  /* Todas las claves de los diccionarios que nombran el área. */
+  /*
+   * Todas las claves de los diccionarios que nombran el área. Eran siete: `credits.testPrices` y `credits.terms`
+   * se fueron con la tienda de paquetes (2026-10-29), y el resto sigue diciendo «Weë AI».
+   */
   const CLAVES = ['nav.openWeeAi', 'nav.goToWeeAi', 'menu.creator',
-    'weeai.errNoAccount', 'weeai.errOffline', 'credits.testPrices', 'credits.terms'];
+    'weeai.errNoAccount', 'weeai.errOffline'];
 
   const sinMarcaEs = CLAVES.filter((k) => !/Weë AI/.test(ES(k)));
-  check('4) las siete claves dicen "Weë AI" en español', sinMarcaEs.length === 0, sinMarcaEs.join(' '));
+  check('4) las cinco claves dicen "Weë AI" en español', sinMarcaEs.length === 0, sinMarcaEs.join(' '));
   const sinMarcaEn = CLAVES.filter((k) => !/Weë AI/.test(EN(k)));
   check('5) y también en inglés', sinMarcaEn.length === 0, sinMarcaEn.join(' '));
 

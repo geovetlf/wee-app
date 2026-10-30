@@ -9,7 +9,8 @@ import { db, functions } from '../config/firebase';
  *
  * La app NUNCA suma, resta ni modifica Credits: solo lee su saldo (perfil real,
  * campos creditsBalance…) y su historial (creditTransactions), y pide al
- * servidor lo demás (inicializar la cuenta, costos, compras, gastos).
+ * servidor lo demás (inicializar la cuenta, costos, gastos). Comprar Credits no
+ * existe todavía: las recargas están cerradas hasta el sistema de pagos definitivo.
  */
 
 // ─── Tipos (espejo de functions/src/credits) ───
@@ -61,37 +62,16 @@ export interface CreditTransaction {
   refundedAt?: Timestamp | null;
 }
 
-export interface CreditPackage {
-  id: string;
-  /**
-   * Cómo se llama el paquete.
-   *
-   * `nombreClave` cuando es una palabra —«Básico»— y hay que traducirla;
-   * `name` cuando es un nombre de producto —«Plus», «Black Pro»— que se escribe
-   * igual en todos los idiomas. Nunca los dos a la vez.
-   */
-  name?: string;
-  nombreClave?: string;
-  credits: number;
-  priceUsd: number;
-  priceLabel: string;
-  popular?: boolean;
-  /** La etiqueta del paquete, como clave: «Popular», «Mejor valor». */
-  badgeClave?: string;
-  productId: string; // IAP product ID for App Store / Play Store
-}
-
 /** Compatibilidad con código anterior (alias del saldo). */
 export type Wallet = CreditsBalance;
 export type Transaction = CreditTransaction;
 
-// ─── Paquetes (para mostrar; el servidor es la autoridad al acreditar) ───
-
-export const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: 'basic', nombreClave: 'credits.pkgBasic', credits: 40, priceUsd: 4.99, priceLabel: '$4.99', productId: 'zone.wee.credits.basic' },
-  { id: 'plus', name: 'Plus', credits: 90, priceUsd: 9.99, priceLabel: '$9.99', popular: true, badgeClave: 'credits.badgePopular', productId: 'zone.wee.credits.plus' },
-  { id: 'blackpro', name: 'Black Pro', credits: 200, priceUsd: 19.9, priceLabel: '$19.90', badgeClave: 'credits.badgeBestValue', productId: 'zone.wee.credits.blackpro' },
-];
+/*
+ * SIN PAQUETES NI PLANES. Weë no vende paquetes de Credits: los Credits son la unidad de consumo, cada servicio
+ * cuesta los que dice el Credit Engine y la referencia es US$ 1 = 100 Credits (`constants/credits.ts`). Las recargas
+ * están cerradas en el servidor hasta que exista el sistema de pagos definitivo, así que este servicio tampoco ofrece
+ * comprar nada.
+ */
 
 // ─── Helpers ───
 
@@ -222,43 +202,15 @@ class CreditsService {
     return data.items;
   }
 
-  /** Costos vigentes de todos los servicios y paquetes (los decide el servidor). */
-  async getCosts(): Promise<{ costs: Record<CreditService, number>; packages: CreditPackage[] }> {
-    const data = await call<{ costs: Record<CreditService, number>; packages: Omit<CreditPackage, 'priceLabel'>[] }>('getCreditCost');
-    const packages = data.packages.map((pkg) => {
-      const local = CREDIT_PACKAGES.find((p) => p.id === pkg.id);
-      /*
-       * Los precios y los Credits los manda el servidor; el nombre y la
-       * etiqueta son cosa de la interfaz y salen del catálogo local, como
-       * CLAVES. Así un paquete nuevo del servidor no llega sin traducir.
-       */
-      return {
-        ...pkg,
-        priceLabel: `$${pkg.priceUsd.toFixed(2)}`,
-        popular: local?.popular,
-        name: local?.name,
-        nombreClave: local?.nombreClave,
-        badgeClave: local?.badgeClave,
-      };
-    });
-    return { costs: data.costs, packages };
+  /** Costos vigentes en Credits de todos los servicios (los decide el servidor). Un `packages` de un servidor antiguo se ignora. */
+  async getCosts(): Promise<{ costs: Record<CreditService, number> }> {
+    const data = await call<{ costs: Record<CreditService, number> }>('getCreditCost');
+    return { costs: data.costs };
   }
 
   async getCost(service: CreditService): Promise<number> {
     const data = await call<{ service: CreditService; credits: number }>('getCreditCost', { service });
     return data.credits;
-  }
-
-  /**
-   * Compra de un paquete. El servidor valida el comprobante con el proveedor y
-   * acredita los Credits; el proveedor "test" (recarga de prueba) solo existe en dev.
-   */
-  async purchase(packageId: string, provider: 'test' | 'apple' | 'google' | 'stripe' = 'test', payload?: Record<string, unknown>) {
-    return call<{ transactionId: string; amount: number; balanceAfter: number; duplicate: boolean; credits: number; packageId: string }>('validatePurchase', {
-      provider,
-      packageId,
-      payload: payload || {},
-    });
   }
 
   /**

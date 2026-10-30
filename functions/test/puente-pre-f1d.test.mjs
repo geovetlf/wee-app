@@ -31,6 +31,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { ARCHIVOS_DE_LA_RETIRADA, sumarRetirada } from './_retirada-de-paquetes.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -690,6 +691,8 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
       ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO,
+      /* La retirada de paquetes (2026-10-29, autorizada por el dueño): sus cuatro archivos, por nombre; sus líneas, en job-queue 63ret. */
+      ...ARCHIVOS_DE_LA_RETIRADA,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -705,8 +708,9 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
   /* + misión fal (2026-10-05): core/router.ts +2 −2 (la modalidad 3d) y creditCosts.ts +8 (el servicio ai_world). Líneas exactas en job-queue 63fal. */
   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
-  check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; del tamaño exacto',
-    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === `${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
+  /* + retirada de paquetes (2026-10-29), con autorización del dueño: creditCosts +8 −18 e index +10 −7. Líneas exactas en job-queue 63ret. */
+  check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068) y la retirada de paquetes; el Router y creditCosts, solo la misión fal y la retirada; del tamaño exacto',
+    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === sumarRetirada(`${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`));
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. Del Core, solo la misión fal (video-asincrono H3). */
   /* + misión mundo3d (2026-10-05): mundo3d (nuevo), contracts +6, index +1 y escena3d +1 (ver video-asincrono H3). */
   /* + misión mundo3d FASE 5: capability.ts +2 (`world: '3d'`) y mundo3d.ts +15 (364 → 379, los derechos visibles). */

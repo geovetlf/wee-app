@@ -200,7 +200,6 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['studio.kindVideo', '«Video» es la palabra danesa'],
     ['creaciones.download', '«Download» es el botón danés (glosario § 9.1, pareja de «Upload»)'],
     ['creator.areaStudioPhotos', 'la marca y «Fotos», el plural danés'],
-    ['credits.free', '«Gratis» es la palabra danesa'],
     ['credits.balanceAfter', '«Saldo», la palabra de la banca danesa'],
     ['design.valMetal', '«Metal» es la palabra danesa'],
     ['engine.modalityVideo', '«video» es la palabra danesa'],

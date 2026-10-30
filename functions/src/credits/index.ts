@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { creditEngine } from './creditEngine';
-import { allCreditCosts, CREDIT_PACKAGES, invalidateCostOverrides, isCreditService, loadCostOverrides } from './creditCosts';
+import { allCreditCosts, invalidateCostOverrides, isCreditService, loadCostOverrides } from './creditCosts';
 import { assertLimit, assertRequestId, cleanText, toHttpsError } from './creditValidation';
 import { assertAdmin } from '../shared/admin';
 import { PaymentProvider, restorePurchases, validatePurchase } from '../payments/purchaseValidation';
@@ -54,7 +54,8 @@ export const getCreditCost = onCall(OPTS, async (request) =>
       if (!isCreditService(data.service)) throw new HttpsError('invalid-argument', `Servicio desconocido: ${data.service}`);
       return { service: data.service, credits: costs[data.service] };
     }
-    return { costs, packages: CREDIT_PACKAGES };
+    /* Sin `packages`: Weë no tiene paquetes de Credits. La app instalada lo tolera (CreditStoreScreen lo pide dentro de un catch). */
+    return { costs };
   })
 );
 
@@ -142,14 +143,16 @@ export const refundCredits = onCall(OPTS, async (request) =>
   })
 );
 
-/** Compra: el proveedor valida el comprobante y el Credit Engine acredita el paquete. */
+/**
+ * Compra. Mismo nombre, misma entrada y misma forma de error que antes, pero las recargas están CERRADAS: responde
+ * `unimplemented` sin tocar la cuenta (antes inicializaba la billetera con `ensureAccount` y luego validaba; ahora
+ * no escribe nada). Un `packageId` antiguo no es una prueba de pago y no acredita nada.
+ */
 export const validatePurchaseCallable = onCall(OPTS, async (request) =>
   run(async () => {
     const userId = uidOf(request);
     const data = (request.data || {}) as { provider?: PaymentProvider; packageId?: string; payload?: Record<string, unknown> };
-    const provider = data.provider || 'test';
-    await creditEngine.ensureAccount(userId);
-    return validatePurchase({ userId, provider, packageId: data.packageId, payload: data.payload });
+    return validatePurchase({ userId, provider: data.provider || 'test', packageId: data.packageId, payload: data.payload });
   })
 );
 
@@ -187,7 +190,7 @@ export const creditsAdmin = onCall(OPTS, async (request) =>
       }
       case 'costs': {
         await loadCostOverrides(true);
-        return { costs: allCreditCosts(), packages: CREDIT_PACKAGES };
+        return { costs: allCreditCosts() };
       }
       case 'setCost': {
         if (!isCreditService(data.service)) throw new HttpsError('invalid-argument', 'Servicio desconocido');

@@ -86,15 +86,19 @@ Todo lo anterior está conectado y sus callables y disparadores, desplegados.
 ## 3. Payment Router: lo que existe
 
 - **`functions/src/payments/purchaseValidation.ts`**: una tabla de proveedores `apple`, `google`, `stripe` y `test`.
-  `validatePurchase` concede los Credits con `creditEngine.grantCredits` e id `<proveedor>_<id>` (idempotente);
-  `restorePurchases` existe. **Apple, Google y Stripe solo lanzan `NOT_IMPLEMENTED`**; no hay webhook de Stripe.
-- **`payments/providers/test.ts`**: la compra de prueba (`priceUsd: 0`). Encendida si `CREDITS_TEST_PURCHASES` es
-  `'true'`; apagada si es `'false'`; sin variable, solo en el emulador o fuera de `get-wee`. Es la única variable de
-  pagos que lee el código; las de Apple, Google Play y Stripe solo aparecen en comentarios y documentos.
-- **Callables** (en `credits/index.ts`, exportadas y desplegadas): `validatePurchase` (por defecto, el proveedor
-  `test`) y `restorePurchase`. Los paquetes, en `credits/creditCosts.ts` (ids `zone.wee.credits.*`).
-- **Cliente**: `screens/CreditStoreScreen.tsx` compra siempre con `'test'` (`creditsService.purchase`); un
-  `NOT_IMPLEMENTED` o `PURCHASE_INVALID` enseña «compras próximamente». Nadie llama a `restorePurchase`.
+  **Recargas cerradas** (2026-10-29, Weë no tiene planes ni paquetes de Credits; referencia US$ 1 = 100 Credits):
+  `validatePurchase` y `restorePurchases` rechazan con `NOT_IMPLEMENTED` antes de llamar a ningún proveedor o al
+  Credit Engine —ni `ensureAccount` ni `grantCredits`—; un proveedor desconocido sigue siendo `PURCHASE_INVALID`.
+  **Apple, Google y Stripe solo lanzan `NOT_IMPLEMENTED`**; no hay webhook de Stripe.
+- **`payments/providers/test.ts`**: ya no es la compra de prueba: `verify` lanza `NOT_IMPLEMENTED` siempre, también
+  en el emulador, porque una operación simulada no puede conceder Credits. `CREDITS_TEST_PURCHASES` ya no lo lee el
+  código; ninguna variable de pagos lo hace (las de Apple, Google Play y Stripe solo aparecen en comentarios y documentos).
+- **Callables** (en `credits/index.ts`, exportadas y desplegadas): `validatePurchase` y `restorePurchase`, con el mismo
+  nombre y la misma entrada; hoy responden `unimplemented`. No hay catálogo de paquetes: `getCreditCost` y
+  `creditsAdmin.costs` devuelven solo `{ costs }` (`functions/test/sin-paquetes.test.mjs`).
+- **Cliente**: `screens/CreditStoreScreen.tsx` (ruta `CreditStore`) ya no compra: informa del saldo, la conversión
+  de referencia, que las recargas aún no están disponibles y los últimos movimientos. Nadie llama a `validatePurchase`
+  ni a `restorePurchase`; una versión instalada que aún lo haga recibe `unimplemented` y enseña «compras próximamente».
 - **Aparte, sin conectar**: un enrutador de pagos puro en `core/financial/commerce.ts` (`enrutarPago`,
   `prepararCheckout`) con una pasarela `sandbox` en `financial/index.ts` (`docs/CORE.md` § WEE Financial Core). No lo
   importa nada de producción ni está unido a `payments/`.

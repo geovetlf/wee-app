@@ -23,20 +23,15 @@
  * «इस्तेमाल हुए»: «कमाए» diría que se ganaron, y ahí también cuentan los de
  * bienvenida y los comprados. «मिले» es la misma palabra que `txGrant`.
  *
- * «Ups» es «कोई गड़बड़ी हुई», el título de fallo de Android, sin exclamación (§ 2).
- * «Mi billetera» es «मेरा वॉलेट»; «Básico», «बेसिक», como se llaman los planes en
- * India; «Mejor valor», «सबसे फ़ायदेमंद». Los nombres de los otros paquetes
- * («Plus», «Black Pro») no pasan por aquí.
+ * «Mi billetera» es «मेरा वॉलेट». Weë no tiene planes ni paquetes de Credits
+ * (2026-10-29): la nota de la conversión los nombra con «प्लान» y «पैक», las
+ * palabras de las apps indias, solo para decir que no existen.
  */
 export const credits: typeof import('../es/credits').credits = {
   title: 'Credits',
   available: 'उपलब्ध Credits',
   yourBalance: 'आपका बैलेंस',
   currentBalance: 'मौजूदा बैलेंस',
-  free: 'मुफ़्त',
-  testTopUp: 'टेस्ट के लिए Credits',
-  testTopUpReady: 'टेस्ट Credits जुड़ गए',
-  testPrices: 'Weë AI तैयार होने तक टेस्ट कीमतें',
   topUp: 'Credits जोड़ें',
   seeHistory: 'इतिहास देखें →',
   seeHistoryLabel: 'इतिहास देखें',
@@ -45,21 +40,17 @@ export const credits: typeof import('../es/credits').credits = {
   earned: 'मिले',
   spent: 'इस्तेमाल हुए',
   noMovements: 'अभी तक कोई लेन-देन नहीं हुआ',
-  testTopUpDone: '{{cantidad}} Credits आपके खाते में जोड़ दिए गए. यह सिर्फ़ टेस्ट है: आपका कोई पैसा नहीं कटा.',
   balanceAfter: 'बैलेंस: {{saldo}}',
-  topUpFailed: 'Credits नहीं जोड़े जा सके. फिर से कोशिश करें.',
-  terms: 'यह सिर्फ़ टेस्ट है: अभी कोई पैसा नहीं लिया जाता. असली कीमतें तब तय होंगी, जब Weë AI असली AI से काम करने लगेगा. तब तक, कुछ भी बनाने से पहले उसकी टेस्ट कीमत दिखाई जाती है.',
   youHaveLabel: 'आपके पास {{saldo}} Credits हैं',
-  topUpButton: '{{cantidad}} Credits जोड़ें · टेस्ट',
   txPurchase: 'Credits की खरीद',
   txGrant: 'Credits मिले',
   txRefund: 'रिफ़ंड',
   txUsage: 'Credits का इस्तेमाल',
   txRefunded: 'रिफ़ंड हो गया',
   txPending: 'प्रोसेस हो रहा है',
-  pkgBasic: 'बेसिक',
-  badgePopular: 'लोकप्रिय',
-  badgeBestValue: 'सबसे फ़ायदेमंद',
+  referenceRate: 'संदर्भ रूपांतरण',
+  referenceRateValue: '{{usd}} = {{creditos}} Credits',
+  referenceRateNote: 'Credits, Weë में इस्तेमाल की इकाई हैं. कोई प्लान या Credits पैक नहीं है.',
+  recentMovements: 'हाल के लेन-देन',
   purchasesComingSoon: 'Credits खरीदने की सुविधा जल्द ही आएगी. अभी यहाँ Credits नहीं जोड़े जा सकते.',
-  topUpFailedTitle: 'कोई गड़बड़ी हुई',
 };

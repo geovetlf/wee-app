@@ -281,14 +281,17 @@ console.log('\n── F2 · El dinero, que es lo que cuesta caro decir mal ─�
     confusas.slice(0, 4).map(([k, v]) => `${k}: «${v.slice(0, 30)}»`).join(' | ') || 'ninguna');
 
   /*
-   * 3 · La recarga de prueba tiene que decir que no hay dinero real. Si alguien
-   * borra esa frase, nadie se entera hasta que llegue una queja.
+   * 3 · Antes la recarga de prueba tenía que decir que no había dinero real. Desde el 2026-10-29 no hay recarga de
+   * prueba ni paquetes: lo que se vigila ahora es que ninguna frase de ese flujo siga ahí y que la pantalla de
+   * Credits diga, en los dos chinos, que todavía no se puede recargar. Si alguien borra esa frase, nadie se entera
+   * hasta que llegue una queja.
    */
-  const avisos = [...ZH, ...TW].filter(([k]) => /^credits\.(testTopUpDone|terms)$/.test(k));
-  const sinAviso = avisos.filter(([, v]) => !/不会产生|不會產生|不会向你收取|不會向你收取|不收取|真实付费|真實付費/.test(v));
-  check('16d) la recarga de prueba dice que no se cobra dinero real',
-    avisos.length === 4 && sinAviso.length === 0,
-    sinAviso.map(([k]) => k).join(' ') || `${avisos.length} avisos, los cuatro lo dicen`);
+  const restos = [...ZH, ...TW].filter(([k]) => /^credits\.(testTopUp\w*|terms|topUpButton|free|pkg\w+|badge\w+)$/.test(k));
+  const avisos = [...ZH, ...TW].filter(([k]) => k === 'credits.purchasesComingSoon');
+  const sinAviso = avisos.filter(([, v]) => !/还不能|還不能/.test(v));
+  check('16d) sin recarga de prueba ni paquetes, y la pantalla dice que aún no se puede recargar',
+    restos.length === 0 && avisos.length === 2 && sinAviso.length === 0,
+    [...restos.map(([k]) => k), ...sinAviso.map(([k]) => k)].join(' ') || `${avisos.length} avisos, los dos lo dicen`);
 }
 
 console.log('\n── G · Interpolaciones intactas ──');

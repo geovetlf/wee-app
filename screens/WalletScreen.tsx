@@ -11,9 +11,9 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
-import { textoDelServidorLegible } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
-import { creditsService, describeTransaction, CreditsBalance, CreditTransaction } from '../services/creditsService';
+import { creditsService, CreditsBalance, CreditTransaction } from '../services/creditsService';
+import { FilaDeMovimiento } from '../components/billetera/FilaDeMovimiento';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 
 /**
@@ -22,18 +22,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
  */
 const WalletScreen = () => {
   const { theme } = useTheme();
-  const { t, formato, locale } = useIdioma();
-  /*
-   * El concepto de un movimiento, en el idioma de quien mira. Lo que no se reconoce —un concepto nuevo del servidor,
-   * uno que escribió una persona de administración— se enseña tal cual en español y, en cualquier otro idioma, se
-   * dice por su tipo («Credits brugt», «Credits fået tilbage»…): nadie lee español por accidente. Esa decisión es la de
-   * todos los textos del servidor y vive con ellos (`textoDelServidorLegible`, i18n/servidor.ts): la pantalla no
-   * pregunta en qué idioma está.
-   */
-  const tituloDe = (view: { title: string | null; tituloClave: string }): string => {
-    if (!view.title) return t(view.tituloClave);
-    return textoDelServidorLegible(view.title, { t, locale }) ?? t(view.tituloClave);
-  };
+  const { t, formato } = useIdioma();
   const { user } = useAuth();
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
@@ -51,52 +40,8 @@ const WalletScreen = () => {
     return () => { unsub1(); unsub2(); };
   }, [accountUid]);
 
-  /*
-   * La fecha sale del LOCALE ACTIVO, no de uno fijo. Antes decía 'es-ES' y el
-   * historial de dinero se veía en español aunque la app estuviera en coreano o
-   * en chino. `formato` ya viene atado al locale que haya puesto la persona, que
-   * es lo que pide el §8: nunca un `toLocaleDateString('es')` a mano.
-   */
-  const fmtDate = (ts: any) => {
-    if (!ts) return '';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return formato.fecha(d, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  };
-
-  const renderTransaction = ({ item }: { item: CreditTransaction }) => {
-    const view = describeTransaction(item);
-    const isSpend = !view.positive;
-    const color = isSpend ? '#EF4444' : '#22C55E';
-    return (
-      <View style={[styles.txnItem, { borderColor: theme.colors.border }]}>
-        <View style={[styles.txnIcon, { backgroundColor: isSpend ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)' }]}>
-          <Ionicons
-            name={isSpend ? 'arrow-up' : 'arrow-down'}
-            size={18}
-            color={color}
-          />
-        </View>
-        <View style={styles.txnBody}>
-          {/*
-            El título es lo que mandó el servidor —contenido, se pinta crudo— o,
-            si no mandó nada, la clave que dice el servicio, resuelta aquí.
-          */}
-          <Text style={[styles.txnDesc, { color: theme.colors.text }]}>
-            {tituloDe(view)}
-          </Text>
-          <Text style={[styles.txnDate, { color: theme.colors.textSecondary }]}>
-            {fmtDate(item.createdAt)}{view.detalleClave ? ` · ${t(view.detalleClave)}` : ''}
-          </Text>
-        </View>
-        <View style={styles.txnRight}>
-          <Text style={[styles.txnAmount, { color }]}>
-            {view.positive ? '+' : ''}{formato.numero(view.amount)}
-          </Text>
-          <Text style={[styles.txnBalance, { color: theme.colors.textSecondary }]}>{t('credits.balanceAfter', { saldo: formato.numero(view.balanceAfter) })}</Text>
-        </View>
-      </View>
-    );
-  };
+  /* Cada fila es la misma que en la pantalla de Credits: por tipo y concepto, sin depender de ningún catálogo. */
+  const renderTransaction = ({ item }: { item: CreditTransaction }) => <FilaDeMovimiento item={item} />;
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
@@ -203,23 +148,6 @@ const styles = StyleSheet.create({
 
   // Section
   sectionTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
-
-  // Transaction
-  txnItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: SPACING.md,
-  },
-  txnIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  txnBody: { flex: 1 },
-  txnDesc: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium },
-  txnDate: { fontSize: FONT_SIZE.xs, marginTop: 2 },
-  txnRight: { alignItems: 'flex-end' },
-  txnAmount: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.bold },
-  txnBalance: { fontSize: FONT_SIZE.xs, marginTop: 2 },
 
   // Empty
   emptyContainer: { flex: 1, justifyContent: 'center' },

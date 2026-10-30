@@ -82,11 +82,18 @@ console.log('\n── B · Los cinco sitios lo usan ──');
   const RESULTADO = leer('utils/textoDeResultado.ts');
   check('6) utils/textoDeResultado.ts usa idiomaDe',
     /import \{ idiomaDe \} from '\.\.\/i18n\/resolver';/.test(RESULTADO) && /const enEspanol = \(locale: string\): boolean => idiomaDe\(locale\) === 'es';/.test(RESULTADO));
-  /* La cartera tampoco pregunta en qué idioma está: le pide al módulo del servidor el texto que se puede enseñar. */
+  /*
+   * La cartera tampoco pregunta en qué idioma está: le pide al módulo del servidor el texto que se puede enseñar.
+   * Desde el 2026-10-29 cada movimiento lo pinta una fila compartida (Mi billetera y la pantalla de Credits), así que
+   * la regla vive en ella y las dos pantallas la usan.
+   */
+  const FILA = leer('components/billetera/FilaDeMovimiento.tsx');
   const CARTERA = leer('screens/WalletScreen.tsx');
-  check('7) screens/WalletScreen.tsx llama a esa decisión y no compara idiomas',
-    /return textoDelServidorLegible\(view\.title, \{ t, locale \}\) \?\? t\(view\.tituloClave\);/.test(CARTERA)
-    && !/(?:idioma|locale|idiomaDe\([^)]*\))\s*===\s*'es'/.test(CARTERA));
+  const CREDITOS = leer('screens/CreditStoreScreen.tsx');
+  check('7) la fila de movimientos de la cartera llama a esa decisión y no compara idiomas',
+    /return textoDelServidorLegible\(view\.title, \{ t, locale \}\) \?\? t\(view\.tituloClave\);/.test(FILA)
+    && [FILA, CARTERA, CREDITOS].every((c) => !/(?:idioma|locale|idiomaDe\([^)]*\))\s*===\s*'es'/.test(c))
+    && [CARTERA, CREDITOS].every((c) => /<FilaDeMovimiento /.test(c)));
 }
 
 console.log('\n── C · Lo que se ve no cambió ──');

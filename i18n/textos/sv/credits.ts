@@ -17,23 +17,18 @@
  * cuentan los de bienvenida y los comprados. «Mottagna» es la misma palabra
  * que `txGrant`. Los estados de un movimiento van en neutro («Återbetalt»).
  *
- * «Ups» es «Hoppsan», sin exclamación: es el título de un fallo (guía § 2).
- * «Mi billetera» es «Min plånbok»; «Básico», «Bas», como los planes suecos
- * («Bas», «Plus», «Premium»); «Mejor valor», «Mest för pengarna». Los nombres
- * de los otros paquetes («Plus», «Black Pro») no pasan por aquí.
+ * «Mi billetera» es «Min plånbok». Weë no tiene planes ni paquetes de Credits
+ * (2026-10-29): la nota de la conversión dice «abonnemang» y «paket», las
+ * palabras que una persona sueca esperaría ver si existieran.
  *
- * `balanceAfter` («Saldo: {{saldo}}») y `free` («Gratis») se escriben igual
- * que en español: son las palabras suecas.
+ * `balanceAfter` («Saldo: {{saldo}}») se escribe igual que en español: es la
+ * palabra sueca.
  */
 export const credits: typeof import('../es/credits').credits = {
   title: 'Credits',
   available: 'Tillgängliga Credits',
   yourBalance: 'Ditt saldo',
   currentBalance: 'Aktuellt saldo',
-  free: 'Gratis',
-  testTopUp: 'Testpåfyllning',
-  testTopUpReady: 'Testpåfyllningen är klar',
-  testPrices: 'Testpriser medan vi bygger Weë AI',
   topUp: 'Fyll på',
   seeHistory: 'Visa historik →',
   seeHistoryLabel: 'Visa historik',
@@ -42,21 +37,17 @@ export const credits: typeof import('../es/credits').credits = {
   earned: 'Mottagna',
   spent: 'Använda',
   noMovements: 'Inga transaktioner ännu',
-  testTopUpDone: '{{cantidad}} Credits har lagts till på ditt konto. Det är en testpåfyllning, så inga pengar har dragits.',
   balanceAfter: 'Saldo: {{saldo}}',
-  topUpFailed: 'Det gick inte att slutföra påfyllningen. Försök igen.',
-  terms: 'Det här är en testpåfyllning – inga pengar dras ännu. De slutliga priserna kommer när Weë AI använder riktiga AI-modeller. Fram till dess ser du testkostnaden för varje skapelse innan du börjar.',
   youHaveLabel: 'Du har {{saldo}} Credits',
-  topUpButton: 'Fyll på {{cantidad}} Credits · test',
   txPurchase: 'Köp av Credits',
   txGrant: 'Mottagna Credits',
   txRefund: 'Återbetalning',
   txUsage: 'Användning av Credits',
   txRefunded: 'Återbetalt',
   txPending: 'Behandlas',
-  pkgBasic: 'Bas',
-  badgePopular: 'Populär',
-  badgeBestValue: 'Mest för pengarna',
+  referenceRate: 'Referensomräkning',
+  referenceRateValue: '{{usd}} = {{creditos}} Credits',
+  referenceRateNote: 'Credits är förbrukningsenheten i Weë. Det finns inga abonnemang eller paket med Credits.',
+  recentMovements: 'Senaste transaktioner',
   purchasesComingSoon: 'Snart kan du köpa Credits. Just nu går det inte att fylla på här.',
-  topUpFailedTitle: 'Hoppsan',
 };

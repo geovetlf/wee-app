@@ -1,26 +1,15 @@
-import { randomUUID } from 'crypto';
-import { getPackage } from '../../credits/creditCosts';
 import { CreditError } from '../../credits/creditValidation';
 import { PurchaseProvider } from '../purchaseValidation';
 
 /**
- * Proveedor de prueba: "Recarga de prueba" sin cobrar nada. Solo mientras
- * CREDITS_TEST_PURCHASES=true (dev y emulador) o fuera de producción.
- * Aun así, el cliente no elige cuántos Credits: solo el paquete.
+ * Proveedor de prueba. Antes era la «recarga de prueba»: Credits sin cobrar nada en dev y en el emulador, eligiendo
+ * un paquete. Weë ya no tiene paquetes y una operación simulada no puede conceder Credits (decisión de producto,
+ * 2026-10-29), así que verifica lo mismo que los demás proveedores sin conectar: nada. `validatePurchase` ni siquiera
+ * llega aquí mientras las recargas estén cerradas; esto es la segunda cerradura.
  */
-const enabled = (): boolean => {
-  if (process.env.CREDITS_TEST_PURCHASES === 'true') return true;
-  if (process.env.CREDITS_TEST_PURCHASES === 'false') return false;
-  const project = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || '';
-  return !!process.env.FUNCTIONS_EMULATOR || (project !== '' && project !== 'get-wee');
-};
-
 export const testProvider: PurchaseProvider = {
   id: 'test',
-  async verify({ userId, packageId }) {
-    if (!enabled()) throw new CreditError('PURCHASE_INVALID', 'Las recargas de prueba no están disponibles en producción');
-    const pkg = packageId ? getPackage(packageId) : undefined;
-    if (!pkg) throw new CreditError('PURCHASE_INVALID', 'Elige un paquete válido', { packageId });
-    return { purchaseId: `${userId.slice(0, 8)}_${randomUUID()}`, productId: pkg.productId, priceUsd: 0 };
+  async verify() {
+    throw new CreditError('NOT_IMPLEMENTED', 'La recarga de prueba se retiró: una compra simulada no concede Credits');
   },
 };

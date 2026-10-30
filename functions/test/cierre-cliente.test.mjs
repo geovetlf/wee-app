@@ -194,35 +194,25 @@ const reiniciar = () => {
     const c = sinComentarios(leer(p));
     return /const notify\w*\s*=/.test(c) && /window\.alert|Alert\.alert\(title, message\)/.test(c);
   });
-  const sinComun = PANTALLAS.filter((p) => !/import \{[^}]*\bnotify\b[^}]*\} from '\.\.\/utils\/notify';/.test(leer(p)));
+  /*
+   * La que avisa, avisa con el común. La pantalla de Credits dejó de avisar de nada el 2026-10-29 (ya no compra: solo
+   * informa), así que no necesita importarlo; si algún día vuelve a avisar, tendrá que usar el común como las demás.
+   */
+  const avisa = (p) => /\bnotify\w*\(|Alert\.alert\(|window\.alert/.test(sinComentarios(leer(p)));
+  const sinComun = PANTALLAS.filter((p) => avisa(p) && !/import \{[^}]*\bnotify\b[^}]*\} from '\.\.\/utils\/notify';/.test(leer(p)));
   check('8) ninguna de las cuatro pantallas tiene su notify propio', conCopia.length === 0, conCopia.join(' '));
-  check('8) las cuatro usan el común', sinComun.length === 0, sinComun.join(' '));
+  check('8) las que avisan usan el común', sinComun.length === 0, sinComun.join(' '));
   check('8) y ya no queda un window.alert suelto en ellas', PANTALLAS.every((p) => !/window\.alert/.test(sinComentarios(leer(p)))));
 
-  /* La tienda de Credits, ejecutada: antes en la web salía SOLO el mensaje, sin título. */
-  const comprar = funcionDe('screens/CreditStoreScreen.tsx', 'handlePurchase');
-  const tienda = async (n, falla = null) => {
-    const setPurchasing = espia();
-    const creditsService = { purchase: async () => { if (falla) throw falla; return { credits: 100 }; } };
-    await ejecutable(comprar, { accountUid: 'cuenta', purchasing: false, setPurchasing, creditsService, notify: n, t, formato: { numero: (x) => String(x) }, String })({ id: 'p1' });
-    return setPurchasing;
-  };
-  reiniciar();
-  await tienda(WEB.notify);
-  check('9) la tienda en la web: el aviso lleva su título y su mensaje',
-    ventana.avisos.length === 1 && ventana.avisos[0] === 'credits.testTopUpReady\n\ncredits.testTopUpDone{"cantidad":"100"}', JSON.stringify(ventana.avisos));
-  reiniciar();
-  await tienda(MOVIL.notify);
-  check('9) y en el teléfono, el mismo Alert de siempre: título y mensaje, sin botones',
-    MOVIL.registro.alertas.length === 1 && MOVIL.registro.alertas[0].length === 2
-    && MOVIL.registro.alertas[0][0] === 'credits.testTopUpReady' && MOVIL.registro.alertas[0][1] === 'credits.testTopUpDone{"cantidad":"100"}');
-  reiniciar();
-  await tienda(WEB.notify, { details: { code: 'PURCHASE_INVALID' } });
-  check('9) si la compra no está disponible, se dice con su título', ventana.avisos[0] === 'credits.topUpFailedTitle\n\ncredits.purchasesComingSoon');
-  /* SABOTAJE: la copia que había (en la web, solo el mensaje) se caza. */
-  reiniciar();
-  await tienda((titulo, mensaje) => { window.alert(mensaje); });
-  check('9) SABOTAJE: con la copia vieja, en la web se perdía el título y se ve', ventana.avisos[0] === 'credits.testTopUpDone{"cantidad":"100"}');
+  /*
+   * La tienda de Credits se ejecutaba aquí para ver que su aviso de compra llevaba título en la web. Desde el
+   * 2026-10-29 no hay tienda: Weë no vende paquetes y las recargas están cerradas, así que la pantalla (misma ruta)
+   * solo informa y no avisa de ninguna compra. Lo que se vigila ahora es que esa compra no vuelva por la puerta de
+   * atrás; el aviso con título en la web lo sigue probando avisos-en-la-web.test.mjs con las pantallas que avisan.
+   */
+  const pantallaDeCredits = sinComentarios(leer('screens/CreditStoreScreen.tsx'));
+  check('9) la pantalla de Credits ya no compra ni avisa de compras',
+    !/handlePurchase|creditsService\.purchase|testTopUp|topUpFailed/.test(pantallaDeCredits) && /t\('credits\.purchasesComingSoon'\)/.test(pantallaDeCredits));
 
   /* El aviso de vídeo largo del compositor, ejecutado. */
   const largo = funcionDe('screens/CreateScreen.tsx', 'notifyVideoTooLong');

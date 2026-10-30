@@ -155,25 +155,15 @@ export const WELCOME_CREDITS = (() => {
 })();
 
 /**
- * Paquetes de Credits (compras). Los precios en USD son los de la tienda; los
- * pagos reales llegan por Apple / Google / Stripe (functions/src/payments) y
- * SIEMPRE se validan en el servidor antes de otorgar.
+ * LA CONVERSIÓN DE REFERENCIA DE WEË: US$ 1 = 100 Credits (decisión de producto, 2026-10-29).
+ *
+ * Los Credits son la unidad de consumo y cada servicio cuesta lo que dice este catálogo. Weë NO tiene planes,
+ * niveles, suscripciones ni paquetes de Credits: el catálogo heredado de paquetes se retiró, y
+ * con él la única forma de que una compra supiera cuántos Credits dar. Por eso las recargas están cerradas
+ * (`payments/purchaseValidation.ts`) hasta que exista el sistema de pagos definitivo. Es el mismo número que
+ * `creditsPerUsd` por defecto del WEË AI ENGINE (`engine/registry.ts`); una prueba vigila que no se separen.
  */
-export interface CreditPackage {
-  id: string;
-  name: string;
-  credits: number;
-  priceUsd: number;
-  productId: string;
-}
-
-export const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: 'basic', name: 'Básico', credits: 40, priceUsd: 4.99, productId: 'zone.wee.credits.basic' },
-  { id: 'plus', name: 'Plus', credits: 90, priceUsd: 9.99, productId: 'zone.wee.credits.plus' },
-  { id: 'blackpro', name: 'Black Pro', credits: 200, priceUsd: 19.9, productId: 'zone.wee.credits.blackpro' },
-];
-
-export const getPackage = (id: string): CreditPackage | undefined => CREDIT_PACKAGES.find((p) => p.id === id || p.productId === id);
+export const CREDITS_POR_USD_DE_REFERENCIA = 100;
 
 /** Qué servicio del catálogo cobra cada capacidad del WEË AI ENGINE. */
 /**

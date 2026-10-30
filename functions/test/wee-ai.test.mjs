@@ -105,16 +105,14 @@ console.log('\n── A · El nombre visible es Weë AI ──');
     && leer('i18n/textos/en/help.ts').includes(`q3: 'How does ${NUEVO} work?'`)
     && /question: 'help\.q3'/.test(leer('screens/HelpScreen.tsx')));
   /*
-   * Las dos menciones pasaron al diccionario al migrar Credits: la pantalla ya
-   * no lleva texto, lleva claves. Se cuentan donde están ahora, y en los dos
-   * idiomas: el nombre del área no se traduce, así que tiene que aparecer igual
-   * en español y en inglés.
+   * Las dos menciones de Credits («Precios de prueba mientras construimos Weë AI» y las condiciones de la recarga de
+   * prueba) se fueron con la tienda de paquetes el 2026-10-29: la pantalla de Credits ya no habla de precios de
+   * prueba. Lo que queda por vigilar es que el nombre viejo no vuelva por ahí, en ninguno de los dos idiomas, y que
+   * la pantalla no recupere esas claves.
    */
-  check('4) los Credits hablan de Weë AI',
-    (leer('i18n/textos/es/credits.ts').match(new RegExp(NUEVO, 'g')) || []).length === 2
-    && (leer('i18n/textos/en/credits.ts').match(new RegExp(NUEVO, 'g')) || []).length === 2
-    && /t\('credits\.testPrices'\)/.test(leer('screens/CreditStoreScreen.tsx'))
-    && /t\('credits\.terms'\)/.test(leer('screens/CreditStoreScreen.tsx')));
+  check('4) los Credits no recuperan el nombre viejo ni los textos de la tienda',
+    ['es', 'en'].every((l) => !/WEË AI|WEE AI|Wee AI/.test(leer(`i18n/textos/${l}/credits.ts`)))
+    && !/t\('credits\.(testPrices|terms)'\)/.test(leer('screens/CreditStoreScreen.tsx')));
   /* Los errores del servicio ya no llevan la frase dentro: llevan su clave, y
    * la frase —con la sección bien escrita— está en los dos diccionarios. */
   check('4) los errores del servicio, también',

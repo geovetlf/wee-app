@@ -29,6 +29,7 @@
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
+import { CALLABLES as RETIRADA_CALLABLES, CREDIT_COSTS as RETIRADA_COSTES, restarBloque } from './_retirada-de-paquetes.mjs';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { REVISION_POSTAUDITORIA, REVISION_CIERRE } from './_bloques-autorizados.mjs';
@@ -437,7 +438,17 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
       return { quitadas: codigo('-'), nuevas: codigo('+') };
     };
     const delRouter = lineas('functions/src/core/router.ts');
-    const deCostes = lineas('functions/src/credits/creditCosts.ts');
+    /*
+     * La RETIRADA DE PAQUETES (2026-10-29, autorizada por el dueño) quita de creditCosts el catálogo y le añade la
+     * conversión de referencia: se restan sus líneas exactas (`_retirada-de-paquetes.mjs`) y lo que queda tiene que
+     * ser, igual que antes, solo el servicio ai_world. Una línea del bloque que falte, o una más, y esto cae.
+     */
+    const costesEnBruto = lineas('functions/src/credits/creditCosts.ts');
+    const sinRetiradaQ = restarBloque(costesEnBruto.quitadas, RETIRADA_COSTES.quitadas);
+    const sinRetiradaN = restarBloque(costesEnBruto.nuevas, RETIRADA_COSTES.nuevas);
+    check('63ret) creditCosts lleva el bloque de la retirada de paquetes, exacto y entero',
+      sinRetiradaQ.faltan.length === 0 && sinRetiradaN.faltan.length === 0, JSON.stringify({ faltan: [...sinRetiradaQ.faltan, ...sinRetiradaN.faltan] }));
+    const deCostes = { quitadas: sinRetiradaQ.resto, nuevas: sinRetiradaN.resto };
     check('63fal) y de la misión fal, exacto: el Router del Core solo gana la modalidad 3d (lista y guardia) y creditCosts solo el servicio ai_world',
       JSON.stringify(delRouter.quitadas) === JSON.stringify([
         "const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc'] as const;",
@@ -451,9 +462,20 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   }
   {
     const delCallable = execSync('git diff -U0 c3515b3 -- ' + CALLABLES_DE_CREDITS, { cwd: RAIZ, encoding: 'utf8' });
-    const quitadas = delCallable.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'));
-    const codigoNuevo = delCallable.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
+    const quitadasEnBruto = delCallable.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'));
+    const nuevoEnBruto = delCallable.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
       .map((l) => l.slice(1).trim()).filter((l) => l && !/^(\*|\/\*|\/\/)/.test(l));
+    /*
+     * La RETIRADA DE PAQUETES (2026-10-29, autorizada por el dueño): getCreditCost y creditsAdmin.costs sin
+     * `packages`, y validatePurchase rechaza sin inicializar la cuenta. Se restan sus líneas exactas y lo que queda
+     * tiene que ser, igual que antes, el candado de #24 y los dos casos del cierre; ni una línea más ni una menos.
+     */
+    const retiradaQ = restarBloque(quitadasEnBruto.map((l) => l.slice(1)), RETIRADA_CALLABLES.quitadas);
+    const retiradaN = restarBloque(nuevoEnBruto, RETIRADA_CALLABLES.nuevas);
+    check('63ret) los callables de Credits llevan el bloque de la retirada de paquetes, exacto y entero',
+      retiradaQ.faltan.length === 0 && retiradaN.faltan.length === 0, JSON.stringify({ faltan: [...retiradaQ.faltan, ...retiradaN.faltan] }));
+    const quitadas = retiradaQ.resto.map((l) => `-${l}`);
+    const codigoNuevo = retiradaN.resto;
     const fuente = leer(CALLABLES_DE_CREDITS);
     const cuerpoSpend = fuente.slice(fuente.indexOf('export const spendCredits'), fuente.indexOf('export const grantCredits'));
     /*

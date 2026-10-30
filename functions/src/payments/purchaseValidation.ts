@@ -1,5 +1,3 @@
-import { creditEngine, GrantResult } from '../credits/creditEngine';
-import { CreditPackage, getPackage } from '../credits/creditCosts';
 import { CreditError } from '../credits/creditValidation';
 import { appleProvider } from './providers/apple';
 import { googleProvider } from './providers/google';
@@ -11,9 +9,19 @@ import { testProvider } from './providers/test';
  *
  *   APPLE / GOOGLE / STRIPE → Purchase Validation → Credit Engine → Credits
  *
- * Cada proveedor verifica su recibo/token con su API oficial y devuelve una
- * compra confirmada; solo entonces el Credit Engine otorga los Credits, con el
- * purchaseId como id determinista (una compra nunca se acredita dos veces).
+ * ── LAS RECARGAS ESTÁN CERRADAS (decisión de producto, 2026-10-29) ─────────
+ *
+ * Weë no tiene paquetes de Credits: la referencia es US$ 1 = 100 Credits y no hay planes ni niveles. Con el catálogo
+ * de paquetes se fue lo único que decía cuántos Credits daba una compra, así que hasta que se diseñe y apruebe el
+ * sistema de pagos definitivo `validatePurchase` y `restorePurchases` RECHAZAN todo con `NOT_IMPLEMENTED` —el mismo
+ * código que ya devolvían Apple, Google y Stripe, y que la app enseña como «las compras llegarán pronto»— sin
+ * llamar a ningún proveedor, sin inicializar la cuenta y sin acreditar nada. Tampoco la «recarga de prueba»: ya no
+ * hay Credits gratis por una compra simulada. Un `packageId` antiguo no es una prueba de pago.
+ *
+ * Lo que se conserva para el día que vuelvan: los tipos, la lista de proveedores y la regla de oro — cada proveedor
+ * verifica su comprobante con su API oficial y solo entonces el Credit Engine otorga, con el purchaseId como id
+ * determinista (una compra nunca se acredita dos veces). Las compras YA guardadas (`creditTransactions` de tipo
+ * `purchase`, con su `meta.packageId`) no se tocan y se siguen mostrando por su tipo.
  */
 export type PaymentProvider = 'apple' | 'google' | 'stripe' | 'test';
 
@@ -40,48 +48,24 @@ const PROVIDERS: Record<PaymentProvider, PurchaseProvider> = {
   test: testProvider,
 };
 
-const packageFor = (purchase: VerifiedPurchase, requested?: string): CreditPackage => {
-  const pkg = getPackage(purchase.productId) || (requested ? getPackage(requested) : undefined);
-  if (!pkg) throw new CreditError('PURCHASE_INVALID', `Producto desconocido: ${purchase.productId}`, { productId: purchase.productId });
-  return pkg;
+/** Cerradas. Cambiarlo exige el sistema de pagos aprobado, no un interruptor: aquí no hay nada que acreditar. */
+export const RECARGAS_ABIERTAS = false;
+
+const recargasCerradas = () =>
+  new CreditError('NOT_IMPLEMENTED', 'Las recargas de Credits todavía no están disponibles', { reason: 'recargas_cerradas' });
+
+const proveedorConocido = (provider: PaymentProvider): void => {
+  if (!Object.prototype.hasOwnProperty.call(PROVIDERS, provider)) throw new CreditError('PURCHASE_INVALID', `Proveedor de pago desconocido: ${provider}`);
 };
 
-export async function validatePurchase(input: { userId: string; provider: PaymentProvider; packageId?: string; payload?: Record<string, unknown> }): Promise<GrantResult & { credits: number; packageId: string }> {
-  const provider = PROVIDERS[input.provider];
-  if (!provider) throw new CreditError('PURCHASE_INVALID', `Proveedor de pago desconocido: ${input.provider}`);
-  const purchase = await provider.verify({ userId: input.userId, packageId: input.packageId, payload: input.payload || {} });
-  const pkg = packageFor(purchase, input.packageId);
-  const result = await creditEngine.grantCredits({
-    userId: input.userId,
-    amount: pkg.credits,
-    type: 'purchase',
-    purchaseId: `${input.provider}_${purchase.purchaseId}`,
-    reason: input.provider === 'test' ? 'Recarga de prueba' : 'Compra de Credits',
-    source: `store:${input.provider}`,
-    priceUsd: input.provider === 'test' ? 0 : purchase.priceUsd ?? pkg.priceUsd,
-    meta: { productId: pkg.productId, packageId: pkg.id, provider: input.provider },
-  });
-  return { ...result, credits: pkg.credits, packageId: pkg.id };
+/** Rechaza siempre, antes de llamar al proveedor o al Credit Engine. La firma se conserva para quien ya la llama. */
+export async function validatePurchase(input: { userId: string; provider: PaymentProvider; packageId?: string; payload?: Record<string, unknown> }): Promise<never> {
+  proveedorConocido(input.provider);
+  throw recargasCerradas();
 }
 
-export async function restorePurchases(input: { userId: string; provider: PaymentProvider; payload?: Record<string, unknown> }): Promise<{ restored: number; credited: number }> {
-  const provider = PROVIDERS[input.provider];
-  if (!provider || !provider.restore) throw new CreditError('NOT_IMPLEMENTED', `Restaurar compras aún no está disponible para ${input.provider}`);
-  const purchases = await provider.restore({ userId: input.userId, payload: input.payload || {} });
-  let credited = 0;
-  for (const purchase of purchases) {
-    const pkg = packageFor(purchase);
-    const result = await creditEngine.grantCredits({
-      userId: input.userId,
-      amount: pkg.credits,
-      type: 'purchase',
-      purchaseId: `${input.provider}_${purchase.purchaseId}`,
-      reason: 'Compra restaurada',
-      source: `store:${input.provider}`,
-      priceUsd: purchase.priceUsd ?? pkg.priceUsd,
-      meta: { productId: pkg.productId, packageId: pkg.id, provider: input.provider, restored: true },
-    });
-    if (!result.duplicate) credited += pkg.credits;
-  }
-  return { restored: purchases.length, credited };
+/** Igual: no recorre compras ni acredita ninguna. */
+export async function restorePurchases(input: { userId: string; provider: PaymentProvider; payload?: Record<string, unknown> }): Promise<never> {
+  proveedorConocido(input.provider);
+  throw recargasCerradas();
 }

@@ -35,6 +35,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { crearCargador } from './filmmaker-cliente.mjs';
+import { sumarRetirada } from './_retirada-de-paquetes.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -312,8 +313,9 @@ const VIDEO = sinComentarios(VIDEO_SRC);
    *   capacidad). Ni gasto, ni cobro, ni reembolso. Líneas exactas en job-queue 63fal.
    */
   const DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
-  check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068) y el servicio ai_world de la misión fal, del tamaño exacto',
-    git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r/g, '') === `${DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
+  /* + retirada de paquetes (2026-10-29), con autorización del dueño: creditCosts +8 −18 e index +10 −7. Líneas exactas en job-queue 63ret. */
+  check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068), el servicio ai_world de la misión fal y la retirada de paquetes, del tamaño exacto',
+    git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r/g, '') === sumarRetirada(`${DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`));
   const medios = sinComentarios(leer('functions/src/runtime/medios.ts'));
   const ayudante = medios.slice(medios.indexOf('export const trabajoDelMedio'), medios.indexOf('const sinNada'));
   check('A14) la pregunta nueva de la puerta es de SOLO lectura: `porIdempotencia`, y nada más',

@@ -736,9 +736,11 @@ console.log('\n── L · Bloque 2 · Credits, ËContact, WeeTalk, Notificacion
   check('67) Credits · tienda y cartera migradas',
     /t\('credits\./.test(tienda) && /t\('credits\./.test(cartera)
     && !/>Tu saldo</.test(tienda) && !/>Mi billetera</.test(cartera));
+  /* Las cifras de cada movimiento las escribe la fila compartida de la cartera (2026-10-29). */
+  const fila = limpio('components/billetera/FilaDeMovimiento.tsx');
   check('68) Credits · el saldo se escribe con el locale activo',
-    !/toLocaleString\('es'\)/.test(tienda + cartera)
-    && (tienda + cartera).match(/formato\.numero\(/g).length >= 6);
+    !/toLocaleString\('es'\)/.test(tienda + cartera + fila)
+    && (tienda + cartera + fila).match(/formato\.numero\(/g).length >= 6);
   /* CONTROL: ni precios ni cálculos pasaron por i18n. */
   check('69) control: la lógica económica no se tocó',
     !/t\(.{0,20}(precio|price|cost|amount|balance)\)/i.test(tienda + cartera)
