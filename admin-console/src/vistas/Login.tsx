@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { clasificarErrorDeInicio, type ErrorDeInicioDeSesion, type ServicioDeSesion } from '../auth/sesion';
 import { useT } from '../i18n/i18n';
+import { Icono } from '../componentes/Iconos';
 import { Marca, SelectorDeIdioma } from '../componentes/Marco';
 
 const CLAVE_DE_ERROR: Record<ErrorDeInicioDeSesion, string> = {
@@ -19,6 +20,7 @@ export const Login = ({ sesion }: { sesion: ServicioDeSesion }) => {
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
+    if (enCurso) return;
     setEnCurso(true);
     setError(null);
     try {
@@ -39,14 +41,14 @@ export const Login = ({ sesion }: { sesion: ServicioDeSesion }) => {
         <form className="formulario" onSubmit={enviar}>
           <label>
             <span>{t('admin.login.correo')}</span>
-            <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input className="campo" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </label>
           <label>
             <span>{t('admin.login.clave')}</span>
-            <input type="password" autoComplete="current-password" required value={clave} onChange={(e) => setClave(e.target.value)} />
+            <input className="campo" type="password" autoComplete="current-password" required value={clave} onChange={(e) => setClave(e.target.value)} />
           </label>
-          {error && <p className="estado error" role="alert">{t(CLAVE_DE_ERROR[error])}</p>}
-          <button type="submit" className="boton primario" disabled={enCurso}>
+          {error && <p className="estado error" role="alert"><Icono nombre="error" /><span>{t(CLAVE_DE_ERROR[error])}</span></p>}
+          <button type="submit" className="boton primario grande" disabled={enCurso}>
             {enCurso ? t('admin.login.entrando') : t('admin.login.entrar')}
           </button>
         </form>

@@ -154,8 +154,8 @@ export const leerEstadisticasDeCredits = (crudo: unknown): EstadisticasDeCredits
 export interface SaldoVista {
   userId: string;
   saldo: number;
-  ganadoEnTotal: number;
-  gastadoEnTotal: number;
+  ganadoEnTotal?: number;
+  gastadoEnTotal?: number;
   inicializado: boolean;
 }
 export const leerSaldo = (crudo: unknown): SaldoVista | null => {
@@ -166,8 +166,8 @@ export const leerSaldo = (crudo: unknown): SaldoVista | null => {
   return {
     userId,
     saldo,
-    ganadoEnTotal: numero(crudo.lifetimeEarned) ?? 0,
-    gastadoEnTotal: numero(crudo.lifetimeSpent) ?? 0,
+    ganadoEnTotal: numero(crudo.lifetimeEarned),
+    gastadoEnTotal: numero(crudo.lifetimeSpent),
     inicializado: crudo.initialized === true,
   };
 };

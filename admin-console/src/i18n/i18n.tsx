@@ -54,6 +54,7 @@ export interface ContextoDeIdioma {
   locale: string;
   elegir: (idioma: IdiomaDeLaConsola) => void;
   fecha: (ms: number | undefined) => string;
+  hora: (ms: number | undefined) => string;
   numero: (n: number | undefined) => string;
 }
 
@@ -85,12 +86,16 @@ export const ProveedorDeIdioma = ({ children, inicial }: { children: ReactNode; 
     (ms: number | undefined) => (ms === undefined ? t('admin.comun.sinDato') : formatearFecha(ms, locale, { dateStyle: 'medium', timeStyle: 'short' })),
     [locale, t],
   );
+  const hora = useCallback(
+    (ms: number | undefined) => (ms === undefined ? t('admin.comun.sinDato') : formatearFecha(ms, locale, { timeStyle: 'short' })),
+    [locale, t],
+  );
   const numero = useCallback(
     (n: number | undefined) => (n === undefined ? t('admin.comun.sinDato') : formatearNumero(n, locale, { maximumFractionDigits: 4 })),
     [locale, t],
   );
 
-  const valor = useMemo(() => ({ t, idioma, locale, elegir, fecha, numero }), [t, idioma, locale, elegir, fecha, numero]);
+  const valor = useMemo(() => ({ t, idioma, locale, elegir, fecha, hora, numero }), [t, idioma, locale, elegir, fecha, hora, numero]);
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 };
 
