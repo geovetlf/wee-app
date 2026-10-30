@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { CREDITS_POR_USD_DE_REFERENCIA, leerCostes, leerEstadisticasDeCredits, leerEstadoDelMotor, leerSaldo, leerTransacciones, type TransaccionVista } from '../api/modelos';
 import { Cargable } from '../componentes/Cargable';
+import { AvisoDeLista, avisoPorLimite } from '../componentes/Lista';
 import { Dato, Datos, Seccion, Tabla } from '../componentes/Piezas';
 import { useAccion } from '../hooks';
 import { useIdioma } from '../i18n/i18n';
+
+const LIMITE = 25;
 
 const TablaDeMovimientos = ({ items }: { items: TransaccionVista[] }) => {
   const { t, fecha, numero } = useIdioma();
@@ -81,7 +84,7 @@ const ConsultaDeCuenta = () => {
   const [escrito, setEscrito] = useState('');
   const [uid, setUid] = useState<string | null>(null);
   const saldo = useAccion('creditsAdmin.balance', uid === null ? null : { userId: uid }, leerSaldo, (s) => s === null);
-  const historial = useAccion('creditsAdmin.userHistory', uid === null ? null : { userId: uid, limit: 25 }, leerTransacciones, (l) => l.length === 0);
+  const historial = useAccion('creditsAdmin.userHistory', uid === null ? null : { userId: uid, limit: LIMITE }, leerTransacciones, (l) => l.length === 0);
 
   const enviar = (e: FormEvent) => {
     e.preventDefault();
@@ -118,7 +121,12 @@ const ConsultaDeCuenta = () => {
       {uid !== null && !(saldo.estado.fase === 'error' && saldo.estado.error.tipo === 'no-encontrado') && (
         <>
           <h3>{t('admin.credits.historial')}</h3>
-          <Cargable estado={historial.estado} recargar={historial.recargar} vacio={t('admin.credits.sinHistorial')} hijos={(items) => <TablaDeMovimientos items={items} />} />
+          <Cargable estado={historial.estado} recargar={historial.recargar} vacio={t('admin.credits.sinHistorial')} hijos={(items) => (
+            <>
+              <TablaDeMovimientos items={items} />
+              <AvisoDeLista truncado={avisoPorLimite(items.length, LIMITE)} />
+            </>
+          )} />
         </>
       )}
     </Seccion>
@@ -127,10 +135,15 @@ const ConsultaDeCuenta = () => {
 
 const Reembolsadas = () => {
   const { t } = useIdioma();
-  const { estado, recargar } = useAccion('creditsAdmin.failed', { limit: 25 }, leerTransacciones, (l) => l.length === 0);
+  const { estado, recargar } = useAccion('creditsAdmin.failed', { limit: LIMITE }, leerTransacciones, (l) => l.length === 0);
   return (
     <Seccion titulo={t('admin.credits.fallidasTitulo')}>
-      <Cargable estado={estado} recargar={recargar} vacio={t('admin.credits.sinFallidas')} hijos={(items) => <TablaDeMovimientos items={items} />} />
+      <Cargable estado={estado} recargar={recargar} vacio={t('admin.credits.sinFallidas')} hijos={(items) => (
+        <>
+          <TablaDeMovimientos items={items} />
+          <AvisoDeLista truncado={avisoPorLimite(items.length, LIMITE)} />
+        </>
+      )} />
     </Seccion>
   );
 };
@@ -178,7 +191,7 @@ const Costes = () => {
   );
 };
 
-export const Credits = () => {
+export const Credits = ({ puedeLeer }: { puedeLeer: (permiso: string) => boolean }) => {
   const { t } = useIdioma();
   return (
     <>
@@ -186,7 +199,7 @@ export const Credits = () => {
         <h1>{t('admin.credits.titulo')}</h1>
         <p>{t('admin.credits.descripcion')}</p>
       </header>
-      <Conversion />
+      {puedeLeer('ai.read') && <Conversion />}
       <Totales />
       <ConsultaDeCuenta />
       <Reembolsadas />

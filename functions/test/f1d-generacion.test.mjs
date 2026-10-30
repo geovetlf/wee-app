@@ -25,6 +25,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { sumarRetirada } from './_retirada-de-paquetes.mjs';
+import { sumarSeguridad } from './_seguridad-de-administracion.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -835,7 +836,7 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
   /* + retirada de paquetes (2026-10-29), con autorización del dueño: creditCosts +8 −18 e index +10 −7. Líneas exactas en job-queue 63ret. */
   check('AI) Credits intactos: el Credit Engine, el Financial Core y el resto; credits/index, solo el cierre de spendCredits del Harness (b878068) y la retirada de paquetes; el Router y creditCosts, solo la misión fal y la retirada; del tamaño exacto',
-    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === sumarRetirada(`${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`));
+    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === sumarSeguridad(sumarRetirada(`${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`)));
   const legacy = (s) => { const a = s.indexOf('    try {\n      const result = await videoEngine.generate('); return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a)); };
   check('creatorRun, solo con los arreglos del Harness (H0 #9, #11, #15a) y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
     git(`diff --numstat ${PUENTE} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')

@@ -93,7 +93,7 @@ const PAQUETES_PERMITIDOS = [/^react$/, /^react-dom(\/client)?$/, /^react\/jsx-r
 const ESPERADAS = [
   'accountsAdmin.buscar', 'creditsAdmin.balance', 'creditsAdmin.costs', 'creditsAdmin.failed', 'creditsAdmin.stats', 'creditsAdmin.userHistory',
       'engineAdmin.status', 'moderationAdmin.history', 'moderationAdmin.list',
-      'opsAdmin.atascados', 'opsAdmin.auditoria', 'opsAdmin.capacidades', 'opsAdmin.creaciones', 'opsAdmin.generaciones', 'opsAdmin.producciones', 'opsAdmin.quienSoy', 'opsAdmin.reservas', 'opsAdmin.trabajos', 'opsAdmin.usoIa',
+      'opsAdmin.atascados', 'opsAdmin.auditoria', 'opsAdmin.capacidades', 'opsAdmin.cola', 'opsAdmin.creaciones', 'opsAdmin.creacionesAtascadas', 'opsAdmin.generaciones', 'opsAdmin.producciones', 'opsAdmin.quienSoy', 'opsAdmin.reservas', 'opsAdmin.trabajos', 'opsAdmin.usoIa',
 ];
 {
   const acciones = sinComentarios(leer(path.join(SRC, 'api/acciones.ts')));
@@ -186,10 +186,10 @@ export const textosSueltos = (codigo) => {
   check('8b. cualquier respuesta «denegado» o «sin-sesion» activa el rechazo', /tipo === 'denegado' \|\| tipo === 'sin-sesion'/.test(consola));
   const denegado = sinComentarios(leer(path.join(SRC, 'vistas/AccesoDenegado.tsx')));
   check('8c. la pantalla de acceso denegado no pide ni recibe datos', !/useCliente|useAccion|llamar\(/.test(denegado));
-  const iComprobacion = consola.indexOf('<ComprobacionDePermiso>');
+  const iComprobacion = consola.indexOf('<ComprobacionDePermiso ');
   const iInterior = consola.indexOf('<Interior ');
   check('8d. el menú y las vistas solo se pintan DENTRO de la comprobación de permiso con el servidor', iComprobacion > iVistas && iInterior > iComprobacion
-    && /useAccion\('engineAdmin\.status'/.test(consola) && /estado\.fase === 'ok'\) return <>\{children\}<\/>/.test(consola));
+    && /useAccion\('opsAdmin\.quienSoy'/.test(consola) && /estado\.fase === 'ok'\) return <>\{hijos\(estado\.datos\)\}<\/>/.test(consola));
 }
 
 /* ── 11 · Credits: sin planes ni paquetes, conversión de referencia US$ 1 = 100 ── */

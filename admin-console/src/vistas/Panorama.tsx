@@ -104,7 +104,7 @@ const AunNoSeMide = () => {
   );
 };
 
-export const Panorama = () => {
+export const Panorama = ({ puedeLeer }: { puedeLeer: (permiso: string) => boolean }) => {
   const { t } = useIdioma();
   return (
     <>
@@ -112,9 +112,9 @@ export const Panorama = () => {
         <h1>{t('admin.panorama.titulo')}</h1>
         <p>{t('admin.panorama.descripcion')}</p>
       </header>
-      <Ia />
-      <Credits />
-      <Moderacion />
+      {puedeLeer('ai.read') && <Ia />}
+      {puedeLeer('finance.read') && <Credits />}
+      {puedeLeer('moderation.read') && <Moderacion />}
       <AunNoSeMide />
     </>
   );

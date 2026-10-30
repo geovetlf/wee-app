@@ -29,6 +29,8 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { createHash } from 'node:crypto';
 import { MODEL_SECRETS } from '../secrets';
 import { assertAdmin } from '../shared/admin';
+import { operacionAdmin } from '../admin/autorizacion';
+import { claseDeEval } from '../admin/operaciones';
 import { hashCanonico, validarDataset } from './motor/contrato';
 import { Dominio, resolverDominio } from './motor/dominios';
 import { EstadoPresupuesto, cabeLaReserva, microUsd, restanteParaReservar } from './motor/presupuesto';
@@ -279,4 +281,5 @@ export const ejecutarEvalRun = async (
 
 /** El callable servido por el runtime: ADMIN-ONLY, con los secretos de los proveedores de texto. */
 export const evalRun = onCall({ region: 'us-central1', timeoutSeconds: 300, secrets: MODEL_SECRETS }, async (request) =>
-  ejecutarEvalRun(request.auth as { uid: string; token?: Record<string, unknown> } | undefined, (request.data || {}) as EntradaEvalRun));
+  operacionAdmin(claseDeEval((request.data || {}) as Record<string, unknown>), request.auth as { uid: string; token?: Record<string, unknown> } | undefined, () =>
+    ejecutarEvalRun(request.auth as { uid: string; token?: Record<string, unknown> } | undefined, (request.data || {}) as EntradaEvalRun)));

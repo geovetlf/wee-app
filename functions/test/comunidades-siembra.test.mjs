@@ -68,7 +68,7 @@ console.log('\n── B · Las reglas, igual de estrictas, y el sitio de las ofi
     /allow create: if isAuthenticated\(\) && \(comunidadDeUsuario\(\) \|\| comunidadOficialDeAdministracion\(\)\);/.test(bloque)
     && /request\.resource\.data\.get\('isOfficial', false\) == false/.test(bloque)
     && /function comunidadOficialDeAdministracion\(\) \{\s*\n\s*return esAdministracion\(\) &&/.test(bloque)
-    && /function esAdministracion\(\) \{\s*\n\s*return request\.auth != null && request\.auth\.token\.get\('admin', false\) == true;/.test(reglas));
+    && /function esAdministracion\(\) \{\s*\n\s*return request\.auth != null && request\.auth\.token\.get\('admin', false\) == true && request\.auth\.token\.get\('weeRole', 'owner'\) == 'owner';/.test(reglas));
   const lista = (bloque.match(/function slugsOficiales\(\) \{\s*return \[([^\]]*)\];/) || [])[1] || '';
   const enReglas = [...lista.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
   const enDatos = OFICIALES.map((c) => c.slug).sort();

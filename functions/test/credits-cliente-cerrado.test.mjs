@@ -22,6 +22,7 @@
  *
  * No toca la lógica interna del Credit Engine ni llama a nada real.
  */
+import { administracionDePrueba } from './_admin-de-prueba.mjs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -75,6 +76,7 @@ check('4) ninguna pantalla ni servicio del cliente llama a spendCredits', archiv
 /* ── C. Ejecutado: sin sesión, sesión normal, administración ────────────── */
 const motorMod = lib('credits/creditEngine.js');
 const callables = lib('credits/index.js');
+const administracion = administracionDePrueba(lib);
 const original = { spend: motorMod.creditEngine.spendCredits, ensure: motorMod.creditEngine.ensureAccount };
 let reservas = 0;
 motorMod.creditEngine.spendCredits = async () => {
@@ -102,11 +104,13 @@ try {
   const admin = await intento({ uid: UID, token: { admin: true } });
   check('8) administración sigue pudiendo usarlo (no se rompe la ruta interna)', admin === 'ok' && reservas === 1, `${admin}, reservas=${reservas}`);
   process.env.WEE_ADMIN_UIDS = UID;
+  administracion.claims = {};
   const porLista = await intento({ uid: UID, token: {} });
   check('9) un uid de WEE_ADMIN_UIDS también cuenta como administración', porLista === 'ok' && reservas === 2, `${porLista}, reservas=${reservas}`);
 } finally {
   motorMod.creditEngine.spendCredits = original.spend;
   motorMod.creditEngine.ensureAccount = original.ensure;
+  administracion.restaurar();
   if (adminsAntes === undefined) delete process.env.WEE_ADMIN_UIDS; else process.env.WEE_ADMIN_UIDS = adminsAntes;
 }
 

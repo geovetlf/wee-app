@@ -7,6 +7,8 @@ import { almacenDeTrabajos } from '../runtime/almacen';
 import { colaDeInvocacion } from '../runtime/cola';
 import { MEDIA_SECRETS } from '../secrets';
 import { assertAdmin } from '../shared/admin';
+import { operacionAdmin } from '../admin/autorizacion';
+import { claseDelCanary } from '../admin/operaciones';
 import { almacenDeObjetosDeMedios } from './almacen';
 import { adaptadoresDeMedios, proveedorConfigurado } from './catalogo';
 import { depsDeEntregaDeWee, solicitarEntrega } from './entrega';
@@ -368,40 +370,43 @@ export const mediaCanary = onCall(
   async (request) => {
     assertAdmin(request.auth);
     const datos = (request.data || {}) as Record<string, unknown>;
-
     const accion = String(datos.accion ?? 'procesar') as AccionDelCanary;
-    if (!ACCIONES_DEL_CANARY.includes(accion)) throw new HttpsError('invalid-argument', 'Acción desconocida');
-
-    /*
-     * MC-9 · ENUMERAR va ANTES de exigir clave de operación, porque no opera
-     * sobre ningún material: mira lo que hay. Y su cuenta sale de la sesión
-     * igual que la de las otras cuatro — si llega un `accountId` en los datos,
-     * no se lee, porque aquí no se lee ningún campo con ese nombre.
-     */
-    if (accion === 'listar') {
-      const cursor = typeof datos.cursor === 'string' && datos.cursor ? datos.cursor : undefined;
-      if (cursor !== undefined && cursor.length > 2048) {
-        throw new HttpsError('invalid-argument', 'Cursor no utilizable');
-      }
-      return listarDelCanary(request.auth!.uid, cursor);
-    }
-
-    const operationId = String(datos.operationId ?? '');
-    if (operationId.length < 8 || operationId.length > 128) {
-      throw new HttpsError('invalid-argument', 'Falta una clave de operación utilizable');
-    }
-
-    /* LA CUENTA SALE DE LA SESIÓN. Quien llama no elige de quién es nada. */
-    const accountId = request.auth!.uid;
-    /* Y EL MATERIAL SE DERIVA. No llega ningún identificador de fuera. */
-    const assetId = identidadDeMaterialDeSubida(accountId, operationId);
-    if (!assetId) throw new HttpsError('invalid-argument', 'La clave de operación no produce material');
-
-    if (accion === 'subir') {
-      return pedirSubidaDelCanary(accountId, operationId, String(datos.contentType ?? ''), Number(datos.bytes));
-    }
-    if (accion === 'confirmar') return confirmarSubidaDelCanary(accountId, assetId, operationId);
-    if (accion === 'entregar') return pedirEntregaDelCanary(accountId, assetId, operationId);
-    return ejecutarCanaryDeMedios(accountId, assetId);
+    return operacionAdmin(claseDelCanary(accion, datos), request.auth, () => atenderCanary(accion, datos, request));
   },
 );
+
+const atenderCanary = async (accion: AccionDelCanary, datos: Record<string, unknown>, request: { auth?: { uid: string } | null }): Promise<any> => {
+  if (!ACCIONES_DEL_CANARY.includes(accion)) throw new HttpsError('invalid-argument', 'Acción desconocida');
+
+  /*
+   * MC-9 · ENUMERAR va ANTES de exigir clave de operación, porque no opera
+   * sobre ningún material: mira lo que hay. Y su cuenta sale de la sesión
+   * igual que la de las otras cuatro — si llega un `accountId` en los datos,
+   * no se lee, porque aquí no se lee ningún campo con ese nombre.
+   */
+  if (accion === 'listar') {
+    const cursor = typeof datos.cursor === 'string' && datos.cursor ? datos.cursor : undefined;
+    if (cursor !== undefined && cursor.length > 2048) {
+      throw new HttpsError('invalid-argument', 'Cursor no utilizable');
+    }
+    return listarDelCanary(request.auth!.uid, cursor);
+  }
+
+  const operationId = String(datos.operationId ?? '');
+  if (operationId.length < 8 || operationId.length > 128) {
+    throw new HttpsError('invalid-argument', 'Falta una clave de operación utilizable');
+  }
+
+  /* LA CUENTA SALE DE LA SESIÓN. Quien llama no elige de quién es nada. */
+  const accountId = request.auth!.uid;
+  /* Y EL MATERIAL SE DERIVA. No llega ningún identificador de fuera. */
+  const assetId = identidadDeMaterialDeSubida(accountId, operationId);
+  if (!assetId) throw new HttpsError('invalid-argument', 'La clave de operación no produce material');
+
+  if (accion === 'subir') {
+    return pedirSubidaDelCanary(accountId, operationId, String(datos.contentType ?? ''), Number(datos.bytes));
+  }
+  if (accion === 'confirmar') return confirmarSubidaDelCanary(accountId, assetId, operationId);
+  if (accion === 'entregar') return pedirEntregaDelCanary(accountId, assetId, operationId);
+  return ejecutarCanaryDeMedios(accountId, assetId);
+};

@@ -191,7 +191,7 @@ console.log('\n── Fronteras de autorización ──');
       && /request\.resource\.data\.get\('verified', false\) == false &&\s*\n\s*request\.resource\.data\.get\('featured', false\) == false/.test(negocios)
       && /\(resource\.data\.ownerId == request\.auth\.uid &&\s*\n\s*!request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasAny\(camposQueAfirmaWee\(\)\) &&/.test(negocios)
       && /allow update: if isAuthenticated\(\) && \(\s*\n\s*esAdministracion\(\) \|\|/.test(negocios)
-      && /function esAdministracion\(\) \{\s*\n\s*return request\.auth != null && request\.auth\.token\.get\('admin', false\) == true;/.test(reglas));
+      && /function esAdministracion\(\) \{\s*\n\s*return request\.auth != null && request\.auth\.token\.get\('admin', false\) == true && request\.auth\.token\.get\('weeRole', 'owner'\) == 'owner';/.test(reglas));
     check('una reseña puntúa de 1 a 5 enteros, es de este negocio y no la escribe su dueño',
       /request\.resource\.data\.rating is int &&\s*\n\s*request\.resource\.data\.rating >= 1 &&\s*\n\s*request\.resource\.data\.rating <= 5 &&/.test(negocios)
       && /request\.resource\.data\.get\('businessId', businessId\) == businessId &&/.test(negocios)

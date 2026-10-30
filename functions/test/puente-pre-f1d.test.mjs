@@ -32,6 +32,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ARCHIVOS_DE_LA_RETIRADA, sumarRetirada } from './_retirada-de-paquetes.mjs';
+import { ARCHIVOS_DE_LA_SEGURIDAD, sumarSeguridad } from './_seguridad-de-administracion.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -556,7 +557,8 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * Storage que llega de fuera y el lector sin segundo intento por HTTP) e imageMeta.ts +8 −5 (las medidas, solo del
        * cubo de Weë). Ningún proveedor ni ninguna cadena nuevos. Detalle en video-asincrono H2.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|212\t0\tfunctions/src/engine/elegibilidad.ts|92\t2\tfunctions/src/engine/errors.ts|59\t17\tfunctions/src/engine/gateway.ts|191\t24\tfunctions/src/engine/http.ts|8\t5\tfunctions/src/engine/imageMeta.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|188\t29\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|8\t0\tfunctions/src/engine/pricing.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|126\t25\tfunctions/src/engine/router.ts|219\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
+      /* corrección de seguridad de administración 2026-10-30: engine/admin.ts 11/4 → 17/5, la puerta de cada acción; el cuerpo, igual. */
+      === '17\t5\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|26\t0\tfunctions/src/engine/derechos.ts|212\t0\tfunctions/src/engine/elegibilidad.ts|92\t2\tfunctions/src/engine/errors.ts|59\t17\tfunctions/src/engine/gateway.ts|191\t24\tfunctions/src/engine/http.ts|8\t5\tfunctions/src/engine/imageMeta.ts|3\t1\tfunctions/src/engine/index.ts|62\t0\tfunctions/src/engine/jurisdiccion.ts|188\t29\tfunctions/src/engine/ledger.ts|169\t14\tfunctions/src/engine/limits.ts|12\t0\tfunctions/src/engine/mundo.ts|8\t0\tfunctions/src/engine/pricing.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|152\t0\tfunctions/src/engine/providers/fal-modelos.ts|486\t0\tfunctions/src/engine/providers/fal.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|29\t2\tfunctions/src/engine/registry.ts|126\t25\tfunctions/src/engine/router.ts|219\t3\tfunctions/src/engine/types.ts|8\t0\tfunctions/src/engine/verification.ts|38\t14\tfunctions/src/engine/webhooks.ts'
     && Object.keys(DEFAULT_ROUTING).filter((c) => (DEFAULT_ROUTING[c]?.chain ?? []).some((e) => e.provider === 'fal')).join() === 'world.generate');
 }
 
@@ -700,6 +702,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       /* La retirada de paquetes (2026-10-29, autorizada por el dueño): sus cuatro archivos, por nombre; sus líneas, en job-queue 63ret. */
       ...ARCHIVOS_DE_LA_RETIRADA,
       ...DE_LAS_LECTURAS_DE_ADMINISTRACION,
+      ...ARCHIVOS_DE_LA_SEGURIDAD,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -717,7 +720,7 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
   /* + retirada de paquetes (2026-10-29), con autorización del dueño: creditCosts +8 −18 e index +10 −7. Líneas exactas en job-queue 63ret. */
   check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068) y la retirada de paquetes; el Router y creditCosts, solo la misión fal y la retirada; del tamaño exacto',
-    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === sumarRetirada(`${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`));
+    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === sumarSeguridad(sumarRetirada(`${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`)));
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. Del Core, solo la misión fal (video-asincrono H3). */
   /* + misión mundo3d (2026-10-05): mundo3d (nuevo), contracts +6, index +1 y escena3d +1 (ver video-asincrono H3). */
   /* + misión mundo3d FASE 5: capability.ts +2 (`world: '3d'`) y mundo3d.ts +15 (364 → 379, los derechos visibles). */

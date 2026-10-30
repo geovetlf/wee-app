@@ -13,9 +13,12 @@ import { normalizarNumeroDeCuenta } from '../core/account-identity';
  *
  *   · **Lista blanca de campos.** Se copia campo a campo: nunca el documento entero. Nunca salen el objetivo, las
  *     respuestas, los resultados, los prompts, las URLs de los materiales, `json` del trabajo ni correos completos.
- *   · **Techo de consulta** (`assertLimit`) y `examinados`/`truncado`: cuando se filtra en memoria sobre los últimos
- *     documentos, la respuesta dice cuántos miró, para que nadie lea «no hay» donde solo es «no en los últimos N».
- *   · **Sin índices nuevos**: cada consulta usa un índice automático o uno ya desplegado.
+ *   · **Techo de consulta** (`assertLimit`) y una respuesta que dice hasta dónde miró. `truncado`: hay o puede haber
+ *     más de lo que se devuelve. `parcial`: se filtró en memoria y se agotó el techo de lo examinado, así que una lista
+ *     vacía NO significa «no hay»: significa «no en los últimos N». `cursor`: desde dónde seguir mirando.
+ *   · **Índices**: un índice automático o uno declarado en `firestore.indexes.json`. Solo uno añadido para esta consola:
+ *     `creatorJobs(status, updatedAt)`; sin él, esa consulta falla con un error visible, nunca con una lista vacía. El
+ *     Job Engine no lleva índices compuestos, a propósito (lo vigila `runtime-conductor`).
  *   · **Lo que no existe se dice** (`capacidades`): no se simula.
  */
 const LIMITE_MAXIMO = 50;
@@ -31,8 +34,10 @@ export interface Pagina<T> {
   fuente: string;
   /** Cuántos documentos se miraron, si se filtró en memoria. */
   examinados?: number;
-  /** true si podría haber más de lo que se miró. */
+  /** true si podría haber más de lo que se devuelve. */
   truncado: boolean;
+  /** true si se agotó lo que se podía examinar: lo no devuelto no se ha mirado. */
+  parcial?: boolean;
   cursor?: string;
 }
 
@@ -44,6 +49,12 @@ export const leerLimite = (v: unknown): number => {
 const leerCursor = (v: unknown): string | undefined => {
   if (v === undefined || v === null || v === '') return undefined;
   if (typeof v !== 'string' || !/^j\.[A-Za-z0-9_.:-]{1,400}$/.test(v)) throw argumento('cursor inválido');
+  return v;
+};
+/** Otro punto de continuación: el identificador del último documento visto, sin prefijo. */
+const leerCursorDeDocumento = (v: unknown): string | undefined => {
+  if (v === undefined || v === null || v === '') return undefined;
+  if (typeof v !== 'string' || !/^[A-Za-z0-9_.:-]{1,400}$/.test(v)) throw argumento('cursor inválido');
   return v;
 };
 export const leerMinutos = (v: unknown, porDefecto: number): number => {
@@ -74,6 +85,31 @@ const ms = (v: unknown): number | null => {
 };
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const txt = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+
+/** Sigue después de un documento concreto: si ya no existe, se dice, no se vuelve a empezar en silencio. */
+const continuar = async (q: FirebaseFirestore.Query, coleccion: FirebaseFirestore.CollectionReference, cursor: string | undefined): Promise<FirebaseFirestore.Query> => {
+  if (!cursor) return q;
+  const doc = await coleccion.doc(cursor).get();
+  if (!doc.exists) throw new HttpsError('failed-precondition', 'El punto de continuación ya no existe');
+  return q.startAfter(doc);
+};
+
+/**
+ * Hasta dónde llegó un filtro en memoria. Si sobran coincidencias, se sigue tras la última devuelta; si se agotó el
+ * techo de lo examinado, tras la última mirada, y entonces la respuesta es `parcial`.
+ */
+const ventana = (docs: FirebaseFirestore.QueryDocumentSnapshot[], filtrados: FirebaseFirestore.QueryDocumentSnapshot[], limit: number) => {
+  const agotado = docs.length === TECHO_EXAMINADOS;
+  const sobran = filtrados.length > limit;
+  const ultimo = sobran ? filtrados[limit - 1] : agotado ? docs[docs.length - 1] : undefined;
+  return { examinados: docs.length, truncado: sobran || agotado, parcial: agotado, ...(ultimo ? { cursor: ultimo.id } : {}) };
+};
+
+/** Una consulta con su límite: si vino llena, puede haber más y se dice desde dónde seguir. */
+const pagina = (docs: FirebaseFirestore.QueryDocumentSnapshot[], limit: number) => ({
+  truncado: docs.length === limit,
+  ...(docs.length === limit ? { cursor: docs[limit - 1].id } : {}),
+});
 
 /**
  * La cuenta, entera solo para quien puede ver cuentas. El resto ve lo justo para reconocer que dos filas son de la
@@ -119,6 +155,29 @@ export const crearLecturas = ({ db, auth, ahora = Date.now }: DepsDeLectura) => 
     };
   };
 
+  const filaDeCreacion = (x: FirebaseFirestore.QueryDocumentSnapshot, ver: Visibilidad, t: number) => {
+    const j = x.data();
+    const pasos: Array<{ status?: unknown }> = Array.isArray(j.steps) ? j.steps : [];
+    const limite = ms(j.deadlineAt);
+    return {
+      id: x.id,
+      cuenta: enmascarar(j.userId, ver.cuentas),
+      experiencia: txt(j.experienceId),
+      estado: txt(j.status),
+      creado: ms(j.createdAt),
+      actualizado: ms(j.updatedAt),
+      limite,
+      abandonado: j.status === 'running' && limite !== null && limite < t,
+      demo: j.demo === true,
+      calidad: txt(j.quality),
+      modoDePrecio: txt(j.pricingMode),
+      creditsEstimados: num(j.creditsEstimated),
+      creditsCobrados: num(j.creditsCharged),
+      pasos: pasos.length,
+      pasosFallidos: pasos.filter((p) => p?.status === 'failed').length,
+    };
+  };
+
   return {
     /** El Job Engine (`jobs`). Sin orden por fecha: igualdad + identificador, sin índice nuevo, como el barrendero. */
     async trabajos(d: Record<string, unknown>, ver: Visibilidad): Promise<Pagina<ReturnType<typeof filaDeTrabajo>>> {
@@ -137,19 +196,54 @@ export const crearLecturas = ({ db, auth, ahora = Date.now }: DepsDeLectura) => 
       };
     },
 
-    /** Trabajos no terminados que llevan más de `minutos` sin moverse. Mismo criterio que `recuperables` del almacén. */
+    /**
+     * Trabajos no terminados que llevan más de `minutos` sin moverse. Criterio: `updatedAt`, el mismo de `recuperables`
+     * del almacén, y no el plazo, porque un trabajo puede no tener plazo. Recorre los no terminados por identificador,
+     * como el almacén: el Job Engine no lleva índices compuestos. Por eso no salen por antigüedad, y si se agota lo que
+     * se puede examinar la respuesta es `parcial`, con `cursor` para seguir: nunca «no hay» sin haberlo mirado todo.
+     */
     async atascados(d: Record<string, unknown>, ver: Visibilidad) {
       const limit = leerLimite(d.limit);
       const minutos = leerMinutos(d.minutos, 30);
       const corte = ahora() - minutos * 60_000;
-      const snap = await db.collection('jobs').where('terminal', '==', false).orderBy(FieldPath.documentId()).limit(TECHO_EXAMINADOS).get();
+      const cursor = leerCursor(d.cursor);
+      let q: FirebaseFirestore.Query = db.collection('jobs').where('terminal', '==', false).orderBy(FieldPath.documentId()).limit(TECHO_EXAMINADOS);
+      if (cursor) q = q.startAfter(cursor);
+      const snap = await q.get();
       const vencidos = snap.docs.filter((x) => { const u = ms(x.data().updatedAt); return u !== null && u <= corte; });
+      /* Un trabajo que espera al proveedor puede vivir horas sin moverse: dentro de su plazo no es lo mismo que atascado. */
+      const t = ahora();
+      const items = vencidos.slice(0, limit).map((x) => {
+        const fila = filaDeTrabajo(x, ver);
+        const limite = fila.limite;
+        return { ...fila, dentroDePlazo: limite !== null && limite > t };
+      });
+      return { items, fuente: 'jobs', minutos, ...ventana(snap.docs, vencidos, limit) };
+    },
+
+    /**
+     * La cola durable (`jobQueue`): lo que espera a un trabajador, primero lo que lleva más tiempo disponible.
+     * `retrasado`: ya debería haberlo cogido alguien (también si la concesión de quien lo tenía ya venció). `apartado`:
+     * envenenado, no se volverá a entregar. Es solo lo del Job Engine: una cola vacía aquí no dice nada de `creatorJobs`,
+     * que no pasa por esta cola.
+     */
+    async cola(d: Record<string, unknown>, _ver: Visibilidad) {
+      const limit = leerLimite(d.limit);
+      const t = ahora();
+      const coleccion = db.collection('jobQueue');
+      const q = await continuar(coleccion.orderBy('disponibleEn').limit(limit), coleccion, leerCursorDeDocumento(d.cursor));
+      const snap = await q.get();
       return {
-        items: vencidos.slice(0, limit).map((x) => filaDeTrabajo(x, ver)),
-        fuente: 'jobs',
-        minutos,
-        examinados: snap.size,
-        truncado: snap.size === TECHO_EXAMINADOS || vencidos.length > limit,
+        items: snap.docs.map((x) => {
+          const c = x.data();
+          const disponible = ms(c.disponibleEn);
+          const apartado = !!c.apartado;
+          const vuelo = ms(c.vuelo?.until);
+          const enVuelo = vuelo !== null && vuelo > t;
+          return { jobId: txt(c.jobId) ?? x.id, motivo: txt(c.reason), encolado: ms(c.enqueuedAt), disponible, entregas: num(c.entregas), apartado, enVuelo, retrasado: !apartado && !enVuelo && disponible !== null && disponible < t };
+        }),
+        fuente: 'jobQueue',
+        ...pagina(snap.docs, limit),
       };
     },
 
@@ -164,40 +258,34 @@ export const crearLecturas = ({ db, auth, ahora = Date.now }: DepsDeLectura) => 
       const uid = d.uid === undefined || d.uid === null || d.uid === '' ? undefined : leerUid(d.uid);
       if (uid && !ver.cuentas) throw new HttpsError('permission-denied', 'Buscar por cuenta exige ver cuentas');
       const base = db.collection('creatorJobs');
-      const q = uid ? base.where('userId', '==', uid).orderBy('createdAt', 'desc') : base.orderBy('createdAt', 'desc');
-      const snap = await q.limit(TECHO_EXAMINADOS).get();
+      const orden = uid ? base.where('userId', '==', uid).orderBy('createdAt', 'desc') : base.orderBy('createdAt', 'desc');
+      const q = await continuar(orden.limit(TECHO_EXAMINADOS), base, leerCursorDeDocumento(d.cursor));
+      const snap = await q.get();
       const t = ahora();
       const filtrados = snap.docs.filter((x) => {
         const j = x.data();
         return (!experiencia || j.experienceId === experiencia) && (!estado || j.status === estado);
       });
       return {
-        items: filtrados.slice(0, limit).map((x) => {
-          const j = x.data();
-          const pasos: Array<{ status?: unknown }> = Array.isArray(j.steps) ? j.steps : [];
-          const limite = ms(j.deadlineAt);
-          return {
-            id: x.id,
-            cuenta: enmascarar(j.userId, ver.cuentas),
-            experiencia: txt(j.experienceId),
-            estado: txt(j.status),
-            creado: ms(j.createdAt),
-            actualizado: ms(j.updatedAt),
-            limite,
-            abandonado: j.status === 'running' && limite !== null && limite < t,
-            demo: j.demo === true,
-            calidad: txt(j.quality),
-            modoDePrecio: txt(j.pricingMode),
-            creditsEstimados: num(j.creditsEstimated),
-            creditsCobrados: num(j.creditsCharged),
-            pasos: pasos.length,
-            pasosFallidos: pasos.filter((p) => p?.status === 'failed').length,
-          };
-        }),
+        items: filtrados.slice(0, limit).map((x) => filaDeCreacion(x, ver, t)),
         fuente: 'creatorJobs',
-        examinados: snap.size,
-        truncado: snap.size === TECHO_EXAMINADOS || filtrados.length > limit,
+        ...ventana(snap.docs, filtrados, limit),
       };
+    },
+
+    /**
+     * Creaciones en marcha que llevan más de `minutos` sin moverse, las más antiguas primero. Por `updatedAt`, no por
+     * `abandonado`: una creación sin `deadlineAt` nunca sería «abandonada» y aquí sí sale.
+     */
+    async creacionesAtascadas(d: Record<string, unknown>, ver: Visibilidad) {
+      const limit = leerLimite(d.limit);
+      const minutos = leerMinutos(d.minutos, 30);
+      const t = ahora();
+      const corte = Timestamp.fromMillis(t - minutos * 60_000);
+      const coleccion = db.collection('creatorJobs');
+      const q = await continuar(coleccion.where('status', '==', 'running').where('updatedAt', '<=', corte).orderBy('updatedAt', 'asc').limit(limit), coleccion, leerCursorDeDocumento(d.cursor));
+      const snap = await q.get();
+      return { items: snap.docs.map((x) => filaDeCreacion(x, ver, t)), fuente: 'creatorJobs', minutos, ...pagina(snap.docs, limit) };
     },
 
     /** El libro de generaciones (`aiGenerations`): qué proveedor y modelo, resultado y duración. El coste, solo con `finance.read`. */
@@ -206,7 +294,9 @@ export const crearLecturas = ({ db, auth, ahora = Date.now }: DepsDeLectura) => 
       const experiencia = deLaLista(d.experiencia, EXPERIENCIAS, 'experiencia');
       const proveedor = typeof d.proveedor === 'string' && /^[a-z0-9_-]{1,40}$/.test(d.proveedor) ? d.proveedor : undefined;
       if (d.proveedor !== undefined && d.proveedor !== '' && !proveedor) throw argumento('proveedor inválido');
-      const snap = await db.collection('aiGenerations').orderBy('createdAt', 'desc').limit(TECHO_EXAMINADOS).get();
+      const coleccion = db.collection('aiGenerations');
+      const q = await continuar(coleccion.orderBy('createdAt', 'desc').limit(TECHO_EXAMINADOS), coleccion, leerCursorDeDocumento(d.cursor));
+      const snap = await q.get();
       const filtrados = snap.docs.filter((x) => {
         const g = x.data();
         return (!experiencia || g.experienceId === experiencia) && (!proveedor || g.provider === proveedor);
@@ -231,8 +321,7 @@ export const crearLecturas = ({ db, auth, ahora = Date.now }: DepsDeLectura) => 
           };
         }),
         fuente: 'aiGenerations',
-        examinados: snap.size,
-        truncado: snap.size === TECHO_EXAMINADOS || filtrados.length > limit,
+        ...ventana(snap.docs, filtrados, limit),
       };
     },
 
@@ -259,7 +348,9 @@ export const crearLecturas = ({ db, auth, ahora = Date.now }: DepsDeLectura) => 
       const limit = leerLimite(d.limit);
       const minutos = leerMinutos(d.minutos, 120);
       const corte = Timestamp.fromMillis(ahora() - minutos * 60_000);
-      const snap = await db.collection('creditTransactions').where('status', '==', 'AUTHORIZED').where('createdAt', '<', corte).orderBy('createdAt', 'desc').limit(limit).get();
+      const coleccion = db.collection('creditTransactions');
+      const q = await continuar(coleccion.where('status', '==', 'AUTHORIZED').where('createdAt', '<', corte).orderBy('createdAt', 'desc').limit(limit), coleccion, leerCursorDeDocumento(d.cursor));
+      const snap = await q.get();
       return {
         items: snap.docs.map((x) => {
           const c = x.data();
@@ -267,21 +358,23 @@ export const crearLecturas = ({ db, auth, ahora = Date.now }: DepsDeLectura) => 
         }),
         fuente: 'creditTransactions',
         minutos,
-        truncado: snap.size === limit,
+        ...pagina(snap.docs, limit),
       };
     },
 
     /** Filmmaker: el sobre de cada producción, sin su contenido (ni título, ni guion, ni escenas). */
     async producciones(d: Record<string, unknown>, ver: Visibilidad) {
       const limit = leerLimite(d.limit);
-      const snap = await db.collection('productions').orderBy('updatedAt', 'desc').limit(limit).get();
+      const coleccion = db.collection('productions');
+      const q = await continuar(coleccion.orderBy('updatedAt', 'desc').limit(limit), coleccion, leerCursorDeDocumento(d.cursor));
+      const snap = await q.get();
       return {
         items: snap.docs.map((x) => {
           const p = x.data();
           return { id: x.id, cuenta: enmascarar(p.ownerAccountId, ver.cuentas), estado: txt(p.status), creada: ms(p.createdAt), actualizada: ms(p.updatedAt), archivada: ms(p.archivedAt) };
         }),
         fuente: 'productions',
-        truncado: snap.size === limit,
+        ...pagina(snap.docs, limit),
       };
     },
 
@@ -348,6 +441,8 @@ export const crearLecturas = ({ db, auth, ahora = Date.now }: DepsDeLectura) => 
 export const capacidades = () => ({
   disponibles: [
     { id: 'trabajos', fuente: 'jobs', nota: 'runtime; vacío mientras las puertas del Core sigan cerradas' },
+    { id: 'cola', fuente: 'jobQueue', nota: 'solo el Job Engine; creatorJobs no pasa por esta cola' },
+    { id: 'creacionesAtascadas', fuente: 'creatorJobs' },
     { id: 'creaciones', fuente: 'creatorJobs', experiencias: ['studio', 'photo', 'writer', 'beauty', 'chef', 'home', 'business', 'travel', 'brain'] },
     { id: 'generaciones', fuente: 'aiGenerations' },
     { id: 'usoIa', fuente: 'aiUsage' },

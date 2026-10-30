@@ -7,6 +7,8 @@ import { ADAPTERS, DEFAULT_PROVIDERS, DEFAULT_ROUTING, DEFAULT_SETTINGS } from '
 import { invalidateConfig } from './config';
 import { ChainLink, RoutingPolicy } from './types';
 import { assertAdmin } from '../shared/admin';
+import { operacionAdmin } from '../admin/autorizacion';
+import { claseDelMotor, estadoDelMotorPara } from '../admin/operaciones';
 
 /**
  * Administración del engine sin tocar código (Firestore):
@@ -65,7 +67,10 @@ export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60, s
   assertAdmin(request.auth as any);
   const data = (request.data || {}) as Record<string, any>;
   const action = String(data.action || 'status');
+  return operacionAdmin(claseDelMotor(action, data), request.auth as any, (sesion) => atenderMotor(action, data, request).then((r) => (action === 'status' ? estadoDelMotorPara(r, sesion) : r)));
+});
 
+const atenderMotor = async (action: string, data: Record<string, any>, request: { auth?: { uid: string } | null }): Promise<Record<string, any>> => {
   switch (action) {
     case 'status':
       return engine.status();
@@ -142,4 +147,4 @@ export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60, s
     default:
       throw new HttpsError('invalid-argument', `Acción desconocida: ${action}`);
   }
-});
+};

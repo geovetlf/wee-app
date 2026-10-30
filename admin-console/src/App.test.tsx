@@ -64,7 +64,7 @@ describe('acceso', () => {
   });
 
   it('acceso denegado: sin menú, sin vistas y sin ningún dato administrativo', async () => {
-    const { llamadas, sesion } = montar({ respuestas: { 'engineAdmin.status': falla('functions/permission-denied') } });
+    const { llamadas, sesion } = montar({ respuestas: { 'opsAdmin.quienSoy': falla('functions/permission-denied') } });
     expect(await screen.findByRole('heading', { name: 'Access denied' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     expect(screen.queryByText('Overview')).not.toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('acceso', () => {
   });
 
   it('una sesión caducada saca de la consola y pide volver a iniciar sesión', async () => {
-    const { sesion } = montar({ respuestas: { 'engineAdmin.status': falla('functions/unauthenticated') } });
+    const { sesion } = montar({ respuestas: { 'opsAdmin.quienSoy': falla('functions/unauthenticated') } });
     expect(await screen.findByRole('heading', { name: 'Sign in again' })).toBeInTheDocument();
     expect(screen.getByText('The session is no longer valid. Sign in again.')).toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
@@ -99,23 +99,23 @@ describe('acceso', () => {
     let confirmar: (v: unknown) => void = () => undefined;
     let n = 0;
     /* La primera llamada (la comprobación) queda pendiente hasta que el test la confirma; las siguientes (la vista Resumen) responden. */
-    const { llamadas } = montar({ respuestas: { 'engineAdmin.status': () => (++n === 1 ? new Promise((r) => { confirmar = r; }) : ESTADO_MOTOR) } });
+    const { llamadas } = montar({ respuestas: { 'engineAdmin.status': ESTADO_MOTOR, 'opsAdmin.quienSoy': () => (++n === 1 ? new Promise((r) => { confirmar = r; }) : {}) } });
     expect(await screen.findByText('Checking permissions with the server…')).toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     expect(screen.queryByText('Overview')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument();
     /* Solo se ha pedido la comprobación; ninguna vista ha salido a buscar datos. */
-    expect(llamadas.map((l) => `${l.callable}.${l.datos.action}`)).toEqual(['engineAdmin.status']);
-    await act(async () => { confirmar(ESTADO_MOTOR); });
+    expect(llamadas.map((l) => `${l.callable}.${l.datos.action}`)).toEqual(['opsAdmin.quienSoy']);
+    await act(async () => { confirmar({ rol: null, permisos: [] }); });
     expect(await screen.findByRole('navigation')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
   });
 
   it('si la comprobación falla por la red, no entra: muestra el error y deja reintentar', async () => {
     let n = 0;
-    montar({ respuestas: { 'engineAdmin.status': () => (++n === 1 ? falla('functions/unavailable') : ESTADO_MOTOR) } });
+    montar({ respuestas: { 'engineAdmin.status': ESTADO_MOTOR, 'opsAdmin.quienSoy': () => (++n === 1 ? falla('functions/unavailable') : {}) } });
     const alerta = await screen.findByRole('alert');
-    expect(alerta).toHaveTextContent('No connection to the server. Are the emulators running?');
+    expect(alerta).toHaveTextContent('The server could not serve this request: no connection, or it could not check your permission or record the access. Try again.');
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     await userEvent.click(within(alerta).getByRole('button', { name: 'Try again' }));
     expect(await screen.findByRole('navigation')).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe('Panorama (portada)', () => {
     expect(await screen.findByText('1 of 2')).toBeInTheDocument();
     expect(await screen.findByText('50 or more')).toBeInTheDocument();
     const alerta = await screen.findByRole('alert');
-    expect(alerta).toHaveTextContent('The server failed to respond. Try again.');
+    expect(alerta).toHaveTextContent('The server failed to respond, or could not be reached. Try again.');
     expect(within(alerta).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     expect(document.body.textContent).not.toContain('SECRETO');
   });
@@ -201,7 +201,7 @@ describe('Motor de IA (ruta resumen)', () => {
     let n = 0;
     montar({ respuestas: { 'engineAdmin.status': () => (++n === 1 ? falla('functions/internal') : ESTADO_MOTOR) } });
     const alerta = await screen.findByRole('alert');
-    expect(alerta).toHaveTextContent('The server failed to respond. Try again.');
+    expect(alerta).toHaveTextContent('The server failed to respond, or could not be reached. Try again.');
     expect(document.body.textContent).not.toContain('SECRETO');
     await userEvent.click(within(alerta).getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('ProveedorX')).toBeInTheDocument();
@@ -209,7 +209,7 @@ describe('Motor de IA (ruta resumen)', () => {
 
   it('sin conexión con el servidor lo dice', async () => {
     montar({ respuestas: { 'engineAdmin.status': falla('functions/unavailable') } });
-    expect(await screen.findByRole('alert')).toHaveTextContent('No connection to the server. Are the emulators running?');
+    expect(await screen.findByRole('alert')).toHaveTextContent('The server could not serve this request: no connection, or it could not check your permission or record the access. Try again.');
   });
 
   it('sin proveedores ni rutas: estados vacíos, no tablas vacías', async () => {
@@ -354,11 +354,110 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
     expect(screen.getByText('Role: owner')).toBeInTheDocument();
   });
 
-  it('si quienSoy falla, no se enseña más de lo confirmado', async () => {
-    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': falla('functions/internal') } });
-    await screen.findByRole('navigation');
+  it('si quienSoy falla, no se entra: nunca más de lo que el servidor confirmó', async () => {
+    const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': falla('functions/internal') } });
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(invocar.mock.calls.map(([c, d]) => `${c}.${d.action}`)).toEqual(['opsAdmin.quienSoy']);
+  });
+
+  it('A1: un rol limitado solo ve lo suyo y no pide nada de lo que le denegarían', async () => {
+    const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'support', permisos: ['accounts.read'] } } });
+    expect(await screen.findByRole('link', { name: 'Accounts' })).toBeInTheDocument();
+    expect(await enlaces()).toEqual(['Overview', 'Accounts']);
     await act(async () => { await Promise.resolve(); });
-    expect(await enlaces()).toEqual(['Overview', 'AI engine', 'Credits', 'Moderation']);
+    expect(invocar.mock.calls.every(([c, d]) => `${c}.${d.action}` === 'opsAdmin.quienSoy')).toBe(true);
+    expect(screen.queryByRole('heading', { name: 'Access denied' })).not.toBeInTheDocument();
+  });
+
+  it('A1: finanzas entra en Credits sin pedir el estado del motor, que no le corresponde', async () => {
+    window.location.hash = '#/credits';
+    const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'finance', permisos: ['finance.read'] } } });
+    expect(await screen.findByRole('heading', { name: 'Credits', level: 1 })).toBeInTheDocument();
+    await act(async () => { await Promise.resolve(); });
+    expect(invocar.mock.calls.some(([c]) => c === 'engineAdmin')).toBe(false);
+    expect(screen.queryByRole('heading', { name: 'Access denied' })).not.toBeInTheDocument();
+  });
+
+  it('revocación: si el rol cae a mitad de uso, la consola se va', async () => {
+    window.location.hash = '#/operaciones';
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read'] }, 'opsAdmin.atascados': falla('functions/permission-denied') } });
+    expect(await screen.findByRole('heading', { name: 'Access denied' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  it('M4: una ventana vacía y parcial no dice «no hay», y deja seguir mirando', async () => {
+    window.location.hash = '#/operaciones';
+    const { invocar } = montar({ respuestas: {
+      ...base,
+      'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read'] },
+      'opsAdmin.creaciones': (d: Record<string, unknown>) => (d.cursor
+        ? { items: [{ id: 'vieja', experiencia: 'chef', estado: 'done' }], truncado: false, parcial: false, examinados: 1 }
+        : { items: [], truncado: true, parcial: true, examinados: 200, cursor: 'c200' }),
+    } });
+    expect(await screen.findByText('Nothing in what has been checked. That does not mean there is none: keep looking.')).toBeInTheDocument();
+    expect(screen.queryByText('No creations match these filters.')).not.toBeInTheDocument();
+    expect(screen.getByText(/The latest 200 documents were checked/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Check the next ones' }));
+    expect(await screen.findByText('vieja')).toBeInTheDocument();
+    expect(invocar).toHaveBeenCalledWith('opsAdmin', { limit: 25, cursor: 'c200', action: 'creaciones' });
+    await userEvent.click(screen.getByRole('button', { name: 'Back to the start' }));
+    expect(await screen.findByText(/The latest 200 documents were checked/)).toBeInTheDocument();
+  });
+
+  it('M4: cambiar de filtro vuelve a empezar, sin arrastrar el punto de continuación', async () => {
+    window.location.hash = '#/operaciones';
+    const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read'] }, 'opsAdmin.creaciones': { items: [], truncado: true, parcial: true, examinados: 200, cursor: 'c200' } } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Check the next ones' }));
+    await userEvent.selectOptions(screen.getByLabelText('Experience'), 'travel');
+    await waitFor(() => expect(invocar).toHaveBeenLastCalledWith('opsAdmin', expect.objectContaining({ experiencia: 'travel', action: 'creaciones' })));
+    await waitFor(() => expect(invocar.mock.calls.at(-1)?.[1]).not.toHaveProperty('cursor'));
+  });
+
+  it('M5: toda lista cortada lo dice, también Reservas y Producciones', async () => {
+    window.location.hash = '#/operaciones';
+    montar({ respuestas: {
+      ...base,
+      'opsAdmin.quienSoy': { rol: 'owner', permisos: ['ops.read', 'finance.read'] },
+      'opsAdmin.reservas': { items: [{ id: 't1', servicio: 'ai_video' }], truncado: true, cursor: 't1' },
+      'opsAdmin.producciones': { items: [{ id: 'p1', estado: 'active' }], truncado: true, cursor: 'p1' },
+    } });
+    expect(await screen.findByText('ai_video')).toBeInTheDocument();
+    expect(await screen.findByText('p1')).toBeInTheDocument();
+    expect(screen.getAllByText('There may be more than what is shown here.', { exact: false }).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('M6: la cola y las creaciones atascadas se ven, y la cola vacía no habla de las creaciones', async () => {
+    window.location.hash = '#/operaciones';
+    montar({ respuestas: {
+      ...base,
+      'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read'] },
+      'opsAdmin.creacionesAtascadas': { items: [{ id: 'sin-plazo', experiencia: 'chef', estado: 'running' }], truncado: false },
+      'opsAdmin.cola': { items: [] },
+    } });
+    expect(await screen.findByText('sin-plazo')).toBeInTheDocument();
+    expect(await screen.findByText('The Job Engine queue is empty. This says nothing about creations.')).toBeInTheDocument();
+  });
+
+  it('M6: un trabajo dentro de plazo y un aviso apartado se distinguen de un atasco', async () => {
+    window.location.hash = '#/operaciones';
+    montar({ respuestas: {
+      ...base,
+      'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read'] },
+      'opsAdmin.atascados': { items: [{ jobId: 'espera-video', estado: 'waiting', dentroDePlazo: true }], truncado: false },
+      'opsAdmin.cola': { items: [{ jobId: 'envenenado', apartado: true }], truncado: false },
+    } });
+    expect(await screen.findByText('Within deadline')).toBeInTheDocument();
+    expect(await screen.findByText('Set aside: will not be delivered again')).toBeInTheDocument();
+    expect(screen.queryByText('Delayed')).not.toBeInTheDocument();
+  });
+
+  it('M8: una cuenta antigua sin número lo explica', async () => {
+    window.location.hash = '#/cuentas';
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': OWNER, 'accountsAdmin.buscar': { encontrada: true, uid: 'uidVieja', perfiles: [], acceso: { proveedores: [] } } } });
+    await userEvent.type(await screen.findByLabelText('uid or account number'), 'uidVieja');
+    await userEvent.click(screen.getByRole('button', { name: 'Look up' }));
+    expect(await screen.findByText('This account has no account number: it predates numbering. It is looked up by its uid.')).toBeInTheDocument();
   });
 
   it('una ruta directa a una sección sin permiso cae en la portada y no pide sus datos', async () => {
@@ -396,7 +495,7 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
   it('Operaciones: el filtro por experiencia llega al servidor, y un fallo de un bloque no tumba los demás', async () => {
     window.location.hash = '#/operaciones';
     const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read'] }, 'opsAdmin.atascados': falla('functions/internal'), 'opsAdmin.creaciones': { items: [] }, 'opsAdmin.trabajos': { items: [] } } });
-    expect(await screen.findByText('The server failed to respond. Try again.')).toBeInTheDocument();
+    expect(await screen.findByText('The server failed to respond, or could not be reached. Try again.')).toBeInTheDocument();
     expect(await screen.findByText('There are no creations with these filters.')).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText('Experience'), 'travel');
     await waitFor(() => expect(invocar).toHaveBeenCalledWith('opsAdmin', { experiencia: 'travel', limit: 25, action: 'creaciones' }));
@@ -423,7 +522,7 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
     await userEvent.clear(screen.getByLabelText('uid or account number'));
     await userEvent.type(screen.getByLabelText('uid or account number'), 'nadie');
     await userEvent.click(screen.getByRole('button', { name: 'Look up' }));
-    expect(await screen.findByText('There is no account with that identifier.')).toBeInTheDocument();
+    expect(await screen.findByText('No account has that identifier. Older accounts may have no number: try their uid.')).toBeInTheDocument();
   });
 
   it('Auditoría: se lee y no ofrece ninguna acción sobre las entradas', async () => {
@@ -464,10 +563,17 @@ describe('Moderación', () => {
     expect(screen.queryByText('Report detail')).not.toBeInTheDocument();
   });
 
+  it('M5: si la cola viene llena, avisa de que puede haber más', async () => {
+    const llenos = Array.from({ length: 25 }, (_, i) => ({ ...reporte, reportId: `rep_${String(i).padStart(32, '0')}` }));
+    montar({ respuestas: { 'engineAdmin.status': ESTADO_MOTOR, 'moderationAdmin.list': { reports: llenos } } });
+    await ir('moderacion');
+    expect(await screen.findByText('There may be more than what is shown here.', { exact: false })).toBeInTheDocument();
+  });
+
   it('error de la API en la cola: se muestra y se puede reintentar', async () => {
     montar({ respuestas: { 'engineAdmin.status': ESTADO_MOTOR, 'moderationAdmin.list': falla('functions/internal') } });
     await ir('moderacion');
-    expect(await screen.findByRole('alert')).toHaveTextContent('The server failed to respond. Try again.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('The server failed to respond, or could not be reached. Try again.');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 

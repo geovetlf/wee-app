@@ -1,13 +1,14 @@
 /*
  * LA LISTA PERMITIDA. Todo lo que la consola puede pedirle al servidor está aquí, y nada más.
  *
- * Solo lectura. Ocho acciones de tres callables que comprueban `assertAdmin` en el servidor, y las de `opsAdmin` y
- * `accountsAdmin`, que comprueban un permiso concreto y dejan constancia en `adminAudit` (functions/src/admin). Las acciones de escritura de esos mismos callables (`setProvider`, `setRouting`,
+ * Solo lectura. Ocho acciones de tres callables antiguas y las de `opsAdmin` y `accountsAdmin`: todas pasan por la misma
+ * puerta del servidor (functions/src/admin/autorizacion.ts), que relee el permiso en Auth y, si la lectura es de una
+ * persona, deja constancia en `adminAudit`. Las acciones de escritura de esos mismos callables (`setProvider`, `setRouting`,
  * `setSettings`, `seedDefaults`, `resetHealth`, `setCost`, `review`) y los callables `grantCredits` /
  * `refundCredits` NO están, y el cliente no tiene cómo construirlas: `cliente.ts` solo acepta una clave de este
  * mapa y solo copia los parámetros que aquí se declaran. El test `cliente.test.ts` fija la lista exacta.
  *
- * Esto es una cerradura de la CONSOLA, no de seguridad: la autorización real es `assertAdmin` en el servidor.
+ * Esto es una cerradura de la CONSOLA, no de seguridad: la autorización real está en el servidor.
  */
 export const ACCIONES = {
   'engineAdmin.status': { callable: 'engineAdmin', accion: 'status', parametros: [] },
@@ -21,12 +22,14 @@ export const ACCIONES = {
   'opsAdmin.quienSoy': { callable: 'opsAdmin', accion: 'quienSoy', parametros: [] },
   'opsAdmin.capacidades': { callable: 'opsAdmin', accion: 'capacidades', parametros: [] },
   'opsAdmin.trabajos': { callable: 'opsAdmin', accion: 'trabajos', parametros: ['estado', 'limit', 'cursor'] },
-  'opsAdmin.atascados': { callable: 'opsAdmin', accion: 'atascados', parametros: ['minutos', 'limit'] },
-  'opsAdmin.creaciones': { callable: 'opsAdmin', accion: 'creaciones', parametros: ['experiencia', 'estado', 'limit'] },
-  'opsAdmin.producciones': { callable: 'opsAdmin', accion: 'producciones', parametros: ['limit'] },
-  'opsAdmin.generaciones': { callable: 'opsAdmin', accion: 'generaciones', parametros: ['experiencia', 'limit'] },
+  'opsAdmin.atascados': { callable: 'opsAdmin', accion: 'atascados', parametros: ['minutos', 'limit', 'cursor'] },
+  'opsAdmin.cola': { callable: 'opsAdmin', accion: 'cola', parametros: ['limit', 'cursor'] },
+  'opsAdmin.creaciones': { callable: 'opsAdmin', accion: 'creaciones', parametros: ['experiencia', 'estado', 'limit', 'cursor'] },
+  'opsAdmin.creacionesAtascadas': { callable: 'opsAdmin', accion: 'creacionesAtascadas', parametros: ['minutos', 'limit', 'cursor'] },
+  'opsAdmin.producciones': { callable: 'opsAdmin', accion: 'producciones', parametros: ['limit', 'cursor'] },
+  'opsAdmin.generaciones': { callable: 'opsAdmin', accion: 'generaciones', parametros: ['experiencia', 'limit', 'cursor'] },
   'opsAdmin.usoIa': { callable: 'opsAdmin', accion: 'usoIa', parametros: ['dia'] },
-  'opsAdmin.reservas': { callable: 'opsAdmin', accion: 'reservas', parametros: ['minutos', 'limit'] },
+  'opsAdmin.reservas': { callable: 'opsAdmin', accion: 'reservas', parametros: ['minutos', 'limit', 'cursor'] },
   'opsAdmin.auditoria': { callable: 'opsAdmin', accion: 'auditoria', parametros: ['limit'] },
   'accountsAdmin.buscar': { callable: 'accountsAdmin', accion: 'buscar', parametros: ['uid', 'numeroDeCuenta'] },
 } as const;
@@ -50,12 +53,14 @@ export interface ParametrosPorAccion {
   'opsAdmin.quienSoy': undefined;
   'opsAdmin.capacidades': undefined;
   'opsAdmin.trabajos': { estado?: string; limit?: number; cursor?: string };
-  'opsAdmin.atascados': { minutos?: number; limit?: number };
-  'opsAdmin.creaciones': { experiencia?: string; estado?: string; limit?: number };
-  'opsAdmin.producciones': { limit?: number };
-  'opsAdmin.generaciones': { experiencia?: string; limit?: number };
+  'opsAdmin.atascados': { minutos?: number; limit?: number; cursor?: string };
+  'opsAdmin.cola': { limit?: number; cursor?: string };
+  'opsAdmin.creaciones': { experiencia?: string; estado?: string; limit?: number; cursor?: string };
+  'opsAdmin.creacionesAtascadas': { minutos?: number; limit?: number; cursor?: string };
+  'opsAdmin.producciones': { limit?: number; cursor?: string };
+  'opsAdmin.generaciones': { experiencia?: string; limit?: number; cursor?: string };
   'opsAdmin.usoIa': { dia?: string };
-  'opsAdmin.reservas': { minutos?: number; limit?: number };
+  'opsAdmin.reservas': { minutos?: number; limit?: number; cursor?: string };
   'opsAdmin.auditoria': { limit?: number };
   'accountsAdmin.buscar': { uid?: string; numeroDeCuenta?: string };
 }

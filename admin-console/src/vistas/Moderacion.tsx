@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { ESTADOS_DE_REPORTE, type EstadoDeReporte } from '../api/acciones';
 import { leerHistorial, leerReportes, type ReporteVista } from '../api/modelos';
 import { Cargable } from '../componentes/Cargable';
+import { AvisoDeLista, avisoPorLimite } from '../componentes/Lista';
 import { Dato, Datos, Etiqueta, Seccion, Tabla } from '../componentes/Piezas';
 import { useAccion } from '../hooks';
 import { useIdioma } from '../i18n/i18n';
+
+const LIMITE = 25;
 
 const Detalle = ({ reporte, alCerrar }: { reporte: ReporteVista; alCerrar: () => void }) => {
   const { t, fecha } = useIdioma();
@@ -51,7 +54,7 @@ export const Moderacion = () => {
   const { t, fecha } = useIdioma();
   const [estadoElegido, setEstadoElegido] = useState<EstadoDeReporte>('RECEIVED');
   const [abierto, setAbierto] = useState<ReporteVista | null>(null);
-  const { estado, recargar } = useAccion('moderationAdmin.list', { status: estadoElegido, limit: 25 }, leerReportes, (l) => l.length === 0);
+  const { estado, recargar } = useAccion('moderationAdmin.list', { status: estadoElegido, limit: LIMITE }, leerReportes, (l) => l.length === 0);
 
   return (
     <>
@@ -71,7 +74,7 @@ export const Moderacion = () => {
 
       <Cargable estado={estado} recargar={recargar} vacio={t('admin.moderacion.sinReportes')} hijos={(reportes) => (
         <Seccion titulo={t('admin.moderacion.contador', { contador: reportes.length })}>
-          <Tabla cabeceras={[t('admin.moderacion.fecha'), t('admin.moderacion.objetivo'), t('admin.moderacion.motivo'), t('admin.moderacion.historial'), t('admin.moderacion.detalle')]}>
+          <Tabla accionFija cabeceras={[t('admin.moderacion.fecha'), t('admin.moderacion.objetivo'), t('admin.moderacion.motivo'), t('admin.moderacion.historial'), t('admin.moderacion.detalle')]}>
             {reportes.map((r) => (
               <tr key={r.id}>
                 <td>{fecha(r.creado)}</td>
@@ -82,6 +85,7 @@ export const Moderacion = () => {
               </tr>
             ))}
           </Tabla>
+          <AvisoDeLista truncado={avisoPorLimite(reportes.length, LIMITE)} />
         </Seccion>
       )} />
 

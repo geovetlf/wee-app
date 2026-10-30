@@ -16,8 +16,8 @@ export const Dato = ({ etiqueta, valor, resaltar }: { etiqueta: string; valor: R
 
 export const Datos = ({ children }: { children: ReactNode }) => <dl className="datos">{children}</dl>;
 
-export const Tabla = ({ cabeceras, children }: { cabeceras: string[]; children: ReactNode }) => (
-  <div className="tabla-contenedor">
+export const Tabla = ({ cabeceras, children, accionFija = false }: { cabeceras: string[]; children: ReactNode; accionFija?: boolean }) => (
+  <div className={`tabla-contenedor${accionFija ? " accion-fija" : ""}`}>
     <table>
       <thead>
         <tr>{cabeceras.map((c) => <th key={c} scope="col">{c}</th>)}</tr>

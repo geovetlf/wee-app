@@ -15,6 +15,8 @@ export interface PaginaVista<T> {
   fuente?: string;
   examinados?: number;
   truncado: boolean;
+  /** Se agotó lo que se podía examinar: una lista vacía no significa que no haya. */
+  parcial: boolean;
   cursor?: string;
   correlationId?: string;
 }
@@ -26,6 +28,7 @@ const pagina = <T>(crudo: unknown, fila: (r: Registro) => T): PaginaVista<T> => 
     fuente: texto(raiz.fuente),
     examinados: numero(raiz.examinados),
     truncado: raiz.truncado === true,
+    parcial: raiz.parcial === true,
     cursor: texto(raiz.cursor),
     correlationId: texto(raiz.correlationId),
   };
@@ -45,6 +48,7 @@ export const leerTrabajos = (crudo: unknown) => pagina(crudo, (r) => ({
   modelo: texto(r.modelo),
   actualizado: numero(r.actualizado),
   limite: numero(r.limite),
+  dentroDePlazo: r.dentroDePlazo === true,
   intentos: numero(r.intentos),
 }));
 export type TrabajoVista = ReturnType<typeof leerTrabajos>['items'][number];
@@ -55,12 +59,27 @@ export const leerCreaciones = (crudo: unknown) => pagina(crudo, (r) => ({
   experiencia: texto(r.experiencia),
   estado: texto(r.estado),
   creado: numero(r.creado) ?? fechaEnMs(r.creado),
+  actualizado: numero(r.actualizado),
+  limite: numero(r.limite),
   abandonado: r.abandonado === true,
   demo: r.demo === true,
   creditsEstimados: numero(r.creditsEstimados),
   creditsCobrados: numero(r.creditsCobrados),
   pasos: numero(r.pasos),
   pasosFallidos: numero(r.pasosFallidos),
+}));
+
+export type CreacionVista = ReturnType<typeof leerCreaciones>['items'][number];
+
+export const leerCola = (crudo: unknown) => pagina(crudo, (r) => ({
+  id: texto(r.jobId) ?? '?',
+  motivo: texto(r.motivo),
+  encolado: numero(r.encolado),
+  disponible: numero(r.disponible),
+  entregas: numero(r.entregas),
+  apartado: r.apartado === true,
+  enVuelo: r.enVuelo === true,
+  retrasado: r.retrasado === true,
 }));
 
 export const leerProducciones = (crudo: unknown) => pagina(crudo, (r) => ({

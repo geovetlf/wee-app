@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ClienteDeAdmin } from '../api/cliente';
 import { clasificarError } from '../api/errores';
 import type { ServicioDeSesion, UsuarioDeSesion } from '../auth/sesion';
@@ -25,18 +25,34 @@ import { Resumen } from './Resumen';
 type Ruta = 'panorama' | 'resumen' | 'credits' | 'moderacion' | 'operaciones' | 'cuentas' | 'auditoria';
 const RUTAS: Ruta[] = ['panorama', 'resumen', 'credits', 'moderacion', 'operaciones', 'cuentas', 'auditoria'];
 /**
- * Lo que hace falta para VER cada sección nueva, tal como lo informa el servidor (`opsAdmin.quienSoy`). Ocultarla es
- * comodidad, no seguridad: el servidor comprueba el permiso en cada llamada. Las demás son de cualquier administración.
+ * Lo que hace falta para VER cada sección, tal como lo informa el servidor (`opsAdmin.quienSoy`). Ocultarla es
+ * comodidad, no seguridad: el servidor comprueba el permiso en cada llamada. Pero tiene que ser exacto: una sesión que
+ * pide lo que no puede ve «acceso denegado» en toda la consola, y con razón.
+ *
+ * Administración SIN rol conserva las secciones antiguas, porque el servidor le conserva sus operaciones
+ * (functions/src/admin/permisos.ts); las nuevas, no.
  */
 const PERMISO_DE_RUTA: Partial<Record<Ruta, readonly string[]>> = {
+  resumen: ['ai.read'],
+  credits: ['finance.read'],
+  moderacion: ['moderation.read'],
   operaciones: ['ops.read', 'ai.read', 'finance.read'],
   cuentas: ['accounts.read'],
   auditoria: ['audit.read'],
 };
-const puedeVer = (ruta: Ruta, permisos: readonly string[]): boolean => {
+const RUTAS_ANTIGUAS: readonly Ruta[] = ['resumen', 'credits', 'moderacion'];
+
+interface Identidad { rol?: string; permisos: readonly string[] }
+
+const puedeVer = (ruta: Ruta, { rol, permisos }: Identidad): boolean => {
+  if (!rol && RUTAS_ANTIGUAS.includes(ruta)) return true;
   const hacen = PERMISO_DE_RUTA[ruta];
   return !hacen || hacen.some((p) => permisos.includes(p));
 };
+
+/** Para los bloques de las secciones antiguas: con rol, su permiso; sin rol, lo de siempre. */
+export type PuedeLeer = (permiso: string) => boolean;
+const lectorDe = ({ rol, permisos }: Identidad): PuedeLeer => (permiso) => !rol || permisos.includes(permiso);
 
 const rutaDelHash = (): Ruta => {
   const h = (typeof window === 'undefined' ? '' : window.location.hash).replace(/^#\/?/, '');
@@ -46,7 +62,7 @@ const rutaDelHash = (): Ruta => {
 /**
  * La consola con sesión iniciada. Vigila TODAS las respuestas del servidor: si cualquiera dice «sin permiso» o
  * «sin sesión», la consola entera se sustituye por la pantalla de acceso denegado (las vistas se desmontan y con
- * ellas sus datos). La decisión de verdad la toma el servidor con `assertAdmin`; esto solo la hace visible.
+ * ellas sus datos). La decisión de verdad la toma el servidor; esto solo la hace visible.
  */
 export const Consola = ({ usuario, cliente, sesion }: { usuario: UsuarioDeSesion; cliente: ClienteDeAdmin; sesion: ServicioDeSesion }) => {
   const [ruta, setRuta] = useState<Ruta>(rutaDelHash);
@@ -74,24 +90,22 @@ export const Consola = ({ usuario, cliente, sesion }: { usuario: UsuarioDeSesion
 
   return (
     <ContextoDeCliente.Provider value={vigilado}>
-      <ComprobacionDePermiso>
-        <Interior usuario={usuario} sesion={sesion} ruta={ruta} />
-      </ComprobacionDePermiso>
+      <ComprobacionDePermiso hijos={(identidad) => <Interior usuario={usuario} sesion={sesion} ruta={ruta} identidad={identidad} />} />
     </ContextoDeCliente.Provider>
   );
 };
 
 /**
- * ANTES de pintar el menú o cualquier vista, una lectura al servidor confirma que esta sesión es de administración
- * (`engineAdmin.status`, de la lista permitida, protegida por `assertAdmin` como las otras siete). Mientras tanto
- * solo se ve «Comprobando permisos…»; si el servidor dice «sin permiso» o «sin sesión», el cliente vigilado ya
- * cambia la consola entera por la pantalla de acceso denegado. Esto NO sustituye a `assertAdmin`: cada vista sigue
- * pidiendo sus datos al servidor, que vuelve a comprobarlo en cada llamada.
+ * ANTES de pintar el menú o cualquier vista, una lectura al servidor confirma que esta sesión es de administración y
+ * qué puede (`opsAdmin.quienSoy`, la única que responde a toda administración, tenga el rol que tenga, y que mira Auth
+ * en ese momento). Mientras tanto solo se ve «Comprobando permisos…»; si el servidor dice «sin permiso» o «sin sesión»,
+ * el cliente vigilado ya cambia la consola entera por la pantalla de acceso denegado. Si falla por otra cosa, no se
+ * entra: se dice y se deja reintentar. Esto NO sustituye a la comprobación del servidor en cada llamada.
  */
-const ComprobacionDePermiso = ({ children }: { children: ReactNode }) => {
+const ComprobacionDePermiso = ({ hijos }: { hijos: (identidad: Identidad) => ReactNode }) => {
   const t = useT();
-  const { estado, recargar } = useAccion('engineAdmin.status', undefined, () => true);
-  if (estado.fase === 'ok') return <>{children}</>;
+  const { estado, recargar } = useAccion('opsAdmin.quienSoy', undefined, leerIdentidad);
+  if (estado.fase === 'ok') return <>{hijos(estado.datos)}</>;
   return (
     <main className="pantalla-central">
       <div className="tarjeta-central">
@@ -104,20 +118,21 @@ const ComprobacionDePermiso = ({ children }: { children: ReactNode }) => {
   );
 };
 
-const Interior = ({ usuario, sesion, ruta: rutaPedida }: { usuario: UsuarioDeSesion; sesion: ServicioDeSesion; ruta: Ruta }) => {
+const Interior = ({ usuario, sesion, ruta: rutaPedida, identidad }: { usuario: UsuarioDeSesion; sesion: ServicioDeSesion; ruta: Ruta; identidad: Identidad }) => {
   const { t } = useIdioma();
-  /* Si esto falla, se ven solo las secciones de cualquier administración: nunca más de lo que el servidor confirmó. */
-  const identidad = useAccion('opsAdmin.quienSoy', undefined, leerIdentidad);
-  const permisos = identidad.estado.fase === 'ok' ? identidad.estado.datos.permisos : [];
-  const rol = identidad.estado.fase === 'ok' ? identidad.estado.datos.rol : undefined;
-  const ruta: Ruta = puedeVer(rutaPedida, permisos) ? rutaPedida : 'panorama';
+  const { rol, permisos } = identidad;
+  const puedeLeer = lectorDe(identidad);
+  const ruta: Ruta = puedeVer(rutaPedida, identidad) ? rutaPedida : 'panorama';
+  /* En móvil el menú se desplaza en horizontal: la sección en la que estás tiene que verse. */
+  const activo = useRef<HTMLAnchorElement>(null);
+  useEffect(() => { activo.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); }, [ruta]);
   return (
     <div className="consola">
       <aside className="lateral">
         <Marca />
         <nav aria-label={t('admin.nav.menu')}>
-          {RUTAS.filter((r) => puedeVer(r, permisos)).map((r) => (
-            <a key={r} href={`#/${r}`} className={`enlace${r === ruta ? ' activo' : ''}`} aria-current={r === ruta ? 'page' : undefined}>
+          {RUTAS.filter((r) => puedeVer(r, identidad)).map((r) => (
+            <a key={r} ref={r === ruta ? activo : undefined} href={`#/${r}`} className={`enlace${r === ruta ? ' activo' : ''}`} aria-current={r === ruta ? 'page' : undefined}>
               {t(`admin.nav.${r}`)}
             </a>
           ))}
@@ -131,9 +146,9 @@ const Interior = ({ usuario, sesion, ruta: rutaPedida }: { usuario: UsuarioDeSes
         </div>
       </aside>
       <main className="contenido">
-        {ruta === 'panorama' && <Panorama />}
+        {ruta === 'panorama' && <Panorama puedeLeer={puedeLeer} />}
         {ruta === 'resumen' && <Resumen />}
-        {ruta === 'credits' && <Credits />}
+        {ruta === 'credits' && <Credits puedeLeer={puedeLeer} />}
         {ruta === 'moderacion' && <Moderacion />}
         {ruta === 'operaciones' && <Operaciones permisos={permisos} />}
         {ruta === 'cuentas' && <Cuentas />}

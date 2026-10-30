@@ -7,64 +7,46 @@
  *       node ops/admin/asignar-owner.mjs --proyecto demo-wee --uid <uid>
  *
  *   Proyecto real (lo ejecuta SOLO la persona dueña, con SUS credenciales, cuando lo decida):
- *     node ops/admin/asignar-owner.mjs --proyecto get-wee --uid <uid> \
+ *     node ops/admin/asignar-owner.mjs --proyecto get-wee --uid <uid> --actor <quien-lo-ejecuta> \
  *       --confirmar-proyecto get-wee --confirmar-uid <uid> --motivo "por qué"
  *
  * Qué garantiza:
- *   · Es explícito: sin los dos `--confirmar-*`, en un proyecto real no hace nada. En un proyecto real exige `--motivo`.
- *   · No crea administradores: la cuenta YA tiene que tener el claim `admin`. Si no, se niega. Dar `admin` es otro acto.
+ *   · Es explícito: sin los dos `--confirmar-*`, en un proyecto real no hace nada. En un proyecto real exige `--motivo`
+ *     y `--actor`: quién lo hace de verdad, no el nombre del script.
+ *   · No crea administradores sin decirlo: sin el claim `admin` se niega. Para una cuenta que hoy solo es administración
+ *     por `WEE_ADMIN_UIDS` (las reglas de Firestore no la ven, y dejará de serlo al vaciar la lista), `--conceder-admin`
+ *     da las dos cosas a la vez y queda escrito. Es un acto expreso: en un proyecto real exige `--confirmar-admin <uid>`.
  *   · No toca los demás claims: los conserva y solo añade `weeRole`.
- *   · Deja constancia ANTES de cambiar nada, en `adminAudit`. Si no puede escribirla, no cambia el rol.
+ *   · Deja constancia en dos tiempos, como las callables (`functions/src/admin/autorizacion.ts`): `intento` ANTES de
+ *     cambiar nada (si no puede escribirlo, no cambia el rol) y `ok` o `error` cuando sabe cómo acabó.
  *   · Solo conoce `owner`: el resto de roles llegará con su propia decisión.
  *   · No guarda ni imprime tokens, contraseñas ni credenciales.
  *
- * El rol viaja en el token: la persona tiene que volver a iniciar sesión para que surta efecto.
+ * Surte efecto en la siguiente llamada a una operación de administración, porque el servidor relee los claims en Auth.
+ * Las reglas de Firestore y la consola sí ven el token: esas, al renovarlo o al volver a iniciar sesión.
  */
-import { randomBytes } from 'node:crypto';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-
-const HOSTS_LOCALES = ['127.0.0.1', 'localhost', '[::1]'];
-const esLocal = (h) => HOSTS_LOCALES.includes(String(h || '').replace(/:\d+$/, ''));
+import { conectar, constancia, leerArgumentos, motivosComunes } from './_comun.mjs';
 
 /** Pura: por qué NO se puede ejecutar con estos datos (vacío = se puede). */
-export const motivosParaNoEjecutar = ({ proyecto, uid, confirmarProyecto, confirmarUid, motivo, env = {} }) => {
-  const motivos = [];
-  if (!proyecto) motivos.push('falta --proyecto');
-  if (!uid || /[/\s]/.test(uid) || uid.length > 128) motivos.push('--uid no es válido');
-  const esDemo = String(proyecto || '').startsWith('demo-');
-  const hayEmulador = !!env.FIREBASE_AUTH_EMULATOR_HOST;
-  if (esDemo) {
-    if (!hayEmulador || !env.FIRESTORE_EMULATOR_HOST) motivos.push('un proyecto demo-* solo funciona con FIREBASE_AUTH_EMULATOR_HOST y FIRESTORE_EMULATOR_HOST');
-    else if (!esLocal(env.FIREBASE_AUTH_EMULATOR_HOST) || !esLocal(env.FIRESTORE_EMULATOR_HOST)) motivos.push('los emuladores tienen que ser de esta máquina');
-  } else if (proyecto) {
-    if (hayEmulador || env.FIRESTORE_EMULATOR_HOST) motivos.push('un proyecto real no se mezcla con variables de emulador');
-    if (confirmarProyecto !== proyecto) motivos.push('en un proyecto real, --confirmar-proyecto tiene que repetir --proyecto');
-    if (confirmarUid !== uid) motivos.push('en un proyecto real, --confirmar-uid tiene que repetir --uid');
-    if (!motivo || String(motivo).trim().length < 10) motivos.push('en un proyecto real, --motivo es obligatorio (10 caracteres o más)');
-  }
+export const motivosParaNoEjecutar = ({ concederAdmin, confirmarAdmin, ...datos }) => {
+  const motivos = motivosComunes(datos);
+  if (concederAdmin && !String(datos.proyecto || '').startsWith('demo-') && confirmarAdmin !== datos.uid) motivos.push('en un proyecto real, --conceder-admin exige --confirmar-admin con el mismo uid');
   return motivos;
 };
 
 /** Pura: los claims resultantes, o por qué no. Exige que ya sea administración y conserva todo lo demás. */
-export const claimsConOwner = (actuales) => {
+export const claimsConOwner = (actuales, { concederAdmin = false } = {}) => {
   const claims = actuales && typeof actuales === 'object' ? actuales : {};
-  if (claims.admin !== true) return { error: 'la cuenta no tiene el claim admin: este script no crea administradores' };
-  return { claims: { ...claims, weeRole: 'owner' } };
-};
-
-const leerArgumentos = (argv) => {
-  const salida = {};
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i].startsWith('--')) salida[argv[i].slice(2)] = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : 'true';
-  }
-  return salida;
+  if (claims.admin !== true && !concederAdmin) return { error: 'la cuenta no tiene el claim admin: este script no crea administradores sin --conceder-admin' };
+  return { claims: { ...claims, admin: true, weeRole: 'owner' }, concedeAdmin: claims.admin !== true };
 };
 
 const principal = async () => {
   const a = leerArgumentos(process.argv.slice(2));
-  const motivos = motivosParaNoEjecutar({ proyecto: a.proyecto, uid: a.uid, confirmarProyecto: a['confirmar-proyecto'], confirmarUid: a['confirmar-uid'], motivo: a.motivo, env: process.env });
+  const concederAdmin = a['conceder-admin'] === 'true';
+  const motivos = motivosParaNoEjecutar({ proyecto: a.proyecto, uid: a.uid, actor: a.actor, confirmarProyecto: a['confirmar-proyecto'], confirmarUid: a['confirmar-uid'], motivo: a.motivo, concederAdmin, confirmarAdmin: a['confirmar-admin'], env: process.env });
   if (motivos.length) {
     console.error('✘ No se hace nada:');
     for (const m of motivos) console.error(`  · ${m}`);
@@ -72,45 +54,35 @@ const principal = async () => {
   }
 
   const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-  const require = createRequire(path.join(raiz, 'functions/package.json'));
-  const { initializeApp } = require('firebase-admin/app');
-  const { getAuth } = require('firebase-admin/auth');
-  const { getFirestore } = require('firebase-admin/firestore');
-  const app = initializeApp({ projectId: a.proyecto });
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+  const { auth, db } = conectar(raiz, a.proyecto);
 
   const usuario = await auth.getUser(a.uid);
-  const resultado = claimsConOwner(usuario.customClaims);
+  if (usuario.disabled) {
+    console.error('✘ No se hace nada: la cuenta está deshabilitada; un owner deshabilitado no recupera nada.');
+    process.exit(1);
+  }
+  const resultado = claimsConOwner(usuario.customClaims, { concederAdmin });
   if (resultado.error) {
     console.error(`✘ No se hace nada: ${resultado.error}.`);
     process.exit(1);
   }
   const rolAnterior = usuario.customClaims?.weeRole ?? null;
 
-  /* Primero la constancia. Misma forma que functions/src/admin/auditoria.ts. */
-  const correlationId = `adm_${randomBytes(12).toString('hex')}`;
-  await db.collection('adminAudit').doc().create({
-    v: 1,
-    en: Date.now(),
-    entorno: a.proyecto,
-    actorUid: 'script:asignar-owner',
-    actorRol: null,
-    accion: 'admin.asignarRol',
-    recurso: { tipo: 'cuenta', id: a.uid },
-    resultado: 'ok',
-    correlationId,
-    ...(a.motivo ? { motivo: String(a.motivo).slice(0, 200) } : {}),
-    metadatos: { rolAnterior: rolAnterior ?? 'ninguno', rolNuevo: 'owner' },
-  });
-
-  await auth.setCustomUserClaims(a.uid, resultado.claims);
-  console.log(`✔ ${a.uid} tiene el rol owner en ${a.proyecto} (correlación ${correlationId}). Tiene que volver a iniciar sesión.`);
+  const anotar = constancia(db, { proyecto: a.proyecto, actor: a.actor, accion: 'admin.asignarRol', uid: a.uid, motivo: a.motivo, metadatos: { rolAnterior: rolAnterior ?? 'ninguno', rolNuevo: 'owner', concedeAdmin: resultado.concedeAdmin } });
+  await anotar('intento');
+  try {
+    await auth.setCustomUserClaims(a.uid, resultado.claims);
+  } catch (e) {
+    await anotar('error', e?.code ?? 'error').catch(() => {});
+    throw e;
+  }
+  await anotar('ok').catch((e) => console.error(`⚠ El rol cambió y no se pudo cerrar la constancia (${e?.code ?? 'error'}): concilia ${anotar.correlationId}.`));
+  console.log(`✔ ${a.uid} tiene el rol owner en ${a.proyecto} (correlación ${anotar.correlationId}).`);
 };
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   principal().catch((e) => {
-    console.error('✘ Falló:', e?.code ?? 'error', '— si la constancia ya se escribió y el claim no, revisa adminAudit.');
+    console.error('✘ Falló:', e?.code ?? 'error', '— revisa en adminAudit si quedó un intento sin cierre.');
     process.exit(1);
   });
 }

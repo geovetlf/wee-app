@@ -18,6 +18,10 @@
  *
  *   node functions/test/_emuladores.mjs              # todas las `*.emulator.mjs` (al final dice cuántas)
  *   node functions/test/_emuladores.mjs --solo rules # solo las que contienen «rules»
+ *   node functions/test/_emuladores.mjs --aislado    # en otros puertos, si los de siempre los tiene otra sesión
+ *
+ * `--aislado` no toca `firebase.json` ni a quien esté usando sus puertos: escribe una copia junto a él (la ruta de las
+ * reglas es relativa) con otros puertos, se la pasa a firebase-tools con `--config` y la borra al terminar.
  *
  * Necesita Java 21 (en el PATH, en JAVA21_HOME o el portable de wee-tools) y
  * firebase-tools (FIREBASE_BIN, el global de npm o `firebase` en el PATH).
@@ -55,9 +59,25 @@ const firebaseTools = () => {
   return ['firebase'];
 };
 
-const correrUna = (lanzador, suite, cmd, env, limiteMs) => new Promise((resolve) => {
+export const NOMBRE_DE_LA_COPIA_AISLADA = 'firebase.aislado.temporal.json';
+
+/** Pura: la misma configuración con otros puertos. Lo demás (reglas, índices, funciones) no se toca. */
+export const configuracionAislada = (base) => ({
+  ...base,
+  emulators: {
+    auth: { host: '127.0.0.1', port: 19099 },
+    firestore: { host: '127.0.0.1', port: 18080, websocketPort: 19150 },
+    functions: { host: '127.0.0.1', port: 15001 },
+    storage: { host: '127.0.0.1', port: 19199 },
+    hub: { host: '127.0.0.1', port: 14400 },
+    logging: { host: '127.0.0.1', port: 14500 },
+    ui: { enabled: false },
+  },
+});
+
+const correrUna = (lanzador, suite, cmd, env, limiteMs, config) => new Promise((resolve) => {
   const inicio = Date.now();
-  const args = [...lanzador.slice(1), 'emulators:exec', '--only', cmd.solo.join(','), '--project', cmd.proyecto, `node ${cmd.nodo.join(' ')}`];
+  const args = [...lanzador.slice(1), 'emulators:exec', ...(config ? ['--config', config] : []), '--only', cmd.solo.join(','), '--project', cmd.proyecto, `node ${cmd.nodo.join(' ')}`];
   const hijo = spawn(lanzador[0], args, { cwd: RAIZ, env });
   let salida = '';
   hijo.stdout.on('data', (d) => { salida += d; });
@@ -81,11 +101,21 @@ const principal = async () => {
   if (java.home) { env.PATH = `${path.join(java.home, 'bin')}${path.delimiter}${env.PATH || ''}`; env.JAVA_HOME = java.home; }
   /* Ni credenciales ni proyecto real heredados del portátil o del runner. */
   for (const k of ['GOOGLE_APPLICATION_CREDENTIALS', 'GCLOUD_PROJECT', 'GOOGLE_CLOUD_PROJECT', 'FIREBASE_PROJECT']) delete env[k];
+  /* Cargar todas las Functions tarda más de los 10 s por defecto en una máquina ocupada, y entonces la suite falla por nada. */
+  env.FUNCTIONS_DISCOVERY_TIMEOUT = env.FUNCTIONS_DISCOVERY_TIMEOUT || '120';
   /* ¿Se puede emular Functions? Solo sin claves locales (los NOMBRES se miran; los valores no salen de aquí). */
   const leerSiExiste = (rel) => { try { return fs.readFileSync(path.join(RAIZ, rel), 'utf8'); } catch { return ''; } };
   const sinSecretosLocales = motivosParaNoArrancar({
     proyecto: 'demo-suites', env, envLocal: leerSiExiste('functions/.env.local'), secretLocal: leerSiExiste('functions/.secret.local'),
   }).length === 0;
+
+  let config;
+  if (args.includes('--aislado')) {
+    const copia = path.join(RAIZ, NOMBRE_DE_LA_COPIA_AISLADA);
+    fs.writeFileSync(copia, JSON.stringify(configuracionAislada(JSON.parse(fs.readFileSync(path.join(RAIZ, 'firebase.json'), 'utf8'))), null, 2));
+    process.on('exit', () => { try { fs.unlinkSync(copia); } catch { /* ya no está */ } });
+    config = NOMBRE_DE_LA_COPIA_AISLADA;
+  }
 
   const lanzador = firebaseTools();
   const resultados = [];
@@ -95,7 +125,7 @@ const principal = async () => {
     /* Con Functions, los secretos del emulador van declarados y VACÍOS: nunca pregunta a Secret Manager. */
     const rutaSecretos = path.join(RAIZ, 'functions/.secret.local');
     if (cmd.solo.includes('functions') && !fs.existsSync(rutaSecretos)) fs.writeFileSync(rutaSecretos, secretLocalVacio());
-    const r = await correrUna(lanzador, suite, cmd, env, limiteMs);
+    const r = await correrUna(lanzador, suite, cmd, env, limiteMs, config);
     resultados.push(r);
     console.log(`${r.ok ? '✔' : '✘'} ${suite} [${cmd.solo.join(',')} · ${cmd.proyecto}] (${(r.ms / 1000).toFixed(1)} s)`);
   }
