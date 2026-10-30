@@ -16,6 +16,7 @@ config.resolver.blockList = [
   projectDir('android'),
   projectDir('ios'),
   projectDir('design'),
+  projectDir('admin-console'),
 ];
 
 module.exports = config;

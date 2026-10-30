@@ -1,0 +1,31 @@
+{
+  "name": "wee-admin-console",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Weë Admin Console — consola administrativa privada, independiente de la app de usuario (Unidad 1: solo lectura).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "admin:local": "node scripts/admin-local.mjs"
+  },
+  "dependencies": {
+    "firebase": "^12.2.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "~19.1.10",
+    "@types/react-dom": "~19.1.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.9.2",
+    "vite": "^6.4.5",
+    "vitest": "^4.1.12"
+  }
+}

@@ -9,6 +9,7 @@
     "metro.config.js",
     "jest.config.js",
     "android",
+    "admin-console",
     "ios",
     "functions/lib",
     "functions/node_modules",

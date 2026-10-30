@@ -1,0 +1,8 @@
+# Weë Admin Console — configuración local. Copia a `.env.local` solo si necesitas cambiar algo (está ignorado por git).
+# La Unidad 1 SOLO funciona contra emuladores: el proyecto tiene que ser demo-* y los hosts, locales.
+# No hay claves aquí ni hacen falta: el emulador acepta cualquier clave de API.
+VITE_FIREBASE_PROJECT_ID=demo-wee
+VITE_AUTH_EMULATOR_HOST=127.0.0.1
+VITE_AUTH_EMULATOR_PORT=9099
+VITE_FUNCTIONS_EMULATOR_HOST=127.0.0.1
+VITE_FUNCTIONS_EMULATOR_PORT=5001
