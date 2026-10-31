@@ -443,9 +443,22 @@ const NOMBRE_SECCION: Record<string, string> = {
   studio: 'Weë Studio',
   writer: 'Weë Writer',
   music: 'Weë Music',
-  business: 'Weë Business',
+  business: 'Weë Fashion',
   brain: 'Weë Brain',
   travel: 'Weë Travel',
+};
+
+/**
+ * Los nombres con los que una sección firmó publicaciones antiguas en `aiTools`.
+ *
+ * Una publicación anterior a `sourceSection` solo dice de dónde viene por el nombre
+ * que llevaba la sección ese día, y ese texto está guardado: no se migra. Cuando una
+ * sección cambia de nombre (Weë Business pasó a Weë Fashion, 2026-10-14) el nombre
+ * viejo se sigue reconociendo, y lo que se enseña es el nombre de hoy. El
+ * identificador de la sección no cambia nunca.
+ */
+const NOMBRES_ANTERIORES: Record<string, string[]> = {
+  business: ['Weë Business'],
 };
 
 /**
@@ -483,7 +496,8 @@ export const seccionDe = (post: Post): ContextoPublicacion | undefined => {
   for (const [id, nombre] of Object.entries(NOMBRE_SECCION)) {
     // "wee design" dentro de "Weë Design": la comparación va normalizada, así que
     // la diéresis y las mayúsculas dan igual.
-    if (herramientas.some((h) => h.includes(normalize(nombre)))) return { id, nombre };
+    const nombres = [nombre, ...(NOMBRES_ANTERIORES[id] ?? [])];
+    if (herramientas.some((h) => nombres.some((n) => h.includes(normalize(n))))) return { id, nombre };
   }
   return undefined;
 };

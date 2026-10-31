@@ -55,6 +55,8 @@ Espacio especializado de herramientas de IA. **Sí conserva el nombre "WEË AI"*
 
 > **Actualización (2026-09-05):** estas categorías se reemplazan por las **experiencias de WEE** — 🎨 WEE Design · 🎬 WEE Studio · 📸 WEE Photo · ✍️ WEE Writer · 🎵 WEE Music · 💄 WEE Beauty · 👨‍🍳 WEE Chef · 🏠 WEE Home · 💼 WEE Business · ✈️ WEE Travel *(añadida el 2026-09-09)* · 🧠 WEE Brain — bajo la regla "El usuario elige el resultado. WEE elige la IA." Ver [`CREATOR.md`](CREATOR.md).
 
+> **Actualización (2026-10-14):** la experiencia 💼 Weë Business (arriba, «WEE Business») se llama ahora 👗 **Weë Fashion** en pantalla: solo cambian el nombre visible, el emoji/icono y la descripción provisional («Moda, estilo, belleza y creación de contenido visual.»). El identificador técnico sigue siendo `business`. **Weë Business** queda como el nombre del producto de negocios (ver §14, «Weë Business no es eso y sigue entero»), que no cambia.
+
 Las herramientas pueden ser propias de WEE o integraciones de otros servicios.
 
 ## 7. WEË AI dentro del menú

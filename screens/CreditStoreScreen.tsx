@@ -56,7 +56,8 @@ const CreditStoreScreen = () => {
   }, []);
 
   const handlePurchase = async (pkg: CreditPackage) => {
-    if (!accountUid || purchasing) return;
+    if (!accountUid) return (nav as any).navigate('Login');
+    if (purchasing) return;
     setPurchasing(true);
     try {
       // Sin pagos conectados todavía: recarga de prueba validada por el servidor (solo dev)

@@ -38,7 +38,9 @@ const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
     overflow: 'hidden' as const,
   };
 
-  const hasValidPhotoURL = isValidImageUrl(photoURL);
+  /* Una foto que no carga deja el avatar por defecto, no un círculo vacío. */
+  const [fotoRota, setFotoRota] = React.useState<string | null>(null);
+  const hasValidPhotoURL = isValidImageUrl(photoURL) && fotoRota !== photoURL;
 
   if (avatarType === 'custom' && hasValidPhotoURL) {
     const imageUrl = cloudinaryAvatar(photoURL!, size * 2);
@@ -53,6 +55,7 @@ const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
           contentFit="cover"
           cachePolicy="memory-disk"
           transition={150}
+          onError={() => setFotoRota(photoURL!)}
         />
       </View>
     );

@@ -82,7 +82,7 @@ export const business: typeof import('../es/business').business = {
   yesterday: 'Ontem',
 
   /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
-  slogan: 'Cria, gere, divulga e faz crescer o teu negócio.',
+  slogan: 'Moda, estilo, beleza e criação de conteúdo visual.',
 
   modMyBusinessHint: 'Constrói e gere o teu negócio',
   modProductsHint: 'Os teus produtos e os seus preços',
@@ -196,7 +196,7 @@ export const business: typeof import('../es/business').business = {
   shareCommunities: 'Comunidades',
   shareProfile: 'Business Profile',
   shareNothing: 'Primeiro cria alguma coisa e depois partilha-a a partir daqui.',
-  shareText: 'Criado com Weë Business',
+  shareText: 'Criado com Weë Fashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Carregar os meus dados',

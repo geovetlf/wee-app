@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import MedioNoDisponible from './media/MedioNoDisponible';
 import {
   View,
   Text,
@@ -189,6 +190,13 @@ const PostCard: React.FC<PostCardProps> = ({
   // Si es un repost, cargar el post original y el autor del repost
   // Si no es un repost, usar el post actual
   const isRepost = post.isRepost === true;
+  /* Los medios que no cargaron. Quitar una entrada es volver a intentarlo. */
+  const [mediosRotos, setMediosRotos] = useState<Record<string, true>>({});
+  const marcarRoto = useCallback((url: string) => setMediosRotos((m) => ({ ...m, [url]: true })), []);
+  const reintentarMedio = useCallback((url: string) => setMediosRotos((m) => {
+    const { [url]: _quitado, ...resto } = m;
+    return resto;
+  }), []);
   const [originalPost, setOriginalPost] = useState<Post | null>(null);
   const [loadingOriginal, setLoadingOriginal] = useState(isRepost);
 
@@ -916,8 +924,12 @@ const PostCard: React.FC<PostCardProps> = ({
           título.
         */}
         <View style={[styles.videoAspectBox, { aspectRatio: proporcionDelVideo }]}>
+          {mediosRotos[displayPost.videoUrl] ? (
+            <MedioNoDisponible style={StyleSheet.absoluteFill} alReintentar={() => reintentarMedio(displayPost.videoUrl!)} />
+          ) : (
           <Video
             ref={videoRef}
+            onError={() => marcarRoto(displayPost.videoUrl!)}
             source={{ uri: displayPost.videoUrl }}
             style={styles.videoPlayer}
             videoStyle={styles.videoElement}
@@ -931,6 +943,7 @@ const PostCard: React.FC<PostCardProps> = ({
             posterStyle={styles.videoPoster}
             usePoster={!!displayPost.imageUrls?.[0]}
           />
+          )}
         </View>
 
         {/*
@@ -965,6 +978,7 @@ const PostCard: React.FC<PostCardProps> = ({
         )}
 
         {/* Mute/Unmute button */}
+        {!mediosRotos[displayPost.videoUrl] && (
         <TouchableOpacity
           style={styles.videoMuteButton}
           onPress={toggleMute}
@@ -976,6 +990,7 @@ const PostCard: React.FC<PostCardProps> = ({
             color="white"
           />
         </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -1015,6 +1030,9 @@ const PostCard: React.FC<PostCardProps> = ({
           onLongPress={() => handleImageLongPress(0)}
           activeOpacity={0.98}
         >
+          {mediosRotos[displayPost.imageUrls[0]] ? (
+            <MedioNoDisponible style={{ height: '100%' }} alReintentar={() => reintentarMedio(displayPost.imageUrls![0])} />
+          ) : (
           <Image
             source={{ uri: cloudinaryFeed(displayPost.imageUrls[0], feedImageWidth) }}
             placeholder={thumbnail ? { uri: thumbnail } : undefined}
@@ -1031,10 +1049,9 @@ const PostCard: React.FC<PostCardProps> = ({
             priority="high"
             cachePolicy="disk"
             allowDownscaling={false}
-            onError={(error) => {
-              console.log('Error loading single image:', displayPost.imageUrls?.[0]);
-            }}
+            onError={() => marcarRoto(displayPost.imageUrls![0])}
           />
+          )}
         </TouchableOpacity>
       );
     }
@@ -1074,6 +1091,9 @@ const PostCard: React.FC<PostCardProps> = ({
                 onLongPress={() => handleImageLongPress(index)}
                 activeOpacity={0.98}
               >
+                {mediosRotos[imageUrl] ? (
+                  <MedioNoDisponible style={{ height: '100%' }} alReintentar={() => reintentarMedio(imageUrl)} />
+                ) : (
                 <Image
                   source={{ uri: cloudinaryFeed(imageUrl, feedImageWidth) }}
                   placeholder={thumbnail ? { uri: thumbnail } : undefined}
@@ -1090,10 +1110,9 @@ const PostCard: React.FC<PostCardProps> = ({
                 priority="high"
                 cachePolicy="disk"
                 allowDownscaling={false}
-                onError={(error) => {
-                  console.log('Error loading image in carousel:', imageUrl);
-                }}
+                onError={() => marcarRoto(imageUrl)}
               />
+                )}
             </TouchableOpacity>
             );
           })}

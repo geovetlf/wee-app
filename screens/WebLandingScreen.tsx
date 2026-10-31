@@ -156,9 +156,9 @@ const WebLandingScreen: React.FC = () => {
     if (!user) return navigation.navigate('Login');
     irAlCompositor({ kind: 'weel' });
   };
+  /* Ver Weëls abre siempre el feed; sin Weëls cargados, el feed pide los suyos y dice si no hay. Crear es `handleCreateWeel`. */
   const handleOpenWeels = () => {
-    if (weels.length === 0) return handleCreateWeel();
-    navigation.navigate('Reels', { initialPost: weels[0], initialVideoPosts: weels });
+    navigation.navigate('Reels', weels.length > 0 ? { initialPost: weels[0], initialVideoPosts: weels } : undefined);
   };
   useEffect(() => {
     if (!route.params?.openWeels) return;

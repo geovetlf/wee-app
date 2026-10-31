@@ -23,6 +23,7 @@ export const common: typeof import('../es/common').common = {
   send: '送信',
   share: '共有',
   retry: 'もう一度お試しください',
+  mediaUnavailable: 'このファイルは利用できません',
   loading: '読み込み中…',
   error: 'エラー',
   somethingWentWrong: '問題が発生しました',

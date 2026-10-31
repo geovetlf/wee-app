@@ -171,12 +171,12 @@ const Sidebar: React.FC = () => {
   const requireLogin = () => navigation.navigate('Login');
 
   const handleCreate = () => {
-    if (!user) return requireLogin();
     setSheetVisible(true);
   };
 
   const handleSelectKind = (kind: CreateKind) => {
     setSheetVisible(false);
+    if (!user) return requireLogin();
     navigation.navigate('Create', { kind });
   };
 

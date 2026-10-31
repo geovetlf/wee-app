@@ -4,6 +4,10 @@
 // (p. ej. npm install) tumbe el bundler.
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
+const { exigirConfigWeb } = require('./scripts/exigir-config-web.cjs');
+
+// En Vercel, una web sin configuración de Firebase no llega a construirse (ver el script).
+exigirConfigWeb();
 
 const config = getDefaultConfig(__dirname);
 

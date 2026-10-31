@@ -234,6 +234,16 @@ const linking: any = {
       /* Con la puerta de «Crear mundo 3D» cerrada, tampoco tiene enlace. Ni la foto (es local) ni las palabras de la persona viajan en la dirección. */
       ...(MUNDO_3D_EN_LA_APP ? { Mundo3D: { path: 'studio/mundo-3d', stringify: { imageUri: nuncaEnLaUrl, descripcion: nuncaEnLaUrl } } } : {}),
       Design: 'design',
+      /*
+       * LO QUE UN INVITADO PUEDE ABRIR POR ENLACE Y RECARGAR. Sin dirección propia, React Navigation escribía el nombre
+       * interno (`/Reels`, `/WeeCreator`) y luego no sabía leerlo: recargar llevaba al Inicio. El alias mantiene vivos
+       * los enlaces que ya circulan. Ninguna publicación viaja en la dirección: el feed de Weëls carga las suyas.
+       */
+      Reels: { path: 'weels', alias: ['Reels', 'reels'] },
+      WeeCreator: { path: 'weeai', alias: ['WeeCreator'] },
+      Help: { path: 'help', alias: ['Help'] },
+      Login: { path: 'login', alias: ['Login'] },
+      Register: { path: 'register', alias: ['Register'] },
       PostDetail: {
         path: 'post/:postId',
         parse: {

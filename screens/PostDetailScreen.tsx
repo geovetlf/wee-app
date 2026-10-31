@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
+import MedioNoDisponible from '../components/media/MedioNoDisponible';
 import {
   View,
   Text,
@@ -124,6 +125,12 @@ const PostDetailContent: React.FC = () => {
   );
 
   const videoRef = useRef<Video>(null);
+  const [mediosRotos, setMediosRotos] = useState<Record<string, true>>({});
+  const marcarRoto = useCallback((url: string) => setMediosRotos((m) => ({ ...m, [url]: true })), []);
+  const reintentarMedio = useCallback((url: string) => setMediosRotos((m) => {
+    const { [url]: _quitado, ...resto } = m;
+    return resto;
+  }), []);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -246,6 +253,9 @@ const PostDetailContent: React.FC = () => {
     if (!post.videoUrl) return null;
     return (
       <View style={styles.videoContainer}>
+        {mediosRotos[post.videoUrl] ? (
+          <MedioNoDisponible style={styles.videoPlayer} alReintentar={() => reintentarMedio(post.videoUrl!)} />
+        ) : (
         <Video
           ref={videoRef}
           source={{ uri: post.videoUrl }}
@@ -254,7 +264,9 @@ const PostDetailContent: React.FC = () => {
           shouldPlay
           isMuted={isVideoMuted}
           isLooping
+          onError={() => marcarRoto(post.videoUrl!)}
         />
+        )}
         <TouchableOpacity
           style={styles.videoMuteBtn}
           onPress={() => setIsVideoMuted(prev => !prev)}
@@ -282,7 +294,11 @@ const PostDetailContent: React.FC = () => {
           onPress={() => handleImagePress(0)}
           activeOpacity={0.98}
         >
+          {mediosRotos[post.imageUrls[0]] ? (
+            <MedioNoDisponible style={{ height: imageHeight }} alReintentar={() => reintentarMedio(post.imageUrls![0])} />
+          ) : (
           <Image
+            onError={() => marcarRoto(post.imageUrls![0])}
             source={{ uri: cloudinaryFeed(post.imageUrls[0]) }}
             placeholder={post.imageUrlsThumbnails?.[0] ? { uri: post.imageUrlsThumbnails[0] } : undefined}
             placeholderContentFit="cover"
@@ -297,6 +313,7 @@ const PostDetailContent: React.FC = () => {
             cachePolicy="memory-disk"
             transition={0}
           />
+          )}
         </TouchableOpacity>
       );
     }
@@ -323,7 +340,11 @@ const PostDetailContent: React.FC = () => {
               onPress={() => handleImagePress(index)}
               activeOpacity={0.98}
             >
+              {mediosRotos[imageUrl] ? (
+                <MedioNoDisponible style={{ height: imageHeight }} alReintentar={() => reintentarMedio(imageUrl)} />
+              ) : (
               <Image
+                onError={() => marcarRoto(imageUrl)}
                 source={{ uri: cloudinaryFeed(imageUrl) }}
                 placeholder={post.imageUrlsThumbnails?.[index] ? { uri: post.imageUrlsThumbnails[index] } : undefined}
                 placeholderContentFit="cover"
@@ -338,6 +359,7 @@ const PostDetailContent: React.FC = () => {
                 cachePolicy="memory-disk"
                 transition={0}
               />
+              )}
             </TouchableOpacity>
           ))}
         </ScrollView>

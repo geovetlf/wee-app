@@ -141,12 +141,13 @@ export type MainStackParamList = {
   WeeBizProfile: { businessId: string };
   WeeBizRegister: { business?: any } | undefined;
   WeeBizProducts: { businessId: string; isOwner: boolean };
+  /* Sin Weël de partida es el feed entero: lo carga la propia pantalla (ReelsScreen). */
   Reels: {
-    initialPost: Post;
-    initialVideoPosts: Post[];
+    initialPost?: Post;
+    initialVideoPosts?: Post[];
     communitySlug?: string | null;
     initialPositionMillis?: number;
-  };
+  } | undefined;
   Auth: {
     screen?: 'Login' | 'Register';
   } | undefined;

@@ -71,6 +71,7 @@ const CreateTabButton = ({ href: _href, onPress: _onPress, ...props }: any) => {
 
   const handleSelect = (kind: CreateKind) => {
     setSheetVisible(false);
+    if (!user) return rootNavigate('Register');
     setTimeout(() => rootNavigate('Create', { kind }), isWeb ? 0 : 150);
   };
 
@@ -84,10 +85,6 @@ const CreateTabButton = ({ href: _href, onPress: _onPress, ...props }: any) => {
       <TouchableOpacity
         {...props}
         onPress={() => {
-          if (!user) {
-            rootNavigate('Register');
-            return;
-          }
           setSheetVisible(true);
         }}
       />
@@ -251,15 +248,7 @@ const TabNavigator: React.FC = () => {
         name="Search"
         component={SearchScreen}
         options={{ tabBarLabel: 'Buscar' }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            if (!user) {
-              e.preventDefault();
-              const parentNav = navigation.getParent();
-              if (parentNav) (parentNav as any).navigate('Register');
-            }
-          },
-        })}
+        /* Buscar es público, como en escritorio: el invitado solo necesita cuenta para actuar sobre lo que encuentre. */
       />
       <Tab.Screen
         name="Create"

@@ -14,7 +14,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: 'Maquiagem, cabelo, barba, looks e mudanças de visual',
   chef: 'O seu chef pessoal: o que cozinhar, receitas e cardápios',
   home: 'Decoração, design de interiores, reforma e jardins',
-  business: 'Ideias de negócio, marketing, currículo, documentos e apresentações',
+  business: 'Moda, estilo, beleza e criação de conteúdo visual.',
   travel: 'Prepare a sua viagem: para onde ir, o que fazer e como se locomover',
   brain: 'Não sabe onde procurar? Pergunte ao Weë',
   designEx1: 'Um logo para o meu negócio',

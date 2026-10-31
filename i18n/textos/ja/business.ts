@@ -60,7 +60,7 @@ export const business: typeof import('../es/business').business = {
   shortcutCareerGoal: '履歴書と仕事用のプロフィールをブラッシュアップする',
   yesterday: '昨日',
 
-  slogan: 'ビジネスの立ち上げから運営、宣伝、成長まで。',
+  slogan: 'ファッション、スタイル、ビューティー、ビジュアルコンテンツの作成。',
 
   modMyBusinessHint: 'ビジネスの立ち上げと運営',
   modProductsHint: '商品と価格の管理',
@@ -157,7 +157,7 @@ export const business: typeof import('../es/business').business = {
   shareCommunities: 'コミュニティ',
   shareProfile: 'Business Profile',
   shareNothing: 'まずは何かを作成してから、ここで共有しましょう。',
-  shareText: 'Weë Businessで作成',
+  shareText: 'Weë Fashionで作成',
 
   analyzeUpload: 'データをアップロード',
   analyzeUploadHint: '売上や経費をまとめたExcel、CSV、PDFに対応しています。',

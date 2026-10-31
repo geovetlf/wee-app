@@ -29,7 +29,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: '妝容、髮型、鬍鬚、穿搭和造型改造',
   chef: '你的私人廚師：今天吃什麼、食譜和菜單',
   home: '裝潢、室內設計、翻修和庭院',
-  business: '創業點子、行銷、履歷、文件和簡報',
+  business: '時尚、風格、美妝和視覺內容創作。',
   travel: '規劃你的旅行：去哪裡、玩什麼、怎麼走',
   brain: '不知道去哪裡找？問問 Weë',
   designEx1: '幫我的店做一個 Logo',

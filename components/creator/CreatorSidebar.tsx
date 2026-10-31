@@ -24,7 +24,7 @@ const ICONS: Record<string, string> = {
   photo: 'camera-outline',
   music: 'musical-notes-outline',
   studio: 'videocam-outline',
-  business: 'briefcase-outline',
+  business: 'shirt-outline',
   chef: 'restaurant-outline',
   home: 'home-outline',
   beauty: 'heart-outline',

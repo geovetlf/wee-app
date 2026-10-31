@@ -32,6 +32,8 @@ WEË AI tiene solamente 11 grandes especialistas visibles:
 
 Estos nombres son parte de la identidad de WEE y deben mantenerse.
 
+> **Actualización (2026-10-14):** la experiencia 💼 Weë Business (en las tablas de abajo, «WEE Business») se llama ahora 👗 **Weë Fashion** en pantalla (menú ☰, barra lateral, pastillas del Home, cabeceras y destinos al publicar). Cambian solo el nombre visible, el emoji/icono y la descripción provisional —«Moda, estilo, belleza y creación de contenido visual.»—; el identificador técnico sigue siendo `business` y lo que la sección hace hoy no cambió. **Weë Business** sigue existiendo como el producto de negocios (catálogo, reseñas y seguidores: `WeeBiz*`, `businesses/{businessId}`).
+
 **Importante:** estas 11 secciones **no** significan necesariamente que exista una sola IA detrás de cada una. Son *experiencias de usuario*. Detrás de cada experiencia WEE puede utilizar una o varias APIs, modelos y servicios especializados.
 
 ## 2. El usuario no debe ver la complejidad

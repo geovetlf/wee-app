@@ -120,7 +120,7 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
           {!!(!post.imageUrls?.length && post.videoUrl) && (
             <View style={styles.videoThumbWrap}>
               <Image
-                source={{ uri: cloudinaryVideoThumb(post.videoUrl) }}
+                source={{ uri: post.imageUrlsThumbnails?.[0] || cloudinaryVideoThumb(post.videoUrl) }}
                 style={styles.postImage}
                 contentFit="cover"
               />

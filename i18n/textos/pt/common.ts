@@ -19,6 +19,7 @@ export const common: typeof import('../es/common').common = {
   send: 'Enviar',
   share: 'Compartilhar',
   retry: 'Tente de novo',
+  mediaUnavailable: 'Este arquivo não está disponível',
   loading: 'Carregando…',
   error: 'Erro',
   somethingWentWrong: 'Algo deu errado',

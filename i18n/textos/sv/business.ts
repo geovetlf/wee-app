@@ -74,7 +74,7 @@ export const business: typeof import('../es/business').business = {
   yesterday: 'I går',
 
   /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
-  slogan: 'Skapa, driv, marknadsför och utveckla ditt företag.',
+  slogan: 'Mode, stil, skönhet och skapande av visuellt innehåll.',
 
   /* Qué hace cada módulo, en una línea. */
   modMyBusinessHint: 'Bygg upp och driv ditt företag',
@@ -185,7 +185,7 @@ export const business: typeof import('../es/business').business = {
   shareCommunities: 'Communities',
   shareProfile: 'Business Profile',
   shareNothing: 'Skapa något först, sedan kan du dela det härifrån.',
-  shareText: 'Skapat med Weë Business',
+  shareText: 'Skapat med Weë Fashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Ladda upp data',

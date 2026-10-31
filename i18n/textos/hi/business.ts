@@ -79,7 +79,7 @@ export const business: typeof import('../es/business').business = {
   yesterday: 'कल',
 
   /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
-  slogan: 'अपना बिज़नेस बनाएँ, चलाएँ, प्रमोट करें और आगे बढ़ाएँ.',
+  slogan: 'फ़ैशन, स्टाइल, ब्यूटी और विज़ुअल कॉन्टेंट बनाना.',
 
   /* Qué hace cada módulo, en una línea. */
   modMyBusinessHint: 'अपना बिज़नेस बनाएँ और चलाएँ',
@@ -190,7 +190,7 @@ export const business: typeof import('../es/business').business = {
   shareCommunities: 'कम्यूनिटी',
   shareProfile: 'Business Profile',
   shareNothing: 'पहले कुछ बनाएँ, फिर उसे यहाँ से शेयर करें.',
-  shareText: 'Weë Business से बनाया गया',
+  shareText: 'Weë Fashion से बनाया गया',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'अपना डेटा अपलोड करें',

@@ -34,8 +34,9 @@ const WalletScreen = () => {
     if (!view.title) return t(view.tituloClave);
     return textoDelServidorLegible(view.title, { t, locale }) ?? t(view.tituloClave);
   };
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const nav = useNavigation();
+
   const insets = useSafeAreaInsets();
 
   const [account, setAccount] = useState<CreditsBalance | null>(null);
@@ -97,6 +98,18 @@ const WalletScreen = () => {
       </View>
     );
   };
+
+  /* La billetera es de una cuenta. Solo se decide cuando Firebase ya ha contestado: mientras carga, nadie es invitado. */
+  if (!loading && !user) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: theme.colors.background }}>
+        <Text style={{ color: theme.colors.text, textAlign: 'center' }}>{t('auth.signInToContinue')}</Text>
+        <TouchableOpacity accessibilityRole="button" onPress={() => (nav as any).navigate('Login')}>
+          <Text style={{ color: theme.colors.text, fontWeight: '600', textDecorationLine: 'underline' }}>{t('menu.signIn')}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>

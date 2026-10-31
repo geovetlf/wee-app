@@ -20,6 +20,7 @@ export const common: typeof import('../es/common').common = {
   send: '보내기',
   share: '공유',
   retry: '다시 시도해 주세요',
+  mediaUnavailable: '이 파일을 사용할 수 없습니다',
   loading: '불러오는 중…',
   error: '오류',
   somethingWentWrong: '문제가 생겼어요',

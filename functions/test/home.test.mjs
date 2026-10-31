@@ -71,7 +71,7 @@ console.log('\n── A · Las pastillas del Home son secciones ──');
    */
   check('2) con los nombres de las experiencias',
     JSON.stringify(HOME_SECTION_FILTERS.map((f) => f.label)) ===
-      JSON.stringify(['Todo', 'Weë Studio', 'Weë Travel', 'Weë Music', 'Weë Chef', 'Weë Design', 'Weë Business'])
+      JSON.stringify(['Todo', 'Weë Studio', 'Weë Travel', 'Weë Music', 'Weë Chef', 'Weë Design', 'Weë Fashion'])
   );
   /* Y los identificadores internos, intactos: son los que reparten el muro. */
   check('2) y los identificadores internos no se movieron',
@@ -395,12 +395,17 @@ console.log('\n── F2 · El Home es un solo muro ──');
   /* Las dos puertas de la fila: cualquier tarjeta y "Ver todos →" abren WeëlsScreen. */
   check('33e) en la fila, las tarjetas y "Ver todos →" llaman a la misma puerta',
     (fila.match(/onPress=\{onOpenWeels\}/g) || []).length >= 3 && /accessibilityLabel=\{t\('weels\.seeAll'\)\}/.test(fila));
-  check('33e) y esa puerta abre WeëlsScreen en el móvil',
+  /*
+   * R9 (2026-10-12, corrección del dueño: «Weëls no es el compositor del Wall»): sin Weëls cargados la puerta abre IGUAL
+   * el feed —que pide los suyos y dice si no hay— y NUNCA el compositor; antes saltaba a `crearWeel()`. Lo ejecuta
+   * `weels-feed.test.mjs`.
+   */
+  check('33e) y esa puerta abre WeëlsScreen en el móvil, también sin Weëls cargados (nunca el compositor)',
     /onOpenWeels=\{\(\) => abrirElVisor\(\)\}/.test(nativo)
-    && /const abrirElVisor = useCallback\(\(desde\?: Post\) => \{\s*if \(videoPosts\.length === 0\) return crearWeel\(\);[\s\S]{0,200}navigate\('Reels', \{ initialPost: desde \|\| videoPosts\[0\], initialVideoPosts: videoPosts \}\)/.test(nativo));
+    && /const abrirElVisor = useCallback\(\(desde\?: Post\) => \{(?![\s\S]{0,300}crearWeel\(\))[\s\S]{0,200}navigate\('Reels', videoPosts\.length > 0\s*\?\s*\{ initialPost: desde \|\| videoPosts\[0\], initialVideoPosts: videoPosts \}\s*:\s*undefined\)/.test(nativo));
   check('33e) y en la web',
     /<WeelsRow[^>]*onOpenWeels=\{handleOpenWeels\}/.test(web)
-    && /const handleOpenWeels = \(\) => \{\s*if \(weels\.length === 0\) return handleCreateWeel\(\);\s*navigation\.navigate\('Reels', \{ initialPost: weels\[0\], initialVideoPosts: weels \}\);/.test(web));
+    && /const handleOpenWeels = \(\) => \{\s*navigation\.navigate\('Reels', weels\.length > 0 \? \{ initialPost: weels\[0\], initialVideoPosts: weels \} : undefined\);/.test(web));
   check('33e) "Explora → Weëls" del menú también abre WeëlsScreen, sin página intermedia',
     /if \(!openWeelsParam \|\| videosLoading\) return;[\s\S]{0,160}abrirElVisor\(\);/.test(nativo)
     && /if \(!route\.params\?\.openWeels\) return;[\s\S]{0,120}handleOpenWeels\(\);/.test(web));
@@ -441,7 +446,8 @@ console.log('\n── F3 · WeëlsScreen encaja en el viewport ──');
   check('33j) la paginación usa la misma medida, y la lista no nace sin ella',
     /const altoDelWeel = viewport\?\.height \?\? 0;/.test(visor)
     && /length: altoDelWeel,\s*offset: altoDelWeel \* index,/.test(visor)
-    && /\{viewport && \(\s*<FlatList/.test(visor) && /initialScrollIndex=\{initialIndex\}/.test(visor));
+    /* R9: la lista tampoco nace sin Weëls que enseñar (entonces el feed pinta su estado: cargando, error o vacío). */
+    && /\{viewport && fase === 'lista' && videoPosts\.length > 0 && \(\s*<FlatList/.test(visor) && /initialScrollIndex=\{initialIndex\}/.test(visor));
   /* Control: sigue paginando de uno en uno en el móvil y la navegación no cambió. */
   check('33j) control: pagina de uno en uno y el gesto de volver sigue igual',
     /pagingEnabled=\{!isWeb\}/.test(visor) && /if \(dx > SCREEN_WIDTH \* 0\.3\)/.test(visor) && /presentation: 'modal'/.test(leer('navigation/MainStackNavigator.tsx')));

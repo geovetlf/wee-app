@@ -25,7 +25,7 @@ const KIND_ICON: Record<string, string> = {
   beauty: 'heart-outline',
   chef: 'restaurant-outline',
   home: 'home-outline',
-  business: 'briefcase-outline',
+  business: 'shirt-outline',
   brain: 'bulb-outline',
 };
 

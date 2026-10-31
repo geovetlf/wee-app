@@ -222,13 +222,10 @@ const NavegacionGlobal: React.FC = () => {
 
   const elegir = (destino: DestinoId) => {
     /* Crear no es una pantalla: abre la hoja de siempre. */
-    if (destino === 'Create') {
-      if (!user) return irARaiz('Register');
-      return setHoja(true);
-    }
+    if (destino === 'Create') return setHoja(true);
 
-    /* Buscar, WeeTalk y Notificaciones piden sesión, como hasta ahora. */
-    if (destino !== 'Home' && !user) return irARaiz('Register');
+    /* Buscar es público. WeeTalk y Notificaciones son de una persona: esos piden cuenta. */
+    if (destino !== 'Home' && destino !== 'Search' && !user) return irARaiz('Register');
 
     /* Tocar Inicio estando ya en Inicio sube al principio, como siempre. */
     if (destino === 'Home' && puesto === 'Home' && rutaRaiz === 'Main') {
@@ -248,8 +245,10 @@ const NavegacionGlobal: React.FC = () => {
     irARaiz('Main', { screen: destino });
   };
 
+  /* Mirar qué se puede crear es público; crear pide cuenta, y se pide aquí, al elegir. */
   const crear = (kind: CreateKind) => {
     setHoja(false);
+    if (!user) return irARaiz('Register');
     setTimeout(() => irARaiz('Create', { kind }), isWeb ? 0 : 150);
   };
 

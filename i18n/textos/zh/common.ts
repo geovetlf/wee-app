@@ -24,6 +24,7 @@ export const common: typeof import('../es/common').common = {
   send: '发送',
   share: '分享',
   retry: '再试一次',
+  mediaUnavailable: '此文件不可用',
   loading: '加载中…',
   error: '错误',
   somethingWentWrong: '出了点问题',

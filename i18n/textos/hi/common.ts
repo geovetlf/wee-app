@@ -26,6 +26,7 @@ export const common: typeof import('../es/common').common = {
   send: 'भेजें',
   share: 'शेयर करें',
   retry: 'फिर से कोशिश करें',
+  mediaUnavailable: 'यह फ़ाइल उपलब्ध नहीं है',
   loading: 'लोड हो रहा है…',
   error: 'गड़बड़ी',
   somethingWentWrong: 'कोई गड़बड़ी हुई',
