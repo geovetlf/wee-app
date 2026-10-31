@@ -117,7 +117,8 @@ const conPildora = fs.readdirSync(path.resolve(RAIZ, 'components'), { recursive:
  * cuenta, que es lo que protege el grupo A.
  */
 check('11) solo las cabeceras la dibujan: el marco de Weë AI y las dos de sección',
-  conPildora.length === 3 && conPildora.every((f) => /CreatorShell|CabeceraDeSeccion|CabeceraDeWeeBrain/.test(f)),
+  /* La cuarta es el marco de Weë versión creator: sus secciones no dibujan otra (`saldoALaVista`). */
+  conPildora.length === 4 && conPildora.every((f) => /CreatorShell|CabeceraDeSeccion|CabeceraDeWeeBrain|MarcoProfesional/.test(f)),
   conPildora.join(' · '));
 /* Y ninguna pantalla se pone dos: la de Weë Brain sustituye a la común, no se suma. */
 const brain = leer('screens/BrainChatScreen.tsx');

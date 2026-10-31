@@ -48,7 +48,7 @@ check('A4) al lado de Studio, que sigue igual', /Studio: 'studio',/.test(app) &&
 const global = leer('navigation/NavegacionGlobal.tsx');
 check('A5) la barra de abajo se queda como en el Studio: no se esconde ni se inventa un destino para ella',
   !/'Production'/.test(global));
-check('A6) la navegación sigue siendo la misma: ni un navegador ni un archivo más', fs.readdirSync(path.resolve(RAIZ, 'navigation')).filter((f) => f.endsWith('.tsx')).length === 7);
+check('A6) la navegación sigue siendo la misma: ni un navegador ni un archivo más (el octavo es Weë versión creator, decisión del dueño, 2026-10-30)', fs.readdirSync(path.resolve(RAIZ, 'navigation')).filter((f) => f.endsWith('.tsx')).length === 8);
 
 /* ═══ B · LAS CUATRO PUERTAS ═══════════════════════════════════════════════ */
 console.log('\n── B · Las cuatro puertas, intactas, y ninguna quinta ──');

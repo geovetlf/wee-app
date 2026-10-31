@@ -34,6 +34,7 @@ const SIN_BARRA = new Set([
   'Settings',
   'WeeProfileCreation',
   'AiAvatar',
+  'EspacioProfesional',
 ]);
 
 /* Y una pantalla anidada: una conversación abierta ocupa todo (ya era así antes). */

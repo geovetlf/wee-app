@@ -12,6 +12,7 @@ import AvatarDisplay from '../avatars/AvatarDisplay';
 import CreditsPill from '../CreditsPill';
 import { ConMarcoDeSeccion } from './MarcoDeSeccion';
 import CreatorSidebar from './CreatorSidebar';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
 import EspacioDeEscritura from '../EspacioDeEscritura';
 import { ALTO_BARRA } from '../BarraInferior';
 import { PaginaDeCajas, CajaAnclada, AIRE_DE_LA_CAJA } from './CajaQueCrece';
@@ -137,6 +138,8 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const { isDesktop } = useResponsive();
+  /* Dentro de Weë versión creator, la navegación y el saldo los pone su marco. */
+  const enProfesional = useEnEspacioProfesional();
 
   /*
    * Una sola medida, y solo cuando de verdad cambia: el alto de la zona donde se
@@ -180,7 +183,10 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
     if (Date.now() < siguiendoHasta.current) alFinal(false);
   };
 
-  const back = onBack || (() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')));
+  const back = onBack || (() => {
+    if (enProfesional) return navigation.navigate('WeeCreator');
+    return navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main');
+  });
   const goSearch = () => navigation.navigate('Search');
   const goNotifications = () => navigation.navigate('Main', { screen: 'Home', params: { screen: 'Notifications' } });
   const goProfile = () => navigation.navigate(user ? 'Main' : 'Login', user ? { screen: 'Profile' } : undefined);
@@ -206,7 +212,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             quitó porque entonces estas pantallas empezaban por el muro y el
             número le restaba aire; ahora empiezan por lo que se crea.
           */}
-          <CreditsPill compact />
+          {!enProfesional && <CreditsPill compact />}
         </View>
         )}
         {/*
@@ -273,10 +279,10 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   }
 
   return (
-    <View style={[styles.desktop, { backgroundColor: theme.colors.surface }]}>
-      <CreatorSidebar activeId={activeId} />
+    <View style={[styles.desktop, { backgroundColor: enProfesional ? theme.colors.background : theme.colors.surface }]}>
+      {!enProfesional && <CreatorSidebar activeId={activeId} />}
       <View style={styles.main}>
-        <View style={[styles.topBar, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
+        {!enProfesional && <View style={[styles.topBar, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity onPress={back} style={styles.breadcrumb} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
             <Ionicons name="arrow-back" size={scale(20)} color={theme.colors.text} />
             <Text style={[styles.breadcrumbText, { color: theme.colors.text }]}>{breadcrumb}</Text>
@@ -325,7 +331,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </View>}
         <PaginaDeCajas contentContainerStyle={[styles.desktopContent, contentStyle]} keyboardShouldPersistTaps="handled">
           {/* La barra lateral ya enseña el saldo: la cabecera de la sección no lo repite. */}
           <ConMarcoDeSeccion saldoALaVista aireLateral={SPACING.xl}>

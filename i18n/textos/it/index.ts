@@ -36,6 +36,7 @@ import { language } from './language';
 import { catalogo } from './catalogo';
 import { business } from './business';
 import { projects } from './projects';
+import { profesional } from './profesional';
 import { creaciones } from './creaciones';
 import { studio } from './studio';
 import { design } from './design';
@@ -86,6 +87,7 @@ export const it: FormaDelDiccionario = {
   catalogo,
   business,
   projects,
+  profesional,
   creaciones,
   studio,
   design,

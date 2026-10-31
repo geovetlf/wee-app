@@ -54,7 +54,7 @@ const pareceEspanol = (s) => {
   if (/^[¡¿✓✔✨🤷📸 ]*[A-ZÁÉÍÓÚ][a-záéíóúñ]+( [a-záéíóúñ]+)+[.!?…:]?$/.test(t)) return true;
   return /[a-záéíóúñ]{2,} [a-záéíóúñ]{2,}/i.test(t) && PALABRAS.test(t);
 };
-const MARCA = /^(Weë|Weëls?|Wäll|WeeTalk|ËContacts?|ẄContacts?|Credits|Weë [A-Z][a-z]+|Weë AI Engine|WEË AI|World Encode Entity|OK|AI|IA|Studio|Brain|Design|Business|Chef|Travel|Music|Photo|Writer|Beauty|Biz|Flow|Aura)$/;
+const MARCA = /^(Weë|Weëls?|Wäll|WeeTalk|ËContacts?|ẄContacts?|Credits|Weë [A-Z][a-z]+|Weë AI Engine|WEË AI|World Encode Entity|OK|AI|IA|Studio|Creator|Brain|Design|Business|Chef|Travel|Music|Photo|Writer|Beauty|Biz|Flow|Aura)$/;
 
 /*
  * Llamadas cuyo argumento es un IDENTIFICADOR y no una frase: navegación,

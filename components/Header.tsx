@@ -1,3 +1,4 @@
+import SelectorDeVersion from './workspace/SelectorDeVersion';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Pressable, StatusBar, Text, Platform, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -373,6 +374,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                 )}
               </TouchableOpacity>
             ) : null}
+
+            {/* App | Creator: solo en la web. */}
+            {isWeb && <SelectorDeVersion puesta="app" corta />}
 
             {/* Logo, cuando comparte línea con los controles (todo menos el Home) */}
             {!conMarca && (

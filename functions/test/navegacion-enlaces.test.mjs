@@ -44,7 +44,7 @@ const jsEnlaces = ts.transpileModule(leer('navigation/enlaces.ts'), { compilerOp
 const urlEnlaces = 'data:text/javascript;base64,' + Buffer.from(jsEnlaces).toString('base64');
 const E = await import(urlEnlaces);
 /* + misión mundo3d (2026-10-05): la puerta de «Crear mundo 3D» también decide si tiene enlace; cerrada, por defecto. */
-const fuente = `import { ${Object.keys(E).join(', ')} } from '${urlEnlaces}';\nexport const crear = (FILMMAKER_EN_LA_APP, MUNDO_3D_EN_LA_APP = false) => (${app.slice(inicio, fin + 1)});`;
+const fuente = `import { ${Object.keys(E).join(', ')} } from '${urlEnlaces}';\nexport const crear = (FILMMAKER_EN_LA_APP, MUNDO_3D_EN_LA_APP = false, VERSION_PROFESIONAL_EN_LA_WEB = true) => (${app.slice(inicio, fin + 1)});`;
 const js = ts.transpileModule(fuente, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
 const { crear } = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 

@@ -260,8 +260,9 @@ console.log('\n── E · La ruta que faltaba ──');
   const fabricas = navegadores
     .map((f) => (leer('navigation/' + f).match(/create(?:Stack|BottomTab|MaterialTopTab)Navigator[<(]/g) || []).length)
     .reduce((a, b) => a + b, 0);
-  check('32) no se creó ningún navegador nuevo', fabricas === 6, fabricas + ' navegadores');
-  check('32) ni ningún archivo de navegación nuevo', navegadores.length === 7, navegadores.join(' · '));
+  /* 7 y 8: Weë versión creator (decisión del dueño, 2026-10-30) es el único añadido. */
+  check('32) no se creó ningún navegador nuevo', fabricas === 7, fabricas + ' navegadores');
+  check('32) ni ningún archivo de navegación nuevo', navegadores.length === 8, navegadores.join(' · '));
 
   /*
    * 33 · Y NADIE ABRIÓ UN DEEP LINK. El mapa de enlaces de App.tsx no menciona

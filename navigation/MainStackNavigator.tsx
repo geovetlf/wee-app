@@ -33,6 +33,8 @@ import EContactScreen from '../screens/EContactScreen';
 import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import SpecialistScreen from '../screens/SpecialistScreen';
 import StudioScreen from '../screens/StudioScreen';
+import EspacioProfesionalNavigator from './EspacioProfesionalNavigator';
+import { VERSION_PROFESIONAL_EN_LA_WEB } from '../constants/espacioProfesional';
 import ProductionScreen from '../screens/ProductionScreen';
 import Mundo3DScreen from '../screens/Mundo3DScreen';
 import DesignScreen from '../screens/DesignScreen';
@@ -100,6 +102,8 @@ export type MainStackParamList = {
   Specialist: { id: string };
   /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
   Studio: undefined;
+  /* Weë versión creator: el trabajo, sin muro, sin Weëls y solo con el Perfil Real. */
+  EspacioProfesional: { screen?: string; params?: object } | undefined;
   /**
    * «Varias escenas» (Weë Filmmaker, F1-C): una producción abierta con `productionId`; sin él, tus producciones y,
    * si se llega desde la caja de Weë Studio, la producción a punto de nacer con lo escrito (`intencion`) y los
@@ -361,6 +365,8 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
       <Stack.Screen name="Studio" component={StudioScreen} />
+      {/* Solo en la web: la app móvil no cambia. */}
+      {VERSION_PROFESIONAL_EN_LA_WEB && <Stack.Screen name="EspacioProfesional" component={EspacioProfesionalNavigator} />}
       <Stack.Screen name="Production" component={ProductionScreen} />
       <Stack.Screen name="Mundo3D" component={Mundo3DScreen} />
       <Stack.Screen name="Design" component={DesignScreen} />

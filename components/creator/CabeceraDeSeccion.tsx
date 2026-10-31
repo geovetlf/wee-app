@@ -1,3 +1,4 @@
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Image } from 'expo-image';
@@ -121,7 +122,11 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
   const tamano = scale(TAMANO_DEL_NOMBRE);
   const tamanoLema = scale(tamanoDelLema(lema));
 
-  const volver = onVolver || (() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')));
+  const enProfesional = useEnEspacioProfesional();
+  const volver = onVolver || (() => {
+    if (enProfesional) return navigation.navigate('WeeCreator');
+    return navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main');
+  });
 
   /*
    * El lema, partido en dos: la primera palabra en el color del texto y el resto

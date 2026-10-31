@@ -56,7 +56,7 @@ import { ComentariosProvider } from './contexts/ComentariosContext';
 import MainStackNavigator from './navigation/MainStackNavigator';
 import { refNavegacion } from './navigation/refNavegacion';
 import {
-  TIPOS_DE_PUBLICACION, esCreativo, esId, esLugar, esRespuesta, esRespuestas, escribirJson, leerJson, nuncaEnLaUrl, sinObjetosSueltos,
+  TIPOS_DE_PUBLICACION, enlaceDeCreatorFlow, esCreativo, esId, esLugar, esRespuesta, esRespuestas, escribirJson, leerJson, nuncaEnLaUrl, sinObjetosSueltos,
 } from './navigation/enlaces';
 import ErrorBoundary from './components/ErrorBoundary';
 import { crearTraductor } from './i18n/traducir';
@@ -64,6 +64,7 @@ import { DICCIONARIOS } from './i18n/diccionarios';
 import { localeDeEmergencia } from './i18n/emergencia';
 import { FILMMAKER_EN_LA_APP } from './constants/studioExperiences';
 import { MUNDO_3D_EN_LA_APP } from './constants/studioExperiences';
+import { VERSION_PROFESIONAL_EN_LA_WEB } from './constants/espacioProfesional';
 // SplashScreen de React removido - el splash nativo de Android es suficiente
 
 /*
@@ -212,6 +213,18 @@ const linking: any = {
       Search: 'search',
       Settings: 'settings',
       Studio: 'studio',
+      /* La Weë versión creator: cada sección con su dirección, para abrirla por enlace y recargar. */
+      ...(!VERSION_PROFESIONAL_EN_LA_WEB ? {} : { EspacioProfesional: {
+        path: 'creator',
+        screens: {
+          WeeCreator: '',
+          Specialist: 'seccion/:id',
+          CreatorFlow: enlaceDeCreatorFlow('weeai/:experienceId'),
+          Projects: 'proyectos',
+          Project: 'proyecto/:id',
+          MisCreaciones: 'creaciones',
+        },
+      } }),
       /* Con la puerta de Filmmaker cerrada (constants/studioExperiences.ts), la producción no tiene enlace. */
       ...(FILMMAKER_EN_LA_APP ? { Production: {
         path: 'studio/produccion/:productionId?',
@@ -277,26 +290,7 @@ const linking: any = {
        * reabre ESE trabajo en vez de empezar otro—; las respuestas ya elegidas y las elecciones creativas, como JSON
        * validado. El objetivo escrito, la foto (`blob:` o con su token de descarga) y los adjuntos no salen nunca.
        */
-      CreatorFlow: {
-        path: 'weeai/:experienceId',
-        parse: {
-          experienceId: (v: string) => (esId(v) ? v : undefined),
-          jobId: (v: string) => (esId(v) ? v : undefined),
-          workspace: (v: string) => (esId(v) ? v : undefined),
-          editorDocId: (v: string) => (esId(v) ? v : undefined),
-          preset: (v: string) => leerJson(v, esRespuesta),
-          presets: (v: string) => leerJson(v, esRespuestas),
-          creative: (v: string) => leerJson(v, esCreativo),
-        },
-        stringify: {
-          preset: escribirJson,
-          presets: escribirJson,
-          creative: escribirJson,
-          goal: nuncaEnLaUrl,
-          imageUri: nuncaEnLaUrl,
-          adjuntos: nuncaEnLaUrl,
-        },
-      },
+      CreatorFlow: enlaceDeCreatorFlow('weeai/:experienceId'),
       /*
        * EL COMPOSITOR (la pantalla de la pila principal; la pestaña «create» es el marcador del botón +). El tipo, la
        * comunidad y el lugar elegido —que es público: es lo que se lee en la publicación— viajan; el borrador
