@@ -134,6 +134,38 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
    * —el orden de las palabras cambia de un idioma a otro y dos trozos pegados se
    * rompen al traducir— y se parte aquí al pintar.
    */
+  /*
+   * DENTRO DE WEË VERSIÓN CREATOR, UNA LÍNEA DE TRABAJO.
+   *
+   * Quien está aquí ya sabe dónde está: el marco lo marca en la navegación, y el
+   * saldo y la W están arriba. Sin logo, sin lema de cartel y sin flecha —volver
+   * es elegir otra sección—; la flecha solo sale si la sección tiene un nivel al
+   * que volver (`onVolver`).
+   */
+  if (enProfesional) {
+    const detalle = (descripcion ?? lema).replace(/\s*\n\s*/g, ' ');
+    return (
+      <View style={styles.proBloque}>
+        {!!onVolver && (
+          <TouchableOpacity
+            onPress={onVolver}
+            style={[styles.proVolver, isWeb && ({ cursor: 'pointer' } as any)]}
+            activeOpacity={0.7}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+          >
+            <Ionicons name="chevron-back" size={20} color={theme.colors.text} />
+          </TouchableOpacity>
+        )}
+        <View style={styles.proTextos}>
+          <Text accessibilityRole="header" style={[styles.proNombre, { color: theme.colors.text }]}>Weë {nombre}</Text>
+          {!!detalle && <Text style={[styles.proDetalle, { color: theme.colors.textSecondary }]}>{detalle}</Text>}
+        </View>
+      </View>
+    );
+  }
+
   const corte = lema.indexOf(' ');
   const primera = corte > 0 ? lema.slice(0, corte) : lema;
   const resto = corte > 0 ? lema.slice(corte) : '';
@@ -231,6 +263,11 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
 };
 
 const styles = StyleSheet.create({
+  proBloque: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  proVolver: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: -6 },
+  proTextos: { flex: 1, minWidth: 0, gap: 2 },
+  proNombre: { fontSize: 20, lineHeight: 26, fontWeight: '600', letterSpacing: -0.2 },
+  proDetalle: { fontSize: 13.5, lineHeight: 19 },
   /*
    * La cabecera entera: arriba la fila de identidad, debajo la presentación.
    * Poco aire abajo, porque lo que viene después es la caja donde se escribe,

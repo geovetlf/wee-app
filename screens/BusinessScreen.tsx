@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
+import { RejillaDeCreator } from '../components/creator/PiezasDeCreator';
 import { formatearHora, formatearNumero, formatearPorcentaje } from '../i18n/formato';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -95,6 +97,12 @@ const BusinessScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { isMobile, isDesktop } = useResponsive();
   const spec = useEspecialista('business');
+  /*
+   * DENTRO DE WEË VERSIÓN CREATOR NO SE ENSEÑA NADA DE MUESTRA.
+   * Ni cifras, ni mensajes de clientes, ni redes «conectadas», ni un adjunto que nadie
+   * eligió, ni botones que solo avisan de que todavía no están. Lo real sigue igual.
+   */
+  const pro = useEnEspacioProfesional();
 
   /** En qué módulo estás. Vacío es la portada. */
   const [abierto, setAbierto] = useState<ModuloDeBusiness | null>(null);
@@ -154,10 +162,10 @@ const BusinessScreen: React.FC = () => {
    */
   const cajaComoEnStudio = useMemo(
     () =>
-      isMobile
+      pro ? {} : isMobile
         ? { marginHorizontal: -SPACING.lg }
         : { width: scale(720), alignSelf: 'center' as const },
-    [isMobile],
+    [isMobile, pro],
   );
 
   const startFlow = (goal?: string, preset?: SpecialistAction['preset']) => {
@@ -296,9 +304,9 @@ const BusinessScreen: React.FC = () => {
             placeholder={t('business.askPlaceholder')}
             valor={prompt}
             onCambiar={setPrompt}
-            onReferencia={alAdjuntar}
-            onAjustes={() => notify(t('common.comingSoon'))}
-            onVoz={() => notify(t('common.comingSoon'))}
+            onReferencia={pro ? undefined : alAdjuntar}
+            onAjustes={pro ? undefined : () => notify(t('common.comingSoon'))}
+            onVoz={pro ? undefined : () => notify(t('common.comingSoon'))}
             onCrear={alEnviar}
           />
           {adjuntos.length > 0 && (
@@ -420,9 +428,9 @@ const BusinessScreen: React.FC = () => {
             placeholder={t('business.createPlaceholder')}
             valor={prompt}
             onCambiar={setPrompt}
-            onReferencia={alAdjuntar}
-            onAjustes={() => notify(t('common.comingSoon'))}
-            onVoz={() => notify(t('common.comingSoon'))}
+            onReferencia={pro ? undefined : alAdjuntar}
+            onAjustes={pro ? undefined : () => notify(t('common.comingSoon'))}
+            onVoz={pro ? undefined : () => notify(t('common.comingSoon'))}
             onCrear={alEnviar}
           />
           {adjuntos.length > 0 && (
@@ -438,6 +446,17 @@ const BusinessScreen: React.FC = () => {
         </View>
 
         <Bloque titulo={t('business.createTypes')}>
+          {pro ? (
+            <RejillaDeCreator
+              puertas={TIPOS_DE_CONTENIDO.map((tipo) => ({
+                id: tipo.id,
+                icono: tipo.icono,
+                titulo: t(tipo.clave),
+                pista: t(tipo.claveHint),
+                onPress: () => crearContenido(tipo.clave),
+              }))}
+            />
+          ) : (
           <View style={styles.rejilla}>
             {TIPOS_DE_CONTENIDO.map((tipo) => (
               <View key={tipo.id} style={{ width: `${100 / porFila}%` as any, padding: SPACING.xs }}>
@@ -457,6 +476,7 @@ const BusinessScreen: React.FC = () => {
               </View>
             ))}
           </View>
+          )}
         </Bloque>
 
         {/*
@@ -488,6 +508,18 @@ const BusinessScreen: React.FC = () => {
           <BotonPrincipal etiqueta={t('business.share')} icono="share-social-outline" onPress={compartir} />
         </Bloque>
 
+        {/* En creator: el calendario y los mensajes se piden a Weë; las muestras no se enseñan. */}
+        {pro && (
+          <Bloque titulo={t('business.postCalendar')}>
+            <View style={styles.pastillas}>
+              <Pastilla etiqueta={t('business.seeFullCalendar')} icono="calendar-outline" onPress={() => startFlow(t('business.calendarGoal'), { questionId: 'what', optionId: 'schedule' })} />
+              <Pastilla etiqueta={t('business.customerMessages')} icono="chatbubbles-outline" onPress={() => startFlow(t('business.messagesGoal'), { questionId: 'what', optionId: 'reply' })} />
+            </View>
+          </Bloque>
+        )}
+
+        {!pro && (
+        <>
         <Bloque titulo={t('business.mySocialAccounts')} pista={t('business.simulatedConnection')}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.redes}>
             {connected.map((n) => (
@@ -584,6 +616,8 @@ const BusinessScreen: React.FC = () => {
             ))}
           </View>
         </Bloque>
+        </>
+        )}
       </>
     );
   }
@@ -592,6 +626,7 @@ const BusinessScreen: React.FC = () => {
     return panel(
       <>
         <Bloque titulo={t('business.resultsThisWeek')}>
+          {pro ? <Vacio texto={t('business.overviewEmpty')} pista={t('business.overviewEmptyHint')} /> : (
           <View style={styles.stats}>
             {BUSINESS_STATS.map((stat) => (
               <View key={stat.id} style={[styles.stat, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
@@ -604,6 +639,7 @@ const BusinessScreen: React.FC = () => {
               </View>
             ))}
           </View>
+          )}
         </Bloque>
 
         <ListaDeAcciones acciones={acciones} onElegir={abrirAccion} />
@@ -718,7 +754,7 @@ const BusinessScreen: React.FC = () => {
         camino que ya existía. El margen negativo la acerca a la cabecera, como
         en Weë Studio, Weë Design y Weë Chef.
       */}
-      <View style={[styles.compositorDeLaPortada, cajaComoEnStudio]}>
+      <View style={[styles.compositorDeLaPortada, cajaComoEnStudio, pro && styles.compositorPro]}>
         {/*
           Sin rótulo encima (decisión del usuario, 2026-09-16): la cabecera ya
           dice dónde estás y para qué sirve esto, y una línea más entre la
@@ -734,9 +770,9 @@ const BusinessScreen: React.FC = () => {
           placeholder={t('business.askPlaceholder')}
           valor={prompt}
           onCambiar={setPrompt}
-          onReferencia={alAdjuntar}
-          onAjustes={() => notify(t('common.comingSoon'))}
-          onVoz={() => notify(t('common.comingSoon'))}
+          onReferencia={pro ? undefined : alAdjuntar}
+          onAjustes={pro ? undefined : () => notify(t('common.comingSoon'))}
+          onVoz={pro ? undefined : () => notify(t('common.comingSoon'))}
           onCrear={alEnviarDesdeLaPortada}
         />
         {adjuntos.length > 0 && (
@@ -764,6 +800,7 @@ const BusinessScreen: React.FC = () => {
 const styles = StyleSheet.create({
   /* La caja de la portada, acercada a la cabecera como en el resto de Weë AI. */
   compositorDeLaPortada: { marginTop: -scale(26), gap: SPACING.sm },
+  compositorPro: { marginTop: 0 },
   compositor: { gap: SPACING.sm },
   invitacion: { fontSize: FONT_SIZE.base, lineHeight: scale(21), paddingHorizontal: SPACING.xs },
   /* Lo que se ha añadido y se puede leer de un vistazo: adjuntos, productos, gastos. */

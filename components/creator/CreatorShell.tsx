@@ -13,6 +13,7 @@ import CreditsPill from '../CreditsPill';
 import { ConMarcoDeSeccion } from './MarcoDeSeccion';
 import CreatorSidebar from './CreatorSidebar';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { useColumnaDeCreator } from './PiezasDeCreator';
 import EspacioDeEscritura from '../EspacioDeEscritura';
 import { ALTO_BARRA } from '../BarraInferior';
 import { PaginaDeCajas, CajaAnclada, AIRE_DE_LA_CAJA } from './CajaQueCrece';
@@ -140,6 +141,9 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   const { isDesktop } = useResponsive();
   /* Dentro de Weë versión creator, la navegación y el saldo los pone su marco. */
   const enProfesional = useEnEspacioProfesional();
+  const columna = useColumnaDeCreator();
+  /* Dentro de creator, todas las secciones llevan la misma columna. */
+  const columnaPro = enProfesional ? [columna, styles.columnaPro] : null;
 
   /*
    * Una sola medida, y solo cuando de verdad cambia: el alto de la zona donde se
@@ -248,7 +252,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
               <PaginaDeCajas
                 ref={refPagina}
                 style={styles.fill}
-                contentContainerStyle={[styles.mobileContent, contentStyle]}
+                contentContainerStyle={[styles.mobileContent, contentStyle, columnaPro]}
                 keyboardShouldPersistTaps="handled"
                 onContentSizeChange={seguirAlFinal === undefined ? undefined : alCrecerLaPagina}
               >
@@ -265,7 +269,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
               </CajaAnclada>
             </View>
           ) : (
-            <PaginaDeCajas contentContainerStyle={[styles.mobileContent, contentStyle]} keyboardShouldPersistTaps="handled" {...scrollDeBarra}>
+            <PaginaDeCajas contentContainerStyle={[styles.mobileContent, contentStyle, columnaPro]} keyboardShouldPersistTaps="handled" {...scrollDeBarra}>
               {/*
                 Si la franja de arriba se ve, el saldo ya está ahí y la cabecera de
                 la sección —si la hay— no lo repite. Sin franja, lo enseña ella.
@@ -332,7 +336,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             </TouchableOpacity>
           </View>
         </View>}
-        <PaginaDeCajas contentContainerStyle={[styles.desktopContent, contentStyle]} keyboardShouldPersistTaps="handled">
+        <PaginaDeCajas contentContainerStyle={[styles.desktopContent, contentStyle, columnaPro]} keyboardShouldPersistTaps="handled">
           {/* La barra lateral ya enseña el saldo: la cabecera de la sección no lo repite. */}
           <ConMarcoDeSeccion saldoALaVista aireLateral={SPACING.xl}>
             {children}
@@ -346,6 +350,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
 };
 
 const styles = StyleSheet.create({
+  columnaPro: { paddingBottom: 48 },
   container: {
     flex: 1,
   },

@@ -683,13 +683,15 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * video-asincrono H2. Ver docs/RUNTIME.md §25c.
    */
   const DEL_COSTE_DE_LO_ACEPTADO = ['functions/src/engine/pricing.ts', 'functions/src/runtime/barrendero.ts'];
+  /* Weë Music v0 (2026-10-15): contrato, matriz y adaptadores preparatorios, NO registrados ni exportados; los fija music.test. */
+  const DE_MUSIC = ['functions/src/music/contract.ts', 'functions/src/music/index.ts', 'functions/src/music/matrix.ts', 'functions/src/music/providers.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO,
+      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_MUSIC,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 

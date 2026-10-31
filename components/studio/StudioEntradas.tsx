@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { PildoraDeCreator, RejillaDeCreator, TituloDeCreator, estilosDeCreator } from '../creator/PiezasDeCreator';
 import { ENTRADAS_PRINCIPALES, ENTRADAS_DE_EXPLORAR, EntradaDeStudio } from '../../constants/studioExperiences';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -113,6 +115,10 @@ interface Props {
 const StudioEntradas: React.FC<Props> = ({ onAbrir, porFila }) => {
   const { theme } = useTheme();
   const t = useT();
+  const pro = useEnEspacioProfesional();
+
+  /* En Weë versión creator, las mismas puertas con la tarjeta común y sin mayúsculas. */
+  if (pro) return <StudioEntradasPro onAbrir={onAbrir} />;
 
   return (
     <View style={styles.bloque}>
@@ -159,8 +165,39 @@ const StudioEntradas: React.FC<Props> = ({ onAbrir, porFila }) => {
   );
 };
 
+const StudioEntradasPro: React.FC<Pick<Props, 'onAbrir'>> = ({ onAbrir }) => {
+  const t = useT();
+  return (
+    <View style={styles.bloquePro}>
+      <RejillaDeCreator
+        puertas={ENTRADAS_PRINCIPALES.map((entrada) => ({
+          id: entrada.id,
+          icono: entrada.icono,
+          titulo: entrada.marca ?? t(entrada.clave as string),
+          pista: t(entrada.claveHint),
+          onPress: () => onAbrir(entrada.id),
+        }))}
+      />
+      <View style={estilosDeCreator.bloque}>
+        <TituloDeCreator titulo={t('studio.exploreTitle')} />
+        <View style={estilosDeCreator.pildoras}>
+          {ENTRADAS_DE_EXPLORAR.map((entrada) => (
+            <PildoraDeCreator
+              key={entrada.id}
+              icono={entrada.icono}
+              texto={entrada.marca ?? t(entrada.clave as string)}
+              onPress={() => onAbrir(entrada.id)}
+            />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   bloque: { gap: SPACING.xl },
+  bloquePro: { gap: 24 },
   rejilla: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -6,6 +6,8 @@ import { CEREBRO_DE_WEE } from './SistemaDeWeeBrain';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import CabeceraDeSeccion from '../creator/CabeceraDeSeccion';
 import CreditsPill from '../CreditsPill';
 import { useMarcoDeSeccion } from '../creator/MarcoDeSeccion';
 import { useAlturaDelTeclado } from '../EspacioDeEscritura';
@@ -50,6 +52,10 @@ const CabeceraDeWeeBrain: React.FC<Props> = ({ onVolver }) => {
   const marco = useMarcoDeSeccion();
   /* Mientras se escribe, la presentación deja su sitio al cerebro. */
   const conTeclado = useAlturaDelTeclado() > 0;
+  const pro = useEnEspacioProfesional();
+
+  /* En Weë versión creator, la cabecera baja de todas: el protagonista es el cerebro de debajo. */
+  if (pro) return <CabeceraDeSeccion nombre="Brain" lema={t('brain.slogan')} descripcion={t('brain.description')} />;
 
   const volver = onVolver || (() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')));
 

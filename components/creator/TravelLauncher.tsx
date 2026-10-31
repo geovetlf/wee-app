@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { PildoraDeCreator, RejillaDeCreator, TituloDeCreator, estilosDeCreator } from './PiezasDeCreator';
 import { SpecialistAction, SpecialistConfig } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -45,6 +47,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
   const { theme } = useTheme();
   const t = useT();
   const [text, setText] = useState('');
+  const pro = useEnEspacioProfesional();
   const entrada = useRef(new Animated.Value(0)).current;
   const giro = useRef(new Animated.Value(0)).current;
 
@@ -73,6 +76,46 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
 
   /* El emoji vive en la configuración pero aquí lo dice el distintivo dibujado. */
   const titulo = idea.title.replace(/^[^\p{L}¿]+/u, '');
+
+  /*
+   * EN WEË VERSIÓN CREATOR NO SE PLIEGA.
+   * Se plegaba para dejar sitio a la gente, y aquí no hay muro: la caja, los
+   * ejemplos y las funciones se ven al entrar. Mismas llamadas, mismo destino.
+   */
+  if (pro) {
+    return (
+      <View style={styles.pro}>
+        <View style={estilosDeCreator.bloque}>
+          <TituloDeCreator titulo={titulo} />
+          <CajaDePrompt
+            valor={text}
+            onCambiar={setText}
+            onEnviar={enviar}
+            etiquetaEnviar={t('weeai.tellWeeTheTrip')}
+            textoEnviar={t('weeai.tellWeeTheTrip')}
+            placeholder={idea.placeholder}
+            enviarConIntro
+          />
+          {idea.chips.length > 0 && (
+            <View style={estilosDeCreator.pildoras}>
+              {idea.chips.map((chip) => (
+                <PildoraDeCreator key={chip} texto={objetivoDe(chip)} onPress={() => onSubmit(objetivoDe(chip))} />
+              ))}
+            </View>
+          )}
+        </View>
+        <RejillaDeCreator
+          puertas={actions.map((action) => ({
+            id: action.id,
+            icono: action.icon,
+            titulo: action.title,
+            pista: action.subtitle,
+            onPress: () => onAction(action),
+          }))}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: open ? theme.colors.accent : theme.colors.border }]}>
@@ -173,6 +216,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
 };
 
 const styles = StyleSheet.create({
+  pro: { gap: 24 },
   card: {
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,

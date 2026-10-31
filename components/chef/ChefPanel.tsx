@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import CabeceraDeModuloPro from '../creator/CabeceraDeModuloPro';
 import { ENTRADAS_POR_PANEL, CLAVE_DEL_PANEL, PanelDeChef, EntradaDeChef } from '../../constants/chefTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -41,9 +43,14 @@ interface Props {
 const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
   const { theme } = useTheme();
   const t = useT();
+  const pro = useEnEspacioProfesional();
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, pro && styles.panelPro]}>
+      {pro ? (
+        <CabeceraDeModuloPro nombre={t(CLAVE_DEL_PANEL[panel])} pista={t('chef.panelHint')} onVolver={onVolver} />
+      ) : (
+      <>
       {/* Cabecera: volver y el nombre de la función. Sin nada más. */}
       <View style={styles.cabecera}>
         <TouchableOpacity
@@ -62,8 +69,10 @@ const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
       </View>
 
       <Text style={[styles.pista, { color: theme.colors.textSecondary }]}>{t('chef.panelHint')}</Text>
+      </>
+      )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.dentro}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.dentro, pro && styles.dentroPro]}>
         <View style={styles.rejilla}>
           {ENTRADAS_POR_PANEL[panel].map((entrada) => (
             <TouchableOpacity
@@ -77,6 +86,7 @@ const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
               <View style={[
                 styles.entrada,
                 { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+                pro && styles.entradaPro,
                 isWeb && ({ cursor: 'pointer' } as any),
               ]}>
                 <Ionicons name={entrada.icono as any} size={scale(22)} color={theme.colors.text} />
@@ -94,6 +104,9 @@ const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
 
 const styles = StyleSheet.create({
   panel: { flex: 1 },
+  panelPro: { gap: 14 },
+  dentroPro: { paddingHorizontal: 0 },
+  entradaPro: { borderRadius: 14, shadowOpacity: 0, elevation: 0 },
   cabecera: {
     flexDirection: 'row',
     alignItems: 'center',

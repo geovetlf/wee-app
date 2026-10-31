@@ -2,6 +2,8 @@ import React, { useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import { useCajaQueCrece } from './CajaQueCrece';
 import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -17,6 +19,8 @@ export interface AccionDeLaCaja {
   /** Lo que se lee en voz alta y en el tooltip. */
   etiqueta: string;
   alPulsar: () => void;
+  /** En Weë versión creator, con sitio: la palabra corta que se ve al lado del icono. */
+  texto?: string;
 }
 
 interface Props {
@@ -62,6 +66,11 @@ interface Props {
    * ninguna otra sección se entera.
    */
   sinMarco?: boolean;
+  /**
+   * En Weë versión creator, con sitio: la palabra que se lee en el botón de enviar
+   * ("Crear", "Cocinar"). Sin ella —o en el teléfono, si no cabe— es la flecha.
+   */
+  textoEnviar?: string;
 }
 
 /**
@@ -90,9 +99,17 @@ interface Props {
  * largo que sea el prompt. Eso lo resuelve `useCajaQueCrece`.
  */
 const CajaDePrompt: React.FC<Props> = ({
-  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco,
+  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco, textoEnviar,
 }) => {
   const { theme } = useTheme();
+  /*
+   * LA MISMA CAJA, CON EL TRAJE DE WEË VERSIÓN CREATOR.
+   * Crece igual y sus botones no se van. Solo cambia el dibujo: hairline y radio
+   * 14 en vez de sombra, botones que dicen qué hacen si hay sitio para decirlo.
+   */
+  const pro = useEnEspacioProfesional();
+  const { width } = useResponsive();
+  const conPalabras = pro && width >= 600;
   const hayTexto = valor.trim().length > 0;
   /* Sin nada escrito, la caja vuelve a medir una línea. No se fía de la medida vieja. */
   const caja = useCajaQueCrece({ altoMinimo: ALTO_MINIMO, vacia: !hayTexto });
@@ -120,6 +137,9 @@ const CajaDePrompt: React.FC<Props> = ({
           ? { backgroundColor: theme.colors.surface }
           : { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
         sinMarco && styles.cajaSinMarco,
+        pro && styles.cajaPro,
+        /* Weë Brain la pide sin contorno también aquí: la define su relleno. */
+        pro && sinMarco && styles.cajaSinMarco,
       ]}
     >
       <TextInput
@@ -127,6 +147,9 @@ const CajaDePrompt: React.FC<Props> = ({
         style={[
           styles.campo,
           { color: theme.colors.text, height: caja.altoDelTexto },
+          pro && styles.campoPro,
+          /* Vacía, un texto de ejemplo largo no enseña barra de desplazamiento. */
+          pro && !hayTexto && isWeb && ({ overflow: 'hidden' } as any),
           isWeb && ({ outlineStyle: 'none' } as any),
         ]}
         value={valor}
@@ -146,8 +169,10 @@ const CajaDePrompt: React.FC<Props> = ({
         puntos. Lo que se encoge es el hueco ENTRE botones, nunca el botón: el
         dedo sigue teniendo sus 42 y sus 50, que es lo que no se puede tocar.
       */}
-      <View style={[styles.acciones, (acciones?.length ?? 0) + (accionesDerecha?.length ?? 0) >= 5 && styles.accionesJuntas]}>
-        {(acciones ?? []).map((accion) => (
+      <View style={[styles.acciones, (acciones?.length ?? 0) + (accionesDerecha?.length ?? 0) >= 5 && styles.accionesJuntas, pro && styles.accionesPro]}>
+        {(acciones ?? []).map((accion) => pro ? (
+          <AccionDeCreator key={accion.icono + '·' + accion.etiqueta} accion={accion} conPalabras={conPalabras} />
+        ) : (
           <TouchableOpacity
             /*
              * La clave lleva icono Y etiqueta. Con la etiqueta sola, dos botones
@@ -165,7 +190,9 @@ const CajaDePrompt: React.FC<Props> = ({
           </TouchableOpacity>
         ))}
         <View style={styles.empuje} />
-        {(accionesDerecha ?? []).map((accion) => (
+        {(accionesDerecha ?? []).map((accion) => pro ? (
+          <AccionDeCreator key={accion.icono + '·' + accion.etiqueta} accion={accion} conPalabras={conPalabras} />
+        ) : (
           <TouchableOpacity
             key={accion.icono + '·' + accion.etiqueta}
             style={[styles.accion, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
@@ -177,6 +204,27 @@ const CajaDePrompt: React.FC<Props> = ({
             <Ionicons name={accion.icono as any} size={scale(20)} color={theme.colors.text} />
           </TouchableOpacity>
         ))}
+        {pro ? (
+          <TouchableOpacity
+            style={[
+              styles.enviarPro,
+              { backgroundColor: puedeEnviar ? theme.colors.accent : theme.colors.surface },
+              isWeb && ({ cursor: puedeEnviar ? 'pointer' : 'default' } as any),
+            ]}
+            onPress={enviar}
+            disabled={!puedeEnviar}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={etiquetaEnviar}
+            accessibilityState={{ disabled: !puedeEnviar }}
+          >
+            {textoEnviar && (conPalabras || textoEnviar.length <= 12) ? (
+              <Text style={[styles.enviarProTexto, { color: puedeEnviar ? '#1F2937' : theme.colors.textSecondary }]}>{textoEnviar}</Text>
+            ) : (
+              <Ionicons name="arrow-up" size={18} color={puedeEnviar ? '#1F2937' : theme.colors.textSecondary} />
+            )}
+          </TouchableOpacity>
+        ) : (
         <TouchableOpacity
           style={[styles.enviar, { backgroundColor: puedeEnviar ? theme.colors.accent : theme.colors.surface }]}
           onPress={enviar}
@@ -187,12 +235,45 @@ const CajaDePrompt: React.FC<Props> = ({
         >
           <Ionicons name="arrow-up" size={scale(22)} color={puedeEnviar ? '#1F2937' : theme.colors.textSecondary} />
         </TouchableOpacity>
+        )}
       </View>
     </View>
   );
 };
 
+/** Un botón de la fila, en creator: 36 de alto, y su palabra si hay sitio para ella. */
+const AccionDeCreator: React.FC<{ accion: AccionDeLaCaja; conPalabras: boolean }> = ({ accion, conPalabras }) => {
+  const { theme } = useTheme();
+  const conTexto = conPalabras && !!accion.texto;
+  return (
+    <TouchableOpacity
+      style={[styles.accionPro, conTexto && styles.accionProConTexto, { borderColor: theme.colors.border }, isWeb && ({ cursor: 'pointer' } as any)]}
+      onPress={accion.alPulsar}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={accion.etiqueta}
+    >
+      <Ionicons name={accion.icono as any} size={17} color={theme.colors.textSecondary} />
+      {conTexto && <Text style={[styles.accionProTexto, { color: theme.colors.text }]}>{accion.texto}</Text>}
+    </TouchableOpacity>
+  );
+};
+
 const styles = StyleSheet.create({
+  cajaPro: {
+    borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10,
+    shadowOpacity: 0, shadowRadius: 0, elevation: 0,
+  },
+  campoPro: { fontSize: 15, lineHeight: 22, paddingTop: 4 },
+  accionesPro: { gap: 6 },
+  accionPro: {
+    minWidth: 36, height: 36, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+  },
+  accionProConTexto: { paddingHorizontal: 12 },
+  accionProTexto: { fontSize: 13, fontWeight: '500' },
+  enviarPro: { minWidth: 40, height: 36, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  enviarProTexto: { fontSize: 13, fontWeight: '600' },
   /*
    * Una sola lámina para el texto y sus botones. Separarlos en dos tarjetas
    * hacía que los botones parecieran de la pantalla y no de lo que se escribe.

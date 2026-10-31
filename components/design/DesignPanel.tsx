@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import CabeceraDeModuloPro from '../creator/CabeceraDeModuloPro';
 import { PUERTAS_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../../constants/designTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -36,6 +38,7 @@ interface Props {
  * arriba.
  */
 const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onElegirPunto }) => {
+  const pro = useEnEspacioProfesional();
   const { theme } = useTheme();
   const t = useT();
 
@@ -65,7 +68,14 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
   );
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, pro && styles.panelPro]}>
+      {pro ? (
+        <CabeceraDeModuloPro
+          nombre={esTodas ? t('design.allTitle') : t(puerta?.clave ?? '')}
+          pista={esTodas ? t('design.allHint') : t(puerta?.claveHint ?? '')}
+          onVolver={onVolver}
+        />
+      ) : (
       <View style={styles.cabecera}>
         <TouchableOpacity
           onPress={onVolver}
@@ -78,14 +88,19 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
           <Ionicons name="chevron-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
+      )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.dentro}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.dentro, pro && styles.dentroPro]}>
+        {!pro && (
+          <>
         <Text style={[styles.titulo, { color: theme.colors.text }]}>
           {esTodas ? t('design.allTitle') : t(puerta?.clave ?? '')}
         </Text>
         <Text style={[styles.pista, { color: theme.colors.textSecondary }]}>
           {esTodas ? t('design.allHint') : t(puerta?.claveHint ?? '')}
         </Text>
+          </>
+        )}
 
         {!esTodas && (
           <TextoEnMayusculas style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('design.startWith')}</TextoEnMayusculas>
@@ -103,6 +118,8 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
 
 const styles = StyleSheet.create({
   panel: { flex: 1 },
+  panelPro: { gap: 8 },
+  dentroPro: { paddingHorizontal: 0 },
   cabecera: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
   dentro: { paddingHorizontal: SPACING.xl, paddingBottom: scale(110) },
   titulo: { fontSize: scale(28), fontWeight: FONT_WEIGHT.bold, letterSpacing: scale(-0.5) },

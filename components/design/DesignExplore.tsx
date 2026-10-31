@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { RejillaDeCreator, TituloDeCreator, estilosDeCreator } from '../creator/PiezasDeCreator';
 import { PUERTAS_DE_DESIGN, CategoriaDeDesign } from '../../constants/designTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -30,6 +32,24 @@ const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
   const { theme } = useTheme();
   const t = useT();
   const portada = PUERTAS_DE_DESIGN.filter((p) => p.enPortada);
+  const pro = useEnEspacioProfesional();
+
+  if (pro) {
+    return (
+      <View style={estilosDeCreator.bloque}>
+        <TituloDeCreator titulo={t('design.exploreTitle')} accion={t('studio.seeAll')} onAccion={onVerTodas} />
+        <RejillaDeCreator
+          puertas={portada.map((puerta) => ({
+            id: puerta.id,
+            icono: puerta.icono,
+            titulo: t(puerta.clave),
+            pista: t(puerta.claveHint),
+            onPress: () => onAbrir(puerta.id),
+          }))}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.bloque}>

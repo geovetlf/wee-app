@@ -1,15 +1,17 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
 import CajaDePrompt from '../creator/CajaDePrompt';
 import { SPACING } from '../../constants/design';
 
 interface Props {
   valor: string;
   onCambiar: (texto: string) => void;
-  onAjustes: () => void;
-  onReferencia: () => void;
-  onVoz: () => void;
+  /* En creator, una sección sin ajustes o sin selector no los pasa: ahí no hay botón. */
+  onAjustes?: () => void;
+  onReferencia?: () => void;
+  onVoz?: () => void;
   onCrear: () => void;
   /** Mientras se está "creando", el botón no acepta otro toque. */
   ocupado?: boolean;
@@ -42,6 +44,30 @@ const StudioPromptComposer: React.FC<Props> = ({
   valor, onCambiar, onAjustes, onReferencia, onVoz, onCrear, ocupado, placeholder,
 }) => {
   const t = useT();
+  const pro = useEnEspacioProfesional();
+
+  /*
+   * EN WEË VERSIÓN CREATOR, CADA BOTÓN HACE UNA COSA.
+   * El «+» y la imagen abren lo mismo, y dictar todavía no existe: dos botones que
+   * no dicen la verdad. Quedan los que hacen algo, con su palabra al lado.
+   */
+  if (pro) {
+    return (
+      <CajaDePrompt
+        valor={valor}
+        onCambiar={onCambiar}
+        onEnviar={onCrear}
+        etiquetaEnviar={t('studio.sendLabel')}
+        textoEnviar={t('studio.sendLabel')}
+        placeholder={placeholder ?? t('studio.placeholder')}
+        ocupado={ocupado}
+        acciones={[
+          ...(onReferencia ? [{ icono: 'image-outline', etiqueta: t('studio.referenceLabel'), texto: t('studio.reference'), alPulsar: onReferencia }] : []),
+          ...(onAjustes ? [{ icono: 'options-outline', etiqueta: t('studio.settingsLabel'), texto: t('brain.settingsLabel'), alPulsar: onAjustes }] : []),
+        ]}
+      />
+    );
+  }
 
   return (
     <View style={styles.marco}>
@@ -53,10 +79,10 @@ const StudioPromptComposer: React.FC<Props> = ({
         placeholder={placeholder ?? t('studio.placeholder')}
         ocupado={ocupado}
         acciones={[
-          { icono: 'add', etiqueta: t('studio.addLabel'), alPulsar: onReferencia },
-          { icono: 'image-outline', etiqueta: t('studio.referenceLabel'), alPulsar: onReferencia },
-          { icono: 'options-outline', etiqueta: t('studio.settingsLabel'), alPulsar: onAjustes },
-          { icono: 'mic-outline', etiqueta: t('studio.voiceLabel'), alPulsar: onVoz },
+          { icono: 'add', etiqueta: t('studio.addLabel'), alPulsar: onReferencia ?? (() => {}) },
+          { icono: 'image-outline', etiqueta: t('studio.referenceLabel'), alPulsar: onReferencia ?? (() => {}) },
+          { icono: 'options-outline', etiqueta: t('studio.settingsLabel'), alPulsar: onAjustes ?? (() => {}) },
+          { icono: 'mic-outline', etiqueta: t('studio.voiceLabel'), alPulsar: onVoz ?? (() => {}) },
         ]}
       />
     </View>

@@ -19,7 +19,7 @@ const APP = leer('App.tsx');
 
 check('1) siempre clara: es del Perfil Real', NAV.includes('<TemaClaro>'));
 check('2) entrar con el Perfil Weë vuelve al Real', /activeProfileType !== 'hidi'[\s\S]*switchIdentity\(\)[\s\S]*setThemeMode\('light'\)/.test(NAV));
-check('3) sin Weëls, muro ni elección de perfil en su navegación', !/Reels|Landing|WeeProfileCreation|AiAvatar|Inbox/.test(MARCO + NAV));
+check('3) sin Weëls, muro ni elección de perfil en su navegación', !/Reels|Landing|WeeProfileCreation|AiAvatar/.test(MARCO + NAV));
 check('4) el marco enseña el perfil Real, no el activo', MARCO.includes('realProfile') && !MARCO.includes('userProfile'));
 check('5) todas las secciones salen de su fuente única', DATOS.includes('WEE_EXPERIENCES.map'));
 check('6) proyectos y creaciones piden cuenta', /user \? irA\(e\.ruta\) : navigation\.navigate\('Login'\)/.test(MARCO));
@@ -35,9 +35,17 @@ check('15) en la app móvil no existe: ni ruta, ni dirección, ni píldora', lee
 check('16) la barra de Weë AI, con su enlace al perfil, no entra', leer('components/creator/CreatorShell.tsx').includes('{!enProfesional && <View style={[styles.topBar'));
 check('17) volver no saca de Weë versión creator', /enProfesional\) return navigation\.navigate\('WeeCreator'\)/.test(leer('components/creator/CabeceraDeSeccion.tsx')));
 const INI = leer('screens/ProInicioScreen.tsx');
-check('18) el Inicio usa la caja común de Weë AI, no otra', INI.includes('<CajaDePrompt') && INI.includes('PaginaDeCajas'));
+check('6b) nada de muestra: tendencias y publicaciones salen de los datos', INI.includes('getPopularHashtags') && !/mock|Valentina|12\.4K/i.test(INI));
+check('18) el Inicio es el muro real, sin Weëls', INI.includes('getMuroGeneralPaginado') && INI.includes('!p.isWeel'));
 check('19) el Inicio no enseña Weëls ni Perfil Weë', !/Reels|WeeProfile|AiAvatar|hasWeeProfile/.test(INI));
 check('20) el Inicio lee el perfil Real, no el activo', INI.includes('realProfile') && !INI.includes('userProfile'));
 check('20) los nombres son los del dueño: Weë versión app y Weë versión creator', /versionApp: 'Weë versión app'/.test(leer('i18n/textos/es/profesional.ts')) && /versionCreator: 'Weë versión creator'/.test(leer('i18n/textos/es/profesional.ts')));
+/* El rediseño de las secciones de Weë AI: todo dentro de su rama, nada de muestra, las puertas cerradas siguen cerradas. */
+const SECCIONES = ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx', 'screens/ChefScreen.tsx', 'screens/BusinessScreen.tsx', 'screens/BrainChatScreen.tsx', 'screens/SpecialistScreen.tsx', 'components/creator/CabeceraDeSeccion.tsx', 'components/creator/CajaDePrompt.tsx', 'components/creator/ActionGrid.tsx', 'components/creator/ExamplesRow.tsx', 'components/creator/IdeaBox.tsx', 'components/creator/TravelLauncher.tsx'];
+check('21) cada sección se rediseña dentro de su rama de creator', SECCIONES.every((p) => /useEnEspacioProfesional\(\)/.test(leer(p))));
+check('22) Studio y Design no enseñan creaciones de muestra en creator', ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx'].every((p) => /pro \? \(\s*<EnlaceDeCreaciones \/>/.test(leer(p))));
+const BIZ = leer('screens/BusinessScreen.tsx');
+check('23) Weë Fashion no enseña cifras, mensajes ni redes de muestra en creator', /\{pro \? <Vacio texto=\{t\('business\.overviewEmpty'\)\}/.test(BIZ) && /\{!pro && \(\s*<>\s*<Bloque titulo=\{t\('business\.mySocialAccounts'\)\}/.test(BIZ));
+check('24) la caja de creator es la misma: ningún TextInput nuevo fuera de CajaDePrompt', !/<TextInput\b/.test(leer('components/creator/PiezasDeCreator.tsx')));
 if (fallos) { console.error(`${fallos} fallo(s)`); process.exit(1); }
-console.log('✔ Weë versión creator: 20 comprobaciones');
+console.log('✔ Weë versión creator: 25 comprobaciones');

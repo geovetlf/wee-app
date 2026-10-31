@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import CabeceraDeModuloPro from '../creator/CabeceraDeModuloPro';
 import { HERRAMIENTAS_POR_AREA, GRUPOS_DE_HERRAMIENTAS, HerramientaDeStudio, AreaDeStudio } from '../../constants/studioTools';
 import { EntradaDeStudio, ExperienciaDeStudio, entradaPorId, experienciasDeLaEntrada } from '../../constants/studioExperiences';
 import StudioControles, { ControlesElegidos } from './StudioControles';
@@ -63,6 +65,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
   /* El motivo que se está explicando, cuando se toca algo que todavía no se puede. */
   const [explicando, setExplicando] = useState<string | null>(null);
 
+  const pro = useEnEspacioProfesional();
   const puerta = entradaPorId(entrada);
   const titulo = puerta?.marca ?? (puerta ? t(puerta.clave as string) : '');
   const experiencias = experienciasDeLaEntrada(entrada);
@@ -84,6 +87,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
       <View style={[
         styles.pieza,
         { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+        pro && styles.piezaPro,
         /*
           LO QUE TODAVÍA NO SE PUEDE HACER SE VE, Y SE VE QUE NO SE PUEDE.
           Apagada y con su sello. Ni escondida —nadie sabría que existe— ni
@@ -106,7 +110,10 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
   );
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, pro && styles.panelPro]}>
+      {pro ? (
+        <CabeceraDeModuloPro nombre={elegida ? t(elegida.clave) : titulo} onVolver={volverUnPaso} />
+      ) : (
       <View style={styles.cabecera}>
         <TouchableOpacity
           onPress={volverUnPaso}
@@ -122,13 +129,14 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
           {elegida ? t(elegida.clave) : titulo}
         </Text>
       </View>
+      )}
 
       {/*
         Los vídeos avisan de su límite aquí y no al final: es lo que cambia lo
         que vas a pedir, así que se dice antes de elegir, no después.
       */}
       {entrada === 'videos' && !elegida && (
-        <View style={[styles.nota, { backgroundColor: theme.colors.surface }]}>
+        <View style={[styles.nota, { backgroundColor: theme.colors.surface }, pro && styles.notaPro]}>
           <Ionicons name="time-outline" size={scale(15)} color={theme.colors.textSecondary} />
           <Text style={[styles.notaTexto, { color: theme.colors.textSecondary }]}>{t('studio.vidLimit')}</Text>
         </View>
@@ -139,13 +147,15 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
         {elegida ? (
           <>
             {elegida.pideMaterial && (
-              <View style={[styles.nota, { backgroundColor: theme.colors.surface, marginHorizontal: SPACING.lg }]}>
+              <View style={[styles.nota, { backgroundColor: theme.colors.surface, marginHorizontal: pro ? 0 : SPACING.lg }]}>
                 <Ionicons name="image-outline" size={scale(15)} color={theme.colors.textSecondary} />
                 <Text style={[styles.notaTexto, { color: theme.colors.textSecondary }]}>{t('studio.needsMaterial')}</Text>
               </View>
             )}
 
             {elegida.controles.length > 0 ? (
+              /* Los controles traen su aire: en creator lo pone la columna, y se devuelve. */
+              <View style={pro ? styles.controlesPro : undefined}>
               <StudioControles
                 familias={elegida.controles}
                 elegido={controles}
@@ -153,6 +163,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
                   setControles((antes) => (antes[ruta] === valor ? quitar(antes, ruta) : { ...antes, [ruta]: valor }))
                 }
               />
+              </View>
             ) : (
               /* Sin controles no se deja un hueco mudo: se dice por qué no hay. */
               <Text style={[styles.sinControles, { color: theme.colors.textSecondary }]}>
@@ -176,7 +187,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
             GRUPOS_DE_HERRAMIENTAS.map((grupo) => (
               <View key={grupo.id} style={styles.grupo}>
                 <TextoEnMayusculas style={[styles.grupoTitulo, { color: theme.colors.textSecondary }]}>{t(grupo.clave)}</TextoEnMayusculas>
-                <View style={styles.rejilla}>
+                <View style={[styles.rejilla, pro && styles.rejillaPro]}>
                   {grupo.herramientas.map((h) =>
                     tarjeta(h.clave, h.icono, grupo.id + h.id, () => onElegir({ entrada, herramienta: h, controles: {} }))
                   )}
@@ -184,7 +195,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
               </View>
             ))
           ) : (
-            <View style={styles.rejilla}>
+            <View style={[styles.rejilla, pro && styles.rejillaPro]}>
               {(HERRAMIENTAS_POR_AREA[(puerta?.area ?? 'images') as Exclude<AreaDeStudio, 'more'>] ?? []).map((h) =>
                 tarjeta(h.clave, h.icono, h.id, () => onElegir({ entrada, herramienta: h, controles: {} }))
               )}
@@ -192,7 +203,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
           )
         ) : (
           /* ── CAPA 2 · qué quieres conseguir ─────────────────────────────── */
-          <View style={styles.rejilla}>
+          <View style={[styles.rejilla, pro && styles.rejillaPro]}>
             {experiencias.map((x) => tarjeta(x.clave, x.icono, x.id, () => setElegida(x), x.pendiente))}
           </View>
         )}
@@ -232,6 +243,11 @@ const quitar = (de: ControlesElegidos, ruta: string): ControlesElegidos => {
 
 const styles = StyleSheet.create({
   panel: { flex: 1 },
+  panelPro: { gap: 14 },
+  piezaPro: { borderRadius: 14, shadowOpacity: 0, elevation: 0 },
+  notaPro: { marginHorizontal: 0 },
+  controlesPro: { marginHorizontal: -SPACING.xl },
+  rejillaPro: { paddingHorizontal: 0, margin: -SPACING.xs },
   cabecera: {
     flexDirection: 'row',
     alignItems: 'center',

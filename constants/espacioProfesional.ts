@@ -13,20 +13,11 @@ export const RUTA_DE_INICIO = 'WeeCreator';
 /** Solo existe en la web: la app móvil no tiene ni la ruta, ni la dirección, ni la píldora. */
 export const VERSION_PROFESIONAL_EN_LA_WEB = Platform.OS === 'web';
 
-export type RutaDelTrabajo = 'Projects' | 'MisCreaciones';
-
-export interface EntradaDelTrabajo {
-  readonly id: string;
-  readonly clave: string;
-  readonly icono: string;
-  readonly ruta: RutaDelTrabajo;
-}
-
 /** Lo que es de la cuenta: sin sesión, llevan a iniciarla. */
-export const TRABAJO_DE_LA_CUENTA: readonly EntradaDelTrabajo[] = Object.freeze([
+export const TRABAJO_DE_LA_CUENTA = Object.freeze([
   { id: 'projects', clave: 'profesional.projects', icono: 'folder-open-outline', ruta: 'Projects' },
   { id: 'creations', clave: 'profesional.creations', icono: 'images-outline', ruta: 'MisCreaciones' },
-]);
+] as const);
 
 const ICONOS: Readonly<Record<string, string>> = {
   brain: 'bulb-outline',

@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { RejillaDeCreator } from '../creator/PiezasDeCreator';
 import { MODULOS_DE_BUSINESS, Modulo } from '../../constants/businessModules';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -31,6 +33,21 @@ interface Props {
 const BusinessModulos: React.FC<Props> = ({ onAbrir, porFila }) => {
   const { theme } = useTheme();
   const t = useT();
+  const pro = useEnEspacioProfesional();
+
+  if (pro) {
+    return (
+      <RejillaDeCreator
+        puertas={MODULOS_DE_BUSINESS.map((modulo) => ({
+          id: modulo.id,
+          icono: modulo.icono,
+          titulo: modulo.nombre,
+          pista: t(modulo.claveHint),
+          onPress: () => onAbrir(modulo),
+        }))}
+      />
+    );
+  }
 
   return (
     <View style={styles.rejilla}>

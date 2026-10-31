@@ -5,6 +5,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
+import { EnlaceDeCreaciones, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
 import { useResponsive } from '../hooks/useResponsive';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
@@ -66,6 +68,8 @@ const DesignScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { isMobile, isDesktop } = useResponsive();
   const alturaTeclado = useAlturaDelTeclado();
+  const pro = useEnEspacioProfesional();
+  const columna = useColumnaDeCreator();
 
   const [prompt, setPrompt] = useState('');
   /*
@@ -145,7 +149,7 @@ const DesignScreen: React.FC = () => {
   if (vista) {
     return (
       <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
-        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
+        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
           <DesignPanel
             vista={vista}
             onVolver={volver}
@@ -167,7 +171,7 @@ const DesignScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
+          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
             <StudioHeader nombre="Design" claveLema="design.slogan" claveDescripcion="design.description" />
 
             {/*
@@ -184,14 +188,18 @@ const DesignScreen: React.FC = () => {
               La caja es la misma y crece igual: esto mueve dónde empieza, no
               cuánto mide.
             */}
-            <View style={styles.cajaArriba}>
+            <View style={pro ? null : styles.cajaArriba}>
               <StudioPromptComposer
                 placeholder={t('design.placeholder')}
                 valor={prompt}
                 onCambiar={setPrompt}
                 onAjustes={() => setAjustesAbiertos(true)}
-                onReferencia={alAnadirReferencia}
-                onVoz={alAnadirReferencia}
+                /*
+                  En creator no se ofrece: aquí todavía no hay selector de archivos y
+                  el botón añadiría un archivo de muestra que nadie eligió.
+                */
+                onReferencia={pro ? undefined : alAnadirReferencia}
+                onVoz={pro ? undefined : alAnadirReferencia}
                 onCrear={alCrear}
                 ocupado={estado === 'creando'}
               />
@@ -199,7 +207,7 @@ const DesignScreen: React.FC = () => {
 
 {/* La misma ficha que en Weë Studio: lo que ya se sabe, a la vista. */}
             {referencias.length > 0 && (
-              <View style={styles.referencias}>
+              <View style={[styles.referencias, pro && styles.referenciasPro]}>
                 {referencias.map((r, i) => (
                   <FichaDeContexto key={`${r}-${i}`} icono="image-outline" texto={r} />
                 ))}
@@ -217,12 +225,16 @@ const DesignScreen: React.FC = () => {
               Un poco más ancha y más baja que la del Studio, porque un diseño se
               reconoce por lo ancho y un video por lo alto.
             */}
-            <FilaDeCreaciones
-              creaciones={CREACIONES_DE_DESIGN}
-              ancho={scale(140)}
-              alto={scale(120)}
-              onVerTodas={() => navigation.navigate('Projects')}
-            />
+            {pro ? (
+              <EnlaceDeCreaciones />
+            ) : (
+              <FilaDeCreaciones
+                creaciones={CREACIONES_DE_DESIGN}
+                ancho={scale(140)}
+                alto={scale(120)}
+                onVerTodas={() => navigation.navigate('Projects')}
+              />
+            )}
           </View>
         </PaginaDeCajas>
       </EspacioDeEscritura>
@@ -268,6 +280,7 @@ const styles = StyleSheet.create({
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl + SPACING.xs, flex: 1 },
   /* Sube la caja 30 de los 48 que la separaban de la cabecera. Deja unos 18. */
   cajaArriba: { marginTop: -scale(30) },
+  referenciasPro: { paddingHorizontal: 0, marginTop: -12 },
   referencias: {
     flexDirection: 'row',
     flexWrap: 'wrap',

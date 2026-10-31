@@ -13,6 +13,7 @@ import { useEspecialista } from '../hooks/useEspecialista';
 import { experienceLabel, getExperienceById, WeeExperience } from '../constants/weeExperiences';
 import { BrainMessage } from '../services/brainService';
 import CreatorShell from '../components/creator/CreatorShell';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import CabeceraDeWeeBrain from '../components/brain/CabeceraDeWeeBrain';
 import SistemaDeWeeBrain, { EstadoDelCerebro, CEREBRO_DE_WEE } from '../components/brain/SistemaDeWeeBrain';
 import CajaDePrompt from '../components/creator/CajaDePrompt';
@@ -127,6 +128,7 @@ const BrainChatScreen: React.FC = () => {
   const { t, formato } = useIdioma();
   const navigation = useNavigation<any>();
   const { isDesktop } = useResponsive();
+  const pro = useEnEspacioProfesional();
   const spec = useEspecialista('brain');
   const chat = useBrainChat();
 
@@ -463,8 +465,9 @@ const BrainChatScreen: React.FC = () => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ marginHorizontal: -aireDelMarco }}
-        contentContainerStyle={[styles.atajos, { paddingHorizontal: aireDelMarco }]}
+        /* En creator envuelven: a lo ancho, ningún atajo queda medio cortado en el borde. */
+        style={pro ? undefined : { marginHorizontal: -aireDelMarco }}
+        contentContainerStyle={pro ? [styles.atajos, styles.atajosPro] : [styles.atajos, { paddingHorizontal: aireDelMarco }]}
       >
         {spec.actions.map((action) => (
           <TouchableOpacity
@@ -576,6 +579,7 @@ const BrainChatScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  atajosPro: { flexWrap: 'wrap', width: '100%', justifyContent: 'center' },
   /*
    * La caja ya no va al final de la página: va anclada abajo. Así que la página
    * no tiene que guardar sitio para la barra de Weë —eso lo hace el pie— y su

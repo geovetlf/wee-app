@@ -1,3 +1,4 @@
+import CerebroElectrico from './CerebroElectrico';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -446,7 +447,7 @@ const SistemaDeWeeBrain: React.FC<Props> = ({ estado = 'quieto', onSatelite }) =
               },
             ]}
           >
-            <Image source={CEREBRO_DE_WEE} style={styles.cerebroDibujo} contentFit="contain" transition={0} accessible={false} />
+            <CerebroElectrico tamano={CEREBRO} estado={estado} />
           </Animated.View>
 
           {/* Los seis satélites, con su nombre de marca y su emoji de siempre. */}

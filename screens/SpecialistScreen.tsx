@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
+import { EnlaceDeCreaciones, RADIO_DE_CREATOR, TituloDeCreator } from '../components/creator/PiezasDeCreator';
 import { textoDeObjetivo } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import { SpecialistAction, SpecialistExample } from '../constants/specialists';
@@ -14,6 +16,7 @@ import BrainChatScreen from './BrainChatScreen';
 import StudioScreen from './StudioScreen';
 import DesignScreen from './DesignScreen';
 import ChefScreen from './ChefScreen';
+import MusicScreen from './MusicScreen';
 import BusinessScreen from './BusinessScreen';
 import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
 import ActionGrid from '../components/creator/ActionGrid';
@@ -41,6 +44,7 @@ const SpecialistScreen: React.FC = () => {
   const id: string = route.params?.id || 'brain';
   const spec = useEspecialista(id);
   const isBrain = id === 'brain';
+  const pro = useEnEspacioProfesional();
 
   const [myJobs, setMyJobs] = useState<CreatorJob[]>([]);
   /*
@@ -111,6 +115,8 @@ const SpecialistScreen: React.FC = () => {
   if (id === 'design') return <DesignScreen />;
   /* Y Weë Chef, desde el 2026-09-15: su sitio de trabajo, con la misma estructura. */
   if (id === 'chef') return <ChefScreen />;
+  /* Weë Music: portada, Composer y workstation propios (screens/MusicScreen.tsx). */
+  if (id === 'music') return <MusicScreen />;
 
   /*
    * `opens` deja que una acción abra la conversación de otra experiencia. Lo usa
@@ -202,12 +208,16 @@ const SpecialistScreen: React.FC = () => {
         />
       ) : (
         <View style={styles.section}>
+          {pro ? (
+            <TituloDeCreator titulo={spec.gridTitle} />
+          ) : (
           <SectionTitle
             title={spec.gridTitle}
             hint={spec.gridHint}
             action={spec.id === 'design' ? t('weeai.describeYourIdea') : undefined}
             onAction={spec.id === 'design' ? () => startFlow() : undefined}
           />
+          )}
           <ActionGrid actions={spec.actions} layout={spec.actionLayout} onPress={handleAction} />
         </View>
       )}
@@ -238,15 +248,19 @@ const SpecialistScreen: React.FC = () => {
 
       {myJobs.length > 0 && (
         <View style={styles.section}>
+          {pro ? (
+            <TituloDeCreator titulo={t('weeai.myCreations')} accion={t('weeai.seeAllCreations')} onAccion={() => navigation.navigate('WeeCreator')} />
+          ) : (
           <SectionTitle title={t('weeai.myCreations')} action={t('weeai.seeAllCreations')} onAction={() => navigation.navigate('WeeCreator')} />
+          )}
           {myJobs.map((job) => (
             <TouchableOpacity
               key={job.id}
-              style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+              style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }, pro && styles.jobRowPro]}
               onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id })}
               activeOpacity={0.8}
             >
-              <Text style={styles.jobEmoji}>{spec.experience.emoji}</Text>
+              {!pro && <Text style={styles.jobEmoji}>{spec.experience.emoji}</Text>}
               <View style={{ flex: 1 }}>
                 <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{textoDeObjetivo(t, job.experienceId, job.goal)}</Text>
                 <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
@@ -259,7 +273,7 @@ const SpecialistScreen: React.FC = () => {
         </View>
       )}
 
-      <Text style={[styles.footer, { color: theme.colors.textSecondary }]}>{t('weeai.tellWee')}</Text>
+      {pro ? <EnlaceDeCreaciones /> : <Text style={[styles.footer, { color: theme.colors.textSecondary }]}>{t('weeai.tellWee')}</Text>}
     </CreatorShell>
   );
 };
@@ -276,6 +290,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
   },
+  jobRowPro: { borderWidth: StyleSheet.hairlineWidth, borderRadius: RADIO_DE_CREATOR },
   jobEmoji: {
     fontSize: scale(22),
   },

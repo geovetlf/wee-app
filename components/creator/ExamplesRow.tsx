@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { PildoraDeCreator, TituloDeCreator, estilosDeCreator } from './PiezasDeCreator';
 import { useResponsive } from '../../hooks/useResponsive';
 import { SpecialistExample } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -21,6 +23,21 @@ const ExamplesRow: React.FC<ExamplesRowProps> = ({ title, examples, onPressItem,
   const { theme } = useTheme();
   const { isDesktop } = useResponsive();
   const cardWidth = isDesktop ? scale(172) : scale(148);
+  const pro = useEnEspacioProfesional();
+
+  /* En Weë versión creator, un ejemplo es una frase para empezar, no una imagen de mentira. */
+  if (pro) {
+    return (
+      <View style={estilosDeCreator.bloque}>
+        <TituloDeCreator titulo={title} accion={action} onAccion={onAction} />
+        <View style={estilosDeCreator.pildoras}>
+          {examples.map((example) => (
+            <PildoraDeCreator key={example.title} texto={example.title} onPress={() => onPressItem?.(example)} />
+          ))}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

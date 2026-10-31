@@ -191,6 +191,8 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
    * `SIN_TEXTO` con su porqué—.
    */
   const SIN_TEXTO = new Set([
+    /* Weë Music: R&B, «dB» y MIDI son siglas o unidades que se escriben igual en japonés. */
+    'music.genre_rnb', 'music.eqDb', 'music.export_midi', 'music.capMidi',
     /* Un usuario de muestra de una red social («@my_shop»): un @usuario solo admite letras latinas. */
     /*
      * El botón único de un aviso informativo. En las apps japonesas —iOS,
@@ -529,6 +531,9 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    'music.groupMood', 'music.groupVoice', 'music.fxTitle', 'music.instr_vocals',
+    /* Weë Music: el mismo rótulo español, otro contexto — «Género» musical (no el sexo), «Ambiente» y «Voz» de una canción (no el sonido ambiente ni la voz en off), «Efectos» de audio y «Resumen» de una selección. */
+    'music.groupGenre', 'music.transformTitle', 'music.reviewTitle',
     /* «Personas» como estilo de avatar es «人物»; la del Chef cuenta comensales («人数»). */
     'avatar.stylePeople',
     /* «Nuevo producto» de muestra en el calendario de un restaurante es un plato nuevo («新メニュー»); el título del formulario de Weë Biz es «商品の追加». */

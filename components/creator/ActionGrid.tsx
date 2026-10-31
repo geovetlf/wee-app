@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { RejillaDeCreator } from './PiezasDeCreator';
 import { useResponsive } from '../../hooks/useResponsive';
 import { ActionLayout, SpecialistAction } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -31,6 +33,7 @@ const GAP = SPACING.md;
 const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => {
   const { theme } = useTheme();
   const { isDesktop, isTablet } = useResponsive();
+  const pro = useEnEspacioProfesional();
 
   /*
    * Dos niveles (fase 2E-53). Las acciones marcadas como secundarias salen de la
@@ -41,6 +44,21 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
    * Las secciones que no marcan ninguna —las otras siete— no notan el cambio: la
    * lista secundaria queda vacía y todo sigue igual que antes.
    */
+  /* En Weë versión creator, las mismas acciones con la tarjeta común: sin láminas de muestra ni emojis. */
+  if (pro) {
+    return (
+      <RejillaDeCreator
+        puertas={actions.map((action) => ({
+          id: action.id,
+          icono: action.icon,
+          titulo: action.title,
+          pista: action.subtitle,
+          onPress: () => onPress(action),
+        }))}
+      />
+    );
+  }
+
   const principales = actions.filter((action) => !action.secondary);
   const secundarias = actions.filter((action) => action.secondary);
 

@@ -6,6 +6,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
+import { EnlaceDeCreaciones, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
 import { useResponsive } from '../hooks/useResponsive';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
@@ -87,6 +89,9 @@ const StudioScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const alturaTeclado = useAlturaDelTeclado();
+  /* Dentro de Weë versión creator, la misma pantalla con la columna y las piezas de creator. */
+  const pro = useEnEspacioProfesional();
+  const columna = useColumnaDeCreator();
 
   const [prompt, setPrompt] = useState('');
   /*
@@ -372,7 +377,7 @@ const StudioScreen: React.FC = () => {
   if (panel) {
     return (
       <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
-        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
+        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
           <StudioPanel
             entrada={panel}
             porFila={isMobile ? 2 : 3}
@@ -400,7 +405,7 @@ const StudioScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
+          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
             <StudioHeader />
 
             {/*
@@ -417,7 +422,7 @@ const StudioScreen: React.FC = () => {
               La caja es la misma y crece igual: esto mueve dónde empieza, no
               cuánto mide.
             */}
-            <View style={styles.cajaArriba}>
+            <View style={pro ? null : styles.cajaArriba}>
               <StudioPromptComposer
                 valor={prompt}
                 onCambiar={setPrompt}
@@ -438,7 +443,7 @@ const StudioScreen: React.FC = () => {
               lo vuelvan a preguntar. Tocar una ficha la suelta.
             */}
             {(!!experiencia || Object.keys(controles).length > 0 || adjuntos.length > 0) && (
-              <View style={styles.contexto}>
+              <View style={[styles.contexto, pro && styles.contextoPro]}>
                 {!!experiencia && (
                   <FichaDeContexto
                     icono="sparkles-outline"
@@ -470,11 +475,16 @@ const StudioScreen: React.FC = () => {
 
             <StudioEntradas porFila={porFila} onAbrir={(entrada) => setPanel(entrada)} />
 
-            <FilaDeCreaciones
-              creaciones={CREACIONES_DEL_STUDIO}
-              onVerTodas={() => navigation.navigate('Projects')}
-              onOpciones={() => {}}
-            />
+            {/* En creator, ninguna creación de muestra: se va a las de verdad. */}
+            {pro ? (
+              <EnlaceDeCreaciones />
+            ) : (
+              <FilaDeCreaciones
+                creaciones={CREACIONES_DEL_STUDIO}
+                onVerTodas={() => navigation.navigate('Projects')}
+                onOpciones={() => {}}
+              />
+            )}
           </View>
         </PaginaDeCajas>
       </EspacioDeEscritura>
@@ -517,6 +527,7 @@ const styles = StyleSheet.create({
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl, flex: 1 },
   /* Sube la caja 26 de los 44 que la separaban de la cabecera. Deja unos 18. */
   cajaArriba: { marginTop: -scale(26) },
+  contextoPro: { paddingHorizontal: 0, marginTop: -12 },
   /* Lo que Weë ya sabe, justo debajo de donde se escribe. */
   contexto: {
     flexDirection: 'row',

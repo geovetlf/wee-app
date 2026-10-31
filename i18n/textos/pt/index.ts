@@ -48,6 +48,7 @@ import { catalogo } from './catalogo';
 import { business } from './business';
 import { projects } from './projects';
 import { profesional } from './profesional';
+import { music } from './music';
 import { creaciones } from './creaciones';
 import { studio } from './studio';
 import { design } from './design';
@@ -99,6 +100,7 @@ export const pt: FormaDelDiccionario = {
   business,
   projects,
   profesional,
+  music,
   creaciones,
   studio,
   design,

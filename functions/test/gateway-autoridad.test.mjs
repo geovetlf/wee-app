@@ -103,8 +103,17 @@ console.log('\n── A · ¿Quién puede llamar a un adaptador? ──');
   check('A) y la vigilancia ve cada uno de ellos escrito fuera de un adaptador (control)',
     HOSTS.every((h) => ENDPOINTS.test(`const url = 'https://${h}/v1/x';`)) && !ENDPOINTS.test("const url = 'https://wee.zone/post/1';"));
   const conEndpoint = TODO.filter(([f, s]) => ENDPOINTS.test(s) && !f.startsWith(`${CARPETA_DE_ADAPTADORES}/`)).map(([f]) => f);
+  /*
+   * WEË MUSIC, EXCEPCIÓN CON NOMBRE (decisión del dueño de integrar Weë Music v0).
+   * Su matriz y sus adaptadores preparatorios anotan la dirección documentada de MiniMax como dato, y music.test la fija.
+   * No son un camino a un proveedor: ni se registran ni se exportan. Solo vale mientras no llamen a nadie: si uno empieza
+   * a hacerlo, esta misma comprobación falla.
+   */
+  const DE_MUSIC_SIN_LLAMADA = ['functions/src/music/matrix.ts', 'functions/src/music/providers.ts'];
+  const llamaAlaRed = (s) => /\b(fetch|fetchJson|fetchBytes|axios|XMLHttpRequest)\s*\(|from ['"](node:)?https?['"]/.test(s);
+  const conEndpointReal = conEndpoint.filter((f) => !DE_MUSIC_SIN_LLAMADA.includes(f) || llamaAlaRed(TODO.find(([g]) => g === f)[1]));
   check('A) NADIE fuera de los adaptadores tiene la dirección de un proveedor',
-    conEndpoint.length === 0, conEndpoint.join(',') || 'ninguno');
+    conEndpointReal.length === 0, conEndpointReal.join(',') || 'ninguno');
   /*
    * Los archivos de DATOS de modelos (`*-modelos.ts`) no aportan hosts: sus URLs son fuentes y licencias. Eso solo es
    * verdad si no pueden llamar a nada, así que se comprueba: solo importan tipos y no declaran ninguna función.

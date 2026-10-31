@@ -562,7 +562,8 @@ console.log('\n── D · Un solo motor EN USO por pieza ──');
   const fueraDelMotor = donde(new RegExp(`${patronDeHosts(hostsDeProveedores(RAIZ)).source}|GoogleGenAI|@google\\/genai|volces`, 'i'),
     (r) => !r.startsWith('engine/providers/') && !r.startsWith('core/'));
   check('104) fuera de los adaptadores, solo `vertexAI.ts` (avatar) habla con un proveedor — y está registrado como deuda',
-    igual(fueraDelMotor.filter((r) => !['engine/registry.ts', 'engine/verification.ts'].includes(r)), ['vertexAI.ts']), fueraDelMotor.join(', '));
+    /* music/matrix.ts y music/providers.ts anotan la dirección como dato y no llaman a nadie: lo exige gateway-autoridad y music.test (A3–A6). */
+    igual(fueraDelMotor.filter((r) => !['engine/registry.ts', 'engine/verification.ts', 'music/matrix.ts', 'music/providers.ts'].includes(r)), ['vertexAI.ts']), fueraDelMotor.join(', '));
   check('105) y a `vertexAI.ts` solo lo usa el avatar', igual(donde(/from '\.\/vertexAI'/), ['generateAvatar.ts']));
   check('106) el código ya dice cuál es el canónico y cuál está en uso, y que no cabe un tercero',
     /CANÓNICO {3}`core\/job\.ts`/.test(leer('functions/src/creator/types.ts')) && /NO PUEDE HABER UN TERCERO/.test(leer('functions/src/creator/types.ts')));

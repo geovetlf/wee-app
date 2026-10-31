@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { PildoraDeCreator, estilosDeCreator } from './PiezasDeCreator';
 import { SpecialistConfig } from '../../constants/specialists';
 import { SPACING } from '../../constants/design';
 import { Chip } from './ui';
@@ -39,6 +41,7 @@ export const objetivoDe = (chip: string): string => chip.replace(EMOJI_AL_PRINCI
 const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit }) => {
   const t = useT();
   const [text, setText] = useState('');
+  const pro = useEnEspacioProfesional();
 
   const enviar = () => {
     const value = text.trim();
@@ -49,7 +52,8 @@ const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit }) => {
 
   return (
     <View style={styles.bloque}>
-      <InvitacionDeLaCaja texto={config.subtitle} />
+      {/* En creator, la cabecera ya invita: la caja arriba y nada entre las dos. */}
+      {!pro && <InvitacionDeLaCaja texto={config.subtitle} />}
 
       <CajaDePrompt
         valor={text}
@@ -57,14 +61,17 @@ const IdeaBox: React.FC<IdeaBoxProps> = ({ config, onSubmit }) => {
         onEnviar={enviar}
         /* Con etiqueta propia —"Crear mi primera campaña"— es la que se lee en voz alta. */
         etiquetaEnviar={config.button ?? t('weeai.sendIdea')}
+        textoEnviar={config.button ?? t('studio.sendLabel')}
         placeholder={config.placeholder}
         /* Esta caja empieza algo: Intro lo empieza, como cuando era de una línea. */
         enviarConIntro
       />
 
       {config.chips.length > 0 && (
-        <View style={styles.ejemplos}>
-          {config.chips.map((chip) => (
+        <View style={pro ? estilosDeCreator.pildoras : styles.ejemplos}>
+          {config.chips.map((chip) => pro ? (
+            <PildoraDeCreator key={chip} texto={objetivoDe(chip)} onPress={() => onSubmit(objetivoDe(chip))} />
+          ) : (
             <Chip key={chip} label={chip} onPress={() => onSubmit(objetivoDe(chip))} />
           ))}
         </View>

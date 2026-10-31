@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { TituloDeCreator, RADIO_DE_CREATOR } from '../creator/PiezasDeCreator';
 import { textoDeObjetivo } from '../../i18n/servidor';
 import { CreatorJob, claveDelEstado } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -34,9 +36,13 @@ interface Props {
 const ChefProyectos: React.FC<Props> = ({ proyectos, onAbrir, onVerTodos }) => {
   const { theme } = useTheme();
   const t = useT();
+  const pro = useEnEspacioProfesional();
 
   return (
     <View style={styles.bloque}>
+      {pro ? (
+        <TituloDeCreator titulo={t('chef.projectsTitle')} accion={t('chef.seeAll')} onAccion={onVerTodos} />
+      ) : (
       <View style={styles.cabecera}>
         <Text style={[styles.seccion, { color: theme.colors.text }]}>{t('chef.projectsTitle')}</Text>
         <TouchableOpacity
@@ -50,14 +56,15 @@ const ChefProyectos: React.FC<Props> = ({ proyectos, onAbrir, onVerTodos }) => {
           <Text style={[styles.verTodos, { color: theme.colors.textSecondary }]}>{t('chef.seeAll')} →</Text>
         </TouchableOpacity>
       </View>
+      )}
 
       {proyectos.length === 0 ? (
-        <View style={[styles.vacio, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
+        <View style={[styles.vacio, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }, pro && styles.vacioPro]}>
           <Text style={[styles.vacioTexto, { color: theme.colors.text }]}>{t('chef.projectsEmpty')}</Text>
           <Text style={[styles.vacioPista, { color: theme.colors.textSecondary }]}>{t('chef.projectsEmptyHint')}</Text>
         </View>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fila}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.fila, pro && styles.filaPro]}>
           {proyectos.map((job) => (
             <TouchableOpacity
               key={job.id}
@@ -85,6 +92,8 @@ const ChefProyectos: React.FC<Props> = ({ proyectos, onAbrir, onVerTodos }) => {
 
 const styles = StyleSheet.create({
   bloque: { gap: SPACING.md },
+  vacioPro: { marginHorizontal: 0, padding: 14, borderRadius: RADIO_DE_CREATOR },
+  filaPro: { paddingHorizontal: 0 },
   cabecera: {
     flexDirection: 'row',
     alignItems: 'center',

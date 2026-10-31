@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
+import { TituloDeCreator, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useEspecialista } from '../hooks/useEspecialista';
@@ -67,6 +69,8 @@ const ChefScreen: React.FC = () => {
   const { user } = useAuth();
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const spec = useEspecialista('chef');
+  const pro = useEnEspacioProfesional();
+  const columna = useColumnaDeCreator();
 
   const [prompt, setPrompt] = useState('');
   const [panel, setPanel] = useState<PanelDeChef | null>(null);
@@ -227,7 +231,7 @@ const ChefScreen: React.FC = () => {
   if (panel) {
     return (
       <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
-        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
+        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
           <ChefPanel
             panel={panel}
             porFila={porFila}
@@ -253,7 +257,7 @@ const ChefScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
+          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
             <CabeceraDeSeccion nombre="Chef" lema={spec?.headline ?? ''} descripcion={t('chef.description')} />
 
             {/*
@@ -264,7 +268,8 @@ const ChefScreen: React.FC = () => {
               a escribir. La caja se queda limpia; lo que la explica sigue en su
               etiqueta, para quien la escucha en vez de verla.
             */}
-            <View style={styles.compositor}>
+            <View style={[styles.compositor, pro && styles.compositorPro]}>
+              {!pro ? (
               <CajaDePrompt
                 valor={prompt}
                 onCambiar={setPrompt}
@@ -286,6 +291,25 @@ const ChefScreen: React.FC = () => {
                   { icono: 'options-outline', etiqueta: t('chef.settingsLabel'), alPulsar: () => setAjustesAbiertos(true) },
                 ]}
               />
+              ) : (
+                /*
+                  En creator, los botones que hacen algo y con su palabra: añadir y
+                  galería abren lo mismo, y dictar todavía no existe.
+                */
+                <CajaDePrompt
+                  valor={prompt}
+                  onCambiar={setPrompt}
+                  onEnviar={alEnviar}
+                  etiquetaEnviar={t('chef.sendLabel')}
+                  textoEnviar={t('chef.sendLabel')}
+                  placeholder={t('chef.placeholder')}
+                  acciones={[
+                    { icono: 'image-outline', etiqueta: t('chef.galleryLabel'), texto: t('weetalk.photo'), alPulsar: () => { void pedirFoto('galeria'); } },
+                    { icono: 'camera-outline', etiqueta: t('chef.cameraLabel'), texto: t('composer.camera'), alPulsar: () => { void pedirFoto('camara'); } },
+                    { icono: 'options-outline', etiqueta: t('chef.settingsLabel'), texto: t('brain.settingsLabel'), alPulsar: () => setAjustesAbiertos(true) },
+                  ]}
+                />
+              )}
 
               {/*
                 Lo que viaja con la idea, debajo de la caja y no escondido: la
@@ -338,7 +362,11 @@ const ChefScreen: React.FC = () => {
             </View>
 
             <View style={styles.funciones}>
-              <Text style={[styles.seccion, { color: theme.colors.text }]}>{t('chef.gridTitle')}</Text>
+              {pro ? (
+                <TituloDeCreator titulo={t('chef.gridTitle')} />
+              ) : (
+                <Text style={[styles.seccion, { color: theme.colors.text }]}>{t('chef.gridTitle')}</Text>
+              )}
               <ChefAcciones porFila={porFila} onElegir={alElegirTarjeta} />
             </View>
 
@@ -386,6 +414,7 @@ const styles = StyleSheet.create({
    * Mueve dónde empieza la caja, no cuánto mide: crece igual que antes.
    */
   compositor: { paddingHorizontal: SPACING.lg, gap: SPACING.sm, marginTop: -scale(26) },
+  compositorPro: { paddingHorizontal: 0, marginTop: 0 },
   fichas: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, paddingHorizontal: SPACING.xs },
   ficha: {
     flexDirection: 'row',

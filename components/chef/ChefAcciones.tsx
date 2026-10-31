@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { RejillaDeCreator } from '../creator/PiezasDeCreator';
 import { TARJETAS_DE_CHEF, TarjetaDeChef } from '../../constants/chefTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -37,6 +39,21 @@ interface Props {
 const ChefAcciones: React.FC<Props> = ({ onElegir, porFila }) => {
   const { theme } = useTheme();
   const t = useT();
+  const pro = useEnEspacioProfesional();
+
+  if (pro) {
+    return (
+      <RejillaDeCreator
+        puertas={TARJETAS_DE_CHEF.map((tarjeta) => ({
+          id: tarjeta.id,
+          icono: tarjeta.icono,
+          titulo: t(tarjeta.claveTitulo),
+          pista: t(tarjeta.claveSubtitulo),
+          onPress: () => onElegir(tarjeta),
+        }))}
+      />
+    );
+  }
 
   return (
     <View style={styles.rejilla}>
