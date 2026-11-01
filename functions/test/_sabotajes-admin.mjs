@@ -16,9 +16,33 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../..');
 const SEG = 'admin-seguridad';
 const L = 'functions/lib/admin/';
+const ASSERT = 'admin-assert';
+const ADMIN = 'functions/lib/shared/admin.js';
+const USO = '(0, admin_1.assertAdmin)(request.auth);';
 
 /* [nombre, archivo, texto, sustituto, suites que deben caer] */
 const SABOTAJES = [
+  ['assertAdmin · deja pasar a cualquiera', ADMIN, "if (!(0, exports.isAdmin)(auth))\n        throw new https_1.HttpsError('permission-denied', 'Solo administración');", '', [ASSERT]],
+  ['assertAdmin · sin sesión ya no es unauthenticated', ADMIN, "if (!auth)\n        throw new https_1.HttpsError('unauthenticated', 'Debes iniciar sesión');", '', [ASSERT]],
+  ['assertAdmin · rechaza con otro código', ADMIN, "'permission-denied', 'Solo administración'", "'not-found', 'Solo administración'", [ASSERT]],
+  ['assertAdmin · el error cuenta el uid', ADMIN, "'permission-denied', 'Solo administración'", "'permission-denied', 'Solo administración: ' + auth.uid", [ASSERT]],
+  ['isAdmin · vale cualquier valor verdadero', ADMIN, '_a.admin) === true', '_a.admin)', [ASSERT]],
+  ['isAdmin · basta con que exista el claim', ADMIN, '_a.admin) === true', '_a.admin) !== undefined', [ASSERT]],
+  ['isAdmin · un rol vale sin admin', ADMIN, 'allowed.includes(auth.uid)', 'allowed.includes(auth.uid) || !!auth.token?.weeRole', [ASSERT]],
+  ['isAdmin · la lista se compara por trozos', ADMIN, 'allowed.includes(auth.uid)', 'allowed.some((u) => String(auth.uid).includes(u))', [ASSERT]],
+  ['isAdmin · la lista con huecos admite el uid vacío', ADMIN, '.filter(Boolean)', '', [ASSERT]],
+  ['isAdmin · la lista deja de quitar espacios', ADMIN, '.map((s) => s.trim())', '', [ASSERT]],
+  ['isAdmin · la lista deja de contar', ADMIN, ' || allowed.includes(auth.uid)', '', [ASSERT]],
+  ['uso de assertAdmin · spendCredits sin él', 'functions/lib/credits/index.js', `${USO}\n    const userId = uidOf(request);`, 'const userId = uidOf(request);', [ASSERT]],
+  ['uso de assertAdmin · grantCredits sin él', 'functions/lib/credits/index.js', `${USO}\n    const data = (request.data || {});\n    const requestId`, 'const data = (request.data || {});\n    const requestId', [ASSERT]],
+  ['uso de assertAdmin · refundCredits sin él', 'functions/lib/credits/index.js', `${USO}\n    const data = (request.data || {});\n    return (0, autorizacion_1.operacionAdmin)((0, operaciones_1.claseDeCredits)('refundCredits'`, "const data = (request.data || {});\n    return (0, autorizacion_1.operacionAdmin)((0, operaciones_1.claseDeCredits)('refundCredits'", [ASSERT]],
+  ['uso de assertAdmin · creditsAdmin sin él', 'functions/lib/credits/index.js', `${USO}\n    const data = (request.data || {});\n    return (0, autorizacion_1.operacionAdmin)((0, operaciones_1.claseDeCreditsAdmin)`, 'const data = (request.data || {});\n    return (0, autorizacion_1.operacionAdmin)((0, operaciones_1.claseDeCreditsAdmin)', [ASSERT]],
+  ['uso de assertAdmin · engineAdmin sin él', 'functions/lib/engine/admin.js', USO, '', [ASSERT]],
+  ['uso de assertAdmin · mediaCanary sin él', 'functions/lib/media/canary.js', USO, '', [ASSERT]],
+  ['uso de assertAdmin · moderationAdmin sin él', 'functions/lib/moderation/index.js', USO, '', [ASSERT]],
+  ['uso de assertAdmin · ejecutarEvalRun sin él', 'functions/lib/evals/index.js', '(0, admin_1.assertAdmin)(auth);', '', [ASSERT]],
+  ['uso de assertAdmin · un uso nuevo sin registrar', 'functions/src/admin/lecturas.ts', 'export const ', "import { assertAdmin as a } from '../shared/admin';\nexport const colada = (x: any) => { a(x); assertAdmin(x); };\ndeclare const assertAdmin: any;\nexport const ", [ASSERT]],
+  ['isAdmin · otra comprobación del claim por su cuenta', 'functions/src/admin/lecturas.ts', 'export const ', 'export const coladaDos = (x: any) => x.token?.admin === true;\nexport const ', [ASSERT]],
   ['autorización · una cuenta deshabilitada entra', `${L}autorizacion.js`, 'if (usuario.disabled)', 'if (false)', [SEG]],
   ['autorización · las sesiones revocadas valen', `${L}autorizacion.js`, '!(emitido >= validoDesde)', 'false', [SEG]],
   ['autorización · si Auth falla, se fía del token', `${L}autorizacion.js`, "throw new https_1.HttpsError('unavailable', 'No se pudo comprobar el permiso');", 'return auth;', [SEG]],
