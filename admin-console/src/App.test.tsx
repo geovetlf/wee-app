@@ -41,6 +41,8 @@ const montar = (opciones: { usuario?: UsuarioDeSesion | null; respuestas?: Recor
 };
 
 const ir = async (ruta: string) => { await act(async () => { window.location.hash = `#/${ruta}`; window.dispatchEvent(new HashChangeEvent('hashchange')); }); };
+/** Operaciones va por pestañas: solo se consulta, y solo se ve, la que está abierta. */
+const pestana = async (nombre: string) => { await userEvent.click(await screen.findByRole('tab', { name: nombre })); };
 
 beforeEach(() => { window.location.hash = ''; });
 afterEach(() => cleanup());
@@ -149,10 +151,125 @@ describe('Panorama (portada)', () => {
 
   it('lo que no se mide se dice, sin cifras inventadas', async () => {
     montar({ respuestas: base });
-    const bloque = (await screen.findByRole('heading', { name: 'Not measured yet' })).closest('section')!;
-    expect(within(bloque).getAllByRole('listitem')).toHaveLength(4);
-    expect(within(bloque).getByText('Registered accounts — there is no account aggregate on the server.')).toBeInTheDocument();
-    expect(bloque.textContent).not.toMatch(/\d/);
+    const bloque = (await screen.findByRole('heading', { name: 'The 16 domains' })).closest('section')!;
+    expect(within(bloque).getAllByRole('row').slice(1)).toHaveLength(16);
+    /* Los cuatro sin nada real: Music, Design, Guardian y Copilot. */
+    expect(within(bloque).getAllByText('Pending')).toHaveLength(4);
+    expect(within(bloque).queryByText('Operational')).not.toBeInTheDocument();
+    expect(bloque.querySelector('tbody')?.textContent).not.toMatch(/\d/);
+  });
+
+  it('lo que el servidor no dio no es un cero: «sin datos», y un error no pinta cifras', async () => {
+    montar({ respuestas: { ...base, 'creditsAdmin.stats': { global: {}, daily: [] }, 'engineAdmin.status': falla('functions/internal'), 'moderationAdmin.list': falla('functions/internal') } });
+    const credits = (await screen.findByRole('heading', { name: 'Credits', level: 2 })).closest('article')!;
+    expect(await within(credits).findByText('No data')).toBeInTheDocument();
+    const servicios = (await screen.findByRole('heading', { name: 'Weë AI', level: 2 })).closest('article')!;
+    expect(await within(servicios).findByText('Error')).toBeInTheDocument();
+    const denuncias = (await screen.findByRole('heading', { name: 'Open reports', level: 2 })).closest('article')!;
+    await within(denuncias).findAllByRole('alert');
+    for (const bloque of [credits, servicios, denuncias]) expect(bloque.textContent?.replace(/Source:.*/, '')).not.toMatch(/\d/);
+  });
+
+  it('un rol con todo ve los indicadores, y una lista cortada dice «N o más», nunca N', async () => {
+    const lleno = (i: number) => ({ id: `c${i}`, experiencia: 'chef', estado: 'running', actualizado: 5 });
+    montar({ respuestas: {
+      ...base,
+      'opsAdmin.quienSoy': { rol: 'owner', permisos: ['ops.read', 'ai.read', 'finance.read', 'accounts.read', 'audit.read', 'moderation.read'] },
+      'opsAdmin.usoIa': { dia: '2026-10-30', existe: true, items: [{ capacidad: 'text.generate', proveedor: 'provx', llamadas: 7, fallos: 2, credits: 1 }], truncado: false },
+      'opsAdmin.creacionesAtascadas': { items: Array.from({ length: 25 }, (_, i) => lleno(i)), truncado: true, cursor: 'c24' },
+      'opsAdmin.atascados': { items: [{ jobId: 'en-plazo', estado: 'waiting', dentroDePlazo: true }], truncado: false },
+      'opsAdmin.cola': { items: [{ jobId: 'q1', retrasado: true }], truncado: false },
+      'opsAdmin.reservas': { items: [{ id: 'r1', servicio: 'ai_video', importe: 40 }], truncado: false },
+      'opsAdmin.generaciones': { items: [{ id: 'g1', capacidad: 'image.generate', proveedor: 'provx', estado: 'FAILED' }], truncado: true },
+      'opsAdmin.auditoria': { items: [{ en: 5, actorUid: 'duena', accion: 'opsAdmin.cola', resultado: 'denegado', correlationId: 'adm_9' }], truncado: true },
+    } });
+    const atencion = (await screen.findByRole('heading', { name: 'Jobs that need attention', level: 2 })).closest('article')!;
+    /* 25 (cortada) + 0 (el que espera dentro de plazo no cuenta) + 0 apartados. */
+    expect(await within(atencion).findAllByText('25 or more')).not.toHaveLength(0);
+    expect(within(atencion).getByText('Needs attention')).toBeInTheDocument();
+    expect(await screen.findByText('2 of 7 calls')).toBeInTheDocument();
+    expect(await screen.findByText('Oldest first.', { exact: false })).toBeInTheDocument();
+    expect((await screen.findAllByText('Denied')).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('Source not integrated').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Your role does not include:/)).not.toBeInTheDocument();
+  });
+
+  it('la cola no dice «Correcto» si tiene algo apartado o retrasado', async () => {
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read'] }, 'opsAdmin.cola': { items: [{ jobId: 'q1', apartado: true }], truncado: false } } });
+    const cola = (await screen.findByRole('heading', { name: 'Operations queue', level: 2 })).closest('article')!;
+    expect(await within(cola).findByText('Needs attention')).toBeInTheDocument();
+    expect(within(cola).queryByText('OK')).not.toBeInTheDocument();
+  });
+
+  it('la actividad administrativa no oculta ninguna entrada: marca las de esta pantalla y destaca lo que hay que revisar', async () => {
+    const entrada = (en: number, actorUid: string, accion: string, resultado: string) => ({ en, actorUid, accion, resultado, correlationId: `adm_${en}` });
+    const { invocar } = montar({ respuestas: {
+      ...base,
+      'opsAdmin.quienSoy': { rol: 'owner', permisos: ['audit.read'] },
+      'opsAdmin.auditoria': { items: [entrada(9, 'admin1', 'opsAdmin.auditoria', 'ok'), entrada(8, 'admin1', 'opsAdmin.cola', 'ok'), entrada(7, 'admin1', 'opsAdmin.cola', 'denegado'), entrada(6, 'otra', 'opsAdmin.reservas', 'ok'), entrada(5, 'admin1', 'accountsAdmin.buscar', 'ok')], truncado: false },
+    } });
+    const bloque = (await screen.findByRole('heading', { name: 'Administrative activity' })).closest('section')!;
+    const ultimas = (await within(bloque).findByRole('heading', { name: 'Latest entries' })).parentElement!;
+    /* Todas, en el orden en que llegan: también las lecturas propias de esta pantalla. */
+    expect(within(ultimas).getAllByRole('listitem').map((f) => f.querySelector('.codigo')?.textContent)).toEqual(['opsAdmin.auditoria', 'opsAdmin.cola', 'opsAdmin.cola', 'opsAdmin.reservas', 'accountsAdmin.buscar']);
+    /* Marcadas solo las de quien mira y de esta pantalla. */
+    expect(within(ultimas).getAllByText('Read from this screen')).toHaveLength(3);
+    const revisar = within(bloque).getByRole('heading', { name: 'Need review' }).parentElement!;
+    expect(within(revisar).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(revisar).getByText('Denied')).toBeInTheDocument();
+    expect(invocar).toHaveBeenCalledWith('opsAdmin', { limit: 50, action: 'auditoria' });
+  });
+
+  it('un refresco que falla no se presenta como actualizado, no pinta ceros, y al reintentar vuelve el dato', async () => {
+    let falla_ = false;
+    montar({ respuestas: { ...base, 'creditsAdmin.stats': () => (falla_ ? falla('functions/internal') : base['creditsAdmin.stats']) } });
+    expect(await screen.findByText('5,000')).toBeInTheDocument();
+    expect(await screen.findByText(/^Updated: /)).toBeInTheDocument();
+    falla_ = true;
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    const alerta = await screen.findByRole('alert');
+    expect(await screen.findByText(/^With errors · last successful read: /)).toBeInTheDocument();
+    expect(screen.queryByText(/^Updated: /)).not.toBeInTheDocument();
+    /* El dato viejo no se queda fingiendo que es el último, y tampoco aparece un cero. */
+    expect(screen.queryByText('5,000')).not.toBeInTheDocument();
+    const credits = screen.getByRole('heading', { name: 'Credits', level: 2 }).closest('article')!;
+    expect(credits.textContent?.replace(/Source:.*/, '')).not.toMatch(/\d/);
+    falla_ = false;
+    await userEvent.click(within(alerta).getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('5,000')).toBeInTheDocument();
+    expect(await screen.findByText(/^Updated: /)).toBeInTheDocument();
+  });
+
+  it('el cajón móvil: el foco entra al abrir, Escape lo cierra y el foco vuelve al botón', async () => {
+    montar({ respuestas: base });
+    const abrir = await screen.findByRole('button', { name: 'Open the menu' });
+    await userEvent.click(abrir);
+    expect(screen.getByRole('button', { name: 'Close the menu' })).toHaveFocus();
+    expect(abrir).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.keyboard('{Escape}');
+    expect(abrir).toHaveAttribute('aria-expanded', 'false');
+    expect(abrir).toHaveFocus();
+  });
+
+  it('al cambiar de sección el foco va al contenido', async () => {
+    montar({ respuestas: base });
+    await screen.findByText('5,000');
+    await ir('dominios');
+    await screen.findByRole('heading', { name: 'Weë domains', level: 1 });
+    expect(screen.getByRole('main')).toHaveFocus();
+  });
+
+  it('«Actualizar» repite las lecturas y dice la hora; sin ninguna respuesta, la hora es desconocida', async () => {
+    const { invocar } = montar({ respuestas: base });
+    await screen.findByText('50 or more');
+    expect(await screen.findByText(/^Updated: /)).toBeInTheDocument();
+    const antes = invocar.mock.calls.filter(([c]) => c === 'creditsAdmin').length;
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(invocar.mock.calls.filter(([c]) => c === 'creditsAdmin').length).toBe(antes + 1));
+    expect(await screen.findByText('5,000')).toBeInTheDocument();
+    cleanup();
+    montar({ respuestas: { 'engineAdmin.status': falla('functions/internal'), 'creditsAdmin.stats': falla('functions/internal'), 'moderationAdmin.list': falla('functions/internal') } });
+    expect(await screen.findByText('Last update unknown')).toBeInTheDocument();
   });
 
   it('si un bloque falla, los demás siguen y el que falla se puede reintentar', async () => {
@@ -303,9 +420,29 @@ describe('Credits', () => {
     await userEvent.type(await screen.findByLabelText('account uid'), ' uidAna ');
     await userEvent.click(screen.getByRole('button', { name: 'Look up' }));
     expect(await screen.findByText('77')).toBeInTheDocument();
-    expect(await screen.findByText('usage')).toBeInTheDocument();
+    expect(await screen.findByText('Usage')).toBeInTheDocument();
     expect(invocar).toHaveBeenCalledWith('creditsAdmin', { userId: 'uidAna', action: 'balance' });
     expect(invocar).toHaveBeenCalledWith('creditsAdmin', { userId: 'uidAna', limit: 25, action: 'userHistory' });
+    /* Se pidió a mano y queda en la auditoría: «Actualizar» repite la vista, no esa consulta. */
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(invocar.mock.calls.filter(([, d]) => d.action === 'stats').length).toBe(2));
+    expect(invocar.mock.calls.filter(([, d]) => d.action === 'balance')).toHaveLength(1);
+  });
+
+  it('dice que las recargas están deshabilitadas, sin ofrecer ninguna compra', async () => {
+    montar({ respuestas });
+    await ir('credits');
+    expect(await screen.findByText('Top-ups pending implementation and integration')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /buy|purchase|top.?up|grant/i })).not.toBeInTheDocument();
+  });
+
+  it('si el servidor no manda lo acumulado de una cuenta, no se inventa un cero', async () => {
+    montar({ respuestas: { ...respuestas, 'creditsAdmin.balance': { userId: 'u3', balance: 5, initialized: true }, 'creditsAdmin.userHistory': { items: [] } } });
+    await ir('credits');
+    await userEvent.type(await screen.findByLabelText('account uid'), 'u3');
+    await userEvent.click(screen.getByRole('button', { name: 'Look up' }));
+    const etiqueta = await screen.findByText('Earned in total');
+    expect(etiqueta.nextElementSibling).toHaveTextContent('—');
   });
 
   it('cuenta sin inicializar: lo explica y no inventa movimientos', async () => {
@@ -344,13 +481,13 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
     montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: null, permisos: [] } } });
     await screen.findByRole('navigation');
     await act(async () => { await Promise.resolve(); });
-    expect(await enlaces()).toEqual(['Overview', 'AI engine', 'Credits', 'Moderation']);
+    expect(await enlaces()).toEqual(['Overview', 'Domains', 'AI engine', 'Credits', 'Moderation']);
   });
 
   it('owner: también Operaciones, Cuentas y Auditoría, y dice su rol', async () => {
     montar({ respuestas: { ...base, 'opsAdmin.quienSoy': OWNER } });
     expect(await screen.findByRole('link', { name: 'Audit' })).toBeInTheDocument();
-    expect(await enlaces()).toEqual(['Overview', 'AI engine', 'Credits', 'Moderation', 'Operations', 'Accounts', 'Audit']);
+    expect(await enlaces()).toEqual(['Overview', 'Domains', 'AI engine', 'Operations', 'Credits', 'Accounts', 'Moderation', 'Audit']);
     expect(screen.getByText('Role: owner')).toBeInTheDocument();
   });
 
@@ -364,7 +501,7 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
   it('A1: un rol limitado solo ve lo suyo y no pide nada de lo que le denegarían', async () => {
     const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'support', permisos: ['accounts.read'] } } });
     expect(await screen.findByRole('link', { name: 'Accounts' })).toBeInTheDocument();
-    expect(await enlaces()).toEqual(['Overview', 'Accounts']);
+    expect(await enlaces()).toEqual(['Overview', 'Domains', 'Accounts']);
     await act(async () => { await Promise.resolve(); });
     expect(invocar.mock.calls.every(([c, d]) => `${c}.${d.action}` === 'opsAdmin.quienSoy')).toBe(true);
     expect(screen.queryByRole('heading', { name: 'Access denied' })).not.toBeInTheDocument();
@@ -395,6 +532,7 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
         ? { items: [{ id: 'vieja', experiencia: 'chef', estado: 'done' }], truncado: false, parcial: false, examinados: 1 }
         : { items: [], truncado: true, parcial: true, examinados: 200, cursor: 'c200' }),
     } });
+    await pestana('Creations and Filmmaker');
     expect(await screen.findByText('Nothing in what has been checked. That does not mean there is none: keep looking.')).toBeInTheDocument();
     expect(screen.queryByText('No creations match these filters.')).not.toBeInTheDocument();
     expect(screen.getByText(/The latest 200 documents were checked/)).toBeInTheDocument();
@@ -408,6 +546,7 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
   it('M4: cambiar de filtro vuelve a empezar, sin arrastrar el punto de continuación', async () => {
     window.location.hash = '#/operaciones';
     const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read'] }, 'opsAdmin.creaciones': { items: [], truncado: true, parcial: true, examinados: 200, cursor: 'c200' } } });
+    await pestana('Creations and Filmmaker');
     await userEvent.click(await screen.findByRole('button', { name: 'Check the next ones' }));
     await userEvent.selectOptions(screen.getByLabelText('Experience'), 'travel');
     await waitFor(() => expect(invocar).toHaveBeenLastCalledWith('opsAdmin', expect.objectContaining({ experiencia: 'travel', action: 'creaciones' })));
@@ -422,9 +561,37 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
       'opsAdmin.reservas': { items: [{ id: 't1', servicio: 'ai_video' }], truncado: true, cursor: 't1' },
       'opsAdmin.producciones': { items: [{ id: 'p1', estado: 'active' }], truncado: true, cursor: 'p1' },
     } });
+    await pestana('Credits reservations');
     expect(await screen.findByText('ai_video')).toBeInTheDocument();
+    expect(screen.getByText('There may be more than what is shown here.', { exact: false })).toBeInTheDocument();
+    await pestana('Creations and Filmmaker');
     expect(await screen.findByText('p1')).toBeInTheDocument();
-    expect(screen.getAllByText('There may be more than what is shown here.', { exact: false }).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('There may be more than what is shown here.', { exact: false })).toBeInTheDocument();
+  });
+
+  it('Operaciones: solo consulta la pestaña abierta, y las pestañas se manejan con el teclado', async () => {
+    window.location.hash = '#/operaciones';
+    const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read', 'ai.read'] }, 'opsAdmin.capacidades': { noDisponibles: [] } } });
+    const primera = await screen.findByRole('tab', { name: 'Needs attention' });
+    await waitFor(() => expect(invocar).toHaveBeenCalledWith('opsAdmin', expect.objectContaining({ action: 'cola' })));
+    const hechas = () => invocar.mock.calls.map(([, d]) => d.action);
+    expect(hechas()).not.toContain('creaciones');
+    expect(hechas()).not.toContain('generaciones');
+    primera.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('tab', { name: 'Creations and Filmmaker' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Creations and Filmmaker' })).toHaveFocus();
+    await waitFor(() => expect(hechas()).toContain('creaciones'));
+    /* Finanzas no está en este rol: ni su pestaña existe. */
+    expect(screen.queryByRole('tab', { name: 'Credits reservations' })).not.toBeInTheDocument();
+  });
+
+  it('Operaciones: sin permiso de finanzas no hay columna de coste', async () => {
+    window.location.hash = '#/operaciones';
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read', 'ai.read'] }, 'opsAdmin.generaciones': { items: [{ id: 'g1', capacidad: 'image.generate', estado: 'COMPLETED' }], truncado: false } } });
+    await pestana('Generations and AI');
+    expect(await screen.findByText('image.generate')).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Cost (USD)' })).not.toBeInTheDocument();
   });
 
   it('M6: la cola y las creaciones atascadas se ven, y la cola vacía no habla de las creaciones', async () => {
@@ -464,6 +631,9 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
     window.location.hash = '#/auditoria';
     const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read', 'ai.read'] } } });
     expect(await screen.findByRole('heading', { name: 'Overview', level: 1 })).toBeInTheDocument();
+    /* Y lo dice: no se queda en silencio llevándote a otro sitio. */
+    expect(screen.getByText(/Your role does not include the section you asked for/)).toBeInTheDocument();
+    expect(screen.getByText(/Your role does not include: .*Audit/)).toBeInTheDocument();
     await act(async () => { await Promise.resolve(); });
     expect(invocar.mock.calls.some(([c, d]) => c === 'opsAdmin' && d.action === 'auditoria')).toBe(false);
   });
@@ -485,8 +655,10 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
       'opsAdmin.capacidades': { noDisponibles: [{ id: 'incidentes', motivo: 'x', dependencia: 'registro de incidentes' }] },
     } });
     expect(await screen.findByText('job-a')).toBeInTheDocument();
+    await pestana('Creations and Filmmaker');
     expect(await screen.findByText('Abandoned')).toBeInTheDocument();
     expect(await screen.findByText('2 (1 failed)')).toBeInTheDocument();
+    await pestana('No source');
     expect(await screen.findByText('Incidents: an incident record is missing.')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Open Credits reservations' })).not.toBeInTheDocument();
     expect(invocar.mock.calls.some(([, d]) => d.action === 'reservas')).toBe(false);
@@ -496,6 +668,9 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
     window.location.hash = '#/operaciones';
     const { invocar } = montar({ respuestas: { ...base, 'opsAdmin.quienSoy': { rol: 'operations', permisos: ['ops.read'] }, 'opsAdmin.atascados': falla('functions/internal'), 'opsAdmin.creaciones': { items: [] }, 'opsAdmin.trabajos': { items: [] } } });
     expect(await screen.findByText('The server failed to respond, or could not be reached. Try again.')).toBeInTheDocument();
+    /* El fallo de un bloque no tapa los de su lado: la cola, en la misma pestaña, sigue. */
+    expect(await screen.findByText('The Job Engine queue is empty. This says nothing about creations.')).toBeInTheDocument();
+    await pestana('Creations and Filmmaker');
     expect(await screen.findByText('There are no creations with these filters.')).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText('Experience'), 'travel');
     await waitFor(() => expect(invocar).toHaveBeenCalledWith('opsAdmin', { experiencia: 'travel', limit: 25, action: 'creaciones' }));
@@ -525,14 +700,129 @@ describe('secciones por permiso (lo confirma el servidor con quienSoy)', () => {
     expect(await screen.findByText('No account has that identifier. Older accounts may have no number: try their uid.')).toBeInTheDocument();
   });
 
-  it('Auditoría: se lee y no ofrece ninguna acción sobre las entradas', async () => {
+  it('Auditoría: se lee y no ofrece ninguna acción sobre las entradas; su único botón abre el detalle', async () => {
     window.location.hash = '#/auditoria';
-    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': OWNER, 'opsAdmin.auditoria': { items: [{ en: 5, actorUid: 'duena', actorRol: 'owner', accion: 'accountsAdmin.buscar', recurso: { tipo: 'cuenta', id: 'uidAna' }, resultado: 'ok', correlationId: 'adm_1', entorno: 'demo-wee' }], truncado: false } } });
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': OWNER, 'opsAdmin.auditoria': { items: [{ en: 5, actorUid: 'duena', actorRol: 'owner', accion: 'accountsAdmin.buscar', recurso: { tipo: 'cuenta', id: 'uidAna' }, resultado: 'ok', correlationId: 'adm_1', entorno: 'demo-wee', codigoDeError: 'not-found', metadatos: { limit: 5, apiKey: 'SECRETO' } }], truncado: false } } });
     expect(await screen.findByText('accountsAdmin.buscar')).toBeInTheDocument();
     expect(screen.getByText('cuenta · uidAna')).toBeInTheDocument();
     expect(screen.getByText('adm_1')).toBeInTheDocument();
     const fila = screen.getByText('adm_1').closest('tr')!;
-    expect(within(fila).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(fila).getAllByRole('button').map((b) => b.textContent)).toEqual(['View']);
+    await userEvent.click(within(fila).getByRole('button', { name: 'View' }));
+    expect(await screen.findByText('not-found')).toBeInTheDocument();
+    expect(screen.getByText('limit')).toBeInTheDocument();
+    /* Lo que parezca una credencial no se pinta, aunque llegara. */
+    expect(document.body.textContent).not.toContain('SECRETO');
+    expect(document.body.textContent).not.toContain('apiKey');
+  });
+
+  it('Auditoría: un intento sin cierre se distingue, y uno cerrado no; denegadas y fallidas tienen su etiqueta', async () => {
+    window.location.hash = '#/auditoria';
+    montar({ respuestas: { ...base, 'opsAdmin.quienSoy': OWNER, 'opsAdmin.auditoria': { items: [
+      { en: 9, accion: 'a.denegada', resultado: 'denegado', correlationId: 'adm_d' },
+      { en: 8, accion: 'a.cierre', resultado: 'ok', correlationId: 'adm_c' },
+      { en: 7, accion: 'a.abierto', resultado: 'intento', correlationId: 'adm_a' },
+      { en: 6, accion: 'a.cerrado', resultado: 'intento', correlationId: 'adm_c' },
+      { en: 5, accion: 'a.fallida', resultado: 'error', correlationId: 'adm_f' },
+    ], truncado: true } } });
+    const filaDe = async (accion: string) => (await screen.findByText(accion)).closest('tr')!;
+    expect(within(await filaDe('a.abierto')).getByText('Not closed')).toBeInTheDocument();
+    expect(within(await filaDe('a.cerrado')).queryByText('Not closed')).not.toBeInTheDocument();
+    expect(within(await filaDe('a.denegada')).getByText('Denied')).toBeInTheDocument();
+    expect(within(await filaDe('a.fallida')).getByText('Failed')).toBeInTheDocument();
+    expect(screen.getByText('There may be more than what is shown here.', { exact: false })).toBeInTheDocument();
+    /* Los filtros son sobre lo cargado, y lo dicen. */
+    expect(screen.getByText(/Filters only act on the 5 loaded entries/)).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Result'), 'denegado');
+    expect(screen.queryByText('a.fallida')).not.toBeInTheDocument();
+    expect(screen.getByText('a.denegada')).toBeInTheDocument();
+  });
+});
+
+describe('dominios A–P', () => {
+  const OWNER = { rol: 'owner', permisos: ['ops.read', 'ai.read', 'finance.read', 'accounts.read', 'audit.read', 'moderation.read'] };
+
+  it('el catálogo lista los 16, no pide nada al servidor y se puede filtrar por estado', async () => {
+    window.location.hash = '#/dominios';
+    const { invocar } = montar({ respuestas: { 'opsAdmin.quienSoy': OWNER } });
+    const bloque = (await screen.findByRole('heading', { name: 'The 16 domains' })).closest('section')!;
+    expect(within(bloque).getAllByRole('row').slice(1)).toHaveLength(16);
+    expect(invocar.mock.calls.map(([c, d]) => `${c}.${d.action}`)).toEqual(['opsAdmin.quienSoy']);
+    await userEvent.selectOptions(within(bloque).getByLabelText('Status'), 'pendiente');
+    expect(within(bloque).getAllByRole('row').slice(1).map((f) => f.querySelector('.letra')?.textContent)).toEqual(['G', 'H', 'M', 'N']);
+    await userEvent.selectOptions(within(bloque).getByLabelText('Status'), 'operativo');
+    expect(within(bloque).getByText('No domain is in that state.')).toBeInTheDocument();
+  });
+
+  it('una ficha dice el estado de cada función, y un dominio pendiente no enseña ningún botón de acción', async () => {
+    window.location.hash = '#/dominios/n';
+    const { invocar } = montar({ respuestas: { 'opsAdmin.quienSoy': OWNER } });
+    expect(await screen.findByRole('heading', { name: 'Admin AI Copilot', level: 1 })).toBeInTheDocument();
+    expect(screen.getByText('This domain has no screen: there is nothing real to show.')).toBeInTheDocument();
+    expect(within(screen.getByRole('main')).queryAllByRole('button')).toHaveLength(0);
+    expect(within(screen.getByRole('main')).queryByRole('textbox')).not.toBeInTheDocument();
+    expect(invocar.mock.calls.every(([, d]) => d.action === 'quienSoy')).toBe(true);
+  });
+
+  it('una ficha enlaza su sección solo si el rol la puede abrir', async () => {
+    window.location.hash = '#/dominios/c';
+    montar({ respuestas: { 'opsAdmin.quienSoy': { rol: 'support', permisos: ['accounts.read'] } } });
+    expect(await screen.findByText('Your role does not include this section')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Open Credits' })).not.toBeInTheDocument();
+    expect(screen.getByText('Top-ups: pending implementation and integration')).toBeInTheDocument();
+  });
+
+  it('un dominio que no existe lo dice y enseña el catálogo', async () => {
+    window.location.hash = '#/dominios/zz';
+    montar({ respuestas: { 'opsAdmin.quienSoy': OWNER } });
+    expect(await screen.findByText('That domain does not exist. These are the ones there are.')).toBeInTheDocument();
+  });
+
+  it('cada vista dice a qué dominios pertenece, con su estado real', async () => {
+    window.location.hash = '#/credits';
+    montar({ respuestas: { 'opsAdmin.quienSoy': OWNER } });
+    expect(await screen.findByRole('link', { name: 'Domain Credits, balances and financial operations: Partial' })).toHaveAttribute('href', '#/dominios/c');
+  });
+});
+
+describe('orden y búsqueda sobre lo cargado', () => {
+  const OWNER = { rol: 'owner', permisos: ['ops.read', 'moderation.read', 'audit.read'] };
+
+  it('ordena desde la cabecera, lo dice, y no pide nada más al servidor', async () => {
+    window.location.hash = '#/auditoria';
+    const { invocar } = montar({ respuestas: { 'opsAdmin.quienSoy': OWNER, 'opsAdmin.auditoria': { items: [
+      { en: 5, accion: 'b.acc', resultado: 'ok', correlationId: 'c1' }, { en: 9, accion: 'a.acc', resultado: 'ok', correlationId: 'c2' }, { en: 1, resultado: 'ok', correlationId: 'c3' },
+    ], truncado: false } } });
+    await screen.findByText('b.acc');
+    const antes = invocar.mock.calls.length;
+    expect(screen.queryByText(/Sorting only acts on what is loaded/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Action/ }));
+    expect(screen.getByRole('columnheader', { name: /^Action/ })).toHaveAttribute('aria-sort', 'ascending');
+    const filas = () => screen.getAllByRole('row').slice(1).map((f) => f.querySelector('td:nth-child(3)')?.textContent);
+    /* Lo que no tiene dato, al final, también al invertir. */
+    expect(filas()).toEqual(['a.acc', 'b.acc', '—']);
+    await userEvent.click(screen.getByRole('button', { name: /^Action/ }));
+    expect(filas()).toEqual(['b.acc', 'a.acc', '—']);
+    expect(screen.getByText(/Sorting only acts on what is loaded/)).toBeInTheDocument();
+    expect(invocar.mock.calls.length).toBe(antes);
+  });
+
+  it('buscar en una lista paginada no va al servidor y avisa de que solo mira lo cargado', async () => {
+    window.location.hash = '#/operaciones';
+    const { invocar } = montar({ respuestas: { 'opsAdmin.quienSoy': OWNER, 'opsAdmin.creaciones': { items: [{ id: 'crea-uno', estado: 'done' }, { id: 'crea-dos', estado: 'done' }], truncado: true, cursor: 'x' } } });
+    await pestana('Creations and Filmmaker');
+    await screen.findByText('crea-uno');
+    const antes = invocar.mock.calls.filter(([, d]) => d.action === 'creaciones').length;
+    expect(screen.getByText('Searches only what is loaded: the server does not search by this.')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Search by creation or account'), 'zzz');
+    expect(screen.getByText('Nothing loaded matches the search.')).toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText('Search by creation or account'));
+    await userEvent.type(screen.getByLabelText('Search by creation or account'), 'dos');
+    expect(screen.queryByText('crea-uno')).not.toBeInTheDocument();
+    expect(screen.getByText('crea-dos')).toBeInTheDocument();
+    expect(invocar.mock.calls.filter(([, d]) => d.action === 'creaciones').length).toBe(antes);
+    /* Sigue el aviso de que puede haber más: buscar no convierte una página en la lista entera. */
+    expect(screen.getByText('There may be more than what is shown here.', { exact: false })).toBeInTheDocument();
   });
 });
 

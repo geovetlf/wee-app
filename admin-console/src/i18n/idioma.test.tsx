@@ -135,7 +135,7 @@ describe('todos los textos visibles están traducidos', () => {
     const iguales = delEs.filter(([k, v]) => delEn[k] === v).map(([k]) => k).sort();
     expect(iguales).toEqual([
       'admin.app.titulo', 'admin.comun.no', 'admin.comun.sinDato', 'admin.credits.conversionValor', 'admin.credits.costeCredits', 'admin.credits.titulo',
-      'admin.cuentas.uid', 'admin.idioma.en', 'admin.idioma.es', 'admin.nav.credits', 'admin.ops.creditsCobrados', 'admin.ops.producciones', 'admin.ops.trabajos', 'admin.panorama.credits', 'admin.panorama.ia', 'admin.panorama.sinFuenteLinea', 'admin.resumen.preciosReal',
+      'admin.cuentas.uid', 'admin.dominios.lista.f.nombre', 'admin.dominios.lista.g.nombre', 'admin.dominios.lista.h.nombre', 'admin.dominios.lista.i.nombre', 'admin.dominios.lista.j.nombre', 'admin.dominios.lista.m.nombre', 'admin.dominios.lista.n.nombre', 'admin.estado.error', 'admin.idioma.en', 'admin.idioma.es', 'admin.nav.credits', 'admin.ops.creditsCobrados', 'admin.ops.pestanas.motor', 'admin.ops.producciones', 'admin.ops.trabajos', 'admin.panorama.credits', 'admin.panorama.ia', 'admin.resumen.preciosReal',
     ]);
   });
 

@@ -127,6 +127,12 @@ export const leerReservas = (crudo: unknown) => pagina(crudo, (r) => ({
   creada: numero(r.creada),
 }));
 
+/*
+ * Los metadatos ya llegan saneados del servidor (`metadatosSeguros`, functions/src/admin/auditoria.ts). Se vuelve a dejar
+ * fuera lo que parezca una credencial, con la misma lista, por si alguna entrada antigua se hubiera escrito sin esa regla.
+ */
+const CLAVE_SENSIBLE = /pass|secret|token|credential|api[_-]?key|authorization|cookie|private/i;
+
 export const leerAuditoria = (crudo: unknown) => pagina(crudo, (r) => {
   const recurso = esRegistro(r.recurso) ? r.recurso : {};
   return {
@@ -138,8 +144,14 @@ export const leerAuditoria = (crudo: unknown) => pagina(crudo, (r) => {
     resultado: texto(r.resultado),
     correlacion: texto(r.correlationId),
     entorno: texto(r.entorno),
+    codigoDeError: texto(r.codigoDeError),
+    motivo: texto(r.motivo),
+    metadatos: Object.entries(esRegistro(r.metadatos) ? r.metadatos : {})
+      .filter(([clave, valor]) => !CLAVE_SENSIBLE.test(clave) && ['string', 'number', 'boolean'].includes(typeof valor))
+      .map(([clave, valor]): [string, string] => [clave, String(valor)]),
   };
 });
+export type EntradaDeAuditoriaVista = ReturnType<typeof leerAuditoria>['items'][number];
 
 export const leerNoDisponibles = (crudo: unknown): { id: string; dependencia?: string }[] =>
   lista(esRegistro(crudo) ? crudo.noDisponibles : undefined).filter(esRegistro).map((r) => ({ id: texto(r.id) ?? '?', dependencia: texto(r.dependencia) }));

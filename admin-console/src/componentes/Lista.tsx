@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import type { NombreDeAccion, ParametrosPorAccion } from '../api/acciones';
 import type { PaginaVista } from '../api/operaciones';
 import { useAccion } from '../hooks';
@@ -18,6 +18,24 @@ export const AvisoDeLista = ({ examinados, truncado, parcial }: { examinados?: n
       {truncado && !parcial ? ` ${t('admin.ops.truncado')}` : null}
     </p>
   );
+};
+
+/** Buscar en lo que ya llegó. Lo dice: el servidor no busca por esto, y lo que no se ha cargado no se busca. */
+export const BuscadorLocal = ({ valor, alCambiar, etiqueta }: { valor: string; alCambiar: (v: string) => void; etiqueta: string }) => {
+  const { t } = useIdioma();
+  const id = useId();
+  return (
+    <div className="filtro crece">
+      <label htmlFor={id}>{etiqueta}</label>
+      <input id={id} className="campo" value={valor} onChange={(e) => alCambiar(e.target.value)} autoComplete="off" spellCheck={false} aria-describedby={`${id}-nota`} />
+      <small id={`${id}-nota`} className="nota">{t('admin.lista.soloCargado')}</small>
+    </div>
+  );
+};
+
+export const coincide = (buscado: string, ...campos: (string | undefined)[]): boolean => {
+  const b = buscado.trim().toLowerCase();
+  return !b || campos.some((c) => c?.toLowerCase().includes(b));
 };
 
 /** Para las listas de los callables que no devuelven `truncado`: si vino llena, puede haber más. */
@@ -46,10 +64,10 @@ export function ListaPaginada<T>({ lista, vacio, hijos }: {
         <>
           {p.items.length > 0 ? hijos(p.items) : <p className="estado vacio">{t('admin.lista.vacioParcial')}</p>}
           <AvisoDeLista examinados={p.examinados} truncado={p.truncado} parcial={p.parcial} />
-          {p.cursor && <button type="button" className="boton" onClick={() => lista.seguir(p.cursor)}>{t('admin.lista.siguientes')}</button>}
+          {p.cursor && <div className="paginacion"><button type="button" className="boton" onClick={() => lista.seguir(p.cursor)}>{t('admin.lista.siguientes')}</button></div>}
         </>
       )} />
-      {lista.enContinuacion && <button type="button" className="boton" onClick={lista.alPrincipio}>{t('admin.lista.alPrincipio')}</button>}
+      {lista.enContinuacion && <div className="paginacion"><button type="button" className="boton discreto" onClick={lista.alPrincipio}>{t('admin.lista.alPrincipio')}</button></div>}
     </>
   );
 }
