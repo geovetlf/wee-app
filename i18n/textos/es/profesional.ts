@@ -14,4 +14,8 @@ export const profesional = {
   switchToApp: 'Cambiar a Weë versión app',
   switchToCreator: 'Cambiar a Weë versión creator',
   createWithAi: 'Crear con IA',
+  continueWorking: 'Continuar trabajando',
+  engineStatus: 'Estado de los motores',
+  engineClosed: 'Cerrado por ahora',
+  engineNote: 'Conectado significa que el flujo llega al motor. Cada resultado se comprueba al crearlo.',
 };

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import CajaDePrompt from './CajaDePrompt';
 import { textoDeOpcion, textoDePregunta } from '../../i18n/servidor';
 import { Question } from '../../services/creatorService';
 import DateRangePicker from './DateRangePicker';
@@ -40,6 +42,10 @@ interface GuidedQuestionProps {
 const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experienceId, goal, history, question, busy, onAnswer, hideThinking }) => {
   const { theme } = useTheme();
   const t = useT();
+  const pro = useEnEspacioProfesional();
+  const [escrito, setEscrito] = useState('');
+  /* Cada pregunta empieza con su caja vacía. */
+  useEffect(() => setEscrito(''), [question?.id]);
   const pregunta = question && experienceId ? textoDePregunta(t, experienceId, question) : question?.text;
   const etiqueta = (option: { id: string; label: string }): string =>
     question && experienceId ? textoDeOpcion(t, experienceId, question.id, option) : option.label;
@@ -85,6 +91,20 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
               onConfirm={(frase) => onAnswer(undefined, frase)}
               onSkip={() => onAnswer('idk')}
             />
+          ) : (pro && question.options.length === 0 ? (
+            /*
+             * Sin opciones no hay nada que elegir (el nombre de un logo): sin esta caja
+             * la pregunta no tendría salida. Con opciones sigue siendo elegir, sin escribir.
+             */
+            <CajaDePrompt
+              valor={escrito}
+              onCambiar={setEscrito}
+              onEnviar={() => { if (escrito.trim()) onAnswer(undefined, escrito.trim()); }}
+              etiquetaEnviar={t('common.send')}
+              textoEnviar={t('common.send')}
+              placeholder={pregunta ?? ''}
+              ocupado={busy}
+            />
           ) : (
           <View style={styles.options}>
             {question.options.map((option) => {
@@ -110,7 +130,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
               );
             })}
           </View>
-          )}
+          ))}
         </View>
       ) : hideThinking ? null : (
         <View style={styles.thinking}>

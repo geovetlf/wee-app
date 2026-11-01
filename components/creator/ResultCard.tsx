@@ -5,6 +5,7 @@ import { Audio, ResizeMode, Video } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
 import { textoDelServidor, textoDeObjetivo } from '../../i18n/servidor';
 import { bloqueDelPresupuesto, palabrasDelItinerario, textoParaLeer, tituloDelDia } from '../../utils/textoDeResultado';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -221,6 +222,7 @@ const CAMINOS_HOGAR: { optionId: string; clave: string }[] = [
 const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri, onOpenInEditor, onContinue, onSaveToProject, projectName, onOpenCreations, regenerateCredits }) => {
   const { theme } = useTheme();
   const { t, formato, locale } = useIdioma();
+  const pro = useEnEspacioProfesional();
   /* El título de cada resultado es el paso del plan, escrito por el servidor: se pinta en el idioma de quien mira. */
   const titulo = (texto: string): string => textoDelServidor(texto, { t, locale, experiencia: job.experienceId });
   const { isDesktop, isTablet } = useResponsive();
@@ -686,6 +688,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             <Ionicons name="refresh" size={scale(18)} color={theme.colors.text} />
             <Text style={[styles.actionText, { color: theme.colors.text }]}>{t('weeai.anotherVersion', { precio })}</Text>
           </TouchableOpacity>
+          {/* Publicar es de la versión app: la misma creación se abre allí, por la misma cuenta. */}
+          {!pro && (
           <TouchableOpacity
             onPress={() => onPublish(publicable)}
             disabled={busy}
@@ -695,6 +699,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             <Ionicons name="paper-plane" size={scale(18)} color="#1F2937" />
             <Text style={[styles.actionText, { color: '#1F2937' }]}>{t('wall.publishToCommunity')}</Text>
           </TouchableOpacity>
+          )}
       </View>
 
       {publicable && (

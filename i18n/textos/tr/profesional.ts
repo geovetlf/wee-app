@@ -9,4 +9,8 @@ export const profesional: typeof import('../es/profesional').profesional = {
   switchToApp: 'Geçiş yap: Weë uygulama sürümü',
   switchToCreator: 'Geçiş yap: Weë creator sürümü',
   createWithAi: 'Yapay zekâyla oluştur',
+  continueWorking: 'Çalışmaya devam et',
+  engineStatus: 'Motor durumu',
+  engineClosed: 'Şimdilik kapalı',
+  engineNote: 'Bağlı, akışın motora ulaştığı anlamına gelir. Her sonuç oluşturulurken kontrol edilir.',
 };

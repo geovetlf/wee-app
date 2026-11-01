@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 import { WEE_EXPERIENCES } from './weeExperiences';
+import { MUSIC_GENERACION_VALIDADA } from './musicCapabilities';
+import { FILMMAKER_EN_LA_APP, MUNDO_3D_EN_LA_APP } from './studioExperiences';
 
 /**
  * WEË VERSIÓN CREATOR DE LA WEB, COMO DATOS.
@@ -39,6 +41,31 @@ export interface HerramientaProfesional {
 export const HERRAMIENTAS_PROFESIONALES: readonly HerramientaProfesional[] = Object.freeze(
   WEE_EXPERIENCES.map((exp) => ({ id: exp.id, nombre: exp.name, icono: ICONOS[exp.id] ?? 'sparkles-outline' })),
 );
+
+export type EstadoDeMotor = 'conectado' | 'pendiente' | 'cerrado';
+
+export interface MotorProfesional {
+  readonly id: string;
+  /** Nombre de identidad: es marca y no se traduce. */
+  readonly nombre: string;
+  readonly estado: EstadoDeMotor;
+}
+
+/**
+ * LO QUE ESTE CÓDIGO SABE DE CADA MOTOR. «Conectado» dice que su flujo llega al
+ * motor común, no que el proveedor responda hoy ni que una generación se haya
+ * comprobado: la app no tiene de dónde leer eso. Music, Filmmaker y Mundo 3D salen
+ * de sus propias puertas, así que al abrirlas cambian aquí sin tocar nada.
+ */
+export const MOTORES_PROFESIONALES: readonly MotorProfesional[] = Object.freeze([
+  ...HERRAMIENTAS_PROFESIONALES.map((h): MotorProfesional => ({
+    id: h.id,
+    nombre: h.nombre,
+    estado: h.id === 'music' && !MUSIC_GENERACION_VALIDADA ? 'pendiente' : 'conectado',
+  })),
+  { id: 'filmmaker', nombre: 'Weë Filmmaker', estado: FILMMAKER_EN_LA_APP ? 'conectado' : 'cerrado' },
+  { id: 'mundo3d', nombre: '3D World', estado: MUNDO_3D_EN_LA_APP ? 'conectado' : 'cerrado' },
+]);
 
 /** Qué entrada va encendida según la ruta de la pila y su parámetro. */
 export const entradaEncendida = (ruta: string | undefined, idDeSeccion: string, experiencia: string): string => {

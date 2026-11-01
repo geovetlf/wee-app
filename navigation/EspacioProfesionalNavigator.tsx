@@ -1,8 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { TemaClaro, useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
-import { useUserProfile } from '../contexts/UserProfileContext';
 import { EspacioProfesionalProvider } from '../contexts/EspacioProfesionalContext';
 import MarcoProfesional from '../components/workspace/MarcoProfesional';
 import ProInicioScreen from '../screens/ProInicioScreen';
@@ -22,8 +21,10 @@ import { RUTA_DE_INICIO } from '../constants/espacioProfesional';
  * más cercana y la persona sigue dentro. Lo que solo existe en Weë sale a la pila
  * principal. Filmmaker y «Crear mundo 3D» siguen tras sus puertas cerradas.
  *
- * Es del Perfil Real, y por eso siempre clara: si se entra con el Perfil Weë
- * puesto, se vuelve al Real, igual que al cambiarlo desde el menú.
+ * Weë es una sola aplicación con dos presentaciones: aquí cambian el marco y la
+ * navegación, no el núcleo. Por eso entrar no toca nada de la persona: el perfil
+ * que tenía puesto sigue puesto al volver a la versión app. Se pinta siempre clara
+ * y no enseña lo social, que es de la versión app.
  */
 const Pila = createStackNavigator<Record<string, object | undefined>>();
 
@@ -52,15 +53,6 @@ const PilaProfesional: React.FC = () => {
 };
 
 const EspacioProfesionalNavigator: React.FC = () => {
-  const { activeProfileType, switchIdentity } = useUserProfile();
-  const { setThemeMode } = useTheme();
-
-  useEffect(() => {
-    if (activeProfileType !== 'hidi') return;
-    switchIdentity();
-    setThemeMode('light');
-  }, [activeProfileType, switchIdentity, setThemeMode]);
-
   return (
     <EspacioProfesionalProvider value>
       <TemaClaro>

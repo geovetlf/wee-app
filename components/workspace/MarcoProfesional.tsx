@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Pressable, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,7 +43,7 @@ const leerRuta = (estado: any, clave: string) => {
  * EL MARCO DE WEË VERSIÓN CREATOR: cabecera, navegación y el sitio del trabajo.
  *
  * Solo lo que sirve para trabajar: las secciones de Weë AI, los proyectos y las
- * creaciones. Ni muro, ni Weëls, ni elección de Perfil Weë. La píldora de arriba
+ * creaciones. Nada de lo social, que es de la versión app. La píldora de arriba
  * cambia de versión. Se monta una vez: al cambiar de sección solo cambia lo de dentro.
  *
  *   escritorio  barra lateral con los nombres.
@@ -55,7 +55,7 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
   const { theme } = useTheme();
   const t = useT();
   const { user } = useAuth();
-  const { realProfile } = useUserProfile();
+  const { userProfile } = useUserProfile();
   const { isDesktop, isTablet } = useResponsive();
   const esta = useRoute();
   const nombre = useNavigationState((e) => leerRuta(e, esta.key).nombre);
@@ -76,16 +76,8 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
     else navigation.navigate('EspacioProfesional', { screen: ruta, params });
   }, [navigation, pila]);
 
-  /* Lo social no se duplica: abre las pantallas de siempre. */
-  const conCuenta = (accion: () => void) => () => (user ? accion() : navigation.navigate('Login'));
   const inicio: Entrada = { id: 'home', nombre: t('nav.home'), icono: 'home-outline', alPulsar: () => irA(RUTA_DE_INICIO) };
-  const social: Entrada[] = [
-    { id: 'search', nombre: t('nav.search'), icono: 'search-outline', alPulsar: () => navigation.navigate('Search') },
-    { id: 'communities', nombre: t('menu.communities'), icono: 'people-outline', alPulsar: () => navigation.navigate('Main', { screen: 'Home', params: { screen: 'ExploreCommunities' } }) },
-    { id: 'weetalk', nombre: 'WeeTalk', icono: 'chatbubble-ellipses-outline', alPulsar: conCuenta(() => navigation.navigate('Main', { screen: 'Inbox' })) },
-    { id: 'notifications', nombre: t('nav.notifications'), icono: 'notifications-outline', alPulsar: conCuenta(() => navigation.navigate('Main', { screen: 'Home', params: { screen: 'Notifications' } })) },
-    { id: 'saved', nombre: t('menu.saved'), icono: 'bookmark-outline', alPulsar: conCuenta(() => navigation.navigate('SavedPosts')) },
-  ];
+  const ajustes: Entrada = { id: 'settings', nombre: t('menu.settings'), icono: 'settings-outline', alPulsar: () => navigation.navigate('Settings') };
   const herramientas: Entrada[] = HERRAMIENTAS_PROFESIONALES.map((h) => ({
     id: h.id, nombre: h.nombre, icono: h.icono, alPulsar: () => irA('Specialist', { id: h.id }),
   }));
@@ -160,27 +152,15 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
           <Image source={require('../../assets/images/weelogo.png')} style={styles.logo} contentFit="contain" accessibilityLabel="Weë" />
           <View style={[styles.raya, { backgroundColor: theme.colors.border }]} />
           <SelectorDeVersion puesta="pro" />
-          {isDesktop ? (
-            <Pressable
-              onPress={() => navigation.navigate('Search')}
-              accessibilityRole="search"
-              accessibilityLabel={t('search.placeholder')}
-              style={[styles.buscador, { backgroundColor: theme.colors.surface }]}
-            >
-              <Ionicons name="search-outline" size={15} color={theme.colors.textSecondary} />
-              <Text style={[styles.buscadorTexto, { color: theme.colors.textSecondary }]} numberOfLines={1}>{t('search.placeholder')}</Text>
-            </Pressable>
-          ) : (
-            <View style={styles.empuje} />
-          )}
+          <View style={styles.empuje} />
           <CreditsPill compact={!isDesktop} />
           {user ? (
             <AvatarDisplay
               size={30}
-              avatarType={realProfile?.avatarType || 'predefined'}
-              avatarId={realProfile?.avatarId || 'male'}
-              photoURL={realProfile?.photoURL}
-              photoURLThumbnail={realProfile?.photoURLThumbnail}
+              avatarType={userProfile?.avatarType || 'predefined'}
+              avatarId={userProfile?.avatarId || 'male'}
+              photoURL={userProfile?.photoURL}
+              photoURLThumbnail={userProfile?.photoURLThumbnail}
               backgroundColor={theme.colors.accent}
               showBorder={false}
             />
@@ -203,7 +183,7 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
             style={{ borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border, flexGrow: 0 }}
             accessibilityLabel={t('profesional.navLabel')}
           >
-            {[inicio, ...herramientas, ...trabajo, ...social].map(pastilla)}
+            {[inicio, ...herramientas, ...trabajo, ajustes].map(pastilla)}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -215,12 +195,12 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
             accessibilityLabel={t('profesional.navLabel')}
           >
             <ScrollView contentContainerStyle={styles.dentro} showsVerticalScrollIndicator={false}>
-              <View style={styles.bloque}>{[inicio, ...social, ...trabajo].map(fila)}</View>
+              <View style={styles.bloque}>{[inicio, ...trabajo].map(fila)}</View>
               {titulo('Weë AI')}
               <View style={styles.bloque}>{herramientas.map(fila)}</View>
             </ScrollView>
             <View style={styles.pie}>
-              {fila({ id: 'settings', nombre: t('menu.settings'), icono: 'settings-outline', alPulsar: () => navigation.navigate('Settings') })}
+              {fila(ajustes)}
             </View>
           </View>
         )}
@@ -241,8 +221,6 @@ const styles = StyleSheet.create({
   logo: { width: 58, height: 24 },
   raya: { width: StyleSheet.hairlineWidth, height: 20 },
   empuje: { flex: 1 },
-  buscador: { flex: 1, minWidth: 0, maxWidth: 560, height: 36, marginHorizontal: 'auto', borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
-  buscadorTexto: { flex: 1, minWidth: 0, fontSize: 13 },
   entrar: { height: 32, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   entrarTexto: { color: '#1F2937', fontSize: 13, fontWeight: '600' },
   pastillas: { gap: SPACING.xs, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },

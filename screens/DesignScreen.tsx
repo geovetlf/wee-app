@@ -103,6 +103,11 @@ const DesignScreen: React.FC = () => {
 
   const alCrear = useCallback(() => {
     if (!prompt.trim()) return;
+    /* En creator no hay creación de mentira: va a la experiencia común, con su plan, su precio y su resultado. */
+    if (pro) {
+      navigation.navigate('CreatorFlow', { experienceId: 'design', goal: prompt.trim() });
+      return;
+    }
     setEstado('creando');
     /*
      * AQUÍ ENTRA WEË BRAIN EL DÍA QUE SE CONECTE.
@@ -113,7 +118,7 @@ const DesignScreen: React.FC = () => {
      * mientras tanto.
      */
     temporizador.current = setTimeout(() => setEstado('listo'), LO_QUE_TARDA_LA_DEMO);
-  }, [prompt]);
+  }, [prompt, pro, navigation]);
 
   const alElegirPunto = useCallback((punto: PuntoDePartida) => {
     /* La idea queda empezada, para terminarla con palabras propias. */
@@ -193,7 +198,8 @@ const DesignScreen: React.FC = () => {
                 placeholder={t('design.placeholder')}
                 valor={prompt}
                 onCambiar={setPrompt}
-                onAjustes={() => setAjustesAbiertos(true)}
+                /* En creator los pregunta Weë Brain en el flujo: este panel todavía no viaja a ninguna parte. */
+                onAjustes={pro ? undefined : () => setAjustesAbiertos(true)}
                 /*
                   En creator no se ofrece: aquí todavía no hay selector de archivos y
                   el botón añadiría un archivo de muestra que nadie eligió.

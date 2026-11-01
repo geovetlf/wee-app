@@ -335,7 +335,11 @@ const MainStackNavigator: React.FC = () => {
         detachPreviousScreen: false,
       }}
     >
-      <Stack.Screen name="Main" component={MainScreen} />
+      {/*
+        Con otra pantalla encima sigue igual que siempre: esa pantalla decide. Esto solo
+        hace falta para que Weë versión creator pueda apartar lo de debajo (más abajo).
+      */}
+      <Stack.Screen name="Main" component={MainScreen} options={VERSION_PROFESIONAL_EN_LA_WEB ? { detachPreviousScreen: true } : undefined} />
       <Stack.Screen
         name="Settings"
         component={SettingsWrapper}
@@ -365,8 +369,11 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
       <Stack.Screen name="Studio" component={StudioScreen} />
-      {/* Solo en la web: la app móvil no cambia. */}
-      {VERSION_PROFESIONAL_EN_LA_WEB && <Stack.Screen name="EspacioProfesional" component={EspacioProfesionalNavigator} />}
+      {/*
+        Solo en la web: la app móvil no cambia. Lo de debajo se aparta: sin esto, lo
+        social de la versión app seguiría al alcance del teclado detrás de creator.
+      */}
+      {VERSION_PROFESIONAL_EN_LA_WEB && <Stack.Screen name="EspacioProfesional" component={EspacioProfesionalNavigator} options={{ detachPreviousScreen: true }} />}
       <Stack.Screen name="Production" component={ProductionScreen} />
       <Stack.Screen name="Mundo3D" component={Mundo3DScreen} />
       <Stack.Screen name="Design" component={DesignScreen} />

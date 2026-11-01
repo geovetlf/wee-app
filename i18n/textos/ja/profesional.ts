@@ -9,4 +9,8 @@ export const profesional: typeof import('../es/profesional').profesional = {
   switchToApp: 'Weëアプリ版に切り替える',
   switchToCreator: 'Weë・creator版に切り替える',
   createWithAi: 'AIで作成',
+  continueWorking: '作業を続ける',
+  engineStatus: 'エンジンの状態',
+  engineClosed: '現在は利用不可',
+  engineNote: '接続済みは、処理がエンジンまで届くという意味です。各結果は作成時に確認されます。',
 };

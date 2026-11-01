@@ -4,6 +4,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { assetsService, AssetDoc, AssetKind, OrdenDeCreaciones, PaginaDeCreaciones } from '../services/assetsService';
 import { CLAVE_DE_ESTADO, CLAVE_DE_TIPO, vistaDeAsset } from '../services/vistaDeAsset';
@@ -57,6 +58,7 @@ const MisCreacionesScreen: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
   const { locale } = useIdioma();
+  const pro = useEnEspacioProfesional();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { isDesktop, isTablet } = useResponsive();
@@ -167,9 +169,12 @@ const MisCreacionesScreen: React.FC = () => {
 
   return (
     <CreatorShell activeId="creations" overline="🤖 Weë AI" title={`🖼️ ${t('creaciones.title')}`} breadcrumb="Weë AI">
+      {/* Habla de los dos perfiles: es de la versión app. */}
+      {!pro && (
       <View style={[styles.intro, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
         <Text style={[styles.introText, { color: theme.colors.text }]}>{t('creaciones.intro')}</Text>
       </View>
+      )}
 
       <View style={styles.section}>
         <SectionTitle

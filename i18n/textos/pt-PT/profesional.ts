@@ -9,4 +9,8 @@ export const profesional: typeof import('../es/profesional').profesional = {
   switchToApp: 'Mudar para Weë versão app',
   switchToCreator: 'Mudar para Weë versão creator',
   createWithAi: 'Criar com IA',
+  continueWorking: 'Continuar a trabalhar',
+  engineStatus: 'Estado dos motores',
+  engineClosed: 'Fechado por agora',
+  engineNote: 'Ligado significa que o fluxo chega ao motor. Cada resultado é verificado ao ser criado.',
 };
