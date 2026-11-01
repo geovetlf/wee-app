@@ -103,7 +103,7 @@ export const Consola = ({ usuario, cliente, sesion }: { usuario: UsuarioDeSesion
 
   return (
     <ContextoDeCliente.Provider value={vigilado}>
-      <ComprobacionDePermiso hijos={(identidad) => <Interior usuario={usuario} sesion={sesion} ruta={ruta} detalle={detalle} identidad={identidad} />} />
+      <ComprobacionDePermiso sesion={sesion} hijos={(identidad) => <Interior usuario={usuario} sesion={sesion} ruta={ruta} detalle={detalle} identidad={identidad} />} />
     </ContextoDeCliente.Provider>
   );
 };
@@ -115,7 +115,7 @@ export const Consola = ({ usuario, cliente, sesion }: { usuario: UsuarioDeSesion
  * el cliente vigilado ya cambia la consola entera por la pantalla de acceso denegado. Si falla por otra cosa, no se
  * entra: se dice y se deja reintentar. Esto NO sustituye a la comprobación del servidor en cada llamada.
  */
-const ComprobacionDePermiso = ({ hijos }: { hijos: (identidad: Identidad) => ReactNode }) => {
+const ComprobacionDePermiso = ({ hijos, sesion }: { hijos: (identidad: Identidad) => ReactNode; sesion: ServicioDeSesion }) => {
   const t = useT();
   const { estado, recargar } = useAccion('opsAdmin.quienSoy', undefined, leerIdentidad);
   if (estado.fase === 'ok') return <>{hijos(estado.datos)}</>;
@@ -125,7 +125,13 @@ const ComprobacionDePermiso = ({ hijos }: { hijos: (identidad: Identidad) => Rea
         <div className="barra-minima"><Marca /><SelectorDeIdioma /></div>
         {estado.fase === 'cargando' || estado.fase === 'inactivo'
           ? <p className="estado" role="status">{t('admin.sesion.comprobando')}</p>
-          : <Cargable estado={estado} recargar={recargar} hijos={() => null} />}
+          : (
+            <>
+              <Cargable estado={estado} recargar={recargar} hijos={() => null} />
+              {/* Si el servidor no responde, nadie se queda dentro de una sesión de la que no puede salir. */}
+              <button type="button" className="boton" onClick={() => void sesion.salir()}>{t('admin.sesion.salir')}</button>
+            </>
+          )}
       </div>
     </main>
   );

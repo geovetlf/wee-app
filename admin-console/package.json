@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:login": "node e2e/login-e2e.mjs",
     "admin:local": "node scripts/admin-local.mjs"
   },
   "dependencies": {

@@ -192,6 +192,21 @@ export const textosSueltos = (codigo) => {
     && /useAccion\('opsAdmin\.quienSoy'/.test(consola) && /estado\.fase === 'ok'\) return <>\{hijos\(estado\.datos\)\}<\/>/.test(consola));
 }
 
+/* ── 12 · el acceso: solo correo y contraseña, sin dejar la sesión guardada para siempre ── */
+{
+  const todo = sinComentarios(CODIGO_DE_LA_APP.map(leer).join('\n'));
+  const otros = todo.match(/signInAnonymously|signInWithPopup|signInWithRedirect|signInWithCustomToken|signInWithPhoneNumber|signInWithCredential|signInWithEmailLink|[A-Za-z]+AuthProvider|linkWith[A-Z]\w+|createUserWithEmailAndPassword/g) ?? [];
+  check('12a. no hay login social, anónimo, por token ni creación de cuentas', otros.length === 0, otros.join(','));
+  const firebase = sinComentarios(leer(path.join(SRC, 'firebase.ts')));
+  check('12b. la sesión se liga a la pestaña: nada de getAuth ni de persistencia local', /initializeAuth\(app,\s*\{\s*persistence:\s*browserSessionPersistence\s*\}\)/.test(firebase) && !/\bgetAuth\b|browserLocalPersistence|indexedDBLocalPersistence/.test(firebase));
+  check('12c. el token no sale de Firebase: la consola no lo pide ni lo envía por su cuenta', !/getIdToken|getIdTokenResult|accessToken|refreshToken|['"]?[Aa]uthorization['"]?\s*:|Bearer /.test(todo));
+  check('12d. el rol no sale del cliente: ni se lee del token ni se envía', !/\bclaims\b|weeRole/.test(todo));
+  const login = sinComentarios(leer(path.join(SRC, 'vistas/Login.tsx')));
+  check('12e. el login no tiene datos que proteger: no pide nada al cliente administrativo', !/useCliente|useAccion|llamar\(/.test(login));
+  const raiz = sinComentarios(leer(path.join(SRC, 'App.tsx')));
+  check('12f. la consola solo se monta con una sesión ya resuelta, y empieza en «cargando»', /useState<Fase>\(\{ fase: 'cargando' \}\)/.test(raiz) && raiz.indexOf("estado.fase === 'cargando'") < raiz.indexOf('<Consola '));
+}
+
 /* ── 11 · Credits: sin planes ni paquetes, conversión de referencia US$ 1 = 100 ── */
 {
   const malos = ARCHIVOS_SRC.filter((p) => !esPrueba(p))

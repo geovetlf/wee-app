@@ -63,6 +63,13 @@ export const en: Paridad<typeof es> = {
       errorDemasiados: 'Too many attempts. Wait a moment.',
       errorRed: 'Could not reach the Auth emulator. Is it running?',
       errorOtro: 'Could not sign in.',
+      errorCorreoVacio: 'Enter your email.',
+      errorCorreoFormato: 'Enter a valid email, like name@domain.com.',
+      errorClaveVacia: 'Enter your password.',
+      mostrarClave: 'Show password',
+      ocultarClave: 'Hide password',
+      mostrar: 'Show',
+      ocultar: 'Hide',
     },
     denegado: {
       titulo: 'Access denied',

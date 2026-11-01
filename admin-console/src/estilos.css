@@ -169,6 +169,16 @@ a { color: inherit; }
 .filtro.crece { flex: 1 1 16rem; }
 .filtro .nota { font-weight: 400; font-size: .75rem; }
 
+.campo-login { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; color: var(--texto-suave); }
+.campo-login label { flex: none; }
+.campo-login input { width: 100%; min-height: 44px; font-size: 1rem; }
+.campo-login input[aria-invalid='true'] { border-color: var(--error); }
+.campo-clave { display: flex; gap: .5rem; }
+.campo-clave input { flex: 1 1 auto; min-width: 0; }
+.campo-clave .boton { flex: none; min-height: 44px; }
+.error-campo { color: var(--error); margin: 0; }
+.formulario .boton.primario { min-height: 44px; }
+
 /* ── Paneles ──────────────────────────────────────────────────────────── */
 .seccion { display: flex; flex-direction: column; background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-l); box-shadow: var(--sombra); margin-bottom: var(--espacio); min-width: 0; }
 .seccion-cabeza { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .5rem 1rem; padding: 1rem 1.25rem .75rem; }

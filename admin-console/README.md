@@ -77,7 +77,12 @@ cd admin-console
 npm run typecheck    # tsc --noEmit
 npm test             # vitest: lista permitida, cliente, normalizadores, i18n y las vistas con servicios simulados
 npm run build        # typecheck + build de producción en dist/ (ignorado por git)
+npm run test:login   # el login de punta a punta (abajo)
 ```
+
+`npm run test:login` conduce Chrome o Edge contra el bundle compilado, con el SDK de Firebase real, emuladores de Auth, Functions y Firestore en puertos propios (no pisa a quien use los de siempre) y un proyecto `demo-*`. Crea cuentas de prueba con contraseñas aleatorias de esa ejecución y limpia lo suyo al terminar. Con `--dev` usa el servidor de desarrollo; con `--capturas <carpeta>` guarda capturas a 320, 360, 390, 1024 y 1440 px, en LTR y RTL. Necesita Java 21+ y `firebase-tools`.
+
+Lo que no puede demostrar, y la propia batería lo imprime como `OBSERVADO`: el emulador de Functions no comprueba ni la firma ni la caducidad del token, y firebase-admin en modo emulador omite la firma y comprueba siempre las bajas. La caducidad se prueba con `onCall` real en el mismo proceso. La firma real y el comportamiento ante una baja (en esta rama, hasta ≈1 h) solo se pueden comprobar contra un proyecto real.
 
 Desde la raíz, sin instalar nada: `node functions/test/admin-console-frontera.test.mjs` (también va en `npm test` de `functions/`). Comprueba las fronteras: no importa la app de usuario, no usa `firebase-admin` ni Firestore, la lista de acciones es exactamente la de la Unidad 1, no hay secretos, el texto visible usa el traductor y el script local se niega fuera de un emulador `demo-*`.
 
