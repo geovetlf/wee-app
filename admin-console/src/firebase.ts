@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { connectAuthEmulator, getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { browserSessionPersistence, connectAuthEmulator, initializeAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 import type { EntornoLocal } from './config/entorno';
 import type { Invocador } from './api/cliente';
@@ -18,7 +18,11 @@ export interface ServiciosDeFirebase {
 export const conectarConLosEmuladores = (entorno: EntornoLocal): ServiciosDeFirebase => {
   const app = initializeApp({ apiKey: 'emulador-sin-clave', authDomain: 'localhost', projectId: entorno.proyecto });
 
-  const auth = getAuth(app);
+  /*
+   * `initializeAuth` y no `getAuth`: sin resolutor de ventanas emergentes, y con la sesión ligada a esta pestaña. Aguanta
+   * una recarga y se va al cerrarla; `getAuth` dejaría el token de refresco en IndexedDB hasta cerrar sesión a mano.
+   */
+  const auth = initializeAuth(app, { persistence: browserSessionPersistence });
   connectAuthEmulator(auth, `http://${entorno.auth.host}:${entorno.auth.port}`, { disableWarnings: true });
 
   const functions = getFunctions(app, entorno.region);

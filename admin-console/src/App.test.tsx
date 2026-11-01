@@ -53,6 +53,40 @@ describe('acceso', () => {
     expect(llamadas).toEqual([]);
   });
 
+  it('mientras Auth no resuelve la sesión: ni formulario, ni menú, ni una sola petición', async () => {
+    let avisar: (u: UsuarioDeSesion | null) => void = () => undefined;
+    const invocar = vi.fn(async () => ESTADO_MOTOR);
+    const sesion: ServicioDeSesion = { observar: (cb) => { avisar = cb; return () => undefined; }, entrar: vi.fn(), salir: vi.fn() };
+    render(<App servicios={{ cliente: crearCliente(invocar), sesion }} idiomaInicial="en" />);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Sign in to the console' })).not.toBeInTheDocument();
+    expect(invocar).not.toHaveBeenCalled();
+    await act(async () => { avisar(ADMIN); });
+    expect(invocar).toHaveBeenCalledWith('engineAdmin', { action: 'status' });
+  });
+
+  it('si la sesión se cierra en otro sitio, la consola desaparece con sus datos', async () => {
+    let avisar: (u: UsuarioDeSesion | null) => void = () => undefined;
+    const sesion: ServicioDeSesion = { observar: (cb) => { avisar = cb; cb(ADMIN); return () => undefined; }, entrar: vi.fn(), salir: vi.fn() };
+    window.location.hash = '#/resumen';
+    render(<App servicios={{ cliente: crearCliente(vi.fn(async () => ESTADO_MOTOR)), sesion }} idiomaInicial="en" />);
+    expect(await screen.findByText('ProveedorX')).toBeInTheDocument();
+    await act(async () => { avisar(null); });
+    expect(await screen.findByRole('heading', { name: 'Sign in to the console' })).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('ProveedorX');
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  it('si la comprobación de permiso falla, se puede cerrar la sesión', async () => {
+    const { sesion } = montar({ respuestas: { 'engineAdmin.status': falla('functions/internal') } });
+    await screen.findByRole('alert');
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+    expect(sesion.salir).toHaveBeenCalled();
+    expect(await screen.findByRole('heading', { name: 'Sign in to the console' })).toBeInTheDocument();
+  });
+
   it('un error de inicio de sesión se muestra sin detalles técnicos', async () => {
     const entrar = vi.fn(async () => { throw new Error('auth/invalid-credential'); });
     montar({ usuario: null, entrar });

@@ -15,6 +15,8 @@
 | Datos personales | Un administrador ve más de lo necesario | Lista blanca de campos: nunca objetivo, prompt, resultados, URLs, título, correo, nombre; cuentas enmascaradas sin `accounts.read`; costes solo con `finance.read` (extremo a extremo: sin fugas) | IMPLEMENTED AND TESTED |
 | Privilegios | Un rol se concede solo | Claim `weeRole` solo por Admin SDK; ninguna callable lo escribe (`admin-lecturas` A8); inútil sin `isAdmin`; `asignar-owner.mjs` se niega si la cuenta no es ya administración | IMPLEMENTED AND TESTED |
 | Emulador | El emulador de Functions no verifica la firma del token: alguien EN ESTA MÁQUINA puede forjar un admin | Solo contra datos `demo-*` vacíos y en 127.0.0.1; ADC del portátil detectadas, pero los servicios no emulados fallan con `demo-*` | Riesgo aceptado y documentado |
+| Sesión en el navegador | El token de refresco queda guardado en un equipo compartido | `browserSessionPersistence`: aguanta la recarga y se va al cerrar la pestaña; nada en `localStorage` ni IndexedDB. Sigue en `sessionStorage`, legible por un XSS: la consola aún no tiene CSP ni hosting propio. Medido en navegador real (`npm run test:login`) | IMPLEMENTED AND TESTED; CSP pendiente |
+| Acceso | Otra forma de entrar, o confundir entrar con tener permiso | Solo correo y contraseña (frontera 12); el menú y las vistas esperan a que el servidor confirme el permiso; un 401 o un 403 sustituyen la consola entera | IMPLEMENTED AND TESTED |
 | Dependencias | `@grpc/grpc-js` 1.9.16 (vía `@firebase/firestore`) con dos avisos de servidor gRPC | La consola no importa Firestore y el bundle no lo contiene; ni Firebase 13.1.0 lo corrige (fija `~1.9.0`) | Riesgo documentado, sin override |
 
 ## 2. Reglas de autorización

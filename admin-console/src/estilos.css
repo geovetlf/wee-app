@@ -79,6 +79,16 @@ tbody th { font-weight: 600; }
 .formulario label { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; color: var(--texto-suave); flex: 1 1 14rem; }
 .formulario input, .selector-idioma select { font: inherit; padding: .5rem .7rem; border: 1px solid var(--borde); border-radius: .6rem; color: var(--texto); background: #fff; }
 
+.campo-login { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; color: var(--texto-suave); }
+.campo-login label { flex: none; }
+.campo-login input { width: 100%; min-height: 2.75rem; font-size: 1rem; }
+.campo-login input[aria-invalid='true'] { border-color: var(--aviso); }
+.campo-clave { display: flex; gap: .5rem; }
+.campo-clave input { flex: 1 1 auto; min-width: 0; }
+.campo-clave .boton { flex: none; min-height: 2.75rem; }
+.error-campo { color: var(--aviso); margin: 0; }
+.formulario .boton.primario { min-height: 2.75rem; }
+
 .estado { color: var(--texto-suave); padding: .5rem 0; }
 .estado.error { background: var(--aviso-fondo); border: 1px solid var(--aviso); color: var(--aviso); border-radius: .75rem; padding: .75rem 1rem; display: flex; flex-direction: column; gap: .5rem; align-items: flex-start; }
 .estado.centrado { text-align: center; margin-top: 30vh; }

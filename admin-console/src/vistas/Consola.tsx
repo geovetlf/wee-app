@@ -74,7 +74,7 @@ export const Consola = ({ usuario, cliente, sesion }: { usuario: UsuarioDeSesion
 
   return (
     <ContextoDeCliente.Provider value={vigilado}>
-      <ComprobacionDePermiso>
+      <ComprobacionDePermiso sesion={sesion}>
         <Interior usuario={usuario} sesion={sesion} ruta={ruta} />
       </ComprobacionDePermiso>
     </ContextoDeCliente.Provider>
@@ -88,7 +88,7 @@ export const Consola = ({ usuario, cliente, sesion }: { usuario: UsuarioDeSesion
  * cambia la consola entera por la pantalla de acceso denegado. Esto NO sustituye a `assertAdmin`: cada vista sigue
  * pidiendo sus datos al servidor, que vuelve a comprobarlo en cada llamada.
  */
-const ComprobacionDePermiso = ({ children }: { children: ReactNode }) => {
+const ComprobacionDePermiso = ({ children, sesion }: { children: ReactNode; sesion: ServicioDeSesion }) => {
   const t = useT();
   const { estado, recargar } = useAccion('engineAdmin.status', undefined, () => true);
   if (estado.fase === 'ok') return <>{children}</>;
@@ -98,7 +98,13 @@ const ComprobacionDePermiso = ({ children }: { children: ReactNode }) => {
         <div className="barra-minima"><Marca /><SelectorDeIdioma /></div>
         {estado.fase === 'cargando' || estado.fase === 'inactivo'
           ? <p className="estado" role="status">{t('admin.sesion.comprobando')}</p>
-          : <Cargable estado={estado} recargar={recargar} hijos={() => null} />}
+          : (
+            <>
+              <Cargable estado={estado} recargar={recargar} hijos={() => null} />
+              {/* Si el servidor no responde, nadie se queda dentro de una sesión de la que no puede salir. */}
+              <button type="button" className="boton" onClick={() => void sesion.salir()}>{t('admin.sesion.salir')}</button>
+            </>
+          )}
       </div>
     </main>
   );

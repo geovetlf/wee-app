@@ -36,6 +36,13 @@ export const es = {
       errorDemasiados: 'Demasiados intentos. Espera un momento.',
       errorRed: 'No se pudo conectar con el emulador de Auth. ¿Está iniciado?',
       errorOtro: 'No se pudo iniciar sesión.',
+      errorCorreoVacio: 'Escribe tu correo.',
+      errorCorreoFormato: 'Escribe un correo válido, como nombre@dominio.com.',
+      errorClaveVacia: 'Escribe tu contraseña.',
+      mostrarClave: 'Mostrar contraseña',
+      ocultarClave: 'Ocultar contraseña',
+      mostrar: 'Mostrar',
+      ocultar: 'Ocultar',
     },
     denegado: {
       titulo: 'Acceso denegado',

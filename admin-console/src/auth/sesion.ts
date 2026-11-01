@@ -12,13 +12,25 @@ export interface ServicioDeSesion {
   salir(): Promise<void>;
 }
 
-export type ErrorDeInicioDeSesion = 'credenciales' | 'demasiados' | 'red' | 'otro';
+export type ErrorDeInicioDeSesion = 'credenciales' | 'correo' | 'demasiados' | 'red' | 'otro';
 
 /** El código de Auth, reducido a lo que se le dice a la persona (sin distinguir «no existe» de «clave mala»). */
 export const clasificarErrorDeInicio = (error: unknown): ErrorDeInicioDeSesion => {
   const codigo = error instanceof Error ? error.message : '';
-  if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-email', 'auth/user-disabled'].includes(codigo)) return 'credenciales';
+  if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/user-disabled'].includes(codigo)) return 'credenciales';
+  if (codigo === 'auth/invalid-email') return 'correo';
   if (codigo === 'auth/too-many-requests') return 'demasiados';
   if (codigo === 'auth/network-request-failed') return 'red';
   return 'otro';
 };
+
+export interface FaltasDelFormulario {
+  correo?: 'vacio' | 'formato';
+  clave?: 'vacia';
+}
+
+/** Lo que se puede decir sin preguntar al servidor. De la contraseña solo si falta: sus reglas no se le enseñan a nadie. */
+export const validarAcceso = (email: string, clave: string): FaltasDelFormulario => ({
+  ...(email === '' ? { correo: 'vacio' as const } : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? {} : { correo: 'formato' as const }),
+  ...(clave === '' ? { clave: 'vacia' as const } : {}),
+});
