@@ -19,6 +19,7 @@
  * SABOTAJE: la misma suite contra el árbol de ANTES falla (CIERRE_BASE=<carpeta con lib/, src/, docs/ y las
  * reglas de antes> y NODE_PATH=functions/node_modules).
  */
+import { administracionDePrueba } from './_admin-de-prueba.mjs';
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -212,7 +213,9 @@ console.log('\n── D · Mirar un saldo no escribe ──');
   motorReal.readBalance = async (u) => { llamadas.push('readBalance:' + u); return { userId: u, balance: 0, lifetimeEarned: 0, lifetimeSpent: 0, initialized: false }; };
   motorReal.getBalance = async (u) => { llamadas.push('getBalance:' + u); return { userId: u, balance: 240, lifetimeEarned: 240, lifetimeSpent: 0 }; };
   motorReal.ensureAccount = async (u) => { llamadas.push('ensureAccount:' + u); return {}; };
+  const administracion = administracionDePrueba(lib);
   const r = await credits.creditsAdmin.run({ auth: { uid: 'jefa', token: { admin: true } }, data: { action: 'balance', userId: 'bea' } }).then((v) => v, (e) => e);
+  administracion.restaurar();
   Object.assign(motorReal, originales);
   check('25) `creditsAdmin` → `balance` usa la lectura sin efectos, nunca la que inicializa', llamadas.join(',') === 'readBalance:bea' && r?.initialized === false, llamadas.join(','));
 }

@@ -30,6 +30,7 @@ import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { CALLABLES as RETIRADA_CALLABLES, CREDIT_COSTS as RETIRADA_COSTES, restarBloque } from './_retirada-de-paquetes.mjs';
+import { CALLABLES as SEGURIDAD_CALLABLES } from './_seguridad-de-administracion.mjs';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { REVISION_POSTAUDITORIA, REVISION_CIERRE } from './_bloques-autorizados.mjs';
@@ -474,8 +475,13 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
     const retiradaN = restarBloque(nuevoEnBruto, RETIRADA_CALLABLES.nuevas);
     check('63ret) los callables de Credits llevan el bloque de la retirada de paquetes, exacto y entero',
       retiradaQ.faltan.length === 0 && retiradaN.faltan.length === 0, JSON.stringify({ faltan: [...retiradaQ.faltan, ...retiradaN.faltan] }));
-    const quitadas = retiradaQ.resto.map((l) => `-${l}`);
-    const codigoNuevo = retiradaN.resto;
+    /* La CORRECCIÓN DE SEGURIDAD DE ADMINISTRACIÓN (2026-10-30, pedida por el dueño): cada operación entra en su puerta. Sus líneas exactas se restan igual. */
+    const seguridadQ = restarBloque(retiradaQ.resto, SEGURIDAD_CALLABLES.quitadas);
+    const seguridadN = restarBloque(retiradaN.resto, SEGURIDAD_CALLABLES.nuevas);
+    check('63seg) los callables de Credits llevan el bloque de la corrección de seguridad, exacto y entero',
+      seguridadQ.faltan.length === 0 && seguridadN.faltan.length === 0, JSON.stringify({ faltan: [...seguridadQ.faltan, ...seguridadN.faltan] }));
+    const quitadas = seguridadQ.resto.map((l) => `-${l}`);
+    const codigoNuevo = seguridadN.resto;
     const fuente = leer(CALLABLES_DE_CREDITS);
     const cuerpoSpend = fuente.slice(fuente.indexOf('export const spendCredits'), fuente.indexOf('export const grantCredits'));
     /*

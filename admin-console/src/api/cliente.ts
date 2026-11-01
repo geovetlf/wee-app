@@ -63,7 +63,7 @@ const validar = (nombre: string, valor: unknown): unknown => {
       return valor;
     }
     case 'cursor': {
-      if (typeof valor !== 'string' || !/^j\.[A-Za-z0-9_.:-]{1,400}$/.test(valor)) throw argumentoInvalido('cursor');
+      if (typeof valor !== 'string' || !/^[A-Za-z0-9_.:-]{1,400}$/.test(valor)) throw argumentoInvalido('cursor');
       return valor;
     }
     case 'reportId': {

@@ -68,6 +68,7 @@ export const Cuentas = () => {
                 ))}
               </Tabla>
             )}
+            {!c.cuenta?.numero && <p className="nota">{t('admin.cuentas.sinNumero')}</p>}
             <p className="nota">{t('admin.cuentas.sinRestricciones')}</p>
             {c.correlationId && <p className="nota">{t('admin.cuentas.constancia', { correlacion: c.correlationId })}</p>}
           </>

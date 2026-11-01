@@ -36,6 +36,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { crearCargador } from './filmmaker-cliente.mjs';
 import { sumarRetirada } from './_retirada-de-paquetes.mjs';
+import { sumarSeguridad } from './_seguridad-de-administracion.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -315,7 +316,7 @@ const VIDEO = sinComentarios(VIDEO_SRC);
   const DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
   /* + retirada de paquetes (2026-10-29), con autorización del dueño: creditCosts +8 −18 e index +10 −7. Líneas exactas en job-queue 63ret. */
   check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068), el servicio ai_world de la misión fal y la retirada de paquetes, del tamaño exacto',
-    git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r/g, '') === sumarRetirada(`${DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`));
+    git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r/g, '') === sumarSeguridad(sumarRetirada(`${DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`)));
   const medios = sinComentarios(leer('functions/src/runtime/medios.ts'));
   const ayudante = medios.slice(medios.indexOf('export const trabajoDelMedio'), medios.indexOf('const sinNada'));
   check('A14) la pregunta nueva de la puerta es de SOLO lectura: `porIdempotencia`, y nada más',
@@ -618,7 +619,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
   const MOTOR_F1D_Y_HARNESS = {
     'functions/src/creator/credits.ts': '45\t4', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6
     'functions/src/creator/index.ts': '157\t23', // misión mundo3d (+17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo que atendió y anota las variantes de UN resultado (y se exporta para probarlo) · C-1 2026-10-05 (+16 −5, antes 124/16): creatorQuote en transacción, solo con el trabajo `planned`, sin reclamo reciente ni reserva · segunda auditoría de cierre 2026-10-01 (+7 −1, antes 117/15): vozSinNarracion antes del vídeo · 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
-    'functions/src/engine/admin.ts': '11\t4', // 0ad8500 (#19) · 5e87b80 (FASE 8) · cierre post-auditoría 2026-10-01 (+2 −2, antes 9/2): engineAdmin monta MODEL_SECRETS
+    'functions/src/engine/admin.ts': '17\t5', // corrección de seguridad de administración 2026-10-30 (+6 −1, antes 11/4): la puerta de cada acción; el cuerpo, igual · 0ad8500 (#19) · 5e87b80 (FASE 8) · cierre post-auditoría 2026-10-01 (+2 −2, antes 9/2): engineAdmin monta MODEL_SECRETS
     'functions/src/engine/config.ts': '36\t1', // 8193184 (#20) · misión fal: '3d' entra en la lista de modalidades que ya añadió #20 (no cambia la cifra)
     'functions/src/engine/derechos.ts': '26\t0', // misión mundo3d (nuevo): los derechos de lo que generó una implementación, de los datos de SU modelo; una regla para los tres caminos
     'functions/src/engine/elegibilidad.ts': '212\t0', // misión gobernanza 2026-10-06 (+2, antes 210/0): el comentario de los grupos dice que un territorio con código propio no está en el catálogo de países (JURISDICTION_UNKNOWN) · misión fal (nuevo): la regla común de elegibilidad —gobierno, revisión, activación y jurisdicción— · misión mundo3d (+17, antes 193/0): `elegibleEnAlgunaJurisdiccion`, para el catálogo y para explicar un «no»

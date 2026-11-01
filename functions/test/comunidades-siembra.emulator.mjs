@@ -125,6 +125,8 @@ console.log('\n── B · Un cliente sin permiso no puede, y el sitio de las of
   check('14) ni se pasa después al slug de una oficial editando la suya', (await editar('mia', { slug: 'cine-animacion' }, sesion('ana'))) === 403);
   check('15) CONTROL: pero sí edita su nombre y su descripción', (await editar('mia', { name: 'Amantes del café ☕', description: 'Para quien hace latte art con IA' }, sesion('ana'))) === 200);
   check('16) CONTROL: y otra persona sigue uniéndose (contador de uno en uno)', (await editar('mia', { memberCount: 2 }, sesion('beto'))) === 200);
+  check('16b) un rol limitado NO hereda la escritura por llevar admin: true', (await crear('intentoSoporte', { ...comoLaApp, slug: 'soporte-x' }, sesion('soporte', { admin: true, weeRole: 'support' }))) === 403);
+  check('16c) CONTROL: el rol owner con admin sí puede', (await crear('oficialOwner', { ...comoLaApp, slug: 'owner-x' }, sesion('duena', { admin: true, weeRole: 'owner' }))) === 200);
   check('17) administración sí puede crear una oficial en su sitio', (await crear('cine-animacion', { ...comoLaApp, name: 'Cine & Animación', slug: 'cine-animacion' }, sesion('jefa', { admin: true }))) === 200);
   check('18) y una persona tampoco crea una NO oficial con ese slug después', (await crear('autoIdAna2', deAna({ slug: 'cine-animacion' }), sesion('ana'))) === 403);
 }

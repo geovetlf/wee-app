@@ -10,7 +10,7 @@ describe('la lista permitida de acciones', () => {
     expect([...NOMBRES_DE_ACCION].sort()).toEqual([
       'accountsAdmin.buscar', 'creditsAdmin.balance', 'creditsAdmin.costs', 'creditsAdmin.failed', 'creditsAdmin.stats', 'creditsAdmin.userHistory',
       'engineAdmin.status', 'moderationAdmin.history', 'moderationAdmin.list',
-      'opsAdmin.atascados', 'opsAdmin.auditoria', 'opsAdmin.capacidades', 'opsAdmin.creaciones', 'opsAdmin.generaciones', 'opsAdmin.producciones', 'opsAdmin.quienSoy', 'opsAdmin.reservas', 'opsAdmin.trabajos', 'opsAdmin.usoIa',
+      'opsAdmin.atascados', 'opsAdmin.auditoria', 'opsAdmin.capacidades', 'opsAdmin.cola', 'opsAdmin.creaciones', 'opsAdmin.creacionesAtascadas', 'opsAdmin.generaciones', 'opsAdmin.producciones', 'opsAdmin.quienSoy', 'opsAdmin.reservas', 'opsAdmin.trabajos', 'opsAdmin.usoIa',
     ]);
   });
 
@@ -40,7 +40,7 @@ describe('el cliente', () => {
     invocar.mockClear();
     const malas: [Parameters<typeof cliente.llamar>[0], Record<string, unknown>][] = [
       ['accountsAdmin.buscar', { uid: 'a/b' }], ['accountsAdmin.buscar', { uid: 'a b' }], ['accountsAdmin.buscar', { numeroDeCuenta: 'abc' }],
-      ['opsAdmin.usoIa', { dia: 'ayer' }], ['opsAdmin.usoIa', { dia: 'dddd-dd-dd' }], ['opsAdmin.trabajos', { cursor: 'jx' }], ['opsAdmin.trabajos', { estado: 'nope' }],
+      ['opsAdmin.usoIa', { dia: 'ayer' }], ['opsAdmin.usoIa', { dia: 'dddd-dd-dd' }], ['opsAdmin.trabajos', { cursor: 'users/x' }], ['opsAdmin.creaciones', { cursor: '../otra' }], ['opsAdmin.trabajos', { estado: 'nope' }],
       ['opsAdmin.creaciones', { experiencia: 'design' }], ['opsAdmin.creaciones', { experiencia: 'music' }], ['opsAdmin.atascados', { minutos: 1 }],
     ];
     for (const [accion, datos] of malas) await expect(cliente.llamar(accion, datos as never), JSON.stringify(datos)).rejects.toMatchObject({ tipo: 'argumento' });

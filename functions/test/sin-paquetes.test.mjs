@@ -21,6 +21,7 @@
  * El saldo, la concesión, el consumo y el reembolso los vigilan `credits.test.mjs`, `core-financial.test.mjs` e
  * `idempotencia-de-cobro.test.mjs`, que no cambian.
  */
+import { administracionDePrueba } from './_admin-de-prueba.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -104,7 +105,9 @@ console.log('\n── B · Ni el motor ni la consola exponen paquetes ──');
     && Object.values(todos.v.costs).every((n) => Number.isInteger(n) && n >= 0), todos.ok ? Object.keys(todos.v).join() : todos.code);
   const uno = await intentar(() => credits.getCreditCost.run({ auth: { uid: 'u1' }, data: { service: 'ai_image' } }));
   check('B1) el coste de un servicio no cambia de forma', uno.ok && uno.v.service === 'ai_image' && typeof uno.v.credits === 'number');
+  const administracion = administracionDePrueba(lib);
   const admin = await intentar(() => credits.creditsAdmin.run({ auth: { uid: 'a1', token: { admin: true } }, data: { action: 'costs' } }));
+  administracion.restaurar();
   check('B2) creditsAdmin.costs tampoco', admin.ok && Object.keys(admin.v).join() === 'costs', admin.ok ? Object.keys(admin.v).join() : admin.code);
   const noAdmin = await intentar(() => credits.creditsAdmin.run({ auth: { uid: 'u1', token: {} }, data: { action: 'costs' } }));
   check('B3) CONTROL: creditsAdmin sigue siendo solo de administración', !noAdmin.ok && noAdmin.code === 'permission-denied', noAdmin.code);

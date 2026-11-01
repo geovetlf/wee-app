@@ -489,9 +489,12 @@ console.log('\n── E · Estructura: lo que hay, y lo que a propósito no hay 
    * F1-B (el de la lista de `productions`), los siete preparados y NINGUNO
    * desplegado; la parte de moderación —UNO y solo uno—
    * no se ha movido desde entonces.
+   *
+   * 37 desde la corrección de seguridad de la consola: creatorJobs(status, updatedAt), el de las creaciones atascadas.
+   * Ninguno de moderación.
    */
   check('111) UN índice nuevo y justificado —la cola: estado + antigüedad—, y los de antes siguen',
-    deReportes.length === 1 && igual(deReportes[0].fields.map((c) => [c.fieldPath, c.order]), [['status', 'ASCENDING'], ['createdAt', 'ASCENDING']]) && indices.length === 36,
+    deReportes.length === 1 && igual(deReportes[0].fields.map((c) => [c.fieldPath, c.order]), [['status', 'ASCENDING'], ['createdAt', 'ASCENDING']]) && indices.length === 37,
     `${deReportes.length} de reports, ${indices.length} en total`);
   check('112) el contrato de contenido ya tenía la costura: `moderationStatus` y `moderationCaseId` siguen ahí, sin tocar',
     /export type ModerationStatus = 'clear' \| 'pending' \| 'restricted' \| 'removed';/.test(leer('functions/src/core/content/content.ts')));

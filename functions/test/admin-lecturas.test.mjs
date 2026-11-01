@@ -49,7 +49,7 @@ const crearDb = (semilla = {}) => {
       const valorDe = (v) => (v && typeof v.toMillis === 'function' ? v.toMillis() : v);
       let filas = [...col(c).entries()].filter(([, d]) => filtros.every((f) => {
         const a = valorDe(d[f.campo]); const b = valorDe(f.valor);
-        return f.op === '==' ? a === b : f.op === '<' ? a < b : false;
+        return f.op === '==' ? a === b : f.op === '<' ? a < b : f.op === '<=' ? a <= b : false;
       }));
       if (orden) {
         const porId = orden.campo instanceof FieldPath || String(orden.campo) === '__name__';
@@ -58,7 +58,11 @@ const crearDb = (semilla = {}) => {
           return (x < y ? -1 : x > y ? 1 : 0) * (orden.dir === 'desc' ? -1 : 1);
         });
       }
-      if (desde) filas = filas.filter(([id]) => id > desde);
+      if (desde) {
+        const idDesde = typeof desde === 'string' ? desde : desde.id;
+        const i = typeof desde === 'string' ? -1 : filas.findIndex(([id]) => id === idDesde);
+        filas = typeof desde === 'string' ? filas.filter(([id]) => id > desde) : filas.slice(i + 1);
+      }
       filas = filas.slice(0, tope);
       return { size: filas.length, empty: filas.length === 0, docs: filas.map(([id, d]) => snapDoc(id, d)) };
     },
@@ -140,6 +144,8 @@ const montar = () => {
   const d = {
     auditoria: crearAuditoria({ db, ahora: () => T0, entorno: 'demo-prueba' }),
     lecturas: crearLecturas({ db, auth: () => auth, ahora: () => T0 }),
+    /* Aquí se prueban los permisos sobre los claims que llegan; la relectura en Auth la prueba `admin-seguridad`. */
+    vigente: async (a) => a,
   };
   return { db, d, ops: (ses, data) => atenderOps(d, ses, data), cuentas: (ses, data) => atenderCuentas(d, ses, data) };
 };
@@ -155,7 +161,7 @@ check('A1) owner tiene todos los permisos, por lista y sin comodín', JSON.strin
 check('A2) un rol sin ser administración no vale nada', P.rolDe(ROL_SIN_ADMIN) === null && P.permisosDe(ROL_SIN_ADMIN).length === 0);
 check('A3) administración sin rol no gana ningún permiso nuevo', P.rolDe(ADMIN_SIN_ROL) === null && P.permisosDe(ADMIN_SIN_ROL).length === 0);
 check('A4) un rol inventado no existe', P.permisosDe({ uid: 'x', token: { admin: true, weeRole: 'superadmin' } }).length === 0 && P.permisosDe({ uid: 'x', token: { admin: true, weeRole: '__proto__' } }).length === 0);
-check('A5) los permisos de esta fase son todos de lectura', P.PERMISOS.every((p) => p.endsWith('.read')));
+check('A5) fuera de owner, ningún rol tiene un permiso de escritura: los demás solo leen su dominio', P.ROLES.filter((r) => r !== 'owner').every((r) => P.MATRIZ[r].every((p) => p.endsWith('.read'))) && P.PERMISOS_DE_ESCRITURA.every((p) => !p.endsWith('.read')));
 check('A6) cada rol de la matriz es de los declarados, con permisos declarados', P.ROLES.every((r) => Array.isArray(P.MATRIZ[r]) && P.MATRIZ[r].every((p) => P.PERMISOS.includes(p))));
 const antes = process.env.WEE_ADMIN_UIDS;
 process.env.WEE_ADMIN_UIDS = 'porLista';
@@ -296,7 +302,7 @@ await silenciar(async () => {
   }
   check('E2) una cuenta se busca por uid o por número, uno solo y bien formado', fallosC.length === 0, fallosC.join(' | '));
   const at = await m.ops(OWNER, { action: 'atascados', minutos: 30 });
-  check('E3) atascados: los no terminados sin moverse desde hace más de N minutos', at.items.map((j) => j.jobId).join() === 'job-a' && at.examinados === 2 && at.truncado === false);
+  check('E3) atascados: los no terminados sin moverse desde hace más de N minutos', at.items.map((j) => j.jobId).join() === 'job-a' && at.truncado === false);
   const cr = await m.ops(OWNER, { action: 'creaciones', experiencia: 'chef' });
   check('E4) creaciones: filtra por experiencia, avisa de lo que miró y marca lo abandonado', cr.items.length === 1 && cr.items[0].abandonado === true && cr.items[0].pasosFallidos === 1 && cr.examinados === 2);
   const res = await m.ops(OWNER, { action: 'reservas', minutos: 120 });
@@ -336,14 +342,14 @@ console.log('\n── H · Asignar owner ──');
   const EMU = { FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' };
   check('H1) en un proyecto demo con emuladores locales, se puede', S.motivosParaNoEjecutar({ proyecto: 'demo-wee', uid: 'u1', env: EMU }).length === 0);
   check('H2) demo sin emuladores, o con emuladores fuera de esta máquina, no', S.motivosParaNoEjecutar({ proyecto: 'demo-wee', uid: 'u1', env: {} }).length > 0 && S.motivosParaNoEjecutar({ proyecto: 'demo-wee', uid: 'u1', env: { FIREBASE_AUTH_EMULATOR_HOST: '10.0.0.4:9099', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080' } }).length > 0);
-  const real = { proyecto: 'get-wee', uid: 'u1', confirmarProyecto: 'get-wee', confirmarUid: 'u1', motivo: 'la persona dueña de Weë', env: {} };
-  check('H3) en un proyecto real exige las dos confirmaciones y el motivo', S.motivosParaNoEjecutar(real).length === 0
-    && S.motivosParaNoEjecutar({ ...real, confirmarProyecto: undefined }).length > 0 && S.motivosParaNoEjecutar({ ...real, confirmarUid: 'otro' }).length > 0 && S.motivosParaNoEjecutar({ ...real, motivo: 'x' }).length > 0);
+  const real = { proyecto: 'get-wee', uid: 'u1', actor: 'duena', confirmarProyecto: 'get-wee', confirmarUid: 'u1', motivo: 'la persona dueña de Weë', env: {} };
+  check('H3) en un proyecto real exige las dos confirmaciones, el motivo y quién lo hace', S.motivosParaNoEjecutar(real).length === 0
+    && S.motivosParaNoEjecutar({ ...real, actor: undefined }).length > 0 && S.motivosParaNoEjecutar({ ...real, confirmarProyecto: undefined }).length > 0 && S.motivosParaNoEjecutar({ ...real, confirmarUid: 'otro' }).length > 0 && S.motivosParaNoEjecutar({ ...real, motivo: 'x' }).length > 0);
   check('H4) y un proyecto real no se mezcla con variables de emulador', S.motivosParaNoEjecutar({ ...real, env: EMU }).length > 0);
   check('H5) no crea administradores: sin claim admin, se niega', !!S.claimsConOwner({}).error && !!S.claimsConOwner(undefined).error && !!S.claimsConOwner({ admin: 'true' }).error);
   check('H6) conserva los demás claims y solo añade el rol', JSON.stringify(S.claimsConOwner({ admin: true, otro: 1 }).claims) === JSON.stringify({ admin: true, otro: 1, weeRole: 'owner' }));
   const c = sinComentarios(leer('ops/admin/asignar-owner.mjs'));
-  check('H7) deja constancia ANTES de cambiar el rol', c.indexOf("collection('adminAudit')") > 0 && c.indexOf("collection('adminAudit')") < c.indexOf('setCustomUserClaims'));
+  check('H7) deja constancia ANTES de cambiar el rol, y el éxito DESPUÉS', c.indexOf("await anotar('intento')") > 0 && c.indexOf("await anotar('intento')") < c.indexOf('setCustomUserClaims') && c.indexOf('setCustomUserClaims') < c.indexOf("await anotar('ok')") && !/resultado: 'ok'/.test(c + leer('ops/admin/_comun.mjs')));
   check('H8) el modo --owner del script local sigue encerrado en el emulador', /motivosParaNoUsar/.test(leer('admin-console/scripts/admin-local.mjs')));
 }
 

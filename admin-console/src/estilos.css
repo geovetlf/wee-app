@@ -56,6 +56,8 @@ p { margin: 0 0 .75rem; }
 .dato dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 
 .tabla-contenedor { overflow-x: auto; }
+/* La acción de cada fila no se va con el desplazamiento: en un móvil, si no, no se ve que existe. */
+.tabla-contenedor.accion-fija th:last-child, .tabla-contenedor.accion-fija td:last-child { position: sticky; right: 0; background: #fff; }
 table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
 thead th { color: var(--texto-suave); font-weight: 600; font-size: .78rem; white-space: nowrap; }
@@ -88,7 +90,7 @@ tbody th { font-weight: 600; }
 .barra-minima { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
 
 @media (max-width: 860px) {
-  .consola { grid-template-columns: 1fr; }
+  .consola { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
   .lateral { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--borde); padding: .75rem 1rem; gap: .75rem; }
   .lateral nav { flex-direction: row; overflow-x: auto; }
   .lateral-pie { margin-top: 0; flex-direction: row; flex-wrap: wrap; align-items: center; }

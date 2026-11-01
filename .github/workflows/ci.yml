@@ -49,6 +49,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             functions/package-lock.json
+            admin-console/package-lock.json
       - name: Sin claves ni credenciales en el entorno
         run: node scripts/ci-sin-secretos.mjs
       - name: Dependencias
@@ -61,6 +62,10 @@ jobs:
         run: npm run build --prefix functions
       - name: Build de la web (sin configuración de Firebase; solo comprueba que se construye)
         run: npx expo export -p web --output-dir dist-ci
+      - name: Consola de administración · dependencias, tipos y build
+        run: |
+          npm ci --prefix admin-console --no-audit --no-fund
+          npm run build --prefix admin-console
 
   nivel-2-suites:
     name: Nivel 2 · suites
@@ -79,6 +84,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             functions/package-lock.json
+            admin-console/package-lock.json
       - name: Sin claves ni credenciales en el entorno
         run: node scripts/ci-sin-secretos.mjs
       - name: Dependencias y build
@@ -88,6 +94,10 @@ jobs:
           npm run build --prefix functions
       - name: Todas las suites
         run: npm run test:todas --prefix functions
+      - name: Consola de administración · pruebas
+        run: |
+          npm ci --prefix admin-console --no-audit --no-fund
+          npm test --prefix admin-console
 
   nivel-2-emuladores:
     name: Nivel 2 · emuladores demo-*

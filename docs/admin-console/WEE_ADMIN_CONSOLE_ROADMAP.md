@@ -25,7 +25,8 @@
 1. **Publicar** los commits locales (push y PR): siguen solo en esta máquina.
 2. **Despliegue** de `opsAdmin`, `accountsAdmin` y de la regla de `adminAudit` (hoy en `no_se_despliegan`), y **asignar el rol owner** con `ops/admin/asignar-owner.mjs`: lo ejecuta la persona dueña, con sus credenciales.
 3. **Escrituras**: políticas, confirmación y recuperación antes de abrir ninguna.
-4. **Backup**: clasificar `adminAudit` en `core/backup.ts` (toca un contrato vigilado; no se ha tocado).
+4. **Retención y copia de `adminAudit`**: ver la [propuesta](WEE_ADMIN_CONSOLE_RETENTION_PROPOSAL.md) §6. No se ha tocado `core/backup.ts`.
+5. **Cerrar el legado**: los pasos, comprobaciones y marcha atrás están en la [transición](WEE_ADMIN_CONSOLE_TRANSITION.md).
 
 ## Criterios de aceptación por dominio
 

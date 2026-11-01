@@ -37,6 +37,8 @@ import { actorDeLaCuenta } from '../core/social-identity';
 import { ENTIDADES, cuentaDeWee, entidadDelPerfil } from '../identity/cuentas';
 import { identidadHeredadaEsDeLaCuenta } from '../identity/compatibilidad';
 import { assertAdmin } from '../shared/admin';
+import { operacionAdmin } from '../admin/autorizacion';
+import { claseDeModeracion } from '../admin/operaciones';
 
 /**
  * WEE MODERATION — LA COMPOSICIÓN.
@@ -361,15 +363,19 @@ export const reportContent = onCall(OPTS, async (request) => {
 export const moderationAdmin = onCall(OPTS, async (request) => {
   assertAdmin(request.auth as { uid: string; token?: Record<string, unknown> } | undefined);
   const data = (request.data && typeof request.data === 'object' ? request.data : {}) as Record<string, unknown>;
+  return operacionAdmin(claseDeModeracion(data), request.auth as { uid: string; token?: Record<string, unknown> } | undefined, () => atenderModeracion(data, request.auth!.uid));
+});
+
+const atenderModeracion = async (data: Record<string, unknown>, revisora: string): Promise<Record<string, unknown>> => {
   const moderacion = crearModeracion({ db: getFirestore() });
   try {
     if (data.action === 'list') return { reports: await moderacion.listar(data.status, data.limit), statuses: ESTADOS_DE_REPORTE };
     if (data.action === 'history') return { history: await moderacion.historial(data.reportId) };
     if (data.action === 'review') {
-      return { report: await moderacion.revisar(request.auth!.uid, { reportId: data.reportId, to: data.to, outcome: data.outcome, action: data.decisionAction, reason: data.reason }) };
+      return { report: await moderacion.revisar(revisora, { reportId: data.reportId, to: data.to, outcome: data.outcome, action: data.decisionAction, reason: data.reason }) };
     }
     throw new HttpsError('invalid-argument', 'Acción desconocida.', { reason: 'unknown_action' });
   } catch (error) {
     throw error instanceof HttpsError ? error : aHttpsError(error);
   }
-});
+};

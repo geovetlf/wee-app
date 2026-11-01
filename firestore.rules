@@ -10,9 +10,10 @@ service cloud.firestore {
     // ADMINISTRACIÓN: una sesión con el claim `admin`. El claim lo pone el
     // servidor con el SDK de administración; ningún cliente puede ponérselo.
     // Es lo que distingue lo que Weë AFIRMA (oficial, verificado, destacado)
-    // de lo que una persona dice de sí misma.
+    // de lo que una persona dice de sí misma. Un rol del personal (`weeRole`) que
+    // no sea `owner` no escribe por aquí: solo lee su dominio, por el servidor.
     function esAdministracion() {
-      return request.auth != null && request.auth.token.get('admin', false) == true;
+      return request.auth != null && request.auth.token.get('admin', false) == true && request.auth.token.get('weeRole', 'owner') == 'owner';
     }
 
     // ─── FRONTERA DE COMPATIBILIDAD CON LA IDENTIDAD HEREDADA ───────────────

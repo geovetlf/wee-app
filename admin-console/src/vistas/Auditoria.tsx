@@ -1,5 +1,6 @@
 import { leerAuditoria } from '../api/operaciones';
 import { Cargable } from '../componentes/Cargable';
+import { AvisoDeLista } from '../componentes/Lista';
 import { Etiqueta, Seccion, Tabla } from '../componentes/Piezas';
 import { Procedencia } from '../componentes/Procedencia';
 import { useAccion } from '../hooks';
@@ -18,6 +19,7 @@ export const Auditoria = () => {
       </header>
       <Seccion titulo={t('admin.auditoria.entradas')}>
         <Cargable estado={estado} recargar={recargar} vacio={t('admin.auditoria.sinEntradas')} hijos={(p) => (
+          <>
           <Tabla cabeceras={[t('admin.auditoria.cuando'), t('admin.auditoria.quien'), t('admin.auditoria.accion'), t('admin.auditoria.recurso'), t('admin.auditoria.resultado'), t('admin.auditoria.correlacion'), t('admin.auditoria.entorno')]}>
             {p.items.map((e) => (
               <tr key={`${e.correlacion}/${e.en}/${e.resultado}`}>
@@ -31,6 +33,8 @@ export const Auditoria = () => {
               </tr>
             ))}
           </Tabla>
+          <AvisoDeLista truncado={p.truncado} />
+          </>
         )} />
         <Procedencia fuente="opsAdmin.auditoria (adminAudit)" estado={estado} />
       </Seccion>

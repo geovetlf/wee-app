@@ -4,6 +4,8 @@ import { creditEngine } from './creditEngine';
 import { allCreditCosts, invalidateCostOverrides, isCreditService, loadCostOverrides } from './creditCosts';
 import { assertLimit, assertRequestId, cleanText, toHttpsError } from './creditValidation';
 import { assertAdmin } from '../shared/admin';
+import { operacionAdmin } from '../admin/autorizacion';
+import { claseDeCredits, claseDeCreditsAdmin } from '../admin/operaciones';
 import { PaymentProvider, restorePurchases, validatePurchase } from '../payments/purchaseValidation';
 
 /**
@@ -101,15 +103,15 @@ export const spendCredits = onCall(OPTS, async (request) =>
     const userId = uidOf(request);
     const data = (request.data || {}) as { service?: string; requestId?: string; reason?: string; generationId?: string };
     if (!isCreditService(data.service)) throw new HttpsError('invalid-argument', `Servicio desconocido: ${String(data.service)}`);
-    await creditEngine.ensureAccount(userId);
-    return creditEngine.spendCredits({
+    const service = data.service;
+    return operacionAdmin(claseDeCredits('spendCredits', userId, data), request.auth as any, () => creditEngine.ensureAccount(userId).then(() => creditEngine.spendCredits({
       userId,
-      service: data.service,
+      service,
       requestId: assertRequestId(data.requestId),
       reason: cleanText(data.reason, 140, undefined) || undefined,
       source: 'client',
       generationId: data.generationId ? cleanText(data.generationId, 160) : undefined,
-    });
+    })));
   })
 );
 
@@ -118,13 +120,14 @@ export const grantCredits = onCall(OPTS, async (request) =>
   run(async () => {
     assertAdmin(request.auth as any);
     const data = (request.data || {}) as { userId?: string; amount?: number; reason?: string; requestId?: string };
-    return creditEngine.grantCredits({
+    const requestId = data.requestId || `admin_${Date.now()}`;
+    return operacionAdmin(claseDeCredits('grantCredits', data.userId, { ...data, requestId }), request.auth as any, () => creditEngine.grantCredits({
       userId: String(data.userId || ''),
       amount: Number(data.amount),
       reason: cleanText(data.reason, 140, 'Credits de regalo'),
       source: 'admin',
-      requestId: data.requestId || `admin_${Date.now()}`,
-    });
+      requestId,
+    }));
   })
 );
 
@@ -133,13 +136,13 @@ export const refundCredits = onCall(OPTS, async (request) =>
   run(async () => {
     assertAdmin(request.auth as any);
     const data = (request.data || {}) as { userId?: string; requestId?: string; reason?: string; force?: boolean };
-    return creditEngine.refundCredits({
+    return operacionAdmin(claseDeCredits('refundCredits', data.userId, data), request.auth as any, () => creditEngine.refundCredits({
       userId: String(data.userId || ''),
       requestId: String(data.requestId || ''),
       reason: cleanText(data.reason, 140, 'Reembolso por administración'),
       source: 'admin',
       force: data.force === true,
-    });
+    }));
   })
 );
 
@@ -169,6 +172,12 @@ export const creditsAdmin = onCall(OPTS, async (request) =>
   run(async () => {
     assertAdmin(request.auth as any);
     const data = (request.data || {}) as Record<string, any>;
+    return operacionAdmin(claseDeCreditsAdmin(data), request.auth as any, () => atenderCreditsAdmin(data));
+  })
+);
+
+const atenderCreditsAdmin = (data: Record<string, any>) =>
+  run(async () => {
     const db = getFirestore();
     switch (String(data.action || 'stats')) {
       case 'stats': {
@@ -203,5 +212,4 @@ export const creditsAdmin = onCall(OPTS, async (request) =>
       default:
         throw new HttpsError('invalid-argument', `Acción desconocida: ${data.action}`);
     }
-  })
-);
+  });

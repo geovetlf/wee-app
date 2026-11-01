@@ -64,7 +64,7 @@ flowchart LR
   end
   Cliente -->|httpsCallable + ID token| Fn
   subgraph Servidor["Cloud Functions (functions/src)"]
-    Fn[Callables de administración] --> Auth{assertAdmin<br/>hoy · roles mañana}
+    Fn[Callables de administración] --> Auth{Auth de ahora<br/>+ permiso de la matriz}
     Auth --> Audit[(adminAudit<br/>propuesto)]
     Auth --> Motores[Motores existentes:<br/>Credit Engine · WEË AI ENGINE · Moderation ·<br/>Runtime/Job Engine · Content · Filmmaker]
   end

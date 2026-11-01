@@ -10,8 +10,9 @@ import type { RolDePlataforma } from './permisos';
  * clientes; lo escribe solo el servidor y SOLO lo CREA: este módulo no ofrece actualizar ni borrar, y `create` falla si
  * el documento ya existe. La consola no tiene forma de modificarlo.
  *
- * Es un contrato reutilizable: las acciones sensibles del futuro registrarán aquí con su `motivo`, su `antes`/`despues`
- * y su confirmación. Hoy solo lo usan las lecturas de administración. **Prepararlo no autoriza ninguna escritura.**
+ * Lo usan todas las puertas de administración (`autorizacion.ts`). Es **solo añadir**: un mismo acto son varias entradas
+ * con la misma `correlationId`. `intento` se escribe antes de una escritura, y `ok` o `error` cuando se sabe cómo
+ * acabó. Un `intento` sin cierre es lo que hay que conciliar; nunca se registra éxito por adelantado.
  *
  * No guarda secretos: `metadatos` solo admite valores simples, descarta las claves que parecen credenciales y pasa
  * los textos por `sanitizeForLog`.
@@ -19,7 +20,7 @@ import type { RolDePlataforma } from './permisos';
 export const COLECCION_DE_AUDITORIA = 'adminAudit';
 export const VERSION_DE_AUDITORIA = 1;
 
-export type ResultadoDeAuditoria = 'ok' | 'denegado' | 'error';
+export type ResultadoDeAuditoria = 'intento' | 'ok' | 'denegado' | 'error';
 
 export interface EntradaDeAuditoria {
   actorUid: string;
@@ -30,7 +31,7 @@ export interface EntradaDeAuditoria {
   resultado: ResultadoDeAuditoria;
   correlationId: string;
   codigoDeError?: string;
-  /** Obligatorio cuando existan acciones sensibles; las lecturas no lo piden. */
+  /** Lo que dio quien actúa, si lo dio. Saneado y recortado; nunca un texto de otra persona. */
   motivo?: string;
   metadatos?: Record<string, unknown>;
 }
@@ -66,8 +67,8 @@ export const crearAuditoria = ({ db, ahora = Date.now, entorno = process.env.GCL
   const coleccion = () => db.collection(COLECCION_DE_AUDITORIA);
   return {
     /**
-     * Crea la entrada; si no se puede, lanza. Quien llama decide: las lecturas de administración NO devuelven datos
-     * si no ha quedado constancia, y lo mismo harán el dinero, los privilegios y lo destructivo.
+     * Crea la entrada; si no se puede, lanza. Quien llama decide: una lectura de administración NO devuelve datos si no
+     * ha quedado constancia, y una escritura no se hace si no ha podido dejar su `intento`.
      */
     async registrar(e: EntradaDeAuditoria): Promise<RegistroDeAuditoria> {
       const registro: RegistroDeAuditoria = {
