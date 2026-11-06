@@ -576,7 +576,7 @@ El módulo `filmmaker` está en los once diccionarios: 255 claves (267 en ruso, 
 `messageKey` del dominio tienen tres tramos (`filmmaker.<área>.<código>`) y los diccionarios son planos, así que
 `utils/mensajesDeFilmmaker.ts` los lee con una regla —`filmmaker.validation.shape_invalid` →
 `filmmaker.valShapeInvalid`— y cada código de F1-A y F1-B tiene su frase. El catálogo `constants/filmmaker.ts` guarda
-claves, no frases. «Video de Instagram» y no la otra palabra, como en Weë Business. La valla `CLAVES_PT` subió de
+claves, no frases. «Video de Instagram» y no la otra palabra, como en Weë Fashion (módulo `business`). La valla `CLAVES_PT` subió de
 2 427 a 2 682 con autorización.
 
 ### Probarlo en local, de punta a punta

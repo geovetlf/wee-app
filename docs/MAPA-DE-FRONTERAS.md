@@ -74,7 +74,7 @@ por el cliente.
 | Me gusta | `likes` | `services/likesService.ts` (solo lo importa `UserProfileScreen`) |
 | Seguir | `follows` | Solo reglas: en este árbol ningún archivo del cliente la usa |
 | ËContact (contactos entre caras) | `econtacts` | callables `requestEContact`/`acceptEContact` (`social/econtact.ts`), `services/econtactService.ts` |
-| Seguir un negocio (Weë Business) | `businessFollows` | `screens/WeeBizProfileScreen.tsx` y el hook de ËContact |
+| Colección histórica del proyecto anterior (retirado definitivamente, 2026-11-06) | `businessFollows` | Ningún código de Weë la usa. La colección, sus reglas, índices y copia de seguridad se conservan solo para proteger los datos históricos de producción hasta una auditoría aparte; cerrarla exige decisión explícita del dueño |
 | Comunidades y miembros | `communities`, `communities/{id}/members` | `services/communityService.ts`, `hooks/useCommunities.ts` |
 | Guardados | `users/{uid}/bookmarks` | `services/bookmarksService.ts`, `hooks/useBookmarks.ts` |
 | WeeTalk | `conversations`, `conversations/{id}/messages` | `services/messagesService.ts`; «ver una vez» por `burnViewOnce` (`social/weetalk.ts`) |

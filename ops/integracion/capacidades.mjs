@@ -17,6 +17,10 @@
  *  · cada idioma que ofrecen las dos webs;
  *  · cada ruta de las reglas de Firestore y de Storage, y cada índice compuesto.
  *
+ * Dos maneras, y solo dos, de que algo vivo no esté: SUSTITUIDO por algo que sí está (abajo), o RETIRADO por una
+ * decisión explícita del dueño (`RETIRADAS`), que solo vale para pantallas y textos (un módulo entero o claves sueltas, con
+ * nombre exacto) y que NO retira nada en producción.
+ *
  * Solo lee git y el árbol. `--md` escribe la comparación en Markdown.
  */
 import { execFileSync } from 'node:child_process';
@@ -68,9 +72,51 @@ export const SUSTITUIDAS = {
   'aiAvatar.generatedWithGemini': { por: 'aiAvatar.generatedWithAi', porque: 'i18n da-DK (2026-10-01): el avatar lo hace «Weë AI»; la persona nunca ve el nombre de un proveedor' },
   'help.a3': { por: 'help.a3_other', porque: 'fallos de UI (2026-10-01): la Ayuda dice el número y los nombres de los especialistas del menú, con su plural' },
   'composer.bizNoAgenda': { por: 'composer.profileNoAgenda', porque: 'i18n da-DK (2026-10-01): el Perfil Biz se eliminó el 2026-09-19; el aviso habla de «este perfil»' },
+  /* Compra de Credits por importe (dueño, 2026-11-04): no hay paquetes; el nombre y las etiquetas de paquete los sustituye la compra por importe. */
+  'credits.pkgBasic': { por: 'credits.buyButton', porque: 'compra por importe (dueño, 2026-11-04): ya no hay paquete «Básico»; el botón dice los Credits y el precio del importe elegido' },
+  'credits.badgePopular': { por: 'credits.buyRate', porque: 'compra por importe (dueño, 2026-11-04): sin paquetes no hay «Popular»; la tienda enseña la tarifa única (US$1 = 100 Credits)' },
+  'credits.badgeBestValue': { por: 'credits.buyRate', porque: 'compra por importe (dueño, 2026-11-04): sin paquetes no hay «Mejor valor»; todos los importes tienen la misma tarifa' },
 };
 
-const faltan = (vivo, propuesto) => [...vivo].filter((x) => !propuesto.has(x) && !(SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por))).sort();
+/**
+ * Lo que ya no está porque el dueño decidió RETIRARLO de Weë, sin sustituto vivo que lo reemplace clave a clave. Es la
+ * excepción, no una vía de escape:
+ *  · cada retirada nombra su decisión (quién y cuándo), qué la reemplaza como producto y qué pasa en producción;
+ *  · solo cubre PANTALLAS (lista exacta) y TEXTOS: un módulo entero del diccionario (`modulo`) o CLAVES SUELTAS con su
+ *    nombre exacto `modulo.clave` (`claves`, ampliación del 2026-11-06); nunca funciones, reglas, índices ni idiomas,
+ *    que siguen exigiendo «sigue estando» (prueba 7 de la suite);
+ *  · una retirada de claves sueltas dice además su `fecha`, su `motivo` y quién la decidió (`decidio`); retirar una
+ *    clave NO retira su módulo: cualquier otra clave del mismo módulo que falte sigue contando como pérdida, y la clave
+ *    retirada no puede volver a ningún diccionario (prueba 7c de la suite);
+ *  · retirar del main propuesto NO es retirar de producción: el servicio publicado sigue vivo, y publicar este main
+ *    lo quitaría de las webs, así que eso exige ANTES una decisión explícita de deprecación (`produccion`).
+ */
+export const RETIRADAS = {
+  weebiz: {
+    decision: 'dueño, 2026-11-03: «Weebiz es del antiguo proyecto, eliminalo»; confirmado el mismo día: no se restaura nada de WeeBiz; dueño, 2026-11-06: retirada completa y definitiva de Weë (código, rutas, textos, landing y documentación vigente); dueño, 2026-11-06 (definitiva y global): WeeBiz no es un módulo pendiente, existente ni recuperable y no se reconstruye con ese nombre ni con otro',
+    reemplazo: 'ninguno: Weë Fashion es la experiencia de Weë AI con el id histórico `business` (no sustituye al directorio); un negocio, si alguna vez existe, será una Página (WeëPages)',
+    produccion: 'NO deprecado todavía: el WeeBiz publicado en wee.zone y wee-app.web.app sigue vivo y sus datos (businesses, reviews, businessFollows) intactos; sus reglas, índices y copia de seguridad siguen en este árbol solo para proteger esos datos históricos, hasta una auditoría independiente de seguridad y dependencias; nada de esto invita a reconstruirlo (funciones, reglas e índices no se retiran por esta vía). Desplegar la web desde este main lo quitaría, y cerrar sus reglas al cliente también lo rompería: las dos cosas requieren antes una decisión explícita de deprecación del dueño.',
+    pantallas: ['WeeBiz', 'WeeBizCategory', 'WeeBizProducts', 'WeeBizProfile', 'WeeBizRegister'],
+    modulo: 'weebiz',
+  },
+  pildoraPublico: {
+    fecha: '2026-11-06',
+    decidio: 'el dueño',
+    motivo: 'píldora Público retirada del compositor por decisión del dueño',
+    decision: 'dueño, 2026-11-06: píldora Público retirada del compositor por decisión del dueño; sus tres textos salen de los 42 diccionarios y quedan como `obsoleta` en i18n/revision/<idioma>/registro.json. La lógica de visibilidad de las publicaciones no cambia',
+    reemplazo: 'nada visible la sustituye: el compositor publica con la misma visibilidad de siempre, sin la píldora que la anunciaba',
+    produccion: 'NO deprecado todavía en las webs publicadas: wee.zone y wee-app.web.app siguen mostrando la píldora hasta que se publique este main; publicar la web nueva la quita, y eso exige antes su propia autorización (decisión explícita de deprecación al desplegar). Ninguna función, regla ni dato cambia.',
+    pantallas: [],
+    claves: ['composer.publicVisibility', 'composer.visibilityIs', 'composer.publicExplain'],
+  },
+};
+const retiradaDe = (clase, x) => Object.entries(RETIRADAS).find(([, r]) => (/^Pantallas/.test(clase) && (r.pantallas || []).includes(x))
+  || (/^Textos/.test(clase) && ((r.modulo && x.startsWith(`${r.modulo}.`)) || (r.claves || []).includes(x))))?.[0];
+
+const faltan = (vivo, propuesto, clase = '') => [...vivo].filter((x) => !propuesto.has(x) && !(SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por)) && !retiradaDe(clase, x)).sort();
+const retiradas = (vivo, propuesto, clase) => [...vivo].filter((x) => !propuesto.has(x) && !(SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por)) && retiradaDe(clase, x)).sort();
+/* Para las pruebas: la regla, con texto de juguete. */
+export const _faltanEn = faltan;
 const sustituidas = (vivo, propuesto) => [...vivo].filter((x) => !propuesto.has(x) && SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por)).sort();
 const nuevas = (vivo, propuesto) => [...propuesto].filter((x) => !vivo.has(x)).sort();
 
@@ -85,7 +131,7 @@ export const comparar = () => {
   const exportadas = new Set(Object.entries(lib).filter(([, x]) => x && x.__endpoint).map(([k]) => k));
   const vivas = new Set(mapa.funciones.map((f) => f.funcion));
   const filas = [];
-  const fila = (clase, vivoTxt, vivo, propuesto) => filas.push({ clase, vivoTxt, vivo: vivo.size, propuesto: propuesto.size, faltan: faltan(vivo, propuesto), sustituidas: sustituidas(vivo, propuesto), nuevas: nuevas(vivo, propuesto) });
+  const fila = (clase, vivoTxt, vivo, propuesto) => filas.push({ clase, vivoTxt, vivo: vivo.size, propuesto: propuesto.size, faltan: faltan(vivo, propuesto, clase), retiradas: retiradas(vivo, propuesto, clase), sustituidas: sustituidas(vivo, propuesto), nuevas: nuevas(vivo, propuesto) });
 
   fila('Funciones', '34 vivas (ops/produccion.json)', vivas, exportadas);
   const pantallasPropuestas = pantallasDe(enArbol);
@@ -104,9 +150,9 @@ export const comparar = () => {
 
 export const enMarkdown = (filas, cabecera = '') => [
   cabecera,
-  '| Capacidad | Vivo (commit) | En producción | En el main propuesto | Se pierde | Sustituido por algo vivo | Nuevo |',
-  '|---|---|---|---|---|---|---|',
-  ...filas.map((f) => `| ${f.clase} | ${f.vivoTxt} | ${f.vivo} | ${f.propuesto} | ${f.faltan.length ? `**${f.faltan.length}**: ${f.faltan.slice(0, 12).join(', ')}${f.faltan.length > 12 ? '…' : ''}` : 'ninguna'} | ${f.sustituidas.length ? `${f.sustituidas.length} (${f.sustituidas.map((k) => `${k} → ${SUSTITUIDAS[k].por}`).join(', ')})` : '—'} | ${f.nuevas.length}${f.nuevas.length && f.nuevas.length <= 6 ? ` (${f.nuevas.join(', ')})` : ''} |`),
+  '| Capacidad | Vivo (commit) | En producción | En el main propuesto | Se pierde | Sustituido por algo vivo | Retirado por decisión (no en producción) | Nuevo |',
+  '|---|---|---|---|---|---|---|---|',
+  ...filas.map((f) => `| ${f.clase} | ${f.vivoTxt} | ${f.vivo} | ${f.propuesto} | ${f.faltan.length ? `**${f.faltan.length}**: ${f.faltan.slice(0, 12).join(', ')}${f.faltan.length > 12 ? '…' : ''}` : 'ninguna'} | ${f.sustituidas.length ? `${f.sustituidas.length} (${f.sustituidas.map((k) => `${k} → ${SUSTITUIDAS[k].por}`).join(', ')})` : '—'} | ${f.retiradas.length ? `${f.retiradas.length} (${[...new Set(f.retiradas.map((x) => retiradaDe(f.clase, x)))].join(', ')})` : '—'} | ${f.nuevas.length}${f.nuevas.length && f.nuevas.length <= 6 ? ` (${f.nuevas.join(', ')})` : ''} |`),
 ].join('\n');
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

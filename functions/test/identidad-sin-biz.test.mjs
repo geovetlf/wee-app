@@ -1,22 +1,23 @@
 /*
- * EL PERFIL BIZ SE ELIMINÓ, Y WEË BUSINESS SIGUE FUNCIONANDO (fase 10).
+ * EL PERFIL BIZ SE ELIMINÓ, Y WEEBIZ SE RETIRÓ DEFINITIVAMENTE (fase 10; 2026-11-03; 2026-11-06).
  *
- * Son dos cosas distintas que se llamaban casi igual, y confundirlas es el
- * único riesgo real de esta eliminación:
+ * Son dos retiradas distintas:
  *
  *   · el PERFIL BIZ era una tercera IDENTIDAD —un documento `users/biz_<x>`
  *     con `profileType: 'biz'`— con la que se publicaba como si fuera una
- *     persona. Eso se ha ido. Weë tiene DOS caras: Perfil Real y Perfil Weë.
- *     Un negocio será una PÁGINA, que es una entidad del Account, no una cara.
+ *     persona. Eso se ha ido (decisión del usuario, 2026-09-19). Weë tiene DOS
+ *     caras: Perfil Real y Perfil Weë. Un negocio será una PÁGINA, que es una
+ *     entidad del Account, no una cara.
  *
- *   · WEË BUSINESS es el PRODUCTO: `businesses/{businessId}`, su catálogo, sus
- *     reseñas, sus seguidores y sus pantallas. No se toca. Sigue entero.
+ *   · WEEBIZ era el directorio de negocios del proyecto anterior. El dueño lo
+ *     retiró de Weë el 2026-11-03 y, de forma definitiva y global, el
+ *     2026-11-06: no es un módulo pendiente, existente ni recuperable, y no se
+ *     reconstruye. De él solo quedan los DATOS históricos de producción, que sus
+ *     reglas siguen protegiendo (D, 16-20) hasta una auditoría aparte.
  *
- * Este archivo existe para que nadie devuelva la identidad por error y para que
- * nadie se lleve el producto por delante creyendo que era la identidad.
- *
- * Decisión del usuario, 2026-09-19: eliminación definitiva del legacy Biz
- * Profile. Sustituye a la nota de `CLAUDE.md` que lo daba por tercera identidad.
+ * Este archivo existe para que no vuelva ni la identidad (A-C, E) ni el
+ * directorio (D, 21-24d) ni su nombre en el código, los textos, la web o la
+ * documentación operativa (F, 28-31c).
  */
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
@@ -141,7 +142,7 @@ console.log('\n── C · Las reglas ya no la reconocen ──');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-console.log('\n── D · WEË BUSINESS SIGUE ENTERO ──');
+console.log('\n── D · WeeBiz retirado de Weë; sus datos guardados siguen protegidos por sus reglas ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   const reglas = leer('firestore.rules');
@@ -157,28 +158,30 @@ console.log('\n── D · WEË BUSINESS SIGUE ENTERO ──');
   check('20) y los seguidores del negocio, que son otra colección',
     /match \/businessFollows\/\{followId\} \{/.test(reglas));
 
-  /* Las pantallas y el servicio, intactos. */
-  const PANTALLAS = ['WeeBizScreen', 'WeeBizProfileScreen', 'WeeBizRegisterScreen',
-    'WeeBizProductsScreen', 'WeeBizCategoryScreen'];
-  const faltan = PANTALLAS.filter((p) => !fs.existsSync(new URL(`../../screens/${p}.tsx`, import.meta.url)));
-  check('21) las cinco pantallas de Weë Business siguen existiendo', faltan.length === 0, faltan.join(' '));
-  check('22) y su servicio también',
-    fs.existsSync(new URL('../../services/weeBizService.ts', import.meta.url)));
+  /*
+   * 21-24 · El directorio WeeBiz (pantallas, servicio, catálogo y la fila del menú) retirado por decisión del dueño el 2026-11-03: era del proyecto antiguo.
+   * Las reglas de arriba se quedan: hay datos guardados y retirarlas exige otra decisión.
+   */
+  const PANTALLAS = ['WeeBizScreen', 'WeeBizProfileScreen', 'WeeBizRegisterScreen', 'WeeBizProductsScreen', 'WeeBizCategoryScreen'];
+  const quedan = PANTALLAS.filter((p) => fs.existsSync(new URL(`../../screens/${p}.tsx`, import.meta.url)));
+  check('21) las cinco pantallas de WeeBiz se retiraron', quedan.length === 0, quedan.join(' '));
+  check('22) y su servicio también', !fs.existsSync(new URL('../../services/weeBizService.ts', import.meta.url)));
+  const CAJON = soloCodigo(leer('components/DrawerMenu.tsx'));
+  check('24) el menú ya no lleva a ningún negocio', !/WeeBiz|myBusiness|weeBizService/.test(CAJON));
 
   /*
-   * 23 · EL SEGUIMIENTO DE UN NEGOCIO NO ERA LA IDENTIDAD. Vive en
-   * `businessFollows`, y el `_biz_` de su id es un separador, no el prefijo
-   * de un uid. Se queda tal cual.
+   * 24b-24d · Retirada completa (2026-11-06): ni ruta ni enlace —una dirección antigua (/WeeBiz, /WeeBizProfile…) cae
+   * en el comportamiento normal de ruta desconocida—, ni catálogo de categorías ni módulo de textos, ni la sección
+   * «Registra tu negocio» de la landing.
    */
-  const PERFIL_NEGOCIO = leer('screens/WeeBizProfileScreen.tsx');
-  check('23) seguir un negocio se sigue guardando en businessFollows',
-    /doc\(db, 'businessFollows', followId\)/.test(PERFIL_NEGOCIO)
-    && /\$\{activeUid\}_biz_\$\{businessId\}/.test(PERFIL_NEGOCIO));
-
-  /* 24 · Y el cajón sigue llevando al negocio de quien lo tiene. */
-  const CAJON = soloCodigo(leer('components/DrawerMenu.tsx'));
-  check('24) el menú sigue llevando al negocio propio',
-    /navigation\.navigate\('WeeBizProfile', \{ businessId: myBusiness\.id \}\)/.test(CAJON));
+  const NAVEGACION = ['App.tsx', 'navigation/MainStackNavigator.tsx', 'navigation/TabNavigator.tsx', 'navigation/HomeStackNavigator.tsx',
+    'navigation/ProfileStackNavigator.tsx', 'navigation/EspacioProfesionalNavigator.tsx', 'navigation/enlaces.ts'].map((f) => soloCodigo(leer(f))).join('\n');
+  check('24b) ninguna pila ni el linking registran una ruta de WeeBiz', !/WeeBiz|weeBizService|weebizCategories/.test(NAVEGACION));
+  const existe = (f) => fs.existsSync(new URL('../../' + f, import.meta.url));
+  check('24c) ni su catálogo de categorías ni su módulo de textos existen',
+    !existe('constants/weebizCategories.ts') && !existe('i18n/textos/es/weebiz.ts') && !existe('i18n/textos/en/weebiz.ts'));
+  const LANDING = leer('public/landing.html').replace(/<!--[\s\S]*?-->/g, '');
+  check('24d) la landing ya no anuncia el directorio de negocios', !/weebiz|biz-card|Registra tu negocio/i.test(LANDING));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -205,6 +208,75 @@ console.log('\n── E · Todos los diccionarios, simétricos ──');
 
   const sinWee = locales.filter((l) => !/activeWee:/.test(fs.readFileSync(new URL(`${l}/menu.ts`, RAIZ), 'utf8')));
   check('27) y en todos siguen las que sí se usan', sinWee.length === 0, sinWee.join(' '));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── F · El nombre WeeBiz no vuelve: ni código, ni web, ni textos, ni documentación operativa (2026-11-06) ──');
+// ════════════════════════════════════════════════════════════════════════════
+{
+  /*
+   * Decisión del dueño (2026-11-06): WeeBiz desaparece de todo Weë y no se trata como módulo pendiente, existente
+   * ni recuperable. Aquí se recorre el árbol entero de lo que se usa a diario y se exige:
+   *   · CERO apariciones (comentarios incluidos) en el código de la app, los textos de los 42 idiomas, la web
+   *     pública, las páginas legales, las herramientas, la configuración y las instrucciones para agentes;
+   *   · en la documentación operativa, solo frases que digan que está RETIRADO (ninguna que lo describa vivo);
+   *   · y en ningún sitio, ni código ni documentación, la idea de que «Weë Business, el producto» sigue en pie.
+   * EXCEPCIONES, explícitas y con su porqué (cualquier otra aparición falla):
+   */
+  const EXCEPCIONES = {
+    'ops/integracion/capacidades.mjs': 'registro de funcionalidades retiradas (RETIRADAS.weebiz): es la prueba de que se retiró',
+    'ops/integracion/semantica.patch': 'parche histórico fechado de la integración (instantánea, no instrucciones)',
+    'ops/integracion/conflictos.patch': 'parche histórico fechado de la integración (instantánea, no instrucciones)',
+    'ops/revision/baseline.json': 'instantánea fechada del revisor (corte 5be63ff), protegida por el harness',
+    'docs/I18N-GROENLANDES.md': 'tablas fechadas de la revisión del groenlandés (historia del diccionario)',
+    'docs/I18N-ISLANDES.md': 'tablas fechadas de la revisión del islandés (historia del diccionario)',
+    'docs/I18N-INVENTARIO-GLOBAL.md': 'inventario fechado de la oleada i18n (dice que el módulo se quitó)',
+    'docs/I18N-L2-L3-PREPARACION.md': 'plan fechado de la oleada i18n (dice que el módulo se retira)',
+    'docs/i18n/auditoria/mn.md': 'acta fechada de auditoría del mongol',
+    'docs/i18n/auditoria/ro.md': 'acta fechada de auditoría del rumano',
+  };
+  /* Lo que no es fuente: dependencias, compilados, los registros de revisión por idioma (historia con `obsoleta`) y las pruebas. */
+  const FUERA = /(^|\/)(node_modules|\.git|dist|web-build|\.expo|demo-medios|android|ios)(\/|$)|^(functions\/lib|functions\/test|functions\/test-L5|i18n\/revision)\//;
+  const RE = /weebiz|wee[ _-]?biz\b|weë ?biz\b/i;
+  const raiz = new URL('../../', import.meta.url);
+  const recorrer = (rel) => {
+    const abs = new URL(rel, raiz);
+    if (!fs.existsSync(abs)) return [];
+    if (fs.statSync(abs).isFile()) return [rel];
+    return fs.readdirSync(abs).flatMap((n) => {
+      const r = (rel ? rel.replace(/\/$/, '') + '/' : '') + n;
+      if (FUERA.test(r)) return [];
+      const st = fs.statSync(new URL(r, raiz));
+      if (st.isDirectory()) return recorrer(r + '/');
+      return /\.(tsx?|jsx?|mjs|cjs|json|html|md|css|txt|xml|webmanifest|patch|ya?ml|rules)$/.test(n) && st.size < 5e6 ? [r] : [];
+    });
+  };
+  const apariciones = (f) => leer(f).split(/\r?\n/).map((l, i) => ({ l, n: i + 1 })).filter(({ l }) => RE.test(l));
+
+  const CERO = ['App.tsx', 'app.json', 'firebase.json', 'package.json', 'functions/package.json', 'index.ts', 'navigation/', 'screens/',
+    'components/', 'services/', 'hooks/', 'contexts/', 'constants/', 'utils/', 'types/', 'i18n/', 'public/', 'legal/', 'scripts/', 'ops/', '.claude/'];
+  const enCero = CERO.flatMap(recorrer).filter((f) => !EXCEPCIONES[f])
+    .flatMap((f) => apariciones(f).map(({ n }) => `${f}:${n}`));
+  check('28) ninguna aparición del nombre en código, textos, web, legales, herramientas, configuración ni instrucciones para agentes',
+    enCero.length === 0, enCero.slice(0, 12).join(' · '));
+
+  const DOCS = ['CLAUDE.md', 'README.md', 'AGENTS.md', 'docs/'].flatMap(recorrer).filter((f) => f.endsWith('.md') && !EXCEPCIONES[f]);
+  const vivas = DOCS.flatMap((f) => apariciones(f).filter(({ l }) => !/retir/i.test(l)).map(({ n }) => `${f}:${n}`));
+  check('29) en la documentación operativa solo aparece para decir que está retirado', vivas.length === 0, vivas.slice(0, 12).join(' · '));
+  check('29b) CLAUDE.md lo da por retirado definitivamente y sin reconstrucción',
+    /WeeBiz\*\*[^\n]*retirado definitivamente[^\n]*no se reconstruye/.test(leer('CLAUDE.md')));
+
+  const PRODUCTO_VIVO = /Weë Business,? el producto|Weë Business sigue (existiendo|entero|en pie)|pantallas `?WeeBiz\*`?, `?weeBizService/i;
+  const conProducto = [...DOCS, ...CERO.flatMap(recorrer).filter((f) => !EXCEPCIONES[f])].filter((f) => PRODUCTO_VIVO.test(leer(f)));
+  check('30) ningún sitio presenta Weë Business / WeeBiz como un producto que sigue en pie', conProducto.length === 0, conProducto.join(' · '));
+
+  /* Controles: la búsqueda encuentra lo que debe, y no confunde el húngaro «biztonság» (seguridad) con el nombre. */
+  check('31) control: la búsqueda reconoce las variantes y no el húngaro',
+    ['WeeBiz', 'weeBizService', 'weebiz.title', 'Wee Biz', 'Weë Biz', 'WEE_BIZ', 'wee-biz'].every((s) => RE.test(s)) && !RE.test('a Weë biztonságát'));
+  check('31b) control: el recorrido ve de verdad el código y la documentación',
+    recorrer('screens/').length > 50 && recorrer('i18n/').length > 500 && DOCS.length > 20);
+  check('31c) control: las excepciones existen (si una desaparece, se quita de la lista)',
+    Object.keys(EXCEPCIONES).every((f) => fs.existsSync(new URL(f, raiz))), Object.keys(EXCEPCIONES).filter((f) => !fs.existsSync(new URL(f, raiz))).join(' '));
 }
 
 console.log(failures === 0 ? '\n✔ todo bien' : `\n✘ ${failures} fallos`);

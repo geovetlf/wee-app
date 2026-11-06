@@ -55,7 +55,7 @@ Espacio especializado de herramientas de IA. **Sí conserva el nombre "WEË AI"*
 
 > **Actualización (2026-09-05):** estas categorías se reemplazan por las **experiencias de WEE** — 🎨 WEE Design · 🎬 WEE Studio · 📸 WEE Photo · ✍️ WEE Writer · 🎵 WEE Music · 💄 WEE Beauty · 👨‍🍳 WEE Chef · 🏠 WEE Home · 💼 WEE Business · ✈️ WEE Travel *(añadida el 2026-09-09)* · 🧠 WEE Brain — bajo la regla "El usuario elige el resultado. WEE elige la IA." Ver [`CREATOR.md`](CREATOR.md).
 
-> **Actualización (2026-10-14):** la experiencia 💼 Weë Business (arriba, «WEE Business») se llama ahora 👗 **Weë Fashion** en pantalla: solo cambian el nombre visible, el emoji/icono y la descripción provisional («Moda, estilo, belleza y creación de contenido visual.»). El identificador técnico sigue siendo `business`. **Weë Business** queda como el nombre del producto de negocios (ver §14, «Weë Business no es eso y sigue entero»), que no cambia.
+> **Actualización (2026-10-14):** la experiencia 💼 Weë Business (arriba, «WEE Business») se llama ahora 👗 **Weë Fashion** en pantalla: solo cambian el nombre visible, el emoji/icono y la descripción provisional («Moda, estilo, belleza y creación de contenido visual.»). El identificador técnico sigue siendo `business` (tiene trabajos y datos guardados detrás y no se renombra).
 
 Las herramientas pueden ser propias de WEE o integraciones de otros servicios.
 
@@ -112,7 +112,7 @@ Se mantienen los dos perfiles. **WEE = World Encode Entity** (definición que se
 
 **Perfil Biz — ELIMINADO (decisión del 2026-09-19, sustituye a la del 2026-09-05):** hubo una tercera identidad para negocios, con su acento morado y su propio documento en `users` (`biz_<negocio>`, `profileType: 'biz'`), con la que se publicaba como si el negocio fuera una persona. **Ya no existe y no se recrea.** Weë tiene dos caras: Perfil Real y Perfil Weë. Un negocio es una **Página** —una entidad del Account, no una cara de la persona— y su wallet es la del Account, nunca una propia.
 
-**Weë Business no es eso y sigue entero:** es el producto (negocio, catálogo, productos, reseñas, seguidores; pantallas `WeeBiz*`, `weeBizService`, `businesses/{businessId}`). Un negocio se registra, se administra y se sigue igual que antes; lo que desapareció es la *identidad* con la que se publicaba, no el negocio.
+**WeeBiz — retirado definitivamente (decisión del dueño, 2026-11-06):** el directorio de negocios del proyecto anterior no es un producto, sector ni módulo de Weë, ni pendiente ni recuperable, y no se reconstruye con ese nombre ni con otro. Un negocio, si alguna vez existe, será una **Página** (WeëPages), una entidad del Account. Sus reglas, índices y copia de seguridad siguen en el repo solo para proteger los datos históricos de producción, hasta una auditoría aparte de seguridad y dependencias; desplegar la web o cerrar esas reglas exige el OK explícito del dueño.
 
 ## 15. Botón "+"
 
