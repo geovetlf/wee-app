@@ -71,8 +71,30 @@ check('A10 la matriz del cliente no promete tarareo, MIDI, edición de instrumen
  * nada del servidor fuera de functions/src/music. El ancla es ahora el punto donde se integró.
  */
 const ANCLA_DE_INTEGRACION = 'a77ea340';
-check('A11 el Router y el registro del engine no se tocaron en esta rama',
-  (await import('node:child_process')).execSync(`git diff --name-only ${ANCLA_DE_INTEGRACION} -- functions/src/engine functions/src/core`, { cwd: RAIZ }).toString().trim() === '');
+/*
+ * Consolidación W0 (2026-11-06, rama candidato/desplegable): encima de App + Creator se fusionan la línea de SERVIDOR
+ * —gran-motor/cierre (a1ec25eb), integracion/p0-edad-fase1 (bf790c98) y los topes del chat (6c13cbc5)—, que tocan el
+ * engine, el Core, Credits, Weë Brain y el servidor de creator. Nada de eso es Music: se exceptúa con nombre y apellidos
+ * (cada archivo lo cambió una de esas tres ramas respecto a su base) y todo lo demás sigue vigilado igual.
+ */
+const DE_LA_LINEA_DE_SERVIDOR = [
+  'functions/src/content/index.ts', 'functions/src/content/materializador.ts',
+  'functions/src/core/backup.ts', 'functions/src/core/brain.ts', 'functions/src/core/errors.ts',
+  'functions/src/creator/barrido.ts', 'functions/src/creator/brain.ts', 'functions/src/creator/brainUsage.ts', 'functions/src/creator/chatLimite.ts',
+  'functions/src/creator/cierre.ts', 'functions/src/creator/cobro.ts', 'functions/src/creator/credits.ts', 'functions/src/creator/index.ts',
+  'functions/src/creator/mundo.ts', 'functions/src/creator/planner.ts', 'functions/src/creator/rutaPrevia.ts', 'functions/src/creator/video.ts',
+  'functions/src/credits/aiPricing.ts', 'functions/src/credits/creditEngine.ts',
+  'functions/src/engine/admin.ts', 'functions/src/engine/elegibilidad.ts', 'functions/src/engine/errors.ts', 'functions/src/engine/gateway.ts',
+  'functions/src/engine/pricing.ts', 'functions/src/engine/providers/seedance.ts', 'functions/src/engine/registry.ts', 'functions/src/engine/router.ts',
+  'functions/src/engine/sanitize.ts', 'functions/src/engine/types.ts', 'functions/src/engine/video.ts',
+  'functions/src/gateway/providers/mock.ts', 'functions/src/generateAvatar.ts',
+  'functions/src/identity/edad.ts', 'functions/src/identity/perfilPublico.ts', 'functions/src/identity/sesion.ts',
+  'functions/src/runtime/conductor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/liquidacion.ts',
+  'functions/src/settlement/programado.ts', 'functions/src/shots/index.ts', 'functions/src/social/weetalk.ts', 'functions/src/vertexAI.ts',
+  'services/creatorService.ts',
+];
+check('A11 el Router y el registro del engine no se tocaron en esta rama (salvo lo que trae la línea de servidor, con nombre)',
+  (await import('node:child_process')).execSync(`git diff --name-only ${ANCLA_DE_INTEGRACION} -- functions/src/engine functions/src/core`, { cwd: RAIZ }).toString().trim().split('\n').filter(Boolean).every((f) => DE_LA_LINEA_DE_SERVIDOR.includes(f)));
 
 /* ── B · contrato y adaptadores preparatorios ───────────────────────────────────────────────────────────────────────────────── */
 const base = { version: CONTRATO.MUSIC_CONTRACT_VERSION, requestId: 'r1' };
@@ -254,7 +276,7 @@ check('G17 «dejar de esperar»: botón mientras Brain responde; la respuesta ta
 /* La compra de Credits por importe (dueño, 2026-11-04) toca el catálogo, los callables de Credits, los pagos y creditsService: es Credits, no Music. */
 const DE_LA_COMPRA_POR_IMPORTE = ['functions/src/credits/creditCosts.ts', 'functions/src/credits/index.ts', 'functions/src/payments/providers/stripe.ts', 'functions/src/payments/providers/test.ts', 'functions/src/payments/purchaseValidation.ts', 'services/creditsService.ts'];
 check('G18 el reintento tras un corte reutiliza el mensaje SOLO si useBrainChat lo permitiera: no lo permite y no se tocó el hook compartido (punto de integración documentado)',
-  !/messageId/.test(compo) && !(await import('node:child_process')).execSync(`git diff --name-only ${ANCLA_DE_INTEGRACION}`, { cwd: RAIZ }).toString().split('\n').some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f)) && /MUSIC\.md/.test('MUSIC.md') && /messageId/.test(leer('docs/MUSIC.md')));
+  !/messageId/.test(compo) && !(await import('node:child_process')).execSync(`git diff --name-only ${ANCLA_DE_INTEGRACION}`, { cwd: RAIZ }).toString().split('\n').some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !DE_LA_LINEA_DE_SERVIDOR.includes(f)) && /MUSIC\.md/.test('MUSIC.md') && /messageId/.test(leer('docs/MUSIC.md')));
 
 /* ── H · integración mínima ─────────────────────────────────────────────────────────────────────────────────────────────────── */
 const spec = leer('screens/SpecialistScreen.tsx');
@@ -280,7 +302,7 @@ const DE_OTRAS_FUNCIONES = [
   'functions/src/social/pages.ts', 'services/pagesService.ts',
   'services/travelDemoStore.ts',
 ];
-const prohibidos = (f) => !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !I18N_DEL_SERVIDOR.includes(f) && !DE_OTRAS_FUNCIONES.includes(f) && f !== 'functions/src/index.ts' && f !== 'services/firestoreService.ts' && f !== 'services/weeBizService.ts' && /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
+const prohibidos = (f) => !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !I18N_DEL_SERVIDOR.includes(f) && !DE_OTRAS_FUNCIONES.includes(f) && !DE_LA_LINEA_DE_SERVIDOR.includes(f) && f !== 'functions/src/index.ts' && f !== 'services/firestoreService.ts' && f !== 'services/weeBizService.ts' && /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
 check('H2 ni el servidor fuera de functions/src/music, ni el cliente de Weë Brain, ni los servicios', !tocados.some(prohibidos), tocados.filter(prohibidos).join(','));
 
 console.log(fallo ? `\n✘ ${fallo} fallos` : '\n✔ todo bien');
