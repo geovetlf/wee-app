@@ -5,8 +5,8 @@ import { creditEngine } from '../credits/creditEngine';
 import { CreditService, getCreditCost, loadCostOverrides, serviceForCapability } from '../credits/creditCosts';
 import { CreditError, toHttpsError } from '../credits/creditValidation';
 import { engine } from '../engine';
-import { chooseSeedanceModel, videoRequestFromStep } from '../engine/video';
-import { priceImage, priceOperation, priceVideo } from '../credits/aiPricing';
+import { videoParamsForQuote, videoRequestFromStep } from '../engine/video';
+import { priceImage, priceOperation, priceVideoRequest } from '../credits/aiPricing';
 import { providerReady } from '../engine/image';
 import { firestoreLedger } from '../engine/ledger';
 import { usageTransactionId } from '../credits/creditTransactions';
@@ -88,17 +88,13 @@ export async function estimatePlan(plan: Plan, userId = 'anonymous', quality?: Q
       // El precio del video depende del modelo de Seedance y de la resolución:
       // se calcula con la tarifa oficial de ByteDance (credits/aiPricing.ts).
       const settings = await engine.settings();
-      const request = videoRequestFromStep(step.capability, input);
-      const price = priceVideo(
-        {
-          modelId: chooseSeedanceModel(request, settings),
-          durationSec: request.durationSec,
-          aspectRatio: request.aspectRatio,
-          resolution: request.resolution,
-          quality: request.quality,
-        },
-        settings,
-      );
+      /*
+       * Con la misma normalización que usará creatorRun, y con la capacidad del
+       * PASO: aquí todavía no hay foto ni guion, pero un paso de imagen a vídeo
+       * viajará como `adaptive` y se cotiza así (corrección P0 del 2026-10-07).
+       */
+      const parametros = videoParamsForQuote(videoRequestFromStep(step.capability, input), settings);
+      const price = priceVideoRequest({ ...parametros, capability: step.capability }, settings);
       service = price.service;
       credits = price.credits;
       steps.push({

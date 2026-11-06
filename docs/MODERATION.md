@@ -169,6 +169,10 @@ cuenta: no hay ningún documento compartido entre cuentas.
   mensaje es siempre el mismo y no cuenta nada: ni rutas, ni el proyecto, ni la cuenta.
 - `moderationAdmin` comprueba administración (`shared/admin.ts`) antes de mirar nada.
 
+### Nota (integración 2026-10-07, sin desplegar)
+
+`users/{id}` deja de ser público en la fase 2 (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo): la moderación lee perfiles en el servidor (Admin SDK), así que no cambia; lo que un revisor o la app enseñen de otra persona sale de `publicProfiles/{id}` (DD-15). Denunciar **no** exige «cuenta Weë válida» (fecha y país): sigue exigiendo una cuenta nacida y `ACTIVE`, como dice este apartado.
+
 ## 8. Coste
 
 Crear un reporte lee como mucho seis documentos y escribe tres. No lee el contenido

@@ -50,6 +50,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'Det er chatten i Weë: private samtaler med andre i fællesskabet med tekst, fotos og talebeskeder.',
   q9: 'Hvad er ”Sådan lavede jeg det”?',
   a9: 'Når du slår noget op, kan du fortælle, hvilke værktøjer du brugte, hvilken prompt du skrev og hvordan du greb det an. Så kan andre lære af dig, og du af dem, med et enkelt tryk på ”Kopiér prompt”.',
+  q10: 'Hvor gammel skal man være for at bruge Weë?',
+  a10: 'Weë er kun for personer på {{edad}} år eller derover. Vi beder om din fødselsdato, når du opretter dig, og når den er gemt, kan den ikke ændres.',
   heroTitle: 'Hvad kan vi hjælpe dig med?',
   legalVisibility: 'Det, du slår op, kan ses af fællesskabet, mens det, du laver i Weë AI, er privat, indtil du vælger at slå det op. Du kan slette dine opslag og projekter, når du vil.',
   askPrefill: 'Et spørgsmål til Weë: ',

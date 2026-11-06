@@ -99,10 +99,12 @@ try {
   const normal = await intento({ uid: UID, token: {} });
   check('6) con sesión normal (un cliente cualquiera): permission-denied', normal === 'permission-denied', normal);
   check('7) y el Credit Engine no llega a reservar nada', reservas === 0, `reservas=${reservas}`);
-  const admin = await intento({ uid: UID, token: { admin: true } });
+  /* Guest AI Gate (2026-10-07): un token real siempre trae `firebase.sign_in_provider`; sin él, la barrera del invitado
+     lo trata como invitado (fail-closed). La administración entra con una credencial de verdad. */
+  const admin = await intento({ uid: UID, token: { admin: true, firebase: { sign_in_provider: 'password' } } });
   check('8) administración sigue pudiendo usarlo (no se rompe la ruta interna)', admin === 'ok' && reservas === 1, `${admin}, reservas=${reservas}`);
   process.env.WEE_ADMIN_UIDS = UID;
-  const porLista = await intento({ uid: UID, token: {} });
+  const porLista = await intento({ uid: UID, token: { firebase: { sign_in_provider: 'google.com' } } });
   check('9) un uid de WEE_ADMIN_UIDS también cuenta como administración', porLista === 'ok' && reservas === 2, `${porLista}, reservas=${reservas}`);
 } finally {
   motorMod.creditEngine.spendCredits = original.spend;

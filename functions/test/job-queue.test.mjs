@@ -513,10 +513,33 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
     const CODIGO_NUEVO_AUTORIZADO = [
       "import { allCreditCosts, invalidateCostOverrides, isCreditService, loadCostOverrides } from './creditCosts';",
       "import { assertLimit, assertRequestId, cleanText, toHttpsError } from './creditValidation';",
+      /*
+       * + Guest AI Gate (2026-10-07, rama fix/guest-sin-ia), con decisión del dueño: un invitado (Firebase Anonymous)
+       *   no recibe Credits ni compra ni gasta. Exacto y en su orden: los dos imports de la barrera, `guardarCuenta`
+       *   (la barrera con el error controlado del motor), la lectura SIN efecto del saldo del invitado en
+       *   getCreditsBalance (`readBalance`, sin bienvenida) y la barrera en spendCredits y validatePurchase. Nada del
+       *   Credit Engine se mueve.
+       */
+      /* + Consolidación W0 (2026-11-06): las líneas de la compra por importe y las del Guest AI Gate, las dos autorizadas, en el orden en que quedan en el archivo. */
+      "import { esInvitado, exigirCuentaAutenticada } from '../identity/sesion';",
+      "import { toEngineHttpsError } from '../engine/errors';",
       "import { configuracionDeCompra } from '../payments/compraPorImporte';",
       "import { testPurchasesEnabled } from '../payments/providers/test';",
+      "const guardarCuenta = (auth: unknown): void => {",
+      "try {",
+      "exigirCuentaAutenticada(auth as Parameters<typeof exigirCuentaAutenticada>[0]);",
+      "} catch (error) {",
+      "throw toEngineHttpsError(error);",
+      "}",
+      "};",
+      "if (esInvitado(request.auth)) {",
+      "const { initialized: _i, ...saldo } = await creditEngine.readBalance(userId);",
+      "return saldo;",
+      "}",
       "return { costs, compra: await configuracionDeCompra(testPurchasesEnabled) };",
       "assertAdmin(request.auth as any);",
+      "guardarCuenta(request.auth);",
+      "guardarCuenta(request.auth);",
       "return creditEngine.readBalance(String(data.userId || ''));",
       "const snap = await db.collection('creditTransactions').where('status', '==', 'REFUNDED').orderBy('createdAt', 'desc').limit(assertLimit(data.limit)).get();",
       "return { costs: allCreditCosts(), compra: await configuracionDeCompra(testPurchasesEnabled) };",

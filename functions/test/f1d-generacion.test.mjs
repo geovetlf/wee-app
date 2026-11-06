@@ -28,6 +28,8 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const lib = (p) => require(path.resolve(RAIZ, 'functions/lib', p));
 const sinCR = (s) => s.replace(/\r\n/g, '\n');
 const leer = (p) => sinCR(fs.readFileSync(path.resolve(RAIZ, p), 'utf8'));
@@ -227,7 +229,7 @@ const L = 'fmUsuarioLargo0000000000001x';
 const POBRE = 'fmUsuarioP001';
 const SALDO = 5000;
 for (const uid of [A, B, C, SIN, L, POBRE]) {
-  base.docs.set(`users/doc_${uid}`, { uid, displayName: uid });
+  base.docs.set(`users/doc_${uid}`, { uid, displayName: uid, profileType: 'real', country: 'ES' }); // Fase 1: Perfil Real con país permitido (Seedance es territorial)
   await creditEngine.ensureAccount(uid);
   base.docs.get(`users/doc_${uid}`).creditsBalance = SALDO;
   base.docs.get(`creditAccounts/${uid}`).creditsBalance = SALDO; /* F-06: el saldo vive en creditAccounts; el perfil es su espejo */
@@ -294,15 +296,15 @@ const plan = async (uid, k, unitId, extra = {}) => {
   planes.set(pl, v.view.production);
   return pl;
 };
-const cotizar = async (uid, pl) => intento(() => video.generateVideo.run({ auth: { uid }, data: { plano: pl, cotizar: true } }));
-const generar = async (uid, pl, creditos) => intento(() => video.generateVideo.run({ auth: { uid }, data: { plano: pl, creditosCotizados: creditos } }));
+const cotizar = async (uid, pl) => intento(() => video.generateVideo.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data: { plano: pl, cotizar: true } }));
+const generar = async (uid, pl, creditos) => intento(() => video.generateVideo.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data: { plano: pl, creditosCotizados: creditos } }));
 /** Lo que hace la app: cotizar, enseñar el precio y generar por ese precio. */
 const cotizarYGenerar = async (uid, pl) => {
   const q = await cotizar(uid, pl);
   if (!q.ok || !q.valor.allowed) return { q, g: null };
   return { q, g: await generar(uid, { ...pl, take: q.valor.takes.next.take }, q.valor.credits) };
 };
-const enlazar = (uid, t) => intento(() => shotsPuerta.shots.run({ auth: { uid }, data: { op: 'shot.result', ...t } }));
+const enlazar = (uid, t) => intento(() => shotsPuerta.shots.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data: { op: 'shot.result', ...t } }));
 
 await crear(A, 1, conFaro());
 await crear(A, 2, conFaro({ format: { aspectRatio: '4:5', resolution: '1080p', preset: 'ads' } }));
@@ -629,12 +631,12 @@ console.log('\n── W · Un material ajeno, o de otra clase, nunca llega a un 
   base.docs.set(`assets/${imagen}`, { assetId: imagen, ownerAccountId: A, kind: 'image', status: 'ready' });
   const r2 = await shotsMod.fijarResultadoVerificado(A, nodoUno, { assetId: imagen, at: HOY }, { db: base });
   check('W) una imagen propia: rechazada', r2.status === 'referencia_rechazada');
-  const cliente = await intento(() => shotsPuerta.shots.run({ auth: { uid: A }, data: { op: 'shot.update', shotId: nodoUno, producedAssetId: imagen } }));
+  const cliente = await intento(() => shotsPuerta.shots.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: A }, data: { op: 'shot.update', shotId: nodoUno, producedAssetId: imagen } }));
   check('W) y el cliente ya no puede escribirlo: `shot.update` no toca un nodo de Filmmaker', !cliente.ok && cliente.error.code === 'permission-denied', cliente.ok ? 'aceptó' : cliente.error.code);
   const propio = await crearPlanoPropio();
-  const noDeFilmmaker = await intento(() => shotsPuerta.shots.run({ auth: { uid: A }, data: { op: 'shot.update', shotId: propio, producedAssetId: imagen, narrative: 'Otro texto' } }));
-  const escenaAjena = await intento(() => shotsPuerta.shots.run({ auth: { uid: A }, data: { op: 'scene.create', sceneId: toma.idDeNodoDeEscena(A, pid(1), 'sc-0009'), projectId: pid(1), order: 0 } }));
-  const planoAjeno = await intento(() => shotsPuerta.shots.run({ auth: { uid: A }, data: { op: 'shot.create', shotId: 'fm_' + 'e'.repeat(32), sceneId: 'escena-propia', projectId: 'proyecto-propio', order: 1 } }));
+  const noDeFilmmaker = await intento(() => shotsPuerta.shots.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: A }, data: { op: 'shot.update', shotId: propio, producedAssetId: imagen, narrative: 'Otro texto' } }));
+  const escenaAjena = await intento(() => shotsPuerta.shots.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: A }, data: { op: 'scene.create', sceneId: toma.idDeNodoDeEscena(A, pid(1), 'sc-0009'), projectId: pid(1), order: 0 } }));
+  const planoAjeno = await intento(() => shotsPuerta.shots.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: A }, data: { op: 'shot.create', shotId: 'fm_' + 'e'.repeat(32), sceneId: 'escena-propia', projectId: 'proyecto-propio', order: 1 } }));
   check('W) ni crear a mano una escena o un plano con nombre de Filmmaker: esos solo los hace el enlace verificado',
     !escenaAjena.ok && escenaAjena.error.code === 'permission-denied' && !planoAjeno.ok && planoAjeno.error.code === 'permission-denied', `${escenaAjena.error?.code}/${planoAjeno.error?.code}`);
   check('W) ni en ningún otro plano: `producedAssetId` ya no viaja por `shot.update`',
@@ -720,7 +722,7 @@ console.log('\n── Una toma no usa lo que el cliente mande al lado del plano 
   const pl = await plan(A, 12, 'sh-0101');
   const q = await cotizar(A, pl);
   const posts0 = posts.length;
-  const r = await intento(() => video.generateVideo.run({ auth: { uid: A }, data: {
+  const r = await intento(() => video.generateVideo.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: A }, data: {
     plano: { ...pl, take: 1 }, creditosCotizados: q.valor.credits,
     prompt: 'TEXTO DEL CLIENTE', requestId: 'cliente-0001', inputImage: 'https://ejemplo.invalid/x.png',
     references: { images: ['https://ejemplo.invalid/y.png'] }, durationSec: 15, aspectRatio: '9:16', model: 'SEEDANCE_2_5', quality: 'max',
@@ -840,7 +842,14 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
    *   comportamiento credits-saldo-privado (cadena) y saldo-privado.emulator. creditValidation e index, sin tocar.
    */
   /* + Gran Motor C+D (2026-10-16): creditEngine.ts 246/56 → 252/59 (C-2 c8b5a621: importe final NaN rechazado y el libro no registra un cobro sobre una reserva ya devuelta, +2 · D L-5 e3b77353: `duplicate` en completeCredits, +4 −3). Bloques exactos en _bloques-autorizados.mjs (REVISION_GRAN_MOTOR). */
-  const CREDITS_DEL_HARNESS = '252\t59\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
+  /*
+   * + Guest AI Gate (2026-10-07, rama fix/guest-sin-ia): credits/index.ts +26 (antes 19/3): un invitado (Firebase
+   *   Anonymous) lee su saldo con `readBalance` —sin inicializar la cuenta, así que sin bienvenida— y no compra ni
+   *   gasta (`guardarCuenta` en validatePurchase y spendCredits). El Credit Engine, sin tocar.
+   */
+  /* + Consolidación W0 (2026-11-06, candidato/desplegable): las dos a la vez sobre la misma base —creditEngine.ts de F-06 + Gran Motor
+   *   (252/59) y credits/index.ts del Guest AI Gate (19/3 → 45/3)—. La compra por importe va aparte (abajo). */
+  const CREDITS_DEL_HARNESS = '252\t59\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n45\t3\tfunctions/src/credits/index.ts';
   /* + misión fal (2026-10-05): core/router.ts +2 −2 (la modalidad 3d) y creditCosts.ts +8 (el servicio ai_world). Líneas exactas en job-queue 63fal. */
   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
 /*
@@ -851,9 +860,22 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
    *   +25 −6). creditEngine.ts y creditValidation.ts, intactos. Líneas exactas en job-queue 63fal y 63k; la regla y su
    *   seguridad, en compra-por-importe.test.mjs.
    */
-  const CREDITS_CON_LA_COMPRA_POR_IMPORTE = '2\t2\tfunctions/src/core/router.ts\n18\t26\tfunctions/src/credits/creditCosts.ts\n57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n25\t6\tfunctions/src/credits/index.ts';
-  check('AI) Credits intactos: el Credit Engine, el Financial Core y el resto; credits/index, solo el cierre de spendCredits del Harness (b878068) y la compra por importe; el Router y creditCosts, solo la misión fal y la compra por importe; del tamaño exacto',
-    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_CON_LA_COMPRA_POR_IMPORTE);
+  /*
+   * + corrección P0 Seedance (2026-10-07), autorizada por el dueño: aiPricing.ts 69/20. El precio del vídeo
+   *   deja de tener reglas propias y lee la petición efectiva que también construye el cuerpo (`priceVideoRequest`);
+   *   imagen a vídeo cotiza el techo de `adaptive`. Ni el Credit Engine ni el cobro se tocan.
+   */
+  const CREDITS_DE_LA_CORRECCION_P0 = '69\t20\tfunctions/src/credits/aiPricing.ts';
+  /*
+   * + Consolidación W0 (2026-11-06, candidato/desplegable): la compra por importe (creditCosts 18/26 con la misión fal;
+   *   credits/index 25/6 con el Harness) + F-06 y Gran Motor C+D (creditEngine 57/9 → 252/59) + el Guest AI Gate
+   *   (credits/index +26 → 51/6) + la corrección P0 de Seedance (aiPricing 69/20, aparte). Cada bloque exacto, en job-queue.
+   */
+  const CREDITS_CON_LA_COMPRA_POR_IMPORTE = '2\t2\tfunctions/src/core/router.ts\n18\t26\tfunctions/src/credits/creditCosts.ts\n252\t59\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n51\t6\tfunctions/src/credits/index.ts';
+  const ordenadas = (s) => s.split('\n').sort().join('\n');
+  check('AI) Credits intactos: el Credit Engine, el Financial Core y el resto; credits/index, solo el cierre de spendCredits del Harness (b878068), la compra por importe y el Guest AI Gate; creditEngine, solo F-06 y Gran Motor; el Router y creditCosts, solo la misión fal y la compra por importe; aiPricing, solo la corrección P0 de Seedance; del tamaño exacto',
+    ordenadas(git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r/g, ''))
+      === ordenadas(`${CREDITS_CON_LA_COMPRA_POR_IMPORTE}\n${CREDITS_DE_LA_CORRECCION_P0}`));
   const legacy = (s) => { const a = s.indexOf('    try {\n      const result = await videoEngine.generate('); return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a)); };
   /*
    * + Gran Motor P (2026-10-16, parche consolidado del propietario, docs/GRAN-MOTOR-PARCHE-PROPIETARIO.patch; origen S2,
@@ -878,9 +900,24 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
        * material de un paso y el del trabajo fallido con sanitizeForLog, y el error que se GUARDA en el paso fallido de
        * creatorJobs, saneado igual en vez de `error.message.slice(0, 300)`); generateAvatar.ts 132/15 → 135/17 (+3 −2: su
        * import y los dos registros de fallo del avatar con sanitizeForLog). Nada del reclamo ni del cobro. */
-      '55\t6\tfunctions/src/creator/credits.ts|207\t44\tfunctions/src/creator/index.ts|135\t17\tfunctions/src/generateAvatar.ts'
+      /* + corrección P0 Seedance (2026-10-07, +9 −13 en creator/credits.ts, antes 45/4): el presupuesto de Weë Creator cotiza con
+       * `videoParamsForQuote` + `priceVideoRequest` y la capacidad del paso, la misma petición efectiva que el cuerpo. */
+      /* + edad mínima 18 (2026-10-07): index +3 (la puerta en creatorChat y creatorRun y su import) y generateAvatar +5 (la puerta en las dos callables, su comentario y su import).
+       * + simplificación definitiva (2026-10-07): index 160/23 → 197/25 (Guest Gate; `exigirCuentaWeeValida` en lugar de la edad;
+       *   la ruta antes del dinero en creatorRun: `peticionesDelPlan` + `exigirRutaElegible`) y generateAvatar 137/15 → 152/15
+       *   (la cuenta Weë válida con su try/catch, su comentario y sus imports).
+       * + reanclaje pre-commit (2026-10-07, autorizado; corrección 4): index 197/25 → 250/69. UNA sola función arma la
+       *   entrada de cada paso (`entradaDelPaso`: input + prefs) para la ruta previa (`peticionDelPaso`) y para el bucle
+       *   de creatorRun: el bloque de `allowedProviders` y su comentario se MUEVEN del bucle a esa función (+53 −44). Sin
+       *   tocar pricing, Router, reserva/cobro ni proveedor; equivalencia exacta en creator-entrada-del-paso.test.mjs. */
+      /* + Consolidación W0 (2026-11-06): las dos líneas sobre la misma base. credits.ts +10 −2 (Gran Motor C) y +9 −13 (P0) → 64/19;
+       * index.ts +50 −21 (Línea B + Gran Motor P) y +93 −46 (p0) → 299/89 (la línea de imports del motor de vídeo, que cambiaban las
+       * dos, cuenta una vez); generateAvatar.ts +3 −2 (Gran Motor P) y +20 (p0) → 155/17. */
+      '64\t19\tfunctions/src/creator/credits.ts|299\t89\tfunctions/src/creator/index.ts|155\t17\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')).split(LEGACY_P_NUEVA).length === 2
-    && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
+    /* La rama legacy: la de antes salvo la devolución del demo (B4-03), el registro saneado (Gran Motor P) y el `normalizado` con el que se cotizó (P0 Seedance). */
+    && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES)
+      .replace('requestId, service, normalizado, creditTransactionId', 'requestId, service, creditTransactionId') === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
 }
 
 check('esta suite está en la cadena de `npm test`', /f1d-generacion\.test\.mjs/.test(leer('functions/package.json')));

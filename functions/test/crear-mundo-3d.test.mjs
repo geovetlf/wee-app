@@ -151,14 +151,14 @@ const err = (code, details, message = 'Ahora mismo no hay una IA disponible para
 const NO_ELEGIBLE = err('failed-precondition', { code: 'NOT_AVAILABLE', capability: 'world.generate', reason: 'sin_modelo_elegible', elegibilidad: ['BLOCKED_FOR_JURISDICTION', 'JURISDICTION_UNKNOWN'], provider: 'fal' });
 const noDisponible = (reason) => err('failed-precondition', { code: 'NOT_AVAILABLE', reason }, 'Esta función no está disponible.');
 const ERRORES = [
-  ['no disponible en la región', noDisponible('en_tu_region'), 'no_disponible', 'weeai.errNotAvailableRegion', false],
-  ['falta el país de la cuenta', noDisponible('falta_tu_pais'), 'no_disponible', 'weeai.errNotAvailableCountry', false],
+  ['un motivo regional de un servidor viejo se dice como el genérico', noDisponible('en_tu_region'), 'no_disponible', 'weeai.errNotAvailable', false],
+  ['«falta tu país» de un servidor viejo, también genérico (nunca se pide el país)', noDisponible('falta_tu_pais'), 'no_disponible', 'weeai.errNotAvailable', false],
   ['no con estas opciones', noDisponible('con_estas_opciones'), 'no_disponible', 'weeai.errNotAvailableOptions', false],
   ['no disponible, sin más', noDisponible('no_disponible'), 'no_disponible', 'weeai.errNotAvailable', false],
   ['ahora no (pasajero): esto sí se reintenta', noDisponible('ahora_no'), 'reintentable', 'weeai.errNotAvailableNow', true],
   ['un servidor de antes (escalones y proveedor en los detalles)', NO_ELEGIBLE, 'no_disponible', 'weeai.errNotAvailable', false],
   ['sin motivo', err('failed-precondition', { code: 'NOT_AVAILABLE' }), 'no_disponible', 'weeai.errNotAvailable', false],
-  ['el SDK nativo deja los detalles en customData', { code: 'functions/failed-precondition', message: 'x', customData: { details: { code: 'NOT_AVAILABLE', reason: 'en_tu_region' } } }, 'no_disponible', 'weeai.errNotAvailableRegion', false],
+  ['el SDK nativo deja los detalles en customData', { code: 'functions/failed-precondition', message: 'x', customData: { details: { code: 'NOT_AVAILABLE', reason: 'con_estas_opciones' } } }, 'no_disponible', 'weeai.errNotAvailableOptions', false],
   ['sin Credits', err('resource-exhausted', { code: 'INSUFFICIENT_CREDITS', required: 39, available: 12 }, 'INSUFFICIENT_CREDITS'), 'sin_credits', 'weeai.errNotEnoughCredits', false],
   ['el precio cambió', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'price_changed', credits: 45 }), 'precio_cambiado', 'studio.worldPriceChanged', false],
   ['el precio cambió, sin un precio que se pueda enseñar', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'price_changed', credits: 'mucho' }), 'reintentable', 'weeai.errGeneric', true],

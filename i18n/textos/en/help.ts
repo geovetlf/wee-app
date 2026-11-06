@@ -33,6 +33,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'It is the Weë chat: private conversations with other people in the community, with text, photos and voice notes.',
   q9: 'What is "How I made it"?',
   a9: 'When you post you can tell which tools you used, the prompt and the process. That way other people learn from you, and you from them, with a single tap on "Copy prompt".',
+  q10: 'How old do you need to be to use Weë?',
+  a10: 'Weë is only available to people aged {{edad}} or over. We ask for your date of birth when you sign up, and once it is saved it cannot be changed.',
   heroTitle: 'How can we help?',
   legalVisibility: 'What you post is visible to the community; what you create in Weë AI stays private until you decide to post it. You can delete your posts and your projects whenever you want.',
   askPrefill: 'A question for Weë: ',

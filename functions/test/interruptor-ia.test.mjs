@@ -105,6 +105,8 @@ check('8) el ejecutor del Core rechaza antes de despachar si la IA está detenid
   const motor = lib('credits/creditEngine.js').creditEngine;
   const vertex = lib('vertexAI.js');
   const avatar = lib('generateAvatar.js');
+  /* Cuenta Weë válida (identity/sesion.ts): esta comprobación es del interruptor; la cuenta está enrolada. */
+  lib('identity/sesion.js').enrolamiento.leer = async () => true;
   const orig = { config: configMod.loadConfig, gasta: motor.spendCredits, cuenta: motor.ensureAccount, gen: vertex.generateAvatarWithImagen };
   let gastos = 0;
   let generaciones = 0;
@@ -112,7 +114,7 @@ check('8) el ejecutor del Core rechaza antes de despachar si la IA está detenid
   motor.ensureAccount = async () => ({});
   motor.spendCredits = async () => { gastos++; return { transactionId: 'usage_x', status: 'AUTHORIZED', amount: 5, duplicate: false }; };
   vertex.generateAvatarWithImagen = async () => { generaciones++; return 'data:image/png;base64,AA'; };
-  const r = await avatar.generateAvatarWithGemini.run({ auth: { uid: 'u1' }, data: { selections: { gender: 'male' }, requestId: 'avatar_k1' } })
+  const r = await avatar.generateAvatarWithGemini.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: 'u1' }, data: { selections: { gender: 'male' }, requestId: 'avatar_k1' } })
     .then(() => ({ ok: true }), (e) => ({ ok: false, e }));
   check('9) detenida: el avatar contesta «no disponible» ANTES de cobrar o generar',
     !r.ok && r.e.code === 'unavailable' && gastos === 0 && generaciones === 0, `${r.e && r.e.code} · gastos ${gastos} · generaciones ${generaciones}`);

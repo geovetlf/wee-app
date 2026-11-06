@@ -82,8 +82,12 @@ if (!integrada) {
      * real de hoy (`git diff --numstat 8e91daa` sobre el árbol).
      * + F-06 (2026-10-14): creditEngine.ts pasa a 246/56 (el saldo privado en creditAccounts; bloques exactos en
      *   job-queue 63p, REVISION_F06). Las tres cercas, exactas y la misma.
+     * + Guest AI Gate (2026-10-07): credits/index.ts 19/3 → 45/3 (+26, la barrera del invitado y su saldo sin efecto; exacto
+     *   línea a línea en job-queue 63k). Las tres cercas llevan la misma cifra nueva.
+     * + Consolidación W0 (2026-11-06): las dos a la vez —creditEngine.ts 252/59 (F-06 + Gran Motor) y credits/index.ts 45/3
+     *   (Guest AI Gate)—; las tres cercas llevan la misma cifra consolidada.
      */
-    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '252\\t59\\tfunctions\/src\/credits\/creditEngine\.ts\\n10\\t2\\tfunctions\/src\/credits\/creditValidation\.ts\\n19\\t3\\tfunctions\/src\/credits\/index\.ts';/.test(leer(`functions/test/${s}.test.mjs`))));
+    && ['video-asincrono', 'puente-pre-f1d', 'f1d-generacion'].every((s) => /CREDITS_DEL_HARNESS = '252\\t59\\tfunctions\/src\/credits\/creditEngine\.ts\\n10\\t2\\tfunctions\/src\/credits\/creditValidation\.ts\\n45\\t3\\tfunctions\/src\/credits\/index\.ts';/.test(leer(`functions/test/${s}.test.mjs`))));
 }
 
 const ESPERADOS = [

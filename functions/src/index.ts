@@ -145,6 +145,8 @@ export { boost, boostSweep } from './boost';
  * hace nacer. Numerar lo que ya existe es la migración, y tiene su propia fase.
  */
 export { nacimientoDeCuenta } from './identity/nacimiento';
+// Seguridad de `users` (2026-10-07): la copia pública con lista blanca. NO desplegada: ver ops/despliegue/grupos.json.
+export { espejoDelPerfilPublico } from './identity/perfilPublico';
 
 /*
  * MODERATION (Fase 12-A/B): denunciar de verdad. `reports` está cerrada a los

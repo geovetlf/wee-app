@@ -4,7 +4,7 @@ import { MAX_PROPUESTAS_POR_PASO } from '../core/contracts';
 
 import { ImageSize, chooseImageModel, imageModelOf, isEditCapability, usdFor, volumeFactor } from '../engine/imageModels';
 import { resolveForModel } from '../engine/resolutionPolicy';
-import { SEEDANCE_MODEL_IDS, SeedanceResolution, clampDuration, resolveResolution, seedanceCostUsd, specOf } from '../engine/providers/seedance';
+import { PeticionEfectivaDeSeedance, SEEDANCE_MODEL_IDS, SeedanceResolution, peticionEfectivaDeSeedance, specOf } from '../engine/providers/seedance';
 import { CreditService, getCreditCost, getCreditMargin, getCreditPricingMode } from './creditCosts';
 
 /**
@@ -257,8 +257,10 @@ export interface VideoPriceInput {
   aspectRatio?: string;
   resolution?: string;
   quality?: string;
-  /** Segundos de video de entrada (encarece la generación y cambia la tarifa). */
+  /** Mayor que 0: lleva vídeo de entrada (se cotiza el techo del modelo, R22). */
   inputVideoSec?: number;
+  /** La capacidad decide la proporción efectiva: imagen a vídeo viaja como `adaptive`. */
+  capability?: CapabilityId;
 }
 
 /**
@@ -271,28 +273,75 @@ export function videoServiceFor(modelId: string, resolution: SeedanceResolution)
   return resolution === '480p' ? 'ai_video_draft' : 'ai_video';
 }
 
-/** Coste oficial y Credits de una generación de video, antes de llamar al proveedor. */
-export function priceVideo(input: VideoPriceInput, settings: EngineSettings): OperationPrice {
-  const modelId = SEEDANCE_MODEL_IDS[input.modelId as keyof typeof SEEDANCE_MODEL_IDS] || input.modelId;
-  const spec = specOf(modelId);
-  const resolution = resolveResolution(modelId, input.resolution, input.quality);
-  const durationSec = clampDuration(modelId, input.durationSec ?? 5);
-  const { usd, tokens, ratePerMillion } = seedanceCostUsd({
-    modelId,
-    resolution,
-    durationSec,
-    ratio: input.aspectRatio,
-    inputVideoSec: input.inputVideoSec,
-  });
-  const service = videoServiceFor(modelId, resolution);
+/**
+ * LA PETICIÓN DE VÍDEO YA NORMALIZADA: lo que sale de `normalizeVideoRequest`
+ * (engine/video.ts) y lo que recibe el adaptador. Es la única entrada del precio.
+ */
+export interface VideoNormalizadoParaPrecio {
+  capability: CapabilityId;
+  modelId: string;
+  input: Record<string, unknown>;
+  prefs?: { quality?: unknown; durationSec?: unknown };
+}
+
+/** Del objeto que también construye el cuerpo al precio: una sola verdad (`peticionEfectivaDeSeedance`). */
+const precioDeLaPeticionEfectiva = (efectiva: PeticionEfectivaDeSeedance, settings: EngineSettings): OperationPrice => {
+  const service = videoServiceFor(efectiva.modelId, efectiva.resolution);
   return {
     service,
-    credits: creditsOf(service, usd, settings),
-    usd,
+    credits: creditsOf(service, efectiva.usd, settings),
+    usd: efectiva.usd,
     provider: 'seedance',
-    model: modelId,
-    detail: { family: spec.key, resolution, durationSec, estimatedTokens: tokens, usdPerMillionTokens: ratePerMillion, inputVideoSec: input.inputVideoSec ?? 0 },
+    model: efectiva.modelId,
+    detail: {
+      family: specOf(efectiva.modelId).key,
+      resolution: efectiva.resolution,
+      ratio: efectiva.ratio,
+      durationSec: efectiva.duration,
+      outputSec: efectiva.outputSec,
+      estimatedTokens: efectiva.estimatedTokens,
+      usdPerMillionTokens: efectiva.ratePerMillion,
+      inputVideoSec: efectiva.inputVideoSec,
+    },
   };
+};
+
+/**
+ * COSTE OFICIAL Y CREDITS DE UN VÍDEO, A PARTIR DE LA PETICIÓN NORMALIZADA.
+ *
+ *   PETICIÓN → NORMALIZAR → PRECIO → RESERVA → PROVEEDOR
+ *
+ * Lee exactamente lo que leerá `buildSeedanceBody`: misma capacidad, mismo
+ * modelo, mismo input y mismas preferencias. Lo que se cobra es lo que viaja.
+ */
+export function priceVideoRequest(normalizado: VideoNormalizadoParaPrecio, settings: EngineSettings): OperationPrice {
+  const modelId = SEEDANCE_MODEL_IDS[normalizado.modelId as keyof typeof SEEDANCE_MODEL_IDS] || normalizado.modelId;
+  return precioDeLaPeticionEfectiva(peticionEfectivaDeSeedance(normalizado.capability, modelId, normalizado.input, normalizado.prefs ?? {}), settings);
+}
+
+/**
+ * La forma antigua, por campos sueltos. Ya no la usa ninguna puerta (lo vigila
+ * `seedance-parametros.test.mjs`): se conserva para las cuentas de las pruebas y
+ * pasa por la MISMA petición efectiva. `inputVideoSec > 0` significa «lleva vídeo
+ * de entrada», y se cotiza el techo del modelo (R22), como en la puerta.
+ */
+export function priceVideo(input: VideoPriceInput, settings: EngineSettings): OperationPrice {
+  const conVideo = Number(input.inputVideoSec ?? 0) > 0;
+  return priceVideoRequest(
+    {
+      capability: input.capability ?? (conVideo ? 'video.reference' : 'video.generate'),
+      modelId: input.modelId,
+      input: {
+        durationSec: input.durationSec ?? 5,
+        aspectRatio: input.aspectRatio,
+        resolution: input.resolution,
+        quality: input.quality,
+        ...(conVideo ? { referenceVideos: ['(cotización)'] } : {}),
+      },
+      prefs: {},
+    },
+    settings,
+  );
 }
 
 // ──────────────────────────── IMAGEN (Gemini y compañía) ────────────────────────────

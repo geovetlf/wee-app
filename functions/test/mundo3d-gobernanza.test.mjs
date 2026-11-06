@@ -460,9 +460,9 @@ await seccion('E', async () => {
 
   const soloTerritorial = routerCon({ terra: proveedor('terra', [aprobado]), mock: demo }, ['terra']);
   const sinAlternativa = await lanzado(() => soloTerritorial.execute(pide(['ES'])));
-  check('E8) sin alternativa: NOT_AVAILABLE «Esta función no está disponible actualmente en tu región.», con el motivo público y NADA más (ni proveedor, ni modelo, ni licencia, ni escalón)',
-    sinAlternativa?.code === 'NOT_AVAILABLE' && JSON.stringify(sinAlternativa.details) === '{"reason":"en_tu_region"}'
-    && MENSAJE_DE_NO_DISPONIBLE.en_tu_region === 'Esta función no está disponible actualmente en tu región.'
+  check('E8) sin alternativa: NOT_AVAILABLE genérico «Esta función no está disponible actualmente.» y NADA más (ni proveedor, ni modelo, ni licencia, ni escalón, ni región)',
+    sinAlternativa?.code === 'NOT_AVAILABLE' && JSON.stringify(sinAlternativa.details) === '{"reason":"no_disponible"}'
+    && sinAlternativa.message === 'Esta función no está disponible actualmente.' && !('en_tu_region' in MENSAJE_DE_NO_DISPONIBLE)
     && !/terra|hunyuan|fal|licen|REVIEW|BLOCKED/i.test(JSON.stringify({ m: sinAlternativa.message, d: sinAlternativa.details })));
 
   const hoy = await lanzado(() => routerCon({ terra: proveedor('terra', [HW]), mock: demo }, ['terra']).execute(pide(['PE'])));

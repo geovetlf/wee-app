@@ -42,6 +42,26 @@
       "funciones": ["nacimientoDeCuenta", "validatePurchase", "restorePurchase", "mediaCanary"]
     }
   ],
+  "primeros_despliegues": [
+    {
+      "id": "f2-1-espejo",
+      "fase": "users-fase-2",
+      "paso": 1,
+      "funciones": [
+        "espejoDelPerfilPublico"
+      ],
+      "porque": "Seguridad de users (2026-10-07): copia pública con lista blanca en publicProfiles. Es NUEVA (no está en ops/produccion.json), así que no entra en los grupos de las vivas: este es su PRIMER DESPLIEGUE, declarado y explícito. Se despliega SOLA, por despliegue.yml con objetivo functions:espejoDelPerfilPublico, cuando el dueño lo autorice; permitido.mjs bloquea cualquier objetivo que la mezcle con otra función o con reglas, índices, Storage o Hosting. Desplegada, pasa a ops/produccion.json y a un grupo de las vivas, y sale de aquí.",
+      "secuencia": [
+        "1. Desplegar el espejo SOLO: despliegue.yml, objetivo functions:espejoDelPerfilPublico (este grupo).",
+        "2. Verificar el espejo: humo del workflow, revisión viva anotada en ops/produccion.json (funciones, con revision) y una escritura de prueba en users que aparece en publicProfiles con la lista blanca.",
+        "3. Relleno con autorización EXPLÍCITA del dueño: scripts/rellenar-perfiles-publicos.mjs (misma sincronización que el espejo, idempotente, no pisa escrituras más recientes).",
+        "4. Verificar users == publicProfiles > 0 (el propio relleno los cuenta) y escribirlo en ops/produccion.json → cierreDeUsers.relleno { verificado, fecha, users, publicProfiles }.",
+        "5. Publicar los clientes que leen publicProfiles: hosting:wee-app y la versión nativa mínima; anotarlos en cierreDeUsers.cliente { web: commit completo, nativoMinimo: x.y.z }.",
+        "6. Comprobar las tres condiciones por código: ops/despliegue/cierre-users.mjs (motivosContraElCierreDeUsers), que ops/permitido.mjs aplica en despliegue.yml y el Guardian con las reglas del candidato.",
+        "7. Solo entonces publicar el cierre: ops/despliegue/reglas/users-cierre.fase2.rules compuesto sobre firestore.rules (componerFase2) y desplegado como firestore:rules."
+      ]
+    }
+  ],
   "no_se_despliegan": [
     {
       "funcion": "elements",

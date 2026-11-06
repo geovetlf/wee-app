@@ -161,6 +161,8 @@ const CLAVE_DEL_MOTIVO_DE_TOMA: Readonly<Record<string, string>> = Object.freeze
   network: 'filmmaker.perNetwork',
   session_required: 'filmmaker.perSessionRequired',
   UNAUTHORIZED: 'filmmaker.perSessionRequired',
+  /* Guest AI Gate: la sesión de invitado no genera tomas. */
+  ACCOUNT_REQUIRED: 'weeai.errAccountRequired',
   unknown: 'filmmaker.perUnknown',
 });
 
