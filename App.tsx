@@ -250,6 +250,11 @@ const linking: any = {
           Projects: 'proyectos',
           Project: 'proyecto/:id',
           MisCreaciones: 'creaciones',
+          /* Solo dentro de Weë versión creator: la configuración y la billetera de la cuenta, en su marco. */
+          Settings: 'ajustes',
+          Wallet: 'billetera',
+          /* WeëTravel dentro de creator: la misma ruta y la misma lectura de la dirección, en su marco (/creator/travel/<pantalla>/<id>). */
+          Travel: { path: 'travel/:pantalla/:id?', parse: { pantalla: (v: string) => (esPantallaDeTravel(v) ? v : 'descubrir'), id: (v: string) => (/^[A-Za-z0-9_,-]{1,80}$/.test(v) ? v : undefined) } },
         },
       } }),
       /* Con la puerta de Filmmaker cerrada (constants/studioExperiences.ts), la producción no tiene enlace. */

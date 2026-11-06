@@ -7,6 +7,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useDireccion } from '../../hooks/useDireccion';
 
 const isWeb = Platform.OS === 'web';
 
@@ -60,6 +61,8 @@ export interface PuertaDeCreator {
 export const RejillaDeCreator: React.FC<{ puertas: readonly PuertaDeCreator[] }> = ({ puertas }) => {
   const { theme } = useTheme();
   const util = useAnchoUtil();
+  /* En árabe o hebreo, un nombre de marca en letras latinas («Weë Brain») empieza en el mismo lado que su descripción. */
+  const dir = useDireccion();
   const columnas = util < 480 ? 1 : util < 780 ? 2 : puertas.length % 4 === 0 ? 4 : 3;
   return (
     <View style={styles.rejilla}>
@@ -79,8 +82,8 @@ export const RejillaDeCreator: React.FC<{ puertas: readonly PuertaDeCreator[] }>
               <Ionicons name={p.icono as any} size={18} color={theme.colors.accentDark} />
             </View>
             <View style={styles.textos}>
-              <Text style={[styles.titulo, { color: theme.colors.text }]}>{p.titulo}</Text>
-              {!!p.pista && <Text style={[styles.pista, { color: theme.colors.textSecondary }]}>{p.pista}</Text>}
+              <Text style={[styles.titulo, dir.texto, { color: theme.colors.text }]}>{p.titulo}</Text>
+              {!!p.pista && <Text style={[styles.pista, dir.texto, { color: theme.colors.textSecondary }]}>{p.pista}</Text>}
             </View>
           </Pressable>
         </View>

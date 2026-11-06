@@ -168,8 +168,11 @@ const SpecialistScreen: React.FC = () => {
    * nombre propio dentro de una pantalla que sirve a todas.
    */
   const lanzador = !!spec.ideaFirst;
-  /* Weë Travel en la app: la portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3). En creator, la tarjeta de siempre. */
-  const portadaDeTravel = lanzador && !pro && spec.id === 'travel';
+  /*
+   * Weë Travel: la portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3) con su workspace (docs/TRAVEL-WORKPLACE.md),
+   * la MISMA en la versión app y en creator (decisión del dueño, 2026-11-06). Solo cambia el marco, que pone CreatorShell.
+   */
+  const portadaDeTravel = lanzador && spec.id === 'travel';
   const accionDeTravel = (id: string) => { const a = spec.actions.find((x) => x.id === id); if (a) handleAction(a); else startFlow(); };
 
   return (
