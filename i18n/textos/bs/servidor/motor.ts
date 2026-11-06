@@ -7,6 +7,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Nešto nedostaje u tvom zahtjevu. Provjeri ga i pokušaj ponovo.',
   unauthorized: 'Prijavi se za kreiranje uz Weë.',
+  accountRequired: 'Za kreiranje sadržaja s Weë AI prijavi se ili kreiraj račun.',
   providerError: 'AI ovaj put nije mogao dovršiti tvoju kreaciju. Ništa ti nije naplaćeno: pokušaj ponovo za trenutak.',
   generationFailed: 'Tvoja kreacija se nije mogla dovršiti. Ništa ti nije naplaćeno: pokušaj ponovo.',
   timeout: 'Trajalo je predugo pa je zaustavljeno. Ništa ti nije naplaćeno: pokušaj ponovo.',
@@ -41,8 +42,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Trenutno nijedan AI nije dostupan za ovo. Pokušaj kasnije.',
   noDisponibleActualmente: 'Ova funkcija trenutno nije dostupna.',
   noDisponibleAhora: 'Ova funkcija u ovom trenutku nije dostupna. Pokušaj ponovo malo kasnije.',
-  noDisponibleRegion: 'Ova funkcija trenutno nije dostupna u tvojoj regiji.',
-  noDisponiblePais: 'Za korištenje ove funkcije navedi svoju državu u Pravom profilu.',
   noDisponibleOpciones: 'Ova funkcija nije dostupna s izabranim opcijama. Pokušaj s drugim.',
   describeVideo: 'Reci mi kakav video želiš kreirati.',
   creacionTerminada: 'Ta kreacija je već završena i ne radi se ponovo. Potraži je među svojim kreacijama.',

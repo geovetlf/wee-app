@@ -27,6 +27,7 @@ export const movimientos: ConPlurales<typeof import('../../es/servidor/movimient
   brainRespuestas_many: 'Weë Brain · {{contador}} bhfreagra',
   brainRespuestas_other: 'Weë Brain · {{contador}} freagra',
   brainNoPudo: 'Weë Brain · níorbh fhéidir freagra a thabhairt',
+  brainMuestra: 'Weë Brain · freagra samplach, gan táille',
   studioVideo: 'Weë Studio · físeán',
   studioSinTiempo: 'Weë Studio · rith an t-am amach ar an iarracht roimhe seo',
   studioNoSePudo: 'Weë Studio · níorbh fhéidir an físeán a ghiniúint',

@@ -35,6 +35,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'És el xat de Weë: converses privades amb altres persones de la comunitat, amb text, fotos i notes de veu.',
   q9: 'Què és «Com ho he fet»?',
   a9: 'En publicar pots explicar quines eines has fet servir, el prompt i el procés. Així altres persones aprenen de tu, i tu d\'elles, amb un sol toc a «Copia el prompt».',
+  q10: 'Quina edat cal tenir per fer servir Weë?',
+  a10: 'Weë només està disponible per a persones de {{edad}} anys o més. Et demanem la data de naixement quan et registres i, un cop desada, no es pot canviar.',
   heroTitle: 'En què t\'ajudem?',
   legalVisibility: 'El que publiques és visible per a la comunitat; el que crees a Weë AI és privat fins que decideixes publicar-ho. Pots esborrar les teves publicacions i els teus projectes quan vulguis.',
   askPrefill: 'Una pregunta per a Weë: ',

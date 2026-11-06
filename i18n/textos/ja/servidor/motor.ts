@@ -10,6 +10,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'リクエストに足りない項目があります。確認して、もう一度お試しください。',
   unauthorized: 'Weëで作成するにはログインしてください。',
+  accountRequired: 'Weë AIでコンテンツを作成するには、ログインするかアカウントを作成してください。',
   providerError: '今回はAIが作成を完了できませんでした。Creditsは消費されていません。少し待ってから、もう一度お試しください。',
   generationFailed: '作成を完了できませんでした。Creditsは消費されていません。もう一度お試しください。',
   timeout: '時間がかかりすぎたため停止しました。Creditsは消費されていません。もう一度お試しください。',
@@ -44,8 +45,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: '現在、この作業に使えるAIがありません。後でもう一度お試しください。',
   noDisponibleActualmente: 'この機能は現在利用できません。',
   noDisponibleAhora: 'この機能は現在利用できません。しばらくしてから、もう一度お試しください。',
-  noDisponibleRegion: 'この機能は現在、お住まいの地域では利用できません。',
-  noDisponiblePais: 'この機能を使うには、リアルプロフィールで国・地域を設定してください。',
   noDisponibleOpciones: 'この機能は選択したオプションでは利用できません。別のオプションをお試しください。',
   describeVideo: 'どんな動画を作りたいか教えてください。',
   creacionTerminada: 'この作品はすでに完了しているため、作り直しはできません。マイ作品からお探しください。',

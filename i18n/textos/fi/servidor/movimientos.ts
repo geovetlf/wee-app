@@ -20,6 +20,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}} vastaus',
   brainRespuestas_other: 'Weë Brain · {{contador}} vastausta',
   brainNoPudo: 'Weë Brain · ei pystynyt vastaamaan',
+  brainMuestra: 'Weë Brain · esimerkkivastaus, ei veloitusta',
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · edellisestä yrityksestä loppui aika',
   studioNoSePudo: 'Weë Studio · videota ei voitu luoda',

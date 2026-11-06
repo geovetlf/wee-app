@@ -19,6 +19,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}} хариулт',
   brainRespuestas_other: 'Weë Brain · {{contador}} хариулт',
   brainNoPudo: 'Weë Brain · хариулж чадсангүй',
+  brainMuestra: 'Weë Brain · жишээ хариулт, төлбөргүй',
   studioVideo: 'Weë Studio · видео',
   studioSinTiempo: 'Weë Studio · өмнөх оролдлогын хугацаа дууссан',
   studioNoSePudo: 'Weë Studio · видеог үүсгэж чадсангүй',

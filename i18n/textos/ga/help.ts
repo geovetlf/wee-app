@@ -42,6 +42,8 @@ export const help: ConPlurales<typeof import('../es/help').help> = {
   a8: 'Is é comhrá Weë é: comhráite príobháideacha le daoine eile sa phobal, le téacs, grianghraif agus nótaí gutha.',
   q9: 'Cad é "Conas a rinne mé é"?',
   a9: 'Agus tú ag foilsiú is féidir leat a insint cé na huirlisí a d\'úsáid tú, an prompt agus an próiseas. Mar sin foghlaimíonn daoine eile uaitse, agus tusa uathusan, le tapáil amháin ar "Cóipeáil an prompt".',
+  q10: 'Cén aois a chaithfidh tú a bheith chun Weë a úsáid?',
+  a10: 'Níl Weë ar fáil ach do dhaoine atá {{edad}} bliana d\'aois nó níos sine. Iarrtar do dháta breithe ort nuair a chláraíonn tú agus, nuair a bheidh sé sábháilte, ní féidir é a athrú.',
   heroTitle: 'Cén chaoi ar féidir linn cabhrú leat?',
   legalVisibility: 'Tá an méid a fhoilsíonn tú le feiceáil ag an bpobal; tá an méid a chruthaíonn tú in Weë AI príobháideach go dtí go gcinneann tú é a fhoilsiú. Is féidir leat do phostálacha agus do thionscadail a scriosadh nuair is mian leat.',
   askPrefill: 'Ceist do Weë: ',

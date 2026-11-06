@@ -33,6 +33,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'Het is de chat van Weë: privégesprekken met andere mensen uit de community, met tekst, foto\'s en spraakberichten.',
   q9: 'Wat is “Zo heb ik het gemaakt”?',
   a9: 'Als je iets plaatst, kun je vertellen welke tools je hebt gebruikt, wat de prompt was en hoe het proces ging. Zo leren anderen van jou, en jij van hen, met één tik op “Prompt kopiëren”.',
+  q10: 'Hoe oud moet je zijn om Weë te gebruiken?',
+  a10: 'Weë is alleen beschikbaar voor mensen van {{edad}} jaar of ouder. We vragen je geboortedatum bij het aanmelden en zodra die is opgeslagen, kan hij niet meer worden gewijzigd.',
   heroTitle: 'Waarmee kunnen we je helpen?',
   legalVisibility: 'Wat je plaatst, is zichtbaar voor de community; wat je in Weë AI maakt, blijft privé tot je besluit het te plaatsen. Je kunt je berichten en projecten verwijderen wanneer je wilt.',
   askPrefill: 'Een vraag voor Weë: ',

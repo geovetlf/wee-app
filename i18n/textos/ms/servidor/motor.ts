@@ -10,6 +10,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Ada sesuatu yang tertinggal dalam permintaan anda. Semak dan cuba lagi.',
   unauthorized: 'Log masuk untuk berkarya dengan Weë.',
+  accountRequired: 'Untuk mencipta kandungan dengan Weë AI, log masuk atau cipta akaun anda.',
   providerError: 'AI tidak dapat menyiapkan ciptaan anda kali ini. Anda tidak dikenakan bayaran: cuba lagi sebentar nanti.',
   generationFailed: 'Saya tidak dapat menyiapkan ciptaan anda. Anda tidak dikenakan bayaran: cuba lagi.',
   timeout: 'Prosesnya mengambil masa terlalu lama, jadi saya menghentikannya. Anda tidak dikenakan bayaran: cuba lagi.',
@@ -44,8 +45,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Tiada AI yang tersedia untuk ini buat masa ini. Sila cuba lagi nanti.',
   noDisponibleActualmente: 'Ciri ini tidak tersedia buat masa ini.',
   noDisponibleAhora: 'Ciri ini tidak tersedia pada masa ini. Cuba lagi sebentar nanti.',
-  noDisponibleRegion: 'Ciri ini tidak tersedia di rantau anda buat masa ini.',
-  noDisponiblePais: 'Untuk menggunakan ciri ini, tambahkan negara anda pada Profil Sebenar.',
   noDisponibleOpciones: 'Ciri ini tidak tersedia dengan pilihan yang anda buat. Cuba pilihan lain.',
   describeVideo: 'Beritahu saya video apa yang anda mahu cipta.',
   creacionTerminada: 'Ciptaan itu sudah siap dan tidak akan dibuat semula. Anda boleh menemuinya dalam ciptaan anda.',

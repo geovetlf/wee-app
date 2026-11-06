@@ -40,6 +40,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'Oqaloqatigiinneq Weë atorlugu: peqatigiiffimmi inunnik allanik oqaloqatigiinnerit isertortut, allagaq, assit nipimillu oqariartuutit atorlugit.',
   q9: '»Qanoq pilersippara« suua?',
   a9: 'Saqqummiussigaangavit sakkut atukkatit, peqqussut suliarinninnerlu oqaluttuarisinnaavatit. Taamaalilluni inuit allat ilinnit ilinniarsinnaapput, illillu taakkunannga: »Peqqussut assiliguk« ataasiarlugu attorlugu.',
+  q10: 'Weë atorniarlugu qassinik ukioqartariaqarpit?',
+  a10: 'Weë atorniarukku minnerpaamik {{edad}}-inik ukioqassaatit. Inunngorfiit nalunaarsornermi apeqqutigineqarput, toqqorneqareerpallu allanngortinneqarsinnaanngillat.',
   heroTitle: 'Qanoq ikiorsinnaavatsigit?',
   legalVisibility: 'Saqqummiussatit peqatigiiffimmit takuneqarsinnaapput; Weë AI atorlugu pilersitatit isertortuupput saqqummiunniarlugit aalajangiinnginnerit tikillugu. Saqqummiussatit suliniutitillu piumasaraangakkit peersinnaavatit.',
   askPrefill: 'Weë aperaara: ',

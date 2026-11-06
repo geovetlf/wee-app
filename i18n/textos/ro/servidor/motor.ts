@@ -10,6 +10,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Lipsește ceva din cererea ta. Verific-o și încearcă din nou.',
   unauthorized: 'Conectează-te ca să creezi cu Weë.',
+  accountRequired: 'Ca să creezi conținut cu Weë AI, conectează-te sau creează-ți contul.',
   providerError: 'IA nu a putut finaliza creația ta de data aceasta. Nu te-am taxat: încearcă din nou peste puțin timp.',
   generationFailed: 'Nu am putut termina creația ta. Nu te-am taxat: încearcă din nou.',
   timeout: 'A durat prea mult și am oprit-o. Nu te-am taxat: încearcă din nou.',
@@ -44,8 +45,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Acum nu există nicio IA disponibilă pentru asta. Încearcă mai târziu.',
   noDisponibleActualmente: 'Această funcție nu este disponibilă în prezent.',
   noDisponibleAhora: 'Această funcție nu este disponibilă momentan. Încearcă din nou peste puțin timp.',
-  noDisponibleRegion: 'Această funcție nu este disponibilă în prezent în regiunea ta.',
-  noDisponiblePais: 'Ca să folosești această funcție, indică-ți țara în Profilul real.',
   noDisponibleOpciones: 'Această funcție nu este disponibilă cu opțiunile pe care le-ai ales. Încearcă altele.',
   describeVideo: 'Spune-mi ce videoclip vrei să creezi.',
   creacionTerminada: 'Această creație s-a terminat deja și nu se mai face din nou. Caut-o în creațiile tale.',

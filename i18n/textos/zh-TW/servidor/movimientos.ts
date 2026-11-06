@@ -23,6 +23,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}} 則回答',
   brainRespuestas_other: 'Weë Brain · {{contador}} 則回答',
   brainNoPudo: 'Weë Brain · 未能回答',
+  brainMuestra: 'Weë Brain · 範例回答，不扣費',
   studioVideo: 'Weë Studio · 影片',
   studioSinTiempo: 'Weë Studio · 上一次嘗試已逾時',
   studioNoSePudo: 'Weë Studio · 影片未能生成',

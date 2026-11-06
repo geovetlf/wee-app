@@ -8,6 +8,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Falta alguna cosa a la teva petició. Revisa-la i torna-ho a provar.',
   unauthorized: 'Inicia la sessió per crear amb Weë.',
+  accountRequired: 'Per crear contingut amb Weë AI, inicia la sessió o crea el teu compte.',
   providerError: 'Aquesta vegada la IA no ha pogut completar la teva creació. No t\'he cobrat res: torna-ho a provar d\'aquí a una estona.',
   generationFailed: 'No he pogut acabar la teva creació. No t\'he cobrat res: torna-ho a provar.',
   timeout: 'Ha trigat massa i l\'he aturat. No t\'he cobrat res: torna-ho a provar.',
@@ -42,8 +43,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Ara mateix no hi ha cap IA disponible per a això. Torna-ho a provar més tard.',
   noDisponibleActualmente: 'Aquesta funció no està disponible actualment.',
   noDisponibleAhora: 'Aquesta funció no està disponible en aquest moment. Torna-ho a provar d\'aquí a una estona.',
-  noDisponibleRegion: 'Aquesta funció no està disponible actualment a la teva regió.',
-  noDisponiblePais: 'Per fer servir aquesta funció, indica el teu país al teu Perfil real.',
   noDisponibleOpciones: 'Aquesta funció no està disponible amb les opcions que has triat. Prova\'n d\'altres.',
   describeVideo: 'Explica\'m quin vídeo vols crear.',
   creacionTerminada: 'Aquesta creació ja s\'ha acabat i no es torna a fer. Busca-la a les teves creacions.',

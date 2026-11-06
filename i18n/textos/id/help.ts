@@ -39,6 +39,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'Ini obrolan Weë: percakapan privat dengan orang lain di komunitas, dengan teks, foto, dan pesan suara.',
   q9: 'Apa itu "Cara saya membuatnya"?',
   a9: 'Saat menerbitkan, Anda dapat menceritakan alat yang dipakai, prompt, dan prosesnya. Dengan begitu orang lain belajar dari Anda, dan Anda dari mereka, cukup dengan satu ketukan di "Salin prompt".',
+  q10: 'Berapa usia minimal untuk menggunakan Weë?',
+  a10: 'Weë hanya tersedia untuk orang berusia {{edad}} tahun ke atas. Tanggal lahir Anda diminta saat mendaftar dan, setelah disimpan, tidak dapat diubah.',
   heroTitle: 'Apa yang dapat kami bantu?',
   legalVisibility: 'Apa yang Anda terbitkan terlihat oleh komunitas; apa yang Anda buat di Weë AI bersifat privat sampai Anda memutuskan untuk menerbitkannya. Anda dapat menghapus postingan dan proyek Anda kapan saja.',
   askPrefill: 'Pertanyaan untuk Weë: ',

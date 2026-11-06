@@ -9,6 +9,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: '요청에 빠진 내용이 있어요. 확인 후 다시 시도해 주세요.',
   unauthorized: 'Weë로 창작하려면 로그인해 주세요.',
+  accountRequired: 'Weë AI로 콘텐츠를 만들려면 로그인하거나 계정을 만들어 주세요.',
   providerError: '이번에는 AI가 창작을 끝내지 못했어요. 차감되지 않았어요. 잠시 후에 다시 시도해 주세요.',
   generationFailed: '창작을 끝내지 못했어요. 차감되지 않았어요. 다시 시도해 주세요.',
   timeout: '너무 오래 걸려서 중단했어요. 차감되지 않았어요. 다시 시도해 주세요.',
@@ -43,8 +44,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: '지금은 이 작업에 쓸 수 있는 AI가 없어요. 나중에 다시 시도해 주세요.',
   noDisponibleActualmente: '이 기능은 현재 사용할 수 없어요.',
   noDisponibleAhora: '이 기능은 지금 사용할 수 없어요. 잠시 후에 다시 시도해 주세요.',
-  noDisponibleRegion: '이 기능은 현재 내 지역에서 사용할 수 없어요.',
-  noDisponiblePais: '이 기능을 사용하려면 실제 프로필에 국가를 입력해 주세요.',
   noDisponibleOpciones: '선택한 옵션으로는 이 기능을 사용할 수 없어요. 다른 옵션으로 시도해 보세요.',
   describeVideo: '어떤 영상을 만들고 싶은지 알려 주세요.',
   creacionTerminada: '그 창작은 이미 끝나서 다시 만들지 않아요. 내 창작물에서 찾아보세요.',

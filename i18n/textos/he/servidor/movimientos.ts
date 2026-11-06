@@ -26,6 +26,7 @@ export const movimientos: ConPlurales<typeof import('../../es/servidor/movimient
   brainRespuestas_two: 'Weë Brain · שתי תשובות',
   brainRespuestas_other: 'Weë Brain · {{contador}} תשובות',
   brainNoPudo: 'Weë Brain · לא הצליח לענות',
+  brainMuestra: 'Weë Brain · תשובה לדוגמה, ללא חיוב',
   studioVideo: 'Weë Studio · סרטון',
   studioSinTiempo: 'Weë Studio · לניסיון הקודם נגמר הזמן',
   studioNoSePudo: 'Weë Studio · לא ניתן היה ליצור את הסרטון',

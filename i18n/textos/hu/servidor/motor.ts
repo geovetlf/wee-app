@@ -9,6 +9,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Hiányzik valami a kérésedből. Ellenőrizd, és próbáld újra.',
   unauthorized: 'Jelentkezz be az alkotáshoz a Weë-ben.',
+  accountRequired: 'Tartalom készítéséhez a Weë AI segítségével jelentkezz be, vagy hozd létre a fiókodat.',
   providerError: 'Az AI ezúttal nem tudta befejezni az alkotásodat. Nem számoltam fel semmit: próbáld újra egy kis idő múlva.',
   generationFailed: 'Nem sikerült befejeznem az alkotásodat. Nem számoltam fel semmit: próbáld újra.',
   timeout: 'Túl sokáig tartott, ezért leállítottam. Nem számoltam fel semmit: próbáld újra.',
@@ -43,8 +44,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Ehhez most nem érhető el AI. Próbáld újra később.',
   noDisponibleActualmente: 'Ez a funkció jelenleg nem érhető el.',
   noDisponibleAhora: 'Ez a funkció most nem érhető el. Próbáld újra kicsit később.',
-  noDisponibleRegion: 'Ez a funkció jelenleg nem érhető el a régiódban.',
-  noDisponiblePais: 'A funkció használatához add meg az országodat a Valódi profilodban.',
   noDisponibleOpciones: 'Ez a funkció nem érhető el a választott beállításokkal. Próbálkozz másokkal.',
   describeVideo: 'Mondd el, milyen videót szeretnél létrehozni.',
   creacionTerminada: 'Ez az alkotás már elkészült, és nem készül el újra. Az alkotásaid között találod.',

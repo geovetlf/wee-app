@@ -21,6 +21,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}} câu trả lời',
   brainRespuestas_other: 'Weë Brain · {{contador}} câu trả lời',
   brainNoPudo: 'Weë Brain · không thể trả lời',
+  brainMuestra: 'Weë Brain · câu trả lời mẫu, không tính phí',
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · lần thử trước đã hết thời gian',
   studioNoSePudo: 'Weë Studio · không thể tạo video',

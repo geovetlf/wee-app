@@ -46,6 +46,8 @@ export const help: ConPlurales<typeof import('../es/help').help> = {
   a8: 'To je ćaskanje u aplikaciji Weë: privatni razgovori s drugim ljudima iz zajednice, uz tekst, fotografije i glasovne poruke.',
   q9: 'Šta je „Kako je nastalo“?',
   a9: 'Prilikom objavljivanja možeš da navedeš upotrebljene alate, prompt i postupak. Tako drugi uče od tebe, a ti od njih, jednim dodirom na „Kopiraj prompt“.',
+  q10: 'Koliko godina treba imati za korišćenje aplikacije Weë?',
+  a10: 'Weë je dostupan samo osobama od {{edad}} ili više godina. Datum rođenja se traži pri registraciji i, kada se sačuva, ne može da se promeni.',
   heroTitle: 'Kako možemo da ti pomognemo?',
   legalVisibility: 'Ono što objaviš vidljivo je zajednici; ono što stvoriš u Weë AI privatno je dok ne odlučiš da ga objaviš. Svoje objave i projekte možeš da obrišeš kad god želiš.',
   askPrefill: 'Pitanje za Weë: ',
