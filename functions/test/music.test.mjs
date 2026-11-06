@@ -100,7 +100,8 @@ check('B11 run() lanza un ProviderError no reintentable: nunca hay red ni coste'
 /* ── C · normalizadores de MiniMax ──────────────────────────────────────────────────────────────────────────────────────────── */
 const mm = (r, o) => PROV.normalizarSolicitudMiniMax({ ...base, ...r }, o);
 const g = mm({ operation: 'music.generate', description: 'balada tranquila', genres: ['pop'], moods: ['calm'], lyrics: 'Verso uno' });
-check('C1 generate → music-3.0, letra propia, salida por URL, mp3 44,1 kHz, sin stream', g.ok && g.endpoint === 'https://api.minimax.io/v1/music_generation' && g.body.model === 'music-3.0' && g.body.lyrics === 'Verso uno'
+/* G3 (2026-11-06): el normalizador ya no lleva la dirección del proveedor (vive solo en su adaptador, cuando exista). */
+check('C1 generate → music-3.0, letra propia, salida por URL, mp3 44,1 kHz, sin stream y sin dirección del proveedor', g.ok && !('endpoint' in g) && g.body.model === 'music-3.0' && g.body.lyrics === 'Verso uno'
   && g.body.output_format === 'url' && g.body.stream === false && g.body.audio_setting.format === 'mp3' && g.body.audio_setting.sample_rate === 44100 && g.body.lyrics_optimizer === undefined);
 const sinLetra = mm({ operation: 'music.generate', description: 'una canción alegre' });
 check('C2 sin letra, pide el optimizador de letra', sinLetra.ok && sinLetra.body.lyrics_optimizer === true);
@@ -126,7 +127,8 @@ check('C10 una respuesta basura no revienta ni se toma por buena', PROV.normaliz
 /* ── D · la matriz de proveedores ───────────────────────────────────────────────────────────────────────────────────────────── */
 const P = MATRIZ.PROVEEDORES_MUSICALES;
 check('D1 cuatro candidatos: Mureka, MiniMax, Yinchao y ElevenLabs; ninguno habilitado; Suno no', P.map((p) => p.id).sort().join(',') === 'elevenlabs,mureka,minimax,yinchao'.split(',').sort().join(',') && P.every((p) => p.habilitado === false) && !/suno/i.test(JSON.stringify(P)));
-check('D2 lo que no tiene documentación oficial no trae endpoint: solo MiniMax lo trae', P.filter((p) => p.endpoint).map((p) => p.id).join(',') === 'minimax');
+/* G3 (2026-11-06): ninguna ficha lleva la dirección del proveedor; MiniMax conserva su documentación oficial en `fuentes`. */
+check('D2 ninguna ficha trae dirección de proveedor (G3); MiniMax mantiene su documentación oficial', P.every((p) => p.endpoint === null) && P.find((p) => p.id === 'minimax').fuentes.length > 0);
 check('D3 Yinchao no tiene ninguna capacidad «documentada»', Object.values(P.find((p) => p.id === 'yinchao').capacidades).every((n) => n !== 'documentada'));
 check('D4 ningún coste está confirmado y los derechos comerciales de ninguno están «aprobados»', P.every((p) => p.coste !== 'confirmado' && /por_confirmar|declarados_por_plan/.test(p.derechosComerciales)));
 check('D5 la restricción de MiniMax a usuarios nuevos (2026-08-20) consta', /2026-08-20/.test(P.find((p) => p.id === 'minimax').restricciones.join(' ')));
