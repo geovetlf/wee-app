@@ -1,0 +1,59 @@
+/*
+ * INDONESIO — El concepto de cada movimiento del historial de Credits (ver `../../es/servidor/movimientos.ts`).
+ *
+ * `{{base}}` es otro concepto de esta lista, ya traducido; `{{experiencia}}` es el nombre de una experiencia de Weë AI,
+ * que es marca y llega tal cual. Plural: el indonesio solo tiene «other», así que `_one` y `_other` son idénticas.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Traducción de IA pendiente de revisión humana.
+ */
+export const movimientos: typeof import('../../es/servidor/movimientos').movimientos = {
+  saldoAnterior: 'Saldo sebelumnya',
+  bienvenida: 'Credits selamat datang',
+  ajusteMenos: 'Penyesuaian: biayanya lebih kecil dari yang dicadangkan',
+  reembolsoFallida: 'Pengembalian dana untuk pembuatan yang gagal',
+  compra: 'Pembelian Credits',
+  regalo: 'Credits hadiah',
+  recargaPrueba: 'Isi ulang uji coba',
+  compraRestaurada: 'Pembelian yang dipulihkan',
+  reembolsoAdmin: 'Pengembalian dana administratif',
+  avatar: 'Avatar Weë',
+  fotoConAvatar: 'Foto dengan avatar Weë Anda',
+  noSePudoTerminar: '{{base}} · tidak dapat diselesaikan',
+  brainBusqueda: 'Weë Brain · pencarian',
+  brainRespuestas_one: 'Weë Brain · {{contador}} jawaban',
+  brainRespuestas_other: 'Weë Brain · {{contador}} jawaban',
+  brainNoPudo: 'Weë Brain · tidak dapat menjawab',
+  studioVideo: 'Weë Studio · video',
+  studioSinTiempo: 'Weë Studio · waktu percobaan sebelumnya habis',
+  studioNoSePudo: 'Weë Studio · video tidak dapat dihasilkan',
+  studioMundo: 'Weë Studio · dunia 3D',
+  studioMundoNoSePudo: 'Weë Studio · dunia 3D tidak dapat dibuat',
+  weeAi: 'Weë AI · {{experiencia}}',
+  operacionIncompleta: 'Weë · operasi tidak selesai',
+  servicioAiImageLite: 'Gambar standar',
+  servicioAiImageEnhanceLite: 'Pengeditan standar',
+  servicioAiImage: 'Pembuatan gambar',
+  servicioAiImageEnhance: 'Pengeditan gambar',
+  servicioAiImagePro: 'Gambar presisi maksimum',
+  servicioAiTryon: 'Coba pakaian',
+  servicioAiVideoDraft: 'Video pratinjau',
+  servicioAiVideo: 'Pembuatan video',
+  servicioAiVideoHd: 'Video kualitas tinggi',
+  servicioAiVideoAdvanced: 'Video lanjutan',
+  servicioAiVideoMax: 'Video kualitas maksimum',
+  servicioAiVideoEdit: 'Pengeditan video',
+  servicioAiAudio: 'Pembuatan suara',
+  servicioAiTranscribe: 'Transkripsi dan subtitel',
+  servicioAiMusic: 'Pembuatan musik',
+  servicioAiWorld: 'Pembuatan dunia 3D',
+  servicioAiBrain: 'Jawaban Weë Brain',
+  servicioAiText: 'Pembuatan teks',
+  servicioAiTextPro: 'Teks panjang kualitas maksimum',
+  servicioAiSearch: 'Pencarian dengan AI',
+  servicioAiBook: 'Pembuatan buku',
+  /* Boost (functions/src/boost): traducción de IA, pendiente de revisión nativa (2026-11-05). */
+  boostReserva: 'Boost postingan',
+  boostNoIniciado: 'Boost tidak dimulai',
+  boostSinEntregas: 'Boost tanpa penayangan · semua dikembalikan',
+};

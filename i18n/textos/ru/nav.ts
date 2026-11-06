@@ -29,5 +29,6 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Перейти в Weë AI',
   weeAiQuestion: 'Что хотите создать сегодня?',
   weeAiPitch: 'Расскажите Weë, что вам нужно. С ИИ Weë разберётся.',
-  documentTitle: 'Weë - Сообщество будущего',
+  brandSlogan: 'Воображать · Создавать · Объединяться',
+  documentTitle: 'Weë - {{eslogan}}',
 };

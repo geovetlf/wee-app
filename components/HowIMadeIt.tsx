@@ -64,17 +64,17 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
   };
 
   return (
-    <View style={[styles.box, { backgroundColor: theme.colors.accent + '14', borderColor: theme.colors.accent + '55' }]}>
+    <View style={[styles.box, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.emoji}>🤖</Text>
-        <Text style={[styles.title, { color: theme.colors.accentDark }, sinEspaciadoSiSeUne(t('wall.howIMadeIt'))]}>{t('wall.howIMadeIt')}</Text>
+        <Ionicons name="sparkles-outline" size={scale(15)} color={theme.colors.textSecondary} />
+        <Text style={[styles.title, { color: theme.colors.text }, sinEspaciadoSiSeUne(t('wall.howIMadeIt'))]}>{t('wall.howIMadeIt')}</Text>
       </View>
 
       {tools.length > 0 && (
         <View style={styles.toolsRow}>
           <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{t('wall.madeWith')}</Text>
           {tools.map((tool) => (
-            <View key={tool} style={[styles.toolChip, { backgroundColor: theme.colors.card }]}>
+            <View key={tool} style={[styles.toolChip, { backgroundColor: theme.colors.surface }]}>
               <Text style={[styles.toolText, { color: theme.colors.text }]}>{tool}</Text>
             </View>
           ))}
@@ -84,13 +84,13 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
       {!!prompt && (
         <View style={styles.promptBlock}>
           <TouchableOpacity style={styles.promptToggle} onPress={() => setPromptOpen((v) => !v)} activeOpacity={0.7}>
-            <Text style={[styles.promptToggleText, { color: theme.colors.accentDark }]}>
+            <Text style={[styles.promptToggleText, { color: theme.colors.text }]}>
               {promptOpen ? t('wall.hidePrompt') : t('wall.showPrompt')}
             </Text>
-            <Ionicons name={promptOpen ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.accentDark} />
+            <Ionicons name={promptOpen ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.textSecondary} />
           </TouchableOpacity>
           {promptOpen && (
-            <View style={[styles.promptBox, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.promptBox, { backgroundColor: theme.colors.surface }]}>
               <Text selectable style={[styles.promptText, { color: theme.colors.text }]}>{prompt}</Text>
               {isWeb ? (
                 <TouchableOpacity
@@ -131,9 +131,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.xs,
-  },
-  emoji: {
-    fontSize: scale(13),
   },
   title: {
     fontSize: scale(11),

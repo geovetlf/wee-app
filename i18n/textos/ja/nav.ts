@@ -23,5 +23,6 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Weë AIへ',
   weeAiQuestion: '今日は何を作りますか？',
   weeAiPitch: '作りたいものをWeëに伝えるだけです。AIのことはWeëにおまかせください。',
-  documentTitle: 'Weë - 未来のコミュニティ',
+  brandSlogan: '想像する · 創る · つながる',
+  documentTitle: 'Weë - {{eslogan}}',
 };

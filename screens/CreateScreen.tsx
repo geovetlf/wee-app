@@ -53,9 +53,13 @@ import {
 } from '../utils/pollDraft';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import { IconoWee } from '../components/icons/IconoWee';
+import { MarcaDeWeeAi } from '../components/icons/MarcaDeWeeAi';
 import SelectorDeEContacts from '../components/SelectorDeEContacts';
 import { notify, confirmAction } from '../utils/notify';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
+import { MARCA } from '../constants/marca';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 interface MediaItem {
   type: 'image' | 'video';
@@ -237,14 +241,6 @@ const CreateScreen: React.FC = () => {
    * sistema de proyectos ni un campo nuevo en la publicación.
    */
   const abrirProyectos = () => (navigation as any).navigate('Projects');
-
-  /*
-   * VISIBILIDAD. Hoy toda publicación de Weë es pública —`isPrivate: false` al
-   * guardar, y ningún muro filtra por audiencia—, así que la píldora dice la
-   * verdad y, al tocarla, la explica. Un selector con una sola opción sería un
-   * menú que no elige nada.
-   */
-  const explicarVisibilidad = () => notify(t('composer.publicVisibility'), t('composer.publicExplain'));
 
   /*
    * A QUIÉN SE MENCIONA. Solo identidades, y solo las que salieron de la agenda:
@@ -1046,6 +1042,45 @@ const CreateScreen: React.FC = () => {
   const nombreDelDestino = (destino: { nombre: string; clave?: string }) =>
     destino.clave ? t(destino.clave) : destino.nombre;
 
+  /*
+   * ─── Crear con Weë AI ─────────────────────────────────────────────────────
+   *
+   * Una franja de chips con las experiencias que más se publican. Cada una abre
+   * su sección de Weë AI —la de siempre, no un segundo creador— y lo creado vuelve
+   * aquí por «Mis proyectos». Los nombres son marca y los iconos, los del menú.
+   */
+  /* Decisión del dueño (2026-11-05): sale Weë Writer y entra Weë Fashion (id histórico 'business'). */
+  const CREAR_CON_IA = ['studio', 'design', 'photo', 'business', 'music'] as const;
+  const renderCrearConIA = () => (
+    <View style={styles.crearIA}>
+      <View style={styles.crearIACabeza}>
+        <MarcaDeWeeAi size={scale(13)} color={theme.colors.accentDark} />
+        <Text style={[styles.crearIATitulo, { color: theme.colors.text }]} numberOfLines={1}>{t('nav.weeAiQuestion')}</Text>
+      </View>
+      <View style={styles.crearIAFila}>
+        {CREAR_CON_IA.map((id) => {
+          const exp = getExperienceById(id);
+          if (!exp) return null;
+          return (
+            <TouchableOpacity
+              key={id}
+              onPress={() => (navigation as any).navigate('Specialist', { id })}
+              activeOpacity={0.8}
+              style={[styles.crearIAChip, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+              accessibilityRole="button"
+              accessibilityLabel={exp.name}
+            >
+              <View style={[styles.crearIAIcono, { backgroundColor: theme.colors.accent + '26' }]}>
+                <IconoWee name={exp.icono} size={scale(17)} color={theme.colors.accentDark} />
+              </View>
+              <Text style={[styles.crearIATexto, { color: theme.colors.text }]} numberOfLines={1}>{exp.name}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+
   const renderDestinos = () => (
     <View style={styles.destinos}>
       <Text style={[styles.destinosRotulo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('composer.publishIn'))]} accessibilityRole="header">
@@ -1074,15 +1109,16 @@ const CreateScreen: React.FC = () => {
               accessibilityLabel={nombreDelDestino(destino)}
             >
               {/*
-                La cara sale del catálogo de Weë y no se inventa aquí: si mañana
-                Weë Chef cambia de emoji, cambia en un sitio. El muro general no
-                es una experiencia: lleva el globo, es la comunidad entera.
+                La cara sale del catálogo de Weë y no se inventa aquí: es su icono
+                DIBUJADO (`IconoWee`, el mismo del menú ☰), no un emoji
+                (2026-11-02). El muro general no es una experiencia: lleva el
+                globo, es la comunidad entera.
               */}
-              <View style={styles.destinoIcono}>
+              <View style={[styles.destinoIcono, { backgroundColor: elegido ? theme.colors.accent + '33' : theme.colors.surface }]}>
                 {experiencia ? (
-                  <Text style={styles.destinoEmoji}>{experiencia.emoji}</Text>
+                  <IconoWee name={experiencia.icono} size={scale(18)} color={elegido ? theme.colors.accentDark : theme.colors.text} />
                 ) : (
-                  <Ionicons name="globe-outline" size={scale(20)} color={theme.colors.accentDark} />
+                  <Ionicons name="globe-outline" size={scale(18)} color={theme.colors.accentDark} />
                 )}
               </View>
               <Text style={[styles.destinoTexto, { color: theme.colors.text }]} numberOfLines={1}>
@@ -1136,6 +1172,8 @@ const CreateScreen: React.FC = () => {
           accessibilityLabel={t(isPublishing ? 'composer.publishing' : 'composer.publish')}
           accessibilityState={{ disabled: !canPublish, busy: isPublishing }}
         >
+          {/* Lista para publicar: degradado de marca; apagada sigue con el velo pálido. */}
+          {canPublish && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
           {isPublishing ? (
             <ActivityIndicator size="small" color="#1F2937" />
           ) : (
@@ -1426,10 +1464,11 @@ const CreateScreen: React.FC = () => {
                 ]}
                 onPress={() => handlePollDurationChange(duration.value)}
               >
+                <RellenoDeMarca radio={BORDER_RADIUS.md} apagada={poll.duration !== duration.value} />
                 <Text style={[
                   styles.pollDurationButtonText,
                   {
-                    color: poll.duration === duration.value ? 'white' : theme.colors.text,
+                    color: poll.duration === duration.value ? '#1F2937' : theme.colors.text,
                   }
                 ]}>
                   {duration.label}
@@ -1536,6 +1575,7 @@ const CreateScreen: React.FC = () => {
           accessibilityLabel={t('composer.publish')}
           accessibilityState={{ disabled: !canPublish, busy: isPublishing }}
         >
+          {canPublish && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
           {isPublishing ? (
             <ActivityIndicator size="small" color="#1F2937" />
           ) : (
@@ -1579,18 +1619,7 @@ const CreateScreen: React.FC = () => {
                 {t('composer.shareWithCommunity')}
               </Text>
             </View>
-            {/* Quién puede verla. Píldora fina, blanca y discreta: no compite con nada. */}
-            <TouchableOpacity
-              onPress={explicarVisibilidad}
-              activeOpacity={0.7}
-              style={[styles.visibilidad, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
-              accessibilityRole="button"
-              accessibilityLabel={t('composer.visibilityIs', { estado: t('composer.publicVisibility') })}
-            >
-              <Ionicons name="globe-outline" size={scale(16)} color={theme.colors.text} />
-              <Text style={[styles.visibilidadTexto, { color: theme.colors.text }]}>{t('composer.publicVisibility')}</Text>
-              <Ionicons name="chevron-down" size={scale(14)} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
+            {/* La píldora «Public» se retiró por decisión del dueño (2026-11-05): toda publicación sigue siendo pública. */}
           </View>
 
           {renderTextInput()}
@@ -1599,6 +1628,7 @@ const CreateScreen: React.FC = () => {
           {renderPoll()}
           {renderAcciones()}
           {renderEContacts()}
+          {renderCrearConIA()}
           <View style={[styles.separador, { backgroundColor: theme.colors.border }]} />
           {renderDestinos()}
         </ScrollView>
@@ -1801,13 +1831,19 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
   },
+  crearIA: { gap: SPACING.sm, marginTop: SPACING.md },
+  crearIACabeza: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  crearIATitulo: { flex: 1, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },
+  crearIAFila: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  crearIAChip: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, paddingVertical: SPACING.xs, paddingLeft: SPACING.xs, paddingRight: SPACING.md, borderRadius: BORDER_RADIUS.full, borderWidth: StyleSheet.hairlineWidth },
+  crearIAIcono: { width: scale(30), height: scale(30), borderRadius: scale(15), alignItems: 'center', justifyContent: 'center' },
+  crearIATexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },
   destinoIcono: {
-    width: scale(24),
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  destinoEmoji: {
-    fontSize: scale(18),
   },
   /* Peso constante: la negrita al elegir ensancharía el chip y movería la rejilla. */
   destinoTexto: {
@@ -2247,7 +2283,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(36),
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#F5B731',
+    shadowColor: MARCA.primario,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 16,

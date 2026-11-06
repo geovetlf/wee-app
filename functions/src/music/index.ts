@@ -6,5 +6,5 @@
  */
 export * from './contract';
 export * from './matrix';
-export { ADAPTADORES_MUSICALES_PREPARADOS, adaptadorMusicalPreparado, normalizarSolicitudMiniMax, normalizarRespuestaMiniMax, MINIMAX_MUSIC_ENDPOINT } from './providers';
+export { ADAPTADORES_MUSICALES_PREPARADOS, adaptadorMusicalPreparado, normalizarSolicitudMiniMax, normalizarRespuestaMiniMax } from './providers';
 export type { SolicitudHttp } from './providers';

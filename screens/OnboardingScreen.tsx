@@ -15,6 +15,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { notify } from '../utils/notify';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
@@ -31,6 +32,7 @@ import { isDiceBearUrl } from '../components/avatars/AvatarPicker';
 import { COUNTRIES, Country } from '../data/countries';
 import { nombreDeLaRegion, ordenDeLaFecha } from '../i18n/formato';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -448,14 +450,15 @@ const OnboardingScreen: React.FC = () => {
             ]}
             onPress={() => setGender('male')}
           >
+            <RellenoDeMarca radio={scale(12)} apagada={gender !== 'male'} />
             <Ionicons
               name="male"
               size={20}
-              color={gender === 'male' ? 'white' : theme.colors.text}
+              color={gender === 'male' ? '#1F2937' : theme.colors.text}
             />
             <Text style={[
               styles.genderText,
-              { color: gender === 'male' ? 'white' : theme.colors.text }
+              { color: gender === 'male' ? '#1F2937' : theme.colors.text }
             ]}>
               {t('onboarding.genderMale')}
             </Text>
@@ -471,14 +474,15 @@ const OnboardingScreen: React.FC = () => {
             ]}
             onPress={() => setGender('female')}
           >
+            <RellenoDeMarca radio={scale(12)} apagada={gender !== 'female'} />
             <Ionicons
               name="female"
               size={20}
-              color={gender === 'female' ? 'white' : theme.colors.text}
+              color={gender === 'female' ? '#1F2937' : theme.colors.text}
             />
             <Text style={[
               styles.genderText,
-              { color: gender === 'female' ? 'white' : theme.colors.text }
+              { color: gender === 'female' ? '#1F2937' : theme.colors.text }
             ]}>
               {t('onboarding.genderFemale')}
             </Text>
@@ -494,14 +498,15 @@ const OnboardingScreen: React.FC = () => {
             ]}
             onPress={() => setGender('other')}
           >
+            <RellenoDeMarca radio={scale(12)} apagada={gender !== 'other'} />
             <Ionicons
               name="person"
               size={20}
-              color={gender === 'other' ? 'white' : theme.colors.text}
+              color={gender === 'other' ? '#1F2937' : theme.colors.text}
             />
             <Text style={[
               styles.genderText,
-              { color: gender === 'other' ? 'white' : theme.colors.text }
+              { color: gender === 'other' ? '#1F2937' : theme.colors.text }
             ]}>
               {t('onboarding.genderOther')}
             </Text>
@@ -683,7 +688,7 @@ const OnboardingScreen: React.FC = () => {
                   onPress={handleBack}
                   disabled={uploading}
                 >
-                  <Ionicons name="arrow-back" size={18} color={theme.colors.text} />
+                  <IconoDireccional name="arrow-back" size={18} color={theme.colors.text} />
                   <Text style={[styles.backButtonText, { color: theme.colors.text }]}>
                     {t('common.back')}
                   </Text>
@@ -697,9 +702,10 @@ const OnboardingScreen: React.FC = () => {
                 onPress={handleContinue}
                 disabled={uploading || completed}
               >
+                <RellenoDeMarca radio={scale(12)} apagada={completed} />
                 {uploading ? (
                   <>
-                    <ActivityIndicator size="small" color="white" />
+                    <ActivityIndicator size="small" color="#1F2937" />
                     <Text style={styles.continueButtonText}>{t('onboarding.saving')}</Text>
                   </>
                 ) : completed ? (
@@ -712,7 +718,7 @@ const OnboardingScreen: React.FC = () => {
                     <Text style={styles.continueButtonText}>
                       {getButtonText()}
                     </Text>
-                    <Ionicons name={getButtonIcon()} size={18} color="#1F2937" />
+                    <IconoDireccional name={getButtonIcon()} size={18} color="#1F2937" />
                   </>
                 )}
               </TouchableOpacity>
@@ -750,7 +756,7 @@ const OnboardingScreen: React.FC = () => {
                 onPress={handleBack}
                 disabled={uploading}
               >
-                <Ionicons name="arrow-back" size={scale(20)} color={theme.colors.text} />
+                <IconoDireccional name="arrow-back" size={scale(20)} color={theme.colors.text} />
                 <Text style={[styles.backButtonText, { color: theme.colors.text }]}>
                   {t('common.back')}
                 </Text>
@@ -764,9 +770,10 @@ const OnboardingScreen: React.FC = () => {
               onPress={handleContinue}
               disabled={uploading || completed}
             >
+              <RellenoDeMarca radio={scale(12)} apagada={completed} />
               {uploading ? (
                 <>
-                  <ActivityIndicator size="small" color="white" />
+                  <ActivityIndicator size="small" color="#1F2937" />
                   <Text style={styles.continueButtonText}>{t('onboarding.saving')}</Text>
                 </>
               ) : completed ? (
@@ -779,7 +786,7 @@ const OnboardingScreen: React.FC = () => {
                   <Text style={styles.continueButtonText}>
                     {getButtonText()}
                   </Text>
-                  <Ionicons name={getButtonIcon()} size={scale(20)} color="#1F2937" />
+                  <IconoDireccional name={getButtonIcon()} size={scale(20)} color="#1F2937" />
                 </>
               )}
             </TouchableOpacity>
@@ -1265,19 +1272,24 @@ const styles = StyleSheet.create({
   countrySelectorText: {
     fontSize: scale(15),
   },
+  /*
+   * EN LA WEB, LA HOJA DE PAÍSES SE ABRE ARRIBA (2026-11-05). En el navegador del teléfono el teclado no avisa a la
+   * página (no hay eventos de Keyboard) y tapaba la lista: se escribía el país y no se podía elegir. Arriba, la
+   * búsqueda y los resultados quedan siempre por encima del teclado. En la app nativa sigue abriéndose desde abajo.
+   */
   countryModalOverlay: {
     flex: 1,
+    /* El velo que cierra va antes que la hoja en el JSX: en la web se invierte el orden para que la hoja quede arriba. */
+    flexDirection: Platform.OS === 'web' ? 'column-reverse' : 'column',
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   countryModalDismiss: {
     flex: 1,
   },
-  countryModalContent: {
-    borderTopLeftRadius: scale(16),
-    borderTopRightRadius: scale(16),
-    maxHeight: '70%',
-  },
+  countryModalContent: Platform.OS === 'web'
+    ? { borderBottomLeftRadius: scale(16), borderBottomRightRadius: scale(16), maxHeight: '50%' }
+    : { borderTopLeftRadius: scale(16), borderTopRightRadius: scale(16), maxHeight: '70%' },
   countrySearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',

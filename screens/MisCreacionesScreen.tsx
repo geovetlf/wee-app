@@ -14,9 +14,18 @@ import { formatearLista, nombreDeLaRegion } from '../i18n/formato';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, Chip } from '../components/creator/ui';
 import { RejillaDeCreaciones } from '../components/creator/RejillaDeCreaciones';
+import { GaleriaDeCreaciones } from '../components/biblioteca/GaleriaDeCreaciones';
+import {
+  TarjetaDeAviso, ChipDeFiltro, SelectorDeOrden, VacioDeBiblioteca, BotonSecundario,
+} from '../components/biblioteca/PiezasDeBiblioteca';
+import { CabeceraDeBiblioteca } from '../components/biblioteca/CabeceraDeBiblioteca';
+import { PALETA_BIBLIOTECA } from '../components/biblioteca/paleta';
+import { useDireccion } from '../hooks/useDireccion';
+import { Ionicons } from '@expo/vector-icons';
 import { confirmAction, notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /**
  * MIS CREACIONES — la biblioteca de material de la CUENTA.
@@ -54,6 +63,16 @@ const FILTROS: { id: AssetKind | 'all'; clave: string }[] = [
   { id: 'world', clave: 'creaciones.filterWorlds' },
 ];
 
+/* El icono de línea de cada filtro en la versión App («Todo» va sin icono). */
+const ICONO_DE_FILTRO: Partial<Record<AssetKind | 'all', keyof typeof Ionicons.glyphMap>> = {
+  image: 'image-outline',
+  video: 'play-circle-outline',
+  audio: 'musical-notes-outline',
+  document: 'document-text-outline',
+  model3d: 'cube-outline',
+  world: 'globe-outline',
+};
+
 const MisCreacionesScreen: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
@@ -62,6 +81,8 @@ const MisCreacionesScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { isDesktop, isTablet } = useResponsive();
+  const dir = useDireccion();
+  const [ordenAbierto, setOrdenAbierto] = useState(false);
 
   const [filtro, setFiltro] = useState<AssetKind | 'all'>('all');
   const [orden, setOrden] = useState<OrdenDeCreaciones>('recent');
@@ -152,6 +173,24 @@ const MisCreacionesScreen: React.FC = () => {
     else if (resultado === 'error') notify(t('creaciones.downloadFailed'));
   };
 
+  /*
+   * DESCARGAR DESDE LA TARJETA (versión App). El mismo servicio de descargas que
+   * la tarjeta de resultado; un archivo 3D pasa antes por lo que su licencia
+   * deja hacer, igual que al abrirlo.
+   */
+  const descargar = async (asset: AssetDoc) => {
+    const url = assetsService.urlDeEntrega(asset);
+    if (!url) return;
+    if (asset.kind === 'world' || asset.kind === 'model3d') {
+      void abrirTresD(asset, asset.kind, url);
+      return;
+    }
+    const resultado = await descargarCreacion(url, asset.kind, asset.mimeType);
+    if (resultado === 'guardado') notify(t('creaciones.downloaded'));
+    else if (resultado === 'sin_permiso') notify(t('creaciones.downloadPermission'));
+    else if (resultado === 'error') notify(t('creaciones.downloadFailed'));
+  };
+
   const eliminar = async (asset: AssetDoc) => {
     const ok = await confirmAction(t('creaciones.delete'), t('creaciones.deleteConfirm'), t('creaciones.delete'), true, t);
     if (!ok || estado.fase !== 'lista') return;
@@ -167,14 +206,17 @@ const MisCreacionesScreen: React.FC = () => {
 
   const columnas: 2 | 3 | 4 = isDesktop ? 4 : isTablet ? 3 : 2;
 
+  /*
+   * ── WEË CREATOR: la pantalla de siempre ──────────────────────────────────
+   *
+   * Dentro de Weë Creator «Mis creaciones» se queda como estaba —su marco, su
+   * rejilla (`RejillaDeCreaciones`, la misma de su Inicio)— y no habla de los
+   * dos perfiles, que son de la versión App. El rediseño de la biblioteca
+   * (2026-11-05) es solo de la App: va más abajo.
+   */
+  if (pro) {
   return (
     <CreatorShell activeId="creations" overline="🤖 Weë AI" title={`🖼️ ${t('creaciones.title')}`} breadcrumb="Weë AI">
-      {/* Habla de los dos perfiles: es de la versión app. */}
-      {!pro && (
-      <View style={[styles.intro, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
-        <Text style={[styles.introText, { color: theme.colors.text }]}>{t('creaciones.intro')}</Text>
-      </View>
-      )}
 
       <View style={styles.section}>
         <SectionTitle
@@ -198,6 +240,7 @@ const MisCreacionesScreen: React.FC = () => {
           <View style={[styles.box, { backgroundColor: theme.colors.card, borderColor: theme.colors.error }]}>
             <Text style={[styles.boxTitle, { color: theme.colors.text }]}>{t('creaciones.loadFailed')}</Text>
             <TouchableOpacity onPress={cargar} style={[styles.button, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85}>
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.buttonText}>{t('creaciones.retry')}</Text>
             </TouchableOpacity>
           </View>
@@ -211,6 +254,7 @@ const MisCreacionesScreen: React.FC = () => {
               <>
                 <Text style={[styles.boxText, { color: theme.colors.textSecondary }]}>{t('creaciones.emptyText')}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('WeeCreator')} style={[styles.button, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85}>
+                  <RellenoDeMarca radio={BORDER_RADIUS.full} />
                   <Text style={styles.buttonText}>{t('creaciones.emptyAction')}</Text>
                 </TouchableOpacity>
               </>
@@ -238,9 +282,111 @@ const MisCreacionesScreen: React.FC = () => {
       </View>
     </CreatorShell>
   );
+  }
+
+  /* ── LA APP: la biblioteca rediseñada ──────────────────────────────────── */
+  const ORDENES = [
+    { id: 'recent' as const, texto: t('creaciones.sortRecent') },
+    { id: 'oldest' as const, texto: t('creaciones.sortOldest') },
+  ];
+  return (
+    <CreatorShell activeId="creations" title={t('creaciones.title')} breadcrumb="Weë AI" sinFranjaSuperior>
+      <View style={[styles.app, dir.contenedor]}>
+        <CabeceraDeBiblioteca titulo={t('creaciones.title')} />
+
+        {/* Habla de los dos perfiles: es de la CUENTA, y se ve igual desde el Perfil Real y el Perfil Weë. */}
+        <TarjetaDeAviso texto={t('creaciones.intro')} />
+
+        <View style={styles.appSeccion}>
+          <View style={styles.appFilaTitulo}>
+            <Text style={[styles.appContador, dir.texto]} numberOfLines={1} accessibilityRole="header">
+              {estado.fase === 'lista' ? t('creaciones.count', { contador: estado.items.length }) : t('creaciones.title')}
+            </Text>
+            <SelectorDeOrden
+              opciones={ORDENES}
+              valor={orden}
+              onChange={setOrden}
+              etiqueta={t('creaciones.sortLabel')}
+              abierto={ordenAbierto}
+              onAbrir={setOrdenAbierto}
+            />
+          </View>
+
+          <View style={styles.appFiltros} accessibilityRole="tablist" accessibilityLabel={t('creaciones.filterLabel')}>
+            {FILTROS.map((f) => (
+              <ChipDeFiltro
+                key={f.id}
+                texto={t(f.clave)}
+                icono={ICONO_DE_FILTRO[f.id]}
+                activo={filtro === f.id}
+                onPress={() => { setOrdenAbierto(false); setFiltro(f.id); }}
+              />
+            ))}
+          </View>
+
+          {estado.fase === 'cargando' ? (
+            <View style={styles.centro}>
+              <ActivityIndicator color={PALETA_BIBLIOTECA.morado} />
+              <Text style={[styles.centroText, { color: theme.colors.textSecondary }]}>{t('creaciones.loading')}</Text>
+            </View>
+          ) : estado.fase === 'error' ? (
+            <VacioDeBiblioteca icono="cloud-offline-outline" titulo={t('creaciones.loadFailed')} accion={t('creaciones.retry')} onAccion={cargar} />
+          ) : estado.items.length === 0 ? (
+            filtro === 'all' ? (
+              <VacioDeBiblioteca
+                titulo={t('creaciones.emptyTitle')}
+                texto={t('creaciones.emptyText')}
+                accion={t('creaciones.emptyAction')}
+                onAccion={() => navigation.navigate('WeeCreator')}
+              />
+            ) : (
+              <VacioDeBiblioteca icono={ICONO_DE_FILTRO[filtro] ?? 'image-outline'} titulo={t('creaciones.emptyFiltered')} />
+            )
+          ) : (
+            <>
+              <GaleriaDeCreaciones items={estado.items} columnas={columnas} onOpen={abrir} onDelete={eliminar} onDownload={descargar} />
+              {estado.pagina.hayMas && (
+                <BotonSecundario texto={t('creaciones.loadMore')} onPress={cargarMas} disabled={estado.cargandoMas}>
+                  {estado.cargandoMas ? <ActivityIndicator color={PALETA_BIBLIOTECA.morado} /> : undefined}
+                </BotonSecundario>
+              )}
+            </>
+          )}
+        </View>
+      </View>
+    </CreatorShell>
+  );
 };
 
 const styles = StyleSheet.create({
+  app: {
+    gap: 22,
+    width: '100%',
+    maxWidth: 1080,
+    alignSelf: 'center',
+  },
+  appSeccion: {
+    gap: 16,
+  },
+  appFilaTitulo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    zIndex: 20,
+  },
+  appFiltros: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  appContador: {
+    flex: 1,
+    color: PALETA_BIBLIOTECA.texto,
+    fontSize: 24,
+    fontWeight: FONT_WEIGHT.bold,
+    letterSpacing: -0.4,
+  },
   intro: {
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,

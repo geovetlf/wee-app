@@ -20,7 +20,9 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
+
 import { Ionicons } from '@expo/vector-icons';
+import IconoMeGusta from './IconoMeGusta';
 import HowIMadeIt from './HowIMadeIt';
 import WeeTag from './WeeTag';
 import { seccionDe } from '../utils/sectionFeed';
@@ -59,6 +61,7 @@ import { alturaVisibleDelMuro, medidaDelMedio, topeDeLaFoto, topeDelMedio, venta
 import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } from '../utils/imageDimensionCache';
 import { getCachedVideoAspectRatio, setCachedVideoAspectRatio, fetchAndCacheVideoAspectRatio, proporcionDeLaMedida } from '../utils/videoDimensionCache';
 import { nombreDeComunidad } from '../utils/comunidadesDeWee';
+import { MARCA } from '../constants/marca';
 
 // Enable LayoutAnimation on Android (not on web)
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -926,6 +929,9 @@ const PostCard: React.FC<PostCardProps> = ({
         <View style={[styles.videoAspectBox, { aspectRatio: proporcionDelVideo }]}>
           {mediosRotos[displayPost.videoUrl] ? (
             <MedioNoDisponible style={StyleSheet.absoluteFill} alReintentar={() => reintentarMedio(displayPost.videoUrl!)} />
+          ) : !(isWebPlatform || (isVisible && isFocused)) ? (
+            /* En el teléfono, un reproductor solo para el vídeo que se ve; los demás no descargan nada. */
+            <Image source={{ uri: displayPost.imageUrls?.[0] || displayPost.imageUrlsThumbnails?.[0] }} style={StyleSheet.absoluteFill} contentFit="cover" />
           ) : (
           <Video
             ref={videoRef}
@@ -939,9 +945,9 @@ const PostCard: React.FC<PostCardProps> = ({
             isLooping={true}
             onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
             onReadyForDisplay={alSaberLaFormaDelVideo}
-            posterSource={displayPost.imageUrls?.[0] ? { uri: displayPost.imageUrls[0] } : undefined}
+            posterSource={displayPost.imageUrls?.[0] || displayPost.imageUrlsThumbnails?.[0] ? { uri: displayPost.imageUrls?.[0] || displayPost.imageUrlsThumbnails?.[0] } : undefined}
             posterStyle={styles.videoPoster}
-            usePoster={!!displayPost.imageUrls?.[0]}
+            usePoster={!!(displayPost.imageUrls?.[0] || displayPost.imageUrlsThumbnails?.[0])}
           />
           )}
         </View>
@@ -1045,9 +1051,9 @@ const PostCard: React.FC<PostCardProps> = ({
               }
             ]}
             contentFit="cover"
-            transition={300}
+            transition={0}
             priority="high"
-            cachePolicy="disk"
+            cachePolicy="memory-disk"
             allowDownscaling={false}
             onError={() => marcarRoto(displayPost.imageUrls![0])}
           />
@@ -1106,9 +1112,9 @@ const PostCard: React.FC<PostCardProps> = ({
                   }
                 ]}
                 contentFit="cover"
-                transition={300}
+                transition={0}
                 priority="high"
-                cachePolicy="disk"
+                cachePolicy="memory-disk"
                 allowDownscaling={false}
                 onError={() => marcarRoto(imageUrl)}
               />
@@ -1233,6 +1239,19 @@ const PostCard: React.FC<PostCardProps> = ({
         >
           <Ionicons name="paper-plane-outline" size={20} color={theme.colors.textSecondary} />
           <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('wall.sendByWeeTalk')}</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Impulsar una publicación propia (screens/BoostScreen.tsx, docs/BOOST.md): el servidor valida y reserva por el Credit Engine al confirmar. */}
+      {isOwnPost && !!displayPost.id && (
+        <TouchableOpacity
+          style={[styles.menuOption, puedeDenunciar && separadorDelMenu]}
+          onPress={() => { setMenuVisible(false); navigation.navigate('Boost', { tipo: 'post', id: displayPost.id! }); }}
+          accessibilityRole="button"
+          accessibilityLabel={t('boost.title')}
+        >
+          <Ionicons name="rocket-outline" size={20} color={theme.colors.text} />
+          <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('boost.title')}</Text>
         </TouchableOpacity>
       )}
 
@@ -1441,10 +1460,11 @@ const PostCard: React.FC<PostCardProps> = ({
               ))}
             </View>
           )}
-          <HowIMadeIt post={displayPost} />
         </TouchableOpacity>
         {/* Video rendered outside the content TouchableOpacity so taps reach onVideoPress */}
         {!!(displayPost.videoUrl && onVideoPress) && renderMedia()}
+        {/* Debajo de la publicación entera, también del vídeo: no se mezcla con la descripción. */}
+        <HowIMadeIt post={displayPost} />
       </View>
 
       {/*
@@ -1463,11 +1483,7 @@ const PostCard: React.FC<PostCardProps> = ({
           disabled={isVoting}
           activeOpacity={0.7}
         >
-          <Ionicons
-            name={voteStats.userVote === 'agree' ? "thumbs-up" : "thumbs-up-outline"}
-            size={ICON_SIZE.md}
-            color={voteStats.userVote === 'agree' ? '#22C55E' : theme.colors.textSecondary}
-          />
+          <IconoMeGusta size={ICON_SIZE.md} color={theme.colors.textSecondary} activo={voteStats.userVote === 'agree'} colorActivo="#22C55E" />
           <Text style={[styles.actionText, {
             color: voteStats.userVote === 'agree' ? '#22C55E' : theme.colors.textSecondary
           }]}>
@@ -1622,7 +1638,7 @@ const PostCard: React.FC<PostCardProps> = ({
       {/* Compartir una FOTO: se monta la tarjeta y se captura. Tal cual estaba. */}
       {isSharing && (
         <View style={styles.sharingOverlay}>
-          <ActivityIndicator size="large" color="#F5B731" />
+          <ActivityIndicator size="large" color={MARCA.primario} />
           <Text style={styles.sharingText}>{t('wall.preparingImage')}</Text>
         </View>
       )}
@@ -1870,7 +1886,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(8),
     paddingVertical: scale(2),
     borderRadius: scale(10),
-    backgroundColor: 'rgba(245, 183, 49, 0.15)',
+    backgroundColor: MARCA.velo(0.15),
   },
   agreementText: {
     fontSize: FONT_SIZE.xs,

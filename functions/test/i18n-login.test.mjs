@@ -268,7 +268,8 @@ console.log('\n鈹�鈹� F 路 Ni el dise帽o, ni el teclado, ni la autenticaci贸n 鈹
    */
   check('23) los estilos son exactamente los mismos',
     /container: \{\s*\n\s*flex: 1,\s*\n\s*backgroundColor: '#FFFFFF',/.test(CRUDO)
-    && /primaryButton: \{\s*\n\s*backgroundColor: '#F5B731',\s*\n\s*borderRadius: 10,\s*\n\s*padding: 12,/.test(CRUDO)
+    /* El color sale del token de marca desde el degradado del 2026-11-05 (constants/marca.ts); la forma del bot贸n no cambia. */
+    && /primaryButton: \{\s*\n\s*backgroundColor: MARCA\.primario,\s*\n\s*borderRadius: 10,\s*\n\s*padding: 12,/.test(CRUDO)
     && /registerContainer: \{\s*\n\s*flexDirection: 'row',\s*\n\s*justifyContent: 'center',/.test(CRUDO)
     && /divider: \{\s*\n\s*flexDirection: 'row',/.test(CRUDO));
   check('23) y la jerarqu铆a de la pantalla no se movi贸',

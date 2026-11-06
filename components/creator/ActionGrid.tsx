@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
 import { RejillaDeCreator } from './PiezasDeCreator';
@@ -139,7 +140,7 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
         <Text style={[styles.wideTitle, { color: theme.colors.text }]}>{action.title}</Text>
         <Text style={[styles.tileSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={2}>{action.subtitle}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+      <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
     </View>
   );
 
@@ -159,7 +160,7 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
         <Text style={[styles.secondaryTitle, { color: theme.colors.text }]}>{action.title}</Text>
         <Text style={[styles.compactSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={2}>{action.subtitle}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+      <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
     </View>
   );
 

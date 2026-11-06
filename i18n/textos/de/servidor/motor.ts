@@ -1,0 +1,57 @@
+/*
+ * ALEMÁN — Los errores controlados del servidor de Weë AI y de Weë Brain (ver `../../es/servidor/motor.ts`). Traducción
+ * de IA pendiente de revisión humana.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila. Los huecos `{{campo}}` y `{{archivo}}`
+ * llevan las piezas `campo…` y `archivo…`, sin artículo cuando la frase ya lo pone: por eso las frases de archivo van
+ * con «Datei» y la pieza detrás de dos puntos, para no depender del género de la palabra.
+ */
+export const motor: typeof import('../../es/servidor/motor').motor = {
+  invalidRequest: 'In deiner Anfrage fehlt etwas. Prüfe sie und versuch es noch einmal.',
+  unauthorized: 'Melde dich an, um mit Weë zu erstellen.',
+  providerError: 'Die KI konnte deine Erstellung diesmal nicht abschließen. Ich habe dir nichts berechnet: Versuch es gleich noch einmal.',
+  generationFailed: 'Ich konnte deine Erstellung nicht abschließen. Ich habe dir nichts berechnet: Versuch es noch einmal.',
+  timeout: 'Es hat zu lange gedauert, deshalb habe ich es gestoppt. Ich habe dir nichts berechnet: Versuch es noch einmal.',
+  rateLimited: 'Du hast viele Erstellungen hintereinander gestartet. Ich habe dir nichts berechnet: Warte einen Moment und versuch es noch einmal.',
+  duplicate: 'Diese Erstellung läuft bereits.',
+  notAvailable: 'Diese Funktion ist noch nicht verfügbar.',
+  inputRejected: 'Das Foto oder Video konnte nicht verwendet werden: Echte Gesichter und solche Inhalte werden nicht akzeptiert. Versuch es mit einem anderen Bild oder einer anderen Beschreibung.',
+  faltaCampo: 'Es fehlt: {{campo}}.',
+  revisaCampo: 'Prüfe {{campo}}: Erlaubt sind 1 bis {{max}} Zeichen.',
+  campoMensaje: 'deine Nachricht',
+  campoDescripcionVideo: 'die Videobeschreibung',
+  conversacionNoEncontrada: 'Wir konnten diese Unterhaltung nicht finden.',
+  sinPlan: 'Für diesen Auftrag gibt es noch keinen Plan.',
+  sinUnPlan: 'Dieser Auftrag hat noch keinen Plan.',
+  yaTienePlan: 'Dieser Auftrag hat bereits einen Plan.',
+  subeFoto: 'Lade ein Foto hoch, damit Weë damit arbeiten kann.',
+  trabajoNoEncontrado: 'Wir konnten diesen Auftrag nicht finden.',
+  trabajoAjeno: 'Dieser Auftrag gehört nicht dir.',
+  experienciaDesconocida: 'Unbekannter Bereich.',
+  faltaTrabajo: 'Der Auftrag fehlt.',
+  intentoSinTiempo: 'Bei diesem Versuch ist die Zeit abgelaufen, und ich habe dir die Credits zurückgegeben. Du kannst es noch einmal versuchen.',
+  fotoDireccion: 'Die Adresse des Fotos ist ungültig.',
+  fotoSubir: 'Das Foto muss zuerst zu Weë hochgeladen werden.',
+  fotoAjena: 'Dieses Foto gehört nicht dir.',
+  archivoSube: 'Lade die Datei hoch ({{archivo}}), damit Weë sie lesen kann.',
+  archivoDireccion: 'Die Adresse der Datei ({{archivo}}) ist ungültig.',
+  archivoSubir: 'Die Datei ({{archivo}}) muss zuerst zu Weë hochgeladen werden.',
+  archivoAjeno: 'Diese Datei ({{archivo}}) gehört nicht dir.',
+  archivoDocumento: 'Dokument',
+  archivoAudio: 'Audio',
+  sinTiempoAntes: 'Die Zeit ist abgelaufen, bevor es losging. Ich habe dir nichts berechnet.',
+  sinProveedor: 'Dafür ist gerade keine KI verfügbar. Versuch es später noch einmal.',
+  noDisponibleActualmente: 'Diese Funktion ist derzeit nicht verfügbar.',
+  noDisponibleAhora: 'Diese Funktion ist gerade nicht verfügbar. Versuch es in einer Weile noch einmal.',
+  noDisponibleRegion: 'Diese Funktion ist in deiner Region derzeit nicht verfügbar.',
+  noDisponiblePais: 'Gib in deinem Realen Profil dein Land an, um diese Funktion zu nutzen.',
+  noDisponibleOpciones: 'Mit den gewählten Optionen ist diese Funktion nicht verfügbar. Versuch es mit anderen.',
+  describeVideo: 'Erzähl mir, welches Video du erstellen möchtest.',
+  creacionTerminada: 'Diese Erstellung ist bereits abgeschlossen und wird nicht wiederholt. Du findest sie bei deinen Erstellungen.',
+  tomaInvalida: 'Diese Aufnahme hat kein gültiges Format.',
+  planoInvalido: 'Diese Einstellung hat kein gültiges Format.',
+  produccionNoEncontrada: 'Wir konnten diese Produktion nicht finden.',
+  tomaNoGenerable: 'Diese Aufnahme lässt sich so nicht generieren.',
+  creacionNoEncontrada: 'Wir konnten diese Erstellung nicht finden.',
+  debesIniciarSesion: 'Du musst dich anmelden',
+};

@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë trenger tilgang til kameraet slik at du kan ta bilder til innleggene dine, profilen din, WeeTalk og Weë AI.",
+    "NSMicrophoneUsageDescription": "Weë trenger tilgang til mikrofonen din slik at du kan ta opp musikkideer, nynnede melodier, dine egne vokalreferanser og talemeldinger. Lyden brukes bare hvis du selv velger det.",
+    "NSPhotoLibraryUsageDescription": "Weë trenger tilgang til galleriet slik at du kan velge bilder og videoer til innleggene dine, profilen din, WeeTalk og Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Weë trenger tillatelse til å lagre bilder og videoer fra Weë AI i galleriet ditt når du laster dem ned.",
+    "NSLocationWhenInUseUsageDescription": "Weë bruker den omtrentlige posisjonen din til å foreslå steder i nærheten og området ditt når du legger til en posisjon i et innlegg – bare mens appen er åpen. Den nøyaktige posisjonen din vises aldri offentlig."
+  }
+}

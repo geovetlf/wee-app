@@ -278,7 +278,7 @@ De un mensaje salen **dos cosas que nunca se mezclan**: una `reply` para la pers
 
 ### Una sola inteligencia, muchas puertas
 
-Weë Brain, Weë Studio, Weë Chef, Weë Travel, Weë Business y Weë Design **no son cerebros distintos**: son el mismo, al que se le habla desde sitios distintos. Lo único que cambia es el **contexto** —`workplace`, `project`, `user`, `conversation`—, y por eso el contexto es un parámetro y no una copia del cerebro. Esa es la regla del §10 de CLAUDE.md, ahora con un contrato detrás.
+Weë Brain, Weë Studio, Weë Chef, Weë Travel, Weë Fashion y Weë Design **no son cerebros distintos**: son el mismo, al que se le habla desde sitios distintos. Lo único que cambia es el **contexto** —`workplace`, `project`, `user`, `conversation`—, y por eso el contexto es un parámetro y no una copia del cerebro. Esa es la regla del §10 de CLAUDE.md, ahora con un contrato detrás.
 
 ### El mismo Brain en Web, Android e iOS
 
@@ -961,7 +961,7 @@ CHECKOUT → PAYMENT ROUTER → PASARELA → AVISO → LIBRO → CREDITS
 
 ### Una persona, una cuenta, un saldo
 
-Es el requisito que manda sobre todos los demás. Se compra desde Weë Business y se gasta desde Weë Studio; se entra desde Weë Design y se ve lo mismo. **No hay saldo por producto y no puede haberlo**: en cuanto exista una billetera por producto, comprar en el sitio equivocado deja de servir y la persona tiene que aprenderse la contabilidad interna de Weë para usarla.
+Es el requisito que manda sobre todos los demás. Se compra desde Weë Fashion y se gasta desde Weë Studio; se entra desde Weë Design y se ve lo mismo. **No hay saldo por producto y no puede haberlo**: en cuanto exista una billetera por producto, comprar en el sitio equivocado deja de servir y la persona tiene que aprenderse la contabilidad interna de Weë para usarla.
 
 `appId` y `workspaceId` no están en la cuenta. Están en la **atribución** de cada movimiento, que es donde sirven: para saber desde dónde se gastó, no para partir el dinero.
 
@@ -1025,7 +1025,7 @@ Es determinista, desempata por valor de carácter y **no es el Router de IA**: u
 
 ### Un checkout, no siete
 
-Comprar Credits desde Weë Business, impulsar una publicación desde el Home y pagar una suscripción desde Weë Studio son el **mismo** checkout con distinto propósito. El checkout prepara el cobro y dice con qué se puede pagar; **no acredita nada** y no confirma nada. Todo lo que mueve dinero pasa por el libro, y el libro se escribe cuando la pasarela confirma.
+Comprar Credits desde Weë Fashion, impulsar una publicación desde el Home y pagar una suscripción desde Weë Studio son el **mismo** checkout con distinto propósito. El checkout prepara el cobro y dice con qué se puede pagar; **no acredita nada** y no confirma nada. Todo lo que mueve dinero pasa por el libro, y el libro se escribe cuando la pasarela confirma.
 
 ### Publicidad no es una compra de Credits
 

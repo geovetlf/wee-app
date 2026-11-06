@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import IconoMeGusta from '../components/IconoMeGusta';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -30,6 +32,7 @@ import { formatNumber } from '../utils/formatoCorto';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { descripcionDeComunidad, nombreDeComunidad } from '../utils/comunidadesDeWee';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 type SearchCategory = 'comunidades' | 'usuarios' | 'posts';
 
@@ -280,6 +283,7 @@ const SearchScreen: React.FC = () => {
             }]}
             onPress={() => setActiveCategory('comunidades')}
           >
+            <RellenoDeMarca radio={20} apagada={activeCategory !== 'comunidades'} />
             <Ionicons
               name="people"
               size={14}
@@ -301,6 +305,7 @@ const SearchScreen: React.FC = () => {
             }]}
             onPress={() => setActiveCategory('usuarios')}
           >
+            <RellenoDeMarca radio={20} apagada={activeCategory !== 'usuarios'} />
             <Ionicons
               name="person"
               size={14}
@@ -322,6 +327,7 @@ const SearchScreen: React.FC = () => {
             }]}
             onPress={() => setActiveCategory('posts')}
           >
+            <RellenoDeMarca radio={20} apagada={activeCategory !== 'posts'} />
             <Ionicons
               name="document-text"
               size={14}
@@ -423,9 +429,9 @@ const SearchScreen: React.FC = () => {
                             {post.content}
                           </Text>
                           <View style={styles.trendingStats}>
-                            <Ionicons name="heart" size={12} color={theme.colors.like} />
+                            <IconoMeGusta size={12} color={theme.colors.textSecondary} />
                             <Text style={[styles.trendingStatText, { color: theme.colors.textSecondary }]}>
-                              {post.likes || 0}
+                              {formatNumber(post.likes || 0, locale)}
                             </Text>
                             <Ionicons name="chatbubble" size={12} color={theme.colors.textSecondary} style={{ marginLeft: 12 }} />
                             <Text style={[styles.trendingStatText, { color: theme.colors.textSecondary }]}>
@@ -451,7 +457,7 @@ const SearchScreen: React.FC = () => {
               <View>
                 <View style={styles.hashtagHeader}>
                   <TouchableOpacity onPress={clearHashtagSelection} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+                    <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
                   </TouchableOpacity>
                   <Text style={[styles.sectionTitle, { color: theme.colors.accent, marginBottom: 0, flex: 1 }]}>
                     #{selectedHashtag}
@@ -491,7 +497,7 @@ const SearchScreen: React.FC = () => {
                       )}
                       <View style={styles.postStats}>
                         <View style={styles.postStat}>
-                          <Ionicons name="heart" size={14} color={theme.colors.like} />
+                          <IconoMeGusta size={14} color={theme.colors.textSecondary} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
                             {formatNumber(post.likes || 0, locale)}
                           </Text>
@@ -578,13 +584,14 @@ const SearchScreen: React.FC = () => {
                             onPress={(e) => { e.stopPropagation?.(); handleToggleJoin(community.id!); }}
                             activeOpacity={0.7}
                           >
-                            <Ionicons name="add" size={14} color="white" />
+                            <RellenoDeMarca radio={16} />
+                            <Ionicons name="add" size={14} color="#1F2937" />
                             <Text style={[styles.joinButtonText, { color: '#1F2937' }]}>{t('communities.join')}</Text>
                           </TouchableOpacity>
                         )
                       )}
                       {!user && (
-                        <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+                        <IconoDireccional name="chevron-forward" size={20} color={theme.colors.textSecondary} />
                       )}
                     </TouchableOpacity>
                   ))
@@ -655,7 +662,7 @@ const SearchScreen: React.FC = () => {
                           </Text>
                         </View>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
+                      <IconoDireccional name="chevron-forward" size={16} color={theme.colors.textSecondary} />
                     </TouchableOpacity>
                   ))
                 )}
@@ -707,7 +714,7 @@ const SearchScreen: React.FC = () => {
 
                       <View style={styles.postStats}>
                         <View style={styles.postStat}>
-                          <Ionicons name="heart" size={14} color={theme.colors.like} />
+                          <IconoMeGusta size={14} color={theme.colors.textSecondary} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
                             {formatNumber(post.likes || 0, locale)}
                           </Text>

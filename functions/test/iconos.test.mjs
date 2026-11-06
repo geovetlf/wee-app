@@ -142,7 +142,9 @@ console.log('\n── D · Enchufados en el Burger ──');
    * o no lo lleva ninguna, y eso es justo lo que se fija aquí.
    */
   check('16) el color de los iconos se decide en un solo sitio, y lo decide isWee',
-    /const colorDeLosIconos = isWee \? VERDE_DEL_PERFIL_WEE : theme\.colors\.text;/.test(cajon));
+    /const colorDeLosIconos = isWee \? (VERDE_DEL_PERFIL_WEE|ICONOS_DEL_PERFIL_WEE) : ICONOS_DEL_PERFIL_REAL;/.test(cajon)
+    /* Perfil Real: morado eléctrico (decisión del dueño, 2026-11-05). */
+    && /const ICONOS_DEL_PERFIL_REAL = '#7200FF';/.test(cajon));
   check('16b) la fila corriente lo usa, sin perder el rojo de las peligrosas',
     /color=\{opts\.danger \? theme\.colors\.error : colorDeLosIconos\}/.test(cajon));
   /*

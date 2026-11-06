@@ -123,6 +123,8 @@ export interface CreacionDeDesign {
 }
 
 export const CREACIONES_DE_DESIGN: CreacionDeDesign[] = [
+  { id: 'd5', claveTipo: 'design.kindProduct', icono: 'footsteps-outline', titulo: 'Zapatilla de cuero', claveTitulo: 'design.sampleShoe', tono: '#E8E2DA' },
+  { id: 'd6', claveTipo: 'design.kindProduct', icono: 'musical-notes-outline', titulo: 'Guitarra eléctrica', claveTitulo: 'design.sampleGuitar', tono: '#DDE3EA' },
   { id: 'd1', claveTipo: 'design.kindInterior', icono: 'home-outline', titulo: 'Salón luminoso', claveTitulo: 'design.sampleLivingRoom', tono: '#EFE9E1' },
   { id: 'd2', claveTipo: 'design.kindArchitecture', icono: 'business-outline', titulo: 'Casa entre pinos', claveTitulo: 'design.samplePineHouse', tono: '#E3E8E2' },
   { id: 'd3', claveTipo: 'design.kindBoat', icono: 'boat-outline', titulo: 'Yate de 15 metros', claveTitulo: 'design.sampleYacht', tono: '#DDE6EE' },

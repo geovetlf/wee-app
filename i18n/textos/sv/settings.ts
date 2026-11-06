@@ -49,7 +49,7 @@ export const settings: typeof import('../es/settings').settings = {
   helpHint: 'Vanliga frågor och kontakt',
   signOutHint: 'Logga ut från ditt konto',
   aboutBody: 'Weë (World Encode Entity) är det sociala nätverket för människor som skapar med artificiell intelligens.\n\nVersion 1.0.0 · © {{anio}} Weë. Med ensamrätt.\n\nGeografiska data: GeoNames (geonames.org), CC BY 4.0.',
-  location: '📍 Plats',
+  location: 'Plats',
   locationLine: '{{estado}} Din exakta plats visas aldrig offentligt.',
   locationOff: 'Avstängd. Låt Weë använda din ungefärliga plats för att föreslå ditt område och platser nära dig när du lägger till en plats i ett inlägg. Din exakta plats visas aldrig offentligt.',
   locationUnavailable: 'Den här enheten kan inte ge oss din plats.',

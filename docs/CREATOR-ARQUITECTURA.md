@@ -80,7 +80,7 @@ Identificadores estables; cada una tiene entrada/salida definidas y una lista or
 | 💄 WEE Beauty | `image.identity_edit` | `vision.describe`, `image.edit` |
 | 👨‍🍳 WEE Chef | `text.generate` | `vision.describe` (foto de la nevera), `image.generate` (foto del plato) |
 | 🏠 WEE Home | `image.space_restyle`, `image.generate` | `vision.describe`, `text.generate` (lista de compras) |
-| 💼 WEE Business | `text.generate`, `doc.render` | `image.generate` (posts), `text.structure` (análisis) |
+| 👗 Weë Fashion (id histórico `business`, antes WEE Business) | `text.generate`, `doc.render` | `image.generate` (posts), `text.structure` (análisis) |
 | 🧠 WEE Brain | `text.generate`, `text.structure` | Cualquiera: es quien deriva al especialista correcto |
 
 `WEE Voice` del documento (§5) es la capacidad `voice.tts`: **capacidad interna, no sección visible**.

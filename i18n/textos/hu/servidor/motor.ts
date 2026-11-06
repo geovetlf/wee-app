@@ -1,0 +1,57 @@
+/*
+ * HÚNGARO — Los errores controlados del servidor de Weë AI y de Weë Brain (ver `../../es/servidor/motor.ts`).
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Traducción de IA pendiente de revisión humana.
+ *
+ * `{{campo}}` y `{{archivo}}` entran en nominativo: nunca se les pega un sufijo.
+ */
+export const motor: typeof import('../../es/servidor/motor').motor = {
+  invalidRequest: 'Hiányzik valami a kérésedből. Ellenőrizd, és próbáld újra.',
+  unauthorized: 'Jelentkezz be az alkotáshoz a Weë-ben.',
+  providerError: 'Az AI ezúttal nem tudta befejezni az alkotásodat. Nem számoltam fel semmit: próbáld újra egy kis idő múlva.',
+  generationFailed: 'Nem sikerült befejeznem az alkotásodat. Nem számoltam fel semmit: próbáld újra.',
+  timeout: 'Túl sokáig tartott, ezért leállítottam. Nem számoltam fel semmit: próbáld újra.',
+  rateLimited: 'Túl sok alkotást indítottál egymás után. Nem számoltam fel semmit: várj egy kicsit, és próbáld újra.',
+  duplicate: 'Ez az alkotás már folyamatban van.',
+  notAvailable: 'Ez a funkció még nem érhető el.',
+  inputRejected: 'A fotó vagy a videó nem használható a létrehozáshoz: valódi arcokat és ilyen tartalmat nem fogadunk el. Próbálkozz másik képpel vagy leírással.',
+  faltaCampo: 'Hiányzik: {{campo}}.',
+  revisaCampo: 'Ellenőrizd: {{campo}}. A hossza 1 és {{max}} karakter között lehet.',
+  campoMensaje: 'az üzeneted',
+  campoDescripcionVideo: 'a videó leírása',
+  conversacionNoEncontrada: 'Nem találjuk ezt a beszélgetést.',
+  sinPlan: 'Ennek a munkának még nincs terve.',
+  sinUnPlan: 'Ehhez a munkához még nem készült terv.',
+  yaTienePlan: 'Ennek a munkának már van terve.',
+  subeFoto: 'Tölts fel egy fotót, hogy a Weë dolgozni tudjon vele.',
+  trabajoNoEncontrado: 'Nem találjuk ezt a munkát.',
+  trabajoAjeno: 'Ez a munka nem a tiéd.',
+  experienciaDesconocida: 'Ismeretlen élmény.',
+  faltaTrabajo: 'Hiányzik a munka.',
+  intentoSinTiempo: 'Ennél a próbálkozásnál lejárt az idő, és a Credits visszakerült az egyenlegedre. Újra megpróbálhatod.',
+  fotoDireccion: 'A fotó címe érvénytelen.',
+  fotoSubir: 'A fotót használat előtt fel kell tölteni a Weë-be.',
+  fotoAjena: 'Ez a fotó nem a tiéd.',
+  archivoSube: 'Töltsd fel ezt, hogy a Weë el tudja olvasni: {{archivo}}.',
+  archivoDireccion: 'Érvénytelen cím: {{archivo}}.',
+  archivoSubir: 'Használat előtt fel kell tölteni a Weë-be: {{archivo}}.',
+  archivoAjeno: 'Ez nem a tiéd: {{archivo}}.',
+  archivoDocumento: 'dokumentum',
+  archivoAudio: 'hangfájl',
+  sinTiempoAntes: 'Még a kezdés előtt lejárt az idő. Nem számoltam fel semmit.',
+  sinProveedor: 'Ehhez most nem érhető el AI. Próbáld újra később.',
+  noDisponibleActualmente: 'Ez a funkció jelenleg nem érhető el.',
+  noDisponibleAhora: 'Ez a funkció most nem érhető el. Próbáld újra kicsit később.',
+  noDisponibleRegion: 'Ez a funkció jelenleg nem érhető el a régiódban.',
+  noDisponiblePais: 'A funkció használatához add meg az országodat a Valódi profilodban.',
+  noDisponibleOpciones: 'Ez a funkció nem érhető el a választott beállításokkal. Próbálkozz másokkal.',
+  describeVideo: 'Mondd el, milyen videót szeretnél létrehozni.',
+  creacionTerminada: 'Ez az alkotás már elkészült, és nem készül el újra. Az alkotásaid között találod.',
+  tomaInvalida: 'Ennek a felvételnek nem érvényes a formája.',
+  planoInvalido: 'Ennek a beállításnak nem érvényes a formája.',
+  produccionNoEncontrada: 'Nem találjuk ezt a produkciót.',
+  tomaNoGenerable: 'Ez a felvétel így nem hozható létre.',
+  creacionNoEncontrada: 'Nem találjuk ezt az alkotást.',
+  debesIniciarSesion: 'Be kell jelentkezned',
+};

@@ -1,0 +1,43 @@
+/*
+ * GRIEGO — Weë Writer: el editor de documentos. Tipado contra el español.
+ * Las acciones del editor van como sustantivo («Βελτίωση», «Σύντμηση»…); los «Goal»
+ * son peticiones internas a Weë y van en infinitivo griego (frase nominal).
+ */
+export const writer: typeof import('../es/writer').writer = {
+  askWee: 'Ζήτα το από το Weë',
+  writeSomethingFirst: 'Γράψε πρώτα κάτι',
+  writeSomethingHint: 'Γράψε πρώτα κάτι και το Weë θα το δουλέψει μαζί σου.',
+  save: 'Αποθήκευση',
+  saving: 'Αποθήκευση…',
+  deleteDocument: 'Διαγραφή εγγράφου',
+  improve: 'Βελτίωση',
+  improveGoal: 'Βελτίωση αυτού του κειμένου',
+  shorten: 'Συντόμευση',
+  shortenGoal: 'Συντόμευση αυτού του κειμένου χωρίς να χαθεί το σημαντικό',
+  expand: 'Επέκταση',
+  expandGoal: 'Περαιτέρω ανάπτυξη αυτού του κειμένου',
+  fix: 'Διόρθωση',
+  fixGoal: 'Διόρθωση της ορθογραφίας και του ύφους αυτού του κειμένου',
+  tone: 'Αλλαγή ύφους',
+  toneGoal: 'Αναδιατύπωση αυτού του κειμένου με διαφορετικό ύφος',
+  summarize: 'Περίληψη',
+  summarizeGoal: 'Περίληψη αυτού του κειμένου σε βασικές ιδέες',
+  translate: 'Μετάφραση',
+  translateGoal: 'Μετάφραση αυτού του κειμένου',
+  words_one: '{{contador}} λέξη',
+  words_other: '{{contador}} λέξεις',
+  savedInDocuments: ' · αποθηκεύτηκε στα Έγγραφά μου',
+  couldNotSaveToDocuments: 'Δεν ήταν δυνατή η αποθήκευση στα Έγγραφά μου',
+  myDocuments: 'Τα έγγραφά μου',
+  newDocument: 'Νέο έγγραφο',
+  noDocumentsYet: 'Δεν έχεις ακόμη έγγραφα. Γράψε ένα νέο ή ζήτησε από το Weë να ξεκινήσει για σένα.',
+  editedWhen: 'Επεξεργάστηκε {{cuando}}',
+  titleLabel: 'Τίτλος εγγράφου',
+  bodyLabel: 'Κείμενο εγγράφου',
+  editorTitle: '✍️ Επεξεργαστής',
+  docTitlePlaceholder: 'Τίτλος εγγράφου',
+  bodyPlaceholder: 'Γράψε εδώ. Όποτε θέλεις, ζήτησε από το Weë να το βελτιώσει, να το διορθώσει ή να το μεταφράσει.',
+  resultHint: 'Το Weë δουλεύει πάνω σε ό,τι έγραψες και σου επιστρέφει εδώ το αποτέλεσμα, έτοιμο για επεξεργασία.',
+  weeWorksWithYou: 'Το Weë το δουλεύει μαζί σου.',
+  saved: '✓ Αποθηκεύτηκε',
+};

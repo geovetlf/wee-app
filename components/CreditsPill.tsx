@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StyleProp, TextStyle } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, TextStyle, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
@@ -7,6 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWallet } from '../hooks/useWallet';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { MARCA } from '../constants/marca';
+import { RellenoDeMarca } from './GradienteDeMarca';
 
 interface CreditsPillProps {
   /** Versión compacta para el header (solo número). */
@@ -49,6 +51,23 @@ export const MarcaDeCredits: React.FC<{ size?: number; color: string; style?: St
 );
 
 /**
+ * LA PILA DE MONEDAS DE LA PÍLDORA, como en las referencias de la demo YC (2026-11-04).
+ *
+ * Tres monedas doradas apiladas, dibujadas con vistas —no un emoji, que cambia en cada
+ * teléfono y que el dueño ya retiró en 2026-09-15—. Va DELANTE de la marca ẄC, que sigue
+ * siendo el nombre de la moneda: la pila es solo el dibujo. Es presentación pura: no
+ * sabe nada del saldo. La usan la píldora y la tarjeta de Credits de la barra de Weë AI
+ * (antes un 💳, que el dueño retiró de la marca en 2026-09-15).
+ */
+export const PilaDeMonedas: React.FC = () => (
+  <View style={styles.pila} accessible={false}>
+    {[0, 1, 2].map((i) => (
+      <View key={i} style={[styles.moneda, i > 0 && styles.monedaApilada]} />
+    ))}
+  </View>
+);
+
+/**
  * Saldo de Credits siempre visible: "ẄC 250 Credits".
  * Toca para ir a la tienda de Credits.
  *
@@ -66,6 +85,9 @@ const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = fals
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const { balance } = useWallet();
+  /* En la cabecera compacta de un teléfono estrecho (< 360) la pila de monedas no cabe junto al título (Weë Brain a 320): se queda la marca ẄC. */
+  const { width: anchoDePantalla } = useWindowDimensions();
+  const conMonedas = !compact || anchoDePantalla >= 360;
 
   if (!user) return null;
 
@@ -85,8 +107,12 @@ const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = fals
       style={[
         styles.pill,
         {
-          backgroundColor: light ? 'rgba(255,255,255,0.15)' : theme.colors.card,
-          borderColor: light ? 'rgba(255,255,255,0.3)' : theme.colors.border,
+          /*
+           * El degradado de marca (2026-11-05): amarillo dorado → naranja, con el texto oscuro encima,
+           * igual en el Perfil Real y en el Weë. Sobre fondos oscuros/transparentes (`light`) sigue el velo blanco.
+           */
+          backgroundColor: light ? 'rgba(255,255,255,0.15)' : MARCA.primario,
+          borderColor: light ? 'rgba(255,255,255,0.3)' : MARCA.velo(0),
         },
       ]}
     >
@@ -98,11 +124,13 @@ const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = fals
         en negro, del mismo color que el número, porque es parte del mismo dato y
         no un adorno al lado.
       */}
-      <MarcaDeCredits color={light ? 'white' : theme.colors.text} />
+      {!light && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
+      {conMonedas && <PilaDeMonedas />}
+      <MarcaDeCredits color={light ? 'white' : MARCA.sobrePrimario} />
       <View style={styles.textRow}>
-        <Text style={[styles.value, { color: light ? 'white' : theme.colors.text }]}>{value}</Text>
+        <Text style={[styles.value, { color: light ? 'white' : MARCA.sobrePrimario }]}>{value}</Text>
         {!compact && (
-          <Text style={[styles.label, { color: light ? 'rgba(255,255,255,0.85)' : theme.colors.textSecondary }]}>Credits</Text>
+          <Text style={[styles.label, { color: light ? 'rgba(255,255,255,0.85)' : 'rgba(31, 41, 55, 0.78)' }]}>Credits</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -127,6 +155,22 @@ const styles = StyleSheet.create({
   value: {
     fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.semibold,
+  },
+  pila: {
+    justifyContent: 'center',
+    marginEnd: scale(1),
+  },
+  moneda: {
+    width: scale(15),
+    height: scale(6.5),
+    borderRadius: scale(4),
+    /* Sobre el degradado: monedas claras con canto naranja hondo, para que se lean encima del amarillo. */
+    backgroundColor: '#FFE9A8',
+    borderWidth: 1,
+    borderColor: MARCA.primarioTexto,
+  },
+  monedaApilada: {
+    marginTop: -scale(2),
   },
   label: {
     fontSize: FONT_SIZE.xs,

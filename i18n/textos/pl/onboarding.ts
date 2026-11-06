@@ -1,0 +1,64 @@
+/*
+ * POLACO — el alta guiada y la creación del Perfil Weë: quién eres, y quién
+ * eres en Weë.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * El nombre, la biografía y el país que elige la persona no entran aquí.
+ * «Perfil Weë» es «Profil Weë»: «Profil» se declina, «Weë» nunca. El ejemplo
+ * «SombraOscura» se traduce; «Anon123» se deja.
+ */
+export const onboarding: typeof import('../es/onboarding').onboarding = {
+  welcome: 'Witaj w Weë',
+  welcomeSubtitle: 'Opowiedz nam, kim jesteś. Potem utworzysz swój Profil Weë: twoją tożsamość do tworzenia z AI.',
+  yourName: 'Twoje imię',
+  yourNameHint: 'To imię będzie widoczne w twoim publicznym profilu.',
+  yourNamePlaceholder: 'Twoje imię i nazwisko',
+  birthDate: 'Data urodzenia',
+  birthDateHint: 'Aby korzystać z Weë, musisz mieć co najmniej 13 lat.',
+  gender: 'Płeć',
+  genderMale: 'Mężczyzna',
+  genderFemale: 'Kobieta',
+  genderOther: 'Inna',
+  country: 'Kraj',
+  pickCountry: 'Wybierz swój kraj',
+  searchCountry: 'Szukaj kraju...',
+  customiseProfile: 'Spersonalizuj swój profil',
+  yourAvatar: 'Twój awatar',
+  yourAvatarHint: 'Dotknij, aby wybrać gotowy awatar lub przesłać własny obraz',
+  bioPlaceholder: 'Opowiedz nam coś o sobie... (opcjonalnie)',
+  saving: 'Zapisywanie...',
+  completed: 'Ukończono!',
+  complete: 'Zakończ',
+  continueStep: 'Dalej',
+  nameMissingTitle: 'Brakuje imienia',
+  nameMissing: 'Wpisz swoje imię, aby kontynuować.',
+  nameShortTitle: 'Imię za krótkie',
+  nameShort: 'Twoje imię musi mieć co najmniej 2 litery.',
+  birthMissingTitle: 'Brakuje daty urodzenia',
+  birthMissing: 'Wybierz dzień, miesiąc i rok.',
+  genderMissingTitle: 'Brakuje płci',
+  genderMissing: 'Wybierz opcję, aby kontynuować.',
+  countryMissingTitle: 'Brakuje kraju',
+  countryMissing: 'Wybierz swój kraj, aby kontynuować.',
+  saveFailedTitle: 'Nie udało się zapisać profilu',
+  saveFailed: 'Spróbuj ponownie.',
+  weeTitle: 'Utwórz Profil Weë',
+  weeIntro: 'Ten profil jest niezależny od twojej prawdziwej tożsamości. Posty i działania, które wykonasz jako Weë, nie będą powiązane z twoim głównym profilem.',
+  weePhoto: 'Zdjęcie profilowe',
+  weePhotoHint: 'Dotknij, aby wybrać zdjęcie lub gotowy awatar',
+  weeName: 'Anonimowa nazwa',
+  weeNamePlaceholder: 'Np. MrocznyCień, Anon123...',
+  weeBioPlaceholder: 'Opisz swoje alter ego...',
+  weeCreatedTitle: 'Profil Weë utworzony',
+  weeCreated: 'Twoja anonimowa tożsamość jest gotowa. Możesz przełączać profile w nagłówku.',
+  weeCreateFailed: 'Nie udało się utworzyć Profilu Weë',
+  birthDay: 'Dzień',
+  birthMonth: 'Miesiąc',
+  birthYear: 'Rok',
+  stepOf: 'Krok {{paso}} z {{total}}',
+  customiseProfileHint: 'Wybierz awatar i dodaj opis (opcjonalnie)',
+  bioLabel: 'Opis (opcjonalnie)',
+  weeNameCounter: '{{usados}}/{{maximo}} - Min. liczba znaków: {{minimo}}',
+  weeBio: 'Bio (opcjonalnie)',
+};

@@ -1,0 +1,57 @@
+/*
+ * ALEMÁN — El concepto de cada movimiento del historial de Credits (ver `../../es/servidor/movimientos.ts`). Traducción
+ * de IA pendiente de revisión humana.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila. «Credits» es marca; «Guthaben» traduce
+ * SALDO, como en `credits.ts`, y reembolso es «Erstattung».
+ */
+export const movimientos: typeof import('../../es/servidor/movimientos').movimientos = {
+  saldoAnterior: 'Vorheriges Guthaben',
+  bienvenida: 'Willkommens-Credits',
+  ajusteMenos: 'Anpassung: günstiger als reserviert',
+  reembolsoFallida: 'Erstattung für fehlgeschlagene Generierung',
+  compra: 'Kauf von Credits',
+  regalo: 'Geschenkte Credits',
+  recargaPrueba: 'Testaufladung',
+  compraRestaurada: 'Wiederhergestellter Kauf',
+  reembolsoAdmin: 'Erstattung durch die Administration',
+  avatar: 'Weë-Avatar',
+  fotoConAvatar: 'Foto mit deinem Weë-Avatar',
+  noSePudoTerminar: '{{base}} · konnte nicht abgeschlossen werden',
+  brainBusqueda: 'Weë Brain · Suche',
+  brainRespuestas_one: 'Weë Brain · {{contador}} Antwort',
+  brainRespuestas_other: 'Weë Brain · {{contador}} Antworten',
+  brainNoPudo: 'Weë Brain · konnte nicht antworten',
+  studioVideo: 'Weë Studio · Video',
+  studioSinTiempo: 'Weë Studio · beim vorherigen Versuch ist die Zeit abgelaufen',
+  studioNoSePudo: 'Weë Studio · das Video konnte nicht generiert werden',
+  studioMundo: 'Weë Studio · 3D-Welt',
+  studioMundoNoSePudo: 'Weë Studio · die 3D-Welt konnte nicht erstellt werden',
+  weeAi: 'WEË AI · {{experiencia}}',
+  operacionIncompleta: 'Weë · der Vorgang wurde nicht abgeschlossen',
+  servicioAiImageLite: 'Standardbild',
+  servicioAiImageEnhanceLite: 'Standardbearbeitung',
+  servicioAiImage: 'Bildgenerierung',
+  servicioAiImageEnhance: 'Bildbearbeitung',
+  servicioAiImagePro: 'Bild mit höchster Präzision',
+  servicioAiTryon: 'Kleidung anprobieren',
+  servicioAiVideoDraft: 'Vorschauvideo',
+  servicioAiVideo: 'Videogenerierung',
+  servicioAiVideoHd: 'Video in hoher Qualität',
+  servicioAiVideoAdvanced: 'Erweitertes Video',
+  servicioAiVideoMax: 'Video in höchster Qualität',
+  servicioAiVideoEdit: 'Videoschnitt',
+  servicioAiAudio: 'Sprachgenerierung',
+  servicioAiTranscribe: 'Transkription und Untertitel',
+  servicioAiMusic: 'Musikgenerierung',
+  servicioAiWorld: 'Generierung einer 3D-Welt',
+  servicioAiBrain: 'Antwort von Weë Brain',
+  servicioAiText: 'Textgenerierung',
+  servicioAiTextPro: 'Langer Text in höchster Qualität',
+  servicioAiSearch: 'Suche mit KI',
+  servicioAiBook: 'Bucherstellung',
+  /* Boost (functions/src/boost): traducción de IA, pendiente de revisión nativa (2026-11-05). */
+  boostReserva: 'Boost eines Beitrags',
+  boostNoIniciado: 'Boost nicht gestartet',
+  boostSinEntregas: 'Boost ohne Auslieferung · alles erstattet',
+};

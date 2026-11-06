@@ -1,0 +1,52 @@
+/*
+ * JEMER — Credits: el saldo, la recarga y el historial. "Credits" es marca y no se traduce; todo lo que lo rodea, sí. Ni los precios ni los cálculos pasan por aquí.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * «បញ្ចូល» = recargar (lo que dicen los operadores de Camboya para el saldo del móvil).
+ */
+export const credits: typeof import('../es/credits').credits = {
+  title: 'Credits',
+  available: 'Credits ដែល​មាន',
+  yourBalance: 'សមតុល្យ​របស់អ្នក',
+  currentBalance: 'សមតុល្យ​បច្ចុប្បន្ន',
+  free: 'ឥតគិតថ្លៃ',
+  testTopUp: 'ការបញ្ចូល​សាកល្បង',
+  testTopUpReady: 'ការបញ្ចូល​សាកល្បង​រួចរាល់',
+  testPrices: 'តម្លៃ​សាកល្បង ខណៈពេល​យើង​កំពុង​អភិវឌ្ឍ Weë AI',
+  topUp: 'បញ្ចូល​បន្ថែម',
+  seeHistory: 'មើល​ប្រវត្តិ →',
+  seeHistoryLabel: 'មើល​ប្រវត្តិ',
+  history: 'ប្រវត្តិ',
+  myWallet: 'កាបូប​របស់ខ្ញុំ',
+  earned: 'បាន​ទទួល',
+  spent: 'បាន​ប្រើ',
+  noMovements: 'មិនទាន់​មាន​ប្រតិបត្តិការ​នៅឡើយទេ',
+  testTopUpDone: 'បាន​បន្ថែម {{cantidad}} Credits ទៅ​គណនី​របស់អ្នក។ នេះ​ជា​ការបញ្ចូល​សាកល្បង៖ មិនបាន​គិតថ្លៃ​អ្វី​ទេ។',
+  balanceAfter: 'សមតុល្យ៖ {{saldo}}',
+  topUpFailed: 'មិនអាច​បញ្ចប់​ការបញ្ចូល​បានទេ។ សូម​ព្យាយាម​ម្តងទៀត។',
+  terms: 'ការបញ្ចូល​សាកល្បង៖ មិនទាន់​គិតថ្លៃ​អ្វី​នៅឡើយទេ។ តម្លៃ​ផ្លូវការ​នឹង​មកដល់ នៅពេល Weë AI ប្រើ AI ពិតប្រាកដ​របស់វា។ ក្នុងពេលនេះ ស្នាដៃ​នីមួយៗ​បង្ហាញ​ថ្លៃ​សាកល្បង​របស់វា​មុនពេល​ចាប់ផ្តើម។',
+  youHaveLabel: 'អ្នក​មាន {{saldo}} Credits',
+  topUpButton: 'បញ្ចូល {{cantidad}} Credits · សាកល្បង',
+  txPurchase: 'ការទិញ Credits',
+  txGrant: 'Credits ដែល​បាន​ទទួល',
+  txRefund: 'ការបង្វិល​សង​វិញ',
+  txUsage: 'ការប្រើប្រាស់ Credits',
+  txRefunded: 'បាន​បង្វិល​សង​វិញ',
+  txPending: 'កំពុង​ដំណើរការ',
+  purchasesComingSoon: 'ការទិញ Credits នឹង​មកដល់​ឆាប់ៗនេះ។ សម្រាប់​ពេលនេះ មិនអាច​បញ្ចូល​នៅទីនេះ​បានទេ។',
+  topUpFailedTitle: 'មាន​បញ្ហា',
+  /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
+  buyTitle: 'តើ​អ្នក​ចង់បាន Credits ប៉ុន្មាន?',
+  buyRate: '{{precio}} = {{cantidad}} Credits',
+  buyButton: 'ទិញ {{cantidad}} Credits · {{precio}}',
+  buyLess: 'តិច​ជាង',
+  buyMore: 'ច្រើន​ជាង',
+  buyNoticeTitle: 'ការបង់ប្រាក់​មិនទាន់​ត្រូវ​បាន​ភ្ជាប់​នៅឡើយ​ទេ',
+  buyNoticeBody: 'មិនបាន​គិតថ្លៃ​អ្វី​ទេ ហើយ​សមតុល្យ​របស់អ្នក​នៅតែ​ដដែល។',
+  buyChecking: 'កំពុង​ពិនិត្យ​ហាង…',
+  buyCatalogError: 'មិនអាច​ភ្ជាប់​ទៅ​ហាង​បានទេ។ ចុច​ដើម្បី​ព្យាយាម​ម្តងទៀត។',
+  buyMarketUnavailable: 'ការបង់ប្រាក់​ជា​រូបិយប័ណ្ណ​នេះ​មិនទាន់​មាន​នៅឡើយ​ទេ។ មិនបាន​គិតថ្លៃ​អ្វី​ទេ។',
+  historyLoading: 'កំពុង​ផ្ទុក​ប្រតិបត្តិការ…',
+  historyError: 'មិនអាច​ផ្ទុក​ប្រវត្តិ​បានទេ។',
+  historyRetry: 'ព្យាយាម​ម្តង​ទៀត',
+};

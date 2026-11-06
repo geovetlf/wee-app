@@ -1,0 +1,227 @@
+/*
+ * RUMANO — Weë Business: la pantalla del negocio y las etiquetas de sus datos
+ * de muestra. Tipado contra el español.
+ *
+ * `productsCount` cuenta productos y el rumano tiene tres formas (1 produs /
+ * 2 produse / 20 de produse), así que el módulo se declara con `ConPlurales`
+ * para poder añadir `_few`.
+ *
+ * Los nombres de los módulos y de las funciones de negocio (Business Plan,
+ * Business Coach, Pricing Assistant, Brand Kit, Customer Insights, Business
+ * Ideas, Business Profile) y las marcas (Weë, Wäll, Credits, Weë Fashion) se
+ * escriben igual que en español. Lo que escribe la persona o sus clientes no
+ * pasa por aquí.
+ */
+import { ConPlurales } from '../ru/plurales';
+
+export const business: ConPlurales<typeof import('../es/business').business> = {
+  mySocialAccounts: 'Rețelele mele sociale',
+  manageAccounts: 'Gestionează conturile',
+  connected: 'Conectat',
+  networkConnected: '{{red}} conectat',
+  connectAnother: 'Conectează altă rețea',
+  allConnected: 'Ai deja toate rețelele conectate.',
+  simulatedConnection: 'Conexiune simulată: Weë încă nu publică și nu răspunde în locul tău. Pregătește fiecare material ca tu să îl revizuiești și să îl publici.',
+  postCalendar: 'Calendarul postărilor',
+  seeFullCalendar: 'Vezi calendarul complet',
+  calendarGoal: 'Să văd și să organizez calendarul postărilor mele din săptămâna asta',
+  scheduleGoal: 'Să programez o postare pentru {{dia}} {{fecha}}: {{publicacion}}',
+  dayLabel: '{{dia}} {{fecha}}',
+  customerMessages: 'Mesaje de la clienți',
+  seeAllMessages: 'Vezi toate',
+  messagesGoal: 'Să răspund la mesajele clienților mei',
+  reply: 'Răspunde',
+  replied: 'Răspuns trimis',
+  replyTo: 'Răspunde către {{nombre}}',
+  repliedTo: 'Răspuns trimis către {{nombre}}',
+  replyGoal: 'Să răspund către {{nombre}} pe {{red}}: „{{mensaje}}”',
+  resultsThisWeek: 'Rezultate săptămâna asta',
+  statPosts: 'Postări',
+  statReach: 'Persoane la care ai ajuns',
+  statInteractions: 'Interacțiuni',
+  statMessages: 'Mesaje primite',
+  onTrack: 'Afacerea ta e pe drumul cel bun',
+  onTrackNote: 'Interacțiunile au crescut cu 60% săptămâna asta. Ține-o tot așa!',
+  seeDetailedAnalysis: 'Vezi analiza detaliată',
+  analysisGoal: 'Să analizez rezultatele afacerii mele săptămâna asta',
+  shortcutIdeas: 'Idei',
+  shortcutIdeasGoal: 'Idei și strategie ca să-mi cresc afacerea',
+  shortcutMarketing: 'Marketing',
+  shortcutMarketingGoal: 'O campanie de marketing pentru afacerea mea',
+  shortcutSocial: 'Rețele sociale',
+  shortcutSocialGoal: 'Să creez conținut pentru rețelele afacerii mele',
+  shortcutAnalyze: 'Analizează',
+  shortcutAnalyzeGoal: 'Să analizez rezultatele afacerii mele',
+  shortcutDocuments: 'Documente',
+  shortcutDocumentsGoal: 'Să redactez un document pentru afacerea mea',
+  shortcutSell: 'Vinde mai mult',
+  shortcutSellGoal: 'Să vând mai mult luna asta în afacerea mea',
+  shortcutCareer: 'Muncă și carieră',
+  shortcutCareerGoal: 'Să-mi îmbunătățesc CV-ul și profilul profesional',
+  yesterday: 'Ieri',
+
+  /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
+  slogan: 'Modă, stil, frumusețe și creare de conținut vizual.',
+
+  /* Qué hace cada módulo, en una línea. */
+  modMyBusinessHint: 'Construiește și administrează-ți afacerea',
+  modProductsHint: 'Produsele tale și prețurile lor',
+  modCreateHint: 'Creează conținut cu IA',
+  modSocialHint: 'Pregătește și distribuie peste tot',
+  modAnalyzeHint: 'Înțelege-ți afacerea',
+  modGrowHint: 'Găsește oportunități și crește',
+  modProfileHint: 'Afacerea ta în Weë',
+  modPromoteHint: 'Ajunge la mai multe persoane cu Weë',
+
+  /* ── My Business ──────────────────────────────────────────────────────── */
+  overview: 'Rezumatul afacerii tale',
+  overviewEmpty: 'Încă nu ți-ai creat afacerea.',
+  overviewEmptyHint: 'Spune-i lui Weë cu cuvintele tale — „vând deserturi de acasă” — și te ajut să-i dai formă.',
+  createBusiness: 'Creează afacerea mea',
+  createBusinessGoal: 'Să-mi creez afacerea de la zero: nume, ce vând, cui și la ce preț',
+  editBusiness: 'Editează afacerea mea',
+  editBusinessGoal: 'Să revizuiesc și să îmbunătățesc informațiile despre afacerea mea',
+  businessInfo: 'Informații despre afacere',
+  businessInfoGoal: 'Să ordonez informațiile despre afacerea mea: ce vând, cui și ce mă diferențiază',
+  businessPlan: 'Business Plan',
+  businessPlanGoal: 'Să scriu planul de afaceri ca să-mi prezint afacerea unui investitor',
+  businessCoach: 'Business Coach',
+  businessCoachGoal: 'Ce ar trebui să fac săptămâna asta în afacerea mea?',
+
+  /* ── Products & Catalog ───────────────────────────────────────────────── */
+  productsEmpty: 'Încă nu ai adăugat produse.',
+  productsEmptyHint: 'Încarcă o fotografie și Weë scrie numele, descrierea și textul ca să-l vinzi.',
+  addProduct: 'Adaugă un produs',
+  addProductGoal: 'Să creez fișa unui produs: nume, descriere, caracteristici și text ca să-l vând',
+  improveImage: 'Îmbunătățește fotografia',
+  improveImageGoal: 'Să îmbunătățesc fotografia produsului meu ca să-l vând mai bine',
+  productsCount_one: '{{contador}} produs',
+  productsCount_few: '{{contador}} produse',
+  productsCount_other: '{{contador}} de produse',
+
+  /* Pricing Assistant */
+  pricing: 'Pricing Assistant',
+  pricingHint: 'Notează cât te costă și Weë îți dă un preț de referință.',
+  pricingMaterials: 'Materiale',
+  pricingPackaging: 'Ambalaj',
+  pricingDelivery: 'Livrare',
+  pricingOther: 'Alte costuri',
+  pricingMargin: 'Marja pe care o vrei',
+  pricingCost: 'Cost estimat',
+  pricingSuggested: 'Preț sugerat',
+  pricingMarginResult: 'Marjă estimată',
+  pricingProfit: 'Profit estimat',
+  pricingNote: 'Prețurile sunt o referință informativă și nu reprezintă consultanță contabilă sau fiscală.',
+
+  /* Brand Kit */
+  brandKit: 'Brand Kit',
+  brandKitHint: 'Ceea ce face ca tot conținutul tău să arate mereu ca al tău.',
+  brandLogo: 'Logo',
+  brandColors: 'Culori',
+  brandTypography: 'Tipografie',
+  brandStyle: 'Stil vizual',
+  brandAvatar: 'Imagine de profil',
+  brandCover: 'Copertă',
+  brandTemplates: 'Șabloane de conținut',
+  brandGoal: 'Să creez {{que}} pentru brandul afacerii mele',
+
+  /* ── Create ───────────────────────────────────────────────────────────── */
+  createInvite: 'Spune-mi ce vrei să promovezi și eu pregătesc totul.',
+  createPlaceholder: 'Exemplu: Vreau să promovez acest tort de Ziua Mamei…',
+  createTypes: 'Ce vrei să creezi?',
+  typeImage: 'Imagine',
+  typeImageHint: 'O imagine de promovare',
+  typeVideo: 'Video',
+  typeVideoHint: 'Un videoclip scurt',
+  typePost: 'Postare',
+  typePostHint: 'Gata de publicat',
+  typeCampaign: 'Campanie',
+  typeCampaignHint: 'Mai multe materiale deodată',
+  typeCopy: 'Texte',
+  typeCopyHint: 'Descriere, hashtaguri și îndemn la acțiune',
+  typeGoal: 'Să creez {{que}} pentru afacerea mea: {{idea}}',
+  formats: 'Alege formatul',
+  formatsHint: 'Weë se ocupă de dimensiune. Tu alegi unde ajunge.',
+  formatTikTok: 'TikTok',
+  /* «Video Instagram» y no «Reel»: en Weë los videos cortos son Weëls y esa palabra no asoma a la interfaz. El id interno sigue siendo 'reel'. */
+  formatReel: 'Video Instagram',
+  formatStory: 'Instagram Story',
+  formatFacebookStory: 'Facebook Story',
+  formatPost: 'Instagram Post',
+  formatFeed: 'Facebook',
+  formatWide: 'Video orizontal',
+
+  askInvite: 'Spune-mi cu cuvintele tale și mă ocup eu.',
+  askPlaceholder: 'Scrie aici de ce ai nevoie…',
+  askSend: 'Întreabă Weë',
+
+  productCreate: 'Creează conținut',
+  goalWithProduct: '{{idea}} — produs: {{producto}}',
+
+  /* ── Social ───────────────────────────────────────────────────────────── */
+  socialIdea: 'Creează o dată. Distribuie peste tot.',
+  share: 'Distribuie',
+  shareHint: 'Se deschide meniul de distribuire al telefonului tău: alege aplicația pe care o vrei.',
+  shareToWee: 'Distribuie în Weë',
+  shareWall: 'Wäll',
+  shareCommunities: 'Comunități',
+  shareProfile: 'Business Profile',
+  shareNothing: 'Mai întâi creează ceva, apoi îl distribui de aici.',
+  shareText: 'Creat cu Weë Fashion',
+
+  /* ── Analyze ──────────────────────────────────────────────────────────── */
+  analyzeUpload: 'Încarcă datele mele',
+  analyzeUploadHint: 'Excel, CSV sau PDF cu vânzările și cheltuielile tale.',
+  analyzeUploadGoal: 'Să analizez fișierul cu vânzările și cheltuielile afacerii mele',
+  analyzeInsights: 'Ce văd în cifrele tale',
+  analyzeInsightsGoal: 'Să-mi explici ce se întâmplă cu vânzările afacerii mele',
+  expenses: 'Cheltuieli',
+  expensesHint: 'Notează pe ce se duc banii.',
+  expensesEmpty: 'Încă nu ai notat cheltuieli.',
+  addExpense: 'Adaugă o cheltuială',
+  expenseSupplies: 'Consumabile',
+  expenseMarketing: 'Marketing',
+  expenseDelivery: 'Livrări',
+  expenseStaff: 'Personal',
+  expenseServices: 'Servicii',
+  expenseOther: 'Altele',
+  expensesAsk: 'Pe ce cheltuiesc prea mult?',
+  expensesAskGoal: 'Să-mi revizuiești cheltuielile și să-mi spui pe ce cheltuiesc prea mult',
+  swot: 'SWOT',
+  swotHint: 'Puncte tari, puncte slabe, oportunități și amenințări.',
+  swotGoal: 'Să fac analiza SWOT a afacerii mele',
+
+  /* ── Grow ─────────────────────────────────────────────────────────────── */
+  helpMeGrow: 'Ajută-mă să cresc',
+  helpMeGrowHint: 'Weë se uită la afacerea ta și îți propune ce să faci.',
+  helpMeGrowGoal: 'Un plan ca să-mi cresc afacerea, cu pași concreți',
+  opportunities: 'Oportunități',
+  opportunitiesEmpty: 'Când vei avea vânzări și conținut, aici vor apărea oportunitățile pe care le văd.',
+  createPromotion: 'Creează promoția',
+  customerInsights: 'Customer Insights',
+  customerInsightsHint: 'Cui îi vinzi și de ce are nevoie.',
+  customerInsightsGoal: 'Să-mi descrii clientul ideal și ce mesaje funcționează la el',
+  businessIdeas: 'Business Ideas',
+  businessIdeasHint: 'Ce altceva ai putea vinde sau cum să te diferențiezi.',
+  businessIdeasGoal: 'Să-mi dai idei pentru afacerea mea și să mă ajuți să mă diferențiez',
+
+  /* ── Business Profile ─────────────────────────────────────────────────── */
+  profileEmpty: 'Afacerea ta nu are încă o pagină în Weë.',
+  profileEmptyHint: 'Când îți creezi afacerea, aici va fi pagina ei: cine ești, ce vinzi și cum te pot contacta.',
+  profileAbout: 'Despre',
+  profileProducts: 'Produse',
+  profilePosts: 'Postări',
+  profileContact: 'Contact',
+  reviews: 'Recenzii',
+  reviewsHint: 'Ce spun clienții tăi și ce poți îmbunătăți.',
+  reviewsGoal: 'Să analizezi recenziile afacerii mele și să-mi spui ce să îmbunătățesc',
+  reviewsRespond: 'Scrie un răspuns',
+  reviewsRespondGoal: 'Să scriu un răspuns profesional la o recenzie a afacerii mele',
+
+  /* ── Promote ──────────────────────────────────────────────────────────── */
+  promoteTitle: 'Ajunge la mai multe persoane cu Weë Credits',
+  promoteHint: 'Conținutul tău e arătat mai multor oameni în Weë. Înainte să cheltuiești ceva, vei vedea cât costă.',
+  promoteSoon: 'Promovarea în Weë nu e încă deschisă. Când va fi, se va plăti cu Credits din contul tău și o vei vedea aici.',
+  promoteCredits: 'Vezi soldul meu de Credits',
+  sampleProductName: 'Produsul {{numero}}',
+};

@@ -35,4 +35,14 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'Bu projede ne eksik?',
   whatIsMissingNote: 'Bir logo, fotoğraflar, bir reklam, bir video, müzik ya da bir belge: Weë\'nin her uzmanı buraya bir şey katabilir.',
   createSomethingNew: 'Yeni bir şey oluştur',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '{{contador}} proje',
+  count_other: '{{contador}} proje',
+  updatedOn: '{{fecha}} tarihinde güncellendi',
+  searchPlaceholder: 'Projelerde ara',
+  sortUpdated: 'Son güncellenenler',
+  sortName: 'Ad (A–Z)',
+  noMatches: 'Aramanla eşleşen proje yok.',
+  emptySpaceTitle: 'Yaratıcı alanın burada başlıyor',
+  moreActions: 'Diğer işlemler',
 };

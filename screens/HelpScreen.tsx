@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -9,6 +10,7 @@ import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { useResponsive } from '../hooks/useResponsive';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 interface FaqItem {
   emoji: string;
@@ -101,7 +103,7 @@ const HelpScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.colors.border, paddingTop: isDesktop ? SPACING.md : insets.top + SPACING.sm }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
-          <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('help.title')}</Text>
         <View style={styles.backButton} />
@@ -145,6 +147,7 @@ const HelpScreen: React.FC = () => {
               activeOpacity={0.85}
               accessibilityLabel={t('composer.askCommunity')}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.buttonText}>{t('help.askQuestion')}</Text>
             </TouchableOpacity>
           </View>

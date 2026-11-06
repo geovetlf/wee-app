@@ -17,6 +17,7 @@ export const chef: typeof import('../es/chef').chef = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: '写下你的想法、手边的食材，或者上传一张照片',
+  cookPrompt: '告诉我你想做什么菜…',
   addLabel: '添加照片',
   cameraLabel: '拍照',
   galleryLabel: '从相册选择照片',
@@ -101,4 +102,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: '查看全部',
   projectsEmpty: '你还没有用 Weë 做过菜。',
   projectsEmptyHint: '在这里创作的内容都会保存下来，随时能在这一行找回。',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: '你的 AI 厨师，',
+  heroAccent: '时刻相伴',
+  chipRecipes: '食谱',
+  chipMenus: '菜单',
+  chipHealthy: '健康',
+  chipQuick: '快手',
 };

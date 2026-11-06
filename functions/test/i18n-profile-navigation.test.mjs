@@ -283,10 +283,11 @@ console.log('\n── F · Control: no se rediseñó nada ──');
    * Lo que se mira es lo que la hace ser ella.
    */
   const COMUNIDADES = soloCodigo(leer('screens/CommunitiesManagementScreen.tsx'));
-  check('34) la pantalla de comunidades sigue igual por dentro',
-    /communityService\.joinCommunity/.test(COMUNIDADES)
-    && /communityService\.leaveCommunity/.test(COMUNIDADES)
-    && /communityService\.createCommunity/.test(COMUNIDADES)
+  /* Re-anclado 2026-11-05 (docs/COMUNIDADES-IDENTIDAD.md, decisiones 1–3 del dueño): unirse, salir y crear van por las callables con la cara ACTIVA. */
+  check('34) la pantalla de comunidades sigue igual por dentro (unirse, salir y crear, ahora por el servidor)',
+    /comunidadesService\.unirse/.test(COMUNIDADES)
+    && /comunidadesService\.salir/.test(COMUNIDADES)
+    && /comunidadesService\.crear/.test(COMUNIDADES)
     && /navigation\.goBack\(\)/.test(COMUNIDADES));
   check('34) y su texto sigue saliendo del diccionario de la fase anterior',
     /t\('communities\.searchPlaceholder'\)/.test(COMUNIDADES) && /t\('menu\.communities'\)/.test(COMUNIDADES));

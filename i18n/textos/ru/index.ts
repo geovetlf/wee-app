@@ -39,6 +39,8 @@ import { econtact } from './econtact';
 import { weetalk } from './weetalk';
 import { notifications } from './notifications';
 import { saved } from './saved';
+import { pages } from './pages';
+import { boost } from './boost';
 import { weeai } from './weeai';
 import { writer } from './writer';
 import { settings } from './settings';
@@ -47,6 +49,7 @@ import { catalogo } from './catalogo';
 import { business } from './business';
 import { projects } from './projects';
 import { profesional } from './profesional';
+import { fashion } from './fashion';
 import { music } from './music';
 import { creaciones } from './creaciones';
 import { studio } from './studio';
@@ -62,16 +65,15 @@ import { help } from './help';
 import { search } from './search';
 import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
-import { weebiz } from './weebiz';
 import { moderation } from './moderation';
 import { filmmaker } from './filmmaker';
+import { travel } from './travel';
 import { FormaDelDiccionario } from '../es';
 
 export const ru: FormaDelDiccionario = {
   common,
   help,
   search,
-  weebiz,
   onboarding,
   aiAvatar,
   auth,
@@ -91,6 +93,8 @@ export const ru: FormaDelDiccionario = {
   weetalk,
   notifications,
   saved,
+  pages,
+  boost,
   weeai,
   writer,
   settings,
@@ -99,6 +103,7 @@ export const ru: FormaDelDiccionario = {
   business,
   projects,
   profesional,
+  fashion,
   music,
   creaciones,
   studio,
@@ -107,4 +112,5 @@ export const ru: FormaDelDiccionario = {
   brain,
   moderation,
   filmmaker,
+  travel,
 };

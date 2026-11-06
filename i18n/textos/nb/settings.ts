@@ -1,0 +1,48 @@
+/*
+ * NORUEGO BOKMÅL — Configuración.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * «Fellesskap» es invariable en plural; el contador lleva la frase entera.
+ */
+export const settings: typeof import('../es/settings').settings = {
+  title: 'Innstillinger',
+  sectionContent: 'Innhold',
+  sectionPrivacy: 'Personvern',
+  sectionPreferences: 'Preferanser',
+  sectionSupport: 'Hjelp',
+  myCommunities: 'Mine fellesskap',
+  communitiesJoined_one: '{{contador}} fellesskap du er med i',
+  communitiesJoined_other: '{{contador}} fellesskap du er med i',
+  privateReplies: 'Private svar',
+  privateRepliesHint: 'La andre sende deg private meldinger',
+  pushNotifications: 'Push-varsler',
+  language: 'Språk',
+  languageSubtitle: 'Velg språk for Weë',
+  help: 'Hjelp',
+  privacyPolicy: 'Personvernerklæring',
+  about: 'Om Weë',
+  signOut: 'Logg ut',
+  signOutFailed: 'Vi kunne ikke logge deg ut',
+  engineAdmin: 'Weë AI Engine',
+  seedDefaults: 'Legg inn standardverdier',
+  seedDefaultsConfirm: 'Skriver standardleverandører, -kjeder og -innstillinger som ennå ikke finnes, til Firestore. Ingenting slettes.',
+  seed: 'Legg inn',
+  sectionNotifications: 'Varsler',
+  sectionInfo: 'Informasjon',
+  sectionAccount: 'Konto',
+  privacyPolicyHint: 'Hva vi gjør med dataene dine, med enkle ord',
+  pushNotificationsHint: 'Få varsler om nye meldinger og aktivitet',
+  aboutHint: 'Hva Weë er, og versjonen du bruker',
+  helpHint: 'Vanlige spørsmål og kontakt',
+  signOutHint: 'Logg ut av kontoen din',
+  aboutBody: 'Weë (World Encode Entity) er det sosiale nettverket for folk som skaper med kunstig intelligens.\n\nVersjon 1.0.0 · © {{anio}} Weë. Med enerett.\n\nGeografiske data: GeoNames (geonames.org), CC BY 4.0.',
+  location: 'Posisjon',
+  locationLine: '{{estado}} Den nøyaktige posisjonen din vises aldri offentlig.',
+  locationOff: 'Av. La Weë bruke den omtrentlige posisjonen din til å foreslå steder i nærheten og området ditt når du legger til et sted i et innlegg. Den nøyaktige posisjonen din vises aldri offentlig.',
+  locationUnavailable: 'Denne enheten kan ikke gi oss posisjonen din.',
+  locationDisabled: 'Posisjon er slått av i innstillingene på enheten din.',
+  locationPermissionDenied: 'Du har avslått tilgangen. Trykk her for å endre det i innstillingene på enheten din.',
+  locationPermissionNotDetermined: 'Weë ber om tillatelse når det trengs.',
+  locationApproximate: 'Weë kjenner området ditt, ikke det nøyaktige punktet.',
+  locationPrecise: 'Weë kan bruke den nøyaktige posisjonen din når en funksjon trenger det.',
+};

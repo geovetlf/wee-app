@@ -338,7 +338,12 @@ console.log('\n── F · LocationProvider, useLocation y el interruptor ──
   check('F) apagar en Weë no toca el permiso del sistema', /const desactivar = [\s\S]*?guardarPreferencia\('off'\)/.test(contexto) && !/const desactivar = [\s\S]*?pedirPermiso/.test(contexto.slice(contexto.indexOf('const desactivar'), contexto.indexOf('const leerUnaVez'))));
   check('F) con la preferencia apagada no se lee la ubicación', /if \(preferencia === 'off'\) return null;/.test(contexto));
 
-  check('F) el interruptor vive en Configuración → Privacidad', ajustes.indexOf('📍 Ubicación') > ajustes.indexOf("Privacidad") && ajustes.indexOf('📍 Ubicación') < ajustes.indexOf('Notificaciones push'));
+  /*
+   * Decisión del dueño 2026-11-06: un solo pin, sistema visual de Ajustes. El título ya no lleva «📍» (salía doble y
+   * en rojo junto al icono de la fila): se ancla al título resuelto entre comillas, 'Ubicación'.
+   */
+  check('F) el interruptor vive en Configuración → Privacidad', ajustes.indexOf("'Ubicación'") > ajustes.indexOf("Privacidad") && ajustes.indexOf("'Ubicación'") < ajustes.indexOf('Notificaciones push'));
+  check('F) un solo pin: el icono de la fila y ningún «📍» en el título', /renderSettingItem\(\s*'location',\s*'Ubicación',/.test(ajustes) && !/📍/u.test(ajustes));
 const diccionarioEs = fs.readFileSync(new URL('../../i18n/textos/es/settings.ts', import.meta.url), 'utf8');
   const diccionarioEn = fs.readFileSync(new URL('../../i18n/textos/en/settings.ts', import.meta.url), 'utf8');
   check('F) con los tres estados que pide el producto',

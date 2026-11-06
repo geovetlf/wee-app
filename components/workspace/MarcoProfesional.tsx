@@ -7,12 +7,13 @@ import { CommonActions, useNavigation, useNavigationState, useRoute } from '@rea
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useUserProfile } from '../../contexts/UserProfileContext';
 import { useResponsive } from '../../hooks/useResponsive';
-import AvatarDisplay from '../avatars/AvatarDisplay';
+import { useDireccion } from '../../hooks/useDireccion';
+import IdentidadEnCreator from './IdentidadEnCreator';
 import CreditsPill from '../CreditsPill';
 import SelectorDeVersion from './SelectorDeVersion';
 import { ConMarcoDeSeccion } from '../creator/MarcoDeSeccion';
+import { alinearTitulosDeCreator } from './titulosDeCreator';
 import {
   HERRAMIENTAS_PROFESIONALES,
   RUTA_DE_INICIO,
@@ -20,6 +21,7 @@ import {
   entradaEncendida,
 } from '../../constants/espacioProfesional';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -54,8 +56,9 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const t = useT();
+  /* En árabe o hebreo, «Weë Studio» empieza en el mismo lado que «الرئيسية»: los nombres de marca no se alinean al revés. */
+  const dir = useDireccion();
   const { user } = useAuth();
-  const { userProfile } = useUserProfile();
   const { isDesktop, isTablet } = useResponsive();
   const esta = useRoute();
   const nombre = useNavigationState((e) => leerRuta(e, esta.key).nombre);
@@ -76,8 +79,21 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
     else navigation.navigate('EspacioProfesional', { screen: ruta, params });
   }, [navigation, pila]);
 
+  /*
+   * Abrir algo de la cuenta —Configuración, la billetera— es apilarlo DENTRO de
+   * creator: se ve en este marco y «atrás» vuelve a donde se estaba. Antes se
+   * pedía a la pila principal y salía al diseño de la versión app.
+   */
+  const abrir = useCallback((ruta: string) => {
+    if (pila) navigation.dispatch({ ...CommonActions.navigate(ruta), target: pila });
+    else navigation.navigate('EspacioProfesional', { screen: ruta });
+  }, [navigation, pila]);
+
+  /* Los títulos de marca en latín empiezan, en árabe o hebreo, del mismo lado que el texto traducido (titulosDeCreator.ts). */
+  alinearTitulosDeCreator();
+
   const inicio: Entrada = { id: 'home', nombre: t('nav.home'), icono: 'home-outline', alPulsar: () => irA(RUTA_DE_INICIO) };
-  const ajustes: Entrada = { id: 'settings', nombre: t('menu.settings'), icono: 'settings-outline', alPulsar: () => navigation.navigate('Settings') };
+  const ajustes: Entrada = { id: 'settings', nombre: t('menu.settings'), icono: 'settings-outline', alPulsar: () => abrir('Settings') };
   const herramientas: Entrada[] = HERRAMIENTAS_PROFESIONALES.map((h) => ({
     id: h.id, nombre: h.nombre, icono: h.icono, alPulsar: () => irA('Specialist', { id: h.id }),
   }));
@@ -109,7 +125,7 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
       >
         <Ionicons name={e.icono as any} size={compacta ? 20 : 17} color={activa ? theme.colors.accentDark : theme.colors.textSecondary} />
         {!compacta && (
-          <Text style={[styles.nombre, { color: activa ? theme.colors.text : theme.colors.textSecondary }, activa && styles.nombreActivo]}>
+          <Text style={[styles.nombre, dir.texto, { color: activa ? theme.colors.text : theme.colors.textSecondary }, activa && styles.nombreActivo]}>
             {e.nombre}
           </Text>
         )}
@@ -120,7 +136,7 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
   const titulo = (texto: string) => (
     compacta
       ? <View style={[styles.separador, { backgroundColor: theme.colors.border }]} />
-      : <Text style={[styles.grupo, { color: theme.colors.textSecondary }]}>{texto}</Text>
+      : <Text style={[styles.grupo, dir.texto, { color: theme.colors.textSecondary }]}>{texto}</Text>
   );
 
   /* En el teléfono cada entrada lleva su nombre: un icono solo no basta para tantas secciones. */
@@ -153,17 +169,10 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
           <View style={[styles.raya, { backgroundColor: theme.colors.border }]} />
           <SelectorDeVersion puesta="pro" />
           <View style={styles.empuje} />
-          <CreditsPill compact={!isDesktop} />
+          <CreditsPill compact={!isDesktop} onPress={() => abrir('Wallet')} />
           {user ? (
-            <AvatarDisplay
-              size={30}
-              avatarType={userProfile?.avatarType || 'predefined'}
-              avatarId={userProfile?.avatarId || 'male'}
-              photoURL={userProfile?.photoURL}
-              photoURLThumbnail={userProfile?.photoURLThumbnail}
-              backgroundColor={theme.colors.accent}
-              showBorder={false}
-            />
+            /* La cara puesta, y cambiarla si la cuenta tiene Perfil Weë (components/workspace/IdentidadEnCreator.tsx). */
+            <IdentidadEnCreator onAjustes={() => abrir('Settings')} />
           ) : (
             <TouchableOpacity
               onPress={() => navigation.navigate('Login')}
@@ -171,6 +180,7 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
               accessibilityRole="button"
               accessibilityLabel={t('menu.signIn')}
             >
+              <RellenoDeMarca radio={999} />
               <Text style={styles.entrarTexto} numberOfLines={1}>{t('menu.signIn')}</Text>
             </TouchableOpacity>
           )}
@@ -204,7 +214,7 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
             </View>
           </View>
         )}
-        <View style={styles.trabajo}>
+        <View style={styles.trabajo} {...({ dataSet: { creatorDir: dir.direccion } } as object)}>
           <ConMarcoDeSeccion saldoALaVista aireLateral={0}>{children}</ConMarcoDeSeccion>
         </View>
       </View>

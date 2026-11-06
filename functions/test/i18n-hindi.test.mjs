@@ -106,7 +106,8 @@ console.log('\n── A · `hi-IN` de punta a punta, sin lógica para el hindi �
   check('1b) «हिन्दी» es el nombre que da CLDR para el selector', new Intl.DisplayNames(['hi'], { type: 'language' }).of('hi') === cat?.nombreNativo);
   check('2) y su locale principal, `hi-IN`, está entre los contemplados', idiomas.LOCALES_CONTEMPLADOS.includes('hi-IN'));
   check('3) el registro lo sirve con su propio diccionario, no por un alias',
-    registro.DICCIONARIOS.hi === hi && registro.idiomasConDiccionario().includes('hi'));
+    /* Con su sección del servidor el registro sirve {...hi, ...servidor}: se exige que CADA módulo sea el suyo (el mismo objeto), y que la sección esté. */
+    Object.keys(hi).every((s) => registro.DICCIONARIOS.hi[s] === hi[s]) && !!registro.DICCIONARIOS.hi.preguntas && registro.idiomasConDiccionario().includes('hi'));
 
   const disponibles = registro.idiomasConDiccionario();
   const elegir = (elegido, aparato) => resolver.elegirIdioma(elegido, aparato, disponibles);
@@ -163,6 +164,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en hindi que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['menu.pages', '«WeëPages» es el nombre de la función (marca), no se traduce'],
     ['music.export_midi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
     ['music.capMidi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
     ['filmmaker.presetShorts', '«YouTube Shorts» es el nombre del producto de la plataforma, en latino como las marcas; los Shorts ya son vídeos'],
@@ -177,6 +179,8 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['catalogo.chefEj4Title', '«Lomo saltado» es el nombre de un plato: no se traduce'],
     ['help.footer', 'la marca, «World Encode Entity» y la versión'],
     ['settings.engineAdmin', '«Weë AI Engine» es el nombre del producto (el WEË AI ENGINE)'],
+    ['travel.demo', 'WeëTravel (2026-11-06): marca: «DEMO» señala los datos simulados del prototipo'],
+    ['travel.travelSafe', 'WeëTravel (2026-11-06): marca: «Travel Safe» es el nombre de la sección'],
   ]);
   const copiadas = HI.filter(([k, v]) => !IGUALES.has(k) && /\p{L}{3,}/u.test(sinLoAjeno(v)) && (ES[k] === v || EN[k] === v));
   check('21) ninguna cadena copiada tal cual del español o del inglés, salvo las que se escriben igual con su porqué',
@@ -440,6 +444,8 @@ console.log('\n── J · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* WeëPages: «Usuario» es el nombre de usuario (@) de una página, no la persona. */
+    'pages.f_handle',
     /* Weë Music: el mismo rótulo español, otro contexto — «Género» musical (no el sexo), «Ambiente» y «Voz» de una canción (no el sonido ambiente ni la voz en off), «Efectos» de audio y «Resumen» de una selección. */
     'music.groupGenre', 'music.transformTitle', 'music.groupMood', 'music.fxTitle',
     /* «Personas» como estilo de avatar son personas; en el Chef, «Personas» es cuántos comen. */
@@ -461,6 +467,18 @@ console.log('\n── J · Traducciones defectuosas ──');
     'studio.smNatural', 'studio.ltSoft', 'studio.smSmooth',
     /* «Seguir»: la cámara que sigue a alguien («पीछे-पीछे चलना»), no seguir a un perfil («फ़ॉलो करें»). */
     'studio.mvFollow',
+    /* «sin límites.»: la segunda mitad del héroe de la demo YC; el verbo va al final y cada sección termina con el suyo (बनाएँ., डिज़ाइन करें.). */
+    'design.heroAccent',
+    /* WeëTravel (2026-11-06): la misma frase española, otro sentido que en otro módulo — «Guardados» son lugares y viajes
+       guardados (सेव की गई), no las publicaciones guardadas del menú (सेव की गई पोस्ट); «Lista» de lugares (सूची), no el
+       estado «Lista» de weeai (तैयार); «Historia» la categoría de lugares (इतिहास), no el relato de fashion (कहानी); «Cartel»
+       un letrero de la calle (साइनबोर्ड), no un póster de studio (पोस्टर); «Subir»/«Bajar» reordenan paradas (ऊपर/नीचे ले
+       जाएँ), como en filmmaker, no la grúa de la cámara de studio. */
+    'travel.tabSaved', 'travel.viewList', 'travel.catHistory', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
+    /* «Ubicación» de Ajustes (decisión del dueño 2026-11-06: un solo pin, sistema visual de Ajustes; sin el «📍» del título
+       coincide en español con composer.location): es el permiso de ubicación del aparato (जगह की जानकारी), no el lugar que
+       se añade a una publicación o a una página (जगह). */
+    'settings.location',
   ]);
   const porFrase = new Map();
   for (const [k, v] of HI) {

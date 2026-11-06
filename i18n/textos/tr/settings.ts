@@ -44,7 +44,7 @@ export const settings: typeof import('../es/settings').settings = {
   helpHint: 'Sık sorulan sorular ve iletişim',
   signOutHint: 'Hesabından çıkış yap',
   aboutBody: 'Weë (World Encode Entity), yapay zekâ ile bir şeyler oluşturan insanların sosyal ağıdır.\n\nSürüm 1.0.0 · © {{anio}} Weë. Tüm hakları saklıdır.\n\nCoğrafi veriler: GeoNames (geonames.org), CC BY 4.0.',
-  location: '📍 Konum',
+  location: 'Konum',
   locationLine: '{{estado}} Tam konumun hiçbir zaman herkese açık olarak gösterilmez.',
   locationOff: 'Kapalı. Bir gönderiye konum eklediğinde yakınındaki yerleri ve bölgeni önerebilmesi için Weë\'nin yaklaşık konumunu kullanmasına izin ver. Tam konumun hiçbir zaman herkese açık olarak gösterilmez.',
   locationUnavailable: 'Bu cihazdan konumun alınamıyor.',

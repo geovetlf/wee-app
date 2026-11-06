@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
@@ -52,7 +53,7 @@ const WriterDocuments: React.FC = () => {
               <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>{doc.title}</Text>
               <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{t('writer.editedWhen', { cuando: describeUpdated(doc.updatedAt, locale) })}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+            <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         ))
       )}

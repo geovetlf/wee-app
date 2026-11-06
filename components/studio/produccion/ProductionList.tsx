@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../../IconoDireccional';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIdioma } from '../../../contexts/IdiomaContext';
 import { useProducciones } from '../../../hooks/useProducciones';
@@ -11,6 +12,7 @@ import type { EstadoDeProduccion } from '../../../services/filmmakerService';
 import { fraseDelFallo } from '../../../utils/mensajesDeFilmmaker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
+import { RellenoDeMarca } from '../../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -43,6 +45,7 @@ const ProductionList: React.FC<{
               accessibilityLabel={e === 'active' ? t('filmmaker.tabActive') : t('filmmaker.tabArchived')}
               style={[styles.pestana, { borderColor: puesta ? theme.colors.accent : theme.colors.border, backgroundColor: puesta ? theme.colors.accent : theme.colors.card }]}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!puesta} />
               <Text style={[styles.pestanaTexto, { color: puesta ? '#1F2937' : theme.colors.text }]}>
                 {e === 'active' ? t('filmmaker.tabActive') : t('filmmaker.tabArchived')}
               </Text>
@@ -89,7 +92,7 @@ const ProductionList: React.FC<{
               ].join(' · ')}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+          <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       ))}
       {carga === 'lista' && hayMas && <BotonPequeno icono="chevron-down" etiqueta={t('filmmaker.loadMore')} onPress={() => { void cargarMas(); }} conTexto />}

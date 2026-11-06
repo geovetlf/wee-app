@@ -10,8 +10,11 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
 import { FONT_SIZE, FONT_WEIGHT, SPACING } from '../constants/design';
 import { useT } from '../contexts/IdiomaContext';
+import { MARCA } from '../constants/marca';
+import { RellenoDeMarca } from './GradienteDeMarca';
 
 interface ChatCameraProps {
   visible: boolean;
@@ -68,6 +71,7 @@ const ChatCamera: React.FC<ChatCameraProps> = ({ visible, onClose, onSend }) => 
           <Ionicons name="camera-outline" size={64} color="rgba(255,255,255,0.5)" />
           <Text style={styles.permissionText}>{t('weetalk.cameraNeeded')}</Text>
           <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
+            <RellenoDeMarca radio={24} />
             <Text style={styles.permissionBtnText}>{t('weetalk.allow')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleClose}>
@@ -91,7 +95,7 @@ const ChatCamera: React.FC<ChatCameraProps> = ({ visible, onClose, onSend }) => 
             {/* Top: close */}
             <View style={styles.topBar}>
               <TouchableOpacity onPress={handleRetake} style={styles.topBtn}>
-                <Ionicons name="arrow-back" size={26} color="#fff" />
+                <IconoDireccional name="arrow-back" size={26} color="#fff" />
               </TouchableOpacity>
             </View>
 
@@ -109,7 +113,8 @@ const ChatCamera: React.FC<ChatCameraProps> = ({ visible, onClose, onSend }) => 
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-                <Ionicons name="send" size={22} color="#fff" />
+                <RellenoDeMarca radio={26} />
+                <IconoDireccional name="send" size={22} color={MARCA.sobrePrimario} />
               </TouchableOpacity>
             </View>
           </>
@@ -219,7 +224,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#F5B731',
+    backgroundColor: MARCA.primario,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -227,8 +232,8 @@ const styles = StyleSheet.create({
   // Permission screen
   permissionScreen: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', gap: 20 },
   permissionText: { color: '#fff', fontSize: FONT_SIZE.md },
-  permissionBtn: { backgroundColor: '#F5B731', paddingHorizontal: 28, paddingVertical: 12, borderRadius: 24 },
-  permissionBtnText: { color: '#fff', fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.semibold },
+  permissionBtn: { backgroundColor: MARCA.primario, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 24 },
+  permissionBtnText: { color: MARCA.sobrePrimario, fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.semibold },
   permissionCancel: { color: 'rgba(255,255,255,0.5)', fontSize: FONT_SIZE.sm, marginTop: 8 },
 });
 

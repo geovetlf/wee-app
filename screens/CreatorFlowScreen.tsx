@@ -25,6 +25,7 @@ import { claveDelValor, filtrarCreativo } from '../constants/camaraCinematica';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /**
  * Conversación guiada con un especialista de Weë (docs/CREATOR-ARQUITECTURA.md §3 y §7):
@@ -608,6 +609,7 @@ const CreatorFlowScreen: React.FC = () => {
               activeOpacity={0.85}
               accessibilityLabel={t('weeai.getCredits')}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.retryText}>{t('weeai.getCredits')}</Text>
             </TouchableOpacity>
           </View>
@@ -620,6 +622,7 @@ const CreatorFlowScreen: React.FC = () => {
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.retryText}>{t('weeai.tryAgain')}</Text>
             </TouchableOpacity>
           </View>
@@ -665,6 +668,7 @@ const CreatorFlowScreen: React.FC = () => {
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.retryText}>{t('weeai.tryAgain')}</Text>
             </TouchableOpacity>
           </View>

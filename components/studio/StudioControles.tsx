@@ -7,6 +7,7 @@ import { FAMILIAS_DE_CAMARA, ComandoDeCamara } from '../../constants/camaraCinem
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -77,6 +78,7 @@ const StudioControles: React.FC<Props> = ({ familias, elegido, onElegir, conAlia
         accessibilityLabel={t(comando.clave)}
         accessibilityState={{ selected: puesta }}
       >
+        <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!puesta} />
         <Ionicons
           name={comando.icono as any}
           size={scale(15)}

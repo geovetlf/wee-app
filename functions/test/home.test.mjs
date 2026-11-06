@@ -231,7 +231,7 @@ console.log('\n── D · El Home abre diciendo quién eres ──');
    */
   check('17) ya no lleva una segunda frase debajo del nombre', !/Crea\. Conecta\. Sé tú\./.test(saludo));
   /* Control: el lema de la marca sí sigue existiendo, pero en el encabezado. */
-  check('18) control: la firma de marca sigue viva, arriba', /Imagina · Crea · Conecta/.test(leer('components/Header.tsx')));
+  check('18) control: la firma de marca sigue viva, arriba', /\{t\('nav\.brandSlogan'\)\}/.test(leer('components/Header.tsx')));
   check('19) y con tu cara', /AvatarDisplay/.test(saludo));
   /*
    * El nombre y el avatar salen del PERFIL ACTIVO. Si vinieran de `useAuth`,
@@ -667,8 +667,9 @@ console.log('\n── I · El refinamiento visual ──');
   check('67) y son exactamente esas cinco, en ese orden',
     (() => {
       const fila = publicacion.slice(publicacion.indexOf('LA FILA DE ACCIONES: CINCO'), publicacion.indexOf('Hidden shareable'));
-      const iconos = (fila.match(/thumbs-up|thumbs-down|chatbubble-outline|isBookmarked \? 'bookmark'|share-social-outline/g) || []);
-      return iconos[0].startsWith('thumbs-up') && iconos.includes('thumbs-down')
+      /* «Me gusta» es la mano OK (components/IconoMeGusta.tsx, 2026-11-05); el resto, Ionicons. */
+      const iconos = (fila.match(/<IconoMeGusta|thumbs-down|chatbubble-outline|isBookmarked \? 'bookmark'|share-social-outline/g) || []);
+      return iconos[0] === '<IconoMeGusta' && iconos.includes('thumbs-down')
         && iconos.includes('chatbubble-outline') && iconos.some((i) => i.includes('bookmark'))
         && iconos[iconos.length - 1] === 'share-social-outline'
         && !/name="repeat"/.test(fila) && !/paper-plane-outline/.test(fila);
@@ -1332,11 +1333,17 @@ console.log('\n── M · La marca en el centro del Home ──');
   const nativo = leer('screens/LandingScreen.tsx');
   const web = leer('screens/WebLandingScreen.tsx');
 
-  /* El lema, letra por letra: sin emojis, sin comillas y sin punto final. */
-  const lema = /const LEMA_DE_MARCA = '([^']*)';/.exec(cabecera);
+  /*
+   * El lema, letra por letra: sin emojis, sin comillas y sin punto final. Desde el 2026-11-04 se LOCALIZA
+   * (decisión del dueño): vive en `nav.brandSlogan` de cada idioma y el encabezado lo pide con t(). En español
+   * dice exactamente esto, y en el encabezado no puede quedar ninguna versión escrita a mano.
+   */
+  const lema = /brandSlogan: '([^']*)',/.exec(leer('i18n/textos/es/nav.ts'));
   check('102) el lema dice exactamente lo que tiene que decir',
     !!lema && lema[1] === 'Imagina · Crea · Conecta',
     lema ? lema[1] : 'no encontrado');
+  check('102b) y el encabezado lo traduce, sin lema escrito a mano',
+    /\{t\('nav\.brandSlogan'\)\}/.test(cabecera) && !/Imagina · Crea · Conecta|Imagine · Create · Connect|LEMA_DE_MARCA/.test(cabecera));
 
   /*
    * CENTRADO DE VERDAD.
@@ -1485,7 +1492,7 @@ console.log('\n── M · La marca en el centro del Home ──');
     !/notificationService/.test(cabecera) && /subscribeToUnreadCount/.test(leer('services/notificationService.ts')));
   check('106c) los márgenes de la fila también', /content: \{[\s\S]{0,160}paddingHorizontal: SPACING\.md,/.test(cabecera) && /marca: \{[\s\S]{0,160}paddingHorizontal: SPACING\.md,/.test(cabecera));
   /* Control: el lema sigue entero. No se corta ni se esconde en ningún ancho. */
-  check('106c) control: el lema sigue completo', /\{LEMA_DE_MARCA\}/.test(cabecera) && !/conMarca && ancho|ocultarLema|width < /.test(cabecera));
+  check('106c) control: el lema sigue completo', /\{t\('nav\.brandSlogan'\)\}/.test(cabecera) && !/conMarca && ancho|ocultarLema|width < /.test(cabecera));
 
   /* El lema acompaña: pequeño, peso normal y gris del tema. Nunca el color del texto. */
   check('107) el lema es discreto', /lema: \{\s*fontSize: scale\(10\),\s*fontWeight: FONT_WEIGHT\.regular,/.test(cabecera));
@@ -2034,7 +2041,8 @@ console.log('\n── R · La conversación se abre desde abajo, no en otra pant
     muros.every(([, texto]) => !/(handleComment|openComments)[\s\S]{0,200}navigate\('UserProfile'/.test(texto)));
   /* La publicación entera sigue abriéndose al tocarla: no se ha perdido nada. */
   check('181) control: tocar la publicación sigue abriéndola entera',
-    muros.every(([, texto]) => /navigate\('PostDetail'/.test(texto)));
+    /* Desde la migración de la demo YC se abre en el Wäll inmersivo (screens/WallScreen.tsx), que lleva a la publicación entera. */
+    muros.every(([, texto]) => /navigate\('PostDetail'|navigate\('Wall'\)/.test(texto)) && /navigate\('PostDetail'/.test(leer('components/wall/PublicacionInmersiva.tsx')));
 
   /*
    * UNA SOLA HOJA. Las publicaciones se pintan en varios muros; si cada uno

@@ -328,7 +328,7 @@ Casos que además fijan el modelo en la cadena, porque la función depende de é
 | `video.*` | Familia Seedance | Decisión de producto (ver Weë Video Engine) |
 
 Funciones donde inventar sería el peor error usan **búsqueda con fuentes**
-(`text.search`): las citas de Weë Writers, la estrategia de Weë Business y el
+(`text.search`): las citas de Weë Writers, la estrategia de Weë Fashion (id `business`) y el
 presupuesto del menú de Weë Chef.
 
 ## Documentos y audio de entrada

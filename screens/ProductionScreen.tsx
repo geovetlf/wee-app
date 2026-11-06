@@ -23,6 +23,7 @@ import { estadosDeLaProduccion, tituloDesdeLaIdea } from '../utils/presentacionD
 import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
 import { notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 type Ruta = RouteProp<MainStackParamList, 'Production'>;
 
@@ -198,6 +199,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
                   accessibilityLabel={v === 'storyboard' ? t('filmmaker.storyboard') : t('filmmaker.director')}
                   style={[styles.pestana, { backgroundColor: vistaMovil === v ? theme.colors.accent : theme.colors.card, borderColor: vistaMovil === v ? theme.colors.accent : theme.colors.border }]}
                 >
+                  <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={vistaMovil !== v} />
                   <Text style={[styles.pestanaTexto, { color: vistaMovil === v ? '#1F2937' : theme.colors.text }]}>
                     {v === 'storyboard' ? t('filmmaker.storyboard') : t('filmmaker.director')}
                   </Text>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import Interruptor from '../Interruptor';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
 import { Boton, ChipDeEstado, Deslizador, Nota, Tarjeta, TituloDeBloque } from './piezas';
@@ -62,7 +63,7 @@ const EcualizadorYEfectos: React.FC<Props> = ({ cancion }) => {
         {EFECTOS.map((e) => (
           <View key={e} style={s.fila}>
             <Text style={[s.nombre, { color: theme.colors.text, flex: 1 }]}>{t(`music.fx_${e}`)}</Text>
-            <Switch value={!!efectos[e]} onValueChange={(v) => setEfectos((x) => ({ ...x, [e]: v }))} accessibilityLabel={t(`music.fx_${e}`)} trackColor={{ true: theme.colors.accent, false: theme.colors.border }} />
+            <Interruptor value={!!efectos[e]} onValueChange={(v) => setEfectos((x) => ({ ...x, [e]: v }))} accessibilityLabel={t(`music.fx_${e}`)} trackColor={{ true: theme.colors.accent, false: theme.colors.border }} />
           </View>
         ))}
       </Tarjeta>

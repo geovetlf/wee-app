@@ -31,7 +31,7 @@ export const weetalk = {
   photoPermission: 'Se necesitan permisos para acceder a fotos',
   audioPermission: 'Se necesitan permisos para grabar audio',
   imageFailed: 'No se pudo enviar la imagen',
-  noConversationsHint: 'Toca "Privado" en cualquier publicación para iniciar una conversación anónima',
+  noConversationsHint: 'Abre el menú ⋮ de cualquier publicación y elige "Enviar por WeeTalk" para empezar una conversación privada',
   ephemeralMode: 'Modo efímero',
   noMessagesYet: 'No hay mensajes aún',
   youSaid: 'Tú: {{mensaje}}',

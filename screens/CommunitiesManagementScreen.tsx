@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -20,6 +21,7 @@ import { paraBuscar } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { communityService, Community } from '../services/communityService';
+import { comunidadesService, motivoDelError, nuevaPeticion, PapelEnComunidad } from '../services/comunidadesService';
 import { POPULAR_COMMUNITIES } from '../constants/communityCategories';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -27,6 +29,8 @@ import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import TextoEnMayusculas from '../components/TextoEnMayusculas';
 import { descripcionDeComunidad, nombreDeComunidad } from '../utils/comunidadesDeWee';
 import { confirmAction, notify } from '../utils/notify';
+import { MARCA } from '../constants/marca';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const CommunitiesManagementScreen: React.FC = () => {
   const { t, locale } = useIdioma();
@@ -72,10 +76,19 @@ const CommunitiesManagementScreen: React.FC = () => {
 
   // Comunidades a las que el usuario pertenece
   const joinedCommunityIds = userProfile?.joinedCommunities || [];
+  /*
+   * LA CARA CON LA QUE SE ACTÚA. Unirse, salir y crear van con el uid del perfil ACTIVO (Real o Weë), nunca con el de la
+   * cuenta: el servidor (functions/src/social/comunidades.ts) comprueba que esa cara es de la sesión y escribe en ella.
+   */
+  const identidad = userProfile?.uid;
+  /* El papel de ESTA cara en cada comunidad (lo da el servidor y solo de esta cara): «Mis comunidades» = donde es dueña. */
+  const [papeles, setPapeles] = useState<Record<string, PapelEnComunidad>>({});
+  /* Una petición por intento de creación: un doble toque o un reintento no crean dos comunidades. */
+  const peticionDeCreacion = useRef<string | null>(null);
 
   const loadCommunities = useCallback(async () => {
     try {
-      // Cargar comunidades reales creadas por usuarios
+      // Cargar comunidades reales creadas por usuarios (los papeles de la cara activa llegan aparte, sin bloquear la lista)
       const realCommunities = await communityService.getUserCommunities();
 
       // Combinar reales + ejemplo (reales primero)
@@ -93,6 +106,21 @@ const CommunitiesManagementScreen: React.FC = () => {
       setRefreshing(false);
     }
   }, [joinedCommunityIds]);
+
+  /*
+   * LOS PAPELES DE LA CARA ACTIVA. Al cambiar de cara se vacían enseguida (nunca se pintan los de la otra) y se piden
+   * de nuevo; una respuesta que llegue tarde de la cara anterior se descarta.
+   */
+  useEffect(() => {
+    let vigente = true;
+    setPapeles({});
+    if (identidad) {
+      comunidadesService.misComunidades(identidad)
+        .then((mias) => { if (vigente) setPapeles(Object.fromEntries(mias.memberships.map((m) => [m.communityId, m.role]))); })
+        .catch((error) => console.error('Error loading community roles:', error));
+    }
+    return () => { vigente = false; };
+  }, [identidad]);
 
   useEffect(() => {
     loadCommunities();
@@ -119,9 +147,9 @@ const CommunitiesManagementScreen: React.FC = () => {
    */
   const handleToggleCommunity = async (community: Community) => {
     if (!user) { navigateToRegister(); return; }
-    if (!community.id) return;
+    if (!community.id || !identidad) return;
 
-    const isJoined = joinedCommunityIds.includes(community.id);
+    const isJoined = joinedCommunityIds.includes(community.id) || Boolean(papeles[community.id]);
     setJoiningCommunity(community.id);
 
     try {
@@ -136,30 +164,33 @@ const CommunitiesManagementScreen: React.FC = () => {
         );
         if (!confirmado) return;
         try {
-          await communityService.leaveCommunity(user.uid, community.id!);
+          /* Sale SOLO la cara activa. Si es la dueña, el servidor lo impide hasta que transfiera la comunidad. */
+          const r = await comunidadesService.salir(identidad, community.id!);
           // Actualizar estado local
           const newJoinedCommunities = joinedCommunityIds.filter(id => id !== community.id);
           updateLocalProfile({ joinedCommunities: newJoinedCommunities });
-          // Actualizar memberCount en la lista local
+          setPapeles(prev => { const { [community.id!]: _fuera, ...resto } = prev; return resto; });
+          // La cifra que dejó el servidor
           setCommunities(prev => prev.map(c =>
             c.id === community.id
-              ? { ...c, memberCount: Math.max(0, c.memberCount - 1) }
+              ? { ...c, memberCount: r.memberCount }
               : c
           ));
         } catch (error) {
-          console.error('Error leaving community:', error);
+          console.error('Error leaving community:', motivoDelError(error), error);
           notify(t('common.error'), t('communities.leaveFailed'));
         }
       } else {
-        // Unirse directamente
-        await communityService.joinCommunity(user.uid, community.id);
+        // Unirse directamente, con la cara activa
+        const r = await comunidadesService.unirse(identidad, community.id);
         // Actualizar estado local
-        const newJoinedCommunities = [...joinedCommunityIds, community.id];
+        const newJoinedCommunities = joinedCommunityIds.includes(community.id) ? joinedCommunityIds : [...joinedCommunityIds, community.id];
         updateLocalProfile({ joinedCommunities: newJoinedCommunities });
-        // Actualizar memberCount en la lista local
+        setPapeles(prev => ({ ...prev, [community.id!]: r.role }));
+        // La cifra que dejó el servidor
         setCommunities(prev => prev.map(c =>
           c.id === community.id
-            ? { ...c, memberCount: c.memberCount + 1 }
+            ? { ...c, memberCount: r.memberCount }
             : c
         ));
       }
@@ -172,7 +203,7 @@ const CommunitiesManagementScreen: React.FC = () => {
   };
 
   const renderCommunityItem = ({ item }: { item: Community }) => {
-    const isJoined = item.id ? joinedCommunityIds.includes(item.id) : false;
+    const isJoined = item.id ? joinedCommunityIds.includes(item.id) || Boolean(papeles[item.id]) : false;
     const isToggling = joiningCommunity === item.id;
 
     return (
@@ -191,7 +222,7 @@ const CommunitiesManagementScreen: React.FC = () => {
             <Ionicons
               name={item.icon as any || 'people'}
               size={24}
-              color={theme.colors.accent}
+              color={theme.colors.text}
             />
           </View>
         )}
@@ -202,9 +233,9 @@ const CommunitiesManagementScreen: React.FC = () => {
               {nombreDeComunidad(item, t, locale)}
             </Text>
             {item.isOfficial && (
-              <View style={[styles.officialBadge, { backgroundColor: theme.colors.accent + '20' }]}>
-                <Ionicons name="checkmark-circle" size={12} color={theme.colors.accent} />
-                <Text style={[styles.officialText, { color: theme.colors.accent }]}>{t('communities.official')}</Text>
+              <View style={[styles.officialBadge, { backgroundColor: theme.colors.surface }]}>
+                <Ionicons name="checkmark-circle" size={12} color={theme.colors.text} />
+                <Text style={[styles.officialText, { color: theme.colors.text }]}>{t('communities.official')}</Text>
               </View>
             )}
           </View>
@@ -227,24 +258,24 @@ const CommunitiesManagementScreen: React.FC = () => {
             styles.joinButton,
             isJoined
               ? { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1 }
-              : { backgroundColor: theme.colors.accent }
+              : { backgroundColor: theme.colors.text }
           ]}
           onPress={() => handleToggleCommunity(item)}
           disabled={isToggling}
           activeOpacity={0.7}
         >
           {isToggling ? (
-            <ActivityIndicator size="small" color={isJoined ? theme.colors.text : 'white'} />
+            <ActivityIndicator size="small" color={isJoined ? theme.colors.text : theme.colors.background} />
           ) : (
             <>
               <Ionicons
                 name={isJoined ? 'checkmark' : 'add'}
                 size={16}
-                color={isJoined ? theme.colors.text : 'white'}
+                color={isJoined ? theme.colors.text : theme.colors.background}
               />
               <Text style={[
                 styles.joinButtonText,
-                { color: isJoined ? theme.colors.text : 'white' }
+                { color: isJoined ? theme.colors.text : theme.colors.background }
               ]}>
                 {t(isJoined ? 'communities.memberOf' : 'communities.join')}
               </Text>
@@ -277,16 +308,20 @@ const CommunitiesManagementScreen: React.FC = () => {
       )
     : communities;
 
-  // Separar comunidades: mis creaciones, unidas, descubrir
+  // Separar comunidades: mis creaciones, unidas, descubrir — siempre de la cara ACTIVA.
+  // «Mías» = donde esta cara es dueña (lo dice el servidor) o, en una heredada, la que esta cara creó según su
+  // `createdBy` de siempre (no se reinterpreta: una heredada creada «por la cuenta» sigue saliendo donde salía).
   const myUid = userProfile?.uid || user?.uid;
-  const myCommunities = filtered.filter(c => c.id && (c as any).createdBy === myUid);
-  const joinedCommunities = filtered.filter(c => c.id && joinedCommunityIds.includes(c.id) && (c as any).createdBy !== myUid);
-  const availableCommunities = filtered.filter(c => c.id && !joinedCommunityIds.includes(c.id) && (c as any).createdBy !== myUid);
+  const esMia = (c: Community) => Boolean(c.id && (papeles[c.id] === 'owner' || (c as any).createdBy === myUid));
+  const estoyDentro = (c: Community) => Boolean(c.id && (joinedCommunityIds.includes(c.id) || papeles[c.id]));
+  const myCommunities = filtered.filter(c => esMia(c));
+  const joinedCommunities = filtered.filter(c => estoyDentro(c) && !esMia(c));
+  const availableCommunities = filtered.filter(c => c.id && !estoyDentro(c) && !esMia(c));
 
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <ActivityIndicator size="large" color={theme.colors.text} />
         <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
           {t('communities.loading')}
         </Text>
@@ -307,18 +342,18 @@ const CommunitiesManagementScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           {t('menu.communities')}
         </Text>
         <TouchableOpacity
-          style={[styles.createCommunityBtn, { backgroundColor: theme.colors.accent }]}
+          style={[styles.createCommunityBtn, { backgroundColor: theme.colors.text }]}
           onPress={() => setShowCreateModal(true)}
           activeOpacity={0.7}
           accessibilityLabel={t('communities.create')}
         >
-          <Ionicons name="add" size={20} color="#1F2937" />
+          <Ionicons name="add" size={20} color={theme.colors.background} />
         </TouchableOpacity>
       </View>
 
@@ -374,8 +409,8 @@ const CommunitiesManagementScreen: React.FC = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.accent}
-            colors={[theme.colors.accent]}
+            tintColor={theme.colors.text}
+            colors={[theme.colors.text]}
           />
         }
         ListEmptyComponent={
@@ -404,32 +439,30 @@ const CommunitiesManagementScreen: React.FC = () => {
             </TouchableOpacity>
             <Text style={[styles.modalHeaderTitle, { color: theme.colors.text }]}>{t('communities.newCommunity')}</Text>
             <TouchableOpacity
-              style={[styles.modalHeaderBtn, { backgroundColor: '#F5B731', opacity: newName.trim() ? 1 : 0.4 }]}
+              style={[styles.modalHeaderBtn, { backgroundColor: MARCA.primario, opacity: newName.trim() ? 1 : 0.4 }]}
               onPress={async () => {
-                if (!newName.trim() || !user || creating) return;
+                if (!newName.trim() || !user || !identidad || creating) return;
                 setCreating(true);
                 try {
-                  const communityId = await communityService.createCommunity({
+                  /*
+                   * CREAR ES DE LA CARA ACTIVA, Y UNA SOLA VEZ (docs/COMUNIDADES-IDENTIDAD.md).
+                   *
+                   * El servidor crea la comunidad con esta cara de dueña y como su ÚNICO miembro (antes: memberCount 1 +
+                   * la unión del servicio + la de aquí = 3), la apunta en la lista de ESTA cara (antes las creadas desde
+                   * el Perfil Weë no salían en «Mis comunidades») y no escribe la cuenta en lo público.
+                   */
+                  peticionDeCreacion.current = peticionDeCreacion.current || nuevaPeticion();
+                  const { communityId } = await comunidadesService.crear(identidad, peticionDeCreacion.current, {
                     name: newName.trim(),
                     description: newDesc.trim() || t('communities.defaultDescription', { nombre: newName.trim() }),
                     icon: 'people',
                     rules: [],
-                    /*
-                     * ADMINISTRAR UNA COMUNIDAD ES DE LA CUENTA.
-                     *
-                     * La regla de `communities` solo mira `request.auth.uid`
-                     * contra `createdBy`/`moderators`, así que una comunidad
-                     * creada desde el Perfil Weë quedaba con `createdBy:
-                     * hidi_…` y NADIE podía volver a editarla nunca. Crear es
-                     * un acto de propiedad; participar es otra cosa.
-                     */
-                    createdBy: user.uid,
                   });
-                  // Auto-join the community
+                  peticionDeCreacion.current = null;
                   if (communityId) {
-                    await communityService.joinCommunity(user.uid, communityId);
                     const newJoined = [...joinedCommunityIds, communityId];
                     updateLocalProfile({ joinedCommunities: newJoined });
+                    setPapeles(prev => ({ ...prev, [communityId]: 'owner' }));
                   }
                   setNewName('');
                   setNewDesc('');
@@ -444,8 +477,9 @@ const CommunitiesManagementScreen: React.FC = () => {
               }}
               disabled={!newName.trim() || creating}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               {creating ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={MARCA.sobrePrimario} />
               ) : (
                 <Text style={styles.modalHeaderBtnText}>{t('nav.create')}</Text>
               )}
@@ -539,7 +573,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
   },
   modalHeaderBtnText: {
-    color: '#fff',
+    color: '#1F2937',
     fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.bold,
   },

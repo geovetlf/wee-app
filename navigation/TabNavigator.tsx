@@ -205,7 +205,7 @@ const TabNavigator: React.FC = () => {
 
           return <Ionicons name={iconName} size={28} color={color} />;
         },
-        tabBarActiveTintColor: theme.colors.accent,
+        tabBarActiveTintColor: theme.colors.activeColor,
         tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarStyle: isDesktop ? {
           display: 'none',

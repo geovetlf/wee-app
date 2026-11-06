@@ -18,7 +18,8 @@ const DATOS = leer('constants/espacioProfesional.ts');
 const APP = leer('App.tsx');
 
 check('1) siempre clara: es del Perfil Real', NAV.includes('<TemaClaro>'));
-check('4) el marco enseña el perfil que está puesto, sin cambiarlo', MARCO.includes('userProfile') && !MARCO.includes('switchIdentity'));
+/* Desde la fase final de creator (2026-11-06) el avatar es components/workspace/IdentidadEnCreator.tsx: enseña la cara puesta y solo la cambia si la persona la toca. */
+check('4) el marco enseña el perfil que está puesto, sin cambiarlo por sí mismo', /<IdentidadEnCreator\b/.test(MARCO) && leer('components/workspace/IdentidadEnCreator.tsx').includes('userProfile') && !MARCO.includes('switchIdentity'));
 check('4b) el estado de Music, Filmmaker y Mundo 3D sale de sus puertas', /MUSIC_GENERACION_VALIDADA \? 'pendiente'/.test(DATOS) && /FILMMAKER_EN_LA_APP \? 'conectado' : 'cerrado'/.test(DATOS) && /MUNDO_3D_EN_LA_APP \? 'conectado' : 'cerrado'/.test(DATOS));
 check('5) todas las secciones salen de su fuente única', DATOS.includes('WEE_EXPERIENCES.map'));
 check('6) proyectos y creaciones piden cuenta', /user \? irA\(e\.ruta\) : navigation\.navigate\('Login'\)/.test(MARCO));
@@ -44,7 +45,21 @@ check('25) publicar es de la versión app: su botón sigue allí y en creator no
 check('26) Weë Design no simula en creator: va a la experiencia común', /if \(pro\) \{\s*navigation\.navigate\('CreatorFlow', \{ experienceId: 'design', goal: prompt\.trim\(\) \}\);\s*return;/.test(leer('screens/DesignScreen.tsx')));
 check('26b) en creator una pregunta sin opciones se contesta en la caja común; en la app no cambia', /pro && question\.options\.length === 0 \? \(/.test(leer('components/creator/GuidedQuestion.tsx')));
 check('26c) lo de debajo de creator se aparta: lo social no queda al alcance del teclado', /name="Main"[^\n]*VERSION_PROFESIONAL_EN_LA_WEB \? \{ detachPreviousScreen: true \} : undefined/.test(leer('navigation/MainStackNavigator.tsx')) && /name="EspacioProfesional"[^>]*detachPreviousScreen: true/.test(leer('navigation/MainStackNavigator.tsx')));
-check('26d) Mis creaciones no habla de los perfiles en creator', /\{!pro && \(\s*<View style=\{\[styles\.intro/.test(leer('screens/MisCreacionesScreen.tsx')));
+/*
+ * 26d) Desde el rediseño de la biblioteca (N, 2026-11-05) «Mis creaciones» tiene dos ramas: `if (pro) { … }` es la
+ * pantalla de siempre de Weë Creator y lo que sigue es la App. La frase de los dos perfiles (creaciones.intro) vive
+ * SOLO en la rama de la App; antes se vigilaba como `{!pro && <View style={[styles.intro…`, que ya no existe.
+ */
+{
+  const mis = leer('screens/MisCreacionesScreen.tsx');
+  const ramaPro = mis.slice(mis.indexOf('  if (pro) {'), mis.indexOf('/* ── LA APP'));
+  const ramaApp = mis.slice(mis.indexOf('/* ── LA APP'));
+  check('26d) Mis creaciones no habla de los perfiles en creator', ramaPro.length > 200 && !/creaciones\.intro/.test(ramaPro)
+    && /<RejillaDeCreaciones items=\{estado\.items\}/.test(ramaPro) && /<TarjetaDeAviso texto=\{t\('creaciones\.intro'\)\} \/>/.test(ramaApp));
+  /* Y las tres pantallas de la biblioteca guardan su pantalla de siempre para creator. */
+  check('26e) Mis proyectos y un proyecto conservan su pantalla de creator', ['screens/ProjectsScreen.tsx', 'screens/ProjectScreen.tsx']
+    .every((p) => /const pro = useEnEspacioProfesional\(\);/.test(leer(p)) && /\n  if \(pro\) \{\n  return \(\n    <CreatorShell activeId="projects"/.test(leer(p))));
+}
 /* UN SOLO NÚCLEO: la presentación no llega ni a los servicios ni al servidor. */
 const archivos = (dir) => fs.readdirSync(path.join(RAIZ, dir), { withFileTypes: true }).flatMap((e) => e.isDirectory() ? archivos(path.join(dir, e.name)) : [path.join(dir, e.name)]);
 const MODO = /useEnEspacioProfesional|EspacioProfesional|versionCreator/;
@@ -59,7 +74,7 @@ check('20) los nombres son los del dueño: Weë versión app y Weë versión cre
 /* El rediseño de las secciones de Weë AI: todo dentro de su rama, nada de muestra, las puertas cerradas siguen cerradas. */
 const SECCIONES = ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx', 'screens/ChefScreen.tsx', 'screens/BusinessScreen.tsx', 'screens/BrainChatScreen.tsx', 'screens/SpecialistScreen.tsx', 'components/creator/CabeceraDeSeccion.tsx', 'components/creator/CajaDePrompt.tsx', 'components/creator/ActionGrid.tsx', 'components/creator/ExamplesRow.tsx', 'components/creator/IdeaBox.tsx', 'components/creator/TravelLauncher.tsx'];
 check('21) cada sección se rediseña dentro de su rama de creator', SECCIONES.every((p) => /useEnEspacioProfesional\(\)/.test(leer(p))));
-check('22) Studio y Design no enseñan creaciones de muestra en creator', ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx'].every((p) => /pro \? \(\s*<EnlaceDeCreaciones \/>/.test(leer(p))));
+check('22) Studio y Design no enseñan creaciones de muestra en creator', ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx'].every((p) => /pro \? \([\s\S]{0,160}<EnlaceDeCreaciones \/>/.test(leer(p))));
 const BIZ = leer('screens/BusinessScreen.tsx');
 check('23) Weë Fashion no enseña cifras, mensajes ni redes de muestra en creator', /\{pro \? <Vacio texto=\{t\('business\.overviewEmpty'\)\}/.test(BIZ) && /\{!pro && \(\s*<>\s*<Bloque titulo=\{t\('business\.mySocialAccounts'\)\}/.test(BIZ));
 check('24) la caja de creator es la misma: ningún TextInput nuevo fuera de CajaDePrompt', !/<TextInput\b/.test(leer('components/creator/PiezasDeCreator.tsx')));

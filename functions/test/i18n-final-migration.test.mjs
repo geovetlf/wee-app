@@ -442,8 +442,9 @@ console.log('\n── J · El diccionario, cuadrado de punta a punta ──');
   for (const m of modEn) {
     for (const [k, v] of Object.entries(enT[m])) {
       if (!String(v).trim()) vacias.push(m + '.' + k);
-      /* Las marcas de Weë, y los préstamos que en inglés también llevan tilde. */
-      const sinMarcas = String(v).replace(/Weë|Weël|Weëls|Wäll|ËContacts?|ẄContacts?|Résumé|café/g, '');
+      /* Las marcas de Weë, los préstamos que en inglés también llevan tilde y los topónimos que el inglés escribe con la
+         suya (lugares DEMO de Weë Travel, 2026-11-06: Monte Albán, Torre de Belém, Reikiavik «Reykjavík»). */
+      const sinMarcas = String(v).replace(/Weë|Weël|Weëls|Wäll|ËContacts?|ẄContacts?|Résumé|café|Albán|Belém|Reykjavík/g, '');
       if (ACENTOS.test(sinMarcas)) conAcento.push(m + '.' + k + ' = ' + v);
     }
   }

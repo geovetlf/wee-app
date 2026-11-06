@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
@@ -63,7 +64,7 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
         <Text style={[styles.filaTitulo, { color: theme.colors.text }]}>{t(clave)}</Text>
         {!!pista && <Text style={[styles.filaPista, { color: theme.colors.textSecondary }]}>{t(pista)}</Text>}
       </View>
-      <Ionicons name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
+      <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
     </TouchableOpacity>
   );
 
@@ -85,7 +86,7 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
           accessibilityLabel={t('common.back')}
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
-          <Ionicons name="chevron-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="chevron-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
       )}

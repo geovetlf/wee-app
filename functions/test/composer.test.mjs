@@ -356,7 +356,8 @@ console.log('\n── B · Un post, varios sitios donde se lee ──');
    * distingue "Weë Chef" de "Weë Music" hasta que lo lees; el emoji sí, y sale
    * del catálogo de Weë para que no haya dos verdades.
    */
-  check('126) cada destino trae su cara del catálogo de Weë', /getExperienceById\(destino\.id\)/.test(crearCrudo) && /destinoEmoji/.test(crearCrudo));
+  /* Su icono DIBUJADO, el del menú, no el emoji (2026-11-02). */
+  check('126) cada destino trae su cara del catálogo de Weë', /getExperienceById\(destino\.id\)/.test(crearCrudo) && /<IconoWee name=\{experiencia\.icono\}/.test(crearCrudo));
   check('126) y el muro general lleva la suya, que no es una experiencia: el globo', /name="globe-outline"/.test(crearCrudo.slice(crearCrudo.indexOf('const renderDestinos'), crearCrudo.indexOf('const renderPublicar'))));
   check('126) el aro cae siempre en el mismo sitio: pegado al borde derecho del chip', /destino: \{\s*flexGrow: 1,\s*flexDirection: 'row',\s*alignItems: 'center',/.test(crearCrudo) && /destinoCheck: \{[\s\S]{0,120}marginLeft: 'auto',/.test(crearCrudo));
   // Y el nombre entero: en una sola fila se cortaba —"Muro ge…"— y lo vimos en el teléfono.
@@ -404,15 +405,13 @@ console.log('\n── 127 · El workspace "Nueva publicación", rediseñado ─�
 
   /* Quién publica y quién puede verlo. */
   check('127c) avatar, nombre y "Comparte con la comunidad de Weë"', /styles\.identidadNombre[\s\S]{0,200}userProfile\?\.displayName/.test(crudo) && /Comparte con la comunidad de Weë/.test(crudo));
-  check('127c) la píldora de visibilidad dice Público, con su globo y su flecha',
-    /accessibilityLabel="Visibilidad: \{\{estado\}\}"[\s\S]{0,300}name="globe-outline"[\s\S]{0,200}>Público<\/Text>[\s\S]{0,120}name="chevron-down"/.test(crudo)
-    && ES.composer.publicVisibility === 'Público');
+  /* La píldora «Público» se retiró por decisión del dueño (2026-11-05): que no vuelva sin decidirlo. */
+  check('127c) sin píldora de visibilidad en la cabecera', !/styles\.visibilidad\b(?!Texto)/.test(crudo.replace(/visibilidad: \{[^}]*\},?/g, '')) && !/explicarVisibilidad/.test(crudo));
   /*
-   * Y dice la verdad: hoy TODA publicación es pública (`isPrivate: false`) y
-   * ningún muro filtra por audiencia. Tocarla lo explica; no inventa un
-   * selector con una sola opción ni un campo nuevo en la publicación.
+   * Y la lógica no cambia: hoy TODA publicación es pública (`isPrivate: false`) y
+   * ningún muro filtra por audiencia; no hay selector ni un campo nuevo en la publicación.
    */
-  check('127c) y conserva la lógica que hay: todo es público', /isPrivate: false,/.test(crudo) && /onPress=\{explicarVisibilidad\}/.test(crudo) && /explicarVisibilidad = \(\) => notify\('Público'/.test(crudo) && !/visibility:|audience:|setVisibilidad/.test(crudo));
+  check('127c) y conserva la lógica que hay: todo es público', /isPrivate: false,/.test(crudo) && !/visibility:|audience:|setVisibilidad/.test(crudo));
 
   /* El papel. */
   check('127d) la hoja: placeholder "Escribe algo…", sin título ni ayuda',

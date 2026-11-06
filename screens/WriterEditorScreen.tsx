@@ -13,6 +13,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 
 import { notify } from '../utils/notify';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 const isWeb = Platform.OS === 'web';
 
 /**
@@ -164,6 +165,7 @@ const WriterEditorScreen: React.FC = () => {
               style={[styles.saveButton, { backgroundColor: text.trim() ? theme.colors.accent : theme.colors.border }]}
               accessibilityLabel={t('writer.save')}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!text.trim()} />
               <Text style={styles.saveText}>{saved === 'saved' ? t('writer.saved') : saved === 'saving' ? t('writer.saving') : t('writer.save')}</Text>
             </TouchableOpacity>
           </View>

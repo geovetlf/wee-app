@@ -49,13 +49,15 @@ export const ADAPTADORES_MUSICALES_PREPARADOS: Readonly<Record<string, ProviderA
 // MiniMax — contrato HTTP de https://platform.minimax.io/docs/api-reference/music-generation (consultado 2026-10-15)
 // ──────────────────────────────────────────────────────────────────────────────────────────────
 
-export const MINIMAX_MUSIC_ENDPOINT = 'https://api.minimax.io/v1/music_generation';
+/* La dirección del servicio NO se escribe aquí (G3, 2026-11-06): la URL de un proveedor de IA solo vive en su adaptador
+   de functions/src/engine/providers, que existirá cuando el dueño autorice conectar Weë Music. Este normalizador solo
+   prepara el cuerpo de la petición; no sabe adónde se envía ni envía nada. */
 const MINIMAX_PROMPT_MAX = 2000;
 const MINIMAX_LYRICS_MAX = 3500;
 const MINIMAX_URL_VIDA_MS = 24 * 60 * 60 * 1000; // «URLs expire after 24 hours»
 
 export type SolicitudHttp =
-  | { ok: true; endpoint: string; body: Record<string, unknown> }
+  | { ok: true; body: Record<string, unknown> }
   | { ok: false; code: MusicErrorCode; motivo: string };
 
 /**
@@ -94,7 +96,7 @@ export const normalizarSolicitudMiniMax = (
     body.prompt = prompt;
     body.audio_url = opciones.referenciaUrl;
     if (lyrics) body.lyrics = lyrics;
-    return { ok: true, endpoint: MINIMAX_MUSIC_ENDPOINT, body };
+    return { ok: true, body };
   }
 
   body.model = opciones.modelo ?? 'music-3.0';
@@ -108,7 +110,7 @@ export const normalizarSolicitudMiniMax = (
     if (lyrics) body.lyrics = lyrics;
     else body.lyrics_optimizer = true;
   }
-  return { ok: true, endpoint: MINIMAX_MUSIC_ENDPOINT, body };
+  return { ok: true, body };
 };
 
 /** Códigos de `base_resp.status_code` que la documentación nombra. */

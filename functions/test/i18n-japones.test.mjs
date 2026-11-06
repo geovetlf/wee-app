@@ -112,7 +112,8 @@ console.log('\n── A · `ja-JP` de punta a punta, sin lógica para el japoné
   check('2) y su locale principal, `ja-JP`, está entre los contemplados',
     idiomas.LOCALES_CONTEMPLADOS.includes('ja-JP'));
   check('3) el registro lo sirve con su propio diccionario, no por un alias',
-    registro.DICCIONARIOS.ja === ja && registro.idiomasConDiccionario().includes('ja'));
+    /* Con su sección del servidor el registro sirve {...ja, ...servidor}: se exige que CADA módulo sea el suyo (el mismo objeto), y que la sección esté. */
+    Object.keys(ja).every((s) => registro.DICCIONARIOS.ja[s] === ja[s]) && !!registro.DICCIONARIOS.ja.preguntas && registro.idiomasConDiccionario().includes('ja'));
 
   const disponibles = registro.idiomasConDiccionario();
   const elegir = (elegido, aparato) => resolver.elegirIdioma(elegido, aparato, disponibles);
@@ -191,6 +192,8 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
    * `SIN_TEXTO` con su porqué—.
    */
   const SIN_TEXTO = new Set([
+    /* «WeëPages» es el nombre de la función (marca) y se escribe igual en todos los idiomas. */
+    'menu.pages',
     /* Weë Music: R&B, «dB» y MIDI son siglas o unidades que se escriben igual en japonés. */
     'music.genre_rnb', 'music.eqDb', 'music.export_midi', 'music.capMidi',
     /* Un usuario de muestra de una red social («@my_shop»): un @usuario solo admite letras latinas. */
@@ -207,6 +210,9 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
      */
     'business.businessPlan', 'business.businessCoach', 'business.pricing', 'business.brandKit',
     'business.customerInsights', 'business.businessIdeas', 'business.shareProfile',
+    /* WeëTravel (2026-11-06): «DEMO» marca los datos simulados del prototipo y «Travel Safe» es la marca de la sección; se
+       escriben igual. «OK» es el botón único de un aviso, como common.accept (glosario, § 10.6). */
+    'travel.demo', 'travel.travelSafe', 'travel.accept',
   ]);
   const sinJapones = JA.filter(([k, v]) => !SIN_TEXTO.has(k) && /\p{L}/u.test(sinLoAjeno(v)) && !JAPONES.test(sinLoAjeno(v)));
   check('17) todo lo que tiene letras está escrito en japonés',
@@ -531,6 +537,12 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* WeëPages: «Usuario» es el nombre de usuario (@) de una página, no la persona. */
+    'pages.f_handle',
+    /* WeëPages: «Biografía» de un personaje o una marca es su trayectoria (経歴), no el «自己紹介» de una persona. */
+    'pages.f_biography',
+    /* WeëPages: «Redes sociales» son los enlaces a los perfiles de la página, no un «SNS投稿»; y «Seguir» una página es «フォロー», no el «追いかける» de la cámara de Studio. */
+    'pages.f_socialLinks', 'pages.follow',
     'music.groupMood', 'music.groupVoice', 'music.fxTitle', 'music.instr_vocals',
     /* Weë Music: el mismo rótulo español, otro contexto — «Género» musical (no el sexo), «Ambiente» y «Voz» de una canción (no el sonido ambiente ni la voz en off), «Efectos» de audio y «Resumen» de una selección. */
     'music.groupGenre', 'music.transformTitle', 'music.reviewTitle',
@@ -578,6 +590,20 @@ console.log('\n── J · Traducciones defectuosas ──');
     'weebiz.follow',
     /* «N días»: lo que dura un viaje se dice «10泊11日», sin 間; lo que dura una encuesta, 3日間. */
     'weeai.tripDays_other',
+    /* «sin límites.»: la segunda mitad del héroe de la demo YC; el verbo va al final y cada sección termina con el suyo (作れます。, デザイン。). */
+    'design.heroAccent',
+    /* WeëTravel (2026-11-06): la misma frase española, otro sentido que en otro módulo — «Lista» de lugares (リスト), no el
+       estado «Lista» de weeai (完了); «Preferencias» los gustos del viaje (好み), no los ajustes de settings (環境設定);
+       «Historia» la categoría de lugares (歴史), no el relato de fashion (ストーリー); «Restaurar» el itinerario (復元), no una
+       foto de studio (画像を修復); «Cartel» un letrero de la calle (看板), no un póster de studio (ポスター); «Subir»/«Bajar»
+       reordenan paradas (上へ移動/下へ移動), no la grúa de la cámara de studio (上昇/下降); «Transporte» como modo de
+       desplazarse es el transporte público (公共交通), no la categoría de gasto (交通). */
+    'travel.viewList', 'travel.wzPreferences', 'travel.catHistory', 'travel.restore', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
+    'travel.modeTransit',
+    /* «Ubicación» de Ajustes (decisión del dueño 2026-11-06: un solo pin, sistema visual de Ajustes; sin el «📍» del título
+       coincide en español con composer.location): es el permiso y el servicio de ubicación del aparato (位置情報, como en
+       los ajustes del sistema), no el lugar que se añade a una publicación o a una página (場所). */
+    'settings.location',
   ]);
   const porFrase = new Map();
   for (const [k, v] of JA) {

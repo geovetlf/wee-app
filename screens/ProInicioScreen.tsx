@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
@@ -15,6 +16,7 @@ import { RejillaDeCreaciones } from '../components/creator/RejillaDeCreaciones';
 import { RADIO_DE_CREATOR, RejillaDeCreator, TituloDeCreator, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
 import { EstadoDeMotor, HERRAMIENTAS_PROFESIONALES, MOTORES_PROFESIONALES } from '../constants/espacioProfesional';
 import { WEE_EXPERIENCES } from '../constants/weeExperiences';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const RECIENTES = 4;
 const TRABAJOS_RECIENTES = 3;
@@ -103,6 +105,7 @@ const ProInicioScreen: React.FC = () => {
             accessibilityRole="button"
             style={[styles.crear, { backgroundColor: theme.colors.accent }]}
           >
+            <RellenoDeMarca radio={999} />
             <Ionicons name="sparkles-outline" size={15} color="#1F2937" />
             <Text style={styles.crearTexto}>{t('profesional.createWithAi')}</Text>
           </Pressable>
@@ -145,7 +148,7 @@ const ProInicioScreen: React.FC = () => {
                     {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
+                <IconoDireccional name="chevron-forward" size={16} color={theme.colors.textSecondary} />
               </Pressable>
             ))}
           </View>

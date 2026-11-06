@@ -1,0 +1,63 @@
+/*
+ * IRLANDÉS — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
+ * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * Tuteo. «Beauty» se deja en latino como en el español; «Hogar & Diseño» se
+ * traduce («Baile & Dearadh»). Las comillas tipográficas de `exampleQuoted`
+ * se copian tal cual.
+ */
+export const creator: typeof import('../es/creator').creator = {
+  design: 'Lógónna, póstaeir, léaráidí agus ábhar do do mheáin shóisialta',
+  studio: 'Cruthaigh agus claochlaigh grianghraif agus físeáin le hIS.',
+  photo: 'Feabhsaigh, athchóirigh agus claochlaigh do ghrianghraif',
+  writer: 'Postálacha, scéalta, scripteanna, ríomhphoist agus leabhair',
+  music: 'Amhráin, ceol uirlise, guthanna agus reacaireacht',
+  beauty: 'Smideadh, gruaig, féasóg, feisteas agus athruithe cuma',
+  chef: 'Do chócaire pearsanta: cad le cócaráil, oidis agus biachláir',
+  home: 'Maisiúchán, dearadh intí, athchóiriú agus gairdíní',
+  business: 'Faisean, stíl, áilleacht agus cruthú ábhair amhairc.',
+  travel: 'Ullmhaigh do thuras: cá háit le dul, cad le déanamh agus conas dul thart',
+  brain: 'Níl a fhios agat cá háit le cuardach? Fiafraigh de Weë',
+  designEx1: 'Lógó do mo ghnó',
+  designEx2: 'Postáil d\'Instagram',
+  designEx3: 'Clúdach mo leabhair',
+  studioEx1: 'Físeán chun mo bhialann a chur chun cinn',
+  studioEx2: 'Mo ghrianghraf a iompú ina fhíseán',
+  studioEx3: 'Weël le mo tháirge',
+  photoEx1: 'Cáilíocht grianghraif a fheabhsú',
+  photoEx2: 'Rud nach bhfuil ag teastáil a bhaint den ghrianghraf',
+  photoEx3: 'Cúlra mo ghrianghraif a athrú',
+  writerEx1: 'Script do m\'fhíseán',
+  writerEx2: 'Ríomhphost do chliant',
+  writerEx3: 'Mo théacs a cheartú',
+  musicEx1: 'Jingle do mo bhranda',
+  musicEx2: 'Ceol cúlra do m\'fhíseán',
+  musicEx3: 'Mo théacs a iompú ina ghuth',
+  beautyEx1: 'Cén chuma a bheadh orm le gruaig fhada',
+  beautyEx2: 'Cuma do chóisir',
+  beautyEx3: 'Dath gruaige eile a thriail',
+  chefEx1: 'Oideas leis a bhfuil agam sa bhaile',
+  chefEx2: 'Biachlár seachtainiúil sláintiúil',
+  chefEx3: 'Níl a fhios agam cad a chócarálfaidh mé inniu',
+  homeEx1: 'Cén chuma a bheadh ar mo sheomra suí i stíl eile',
+  homeEx2: 'Smaointe chun mo sheomra a mhaisiú',
+  homeEx3: 'Gairdín beag do mo chlós',
+  businessEx1: 'Plean do mo ghnó nua',
+  businessEx2: 'Mo CV nuashonraithe',
+  businessEx3: 'Cur i láthair d\'infheisteoirí',
+  travelEx1: 'An tSeapáin i mí Dheireadh Fómhair',
+  travelEx2: 'Trá chiúin shaor atá uaim',
+  travelEx3: 'Níl a fhios agam cá háit le taisteal',
+  brainEx1: 'Níl a fhios agam cá háit le tosú',
+  brainEx2: 'Mínigh é seo dom go simplí',
+  brainEx3: 'Aistrigh an téacs seo',
+  areaStudioPhotos: 'Weë Studio · Grianghraif',
+  areaStudioVideos: 'Weë Studio · Físeáin',
+  areaStudioBeauty: 'Weë Studio · Beauty',
+  areaDesignHome: 'Weë Design · Baile & Dearadh',
+  areaHomeName: 'Baile & Dearadh',
+  tellTheSpecialist: 'Inis do {{especialista}} cad ba mhaith leat a bhaint amach: cuirfidh sé dhá cheist nó trí cheist shimplí ort agus déanfaidh sé an chuid eile. Ina dhiaidh sin foilsíonn tú go díreach i do phobal.',
+  exampleQuoted: '“{{ejemplo}}”',
+};

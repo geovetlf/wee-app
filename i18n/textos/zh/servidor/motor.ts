@@ -1,0 +1,57 @@
+/*
+ * CHINO SIMPLIFICADO — Textos del servidor: motor (ver `../../es/servidor/motor.ts`).
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Traducción de IA pendiente de revisión humana.
+ *
+ * Sin plurales: `_one` y `_other` dicen lo mismo. Espacio entre hanzi y latín o cifras; los huecos de texto van pegados o detrás de dos puntos, para que entre cualquier opción.
+ */
+export const motor: typeof import('../../es/servidor/motor').motor = {
+  invalidRequest: '你的请求缺少一些内容。请检查后再试一次。',
+  unauthorized: '登录后即可用 Weë 创作。',
+  providerError: 'AI 这次没能完成你的创作。没有扣除 Credits：请稍后再试。',
+  generationFailed: '我没能完成你的创作。没有扣除 Credits：请再试一次。',
+  timeout: '用时太久，我把它停下了。没有扣除 Credits：请再试一次。',
+  rateLimited: '你连续创作了太多次。没有扣除 Credits：请稍等片刻再试。',
+  duplicate: '这项创作已经在进行中。',
+  notAvailable: '这项功能暂时还不可用。',
+  inputRejected: '这张照片或这段视频无法用于生成：不接受真实人脸或此类内容。请换一张图片或换一种描述。',
+  faltaCampo: '缺少{{campo}}。',
+  revisaCampo: '请检查{{campo}}：长度必须在 1 到 {{max}} 个字符之间。',
+  campoMensaje: '你的消息',
+  campoDescripcionVideo: '视频描述',
+  conversacionNoEncontrada: '找不到这段对话。',
+  sinPlan: '这项任务还没有计划。',
+  sinUnPlan: '这项任务还没有一个计划。',
+  yaTienePlan: '这项任务已经有计划了。',
+  subeFoto: '请上传一张照片，这样 Weë 才能处理。',
+  trabajoNoEncontrado: '找不到这项任务。',
+  trabajoAjeno: '这项任务不是你的。',
+  experienciaDesconocida: '未知的体验。',
+  faltaTrabajo: '缺少任务。',
+  intentoSinTiempo: '那次尝试超时了，已把 Credits 退还给你。你可以再试一次。',
+  fotoDireccion: '这张照片的地址无效。',
+  fotoSubir: '照片必须先上传到 Weë 才能使用。',
+  fotoAjena: '这张照片不是你的。',
+  archivoSube: '请上传{{archivo}}，这样 Weë 才能读取。',
+  archivoDireccion: '{{archivo}}的地址无效。',
+  archivoSubir: '{{archivo}}必须先上传到 Weë 才能使用。',
+  archivoAjeno: '这个{{archivo}}不是你的。',
+  archivoDocumento: '文档',
+  archivoAudio: '音频',
+  sinTiempoAntes: '还没开始就超时了。没有扣除 Credits。',
+  sinProveedor: '现在没有可用的 AI 来处理这件事。请稍后再试。',
+  noDisponibleActualmente: '这项功能目前不可用。',
+  noDisponibleAhora: '这项功能此刻不可用。请过一会儿再试。',
+  noDisponibleRegion: '这项功能目前在你所在的地区不可用。',
+  noDisponiblePais: '要使用这项功能，请在你的真实主页中填写所在国家。',
+  noDisponibleOpciones: '这项功能不支持你选择的选项。请试试其他选项。',
+  describeVideo: '告诉我你想创作什么视频。',
+  creacionTerminada: '这项创作已经完成，不会重新制作。请到你的作品中查找。',
+  tomaInvalida: '这个镜头的格式无效。',
+  planoInvalido: '这个分镜的格式无效。',
+  produccionNoEncontrada: '找不到这个制作项目。',
+  tomaNoGenerable: '这个镜头无法这样生成。',
+  creacionNoEncontrada: '找不到这项创作。',
+  debesIniciarSesion: '你需要先登录',
+};

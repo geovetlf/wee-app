@@ -66,8 +66,14 @@ check('ninguna clave de proveedor aparece en el código del cliente', leaked.len
  * EXPO_PUBLIC_APP_CHECK_SITE_KEY es la clave de SITIO de reCAPTCHA Enterprise para
  * App Check en la web (config/appCheck.web.ts): pública por diseño, va en la página.
  * Se admite ese nombre exacto, no un patrón: un «…APP_CHECK_SECRET» no pasaría.
+ *
+ * EXPO_PUBLIC_DEMO_MEDIOS/CORREO/CLAVE: la dirección de los medios y la cuenta de prueba del EMULADOR, que solo pone
+ * scripts/demo/entorno.mjs. La app solo las usa en un proyecto `demo-*`; también por nombre exacto.
+ *
+ * EXPO_PUBLIC_PRUEBA_RTL: el modo de prueba de dirección (solo `ar`), que contexts/IdiomaContext.tsx lee solo con
+ * __DEV__; no es un secreto ni cambia nada en una compilación de producción. Por nombre exacto.
  */
-check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview, la clave de sitio de App Check)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v) || v === 'EXPO_PUBLIC_APP_CHECK_SITE_KEY')));
+check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview, la clave de sitio de App Check)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v) || ['EXPO_PUBLIC_APP_CHECK_SITE_KEY', 'EXPO_PUBLIC_DEMO_MEDIOS', 'EXPO_PUBLIC_DEMO_CORREO', 'EXPO_PUBLIC_DEMO_CLAVE', 'EXPO_PUBLIC_PRUEBA_RTL'].includes(v))));
 
 // 2) Nada de claves con valor en el código fuente
 const serverFiles = readDir('functions/src');
@@ -215,9 +221,11 @@ console.log('\n── Fronteras de autorización ──');
     /allow delete: if isAuthenticated\(\) &&\s*\n\s*\(resource\.data\.userId == request\.auth\.uid \|\|\s*\n\s*resource\.data\.userId == \("hidi_" \+ request\.auth\.uid\)\);/.test(reglas),
     'en producción hay ocho: no se estranda a nadie');
 
-  check('un negocio y una comunidad se crean con la CUENTA, no con una cara',
-    /ownerId: user\?\.uid|const activeUid = user\?\.uid;/.test(read('screens/WeeBizRegisterScreen.tsx'))
-    && /createdBy: user\.uid,/.test(read('screens/CommunitiesManagementScreen.tsx')));
+  /* Re-anclado 2026-11-05 (docs/COMUNIDADES-IDENTIDAD.md, decisiones 1–3 del dueño): unirse, salir y crear van por las callables con la cara ACTIVA: la cara activa es la dueña y el servidor comprueba que es de la sesión; la cuenta va en lo privado. */
+  check('una comunidad la crea la cara ACTIVA por el servidor, que comprueba que es de la sesión (el alta de negocios de WeeBiz se retiró el 2026-11-03)',
+    /comunidadesService\.crear\(identidad, /.test(read('screens/CommunitiesManagementScreen.tsx'))
+    && !/createdBy: user\.uid,/.test(read('screens/CommunitiesManagementScreen.tsx'))
+    && /const yo = await resolver\(a\.comoIdentidad, a\.cuentaDeLaSesion, true\);/.test(read('functions/src/social/comunidades.ts')));
   check('y el muro vota con la cuenta, como el detalle y las encuestas',
     /userId: user\?\.uid,/.test(read('components/PostCard.tsx'))
     && !/userId: activeProfile\?\.uid/.test(read('components/PostCard.tsx'))

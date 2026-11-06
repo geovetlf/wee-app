@@ -1,0 +1,63 @@
+/*
+ * FINÉS — Lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
+ * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * El especialista entra por `{{especialista}}` como SUJETO de su propia frase
+ * («{{especialista}} kysyy…»), porque «Cuéntale a X» pediría alativo pegado a
+ * la marca. «Beauty» y «Fashion» se quedan en inglés como en los demás
+ * idiomas; «outfits», «look», «jingle», «CV» y «post» son préstamos corrientes.
+ */
+export const creator: typeof import('../es/creator').creator = {
+  design: 'Logoja, julisteita, kuvituksia ja materiaalia someen',
+  studio: 'Luo ja muunna kuvia ja videoita tekoälyllä.',
+  photo: 'Paranna, entisöi ja muunna valokuviasi',
+  writer: 'Julkaisuja, tarinoita, käsikirjoituksia, sähköposteja ja kirjoja',
+  music: 'Kappaleita, instrumentaalimusiikkia, lauluääniä ja kerrontaa',
+  beauty: 'Meikki, hiukset, parta, outfitit ja tyylinmuutokset',
+  chef: 'Oma kokkisi: mitä kokata, reseptejä ja ruokalistoja',
+  home: 'Sisustus, sisustussuunnittelu, remontointi ja puutarhat',
+  business: 'Muoti, tyyli, kauneus ja visuaalisen sisällön luominen.',
+  travel: 'Suunnittele matkasi: minne mennä, mitä tehdä ja miten liikkua',
+  brain: 'Etkö tiedä, mistä aloittaa? Kysy Weë-sovellukselta',
+  designEx1: 'Logo yritykselleni',
+  designEx2: 'Julkaisu Instagramiin',
+  designEx3: 'Kirjani kansi',
+  studioEx1: 'Video ravintolani mainostamiseen',
+  studioEx2: 'Muuta valokuvani videoksi',
+  studioEx3: 'Weël tuotteestani',
+  photoEx1: 'Paranna valokuvan laatua',
+  photoEx2: 'Poista kuvasta jotain ylimääräistä',
+  photoEx3: 'Vaihda valokuvani tausta',
+  writerEx1: 'Käsikirjoitus videolleni',
+  writerEx2: 'Sähköposti asiakkaalle',
+  writerEx3: 'Korjaa tekstini',
+  musicEx1: 'Jingle brändilleni',
+  musicEx2: 'Taustamusiikkia videolleni',
+  musicEx3: 'Muuta tekstini puheeksi',
+  beautyEx1: 'Miltä näyttäisin pitkillä hiuksilla',
+  beautyEx2: 'Juhlalook',
+  beautyEx3: 'Kokeile toista hiusväriä',
+  chefEx1: 'Resepti siitä, mitä kotoa löytyy',
+  chefEx2: 'Terveellinen viikon ruokalista',
+  chefEx3: 'En tiedä, mitä kokata tänään',
+  homeEx1: 'Miltä olohuoneeni näyttäisi toisessa tyylissä',
+  homeEx2: 'Ideoita huoneeni sisustamiseen',
+  homeEx3: 'Pieni puutarha pihalleni',
+  businessEx1: 'Suunnitelma yritykselleni',
+  businessEx2: 'Päivitetty CV',
+  businessEx3: 'Esitys sijoittajille',
+  travelEx1: 'Japani lokakuussa',
+  travelEx2: 'Haluan rauhallisen ja edullisen rannan',
+  travelEx3: 'En tiedä, minne matkustaa',
+  brainEx1: 'En tiedä, mistä aloittaa',
+  brainEx2: 'Selitä tämä minulle helposti',
+  brainEx3: 'Käännä tämä teksti',
+  areaStudioPhotos: 'Weë Studio · Kuvat',
+  areaStudioVideos: 'Weë Studio · Videot',
+  areaStudioBeauty: 'Weë Studio · Beauty',
+  areaDesignHome: 'Weë Design · Koti & sisustus',
+  areaHomeName: 'Koti & design',
+  tellTheSpecialist: 'Kerro, mitä haluat saada aikaan: {{especialista}} kysyy sinulta kaksi tai kolme yksinkertaista kysymystä ja hoitaa loput. Sen jälkeen julkaiset suoraan yhteisössäsi.',
+  exampleQuoted: '”{{ejemplo}}”',
+};

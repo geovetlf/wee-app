@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë tarvitsee pääsyn kameraasi, jotta voit ottaa kuvia julkaisuihisi, profiiliisi, WeeTalkiin ja Weë AI:hin.",
+    "NSMicrophoneUsageDescription": "Weë tarvitsee pääsyn mikrofoniisi, jotta voit äänittää musiikki-ideoita, hyräiltyjä melodioita, omia laulureferenssejäsi ja ääniviestejä. Ääntä käytetään vain, jos itse päätät käyttää sitä.",
+    "NSPhotoLibraryUsageDescription": "Weë tarvitsee pääsyn kuviisi, jotta voit valita kuvia ja videoita julkaisuihisi, profiiliisi, WeeTalkiin ja Weë AI:hin.",
+    "NSPhotoLibraryAddUsageDescription": "Weë tarvitsee luvan tallentaa Weë AI:n tekemiä kuvia ja videoita kuviisi, kun lataat ne.",
+    "NSLocationWhenInUseUsageDescription": "Weë käyttää likimääräistä sijaintiasi ehdottaakseen lähellä olevia paikkoja ja aluettasi, kun lisäät sijainnin julkaisuun – vain sovelluksen ollessa auki. Tarkkaa sijaintiasi ei koskaan näytetä julkisesti."
+  }
+}

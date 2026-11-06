@@ -28,6 +28,7 @@ export type MenuItemId =
   | 'weeProfile'
   | 'credits'
   | 'econtact'
+  | 'pages'
   | 'communities'
   | 'weels'
   | 'weetalk'
@@ -81,6 +82,8 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
    * que se ve sin sesión.
    */
   econtact: { id: 'econtact', icono: 'econtact', clave: 'menu.econtact', emoji: '🤝', label: 'ËContact' },
+  /* WeëPages: las Páginas públicas de la cuenta (personajes, empresas, marcas…). Entidades, no caras. */
+  pages: { id: 'pages', icono: 'documento', clave: 'menu.pages', emoji: '📄', label: 'WeëPages' },
   communities: { id: 'communities', icono: 'comunidades', clave: 'menu.communities', emoji: '👥', label: 'Comunidades' },
   weels: { id: 'weels', icono: 'weels', clave: 'menu.weels', emoji: '📹', label: 'Weëls' },
   weetalk: { id: 'weetalk', icono: 'weetalk', clave: 'menu.weetalk', emoji: '💬', label: 'WeeTalk' },
@@ -141,6 +144,8 @@ export interface MenuSection {
 export const WEE_MENU: MenuSection[] = [
   { label: 'PERFIL', items: ['realProfile', 'weeProfile', 'credits'] },
   { items: ['econtact'], divisor: true },
+  /* WeëPages (2026-11-02): justo debajo de la agenda, en su propio grupo. */
+  { items: ['pages'] },
   { label: 'EXPLORA', items: ['communities', 'weels', 'weetalk'], divisor: true },
   { items: ['creator'], creator: true },
   { items: ['saved', 'settings', 'help'] },

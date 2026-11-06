@@ -7,6 +7,7 @@ import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import CommunitiesEntry from './CommunitiesEntry';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { RellenoDeMarca } from './GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -89,6 +90,7 @@ const RightSidebar: React.FC = () => {
           {t('nav.weeAiPitch')}
         </Text>
         <View style={[styles.creatorButton, { backgroundColor: theme.colors.accent }]}>
+          <RellenoDeMarca radio={BORDER_RADIUS.full} />
           <Text style={styles.creatorButtonText}>{t('nav.goToWeeAi')}</Text>
         </View>
       </TouchableOpacity>
@@ -102,7 +104,9 @@ const RightSidebar: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.navigate('Help', { section: 'legal' })} activeOpacity={0.7}>
           <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>{t('menu.privacy')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}> · © {year} Weë</Text>
+        {/* El separador va aparte: dentro de «· © 2026 Weë», en RTL el punto quedaba al otro lado del texto latino. */}
+        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}> · </Text>
+        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>© {year} Weë</Text>
       </View>
     </ScrollView>
   );

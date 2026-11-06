@@ -363,4 +363,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: 'I stopped it. What was reserved goes back to your Credits balance.',
   worldUploadFailed: 'I couldn’t upload your photo. Please try again.',
   worldDailyLimit: 'You’ve used today’s 3D worlds. If one doesn’t come out, you get it back, and they renew every day.',
+  filmmakerCardTitle: 'Direct your film',
+  filmmakerCardSub: 'Scenes, shots and camera moves, with direction in your hands.',
+  filmmakerCardCta: 'Open Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'Create',
+  heroAccent: 'without limits.',
+  quickTitle: 'Quick creation',
+  filmmakerEngineSub: 'Create, direct and edit your films with AI.',
+  projectsTitle: 'Projects',
 };

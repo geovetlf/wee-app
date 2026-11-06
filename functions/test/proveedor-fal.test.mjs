@@ -101,7 +101,8 @@ check('4) FAL_KEY solo en el servidor y en un llavero DORMIDO: ninguna Function 
   JSON.stringify(montan) === JSON.stringify(['functions/src/engine/providers/fal.ts', 'functions/src/engine/verification.ts'])
   && /FAL_SECRET_NAMES = \['FAL_KEY'\]/.test(leer('functions/src/secrets.ts'))
   && !/FAL_KEY|fal\.run|fal\.ai/.test(execSync('git ls-files -co --exclude-standard app.json app components screens services hooks contexts constants utils navigation', { cwd: RAIZ, encoding: 'utf8' })
-    .trim().split('\n').filter((f) => /\.(ts|tsx|js|json)$/.test(f) && !f.startsWith('services/filmmaker/espejo/')).map((f) => leer(f)).join('\n')),
+    /* `git ls-files` también lista lo borrado sin confirmar (la migración de la demo YC quita CerebroElectrico.web.tsx): se lee lo que existe. */
+    .trim().split('\n').filter((f) => /\.(ts|tsx|js|json)$/.test(f) && !f.startsWith('services/filmmaker/espejo/')).map((f) => { try { return leer(f); } catch { return ''; } }).join('\n')),
   montan.join(', '));
 
 check('5) la capacidad entra por el catálogo común: world.generate ROUTABLE, de imagen o texto a 3D, con la cadena de fal y sin ampliar mundos',

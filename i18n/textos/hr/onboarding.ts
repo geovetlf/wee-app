@@ -1,0 +1,63 @@
+/*
+ * CROATA — el alta guiada y la creación del Perfil Weë: quién eres, y quién
+ * eres en Weë.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Tuteo («ti»). El nombre, la biografía y el país que elige la persona no
+ * pasan por aquí. «Perfil Weë» es «Weë profil», sin declinar la marca. El
+ * ejemplo «SombraOscura» se traduce; «Anon123» se queda.
+ */
+export const onboarding: typeof import('../es/onboarding').onboarding = {
+  welcome: 'Dobro došli u Weë',
+  welcomeSubtitle: 'Reci nam tko si. Poslije možeš stvoriti svoj Weë profil: svoj identitet za stvaranje uz AI.',
+  yourName: 'Tvoje ime',
+  yourNameHint: 'Ovo će se ime prikazivati na tvojem javnom profilu.',
+  yourNamePlaceholder: 'Tvoje puno ime',
+  birthDate: 'Datum rođenja',
+  birthDateHint: 'Za korištenje aplikacije Weë moraš imati najmanje 13 godina.',
+  gender: 'Spol',
+  genderMale: 'Muško',
+  genderFemale: 'Žensko',
+  genderOther: 'Drugo',
+  country: 'Država',
+  pickCountry: 'Odaberi svoju državu',
+  searchCountry: 'Pretraži države...',
+  customiseProfile: 'Prilagodi svoj profil',
+  yourAvatar: 'Tvoj avatar',
+  yourAvatarHint: 'Dodirni za odabir gotovog avatara ili prijenos vlastite slike',
+  bioPlaceholder: 'Reci nam nešto o sebi... (neobavezno)',
+  saving: 'Spremanje...',
+  completed: 'Dovršeno!',
+  complete: 'Dovrši',
+  continueStep: 'Nastavi',
+  nameMissingTitle: 'Nedostaje ime',
+  nameMissing: 'Upiši svoje ime za nastavak.',
+  nameShortTitle: 'Ime je prekratko',
+  nameShort: 'Ime mora imati najmanje 2 slova.',
+  birthMissingTitle: 'Nedostaje datum rođenja',
+  birthMissing: 'Odaberi dan, mjesec i godinu.',
+  genderMissingTitle: 'Nedostaje spol',
+  genderMissing: 'Odaberi jednu opciju za nastavak.',
+  countryMissingTitle: 'Nedostaje država',
+  countryMissing: 'Odaberi svoju državu za nastavak.',
+  saveFailedTitle: 'Nismo mogli spremiti tvoj profil',
+  saveFailed: 'Pokušaj ponovno.',
+  weeTitle: 'Stvori Weë profil',
+  weeIntro: 'Ovaj je profil neovisan o tvojem pravom identitetu. Objave i radnje koje napraviš s Weë profilom neće biti povezane s tvojim glavnim profilom.',
+  weePhoto: 'Profilna fotografija',
+  weePhotoHint: 'Dodirni za odabir fotografije ili gotovog avatara',
+  weeName: 'Anonimno ime',
+  weeNamePlaceholder: 'Npr. TamnaSjena, Anon123...',
+  weeBioPlaceholder: 'Opiši svoj alter ego...',
+  weeCreatedTitle: 'Weë profil je stvoren',
+  weeCreated: 'Tvoj je anonimni identitet spreman. Profile možeš mijenjati u zaglavlju.',
+  weeCreateFailed: 'Weë profil nije bilo moguće stvoriti',
+  birthDay: 'Dan',
+  birthMonth: 'Mjesec',
+  birthYear: 'Godina',
+  stepOf: 'Korak {{paso}} od {{total}}',
+  customiseProfileHint: 'Odaberi avatar i dodaj opis (neobavezno)',
+  bioLabel: 'Opis (neobavezno)',
+  weeNameCounter: '{{usados}}/{{maximo}} - Najmanje {{minimo}} znakova',
+  weeBio: 'Biografija (neobavezno)',
+};

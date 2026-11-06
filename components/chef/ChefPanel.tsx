@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
@@ -61,7 +62,7 @@ const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
           accessibilityLabel={t('common.back')}
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
-          <Ionicons name="chevron-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="chevron-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={1}>
           {t(CLAVE_DEL_PANEL[panel])}

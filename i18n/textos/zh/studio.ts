@@ -394,4 +394,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: '我已停止创作。预留的 Credits 会退回你的余额。',
   worldUploadFailed: '没能上传你的照片，请再试一次。',
   worldDailyLimit: '今天的 3D 世界已经用完了。没有生成成功的会退还给你，次数每天都会刷新。',
+  filmmakerCardTitle: '执导你的电影',
+  filmmakerCardSub: '场景、镜头和运镜，尽在你的掌控。',
+  filmmakerCardCta: '打开 Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: '创作，',
+  heroAccent: '不设限。',
+  quickTitle: '快速创作',
+  filmmakerEngineSub: '用 AI 创作、导演和剪辑你的电影。',
+  projectsTitle: '项目',
 };

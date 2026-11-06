@@ -10,6 +10,7 @@ import {
   InteractionManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
@@ -25,6 +26,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { nombreGuardadoDeComunidad } from '../utils/comunidadesDeWee';
+import { MARCA } from '../constants/marca';
 
 /*
  * Cuánto hace. Vive fuera del componente, así que el idioma le llega como
@@ -61,15 +63,15 @@ const getNotificationIcon = (type: NotificationType): { name: string; color: str
     case 'comment':
       return { name: 'chatbubble', color: '#3B82F6' };
     case 'follow': // histórico: el sistema de seguidores
-      return { name: 'person-add', color: '#F5B731' };
+      return { name: 'person-add', color: MARCA.primario };
     case 'econtact_request':
-      return { name: 'person-add', color: '#F5B731' };
+      return { name: 'person-add', color: MARCA.primario };
     case 'econtact_accepted':
-      return { name: 'people', color: '#F5B731' };
+      return { name: 'people', color: MARCA.primario };
     case 'repost':
       return { name: 'repeat', color: '#10B981' };
     case 'mention':
-      return { name: 'at', color: '#F59E0B' };
+      return { name: 'at', color: MARCA.primarioOscuro };
     case 'reply':
       return { name: 'arrow-undo', color: '#6366F1' };
     case 'community_post':
@@ -172,7 +174,7 @@ const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }
               { backgroundColor: icon.color },
             ]}
           >
-            <Ionicons name={icon.name as any} size={scale(12)} color="white" />
+            <IconoDireccional name={icon.name as any} size={scale(12)} color="white" />
           </View>
         </View>
 

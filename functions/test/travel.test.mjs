@@ -102,7 +102,13 @@ console.log('\n── A · La undécima experiencia ──');
   check('3) sin robarle nada a Weë Chef', exp.matchExperiences('receta')[0]?.id === 'chef');
 
   check('4) entra en la barra lateral', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'\]/.test(specialists));
-  check('4) y no hace falta ninguna ruta nueva', !/Travel(Screen|Flow|Home)/.test(leer('navigation/MainStackNavigator.tsx')));
+  /*
+   * Desde el 2026-11-06 el workspace de WeëTravel (seis módulos, prototipo DEMO) tiene UNA ruta propia, `Travel`
+   * (screens/travel/TravelScreen.tsx). Lo que no cambia: la conversación sigue siendo la de siempre (CreatorFlow) y no
+   * aparece ningún flujo ni portada paralelos de Travel en la pila.
+   */
+  const pila = leer('navigation/MainStackNavigator.tsx');
+  check('4) una sola ruta nueva (Travel, el workspace) y ningún flujo paralelo', (pila.match(/name="Travel"/g) || []).length === 1 && !/Travel(Flow|Home)/.test(pila) && /name="CreatorFlow"/.test(pila));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -462,7 +468,8 @@ console.log('\n── J · El menú Burger ──');
   // La ruta: la de siempre, con su identificador.
   check('53) el menú abre la pantalla de especialista', /navigateRoot\('Specialist', \{ id: category \}\)/.test(menu));
   check('53) y esa ruta existe una sola vez', (rutas.match(/<Stack\.Screen name="Specialist"/g) || []).length === 1);
-  check('53) sin ninguna ruta propia de Travel', !/name="Travel|TravelScreen|TravelHome/.test(rutas));
+  /* El menú sigue abriendo la portada de siempre; el workspace (2026-11-06) es la única ruta propia y se entra desde ella. */
+  check('53) el menú no abre otra portada de Travel: la única ruta propia es el workspace', (rutas.match(/name="Travel"/g) || []).length === 1 && !/TravelHome/.test(rutas) && !/navigateRoot\('Travel'/.test(menu));
   check('54) la pantalla resuelve el especialista por ese identificador', /useEspecialista\(id\)/.test(leer('screens/SpecialistScreen.tsx')));
 }
 
@@ -1207,7 +1214,7 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
    * distingue "Weë Chef" de "Weë Music" hasta que lo lees; el emoji sí, y sale
    * del catálogo de Weë para que no haya dos verdades.
    */
-  check('126) cada destino trae su cara del catálogo de Weë', /getExperienceById\(destino\.id\)/.test(crearCrudo) && /destinoEmoji/.test(crearCrudo));
+  check('126) cada destino trae su cara del catálogo de Weë', /getExperienceById\(destino\.id\)/.test(crearCrudo) && /<IconoWee name={experiencia.icono}/.test(crearCrudo));
   check('126) y el muro general lleva la suya, que no es una experiencia: el globo', /name="globe-outline"/.test(crearCrudo.slice(crearCrudo.indexOf('const renderDestinos'), crearCrudo.indexOf('const renderPublicar'))));
   check('126) el aro cae siempre en el mismo sitio: pegado al borde derecho del chip', /destino: \{\s*flexGrow: 1,\s*flexDirection: 'row',\s*alignItems: 'center',/.test(crearCrudo) && /destinoCheck: \{[\s\S]{0,120}marginLeft: 'auto',/.test(crearCrudo));
   // Y el nombre entero: en una sola fila se cortaba —"Muro ge…"— y lo vimos en el teléfono.

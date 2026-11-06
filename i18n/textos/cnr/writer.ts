@@ -1,0 +1,45 @@
+/*
+ * Weë Writer en montenegrino (ijekaviano, latino). El texto de la persona no pasa por aquí: solo las herramientas.
+ * `words` lleva las tres formas (one / few / other) con {{contador}}: «riječ / riječi / riječi».
+ */
+import { ConPlurales } from '../ru/plurales';
+
+export const writer: ConPlurales<typeof import('../es/writer').writer> = {
+  askWee: 'Zamoli Weë',
+  writeSomethingFirst: 'Prvo nešto napiši',
+  writeSomethingHint: 'Prvo nešto napiši, pa će Weë to obraditi s tobom.',
+  save: 'Sačuvaj',
+  saving: 'Čuvanje…',
+  deleteDocument: 'Obriši dokument',
+  improve: 'Poboljšaj',
+  improveGoal: 'Poboljšaj ovaj tekst',
+  shorten: 'Skrati',
+  shortenGoal: 'Skrati ovaj tekst bez gubitka onog važnog',
+  expand: 'Produži',
+  expandGoal: 'Razradi ovaj tekst',
+  fix: 'Ispravi',
+  fixGoal: 'Ispravi pravopis i stil ovog teksta',
+  tone: 'Promijeni ton',
+  toneGoal: 'Napiši ovaj tekst drugim tonom',
+  summarize: 'Sažmi',
+  summarizeGoal: 'Sažmi ovaj tekst u ključne ideje',
+  translate: 'Prevedi',
+  translateGoal: 'Prevedi ovaj tekst',
+  words_one: '{{contador}} riječ',
+  words_few: '{{contador}} riječi',
+  words_other: '{{contador}} riječi',
+  savedInDocuments: ' · sačuvano u „Mojim dokumentima“',
+  couldNotSaveToDocuments: 'Nije moglo da se sačuva u Moje dokumente',
+  myDocuments: 'Moji dokumenti',
+  newDocument: 'Novi dokument',
+  noDocumentsYet: 'Još nemaš dokumenata. Napiši novi ili zamoli Weë da počne umjesto tebe.',
+  editedWhen: 'Izmijenjeno {{cuando}}',
+  titleLabel: 'Naslov dokumenta',
+  bodyLabel: 'Tekst dokumenta',
+  editorTitle: '✍️ Uređivač',
+  docTitlePlaceholder: 'Naslov dokumenta',
+  bodyPlaceholder: 'Piši ovdje. Kad god želiš, zamoli Weë da to poboljša, ispravi ili prevede.',
+  resultHint: 'Weë obrađuje ono što napišeš i vraća ti rezultat ovdje, spreman za dalje uređivanje.',
+  weeWorksWithYou: 'Weë to obrađuje s tobom.',
+  saved: '✓ Sačuvano',
+};

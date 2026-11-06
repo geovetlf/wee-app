@@ -244,7 +244,7 @@ console.log('\n── E · Lo que NO se ha roto ──');
    * donde de verdad se usa. Quitarlo del Home no podía dejar a nadie sin llegar.
    */
   check('16) se descubren comunidades desde Buscar', /communityService/.test(leer('screens/SearchScreen.tsx')));
-  check('16) y se crean desde ☰ → Explora → Comunidades', /navigate\('ExploreCommunities'\)/.test(soloCodigo(leer('components/DrawerMenu.tsx'))));
+  check('16) y se crean desde ☰ → Explora → Comunidades', /* Por la pestaña Home (2026-11-05): navegar a la pantalla a secas daba error desde el cajón. */ /navigateTab\('Home', \{ screen: 'ExploreCommunities' \}\)/.test(soloCodigo(leer('components/DrawerMenu.tsx'))));
   check('16) el bloque de comunidades sigue usándose en la barra lateral', /<CommunitiesEntry\b/.test(soloCodigo(leer('components/RightSidebar.tsx'))));
 
   /*
@@ -436,6 +436,8 @@ console.log('\n── I · El Home va directo al compositor ──');
     if (/ThemeContext$/.test(peticion)) return { useTheme: () => ({ theme: { colors: colores } }) };
     if (/UserProfileContext$/.test(peticion)) return { useUserProfile: () => ({ userProfile: null }) };
     if (/AvatarDisplay$/.test(peticion)) return { __esModule: true, default: () => h('span', null, 'avatar') };
+    /* El degradado de marca (components/GradienteDeMarca.tsx, 2026-11-05) es solo fondo: aquí no dibuja nada. */
+    if (/GradienteDeMarca$/.test(peticion)) return { RellenoDeMarca: () => null, GradienteDeMarca: ({ children }) => children };
     if (/utils\/scale$/.test(peticion)) return { scale: (n) => n };
     if (/firestoreService$/.test(peticion)) return {};
     /*

@@ -370,4 +370,13 @@ export const studio = {
   worldCancelledNote: 'Paré la creación. Lo que se reservó vuelve a tu saldo de Credits.',
   worldUploadFailed: 'No pude subir tu foto. Inténtalo de nuevo.',
   worldDailyLimit: 'Ya usaste los mundos 3D de hoy. Si alguno no sale, lo recuperas, y se renuevan cada día.',
+  filmmakerCardTitle: 'Dirige tu película',
+  filmmakerCardSub: 'Escenas, planos y movimientos de cámara, con la dirección en tus manos.',
+  filmmakerCardCta: 'Abrir Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'Crea',
+  heroAccent: 'sin límites.',
+  quickTitle: 'Creación rápida',
+  filmmakerEngineSub: 'Crea, dirige y edita tus películas con IA.',
+  projectsTitle: 'Proyectos',
 };

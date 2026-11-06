@@ -50,4 +50,16 @@ export const projects: ConPlurales<typeof import('../es/projects').projects> = {
   whatIsMissing: 'Чего не хватает этому проекту?',
   whatIsMissingNote: 'Логотип, фото, реклама, видео, музыка или документ — здесь пригодится любой специалист Weë.',
   createSomethingNew: 'Создать что-то новое',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '{{contador}} проект',
+  count_few: '{{contador}} проекта',
+  count_many: '{{contador}} проектов',
+  count_other: '{{contador}} проекта',
+  updatedOn: 'Обновлено {{fecha}}',
+  searchPlaceholder: 'Поиск проектов',
+  sortUpdated: 'Недавно обновлённые',
+  sortName: 'Название (А–Я)',
+  noMatches: 'По вашему запросу проектов нет.',
+  emptySpaceTitle: 'Ваше творческое пространство начинается здесь',
+  moreActions: 'Другие действия',
 };

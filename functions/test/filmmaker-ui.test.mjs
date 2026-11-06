@@ -97,6 +97,8 @@ const shell = [];
 const dobles = {
   'react-native': reactNative,
   '@expo/vector-icons': { Ionicons: ({ name }) => h('i', { 'data-icono': name }) },
+  /* El degradado de marca (components/GradienteDeMarca.tsx, ronda V 2026-11-06) es solo fondo: aquí no dibuja nada. */
+  'expo-linear-gradient': { LinearGradient: () => null },
   '@react-navigation/native': { useRoute: () => ruta, useNavigation: () => navegacion },
   '../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P },
   '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P },

@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoMeGusta from './IconoMeGusta';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { Post } from '../services/firestoreService';
 import { cloudinaryVideoThumb } from '../services/cloudinaryService';
 import { formatNumber, getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import { Timestamp } from 'firebase/firestore';
+import { MARCA } from '../constants/marca';
 
 interface ShareablePostCardProps {
   post: Post;
@@ -93,7 +95,7 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
               avatarType={(authorAvatarType || 'predefined') as 'predefined' | 'custom'}
               avatarId={authorAvatarId || 'male'}
               photoURL={authorPhotoURL}
-              backgroundColor="#F5B731"
+              backgroundColor={MARCA.primario}
               showBorder={false}
             />
             <View style={styles.authorInfo}>
@@ -146,7 +148,7 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
           {/* Stats */}
           <View style={styles.statsContainer}>
             <View style={styles.stat}>
-              <Ionicons name="thumbs-up" size={16} color="#22C55E" />
+              <IconoMeGusta size={16} color="#22C55E" />
               <Text style={styles.statText}>{formatNumber(post.agreementCount || 0, locale)}</Text>
             </View>
             <View style={styles.stat}>
@@ -179,7 +181,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     // Simulated gradient with overlay
-    shadowColor: '#F5B731',
+    shadowColor: MARCA.primario,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -215,12 +217,12 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F5B731',
+    color: MARCA.primarioOscuro,
     marginLeft: 8,
     letterSpacing: -0.3,
   },
   communityBadge: {
-    backgroundColor: '#F5B731' + '15',
+    backgroundColor: MARCA.velo(0.08),
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -228,7 +230,7 @@ const styles = StyleSheet.create({
   communityText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F5B731',
+    color: MARCA.primarioOscuro,
   },
   authorSection: {
     flexDirection: 'row',
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tagChip: {
-    backgroundColor: '#F5B731' + '15',
+    backgroundColor: MARCA.velo(0.08),
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -293,7 +295,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F5B731',
+    color: MARCA.primarioOscuro,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -321,7 +323,7 @@ const styles = StyleSheet.create({
   },
   footerCta: {
     fontSize: 13,
-    color: '#F5B731',
+    color: MARCA.primarioOscuro,
     fontWeight: '600',
   },
 });

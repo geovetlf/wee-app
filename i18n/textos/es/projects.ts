@@ -38,4 +38,14 @@ export const projects = {
   whatIsMissing: '¿Qué le falta a este proyecto?',
   whatIsMissingNote: 'Un logo, fotos, un anuncio, un video, música o un documento: cualquier especialista de Weë puede sumar aquí.',
   createSomethingNew: 'Crear algo nuevo',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '{{contador}} proyecto',
+  count_other: '{{contador}} proyectos',
+  updatedOn: 'Actualizado el {{fecha}}',
+  searchPlaceholder: 'Buscar proyectos',
+  sortUpdated: 'Actualizados recientemente',
+  sortName: 'Nombre (A–Z)',
+  noMatches: 'Ningún proyecto coincide con tu búsqueda.',
+  emptySpaceTitle: 'Tu espacio creativo empieza aquí',
+  moreActions: 'Más acciones',
 };

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -23,6 +24,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import AvatarPicker, { isDiceBearUrl } from '../components/avatars/AvatarPicker';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const WeeProfileCreationScreen: React.FC = () => {
   const t = useT();
@@ -117,7 +119,7 @@ const WeeProfileCreationScreen: React.FC = () => {
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('onboarding.weeTitle')}</Text>
         <View style={{ width: scale(24) }} />
@@ -210,11 +212,12 @@ const WeeProfileCreationScreen: React.FC = () => {
           disabled={!canCreate}
           activeOpacity={0.8}
         >
+          <RellenoDeMarca radio={BORDER_RADIUS.md} />
           {isCreating ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color="#1F2937" />
           ) : (
             <>
-              <Ionicons name="eye-off" size={scale(20)} color="white" />
+              <Ionicons name="eye-off" size={scale(20)} color="#1F2937" />
               <Text style={styles.createButtonText}>{t('onboarding.weeTitle')}</Text>
             </>
           )}
@@ -308,7 +311,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   createButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
   },

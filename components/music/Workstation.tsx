@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -94,7 +95,7 @@ const Workstation: React.FC<Props> = ({ cancion, onCancion, onVolver }) => {
   return (
     <View style={s.raiz}>
       <TouchableOpacity accessibilityRole="button" onPress={onVolver} style={s.volver} hitSlop={8}>
-        <Ionicons name="chevron-back" size={scale(18)} color={theme.colors.accentDark} />
+        <IconoDireccional name="chevron-back" size={scale(18)} color={theme.colors.accentDark} />
         <Text style={[s.volverTexto, { color: theme.colors.accentDark }]}>{t('music.backToMusic')}</Text>
       </TouchableOpacity>
 

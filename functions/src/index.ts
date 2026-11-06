@@ -127,6 +127,15 @@ export { burnViewOnce } from './social/weetalk';
  * lee de `users` y las reglas no pueden consultar.
  */
 export { requestEContact, acceptEContact } from './social/econtact';
+// WeëPages: las Páginas públicas de la cuenta (entidades, no caras). Sin IA ni Credits.
+export { savePage, followPage } from './social/pages';
+// Comunidades por identidad (docs/COMUNIDADES-IDENTIDAD.md): crear, unirse, salir, papeles y propiedad. Sin IA ni Credits.
+export {
+  createCommunity, joinCommunity, leaveCommunity, setCommunityRole, removeCommunityMember,
+  transferCommunityOwnership, updateCommunity, claimLegacyCommunity, listMyCommunities,
+} from './social/comunidades';
+// Boost: promocionar publicaciones propias dentro de Weë (docs/BOOST.md). Reserva y liquida SOLO por el Credit Engine.
+export { boost, boostSweep } from './boost';
 
 /*
  * IDENTITY: el nacimiento de las cuentas NUEVAS (Fase 11.x-5A).

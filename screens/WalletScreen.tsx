@@ -5,8 +5,10 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
@@ -15,11 +17,16 @@ import { textoDelServidorLegible } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import { creditsService, describeTransaction, CreditsBalance, CreditTransaction } from '../services/creditsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { MARCA } from '../constants/marca';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /**
  * Mi billetera: saldo, acumulados e historial de Credits (docs/CREDITS.md).
  * Todo se lee del Credit Engine; la app nunca escribe Credits.
  */
+/** Cuánto se espera la primera respuesta del servidor antes de decir que el historial no se pudo cargar. */
+const PLAZO_DEL_HISTORIAL_MS = 15000;
+
 const WalletScreen = () => {
   const { theme } = useTheme();
   const { t, formato, locale } = useIdioma();
@@ -41,16 +48,30 @@ const WalletScreen = () => {
 
   const [account, setAccount] = useState<CreditsBalance | null>(null);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+  /*
+   * El historial no dice «Sin movimientos» hasta que la escucha ha CONTESTADO: antes, la lista vacía inicial se
+   * pintaba como vacía de verdad durante la carga. cargando → listo (vacío o con movimientos) | error.
+   */
+  const [historial, setHistorial] = useState<'cargando' | 'listo' | 'error'>('cargando');
+  const [intento, setIntento] = useState(0);
 
   // Los Credits son por cuenta (uid de Auth): el Perfil Weë comparte el saldo
   const accountUid = user?.uid;
 
   useEffect(() => {
     if (!accountUid) return;
+    setHistorial('cargando');
     const unsub1 = creditsService.subscribeToBalance(accountUid, setAccount);
-    const unsub2 = creditsService.subscribeToTransactions(accountUid, setTransactions);
-    return () => { unsub1(); unsub2(); };
-  }, [accountUid]);
+    const unsub2 = creditsService.subscribeToTransactions(
+      accountUid,
+      (items) => { setTransactions(items); setHistorial('listo'); },
+      50,
+      () => setHistorial('error'),
+    );
+    /* Si el servidor no contesta en un tiempo razonable (sin red), se dice que no se pudo cargar, con reintento. */
+    const plazo = setTimeout(() => setHistorial((h) => (h === 'cargando' ? 'error' : h)), PLAZO_DEL_HISTORIAL_MS);
+    return () => { clearTimeout(plazo); unsub1(); unsub2(); };
+  }, [accountUid, intento]);
 
   /*
    * La fecha sale del LOCALE ACTIVO, no de uno fijo. Antes decía 'es-ES' y el
@@ -116,7 +137,7 @@ const WalletScreen = () => {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + SPACING.md, borderColor: theme.colors.border }]}>
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
+          <IconoDireccional name="chevron-back" size={26} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('credits.myWallet')}</Text>
         <View style={{ width: 26 }} />
@@ -128,7 +149,7 @@ const WalletScreen = () => {
           <View>
             <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>{t('credits.currentBalance')}</Text>
             <View style={styles.balanceRow}>
-              <Ionicons name="diamond" size={24} color="#F5B731" />
+              <Ionicons name="diamond" size={24} color={MARCA.primario} />
               <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>{formato.numero(account?.balance ?? 0)}</Text>
             </View>
           </View>
@@ -137,7 +158,8 @@ const WalletScreen = () => {
             onPress={() => (nav as any).navigate('CreditStore')}
             activeOpacity={0.8}
           >
-            <Ionicons name="add" size={20} color="#fff" />
+            <RellenoDeMarca radio={BORDER_RADIUS.full} />
+            <Ionicons name="add" size={20} color="#1F2937" />
             <Text style={styles.addBtnText}>{t('credits.topUp')}</Text>
           </TouchableOpacity>
         </View>
@@ -164,10 +186,25 @@ const WalletScreen = () => {
         keyExtractor={t => t.id}
         contentContainerStyle={transactions.length === 0 ? styles.emptyContainer : undefined}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Ionicons name="receipt-outline" size={44} color={theme.colors.textSecondary} style={{ opacity: 0.4 }} />
-            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>{t('credits.noMovements')}</Text>
-          </View>
+          historial === 'cargando' ? (
+            <View style={styles.empty} accessibilityLiveRegion="polite">
+              <ActivityIndicator color={theme.colors.textSecondary} />
+              <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>{t('credits.historyLoading')}</Text>
+            </View>
+          ) : historial === 'error' ? (
+            <View style={styles.empty} accessibilityLiveRegion="polite">
+              <Ionicons name="cloud-offline-outline" size={44} color={theme.colors.textSecondary} style={{ opacity: 0.4 }} />
+              <Text style={[styles.emptyText, { color: theme.colors.textSecondary, textAlign: 'center' }]}>{t('credits.historyError')}</Text>
+              <TouchableOpacity onPress={() => setIntento((n) => n + 1)} accessibilityRole="button" hitSlop={8}>
+                <Text style={[styles.emptyText, { color: theme.colors.text, fontWeight: '600', textDecorationLine: 'underline' }]}>{t('credits.historyRetry')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Ionicons name="receipt-outline" size={44} color={theme.colors.textSecondary} style={{ opacity: 0.4 }} />
+              <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>{t('credits.noMovements')}</Text>
+            </View>
+          )
         }
         showsVerticalScrollIndicator={false}
       />
@@ -201,12 +238,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F5B731',
+    backgroundColor: MARCA.primario,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: BORDER_RADIUS.full,
   },
-  addBtnText: { color: '#fff', fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },
+  addBtnText: { color: '#1F2937', fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },
 
   statsRow: { flexDirection: 'row', alignItems: 'center' },
   stat: { flex: 1, alignItems: 'center' },

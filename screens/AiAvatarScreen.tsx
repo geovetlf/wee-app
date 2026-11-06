@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -26,6 +27,7 @@ import { creditsService, creditsShortfall } from '../services/creditsService';
 import { useWallet } from '../hooks/useWallet';
 
 import { notify } from '../utils/notify';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 // --- Option data ---
 const GENDER_OPTIONS = [
   { id: 'male', clave: 'aiAvatar.genderMale' },
@@ -508,10 +510,11 @@ const AiAvatarScreen: React.FC = () => {
       onPress={onPress}
       activeOpacity={0.7}
     >
+      <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!selected} />
       <Text
         style={[
           styles.chipText,
-          { color: selected ? '#FFFFFF' : theme.colors.text },
+          { color: selected ? '#1F2937' : theme.colors.text },
         ]}
       >
         {label}
@@ -564,7 +567,8 @@ const AiAvatarScreen: React.FC = () => {
             activeOpacity={0.8}
             onPress={() => userProfile?.aiAvatarPortraitUrl && pickImageForSwap(true, userProfile.aiAvatarPortraitUrl)}
           >
-            <Ionicons name="camera" size={scale(22)} color="#FFFFFF" />
+            <RellenoDeMarca radio={BORDER_RADIUS.md} />
+            <Ionicons name="camera" size={scale(22)} color="#1F2937" />
             <Text style={styles.swapButtonText}>{t('aiAvatar.takePhoto')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -600,7 +604,8 @@ const AiAvatarScreen: React.FC = () => {
               }}
               activeOpacity={0.8}
             >
-              <Ionicons name="checkmark-circle" size={scale(18)} color="#FFFFFF" />
+              <RellenoDeMarca radio={BORDER_RADIUS.md} />
+              <Ionicons name="checkmark-circle" size={scale(18)} color="#1F2937" />
               <Text style={styles.primaryButtonText}>{t('aiAvatar.useAsProfilePhoto')}</Text>
             </TouchableOpacity>
           </View>
@@ -744,10 +749,11 @@ const AiAvatarScreen: React.FC = () => {
                 disabled={!step1Complete}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.primaryButtonText, { color: step1Complete ? '#FFFFFF' : theme.colors.textSecondary }]}>
+                <RellenoDeMarca radio={BORDER_RADIUS.md} apagada={!step1Complete} />
+                <Text style={[styles.primaryButtonText, { color: step1Complete ? '#1F2937' : theme.colors.textSecondary }]}>
                   {t('aiAvatar.nextStep')}
                 </Text>
-                <Ionicons name="arrow-forward" size={scale(18)} color={step1Complete ? '#FFFFFF' : theme.colors.textSecondary} />
+                <IconoDireccional name="arrow-forward" size={scale(18)} color={step1Complete ? '#1F2937' : theme.colors.textSecondary} />
               </TouchableOpacity>
             </>
           )}
@@ -818,7 +824,7 @@ const AiAvatarScreen: React.FC = () => {
 
               {/* Back link */}
               <TouchableOpacity style={styles.backLink} onPress={() => setStep(1)} activeOpacity={0.7}>
-                <Ionicons name="arrow-back" size={scale(16)} color={theme.colors.accent} />
+                <IconoDireccional name="arrow-back" size={scale(16)} color={theme.colors.accent} />
                 <Text style={[styles.backLinkText, { color: theme.colors.accent }]}>{t('aiAvatar.previousStep')}</Text>
               </TouchableOpacity>
 
@@ -844,8 +850,9 @@ const AiAvatarScreen: React.FC = () => {
                   ? t('weeai.calculatingTheCost')
                   : t('aiAvatar.generateForCredits', { credits: formato.numero(avatarCost) })}
               >
-                <Ionicons name="sparkles" size={scale(18)} color={canGenerate ? '#FFFFFF' : theme.colors.textSecondary} />
-                <Text style={[styles.primaryButtonText, { color: canGenerate ? '#FFFFFF' : theme.colors.textSecondary }]}>
+                <RellenoDeMarca radio={BORDER_RADIUS.md} apagada={!canGenerate} />
+                <Ionicons name="sparkles" size={scale(18)} color={canGenerate ? '#1F2937' : theme.colors.textSecondary} />
+                <Text style={[styles.primaryButtonText, { color: canGenerate ? '#1F2937' : theme.colors.textSecondary }]}>
                   {avatarCost === null
                     ? t('weeai.calculatingTheCost')
                     : t('aiAvatar.generateButton', { credits: formato.numero(avatarCost) })}
@@ -883,7 +890,8 @@ const AiAvatarScreen: React.FC = () => {
                   activeOpacity={0.8}
                   onPress={() => generatedAvatarUrl && pickImageForSwap(true, generatedAvatarUrl)}
                 >
-                  <Ionicons name="camera" size={scale(22)} color="#FFFFFF" />
+                  <RellenoDeMarca radio={BORDER_RADIUS.md} />
+                  <Ionicons name="camera" size={scale(22)} color="#1F2937" />
                   <Text style={styles.swapButtonText}>{t('aiAvatar.takePhoto')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -938,7 +946,8 @@ const AiAvatarScreen: React.FC = () => {
                 onPress={handleUseSwapAsProfile}
                 activeOpacity={0.8}
               >
-                <Ionicons name="checkmark-circle" size={scale(18)} color="#FFFFFF" />
+                <RellenoDeMarca radio={BORDER_RADIUS.md} />
+                <Ionicons name="checkmark-circle" size={scale(18)} color="#1F2937" />
                 <Text style={styles.primaryButtonText}>{t('aiAvatar.useAsProfilePhoto')}</Text>
               </TouchableOpacity>
 
@@ -978,7 +987,7 @@ const AiAvatarScreen: React.FC = () => {
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('aiAvatar.humanAvatar')}</Text>
         <View style={styles.headerRight} />
@@ -1143,7 +1152,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
-    color: '#FFFFFF',
+    color: '#1F2937',
   },
   secondaryButton: {
     flexDirection: 'row',
@@ -1262,7 +1271,7 @@ const styles = StyleSheet.create({
   swapButtonText: {
     fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.semibold,
-    color: '#FFFFFF',
+    color: '#1F2937',
   },
   swapPreviewContainer: {
     alignItems: 'center',

@@ -1,0 +1,58 @@
+/*
+ * TURCO — El concepto de cada movimiento del historial de Credits (ver `../../es/servidor/movimientos.ts`).
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Traducción de IA pendiente de revisión humana. `{{experiencia}}` es marca y no se traduce.
+ *
+ * Tras una cifra, singular: `_one` y `_other` dicen lo mismo (guía § 6).
+ */
+export const movimientos: typeof import('../../es/servidor/movimientos').movimientos = {
+  saldoAnterior: 'Önceki bakiye',
+  bienvenida: 'Hoş geldin Credits',
+  ajusteMenos: 'Düzeltme: ayrılan tutardan daha az tuttu',
+  reembolsoFallida: 'Başarısız oluşturma için iade',
+  compra: 'Credits satın alma',
+  regalo: 'Hediye Credits',
+  recargaPrueba: 'Deneme bakiye yüklemesi',
+  compraRestaurada: 'Geri yüklenen satın alma',
+  reembolsoAdmin: 'Yönetici iadesi',
+  avatar: 'Weë avatarı',
+  fotoConAvatar: 'Weë avatarınla fotoğraf',
+  noSePudoTerminar: '{{base}} · tamamlanamadı',
+  brainBusqueda: 'Weë Brain · arama',
+  brainRespuestas_one: 'Weë Brain · {{contador}} yanıt',
+  brainRespuestas_other: 'Weë Brain · {{contador}} yanıt',
+  brainNoPudo: 'Weë Brain · yanıt veremedi',
+  studioVideo: 'Weë Studio · video',
+  studioSinTiempo: 'Weë Studio · önceki denemenin süresi doldu',
+  studioNoSePudo: 'Weë Studio · video oluşturulamadı',
+  studioMundo: 'Weë Studio · 3D dünya',
+  studioMundoNoSePudo: 'Weë Studio · 3D dünya oluşturulamadı',
+  weeAi: 'WEË AI · {{experiencia}}',
+  operacionIncompleta: 'Weë · işlem tamamlanamadı',
+  servicioAiImageLite: 'Standart görsel',
+  servicioAiImageEnhanceLite: 'Standart düzenleme',
+  servicioAiImage: 'Görsel oluşturma',
+  servicioAiImageEnhance: 'Görsel düzenleme',
+  servicioAiImagePro: 'En yüksek hassasiyette görsel',
+  servicioAiTryon: 'Kıyafet deneme',
+  servicioAiVideoDraft: 'Önizleme videosu',
+  servicioAiVideo: 'Video oluşturma',
+  servicioAiVideoHd: 'Yüksek kaliteli video',
+  servicioAiVideoAdvanced: 'Gelişmiş video',
+  servicioAiVideoMax: 'En yüksek kalitede video',
+  servicioAiVideoEdit: 'Video kurgusu',
+  servicioAiAudio: 'Ses oluşturma',
+  servicioAiTranscribe: 'Yazıya dökme ve altyazı',
+  servicioAiMusic: 'Müzik oluşturma',
+  servicioAiWorld: '3D dünya oluşturma',
+  servicioAiBrain: 'Weë Brain yanıtı',
+  servicioAiText: 'Metin oluşturma',
+  servicioAiTextPro: 'En yüksek kalitede uzun metin',
+  servicioAiSearch: 'Yapay zekâ ile arama',
+  servicioAiBook: 'Kitap oluşturma',
+  /* Boost (functions/src/boost): traducción de IA, pendiente de revisión nativa (2026-11-05). */
+  boostReserva: 'Gönderi için Boost',
+  boostNoIniciado: 'Boost başlatılmadı',
+  boostSinEntregas: 'Gösterimsiz Boost · tamamı iade edildi',
+};

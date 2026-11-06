@@ -11,6 +11,7 @@ export const menu = {
   createWeeProfile: 'Crear mi perfil Weë',
   credits: 'Credits',
   econtact: 'ËContact',
+  pages: 'WeëPages',
   wcontact: 'ËContact',
   communities: 'Comunidades',
   weels: 'Weëls',

@@ -420,4 +420,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: '我已停止創作。預留的 Credits 會退回你的餘額。',
   worldUploadFailed: '沒能上傳你的照片，請再試一次。',
   worldDailyLimit: '今天的 3D 世界已經用完了。沒有生成成功的會退還給你，次數每天都會重置。',
+  filmmakerCardTitle: '執導你的電影',
+  filmmakerCardSub: '場景、鏡頭與運鏡，盡在你的掌控。',
+  filmmakerCardCta: '開啟 Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: '創作，',
+  heroAccent: '不設限。',
+  quickTitle: '快速創作',
+  filmmakerEngineSub: '用 AI 創作、導演和剪輯你的電影。',
+  projectsTitle: '專案',
 };

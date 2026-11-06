@@ -1,0 +1,57 @@
+/*
+ * COREANO — Textos del servidor: motor (ver `../../es/servidor/motor.ts`).
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Traducción de IA pendiente de revisión humana.
+ *
+ * Sin plurales: `_one` y `_other` dicen lo mismo. Ninguna partícula variable (은/는, 이/가, 을/를, 와/과, (으)로) va pegada a un hueco de texto: la frase se reordena o el hueco va detrás de dos puntos.
+ */
+export const motor: typeof import('../../es/servidor/motor').motor = {
+  invalidRequest: '요청에 빠진 내용이 있어요. 확인 후 다시 시도해 주세요.',
+  unauthorized: 'Weë로 창작하려면 로그인해 주세요.',
+  providerError: '이번에는 AI가 창작을 끝내지 못했어요. 차감되지 않았어요. 잠시 후에 다시 시도해 주세요.',
+  generationFailed: '창작을 끝내지 못했어요. 차감되지 않았어요. 다시 시도해 주세요.',
+  timeout: '너무 오래 걸려서 중단했어요. 차감되지 않았어요. 다시 시도해 주세요.',
+  rateLimited: '연속으로 너무 많이 창작했어요. 차감되지 않았어요. 잠시 기다린 뒤 다시 시도해 주세요.',
+  duplicate: '그 창작은 이미 진행 중이에요.',
+  notAvailable: '이 기능은 아직 사용할 수 없어요.',
+  inputRejected: '이 사진이나 영상으로는 생성할 수 없어요. 실제 얼굴이나 이런 콘텐츠는 허용되지 않아요. 다른 이미지나 설명으로 시도해 보세요.',
+  faltaCampo: '빠진 항목: {{campo}}.',
+  revisaCampo: '확인해 주세요: {{campo}}. 1자에서 {{max}}자 사이여야 해요.',
+  campoMensaje: '메시지',
+  campoDescripcionVideo: '영상 설명',
+  conversacionNoEncontrada: '이 대화를 찾을 수 없어요.',
+  sinPlan: '이 작업에는 아직 계획이 없어요.',
+  sinUnPlan: '이 작업에는 아직 정해진 계획이 없어요.',
+  yaTienePlan: '이 작업에는 이미 계획이 있어요.',
+  subeFoto: 'Weë가 작업할 수 있도록 사진을 올려 주세요.',
+  trabajoNoEncontrado: '이 작업을 찾을 수 없어요.',
+  trabajoAjeno: '내 작업이 아니에요.',
+  experienciaDesconocida: '알 수 없는 경험이에요.',
+  faltaTrabajo: '작업이 빠져 있어요.',
+  intentoSinTiempo: '그 시도는 시간이 초과되어 Credits를 돌려드렸어요. 다시 시도할 수 있어요.',
+  fotoDireccion: '사진 주소가 올바르지 않아요.',
+  fotoSubir: '사진은 사용하기 전에 Weë에 올려야 해요.',
+  fotoAjena: '내 사진이 아니에요.',
+  archivoSube: 'Weë가 읽을 수 있도록 올려 주세요: {{archivo}}.',
+  archivoDireccion: '{{archivo}} 주소가 올바르지 않아요.',
+  archivoSubir: '{{archivo}} 파일은 사용하기 전에 Weë에 올려야 해요.',
+  archivoAjeno: '내 {{archivo}} 파일이 아니에요.',
+  archivoDocumento: '문서',
+  archivoAudio: '오디오',
+  sinTiempoAntes: '시작하기 전에 시간이 초과됐어요. 차감되지 않았어요.',
+  sinProveedor: '지금은 이 작업에 쓸 수 있는 AI가 없어요. 나중에 다시 시도해 주세요.',
+  noDisponibleActualmente: '이 기능은 현재 사용할 수 없어요.',
+  noDisponibleAhora: '이 기능은 지금 사용할 수 없어요. 잠시 후에 다시 시도해 주세요.',
+  noDisponibleRegion: '이 기능은 현재 내 지역에서 사용할 수 없어요.',
+  noDisponiblePais: '이 기능을 사용하려면 실제 프로필에 국가를 입력해 주세요.',
+  noDisponibleOpciones: '선택한 옵션으로는 이 기능을 사용할 수 없어요. 다른 옵션으로 시도해 보세요.',
+  describeVideo: '어떤 영상을 만들고 싶은지 알려 주세요.',
+  creacionTerminada: '그 창작은 이미 끝나서 다시 만들지 않아요. 내 창작물에서 찾아보세요.',
+  tomaInvalida: '이 테이크의 형식이 올바르지 않아요.',
+  planoInvalido: '이 숏의 형식이 올바르지 않아요.',
+  produccionNoEncontrada: '그 프로덕션을 찾을 수 없어요.',
+  tomaNoGenerable: '이 테이크는 이렇게 생성할 수 없어요.',
+  creacionNoEncontrada: '그 창작물을 찾을 수 없어요.',
+  debesIniciarSesion: '로그인해야 해요',
+};

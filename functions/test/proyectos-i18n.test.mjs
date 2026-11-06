@@ -44,8 +44,8 @@ for (const modulo of ['projects', 'weeai', 'common']) {
 /* El traductor REAL. Solo se le sustituye la cadena de respaldo, que vive en
  * otro archivo y aquí no se puede importar por ruta relativa. */
 const { crearTraductor } = await cargar('i18n/traducir.ts', (s) => s
-  .replace("import { cadenaDeRespaldo } from './resolver';",
-    "const cadenaDeRespaldo = (l) => (l.startsWith('es') ? ['es', 'en'] : ['en']);")
+  .replace("import { cadenaDeClaves } from './resolver';",
+    "const cadenaDeClaves = (l) => (l.startsWith('es') ? ['es', 'en'] : ['en']);")
   /* Desde la fase 5O el traductor escribe los números con Intl. Se le pone el
    * mismo formateador que usa de verdad, no uno de mentira: si no, esta prueba
    * estaría probando un traductor que no formatea y el de la app sí. */
@@ -239,9 +239,14 @@ console.log('\n── F · Ni una ruta, ni un identificador, ni una acción ─�
     && /projectsService\.rename\(project\.id, name\)/.test(CODIGO[DETALLE])
     && /projectsService\.remove\(project\.id\)/.test(CODIGO[DETALLE]));
 
+  /*
+   * Desde el rediseño (N, 2026-11-05) el detalle tiene dos ramas —la de Weë Creator, intacta, y la de la App—, así
+   * que cada destino aparece en las dos: Weë AI dos veces en creator (`projects.add` y el banner) y una en la App
+   * (`crear`, que usan el botón de la ficha y el vacío), y cada creación abre su trabajo en las dos.
+   */
   check('25) y sus dos destinos',
-    (CODIGO[DETALLE].match(/navigation\.navigate\('WeeCreator'\)/g) || []).length === 2
-    && /navigation\.navigate\('CreatorFlow', \{ experienceId: job\.experienceId, jobId: job\.id \}\)/.test(CODIGO[DETALLE]));
+    (CODIGO[DETALLE].match(/navigation\.navigate\('WeeCreator'\)/g) || []).length === 3
+    && (CODIGO[DETALLE].match(/navigation\.navigate\('CreatorFlow', \{ experienceId: job\.experienceId, jobId: job\.id \}\)/g) || []).length === 2);
 
   check('26) los once emojis de proyecto no se han tocado',
     /PROJECT_EMOJIS = \['📁', '🍔', '🎵', '🚗', '🏷️', '🏠', '💼', '🎬', '📚', '💄', '🌟'\]/.test(leer('services/projectsService.ts')));

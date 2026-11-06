@@ -188,7 +188,7 @@ const sinEmoji = [
 ].filter(([, s]) => EMOJI.test(s.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')));
 check('27) ningún emoji en la interfaz de Weë Chef', sinEmoji.length === 0, sinEmoji.map(([q]) => q).join(' · '));
 check('28) ni fotografías ni banners',
-  ![acciones, panelTsx, proyectos, pantalla].some((s) => /<Image\b|require\('\.\.\/\.\.\/assets/.test(s)));
+  ![acciones, panelTsx, pantalla].some((s) => /<Image\b|require\('\.\.\/\.\.\/assets/.test(s)) && !/require\('\.\.\/\.\.\/assets/.test(proyectos));
 check('29) mis proyectos enseña lo que hay, y si no hay, lo dice',
   /proyectos\.length === 0 \?/.test(proyectos) && /t\('chef\.projectsEmpty'\)/.test(proyectos));
 

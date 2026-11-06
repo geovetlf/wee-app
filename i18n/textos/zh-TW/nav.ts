@@ -35,5 +35,6 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: '前往 Weë AI',
   weeAiQuestion: '今天想創作什麼？',
   weeAiPitch: '告訴 Weë 你想要什麼，AI 的事交給 Weë。',
-  documentTitle: 'Weë - 未來的社群',
+  brandSlogan: '想像 · 創作 · 連結',
+  documentTitle: 'Weë - {{eslogan}}',
 };

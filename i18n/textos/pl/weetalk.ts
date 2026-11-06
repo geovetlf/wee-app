@@ -1,0 +1,58 @@
+/*
+ * POLACO — WeeTalk. El nombre es marca; los mensajes los escribe la gente y NUNCA pasan por aquí.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * Tuteo («ty»), comillas polacas „…” para citar botones. «Prywatnie» cita el
+ * botón del Wäll y tiene que coincidir letra por letra con el de allí.
+ */
+export const weetalk: typeof import('../es/weetalk').weetalk = {
+  title: 'WeeTalk',
+  messagePlaceholder: 'Napisz wiadomość…',
+  send: 'Wyślij',
+  empty: 'Nie masz jeszcze żadnych rozmów',
+  emptyHint: 'Napisz do kogoś z poziomu jego profilu',
+  loadFailed: 'Nie udało się wczytać twoich rozmów',
+  sendFailed: 'Nie udało się wysłać wiadomości',
+  attach: 'Załącz',
+  photo: 'Zdjęcie',
+  search: 'Szukaj...',
+  noConversations: 'Brak rozmów',
+  deleteConversation: 'Usuń rozmowę',
+  areYouSure: 'Czy na pewno?',
+  messagePlaceholderShort: 'Wiadomość...',
+  firstMessage: 'Wyślij pierwszą wiadomość',
+  photoSeen: 'Zdjęcie obejrzane',
+  photoOnce: 'Zdjęcie jednorazowe',
+  photoOpened: 'Otwarte',
+  tapToView: 'Dotknij, aby zobaczyć',
+  tapToClose: 'Dotknij, aby zamknąć',
+  theme: 'Motyw',
+  background: 'Tło',
+  permissions: 'Uprawnienia',
+  photoPermission: 'Potrzebne są uprawnienia dostępu do zdjęć',
+  audioPermission: 'Potrzebne są uprawnienia do nagrywania dźwięku',
+  imageFailed: 'Nie udało się wysłać obrazu',
+  noConversationsHint: 'Otwórz menu ⋮ przy dowolnym poście i wybierz „Wyślij przez WeeTalk”, aby rozpocząć prywatną rozmowę',
+  ephemeralMode: 'Znikające wiadomości',
+  noMessagesYet: 'Nie ma jeszcze wiadomości',
+  youSaid: 'Ty: {{mensaje}}',
+  conversationStart: 'To początek twojej prywatnej rozmowy',
+  beRespectful: 'Pamiętaj o szacunku i prywatności 🤝',
+  anonymousUser: 'Anonimowy użytkownik',
+  ephemeralOn: 'Znikające wiadomości włączone · Usuwane po wyjściu z rozmowy',
+  cameraNeeded: 'Potrzebny jest dostęp do aparatu',
+  allow: 'Zezwól',
+  recordAudio: 'Nagraj dźwięk',
+  viewOnceOn: 'Pokaż tylko raz',
+  keepInChat: 'Zachowaj w czacie',
+  themeClassic: 'Klasyczny',
+  themeMidnight: 'Północ',
+  themeForest: 'Las',
+  themeSunset: 'Zachód słońca',
+  themeOcean: 'Ocean',
+  themePurple: 'Fiolet',
+  imagePreview: '📷 Obraz',
+  audioPreview: '🎤 Dźwięk',
+  today: 'Dzisiaj',
+};

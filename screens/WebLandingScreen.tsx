@@ -22,12 +22,15 @@ import PostCard from '../components/PostCard';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
 import WeelsRow from '../components/WeelsRow';
+import PromotedSlot from '../components/boost/PromotedSlot';
 import HomeGreeting from '../components/HomeGreeting';
 import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
 import { HOME_SECTION_FILTERS, SeccionesElegidas, alternarSeccion, estaActiva, filterBySections } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
+import { sembrarMuro } from '../utils/semillaDelMuro';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const WebLandingScreen: React.FC = () => {
   const t = useT();
@@ -168,7 +171,11 @@ const WebLandingScreen: React.FC = () => {
   }, [route.params?.openWeels]);
 
   // ── Feed ──
-  const handlePostPress = (post: Post) => navigation.navigate('PostDetail', { postId: post.id, post });
+  /* Tocar una publicación abre el Wäll inmersivo en ella, con lo que el muro ya tiene cargado (utils/semillaDelMuro.ts). */
+  const handlePostPress = (post: Post) => {
+    sembrarMuro({ posts: filteredPosts, indice: Math.max(0, filteredPosts.findIndex((p) => p.id === post.id)), cursor: lastDoc, hayMas });
+    navigation.navigate('Wall');
+  };
   /* Comentar abre la conversación en una hoja, no la pantalla de la publicación. */
   const handleComment = (postId: string) => {
     const post = posts.find((p) => p.id === postId);
@@ -246,6 +253,8 @@ const WebLandingScreen: React.FC = () => {
                   aria-pressed={active}
                   accessibilityLabel={t('home.filterBy', { nombre: etiqueta })}
                 >
+                  {/* La pastilla elegida, con el degradado de marca (2026-11-05). */}
+                  {active && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
                   {/*
                     El texto de la pastilla apagada toma el color del tema, no un
                     gris fijo. Con el Perfil Weë el fondo de la pastilla es casi
@@ -259,6 +268,9 @@ const WebLandingScreen: React.FC = () => {
               );
             })}
           </ScrollView>
+
+          {/* Boost: UNA publicación promocionada de otra cuenta, si el servidor tiene alguna para ti (docs/BOOST.md). */}
+          <PromotedSlot pintar={(p, abrir) => <PostCard post={p} onPress={abrir} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible={true} variante="muro" />} />
 
           {/*
             Mientras el paginador diga que queda muro detrás no se enseña el
@@ -278,6 +290,7 @@ const WebLandingScreen: React.FC = () => {
                 {posts.length === 0 ? t('home.wallEmptyHint') : t('home.wallFilteredHint')}
               </Text>
               <TouchableOpacity onPress={() => (user ? irAlCompositor() : navigation.navigate('Register'))} style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('composer.createPost')}>
+                <RellenoDeMarca radio={BORDER_RADIUS.full} />
                 <Text style={styles.emptyButtonText}>{t('nav.create')}</Text>
               </TouchableOpacity>
             </View>

@@ -43,4 +43,14 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: '这个项目还缺点什么？',
   whatIsMissingNote: 'logo、照片、广告、视频、音乐或文档：Weë 的每一位专家都能往这里添点东西。',
   createSomethingNew: '创建新东西',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '{{contador}} 个项目',
+  count_other: '{{contador}} 个项目',
+  updatedOn: '更新于 {{fecha}}',
+  searchPlaceholder: '搜索项目',
+  sortUpdated: '最近更新',
+  sortName: '名称',
+  noMatches: '没有与搜索匹配的项目。',
+  emptySpaceTitle: '你的创作空间从这里开始',
+  moreActions: '更多操作',
 };

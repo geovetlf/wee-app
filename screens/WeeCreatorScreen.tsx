@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
@@ -23,6 +24,7 @@ import { creatorService, CreatorJob, claveDelEstado } from '../services/creatorS
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { notify } from '../utils/notify';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /**
  * Weë Creator — "El usuario elige el resultado. Weë elige la IA." (docs/CREATOR.md)
@@ -227,6 +229,7 @@ const WeeCreatorScreen: React.FC = () => {
                   activeOpacity={0.8}
                   accessibilityLabel={t('weeai.startWith', { nombre: selected.name })}
                 >
+                  <RellenoDeMarca radio={BORDER_RADIUS.full} />
                   <Text style={styles.detailButtonText}>{t('weeai.start')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -274,7 +277,7 @@ const WeeCreatorScreen: React.FC = () => {
                       {exp ? experienceLabel(exp, t) : 'Weë'} · {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+                  <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
                 </TouchableOpacity>
               );
             })}
@@ -293,7 +296,7 @@ const WeeCreatorScreen: React.FC = () => {
             <Text style={[styles.jobGoal, { color: theme.colors.text }]}>{t('weeai.myProjects')}</Text>
             <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>{t('weeai.projectsNote')}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+          <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Disponible hoy */}
@@ -311,7 +314,7 @@ const WeeCreatorScreen: React.FC = () => {
                 {hasWeeProfile ? t('weeai.changeAlterEgo') : t('weeai.createAlterEgo')}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={scale(20)} color="rgba(255,255,255,0.8)" />
+            <IconoDireccional name="chevron-forward" size={scale(20)} color="rgba(255,255,255,0.8)" />
           </TouchableOpacity>
         </View>
 

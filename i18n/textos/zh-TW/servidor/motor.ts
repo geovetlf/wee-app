@@ -1,0 +1,57 @@
+/*
+ * CHINO TRADICIONAL DE TAIWÁN — Textos del servidor: motor (ver `../../es/servidor/motor.ts`).
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Traducción de IA pendiente de revisión humana.
+ *
+ * Léxico de Taiwán, no una conversión: 影片, 貼文, 社群, 專案, 訊息, 登入, 解析度, 簡報, 履歷, 行銷. Sin plurales: `_one` y `_other` dicen lo mismo. Los huecos de texto van pegados o detrás de dos puntos, para que entre cualquier opción.
+ */
+export const motor: typeof import('../../es/servidor/motor').motor = {
+  invalidRequest: '你的要求缺少一些內容。請檢查後再試一次。',
+  unauthorized: '登入後就能用 Weë 創作。',
+  providerError: 'AI 這次沒能完成你的創作。沒有扣除 Credits：請稍後再試。',
+  generationFailed: '我沒能完成你的創作。沒有扣除 Credits：請再試一次。',
+  timeout: '花太久了，我把它停下來。沒有扣除 Credits：請再試一次。',
+  rateLimited: '你連續創作太多次了。沒有扣除 Credits：請稍等一下再試。',
+  duplicate: '這項創作已經在進行中。',
+  notAvailable: '這項功能暫時還不能使用。',
+  inputRejected: '這張照片或這支影片無法用來生成：不接受真實人臉或此類內容。請換一張圖片或換一種描述。',
+  faltaCampo: '缺少{{campo}}。',
+  revisaCampo: '請檢查{{campo}}：長度必須在 1 到 {{max}} 個字元之間。',
+  campoMensaje: '你的訊息',
+  campoDescripcionVideo: '影片描述',
+  conversacionNoEncontrada: '找不到這段對話。',
+  sinPlan: '這項任務還沒有計畫。',
+  sinUnPlan: '這項任務還沒有一個計畫。',
+  yaTienePlan: '這項任務已經有計畫了。',
+  subeFoto: '請上傳一張照片，這樣 Weë 才能處理。',
+  trabajoNoEncontrado: '找不到這項任務。',
+  trabajoAjeno: '這項任務不是你的。',
+  experienciaDesconocida: '未知的體驗。',
+  faltaTrabajo: '缺少任務。',
+  intentoSinTiempo: '那次嘗試逾時了，已把 Credits 退回給你。你可以再試一次。',
+  fotoDireccion: '這張照片的網址無效。',
+  fotoSubir: '照片必須先上傳到 Weë 才能使用。',
+  fotoAjena: '這張照片不是你的。',
+  archivoSube: '請上傳{{archivo}}，這樣 Weë 才能讀取。',
+  archivoDireccion: '{{archivo}}的網址無效。',
+  archivoSubir: '{{archivo}}必須先上傳到 Weë 才能使用。',
+  archivoAjeno: '這個{{archivo}}不是你的。',
+  archivoDocumento: '文件',
+  archivoAudio: '音訊',
+  sinTiempoAntes: '還沒開始就逾時了。沒有扣除 Credits。',
+  sinProveedor: '現在沒有可用的 AI 來處理這件事。請稍後再試。',
+  noDisponibleActualmente: '這項功能目前無法使用。',
+  noDisponibleAhora: '這項功能現在無法使用。請過一會兒再試。',
+  noDisponibleRegion: '這項功能目前在你所在的地區無法使用。',
+  noDisponiblePais: '要使用這項功能，請在你的真實檔案中填寫所在國家。',
+  noDisponibleOpciones: '這項功能不支援你選擇的選項。請試試其他選項。',
+  describeVideo: '告訴我你想創作什麼影片。',
+  creacionTerminada: '這項創作已經完成，不會重新製作。請到你的作品中尋找。',
+  tomaInvalida: '這個鏡頭的格式無效。',
+  planoInvalido: '這個分鏡的格式無效。',
+  produccionNoEncontrada: '找不到這個製作專案。',
+  tomaNoGenerable: '這個鏡頭無法這樣生成。',
+  creacionNoEncontrada: '找不到這項創作。',
+  debesIniciarSesion: '你需要先登入',
+};

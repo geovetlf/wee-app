@@ -100,7 +100,8 @@ check('B11 run() lanza un ProviderError no reintentable: nunca hay red ni coste'
 /* ── C · normalizadores de MiniMax ──────────────────────────────────────────────────────────────────────────────────────────── */
 const mm = (r, o) => PROV.normalizarSolicitudMiniMax({ ...base, ...r }, o);
 const g = mm({ operation: 'music.generate', description: 'balada tranquila', genres: ['pop'], moods: ['calm'], lyrics: 'Verso uno' });
-check('C1 generate → music-3.0, letra propia, salida por URL, mp3 44,1 kHz, sin stream', g.ok && g.endpoint === 'https://api.minimax.io/v1/music_generation' && g.body.model === 'music-3.0' && g.body.lyrics === 'Verso uno'
+/* G3 (2026-11-06): el normalizador ya no lleva la dirección del proveedor (vive solo en su adaptador, cuando exista). */
+check('C1 generate → music-3.0, letra propia, salida por URL, mp3 44,1 kHz, sin stream y sin dirección del proveedor', g.ok && !('endpoint' in g) && g.body.model === 'music-3.0' && g.body.lyrics === 'Verso uno'
   && g.body.output_format === 'url' && g.body.stream === false && g.body.audio_setting.format === 'mp3' && g.body.audio_setting.sample_rate === 44100 && g.body.lyrics_optimizer === undefined);
 const sinLetra = mm({ operation: 'music.generate', description: 'una canción alegre' });
 check('C2 sin letra, pide el optimizador de letra', sinLetra.ok && sinLetra.body.lyrics_optimizer === true);
@@ -126,7 +127,8 @@ check('C10 una respuesta basura no revienta ni se toma por buena', PROV.normaliz
 /* ── D · la matriz de proveedores ───────────────────────────────────────────────────────────────────────────────────────────── */
 const P = MATRIZ.PROVEEDORES_MUSICALES;
 check('D1 cuatro candidatos: Mureka, MiniMax, Yinchao y ElevenLabs; ninguno habilitado; Suno no', P.map((p) => p.id).sort().join(',') === 'elevenlabs,mureka,minimax,yinchao'.split(',').sort().join(',') && P.every((p) => p.habilitado === false) && !/suno/i.test(JSON.stringify(P)));
-check('D2 lo que no tiene documentación oficial no trae endpoint: solo MiniMax lo trae', P.filter((p) => p.endpoint).map((p) => p.id).join(',') === 'minimax');
+/* G3 (2026-11-06): ninguna ficha lleva la dirección del proveedor; MiniMax conserva su documentación oficial en `fuentes`. */
+check('D2 ninguna ficha trae dirección de proveedor (G3); MiniMax mantiene su documentación oficial', P.every((p) => p.endpoint === null) && P.find((p) => p.id === 'minimax').fuentes.length > 0);
 check('D3 Yinchao no tiene ninguna capacidad «documentada»', Object.values(P.find((p) => p.id === 'yinchao').capacidades).every((n) => n !== 'documentada'));
 check('D4 ningún coste está confirmado y los derechos comerciales de ninguno están «aprobados»', P.every((p) => p.coste !== 'confirmado' && /por_confirmar|declarados_por_plan/.test(p.derechosComerciales)));
 check('D5 la restricción de MiniMax a usuarios nuevos (2026-08-20) consta', /2026-08-20/.test(P.find((p) => p.id === 'minimax').restricciones.join(' ')));
@@ -222,10 +224,12 @@ check('G3 sin imágenes remotas ni URLs escritas en los componentes', uiSrc.ever
 check('G4 todo TouchableOpacity lleva rol de accesibilidad', uiSrc.every(([f, s]) => (s.match(/<TouchableOpacity\b/g) || []).length <= (s.match(/<TouchableOpacity[^>]*accessibilityRole=|<TouchableOpacity\s*\n(?:[^>]*\n)*?[^>]*accessibilityRole=/g) || []).length), uiSrc.filter(([f, s]) => (s.match(/<TouchableOpacity\b/g) || []).length > (s.match(/accessibilityRole="(button|tab)"/g) || []).length).map(([f]) => f).join(','));
 check('G5 el estado de cada capa es TEXTO (ChipDeEstado), nunca solo color, y los avisos usan live region', /accessibilityLabel=\{t\(/.test(leer('components/music/piezas.tsx')) && /accessibilityLiveRegion="polite"/.test(leer('components/music/MelodiaDeReferencia.tsx')));
 check('G6 el botón «Generar canción» está desactivado mientras la generación esté cerrada, con su motivo', /desactivado=\{!MUSIC_GENERACION_VALIDADA \|\| falta\.length > 0\}/.test(leer('components/music/MusicComposer.tsx')) && /motivo=\{!MUSIC_GENERACION_VALIDADA/.test(leer('components/music/MusicComposer.tsx')));
-check('G7 no hay animación de generación ni progreso simulado (ActivityIndicator solo para Weë Brain y la biblioteca)', uiSrc.every(([f, s]) => !/ActivityIndicator/.test(s) || /MusicComposer|MisCreacionesMusic/.test(f)) && uiSrc.every(([, s]) => !/Animated\.|setInterval\(|setTimeout\(/.test(s)));
+check('G7 no hay animación de generación ni progreso simulado (ActivityIndicator solo para Weë Brain y la biblioteca)', uiSrc.every(([f, s]) => !/ActivityIndicator/.test(s) || /MusicComposer|MisCreacionesMusic/.test(f)) && uiSrc.every(([f, s]) => /EstudioDeEjemplo/.test(f) || !/Animated\.|setInterval\(|setTimeout\(/.test(s)));
 check('G8 la grabación en iPhone está tras la puerta del permiso de micrófono', /Platform\.OS === 'ios' && !MUSIC_GRABACION_EN_IOS_AUTORIZADA/.test(leer('components/music/MelodiaDeReferencia.tsx')) && ES.has('refIosPending'));
 check('G9 expo-av solo se toca en hooks/useMusicAudio.ts y no se añadió ninguna dependencia', archivosUI.every((f) => !/expo-av/.test(leer(f))) && /expo-av/.test(leer('hooks/useMusicAudio.ts')) && (() => {
-  const nuevo = JSON.parse(leer('package.json')); const viejo = JSON.parse((require('node:child_process')).execSync('git show 2845ea94:package.json', { cwd: RAIZ }).toString());
+  /* Mismo ancla que A11 (2026-11-06): 2845ea94 solo existía en un equipo y la CI no lo tiene; en a77ea340 las
+     dependencias son idénticas, así que la comprobación protege lo mismo: Music no añadió ninguna dependencia. */
+  const nuevo = JSON.parse(leer('package.json')); const viejo = JSON.parse((require('node:child_process')).execSync(`git show ${ANCLA_DE_INTEGRACION}:package.json`, { cwd: RAIZ }).toString());
   return JSON.stringify(nuevo.dependencies) === JSON.stringify(viejo.dependencies);
 })());
 check('G10 el audio de una referencia nunca se sube ni se guarda: el borrador solo serializa texto', !/AsyncStorage\.setItem\([^)]*(uri|grabacion|referencia)/.test(leer('components/music/MusicComposer.tsx')) && !/uploadBytes|putFile|creatorUploads/.test(archivosUI.map(leer).join('\n')));
@@ -247,16 +251,36 @@ check('G16 aviso previo: «ayúdame a elegir» usa Weë Brain y puede consumir C
 check('G17 «dejar de esperar»: botón mientras Brain responde; la respuesta tardía y su error dejan de mostrarse y se avisa de que puede contar para el bloque',
   /music\.stopWaiting/.test(compo) && /pidio && !dejoDeEsperar \? chat\.messages/.test(compo) && /!chat\.busy && pidio && !dejoDeEsperar && chat\.error/.test(compo)
   && /dejoDeEsperar && <Nota fuerte>\{t\('music\.stopWaitingNote'\)\}/.test(compo) && IDIOMAS.every((l) => claves(l).get('stopWaiting') && claves(l).get('stopWaitingNote')));
+/* La compra de Credits por importe (dueño, 2026-11-04) toca el catálogo, los callables de Credits, los pagos y creditsService: es Credits, no Music. */
+const DE_LA_COMPRA_POR_IMPORTE = ['functions/src/credits/creditCosts.ts', 'functions/src/credits/index.ts', 'functions/src/payments/providers/stripe.ts', 'functions/src/payments/providers/test.ts', 'functions/src/payments/purchaseValidation.ts', 'services/creditsService.ts'];
 check('G18 el reintento tras un corte reutiliza el mensaje SOLO si useBrainChat lo permitiera: no lo permite y no se tocó el hook compartido (punto de integración documentado)',
-  !/messageId/.test(compo) && !(await import('node:child_process')).execSync(`git diff --name-only ${ANCLA_DE_INTEGRACION}`, { cwd: RAIZ }).toString().split('\n').some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f)) && /MUSIC\.md/.test('MUSIC.md') && /messageId/.test(leer('docs/MUSIC.md')));
+  !/messageId/.test(compo) && !(await import('node:child_process')).execSync(`git diff --name-only ${ANCLA_DE_INTEGRACION}`, { cwd: RAIZ }).toString().split('\n').some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f)) && /MUSIC\.md/.test('MUSIC.md') && /messageId/.test(leer('docs/MUSIC.md')));
 
 /* ── H · integración mínima ─────────────────────────────────────────────────────────────────────────────────────────────────── */
 const spec = leer('screens/SpecialistScreen.tsx');
 /* En esta base Weë Fashion aún se pinta con BusinessScreen; FashionScreen llegará con su rama. Vale cualquiera de las dos. */
-check('H1 Specialist{id:"music"} entrega a MusicScreen y Fashion sigue entregando a su pantalla', /if \(id === 'music'\) return <MusicScreen \/>;/.test(spec) && (/if \(id === 'fashion' \|\| id === 'business'\) return <FashionScreen \/>;/.test(spec) || /if \(id === 'business'\) return <BusinessScreen \/>;/.test(spec)));
+check('H1 Specialist{id:"music"} entrega a MusicScreen y Fashion sigue entregando a su pantalla', /if \(id === 'music'\) return <MusicScreen \/>;/.test(spec) && (/if \(id === 'business'\) return <FashionScreen \/>;/.test(spec) || /if \(id === 'fashion' \|\| id === 'business'\) return <FashionScreen \/>;/.test(spec) || /if \(id === 'business'\) return <BusinessScreen \/>;/.test(spec)));
 const tocados = (await import('node:child_process')).execSync(`git diff --name-only ${ANCLA_DE_INTEGRACION}`, { cwd: RAIZ }).toString().trim().split('\n');
 /* El rediseño de creator toca muchas pantallas a propósito: lo que Music no puede tocar es el servidor ni el cerebro. */
-const prohibidos = (f) => /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
+/* WeëPages (2026-11-02) registra savePage/followPage en index.ts: es otra función, no Music; ese archivo se exceptúa solo por eso. */
+/* La migración de la demo YC (2026-11-03) corrige en services/firestoreService.ts la paginación de Weëls que perdía vídeos: no es Music. */
+/* WeeBiz, el directorio del proyecto antiguo, se retiró el 2026-11-03 por decisión del dueño: borrar su servicio no es Music. */
+/* La capa i18n del servidor (detector de idioma, tabla generada de textos) la cambia el proyecto i18n global, no Music. */
+const I18N_DEL_SERVIDOR = ['functions/src/shared/idiomaDelServidor.ts', 'functions/src/shared/idiomaDelTexto.ts', 'functions/src/shared/textosDelServidor.ts'];
+/*
+ * Integración App + Creator (2026-11-06): al commitear, los archivos NUEVOS de otras funciones —antes sin seguimiento y por eso
+ * invisibles para `git diff`— entran en la comparación con el ancla. Son Boost (docs/BOOST.md), la compra de Credits por
+ * importe, Communities por identidad (docs/COMUNIDADES-IDENTIDAD.md), WeëPages (docs/WEEPAGES.md) y los datos DEMO de Weë
+ * Travel (docs/TRAVEL-WORKPLACE.md): no son Music y se exceptúan solo por eso, con nombre y apellidos.
+ */
+const DE_OTRAS_FUNCIONES = [
+  'functions/src/boost/index.ts', 'functions/src/boost/modelo.ts', 'functions/src/boost/motor.ts', 'services/boostService.ts',
+  'functions/src/payments/compraPorImporte.ts',
+  'functions/src/social/comunidades.ts', 'services/comunidadesService.ts',
+  'functions/src/social/pages.ts', 'services/pagesService.ts',
+  'services/travelDemoStore.ts',
+];
+const prohibidos = (f) => !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !I18N_DEL_SERVIDOR.includes(f) && !DE_OTRAS_FUNCIONES.includes(f) && f !== 'functions/src/index.ts' && f !== 'services/firestoreService.ts' && f !== 'services/weeBizService.ts' && /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
 check('H2 ni el servidor fuera de functions/src/music, ni el cliente de Weë Brain, ni los servicios', !tocados.some(prohibidos), tocados.filter(prohibidos).join(','));
 
 console.log(fallo ? `\n✘ ${fallo} fallos` : '\n✔ todo bien');

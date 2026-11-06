@@ -10,6 +10,7 @@ import { CLIMAS, LIMITES, MOMENTOS_DEL_DIA, buscarEscena, buscarPlano, valorCrea
 import type { CreativeParameterPath, FilmmakerOperation, FilmmakerProduction, ProductionScene, ProductionShot, TimeOfDay, Weather } from '../../../services/filmmaker/dominio';
 import type { Seleccion } from './ProductionStoryboard';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
+import { RellenoDeMarca } from '../../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -41,6 +42,7 @@ const Opciones: React.FC<{
               isWeb && ({ cursor: editable ? 'pointer' : 'default' } as any),
             ]}
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!esta} />
             <Text style={[styles.opcionTexto, { color: esta ? '#1F2937' : theme.colors.text }]} numberOfLines={1}>{o.texto}</Text>
           </TouchableOpacity>
         );

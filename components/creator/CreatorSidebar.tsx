@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
+import { PilaDeMonedas } from '../CreditsPill';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
@@ -13,6 +15,7 @@ import { SPECIALIST_ORDER } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { Handwritten } from './ui';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 interface CreatorSidebarProps {
   activeId?: string;
@@ -68,7 +71,7 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
     <View style={[styles.container, { backgroundColor: theme.colors.background, borderRightColor: theme.colors.border }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <TouchableOpacity onPress={goHome} activeOpacity={0.7} style={styles.logoRow} accessibilityLabel={t('weeai.goHome')}>
-          <Image source={require('../../assets/images/weelogo.png')} style={styles.logo} contentFit="contain" />
+          <Image source={theme.dark ? require('../../assets/images/weelogo-dark.png') : require('../../assets/images/weelogo.png')} style={styles.logo} contentFit="contain" />
         </TouchableOpacity>
 
         <View style={styles.nav}>
@@ -86,14 +89,15 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
         {/* Credits */}
         <TouchableOpacity onPress={goCredits} activeOpacity={0.85} style={[styles.credits, { backgroundColor: theme.colors.accent + '33', borderColor: theme.colors.accent }]}>
           <View style={styles.creditsRow}>
-            <Text style={styles.creditsEmoji}>💳</Text>
+            <View style={styles.creditsMonedas}><PilaDeMonedas /></View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.creditsNumber, { color: theme.colors.text }]}>{balance === null ? '…' : formato.numero(balance)}</Text>
               <Text style={[styles.creditsLabel, { color: theme.colors.text }]}>Credits</Text>
             </View>
-            <Ionicons name="arrow-forward" size={scale(16)} color={theme.colors.text} />
+            <IconoDireccional name="arrow-forward" size={scale(16)} color={theme.colors.text} />
           </View>
           <View style={[styles.creditsButton, { backgroundColor: theme.colors.accent }]}>
+            <RellenoDeMarca radio={BORDER_RADIUS.full} />
             <Text style={styles.creditsButtonText}>{t('weeai.buyCredits')}</Text>
           </View>
         </TouchableOpacity>
@@ -157,8 +161,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
   },
-  creditsEmoji: {
-    fontSize: scale(24),
+  /* La pila de monedas de la píldora, un poco más grande: es la cabeza de la tarjeta. */
+  creditsMonedas: {
+    transform: [{ scale: 1.5 }],
+    marginHorizontal: scale(4),
   },
   creditsNumber: {
     fontSize: FONT_SIZE.lg,

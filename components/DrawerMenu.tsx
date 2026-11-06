@@ -30,7 +30,12 @@ const isWeb = Platform.OS === 'web';
  * se usa, y por eso vive aquí con su nombre en vez de suelto entre el JSX.
  */
 const VERDE_DEL_PERFIL_WEE = '#39FF14';
+/* Decisión del dueño (2026-11-05): los iconos del Perfil Weë vuelven al verde eléctrico; deja sin efecto el morado del 2026-11-02. */
+const ICONOS_DEL_PERFIL_WEE = VERDE_DEL_PERFIL_WEE;
+/* Decisión del dueño (2026-11-05): en el Perfil Real los iconos del menú ☰ van en morado eléctrico. Solo el dibujo: textos, títulos y la píldora de Credits no cambian. */
+const ICONOS_DEL_PERFIL_REAL = '#7200FF';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
 import { IconoWee } from './icons/IconoWee';
 import { MarcaDeCredits } from './CreditsPill';
 import { MarcaDeWeeAi } from './icons/MarcaDeWeeAi';
@@ -46,11 +51,11 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-import { weeBizService, Business } from '../services/weeBizService';
 import { useWallet } from '../hooks/useWallet';
 import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
 import { useIdentidadActiva } from '../hooks/useEContact';
+import { RellenoDeMarca } from './GradienteDeMarca';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 320);
@@ -108,7 +113,6 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const enHome = rutaActual === 'Home' || rutaActual === 'Landing';
   const insets = useSafeAreaInsets();
 
-  const [myBusiness, setMyBusiness] = useState<Business | null>(null);
   const [creatorExpanded, setCreatorExpanded] = useState(true);
 
   const activeUid = userProfile?.uid || user?.uid;
@@ -118,32 +122,9 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
   /*
-   * ¿Tiene negocio esta persona? Solo para poder ofrecerle su atajo.
-   *
-   * Aquí se CREABA además un documento de identidad `users/biz_<negocio>` en
-   * cuanto alguien tenía un negocio, y se activaba como una tercera cara de la
-   * cuenta. Eso se ha eliminado: un negocio no es una cara de una persona. El
-   * negocio sigue existiendo —es de Weë Business, el producto— y el atajo lleva
-   * a su pantalla, no a un cambio de identidad.
+   * El directorio de negocios del proyecto antiguo y su atajo se retiraron definitivamente por decisión del dueño
+   * (2026-11-03; definitivo el 2026-11-06). Un negocio, si alguna vez existe, será una Página (WeëPages).
    */
-  const realUid = user?.uid;
-  useEffect(() => {
-    if (!realUid) return;
-    /* Si se cambia de cuenta antes de que llegue la respuesta, el negocio de la cuenta de antes no se ofrece en esta. */
-    let vivo = true;
-    const loadBiz = async () => {
-      try {
-        const negocio = await weeBizService.getBusinessByOwner(realUid);
-        if (vivo) setMyBusiness(negocio);
-      } catch (e) {
-        console.error('Error loading business:', e);
-      }
-    };
-    loadBiz();
-    return () => {
-      vivo = false;
-    };
-  }, [realUid]);
 
   useEffect(() => {
     if (isWeb) {
@@ -230,7 +211,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const goHome = () => (enHome ? closeDrawer() : after(() => navigateTab('Home', { screen: 'Landing' })));
 
   // ── Explora ──
-  const goCommunities = () => after(() => navigation.navigate('ExploreCommunities'));
+  /* Comunidades vive dentro de la pila del Home: se llega por su pestaña, como hace la barra lateral (Sidebar). Navegar a 'ExploreCommunities' a secas desde el cajón no lo resolvía nadie y daba error. */
+  const goCommunities = () => after(() => navigateTab('Home', { screen: 'ExploreCommunities' }));
   // Weëls vive en el Home (pestaña "Weëls" del Landing): abrimos el Home y saltamos a esa pestaña.
   const goWeels = () => after(() => navigateTab('Home', { screen: 'Landing', params: { openWeels: true } }));
   const goWeeTalk = () => after(() => navigateTab('Inbox'));
@@ -242,6 +224,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const goCredits = () => (user ? after(() => navigateRoot('CreditStore')) : requireLogin());
   const goEContact = () => (user ? after(() => navigateRoot('EContact')) : requireLogin());
   const goSaved = () => (user ? after(() => navigateRoot('SavedPosts')) : requireLogin());
+  const goPages = () => (user ? after(() => navigateRoot('WeePages')) : requireLogin());
   const goSettings = () => after(() => navigateRoot('Settings'));
   const goHelp = () => after(() => navigateRoot('Help'));
 
@@ -259,7 +242,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
    * discrepar. Aquí NO entra nada más: los textos, el avatar, las etiquetas y
    * los chevrones siguen sacando su color del tema, como siempre.
    */
-  const colorDeLosIconos = isWee ? VERDE_DEL_PERFIL_WEE : theme.colors.text;
+  const colorDeLosIconos = isWee ? ICONOS_DEL_PERFIL_WEE : ICONOS_DEL_PERFIL_REAL;
 
   /*
    * EL ICONO SE DIBUJA, NO SE ESCRIBE.
@@ -431,7 +414,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                 avatarId={userProfile?.avatarId || 'male'}
                 photoURL={typeof userProfile?.photoURL === 'string' ? userProfile.photoURL : undefined}
                 photoURLThumbnail={typeof userProfile?.photoURLThumbnail === 'string' ? userProfile.photoURLThumbnail : undefined}
-                backgroundColor="#F5B731"
+                backgroundColor={theme.colors.accent}
               />
             ) : (
               <View style={[styles.avatarPlaceholder, { backgroundColor: theme.colors.surface }]}>
@@ -446,7 +429,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                 {!user ? t('menu.tapToSignIn') : isWee ? t('menu.activeWee') : t('menu.activeReal')}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+            <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
           </TouchableOpacity>
 
           {/*
@@ -474,15 +457,6 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             ) : undefined,
           })}
           {/*
-            El negocio, como ATAJO a su pantalla — no como una identidad que se
-            activa. Antes esta fila cambiaba la cara de la cuenta a «Perfil Biz»
-            y ponía el tema morado; ahora lleva al negocio, que es de Weë
-            Business. El día que existan las Páginas, esta fila será «Mis Pages».
-          */}
-          {myBusiness && renderRow('perfilBiz', myBusiness.name, () => {
-            after(() => navigation.navigate('WeeBizProfile', { businessId: myBusiness.id }));
-          })}
-          {/*
             Credits, pegado a los perfiles y no a "Explora" (fase de UI).
             Es información de TU CUENTA —lo que tienes—, no un sitio al que ir,
             así que su sitio está aquí arriba y no en la lista de destinos.
@@ -492,6 +466,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           {fila('credits', goCredits, {
             right: user ? (
               <View style={[styles.creditsBadge, { backgroundColor: theme.colors.accent }]}>
+                {/* El saldo, con el degradado de marca (amarillo dorado → naranja), como en la referencia del dueño (2026-11-05). */}
+                <RellenoDeMarca radio={BORDER_RADIUS.full} />
                 <Text style={styles.creditsBadgeText}>
                   {balance === null ? '…' : `${formato.numero(balance)} Credits`}
                 </Text>
@@ -512,6 +488,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           */}
           {renderDivisor()}
           {fila('econtact', goEContact, { label: nombreLista })}
+          {/* WeëPages, junto a tu agenda y dentro de lo tuyo: las Páginas son de tu cuenta, no un sitio que explorar. */}
+          {fila('pages', goPages)}
 
           {/* EXPLORA */}
           {renderDivisor()}
@@ -772,7 +750,8 @@ const styles = StyleSheet.create({
   creditsBadge: {
     paddingHorizontal: SPACING.sm,
     paddingVertical: scale(3),
-    borderRadius: BORDER_RADIUS.sm,
+    /* Píldora, como la del saldo en la barra de escritorio y la referencia del degradado. */
+    borderRadius: BORDER_RADIUS.full,
   },
   creditsBadgeText: {
     color: '#1F2937',

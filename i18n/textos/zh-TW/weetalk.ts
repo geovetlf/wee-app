@@ -46,7 +46,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: '存取照片需要授予權限',
   audioPermission: '錄製音訊需要授予權限',
   imageFailed: '圖片傳送失敗',
-  noConversationsHint: '在任何貼文上點「私密」，就能開始一段匿名對話',
+  noConversationsHint: '在任何貼文上打開 ⋮ 選單，選擇「透過 WeeTalk 傳送」，就能開始一段私人對話',
   ephemeralMode: '閱後即焚模式',
   noMessagesYet: '還沒有訊息',
   youSaid: '你：{{mensaje}}',

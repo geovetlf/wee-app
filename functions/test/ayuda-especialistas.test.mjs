@@ -72,11 +72,13 @@ console.log('\n── B · Ningún idioma escribe la cifra ni la lista a mano �
     const conCifra = new RegExp(`(?<![\\p{L}\\p{N}])(${diez}|10)(?![\\p{L}\\p{N}])`, 'iu');
     for (const [k, v] of Object.entries(d.help)) {
       if (!/^a3(_|$)/.test(k)) continue;
-      if (!/\{\{contador\}\}/.test(v) || !/\{\{lista\}\}/.test(v) || conCifra.test(v.replace(/\{\{\w+\}\}/g, '')) || VIEJA_LISTA.test(v)) malas.push(`${codigo}:${k}`);
+      /* En árabe y hebreo, las formas de una sola cifra la dicen con la palabra: «صوتان». Lo fija i18n-cobertura. */
+      const sinCifra = ['ar', 'he'].includes(codigo.split('-')[0]) && /_(zero|one|two)$/.test(k);
+      if ((!sinCifra && !/\{\{contador\}\}/.test(v)) || !/\{\{lista\}\}/.test(v) || conCifra.test(v.replace(/\{\{\w+\}\}/g, '')) || VIEJA_LISTA.test(v)) malas.push(`${codigo}:${k}`);
     }
     if (!('a3_other' in d.help) || 'a3' in d.help) malas.push(`${codigo}: falta a3_other o sobra a3`);
   }
-  check('3) en los dieciséis idiomas, help.a3 lleva {{contador}} y {{lista}} y ninguna cifra ni la lista vieja', malas.length === 0, malas.join(' · ') || `${vistos.size} diccionarios`);
+  check('3) en todos los idiomas, help.a3 lleva {{contador}} y {{lista}} y ninguna cifra ni la lista vieja', malas.length === 0, malas.join(' · ') || `${vistos.size} diccionarios`);
 }
 
 console.log('\n── C · Lo que se lee, en cada idioma ──');

@@ -1,0 +1,62 @@
+/*
+ * BOSNIO (bs-BA, ijekaviano, latino) — lo que describe cada experiencia de
+ * WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y no se traducen;
+ * «Beauty» tampoco, porque así lo deja el español.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Tuteo. El especialista entra por hueco y no se declina: «Reci asistentu
+ * {{especialista}}». Las comillas del ejemplo son las bosnias („…“).
+ */
+export const creator: typeof import('../es/creator').creator = {
+  design: 'Logotipi, posteri, ilustracije i materijal za tvoje društvene mreže',
+  studio: 'Kreiraj i transformiši fotografije i videe uz AI.',
+  photo: 'Poboljšaj, obnovi i transformiši svoje fotografije',
+  writer: 'Objave, priče, scenariji, e-mailovi i knjige',
+  music: 'Pjesme, instrumentalna muzika, glasovi i naracija',
+  beauty: 'Šminka, kosa, brada, outfiti i promjene izgleda',
+  chef: 'Tvoj lični kuhar: šta kuhati, recepti i meniji',
+  home: 'Dekoracija, uređenje enterijera, renoviranje i bašte',
+  business: 'Moda, stil, ljepota i kreiranje vizuelnog sadržaja.',
+  travel: 'Pripremi svoje putovanje: kuda ići, šta raditi i kako se kretati',
+  brain: 'Ne znaš gdje tražiti? Pitaj Weë',
+  designEx1: 'Logo za moj biznis',
+  designEx2: 'Objava za Instagram',
+  designEx3: 'Naslovnica moje knjige',
+  studioEx1: 'Video za promociju mog restorana',
+  studioEx2: 'Pretvoriti moju fotografiju u video',
+  studioEx3: 'Weël s mojim proizvodom',
+  photoEx1: 'Poboljšati kvalitet fotografije',
+  photoEx2: 'Ukloniti nešto suvišno s fotografije',
+  photoEx3: 'Promijeniti pozadinu moje fotografije',
+  writerEx1: 'Scenarij za moj video',
+  writerEx2: 'E-mail za klijenta',
+  writerEx3: 'Ispraviti moj tekst',
+  musicEx1: 'Džingl za moj brend',
+  musicEx2: 'Pozadinska muzika za moj video',
+  musicEx3: 'Pretvoriti moj tekst u glas',
+  beautyEx1: 'Kako bi mi stajala duga kosa',
+  beautyEx2: 'Look za zabavu',
+  beautyEx3: 'Isprobati drugu boju kose',
+  chefEx1: 'Recept od onoga što imam kod kuće',
+  chefEx2: 'Zdrav sedmični meni',
+  chefEx3: 'Ne znam šta da kuham danas',
+  homeEx1: 'Kako bi izgledao moj dnevni boravak u drugom stilu',
+  homeEx2: 'Ideje za uređenje moje sobe',
+  homeEx3: 'Mala bašta za moje dvorište',
+  businessEx1: 'Plan za moj biznis',
+  businessEx2: 'Moj ažurirani CV',
+  businessEx3: 'Prezentacija za investitore',
+  travelEx1: 'Japan u oktobru',
+  travelEx2: 'Želim mirnu i jeftinu plažu',
+  travelEx3: 'Ne znam kuda putovati',
+  brainEx1: 'Ne znam odakle početi',
+  brainEx2: 'Objasni mi ovo jednostavno',
+  brainEx3: 'Prevedi ovaj tekst',
+  areaStudioPhotos: 'Weë Studio · Fotografije',
+  areaStudioVideos: 'Weë Studio · Videi',
+  areaStudioBeauty: 'Weë Studio · Beauty',
+  areaDesignHome: 'Weë Design · Dom & Dizajn',
+  areaHomeName: 'Dom & Dizajn',
+  tellTheSpecialist: 'Reci asistentu {{especialista}} šta želiš postići: postavit će ti dva-tri jednostavna pitanja i pobrinuti se za ostalo. Poslije objavljuješ direktno u svojoj zajednici.',
+  exampleQuoted: '„{{ejemplo}}“',
+};
