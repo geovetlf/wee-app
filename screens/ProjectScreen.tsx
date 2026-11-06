@@ -1,9 +1,20 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
+import { useResponsive } from '../hooks/useResponsive';
+import { useDireccion } from '../hooks/useDireccion';
+import { formatearFecha } from '../i18n/formato';
+import { Image } from 'expo-image';
+import {
+  TarjetaDeAviso, VacioDeBiblioteca, BotonPrincipal,
+} from '../components/biblioteca/PiezasDeBiblioteca';
+import { CabeceraDeBiblioteca } from '../components/biblioteca/CabeceraDeBiblioteca';
+import { PALETA_BIBLIOTECA as P } from '../components/biblioteca/paleta';
 import { textoDeObjetivo } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import { projectsService, WeeProject } from '../services/projectsService';
@@ -13,6 +24,7 @@ import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, ClosingBanner } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -29,7 +41,23 @@ const KIND_ICON: Record<string, string> = {
   brain: 'bulb-outline',
 };
 
-/** Un proyecto: sus creaciones, de todos los especialistas, en un solo lugar. */
+/** Un `Timestamp` de Firestore (o un número) a milisegundos; null si no hay fecha. */
+const enMilisegundos = (v: any): number | null => {
+  if (!v) return null;
+  if (typeof v === 'number') return v;
+  if (typeof v.toMillis === 'function') return v.toMillis();
+  if (typeof v.seconds === 'number') return v.seconds * 1000;
+  return null;
+};
+
+/**
+ * Un proyecto: sus creaciones, de todos los especialistas, en un solo lugar.
+ *
+ * En Weë Creator se queda como estaba; en la App es la biblioteca rediseñada
+ * (2026-11-05), con el mismo lenguaje que «Mis creaciones» y «Mis proyectos».
+ * Lo que se puede hacer es lo que ya se podía: cambiar el nombre, eliminar el
+ * proyecto, abrir cada creación en su trabajo y crear algo nuevo.
+ */
 const ProjectScreen: React.FC = () => {
   const { theme } = useTheme();
   const t = useT();
@@ -37,6 +65,10 @@ const ProjectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const id: string = route.params?.id;
+  const pro = useEnEspacioProfesional();
+  const { locale } = useIdioma();
+  const { isDesktop, isTablet } = useResponsive();
+  const dir = useDireccion();
 
   const [project, setProject] = useState<WeeProject | null>(null);
   const [jobs, setJobs] = useState<CreatorJob[]>([]);
@@ -98,6 +130,11 @@ const ProjectScreen: React.FC = () => {
   /* El título es el proyecto de la persona; solo el respaldo es de la interfaz. */
   const title = project ? `${project.emoji} ${project.name}` : `📁 ${t('projects.fallbackTitle')}`;
 
+  /*
+   * ── WEË CREATOR: la pantalla de siempre ──────────────────────────────────
+   * Dentro de Weë Creator el detalle no cambia. El rediseño es de la App.
+   */
+  if (pro) {
   return (
     <CreatorShell activeId="projects" overline={t('weeai.myProjects')} title={title} breadcrumb={t('weeai.myProjects')}>
       {loading ? (
@@ -122,6 +159,7 @@ const ProjectScreen: React.FC = () => {
                     accessibilityLabel={t('weeai.projectName')}
                   />
                   <TouchableOpacity onPress={saveName} style={[styles.smallButton, { backgroundColor: theme.colors.accent }]} accessibilityLabel={t('projects.saveName')}>
+                    <RellenoDeMarca radio={BORDER_RADIUS.full} />
                     <Text style={styles.smallButtonText}>{t('common.save')}</Text>
                   </TouchableOpacity>
                 </View>
@@ -166,7 +204,7 @@ const ProjectScreen: React.FC = () => {
                         {exp?.name ?? 'Weë'} · {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+                    <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
                 );
               })
@@ -184,9 +222,153 @@ const ProjectScreen: React.FC = () => {
       )}
     </CreatorShell>
   );
+  }
+
+  /* ── LA APP: el proyecto, con el lenguaje de la biblioteca ─────────────── */
+  const columnas = isDesktop ? 4 : isTablet ? 3 : 2;
+  const actualizado = enMilisegundos(project?.updatedAt);
+  const crear = () => navigation.navigate('WeeCreator');
+
+  return (
+    <CreatorShell activeId="projects" title={project?.name || t('projects.fallbackTitle')} breadcrumb={t('weeai.myProjects')} sinFranjaSuperior>
+      <View style={[styles.app, dir.contenedor]}>
+        {/* El título es el proyecto de la persona; solo el respaldo es de la interfaz. */}
+        <CabeceraDeBiblioteca titulo={project ? project.name : t('projects.fallbackTitle')} />
+
+        {loading ? (
+          <ActivityIndicator color={P.morado} style={{ paddingVertical: 32 }} />
+        ) : !project ? (
+          <VacioDeBiblioteca icono="folder-open" titulo={t('projects.notFound')} />
+        ) : (
+          <>
+            <View style={styles.appFicha}>
+              <View style={styles.appFichaFila}>
+                <View style={styles.appFichaEmoji}>
+                  <Text style={styles.appFichaEmojiTexto}>{project.emoji}</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                  {renaming ? (
+                    <View style={styles.renameRow}>
+                      <TextInput
+                        style={[styles.appCampo, dir.texto]}
+                        value={name}
+                        onChangeText={setName}
+                        onSubmitEditing={saveName}
+                        autoFocus
+                        maxLength={60}
+                        accessibilityLabel={t('weeai.projectName')}
+                      />
+                      <TouchableOpacity onPress={saveName} style={[styles.appIcono, { backgroundColor: P.morado }]} accessibilityRole="button" accessibilityLabel={t('projects.saveName')}>
+                        <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <Text style={[styles.appFichaNombre, dir.texto]} numberOfLines={2}>{project.name}</Text>
+                  )}
+                  <Text style={[styles.appMeta, dir.texto]} numberOfLines={2}>
+                    {t('projects.creations', { contador: jobs.length })}
+                    {actualizado ? `  ·  ${t('projects.updatedOn', { fecha: formatearFecha(actualizado, locale, { day: 'numeric', month: 'short', year: 'numeric' }) })}` : ''}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.appAcciones}>
+                <BotonPrincipal texto={t('projects.createSomethingNew')} icono="sparkles" compacto onPress={crear} />
+                <TouchableOpacity
+                  onPress={() => { setName(project.name); setRenaming((v) => !v); }}
+                  style={[styles.appAccion, renaming && { borderColor: P.morado, backgroundColor: P.lavandaSuave }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('projects.rename')}
+                >
+                  <Ionicons name="pencil-outline" size={16} color={renaming ? P.morado : P.texto} />
+                  <Text style={[styles.appAccionTexto, renaming && { color: P.morado }]}>{t('projects.rename')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={remove} style={styles.appAccion} accessibilityRole="button" accessibilityLabel={t('projects.deleteProject')}>
+                  <Ionicons name="trash-outline" size={16} color={P.error} />
+                  <Text style={[styles.appAccionTexto, { color: P.error }]}>{t('projects.deleteProject')}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {jobs.length === 0 ? (
+              <VacioDeBiblioteca
+                icono="sparkles"
+                titulo={t('projects.whatIsMissing')}
+                texto={t('projects.noCreations')}
+                accion={t('projects.createSomethingNew')}
+                onAccion={crear}
+              />
+            ) : (
+              <View style={{ gap: 14 }}>
+                <Text style={[styles.appSeccionTitulo, dir.texto]} accessibilityRole="header">{t('projects.creationsTitle')}</Text>
+                <View style={styles.appRejilla}>
+                  {jobs.map((job) => {
+                    const exp = getExperienceById(job.experienceId);
+                    const portada = (job.results || []).find((r) => r.kind === 'image' && !!r.url)?.url;
+                    return (
+                      <View key={job.id} style={{ width: `${(100 / columnas).toFixed(2)}%` as never, padding: 6 }}>
+                        <TouchableOpacity
+                          onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id })}
+                          activeOpacity={0.88}
+                          style={styles.appTrabajo}
+                          accessibilityRole="button"
+                          accessibilityLabel={textoDeObjetivo(t, job.experienceId, job.goal)}
+                        >
+                          <View style={styles.appTrabajoMedia}>
+                            {portada ? (
+                              <Image source={{ uri: portada }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" recyclingKey={job.id} transition={150} />
+                            ) : (
+                              <View style={styles.appTrabajoIcono}>
+                                <Ionicons name={(KIND_ICON[job.experienceId] || 'sparkles-outline') as any} size={28} color={P.morado} />
+                              </View>
+                            )}
+                          </View>
+                          <View style={styles.appTrabajoPie}>
+                            <Text style={[styles.appTrabajoObjetivo, dir.texto]} numberOfLines={2}>{textoDeObjetivo(t, job.experienceId, job.goal)}</Text>
+                            <Text style={[styles.appMeta, dir.texto]} numberOfLines={1}>
+                              {exp?.name ?? 'Weë'} · {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+                <TarjetaDeAviso titulo={t('projects.whatIsMissing')} texto={t('projects.whatIsMissingNote')} />
+              </View>
+            )}
+          </>
+        )}
+      </View>
+    </CreatorShell>
+  );
 };
 
 const styles = StyleSheet.create({
+  app: { gap: 22, width: '100%', maxWidth: 1080, alignSelf: 'center' },
+  appFicha: { gap: 16, padding: 18, borderRadius: 22, borderWidth: 1, borderColor: P.borde, backgroundColor: '#FFFFFF' },
+  appFichaFila: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  appFichaEmoji: { width: 60, height: 60, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: P.lavanda },
+  appFichaEmojiTexto: { fontSize: 30 },
+  appFichaNombre: { color: P.texto, fontSize: 20, lineHeight: 26, fontWeight: FONT_WEIGHT.bold },
+  appMeta: { color: P.textoSuave, fontSize: 13, lineHeight: 18 },
+  appCampo: {
+    flex: 1, minWidth: 0, height: 42, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: P.borde,
+    backgroundColor: '#FFFFFF', fontSize: 15, color: P.texto,
+  },
+  appIcono: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  appAcciones: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
+  appAccion: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 999,
+    borderWidth: 1, borderColor: P.borde, backgroundColor: '#FFFFFF',
+  },
+  appAccionTexto: { color: P.texto, fontSize: 14, fontWeight: FONT_WEIGHT.semibold },
+  appSeccionTitulo: { color: P.texto, fontSize: 20, fontWeight: FONT_WEIGHT.bold, letterSpacing: -0.3 },
+  appRejilla: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 },
+  appTrabajo: { borderRadius: 20, borderWidth: 1, borderColor: P.borde, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  appTrabajoMedia: { aspectRatio: 1.25, width: '100%', backgroundColor: P.lavandaSuave, alignItems: 'center', justifyContent: 'center' },
+  appTrabajoIcono: { width: 60, height: 60, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: P.lavanda },
+  appTrabajoPie: { padding: 12, gap: 4 },
+  appTrabajoObjetivo: { color: P.texto, fontSize: 14, lineHeight: 19, fontWeight: FONT_WEIGHT.semibold },
   head: {
     flexDirection: 'row',
     alignItems: 'center',

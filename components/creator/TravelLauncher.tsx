@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
@@ -118,7 +119,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: open ? theme.colors.accent : theme.colors.border }]}>
+    <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
       {/* La fila. Cerrada, esto es TODO lo que ocupa Travel en la pantalla. */}
       <TouchableOpacity
         onPress={onToggle}
@@ -137,7 +138,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
           )}
         </View>
         <Animated.View style={{ transform: [{ rotate: giro.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }] }}>
-          <Ionicons name="chevron-down" size={scale(20)} color={theme.colors.accentDark} />
+          <Ionicons name="chevron-down" size={scale(20)} color={theme.colors.text} />
         </Animated.View>
       </TouchableOpacity>
 
@@ -179,7 +180,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
                   accessibilityRole="button"
                   accessibilityLabel={objetivoDe(chip)}
                 >
-                  <Text style={[styles.ejemploTexto, { color: theme.colors.textSecondary }]} numberOfLines={1}>{chip}</Text>
+                  <Text style={[styles.ejemploTexto, { color: theme.colors.text }]} numberOfLines={1}>{objetivoDe(chip)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -196,8 +197,8 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
                 accessibilityRole="button"
                 accessibilityLabel={action.subtitle ? t('weeai.titleWithDetail', { titulo: action.title, detalle: action.subtitle }) : action.title}
               >
-                <View style={[styles.funcionIcono, { backgroundColor: theme.colors.accent + '24' }]}>
-                  <Ionicons name={action.icon as any} size={scale(19)} color={theme.colors.accentDark} />
+                <View style={[styles.funcionIcono, { borderColor: theme.colors.border }]}>
+                  <Ionicons name={action.icon as any} size={scale(18)} color={theme.colors.text} />
                 </View>
                 <View style={styles.funcionTextos}>
                   <Text style={[styles.funcionTitulo, { color: theme.colors.text }]} numberOfLines={1}>{action.title}</Text>
@@ -205,7 +206,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
                     <Text style={[styles.funcionSub, { color: theme.colors.textSecondary }]} numberOfLines={1}>{action.subtitle}</Text>
                   )}
                 </View>
-                <Ionicons name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
+                <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -287,6 +288,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(17),
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   funcionTextos: {
     flex: 1,

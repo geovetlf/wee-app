@@ -9,7 +9,7 @@ import { scale } from '../../utils/scale';
  *
  * Un emoji suelto delante del título es lo que pone quien todavía no ha decidido
  * cómo se llama una cosa. Aquí Travel tiene marca propia: un mundo dentro de una
- * pastilla con el dorado de Weë, y un avión saliendo por la esquina. Mundo +
+ * pastilla en blanco y negro, y un avión saliendo por la esquina. Mundo +
  * viaje + un punto de destino, que es exactamente lo que la sección hace.
  *
  * Está dibujado con Views e Ionicons —los mismos que ya usa toda la app—, así que
@@ -39,12 +39,12 @@ const TravelMark: React.FC<TravelMarkProps> = ({ size = 36, plain }) => {
             width: lado,
             height: lado,
             borderRadius: lado * 0.34,
-            backgroundColor: theme.colors.accent + '2E',
-            borderColor: theme.colors.accent + '59',
+            backgroundColor: theme.colors.card,
+            borderColor: theme.colors.border,
           },
         ]}
       >
-        <Ionicons name="earth" size={lado * 0.58} color={theme.colors.accentDark} />
+        <Ionicons name="earth-outline" size={lado * 0.58} color={theme.colors.text} />
       </View>
 
       {/*
@@ -60,14 +60,14 @@ const TravelMark: React.FC<TravelMarkProps> = ({ size = 36, plain }) => {
               width: insignia,
               height: insignia,
               borderRadius: insignia / 2,
-              backgroundColor: theme.colors.accent,
+              backgroundColor: theme.colors.text,
               borderColor: theme.colors.background,
               right: -insignia * 0.22,
               top: -insignia * 0.22,
             },
           ]}
         >
-          <Ionicons name="airplane" size={insignia * 0.62} color="#1F2937" />
+          <Ionicons name="airplane" size={insignia * 0.62} color={theme.colors.background} />
         </View>
       )}
     </View>
