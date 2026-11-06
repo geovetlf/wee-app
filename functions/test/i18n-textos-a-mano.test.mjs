@@ -54,7 +54,7 @@ const pareceEspanol = (s) => {
   if (/^[¡¿✓✔✨🤷📸 ]*[A-ZÁÉÍÓÚ][a-záéíóúñ]+( [a-záéíóúñ]+)+[.!?…:]?$/.test(t)) return true;
   return /[a-záéíóúñ]{2,} [a-záéíóúñ]{2,}/i.test(t) && PALABRAS.test(t);
 };
-const MARCA = /^(Weë|Weëls?|Wäll|WeeTalk|ËContacts?|ẄContacts?|Credits|Weë [A-Z][a-z]+|Weë AI Engine|WEË AI|World Encode Entity|OK|AI|IA|Studio|Creator|Brain|Design|Business|Chef|Travel|Music|Photo|Writer|Beauty|Biz|Flow|Aura)$/;
+const MARCA = /^(Weë|Weëls?|Wäll|WeeTalk|ËContacts?|ẄContacts?|Credits|Weë [A-Z][a-z]+|Weë AI Engine|WEË AI|World Encode Entity|OK|AI|IA|Studio|Creator|Brain|Design|Business|Chef|Travel|Music|Photo|Writer|Beauty|Biz|Flow|Aura|Filmmaker|Filmmaker Engine|Fashion)$/; // Filmmaker: el motor de producción de Weë Studio, marca como Studio o Writer
 
 /*
  * Llamadas cuyo argumento es un IDENTIFICADOR y no una frase: navegación,
@@ -156,10 +156,12 @@ const RUTAS = new Set(listar(['navigation']).flatMap((rel) =>
  * cerrada: añadir algo aquí exige escribir el motivo.
  */
 const PERMITIDAS = new Map([
+  ['screens/DesignScreen.tsx', { cadenas: ['Translucent sneaker', 'Chrome electric guitar', 'Black and gold living room', 'Clifftop glass house', 'Black yacht concept', 'Sculptural armchair'],
+    porque: 'títulos de los renders de la demo: son contenido de ejemplo, no interfaz, y solo se usan con EXPO_PUBLIC_DEMO_MEDIOS' }],
+  ['screens/StudioScreen.tsx', { cadenas: ['The train that never comes', 'Frozen lake reveal', 'The bakery at dawn', 'Drop 04, in motion'],
+    porque: 'títulos de los Weëls de la demo: son contenido de una persona ficticia, no interfaz, y solo existen con EXPO_PUBLIC_DEMO_MEDIOS' }],
   ['screens/ConversationScreen.tsx', { cadenas: ['Foto única', '📷 Imagen', '🎤 Audio'],
     porque: 'marcas que se GUARDAN como contenido del último mensaje (una la exige firestore.rules); la bandeja las traduce al pintarlas con claveDeAvisoGuardado' }],
-  ['screens/WeeBizProfileScreen.tsx', { cadenas: ['Usuario'],
-    porque: 'nombre de respaldo que se GUARDA en participantsData de la conversación y en userName de la reseña: es dato, lo leen otras personas' }],
   ['components/avatars/AvatarPicker.tsx', { cadenas: ['Aria', 'Felix', 'Luna', 'Storm', 'Nova'],
     porque: 'nombres propios de los avatares predefinidos: se llaman igual en todos los idiomas' }],
   ['navigation/TabNavigator.tsx', { cadenas: ['Inicio', 'Buscar', 'Crear', 'Perfil'],

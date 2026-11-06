@@ -19,6 +19,7 @@ import {
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { cloudinaryFeed, cloudinaryThumb } from '../services/cloudinaryService';
@@ -419,7 +420,7 @@ const PostDetailContent: React.FC = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('wall.onePost')}</Text>
         <View style={styles.headerRight} />
@@ -742,7 +743,7 @@ const PostDetailContent: React.FC = () => {
           {submittingComment ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Ionicons
+            <IconoDireccional
               name="send"
               size={ICON_SIZE.sm}
               color={(commentText.trim() || commentImage) ? '#FFFFFF' : theme.colors.textSecondary}

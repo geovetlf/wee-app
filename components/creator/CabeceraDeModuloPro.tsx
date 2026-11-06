@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 
@@ -26,7 +27,7 @@ const CabeceraDeModuloPro: React.FC<{ nombre: string; pista?: string; onVolver: 
         accessibilityLabel={t('common.back')}
         style={[styles.volver, { borderColor: theme.colors.border }, isWeb && ({ cursor: 'pointer' } as any)]}
       >
-        <Ionicons name="chevron-back" size={18} color={theme.colors.text} />
+        <IconoDireccional name="chevron-back" size={18} color={theme.colors.text} />
       </TouchableOpacity>
       <View style={styles.textos}>
         <Text accessibilityRole="header" style={[styles.nombre, { color: theme.colors.text }]}>{nombre}</Text>

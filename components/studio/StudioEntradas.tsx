@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
@@ -72,7 +73,7 @@ export const StudioToolCard: React.FC<CardProps> = ({ icono, titulo, pista, onPr
           >
             {titulo}
           </Text>
-          <Ionicons name="chevron-forward" size={scale(15)} color={theme.colors.textSecondary} />
+          <IconoDireccional name="chevron-forward" size={scale(15)} color={theme.colors.textSecondary} />
         </View>
         <Text style={[styles.tarjetaPista, { color: theme.colors.textSecondary }]} numberOfLines={2}>{pista}</Text>
       </View>

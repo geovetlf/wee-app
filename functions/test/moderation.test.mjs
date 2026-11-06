@@ -579,8 +579,8 @@ console.log('\n── G · Idiomas: los que haya, y sin dar por hecho que se lee
 
   /* La dirección de lectura es un DATO del idioma. */
   const catalogo = leer('i18n/idiomas.ts');
-  check('146) la dirección vive en el catálogo de idiomas, y el árabe ya está declarado RTL sin estar ofrecido',
-    /direccion: 'ltr' \| 'rtl';/.test(catalogo) && /\{ codigo: 'ar', nombreNativo: '[^']+', direccion: 'rtl', listo: false \}/.test(catalogo) && /export const direccionDe = \(codigo: string\)/.test(catalogo));
+  check('146) la dirección vive en el catálogo de idiomas, y el árabe está declarado RTL y ofrecido (lote L1)',
+    /direccion: 'ltr' \| 'rtl';/.test(catalogo) && /\{ codigo: 'ar', nombreNativo: '[^']+', direccion: 'rtl', listo: true(, localePorDefecto: 'ar-SA', heredaRegionDelAparato: true)? \}/.test(catalogo) && /export const direccionDe = \(codigo: string\)/.test(catalogo));
   check('147) y el contexto de idioma la entrega a quien monte layouts', /direccion: direccionDe\(idioma\)/.test(leer('contexts/IdiomaContext.tsx')));
   const ts = require('typescript');
   const js = ts.transpileModule(leer('hooks/useDireccion.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;

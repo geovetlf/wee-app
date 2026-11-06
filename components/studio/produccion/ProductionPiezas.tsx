@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../../IconoDireccional';
 import { useTheme } from '../../../contexts/ThemeContext';
 import TextoEnMayusculas from '../../TextoEnMayusculas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
+import { RellenoDeMarca } from '../../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -72,7 +74,8 @@ export const BotonPequeno: React.FC<{
         isWeb && ({ cursor: disabled ? 'default' : 'pointer' } as any),
       ]}
     >
-      <Ionicons name={icono as any} size={scale(16)} color={principal ? '#1F2937' : theme.colors.text} />
+      <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!principal} />
+      <IconoDireccional name={icono as any} size={scale(16)} color={principal ? '#1F2937' : theme.colors.text} />
       {conTexto && <Text style={[styles.botonTexto, { color: principal ? '#1F2937' : theme.colors.text }]} numberOfLines={1}>{etiqueta}</Text>}
     </TouchableOpacity>
   );

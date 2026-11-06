@@ -119,11 +119,6 @@ console.log('\n── B · Las once áreas grandes, una por una ──');
     ['el avatar con IA', 'screens/AiAvatarScreen.tsx', /t\('aiAvatar\./],
     ['el alta guiada', 'screens/OnboardingScreen.tsx', /t\('onboarding\./],
     ['el Perfil Weë', 'screens/WeeProfileCreationScreen.tsx', /t\('onboarding\.wee/],
-    ['el directorio Biz', 'screens/WeeBizScreen.tsx', /t\('weebiz\./],
-    ['una categoría Biz', 'screens/WeeBizCategoryScreen.tsx', /t\('weebiz\./],
-    ['un perfil Biz', 'screens/WeeBizProfileScreen.tsx', /t\('weebiz\./],
-    ['los productos Biz', 'screens/WeeBizProductsScreen.tsx', /t\('weebiz\./],
-    ['el alta Biz', 'screens/WeeBizRegisterScreen.tsx', /t\('weebiz\./],
     ['Buscar', 'screens/SearchScreen.tsx', /t\('search\./],
     ['la comunidad', 'screens/CommunityScreen.tsx', /t\('communities\./],
     ['el perfil ajeno', 'screens/UserProfileScreen.tsx', /t\('profile\./],
@@ -174,12 +169,8 @@ console.log('\n── C · Los catálogos guardan claves, no frases ──');
 console.log('\n── D · Lo que NO se traduce ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  const BIZ = leer('screens/WeeBizProfileScreen.tsx') + leer('screens/WeeBizProductsScreen.tsx');
-  check('6) el nombre de un negocio y el de un producto se pintan crudos',
-    !/t\(\s*business\.|t\(\s*product\./.test(BIZ));
-  check('6) y cuando una frase los nombra, entran por hueco',
-    /t\('weebiz\.deleteProductConfirm', \{ nombre: product\.name \}\)/.test(BIZ)
-    && /\{\{nombre\}\}/.test(esT.weebiz.deleteProductConfirm) && /\{\{nombre\}\}/.test(enT.weebiz.deleteProductConfirm));
+  /* El nombre de un negocio o un producto (WeeBiz) ya no se pinta: retirado por decisión del dueño el 2026-11-03: era del proyecto antiguo. */
+  check('6) el módulo weebiz salió de los dos diccionarios', !('weebiz' in esT) && !('weebiz' in enT));
 
   const BUSCAR = leer('screens/SearchScreen.tsx');
   check('7) lo que se escribe en el buscador no pasa por el traductor',
@@ -270,8 +261,8 @@ console.log('\n── G · El diccionario, cuadrado de punta a punta ──');
   });
   check('16) todas las que pide el cliente existen — ' + pedidas.size, faltan.length === 0, faltan.join(' · '));
 
-  /* 17 · Los cinco módulos nuevos, registrados en los dos índices. */
-  for (const modulo of ['aiAvatar', 'onboarding', 'weebiz', 'search', 'help']) {
+  /* 17 · Los cuatro módulos nuevos que siguen (weebiz se retiró el 2026-11-03), registrados en los dos índices. */
+  for (const modulo of ['aiAvatar', 'onboarding', 'search', 'help']) {
     for (const idioma of ['es', 'en']) {
       const indice = leer('i18n/textos/' + idioma + '/index.ts');
       check('17) ' + modulo + ' registrado en ' + idioma,

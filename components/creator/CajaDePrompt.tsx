@@ -1,12 +1,17 @@
-import React, { useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Keyboard } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Easing, View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
+import { useDireccion } from '../../hooks/useDireccion';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useCajaQueCrece } from './CajaQueCrece';
 import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { MARCA } from '../../constants/marca';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -71,6 +76,16 @@ interface Props {
    * ("Crear", "Cocinar"). Sin ella —o en el teléfono, si no cabe— es la flecha.
    */
   textoEnviar?: string;
+  /** Sin dorado: la caja de una sección en blanco y negro. El contorno y el botón de crear van con la tinta del tema. */
+  monocromo?: boolean;
+  /**
+   * El traje de vitrina (referencia del dueño para Weë Chef, 2026-11-02): contorno dorado con halo, un destello a la
+   * izquierda del texto, el de crear redondo a su derecha y los botones en una píldora debajo, separados por rayas.
+   * Crece igual y sus botones no se van.
+   */
+  vitrina?: boolean;
+  /** La frase de dentro solo en el traje de vitrina (Weë Chef la lleva vacía fuera de él). */
+  textoDeVitrina?: string;
 }
 
 /**
@@ -99,9 +114,11 @@ interface Props {
  * largo que sea el prompt. Eso lo resuelve `useCajaQueCrece`.
  */
 const CajaDePrompt: React.FC<Props> = ({
-  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco, textoEnviar,
+  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco, textoEnviar, monocromo, vitrina, textoDeVitrina,
 }) => {
   const { theme } = useTheme();
+  const dir = useDireccion();
+  const tono = monocromo ? theme.colors.text : theme.colors.accent;
   /*
    * LA MISMA CAJA, CON EL TRAJE DE WEË VERSIÓN CREATOR.
    * Crece igual y sus botones no se van. Solo cambia el dibujo: hairline y radio
@@ -114,6 +131,28 @@ const CajaDePrompt: React.FC<Props> = ({
   /* Sin nada escrito, la caja vuelve a medir una línea. No se fía de la medida vieja. */
   const caja = useCajaQueCrece({ altoMinimo: ALTO_MINIMO, vacia: !hayTexto });
   const puedeEnviar = hayTexto && !ocupado && editable !== false;
+
+  /*
+   * LA CAJA RESPONDE. Al entrar a escribir se enciende su contorno y una luz la recorre por arriba; al haber algo
+   * escrito, el botón de crear crece y se enciende. Solo en la caja del teléfono: la de creator es deliberadamente quieta.
+   */
+  const conLuz = !pro && !sinMarco && !vitrina;
+  const [enfocada, setEnfocada] = useState(false);
+  const [ancho, setAncho] = useState(0);
+  const foco = useRef(new Animated.Value(0)).current;
+  const recorrido = useRef(new Animated.Value(0)).current;
+  const listo = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(foco, { toValue: enfocada ? 1 : 0, duration: 220, useNativeDriver: true }).start();
+    if (!enfocada || !conLuz) return;
+    recorrido.setValue(0);
+    const vuelta = Animated.loop(Animated.timing(recorrido, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }));
+    vuelta.start();
+    return () => vuelta.stop();
+  }, [enfocada, conLuz, foco, recorrido]);
+  useEffect(() => {
+    Animated.spring(listo, { toValue: puedeEnviar ? 1 : 0, speed: 22, bounciness: 9, useNativeDriver: true }).start();
+  }, [puedeEnviar, listo]);
 
   /*
    * Al enviar, el teclado se retira.
@@ -140,10 +179,64 @@ const CajaDePrompt: React.FC<Props> = ({
         pro && styles.cajaPro,
         /* Weë Brain la pide sin contorno también aquí: la define su relleno. */
         pro && sinMarco && styles.cajaSinMarco,
+        vitrina && !pro && styles.cajaVitrina,
       ]}
     >
+      {vitrina && !pro ? (
+        <>
+          <View style={styles.filaVitrina}>
+            <Ionicons name="sparkles" size={scale(24)} color={theme.colors.accent} style={styles.destelloVitrina} />
+            <TextInput
+              {...caja.propsDelCampo}
+              style={[styles.campo, styles.campoVitrina, { color: theme.colors.text, height: caja.altoDelTexto }, isWeb && ({ outlineStyle: 'none' } as any)]}
+              value={valor}
+              onChangeText={onCambiar}
+              placeholder={textoDeVitrina ?? placeholder}
+              placeholderTextColor={theme.colors.textSecondary}
+              editable={editable}
+              accessibilityLabel={etiqueta ?? placeholder}
+              {...(enviarConIntro ? { onSubmitEditing: enviar, blurOnSubmit: true, returnKeyType: 'send' as const } : null)}
+            />
+            <Animated.View style={{ transform: [{ scale: listo.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.06] }) }] }}>
+              <TouchableOpacity
+                style={[styles.enviarVitrina, { backgroundColor: puedeEnviar ? theme.colors.accent : MARCA.velo(0.2) }]}
+                onPress={enviar}
+                disabled={!puedeEnviar}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={etiquetaEnviar}
+                accessibilityState={{ disabled: !puedeEnviar }}
+              >
+                {puedeEnviar && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
+                {/* El avión de enviar señala hacia delante: en RTL se refleja, y su empujón óptico de 3 px cambia de lado con él. */}
+                <IconoDireccional name="send" size={scale(22)} color={puedeEnviar ? MARCA.sobrePrimario : MARCA.primario} style={dir.esRTL ? { marginRight: 3 } : { marginLeft: 3 }} />
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+          <View style={[styles.barraVitrina, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            {[...(acciones ?? []), ...(accionesDerecha ?? [])].map((accion, i) => (
+              <React.Fragment key={accion.icono + '·' + accion.etiqueta}>
+                {i > 0 && <View style={[styles.rayaVitrina, { backgroundColor: theme.colors.border }]} />}
+                <TouchableOpacity style={styles.accionVitrina} onPress={accion.alPulsar} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={accion.etiqueta}>
+                  <Ionicons name={accion.icono as any} size={scale(26)} color={theme.colors.text} />
+                </TouchableOpacity>
+              </React.Fragment>
+            ))}
+          </View>
+        </>
+      ) : (
+      <>
+      {conLuz && (
+        <Animated.View pointerEvents="none" onLayout={(e) => setAncho(e.nativeEvent.layout.width)} style={[styles.luz, { borderColor: tono, opacity: foco }]}>
+          <Animated.View style={[styles.destello, { transform: [{ translateX: recorrido.interpolate({ inputRange: [0, 1], outputRange: [-ancho * 0.5, ancho] }) }] }]}>
+            <LinearGradient colors={['transparent', tono, 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+          </Animated.View>
+        </Animated.View>
+      )}
       <TextInput
         {...caja.propsDelCampo}
+        onFocus={() => { caja.propsDelCampo.onFocus(); setEnfocada(true); }}
+        onBlur={() => { caja.propsDelCampo.onBlur(); setEnfocada(false); }}
         style={[
           styles.campo,
           { color: theme.colors.text, height: caja.altoDelTexto },
@@ -180,13 +273,13 @@ const CajaDePrompt: React.FC<Props> = ({
              * clave y React se queja en voz alta delante de la persona.
              */
             key={accion.icono + '·' + accion.etiqueta}
-            style={[styles.accion, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+            style={styles.accion}
             onPress={accion.alPulsar}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={accion.etiqueta}
           >
-            <Ionicons name={accion.icono as any} size={scale(20)} color={theme.colors.text} />
+            <Ionicons name={accion.icono as any} size={scale(22)} color={theme.colors.text} />
           </TouchableOpacity>
         ))}
         <View style={styles.empuje} />
@@ -195,13 +288,13 @@ const CajaDePrompt: React.FC<Props> = ({
         ) : (
           <TouchableOpacity
             key={accion.icono + '·' + accion.etiqueta}
-            style={[styles.accion, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+            style={styles.accion}
             onPress={accion.alPulsar}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={accion.etiqueta}
           >
-            <Ionicons name={accion.icono as any} size={scale(20)} color={theme.colors.text} />
+            <Ionicons name={accion.icono as any} size={scale(22)} color={theme.colors.text} />
           </TouchableOpacity>
         ))}
         {pro ? (
@@ -218,6 +311,7 @@ const CajaDePrompt: React.FC<Props> = ({
             accessibilityLabel={etiquetaEnviar}
             accessibilityState={{ disabled: !puedeEnviar }}
           >
+            {puedeEnviar && <RellenoDeMarca radio={999} />}
             {textoEnviar && (conPalabras || textoEnviar.length <= 12) ? (
               <Text style={[styles.enviarProTexto, { color: puedeEnviar ? '#1F2937' : theme.colors.textSecondary }]}>{textoEnviar}</Text>
             ) : (
@@ -225,18 +319,26 @@ const CajaDePrompt: React.FC<Props> = ({
             )}
           </TouchableOpacity>
         ) : (
-        <TouchableOpacity
-          style={[styles.enviar, { backgroundColor: puedeEnviar ? theme.colors.accent : theme.colors.surface }]}
-          onPress={enviar}
-          disabled={!puedeEnviar}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel={etiquetaEnviar}
-        >
-          <Ionicons name="arrow-up" size={scale(22)} color={puedeEnviar ? '#1F2937' : theme.colors.textSecondary} />
-        </TouchableOpacity>
+        <Animated.View style={{ transform: [{ scale: listo.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1] }) }] }}>
+          <TouchableOpacity
+            style={[styles.enviar, { backgroundColor: theme.colors.surface }]}
+            onPress={enviar}
+            disabled={!puedeEnviar}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={etiquetaEnviar}
+            accessibilityState={{ disabled: !puedeEnviar }}
+          >
+            {puedeEnviar && (monocromo
+              ? <LinearGradient colors={[tono, tono]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+              : <RellenoDeMarca radio={BORDER_RADIUS.full} />)}
+            <Ionicons name="arrow-up" size={scale(22)} color={!puedeEnviar ? theme.colors.textSecondary : monocromo ? theme.colors.background : '#1F2937'} />
+          </TouchableOpacity>
+        </Animated.View>
         )}
       </View>
+      </>
+      )}
     </View>
   );
 };
@@ -279,12 +381,12 @@ const styles = StyleSheet.create({
    * hacía que los botones parecieran de la pantalla y no de lo que se escribe.
    */
   caja: {
-    borderRadius: scale(26),
+    borderRadius: scale(28),
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
-    paddingBottom: SPACING.md,
-    gap: SPACING.sm,
+    paddingBottom: SPACING.sm,
+    gap: SPACING.xs,
     /* Sombra muy suave: levanta la caja del fondo sin dibujar una caja encima. */
     shadowColor: '#000',
     shadowOpacity: 0.05,
@@ -299,9 +401,25 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     elevation: 0,
   },
+  cajaVitrina: {
+    borderWidth: 1.5, borderColor: MARCA.velo(0.75), paddingTop: SPACING.lg, paddingBottom: SPACING.lg, gap: SPACING.md,
+    shadowColor: MARCA.primario, shadowOpacity: 0.45, shadowRadius: scale(18), shadowOffset: { width: 0, height: scale(6) }, elevation: 8,
+  },
+  filaVitrina: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm },
+  destelloVitrina: { marginTop: SPACING.sm },
+  campoVitrina: { flex: 1, fontSize: scale(15), lineHeight: scale(22) },
+  enviarVitrina: { width: scale(52), height: scale(52), borderRadius: BORDER_RADIUS.full, alignItems: 'center', justifyContent: 'center', marginTop: scale(14) },
+  barraVitrina: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', borderRadius: BORDER_RADIUS.full,
+    borderWidth: StyleSheet.hairlineWidth, height: scale(56), paddingHorizontal: SPACING.sm,
+  },
+  rayaVitrina: { width: StyleSheet.hairlineWidth, height: scale(24) },
+  accionVitrina: { flex: 1, height: scale(48), alignItems: 'center', justifyContent: 'center' },
+  luz: { ...StyleSheet.absoluteFillObject, margin: -StyleSheet.hairlineWidth, borderRadius: scale(28), borderWidth: 1.25, overflow: 'hidden' },
+  destello: { position: 'absolute', top: 0, left: 0, width: '50%', height: 2 },
   campo: {
-    fontSize: FONT_SIZE.md,
-    lineHeight: scale(22),
+    fontSize: scale(17),
+    lineHeight: scale(24),
     paddingTop: SPACING.sm,
     paddingBottom: 0,
   },
@@ -315,7 +433,6 @@ const styles = StyleSheet.create({
     width: scale(42),
     height: scale(42),
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -327,6 +444,7 @@ const styles = StyleSheet.create({
     width: scale(50),
     height: scale(50),
     borderRadius: BORDER_RADIUS.full,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },

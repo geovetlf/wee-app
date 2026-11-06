@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
@@ -310,7 +311,7 @@ const EContactScreen: React.FC = () => {
           activeOpacity={0.7}
           accessibilityLabel={t('common.back')}
         >
-          <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={scale(23)} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTextos}>
           {/* El título es el de la identidad activa: ËContact o ẄContact. */}

@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useDireccion } from '../../hooks/useDireccion';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
 import { TituloDeCreator, RADIO_DE_CREATOR } from '../creator/PiezasDeCreator';
 import { textoDeObjetivo } from '../../i18n/servidor';
@@ -26,16 +28,13 @@ interface Props {
  * mira lo hecho. Va en fila que se desliza y no en rejilla porque aquí no se
  * busca nada concreto —para eso está "Ver todos"—, se echa un vistazo.
  *
- * ── Sin fotos y sin inventar ─────────────────────────────────────────────────
- *
- * Cada pieza es una lámina lisa con el icono de su tipo, no una fotografía de
- * comida: las fotos que vaya a haber serán las de la persona, y hasta que las
- * haya no se pone una de mentira. Y si todavía no ha cocinado nada, lo que se
- * lee es eso mismo, no una galería de ejemplos que parecerían suyos.
+ * Cada pieza enseña la foto de lo que se creó; sin foto, una lámina lisa con el icono. Si todavía no ha cocinado nada,
+ * lo que se lee es eso mismo, no una galería de ejemplos que parecerían suyos.
  */
 const ChefProyectos: React.FC<Props> = ({ proyectos, onAbrir, onVerTodos }) => {
   const { theme } = useTheme();
   const t = useT();
+  const dir = useDireccion();
   const pro = useEnEspacioProfesional();
 
   return (
@@ -53,7 +52,7 @@ const ChefProyectos: React.FC<Props> = ({ proyectos, onAbrir, onVerTodos }) => {
           accessibilityLabel={t('chef.seeAll')}
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
-          <Text style={[styles.verTodos, { color: theme.colors.textSecondary }]}>{t('chef.seeAll')} →</Text>
+          <Text style={[styles.verTodos, { color: theme.colors.textSecondary }]}>{t('chef.seeAll')} {dir.flecha.adelante}</Text>
         </TouchableOpacity>
       </View>
       )}
@@ -76,7 +75,11 @@ const ChefProyectos: React.FC<Props> = ({ proyectos, onAbrir, onVerTodos }) => {
               accessibilityLabel={textoDeObjetivo(t, job.experienceId, job.goal)}
             >
               <View style={[styles.lamina, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                <Ionicons name="restaurant-outline" size={scale(28)} color={theme.colors.textSecondary} />
+                {job.results?.find((r) => r.url)?.url ? (
+                  <Image source={{ uri: job.results.find((r) => r.url)?.url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
+                ) : (
+                  <Ionicons name="restaurant-outline" size={scale(28)} color={theme.colors.textSecondary} />
+                )}
               </View>
               <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={2}>{textoDeObjetivo(t, job.experienceId, job.goal)}</Text>
               <Text style={[styles.estado, { color: theme.colors.textSecondary }]} numberOfLines={1}>

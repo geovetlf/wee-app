@@ -1,0 +1,45 @@
+/*
+ * JEMER — ËContact y ẄContact. Los dos nombres son marca —cambian con el perfil activo— y entran como valor, no se traducen.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * El jemer no tiene plural: `count_one` y `count_other` son idénticas, con {{contador}}.
+ */
+export const econtact: typeof import('../es/econtact').econtact = {
+  requestsReceived: 'សំណើ​ដែល​បាន​ទទួល',
+  requestsSent: 'សំណើ​ដែល​បាន​ផ្ញើ',
+  yours: '{{lista}} របស់អ្នក',
+  yoursWhenYouSignIn: '{{lista}} របស់អ្នក នៅពេល​អ្នក​ចូល',
+  yoursWhenYouSignInSubtitle: '{{lista}} រក្សាទុក​ការតភ្ជាប់​របស់អ្នក​ក្នុង Weë។ ចូល​ដើម្បី​មើល។',
+  noneYet: 'អ្នក​មិនទាន់​មាន {{lista}} នៅឡើយទេ',
+  noneYetSubtitle: 'ទីនេះ​នឹង​ជា​កន្លែង​សម្រាប់​អ្នក​ដែល​អ្នក​ភ្ជាប់​ជាមួយ​ក្នុង Weë។ ការតភ្ជាប់​កើតឡើង​រវាង​ពីរនាក់៖ ម្នាក់​ស្នើ ហើយ​ម្នាក់ទៀត​ទទួលយក។',
+  noAgenda: 'ប្រវត្តិរូប​នេះ​គ្មាន​បញ្ជី​ទំនាក់ទំនង​ទេ',
+  noAgendaSubtitle: '{{lista}} ជា​កន្លែង​ដែល​មាន​ការតភ្ជាប់​របស់អ្នក​ជាមួយ​អ្នកដទៃ។ ប្តូរ​ទៅ​ប្រវត្តិរូប​ពិត ឬ​ប្រវត្តិរូប Weë របស់អ្នក​ដើម្បី​មើល។',
+  wantsToConnect: '{{lista}} · ចង់​តភ្ជាប់​ជាមួយ​អ្នក',
+  accept: 'ទទួលយក {{nombre}}',
+  reject: 'បដិសេធ {{nombre}}',
+  withdraw: 'ដក​សំណើ​ទៅ {{nombre}}',
+  removeFrom: 'លុប {{nombre}} ចេញពី {{lista}} របស់អ្នក',
+  openProfile: 'បើក {{etiqueta}} របស់ {{nombre}}',
+  rejectTitle: 'បដិសេធ​សំណើ',
+  rejectConfirm: 'បដិសេធ​សំណើ​របស់ {{nombre}} ឬ?',
+  withdrawTitle: 'ដក​សំណើ',
+  withdrawConfirm: 'ដក​សំណើ​របស់អ្នក​ទៅ {{nombre}} ឬ?',
+  removeTitle: 'លុប {{lista}}',
+  removeConfirm: 'លុប {{nombre}} ចេញពី {{lista}} របស់អ្នក​ឬ?',
+  failed: 'មិនអាច​បញ្ចប់​បានទេ',
+  count_one: '{{contador}} {{lista}}',
+  count_other: '{{contador}} {{lista}}',
+  somePerson: 'អ្នក​នេះ',
+  acceptLabel: 'ទទួលយក {{lista}}',
+  rejectRequestLabel: 'បដិសេធ​សំណើ {{lista}}',
+  requestSent: 'បាន​ផ្ញើ​សំណើ',
+  errSignIn: 'ចូល​ដើម្បី​ប្រើ ËContact។',
+  errNotYours: 'ប្រវត្តិរូប​នោះ​មិនមែន​របស់អ្នក​ទេ។',
+  errNotAPerson: 'ប្រវត្តិរូប​នោះ​មិនអាច​ប្រើ ËContact បានទេ។',
+  errSameProfile: 'ប្រវត្តិរូប​មួយ​មិនអាច​តភ្ជាប់​ជាមួយ​ខ្លួនឯង​បានទេ។',
+  errOffline: 'មិនអាច​ភ្ជាប់​ទៅ Weë បានទេ។',
+  errNoRequestToReject: 'គ្មាន​សំណើ​របស់អ្នក​ដែល​ត្រូវ​បដិសេធ​ទេ។',
+  errNoPendingRequest: 'អ្នក​គ្មាន​សំណើ​ដែល​កំពុង​រង់ចាំ​ជាមួយ​ប្រវត្តិរូប​នេះ​ទេ។',
+  errNotConnected: 'អ្នក​មិនបាន​តភ្ជាប់​ជាមួយ​ប្រវត្តិរូប​នេះ​ទេ។',
+  errNoActiveProfile: 'គ្មាន​ប្រវត្តិរូប​សកម្ម​ដើម្បី​ធ្វើ​ការនេះ​ទេ។',
+};

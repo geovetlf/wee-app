@@ -22,6 +22,7 @@ export const chef = {
    * lo escucha en vez de verlo, que es lo único que no puede faltar.
    */
   placeholder: 'Escribe tu idea, tus ingredientes o usa una foto',
+  cookPrompt: 'Dime qué quieres cocinar…',
   addLabel: 'Añadir una foto',
   cameraLabel: 'Hacer una foto',
   galleryLabel: 'Elegir una foto de la galería',
@@ -118,4 +119,11 @@ export const chef = {
   seeAll: 'Ver todos',
   projectsEmpty: 'Todavía no has cocinado nada con Weë.',
   projectsEmptyHint: 'Lo que crees aquí se guarda y lo vuelves a encontrar en esta fila.',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'Tu chef con IA,',
+  heroAccent: 'siempre contigo',
+  chipRecipes: 'Recetas',
+  chipMenus: 'Menús',
+  chipHealthy: 'Saludable',
+  chipQuick: 'Exprés',
 };

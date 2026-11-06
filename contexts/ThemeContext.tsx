@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { Appearance, ColorSchemeName, Animated, Easing, StyleSheet, Platform, StatusBar } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
+import { MARCA } from '../constants/marca';
 
 /*
  * Dos temas y el del sistema. Hubo un tercero —morado— que se encendía con el
@@ -21,6 +22,17 @@ export interface Theme {
     accent: string;
     accentLight: string;
     accentDark: string;
+    /** Punta clara del acento (amarillo dorado). */
+    primaryLight: string;
+    /** Punta honda del acento (naranja profundo). */
+    primaryDark: string;
+    /** Iconos y etiquetas de la navegación activa. */
+    activeColor: string;
+    /** Texto encima del acento o del degradado de marca. */
+    onPrimary: string;
+    /** Extremos del degradado de marca (el degradado completo lo pinta components/GradienteDeMarca.tsx). */
+    primaryGradientStart: string;
+    primaryGradientEnd: string;
     like: string;
     error: string;
     glow: string;
@@ -33,19 +45,26 @@ export interface Theme {
 const lightTheme: Theme = {
   dark: false,
   colors: {
-    primary: '#F5B731',
+    /* El color de marca sale de constants/marca.ts (degradado amarillo dorado → naranja, 2026-11-05). */
+    primary: MARCA.primario,
     background: '#FFFFFF',
     surface: '#F8F9FA',
     card: '#FFFFFF',
     text: '#1F2937',
     textSecondary: '#6B7280',
     border: '#E5E7EB',
-    accent: '#F5B731',
-    accentLight: '#FFC94D',
-    accentDark: '#E5A020',
+    accent: MARCA.primario,
+    accentLight: MARCA.primarioClaro,
+    accentDark: MARCA.primarioOscuro,
+    primaryLight: MARCA.primarioClaro,
+    primaryDark: MARCA.primarioOscuro,
+    activeColor: MARCA.activo,
+    onPrimary: MARCA.sobrePrimario,
+    primaryGradientStart: MARCA.degradado.colores[0],
+    primaryGradientEnd: MARCA.degradado.colores[2],
     like: '#EF4444',
     error: '#EF4444',
-    glow: 'rgba(245, 183, 49, 0.15)',
+    glow: MARCA.velo(0.15),
     backdrop: 'rgba(0, 0, 0, 0.4)',
     success: '#22C55E',
     warning: '#F59E0B',
@@ -55,19 +74,26 @@ const lightTheme: Theme = {
 const darkTheme: Theme = {
   dark: true,
   colors: {
-    primary: '#F5B731',
+    /* El color de marca sale de constants/marca.ts (degradado amarillo dorado → naranja, 2026-11-05). */
+    primary: MARCA.primario,
     background: '#0A0A0A',
     surface: '#1C1C1E',
     card: '#111111',
     text: '#FFFFFF',
     textSecondary: '#98989D',
     border: '#38383A',
-    accent: '#F5B731',
-    accentLight: '#FFC94D',
-    accentDark: '#E5A020',
+    accent: MARCA.primario,
+    accentLight: MARCA.primarioClaro,
+    accentDark: MARCA.primarioOscuro,
+    primaryLight: MARCA.primarioClaro,
+    primaryDark: MARCA.primarioOscuro,
+    activeColor: MARCA.activo,
+    onPrimary: MARCA.sobrePrimario,
+    primaryGradientStart: MARCA.degradado.colores[0],
+    primaryGradientEnd: MARCA.degradado.colores[2],
     like: '#FF6B6B',
     error: '#FF6B6B',
-    glow: 'rgba(245, 183, 49, 0.25)',
+    glow: MARCA.velo(0.25),
     backdrop: 'rgba(0, 0, 0, 0.7)',
     success: '#22C55E',
     warning: '#F59E0B',
@@ -224,6 +250,16 @@ export const TemaClaro: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { themeMode, setThemeMode } = useTheme();
   return (
     <ThemeContext.Provider value={{ theme: lightTheme, themeMode, setThemeMode }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+/** Lo contrario, para Weë Music: la sección va siempre en negro, con el perfil que sea. */
+export const TemaOscuro: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { themeMode, setThemeMode } = useTheme();
+  return (
+    <ThemeContext.Provider value={{ theme: darkTheme, themeMode, setThemeMode }}>
       {children}
     </ThemeContext.Provider>
   );

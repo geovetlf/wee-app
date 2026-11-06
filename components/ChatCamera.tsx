@@ -10,6 +10,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
 import { FONT_SIZE, FONT_WEIGHT, SPACING } from '../constants/design';
 import { useT } from '../contexts/IdiomaContext';
 
@@ -91,7 +92,7 @@ const ChatCamera: React.FC<ChatCameraProps> = ({ visible, onClose, onSend }) => 
             {/* Top: close */}
             <View style={styles.topBar}>
               <TouchableOpacity onPress={handleRetake} style={styles.topBtn}>
-                <Ionicons name="arrow-back" size={26} color="#fff" />
+                <IconoDireccional name="arrow-back" size={26} color="#fff" />
               </TouchableOpacity>
             </View>
 
@@ -109,7 +110,7 @@ const ChatCamera: React.FC<ChatCameraProps> = ({ visible, onClose, onSend }) => 
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-                <Ionicons name="send" size={22} color="#fff" />
+                <IconoDireccional name="send" size={22} color="#fff" />
               </TouchableOpacity>
             </View>
           </>

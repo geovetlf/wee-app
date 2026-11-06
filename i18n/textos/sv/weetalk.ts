@@ -13,7 +13,7 @@
  * `photo` es la etiqueta del botón de la cámara: «Ta foto». `theme` es «Färgtema»: el selector
  * enseña colores, y «Tema» a secas se escribiría igual que en español. `areYouSure` es el cuerpo
  * del aviso de borrar una conversación, cuyo título ya dice qué se borra. `noConversationsHint`
- * cita en español un botón «Privado» que no existe en ninguna pantalla; aquí cita el que sí
+ * citaba en español (hasta 2026-11-05) un botón «Privado» que no existe en ninguna pantalla; aquí cita el que sí
  * existe en el menú de la publicación, «Skicka via WeeTalk» (`wall.sendByWeeTalk`, con las mismas
  * letras), que abre la conversación con quien la publicó. Los permisos los pide Weë, de sujeto.
  */
@@ -44,7 +44,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: 'Weë behöver åtkomst till dina foton',
   audioPermission: 'Weë behöver åtkomst till mikrofonen för att spela in ljud',
   imageFailed: 'Det gick inte att skicka bilden',
-  noConversationsHint: 'Tryck på ”Skicka via WeeTalk” i menyn på ett inlägg om du vill starta en anonym konversation',
+  noConversationsHint: 'Öppna menyn ⋮ på ett inlägg och välj ”Skicka via WeeTalk” om du vill starta en privat konversation',
   ephemeralMode: 'Försvinnande meddelanden',
   noMessagesYet: 'Inga meddelanden ännu',
   youSaid: 'Du: {{mensaje}}',

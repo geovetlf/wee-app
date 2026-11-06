@@ -30,7 +30,10 @@ const isWeb = Platform.OS === 'web';
  * se usa, y por eso vive aquí con su nombre en vez de suelto entre el JSX.
  */
 const VERDE_DEL_PERFIL_WEE = '#39FF14';
+/* Decisión del dueño (2026-11-02): los iconos del Perfil Weë van en morado eléctrico, no en verde. */
+const ICONOS_DEL_PERFIL_WEE = '#BF00FF';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
 import { IconoWee } from './icons/IconoWee';
 import { MarcaDeCredits } from './CreditsPill';
 import { MarcaDeWeeAi } from './icons/MarcaDeWeeAi';
@@ -46,7 +49,6 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-import { weeBizService, Business } from '../services/weeBizService';
 import { useWallet } from '../hooks/useWallet';
 import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
@@ -108,7 +110,6 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const enHome = rutaActual === 'Home' || rutaActual === 'Landing';
   const insets = useSafeAreaInsets();
 
-  const [myBusiness, setMyBusiness] = useState<Business | null>(null);
   const [creatorExpanded, setCreatorExpanded] = useState(true);
 
   const activeUid = userProfile?.uid || user?.uid;
@@ -118,32 +119,9 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
   /*
-   * ¿Tiene negocio esta persona? Solo para poder ofrecerle su atajo.
-   *
-   * Aquí se CREABA además un documento de identidad `users/biz_<negocio>` en
-   * cuanto alguien tenía un negocio, y se activaba como una tercera cara de la
-   * cuenta. Eso se ha eliminado: un negocio no es una cara de una persona. El
-   * negocio sigue existiendo —es de Weë Business, el producto— y el atajo lleva
-   * a su pantalla, no a un cambio de identidad.
+   * El directorio de negocios del proyecto antiguo (WeeBiz) y su atajo «mi negocio» se retiraron de la app por decisión
+   * del dueño (2026-11-03). Un negocio será una Página (WeëPages), una entidad de la cuenta.
    */
-  const realUid = user?.uid;
-  useEffect(() => {
-    if (!realUid) return;
-    /* Si se cambia de cuenta antes de que llegue la respuesta, el negocio de la cuenta de antes no se ofrece en esta. */
-    let vivo = true;
-    const loadBiz = async () => {
-      try {
-        const negocio = await weeBizService.getBusinessByOwner(realUid);
-        if (vivo) setMyBusiness(negocio);
-      } catch (e) {
-        console.error('Error loading business:', e);
-      }
-    };
-    loadBiz();
-    return () => {
-      vivo = false;
-    };
-  }, [realUid]);
 
   useEffect(() => {
     if (isWeb) {
@@ -242,6 +220,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const goCredits = () => (user ? after(() => navigateRoot('CreditStore')) : requireLogin());
   const goEContact = () => (user ? after(() => navigateRoot('EContact')) : requireLogin());
   const goSaved = () => (user ? after(() => navigateRoot('SavedPosts')) : requireLogin());
+  const goPages = () => (user ? after(() => navigateRoot('WeePages')) : requireLogin());
   const goSettings = () => after(() => navigateRoot('Settings'));
   const goHelp = () => after(() => navigateRoot('Help'));
 
@@ -259,7 +238,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
    * discrepar. Aquí NO entra nada más: los textos, el avatar, las etiquetas y
    * los chevrones siguen sacando su color del tema, como siempre.
    */
-  const colorDeLosIconos = isWee ? VERDE_DEL_PERFIL_WEE : theme.colors.text;
+  const colorDeLosIconos = isWee ? ICONOS_DEL_PERFIL_WEE : theme.colors.text;
 
   /*
    * EL ICONO SE DIBUJA, NO SE ESCRIBE.
@@ -446,7 +425,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                 {!user ? t('menu.tapToSignIn') : isWee ? t('menu.activeWee') : t('menu.activeReal')}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+            <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
           </TouchableOpacity>
 
           {/*
@@ -472,15 +451,6 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                 <Text style={styles.tagText}>{t('common.new')}</Text>
               </View>
             ) : undefined,
-          })}
-          {/*
-            El negocio, como ATAJO a su pantalla — no como una identidad que se
-            activa. Antes esta fila cambiaba la cara de la cuenta a «Perfil Biz»
-            y ponía el tema morado; ahora lleva al negocio, que es de Weë
-            Business. El día que existan las Páginas, esta fila será «Mis Pages».
-          */}
-          {myBusiness && renderRow('perfilBiz', myBusiness.name, () => {
-            after(() => navigation.navigate('WeeBizProfile', { businessId: myBusiness.id }));
           })}
           {/*
             Credits, pegado a los perfiles y no a "Explora" (fase de UI).
@@ -512,6 +482,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           */}
           {renderDivisor()}
           {fila('econtact', goEContact, { label: nombreLista })}
+          {/* WeëPages, junto a tu agenda y dentro de lo tuyo: las Páginas son de tu cuenta, no un sitio que explorar. */}
+          {fila('pages', goPages)}
 
           {/* EXPLORA */}
           {renderDivisor()}

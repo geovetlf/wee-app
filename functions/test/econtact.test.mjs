@@ -771,7 +771,7 @@ console.log('\n── N) El perfil de otra persona ──');
 const perfilAjeno = read('screens/UserProfileScreen.tsx');
 const codigoAjeno = sinComentarios(perfilAjeno);
 
-check('155) usa el hook de ËContact, no el de seguir', /useEContact\(userId\)/.test(codigoAjeno) && !/useFollow/.test(codigoAjeno));
+check('155) usa el hook de ËContact, no el de seguir', /useEContact\(userProfile\?\.uid\)/.test(codigoAjeno) && !/useFollow/.test(codigoAjeno));
 check('156) y no llama a followsService para personas', !/followsService|toggleFollow/.test(codigoAjeno));
 /*
  * Los cuatro estados. No es un interruptor: pedir no conecta, hay que aceptar,
@@ -941,7 +941,7 @@ check('203) las reglas de follows siguen en pie, ya sin la identidad Biz',
   /match \/follows\/\{followId\}/.test(reglas) && !/followerId\.matches\('biz_/.test(reglas));
 check('204) businessFollows intacto', /match \/businessFollows\/\{followId\}[\s\S]{0,200}request\.resource\.data\.userId == request\.auth\.uid/.test(reglas));
 /* Sus rótulos pasaron por i18n al entrar el japonés: weebiz.following / weebiz.follow. */
-check('205) y el perfil de negocio sigue con su propio seguir', /isFollowing \? t\('weebiz\.following'\) : t\('weebiz\.follow'\)/.test(read('screens/WeeBizProfileScreen.tsx')));
+check('205) el perfil de negocio de WeeBiz se retiró (2026-11-03): no queda otro «seguir» que confundir', !existe('screens/WeeBizProfileScreen.tsx'));
 check('206) la píldora ËContact del compositor ya está viva, y sigue sin tocar relaciones', /setShowEContacts/.test(read('screens/CreateScreen.tsx')) && !/econtactService/.test(sinComentarios(read('screens/CreateScreen.tsx'))));
 check('207) ËContact no gasta Credits ni llama a IA', !/spendCredits|gemini|provider/i.test(codigoPantalla + sinComentarios(read('hooks/useEContact.ts'))));
 check('208) sin índices nuevos', !/econtact/i.test(read('firestore.indexes.json')));
@@ -1543,7 +1543,7 @@ check('364) la pantalla enseña un estado propio para eso',
   /t\('econtact\.noAgenda'\)/.test(pantallaEC) && /noAgenda: 'Este perfil no tiene agenda'/.test(read('i18n/textos/es/econtact.ts')));
 check('365) y no cae en la lista de la cuenta', /if \(!user\) return vacia\('sin-sesion'\);/.test(codigoGancho) && !/return user\.uid;/.test(codigoGancho.slice(codigoGancho.indexOf('perfil-sin-agenda'))));
 check('366) businessFollows no se toca desde aquí', !/businessFollows/.test(codigoPantalla + codigoGancho + codigoServicio));
-check('367) y el perfil de negocio sigue con su propio seguir', /isFollowing \? t\('weebiz\.following'\) : t\('weebiz\.follow'\)/.test(read('screens/WeeBizProfileScreen.tsx')));
+check('367) y no vuelve un perfil de negocio con su propio seguir', !existe('screens/WeeBizProfileScreen.tsx'));
 
 // ─── P · Nada de follows para estas listas ───────────────────────────────────
 

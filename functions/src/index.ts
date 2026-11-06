@@ -127,6 +127,10 @@ export { burnViewOnce } from './social/weetalk';
  * lee de `users` y las reglas no pueden consultar.
  */
 export { requestEContact, acceptEContact } from './social/econtact';
+// WeëPages: las Páginas públicas de la cuenta (entidades, no caras). Sin IA ni Credits.
+export { savePage, followPage } from './social/pages';
+// Boost: promocionar publicaciones propias dentro de Weë (docs/BOOST.md). Reserva y liquida SOLO por el Credit Engine.
+export { boost, boostSweep } from './boost';
 
 /*
  * IDENTITY: el nacimiento de las cuentas NUEVAS (Fase 11.x-5A).

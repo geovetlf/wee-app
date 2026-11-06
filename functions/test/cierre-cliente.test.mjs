@@ -143,12 +143,14 @@ console.log('\n── B · Las formas cortas del muro, fuera de la maqueta ─�
   const desdeLaMaqueta = CLIENTE.filter((f) => /from ['"][./]+(?:[\w/]+\/)?mockData['"]/.test(leer(f)));
   check('5) ningún archivo de producción importa de la maqueta', desdeLaMaqueta.length === 0, desdeLaMaqueta.join(' '));
   const usuarios = CLIENTE.filter((f) => /\b(formatNumber|getRelativeTime)\b/.test(sinComentarios(leer(f))) && f !== 'utils/formatoCorto.ts');
-  const malImportados = usuarios.filter((f) => !/import \{[^}]*\b(formatNumber|getRelativeTime)\b[^}]*\} from '\.\.\/utils\/formatoCorto';/.test(leer(f)));
+  const malImportados = usuarios.filter((f) => !/import \{[^}]*\b(formatNumber|getRelativeTime)\b[^}]*\} from '(?:\.\.\/)+utils\/formatoCorto';/.test(leer(f)));
   check('5) los que las usan las traen de utils/formatoCorto', usuarios.length >= 13 && malImportados.length === 0, malImportados.join(' ') || `${usuarios.length} archivos`);
 
-  const resolver = comoUrl("export const partesDelLocale = (l) => ({ region: (String(l).split('-')[1] || '').toUpperCase() || undefined });");
+  const resolver = comoUrl("export const partesDelLocale = (l) => ({ region: (String(l).split('-')[1] || '').toUpperCase() || undefined }); export const idiomaDe = (l) => String(l).split('-')[0];");
+  /* El catálogo solo lo consulta formato.ts para `intlNoFiable` (groenlandés): aquí, sin datos. */
+  const catalogo = comoUrl('export const idiomaDelCatalogo = () => undefined;');
   const formato = comoUrl(ts.transpileModule(leer('i18n/formato.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } })
-    .outputText.split("from './resolver'").join(`from '${resolver}'`));
+    .outputText.split("from './resolver'").join(`from '${resolver}'`).split("from './idiomas'").join(`from '${catalogo}'`));
   const F = await cargarModulo('utils/formatoCorto.ts', { '../i18n/formato': formato });
   /* Sin locale, como siempre (lo que escribía la maqueta). */
   const sinLocale = [[0, '0'], [999, '999'], [1000, '1.0k'], [12400, '12.4k'], [1500000, '1.5M'], [null, '0'], [undefined, '0'], [NaN, '0']];
@@ -201,10 +203,20 @@ const reiniciar = () => {
 
   /* La tienda de Credits, ejecutada: antes en la web salía SOLO el mensaje, sin título. */
   const comprar = funcionDe('screens/CreditStoreScreen.tsx', 'handlePurchase');
+  /*
+   * 2026-11-04: la tienda compra por IMPORTE (sin paquetes). `handlePurchase` recibe lo elegido —importe, lo que se
+   * ve y los Credits— y llama a `creditsService.comprarImporte`; lo que se comprueba aquí (el aviso con título y
+   * mensaje en web y teléfono) no cambia.
+   */
   const tienda = async (n, falla = null) => {
     const setPurchasing = espia();
-    const creditsService = { purchase: async () => { if (falla) throw falla; return { credits: 100 }; } };
-    await ejecutable(comprar, { accountUid: 'cuenta', purchasing: false, setPurchasing, creditsService, notify: n, t, formato: { numero: (x) => String(x) }, String })({ id: 'p1' });
+    const creditsService = { comprarImporte: async () => { if (falla) throw falla; return { credits: 100 }; } };
+    const alcance = {
+      accountUid: 'cuenta', purchasing: false, setPurchasing, creditsService, notify: n, t, formato: { numero: (x) => String(x) }, String,
+      mercado: 'US', pendiente: { current: null }, newRequestId: () => 'compra_prueba', cargarCatalogo: () => {},
+      DEFINITIVAS: ['PURCHASE_INVALID', 'INVALID_REQUEST', 'NOT_IMPLEMENTED', 'unimplemented'],
+    };
+    await ejecutable(comprar, alcance)({ amountUsd: 1, displayed: { currency: 'USD', amountMinor: 100 }, credits: 100 });
     return setPurchasing;
   };
   reiniciar();
@@ -283,122 +295,12 @@ console.log('\n── D · El identificador del Perfil Weë se compone en un sol
 }
 
 /* ════════════════════════════════════════════════════════════════════════ */
-console.log('\n── E · Seguir un negocio: el seguimiento y su contador, a la vez ──');
+console.log('\n── E · Seguir un negocio: retirado con WeeBiz ──');
 /* ════════════════════════════════════════════════════════════════════════ */
 {
-  /*
-   * Un Firestore de juguete con lotes de verdad: `commit` aplica TODO o NADA. Y las reglas que importan aquí:
-   * `contadorSano('followersCount')` —se mueve de uno en uno y nunca baja de cero— rechaza el lote entero.
-   */
-  const firestoreDeJuguete = ({ followersCount, fallaElCommit = false }) => {
-    /* + segunda auditoría de cierre: la escritura es una TRANSACCIÓN que lee el negocio del servidor antes de escribir. */
-    const estado = { docs: new Map([['businesses/N', { followersCount }]]), commits: 0, escriturasSueltas: 0 };
-    const aplicar = (op) => {
-      if (op.tipo === 'set') estado.docs.set(op.ref.ruta, op.datos);
-      if (op.tipo === 'delete') estado.docs.delete(op.ref.ruta);
-      if (op.tipo === 'update') {
-        const actual = { ...(estado.docs.get(op.ref.ruta) || {}) };
-        for (const [k, v] of Object.entries(op.datos)) actual[k] = v && v.__inc !== undefined ? (actual[k] || 0) + v.__inc : v;
-        estado.docs.set(op.ref.ruta, actual);
-      }
-    };
-    const contadorSano = (op) => op.tipo !== 'update' || !('followersCount' in op.datos)
-      || ([1, -1].includes(op.datos.followersCount.__inc) && (estado.docs.get(op.ref.ruta)?.followersCount || 0) + op.datos.followersCount.__inc >= 0);
-    return {
-      estado,
-      alcance: {
-        db: {}, doc: (_db, col, id) => ({ ruta: `${col}/${id}` }), increment: (n) => ({ __inc: n }), Timestamp: { now: () => 'AHORA' },
-        runTransaction: async (_db, cuerpo) => {
-          const ops = [];
-          const tx = {
-            get: async (ref) => ({ data: () => estado.docs.get(ref.ruta) }),
-            set: (ref, datos) => { ops.push({ tipo: 'set', ref, datos }); },
-            delete: (ref) => { ops.push({ tipo: 'delete', ref }); },
-            update: (ref, datos) => { ops.push({ tipo: 'update', ref, datos }); },
-          };
-          await cuerpo(tx);
-          estado.ultimoLote = ops.map((o) => `${o.tipo} ${o.ref.ruta}`);
-          if (fallaElCommit || !ops.every(contadorSano)) throw new Error('permission-denied');
-          ops.forEach(aplicar);
-          estado.commits++;
-        },
-        /* Las escrituras sueltas de antes: si el manejador vuelve a usarlas, se cuentan. */
-        setDoc: async (ref, datos) => { estado.escriturasSueltas++; aplicar({ tipo: 'set', ref, datos }); },
-        deleteDoc: async (ref) => { estado.escriturasSueltas++; aplicar({ tipo: 'delete', ref }); },
-        weeBizService: { incrementFollowers: async (id, d) => { estado.escriturasSueltas++; aplicar({ tipo: 'update', ref: { ruta: `businesses/${id}` }, datos: { followersCount: { __inc: d } } }); } },
-        console: consola,
-      },
-    };
-  };
-  const seguir = funcionDe('screens/WeeBizProfileScreen.tsx', 'handleToggleFollow');
-  const pulsar = async (texto, { isFollowing, followersCount, fallaElCommit, enPantalla }) => {
-    const f = firestoreDeJuguete({ followersCount, fallaElCommit });
-    if (isFollowing) f.estado.docs.set('businessFollows/U_biz_N', { userId: 'U', businessId: 'N' });
-    const setIsFollowing = espia();
-    const setFollowLoading = espia();
-    await ejecutable(texto, {
-      ...f.alcance, activeUid: 'U', followLoading: false, setFollowLoading, businessId: 'N', isFollowing,
-      business: { followersCount: enPantalla ?? followersCount }, setIsFollowing, setBusiness: espia(),
-    })();
-    return { ...f.estado, setIsFollowing, setFollowLoading };
-  };
-
-  let r = await pulsar(seguir, { isFollowing: false, followersCount: 3 });
-  check('13) seguir: UN lote con el seguimiento y el +1, aplicado entero',
-    r.commits === 1 && r.escriturasSueltas === 0 && JSON.stringify(r.ultimoLote) === JSON.stringify(['set businessFollows/U_biz_N', 'update businesses/N'])
-    && r.docs.get('businessFollows/U_biz_N')?.userId === 'U' && r.docs.get('businesses/N').followersCount === 4
-    && r.setIsFollowing.llamadas[0]?.[0] === true);
-  r = await pulsar(seguir, { isFollowing: true, followersCount: 3 });
-  check('13) dejar de seguir: UN lote con el borrado y el −1',
-    r.commits === 1 && r.escriturasSueltas === 0 && !r.docs.has('businessFollows/U_biz_N') && r.docs.get('businesses/N').followersCount === 2
-    && r.setIsFollowing.llamadas[0]?.[0] === false);
-  r = await pulsar(seguir, { isFollowing: true, followersCount: 0 });
-  check('13) con el contador ya en cero (desfase heredado), dejar de seguir sigue funcionando y no baja de cero',
-    r.commits === 1 && !r.docs.has('businessFollows/U_biz_N') && r.docs.get('businesses/N').followersCount === 0
-    && JSON.stringify(r.ultimoLote) === JSON.stringify(['delete businessFollows/U_biz_N']));
-  /*
-   * + segunda auditoría de cierre: la pantalla puede creer que el contador vale 5 cuando en el servidor ya está en 0
-   * (desfase heredado). Con el número de la pantalla se restaba, la regla tumbaba la escritura entera y no se podía
-   * dejar de seguir. La transacción lee el del servidor.
-   */
-  r = await pulsar(seguir, { isFollowing: true, followersCount: 0, enPantalla: 5 });
-  check('13) con la pantalla desfasada (5) y el servidor en 0, dejar de seguir funciona: manda el contador del servidor',
-    r.commits === 1 && !r.docs.has('businessFollows/U_biz_N') && r.docs.get('businesses/N').followersCount === 0
-    && JSON.stringify(r.ultimoLote) === JSON.stringify(['delete businessFollows/U_biz_N']) && r.setIsFollowing.llamadas[0]?.[0] === false);
-  const conLaPantalla = (seguir || '').replace('if (enElServidor > 0)', 'if ((business?.followersCount ?? 0) > 0)');
-  r = await pulsar(conLaPantalla, { isFollowing: true, followersCount: 0, enPantalla: 5 });
-  check('13) SABOTAJE: decidiendo con el número de la pantalla, la escritura entera cae y el seguimiento sigue ahí',
-    conLaPantalla !== seguir && r.commits === 0 && r.docs.has('businessFollows/U_biz_N'));
-  r = await pulsar(seguir, { isFollowing: false, followersCount: 3, fallaElCommit: true });
-  check('14) si el lote falla, no queda NADA escrito ni la pantalla cambia',
-    r.commits === 0 && !r.docs.has('businessFollows/U_biz_N') && r.docs.get('businesses/N').followersCount === 3
-    && r.setIsFollowing.llamadas.length === 0 && r.setFollowLoading.llamadas.at(-1)?.[0] === false);
-
-  /*
-   * SABOTAJE: el manejador de antes —dos escrituras sueltas— con el contador rechazado. El seguimiento queda escrito y
-   * el contador sin mover: justo lo que el lote evita. Si esta comprobación no lo viera, la 14 no probaría nada.
-   */
-  const antiguo = `async () => {
-    if (!activeUid || followLoading) return;
-    try {
-      setFollowLoading(true);
-      const followRef = doc(db, 'businessFollows', \`\${activeUid}_biz_\${businessId}\`);
-      if (isFollowing) { await deleteDoc(followRef); await weeBizService.incrementFollowers(businessId, -1); setIsFollowing(false); }
-      else { await setDoc(followRef, { userId: activeUid, businessId, createdAt: Timestamp.now() }); throw new Error('permission-denied'); }
-    } catch (e) { console.error(e); } finally { setFollowLoading(false); }
-  }`;
-  r = await pulsar(antiguo, { isFollowing: false, followersCount: 3 });
-  check('14) SABOTAJE: con dos escrituras sueltas, un fallo deja el seguimiento sin su contador, y se ve',
-    r.docs.has('businessFollows/U_biz_N') && r.docs.get('businesses/N').followersCount === 3);
-  check('14) el manejador ya no usa escrituras sueltas', !/setDoc\(|deleteDoc\(|incrementFollowers/.test(sinComentarios(seguir || '')));
-  /*
-   * + segunda auditoría de cierre: ¿ya reseñó esta persona? Se pregunta por SU reseña (getUserReview busca por
-   * userId), no solo entre las diez últimas: quien tenía una antigua más abajo veía el botón y contaba dos veces.
-   */
-  const perfilNegocio = sinComentarios(leer('screens/WeeBizProfileScreen.tsx'));
-  check('14b) la reseña propia se busca entera: entre las cargadas o, si no está, preguntando por la de esa persona',
-    /revs\.find\(r => r\.userId === activeUid\) \|\| \(await weeBizService\.getUserReview\(businessId, activeUid\)\)/.test(perfilNegocio)
-    && /export const getUserReview = async \(businessId: string, userId: string\)[\s\S]{0,200}where\('userId', '==', userId\), limit\(1\)/.test(leer('services/weeBizService.ts')));
+  /* El perfil de negocio de WeeBiz (seguir, reseñas) retirado por decisión del dueño el 2026-11-03: era del proyecto antiguo. */
+  check('13) el perfil de negocio y su servicio ya no están en el cliente',
+    !fs.existsSync(path.resolve(raiz, 'screens/WeeBizProfileScreen.tsx')) && !fs.existsSync(path.resolve(raiz, 'services/weeBizService.ts')));
 }
 
 /* ════════════════════════════════════════════════════════════════════════ */

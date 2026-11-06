@@ -18,7 +18,8 @@ const DATOS = leer('constants/espacioProfesional.ts');
 const APP = leer('App.tsx');
 
 check('1) siempre clara: es del Perfil Real', NAV.includes('<TemaClaro>'));
-check('4) el marco enseña el perfil que está puesto, sin cambiarlo', MARCO.includes('userProfile') && !MARCO.includes('switchIdentity'));
+/* Desde la fase final de creator (2026-11-06) el avatar es components/workspace/IdentidadEnCreator.tsx: enseña la cara puesta y solo la cambia si la persona la toca. */
+check('4) el marco enseña el perfil que está puesto, sin cambiarlo por sí mismo', /<IdentidadEnCreator\b/.test(MARCO) && leer('components/workspace/IdentidadEnCreator.tsx').includes('userProfile') && !MARCO.includes('switchIdentity'));
 check('4b) el estado de Music, Filmmaker y Mundo 3D sale de sus puertas', /MUSIC_GENERACION_VALIDADA \? 'pendiente'/.test(DATOS) && /FILMMAKER_EN_LA_APP \? 'conectado' : 'cerrado'/.test(DATOS) && /MUNDO_3D_EN_LA_APP \? 'conectado' : 'cerrado'/.test(DATOS));
 check('5) todas las secciones salen de su fuente única', DATOS.includes('WEE_EXPERIENCES.map'));
 check('6) proyectos y creaciones piden cuenta', /user \? irA\(e\.ruta\) : navigation\.navigate\('Login'\)/.test(MARCO));
@@ -59,7 +60,7 @@ check('20) los nombres son los del dueño: Weë versión app y Weë versión cre
 /* El rediseño de las secciones de Weë AI: todo dentro de su rama, nada de muestra, las puertas cerradas siguen cerradas. */
 const SECCIONES = ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx', 'screens/ChefScreen.tsx', 'screens/BusinessScreen.tsx', 'screens/BrainChatScreen.tsx', 'screens/SpecialistScreen.tsx', 'components/creator/CabeceraDeSeccion.tsx', 'components/creator/CajaDePrompt.tsx', 'components/creator/ActionGrid.tsx', 'components/creator/ExamplesRow.tsx', 'components/creator/IdeaBox.tsx', 'components/creator/TravelLauncher.tsx'];
 check('21) cada sección se rediseña dentro de su rama de creator', SECCIONES.every((p) => /useEnEspacioProfesional\(\)/.test(leer(p))));
-check('22) Studio y Design no enseñan creaciones de muestra en creator', ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx'].every((p) => /pro \? \(\s*<EnlaceDeCreaciones \/>/.test(leer(p))));
+check('22) Studio y Design no enseñan creaciones de muestra en creator', ['screens/StudioScreen.tsx', 'screens/DesignScreen.tsx'].every((p) => /pro \? \([\s\S]{0,160}<EnlaceDeCreaciones \/>/.test(leer(p))));
 const BIZ = leer('screens/BusinessScreen.tsx');
 check('23) Weë Fashion no enseña cifras, mensajes ni redes de muestra en creator', /\{pro \? <Vacio texto=\{t\('business\.overviewEmpty'\)\}/.test(BIZ) && /\{!pro && \(\s*<>\s*<Bloque titulo=\{t\('business\.mySocialAccounts'\)\}/.test(BIZ));
 check('24) la caja de creator es la misma: ningún TextInput nuevo fuera de CajaDePrompt', !/<TextInput\b/.test(leer('components/creator/PiezasDeCreator.tsx')));

@@ -774,6 +774,26 @@ service cloud.firestore {
     }
 
     // === BUSINESS FOLLOWS (WeeBiz) ===
+    // === WEËPAGES (functions/src/social/pages.ts) ===
+    // Una Página es una entidad de la CUENTA, no una cara: vive aquí y no en
+    // `users`. Publicada la ve cualquiera; en borrador, solo su cuenta dueña.
+    // Ninguna se escribe desde el cliente: dueño, @usuario único y fotos se
+    // validan en `savePage`, y los seguidores en `followPage`.
+    match /pages/{pageId} {
+      allow read: if resource.data.status == 'published'
+        || (isAuthenticated() && resource.data.ownerAccountId == request.auth.uid);
+      allow write: if false;
+    }
+    match /pageHandles/{handle} {
+      allow read: if true;
+      allow write: if false;
+    }
+    // Seguir una Página es una relación aparte de ËContact/ẄContact.
+    match /pageFollows/{followId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /businessFollows/{followId} {
       allow read: if true;
       allow create: if isAuthenticated() &&
@@ -915,6 +935,19 @@ service cloud.firestore {
     match /creditTransactions/{transactionId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow write: if false;
+    }
+
+    // Órdenes de compra de Credits (functions/src/payments): cada persona lee las suyas; las crea, confirma
+    // y cierra solo el servidor, y su snapshot (importe, moneda, tipo de cambio, Credits) no lo toca nadie.
+    match /paymentOrders/{orderId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Mercados de facturación (docs/PRECIOS-POR-MERCADO.md §3.1): moneda y tipo de cambio aprobado. Los lee
+    // el servidor; el cliente recibe lo que necesita por getCreditCost.
+    match /markets/{marketId} {
+      allow read, write: if false;
     }
 
     // === TOKENS DE PUSH: UN SECRETO DEL APARATO, NUNCA EN UN PERFIL PÚBLICO ===
@@ -1336,6 +1369,26 @@ service cloud.firestore {
     match /shots/{shotId} {
       allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
       allow create, update, delete: if false;
+    }
+
+    // === BOOST (functions/src/boost, docs/BOOST.md) ===
+    // Promocionar una publicación propia. Todo lo escribe la callable `boost` con el Admin SDK: la reserva y la
+    // devolución de Credits pasan por el Credit Engine, y aquí nadie puede crear, cambiar ni borrar una campaña,
+    // inflar sus métricas o liberar un bloqueo. Cada cuenta lee SOLO sus campañas; las impresiones, el alcance y los
+    // clics (quién vio qué) no los lee ningún cliente, ni siquiera el dueño: él recibe los totales.
+    // Van entre `shots` y las producciones: no mueven la franja de Elements a Media Cloud y dejan a `productions` al final.
+    match /boostCampaigns/{campaignId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+      match /{sub=**} {
+        allow read, write: if false;
+      }
+    }
+    match /boostPostLocks/{postId} {
+      allow read, write: if false;
+    }
+    match /boostSettings/{docId} {
+      allow read, write: if false;
     }
 
     // === F1-B · WEË FILMMAKER: LAS PRODUCCIONES ===

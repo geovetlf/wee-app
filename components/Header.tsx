@@ -4,9 +4,12 @@ import { View, StyleSheet, TouchableOpacity, Pressable, StatusBar, Text, Platfor
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
+import { useDireccion } from '../hooks/useDireccion';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { precargarDemo } from '../utils/precargaDeLaDemo';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
@@ -25,9 +28,6 @@ const WEB_ICONS: Record<string, string> = {
   'eye-off': '🙈',
   'storefront': '🏪',
 };
-
-/** La firma de marca del Home. Va debajo del logo y no se traduce. */
-const LEMA_DE_MARCA = 'Imagina · Crea · Conecta';
 
 /*
  * Cuánto sitio hay que dejarle a los controles a cada lado de la marca.
@@ -103,6 +103,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
   /* El ancho manda sobre cuánto puede ocupar la marca: se recalcula al girar. */
   const { width: anchoDePantalla } = useWindowDimensions();
   const conSelectorDeIdentidad = !!user && hasWeeProfile;
+  /* Demo (docs/WEE-DEMO.md): con la sesión abierta, se precargan las imágenes de la demo una sola vez. */
+  useEffect(() => {
+    if (user && process.env.EXPO_PUBLIC_DEMO_MEDIOS) void precargarDemo();
+  }, [user]);
   const anchoDeLaMarca = Math.max(
     scale(64),
     anchoDePantalla - (conSelectorDeIdentidad ? ANCHO_CON_SELECTOR : ANCHO_SIN_SELECTOR) * 2
@@ -290,6 +294,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
   };
   const { triggerScrollToTop } = useScroll();
   const insets = useSafeAreaInsets();
+  const dir = useDireccion();
   const navigation = useNavigation<any>();
 
   /*
@@ -360,9 +365,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
             {onBackPress ? (
               <TouchableOpacity onPress={onBackPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
                 {isWeb ? (
-                  <Text style={{ fontSize: 20, color: textColor }}>←</Text>
+                  <Text style={[{ fontSize: 20, color: textColor }, dir.espejo]}>←</Text>
                 ) : (
-                  <Ionicons name="arrow-back" size={scale(23)} color={textColor} />
+                  <IconoDireccional name="arrow-back" size={scale(23)} color={textColor} />
                 )}
               </TouchableOpacity>
             ) : onMenuPress ? (
@@ -519,7 +524,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
               numberOfLines={1}
               adjustsFontSizeToFit={!isWeb}
             >
-              {LEMA_DE_MARCA}
+              {/* La firma de marca: el eslogan de Weë en la lengua de la interfaz (decisión del dueño, 2026-11-04). */}
+              {t('nav.brandSlogan')}
             </Text>
           </View>
         )}

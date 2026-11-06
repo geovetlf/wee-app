@@ -188,7 +188,6 @@ const ARRIBA_DEL_TECLADO = {
   'components/RightSidebar.tsx': 'columna derecha de escritorio: no hay teclado de teléfono',
   'screens/InboxScreen.tsx': 'buscador en la cabecera de WeeTalk',
   'screens/SearchScreen.tsx': 'buscador en la cabecera',
-  'screens/WeeBizScreen.tsx': 'buscador en la cabecera de Weë Biz',
   // `screens/ChatScreen.tsx` estaba aquí como «pantalla sin ruta»: se retiró como código muerto (cierre
   // post-auditoría, 2026-10-01), así que ya no hay campo que eximir.
 };
@@ -204,7 +203,11 @@ const acomoda = (x) =>
   /Keyboard\.addListener/.test(x.src) ||
   /CreatorShell/.test(x.src) ||
   x.rel.startsWith('components/creator/') ||
-  x.rel.startsWith('components/business/');
+  x.rel.startsWith('components/business/') ||
+  /* Weë Travel (2026-11-06): todas sus pantallas se pintan dentro de `MarcoDeTravel`, que es `CreatorShell`, y sus
+     piezas (Campo, selectores) van en línea dentro de ellas, nunca en un Modal: el shell ya acomoda el teclado. */
+  x.rel.startsWith('components/travel/') ||
+  x.rel.startsWith('screens/travel/');
 
 const desatendidas = superficies.filter((x) => !acomoda(x) && !(x.rel in ARRIBA_DEL_TECLADO));
 
@@ -245,8 +248,6 @@ const CON_SCROLL_Y_CAMPO = [
   'screens/CommunitiesManagementScreen.tsx',
   'screens/InboxScreen.tsx',
   'screens/PostDetailScreen.tsx',
-  'screens/WeeBizProfileScreen.tsx',
-  'screens/WeeBizScreen.tsx',
 ];
 
 for (const rel of CON_SCROLL_Y_CAMPO) {

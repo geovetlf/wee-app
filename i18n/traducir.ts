@@ -1,4 +1,4 @@
-import { cadenaDeRespaldo } from './resolver';
+import { cadenaDeClaves } from './resolver';
 import { formatearNumero } from './formato';
 
 /*
@@ -134,7 +134,8 @@ export const crearTraductor = (
   diccionarios: Diccionarios,
   opciones: OpcionesDelTraductor = {},
 ): Traductor => {
-  const cadena = cadenaDeRespaldo(locale);
+  /* La de las CLAVES: la de respaldo más el vecino declarado (D5). Elegir diccionario no pasa por aquí. */
+  const cadena = cadenaDeClaves(locale);
 
   return (clave: string, valores?: Valores): string => {
     if (!clave) return '';

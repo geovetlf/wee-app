@@ -1,10 +1,12 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { creditEngine } from './creditEngine';
-import { allCreditCosts, CREDIT_PACKAGES, invalidateCostOverrides, isCreditService, loadCostOverrides } from './creditCosts';
+import { allCreditCosts, invalidateCostOverrides, isCreditService, loadCostOverrides } from './creditCosts';
 import { assertLimit, assertRequestId, cleanText, toHttpsError } from './creditValidation';
 import { assertAdmin } from '../shared/admin';
 import { PaymentProvider, restorePurchases, validatePurchase } from '../payments/purchaseValidation';
+import { configuracionDeCompra } from '../payments/compraPorImporte';
+import { testPurchasesEnabled } from '../payments/providers/test';
 
 /**
  * Cloud Functions del Credit Engine (docs/CREDITS.md §10).
@@ -54,7 +56,8 @@ export const getCreditCost = onCall(OPTS, async (request) =>
       if (!isCreditService(data.service)) throw new HttpsError('invalid-argument', `Servicio desconocido: ${data.service}`);
       return { service: data.service, credits: costs[data.service] };
     }
-    return { costs, packages: CREDIT_PACKAGES };
+    /* Sin paquetes (2026-11-04): la regla de la compra por importe, la que el servidor vuelve a aplicar al comprar. */
+    return { costs, compra: await configuracionDeCompra(testPurchasesEnabled) };
   })
 );
 
@@ -187,7 +190,7 @@ export const creditsAdmin = onCall(OPTS, async (request) =>
       }
       case 'costs': {
         await loadCostOverrides(true);
-        return { costs: allCreditCosts(), packages: CREDIT_PACKAGES };
+        return { costs: allCreditCosts(), compra: await configuracionDeCompra(testPurchasesEnabled) };
       }
       case 'setCost': {
         if (!isCreditService(data.service)) throw new HttpsError('invalid-argument', 'Servicio desconocido');

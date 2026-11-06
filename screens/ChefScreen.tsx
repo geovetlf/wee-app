@@ -21,6 +21,7 @@ import { ALTO_BARRA } from '../components/BarraInferior';
 import ChefAcciones from '../components/chef/ChefAcciones';
 import ChefPanel from '../components/chef/ChefPanel';
 import ChefProyectos from '../components/chef/ChefProyectos';
+import { CuerpoDeChef, HeroDeChef } from '../components/sectores/PortadaChef';
 import {
   AJUSTES_DE_COCINA, CLAVE_DEL_PANEL, EntradaDeChef, PanelDeChef, TarjetaDeChef,
 } from '../constants/chefTools';
@@ -258,7 +259,15 @@ const ChefScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
-            <CabeceraDeSeccion nombre="Chef" lema={spec?.headline ?? ''} descripcion={t('chef.description')} />
+            {/* La portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3); en creator, la cabecera de siempre. */}
+            {pro ? (
+              <CabeceraDeSeccion nombre="Chef" lema={spec?.headline ?? ''} descripcion={t('chef.description')} />
+            ) : (
+              <View style={styles.portada}>
+                <CabeceraDeSeccion soloIdentidad nombre="Chef" lema={spec?.headline ?? ''} />
+                <HeroDeChef onElegir={alElegirTarjeta} />
+              </View>
+            )}
 
             {/*
               LA CAJA, SIN NADA ALREDEDOR (decisión del usuario, 2026-09-15).
@@ -271,6 +280,9 @@ const ChefScreen: React.FC = () => {
             <View style={[styles.compositor, pro && styles.compositorPro]}>
               {!pro ? (
               <CajaDePrompt
+                /* La caja de la referencia: contorno dorado con halo, destello y la frase dentro. */
+                vitrina
+                textoDeVitrina={t('chef.cookPrompt')}
                 valor={prompt}
                 onCambiar={setPrompt}
                 onEnviar={alEnviar}
@@ -361,6 +373,7 @@ const ChefScreen: React.FC = () => {
               )}
             </View>
 
+            {pro ? (
             <View style={styles.funciones}>
               {pro ? (
                 <TituloDeCreator titulo={t('chef.gridTitle')} />
@@ -369,6 +382,9 @@ const ChefScreen: React.FC = () => {
               )}
               <ChefAcciones porFila={porFila} onElegir={alElegirTarjeta} />
             </View>
+            ) : (
+              <CuerpoDeChef onElegir={alElegirTarjeta} />
+            )}
 
             <ChefProyectos
               proyectos={proyectos}
@@ -414,6 +430,8 @@ const styles = StyleSheet.create({
    * Mueve dónde empieza la caja, no cuánto mide: crece igual que antes.
    */
   compositor: { paddingHorizontal: SPACING.lg, gap: SPACING.sm, marginTop: -scale(26) },
+  /* La caja sube sobre el fundido del héroe, como en la referencia. */
+  portada: { marginBottom: -scale(10) },
   compositorPro: { paddingHorizontal: 0, marginTop: 0 },
   fichas: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, paddingHorizontal: SPACING.xs },
   ficha: {

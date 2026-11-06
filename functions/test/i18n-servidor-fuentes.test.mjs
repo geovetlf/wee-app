@@ -254,9 +254,11 @@ console.log('\n── D · Ningún respaldo accidental al español, en ningún i
   for (const codigo of Object.keys(DICCIONARIOS)) {
     if (/^es(-|$)/.test(codigo)) continue;
     const t = traducir.crearTraductor(codigo, DICCIONARIOS, { modoDesarrollo: false });
+    /* Lo que el propio idioma declara no ha caído a nadie: «Robot» o «Weë AI» se escriben igual. Lo copiado por descuido lo vigila i18n-servidor-idiomas. */
+    const declaradas = new Set(aplanar(DICCIONARIOS[codigo]).map(([k]) => k.replace(/_(zero|one|two|few|many|other)$/, '')));
     for (const k of new Set(claves)) {
       const suyo = t(k, valores);
-      if (suyo === tEs(k, valores) && suyo !== EN(k, valores)) enEspanol.push(`${codigo}:${k}`);
+      if (suyo === tEs(k, valores) && suyo !== EN(k, valores) && !declaradas.has(k)) enEspanol.push(`${codigo}:${k}`);
     }
   }
   check('20) ningún idioma —declare o no la sección del servidor— cae al español en un texto del servidor', enEspanol.length === 0, muestra(enEspanol));

@@ -119,7 +119,12 @@ const repetidasEn = (arch) => {
       const v = j?.ios?.[k];
       if (typeof v === 'string') quien.set(v, [...(quien.get(v) || []), i]);
     }
-    for (const idiomas of quien.values()) if (idiomas.length > 1) acc.push(`${k}: ${idiomas.join(' = ')}`);
+    /* Bosnio, croata, montenegrino y serbio latino son normas de una lengua común: que coincida una frase entre ellas
+       es correcto, y forzar una diferencia sería inventarla. Igual una variante y su base (de-DE y de-CH) cuando la frase
+       no lleva «ß», lo único que las separa por escrito. Cualquier otra coincidencia sigue siendo un fallo. */
+    const NORMAS_COMUNES = new Set(['bs', 'hr', 'cnr', 'sr-Latn']);
+    const mismaLengua = (ls, frase) => ls.every((l) => /^de-/.test(l)) && !/ß/.test(frase); /* SOLO el alemán: pt-PT = pt-BR o zh-Hant = zh-Hans siguen siendo fallo */
+    for (const [frase, idiomas] of quien) if (idiomas.length > 1 && !idiomas.every((i) => NORMAS_COMUNES.has(i)) && !mismaLengua(idiomas, frase)) acc.push(`${k}: ${idiomas.join(' = ')}`);
   }
   return acc;
 };
@@ -175,12 +180,12 @@ check('F1c) y la pantalla de Music llama a «empezar» solo desde un botón (onP
   /onPress=\{grab\.empezar\}/.test(leer('components/music/MelodiaDeReferencia.tsx')) && !/useEffect\([^)]*grab\.empezar/.test(leer('components/music/MelodiaDeReferencia.tsx')));
 const mic = (l) => (l === 'es' ? base : archivos[l].ios).NSMicrophoneUsageDescription || '';
 const todosMic = ['es', ...Object.keys(archivos).filter((l) => l !== 'es')];
-const menciona = (v) => /m[uú]sic|music|musik|musique|musica|música|музык|音楽|음악|音乐|音樂|संगीत|müzik|musik/i.test(v);
+const menciona = (v) => /m[uú]sic|music|musik|musique|musica|música|музык|音楽|음악|音乐|音樂|संगीत|müzik|musik|موسيق|מוזיק|موسیق|muzi[kcč]|muzy[kc]|glazb|музич|μουσικ|muziek|nhạc|zene|musiikki|хөгж|ceoil|តន្ត្រី|tónlist|nipilersor/i.test(v);
 check('F2) la frase del micrófono (base) habla de música e ideas, cubre los mensajes de voz, no nombra WeeTalk y no promete vídeo',
   menciona(base.NSMicrophoneUsageDescription || '') && /ideas/.test(base.NSMicrophoneUsageDescription || '') && /mensajes de voz/.test(base.NSMicrophoneUsageDescription || '')
   && !/WeeTalk/.test(base.NSMicrophoneUsageDescription || '') && !/v[ií]deo/i.test(base.NSMicrophoneUsageDescription || ''));
-check('F2b) en los 16 idiomas la frase habla de música, no nombra WeeTalk y dice que el audio solo se usa si la persona lo decide (dos frases)',
-  todosMic.every((l) => menciona(mic(l)) && !/WeeTalk/.test(mic(l)) && /[.。]/.test(mic(l).slice(0, -1))), todosMic.filter((l) => !(menciona(mic(l)) && !/WeeTalk/.test(mic(l)))).join(', '));
+check('F2b) en todos los idiomas la frase habla de música, no nombra WeeTalk y dice que el audio solo se usa si la persona lo decide (dos frases)',
+  todosMic.every((l) => menciona(mic(l)) && !/WeeTalk/.test(mic(l)) && /[.。។]/.test(mic(l).slice(0, -1)) /* ។ es el punto del jemer */), todosMic.filter((l) => !(menciona(mic(l)) && !/WeeTalk/.test(mic(l)))).join(', '));
 check('F2c) CONTROL: un archivo nuevo que grabe sería detectado y la frase antigua de WeeTalk no pasaría',
   ![...grabanAudio, 'components/Otro.tsx'].every((f) => MIC_PERMITIDO.includes(f)) && !(menciona('Weë necesita acceso a tu micrófono para que puedas grabar y enviar audios en WeeTalk.') && !/WeeTalk/.test('Weë necesita acceso a tu micrófono para que puedas grabar y enviar audios en WeeTalk.')));
 const GRABA_VIDEO = /recordAsync\(|launchCameraAsync\(\{[^}]*(videos|MediaTypeOptions\.(All|Videos))/;

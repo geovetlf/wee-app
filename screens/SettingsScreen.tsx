@@ -9,6 +9,7 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -193,7 +194,7 @@ const SettingsScreen: React.FC = () => {
       <View style={styles.settingRight}>
         {rightComponent}
         {showArrow && onPress && (
-          <Ionicons 
+          <IconoDireccional 
             name="chevron-forward" 
             size={20} 
             color={theme.colors.textSecondary}
@@ -217,7 +218,7 @@ const SettingsScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           {t('settings.title')}
@@ -388,7 +389,7 @@ const SettingsScreen: React.FC = () => {
             >
               <View style={styles.settingLeft}>
                 <View style={[styles.iconContainer, { backgroundColor: theme.colors.surface }]}>
-                  <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                  <IconoDireccional name="log-out-outline" size={20} color="#EF4444" />
                 </View>
                 <View style={styles.settingText}>
                   <Text style={[styles.settingTitle, { color: '#EF4444' }]}>

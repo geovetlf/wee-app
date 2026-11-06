@@ -102,7 +102,9 @@ const RightSidebar: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.navigate('Help', { section: 'legal' })} activeOpacity={0.7}>
           <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>{t('menu.privacy')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}> · © {year} Weë</Text>
+        {/* El separador va aparte: dentro de «· © 2026 Weë», en RTL el punto quedaba al otro lado del texto latino. */}
+        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}> · </Text>
+        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>© {year} Weë</Text>
       </View>
     </ScrollView>
   );

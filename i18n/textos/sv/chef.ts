@@ -29,6 +29,7 @@ export const chef: typeof import('../es/chef').chef = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'Skriv en idé eller några ingredienser, eller använd ett foto',
+  cookPrompt: 'Berätta vad du vill laga…',
   addLabel: 'Lägg till ett foto',
   cameraLabel: 'Ta ett foto',
   galleryLabel: 'Välj ett foto från galleriet',
@@ -114,4 +115,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: 'Visa alla',
   projectsEmpty: 'Du har inte lagat något med Weë ännu.',
   projectsEmptyHint: 'Det du skapar här sparas och dyker upp i den här raden.',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'Din AI-kock,',
+  heroAccent: 'alltid med dig',
+  chipRecipes: 'Recept',
+  chipMenus: 'Menyer',
+  chipHealthy: 'Hälsosam',
+  chipQuick: 'Snabbt',
 };

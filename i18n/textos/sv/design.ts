@@ -107,12 +107,24 @@ export const design: typeof import('../es/design').design = {
   valStudioLight: 'Studioljus',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: 'Produkt',
   kindInterior: 'Inredning',
   kindArchitecture: 'Arkitektur',
   kindBoat: 'Båt',
   kindFurniture: 'Möbler',
+  sampleShoe: 'Lädersneaker',
+  sampleGuitar: 'Elgitarr',
   sampleLivingRoom: 'Ljust vardagsrum',
   samplePineHouse: 'Hus bland tallar',
   sampleYacht: '15 meter lång yacht',
   sampleArmchair: 'Fåtölj i trä',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: 'Designa',
+  heroAccent: 'utan gränser.',
+  brandingTitle: 'Varumärke',
+  objects3dTitle: '3D-objekt',
+  designStudioTitle: 'Designstudio',
+  designStudioSub: 'Skapa, redigera och visualisera professionell design med AI.',
+  openStudio: 'Öppna studion',
+  fashionHint: 'Designa kläder, kollektioner och mer.',
 };

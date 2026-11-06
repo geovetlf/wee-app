@@ -70,8 +70,13 @@ export const MOTORES_PROFESIONALES: readonly MotorProfesional[] = Object.freeze(
 /** Qué entrada va encendida según la ruta de la pila y su parámetro. */
 export const entradaEncendida = (ruta: string | undefined, idDeSeccion: string, experiencia: string): string => {
   if (ruta === 'Specialist') return idDeSeccion;
+  /* Las pantallas del workspace de Weë Travel siguen siendo Weë Travel. */
+  if (ruta === 'Travel') return 'travel';
   if (ruta === 'CreatorFlow' || ruta === 'WriterEditor') return experiencia;
   if (ruta === 'Projects' || ruta === 'Project') return 'projects';
   if (ruta === 'MisCreaciones') return 'creations';
+  if (ruta === 'Settings' || ruta === 'Idioma' || ruta === 'Help' || ruta === 'EngineAdmin') return 'settings';
+  /* La billetera no tiene entrada propia: se llega por el saldo de la cabecera o por «Historial» del Inicio. */
+  if (ruta === 'Wallet' || ruta === 'CreditStore') return '';
   return 'home';
 };

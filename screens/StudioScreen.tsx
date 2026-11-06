@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaClaro, TemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import { EnlaceDeCreaciones, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
@@ -18,12 +18,12 @@ import { ALTO_BARRA } from '../components/BarraInferior';
 import StudioEntradas from '../components/studio/StudioEntradas';
 import StudioPanel, { EleccionDeStudio } from '../components/studio/StudioPanel';
 import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDeCreacion';
-import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
+import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
+import { CreacionRapida, HeroDelStudio, MasHerramientas, TarjetaFilmmaker } from '../components/studio/PortadaStudio';
 import { ControlesElegidos } from '../components/studio/StudioControles';
 import { AreaDeStudio } from '../constants/studioTools';
-import { EntradaDeStudio, abreElMundo3D, abreLaProduccion, entradaPorId } from '../constants/studioExperiences';
+import { ENTRADAS_DE_EXPLORAR, EntradaDeStudio, abreElMundo3D, abreLaProduccion, entradaPorId } from '../constants/studioExperiences';
 import { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
-import { CREACIONES_DEL_STUDIO } from '../constants/studioMocks';
 import { contextoDeCreacion, duracionEnElTexto } from '../utils/contextoDeCreacion';
 import { destinoDeIntencion } from '../utils/destinoDeIntencion';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
@@ -44,6 +44,9 @@ const nombreDelControl = (ruta: string, valor: string, t: (c: string) => string)
 
 /** Cuánto tarda la creación de mentira. Lo justo para ver el estado, no para esperar. */
 const LO_QUE_TARDA_LA_DEMO = 1600;
+
+/** El fondo de un panel abierto del Studio, el negro de la demo YC. */
+const NEGRO_DEL_PANEL = '#0A0A0A';
 
 /** El hueco que deja la barra global de abajo. */
 const SITIO_DE_LA_BARRA = scale(96);
@@ -375,15 +378,19 @@ const StudioScreen: React.FC = () => {
 
   /* ── Un panel abierto se come la pantalla entera ───────────────────────── */
   if (panel) {
+    const contenidoDelPanel = (
+      <StudioPanel
+        entrada={panel}
+        porFila={isMobile ? 2 : 3}
+        onVolver={() => setPanel(null)}
+        onElegir={alElegir}
+      />
+    );
     return (
-      <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
+      /* Como en la demo YC: dentro de una puerta, el Studio de la app va en negro. En creator, el tema de siempre. */
+      <SafeAreaView style={[styles.pantalla, { backgroundColor: pro ? theme.colors.background : NEGRO_DEL_PANEL }]} edges={['top']}>
         <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
-          <StudioPanel
-            entrada={panel}
-            porFila={isMobile ? 2 : 3}
-            onVolver={() => setPanel(null)}
-            onElegir={alElegir}
-          />
+          {pro ? contenidoDelPanel : <TemaOscuro>{contenidoDelPanel}</TemaOscuro>}
         </View>
       </SafeAreaView>
     );
@@ -406,7 +413,18 @@ const StudioScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
-            <StudioHeader />
+            {/*
+              LA PORTADA DE LA DEMO YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3): la fila de identidad y el héroe con la
+              mascota. En Weë versión creator sigue la cabecera de trabajo de siempre.
+            */}
+            {pro ? (
+              <StudioHeader />
+            ) : (
+              <View style={styles.portada}>
+                <CabeceraDeSeccion soloIdentidad nombre="Studio" lema={t('studio.slogan')} />
+                <HeroDelStudio onFilmmaker={() => navigation.navigate('Production', {})} onAbrir={(entrada) => setPanel(entrada)} />
+              </View>
+            )}
 
             {/*
               LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario,
@@ -424,6 +442,8 @@ const StudioScreen: React.FC = () => {
             */}
             <View style={pro ? null : styles.cajaArriba}>
               <StudioPromptComposer
+                /* La caja de la referencia: contorno dorado con halo, destello y envío dorado. */
+                vitrina={!pro}
                 valor={prompt}
                 onCambiar={setPrompt}
                 onAjustes={() => setAjustesAbiertos(true)}
@@ -473,17 +493,30 @@ const StudioScreen: React.FC = () => {
               </View>
             )}
 
-            <StudioEntradas porFila={porFila} onAbrir={(entrada) => setPanel(entrada)} />
-
-            {/* En creator, ninguna creación de muestra: se va a las de verdad. */}
+            {/*
+              En creator, las puertas y el enlace de siempre. En la app, la portada de la demo YC: creación rápida,
+              Filmmaker Engine y más herramientas, donde siguen a mano las demás puertas del Studio.
+            */}
             {pro ? (
-              <EnlaceDeCreaciones />
+              <>
+                <StudioEntradas porFila={porFila} onAbrir={(entrada) => setPanel(entrada)} />
+                <EnlaceDeCreaciones />
+              </>
             ) : (
-              <FilaDeCreaciones
-                creaciones={CREACIONES_DEL_STUDIO}
-                onVerTodas={() => navigation.navigate('Projects')}
-                onOpciones={() => {}}
-              />
+              <>
+                <CreacionRapida onAbrir={(entrada) => setPanel(entrada)} />
+                <TarjetaFilmmaker onAbrir={() => navigation.navigate('Production', {})} />
+                <MasHerramientas
+                  onDesign={() => navigation.navigate('Specialist', { id: 'design' })}
+                  onProyectos={() => navigation.navigate('Projects')}
+                  otras={ENTRADAS_DE_EXPLORAR.filter((e) => e.id !== 'more').map((e) => ({
+                    id: e.id,
+                    icono: e.icono,
+                    texto: e.marca ?? t(e.clave as string),
+                    onPress: () => setPanel(e.id),
+                  }))}
+                />
+              </>
             )}
           </View>
         </PaginaDeCajas>
@@ -527,6 +560,8 @@ const styles = StyleSheet.create({
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl, flex: 1 },
   /* Sube la caja 26 de los 44 que la separaban de la cabecera. Deja unos 18. */
   cajaArriba: { marginTop: -scale(26) },
+  /* La caja sube sobre el fundido del héroe, como en la referencia. */
+  portada: { marginBottom: -scale(30) },
   contextoPro: { paddingHorizontal: 0, marginTop: -12 },
   /* Lo que Weë ya sabe, justo debajo de donde se escribe. */
   contexto: {

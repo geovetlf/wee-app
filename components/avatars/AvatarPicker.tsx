@@ -12,6 +12,7 @@ import {
   Image as RNImage,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -335,7 +336,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                         {t('avatar.aiSubtitle')}
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+                    <IconoDireccional name="chevron-forward" size={20} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
               )}

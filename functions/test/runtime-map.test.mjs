@@ -294,6 +294,16 @@ const FUNCTIONS = {
    * (ops/despliegue/grupos.json → no_se_despliegan): está en el mapa porque el código la exporta.
    */
   './creator/mundo': ['generateWorld'],
+  /*
+   * WeëPages (2026-11-02): crear/editar una Página de la cuenta y seguirla. Sin IA ni Credits. NO están desplegadas
+   * (ops/despliegue/grupos.json → no_se_despliegan); están en el mapa porque el código las exporta. docs/WEEPAGES.md.
+   */
+  './social/pages': ['savePage', 'followPage'],
+  /*
+   * Boost (2026-11-04): promocionar publicaciones propias; reserva y liquida SOLO por el Credit Engine. NO están
+   * desplegadas (ops/despliegue/grupos.json → no_se_despliegan); están en el mapa porque el código las exporta. docs/BOOST.md.
+   */
+  './boost': ['boost', 'boostSweep'],
   './engine/webhooks': ['seedanceCallback'],
   './public/postPage': ['publicPostPage'],
   './engine/admin': ['engineAdmin'],
@@ -395,7 +405,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y siete: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar) y generateWorld (misión mundo3d, sin desplegar)', reales.length === 37, `${reales.length}`);
+  check('5) y son cuarenta y una: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar), generateWorld (misión mundo3d, sin desplegar), savePage/followPage (WeëPages, sin desplegar) y boost/boostSweep (Boost, sin desplegar)', reales.length === 41, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *

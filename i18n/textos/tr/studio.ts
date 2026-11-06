@@ -385,4 +385,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: 'Oluşturmayı durdurdum. Ayrılan Credits bakiyene iade edilecek.',
   worldUploadFailed: 'Fotoğrafını yükleyemedim. Yeniden dene.',
   worldDailyLimit: 'Bugünkü 3D dünyalarını kullandın. Biri oluşmazsa geri alırsın ve her gün yenilenir.',
+  filmmakerCardTitle: 'Filmini yönet',
+  filmmakerCardSub: 'Sahneler, planlar ve kamera hareketleri; yönetmenlik sende.',
+  filmmakerCardCta: 'Filmmaker\'ı aç',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'Sınır tanımadan',
+  heroAccent: 'oluştur.',
+  quickTitle: 'Hızlı oluştur',
+  filmmakerEngineSub: 'Filmlerini yapay zekâyla oluştur, yönet ve kurgula.',
+  projectsTitle: 'Projeler',
 };

@@ -15,6 +15,7 @@ import { scale } from '../../utils/scale';
 import { descargarCreacion } from '../../services/assetDownload';
 import { notify } from '../../utils/notify';
 import { TarjetaTresD } from './TarjetaTresD';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 /** Forma de onda decorativa del reproductor. */
 const WAVE = [8, 14, 20, 12, 26, 18, 10, 22, 16, 28, 12, 20, 9, 24, 14, 18, 26, 11, 17, 22, 13, 19, 8, 15];
@@ -592,6 +593,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               activeOpacity={0.85}
               accessibilityLabel={playing ? t('weeai.pause') : t('weeai.play')}
             >
+              <RellenoDeMarca radio={scale(23)} />
               <Ionicons name={playing ? 'pause' : 'play'} size={scale(20)} color="#1F2937" style={playing ? undefined : { marginLeft: 2 }} />
             </TouchableOpacity>
             <View style={styles.audioBody}>
@@ -675,6 +677,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               style={[styles.actionButton, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]}
               activeOpacity={0.85}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Ionicons name="create-outline" size={scale(18)} color="#1F2937" />
               <Text style={[styles.actionText, { color: '#1F2937' }]}>{t('wall.useInEditor')}</Text>
             </TouchableOpacity>
@@ -696,6 +699,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             style={[styles.actionButton, styles.publishButton, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]}
             activeOpacity={0.85}
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.full} />
             <Ionicons name="paper-plane" size={scale(18)} color="#1F2937" />
             <Text style={[styles.actionText, { color: '#1F2937' }]}>{t('wall.publishToCommunity')}</Text>
           </TouchableOpacity>

@@ -1,0 +1,63 @@
+/*
+ * IRLANDÉS — el alta guiada y la creación del Perfil Weë.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * Tuteo. Perfil Weë = «Próifíl Weë»: la palabra irlandesa muta donde toca
+ * («do Phróifíl Weë»), la marca nunca. «SombraOscura» se traduce como ejemplo;
+ * «Anon123» se deja.
+ */
+export const onboarding: typeof import('../es/onboarding').onboarding = {
+  welcome: 'Fáilte go Weë',
+  welcomeSubtitle: 'Inis dúinn cé thú féin. Ina dhiaidh sin is féidir leat do Phróifíl Weë a chruthú: d\'fhéiniúlacht le cruthú le hIS.',
+  yourName: 'D\'ainm',
+  yourNameHint: 'Taispeánfar an t-ainm seo ar do phróifíl phoiblí.',
+  yourNamePlaceholder: 'D\'ainm iomlán',
+  birthDate: 'Dáta breithe',
+  birthDateHint: 'Caithfidh tú a bheith 13 bliana d\'aois ar a laghad chun Weë a úsáid.',
+  gender: 'Inscne',
+  genderMale: 'Fear',
+  genderFemale: 'Bean',
+  genderOther: 'Eile',
+  country: 'Tír',
+  pickCountry: 'Roghnaigh do thír',
+  searchCountry: 'Cuardaigh tír...',
+  customiseProfile: 'Saincheap do phróifíl',
+  yourAvatar: 'D\'abhatár',
+  yourAvatarHint: 'Tapáil chun abhatár réamhshainithe a roghnú nó d\'íomhá féin a uaslódáil',
+  bioPlaceholder: 'Inis dúinn rud éigin fút féin... (roghnach)',
+  saving: 'Á shábháil...',
+  completed: 'Críochnaithe!',
+  complete: 'Críochnaigh',
+  continueStep: 'Lean ort',
+  nameMissingTitle: 'Tá d\'ainm in easnamh',
+  nameMissing: 'Scríobh d\'ainm le leanúint ort.',
+  nameShortTitle: 'Ainm róghearr',
+  nameShort: 'Caithfidh 2 litir ar a laghad a bheith i d\'ainm.',
+  birthMissingTitle: 'Tá do dháta breithe in easnamh',
+  birthMissing: 'Roghnaigh lá, mí agus bliain.',
+  genderMissingTitle: 'Tá d\'inscne in easnamh',
+  genderMissing: 'Déan rogha le leanúint ort.',
+  countryMissingTitle: 'Tá do thír in easnamh',
+  countryMissing: 'Roghnaigh do thír le leanúint ort.',
+  saveFailedTitle: 'Níorbh fhéidir linn do phróifíl a shábháil',
+  saveFailed: 'Bain triail eile as.',
+  weeTitle: 'Cruthaigh Próifíl Weë',
+  weeIntro: 'Tá an phróifíl seo neamhspleách ar d\'fhíorfhéiniúlacht. Ní bheidh na postálacha agus na gníomhartha a dhéanann tú le Weë nasctha le do phríomhphróifíl.',
+  weePhoto: 'Grianghraf próifíle',
+  weePhotoHint: 'Tapáil chun grianghraf nó abhatár réamhshainithe a roghnú',
+  weeName: 'Ainm anaithnid',
+  weeNamePlaceholder: 'M.sh.: ScáthDorcha, Anon123...',
+  weeBioPlaceholder: 'Déan cur síos ar d\'alter ego...',
+  weeCreatedTitle: 'Próifíl Weë cruthaithe',
+  weeCreated: 'Tá d\'fhéiniúlacht anaithnid réidh. Is féidir leat athrú idir próifílí ón gceanntásc.',
+  weeCreateFailed: 'Níorbh fhéidir an Phróifíl Weë a chruthú',
+  birthDay: 'Lá',
+  birthMonth: 'Mí',
+  birthYear: 'Bliain',
+  stepOf: 'Céim {{paso}} as {{total}}',
+  customiseProfileHint: 'Roghnaigh abhatár agus cuir cur síos leis (roghnach)',
+  bioLabel: 'Cur síos (roghnach)',
+  weeNameCounter: '{{usados}}/{{maximo}} - {{minimo}} charachtar ar a laghad',
+  weeBio: 'Beathaisnéis (roghnach)',
+};

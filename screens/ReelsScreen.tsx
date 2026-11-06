@@ -18,6 +18,7 @@ import { isWeb } from '../utils/platform';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentSnapshot } from 'firebase/firestore';
@@ -33,9 +34,12 @@ import { scale } from '../utils/scale';
 import { compartirFueraDeWee } from '../utils/compartirFuera';
 import { useT, useIdioma } from '../contexts/IdiomaContext';
 import { esVisibleEnWeels } from '../utils/visibilidadDeWeels';
+import { useAjusteVerticalWeb } from '../hooks/useAjusteVerticalWeb';
 
 /* Solo para el gesto de volver (umbral y recorrido); el tamaño de cada Weël NO sale de aquí. */
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+/** Ancho máximo del visor en la web: el mismo que el Wäll (ANCHO_MAXIMO de screens/WallScreen.tsx). */
+const ANCHO_MAXIMO_WEB = 520;
 
 type ReelsRouteProp = RouteProp<MainStackParamList, 'Reels'>;
 
@@ -64,6 +68,8 @@ interface Viewport {
 interface ReelItemProps {
   post: Post;
   isActive: boolean;
+  /** El siguiente al visible: monta su reproductor en pausa para que arranque al momento. */
+  precargar?: boolean;
   /** El tamaño del visor, medido: cada Weël ocupa exactamente eso. */
   viewport: Viewport;
   onBack: () => void;
@@ -73,7 +79,7 @@ interface ReelItemProps {
   initialPositionMillis?: number;
 }
 
-const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport, onBack, onComment, onCreate, initialPositionMillis }) => {
+const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, precargar, viewport, onBack, onComment, onCreate, initialPositionMillis }) => {
   const t = useT();
   const { locale, idioma } = useIdioma();
   const { user } = useAuth();
@@ -109,6 +115,16 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
   });
 
   const hasSeekedRef = useRef(false);
+
+  /*
+   * En el teléfono, un reproductor para el Weël que se ve y OTRO, en pausa, para el siguiente: así, al deslizar, ya
+   * está cargado y arranca al momento (2026-11-02). No más de dos: Android tiene pocos decodificadores y, con varios a
+   * la vez, el vídeo no llega a arrancar. El resto enseña su miniatura.
+   */
+  const montarVideo = isWeb || isActive || !!precargar;
+  useEffect(() => {
+    if (!montarVideo) setHasStartedPlaying(false);
+  }, [montarVideo]);
 
   // Set audio mode once on mount
   useEffect(() => {
@@ -202,12 +218,17 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
   return (
     <View style={[styles.reelContainer, { width: viewport.width, height: viewport.height }]}>
       {/* Video layer */}
+      {montarVideo && (
       <Video
         ref={videoRef}
         key={intentoDeVideo}
-        onError={() => setVideoRoto(true)}
+        onError={(e) => {
+          setVideoRoto(true);
+        }}
         source={{ uri: post.videoUrl! }}
         style={StyleSheet.absoluteFill}
+        /* En la web, expo-av deja el <video> a su tamaño natural si no se le dice otra cosa. */
+        videoStyle={isWeb ? { width: '100%', height: '100%' } : undefined}
         resizeMode={ResizeMode.COVER}
         shouldPlay={isActive}
         isMuted={false}
@@ -215,11 +236,12 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
         progressUpdateIntervalMillis={100}
         onPlaybackStatusUpdate={handlePlaybackStatus}
       />
+      )}
 
       {/* Poster image — visible until video plays */}
-      {!!(post.imageUrls?.[0] && !hasStartedPlaying) && (
+      {!!((post.imageUrls?.[0] || post.imageUrlsThumbnails?.[0]) && !hasStartedPlaying) && (
         <Image
-          source={{ uri: post.imageUrls[0] }}
+          source={{ uri: post.imageUrls?.[0] || post.imageUrlsThumbnails?.[0] }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
         />
@@ -276,7 +298,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, viewport
         style={[styles.topGradient, { paddingTop: insets.top, pointerEvents: 'box-none' }]}
       >
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={scale(26)} color="white" />
+          <IconoDireccional name="arrow-back" size={scale(26)} color="white" />
         </TouchableOpacity>
         <Text style={styles.topTitle}>{t('weels.title')}</Text>
         <TouchableOpacity onPress={onCreate} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
@@ -590,10 +612,14 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
     index,
   }), [altoDelWeel]);
 
+  /* Un Weël a la vez también en la web: ajuste al soltar la rueda y flechas del teclado (hooks/useAjusteVerticalWeb.ts). */
+  const { lista: listaDeWeels, alDesplazar } = useAjusteVerticalWeb<Post>(altoDelWeel, videoPosts.length, initialIndex);
+
   const renderItem = useCallback(({ item, index }: { item: Post; index: number }) => (
     <ReelItem
       post={item}
       isActive={index === activeIndex}
+      precargar={index === activeIndex + 1}
       viewport={viewport as Viewport}
       onBack={handleBack}
       onComment={handleComment}
@@ -611,9 +637,9 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
     onTouchMove: handleTouchMove,
     onTouchEnd: handleTouchEnd,
   };
-  const containerStyle = isWeb ? styles.container : [styles.container, { transform: [{ translateX }] }];
+  const containerStyle = isWeb ? [styles.container, styles.columnaWeb] : [styles.container, { transform: [{ translateX }] }];
 
-  return (
+  const visor = (
     <ContainerComponent style={containerStyle} onLayout={medirViewport} {...containerProps}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       {/*
@@ -624,7 +650,7 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
         <View style={styles.estado}>
           <View style={[styles.estadoCabecera, { paddingTop: insets.top + scale(8) }]}>
             <TouchableOpacity onPress={handleBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-              <Ionicons name="arrow-back" size={scale(26)} color="white" />
+              <IconoDireccional name="arrow-back" size={scale(26)} color="white" />
             </TouchableOpacity>
             <Text style={styles.topTitle}>{t('weels.title')}</Text>
             <TouchableOpacity onPress={crearWeel} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('weels.create')}>
@@ -658,6 +684,9 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
       {/* Sin medida no hay lista: el primer Weël ya nace del alto exacto del visor. */}
       {viewport && fase === 'lista' && videoPosts.length > 0 && (
         <FlatList
+          ref={listaDeWeels}
+          onScroll={alDesplazar}
+          scrollEventThrottle={32}
           data={videoPosts}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
@@ -690,6 +719,13 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
       )}
     </ContainerComponent>
   );
+
+  /*
+   * En tableta y escritorio (web), el visor es una columna centrada con la proporción de un teléfono sobre fondo negro,
+   * igual que el Wäll (screens/WallScreen.tsx): un vídeo vertical no se recorta para llenar 1440 de ancho.
+   * El viewport se sigue midiendo en el contenedor, así que cada Weël nace del ancho de la columna.
+   */
+  return isWeb ? <View style={styles.pantallaWeb}>{visor}</View> : visor;
 };
 
 const styles = StyleSheet.create({
@@ -697,6 +733,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  pantallaWeb: { flex: 1, backgroundColor: '#000', alignItems: 'center' },
+  columnaWeb: { width: '100%', maxWidth: ANCHO_MAXIMO_WEB },
   estado: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000' },
   estadoCabecera: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: scale(16), paddingBottom: scale(16) },
   estadoCuerpo: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: scale(12), paddingHorizontal: scale(32) },

@@ -90,12 +90,24 @@ export const design: typeof import('../es/design').design = {
   valStudioLight: 'De estúdio',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: 'Produto',
   kindInterior: 'Interiores',
   kindArchitecture: 'Arquitetura',
   kindBoat: 'Barco',
   kindFurniture: 'Mobiliário',
+  sampleShoe: 'Tênis de couro',
+  sampleGuitar: 'Guitarra elétrica',
   sampleLivingRoom: 'Sala de estar iluminada',
   samplePineHouse: 'Casa entre pinheiros',
   sampleYacht: 'Iate de 15 metros',
   sampleArmchair: 'Poltrona de madeira',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: 'Projete',
+  heroAccent: 'sem limites.',
+  brandingTitle: 'Branding',
+  objects3dTitle: 'Objetos 3D',
+  designStudioTitle: 'Estúdio de design',
+  designStudioSub: 'Crie, edite e visualize designs profissionais com IA.',
+  openStudio: 'Abrir estúdio',
+  fashionHint: 'Crie roupas, coleções e muito mais.',
 };

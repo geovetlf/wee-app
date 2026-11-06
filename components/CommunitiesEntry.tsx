@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -46,7 +47,7 @@ const CommunitiesEntry: React.FC<CommunitiesEntryProps> = ({ onSearch, onCreate,
           accessibilityLabel={t('communities.searchLabel')}
         />
         <TouchableOpacity onPress={submit} style={styles.go} activeOpacity={0.7} accessibilityLabel={t('nav.search')}>
-          <Ionicons name="arrow-forward" size={scale(18)} color={theme.colors.accentDark} />
+          <IconoDireccional name="arrow-forward" size={scale(18)} color={theme.colors.accentDark} />
         </TouchableOpacity>
       </View>
 

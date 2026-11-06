@@ -1,0 +1,60 @@
+/*
+ * POLACO — El concepto de cada movimiento del historial de Credits (ver `../../es/servidor/movimientos.ts`).
+ * Traducción de IA pendiente de revisión humana.
+ *
+ * «Credits» es marca y no se declina. `brainRespuestas` lleva las cuatro formas del polaco: por eso `ConPlurales`.
+ */
+import { ConPlurales } from '../../ru/plurales';
+
+export const movimientos: ConPlurales<typeof import('../../es/servidor/movimientos').movimientos> = {
+  saldoAnterior: 'Poprzednie saldo',
+  bienvenida: 'Powitalne Credits',
+  ajusteMenos: 'Korekta: koszt niższy niż zarezerwowany',
+  reembolsoFallida: 'Zwrot za nieudane generowanie',
+  compra: 'Zakup Credits',
+  regalo: 'Credits w prezencie',
+  recargaPrueba: 'Doładowanie testowe',
+  compraRestaurada: 'Przywrócony zakup',
+  reembolsoAdmin: 'Zwrot przez administrację',
+  avatar: 'Awatar Weë',
+  fotoConAvatar: 'Zdjęcie z twoim awatarem Weë',
+  noSePudoTerminar: '{{base}} · nie udało się ukończyć',
+  brainBusqueda: 'Weë Brain · wyszukiwanie',
+  brainRespuestas_one: 'Weë Brain · {{contador}} odpowiedź',
+  brainRespuestas_few: 'Weë Brain · {{contador}} odpowiedzi',
+  brainRespuestas_many: 'Weë Brain · {{contador}} odpowiedzi',
+  brainRespuestas_other: 'Weë Brain · {{contador}} odpowiedzi',
+  brainNoPudo: 'Weë Brain · nie udało się odpowiedzieć',
+  studioVideo: 'Weë Studio · film',
+  studioSinTiempo: 'Weë Studio · w poprzedniej próbie zabrakło czasu',
+  studioNoSePudo: 'Weë Studio · nie udało się wygenerować filmu',
+  studioMundo: 'Weë Studio · świat 3D',
+  studioMundoNoSePudo: 'Weë Studio · nie udało się stworzyć świata 3D',
+  weeAi: 'WEË AI · {{experiencia}}',
+  operacionIncompleta: 'Weë · operacja nie została ukończona',
+  servicioAiImageLite: 'Obraz standardowy',
+  servicioAiImageEnhanceLite: 'Edycja standardowa',
+  servicioAiImage: 'Generowanie obrazu',
+  servicioAiImageEnhance: 'Edycja obrazu',
+  servicioAiImagePro: 'Obraz o najwyższej precyzji',
+  servicioAiTryon: 'Przymiarka ubrań',
+  servicioAiVideoDraft: 'Film w podglądzie',
+  servicioAiVideo: 'Generowanie filmu',
+  servicioAiVideoHd: 'Film wysokiej jakości',
+  servicioAiVideoAdvanced: 'Film zaawansowany',
+  servicioAiVideoMax: 'Film najwyższej jakości',
+  servicioAiVideoEdit: 'Montaż filmu',
+  servicioAiAudio: 'Generowanie głosu',
+  servicioAiTranscribe: 'Transkrypcja i napisy',
+  servicioAiMusic: 'Generowanie muzyki',
+  servicioAiWorld: 'Generowanie świata 3D',
+  servicioAiBrain: 'Odpowiedź Weë Brain',
+  servicioAiText: 'Generowanie tekstu',
+  servicioAiTextPro: 'Długi tekst najwyższej jakości',
+  servicioAiSearch: 'Wyszukiwanie z AI',
+  servicioAiBook: 'Tworzenie książki',
+  /* Boost (functions/src/boost): traducción de IA, pendiente de revisión nativa (2026-11-05). */
+  boostReserva: 'Boost posta',
+  boostNoIniciado: 'Boost nierozpoczęty',
+  boostSinEntregas: 'Boost bez emisji · zwrócono wszystko',
+};

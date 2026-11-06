@@ -220,9 +220,11 @@ exime los nombres propios. [MS §3.2] [WCAG 3.1.2]
   Brand Kit, Customer Insights, Business Ideas, Business Profile; y My Business, Products & Catalog, Create, Social,
   Analyze, Grow, Promote— son nombres de producto y se escriben igual en todos los idiomas, como Weë Studio (decisión
   del usuario, 2026-09-16). Lo que hace cada uno sí se traduce, en su pista. «SWOT» se queda como sigla: 「SWOT分析」.
-- **La firma de marca del Home**, «Imagina · Crea · Conecta» (`LEMA_DE_MARCA` en `components/Header.tsx`), va debajo
-  del logo y no se traduce en ningún idioma: es firma, como el logo. (El lema de Weë Brain, `brain.slogan`, sí se
-  traduce: es texto de la pantalla.)
+- **La firma de marca del Home**, el eslogan de Weë (`nav.brandSlogan`, pintado por `components/Header.tsx` y
+  usado también en el título de la pestaña), **se localiza** según el idioma elegido (decisión del dueño, 2026-11-04,
+  que sustituye a la anterior de no traducirlo): en japonés 「想像する · 創る · つながる」. «Weë» no va dentro y no se
+  traduce nunca. El lema de Weë Brain, `brain.slogan`, es otra frase y va aparte. Tabla de todos los idiomas:
+  [`docs/ESLOGAN.md`](ESLOGAN.md).
 
 ## 10. Glosario
 

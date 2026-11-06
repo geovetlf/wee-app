@@ -16,7 +16,13 @@
     "deploy:prod:functions": "node scripts/no-desplegar.mjs deploy:prod:functions",
     "deploy:prod:firestore": "node scripts/no-desplegar.mjs deploy:prod:firestore",
     "test:engine": "npm --prefix functions test",
-    "web:demo": "node scripts/web-demo.mjs"
+    "web:demo": "node scripts/web-demo.mjs",
+    "demo:emuladores": "node scripts/demo/entorno.mjs emuladores",
+    "demo:medios": "node scripts/demo/entorno.mjs medios",
+    "demo:web": "node scripts/demo/entorno.mjs web",
+    "demo:nativo": "node scripts/demo/entorno.mjs nativo",
+    "demo:reiniciar": "node scripts/demo/entorno.mjs reiniciar",
+    "demo:presupuesto": "node scripts/demo/generar-medios.mjs --medios demo-medios"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

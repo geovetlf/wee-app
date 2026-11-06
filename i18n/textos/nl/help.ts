@@ -1,0 +1,39 @@
+/*
+ * NEERLANDÉS — Help: de veelgestelde vragen, contact en het juridische deel. Tipado contra el español.
+ * Las respuestas citan botones con los mismos términos que la pantalla: “Weet ik niet”, “Opslaan in een project”
+ * (weeai.saveToProject), “Weël” (composer), “Prompt kopiëren” (wall). Las temáticas siguen communities.officialName*.
+ */
+export const help: typeof import('../es/help').help = {
+  title: 'Help',
+  intro: 'Hier vind je de antwoorden op de meest gestelde vragen. Is iets niet duidelijk, laat het ons weten: Weë wordt beter dankzij de community.',
+  faqTitle: 'Veelgestelde vragen',
+  contact: 'Contact',
+  contactBody: 'Binnenkort heb je hier een direct kanaal naar het Weë-team. Deel tot die tijd je ideeën en problemen in een bericht: de community en het team lezen ze.',
+  askQuestion: 'Een vraag stellen',
+  legalTitle: 'Voorwaarden en privacy',
+  legalBody: 'Je gegevens zijn van jou. Weë gebruikt je e-mail en je profiel alleen om de app te laten werken: inloggen, je berichten, je Credits en je creaties tonen. We verkopen je gegevens niet.',
+  legalPending: 'De volledige voorwaarden en het privacybeleid worden vóór de lancering gepubliceerd op wee.zone. Weë is in aanbouw: sommige functies gebruiken testgegevens, en dat zeggen we er duidelijk bij.',
+  footer: 'Weë · World Encode Entity · versie 1.0.0',
+  q1: 'Wat is Weë?',
+  a1: 'Weë (World Encode Entity) is het sociale netwerk voor mensen die creëren met kunstmatige intelligentie: hier ontdek, leer, maak en deel je, en kom je in contact met anderen. AI is de motor; de community is het hart.',
+  q2: 'Wat is het verschil tussen het Echt profiel en het Weë-profiel?',
+  a2: 'Je Echt profiel is je gewone identiteit, en dan is de app wit. Je Weë-profiel is je identiteit om met AI te creëren: een eigen avatar en naam om je creaties te plaatsen, en daarmee wordt de app donker zodat je altijd weet als wie je meedoet. Je wisselt tussen de twee via het menu ☰ of de knop bovenin.',
+  q3: 'Hoe werkt Weë AI?',
+  a3_one: 'Vertel Weë in je eigen woorden wat je wilt bereiken. Weë stelt je een paar eenvoudige vragen (je kunt altijd “Weet ik niet” antwoorden), stelt een plan op en maakt het resultaat. Jij kiest het resultaat; Weë kiest de AI. Weë AI heeft {{contador}} specialist: {{lista}}.',
+  a3_other: 'Vertel Weë in je eigen woorden wat je wilt bereiken. Weë stelt je een paar eenvoudige vragen (je kunt altijd “Weet ik niet” antwoorden), stelt een plan op en maakt het resultaat. Jij kiest het resultaat; Weë kiest de AI. Weë AI heeft {{contador}} specialisten: {{lista}}.',
+  q4: 'Wat zijn Credits?',
+  a4: 'Elke creatie met Weë AI kost Credits. Voordat je iets maakt, zie je wat het kost, en als er iets misgaat, krijg je ze terug. Zolang we Weë AI bouwen, zijn de prijzen testprijzen en kost opwaarderen niets: de definitieve prijzen komen met de echte AI\'s.',
+  q5: 'Waar zijn projecten voor?',
+  a5: 'Een project bundelt creaties van verschillende specialisten: bijvoorbeeld het logo, de foto\'s, de advertentie, de video en de muziek voor “Mijn restaurant”. Sla elk resultaat op in het juiste project via “Opslaan in een project”.',
+  q6: 'Wat zijn Weëls?',
+  a6: 'Video\'s van maximaal 15 seconden om te laten zien wat je maakt. Je kunt ze buiten Weë delen en ze hebben een klein Weë-watermerk. Je maakt ze met de knop + door “Weël” te kiezen.',
+  q7: 'Wat zijn community\'s?',
+  a7: 'Groepen mensen met dezelfde interesse: Film & Animatie, Kunst & Creativiteit, Zaken & Ondernemen, Technologie & AI en meer. Word lid van de community\'s die je interesseren en plaats er berichten in.',
+  q8: 'Wat is WeeTalk?',
+  a8: 'Het is de chat van Weë: privégesprekken met andere mensen uit de community, met tekst, foto\'s en spraakberichten.',
+  q9: 'Wat is “Zo heb ik het gemaakt”?',
+  a9: 'Als je iets plaatst, kun je vertellen welke tools je hebt gebruikt, wat de prompt was en hoe het proces ging. Zo leren anderen van jou, en jij van hen, met één tik op “Prompt kopiëren”.',
+  heroTitle: 'Waarmee kunnen we je helpen?',
+  legalVisibility: 'Wat je plaatst, is zichtbaar voor de community; wat je in Weë AI maakt, blijft privé tot je besluit het te plaatsen. Je kunt je berichten en projecten verwijderen wanneer je wilt.',
+  askPrefill: 'Een vraag voor Weë: ',
+};

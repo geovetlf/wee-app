@@ -146,34 +146,18 @@ export const SERVICE_LABEL: Record<CreditService, string> = {
   wee_avatar: 'Avatar Weë',
 };
 
-/** Credits de bienvenida al abrir la cuenta (0 para desactivar). Configurable con CREDITS_WELCOME. */
-export const WELCOME_CREDITS = (() => {
-  const raw = process.env.CREDITS_WELCOME;
-  if (raw === undefined || raw === '') return 240;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
-})();
-
-/**
- * Paquetes de Credits (compras). Los precios en USD son los de la tienda; los
- * pagos reales llegan por Apple / Google / Stripe (functions/src/payments) y
- * SIEMPRE se validan en el servidor antes de otorgar.
+/*
+ * SIN BONO DE BIENVENIDA (decisión del dueño, 2026-11-04): una cuenta nueva empieza con 0 Credits. No hay
+ * variable de entorno que lo vuelva a encender. El motor conserva el mecanismo (las pruebas lo ejercitan
+ * inyectando su propio valor), pero la instancia de producción recibe esto.
  */
-export interface CreditPackage {
-  id: string;
-  name: string;
-  credits: number;
-  priceUsd: number;
-  productId: string;
-}
+export const WELCOME_CREDITS = 0;
 
-export const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: 'basic', name: 'Básico', credits: 40, priceUsd: 4.99, productId: 'zone.wee.credits.basic' },
-  { id: 'plus', name: 'Plus', credits: 90, priceUsd: 9.99, productId: 'zone.wee.credits.plus' },
-  { id: 'blackpro', name: 'Black Pro', credits: 200, priceUsd: 19.9, productId: 'zone.wee.credits.blackpro' },
-];
-
-export const getPackage = (id: string): CreditPackage | undefined => CREDIT_PACKAGES.find((p) => p.id === id || p.productId === id);
+/*
+ * NO HAY PAQUETES DE CREDITS (decisión del dueño, 2026-11-04). Básico 40/$4,99, Plus 90/$9,99 y Black Pro
+ * 200/$19,90 dejaron de existir: se compra por importe, de US$5 a US$100 de 5 en 5, a 100 Credits por dólar
+ * (functions/src/payments/compraPorImporte.ts). No queda ni una copia de respaldo.
+ */
 
 /** Qué servicio del catálogo cobra cada capacidad del WEË AI ENGINE. */
 /**

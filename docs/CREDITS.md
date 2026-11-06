@@ -17,7 +17,7 @@ Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
 | Archivo | Qué hace |
 |---|---|
 | `functions/src/credits/creditEngine.ts` | El motor: `ensureAccount`, `getBalance`, `spendCredits`, `completeCredits`, `refundCredits`, `grantCredits`, `getCreditHistory`, `getCreditCost`. Fábrica `createCreditEngine({ db, increment, now, loadCosts })` con dependencias inyectadas (las pruebas usan un Firestore en memoria) y la instancia `creditEngine` sobre Firestore real |
-| `functions/src/credits/creditCosts.ts` | Catálogo de costos por servicio (placeholder), etiquetas, Credits de bienvenida (`CREDITS_WELCOME`), paquetes de compra, `serviceForCapability` (capacidad del WEË AI ENGINE → servicio del catálogo) y sobreescrituras desde Firestore (`creditCosts/{servicio}`) con caché de 60 s |
+| `functions/src/credits/creditCosts.ts` | Catálogo de costos por servicio (placeholder), etiquetas, Credits de bienvenida (`WELCOME_CREDITS = 0`: no hay bono, sin variable de entorno), `serviceForCapability` (capacidad del WEË AI ENGINE → servicio del catálogo) y sobreescrituras desde Firestore (`creditCosts/{servicio}`) con caché de 60 s |
 | `functions/src/credits/creditTransactions.ts` | Tipos de transacción, ids deterministas (`usage_<requestId>`, `refund_<requestId>`, `adjust_<requestId>`, `grant_<requestId>`, `purchase_<purchaseId>`, `grant_welcome_<uid>`, `migration_<uid>`) y acumulados para administración (`creditStats/global`, `creditStats/daily_YYYY-MM-DD`) |
 | `functions/src/credits/creditValidation.ts` | `CreditError` con códigos (`INSUFFICIENT_CREDITS`, `ACCOUNT_NOT_FOUND`, `INVALID_AMOUNT`, `INVALID_REQUEST`, `INVALID_SERVICE`, `TRANSACTION_NOT_FOUND`, `ALREADY_REFUNDED`, `NOT_REFUNDABLE`, `FORBIDDEN`, `PURCHASE_INVALID`, `NOT_IMPLEMENTED`), conversión a `HttpsError` y validadores (montos enteros positivos, `requestId`, servicio, textos) |
 | `functions/src/credits/index.ts` | Cloud Functions: `getCreditsBalance`, `getCreditHistory`, `getCreditCost`, `spendCredits`, `grantCredits` (admin), `refundCredits` (admin), `validatePurchase`, `restorePurchase`, `creditsAdmin` |
@@ -84,7 +84,7 @@ Cada movimiento ocurre dentro de `db.runTransaction`: lee el documento de la ope
 **`ensureAccount(uid)`** (idempotente) se ejecuta la primera vez que una cuenta llega al motor (al abrir la app, al crear, al comprar):
 
 1. Si el perfil no tiene `creditsBalance`, lee `wallets/{uid}`: el saldo se migra tal cual (`migration_<uid>`, tipo `grant`, "Saldo anterior") y `totalPurchased` / `totalSpent` pasan a los acumulados.
-2. Otorga la bienvenida (`grant_welcome_<uid>`, `CREDITS_WELCOME`, 240 por defecto) una sola vez; una segunda llamada no vuelve a otorgar nada.
+2. **No otorga bienvenida** (decisión del dueño, 2026-11-04): `WELCOME_CREDITS = 0`, sin variable de entorno que lo encienda. Una cuenta nueva empieza en 0. El mecanismo (`grant_welcome_<uid>`, una sola vez) sigue en el motor solo porque las pruebas lo ejercitan inyectando su propio valor.
 
 ---
 
@@ -143,24 +143,28 @@ Quién lo usa hoy:
 
 Para cambiarlos **sin tocar el motor**: editar el catálogo, o escribir `creditCosts/{servicio} { credits }` en Firestore (también con `creditsAdmin { action: 'setCost' }`). El cliente nunca los conoce por su cuenta: los consulta con `getCreditCost`. La correspondencia capacidad del WEË AI ENGINE → servicio está en `serviceForCapability` (p. ej. `video.generate` con calidad `max` → `ai_video_advanced`). Cuando haya costes reales medidos (`creatorUsage/{día}`, `aiUsage`), el modo `real` del engine (`CREATOR_PRICING_MODE=real`) calcula Credits = USD × `creditsPerUsd` × (1 + margen).
 
-Paquetes (`CREDIT_PACKAGES`): Básico 40 / $4.99, Plus 90 / $9.99, Black Pro 200 / $19.90 (`zone.wee.credits.*`).
+**No hay paquetes** (decisión del dueño, 2026-11-04). Básico 40 / $4.99, Plus 90 / $9.99 y Black Pro 200 / $19.90 se retiraron del servidor, del cliente, de los diccionarios y de la validación: se compra por importe (§7).
 
 ---
 
-## 7. Compras (preparado, no conectado)
+## 7. Compras por importe (la regla de la demo YC)
+
+La persona elige **de US$5 a US$100, de 5 en 5**, y recibe **100 Credits por cada dólar** (US$35 → 3.500 Credits). Sin paquetes, sin promociones, sin bono. La única definición en el servidor es `functions/src/payments/compraPorImporte.ts` (`COMPRA`); el cliente la recibe por `getCreditCost → compra` y solo la pinta.
 
 ```
-APPLE / GOOGLE / STRIPE ─► Purchase Validation ─► Credit Engine ─► Credits
+CLIENTE: importe + lo que vio (moneda, importe, Credits) + requestId
+   └► validatePurchase ─► recalcula todo ─► ORDEN paymentOrders/po_<sha256(cuenta, requestId)> (pending, snapshot)
+          └► PROVEEDOR confirma el pago (moneda e importe reales) ─► Credit Engine.grantCredits(purchaseId = orden)
+                 └► ORDEN confirmed (+ verified, transactionId)          · cualquier fallo ─► ORDEN failed, saldo intacto
 ```
 
-`validatePurchase({ provider, packageId, payload })`: el proveedor verifica el comprobante con su API oficial y devuelve `{ purchaseId, productId }`; el motor acredita el paquete como `purchase_<provider>_<purchaseId>` (una compra nunca se acredita dos veces). `restorePurchase` recorre las compras válidas del proveedor y acredita las que falten. Cada proveedor documenta en su archivo qué se necesita para conectarlo:
-
-- **Apple**: App Store Server API con clave de App Store Connect (`APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, `APPLE_BUNDLE_ID`); `purchaseId = transactionId`.
-- **Google Play**: Google Play Developer API con cuenta de servicio (`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`); `purchaseId = orderId`; consumir tras acreditar.
-- **Stripe** (web): Checkout / Payment Intent con `metadata { userId, packageId }` y webhook firmado (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`); `purchaseId = payment_intent`.
-- **test**: recarga de prueba solo en dev (`CREDITS_TEST_PURCHASES`).
-
----
+- **El servidor no se fía del cliente.** Rechaza (`PURCHASE_INVALID` con `details.motivo`) importes fuera de 5…100, no múltiplos de 5 o no enteros (`importe_invalido`), Credits que no son importe × 100 (`credits_no_coinciden`), una moneda que no es la del mercado (`moneda_no_coincide`), un importe mostrado distinto del que se cobraría (`importe_mostrado_no_coincide`) y cualquier `packageId` (`paquetes_retirados`). Ningún rechazo crea una orden.
+- **Idempotencia.** La orden se llama por cuenta + `requestId`: repetir la petición devuelve la misma orden y, si ya está confirmada, el mismo movimiento como `duplicate`, sin volver al proveedor. Reutilizar el `requestId` para otra compra es `INVALID_REQUEST · idempotency_conflict`. El abono usa `purchaseId = id de la orden`, así que ni un reintento ni un webhook repetido acreditan dos veces. El cliente conserva el `requestId` mientras no haya respuesta definitiva (caída de red → la misma orden).
+- **Conciliación.** `pending → confirmed | failed`, con `statusHistory`. El snapshot (mercado, importe USD, Credits, moneda, importe en unidades menores, tipo de cambio con fuente y fecha, proveedor) se escribe una vez y no se reescribe; la confirmación añade `verified` (id del pago, moneda e importe que confirmó el proveedor). Si el pago confirmado no coincide en moneda o importe, la orden falla (`pago_no_coincide`) y no se abona nada. Si el proceso muere entre el abono y el cierre, repetir la petición lo termina (el abono sale duplicado y la orden se cierra).
+- **Reembolsos y contracargos de una compra ya acreditada**: no implementados (no hay pasarela que los emita). Un fallo antes de la confirmación nunca toca el saldo.
+- **Mercados** (docs/PRECIOS-POR-MERCADO.md §3). La equivalencia es siempre la del dólar. `US`: se cobra en USD (centavos). `PE`: PEN = **sol entero** de (USD × tipo de cambio) — al 3,30 del escenario: S/ 17 · 33 · 50 · 66 · 83 · 165 · 330 para US$5 · 10 · 15 · 20 · 25 · 50 · 100, la tabla de la matriz §3—. El tipo de cambio **no está en el código**: se lee de `markets/PE` (`currency: 'PEN'`, `status: 'active'`, `fx: { source, base, baseDate }`). Si falta algo, la compra en soles falla cerrada (`mercado_no_disponible`) y `getCreditCost` anuncia PE como no disponible. El mercado lo decide la facturación, nunca el idioma; hoy la app factura siempre en `US` (cómo entra alguien en el mercado PE es una decisión pendiente).
+- **Proveedores.** Solo `test` confirma (emulador y fuera de producción, `CREDITS_TEST_PURCHASES`): devuelve exactamente la moneda y el importe de la orden y queda como «Recarga de prueba» con ingreso 0. `stripe`, `apple` y `google` responden `NOT_IMPLEMENTED`. **Mercado Pago no existe**: será un adaptador más en `PROVIDERS` y su webhook llamará a `confirmarOrden(orderId, pago)` con lo que diga su API. `getCreditCost` dice qué proveedor puede confirmar ahora (`compra.proveedor`: `'test'` o `null`); con `null` la tienda apaga el botón y dice que las compras llegarán pronto.
+- **Tiendas nativas** (otro worktree, `wt-native-payments`): los productos tendrán que ser `zone.wee.credits.usd{N}` (N = 5…100 de 5 en 5); `restorePurchase` ya los entiende. Los antiguos `zone.wee.credits.basic|plus|blackpro` no se reconocen: ninguna tienda estuvo conectada, así que no hay compras reales que restaurar.
 
 ## 8. Cloud Functions (contratos)
 
@@ -168,11 +172,11 @@ APPLE / GOOGLE / STRIPE ─► Purchase Validation ─► Credit Engine ─► C
 |---|---|---|
 | `getCreditsBalance` | — | `{ userId, balance, lifetimeEarned, lifetimeSpent }` (crea/migra la cuenta si hace falta) |
 | `getCreditHistory` | `{ limit? }` | `{ items: CreditTransaction[] }` (más recientes primero) |
-| `getCreditCost` | `{ service? }` | `{ service, credits }` o `{ costs, packages }` |
+| `getCreditCost` | `{ service? }` | `{ service, credits }` o `{ costs, compra: { minUsd, maxUsd, stepUsd, creditsPerUsd, proveedor, mercados } }` |
 | `spendCredits` (admin) | `{ service, requestId, reason?, generationId? }` | `{ transactionId, status, amount, balanceBefore, balanceAfter, duplicate }` |
 | `grantCredits` (admin) | `{ userId, amount, reason?, requestId? }` | `{ transactionId, amount, balanceAfter, duplicate }` |
 | `refundCredits` (admin) | `{ userId, requestId, reason?, force? }` | `{ transactionId, amount, balanceAfter, duplicate }` |
-| `validatePurchase` | `{ provider, packageId?, payload? }` | `{ …grant, credits, packageId }` |
+| `validatePurchase` | `{ provider, payload: { requestId, amountUsd, market, displayed: { currency, amountMinor }, credits } }` | `{ …grant, credits, orderId, amountUsd, currency, amountMinor }` |
 | `restorePurchase` | `{ provider, payload? }` | `{ restored, credited }` |
 | `creditsAdmin` (admin) | `{ action: stats \| userHistory \| balance \| failed \| costs \| setCost, … }` | según acción |
 
@@ -183,7 +187,7 @@ Errores: `HttpsError` con `details.code` (`INSUFFICIENT_CREDITS` trae `required`
 ## 9. Cliente
 
 - `hooks/useWallet.ts` escucha el perfil real (`users where uid == auth.uid`) y expone `balance`; si la cuenta no está inicializada pide `getCreditsBalance` una vez.
-- `services/creditsService.ts`: `subscribeToBalance`, `subscribeToTransactions`, `getHistory`, `getCosts`, `getCost`, `purchase`, `spend`; `describeTransaction` (concepto, monto con signo, saldo resultante) y `newRequestId`.
+- `services/creditsService.ts`: `subscribeToBalance`, `subscribeToTransactions`, `getHistory`, `getCosts`, `getCost`, `comprarImporte`, `spend`; `describeTransaction` (concepto, monto con signo, saldo resultante) y `newRequestId`.
 - Sin diseño nuevo: la píldora "💳 250 Credits", Mi billetera (saldo, Obtenidos / Usados, historial con fecha · concepto · monto · saldo) y la tienda siguen igual; solo cambia de dónde salen los datos.
 
 ---
@@ -191,9 +195,9 @@ Errores: `HttpsError` con `details.code` (`INSUFFICIENT_CREDITS` trae `required`
 ## 10. Configuración pendiente (lo que debe completar la persona dueña)
 
 1. **Producción (`get-wee`)**: activar el plan Blaze y desplegar Functions y reglas/índices por el único camino de [`DEPLOYMENT.md`](DEPLOYMENT.md). Los atajos `npm run deploy:prod:*` se retiraron: desplegaban todo desde cualquier carpeta. Sin Functions en producción la app muestra el saldo que haya y no puede iniciar cuentas ni cobrar.
-2. `functions/.env.get-wee` (no versionado): `WEE_ADMIN_UIDS=<tu uid>`, `CREDITS_TEST_PURCHASES=false`, `CREDITS_WELCOME=<bienvenida definitiva>`.
+2. `functions/.env.get-wee` (no versionado): `WEE_ADMIN_UIDS=<tu uid>`, `CREDITS_TEST_PURCHASES=false`. (Ya no hay `CREDITS_WELCOME`: no hay bono.)
 3. **Precios definitivos**: medir costes reales y ajustar `creditCosts.ts` o `creditCosts/{servicio}`.
-4. **Pagos**: crear los productos `zone.wee.credits.*` en App Store Connect / Google Play / Stripe, poner las claves en `functions/.env.local` y `.env.get-wee`, e implementar `verify` en cada proveedor.
+4. **Pagos**: elegir e integrar la pasarela (Mercado Pago Perú está aprobado como diseño; no existe código), crear los productos `zone.wee.credits.usd{N}` en las tiendas nativas, e implementar `verify` en cada proveedor. Para cobrar en soles: escribir `markets/PE` con el tipo de cambio aprobado (fuente SBS, valor, fecha) y `status: 'active'`.
 5. Opcional: claim `admin: true` para el equipo de administración; panel visual sobre `creditsAdmin`.
 
 ---

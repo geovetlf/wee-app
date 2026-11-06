@@ -9,7 +9,7 @@
  *       con_estas_opciones y no_disponible (también el caso real de hoy: Hunyuan World, sin elegir en ninguna parte).
  *   B · Lo que sale hacia la app: el código y el motivo; ni proveedor, ni modelo, ni capacidad, ni jurisdicción, ni
  *       escalón, en NINGÚN error controlado.
- *   C · La app: cada motivo con su clave, en los dieciséis diccionarios, sin nombres de proveedores; y solo «ahora no»
+ *   C · La app: cada motivo con su clave, en todos los diccionarios de los idiomas listos, sin nombres de proveedores; y solo «ahora no»
  *       se puede reintentar.
  *
  * Sin red, sin proveedor real, sin Firebase. $0.
@@ -167,7 +167,7 @@ console.log('\n── B · Hacia la app, el código y el motivo: nada de dentro 
 }
 
 /* ═══ C · LA APP ═══════════════════════════════════════════════════════════ */
-console.log('\n── C · La app: cada motivo, su clave, en los dieciséis idiomas ──');
+console.log('\n── C · La app: cada motivo, su clave, en todos los idiomas listos ──');
 {
   const cargar = crearCargador({
     dobles: {
@@ -181,11 +181,14 @@ console.log('\n── C · La app: cada motivo, su clave, en los dieciséis idio
   const M = cargar('utils/crearMundo3D.ts');
   check('C1) la app entiende EXACTAMENTE los motivos que manda el motor', iguales(Object.keys(ND.CLAVE_DE_NO_DISPONIBLE).sort(), [...E.MOTIVOS_DE_NO_DISPONIBLE].sort()));
   const DICCIONARIOS = cargar('i18n/diccionarios.ts').DICCIONARIOS;
+  /* Cuántos tiene que haber, del CATÁLOGO (antes «=== 16»): uno por idioma listo y uno por variante, como la 38b de
+   * i18n.test.mjs. Exige lo mismo que el 16 sin tocarse cuando entra un idioma; los diccionarios EN CURSO no cuentan. */
+  const ESPERADOS = cargar('i18n/idiomas.ts').idiomasDisponibles().reduce((n, i) => n + (i.variantes?.length || 1), 0);
   const unicos = []; for (const [codigo, d] of Object.entries(DICCIONARIOS)) if (!unicos.some(([, otro]) => otro === d)) unicos.push([codigo, d]);
   const valor = (d, clave) => clave.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), d);
   const claves = Object.values(ND.CLAVE_DE_NO_DISPONIBLE);
   const faltan = unicos.flatMap(([codigo, d]) => claves.filter((k) => typeof valor(d, k) !== 'string' || !valor(d, k).trim()).map((k) => `${codigo}:${k}`));
-  check(`C2) cada motivo tiene su clave, con texto en los ${unicos.length} diccionarios`, unicos.length === 16 && faltan.length === 0, faltan.join(' '));
+  check(`C2) cada motivo tiene su clave, con texto en los ${unicos.length} diccionarios`, ESPERADOS >= 16 && unicos.length === ESPERADOS && faltan.length === 0, faltan.join(' '));
   const PROVEEDORES = /\b(fal|hunyuan|tencent|seedance|gemini|flux|seedream|elevenlabs)\b/i;
   const textos = unicos.flatMap(([, d]) => claves.map((k) => valor(d, k)));
   check('C3) ninguno de esos textos nombra un proveedor ni un modelo; y solo «ahora no» invita a volver a intentarlo (en español)',

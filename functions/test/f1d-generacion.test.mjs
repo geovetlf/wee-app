@@ -832,8 +832,17 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
   const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
   /* + misión fal (2026-10-05): core/router.ts +2 −2 (la modalidad 3d) y creditCosts.ts +8 (el servicio ai_world). Líneas exactas en job-queue 63fal. */
   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
-  check('AI) Credits intactos: el Credit Engine, el Financial Core y el resto; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; del tamaño exacto',
-    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === `${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
+/*
+   * + COMPRA POR IMPORTE (decisión definitiva del dueño, 2026-11-04, con autorización expresa para tocar el catálogo,
+   *   el Credit Engine y los pagos): creditCosts.ts pierde los paquetes (CreditPackage, CREDIT_PACKAGES, getPackage) y
+   *   el bono configurable, y gana `WELCOME_CREDITS = 0` (con la misión fal: +18 −26); credits/index.ts cambia
+   *   `packages: CREDIT_PACKAGES` por `compra` en getCreditCost y creditsAdmin·costs, con sus imports (con el Harness:
+   *   +25 −6). creditEngine.ts y creditValidation.ts, intactos. Líneas exactas en job-queue 63fal y 63k; la regla y su
+   *   seguridad, en compra-por-importe.test.mjs.
+   */
+  const CREDITS_CON_LA_COMPRA_POR_IMPORTE = '2\t2\tfunctions/src/core/router.ts\n18\t26\tfunctions/src/credits/creditCosts.ts\n57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n25\t6\tfunctions/src/credits/index.ts';
+  check('AI) Credits intactos: el Credit Engine, el Financial Core y el resto; credits/index, solo el cierre de spendCredits del Harness (b878068) y la compra por importe; el Router y creditCosts, solo la misión fal y la compra por importe; del tamaño exacto',
+    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_CON_LA_COMPRA_POR_IMPORTE);
   const legacy = (s) => { const a = s.indexOf('    try {\n      const result = await videoEngine.generate('); return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a)); };
   check('creatorRun, solo con los arreglos del Harness (H0 #9, #11, #15a) y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
     git(`diff --numstat ${PUENTE} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')

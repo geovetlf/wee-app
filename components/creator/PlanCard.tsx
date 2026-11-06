@@ -7,6 +7,7 @@ import { Plan, PlanPricing, QualityChoice } from '../../services/creatorService'
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 interface PlanCardProps {
   experienceName: string;
@@ -125,6 +126,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, experienceId, plan,
                     active && { backgroundColor: theme.colors.accent },
                   ]}
                 >
+                  <RellenoDeMarca radio={BORDER_RADIUS.md} apagada={!active} />
                   <Text style={[styles.qualityLabel, { color: active ? "#1F2937" : theme.colors.text }]}>{nivel(option)}</Text>
                   <Text style={[styles.qualityCredits, { color: active ? "#1F2937" : theme.colors.textSecondary }]}>{option.credits} Credits</Text>
                 </TouchableOpacity>
@@ -148,6 +150,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, experienceId, plan,
             style={[styles.createButton, { backgroundColor: theme.colors.accent }]}
             accessibilityLabel={t('weeai.createWork')}
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.full} />
             {busy ? <ActivityIndicator color="#1F2937" /> : <Text style={styles.createText}>{t('weeai.createWork')}</Text>}
           </TouchableOpacity>
         </View>

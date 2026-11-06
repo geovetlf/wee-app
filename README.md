@@ -30,7 +30,7 @@ El repositorio empezó con otro nombre (HideTok) antes de ser Weë (`db070a9`, 2
 | **Comunidades** (Weë Filmmakers, Weë Influencers, Weë Designers…) | `CommunityScreen`, `CommunitiesManagementScreen`, `communityService`, `constants/communityCategories.ts` | ✅ Base existente; son comunidades, nunca secciones |
 | **Perfil doble (Real + Weë)** | `WeeProfileCreationScreen` + `AiAvatarScreen` — perfil alterno con **avatar generado por IA** (Cloud Functions + Gemini) | ✅ Base existente (el uid guardado sigue llevando el prefijo heredado `hidi_`) |
 | Feed heredado, búsqueda, notificaciones push, páginas legales | `HomeScreen`, `SearchScreen`, `NotificationsScreen`, `public/` | ✅ Existente |
-| Weë Business (negocios, catálogo y reseñas) | `WeeBiz*Screen`, `weeBizService`, `businesses/{businessId}` | ✅ Producto vivo. La *identidad* Perfil Biz (`users/biz_*`) se eliminó el 2026-09-19: un negocio será una Página, no una cara |
+| WeeBiz (negocios, catálogo y reseñas del proyecto anterior) | Retirado del cliente (2026-11-03); datos en `businesses/{businessId}` | ⚠️ El sector es Weë Fashion. El WeeBiz **publicado** sigue vivo y no se depreca sin decisión explícita; desplegar esta web lo quitaría. La identidad Perfil Biz (`users/biz_*`) se eliminó el 2026-09-19 |
 | Flujo Influencer (idea → guion → video → voz → subtítulos → thumbnail) | — (será un flujo dentro de WEË AI; "Weë Influencers" es una comunidad) | ❌ No existe aún |
 | Trending, IA dentro de WeeTalk, marketplace, contenido promocionado | — | ❌ No existe aún |
 
@@ -165,12 +165,12 @@ wee-app/
 ├── firestore.rules / firestore.indexes.json / storage.rules
 ├── components/              # UI reutilizable (PostCard, Header, Sidebar, BarraInferior, avatars/…)
 ├── config/                  # firebase.ts (inicialización), linking.ts (deep links)
-├── constants/               # design.ts (tokens), chatThemes.ts, weebizCategories.ts
+├── constants/               # design.ts (tokens), chatThemes.ts
 ├── contexts/                # Auth, UserProfile, Theme, PushNotification, TabBar, Scroll
 ├── hooks/                   # useCommunities, useReposts, useVote, useBookmarks, useResponsive…
 ├── navigation/              # Auth / Main / Home / Inbox / Profile stacks + TabNavigator
 ├── screens/                 # Landing/Home, WeeCreator, Reels (Weëls), Inbox/Conversation (WeeTalk), Community,
-│                            # WeeProfileCreation + AiAvatar (Perfil Weë), CreditStore/Wallet, WeeBiz*, Search…
+│                            # WeeProfileCreation + AiAvatar (Perfil Weë), CreditStore/Wallet, Search…
 ├── services/                # firestoreService, messagesService, communityService, creditsService,
 │                            # avatarGenerationService, storageService, cloudinaryService, assetDownload…
 ├── functions/src/           # Cloud Functions (Node 24): creator, engine, credits, runtime, core… (docs/MAPA-DE-FRONTERAS.md)

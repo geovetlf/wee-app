@@ -356,7 +356,8 @@ console.log('\n── B · Un post, varios sitios donde se lee ──');
    * distingue "Weë Chef" de "Weë Music" hasta que lo lees; el emoji sí, y sale
    * del catálogo de Weë para que no haya dos verdades.
    */
-  check('126) cada destino trae su cara del catálogo de Weë', /getExperienceById\(destino\.id\)/.test(crearCrudo) && /destinoEmoji/.test(crearCrudo));
+  /* Su icono DIBUJADO, el del menú, no el emoji (2026-11-02). */
+  check('126) cada destino trae su cara del catálogo de Weë', /getExperienceById\(destino\.id\)/.test(crearCrudo) && /<IconoWee name=\{experiencia\.icono\}/.test(crearCrudo));
   check('126) y el muro general lleva la suya, que no es una experiencia: el globo', /name="globe-outline"/.test(crearCrudo.slice(crearCrudo.indexOf('const renderDestinos'), crearCrudo.indexOf('const renderPublicar'))));
   check('126) el aro cae siempre en el mismo sitio: pegado al borde derecho del chip', /destino: \{\s*flexGrow: 1,\s*flexDirection: 'row',\s*alignItems: 'center',/.test(crearCrudo) && /destinoCheck: \{[\s\S]{0,120}marginLeft: 'auto',/.test(crearCrudo));
   // Y el nombre entero: en una sola fila se cortaba —"Muro ge…"— y lo vimos en el teléfono.

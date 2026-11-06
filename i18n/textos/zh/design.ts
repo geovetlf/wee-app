@@ -98,12 +98,24 @@ export const design: typeof import('../es/design').design = {
   valStudioLight: '影棚光',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: '产品',
   kindInterior: '室内',
   kindArchitecture: '建筑',
   kindBoat: '船',
   kindFurniture: '家具',
+  sampleShoe: '皮革运动鞋',
+  sampleGuitar: '电吉他',
   sampleLivingRoom: '明亮的客厅',
   samplePineHouse: '松林间的房子',
   sampleYacht: '15 米游艇',
   sampleArmchair: '木质扶手椅',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: '设计，',
+  heroAccent: '不设限。',
+  brandingTitle: '品牌设计',
+  objects3dTitle: '3D 物体',
+  designStudioTitle: '设计工作室',
+  designStudioSub: '用 AI 创作、编辑和呈现专业设计。',
+  openStudio: '打开工作室',
+  fashionHint: '设计服装、系列等更多内容。',
 };

@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
@@ -11,6 +12,7 @@ import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /**
  * Mis proyectos (docs/CREATOR-BUILD.md §17): "Mi restaurante", "Mi canción",
@@ -113,6 +115,7 @@ const ProjectsScreen: React.FC = () => {
                 accessibilityLabel={t('weeai.projectName')}
               />
               <TouchableOpacity onPress={create} disabled={!name.trim() || saving} style={[styles.createButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('weeai.createProject')}>
+                <RellenoDeMarca radio={BORDER_RADIUS.full} />
                 <Text style={styles.createText}>{saving ? '…' : t('weeai.create')}</Text>
               </TouchableOpacity>
             </View>
@@ -127,6 +130,7 @@ const ProjectsScreen: React.FC = () => {
             <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{t('projects.emptyTitle')}</Text>
             <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>{t('projects.emptyText')}</Text>
             <TouchableOpacity onPress={() => setCreating(true)} style={[styles.createButton, { backgroundColor: theme.colors.accent, marginTop: SPACING.sm }]} activeOpacity={0.85}>
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.createText}>{t('projects.emptyAction')}</Text>
             </TouchableOpacity>
           </View>
@@ -146,7 +150,7 @@ const ProjectsScreen: React.FC = () => {
                   <Text style={[styles.cardName, { color: theme.colors.text }]} numberOfLines={2}>{project.name}</Text>
                   <View style={styles.cardFooter}>
                     <Text style={[styles.cardMeta, { color: theme.colors.textSecondary }]}>{t('projects.open')}</Text>
-                    <Ionicons name="arrow-forward" size={scale(14)} color={theme.colors.textSecondary} />
+                    <IconoDireccional name="arrow-forward" size={scale(14)} color={theme.colors.textSecondary} />
                   </View>
                 </TouchableOpacity>
               </View>

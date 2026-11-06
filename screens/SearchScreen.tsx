@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -451,7 +452,7 @@ const SearchScreen: React.FC = () => {
               <View>
                 <View style={styles.hashtagHeader}>
                   <TouchableOpacity onPress={clearHashtagSelection} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+                    <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
                   </TouchableOpacity>
                   <Text style={[styles.sectionTitle, { color: theme.colors.accent, marginBottom: 0, flex: 1 }]}>
                     #{selectedHashtag}
@@ -584,7 +585,7 @@ const SearchScreen: React.FC = () => {
                         )
                       )}
                       {!user && (
-                        <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+                        <IconoDireccional name="chevron-forward" size={20} color={theme.colors.textSecondary} />
                       )}
                     </TouchableOpacity>
                   ))
@@ -655,7 +656,7 @@ const SearchScreen: React.FC = () => {
                           </Text>
                         </View>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
+                      <IconoDireccional name="chevron-forward" size={16} color={theme.colors.textSecondary} />
                     </TouchableOpacity>
                   ))
                 )}

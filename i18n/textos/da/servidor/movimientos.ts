@@ -69,4 +69,8 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiTextPro: 'Lang tekst i højeste kvalitet',
   servicioAiSearch: 'AI-søgning',
   servicioAiBook: 'Bogskrivning',
+  /* Boost (functions/src/boost, docs/BOOST.md): la reserva, la que no llegó a abrirse y la que no entregó nada. */
+  boostReserva: 'Boost af et opslag',
+  boostNoIniciado: 'Boost ikke startet',
+  boostSinEntregas: 'Boost uden visninger · alt blev tilbagebetalt',
 };

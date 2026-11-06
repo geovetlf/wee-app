@@ -1,0 +1,52 @@
+/*
+ * ÁRABE — Preguntas del flujo guiado de Weë AI (ver `../../es/servidor/preguntas.ts`). Traducción de IA pendiente de
+ * revisión humana.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila. 2.ª persona del singular masculina
+ * genérica, como el resto de `i18n/textos/ar/`; donde se puede, la pregunta va sin verbo.
+ */
+export const preguntas: typeof import('../../es/servidor/preguntas').preguntas = {
+  designWhat: 'أخبرني بما تحتاج إليه وسأقترح عليك من أين نبدأ',
+  designName: 'ما الاسم أو النص الذي تريد أن يظهر؟',
+  designFeel: 'ما الذي تريد أن تعبّر عنه علامتك التجارية؟',
+  designMessage: 'ما الذي تريد الإعلان عنه أو إيصاله؟',
+  designWhere: 'أين ستنشره؟',
+  designItem: 'ما المنتج الذي تريد تصميمه؟',
+  designLook: 'كيف تتخيله؟',
+  designMachine: 'ما المركبة أو الآلة التي تتخيلها؟',
+  designEra: 'من أي عصر؟',
+  designPlace: 'ما المكان أو المشهد الذي تريد إنشاءه؟',
+  designInout: 'هل هو مكان داخلي أم خارجي؟',
+  designWho: 'ما الشخصية التي تريد إنشاءها؟',
+  designDraw: 'ما الأسلوب البصري الذي تريده؟',
+  studioType: 'ما نوع الفيديو؟',
+  studioStyle: 'ما الأسلوب الذي تريده؟',
+  studioWhere: 'أين ستنشره؟',
+  photoAction: 'ماذا نفعل بصورتك؟',
+  photoDetail: 'كيف تريدها؟',
+  writerWhat: 'ماذا نكتب؟',
+  writerTone: 'ما النبرة؟',
+  writerLanguage: 'إلى أي لغة؟',
+  musicWhat: 'ماذا تريد أن تنشئ؟',
+  musicStyle: 'ما الأسلوب؟',
+  musicMood: 'ما الأجواء؟',
+  musicVoice: 'ما الصوت؟',
+  beautyWhat: 'ماذا تريد أن تجرّب؟',
+  beautyOccasion: 'لأي مناسبة؟',
+  chefWhat: 'ماذا تريد أن تفعل؟',
+  chefChange: 'ماذا تريد أن تغيّر في الصورة؟',
+  chefPeople: 'لكم شخصًا؟',
+  chefTime: 'كم لديك من الوقت؟',
+  chefDays: 'لكم يومًا؟',
+  homeWhat: 'ماذا تريد أن تفعل؟',
+  homeSpace: 'أي مكان؟',
+  homeStyle: 'ما الأسلوب؟',
+  businessWhat: 'كيف يمكنني مساعدتك؟',
+  businessTone: 'ما مدى الرسمية؟',
+  travelWhat: 'ماذا تحتاج؟',
+  travelVibe: 'عمّ تبحث في هذه الرحلة؟',
+  travelDates: 'متى ستسافر؟',
+  travelInterest: 'ما الذي يستهويك أكثر؟',
+  travelPace: 'بأي وتيرة؟',
+  brainWhat: 'كيف يمكنني مساعدتك؟',
+};

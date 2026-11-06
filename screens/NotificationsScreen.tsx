@@ -10,6 +10,7 @@ import {
   InteractionManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
@@ -172,7 +173,7 @@ const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }
               { backgroundColor: icon.color },
             ]}
           >
-            <Ionicons name={icon.name as any} size={scale(12)} color="white" />
+            <IconoDireccional name={icon.name as any} size={scale(12)} color="white" />
           </View>
         </View>
 

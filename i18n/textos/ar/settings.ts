@@ -1,0 +1,55 @@
+/*
+ * ÁRABE — Configuración. Tipado contra el español.
+ *
+ * `communitiesJoined` cuenta comunidades y se dice «عضو في…» (miembro de…),
+ * que concuerda en las seis formas sin forzar el participio: por eso
+ * `ConPlurales`. Weë AI Engine, Firestore y GeoNames se copian tal cual.
+ */
+import { ConPlurales } from './plurales';
+
+export const settings: ConPlurales<typeof import('../es/settings').settings> = {
+  title: 'الإعدادات',
+  sectionContent: 'المحتوى',
+  sectionPrivacy: 'الخصوصية',
+  sectionPreferences: 'التفضيلات',
+  sectionSupport: 'المساعدة',
+  myCommunities: 'مجتمعاتي',
+  communitiesJoined_zero: 'لا توجد مجتمعات بعد',
+  communitiesJoined_one: 'انضممت إلى مجتمع واحد',
+  communitiesJoined_two: 'انضممت إلى مجتمعين',
+  communitiesJoined_few: 'انضممت إلى {{contador}} مجتمعات',
+  communitiesJoined_many: 'انضممت إلى {{contador}} مجتمعًا',
+  communitiesJoined_other: 'انضممت إلى {{contador}} مجتمع',
+  privateReplies: 'الردود الخاصة',
+  privateRepliesHint: 'السماح للآخرين بإرسال رسائل خاصة إليك',
+  pushNotifications: 'الإشعارات الفورية',
+  language: 'اللغة',
+  languageSubtitle: 'اختر لغة Weë',
+  help: 'المساعدة',
+  privacyPolicy: 'سياسة الخصوصية',
+  about: 'حول Weë',
+  signOut: 'تسجيل الخروج',
+  signOutFailed: 'تعذّر تسجيل الخروج',
+  engineAdmin: 'Weë AI Engine',
+  seedDefaults: 'تهيئة القيم الافتراضية',
+  seedDefaultsConfirm: 'يكتب في Firestore مزوّدي الخدمة والسلاسل والإعدادات الافتراضية غير الموجودة بعد. لا يحذف شيئًا.',
+  seed: 'تهيئة',
+  sectionNotifications: 'الإشعارات',
+  sectionInfo: 'معلومات',
+  sectionAccount: 'الحساب',
+  privacyPolicyHint: 'ماذا نفعل ببياناتك، بكلمات بسيطة',
+  pushNotificationsHint: 'تلقّي إشعارات بالرسائل الجديدة والنشاط',
+  aboutHint: 'ما هو Weë وما الإصدار الذي تستخدمه',
+  helpHint: 'الأسئلة الشائعة والتواصل',
+  signOutHint: 'الخروج من حسابك',
+  aboutBody: 'Weë (World Encode Entity) هو الشبكة الاجتماعية للأشخاص الذين يبدعون بالذكاء الاصطناعي.\n\nالإصدار 1.0.0 · © {{anio}} Weë. جميع الحقوق محفوظة.\n\nالبيانات الجغرافية: GeoNames (geonames.org)، CC BY 4.0.',
+  location: '📍 الموقع',
+  locationLine: '{{estado}} لا يُعرض موقعك الدقيق علنًا أبدًا.',
+  locationOff: 'معطّل. اسمح لـ Weë باستخدام موقعك التقريبي لاقتراح أماكن قريبة ومنطقتك عند إضافة موقع إلى منشور. لا يُعرض موقعك الدقيق علنًا أبدًا.',
+  locationUnavailable: 'يتعذّر على هذا الجهاز تحديد موقعك.',
+  locationDisabled: 'الموقع معطّل في إعدادات جهازك.',
+  locationPermissionDenied: 'رفضت طلب النظام. انقر هنا لتغيير ذلك في إعدادات جهازك.',
+  locationPermissionNotDetermined: 'سيطلب Weë الإذن عند الحاجة.',
+  locationApproximate: 'يعرف Weë منطقتك، لا موقعك الدقيق.',
+  locationPrecise: 'يمكن لـ Weë استخدام موقعك الدقيق عندما تحتاج إحدى الميزات إلى ذلك.',
+};

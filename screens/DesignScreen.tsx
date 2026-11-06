@@ -13,14 +13,15 @@ import StudioHeader from '../components/studio/StudioHeader';
 import StudioPromptComposer from '../components/studio/StudioPromptComposer';
 import AjustesContextuales from '../components/creator/AjustesContextuales';
 import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDeCreacion';
-import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
 import EspacioDeEscritura, { useAlturaDelTeclado } from '../components/EspacioDeEscritura';
 import { ALTO_BARRA } from '../components/BarraInferior';
 import DesignExplore from '../components/design/DesignExplore';
 import DesignPanel from '../components/design/DesignPanel';
+import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
+import { CuerpoDeDesign, HeroDeDesign } from '../components/sectores/PortadaDesign';
 import { siempreSePregunta } from '../constants/ajustesContextuales';
-import { AJUSTES_DE_DESIGN, CREACIONES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
+import { AJUSTES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
 import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -83,6 +84,8 @@ const DesignScreen: React.FC = () => {
   const [camino, setCamino] = useState<(CategoriaDeDesign | 'todas')[]>([]);
   const vista = camino.length > 0 ? camino[camino.length - 1] : null;
   const abrir = useCallback((paso: CategoriaDeDesign | 'todas') => setCamino((antes) => [...antes, paso]), []);
+  /* Weë Fashion vive en la ficha de especialista `business` (screens/SpecialistScreen.tsx). */
+  const irAFashion = useCallback(() => navigation.navigate('Specialist', { id: 'business' }), [navigation]);
   const volver = useCallback(() => setCamino((antes) => antes.slice(0, -1)), []);
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
   const [ajustes, setAjustes] = useState<Record<string, string>>({});
@@ -177,7 +180,15 @@ const DesignScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
-            <StudioHeader nombre="Design" claveLema="design.slogan" claveDescripcion="design.description" />
+            {/* La portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3); en creator, la cabecera de trabajo de siempre. */}
+            {pro ? (
+              <StudioHeader nombre="Design" claveLema="design.slogan" claveDescripcion="design.description" />
+            ) : (
+              <View style={styles.portada}>
+                <CabeceraDeSeccion soloIdentidad nombre="Design" lema={t('design.slogan')} />
+                <HeroDeDesign abrir={abrir} onFashion={irAFashion} />
+              </View>
+            )}
 
             {/*
               LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario,
@@ -195,6 +206,7 @@ const DesignScreen: React.FC = () => {
             */}
             <View style={pro ? null : styles.cajaArriba}>
               <StudioPromptComposer
+                vitrina={!pro}
                 placeholder={t('design.placeholder')}
                 valor={prompt}
                 onCambiar={setPrompt}
@@ -220,7 +232,11 @@ const DesignScreen: React.FC = () => {
               </View>
             )}
 
-            <DesignExplore porFila={porFila} onAbrir={abrir} onVerTodas={() => abrir('todas')} />
+            {pro ? (
+              <DesignExplore porFila={porFila} onAbrir={abrir} onVerTodas={() => abrir('todas')} />
+            ) : (
+              <CuerpoDeDesign abrir={abrir} onFashion={irAFashion} />
+            )}
 
             {/*
               La misma fila que la de Weë Studio —es la misma fila— con lo que
@@ -234,12 +250,8 @@ const DesignScreen: React.FC = () => {
             {pro ? (
               <EnlaceDeCreaciones />
             ) : (
-              <FilaDeCreaciones
-                creaciones={CREACIONES_DE_DESIGN}
-                ancho={scale(140)}
-                alto={scale(120)}
-                onVerTodas={() => navigation.navigate('Projects')}
-              />
+              /* Como en la demo YC: la portada termina en Explorar; Mis proyectos sigue en el menú y en Weë Studio. */
+              null
             )}
           </View>
         </PaginaDeCajas>
@@ -286,6 +298,8 @@ const styles = StyleSheet.create({
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl + SPACING.xs, flex: 1 },
   /* Sube la caja 30 de los 48 que la separaban de la cabecera. Deja unos 18. */
   cajaArriba: { marginTop: -scale(30) },
+  /* La caja sube sobre el fundido del héroe, como en la referencia. */
+  portada: { marginBottom: -scale(26) },
   referenciasPro: { paddingHorizontal: 0, marginTop: -12 },
   referencias: {
     flexDirection: 'row',

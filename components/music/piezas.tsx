@@ -6,6 +6,7 @@ import { useT } from '../../contexts/IdiomaContext';
 import { CLAVE_DE_ESTADO_MUSIC, EstadoDeCapa } from '../../utils/musicModel';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 /**
  * WEË MUSIC — PIEZAS PEQUEÑAS COMPARTIDAS POR TODAS LAS CAPAS.
@@ -86,6 +87,7 @@ export const Boton: React.FC<BotonProps> = ({ texto, onPress, icono, principal, 
       activeOpacity={0.85}
       style={[s.boton, principal ? { backgroundColor: theme.colors.accent, borderColor: 'transparent' } : { backgroundColor: theme.colors.card, borderColor: theme.colors.border }, compacto && s.botonCompacto, desactivado && { opacity: 0.5 }]}
     >
+      <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!principal} />
       {icono ? <Ionicons name={icono as any} size={scale(18)} color={principal ? '#1F2937' : theme.colors.accentDark} /> : null}
       <Text style={[s.botonTexto, compacto && s.botonCompactoTexto, { color: principal ? '#1F2937' : theme.colors.text }]}>{texto}</Text>
     </TouchableOpacity>

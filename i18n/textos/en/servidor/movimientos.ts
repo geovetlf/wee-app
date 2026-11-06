@@ -54,4 +54,8 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiTextPro: 'Maximum-quality long text',
   servicioAiSearch: 'AI search',
   servicioAiBook: 'Book creation',
+  /* Boost (functions/src/boost, docs/BOOST.md): la reserva, la que no llegó a abrirse y la que no entregó nada. */
+  boostReserva: 'Post Boost',
+  boostNoIniciado: 'Boost not started',
+  boostSinEntregas: 'Boost with no delivery · everything returned',
 };

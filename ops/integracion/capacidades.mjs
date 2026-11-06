@@ -17,6 +17,9 @@
  *  · cada idioma que ofrecen las dos webs;
  *  · cada ruta de las reglas de Firestore y de Storage, y cada índice compuesto.
  *
+ * Dos maneras, y solo dos, de que algo vivo no esté: SUSTITUIDO por algo que sí está (abajo), o RETIRADO por una
+ * decisión explícita del dueño (`RETIRADAS`), que solo vale para pantallas y textos y que NO retira nada en producción.
+ *
  * Solo lee git y el árbol. `--md` escribe la comparación en Markdown.
  */
 import { execFileSync } from 'node:child_process';
@@ -68,9 +71,36 @@ export const SUSTITUIDAS = {
   'aiAvatar.generatedWithGemini': { por: 'aiAvatar.generatedWithAi', porque: 'i18n da-DK (2026-10-01): el avatar lo hace «Weë AI»; la persona nunca ve el nombre de un proveedor' },
   'help.a3': { por: 'help.a3_other', porque: 'fallos de UI (2026-10-01): la Ayuda dice el número y los nombres de los especialistas del menú, con su plural' },
   'composer.bizNoAgenda': { por: 'composer.profileNoAgenda', porque: 'i18n da-DK (2026-10-01): el Perfil Biz se eliminó el 2026-09-19; el aviso habla de «este perfil»' },
+  /* Compra de Credits por importe (dueño, 2026-11-04): no hay paquetes; el nombre y las etiquetas de paquete los sustituye la compra por importe. */
+  'credits.pkgBasic': { por: 'credits.buyButton', porque: 'compra por importe (dueño, 2026-11-04): ya no hay paquete «Básico»; el botón dice los Credits y el precio del importe elegido' },
+  'credits.badgePopular': { por: 'credits.buyRate', porque: 'compra por importe (dueño, 2026-11-04): sin paquetes no hay «Popular»; la tienda enseña la tarifa única (US$1 = 100 Credits)' },
+  'credits.badgeBestValue': { por: 'credits.buyRate', porque: 'compra por importe (dueño, 2026-11-04): sin paquetes no hay «Mejor valor»; todos los importes tienen la misma tarifa' },
 };
 
-const faltan = (vivo, propuesto) => [...vivo].filter((x) => !propuesto.has(x) && !(SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por))).sort();
+/**
+ * Lo que ya no está porque el dueño decidió RETIRARLO de Weë, sin sustituto vivo que lo reemplace clave a clave. Es la
+ * excepción, no una vía de escape:
+ *  · cada retirada nombra su decisión (quién y cuándo), qué la reemplaza como producto y qué pasa en producción;
+ *  · solo cubre PANTALLAS (lista exacta) y TEXTOS (un módulo entero del diccionario): nunca funciones, reglas,
+ *    índices ni idiomas, que siguen exigiendo «sigue estando» (prueba 7 de la suite);
+ *  · retirar del main propuesto NO es retirar de producción: el servicio publicado sigue vivo, y publicar este main
+ *    lo quitaría de las webs, así que eso exige ANTES una decisión explícita de deprecación (`produccion`).
+ */
+export const RETIRADAS = {
+  weebiz: {
+    decision: 'dueño, 2026-11-03: «Weebiz es del antiguo proyecto, eliminalo»; confirmado el mismo día: no se restaura nada de WeeBiz',
+    reemplazo: 'Weë Fashion es el sector (ficha `business` de Weë AI); los negocios nuevos serán Páginas (WeëPages), una entidad de la cuenta',
+    produccion: 'NO deprecado: el WeeBiz publicado en wee.zone y wee-app.web.app sigue vivo y sus datos (businesses, reviews, businessFollows, reglas) intactos. Desplegar la web desde este main lo quitaría: requiere antes una decisión explícita de deprecación del dueño.',
+    pantallas: ['WeeBiz', 'WeeBizCategory', 'WeeBizProducts', 'WeeBizProfile', 'WeeBizRegister'],
+    modulo: 'weebiz',
+  },
+};
+const retiradaDe = (clase, x) => Object.entries(RETIRADAS).find(([, r]) => (/^Pantallas/.test(clase) && r.pantallas.includes(x)) || (/^Textos/.test(clase) && x.startsWith(`${r.modulo}.`)))?.[0];
+
+const faltan = (vivo, propuesto, clase = '') => [...vivo].filter((x) => !propuesto.has(x) && !(SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por)) && !retiradaDe(clase, x)).sort();
+const retiradas = (vivo, propuesto, clase) => [...vivo].filter((x) => !propuesto.has(x) && !(SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por)) && retiradaDe(clase, x)).sort();
+/* Para las pruebas: la regla, con texto de juguete. */
+export const _faltanEn = faltan;
 const sustituidas = (vivo, propuesto) => [...vivo].filter((x) => !propuesto.has(x) && SUSTITUIDAS[x] && propuesto.has(SUSTITUIDAS[x].por)).sort();
 const nuevas = (vivo, propuesto) => [...propuesto].filter((x) => !vivo.has(x)).sort();
 
@@ -85,7 +115,7 @@ export const comparar = () => {
   const exportadas = new Set(Object.entries(lib).filter(([, x]) => x && x.__endpoint).map(([k]) => k));
   const vivas = new Set(mapa.funciones.map((f) => f.funcion));
   const filas = [];
-  const fila = (clase, vivoTxt, vivo, propuesto) => filas.push({ clase, vivoTxt, vivo: vivo.size, propuesto: propuesto.size, faltan: faltan(vivo, propuesto), sustituidas: sustituidas(vivo, propuesto), nuevas: nuevas(vivo, propuesto) });
+  const fila = (clase, vivoTxt, vivo, propuesto) => filas.push({ clase, vivoTxt, vivo: vivo.size, propuesto: propuesto.size, faltan: faltan(vivo, propuesto, clase), retiradas: retiradas(vivo, propuesto, clase), sustituidas: sustituidas(vivo, propuesto), nuevas: nuevas(vivo, propuesto) });
 
   fila('Funciones', '34 vivas (ops/produccion.json)', vivas, exportadas);
   const pantallasPropuestas = pantallasDe(enArbol);
@@ -104,9 +134,9 @@ export const comparar = () => {
 
 export const enMarkdown = (filas, cabecera = '') => [
   cabecera,
-  '| Capacidad | Vivo (commit) | En producción | En el main propuesto | Se pierde | Sustituido por algo vivo | Nuevo |',
-  '|---|---|---|---|---|---|---|',
-  ...filas.map((f) => `| ${f.clase} | ${f.vivoTxt} | ${f.vivo} | ${f.propuesto} | ${f.faltan.length ? `**${f.faltan.length}**: ${f.faltan.slice(0, 12).join(', ')}${f.faltan.length > 12 ? '…' : ''}` : 'ninguna'} | ${f.sustituidas.length ? `${f.sustituidas.length} (${f.sustituidas.map((k) => `${k} → ${SUSTITUIDAS[k].por}`).join(', ')})` : '—'} | ${f.nuevas.length}${f.nuevas.length && f.nuevas.length <= 6 ? ` (${f.nuevas.join(', ')})` : ''} |`),
+  '| Capacidad | Vivo (commit) | En producción | En el main propuesto | Se pierde | Sustituido por algo vivo | Retirado por decisión (no en producción) | Nuevo |',
+  '|---|---|---|---|---|---|---|---|',
+  ...filas.map((f) => `| ${f.clase} | ${f.vivoTxt} | ${f.vivo} | ${f.propuesto} | ${f.faltan.length ? `**${f.faltan.length}**: ${f.faltan.slice(0, 12).join(', ')}${f.faltan.length > 12 ? '…' : ''}` : 'ninguna'} | ${f.sustituidas.length ? `${f.sustituidas.length} (${f.sustituidas.map((k) => `${k} → ${SUSTITUIDAS[k].por}`).join(', ')})` : '—'} | ${f.retiradas.length ? `${f.retiradas.length} (${[...new Set(f.retiradas.map((x) => retiradaDe(f.clase, x)))].join(', ')})` : '—'} | ${f.nuevas.length}${f.nuevas.length && f.nuevas.length <= 6 ? ` (${f.nuevas.join(', ')})` : ''} |`),
 ].join('\n');
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

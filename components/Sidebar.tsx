@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
+import { useDireccion } from '../hooks/useDireccion';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma, useT } from '../contexts/IdiomaContext';
@@ -73,6 +75,8 @@ const Opcion: React.FC<{
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, nested, onPress, right, marcaDeWeeAi }) => {
   const { theme } = useTheme();
+  /* En RTL, un nombre latino (Credits, WeeTalk, Weëls…) se alineaba a la izquierda y los árabes a la derecha: todos al inicio. */
+  const dir = useDireccion();
   /*
    * El icono toma el color del texto de SU fila, igual que en el cajón: es lo
    * que hace que el tema oscuro del Perfil Weë los vea claros sin tocar nada, y
@@ -107,7 +111,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, 
         <MarcaDeWeeAi
           size={nested ? 11 : 13}
           color={colorDeLaFila}
-          style={[styles.itemIcono, nested && styles.itemIconoNested, styles.marcaDeCredits]}
+          style={[styles.itemIcono, nested && styles.itemIconoNested, styles.marcaDeCredits, styles.marcaAncha]}
         />
       ) : icono === 'credits' ? (
         <MarcaDeCredits
@@ -125,7 +129,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, 
       ) : (
         <Text style={[styles.itemEmoji, nested && styles.itemEmojiNested]}>{emoji}</Text>
       )}
-      <Text style={[styles.itemLabel, nested && styles.itemLabelNested, { color: colorDeLaFila }]} numberOfLines={1}>
+      <Text style={[styles.itemLabel, nested && styles.itemLabelNested, dir.texto, { color: colorDeLaFila }]} numberOfLines={1}>
         {label}
       </Text>
       {right}
@@ -232,7 +236,7 @@ const Sidebar: React.FC = () => {
               {!user ? t('menu.tapToSignIn') : activeProfileType === 'hidi' ? t('menu.activeWee') : t('menu.activeReal')}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />
+          <IconoDireccional name="chevron-forward" size={18} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Menú: mismo orden y mismos grupos que el cajón */}
@@ -269,6 +273,7 @@ const Sidebar: React.FC = () => {
           */}
           <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
           <Opcion id="econtact" label={nombreLista} active={isActive('EContact')} onPress={() => (user ? navigation.navigate('EContact') : requireLogin())} />
+          <Opcion id="pages" active={isActive('WeePages')} onPress={() => (user ? navigation.navigate('WeePages') : requireLogin())} />
 
           <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
           <Text style={[styles.grupo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('menu.sectionExplore'))]}>{t('menu.sectionExplore')}</Text>
@@ -453,6 +458,12 @@ const styles = StyleSheet.create({
   },
   /* La marca ocupa el hueco del icono y se centra en él: las filas no se mueven. */
   marcaDeCredits: { textAlign: 'center' },
+  /*
+   * «ẄAI» son tres letras en un hueco hecho para dos: a 24 puntos se cortaba en «Ẅ…» en la barra de escritorio.
+   * Como en el cajón (DrawerMenu, `marcaAncha`), el hueco crece 8 y se los devuelve al hueco de después: la marca
+   * cabe entera y el nombre de la fila sigue empezando donde empiezan los demás.
+   */
+  marcaAncha: { width: 32, marginRight: -8 },
   /* Lo que todavía va con emoji: Buscar, y nada más. */
   itemEmoji: {
     fontSize: 18,

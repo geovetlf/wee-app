@@ -15,6 +15,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { notify } from '../utils/notify';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
@@ -683,7 +684,7 @@ const OnboardingScreen: React.FC = () => {
                   onPress={handleBack}
                   disabled={uploading}
                 >
-                  <Ionicons name="arrow-back" size={18} color={theme.colors.text} />
+                  <IconoDireccional name="arrow-back" size={18} color={theme.colors.text} />
                   <Text style={[styles.backButtonText, { color: theme.colors.text }]}>
                     {t('common.back')}
                   </Text>
@@ -712,7 +713,7 @@ const OnboardingScreen: React.FC = () => {
                     <Text style={styles.continueButtonText}>
                       {getButtonText()}
                     </Text>
-                    <Ionicons name={getButtonIcon()} size={18} color="#1F2937" />
+                    <IconoDireccional name={getButtonIcon()} size={18} color="#1F2937" />
                   </>
                 )}
               </TouchableOpacity>
@@ -750,7 +751,7 @@ const OnboardingScreen: React.FC = () => {
                 onPress={handleBack}
                 disabled={uploading}
               >
-                <Ionicons name="arrow-back" size={scale(20)} color={theme.colors.text} />
+                <IconoDireccional name="arrow-back" size={scale(20)} color={theme.colors.text} />
                 <Text style={[styles.backButtonText, { color: theme.colors.text }]}>
                   {t('common.back')}
                 </Text>
@@ -779,7 +780,7 @@ const OnboardingScreen: React.FC = () => {
                   <Text style={styles.continueButtonText}>
                     {getButtonText()}
                   </Text>
-                  <Ionicons name={getButtonIcon()} size={scale(20)} color="#1F2937" />
+                  <IconoDireccional name={getButtonIcon()} size={scale(20)} color="#1F2937" />
                 </>
               )}
             </TouchableOpacity>

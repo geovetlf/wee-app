@@ -40,8 +40,8 @@ const EN = textosDe('en');
 
 /* El traductor REAL de la app, con la cadena de respaldo sustituida. */
 const { crearTraductor } = await cargar('i18n/traducir.ts', (s) => s
-  .replace("import { cadenaDeRespaldo } from './resolver';",
-    "const cadenaDeRespaldo = (l) => (l.startsWith('es') ? ['es', 'en'] : ['en']);")
+  .replace("import { cadenaDeClaves } from './resolver';",
+    "const cadenaDeClaves = (l) => (l.startsWith('es') ? ['es', 'en'] : ['en']);")
   /* Desde la fase 5O el traductor escribe los números con Intl. Se le pone el
    * mismo formateador que usa de verdad, no uno de mentira: si no, esta prueba
    * estaría probando un traductor que no formatea y el de la app sí. */

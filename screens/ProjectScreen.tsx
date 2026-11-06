@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
@@ -13,6 +14,7 @@ import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, ClosingBanner } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -122,6 +124,7 @@ const ProjectScreen: React.FC = () => {
                     accessibilityLabel={t('weeai.projectName')}
                   />
                   <TouchableOpacity onPress={saveName} style={[styles.smallButton, { backgroundColor: theme.colors.accent }]} accessibilityLabel={t('projects.saveName')}>
+                    <RellenoDeMarca radio={BORDER_RADIUS.full} />
                     <Text style={styles.smallButtonText}>{t('common.save')}</Text>
                   </TouchableOpacity>
                 </View>
@@ -166,7 +169,7 @@ const ProjectScreen: React.FC = () => {
                         {exp?.name ?? 'Weë'} · {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+                    <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
                 );
               })

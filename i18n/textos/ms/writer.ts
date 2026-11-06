@@ -1,0 +1,43 @@
+/*
+ * MALAYO — Weë Writer, dentro de Weë Studio. El texto que escribe la persona NUNCA pasa por aquí: solo las herramientas que lo trabajan.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ */
+export const writer: typeof import('../es/writer').writer = {
+  askWee: 'Minta Weë',
+  writeSomethingFirst: 'Tulis sesuatu dahulu',
+  writeSomethingHint: 'Tulis sesuatu dahulu dan Weë akan mengusahakannya bersama anda.',
+  save: 'Simpan',
+  saving: 'Menyimpan…',
+  deleteDocument: 'Padam dokumen',
+  improve: 'Perbaiki',
+  improveGoal: 'Perbaiki teks ini',
+  shorten: 'Pendekkan',
+  shortenGoal: 'Pendekkan teks ini tanpa menghilangkan perkara penting',
+  expand: 'Panjangkan',
+  expandGoal: 'Kembangkan lagi teks ini',
+  fix: 'Betulkan',
+  fixGoal: 'Betulkan ejaan dan gaya teks ini',
+  tone: 'Tukar nada',
+  toneGoal: 'Tulis semula teks ini dengan nada yang lain',
+  summarize: 'Ringkaskan',
+  summarizeGoal: 'Ringkaskan teks ini kepada idea utama',
+  translate: 'Terjemah',
+  translateGoal: 'Terjemahkan teks ini',
+  words_one: '{{contador}} perkataan',
+  words_other: '{{contador}} perkataan',
+  savedInDocuments: ' · disimpan dalam Dokumen Saya',
+  couldNotSaveToDocuments: 'Tidak dapat menyimpan ke Dokumen Saya',
+  myDocuments: 'Dokumen Saya',
+  newDocument: 'Dokumen baharu',
+  noDocumentsYet: 'Anda belum mempunyai dokumen. Tulis yang baharu atau minta Weë memulakannya untuk anda.',
+  editedWhen: 'Disunting {{cuando}}',
+  titleLabel: 'Tajuk dokumen',
+  bodyLabel: 'Teks dokumen',
+  editorTitle: '✍️ Editor',
+  docTitlePlaceholder: 'Tajuk dokumen',
+  bodyPlaceholder: 'Tulis di sini. Bila-bila masa, minta Weë memperbaikinya, membetulkannya atau menterjemahkannya.',
+  resultHint: 'Weë mengusahakan apa yang anda tulis dan memulangkan hasilnya di sini, sedia untuk terus disunting.',
+  weeWorksWithYou: 'Weë mengusahakannya bersama anda.',
+  saved: '✓ Disimpan',
+};

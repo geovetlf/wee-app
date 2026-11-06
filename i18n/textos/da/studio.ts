@@ -402,4 +402,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: 'Jeg stoppede kreationen. Du får de reserverede Credits tilbage på din saldo.',
   worldUploadFailed: 'Jeg kunne ikke uploade dit foto. Prøv igen.',
   worldDailyLimit: 'Du har brugt dagens 3D-verdener. Hvis en ikke bliver til noget, får du den tilbage, og de fornyes hver dag.',
+  filmmakerCardTitle: 'Instruer din film',
+  filmmakerCardSub: 'Scener, optagelser og kamerabevægelser, med instruktionen i dine hænder.',
+  filmmakerCardCta: 'Åbn værktøjet Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'Skab',
+  heroAccent: 'uden grænser.',
+  quickTitle: 'Hurtig oprettelse',
+  filmmakerEngineSub: 'Skab, instruér og klip dine film med AI.',
+  projectsTitle: 'Projekter',
 };

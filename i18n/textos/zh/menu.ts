@@ -27,6 +27,7 @@ export const menu: typeof import('../es/menu').menu = {
   createWeeProfile: '创建我的 Weë 主页',
   credits: 'Credits',
   econtact: 'ËContact',
+  pages: 'WeëPages',
   wcontact: 'ËContact',
   communities: '社区',
   weels: 'Weëls',

@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -851,7 +852,7 @@ const ProfileScreen: React.FC = () => {
               onPress={handleShareProfile}
               activeOpacity={0.8}
             >
-              <Ionicons name="arrow-redo-outline" size={18} color={theme.colors.text} />
+              <IconoDireccional name="arrow-redo-outline" size={18} color={theme.colors.text} />
               <Text style={[styles.shareButtonText, { color: theme.colors.text }]}>{t('common.share')}</Text>
             </TouchableOpacity>
             <TouchableOpacity

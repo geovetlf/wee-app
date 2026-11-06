@@ -11,6 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -191,7 +192,7 @@ const CommunitiesManagementScreen: React.FC = () => {
             <Ionicons
               name={item.icon as any || 'people'}
               size={24}
-              color={theme.colors.accent}
+              color={theme.colors.text}
             />
           </View>
         )}
@@ -202,9 +203,9 @@ const CommunitiesManagementScreen: React.FC = () => {
               {nombreDeComunidad(item, t, locale)}
             </Text>
             {item.isOfficial && (
-              <View style={[styles.officialBadge, { backgroundColor: theme.colors.accent + '20' }]}>
-                <Ionicons name="checkmark-circle" size={12} color={theme.colors.accent} />
-                <Text style={[styles.officialText, { color: theme.colors.accent }]}>{t('communities.official')}</Text>
+              <View style={[styles.officialBadge, { backgroundColor: theme.colors.surface }]}>
+                <Ionicons name="checkmark-circle" size={12} color={theme.colors.text} />
+                <Text style={[styles.officialText, { color: theme.colors.text }]}>{t('communities.official')}</Text>
               </View>
             )}
           </View>
@@ -227,24 +228,24 @@ const CommunitiesManagementScreen: React.FC = () => {
             styles.joinButton,
             isJoined
               ? { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1 }
-              : { backgroundColor: theme.colors.accent }
+              : { backgroundColor: theme.colors.text }
           ]}
           onPress={() => handleToggleCommunity(item)}
           disabled={isToggling}
           activeOpacity={0.7}
         >
           {isToggling ? (
-            <ActivityIndicator size="small" color={isJoined ? theme.colors.text : 'white'} />
+            <ActivityIndicator size="small" color={isJoined ? theme.colors.text : theme.colors.background} />
           ) : (
             <>
               <Ionicons
                 name={isJoined ? 'checkmark' : 'add'}
                 size={16}
-                color={isJoined ? theme.colors.text : 'white'}
+                color={isJoined ? theme.colors.text : theme.colors.background}
               />
               <Text style={[
                 styles.joinButtonText,
-                { color: isJoined ? theme.colors.text : 'white' }
+                { color: isJoined ? theme.colors.text : theme.colors.background }
               ]}>
                 {t(isJoined ? 'communities.memberOf' : 'communities.join')}
               </Text>
@@ -286,7 +287,7 @@ const CommunitiesManagementScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <ActivityIndicator size="large" color={theme.colors.text} />
         <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
           {t('communities.loading')}
         </Text>
@@ -307,18 +308,18 @@ const CommunitiesManagementScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           {t('menu.communities')}
         </Text>
         <TouchableOpacity
-          style={[styles.createCommunityBtn, { backgroundColor: theme.colors.accent }]}
+          style={[styles.createCommunityBtn, { backgroundColor: theme.colors.text }]}
           onPress={() => setShowCreateModal(true)}
           activeOpacity={0.7}
           accessibilityLabel={t('communities.create')}
         >
-          <Ionicons name="add" size={20} color="#1F2937" />
+          <Ionicons name="add" size={20} color={theme.colors.background} />
         </TouchableOpacity>
       </View>
 
@@ -374,8 +375,8 @@ const CommunitiesManagementScreen: React.FC = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.accent}
-            colors={[theme.colors.accent]}
+            tintColor={theme.colors.text}
+            colors={[theme.colors.text]}
           />
         }
         ListEmptyComponent={

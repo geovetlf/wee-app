@@ -1,0 +1,52 @@
+/*
+ * CATALÁN — Credits: el saldo, la recarga y el historial. «Credits» es marca y nunca «crèdits».
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Ni los precios ni los cálculos pasan por aquí; «IA» es sigla invariable («les seves IA»).
+ */
+export const credits: typeof import('../es/credits').credits = {
+  title: 'Credits',
+  available: 'Credits disponibles',
+  yourBalance: 'El teu saldo',
+  currentBalance: 'Saldo actual',
+  free: 'Gratuït',
+  testTopUp: 'Recàrrega de prova',
+  testTopUpReady: 'Recàrrega de prova a punt',
+  testPrices: 'Preus de prova mentre construïm Weë AI',
+  topUp: 'Recarrega',
+  seeHistory: 'Mostra l\'historial →',
+  seeHistoryLabel: 'Mostra l\'historial',
+  history: 'Historial',
+  myWallet: 'La meva cartera',
+  earned: 'Obtinguts',
+  spent: 'Gastats',
+  noMovements: 'Encara no hi ha moviments',
+  testTopUpDone: '{{cantidad}} Credits afegits al teu compte. És una recàrrega de prova: no s\'ha cobrat res.',
+  balanceAfter: 'Saldo: {{saldo}}',
+  topUpFailed: 'No s\'ha pogut completar la recàrrega. Torna-ho a provar.',
+  terms: 'Recàrrega de prova: encara no es cobra res. Els preus definitius arribaran quan Weë AI faci servir les seves IA reals; mentrestant, cada creació mostra el seu cost de prova abans de començar.',
+  youHaveLabel: 'Tens {{saldo}} Credits',
+  topUpButton: 'Recarrega {{cantidad}} Credits · prova',
+  txPurchase: 'Compra de Credits',
+  txGrant: 'Credits rebuts',
+  txRefund: 'Reemborsament',
+  txUsage: 'Ús de Credits',
+  txRefunded: 'Reemborsat',
+  txPending: 'En procés',
+  purchasesComingSoon: 'Les compres de Credits arribaran aviat. De moment no es poden fer recàrregues aquí.',
+  topUpFailedTitle: 'Vaja!',
+  /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
+  buyTitle: 'Quants Credits vols?',
+  buyRate: '{{precio}} = {{cantidad}} Credits',
+  buyButton: 'Compra {{cantidad}} Credits · {{precio}}',
+  buyLess: 'Menys',
+  buyMore: 'Més',
+  buyNoticeTitle: 'Els pagaments encara no estan connectats',
+  buyNoticeBody: 'No s\'ha cobrat res i el teu saldo continua igual.',
+  buyChecking: 'S\'està consultant la botiga…',
+  buyCatalogError: 'No s\'ha pogut consultar la botiga. Toca per tornar-ho a provar.',
+  buyMarketUnavailable: 'Els pagaments en aquesta moneda encara no estan disponibles. No s\'ha cobrat res.',
+  historyLoading: 'S\'estan carregant els moviments…',
+  historyError: 'No s\'ha pogut carregar l\'historial.',
+  historyRetry: 'Torna-ho a provar',
+};

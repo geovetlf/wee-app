@@ -81,7 +81,8 @@ console.log('\n── A · El nombre visible es Weë AI ──');
   check('2) y las pantallas que lo llevan encima, también', sinRenombrar.length === 0, sinRenombrar.join(' · '));
 
   /* Los atajos que llevan hasta ahí. */
-  check('3) el atajo de la hoja Crear', new RegExp(`>${NUEVO} ›<`).test(leer('components/CreateSheet.tsx')));
+  /* RTL (2026-11-04): el cheurón sale de dir.flecha.siguiente (› en LTR, ‹ en RTL); la marca se sigue mirando igual. */
+  check('3) el atajo de la hoja Crear', new RegExp(`>${NUEVO} \\{dir\\.flecha\\.siguiente\\}<`).test(leer('components/CreateSheet.tsx')));
   /*
    * LA TARJETA DE LA COLUMNA DERECHA no lleva texto: lleva claves, desde la
    * fase 5C. Se mira la clave Y la frase, en los dos idiomas, porque el nombre
@@ -113,8 +114,14 @@ console.log('\n── A · El nombre visible es Weë AI ──');
   check('4) los Credits hablan de Weë AI',
     (leer('i18n/textos/es/credits.ts').match(new RegExp(NUEVO, 'g')) || []).length === 2
     && (leer('i18n/textos/en/credits.ts').match(new RegExp(NUEVO, 'g')) || []).length === 2
-    && /t\('credits\.testPrices'\)/.test(leer('screens/CreditStoreScreen.tsx'))
-    && /t\('credits\.terms'\)/.test(leer('screens/CreditStoreScreen.tsx')));
+    /*
+     * 2026-11-04: la tienda es la de la demo YC (compra por importe). Ya no enseña «Precios de prueba…» ni la
+     * letra pequeña de la recarga de prueba —la demo no los tiene—; en su sitio dice el lema de Weë AI. Las
+     * dos menciones siguen contadas arriba en los diccionarios; aquí se fija lo que la pantalla dice ahora,
+     * por su clave, y que las dos frases viejas no han vuelto a la tienda.
+     */
+    && /t\('weeai\.theMotto'\)/.test(leer('components/tienda/CompraPorImporte.tsx'))
+    && !/t\('credits\.(testPrices|terms)'\)/.test(leer('components/tienda/CompraPorImporte.tsx') + leer('screens/CreditStoreScreen.tsx')));
   /* Los errores del servicio ya no llevan la frase dentro: llevan su clave, y
    * la frase —con la sección bien escrita— está en los dos diccionarios. */
   check('4) los errores del servicio, también',

@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "A Weë hozzáférést kér a kamerádhoz, hogy fotókat készíthess a bejegyzéseidhez, a profilodhoz, a WeeTalk-hoz és a Weë AI-hoz.",
+    "NSMicrophoneUsageDescription": "A Weë-nek hozzá kell férnie a mikrofonodhoz, hogy zenei ötleteket, dúdolt dallamokat, saját énekes referenciákat és hangüzeneteket vehess fel. A hangot csak akkor használjuk, ha te úgy döntesz.",
+    "NSPhotoLibraryUsageDescription": "A Weë hozzáférést kér a fotóidhoz, hogy fotókat és videókat választhass a bejegyzéseidhez, a profilodhoz, a WeeTalk-hoz és a Weë AI-hoz.",
+    "NSPhotoLibraryAddUsageDescription": "A Weë engedélyt kér, hogy a Weë AI által készített képeket és videókat a fotóid közé mentse, amikor letöltöd őket.",
+    "NSLocationWhenInUseUsageDescription": "A Weë a hozzávetőleges helyzetedet használja, hogy közeli helyeket és a környékedet javasolja, amikor helyet adsz egy bejegyzéshez – csak amíg az app nyitva van. A pontos helyzeted soha nem jelenik meg nyilvánosan."
+  }
+}

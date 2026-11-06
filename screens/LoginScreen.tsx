@@ -218,7 +218,7 @@ const LoginScreen: React.FC = () => {
             {/* Logo y título */}
             <View style={styles.header}>
               <Image
-                source={require('../assets/images/weelogo-vertical.png')}
+                source={require('../assets/images/weelogo.png')}
                 style={styles.logo}
                 resizeMode="contain"
               />
@@ -361,9 +361,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 28,
   },
+  /* El logotipo horizontal, con «Weë» en gris oscuro: el vertical lleva la palabra en blanco y sobre este fondo blanco no se veía. */
   logo: {
-    width: 120,
-    height: 120,
+    width: 180,
+    height: 53,
     marginBottom: 16,
   },
   title: {
@@ -462,6 +463,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   googleButton: {
+    /* gap y no marginRight en el icono: el margen no se refleja en RTL y el icono quedaba pegado al texto. */
+    gap: 10,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -475,7 +478,6 @@ const styles = StyleSheet.create({
   googleLogo: {
     width: 17,
     height: 17,
-    marginRight: 10,
   },
   googleButtonText: {
     color: '#1F2937',
@@ -483,6 +485,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   anonymousButton: {
+    /* gap y no marginRight en el icono: el margen no se refleja en RTL y el icono quedaba pegado al texto. */
+    gap: 10,
     backgroundColor: '#F9FAFB',
     borderRadius: 10,
     padding: 12,
@@ -494,7 +498,6 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   anonymousIcon: {
-    marginRight: 10,
   },
   anonymousButtonText: {
     color: '#1F2937',

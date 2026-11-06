@@ -1,0 +1,43 @@
+/*
+ * VIETNAMITA — Weë Writer: el editor de documentos.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ */
+export const writer: typeof import('../es/writer').writer = {
+  askWee: 'Nhờ Weë',
+  writeSomethingFirst: 'Hãy viết gì đó trước',
+  writeSomethingHint: 'Hãy viết gì đó trước và Weë sẽ cùng bạn hoàn thiện.',
+  save: 'Lưu',
+  saving: 'Đang lưu…',
+  deleteDocument: 'Xóa tài liệu',
+  improve: 'Cải thiện',
+  improveGoal: 'Cải thiện văn bản này',
+  shorten: 'Rút gọn',
+  shortenGoal: 'Rút gọn văn bản này mà không mất ý quan trọng',
+  expand: 'Mở rộng',
+  expandGoal: 'Phát triển thêm văn bản này',
+  fix: 'Sửa lỗi',
+  fixGoal: 'Sửa chính tả và văn phong của văn bản này',
+  tone: 'Đổi giọng văn',
+  toneGoal: 'Viết lại văn bản này với giọng văn khác',
+  summarize: 'Tóm tắt',
+  summarizeGoal: 'Tóm tắt văn bản này thành các ý chính',
+  translate: 'Dịch',
+  translateGoal: 'Dịch văn bản này',
+  words_one: '{{contador}} từ',
+  words_other: '{{contador}} từ',
+  savedInDocuments: ' · đã lưu vào Tài liệu của tôi',
+  couldNotSaveToDocuments: 'Không thể lưu vào Tài liệu của tôi',
+  myDocuments: 'Tài liệu của tôi',
+  newDocument: 'Tài liệu mới',
+  noDocumentsYet: 'Bạn chưa có tài liệu nào. Hãy viết một tài liệu mới hoặc nhờ Weë bắt đầu giúp bạn.',
+  editedWhen: 'Đã chỉnh sửa {{cuando}}',
+  titleLabel: 'Tiêu đề tài liệu',
+  bodyLabel: 'Nội dung tài liệu',
+  editorTitle: '✍️ Trình soạn thảo',
+  docTitlePlaceholder: 'Tiêu đề tài liệu',
+  bodyPlaceholder: 'Viết ở đây. Khi nào muốn, hãy nhờ Weë cải thiện, sửa lỗi hoặc dịch nó.',
+  resultHint: 'Weë xử lý những gì bạn đã viết và trả kết quả về đây, sẵn sàng để bạn tiếp tục chỉnh sửa.',
+  weeWorksWithYou: 'Weë cùng bạn hoàn thiện.',
+  saved: '✓ Đã lưu',
+};

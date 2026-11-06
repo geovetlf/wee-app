@@ -17,6 +17,7 @@ import { RejillaDeCreaciones } from '../components/creator/RejillaDeCreaciones';
 import { confirmAction, notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /**
  * MIS CREACIONES — la biblioteca de material de la CUENTA.
@@ -198,6 +199,7 @@ const MisCreacionesScreen: React.FC = () => {
           <View style={[styles.box, { backgroundColor: theme.colors.card, borderColor: theme.colors.error }]}>
             <Text style={[styles.boxTitle, { color: theme.colors.text }]}>{t('creaciones.loadFailed')}</Text>
             <TouchableOpacity onPress={cargar} style={[styles.button, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85}>
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.buttonText}>{t('creaciones.retry')}</Text>
             </TouchableOpacity>
           </View>
@@ -211,6 +213,7 @@ const MisCreacionesScreen: React.FC = () => {
               <>
                 <Text style={[styles.boxText, { color: theme.colors.textSecondary }]}>{t('creaciones.emptyText')}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('WeeCreator')} style={[styles.button, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85}>
+                  <RellenoDeMarca radio={BORDER_RADIUS.full} />
                   <Text style={styles.buttonText}>{t('creaciones.emptyAction')}</Text>
                 </TouchableOpacity>
               </>

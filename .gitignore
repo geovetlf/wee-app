@@ -105,3 +105,6 @@ ops/harness/.cache/
 # Salidas de la CI cuando se ejecuta en local (scripts/ci-local.mjs): el informe de la revisión determinista y los registros de políticas.
 /revision-determinista.md
 /politica-*.log
+
+# Medios de la demo (docs/WEE-DEMO.md): no se versionan
+demo-medios/

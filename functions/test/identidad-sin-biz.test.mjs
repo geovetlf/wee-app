@@ -157,28 +157,16 @@ console.log('\n── D · WEË BUSINESS SIGUE ENTERO ──');
   check('20) y los seguidores del negocio, que son otra colección',
     /match \/businessFollows\/\{followId\} \{/.test(reglas));
 
-  /* Las pantallas y el servicio, intactos. */
-  const PANTALLAS = ['WeeBizScreen', 'WeeBizProfileScreen', 'WeeBizRegisterScreen',
-    'WeeBizProductsScreen', 'WeeBizCategoryScreen'];
-  const faltan = PANTALLAS.filter((p) => !fs.existsSync(new URL(`../../screens/${p}.tsx`, import.meta.url)));
-  check('21) las cinco pantallas de Weë Business siguen existiendo', faltan.length === 0, faltan.join(' '));
-  check('22) y su servicio también',
-    fs.existsSync(new URL('../../services/weeBizService.ts', import.meta.url)));
-
   /*
-   * 23 · EL SEGUIMIENTO DE UN NEGOCIO NO ERA LA IDENTIDAD. Vive en
-   * `businessFollows`, y el `_biz_` de su id es un separador, no el prefijo
-   * de un uid. Se queda tal cual.
+   * 21-24 · El directorio WeeBiz (pantallas, servicio, catálogo y la fila del menú) retirado por decisión del dueño el 2026-11-03: era del proyecto antiguo.
+   * Las reglas de arriba se quedan: hay datos guardados y retirarlas exige otra decisión.
    */
-  const PERFIL_NEGOCIO = leer('screens/WeeBizProfileScreen.tsx');
-  check('23) seguir un negocio se sigue guardando en businessFollows',
-    /doc\(db, 'businessFollows', followId\)/.test(PERFIL_NEGOCIO)
-    && /\$\{activeUid\}_biz_\$\{businessId\}/.test(PERFIL_NEGOCIO));
-
-  /* 24 · Y el cajón sigue llevando al negocio de quien lo tiene. */
+  const PANTALLAS = ['WeeBizScreen', 'WeeBizProfileScreen', 'WeeBizRegisterScreen', 'WeeBizProductsScreen', 'WeeBizCategoryScreen'];
+  const quedan = PANTALLAS.filter((p) => fs.existsSync(new URL(`../../screens/${p}.tsx`, import.meta.url)));
+  check('21) las cinco pantallas de WeeBiz se retiraron', quedan.length === 0, quedan.join(' '));
+  check('22) y su servicio también', !fs.existsSync(new URL('../../services/weeBizService.ts', import.meta.url)));
   const CAJON = soloCodigo(leer('components/DrawerMenu.tsx'));
-  check('24) el menú sigue llevando al negocio propio',
-    /navigation\.navigate\('WeeBizProfile', \{ businessId: myBusiness\.id \}\)/.test(CAJON));
+  check('24) el menú ya no lleva a ningún negocio', !/WeeBiz|myBusiness|weeBizService/.test(CAJON));
 }
 
 // ════════════════════════════════════════════════════════════════════════════

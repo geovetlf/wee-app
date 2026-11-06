@@ -1,0 +1,65 @@
+/*
+ * JEMER — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
+ * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * Los ejemplos son frases de quien escribe en la caja, en primera persona
+ * («របស់ខ្ញុំ»). «Beauty» se queda en latino dentro de «Weë Studio · Beauty»,
+ * como el molde; «Hogar & Diseño» es «ផ្ទះ & ការរចនា». «CV» e «Instagram» se
+ * quedan en latino. Las listas separan los elementos con espacio, no con
+ * coma (guía § 2). Entre palabras va ZWSP (U+200B).
+ */
+export const creator: typeof import('../es/creator').creator = {
+  design: 'ឡូហ្គោ ផ្ទាំង​រូបភាព រូបគំនូរ និង​សម្ភារៈ​សម្រាប់​បណ្តាញ​សង្គម​របស់អ្នក',
+  studio: 'បង្កើត​និង​បំប្លែង​រូបថត​និង​វីដេអូ​ជាមួយ AI។',
+  photo: 'កែលម្អ ស្តារ និង​បំប្លែង​រូបថត​របស់អ្នក',
+  writer: 'សារបង្ហោះ រឿង អត្ថបទរឿង អ៊ីមែល និង​សៀវភៅ',
+  music: 'បទចម្រៀង តន្ត្រី​ឧបករណ៍ សំឡេង និង​ការនិទាន',
+  beauty: 'ការតុបតែង​មុខ សក់ ពុកចង្កា ការស្លៀកពាក់ និង​ការប្តូរ​រូបរាង',
+  chef: 'មេចុងភៅ​ផ្ទាល់ខ្លួន​របស់អ្នក៖ ចម្អិន​អ្វី រូបមន្ត និង​ម៉ឺនុយ',
+  home: 'ការតុបតែង ការរចនា​ខាងក្នុង ការកែលម្អ​ផ្ទះ និង​សួន',
+  business: 'ម៉ូដ ស្ទីល សម្រស់ និង​ការបង្កើត​មាតិកា​ជា​រូបភាព។',
+  travel: 'រៀបចំ​ដំណើរ​របស់អ្នក៖ ទៅណា ធ្វើអ្វី និង​ធ្វើដំណើរ​យ៉ាងដូចម្តេច',
+  brain: 'មិន​ដឹង​ចាប់ផ្តើម​ពី​ណា? សួរ Weë',
+  designEx1: 'ឡូហ្គោ​សម្រាប់​អាជីវកម្ម​របស់ខ្ញុំ',
+  designEx2: 'សារបង្ហោះ​សម្រាប់ Instagram',
+  designEx3: 'គម្រប​សៀវភៅ​របស់ខ្ញុំ',
+  studioEx1: 'វីដេអូ​ផ្សព្វផ្សាយ​ភោជនីយដ្ឋាន​របស់ខ្ញុំ',
+  studioEx2: 'បំប្លែង​រូបថត​របស់ខ្ញុំ​ទៅជា​វីដេអូ',
+  studioEx3: 'Weël ជាមួយ​ផលិតផល​របស់ខ្ញុំ',
+  photoEx1: 'កែលម្អ​គុណភាព​រូបថត',
+  photoEx2: 'ដក​អ្វី​ដែល​លើស​ចេញពី​រូបថត',
+  photoEx3: 'ប្តូរ​ផ្ទៃខាងក្រោយ​រូបថត​របស់ខ្ញុំ',
+  writerEx1: 'អត្ថបទរឿង​សម្រាប់​វីដេអូ​របស់ខ្ញុំ',
+  writerEx2: 'អ៊ីមែល​ទៅ​អតិថិជន',
+  writerEx3: 'កែ​អត្ថបទ​របស់ខ្ញុំ',
+  musicEx1: 'ភ្លេង​ខ្លី​សម្រាប់​ម៉ាក​របស់ខ្ញុំ',
+  musicEx2: 'តន្ត្រី​ផ្ទៃខាងក្រោយ​សម្រាប់​វីដេអូ​របស់ខ្ញុំ',
+  musicEx3: 'បំប្លែង​អត្ថបទ​របស់ខ្ញុំ​ទៅជា​សំឡេង',
+  beautyEx1: 'តើ​ខ្ញុំ​នឹង​មើលទៅ​យ៉ាងណា​ជាមួយ​សក់វែង',
+  beautyEx2: 'រូបរាង​សម្រាប់​ពិធីជប់លៀង',
+  beautyEx3: 'សាកល្បង​ពណ៌សក់​ផ្សេង',
+  chefEx1: 'រូបមន្ត​ជាមួយ​អ្វី​ដែល​ខ្ញុំ​មាន​នៅផ្ទះ',
+  chefEx2: 'ម៉ឺនុយ​ប្រចាំ​សប្តាហ៍​ល្អ​ដល់​សុខភាព',
+  chefEx3: 'មិនដឹង​ចម្អិន​អ្វី​ថ្ងៃនេះ',
+  homeEx1: 'តើ​បន្ទប់​ទទួលភ្ញៀវ​របស់ខ្ញុំ​នឹង​មើលទៅ​យ៉ាងណា​ជាមួយ​ស្ទីល​ផ្សេង',
+  homeEx2: 'គំនិត​តុបតែង​បន្ទប់​របស់ខ្ញុំ',
+  homeEx3: 'សួន​តូច​សម្រាប់​ទីធ្លា​របស់ខ្ញុំ',
+  businessEx1: 'ផែនការ​សម្រាប់​អាជីវកម្ម​ថ្មី​របស់ខ្ញុំ',
+  businessEx2: 'CV ដែល​បាន​ធ្វើ​បច្ចុប្បន្នភាព​របស់ខ្ញុំ',
+  businessEx3: 'បទបង្ហាញ​សម្រាប់​អ្នកវិនិយោគ',
+  travelEx1: 'ជប៉ុន​ក្នុង​ខែតុលា',
+  travelEx2: 'ខ្ញុំ​ចង់បាន​ឆ្នេរ​ស្ងប់ស្ងាត់​និង​ថោក',
+  travelEx3: 'មិនដឹង​ទៅ​ធ្វើដំណើរ​នៅឯណា',
+  brainEx1: 'មិនដឹង​ចាប់ផ្តើម​ពីណា',
+  brainEx2: 'ពន្យល់​ខ្ញុំ​រឿងនេះ​ឱ្យ​ងាយយល់',
+  brainEx3: 'បកប្រែ​អត្ថបទ​នេះ',
+  areaStudioPhotos: 'Weë Studio · រូបថត',
+  areaStudioVideos: 'Weë Studio · វីដេអូ',
+  areaStudioBeauty: 'Weë Studio · Beauty',
+  areaDesignHome: 'Weë Design · ផ្ទះ & ការរចនា',
+  areaHomeName: 'ផ្ទះ & ការរចនា',
+  tellTheSpecialist: 'ប្រាប់ {{especialista}} ថា​អ្នក​ចង់​សម្រេច​អ្វី៖ វា​នឹង​សួរ​អ្នក​សំណួរ​សាមញ្ញ​ពីរបី ហើយ​ធ្វើ​អ្វី​ដែល​នៅសល់​ទាំងអស់។ បន្ទាប់មក អ្នក​បង្ហោះ​ដោយផ្ទាល់​ក្នុង​សហគមន៍​របស់អ្នក។',
+  exampleQuoted: '“{{ejemplo}}”',
+};

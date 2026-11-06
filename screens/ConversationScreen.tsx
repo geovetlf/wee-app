@@ -18,6 +18,7 @@ import {
 import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
@@ -570,7 +571,7 @@ const ConversationScreen = () => {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: chatTheme.headerBackground, borderColor: chatTheme.headerBackground, paddingTop: insets.top + SPACING.md }]}>
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-          <Ionicons name="chevron-back" size={26} color={chatTheme.headerText} />
+          <IconoDireccional name="chevron-back" size={26} color={chatTheme.headerText} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.headerUser} activeOpacity={0.7}>
@@ -663,7 +664,7 @@ const ConversationScreen = () => {
               ))}
             </View>
             <TouchableOpacity onPress={stopRecording} style={styles.recordingStopBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-              <Ionicons name="send" size={18} color="#fff" />
+              <IconoDireccional name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         ) : (
@@ -685,7 +686,7 @@ const ConversationScreen = () => {
               />
               {text.trim() ? (
                 <TouchableOpacity onPress={send} disabled={sending} style={[styles.sendBtn, { backgroundColor: chatTheme.accent }]} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <Ionicons name="send" size={16} color={chatTheme.accentText} />}
+                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <IconoDireccional name="send" size={16} color={chatTheme.accentText} />}
                 </TouchableOpacity>
               ) : (
                 <View style={styles.inputActions}>
@@ -740,7 +741,7 @@ const ConversationScreen = () => {
               ))}
             </View>
             <TouchableOpacity onPress={stopRecording} style={styles.recordingStopBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-              <Ionicons name="send" size={18} color="#fff" />
+              <IconoDireccional name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         ) : (
@@ -762,7 +763,7 @@ const ConversationScreen = () => {
               />
               {text.trim() ? (
                 <TouchableOpacity onPress={send} disabled={sending} style={[styles.sendBtn, { backgroundColor: chatTheme.accent }]} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <Ionicons name="send" size={16} color={chatTheme.accentText} />}
+                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <IconoDireccional name="send" size={16} color={chatTheme.accentText} />}
                 </TouchableOpacity>
               ) : (
                 <View style={styles.inputActions}>
@@ -806,7 +807,7 @@ const ConversationScreen = () => {
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.previewSendBtn, { backgroundColor: chatTheme.accent }]} onPress={confirmSendImage} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-              <Ionicons name="send" size={22} color={chatTheme.accentText} />
+              <IconoDireccional name="send" size={22} color={chatTheme.accentText} />
             </TouchableOpacity>
           </View>
         </View>

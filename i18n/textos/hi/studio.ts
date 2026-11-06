@@ -397,4 +397,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: 'मैंने इसे बनाना रोक दिया. रिज़र्व किए गए Credits आपके बैलेंस में वापस आ जाएँगे.',
   worldUploadFailed: 'आपकी फ़ोटो अपलोड नहीं की जा सकी. फिर से कोशिश करें.',
   worldDailyLimit: 'आपने आज के 3D वर्ल्ड इस्तेमाल कर लिए हैं. अगर कोई नहीं बन पाता, तो वह आपको वापस मिल जाता है, और ये हर दिन फिर से मिलते हैं.',
+  filmmakerCardTitle: 'अपनी फ़िल्म निर्देशित करें',
+  filmmakerCardSub: 'दृश्य, शॉट और कैमरा मूवमेंट, निर्देशन आपके हाथ में.',
+  filmmakerCardCta: 'Filmmaker खोलें',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'बिना किसी सीमा के',
+  heroAccent: 'बनाएँ.',
+  quickTitle: 'झटपट बनाएँ',
+  filmmakerEngineSub: 'AI के साथ अपनी फ़िल्में बनाएँ, निर्देशित करें और एडिट करें.',
+  projectsTitle: 'प्रोजेक्ट',
 };

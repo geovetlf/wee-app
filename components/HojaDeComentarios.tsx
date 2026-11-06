@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
@@ -238,7 +239,7 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
               {enviando ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Ionicons name="send" size={ICON_SIZE.sm} color={puedeEnviar ? '#FFFFFF' : theme.colors.textSecondary} />
+                <IconoDireccional name="send" size={ICON_SIZE.sm} color={puedeEnviar ? '#FFFFFF' : theme.colors.textSecondary} />
               )}
             </TouchableOpacity>
           </View>

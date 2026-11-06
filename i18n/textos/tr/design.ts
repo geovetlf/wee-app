@@ -107,12 +107,24 @@ export const design: typeof import('../es/design').design = {
   valStudioLight: 'Stüdyo ışığı',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: 'Ürün',
   kindInterior: 'İç mekân',
   kindArchitecture: 'Mimari',
   kindBoat: 'Tekne',
   kindFurniture: 'Mobilya',
+  sampleShoe: 'Deri spor ayakkabı',
+  sampleGuitar: 'Elektro gitar',
   sampleLivingRoom: 'Aydınlık salon',
   samplePineHouse: 'Çamlar arasında ev',
   sampleYacht: '15 metrelik yat',
   sampleArmchair: 'Ahşap koltuk',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: 'Sınır tanımadan',
+  heroAccent: 'tasarla.',
+  brandingTitle: 'Marka kimliği',
+  objects3dTitle: '3B nesneler',
+  designStudioTitle: 'Tasarım Stüdyosu',
+  designStudioSub: 'Yapay zekâyla profesyonel tasarımlar oluştur, düzenle ve görselleştir.',
+  openStudio: 'Stüdyoyu aç',
+  fashionHint: 'Kıyafet, koleksiyon ve daha fazlasını tasarla.',
 };

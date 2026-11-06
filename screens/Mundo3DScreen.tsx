@@ -37,6 +37,7 @@ import {
 import { notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /**
  * «CREAR MUNDO 3D» — WEË STUDIO → 3D WORLD → CREAR MUNDO 3D.
@@ -378,6 +379,7 @@ const Mundo3DScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityState={{ disabled: desactivada }}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!principal} />
               <Text style={principal ? styles.buttonText : [styles.secondaryText, { color: theme.colors.text }]}>{etiquetaDe(accion)}</Text>
             </TouchableOpacity>
           );
