@@ -295,6 +295,8 @@ su catálogo, y con un ejecutor de uno en uno el Orchestrator los despacha en el
 orden exacto del `while`. Además sabe algo que el `while` no: en 36 despachos hay
 dos pasos que no dependen entre sí (el clip y la voz de un vídeo) y hoy van en serie.
 
+> **Nota (2026-10-16, Gran Motor):** las cifras «28 capacidades» de esta sección son la MEDIDA DE F12-A, tomada antes de que la misión del mundo 3D añadiera `world.generate`. El registro actual (`engine/registry.ts`, `DEFAULT_ROUTING`) enruta **29** capacidades: las mismas 28 más `world.generate` (comprobado contando `DEFAULT_ROUTING` sobre `lib`). La equivalencia vigente del Router —29 capacidades × 16 escenarios, 0 divergencias injustificadas con la capa de compatibilidad— está en [`GRAN-MOTOR-A-ROUTER.md`](GRAN-MOTOR-A-ROUTER.md). Las medidas históricas no se reescriben.
+
 **P2 — Router.** Con la misma configuración, de las 28 capacidades que producción
 enruta: **6** iguales, **15** distintas y **7** sin proveedor real (hoy caen en modo demo, y el Core las daría por no disponibles). Ejemplos de lo que cambiaría en silencio:
 

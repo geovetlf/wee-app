@@ -3,6 +3,8 @@ import { engine } from './index';
 import { EngineError } from './errors';
 import { EngineContext, EngineResult, EngineSettings, RouteDecision, RoutingPrefs } from './types';
 import { SEEDANCE_MODEL_IDS, SeedanceKey, specOf } from './providers/seedance';
+import { ADAPTERS } from './registry';
+import { noDisponible } from './errors';
 
 /**
  * WEË VIDEO ENGINE (docs/AI-ENGINE.md §Video).
@@ -15,6 +17,27 @@ import { SEEDANCE_MODEL_IDS, SeedanceKey, specOf } from './providers/seedance';
  * El modo demo (sin ARK_API_KEY) sigue disponible para desarrollo.
  */
 export const VIDEO_PROVIDERS = ['seedance'] as const;
+
+/**
+ * ── EL INTERRUPTOR DEL VÍDEO (Línea B · X2) ─────────────────────────────────
+ *
+ * ¿Puede una ruta del servidor INICIAR ahora un vídeo con un proveedor real?
+ * Solo si `aiSettings/global.videoHabilitado === true`. Si no hay ningún
+ * proveedor real de vídeo configurado (desarrollo sin clave), lo que saldría es
+ * el demo, que no cobra: no hay nada que bloquear.
+ *
+ * Se llama ANTES del cupo, de la reserva de Credits y del proveedor, en cada
+ * puerta: creatorRun, generateVideo (Studio y Filmmaker), el router del motor y
+ * el ejecutor del Core. Lo que ya estaba lanzado sigue liquidándose.
+ */
+export const videoApagado = (settings: Pick<EngineSettings, 'videoHabilitado'> | undefined): boolean => settings?.videoHabilitado !== true;
+export const hayVideoReal = (): boolean => VIDEO_PROVIDERS.some((id) => !!ADAPTERS[id] && ADAPTERS[id].isConfigured());
+export const asegurarVideoPermitido = (settings: Pick<EngineSettings, 'videoHabilitado'> | undefined): void => {
+  if (videoApagado(settings) && hayVideoReal()) {
+    console.warn('WEË VIDEO ENGINE: vídeo apagado (aiSettings/global.videoHabilitado != true); no se inicia ninguna generación');
+    throw noDisponible('no_disponible');
+  }
+};
 
 export type VideoModelPreference = 'auto' | SeedanceKey;
 export type VideoQuality = 'auto' | 'standard' | 'high' | 'max';
@@ -147,6 +170,7 @@ export const videoEngine = {
   /** Genera el video con Seedance (o el modo demo sin clave) y lo deja en Weë Storage. */
   async generate(request: VideoRequest, ctx: EngineContext & { record?: (entry: any) => Promise<void> }): Promise<EngineResult> {
     const settings = await engine.settings();
+    asegurarVideoPermitido(settings);
     const normalized = normalizeVideoRequest(request, settings);
     return engine.generate({ ...ctx, capability: normalized.capability, input: normalized.input, prefs: normalized.prefs });
   },

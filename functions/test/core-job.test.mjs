@@ -23,6 +23,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { cpuDe } from './_cpu.mjs';
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -1090,14 +1091,16 @@ console.log('\n── Q · Límites, y que nada crezca sin fin ──');
   check('191d) y si nadie dice cuántos hay encolados, se avisa en vez de suponerlo',
     motor.crear(pet({ limits: { maxQueuedPerAccount: 100 } })).warnings.includes('capacity_not_checked'));
 
+  /* El tiempo se mide en CPU del proceso, no en reloj de pared (functions/test/_cpu.mjs). */
   check('192) mil trabajos no se llevan por delante ni la memoria ni el tiempo', (() => {
-    const inicio = process.hrtime.bigint();
-    let ultimo = null;
-    for (let i = 0; i < 1000; i++) {
-      const j = nuevo({ idempotencyKey: `carga-${String(i).padStart(5, '0')}` });
-      ultimo = aplicar(reclamar(j, T0 + i));
-    }
-    const ms = Number(process.hrtime.bigint() - inicio) / 1e6;
+    const { valor: ultimo, ms } = cpuDe(() => {
+      let u = null;
+      for (let i = 0; i < 1000; i++) {
+        const j = nuevo({ idempotencyKey: `carga-${String(i).padStart(5, '0')}` });
+        u = aplicar(reclamar(j, T0 + i));
+      }
+      return u;
+    });
     return ultimo.state === 'running' && ms < 5000;
   })());
 }

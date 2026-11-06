@@ -5,6 +5,7 @@ import { runCapability } from '../gateway';
 import { GatewayContext } from '../gateway/types';
 import { CapabilityAvailability } from '../core';
 import { disponibilidadDeWee } from '../planner';
+import { sanitizeForLog } from '../engine/sanitize';
 
 /**
  * Weë Brain — planificador.
@@ -188,7 +189,8 @@ async function inferAnswers(
     }
     return inferred;
   } catch (error) {
-    console.warn('Weë Brain: no pude interpretar el texto; pregunto normalmente.', error);
+    /* Gran Motor S2 (F-04): un JSON roto trae en su mensaje un trozo de la respuesta (que puede repetir lo escrito por la persona); no se registra. */
+    console.warn('Weë Brain: no pude interpretar el texto; pregunto normalmente.', error instanceof SyntaxError ? 'la respuesta no es JSON' : sanitizeForLog(error, 300));
     return [];
   }
 }

@@ -1,0 +1,20 @@
+{
+  "name": "wee_proveedor_en_pausa",
+  "description": "El circuito de un proveedor de IA se abrió por fallos repetidos (engine/router.ts)",
+  "filter": "resource.type=\"cloud_run_revision\" AND (textPayload:\"WEË AI ENGINE: \" OR jsonPayload.message:\"WEË AI ENGINE: \") AND (textPayload:\" en pausa \" OR jsonPayload.message:\" en pausa \") AND (textPayload:\" por fallos repetidos\" OR jsonPayload.message:\" por fallos repetidos\")",
+  "metricDescriptor": {
+    "metricKind": "DELTA",
+    "valueType": "INT64",
+    "unit": "1",
+    "labels": [
+      {
+        "key": "provider",
+        "valueType": "STRING",
+        "description": "Proveedor de IA (gemini, seedance, deepseek…)"
+      }
+    ]
+  },
+  "labelExtractors": {
+    "provider": "REGEXP_EXTRACT(textPayload, \"AI ENGINE: ([a-z0-9-]+) en pausa\")"
+  }
+}

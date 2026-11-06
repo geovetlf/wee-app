@@ -1,0 +1,5 @@
+{
+  "name": "wee_barrido_incompleto",
+  "description": "Pasadas de la reconciliación que no terminaron",
+  "filter": "resource.type=\"cloud_run_revision\" AND (textPayload:\"WEË RECONCILIACIÓN · la pasada no se pudo completar\" OR jsonPayload.message:\"WEË RECONCILIACIÓN · la pasada no se pudo completar\")"
+}

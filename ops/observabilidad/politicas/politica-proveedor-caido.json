@@ -1,0 +1,54 @@
+{
+  "displayName": "Weë · proveedor de IA caído",
+  "documentation": {
+    "content": "Un proveedor de IA tiene el circuito abierto (fallos repetidos: el router lo aparta unos segundos) o más de 10 fallos en 10 minutos. La etiqueta `provider` dice cuál. Mira el estado del proveedor y la rotación de su clave (docs/SECURITY.md §4). Si no vuelve, apaga SOLO esa capacidad (docs/LANZAMIENTO.md § Desactivación selectiva): con `allowMockFallback` encendido, apagar el proveedor sin más deja que el modo demo atienda y cobre.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "Circuito abierto",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/wee_proveedor_en_pausa\" AND resource.type=\"cloud_run_revision\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "600s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": [
+              "metric.label.provider"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "displayName": "Fallos repetidos",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/wee_proveedor_fallos\" AND resource.type=\"cloud_run_revision\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 10,
+        "duration": "0s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "600s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": [
+              "metric.label.provider"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "1800s"
+    },
+    "autoClose": "86400s"
+  }
+}

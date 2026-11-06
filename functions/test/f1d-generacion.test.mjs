@@ -230,12 +230,17 @@ for (const uid of [A, B, C, SIN, L, POBRE]) {
   base.docs.set(`users/doc_${uid}`, { uid, displayName: uid });
   await creditEngine.ensureAccount(uid);
   base.docs.get(`users/doc_${uid}`).creditsBalance = SALDO;
+  base.docs.get(`creditAccounts/${uid}`).creditsBalance = SALDO; /* F-06: el saldo vive en creditAccounts; el perfil es su espejo */
 }
 /* `SIN` no está en la puerta: para él, el camino Core no existe. */
+/* El vídeo encendido (Línea B · X2): esta suite prueba el camino cuando SÍ se puede generar; el apagado tiene su suite (linea-b-finanzas). */
+base.docs.set('aiSettings/global', { videoHabilitado: true });
 base.docs.set('aiSettings/runtime', { habilitado: true, porCapacidad: { 'video.generate': { cuentas: [A, B, C, L, POBRE], experiencias: ['studio'] } } });
 olvidarLaPuerta();
 base.docs.get(`users/doc_${POBRE}`).creditsBalance = 1;
-const saldo = (uid) => base.docs.get(`users/doc_${uid}`).creditsBalance;
+base.docs.get(`creditAccounts/${POBRE}`).creditsBalance = 1; /* F-06: el saldo vive en creditAccounts; el perfil es su espejo */
+/* F-06: el saldo, y solo si sus dos sitios coinciden (privado y espejo); si no, NaN y la aserción falla. */
+const saldo = (uid) => { const a = base.docs.get(`users/doc_${uid}`)?.creditsBalance; const b = base.docs.get(`creditAccounts/${uid}`)?.creditsBalance; return a === b ? a : NaN; };
 const uso = (requestId) => base.leer(`creditTransactions/usage_${requestId}`);
 const reembolsos = (requestId) => base.de('creditTransactions').filter((t) => t.requestId === requestId && t.type === 'refund');
 const cupoDeVideo = (uid) => base.de('aiRateLimits').filter((d) => d.userId === uid).reduce((s, d) => s + Number(d.video || 0), 0);
@@ -829,7 +834,13 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
    *   lo que no es un CreditError y su causa al registro con `sanitizeForLog` (money/error-interno-al-cliente);
    *   credits/index.ts +5 −3: `balance` → `readBalance` y `failed` → `assertLimit`. Bloques exactos en job-queue 63k/63p.
    */
-  const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
+  /*
+   * + F-06 (2026-10-14, el saldo privado en creditAccounts): creditEngine.ts 57/9 → 246/56 sobre la misma base. El
+   *   contenido exacto de esa diferencia lo fija job-queue 63p (bloques REVISION_F06 de _bloques-autorizados.mjs) y su
+   *   comportamiento credits-saldo-privado (cadena) y saldo-privado.emulator. creditValidation e index, sin tocar.
+   */
+  /* + Gran Motor C+D (2026-10-16): creditEngine.ts 246/56 → 252/59 (C-2 c8b5a621: importe final NaN rechazado y el libro no registra un cobro sobre una reserva ya devuelta, +2 · D L-5 e3b77353: `duplicate` en completeCredits, +4 −3). Bloques exactos en _bloques-autorizados.mjs (REVISION_GRAN_MOTOR). */
+  const CREDITS_DEL_HARNESS = '252\t59\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
   /* + misión fal (2026-10-05): core/router.ts +2 −2 (la modalidad 3d) y creditCosts.ts +8 (el servicio ai_world). Líneas exactas en job-queue 63fal. */
   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
 /*
@@ -844,6 +855,14 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
   check('AI) Credits intactos: el Credit Engine, el Financial Core y el resto; credits/index, solo el cierre de spendCredits del Harness (b878068) y la compra por importe; el Router y creditCosts, solo la misión fal y la compra por importe; del tamaño exacto',
     git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_CON_LA_COMPRA_POR_IMPORTE);
   const legacy = (s) => { const a = s.indexOf('    try {\n      const result = await videoEngine.generate('); return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a)); };
+  /*
+   * + Gran Motor P (2026-10-16, parche consolidado del propietario, docs/GRAN-MOTOR-PARCHE-PROPIETARIO.patch; origen S2,
+   *   docs/GRAN-MOTOR-S2-PAGOS-SANITIZE.md, riesgo ALTO): la ÚNICA línea nueva de la rama legacy de generateVideo es el
+   *   registro del fallo al catalogar el vídeo, ahora con sanitizeForLog. Tiene que estar EXACTAMENTE una vez, y se
+   *   devuelve a la de antes para seguir comparando el resto del bloque byte a byte: cualquier otra diferencia cae.
+   */
+  const LEGACY_P_NUEVA = "          console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));\n";
+  const LEGACY_P_ANTES = "          console.error('Content: no se pudo crear el material del vídeo', requestId, error);\n";
   check('creatorRun, solo con los arreglos del Harness (H0 #9, #11, #15a) y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
     git(`diff --numstat ${PUENTE} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
       /* creator/index.ts: + 10 de la integración i18n da-DK (el locale) y + 2 de la observación del idioma de salida, ver video-asincrono H2.
@@ -853,8 +872,15 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
       /* + cierre post-auditoría 2026-10-01: index +6 −5 (creatorChat/creatorQuote con MODEL_SECRETS; la adaptación de idioma de creatorRun con su sistema y `format: 'text'`) y generateAvatar +3 −3 (AVATAR_SECRETS, solo Gemini); creator/credits.ts sin tocar. */
       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
       /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo y anota las variantes de UN resultado; nada del reclamo ni del cobro. */
-      '45\t4\tfunctions/src/creator/credits.ts|157\t23\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
-    && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
+      /* + Línea B (2026-10-14, integridad financiera): creator/index +47 −18 (cierre del trabajo como transición, abandono desde el fin del PROCESO, interruptor del vídeo antes de reservar, lo demo no se cobra); la rama legacy de generateVideo solo gana la devolución de un vídeo de muestra (B4-03). */
+      /* + Gran Motor C (2026-10-16, c8b5a621): creator/credits.ts 45/4 → 55/6 (+10 −2: el libro no registra un cobro sobre una reserva ya devuelta). */
+      /* + Gran Motor P (2026-10-16, parche del propietario; origen S2): creator/index.ts 204/41 → 207/44 (+3 −3: el registro del
+       * material de un paso y el del trabajo fallido con sanitizeForLog, y el error que se GUARDA en el paso fallido de
+       * creatorJobs, saneado igual en vez de `error.message.slice(0, 300)`); generateAvatar.ts 132/15 → 135/17 (+3 −2: su
+       * import y los dos registros de fallo del avatar con sanitizeForLog). Nada del reclamo ni del cobro. */
+      '55\t6\tfunctions/src/creator/credits.ts|207\t44\tfunctions/src/creator/index.ts|135\t17\tfunctions/src/generateAvatar.ts'
+    && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')).split(LEGACY_P_NUEVA).length === 2
+    && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
 }
 
 check('esta suite está en la cadena de `npm test`', /f1d-generacion\.test\.mjs/.test(leer('functions/package.json')));

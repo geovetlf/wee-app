@@ -1,0 +1,29 @@
+{
+  "displayName": "Weë · uso de IA anómalo",
+  "documentation": {
+    "content": "Más de 300 generaciones de IA en 15 minutos. Puede ser abuso (cuentas nuevas, un cliente en bucle) o éxito: mira `aiGenerations` por persona y por proveedor. Si es abuso, el interruptor `iaDetenida` lo para todo sin cobrar. docs/COSTES.md.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "Weë · uso de IA anómalo",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/wee_ia_generaciones\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 300,
+        "duration": "0s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ]
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "86400s"
+  }
+}

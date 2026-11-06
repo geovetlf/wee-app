@@ -187,7 +187,7 @@ console.log('\n── C · Ni cuenta de más ni cobra dos veces ──');
    * vive dentro del try, después de que la respuesta exista.
    */
   const brainSrc = leer('functions/src/creator/brain.ts');
-  const caminoDelError = brainSrc.slice(brainSrc.indexOf('await creditEngine.refundCredits'));
+  const caminoDelError = brainSrc.slice(brainSrc.indexOf("refundCredits({ userId: uid, requestId, reason: 'Weë Brain · no pudo responder'"));
   check('G) una respuesta fallida no gasta bloque', caminoDelError.length > 0 && !/contarRespuesta/.test(caminoDelError));
   check('G2) y el contador se llama DESPUÉS de tener la respuesta', leer('functions/src/creator/brain.ts').indexOf('await engine.generate(') < leer('functions/src/creator/brain.ts').indexOf('await contarRespuesta('));
 }

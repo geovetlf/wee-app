@@ -1,0 +1,29 @@
+{
+  "displayName": "Weë · IA no disponible",
+  "documentation": {
+    "content": "Más de 5 peticiones de IA en 10 minutos sin proveedor: un proveedor caído, una clave mal rotada, el interruptor `aiSettings/global.iaDetenida` encendido o el tope de gasto diario `maxUsdPerDay` alcanzado. docs/AI-ENGINE.md § Límites.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "Weë · IA no disponible",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/wee_ia_no_disponible\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 5,
+        "duration": "0s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "600s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ]
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "86400s"
+  }
+}

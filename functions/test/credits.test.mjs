@@ -143,7 +143,16 @@ const engine = createCreditEngine({
 });
 
 const profile = (uid, extra = {}) => db.docs.set(`users/doc_${uid}`, { uid, displayName: uid, ...extra });
-const balanceOf = (uid) => db.read(`users/doc_${uid}`).creditsBalance;
+/* F-06: el saldo vive en creditAccounts/{uid} y el perfil es su espejo; si los dos no coinciden, NaN (la aserción falla). */
+const balanceOf = (uid) => {
+  const enPerfil = db.read(`users/doc_${uid}`)?.creditsBalance;
+  const enCuenta = db.read(`creditAccounts/${uid}`)?.creditsBalance;
+  return enPerfil === enCuenta ? enPerfil : NaN;
+};
+const ponerSaldo = (uid, saldo) => {
+  db.docs.get(`users/doc_${uid}`).creditsBalance = saldo;
+  db.docs.get(`creditAccounts/${uid}`).creditsBalance = saldo;
+};
 const txs = (uid) => [...db.docs.entries()].filter(([p, d]) => p.startsWith('creditTransactions/') && d.userId === uid).map(([p, d]) => ({ id: p.split('/').pop(), ...d }));
 
 console.log('\n── Cuenta: migración desde wallets + bienvenida (idempotente) ──');
@@ -187,7 +196,7 @@ await rejects('nadie puede reutilizar la operación de otra cuenta', () => engin
 console.log('\n── Concurrencia: dos gastos a la vez sobre saldo para uno solo ──');
 profile('cai');
 await engine.ensureAccount('cai');
-db.docs.get('users/doc_cai').creditsBalance = 60;
+ponerSaldo('cai', 60);
 const results = await Promise.allSettled([
   engine.spendCredits({ userId: 'cai', service: 'ai_video', amount: 50, requestId: 'race_1', source: 'test' }),
   engine.spendCredits({ userId: 'cai', service: 'ai_video', amount: 50, requestId: 'race_2', source: 'test' }),

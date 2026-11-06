@@ -1,0 +1,5 @@
+{
+  "name": "wee_ia_no_disponible",
+  "description": "Peticiones de IA sin ningún proveedor disponible",
+  "filter": "resource.type=\"cloud_run_revision\" AND (textPayload:\"WEË AI ENGINE: ningún proveedor disponible\" OR jsonPayload.message:\"WEË AI ENGINE: ningún proveedor disponible\")"
+}
