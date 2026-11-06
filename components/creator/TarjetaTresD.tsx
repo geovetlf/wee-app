@@ -11,6 +11,7 @@ import { formatearLista, nombreDeLaRegion } from '../../i18n/formato';
 import { notify } from '../../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 /**
  * UN MUNDO 3D (O UN MODELO 3D) COMO LO QUE ES: no una foto.
@@ -88,6 +89,7 @@ export const TarjetaTresD: React.FC<Props> = ({ tipo, nombre, derechos, url, mim
               accessibilityRole="button"
               accessibilityLabel={t('creaciones.download')}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               {descargando
                 ? <ActivityIndicator color="#1F2937" />
                 : <Text style={styles.buttonText}>{t('creaciones.download')}</Text>}

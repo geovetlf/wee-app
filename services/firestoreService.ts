@@ -818,11 +818,16 @@ export const postsService = {
       if (result.documents.length < fetchSize) break;
     }
 
+    /*
+     * SE DEVUELVEN TODOS LOS VÍDEOS RECORRIDOS (migración demo YC, 2026-11-03). Antes se cortaba a `limitCount`, pero el
+     * cursor ya estaba DETRÁS del último documento recorrido: los vídeos que sobraban de la tanda no volvían nunca (con 20
+     * Weëls, 5 no se alcanzaban). Una página puede traer unos pocos más de los pedidos; no se pierde ninguno.
+     */
     return {
-      documents: allVideoPosts.slice(0, limitCount),
+      documents: allVideoPosts,
       lastDoc: lastVisible,
       /* Quedan posts detrás del cursor, aunque esta vuelta no haya dado quince vídeos. */
-      hasMore: hayMasPosts || allVideoPosts.length > limitCount,
+      hasMore: hayMasPosts,
     };
   },
 
@@ -1032,9 +1037,9 @@ export const usersService = {
    * que un negocio pudiera hacerse pasar por una tercera cara de la cuenta.
    *
    * Se han eliminado. Un negocio no es una cara de una persona: es una PÁGINA
-   * de la cuenta, y una Página es una entidad, no un perfil. Lo que sí sigue
-   * existiendo es el negocio en sí —`businesses/{id}`, su catálogo y sus
-   * pantallas— porque eso es Weë Business, el producto, que no se toca.
+   * de la cuenta, y una Página es una entidad, no un perfil. El directorio de
+   * negocios del proyecto anterior también se retiró de Weë, definitivamente,
+   * el 2026-11-06.
    */
 };
 

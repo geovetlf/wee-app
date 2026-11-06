@@ -18,6 +18,7 @@ import {
 import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
@@ -44,7 +45,7 @@ const ConversationScreen = () => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const { user } = useAuth();
-  const { userProfile } = useUserProfile();
+  const { userProfile, activeProfileType } = useUserProfile();
   const nav = useNavigation();
   const route = useRoute<ConvRoute>();
   const insets = useSafeAreaInsets();
@@ -64,8 +65,32 @@ const ConversationScreen = () => {
   const [chatWallpaper, setChatWallpaper] = useState<string | null>(null);
   const [showThemePicker, setShowThemePicker] = useState(false);
 
-  // Get current theme
-  const chatTheme = getThemeById(chatThemeId);
+  /*
+   * EL TEMA DE LA CONVERSACIÓN SIGUE A LA CARA QUE LA TIENE (decisión del dueño, 2026-11-05).
+   *
+   * Cada conversación es de una identidad: la del perfil activo. La del Perfil Real se ve con fondo blanco,
+   * como el resto de la app clara, y la del Perfil Weë en oscuro, como la app oscura del Perfil Weë. El tema
+   * que la persona elige en la paleta conserva sus burbujas y su acento; en el Perfil Real solo cambian el
+   * fondo, la cabecera, la barra de escribir y los grises (y en el «Clásico», además, la burbuja del otro, que
+   * pasa a gris claro).
+   */
+  const temaElegido = getThemeById(chatThemeId);
+  const chatTheme: ChatTheme = activeProfileType !== 'hidi'
+    ? {
+        ...temaElegido,
+        backgroundColor: '#FFFFFF',
+        headerBackground: '#FFFFFF',
+        headerText: '#1F2937',
+        headerIcon: '#6B7280',
+        ...(temaElegido.id === 'classic' ? { otherBubble: '#F3F4F6', otherBubbleText: '#1F2937', otherMetaText: 'rgba(31,41,55,0.5)' } : {}),
+        inputBarBackground: '#FFFFFF',
+        inputBackground: '#F3F4F6',
+        inputText: '#1F2937',
+        inputPlaceholder: '#9CA3AF',
+        datePillBackground: '#F3F4F6',
+        datePillText: '#6B7280',
+      }
+    : temaElegido;
 
   const myUid = userProfile?.uid || user?.uid;
   /* El respaldo solo se PINTA en la cabecera (no se guarda en ningún sitio): por eso sí pasa por t(). */
@@ -570,7 +595,7 @@ const ConversationScreen = () => {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: chatTheme.headerBackground, borderColor: chatTheme.headerBackground, paddingTop: insets.top + SPACING.md }]}>
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-          <Ionicons name="chevron-back" size={26} color={chatTheme.headerText} />
+          <IconoDireccional name="chevron-back" size={26} color={chatTheme.headerText} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.headerUser} activeOpacity={0.7}>
@@ -663,7 +688,7 @@ const ConversationScreen = () => {
               ))}
             </View>
             <TouchableOpacity onPress={stopRecording} style={styles.recordingStopBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-              <Ionicons name="send" size={18} color="#fff" />
+              <IconoDireccional name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         ) : (
@@ -685,7 +710,7 @@ const ConversationScreen = () => {
               />
               {text.trim() ? (
                 <TouchableOpacity onPress={send} disabled={sending} style={[styles.sendBtn, { backgroundColor: chatTheme.accent }]} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <Ionicons name="send" size={16} color={chatTheme.accentText} />}
+                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <IconoDireccional name="send" size={16} color={chatTheme.accentText} />}
                 </TouchableOpacity>
               ) : (
                 <View style={styles.inputActions}>
@@ -740,7 +765,7 @@ const ConversationScreen = () => {
               ))}
             </View>
             <TouchableOpacity onPress={stopRecording} style={styles.recordingStopBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-              <Ionicons name="send" size={18} color="#fff" />
+              <IconoDireccional name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         ) : (
@@ -762,7 +787,7 @@ const ConversationScreen = () => {
               />
               {text.trim() ? (
                 <TouchableOpacity onPress={send} disabled={sending} style={[styles.sendBtn, { backgroundColor: chatTheme.accent }]} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <Ionicons name="send" size={16} color={chatTheme.accentText} />}
+                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <IconoDireccional name="send" size={16} color={chatTheme.accentText} />}
                 </TouchableOpacity>
               ) : (
                 <View style={styles.inputActions}>
@@ -806,7 +831,7 @@ const ConversationScreen = () => {
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.previewSendBtn, { backgroundColor: chatTheme.accent }]} onPress={confirmSendImage} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-              <Ionicons name="send" size={22} color={chatTheme.accentText} />
+              <IconoDireccional name="send" size={22} color={chatTheme.accentText} />
             </TouchableOpacity>
           </View>
         </View>
@@ -852,6 +877,8 @@ const ConversationScreen = () => {
                       styles.wallpaperOption,
                       { backgroundColor: chatTheme.inputBackground },
                       chatWallpaper === w.url && styles.wallpaperOptionActive,
+                      /* El borde del fondo elegido, con el acento de marca del tema (2026-11-05). */
+                      chatWallpaper === w.url && { borderColor: theme.colors.accent },
                     ]}
                     onPress={() => pickWallpaper(w.url)}
                   >

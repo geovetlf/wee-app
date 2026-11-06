@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { CEREBRO_DE_WEE } from './SistemaDeWeeBrain';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
@@ -71,7 +72,7 @@ const CabeceraDeWeeBrain: React.FC<Props> = ({ onVolver }) => {
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
         >
-          <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
 
         <View style={styles.centro} pointerEvents="none">

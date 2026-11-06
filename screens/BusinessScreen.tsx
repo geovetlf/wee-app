@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
+import { useDireccion } from '../hooks/useDireccion';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
@@ -46,6 +48,7 @@ import {
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../constants/design';
 import { notify } from '../utils/notify';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const NETWORK_ICON: Record<string, string> = {
   instagram: 'logo-instagram',
@@ -88,6 +91,7 @@ const NETWORK_ICON: Record<string, string> = {
 const BusinessScreen: React.FC = () => {
   const { theme } = useTheme();
   const { t, locale } = useIdioma();
+  const dir = useDireccion();
   /* Las horas de muestra («12:00») son del reloj: se escriben como en el idioma de quien mira («12.00» en danés). */
   const hora = (hhmm: string): string => {
     const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
@@ -362,7 +366,7 @@ const BusinessScreen: React.FC = () => {
                 >
                   <Ionicons name="pricetag-outline" size={scale(15)} color={theme.colors.text} />
                   <Text style={[styles.fichaTexto, { color: theme.colors.text }]} numberOfLines={1}>{p}</Text>
-                  <Ionicons name="chevron-forward" size={scale(14)} color={theme.colors.textSecondary} />
+                  <IconoDireccional name="chevron-forward" size={scale(14)} color={theme.colors.textSecondary} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -557,7 +561,7 @@ const BusinessScreen: React.FC = () => {
           titulo={t('business.postCalendar')}
           derecha={
             <TouchableOpacity onPress={() => startFlow(t('business.calendarGoal'), { questionId: 'what', optionId: 'schedule' })} activeOpacity={0.7} accessibilityRole="button">
-              <Text style={[styles.enlace, { color: theme.colors.textSecondary }]}>{t('business.seeFullCalendar')} →</Text>
+              <Text style={[styles.enlace, { color: theme.colors.textSecondary }]}>{t('business.seeFullCalendar')} {dir.flecha.adelante}</Text>
             </TouchableOpacity>
           }
         >
@@ -589,7 +593,7 @@ const BusinessScreen: React.FC = () => {
           titulo={t('business.customerMessages')}
           derecha={
             <TouchableOpacity onPress={() => startFlow(t('business.messagesGoal'), { questionId: 'what', optionId: 'reply' })} activeOpacity={0.7} accessibilityRole="button">
-              <Text style={[styles.enlace, { color: theme.colors.textSecondary }]}>{t('business.seeAllMessages')} →</Text>
+              <Text style={[styles.enlace, { color: theme.colors.textSecondary }]}>{t('business.seeAllMessages')} {dir.flecha.adelante}</Text>
             </TouchableOpacity>
           }
         >
@@ -610,6 +614,7 @@ const BusinessScreen: React.FC = () => {
                   style={[styles.replyPill, m.replied ? { backgroundColor: '#E8F5EE' } : { backgroundColor: theme.colors.accent }]}
                   accessibilityLabel={t(m.replied ? 'business.repliedTo' : 'business.replyTo', { nombre: m.name })}
                 >
+                  <RellenoDeMarca radio={scale(999)} apagada={!!m.replied} />
                   <Text style={[styles.replyText, { color: m.replied ? '#2F7D4F' : '#1F2937' }]}>{t(m.replied ? 'business.replied' : 'business.reply')}</Text>
                 </TouchableOpacity>
               </View>

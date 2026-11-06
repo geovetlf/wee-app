@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
@@ -8,6 +9,7 @@ import CabeceraDeSeccionPro from '../creator/CabeceraDeModuloPro';
 import { AccionDeBusiness } from '../../constants/businessModules';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -37,7 +39,7 @@ export const CabeceraDelModulo: React.FC<{ nombre: string; pista: string; onVolv
           accessibilityLabel={t('common.back')}
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
-          <Ionicons name="chevron-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="chevron-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         {/* El nombre del módulo es de producto: no pasa por el traductor. */}
         <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={1}>{nombre}</Text>
@@ -117,7 +119,7 @@ export const ListaDeAcciones: React.FC<{
               <Text style={[styles.filaPista, { color: theme.colors.textSecondary }]} numberOfLines={2}>{t(accion.claveHint)}</Text>
             )}
           </View>
-          <Ionicons name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
+          <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       ))}
     </View>
@@ -175,6 +177,7 @@ export const BotonPrincipal: React.FC<{ etiqueta: string; icono?: string; onPres
       accessibilityRole="button"
       accessibilityLabel={etiqueta}
     >
+      <RellenoDeMarca radio={BORDER_RADIUS.full} />
       {!!icono && <Ionicons name={icono as any} size={scale(18)} color="#1F2937" />}
       <Text style={[styles.principalTexto, pro && styles.principalTextoPro]}>{etiqueta}</Text>
     </TouchableOpacity>

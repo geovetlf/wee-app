@@ -62,9 +62,8 @@ export interface IdentidadActiva {
  * no ha cargado. Es el ÚNICO sitio donde se decide, y de aquí sale cuál de las
  * dos agendas se está mirando.
  *
- * El Perfil Biz no tiene agenda en esta versión: no es una persona, y sus
- * seguidores son otro sistema —`businessFollows`— que no se mezcla con esto. Se
- * distingue de "no hay sesión" para que la pantalla pueda decir cuál de las dos
+ * Un perfil que no es ninguna de las dos caras (como el antiguo Perfil Biz,
+ * eliminado) no tiene agenda: no es una persona. Se distingue de "no hay sesión" para que la pantalla pueda decir cuál de las dos
  * cosas pasa en vez de enseñar un vacío que no se entiende.
  */
 export const useIdentidadActiva = (): IdentidadActiva => {

@@ -12,6 +12,7 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useTheme } from '../contexts/ThemeContext';
@@ -27,12 +28,13 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
 import { descripcionDeComunidad, nombreDeComunidad, textoDeRegla } from '../utils/comunidadesDeWee';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 type CommunityScreenRouteProp = RouteProp<MainStackParamList, 'Community'>;
 type CommunityScreenNavigationProp = StackNavigationProp<MainStackParamList>;
 
 const CommunityScreen: React.FC = () => {
-  const { t, locale } = useIdioma();
+  const { t, locale, formato } = useIdioma();
   const { theme } = useTheme();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -196,7 +198,7 @@ const CommunityScreen: React.FC = () => {
           <View style={styles.statsContainer}>
             <View style={styles.stat}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {community.memberCount}
+                {formato.numero(community.memberCount ?? 0)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
                 {t('communities.members')}
@@ -205,7 +207,7 @@ const CommunityScreen: React.FC = () => {
             <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
             <View style={styles.stat}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {community.postCount}
+                {formato.numero(community.postCount ?? 0)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
                 {t('communities.posts')}
@@ -226,18 +228,19 @@ const CommunityScreen: React.FC = () => {
             onPress={handleJoinOrLeave}
             disabled={joiningOrLeaving}
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={isUserMember} />
             {joiningOrLeaving ? (
-              <ActivityIndicator size="small" color={isUserMember ? theme.colors.text : 'white'} />
+              <ActivityIndicator size="small" color={isUserMember ? theme.colors.text : '#1F2937'} />
             ) : (
               <>
                 <Ionicons
                   name={isUserMember ? 'checkmark' : 'add'}
                   size={scale(18)}
-                  color={isUserMember ? theme.colors.text : 'white'}
+                  color={isUserMember ? theme.colors.text : '#1F2937'}
                 />
                 <Text style={[
                   styles.joinButtonText,
-                  { color: isUserMember ? theme.colors.text : 'white' }
+                  { color: isUserMember ? theme.colors.text : '#1F2937' }
                 ]}>
                   {isUserMember ? t('search.member') : t('communities.join')}
                 </Text>
@@ -368,7 +371,7 @@ const CommunityScreen: React.FC = () => {
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + SPACING.sm, backgroundColor: theme.colors.card }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('communities.one')}</Text>
           <View style={styles.headerRight} />
@@ -386,7 +389,7 @@ const CommunityScreen: React.FC = () => {
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + SPACING.sm, backgroundColor: theme.colors.card }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('communities.one')}</Text>
           <View style={styles.headerRight} />
@@ -400,6 +403,7 @@ const CommunityScreen: React.FC = () => {
             style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
             onPress={() => navigation.goBack()}
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.md} />
             <Text style={styles.retryButtonText}>{t('common.back')}</Text>
           </TouchableOpacity>
         </View>
@@ -412,7 +416,7 @@ const CommunityScreen: React.FC = () => {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + SPACING.sm, backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Ionicons name={community.icon as any} size={scale(20)} color={theme.colors.accent} />
@@ -468,6 +472,7 @@ const CommunityScreen: React.FC = () => {
               style={[styles.createPostButton, { backgroundColor: theme.colors.accent }]}
               onPress={() => navigation.navigate('Create', { communitySlug: community.slug })}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.createPostButtonText}>{t('communities.createPost')}</Text>
             </TouchableOpacity>
           </View>
@@ -686,7 +691,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
   },
   createPostButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
   },
@@ -705,7 +710,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
   },
   retryButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
   },

@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useDireccion } from '../../hooks/useDireccion';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -34,6 +36,8 @@ export interface CreacionEnLaFila {
   claveTitulo?: string;
   /** El color de la lámina mientras no haya un medio real que enseñar. */
   tono: string;
+  /** La foto de la pieza, si la hay; si no, el color y el icono. */
+  imagen?: string;
   /** Solo lo que dura algo: un video. Ya formateado. */
   duracion?: string;
 }
@@ -41,6 +45,8 @@ export interface CreacionEnLaFila {
 interface Props {
   creaciones: readonly CreacionEnLaFila[];
   onVerTodas: () => void;
+  /** Tocar una pieza con foto. Sin él, la pieza no se toca. */
+  onAbrirPieza?: (id: string) => void;
   /**
    * El botón de las opciones de una pieza. Sin él no se pinta: una galería que
    * todavía no puede hacer nada con una pieza no enseña un botón que no hace
@@ -78,10 +84,11 @@ interface Props {
  * archivo es algo que alguien creó.
  */
 const FilaDeCreaciones: React.FC<Props> = ({
-  creaciones, onVerTodas, onOpciones, ancho = scale(132), alto = scale(150),
+  creaciones, onVerTodas, onAbrirPieza, onOpciones, ancho = scale(132), alto = scale(150),
 }) => {
   const { theme } = useTheme();
   const t = useT();
+  const dir = useDireccion();
 
   return (
     <View style={styles.bloque}>
@@ -94,15 +101,25 @@ const FilaDeCreaciones: React.FC<Props> = ({
           accessibilityRole="button"
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
-          <Text style={[styles.verTodas, { color: theme.colors.textSecondary }]}>{t('studio.seeAll')} →</Text>
+          <Text style={[styles.verTodas, { color: theme.colors.textSecondary }]}>{t('studio.seeAll')} {dir.flecha.adelante}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fila}>
         {creaciones.map((c) => (
           <View key={c.id} style={[styles.pieza, { width: ancho }]}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled={!onAbrirPieza}
+              onPress={() => onAbrirPieza?.(c.id)}
+              accessibilityRole={onAbrirPieza ? 'button' : undefined}
+            >
             <View style={[styles.lamina, { height: alto, backgroundColor: c.tono }]}>
-              <Ionicons name={c.icono as any} size={scale(30)} color="rgba(31, 41, 55, 0.35)" />
+              {c.imagen ? (
+                <Image source={{ uri: c.imagen }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
+              ) : (
+                <Ionicons name={c.icono as any} size={scale(30)} color="rgba(31, 41, 55, 0.35)" />
+              )}
 
               {/* Los videos dicen cuánto duran. Lo demás no tiene duración que decir. */}
               {!!c.duracion && (
@@ -128,6 +145,7 @@ const FilaDeCreaciones: React.FC<Props> = ({
                 )}
               </View>
             </View>
+            </TouchableOpacity>
             {/* El título es de quien lo creó: contenido, no interfaz. */}
             <Text style={[styles.titulo, { color: theme.colors.textSecondary }]} numberOfLines={1}>{c.claveTitulo ? t(c.claveTitulo) : c.titulo}</Text>
           </View>

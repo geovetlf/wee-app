@@ -10,7 +10,7 @@ import { identidadWeeDe } from '../utils/econtactModel';
  *
  * Hubo una tercera —el Perfil Biz— que hacía pasar a un negocio por una cara
  * más de la persona. Se eliminó: un negocio es una PÁGINA de la cuenta, no una
- * identidad. Weë Business, el producto, sigue existiendo y gestionará Páginas.
+ * identidad.
  *
  * `'hidi'` es el valor guardado del Perfil Weë. El nombre viene de HideTok, como
  * se llamaba el proyecto antes; el concepto de producto hoy se llama Perfil Weë

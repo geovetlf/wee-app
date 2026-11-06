@@ -7,6 +7,7 @@ import { useT } from '../../contexts/IdiomaContext';
 import { SpecialistConfig } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 interface UploadBoxProps {
   config: NonNullable<SpecialistConfig['upload']>;
@@ -64,6 +65,7 @@ const UploadBox: React.FC<UploadBoxProps> = ({ config, onPick }) => {
         </View>
         {!!config.button && (
           <View style={[styles.button, { backgroundColor: theme.colors.accent }]}>
+            <RellenoDeMarca radio={BORDER_RADIUS.full} />
             <Text style={styles.buttonText}>{config.button}</Text>
           </View>
         )}

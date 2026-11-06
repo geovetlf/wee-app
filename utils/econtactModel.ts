@@ -104,10 +104,6 @@ export type EstadoEntre = 'ninguno' | 'pendiente-enviada' | 'pendiente-recibida'
  * fuera una identidad más de la cuenta. Se ha eliminado: un negocio, una marca o
  * un restaurante no son una cara de una persona, son una PÁGINA de la cuenta, y
  * las Páginas son entidades, no perfiles.
- *
- * Ojo con la confusión fácil: **Weë Business sigue existiendo**. Lo que
- * desaparece es la IDENTIDAD Biz, no el producto. Weë Business pasa a gestionar
- * una Página; antes se hacía pasar por una identidad propia.
  */
 
 /** El prefijo del uid de un Perfil Weë. Identificador histórico: ver arriba. */

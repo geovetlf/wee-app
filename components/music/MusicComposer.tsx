@@ -26,6 +26,8 @@ interface Props {
   puntoInicial?: PuntoDePartidaId;
   onVerEjemplo: () => void;
   inicial?: { texto?: string };
+  /** El modo con el que se abre (la portada de la demo YC deja elegirlo antes de entrar). */
+  modoInicial?: ModoDeMusic;
 }
 
 const EJEMPLOS = ['example1', 'example2', 'example3'] as const;
@@ -47,7 +49,7 @@ const IDIOMA = 'language';
  *  · El audio de referencia (grabado o subido) vive solo en esta pantalla; el borrador guarda texto y elecciones, nunca audio.
  *  · El coste no se calcula: no hay precios medidos. Se dice «coste por confirmar» y no se inventa ninguna cifra.
  */
-const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVerEjemplo, inicial }) => {
+const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVerEjemplo, inicial, modoInicial }) => {
   const { theme } = useTheme();
   const { t, formato, locale } = useIdioma();
   const { isMobile } = useResponsive();
@@ -57,7 +59,7 @@ const MusicComposer: React.FC<Props> = ({ puntoInicial = 'idea', onVerEjemplo, i
   const [punto, setPunto] = useState<PuntoDePartidaId>(puntoInicial);
   /* Imagen, Extender y Remix no son puntos de partida del contrato: son pestañas que dicen por qué aún no se pueden usar. */
   const [sinPunto, setSinPunto] = useState<PestanaDeMusic | null>(null);
-  const [modo, setModo] = useState<ModoDeMusic>('custom');
+  const [modo, setModo] = useState<ModoDeMusic>(modoInicial ?? 'custom');
   const [abierto, setAbierto] = useState<string | null>(null);
   const [descripcion, setDescripcion] = useState(inicial?.texto ?? '');
   const [letra, setLetra] = useState('');

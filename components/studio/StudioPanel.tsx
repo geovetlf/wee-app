@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
@@ -8,6 +9,7 @@ import CabeceraDeModuloPro from '../creator/CabeceraDeModuloPro';
 import { HERRAMIENTAS_POR_AREA, GRUPOS_DE_HERRAMIENTAS, HerramientaDeStudio, AreaDeStudio } from '../../constants/studioTools';
 import { EntradaDeStudio, ExperienciaDeStudio, entradaPorId, experienciasDeLaEntrada } from '../../constants/studioExperiences';
 import StudioControles, { ControlesElegidos } from './StudioControles';
+import StudioPromptComposer from './StudioPromptComposer';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
@@ -19,7 +21,10 @@ export interface EleccionDeStudio {
   experiencia?: ExperienciaDeStudio;
   herramienta?: HerramientaDeStudio;
   controles: ControlesElegidos;
+  /** Demo: lo escrito en la caja de la capa 3, que vuelve al compositor y crea. */
+  texto?: string;
 }
+
 
 interface Props {
   entrada: EntradaDeStudio;
@@ -62,6 +67,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
   /* Dentro del panel se avanza un paso: de las experiencias a sus controles. */
   const [elegida, setElegida] = useState<ExperienciaDeStudio | null>(null);
   const [controles, setControles] = useState<ControlesElegidos>({});
+  const [texto, setTexto] = useState('');
   /* El motivo que se está explicando, cuando se toca algo que todavía no se puede. */
   const [explicando, setExplicando] = useState<string | null>(null);
 
@@ -123,7 +129,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
           accessibilityLabel={t('common.back')}
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
-          <Ionicons name="chevron-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="chevron-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={1}>
           {elegida ? t(elegida.clave) : titulo}
@@ -171,15 +177,14 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
               </Text>
             )}
 
-            <TouchableOpacity
-              style={[styles.seguir, { backgroundColor: theme.colors.accent }, isWeb && ({ cursor: 'pointer' } as any)]}
-              onPress={() => onElegir({ entrada, experiencia: elegida, controles })}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={t('studio.continue')}
-            >
-              <Text style={styles.seguirTexto}>{t('studio.continue')}</Text>
-            </TouchableOpacity>
+            {/* La caja de siempre aquí mismo, en lugar de «Continuar»: escribir y enviar crea con lo elegido. */}
+              <View style={styles.cajaDeCreacion}>
+                <StudioPromptComposer
+                  valor={texto}
+                  onCambiar={setTexto}
+                  onCrear={() => onElegir({ entrada, experiencia: elegida, controles, texto })}
+                />
+              </View>
           </>
         ) : esCatalogo ? (
           /* ── El catálogo de siempre: Documentos y "Más herramientas" ──── */
@@ -307,6 +312,7 @@ const styles = StyleSheet.create({
   },
   motivoTexto: { fontSize: FONT_SIZE.sm, flex: 1, lineHeight: scale(19) },
   sinControles: { fontSize: FONT_SIZE.sm, paddingHorizontal: SPACING.xl, lineHeight: scale(20) },
+  cajaDeCreacion: { marginTop: SPACING.lg, marginHorizontal: SPACING.lg },
   seguir: {
     marginHorizontal: SPACING.xl,
     marginTop: SPACING.sm,

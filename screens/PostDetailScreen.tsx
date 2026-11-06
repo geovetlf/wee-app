@@ -19,6 +19,8 @@ import {
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoMeGusta from '../components/IconoMeGusta';
+import IconoDireccional from '../components/IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { cloudinaryFeed, cloudinaryThumb } from '../services/cloudinaryService';
@@ -47,6 +49,7 @@ import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import { esPublicacion } from '../navigation/enlaces';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 type PostDetailScreenNavigationProp = StackNavigationProp<MainStackParamList, 'PostDetail'>;
 
@@ -419,7 +422,7 @@ const PostDetailContent: React.FC = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('wall.onePost')}</Text>
         <View style={styles.headerRight} />
@@ -509,7 +512,7 @@ const PostDetailContent: React.FC = () => {
             </Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="thumbs-up-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
+            <IconoMeGusta size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
                 {formatNumber(voteStats.agreementCount, locale)}
@@ -534,11 +537,7 @@ const PostDetailContent: React.FC = () => {
             onPress={handleVoteAgree}
             disabled={isVoting}
           >
-            <Ionicons
-              name={voteStats.userVote === 'agree' ? "thumbs-up" : "thumbs-up-outline"}
-              size={ICON_SIZE.md}
-              color={voteStats.userVote === 'agree' ? '#22C55E' : theme.colors.textSecondary}
-            />
+            <IconoMeGusta size={ICON_SIZE.md} color={theme.colors.textSecondary} activo={voteStats.userVote === 'agree'} colorActivo="#22C55E" />
             <Text style={[styles.actionText, {
               color: voteStats.userVote === 'agree' ? '#22C55E' : theme.colors.textSecondary
             }]}>
@@ -739,13 +738,14 @@ const PostDetailContent: React.FC = () => {
           onPress={handleCommentSubmit}
           disabled={(!commentText.trim() && !commentImage) || submittingComment}
         >
+          <RellenoDeMarca radio={scale(22)} apagada={!(commentText.trim() || commentImage || submittingComment)} />
           {submittingComment ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color="#1F2937" />
           ) : (
-            <Ionicons
+            <IconoDireccional
               name="send"
               size={ICON_SIZE.sm}
-              color={(commentText.trim() || commentImage) ? '#FFFFFF' : theme.colors.textSecondary}
+              color={(commentText.trim() || commentImage) ? '#1F2937' : theme.colors.textSecondary}
             />
           )}
         </TouchableOpacity>

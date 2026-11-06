@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, TextStyle, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
@@ -149,7 +150,7 @@ export const EnlaceDeCreaciones: React.FC = () => {
     >
       <Ionicons name="images-outline" size={18} color={theme.colors.textSecondary} />
       <Text style={[styles.titulo, styles.enlaceTexto, { color: theme.colors.text }]}>{titulo}</Text>
-      <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
+      <IconoDireccional name="chevron-forward" size={16} color={theme.colors.textSecondary} />
     </Pressable>
   );
 };

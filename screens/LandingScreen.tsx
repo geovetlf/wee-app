@@ -32,16 +32,19 @@ import { useComentariosDeLaPublicacion } from '../contexts/ComentariosContext';
 import { postsService, Post } from '../services/firestoreService';
 import { DocumentSnapshot } from 'firebase/firestore';
 import PostCard from '../components/PostCard';
+import PromotedSlot from '../components/boost/PromotedSlot';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
 import { formatNumber } from '../utils/formatoCorto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import WeelsRow from '../components/WeelsRow';
+import { sembrarMuro } from '../utils/semillaDelMuro';
 import HomeGreeting from '../components/HomeGreeting';
 import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
 import { HOME_SECTION_FILTERS, SeccionesElegidas, alternarSeccion, estaActiva, filterBySections } from '../utils/feedFilters';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -326,7 +329,10 @@ const LandingScreen: React.FC = () => {
     const tabNavigation = navigation.getParent();
     const mainNavigation = tabNavigation?.getParent();
     if (mainNavigation) {
-      (mainNavigation as any).navigate('PostDetail', { postId: post.id, post });
+      /* Tocar una publicación abre el Wäll inmersivo en ella, con lo que el muro ya tiene cargado (utils/semillaDelMuro.ts). */
+      const indice = Math.max(0, filteredFeedPostsRef.current.findIndex((p) => p.id === post.id));
+      sembrarMuro({ posts: filteredFeedPostsRef.current, indice, cursor: lastDocRef.current, hayMas: hasMoreRef.current });
+      (mainNavigation as any).navigate('Wall');
     }
   }, [navigation]);
 
@@ -723,6 +729,8 @@ const LandingScreen: React.FC = () => {
             accessibilityState={{ selected: active }}
             accessibilityLabel={t('home.filterBy', { nombre: etiqueta })}
           >
+            {/* La pastilla elegida, con el degradado de marca (2026-11-05). */}
+            {active && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
             <Text style={[styles.feedFilterText, { color: active ? '#1F2937' : theme.colors.text }, active && styles.feedFilterTextActive]}>
               {etiqueta}
             </Text>
@@ -734,6 +742,13 @@ const LandingScreen: React.FC = () => {
 
   /* El muro, acotado por las secciones puestas: la unión de todas ellas. Con "Todo", entero. */
   const filteredFeedPosts = useMemo(() => filterBySections(feedPosts, feedFilter), [feedPosts, feedFilter]);
+  /* Lo que el Wäll inmersivo recibe al tocar una publicación: el muro tal como se ve, y por dónde seguir. */
+  const filteredFeedPostsRef = useRef(filteredFeedPosts);
+  filteredFeedPostsRef.current = filteredFeedPosts;
+  const lastDocRef = useRef(lastDoc);
+  lastDocRef.current = lastDoc;
+  const hasMoreRef = useRef(hasMore);
+  hasMoreRef.current = hasMore;
 
   // Home = solo lo esencial: hero → publicar → Weëls → secciones → creado por la comunidad.
   // Comunidades se alcanza por Buscar, en la barra inferior.
@@ -743,6 +758,8 @@ const LandingScreen: React.FC = () => {
       {renderComposer()}
       {renderWeelsRow()}
       {feedPosts.length > 0 && renderFeedFilters()}
+      {/* Boost: UNA publicación promocionada de otra cuenta, si el servidor tiene alguna para ti (docs/BOOST.md). */}
+      <PromotedSlot pintar={(p, abrir) => <PostCard post={p} onPress={abrir} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible variante="muro" />} />
     </>
   ), [theme, videoPosts, user, hasWeeProfile, abrirElVisor, feedPosts.length > 0, feedFilter]);
 

@@ -5,6 +5,7 @@ import { useCajaQueCrece } from './CajaQueCrece';
 import TextoEnMayusculas from '../TextoEnMayusculas';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -81,6 +82,7 @@ const CampoQueCrece: React.FC<Props> = ({ etiqueta, valor, placeholder, maximo, 
             accessibilityState={{ disabled: !cambiado || !editable }}
             style={[styles.guardar, { backgroundColor: cambiado && editable ? theme.colors.accent : theme.colors.surface }]}
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!(cambiado && editable)} />
             <Text style={[styles.guardarTexto, { color: cambiado && editable ? '#1F2937' : theme.colors.textSecondary }]}>{etiquetaGuardar}</Text>
           </TouchableOpacity>
         </View>

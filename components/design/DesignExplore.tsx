@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useDireccion } from '../../hooks/useDireccion';
 import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
 import { RejillaDeCreator, TituloDeCreator, estilosDeCreator } from '../creator/PiezasDeCreator';
 import { PUERTAS_DE_DESIGN, CategoriaDeDesign } from '../../constants/designTools';
@@ -31,6 +33,7 @@ interface Props {
 const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
   const { theme } = useTheme();
   const t = useT();
+  const dir = useDireccion();
   const portada = PUERTAS_DE_DESIGN.filter((p) => p.enPortada);
   const pro = useEnEspacioProfesional();
 
@@ -62,7 +65,7 @@ const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
           accessibilityRole="button"
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
-          <Text style={[styles.verTodas, { color: theme.colors.textSecondary }]}>{t('studio.seeAll')} →</Text>
+          <Text style={[styles.verTodas, { color: theme.colors.textSecondary }]}>{t('studio.seeAll')} {dir.flecha.adelante}</Text>
         </TouchableOpacity>
       </View>
 
@@ -92,7 +95,7 @@ const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
                   >
                     {t(puerta.clave)}
                   </Text>
-                  <Ionicons name="chevron-forward" size={scale(14)} color={theme.colors.textSecondary} />
+                  <IconoDireccional name="chevron-forward" size={scale(14)} color={theme.colors.textSecondary} />
                 </View>
                 <Text style={[styles.pista, { color: theme.colors.textSecondary }]} numberOfLines={2}>{t(puerta.claveHint)}</Text>
               </View>

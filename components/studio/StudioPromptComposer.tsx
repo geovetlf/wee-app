@@ -20,6 +20,8 @@ interface Props {
    * quieres diseñar. Es la única diferencia, así que es la única que se pasa.
    */
   placeholder?: string;
+  /** Demo: la caja en traje de vitrina (CajaDePrompt). */
+  vitrina?: boolean;
 }
 
 /**
@@ -41,7 +43,7 @@ interface Props {
  * mismo color.
  */
 const StudioPromptComposer: React.FC<Props> = ({
-  valor, onCambiar, onAjustes, onReferencia, onVoz, onCrear, ocupado, placeholder,
+  valor, onCambiar, onAjustes, onReferencia, onVoz, onCrear, ocupado, placeholder, vitrina,
 }) => {
   const t = useT();
   const pro = useEnEspacioProfesional();
@@ -70,8 +72,9 @@ const StudioPromptComposer: React.FC<Props> = ({
   }
 
   return (
-    <View style={styles.marco}>
+    <View style={vitrina ? null : styles.marco}>
       <CajaDePrompt
+        vitrina={vitrina}
         valor={valor}
         onCambiar={onCambiar}
         onEnviar={onCrear}

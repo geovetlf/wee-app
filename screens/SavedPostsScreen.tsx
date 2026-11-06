@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
@@ -90,17 +91,17 @@ const SavedPostsScreen: React.FC = () => {
 
   const renderEmpty = () => (
     <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>🔖</Text>
+      <Ionicons name="bookmark-outline" size={scale(40)} color={theme.colors.text} />
       <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{t('saved.empty')}</Text>
       <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
         {t('saved.emptyHint')}
       </Text>
       <TouchableOpacity
-        style={[styles.emptyButton, { backgroundColor: theme.colors.accent }]}
+        style={[styles.emptyButton, { backgroundColor: theme.colors.text }]}
         onPress={() => navigation.goBack()}
         activeOpacity={0.8}
       >
-        <Text style={styles.emptyButtonText}>{t('saved.exploreHome')}</Text>
+        <Text style={[styles.emptyButtonText, { color: theme.colors.background }]}>{t('saved.exploreHome')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -115,11 +116,10 @@ const SavedPostsScreen: React.FC = () => {
           activeOpacity={0.7}
           accessibilityLabel={t('common.back')}
         >
-          <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={scale(23)} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitles}>
-          {/* El emoji se copia tal cual; el título se traduce. */}
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>🔖 {t('saved.title')}</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('saved.title')}</Text>
           {!loading && (
             <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
               {t('common.postsCount', { contador: visiblePosts.length, cantidad: visiblePosts.length })}

@@ -8,6 +8,7 @@ import { PRESETS_DE_FORMATO, PROPORCIONES } from '../../../services/filmmaker/do
 import type { AspectRatio, FormatPresetId } from '../../../services/filmmaker/dominio';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
+import { RellenoDeMarca } from '../../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -51,6 +52,7 @@ const ProductionFormatSelector: React.FC<{
                 isWeb && ({ cursor: editable ? 'pointer' : 'default' } as any),
               ]}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.md} apagada={!elegido} />
               <Ionicons name={p.icono as any} size={scale(18)} color={elegido ? '#1F2937' : theme.colors.text} />
               <Text style={[styles.presetNombre, { color: elegido ? '#1F2937' : theme.colors.text }]} numberOfLines={1}>{t(p.clave)}</Text>
               <Text style={[styles.presetProporcion, { color: elegido ? '#1F2937' : theme.colors.textSecondary }]}>{PRESETS_DE_FORMATO[p.preset].aspectRatio}</Text>

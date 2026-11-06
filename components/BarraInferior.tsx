@@ -103,7 +103,8 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
   });
   const colorTexto = (activo: boolean) => {
     if (isTransparent) return activo ? '#FFFFFF' : 'rgba(255,255,255,0.6)';
-    return activo ? theme.colors.accent : theme.colors.textSecondary;
+    /* Lo activo, en el ámbar-naranja de la navegación (2026-11-05). */
+    return activo ? theme.colors.activeColor : theme.colors.textSecondary;
   };
 
   return (

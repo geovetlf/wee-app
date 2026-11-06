@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
@@ -19,6 +20,7 @@ import { confirmAction, notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import TextoEnMayusculas from '../components/TextoEnMayusculas';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /**
  * ËCONTACT · ẄCONTACT — tu gente en Weë.
@@ -156,10 +158,11 @@ const EContactScreen: React.FC = () => {
       accessibilityRole="button"
       accessibilityLabel={etiqueta}
     >
+      <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!relleno} />
       {ocupada ? (
-        <ActivityIndicator size="small" color={relleno ? '#fff' : theme.colors.textSecondary} />
+        <ActivityIndicator size="small" color={relleno ? '#1F2937' : theme.colors.textSecondary} />
       ) : (
-        <Ionicons name={icono} size={scale(18)} color={relleno ? '#fff' : theme.colors.text} />
+        <Ionicons name={icono} size={scale(18)} color={relleno ? '#1F2937' : theme.colors.text} />
       )}
     </TouchableOpacity>
   );
@@ -310,7 +313,7 @@ const EContactScreen: React.FC = () => {
           activeOpacity={0.7}
           accessibilityLabel={t('common.back')}
         >
-          <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={scale(23)} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTextos}>
           {/* El título es el de la identidad activa: ËContact o ẄContact. */}

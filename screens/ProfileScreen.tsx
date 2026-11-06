@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,6 +39,8 @@ import ImageViewer from '../components/ImageViewer';
 import { useResponsive } from '../hooks/useResponsive';
 import { useMisEContacts } from '../hooks/useEContact';
 import * as ImagePicker from 'expo-image-picker';
+import { MARCA } from '../constants/marca';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_HEIGHT = 180;
@@ -299,6 +302,7 @@ const ProfileScreen: React.FC = () => {
           style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
           onPress={() => handleLogout()}
         >
+          <RellenoDeMarca radio={8} />
           <Text style={styles.retryButtonText}>{t('profile.backToLogin')}</Text>
         </TouchableOpacity>
       </View>
@@ -851,7 +855,7 @@ const ProfileScreen: React.FC = () => {
               onPress={handleShareProfile}
               activeOpacity={0.8}
             >
-              <Ionicons name="arrow-redo-outline" size={18} color={theme.colors.text} />
+              <IconoDireccional name="arrow-redo-outline" size={18} color={theme.colors.text} />
               <Text style={[styles.shareButtonText, { color: theme.colors.text }]}>{t('common.share')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -923,6 +927,7 @@ const ProfileScreen: React.FC = () => {
                   loadUserPosts();
                 }}
               >
+                <RellenoDeMarca radio={8} />
                 <Text style={styles.retryButtonText}>{t('profile.retry')}</Text>
               </TouchableOpacity>
             </View>
@@ -1026,7 +1031,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1239,7 +1244,7 @@ const styles = StyleSheet.create({
   },
   tabButtonActive: {
     borderBottomWidth: 2,
-    borderBottomColor: '#F5B731',
+    borderBottomColor: MARCA.activo,
   },
   tabLabel: {
     fontSize: 14,

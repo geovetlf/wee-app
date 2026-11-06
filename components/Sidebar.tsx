@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
+import { useDireccion } from '../hooks/useDireccion';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma, useT } from '../contexts/IdiomaContext';
@@ -20,6 +22,7 @@ import { useIdentidadActiva } from '../hooks/useEContact';
 import { useWallet } from '../hooks/useWallet';
 import { confirmAction } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { RellenoDeMarca } from './GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -73,13 +76,15 @@ const Opcion: React.FC<{
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, nested, onPress, right, marcaDeWeeAi }) => {
   const { theme } = useTheme();
+  /* En RTL, un nombre latino (Credits, WeeTalk, Weëls…) se alineaba a la izquierda y los árabes a la derecha: todos al inicio. */
+  const dir = useDireccion();
   /*
    * El icono toma el color del texto de SU fila, igual que en el cajón: es lo
    * que hace que el tema oscuro del Perfil Weë los vea claros sin tocar nada, y
    * que la opción donde estás tenga el dibujo del mismo color que su nombre.
    * El emoji no admitía color; el dibujo sí, y por eso ahora se le da.
    */
-  const colorDeLaFila = active ? theme.colors.accentDark : theme.colors.text;
+  const colorDeLaFila = active ? theme.colors.activeColor : theme.colors.text;
   return (
     <TouchableOpacity
       /*
@@ -107,7 +112,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, 
         <MarcaDeWeeAi
           size={nested ? 11 : 13}
           color={colorDeLaFila}
-          style={[styles.itemIcono, nested && styles.itemIconoNested, styles.marcaDeCredits]}
+          style={[styles.itemIcono, nested && styles.itemIconoNested, styles.marcaDeCredits, styles.marcaAncha]}
         />
       ) : icono === 'credits' ? (
         <MarcaDeCredits
@@ -125,7 +130,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, 
       ) : (
         <Text style={[styles.itemEmoji, nested && styles.itemEmojiNested]}>{emoji}</Text>
       )}
-      <Text style={[styles.itemLabel, nested && styles.itemLabelNested, { color: colorDeLaFila }]} numberOfLines={1}>
+      <Text style={[styles.itemLabel, nested && styles.itemLabelNested, dir.texto, { color: colorDeLaFila }]} numberOfLines={1}>
         {label}
       </Text>
       {right}
@@ -195,7 +200,7 @@ const Sidebar: React.FC = () => {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Logo */}
         <TouchableOpacity style={styles.logoContainer} onPress={() => goHome('Landing')} activeOpacity={0.7} accessibilityLabel={t('nav.goHome')}>
-          <Image source={require('../assets/images/weelogo.png')} style={styles.logo} contentFit="contain" />
+          <Image source={theme.dark ? require('../assets/images/weelogo-dark.png') : require('../assets/images/weelogo.png')} style={styles.logo} contentFit="contain" />
         </TouchableOpacity>
 
         {/*
@@ -217,7 +222,7 @@ const Sidebar: React.FC = () => {
               avatarId={userProfile.avatarId || 'male'}
               photoURL={typeof userProfile.photoURL === 'string' ? userProfile.photoURL : undefined}
               photoURLThumbnail={typeof userProfile.photoURLThumbnail === 'string' ? userProfile.photoURLThumbnail : undefined}
-              backgroundColor="#F5B731"
+              backgroundColor={theme.colors.accent}
             />
           ) : (
             <View style={[styles.avatarVacio, { backgroundColor: theme.colors.surface }]}>
@@ -232,7 +237,7 @@ const Sidebar: React.FC = () => {
               {!user ? t('menu.tapToSignIn') : activeProfileType === 'hidi' ? t('menu.activeWee') : t('menu.activeReal')}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />
+          <IconoDireccional name="chevron-forward" size={18} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Menú: mismo orden y mismos grupos que el cajón */}
@@ -254,6 +259,7 @@ const Sidebar: React.FC = () => {
             onPress={() => (user ? navigation.navigate('CreditStore') : requireLogin())}
             right={user ? (
               <View style={[styles.saldo, { backgroundColor: theme.colors.accent }]}>
+                <RellenoDeMarca radio={BORDER_RADIUS.full} />
                 <Text style={styles.saldoTexto}>{balance === null ? '…' : `${formato.numero(balance)} Credits`}</Text>
               </View>
             ) : undefined}
@@ -269,6 +275,7 @@ const Sidebar: React.FC = () => {
           */}
           <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
           <Opcion id="econtact" label={nombreLista} active={isActive('EContact')} onPress={() => (user ? navigation.navigate('EContact') : requireLogin())} />
+          <Opcion id="pages" active={isActive('WeePages')} onPress={() => (user ? navigation.navigate('WeePages') : requireLogin())} />
 
           <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
           <Text style={[styles.grupo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('menu.sectionExplore'))]}>{t('menu.sectionExplore')}</Text>
@@ -314,6 +321,7 @@ const Sidebar: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel={t('nav.create')}
         >
+          <RellenoDeMarca radio={BORDER_RADIUS.full} />
           <Ionicons name="add" size={22} color="#1F2937" />
           <Text style={styles.createButtonText}>{t('nav.create')}</Text>
         </TouchableOpacity>
@@ -453,6 +461,12 @@ const styles = StyleSheet.create({
   },
   /* La marca ocupa el hueco del icono y se centra en él: las filas no se mueven. */
   marcaDeCredits: { textAlign: 'center' },
+  /*
+   * «ẄAI» son tres letras en un hueco hecho para dos: a 24 puntos se cortaba en «Ẅ…» en la barra de escritorio.
+   * Como en el cajón (DrawerMenu, `marcaAncha`), el hueco crece 8 y se los devuelve al hueco de después: la marca
+   * cabe entera y el nombre de la fila sigue empezando donde empiezan los demás.
+   */
+  marcaAncha: { width: 32, marginRight: -8 },
   /* Lo que todavía va con emoji: Buscar, y nada más. */
   itemEmoji: {
     fontSize: 18,

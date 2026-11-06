@@ -20,6 +20,7 @@ import {
   entradaEncendida,
 } from '../../constants/espacioProfesional';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -171,6 +172,7 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
               accessibilityRole="button"
               accessibilityLabel={t('menu.signIn')}
             >
+              <RellenoDeMarca radio={999} />
               <Text style={styles.entrarTexto} numberOfLines={1}>{t('menu.signIn')}</Text>
             </TouchableOpacity>
           )}

@@ -48,7 +48,9 @@ export interface EstadoDeConversaciones {
 
 const VACIO: EstadoDeConversaciones = { conversaciones: [], sinLeer: 0, cargando: true };
 
-let identidadActual: string | null = null;
+/* `undefined` = todavía no se ha preguntado por nadie. Con `null` de partida, el invitado (identidad `null`) salía en el
+   primer `if` sin resolver nunca la carga y la bandeja se quedaba con la rueda para siempre (W — App final, 2026-11-06). */
+let identidadActual: string | null | undefined = undefined;
 let estado: EstadoDeConversaciones = VACIO;
 let cancelar: (() => void) | null = null;
 const oyentes = new Set<Oyente>();

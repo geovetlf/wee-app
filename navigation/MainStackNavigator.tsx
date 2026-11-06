@@ -25,13 +25,21 @@ import RegisterScreen from '../screens/RegisterScreen';
 import WeeProfileCreationScreen from '../screens/WeeProfileCreationScreen';
 import AiAvatarScreen from '../screens/AiAvatarScreen';
 import ReelsScreen from '../screens/ReelsScreen';
+import WallScreen from '../screens/WallScreen';
+import BoostScreen from '../screens/BoostScreen';
+import BoostCampaignsScreen from '../screens/BoostCampaignsScreen';
+import BoostCampaignScreen from '../screens/BoostCampaignScreen';
 import CreditStoreScreen from '../screens/CreditStoreScreen';
 import WalletScreen from '../screens/WalletScreen';
 import WeeCreatorScreen from '../screens/WeeCreatorScreen';
 import SavedPostsScreen from '../screens/SavedPostsScreen';
+import WeePagesScreen from '../screens/WeePagesScreen';
+import WeePageScreen from '../screens/WeePageScreen';
 import EContactScreen from '../screens/EContactScreen';
 import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import SpecialistScreen from '../screens/SpecialistScreen';
+import TravelScreen from '../screens/travel/TravelScreen';
+import type { ParametrosDeTravel } from '../screens/travel/rutas';
 import StudioScreen from '../screens/StudioScreen';
 import EspacioProfesionalNavigator from './EspacioProfesionalNavigator';
 import { VERSION_PROFESIONAL_EN_LA_WEB } from '../constants/espacioProfesional';
@@ -42,11 +50,6 @@ import WriterEditorScreen from '../screens/WriterEditorScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
 import MisCreacionesScreen from '../screens/MisCreacionesScreen';
 import ProjectScreen from '../screens/ProjectScreen';
-import WeeBizScreen from '../screens/WeeBizScreen';
-import WeeBizCategoryScreen from '../screens/WeeBizCategoryScreen';
-import WeeBizProfileScreen from '../screens/WeeBizProfileScreen';
-import WeeBizRegisterScreen from '../screens/WeeBizRegisterScreen';
-import WeeBizProductsScreen from '../screens/WeeBizProductsScreen';
 import AuthStackNavigator from './AuthStackNavigator';
 import Sidebar from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
@@ -56,6 +59,7 @@ import AgregarUbicacionScreen from '../screens/AgregarUbicacionScreen';
 import type { PostPlace } from '../data/places';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
 import type { ContextoDeExperiencia } from '../constants/weeWorkspaces';
+import { MARCA } from '../constants/marca';
 
 export type MainStackParamList = {
   Main: undefined;
@@ -82,6 +86,17 @@ export type MainStackParamList = {
   AgregarUbicacion: { place?: PostPlace; ubicacion?: UbicacionPublica } | undefined;
   WeeCreator: { category?: string } | undefined;
   SavedPosts: undefined;
+  /* WeëPages: crear y gestionar las Páginas de la cuenta; editPageId abre una para editar. */
+  WeePages: { editPageId?: string } | undefined;
+  WeePage: { pageId: string };
+  /** El Wäll inmersivo: una publicación a la vez (screens/WallScreen.tsx). */
+  Wall: undefined;
+  /** Impulsar una publicación propia (screens/BoostScreen.tsx, docs/BOOST.md). `id: 'elegir'` abre el selector; las páginas todavía no. */
+  Boost: { tipo: 'page' | 'post'; id: string };
+  /** Mis promociones: el historial de Boost de la cuenta. */
+  BoostCampaigns: undefined;
+  /** Una promoción: estado, dinero y resultados reales. */
+  BoostCampaign: { campaignId: string };
   /** ËContact: las conexiones de Weë entre personas. */
   EContact: undefined;
   /**
@@ -100,6 +115,8 @@ export type MainStackParamList = {
    */
   CreatorFlow: ContextoDeExperiencia;
   Specialist: { id: string };
+  /* WeëTravel: las pantallas de sus seis módulos (screens/travel/TravelScreen.tsx), apiladas con push. */
+  Travel: ParametrosDeTravel;
   /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
   Studio: undefined;
   /* Weë versión creator: el trabajo, sin muro, sin Weëls y solo con el Perfil Real. */
@@ -140,11 +157,6 @@ export type MainStackParamList = {
   AiAvatar: undefined;
   CreditStore: undefined;
   Wallet: undefined;
-  WeeBiz: undefined;
-  WeeBizCategory: { categoryId: string; categoryLabel: string };
-  WeeBizProfile: { businessId: string };
-  WeeBizRegister: { business?: any } | undefined;
-  WeeBizProducts: { businessId: string; isOwner: boolean };
   /* Sin Weël de partida es el feed entero: lo carga la propia pantalla (ReelsScreen). */
   Reels: {
     initialPost?: Post;
@@ -235,7 +247,7 @@ const MainStackNavigator: React.FC = () => {
   if (authLoading || isInitialLoad) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: '#0A0A0A' }]}>
-        <ActivityIndicator size="large" color="#F5B731" />
+        <ActivityIndicator size="large" color={MARCA.primario} />
       </View>
     );
   }
@@ -365,9 +377,12 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="WeeCreator" component={WeeCreatorScreen} />
       <Stack.Screen name="AgregarUbicacion" component={AgregarUbicacionScreen} />
       <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
+      <Stack.Screen name="WeePages" component={WeePagesScreen} />
+      <Stack.Screen name="WeePage" component={WeePageScreen} />
       <Stack.Screen name="EContact" component={EContactScreen} />
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
+      <Stack.Screen name="Travel" component={TravelScreen} />
       <Stack.Screen name="Studio" component={StudioScreen} />
       {/*
         Solo en la web: la app móvil no cambia. Lo de debajo se aparta: sin esto, lo
@@ -385,11 +400,10 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="EngineAdmin" component={EngineAdminScreen} />
       <Stack.Screen name="CommunitiesManagement" component={CommunitiesManagementScreen} />
       <Stack.Screen name="Project" component={ProjectScreen} />
-      <Stack.Screen name="WeeBiz" component={WeeBizScreen} />
-      <Stack.Screen name="WeeBizCategory" component={WeeBizCategoryScreen} />
-      <Stack.Screen name="WeeBizProfile" component={WeeBizProfileScreen} />
-      <Stack.Screen name="WeeBizRegister" component={WeeBizRegisterScreen} />
-      <Stack.Screen name="WeeBizProducts" component={WeeBizProductsScreen} />
+      <Stack.Screen name="Boost" component={BoostScreen} />
+      <Stack.Screen name="BoostCampaigns" component={BoostCampaignsScreen} />
+      <Stack.Screen name="BoostCampaign" component={BoostCampaignScreen} />
+      <Stack.Screen name="Wall" component={WallScreen} options={{ cardStyle: { backgroundColor: '#000' } }} />
       <Stack.Screen
         name="Reels"
         component={ReelsScreen}

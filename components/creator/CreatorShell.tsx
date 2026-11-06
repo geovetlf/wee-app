@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, StyleProp, LayoutChangeEvent, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
@@ -201,7 +202,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
         {!sinFranjaSuperior && (
         <View style={[styles.mobileHeader, { borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
-            <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
+            <IconoDireccional name="arrow-back" size={scale(23)} color={theme.colors.text} />
           </TouchableOpacity>
           {mark}
           <View style={styles.headerTitles}>
@@ -288,7 +289,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
       <View style={styles.main}>
         {!enProfesional && <View style={[styles.topBar, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity onPress={back} style={styles.breadcrumb} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
-            <Ionicons name="arrow-back" size={scale(20)} color={theme.colors.text} />
+            <IconoDireccional name="arrow-back" size={scale(20)} color={theme.colors.text} />
             <Text style={[styles.breadcrumbText, { color: theme.colors.text }]}>{breadcrumb}</Text>
           </TouchableOpacity>
           {/*

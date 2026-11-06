@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
@@ -17,12 +18,14 @@ import StudioScreen from './StudioScreen';
 import DesignScreen from './DesignScreen';
 import ChefScreen from './ChefScreen';
 import MusicScreen from './MusicScreen';
-import BusinessScreen from './BusinessScreen';
+import FashionScreen from './FashionScreen';
 import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
 import ActionGrid from '../components/creator/ActionGrid';
 import IdeaBox from '../components/creator/IdeaBox';
 import TravelLauncher from '../components/creator/TravelLauncher';
 import TravelMark from '../components/creator/TravelMark';
+import CajaDePrompt from '../components/creator/CajaDePrompt';
+import { CuerpoDeTravel, HeroDeTravel } from '../components/sectores/PortadaTravel';
 import UploadBox from '../components/creator/UploadBox';
 import ExamplesRow from '../components/creator/ExamplesRow';
 import WriterDocuments from '../components/creator/WriterDocuments';
@@ -54,6 +57,7 @@ const SpecialistScreen: React.FC = () => {
    * de un toque y se vuelven a cerrar igual; al entrar siempre están cerradas.
    */
   const [herramientasAbiertas, setHerramientasAbiertas] = useState(false);
+  const [textoDeTravel, setTextoDeTravel] = useState('');
   useFocusEffect(
     useCallback(() => {
       // Al llegar a la sección, las herramientas siempre están cerradas: lo
@@ -100,7 +104,8 @@ const SpecialistScreen: React.FC = () => {
     return null;
   }
   if (isBrain) return <BrainChatScreen />;
-  if (id === 'business') return <BusinessScreen />;
+  /* La sección con el nombre Weë Fashion es de moda (demo YC, decisión del dueño); `business` es solo su id histórico. */
+  if (id === 'business') return <FashionScreen />;
   /* "Weë Chef" → "Chef": la cabecera pone la marca y la sección pone su palabra. */
   const nombreCorto = spec.experience.name.replace(/^Weë\s+/i, '');
   /*
@@ -163,6 +168,9 @@ const SpecialistScreen: React.FC = () => {
    * nombre propio dentro de una pantalla que sirve a todas.
    */
   const lanzador = !!spec.ideaFirst;
+  /* Weë Travel en la app: la portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3). En creator, la tarjeta de siempre. */
+  const portadaDeTravel = lanzador && !pro && spec.id === 'travel';
+  const accionDeTravel = (id: string) => { const a = spec.actions.find((x) => x.id === id); if (a) handleAction(a); else startFlow(); };
 
   return (
     <CreatorShell
@@ -181,7 +189,36 @@ const SpecialistScreen: React.FC = () => {
         tarjeta de presentación con sellos e ilustración; la frase se queda, el
         resto sobraba para empezar a crear.
       */}
+      {portadaDeTravel ? (
+        <>
+          <CabeceraDeSeccion soloIdentidad nombre={nombreCorto} lema={spec.headline} />
+          <View style={styles.portada}>
+            <HeroDeTravel onAccion={accionDeTravel} onIdea={(texto) => startFlow(texto)} />
+          </View>
+          <View style={styles.cajaDeTravel}>
+            <CajaDePrompt
+              vitrina
+              valor={textoDeTravel}
+              onCambiar={setTextoDeTravel}
+              onEnviar={() => startFlow(textoDeTravel)}
+              etiquetaEnviar={t('weeai.describeYourIdea')}
+              placeholder={t('weeai.travelPrompt')}
+              acciones={[
+                { icono: 'add', etiqueta: t('weeai.describeYourIdea'), alPulsar: () => startFlow(textoDeTravel) },
+                { icono: 'image-outline', etiqueta: t('catalogo.travelAcWhereTitle'), alPulsar: () => accionDeTravel('where') },
+                { icono: 'calendar-outline', etiqueta: t('catalogo.travelAcPlanTitle'), alPulsar: () => accionDeTravel('plan') },
+                { icono: 'location-outline', etiqueta: t('catalogo.travelAcDoingTitle'), alPulsar: () => accionDeTravel('doing') },
+                { icono: 'options-outline', etiqueta: t('catalogo.travelAcMovingTitle'), alPulsar: () => accionDeTravel('moving') },
+              ]}
+            />
+          </View>
+          <View style={styles.cuerpoDeTravel}>
+            <CuerpoDeTravel onAccion={accionDeTravel} onIdea={(texto) => startFlow(texto)} />
+          </View>
+        </>
+      ) : (
       <CabeceraDeSeccion nombre={nombreCorto} lema={spec.headline} descripcion={spec.intro} />
+      )}
 
       {/*
         Y justo debajo, la caja: en Weë AI se entra diciendo qué quieres, no
@@ -196,7 +233,7 @@ const SpecialistScreen: React.FC = () => {
         Desde 2E-69 la frase y las cuatro funciones viven en la misma tarjeta, así
         que entre la cabecera y el muro solo hay una pieza.
       */}
-      {lanzador ? (
+      {portadaDeTravel ? null : lanzador ? (
         <TravelLauncher
           idea={spec.idea}
           actions={spec.actions}
@@ -267,7 +304,7 @@ const SpecialistScreen: React.FC = () => {
                   {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+              <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           ))}
         </View>
@@ -279,6 +316,10 @@ const SpecialistScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  /* La portada de Weë Travel de la demo YC: el héroe y el cuerpo salen del aire del marco; la caja sube sobre el fundido. */
+  portada: { marginBottom: -scale(30), marginHorizontal: -SPACING.lg },
+  cajaDeTravel: { marginBottom: SPACING.xl },
+  cuerpoDeTravel: { gap: SPACING.xxl, marginHorizontal: -SPACING.lg, paddingBottom: SPACING.xl },
   section: {
     gap: SPACING.md,
   },

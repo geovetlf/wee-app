@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,6 +35,8 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import { confirmAction, notify } from '../utils/notify';
 import TextoEnMayusculas from '../components/TextoEnMayusculas';
+import EtiquetaDemo from '../components/EtiquetaDemo';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_HEIGHT = 160;
@@ -62,8 +65,11 @@ const UserProfileScreen: React.FC = () => {
    * ËContact es MUTUO: pedir no conecta, hay que aceptar. Por eso ya no hay un
    * interruptor de dos posiciones como el de seguir, sino cuatro estados con
    * acciones distintas —y una de ellas, aceptar, la resuelve el servidor—.
+   *
+   * Con su uid, no con `userId`: la ruta puede traer la referencia pública (`ent_…`), que no es una identidad, y con
+   * ella este perfil se quedaba sin botón de ËContact.
    */
-  const econtact = useEContact(userId);
+  const econtact = useEContact(userProfile?.uid);
 
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [userReposts, setUserReposts] = useState<Post[]>([]);
@@ -78,8 +84,14 @@ const UserProfileScreen: React.FC = () => {
   // no puede pintar sus publicaciones en el nuevo.
   useEffect(() => {
     let vivo = true;
+    /*
+     * LAS PUBLICACIONES SE BUSCAN POR LA IDENTIDAD DEL AUTOR, NO POR LA RUTA. La ruta puede traer la referencia pública
+     * (`ent_…`), que no es el `userId` con el que se guardan las publicaciones: con ella el perfil decía «3 publicaciones»
+     * y la pestaña salía vacía. Se espera al perfil resuelto y se usa su uid.
+     */
+    const autor = userProfile?.uid ?? (userId && !userId.startsWith('ent_') ? userId : null);
     const loadUserPosts = async () => {
-      if (!userId) return;
+      if (!autor) return;
 
       try {
         setLoadingPosts(true);
@@ -90,7 +102,7 @@ const UserProfileScreen: React.FC = () => {
         console.log('📋 Cargando posts propios...');
         let posts: Post[] = [];
         try {
-          posts = await postsService.getByUserId(userId);
+          posts = await postsService.getByUserId(autor);
           console.log('📋 Posts encontrados:', posts.length);
         } catch (e) {
           console.error('❌ Error cargando posts:', e);
@@ -99,7 +111,7 @@ const UserProfileScreen: React.FC = () => {
         console.log('🔄 Cargando reposts...');
         let reposts: Post[] = [];
         try {
-          reposts = await repostsService.getUserReposts(userId);
+          reposts = await repostsService.getUserReposts(autor);
           console.log('🔄 Reposts encontrados:', reposts.length);
         } catch (e) {
           console.error('❌ Error cargando reposts:', e);
@@ -108,7 +120,7 @@ const UserProfileScreen: React.FC = () => {
         console.log('❤️ Cargando liked posts...');
         let likedPosts: Post[] = [];
         try {
-          likedPosts = await likesService.getUserLikedPostsWithData(userId);
+          likedPosts = await likesService.getUserLikedPostsWithData(autor);
           console.log('❤️ Liked posts encontrados:', likedPosts.length);
         } catch (e) {
           console.error('❌ Error cargando liked posts:', e);
@@ -132,7 +144,7 @@ const UserProfileScreen: React.FC = () => {
     return () => {
       vivo = false;
     };
-  }, [userId]);
+  }, [userId, userProfile?.uid]);
 
   const handleShareProfile = async () => {
     if (!userProfile) return;
@@ -337,12 +349,14 @@ const UserProfileScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel={t('econtact.acceptLabel', { lista: nombreLista })}
           >
+            <RellenoDeMarca radio={24} />
+            {/* Texto oscuro sobre el degradado, como en todos los botones de marca. */}
             {trabajando ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={theme.colors.onPrimary} />
             ) : (
               <>
-                <Ionicons name="checkmark" size={18} color="#fff" />
-                <Text style={[styles.followButtonText, { color: '#fff' }]}>{t('econtact.acceptLabel', { lista: nombreLista })}</Text>
+                <Ionicons name="checkmark" size={18} color={theme.colors.onPrimary} />
+                <Text style={[styles.followButtonText, { color: theme.colors.onPrimary }]}>{t('econtact.acceptLabel', { lista: nombreLista })}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -400,12 +414,13 @@ const UserProfileScreen: React.FC = () => {
         accessibilityRole="button"
         accessibilityLabel={porEstado.etiqueta}
       >
+        <RellenoDeMarca radio={24} apagada={!porEstado.relleno} />
         {trabajando ? (
-          <ActivityIndicator size="small" color={porEstado.relleno ? '#fff' : theme.colors.text} />
+          <ActivityIndicator size="small" color={porEstado.relleno ? '#1F2937' : theme.colors.text} />
         ) : (
           <>
-            <Ionicons name={porEstado.icono} size={18} color={porEstado.relleno ? '#fff' : theme.colors.text} />
-            <Text style={[styles.followButtonText, { color: porEstado.relleno ? '#fff' : theme.colors.text }]}>
+            <Ionicons name={porEstado.icono} size={18} color={porEstado.relleno ? '#1F2937' : theme.colors.text} />
+            <Text style={[styles.followButtonText, { color: porEstado.relleno ? '#1F2937' : theme.colors.text }]}>
               {porEstado.etiqueta}
             </Text>
           </>
@@ -456,7 +471,7 @@ const UserProfileScreen: React.FC = () => {
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('profile.otherTitle')}</Text>
           <View style={styles.headerRight} />
@@ -474,6 +489,7 @@ const UserProfileScreen: React.FC = () => {
             style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
             onPress={() => navigation.goBack()}
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.md} />
             <Text style={styles.retryButtonText}>{t('common.back')}</Text>
           </TouchableOpacity>
         </View>
@@ -523,7 +539,7 @@ const UserProfileScreen: React.FC = () => {
               onPress={() => navigation.goBack()}
               activeOpacity={0.7}
             >
-              <Ionicons name="arrow-back" size={22} color="#fff" />
+              <IconoDireccional name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerBtn} onPress={handleShareProfile}>
               <Ionicons name="share-outline" size={22} color="#fff" />
@@ -556,6 +572,7 @@ const UserProfileScreen: React.FC = () => {
           {/* Nombre y bio */}
           <Text style={[styles.displayName, { color: theme.colors.text }]}>
             {userProfile.displayName}
+            <EtiquetaDemo de={[userProfile]} color={theme.colors.accent} />
           </Text>
 
           {!!userProfile.bio && (
@@ -631,6 +648,7 @@ const UserProfileScreen: React.FC = () => {
                 onPress={() => navigation.navigate('Main', { screen: 'Profile' } as any)}
                 activeOpacity={0.8}
               >
+                <RellenoDeMarca radio={24} />
                 <Text style={styles.editProfileButtonText}>{t('profile.seeFullProfile')}</Text>
               </TouchableOpacity>
             </View>
@@ -870,7 +888,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   editProfileButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -921,7 +939,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
   },
   retryButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
   },

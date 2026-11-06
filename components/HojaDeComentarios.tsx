@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
@@ -23,6 +24,7 @@ import CommentCard from './CommentCard';
 import EspacioDeEscritura from './EspacioDeEscritura';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from './GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -235,10 +237,11 @@ const HojaDeComentarios: React.FC<HojaDeComentariosProps> = ({ visible, post, on
               accessibilityLabel={t('wall.sendComment')}
               accessibilityState={{ disabled: !puedeEnviar }}
             >
+              <RellenoDeMarca radio={scale(23)} apagada={!(puedeEnviar || enviando)} />
               {enviando ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color="#1F2937" />
               ) : (
-                <Ionicons name="send" size={ICON_SIZE.sm} color={puedeEnviar ? '#FFFFFF' : theme.colors.textSecondary} />
+                <IconoDireccional name="send" size={ICON_SIZE.sm} color={puedeEnviar ? '#1F2937' : theme.colors.textSecondary} />
               )}
             </TouchableOpacity>
           </View>
