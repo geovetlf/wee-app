@@ -109,7 +109,8 @@ console.log('\n── E · Weë Brain es la única inteligencia; la rama creator
     /navigation\.navigate\('CreatorFlow', \{ experienceId: 'travel'/.test(rutas) && /navigation\.navigate\('Login'\)/.test(rutas));
   check('28) ninguna pantalla de Travel llama a un servicio de IA por su cuenta', TODO.every((f) => !/creatorService|brainService|aiEngineService|httpsCallable/.test(codigo[f])));
   const esp = soloCodigo(leer('screens/SpecialistScreen.tsx'));
-  check('29) la portada nueva solo en la app; en Weë Creator (pro) la de siempre', /const portadaDeTravel = lanzador && !pro && spec\.id === 'travel';/.test(esp) && /<TravelLauncher/.test(esp));
+  /* Decisión del dueño (2026-11-06): Weë Travel es el mismo en la versión app y en Weë Creator; solo cambia el marco, que pone CreatorShell. */
+  check('29) la portada y el workspace son los mismos en la app y en Weë Creator (pro)', /const portadaDeTravel = lanzador && spec\.id === 'travel';/.test(esp) && /<TravelLauncher/.test(esp));
   const portada = codigo['components/sectores/PortadaTravel.tsx'];
   check('30) «Planear con IA» va a la conversación de siempre (la función plan)', /onPress=\{\(\) => onAccion\('plan'\)\}/.test(portada) && /t\('travel\.planWithAi'\)/.test(portada));
 }

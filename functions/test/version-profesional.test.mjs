@@ -18,7 +18,8 @@ const DATOS = leer('constants/espacioProfesional.ts');
 const APP = leer('App.tsx');
 
 check('1) siempre clara: es del Perfil Real', NAV.includes('<TemaClaro>'));
-check('4) el marco enseña el perfil que está puesto, sin cambiarlo', MARCO.includes('userProfile') && !MARCO.includes('switchIdentity'));
+/* Desde la fase final de creator (2026-11-06) el avatar es components/workspace/IdentidadEnCreator.tsx: enseña la cara puesta y solo la cambia si la persona la toca. */
+check('4) el marco enseña el perfil que está puesto, sin cambiarlo por sí mismo', /<IdentidadEnCreator\b/.test(MARCO) && leer('components/workspace/IdentidadEnCreator.tsx').includes('userProfile') && !MARCO.includes('switchIdentity'));
 check('4b) el estado de Music, Filmmaker y Mundo 3D sale de sus puertas', /MUSIC_GENERACION_VALIDADA \? 'pendiente'/.test(DATOS) && /FILMMAKER_EN_LA_APP \? 'conectado' : 'cerrado'/.test(DATOS) && /MUNDO_3D_EN_LA_APP \? 'conectado' : 'cerrado'/.test(DATOS));
 check('5) todas las secciones salen de su fuente única', DATOS.includes('WEE_EXPERIENCES.map'));
 check('6) proyectos y creaciones piden cuenta', /user \? irA\(e\.ruta\) : navigation\.navigate\('Login'\)/.test(MARCO));
