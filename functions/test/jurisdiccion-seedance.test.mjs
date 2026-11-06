@@ -58,7 +58,13 @@ const demo = () => ({ id: 'mock', name: 'demo', modalities: ['video'], models: [
 const configuracion = (cadena) => ({
   providers: { mock: { enabled: true, priority: 99 }, ...Object.fromEntries(cadena.map((p, i) => [p, { enabled: true, priority: i + 1 }])) },
   routing: { [CAP]: { capability: CAP, chain: cadena.map((provider) => ({ provider })), policy: 'quality-first' } },
-  settings: { ...DEFAULT_SETTINGS, allowMockFallback: true },
+  /*
+   * Consolidación W0 (2026-11-06): con la Línea B (gran-motor X2) el vídeo nace APAGADO (`videoHabilitado: false` en
+   * DEFAULT_SETTINGS) y el router descarta Seedance por eso, antes de mirar el país. Esta suite prueba la JURISDICCIÓN, así
+   * que parte del mundo «vídeo ya encendido por el dueño», como desactivacion-selectiva y runtime-paridad; el interruptor
+   * se prueba aparte (linea-b-finanzas).
+   */
+  settings: { ...DEFAULT_SETTINGS, allowMockFallback: true, videoHabilitado: true },
   source: 'test',
 });
 /* La fuente de la cuenta: lo que el SERVIDOR lee del Perfil Real. */
