@@ -151,33 +151,7 @@ const BORRADOS = [
     },
     argumentos: ['conv-1'],
   },
-  {
-    nombre: 'borrar un producto', archivo: 'screens/WeeBizProductsScreen.tsx', funcion: 'handleDeleteProduct',
-    dialogo: ['weebiz.deleteProductTitle', 'weebiz.deleteProductConfirm{"nombre":"Tarta"}', [['common.cancel', 'cancel'], ['common.delete', 'destructive']]],
-    alcance: () => {
-      const weeBizService = { deleteProduct: espia(async () => {}) };
-      const loadProducts = espia();
-      return {
-        alcance: { weeBizService, loadProducts, businessId: 'biz-1' },
-        hecho: () => weeBizService.deleteProduct.llamadas.length === 1 && weeBizService.deleteProduct.llamadas[0].join() === 'biz-1,prod-1' && loadProducts.llamadas.length === 1,
-      };
-    },
-    argumentos: [{ id: 'prod-1', name: 'Tarta' }],
-  },
-  {
-    nombre: 'borrar la reseña propia', archivo: 'screens/WeeBizProfileScreen.tsx', funcion: 'handleDeleteReview',
-    dialogo: ['weebiz.deleteReviewTitle', 'weebiz.deleteReviewConfirm', [['common.cancel', 'cancel'], ['common.delete', 'destructive']]],
-    alcance: () => {
-      const weeBizService = { deleteReview: espia(async () => {}), getReviews: espia(async () => []), getBusinessById: espia(async () => ({ id: 'biz-1' })) };
-      const setUserReview = espia();
-      return {
-        alcance: { weeBizService, businessId: 'biz-1', userReview: { id: 'rev-1' }, setReviews: espia(), setBusiness: espia(), setUserReview },
-        hecho: () => weeBizService.deleteReview.llamadas.length === 1 && weeBizService.deleteReview.llamadas[0].join() === 'biz-1,rev-1'
-          && setUserReview.llamadas.length === 1 && setUserReview.llamadas[0][0] === null,
-      };
-    },
-    argumentos: [],
-  },
+  /* «borrar un producto» y «borrar la reseña propia» eran de WeeBiz, retirado por decisión del dueño el 2026-11-03: era del proyecto antiguo. */
 ];
 
 console.log('\n── A · Borrar, en la web y en el teléfono ──');
@@ -241,14 +215,17 @@ console.log('\n── B · Salir de una comunidad ──');
       reiniciar();
       ventana.respuesta = respuesta;
       const n = plataforma === 'web' ? WEB : MOVIL;
+      /* Re-anclado 2026-11-05 (docs/COMUNIDADES-IDENTIDAD.md, decisiones 1–3 del dueño): unirse, salir y crear van por las callables con la cara ACTIVA: los nombres de la prueba se conservan y espían la callable nueva. */
       const communityService = {
-        leaveCommunity: espia(async () => { if (fallaSalir) throw new Error('red'); }),
-        joinCommunity: espia(async () => {}),
+        leaveCommunity: espia(async () => { if (fallaSalir) throw new Error('red'); return { memberCount: 0 }; }),
+        joinCommunity: espia(async () => ({ memberCount: 1, role: 'member' })),
       };
+      const comunidadesService = { salir: communityService.leaveCommunity, unirse: communityService.joinCommunity };
       const setJoiningCommunity = espia();
       const h = ejecutable(fn.nodo.getText(fn.src), {
         user: { uid: 'u1' }, navigateToRegister: espia(), joinedCommunityIds: unido ? ['c1'] : [], setJoiningCommunity,
-        nombreDeComunidad: (c) => c.name, locale: 'es-ES', communityService, updateLocalProfile: espia(),
+        nombreDeComunidad: (c) => c.name, locale: 'es-ES', communityService, comunidadesService, identidad: 'u1', papeles: {}, setPapeles: espia(),
+        motivoDelError: () => '', updateLocalProfile: espia(),
         setCommunities: espia((f) => f([])), t, console: consola, Alert: { alert: (...a) => n.registro.alertas.push(a) },
         confirmAction: n.confirmAction, notify: n.notify,
       });
@@ -299,100 +276,12 @@ console.log('\n── B · Salir de una comunidad ──');
   }
 }
 
-console.log('\n── C · Crear un negocio: un toque, un negocio ──');
+console.log('\n── C · El alta de negocios de WeeBiz ya no existe ──');
 {
-  const fn = funcionDe('screens/WeeBizRegisterScreen.tsx', 'handleSave');
-  check('17) WeeBizRegisterScreen#handleSave existe', !!fn);
-  if (fn) {
-    check('18) ya no queda un Alert.alert dentro', alertasDentro(fn).length === 0, alertasDentro(fn).join(' · '));
-    /* Un formulario: el mismo alcance —la misma ref, los mismos servicios— para todos los toques. */
-    const formulario = (plataforma, { fallos = 0, editando = false } = {}) => {
-      const n = plataforma === 'web' ? WEB : MOVIL;
-      let quedanFallos = fallos;
-      const weeBizService = {
-        createBusiness: espia(async () => { await ticks(1); if (quedanFallos-- > 0) throw new Error('red'); return 'biz-nuevo'; }),
-        updateBusiness: espia(async () => {}),
-      };
-      const navigation = { goBack: espia(), navigate: espia() };
-      const editBusiness = editando ? { id: 'biz-viejo', logo: '' } : undefined;
-      const h = ejecutable(fn.nodo.getText(fn.src), {
-        guardando: { current: false }, setGuardado: espia(), activeUid: 'u1', name: 'Pastelería', selectedCategory: 'food',
-        setSaving: espia(), editBusiness, logoUri: null, uploadImageToCloudinary: espia(async () => 'https://x'),
-        isEditing: editando, weeBizService, description: '', subcategory: '', location: '', externalLink: '',
-        navigation, t, console: consola, Alert: { alert: (...a) => n.registro.alertas.push(a) }, notify: n.notify,
-      });
-      return { h, weeBizService, navigation, registro: n.registro };
-    };
-
-    {
-      reiniciar();
-      const { h, weeBizService, navigation } = formulario('web');
-      /* Dos toques seguidos, antes de que se pinte el botón deshabilitado. */
-      await Promise.all([h(), h()]);
-      await ticks();
-      check('19) dos toques seguidos crean UN negocio', weeBizService.createBusiness.llamadas.length === 1,
-        String(weeBizService.createBusiness.llamadas.length));
-      check('20) en la web navega a su perfil sin esperar a ningún botón',
-        navigation.navigate.llamadas.length === 1 && JSON.stringify(navigation.navigate.llamadas[0]) === JSON.stringify(['WeeBizProfile', { businessId: 'biz-nuevo' }])
-        && navigation.goBack.llamadas.length === 1, JSON.stringify(navigation.navigate.llamadas));
-      check('21) y la persona lee que se creó (weebiz.createdTitle + weebiz.created)',
-        ventana.avisos.some((a) => /weebiz\.createdTitle/.test(a) && /weebiz\.created\b/.test(a)), JSON.stringify(ventana.avisos));
-      /* Un toque más DESPUÉS del éxito —el formulario sigue ahí si la navegación no lo quitara—: nada. */
-      await h();
-      await ticks();
-      check('22) y un toque después del éxito tampoco crea otro', weeBizService.createBusiness.llamadas.length === 1,
-        String(weeBizService.createBusiness.llamadas.length));
-    }
-    {
-      reiniciar();
-      const { h, weeBizService, navigation } = formulario('web', { fallos: 1 });
-      await h();
-      await ticks();
-      check('23) si falla, se ve el aviso en la web (common.error + weebiz.saveFailed) y no navega',
-        ventana.avisos.some((a) => /common\.error/.test(a) && /weebiz\.saveFailed/.test(a)) && navigation.navigate.llamadas.length === 0,
-        JSON.stringify(ventana.avisos));
-      await h();
-      await ticks();
-      check('24) y se puede reintentar: el segundo intento crea y navega',
-        weeBizService.createBusiness.llamadas.length === 2 && navigation.navigate.llamadas.length === 1);
-    }
-    {
-      reiniciar();
-      const { h, weeBizService, navigation } = formulario('web', { editando: true });
-      await h();
-      await ticks();
-      check('25) editar guarda y vuelve atrás en la web, sin crear nada',
-        weeBizService.updateBusiness.llamadas.length === 1 && weeBizService.createBusiness.llamadas.length === 0
-        && navigation.goBack.llamadas.length === 1 && ventana.avisos.some((a) => /weebiz\.updated/.test(a)));
-    }
-    {
-      reiniciar();
-      const { h, navigation, registro } = formulario('ios');
-      await h();
-      await ticks();
-      check('26) en el teléfono también navega sin que haya que pulsar nada, y avisa con el título y el mensaje de siempre',
-        navigation.navigate.llamadas.length === 1 && registro.alertas.length === 1
-        && registro.alertas[0][0] === 'weebiz.createdTitle' && registro.alertas[0][1] === 'weebiz.created',
-        forma(registro.alertas[0]));
-    }
-    {
-      reiniciar();
-      const { h, weeBizService } = formulario('web');
-      const sinNombre = ejecutable(fn.nodo.getText(fn.src), {
-        guardando: { current: false }, setGuardado: espia(), activeUid: 'u1', name: '   ', selectedCategory: 'food',
-        setSaving: espia(), editBusiness: undefined, logoUri: null, uploadImageToCloudinary: espia(), isEditing: false,
-        weeBizService, description: '', subcategory: '', location: '', externalLink: '', navigation: { goBack() {}, navigate() {} },
-        t, console: consola, Alert: { alert() {} }, notify: WEB.notify,
-      });
-      await sinNombre();
-      check('27) los avisos de validación se ven en la web (weebiz.requiredTitle + weebiz.businessNameMissing)',
-        ventana.avisos.some((a) => /weebiz\.requiredTitle/.test(a) && /weebiz\.businessNameMissing/.test(a))
-        && weeBizService.createBusiness.llamadas.length === 0, JSON.stringify(ventana.avisos));
-      void h;
-    }
-  }
-  const pantalla = leer('screens/WeeBizRegisterScreen.tsx');
-  check('28) el botón se deshabilita también tras el éxito', /disabled=\{saving \|\| guardado \|\| !name\.trim\(\) \|\| !selectedCategory\}/.test(pantalla));
+  /* WeeBiz (directorio de negocios) retirado por decisión del dueño el 2026-11-03: era del proyecto antiguo. */
+  const quedan = ['screens/WeeBizRegisterScreen.tsx', 'screens/WeeBizProfileScreen.tsx', 'screens/WeeBizProductsScreen.tsx']
+    .filter((a) => fs.existsSync(path.resolve(raiz, a)));
+  check('17) las pantallas de WeeBiz con avisos se retiraron', quedan.length === 0, quedan.join(' · '));
 }
 
 console.log('\n── D · Crear el Perfil Weë vuelve atrás ──');
@@ -434,10 +323,10 @@ console.log('\n── D · Crear el Perfil Weë vuelve atrás ──');
 console.log('\n── E · El arreglo es el canónico ──');
 {
   /* `utils/notify.ts` es el arreglo de CLAUDE.md para la web; nadie se escribió su propio `window.confirm`. */
-  const ARCHIVOS = ['components/PostCard.tsx', 'screens/InboxScreen.tsx', 'screens/WeeBizProductsScreen.tsx', 'screens/WeeBizProfileScreen.tsx',
-    'screens/CommunitiesManagementScreen.tsx', 'screens/WeeBizRegisterScreen.tsx', 'screens/WeeProfileCreationScreen.tsx'];
+  const ARCHIVOS = ['components/PostCard.tsx', 'screens/InboxScreen.tsx',
+    'screens/CommunitiesManagementScreen.tsx', 'screens/WeeProfileCreationScreen.tsx'];
   const sinNotify = ARCHIVOS.filter((a) => !/import \{[^}]*\b(?:confirmAction|notify)\b[^}]*\} from '\.\.\/utils\/notify';/.test(leer(a)));
-  check('33) los siete archivos usan utils/notify.ts', sinNotify.length === 0, sinNotify.join(' · '));
+  check('33) los cuatro archivos usan utils/notify.ts', sinNotify.length === 0, sinNotify.join(' · '));
   const propios = ARCHIVOS.filter((a) => /window\.(?:confirm|alert)\(/.test(leer(a)));
   check('34) y ninguno llama a window.confirm/window.alert por su cuenta', propios.length === 0, propios.join(' · '));
   /* CONTROL: la prueba ve el fallo. Un manejador con su trabajo dentro de un Alert.alert, en la web, no hace nada. */

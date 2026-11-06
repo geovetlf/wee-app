@@ -438,15 +438,45 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
     };
     const delRouter = lineas('functions/src/core/router.ts');
     const deCostes = lineas('functions/src/credits/creditCosts.ts');
-    check('63fal) y de la misión fal, exacto: el Router del Core solo gana la modalidad 3d (lista y guardia) y creditCosts solo el servicio ai_world',
+    /*
+     * Y LA COMPRA POR IMPORTE (decisión definitiva del dueño, 2026-11-04, con autorización expresa para tocar el
+     * catálogo, el Credit Engine y los pagos): creditCosts PIERDE los paquetes (CreditPackage, CREDIT_PACKAGES,
+     * getPackage) y el bono de bienvenida configurable (240 por defecto, CREDITS_WELCOME), y gana UNA línea:
+     * `WELCOME_CREDITS = 0`. Ni un precio de servicio, ni un margen, ni una capacidad se mueven. Se fija exacto:
+     * qué se quitó y qué entró; una línea más, una menos o una distinta y 63fal cae. La regla nueva vive fuera
+     * de Credits (functions/src/payments/compraPorImporte.ts) y la vigila `compra-por-importe.test.mjs`.
+     */
+    const QUITADAS_DE_COSTES_POR_IMPORTE = [
+      'export const WELCOME_CREDITS = (() => {',
+      'const raw = process.env.CREDITS_WELCOME;',
+      "if (raw === undefined || raw === '') return 240;",
+      'const n = Number(raw);',
+      'return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;',
+      '})();',
+      'export interface CreditPackage {',
+      'id: string;',
+      'name: string;',
+      'credits: number;',
+      'priceUsd: number;',
+      'productId: string;',
+      '}',
+      'export const CREDIT_PACKAGES: CreditPackage[] = [',
+      "{ id: 'basic', name: 'Básico', credits: 40, priceUsd: 4.99, productId: 'zone.wee.credits.basic' },",
+      "{ id: 'plus', name: 'Plus', credits: 90, priceUsd: 9.99, productId: 'zone.wee.credits.plus' },",
+      "{ id: 'blackpro', name: 'Black Pro', credits: 200, priceUsd: 19.9, productId: 'zone.wee.credits.blackpro' },",
+      '];',
+      'export const getPackage = (id: string): CreditPackage | undefined => CREDIT_PACKAGES.find((p) => p.id === id || p.productId === id);',
+    ];
+    check('63fal) y de la misión fal, exacto: el Router del Core solo gana la modalidad 3d (lista y guardia) y creditCosts solo el servicio ai_world; más la compra por importe: sin paquetes y WELCOME_CREDITS = 0',
       JSON.stringify(delRouter.quitadas) === JSON.stringify([
         "const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc'] as const;",
         'const MODALIDADES_COMPLETAS: Record<Modality, true> = { text: true, vision: true, image: true, video: true, voice: true, music: true, doc: true };',
       ]) && JSON.stringify(delRouter.nuevas) === JSON.stringify([
         "const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc', '3d'] as const;",
         "const MODALIDADES_COMPLETAS: Record<Modality, true> = { text: true, vision: true, image: true, video: true, voice: true, music: true, doc: true, '3d': true };",
-      ]) && deCostes.quitadas.length === 0 && JSON.stringify(deCostes.nuevas) === JSON.stringify([
-        'ai_world: 39,', "ai_world: 'Generación de mundo 3D',", "case 'world.generate':", "return 'ai_world';",
+      ]) && JSON.stringify(deCostes.quitadas) === JSON.stringify(QUITADAS_DE_COSTES_POR_IMPORTE)
+      && JSON.stringify(deCostes.nuevas) === JSON.stringify([
+        'ai_world: 39,', "ai_world: 'Generación de mundo 3D',", 'export const WELCOME_CREDITS = 0;', "case 'world.generate':", "return 'ai_world';",
       ]), JSON.stringify({ delRouter, deCostes }));
   }
   {
@@ -467,20 +497,33 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
      * líneas que se sustituyen; el import, el candado de #24 y las dos líneas nuevas). Ni gasto, ni reembolso, ni
      * `grantCredits`, ni `refundCredits` se mueven; una línea más, una menos o una distinta, y 63k cae.
      */
+    /*
+     * Y la compra por importe (dueño, 2026-11-04): `getCreditCost` y el caso `costs` de `creditsAdmin` dejan de
+     * devolver `packages: CREDIT_PACKAGES` y devuelven `compra` (la regla US$5–100 de 5 en 5, 100 Credits por dólar,
+     * el proveedor que puede confirmar y los mercados), con sus dos imports. Exacto, como lo demás.
+     */
     const QUITADAS_AUTORIZADAS = [
+      "import { allCreditCosts, CREDIT_PACKAGES, invalidateCostOverrides, isCreditService, loadCostOverrides } from './creditCosts';",
       "import { assertRequestId, cleanText, toHttpsError } from './creditValidation';",
+      "    return { costs, packages: CREDIT_PACKAGES };",
       "        return creditEngine.getBalance(String(data.userId || ''));",
       "        const snap = await db.collection('creditTransactions').where('status', '==', 'REFUNDED').orderBy('createdAt', 'desc').limit(Number(data.limit) || 50).get();",
+      "        return { costs: allCreditCosts(), packages: CREDIT_PACKAGES };",
     ];
     const CODIGO_NUEVO_AUTORIZADO = [
+      "import { allCreditCosts, invalidateCostOverrides, isCreditService, loadCostOverrides } from './creditCosts';",
       "import { assertLimit, assertRequestId, cleanText, toHttpsError } from './creditValidation';",
+      "import { configuracionDeCompra } from '../payments/compraPorImporte';",
+      "import { testPurchasesEnabled } from '../payments/providers/test';",
+      "return { costs, compra: await configuracionDeCompra(testPurchasesEnabled) };",
       "assertAdmin(request.auth as any);",
       "return creditEngine.readBalance(String(data.userId || ''));",
       "const snap = await db.collection('creditTransactions').where('status', '==', 'REFUNDED').orderBy('createdAt', 'desc').limit(assertLimit(data.limit)).get();",
+      "return { costs: allCreditCosts(), compra: await configuracionDeCompra(testPurchasesEnabled) };",
     ];
     const cuerpoAdmin = fuente.slice(fuente.indexOf('export const creditsAdmin'));
     const caso = (nombre) => cuerpoAdmin.slice(cuerpoAdmin.indexOf(`case '${nombre}':`), cuerpoAdmin.indexOf('case ', cuerpoAdmin.indexOf(`case '${nombre}':`) + 5));
-    check('63k) y en los callables de Credits lo único nuevo es el candado de administración de spendCredits (#24) y los dos casos del cierre en creditsAdmin: quitadas y nuevas, exactas',
+    check('63k) y en los callables de Credits lo único nuevo es el candado de administración de spendCredits (#24), los dos casos del cierre en creditsAdmin y la regla de la compra por importe en lugar de los paquetes: quitadas y nuevas, exactas',
       JSON.stringify(quitadas.map((l) => l.slice(1))) === JSON.stringify(QUITADAS_AUTORIZADAS)
       && JSON.stringify(codigoNuevo) === JSON.stringify(CODIGO_NUEVO_AUTORIZADO)
       && cuerpoSpend.includes('assertAdmin(request.auth as any);')

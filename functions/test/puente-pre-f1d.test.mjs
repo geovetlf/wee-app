@@ -685,13 +685,22 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const DEL_COSTE_DE_LO_ACEPTADO = ['functions/src/engine/pricing.ts', 'functions/src/runtime/barrendero.ts'];
   /* Weë Music v0 (2026-10-15): contrato, matriz y adaptadores preparatorios, NO registrados ni exportados; los fija music.test. */
   const DE_MUSIC = ['functions/src/music/contract.ts', 'functions/src/music/index.ts', 'functions/src/music/matrix.ts', 'functions/src/music/providers.ts'];
+  /* WeëPages (2026-11-02): las Páginas de la cuenta, nuevas; las fija weepages.test (docs/WEEPAGES.md). */
+  const DE_WEEPAGES = ['functions/src/social/pages.ts'];
+  /* Comunidades por identidad (2026-11-05): las nueve callables de crear, unirse, salir, papeles y propiedad, nuevas y sin
+     desplegar; sin IA ni Credits. Las fijan comunidades-identidad (y su suite de emulador) — docs/COMUNIDADES-IDENTIDAD.md. */
+  const DE_COMUNIDADES = ['functions/src/social/comunidades.ts'];
+  /* Boost (2026-11-04): promocionar publicaciones propias, nuevo; reserva y liquida solo por el Credit Engine. Lo fijan boost-motor y boost-interfaz (docs/BOOST.md). */
+  const DE_BOOST = ['functions/src/boost/index.ts', 'functions/src/boost/modelo.ts', 'functions/src/boost/motor.ts'];
+  /* Compra de Credits por importe (dueño, 2026-11-04): la regla nueva y los pagos que la aplican. Credits, no el puente. */
+  const DE_LA_COMPRA_POR_IMPORTE = ['functions/src/payments/compraPorImporte.ts', 'functions/src/payments/providers/stripe.ts', 'functions/src/payments/providers/test.ts', 'functions/src/payments/purchaseValidation.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_MUSIC,
+      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_MUSIC, ...DE_WEEPAGES, ...DE_COMUNIDADES, ...DE_BOOST, ...DE_LA_COMPRA_POR_IMPORTE,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -707,8 +716,17 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const CREDITS_DEL_HARNESS = '57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
   /* + misión fal (2026-10-05): core/router.ts +2 −2 (la modalidad 3d) y creditCosts.ts +8 (el servicio ai_world). Líneas exactas en job-queue 63fal. */
   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
-  check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; del tamaño exacto',
-    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === `${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
+/*
+   * + COMPRA POR IMPORTE (decisión definitiva del dueño, 2026-11-04, con autorización expresa para tocar el catálogo,
+   *   el Credit Engine y los pagos): creditCosts.ts pierde los paquetes (CreditPackage, CREDIT_PACKAGES, getPackage) y
+   *   el bono configurable, y gana `WELCOME_CREDITS = 0` (con la misión fal: +18 −26); credits/index.ts cambia
+   *   `packages: CREDIT_PACKAGES` por `compra` en getCreditCost y creditsAdmin·costs, con sus imports (con el Harness:
+   *   +25 −6). creditEngine.ts y creditValidation.ts, intactos. Líneas exactas en job-queue 63fal y 63k; la regla y su
+   *   seguridad, en compra-por-importe.test.mjs.
+   */
+  const CREDITS_CON_LA_COMPRA_POR_IMPORTE = '2\t2\tfunctions/src/core/router.ts\n18\t26\tfunctions/src/credits/creditCosts.ts\n57\t9\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n25\t6\tfunctions/src/credits/index.ts';
+  check('F2) el Credit Engine, el Financial Core, el Router y creditCosts: sin tocar; credits/index, solo el cierre de spendCredits del Harness (b878068) y la compra por importe; el Router y creditCosts, solo la misión fal y la compra por importe; del tamaño exacto',
+    git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === CREDITS_CON_LA_COMPRA_POR_IMPORTE);
   /* Del contenido, solo la adopción del objeto sin ficha (F1-D, ficha 5), y de su tamaño. Del Core, solo la misión fal (video-asincrono H3). */
   /* + misión mundo3d (2026-10-05): mundo3d (nuevo), contracts +6, index +1 y escena3d +1 (ver video-asincrono H3). */
   /* + misión mundo3d FASE 5: capability.ts +2 (`world: '3d'`) y mundo3d.ts +15 (364 → 379, los derechos visibles). */

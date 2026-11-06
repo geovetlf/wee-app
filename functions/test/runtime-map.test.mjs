@@ -294,6 +294,23 @@ const FUNCTIONS = {
    * (ops/despliegue/grupos.json → no_se_despliegan): está en el mapa porque el código la exporta.
    */
   './creator/mundo': ['generateWorld'],
+  /*
+   * WeëPages (2026-11-02): crear/editar una Página de la cuenta y seguirla. Sin IA ni Credits. NO están desplegadas
+   * (ops/despliegue/grupos.json → no_se_despliegan); están en el mapa porque el código las exporta. docs/WEEPAGES.md.
+   */
+  './social/pages': ['savePage', 'followPage'],
+  /*
+   * Comunidades por identidad (2026-11-05): crear, unirse, salir, papeles, expulsar, transferir, editar, reclamar una
+   * heredada y listar las de la cara activa. Sin IA ni Credits. NO están desplegadas (ops/despliegue/grupos.json →
+   * no_se_despliegan; orden de producción en docs/COMUNIDADES-IDENTIDAD.md §9); están en el mapa porque el código las exporta.
+   */
+  './social/comunidades': ['createCommunity', 'joinCommunity', 'leaveCommunity', 'setCommunityRole', 'removeCommunityMember',
+    'transferCommunityOwnership', 'updateCommunity', 'claimLegacyCommunity', 'listMyCommunities'],
+  /*
+   * Boost (2026-11-04): promocionar publicaciones propias; reserva y liquida SOLO por el Credit Engine. NO están
+   * desplegadas (ops/despliegue/grupos.json → no_se_despliegan); están en el mapa porque el código las exporta. docs/BOOST.md.
+   */
+  './boost': ['boost', 'boostSweep'],
   './engine/webhooks': ['seedanceCallback'],
   './public/postPage': ['publicPostPage'],
   './engine/admin': ['engineAdmin'],
@@ -395,7 +412,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y siete: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar) y generateWorld (misión mundo3d, sin desplegar)', reales.length === 37, `${reales.length}`);
+  check('5) y son cincuenta: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar), generateWorld (misión mundo3d, sin desplegar), savePage/followPage (WeëPages, sin desplegar), boost/boostSweep (Boost, sin desplegar) y las nueve de Comunidades por identidad (sin desplegar)', reales.length === 50, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *

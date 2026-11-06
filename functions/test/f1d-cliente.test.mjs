@@ -76,6 +76,8 @@ const dobles = {
   react: React,
   'react-native': reactNative,
   '@expo/vector-icons': { Ionicons: ({ name }) => h('i', { 'data-icono': name }) },
+  /* El degradado de marca (components/GradienteDeMarca.tsx, ronda V 2026-11-06) es solo fondo: aquí no dibuja nada. */
+  'expo-linear-gradient': { LinearGradient: () => null },
   '@react-navigation/native': { useRoute: () => ({ params: {} }), useNavigation: () => ({}) },
   'firebase/functions': firebaseFunctions,
   'firebase/firestore': firebaseFirestore,
@@ -85,6 +87,11 @@ const dobles = {
   '../../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
   '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }) },
   '../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
+  /* Las piezas compartidas de components/ y hooks/ (IconoDireccional → useDireccion, TextoEnMayusculas…) llegan a los
+     contextos desde un nivel menos; sin estos dobles se cargaba el IdiomaContext real y, con él, async-storage
+     (2026-11-06, W — App final). */
+  '../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }) },
+  '../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es', direccion: 'ltr' }) },
   /* Los rótulos en mayúsculas: la caja la decide TextoEnMayusculas (lo prueba i18n-turco 34–36c); aquí, el mismo texto, como hacía el estilo. */
   '../../TextoEnMayusculas': ({ children, ...p }) => reactNative.Text({ ...p, children }),
   '../TextoEnMayusculas': ({ children, ...p }) => reactNative.Text({ ...p, children }),

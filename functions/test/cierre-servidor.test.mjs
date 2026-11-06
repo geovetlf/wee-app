@@ -427,10 +427,8 @@ console.log('\n── I · Consultas acotadas y documentación que dice la verda
   check('49) la denuncia sin cuenta nacida está documentada con exactitud: qué cuentas, que la migración NO está preparada, cómo se haría',
     /### 12\.1 Las cuentas que no han nacido/.test(IDENTITY) && /dry-run/i.test(IDENTITY) && /--ejecutar --confirmo-autorizacion/.test(IDENTITY)
     && /\*\*no está preparada\*\*/.test(MODERATION) && !/su migración está preparada y no ejecutada/.test(MODERATION));
-  const BIZ = sinComentarios(fuente('services/weeBizService.ts'));
-  check('50) la app escribe la reseña en `reviews/{uid}` con setDoc: la segunda de la misma persona actualiza la suya',
-    /const reviewRef = doc\(reviewsCol\(businessId\), data\.userId\);\s*const datos = [^\n]*\.filter\(\(\[, v\]\) => v !== undefined\)\);\s*await setDoc\(reviewRef, datos\);/.test(BIZ)
-    && !/addDoc\(reviewsCol\(/.test(BIZ)); /* + segunda auditoría: sin campos `undefined` (la persona sin foto podía no reseñar) */
+  /* 50 · Las reseñas de negocios las escribía services/weeBizService.ts, retirado por decisión del dueño el 2026-11-03: era del proyecto antiguo. */
+  check('50) el cliente ya no escribe reseñas de negocios', !fs.existsSync(path.resolve(RAIZ, 'services/weeBizService.ts')));
 }
 
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');

@@ -128,6 +128,7 @@ console.log('\n── B · Ningún "Cancelar" hace de Back ──');
     // `components/CommunitySelector.tsx` (confirmaba antes de unirse a una comunidad sin filtro) salió de la lista al
     // retirarse como código muerto (cierre post-auditoría, 2026-10-01): nadie lo importaba. Si vuelve con su Cancelar,
     // la comprobación 5 lo pillará fuera de lista y tendrá que volver aquí a explicarse.
+    'components/travel/Brain.tsx': 1, // DialogoDeConfirmar de Weë Travel: es el "no" de una confirmación (borrar, replanear), no vuelve a ninguna pantalla
     'components/ReportSheet.tsx': 2, // UN botón, con su texto y su etiqueta accesible: cierra la hoja de denunciar sin enviar nada. Es el "no" de una denuncia, y no hay pantalla a la que volver
     // Eran 2 (permisos de galería y de cámara). La de la cámara confirma ahora con `confirmAction` —la cámara también
     // se abre en la web, donde un `Alert.alert` con botones no hace nada— y su Cancelar es el de la 6 (cierre

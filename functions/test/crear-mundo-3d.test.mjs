@@ -9,7 +9,7 @@
  *   D · El ciclo de vida: la máquina hace exactamente lo que dice su tabla, con en cola, parar y cancelado de verdad.
  *   E · De lo que contesta la puerta asíncrona (`generateWorld`) a los eventos.
  *   F · Del mundo a la escena: el núcleo 3D único, por id, idéntico al del servidor.
- *   G · Lo que se enseña: claves que existen, en los dieciséis diccionarios, sin frases propias.
+ *   G · Lo que se enseña: claves que existen, en todos los diccionarios de los idiomas listos, sin frases propias.
  *   H · Fronteras: puro, sin proveedores, sin Credits, sin reloj, y en la cadena.
  *
  * Sin red, sin Firebase (doblado) y sin el compilado: se cargan las fuentes. $0.
@@ -430,13 +430,16 @@ seccion('G', () => {
   for (const [, e] of ERRORES) claves.add(M.errorDelMundo3D(e).clave);
   for (const entrada of [{ ...ENTRADA, imagen: null }, { ...ENTRADA, projectId: '/' }, { ...ENTRADA, espacio: 'playa' }]) for (const pr of M.validarEntradaDelMundo3D(entrada, CUENTA)) claves.add(pr.clave);
   const DICCIONARIOS = cargar('i18n/diccionarios.ts').DICCIONARIOS;
+  /* Cuántos tiene que haber, del CATÁLOGO (antes «=== 16»): uno por idioma listo y uno por variante, como la 38b de
+   * i18n.test.mjs. Exige lo mismo que el 16 sin tocarse cuando entra un idioma; los diccionarios EN CURSO no cuentan. */
+  const ESPERADOS = cargar('i18n/idiomas.ts').idiomasDisponibles().reduce((n, i) => n + (i.variantes?.length || 1), 0);
   const unicos = []; for (const [codigo, d] of Object.entries(DICCIONARIOS)) if (!unicos.some(([, otro]) => otro === d)) unicos.push([codigo, d]);
   const valor = (d, clave) => clave.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), d);
   const delServidor = [...claves].filter((k) => k.startsWith('motor.'));
   const deLaApp = [...claves].filter((k) => !k.startsWith('motor.'));
   const faltanApp = unicos.flatMap(([codigo, d]) => deLaApp.filter((k) => typeof valor(d, k) !== 'string' || !valor(d, k).trim()).map((k) => `${codigo}:${k}`));
   check(`G10) las ${deLaApp.length} claves de la app existen y tienen texto en los ${unicos.length} diccionarios`,
-    unicos.length === 16 && faltanApp.length === 0, faltanApp.slice(0, 6).join(' '));
+    ESPERADOS >= 16 && unicos.length === ESPERADOS && faltanApp.length === 0, faltanApp.slice(0, 6).join(' '));
   const faltanServidor = ['es', 'en', 'da'].flatMap((c) => delServidor.filter((k) => typeof valor(DICCIONARIOS[c], k) !== 'string').map((k) => `${c}:${k}`));
   check(`G11) las ${delServidor.length} del servidor (\`motor.*\`) están en los idiomas que traducen su catálogo (es, en, da)`,
     delServidor.length >= 2 && faltanServidor.length === 0, faltanServidor.join(' '));

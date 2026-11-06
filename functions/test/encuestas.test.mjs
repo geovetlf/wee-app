@@ -506,8 +506,6 @@ check('88) ser biz_ ya no da permiso genérico sobre posts ajenos', !/^\s*(resou
  * escribir como cualquier `biz_*`—. Esa identidad se eliminó: un negocio es una
  * Página de la cuenta, no una cara de la persona. Así que ahora no se comprueba
  * que la regla sea correcta: se comprueba que la regla NO ESTÉ.
- *
- * Weë Business, el producto, sigue en pie. Lo que desapareció es la identidad.
  */
 check('89) no queda ni una cláusula que trate un `biz_*` como identidad', !/matches\('biz_\.\*'\)/.test(reglas));
 check('90) ni la función que comprobaba el dueño del negocio', !/ownsBizProfile|businessIdOf/.test(reglas));

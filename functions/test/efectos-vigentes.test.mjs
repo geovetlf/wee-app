@@ -184,7 +184,8 @@ await escenario('Perfil ajeno (las publicaciones del perfil de antes)', 'screens
     d, valor: [{ id: 'de-otra-persona' }],
     escribe: () => setUserPosts.llamadas.length > 0 || setLoadingPosts.llamadas.some(([v]) => v === false),
     alcance: {
-      userId: 'persona-a', setLoadingPosts, setPostsError: espia(), setUserPosts, setUserReposts: espia(), setUserLikedPosts: espia(),
+      /* El perfil ya resuelto: las publicaciones se buscan por su uid (screens/UserProfileScreen.tsx). */
+      userId: 'persona-a', userProfile: { uid: 'persona-a' }, setLoadingPosts, setPostsError: espia(), setUserPosts, setUserReposts: espia(), setUserLikedPosts: espia(),
       postsService: { getByUserId: () => d.promesa }, repostsService: { getUserReposts: async () => [] },
       likesService: { getUserLikedPostsWithData: async () => [] }, console: consola,
     },
@@ -227,14 +228,7 @@ await escenario('PostCard (el original de otro repost)', 'components/PostCard.ts
   };
 });
 
-await escenario('Menú ☰ (el negocio de la cuenta de antes)', 'components/DrawerMenu.tsx', 'getBusinessByOwner', () => {
-  const d = diferido();
-  const setMyBusiness = espia();
-  return {
-    d, valor: { id: 'negocio-de-otra-cuenta' }, escribe: () => setMyBusiness.llamadas.length > 0,
-    alcance: { realUid: 'cuenta-a', weeBizService: { getBusinessByOwner: () => d.promesa }, setMyBusiness, console: consola },
-  };
-});
+/* «Menú ☰ (el negocio de la cuenta de antes)»: el efecto se fue con WeeBiz, retirado por decisión del dueño el 2026-11-03: era del proyecto antiguo. */
 
 await escenario('Guardar en proyecto (los proyectos de la cuenta de antes)', 'components/creator/ProjectPicker.tsx', 'projectsService', () => {
   const d = diferido();

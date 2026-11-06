@@ -116,9 +116,13 @@ const conPildora = fs.readdirSync(path.resolve(RAIZ, 'components'), { recursive:
  * pantalla dibuja UNA de ellas, y todas leen el mismo `useWallet()` de la
  * cuenta, que es lo que protege el grupo A.
  */
+/*
+ * La quinta es la cabecera de la biblioteca (N, 2026-11-05): «Mis creaciones», «Mis proyectos» y un proyecto, en la
+ * App, montan el marco `sinFranjaSuperior` y el saldo lo dibuja su cabecera; no hay dos en la misma pantalla.
+ */
 check('11) solo las cabeceras la dibujan: el marco de Weë AI y las dos de sección',
   /* La cuarta es el marco de Weë versión creator: sus secciones no dibujan otra (`saldoALaVista`). */
-  conPildora.length === 4 && conPildora.every((f) => /CreatorShell|CabeceraDeSeccion|CabeceraDeWeeBrain|MarcoProfesional/.test(f)),
+  conPildora.length === 5 && conPildora.every((f) => /CreatorShell|CabeceraDeSeccion|CabeceraDeWeeBrain|MarcoProfesional|CabeceraDeBiblioteca/.test(f)),
   conPildora.join(' · '));
 /* Y ninguna pantalla se pone dos: la de Weë Brain sustituye a la común, no se suma. */
 const brain = leer('screens/BrainChatScreen.tsx');
@@ -226,6 +230,52 @@ check('23) y el saldo se lee de la cuenta, no del documento del Perfil Weë',
   !/replace\(\/\^hidi_/.test(leer('services/creditsService.ts'))
   && /where\('uid', '==', accountUid\)/.test(leer('services/creditsService.ts')),
   'la cuenta llega resuelta desde la sesión; el servicio no la deduce');
+
+/*
+ * F. LA TIENDA POR IMPORTE (2026-11-04, decisión definitiva del dueño): la pantalla de la demo YC, funcionando.
+ *
+ * El selector −/+ va de US$5 a US$100 de 5 en 5 y da 100 Credits por dólar. Ya no hay paquetes: la regla la
+ * manda el servidor (getCreditCost → compra) y el servidor la vuelve a aplicar al comprar. Lo que el servidor
+ * hace con el dinero lo vigila `compra-por-importe.test.mjs`; aquí se vigila la PANTALLA: que pinta la regla del
+ * servidor, que compra por el servidor y que no ofrece una compra que nadie puede confirmar.
+ */
+console.log('\n─── F. La tienda por importe: la demo, de verdad ───');
+{
+  const { createRequire } = await import('node:module');
+  const ts = createRequire(path.resolve(RAIZ, 'package.json'))('typescript');
+  const js = ts.transpileModule(leer('utils/compraPorImporte.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
+  const regla = await import('data:text/javascript;base64,' + Buffer.from(js, 'utf8').toString('base64'));
+  const marcas = regla.importesDe(regla.COMPRA_INICIAL);
+
+  check('24) los importes son los de la demo: 5…100 de 5 en 5, 100 Credits por dólar',
+    marcas.length === 20 && marcas[0] === 5 && marcas[19] === 100
+    && marcas.every((v, i) => v === 5 + i * 5) && regla.COMPRA_INICIAL.creditsPerUsd === 100 && regla.creditsDe(35) === 3500);
+  check('25) − y + no salen de los límites',
+    regla.moverImporte(5, -1) === 5 && regla.moverImporte(100, 1) === 100
+    && regla.moverImporte(5, 1) === 10 && regla.moverImporte(100, -1) === 95);
+  /* La regla del servidor, leída de su único sitio. */
+  const delServidor = leer('functions/src/payments/compraPorImporte.ts');
+  check('26) la regla del cliente es la del servidor (y el servidor ya no tiene paquetes)',
+    /export const COMPRA = Object\.freeze\(\{ minUsd: 5, maxUsd: 100, stepUsd: 5, creditsPerUsd: 100 \}\);/.test(delServidor)
+    && !/CREDIT_PACKAGES/.test(soloCodigo(leer('functions/src/credits/creditCosts.ts'))));
+  check('27) en dólares se enseña lo que se cobra: dólares × 100 centavos',
+    marcas.every((u) => regla.importeMostrado(u, regla.MERCADO_DOLAR).amountMinor === u * 100 && regla.importeMostrado(u, regla.MERCADO_DOLAR).currency === 'USD'));
+  check('CONTROL: sin tipo de cambio no se enseñan soles', regla.importeMostrado(5, { id: 'PE', currency: 'PEN', fx: null }) === null);
+
+  const tienda = soloCodigo(leer('screens/CreditStoreScreen.tsx'));
+  const pantalla = soloCodigo(leer('components/tienda/CompraPorImporte.tsx'));
+  check('28) la tienda no tiene catálogo propio: la regla llega del servidor',
+    /creditsService\s*\.getCosts\(\)/.test(tienda) && /setCompra\(delServidor\)/.test(tienda) && !/CREDIT_PACKAGES|CreditPackage/.test(tienda + pantalla));
+  check('29) la compra va al servidor y el saldo sale de la cuenta',
+    /creditsService\.comprarImporte\(\{/.test(tienda) && /\}, 'test'\);/.test(tienda) && /useWallet\(\)/.test(tienda)
+    && !/(creditsBalance|spendCredits|grantCredits|setDoc|updateDoc)/.test(tienda + pantalla));
+  check('30) no hay botón falso: sin proveedor que confirme, o sin tipo de cambio, el botón está apagado y se dice por qué',
+    /disabled=\{!sePuedeComprar\}/.test(pantalla) && /const sePuedeComprar = listo && !!compra\?\.proveedor && !!mostrado && !comprando;/.test(pantalla)
+    && /t\('credits\.purchasesComingSoon'\)/.test(pantalla) && /t\('credits\.buyMarketUnavailable'\)/.test(pantalla) && !/buyNotice|buyUnavailable/.test(pantalla));
+  const IDIOMAS = fs.readdirSync(path.resolve(RAIZ, 'i18n/textos'));
+  const sinClave = IDIOMAS.filter((l) => !['buyChecking', 'buyCatalogError', 'buyMarketUnavailable'].every((k) => new RegExp(`\\n  ${k}: '`).test(leer(`i18n/textos/${l}/credits.ts`))));
+  check('31) los avisos de la tienda están en los ' + IDIOMAS.length + ' diccionarios', IDIOMAS.length >= 16 && sinClave.length === 0, sinClave.join(' '));
+}
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

@@ -107,6 +107,8 @@ export const crearEntorno = ({ so = 'android', usuario = { uid: 'u1' }, movil = 
     'react-native': reactNative,
     'react-native-safe-area-context': { SafeAreaView: Caja },
     '@expo/vector-icons': { Ionicons: ({ name }) => h('i', { 'data-icono': name }) },
+    /* La mano OK de «me gusta» (components/IconoMeGusta.tsx) es un PNG teñido: aquí basta con saber que está. */
+    ...Object.fromEntries(['./IconoMeGusta', '../IconoMeGusta', '../components/IconoMeGusta'].map((spec) => [spec, { default: ({ activo }) => h('i', { 'data-icono': activo ? 'me-gusta-puesto' : 'me-gusta' }) }])),
     '@react-navigation/native': {
       useNavigation: () => ({
         navigate: (...a) => navegacion.push(['navigate', ...a]), push: (...a) => navegacion.push(['push', ...a]),

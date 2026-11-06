@@ -327,14 +327,20 @@ console.log('\n── D · Weë Business y comunidades, desde la cuenta ──')
   check('26s) CONTROL: y la media se recalcula desde el cliente (recalculateAura)', (await escribir('/businesses/bApp', BETO, { auraScore: 4, reviewCount: 1 })) < 400);
   await esperar('26ac) CONTROL: Beto borra la suya', 'PERMITE', 'DELETE', `/businesses/bApp/reviews/${BETO}`, { uid: BETO });
 
-  await esperar('27) una comunidad se crea con la CUENTA como dueña', 'PERMITE', 'PATCH', '/communities/c1', {
+  /* Re-anclado (docs/COMUNIDADES-IDENTIDAD.md, decisión 3 del dueño (2026-11-05)): una comunidad ya no la crea la CUENTA desde el cliente; la crea `createCommunity` con la
+   * IDENTIDAD activa (Real o Weë) de dueña, que el servidor comprueba. Ver comunidades-identidad.emulator.mjs. */
+  await esperar('27) una comunidad ya no se crea desde el cliente, ni con la CUENTA como dueña', 'DENIEGA', 'PATCH', '/communities/c1', {
     uid: ANA, body: doc({ name: 'Weë Devs', slug: 'devs', createdBy: ANA, moderators: [ANA], memberCount: 0, postCount: 0, status: 'active' }),
   });
-  check('28) y sus contadores también se mueven de uno en uno',
-    (await escribir('/communities/c1', BETO, { memberCount: 1 })) < 400
-    && (await escribir('/communities/c1', BETO, { memberCount: 500 })) >= 400);
-  check('29) CONTROL: quien la creó sigue pudiendo editarla',
-    (await escribir('/communities/c1', ANA, { name: 'Weë Developers' })) < 400);
+  await esperar('27b) (la escribe el servidor)', 'PERMITE', 'PATCH', '/communities/c1', {
+    body: doc({ name: 'Weë Devs', slug: 'devs', createdBy: ANA, moderators: [ANA], memberCount: 0, postCount: 0, status: 'active' }),
+  });
+  check('28) su `memberCount` no lo mueve ningún cliente, ni de uno en uno; `postCount` sí, de uno en uno',
+    (await escribir('/communities/c1', BETO, { memberCount: 1 })) >= 400
+    && (await escribir('/communities/c1', BETO, { postCount: 1 })) < 400
+    && (await escribir('/communities/c1', BETO, { postCount: 500 })) >= 400);
+  check('29) y quien la creó tampoco la edita desde el cliente (updateCommunity, por identidad)',
+    (await escribir('/communities/c1', ANA, { name: 'Weë Developers' })) >= 400);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
