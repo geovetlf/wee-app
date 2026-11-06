@@ -70,6 +70,9 @@ interface ComunidadPintable {
   description?: string;
   isOfficial?: boolean;
   createdBy?: string;
+  /** Comunidades gobernadas por identidad (docs/COMUNIDADES-IDENTIDAD.md): sin `createdBy`, con el perfil público del creador. */
+  creatorProfile?: unknown;
+  governance?: string;
 }
 
 /*
@@ -84,7 +87,8 @@ interface ComunidadPintable {
  * dejan cambiarlo—, así que una con autor no es una muestra aunque copie su slug y su texto.
  */
 const esOficial = (c: ComunidadPintable): boolean => c.isOfficial === true;
-const esDeWee = (c: ComunidadPintable): boolean => esOficial(c) || !c.createdBy;
+/* Las nuevas no llevan `createdBy` (la cuenta no va en lo público): su autor lo dice `creatorProfile`/`governance`. */
+const esDeWee = (c: ComunidadPintable): boolean => esOficial(c) || (!c.createdBy && !c.creatorProfile && c.governance !== 'identity');
 
 /** El nombre de una comunidad para pintar. */
 export const nombreDeComunidad = (c: ComunidadPintable | null | undefined, t: Traductor, locale: string): string => {

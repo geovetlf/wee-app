@@ -52,8 +52,60 @@
       "porque": "El corredor de evaluaciones del Model Router (F2-C1): callable de ADMINISTRACIÓN, con identidad y presupuesto propios que NUNCA tocan los Credits del usuario; no es de producto ni de cliente. Estar aquí significa FUERA DEL DESPLIEGUE GRADUAL de las 34, no una cerradura técnica: el pipeline no lee esta lista. Para el primer run real se despliega SOLA, por despliegue.yml con objetivo functions:evalRun, cuando el dueño lo autorice. Desplegada no es activa: queda inerte (fail-closed) hasta que un admin escriba aiSettings/evalBudget.habilitado=true, y tras el run se apaga con habilitado=false. Si queda desplegada, pasa a ops/produccion.json. Detalle en docs/EVALS.md."
     },
     {
+      "funcion": "savePage",
+      "porque": "WeëPages (2026-11-02): crear, editar y publicar una Página de la cuenta (entidad, no una tercera cara). Está en el código y NO en producción: sería una función nueva y de producto, y se despliega solo con decisión del dueño. No usa IA ni Credits. Detalle en docs/WEEPAGES.md."
+    },
+    {
+      "funcion": "followPage",
+      "porque": "WeëPages (2026-11-02): seguir o dejar de seguir una Página desde el Perfil Real o el Perfil Weë; no toca ËContact/ẄContact. Nueva y de producto, se despliega solo con decisión del dueño, junto con savePage. No usa IA ni Credits. Detalle en docs/WEEPAGES.md."
+    },
+    {
+      "funcion": "boost",
+      "porque": "Boost (2026-11-04): promocionar publicaciones propias dentro de Weë; reserva y liquida SOLO por el Credit Engine. Está en el código y NO en producción: sería una función nueva y de producto, y se despliega solo con decisión del dueño. Desplegada no contrata nada: boostSettings/config.enabled es false por defecto y falta el servicio social_boost en el catálogo del Credit Engine. Detalle en docs/BOOST.md."
+    },
+    {
+      "funcion": "boostSweep",
+      "porque": "Boost (2026-11-04): barrido programado que cierra campañas vencidas, liquida las que quedaron a medias y devuelve reservas huérfanas, siempre por el Credit Engine (completeCredits/refundCredits, idempotentes). Nueva y de producto: se despliega solo con decisión del dueño, junto con boost. Detalle en docs/BOOST.md."
+    },
+    {
       "funcion": "generateWorld",
       "porque": "«Crear mundo 3D» (Weë Studio → 3D World), misión mundo3d 2026-10-05: la TERCERA puerta del conductor. Está en el código de main y NO en producción: sería una función nueva y de producto, y se despliega solo con decisión del dueño. Desplegada no hace nada: la puerta aiSettings/runtime está CERRADA por defecto (sin la entrada world.generate en porCapacidad, con su lista de cuentas, todo mundo es «no disponible»), no monta la clave de ningún proveedor (sin ella fal no está configurado) y ningún modelo de mundo es elegible hoy (Hunyuan World, DISABLED y en revisión legal). Activarla son tres decisiones del dueño, en este orden: aprobación legal y activación de un modelo, montar su clave en esta función, y abrir la puerta para una cuenta de prueba. Detalle en docs/3D-EXPERIENCIA.md."
+    },
+    {
+      "funcion": "createCommunity",
+      "porque": "Comunidades por identidad (2026-11-05): crear una comunidad con la cara activa (Perfil Real o Perfil Weë), que queda como dueña; un solo miembro, lo público sin cuentas ni uids, idempotente por requestId. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
+    },
+    {
+      "funcion": "joinCommunity",
+      "porque": "Comunidades por identidad (2026-11-05): unirse a una comunidad con la cara activa; cada cara es una membresía independiente y el contador cuenta perfiles. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
+    },
+    {
+      "funcion": "leaveCommunity",
+      "porque": "Comunidades por identidad (2026-11-05): salir de una comunidad con la cara activa; la cara dueña tiene que transferirla antes. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
+    },
+    {
+      "funcion": "setCommunityRole",
+      "porque": "Comunidades por identidad (2026-11-05): dar o quitar un papel (admin, moderator, member) dentro de una comunidad, decidido con el papel de la cara que actúa. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
+    },
+    {
+      "funcion": "removeCommunityMember",
+      "porque": "Comunidades por identidad (2026-11-05): expulsar a un miembro, solo con un papel superior al suyo y desde la cara que tiene ese papel. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
+    },
+    {
+      "funcion": "transferCommunityOwnership",
+      "porque": "Comunidades por identidad (2026-11-05): transferir la propiedad de una comunidad a otra identidad que ya es miembro. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
+    },
+    {
+      "funcion": "updateCommunity",
+      "porque": "Comunidades por identidad (2026-11-05): editar los datos públicos de una comunidad (nombre, descripción, imagen) desde una cara con papel suficiente. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
+    },
+    {
+      "funcion": "claimLegacyCommunity",
+      "porque": "Comunidades por identidad (2026-11-05): reclamar una comunidad heredada (anterior a la gobernanza por identidad) para una cara de la cuenta que la creó; acto explícito, nunca se inventa la dueña. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
+    },
+    {
+      "funcion": "listMyCommunities",
+      "porque": "Comunidades por identidad (2026-11-05): listar las comunidades de la cara activa (solo esa cara), con lecturas directas y sin collection group. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
     }
   ]
 }

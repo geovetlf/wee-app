@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { communityService, Community } from '../services/communityService';
+import { comunidadesService } from '../services/comunidadesService';
 
 // Mapa de slug a icono correcto de Ionicons
 const ICON_MAP: Record<string, string> = {
@@ -134,16 +135,21 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
     }
 
     try {
-      await communityService.joinCommunity(userId, communityId);
+      /*
+       * CON LA CARA ACTIVA, NO CON LA CUENTA. `userId` es el uid del perfil que se está usando (Real o Weë): el servidor
+       * comprueba que es de la sesión y escribe la membresía, el contador y la lista de ESE perfil, en una transacción.
+       * Antes se escribía directamente y desde el Perfil Weë acababa en el Real.
+       */
+      const r = await comunidadesService.unirse(userId, communityId);
 
-      // Actualizar lista local + caché
+      // Actualizar lista local + caché, con la cifra que dejó el servidor
       const community = communities.find(c => c.id === communityId);
-      if (community) {
-        updateUserCommunities(prev => [...prev, { ...community, memberCount: community.memberCount + 1 }]);
-        setCommunities(prev =>
-          prev.map(c => c.id === communityId ? { ...c, memberCount: c.memberCount + 1 } : c)
-        );
+      if (community && !r.yaEra) {
+        updateUserCommunities(prev => (prev.some(c => c.id === communityId) ? prev : [...prev, { ...community, memberCount: r.memberCount }]));
       }
+      setCommunities(prev =>
+        prev.map(c => c.id === communityId ? { ...c, memberCount: r.memberCount } : c)
+      );
     } catch (err) {
       console.error('Error joining community:', err);
       setError('union-fallida');
@@ -155,12 +161,13 @@ export function useCommunities(userId?: string): UseCommunitiesReturn {
     if (!userId) return;
 
     try {
-      await communityService.leaveCommunity(userId, communityId);
+      /* Sale SOLO esta cara; si la otra cara de la cuenta también está, sigue dentro. El dueño transfiere antes. */
+      const r = await comunidadesService.salir(userId, communityId);
 
       // Actualizar lista local + caché
       updateUserCommunities(prev => prev.filter(c => c.id !== communityId));
       setCommunities(prev =>
-        prev.map(c => c.id === communityId ? { ...c, memberCount: Math.max(0, c.memberCount - 1) } : c)
+        prev.map(c => c.id === communityId ? { ...c, memberCount: r.memberCount } : c)
       );
     } catch (err) {
       console.error('Error leaving community:', err);
