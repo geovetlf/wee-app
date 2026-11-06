@@ -475,6 +475,10 @@ console.log('\n── J · Traducciones defectuosas ──');
        un letrero de la calle (साइनबोर्ड), no un póster de studio (पोस्टर); «Subir»/«Bajar» reordenan paradas (ऊपर/नीचे ले
        जाएँ), como en filmmaker, no la grúa de la cámara de studio. */
     'travel.tabSaved', 'travel.viewList', 'travel.catHistory', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
+    /* «Ubicación» de Ajustes (decisión del dueño 2026-11-06: un solo pin, sistema visual de Ajustes; sin el «📍» del título
+       coincide en español con composer.location): es el permiso de ubicación del aparato (जगह की जानकारी), no el lugar que
+       se añade a una publicación o a una página (जगह). */
+    'settings.location',
   ]);
   const porFrase = new Map();
   for (const [k, v] of HI) {

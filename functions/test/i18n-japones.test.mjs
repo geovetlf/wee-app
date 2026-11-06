@@ -600,6 +600,10 @@ console.log('\n── J · Traducciones defectuosas ──');
        desplazarse es el transporte público (公共交通), no la categoría de gasto (交通). */
     'travel.viewList', 'travel.wzPreferences', 'travel.catHistory', 'travel.restore', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
     'travel.modeTransit',
+    /* «Ubicación» de Ajustes (decisión del dueño 2026-11-06: un solo pin, sistema visual de Ajustes; sin el «📍» del título
+       coincide en español con composer.location): es el permiso y el servicio de ubicación del aparato (位置情報, como en
+       los ajustes del sistema), no el lugar que se añade a una publicación o a una página (場所). */
+    'settings.location',
   ]);
   const porFrase = new Map();
   for (const [k, v] of JA) {

@@ -263,7 +263,20 @@ const tocados = (await import('node:child_process')).execSync(`git diff --name-o
 /* WeeBiz, el directorio del proyecto antiguo, se retiró el 2026-11-03 por decisión del dueño: borrar su servicio no es Music. */
 /* La capa i18n del servidor (detector de idioma, tabla generada de textos) la cambia el proyecto i18n global, no Music. */
 const I18N_DEL_SERVIDOR = ['functions/src/shared/idiomaDelServidor.ts', 'functions/src/shared/idiomaDelTexto.ts', 'functions/src/shared/textosDelServidor.ts'];
-const prohibidos = (f) => !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !I18N_DEL_SERVIDOR.includes(f) && f !== 'functions/src/index.ts' && f !== 'services/firestoreService.ts' && f !== 'services/weeBizService.ts' && /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
+/*
+ * Integración App + Creator (2026-11-06): al commitear, los archivos NUEVOS de otras funciones —antes sin seguimiento y por eso
+ * invisibles para `git diff`— entran en la comparación con el ancla. Son Boost (docs/BOOST.md), la compra de Credits por
+ * importe, Communities por identidad (docs/COMUNIDADES-IDENTIDAD.md), WeëPages (docs/WEEPAGES.md) y los datos DEMO de Weë
+ * Travel (docs/TRAVEL-WORKPLACE.md): no son Music y se exceptúan solo por eso, con nombre y apellidos.
+ */
+const DE_OTRAS_FUNCIONES = [
+  'functions/src/boost/index.ts', 'functions/src/boost/modelo.ts', 'functions/src/boost/motor.ts', 'services/boostService.ts',
+  'functions/src/payments/compraPorImporte.ts',
+  'functions/src/social/comunidades.ts', 'services/comunidadesService.ts',
+  'functions/src/social/pages.ts', 'services/pagesService.ts',
+  'services/travelDemoStore.ts',
+];
+const prohibidos = (f) => !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !I18N_DEL_SERVIDOR.includes(f) && !DE_OTRAS_FUNCIONES.includes(f) && f !== 'functions/src/index.ts' && f !== 'services/firestoreService.ts' && f !== 'services/weeBizService.ts' && /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
 check('H2 ni el servidor fuera de functions/src/music, ni el cliente de Weë Brain, ni los servicios', !tocados.some(prohibidos), tocados.filter(prohibidos).join(','));
 
 console.log(fallo ? `\n✘ ${fallo} fallos` : '\n✔ todo bien');
