@@ -661,8 +661,9 @@ console.log('\n── J · Fase 2 · los módulos migrados ──');
   check('54) Burger · sin textos escritos a mano', burger.usaT && burger.sinTexto);
   /* Y sus doce opciones y once experiencias, por clave. */
   const menu = leer("constants/weeMenu.ts");
-  check('55) Burger · las doce opciones tienen clave',
-    (menu.match(/clave: 'menu\./g) || []).length === 12);
+  /* Trece desde WeëPages (2026-11-02). */
+  check('55) Burger · las trece opciones tienen clave',
+    (menu.match(/clave: 'menu\./g) || []).length === 13);
   const exps = leer("constants/weeExperiences.ts");
   check('56) y las once experiencias describen por clave',
     (exps.match(/claveDescripcion: 'creator\./g) || []).length === 11);

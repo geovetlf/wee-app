@@ -27,6 +27,7 @@ export const chef: typeof import('../es/chef').chef = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'Fikrini ya da malzemelerini yaz veya bir fotoğraf kullan',
+  cookPrompt: 'Ne pişirmek istediğini söyle…',
   addLabel: 'Fotoğraf ekle',
   cameraLabel: 'Fotoğraf çek',
   galleryLabel: 'Galeriden fotoğraf seç',
@@ -112,4 +113,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: 'Tümünü gör',
   projectsEmpty: 'Henüz Weë ile bir şey pişirmedin.',
   projectsEmptyHint: 'Burada oluşturduğun her şey kaydedilir ve yine burada karşına çıkar.',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'Yapay zekâ şefin,',
+  heroAccent: 'hep yanında',
+  chipRecipes: 'Tarifler',
+  chipMenus: 'Menüler',
+  chipHealthy: 'Sağlıklı',
+  chipQuick: 'Hızlı',
 };

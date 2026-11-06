@@ -1,0 +1,61 @@
+/*
+ * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — WeeTalk.
+ * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Kalaallisut, NO danés: ni palabras ni estructuras danesas. Glosario y moldes en
+ * docs/I18N-GROENLANDES.md. «WeeTalk» es marca. Mensaje = «oqariartuut», conversación = «oqaloqatigiinneq»,
+ * foto de una sola vez = «Ataasiarlugu takuneqarsinnaasoq» (guía §4.3). Los mensajes de la
+ * gente ({{mensaje}}) no se tocan. Nombres de los temas de color: formaciones propias,
+ * pendientes de confirmación nativa.
+ */
+export const weetalk: typeof import('../es/weetalk').weetalk = {
+  title: 'WeeTalk',
+  messagePlaceholder: 'Oqariartuut allaguk…',
+  send: 'Nassiuguk',
+  empty: 'Suli oqaloqatigiinneqanngilatit',
+  emptyHint: 'Inuk profiliatigut allaffigiuk',
+  loadFailed: 'Oqaloqatigiinnerit takutinneqarsinnaanngillat',
+  sendFailed: 'Oqariartuutip nassiunnera iluatsinngilaq',
+  attach: 'Ilanngutiguk',
+  photo: 'Assi',
+  search: 'Ujarlerit…',
+  noConversations: 'Oqaloqatigiinneqanngilaq',
+  deleteConversation: 'Oqaloqatigiinneq peeruk',
+  areYouSure: 'Qularinngilit?',
+  messagePlaceholderShort: 'Oqariartuut…',
+  firstMessage: 'Oqariartuut siulleq nassiuguk',
+  photoSeen: 'Assi takuneqarpoq',
+  photoOnce: 'Ataasiarlugu takuneqarsinnaasoq',
+  photoOpened: 'Ammarneqarpoq',
+  tapToView: 'Takuniarukku attoruk',
+  tapToClose: 'Matuniarukku attoruk',
+  theme: 'Qalipaatit',
+  background: 'Tunuliaqut',
+  permissions: 'Akuersissutit',
+  photoPermission: 'Akuersissut pisariaqarpoq: assit',
+  audioPermission: 'Akuersissut pisariaqarpoq: nipip immiunnera',
+  imageFailed: 'Assip nassiunnera iluatsinngilaq',
+  noConversationsHint: 'Saqqummiussami sumiluunniit toqqagassat ⋮ ammakkit »WeeTalk atorlugu nassiuguk« toqqaruk, taamaalilluni oqaloqatigiinneq isertortoq aallartissinnaavat',
+  ephemeralMode: 'Oqariartuutit tammartartut',
+  noMessagesYet: 'Suli oqariartuuteqanngilaq',
+  youSaid: 'Illit: {{mensaje}}',
+  conversationStart: 'Maani oqaloqatigiinnerit isertortoq aallartippoq',
+  beRespectful: 'Ataqqinninneq paasissutissanillu illersuineq eqqaamakkit 🤝',
+  anonymousUser: 'Atuisoq ateqanngitsoq',
+  ephemeralOn: 'Oqariartuutit tammartartut ikitaapput · Aniguit oqariartuutit peerneqartarput',
+  cameraNeeded: 'Akuersissut pisariaqarpoq: assiliut',
+  allow: 'Akueriuk',
+  recordAudio: 'Nipi immiuguk',
+  viewOnceOn: 'Ataasiarlugu takuneqarsinnaasoq',
+  keepInChat: 'Oqaloqatigiinnermi toqqoruk',
+  themeClassic: 'Nalinginnaasoq',
+  themeMidnight: 'Unnuap qeqqa',
+  themeForest: 'Orpippassuit',
+  themeSunset: 'Seqernup tarrinnera',
+  themeOcean: 'Imarsuaq',
+  themePurple: 'Tungujortumik aappalaartoq',
+  imagePreview: '📷 Assi',
+  audioPreview: '🎤 Nipi',
+  today: 'Ullumi',
+};

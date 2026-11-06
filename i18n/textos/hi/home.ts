@@ -8,8 +8,7 @@
  * con «चाहते हैं», que tiene género: dice «आज क्या शेयर करना है?», el mismo
  * patrón que «आज क्या बनाना है?» del glosario (§ 11.1). «Destacado» es
  * «चुनिंदा», en la insignia, en la sección y en «चुनिंदा राय»; la sección no dice
- * «पोस्ट» porque la misma frase «Destacados» es también `weebiz.featured`, y en
- * toda la app se dice igual.
+ * «पोस्ट» porque la misma frase «Destacados» se dice igual en toda la app.
  * Las cifras de la tarjeta del tema del día llevan `{{cantidad}}` también en el
  * `_one`, que en hindi cubre el 0 y el 1 (§ 8): «जवाब» y «पसंद» no cambian y
  * «टिप्पणी» pasa a «टिप्पणियाँ». «Like» es «पसंद», nunca «लाइक» (glosario

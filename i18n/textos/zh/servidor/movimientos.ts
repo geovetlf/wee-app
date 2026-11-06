@@ -1,0 +1,58 @@
+/*
+ * CHINO SIMPLIFICADO — Textos del servidor: movimientos (ver `../../es/servidor/movimientos.ts`).
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Traducción de IA pendiente de revisión humana.
+ *
+ * Sin plurales: `_one` y `_other` dicen lo mismo. Espacio entre hanzi y latín o cifras; los huecos de texto van pegados o detrás de dos puntos, para que entre cualquier opción.
+ */
+export const movimientos: typeof import('../../es/servidor/movimientos').movimientos = {
+  saldoAnterior: '之前的余额',
+  bienvenida: '欢迎 Credits',
+  ajusteMenos: '调整：实际费用低于预留额度',
+  reembolsoFallida: '生成失败退款',
+  compra: '购买 Credits',
+  regalo: '赠送 Credits',
+  recargaPrueba: '测试充值',
+  compraRestaurada: '已恢复的购买',
+  reembolsoAdmin: '管理退款',
+  avatar: 'Weë 头像',
+  fotoConAvatar: '使用你的 Weë 头像的照片',
+  noSePudoTerminar: '{{base}} · 未能完成',
+  brainBusqueda: 'Weë Brain · 搜索',
+  brainRespuestas_one: 'Weë Brain · {{contador}} 条回答',
+  brainRespuestas_other: 'Weë Brain · {{contador}} 条回答',
+  brainNoPudo: 'Weë Brain · 未能回答',
+  studioVideo: 'Weë Studio · 视频',
+  studioSinTiempo: 'Weë Studio · 上一次尝试已超时',
+  studioNoSePudo: 'Weë Studio · 视频未能生成',
+  studioMundo: 'Weë Studio · 3D 世界',
+  studioMundoNoSePudo: 'Weë Studio · 3D 世界未能创建',
+  weeAi: 'WEË AI · {{experiencia}}',
+  operacionIncompleta: 'Weë · 操作未能完成',
+  servicioAiImageLite: '标准图片',
+  servicioAiImageEnhanceLite: '标准编辑',
+  servicioAiImage: '图片生成',
+  servicioAiImageEnhance: '图片编辑',
+  servicioAiImagePro: '最高精度图片',
+  servicioAiTryon: '服装试穿',
+  servicioAiVideoDraft: '预览视频',
+  servicioAiVideo: '视频生成',
+  servicioAiVideoHd: '高画质视频',
+  servicioAiVideoAdvanced: '进阶视频',
+  servicioAiVideoMax: '最高画质视频',
+  servicioAiVideoEdit: '视频剪辑',
+  servicioAiAudio: '语音生成',
+  servicioAiTranscribe: '转录和字幕',
+  servicioAiMusic: '音乐生成',
+  servicioAiWorld: '3D 世界生成',
+  servicioAiBrain: 'Weë Brain 回答',
+  servicioAiText: '文本生成',
+  servicioAiTextPro: '最高品质长文本',
+  servicioAiSearch: 'AI 搜索',
+  servicioAiBook: '书籍创作',
+  /* Boost (functions/src/boost): traducción de IA, pendiente de revisión nativa (2026-11-05). */
+  boostReserva: '帖子 Boost',
+  boostNoIniciado: 'Boost 未开始',
+  boostSinEntregas: 'Boost 未投放 · 已全额退还',
+};

@@ -18,6 +18,72 @@ import { hi } from './textos/hi';
 import { servidor as servidorEs } from './textos/es/servidor';
 import { servidor as servidorEn } from './textos/en/servidor';
 import { servidor as servidorDa } from './textos/da/servidor';
+import { servidor as servidorDe } from './textos/de/servidor';
+import { servidor as servidorFr } from './textos/fr/servidor';
+import { servidor as servidorIt } from './textos/it/servidor';
+import { servidor as servidorPt } from './textos/pt/servidor';
+import { servidor as servidorRu } from './textos/ru/servidor';
+import { servidor as servidorKo } from './textos/ko/servidor';
+import { servidor as servidorZh } from './textos/zh/servidor';
+import { servidor as servidorJa } from './textos/ja/servidor';
+import { servidor as servidorTr } from './textos/tr/servidor';
+import { servidor as servidorSv } from './textos/sv/servidor';
+import { servidor as servidorHi } from './textos/hi/servidor';
+import { servidor as servidorPtPT } from './textos/pt-PT/servidor';
+import { servidor as servidorZhTW } from './textos/zh-TW/servidor';
+/* Los 23 idiomas de la oleada de 40 y la variante suiza (lotes L0 + L1). */
+import { deCH } from './textos/de-CH';
+import { servidor as servidorDeCH } from './textos/de-CH/servidor';
+import { ar } from './textos/ar';
+import { servidor as servidorAr } from './textos/ar/servidor';
+import { he } from './textos/he';
+import { servidor as servidorHe } from './textos/he/servidor';
+import { fa } from './textos/fa';
+import { servidor as servidorFa } from './textos/fa/servidor';
+import { id } from './textos/id';
+import { servidor as servidorId } from './textos/id/servidor';
+import { ms } from './textos/ms';
+import { servidor as servidorMs } from './textos/ms/servidor';
+import { hr } from './textos/hr';
+import { servidor as servidorHr } from './textos/hr/servidor';
+import { bs } from './textos/bs';
+import { servidor as servidorBs } from './textos/bs/servidor';
+import { sr } from './textos/sr';
+import { servidor as servidorSr } from './textos/sr/servidor';
+import { srLatn } from './textos/sr-Latn';
+import { servidor as servidorSrLatn } from './textos/sr-Latn/servidor';
+import { cnr } from './textos/cnr';
+import { servidor as servidorCnr } from './textos/cnr/servidor';
+import { pl } from './textos/pl';
+import { servidor as servidorPl } from './textos/pl/servidor';
+import { ca } from './textos/ca';
+import { servidor as servidorCa } from './textos/ca/servidor';
+import { el } from './textos/el';
+import { servidor as servidorEl } from './textos/el/servidor';
+import { nl } from './textos/nl';
+import { servidor as servidorNl } from './textos/nl/servidor';
+import { vi } from './textos/vi';
+import { servidor as servidorVi } from './textos/vi/servidor';
+import { hu } from './textos/hu';
+import { servidor as servidorHu } from './textos/hu/servidor';
+import { fi } from './textos/fi';
+import { servidor as servidorFi } from './textos/fi/servidor';
+import { mn } from './textos/mn';
+import { servidor as servidorMn } from './textos/mn/servidor';
+import { nb } from './textos/nb';
+import { servidor as servidorNb } from './textos/nb/servidor';
+import { is } from './textos/is';
+import { servidor as servidorIs } from './textos/is/servidor';
+import { kl } from './textos/kl';
+import { servidor as servidorKl } from './textos/kl/servidor';
+import { fil } from './textos/fil';
+import { servidor as servidorFil } from './textos/fil/servidor';
+import { ga } from './textos/ga';
+import { servidor as servidorGa } from './textos/ga/servidor';
+import { km } from './textos/km';
+import { servidor as servidorKm } from './textos/km/servidor';
+import { ro } from './textos/ro';
+import { servidor as servidorRo } from './textos/ro/servidor';
 
 /*
  * EL ÚNICO SITIO QUE SABE QUÉ DICCIONARIOS HAY.
@@ -40,12 +106,18 @@ import { servidor as servidorDa } from './textos/da/servidor';
  * LOS TEXTOS DEL SERVIDOR van aparte (`textos/<idioma>/servidor/`, ver su índice) porque son una sección opcional:
  * el idioma que los ha traducido los suma aquí a su diccionario; el que no, cae en el inglés por la cadena de siempre.
  */
+const ptPTCompleto = { ...ptPT, ...servidorPtPT };
+const zhTWCompleto = { ...zhTW, ...servidorZhTW };
+const deCHCompleto = { ...deCH, ...servidorDeCH };
+const srCompleto = { ...sr, ...servidorSr };
+const srLatnCompleto = { ...srLatn, ...servidorSrLatn };
+
 export const DICCIONARIOS: Diccionarios = {
   es: { ...es, ...servidorEs },
   en: { ...en, ...servidorEn },
-  de,
-  fr,
-  it,
+  de: { ...de, ...servidorDe },
+  fr: { ...fr, ...servidorFr },
+  it: { ...it, ...servidorIt },
   /*
    * ── EL PORTUGUÉS: DOS NORMAS, EL MISMO IDIOMA ──────────────────────────────
    *
@@ -59,17 +131,17 @@ export const DICCIONARIOS: Diccionarios = {
    * europea. Sin estas líneas, `cadenaDeRespaldo('pt-AO')` daría [pt-AO, pt, en]
    * y les serviría BRASILEÑO.
    */
-  pt,
-  'pt-PT': ptPT,
-  'pt-AO': ptPT,
-  'pt-MZ': ptPT,
-  'pt-CV': ptPT,
-  'pt-GW': ptPT,
-  'pt-ST': ptPT,
-  'pt-TL': ptPT,
-  'pt-MO': ptPT,
-  ru,
-  ko,
+  pt: { ...pt, ...servidorPt },
+  'pt-PT': ptPTCompleto,
+  'pt-AO': ptPTCompleto,
+  'pt-MZ': ptPTCompleto,
+  'pt-CV': ptPTCompleto,
+  'pt-GW': ptPTCompleto,
+  'pt-ST': ptPTCompleto,
+  'pt-TL': ptPTCompleto,
+  'pt-MO': ptPTCompleto,
+  ru: { ...ru, ...servidorRu },
+  ko: { ...ko, ...servidorKo },
   /*
    * ── EL CHINO: UN IDIOMA, DOS ESCRITURAS, VARIAS PUERTAS ────────────────────
    *
@@ -89,19 +161,60 @@ export const DICCIONARIOS: Diccionarios = {
    * La lista sale de `idiomas.ts`, donde cada variante declara qué locales
    * cubre, y una prueba comprueba que las dos digan lo mismo.
    */
-  zh,
-  'zh-TW': zhTW,
-  'zh-HK': zhTW,
-  'zh-MO': zhTW,
-  'zh-Hant': zhTW,
-  'zh-Hant-TW': zhTW,
-  'zh-Hant-HK': zhTW,
-  'zh-Hant-MO': zhTW,
-  ja,
-  tr,
-  sv,
+  zh: { ...zh, ...servidorZh },
+  'zh-TW': zhTWCompleto,
+  'zh-HK': zhTWCompleto,
+  'zh-MO': zhTWCompleto,
+  'zh-Hant': zhTWCompleto,
+  'zh-Hant-TW': zhTWCompleto,
+  'zh-Hant-HK': zhTWCompleto,
+  'zh-Hant-MO': zhTWCompleto,
+  ja: { ...ja, ...servidorJa },
+  tr: { ...tr, ...servidorTr },
+  sv: { ...sv, ...servidorSv },
   da: { ...da, ...servidorDa },
-  hi,
+  hi: { ...hi, ...servidorHi },
+  /* Lote L1 (2026-11-03): los 23 idiomas de la oleada de 40 y la variante suiza, completos. Sin revisión nativa. */
+  /* Suiza y Liechtenstein: la variante suiza completa (ss, léxico, «…»). Austria sigue en el alemán base. */
+  'de-CH': deCHCompleto,
+  'de-LI': deCHCompleto,
+  ar: { ...ar, ...servidorAr },
+  he: { ...he, ...servidorHe },
+  fa: { ...fa, ...servidorFa },
+  id: { ...id, ...servidorId },
+  ms: { ...ms, ...servidorMs },
+  hr: { ...hr, ...servidorHr },
+  bs: { ...bs, ...servidorBs },
+  sr: srCompleto,
+  /*
+   * ── EL SERBIO: DOS ESCRITURAS, EL MISMO IDIOMA ─────────────────────────────
+   * `sr` es el cirílico y hace de base. `sr-Latn` es el latino, GENERADO desde el cirílico (scripts/i18n-sr-latn.mjs);
+   * los alias hacen que un aparato en sr-Latn-BA o sr-ME lea latino y uno en sr-Cyrl-RS lea cirílico.
+   */
+  'sr-Cyrl': srCompleto,
+  'sr-Cyrl-RS': srCompleto,
+  'sr-Latn': srLatnCompleto,
+  'sr-Latn-RS': srLatnCompleto,
+  'sr-Latn-BA': srLatnCompleto,
+  'sr-Latn-ME': srLatnCompleto,
+  'sr-ME': srLatnCompleto,
+  cnr: { ...cnr, ...servidorCnr },
+  pl: { ...pl, ...servidorPl },
+  ca: { ...ca, ...servidorCa },
+  el: { ...el, ...servidorEl },
+  nl: { ...nl, ...servidorNl },
+  vi: { ...vi, ...servidorVi },
+  hu: { ...hu, ...servidorHu },
+  fi: { ...fi, ...servidorFi },
+  mn: { ...mn, ...servidorMn },
+  nb: { ...nb, ...servidorNb },
+  /* Islandés y groenlandés (2026-11-03). kl es lengua propia: ni alias ni respaldo hacia el danés. */
+  is: { ...is, ...servidorIs },
+  kl: { ...kl, ...servidorKl },
+  fil: { ...fil, ...servidorFil },
+  ga: { ...ga, ...servidorGa },
+  km: { ...km, ...servidorKm },
+  ro: { ...ro, ...servidorRo },
 };
 
 /*
@@ -165,3 +278,4 @@ export const idiomasConDiccionario = (): string[] =>
 
 /** Todas las claves registradas, variantes incluidas. Para las pruebas. */
 export const clavesConDiccionario = (): string[] => Object.keys(DICCIONARIOS);
+

@@ -22,8 +22,8 @@
  * El día va delante de la fecha, como lo escribe `Intl` en danés: «tirs. 30. sep.». El porcentaje, con espacio
  * fijo: «60 %». Las comillas, ”…”, y el inciso, con raya media. Las reseñas son «anmeldelser» (glosario § 9.6). El
  * envío es «Levering» (glosario) y la llamada a la acción, «opfordring til handling». El gasto «Servicios» es el de
- * luz, agua e internet (su icono es un rayo): «Regninger», distinto a propósito de los servicios del directorio de
- * Weë Biz; «Insumos» es «Varekøb» y «Personal», «Personale». El margen es «avance», como lo dice un comerciante
+ * luz, agua e internet (su icono es un rayo): «Regninger», distinto a propósito de los servicios
+ * profesionales; «Insumos» es «Varekøb» y «Personal», «Personale». El margen es «avance», como lo dice un comerciante
  * danés. Los formatos de destino se dicen como los dice quien publica en danés —«Instagram-opslag»,
  * «Instagram-story»—, con el guion de marca + sustantivo de la guía; y «Video de Instagram», nunca «Reels».
  * «Csv» y «pdf» en minúscula, como siglas comunes (guía § 3). «Comunidades» son «Fællesskaber».

@@ -1,0 +1,57 @@
+/*
+ * FINÉS — Los errores controlados del servidor de Weë AI y de Weë Brain (ver `../../es/servidor/motor.ts`).
+ *
+ * Tipado contra el español. Traducción de IA pendiente de revisión humana.
+ *
+ * `{{campo}}` y `{{archivo}}` llegan en nominativo, así que entran detrás de dos puntos o como aclaración entre
+ * paréntesis, y la palabra «tiedosto» recibe el caso: «Lataa tiedosto ({{archivo}})».
+ */
+export const motor: typeof import('../../es/servidor/motor').motor = {
+  invalidRequest: 'Pyynnöstäsi puuttuu jotain. Tarkista se ja yritä uudelleen.',
+  unauthorized: 'Kirjaudu sisään, niin voit luoda Weë-sovelluksella.',
+  providerError: 'Tekoäly ei saanut luomustasi valmiiksi tällä kertaa. Sinua ei veloitettu: yritä hetken päästä uudelleen.',
+  generationFailed: 'En saanut luomustasi valmiiksi. Sinua ei veloitettu: yritä uudelleen.',
+  timeout: 'Se kesti liian kauan, joten keskeytin sen. Sinua ei veloitettu: yritä uudelleen.',
+  rateLimited: 'Olet tehnyt monta luomusta peräkkäin. Sinua ei veloitettu: odota hetki ja yritä uudelleen.',
+  duplicate: 'Tämä luomus on jo työn alla.',
+  notAvailable: 'Tämä toiminto ei ole vielä käytettävissä.',
+  inputRejected: 'Kuvaa tai videota ei voitu käyttää luomiseen: oikeita kasvoja tai tällaista sisältöä ei hyväksytä. Kokeile toista kuvaa tai kuvausta.',
+  faltaCampo: 'Puuttuu: {{campo}}.',
+  revisaCampo: 'Tarkista kenttä ({{campo}}): pituuden on oltava 1–{{max}} merkkiä.',
+  campoMensaje: 'viestisi',
+  campoDescripcionVideo: 'videon kuvaus',
+  conversacionNoEncontrada: 'Tätä keskustelua ei löytynyt.',
+  sinPlan: 'Tällä työllä ei ole vielä suunnitelmaa.',
+  sinUnPlan: 'Tälle työlle ei ole vielä tehty suunnitelmaa.',
+  yaTienePlan: 'Tällä työllä on jo suunnitelma.',
+  subeFoto: 'Lataa valokuva, niin Weë voi työstää sitä.',
+  trabajoNoEncontrado: 'Tätä työtä ei löytynyt.',
+  trabajoAjeno: 'Tämä työ ei ole sinun.',
+  experienciaDesconocida: 'Tuntematon osio.',
+  faltaTrabajo: 'Työ puuttuu.',
+  intentoSinTiempo: 'Yrityksestä loppui aika, ja hyvitin Credits-veloituksen. Voit yrittää uudelleen.',
+  fotoDireccion: 'Valokuvan osoite ei kelpaa.',
+  fotoSubir: 'Valokuva on ladattava Weë-sovellukseen ennen käyttöä.',
+  fotoAjena: 'Tämä valokuva ei ole sinun.',
+  archivoSube: 'Lataa tiedosto ({{archivo}}), niin Weë voi lukea sen.',
+  archivoDireccion: 'Tiedoston ({{archivo}}) osoite ei kelpaa.',
+  archivoSubir: 'Tiedosto ({{archivo}}) on ladattava Weë-sovellukseen ennen käyttöä.',
+  archivoAjeno: 'Tämä tiedosto ({{archivo}}) ei ole sinun.',
+  archivoDocumento: 'asiakirja',
+  archivoAudio: 'ääni',
+  sinTiempoAntes: 'Aika loppui jo ennen alkua. Sinua ei veloitettu.',
+  sinProveedor: 'Juuri nyt tähän ei ole tekoälyä käytettävissä. Yritä myöhemmin uudelleen.',
+  noDisponibleActualmente: 'Tämä toiminto ei ole tällä hetkellä käytettävissä.',
+  noDisponibleAhora: 'Tämä toiminto ei ole juuri nyt käytettävissä. Yritä hetken päästä uudelleen.',
+  noDisponibleRegion: 'Tämä toiminto ei ole tällä hetkellä käytettävissä alueellasi.',
+  noDisponiblePais: 'Jos haluat käyttää tätä toimintoa, ilmoita maasi Oikeassa profiilissasi.',
+  noDisponibleOpciones: 'Tämä toiminto ei ole käytettävissä valitsemillasi vaihtoehdoilla. Kokeile muita.',
+  describeVideo: 'Kerro, millaisen videon haluat luoda.',
+  creacionTerminada: 'Tämä luomus on jo valmis, eikä sitä tehdä uudelleen. Löydät sen luomuksistasi.',
+  tomaInvalida: 'Tämän oton muoto ei kelpaa.',
+  planoInvalido: 'Tämän kuvan muoto ei kelpaa.',
+  produccionNoEncontrada: 'Tätä tuotantoa ei löytynyt.',
+  tomaNoGenerable: 'Tätä ottoa ei voi luoda näin.',
+  creacionNoEncontrada: 'Tätä luomusta ei löytynyt.',
+  debesIniciarSesion: 'Sinun on kirjauduttava sisään',
+};

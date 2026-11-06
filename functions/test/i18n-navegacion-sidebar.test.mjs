@@ -79,7 +79,7 @@ console.log('\n── A · La barra lee la clave, no el español ──');
     if (!m) return null;
     const [, modulo, k, label] = m;
     /* Credits, ËContact, Weëls, WeeTalk y Weë AI son marca: dicen lo mismo a propósito. */
-    const marca = /^(Credits|ËContact|ẄContact|Weëls|WeeTalk|Weë AI)$/.test(label);
+    const marca = /^(Credits|ËContact|ẄContact|Weëls|WeeTalk|Weë AI|WeëPages)$/.test(label);
     return !marca && EN(`${modulo}.${k}`) === label ? id : null;
   }).filter(Boolean);
   check('5) en inglés no queda ningún label español del catálogo', enEspanol.length === 0, enEspanol.join(' '));
@@ -187,7 +187,8 @@ console.log('\n── D · Ni claves duplicadas, ni catálogo tocado ──');
     && /setCreatorOpen\(\(v\) => !v\)/.test(LATERAL) && /\{creatorOpen && \(/.test(LATERAL));
   /* Mismo orden de siempre; «Mis creaciones» (Fase 11) entra justo detrás de «Mis proyectos», dentro de Weë Creator. */
   check('19) y el orden de las opciones es el mismo',
-    IDS.join(' ') === 'realProfile weeProfile credits econtact communities weels weetalk projects creations saved settings help',
+    /* WeëPages (2026-11-02) va junto a la agenda: las Páginas son de la cuenta, no un sitio que explorar. */
+    IDS.join(' ') === 'realProfile weeProfile credits econtact pages communities weels weetalk projects creations saved settings help',
     IDS.join(' '));
 
   /*

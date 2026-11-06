@@ -7,7 +7,7 @@
  *
  *  A · La ubicación prometía «contenido y experiencias cerca de ti», que Weë no tiene. Hoy sirve para UNA cosa:
  *      sugerir lugares cercanos y tu zona cuando agregas una ubicación a una publicación (AgregarUbicacionScreen), lo
- *      mismo que dice el permiso del sistema (app.json). En los 16 idiomas.
+ *      mismo que dice el permiso del sistema (app.json). En todos los idiomas listos.
  *  B · Dos errores del cliente se pintaban con su `message` español: el de una pareja de ËContact que no vale
  *      (utils/econtactModel.ts) y el de votar sin conexión (services/firestoreService.ts#voteInPollById). Ahora
  *      llevan su CLAVE y se dicen en el idioma de quien mira, también en los 14 que no son español ni inglés.
@@ -51,15 +51,22 @@ const cargar = async (ruta) => {
 
 const { crearTraductor } = (await cargar('i18n/traducir.ts')).ns;
 const { DICCIONARIOS } = (await cargar('i18n/diccionarios.ts')).ns;
+/*
+ * CUÁNTOS DICCIONARIOS TIENE QUE HABER, sacado del CATÁLOGO y no escrito a mano (antes, «=== 16»): uno por idioma
+ * listo y uno por variante en los que las tienen —la misma cuenta que la prueba 38b de i18n.test.mjs—. Se compara con
+ * lo que hay en el REGISTRO, así que exige lo mismo que el 16 (ni uno de menos, ni uno de más) sin tener que tocar
+ * esta prueba cada vez que entra un idioma.
+ */
+const ESPERADOS = (await cargar('i18n/idiomas.ts')).ns.idiomasDisponibles().reduce((n, i) => n + (i.variantes?.length || 1), 0);
 const servidor = (await cargar('i18n/servidor.ts')).ns;
 const UNICOS = [];
 for (const [codigo, d] of Object.entries(DICCIONARIOS)) if (!UNICOS.some(([, otro]) => otro === d)) UNICOS.push([codigo, d]);
 const aplanar = (o, pre = '') => Object.entries(o).flatMap(([k, v]) => (typeof v === 'object' && v ? aplanar(v, pre + k + '.') : [[pre + k, String(v)]]));
 const PLANO = new Map(UNICOS.map(([c, d]) => [c, Object.fromEntries(aplanar(d))]));
 const valor = (codigo, clave) => PLANO.get(codigo)[clave];
-const LOCALE = { es: 'es-PE', en: 'en-US', de: 'de-DE', fr: 'fr-FR', it: 'it-IT', pt: 'pt-BR', 'pt-PT': 'pt-PT', ru: 'ru-RU', ko: 'ko-KR', zh: 'zh-CN', 'zh-TW': 'zh-TW', ja: 'ja-JP', tr: 'tr-TR', sv: 'sv-SE', da: 'da-DK', hi: 'hi-IN' };
+const LOCALE = { es: 'es-PE', en: 'en-US', de: 'de-DE', fr: 'fr-FR', it: 'it-IT', pt: 'pt-BR', 'pt-PT': 'pt-PT', ru: 'ru-RU', ko: 'ko-KR', zh: 'zh-CN', 'zh-TW': 'zh-TW', ja: 'ja-JP', tr: 'tr-TR', sv: 'sv-SE', da: 'da-DK', hi: 'hi-IN', ar: 'ar-EG', he: 'he-IL', fa: 'fa-IR', id: 'id-ID', ms: 'ms-MY', hr: 'hr-HR', bs: 'bs-BA', sr: 'sr-RS', 'sr-Latn': 'sr-Latn-RS', cnr: 'cnr-ME', pl: 'pl-PL', ca: 'ca-ES', el: 'el-GR', nl: 'nl-NL', vi: 'vi-VN', hu: 'hu-HU', fi: 'fi-FI', mn: 'mn-MN', nb: 'nb-NO', 'de-CH': 'de-CH', ga: 'ga-IE', km: 'km-KH', ro: 'ro-RO', fil: 'fil-PH', is: 'is-IS', kl: 'kl-GL' };
 
-check('0) los 16 diccionarios de la app', UNICOS.length === 16 && UNICOS.every(([c]) => c in LOCALE), UNICOS.map(([c]) => c).join(' '));
+check(`0) los ${ESPERADOS} diccionarios de la app (uno por idioma listo y variante)`, ESPERADOS >= 16 && UNICOS.length === ESPERADOS && UNICOS.every(([c]) => c in LOCALE), UNICOS.map(([c]) => c).join(' '));
 
 // ═════════════════════════════════════════════════════════════════════════════
 console.log('\n── A · La ubicación dice lo que hace, y nada más ──');
@@ -80,9 +87,9 @@ console.log('\n── A · La ubicación dice lo que hace, y nada más ──');
   for (const [codigo] of UNICOS) {
     for (const [clave, v] of Object.entries(PLANO.get(codigo))) if (v.includes(RETIRADA[codigo])) vuelve.push(`${codigo}:${clave}`);
   }
-  check('1) la promesa de «contenido y experiencias cerca» no está en ningún texto de ningún idioma', vuelve.length === 0, vuelve.join(' ') || '16 idiomas');
+  check('1) la promesa de «contenido y experiencias cerca» no está en ningún texto de ningún idioma', vuelve.length === 0, vuelve.join(' ') || `${UNICOS.length} idiomas`);
   const sinTexto = UNICOS.filter(([c]) => !valor(c, 'settings.locationOff')?.trim()).map(([c]) => c);
-  check('2) settings.locationOff existe en los 16', sinTexto.length === 0, sinTexto.join(' '));
+  check(`2) settings.locationOff existe en los ${UNICOS.length}`, sinTexto.length === 0, sinTexto.join(' '));
   check('3) en español dice lo que hace: lugares cercanos y tu zona al agregar una ubicación a una publicación',
     /sugerirte lugares cercanos y tu zona cuando agregas una ubicación a una publicación\./.test(valor('es', 'settings.locationOff'))
     && /Tu ubicación exacta nunca se muestra públicamente\.$/.test(valor('es', 'settings.locationOff')));
@@ -139,8 +146,8 @@ console.log('\n── B · Los errores del cliente llevan su clave y se dicen en
       if (!visto || visto !== valor(codigo, clave) || (codigo !== 'es' && visto === error.message)) mal.push(`${codigo} ${clave}: ${visto}`);
     }
   }
-  check('9) en los 16 idiomas, el voto sin conexión y la pareja que no vale se leen con su clave', mal.length === 0, mal.slice(0, 4).join(' | ') || '16 × 3');
-  check('9) las dos claves nuevas están en los 16 diccionarios, y ninguna vacía',
+  check(`9) en los ${UNICOS.length} idiomas, el voto sin conexión y la pareja que no vale se leen con su clave`, mal.length === 0, mal.slice(0, 4).join(' | ') || `${UNICOS.length} × 3`);
+  check(`9) las dos claves nuevas están en los ${UNICOS.length} diccionarios, y ninguna vacía`,
     UNICOS.every(([c]) => valor(c, 'wall.pollVoteOffline')?.trim() && valor(c, 'econtact.errSameProfile')?.trim()));
   /* CONTROLES: lo de antes sigue igual. */
   const tDe = crearTraductor('de-DE', DICCIONARIOS);
@@ -193,7 +200,7 @@ console.log('\n── C · El ruso trata de «вы» ──');
    */
   const distinto = UNICOS.filter(([c]) => valor(c, 'creaciones.title') !== valor(c, 'weeai.myCreations'))
     .map(([c]) => `${c}: «${valor(c, 'creaciones.title')}» ≠ «${valor(c, 'weeai.myCreations')}»`);
-  check('14b) «Mis creaciones» se llama igual en el menú y en Weë AI, en los 16 idiomas', distinto.length === 0, distinto.join(' | ') || '16');
+  check(`14b) «Mis creaciones» se llama igual en el menú y en Weë AI, en los ${UNICOS.length} idiomas`, distinto.length === 0, distinto.join(' | ') || `${UNICOS.length}`);
   check('14b) y en ruso ningún texto dice ya «творения»', !Object.values(RU).some((v) => /творени/i.test(v)));
 }
 

@@ -34,6 +34,7 @@ export const chef: typeof import('../es/chef').chef = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'Skriv din idé eller dine ingredienser, eller brug et foto',
+  cookPrompt: 'Fortæl mig, hvad du vil lave…',
   addLabel: 'Tilføj et foto',
   cameraLabel: 'Tag et foto',
   galleryLabel: 'Vælg et foto fra galleriet',
@@ -119,4 +120,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: 'Se alle',
   projectsEmpty: 'Du har ikke lavet mad med Weë endnu.',
   projectsEmptyHint: 'Det, du laver her, bliver gemt, og du finder det igen i denne række.',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'Din AI-kok,',
+  heroAccent: 'altid med dig',
+  chipRecipes: 'Opskrifter',
+  chipMenus: 'Menuer',
+  chipHealthy: 'Sund',
+  chipQuick: 'Hurtigt',
 };

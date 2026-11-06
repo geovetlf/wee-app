@@ -404,4 +404,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: 'Parei a criação. Os Credits reservados voltam ao teu saldo.',
   worldUploadFailed: 'Não consegui carregar a tua foto. Tenta de novo.',
   worldDailyLimit: 'Já usaste os mundos 3D de hoje. Se algum não sair, recuperas, e renovam-se todos os dias.',
+  filmmakerCardTitle: 'Realiza o teu filme',
+  filmmakerCardSub: 'Cenas, planos e movimentos de câmara, com a realização nas tuas mãos.',
+  filmmakerCardCta: 'Abrir Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'Cria',
+  heroAccent: 'sem limites.',
+  quickTitle: 'Criação rápida',
+  filmmakerEngineSub: 'Cria, realiza e edita os teus filmes com IA.',
+  projectsTitle: 'Projetos',
 };

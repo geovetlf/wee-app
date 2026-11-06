@@ -28,5 +28,6 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Gå till Weë AI',
   weeAiQuestion: 'Vad vill du skapa i dag?',
   weeAiPitch: 'Berätta för Weë vad du vill ha. Weë tar hand om AI-delen.',
-  documentTitle: 'Weë – Framtidens community',
+  brandSlogan: 'Dröm · Skapa · Koppla ihop',
+  documentTitle: 'Weë – {{eslogan}}',
 };

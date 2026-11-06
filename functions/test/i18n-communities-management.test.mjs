@@ -215,10 +215,11 @@ console.log('\n── E · Plurales, accesibilidad y lo que no se movió ──'
     && (CRUDO.match(/accessibilityHint=/g) || []).length === 0);
 
   /* 16 y 17 · La lógica y la navegación, donde estaban. */
-  check('16) la lógica de comunidades no cambió',
-    /await communityService\.leaveCommunity\(user\.uid, community\.id!\)/.test(PANTALLA)
-    && /await communityService\.joinCommunity\(user\.uid, communityId\)/.test(PANTALLA)
-    && /await communityService\.createCommunity\(\{/.test(PANTALLA)
+  /* Re-anclado 2026-11-05 (docs/COMUNIDADES-IDENTIDAD.md, decisiones 1–3 del dueño): unirse, salir y crear van por las callables con la cara ACTIVA. */
+  check('16) la lógica de comunidades es la del servidor, con la cara activa',
+    /await comunidadesService\.salir\(identidad, community\.id!\)/.test(PANTALLA)
+    && /await comunidadesService\.unirse\(identidad, community\.id\)/.test(PANTALLA)
+    && /await comunidadesService\.crear\(identidad, /.test(PANTALLA)
     && /updateLocalProfile\(\{ joinedCommunities: newJoined \}\)/.test(PANTALLA));
   check('16) ni los límites del formulario, ni el auto-join',
     /maxLength=\{40\}/.test(PANTALLA) && /maxLength=\{200\}/.test(PANTALLA)

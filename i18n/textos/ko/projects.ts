@@ -44,4 +44,14 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: '이 프로젝트에 무엇이 더 필요할까요?',
   whatIsMissingNote: '로고, 사진, 광고, 영상, 음악, 문서 — Weë의 어떤 전문가든 여기에 보탤 수 있어요.',
   createSomethingNew: '새로 만들기',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '프로젝트 {{contador}}개',
+  count_other: '프로젝트 {{contador}}개',
+  updatedOn: '{{fecha}} 업데이트',
+  searchPlaceholder: '프로젝트 검색',
+  sortUpdated: '최근 업데이트순',
+  sortName: '이름순',
+  noMatches: '검색과 일치하는 프로젝트가 없어요.',
+  emptySpaceTitle: '나만의 창작 공간이 여기서 시작돼요',
+  moreActions: '더 보기',
 };

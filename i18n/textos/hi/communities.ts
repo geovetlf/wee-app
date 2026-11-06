@@ -12,8 +12,8 @@
  * por `{{nombre}}`, entre “…” cuando la frase lo cita, con «कम्यूनिटी» detrás para que el verbo
  * concuerde con ella («… कम्यूनिटी छोड़नी है?») y nunca con nada pegado. `defaultDescription` se
  * GUARDA como descripción cuando quien crea la comunidad no escribe ninguna: «{{nombre}}
- * कम्यूनिटी», el patrón marca + sustantivo de la guía. «Descripción» es «विवरण», como en
- * `weebiz.description` (la misma palabra española se dice igual en toda la app).
+ * कम्यूनिटी», el patrón marca + sustantivo de la guía. «Descripción» es «विवरण» (la misma
+ * palabra española se dice igual en toda la app).
  * `members` y `posts` son la etiqueta bajo la cifra; «सदस्य» y «पोस्ट» son invariables, así que
  * `_one` y `_other` dicen lo mismo, con la cifra por hueco. El nombre de ejemplo es
  * «चाय के शौकीन»: el café del español se hace té, lo que en la India se comparte a diario, y

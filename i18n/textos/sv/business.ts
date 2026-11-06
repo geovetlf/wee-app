@@ -20,9 +20,9 @@
  * varumärke»— para no dejar una mayúscula en mitad de la frase.
  *
  * El día va delante de la fecha, como lo escribe `Intl` en sueco: «ons 30 sep.». El porcentaje, con espacio fijo:
- * «60 %». Las comillas, ”…”, y el inciso, con raya media. Las reseñas son «recensioner», como en Weë Biz, Google
+ * «60 %». Las comillas, ”…”, y el inciso, con raya media. Las reseñas son «recensioner», como en Google
  * Maps y la App Store, y no «kommentarer», que en Weë son los comentarios. El gasto «Servicios» es el de luz, agua e
- * internet (su icono es un rayo): «Räkningar», distinto a propósito de los «Tjänster» del directorio de Weë Biz, que
+ * internet (su icono es un rayo): «Räkningar», distinto a propósito de los «Tjänster» profesionales, que
  * son otra cosa; y «Personal», «Löner», que es como se apunta ese gasto. Los formatos de destino se dicen como los
  * dice quien publica en sueco —«Instagram-inlägg», «Instagram-story»—, con el guion de marca + sustantivo de la
  * guía; y «Video de Instagram», nunca «Reels».

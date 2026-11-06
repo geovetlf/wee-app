@@ -57,7 +57,7 @@ export const settings: typeof import('../es/settings').settings = {
   helpHint: '常见问题与联系方式',
   signOutHint: '退出你的账号',
   aboutBody: 'Weë（World Encode Entity）是用人工智能创作的人们的社交网络。\n\n版本 1.0.0 · © {{anio}} Weë。保留所有权利。\n\n地理数据：GeoNames (geonames.org)，CC BY 4.0。',
-  location: '📍 位置',
+  location: '位置',
   locationLine: '{{estado}}你的精确位置永远不会公开显示。',
   locationOff: '已关闭。开启后，你给动态添加位置时，Weë 可以用你的大致位置为你推荐附近的地点和你所在的区域。你的精确位置永远不会公开显示。',
   locationUnavailable: '这台设备无法提供你的位置。',

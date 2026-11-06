@@ -1,0 +1,85 @@
+/*
+ * ALEMÁN SUIZO (de-CH) — Mis creaciones: la biblioteca de medios de la cuenta y el
+ * progreso de un trabajo de Weë AI. Variante del alemán base (de/creaciones.ts):
+ * comillas «…»; todo lo demás, igual que el alemán. Véase es/creaciones.ts.
+ */
+export const creaciones: typeof import('../es/creaciones').creaciones = {
+  title: 'Meine Kreationen',
+  intro: 'Alles, was du mit Weë AI erstellt hast, an einem Ort. Es gehört zu deinem Konto: Du siehst dasselbe im Realen Profil und im Weë Profil.',
+
+  filterAll: 'Alle',
+  filterImages: 'Bilder',
+  filterVideos: 'Videos',
+  filterAudio: 'Audio',
+  filterDocuments: 'Dokumente',
+  filterModel3d: '3D',
+  filterLabel: 'Nach Typ filtern',
+
+  sortRecent: 'Neueste',
+  sortOldest: 'Älteste',
+  sortLabel: 'Sortieren',
+
+  loading: 'Deine Kreationen werden geladen…',
+  loadFailed: 'Deine Kreationen konnten nicht geladen werden.',
+  retry: 'Erneut versuchen',
+  loadMore: 'Mehr laden',
+  emptyTitle: 'Noch keine Kreationen',
+  emptyText: 'Alles, was du mit Weë AI erstellst, erscheint hier – mit Bild, Video oder Audio.',
+  emptyAction: 'Etwas mit Weë AI erstellen',
+  emptyFiltered: 'Keine Kreationen dieses Typs.',
+  count_one: '{{contador}} Kreation',
+  count_other: '{{contador}} Kreationen',
+
+  statusUploading: 'Wird hochgeladen',
+  statusProcessing: 'Wird verarbeitet',
+  statusReady: 'Fertig',
+  statusFailed: 'Hat nicht geklappt',
+  statusDeleted: 'Gelöscht',
+  pendingDeletion: 'Die Datei wird in Kürze entfernt.',
+
+  kindImage: 'Bild',
+  kindVideo: 'Video',
+  kindAudio: 'Audio',
+  kindDocument: 'Dokument',
+  kindModel3d: '3D',
+  kindText: 'Text',
+
+  open: 'Öffnen',
+  openCreation: 'Kreation öffnen: {{nombre}}',
+  download: 'Herunterladen',
+  downloaded: 'In deiner Galerie gespeichert.',
+  downloadFailed: 'Download fehlgeschlagen. Versuch es noch einmal.',
+  downloadPermission: 'Weë braucht die Erlaubnis, in deiner Galerie zu speichern.',
+  savedInCreations: 'Bei deinen Kreationen gespeichert',
+  save: 'Speichern',
+  saved: 'Gespeichert',
+  useInProject: 'In Projekt verwenden',
+  publish: 'Veröffentlichen',
+  share: 'Teilen',
+  delete: 'Löschen',
+  deleteConfirm: 'Diese Kreation löschen? Die Datei wird entfernt. Bereits Veröffentlichtes ändert sich nicht.',
+  deleteConfirmWeb: 'Diese Kreation löschen? Die Datei wird entfernt. Bereits Veröffentlichtes ändert sich nicht.',
+  deleted: 'Kreation gelöscht.',
+  deleteFailed: 'Löschen nicht möglich. Bitte versuche es erneut.',
+  createdWith: 'Erstellt mit {{nombre}}',
+  createdOn: 'Erstellt am {{fecha}}',
+
+  progressWorking: '{{nombre}} arbeitet',
+  progressStarting: 'Es geht los…',
+  progressSteps: '{{hechos}} von {{total}} Schritten fertig',
+  progressFindLater: 'Du kannst diesen Bildschirm verlassen; du findest es unter «Meine Kreationen», sobald es fertig ist.',
+
+  /* Mundos 3D (misión mundo3d, 2026-10-05): su tipo, que Weë todavía no tiene visor 3D, y lo que su licencia deja hacer
+     —nunca el nombre de la licencia, que nombra al modelo—. `{{lugares}}` llega ya nombrado y unido en el idioma de quien mira. */
+  filterWorlds: '3D-Welten',
+  kindWorld: '3D-Welt',
+  noViewer3d: 'Weë hat noch keinen 3D-Viewer. Lade die Datei herunter, um sie in einer 3D-App zu öffnen.',
+  rightsTitle: 'Was du damit machen darfst',
+  rightsProvenance: 'Mit KI in Weë erstellt, mit einem Modell eines Drittanbieters, das eine eigene Lizenz hat.',
+  rightsCommercialAllowed: 'Kommerzielle Nutzung ist erlaubt.',
+  rightsCommercialRestricted: 'Kommerzielle Nutzung ist an Bedingungen geknüpft.',
+  rightsCommercialUnclear: 'Noch ist unklar, ob eine kommerzielle Nutzung erlaubt ist.',
+  rightsCommercialNotAllowed: 'Kommerzielle Nutzung ist nicht erlaubt.',
+  rightsAttribution: 'Die Lizenz verlangt eine Namensnennung.',
+  rightsBlockedIn: 'Nutzung und Anzeige sind in diesen Regionen nicht erlaubt: {{lugares}}.',
+};

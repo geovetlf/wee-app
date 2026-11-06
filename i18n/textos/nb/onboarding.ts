@@ -1,0 +1,64 @@
+/*
+ * NORUEGO BOKMÅL — el alta guiada y la creación del Perfil Weë: quién eres, y
+ * quién eres en Weë.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * El nombre, la biografía y el país que elige la persona no entran aquí.
+ * «Perfil Weë» es «Profil Weë» (guía § 4). El ejemplo «SombraOscura» se
+ * traduce («MørkSkygge») y «Anon123» se deja. «Header» se dice «toppen».
+ */
+export const onboarding: typeof import('../es/onboarding').onboarding = {
+  welcome: 'Velkommen til Weë',
+  welcomeSubtitle: 'Fortell oss hvem du er. Etterpå kan du opprette din Profil Weë: identiteten din for å skape med KI.',
+  yourName: 'Navnet ditt',
+  yourNameHint: 'Dette navnet vises på den offentlige profilen din.',
+  yourNamePlaceholder: 'Fullt navn',
+  birthDate: 'Fødselsdato',
+  birthDateHint: 'Du må være minst 13 år for å bruke Weë.',
+  gender: 'Kjønn',
+  genderMale: 'Mann',
+  genderFemale: 'Kvinne',
+  genderOther: 'Annet',
+  country: 'Land',
+  pickCountry: 'Velg landet ditt',
+  searchCountry: 'Søk etter land…',
+  customiseProfile: 'Tilpass profilen din',
+  yourAvatar: 'Avataren din',
+  yourAvatarHint: 'Trykk for å velge en ferdig avatar eller laste opp ditt eget bilde',
+  bioPlaceholder: 'Fortell oss litt om deg selv… (valgfritt)',
+  saving: 'Lagrer…',
+  completed: 'Fullført!',
+  complete: 'Fullfør',
+  continueStep: 'Fortsett',
+  nameMissingTitle: 'Navn mangler',
+  nameMissing: 'Skriv inn navnet ditt for å fortsette.',
+  nameShortTitle: 'Navnet er for kort',
+  nameShort: 'Navnet ditt må ha minst 2 bokstaver.',
+  birthMissingTitle: 'Fødselsdato mangler',
+  birthMissing: 'Velg dag, måned og år.',
+  genderMissingTitle: 'Kjønn mangler',
+  genderMissing: 'Velg et alternativ for å fortsette.',
+  countryMissingTitle: 'Land mangler',
+  countryMissing: 'Velg landet ditt for å fortsette.',
+  saveFailedTitle: 'Vi kunne ikke lagre profilen din',
+  saveFailed: 'Prøv igjen.',
+  weeTitle: 'Opprett Profil Weë',
+  weeIntro: 'Denne profilen er uavhengig av den ekte identiteten din. Det du publiserer og gjør med Weë, knyttes ikke til hovedprofilen din.',
+  weePhoto: 'Profilbilde',
+  weePhotoHint: 'Trykk for å velge et bilde eller en ferdig avatar',
+  weeName: 'Anonymt navn',
+  weeNamePlaceholder: 'F.eks. MørkSkygge, Anon123…',
+  weeBioPlaceholder: 'Beskriv alteregoet ditt…',
+  weeCreatedTitle: 'Profil Weë er opprettet',
+  weeCreated: 'Den anonyme identiteten din er klar. Du kan bytte mellom profilene øverst på skjermen.',
+  weeCreateFailed: 'Kunne ikke opprette Profil Weë',
+  birthDay: 'Dag',
+  birthMonth: 'Måned',
+  birthYear: 'År',
+  stepOf: 'Trinn {{paso}} av {{total}}',
+  customiseProfileHint: 'Velg en avatar og legg til en beskrivelse (valgfritt)',
+  bioLabel: 'Beskrivelse (valgfritt)',
+  weeNameCounter: '{{usados}}/{{maximo}} - Minst {{minimo}} tegn',
+  weeBio: 'Bio (valgfritt)',
+};

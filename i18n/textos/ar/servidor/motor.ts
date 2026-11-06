@@ -1,0 +1,57 @@
+/*
+ * ÁRABE — Los errores controlados del servidor de Weë AI y de Weë Brain (ver `../../es/servidor/motor.ts`). Traducción
+ * de IA pendiente de revisión humana.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila. Habla la voz de Weë, en primera persona
+ * e imperativo («حاول مرة أخرى»), como `weeai.ts`. «تعذّر» para lo que no se pudo (glosario). Las piezas `campo…` y
+ * `archivo…` llevan artículo y entran tal cual en su frase.
+ */
+export const motor: typeof import('../../es/servidor/motor').motor = {
+  invalidRequest: 'هناك شيء ناقص في طلبك. راجعه وحاول مرة أخرى.',
+  unauthorized: 'سجّل الدخول للإنشاء مع Weë.',
+  providerError: 'لم يتمكن الذكاء الاصطناعي من إكمال إبداعك هذه المرة. لم أخصم منك شيئًا: حاول مرة أخرى بعد قليل.',
+  generationFailed: 'لم أتمكن من إكمال إبداعك. لم أخصم منك شيئًا: حاول مرة أخرى.',
+  timeout: 'استغرق الأمر وقتًا طويلًا فأوقفته. لم أخصم منك شيئًا: حاول مرة أخرى.',
+  rateLimited: 'لقد طلبت إبداعات كثيرة متتالية. لم أخصم منك شيئًا: انتظر قليلًا وحاول مرة أخرى.',
+  duplicate: 'هذا الإبداع قيد التنفيذ بالفعل.',
+  notAvailable: 'هذه الميزة غير متاحة بعد.',
+  inputRejected: 'تعذّر استخدام الصورة أو الفيديو للإنشاء: لا تُقبل الوجوه الحقيقية ولا هذا النوع من المحتوى. جرّب صورة أو وصفًا آخر.',
+  faltaCampo: 'يلزم إدخال {{campo}}.',
+  revisaCampo: 'راجع {{campo}}: يجب أن يتراوح الطول بين حرف واحد و{{max}} حرف.',
+  campoMensaje: 'رسالتك',
+  campoDescripcionVideo: 'وصف الفيديو',
+  conversacionNoEncontrada: 'لم نعثر على هذه المحادثة.',
+  sinPlan: 'لا توجد خطة لهذا العمل بعد.',
+  sinUnPlan: 'ليست لهذا العمل خطة بعد.',
+  yaTienePlan: 'لهذا العمل خطة بالفعل.',
+  subeFoto: 'ارفع صورة ليتمكن Weë من العمل عليها.',
+  trabajoNoEncontrado: 'لم نعثر على هذا العمل.',
+  trabajoAjeno: 'هذا العمل ليس لك.',
+  experienciaDesconocida: 'تجربة غير معروفة.',
+  faltaTrabajo: 'العمل غير محدد.',
+  intentoSinTiempo: 'نفد وقت هذه المحاولة وأعدت إليك Credits. يمكنك المحاولة مرة أخرى.',
+  fotoDireccion: 'عنوان الصورة غير صالح.',
+  fotoSubir: 'يجب رفع الصورة إلى Weë قبل استخدامها.',
+  fotoAjena: 'هذه الصورة ليست لك.',
+  archivoSube: 'ارفع {{archivo}} ليتمكن Weë من قراءته.',
+  archivoDireccion: 'عنوان {{archivo}} غير صالح.',
+  archivoSubir: 'يجب رفع {{archivo}} إلى Weë قبل استخدامه.',
+  archivoAjeno: 'هذا {{archivo}} ليس لك.',
+  archivoDocumento: 'المستند',
+  archivoAudio: 'الملف الصوتي',
+  sinTiempoAntes: 'نفد الوقت قبل البدء. لم أخصم منك شيئًا.',
+  sinProveedor: 'لا يتوفر ذكاء اصطناعي لهذا الأمر حاليًا. حاول مرة أخرى لاحقًا.',
+  noDisponibleActualmente: 'هذه الميزة غير متاحة حاليًا.',
+  noDisponibleAhora: 'هذه الميزة غير متاحة في الوقت الحالي. حاول مرة أخرى بعد قليل.',
+  noDisponibleRegion: 'هذه الميزة غير متاحة حاليًا في منطقتك.',
+  noDisponiblePais: 'لاستخدام هذه الميزة، حدّد بلدك في الملف الحقيقي.',
+  noDisponibleOpciones: 'هذه الميزة غير متاحة مع الخيارات التي حددتها. جرّب خيارات أخرى.',
+  describeVideo: 'أخبرني بالفيديو الذي تريد إنشاءه.',
+  creacionTerminada: 'اكتمل هذا الإبداع ولن يُعاد تنفيذه. ابحث عنه في إبداعاتك.',
+  tomaInvalida: 'شكل هذه اللقطة غير صالح.',
+  planoInvalido: 'شكل هذا المشهد غير صالح.',
+  produccionNoEncontrada: 'لم نعثر على هذا الإنتاج.',
+  tomaNoGenerable: 'لا يمكن توليد هذه اللقطة بهذا الشكل.',
+  creacionNoEncontrada: 'لم نعثر على هذا الإبداع.',
+  debesIniciarSesion: 'يجب تسجيل الدخول',
+};

@@ -26,5 +26,6 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Weë AI bölümüne git',
   weeAiQuestion: 'Bugün ne oluşturmak istiyorsun?',
   weeAiPitch: 'Ne istediğini Weë\'ye anlat. Yapay zekâ kısmını Weë halleder.',
-  documentTitle: 'Weë - Geleceğin topluluğu',
+  brandSlogan: 'Hayal et · Yarat · Bağlan',
+  documentTitle: 'Weë - {{eslogan}}',
 };

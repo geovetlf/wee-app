@@ -15,6 +15,7 @@ export const chef: typeof import('../es/chef').chef = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'Напишите идею, ингредиенты или добавьте фото',
+  cookPrompt: 'Расскажите, что вы хотите приготовить…',
   addLabel: 'Добавить фото',
   cameraLabel: 'Сделать фото',
   galleryLabel: 'Выбрать фото из галереи',
@@ -99,4 +100,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: 'Смотреть все',
   projectsEmpty: 'Вы ещё ничего не готовили с Weë.',
   projectsEmptyHint: 'Всё, что вы создадите здесь, сохранится и снова появится в этом ряду.',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'Ваш ИИ-шеф,',
+  heroAccent: 'всегда рядом',
+  chipRecipes: 'Рецепты',
+  chipMenus: 'Меню',
+  chipHealthy: 'Полезно',
+  chipQuick: 'Быстро',
 };

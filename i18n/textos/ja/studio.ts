@@ -378,4 +378,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: '作成を停止しました。確保していたCreditsは残高に戻ります。',
   worldUploadFailed: '写真をアップロードできませんでした。もう一度お試しください。',
   worldDailyLimit: '今日の3Dワールドはすべて使いました。作成できなかったものは戻ります。3Dワールドは毎日リセットされます。',
+  filmmakerCardTitle: 'あなたの映画を監督しよう',
+  filmmakerCardSub: 'シーン、ショット、カメラワークをあなたの手で。',
+  filmmakerCardCta: 'Filmmakerを開く',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: '思いのままに',
+  heroAccent: '作れます。',
+  quickTitle: 'クイック作成',
+  filmmakerEngineSub: 'AIで映画を作り、演出し、編集できます。',
+  projectsTitle: 'プロジェクト',
 };

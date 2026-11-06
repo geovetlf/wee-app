@@ -95,12 +95,24 @@ export const design: typeof import('../es/design').design = {
   valStudioLight: '촬영 조명',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: '제품',
   kindInterior: '인테리어',
   kindArchitecture: '건축',
   kindBoat: '배',
   kindFurniture: '가구',
+  sampleShoe: '가죽 스니커즈',
+  sampleGuitar: '일렉트릭 기타',
   sampleLivingRoom: '밝은 거실',
   samplePineHouse: '소나무 숲속의 집',
   sampleYacht: '15미터 요트',
   sampleArmchair: '원목 안락의자',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: '한계 없이',
+  heroAccent: '디자인하세요.',
+  brandingTitle: '브랜딩',
+  objects3dTitle: '3D 오브젝트',
+  designStudioTitle: '디자인 스튜디오',
+  designStudioSub: 'AI로 전문적인 디자인을 만들고, 편집하고, 시각화해요.',
+  openStudio: '스튜디오 열기',
+  fashionHint: '옷, 컬렉션 등을 디자인해요.',
 };

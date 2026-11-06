@@ -19,7 +19,11 @@
     "revisor": "Claude (agente de IA), revisión nativa simulada — NO es una revisión humana",
     "tipo": "agente",
     "fecha": "2026-10-01",
-    "nota": "«dens» rígido y ambiguo"
+    "nota": "«dens» rígido y ambiguo",
+    "obsoleta": {
+      "fecha": "2026-11-03",
+      "motivo": "La clave dejó de existir: el módulo weebiz se retiró del cliente por decisión del dueño (2026-11-03; Weë Fashion es el sector). Se conserva como historia de la revisión; no cuenta en el estado de ningún texto vigente."
+    }
   },
   {
     "clave": "aiAvatar.swapSubtitle",

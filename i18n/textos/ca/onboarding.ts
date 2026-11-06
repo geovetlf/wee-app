@@ -1,0 +1,63 @@
+/*
+ * CATALÁN — el alta guiada y la creación del Perfil Weë: quién eres, y quién
+ * eres en Weë.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * El nombre, la biografía y el país que elige la persona no entran aquí.
+ * «Anon123» se deja tal cual; «SombraOscura» es un ejemplo y se traduce.
+ */
+export const onboarding: typeof import('../es/onboarding').onboarding = {
+  welcome: 'Et donem la benvinguda a Weë',
+  welcomeSubtitle: 'Explica\'ns qui ets. Després podràs crear el teu Perfil Weë: la teva identitat per crear amb IA.',
+  yourName: 'El teu nom',
+  yourNameHint: 'Aquest nom es mostrarà al teu perfil públic.',
+  yourNamePlaceholder: 'El teu nom complet',
+  birthDate: 'Data de naixement',
+  birthDateHint: 'Has de tenir com a mínim 13 anys per fer servir Weë.',
+  gender: 'Gènere',
+  genderMale: 'Home',
+  genderFemale: 'Dona',
+  genderOther: 'Altre',
+  country: 'País',
+  pickCountry: 'Selecciona el país',
+  searchCountry: 'Cerca un país...',
+  customiseProfile: 'Personalitza el teu perfil',
+  yourAvatar: 'El teu avatar',
+  yourAvatarHint: 'Toca per triar un avatar predefinit o pujar la teva pròpia imatge',
+  bioPlaceholder: 'Explica\'ns alguna cosa sobre tu... (opcional)',
+  saving: 'S\'està desant...',
+  completed: 'Completat!',
+  complete: 'Completa',
+  continueStep: 'Continua',
+  nameMissingTitle: 'Falta el nom',
+  nameMissing: 'Escriu el teu nom per continuar.',
+  nameShortTitle: 'Nom massa curt',
+  nameShort: 'El nom ha de tenir com a mínim 2 lletres.',
+  birthMissingTitle: 'Falta la data de naixement',
+  birthMissing: 'Tria dia, mes i any.',
+  genderMissingTitle: 'Falta el gènere',
+  genderMissing: 'Tria una opció per continuar.',
+  countryMissingTitle: 'Falta el país',
+  countryMissing: 'Tria el país per continuar.',
+  saveFailedTitle: 'No hem pogut desar el perfil',
+  saveFailed: 'Torna-ho a provar.',
+  weeTitle: 'Crea el Perfil Weë',
+  weeIntro: 'Aquest perfil és independent de la teva identitat real. Les publicacions i les accions que facis amb Weë no estaran vinculades al teu perfil principal.',
+  weePhoto: 'Foto de perfil',
+  weePhotoHint: 'Toca per triar una foto o un avatar predefinit',
+  weeName: 'Nom anònim',
+  weeNamePlaceholder: 'Ex.: OmbraFosca, Anon123...',
+  weeBioPlaceholder: 'Descriu el teu àlter ego...',
+  weeCreatedTitle: 'Perfil Weë creat',
+  weeCreated: 'La teva identitat anònima està a punt. Pots canviar de perfil des de la capçalera.',
+  weeCreateFailed: 'No s\'ha pogut crear el Perfil Weë',
+  birthDay: 'Dia',
+  birthMonth: 'Mes',
+  birthYear: 'Any',
+  stepOf: 'Pas {{paso}} de {{total}}',
+  customiseProfileHint: 'Tria un avatar i afegeix una descripció (opcional)',
+  bioLabel: 'Descripció (opcional)',
+  weeNameCounter: '{{usados}}/{{maximo}} - Mínim {{minimo}} caràcters',
+  weeBio: 'Bio (opcional)',
+};

@@ -50,8 +50,9 @@ const AJUSTES = soloCodigo(CRUDO);
 console.log('\n── A · Ninguna fila escribe ya en español ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
+  /* 'Ubicación' sin el «📍» de antes: decisión del dueño 2026-11-06, un solo pin, sistema visual de Ajustes (ver 10). */
   const FRASES = ['Mis comunidades', 'comunidades unidas', 'Respuestas privadas',
-    'Permitir que otros te envíen', '📍 Ubicación', 'Política de privacidad',
+    'Permitir que otros te envíen', 'Ubicación', 'Política de privacidad',
     'Qué hacemos con tus datos', 'Notificaciones push', 'Recibe notificaciones de nuevos',
     'Acerca de Weë', 'Qué es Weë y en qué versión', 'Preguntas frecuentes y contacto',
     'Salir de tu cuenta', 'No pudimos cerrar la sesión', 'Inténtalo de nuevo',
@@ -187,9 +188,28 @@ console.log('\n── D · Idioma, ubicación, push, motor y sesión ──');
   check('10) en inglés: ' + EN('settings.locationLine', { estado: EN('settings.locationApproximate') }),
     EN('settings.locationLine', { estado: EN('settings.locationApproximate') })
       === 'Weë knows your area, not the exact spot. Your exact location is never shown publicly.');
-  check('10) el emoji del título se queda donde estaba',
-    /📍/.test(esT.settings.location) && /📍/.test(enT.settings.location),
-    ES('settings.location') + ' / ' + EN('settings.location'));
+  /*
+   * UN SOLO PIN (decisión del dueño 2026-11-06: un solo pin, sistema visual de Ajustes). La fila ya lleva el icono
+   * `location` pintado del color del texto, como todas las de Ajustes; el «📍» que el título traía de los diccionarios
+   * salía como un segundo pin, y en rojo. Antes esta comprobación pedía conservar el emoji: ahora pide lo contrario,
+   * en los 42 diccionarios (sr-Latn incluido, que se genera del cirílico).
+   */
+  const conPin = fs.readdirSync(new URL('../../i18n/textos/', import.meta.url), { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+    .filter((idioma) => {
+      const archivo = new URL(`../../i18n/textos/${idioma}/settings.ts`, import.meta.url);
+      if (!fs.existsSync(archivo)) return false;
+      const linea = fs.readFileSync(archivo, 'utf8').match(/^\s*location: '.*$/m);
+      return !linea || /📍/u.test(linea[0]);
+    });
+  check('10) el título de la ubicación no lleva emoji en ningún diccionario',
+    conPin.length === 0 && ES('settings.location') === 'Ubicación' && EN('settings.location') === 'Location',
+    conPin.join(' ') || ES('settings.location') + ' / ' + EN('settings.location'));
+  check('10) y el único pin es el icono de la fila, del color del texto',
+    /renderSettingItem\(\s*'location',\s*t\('settings\.location'\),/.test(AJUSTES)
+    && /<Ionicons name=\{icon as any\} size=\{20\} color=\{theme\.colors\.text\} \/>/.test(AJUSTES)
+    && !/📍/u.test(CRUDO));
 
   /* 11 · Push: solo la interfaz. */
   check('11) push traducido, y su interruptor sin tocar',

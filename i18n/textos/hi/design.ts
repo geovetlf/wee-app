@@ -114,12 +114,24 @@ export const design: typeof import('../es/design').design = {
   valStudioLight: 'स्टूडियो लाइट',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: 'प्रोडक्ट',
   kindInterior: 'इंटीरियर',
   kindArchitecture: 'आर्किटेक्चर',
   kindBoat: 'नाव',
   kindFurniture: 'फ़र्नीचर',
+  sampleShoe: 'चमड़े का स्नीकर',
+  sampleGuitar: 'इलेक्ट्रिक गिटार',
   sampleLivingRoom: 'रोशनी से भरा लिविंग रूम',
   samplePineHouse: 'चीड़ के पेड़ों के बीच घर',
   sampleYacht: '15 मीटर यॉट',
   sampleArmchair: 'लकड़ी की आरामकुर्सी',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: 'बिना किसी सीमा के',
+  heroAccent: 'डिज़ाइन करें.',
+  brandingTitle: 'ब्रांडिंग',
+  objects3dTitle: '3D ऑब्जेक्ट',
+  designStudioTitle: 'डिज़ाइन स्टूडियो',
+  designStudioSub: 'AI के साथ प्रोफ़ेशनल डिज़ाइन बनाएँ, एडिट करें और देखें.',
+  openStudio: 'स्टूडियो खोलें',
+  fashionHint: 'कपड़े, कलेक्शन और बहुत कुछ डिज़ाइन करें.',
 };

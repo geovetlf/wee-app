@@ -8,7 +8,7 @@
  * «Wäll general» —el muro donde está todo el mundo, frente a los de cada
  * sección— es 総合Wäll. El botón «Ubicación» y la pantalla «Agregar ubicación»
  * son 場所 / 場所を追加: lo que se pone ahí es sobre todo el LUGAR del que habla
- * la publicación (glosario: 場所 es un lugar, como `weebiz.location`); 位置情報
+ * la publicación (glosario: 場所 es un lugar); 位置情報
  * queda para lo que sale del aparato, la zona aproximada (`removeMyLocation`).
  * «Galería» es 写真ライブラリ.
  * «Quitar» algo adjunto al borrador es 削除, lo corriente en esa X.
@@ -56,9 +56,6 @@ export const composer: typeof import('../es/composer').composer = {
   newPost: '新規投稿',
   you: 'あなた',
   shareWithCommunity: 'Weëのコミュニティに投稿',
-  publicVisibility: '公開',
-  visibilityIs: '公開範囲：{{estado}}',
-  publicExplain: '現在、Weëの投稿はすべて公開されます。',
   profileReal: 'リアルプロフィール',
   profileWee: 'Weëプロフィール',
   multimedia: 'メディア',

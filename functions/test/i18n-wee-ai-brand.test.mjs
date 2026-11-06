@@ -99,7 +99,8 @@ console.log('\n── B · Y las que lo nombran lo escriben "Weë AI" ──');
     ['2) el del flujo guiado', 'screens/CreatorFlowScreen.tsx', /overline="🤖 Weë AI"/],
     ['2) el de Mis proyectos', 'screens/ProjectsScreen.tsx', /overline="🤖 Weë AI"/],
     ['2) el del editor', 'screens/WriterEditorScreen.tsx', /overline="🤖 Weë AI"/],
-    ['3) el atajo de la hoja Crear', 'components/CreateSheet.tsx', />Weë AI ›</],
+    /* RTL (2026-11-04): el cheurón sale de dir.flecha.siguiente (› en LTR, ‹ en RTL); la marca sigue escrita tal cual. */
+    ['3) el atajo de la hoja Crear', 'components/CreateSheet.tsx', />Weë AI \{dir\.flecha\.siguiente\}</],
     ['3) la barra lateral de las pantallas de IA', 'components/creator/CreatorSidebar.tsx', /'grid-outline', 'Weë AI', goCreator/],
     /* La Ayuda pasó al diccionario en la fase 6: la marca se mira donde vive. */
     ['4) la Ayuda', 'i18n/textos/es/help.ts', /¿Cómo funciona Weë AI\?/],

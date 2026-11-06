@@ -383,4 +383,13 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   worldCancelledNote: 'Я остановил создание. Зарезервированные Credits вернутся на ваш баланс.',
   worldUploadFailed: 'Не удалось загрузить ваше фото. Попробуйте ещё раз.',
   worldDailyLimit: 'Вы уже использовали 3D-миры на сегодня. Если какой-то не получится, он вернётся, а лимит обновляется каждый день.',
+  filmmakerCardTitle: 'Снимите свой фильм',
+  filmmakerCardSub: 'Сцены, кадры и движения камеры — режиссура в ваших руках.',
+  filmmakerCardCta: 'Открыть Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'Создавайте',
+  heroAccent: 'без границ.',
+  quickTitle: 'Быстрое создание',
+  filmmakerEngineSub: 'Создавайте, режиссируйте и монтируйте свои фильмы с ИИ.',
+  projectsTitle: 'Проекты',
 };

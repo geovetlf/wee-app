@@ -1,0 +1,37 @@
+/*
+ * HÚNGARO — El menú ☰ único y la barra lateral. Tipado contra el español.
+ */
+export const menu: typeof import('../es/menu').menu = {
+  home: 'Főoldal',
+  realProfile: 'Valódi profil',
+  weeProfile: 'Weë-profil',
+  createWeeProfile: 'Weë-profilom létrehozása',
+  credits: 'Credits',
+  econtact: 'ËContact',
+  wcontact: 'ËContact',
+  communities: 'Közösségek',
+  weels: 'Weëls',
+  weetalk: 'WeeTalk',
+  creator: 'Weë AI',
+  projects: 'Projektjeim',
+  saved: 'Mentett elemek',
+  settings: 'Beállítások',
+  help: 'Súgó',
+  sectionProfile: 'PROFIL',
+  sectionExplore: 'FELFEDEZÉS',
+  activeReal: 'Valódi profil aktív',
+  activeWee: 'Weë-profil aktív',
+  tapToSignIn: 'Koppints a bejelentkezéshez',
+  signOut: 'Kijelentkezés',
+  terms: 'Feltételek',
+  privacy: 'Adatvédelem',
+  signOutFailed: 'Nem sikerült kijelentkezni',
+  profileActive: '{{perfil}}, aktív',
+  switchToProfile: 'Váltás erre: {{perfil}}',
+  signIn: 'Bejelentkezés',
+  hideSpecialists: 'Specialisták elrejtése',
+  showSpecialists: 'Specialisták megjelenítése',
+  signOutConfirm: 'Ki szeretnél lépni a Weë-ből?',
+  /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
+  pages: 'WeëPages',
+};

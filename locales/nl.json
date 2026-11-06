@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë heeft toegang tot je camera nodig om foto's te maken voor je berichten, je profiel, WeeTalk en Weë AI.",
+    "NSMicrophoneUsageDescription": "Weë heeft toegang tot je microfoon nodig zodat je muziekideeën, geneuriede melodieën, je eigen vocale referenties en spraakberichten kunt opnemen. De audio wordt alleen gebruikt als jij daarvoor kiest.",
+    "NSPhotoLibraryUsageDescription": "Weë heeft toegang tot je fotobibliotheek nodig om foto's en video's te kiezen voor je berichten, je profiel, WeeTalk en Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Weë heeft toestemming nodig om afbeeldingen en video's van Weë AI in je fotobibliotheek op te slaan wanneer je ze downloadt.",
+    "NSLocationWhenInUseUsageDescription": "Weë gebruikt je locatie bij benadering om plekken in de buurt en je regio voor te stellen wanneer je een locatie aan een bericht toevoegt, alleen terwijl de app open is. Je precieze locatie wordt nooit openbaar getoond."
+  }
+}

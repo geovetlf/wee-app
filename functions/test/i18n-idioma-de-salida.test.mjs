@@ -141,6 +141,39 @@ console.log('\n── C · Ningún diccionario, en ningún idioma, con frases en
   check('21) control: una frase española colada en el danés se caza', colada === 'distinto');
 }
 
+console.log('\n── E · El griego: se reconoce por su escritura, como el ruso o el hindi ──');
+{
+  /* Las reglas de siempre (`ESCRITURAS`: mandan si son la mayoría de las letras y hay al menos 20): nada nuevo para el griego. */
+  const GRIEGO = 'Καλημέρα! Σου ετοίμασα μια συνταγή για μουσακά με μελιτζάνες, κιμά και μπεσαμέλ. Ψήσε πρώτα τις μελιτζάνες και μετά στρώσε τα υλικά στο ταψί.';
+  const INGLES_CON_LETRAS_GRIEGAS = `${INGLES} The ratio uses π for the circle and Σ for the total, nothing more.`;
+  const v = (t, l) => D.veredictoDeIdioma(t, l).veredicto;
+  check('22) un texto claramente griego es griego, y pedido en el-GR coincide', D.detectarIdioma(GRIEGO)?.idioma === 'el' && v(GRIEGO, 'el-GR') === 'coincide', D.detectarIdioma(GRIEGO)?.idioma);
+  check('23) un texto inglés con una «π» y una «Σ» sueltas sigue siendo inglés, y pedido en griego se ve distinto',
+    D.detectarIdioma(INGLES_CON_LETRAS_GRIEGAS)?.idioma === 'en' && v(INGLES_CON_LETRAS_GRIEGAS, 'en-US') === 'coincide' && v(INGLES_CON_LETRAS_GRIEGAS, 'el-GR') === 'distinto',
+    D.detectarIdioma(INGLES_CON_LETRAS_GRIEGAS)?.idioma);
+  check('24) un griego demasiado corto queda sin decidir («no lo sé», nunca «distinto»)', D.detectarIdioma('Γεια σου, τι κάνεις;') === null && v('Γεια σου, τι κάνεις;', 'el-GR') === 'incierto');
+  check('25) el español y el inglés de siempre se siguen clasificando igual',
+    D.detectarIdioma(ESPANOL)?.idioma === 'es' && D.detectarIdioma(INGLES)?.idioma === 'en' && v(ESPANOL, 'es') === 'coincide' && v(INGLES, 'en-US') === 'coincide'
+    && v(ESPANOL, 'el-GR') === 'distinto' && v(INGLES, 'el') === 'distinto');
+  check('26) el griego no se confunde con el cirílico ni con el español', v(GRIEGO, 'ru-RU') === 'distinto' && v(GRIEGO, 'es') === 'distinto' && v(RUSO, 'el-GR') === 'distinto');
+  check('27) y el griego tiene nombre para el modelo', !/undefined/.test(P.recordatorioDeIdioma('el-GR')) && P.recordatorioDeIdioma('el-GR').length > 40, P.recordatorioDeIdioma('el-GR').slice(0, 70));
+}
+
+console.log('\n── F · El neerlandés: alfabeto latino, por sus palabras funcionales ──');
+{
+  const NEERLANDES = 'Hier is je bericht voor Instagram: we hebben een nieuwe functie in Weë Studio gelanceerd waarmee je heel eenvoudig een korte video kunt maken. Kies een stijl, schrijf wat je wilt en deel het resultaat met je community. Het duurt maar een paar minuten en je hebt er geen ervaring voor nodig.';
+  const ALEMAN = 'Hier ist dein Beitrag für Instagram: Wir haben eine neue Funktion in Weë Studio gestartet, mit der du ganz einfach ein kurzes Video erstellen kannst. Wähle einen Stil, schreib, was du willst, und teile das Ergebnis mit deiner Community. Es dauert nur ein paar Minuten und du brauchst keine Erfahrung.';
+  const v = (t, l) => D.veredictoDeIdioma(t, l).veredicto;
+  check('28) un texto neerlandés con marcas y préstamos es neerlandés, y pedido en nl-NL coincide', D.detectarIdioma(NEERLANDES)?.idioma === 'nl' && v(NEERLANDES, 'nl-NL') === 'coincide', D.detectarIdioma(NEERLANDES)?.idioma);
+  check('29) el alemán sigue siendo alemán y, pedido en neerlandés, se ve distinto (los dos idiomas vecinos no se confunden)',
+    D.detectarIdioma(ALEMAN)?.idioma === 'de' && v(ALEMAN, 'nl-NL') === 'distinto' && v(NEERLANDES, 'de-DE') === 'distinto', D.detectarIdioma(ALEMAN)?.idioma);
+  check('30) el danés, el sueco, el español y el inglés de siempre siguen igual',
+    v(DANES_TECNICO, 'da-DK') === 'coincide' && v(SUECO, 'sv') === 'coincide' && v(ESPANOL, 'es') === 'coincide' && v(INGLES, 'en-US') === 'coincide'
+    && v(DANES_TECNICO, 'nl') === 'distinto' && v(INGLES, 'nl-NL') === 'distinto');
+  check('31) un neerlandés corto queda sin decidir («no lo sé», nunca «distinto»)', v('Hoi! Zin om te koken?', 'nl') === 'incierto' && D.detectarIdioma('Hoi! Zin om te koken?') === null);
+  check('32) y el neerlandés tiene nombre para el modelo', !/undefined/.test(P.recordatorioDeIdioma('nl-NL')) && P.recordatorioDeIdioma('nl-NL').length > 40, P.recordatorioDeIdioma('nl-NL').slice(0, 70));
+}
+
 check('esta suite está en la cadena de `npm test`', /i18n-idioma-de-salida\.test\.mjs/.test(leer('functions/package.json')));
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

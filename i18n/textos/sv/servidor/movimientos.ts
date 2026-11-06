@@ -1,0 +1,58 @@
+/*
+ * SUECO — El concepto de cada movimiento del historial de Credits (ver `../../es/servidor/movimientos.ts`).
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Traducción de IA pendiente de revisión humana.
+ *
+ * `{{base}}` es otro concepto de esta lista; `{{experiencia}}` es una marca y llega tal cual. En pantalla, «Weë AI».
+ */
+export const movimientos: typeof import('../../es/servidor/movimientos').movimientos = {
+  saldoAnterior: 'Tidigare saldo',
+  bienvenida: 'Credits som välkomstgåva',
+  ajusteMenos: 'Justering: det kostade mindre än reserverat',
+  reembolsoFallida: 'Återbetalning för misslyckad generering',
+  compra: 'Köp av Credits',
+  regalo: 'Credits i gåva',
+  recargaPrueba: 'Testpåfyllning',
+  compraRestaurada: 'Återställt köp',
+  reembolsoAdmin: 'Administrativ återbetalning',
+  avatar: 'Weë-avatar',
+  fotoConAvatar: 'Foto med din Weë-avatar',
+  noSePudoTerminar: '{{base}} · kunde inte slutföras',
+  brainBusqueda: 'Weë Brain · sökning',
+  brainRespuestas_one: 'Weë Brain · {{contador}} svar',
+  brainRespuestas_other: 'Weë Brain · {{contador}} svar',
+  brainNoPudo: 'Weë Brain · kunde inte svara',
+  studioVideo: 'Weë Studio · video',
+  studioSinTiempo: 'Weë Studio · föregående försök tog för lång tid',
+  studioNoSePudo: 'Weë Studio · videon kunde inte genereras',
+  studioMundo: 'Weë Studio · 3D-värld',
+  studioMundoNoSePudo: 'Weë Studio · 3D-världen kunde inte skapas',
+  weeAi: 'Weë AI · {{experiencia}}',
+  operacionIncompleta: 'Weë · åtgärden slutfördes inte',
+  servicioAiImageLite: 'Standardbild',
+  servicioAiImageEnhanceLite: 'Standardredigering',
+  servicioAiImage: 'Bildgenerering',
+  servicioAiImageEnhance: 'Bildredigering',
+  servicioAiImagePro: 'Bild med högsta precision',
+  servicioAiTryon: 'Prova kläder',
+  servicioAiVideoDraft: 'Förhandsvisningsvideo',
+  servicioAiVideo: 'Videogenerering',
+  servicioAiVideoHd: 'Video i hög kvalitet',
+  servicioAiVideoAdvanced: 'Avancerad video',
+  servicioAiVideoMax: 'Video i högsta kvalitet',
+  servicioAiVideoEdit: 'Videoredigering',
+  servicioAiAudio: 'Röstgenerering',
+  servicioAiTranscribe: 'Transkribering och undertexter',
+  servicioAiMusic: 'Musikgenerering',
+  servicioAiWorld: 'Generering av 3D-värld',
+  servicioAiBrain: 'Svar från Weë Brain',
+  servicioAiText: 'Textgenerering',
+  servicioAiTextPro: 'Lång text i högsta kvalitet',
+  servicioAiSearch: 'AI-sökning',
+  servicioAiBook: 'Bokskapande',
+  /* Boost (functions/src/boost): traducción de IA, pendiente de revisión nativa (2026-11-05). */
+  boostReserva: 'Boost av ett inlägg',
+  boostNoIniciado: 'Boost har inte startat',
+  boostSinEntregas: 'Boost utan visningar · allt återbetalades',
+};

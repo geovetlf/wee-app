@@ -136,7 +136,7 @@ if (orden === 'exportar') {
   console.log(`  cambiaron desde su revisión .... ${e.cambiadas}`);
   console.log(`  sin revisar .................... ${e.sinRevisar}`);
 } else if (orden === 'comparar') {
-  for (const e of registro.filter((x) => x.antes !== x.despues)) console.log(`${e.fecha} · ${e.tipo} · ${e.revisor}\n  ${e.clave}\n    antes:   ${e.antes}\n    después: ${e.despues}${e.nota ? `\n    nota:    ${e.nota}` : ''}`);
+  for (const e of registro.filter((x) => x.antes !== x.despues)) console.log(`${e.fecha} · ${e.tipo} · ${e.revisor}\n  ${e.clave}\n    antes:   ${e.antes}\n    después: ${e.despues}${e.nota ? `\n    nota:    ${e.nota}` : ''}${e.obsoleta ? `\n    OBSOLETA (${e.obsoleta.fecha}): ${e.obsoleta.motivo}` : ''}`);
 } else {
   console.error(`orden desconocida: ${orden}`);
   process.exit(1);

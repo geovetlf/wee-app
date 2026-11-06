@@ -1,4 +1,5 @@
-import { partesDelLocale } from './resolver';
+import { partesDelLocale, idiomaDe } from './resolver';
+import { idiomaDelCatalogo } from './idiomas';
 
 /*
  * LOS FORMATOS REGIONALES. Todo sale de `Intl`, nada de `if (pais === 'US')`.
@@ -19,6 +20,11 @@ import { partesDelLocale } from './resolver';
  * Y TODO SE DEGRADA. `RelativeTimeFormat`, `ListFormat` y `DisplayNames` no
  * están en todos los motores; si falta alguno se devuelve algo razonable en vez
  * de reventar la pantalla.
+ *
+ * NUNCA EN OTRO IDIOMA (2026-11-03, al integrar el groenlandés): cuando `Intl` no tiene datos de un locale, no falla:
+ * usa EN SILENCIO el idioma del sistema (`Intl.ListFormat('kl')` daba «a, b y c» con la «y» española en esta máquina).
+ * Por eso las listas se construyen solo si `supportedLocalesOf` dice que ese locale está; si no, sin conjunción. Y
+ * los datos que sí existen pero no son de ese idioma se declaran en el catálogo (`intlNoFiable`) y no se usan.
  */
 
 const guardados = new Map<string, unknown>();
@@ -80,7 +86,13 @@ export const formatearFecha = (
     () => new Intl.DateTimeFormat(locale, opciones));
   const d = typeof fecha === 'number' ? new Date(fecha) : fecha;
   if (!f) return d.toISOString().slice(0, 10);
-  return f.format(d);
+  const escrita = f.format(d);
+  /*
+   * UN MOTOR SIN LOS NOMBRES DEL MES DE ESE IDIOMA ESCRIBE «M09 10». Chrome lo hace en irlandés y en jemer, aunque
+   * `resolvedOptions` diga que los tiene. Un mes en cifras se entiende; «M09» no: se vuelve a pedir en número.
+   */
+  if (opciones.month && /\bM\d{1,2}\b/.test(escrita)) return new Intl.DateTimeFormat(locale, { ...opciones, month: 'numeric' }).format(d);
+  return escrita;
 };
 
 export const formatearHora = (
@@ -140,6 +152,8 @@ export const formatearTiempoRelativo = (
   const cuando = typeof fecha === 'number' ? fecha : fecha.getTime();
   const referencia = typeof ahora === 'number' ? ahora : ahora.getTime();
   const diferencia = cuando - referencia;
+  /* Datos de CLDR que el catálogo declara no fiables para este idioma (groenlandés: marco danés): la fecha, sin mezcla. */
+  if (idiomaDelCatalogo(idiomaDe(locale))?.intlNoFiable?.includes('RelativeTimeFormat')) return formatearFecha(cuando, locale);
   const f = recordar(`r|${locale}|${JSON.stringify(opciones)}`,
     () => new Intl.RelativeTimeFormat(locale, { numeric: 'auto', ...opciones }));
   if (!f) return formatearFecha(cuando, locale);
@@ -158,8 +172,9 @@ export const formatearLista = (
   locale: string,
   tipo: 'conjunction' | 'disjunction' = 'conjunction',
 ): string => {
+  /* Sin datos para ese locale, Intl usaría el idioma del sistema: entonces, la lista sin conjunción (ninguna palabra ajena). */
   const f = recordar(`l|${locale}|${tipo}`,
-    () => new Intl.ListFormat(locale, { style: 'long', type: tipo }));
+    () => (Intl.ListFormat.supportedLocalesOf([locale]).length ? new Intl.ListFormat(locale, { style: 'long', type: tipo }) : null));
   return f ? f.format(cosas as string[]) : cosas.join(', ');
 };
 

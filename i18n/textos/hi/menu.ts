@@ -23,6 +23,7 @@ export const menu: typeof import('../es/menu').menu = {
   createWeeProfile: 'अपनी Weë प्रोफ़ाइल बनाएँ',
   credits: 'Credits',
   econtact: 'ËContact',
+  pages: 'WeëPages',
   wcontact: 'ËContact',
   communities: 'कम्यूनिटी',
   weels: 'Weëls',

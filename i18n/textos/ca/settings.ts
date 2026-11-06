@@ -1,0 +1,48 @@
+/*
+ * CATALÁN — Configuración.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * «Quant a Weë» para «Acerca de»; «Membre de N comunitats» para «N comunidades unidas».
+ */
+export const settings: typeof import('../es/settings').settings = {
+  title: 'Configuració',
+  sectionContent: 'Contingut',
+  sectionPrivacy: 'Privacitat',
+  sectionPreferences: 'Preferències',
+  sectionSupport: 'Ajuda',
+  myCommunities: 'Les meves comunitats',
+  communitiesJoined_one: 'Membre de {{contador}} comunitat',
+  communitiesJoined_other: 'Membre de {{contador}} comunitats',
+  privateReplies: 'Respostes privades',
+  privateRepliesHint: 'Permet que altres persones t\'enviïn missatges privats',
+  pushNotifications: 'Notificacions push',
+  language: 'Idioma',
+  languageSubtitle: 'Tria l\'idioma de Weë',
+  help: 'Ajuda',
+  privacyPolicy: 'Política de privacitat',
+  about: 'Quant a Weë',
+  signOut: 'Tanca la sessió',
+  signOutFailed: 'No hem pogut tancar la sessió',
+  engineAdmin: 'Weë AI Engine',
+  seedDefaults: 'Sembra els valors per defecte',
+  seedDefaultsConfirm: 'Escriu a Firestore els proveïdors, les cadenes i els ajustos per defecte que encara no existeixin. No esborra res.',
+  seed: 'Sembra',
+  sectionNotifications: 'Notificacions',
+  sectionInfo: 'Informació',
+  sectionAccount: 'Compte',
+  privacyPolicyHint: 'Què fem amb les teves dades, en paraules senzilles',
+  pushNotificationsHint: 'Rep notificacions de missatges nous i activitat',
+  aboutHint: 'Què és Weë i quina versió tens',
+  helpHint: 'Preguntes freqüents i contacte',
+  signOutHint: 'Surt del teu compte',
+  aboutBody: 'Weë (World Encode Entity) és la xarxa social de les persones que creen amb intel·ligència artificial.\n\nVersió 1.0.0 · © {{anio}} Weë. Tots els drets reservats.\n\nDades geogràfiques: GeoNames (geonames.org), CC BY 4.0.',
+  location: 'Ubicació',
+  locationLine: '{{estado}} La teva ubicació exacta no es mostra mai públicament.',
+  locationOff: 'Desactivada. Permet que Weë faci servir la teva ubicació aproximada per suggerir-te llocs propers i la teva zona quan afegeixes una ubicació a una publicació. La teva ubicació exacta no es mostra mai públicament.',
+  locationUnavailable: 'Aquest dispositiu no ens pot donar la teva ubicació.',
+  locationDisabled: 'La ubicació està desactivada a la configuració del dispositiu.',
+  locationPermissionDenied: 'Has denegat el permís al sistema. Toca aquí per canviar-ho a la configuració del dispositiu.',
+  locationPermissionNotDetermined: 'Weë et demanarà permís quan ho necessiti.',
+  locationApproximate: 'Weë sap en quina zona ets, no el punt exacte.',
+  locationPrecise: 'Weë pot fer servir la teva ubicació amb detall quan una funció ho necessiti.',
+};

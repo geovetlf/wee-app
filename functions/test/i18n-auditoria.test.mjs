@@ -217,7 +217,7 @@ console.log('\n── E · Lo que el servidor escribe él solo ──');
   const da = avisos.avisoPush('like', 'Mette', 'da-DK');
   const es = avisos.avisoPush('like', 'Mette', 'es');
   const sin = avisos.avisoPush('like', 'Mette', undefined);
-  const fr = avisos.avisoPush('like', 'Mette', 'fr-FR');
+  const fr = avisos.avisoPush('like', 'Mette', 'qu-PE');
   check('17) un push a una cuenta en danés se escribe en danés', da?.body === DA['avisos.likeCuerpo'].replace('{{nombre}}', 'Mette'), JSON.stringify(da));
   check('17) a una en español, en español; sin idioma guardado, también', es?.body === ES['avisos.likeCuerpo'].replace('{{nombre}}', 'Mette') && sin?.body === es?.body);
   check('17) y a un idioma que aún no tiene la sección, en inglés (nunca en español)', fr?.body === PLANO.get('en')['avisos.likeCuerpo'].replace('{{nombre}}', 'Mette'), JSON.stringify(fr));

@@ -1,0 +1,43 @@
+/*
+ * PERSA — Weë Writer, dentro de Weë Studio. El texto que escribe la persona
+ * NUNCA pasa por aquí: solo las herramientas que lo trabajan. Tipado contra el
+ * español.
+ */
+export const writer: typeof import('../es/writer').writer = {
+  askWee: 'از Weë بخواهید',
+  writeSomethingFirst: 'اول چیزی بنویسید',
+  writeSomethingHint: 'اول چیزی بنویسید تا Weë همراه شما روی آن کار کند.',
+  save: 'ذخیره',
+  saving: 'در حال ذخیره…',
+  deleteDocument: 'حذف سند',
+  improve: 'بهبود',
+  improveGoal: 'بهبود این متن',
+  shorten: 'کوتاه کردن',
+  shortenGoal: 'کوتاه کردن این متن بدون از دست دادن نکات مهم',
+  expand: 'بلندتر کردن',
+  expandGoal: 'گسترش بیشتر این متن',
+  fix: 'اصلاح',
+  fixGoal: 'اصلاح املا و سبک این متن',
+  tone: 'تغییر لحن',
+  toneGoal: 'بازنویسی این متن با لحنی دیگر',
+  summarize: 'خلاصه کردن',
+  summarizeGoal: 'خلاصه کردن این متن در نکات کلیدی',
+  translate: 'ترجمه',
+  translateGoal: 'ترجمه این متن',
+  words_one: '{{contador}} واژه',
+  words_other: '{{contador}} واژه',
+  savedInDocuments: ' · در اسناد من ذخیره شد',
+  couldNotSaveToDocuments: 'در اسناد من ذخیره نشد',
+  myDocuments: 'اسناد من',
+  newDocument: 'سند جدید',
+  noDocumentsYet: 'هنوز سندی ندارید. یکی بنویسید یا از Weë بخواهید برایتان شروع کند.',
+  editedWhen: 'ویرایش‌شده {{cuando}}',
+  titleLabel: 'عنوان سند',
+  bodyLabel: 'متن سند',
+  editorTitle: '✍️ ویرایشگر',
+  docTitlePlaceholder: 'عنوان سند',
+  bodyPlaceholder: 'اینجا بنویسید. هر وقت خواستید، از Weë بخواهید آن را بهتر کند، اصلاح کند یا ترجمه کند.',
+  resultHint: 'Weë روی آنچه نوشته‌اید کار می‌کند و نتیجه را همین‌جا، آماده برای ادامه ویرایش، به شما برمی‌گرداند.',
+  weeWorksWithYou: 'Weë همراه شما روی آن کار می‌کند.',
+  saved: '✓ ذخیره شد',
+};

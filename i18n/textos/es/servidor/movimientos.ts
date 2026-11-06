@@ -54,4 +54,8 @@ export const movimientos = {
   servicioAiTextPro: 'Texto largo de máxima calidad',
   servicioAiSearch: 'Búsqueda con IA',
   servicioAiBook: 'Creación de libro',
+  /* Boost (functions/src/boost, docs/BOOST.md): la reserva, la que no llegó a abrirse y la que no entregó nada. */
+  boostReserva: 'Boost de una publicación',
+  boostNoIniciado: 'Boost no iniciado',
+  boostSinEntregas: 'Boost sin entregas · se devolvió todo',
 };

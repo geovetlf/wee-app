@@ -15,6 +15,7 @@ export const chef: typeof import('../es/chef').chef = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: '아이디어나 재료를 적거나 사진을 올려 보세요',
+  cookPrompt: '무엇을 요리하고 싶은지 알려 주세요…',
   addLabel: '사진 추가',
   cameraLabel: '사진 찍기',
   galleryLabel: '갤러리에서 사진 선택',
@@ -99,4 +100,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: '전체 보기',
   projectsEmpty: '아직 Weë로 요리한 게 없어요.',
   projectsEmptyHint: '여기서 만든 건 저장되어 이 줄에서 다시 볼 수 있어요.',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'AI 셰프가',
+  heroAccent: '언제나 곁에',
+  chipRecipes: '레시피',
+  chipMenus: '메뉴',
+  chipHealthy: '건강식',
+  chipQuick: '간편식',
 };

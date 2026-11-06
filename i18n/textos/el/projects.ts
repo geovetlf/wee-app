@@ -1,0 +1,40 @@
+/*
+ * GRIEGO — Mis proyectos de Weë AI. Tipado contra el español.
+ * «Proyecto» = «έργο» (glosario).
+ */
+export const projects: typeof import('../es/projects').projects = {
+  introTitle: 'Οι δημιουργίες σου, οργανωμένες ανά έργο',
+  introText: 'Ένα έργο μπορεί να έχει λογότυπο, φωτογραφίες, διαφημίσεις, βίντεο, μουσική και έγγραφα. Αποθήκευσε κάθε αποτέλεσμα στο δικό του έργο από την «{{accion}}».',
+  sectionTitle: 'Έργα',
+  emojiLabel: 'Emoji {{emoji}}',
+  namePlaceholder: 'Παράδειγμα: Το εστιατόριό μου',
+  emptyTitle: 'Δεν έχεις ακόμη έργα',
+  emptyText: 'Δημιούργησε το πρώτο ή αποθήκευσε μια δημιουργία σε ένα έργο από το αποτέλεσμά της.',
+  emptyAction: 'Δημιουργία του πρώτου μου έργου',
+  open: 'Άνοιγμα',
+  fallbackTitle: 'Έργο',
+  notFound: 'Δεν βρήκαμε αυτό το έργο.',
+  saveName: 'Αποθήκευση ονόματος',
+  rename: 'Μετονομασία',
+  deleteProject: 'Διαγραφή έργου',
+  deleteConfirmWeb: 'Διαγραφή του έργου «{{nombre}}»; Οι δημιουργίες σου δεν διαγράφονται.',
+  deleteConfirm: 'Διαγραφή του «{{nombre}}»; Οι δημιουργίες σου δεν διαγράφονται.',
+  creations_one: '{{contador}} δημιουργία',
+  creations_other: '{{contador}} δημιουργίες',
+  creationsTitle: 'Δημιουργίες',
+  add: 'Προσθήκη',
+  noCreations: 'Δεν υπάρχουν ακόμη δημιουργίες εδώ. Δημιούργησε κάτι με οποιονδήποτε ειδικό και αποθήκευσέ το σε αυτό το έργο.',
+  whatIsMissing: 'Τι λείπει από αυτό το έργο;',
+  whatIsMissingNote: 'Ένα λογότυπο, φωτογραφίες, μια διαφήμιση, ένα βίντεο, μουσική ή ένα έγγραφο: οποιοσδήποτε ειδικός του Weë μπορεί να προσθέσει κάτι εδώ.',
+  createSomethingNew: 'Νέα δημιουργία',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '{{contador}} έργο',
+  count_other: '{{contador}} έργα',
+  updatedOn: 'Ενημερώθηκε {{fecha}}',
+  searchPlaceholder: 'Αναζήτηση έργων',
+  sortUpdated: 'Πρόσφατα ενημερωμένα',
+  sortName: 'Όνομα (Α–Ω)',
+  noMatches: 'Κανένα έργο δεν ταιριάζει με την αναζήτησή σου.',
+  emptySpaceTitle: 'Ο δημιουργικός σου χώρος ξεκινά εδώ',
+  moreActions: 'Περισσότερες ενέργειες',
+};

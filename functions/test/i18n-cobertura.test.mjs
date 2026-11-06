@@ -64,6 +64,15 @@ const EMOJI = /\p{Extended_Pictographic}/gu;
 const emojis = (s) => (String(s).match(EMOJI) || []).sort().join('');
 /* La referencia de una forma de plural que el español no tiene (_few, _many…) es su `_other`. */
 const referencia = (k) => (k in es ? es[k] : es[k.replace(/_(zero|two|few|many)$/, '_other')]);
+/* ¿Cubre la categoría `cat` del idioma un único entero entre 0 y 1000? (ar: zero={0}, one={1}, two={2}; fr: one={0,1}). */
+const cuentaExacta = (codigo, cat) => {
+  let pr;
+  try { pr = new Intl.PluralRules(codigo.split('-')[0]); } catch { return false; }
+  if (!pr.resolvedOptions().pluralCategories.includes(cat)) return false;
+  let n = 0;
+  for (let i = 0; i <= 1000 && n < 2; i++) if (pr.select(i) === cat) n++;
+  return n === 1;
+};
 /* Escrituras sin espacios entre palabras: allí un espacio de borde no significa nada. */
 const SIN_ESPACIOS = (codigo) => /^(ja|zh)/.test(codigo);
 
@@ -84,7 +93,19 @@ for (const [d, codigo] of idiomas) {
      * en japonés o chino `_one` ni se lee y debe ser igual a `_other`) TIENE que escribir `{{contador}}`.
      */
     const plural = k.endsWith('_one') ? es[k.replace(/_one$/, '_other')] : undefined;
-    const huecosBien = JSON.stringify(huecos(v)) === JSON.stringify(huecos(ref)) || (plural !== undefined && JSON.stringify(huecos(v)) === JSON.stringify(huecos(plural)));
+    /*
+     * Y al revés: una forma cuya categoría de plural, EN ESE IDIOMA, cubre UN SOLO número entero (el `zero`, el `one`
+     * y el `two` del árabe: «لا أصوات», «صوت واحد», «صوتان») puede omitir `{{contador}}`, porque la palabra ya dice
+     * la cifra. Lo decide `Intl.PluralRules`, no una lista de idiomas: en francés `one` cubre 0 y 1, en ruso 21 y 31,
+     * en japonés nada; en todos ellos el contador sigue siendo obligatorio.
+     */
+    const sinContador = (() => {
+      const cat = (k.match(/_(zero|one|two|few|many)$/) || [])[1];
+      if (!cat || !cuentaExacta(codigo, cat)) return false;
+      const sinEl = (h) => h.filter((x) => x !== 'contador');
+      return JSON.stringify(sinEl(huecos(v))) === JSON.stringify(sinEl(huecos(ref))) && !huecos(v).includes('contador');
+    })();
+    const huecosBien = JSON.stringify(huecos(v)) === JSON.stringify(huecos(ref)) || (plural !== undefined && JSON.stringify(huecos(v)) === JSON.stringify(huecos(plural))) || sinContador;
     if (!huecosBien) fallos.huecos.push(`${codigo} ${k}: {{${huecos(v).join(',')}}} ≠ {{${huecos(ref).join(',')}}}`);
     const raros = huecosRaros(v).filter((r) => !huecosRaros(ref).includes(r));
     if (raros.length) fallos.raros.push(`${codigo} ${k}: ${raros.join(' ')}`);
