@@ -105,3 +105,11 @@ ops/harness/.cache/
 # Salidas de la CI cuando se ejecuta en local (scripts/ci-local.mjs): el informe de la revisión determinista y los registros de políticas.
 /revision-determinista.md
 /politica-*.log
+
+# Medios de la demo (docs/WEE-DEMO.md): no se versionan
+demo-medios/
+
+# Registros locales de la cadena de pruebas (p. ej. cadena-lote1.log) y la configuración LAN de los emuladores
+# (firebase.lan.json): son de esta máquina. Antes solo los cubría el .git/info/exclude del repo común.
+/cadena-*.log
+firebase.lan.json
