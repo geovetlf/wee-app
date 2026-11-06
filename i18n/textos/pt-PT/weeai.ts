@@ -159,6 +159,8 @@ export const weeai: typeof import('../es/weeai').weeai = {
   projectsNote: 'Junta as tuas criações: logótipo, fotos, vídeos, música e documentos num só sítio.',
   errNotEnoughCredits: 'Não tens Credits suficientes para este trabalho. Obtém Credits e tenta de novo.',
   errRateLimited: 'Fizeste muitas criações seguidas. Espera um instante e tenta de novo.',
+  errChatEspera: 'Estás a ir depressa demais. Espera alguns segundos e tenta de novo. Não foi cobrado nada.',
+  errChatLimite: 'Atingiste o limite de conversa de hoje. Não foi cobrado nada. Tenta de novo amanhã.',
   errTimeout: 'Demorou demasiado e eu parei. Não te cobrei nada: tenta de novo.',
   errNotAvailable: 'Esta funcionalidade não está disponível atualmente.',
   errNotAvailableNow: 'Esta funcionalidade não está disponível neste momento. Tenta outra vez daqui a pouco.',

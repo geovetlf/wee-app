@@ -913,7 +913,11 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
       /* + Consolidación W0 (2026-11-06): las dos líneas sobre la misma base. credits.ts +10 −2 (Gran Motor C) y +9 −13 (P0) → 64/19;
        * index.ts +50 −21 (Línea B + Gran Motor P) y +93 −46 (p0) → 299/89 (la línea de imports del motor de vídeo, que cambiaban las
        * dos, cuenta una vez); generateAvatar.ts +3 −2 (Gran Motor P) y +20 (p0) → 155/17. */
-      '64\t19\tfunctions/src/creator/credits.ts|299\t89\tfunctions/src/creator/index.ts|155\t17\tfunctions/src/generateAvatar.ts'
+      /* + tope de la conversación gratuita (2026-10-14, +19 −1, antes 204/41): creatorChat reserva su turno ANTES de crear el trabajo y de llamar al modelo y anota el coste de cada llamada
+       * (functions/src/creator/chatLimite.ts); nada de creatorRun, del reclamo ni del cobro. Comportamiento exacto en chat-limites (C1–C17, D1–D3). */
+      /* + Consolidación W0 (2026-11-06): el tope de la conversación gratuita (6c13cbc5, +19 −1 en index.ts) encima de las dos
+       * líneas anteriores → index.ts 299/89 → 318/90; credits.ts y generateAvatar.ts no cambian (64/19 y 155/17). */
+      '64\t19\tfunctions/src/creator/credits.ts|318\t90\tfunctions/src/creator/index.ts|155\t17\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')).split(LEGACY_P_NUEVA).length === 2
     /* La rama legacy: la de antes salvo la devolución del demo (B4-03), el registro saneado (Gran Motor P) y el `normalizado` con el que se cotizó (P0 Seedance). */
     && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES)

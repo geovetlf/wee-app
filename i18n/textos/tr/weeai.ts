@@ -191,6 +191,8 @@ export const weeai: typeof import('../es/weeai').weeai = {
   projectsNote: 'Oluşturduklarını tek yerde topla: logolar, fotoğraflar, videolar, müzik ve belgeler.',
   errNotEnoughCredits: 'Bu iş için Credits bakiyen yetersiz. Credits al ve yeniden dene.',
   errRateLimited: 'Arka arkaya çok fazla içerik oluşturdun. Biraz bekleyip yeniden dene.',
+  errChatEspera: 'Çok hızlı gidiyorsun. Birkaç saniye bekleyip yeniden dene. Hiçbir ücret alınmadı.',
+  errChatLimite: 'Bugünkü sohbet sınırına ulaştın. Hiçbir ücret alınmadı. Yarın yeniden dene.',
   errTimeout: 'Çok uzun sürdü, durdurdum. Senden Credits almadım: yeniden dene.',
   errNotAvailable: 'Bu özellik şimdilik kullanılamıyor.',
   errNotAvailableNow: 'Bu özellik şu anda kullanılamıyor. Biraz sonra yeniden dene.',

@@ -163,6 +163,8 @@ export const weeai: typeof import('../es/weeai').weeai = {
   projectsNote: '로고, 사진, 비디오, 음악, 문서까지 만든 것을 한곳에 모아둬요.',
   errNotEnoughCredits: '이 작업을 하기에는 Credits 잔액이 부족해요. 충전한 뒤에 다시 시도해 주세요.',
   errRateLimited: '연달아 너무 많이 만들었어요. 잠시 기다렸다가 다시 시도해 주세요.',
+  errChatEspera: '너무 빨리 진행하고 있어요. 몇 초 기다렸다가 다시 시도해 주세요. 요금은 청구되지 않았어요.',
+  errChatLimite: '오늘의 대화 한도에 도달했어요. 요금은 청구되지 않았어요. 내일 다시 시도해 주세요.',
   errTimeout: '시간이 너무 오래 걸려서 중단했어요. Credits 차감은 없어요. 다시 시도해 주세요.',
   errNotAvailable: '이 기능은 현재 사용할 수 없어요.',
   errNotAvailableNow: '지금은 이 기능을 사용할 수 없어요. 잠시 후 다시 시도해 주세요.',

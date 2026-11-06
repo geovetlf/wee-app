@@ -759,13 +759,15 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   /* + reanclaje pre-commit (2026-10-07, autorizado por el dueño): core/backup.ts clasifica publicProfiles como DERIVED (se reconstruye desde users con el relleno). Ver F3. */
   const DE_LA_SEGURIDAD_DE_USERS = ['functions/src/core/backup.ts', 'functions/src/identity/perfilPublico.ts'];
   const DEL_GUEST_GATE = ['functions/src/identity/sesion.ts', 'functions/src/core/errors.ts', 'functions/src/creator/rutaPrevia.ts'];
+  /* El tope de la conversación gratuita (2026-10-14): `creatorChat` limita turnos por minuto y por día, conversaciones nuevas y consumo estimado; el módulo es nuevo y vive en creator/. */
+  const DEL_TOPE_DEL_CHAT = ['functions/src/creator/chatLimite.ts'];
   check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
     JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
       'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_MUSIC, ...DE_WEEPAGES, ...DE_COMUNIDADES, ...DE_BOOST, ...DE_LA_COMPRA_POR_IMPORTE, ...DE_LA_LINEA_B, ...DE_LA_F06, ...DE_GRAN_MOTOR_D, ...DE_GRAN_MOTOR_B, ...DE_GRAN_MOTOR_S2, ...DE_LA_CORRECCION_P0, ...DE_LA_EDAD_MINIMA, ...DEL_GUEST_GATE, ...DE_LA_SEGURIDAD_DE_USERS,
+      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_MUSIC, ...DE_WEEPAGES, ...DE_COMUNIDADES, ...DE_BOOST, ...DE_LA_COMPRA_POR_IMPORTE, ...DE_LA_LINEA_B, ...DE_LA_F06, ...DE_GRAN_MOTOR_D, ...DE_GRAN_MOTOR_B, ...DE_GRAN_MOTOR_S2, ...DE_LA_CORRECCION_P0, ...DE_LA_EDAD_MINIMA, ...DEL_GUEST_GATE, ...DE_LA_SEGURIDAD_DE_USERS, ...DEL_TOPE_DEL_CHAT,
     ].filter((f, i, a) => a.indexOf(f) === i).sort()),
     tocados.join(', '));
 
@@ -881,7 +883,10 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
       /* + Consolidación W0 (2026-11-06): las dos líneas sobre la misma base. credits.ts +10 −2 (Gran Motor C) y +9 −13 (P0) → 64/19;
        * index.ts +50 −21 (Línea B + Gran Motor P) y +93 −46 (p0) → 299/89 (la línea de imports del motor de vídeo, que cambiaban las
        * dos, cuenta una vez); generateAvatar.ts +3 −2 (Gran Motor P) y +20 (p0) → 155/17. */
-      '64\t19\tfunctions/src/creator/credits.ts|299\t89\tfunctions/src/creator/index.ts|155\t17\tfunctions/src/generateAvatar.ts'
+      /* + tope de la conversación gratuita (2026-10-14, +19 −1, antes 204/41): creatorChat reserva su turno ANTES de crear el trabajo y de llamar al modelo y anota el coste de cada llamada (functions/src/creator/chatLimite.ts, archivo nuevo); nada de creatorRun, del reclamo ni del cobro. Comportamiento exacto en chat-limites (C1–C17, D1–D3). */
+      /* + Consolidación W0 (2026-11-06): el tope de la conversación gratuita (6c13cbc5, +19 −1 en index.ts) encima de las dos
+       * líneas anteriores → index.ts 299/89 → 318/90; credits.ts y generateAvatar.ts no cambian (64/19 y 155/17). */
+      '64\t19\tfunctions/src/creator/credits.ts|318\t90\tfunctions/src/creator/index.ts|155\t17\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')).split(LEGACY_P_NUEVA).length === 2
     /* La rama legacy: la de antes salvo la devolución del demo (B4-03), el registro saneado (Gran Motor P) y el `normalizado` con el que se cotizó (P0 Seedance). */
     && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES)

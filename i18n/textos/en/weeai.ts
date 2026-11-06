@@ -144,6 +144,8 @@ export const weeai: typeof import('../es/weeai').weeai = {
   projectsNote: 'Group your creations: logo, photos, videos, music and documents in one place.',
   errNotEnoughCredits: 'You don’t have enough Credits for this job. Get Credits and try again.',
   errRateLimited: 'You’ve made a lot of creations in a row. Wait a moment and try again.',
+  errChatEspera: 'You’re going too fast. Wait a few seconds and try again. Nothing was charged.',
+  errChatLimite: 'You’ve reached today’s conversation limit. Nothing was charged. Try again tomorrow.',
   errTimeout: 'It took too long so I stopped it. You weren’t charged: try again.',
   errNotAvailable: 'This feature isn’t currently available.',
   errNotAvailableNow: 'This feature isn’t available at the moment. Try again in a little while.',
