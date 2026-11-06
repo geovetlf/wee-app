@@ -43,11 +43,11 @@ export const getCreditsBalance = onCall(OPTS, async (request) =>
   run(async () => {
     const userId = uidOf(request);
     /*
-     * Guest AI Gate: un invitado (Firebase Anonymous) NO recibe Credits. `getBalance` inicializa la cuenta y da la
-     * bienvenida la primera vez; para el invitado se LEE sin escribir (`readBalance`: 0 si nunca se inicializó, y
-     * el saldo histórico si ya lo tenía — que no puede gastar, porque toda callable de IA lo para antes).
-     * Si un día esa sesión se vincula a una credencial real (mismo uid), la primera lectura ya autenticada da la
-     * bienvenida una sola vez, como a cualquier cuenta: `welcome_<uid>` sigue sin existir.
+     * Guest AI Gate: un invitado (Firebase Anonymous) NO recibe Credits. `getBalance` inicializa la cuenta (sin
+     * bienvenida: WELCOME_CREDITS = 0); para el invitado se LEE sin escribir (`readBalance`: 0 si nunca se inicializó,
+     * y el saldo histórico si ya lo tenía — que no puede gastar, porque toda callable de IA lo para antes).
+     * Si un día esa sesión se vincula a una credencial real (mismo uid), la primera lectura ya autenticada inicializa la
+     * cuenta como cualquier otra y SIN bono: Weë no da Credits de bienvenida (decisión del dueño, 2026-11-04/06).
      */
     if (esInvitado(request.auth)) {
       const { initialized: _i, ...saldo } = await creditEngine.readBalance(userId);
