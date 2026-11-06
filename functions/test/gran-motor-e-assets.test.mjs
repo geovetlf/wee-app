@@ -333,8 +333,14 @@ console.log('\n── F · Limpieza: nada programado borra activos ──');
   const ts = recorrer(SRC).filter((f) => f.endsWith('.ts'));
   const programados = ts.filter((f) => /\bonSchedule\s*\(/.test(sinComentarios(fs.readFileSync(f, 'utf8'))));
   const nombres = programados.map((f) => path.relative(SRC, f).replace(/\\/g, '/')).sort();
-  check('F1) las únicas Functions programadas son la liquidación (si aparece otra, hay que revisar si toca activos)',
-    JSON.stringify(nombres) === JSON.stringify(['settlement/programado.ts']), nombres.join(','));
+  /*
+   * Consolidación W0 (2026-11-06): la App trae una segunda programada, `boostSweep` (boost/index.ts, docs/BOOST.md).
+   * REVISADA como pide F1: barre campañas de Boost y sus bloqueos y liquida o devuelve Credits por el Credit Engine; no lee
+   * ni escribe `assets` ni `ai-generations`, no borra documentos ni objetos del Storage (boost/index.ts, motor.ts y
+   * modelo.ts). F2 y F3 la siguen vigilando igual que a la liquidación.
+   */
+  check('F1) las únicas Functions programadas son la liquidación y el barrido de Boost, revisado (si aparece otra, hay que revisar si toca activos)',
+    JSON.stringify(nombres) === JSON.stringify(['boost/index.ts', 'settlement/programado.ts']), nombres.join(','));
   const tocanActivos = programados.filter((f) => /collection\('assets'\)|ai-generations|\.delete\(\)/.test(sinComentarios(fs.readFileSync(f, 'utf8'))));
   check('F2) y ninguna de las dos toca `assets`, `ai-generations` ni borra', tocanActivos.length === 0, tocanActivos.join(','));
   const borradoresFisicos = ts.filter((f) => /\.file\([^)]*\)\.delete\(|\.deleteFiles\(/.test(sinComentarios(fs.readFileSync(f, 'utf8')))).map((f) => path.relative(SRC, f).replace(/\\/g, '/')).sort();
