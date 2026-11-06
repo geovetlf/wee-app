@@ -53,7 +53,9 @@ export const PROVEEDORES_MUSICALES: readonly FichaDeProveedorMusical[] = [
     id: 'minimax',
     nombre: 'MiniMax',
     producto: 'MiniMax Music Generation API (modelos music-3.0, music-2.6, music-cover)',
-    endpoint: 'POST https://api.minimax.io/v1/music_generation',
+    /* Sin dirección (G3, 2026-11-06): la URL de un proveedor de IA solo vive en su adaptador de
+       functions/src/engine/providers, y Weë Music no se conecta todavía. */
+    endpoint: null,
     autenticacion: 'Bearer <API key> (Account Management > API Keys)',
     claveEnEntorno: 'MINIMAX_API_KEY (ya existe para voz; la de música sería la misma cuenta, sin uso hoy)',
     fuentes: ['https://platform.minimax.io/docs/api-reference/music-generation'],
