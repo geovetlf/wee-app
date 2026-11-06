@@ -357,15 +357,30 @@ const perfil = async (uid, saldo = 50000) => {
   base.docs.set(`users/doc_${uid}/private/account`, { birthDate: '1990-01-01' });
   await creditEngine.ensureAccount(uid);
   base.docs.get(`users/doc_${uid}`).creditsBalance = saldo;
+  /* Consolidación W0 (2026-11-06): tras F-06 (gran-motor) el saldo que manda vive en `creditAccounts/{uid}` y el perfil
+   * solo lo espeja; un saldo de prueba que solo toca el perfil no se aplicaría (lo mismo que reconcilió a786c4f6 en
+   * `darDeAlta`). Y la cuenta nueva empieza en 0 (sin bienvenida): el saldo de la prueba se fija aquí, a propósito. */
+  const privado = base.docs.get(`creditAccounts/${uid}`);
+  if (privado) privado.creditsBalance = saldo;
 };
-const saldoDe = (uid) => base.docs.get(`users/doc_${uid}`).creditsBalance;
+/* F-06: el saldo, y solo si sus dos sitios coinciden (privado y espejo), como en video-asincrono; si no, NaN y la aserción falla. */
+const saldoDe = (uid) => {
+  const espejo = base.docs.get(`users/doc_${uid}`).creditsBalance;
+  const privado = base.docs.get(`creditAccounts/${uid}`)?.creditsBalance;
+  return privado === undefined || privado === espejo ? espejo : NaN;
+};
 const mundo = async (config = {}) => {
   base = new Base();
   invalidateConfig();
   olvidarLaPuerta();
   posts.length = 0;
   modelArk = modelArkHostil;
-  const global = { pricingMode: 'real', ...(config['aiSettings/global'] || {}) };
+  /*
+   * Consolidación W0 (2026-11-06): con la Línea B (gran-motor X2) el vídeo nace APAGADO; esta suite prueba los
+   * parámetros de Seedance con el vídeo YA ENCENDIDO por el dueño (`videoHabilitado: true`), como f1d-generacion. El
+   * interruptor se prueba aparte (linea-b-finanzas).
+   */
+  const global = { pricingMode: 'real', videoHabilitado: true, ...(config['aiSettings/global'] || {}) };
   for (const [ruta, datos] of Object.entries({ ...config, 'aiSettings/global': global })) base.docs.set(ruta, datos);
   await perfil('ana');
 };
@@ -444,9 +459,13 @@ let demoCobra = null;
    * HALLAZGO P1 SEPARADO (no se corrige aquí, por decisión del encargo): si esto sale «cobra», el camino demo cobra
    * los Credits de un vídeo real. La comprobación FIJA el comportamiento actual para que nadie lo cambie sin verlo,
    * y el informe lo documenta. Cuando se corrija, esta línea falla y hay que darle la vuelta.
+   *
+   * Consolidación W0 (2026-11-06): YA ESTÁ CORREGIDO por la Línea B de gran-motor (B4-03, 532e549c: un vídeo de muestra
+   * se entrega y su reserva se devuelve entera). Se le da la vuelta como pedía este comentario: ahora se exige que el
+   * vídeo de muestra se entregue y NO cobre.
    */
-  check(`F) FIJADO — VULNERABILIDAD CONOCIDA P1-DEMO: ${demoCobra ? `el modo demo COBRA ${cobrado} Credits por un vídeo de muestra` : 'el modo demo no cobra'}`,
-    demoCobra === true, r.ok ? `demo=${r.valor.demo} · ${cobrado} Credits` : String(r.error?.code ?? r.error?.message));
+  check(`F) P1-DEMO CORREGIDO (B4-03): ${demoCobra ? `el modo demo COBRA ${cobrado} Credits por un vídeo de muestra` : 'el vídeo de muestra se entrega y no cobra'}`,
+    r.ok && r.valor.demo === true && cobrado === 0 && demoCobra === false, r.ok ? `demo=${r.valor.demo} · ${cobrado} Credits` : String(r.error?.code ?? r.error?.message));
 }
 
 /* ═══ G · LAS FRONTERAS ═══════════════════════════════════════════════════ */

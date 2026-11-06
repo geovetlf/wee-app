@@ -62,6 +62,13 @@ const { politicaPorReglas, leerReglas } = lib('runtime/politica.js');
 
 /* El vídeo encendido, como en runtime-paridad: se mide el camino cuando SÍ se puede generar. */
 const AJUSTES = { ...AJUSTES_DE_FABRICA, videoHabilitado: true };
+/*
+ * Consolidación W0 (2026-11-06): con p0-edad (Fase 1, jurisdicción) Seedance tiene reglas territoriales y sin país falla
+ * cerrado. Esta suite mide la EQUIVALENCIA de elección Router del Core ↔ motor de hoy, no la jurisdicción: se decide como
+ * una cuenta de un país permitido (ES), igual que runtime-paridad en p0. La jurisdicción la prueban
+ * `elegibilidad-jurisdiccion` y `jurisdiccion-seedance`.
+ */
+const JURISDICCION_PERMITIDA = Object.freeze(['ES']);
 const CAPACIDADES = Object.keys(DEFAULT_ROUTING);
 const trace = { traceId: 'brain_equiv_0001', requestId: 'brain_equiv_0001', userId: 'user-0001', appId: 'wee' };
 const libroNulo = new Proxy({}, { get: () => async () => 'gen_equiv' });
@@ -90,7 +97,7 @@ const medir = async (sc = {}) => {
     const cadena = {
       async cadena({ peticion, input, preferencias }) {
         const d = await vivo.route({
-          capability: peticion.capability, input: { ...input }, userId: peticion.trace.userId,
+          capability: peticion.capability, input: { ...input }, userId: peticion.trace.userId, jurisdicciones: JURISDICCION_PERMITIDA,
           prefs: {
             ...(peticion.hints?.quality ? { quality: peticion.hints.quality } : {}),
             ...(peticion.hints?.durationSec !== undefined ? { durationSec: peticion.hints.durationSec } : {}),
@@ -107,7 +114,7 @@ const medir = async (sc = {}) => {
     for (const capability of CAPACIDADES) {
       const prefs = sc.prefs ?? {};
       const input = sc.input ?? {};
-      const d = await vivo.route({ capability, input, ...(sc.goal ? { goal: sc.goal } : {}), userId: 'user-0001', prefs });
+      const d = await vivo.route({ capability, input, ...(sc.goal ? { goal: sc.goal } : {}), userId: 'user-0001', prefs, jurisdicciones: JURISDICCION_PERMITIDA });
       const L = d.candidates.map(id);
       const peticion = { capability, trace, ...(sc.hints ? { hints: sc.hints } : {}), ...(sc.constraints ? { constraints: sc.constraints } : {}) };
       const preferencias = {
