@@ -208,7 +208,7 @@ console.log('\n── C · La app: cada motivo, su clave, en todos los idiomas l
     mundo('ahora_no').reintentable === true && mundo('ahora_no').tipo === 'reintentable'
     && ['con_estas_opciones', 'no_disponible'].every((r) => mundo(r).tipo === 'no_disponible' && mundo(r).reintentable === false && mundo(r).clave === ND.CLAVE_DE_NO_DISPONIBLE[r])
     /* Un motivo regional de una versión vieja del servidor se dice como el genérico. */
-    && ['en_tu_region', 'falta_tu_pais'].every((r) => mundo(r).tipo === 'no_disponible' && mundo(r).clave === 'weeai.errNotAvailable'));
+    && ['en_tu_region', 'falta_tu_pais'].every((r) => mundo(r).tipo === 'no_disponible' && mundo(r).reintentable === false && mundo(r).clave === 'weeai.errNotAvailable'));
 }
 check('C7) esta suite está en la cadena de `npm test`', /no-disponible\.test\.mjs/.test(leer('functions/package.json')));
 
