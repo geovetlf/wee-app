@@ -138,7 +138,7 @@ no puede deshacer el `lastMessage` sin leer contenido, y sería actuar sobre men
   la CI a propósito (no es `*.emulator.mjs`): contra las reglas de hoy fallaría. Se lanzan con
   `node ops/propuestas/weetalk-bloqueo/correr-reglas.mjs`: proyecto `demo-wee-bloqueo`, Firestore 38080 (websocket
   39150), Auth 39099, Functions 35001, Storage 39199, hub 34400, logging 34500, sin interfaz; se niega con menos de
-  1,5 GB libres. **No se han ejecutado**: la máquina tenía 0,75–0,97 GB libres.
+  1,5 GB libres. **No se han ejecutado**: la máquina tenía entre 0,75 y 1,24 GB libres.
 
 ## 7 · Contratos
 
@@ -179,8 +179,8 @@ Cliente: `services/weetalkBloqueosService.ts` (`bloquear`, `desbloquear`, `lista
    del push de mensajes con el bloqueo (función viva del grupo g3) — tras validar W0.
 3. **Interfaz** («Bloquear» en la conversación y el perfil, «Bloqueados» en Configuración, aviso a quien bloqueó en la
    conversación): NO se ha hecho. La regla 8 de i18n exige claves en los 42 diccionarios con traducción real y la huella
-   `i18n/huella.json`, y la puerta visual pide inspección a 320/360/390/1024/1440 en LTR y RTL; con 0,75–0,97 GB libres no
-   se puede levantar Metro para verla. Queda pendiente entera.
+   `i18n/huella.json`, y la puerta visual pide inspección a 320/360/390/1024/1440 en LTR y RTL; con menos de 1,5 GB libres
+   no se puede levantar Metro para verla. Queda pendiente entera.
 4. **Decisión de producto**: ¿proteger también la otra cara de quien bloquea (más protección, pero B podría descubrir esa
    cara)? Hoy no, por la decisión 3.
 5. **Decisión de producto**: ¿el bloqueo de WeeTalk debe cortar también las solicitudes de ËContact y los avisos
@@ -196,6 +196,8 @@ Cliente: `services/weetalkBloqueosService.ts` (`bloquear`, `desbloquear`, `lista
   cableado, propuesta de reglas (compone, no aplicada) y sabotaje.
 - Suites existentes tocadas o afectadas, ejecutadas una a una: `runtime-map` (ahora 54 Functions) y
   `productions-runtime` actualizadas; todas en verde (ver el informe).
-- Comprobación de tipos acotada del módulo nuevo (`tsc --noEmit` sobre `weetalkBloqueos.ts`, 499 archivos, 290 MB): 0
-  errores. El `tsc` completo de `functions` y de la app NO se ha ejecutado (memoria).
+- Comprobación de tipos acotada del módulo nuevo (`tsc --noEmit` sobre `weetalkBloqueos.ts`, 499 archivos, 290 MB) y de
+  un extracto del disparador del push con sus tipos reales: 0 errores. El `tsc` completo de `functions` y de la app NO
+  se ha ejecutado (memoria); las suites corrieron sobre un `functions/lib` transpilado sin comprobar tipos
+  (`ts.transpileModule`), que no se versiona y que `npm run build` regenera.
 - Pruebas de reglas en el emulador: preparadas (35), **no ejecutadas**.
