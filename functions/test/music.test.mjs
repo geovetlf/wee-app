@@ -83,8 +83,17 @@ const ANCLA_DE_INTEGRACION = 'a77ea340';
  * fuera (H4 es su control). La procedencia de cada archivo está en el informe B2-G de _correcciones-2026-11-06.
  */
 const BASE_DE_LA_CONSOLIDACION = 'eb588b15';
-const BASE_DE_LAS_RAMAS_DE_SERVIDOR = '5efbc0a7';
-const RAMAS_DE_LA_LINEA_DE_SERVIDOR = Object.freeze({ 'gran-motor/cierre': 'a1ec25eb', 'integracion/p0-edad-fase1': 'bf790c98', 'topes de creatorChat': '6c13cbc5' });
+/*
+ * La procedencia de la línea de servidor, SOLO con commits de la historia publicada de esta rama, los que tiene cualquier
+ * clon y la CI. gran-motor/cierre (a1ec25eb) y p0 (bf790c98) entraron fusionados (b5e49279, 3e4a4038) y se comparan con su
+ * base 5efbc0a7. Los topes del chat (6c13cbc5) entraron APLICADOS como b9170b7e, sobre 3e4a4038, y se toma su propio
+ * cambio. 6c13cbc5 no está en la historia publicada: usarlo funcionaba en un clon local y rompía la CI (2026-11-07).
+ */
+const PROCEDENCIA_DE_LA_LINEA_DE_SERVIDOR = Object.freeze({
+  'gran-motor/cierre (a1ec25eb)': ['5efbc0a7', 'a1ec25eb'],
+  'integracion/p0-edad-fase1 (bf790c98)': ['5efbc0a7', 'bf790c98'],
+  'topes de creatorChat (6c13cbc5, aplicado como b9170b7e)': ['3e4a4038', 'b9170b7e'],
+});
 const { execSync: ejecutar } = await import('node:child_process');
 /** Los archivos que cambian en un rango de git (`<desde> <hasta>`) o desde un commit hasta el árbol de trabajo (`<desde>`). */
 const archivosCambiados = (rango, rutas = []) =>
@@ -337,12 +346,15 @@ check('H2 ni el servidor fuera de functions/src/music, ni el cliente de Weë Bra
   !HISTORICOS.some(prohibidoHastaLaConsolidacion) && !POSTERIORES.some(prohibidoSiempre),
   [...HISTORICOS.filter(prohibidoHastaLaConsolidacion), ...POSTERIORES.filter(prohibidoSiempre)].join(','));
 /* H3 · la excepción de la consolidación es HISTÓRICA y con procedencia comprobada con git, no una lista que se pueda engordar. */
-const porLasRamasDeServidor = new Set(Object.values(RAMAS_DE_LA_LINEA_DE_SERVIDOR).flatMap((r) => archivosCambiados(`${BASE_DE_LAS_RAMAS_DE_SERVIDOR} ${r}`)));
+/* Cada commit de la procedencia (y el ancla y la base) tiene que estar en la historia de esta rama: si no, H3 cae con un ✘ claro, no con una excepción. */
+const enLaHistoria = (c) => { try { ejecutar(`git merge-base --is-ancestor ${c} HEAD`, { cwd: RAIZ, stdio: 'ignore' }); return true; } catch { return false; } };
+const fueraDeLaHistoria = [ANCLA_DE_INTEGRACION, BASE_DE_LA_CONSOLIDACION, ...Object.values(PROCEDENCIA_DE_LA_LINEA_DE_SERVIDOR).flat()].filter((c) => !enLaHistoria(c));
+const porLasRamasDeServidor = new Set(fueraDeLaHistoria.length ? [] : Object.values(PROCEDENCIA_DE_LA_LINEA_DE_SERVIDOR).flatMap(([desde, hasta]) => archivosCambiados(`${desde} ${hasta}`)));
 const sinProcedencia = DE_LA_LINEA_DE_SERVIDOR.filter((f) => !porLasRamasDeServidor.has(f));
 const noCambiaronHastaLaConsolidacion = DE_LA_LINEA_DE_SERVIDOR.filter((f) => !HISTORICOS.includes(f));
-check('H3 la excepción de la consolidación es HISTÓRICA: sus 43 archivos, sin repetir, los cambió una de las tres ramas de servidor respecto a su base y cambiaron hasta eb588b15; después no cuenta',
-  DE_LA_LINEA_DE_SERVIDOR.length === 43 && new Set(DE_LA_LINEA_DE_SERVIDOR).size === 43 && !sinProcedencia.length && !noCambiaronHastaLaConsolidacion.length,
-  [...sinProcedencia.map((f) => `sin procedencia: ${f}`), ...noCambiaronHastaLaConsolidacion.map((f) => `no cambió hasta eb588b15: ${f}`)].join(' | '));
+check('H3 la excepción de la consolidación es HISTÓRICA: sus 43 archivos, sin repetir, los cambió una de las tres ramas de servidor (comprobado con commits de la historia publicada) y cambiaron hasta eb588b15; después no cuenta',
+  !fueraDeLaHistoria.length && DE_LA_LINEA_DE_SERVIDOR.length === 43 && new Set(DE_LA_LINEA_DE_SERVIDOR).size === 43 && !sinProcedencia.length && !noCambiaronHastaLaConsolidacion.length,
+  [...fueraDeLaHistoria.map((c) => `fuera de la historia: ${c}`), ...sinProcedencia.map((f) => `sin procedencia: ${f}`), ...noCambiaronHastaLaConsolidacion.map((f) => `no cambió hasta eb588b15: ${f}`)].join(' | '));
 check('H4 CONTROL: un cambio posterior a eb588b15 en uno de esos 43 archivos (engine/router.ts, credits/creditEngine.ts, creator/brain.ts) cae en H2; el de secrets.ts (B2) no, y Music sigue libre en su carpeta',
   ['functions/src/engine/router.ts', 'functions/src/credits/creditEngine.ts', 'functions/src/creator/brain.ts'].every(prohibidoSiempre)
   && ['functions/src/engine/router.ts', 'functions/src/credits/creditEngine.ts', 'functions/src/creator/brain.ts'].every((f) => !prohibidoHastaLaConsolidacion(f))
