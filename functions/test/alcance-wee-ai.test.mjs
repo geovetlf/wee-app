@@ -49,11 +49,17 @@ check('A8 las listas están congeladas', Object.isFrozen(A.WEE_AI) && Object.isF
 /*
  * Cada entrada de `functions/src` (directorio o archivo suelto) tiene su clase DECIDIDA aquí. «OTRO» es una decisión, no un
  * olvido: son identidad, moderación, pagos, lo social, lo público y las utilidades comunes, que no generan con la IA.
+ *
+ * Decisión del dueño (2026-11-07, B2-G): `music` es WEE_AI —Weë Music es una de las experiencias de Weë AI, aunque su
+ * servidor siga dormido (contrato, matriz y adaptadores preparados, sin proveedor conectado ni generación habilitada)—, y
+ * `boost` es OTRO: promociona publicaciones en el Inicio, cobra por el Credit Engine y no genera con la IA. Clasificar
+ * Music como WEE_AI NO autoriza conectar proveedores ni habilitar generaciones: todo cambio en functions/src/music sale
+ * «fuera de alcance» mientras dure una fase con Weë AI cerrada.
  */
 const DECIDIDOS = {
-  WEE_AI: ['creator', 'engine', 'gateway', 'runtime', 'planner', 'router', 'registry', 'evals', 'settlement', 'brain', 'orchestrator', 'workflow', 'skills', 'generateAvatar.ts', 'vertexAI.ts', 'secrets.ts'],
+  WEE_AI: ['creator', 'engine', 'gateway', 'runtime', 'planner', 'router', 'registry', 'evals', 'settlement', 'brain', 'orchestrator', 'workflow', 'skills', 'music', 'generateAvatar.ts', 'vertexAI.ts', 'secrets.ts'],
   COMPARTIDO: ['core', 'credits', 'financial', 'job', 'content', 'media', 'filmmaker', 'productions', 'shots', 'elements', 'index.ts'],
-  OTRO: ['identity', 'moderation', 'payments', 'public', 'social', 'shared', 'opciones.ts'],
+  OTRO: ['identity', 'moderation', 'payments', 'public', 'social', 'shared', 'boost', 'opciones.ts'],
 };
 const todos = fs.readdirSync(path.join(RAIZ, 'functions/src'));
 const sinDecidir = todos.filter((e) => !Object.values(DECIDIDOS).flat().includes(e));

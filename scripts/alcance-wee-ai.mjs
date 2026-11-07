@@ -24,8 +24,9 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const WEE_AI = Object.freeze([
-  /* El servidor de Weë AI. */
-  /^functions\/src\/(creator|engine|gateway|runtime|planner|router|registry|evals|settlement|brain|orchestrator|workflow|skills)\//,
+  /* El servidor de Weë AI. `music`: Weë Music es una experiencia de Weë AI (decisión del dueño, 2026-11-07); su servidor
+     sigue dormido y esta clase no autoriza conectar proveedores ni habilitar generaciones. */
+  /^functions\/src\/(creator|engine|gateway|runtime|planner|router|registry|evals|settlement|brain|orchestrator|workflow|skills|music)\//,
   /* El avatar llama a su proveedor fuera del motor; secrets.ts declara las claves de los proveedores de IA. */
   /^functions\/src\/(generateAvatar|vertexAI|secrets)\.ts$/,
   /* Su interfaz: las pantallas, los componentes, los servicios, los hooks y las constantes de las experiencias. */
