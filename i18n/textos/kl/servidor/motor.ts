@@ -13,7 +13,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Qinnutinni arlaat amigaataavoq. Misissoruk misileqqigullu.',
   unauthorized: 'Weë atorlugu pilersitsiniaruit iserit.',
-  accountRequired: 'Weë AI atorlugu imarisanik pilersitsiniaruit iserit imaluunniit konto pilersiguk.',
+  accountRequired: 'Weë AI atorlugu imarisassanik pilersitsiniaruit iserit imaluunniit kontu pilersiguk.',
   providerError: 'Maanna AI-p pilersitat naammassisinnaanngilaa. Akiliisinneqanngilatit: kinguninngua misileqqiguk.',
   generationFailed: 'Pilersitat naammassineqarnera iluatsinngilaq. Akiliisinneqanngilatit: misileqqiguk.',
   timeout: 'Sivisuallaarmat unitsippara. Akiliisinneqanngilatit: misileqqiguk.',

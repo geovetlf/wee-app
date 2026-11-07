@@ -16,7 +16,7 @@ export const onboarding: typeof import('../es/onboarding').onboarding = {
   yourNameHint: 'Ateq una profilinni tamanut takuneqarsinnaasumi takutinneqassaaq.',
   yourNamePlaceholder: 'Atit tamakkiisoq',
   birthDate: 'Inunngorfik',
-  birthDateHint: 'Weë atorniarukku minnerpaamik {{edad}}-inik ukioqassaatit.',
+  birthDateHint: 'Weë atorniarukku ukioqassaatit minnerpaamik: {{edad}}.',
   gender: 'Suiaassuseq',
   genderMale: 'Angut',
   genderFemale: 'Arnaq',
