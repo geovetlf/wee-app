@@ -83,10 +83,16 @@ for (let ronda = 0; ronda < 6; ronda++) {
   check(`C${ronda} todo cuadra`, await cuadra(u));
 }
 {
-  const u = await persona('C2', 240); const id = `job_c2_${marca}`; await gasta(u, id, 40);
+  /*
+   * Bloque B2 (2026-11-06, CI del PR #40): estas dos cuentas se llamaban 'C2' y 'C3', el MISMO uid que las rondas 2 y 3 del
+   * bucle de arriba (`gmc${nombre}${marca}`), y su `regalo_${uid}` ya estaba gastado. Heredaban el saldo de la carrera de esa
+   * ronda: si ganaba «completar», partían de 228 y no de 240, y C2/C3 fallaban o pasaban según quién ganara (la CI vio caer
+   * C3). Cada escenario arranca ahora con su cuenta nueva de 240, como dice la suite; lo que se mide no cambia.
+   */
+  const u = await persona('Cr2', 240); const id = `job_c2_${marca}`; await gasta(u, id, 40);
   const r = await Promise.all([1, 2, 3, 4, 5].map(() => motor.refundCredits({ userId: u, requestId: id, reason: 'x' })));
   check('C2 cinco reembolsos simultáneos devuelven una sola vez', r.filter((x) => !x.duplicate).length === 1 && (await saldoDe(u)) === 240 && await cuadra(u));
-  const u2 = await persona('C3', 240); const id2 = `job_c3_${marca}`; await gasta(u2, id2, 40);
+  const u2 = await persona('Cr3', 240); const id2 = `job_c3_${marca}`; await gasta(u2, id2, 40);
   const c = await Promise.all([1, 2, 3, 4].map(() => motor.completeCredits({ userId: u2, requestId: id2, finalAmount: 25 })));
   check('C3 cuatro cierres simultáneos con ajuste devuelven la diferencia una sola vez', c.filter((x) => x.refunded === 15).length === 1 && (await saldoDe(u2)) === 215 && await cuadra(u2));
 }
