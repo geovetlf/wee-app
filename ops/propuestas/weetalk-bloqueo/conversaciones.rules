@@ -8,11 +8,13 @@
 
       // ── BLOQUEO DE CONTACTOS (docs/WEETALK-BLOQUEO.md) ────────────────────
       // `weetalkBloqueosPorPar/{de}~{para}` existe cuando la cara `de` NO
-      // puede escribir a la cara `para`. Lo escriben solo las callables
+      // puede contactar con la cara `para`. Lo escriben solo las callables
       // `blockWeeTalkContact` y `unblockWeeTalkContact`
       // (functions/src/social/weetalkBloqueos.ts), desde la MISMA regla pura
       // que decide el aviso push; ningún cliente lo lee ni lo escribe (la
-      // colección no tiene regla). Aquí solo se pregunta si existe: no se lee
+      // colección no tiene regla). El bloqueo es de CUENTA y en los dos
+      // sentidos: el índice ya trae los ocho pares entre las dos cuentas, así
+      // que aquí basta con preguntar si existe el de estas dos caras. No se lee
       // ningún mensaje ni se deduce de quién es ninguna cara.
       function bloqueado(de, para) {
         return exists(/databases/$(database)/documents/weetalkBloqueosPorPar/$(de + '~' + para));
@@ -36,8 +38,8 @@
 
       // Una conversación es entre DOS identidades, una de ellas mía, y su ficha
       // de participantes habla exactamente de esas dos. Es lo que la app crea.
-      // Y no se abre con una cara a la que no puedo escribir: ni con quien me
-      // bloqueó (desde esa cara), ni con la cara que yo bloqueé.
+      // Y no se abre con ninguna cara de una cuenta con la que hay un bloqueo,
+      // lo pusiera quien lo pusiera y desde la cara que fuera.
       allow create: if isAuthenticated() &&
         request.resource.data.keys().hasOnly(['participants', 'participantsData', 'createdAt', 'updatedAt']) &&
         request.resource.data.participants is list &&
@@ -73,10 +75,11 @@
         return request.resource.data.get('bubbleColors', {}).diff(resource.data.get('bubbleColors', {}))
           .affectedKeys().hasOnly(misIdentidadesDeChat());
       }
-      // Con un bloqueo entre las dos caras, la conversación se queda como está
+      // Con un bloqueo entre las dos cuentas, la conversación se queda como está
       // para las dos: solo se entra y se sale (presencia propia), se marca como
-      // leído y se vacía el modo efímero. Nada que firme un mensaje nuevo ni que
-      // la otra cara vea cambiar (tema, fondo, modo efímero, colores).
+      // leído (la app solo toca `lastMessage.read`) y se vacía el modo efímero.
+      // Nada que firme un mensaje nuevo ni que la otra cara vea cambiar (tema,
+      // fondo, modo efímero, colores).
       function cambioPermitidoConBloqueo() {
         return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeInChat', 'lastMessage']) &&
           (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastMessage']) ||
@@ -116,9 +119,9 @@
 
         allow read: if isAuthenticated() && participoEnElChat();
 
-        // Y el remitente no escribe a la otra cara si le está prohibido: ninguna
-        // cara de quien fue bloqueado escribe a la cara que lo bloqueó, y quien
-        // bloqueó no escribe a la cara que bloqueó hasta que la desbloquee.
+        // Y el remitente no escribe a la otra cara si le está prohibido: con un
+        // bloqueo entre las dos cuentas, ninguna cara de una escribe a ninguna
+        // de la otra, en ningún sentido, hasta que se desbloquee.
         allow create: if isAuthenticated() && remitenteLegitimo() &&
           request.resource.data.get('conversationId', conversationId) == conversationId &&
           !bloqueado(request.resource.data.senderId, laOtraEn(participantesDelChat(), request.resource.data.senderId));

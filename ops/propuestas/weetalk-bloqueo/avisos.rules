@@ -1,0 +1,96 @@
+    match /notifications/{notificationId} {
+      // Solo el destinatario puede leer sus notificaciones (real, HIDI o BIZ)
+      allow read: if isAuthenticated() &&
+        (resource.data.recipientId == request.auth.uid ||
+         resource.data.recipientId == ("hidi_" + request.auth.uid));
+
+      // El remitente tiene que ser QUIEN ESCRIBE, no quien diga el documento.
+      //
+      // Decía `if isAuthenticated()` a secas, sin mirar `senderId`. Y una
+      // notificación no se queda en la base de datos: dispara un push de verdad
+      // (`functions/src/index.ts`), cuyo título sale de `senderName` tal cual
+      // llega. Es decir: cualquiera con sesión podía hacerle llegar a cualquier
+      // otra persona un aviso firmado por quien quisiera.
+      //
+      // Las dos caras valen, como en posts y comentarios: se avisa desde la
+      // identidad con la que se actuó. Lo que no vale es firmar con una ajena.
+      //
+      // Y UN AVISO TIENE LA FORMA DE LOS QUE MANDA LA APP, Y NINGUNA OTRA.
+      // Firmarlo con la cara propia no bastaba: cualquier sesión podía escribir
+      // avisos de cualquier tipo, de cualquier tamaño y con cualquier campo para
+      // cualquier `recipientId`, y cada uno es un push de verdad. Ahora:
+      //   · no se avisa a sí misma, ni a su otra cara (Real ↔ Weë);
+      //   · el tipo es uno de los que crea la app hoy (`notificationService`,
+      //     desde `useLikes`, `useComentarios` y `econtactService`). Los
+      //     históricos (`follow`, `mention`, `repost`, `reply`,
+      //     `community_post`) se siguen LEYENDO, pero ningún cliente los crea;
+      //   · solo los campos que escribe la app, con textos acotados (la app ya
+      //     corta las vistas previas a 100 caracteres), sin leer y con su hora
+      //     (`Timestamp.now()` del aparato: se admite un margen de una hora por
+      //     relojes desajustados).
+      // El nombre del push no sale de `senderName` (lo resuelve el servidor
+      // desde el perfil de `senderId`) y el cupo por remitente es del servidor.
+      function tiposDeAvisoQueCreaLaApp() {
+        return ['like', 'comment', 'econtact_request', 'econtact_accepted'];
+      }
+      function camposDeAvisoDeLaApp() {
+        return ['type', 'recipientId', 'senderId', 'senderName', 'senderAvatar', 'senderAvatarType',
+                'senderAvatarId', 'recipientAccountId', 'senderProfileType', 'postId', 'postContent',
+                'commentId', 'commentContent', 'read', 'createdAt'];
+      }
+      function textoDeAviso(campo, maximo) {
+        return !(campo in request.resource.data) ||
+          (request.resource.data[campo] is string && request.resource.data[campo].size() <= maximo);
+      }
+      function avisoConLaFormaDeLaApp() {
+        let aviso = request.resource.data;
+        return aviso.keys().hasOnly(camposDeAvisoDeLaApp()) &&
+          aviso.keys().hasAll(['type', 'recipientId', 'senderId', 'senderName', 'read', 'createdAt']) &&
+          aviso.type in tiposDeAvisoQueCreaLaApp() &&
+          aviso.recipientId is string && aviso.recipientId.size() > 0 && aviso.recipientId.size() <= 200 &&
+          !(aviso.recipientId in misIdentidadesHeredadas()) &&
+          aviso.senderName is string && aviso.senderName.size() <= 200 &&
+          aviso.read == false &&
+          aviso.createdAt is timestamp &&
+          aviso.createdAt > request.time - duration.value(1, 'h') &&
+          aviso.createdAt < request.time + duration.value(1, 'h') &&
+          (!('senderProfileType' in aviso) || aviso.senderProfileType in ['real', 'wee']) &&
+          textoDeAviso('senderAvatar', 2048) && textoDeAviso('senderAvatarType', 20) &&
+          textoDeAviso('senderAvatarId', 100) && textoDeAviso('recipientAccountId', 128) &&
+          textoDeAviso('postId', 200) && textoDeAviso('commentId', 200) &&
+          textoDeAviso('postContent', 400) && textoDeAviso('commentContent', 400);
+      }
+      // ── BLOQUEO DE CONTACTOS (docs/WEETALK-BLOQUEO.md) ────────────────────
+      // Un aviso de ËContact (pedir o aceptar) no se crea entre dos caras de
+      // cuentas con un bloqueo, en cualquier sentido: el índice del servidor
+      // (`weetalkBloqueosPorPar/{de}~{para}`, el mismo que miran las
+      // conversaciones) ya trae los ocho pares entre las dos cuentas. Los demás
+      // tipos (`like`, `comment`) no cambian: no están en la decisión del dueño,
+      // y para ellos no se lee nada más (el `&&` corta antes del `exists()`).
+      function avisoDeEContactBloqueado() {
+        return request.resource.data.type in ['econtact_request', 'econtact_accepted'] &&
+          exists(/databases/$(database)/documents/weetalkBloqueosPorPar/$(request.resource.data.senderId + '~' + request.resource.data.recipientId));
+      }
+
+      allow create: if isAuthenticated() &&
+        (request.resource.data.senderId == request.auth.uid ||
+         request.resource.data.senderId == ("hidi_" + request.auth.uid)) &&
+        avisoConLaFormaDeLaApp() &&
+        !avisoDeEContactBloqueado();
+
+      // Solo el destinatario puede actualizar, y solo para marcarla como leída
+      // (`markAsRead` / `markAllAsRead`, lo único que hace la app). Antes podía
+      // reescribir el aviso entero —su destinatario, su tipo, su texto—: o sea,
+      // mandarle a otra persona un aviso «de» un tercero sin pasar por el
+      // `create` de arriba.
+      allow update: if isAuthenticated() &&
+        (resource.data.recipientId == request.auth.uid ||
+         resource.data.recipientId == ("hidi_" + request.auth.uid)) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+        request.resource.data.read == true;
+
+      // Solo el destinatario puede eliminar sus notificaciones
+      allow delete: if isAuthenticated() &&
+        (resource.data.recipientId == request.auth.uid ||
+         resource.data.recipientId == ("hidi_" + request.auth.uid));
+    }

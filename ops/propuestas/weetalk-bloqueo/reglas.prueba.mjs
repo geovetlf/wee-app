@@ -5,9 +5,13 @@
  * PROPÓSITO: estas pruebas exigen las reglas PROPUESTAS, que no están en `firestore.rules`; contra las reglas de hoy los
  * casos del bloqueo fallan, y eso es justo lo que demuestra el sabotaje del final.
  *
- * Carga en el emulador las reglas de `firestore.rules` con el bloque de conversaciones sustituido por
- * `conversaciones.rules` (componer.mjs; `firestore.rules` no se toca), siembra como administrador las conversaciones
- * y el índice del bloqueo del escenario (escenario.mjs) y prueba cada escritura con la sesión de cada cuenta.
+ * Carga en el emulador las reglas de `firestore.rules` con los bloques de conversaciones y de avisos sustituidos por
+ * `conversaciones.rules` y `avisos.rules` (componer.mjs; `firestore.rules` no se toca), siembra como administrador las
+ * conversaciones y el índice del bloqueo del escenario (escenario.mjs) y prueba cada escritura con la sesión de cada
+ * cuenta.
+ *
+ * El bloqueo es de CUENTA y en los dos sentidos (decisiones definitivas del dueño, 2026-11-07): con el bloqueo de Ana,
+ * ninguna cara de Beto contacta con ninguna de Ana, ni al revés.
  *
  * Se lanza con `node ops/propuestas/weetalk-bloqueo/correr-reglas.mjs` (proyecto demo-wee-bloqueo, puertos propios,
  * nunca los de la demo viva). Directamente, solo dentro de un `firebase emulators:exec` sobre un proyecto demo-*.
@@ -99,10 +103,10 @@ const participantesData = (a, b) => ({ [a]: { displayName: a }, [b]: { displayNa
 const sembrarMundo = async ({ conBloqueo }) => {
   await vaciar();
   const conversaciones = {
-    c1: [anaReal, betoWee], // la pareja bloqueada
+    c1: [anaReal, betoWee], // la pareja que Ana bloqueó
     c2: [anaWee, betoReal], // las otras dos caras
-    c3: [anaReal, betoReal], // la cara protegida de Ana con la otra cara de Beto
-    c4: [anaWee, betoWee], // la otra cara de Ana con la cara bloqueada de Beto
+    c3: [anaReal, betoReal], // la cara de Ana que bloqueó con la otra cara de Beto
+    c4: [anaWee, betoWee], // la otra cara de Ana con la cara que vio de Beto
     c5: [anaReal, carlaReal], // alguien que no tiene nada que ver
   };
   for (const [id, p] of Object.entries(conversaciones)) {
@@ -124,6 +128,10 @@ const mensaje = (conv, id, cara) => crear(`conversations/${conv}/messages`, id, 
 const nuevaConversacion = (id, mia, otra) => crear('conversations', id, {
   participants: [mia, otra], participantsData: participantesData(mia, otra), createdAt: ahora, updatedAt: ahora,
 }, cuentaDe(mia));
+/* Un aviso con la forma exacta de los que crea la app (notificationService): lo que admite la regla de hoy. */
+const aviso = (id, tipo, de, para) => crear('notifications', id, {
+  type: tipo, recipientId: para, senderId: de, senderName: 'x', read: false, createdAt: new Date(),
+}, cuentaDe(de));
 
 const reglasActuales = fs.readFileSync(path.join(RAIZ, 'firestore.rules'), 'utf8');
 const propuestas = componerPropuesta(reglasActuales);
@@ -132,33 +140,34 @@ const propuestas = componerPropuesta(reglasActuales);
 await cargarReglas(propuestas);
 await sembrarMundo({ conBloqueo: true });
 
-console.log('\n── A · Mensajes nuevos ──');
+console.log('\n── A · Mensajes nuevos: ninguna cara de una cuenta escribe a ninguna de la otra ──');
 await espera('Beto (Weë) no escribe a Ana (Real) en su conversación', 'NIEGA', mensaje('c1', 'a1', betoWee));
 await espera('Beto cambia de cara (Real) y tampoco: cambiar de cara no lo evade', 'NIEGA', mensaje('c3', 'a2', betoReal));
-await espera('Ana no escribe a la cara que bloqueó (hasta desbloquearla)', 'NIEGA', mensaje('c1', 'a3', anaReal));
-await espera('ni desde su otra cara', 'NIEGA', mensaje('c4', 'a4', anaWee));
-await espera('Ana SÍ escribe a la otra cara de Beto (si no, sabría cuál es)', 'PERMITE', mensaje('c3', 'a5', anaReal));
-await espera('Beto SÍ escribe a la otra cara de Ana (si no, sabría cuál es)', 'PERMITE', mensaje('c2', 'a6', betoReal));
-await espera('Beto (Weë) también a la otra cara de Ana', 'PERMITE', mensaje('c4', 'a7', betoWee));
+await espera('Beto tampoco escribe a la OTRA cara de Ana (Weë): el bloqueo cubre las dos', 'NIEGA', mensaje('c2', 'a3', betoReal));
+await espera('ni desde su Perfil Weë a la otra cara de Ana', 'NIEGA', mensaje('c4', 'a4', betoWee));
+await espera('Ana no escribe a la cara que bloqueó (hasta desbloquear)', 'NIEGA', mensaje('c1', 'a5', anaReal));
+await espera('ni desde su otra cara', 'NIEGA', mensaje('c4', 'a6', anaWee));
+await espera('ni a la otra cara de Beto: el bloqueo es de cuenta en los dos sentidos', 'NIEGA', mensaje('c3', 'a7', anaReal));
 await espera('Carla escribe a Ana como siempre', 'PERMITE', mensaje('c5', 'a8', carlaReal));
 await espera('y Ana a Carla', 'PERMITE', mensaje('c5', 'a9', anaReal));
 
 console.log('\n── B · Conversaciones directas nuevas ──');
 await espera('Beto (Weë) no abre una conversación con Ana (Real)', 'NIEGA', nuevaConversacion('n1', betoWee, anaReal));
 await espera('Beto (Real) tampoco', 'NIEGA', nuevaConversacion('n2', betoReal, anaReal));
-await espera('Ana no abre una con la cara que bloqueó', 'NIEGA', nuevaConversacion('n3', anaReal, betoWee));
-await espera('Beto sí con la otra cara de Ana', 'PERMITE', nuevaConversacion('n4', betoReal, anaWee));
-await espera('Ana sí con la otra cara de Beto', 'PERMITE', nuevaConversacion('n5', anaReal, betoReal));
+await espera('ni con la otra cara de Ana', 'NIEGA', nuevaConversacion('n3', betoReal, anaWee));
+await espera('Ana no abre una con la cara que bloqueó', 'NIEGA', nuevaConversacion('n4', anaReal, betoWee));
+await espera('ni con la otra cara de Beto, desde ninguna de las suyas', 'NIEGA', nuevaConversacion('n5', anaWee, betoReal));
 await espera('Carla con Ana, como siempre', 'PERMITE', nuevaConversacion('n6', carlaReal, anaReal));
 
-console.log('\n── C · La conversación bloqueada se queda como está ──');
+console.log('\n── C · Las conversaciones entre las dos cuentas se quedan como están ──');
 await espera('Beto no cambia el tema', 'NIEGA', cambiar('conversations/c1', { chatTheme: 'midnight' }, ['chatTheme'], cuentaDe(betoWee)));
 await espera('ni el fondo (una imagen que Ana vería)', 'NIEGA', cambiar('conversations/c1', { chatWallpaper: 'https://ejemplo.test/x.png' }, ['chatWallpaper'], cuentaDe(betoWee)));
 await espera('ni el modo efímero', 'NIEGA', cambiar('conversations/c1', { ephemeral: true }, ['ephemeral'], cuentaDe(betoWee)));
 await espera('ni firma un último mensaje nuevo', 'NIEGA', cambiar('conversations/c1', { lastMessage: { content: 'otra vez', senderId: betoWee, timestamp: ahora, read: false }, updatedAt: ahora }, ['lastMessage', 'updatedAt'], cuentaDe(betoWee)));
-await espera('pero sí marca como leído lo que ya había', 'PERMITE', cambiar('conversations/c1', { lastMessage: { read: true } }, ['lastMessage.read'], cuentaDe(betoWee)));
+await espera('pero sí marca como leído lo que ya había (la app solo toca lastMessage.read)', 'PERMITE', cambiar('conversations/c1', { lastMessage: { read: true } }, ['lastMessage.read'], cuentaDe(betoWee)));
 await espera('y entra y sale él mismo (presencia propia)', 'PERMITE', cambiar('conversations/c1', { activeInChat: [betoWee] }, ['activeInChat'], cuentaDe(betoWee)));
 await espera('Ana tampoco cambia el tema de esa conversación', 'NIEGA', cambiar('conversations/c1', { chatTheme: 'forest' }, ['chatTheme'], cuentaDe(anaReal)));
+await espera('y la conversación de las OTRAS dos caras también queda congelada', 'NIEGA', cambiar('conversations/c2', { chatTheme: 'forest' }, ['chatTheme'], cuentaDe(betoReal)));
 await espera('sin bloqueo, todo sigue como antes (Carla cambia el tema con Ana)', 'PERMITE', cambiar('conversations/c5', { chatTheme: 'ocean' }, ['chatTheme'], cuentaDe(carlaReal)));
 
 console.log('\n── D · Lo que se puede leer, y lo que no ──');
@@ -171,21 +180,32 @@ await espera('nadie las escribe', 'NIEGA', crear('weetalkBloqueos', 'betoCuentaW
 await espera('nadie escribe el índice', 'NIEGA', crear('weetalkBloqueosPorPar', `${anaReal}~${carlaReal}`, { de: anaReal, para: carlaReal }, cuentaDe(anaReal)));
 await espera('nadie lee el cupo', 'NIEGA', leer('weetalkBloqueosCupo/anaCuentaW0', cuentaDe(anaReal)));
 
-console.log('\n── E · Desbloquear ──');
+console.log('\n── E · Avisos de ËContact entre las dos cuentas ──');
+await espera('Beto no le manda a Ana un aviso de solicitud de ËContact', 'NIEGA', aviso('v1', 'econtact_request', betoWee, anaReal));
+await espera('ni a su otra cara, ni desde la suya', 'NIEGA', aviso('v2', 'econtact_request', betoReal, anaWee));
+await espera('ni un aviso de solicitud aceptada', 'NIEGA', aviso('v3', 'econtact_accepted', betoWee, anaWee));
+await espera('Ana tampoco se los manda a Beto', 'NIEGA', aviso('v4', 'econtact_request', anaReal, betoReal));
+await espera('un «me gusta» de Beto a Ana sigue como hoy (no está en la decisión)', 'PERMITE', aviso('v5', 'like', betoWee, anaReal));
+await espera('Carla le manda a Ana su solicitud como siempre', 'PERMITE', aviso('v6', 'econtact_request', carlaReal, anaReal));
+
+console.log('\n── F · Desbloquear ──');
 for (const clave of PARES_DEL_BLOQUEO_DE_ANA) await borrar(`weetalkBloqueosPorPar/${clave}`);
-await espera('sin el índice, Beto vuelve a escribir a Ana', 'PERMITE', mensaje('c1', 'e1', betoWee));
-await espera('y Ana a Beto', 'PERMITE', mensaje('c1', 'e2', anaReal));
-await espera('y se puede abrir una conversación nueva', 'PERMITE', nuevaConversacion('e3', betoReal, anaReal));
+await espera('sin el índice, Beto vuelve a escribir a Ana', 'PERMITE', mensaje('c1', 'f1', betoWee));
+await espera('y Ana a Beto', 'PERMITE', mensaje('c1', 'f2', anaReal));
+await espera('y a la otra cara, como siempre', 'PERMITE', mensaje('c2', 'f3', betoReal));
+await espera('y se puede abrir una conversación nueva', 'PERMITE', nuevaConversacion('f4', betoReal, anaReal));
+await espera('y volver a avisar de una solicitud de ËContact (reglas normales)', 'PERMITE', aviso('f5', 'econtact_request', betoWee, anaReal));
 
 /* ═══ SABOTAJE: con las reglas de HOY, los casos del bloqueo pasan — la prueba muerde ═════════════════════════ */
-console.log('\n── F · Sabotaje: con las reglas de hoy (sin la propuesta) el bloqueo no existe ──');
+console.log('\n── G · Sabotaje: con las reglas de hoy (sin la propuesta) el bloqueo no existe ──');
 await cargarReglas(reglasActuales);
 await sembrarMundo({ conBloqueo: true });
 const sab = [
   await mensaje('c1', 's1', betoWee),
-  await mensaje('c3', 's2', betoReal),
+  await mensaje('c2', 's2', betoReal),
   await nuevaConversacion('s3', betoWee, anaReal),
   await cambiar('conversations/c1', { chatTheme: 'midnight' }, ['chatTheme'], cuentaDe(betoWee)),
+  await aviso('s4', 'econtact_request', betoWee, anaReal),
 ];
 check('las reglas de hoy DEJAN escribir lo que la propuesta niega (si no, estas pruebas no probarían nada)', sab.every((s) => s < 400), sab.join(', '));
 

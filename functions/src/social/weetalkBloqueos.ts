@@ -2,49 +2,52 @@
  * WEETALK — EL BLOQUEO DE CONTACTOS (docs/WEETALK-BLOQUEO.md).
  * ---------------------------------------------------------------------------
  *
- * Decisiones del dueño (vinculantes):
+ * Decisiones DEFINITIVAS del dueño (2026-11-07), vinculantes:
  *
- *   1 · WeeTalk es mensajería PRIVADA. Las conversaciones no se inspeccionan ni se moderan, y no hay denuncias de
- *       mensajes privados. Este archivo no lee NINGÚN mensaje: ni su texto, ni sus archivos, ni la colección
- *       `messages`. Decide con dos cosas: quién escribe y a quién.
- *   2 · Bloquear es una decisión personal de privacidad. No crea reportes, ni casos, ni sanciones, y no toca el
- *       Moderation Core ni sus contratos (el «BLOCK» de la moderación es otra cosa: el desenlace de una revisión).
- *   3 · El bloqueo es de CUENTA y cubre las dos caras: si la cuenta A bloquea a la B, quedan bloqueadas la cara
- *       Real y la cara Weë de B, y cambiar de cara no lo evade.
- *   4 · No se le revela a B la otra cara de A, y B no sabe que está bloqueada: nadie le avisa, no hay lista suya,
- *       y ninguna respuesta de este archivo le dice a nadie nada de una cuenta que no es la suya.
- *   5 · La lista de bloqueados solo la ve quien bloquea, y desbloquear no restaura nada ni genera nada retroactivo:
- *       borra el bloqueo y punto.
+ *   1 · WeeTalk no inspecciona ni modera conversaciones privadas. Este archivo no lee NINGÚN mensaje: ni su texto, ni
+ *       sus archivos, ni la colección `messages`. Decide con dos cosas: quién contacta y con quién.
+ *   2 · El bloqueo es una herramienta de PRIVACIDAD, no de moderación. No crea reportes, ni casos, ni sanciones, y no
+ *       toca el Moderation Core ni sus contratos (el «BLOCK» de la moderación es otra cosa: el desenlace de una revisión).
+ *   3 · Se aplica a nivel de CUENTA y cubre las dos identidades, Real y Weë. Si A bloquea a B, B no puede contactar con
+ *       NINGUNA identidad de A, y no lo evade cambiando de identidad.
+ *   4 · Impide mensajes, conversaciones nuevas, solicitudes de ËContact y llamadas directas (si existen). Las solicitudes
+ *       pendientes entre las dos cuentas se anulan.
+ *   5 · Desbloquear deja volver a contactar según las reglas normales, sin restaurar las solicitudes anteriores.
+ *   6 · No se revelan identidades alternativas: ninguna respuesta, lista, error ni aviso dice de qué cuenta es una cara,
+ *       ni que existe otra. B no sabe que está bloqueada: nadie le avisa y no tiene lista.
  *
  * QUÉ PROTEGE EXACTAMENTE (la regla común, `puedeEscribir`)
  * --------------------------------------------------------
  * Una cuenta bloquea a otra DESDE una de sus caras y viendo una cara de la otra. Cada bloqueo guarda esa pareja como
- * una ENTRADA de la relación entre las dos cuentas:
+ * una ENTRADA de la relación entre las dos cuentas (es lo que enseña la lista de quien bloquea):
  *
  *     entrada = { caraQueBloquea: a, caraBloqueada: b }
  *
- * y de ahí salen las dos prohibiciones, las dos por CUENTA en el lado que no puede delatar a nadie:
+ * Mientras la relación tenga al menos una entrada, el bloqueo es de CUENTA A CUENTA y en los DOS sentidos:
  *
- *   · NINGUNA cara de B escribe a la cara `a` (la protegida). Cambiar de cara no lo evade.
- *   · NINGUNA cara de A escribe a la cara `b` (la bloqueada): para volver a escribirle hay que desbloquear.
+ *   · NINGUNA cara de B contacta con NINGUNA cara de A (decisión 3). Cambiar de cara no lo evade.
+ *   · NINGUNA cara de A contacta con NINGUNA cara de B, hasta que A desbloquee. Si A pudiera escribir desde su otra
+ *     cara a la otra cara de B, la respuesta de B fallaría y le diría a B que esa cara es de quien la bloqueó: lo que
+ *     la decisión 6 prohíbe. Y desbloquear es «volver a las reglas normales» (decisión 5): mientras dura, nadie habla.
  *
- * Lo que NO se prohíbe es justo lo que delataría la otra cara de alguien:
+ * Lo que queda, y no se puede quitar con un bloqueo que funcione (docs/WEETALK-BLOQUEO.md § 8): quien PRUEBE a
+ * escribir a perfiles sueltos verá que con uno no puede. Ese fallo es el genérico de siempre, nada lo nombra y ninguna
+ * respuesta lleva la cuenta de nadie; el dueño eligió proteger todas las caras sabiendo que esa inferencia existe.
  *
- *   · B sí puede escribir a la OTRA cara de A (la que A no usó para bloquear). Si eso fallara, B tendría un oráculo:
- *     «a esa cara no le puedo escribir → es la otra cara de quien me bloqueó». La decisión 4 lo prohíbe. Si A quiere
- *     protegerla también, la bloquea desde ella y queda como otra entrada.
- *   · A sí puede escribir a la OTRA cara de B (la que no vio). Si fallara, A sabría cuál es la otra cara de B.
- *
- * Todo esto sale de UNA función pura, sin Firestore, y de ella sale también el índice que leerían las reglas
- * (`paresBloqueados`): lo que dice una lo dice el otro, por construcción, y las pruebas lo comprueban caso por caso.
+ * Todo esto sale de UNA función pura, sin Firestore, y de ella sale también el índice que leen las reglas propuestas y
+ * ËContact (`paresBloqueados`): lo que dice una lo dice el otro, por construcción, y las pruebas lo comprueban caso por
+ * caso.
  *
  * DÓNDE SE CUMPLE (docs/WEETALK-BLOQUEO.md § 5)
  * ---------------------------------------------
- *   · Hoy, en el servidor: el aviso push de un mensaje (`sendMessagePushNotification`, functions/src/index.ts) no
- *     suena si esta regla dice que no.
- *   · Los mensajes y las conversaciones los escribe el CLIENTE directamente, con `firestore.rules`. Que no se puedan
- *     escribir exige cambiar las reglas, y eso no se ha hecho: está PROPUESTO (ops/propuestas/weetalk-bloqueo/) y
- *     espera la autorización del dueño. Hasta entonces el bloqueo no impide que el mensaje se guarde.
+ *   · En el servidor, ya: el push de un mensaje (`sendMessagePushNotification`) y el de los avisos de ËContact
+ *     (`sendPushNotification`, solo `econtact_request` y `econtact_accepted`) no suenan; `requestEContact` y
+ *     `acceptEContact` se niegan (econtact.ts, dentro de su transacción); y al bloquear se anulan las solicitudes
+ *     pendientes entre las dos cuentas (abajo, `bloquear`).
+ *   · Los mensajes, las conversaciones y los avisos los escribe el CLIENTE directamente, con `firestore.rules`. Que no
+ *     se puedan escribir exige cambiar las reglas, y eso NO se ha aplicado: está PROPUESTO y revisado
+ *     (ops/propuestas/weetalk-bloqueo/) y espera la autorización del dueño. Hasta entonces el bloqueo no impide que un
+ *     mensaje o un aviso se guarden: solo que suenen.
  *
  * LAS CARAS DE UNA CUENTA se componen en un solo sitio, la frontera de compatibilidad
  * (`identidadesHeredadasDeLaCuenta`, identity/compatibilidad.ts), y siempre a partir de una cuenta que o es la de la
@@ -52,7 +55,8 @@
  * quita un prefijo para saber de quién es una cara.
  *
  *   weetalkBloqueos/{cuentaQueBloquea}~{cuentaBloqueada}   la relación y sus entradas (la verdad)
- *   weetalkBloqueosPorPar/{de}~{para}                      «la cara `de` no puede escribir a `para`» (derivado)
+ *   weetalkBloqueosPorPar/{de}~{para}                      «la cara `de` no puede contactar con `para`» (derivado;
+ *                                                          su nombre y su clave viven en bloqueosIndice.ts)
  *   weetalkBloqueosCupo/{cuenta}                           cuántas cuentas ha bloqueado (el tope)
  *
  * Las tres son SOLO del servidor: `firestore.rules` no las nombra, así que ningún cliente las lee ni las escribe.
@@ -60,24 +64,30 @@
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type { DocumentReference, Firestore, Transaction } from 'firebase-admin/firestore';
 import { sanitizeForLog } from '../engine/sanitize';
 import { identidadesHeredadasDeLaCuenta } from '../identity/compatibilidad';
 import { CUENTA_REQUERIDA, esCuentaAutenticada } from '../identity/sesion';
-import { cuentaDeIdentidad, esIdentidadDePersona, PerfilDeIdentidad } from './econtact';
+import { PARES_BLOQUEADOS, SEPARADOR_DE_PAR, claveDePar } from './bloqueosIndice';
+import { cuentaDeIdentidad, esIdentidadDePersona, idDeContacto, PerfilDeIdentidad } from './econtact';
 
 const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 
 export const BLOQUEOS = 'weetalkBloqueos';
-export const PARES = 'weetalkBloqueosPorPar';
+export const PARES = PARES_BLOQUEADOS;
 export const CUPOS = 'weetalkBloqueosCupo';
+/** Las relaciones de ËContact (econtact.ts). Aquí solo se ANULAN las pendientes entre dos cuentas al bloquear. */
+export const ECONTACTS = 'econtacts';
 const PERFILES = 'users';
 
 /** Cuántas cuentas distintas puede bloquear una cuenta. Muy por encima de cualquier uso real; acota el abuso. */
 export const MAX_CUENTAS_BLOQUEADAS = 1000;
 
-/** Ni una cuenta ni una cara de Weë llevan `~`: las cuentas son alfanuméricas y las caras salen de ellas. */
-const SEPARADOR = '~';
+const SEPARADOR = SEPARADOR_DE_PAR;
+
+/** Los avisos que forman parte de una solicitud de ËContact: los únicos avisos que el bloqueo silencia (decisión 4). */
+export const TIPOS_DE_AVISO_DE_ECONTACT: readonly string[] = Object.freeze(['econtact_request', 'econtact_accepted']);
+export const esAvisoDeEContact = (tipo: unknown): boolean => typeof tipo === 'string' && TIPOS_DE_AVISO_DE_ECONTACT.includes(tipo);
 
 // ─── El modelo ───────────────────────────────────────────────────────────────
 
@@ -107,7 +117,7 @@ export interface CaraConCuenta {
 export const claveDeRelacion = (cuentaQueBloquea: string, cuentaBloqueada: string): string =>
   `${cuentaQueBloquea}${SEPARADOR}${cuentaBloqueada}`;
 
-export const claveDePar = (de: string, para: string): string => `${de}${SEPARADOR}${para}`;
+export { claveDePar };
 
 const milisDe = (v: unknown): number => {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
@@ -148,24 +158,27 @@ export const relacionGuardada = (
   return entradas.length ? { cuentaQueBloquea, cuentaBloqueada, entradas } : null;
 };
 
-const carasProtegidas = (r: RelacionDeBloqueo | null): ReadonlySet<string> => new Set((r?.entradas || []).map((e) => e.caraQueBloquea));
-const carasBloqueadas = (r: RelacionDeBloqueo | null): ReadonlySet<string> => new Set((r?.entradas || []).map((e) => e.caraBloqueada));
+/** ¿Es esta relación, de verdad, la de `cuentaQueBloquea` hacia `cuentaBloqueada`, con al menos una entrada? */
+const esRelacionEntre = (r: RelacionDeBloqueo | null, cuentaQueBloquea: string, cuentaBloqueada: string): boolean =>
+  !!r && r.cuentaQueBloquea === cuentaQueBloquea && r.cuentaBloqueada === cuentaBloqueada && r.entradas.length > 0;
 
-// ─── La regla común: ¿puede X escribir a Y? ──────────────────────────────────
+// ─── La regla común: ¿puede X contactar con Y? ───────────────────────────────
 
 /*
  * `motivo` es para el servidor y para quien bloqueó (que ya lo sabe). Nunca se le dice a quien está bloqueado: para
  * él, si algún día una pantalla lo necesita, es el mismo «no se pudo enviar» de cualquier otro fallo.
  */
-export type DecisionDeEscritura = { puede: true } | { puede: false; motivo: 'cara-protegida' | 'cara-bloqueada' };
+export type DecisionDeEscritura = { puede: true } | { puede: false; motivo: 'bloqueo-del-destino' | 'bloqueo-propio' };
 
 const PUEDE: DecisionDeEscritura = Object.freeze({ puede: true as const });
 
 /**
- * ¿PUEDE LA CARA `de` ESCRIBIR A LA CARA `para`? Pura, por CUENTAS, sin leer nada y sin mirar ningún mensaje.
+ * ¿PUEDE LA CARA `de` CONTACTAR CON LA CARA `para`? Pura, por CUENTAS, sin leer nada y sin mirar ningún mensaje.
  *
  * `bloqueoDelDestino` es la relación en la que la cuenta de `para` bloqueó a la de `de`; `bloqueoPropio`, la
- * contraria. Una relación que no hable de esas dos cuentas, en ese orden, no cuenta.
+ * contraria. Una relación que no hable de esas dos cuentas, en ese orden, no cuenta. Si cualquiera de las dos existe,
+ * ninguna cara de una cuenta contacta con ninguna de la otra (decisiones 3 y 6): da igual desde qué cara se bloqueó y
+ * qué cara se vio.
  */
 export const puedeEscribir = (a: {
   de: CaraConCuenta;
@@ -176,32 +189,27 @@ export const puedeEscribir = (a: {
   const { de, para } = a;
   /* Las dos caras de una misma persona no se bloquean entre sí. */
   if (de.cuenta === para.cuenta) return PUEDE;
-  const delDestino = a.bloqueoDelDestino
-    && a.bloqueoDelDestino.cuentaQueBloquea === para.cuenta && a.bloqueoDelDestino.cuentaBloqueada === de.cuenta
-    ? a.bloqueoDelDestino : null;
-  /* Cualquier cara de la cuenta bloqueada, hacia la cara protegida: no. Cambiar de cara no lo evade. */
-  if (carasProtegidas(delDestino).has(para.identidad)) return { puede: false, motivo: 'cara-protegida' };
-  const propio = a.bloqueoPropio
-    && a.bloqueoPropio.cuentaQueBloquea === de.cuenta && a.bloqueoPropio.cuentaBloqueada === para.cuenta
-    ? a.bloqueoPropio : null;
-  /* Quien bloqueó, desde cualquiera de sus caras, hacia la cara que bloqueó: no, hasta que desbloquee. */
-  if (carasBloqueadas(propio).has(para.identidad)) return { puede: false, motivo: 'cara-bloqueada' };
+  /* La cuenta de `para` bloqueó a la de `de`: ninguna cara de `de` le llega a ninguna de `para`. Cambiar de cara no lo evade. */
+  if (esRelacionEntre(a.bloqueoDelDestino, para.cuenta, de.cuenta)) return { puede: false, motivo: 'bloqueo-del-destino' };
+  /* Quien bloqueó tampoco contacta, desde ninguna de sus caras, con ninguna de la cuenta que bloqueó: hasta desbloquear. */
+  if (esRelacionEntre(a.bloqueoPropio, de.cuenta, para.cuenta)) return { puede: false, motivo: 'bloqueo-propio' };
   return PUEDE;
 };
 
 /**
- * EL ÍNDICE QUE LEERÍAN LAS REGLAS: cada «`de` no puede escribir a `para`» de estas relaciones, como `de~para`.
+ * EL ÍNDICE QUE LEEN LAS REGLAS PROPUESTAS Y ËCONTACT: cada «`de` no puede contactar con `para`» de estas relaciones,
+ * como `de~para`.
  *
  * Es la misma regla que `puedeEscribir`, escrita como conjunto: para dos caras de cuentas distintas,
- * `puedeEscribir(x → y).puede` es exactamente `!pares.includes(x~y)`. Incluye la cara Weë de una cuenta aunque
- * todavía no exista: el día que la cree ya estará cubierta, que es lo que pide «cambiar de cara no lo evade».
+ * `puedeEscribir(x → y).puede` es exactamente `!pares.includes(x~y)`. Una relación con entradas cierra los ocho pares
+ * posibles entre sus dos cuentas (2 caras × 2 caras × 2 sentidos). Incluye la cara Weë de una cuenta aunque todavía no
+ * exista: el día que la cree ya estará cubierta, que es lo que pide «cambiar de identidad no lo evade».
  */
 export const paresBloqueados = (relaciones: readonly (RelacionDeBloqueo | null)[], carasDe: CarasDeLaCuenta): string[] => {
   const pares = new Set<string>();
   for (const r of relaciones) {
-    if (!r) continue;
-    for (const protegida of carasProtegidas(r)) for (const x of carasDe(r.cuentaBloqueada)) pares.add(claveDePar(x, protegida));
-    for (const bloqueada of carasBloqueadas(r)) for (const x of carasDe(r.cuentaQueBloquea)) pares.add(claveDePar(x, bloqueada));
+    if (!r || !esRelacionEntre(r, r.cuentaQueBloquea, r.cuentaBloqueada)) continue;
+    for (const clave of paresPosibles(r.cuentaQueBloquea, r.cuentaBloqueada, carasDe)) pares.add(clave);
   }
   return [...pares].sort();
 };
@@ -217,6 +225,34 @@ export const paresPosibles = (cuentaA: string, cuentaB: string, carasDe: CarasDe
     todos.add(claveDePar(y, x));
   }
   return [...todos].sort();
+};
+
+// ─── ËContact: las solicitudes que se anulan al bloquear ─────────────────────
+
+/**
+ * LAS SOLICITUDES DE ËCONTACT QUE PUEDE HABER ENTRE DOS CUENTAS: una por pareja de caras, con el id que calcula
+ * econtact.ts (`idDeContacto`, conmutativo). Son las únicas que se miran al bloquear: no hay consultas.
+ */
+export const solicitudesPosibles = (cuentaA: string, cuentaB: string, carasDe: CarasDeLaCuenta): string[] => {
+  const a = carasDe(cuentaA);
+  const b = carasDe(cuentaB);
+  if (!a.length || !b.length || cuentaA === cuentaB) return [];
+  const ids = new Set<string>();
+  for (const x of a) for (const y of b) ids.add(idDeContacto(x, y));
+  return [...ids].sort();
+};
+
+/**
+ * ¿Hay que ANULAR este documento de `econtacts` al bloquear? Solo si es una solicitud PENDIENTE cuyas dos caras son
+ * una de cada cuenta. Una conexión ya aceptada no se toca: no es una solicitud (docs/WEETALK-BLOQUEO.md § 9).
+ */
+export const esSolicitudPendienteEntre = (datos: unknown, carasA: readonly string[], carasB: readonly string[]): boolean => {
+  if (!datos || typeof datos !== 'object') return false;
+  const d = datos as { status?: unknown; users?: unknown };
+  if (d.status !== 'pending' || !Array.isArray(d.users) || d.users.length !== 2) return false;
+  const [x, y] = d.users as unknown[];
+  if (typeof x !== 'string' || typeof y !== 'string') return false;
+  return (carasA.includes(x) && carasB.includes(y)) || (carasB.includes(x) && carasA.includes(y));
 };
 
 // ─── Las transiciones, puras ─────────────────────────────────────────────────
@@ -381,9 +417,9 @@ export const createBloqueosEngine = (deps: BloqueosDeps) => {
     /**
      * `bloquear` — la cuenta de la sesión, actuando con `comoIdentidad`, bloquea a la persona de `identidad`.
      *
-     * Una transacción: relee las dos relaciones entre las dos cuentas y el cupo, añade la entrada y REESCRIBE el
-     * índice entero de esas dos cuentas desde las relaciones (se cura solo si alguna vez se desvió). Repetirlo no
-     * cambia nada. No avisa a nadie.
+     * Una transacción: relee las dos relaciones entre las dos cuentas, el cupo y las solicitudes de ËContact que puede
+     * haber entre ellas; añade la entrada, REESCRIBE el índice entero de esas dos cuentas desde las relaciones (se cura
+     * solo si alguna vez se desvió) y anula las solicitudes pendientes. Repetirlo no cambia nada. No avisa a nadie.
      */
     bloquear: async (a: { cuentaDeLaSesion: string; comoIdentidad: unknown; identidad: unknown }) => {
       const yo = a.cuentaDeLaSesion;
@@ -405,6 +441,13 @@ export const createBloqueosEngine = (deps: BloqueosDeps) => {
         const ab = await tx.get(refDeRelacion(yo, suya));
         const ba = await tx.get(refDeRelacion(suya, yo));
         const cupo = await tx.get(refDeCupo(yo));
+        /* Las solicitudes de ËContact entre las dos cuentas, leídas ANTES de escribir nada (así lo exige una transacción). */
+        const solicitudes: { ref: DocumentReference; datos: unknown }[] = [];
+        for (const id of solicitudesPosibles(yo, suya, deps.carasDe)) {
+          const ref = coleccion(ECONTACTS).doc(id);
+          const snap = await tx.get(ref);
+          if (snap.exists) solicitudes.push({ ref, datos: snap.data() });
+        }
         const antes = ab.exists ? relacionGuardada(ab.data(), yo, suya, deps.carasDe) : null;
         const contraria = ba.exists ? relacionGuardada(ba.data(), suya, yo, deps.carasDe) : null;
         const yaEstaba = !!antes && antes.entradas.some((e) => e.caraBloqueada === identidad);
@@ -416,6 +459,14 @@ export const createBloqueosEngine = (deps: BloqueosDeps) => {
         tx.set(refDeRelacion(yo, suya), documentoDeRelacion(despues, ms, ab.exists ? (ab.data() as { creadoEn?: unknown } | undefined)?.creadoEn : undefined));
         if (!ab.exists) tx.set(refDeCupo(yo), { relaciones: usadas + 1, actualizadoEn: deps.sello(ms) });
         escribirIndice(tx, yo, suya, [despues, contraria]);
+        /*
+         * Las solicitudes PENDIENTES entre las dos cuentas se anulan (decisión 4), en cualquier sentido y entre cualesquiera
+         * de sus caras. Anular es BORRAR, que es justo lo que hacen «cancelar» y «rechazar» en ËContact: para la otra
+         * persona es indistinguible de un «no» corriente, y no queda nada que desbloquear después (decisión 5). La
+         * respuesta no dice cuántas había: lo delataría.
+         */
+        const susCaras = deps.carasDe(suya);
+        for (const s of solicitudes) if (esSolicitudPendienteEntre(s.datos, misCaras, susCaras)) tx.delete(s.ref);
         return { identidad, bloqueado: true as const, yaEstaba };
       });
     },
@@ -424,8 +475,12 @@ export const createBloqueosEngine = (deps: BloqueosDeps) => {
      * `desbloquear` — quita esa cara de la lista de la cuenta de la sesión, se bloqueara desde la cara que fuera.
      *
      * No hace falta saber de qué cuenta es (puede que ya ni exista): se buscan las relaciones de quien llama que
-     * nombran esa cara. No toca conversaciones ni mensajes: lo borrado sigue borrado y no aparece nada retroactivo.
+     * nombran esa cara. No toca conversaciones ni mensajes, y no restaura las solicitudes de ËContact que el bloqueo
+     * anuló: lo borrado sigue borrado y no aparece nada retroactivo. Desde ahí, las reglas normales (decisión 5).
      * Si no estaba, no es un error.
+     *
+     * Si la cuenta bloqueó DOS caras de la misma persona (sin saberlo), quitar una no abre a esa persona: la relación
+     * de cuenta sigue mientras le quede una entrada, y la lista sigue enseñando la otra fila.
      */
     desbloquear: async (a: { cuentaDeLaSesion: string; identidad: unknown }) => {
       const yo = a.cuentaDeLaSesion;
@@ -467,11 +522,12 @@ export const createBloqueosEngine = (deps: BloqueosDeps) => {
     },
 
     /**
-     * ¿PUEDE SONAR EN EL TELÉFONO DE `para` UN MENSAJE QUE FIRMÓ `de`? La regla común, por cuentas, para el push.
+     * ¿PUEDE SONAR EN EL TELÉFONO DE `para` ALGO QUE FIRMÓ `de`? La regla común, por cuentas, para el push: la usan el
+     * push de mensajes y el de los avisos de ËContact (functions/src/index.ts).
      *
      * Recibe las cuentas ya resueltas por quien llama (el disparador las lee con el resolutor canónico) y NO recibe
-     * el mensaje. Falla cerrada: sin las dos cuentas, con una cara que no es de su cuenta, o si los bloqueos no se
-     * pueden leer, no suena. Un aviso de menos es mejor que un aviso de quien te bloqueó.
+     * el mensaje ni el aviso. Falla cerrada: sin las dos cuentas, con una cara que no es de su cuenta, o si los
+     * bloqueos no se pueden leer, no suena. Un aviso de menos es mejor que un aviso de quien te bloqueó.
      */
     permiteAviso: async (
       de: { identidad: string; cuenta: string | null },

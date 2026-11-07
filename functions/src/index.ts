@@ -4,7 +4,7 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './social/econtact';
 import { avisoPush, cuerpoDelMensaje, cupoDeAvisos, datosDelAviso, nombreDeRespaldo, nombreVisible, resumenDeRespuestaDeExpo } from './social/avisos';
-import { bloqueosEngine } from './social/weetalkBloqueos';
+import { bloqueosEngine, esAvisoDeEContact } from './social/weetalkBloqueos';
 
 // Inicializar Firebase Admin solo si no está inicializado
 if (admin.apps.length === 0) {
@@ -296,6 +296,16 @@ export const sendPushNotification = onDocumentCreated(
 
       /* El cupo es de la CUENTA que avisa (sus dos caras comparten uno): pasado, el aviso no suena. */
       const cuentaQueAvisa = await cuentaDeLaIdentidad(senderId);
+      /*
+       * BLOQUEO DE CONTACTOS (docs/WEETALK-BLOQUEO.md): un aviso de ËContact (pedir o aceptar) entre dos cuentas con un
+       * bloqueo, en cualquier sentido, no suena. Solo esos dos tipos: los de «me gusta» y comentarios no están en la
+       * decisión del dueño. La regla común por cuentas, como el push de mensajes, y falla cerrada.
+       */
+      if (esAvisoDeEContact(type)
+        && !(await bloqueosEngine.permiteAviso({ identidad: senderId, cuenta: cuentaQueAvisa }, { identidad: recipientId, cuenta }))) {
+        console.log('Aviso de ËContact sin push: hay un bloqueo entre las cuentas o no se pudo comprobar');
+        return null;
+      }
       if (!cuentaQueAvisa || !(await gastarCupoDeAvisos(cuentaQueAvisa))) {
         console.warn('Aviso sin push: remitente sin cuenta o cupo de avisos agotado');
         return null;

@@ -34,6 +34,7 @@
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { PARES_BLOQUEADOS, claveDePar } from './bloqueosIndice';
 
 const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 
@@ -214,11 +215,19 @@ export const decidirSolicitud = (args: {
   de: IdentidadResuelta;
   para: IdentidadResuelta;
   existente: EContactDoc | null | undefined;
+  /** Si hay un bloqueo de contactos entre las dos cuentas, en cualquier sentido (docs/WEETALK-BLOQUEO.md). */
+  bloqueo?: boolean;
 }): Decision => {
   const { de, para, existente } = args;
   if (de.identity === para.identity) return { ok: false, motivo: 'misma-persona' };
   if (de.accountUid === para.accountUid) return { ok: false, motivo: 'misma-persona' };
   if (existente) return { ok: false, motivo: 'ya-existe' };
+  /*
+   * BLOQUEO DE CONTACTOS: entre dos cuentas con un bloqueo no se abre ninguna solicitud, desde ninguna de sus caras ni
+   * hacia ninguna. El motivo es el genérico de «no válida»: no le dice a nadie que hay un bloqueo, ni de qué cuenta es
+   * ninguna cara. Va el último, así que todo lo que ya se rechazaba se sigue rechazando igual.
+   */
+  if (args.bloqueo) return { ok: false, motivo: 'relacion-invalida' };
   return { ok: true };
 };
 
@@ -230,7 +239,13 @@ export const decidirSolicitud = (args: {
  * sea de tu cuenta no basta: una solicitud dirigida a tu Perfil Weë no la acepta
  * tu Perfil Real.
  */
-export const decidirAceptacion = (args: { doc: EContactDoc | null | undefined; yo: string; otro: string }): Decision => {
+export const decidirAceptacion = (args: {
+  doc: EContactDoc | null | undefined;
+  yo: string;
+  otro: string;
+  /** Si hay un bloqueo de contactos entre las dos cuentas, en cualquier sentido (docs/WEETALK-BLOQUEO.md). */
+  bloqueo?: boolean;
+}): Decision => {
   const { doc, yo, otro } = args;
 
   if (!doc || typeof doc !== 'object') return { ok: false, motivo: 'sin-relacion' };
@@ -255,6 +270,12 @@ export const decidirAceptacion = (args: { doc: EContactDoc | null | undefined; y
   if (doc.status !== 'pending') return { ok: false, motivo: 'relacion-invalida' };
 
   if (doc.requestedTo !== yo) return { ok: false, motivo: 'no-la-recibiste' };
+
+  /*
+   * BLOQUEO DE CONTACTOS: una solicitud que siga en pie entre dos cuentas con un bloqueo no se acepta (al bloquear se
+   * anulan, pero una que se cruzara con el bloqueo quedaría inutilizada igual). Mismo motivo genérico que al pedir.
+   */
+  if (args.bloqueo) return { ok: false, motivo: 'relacion-invalida' };
 
   return { ok: true };
 };
@@ -327,8 +348,10 @@ export const createEContactEngine = (deps: EContactDeps) => {
       return db.runTransaction(async (tx: any) => {
         const snap = await tx.get(ref);
         const existente = snap.exists ? ((snap.data() || {}) as EContactDoc) : null;
+        /* El índice del bloqueo de contactos (bloqueosIndice.ts): existe si `de` no puede contactar con `para`. */
+        const bloqueo = await tx.get(db.collection(PARES_BLOQUEADOS).doc(claveDePar(de.identity, para.identity)));
 
-        const decision = decidirSolicitud({ de, para, existente });
+        const decision = decidirSolicitud({ de, para, existente, bloqueo: bloqueo.exists });
         if (!decision.ok) throw new EContactError(decision.motivo);
 
         const users = de.identity < para.identity ? [de.identity, para.identity] : [para.identity, de.identity];
@@ -372,7 +395,8 @@ export const createEContactEngine = (deps: EContactDeps) => {
         if (!snap.exists) throw new EContactError('sin-relacion');
 
         const doc = (snap.data() || {}) as EContactDoc;
-        const decision = decidirAceptacion({ doc, yo: yo.identity, otro: otro.identity });
+        const bloqueo = await tx.get(db.collection(PARES_BLOQUEADOS).doc(claveDePar(yo.identity, otro.identity)));
+        const decision = decidirAceptacion({ doc, yo: yo.identity, otro: otro.identity, bloqueo: bloqueo.exists });
         if (!decision.ok) throw new EContactError(decision.motivo);
 
         tx.update(ref, { status: 'accepted', respondedAt: deps.sello(deps.ahora()) });

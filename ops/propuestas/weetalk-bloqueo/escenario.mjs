@@ -6,11 +6,11 @@
  *
  *     entrada = { caraQueBloquea: ana (Real), caraBloqueada: Beto Weë }
  *
- * De ahí, por la regla común (functions/src/social/weetalkBloqueos.ts):
- *   · ninguna cara de Beto escribe al Perfil Real de Ana          (cambiar de cara no lo evade)
- *   · ninguna cara de Ana escribe al Perfil Weë de Beto           (hasta que lo desbloquee)
- *   · Beto SÍ escribe al Perfil Weë de Ana                       (si no, Beto descubriría la otra cara de Ana)
- *   · Ana SÍ escribe al Perfil Real de Beto                      (si no, Ana descubriría la otra cara de Beto)
+ * De ahí, por la regla común (functions/src/social/weetalkBloqueos.ts) y las decisiones definitivas del dueño del
+ * 2026-11-07 (el bloqueo es de CUENTA y cubre las dos identidades):
+ *   · ninguna cara de Beto contacta con ninguna cara de Ana       (cambiar de cara no lo evade)
+ *   · ninguna cara de Ana contacta con ninguna cara de Beto       (hasta que lo desbloquee)
+ *   · da igual desde qué cara bloqueó Ana y qué cara de Beto vio: son las ocho combinaciones
  *   · Carla no tiene nada que ver: escribe y le escriben como siempre.
  *
  * Las identidades van escritas tal como están en los datos (el uid de un Perfil Weë lleva el prefijo heredado): aquí
@@ -44,16 +44,21 @@ export const BLOQUEO_DE_ANA = Object.freeze({
   entradas: Object.freeze([Object.freeze({ caraQueBloquea: CARAS.anaReal, caraBloqueada: CARAS.betoWee })]),
 });
 
-/** Los pares del índice que ese bloqueo deja escritos: «`de` no puede escribir a `para`», como `de~para`. */
+/** Los pares del índice que ese bloqueo deja escritos: «`de` no puede contactar con `para`», como `de~para`. */
 export const PARES_DEL_BLOQUEO_DE_ANA = Object.freeze([
   `${CARAS.betoReal}~${CARAS.anaReal}`,
+  `${CARAS.betoReal}~${CARAS.anaWee}`,
   `${CARAS.betoWee}~${CARAS.anaReal}`,
+  `${CARAS.betoWee}~${CARAS.anaWee}`,
+  `${CARAS.anaReal}~${CARAS.betoReal}`,
   `${CARAS.anaReal}~${CARAS.betoWee}`,
+  `${CARAS.anaWee}~${CARAS.betoReal}`,
   `${CARAS.anaWee}~${CARAS.betoWee}`,
 ].sort());
 
 /*
- * La ESPECIFICACIÓN, escrita aparte del código: ¿puede `de` escribir a `para`? Solo las cuatro prohibiciones de arriba;
- * todo lo demás entre las dos cuentas, sí. Lo que el dueño decidió, sin mirar cómo se implementa.
+ * La ESPECIFICACIÓN, escrita aparte del código: ¿puede `de` contactar con `para`? Con el bloqueo de Ana, ninguna de las
+ * ocho combinaciones entre las dos cuentas; con cualquier otra persona, todo como siempre. Lo que el dueño decidió, sin
+ * mirar cómo se implementa.
  */
 export const PROHIBIDO_EN_EL_ESCENARIO = Object.freeze(new Set(PARES_DEL_BLOQUEO_DE_ANA));
