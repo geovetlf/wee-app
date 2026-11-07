@@ -144,7 +144,7 @@ Texto exacto en `ops/propuestas/weetalk-bloqueo/`:
   - `fronteras-rules`: 77/77;
   - `comunidades-identidad`: 76/76.
 - **Análisis mecánico de permisos:** sin comentarios y con espacios normalizados.
-  - De las 12 sentencias `allow` de los dos bloques, 9 son idénticas y 3 más estrictas, «la de hoy && …» (crear y actualizar conversación, crear mensaje), más la de crear un aviso. **Ninguna se afloja.**
+  - De las 12 sentencias `allow` de los dos bloques, 8 son idénticas y 4 más estrictas, «la de hoy && …»: crear y actualizar conversación, crear mensaje y crear aviso. **Ninguna se afloja.**
   - Ninguna función existente cambia.
   - Las únicas lecturas nuevas de documentos son `exists()` sobre `weetalkBloqueosPorPar`.
   - Fuera de los dos bloques, `firestore.rules` queda idéntico byte a byte.
