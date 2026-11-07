@@ -19,7 +19,7 @@
  * `functions/src` (ver `libDesfasado`); si no lo está, no corre ninguna y sale
  * con 2 diciendo qué construir.
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -94,13 +94,29 @@ export const LIMITES_POR_SUITE_S = {
 /** El límite de una suite: el global, o el de `LIMITES_POR_SUITE_S` si es MAYOR (nunca se baja por debajo del global). */
 export const limiteDe = (suite, limiteMs, limites = LIMITES_POR_SUITE_S) => Math.max(limiteMs, (limites[suite] || 0) * 1000);
 
+/*
+ * CORTAR UNA SUITE ES CORTAR SU ÁRBOL. En Windows, `hijo.kill()` termina solo el proceso hijo: lo que esa suite lanzó
+ * (las copias de `cotas-de-tiempo`, los hooks de `guardia-*`) seguiría vivo y huérfano, consumiendo memoria. Aquí se
+ * termina el árbol de ESE pid y nada más (`taskkill /PID <pid> /T /F`, nunca `/IM`); si taskkill no está o falla, queda
+ * `kill()`. La barrera completa contra huérfanos es el Job Object del vigilante (`_gran-motor/vigilante`), que también
+ * alcanza a los descendientes cuyo padre ya murió.
+ */
+export const cortarArbol = (hijo, { plataforma = process.platform, ejecutar = spawnSync } = {}) => {
+  if (plataforma === 'win32' && hijo.pid) {
+    const r = ejecutar('taskkill', ['/PID', String(hijo.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
+    if (r && r.status === 0) return 'arbol';
+  }
+  hijo.kill();
+  return 'kill';
+};
+
 const correrUna = (suite, limiteMs) => new Promise((resolve) => {
   const inicio = Date.now();
   const hijo = spawn(process.execPath, [suite], { cwd: FUNCIONES, env: process.env });
   let salida = '';
   hijo.stdout.on('data', (d) => { salida += d; });
   hijo.stderr.on('data', (d) => { salida += d; });
-  const reloj = setTimeout(() => { salida += `\n[cadena] más de ${limiteMs / 1000} s: se corta`; hijo.kill(); }, limiteMs);
+  const reloj = setTimeout(() => { salida += `\n[cadena] más de ${limiteMs / 1000} s: se corta (${cortarArbol(hijo)})`; }, limiteMs);
   hijo.on('close', (codigo) => {
     clearTimeout(reloj);
     resolve({ suite, ok: codigo === 0, codigo, ms: Date.now() - inicio, salida });
