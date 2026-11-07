@@ -139,10 +139,18 @@ const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }
   const MARCA = '\u0000';
   /* Dentro de una frase («… comentó tu publicación») el respaldo es un pronombre, no el sustantivo de un nombre. */
   const nombre = remitente?.displayName || t('common.someone');
-  const [antesDelNombre, despuesDelNombre] = t(claveDeLaNotificacion(item), {
+  /*
+   * SIN NOMBRE, SU PROPIA FRASE (`notifications.<clave>SinNombre`). En casi todos los idiomas es la misma de siempre y su
+   * hueco se rellena con «Alguien»; en filipino el nombre va con «si/ni», que no admiten un sustantivo común, y la
+   * frase se escribe sin hueco («May nag-like sa post mo»). Si la frase no tiene hueco, no se pinta ningún nombre.
+   */
+  const clave = claveDeLaNotificacion(item);
+  const partes = t(remitente?.displayName ? clave : `${clave}SinNombre`, {
     nombre: MARCA,
     comunidad: nombreGuardadoDeComunidad(item.communityName, t, locale) || t('notifications.aCommunity'),
   }).split(MARCA);
+  const [antesDelNombre, despuesDelNombre] = partes;
+  const llevaNombre = partes.length > 1;
 
   return (
     <TouchableOpacity
@@ -180,8 +188,8 @@ const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }
         <View style={styles.notificationContent}>
           <Text style={[styles.notificationText, { color: theme.colors.text }]} numberOfLines={2}>
             {antesDelNombre}
-            <Text style={styles.username}>{nombre}</Text>
-            {despuesDelNombre}
+            {llevaNombre ? <Text style={styles.username}>{nombre}</Text> : null}
+            {llevaNombre ? despuesDelNombre : null}
           </Text>
 
           {/* Preview del contenido */}

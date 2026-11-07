@@ -34,7 +34,9 @@ export const etiquetaDeIdioma = (crudo: unknown): string | null => {
 export const tablaDelIdioma = (tablas: Readonly<Record<string, TablaDeTextos>>, crudo: unknown): TablaDeTextos => {
   const etiqueta = etiquetaDeIdioma(crudo);
   if (!etiqueta) return tablas.es;
-  const idioma = etiqueta.split('-')[0];
+  /* `tl` (tagalo) es otro nombre del filipino para CLDR: un `Accept-Language: tl-PH` lee la tabla `fil`. */
+  const base = etiqueta.split('-')[0];
+  const idioma = base === 'tl' ? 'fil' : base;
   return tablas[etiqueta] || tablas[idioma] || tablas.en || tablas.es;
 };
 

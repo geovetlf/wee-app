@@ -14,9 +14,8 @@
  * previa dice «📷 Foto»; la nota de voz, «🎤 Talebesked». `photo` es la etiqueta del botón de la
  * cámara: «Tag foto». `youSaid` es «Du:»: el rótulo de quién habla va en sujeto («Dig:» es el registro de los memes).
  * `areYouSure` es el cuerpo del aviso de borrar una conversación, cuyo título ya dice qué se
- * borra. `noConversationsHint` cita en español un botón «Privado» que no existe en ninguna
- * pantalla; aquí cita el que sí existe en el menú de la publicación, «Send i WeeTalk»
- * (`wall.sendByWeeTalk`, con las mismas letras), que abre la conversación con quien la publicó.
+ * borra. `noConversationsHint` recibe por hueco, `{{boton}}`, el botón del menú de la publicación que
+ * abre la conversación con quien la publicó (`wall.sendByWeeTalk`), así que nunca cita uno que no exista.
  * Los permisos los pide Weë, de sujeto. Los errores son frases completas con punto y el paso
  * siguiente («Prøv igen.»).
  */
@@ -47,7 +46,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: 'Weë skal have adgang til dine fotos.',
   audioPermission: 'Weë skal have adgang til mikrofonen for at optage lyd.',
   imageFailed: 'Billedet kunne ikke sendes. Prøv igen.',
-  noConversationsHint: 'Tryk på ”Send i WeeTalk” i menuen på et opslag for at starte en anonym samtale',
+  noConversationsHint: 'Tryk på ”{{boton}}” i menuen på et opslag for at starte en privat samtale',
   ephemeralMode: 'Forsvindende beskeder',
   noMessagesYet: 'Ingen beskeder endnu',
   youSaid: 'Du: {{mensaje}}',

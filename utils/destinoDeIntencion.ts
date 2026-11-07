@@ -33,6 +33,7 @@
 
 import { matchExperiences, WeeExperience } from '../constants/weeExperiences';
 import { ContextoDeExperiencia, WorkspaceId, workspaceDe } from '../constants/weeWorkspaces';
+import type { CodigoDeIdioma } from '../i18n/idiomas';
 
 /**
  * Quién decidió el destino. Se guarda para poder MEDIR si acierta.
@@ -71,8 +72,8 @@ export interface OpcionesDeDestino {
    * quien ha leído la frase entera es el único que puede notarlo.
    */
   declaradaPorLaPuerta?: string | null;
-  /** El idioma de la app: las palabras se reconocen también en él (`matchExperiences`). */
-  idioma?: string;
+  /** El idioma activo de la interfaz (`useIdioma().idioma`): las palabras se reconocen en él (`matchExperiences`). */
+  idioma?: CodigoDeIdioma;
   /**
    * Quedarse dentro de un lugar de trabajo. Weë Studio lo usa para no mandar a
    * alguien a Weë Chef desde su portada: allí no se enseñan los otros sitios y

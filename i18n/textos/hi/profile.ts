@@ -83,6 +83,7 @@ export const profile: typeof import('../es/profile').profile = {
   actionFailed: 'पूरा नहीं किया जा सका',
   userNotFound: 'यह यूज़र मौजूद नहीं है',
   shareOtherMessage: 'Weë पर @{{nombre}} की प्रोफ़ाइल देखें!\n\n{{bio}}',
+  shareOtherMessageSinNombre: 'Weë पर यह प्रोफ़ाइल देखें!\n\n{{bio}}',
   shareOtherNoBio: 'Weë यूज़र',
   joinedOn: 'जुड़ने की तारीख: {{fecha}}',
   tabPolls: 'पोल',

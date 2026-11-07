@@ -8,6 +8,10 @@
  *
  * `locale` es la etiqueta de Open Graph de esta página (`og:locale`) y `codigo` lo que va en `<html lang>`: no son
  * frases, pero cambian con el idioma y por eso viven aquí.
+ *
+ * `reposteoSinNombre` es la línea del reposteo cuando quien reposteó no tiene nombre, como las frases sin nombre de la
+ * app (`notifications.<clave>SinNombre`, `wall.repostedBySinNombre`): en español es la MISMA, con `alguien` en el
+ * hueco; un idioma donde «alguien» no puede ir en el sitio del nombre (el filipino, detrás de «si») escribe otra.
  */
 export const publica = {
   codigo: 'es',
@@ -28,6 +32,7 @@ export const publica = {
   masEnWee: 'y {{contador}} más en Weë',
   hechoCon: 'Hecho con',
   reposteo: '{{nombre}} reposteó',
+  reposteoSinNombre: '{{nombre}} reposteó',
   perfilWee: 'Perfil Weë',
   estoEsWee: 'Esto es Weë',
   lema: 'La red de quienes crean con Inteligencia Artificial. Descubre, aprende y comparte.',

@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Kailangan ng Weë ng access sa camera mo para makakuha ka ng mga larawang magagamit mo sa mga post mo, sa profile mo, sa WeeTalk at sa Weë AI.",
+    "NSMicrophoneUsageDescription": "Kailangan ng Weë ng access sa mikropono mo para makapag-record ka at makapagpadala ng mga voice message sa WeeTalk.",
+    "NSPhotoLibraryUsageDescription": "Kailangan ng Weë ng access sa gallery mo para makapili ka ng mga larawan at video na gagamitin mo sa mga post mo, sa profile mo, sa WeeTalk at sa Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Kailangan ng Weë ng pahintulot para i-save sa gallery mo ang mga larawan at video na dina-download mo mula sa Weë AI.",
+    "NSLocationWhenInUseUsageDescription": "Ginagamit lang ng Weë ang tinatayang lokasyon mo habang bukas ang app, para imungkahi sa iyo ang mga kalapit na lugar at ang area mo kapag nagdagdag ka ng lokasyon sa isang post. Hindi kailanman ipinapakita sa publiko ang eksaktong lokasyon mo."
+  }
+}

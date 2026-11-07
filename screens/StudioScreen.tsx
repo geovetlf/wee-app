@@ -83,7 +83,7 @@ const SITIO_DE_LA_BARRA = scale(96);
  */
 const StudioScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { t, locale } = useIdioma();
+  const { t, locale, idioma } = useIdioma();
   const navigation = useNavigation<any>();
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const alturaTeclado = useAlturaDelTeclado();
@@ -208,7 +208,7 @@ const StudioScreen: React.FC = () => {
        */
       declaradaPorLaPuerta: experiencia?.experienceId ?? (entrada ? entradaPorId(entrada)?.experienceId : undefined),
       dentroDe: 'studio',
-      idioma: locale,
+      idioma,
     });
 
     if (destino) {
@@ -275,7 +275,7 @@ const StudioScreen: React.FC = () => {
 
     setEstado('creando');
     temporizador.current = setTimeout(() => setEstado('listo'), LO_QUE_TARDA_LA_DEMO);
-  }, [prompt, experiencia, entrada, controles, adjuntos, navigation, t, locale]);
+  }, [prompt, experiencia, entrada, controles, adjuntos, navigation, t, locale, idioma]);
 
   /**
    * LO ELEGIDO DENTRO DE UNA PUERTA VUELVE AL COMPOSITOR.

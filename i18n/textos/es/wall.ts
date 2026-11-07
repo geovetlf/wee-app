@@ -3,9 +3,13 @@
  *
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
+ *
+ * `repostedBySinNombre` es «quién reposteó» cuando no tiene nombre (el hueco lo rellena `common.user`). En español es
+ * la MISMA frase; un idioma donde ese respaldo no cabe en el sitio del nombre (el filipino, detrás de «si») escribe otra.
  */
 export const wall = {
   repostedBy: '{{nombre}} reposteó',
+  repostedBySinNombre: '{{nombre}} reposteó',
   repost: 'Republicar',
   undoRepost: 'Quitar republicación',
   undoRepostConfirm: 'Quitar la republicación',

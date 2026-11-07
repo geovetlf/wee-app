@@ -9,9 +9,9 @@
  * cámara—, así que se dicen «fotoğraf», también en la vista previa (📷 Fotoğraf). `photo` es la
  * etiqueta del botón de la cámara: «Fotoğraf çek». `theme` es «Sohbet teması»: «Tema» a secas se
  * escribe igual que en español. `areYouSure` es el cuerpo del aviso de borrar una conversación,
- * cuyo título ya dice qué se borra. `noConversationsHint` cita en español un botón «Privado» que no
- * existe en ninguna pantalla; aquí cita el que sí existe, «WeeTalk'tan gönder» (`wall.sendByWeeTalk`,
- * en el menú de la publicación, con las mismas letras), que abre la conversación con quien la publicó.
+ * cuyo título ya dice qué se borra. `noConversationsHint` recibe por hueco, `{{boton}}`, el botón del
+ * menú de la publicación que abre la conversación con quien la publicó (`wall.sendByWeeTalk`), así que
+ * nunca cita uno que no exista.
  */
 export const weetalk: typeof import('../es/weetalk').weetalk = {
   title: 'WeeTalk',
@@ -40,7 +40,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: 'Fotoğraflarına erişmek için izin gerekiyor',
   audioPermission: 'Ses kaydetmek için mikrofon izni gerekiyor',
   imageFailed: 'Fotoğraf gönderilemedi',
-  noConversationsHint: 'Anonim bir sohbet başlatmak için herhangi bir gönderinin menüsünde “WeeTalk\'tan gönder” seçeneğine dokun',
+  noConversationsHint: 'Özel bir sohbet başlatmak için herhangi bir gönderinin menüsünde “{{boton}}” seçeneğine dokun',
   ephemeralMode: 'Kaybolan mesajlar',
   noMessagesYet: 'Henüz mesaj yok',
   youSaid: 'Sen: {{mensaje}}',

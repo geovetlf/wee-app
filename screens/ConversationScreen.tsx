@@ -579,7 +579,7 @@ const ConversationScreen = () => {
             backgroundColor={chatTheme.accent} showBorder={false} />
           <View>
             <Text style={[styles.headerName, { color: chatTheme.headerText }]} numberOfLines={1}>
-              {other.displayName}
+              {other.displayName || t('common.user')}
             </Text>
           </View>
         </TouchableOpacity>

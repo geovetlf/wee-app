@@ -41,6 +41,7 @@ export const writer: ConPlurales<typeof import('../es/writer').writer> = {
   savedInDocuments: ' · сохранено в Моих документах',
   couldNotSaveToDocuments: 'Не удалось сохранить в Моих документах',
   myDocuments: 'Мои документы',
+  untitled: 'Без названия',
   newDocument: 'Новый документ',
   noDocumentsYet: 'Документов пока нет. Напишите новый или попросите Weë начать за вас.',
   editedWhen: 'Изменено {{cuando}}',

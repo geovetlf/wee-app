@@ -1,0 +1,6 @@
+{
+  "_comentario": "Pesos y umbrales del Eval Engine (F2-A). CONFIGURABLES a propósito: no se fijan valores arbitrarios en el código. Pesos por dimensión (relativos); umbrales en puntos de score [0..1]. toleranciaRegresion 0 = cualquier caída de una dimensión obliga a revisar/rechazar (regression check estricto).",
+  "pesos": { "QUALITY": 1, "COST": 1, "LATENCY": 1, "RELIABILITY": 1 },
+  "umbrales": { "umbralMejora": 0.02, "umbralRegresion": 0.02, "tolerancia": 0.01, "toleranciaRegresion": 0 },
+  "minCases": 5
+}

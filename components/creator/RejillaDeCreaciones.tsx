@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
-import { textoDelServidor } from '../../i18n/servidor';
+import { textoDelServidorLegible } from '../../i18n/servidor';
 import { AssetDoc, assetsService } from '../../services/assetsService';
 import { CLAVE_DE_ESTADO, CLAVE_DE_TIPO, vistaDeAsset } from '../../services/vistaDeAsset';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -55,8 +55,11 @@ interface TarjetaProps {
 const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDelete }) => {
   const { theme } = useTheme();
   const { t, locale } = useIdioma();
-  /* El nombre de una creación es el paso del plan que la hizo, escrito por el servidor: en el idioma de quien mira. */
-  const nombreDe = (nombre: string | undefined): string | undefined => (nombre ? textoDelServidor(nombre, { t, locale }) : nombre);
+  /*
+   * El nombre de una creación es el paso del plan que la hizo, escrito por el servidor: en el idioma de quien mira. Si
+   * el catálogo no lo conoce (p. ej. el «Crear un vídeo» del Core Runtime), nada: la tarjeta pone su tipo, traducido.
+   */
+  const nombreDe = (nombre: string | undefined): string | undefined => (nombre ? textoDelServidorLegible(nombre, { t, locale }) : undefined);
   /*
    * TODO LO QUE SE ENSEÑA SALE DE LA PROYECCIÓN, no del documento.
    *

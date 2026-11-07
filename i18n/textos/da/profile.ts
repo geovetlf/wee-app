@@ -83,6 +83,7 @@ export const profile: typeof import('../es/profile').profile = {
   actionFailed: 'Handlingen kunne ikke gennemføres',
   userNotFound: 'Brugeren findes ikke.',
   shareOtherMessage: 'Se profilen for @{{nombre}} på Weë!\n\n{{bio}}',
+  shareOtherMessageSinNombre: 'Se denne profil på Weë!\n\n{{bio}}',
   shareOtherNoBio: 'Bruger på Weë',
   joinedOn: 'Medlem siden {{fecha}}',
   tabPolls: 'Afstemninger',

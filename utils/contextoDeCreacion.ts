@@ -57,8 +57,12 @@ const PISTAS: { contexto: ContextoDeCreacion; palabras: RegExp }[] = [
  * Las mismas pistas en el idioma de quien escribe. Se SUMAN a las de arriba —en español no cambia nada— y se miran en
  * el mismo orden de medios. Los límites de palabra son los de Unicode y no `\b`, que no sabe que «æ», «ø» y «å»
  * son letras.
+ *
+ * El filipino lleva también las inglesas, porque se escribe en taglish, y la forma con el enlace pegado
+ * («isang videong 5 segundo», «larawang pang-Instagram», «isang logong simple»). Como el límite es de palabra entera,
+ * «paglalarawan» e «ilarawan» (describir) no cuentan como imagen: «paglalarawan» es una de las pistas de texto.
  */
-const PISTAS_POR_IDIOMA: Readonly<Record<'da' | 'en', Partial<Record<ContextoDeCreacion, RegExp>>>> = {
+const PISTAS_POR_IDIOMA: Readonly<Record<'da' | 'en' | 'fil', Partial<Record<ContextoDeCreacion, RegExp>>>> = {
   da: {
     video: /(?<!\p{L})(videoer?|videoen|klip|we[eë]ls?|reels?|animation(?:er)?|animeret|optagelser?|trailer(?:e|en)?)(?!\p{L})/iu,
     imagen: /(?<!\p{L})(billeder?|billedet|fotos?|fotografi(?:er)?|illustration(?:er)?|tegning(?:er)?|plakat(?:er)?|logo(?:er|et)?|thumbnails?|miniaturer?)(?!\p{L})/iu,
@@ -73,11 +77,19 @@ const PISTAS_POR_IDIOMA: Readonly<Record<'da' | 'en', Partial<Record<ContextoDeC
     documento: /(?<!\p{L})(pdf|documents?|reports?|presentations?|résumé|resume|cv|contracts?)(?!\p{L})/iu,
     texto: /(?<!\p{L})(texts?|articles?|scripts?|posts?|e-?mails?|letters?|descriptions?)(?!\p{L})/iu,
   },
+  fil: {
+    video: /(?<!\p{L})(videos?|videong|bidyo|clips?|klip|we[eë]ls?|reels?|animasyong?|animation|animated|footage|trailers?)(?!\p{L})/iu,
+    imagen: /(?<!\p{L})(larawang?|litrato(?:ng)?|retrato|images?|pictures?|pics?|photos?|photographs?|ilustrasyon|illustrations?|drawings?|guhit|posters?|logo(?:ng|s)?|thumbnails?)(?!\p{L})/iu,
+    voz: /(?<!\p{L})(boses|narasyong?|voices?|voice-?over|narration|audio|podcasts?|dubbing)(?!\p{L})/iu,
+    documento: /(?<!\p{L})(pdf|dokumento(?:ng)?|documents?|ulat|reports?|presentasyong?|presentations?|résumé|resume|cv|kontrata|contracts?)(?!\p{L})/iu,
+    texto: /(?<!\p{L})(teksto(?:ng)?|texts?|artikulo(?:ng)?|articles?|iskrip|scripts?|captions?|posts?|e-?mails?|liham|sulat|letters?|paglalarawan|descriptions?)(?!\p{L})/iu,
+  },
 };
 
-const baseDe = (idioma?: string): 'da' | 'en' | undefined => {
+const baseDe = (idioma?: string): 'da' | 'en' | 'fil' | undefined => {
   if (/^da(?:-|$)/i.test(idioma ?? '')) return 'da';
   if (/^en(?:-|$)/i.test(idioma ?? '')) return 'en';
+  if (/^fil(?:-|$)/i.test(idioma ?? '')) return 'fil';
   return undefined;
 };
 
@@ -122,9 +134,13 @@ const DURACIONES = [5, 10, 15];
  * lo comprueba antes.
  */
 export const duracionEnElTexto = (texto?: string, idioma?: string): string | null => {
-  /* «10 sek», «10 sekunder», «a 10-second video»: lo mismo dicho en el idioma de la app. */
+  /*
+   * «10 sek», «10 sekunder», «a 10-second video»: lo mismo dicho en el idioma de la app. En filipino, «10 segundo» ya
+   * lo entiende el español; falta la forma con el enlace («10 segundong video») y la inglesa del taglish.
+   */
   const otra = baseDe(idioma) === 'da' ? /(\d{1,3})[\s-]*sek(?:\.|under|unders)?(?!\p{L})/iu
     : baseDe(idioma) === 'en' ? /(\d{1,3})[\s-]*sec(?:s|onds?)?(?!\p{L})/iu
+    : baseDe(idioma) === 'fil' ? /(\d{1,3})[\s-]*(?:segundo(?:ng)?|seg\.?|sec(?:onds?|s|\.)?)(?!\p{L})/iu
     : undefined;
   const encontrado = texto?.match(/(\d{1,3})\s*(?:s\b|segs?\b|segundos?\b)/i) ?? (otra ? texto?.match(otra) : null);
   if (!encontrado) return null;

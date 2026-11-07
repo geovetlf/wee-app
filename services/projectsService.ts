@@ -16,6 +16,7 @@ import {
 import { db } from '../config/firebase';
 import { CreatorJob } from './creatorService';
 import { conMayusculaInicial } from '../i18n/caja';
+import { idiomaDe } from '../i18n/resolver';
 
 /**
  * "Mis proyectos" (docs/CREATOR-BUILD.md §17): cada proyecto agrupa creaciones
@@ -34,14 +35,16 @@ export interface WeeProject {
 export const PROJECT_EMOJIS = ['📁', '🍔', '🎵', '🚗', '🏷️', '🏠', '💼', '🎬', '📚', '💄', '🌟'];
 
 /**
- * "Quiero un video para promocionar mi restaurante" → "Mi restaurante".
+ * "Quiero un video para promocionar mi restaurante" → "Mi restaurante" (y «mis redes» → «Mis redes»).
+ * La regla «mi …» es del español: en otro idioma no se busca (en italiano «mi serve un video» no es un nombre).
  * La inicial sube con las reglas del locale: «istanbul gezisi» → «İstanbul gezisi».
  */
 export const suggestProjectName = (goal: string, locale?: string): string => {
-  const match = goal.match(/\b(mi|mis)\s+([a-záéíóúñü]+(?:\s+[a-záéíóúñü]+)?)/i);
+  const enEspanol = !locale || idiomaDe(locale) === 'es';
+  const match = enEspanol ? goal.match(/\b(mi|mis)\s+([a-záéíóúñü]+(?:\s+[a-záéíóúñü]+)?)/i) : null;
   if (match) {
     const words = match[2].toLowerCase().split(/\s+/).filter((w) => !['para', 'con', 'de', 'en', 'que', 'y', 'el', 'la'].includes(w));
-    if (words.length > 0) return `Mi ${words.join(' ')}`;
+    if (words.length > 0) return `${match[1].toLowerCase() === 'mis' ? 'Mis' : 'Mi'} ${words.join(' ')}`;
   }
   const short = goal.split(/\s+/).slice(0, 3).join(' ').replace(/[.:,;]$/, '');
   return short ? conMayusculaInicial(short, locale) : 'Mi proyecto';

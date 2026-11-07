@@ -37,7 +37,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: '访问照片需要授予权限',
   audioPermission: '录制音频需要授予权限',
   imageFailed: '图片发送失败',
-  noConversationsHint: '在任意动态上点“私密”，就能开始一段匿名会话',
+  noConversationsHint: '打开任意动态的菜单，点“{{boton}}”，就能开始一段私密会话',
   ephemeralMode: '阅后即焚模式',
   noMessagesYet: '还没有消息',
   youSaid: '你：{{mensaje}}',

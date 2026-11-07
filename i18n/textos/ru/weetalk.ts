@@ -7,7 +7,7 @@
  * WeeTalk no es «Чат»: es un nombre propio y se queda en alfabeto latino dentro
  * del cirílico. Trato con «вы» en minúscula e imperativo directo. Las comillas
  * son las rusas « », también cuando la frase cita un botón: `noConversationsHint`
- * nombra «Приватно», que es el botón de una publicación. El emoji 🤝 se copia
+ * lo recibe por hueco, «{{boton}}» (`wall.sendByWeeTalk`). El emoji 🤝 se copia
  * tal cual.
  */
 export const weetalk: typeof import('../es/weetalk').weetalk = {
@@ -37,7 +37,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: 'Нужны разрешения для доступа к фото',
   audioPermission: 'Нужны разрешения для записи звука',
   imageFailed: 'Не удалось отправить изображение',
-  noConversationsHint: 'Нажмите «Приватно» под любой публикацией, чтобы начать анонимную переписку',
+  noConversationsHint: 'Откройте меню любой публикации и нажмите «{{boton}}», чтобы начать приватную переписку',
   ephemeralMode: 'Исчезающий режим',
   noMessagesYet: 'Сообщений пока нет',
   youSaid: 'Вы: {{mensaje}}',

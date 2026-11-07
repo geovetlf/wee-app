@@ -391,7 +391,8 @@ console.log('\n── H · Traducir la meta no cambia ningún camino ──');
 
   /* La meta se traduce a propósito: es lo que la persona lee luego en su historial. */
   check('42) la meta viaja traducida porque acaba siendo el título del trabajo',
-    /title: job\.goal/.test(flujo) && EN.chefAcRecipeGoal === 'I want a recipe' && ES.chefAcRecipeGoal === 'Quiero una receta');
+    /* El título sale del objetivo, dicho en el idioma de quien mira (textoDeObjetivo, auditoría final de i18n). */
+    /title: textoDeObjetivo\(t, experience\.id, job\.goal\)/.test(flujo) && EN.chefAcRecipeGoal === 'I want a recipe' && ES.chefAcRecipeGoal === 'Quiero una receta');
 }
 
 console.log('\n' + (failures ? `✘ ${failures} fallo(s)` : '✔ todo bien'));

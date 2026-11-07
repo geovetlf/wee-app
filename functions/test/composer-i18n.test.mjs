@@ -198,7 +198,8 @@ console.log('\n── D · Lo que NO se traduce ──');
     /value=\{postText\}/.test(C[CREAR]) && !/t\(postText\)/.test(C[CREAR]));
   check('17) ni el texto de una opción de encuesta', /value=\{option\.text\}/.test(C[CREAR]) && !/t\(option\.text\)/.test(C[CREAR]));
   check('17) ni la pregunta', /value=\{poll\.question\}/.test(C[CREAR]) && !/t\(poll\.question\)/.test(C[CREAR]));
-  check('17) ni el nombre de un ËContact', /\{persona\.perfil\.displayName\}/.test(C[AGENDA]) && !/t\(persona\.perfil/.test(C[AGENDA]));
+  /* El nombre de un ËContact se pinta crudo; sin nombre, el genérico de la app (auditoría final de i18n). */
+  check('17) ni el nombre de un ËContact', /\{persona\.perfil\.displayName \|\| t\('common\.user'\)\}/.test(C[AGENDA]) && !/t\(persona\.perfil/.test(C[AGENDA]));
   /* El lugar se ESCRIBE en el idioma de quien mira con su nombre en ese idioma (`opcionEnSuIdioma`, «København»), no con el traductor. */
   check('17) ni el nombre de un lugar del catálogo', /\{visible\.label\}/.test(C[LUGAR]) && /opcionEnSuIdioma\(opcion, locale\)/.test(C[LUGAR]) && !/t\((?:opcion|visible)\.label\)/.test(C[LUGAR]));
   check('17) ni el nombre de quien publica', /userProfile\?\.displayName \|\| t\('composer\.you'\)/.test(C[CREAR]));

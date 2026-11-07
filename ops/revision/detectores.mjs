@@ -33,6 +33,7 @@ import {
 import { REGLAS, reglaPorId, dentroDeSolo, versionesDeReglas, LIMITE_DE_LINEAS } from './reglas.mjs';
 import { compararConBase, anclasDeReglas, carpetaDe, exportsDe, leerDiff } from './frontera.mjs';
 import { hostsDeProveedores, patronDeHosts, puedeNombrarProveedores, SDKS_DE_IA, HOSTS_DE_SDKS } from './hosts-de-proveedores.mjs';
+import { revisarDocumentos } from './documentos.mjs';
 import {
   parsear, importsDe, nombresUsadosComoValor, esDeValor, resolver, esRelativo, componentesFuertes, cicloDesde,
   refinarConComprobador, desenvolver, lineaDe,
@@ -566,6 +567,9 @@ export const analizar = (opciones = {}) => {
       }
     }
   }
+
+  // Documentación (.md, CLAUDE.md): enlaces/referencias/comandos que ya no existen. No necesita AST ni grafo.
+  crudos.push(...revisarDocumentos({ raiz, seguidos, foco, activa, avisos }));
 
   // Grafo: aristas resueltas.
   const aristasTodas = new Map(); // ruta → Set (todas las clases de import: alcanzabilidad y frontera)

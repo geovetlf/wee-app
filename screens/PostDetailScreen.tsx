@@ -585,7 +585,8 @@ const PostDetailContent: React.FC = () => {
                       params: {
                         otherUserId: post.userId,
                         otherUserData: {
-                          displayName: postAuthor.displayName || t('common.user'),
+                          /* Se GUARDA en la conversación: el nombre o nada (el genérico lo pinta quien lee). */
+                          displayName: postAuthor.displayName || '',
                           avatarType: postAuthor.avatarType,
                           avatarId: postAuthor.avatarId,
                           photoURL: postAuthor.photoURL,

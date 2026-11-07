@@ -60,7 +60,7 @@ export const aiAvatar: typeof import('../es/aiAvatar').aiAvatar = {
   gallery: 'Galerie',
   useAsProfilePhoto: 'Als Profilfoto verwenden',
   uploadAnotherPhoto: 'Anderes Foto als Avatar hochladen',
-  intro: 'Erstelle einen Avatar mit KI oder lade ein Foto hoch, das du als Avatar in deinem Weë Profil nutzt.',
+  intro: 'Erstelle einen Avatar mit KI oder lade ein Foto hoch, das du als Avatar in deinem Weë-Profil nutzt.',
   uploadPhotoAsAvatar: 'Foto als Avatar hochladen',
   nextStep: 'Weiter',
   previousStep: 'Zurück',

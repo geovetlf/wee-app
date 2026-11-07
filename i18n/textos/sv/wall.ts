@@ -22,6 +22,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} återpublicerade',
+  repostedBySinNombre: '{{nombre}} återpublicerade',
   repost: 'Återpublicera',
   undoRepost: 'Ångra återpublicering',
   undoRepostConfirm: 'Ångra återpubliceringen',

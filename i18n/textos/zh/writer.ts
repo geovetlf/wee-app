@@ -38,6 +38,7 @@ export const writer: typeof import('../es/writer').writer = {
   savedInDocuments: ' · 已保存到我的文档',
   couldNotSaveToDocuments: '无法保存到我的文档',
   myDocuments: '我的文档',
+  untitled: '无标题',
   newDocument: '新建文档',
   noDocumentsYet: '你还没有文档。新写一篇，或者让 Weë 帮你起个头。',
   editedWhen: '{{cuando}}编辑',

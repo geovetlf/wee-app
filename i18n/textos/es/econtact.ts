@@ -3,6 +3,12 @@
  *
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
+ *
+ * Las `<clave>SinNombre` (las confirmaciones `rejectConfirm`, `withdrawConfirm`, `removeConfirm` y las etiquetas del
+ * lector de pantalla `accept`, `reject`, `withdraw`, `removeFrom`, `openProfile`) son las frases cuando el perfil no
+ * tiene nombre: el hueco lo rellena `somePerson`. En español son las MISMAS frases; un idioma donde la persona sin
+ * nombre no cabe en el sitio del nombre (el filipino: si/ni/kay) o pide otro caso (el alemán tras «von», el ruso
+ * tras los dos puntos) escribe otras.
  */
 export const econtact = {
   requestsReceived: 'Solicitudes recibidas',
@@ -16,16 +22,24 @@ export const econtact = {
   noAgendaSubtitle: '{{lista}} es donde están tus conexiones con otras personas. Cambia a tu Perfil Real o a tu Perfil Weë para verlas.',
   wantsToConnect: '{{lista}} · quiere conectar contigo',
   accept: 'Aceptar a {{nombre}}',
+  acceptSinNombre: 'Aceptar a {{nombre}}',
   reject: 'Rechazar a {{nombre}}',
+  rejectSinNombre: 'Rechazar a {{nombre}}',
   withdraw: 'Retirar la solicitud a {{nombre}}',
+  withdrawSinNombre: 'Retirar la solicitud a {{nombre}}',
   removeFrom: 'Eliminar a {{nombre}} de tus {{lista}}',
+  removeFromSinNombre: 'Eliminar a {{nombre}} de tus {{lista}}',
   openProfile: 'Abrir el {{etiqueta}} de {{nombre}}',
+  openProfileSinNombre: 'Abrir el {{etiqueta}} de {{nombre}}',
   rejectTitle: 'Rechazar solicitud',
   rejectConfirm: '¿Rechazar la solicitud de {{nombre}}?',
+  rejectConfirmSinNombre: '¿Rechazar la solicitud de {{nombre}}?',
   withdrawTitle: 'Retirar solicitud',
   withdrawConfirm: '¿Retirar tu solicitud a {{nombre}}?',
+  withdrawConfirmSinNombre: '¿Retirar tu solicitud a {{nombre}}?',
   removeTitle: 'Eliminar {{lista}}',
   removeConfirm: '¿Eliminar a {{nombre}} de tus {{lista}}?',
+  removeConfirmSinNombre: '¿Eliminar a {{nombre}} de tus {{lista}}?',
   failed: 'No se pudo completar',
   count_one: '1 {{lista}}',
   count_other: '{{contador}} {{lista}}',

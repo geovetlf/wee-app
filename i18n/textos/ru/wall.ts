@@ -18,6 +18,7 @@ import { ConPlurales } from './plurales';
 
 export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   repostedBy: 'Репост: {{nombre}}',
+  repostedBySinNombre: 'Репост: {{nombre}}',
   repost: 'Сделать репост',
   undoRepost: 'Убрать репост',
   undoRepostConfirm: 'Убрать этот репост',

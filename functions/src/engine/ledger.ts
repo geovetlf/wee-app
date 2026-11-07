@@ -173,6 +173,12 @@ export const firestoreLedger: Ledger = {
     const day = diaDelLibro(record.createdAt, now);
     const provider = record.provider || 'unknown';
     const capability = record.capability || 'unknown';
+    /*
+     * El gasto de una EVALUACIÓN interna (F2-C) se contabiliza APARTE, en evalUsage/{día}, NUNCA en aiUsage/{día}:
+     * así el presupuesto de evals es su propio bolsillo y jamás contamina el tope de gasto del usuario ni los
+     * informes de coste de producción. El resto (tráfico real) sigue en aiUsage como siempre.
+     */
+    const coleccionDeUso = record.attribution === 'eval' ? 'evalUsage' : 'aiUsage';
     /* Lo que pudo costar un fallo que llegó al proveedor (H0 #22): aparte del dinero medido, para que los topes lo vean. */
     const estimado = Number(patch.providerCostEstimated);
     const enRiesgo = patch.providerCostStatus === 'desconocido' && Number.isFinite(estimado) && estimado > 0 ? estimado : 0;
@@ -180,7 +186,7 @@ export const firestoreLedger: Ledger = {
     await Promise.all([
       ref.set(clean, { merge: true }),
       db()
-        .collection('aiUsage')
+        .collection(coleccionDeUso)
         .doc(day)
         .set(
           {

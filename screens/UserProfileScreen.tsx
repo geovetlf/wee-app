@@ -142,7 +142,8 @@ const UserProfileScreen: React.FC = () => {
     const bio = userProfile.bio || t('profile.shareOtherNoBio');
     try {
       await Share.share({
-        message: t('profile.shareOtherMessage', { nombre, bio }),
+        /* Sin nombre, su propia frase: «@» + nada se lee roto en todos los idiomas (y en filipino deja «ni» suelto). */
+        message: t(nombre ? 'profile.shareOtherMessage' : 'profile.shareOtherMessageSinNombre', { nombre, bio }),
       });
     } catch (error) {
       console.error('Error sharing profile:', error);
@@ -309,6 +310,10 @@ const UserProfileScreen: React.FC = () => {
     const nombrePlural = `${nombreLista}s`;
     /* Su nombre, tal y como lo escribió. Si todavía no cargó, se dice de otra forma. */
     const quien = userProfile?.displayName || t('econtact.somePerson');
+    /* Y sin nombre, la frase propia (`<clave>SinNombre`): en filipino si/ni/kay no van delante de un sustantivo común. */
+    const conNombre = !!userProfile?.displayName;
+    const confirmacion = (clave: string, valores: Record<string, string> = {}) =>
+      t(conNombre ? clave : `${clave}SinNombre`, { nombre: quien, ...valores });
 
     /*
      * ËContact es entre personas y contra su cuenta. Si esta identidad no lleva
@@ -349,7 +354,7 @@ const UserProfileScreen: React.FC = () => {
           <TouchableOpacity
             style={[styles.messageButton, { borderColor: theme.colors.border }]}
             onPress={() =>
-              preguntarYHacer(t('econtact.rejectTitle'), t('econtact.rejectConfirm', { nombre: quien }), econtact.rechazar)
+              preguntarYHacer(t('econtact.rejectTitle'), confirmacion('econtact.rejectConfirm'), econtact.rechazar)
             }
             activeOpacity={0.8}
             disabled={trabajando}
@@ -374,14 +379,14 @@ const UserProfileScreen: React.FC = () => {
         icono: 'time-outline' as const,
         relleno: false,
         onPress: () =>
-          preguntarYHacer(t('econtact.withdrawTitle'), t('econtact.withdrawConfirm', { nombre: quien }), econtact.cancelar),
+          preguntarYHacer(t('econtact.withdrawTitle'), confirmacion('econtact.withdrawConfirm'), econtact.cancelar),
       },
       conectados: {
         etiqueta: `${nombreLista} ✓`,
         icono: 'people' as const,
         relleno: false,
         onPress: () =>
-          preguntarYHacer(t('econtact.removeTitle', { lista: nombreLista }), t('econtact.removeConfirm', { nombre: quien, lista: nombrePlural }), econtact.eliminar),
+          preguntarYHacer(t('econtact.removeTitle', { lista: nombreLista }), confirmacion('econtact.removeConfirm', { lista: nombrePlural }), econtact.eliminar),
       },
     }[estado];
 
@@ -555,7 +560,7 @@ const UserProfileScreen: React.FC = () => {
         <View style={styles.profileInfo}>
           {/* Nombre y bio */}
           <Text style={[styles.displayName, { color: theme.colors.text }]}>
-            {userProfile.displayName}
+            {userProfile.displayName || t('common.user')}
           </Text>
 
           {!!userProfile.bio && (

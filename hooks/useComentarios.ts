@@ -133,7 +133,8 @@ export const useComentarios = (post: Post | null) => {
           await notificationService.createCommentNotification(
             post.userId,
             uidActivo,
-            userProfile.displayName || 'Usuario',
+            /* El nombre de verdad o nada: el genérico lo pone quien LEE el aviso, en su idioma (como en ËContact). */
+            userProfile.displayName || '',
             { type: userProfile.avatarType, id: userProfile.avatarId, url: userProfile.photoURL },
             postId,
             post.content,

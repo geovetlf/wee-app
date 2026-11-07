@@ -65,6 +65,7 @@ export const profile: typeof import('../es/profile').profile = {
   actionFailed: 'It could not be completed',
   userNotFound: 'This user doesn\'t exist',
   shareOtherMessage: 'Take a look at @{{nombre}}\'s profile on Weë!\n\n{{bio}}',
+  shareOtherMessageSinNombre: 'Take a look at this profile on Weë!\n\n{{bio}}',
   shareOtherNoBio: 'Weë user',
   joinedOn: 'Joined {{fecha}}',
   tabPolls: 'Polls',

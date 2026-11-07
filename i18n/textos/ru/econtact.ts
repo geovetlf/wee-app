@@ -17,6 +17,12 @@
  * dirían exactamente lo mismo, así que `_one` y `_other` bastan. El español
  * escribía «1 {{lista}}» a pelo; en ruso el 21 y el 101 también caen en `_one`,
  * así que el número entra por hueco en las dos.
+ *
+ * Sin nombre, el hueco lo rellena `somePerson` («этого человека», genitivo/acusativo).
+ * Las frases con dos puntos («Отозвать заявку: {{nombre}}») existen para no declinar
+ * un nombre; sin nombre no hace falta, así que esas gemelas `<clave>SinNombre` van
+ * escritas enteras y declinadas: «Отозвать заявку, отправленную этому человеку»,
+ * «Открыть {{etiqueta}} этого человека».
  */
 export const econtact: typeof import('../es/econtact').econtact = {
   requestsReceived: 'Полученные заявки',
@@ -30,16 +36,24 @@ export const econtact: typeof import('../es/econtact').econtact = {
   noAgendaSubtitle: '{{lista}} — это место, где живут ваши связи с другими людьми. Переключитесь на Реальный профиль или на Профиль Weë, чтобы увидеть их.',
   wantsToConnect: '{{lista}} · хочет связаться с вами',
   accept: 'Принять {{nombre}}',
+  acceptSinNombre: 'Принять {{nombre}}',
   reject: 'Отклонить {{nombre}}',
+  rejectSinNombre: 'Отклонить {{nombre}}',
   withdraw: 'Отозвать заявку: {{nombre}}',
+  withdrawSinNombre: 'Отозвать заявку, отправленную этому человеку',
   removeFrom: 'Удалить {{nombre}} из ваших {{lista}}',
+  removeFromSinNombre: 'Удалить {{nombre}} из ваших {{lista}}',
   openProfile: 'Открыть {{etiqueta}}: {{nombre}}',
+  openProfileSinNombre: 'Открыть {{etiqueta}} этого человека',
   rejectTitle: 'Отклонить заявку',
   rejectConfirm: 'Отклонить заявку от {{nombre}}?',
+  rejectConfirmSinNombre: 'Отклонить заявку от {{nombre}}?',
   withdrawTitle: 'Отозвать заявку',
   withdrawConfirm: 'Отозвать вашу заявку: {{nombre}}?',
+  withdrawConfirmSinNombre: 'Отозвать заявку, отправленную этому человеку?',
   removeTitle: 'Удалить {{lista}}',
   removeConfirm: 'Удалить {{nombre}} из ваших {{lista}}?',
+  removeConfirmSinNombre: 'Удалить {{nombre}} из ваших {{lista}}?',
   failed: 'Не удалось выполнить',
   count_one: '{{contador}} {{lista}}',
   count_other: '{{contador}} {{lista}}',

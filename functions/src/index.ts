@@ -3,7 +3,7 @@ import './opciones';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './social/econtact';
-import { avisoPush, cuerpoDelMensaje, cupoDeAvisos, datosDelAviso, nombreDeRespaldo, nombreVisible, resumenDeRespuestaDeExpo } from './social/avisos';
+import { avisoDeMensaje, avisoPush, cupoDeAvisos, datosDelAviso, nombreVisible, resumenDeRespuestaDeExpo } from './social/avisos';
 
 // Inicializar Firebase Admin solo si no está inicializado
 if (admin.apps.length === 0) {
@@ -110,6 +110,7 @@ export { seedanceCallback } from './engine/webhooks';
  */
 export { publicPostPage } from './public/postPage';
 export { engineAdmin } from './engine/admin';
+export { evalRun } from './evals';
 
 // Content Core (Fase 11): retirar un material propio, objeto incluido.
 export { deleteAsset } from './content';
@@ -339,14 +340,10 @@ export const sendMessagePushNotification = onDocumentCreated(
 
         if (destino) {
           const pushToken = destino.token;
-          /* En el idioma de quien lo recibe: el respaldo del nombre y lo que la app guarda cuando no hay texto. */
+          /* En el idioma de quien lo recibe: las frases sin nombre y lo que la app guarda cuando no hay texto. */
           const idioma = destino.idioma;
-          await sendExpoPush(
-            pushToken,
-            senderName || nombreDeRespaldo(idioma),
-            cuerpoDelMensaje(content, idioma),
-            { type: 'message', conversationId, senderId }
-          );
+          const aviso = avisoDeMensaje(senderName, content, idioma);
+          await sendExpoPush(pushToken, aviso.title, aviso.body, { type: 'message', conversationId, senderId });
         }
       }
 

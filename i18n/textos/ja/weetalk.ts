@@ -8,8 +8,8 @@
  * es 消えるメッセージ, el nombre que el japonés ya conoce para los mensajes que desaparecen.
  * `youSaid` precede al último mensaje propio en la bandeja: あなた：…, como las apps de mensajería
  * japonesas. `areYouSure` es el cuerpo del aviso de borrar una conversación (su único uso): dice
- * qué se borra. `noConversationsHint` cita en español un botón «Privado» que no está en ninguna
- * pantalla; en japonés cita el que sí existe, 「WeeTalkで送信」 (`wall.sendByWeeTalk`, menú del post).
+ * qué se borra. `noConversationsHint` recibe por hueco, `{{boton}}`, el botón del menú del post
+ * (`wall.sendByWeeTalk`, 「WeeTalkで送信」), así que nunca cita uno que no exista.
  * `attach` es 添付, como el «Adjuntar» de Weë AI (`weeai.attach`): la misma palabra española se
  * dice igual en toda la app. El permiso de la galería del teléfono es 写真ライブラリ (glosario 10.7).
  */
@@ -40,7 +40,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: '写真ライブラリへのアクセス許可が必要です',
   audioPermission: 'マイクへのアクセス許可が必要です',
   imageFailed: '画像を送信できませんでした',
-  noConversationsHint: 'どの投稿でも、メニューの「WeeTalkで送信」から匿名で会話を始められます',
+  noConversationsHint: 'どの投稿でも、メニューの「{{boton}}」からプライベートな会話を始められます',
   ephemeralMode: '消えるメッセージ',
   noMessagesYet: 'メッセージはまだありません',
   youSaid: 'あなた：{{mensaje}}',

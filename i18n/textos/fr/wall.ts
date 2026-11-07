@@ -10,6 +10,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} a republié',
+  repostedBySinNombre: '{{nombre}} a republié',
   repost: 'Republier',
   undoRepost: 'Retirer la republication',
   undoRepostConfirm: 'Retirer cette republication',

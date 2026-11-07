@@ -6,7 +6,7 @@ import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
-import { documentsService, WeeDocument } from '../services/documentsService';
+import { documentsService, WeeDocument, sinTitulo } from '../services/documentsService';
 import CreatorShell from '../components/creator/CreatorShell';
 import { Chip } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -63,7 +63,7 @@ const WriterEditorScreen: React.FC = () => {
       loadedFor.current = docId;
       if (found) {
         setDoc(found);
-        setTitle(found.title);
+        setTitle(sinTitulo(found.title) ? '' : found.title);
         setText(found.text);
       }
     });
@@ -89,7 +89,7 @@ const WriterEditorScreen: React.FC = () => {
     setSaved('saving');
     const result = await documentsService.save({ id: doc?.id, title: title || undefined, text });
     setDoc(result);
-    setTitle(result.title);
+    setTitle(sinTitulo(result.title) ? '' : result.title);
     setSaved('saved');
     setTimeout(() => setSaved('idle'), 1500);
   };
@@ -110,7 +110,7 @@ const WriterEditorScreen: React.FC = () => {
     if (!current || current.text !== text || current.title !== title) {
       current = await documentsService.save({ id: doc?.id, title: title || undefined, text });
       setDoc(current);
-      setTitle(current.title);
+      setTitle(sinTitulo(current.title) ? '' : current.title);
     }
     navigation.navigate('CreatorFlow', {
       experienceId: 'writer',

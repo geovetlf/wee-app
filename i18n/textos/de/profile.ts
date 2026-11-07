@@ -37,7 +37,7 @@ export const profile: typeof import('../es/profile').profile = {
   charCount: '{{usados}}/{{maximo}} Zeichen',
 
   editProfile: 'Profil bearbeiten',
-  createWeeProfile: 'Weë Profil erstellen',
+  createWeeProfile: 'Weë-Profil erstellen',
 
   posts: 'Beiträge',
   viewMyEcontacts: 'Meine {{nombre}} ansehen, {{total}}',
@@ -65,6 +65,7 @@ export const profile: typeof import('../es/profile').profile = {
   actionFailed: 'Das konnte nicht abgeschlossen werden',
   userNotFound: 'Dieses Konto gibt es nicht',
   shareOtherMessage: 'Schau dir das Profil von @{{nombre}} auf Weë an!\n\n{{bio}}',
+  shareOtherMessageSinNombre: 'Schau dir dieses Profil auf Weë an!\n\n{{bio}}',
   shareOtherNoBio: 'Mitglied bei Weë',
   joinedOn: 'Dabei seit {{fecha}}',
   tabPolls: 'Umfragen',

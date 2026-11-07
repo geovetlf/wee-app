@@ -45,6 +45,7 @@ export const writer: typeof import('../es/writer').writer = {
   savedInDocuments: ' · 已儲存到我的文件',
   couldNotSaveToDocuments: '無法儲存到我的文件',
   myDocuments: '我的文件',
+  untitled: '未命名',
   newDocument: '新增文件',
   noDocumentsYet: '你還沒有文件。新寫一篇，或是讓 Weë 幫你起個頭。',
   editedWhen: '{{cuando}}編輯',

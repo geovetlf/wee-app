@@ -169,6 +169,15 @@ const EContactScreen: React.FC = () => {
     const { perfil, identidad, tipo } = persona;
     const ocupada = ocupado === identidad;
     const nombre = perfil.displayName;
+    /*
+     * Sin nombre, las frases propias (`<clave>SinNombre`) con `econtact.somePerson` en el hueco, como en el perfil:
+     * con el hueco vacío las etiquetas del lector de pantalla y las confirmaciones acababan en «…ni » o «…a ».
+     */
+    const quien = nombre || t('econtact.somePerson');
+    /* Lo que se pinta en la fila: su nombre o, sin él, el genérico de la app para un nombre suelto (`common.user`). */
+    const nombreDeLaFila = nombre || t('common.user');
+    const frase = (clave: string, valores: Record<string, string> = {}) =>
+      t(nombre ? clave : `${clave}SinNombre`, { nombre: quien, ...valores });
 
     /*
      * La segunda línea dice con QUÉ CARA está ahí esa persona. En las recibidas
@@ -189,7 +198,7 @@ const EContactScreen: React.FC = () => {
           onPress={() => abrirPerfil(identidad)}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={t('econtact.openProfile', { etiqueta: cara, nombre })}
+          accessibilityLabel={frase('econtact.openProfile', { etiqueta: cara })}
         >
           <AvatarDisplay
             avatarType={perfil.avatarType}
@@ -199,7 +208,7 @@ const EContactScreen: React.FC = () => {
           />
           <View style={styles.textos}>
             <Text style={[styles.nombre, { color: theme.colors.text }]} numberOfLines={1}>
-              {nombre}
+              {nombreDeLaFila}
             </Text>
             <Text
               style={[
@@ -217,18 +226,18 @@ const EContactScreen: React.FC = () => {
           {seccion === 'recibidas' && (
             <>
               <Accion
-                etiqueta={t('econtact.accept', { nombre })}
+                etiqueta={frase('econtact.accept')}
                 icono="checkmark"
                 relleno
                 ocupada={ocupada}
                 onPress={() => ejecutar(identidad, () => aceptar(identidad))}
               />
               <Accion
-                etiqueta={t('econtact.reject', { nombre })}
+                etiqueta={frase('econtact.reject')}
                 icono="close"
                 ocupada={ocupada}
                 onPress={() =>
-                  preguntar(t('econtact.rejectTitle'), t('econtact.rejectConfirm', { nombre }), identidad, () =>
+                  preguntar(t('econtact.rejectTitle'), frase('econtact.rejectConfirm'), identidad, () =>
                     rechazar(identidad)
                   )
                 }
@@ -238,13 +247,13 @@ const EContactScreen: React.FC = () => {
 
           {seccion === 'contactos' && (
             <Accion
-              etiqueta={t('econtact.removeFrom', { nombre, lista: nombrePlural })}
+              etiqueta={frase('econtact.removeFrom', { lista: nombrePlural })}
               icono="person-remove-outline"
               ocupada={ocupada}
               onPress={() =>
                 preguntar(
                   t('econtact.removeTitle', { lista: nombreLista }),
-                  t('econtact.removeConfirm', { nombre, lista: nombrePlural }),
+                  frase('econtact.removeConfirm', { lista: nombrePlural }),
                   identidad,
                   () => eliminar(identidad)
                 )
@@ -254,11 +263,11 @@ const EContactScreen: React.FC = () => {
 
           {seccion === 'enviadas' && (
             <Accion
-              etiqueta={t('econtact.withdraw', { nombre })}
+              etiqueta={frase('econtact.withdraw')}
               icono="time-outline"
               ocupada={ocupada}
               onPress={() =>
-                preguntar(t('econtact.withdrawTitle'), t('econtact.withdrawConfirm', { nombre }), identidad, () =>
+                preguntar(t('econtact.withdrawTitle'), frase('econtact.withdrawConfirm'), identidad, () =>
                   cancelar(identidad)
                 )
               }

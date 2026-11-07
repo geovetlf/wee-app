@@ -8,8 +8,8 @@
  * aquí: una conversa se ELIMINA (no se «exclui»), a las fotos se ACEDE (no se
  * «acessa»), el modo es EFÉMERO con é y la cámara es a CÂMARA. El mensaje de la
  * otra persona llega por `{{mensaje}}` y sale sin tocar. El emoji 🤝 se copia tal
- * cual y "Privado" es el botón del Wäll, citado con las mismas palabras.
- * Apóstrofo tipográfico ’ siempre.
+ * cual, y el botón que cita `noConversationsHint` entra por hueco, `{{boton}}`
+ * (`wall.sendByWeeTalk`). Apóstrofo tipográfico ’ siempre.
  */
 export const weetalk: typeof import('../es/weetalk').weetalk = {
   title: 'WeeTalk',
@@ -38,7 +38,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: 'É preciso dar permissão para aceder às fotos',
   audioPermission: 'É preciso dar permissão para gravar áudio',
   imageFailed: 'Não foi possível enviar a imagem',
-  noConversationsHint: 'Toca em "Privado" em qualquer publicação para iniciar uma conversa anónima',
+  noConversationsHint: 'Abre o menu de qualquer publicação e toca em "{{boton}}" para iniciar uma conversa privada',
   ephemeralMode: 'Modo efémero',
   noMessagesYet: 'Ainda não há mensagens',
   youSaid: 'Tu: {{mensaje}}',

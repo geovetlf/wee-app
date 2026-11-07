@@ -186,7 +186,7 @@ console.log('\n── C · Las etiquetas del perfil ajeno ──');
   /* Lo que cerró la 5H sigue en pie. */
   check('18) y las confirmaciones de la fase 5H no se movieron',
     /confirmAction\(titulo, mensaje, t\('common\.yes'\), true, t\)/.test(PERFIL)
-    && /t\('econtact\.rejectConfirm', \{ nombre: quien \}\)/.test(PERFIL));
+    && /confirmacion\('econtact\.rejectConfirm'\)/.test(PERFIL));
 }
 
 // ════════════════════════════════════════════════════════════════════════════

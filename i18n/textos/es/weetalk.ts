@@ -3,6 +3,11 @@
  *
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
+ *
+ * `noConversationsHint` cita el botón que abre una conversación desde el menú de una publicación: entra por hueco,
+ * `{{boton}}` = `wall.sendByWeeTalk`, para que la pista nunca vuelva a nombrar un botón que no existe (decía
+ * «Privado», que no está en ninguna pantalla). La conversación sale con la cara activa, así que es «privada» —como
+ * `conversationStart`—, no «anónima».
  */
 export const weetalk = {
   title: 'WeeTalk',
@@ -31,7 +36,7 @@ export const weetalk = {
   photoPermission: 'Se necesitan permisos para acceder a fotos',
   audioPermission: 'Se necesitan permisos para grabar audio',
   imageFailed: 'No se pudo enviar la imagen',
-  noConversationsHint: 'Toca "Privado" en cualquier publicación para iniciar una conversación anónima',
+  noConversationsHint: 'Abre el menú de cualquier publicación y toca "{{boton}}" para iniciar una conversación privada',
   ephemeralMode: 'Modo efímero',
   noMessagesYet: 'No hay mensajes aún',
   youSaid: 'Tú: {{mensaje}}',

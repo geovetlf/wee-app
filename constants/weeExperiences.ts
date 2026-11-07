@@ -17,6 +17,7 @@
  */
 
 import { NombreDeIcono } from '../components/icons/trazosDeWee';
+import type { CodigoDeIdioma } from '../i18n/idiomas';
 
 /** Una clave de i18n, no el texto. Lo resuelve quien pinta. */
 export type ClaveDeTexto = string;
@@ -75,7 +76,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     emoji: '🎨',
     description: 'Logos, posters, ilustraciones y material para tus redes',
     examples: ['creator.designEx1', 'creator.designEx2', 'creator.designEx3'],
-    keywords: ['logo', 'diseño', 'diseno', 'post', 'flyer', 'banner', 'afiche', 'poster', 'portada', 'marca', 'branding', 'ilustración', 'ilustracion', 'sticker', 'tarjeta', 'invitación', 'invitacion', 'dibujo', 'arte', 'creatividad', 'redes'],
+    keywords: ['logo', 'diseño', 'diseno', 'post', 'flyer', 'banner', 'afiche', 'poster', 'portada', 'marca', 'branding', 'ilustración', 'ilustracion', 'sticker', 'tarjeta', 'invitación', 'invitacion', 'dibujo', 'arte', 'creatividad', 'redes', 'cartel', 'contraportada', 'logotipo'],
   },
   {
     id: 'studio',
@@ -89,7 +90,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     // descripción dentro del selector— para no repartir el mensaje principal.
     description: 'Crea y transforma fotos y videos con IA.',
     examples: ['creator.studioEx1', 'creator.studioEx2', 'creator.studioEx3'],
-    keywords: ['video', 'weel', 'weël', 'reel', 'clip', 'anuncio', 'comercial', 'publicidad', 'animación', 'animacion', 'corto', 'película', 'pelicula', 'trailer', 'subtítulos', 'subtitulos', 'promocionar', 'tiktok', 'youtube', 'historia visual'],
+    keywords: ['video', 'weel', 'weël', 'reel', 'clip', 'anuncio', 'comercial', 'publicidad', 'animación', 'animacion', 'corto', 'película', 'pelicula', 'trailer', 'subtítulos', 'subtitulos', 'promocionar', 'tiktok', 'youtube', 'historia visual', 'videoclip', 'cortometraje', 'youtuber', 'tiktoker'],
   },
   {
     id: 'photo',
@@ -99,7 +100,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     emoji: '📸',
     description: 'Mejora, restaura y transforma tus fotos',
     examples: ['creator.photoEx1', 'creator.photoEx2', 'creator.photoEx3'],
-    keywords: ['foto', 'fotos', 'fotografía', 'fotografia', 'imagen', 'retocar', 'mejorar', 'fondo', 'restaurar', 'retrato', 'filtro', 'eliminar', 'quitar', 'objeto', 'avatar', 'selfie', 'perfil', 'nitidez', 'calidad', 'borrosa'],
+    keywords: ['foto', 'fotos', 'fotografía', 'fotografia', 'imagen', 'retocar', 'mejorar', 'fondo', 'restaurar', 'retrato', 'filtro', 'eliminar', 'quitar', 'objeto', 'avatar', 'selfie', 'perfil', 'nitidez', 'calidad', 'borrosa', 'autorretrato', 'fotomontaje'],
   },
   {
     id: 'writer',
@@ -109,7 +110,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     emoji: '✍️',
     description: 'Publicaciones, historias, guiones, emails y libros',
     examples: ['creator.writerEx1', 'creator.writerEx2', 'creator.writerEx3'],
-    keywords: ['texto', 'guion', 'guión', 'escribir', 'redactar', 'historia', 'cuento', 'libro', 'ebook', 'novela', 'blog', 'artículo', 'articulo', 'caption', 'publicación', 'publicacion', 'descripción', 'descripcion', 'biografía', 'biografia', 'poema', 'carta', 'email', 'correo', 'corregir', 'idea'],
+    keywords: ['texto', 'guion', 'guión', 'escribir', 'redactar', 'historia', 'cuento', 'libro', 'ebook', 'bio', 'novela', 'blog', 'artículo', 'articulo', 'caption', 'publicación', 'publicacion', 'descripción', 'descripcion', 'biografía', 'biografia', 'poema', 'carta', 'email', 'correo', 'corregir', 'idea', 'reescribir', 'microcuento', 'minicuento', 'blogger', 'bloguero'],
   },
   {
     id: 'music',
@@ -129,7 +130,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     emoji: '💄',
     description: 'Maquillaje, cabello, barba, outfits y cambios de look',
     examples: ['creator.beautyEx1', 'creator.beautyEx2', 'creator.beautyEx3'],
-    keywords: ['belleza', 'maquillaje', 'peinado', 'corte', 'cabello', 'pelo', 'look', 'outfit', 'ropa', 'estilo', 'uñas', 'unas', 'piel', 'moda', 'barba', 'lentes', 'color de cabello', 'verme'],
+    keywords: ['belleza', 'maquillaje', 'peinado', 'corte', 'cabello', 'pelo', 'look', 'outfit', 'ropa', 'estilo', 'uñas', 'uña', 'piel', 'moda', 'barba', 'lentes', 'color de cabello', 'verme'],
   },
   {
     id: 'chef',
@@ -149,7 +150,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     emoji: '🏠',
     description: 'Decoración, diseño interior, remodelación y jardines',
     examples: ['creator.homeEx1', 'creator.homeEx2', 'creator.homeEx3'],
-    keywords: ['casa', 'hogar', 'decoración', 'decoracion', 'decorar', 'sala', 'cuarto', 'habitación', 'habitacion', 'dormitorio', 'interior', 'muebles', 'jardín', 'jardin', 'remodelar', 'remodelación', 'remodelacion', 'espacio', 'oficina', 'baño', 'bano', 'exterior', 'patio'],
+    keywords: ['casa', 'hogar', 'decoración', 'decoracion', 'decorar', 'sala', 'cuarto', 'habitación', 'habitacion', 'dormitorio', 'interior', 'muebles', 'jardín', 'jardin', 'remodelar', 'remodelación', 'remodelacion', 'espacio', 'oficina', 'baño', 'bano', 'exterior', 'patio', 'jardinería', 'jardineria', 'interiorismo'],
   },
   {
     id: 'business',
@@ -159,7 +160,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     emoji: '💼',
     description: 'Ideas de negocio, marketing, CV, documentos y presentaciones',
     examples: ['creator.businessEx1', 'creator.businessEx2', 'creator.businessEx3'],
-    keywords: ['negocio', 'emprendimiento', 'emprender', 'marketing', 'ventas', 'vender', 'presentación', 'presentacion', 'pitch', 'plan', 'campaña', 'campana', 'cliente', 'clientes', 'tienda', 'empresa', 'estrategia', 'publicidad', 'precio', 'cv', 'currículum', 'curriculum', 'documento', 'análisis', 'analisis', 'trabajo'],
+    keywords: ['negocio', 'emprendimiento', 'emprender', 'marketing', 'ventas', 'vender', 'presentación', 'presentacion', 'pitch', 'plan', 'campaña', 'campana', 'cliente', 'clientes', 'tienda', 'empresa', 'estrategia', 'publicidad', 'precio', 'cv', 'cvs', 'currículum', 'curriculum', 'documento', 'análisis', 'analisis', 'trabajo'],
   },
   {
     id: 'travel',
@@ -169,7 +170,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     emoji: '✈️',
     description: 'Prepara tu viaje: a dónde ir, qué hacer y cómo moverte',
     examples: ['creator.travelEx1', 'creator.travelEx2', 'creator.travelEx3'],
-    keywords: ['viaje', 'viajar', 'viajes', 'vacaciones', 'itinerario', 'destino', 'destinos', 'turismo', 'turista', 'vuelo', 'vuelos', 'hotel', 'hoteles', 'playa', 'mochilero', 'ruta', 'excursión', 'excursion', 'maleta', 'pasaporte', 'visa', 'aeropuerto', 'tren', 'crucero', 'guía', 'guia', 'ciudad', 'país', 'pais', 'extranjero'],
+    keywords: ['viaje', 'viajar', 'viajes', 'vacaciones', 'itinerario', 'destino', 'destinos', 'turismo', 'turista', 'vuelo', 'vuelos', 'hotel', 'hoteles', 'playa', 'mochilero', 'ruta', 'excursión', 'excursion', 'maleta', 'pasaporte', 'visa', 'aeropuerto', 'tren', 'crucero', 'guía', 'guia', 'ciudad', 'país', 'pais', 'extranjero', 'viajero'],
   },
   {
     id: 'brain',
@@ -179,7 +180,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     emoji: '🧠',
     description: '¿No sabes dónde buscar? Pregúntale a Weë',
     examples: ['creator.brainEx1', 'creator.brainEx2', 'creator.brainEx3'],
-    keywords: ['ayuda', 'ayúdame', 'ayudame', 'pregunta', 'pensar', 'aprender', 'explicar', 'explícame', 'explicame', 'resumen', 'resumir', 'organizar', 'planear', 'planificar', 'estudiar', 'tarea', 'investigar', 'investigación', 'investigacion', 'traducir', 'traduce', 'problema', 'consejo', 'no sé', 'no se'],
+    keywords: ['ayuda', 'ayúdame', 'ayudame', 'pregunta', 'pensar', 'aprender', 'explicar', 'explícame', 'explicame', 'resumen', 'resumir', 'organizar', 'planear', 'planificar', 'estudiar', 'tarea', 'investigar', 'investigación', 'investigacion', 'traducir', 'traduce', 'problema', 'consejo', 'no sé', 'ayudar', 'preguntar'],
   },
 ];
 
@@ -244,8 +245,8 @@ export const WEE_EXPERIENCES: WeeExperience[] = (() => {
  * —falso: Weë Chef lo hace—, porque solo se reconocían palabras en español.
  *
  * Reglas, para que nada cambie para nadie más:
- *  · se SUMAN a `keywords`, nunca las sustituyen; en español la búsqueda es la de siempre;
- *  · solo cuentan las del idioma de la app de esa persona (`matchExperiences(q, idioma)`);
+ *  · en su idioma SUSTITUYEN a las `keywords`, que son españolas; en español la búsqueda es la de siempre;
+ *  · solo cuentan las del idioma de la app de esa persona (`matchExperiences(q, idioma)`, `useIdioma().idioma`);
  *  · se comparan con más cuidado que las españolas (`encajaEnSuIdioma`): una frase solo cuenta entera y como
  *    palabras sueltas —«my home» no está dentro de «my homework»—; una palabra cuenta si lo escrito empieza por ella
  *    («opskrifter»), si va dentro de una palabra compuesta y tiene al menos cuatro letras («aftensmadsopskrift»), o
@@ -255,8 +256,35 @@ export const WEE_EXPERIENCES: WeeExperience[] = (() => {
  *    (huske), ni «tog» (el pasado de «tage»), ni «look» (looking), ni «train» (training), ni «hjem» (hjemmeside), ni
  *    «klip» (klipning), ni «bage» (bagefter), ni «kunst» (kunstig intelligens), ni «hair» (chair), ni «work»
  *    (homework), ni «kok» (kokos). Para esas va la forma larga.
+ *
+ * El filipino (`fil`) lleva, además de las suyas, las de la lista inglesa: en Filipinas se teclea en taglish («gawa
+ * ng logo para sa business ko»). Y como el filipino pega afijos y enlaces a la palabra, mira las tres reglas en los
+ * dos sentidos:
+ *  · nada que sea el principio o el interior de otra palabra de cada día: ni «tula» (tulad), ni «kain» (kainis), ni
+ *    «balat» (balatan, pelar: una receta acabaría en Weë Beauty), ni «payo» (payong), ni «ganda» (maganda), ni «cr»
+ *    (el baño en Filipinas, pero también create y credits: va `comfort room`), ni «sala» (salamat; la española `sala`
+ *    ya la reconoce);
+ *  · nada cuyo principio sea otra palabra de cada día, porque «quien teclea» la cogería entera: ni «damit» (dami:
+ *    «ang dami kong tanong» acabaría en Weë Beauty), ni «palamuti» (pala), ni «layout» (layo), ni «hardin» (hard),
+ *    ni «patalastas» (pata, la de «crispy pata»), ni «panghimagas» (pang-, que se separa en «pang-araw-araw»), ni
+ *    «manicure» (mani), ni «bigote» (bigo), ni «talambuhay» (tala), ni «signage» (sign), ni «make-up» (make), ni
+ *    «sari-sari» (sari: «sari-saring kulay»), ni «resto» con «restore» (cada una coge a la otra: el restaurante
+ *    acabaría en Weë Photo). Ya las cubren `suot`, `dekorasyon`, `imbitasyon`, `garden`, `commercial`, `dessert`,
+ *    `kuko`, `balbas`, `biography`, `karatula`, `tinda`, `restaurant` y `litrato`;
+ *  · del inglés, lo que en Filipinas significa otra cosa: ni «trip» («trip ko»: lo que a alguien le gusta), ni «book»
+ *    («mag-book ng hotel» acabaría en Weë Writer, y «facebook» la lleva dentro).
+ *  · y por las mismas reglas, la forma larga, la interior o la frase: «logos» (el «logo» de «katalogo», «diyalogo»),
+ *    «anghalian» (el principio «tanghali», mediodía), «angkap» (el «sang» de «sang-ayon»), «bahay» y «presyo» solo en
+ *    frase («baha» es inundación; «presyon», «depresyon»), «sining» en frase («siningil»), y «ulamin», «bentahan»,
+ *    «condos», «tours» y «stores» (de «kulambo», «bentahe», «condolence», «tournament» y «restore»; la inglesa dice
+ *    también «stores»). Quien teclea la palabra corta la sigue encontrando: es el principio de la larga.
+ * Cuatro se escriben en una forma más larga que sigue contando mientras se teclea la corta: «larawang» (no se mete
+ * en «paglalarawan» ni en «ilarawan», que son describir), «tulang» (tula, sin tulad), «songs» (song, sin «basong» ni
+ * «kasong») y «awitin» (awit, sin «kawit»). Y dos van sin su primera letra, para que solo cuenten DENTRO de lo
+ * escrito: «akasyon» (bakasyon y magbakasyon; «baka» es «quizá» y la carne de res) y «akeup» (makeup; «make» va en
+ * cualquier frase en taglish).
  */
-export const PALABRAS_POR_IDIOMA: Readonly<Record<'da' | 'en', Readonly<Record<string, readonly string[]>>>> = {
+export const PALABRAS_POR_IDIOMA: Readonly<Record<'da' | 'en' | 'fil', Readonly<Record<string, readonly string[]>>>> = {
   da: {
     design: ['logo', 'design', 'plakat', 'flyer', 'banner', 'forside', 'branding', 'illustration', 'klistermærke', 'visitkort', 'invitation', 'tegning', 'kunstværk', 'grafik', 'sociale medier'],
     studio: ['video', 'videoer', 'film', 'videoklip', 'reklame', 'reklamefilm', 'animation', 'kortfilm', 'trailer', 'undertekster', 'tiktok', 'youtube', 'reel'],
@@ -274,18 +302,32 @@ export const PALABRAS_POR_IDIOMA: Readonly<Record<'da' | 'en', Readonly<Record<s
     design: ['logo', 'design', 'poster', 'flyer', 'banner', 'book cover', 'album cover', 'brand', 'branding', 'illustration', 'sticker', 'business card', 'invitation', 'drawing', 'artwork', 'graphic', 'social media'],
     studio: ['video', 'clip', 'reel', 'commercial', 'advert', 'animation', 'short film', 'movie', 'film', 'trailer', 'subtitles', 'tiktok', 'youtube'],
     photo: ['photo', 'picture', 'image', 'retouch', 'enhance', 'background', 'restore', 'portrait', 'filter', 'remove', 'avatar', 'selfie', 'profile picture', 'sharpen', 'quality', 'blurry'],
-    writer: ['text', 'script', 'write', 'story', 'book', 'ebook', 'novel', 'blog', 'article', 'caption', 'post', 'description', 'biography', 'poem', 'letter', 'email', 'proofread', 'idea'],
+    /* «books»/«ebooks» y no «book»/«ebook»: dentro de una palabra se busca con cuatro letras, y «facebook» las contiene (quien teclea «book» o «ebook» sigue encontrando Weë Writer). */
+    writer: ['text', 'script', 'write', 'story', 'books', 'ebooks', 'novel', 'blog', 'article', 'caption', 'post', 'description', 'biography', 'poem', 'letter', 'email', 'proofread', 'idea'],
     music: ['music', 'song', 'jingle', 'beat', 'melody', 'instrumental', 'audio', 'sound', 'voice', 'voiceover', 'podcast', 'narration', 'dubbing'],
     beauty: ['beauty', 'makeup', 'hairstyle', 'haircut', 'hair color', 'my hair', 'outfit', 'clothes', 'nails', 'skin', 'fashion', 'beard', 'glasses'],
     chef: ['recipe', 'cooking', 'cook', 'food', 'meal', 'menu', 'dish', 'ingredients', 'diet', 'healthy', 'dinner', 'lunch', 'breakfast', 'dessert', 'restaurant', 'substitute', 'chef', 'baking'],
     home: ['house', 'my home', 'home decor', 'decor', 'decorate', 'living room', 'bedroom', 'interior', 'furniture', 'garden', 'remodel', 'renovate', 'renovation', 'office', 'bathroom', 'kitchen', 'outdoor', 'patio'],
-    business: ['business', 'startup', 'entrepreneur', 'marketing', 'sales', 'sell', 'presentation', 'pitch', 'campaign', 'customer', 'client', 'shop', 'store', 'company', 'strategy', 'advertising', 'price', 'pricing', 'resume', 'cv', 'document', 'analysis', 'job'],
+    business: ['business', 'startup', 'entrepreneur', 'marketing', 'sales', 'sell', 'presentation', 'pitch', 'campaign', 'customer', 'client', 'shop', 'stores', 'company', 'strategy', 'advertising', 'price', 'pricing', 'resume', 'cv', 'document', 'analysis', 'job'],
     travel: ['trip', 'travel', 'vacation', 'holiday', 'itinerary', 'destination', 'tourism', 'tourist', 'flight', 'hotel', 'beach', 'backpacking', 'route', 'excursion', 'suitcase', 'passport', 'visa', 'airport', 'train ride', 'cruise', 'guide', 'city break', 'abroad'],
     brain: ['help', 'question', 'think', 'learn', 'explain', 'summary', 'summarize', 'organize', 'study', 'homework', 'research', 'translate', 'problem', 'advice', "don't know", 'not sure'],
   },
+  fil: {
+    design: ['logos', 'disenyo', 'design', 'poster', 'flyer', 'banner', 'tarpaulin', 'tarp', 'pubmat', 'karatula', 'imbitasyon', 'invitation', 'guhit', 'drawing', 'ilustrasyon', 'illustration', 'likhang sining', 'gawang sining', 'artwork', 'graphic', 'sticker', 'brand', 'branding', 'book cover', 'album cover', 'business card', 'calling card', 'birthday card', 'social media'],
+    studio: ['video', 'bidyo', 'clip', 'reel', 'vlog', 'pelikula', 'short film', 'movie', 'film', 'commercial', 'advert', 'animasyon', 'animation', 'trailer', 'subtitle', 'tiktok', 'youtube'],
+    photo: ['larawang', 'litrato', 'photo', 'picture', 'image', 'retouch', 'enhance', 'background', 'portrait', 'filter', 'remove', 'avatar', 'selfie', 'profile picture', 'profile pic', 'sharpen', 'quality', 'blurry'],
+    writer: ['teksto', 'text', 'iskrip', 'script', 'sulat', 'sumulat', 'write', 'kuwento', 'kwento', 'story', 'aklat', 'ebooks', 'nobela', 'novel', 'blog', 'artikulo', 'article', 'caption', 'post', 'paglalarawan', 'description', 'biography', 'tulang', 'poem', 'liham', 'letter', 'email', 'proofread', 'ideya', 'idea'],
+    music: ['musika', 'music', 'kanta', 'kumanta', 'songs', 'awitin', 'himig', 'melody', 'tugtog', 'tugtugin', 'jingle', 'beat', 'instrumental', 'audio', 'sound', 'boses', 'voice', 'voiceover', 'voice over', 'narasyon', 'narration', 'podcast', 'dubbing'],
+    beauty: ['akeup', 'make up', 'pampaganda', 'pagpapaganda', 'kagandahan', 'beauty', 'buhok', 'gupit', 'rebond', 'hairstyle', 'haircut', 'hair color', 'my hair', 'suot', 'kasuotan', 'pananamit', 'outfit', 'ootd', 'clothes', 'fashion', 'kuko', 'nails', 'skincare', 'skin care', 'skin', 'kilay', 'balbas', 'beard', 'salamin sa mata', 'glasses'],
+    chef: ['resipe', 'recipe', 'luto', 'lutuin', 'cooking', 'cook', 'ulamin', 'pagkain', 'kainan', 'food', 'meal', 'dish', 'almusal', 'breakfast', 'anghalian', 'lunch', 'hapunan', 'dinner', 'meryenda', 'merienda', 'dessert', 'angkap', 'ingredients', 'menu', 'diyeta', 'diet', 'sustansya', 'sustansiya', 'healthy', 'restawran', 'restaurant', 'karinderya', 'carinderia', 'kusinero', 'chef', 'bake', 'baking', 'cake', 'substitute'],
+    home: ['bahay ko', 'bahay namin', 'ang bahay', 'ng bahay', 'sa bahay', 'house', 'my home', 'home decor', 'dekorasyon', 'decor', 'decorate', 'interior', 'kuwarto', 'kwarto', 'bedroom', 'living room', 'banyo', 'comfort room', 'bathroom', 'kusina', 'kitchen', 'muwebles', 'furniture', 'bakuran', 'garden', 'renobasyon', 'renovate', 'renovation', 'remodel', 'opisina', 'office', 'condos', 'condominium', 'outdoor', 'patio'],
+    business: ['negosyo', 'negosyante', 'business', 'startup', 'entrepreneur', 'tinda', 'paninda', 'shop', 'stores', 'bentahan', 'magbenta', 'ibenta', 'sales', 'sell', 'marketing', 'kampanya', 'campaign', 'ang presyo', 'presyo ng', 'mga presyo', 'presyuhan', 'price', 'pricing', 'puhunan', 'kostumer', 'kliyente', 'customer', 'client', 'kompanya', 'kumpanya', 'company', 'estratehiya', 'strategy', 'advertising', 'presentasyon', 'presentation', 'pitch', 'dokumento', 'document', 'analysis', 'resume', 'cv', 'trabaho', 'job'],
+    travel: ['biyahe', 'byahe', 'akasyon', 'lakbay', 'pasyal', 'staycation', 'out of town', 'road trip', 'island hopping', 'travel', 'vacation', 'holiday', 'itinerary', 'destinasyon', 'destination', 'turista', 'turismo', 'tourist', 'tourism', 'tours', 'city tour', 'resort', 'hotel', 'beach', 'flight', 'eroplano', 'paliparan', 'airport', 'passport', 'visa', 'suitcase', 'backpacking', 'route', 'excursion', 'train ride', 'cruise', 'guide', 'city break', 'ibang bansa', 'abroad'],
+    brain: ['tulong', 'tulungan', 'tumulong', 'help', 'tanong', 'question', 'isip', 'think', 'matuto', 'learn', 'aral', 'study', 'assignment', 'homework', 'paliwanag', 'explain', 'buod', 'summary', 'summarize', 'organize', 'saliksik', 'research', 'salin', 'translate', 'problem', 'payuhan', 'advice', 'hindi ko alam', 'di ko alam', 'ewan', "don't know", 'hindi ako sigurado', 'not sure'],
+  },
 };
 
-/** Una frase de otro idioma, entera y como palabras sueltas. */
+/** Una palabra o una frase, entera: ni dentro de otra palabra ni a medias. */
 const frasesCompiladas = new Map<string, RegExp>();
 const fraseEntera = (k: string): RegExp => {
   let re = frasesCompiladas.get(k);
@@ -302,12 +344,31 @@ const encajaEnSuIdioma = (k: string, q: string, words: string[]): boolean => {
   return words.some((w) => w.startsWith(k) || (w.length >= 4 && k.startsWith(w))) || (k.length >= 4 && q.includes(k));
 };
 
-/** Las palabras de un idioma de la app, o ninguna: el español ya está en `keywords`. */
-const palabrasDelIdioma = (idioma?: string): Readonly<Record<string, readonly string[]>> | undefined => {
-  const base = /^(da|en)(?:-|$)/i.exec(idioma ?? '')?.[1];
-  if (!base) return undefined;
-  return PALABRAS_POR_IDIOMA[/^en$/i.test(base) ? 'en' : 'da'];
+/** El plural, el infinitivo con pronombre y el presente/imperativo de «tú» (de -ar/-er): formas de la misma palabra. */
+const PLURALES = ['s', 'es'];
+const PRONOMBRES = ['lo', 'la', 'los', 'las', 'le', 'les', 'me', 'te', 'se', 'nos'];
+const esFormaDe = (w: string, k: string): boolean =>
+  w.length >= 4 &&
+  k.length >= 4 &&
+  (PLURALES.some((p) => w === k + p || k === w + p) ||
+    (/[aeií]r$/.test(k) && PRONOMBRES.some((p) => w === k + p)) ||
+    (/[ae]r$/.test(k) && w === k.slice(0, -1)));
+
+/** El final de lo escrito, desde el principio de una palabra, es el principio de la `keyword` (cuatro letras o más). */
+const LETRA_O_CIFRA = /[\p{L}\p{N}]/u;
+const seEstaEscribiendo = (escrito: string, k: string): boolean => {
+  /* Un final más largo que la `keyword` no puede ser su principio: solo se miran los últimos caracteres. */
+  for (let i = Math.max(0, escrito.length - k.length); i < escrito.length; i++) {
+    if (i > 0 && LETRA_O_CIFRA.test(escrito[i - 1])) continue;
+    const final = escrito.slice(i);
+    if (final !== k && k.startsWith(final) && final.replace(/[^\p{L}\p{N}]/gu, '').length >= 4) return true;
+  }
+  return false;
 };
+
+/** Las palabras de un idioma de la app, o ninguna: el español ya está en `keywords`. */
+const palabrasDelIdioma = (idioma: CodigoDeIdioma): Readonly<Record<string, readonly string[]>> | undefined =>
+  idioma === 'da' || idioma === 'en' || idioma === 'fil' ? PALABRAS_POR_IDIOMA[idioma] : undefined;
 
 /**
  * Cómo se presenta una experiencia que vive dentro de otra sección. El
@@ -365,16 +426,51 @@ export const getExperienceById = (id: string): WeeExperience | undefined =>
  * "retocar" tiene que llegar a esa capacidad aunque su sección ya no esté en el
  * menú. Esconder una sección no es esconder lo que sabe hacer.
  */
-export const matchExperiences = (query: string, idioma?: string): WeeExperience[] => {
-  const q = query.trim().toLowerCase();
+/*
+ * LAS PALABRAS DEL IDIOMA DE QUIEN BUSCA, Y SOLO ESAS. Las `keywords` de cada experiencia son españolas y se aplicaban
+ * a TODOS los idiomas: en filipino «salamat» (gracias) abría Weë Home por «sala», «eroplano» Weë Business por «plan» y
+ * «facebook» Weë Writer por «ebook». Ahora:
+ *  · en español, las `keywords` de siempre (y sin idioma —ninguna pantalla llama así—, también, como hasta hoy);
+ *  · un idioma con lista propia en `PALABRAS_POR_IDIOMA`, solo esa;
+ *  · uno sin lista, la inglesa: el mismo idioma de reserva que los textos (`IDIOMA_DE_RESERVA`, i18n/idiomas.ts);
+ *  · el NOMBRE de la experiencia (Weë Chef, Weë Travel…) cuenta siempre: es marca y se escribe igual en todos.
+ *
+ * UNA `keyword` ESPAÑOLA ENCAJA POR PALABRAS, de tres maneras y solo de tres:
+ *  · ENTERA: es una palabra (o frase) entera de lo escrito;
+ *  · UNA FORMA DE ELLA (`esFormaDe`): su plural («recetas», «hoteles», «ebooks»), su infinitivo con pronombre
+ *    («traducirlo», «ayudarme») o el presente/imperativo de «tú» de un infinitivo en -ar/-er («explica», «vende»);
+ *  · LO QUE SE ESTÁ ESCRIBIENDO (`seEstaEscribiendo`): el FINAL de lo escrito, desde el principio de una palabra, es el
+ *    principio de la `keyword` y lleva ya cuatro letras («rece», «color de cab»). Solo el final: una palabra ya
+ *    terminada en medio de la frase no está a medias («la mejor receta» no es «mejorar»), y con tres letras no basta
+ *    («una», «con», «por» no son el principio de «unas», «consejo», «portada»).
+ * Que una palabra EMPIECE por la `keyword` no basta: «postre» no es «post», «salado» no es «sala», «trenza» no es
+ * «tren», «menudo» no es «menu», «pelota» no es «pelo», «casarse» no es «casa». Por eso las palabras derivadas o
+ * compuestas que sí son de esa experiencia («videoclip», «logotipo», «viajero», «jardinería»…) son `keywords` suyas.
+ * Y una `keyword` no es nunca una palabra funcional del español —«unas», «no se»—: la variante sin tilde de «uñas» o
+ * «no sé» es también el artículo de «unas fotos» o el «no se» de «no se ve bien». Una `keyword` de menos de cuatro
+ * letras («cv», «voz», «bio», «uña») solo encaja entera.
+ * Antes bastaba con que apareciera en cualquier sitio (`q.includes`), y «facebook» abría Weë Writer por «ebook»,
+ * «revisar» Weë Travel por «visa», «ensalada» Weë Home por «sala», «escena» Weë Chef por «cena» o «descuento» Weë
+ * Writer por «cuento». Las pocas palabras compuestas que se encontraban así de verdad —«autorretrato», «microcuento»,
+ * «minicuento», «reescribir», «contraportada»— y «cartel» (que llegaba a Weë Design por «arte») son ahora `keywords`
+ * suyas, para que nadie pierda una búsqueda que ya funcionaba.
+ *
+ * `idioma` es el idioma ACTIVO de la interfaz (`useIdioma().idioma`, ya resuelto por el sistema de i18n: un teléfono en
+ * `tl-PH` llega como `fil`), no el locale de los formatos.
+ */
+export const matchExperiences = (query: string, idioma?: CodigoDeIdioma): WeeExperience[] => {
+  /* Con el espacio del final, que dice si la última palabra está terminada: «mejor » sí, «mejor» todavía no. */
+  const escrito = query.toLowerCase().replace(/^\s+/, '');
+  const q = escrito.trim();
   if (!q) return [];
   const words = q.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3);
-  const encaja = (k: string) => q.includes(k) || words.some((w) => k.startsWith(w) || w.startsWith(k));
-  const suyas = palabrasDelIdioma(idioma);
+  const encaja = (k: string) => fraseEntera(k).test(q) || words.some((w) => esFormaDe(w, k)) || seEstaEscribiendo(escrito, k);
+  const enEspanol = !idioma || idioma === 'es';
+  const suyas = enEspanol ? undefined : (palabrasDelIdioma(idioma) ?? PALABRAS_POR_IDIOMA.en);
   return ALL_EXPERIENCES.filter(
     (e) =>
       e.name.toLowerCase().includes(q) ||
-      e.keywords.some(encaja) ||
+      (enEspanol && e.keywords.some(encaja)) ||
       !!suyas?.[e.id]?.some((k) => encajaEnSuIdioma(k, q, words))
   );
 };

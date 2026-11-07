@@ -15,9 +15,11 @@ import { tr } from './textos/tr';
 import { sv } from './textos/sv';
 import { da } from './textos/da';
 import { hi } from './textos/hi';
+import { fil } from './textos/fil';
 import { servidor as servidorEs } from './textos/es/servidor';
 import { servidor as servidorEn } from './textos/en/servidor';
 import { servidor as servidorDa } from './textos/da/servidor';
+import { servidor as servidorFil } from './textos/fil/servidor';
 
 /*
  * EL ÚNICO SITIO QUE SABE QUÉ DICCIONARIOS HAY.
@@ -102,6 +104,7 @@ export const DICCIONARIOS: Diccionarios = {
   sv,
   da: { ...da, ...servidorDa },
   hi,
+  fil: { ...fil, ...servidorFil },
 };
 
 /*

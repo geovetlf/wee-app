@@ -115,6 +115,15 @@ const DEFORMES = [
   [/Weë (Cuisinier|Koch|Cuoco|Cozinheiro)/u, 'Weë Chef traducido'],
   [/Weë (Affaires|Geschäft|Negócios|Negocios)/u, 'Weë Business traducido'],
   /*
+   * FILIPINO. La tentación es traducir la experiencia («Weë Musika»), pegarle un afijo o el enlace a la marca
+   * («i-WeeTalk», «Weëng») o tratarla como persona («si Weë Brain»): las tres la rompen (docs/I18N-FILIPINO.md § 6).
+   */
+  [/Weë (Musika|Paglalakbay|Biyahe|Negosyo|Kusina|Disenyo|Larawan|Litrato|Manunulat|Kagandahan|Tahanan|Utak|Studyo)(?![\p{L}])/u, 'experiencia de Weë traducida al filipino'],
+  [/(?<![\p{L}])(Kredito|Kredits)(?![\p{L}])/u, 'Credits en filipino'],
+  [/(?<![\p{L}-])(i|mag|nag|ma|na|pa)-(Weë|WeeTalk|ËContact|Wäll)/u, 'afijo filipino pegado a una marca'],
+  [/(Weë|WeeTalk|Wäll|ËContact)-?ng(?![\p{L}])/u, 'enlace filipino pegado a una marca'],
+  [/(?<![\p{L}])(si|ni|kay) (Weë|WeeTalk|ËContact|Wäll)(?![\p{L}])/u, 'marca de Weë tratada como persona (si/ni/kay)'],
+  /*
    * RUSO. Aquí la tentación no es traducir: es TRANSLITERAR al cirílico, o
    * declinar la marca como si fuera una palabra rusa («нет Кредитов»). Las dos
    * cosas la rompen igual.
@@ -299,6 +308,31 @@ check('4) CLAUDE.md §8 sigue nombrando las marcas que no se traducen',
 check('5) y cada diccionario lo recuerda en su cabecera',
   idiomas.every((l) => /no entra nunca en estos archivos/i.test(leer(`i18n/textos/${l}/index.ts`))),
   idiomas.join(', '));
+
+/*
+ * D · EN ALEMÁN, EL COMPUESTO CON LA MARCA LLEVA GUION: «Weë-Profil», como «Weë-profil» en danés y sueco. «Weë» no
+ * cambia; lo que no puede quedar es «Weë Profil» separado, que en alemán es un compuesto mal escrito.
+ */
+console.log('\n── D · El compuesto alemán ──');
+const CARPETA_DE = path.resolve(RAIZ, 'i18n/textos/de');
+const conEspacio = fs.readdirSync(CARPETA_DE).filter((f) => f.endsWith('.ts'))
+  .flatMap((f) => [...fs.readFileSync(path.join(CARPETA_DE, f), 'utf8').matchAll(/^\s*(\w+): .*Weë Profil/gm)].map((m) => `${f}:${m[1]}`));
+check('8) en alemán no queda «Weë Profil» separado en ningún texto', conEspacio.length === 0, conEspacio.join(' '));
+check('8) SABOTAJE: la línea de antes, «profileWee: \'Weë Profil\'», la caza la misma búsqueda',
+  [..."  profileWee: 'Weë Profil',\n".matchAll(/^\s*(\w+): .*Weë Profil/gm)].length === 1);
+check('8) `composer.profileWee` y `menu.weeProfile` dicen «Weë-Profil»',
+  /\n  profileWee: 'Weë-Profil',\n/.test(leer('i18n/textos/de/composer.ts')) && /\n  weeProfile: 'Weë-Profil',\n/.test(leer('i18n/textos/de/menu.ts')));
+/*
+ * El otro perfil, «Reales Profil», se declina como manda el caso —«dein Reales Profil», «zu deinem Realen Profil»,
+ * «zwischen Realem Profil»— y no se convierte en otro compuesto: «im Real-Profil» era el único que no lo seguía.
+ */
+const formasDelReal = fs.readdirSync(CARPETA_DE).filter((f) => f.endsWith('.ts'))
+  .flatMap((f) => [...fs.readFileSync(path.join(CARPETA_DE, f), 'utf8').matchAll(/\b(\w+\s+)?Real\w*[- ]Profil\b/g)].map((m) => m[0]));
+check('8) en alemán el perfil real es siempre «Reales Profil» declinado («im Realen Profil»), nunca «Real-Profil»',
+  formasDelReal.length >= 8 && !formasDelReal.some((x) => /Real-Profil/.test(x)) && formasDelReal.includes('im Realen Profil')
+  && formasDelReal.includes('deinem Realen Profil') && formasDelReal.includes('zwischen Realem Profil'), formasDelReal.join(' · '));
+check('8) y danés y sueco siguen con su «Weë-profil»', /\n  profileWee: 'Weë-profil',\n/.test(leer('i18n/textos/da/composer.ts'))
+  && /\n  profileWee: 'Weë-profil',\n/.test(leer('i18n/textos/sv/composer.ts')));
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

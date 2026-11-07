@@ -114,7 +114,14 @@ console.log('\n── B · Huecos y plurales ──');
       /* Un `_one` puede escribir «un» en vez de {{contador}}; lo demás, los mismos nombres y ninguno inventado. */
       /* {{contador}} llega SIEMPRE a una clave de plural: un `_one` que lo escribe («1 kontakt») no inventa nada. */
       const inventados = suyos.filter((h) => !esperados.has(h) && !(h === 'contador' && PLURAL.test(k)));
-      const perdidos = [...esperados].filter((h) => !suyos.includes(h) && !(h === 'contador' && /_(one|zero|two)$/.test(k)));
+      /*
+       * `notifications.<clave>SinNombre` es la frase de cuando no se sabe quién fue: un idioma puede escribirla SIN el
+       * {{nombre}} («May nag-like sa post mo» en filipino, donde si/ni no van delante de «alguien»); la pantalla, sin
+       * hueco, no pinta ningún nombre (NotificationsScreen). Lo mismo cualquier otra `<clave>SinNombre` (push, reposteo, ËContact).
+       * Solo ese hueco y solo esas claves.
+       */
+      const sinNombre = (h) => h === 'nombre' && /^\w+\.\w+SinNombre$/.test(k);
+      const perdidos = [...esperados].filter((h) => !suyos.includes(h) && !(h === 'contador' && /_(one|zero|two)$/.test(k)) && !sinNombre(h));
       if (inventados.length || perdidos.length) mal.push(`${codigo}:${k} ${inventados.length ? `+${inventados}` : ''}${perdidos.length ? `-${perdidos}` : ''}`);
     }
   }
@@ -277,21 +284,48 @@ console.log('\n── G · Lo que se escribe en su idioma también se entiende �
 // ════════════════════════════════════════════════════════════════════════════
 {
   const EXP = (await cargar('constants/weeExperiences.ts')).ns;
+  /* La búsqueda recibe el idioma ACTIVO de la interfaz (`useIdioma().idioma`): un código ya resuelto, no un locale. */
   const ids = (q, i) => EXP.matchExperiences(q, i).map((e) => e.id);
   check('24) «opskrift på lasagne» lleva a Weë Chef; «rejse til Rom», a Weë Travel; «en kortfilm», a Weë Studio',
-    ids('opskrift på lasagne', 'da-DK')[0] === 'chef' && ids('rejse til Rom', 'da-DK')[0] === 'travel' && ids('en kortfilm om min hund', 'da')[0] === 'studio');
+    ids('opskrift på lasagne', 'da')[0] === 'chef' && ids('rejse til Rom', 'da')[0] === 'travel' && ids('en kortfilm om min hund', 'da')[0] === 'studio');
   check('24) y las palabras cortas de cada día no despistan: «lav en hjemmeside», «en sang til min mor»',
     !ids('lav en hjemmeside', 'da').includes('chef') && !ids('lav en hjemmeside', 'da').includes('home') && ids('en sang til min mor', 'da').join() === 'music');
-  check('24) «a recipe for dinner» en inglés lleva a Weë Chef', ids('a recipe for dinner', 'en-US')[0] === 'chef');
-  const frasesEs = ['logo', 'video para mi tienda', 'receta', 'viaje a Cusco', 'decorar mi casa', 'ayuda', 'opskrift', 'recipe', 'rejse'];
+  check('24) «a recipe for dinner» en inglés lleva a Weë Chef', ids('a recipe for dinner', 'en')[0] === 'chef');
+  check('24) en filipino: «resipe ng adobo» → Weë Chef, «gawa ng logo» → Weë Design, «video para sa TikTok» → Weë Studio, «biyahe sa Cebu» y «bakasyon sa Boracay» → Weë Travel',
+    ids('resipe ng adobo', 'fil')[0] === 'chef' && ids('gawa ng logo', 'fil')[0] === 'design' && ids('video para sa TikTok', 'fil')[0] === 'studio'
+    && ids('biyahe sa Cebu', 'fil')[0] === 'travel' && ids('bakasyon sa Boracay', 'fil')[0] === 'travel');
+  check('24) y en taglish: «birthday song» → Weë Music, «tulungan mo ako sa assignment ko» → Weë Brain, «mag-book ng hotel» → Weë Travel (no Weë Writer)',
+    ids('gawa ng birthday song para kay Mama', 'fil').join() === 'music' && ids('tulungan mo ako sa assignment ko', 'fil').join() === 'brain'
+    && ids('mag-book ng hotel sa Boracay', 'fil').join() === 'travel');
+  /* Lo que el filipino dice cada día y NO es una búsqueda: «baka» no es «bakasyon», «paglalarawan» (describir) no es
+     una foto, «basong» no es «song», «dami» no es «damit», «pala» no es «palamuti», «pata» no es «patalastas»… */
+  const DE_CADA_DIA = {
+    'baka puwede mo akong tulungan': 'brain', 'adobong baka': '', 'paglalarawan ng produkto ko': 'writer', 'ilarawan mo ang ideya ko': 'writer',
+    'tulad ng dati': '', 'isang basong tubig': '', 'nakakainis ang traffic': '', 'balatan ang patatas at hiwain': '',
+    'ang dami kong tanong': 'brain', 'trip ko lang': '', 'magandang umaga': '', 'ang layo ng Baguio': '', 'ikaw pala': '',
+    'pang-araw-araw na gawain': '', 'crispy pata': '', 'make sure na maganda': '', 'ang hard naman': '', 'mani at asukal': '',
+  };
+  const despistan = Object.entries(DE_CADA_DIA).filter(([f, esperado]) => ids(f, 'fil').join() !== esperado).map(([f]) => `${f} → ${ids(f, 'fil').join() || '—'}`);
+  check(`24) y ${Object.keys(DE_CADA_DIA).length} frases filipinas de cada día no despistan`, despistan.length === 0, despistan.join(' · '));
+  check('24) sin idioma, una búsqueda filipina no se entiende como antes', ids('resipe ng adobo').length === 0 && ids('biyahe sa Cebu').length === 0);
+  const frasesEs = ['logo', 'video para mi tienda', 'receta', 'viaje a Cusco', 'decorar mi casa', 'ayuda', 'opskrift', 'recipe', 'rejse', 'resipe', 'bakasyon'];
   check('25) en español la búsqueda es la de siempre: con idioma o sin él, el mismo resultado',
-    frasesEs.every((f) => ids(f).join() === ids(f, 'es').join() && ids(f).join() === ids(f, 'es-PE').join()));
+    frasesEs.every((f) => ids(f).join() === ids(f, 'es').join()));
   const CTX = (await cargar('utils/contextoDeCreacion.ts')).ns;
   check('26) «en video på 10 sekunder» es un vídeo de 10 s; «a 10-second video», también',
     CTX.contextoDeCreacion(null, 'en video på 10 sekunder', 'da-DK') === 'video' && CTX.duracionEnElTexto('en video på 10 sekunder', 'da-DK') === '10s'
     && CTX.duracionEnElTexto('a 10-second video', 'en') === '10s');
-  check('26) y en español nada cambia: sin idioma, una frase danesa no se entiende como antes',
-    CTX.contextoDeCreacion(null, 'et billede af min hund') === 'general' && CTX.duracionEnElTexto('10 sekunder') === null);
+  check('26) en filipino, «isang 10 segundong video» es un vídeo de 10 s, y «10 seconds» del taglish también',
+    CTX.contextoDeCreacion(null, 'isang 10 segundong video ng aso ko', 'fil-PH') === 'video' && CTX.duracionEnElTexto('isang 10 segundong video ng aso ko', 'fil-PH') === '10s'
+    && CTX.duracionEnElTexto('video na 15 segundo para sa TikTok', 'fil-PH') === '15s' && CTX.duracionEnElTexto('a 10 seconds clip', 'fil') === '10s'
+    && CTX.contextoDeCreacion(null, 'isang videong 5 segundo', 'fil-PH') === 'video');
+  check('26) y cada medio con su palabra filipina: «litrato», «boses», «resume», «liham»; «paglalarawan» es texto e «ilarawan» no es imagen',
+    CTX.contextoDeCreacion(null, 'litrato para sa profile ko', 'fil-PH') === 'imagen' && CTX.contextoDeCreacion(null, 'boses para sa narasyon', 'fil-PH') === 'voz'
+    && CTX.contextoDeCreacion(null, 'gumawa ng resume ko', 'fil-PH') === 'documento' && CTX.contextoDeCreacion(null, 'isang liham para kay Lola', 'fil-PH') === 'texto'
+    && CTX.contextoDeCreacion(null, 'paglalarawan ng produkto', 'fil-PH') === 'texto' && CTX.contextoDeCreacion(null, 'ilarawan ang aso', 'fil-PH') === 'general');
+  check('26) y en español nada cambia: sin idioma, una frase danesa o filipina no se entiende como antes',
+    CTX.contextoDeCreacion(null, 'et billede af min hund') === 'general' && CTX.duracionEnElTexto('10 sekunder') === null
+    && CTX.contextoDeCreacion(null, 'litrato para sa profile ko') === 'general' && CTX.duracionEnElTexto('isang 10 segundong video') === null);
 
   const LUG = (await cargar('data/places.ts')).ns;
   const cph = LUG.buscarLugares('København', 6, { idioma: 'da-DK' })[0];

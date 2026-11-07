@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
-import { documentsService, WeeDocument, describeUpdated } from '../../services/documentsService';
+import { documentsService, WeeDocument, describeUpdated, sinTitulo } from '../../services/documentsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { SectionTitle } from './ui';
@@ -43,13 +43,13 @@ const WriterDocuments: React.FC = () => {
             onPress={() => navigation.navigate('WriterEditor', { docId: doc.id })}
             activeOpacity={0.8}
             style={[styles.row, { borderTopColor: theme.colors.border }]}
-            accessibilityLabel={doc.title}
+            accessibilityLabel={sinTitulo(doc.title) ? t('writer.untitled') : doc.title}
           >
             <View style={[styles.icon, { backgroundColor: theme.colors.accent + '33' }]}>
               <Ionicons name="document-text-outline" size={scale(18)} color={theme.colors.accentDark} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>{doc.title}</Text>
+              <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>{sinTitulo(doc.title) ? t('writer.untitled') : doc.title}</Text>
               <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>{t('writer.editedWhen', { cuando: describeUpdated(doc.updatedAt, locale) })}</Text>
             </View>
             <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />

@@ -37,6 +37,7 @@ export const writer: typeof import('../es/writer').writer = {
   savedInDocuments: ' · 내 문서에 저장됨',
   couldNotSaveToDocuments: '내 문서에 저장하지 못했어요',
   myDocuments: '내 문서',
+  untitled: '제목 없음',
   newDocument: '새 문서',
   noDocumentsYet: '아직 문서가 없어요. 새로 쓰거나 Weë에게 시작을 부탁해 보세요.',
   editedWhen: '{{cuando}} 수정됨',

@@ -273,7 +273,10 @@ const CommunitiesManagementScreen: React.FC = () => {
   const filtered = normalizedQuery
     ? communities.filter(c =>
         paraBuscar(c.name).includes(normalizedQuery) ||
-        paraBuscar(c.description).includes(normalizedQuery)
+        paraBuscar(c.description).includes(normalizedQuery) ||
+        /* Las comunidades de Weë se llaman en el idioma de quien mira: se buscan también así (como en SearchScreen). */
+        paraBuscar(nombreDeComunidad(c, t, locale)).includes(normalizedQuery) ||
+        paraBuscar(descripcionDeComunidad(c, t, locale)).includes(normalizedQuery)
       )
     : communities;
 

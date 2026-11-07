@@ -39,6 +39,7 @@ export const writer: typeof import('../es/writer').writer = {
   savedInDocuments: ' · Belgelerim\'e kaydedildi',
   couldNotSaveToDocuments: 'Belgelerim\'e kaydedilemedi',
   myDocuments: 'Belgelerim',
+  untitled: 'Başlıksız',
   newDocument: 'Yeni belge',
   noDocumentsYet: 'Henüz belgen yok. Yeni bir tane yaz ya da Weë\'den senin için başlamasını iste.',
   editedWhen: 'Son düzenleme: {{cuando}}',

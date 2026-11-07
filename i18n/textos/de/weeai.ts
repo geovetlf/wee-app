@@ -22,7 +22,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   whatDoYouWant: 'Ich möchte ein schönes Video, um mein Restaurant zu bewerben…',
   describeYourIdea: 'Beschreib deine Idee',
   tellWee: 'Sag Weë, was du willst. Weë kümmert sich um die KI.',
-  avatarForWeeProfile: 'KI-Avatar für dein Weë Profil',
+  avatarForWeeProfile: 'KI-Avatar für dein Weë-Profil',
   createAlterEgo: 'Erstelle dein digitales Alter Ego und seinen Avatar mit KI.',
   changeAlterEgo: 'Erstelle oder ändere den Avatar deines Alter Ego mit KI.',
   notYetOurs: 'Dafür haben wir noch niemanden',

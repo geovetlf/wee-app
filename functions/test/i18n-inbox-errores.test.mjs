@@ -56,28 +56,49 @@ console.log('\n── A · La bandeja vacía de WeeTalk ──');
   check('3) ninguna de las dos está vacía',
     !!String(esT.weetalk?.noConversationsHint ?? '').trim() && !!String(enT.weetalk?.noConversationsHint ?? '').trim());
 
-  /* 4 y 5 · Y dicen lo que tienen que decir. */
-  check('4) en español: ' + ES('weetalk.noConversationsHint'),
-    ES('weetalk.noConversationsHint') === 'Toca "Privado" en cualquier publicación para iniciar una conversación anónima');
-  check('5) en inglés: ' + EN('weetalk.noConversationsHint'),
-    EN('weetalk.noConversationsHint') === 'Tap "Private" on any post to start an anonymous conversation');
+  /*
+   * 4 y 5 · Y dicen lo que tienen que decir: el botón que EXISTE. La pista citaba un botón «Privado» que no está en
+   * ninguna pantalla; ahora el nombre del botón entra por hueco, `{{boton}}` = `wall.sendByWeeTalk`, el del menú de
+   * una publicación que abre la conversación con quien la publicó. Y es «privada», como `conversationStart`: sale con
+   * la cara activa, no es anónima.
+   */
+  const pista = (t) => t('weetalk.noConversationsHint', { boton: t('wall.sendByWeeTalk') });
+  check('4) en español: ' + pista(ES),
+    pista(ES) === 'Abre el menú de cualquier publicación y toca "Enviar por WeeTalk" para iniciar una conversación privada');
+  check('5) en inglés: ' + pista(EN),
+    pista(EN) === 'Open the menu on any post and tap "Send via WeeTalk" to start a private conversation');
 
   /*
-   * 6 · "PRIVADO" NO ES UNA CLAVE DE OTRO SITIO.
+   * 6 · "PRIVADO" NO ERA UN CONTROL, Y NINGÚN IDIOMA LO NOMBRA YA.
    *
-   * Se buscó: en toda la interfaz de Weë no hay ningún control que se llame
-   * así, ni una clave que lo nombre. Es una palabra dentro de la frase, y como
-   * tal se traduce con ella —"Private"— y va entre comillas en los dos idiomas.
+   * En toda la interfaz de Weë no hay ningún control que se llame así. En cada idioma, lo único entrecomillado de la
+   * pista es el nombre de su botón `wall.sendByWeeTalk`, y ese botón existe: es la opción del menú de la publicación.
    */
   const conControl = ['components/PostCard.tsx', 'components/CommentCard.tsx', 'components/CreateSheet.tsx']
     .filter((p) => /'Privado'|"Privado"|>Privado</.test(leer(p)));
-  check('6) no existe ningún control llamado "Privado" del que colgarse', conControl.length === 0, conControl.join(' '));
-  check('6) así que va entrecomillada dentro de la frase, en los dos idiomas',
-    /"Privado"/.test(esT.weetalk.noConversationsHint) && /"Private"/.test(enT.weetalk.noConversationsHint));
+  check('6) no existe ningún control llamado "Privado"', conControl.length === 0, conControl.join(' '));
+  const TARJETA = leer('components/PostCard.tsx');
+  check('6) el botón que cita la pista existe: es la opción del menú de la publicación',
+    /onPress=\{enviarDesdeElMenu\}/.test(TARJETA) && /\{t\('wall\.sendByWeeTalk'\)\}<\/Text>/.test(TARJETA));
+  const ENTRECOMILLADO = /"([^"]+)"|“([^”]+)”|”([^”]+)”|«([^»]+)»|「([^」]+)」/g;
+  const citasDe = (frase) => [...frase.matchAll(ENTRECOMILLADO)].map((m) => m.slice(1).find(Boolean));
+  const IDIOMAS = fs.readdirSync(new URL('../../i18n/textos/', import.meta.url)).filter((n) => !n.includes('.'));
+  const mal = [];
+  for (const codigo of IDIOMAS) {
+    const t = await traductorDe(codigo);
+    const citas = citasDe(pista(t));
+    const huecos = (textosDe(codigo).weetalk.noConversationsHint.match(/\{\{boton\}\}/g) || []).length;
+    if (huecos !== 1 || citas.length !== 1 || citas[0] !== t('wall.sendByWeeTalk')) mal.push(`${codigo}: ${pista(t)}`);
+  }
+  check(`6) en los ${IDIOMAS.length} idiomas, la pista cita solo el botón que existe, por su hueco`,
+    IDIOMAS.length >= 17 && mal.length === 0, mal.slice(0, 3).join(' | '));
+  /* SABOTAJE: la pista de antes, con su «Privado» escrito a mano, no pasaría. */
+  check('6) SABOTAJE: la pista de antes, con «Privado» escrito, no pasaría',
+    citasDe('Toca "Privado" en cualquier publicación para iniciar una conversación anónima')[0] !== ES('wall.sendByWeeTalk'));
 
   /* 7 · Lo que escribe la gente se sigue pintando crudo. */
   check('7) los mensajes y los nombres no pasan por el traductor',
-    /\{otherData\.displayName\}/.test(BANDEJA)
+    /\{otherData\.displayName \|\| t\('common\.user'\)\}/.test(BANDEJA)
     && !/t\(last\.content\)|t\(otherData\.displayName\)|t\(item\.lastMessage/.test(BANDEJA));
 
   /* 8, 9 y 10 · CONTROL: la bandeja funciona como funcionaba. */
@@ -89,7 +110,8 @@ console.log('\n── A · La bandeja vacía de WeeTalk ──');
   check('10) control: borrar y buscar siguen donde estaban',
     /messagesService\.deleteConversation\(id\)/.test(BANDEJA) && /const filtered = search\.trim\(\)/.test(BANDEJA));
   check('10) y el título del estado vacío sigue saliendo de su clave de siempre',
-    /\{t\('weetalk\.noConversations'\)\}/.test(BANDEJA) && /\{t\('weetalk\.noConversationsHint'\)\}/.test(BANDEJA));
+    /\{t\('weetalk\.noConversations'\)\}/.test(BANDEJA)
+    && /\{t\('weetalk\.noConversationsHint', \{ boton: t\('wall\.sendByWeeTalk'\) \}\)\}/.test(BANDEJA));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -174,7 +196,7 @@ console.log('\n── C · Sin sistemas paralelos, sin idiomas clavados ──')
   check('23) el aviso del voto existe una sola vez en todo el diccionario', repetidas === 1, String(repetidas));
   check('23) y la explicación de la bandeja, también',
     Object.entries(esT).filter(([, m]) =>
-      Object.values(m).some((v) => /Toca "Privado"/.test(String(v)))).length === 1);
+      Object.values(m).some((v) => /toca "\{\{boton\}\}"/.test(String(v)))).length === 1);
 
   /* 24 · Ni un idioma clavado en ninguno de los dos archivos. */
   check('24) no se fuerza ningún idioma',

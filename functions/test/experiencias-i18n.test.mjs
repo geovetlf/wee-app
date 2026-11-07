@@ -88,12 +88,11 @@ console.log('\n── A · Ni una frase suelta en el alcance ──');
        */
       if (ruta.endsWith('businessMock.ts') && /\b(text|name|handle|title):\s*'/.test(l)) return;
       /*
-       * Ni el título por defecto de un documento sin nombre: no es un rótulo,
-       * es el VALOR que se guarda, y a partir de ahí es el nombre que tiene ese
-       * documento. Traducirlo haría que el mismo documento se llamara distinto
-       * según el idioma que hubiera puesto el día que se creó (prueba 22b).
+       * Ni «Sin título» en documentsService: ya no se guarda (un documento sin título se guarda vacío y se pinta con
+       * writer.untitled); queda solo como la marca con la que se reconoce lo que se guardó antes, como las de WeeTalk
+       * (prueba 22b).
        */
-      if (ruta.endsWith('documentsService.ts') && /const titleOf/.test(l)) return;
+      if (ruta.endsWith('documentsService.ts') && /const TITULO_GUARDADO_ANTES = 'Sin título';/.test(l)) return;
       for (const m of l.matchAll(/(['"])([^'"\n]*[áéíóúñ¿¡][^'"\n]*)\1/g)) {
         if (MARCAS.test(m[2]) && !/[áéíóú¿¡]/.test(m[2].replace(MARCAS, ''))) continue;
         sospechosas.push(ruta.split('/').pop() + ':' + (i + 1) + ' ' + m[2].slice(0, 40));
@@ -321,15 +320,14 @@ console.log('\n── F · Lo que NO se traduce ──');
       .every((d) => !enDiccionario(d.post.title) && !/^business\./.test(d.post.title)));
 
   /*
-   * "Sin título" tampoco: no es un rótulo de la pantalla, es el nombre que se
-   * GUARDA cuando alguien no le pone ninguno, y desde ese momento es el nombre
-   * de ese documento. Si pasara por el traductor, el mismo documento se
-   * llamaría distinto según el idioma del día en que se creó.
+   * "Sin título" ya no se guarda (auditoría final de i18n): un documento sin título se guarda SIN título y se pinta
+   * con writer.untitled en el idioma de quien mira; lo que se guardó antes como «Sin título» se reconoce
+   * (sinTitulo). Así nadie lee «Sin título» en español en sus documentos desde otro idioma.
    */
-  check('22b) el título por defecto de un documento se guarda, no se pinta',
-    /const titleOf = [^\n]*'Sin título'/.test(CODIGO['services/documentsService.ts'])
-    && !enDiccionario('Sin título')
-    && !/const titleOf = \([^)]*\bt:/.test(CODIGO['services/documentsService.ts']));
+  check('22b) un documento sin título se guarda vacío y se pinta con writer.untitled',
+    /const titleOf = [^\n]*\|\| ''\)\.trim\(\)\.slice\(0, 60\);/.test(CODIGO['services/documentsService.ts'])
+    && /export const sinTitulo = /.test(CODIGO['services/documentsService.ts'])
+    && /sinTitulo\(doc\.title\) \? t\('writer\.untitled'\) : doc\.title/.test(leer('components/creator/WriterDocuments.tsx')));
 
   /* Las palabras con las que se busca no son interfaz: comparan, no se leen. */
   check('23) las palabras clave de la búsqueda siguen sin tocarse',

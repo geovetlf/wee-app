@@ -148,8 +148,8 @@ console.log('\n── C · El mensaje es de quien lo escribió ──');
     && /contenido \? AVISOS_GUARDADOS\[contenido\] : undefined/.test(avisos));
 
   /* 13 · El nombre tampoco pasa por el traductor. */
-  check('13) el nombre de quien escribe se pinta crudo',
-    /\{otherData\.displayName\}/.test(BANDEJA) && !/t\(otherData\.displayName\)/.test(BANDEJA));
+  check('13) el nombre de quien escribe se pinta crudo (y, sin nombre, el genérico common.user)',
+    /\{otherData\.displayName \|\| t\('common\.user'\)\}/.test(BANDEJA) && !/t\(otherData\.displayName\)/.test(BANDEJA));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -168,7 +168,7 @@ console.log('\n── D · Nada más se movió ──');
   check('17) control: el buscador y el estado vacío siguen donde estaban',
     /const filtered = search\.trim\(\)/.test(BANDEJA)
     && /\{t\('weetalk\.noConversations'\)\}/.test(BANDEJA)
-    && /\{t\('weetalk\.noConversationsHint'\)\}/.test(BANDEJA));
+    && /\{t\('weetalk\.noConversationsHint', \{ boton: t\('wall\.sendByWeeTalk'\) \}\)\}/.test(BANDEJA));
   check('17) y la hora de cada fila sigue viniendo de la función compartida',
     /getRelativeTime\(last\.timestamp\.toDate\(\), locale\)/.test(BANDEJA));
 

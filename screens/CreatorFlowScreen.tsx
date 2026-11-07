@@ -328,7 +328,8 @@ const CreatorFlowScreen: React.FC = () => {
     if (params.editorDocId) {
       navigation.navigate('WriterEditor', { docId: params.editorDocId, replaceText: content });
     } else {
-      navigation.navigate('WriterEditor', { text: content, title: job.goal.slice(0, 60) });
+      /* El objetivo por defecto lo escribe el servidor en español: el título, en el idioma de quien mira. */
+      navigation.navigate('WriterEditor', { text: content, title: textoDeObjetivo(t, experience.id, job.goal).slice(0, 60) });
     }
   };
 
@@ -352,7 +353,7 @@ const CreatorFlowScreen: React.FC = () => {
   const CONSERVA_EL_CONTEXTO = experience.id === 'travel';
   const handleEdit = (instruction: string) => {
     // El cambio se escribe en el idioma de quien lo pide: es lo que luego lee en la conversación
-    const goal = t('weeai.goalWithChange', { objetivo: job?.goal || params.goal || nombre, cambio: instruction });
+    const goal = t('weeai.goalWithChange', { objetivo: (job?.goal ? textoDeObjetivo(t, experience.id, job.goal) : params.goal) || nombre, cambio: instruction });
     if (!CONSERVA_EL_CONTEXTO || !job) return start(goal);
     const contexto: Answer[] = job.answers.map((a) => ({
       questionId: a.questionId,
@@ -383,7 +384,7 @@ const CreatorFlowScreen: React.FC = () => {
     const yaDichas = job.answers.filter((a) => a.questionId !== 'what' && a.optionId).map((a) => ({ questionId: a.questionId, optionId: a.optionId as string }));
     navigation.push('CreatorFlow', {
       experienceId: experience.id,
-      goal: job.goal,
+      goal: textoDeObjetivo(t, experience.id, job.goal),
       presets: [{ questionId: 'what', optionId }, ...yaDichas],
       imageUri: uploadedUrl.current || imageUri,
     });
@@ -723,7 +724,7 @@ const CreatorFlowScreen: React.FC = () => {
         </Text>
         <ProjectPicker
           visible={pickerVisible}
-          goal={job?.goal || params.goal || ''}
+          goal={job?.goal ? textoDeObjetivo(t, experience.id, job.goal) : params.goal || ''}
           onClose={() => setPickerVisible(false)}
           onPick={(project) => handleSaveToProject(project.id, project.name)}
         />

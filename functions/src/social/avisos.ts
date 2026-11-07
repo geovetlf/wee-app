@@ -66,6 +66,13 @@ export const esTipoDeAviso = (tipo: unknown): tipo is string =>
 /** «Alguien», en el idioma de quien recibe el aviso. */
 export const nombreDeRespaldo = (idioma?: unknown): string => tablaDelIdioma(AVISOS, idioma).alguien || NOMBRE_POR_DEFECTO;
 
+/*
+ * SIN NOMBRE, OTRA FRASE. Cuando quien avisa no tiene un nombre que enseñar, se lee la gemela `<clave>SinNombre` del
+ * diccionario: en español, inglés y danés es la misma frase con «Alguien» en el hueco; en filipino es otra («May
+ * nag-like sa post mo»), porque «si»/«ni» no van delante de un sustantivo común. Lo mismo que hace la pantalla.
+ */
+const sinNombre = (clave: string): string => `${clave}SinNombre`;
+
 /**
  * El título y el texto de un aviso. Recibe el nombre ya resuelto por el
  * servidor —nunca el que trae la notificación— y null si el tipo no manda push.
@@ -76,7 +83,10 @@ export const avisoPush = (tipo: unknown, nombreDelRemitente: string | null, idio
   const tabla = tablaDelIdioma(AVISOS, idioma);
   const [titulo, cuerpo] = CLAVES[tipo];
   const nombre = nombreDelRemitente || nombreDeRespaldo(idioma);
-  return { title: rellenarTexto(tabla[titulo], { nombre }), body: rellenarTexto(tabla[cuerpo], { nombre }) };
+  return {
+    title: rellenarTexto(tabla[titulo], { nombre }),
+    body: rellenarTexto(tabla[nombreDelRemitente ? cuerpo : sinNombre(cuerpo)], { nombre }),
+  };
 };
 
 /**
@@ -92,6 +102,20 @@ export const cuerpoDelMensaje = (contenido: unknown, idioma?: unknown): string =
     if (texto === AVISOS.es[marca]) return tabla[marca];
   }
   return texto.substring(0, 100);
+};
+
+/**
+ * El push de un mensaje de WeeTalk: el nombre de quien lo manda como título y lo que dice como texto. Sin nombre, el
+ * título y —si el mensaje no trae palabras— el texto salen de sus gemelas `SinNombre`, en el idioma de quien lo recibe.
+ */
+export const avisoDeMensaje = (nombreDelRemitente: string | null, contenido: unknown, idioma?: unknown): { title: string; body: string } => {
+  if (nombreDelRemitente) return { title: nombreDelRemitente, body: cuerpoDelMensaje(contenido, idioma) };
+  const tabla = tablaDelIdioma(AVISOS, idioma);
+  const conTexto = typeof contenido === 'string' && contenido.trim() !== '';
+  return {
+    title: rellenarTexto(tabla.tituloDelMensajeSinNombre, { nombre: nombreDeRespaldo(idioma) }),
+    body: conTexto ? cuerpoDelMensaje(contenido, idioma) : tabla.teEnvioUnMensajeSinNombre,
+  };
 };
 
 /** Lo que viaja en `data` del push: identificadores para abrir la pantalla, y nada más. */

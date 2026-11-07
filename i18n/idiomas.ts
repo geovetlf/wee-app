@@ -20,7 +20,7 @@
 
 /** Los idiomas que Weë contempla. Añadir uno es añadirlo a esta lista. */
 export type CodigoDeIdioma =
-  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar' | 'tr' | 'sv' | 'hi' | 'da';
+  | 'es' | 'en' | 'it' | 'fr' | 'de' | 'pt' | 'ja' | 'zh' | 'ko' | 'ru' | 'ar' | 'tr' | 'sv' | 'hi' | 'da' | 'fil';
 
 /**
  * UNA ESCRITURA O REGIÓN QUE SE OFRECE POR SEPARADO DENTRO DEL MISMO IDIOMA.
@@ -150,6 +150,19 @@ export const IDIOMAS: readonly Idioma[] = [
    */
   { codigo: 'da', nombreNativo: 'Dansk', direccion: 'ltr', listo: true },
   /*
+   * El filipino habla de tú a tú («ka/mo/ikaw/iyo») y nunca con «po», como
+   * Android, Facebook o YouTube en Filipinas; usa la palabra filipina donde la
+   * hay («Ibahagi», «komento») y el préstamo con guion donde es lo que la gente
+   * ve («I-save», «I-delete»). Su plural está en el ENLACE del número, no en el
+   * sustantivo: `Intl.PluralRules('fil')` da `other` a lo que acaba en 4, 6 o 9
+   * («4 na komento») y `one` a lo demás («3 komento»), así que ningún `_one`
+   * escribe un «1». Las marcas no llevan afijos («sa Weë», nunca «i-Weë»). El
+   * tagalo (`tl`) es el mismo idioma para CLDR: `tl-PH` llega a `fil`
+   * (`ALIAS_DE_IDIOMA`). Todo eso está en `docs/I18N-FILIPINO.md` y lo vigila
+   * `functions/test/i18n-filipino.test.mjs`.
+   */
+  { codigo: 'fil', nombreNativo: 'Filipino', direccion: 'ltr', listo: true },
+  /*
    * Lo propio del turco no es el plural —`Intl.PluralRules('tr')` tiene `one` y
    * `other`, y tras una cifra el sustantivo va en singular, así que las dos
    * formas suelen decir lo mismo— sino la CAJA y los SUFIJOS: la mayúscula de
@@ -255,6 +268,7 @@ export const LOCALES_CONTEMPLADOS: readonly string[] = [
   'pt-BR', 'pt-PT',
   'sv-SE',
   'da-DK',
+  'fil-PH',
   'tr-TR',
   'ja-JP',
   'zh-CN', 'zh-TW',
@@ -263,6 +277,14 @@ export const LOCALES_CONTEMPLADOS: readonly string[] = [
   'hi-IN',
   'ar-SA',
 ];
+
+/**
+ * ETIQUETAS QUE SON OTRO NOMBRE DEL MISMO IDIOMA. CLDR trata el tagalo (`tl`) como el filipino (`fil`):
+ * `Intl.getCanonicalLocales('tl')` da `fil`. Un teléfono antiguo o un navegador que dice `tl-PH` tiene que
+ * llegar al diccionario filipino, no caer en inglés. Se aplica al normalizar el locale (i18n/resolver.ts) y no
+ * depende de que el motor de JS del teléfono conozca el alias.
+ */
+export const ALIAS_DE_IDIOMA: Readonly<Record<string, string>> = { tl: 'fil' };
 
 /** Los que se pueden elegir hoy. La pantalla de Idioma pinta exactamente esto. */
 export const idiomasDisponibles = (): Idioma[] => IDIOMAS.filter((i) => i.listo);

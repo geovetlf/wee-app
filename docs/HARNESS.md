@@ -45,8 +45,9 @@ espera al dueño). Qué frontera del código vive dónde y si está conectada: [
 | `ops/observabilidad/verificar.mjs` | ¿Existen y avisan a alguien? | Lee producción |
 | `ops/reconciliacion/reservas-colgadas.mjs` | Reservas de Credits que llevan horas sin cerrarse | Lee producción (datos de personas: el dueño) |
 | `docs/PRIMER-DESPLIEGUE.md` | El checklist del primer despliegue (`spendCredits`) | — |
-| `ops/revision/detectores.mjs` (+ `reglas.mjs`, `grafo.mjs`, `frontera.mjs`) | El Quality Reviewer, capa 2: reglas deterministas sobre el AST (higiene de imports, ciclos de valor, `any`, `Alert` en la web, IA fuera de adaptador, reglas de Firebase…); JSON y SARIF ([REVISION.md](REVISION.md)) | Local |
+| `ops/revision/detectores.mjs` (+ `reglas.mjs`, `grafo.mjs`, `frontera.mjs`, `documentos.mjs`) | El Quality Reviewer, capa 2: reglas deterministas sobre el AST y sobre la documentación (`doc/*`: enlaces/referencias/comandos rotos) (higiene de imports, ciclos de valor, `any`, `Alert` en la web, IA fuera de adaptador, reglas de Firebase…); JSON y SARIF ([REVISION.md](REVISION.md)) | Local |
 | `ops/revision/baseline.mjs` (+ `clasificacion.mjs`, `baseline.json`) | Capa 3: qué es nuevo y qué se conocía desde el corte; la puerta G3; la baseline PROPUESTA (nunca se aplica sola) | Local |
+| `ops/evals/*` + `functions/test/evals-router.test.mjs` | WEE AI Evaluation Engine (F2-A, dominio Model Router): graders deterministas + fakes, coste $0; eval-gate de CI separado del Quality Reviewer ([EVALS.md](EVALS.md)) | Local |
 | `ops/revision/selector.mjs` + `ops/revision/contexto/paquetes.json` | Capa 4: qué revisar con IA, con qué contexto, presupuesto de tokens y caché | Local |
 | `.claude/agents/revisor-{codigo,seguridad,arquitectura}.md` + `ops/revision/rubricas/` | Capa 5: revisores de SOLO LECTURA (Read, Grep, Glob, Bash bajo la guardia), con rúbricas propias | Local (IA) |
 | `.claude/commands/revision-de-fase.md` | El cierre de fase G0–G7: higiene, build, pruebas, detectores, selector, revisores, verificación, informe; sin commit ni deploy | Local |

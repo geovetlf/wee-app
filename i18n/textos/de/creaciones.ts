@@ -1,7 +1,7 @@
 /* Meine Kreationen: die Medienbibliothek des Kontos und der Fortschritt eines Weë-AI-Auftrags. Siehe es/creaciones.ts. */
 export const creaciones = {
   title: 'Meine Kreationen',
-  intro: 'Alles, was du mit Weë AI erstellt hast, an einem Ort. Es gehört zu deinem Konto: Du siehst dasselbe im Real-Profil und im Weë-Profil.',
+  intro: 'Alles, was du mit Weë AI erstellt hast, an einem Ort. Es gehört zu deinem Konto: Du siehst dasselbe im Realen Profil und im Weë-Profil.',
 
   filterAll: 'Alle',
   filterImages: 'Bilder',

@@ -12,9 +12,9 @@
  * teléfono, así que la vista previa dice «📷 फ़ोटो» y el aviso de error, «फ़ोटो»; la nota de voz,
  * «🎤 वॉइस मैसेज». `photo` es la etiqueta del botón de la cámara: «फ़ोटो लें». `areYouSure` es el
  * cuerpo del aviso de borrar una conversación, cuyo título ya dice qué se borra: «क्या आपको यकीन
- * है?», sin género. `noConversationsHint` cita en español un botón «Privado» que no existe en
- * ninguna pantalla; aquí cita el que sí existe en el menú de la publicación, «WeeTalk से भेजें»
- * (`wall.sendByWeeTalk`, con las mismas letras), que abre la conversación con quien la publicó.
+ * है?», sin género. `noConversationsHint` recibe por hueco, `{{boton}}`, el botón del menú de la
+ * publicación que abre la conversación con quien la publicó (`wall.sendByWeeTalk`), así que nunca
+ * cita uno que no exista.
  * Los permisos se piden sin sujeto («… अनुमति चाहिए»), y «acceder» es «ऐक्सेस करना», como en el
  * diálogo de permisos de Android. Los nombres de los temas son palabras corrientes.
  */
@@ -45,7 +45,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: 'आपकी फ़ोटो ऐक्सेस करने के लिए अनुमति चाहिए',
   audioPermission: 'ऑडियो रिकॉर्ड करने के लिए माइक्रोफ़ोन की अनुमति चाहिए',
   imageFailed: 'फ़ोटो नहीं भेजी जा सकी',
-  noConversationsHint: 'गुमनाम चैट शुरू करने के लिए, किसी भी पोस्ट के मेन्यू में “WeeTalk से भेजें” पर टैप करें',
+  noConversationsHint: 'निजी चैट शुरू करने के लिए, किसी भी पोस्ट के मेन्यू में “{{boton}}” पर टैप करें',
   ephemeralMode: 'गायब होने वाले मैसेज',
   noMessagesYet: 'अभी तक कोई मैसेज नहीं है',
   youSaid: 'आप: {{mensaje}}',

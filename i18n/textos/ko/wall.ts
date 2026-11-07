@@ -22,6 +22,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}}님이 리포스트했어요',
+  repostedBySinNombre: '{{nombre}}님이 리포스트했어요',
   repost: '리포스트',
   undoRepost: '리포스트 취소',
   undoRepostConfirm: '리포스트 취소하기',

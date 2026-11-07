@@ -514,8 +514,12 @@ console.log('\n── E · La regla del dinero y el proveedor, intactas ──')
        * `pideTextoPlano`); los adaptadores de TEXTO claude/deepseek/openai +3 −2 y gemini +4 −2 (ese sistema y `format: 'text'`
        * respetado); router.ts +2 −1 (el aviso de fallo, saneado). Ningún proveedor nuevo y ninguna cadena nueva: seedance,
        * registry y la cadena de `video.generate` quedan como estaban.
+       *
+       * + F2-C1 (evals del Model Router): ledger.ts 12/1 → 19/2 (el gasto con attribution:'eval' va a evalUsage/{día}, no
+       * al tope del usuario), types.ts 19/0 → 29/0 (attribution?/evalRunId? en EngineContext y GenerationRecord) y router.ts
+       * 57/4 → 59/4 (reenvía esos dos campos al contexto del libro). SIGUE sin haber proveedor ni cadena nuevos.
        */
-      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|1\t1\tfunctions/src/engine/errors.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|12\t1\tfunctions/src/engine/ledger.ts|38\t3\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|57\t4\tfunctions/src/engine/router.ts|19\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
+      === '11\t4\tfunctions/src/engine/admin.ts|36\t1\tfunctions/src/engine/config.ts|1\t1\tfunctions/src/engine/errors.ts|2\t0\tfunctions/src/engine/gateway.ts|26\t1\tfunctions/src/engine/http.ts|19\t2\tfunctions/src/engine/ledger.ts|38\t3\tfunctions/src/engine/limits.ts|21\t0\tfunctions/src/engine/promptLanguage.ts|3\t2\tfunctions/src/engine/providers/claude.ts|3\t2\tfunctions/src/engine/providers/deepseek.ts|4\t2\tfunctions/src/engine/providers/gemini.ts|3\t2\tfunctions/src/engine/providers/openai.ts|33\t19\tfunctions/src/engine/providers/seedance.ts|2\t0\tfunctions/src/engine/registry.ts|59\t4\tfunctions/src/engine/router.ts|29\t0\tfunctions/src/engine/types.ts|38\t14\tfunctions/src/engine/webhooks.ts');
 }
 
 /* ═══ F · NADA MÁS SE MOVIÓ ════════════════════════════════════════════════ */
@@ -576,8 +580,15 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
    * CERRADA también sin lista de cuentas (puerta.ts) y un error de lectura se distingue en el registro (configuracion.ts).
    */
   const DE_LOS_HALLAZGOS = ['functions/src/runtime/configuracion.ts', 'functions/src/runtime/puerta.ts'];
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness y de la integración i18n da-DK',
-    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_HALLAZGOS,
+  /*
+   * Los de F2-C1 (evals del Model Router, 2026-10-03), por nombre: el corredor de administración y su dataset/graders
+   * deterministas (evals/index.ts, evals/datos.ts), ambos NUEVOS, y la reserva/reconciliación pura del presupuesto
+   * (evals/presupuesto.ts, hardening del 2026-10-04). El motor solo gana el reenvío de attribution/evalRunId
+   * (engine/types.ts, engine/router.ts, engine/ledger.ts: ya estaban en DEL_HARNESS) e index.ts exporta evalRun (ya estaba).
+   */
+  const DE_LOS_EVALS = ['functions/src/evals/datos.ts', 'functions/src/evals/index.ts', 'functions/src/evals/presupuesto.ts'];
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK y de F2-C1 (evals)',
+    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_HALLAZGOS, ...DE_LOS_EVALS,
       'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
       'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
       'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',

@@ -10,7 +10,7 @@
  * ES UNA SECCIÓN OPCIONAL. Un idioma que la declara la declara entera (`FormaDelServidor`; lo comprueba
  * `functions/test/i18n.test.mjs`, prueba 24). Uno que todavía no la ha traducido no la declara, y la cadena de
  * respaldo de siempre —fr-FR → fr → en— hace el resto: ve el inglés, no el español del servidor. Hoy la declaran el
- * español, el inglés y el danés.
+ * español, el inglés, el danés y el filipino.
  */
 import { preguntas } from './preguntas';
 import { opciones } from './opciones';

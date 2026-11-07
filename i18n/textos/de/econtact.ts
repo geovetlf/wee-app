@@ -5,7 +5,9 @@
  *
  * Tratamiento informal (du). `{{lista}}` es el nombre de la agenda y `{{nombre}}`
  * el de una persona: las frases están escritas para que el hueco caiga donde el
- * alemán lo pide, sin pegar cadenas.
+ * alemán lo pide, sin pegar cadenas. Sin nombre, el hueco lo rellena `somePerson`
+ * («diese Person», acusativo); donde la frase pide dativo («von») la gemela
+ * `<clave>SinNombre` va escrita entera: «von dieser Person».
  */
 export const econtact: typeof import('../es/econtact').econtact = {
   requestsReceived: 'Erhaltene Anfragen',
@@ -16,19 +18,27 @@ export const econtact: typeof import('../es/econtact').econtact = {
   noneYet: 'Du hast noch keine {{lista}}',
   noneYetSubtitle: 'Hier stehen deine Leute auf Weë. Eine Verbindung entsteht zu zweit: Eine Person schlägt sie vor, die andere nimmt sie an.',
   noAgenda: 'Dieses Profil hat keine Kontaktliste',
-  noAgendaSubtitle: 'In {{lista}} stehen deine Verbindungen zu anderen Menschen. Wechsle zu deinem Realen Profil oder deinem Weë Profil, um sie zu sehen.',
+  noAgendaSubtitle: 'In {{lista}} stehen deine Verbindungen zu anderen Menschen. Wechsle zu deinem Realen Profil oder deinem Weë-Profil, um sie zu sehen.',
   wantsToConnect: '{{lista}} · möchte sich mit dir verbinden',
   accept: '{{nombre}} annehmen',
+  acceptSinNombre: '{{nombre}} annehmen',
   reject: '{{nombre}} ablehnen',
+  rejectSinNombre: '{{nombre}} ablehnen',
   withdraw: 'Deine Anfrage an {{nombre}} zurückziehen',
+  withdrawSinNombre: 'Deine Anfrage an {{nombre}} zurückziehen',
   removeFrom: '{{nombre}} aus deinen {{lista}} entfernen',
+  removeFromSinNombre: '{{nombre}} aus deinen {{lista}} entfernen',
   openProfile: '{{etiqueta}} von {{nombre}} öffnen',
+  openProfileSinNombre: '{{etiqueta}} von dieser Person öffnen',
   rejectTitle: 'Anfrage ablehnen',
   rejectConfirm: 'Anfrage von {{nombre}} ablehnen?',
+  rejectConfirmSinNombre: 'Anfrage von dieser Person ablehnen?',
   withdrawTitle: 'Anfrage zurückziehen',
   withdrawConfirm: 'Deine Anfrage an {{nombre}} zurückziehen?',
+  withdrawConfirmSinNombre: 'Deine Anfrage an {{nombre}} zurückziehen?',
   removeTitle: '{{lista}} entfernen',
   removeConfirm: '{{nombre}} aus deinen {{lista}} entfernen?',
+  removeConfirmSinNombre: '{{nombre}} aus deinen {{lista}} entfernen?',
   failed: 'Das hat nicht geklappt',
   count_one: '1 {{lista}}',
   count_other: '{{contador}} {{lista}}',

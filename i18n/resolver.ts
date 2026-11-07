@@ -1,4 +1,4 @@
-import { CodigoDeIdioma, IDIOMA_DE_RESERVA, idiomaDelCatalogo, varianteDelLocale } from './idiomas';
+import { ALIAS_DE_IDIOMA, CodigoDeIdioma, IDIOMA_DE_RESERVA, idiomaDelCatalogo, varianteDelLocale } from './idiomas';
 
 /*
  * DE LO QUE DICE EL APARATO A LO QUE ENSEÑA WEË.
@@ -37,7 +37,8 @@ export const normalizarLocale = (crudo: string): string => {
   if (!limpio) return '';
   const trozos = limpio.split('-').filter(Boolean);
   if (!trozos.length) return '';
-  const idioma = trozos[0].toLowerCase();
+  /* `tl` (tagalo) es otro nombre del filipino: `tl-PH` → `fil-PH` (ver ALIAS_DE_IDIOMA). */
+  const idioma = ALIAS_DE_IDIOMA[trozos[0].toLowerCase()] ?? trozos[0].toLowerCase();
   /* Solo letras: descarta basura del tipo "es-PE.UTF-8" o "C". */
   if (!/^[a-z]{2,3}$/.test(idioma)) return '';
   const resto = trozos.slice(1).map((t) => {

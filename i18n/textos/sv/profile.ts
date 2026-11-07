@@ -81,6 +81,7 @@ export const profile: typeof import('../es/profile').profile = {
   actionFailed: 'Det gick inte att slutföra',
   userNotFound: 'Användaren finns inte',
   shareOtherMessage: 'Kolla in @{{nombre}} på Weë!\n\n{{bio}}',
+  shareOtherMessageSinNombre: 'Kolla in den här profilen på Weë!\n\n{{bio}}',
   shareOtherNoBio: 'Användare på Weë',
   joinedOn: 'Gick med i {{fecha}}',
   tabPolls: 'Omröstningar',

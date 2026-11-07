@@ -52,6 +52,7 @@ export const TEXTOS_ES: TablaDeTextos = {
   masEnWee: 'y {{contador}} más en Weë',
   hechoCon: 'Hecho con',
   reposteo: '{{nombre}} reposteó',
+  reposteoSinNombre: '{{nombre}} reposteó',
   perfilWee: 'Perfil Weë',
   estoEsWee: 'Esto es Weë',
   lema: 'La red de quienes crean con Inteligencia Artificial. Descubre, aprende y comparte.',
@@ -91,7 +92,7 @@ export interface PublicacionPublica {
   /** Solo la pregunta y las opciones. Los recuentos son del servidor. */
   encuesta?: { question?: string; options?: OpcionPublica[] };
   autor?: AutorPublico | null;
-  /** Si esto llegó por un repost: quién reposteó y qué dijo al hacerlo. */
+  /** Si esto llegó por un repost: quién reposteó (vacío si no tiene nombre) y qué dijo al hacerlo. */
   reposteadaPor?: string;
   repostComment?: string;
 }
@@ -540,9 +541,13 @@ export const paginaDeLaPublicacion = (post: PublicacionPublica, base = BASE_CANO
 
   const autor = post.autor;
   const esPerfilWee = !!autor && autor.profileType === 'hidi';
-  const reposteo = post.reposteadaPor
+  /* Sin nombre, su propia frase (`reposteoSinNombre`): en filipino «si» no va delante de un sustantivo común. */
+  const lineaDelReposteo = post.reposteadaPor
+    ? rellenarTexto(textos.reposteo, { nombre: post.reposteadaPor })
+    : rellenarTexto(textos.reposteoSinNombre, { nombre: textos.alguien });
+  const reposteo = post.reposteadaPor !== undefined
     ? `
-    <div class="reposteo">${escapar(rellenarTexto(textos.reposteo, { nombre: post.reposteadaPor }))}</div>`
+    <div class="reposteo">${escapar(lineaDelReposteo)}</div>`
     : '';
   const comentarioDelRepost = post.repostComment
     ? `

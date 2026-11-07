@@ -32,6 +32,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} republicou',
+  repostedBySinNombre: '{{nombre}} republicou',
   repost: 'Republicar',
   undoRepost: 'Remover republicação',
   undoRepostConfirm: 'Remover a republicação',

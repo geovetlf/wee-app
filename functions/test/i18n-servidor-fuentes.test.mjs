@@ -7,7 +7,7 @@
  * da la vuelta a la pregunta: recorre TODO `functions/src` con el árbol de TypeScript, saca cada frase que puede
  * llegar a una pantalla y exige que esté en el catálogo español (y por tanto en cada idioma que declara la sección
  * del servidor). Si alguien añade un `HttpsError` con una frase nueva, un progreso nuevo o un concepto de Credits nuevo
- * y no lo pone en `i18n/textos/es/servidor/` —y en `en` y `da`—, esto falla y dice cuál.
+ * y no lo pone en `i18n/textos/es/servidor/` —y en `en`, `da` y `fil`, los que declaran la sección—, esto falla y dice cuál.
  *
  * Las frases que NO necesitan catálogo están en una lista cerrada, por archivo, con su porqué y con la EVIDENCIA de
  * que la app no las enseña: las de administración, las que la app traduce por su código (Filmmaker, moderación) y las
@@ -251,12 +251,18 @@ console.log('\n── D · Ningún respaldo accidental al español, en ningún i
   const EN = traducir.crearTraductor('en-US', DICCIONARIOS, { modoDesarrollo: false });
   const valores = new Proxy({}, { get: (_, p) => (typeof p === 'string' ? (/contador|numero|dias|noches|cantidad|segundos|max/.test(p) ? 2 : 'X') : undefined), has: () => true });
   const enEspanol = [];
+  /*
+   * Palabras que en ese idioma se escriben IGUAL que en español, decididas en su revisión nativa: no son un respaldo.
+   * El filipino tomó del español muchas palabras («elegante»); la lista es cerrada y lleva su idioma.
+   */
+  /* Iguales porque ES la palabra filipina: «Elegante», y «Moderno» (la de design.valModern: una idea, una palabra). */
+  const IGUAL_A_PROPOSITO = new Set(['fil:opciones.studioStyleElegant', 'fil:opciones.homeStyleModern']);
   for (const codigo of Object.keys(DICCIONARIOS)) {
     if (/^es(-|$)/.test(codigo)) continue;
     const t = traducir.crearTraductor(codigo, DICCIONARIOS, { modoDesarrollo: false });
     for (const k of new Set(claves)) {
       const suyo = t(k, valores);
-      if (suyo === tEs(k, valores) && suyo !== EN(k, valores)) enEspanol.push(`${codigo}:${k}`);
+      if (suyo === tEs(k, valores) && suyo !== EN(k, valores) && !IGUAL_A_PROPOSITO.has(`${codigo}:${k}`)) enEspanol.push(`${codigo}:${k}`);
     }
   }
   check('20) ningún idioma —declare o no la sección del servidor— cae al español en un texto del servidor', enEspanol.length === 0, muestra(enEspanol));

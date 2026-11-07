@@ -47,6 +47,13 @@ export interface EngineContext {
   requestId?: string;
   /** Servicio del catálogo de Credits que paga esta generación (ai_image, ai_video…). */
   service?: string;
+  /**
+   * EVALUACIÓN INTERNA (F2-C): cuando esta generación es parte de una evaluación, `attribution === 'eval'` y
+   * `evalRunId` la ata a su corrida. El gasto de eval se contabiliza APARTE (evalUsage/{día}), nunca cuenta para el
+   * tope de gasto del usuario ni se cobra a nadie. Ausente en todo el tráfico normal.
+   */
+  attribution?: 'eval';
+  evalRunId?: string;
   /** Transacción de Credits que autorizó el cobro (usage_<requestId>). */
   creditTransactionId?: string;
   /**
@@ -411,6 +418,9 @@ export interface GenerationRecord {
   /** jobId:stepId, brain_<mensaje>… (misma operación → mismo requestId). */
   requestId?: string;
   userId: string;
+  /** Evaluación interna (F2-C): marca la generación como de eval y la ata a su corrida. Ausente en el tráfico normal. */
+  attribution?: 'eval';
+  evalRunId?: string;
   jobId?: string;
   stepId?: string;
   experienceId?: string;

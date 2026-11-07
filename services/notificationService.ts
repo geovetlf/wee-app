@@ -44,7 +44,11 @@ export interface Notification {
   recipientAccountId?: string;
   /** 'real' | 'wee': con qué cara está escribiendo quien la genera. */
   senderProfileType?: string;
-  senderName: string;       // Nombre del sender (para mostrar sin query extra)
+  /*
+   * El nombre de quien avisa, o vacío. Las reglas lo exigen, pero no se enseña: la pantalla y el push leen el perfil
+   * de `senderId` (Fase 11.x-4A) y, sin nombre, quien LEE pone el genérico en su idioma. Nunca un respaldo traducido.
+   */
+  senderName: string;
   senderAvatar?: string;    // Avatar del sender
   senderAvatarType?: 'predefined' | 'custom';
   senderAvatarId?: string;

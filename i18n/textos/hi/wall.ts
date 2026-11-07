@@ -27,6 +27,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} ने रीपोस्ट किया',
+  repostedBySinNombre: '{{nombre}} ने रीपोस्ट किया',
   repost: 'रीपोस्ट करें',
   undoRepost: 'रीपोस्ट हटाएँ',
   undoRepostConfirm: 'रीपोस्ट हटाएँ',

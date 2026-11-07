@@ -107,7 +107,7 @@ const SelectorDeEContacts: React.FC<SelectorDeEContactsProps> = ({ elegidos, onC
               ]}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: marcado }}
-              accessibilityLabel={persona.perfil.displayName}
+              accessibilityLabel={persona.perfil.displayName || t('common.user')}
             >
               <AvatarDisplay
                 size={scale(32)}
@@ -117,7 +117,7 @@ const SelectorDeEContacts: React.FC<SelectorDeEContactsProps> = ({ elegidos, onC
               />
               <View style={styles.datos}>
                 <Text style={[styles.nombre, { color: theme.colors.text }]} numberOfLines={1}>
-                  {persona.perfil.displayName}
+                  {persona.perfil.displayName || t('common.user')}
                 </Text>
                 {/*
                   Con qué cara está en tu agenda. El uid no se enseña nunca.

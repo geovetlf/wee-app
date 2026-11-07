@@ -84,7 +84,14 @@ for (const [d, codigo] of idiomas) {
      * en japonés o chino `_one` ni se lee y debe ser igual a `_other`) TIENE que escribir `{{contador}}`.
      */
     const plural = k.endsWith('_one') ? es[k.replace(/_one$/, '_other')] : undefined;
-    const huecosBien = JSON.stringify(huecos(v)) === JSON.stringify(huecos(ref)) || (plural !== undefined && JSON.stringify(huecos(v)) === JSON.stringify(huecos(plural)));
+    /*
+     * `notifications.<clave>SinNombre`: la frase de cuando no se sabe quién fue puede ir SIN {{nombre}} (el filipino: si/ni
+     * no van delante de «alguien»; la pantalla, sin hueco, no pinta ningún nombre), y su gemela del push,
+     * cualquier otra `<clave>SinNombre` (push, reposteo, ËContact). Solo ese hueco y solo esas claves.
+     */
+    const sinNombre = /^\w+\.\w+SinNombre$/.test(k)
+      && JSON.stringify(huecos(v)) === JSON.stringify(huecos(ref).filter((h) => h !== 'nombre'));
+    const huecosBien = JSON.stringify(huecos(v)) === JSON.stringify(huecos(ref)) || (plural !== undefined && JSON.stringify(huecos(v)) === JSON.stringify(huecos(plural))) || sinNombre;
     if (!huecosBien) fallos.huecos.push(`${codigo} ${k}: {{${huecos(v).join(',')}}} ≠ {{${huecos(ref).join(',')}}}`);
     const raros = huecosRaros(v).filter((r) => !huecosRaros(ref).includes(r));
     if (raros.length) fallos.raros.push(`${codigo} ${k}: ${raros.join(' ')}`);

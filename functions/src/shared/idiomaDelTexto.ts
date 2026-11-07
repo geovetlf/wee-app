@@ -22,7 +22,7 @@
  * variantes del mismo idioma (pt-BR / pt-PT, zh-CN / zh-TW): eso no es un error de idioma.
  */
 
-export type IdiomaDetectable = 'es' | 'en' | 'da' | 'sv' | 'de' | 'fr' | 'it' | 'pt' | 'tr' | 'ru' | 'ko' | 'ja' | 'zh' | 'hi';
+export type IdiomaDetectable = 'es' | 'en' | 'da' | 'sv' | 'de' | 'fr' | 'it' | 'pt' | 'tr' | 'fil' | 'ru' | 'ko' | 'ja' | 'zh' | 'hi';
 
 export const MIN_PALABRAS = 25;
 export const MIN_FUNCIONALES = 6;
@@ -40,6 +40,17 @@ const FUNCIONALES: Record<Exclude<IdiomaDetectable, 'ru' | 'ko' | 'ja' | 'zh' | 
   it: ['il', 'lo', 'la', 'gli', 'le', 'di', 'del', 'della', 'dei', 'delle', 'e', 'che', 'un', 'una', 'in', 'per', 'con', 'non', 'è', 'sono', 'si', 'da', 'al', 'alla', 'nel', 'nella', 'come', 'più', 'ma', 'anche', 'tuo', 'tua', 'tuoi', 'puoi', 'questo', 'questa', 'quando', 'perché', 'ogni', 'senza', 'sul', 'sulla', 'ci', 'ti'],
   pt: ['o', 'a', 'os', 'as', 'de', 'do', 'da', 'dos', 'das', 'e', 'que', 'um', 'uma', 'em', 'no', 'na', 'nos', 'nas', 'por', 'com', 'para', 'não', 'se', 'é', 'são', 'mais', 'como', 'mas', 'ao', 'seu', 'sua', 'você', 'pode', 'também', 'quando', 'isso', 'este', 'esta', 'cada', 'sem', 'muito', 'pelo', 'pela'],
   tr: ['ve', 'bir', 'bu', 'için', 'ile', 'de', 'da', 'değil', 'çok', 'daha', 'gibi', 'olan', 'olarak', 'ama', 'veya', 'her', 'sen', 'senin', 'ne', 'mi', 'mı', 'kadar', 'sonra', 'önce', 'şu', 'o', 'en', 'ya', 'hem', 'ki', 'bunu', 'şey'],
+  /* El filipino, con palabras que ningún otro idioma de Weë escribe —«ang», «ng», «mga»…—, para no quitarle peso a
+     nadie (`COMPARTIDAS`). La única compartida es «sa» (también francesa): sin ella, cada «sa» de un texto filipino
+     contaba entero para el francés y un itinerario o un plan de negocio en filipino se quedaba en «no lo sé», a veces
+     con el francés delante. Medido sobre las 50 469 frases de los otros dieciséis diccionarios: con «sa» ningún veredicto
+     empeora (dos frases italianas pasan de «no lo sé» a italiano; siete francesas ganan algo menos de margen y siguen
+     siendo francesas). Fuera, por la misma medida: «na» (pt, una frase portuguesa dejaba de saberse), «at» (da, separa
+     el danés del sueco), «para», «pero», «din», «si», «o»; y lo que otro idioma escribe como palabra suya: «ay» («bu
+     ay», el mes en turco), «ni» (francés y español), «may» (inglés), «sino» (español), «sana» y «yan» (turco), «raw»
+     (inglés), «man» (da, sv, de). Incluye el registro escrito que usa la IA («upang», «ngunit», «maaari», «po») y el
+     coloquial del taglish («yung», «kasi»), porque los dos son filipino. */
+  fil: ['ang', 'ng', 'mga', 'sa', 'hindi', 'ito', 'itong', 'iyan', 'iyon', 'yung', 'nito', 'dito', 'doon', 'diyan', 'siya', 'niya', 'kaniya', 'kanya', 'sila', 'nila', 'kanila', 'kanilang', 'ako', 'ko', 'kong', 'akin', 'aking', 'ikaw', 'ka', 'kang', 'mo', 'mong', 'iyo', 'iyong', 'kita', 'tayo', 'natin', 'nating', 'atin', 'ating', 'kami', 'namin', 'amin', 'aming', 'kayo', 'ninyo', 'kay', 'nang', 'isang', 'kung', 'kapag', 'dahil', 'kasi', 'habang', 'upang', 'ngunit', 'subalit', 'kaya', 'lang', 'lamang', 'rin', 'naman', 'ba', 'pa', 'nga', 'muna', 'pala', 'daw', 'po', 'ngayon', 'wala', 'walang', 'mayroon', 'meron', 'lahat', 'bawat', 'tulad', 'gaya', 'kaysa', 'nasa', 'mula', 'tungkol', 'maaari', 'maaaring', 'puwede', 'pwede', 'ano', 'paano', 'bakit', 'saan', 'kailan'],
 };
 
 /* Cuántos idiomas comparten cada palabra: «de» está en cinco y pesa un quinto; «ikke» solo en uno y pesa entero. */
@@ -135,7 +146,7 @@ export const veredictoDeIdioma = (
   umbrales: Umbrales = {}
 ): { veredicto: Veredicto; detectado?: IdiomaDetectable } => {
   const base = /^([A-Za-z]{2,3})/.exec(esperado || '')?.[1]?.toLowerCase();
-  const reconocibles: readonly string[] = ['es', 'en', 'da', 'sv', 'de', 'fr', 'it', 'pt', 'tr', 'ru', 'ko', 'ja', 'zh', 'hi'];
+  const reconocibles: readonly string[] = ['es', 'en', 'da', 'sv', 'de', 'fr', 'it', 'pt', 'tr', 'fil', 'ru', 'ko', 'ja', 'zh', 'hi'];
   if (!base || !reconocibles.includes(base)) return { veredicto: 'incierto' };
   const d = detectarIdioma(texto, umbrales);
   if (!d) return { veredicto: 'incierto' };

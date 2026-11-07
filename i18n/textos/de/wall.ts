@@ -8,6 +8,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} hat repostet',
+  repostedBySinNombre: '{{nombre}} hat repostet',
   repost: 'Reposten',
   undoRepost: 'Repost entfernen',
   undoRepostConfirm: 'Den Repost entfernen',

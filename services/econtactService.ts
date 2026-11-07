@@ -200,7 +200,13 @@ const avisar = async (
 ): Promise<void> => {
   try {
     const mio = await perfilDe(desdeIdentidad);
-    const nombre = mio?.displayName || 'Alguien';
+    /*
+     * Solo el nombre de verdad, o nada. `senderName` lo exigen las reglas, pero nadie lo enseña: la pantalla de
+     * Notificaciones y el push leen el perfil de `senderId` (Fase 11.x-4A), y si no tiene nombre, quien LEE el aviso
+     * pone el genérico en SU idioma (`common.someone` y `notifications.<clave>SinNombre`). Un respaldo escrito aquí
+     * quedaba guardado en el aviso de otra persona, en el idioma de quien lo mandó.
+     */
+    const nombre = mio?.displayName || '';
     const avatar = { type: mio?.avatarType, id: mio?.avatarId, url: mio?.photoURL };
     const extra = {
       recipientAccountId: paraCuenta,

@@ -25,6 +25,9 @@
  * lista quedó vacía. Esa revisión la hizo un agente de IA, no una persona: la revisión humana sigue pendiente, igual
  * que en el resto de los diccionarios (docs/I18N-REVISION.md).
  *
+ * El filipino (2026-10-03) llegó como pide el trinquete: listo en el registro y con su `locales/fil.json` en el mismo
+ * cambio. Habla de tú y nunca con «po» (docs/I18N-FILIPINO.md § 2), y eso también lo mira esta suite (D5).
+ *
  * pt-BR y pt-PT son DOS textos, no un alias: `i18n/textos/pt-PT/` es portugués europeo de verdad («tu», «câmara»,
  * «guardar», «transferir», «a app»), así que D3 también les exige decir cada frase a su manera. Y zh-Hant sigue la
  * norma de Taiwán, como su catálogo `i18n/textos/zh-TW/`.
@@ -125,6 +128,12 @@ const repetidasEn = (arch) => {
 };
 const repetidas = repetidasEn(archivos);
 check('D3) ningún idioma repite la frase de otro', repetidas.length === 0, repetidas.join('; '));
+/* Las marcas no se traducen (CLAUDE.md § 8): si la frase española nombra WeeTalk o Weë AI, la de cada idioma también. */
+const sinMarca = Object.keys(archivos).flatMap((i) => CLAVES.flatMap((k) => ['WeeTalk', 'Weë AI']
+  .filter((m) => archivos.es?.ios?.[k]?.includes(m) && !archivos[i]?.ios?.[k]?.includes(m)).map((m) => `${i}.${k}: ${m}`)));
+check('D4) WeeTalk y Weë AI siguen intactos donde el español los nombra', sinMarca.length === 0, sinMarca.join(', '));
+const conPo = Object.entries(archivos.fil?.ios || {}).filter(([, v]) => /(?<!\p{L})(po|opo|ho|oho|kayo|ninyo|inyo|inyong|niyo|nyo)(?!\p{L})/iu.test(v)).map(([k]) => k);
+check('D5) el filipino habla de tú («ka», «mo»), sin «po» ni «kayo/ninyo»', !!archivos.fil && conPo.length === 0, conPo.join(', '));
 
 /* ── E. el trinquete ────────────────────────────────────────────────────── */
 const sinArchivo = clavesIos.filter((c) => !(c in declarados));
@@ -139,7 +148,7 @@ console.log(`· con archivo (${Object.keys(declarados).length}): ${Object.keys(d
 /* ── F. el uso real ─────────────────────────────────────────────────────── */
 /* Apple rechaza una frase de propósito que no describe para qué se usa el permiso. Se ata a lo que el código hace:
    si un día la cámara graba vídeo, o el micrófono se usa para otra cosa, esto falla y obliga a reescribir la frase
-   en los dieciséis idiomas, no solo en español. */
+   en todos los idiomas, no solo en español. */
 const fuentesCliente = (() => {
   const acc = [];
   const recorrer = (rel) => {
@@ -176,6 +185,9 @@ check('X5) control: pt-PT con el texto de pt-BR → D3 lo ve',
   repetidasEn({ 'pt-BR': archivos['pt-BR'], 'pt-PT': archivos['pt-BR'] }).length === CLAVES.length);
 check('X6) control: una cámara que grabara vídeo → F3 lo ve',
   GRABA_VIDEO.test("ImagePicker.launchCameraAsync({ mediaTypes: ['images', 'videos'] })") && GRABA_VIDEO.test('await camara.current.recordAsync()'));
+check('X7) control: «po» o «ninyo» en el filipino → D5 lo ve, y «mo» o «Weë Photo» no',
+  /(?<!\p{L})(po|opo|ho|oho|kayo|ninyo|inyo|inyong|niyo|nyo)(?!\p{L})/iu.test('Kailangan po ng Weë ng access sa camera ninyo.')
+  && !/(?<!\p{L})(po|opo|ho|oho|kayo|ninyo|inyo|inyong|niyo|nyo)(?!\p{L})/iu.test('Kailangan ng Weë ng access sa camera mo para sa Weë Photo at sa post mo.'));
 
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

@@ -80,6 +80,7 @@ export const profile: typeof import('../es/profile').profile = {
   actionFailed: 'İşlem tamamlanamadı',
   userNotFound: 'Böyle bir kullanıcı yok',
   shareOtherMessage: 'Weë\'de @{{nombre}} adlı kullanıcının profiline göz at!\n\n{{bio}}',
+  shareOtherMessageSinNombre: 'Weë\'de bu profile göz at!\n\n{{bio}}',
   shareOtherNoBio: 'Weë kullanıcısı',
   joinedOn: '{{fecha}} tarihinde katıldı',
   tabPolls: 'Anket',

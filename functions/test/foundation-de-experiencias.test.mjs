@@ -101,8 +101,10 @@ check('9) y sigue sin puerta en el menú', /HIDDEN_AS_SECTION: string\[\] = \[[^
 check('10) y el contrato dice que vive en Weë Studio', COLOCADOS.writer === 'studio');
 check('11) y se resuelve entre TODAS, no entre las visibles',
   /getExperienceById = \(id: string\)[^\n]*\n\s*ALL_EXPERIENCES\.find/.test(experiencias));
+/* El cuerpo entero de `matchExperiences` (no una ventana de caracteres, que se quedaba corta al crecer la función). */
+const cuerpoDeLaBusqueda = (experiencias.match(/export const matchExperiences = [\s\S]*?\n};/) || [''])[0];
 check('12) y quien busque por sus palabras la encuentra igual',
-  /matchExperiences[\s\S]{0,400}ALL_EXPERIENCES\.filter/.test(experiencias));
+  /return ALL_EXPERIENCES\.filter\(/.test(cuerpoDeLaBusqueda) && !/VISIBLE_EXPERIENCES|WEE_EXPERIENCES\.filter/.test(cuerpoDeLaBusqueda));
 check('13) `experienciasDe` busca entre todas, para que Writer salga en el Studio',
   /experienciasDe = \(workspace: WorkspaceId\): WeeExperience\[\] =>\s*\n\s*ALL_EXPERIENCES\.filter/.test(contrato));
 

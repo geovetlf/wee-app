@@ -61,7 +61,7 @@ console.log('\n── A · Una sola fuente ──');
 console.log('\n── B · Ningún idioma escribe la cifra ni la lista a mano ──');
 {
   /* El «diez» de cada idioma (y la cifra), mirado solo en su idioma: el «ti» danés es un pronombre en italiano. */
-  const DIEZ = { es: 'diez', en: 'ten', da: 'ti', de: 'zehn', fr: 'dix', it: 'dieci', pt: 'dez', ru: 'десять', ko: '열', zh: '十', ja: '十', tr: 'on', sv: 'tio', hi: 'दस' };
+  const DIEZ = { es: 'diez', en: 'ten', da: 'ti', de: 'zehn', fr: 'dix', it: 'dieci', pt: 'dez', ru: 'десять', ko: '열', zh: '十', ja: '十', tr: 'on', sv: 'tio', hi: 'दस', fil: 'sampu' };
   const VIEJA_LISTA = /Design, Studio, Photo|Design、Studio、Photo/;
   const malas = [];
   const vistos = new Set();

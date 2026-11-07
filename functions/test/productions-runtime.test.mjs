@@ -1060,8 +1060,8 @@ await seccion('Y', async () => {
     && (compilado.match(/require\("\.\/productions\/puerta"\)/g) || []).length === 1
     && (compilado.match(/Object\.defineProperty\(exports, "productions"/g) || []).length === 1);
   const mapa = leer('functions/test/runtime-map.test.mjs');
-  check('Y6) y el mapa del runtime la declara: 35 Functions, `productions` sale de su puerta, y los veinte símbolos del Core que trae, autorizados',
-    /reales\.length === 35/.test(mapa) && /'\.\/productions\/puerta': \['productions'\]/.test(mapa) && /const DE_PRODUCTIONS = \{/.test(mapa));
+  check('Y6) y el mapa del runtime la declara: 36 Functions (35 + evalRun, F2-C1), `productions` sale de su puerta, y los veinte símbolos del Core que trae, autorizados',
+    /reales\.length === 36/.test(mapa) && /'\.\/productions\/puerta': \['productions'\]/.test(mapa) && /const DE_PRODUCTIONS = \{/.test(mapa));
   check('Y7) ni el dominio de F1-A ni el Algorithm Engine se tocaron para esto: Filmmaker sigue siendo cinco archivos de dominio',
     fs.readdirSync(path.resolve(RAIZ, 'functions/src/filmmaker')).sort().join() === 'modelo.ts,operaciones.ts,recomendaciones.ts,requisitos.ts,validacion.ts'
     && !/productions/.test(fs.readdirSync(path.resolve(RAIZ, 'functions/src/filmmaker')).map((f) => leer(`functions/src/filmmaker/${f}`)).join('\n')));

@@ -399,6 +399,8 @@ export const mensajeDelServidor = (error: unknown, ctx: Contexto): string | unde
   if (clave) return traducida(ctx.t, clave) ?? undefined;
   const mensaje = (error as { message?: unknown } | null)?.message;
   if (typeof mensaje !== 'string' || !mensaje) return undefined;
+  /* Un código de error del SDK («internal», «deadline-exceeded», «functions/unavailable») no es una frase: el título. */
+  if (/^[a-z]+(?:[-_/][a-z]+)*$/i.test(mensaje.trim())) return undefined;
   return textoDelServidorLegible(mensaje, ctx);
 };
 

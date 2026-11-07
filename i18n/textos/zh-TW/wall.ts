@@ -24,6 +24,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} 轉發了這則貼文',
+  repostedBySinNombre: '{{nombre}} 轉發了這則貼文',
   repost: '轉發',
   undoRepost: '取消轉發',
   undoRepostConfirm: '取消這則轉發',

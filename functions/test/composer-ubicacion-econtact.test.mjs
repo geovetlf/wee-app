@@ -277,7 +277,7 @@ check(
 /* El uid vale como clave de lista; lo que NO puede es acabar en pantalla. */
 check(
   'nunca se enseña un uid: se enseña el nombre',
-  !/<Text[^>]*>\s*\{persona\.identidad\}/.test(selectorCodigo) && /\{persona\.perfil\.displayName\}/.test(selectorCodigo)
+  !/<Text[^>]*>\s*\{persona\.identidad\}/.test(selectorCodigo) && /\{persona\.perfil\.displayName \|\| 'Usuario'\}/.test(selectorCodigo)
 );
 
 check(

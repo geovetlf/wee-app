@@ -158,8 +158,6 @@ const RUTAS = new Set(listar(['navigation']).flatMap((rel) =>
 const PERMITIDAS = new Map([
   ['screens/ConversationScreen.tsx', { cadenas: ['Foto única', '📷 Imagen', '🎤 Audio'],
     porque: 'marcas que se GUARDAN como contenido del último mensaje (una la exige firestore.rules); la bandeja las traduce al pintarlas con claveDeAvisoGuardado' }],
-  ['screens/WeeBizProfileScreen.tsx', { cadenas: ['Usuario'],
-    porque: 'nombre de respaldo que se GUARDA en participantsData de la conversación y en userName de la reseña: es dato, lo leen otras personas' }],
   ['components/avatars/AvatarPicker.tsx', { cadenas: ['Aria', 'Felix', 'Luna', 'Storm', 'Nova'],
     porque: 'nombres propios de los avatares predefinidos: se llaman igual en todos los idiomas' }],
   ['navigation/TabNavigator.tsx', { cadenas: ['Inicio', 'Buscar', 'Crear', 'Perfil'],

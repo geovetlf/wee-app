@@ -39,7 +39,14 @@ const writeLocal = async (list: WeeDocument[]) => {
   await AsyncStorage.setItem(KEY, JSON.stringify(list));
 };
 
-const titleOf = (title: string | undefined, text: string): string => (title || text.split('\n')[0] || 'Sin título').trim().slice(0, 60) || 'Sin título';
+/*
+ * Un documento sin título se guarda SIN título: el genérico lo pinta quien mira, en su idioma (`writer.untitled`).
+ * Lo que se guardó antes como «Sin título» —en español, desde cualquier idioma— se reconoce como sin título.
+ */
+const TITULO_GUARDADO_ANTES = 'Sin título';
+const titleOf = (title: string | undefined, text: string): string => (title || text.split('\n')[0] || '').trim().slice(0, 60);
+/** ¿El documento no tiene título? (vacío, o el «Sin título» que se guardaba antes). */
+export const sinTitulo = (title: string | undefined): boolean => !title?.trim() || title.trim() === TITULO_GUARDADO_ANTES;
 
 /** Copia los documentos guardados en el dispositivo a la cuenta (una sola vez). */
 const migrateLocal = async (userId: string): Promise<void> => {

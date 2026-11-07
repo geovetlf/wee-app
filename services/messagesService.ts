@@ -124,8 +124,9 @@ class MessagesService {
       // Si no existe, crear nueva conversación
       // Filtrar campos undefined para evitar errores de Firestore
       const cleanUserData = (data: ParticipantData): ParticipantData => {
+        /* El nombre o nada: nunca un `undefined` (Firestore lo rechaza) ni un genérico traducido (lo pinta quien lee). */
         const cleaned: any = {
-          displayName: data.displayName,
+          displayName: data.displayName || '',
         };
         if (data.avatarType) cleaned.avatarType = data.avatarType;
         if (data.avatarId) cleaned.avatarId = data.avatarId;

@@ -95,7 +95,7 @@ console.log('\n── B · Cada sitio que las pinta las traduce, en los 16 idiom
       if (typeof d[m]?.[k] !== 'string' || !d[m][k].trim()) faltan.push(`${codigo}:${clave}`);
     }
   }
-  check(`6) las ${Object.keys(MARCAS).length} claves están en los ${UNICOS.length} diccionarios`, UNICOS.length === 16 && faltan.length === 0, faltan.join(' ') || 'todas');
+  check(`6) las ${Object.keys(MARCAS).length} claves están en los ${UNICOS.length} diccionarios`, UNICOS.length === fs.readdirSync(path.resolve(raiz, 'i18n/textos'), { withFileTypes: true }).filter((e) => e.isDirectory() && fs.existsSync(path.resolve(raiz, 'i18n/textos', e.name, 'index.ts'))).length && faltan.length === 0, faltan.join(' ') || 'todas');
 
   /* La lista de chats: reconoce la marca y la dice con t(); lo demás, tal cual. */
   check('7) la lista de chats las reconoce y las dice con su clave',
@@ -123,8 +123,10 @@ console.log('\n── B · Cada sitio que las pinta las traduce, en los 16 idiom
   check('9) en cada idioma, cada marca se lee con el texto de SU diccionario', mal.length === 0, mal.slice(0, 4).join(' | ') || `${UNICOS.length} × ${Object.keys(MARCAS).length}`);
 
   /* El push: lo escribe el servidor en el idioma de quien lo recibe. */
+  /* Con nombre o sin él, el contenido pasa por `cuerpoDelMensaje` dentro de `avisoDeMensaje`. */
   check('10) el push de un mensaje pasa su contenido por cuerpoDelMensaje con el idioma de quien lo recibe',
-    /cuerpoDelMensaje\(content, idioma\)/.test(sinComentarios(leer('functions/src/index.ts'))));
+    /avisoDeMensaje\(senderName, content, idioma\)/.test(sinComentarios(leer('functions/src/index.ts')))
+      && (sinComentarios(leer('functions/src/social/avisos.ts')).match(/cuerpoDelMensaje\(contenido, idioma\)/g) || []).length === 2);
   const pushMal = [];
   for (const [codigo] of UNICOS) {
     for (const marca of ['Foto única', '📷 Imagen', '🎤 Audio']) {

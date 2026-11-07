@@ -166,7 +166,7 @@ Retirado en la Fase 11.x-5A, sin datos detrás: en producción no existen `accou
 | `contadores/cuentas` | un contador global: punto caliente para todas las altas y, además, decía cuántas cuentas hay y en qué orden llegaron |
 | `nacerCuenta`, `entidadDeCuenta`, `cuentaValida`, `AccountIdentity` | ataban la entidad al número de la cuenta |
 | `asegurarIdentidadDeCuenta`, `asegurarEntidadWee` y su puerto | el protocolo entero del contador |
-| `functions/src/identity/index.ts` | la composición que lo guardaba |
+| el `index.ts` de `functions/src/identity/` (retirado; `git show bfc622d:functions/src/identity/index.ts`) | la composición que lo guardaba |
 | `AccountNumber` de 4 a 20 dígitos y `esNumeroDeCuenta` | dos anchos distintos para el mismo número |
 
 El Financial Core no cambió: toma el número de `NumeroDeCuenta` y sigue sin generarlo, sin validarlo y sin guardar el suyo aparte.

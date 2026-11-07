@@ -1525,7 +1525,8 @@ check('357) y la de una enviada, a quién se la pidió', (() => {
   check('358) no se pinta ningún uid ni identidad cruda', !/\buid\b|identidad/.test(pintado), pintado.slice(0, 200));
   check('359) ni aparece hidi_ en ningún texto de la pantalla', !/hidi_/.test(pantallaEC));
   check('360) ni HidetoK ni Hidi como vocabulario', !/hidetok/i.test(pantallaEC) && !/\bHidi\b/.test(pantallaEC));
-  check('361) lo que se pinta es el nombre y la etiqueta', /\{nombre\}/.test(codigoPantalla) && /\{detalle\}/.test(codigoPantalla));
+  check('361) lo que se pinta es el nombre (o, sin él, common.user) y la etiqueta',
+    /const nombreDeLaFila = nombre \|\| t\('common\.user'\);/.test(codigoPantalla) && /\{nombreDeLaFila\}/.test(codigoPantalla) && /\{detalle\}/.test(codigoPantalla));
 }
 
 // ─── O · El Perfil Biz ya no existe ──────────────────────────────────────────

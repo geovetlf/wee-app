@@ -35,7 +35,7 @@ import { notify } from '../utils/notify';
  */
 const WeeCreatorScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { t, formato, locale } = useIdioma();
+  const { t, formato, idioma } = useIdioma();
   const { user } = useAuth();
   const { userProfile, hasWeeProfile } = useUserProfile();
   const navigation = useNavigation<any>();
@@ -48,7 +48,7 @@ const WeeCreatorScreen: React.FC = () => {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(initialCategory || null);
 
-  const matches = useMemo(() => matchExperiences(query, locale), [query, locale]);
+  const matches = useMemo(() => matchExperiences(query, idioma), [query, idioma]);
   const selected = WEE_EXPERIENCES.find((c) => c.id === selectedId) || null;
 
   // "Avísame cuando esté": categorías en las que la persona ya se anotó

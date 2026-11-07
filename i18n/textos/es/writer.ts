@@ -30,6 +30,7 @@ export const writer = {
   savedInDocuments: ' · guardado en Mis documentos',
   couldNotSaveToDocuments: 'No se pudo guardar en Mis documentos',
   myDocuments: 'Mis documentos',
+  untitled: 'Sin título',
   newDocument: 'Nuevo documento',
   noDocumentsYet: 'Todavía no tienes documentos. Escribe uno nuevo o pídele a Weë que empiece por ti.',
   editedWhen: 'Editado {{cuando}}',

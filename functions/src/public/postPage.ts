@@ -201,7 +201,7 @@ export const publicPostPage = onRequest(
       let autorId = texto(post.userId);
       if (post.isRepost === true && texto(post.originalPostId)) {
         const quienReposteo = await usuario(autorId);
-        reposteadaPor = texto(quienReposteo?.displayName) || tabla.alguien;
+        reposteadaPor = texto(quienReposteo?.displayName) || '';
         repostComment = texto(post.repostComment);
         const original = await db
           .collection('posts')

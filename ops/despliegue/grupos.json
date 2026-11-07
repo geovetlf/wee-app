@@ -46,6 +46,10 @@
     {
       "funcion": "elements",
       "porque": "Está en el código de main y NO en producción: sería una función nueva. Es una capacidad de producto (Elements de Weë Studio/Filmmaker): se despliega solo con decisión del dueño."
+    },
+    {
+      "funcion": "evalRun",
+      "porque": "El corredor de evaluaciones del Model Router (F2-C1): callable de ADMINISTRACIÓN, con identidad y presupuesto propios que NUNCA tocan los Credits del usuario; no es de producto ni de cliente. Estar aquí significa FUERA DEL DESPLIEGUE GRADUAL de las 34, no una cerradura técnica: el pipeline no lee esta lista. Para el primer run real se despliega SOLA, por despliegue.yml con objetivo functions:evalRun, cuando el dueño lo autorice. Desplegada no es activa: queda inerte (fail-closed) hasta que un admin escriba aiSettings/evalBudget.habilitado=true, y tras el run se apaga con habilitado=false. Si queda desplegada, pasa a ops/produccion.json. Detalle en docs/EVALS.md."
     }
   ]
 }

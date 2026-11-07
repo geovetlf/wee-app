@@ -30,6 +30,7 @@ export const writer: typeof import('../es/writer').writer = {
   savedInDocuments: ' · saved in My documents',
   couldNotSaveToDocuments: 'It could not be saved to My documents',
   myDocuments: 'My documents',
+  untitled: 'Untitled',
   newDocument: 'New document',
   noDocumentsYet: 'You don’t have any documents yet. Write a new one or ask Weë to start for you.',
   editedWhen: 'Edited {{cuando}}',

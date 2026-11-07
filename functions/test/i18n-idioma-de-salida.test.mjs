@@ -39,6 +39,11 @@ const ESPANOL = `Ingredientes (2 personas): 2 tazas del ingrediente principal, 1
 const INGLES = `Here is your post for Instagram: We just launched a new feature in Weë Studio that makes it easy to create a short video. Pick a style, write what you want, and share the result with your community. It only takes a few minutes, and you can always make a new version if you want to change something.`;
 const SUECO = `Här är ditt inlägg för Instagram: Vi har lanserat en ny funktion i Weë Studio som gör det enkelt att skapa en video. Välj en stil, skriv vad du vill och dela resultatet med din community. Det tar bara några minuter, och du kan alltid göra en ny version om du vill ändra något.`;
 const RUSO = 'Вот ваш пост для Instagram: мы запустили новую функцию в Weë Studio, которая позволяет легко создать короткое видео.';
+const FILIPINO_RECETA = `🍲 Adobong manok para sa apat na tao\n\nMga sangkap:\n• 1 kilo ng manok\n• ½ tasa ng toyo at ⅓ tasa ng suka\n\nParaan ng pagluluto:\n1. Ibabad ang manok sa toyo, suka, bawang at paminta nang mga tatlumpung minuto.\n2. Igisa ang bawang hanggang maging kulay ginto, saka ilagay ang manok.\n3. Ibuhos ang pinagbabaran at hayaang kumulo nang mahina hanggang lumambot ang karne.\n4. Kapag malapot na ang sarsa, patayin ang apoy at ihain kasama ng mainit na kanin.\nTip: Mas masarap ito kinabukasan, dahil mas kumakapit ang lasa sa manok.\n\nIMAGEN: a bowl of chicken adobo with rice, top view`;
+/* Un itinerario dice «sa» en cada frase, y «sa» también es francesa: es el texto filipino más difícil de medir. */
+const FILIPINO_ITINERARIO = `Araw 1 sa Baguio: Dumating sa umaga at mag-almusal sa Session Road. Sa tanghali, bisitahin ang Burnham Park at sumakay sa bangka sa lawa. Sa hapon, pumunta sa Mines View Park para sa tanawin ng mga bundok. Sa gabi, mamili ng pasalubong sa night market at kumain ng mainit na sopas. Magdala ng jacket dahil malamig sa gabi.`;
+const TAGLISH = `Okay, so ito yung plano natin para sa launch ng shop mo. Una, gagawa tayo ng short video na pang-TikTok, tapos may kasamang caption na catchy. Kung gusto mo, puwede rin nating i-post sa Facebook page mo para mas maraming makakita. Huwag kang mag-alala sa budget, kasi kaya natin itong gawin nang libre muna.`;
+const TAGLISH_CON_INGLES = `Para sa business mo, the best na gawin is mag-post ka ng content every day. Make sure na consistent yung branding mo, at gumamit ka ng hashtags na related sa products mo. Kung may budget ka, try mo rin mag-boost ng posts para mas maraming makakita.`;
 
 console.log('\n── A · La instrucción: clara, la misma, y repetida al final ──');
 {
@@ -70,6 +75,21 @@ console.log('\n── B · Darse cuenta, sin tirar respuestas legítimas ──'
   check('11) español, inglés, sueco y ruso, pedidos en danés, se ven distintos',
     v(ESPANOL, 'da-DK') === 'distinto' && v(INGLES, 'da-DK') === 'distinto' && v(SUECO, 'da-DK') === 'distinto' && v(RUSO, 'da-DK') === 'distinto');
   check('12) y cada uno en su idioma coincide', v(ESPANOL, 'es') === 'coincide' && v(INGLES, 'en-US') === 'coincide' && v(SUECO, 'sv') === 'coincide' && v(RUSO, 'ru') === 'coincide');
+  check('12b) el filipino se reconoce: una receta, un itinerario y un texto en taglish son filipino',
+    v(FILIPINO_RECETA, 'fil-PH') === 'coincide' && v(FILIPINO_ITINERARIO, 'fil-PH') === 'coincide' && v(TAGLISH, 'fil') === 'coincide');
+  check('12c) pedidos en filipino, el español, el inglés y el danés se ven distintos',
+    v(ESPANOL, 'fil-PH') === 'distinto' && v(INGLES, 'fil-PH') === 'distinto' && v(DANES_TECNICO, 'fil-PH') === 'distinto');
+  check('12d) y un texto filipino pedido en otro idioma se ve distinto —filipino, nunca francés por sus «sa»—',
+    D.veredictoDeIdioma(FILIPINO_ITINERARIO, 'fr').detectado === 'fil' && v(FILIPINO_RECETA, 'es') === 'distinto' && v(TAGLISH, 'en-US') === 'distinto');
+  check('12e) el taglish con mucho inglés es filipino o «no lo sé», nunca otro idioma', ['coincide', 'incierto'].includes(v(TAGLISH_CON_INGLES, 'fil-PH')));
+  {
+    /* Una palabra compartida le quita peso a los idiomas que ya la tenían (`COMPARTIDAS`). Al filipino solo se le
+       permite «sa», medida sobre los dieciséis diccionarios sin que ningún veredicto empeore (ver la fuente). */
+    const fuente = leer('functions/src/shared/idiomaDelTexto.ts');
+    const listas = Object.fromEntries([...fuente.matchAll(/^ {2}(\w+): \[([^\]]*)\],$/gm)].map(([, k, v]) => [k, [...v.matchAll(/'([^']+)'/g)].map((m) => m[1])]));
+    const compartidas = (listas.fil || []).filter((p) => Object.entries(listas).some(([k, l]) => k !== 'fil' && l.includes(p)));
+    check('12f) las palabras del filipino no le quitan peso a nadie: la única compartida es «sa»', !!listas.es && !!listas.fil && compartidas.join() === 'sa', compartidas.join(', '));
+  }
   check('13) lo corto, una lista sin frases o un idioma que no sabe medir: «no lo sé», nunca «distinto»',
     v('Hej! Klar til at lave mad?', 'da') === 'incierto' && v('• Mel\n• Sukker\n• Smør\n• Æg\n• Mælk', 'da') === 'incierto' && v(INGLES, 'ar') === 'incierto' && v(INGLES, undefined) === 'incierto');
   const apuntado = idiomaDeSalida({ kind: 'text', content: ESPANOL }, 'da-DK', 'recipe');
@@ -139,6 +159,8 @@ console.log('\n── C · Ningún diccionario, en ningún idioma, con frases en
   check(`20) en los ${idiomas} diccionarios, ninguna frase medible está en otro idioma`, enOtro.length === 0, enOtro.slice(0, 6).join(' · ') || `${medibles} frases medidas`);
   const colada = D.veredictoDeIdioma('Sube el video y elige el estilo que más te guste para tu publicación.', 'da-DK', FRASES).veredicto;
   check('21) control: una frase española colada en el danés se caza', colada === 'distinto');
+  check('21b) control: y en el filipino también (antes, sin el filipino en el detector, ahí no se medía nada)',
+    D.veredictoDeIdioma('Sube el video y elige el estilo que más te guste para tu publicación.', 'fil-PH', FRASES).veredicto === 'distinto');
 }
 
 check('esta suite está en la cadena de `npm test`', /i18n-idioma-de-salida\.test\.mjs/.test(leer('functions/package.json')));

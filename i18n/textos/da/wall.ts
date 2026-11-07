@@ -25,6 +25,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} delte igen',
+  repostedBySinNombre: '{{nombre}} delte igen',
   repost: 'Del igen',
   undoRepost: 'Fortryd deling',
   undoRepostConfirm: 'Fortryd delingen',

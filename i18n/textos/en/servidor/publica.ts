@@ -26,6 +26,7 @@ export const publica: typeof import('../../es/servidor/publica').publica = {
   masEnWee: 'and {{contador}} more on Weë',
   hechoCon: 'Made with',
   reposteo: '{{nombre}} reposted',
+  reposteoSinNombre: '{{nombre}} reposted',
   perfilWee: 'Weë profile',
   estoEsWee: 'This is Weë',
   lema: 'The network for people who create with Artificial Intelligence. Discover, learn and share.',

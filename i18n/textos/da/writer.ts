@@ -46,6 +46,7 @@ export const writer: typeof import('../es/writer').writer = {
   savedInDocuments: ' · gemt i Mine dokumenter',
   couldNotSaveToDocuments: 'Det kunne ikke gemmes i Mine dokumenter. Prøv igen.',
   myDocuments: 'Mine dokumenter',
+  untitled: 'Uden titel',
   newDocument: 'Nyt dokument',
   noDocumentsYet: 'Ingen dokumenter endnu. Skriv et nyt, eller bed Weë om at begynde på det for dig.',
   editedWhen: 'Redigeret {{cuando}}',

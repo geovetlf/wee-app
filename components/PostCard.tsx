@@ -194,6 +194,13 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // Autor del repost (quien reposteó)
   const { userProfile: repostAuthor, loading: loadingRepostAuthor } = useUserById(isRepost ? post.userId : '');
+  /*
+   * Quién reposteó, igual en las dos cabeceras (mientras carga el original y ya cargado): con nombre, su frase; sin
+   * nombre, la propia (`wall.repostedBySinNombre`), porque en filipino «si» no va delante de un sustantivo común.
+   */
+  const lineaDelReposteo = repostAuthor?.displayName
+    ? t('wall.repostedBy', { nombre: repostAuthor.displayName })
+    : t('wall.repostedBySinNombre', { nombre: t('common.user') });
 
   // Autor del post original
   const { userProfile: postAuthor, loading: loadingAuthor } = useUserById(
@@ -764,7 +771,8 @@ const PostCard: React.FC<PostCardProps> = ({
     if (!user) { navigateToRegister(); return; }
     if (!postAuthor) return;
     onPrivateMessage(displayPost.userId, {
-      displayName: postAuthor.displayName || t('common.user'),
+      /* Se GUARDA en la conversación: el nombre o nada; el genérico lo pinta quien lee, en su idioma. */
+      displayName: postAuthor.displayName || '',
       avatarType: postAuthor.avatarType,
       avatarId: postAuthor.avatarId,
       photoURL: typeof postAuthor.photoURL === 'string' ? postAuthor.photoURL : undefined,
@@ -1160,7 +1168,7 @@ const PostCard: React.FC<PostCardProps> = ({
         >
           <Ionicons name="repeat" size={16} color={theme.colors.textSecondary} />
           <Text style={[styles.repostText, { color: theme.colors.textSecondary }]}>
-            {t('wall.repostedBy', { nombre: repostAuthor?.displayName || t('common.user') })}
+            {lineaDelReposteo}
           </Text>
         </TouchableOpacity>
         <View style={[styles.centered, { paddingVertical: SPACING.xl }]}>
@@ -1267,7 +1275,7 @@ const PostCard: React.FC<PostCardProps> = ({
         >
           <Ionicons name="repeat" size={16} color={theme.colors.textSecondary} />
           <Text style={[styles.repostText, { color: theme.colors.textSecondary }]}>
-            {t('wall.repostedBy', { nombre: repostAuthor.displayName })}
+            {lineaDelReposteo}
           </Text>
         </TouchableOpacity>
       )}

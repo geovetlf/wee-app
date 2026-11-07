@@ -50,6 +50,7 @@ export const writer: typeof import('../es/writer').writer = {
   savedInDocuments: ' · मेरे दस्तावेज़ में सेव किया गया',
   couldNotSaveToDocuments: 'मेरे दस्तावेज़ में सेव नहीं किया जा सका',
   myDocuments: 'मेरे दस्तावेज़',
+  untitled: 'बिना टाइटल',
   newDocument: 'नया दस्तावेज़',
   noDocumentsYet: 'अभी तक कोई दस्तावेज़ नहीं है. नया दस्तावेज़ लिखें या Weë से कहें कि वह आपके लिए शुरुआत करे.',
   editedWhen: 'एडिट किया गया: {{cuando}}',

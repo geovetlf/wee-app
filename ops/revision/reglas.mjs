@@ -85,6 +85,18 @@ export const REGLAS = [
     descripcion: 'firestore.rules/storage.rules: escritura abierta añadida (`allow write… if true` o sin condición) —bloqueante— o condición de auth retirada —alta—.',
   },
   {
+    id: 'doc/enlace-roto', version: 1, desde: '2026-10-03', severidad: 'media', zona: 'documentacion',
+    descripcion: 'Enlace Markdown `[texto](destino)` a un archivo del repositorio que no existe (destino local, no URL ni ancla).',
+  },
+  {
+    id: 'doc/referencia-inexistente', version: 1, desde: '2026-10-03', severidad: 'media', zona: 'documentacion',
+    descripcion: 'Ruta entre comillas simples en un .md (CLAUDE.md incluido) con pinta de archivo del repo (extensión conocida o terminada en /) que no existe: referencia obsoleta.',
+  },
+  {
+    id: 'doc/comando-inexistente', version: 1, desde: '2026-10-03', severidad: 'media', zona: 'documentacion',
+    descripcion: 'La documentación usa `npm [--prefix X] [run] <script>` cuyo script no está en el package.json que toca: comando documentado inexistente u obsoleto.',
+  },
+  {
     id: 'frontera/cambio', version: 1, desde: '2026-10-01', severidad: 'media', zona: 'arquitectura', requiereBase: true, tipo: 'disparador',
     descripcion: 'DISPARADOR, no hallazgo: carpeta nueva en functions/src, arista nueva entre carpetas, exports de functions/src/index.ts cambiados o zona roja tocada.',
   },

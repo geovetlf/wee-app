@@ -70,6 +70,7 @@ export const profile: typeof import('../es/profile').profile = {
   actionFailed: '操作を完了できませんでした',
   userNotFound: 'このユーザーは存在しません',
   shareOtherMessage: 'Weëで@{{nombre}}のプロフィールをチェック！\n\n{{bio}}',
+  shareOtherMessageSinNombre: 'Weëでこのプロフィールをチェック！\n\n{{bio}}',
   shareOtherNoBio: 'Weëユーザー',
   joinedOn: '{{fecha}}から利用しています',
   tabPolls: 'アンケート',

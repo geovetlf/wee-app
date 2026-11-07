@@ -69,7 +69,7 @@ const ES = (await cargar('i18n/textos/es/servidor/index.ts')).ns.servidor;
 const DECLARAN = Object.entries(DICCIONARIOS)
   .filter(([codigo, d]) => codigo !== 'es' && d && d.preguntas && !/-/.test(codigo))
   .map(([codigo]) => codigo);
-const LOCALE = { es: 'es-ES', en: 'en-US', da: 'da-DK' };
+const LOCALE = { es: 'es-ES', en: 'en-US', da: 'da-DK', fil: 'fil-PH' };
 const ctxDe = (codigo, experiencia) => {
   const locale = LOCALE[codigo] || codigo;
   return { t: traducir.crearTraductor(locale, DICCIONARIOS), locale, experiencia };

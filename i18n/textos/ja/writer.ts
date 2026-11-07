@@ -34,6 +34,7 @@ export const writer: typeof import('../es/writer').writer = {
   savedInDocuments: ' · マイドキュメントに保存済み',
   couldNotSaveToDocuments: 'マイドキュメントに保存できませんでした',
   myDocuments: 'マイドキュメント',
+  untitled: '無題',
   newDocument: '新規ドキュメント',
   noDocumentsYet: 'ドキュメントはまだありません。自分で書き始めるか、Weëに下書きを頼んでみましょう。',
   editedWhen: '最終編集：{{cuando}}',

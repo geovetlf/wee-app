@@ -20,6 +20,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} yeniden paylaştı',
+  repostedBySinNombre: '{{nombre}} yeniden paylaştı',
   repost: 'Yeniden paylaş',
   undoRepost: 'Yeniden paylaşımı geri al',
   undoRepostConfirm: 'Yeniden paylaşımı geri al',

@@ -43,6 +43,7 @@ export const writer: typeof import('../es/writer').writer = {
   savedInDocuments: ' · sparat i Mina dokument',
   couldNotSaveToDocuments: 'Det gick inte att spara i Mina dokument',
   myDocuments: 'Mina dokument',
+  untitled: 'Utan titel',
   newDocument: 'Nytt dokument',
   noDocumentsYet: 'Inga dokument ännu. Skriv ett nytt eller be Weë att börja åt dig.',
   editedWhen: 'Redigerat {{cuando}}',

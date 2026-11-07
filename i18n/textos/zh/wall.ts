@@ -19,6 +19,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} 转发了',
+  repostedBySinNombre: '{{nombre}} 转发了',
   repost: '转发',
   undoRepost: '取消转发',
   undoRepostConfirm: '取消这条转发',

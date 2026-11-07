@@ -17,7 +17,7 @@ Contexto que todo revisor recibe además de CLAUDE.md: el [mapa de fronteras](MA
 |---|---|---|---|
 | 0 | La guardia y los permisos: lo que Claude no ejecuta nunca | `.claude/settings.json`, `.claude/hooks/guardia.mjs` | No |
 | 1 | Build y pruebas: tipos, build de Functions, suites, emuladores `demo-*` | `npx tsc`, `functions/test/` | No |
-| 2 | Detectores deterministas: un catálogo de reglas sobre el AST de TypeScript | `ops/revision/reglas.mjs`, `detectores.mjs`, `grafo.mjs`, `frontera.mjs` | No |
+| 2 | Detectores deterministas: un catálogo de reglas sobre el AST de TypeScript y sobre la documentación | `ops/revision/reglas.mjs`, `detectores.mjs`, `grafo.mjs`, `frontera.mjs`, `documentos.mjs` | No |
 | 3 | Baseline y puerta: qué es nuevo y qué se conocía, y si la fase pasa | `ops/revision/baseline.mjs`, `clasificacion.mjs`, `baseline.json` | No |
 | 4 | Selector: qué revisar con IA, con qué contexto, cuánto cuesta, qué ya está en caché | `ops/revision/selector.mjs`, `contexto/paquetes.json` | No |
 | 5 | Revisores IA de solo lectura, con rúbrica propia | `.claude/agents/revisor-{codigo,seguridad,arquitectura}.md`, `ops/revision/rubricas/` | Sí |
@@ -46,6 +46,15 @@ el 2026-10-01.
 | `tests/aserto-siempre-verdadero` | media | `check(x, true)` fuera de try, if-else, `?:`, noLanza o acepta; un `true` en una cadena de «o» dentro de un check | Solo la función `check` |
 | `reglas/cambio-peligroso` | bloqueante / alta | Con `--base`: `allow write… if true` o sin condición añadido (bloqueante); `request.auth` retirado que no vuelve en el bloque ni en la función que lo sustituye (alta) | Condiciones partidas en varias líneas |
 | `frontera/cambio` | disparador | Carpeta nueva en `functions/src`, arista nueva entre carpetas, exports de `functions/src/index.ts`, zonas rojas, dependencias | No es un hallazgo: decide qué revisor entra |
+| `doc/enlace-roto` | media | Enlace Markdown `[texto](destino)` a un archivo del repo que no existe (destino local, no URL ni ancla) | Resuelto relativo al dir del doc; los enlaces dentro de bloques ``` ``` no se miran |
+| `doc/referencia-inexistente` | media | Ruta entre comillas simples en un `.md` (CLAUDE.md incluido) con pinta inequívoca de archivo fuente (extensión `.ts/.tsx/.mjs/.cjs/.json/.md/.rules/.yml/.yaml/.sh`) que no existe ni como ruta ni como SUFIJO de una seguida | Solo archivos fuente con esa extensión: no dirs, no `.js` compilado, no assets, no rutas de Firestore, no absolutas/dominios, no placeholders (`FECHA-FASE`), no `.local.json` |
+| `doc/comando-inexistente` | media | `npm [--prefix X] [run] <script>` documentado cuyo script no está en el `package.json` que toca (con `--prefix` ese; sin él, ni en la raíz ni en `functions/`) | Solo `npm`; no `pnpm`/`yarn`; nombres de script con recorte/placeholder no se deciden |
+
+Las reglas `doc/*` (auditoría de documentación, F1, 2026-10-03) viven en `ops/revision/documentos.mjs` y recorren
+todos los `*.md` que sigue git (CLAUDE.md, `docs/`, `.claude/agents` y `.claude/commands`, rúbricas). Son un
+detector MÁS del mismo pipeline —no un segundo revisor—: devuelven hallazgos a `baseline`/G3/CI como los demás.
+Diseñadas para CERO falsos positivos sobre documentación válida (lo que no es inequívocamente un archivo del repo
+no se marca); por eso NO detectan reglas contradictorias (eso sería semántico y queda fuera de F1).
 
 **Ids estables.** `<dominio>/<regla>/<ruta>#<ancla>`. El ancla es un símbolo (función, método, clase, export;
 el `match` en las reglas de Firebase; `(archivo)` o `(ciclo)`), nunca una línea: insertar líneas o mover la

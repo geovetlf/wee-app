@@ -128,7 +128,7 @@ const InboxScreen = () => {
               style={[styles.itemName, { color: theme.colors.text, fontWeight: unread ? FONT_WEIGHT.bold : FONT_WEIGHT.semibold }]}
               numberOfLines={1}
             >
-              {otherData.displayName}
+              {otherData.displayName || t('common.user')}
             </Text>
             {last && (
               <Text style={[styles.itemTime, { color: unread ? theme.colors.accent : theme.colors.textSecondary }]}>
@@ -169,7 +169,7 @@ const InboxScreen = () => {
       </View>
       <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{t('weetalk.noConversations')}</Text>
       <Text style={[styles.emptyDesc, { color: theme.colors.textSecondary }]}>
-        {t('weetalk.noConversationsHint')}
+        {t('weetalk.noConversationsHint', { boton: t('wall.sendByWeeTalk') })}
       </Text>
     </View>
   );

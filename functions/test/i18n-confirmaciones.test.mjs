@@ -181,16 +181,19 @@ console.log('\n── C · Los cinco llamantes, sin una palabra suelta ──');
   /* 15 · ËContact: su título y su mensaje ya venían traducidos; faltaba el "Sí". */
   check('15) ËContact pasa common.yes y conserva sus claves',
     /confirmAction\(titulo, mensaje, t\('common\.yes'\), true, t\)/.test(C.agenda)
-    && /t\('econtact\.rejectTitle'\)/.test(C.agenda) && /t\('econtact\.rejectConfirm', \{ nombre \}\)/.test(C.agenda));
+    /* La confirmación pasa por `frase`, que elige la gemela sin nombre cuando el perfil no lo tiene (misma clave). */
+    && /t\('econtact\.rejectTitle'\)/.test(C.agenda) && /frase\('econtact\.rejectConfirm'\)/.test(C.agenda));
 
   /*
    * 16 · EL PERFIL DE OTRA PERSONA escribía a mano las MISMAS frases que la
    * agenda ya tenía en el diccionario. Ahora lee de ellas: una sola fuente.
    */
+  /* Las de la agenda, con su gemela sin nombre (`<clave>SinNombre`) cuando el perfil no lo tiene: `confirmacion`. */
   check('16) el perfil reutiliza las claves de la agenda, no crea otras',
-    /t\('econtact\.rejectTitle'\), t\('econtact\.rejectConfirm', \{ nombre: quien \}\)/.test(C.perfil)
-    && /t\('econtact\.withdrawTitle'\), t\('econtact\.withdrawConfirm', \{ nombre: quien \}\)/.test(C.perfil)
-    && /t\('econtact\.removeTitle', \{ lista: nombreLista \}\), t\('econtact\.removeConfirm', \{ nombre: quien, lista: nombrePlural \}\)/.test(C.perfil));
+    /t\(conNombre \? clave : `\$\{clave\}SinNombre`, \{ nombre: quien, \.\.\.valores \}\)/.test(C.perfil)
+    && /t\('econtact\.rejectTitle'\), confirmacion\('econtact\.rejectConfirm'\)/.test(C.perfil)
+    && /t\('econtact\.withdrawTitle'\), confirmacion\('econtact\.withdrawConfirm'\)/.test(C.perfil)
+    && /t\('econtact\.removeTitle', \{ lista: nombreLista \}\), confirmacion\('econtact\.removeConfirm', \{ lista: nombrePlural \}\)/.test(C.perfil));
   /*
    * Se mira LA LLAMADA, no el archivo entero: el perfil tiene además etiquetas
    * de accesibilidad en español —"Rechazar solicitud de …"— que son de otro

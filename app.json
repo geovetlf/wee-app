@@ -158,6 +158,7 @@
       "es": "./locales/es.json",
       "en": "./locales/en.json",
       "da": "./locales/da.json",
+      "fil": "./locales/fil.json",
       "de": "./locales/de.json",
       "fr": "./locales/fr.json",
       "it": "./locales/it.json",

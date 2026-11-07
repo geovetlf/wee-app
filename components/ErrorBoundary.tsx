@@ -30,6 +30,7 @@ const TEXTOS: Record<string, { titulo: string; mensaje: string; boton: string }>
   tr: { titulo: 'Bir sorun oluştu', mensaje: 'Weë\'de beklenmedik bir hata oluştu. Yeniden dene; sorun devam ederse Yardım bölümünden bize bildir.', boton: 'Yeniden dene' },
   sv: { titulo: 'Något gick fel', mensaje: 'Ett oväntat fel uppstod i Weë. Försök igen – om det händer igen kan du berätta det för oss via Hjälp.', boton: 'Försök igen' },
   da: { titulo: 'Noget gik galt', mensaje: 'Der opstod en uventet fejl i Weë. Prøv igen – hvis det sker igen, kan du fortælle os det via Hjælp.', boton: 'Prøv igen' },
+  fil: { titulo: 'Nagkaproblema', mensaje: 'Nagkaroon ng hindi inaasahang error sa Weë. Subukan ulit; kung patuloy itong mangyari, sabihin mo sa amin sa Tulong.', boton: 'Subukan ulit' },
   hi: { titulo: 'कोई गड़बड़ी हुई', mensaje: 'Weë में कोई अनचाही गड़बड़ी हुई. फिर से कोशिश करें. अगर ऐसा बार-बार हो, तो मदद में जाकर हमें बताएँ.', boton: 'फिर से कोशिश करें' },
 };
 

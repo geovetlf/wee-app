@@ -288,7 +288,7 @@ await escenario('Weë Writer (el documento de antes en el editor)', 'screens/Wri
   const setText = espia();
   return {
     d, valor: { id: 'doc-viejo', title: 'Viejo', text: 'texto viejo' }, escribe: () => setText.llamadas.length > 0,
-    alcance: { params: { docId: 'doc-viejo' }, loadedFor: { current: undefined }, documentsService: { get: () => d.promesa }, setDoc: espia(), setTitle: espia(), setText },
+    alcance: { params: { docId: 'doc-viejo' }, loadedFor: { current: undefined }, documentsService: { get: () => d.promesa }, sinTitulo: (t) => !t?.trim() || t.trim() === 'Sin título', setDoc: espia(), setTitle: espia(), setText },
   };
 });
 

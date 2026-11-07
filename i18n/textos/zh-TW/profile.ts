@@ -77,6 +77,7 @@ export const profile: typeof import('../es/profile').profile = {
   actionFailed: '無法完成這個操作',
   userNotFound: '這個使用者不存在',
   shareOtherMessage: '來 Weë 看看 @{{nombre}} 的個人檔案！\n\n{{bio}}',
+  shareOtherMessageSinNombre: '來 Weë 看看這個個人檔案！\n\n{{bio}}',
   shareOtherNoBio: 'Weë 使用者',
   joinedOn: '加入時間：{{fecha}}',
   tabPolls: '投票',

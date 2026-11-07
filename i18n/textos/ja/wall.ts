@@ -11,6 +11,7 @@
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}}がリポストしました',
+  repostedBySinNombre: '{{nombre}}がリポストしました',
   repost: 'リポスト',
   undoRepost: 'リポストを取り消す',
   undoRepostConfirm: 'リポストを取り消す',

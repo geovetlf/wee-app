@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "dominio": "router",
+  "datasetVersion": 1,
+  "datasetHash": "fd2119eba8f1019e5d9b2a9c52d38b1f363d29131435e234c2ce74058a59f223",
+  "generado": "2026-10-04T02:57:30.117Z",
+  "scores": {
+    "overall": 1,
+    "perDimension": {
+      "QUALITY": 1,
+      "COST": 1,
+      "LATENCY": 1,
+      "RELIABILITY": 1
+    },
+    "porCaso": [
+      {
+        "evalCaseId": "router-cadena-manda",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-sin-cadena-prioridad",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-cost-first-barato",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-quality-first-mejor",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1,
+          "LATENCY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-excluir-proveedor",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-familia-permitida",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-desactivado",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-sin-clave",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-cortacircuitos",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-tope-diario",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-ia-detenida",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-demo-solo-sin-real",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "router-sin-demo-con-real",
+        "score": 1,
+        "dims": {
+          "QUALITY": 1,
+          "RELIABILITY": 1
+        },
+        "aprobado": true
+      }
+    ],
+    "n": 13,
+    "aprobados": 13
+  }
+}

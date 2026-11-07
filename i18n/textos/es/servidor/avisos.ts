@@ -8,6 +8,12 @@
  *
  * `fotoUnica`, `imagen` y `audio` son lo que la app GUARDA como contenido de un mensaje sin texto; el push los
  * reconoce y los dice en el idioma de quien lo recibe.
+ *
+ * `<clave>SinNombre` es la frase de cuando quien la provoca no tiene un nombre que enseñar, como en la pantalla
+ * (`notifications.<clave>SinNombre`). En español es la MISMA frase, con `alguien` en el hueco: aquí no cambia nada. Un
+ * idioma donde «alguien» no puede ir en el sitio del nombre (el filipino: «si»/«ni» no van delante de un sustantivo
+ * común) escribe otra frase, sin {{nombre}}. `tituloDelMensajeSinNombre` es el título del push de un mensaje de
+ * WeeTalk —que con nombre es el nombre— y `teEnvioUnMensajeSinNombre`, su texto cuando el mensaje no trae palabras.
  */
 export const avisos = {
   likeTitulo: 'Nuevo like',
@@ -30,6 +36,17 @@ export const avisos = {
   mensajeCuerpo: '{{nombre}} te envió un mensaje',
   alguien: 'Alguien',
   teEnvioUnMensaje: 'Te envió un mensaje',
+  likeCuerpoSinNombre: '{{nombre}} le dio like a tu post',
+  comentarioCuerpoSinNombre: '{{nombre}} comentó en tu post',
+  seguidorCuerpoSinNombre: '{{nombre}} comenzó a seguirte',
+  solicitudCuerpoSinNombre: '{{nombre}} quiere agregarte a ËContact',
+  aceptadaCuerpoSinNombre: '{{nombre}} aceptó tu solicitud de ËContact',
+  mencionCuerpoSinNombre: '{{nombre}} te mencionó en un post',
+  repostCuerpoSinNombre: '{{nombre}} reposteó tu publicación',
+  respuestaCuerpoSinNombre: '{{nombre}} respondió a tu comentario',
+  mensajeCuerpoSinNombre: '{{nombre}} te envió un mensaje',
+  tituloDelMensajeSinNombre: '{{nombre}}',
+  teEnvioUnMensajeSinNombre: 'Te envió un mensaje',
   fotoUnica: 'Foto única',
   imagen: '📷 Imagen',
   audio: '🎤 Audio',

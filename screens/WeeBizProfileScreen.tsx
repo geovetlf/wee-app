@@ -178,9 +178,9 @@ const WeeBizProfileScreen: React.FC = () => {
 
     try {
       // Obtener datos del dueño del negocio para crear/abrir conversación
-      /* El nombre de respaldo NO pasa por t(): se GUARDA en `participantsData` de la conversación. Es dato. */
+      /* Se GUARDA en `participantsData` de la conversación: el nombre o nada; el genérico lo pinta quien lee, en su idioma. */
       const currentUserData: ParticipantData = {
-        displayName: userProfile?.displayName || 'Usuario',
+        displayName: userProfile?.displayName || '',
         avatarType: userProfile?.avatarType as any,
         avatarId: userProfile?.avatarId,
         photoURL: typeof userProfile?.photoURL === 'string' ? userProfile.photoURL : undefined,
@@ -233,10 +233,10 @@ const WeeBizProfileScreen: React.FC = () => {
     }
     try {
       setSavingReview(true);
-      /* Ídem: el nombre de respaldo se GUARDA en la reseña (`userName`), no se pinta desde aquí. */
+      /* Ídem en la reseña (`userName`): el nombre o nada; quien la lee pone el genérico en su idioma. */
       await weeBizService.createReview(businessId, {
         userId: activeUid,
-        userName: userProfile?.displayName || 'Usuario',
+        userName: userProfile?.displayName || '',
         userAvatar: typeof userProfile?.photoURL === 'string' ? userProfile.photoURL : undefined,
         rating: reviewRating,
         text: reviewText.trim(),
@@ -571,7 +571,7 @@ const WeeBizProfileScreen: React.FC = () => {
               {reviews.map(rev => (
                 <View key={rev.id} style={[styles.reviewCard, { borderColor: theme.colors.border }]}>
                   <View style={styles.reviewHeader}>
-                    <Text style={[styles.reviewUser, { color: theme.colors.text }]}>{rev.userName}</Text>
+                    <Text style={[styles.reviewUser, { color: theme.colors.text }]}>{rev.userName || t('common.user')}</Text>
                     {renderStars(rev.rating)}
                     <Text style={[styles.reviewDate, { color: theme.colors.textSecondary }]}>{fmtDate(rev.createdAt)}</Text>
                   </View>
