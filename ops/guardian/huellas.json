@@ -6825,7 +6825,7 @@
       ]
     },
     "security": {
-      "llamadas": 69,
+      "llamadas": 70,
       "titulos": [
         "063469da39",
         "074c032ea3",
@@ -6840,6 +6840,7 @@
         "1ce003025f",
         "22bce14bae",
         "24cf2dbcf8",
+        "2710f93b80",
         "28066bb4f2",
         "2a2a26c676",
         "2d3bd0addf",
@@ -6861,6 +6862,7 @@
         "60f2d3fe05",
         "633cd0f35e",
         "6e235d0d08",
+        "6fc7cf41e1",
         "700d60dc7f",
         "7099d7f155",
         "78f398f5a9",
@@ -6887,7 +6889,6 @@
         "d282a91ec2",
         "d468b294df",
         "d9fbdf5c3b",
-        "de74e1a6c7",
         "e5110f1401",
         "ea755bcbb2",
         "ebfe01a017",
@@ -6903,7 +6904,6 @@
         "01ad6699d84e",
         "01e78f367b6f",
         "0df855acda05",
-        "15c8f2cb5939",
         "183a54363e9e",
         "18ce5eb8c19a",
         "18f04075c7b2",
@@ -6921,6 +6921,7 @@
         "42939c9ea742",
         "433665085b62",
         "4702401e5150",
+        "497fd53ca70d",
         "527a691a329b",
         "587e6430202e",
         "5d4e5a27f315",
@@ -6931,12 +6932,12 @@
         "694bd61723c7",
         "6fd730810e2b",
         "710c08c12d1f",
+        "718a63f34ee2",
         "77cd391a6c20",
         "785554f2afb0",
         "78b4d7c9daae",
         "7e42e31d9b77",
         "8014934691bc",
-        "86c508d8c021",
         "899f63c13f8e",
         "8a7f7f3c3750",
         "8e71b9a55d7d",
@@ -6944,9 +6945,11 @@
         "9674ccabe324",
         "96a30bdbbe40",
         "9c426c321367",
+        "9e46a418150c",
         "a6c920bc42f3",
         "a8da3b368a82",
         "abe8dbffd8bf",
+        "b0f734059b82",
         "b1d833c109e3",
         "b3289ec8e126",
         "b34edd284464",
@@ -6965,8 +6968,7 @@
         "e24ce152a9fd",
         "e359a1f9e94e",
         "e7d7cf79a2a7",
-        "edc34db1e92e",
-        "f0d5e13362ca"
+        "f4b10f5d2111"
       ]
     },
     "seguridad-11x4a": {
@@ -7459,6 +7461,13 @@
         "seguridad-11x4a: 1 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): ea0ed40bf476",
         "video-asincrono: 2 comprobación(es) con título guardado ya no están (borradas o con otro título): d1ac5ee3e1, e754a97d98",
         "video-asincrono: 2 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): 41e75b16abf5, 60dd5f483b82"
+      ]
+    },
+    {
+      "motivo": "Decisión del dueño 2026-11-07 (W0 · SECURITY-FINAL). Se re-ancla security tras verificar la corrección de la demo (760bcc6f) en una demo aislada, con un emulador de Auth propio: 16 comprobaciones en verde y ninguna red fuera de 127.0.0.1:19099.\nBajas justificadas:\n- «el cliente solo usa identificadores públicos»: la lista permitida queda en APP_CHECK_SITE_KEY, DEMO_MEDIOS, DEMO_UID y PRUEBA_RTL; ya no admite EXPO_PUBLIC_DEMO_CORREO ni EXPO_PUBLIC_DEMO_CLAVE, y una comprobación nueva impide cualquier EXPO_PUBLIC con nombre de credencial;\n- «un negocio y una comunidad se crean con la CUENTA», sustituida por «una comunidad la crea la cara ACTIVA por el servidor» (WeeBiz retirado en c67df74c; comunidades por identidad, decisiones del 2026-11-05);\n- «el subárbol privado»: la ventana de la expresión regular era necesaria, y create y update van ahora por separado (más estricta);\n- «lo privado se reconoce por el uid del perfil»: create y update con hasOnly (más estricta).\nEvidencia: _correcciones-2026-11-06/B2-desplegabilidad (SECURITY-FINAL.md; gobierno/C-HUELLAS.md §4.7).",
+      "quitado": [
+        "security: 1 comprobación(es) con título guardado ya no están (borradas o con otro título): de74e1a6c7",
+        "security: 4 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): 15c8f2cb5939, 86c508d8c021, edc34db1e92e, f0d5e13362ca"
       ]
     }
   ]
