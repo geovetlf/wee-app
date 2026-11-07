@@ -32,6 +32,16 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lib = (p) => require(path.resolve(here, '../lib', p));
+/*
+ * Consolidación W0 (2026-11-06): con p0-edad, generateVideo y creatorRun exigen una cuenta Weë válida y una ruta elegible antes del
+ * dinero. Esta suite prueba la Línea B con una Firestore de mentira y proveedores sustituidos, así que hace lo que esas dos puertas
+ * prevén para las suites así (identity/sesion.ts, creator/rutaPrevia.ts): la cuenta se da por enrolada, la ruta por elegible, y
+ * cada llamada va con una sesión de credencial (no anónima). La cuenta, el invitado y la ruta tienen sus suites (edad-minima,
+ * guest-sin-ia, jurisdiccion-seedance).
+ */
+lib('identity/sesion.js').enrolamiento.leer = async () => true;
+lib('creator/rutaPrevia.js').rutaPrevia.decidir = async () => ({ candidates: [{ provider: 'sintetico', model: { id: 'sintetico' }, estimatedUsd: 0, estimatedCredits: 0 }], skipped: [] });
+const SESION = (uid) => ({ uid, token: { firebase: { sign_in_provider: 'password' } } });
 
 let failures = 0;
 const check = (name, cond, extra = '') => {
@@ -147,7 +157,7 @@ motor.spendCredits = async () => { espia.reservas++; return { transactionId: 'us
 videoMod.videoEngine.generate = async () => { espia.generaciones++; throw new Error('no debería llegar al proveedor'); };
 {
   const { generateVideo } = lib('creator/video.js');
-  const r = await generateVideo.run({ auth: { uid: 'AbCdEfGhIjKlMnOpQrStUvWxYz01' }, data: { requestId: 'studio_req_linea_b_0001', prompt: 'un tren de noche' } })
+  const r = await generateVideo.run({ auth: SESION('AbCdEfGhIjKlMnOpQrStUvWxYz01'), data: { requestId: 'studio_req_linea_b_0001', prompt: 'un tren de noche' } })
     .then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
   check('B5) generateVideo (Studio), apagado: «no disponible» ANTES del cupo, la reserva y el proveedor',
     !r.ok && r.e?.code === 'failed-precondition' && espia.cupo === 0 && espia.reservas === 0 && espia.generaciones === 0,
@@ -186,7 +196,7 @@ creditos.settleCredits = async (u, j, held, used) => { liquidaciones.push(`${hel
 creditos.pricingMode = async () => 'simulated';
 creditos.estimatePlan = async () => ({ total: 30, service: 'ai_text', steps: [{ stepId: 'texto', credits: 10 }, { stepId: 'musica', credits: 20 }] });
 const UID = 'AbCdEfGhIjKlMnOpQrStUvWxYz01';
-const correr = (jobId) => creatorMod.creatorRun.run({ auth: { uid: UID }, data: { jobId } }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
+const correr = (jobId) => creatorMod.creatorRun.run({ auth: SESION(UID), data: { jobId } }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
 const trabajo = (steps, extra = {}) => ({ id: 'x', userId: UID, experienceId: 'music', status: 'planned', creditsEstimated: 30, plan: { steps }, steps: steps.map((s) => ({ ...s, status: 'pending' })), results: [], progressText: '', ...extra });
 {
   espia = { cupo: 0, reservas: 0, generaciones: 0 };

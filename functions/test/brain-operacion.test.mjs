@@ -34,7 +34,7 @@ globalThis.fetch = async (url) => { intentosDeRed.push(`fetch ${String(url).slic
 const conectar = net.Socket.prototype.connect;
 net.Socket.prototype.connect = function (...a) { intentosDeRed.push(`socket ${JSON.stringify(a[0])?.slice(0, 80)}`); throw new Error('brain-operacion: red cortada'); };
 
-const { BaseEnMemoria, instalarLaBase, darDeAlta, saldoDe, lib } = await import('./_firestore-en-memoria.mjs');
+const { BaseEnMemoria, instalarLaBase, darDeAlta, saldoDe, lib, enrolar, sesionDe } = await import('./_firestore-en-memoria.mjs');
 const { acelerarLasEsperasCortas, apuntarLaConsola } = await import('./_aceptacion.mjs');
 const firestoreAdmin = () => createRequire(import.meta.url)('firebase-admin/firestore').getFirestore();
 let base = new BaseEnMemoria();
@@ -79,12 +79,16 @@ for (const id of ['deepseek', 'gemini']) {
 
 const ANA = 'A02anaAAAAAAAAAAAAAAAAAAAA01';
 const BEA = 'A02beaBBBBBBBBBBBBBBBBBBBB02';
-const enviar = (uid, data, auth = { uid }) => brain.brainChat.run({ auth, data: { locale: 'es', ...data } });
+/* Consolidación W0: por defecto llama una cuenta Weë válida (sesión con credencial y registro 18+ con país), como exige p0-edad. */
+const enviar = (uid, data, auth = sesionDe(uid)) => brain.brainChat.run({ auth, data: { locale: 'es', ...data } });
 const intento = async (fn) => { try { return { ok: true, v: await fn() }; } catch (e) { return { ok: false, e: { code: e.code, motivo: e.details?.code, message: e.message } }; } };
 const mundo = async (saldos = {}) => {
   base = new BaseEnMemoria();
-  await darDeAlta(base, ANA, saldos.ana === undefined ? {} : { saldo: saldos.ana });
-  await darDeAlta(base, BEA, saldos.bea === undefined ? {} : { saldo: saldos.bea });
+  /* Consolidación W0: sin bienvenida (WELCOME_CREDITS = 0) la cuenta nace en 0; si el escenario no fija otro saldo, los 240 con los que se escribió. */
+  await darDeAlta(base, ANA, { saldo: saldos.ana === undefined ? 240 : saldos.ana });
+  await darDeAlta(base, BEA, { saldo: saldos.bea === undefined ? 240 : saldos.bea });
+  enrolar(base, ANA);
+  enrolar(base, BEA);
   llamadas = 0; fallarProximas = 0;
 };
 const txDe = (uid) => base.de('creditTransactions').filter((t) => t.userId === uid);

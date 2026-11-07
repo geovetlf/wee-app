@@ -18,7 +18,7 @@
  * Usa el compilado: `npm run build` antes.
  */
 import net from 'node:net';
-import { BaseEnMemoria, instalarLaBase, darDeAlta, saldoDe, lib } from './_firestore-en-memoria.mjs';
+import { BaseEnMemoria, instalarLaBase, darDeAlta, saldoDe, lib, enrolar, sesionDe } from './_firestore-en-memoria.mjs';
 import { acelerarLasEsperasCortas, apuntarLaConsola, crearComprobador } from './_aceptacion.mjs';
 import { todosLosPlanes } from './_planes.mjs';
 
@@ -40,15 +40,25 @@ const consola = apuntarLaConsola();
 const { check, hueco, titulo, terminar } = crearComprobador();
 
 const creator = lib('creator/index.js');
+/*
+ * Consolidación W0: con los topes de la conversación gratuita (6c13cbc5) creatorChat corta a partir de 30 turnos por minuto como
+ * mucho. Esta suite recorre 35 cadenas seguidas, así que el tope se aparta aquí: tiene su propia suite (chat-limites) y lo que se
+ * mide aquí son las experiencias, no el tope.
+ */
+lib('creator/chatLimite.js').reservarTurnoDelChat = async () => {};
 const { ADAPTERS } = lib('engine/registry.js');
 const U = 'DemoUsuarioGGGGGGGGGGGGGGGG1';
 const OTRO = 'DemoUsuarioHHHHHHHHHHHHHHHH2';
-await darDeAlta(base, U);
-await darDeAlta(base, OTRO);
+/* Consolidación W0: sin bienvenida (WELCOME_CREDITS = 0) la cuenta nace en 0; la suite fija los 240 con los que se escribió. */
+await darDeAlta(base, U, { saldo: 240 });
+await darDeAlta(base, OTRO, { saldo: 240 });
+/* Consolidación W0: llama una cuenta Weë válida (sesión con credencial y registro 18+ con país), como exige p0-edad (identity/sesion.ts). */
+enrolar(base, U);
+enrolar(base, OTRO);
 
 const foto = (uid) => `https://firebasestorage.googleapis.com/v0/b/demo-gm-g-exp.firebasestorage.app/o/users%2F${uid}%2Fcreator-inputs%2Ffoto.jpg?alt=media&token=t`;
-const chat = (uid, data) => creator.creatorChat.run({ auth: { uid }, data: { locale: 'es', ...data } });
-const correr = (uid, jobId) => creator.creatorRun.run({ auth: { uid }, data: { jobId, locale: 'es' } });
+const chat = (uid, data) => creator.creatorChat.run({ auth: sesionDe(uid), data: { locale: 'es', ...data } });
+const correr = (uid, jobId) => creator.creatorRun.run({ auth: sesionDe(uid), data: { jobId, locale: 'es' } });
 const trabajo = (id) => base.leer(`creatorJobs/${id}`);
 const asientos = (uid) => base.de('creditTransactions').filter((t) => t.userId === uid && t.type === 'usage').map((t) => `${t.status}:${t.amount}`);
 const codigo = async (fn) => { try { await fn(); return 'ok'; } catch (e) { return e.code || e.message; } };

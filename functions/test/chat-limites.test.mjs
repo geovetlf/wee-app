@@ -17,7 +17,7 @@ import net from 'node:net';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BaseEnMemoria, instalarLaBase, darDeAlta, saldoDe, lib } from './_firestore-en-memoria.mjs';
+import { BaseEnMemoria, instalarLaBase, darDeAlta, saldoDe, lib, enrolar, sesionDe } from './_firestore-en-memoria.mjs';
 import { acelerarLasEsperasCortas, apuntarLaConsola } from './_aceptacion.mjs';
 
 const CLAVES = ['ANTHROPIC_API_KEY', 'ARK_API_KEY', 'BFL_API_KEY', 'DEEPSEEK_API_KEY', 'ELEVENLABS_API_KEY', 'FAL_KEY',
@@ -160,7 +160,8 @@ base = new BaseEnMemoria();
 }
 
 /* ══ C · `creatorChat` compilado, de punta a punta ═══════════════════════════════════════════════════════════════ */
-const chat = (uid, data) => creator.creatorChat.run({ auth: { uid }, data: { locale: 'es', ...data } });
+/* Consolidación W0: llama una cuenta Weë válida (sesión con credencial y registro 18+ con país), como exige p0-edad (identity/sesion.ts). */
+const chat = (uid, data) => creator.creatorChat.run({ auth: sesionDe(uid), data: { locale: 'es', ...data } });
 const empezar = (uid, goal = 'Una receta fácil para cenar') => chat(uid, { experienceId: 'chef', goal });
 const jobs = () => base.de('creatorJobs');
 const asientos = () => base.de('creditTransactions');
@@ -178,7 +179,7 @@ const conProveedorReal = (costeUsd) => {
   };
 };
 const sinProveedorReal = () => { disponibilidadDeWee.disponible = original.disponible; ADAPTERS.gemini.isConfigured = original.isConfigured; ADAPTERS.gemini.run = original.run; };
-const mundo = async (...uids) => { base = new BaseEnMemoria(); for (const u of uids) await darDeAlta(base, u); lim.olvidarLimitesDelChat(); };
+const mundo = async (...uids) => { base = new BaseEnMemoria(); for (const u of uids) { await darDeAlta(base, u, { saldo: 240 }); enrolar(base, u); } lim.olvidarLimitesDelChat(); };
 
 await mundo('ana');
 sinProveedorReal();
@@ -265,7 +266,8 @@ check('D4 el cliente dice la verdad: por minuto «espera unos segundos», el res
   /chat_por_minuto['"]\) return t\('weeai\.errChatEspera'\)/.test(cliente) && /startsWith\('chat_'\)\) return t\('weeai\.errChatLimite'\)/.test(cliente));
 const idiomas = fs.readdirSync(path.resolve(aqui, '../../i18n/textos'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
 const sin = idiomas.filter((l) => { const s = leer(`i18n/textos/${l}/weeai.ts`); return !/errChatEspera:/.test(s) || !/errChatLimite:/.test(s); });
-check(`D5 los ${idiomas.length} idiomas traen las dos frases`, idiomas.length === 16 && sin.length === 0, sin.join(', '));
+/* Consolidación W0: la rama consolidada tiene 42 diccionarios (decisión del dueño); las dos frases están en los 42. */
+check(`D5 los ${idiomas.length} idiomas traen las dos frases`, idiomas.length === 42 && sin.length === 0, sin.join(', '));
 check('D6 ninguna frase promete algo falso: dicen que no se cobró nada (o equivalente) y distinguen segundos de mañana',
   /unos segundos/.test(leer('i18n/textos/es/weeai.ts')) && /mañana/.test(leer('i18n/textos/es/weeai.ts')) && /few seconds/.test(leer('i18n/textos/en/weeai.ts')) && /tomorrow/.test(leer('i18n/textos/en/weeai.ts')));
 

@@ -15,7 +15,7 @@
  */
 import net from 'node:net';
 import { createRequire } from 'node:module';
-import { BaseEnMemoria, instalarLaBase, darDeAlta, saldoDe, lib } from './_firestore-en-memoria.mjs';
+import { BaseEnMemoria, instalarLaBase, darDeAlta, saldoDe, lib, enrolar, sesionDe } from './_firestore-en-memoria.mjs';
 import { acelerarLasEsperasCortas, apuntarLaConsola } from './_aceptacion.mjs';
 
 const CLAVES = ['ANTHROPIC_API_KEY', 'ARK_API_KEY', 'BFL_API_KEY', 'DEEPSEEK_API_KEY', 'ELEVENLABS_API_KEY', 'FAL_KEY',
@@ -40,7 +40,8 @@ const req = createRequire(import.meta.url);
 
 let fallo = 0;
 const check = (nombre, ok, evidencia = '') => { if (!ok) fallo++; process.stdout.write(`${ok ? '✔' : '✘'} ${nombre}${evidencia ? ` · ${evidencia}` : ''}\n`); };
-const enviar = (uid, data) => brain.brainChat.run({ auth: { uid }, data: { locale: 'es', ...data } });
+/* Consolidación W0: llama una cuenta Weë válida (sesión con credencial y registro 18+ con país), como exige p0-edad (identity/sesion.ts). */
+const enviar = (uid, data) => brain.brainChat.run({ auth: sesionDe(uid), data: { locale: 'es', ...data } });
 const usos = (uid) => base.de('creditTransactions').filter((t) => t.userId === uid && t.type === 'usage');
 const contador = (uid) => base.leer(`brainUsage/${uid}`) || {};
 const ANA = 'DemoAnaAAAAAAAAAAAAAAAAAAAA1';
@@ -61,7 +62,9 @@ const sinIaReal = () => {
 
 async function mundo() {
   base = new BaseEnMemoria();
-  await darDeAlta(base, ANA);
+  /* Consolidación W0: sin bienvenida (WELCOME_CREDITS = 0) la cuenta nace en 0; la suite fija los 240 con los que se escribió. */
+  await darDeAlta(base, ANA, { saldo: 240 });
+  enrolar(base, ANA);
 }
 
 /* N1 · doce respuestas de muestra */

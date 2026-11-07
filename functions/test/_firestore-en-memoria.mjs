@@ -143,3 +143,20 @@ export const darDeAlta = async (base, uid, { saldo } = {}) => {
 };
 
 export const saldoDe = (base, uid) => base.docs.get(`users/doc_${uid}`)?.creditsBalance;
+
+/*
+ * Consolidación W0 (2026-11-06, rama candidato/desplegable): desde p0-edad, crear con Weë AI exige una CUENTA WEË VÁLIDA
+ * (functions/src/identity/sesion.ts): la sesión firmada con una credencial de verdad —no la anónima del invitado— y el
+ * registro terminado, es decir, Perfil Real con país del catálogo y `private/account` con una fecha de 18+, que es lo que
+ * deja el alta de la app. `sesionDe` es la sesión con la que llama esa persona y `enrolar` termina su registro sobre la
+ * cuenta que dejó `darDeAlta`. `darDeAlta` no cambia (y sin bienvenida, WELCOME_CREDITS = 0, la cuenta nace en 0: la
+ * prueba que necesite saldo lo fija con `saldo`).
+ */
+export const PAIS_DE_PRUEBA = 'ES';
+export const sesionDe = (uid) => ({ uid, token: { firebase: { sign_in_provider: 'password' } } });
+export const enrolar = (base, uid, { pais = PAIS_DE_PRUEBA, fechaDeNacimiento = '1990-01-01' } = {}) => {
+  const perfil = base.docs.get(`users/doc_${uid}`);
+  if (!perfil) throw new Error(`enrolar: ${uid} no tiene Perfil Real (llama antes a darDeAlta)`);
+  if (!perfil.country) perfil.country = pais;
+  base.docs.set(`users/doc_${uid}/private/account`, { birthDate: fechaDeNacimiento });
+};

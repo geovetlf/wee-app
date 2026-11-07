@@ -16,7 +16,7 @@
  *      cambiar el valor por defecto en código sí lo sería, y eso exige despliegue y la decisión del dueño.
  */
 import net from 'node:net';
-import { BaseEnMemoria, instalarLaBase, darDeAlta, saldoDe, lib } from './_firestore-en-memoria.mjs';
+import { BaseEnMemoria, instalarLaBase, darDeAlta, saldoDe, lib, enrolar, sesionDe } from './_firestore-en-memoria.mjs';
 import { acelerarLasEsperasCortas, apuntarLaConsola } from './_aceptacion.mjs';
 
 const CLAVES = ['ANTHROPIC_API_KEY', 'ARK_API_KEY', 'BFL_API_KEY', 'DEEPSEEK_API_KEY', 'ELEVENLABS_API_KEY', 'FAL_KEY',
@@ -49,7 +49,9 @@ const UID = 'DemoAnaAAAAAAAAAAAAAAAAAAAA1';
 /* Cada prueba empieza de cero: base nueva, el demo en el valor que se pide (o el de partida si no se dice) y sin caché de configuración. */
 const mundo = async ({ demo, conCuenta = true } = {}) => {
   base = new BaseEnMemoria();
-  if (conCuenta) await darDeAlta(base, UID);
+  /* Consolidación W0: llama una cuenta Weë válida (sesión con credencial y registro 18+ con país), como exige p0-edad (identity/sesion.ts). */
+  /* …y sin bienvenida (WELCOME_CREDITS = 0) la cuenta nace en 0: la suite fija los 240 con los que se escribió. */
+  if (conCuenta) { await darDeAlta(base, UID, { saldo: 240 }); enrolar(base, UID); }
   base.docs.set('aiSettings/chat', { porMinuto: 30, porDia: 300, nuevosPorDia: 100 });
   if (demo !== undefined) base.docs.set('aiSettings/global', { allowMockFallback: demo });
   cfg.invalidateConfig();
@@ -90,7 +92,7 @@ check('A6 las capacidades SIN proveedor en su cadena (compose, montage, vertical
     && conDemo.find(([x]) => x === c)[1].demo === true && !sinDemo.find(([x]) => x === c)[1].ok));
 
 /* ══ B · creatorRun de punta a punta, con dinero real ═══════════════════════════════════════════════════════════ */
-const chat = (data) => creator.creatorChat.run({ auth: { uid: UID }, data: { locale: 'es', ...data } });
+const chat = (data) => creator.creatorChat.run({ auth: sesionDe(UID), data: { locale: 'es', ...data } });
 const planear = async (experienceId, goal) => {
   let r = await chat({ experienceId, goal });
   for (let vueltas = 0; r.status === 'asking' && vueltas < 12; vueltas++) {
@@ -100,7 +102,7 @@ const planear = async (experienceId, goal) => {
   }
   return r;
 };
-const correr = (jobId) => creator.creatorRun.run({ auth: { uid: UID }, data: { jobId } }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
+const correr = (jobId) => creator.creatorRun.run({ auth: sesionDe(UID), data: { jobId } }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
 const usos = () => base.de('creditTransactions').filter((t) => t.type === 'usage');
 let llamadasAlMock = 0;
 const mockRun = ADAPTERS.mock.run;
@@ -124,8 +126,13 @@ await mundo({ demo: false });
   const r = await correr(plan.jobId);
   const t = base.leer(`creatorJobs/${plan.jobId}`);
   check('B5 demo apagado, sin proveedor real: creatorRun falla como «no disponible» (no entrega muestra)', !r.ok && r.e?.details?.code === 'NOT_AVAILABLE', JSON.stringify(r.e?.details));
-  check('B6 …el trabajo queda `failed`, sin ningún resultado', t.status === 'failed' && (t.results || []).length === 0, `${t.status} resultados=${(t.results || []).length}`);
-  check('B7 …no cobra: saldo 240 y la reserva devuelta entera', saldoDe(base, UID) === 240 && usos().length === 1 && usos()[0].status === 'REFUNDED', `saldo=${saldoDe(base, UID)} ${JSON.stringify(usos().map((u) => u.status))}`);
+  /*
+   * Consolidación W0 (2026-11-06): con p0-edad la RUTA se mira ANTES del dinero (creator/rutaPrevia.ts): sin ninguna ruta
+   * elegible el trabajo ni se reclama ni se reserva nada (antes se reservaba y se devolvía entero). Lo que se exige es más
+   * estricto que antes: el trabajo sigue `planned`, sin resultados, y no hay NI UN asiento de uso.
+   */
+  check('B6 …el trabajo no se reclama ni se ejecuta: sigue `planned`, sin ningún resultado', t.status === 'planned' && !t.runId && (t.results || []).length === 0, `${t.status} resultados=${(t.results || []).length}`);
+  check('B7 …no cobra: saldo 240 y ninguna reserva (la ruta se decide antes del dinero)', saldoDe(base, UID) === 240 && usos().length === 0, `saldo=${saldoDe(base, UID)} ${JSON.stringify(usos().map((u) => u.status))}`);
   check('B8 …y no se ejecutó ni una generación de muestra (ningún proveedor llamado, ninguna fila en el libro)', llamadasAlMock === 0 && base.de('aiGenerations').length === 0, `mock=${llamadasAlMock} libro=${base.de('aiGenerations').length}`);
   check('B9 …el mensaje a la persona no nombra proveedores ni «demo»', !/mock|demo|gemini|openai|claude|flux|seedance/i.test(String(r.e?.message)), String(r.e?.message));
 }
@@ -150,7 +157,7 @@ sinRealidad();
 /* ══ C · Weë Brain con el demo apagado ═══════════════════════════════════════════════════════════════════════════ */
 await mundo({ demo: false });
 {
-  const enviar = (data) => brain.brainChat.run({ auth: { uid: UID }, data: { locale: 'es', ...data } }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
+  const enviar = (data) => brain.brainChat.run({ auth: sesionDe(UID), data: { locale: 'es', ...data } }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
   const r = await enviar({ message: 'hola', messageId: 'c1_msg_1' });
   check('C1 Brain con el demo apagado y sin proveedor real: «no disponible» (no responde de muestra)', !r.ok && r.e?.details?.code === 'NOT_AVAILABLE', JSON.stringify(r.e?.details));
   check('C2 …sin ningún cobro y sin avanzar el bloque de doce', usos().length === 0 && saldoDe(base, UID) === 240 && (base.leer(`brainUsage/${UID}`)?.respuestasTotales ?? 0) === 0,
