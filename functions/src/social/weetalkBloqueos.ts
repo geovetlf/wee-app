@@ -10,11 +10,14 @@
  *       toca el Moderation Core ni sus contratos (el «BLOCK» de la moderación es otra cosa: el desenlace de una revisión).
  *   3 · Se aplica a nivel de CUENTA y cubre las dos identidades, Real y Weë. Si A bloquea a B, B no puede contactar con
  *       NINGUNA identidad de A, y no lo evade cambiando de identidad.
- *   4 · Impide mensajes, conversaciones nuevas, solicitudes de ËContact y llamadas directas (si existen). Las solicitudes
- *       pendientes entre las dos cuentas se anulan.
- *   5 · Desbloquear deja volver a contactar según las reglas normales, sin restaurar las solicitudes anteriores.
- *   6 · No se revelan identidades alternativas: ninguna respuesta, lista, error ni aviso dice de qué cuenta es una cara,
- *       ni que existe otra. B no sabe que está bloqueada: nadie le avisa y no tiene lista.
+ *   4 · Impide mensajes, conversaciones nuevas, solicitudes de ËContact y llamadas directas (si existen). Al bloquear se
+ *       cancelan las solicitudes pendientes y se ELIMINAN las conexiones de ËContact ya aceptadas entre las dos cuentas
+ *       (segunda ronda de decisiones del 2026-11-07).
+ *   5 · Desbloquear no restaura conexiones ni solicitudes: para reconectar hace falta una solicitud nueva y aceptarla.
+ *   6 · No se revelan identidades alternativas ni se generan respuestas que permitan inferirlas: ninguna respuesta,
+ *       lista, error ni aviso dice de qué cuenta es una cara, ni que existe otra, ni cuántas relaciones se borraron.
+ *       B no sabe que está bloqueada: nadie le avisa y no tiene lista.
+ *   7 · El bloqueo NO incluye «me gusta», comentarios, publicaciones ni otras interacciones sociales de la App.
  *
  * QUÉ PROTEGE EXACTAMENTE (la regla común, `puedeEscribir`)
  * --------------------------------------------------------
@@ -42,8 +45,8 @@
  * ---------------------------------------------
  *   · En el servidor, ya: el push de un mensaje (`sendMessagePushNotification`) y el de los avisos de ËContact
  *     (`sendPushNotification`, solo `econtact_request` y `econtact_accepted`) no suenan; `requestEContact` y
- *     `acceptEContact` se niegan (econtact.ts, dentro de su transacción); y al bloquear se anulan las solicitudes
- *     pendientes entre las dos cuentas (abajo, `bloquear`).
+ *     `acceptEContact` se niegan (econtact.ts, dentro de su transacción); y al bloquear se borran las solicitudes
+ *     pendientes y las conexiones aceptadas entre las dos cuentas (abajo, `bloquear`).
  *   · Los mensajes, las conversaciones y los avisos los escribe el CLIENTE directamente, con `firestore.rules`. Que no
  *     se puedan escribir exige cambiar las reglas, y eso NO se ha aplicado: está PROPUESTO y revisado
  *     (ops/propuestas/weetalk-bloqueo/) y espera la autorización del dueño. Hasta entonces el bloqueo no impide que un
@@ -76,8 +79,13 @@ const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 export const BLOQUEOS = 'weetalkBloqueos';
 export const PARES = PARES_BLOQUEADOS;
 export const CUPOS = 'weetalkBloqueosCupo';
-/** Las relaciones de ËContact (econtact.ts). Aquí solo se ANULAN las pendientes entre dos cuentas al bloquear. */
+/** Las relaciones de ËContact (econtact.ts). Aquí solo se BORRAN, al bloquear, las que hay entre las dos cuentas. */
 export const ECONTACTS = 'econtacts';
+/**
+ * Los estados de ËContact que el bloqueo borra: la solicitud pendiente (se cancela) y la conexión aceptada (se elimina).
+ * No hay otros: un rechazo o una cancelación ya son borrados (econtact.ts, reglas de `econtacts`).
+ */
+export const ESTADOS_QUE_BORRA_EL_BLOQUEO: readonly string[] = Object.freeze(['pending', 'accepted']);
 const PERFILES = 'users';
 
 /** Cuántas cuentas distintas puede bloquear una cuenta. Muy por encima de cualquier uso real; acota el abuso. */
@@ -227,10 +235,10 @@ export const paresPosibles = (cuentaA: string, cuentaB: string, carasDe: CarasDe
   return [...todos].sort();
 };
 
-// ─── ËContact: las solicitudes que se anulan al bloquear ─────────────────────
+// ─── ËContact: lo que se borra al bloquear ───────────────────────────────────
 
 /**
- * LAS SOLICITUDES DE ËCONTACT QUE PUEDE HABER ENTRE DOS CUENTAS: una por pareja de caras, con el id que calcula
+ * LAS RELACIONES DE ËCONTACT QUE PUEDE HABER ENTRE DOS CUENTAS: una por pareja de caras, con el id que calcula
  * econtact.ts (`idDeContacto`, conmutativo). Son las únicas que se miran al bloquear: no hay consultas.
  */
 export const solicitudesPosibles = (cuentaA: string, cuentaB: string, carasDe: CarasDeLaCuenta): string[] => {
@@ -243,13 +251,14 @@ export const solicitudesPosibles = (cuentaA: string, cuentaB: string, carasDe: C
 };
 
 /**
- * ¿Hay que ANULAR este documento de `econtacts` al bloquear? Solo si es una solicitud PENDIENTE cuyas dos caras son
- * una de cada cuenta. Una conexión ya aceptada no se toca: no es una solicitud (docs/WEETALK-BLOQUEO.md § 9).
+ * ¿Hay que BORRAR este documento de `econtacts` al bloquear? Si es una solicitud pendiente o una conexión aceptada
+ * cuyas dos caras son una de cada cuenta. Cualquier otro documento (otra persona, un estado desconocido) no se toca.
  */
-export const esSolicitudPendienteEntre = (datos: unknown, carasA: readonly string[], carasB: readonly string[]): boolean => {
+export const esRelacionDeEContactEntre = (datos: unknown, carasA: readonly string[], carasB: readonly string[]): boolean => {
   if (!datos || typeof datos !== 'object') return false;
   const d = datos as { status?: unknown; users?: unknown };
-  if (d.status !== 'pending' || !Array.isArray(d.users) || d.users.length !== 2) return false;
+  if (typeof d.status !== 'string' || !ESTADOS_QUE_BORRA_EL_BLOQUEO.includes(d.status)) return false;
+  if (!Array.isArray(d.users) || d.users.length !== 2) return false;
   const [x, y] = d.users as unknown[];
   if (typeof x !== 'string' || typeof y !== 'string') return false;
   return (carasA.includes(x) && carasB.includes(y)) || (carasB.includes(x) && carasA.includes(y));
@@ -417,9 +426,10 @@ export const createBloqueosEngine = (deps: BloqueosDeps) => {
     /**
      * `bloquear` — la cuenta de la sesión, actuando con `comoIdentidad`, bloquea a la persona de `identidad`.
      *
-     * Una transacción: relee las dos relaciones entre las dos cuentas, el cupo y las solicitudes de ËContact que puede
+     * Una transacción: relee las dos relaciones entre las dos cuentas, el cupo y las relaciones de ËContact que puede
      * haber entre ellas; añade la entrada, REESCRIBE el índice entero de esas dos cuentas desde las relaciones (se cura
-     * solo si alguna vez se desvió) y anula las solicitudes pendientes. Repetirlo no cambia nada. No avisa a nadie.
+     * solo si alguna vez se desvió) y borra las solicitudes pendientes y las conexiones aceptadas. Repetirlo no cambia
+     * nada. No avisa a nadie.
      */
     bloquear: async (a: { cuentaDeLaSesion: string; comoIdentidad: unknown; identidad: unknown }) => {
       const yo = a.cuentaDeLaSesion;
@@ -441,7 +451,7 @@ export const createBloqueosEngine = (deps: BloqueosDeps) => {
         const ab = await tx.get(refDeRelacion(yo, suya));
         const ba = await tx.get(refDeRelacion(suya, yo));
         const cupo = await tx.get(refDeCupo(yo));
-        /* Las solicitudes de ËContact entre las dos cuentas, leídas ANTES de escribir nada (así lo exige una transacción). */
+        /* Las relaciones de ËContact entre las dos cuentas, leídas ANTES de escribir nada (así lo exige una transacción). */
         const solicitudes: { ref: DocumentReference; datos: unknown }[] = [];
         for (const id of solicitudesPosibles(yo, suya, deps.carasDe)) {
           const ref = coleccion(ECONTACTS).doc(id);
@@ -460,13 +470,13 @@ export const createBloqueosEngine = (deps: BloqueosDeps) => {
         if (!ab.exists) tx.set(refDeCupo(yo), { relaciones: usadas + 1, actualizadoEn: deps.sello(ms) });
         escribirIndice(tx, yo, suya, [despues, contraria]);
         /*
-         * Las solicitudes PENDIENTES entre las dos cuentas se anulan (decisión 4), en cualquier sentido y entre cualesquiera
-         * de sus caras. Anular es BORRAR, que es justo lo que hacen «cancelar» y «rechazar» en ËContact: para la otra
-         * persona es indistinguible de un «no» corriente, y no queda nada que desbloquear después (decisión 5). La
-         * respuesta no dice cuántas había: lo delataría.
+         * Las solicitudes PENDIENTES se cancelan y las conexiones ACEPTADAS se eliminan (decisión 4), en cualquier sentido y
+         * entre cualesquiera de las caras de las dos cuentas. Las dos cosas son BORRAR, que es lo que ya hacen «cancelar»,
+         * «rechazar» y «eliminar» en ËContact. Desbloquear no devuelve nada: para reconectar hace falta una solicitud
+         * nueva y aceptarla (decisión 5). La respuesta no dice cuántas había: lo delataría.
          */
         const susCaras = deps.carasDe(suya);
-        for (const s of solicitudes) if (esSolicitudPendienteEntre(s.datos, misCaras, susCaras)) tx.delete(s.ref);
+        for (const s of solicitudes) if (esRelacionDeEContactEntre(s.datos, misCaras, susCaras)) tx.delete(s.ref);
         return { identidad, bloqueado: true as const, yaEstaba };
       });
     },
@@ -475,8 +485,9 @@ export const createBloqueosEngine = (deps: BloqueosDeps) => {
      * `desbloquear` — quita esa cara de la lista de la cuenta de la sesión, se bloqueara desde la cara que fuera.
      *
      * No hace falta saber de qué cuenta es (puede que ya ni exista): se buscan las relaciones de quien llama que
-     * nombran esa cara. No toca conversaciones ni mensajes, y no restaura las solicitudes de ËContact que el bloqueo
-     * anuló: lo borrado sigue borrado y no aparece nada retroactivo. Desde ahí, las reglas normales (decisión 5).
+     * nombran esa cara. No toca conversaciones ni mensajes, y no restaura las solicitudes ni las conexiones de ËContact
+     * que el bloqueo borró: lo borrado sigue borrado y no aparece nada retroactivo. Desde ahí, las reglas normales: una
+     * solicitud nueva y aceptarla (decisión 5).
      * Si no estaba, no es un error.
      *
      * Si la cuenta bloqueó DOS caras de la misma persona (sin saberlo), quitar una no abre a esa persona: la relación

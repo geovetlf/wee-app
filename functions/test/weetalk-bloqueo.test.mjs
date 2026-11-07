@@ -283,8 +283,11 @@ console.log('\n── F · Sin inspección: la lógica del bloqueo no lee mensaj
     /carasDe: identidadesHeredadasDeLaCuenta/.test(codigo) && /where\('uid', '==', identidad\)\.limit\(5\)/.test(codigo));
   check('las consultas van acotadas', (codigo.match(/\.where\(/g) || []).length === (codigo.match(/\.where\([^)]*\)\.limit\(/g) || []).length);
   check('sin IA, sin proveedores, sin secretos', !/engine\/(router|gateway|providers)|defineSecret|secrets:|fetch\(/.test(codigo));
-  check('de ËContact solo ANULA: lee las solicitudes posibles por su id y borra las pendientes; nunca crea, acepta ni modifica una',
-    /tx\.delete\(s\.ref\)/.test(codigo) && /esSolicitudPendienteEntre\(s\.datos, misCaras, susCaras\)/.test(codigo) && !/tx\.(create|update)\(/.test(codigo) && !/'accepted'/.test(codigo));
+  check('de ËContact solo BORRA: lee las relaciones posibles por su id y borra las pendientes y las aceptadas entre las dos cuentas; nunca crea, acepta ni modifica una',
+    /tx\.delete\(s\.ref\)/.test(codigo) && /esRelacionDeEContactEntre\(s\.datos, misCaras, susCaras\)/.test(codigo) && !/tx\.(create|update)\(/.test(codigo)
+    && JSON.stringify(B.ESTADOS_QUE_BORRA_EL_BLOQUEO) === JSON.stringify(['pending', 'accepted']));
+  check('el bloqueo no toca nada social de la App: ni «me gusta», ni comentarios, ni publicaciones, ni seguimientos',
+    !/['"`](likes|comments|posts|follows|reposts|bookmarks)['"`]/.test(codigo));
 }
 
 console.log('\n── G · El cableado ──');
@@ -415,7 +418,7 @@ console.log('\n── I · Sabotaje: con la regla rota a propósito, las comprob
   check('y la de verdad, ninguno', contra(B.puedeEscribir) === 0);
 }
 
-console.log('\n── J · ËContact: pedir y aceptar se niegan, las pendientes se anulan y desbloquear no las restaura ──');
+console.log('\n── J · ËContact: pedir y aceptar se niegan, solicitudes y conexiones se borran y desbloquear no restaura nada ──');
 {
   const id = EC.idDeContacto;
   /* El motor real de ËContact sobre la misma base en memoria; su `tx.create` falla si ya existe, como en Firestore. */
@@ -437,15 +440,18 @@ console.log('\n── J · ËContact: pedir y aceptar se niegan, las pendientes 
   const s1 = await pedir(ec, beto, betoWee, anaReal);
   const s2 = await pedir(ec, ana, anaWee, betoReal);
   const s3 = await pedir(ec, carla, carlaReal, anaReal);
+  /* Conexiones ya aceptadas: una entre Ana y Beto (por sus caras Real) y otra entre Ana (Weë) y Carla. */
   base.docs.set(`econtacts/${id(anaReal, betoReal)}`, { users: [anaReal, betoReal].sort(), status: 'accepted', requestedBy: anaReal, requestedTo: betoReal });
+  base.docs.set(`econtacts/${id(anaWee, carlaReal)}`, { users: [anaWee, carlaReal].sort(), status: 'accepted', requestedBy: carlaReal, requestedTo: anaWee });
   check('sin bloqueo, ËContact funciona como siempre: se piden solicitudes en los dos sentidos', s1.status === 'pending' && s2.status === 'pending' && s3.status === 'pending');
   const r = await motor.bloquear({ cuentaDeLaSesion: ana, comoIdentidad: anaReal, identidad: betoWee });
-  check('al bloquear se ANULAN las solicitudes pendientes entre las dos cuentas, en los dos sentidos y entre cualesquiera caras',
+  check('al bloquear se CANCELAN las solicitudes pendientes entre las dos cuentas, en los dos sentidos y entre cualesquiera caras',
     !base.leer(`econtacts/${s1.contactId}`) && !base.leer(`econtacts/${s2.contactId}`));
-  check('una conexión ya aceptada no se toca (no es una solicitud), ni las solicitudes con otras personas',
-    base.leer(`econtacts/${id(anaReal, betoReal)}`)?.status === 'accepted' && base.leer(`econtacts/${s3.contactId}`)?.status === 'pending');
-  check('la respuesta de bloquear no dice cuántas solicitudes había: lo delataría', JSON.stringify(Object.keys(r)) === JSON.stringify(['identidad', 'bloqueado', 'yaEstaba']));
-  /* Parejas sin documento: entre anaReal y betoReal ya hay una conexión aceptada, y ahí sigue mandando «ya-existe». */
+  check('y se ELIMINAN las conexiones ya aceptadas entre las dos cuentas, aunque sean de otras caras que las del bloqueo',
+    !base.leer(`econtacts/${id(anaReal, betoReal)}`));
+  check('lo de otras personas no se toca: ni la solicitud de Carla ni su conexión con Ana',
+    base.leer(`econtacts/${s3.contactId}`)?.status === 'pending' && base.leer(`econtacts/${id(anaWee, carlaReal)}`)?.status === 'accepted');
+  check('la respuesta de bloquear no dice cuántas solicitudes ni conexiones había: lo delataría', JSON.stringify(Object.keys(r)) === JSON.stringify(['identidad', 'bloqueado', 'yaEstaba']));
   const desdeBeto = await Promise.all([[betoWee, anaReal], [betoReal, anaWee], [betoWee, anaWee]].map(([de, para]) => motivoDe(pedir(ec, beto, de, para))));
   const desdeAna = await Promise.all([[anaWee, betoWee], [anaReal, betoWee]].map(([de, para]) => motivoDe(pedir(ec, ana, de, para))));
   check('con el bloqueo, Beto no pide ËContact a ninguna cara de Ana, desde ninguna de las suyas', desdeBeto.every((m) => m === 'relacion-invalida'), desdeBeto.join(', '));
@@ -453,13 +459,19 @@ console.log('\n── J · ËContact: pedir y aceptar se niegan, las pendientes 
   const e = await rechaza(pedir(ec, beto, betoReal, anaWee));
   check('el error es el genérico de siempre («no válida»): no dice que hay un bloqueo ni de quién es ninguna cara',
     e instanceof EC.EContactError && e.message === EC.MENSAJES['relacion-invalida'] && !/bloque/i.test(e.message));
-  check('Carla, que no tiene nada que ver, sigue pidiendo ËContact a Ana', (await pedir(ec, carla, carlaReal, anaWee)).status === 'pending');
+  check('Carla, que no tiene nada que ver, sigue pidiendo ËContact a Beto: el bloqueo es solo entre las cuentas de Ana y Beto',
+    (await pedir(ec, carla, carlaReal, betoWee)).status === 'pending');
   check('bloquear no deja rastro en ËContact: ni avisos, ni reportes, ni documentos nuevos', !coleccionesDe(base).some((c) => ['notifications', 'reports'].includes(c)));
 
   await motor.desbloquear({ cuentaDeLaSesion: ana, identidad: betoWee });
-  check('desbloquear NO restaura las solicitudes anuladas', !base.leer(`econtacts/${s1.contactId}`) && !base.leer(`econtacts/${s2.contactId}`));
+  check('desbloquear NO restaura las solicitudes canceladas ni las conexiones eliminadas',
+    !base.leer(`econtacts/${s1.contactId}`) && !base.leer(`econtacts/${s2.contactId}`) && !base.leer(`econtacts/${id(anaReal, betoReal)}`));
+  const sinSolicitud = await motivoDe(ec.accept({ cuentaDeLaSesion: ana, comoIdentidad: anaReal, otraIdentidad: betoReal }));
+  check('nada que aceptar sin una solicitud nueva: la conexión anterior no vuelve sola («sin-relacion»)', sinSolicitud === 'sin-relacion', sinSolicitud);
   const otra = await pedir(ec, beto, betoWee, anaReal);
-  check('y desde ahí, las reglas normales: Beto puede volver a pedir, como una solicitud nueva', otra.status === 'pending' && base.leer(`econtacts/${otra.contactId}`)?.status === 'pending');
+  check('desde ahí, las reglas normales: Beto puede volver a pedir, como una solicitud nueva', otra.status === 'pending' && base.leer(`econtacts/${otra.contactId}`)?.status === 'pending');
+  const aceptada = await ec.accept({ cuentaDeLaSesion: ana, comoIdentidad: anaReal, otraIdentidad: betoWee });
+  check('y para reconectar, Ana la acepta: solicitud nueva + aceptación = conexión nueva', aceptada.status === 'accepted' && base.leer(`econtacts/${otra.contactId}`)?.status === 'accepted');
 
   /* Una solicitud que se cruzó con el bloqueo (sembrada después, como si hubiera llegado a la vez) queda inutilizada. */
   const { base: b2, motor: m2, ec: ec2 } = mundo();
@@ -479,5 +491,5 @@ console.log('\n── J · ËContact: pedir y aceptar se niegan, las pendientes 
     && EC.decidirSolicitud({ de, para, existente: null }).ok === true && EC.decidirSolicitud({ de, para, existente: null, bloqueo: false }).ok === true);
 }
 
-console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ weetalk-bloqueo: el bloqueo es de cuenta, cubre las dos caras, anula ËContact y no delata a nadie');
+console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ weetalk-bloqueo: el bloqueo es de cuenta, cubre las dos caras, borra ËContact entre las cuentas y no delata a nadie');
 process.exit(failures ? 1 : 0);
