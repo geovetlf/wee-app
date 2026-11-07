@@ -23,6 +23,8 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const lib = (p) => require(path.resolve(RAIZ, 'functions/lib', p));
 const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
 const sinComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
@@ -113,10 +115,17 @@ const perfil = (base, uid, saldo = 5000) => {
   base.docs.set(`users/doc_${uid}`, { uid, displayName: uid });
   return async (motor) => {
     await motor.ensureAccount(uid);
+    /* F-06: el saldo se siembra en sus dos sitios (el privado manda; el perfil es el espejo de las apps viejas). */
     base.docs.get(`users/doc_${uid}`).creditsBalance = saldo;
+    base.docs.get(`creditAccounts/${uid}`).creditsBalance = saldo;
   };
 };
-const saldoEn = (base, uid) => base.docs.get(`users/doc_${uid}`).creditsBalance;
+/* El saldo, y solo si sus dos sitios dicen lo mismo: un espejo desfasado da NaN y hace fallar la aserción que lo use. */
+const saldoEn = (base, uid) => {
+  const enPerfil = base.docs.get(`users/doc_${uid}`)?.creditsBalance;
+  const enCuenta = base.docs.get(`creditAccounts/${uid}`)?.creditsBalance;
+  return enPerfil === enCuenta ? enPerfil : NaN;
+};
 const huellaDePrueba = (texto) => createHash('sha256').update(texto).digest('hex');
 
 /* ═══ A · EL CREDIT ENGINE ════════════════════════════════════════════════ */
@@ -242,7 +251,7 @@ const mundo = async (cuentas = ['ana']) => {
   comportamiento = generaBien;
   for (const uid of cuentas) await perfil(base, uid)(creditEngine);
 };
-const pedir = (uid, datos) => intento(() => video.generateVideo.run({ auth: { uid }, data: datos }));
+const pedir = (uid, datos) => intento(() => video.generateVideo.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data: datos }));
 const PETICION = { prompt: 'Un faro al amanecer, olas suaves', durationSec: 5, aspectRatio: '16:9' };
 const saldo = (uid) => saldoEn(base, uid);
 const usos = (requestId) => base.de('creditTransactions').filter((t) => t.requestId === requestId && t.type === 'usage');

@@ -269,6 +269,8 @@ export function createRouter(deps: RouterDeps) {
       if (!adapter) return skip('no existe', 'configuracion');
       const providerConfig = config.providers[link.provider] || { enabled: true, priority: 50 };
       if (!providerConfig.enabled) return skip('desactivado por administración', 'configuracion');
+      /* El interruptor del vídeo (X2): apagado, ningún proveedor REAL de vídeo entra en la cadena. */
+      if (capability.startsWith('video.') && link.provider !== 'mock' && settings.videoHabilitado !== true) return skip('vídeo apagado por administración', 'configuracion');
       if (excluded.has(link.provider)) return skip('excluido en esta petición', 'peticion');
       if (prefs.allowedProviders && !prefs.allowedProviders.includes(link.provider)) return skip('fuera de la familia de modelos permitida', 'peticion');
       if (!adapter.isConfigured()) return skip('sin clave configurada', 'configuracion');

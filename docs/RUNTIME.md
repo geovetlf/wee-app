@@ -295,6 +295,8 @@ su catálogo, y con un ejecutor de uno en uno el Orchestrator los despacha en el
 orden exacto del `while`. Además sabe algo que el `while` no: en 36 despachos hay
 dos pasos que no dependen entre sí (el clip y la voz de un vídeo) y hoy van en serie.
 
+> **Nota (2026-10-16, Gran Motor):** las cifras «28 capacidades» de esta sección son la MEDIDA DE F12-A, tomada antes de que la misión del mundo 3D añadiera `world.generate`. El registro actual (`engine/registry.ts`, `DEFAULT_ROUTING`) enruta **29** capacidades: las mismas 28 más `world.generate` (comprobado contando `DEFAULT_ROUTING` sobre `lib`). La equivalencia vigente del Router —29 capacidades × 16 escenarios, 0 divergencias injustificadas con la capa de compatibilidad— está en [`GRAN-MOTOR-A-ROUTER.md`](GRAN-MOTOR-A-ROUTER.md). Las medidas históricas no se reescriben.
+
 **P2 — Router.** Con la misma configuración, de las 28 capacidades que producción
 enruta: **6** iguales, **15** distintas y **7** sin proveedor real (hoy caen en modo demo, y el Core las daría por no disponibles). Ejemplos de lo que cambiaría en silencio:
 
@@ -505,6 +507,8 @@ Seguido por imports y llamadas, no por comentarios. `archivo:línea` en cada sal
 | **`creatorJobs`** | documento escrito a mano; seis estados; sin intentos ni concesión | proyección del trabajo del Core con `ESTADO_CANONICO` | — | MEDIO: el cliente lo lee | los históricos **no se migran**: se quedan como están |
 | **`aiGenerations`** | una fila por intento, la escribe `engine/router.ts` | **las mismas filas**, por el puerto del ejecutor | ninguna en la forma | BAJO | hecho en el tramo 1 |
 | **Cobro de Credits** | reserva (débito real, `AUTHORIZED`) → proveedor → `completeCredits` / `refundCredits`, todo en la misma invocación | **igual, sin tocar** | ninguna | **P0** | § 11.9 |
+
+> **Actualización (integración `integracion/p0-edad-fase1`, 2026-10-07, SIN desplegar):** `index.ts` exporta **38** Functions en el código integrado (37 + `espejoDelPerfilPublico`, el disparador que escribe `publicProfiles`). Las cifras de este apartado son las de la fecha en que se escribió y se conservan como historia; producción no cambia hasta un despliegue autorizado.
 
 Un solo embudo hacia los proveedores (`engine.generate`, cuatro llamadores hoy —ver § 5—) más el avatar.
 Las 30 Functions desplegadas son las 30 que exporta `index.ts`; seis tocan IA.

@@ -10,6 +10,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Il manque quelque chose dans ta demande. Vérifie-la et réessaie.',
   unauthorized: 'Connecte-toi pour créer avec Weë.',
+  accountRequired: 'Pour créer du contenu avec Weë AI, connecte-toi ou crée ton compte.',
   providerError: 'L’IA n’a pas pu terminer ta création cette fois. Rien ne t’a été facturé : réessaie dans un instant.',
   generationFailed: 'Je n’ai pas pu terminer ta création. Rien ne t’a été facturé : réessaie.',
   timeout: 'Ça a pris trop de temps et je l’ai arrêtée. Rien ne t’a été facturé : réessaie.',
@@ -44,8 +45,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Aucune IA n’est disponible pour ça en ce moment. Réessaie plus tard.',
   noDisponibleActualmente: 'Cette fonction n’est pas disponible actuellement.',
   noDisponibleAhora: 'Cette fonction n’est pas disponible pour le moment. Réessaie dans un petit moment.',
-  noDisponibleRegion: 'Cette fonction n’est pas disponible actuellement dans ta région.',
-  noDisponiblePais: 'Pour utiliser cette fonction, indique ton pays dans ton Profil Réel.',
   noDisponibleOpciones: 'Cette fonction n’est pas disponible avec les options que tu as choisies. Essaie-en d’autres.',
   describeVideo: 'Dis-moi quelle vidéo tu veux créer.',
   creacionTerminada: 'Cette création est déjà terminée et ne sera pas refaite. Cherche-la dans tes créations.',

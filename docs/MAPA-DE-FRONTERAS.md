@@ -83,13 +83,16 @@ por el cliente.
 
 Todo lo anterior está conectado y sus callables y disparadores, desplegados.
 
+**Perfiles (integración 2026-10-07, sin desplegar):** `users/{id}` será privado (dueño y servidor) en la fase 2 (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo); los perfiles ajenos se leen de `publicProfiles/{id}` (lista blanca, escrita solo por el servidor con `espejoDelPerfilPublico`, `list` limitado), vía `perfilesPublicos` en `services/firestoreService.ts` (con una caída de transición a `users`, deuda declarada en DD-15). La frontera Identity → IA es «cuenta Weë válida» (`identity/sesion.ts`), que valida la fecha con `identity/edad.ts`.
+
 ## 3. Payment Router: lo que existe
 
 - **`functions/src/payments/purchaseValidation.ts`**: una tabla de proveedores `apple`, `google`, `stripe` y `test`.
   `validatePurchase` concede los Credits con `creditEngine.grantCredits` e id `<proveedor>_<id>` (idempotente);
   `restorePurchases` existe. **Apple, Google y Stripe solo lanzan `NOT_IMPLEMENTED`**; no hay webhook de Stripe.
-- **`payments/providers/test.ts`**: la compra de prueba (`priceUsd: 0`). Encendida si `CREDITS_TEST_PURCHASES` es
-  `'true'`; apagada si es `'false'`; sin variable, solo en el emulador o fuera de `get-wee`. Es la única variable de
+- **`payments/providers/test.ts`**: la compra de prueba (`priceUsd: 0`). **Fail-closed** desde Gran Motor S2 (F-05):
+  solo con `CREDITS_TEST_PURCHASES` exactamente `'true'`, en el emulador de Functions, con Firestore emulado y en un
+  proyecto de prueba (`demo-*` o `wee-dev-geovet`, nunca `get-wee`); faltar o dudar de cualquiera = cerrado. Es la única variable de
   pagos que lee el código; las de Apple, Google Play y Stripe solo aparecen en comentarios y documentos.
 - **Callables** (en `credits/index.ts`, exportadas y desplegadas): `validatePurchase` (por defecto, el proveedor
   `test`) y `restorePurchase`. Los paquetes, en `credits/creditCosts.ts` (ids `zone.wee.credits.*`).

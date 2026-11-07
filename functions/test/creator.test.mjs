@@ -170,12 +170,13 @@ console.log('\n── Weë Video Engine: petición abstracta → Seedance ──
 const { normalizeVideoRequest, chooseSeedanceModel, videoRequestFromStep, VIDEO_PROVIDERS } = lib('engine/video.js');
 const { SEEDANCE_MODEL_IDS } = lib('engine/providers/seedance.js');
 check('solo la familia Seedance puede atender video', VIDEO_PROVIDERS.join() === 'seedance');
-check('por defecto Seedance 2.0; más de 15 s → 2.5; calidad máxima → 2.5; 4K → 2.0; borrador → 2.0 fast; preferencia explícita manda',
+/* Corrección P0 Seedance (2026-10-07): el texto ya no elige el modelo; antes «un borrador rápido» llevaba a 2.0 fast. */
+check('por defecto Seedance 2.0; más de 15 s → 2.5; calidad máxima → 2.5; 4K → 2.0; las palabras del prompt NO eligen modelo; preferencia explícita manda',
   chooseSeedanceModel({ prompt: 'un anuncio' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_0 &&
   chooseSeedanceModel({ prompt: 'x', durationSec: 20 }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_5 &&
   chooseSeedanceModel({ prompt: 'x', quality: 'max' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_5 &&
   chooseSeedanceModel({ prompt: 'x', resolution: '4k' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_0 &&
-  chooseSeedanceModel({ prompt: 'un borrador rápido' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_0_FAST &&
+  chooseSeedanceModel({ prompt: 'un borrador rápido' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_0 &&
   chooseSeedanceModel({ prompt: 'x', model: 'SEEDANCE_2_0_MINI' }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_0_MINI &&
   chooseSeedanceModel({ prompt: 'x' }, { defaultPolicy: 'balanced', video: { defaultModel: 'SEEDANCE_2_5' } }) === SEEDANCE_MODEL_IDS.SEEDANCE_2_5);
 const t2v = normalizeVideoRequest({ prompt: 'Lima de noche', durationSec: 10, aspectRatio: '9:16' });
@@ -206,7 +207,7 @@ const fakeVideo = (id, fail = false) => ({ id, name: id, modalities: ['video'], 
 const mockVideo = { id: 'mock', name: 'demo', modalities: ['video'], models: [{ id: 'demo', provider: 'mock', capabilities: ['video.generate'], quality: 1, speed: 5, cost: { unit: 'call', usd: 0 } }], isConfigured: () => true, supports: () => true, calls: 0, async run() { this.calls++; return { output: { kind: 'video', url: 'demo' }, costUSD: 0, latencyMs: 1 }; } };
 const otherVideo = fakeVideo('otro');
 const seedanceFake = fakeVideo('seedance', true);
-const cfg = { providers: { seedance: { enabled: true, priority: 1 }, otro: { enabled: true, priority: 2 }, mock: { enabled: true, priority: 99 } }, routing: { 'video.generate': { capability: 'video.generate', chain: [{ provider: 'seedance' }, { provider: 'otro' }], policy: 'balanced' } }, settings: { ...DEFAULT_SETTINGS, pricingMode: 'simulated' }, source: 'test' };
+const cfg = { providers: { seedance: { enabled: true, priority: 1 }, otro: { enabled: true, priority: 2 }, mock: { enabled: true, priority: 99 } }, routing: { 'video.generate': { capability: 'video.generate', chain: [{ provider: 'seedance' }, { provider: 'otro' }], policy: 'balanced' } }, settings: { ...DEFAULT_SETTINGS, pricingMode: 'simulated', videoHabilitado: true }, source: 'test' };
 const router = createRouter({ adapters: { seedance: seedanceFake, otro: otherVideo, mock: mockVideo }, loadConfig: async () => cfg, ledger: memoryLedger(), health: memoryHealth() });
 const decision = await router.route({ capability: 'video.generate', input: { prompt: 'x' }, userId: 'u1', prefs: { allowedProviders: ['seedance'] } });
 check('con la familia permitida, el otro proveedor de video queda fuera con motivo', decision.candidates.every((c) => c.provider === 'seedance') && decision.skipped.some((s) => s.provider === 'otro' && /familia/.test(s.reason)), JSON.stringify(decision.skipped));

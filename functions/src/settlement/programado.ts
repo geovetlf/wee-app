@@ -2,6 +2,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { CADA_CUANTO_POR_DEFECTO_MIN, InformeDeBarrido, InformeDelReconciliador, barridoDeLiquidacionDeWee, mantenimientoDeWee } from '../runtime';
 import { RECONCILIATION_SECRETS } from '../secrets';
+import { barrerTrabajosLegacy } from '../creator/barrido';
 
 /**
  * WEË — QUIÉN LE PIDE AL BARRENDERO QUE PASE.
@@ -123,5 +124,11 @@ export const barridoDeLiquidacion = onSchedule(
       anotarPregunta: anotarReconciliacion,
     });
     await pasada();
+    /*
+     * Y LOS TRABAJOS LEGACY DE WEË AI (Línea B · X4/F-02): reservas retenidas por un `creatorRun` que murió, una
+     * liquidación que falló o un trabajo que nunca arrancó. Después de la del Core y aparte: si esta falla, la del
+     * Core ya terminó, y la siguiente pasada vuelve a intentarlo (todo es idempotente).
+     */
+    await barrerTrabajosLegacy().catch((e) => console.error('WEË AI · barrido legacy: la pasada no se pudo completar', e instanceof Error ? e.name : 'error'));
   },
 );

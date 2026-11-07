@@ -23,6 +23,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}} yanıt',
   brainRespuestas_other: 'Weë Brain · {{contador}} yanıt',
   brainNoPudo: 'Weë Brain · yanıt veremedi',
+  brainMuestra: 'Weë Brain · örnek yanıt, ücret alınmadı',
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · önceki denemenin süresi doldu',
   studioNoSePudo: 'Weë Studio · video oluşturulamadı',

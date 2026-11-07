@@ -10,6 +10,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Det mangler noe i forespørselen din. Se over og prøv igjen.',
   unauthorized: 'Logg inn for å lage noe med Weë.',
+  accountRequired: 'Logg inn eller opprett kontoen din for å lage innhold med Weë AI.',
   providerError: 'KI-en klarte ikke å fullføre kreasjonen din denne gangen. Det har ikke kostet deg noe: prøv igjen om litt.',
   generationFailed: 'Jeg klarte ikke å fullføre kreasjonen din. Det har ikke kostet deg noe: prøv igjen.',
   timeout: 'Det tok for lang tid, så jeg stoppet det. Det har ikke kostet deg noe: prøv igjen.',
@@ -44,8 +45,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Akkurat nå er ingen KI tilgjengelig for dette. Prøv igjen senere.',
   noDisponibleActualmente: 'Denne funksjonen er ikke tilgjengelig for øyeblikket.',
   noDisponibleAhora: 'Denne funksjonen er ikke tilgjengelig akkurat nå. Prøv igjen om en stund.',
-  noDisponibleRegion: 'Denne funksjonen er for øyeblikket ikke tilgjengelig i din region.',
-  noDisponiblePais: 'For å bruke denne funksjonen må du oppgi landet ditt i Ekte profil.',
   noDisponibleOpciones: 'Denne funksjonen er ikke tilgjengelig med valgene du har gjort. Prøv andre valg.',
   describeVideo: 'Fortell meg hvilken video du vil lage.',
   creacionTerminada: 'Den kreasjonen er allerede ferdig og lages ikke på nytt. Du finner den blant kreasjonene dine.',

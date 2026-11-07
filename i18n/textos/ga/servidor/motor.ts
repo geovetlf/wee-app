@@ -10,6 +10,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Tá rud éigin in easnamh ar d\'iarratas. Seiceáil é agus bain triail eile as.',
   unauthorized: 'Logáil isteach chun cruthú le Weë.',
+  accountRequired: 'Chun ábhar a chruthú le Weë AI, logáil isteach nó cruthaigh do chuntas.',
   providerError: 'Níorbh fhéidir leis an IS do chruthú a chríochnú an uair seo. Níor ghearr mé tada ort: bain triail eile as i gceann tamaill.',
   generationFailed: 'Níor éirigh liom do chruthú a chríochnú. Níor ghearr mé tada ort: bain triail eile as.',
   timeout: 'Thóg sé rófhada agus stop mé é. Níor ghearr mé tada ort: bain triail eile as.',
@@ -44,8 +45,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Níl IS ar fáil dó seo faoi láthair. Bain triail eile as ar ball.',
   noDisponibleActualmente: 'Níl an ghné seo ar fáil faoi láthair.',
   noDisponibleAhora: 'Níl an ghné seo ar fáil an nóiméad seo. Bain triail eile as i gceann tamaill.',
-  noDisponibleRegion: 'Níl an ghné seo ar fáil i do réigiún faoi láthair.',
-  noDisponiblePais: 'Chun an ghné seo a úsáid, cuir do thír isteach i d\'Fhíorphróifíl.',
   noDisponibleOpciones: 'Níl an ghné seo ar fáil leis na roghanna a rinne tú. Bain triail as roghanna eile.',
   describeVideo: 'Inis dom cén físeán ba mhaith leat a chruthú.',
   creacionTerminada: 'Tá an cruthú sin críochnaithe agus ní dhéanfar arís é. Lorg i measc do chruthuithe é.',

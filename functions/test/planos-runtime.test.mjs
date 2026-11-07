@@ -89,6 +89,15 @@ const fakeDb = () => {
     volcado: (c) => [...dameCol(c).entries()].map(([id, d]) => ({ id, ...d })),
     sembrar: (c, id, d) => dameCol(c).set(id, JSON.parse(JSON.stringify(d))),
     collection(c) { return { doc: (id) => hazRef(c, id), ...consulta(c) }; },
+    /* Gran Motor G-1: `actualizarPlano` y `actualizarEscena` leen y escriben en una transacción, como Firestore: las escrituras se aplican al final, en fila. */
+    runTransaction(fn) {
+      const escrituras = [];
+      const tx = { get: (ref) => ref.get(), set: (ref, d) => { escrituras.push([ref, d]); return tx; } };
+      const correr = async () => { const r = await fn(tx); for (const [ref, d] of escrituras) await ref.set(d); return r; };
+      const p = (this.cola ?? Promise.resolve()).then(correr, correr);
+      this.cola = p.catch(() => {});
+      return p;
+    },
   };
 };
 

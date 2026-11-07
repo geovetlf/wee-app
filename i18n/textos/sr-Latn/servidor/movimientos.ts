@@ -29,6 +29,7 @@ export const movimientos: ConPlurales<typeof import('../../es/servidor/movimient
   brainRespuestas_few: 'Weë Brain · {{contador}} odgovora',
   brainRespuestas_other: 'Weë Brain · {{contador}} odgovora',
   brainNoPudo: 'Weë Brain · odgovor nije bio moguć',
+  brainMuestra: 'Weë Brain · primer odgovora, bez naplate',
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · prethodnom pokušaju je isteklo vreme',
   studioNoSePudo: 'Weë Studio · video nije mogao da se generiše',

@@ -106,6 +106,11 @@ const demoText = (kind: string, purpose: string, brief: string, ctx: GatewayCont
         'Escena 3 (8–12 s): la persona lo disfruta; sonrisa.',
         'Escena 4 (12–15 s): logo + "Ven a probarlo".',
         '',
+        /* El guion real trae su «NARRACIÓN:» (contrato de prompts.ts, que lee narrationFrom); la muestra la lleva también
+         * para que el modo demo recorra guion→vídeo→voz como lo haría un modelo que cumple. La guarda de la voz
+         * (vozSinNarracion) sigue parando cualquier guion que NO la traiga. */
+        'NARRACIÓN: Hoy toca algo especial. Hecho a mano, para disfrutarlo. Ven a probarlo.',
+        '',
         `Estilo: ${brief || 'cercano y con ritmo'}.`,
         '',
         DEMO_NOTE,

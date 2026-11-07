@@ -32,6 +32,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'May kulang sa request mo. Tingnan ito at subukan ulit.',
   unauthorized: 'Mag-sign in para makagawa gamit ang Weë.',
+  accountRequired: 'Para gumawa ng content gamit ang Weë AI, mag-sign in o gumawa ng account.',
   providerError: 'Hindi natapos ng AI ang likha mo sa pagkakataong ito. Hindi kita siningil. Subukan ulit maya-maya.',
   generationFailed: 'Hindi ko natapos ang likha mo. Hindi kita siningil. Subukan ulit.',
   timeout: 'Masyadong natagalan, kaya inihinto ko ito. Hindi kita siningil. Subukan ulit.',
@@ -66,8 +67,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Walang available na AI para dito ngayon. Subukan ulit mamaya.',
   noDisponibleActualmente: 'Hindi available sa ngayon ang feature na ito.',
   noDisponibleAhora: 'Hindi available ngayon ang feature na ito. Subukan ulit mamaya.',
-  noDisponibleRegion: 'Hindi available sa rehiyon mo ang feature na ito sa ngayon.',
-  noDisponiblePais: 'Para magamit ang feature na ito, ilagay ang bansa mo sa Tunay na profile mo.',
   noDisponibleOpciones: 'Hindi available ang feature na ito sa mga opsyong pinili mo. Subukan ang iba.',
   describeVideo: 'Sabihin mo sa akin kung anong video ang gusto mong gawin.',
   creacionTerminada: 'Tapos na ang likhang iyan at hindi na ito uulitin. Hanapin ito sa “Mga likha ko”.',

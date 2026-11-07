@@ -43,6 +43,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}} sagot',
   brainRespuestas_other: 'Weë Brain · {{contador}} na sagot',
   brainNoPudo: 'Weë Brain · hindi nakasagot',
+  brainMuestra: 'Weë Brain · sample na sagot, walang singil',
   studioVideo: 'Weë Studio · paggawa ng video',
   studioSinTiempo: 'Weë Studio · naubusan ng oras ang naunang pagsubok',
   studioNoSePudo: 'Weë Studio · hindi na-generate ang video',

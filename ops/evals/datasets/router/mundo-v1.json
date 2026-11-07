@@ -16,21 +16,21 @@
     {
       "evalCaseId": "mundo-sin-jurisdiccion-falla-cerrado",
       "name": "Sin jurisdicción conocida, un modelo territorial falla cerrado",
-      "description": "El mismo a1 sin jurisdicción de la operación: no se elige, y la persona lee «falta tu país».",
+      "description": "El mismo a1 sin jurisdicción de la operación: no se elige, y la persona lee el genérico «no está disponible» (nunca «falta tu país»).",
       "capability": "world.generate",
       "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "capabilities": ["world.generate"], "quality": 4, "speed": 2, "usd": 0.3, "territorio": { "bloqueadas": ["EU"], "aprobadas": ["US"], "resto": "REVIEW_REQUIRED", "fuente": "eval" } } ] } ], "routing": { "chain": ["a"], "policy": "balanced" } },
       "request": {},
-      "expected": { "status": "unavailable", "motivoPublico": "falta_tu_pais" },
+      "expected": { "status": "unavailable", "motivoPublico": "no_disponible" },
       "tags": ["mundo3d", "jurisdiccion", "fail-closed"]
     },
     {
       "evalCaseId": "mundo-bloqueado-en-su-region",
       "name": "Bloqueado donde opera la cuenta, aprobado en otra jurisdicción",
-      "description": "La operación es de ES (miembro del grupo EU, bloqueado): no se elige, y la persona lee «no está disponible en tu región».",
+      "description": "La operación es de ES (miembro del grupo EU, bloqueado): no se elige, y la persona lee el genérico «no está disponible» (nunca «en tu región»).",
       "capability": "world.generate",
       "world": { "providers": [ { "id": "a", "priority": 10, "models": [ { "id": "a1", "capabilities": ["world.generate"], "quality": 4, "speed": 2, "usd": 0.3, "territorio": { "bloqueadas": ["EU"], "aprobadas": ["US"], "resto": "REVIEW_REQUIRED", "fuente": "eval" } } ] } ], "routing": { "chain": ["a"], "policy": "balanced" } },
       "request": { "jurisdicciones": ["ES"] },
-      "expected": { "status": "unavailable", "motivoPublico": "en_tu_region" },
+      "expected": { "status": "unavailable", "motivoPublico": "no_disponible" },
       "tags": ["mundo3d", "jurisdiccion", "bloqueo"]
     },
     {

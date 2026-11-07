@@ -9,6 +9,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: '你的要求缺少一些內容。請檢查後再試一次。',
   unauthorized: '登入後就能用 Weë 創作。',
+  accountRequired: '登入或建立帳號之後，就能用 Weë AI 創作內容。',
   providerError: 'AI 這次沒能完成你的創作。沒有扣除 Credits：請稍後再試。',
   generationFailed: '我沒能完成你的創作。沒有扣除 Credits：請再試一次。',
   timeout: '花太久了，我把它停下來。沒有扣除 Credits：請再試一次。',
@@ -43,8 +44,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: '現在沒有可用的 AI 來處理這件事。請稍後再試。',
   noDisponibleActualmente: '這項功能目前無法使用。',
   noDisponibleAhora: '這項功能現在無法使用。請過一會兒再試。',
-  noDisponibleRegion: '這項功能目前在你所在的地區無法使用。',
-  noDisponiblePais: '要使用這項功能，請在你的真實檔案中填寫所在國家。',
   noDisponibleOpciones: '這項功能不支援你選擇的選項。請試試其他選項。',
   describeVideo: '告訴我你想創作什麼影片。',
   creacionTerminada: '這項創作已經完成，不會重新製作。請到你的作品中尋找。',

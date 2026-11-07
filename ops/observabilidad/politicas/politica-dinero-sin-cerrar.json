@@ -1,0 +1,22 @@
+{
+  "displayName": "Weë · dinero sin cerrar",
+  "documentation": {
+    "content": "Un reembolso o una liquidación de Credits falló. Busca el trabajo (creatorJobs con `liquidacionPendiente`) o la operación (creditTransactions) y ciérrala: el Credit Engine es idempotente, repetir el ajuste no cobra ni devuelve dos veces. docs/OBSERVABILITY.md",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "Reembolso o liquidación fallida",
+      "conditionMatchedLog": {
+        "filter": "resource.type=\"cloud_run_revision\" AND severity>=ERROR AND ((textPayload:\"no se pudo reembolsar\" OR jsonPayload.message:\"no se pudo reembolsar\") OR (textPayload:\"no se pudo ajustar el trabajo\" OR jsonPayload.message:\"no se pudo ajustar el trabajo\") OR (textPayload:\"tampoco se pudo anotar la liquidación pendiente\" OR jsonPayload.message:\"tampoco se pudo anotar la liquidación pendiente\"))"
+      }
+    }
+  ],
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "1800s"
+    },
+    "autoClose": "604800s"
+  }
+}

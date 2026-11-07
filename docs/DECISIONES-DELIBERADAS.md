@@ -155,6 +155,14 @@ Revisado el 2026-10-01 sobre `i18n/da-dk` (`d306a58` + cambios sin commit).
 - **Evidencia:** `firestore.rules` (comentarios «LO DE LA CUENTA NO VA EN EL PERFIL PÚBLICO» y «⚠ DEUDA CONOCIDA: ESTE DOCUMENTO MEZCLA LA CUENTA Y EL PERFIL»); `scripts/limpiar-cuenta-en-users.mjs` (limpieza de los documentos antiguos, con autorización aparte).
 - **Sería defecto si:** un campo de la cuenta vuelve a poder escribirse en `users/{id}`; o llegan las publicaciones privadas (`isPrivate: true`, ya obligatorio de declarar) y la lectura de `posts` sigue abierta.
 - **Estado:** DECIDIDA (lectura pública) + DEUDA DECLARADA (`linkedAccountId`, `creditsBalance` y los campos antiguos aún comparten documento; se arregla separando, no con una regla).
+- **Actualización (seguridad de `users`, 2026-10-07, integración `integracion/p0-edad-fase1`, sin desplegar):** la deuda se arregla separando, como decía esta entrada. Lo que cambia y lo que no:
+  - **Por fases (correcciones 1–5):** en este commit `firestore.rules` es la FASE 1 y la lectura de `users` sigue como en producción; el cierre es la FASE 2 (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo). Lo que sigue describe la fase 2.
+  - `users/{userId}` deja de ser público: **solo lo leen su dueño (la cuenta de cualquiera de sus dos caras, campo `uid`) y el servidor**. Ahí siguen el saldo, el país, el idioma, `linkedAccountId` y lo heredado.
+  - Lo que ven los demás —con sesión o sin ella— es `publicProfiles/{id}`: copia con **lista blanca** de campos (`proyectarPerfilPublico`), **escrita solo por el servidor** (disparador `espejoDelPerfilPublico`, `functions/src/identity/perfilPublico.ts`; `allow write: if false`), `get` público y `list` **limitado** (≤30 sin sesión, ≤100 con sesión).
+  - `posts` sigue con lectura pública (la decisión original de esta entrada para publicaciones no cambia).
+  - **Deuda de transición explícita:** `services/firestoreService.ts` (`perfilesPublicos`) cae a `users` si la copia aún no está rellena (con las reglas nuevas esa caída se queda en «no hay» para lo ajeno); las **apps nativas antiguas** siguen leyendo perfiles ajenos de `users` y dejarán de verlos hasta actualizarse; el relleno (`scripts/rellenar-perfiles-publicos.mjs`) está preparado y NO ejecutado; el **cierre definitivo de `users`** (retirar la caída y lo heredado) queda PENDIENTE.
+  - **Sería defecto si:** un campo fuera de la lista blanca aparece en `publicProfiles`, un cliente puede escribir en `publicProfiles`, o `users` vuelve a leerse sin ser su dueño.
+  - **Estado tras la actualización:** DECIDIDA (`users` privado + `publicProfiles` pública) + DEUDA DE TRANSICIÓN DECLARADA. La historia anterior de esta entrada se conserva tal cual.
 
 ### DD-16 · Contadores que mueve el cliente, acotados
 

@@ -30,6 +30,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
 const leer = (p) => fs.readFileSync(path.resolve(here, '../../' + p), 'utf8');
@@ -380,7 +382,7 @@ console.log('\n── D · Las puertas de verdad rechazan una dirección ajena a
 // ════════════════════════════════════════════════════════════════════════════
 {
   const AJENA = enStorage('users/uAna/no-existe.png', { host: 'https://evil.example' });
-  const intento = (callable, data, uid = 'uAna') => callable.run({ auth: { uid }, data }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
+  const intento = (callable, data, uid = 'uAna') => callable.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
   const rechazo = (r, frase) => !r.ok && r.e && r.e.message === frase && (r.e.code === 'invalid-argument' || r.e instanceof EngineError);
 
   const { brainChat, brainQuote } = lib('creator/brain.js');

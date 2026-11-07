@@ -145,6 +145,8 @@ export { boost, boostSweep } from './boost';
  * hace nacer. Numerar lo que ya existe es la migración, y tiene su propia fase.
  */
 export { nacimientoDeCuenta } from './identity/nacimiento';
+// Seguridad de `users` (2026-10-07): la copia pública con lista blanca. NO desplegada: ver ops/despliegue/grupos.json.
+export { espejoDelPerfilPublico } from './identity/perfilPublico';
 
 /*
  * MODERATION (Fase 12-A/B): denunciar de verdad. `reports` está cerrada a los
@@ -301,7 +303,8 @@ export const sendPushNotification = onDocumentCreated(
       const result = await sendExpoPush(pushToken, aviso.title, aviso.body, data);
 
       if (result?.data?.status === 'error') {
-        console.error('Error en push:', result.data.message);
+        /* Gran Motor S2: sin `message`; en DeviceNotRegistered Expo mete ahí el token del aparato. */
+        console.error('Error en push:', resumenDeRespuestaDeExpo(result));
 
         if (result.data.details?.error === 'DeviceNotRegistered') {
           await db.collection('pushTokens').doc(cuenta).delete();

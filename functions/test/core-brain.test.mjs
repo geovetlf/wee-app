@@ -30,6 +30,8 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
 const leer = (p) => fs.readFileSync(path.resolve(RAIZ, p), 'utf8');
@@ -509,7 +511,11 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
     set: async (d) => { docs.set(p, { ...(docs.get(p) || {}), ...d }); },
     update: async (d) => { docs.set(p, { ...(docs.get(p) || {}), ...d }); },
   });
-  const baseFalsa = { collection: (c) => ({ doc: (id) => ref(`${c}/${id || 'chat-nuevo'}`), orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) }) };
+  const baseFalsa = {
+    collection: (c) => ({ doc: (id) => ref(`${c}/${id || 'chat-nuevo'}`), orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) }),
+    /* A-02: el mensaje se reclama en una transacción. Aquí basta con una secuencial: esta sección no prueba concurrencia. */
+    runTransaction: async (fn) => fn({ get: (r) => r.get(), set: (r, d, o) => { docs.set(r.path, o?.merge ? { ...(docs.get(r.path) || {}), ...d } : { ...d }); } }),
+  };
   const getFirestoreReal = firestore.getFirestore;
   firestore.getFirestore = () => baseFalsa;
 
@@ -544,7 +550,7 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
 
   /* Un uid con la forma que da Firebase Auth: 28 caracteres. */
   const UID = 'AbCdEfGhIjKlMnOpQrStUvWxYz01';
-  const ctx = (data) => ({ auth: { uid: UID }, data });
+  const ctx = (data) => ({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: UID }, data });
   const correr = (data) => brainCallable.brainChat.run(ctx(data));
 
   /* 1) Camino feliz: Brain contesta, y lo que la app recibe es lo de siempre. */
@@ -559,7 +565,8 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
     && typeof ok.chatId === 'string' && ok.messageId.endsWith('_wee') && 'credits' in ok && 'bloque' in ok, JSON.stringify(ok));
   check('89) el mensaje entero de la persona YA NO viaja al libro como `goal`', !('goal' in inputVisto), Object.keys(inputVisto).join(','));
   check('90) pero sí todo lo que el libro necesita para cuadrar el dinero',
-    inputVisto.requestId === 'brain_m_aaa1' && inputVisto.service === 'ai_brain' && inputVisto.creditsEstimated === 0 && !!inputVisto.creditTransactionId);
+    inputVisto.requestId === lib('creator/brainUsage.js').operacionDeBrain({ userId: UID, chatId: 'chat-nuevo', messageId: 'm_aaa1', service: 'ai_brain' }).requestId
+    && /^brain_[a-f0-9]{40}$/.test(inputVisto.requestId) && inputVisto.service === 'ai_brain' && inputVisto.creditsEstimated === 0 && !!inputVisto.creditTransactionId);
   check('91) y el modelo que responde es el que se cotizó, pedido por su nombre',
     !!inputVisto.prefs?.modelId && inputVisto.prefs.allowedProviders.length === 1);
   /*
@@ -610,7 +617,7 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
   engineMod.engine.generate = async () => { throw new Error('no debería llamarse'); };
   let deForma = null;
   try {
-    await brainCallable.brainChat.run({ auth: { uid: 'u-1' }, data: { message: 'hola', messageId: 'm_ccc1' } });
+    await brainCallable.brainChat.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: 'u-1' }, data: { message: 'hola', messageId: 'm_ccc1' } });
   } catch (e) { deForma = e; }
   check('97b) una petición que no pasa la frontera de Brain dice ESO, no «no pude terminar»',
     deForma?.details?.code === 'INVALID_REQUEST' && deForma.code === 'invalid-argument', `${deForma?.code} / ${deForma?.details?.code}`);

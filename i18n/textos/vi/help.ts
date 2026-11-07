@@ -34,6 +34,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'Đó là tính năng trò chuyện của Weë: các cuộc trò chuyện riêng tư với những người khác trong cộng đồng, bằng văn bản, ảnh và tin nhắn thoại.',
   q9: '“Cách tôi đã làm” là gì?',
   a9: 'Khi đăng bài, bạn có thể kể mình đã dùng những công cụ nào, prompt và quy trình. Nhờ vậy người khác học hỏi từ bạn, và bạn cũng học hỏi từ họ, chỉ với một lần chạm vào “Sao chép prompt”.',
+  q10: 'Cần bao nhiêu tuổi để dùng Weë?',
+  a10: 'Weë chỉ dành cho người từ {{edad}} tuổi trở lên. Ngày sinh của bạn được hỏi khi đăng ký và sau khi lưu thì không thể thay đổi.',
   heroTitle: 'Chúng tôi có thể giúp gì cho bạn?',
   legalVisibility: 'Những gì bạn đăng sẽ hiển thị với cộng đồng; những gì bạn tạo trong Weë AI là riêng tư cho đến khi bạn quyết định đăng. Bạn có thể xóa bài viết và dự án của mình bất cứ lúc nào.',
   askPrefill: 'Một câu hỏi cho Weë: ',

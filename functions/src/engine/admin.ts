@@ -56,6 +56,9 @@ export const validateSettings = (data: Record<string, unknown>): void => {
   if (data.iaDetenida !== undefined && typeof data.iaDetenida !== 'boolean') {
     throw new HttpsError('invalid-argument', 'iaDetenida solo admite true (detener la IA) o false');
   }
+  if (data.videoHabilitado !== undefined && typeof data.videoHabilitado !== 'boolean') {
+    throw new HttpsError('invalid-argument', 'videoHabilitado solo admite true (encender el vídeo) o false');
+  }
   if (data.maxUsdPerDay !== undefined && (typeof data.maxUsdPerDay !== 'number' || !Number.isFinite(data.maxUsdPerDay) || data.maxUsdPerDay < 0)) {
     throw new HttpsError('invalid-argument', 'maxUsdPerDay es un número de dólares ≥ 0 (0 = sin tope)');
   }
@@ -126,7 +129,7 @@ export const engineAdmin = onCall({ region: 'us-central1', timeoutSeconds: 60, s
 
     case 'setSettings': {
       validateSettings(data);
-      const allowed = ['pricingMode', 'creditsPerUsd', 'margin', 'defaultPolicy', 'allowMockFallback', 'timeoutsMs', 'circuitBreaker', 'iaDetenida', 'maxUsdPerDay'];
+      const allowed = ['pricingMode', 'creditsPerUsd', 'margin', 'defaultPolicy', 'allowMockFallback', 'timeoutsMs', 'circuitBreaker', 'iaDetenida', 'videoHabilitado', 'maxUsdPerDay'];
       /* Quién cambió los ajustes queda escrito: el interruptor de la IA, sobre todo, tiene que tener dueño. */
       const patch: Record<string, unknown> = { updatedAt: Timestamp.now(), updatedBy: request.auth?.uid ?? null };
       for (const key of allowed) if (data[key] !== undefined) patch[key] = data[key];

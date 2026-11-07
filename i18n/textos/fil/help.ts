@@ -59,6 +59,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'Ito ang chat ng Weë: mga pribadong usapan kasama ang ibang tao sa komunidad, gamit ang text, larawan at voice message.',
   q9: 'Ano ang “Paano ko ginawa”?',
   a9: 'Kapag nag-post ka, puwede mong ikuwento kung anong mga tool ang ginamit mo, ang prompt at ang proseso. Sa ganitong paraan, natututo sa iyo ang ibang tao, at ikaw rin sa kanila, sa isang tap lang sa “Kopyahin ang prompt”.',
+  q10: 'Ilang taon ka dapat para magamit ang Weë?',
+  a10: 'Para lang sa mga {{edad}} taong gulang pataas ang Weë. Hinihingi ang kaarawan mo kapag nag-sign up ka, at kapag na-save na, hindi na ito mababago.',
   heroTitle: 'Paano ka namin matutulungan?',
   legalVisibility: 'Nakikita ng komunidad ang mga pino-post mo; pribado ang mga ginagawa mo sa Weë AI hanggang magpasya kang i-post ang mga ito. Puwede mong i-delete ang mga post at proyekto mo kahit kailan mo gusto.',
   askPrefill: 'Isang tanong para sa Weë: ',

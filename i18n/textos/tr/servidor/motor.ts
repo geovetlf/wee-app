@@ -10,6 +10,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'İsteğinde eksik bir şey var. Kontrol edip yeniden dene.',
   unauthorized: 'Weë ile oluşturmak için giriş yap.',
+  accountRequired: 'Weë AI ile içerik oluşturmak için giriş yap ya da hesabını oluştur.',
   providerError: 'Yapay zekâ bu kez içeriğini tamamlayamadı. Ücret alınmadı: birazdan yeniden dene.',
   generationFailed: 'İçeriğini tamamlayamadım. Ücret alınmadı: yeniden dene.',
   timeout: 'Çok uzun sürdü ve durdurdum. Ücret alınmadı: yeniden dene.',
@@ -44,8 +45,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Şu anda bunun için kullanılabilecek bir yapay zekâ yok. Daha sonra yeniden dene.',
   noDisponibleActualmente: 'Bu özellik şu anda kullanılamıyor.',
   noDisponibleAhora: 'Bu özellik şu anda kullanılamıyor. Biraz sonra yeniden dene.',
-  noDisponibleRegion: 'Bu özellik şu anda bölgende kullanılamıyor.',
-  noDisponiblePais: 'Bu özelliği kullanmak için Gerçek profilinde ülkeni belirt.',
   noDisponibleOpciones: 'Bu özellik seçtiğin seçeneklerle kullanılamıyor. Başka seçenekler dene.',
   describeVideo: 'Nasıl bir video oluşturmak istediğini anlat.',
   creacionTerminada: 'Bu içerik zaten tamamlandı ve yeniden yapılmaz. Oluşturduklarım bölümünde bulabilirsin.',

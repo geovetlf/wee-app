@@ -7,6 +7,38 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // EDAD MÍNIMA DE WEË: 18 AÑOS. El mismo número y la misma cuenta que
+    // `functions/src/identity/edad.ts` (servidor) y `utils/edadMinima.ts` (app);
+    // `functions/test/edad-minima.test.mjs` exige que los tres coincidan.
+    //
+    // Fechas de CALENDARIO, no milisegundos: entra quien cumple 18 hoy. Y «hoy»
+    // es la fecha civil en UTC−12, la última zona del planeta en cambiar de día:
+    // así nadie entra antes de que sea su cumpleaños en su propia zona.
+    // `birthDate` es `AAAA-MM-DD`; cualquier otra cosa, una fecha que no existe
+    // (31 de abril, 29 de febrero de un año no bisiesto) o una futura → no.
+    function edadMinimaDeWee() {
+      return 18;
+    }
+    function esBisiesto(a) {
+      return (a % 4 == 0 && a % 100 != 0) || a % 400 == 0;
+    }
+    function diasDelMes(a, m) {
+      return m == 2 ? (esBisiesto(a) ? 29 : 28) : (m in [4, 6, 9, 11] ? 30 : 31);
+    }
+    function cumpleEdadMinimaEn(a, m, d, hoy) {
+      return a + edadMinimaDeWee() < hoy.year() ||
+        (a + edadMinimaDeWee() == hoy.year() &&
+          (m < hoy.month() || (m == hoy.month() && d <= hoy.day())));
+    }
+    function fechaDeNacimientoAdulta(f) {
+      return f is string && f.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        fechaRealYAdulta(int(f.split('-')[0]), int(f.split('-')[1]), int(f.split('-')[2]));
+    }
+    function fechaRealYAdulta(a, m, d) {
+      return a >= 1900 && m >= 1 && m <= 12 && d >= 1 && d <= diasDelMes(a, m) &&
+        cumpleEdadMinimaEn(a, m, d, request.time - duration.value(12, 'h'));
+    }
+
     // ADMINISTRACIÓN: una sesión con el claim `admin`. El claim lo pone el
     // servidor con el SDK de administración; ningún cliente puede ponérselo.
     // Es lo que distingue lo que Weë AFIRMA (oficial, verificado, destacado)
@@ -43,9 +75,11 @@ service cloud.firestore {
       return [request.auth.uid, identidadWeeHeredadaDe(request.auth.uid)];
     }
 
-    // Credit Engine (docs/CREDITS.md): el saldo vive en el perfil y SOLO lo
-    // escribe el servidor (Cloud Functions). Ninguna escritura del cliente
-    // puede crear, cambiar ni borrar estos campos.
+    // Credit Engine (docs/CREDITS.md): el saldo SOLO lo escribe el servidor
+    // (Cloud Functions). F-06: su sitio es `creditAccounts/{uid}` (abajo), que
+    // solo lee su dueño; mientras dure la transición el perfil lleva una copia
+    // (el espejo de las apps viejas). Ninguna escritura del cliente puede crear,
+    // cambiar ni borrar estos campos en el perfil.
     function creditFields() {
       return ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent', 'creditsInitializedAt'];
     }
@@ -189,9 +223,32 @@ service cloud.firestore {
         resource.data.userId == ("hidi_" + request.auth.uid);
     }
 
+    // === PERFILES PÚBLICOS (seguridad de `users`, 2026-10-07) ===
+    //
+    // La cara pública de cada documento de `users`, copiada por el servidor
+    // (`functions/src/identity/perfilPublico.ts`) con LISTA BLANCA: nombre visible,
+    // foto, bio, contadores, referencia pública. Nunca saldo, país, idioma,
+    // `linkedAccountId`, email, nombre real, fecha de nacimiento ni avatar IA.
+    // La lee cualquiera —el muro pinta autores sin sesión—, pero el listado va
+    // con techo: sin sesión, consultas de hasta 30 (resolver autores por tandas);
+    // con sesión, hasta 100 (el buscador). Nadie la escribe salvo el servidor.
+    function esCaraDeLaCuenta(datos) {
+      return datos.get('uid', '') == request.auth.uid ||
+        datos.get('uid', '') == ('hidi_' + request.auth.uid);
+    }
+    match /publicProfiles/{perfilId} {
+      allow get: if true;
+      allow list: if request.query.limit != null &&
+        (request.query.limit <= 30 || (isAuthenticated() && request.query.limit <= 100));
+      allow write: if false;
+    }
+
     // === USUARIOS ===
     //
     // ⚠ DEUDA CONOCIDA: ESTE DOCUMENTO MEZCLA LA CUENTA Y EL PERFIL.
+    // (2026-10-07: la copia pública ya existe —ver PERFILES PÚBLICOS, arriba—; el
+    // cierre de la lectura es la FASE 2, retenida hasta espejo + relleno + cliente;
+    // los campos de cuenta siguen aquí hasta la limpieza, que va con autorización.)
     //
     // `allow read: if true` es correcto para un perfil público —nombre, foto,
     // bio— y es lo que el muro necesita para pintar a quien publicó, incluso
@@ -204,6 +261,20 @@ service cloud.firestore {
     // cuenta real, así que leerlo deshace la separación de identidades que es
     // la razón de ser del Perfil Weë.
     //
+    // F-06 (2026-10-14): el SALDO ya tiene su sitio privado, `creditAccounts/{uid}`
+    // (abajo). Hasta el contrato (P6 del runbook docs/F06-RUNBOOK.md) el perfil
+    // sigue llevando una copia para las apps viejas; tras P6 deja de llevarla.
+    //
+    // RIESGO RESIDUAL ACEPTADO Y DOCUMENTADO (F-06, D3): mover `linkedAccountId`
+    // NO cerraría la fuga de identidad. El uid guardado del Perfil Weë ES
+    // `hidi_<uid de la cuenta>` y es público en `users.uid`, `posts.userId`,
+    // conversaciones y avisos (`ownsPost` de arriba lo compara así), de modo que
+    // de un post del Perfil Weë se llega al Perfil Real en dos lecturas, con o sin
+    // `linkedAccountId`. El cierre real son identificadores opacos para el Perfil
+    // Weë con el vínculo solo en el servidor (`entities.ownerAccountId`): una
+    // migración XL de posts, votos, conversaciones, avisos y reglas que es una
+    // fase propia y espera decisión del dueño. No se mueve el campo a medias.
+    //
     // NO SE ARREGLA CON UNA REGLA, y por eso aquí solo queda la costura. Se
     // arregla separando lo que nunca debió estar junto: el perfil público en
     // `users/{uid}` y lo de la cuenta en `users/{uid}/private/**`, que ya está
@@ -212,8 +283,20 @@ service cloud.firestore {
     // cablea Identity a producción, que es justo donde el modelo canónico
     // (Account ≠ Perfil) deja de ser contrato y pasa a ser esquema.
     match /users/{userId} {
-      // Cualquiera puede leer perfiles públicos
+      // LECTURA DE `users` — FASE 1: COMO EN PRODUCCIÓN (seguridad de `users`, 2026-10-07).
+      //
+      // El cierre de `users` (solo su dueño lo lee; los demás, `publicProfiles`)
+      // NO va en este archivo: vive en `ops/despliegue/reglas/users-cierre.fase2.rules`
+      // y sustituye EXACTAMENTE el bloque marcado de abajo. Cerrarlo antes de que
+      // el espejo esté desplegado, el relleno verificado y el cliente nuevo
+      // publicado dejaría vacíos el muro, los perfiles ajenos y el buscador; por
+      // eso `ops/permitido.mjs` (`cierreDeUsers`) no deja publicar unas reglas
+      // que cierren `users` sin esas tres condiciones escritas en
+      // `ops/produccion.json` → `cierreDeUsers`. Mientras tanto la exposición es
+      // la de hoy en producción (ruleset de c3515b3): ni mejor ni peor.
+      // <fase-1:lectura-de-users>
       allow read: if true;
+      // </fase-1:lectura-de-users>
 
       // Solo el dueño puede crear/actualizar su perfil
       // Permite crear perfil real (uid == auth.uid) o Perfil Weë (uid == "hidi_" + auth.uid).
@@ -247,8 +330,18 @@ service cloud.firestore {
       // el sistema de follows es código muerto —570 líneas sin una sola
       // pantalla que las use, sustituido por ËContact— así que la rama no
       // servía a nada vivo y sí permitía escribirle a otro `followers: 9999999`.
+      // EL PAÍS DE LA CUENTA SE FIJA EN EL REGISTRO (jurisdicción, 2026-10-07).
+      //
+      // `country` es la jurisdicción que lee el servidor (functions/src/engine/
+      // jurisdiccion.ts) y nunca se vuelve a pedir. Quien aún no lo tenía puede
+      // ponerlo (el registro); una vez puesto, no se cambia ni se borra desde
+      // el cliente: nadie «se muda» para cambiar de ruta.
+      function paisFijo() {
+        return !('country' in resource.data) || !(resource.data.country is string) || resource.data.country == '' ||
+          request.resource.data.get('country', null) == resource.data.country;
+      }
       allow update: if isAuthenticated() && !touchesCreditFields() && !touchesEcontactFields() && !touchesAccountFields() && !touchesCommunityFields() &&
-        !touchesIdentityFields() && linkedAccountIdValido() && !touchesIdentityCoreFields() &&
+        !touchesIdentityFields() && linkedAccountIdValido() && !touchesIdentityCoreFields() && paisFijo() &&
         (request.auth.uid == resource.data.uid ||
          (resource.data.uid == ("hidi_" + request.auth.uid) &&
           resource.data.profileType == 'hidi'));
@@ -275,10 +368,26 @@ service cloud.firestore {
       function camposPrivadosDeCuenta() {
         return ['realName', 'birthDate', 'gender', 'updatedAt'];
       }
+      // LA FECHA DE NACIMIENTO: OBLIGATORIA, DE 18+ Y FIJA (edad mínima de Weë).
+      //
+      // Al crear la cuenta privada, la fecha tiene que venir y dar 18 años o
+      // más (`fechaDeNacimientoAdulta`, arriba). Una vez guardada no se mueve:
+      // nadie puede «cumplir» el requisito cambiándola después. Quien aún no la
+      // tenía (perfiles antiguos) solo puede ponerla, y solo si es de 18+.
+      function fechaDeNacimientoFija() {
+        return ('birthDate' in resource.data && resource.data.birthDate is string && resource.data.birthDate != '')
+          ? request.resource.data.get('birthDate', null) == resource.data.birthDate
+          : ('birthDate' in request.resource.data && fechaDeNacimientoAdulta(request.resource.data.birthDate));
+      }
       match /private/{documento} {
         allow read: if esDuenyoDelPerfil(userId);
-        allow create, update: if esDuenyoDelPerfil(userId) && documento == 'account' &&
-          request.resource.data.keys().hasOnly(camposPrivadosDeCuenta());
+        allow create: if esDuenyoDelPerfil(userId) && documento == 'account' &&
+          request.resource.data.keys().hasOnly(camposPrivadosDeCuenta()) &&
+          'birthDate' in request.resource.data &&
+          fechaDeNacimientoAdulta(request.resource.data.birthDate);
+        allow update: if esDuenyoDelPerfil(userId) && documento == 'account' &&
+          request.resource.data.keys().hasOnly(camposPrivadosDeCuenta()) &&
+          fechaDeNacimientoFija();
         allow delete: if false;
       }
 
@@ -955,6 +1064,16 @@ service cloud.firestore {
            request.resource.data.locale.matches('^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$')));
       allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
+    // EL SALDO DE UNA CUENTA (F-06). Un documento por cuenta, id = uid de
+    // Firebase Auth. Lo lee SOLO su dueño (la píldora de Credits lo escucha en
+    // tiempo real) y no lo escribe nadie desde fuera: solo el Credit Engine, en
+    // la misma transacción que el libro `creditTransactions`. Ni una sesión
+    // anónima de otra cuenta, ni otra cuenta autenticada, ni nadie sin sesión.
+    match /creditAccounts/{uid} {
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Acumulados para administración: solo servidor / consola
     match /creditStats/{statId} {
       allow read, write: if false;
@@ -966,7 +1085,7 @@ service cloud.firestore {
     }
 
     // === WALLETS / TRANSACTIONS (billetera anterior, solo lectura) ===
-    // Migrada al Credit Engine (users.creditsBalance + creditTransactions).
+    // Migrada al Credit Engine (creditAccounts/{uid} + creditTransactions).
     // Se conserva de solo lectura hasta que la migración termine; nadie escribe.
     match /wallets/{walletId} {
       allow read: if isAuthenticated() && request.auth.uid == walletId;

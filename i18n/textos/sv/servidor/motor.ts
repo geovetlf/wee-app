@@ -11,6 +11,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Något saknas i din förfrågan. Kontrollera den och försök igen.',
   unauthorized: 'Logga in för att skapa med Weë.',
+  accountRequired: 'Logga in eller skapa ditt konto om du vill skapa innehåll med Weë AI.',
   providerError: 'Det gick inte att slutföra det du skapar den här gången. Du har inte debiterats. Försök igen om en stund.',
   generationFailed: 'Det gick inte att slutföra det du skapar. Du har inte debiterats. Försök igen.',
   timeout: 'Det tog för lång tid, så jag avbröt. Du har inte debiterats. Försök igen.',
@@ -45,8 +46,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Det finns ingen AI tillgänglig för det här just nu. Försök igen senare.',
   noDisponibleActualmente: 'Den här funktionen är inte tillgänglig för närvarande.',
   noDisponibleAhora: 'Den här funktionen är inte tillgänglig just nu. Försök igen om en stund.',
-  noDisponibleRegion: 'Den här funktionen är inte tillgänglig i din region för närvarande.',
-  noDisponiblePais: 'Lägg till ditt land i din riktiga profil om du vill använda den här funktionen.',
   noDisponibleOpciones: 'Den här funktionen är inte tillgänglig med de val du gjort. Prova något annat.',
   describeVideo: 'Berätta vilken video du vill skapa.',
   creacionTerminada: 'Det här är redan klart och skapas inte igen. Du hittar det bland dina skapelser.',

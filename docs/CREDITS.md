@@ -23,7 +23,7 @@ Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
 | `functions/src/credits/index.ts` | Cloud Functions: `getCreditsBalance`, `getCreditHistory`, `getCreditCost`, `spendCredits`, `grantCredits` (admin), `refundCredits` (admin), `validatePurchase`, `restorePurchase`, `creditsAdmin` |
 | `functions/src/payments/purchaseValidation.ts` | Validación de compras, **separada del motor**: cada proveedor verifica su comprobante y solo entonces el motor acredita el paquete (`purchaseId` = idempotencia) |
 | `functions/src/payments/providers/{apple,google,stripe}.ts` | Proveedores preparados (lanzan `NOT_IMPLEMENTED` con la nota de cómo se conectan) |
-| `functions/src/payments/providers/test.ts` | "Recarga de prueba" sin pago; solo con `CREDITS_TEST_PURCHASES=true`, en el emulador o fuera de `get-wee` |
+| `functions/src/payments/providers/test.ts` | "Recarga de prueba" sin pago. **Fail-closed** (Gran Motor S2, F-05): solo si `CREDITS_TEST_PURCHASES` vale exactamente `true` **y** corre en el emulador de Functions **y** Firestore es el emulador (`FIRESTORE_EMULATOR_HOST`) **y** el proyecto, leído sin ambigüedad, es de prueba (`demo-*` o `wee-dev-geovet`) y nunca `get-wee`; cualquier otra cosa = cerrado (prueba: `pagos-proveedor-prueba`) |
 | `functions/src/shared/admin.ts` | `isAdmin` / `assertAdmin` (claim `admin: true` o uid en `WEE_ADMIN_UIDS`), compartido con el WEË AI ENGINE |
 | `functions/src/creator/credits.ts` | WEË AI sobre el motor: estimación del plan, reserva al empezar, completar o reembolsar al terminar |
 | `functions/src/engine/pricing.ts` | En modo `simulated` los Credits de cada capacidad salen del catálogo del motor (antes había una tabla aparte) |
@@ -37,15 +37,28 @@ Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
 
 ## 2. Datos en Firestore
 
-**`users/{docId}`** (el perfil real; se localiza con `uid == auth.uid`). Los Credits son **por cuenta**: el Perfil Weë (`hidi_<uid>`) comparte el saldo del perfil real.
+**`creditAccounts/{uid}`** (F-06, 2026-10-14: un documento por cuenta, id = uid de Firebase Auth). Lo **lee solo su dueño** y **no lo escribe nadie desde fuera**: solo el motor. Los Credits son **por cuenta**: el Perfil Weë (`hidi_<uid>`) no tiene saldo propio.
 
 ```
 creditsBalance          number   saldo actual (nunca < 0)
 creditsLifetimeEarned   number   total recibido (compras + regalos + bienvenida)
 creditsLifetimeSpent    number   total gastado neto (los reembolsos lo reducen)
 creditsInitializedAt    Timestamp
-createdAt / updatedAt
+uid                     string   la cuenta (igual que el id)
+profileRef              string   id del Perfil Real del que se migró / al que se espeja
+creadoAt, creadoDesde   cuándo y desde dónde nació (motor | perfil | script-p3 | script-p6)
+updatedAt
 ```
+
+**`users/{docId}`** (el perfil real; `uid == auth.uid`) llevaba esos mismos campos y es **público** (`allow read: if true`). Mientras dure la transición los sigue llevando como **espejo** para las apps viejas; tras P6 deja de llevarlos. La mudanza va por fases (`FaseSaldo` en `creditEngine.ts`, variable `CREDITS_FASE_SALDO`; runbook en [`docs/F06-RUNBOOK.md`](F06-RUNBOOK.md)):
+
+| Fase | Quién manda | Qué se escribe en cada operación |
+|---|---|---|
+| `sombra` (P2) | el perfil | perfil **y** `creditAccounts` |
+| `cuenta` (P4, **por defecto**) | `creditAccounts` (si falta, se migra del perfil en la misma transacción) | `creditAccounts` **y** el perfil (espejo) |
+| `contrato` (P6, solo con `CREDITS_FASE_SALDO=contrato`) | `creditAccounts` | solo `creditAccounts` |
+
+Una errata en la variable cae en `cuenta`, nunca en `contrato`.
 
 **`creditTransactions/{transactionId}`** — un documento por movimiento, con id determinista:
 
@@ -79,12 +92,12 @@ completedAt?, refundedAt?
 
 ## 4. Transacciones atómicas y migración
 
-Cada movimiento ocurre dentro de `db.runTransaction`: lee el documento de la operación, lee el perfil, comprueba el saldo y escribe (transacción + perfil + acumulados) en un solo commit. Si dos gastos compiten por el mismo saldo, Firestore reintenta el segundo, que vuelve a leer el saldo ya reducido y falla con `INSUFFICIENT_CREDITS` si no alcanza. **El saldo nunca baja de cero**: si `balance < amount` no se escribe nada.
+Cada movimiento ocurre dentro de `db.runTransaction`: lee el documento de la operación, lee `creditAccounts/{uid}` y el perfil, comprueba el saldo y escribe (transacción + saldo en los sitios de la fase + acumulados) en un solo commit. Si dos gastos compiten por el mismo saldo, Firestore reintenta el segundo, que vuelve a leer el saldo ya reducido y falla con `INSUFFICIENT_CREDITS` si no alcanza. **El saldo nunca baja de cero**: si `balance < amount` no se escribe nada.
 
 **`ensureAccount(uid)`** (idempotente) se ejecuta la primera vez que una cuenta llega al motor (al abrir la app, al crear, al comprar):
 
-1. Si el perfil no tiene `creditsBalance`, lee `wallets/{uid}`: el saldo se migra tal cual (`migration_<uid>`, tipo `grant`, "Saldo anterior") y `totalPurchased` / `totalSpent` pasan a los acumulados.
-2. **No otorga bienvenida** (decisión del dueño, 2026-11-04): `WELCOME_CREDITS = 0`, sin variable de entorno que lo encienda. Una cuenta nueva empieza en 0. El mecanismo (`grant_welcome_<uid>`, una sola vez) sigue en el motor solo porque las pruebas lo ejercitan inyectando su propio valor.
+1. Si la cuenta no tiene `creditsBalance` (ni en `creditAccounts` ni en el perfil), lee `wallets/{uid}`: el saldo se migra tal cual (`migration_<uid>`, tipo `grant`, "Saldo anterior") y `totalPurchased` / `totalSpent` pasan a los acumulados.
+2. **No otorga bienvenida** (decisión del dueño, 2026-11-04, reafirmada el 2026-11-06): `WELCOME_CREDITS = 0`, sin variable de entorno que lo encienda. Una cuenta nueva empieza en 0. El mecanismo (`grant_welcome_<uid>`, una sola vez) sigue en el motor solo porque las pruebas lo ejercitan inyectando su propio valor.
 
 ---
 
@@ -163,8 +176,10 @@ CLIENTE: importe + lo que vio (moneda, importe, Credits) + requestId
 - **Conciliación.** `pending → confirmed | failed`, con `statusHistory`. El snapshot (mercado, importe USD, Credits, moneda, importe en unidades menores, tipo de cambio con fuente y fecha, proveedor) se escribe una vez y no se reescribe; la confirmación añade `verified` (id del pago, moneda e importe que confirmó el proveedor). Si el pago confirmado no coincide en moneda o importe, la orden falla (`pago_no_coincide`) y no se abona nada. Si el proceso muere entre el abono y el cierre, repetir la petición lo termina (el abono sale duplicado y la orden se cierra).
 - **Reembolsos y contracargos de una compra ya acreditada**: no implementados (no hay pasarela que los emita). Un fallo antes de la confirmación nunca toca el saldo.
 - **Mercados** (docs/PRECIOS-POR-MERCADO.md §3). La equivalencia es siempre la del dólar. `US`: se cobra en USD (centavos). `PE`: PEN = **sol entero** de (USD × tipo de cambio) — al 3,30 del escenario: S/ 17 · 33 · 50 · 66 · 83 · 165 · 330 para US$5 · 10 · 15 · 20 · 25 · 50 · 100, la tabla de la matriz §3—. El tipo de cambio **no está en el código**: se lee de `markets/PE` (`currency: 'PEN'`, `status: 'active'`, `fx: { source, base, baseDate }`). Si falta algo, la compra en soles falla cerrada (`mercado_no_disponible`) y `getCreditCost` anuncia PE como no disponible. El mercado lo decide la facturación, nunca el idioma; hoy la app factura siempre en `US` (cómo entra alguien en el mercado PE es una decisión pendiente).
-- **Proveedores.** Solo `test` confirma (emulador y fuera de producción, `CREDITS_TEST_PURCHASES`): devuelve exactamente la moneda y el importe de la orden y queda como «Recarga de prueba» con ingreso 0. `stripe`, `apple` y `google` responden `NOT_IMPLEMENTED`. **Mercado Pago no existe**: será un adaptador más en `PROVIDERS` y su webhook llamará a `confirmarOrden(orderId, pago)` con lo que diga su API. `getCreditCost` dice qué proveedor puede confirmar ahora (`compra.proveedor`: `'test'` o `null`); con `null` la tienda apaga el botón y dice que las compras llegarán pronto.
+- **Proveedores.** Solo `test` confirma, y solo en el emulador de un proyecto de prueba (`demo-*` o `wee-dev-geovet`, con Functions y Firestore emulados) con `CREDITS_TEST_PURCHASES=true` explícito; en `get-wee` o ante cualquier duda queda cerrado (fail-closed, Gran Motor S2 · F-05, `comprasDePruebaHabilitadas` en `payments/providers/test.ts`): devuelve exactamente la moneda y el importe de la orden y queda como «Recarga de prueba» con ingreso 0. `stripe`, `apple` y `google` responden `NOT_IMPLEMENTED`. **Mercado Pago no existe**: será un adaptador más en `PROVIDERS` y su webhook llamará a `confirmarOrden(orderId, pago)` con lo que diga su API. `getCreditCost` dice qué proveedor puede confirmar ahora (`compra.proveedor`: `'test'` o `null`); con `null` la tienda apaga el botón y dice que las compras llegarán pronto.
 - **Tiendas nativas** (otro worktree, `wt-native-payments`): los productos tendrán que ser `zone.wee.credits.usd{N}` (N = 5…100 de 5 en 5); `restorePurchase` ya los entiende. Los antiguos `zone.wee.credits.basic|plus|blackpro` no se reconocen: ninguna tienda estuvo conectada, así que no hay compras reales que restaurar.
+
+---
 
 ## 8. Cloud Functions (contratos)
 
@@ -186,7 +201,7 @@ Errores: `HttpsError` con `details.code` (`INSUFFICIENT_CREDITS` trae `required`
 
 ## 9. Cliente
 
-- `hooks/useWallet.ts` escucha el perfil real (`users where uid == auth.uid`) y expone `balance`; si la cuenta no está inicializada pide `getCreditsBalance` una vez.
+- `hooks/useWallet.ts` escucha `creditAccounts/{auth.uid}` en tiempo real (F-06; ya no el perfil público) y expone `balance`; si el documento no existe pide `getCreditsBalance` una vez —que inicializa o migra— y pinta lo que contesta mientras llega la escucha.
 - `services/creditsService.ts`: `subscribeToBalance`, `subscribeToTransactions`, `getHistory`, `getCosts`, `getCost`, `comprarImporte`, `spend`; `describeTransaction` (concepto, monto con signo, saldo resultante) y `newRequestId`.
 - Sin diseño nuevo: la píldora "💳 250 Credits", Mi billetera (saldo, Obtenidos / Usados, historial con fecha · concepto · monto · saldo) y la tienda siguen igual; solo cambia de dónde salen los datos.
 

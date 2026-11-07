@@ -33,6 +33,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'A Weë csevegője: privát beszélgetések a közösség más tagjaival, szöveggel, fotókkal és hangüzenetekkel.',
   q9: 'Mi az az „Így készítettem”?',
   a9: 'Közzétételkor elmondhatod, milyen eszközöket használtál, mi volt a prompt és mi a folyamat. Így mások tanulnak tőled, te pedig tőlük, egyetlen koppintással a „Prompt másolása” gombra.',
+  q10: 'Hány évesnek kell lenni a Weë használatához?',
+  a10: 'A Weë csak {{edad}} éves vagy idősebb személyek számára érhető el. A születési dátumodat a regisztrációkor kérjük, és mentés után már nem módosítható.',
   heroTitle: 'Miben segíthetünk?',
   legalVisibility: 'Amit közzéteszel, azt a közösség látja; amit a Weë AI segítségével alkotsz, az privát marad, amíg úgy nem döntesz, hogy közzéteszed. A bejegyzéseidet és a projektjeidet bármikor törölheted.',
   askPrefill: 'Kérdés a Weë-nek: ',

@@ -1,0 +1,73 @@
+diff --git a/functions/src/creator/index.ts b/functions/src/creator/index.ts
+index e2b8ed0e..b027e1a1 100644
+--- a/functions/src/creator/index.ts
++++ b/functions/src/creator/index.ts
+@@ -535,7 +535,7 @@ export const materialesDeResultado = async (
+       });
+       if (material) ids.push(material.assetId);
+     } catch (error) {
+-      console.error(`Content: no se pudo crear el material del paso ${step.id} del trabajo ${jobId}:`, error);
++      console.error(`Content: no se pudo crear el material del paso ${step.id} del trabajo ${jobId}:`, sanitizeForLog(error, 300));
+     }
+   }
+   /*
+@@ -837,7 +837,7 @@ export const creatorRun = onCall(
+           failing.status = 'failed';
+           failing.error = (error instanceof Error ? error.message : String(error)).slice(0, 300);
+         }
+-        console.error(`Trabajo ${jobId} falló:`, error);
++        console.error(`Trabajo ${jobId} falló:`, sanitizeForLog(error, 300));
+         const classified = classifyError(error);
+         /* FAILED → REFUND, solo si esta llamada sigue siendo la dueña del trabajo (si no, ya lo cerró otro). */
+         const cerrado = await cerrarTrabajo(ref, runId, {
+diff --git a/functions/src/creator/video.ts b/functions/src/creator/video.ts
+index 8e34303a..66825229 100644
+--- a/functions/src/creator/video.ts
++++ b/functions/src/creator/video.ts
+@@ -11,6 +11,7 @@ import { priceVideo } from '../credits/aiPricing';
+ import { techoDeVideoDeEntrada } from '../engine/providers/seedance';
+ import { usageTransactionId } from '../credits/creditTransactions';
+ import { firestoreLedger } from '../engine/ledger';
++import { sanitizeForLog } from '../engine/sanitize';
+ import { ensureAccount } from './credits';
+ import { assertInputImageUrl } from './inputs';
+ import { AI_SECRETS } from '../secrets';
+@@ -724,7 +725,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
+           });
+           assetId = material?.assetId ?? null;
+         } catch (error) {
+-          console.error('Content: no se pudo crear el material del vídeo', requestId, error);
++          console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));
+         }
+       }
+       await creditEngine.completeCredits({ userId: uid, requestId, meta: { generationId: result.generationId, videoUrl: result.output.url } });
+diff --git a/functions/src/generateAvatar.ts b/functions/src/generateAvatar.ts
+index 86d297c8..8a0562f9 100644
+--- a/functions/src/generateAvatar.ts
++++ b/functions/src/generateAvatar.ts
+@@ -14,6 +14,7 @@ import { operacionAbandonada } from './core';
+ import { assertInputImageUrl } from './creator/inputs';
+ import { toHttpsError } from './credits/creditValidation';
+ import { loadConfig } from './engine/config';
++import { sanitizeForLog } from './engine/sanitize';
+ import {
+   generateAvatarWithImagen,
+   replacePersonWithAvatar,
+@@ -239,7 +240,7 @@ export const generateAvatarWithGemini = onCall(
+ 
+         return { imageUrl: publicUrl };
+       } catch (error: any) {
+-        console.error('Avatar generation failed:', error);
++        console.error('Avatar generation failed:', sanitizeForLog(error, 300));
+         /* El detalle del proveedor se queda en el log de arriba: al cliente solo le llega un código. */
+         throw new HttpsError('internal', 'generation_failed', { reason: 'generation_failed' });
+       }
+@@ -329,7 +330,7 @@ export const avatarReplacement = onCall(
+ 
+       return { imageUrl: publicUrl };
+     } catch (error: any) {
+-      console.error('Avatar replacement failed:', error);
++      console.error('Avatar replacement failed:', sanitizeForLog(error, 300));
+       /* El detalle del proveedor se queda en el log: al cliente solo le llega un código. */
+       throw new HttpsError('internal', 'replacement_failed', { reason: 'replacement_failed' });
+     }

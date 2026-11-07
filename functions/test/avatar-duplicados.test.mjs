@@ -20,6 +20,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lib = (p) => require(path.resolve(here, '../lib', p));
 
@@ -48,7 +50,7 @@ motor.refundCredits = async () => { c.reembolsa++; return { transactionId: 'refu
 vertexMod.generateAvatarWithImagen = async (...a) => { c.genera++; return generar(...a); };
 vertexMod.uploadImageToStorage = async () => 'https://firebasestorage.googleapis.com/v0/b/get-wee.firebasestorage.app/o/nuevo.png';
 
-const pedir = (data) => avatarMod.generateAvatarWithGemini.run({ auth: { uid: 'u1' }, data }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
+const pedir = (data) => avatarMod.generateAvatarWithGemini.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: 'u1' }, data }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
 const SEL = { selections: { gender: 'female' } };
 
 /* 1 · Lo normal sigue igual. */
@@ -83,7 +85,7 @@ gasto = () => ({ transactionId: 'usage_x', status: 'AUTHORIZED', amount: 5, dupl
 const r5 = await pedir({ ...SEL });
 check('7) sin requestId se rechaza antes de cobrar o generar (antes se inventaba uno)',
   !r5.ok && r5.e.code === 'invalid-argument' && c.gasta === 0 && c.genera === 0, String(r5.e?.code));
-const r6 = await avatarMod.avatarReplacement.run({ auth: { uid: 'u1' }, data: { selfieUrl: 'x', avatarUrl: 'y' } }).then(() => ({ ok: true }), (e) => ({ ok: false, e }));
+const r6 = await avatarMod.avatarReplacement.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: 'u1' }, data: { selfieUrl: 'x', avatarUrl: 'y' } }).then(() => ({ ok: true }), (e) => ({ ok: false, e }));
 check('8) también en el reemplazo de persona', !r6.ok && r6.e.code === 'invalid-argument' && c.gasta === 0);
 
 /* 5 · CONTROL: si la generación falla, se devuelve lo cobrado, como siempre. */

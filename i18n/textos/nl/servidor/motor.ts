@@ -10,6 +10,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Er ontbreekt iets in je aanvraag. Controleer het en probeer het opnieuw.',
   unauthorized: 'Log in om te maken met Weë.',
+  accountRequired: 'Log in of maak je account aan om content te maken met Weë AI.',
   providerError: 'De AI kon je creatie deze keer niet afmaken. Er is niets in rekening gebracht: probeer het zo opnieuw.',
   generationFailed: 'Ik kon je creatie niet afmaken. Er is niets in rekening gebracht: probeer het opnieuw.',
   timeout: 'Het duurde te lang en ik heb het gestopt. Er is niets in rekening gebracht: probeer het opnieuw.',
@@ -44,8 +45,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Er is nu geen AI beschikbaar hiervoor. Probeer het later opnieuw.',
   noDisponibleActualmente: 'Deze functie is momenteel niet beschikbaar.',
   noDisponibleAhora: 'Deze functie is op dit moment niet beschikbaar. Probeer het straks opnieuw.',
-  noDisponibleRegion: 'Deze functie is momenteel niet beschikbaar in jouw regio.',
-  noDisponiblePais: 'Geef in je Echt profiel je land op om deze functie te gebruiken.',
   noDisponibleOpciones: 'Deze functie is niet beschikbaar met de opties die je hebt gekozen. Probeer andere opties.',
   describeVideo: 'Vertel me welke video je wilt maken.',
   creacionTerminada: 'Die creatie is al klaar en wordt niet opnieuw gemaakt. Je vindt hem bij je creaties.',

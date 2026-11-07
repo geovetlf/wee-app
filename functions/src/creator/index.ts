@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import { exigirCuentaAutenticada, exigirCuentaWeeValida } from '../identity/sesion';
 import { getFirestore, Timestamp, FieldValue, DocumentReference } from 'firebase-admin/firestore';
 import { AI_SECRETS, MODEL_SECRETS } from '../secrets';
 import { onCall } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep, Question } from './types';
 import { PlannerInput, getPlanner, respuestaPara } from './planner';
+import { BaseDelChat, anotarConsumoDelChat, limitesDelChatActuales, reservarTurnoDelChat } from './chatLimite';
 import { configuracionDeLaSombra, entendimientoRealDelBrain, sombraDelPlan } from './sombra';
 import { TEMPLATES, plainQuestion } from './templates';
 import { PlanEstimate, QualityChoice, estimatePlan, estimatePlanCredits, holdCredits, settleCredits, ensureAccount, planOptions, pricingMode } from './credits';
@@ -12,9 +14,12 @@ import { engine } from '../engine';
 import { GatewayRun, runCapability } from '../gateway';
 import { UsageEntry } from '../gateway/types';
 import { progressTextFor, friendlyFailure } from '../engine/humanize';
-import { EngineResult, RoutingPrefs } from '../engine/types';
+import { EngineRequest, EngineResult, RoutingPrefs } from '../engine/types';
 import { classifyError, EngineError, toEngineHttpsError } from '../engine/errors';
-import { videoEngine, videoRequestFromStep } from '../engine/video';
+import { asegurarVideoPermitido, normalizeVideoRequest, videoEngine, videoRequestFromStep } from '../engine/video';
+import { cobroDelTrabajo } from './cobro';
+import { PLAZO_DE_EJECUCION_MS, RESERVA_PARA_LIQUIDAR_MS, cerrarAbandonado, cerrarTrabajo, finDelProcesoDe } from './cierre';
+import { exigirRutaElegible } from './rutaPrevia';
 import { planImage } from '../engine/image';
 import { imageDimensions } from '../engine/imageMeta';
 import { resolveForModel } from '../engine/resolutionPolicy';
@@ -50,8 +55,7 @@ import { sanitizeForLog } from '../engine/sanitize';
  * plazo que se gasta hasta el último milisegundo no deja tiempo para lo único
  * que no puede faltar.
  */
-const PLAZO_DE_EJECUCION_MS = 900_000;
-const RESERVA_PARA_LIQUIDAR_MS = 45_000;
+/* Los dos números, y cuándo un trabajo está abandonado de verdad, viven en `creator/cierre.ts` (los comparte el barrido). */
 
 /**
  * Weë Creator — funciones que llama la app.
@@ -266,8 +270,17 @@ export const creatorChat = onCall(
   async (request) => {
     try {
       if (!request.auth) throw new EngineError('UNAUTHORIZED');
+      /* Cuenta Weë válida (identity/sesion.ts): autenticada y enrolada (registro 18+ con país). Única condición; sin edad aquí. */
+      await exigirCuentaWeeValida(request.auth);
       const uid = request.auth.uid;
       const data = (request.data || {}) as ChatInput;
+
+      /*
+       * La conversación es GRATUITA y por eso tiene tope (creator/chatLimite.ts, decisión del dueño 2026-10-14): turnos por minuto y por día,
+       * conversaciones nuevas por día y consumo estimado de modelo por día. Va ANTES de crear el trabajo y de llamar al modelo.
+       */
+      const baseDelChat = db() as unknown as BaseDelChat;
+      await reservarTurnoDelChat(baseDelChat, uid, !data.jobId, await limitesDelChatActuales(baseDelChat));
 
       let ref: DocumentReference;
       let job: CreatorJob;
@@ -358,7 +371,17 @@ export const creatorChat = onCall(
         experienceId: job.experienceId,
         goal: job.goal,
         answers: job.answers,
-        gateway: { userId: uid, jobId: job.id, experienceId: job.experienceId, goal: job.goal, record: usageRecorder(ref) },
+        gateway: {
+          userId: uid,
+          jobId: job.id,
+          experienceId: job.experienceId,
+          goal: job.goal,
+          /* El coste de cada llamada de este turno se anota en el trabajo, como siempre, y se suma al consumo del día de la persona. */
+          record: async (entry) => {
+            await usageRecorder(ref)(entry);
+            await anotarConsumoDelChat(baseDelChat, uid, entry.costUSD);
+          },
+        },
         // Sin turno (trabajo recién creado) el planificador consulta, como siempre.
         ...(turno ? { turn: turno } : {}),
       });
@@ -444,6 +467,8 @@ export const creatorChat = onCall(
 export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, memory: '256MiB', secrets: MODEL_SECRETS }, async (request) => {
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
+    /* Guest AI Gate (identity/sesion.ts): un invitado no genera; va ANTES de trabajo, Credits y proveedor. */
+    exigirCuentaAutenticada(request.auth);
     const uid = request.auth.uid;
     const data = (request.data || {}) as { jobId?: string; quality?: string };
     const jobId = String(data.jobId || '');
@@ -534,7 +559,7 @@ export const materialesDeResultado = async (
       });
       if (material) ids.push(material.assetId);
     } catch (error) {
-      console.error(`Content: no se pudo crear el material del paso ${step.id} del trabajo ${jobId}:`, error);
+      console.error(`Content: no se pudo crear el material del paso ${step.id} del trabajo ${jobId}:`, sanitizeForLog(error, 300));
     }
   }
   /*
@@ -549,6 +574,84 @@ export const materialesDeResultado = async (
   return ids;
 };
 
+/**
+ * LA ENTRADA DE UN PASO, EN UN SOLO SITIO: el input interno (Weë Brain: prompt, foto, narración; el nivel que la
+ * persona eligió en el presupuesto manda sobre el de la plantilla) y las preferencias de ruta del paso. La usan la
+ * ruta previa (`peticionDelPaso`, antes de cobrar) y el bucle de `creatorRun` (al ejecutar): si cambia, cambia en
+ * los dos, y la ruta que se aprobó no puede ser distinta de la que se pide.
+ */
+export const entradaDelPaso = (job: CreatorJob, step: JobStep, previous: string[]): { input: Record<string, unknown>; prefs: RoutingPrefs } => {
+  const input = stepInputFor(job, step, previous);
+  if (job.quality) input.quality = job.quality;
+  const stepInput = step.input || {};
+  /*
+   * QUÉ FAMILIA DE PROVEEDORES ADMITE ESTE PASO, SI LO DICE.
+   *
+   * El Router lleva desde siempre obedeciendo `prefs.allowedProviders`
+   * —salta cualquier eslabón que no esté en la lista— y tres sitios de
+   * producción ya lo usan: el Weë Video Engine fija la familia Seedance,
+   * el Weë Image Engine fija el proveedor del modelo elegido, y Weë
+   * Brain fija DeepSeek. Lo que faltaba no era el mecanismo: era que un
+   * paso del plan pudiera declararlo.
+   *
+   * Sin esto, un paso que cae en la rama genérica —voz, texto— no puede
+   * acotar su cadena, así que si el primer proveedor falla el Router
+   * prueba el siguiente. Para casi todo eso es lo que se quiere; para
+   * medir si UN proveedor concreto funciona, no: el respaldo esconde
+   * justo lo que se está midiendo.
+   *
+   * ── Lo que NO hace ────────────────────────────────────────────────
+   *
+   * No decide nada. No conoce ninguna capacidad ni ningún proveedor: si
+   * el paso no lo declara, `prefs` sale exactamente igual que antes y el
+   * enrutamiento no cambia para nadie. Y el vídeo y la imagen siguen
+   * poniendo la suya después, que es la que manda para ellos.
+   *
+   * ── Una lista vacía ───────────────────────────────────────────────
+   *
+   * Se transporta tal cual, porque el Router ya tiene una respuesta para
+   * ella: con `[]` no hay eslabón que pase el filtro y la petición acaba
+   * en NOT_AVAILABLE. Inventar aquí que «vacía significa sin
+   * restricción» sería darle un segundo significado a un dato que ya
+   * tiene uno.
+   */
+  const familiaDelPaso = stepInput.allowedProviders;
+  const soloEstos = Array.isArray(familiaDelPaso) && familiaDelPaso.every((p) => typeof p === 'string')
+    ? (familiaDelPaso as string[])
+    : undefined;
+  const prefs: RoutingPrefs = {
+    quality: (stepInput.quality as RoutingPrefs['quality']) || 'auto',
+    durationSec: stepInput.durationSec ? Number(stepInput.durationSec) : undefined,
+    ...(soloEstos ? { allowedProviders: soloEstos } : {}),
+  };
+  return { input, prefs };
+};
+
+/**
+ * La petición que un paso manda al Router, armada IGUAL que en la ejecución (misma capacidad y mismas preferencias,
+ * de `entradaDelPaso`; el vídeo, normalizado como lo hace el Weë Video Engine; la imagen, con el plan del Weë Image
+ * Engine), para preguntar por la ruta ANTES de cobrar. El texto de los pasos posteriores aún no existe; no cambia
+ * la ruta, solo el prompt.
+ */
+export const peticionDelPaso = (
+  job: CreatorJob, step: JobStep, uid: string, settings: Awaited<ReturnType<typeof loadConfig>>['settings'], previous: string[] = [],
+): EngineRequest => {
+  const { input, prefs } = entradaDelPaso(job, step, previous);
+  if (step.capability.startsWith('video.')) {
+    const n = normalizeVideoRequest(videoRequestFromStep(step.capability, input), settings);
+    return { userId: uid, capability: n.capability, input: n.input, prefs: n.prefs };
+  }
+  if (step.capability.startsWith('image.')) {
+    const planned = planImage({ capability: step.capability, input });
+    return { userId: uid, capability: step.capability, input: planned.input, prefs: { ...prefs, ...planned.prefs } };
+  }
+  return { userId: uid, capability: step.capability, input, prefs };
+};
+
+/** Las peticiones de todo el plan, para la ruta previa de `creatorRun` (`exigirRutaElegible`). */
+export const peticionesDelPlan = (job: CreatorJob, uid: string, settings: Awaited<ReturnType<typeof loadConfig>>['settings']): EngineRequest[] =>
+  job.steps.map((step) => peticionDelPaso(job, step, uid, settings, []));
+
 export const creatorRun = onCall(
   { region: 'us-central1', timeoutSeconds: PLAZO_DE_EJECUCION_MS / 1000, memory: '1GiB', secrets: AI_SECRETS },
   async (request) => {
@@ -556,6 +659,8 @@ export const creatorRun = onCall(
     const deadlineAt = empezado + PLAZO_DE_EJECUCION_MS - RESERVA_PARA_LIQUIDAR_MS;
     try {
       if (!request.auth) throw new EngineError('UNAUTHORIZED');
+      /* Cuenta Weë válida (identity/sesion.ts): autenticada y enrolada (registro 18+ con país). Única condición; sin edad aquí. */
+      await exigirCuentaWeeValida(request.auth);
       const uid = request.auth.uid;
       const jobId = String((request.data || {}).jobId || '');
       if (!jobId) throw new EngineError('INVALID_REQUEST', 'Falta el trabajo.');
@@ -577,15 +682,18 @@ export const creatorRun = onCall(
        * (`settleCredits` con 0 usado): idempotente, con su asiento, y auditable.
        * No se inventa un estado ni se convierte un AUTHORIZED en COMPLETED.
        */
-      if (operacionAbandonada(job.status === 'running', job.deadlineAt, empezado)) {
-        const descripcionPrevia = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
-        await settleCredits(uid, jobId, job.creditsEstimated, 0, descripcionPrevia);
-        await ref.update({
+      if (operacionAbandonada(job.status === 'running', finDelProcesoDe(job.deadlineAt), empezado)) {
+        /* Primero la transición (solo una llamada la gana) y después el dinero, que mueve solo quien la ganó. */
+        const cerrado = await cerrarAbandonado(ref, empezado, {
           status: 'failed',
           progressText: 'Se quedó sin tiempo. Te devolví los Credits.',
           creditsCharged: 0,
           updatedAt: now(),
         });
+        if (cerrado) {
+          const descripcionPrevia = `WEË AI · ${TEMPLATES[job.experienceId].name}`;
+          await settleCredits(uid, jobId, Number(cerrado.creditsEstimated ?? job.creditsEstimated) || 0, 0, descripcionPrevia);
+        }
         throw new EngineError('TIMEOUT', 'Ese intento se quedó sin tiempo y te devolví los Credits. Puedes volver a intentarlo.');
       }
       if (job.status === 'running') throw new EngineError('DUPLICATE_REQUEST');
@@ -609,6 +717,10 @@ export const creatorRun = onCall(
         exigirFotoSiHaceFalta(job);
         // Límites de uso por persona (antes de cobrar y de llamar a la IA)
         const { settings } = await loadConfig();
+        /* El interruptor del vídeo (X2): con pasos de vídeo y el vídeo apagado, no se reserva ni se llama a nadie. */
+        if (job.steps.some((s) => String(s.capability).startsWith('video.'))) asegurarVideoPermitido(settings);
+        /* La ruta antes del dinero (creator/rutaPrevia.ts): sin ruta elegible para algún paso, ni cupo ni reserva. */
+        await exigirRutaElegible(peticionesDelPlan(job, uid, settings));
         await limiter.reserve(uid, modalityCounts(job.steps), settings.limits);
         const reserva = await holdCredits(uid, jobId, job.plan, job.creditsEstimated, description);
         /*
@@ -651,51 +763,10 @@ export const creatorRun = onCall(
           const previous = results
             .filter((r) => (next.dependsOn || []).includes(r.stepId))
             .map((r) => r.content || r.url || '');
-          // Weë Brain arma el input interno del paso (prompt, foto, narración); la persona nunca lo ve
-          const input = stepInputFor(job, next, previous);
-          // El nivel que la persona eligió en el presupuesto manda sobre el de la plantilla
-          if (job.quality) input.quality = job.quality;
+          // Weë Brain arma el input interno del paso (prompt, foto, narración) y sus preferencias de ruta con la MISMA
+          // función que la ruta previa (`entradaDelPaso`): lo que se aprobó antes de cobrar es lo que se ejecuta.
+          const { input, prefs } = entradaDelPaso(job, next, previous);
           const stepInput = next.input || {};
-          /*
-           * QUÉ FAMILIA DE PROVEEDORES ADMITE ESTE PASO, SI LO DICE.
-           *
-           * El Router lleva desde siempre obedeciendo `prefs.allowedProviders`
-           * —salta cualquier eslabón que no esté en la lista— y tres sitios de
-           * producción ya lo usan: el Weë Video Engine fija la familia Seedance,
-           * el Weë Image Engine fija el proveedor del modelo elegido, y Weë
-           * Brain fija DeepSeek. Lo que faltaba no era el mecanismo: era que un
-           * paso del plan pudiera declararlo.
-           *
-           * Sin esto, un paso que cae en la rama genérica —voz, texto— no puede
-           * acotar su cadena, así que si el primer proveedor falla el Router
-           * prueba el siguiente. Para casi todo eso es lo que se quiere; para
-           * medir si UN proveedor concreto funciona, no: el respaldo esconde
-           * justo lo que se está midiendo.
-           *
-           * ── Lo que NO hace ────────────────────────────────────────────────
-           *
-           * No decide nada. No conoce ninguna capacidad ni ningún proveedor: si
-           * el paso no lo declara, `prefs` sale exactamente igual que antes y el
-           * enrutamiento no cambia para nadie. Y el vídeo y la imagen siguen
-           * poniendo la suya después, que es la que manda para ellos.
-           *
-           * ── Una lista vacía ───────────────────────────────────────────────
-           *
-           * Se transporta tal cual, porque el Router ya tiene una respuesta para
-           * ella: con `[]` no hay eslabón que pase el filtro y la petición acaba
-           * en NOT_AVAILABLE. Inventar aquí que «vacía significa sin
-           * restricción» sería darle un segundo significado a un dato que ya
-           * tiene uno.
-           */
-          const familiaDelPaso = stepInput.allowedProviders;
-          const soloEstos = Array.isArray(familiaDelPaso) && familiaDelPaso.every((p) => typeof p === 'string')
-            ? (familiaDelPaso as string[])
-            : undefined;
-          const prefs: RoutingPrefs = {
-            quality: (stepInput.quality as RoutingPrefs['quality']) || 'auto',
-            durationSec: stepInput.durationSec ? Number(stepInput.durationSec) : undefined,
-            ...(soloEstos ? { allowedProviders: soloEstos } : {}),
-          };
           const stepCtx = { ...ctx, stepId: next.id, prefs, requestId: `${jobId}:${next.id}`, service: serviceForCapability(next.capability, stepInput) };
           // Video (Weë Studio): pasa por el Weë Video Engine, que solo usa la familia Seedance
           let run: GatewayRun;
@@ -790,40 +861,63 @@ export const creatorRun = onCall(
           await ref.update({ steps: clean(steps), results: clean(results), updatedAt: now() });
         }
 
-        // Modo prueba: se cobra lo estimado. Modo real: lo medido por el engine,
-        // nunca más de lo que la persona vio antes de crear.
-        const measured = results.reduce((sum, r) => sum + (r.credits || 0), 0);
-        // El mismo modo efectivo con el que se cotizó: cotización, fórmula y cobro
-        // no pueden razonar cada uno por su cuenta.
-        const used = (await pricingMode()) === 'real' ? Math.min(job.creditsEstimated, measured) : job.creditsEstimated;
-        await settleCredits(uid, jobId, job.creditsEstimated, used, description);
-        await ref.update({
+        /*
+         * Modo prueba: lo cotizado. Modo real: lo medido, nunca más de lo cotizado.
+         * Y en los DOS, un paso con resultado de muestra (`mock`) vale 0 (B4-03):
+         * lo decide `cobroDelTrabajo`, con el mismo modo efectivo con que se cotizó.
+         */
+        const modo = await pricingMode();
+        const hayDemo = results.some((r) => r.demo === true);
+        const cotizadoPorPaso: Record<string, number> = {};
+        if (hayDemo && modo !== 'real') {
+          const desglose = await estimatePlan(job.plan, uid, job.quality as QualityChoice | undefined).catch((e) => {
+            /* Sin desglose, `cobroDelTrabajo` cobra solo lo real que conoce: el error no le cuesta nada a la persona, pero se registra. */
+            console.error(`Trabajo ${jobId}: no se pudo recotizar el desglose para descontar lo demo:`, sanitizeForLog(e, 300));
+            return null;
+          });
+          for (const paso of desglose?.steps ?? []) cotizadoPorPaso[paso.stepId] = paso.credits;
+        }
+        const used = cobroDelTrabajo(job.creditsEstimated, modo, results, cotizadoPorPaso);
+        /* Primero la transición (solo la gana quien tiene el trabajo), después el dinero. */
+        const cerrado = await cerrarTrabajo(ref, runId, {
           status: 'done',
+          steps: clean(steps),
+          results: clean(results),
           progressText: '✨ Listo',
           creditsCharged: used,
           demo: results.every((r) => r.demo === true),
           finishedAt: now(),
           updatedAt: now(),
         });
+        if (!cerrado) {
+          /* Otro lo cerró (abandono): su cierre ya movió el dinero. Aquí no se cobra ni se devuelve nada. */
+          console.error(`Trabajo ${jobId}: terminó después de que otro lo cerrara; no se liquida dos veces.`);
+          throw new EngineError('TIMEOUT', 'Ese intento se quedó sin tiempo y te devolví los Credits. Puedes volver a intentarlo.');
+        }
+        await settleCredits(uid, jobId, job.creditsEstimated, used, description);
         return { jobId, status: 'done' };
       } catch (error) {
         const failing = steps.find((s) => s.status === 'running');
         if (failing) {
           failing.status = 'failed';
-          failing.error = (error instanceof Error ? error.message : String(error)).slice(0, 300);
+          failing.error = sanitizeForLog(error, 300);
         }
-        console.error(`Trabajo ${jobId} falló:`, error);
-        // FAILED → REFUND: se devuelve exactamente lo autorizado (idempotente)
-        await settleCredits(uid, jobId, job.creditsEstimated, 0, description);
+        console.error(`Trabajo ${jobId} falló:`, sanitizeForLog(error, 300));
         const classified = classifyError(error);
-        await ref.update({
+        /* FAILED → REFUND, solo si esta llamada sigue siendo la dueña del trabajo (si no, ya lo cerró otro). */
+        const cerrado = await cerrarTrabajo(ref, runId, {
           status: 'failed',
           steps: clean(steps),
           results: clean(results),
           progressText: classified.details?.reason === 'input_rejected' ? classified.message : failing ? friendlyFailure(failing.capability) : 'No me salió bien. No te cobré.',
           creditsCharged: 0,
           updatedAt: now(),
+        }).catch((e) => {
+          console.error(`Trabajo ${jobId}: no se pudo cerrar como fallido; lo cerrará el barrido:`, e);
+          return false;
         });
+        // Se devuelve exactamente lo autorizado (idempotente). Si la transición no se pudo escribir, el barrido la cierra.
+        if (cerrado) await settleCredits(uid, jobId, job.creditsEstimated, 0, description);
         throw error;
       }
     } catch (error) {

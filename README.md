@@ -221,6 +221,8 @@ En modo demo (sin claves, como en los emuladores): en cualquier especialista, **
 
 ## Problemas conocidos
 
+**Integración `integracion/p0-edad-fase1` (2026-10-07, sin desplegar):** los perfiles ajenos se leen de `publicProfiles` y `users` pasará a privado en la **fase 2** (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo) (DD-15); para generar o cobrar hace falta una **cuenta Weë válida** (sesión no anónima + fecha 18+ validada con `functions/src/identity/edad.ts` + país). Pendientes del dueño: [`docs/DECISIONES-PENDIENTES.md`](docs/DECISIONES-PENDIENTES.md) § «Edad, país y `users`».
+
 Esta lista ya no se lleva a mano aquí (se quedaba atrás). Lo abierto vive en dos sitios:
 
 - **Lo que espera una decisión del dueño** (producto, cifras, operación): [`docs/DECISIONES-PENDIENTES.md`](docs/DECISIONES-PENDIENTES.md).

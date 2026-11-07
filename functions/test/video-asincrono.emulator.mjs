@@ -22,6 +22,14 @@
  * 127.0.0.1 y la prueba se niega a correr si no. La clave es de mentira y no
  * se imprime. No está en `npm test`: necesita los emuladores y Java 21.
  *
+ * El ENLACE DEL VÍDEO es https y con nombre de dominio (Bloque B2, 2026-11-06):
+ * desde el paquete E del Gran Motor el materializador solo descarga de un
+ * destino así (`destinoDeResultadoPermitido`: nada de http, IP ni nombres
+ * internos), y un `http://127.0.0.1` se rechazaba sin traer nada. La puerta no se
+ * toca: ModelArk de mentira da un enlace `https://…invalid` —un dominio que no
+ * existe en ningún DNS— y el `fetch` de esta prueba desvía SOLO ese nombre al
+ * mismo servidor local (hace de CDN). Todo lo demás pasa sin tocar.
+ *
  *   firebase emulators:exec --only firestore,storage --project demo-wee-filmmaker \
  *     "node functions/test/video-asincrono.emulator.mjs"
  */
@@ -29,6 +37,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { instalarCdnDePrueba } from './_cdn-de-prueba.mjs';
 
 const PROY = process.env.GCLOUD_PROJECT || '';
 if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_STORAGE_EMULATOR_HOST) {
@@ -37,6 +46,8 @@ if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_STORAGE_EMULAT
 if (!PROY.startsWith('demo-')) { console.log('✘ solo contra un proyecto de demostración'); process.exit(1); }
 
 /* ── ModelArk de mentira, en esta máquina ─────────────────────────────────── */
+/* El CDN del vídeo: un nombre https que pasa la puerta del materializador y que el `fetch` de abajo sirve desde 127.0.0.1. */
+const CDN_DE_PRUEBA = 'https://cdn.prueba-modelark.invalid';
 const tareas = new Map(); /* id → { status, error?, videoFalla? } */
 const cuenta = { post: 0, get: 0, video: 0, apiConClave: true, videoSinClave: true };
 let modoPost = 'aceptar'; /* aceptar · rechazar · colgar: crea la tarea y corta la conexión sin contestar */
@@ -69,10 +80,9 @@ const servidor = http.createServer((req, res) => {
     if (getFalla) return enviar(503, { error: { message: 'service unavailable' } });
     const tarea = tareas.get(t[1]);
     if (!tarea) return enviar(404, { error: { message: 'task not found' } });
-    const puerto = servidor.address().port;
     return enviar(200, {
       id: t[1], status: tarea.status, updated_at: Math.floor(Date.now() / 1000) + tarea.version,
-      ...(tarea.status === 'succeeded' ? { content: { video_url: `http://127.0.0.1:${puerto}/videos/${t[1]}.mp4` }, usage: { completion_tokens: 40594 } } : {}),
+      ...(tarea.status === 'succeeded' ? { content: { video_url: `${CDN_DE_PRUEBA}/videos/${t[1]}.mp4` }, usage: { completion_tokens: 40594 } } : {}),
       ...(tarea.error ? { error: tarea.error } : {}),
     });
   }
@@ -89,6 +99,8 @@ process.env.ARK_BASE_URL = `http://127.0.0.1:${servidor.address().port}/api/v3`;
 process.env.ARK_API_KEY = 'clave-de-prueba-que-no-es-real';
 if (!/^http:\/\/127\.0\.0\.1:\d+\/api\/v3$/.test(process.env.ARK_BASE_URL)) { console.log('✘ ModelArk no apunta a esta máquina'); process.exit(1); }
 const pasar = (id, status, extra = {}) => { const t = tareas.get(id); tareas.set(id, { ...t, ...extra, status, version: (t?.version ?? 0) + 1 }); };
+/* El CDN de prueba (_cdn-de-prueba.mjs): SOLO `CDN_DE_PRUEBA` se desvía a este servidor; nada más cambia. */
+const { desvios: desviosAlCdn } = instalarCdnDePrueba(CDN_DE_PRUEBA, servidor);
 
 /* ── Weë, de verdad ───────────────────────────────────────────────────────── */
 const require = createRequire(import.meta.url);
@@ -97,6 +109,8 @@ const admin = require('firebase-admin');
 admin.initializeApp({ projectId: PROY, storageBucket: `${PROY}.appspot.com` });
 const db = admin.firestore();
 const lib = (p) => require(path.resolve(here, '../lib', p));
+/* Cuenta Weë válida (identity/sesion.ts): estas cuentas de prueba se dan por enroladas; el enrolamiento tiene su suite (edad-minima, guest-sin-ia). */
+lib('identity/sesion.js').enrolamiento.leer = async () => true;
 const video = lib('creator/video.js');
 const rt = lib('runtime/index.js');
 const { creditEngine } = lib('credits/creditEngine.js');
@@ -119,15 +133,20 @@ const cuentaDe = (letra) => `emuvideo${letra}${marca}`;
 const CUENTAS = ['B', 'F', 'D', 'E', 'I', 'H', 'A', 'C', 'P'].map(cuentaDe);
 const SALDO = 5000;
 for (const uid of CUENTAS) {
-  await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: uid });
+  /* Perfil Real con país permitido: Seedance es territorial y la ruta previa (antes del dinero) lee users.country, como en video-asincrono.test.mjs. */
+  await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: uid, profileType: 'real', country: 'ES' });
   await creditEngine.ensureAccount(uid);
+  // F-06: el saldo vive en creditAccounts (fuente canónica). El espejo de users lo mantiene el motor.
+  await db.collection('creditAccounts').doc(uid).update({ creditsBalance: SALDO });
   await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: SALDO });
 }
 await db.collection('aiSettings').doc('runtime').set({ habilitado: true, porCapacidad: { 'video.generate': { cuentas: CUENTAS, experiencias: ['studio'] } } });
+// Línea B · X2: el vídeo nace APAGADO. Estas suites prueban el camino legacy cuando SÍ se puede generar; el apagado tiene su suite (linea-b-finanzas).
+await db.collection('aiSettings').doc('global').set({ videoHabilitado: true }, { merge: true });
 olvidarLaPuerta();
 
 const PETICION = { prompt: 'Un faro al amanecer, olas suaves', durationSec: 5, aspectRatio: '16:9' };
-const pedir = (uid, requestId) => intento(() => video.generateVideo.run({ auth: { uid }, data: { ...PETICION, requestId } }));
+const pedir = (uid, requestId) => intento(() => video.generateVideo.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data: { ...PETICION, requestId } }));
 const saldo = async (uid) => (await db.collection('users').doc(`doc_${uid}`).get()).get('creditsBalance');
 const uso = async (requestId) => (await db.collection('creditTransactions').doc(`usage_${requestId}`).get()).data();
 const reembolsos = async (requestId) => (await db.collection('creditTransactions').where('requestId', '==', requestId).get()).docs.filter((d) => d.get('type') === 'refund').map((d) => d.data());
@@ -173,7 +192,7 @@ console.log('\n── El material del Core es un material más: asset_, leerMate
 const leido = await contenido.leerMaterial(assetId);
 check('se llama asset_ y 32 hexadecimales, y `leerMaterial` lo encuentra con su dueño', /^asset_[0-9a-f]{32}$/.test(assetId ?? '') && leido?.ownerAccountId === cuentaDe('B') && leido?.status === 'ready', assetId);
 const bajadasAntes = cuenta.video;
-const otraVez = await materializadorDeWee.guardar({ assetId, userId: cuentaDe('B'), kind: 'video', recurso: `http://127.0.0.1:${servidor.address().port}/videos/${tB}.mp4`, provenance: { createdAt: Date.now(), jobId: hecho.jobId } });
+const otraVez = await materializadorDeWee.guardar({ assetId, userId: cuentaDe('B'), kind: 'video', recurso: `${CDN_DE_PRUEBA}/videos/${tB}.mp4`, provenance: { createdAt: Date.now(), jobId: hecho.jobId } });
 check('llegar otra vez al mismo resultado lo ENCUENTRA: sin volver a descargarlo', otraVez.ok && otraVez.yaEstaba === true && otraVez.assetId === assetId && cuenta.video === bajadasAntes);
 const postsDeB = cuenta.post;
 const rOtra = await pedir(cuentaDe('B'), 'emu-vid-B');
@@ -183,9 +202,9 @@ const conRef = (id) => ({ ...M.produccionVacia({ title: 'Puente', aspectRatio: '
 const pid = `prodemu${marca}`.padEnd(24, '0');
 const prod = await producciones.crearProduccion({ accountId: cuentaDe('B'), productionId: pid, production: conRef(assetId), at: Date.now() }, { db });
 check('productions lo acepta como referencia', prod.ok === true, prod.ok ? 'ok' : prod.code);
-const ajeno = await intento(() => contenido.deleteAsset.run({ auth: { uid: cuentaDe('F') }, data: { assetId } }));
+const ajeno = await intento(() => contenido.deleteAsset.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: cuentaDe('F') }, data: { assetId } }));
 check('`deleteAsset` de otra cuenta no lo encuentra, y el objeto sigue', !ajeno.ok && ajeno.error.code === 'not-found' && (await admin.storage().bucket().file(ficha.storageRef.objectKey).exists())[0] === true);
-const borrado = await intento(() => contenido.deleteAsset.run({ auth: { uid: cuentaDe('B') }, data: { assetId } }));
+const borrado = await intento(() => contenido.deleteAsset.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid: cuentaDe('B') }, data: { assetId } }));
 const sigue = await admin.storage().bucket().file(ficha.storageRef.objectKey).exists();
 check('`deleteAsset` de su dueño lo retira y BORRA el objeto del Storage', borrado.ok && borrado.valor.status === 'deleted' && sigue[0] === false
   && (await contenido.leerMaterial(assetId))?.status === 'deleted', borrado.ok ? borrado.valor.status : borrado.error.code);
@@ -276,7 +295,8 @@ check('el barrido lo aparta para reconciliar: ni lo devuelve, ni pregunta sin re
 const rP2 = await pedir(cuentaDe('P'), 'emu-vid-P');
 check('y reintentar no vuelve a llamar a ModelArk', !rP2.ok && rP2.error.details?.code === 'DUPLICATE_REQUEST' && cuenta.post === postsAntesP + 1, codigo(rP2));
 
-check('ninguna petición salió de esta máquina: la API con la clave de mentira y el vídeo sin ninguna', cuenta.apiConClave && cuenta.videoSinClave &&/^http:\/\/127\.0\.0\.1:/.test(process.env.ARK_BASE_URL));
+check('ninguna petición salió de esta máquina: la API con la clave de mentira y el vídeo sin ninguna (por el CDN de prueba, servido aquí)', cuenta.apiConClave && cuenta.videoSinClave &&/^http:\/\/127\.0\.0\.1:/.test(process.env.ARK_BASE_URL)
+  && desviosAlCdn.total >= 1 && desviosAlCdn.total === cuenta.video, `vídeo pedido ${desviosAlCdn.total} · servido ${cuenta.video}`);
 
 servidor.close();
 console.log(failures ? `\n✘ ${failures} fallos · ${n} comprobaciones` : `\n✔ la ruta asíncrona contra los emuladores: ${n} comprobaciones`);

@@ -186,9 +186,152 @@ check('7z) no costaron Credits', proyectos.every((d) => d.datos.creditsCharged =
 /* 7m. Entrada automática */
 const entrada = fuente('components/EntradaDemo.tsx');
 const modeloDemo = fuente('utils/contenidoDemo.ts');
-check('7n) solo entra sola en un proyecto demo y con la cuenta pasada', entrada.includes('debeEntrarSolaLaDemo(process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID') && /esProyectoDemo\(projectId\) && !!correo && !!clave/.test(modeloDemo));
-check('7o) no lleva contraseña escrita en la app', !entrada.includes(ESPECTADOR.clave) && !fuente('App.tsx').includes(ESPECTADOR.clave));
-check('7p) la cuenta solo la pasa el arranque de la demo', fuente('scripts/demo/entorno.mjs').includes('EXPO_PUBLIC_DEMO_CLAVE') && !fuente('metro.config.js').includes('EXPO_PUBLIC_DEMO'));
+/*
+ * Decisión del dueño (2026-11-07, B2-G): una variable EXPO_PUBLIC no es un secreto. La demo ya no recibe la contraseña de la
+ * cuenta de prueba (antes, EXPO_PUBLIC_DEMO_CLAVE): recibe su UID y entra con el token de PRUEBA del emulador de Auth, que el
+ * Auth de producción rechaza.
+ */
+check('7n) solo entra sola en un proyecto demo, contra el emulador de Auth y con el UID que pasó el arranque',
+  entrada.includes('debeEntrarSolaLaDemo(process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID, uid, process.env.EXPO_PUBLIC_AUTH_EMULATOR_HOST)')
+  && /esProyectoDemo\(projectId\) && esUidDeDemo\(uid\) && typeof hostDelEmuladorDeAuth === 'string'/.test(modeloDemo));
+check('7o) no lleva contraseña en la app: ni escrita, ni en una variable EXPO_PUBLIC, ni entra con correo y contraseña',
+  !entrada.includes(ESPECTADOR.clave) && !fuente('App.tsx').includes(ESPECTADOR.clave) && !modeloDemo.includes(ESPECTADOR.clave)
+  && !/EXPO_PUBLIC_DEMO_(CLAVE|CORREO)/.test(entrada + modeloDemo) && !/signInWithEmailAndPassword/.test(entrada) && /signInWithCustomToken/.test(entrada));
+check('7p) el arranque de la demo solo pasa el UID de la cuenta (EXPO_PUBLIC_DEMO_UID), nunca su correo ni su contraseña, y Metro no la toca',
+  fuente('scripts/demo/entorno.mjs').includes('EXPO_PUBLIC_DEMO_UID: ESPECTADOR.uid') && !/EXPO_PUBLIC_DEMO_(CLAVE|CORREO)/.test(fuente('scripts/demo/entorno.mjs'))
+  && !fuente('metro.config.js').includes('EXPO_PUBLIC_DEMO'));
+{
+  const { crearCargador } = await import('./filmmaker-cliente.mjs');
+  const M = crearCargador({ dobles: {} })('utils/contenidoDemo.ts');
+  const token = M.tokenDeLaDemoParaElEmulador('demoViewer');
+  check('7q) el token de la demo es el de PRUEBA del emulador ({"uid":…}): sin contraseña, sin firma y sin forma de JWT, así que el Auth de producción no lo acepta; y la puerta exige proyecto demo, UID y emulador',
+    token === '{"uid":"demoViewer"}' && !token.includes('.') && Object.keys(JSON.parse(token)).length === 1 && !token.includes(ESPECTADOR.clave)
+    && M.debeEntrarSolaLaDemo('demo-wee-migracion', 'demoViewer', '127.0.0.1')
+    && !M.debeEntrarSolaLaDemo('get-wee', 'demoViewer', '127.0.0.1') && !M.debeEntrarSolaLaDemo('wee-dev-geovet', 'demoViewer', '127.0.0.1')
+    && !M.debeEntrarSolaLaDemo('demo-wee-migracion', 'demoViewer', undefined) && !M.debeEntrarSolaLaDemo('demo-wee-migracion', 'demoViewer', ' ')
+    && !M.debeEntrarSolaLaDemo('demo-wee-migracion', undefined, '127.0.0.1') && !M.debeEntrarSolaLaDemo('demo-wee-migracion', ESPECTADOR.correo, '127.0.0.1'));
+}
+
+/*
+ * 7m bis. «CERRAR SESIÓN» SE QUEDA CERRADO (B1 · P1-2 de las pruebas con sesión del 2026-11-06).
+ *
+ * Si la página arrancaba con la sesión ya guardada, el primer «Cerrar sesión» volvía a entrar solo a los 1–3 s: la
+ * entrada solo contaba cuando la hacía EntradaDemo. Aquí se EJECUTA el componente de verdad (transpilado por
+ * filmmaker-cliente.mjs) con un React mínimo que corre sus efectos como React después de pintar, y dobles de la sesión
+ * (`useAuth`) y de Firebase Auth que solo apuntan las entradas. La cuenta es inventada: la de verdad no sale de su sitio.
+ */
+{
+  const { crearCargador } = await import('./filmmaker-cliente.mjs');
+  const ENV = ['EXPO_PUBLIC_FIREBASE_PROJECT_ID', 'EXPO_PUBLIC_DEMO_UID', 'EXPO_PUBLIC_AUTH_EMULATOR_HOST'];
+  const envAntes = Object.fromEntries(ENV.map((k) => [k, process.env[k]]));
+  const ponerEnv = (valores) => ENV.forEach((k) => { if (valores[k] === undefined) delete process.env[k]; else process.env[k] = valores[k]; });
+  const CUENTA = { uid: 'quienMiraLaDemoInventada' };
+  const AUTH = { doble: 'auth' };
+  const QUIEN = { uid: 'demoViewer' };
+  const OTRA = { uid: 'otraCuentaQueEntraAMano' };
+
+  /**
+   * Un arranque de la app (una carga de página): su propio módulo, su propia sesión y su propio registro de entradas.
+   * Lo que no se da toma el valor de la demo; lo que se da como `undefined` se queda SIN variable (no vale el de la demo).
+   */
+  const arrancar = (o = {}) => {
+    const dato = (k, porDefecto) => (Object.hasOwn(o, k) ? o[k] : porDefecto);
+    const proyecto = dato('proyecto', 'demo-wee-migracion');
+    const uid = dato('uid', CUENTA.uid);
+    const emulador = dato('emulador', '127.0.0.1');
+    const entradas = [];
+    let sesion = { user: null, loading: true };
+    const ranuras = [];
+    let i = 0;
+    let pendientes = [];
+    const reactMinimo = {
+      useRef: (inicial) => { const k = i++; if (!ranuras[k]) ranuras[k] = { current: inicial }; return ranuras[k]; },
+      useEffect: (efecto, deps) => {
+        const k = i++;
+        const antes = ranuras[k];
+        if (antes && deps && antes.deps.length === deps.length && deps.every((d, j) => Object.is(d, antes.deps[j]))) return;
+        pendientes.push(() => { if (typeof antes?.limpiar === 'function') antes.limpiar(); ranuras[k] = { deps: deps || [], limpiar: efecto() }; });
+      },
+    };
+    const cargar = crearCargador({ dobles: {
+      react: reactMinimo,
+      'firebase/auth': { signInWithCustomToken: (auth, token) => { entradas.push({ auth, token }); return Promise.resolve(); } },
+      '../config/firebase': { auth: AUTH },
+      '../contexts/AuthContext': { useAuth: () => sesion },
+    } });
+    const EntradaDemo = cargar('components/EntradaDemo.tsx').default;
+    /* Pintar = React vuelve a llamar al componente con la sesión nueva y, después, corre los efectos cuyas dependencias cambiaron. */
+    const pintar = (cambio = {}) => {
+      sesion = { ...sesion, ...cambio };
+      ponerEnv({ EXPO_PUBLIC_FIREBASE_PROJECT_ID: proyecto, EXPO_PUBLIC_DEMO_UID: uid, EXPO_PUBLIC_AUTH_EMULATOR_HOST: emulador });
+      i = 0;
+      pendientes = [];
+      const salida = EntradaDemo();
+      pendientes.forEach((p) => p());
+      return salida;
+    };
+    return { pintar, entradas };
+  };
+
+  try {
+    {
+      const d = arrancar();
+      d.pintar({ loading: true, user: null });
+      d.pintar({ loading: false, user: QUIEN }); // la sesión venía guardada
+      d.pintar({ user: null }); // «Cerrar sesión»
+      d.pintar({}); // y la app sigue pintando
+      check('7m1) con la sesión guardada al arrancar, «Cerrar sesión» se queda cerrado: la demo no vuelve a entrar sola', d.entradas.length === 0, `${d.entradas.length} entrada(s)`);
+    }
+    {
+      const d = arrancar();
+      d.pintar({ loading: true, user: null });
+      d.pintar({ loading: false, user: null });
+      const alArrancar = d.entradas.length;
+      d.pintar({ user: QUIEN });
+      d.pintar({ user: null });
+      const [e] = d.entradas;
+      check('7m2) sin sesión al arrancar entra UNA vez, con el token de prueba del UID que pasó el arranque (sin contraseña), y tras salir no repite',
+        alArrancar === 1 && d.entradas.length === 1 && e.token === JSON.stringify({ uid: CUENTA.uid }) && e.auth === AUTH, `${d.entradas.length} entrada(s)`);
+    }
+    {
+      const d = arrancar(); // recargar la página después de salir: Firebase ya no tiene la sesión guardada
+      d.pintar({ loading: true, user: null });
+      const salida = d.pintar({ loading: false, user: null });
+      check('7m3) recargar después de salir vuelve a abrir la demo con la sesión iniciada (arranque nuevo, una entrada)', d.entradas.length === 1);
+      check('7m4) y sigue sin pintar nada', salida === null);
+    }
+    {
+      const d = arrancar();
+      d.pintar({ loading: false, user: QUIEN });
+      d.pintar({ user: null });
+      d.pintar({ user: OTRA }); // alguien entra a mano con el formulario
+      d.pintar({ user: null }); // y vuelve a salir
+      check('7m5) si después alguien entra a mano y vuelve a salir, tampoco entra sola', d.entradas.length === 0, `${d.entradas.length} entrada(s)`);
+    }
+    {
+      const d = arrancar();
+      d.pintar({ loading: true, user: null });
+      d.pintar({ loading: true, user: null });
+      check('7m6) mientras Auth no ha dicho si hay sesión, no entra', d.entradas.length === 0);
+    }
+    {
+      const entradasCon = (proyecto, extra = {}) => {
+        const a = arrancar({ proyecto, ...extra });
+        a.pintar({ loading: true, user: null }); a.pintar({ loading: false, user: null }); a.pintar({ user: QUIEN }); a.pintar({ user: null });
+        const b = arrancar({ proyecto, ...extra });
+        b.pintar({ loading: false, user: QUIEN }); b.pintar({ user: null });
+        return a.entradas.length + b.entradas.length;
+      };
+      check('7m7) fuera de la demo no entra nunca, aunque llegaran sus variables: producción (get-wee), wee-dev-geovet y sin proyecto',
+        entradasCon('get-wee') === 0 && entradasCon('wee-dev-geovet') === 0 && entradasCon(undefined) === 0);
+      check('7m8) y en un proyecto demo sin el UID del arranque, con un UID que no lo es, o sin el emulador de Auth, tampoco',
+        entradasCon('demo-wee-migracion', { uid: undefined }) === 0 && entradasCon('demo-wee-migracion', { uid: '' }) === 0
+        && entradasCon('demo-wee-migracion', { uid: 'quien@ejemplo.test' }) === 0 && entradasCon('demo-wee-migracion', { emulador: undefined }) === 0);
+    }
+  } finally {
+    ponerEnv(envAntes);
+  }
+}
 
 /* 8. La app */
 const contenido = fuente('utils/contenidoDemo.ts');

@@ -1,0 +1,5 @@
+{
+  "name": "wee_ia_tope_diario",
+  "description": "Peticiones de IA paradas por el tope de gasto diario",
+  "filter": "resource.type=\"cloud_run_revision\" AND ((textPayload:\"presupuesto_diario_agotado\" OR jsonPayload.message:\"presupuesto_diario_agotado\") OR (textPayload:\"presupuesto diario del proveedor alcanzado\" OR jsonPayload.message:\"presupuesto diario del proveedor alcanzado\"))"
+}

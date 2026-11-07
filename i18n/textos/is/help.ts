@@ -40,6 +40,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'Það er spjallið í Weë: einkasamtöl við annað fólk í samfélaginu, með texta, myndum og raddskilaboðum.',
   q9: 'Hvað er „Svona gerði ég þetta“?',
   a9: 'Þegar þú birtir getur þú sagt frá hvaða verkfæri þú notaðir, fyrirmælunum og ferlinu. Þannig læra aðrir af þér og þú af þeim, með einum smelli á „Afrita fyrirmæli“.',
+  q10: 'Hvert er aldurstakmarkið fyrir Weë?',
+  a10: 'Weë er aðeins í boði fyrir þá sem eru {{edad}} ára eða eldri. Beðið er um fæðingardaginn þinn við nýskráningu og þegar hann hefur verið vistaður er ekki hægt að breyta honum.',
   heroTitle: 'Hvernig getum við hjálpað?',
   legalVisibility: 'Það sem þú birtir er sýnilegt samfélaginu; það sem þú býrð til í Weë AI er lokað þar til þú ákveður að birta það. Þú getur eytt færslunum þínum og verkefnunum hvenær sem þú vilt.',
   askPrefill: 'Spurning til Weë: ',

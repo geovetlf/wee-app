@@ -25,6 +25,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}} svar',
   brainRespuestas_other: 'Weë Brain · {{contador}} svör',
   brainNoPudo: 'Weë Brain · gat ekki svarað',
+  brainMuestra: 'Weë Brain · sýnishorn af svari, ekki rukkað',
   studioVideo: 'Weë Studio · myndband',
   studioSinTiempo: 'Weë Studio · fyrri tilraun rann út á tíma',
   studioNoSePudo: 'Weë Studio · ekki tókst að búa til myndbandið',

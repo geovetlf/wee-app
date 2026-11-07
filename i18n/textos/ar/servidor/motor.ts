@@ -9,6 +9,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'هناك شيء ناقص في طلبك. راجعه وحاول مرة أخرى.',
   unauthorized: 'سجّل الدخول للإنشاء مع Weë.',
+  accountRequired: 'لإنشاء محتوى باستخدام Weë AI، سجّل الدخول أو أنشئ حسابك.',
   providerError: 'لم يتمكن الذكاء الاصطناعي من إكمال إبداعك هذه المرة. لم أخصم منك شيئًا: حاول مرة أخرى بعد قليل.',
   generationFailed: 'لم أتمكن من إكمال إبداعك. لم أخصم منك شيئًا: حاول مرة أخرى.',
   timeout: 'استغرق الأمر وقتًا طويلًا فأوقفته. لم أخصم منك شيئًا: حاول مرة أخرى.',
@@ -43,8 +44,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'لا يتوفر ذكاء اصطناعي لهذا الأمر حاليًا. حاول مرة أخرى لاحقًا.',
   noDisponibleActualmente: 'هذه الميزة غير متاحة حاليًا.',
   noDisponibleAhora: 'هذه الميزة غير متاحة في الوقت الحالي. حاول مرة أخرى بعد قليل.',
-  noDisponibleRegion: 'هذه الميزة غير متاحة حاليًا في منطقتك.',
-  noDisponiblePais: 'لاستخدام هذه الميزة، حدّد بلدك في الملف الحقيقي.',
   noDisponibleOpciones: 'هذه الميزة غير متاحة مع الخيارات التي حددتها. جرّب خيارات أخرى.',
   describeVideo: 'أخبرني بالفيديو الذي تريد إنشاءه.',
   creacionTerminada: 'اكتمل هذا الإبداع ولن يُعاد تنفيذه. ابحث عنه في إبداعاتك.',

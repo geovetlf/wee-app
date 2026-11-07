@@ -26,6 +26,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}} akissut',
   brainRespuestas_other: 'Weë Brain · {{contador}} akissutit',
   brainNoPudo: 'Weë Brain · akisinnaanngilaq',
+  brainMuestra: 'Weë Brain · akissut assersuut, akiliisitsinani',
   studioVideo: 'Weë Studio · videoliorneq',
   studioSinTiempo: 'Weë Studio · misiliinermi kingullermi piffissaq naammanngilaq',
   studioNoSePudo: 'Weë Studio · videoliorneq iluatsinngilaq',

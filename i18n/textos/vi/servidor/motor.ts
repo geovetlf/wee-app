@@ -7,6 +7,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Yêu cầu của bạn còn thiếu thông tin. Hãy kiểm tra và thử lại.',
   unauthorized: 'Hãy đăng nhập để sáng tạo cùng Weë.',
+  accountRequired: 'Để tạo nội dung với Weë AI, hãy đăng nhập hoặc tạo tài khoản.',
   providerError: 'Lần này AI chưa hoàn thành được tác phẩm của bạn. Bạn không bị trừ Credits: hãy thử lại sau ít phút.',
   generationFailed: 'Chưa thể hoàn thành tác phẩm của bạn. Bạn không bị trừ Credits: hãy thử lại.',
   timeout: 'Quá trình mất quá nhiều thời gian nên đã được dừng lại. Bạn không bị trừ Credits: hãy thử lại.',
@@ -41,8 +42,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Hiện chưa có AI nào khả dụng cho việc này. Hãy thử lại sau.',
   noDisponibleActualmente: 'Tính năng này hiện không khả dụng.',
   noDisponibleAhora: 'Tính năng này hiện không khả dụng. Hãy thử lại sau một lúc.',
-  noDisponibleRegion: 'Tính năng này hiện không khả dụng ở khu vực của bạn.',
-  noDisponiblePais: 'Để dùng tính năng này, hãy cho biết quốc gia của bạn trong Hồ sơ thật.',
   noDisponibleOpciones: 'Tính năng này không khả dụng với các tùy chọn bạn đã chọn. Hãy thử tùy chọn khác.',
   describeVideo: 'Hãy cho Weë biết bạn muốn tạo video gì.',
   creacionTerminada: 'Tác phẩm đó đã hoàn thành và sẽ không được tạo lại. Hãy tìm trong mục sáng tạo của bạn.',

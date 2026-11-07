@@ -9,6 +9,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Pyynnöstäsi puuttuu jotain. Tarkista se ja yritä uudelleen.',
   unauthorized: 'Kirjaudu sisään, niin voit luoda Weë-sovelluksella.',
+  accountRequired: 'Jos haluat luoda sisältöä Weë AI -palvelulla, kirjaudu sisään tai luo tili.',
   providerError: 'Tekoäly ei saanut luomustasi valmiiksi tällä kertaa. Sinua ei veloitettu: yritä hetken päästä uudelleen.',
   generationFailed: 'En saanut luomustasi valmiiksi. Sinua ei veloitettu: yritä uudelleen.',
   timeout: 'Se kesti liian kauan, joten keskeytin sen. Sinua ei veloitettu: yritä uudelleen.',
@@ -43,8 +44,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Juuri nyt tähän ei ole tekoälyä käytettävissä. Yritä myöhemmin uudelleen.',
   noDisponibleActualmente: 'Tämä toiminto ei ole tällä hetkellä käytettävissä.',
   noDisponibleAhora: 'Tämä toiminto ei ole juuri nyt käytettävissä. Yritä hetken päästä uudelleen.',
-  noDisponibleRegion: 'Tämä toiminto ei ole tällä hetkellä käytettävissä alueellasi.',
-  noDisponiblePais: 'Jos haluat käyttää tätä toimintoa, ilmoita maasi Oikeassa profiilissasi.',
   noDisponibleOpciones: 'Tämä toiminto ei ole käytettävissä valitsemillasi vaihtoehdoilla. Kokeile muita.',
   describeVideo: 'Kerro, millaisen videon haluat luoda.',
   creacionTerminada: 'Tämä luomus on jo valmis, eikä sitä tehdä uudelleen. Löydät sen luomuksistasi.',

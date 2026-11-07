@@ -136,6 +136,8 @@ export const DEFAULT_SETTINGS: EngineSettings = {
   video: { defaultModel: 'SEEDANCE_2_0_FAST' },
   // El interruptor de la IA (ver EngineSettings.iaDetenida): apagado, todo funciona como siempre.
   iaDetenida: false,
+  // El interruptor del vídeo (ver EngineSettings.videoHabilitado): APAGADO hasta que el vídeo sea asíncrono de punta a punta.
+  videoHabilitado: false,
 };
 
 /**

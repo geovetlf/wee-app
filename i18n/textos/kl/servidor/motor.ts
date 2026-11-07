@@ -13,6 +13,7 @@
 export const motor: typeof import('../../es/servidor/motor').motor = {
   invalidRequest: 'Qinnutinni arlaat amigaataavoq. Misissoruk misileqqigullu.',
   unauthorized: 'Weë atorlugu pilersitsiniaruit iserit.',
+  accountRequired: 'Weë AI atorlugu imarisassanik pilersitsiniaruit iserit imaluunniit kontu pilersiguk.',
   providerError: 'Maanna AI-p pilersitat naammassisinnaanngilaa. Akiliisinneqanngilatit: kinguninngua misileqqiguk.',
   generationFailed: 'Pilersitat naammassineqarnera iluatsinngilaq. Akiliisinneqanngilatit: misileqqiguk.',
   timeout: 'Sivisuallaarmat unitsippara. Akiliisinneqanngilatit: misileqqiguk.',
@@ -47,8 +48,6 @@ export const motor: typeof import('../../es/servidor/motor').motor = {
   sinProveedor: 'Maanna AI tamatumunnga atorneqarsinnaasoq peqanngilaq. Kingusinnerusukkut misileqqiguk.',
   noDisponibleActualmente: 'Periarfissaq una maanna atorneqarsinnaanngilaq.',
   noDisponibleAhora: 'Periarfissaq una maannakkorpiaq atorneqarsinnaanngilaq. Kinguninngua misileqqiguk.',
-  noDisponibleRegion: 'Periarfissaq una maanna sumiiffinni atorneqarsinnaanngilaq.',
-  noDisponiblePais: 'Periarfissaq una atorniarukku, nunat Profilinni piviusumi allaguk.',
   noDisponibleOpciones: 'Periarfissaq una periarfissanik toqqakkatinnik atorneqarsinnaanngilaq. Allat misilikkit.',
   describeVideo: 'Video qanoq ittoq pilersikkusunnerlugu oqaluttuarfiginga.',
   creacionTerminada: 'Pilersitaq taanna naammassereerpoq, pilersinneqaqqissanngilarlu. Pilersitanni ujaruk.',

@@ -56,7 +56,9 @@ WEE_DEMO_HOST=192.168.0.39 npm run demo:web
 ```
 
 En el teléfono, «Weë — Development Build» abre `http://192.168.0.39:8081`, en el mismo Wi-Fi. La cuenta de prueba solo
-existe en el emulador: correo y contraseña están en `ESPECTADOR` (`scripts/demo/datos.mjs`). Hay que elegir **English** en
+existe en el emulador: correo y contraseña están en `ESPECTADOR` (`scripts/demo/datos.mjs`), para entrar a mano. La app
+entra sola con el UID de esa cuenta y el token de prueba del emulador; la contraseña nunca viaja en el paquete (una variable
+`EXPO_PUBLIC` no es un secreto; decisión del dueño, 2026-11-07). Hay que elegir **English** en
 Configuración → Idioma si el aparato no está en inglés.
 
 ## Reiniciar

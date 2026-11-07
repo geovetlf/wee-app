@@ -24,6 +24,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}} jawapan',
   brainRespuestas_other: 'Weë Brain · {{contador}} jawapan',
   brainNoPudo: 'Weë Brain · tidak dapat menjawab',
+  brainMuestra: 'Weë Brain · jawapan contoh, tiada bayaran',
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · masa cubaan sebelumnya telah tamat',
   studioNoSePudo: 'Weë Studio · video tidak dapat dijana',

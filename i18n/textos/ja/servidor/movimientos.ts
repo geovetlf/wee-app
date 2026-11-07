@@ -23,6 +23,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}}件の回答',
   brainRespuestas_other: 'Weë Brain · {{contador}}件の回答',
   brainNoPudo: 'Weë Brain · 回答できませんでした',
+  brainMuestra: 'Weë Brain · サンプル回答（料金なし）',
   studioVideo: 'Weë Studio · 動画',
   studioSinTiempo: 'Weë Studio · 前回の試行が時間切れ',
   studioNoSePudo: 'Weë Studio · 動画を生成できませんでした',

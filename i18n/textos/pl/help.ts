@@ -46,6 +46,8 @@ export const help: ConPlurales<typeof import('../es/help').help> = {
   a8: 'To czat Weë: prywatne rozmowy z innymi osobami ze społeczności, z tekstem, zdjęciami i wiadomościami głosowymi.',
   q9: 'Czym jest „Jak to powstało”?',
   a9: 'Publikując, możesz opisać użyte narzędzia, prompt i proces. Tak inni uczą się od ciebie, a ty od nich, jednym dotknięciem „Kopiuj prompt”.',
+  q10: 'Ile lat trzeba mieć, aby korzystać z Weë?',
+  a10: 'Weë jest dostępny tylko dla osób, które mają co najmniej {{edad}} lat. Datę urodzenia podajesz podczas rejestracji, a po zapisaniu nie można jej zmienić.',
   heroTitle: 'W czym możemy ci pomóc?',
   legalVisibility: 'To, co publikujesz, widzi społeczność; to, co tworzysz w Weë AI, jest prywatne, dopóki nie zdecydujesz się tego opublikować. Możesz usunąć swoje posty i projekty, kiedy chcesz.',
   askPrefill: 'Pytanie do Weë: ',

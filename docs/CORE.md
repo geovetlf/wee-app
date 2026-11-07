@@ -62,6 +62,8 @@ Tres tipos de entidad y solo tres: `REAL_PROFILE`, `WEE_PROFILE`, `PAGE`. Un neg
 
 `Asset` y `Project` cuelgan de `ownerAccountId`. Antes decían `userId`, y en Weë un «user id» es la cara activa: con eso, cambiar de perfil cambiaba de dueño y publicar desde una Página habría obligado a copiar el archivo.
 
+**Perfil público y cuenta Weë válida (integración 2026-10-07, sin desplegar).** La cara pública de un perfil es `publicProfiles/{id}`, proyectada con lista blanca por `identity/perfilPublico.ts` (disparador `espejoDelPerfilPublico`); `users/{id}` quedará privado en la fase 2 (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo). Las puertas que generan o cobran piden `exigirCuentaWeeValida` (`identity/sesion.ts`), que valida la fecha guardada con la regla pura única `identity/edad.ts`. Ninguna de las dos cosas toca el Router, el Gateway ni el Credit Engine.
+
 ## Eventos de dominio: una forma y dos puertos
 
 `events.ts` declara la **forma** de un evento y los **puertos** para emitirlo y consumirlo. No declara infraestructura: ni cola, ni flujo, ni corredor. Eso es lo que permite que mañana lo transporte otra cosa sin tocar un contrato.

@@ -40,6 +40,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'Se on Weë-sovelluksen chat: yksityisiä keskusteluja yhteisön muiden ihmisten kanssa tekstillä, kuvilla ja ääniviesteillä.',
   q9: 'Mikä on ”Näin tein sen”?',
   a9: 'Julkaistessasi voit kertoa, mitä työkaluja käytit, sekä kehotteen ja prosessin. Näin muut oppivat sinulta ja sinä heiltä: riittää, että napautat ”Kopioi kehote”.',
+  q10: 'Kuinka vanha pitää olla, jotta voi käyttää Weë-sovellusta?',
+  a10: 'Weë on vain {{edad}} vuotta täyttäneille. Syntymäaikasi kysytään rekisteröitymisen yhteydessä, eikä sitä voi muuttaa tallentamisen jälkeen.',
   heroTitle: 'Miten voimme auttaa?',
   legalVisibility: 'Se, mitä julkaiset, näkyy yhteisölle; se, mitä luot Weë AI -palvelussa, on yksityistä, kunnes päätät julkaista sen. Voit poistaa julkaisusi ja projektisi milloin haluat.',
   askPrefill: 'Kysymys Weë-yhteisölle: ',
