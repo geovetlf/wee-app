@@ -70,7 +70,10 @@
         "cupos-config",
         "app-check",
         "cabeceras-seguridad",
-        "credits-perfil-duplicado"
+        "credits-perfil-duplicado",
+        "guest-sin-ia",
+        "edad-minima",
+        "perfil-publico"
       ]
     },
     {
@@ -111,7 +114,12 @@
         "linea-b-finanzas",
         "credits-saldo-privado",
         "brain-demo-no-cobra",
-        "gran-motor-c-creditos"
+        "gran-motor-c-creditos",
+        "compra-por-importe",
+        "boost-motor",
+        "boost-interfaz",
+        "mock-fallback-apagado",
+        "chat-limites"
       ]
     },
     {
@@ -182,7 +190,9 @@
         "rutas-resiliencia",
         "rutas-respaldo-real",
         "rutas-creatorrun",
-        "desactivacion-selectiva"
+        "desactivacion-selectiva",
+        "jurisdiccion-seedance",
+        "seedance-parametros"
       ]
     },
     {
@@ -222,7 +232,8 @@
         "brain-deepseek",
         "brain-bloque",
         "brain-operacion",
-        "brain-demo-no-cobra"
+        "brain-demo-no-cobra",
+        "creator-entrada-del-paso"
       ]
     },
     {
@@ -330,7 +341,13 @@
         "navegacion-parametros",
         "cierre-servidor",
         "weetalk-grabacion",
-        "correlacion-logs"
+        "correlacion-logs",
+        "wall-inmersivo",
+        "perfil-publicaciones",
+        "weels-feed",
+        "invitado-navegacion",
+        "comunidades-identidad",
+        "weepages"
       ]
     },
     {
@@ -384,7 +401,8 @@
         "Nivel 2 · suites"
       ],
       "suites": [
-        "travel"
+        "travel",
+        "travel-workplace"
       ]
     },
     {
@@ -431,6 +449,23 @@
         "crear-mundo-3d",
         "mundo3d-app",
         "evals-mundo3d"
+      ]
+    },
+    {
+      "id": "experiencia-creator",
+      "nombre": "Weë versión Creator (la navegación profesional de la misma app)",
+      "critico": false,
+      "ambito": "experiencia",
+      "estado": "activo",
+      "alcance": "Weë versión Creator (decisión del dueño, 2026-11-07: Creator NO es Weë Studio): un solo núcleo con la App y dos navegaciones; sin nada social; una cuenta y una billetera; /creator, su configuración y su billetera, la identidad activa, el degradado y los títulos en RTL dentro de su marco.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "version-profesional",
+        "creator-cuenta",
+        "creator-ajustes",
+        "creator-final"
       ]
     },
     {
@@ -495,7 +530,52 @@
         "i18n-phase6-migration",
         "i18n-textos-a-mano",
         "i18n-idioma-del-locale",
-        "idioma-servidor-coherencia"
+        "idioma-servidor-coherencia",
+        "i18n-frances-tuteo",
+        "i18n-l2-l3",
+        "i18n-aleman-suizo",
+        "i18n-arabe",
+        "i18n-bosnio",
+        "i18n-catalan",
+        "i18n-croata",
+        "i18n-filipino",
+        "i18n-fines",
+        "i18n-griego",
+        "i18n-hebreo",
+        "i18n-hungaro",
+        "i18n-indonesio",
+        "i18n-irlandes",
+        "i18n-jemer",
+        "i18n-malayo",
+        "i18n-mongol",
+        "i18n-montenegrino",
+        "i18n-neerlandes",
+        "i18n-noruego",
+        "i18n-islandes",
+        "i18n-groenlandes",
+        "i18n-persa",
+        "i18n-polaco",
+        "i18n-rumano",
+        "i18n-serbio",
+        "i18n-servidor-idiomas",
+        "i18n-vietnamita",
+        "eslogan-localizado",
+        "rtl-flechas",
+        "rtl-y-enlaces"
+      ]
+    },
+    {
+      "id": "identidad-visual",
+      "nombre": "Identidad visual de Weë",
+      "critico": false,
+      "ambito": "calidad",
+      "estado": "activo",
+      "alcance": "La identidad visual de Weë (decisión del dueño, 2026-11-07): el degradado de marca amarillo→naranja en cada acción principal de toda Weë —App y Creator—, con sus excepciones motivadas por escrito.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "degradado-de-marca"
       ]
     },
     {
@@ -536,7 +616,11 @@
         "guardia-cmd-colgado",
         "guardia-redirecciones",
         "guardia-lista-blanca-git",
-        "guardia-git-opciones"
+        "guardia-git-opciones",
+        "secretos-declarados",
+        "config-web-publicacion",
+        "users-fases",
+        "demo-aislamiento"
       ]
     },
     {
@@ -591,22 +675,28 @@
       "nombre": "Weë Music",
       "critico": false,
       "ambito": "experiencia",
-      "estado": "pendiente",
-      "pendiente": "Weë Music la construye otra rama (`music/composer-estudio`, no integrada) y su API no está conectada: no existe nada que verificar en esta base.",
-      "cuandoExista": "Al integrarse: suite propia en la cadena, pasos por spendCredits y ningún dato de muestra presentado como real.",
-      "ci": [],
-      "suites": []
+      "estado": "activo",
+      "alcance": "Weë Music v0 (decisión del dueño, 2026-11-07): la interfaz, el contrato, la matriz de proveedores candidatos y los adaptadores PREPARADOS, sin conectar. La generación sigue CERRADA: ningún adaptador registrado, ninguna API musical, ningún coste y ninguna clave propia (music A1, A3–A6, B10, D2, D6; secretos-declarados 8 y 8b). La cerca H2 vigila que no toque el servidor fuera de functions/src/music. Conectar un proveedor o habilitar la generación sigue siendo una decisión del dueño, aparte.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "music"
+      ]
     },
     {
       "id": "experiencia-fashion",
       "nombre": "Weë Fashion",
       "critico": false,
       "ambito": "experiencia",
-      "estado": "pendiente",
-      "pendiente": "Weë Fashion vive en otras ramas (`fashion/composer-v0`, `fashion/renombre-visible`), sin integrar en esta base.",
-      "cuandoExista": "Al integrarse: suite propia en la cadena y esta entrada pasa a `activo`.",
-      "ci": [],
-      "suites": []
+      "estado": "activo",
+      "alcance": "Weë Fashion dentro de Weë versión Creator (decisión del dueño, 2026-11-07): su entrada con la caja común de Weë Brain, la rejilla de Creator y sin galería de muestra presentada como real.",
+      "ci": [
+        "Nivel 2 · suites"
+      ],
+      "suites": [
+        "creator-fashion"
+      ]
     }
   ]
 }

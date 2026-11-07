@@ -53,9 +53,20 @@ console.log('\n── A · El mapa de dominios cuadra con la cadena ──');
   const activos = mapa.dominios.filter((d) => d.estado === 'activo');
   check('3) los dominios críticos son los del dinero, la identidad, los trabajos asíncronos, los proveedores, los archivos, la seguridad y el propio Guardian — y todos están activos',
     ['creditos-y-cobro', 'identidad-y-autorizacion', 'trabajos-asincronos', 'router-gateway-proveedores', 'media-y-archivos', 'seguridad-y-despliegue', 'guardian-y-harness', 'contratos-core', 'tipos-y-build'].every((id) => mapa.dominios.find((d) => d.id === id)?.critico === true && mapa.dominios.find((d) => d.id === id)?.estado === 'activo'));
-  check('4) las experiencias (Studio, Chef, Travel, Filmmaker, 3D) son dominios que usan la misma cadena, no un motor aparte', ['experiencia-studio', 'experiencia-chef', 'experiencia-travel', 'experiencia-filmmaker', 'experiencia-3d'].every((id) => activos.some((d) => d.id === id && d.ambito === 'experiencia')));
+  check('4) las experiencias (Studio, Chef, Travel, Filmmaker, 3D, Creator, Music, Fashion) son dominios que usan la misma cadena, no un motor aparte', ['experiencia-studio', 'experiencia-chef', 'experiencia-travel', 'experiencia-filmmaker', 'experiencia-3d', 'experiencia-creator', 'experiencia-music', 'experiencia-fashion'].every((id) => activos.some((d) => d.id === id && d.ambito === 'experiencia')));
   const pend = mapa.dominios.filter((d) => d.estado === 'pendiente');
-  check('5) Design, Music y Fashion figuran como PENDIENTES con su motivo (no hay nada que verificar todavía y no se inventa una prueba)', ['experiencia-design', 'experiencia-music', 'experiencia-fashion'].every((id) => pend.some((d) => d.id === id && d.suites.length === 0 && d.pendiente.length > 40 && d.cuandoExista)));
+  /*
+   * Decisión del dueño (2026-11-07, B2-G): Music y Fashion dejan de estar pendientes —sus suites existen (`music`,
+   * `creator-fashion`)— y pasan a dominios ACTIVOS con su suite; Design sigue pendiente con su motivo. Activar Music NO
+   * conecta proveedores ni habilita generaciones: eso lo vigilan `music` y `secretos-declarados`.
+   */
+  check('5) Design figura como PENDIENTE con su motivo (no hay nada que verificar todavía y no se inventa una prueba); Music y Fashion ya son dominios ACTIVOS con su suite y su check de la CI',
+    ['experiencia-design'].every((id) => pend.some((d) => d.id === id && d.suites.length === 0 && d.pendiente.length > 40 && d.cuandoExista))
+    && [['experiencia-music', 'music'], ['experiencia-fashion', 'creator-fashion']].every(([id, s]) => activos.some((d) => d.id === id && d.suites.includes(s) && d.ci.length > 0)));
+  check('5b) la identidad visual y Weë versión Creator tienen dominio propio, y Creator NO se clasifica como Studio (decisión del dueño, 2026-11-07)',
+    activos.some((d) => d.id === 'identidad-visual' && d.suites.includes('degradado-de-marca'))
+    && activos.some((d) => d.id === 'experiencia-creator' && ['version-profesional', 'creator-cuenta', 'creator-ajustes', 'creator-final'].every((s) => d.suites.includes(s)))
+    && !mapa.dominios.find((d) => d.id === 'experiencia-studio').suites.some((s) => /^creator-|^version-profesional$/.test(s)));
   check('6) cada dominio activo declara el check de la CI que lo cubre', activos.every((d) => Array.isArray(d.ci) && d.ci.length > 0));
   /* Mapas rotos, uno por cada cerrojo. */
   const con = (cambia) => { const m = structuredClone(mapa); cambia(m); return dom.validarDominios({ mapa: m, cadena, existe }).problemas.map((p) => p.id); };
@@ -65,8 +76,8 @@ console.log('\n── A · El mapa de dominios cuadra con la cadena ──');
   check('10) un dominio activo sin suites es un problema', con((m) => { m.dominios[0].suites = []; }).includes(`dominio:${mapa.dominios[0].id}:sin-suites`));
   check('11) un dominio CRÍTICO que no está activo es un problema (los críticos fallan cerrado)', con((m) => { const d = m.dominios.find((x) => x.id === 'creditos-y-cobro'); d.estado = 'pendiente'; d.suites = []; d.pendiente = 'x'; }).includes('dominio:creditos-y-cobro:critico-pendiente'));
   check('12) un pendiente sin motivo, o con suites, o con id repetido o estado desconocido, es un problema',
-    con((m) => { const d = m.dominios.find((x) => x.id === 'experiencia-music'); d.pendiente = ''; }).includes('dominio:experiencia-music:sin-motivo')
-    && con((m) => { m.dominios.find((x) => x.id === 'experiencia-music').suites = ['credits']; }).includes('dominio:experiencia-music:pendiente-con-suites')
+    con((m) => { const d = m.dominios.find((x) => x.id === 'experiencia-design'); d.pendiente = ''; }).includes('dominio:experiencia-design:sin-motivo')
+    && con((m) => { m.dominios.find((x) => x.id === 'experiencia-design').suites = ['credits']; }).includes('dominio:experiencia-design:pendiente-con-suites')
     && con((m) => { m.dominios.push({ ...m.dominios[0] }); }).some((id) => id.endsWith(':duplicado'))
     && con((m) => { m.dominios[0].estado = 'quizá'; }).some((id) => id.endsWith(':estado')));
   const sinContrato = dom.validarDominios({ mapa: { contrato: 'otro', dominios: [] }, cadena, existe });
@@ -138,7 +149,7 @@ console.log('\n── C · La verificación: nunca un verde por repetir ──')
 {
   const e = await ver.verificar({ raiz: RAIZ });
   check('29) la verificación estática del repositorio real PASA, y dice que NO ejecutó suites', e.resultado === 'PASA' && e.codigo === 0 && e.ejecucion === 'no-ejecutada' && e.dominios.every((f) => f.suites.every((s) => s.estado === 'NO_EJECUTADA')) && /NO se ejecutaron/.test(ver.aMarkdown(e)));
-  check('30) y lista los dominios pendientes (Design, Music, Fashion) en el informe, sin contarlos como verdes ocultos', e.pendientes.length === 3 && e.dominios.filter((f) => f.estado === 'PENDIENTE').length === 3);
+  check('30) y lista los dominios pendientes (hoy solo Design) en el informe, sin contarlos como verdes ocultos', e.pendientes.length === 1 && e.dominios.filter((f) => f.estado === 'PENDIENTE').length === 1 && e.pendientes.some((p) => p.id === 'experiencia-design'));
   /* Un ejecutor falso por suite. */
   const guion = (reglas) => { const llamadas = {}; const f = async (suite) => { llamadas[suite] = (llamadas[suite] || 0) + 1; const x = reglas[suite]; const r = typeof x === 'function' ? x(llamadas[suite]) : x; return { ms: 5, ...r }; }; f.llamadas = llamadas; return f; };
   const OK = { ok: true, codigo: 0, salida: '✔ todo bien' };
