@@ -11,7 +11,8 @@
  *   E  las reglas del cliente (modelo, audio de referencia, composer, borrador, brief).
  *   F  i18n: 16 idiomas con las mismas claves y huecos, sin nombres de proveedor, sin «Reel», claves usadas que existen.
  *   G  componentes: cajas comunes (ningún TextInput propio), sin imágenes remotas, roles de accesibilidad, puerta de iOS.
- *   H  integración mínima: Specialist → MusicScreen y nada más en los archivos compartidos.
+ *   H  integración mínima: Specialist → MusicScreen y nada más en los archivos compartidos; Music no se acopla al resto del
+ *      servidor (H2, acotada a Music) y el engine, el Core, Weë Brain y Credits siguen bajo cerca global (A11, G18; H6).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -78,9 +79,11 @@ const ANCLA_DE_INTEGRACION = 'a77ea340';
  *
  * Decisión del dueño (2026-11-07, B2-G): esos 43 archivos NO son una excepción permanente. Solo se reconoce el cambio
  * HISTÓRICO de la consolidación: lo que cambiaron entre el ancla y BASE_DE_LA_CONSOLIDACION (eb588b15, el final de W0), y
- * únicamente si los cambió una de las tres ramas de servidor respecto a su base (H3 lo comprueba con git). Desde eb588b15,
- * A11, G18 y H2 vigilan TODO cambio en ellos, venga de donde venga: ningún cambio futuro de Music en esos archivos queda
- * fuera (H4 es su control). La procedencia de cada archivo está en el informe B2-G de _correcciones-2026-11-06.
+ * únicamente si los cambió una de las tres ramas de servidor respecto a su base (H3 lo comprueba con git). Desde eb588b15
+ * esos archivos no tienen excepción: A11 y G18 vigilan TODO cambio en el engine, el Core, Weë Brain y Credits, venga de
+ * donde venga, y H2 —acotada a Music por decisión del dueño del 2026-11-07— cualquier acoplamiento de Music con el resto
+ * del servidor (H4, H5 y H6 son sus controles). La procedencia de cada archivo está en el informe B2-G de
+ * _correcciones-2026-11-06.
  */
 const BASE_DE_LA_CONSOLIDACION = 'eb588b15';
 /*
@@ -339,12 +342,62 @@ const DE_OTRAS_FUNCIONES = [
  */
 const DE_LA_DESPLEGABILIDAD = ['functions/src/secrets.ts'];
 /* Prohibido SIEMPRE: el servidor fuera de functions/src/music, lib, el hook de Weë Brain y los servicios, salvo las excepciones
-   con nombre que no son la de la consolidación. La de la consolidación (DE_LA_LINEA_DE_SERVIDOR) solo vale en el tramo histórico. */
+   con nombre que no son la de la consolidación. La de la consolidación (DE_LA_LINEA_DE_SERVIDOR) solo vale en el tramo histórico.
+   En el tramo histórico, cualquier cambio en ellos falla; en el posterior, falla si se ACOPLA a Music (H2, abajo). */
 const prohibidoSiempre = (f) => !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !I18N_DEL_SERVIDOR.includes(f) && !DE_OTRAS_FUNCIONES.includes(f) && !DE_LA_DESPLEGABILIDAD.includes(f) && f !== 'functions/src/index.ts' && f !== 'services/firestoreService.ts' && f !== 'services/weeBizService.ts' && /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
 const prohibidoHastaLaConsolidacion = (f) => prohibidoSiempre(f) && !DE_LA_LINEA_DE_SERVIDOR.includes(f);
-check('H2 ni el servidor fuera de functions/src/music, ni el cliente de Weë Brain, ni los servicios (la línea de servidor, solo hasta eb588b15)',
-  !HISTORICOS.some(prohibidoHastaLaConsolidacion) && !POSTERIORES.some(prohibidoSiempre),
-  [...HISTORICOS.filter(prohibidoHastaLaConsolidacion), ...POSTERIORES.filter(prohibidoSiempre)].join(','));
+/*
+ * H2 ACOTADA A MUSIC (decisión del dueño, 2026-11-07; docs/MUSIC.md § 11). El tramo HISTÓRICO no cambia: hasta eb588b15 solo
+ * vale la línea de servidor con procedencia (H3). Desde eb588b15, H2 ya no prohíbe CUALQUIER cambio del servidor —eso la
+ * convertía en una cerca global que paraba trabajo ajeno a Music, como el bloqueo de contactos de WeeTalk—, sino lo que
+ * ACOPLA Music al servidor, con tres pruebas:
+ *   (1) co-cambio: un commit —o el árbol de trabajo— que toca algo de Music y, a la vez, un archivo prohibido;
+ *   (2) nombre: en un archivo prohibido, una línea AÑADIDA desde eb588b15 que nombra Music o sus proveedores exclusivos;
+ *   (3) importaciones: functions/src/music no importa NADA de fuera de su carpeta salvo los dos módulos del engine que ya usa.
+ * La protección GLOBAL del engine, de Weë Brain y de Credits NO depende de Music y sigue igual: A11 (engine y Core) y G18
+ * (useBrainChat, brainService, creator y credits) fallan con cualquier cambio posterior, venga de donde venga (H6 las fija).
+ * Cada prueba es una función pura: H2 la aplica a la historia de la rama y H5 a entradas sintéticas.
+ */
+const { execFileSync } = await import('node:child_process');
+const git = (args) => execFileSync('git', ['-c', 'core.quotePath=false', ...args], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 64 << 20 });
+/** La superficie de Music: cualquier ruta que la nombre (su servidor, su pantalla, sus componentes, constantes, i18n, docs y pruebas). */
+const esDeMusic = (f) => /music/i.test(f);
+/* «Music» y sus proveedores EXCLUSIVOS. ElevenLabs y MiniMax también hacen voz: nombrarlos no acopla a Music. Los límites de
+   palabra cuentan las letras con tilde, así que «audio» y «Áudio» no son «udio». */
+const NOMBRA_MUSIC = /music|mureka|yinchao|(?<![\p{L}\p{N}_])(?:suno|udio)(?![\p{L}\p{N}_])/iu;
+const CARPETA_DE_MUSIC = 'functions/src/music';
+const IMPORTS_DE_MUSIC_AUTORIZADOS = ['functions/src/engine/types', 'functions/src/engine/http'];
+/** (1) Los archivos prohibidos de los commits (cada uno, la lista de sus archivos) que tocan también algo de Music. */
+const coCambioConMusic = (commits) => [...new Set(commits.filter((archivos) => archivos.some(esDeMusic)).flatMap((archivos) => archivos.filter(prohibidoSiempre)))].sort();
+/** (2) Los archivos prohibidos con alguna línea añadida que nombra Music o sus proveedores ({ archivo: [líneas añadidas] }). */
+const lineasQueNombranMusic = (anadidas) => Object.keys(anadidas).filter((f) => prohibidoSiempre(f) && anadidas[f].some((l) => NOMBRA_MUSIC.test(l))).sort();
+/** (3) Lo que un archivo de functions/src/music importa (import, export … from, import() y require()) y no es de su carpeta ni uno de los dos módulos autorizados. */
+const destinoDeImport = (archivo, spec) => (/^\.\.?(\/|$)/.test(spec)
+  ? path.posix.normalize(path.posix.join(path.posix.dirname(archivo), spec)).replace(/\/$/, '').replace(/\.(ts|tsx|js|mjs|cjs)$/, '').replace(/\/index$/, '')
+  : null);
+const importacionDeMusicAutorizada = (archivo, spec) => {
+  const destino = destinoDeImport(archivo, spec);
+  return destino !== null && (destino === CARPETA_DE_MUSIC || destino.startsWith(`${CARPETA_DE_MUSIC}/`) || IMPORTS_DE_MUSIC_AUTORIZADOS.includes(destino));
+};
+const importsDeMusicNoAutorizados = (archivo, texto) => ts.preProcessFile(texto, true, true).importedFiles.map((i) => i.fileName)
+  .filter((spec) => !importacionDeMusicAutorizada(archivo, spec)).map((spec) => `${archivo} importa ${spec}`);
+/* La historia posterior: cada commit sin fusión desde eb588b15 (un renombrado cuenta por sus dos rutas) y el árbol de trabajo. */
+const commitsPosteriores = git(['log', '--no-merges', '--no-renames', '--no-color', '--name-only', '--pretty=format:@@', `${BASE_DE_LA_CONSOLIDACION}..HEAD`])
+  .split('\n').map((l) => l.trim()).reduce((commits, l) => { if (l === '@@') commits.push([]); else if (l && commits.length) commits[commits.length - 1].push(l); return commits; }, []);
+const delArbolDeTrabajo = git(['diff', '--name-only', '--no-renames', 'HEAD']).split('\n').map((l) => l.trim()).filter(Boolean);
+const anadidasPosteriores = Object.fromEntries(POSTERIORES.filter(prohibidoSiempre).map((f) => [f,
+  git(['diff', '-U0', '--no-color', '--no-ext-diff', '--src-prefix=a/', '--dst-prefix=b/', BASE_DE_LA_CONSOLIDACION, '--', f])
+    .split('\n').filter((l) => l.startsWith('+') && !/^\+\+\+ (?:b\/|\/dev\/null)/.test(l))]));
+const archivosDeMusic = (carpeta = CARPETA_DE_MUSIC) => fs.readdirSync(path.join(RAIZ, carpeta), { withFileTypes: true })
+  .flatMap((e) => (e.isDirectory() ? archivosDeMusic(`${carpeta}/${e.name}`) : /\.(ts|tsx|js|mjs|cjs)$/.test(e.name) ? [`${carpeta}/${e.name}`] : []));
+const acopladoAMusic = [
+  ...coCambioConMusic([...commitsPosteriores, delArbolDeTrabajo]).map((f) => `co-cambio con Music: ${f}`),
+  ...lineasQueNombranMusic(anadidasPosteriores).map((f) => `línea nueva que nombra Music: ${f}`),
+  ...archivosDeMusic().flatMap((f) => importsDeMusicNoAutorizados(f, leer(f))),
+];
+check('H2 Music no se acopla al servidor: hasta eb588b15, nada fuera de la línea de servidor; desde entonces, ni un commit que toque Music y el servidor, ni una línea nueva del servidor que nombre Music o sus proveedores, ni un import de Music fuera de su carpeta salvo engine/types y engine/http',
+  !HISTORICOS.some(prohibidoHastaLaConsolidacion) && !acopladoAMusic.length,
+  [...HISTORICOS.filter(prohibidoHastaLaConsolidacion), ...acopladoAMusic].join(', '));
 /* H3 · la excepción de la consolidación es HISTÓRICA y con procedencia comprobada con git, no una lista que se pueda engordar. */
 /* Cada commit de la procedencia (y el ancla y la base) tiene que estar en la historia de esta rama: si no, H3 cae con un ✘ claro, no con una excepción. */
 const enLaHistoria = (c) => { try { ejecutar(`git merge-base --is-ancestor ${c} HEAD`, { cwd: RAIZ, stdio: 'ignore' }); return true; } catch { return false; } };
@@ -355,10 +408,51 @@ const noCambiaronHastaLaConsolidacion = DE_LA_LINEA_DE_SERVIDOR.filter((f) => !H
 check('H3 la excepción de la consolidación es HISTÓRICA: sus 43 archivos, sin repetir, los cambió una de las tres ramas de servidor (comprobado con commits de la historia publicada) y cambiaron hasta eb588b15; después no cuenta',
   !fueraDeLaHistoria.length && DE_LA_LINEA_DE_SERVIDOR.length === 43 && new Set(DE_LA_LINEA_DE_SERVIDOR).size === 43 && !sinProcedencia.length && !noCambiaronHastaLaConsolidacion.length,
   [...fueraDeLaHistoria.map((c) => `fuera de la historia: ${c}`), ...sinProcedencia.map((f) => `sin procedencia: ${f}`), ...noCambiaronHastaLaConsolidacion.map((f) => `no cambió hasta eb588b15: ${f}`)].join(' | '));
-check('H4 CONTROL: un cambio posterior a eb588b15 en uno de esos 43 archivos (engine/router.ts, credits/creditEngine.ts, creator/brain.ts) cae en H2; el de secrets.ts (B2) no, y Music sigue libre en su carpeta',
-  ['functions/src/engine/router.ts', 'functions/src/credits/creditEngine.ts', 'functions/src/creator/brain.ts'].every(prohibidoSiempre)
-  && ['functions/src/engine/router.ts', 'functions/src/credits/creditEngine.ts', 'functions/src/creator/brain.ts'].every((f) => !prohibidoHastaLaConsolidacion(f))
+/* El alcance GLOBAL de A11 y G18, con el mismo texto que usan sus líneas (H6 comprueba en el código de esta suite que es ese). */
+const ALCANCE_DE_A11 = ['functions/src/engine', 'functions/src/core'];
+const ALCANCE_DE_G18 = /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/;
+const enElAlcanceGlobal = (f) => ALCANCE_DE_A11.some((d) => f.startsWith(`${d}/`)) || (ALCANCE_DE_G18.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f));
+const DE_LOS_43_DE_CONTROL = ['functions/src/engine/router.ts', 'functions/src/credits/creditEngine.ts', 'functions/src/creator/brain.ts'];
+check('H4 CONTROL: tras eb588b15, esos 43 archivos (engine/router.ts, credits/creditEngine.ts, creator/brain.ts) no tienen excepción —acoplados a Music caen en H2 y, acoplados o no, los paran A11 o G18—; secrets.ts (B2) no es servidor prohibido y Music sigue libre en su carpeta',
+  DE_LOS_43_DE_CONTROL.every(prohibidoSiempre)
+  && DE_LOS_43_DE_CONTROL.every((f) => !prohibidoHastaLaConsolidacion(f))
+  && JSON.stringify(coCambioConMusic(DE_LOS_43_DE_CONTROL.map((f) => ['functions/src/music/index.ts', f]))) === JSON.stringify([...DE_LOS_43_DE_CONTROL].sort())
+  && DE_LOS_43_DE_CONTROL.every(enElAlcanceGlobal)
   && !prohibidoSiempre('functions/src/secrets.ts') && !prohibidoSiempre('functions/src/music/index.ts'));
+const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+check('H5 CONTROL: las tres pruebas de H2 detectan lo suyo — (1) un commit con Music y servidor cae, y el mismo cambio en dos commits no; (2) una línea añadida que importa ../music o nombra Mureka, Yinchao, Suno, Udio o Weë Music cae, y «audio», «Áudio» o ElevenLabs no; (3) Music importa su carpeta y los dos módulos del engine, y nada más',
+  igual(coCambioConMusic([['functions/src/music/index.ts', 'functions/src/social/avisos.ts', 'docs/MUSIC.md']]), ['functions/src/social/avisos.ts'])
+  && igual(coCambioConMusic([['screens/MusicScreen.tsx', 'services/econtactService.ts', 'hooks/useBrainChat.ts']]), ['hooks/useBrainChat.ts', 'services/econtactService.ts'])
+  && igual(coCambioConMusic([['functions/src/social/avisos.ts'], ['functions/src/music/index.ts']]), [])
+  && igual(coCambioConMusic([['functions/src/music/index.ts', 'functions/test/music.test.mjs', 'docs/MUSIC.md', 'i18n/textos/es/music.ts']]), [])
+  && igual(lineasQueNombranMusic({
+    'functions/src/social/avisos.ts': ["+import { MATRIZ } from '../music/matrix';"],
+    'services/econtactService.ts': ['+// lo conecta con Mureka'],
+    'functions/src/content/index.ts': ['+const p = "yinchao";'],
+    'functions/src/identity/sesion.ts': ['+  proveedor: "Suno",'],
+    'functions/src/runtime/conductor.ts': ['+// Udio'],
+    'functions/src/settlement/programado.ts': ['+// para Weë Music'],
+  }), ['functions/src/content/index.ts', 'functions/src/identity/sesion.ts', 'functions/src/runtime/conductor.ts', 'functions/src/settlement/programado.ts', 'functions/src/social/avisos.ts', 'services/econtactService.ts'])
+  && igual(lineasQueNombranMusic({
+    'functions/src/social/avisos.ts': ['+const tipo = "audio";', '+  "audio": "🎤 Áudio",', '+// voz con ElevenLabs o MiniMax', '+export const sunoco = 1;'],
+    'functions/src/social/econtact.ts': ['+export const x = 1;'],
+  }), [])
+  && igual(importsDeMusicNoAutorizados('functions/src/music/providers.ts',
+    "import { ModelSpec } from '../engine/types';\nimport { env } from '../engine/http';\nimport type { C } from './contract';\nimport {\n  M,\n} from './matrix';\nexport * from './index';\nconst s = 'copiado from ../creator/brain';\n// import x from '../credits/creditEngine';"), [])
+  && igual(importsDeMusicNoAutorizados('functions/src/music/sub/x.ts', "import { C } from '../contract';\nimport { T } from '../../engine/types';"), [])
+  && igual(importsDeMusicNoAutorizados('functions/src/music/index.ts',
+    "import { g } from '../social/avisos';\nimport fs from 'node:fs';\nexport { r } from '../engine/router';\nconst b = await import('../creator/brain');\nconst c = require('../credits/creditEngine');\nimport '../core/brain';\nimport { u } from '../music/../engine/registry';"),
+    ['functions/src/music/index.ts importa ../social/avisos', 'functions/src/music/index.ts importa node:fs', 'functions/src/music/index.ts importa ../engine/router',
+      'functions/src/music/index.ts importa ../creator/brain', 'functions/src/music/index.ts importa ../credits/creditEngine', 'functions/src/music/index.ts importa ../core/brain',
+      'functions/src/music/index.ts importa ../music/../engine/registry']));
+const estaSuite = leer('functions/test/music.test.mjs').split(/\r?\n/);
+const lineasQueEmpiezan = (inicio) => estaSuite.filter((l) => l.startsWith(inicio));
+check('H6 CONTROL: la protección GLOBAL del engine, de Weë Brain y de Credits no depende de Music — A11 sigue exigiendo cero cambios posteriores en el engine y el Core, y G18 en useBrainChat, brainService, creator y credits, vengan de donde vengan',
+  igual(lineasQueEmpiezan('const motorPosterior = '), [`const motorPosterior = archivosCambiados(BASE_DE_LA_CONSOLIDACION, [${ALCANCE_DE_A11.map((d) => `'${d}'`).join(', ')}]);`])
+  && igual(lineasQueEmpiezan('  motorHistorico.every('), ['  motorHistorico.every((f) => DE_LA_LINEA_DE_SERVIDOR.includes(f)) && motorPosterior.length === 0,'])
+  && igual(lineasQueEmpiezan('  && !POSTERIORES.some('), [`  && !POSTERIORES.some((f) => ${ALCANCE_DE_G18}.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f))`])
+  && ['functions/src/engine/router.ts', 'functions/src/core/brain.ts', 'functions/src/creator/brain.ts', 'functions/src/credits/creditEngine.ts', 'hooks/useBrainChat.ts', 'services/brainService.ts'].every(enElAlcanceGlobal)
+  && !enElAlcanceGlobal('functions/src/social/econtact.ts') && !enElAlcanceGlobal('functions/src/music/index.ts'));
 
 console.log(fallo ? `\n✘ ${fallo} fallos` : '\n✔ todo bien');
 process.exit(fallo ? 1 : 0);

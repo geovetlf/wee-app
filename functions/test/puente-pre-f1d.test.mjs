@@ -761,15 +761,31 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
   const DEL_GUEST_GATE = ['functions/src/identity/sesion.ts', 'functions/src/core/errors.ts', 'functions/src/creator/rutaPrevia.ts'];
   /* El tope de la conversación gratuita (2026-10-14): `creatorChat` limita turnos por minuto y por día, conversaciones nuevas y consumo estimado; el módulo es nuevo y vive en creator/. */
   const DEL_TOPE_DEL_CHAT = ['functions/src/creator/chatLimite.ts'];
-  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado',
-    JSON.stringify(tocados) === JSON.stringify([...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
-      'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
-      'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
-      'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
-      'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
-      ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_MUSIC, ...DE_WEEPAGES, ...DE_COMUNIDADES, ...DE_BOOST, ...DE_LA_COMPRA_POR_IMPORTE, ...DE_LA_LINEA_B, ...DE_LA_F06, ...DE_GRAN_MOTOR_D, ...DE_GRAN_MOTOR_B, ...DE_GRAN_MOTOR_S2, ...DE_LA_CORRECCION_P0, ...DE_LA_EDAD_MINIMA, ...DEL_GUEST_GATE, ...DE_LA_SEGURIDAD_DE_USERS, ...DEL_TOPE_DEL_CHAT,
-    ].filter((f, i, a) => a.indexOf(f) === i).sort()),
+  /*
+   * El BLOQUEO DE CONTACTOS de WeeTalk (PR 44, docs/WEETALK-BLOQUEO.md), autorizado por el dueño el 2026-11-07: el motor
+   * y su índice (nuevos) y la consulta del índice en ËContact. functions/src/index.ts ya estaba nombrado. Estos tres se
+   * ADMITEN sin exigirse —esta comprobación vive también en ramas que salen de W0, que no los tienen—; para todo lo demás
+   * F1 sigue siendo EXACTA (F1b y F1c lo vigilan). Cuando WeeTalk se integre, pasan a la lista obligatoria.
+   */
+  const DE_WEETALK_BLOQUEO = ['functions/src/social/bloqueosIndice.ts', 'functions/src/social/econtact.ts', 'functions/src/social/weetalkBloqueos.ts'];
+  const ESPERADOS = [...DEL_HARNESS, ...DE_I18N_DA, ...DE_LA_REVISION, ...DEL_CIERRE, ...DE_LOS_EVALS, ...DE_LA_MISION_FAL, ...DE_LA_MISION_MUNDO3D,
+    'functions/src/content/materializador.ts', 'functions/src/creator/plano.ts', 'functions/src/creator/toma.ts', 'functions/src/creator/video.ts',
+    'functions/src/engine/limits.ts', 'functions/src/engine/providers/seedance.ts',
+    'functions/src/runtime/ejecutor.ts', 'functions/src/runtime/index.ts', 'functions/src/runtime/materializacion.ts',
+    'functions/src/shots/index.ts', 'functions/src/shots/puerta.ts',
+    ...DEL_CICLO_DE_VIDA_3D, ...DE_LAS_URLS_DEL_STORAGE, ...DE_LA_GOBERNANZA_DEL_MUNDO, ...DEL_COSTE_DE_LO_ACEPTADO, ...DE_MUSIC, ...DE_WEEPAGES, ...DE_COMUNIDADES, ...DE_BOOST, ...DE_LA_COMPRA_POR_IMPORTE, ...DE_LA_LINEA_B, ...DE_LA_F06, ...DE_GRAN_MOTOR_D, ...DE_GRAN_MOTOR_B, ...DE_GRAN_MOTOR_S2, ...DE_LA_CORRECCION_P0, ...DE_LA_EDAD_MINIMA, ...DEL_GUEST_GATE, ...DE_LA_SEGURIDAD_DE_USERS, ...DEL_TOPE_DEL_CHAT,
+  ].filter((f, i, a) => a.indexOf(f) === i).sort();
+  const sinWeeTalk = (lista) => lista.filter((f) => !DE_WEETALK_BLOQUEO.includes(f)).sort();
+  const tocadosSinWeeTalk = sinWeeTalk(tocados);
+  check('F1) en el código solo se tocan la puerta, el ejecutor, la composición del runtime y la identidad del material — y los archivos nominales de F1-D, del Harness, de la integración i18n da-DK, de los evals (F2-C1), de la misión fal, de la misión mundo3d, del ciclo de vida 3D, de la gobernanza del mundo 3D, de la revisión de las direcciones del Storage y del coste de lo aceptado (y, si están, los tres del bloqueo de WeeTalk)',
+    JSON.stringify(tocadosSinWeeTalk) === JSON.stringify(ESPERADOS),
     tocados.join(', '));
+  check('F1b) la lista de WeeTalk son exactamente esos tres archivos, y ninguno estaba ya en las obligatorias: no se relaja nada más',
+    DE_WEETALK_BLOQUEO.length === 3 && new Set(DE_WEETALK_BLOQUEO).size === 3 && !DE_WEETALK_BLOQUEO.some((f) => ESPERADOS.includes(f)));
+  check('F1c) CONTROL: F1 sigue siendo exacta para todo lo demás — con los de WeeTalk pasa; con un archivo de más fuera de las listas, o con uno de menos, falla',
+    JSON.stringify(sinWeeTalk([...ESPERADOS, ...DE_WEETALK_BLOQUEO])) === JSON.stringify(ESPERADOS)
+    && JSON.stringify(sinWeeTalk([...ESPERADOS, 'functions/src/social/otro.ts'])) !== JSON.stringify(ESPERADOS)
+    && JSON.stringify(sinWeeTalk(ESPERADOS.slice(1))) !== JSON.stringify(ESPERADOS));
 
   /* La FASE 1 del Harness cierra spendCredits al cliente (b878068, H0 #24): solo su callable, en credits/index.ts, y de ese tamaño. */
   /* + creditEngine.ts: revisión post-auditoría 2026-10-01 (money/remigracion-por-segundo-perfil), bloques exactos en job-queue 63p. */
