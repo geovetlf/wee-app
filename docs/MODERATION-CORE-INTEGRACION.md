@@ -14,7 +14,8 @@
 |---|---|
 | `e02dbc9b` | Catálogo único de motivos (la lista del dueño) en el servidor, la hoja y los 42 diccionarios |
 | `323d3c6c` | El Moderation Core: casos, acciones, custodia, sanciones, apelaciones, auditoría, avisos sin enviar, contratos de la Consola |
-| (commit de las decisiones del 2026-11-07) | Autolesiones recuperada como opción propia y señal de riesgo; marca de «mismo revisor»; decisiones aprobadas, WeeTalk fuera, diseño de sanciones, roles propuestos y este documento |
+| `18701349` | Decisiones del dueño del 2026-11-07: autolesiones recuperada como opción propia y señal de riesgo; marca de «mismo revisor»; decisiones aprobadas, WeeTalk fuera, diseño de sanciones, roles propuestos y este documento |
+| (el commit que apunta este SHA) | Solo documentación |
 
 ## 2. Archivos compartidos con W0 y conflictos posibles
 
