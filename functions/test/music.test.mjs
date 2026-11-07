@@ -379,11 +379,31 @@ const importacionDeMusicAutorizada = (archivo, spec) => {
   const destino = destinoDeImport(archivo, spec);
   return destino !== null && (destino === CARPETA_DE_MUSIC || destino.startsWith(`${CARPETA_DE_MUSIC}/`) || IMPORTS_DE_MUSIC_AUTORIZADOS.includes(destino));
 };
-const importsDeMusicNoAutorizados = (archivo, texto) => ts.preProcessFile(texto, true, true).importedFiles.map((i) => i.fileName)
-  .filter((spec) => !importacionDeMusicAutorizada(archivo, spec)).map((spec) => `${archivo} importa ${spec}`);
-/* La historia posterior: cada commit sin fusión desde eb588b15 (un renombrado cuenta por sus dos rutas) y el árbol de trabajo. */
-const commitsPosteriores = git(['log', '--no-merges', '--no-renames', '--no-color', '--name-only', '--pretty=format:@@', `${BASE_DE_LA_CONSOLIDACION}..HEAD`])
-  .split('\n').map((l) => l.trim()).reduce((commits, l) => { if (l === '@@') commits.push([]); else if (l && commits.length) commits[commits.length - 1].push(l); return commits; }, []);
+/* Un import con ruta CALCULADA no se puede comprobar: require()/import() sin literal, require usado como valor, createRequire,
+   eval y Function cargan código que la prueba 3 no vería. En functions/src/music no hay ninguno, y ninguno puede aparecer. */
+const usosDinamicosDeMusic = (archivo, texto) => {
+  const hallados = [];
+  const esLiteral = (a) => !!a && (ts.isStringLiteral(a) || ts.isNoSubstitutionTemplateLiteral(a));
+  const visitar = (n) => {
+    if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword && !esLiteral(n.arguments[0])) hallados.push('import() con ruta calculada');
+    if (ts.isIdentifier(n) && n.text === 'require'
+      && !(ts.isCallExpression(n.parent) && n.parent.expression === n && esLiteral(n.parent.arguments[0]))) hallados.push('require con ruta calculada o como valor');
+    if (ts.isIdentifier(n) && /^(createRequire|eval|Function|mainModule)$/.test(n.text)) hallados.push(n.text);
+    ts.forEachChild(n, visitar);
+  };
+  visitar(ts.createSourceFile(archivo, texto, ts.ScriptTarget.Latest, true));
+  return [...new Set(hallados)].map((h) => `${archivo} usa ${h}`);
+};
+const importsDeMusicNoAutorizados = (archivo, texto) => [
+  ...ts.preProcessFile(texto, true, true).importedFiles.map((i) => i.fileName)
+    .filter((spec) => !importacionDeMusicAutorizada(archivo, spec)).map((spec) => `${archivo} importa ${spec}`),
+  ...usosDinamicosDeMusic(archivo, texto),
+];
+/* La historia posterior: cada commit desde eb588b15 —un renombrado cuenta por sus dos rutas (--no-renames) y un merge por los
+   cambios que hace él mismo (--cc: un merge limpio no lista nada; uno que añade cambios propios, sí)— y el árbol de trabajo. */
+const commitsDeLaSalidaDeLog = (salida) => salida.split('\n').map((l) => l.trim())
+  .reduce((commits, l) => { if (l === '@@') commits.push([]); else if (l && commits.length) commits[commits.length - 1].push(l); return commits; }, []);
+const commitsPosteriores = commitsDeLaSalidaDeLog(git(['log', '--cc', '--no-renames', '--no-color', '--name-only', '--pretty=format:@@', `${BASE_DE_LA_CONSOLIDACION}..HEAD`]));
 const delArbolDeTrabajo = git(['diff', '--name-only', '--no-renames', 'HEAD']).split('\n').map((l) => l.trim()).filter(Boolean);
 const anadidasPosteriores = Object.fromEntries(POSTERIORES.filter(prohibidoSiempre).map((f) => [f,
   git(['diff', '-U0', '--no-color', '--no-ext-diff', '--src-prefix=a/', '--dst-prefix=b/', BASE_DE_LA_CONSOLIDACION, '--', f])
@@ -444,7 +464,19 @@ check('H5 CONTROL: las tres pruebas de H2 detectan lo suyo — (1) un commit con
     "import { g } from '../social/avisos';\nimport fs from 'node:fs';\nexport { r } from '../engine/router';\nconst b = await import('../creator/brain');\nconst c = require('../credits/creditEngine');\nimport '../core/brain';\nimport { u } from '../music/../engine/registry';"),
     ['functions/src/music/index.ts importa ../social/avisos', 'functions/src/music/index.ts importa node:fs', 'functions/src/music/index.ts importa ../engine/router',
       'functions/src/music/index.ts importa ../creator/brain', 'functions/src/music/index.ts importa ../credits/creditEngine', 'functions/src/music/index.ts importa ../core/brain',
-      'functions/src/music/index.ts importa ../music/../engine/registry']));
+      'functions/src/music/index.ts importa ../music/../engine/registry'])
+  && [
+    "const ruta = '../social/avisos';\nconst m = require(ruta);",
+    "const ruta = '../creator/brain';\nconst m = await import(ruta);",
+    "const m = await import(`../${'social'}/avisos`);",
+    "const r = require;\nr('../social/avisos');",
+    "const m = module.require('../social/avisos');",
+    "import { createRequire } from './contract';\nconst r = createRequire(import.meta.url);",
+    "eval(\"require('../social/avisos')\");",
+    "const f = new Function('return 1');",
+    "const m = process.mainModule.require('../social/avisos');",
+  ].every((t) => importsDeMusicNoAutorizados('functions/src/music/index.ts', t).some((v) => / usa /.test(v)))
+  && igual(importsDeMusicNoAutorizados('functions/src/music/index.ts', "import { C } from './contract';\nexport const requisitos = 'requiere eval y Function en el texto, no en el código';"), []));
 const estaSuite = leer('functions/test/music.test.mjs').split(/\r?\n/);
 const lineasQueEmpiezan = (inicio) => estaSuite.filter((l) => l.startsWith(inicio));
 check('H6 CONTROL: la protección GLOBAL del engine, de Weë Brain y de Credits no depende de Music — A11 sigue exigiendo cero cambios posteriores en el engine y el Core, y G18 en useBrainChat, brainService, creator y credits, vengan de donde vengan',
@@ -453,6 +485,11 @@ check('H6 CONTROL: la protección GLOBAL del engine, de Weë Brain y de Credits 
   && igual(lineasQueEmpiezan('  && !POSTERIORES.some('), [`  && !POSTERIORES.some((f) => ${ALCANCE_DE_G18}.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f))`])
   && ['functions/src/engine/router.ts', 'functions/src/core/brain.ts', 'functions/src/creator/brain.ts', 'functions/src/credits/creditEngine.ts', 'hooks/useBrainChat.ts', 'services/brainService.ts'].every(enElAlcanceGlobal)
   && !enElAlcanceGlobal('functions/src/social/econtact.ts') && !enElAlcanceGlobal('functions/src/music/index.ts'));
+const lineaDelLog = lineasQueEmpiezan('const commitsPosteriores = ');
+check('H7 CONTROL: la historia del co-cambio incluye los merges por sus cambios propios (--cc) y los renombrados por sus dos rutas (--no-renames); un merge que añade Music y servidor cae, uno limpio no',
+  lineaDelLog.length === 1 && /'--cc'/.test(lineaDelLog[0]) && /'--no-renames'/.test(lineaDelLog[0]) && !/--no-merges/.test(lineaDelLog[0])
+  && igual(coCambioConMusic(commitsDeLaSalidaDeLog('@@ \n\n@@ \nfunctions/src/music/index.ts\nfunctions/src/social/avisos.ts\n\n@@ \ndocs/MUSIC.md\n')), ['functions/src/social/avisos.ts'])
+  && igual(coCambioConMusic(commitsDeLaSalidaDeLog('@@ \n\n@@ \nfunctions/src/social/avisos.ts\n\n@@ \nfunctions/src/music/index.ts\n')), []));
 
 console.log(fallo ? `\n✘ ${fallo} fallos` : '\n✔ todo bien');
 process.exit(fallo ? 1 : 0);
