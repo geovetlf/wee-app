@@ -74,9 +74,24 @@ const ANCLA_DE_INTEGRACION = 'a77ea340';
 /*
  * Consolidación W0 (2026-11-06, rama candidato/desplegable): encima de App + Creator se fusionan la línea de SERVIDOR
  * —gran-motor/cierre (a1ec25eb), integracion/p0-edad-fase1 (bf790c98) y los topes del chat (6c13cbc5)—, que tocan el
- * engine, el Core, Credits, Weë Brain y el servidor de creator. Nada de eso es Music: se exceptúa con nombre y apellidos
- * (cada archivo lo cambió una de esas tres ramas respecto a su base) y todo lo demás sigue vigilado igual.
+ * engine, el Core, Credits, Weë Brain y el servidor de creator. Nada de eso es Music.
+ *
+ * Decisión del dueño (2026-11-07, B2-G): esos 43 archivos NO son una excepción permanente. Solo se reconoce el cambio
+ * HISTÓRICO de la consolidación: lo que cambiaron entre el ancla y BASE_DE_LA_CONSOLIDACION (eb588b15, el final de W0), y
+ * únicamente si los cambió una de las tres ramas de servidor respecto a su base (H3 lo comprueba con git). Desde eb588b15,
+ * A11, G18 y H2 vigilan TODO cambio en ellos, venga de donde venga: ningún cambio futuro de Music en esos archivos queda
+ * fuera (H4 es su control). La procedencia de cada archivo está en el informe B2-G de _correcciones-2026-11-06.
  */
+const BASE_DE_LA_CONSOLIDACION = 'eb588b15';
+const BASE_DE_LAS_RAMAS_DE_SERVIDOR = '5efbc0a7';
+const RAMAS_DE_LA_LINEA_DE_SERVIDOR = Object.freeze({ 'gran-motor/cierre': 'a1ec25eb', 'integracion/p0-edad-fase1': 'bf790c98', 'topes de creatorChat': '6c13cbc5' });
+const { execSync: ejecutar } = await import('node:child_process');
+/** Los archivos que cambian en un rango de git (`<desde> <hasta>`) o desde un commit hasta el árbol de trabajo (`<desde>`). */
+const archivosCambiados = (rango, rutas = []) =>
+  ejecutar(`git diff --name-only ${rango}${rutas.length ? ` -- ${rutas.join(' ')}` : ''}`, { cwd: RAIZ }).toString().trim().split('\n').filter(Boolean);
+/** El pasado reconocido (fijo) y lo que vino después de la consolidación (vigilado sin su excepción). */
+const HISTORICOS = archivosCambiados(`${ANCLA_DE_INTEGRACION} ${BASE_DE_LA_CONSOLIDACION}`);
+const POSTERIORES = archivosCambiados(BASE_DE_LA_CONSOLIDACION);
 const DE_LA_LINEA_DE_SERVIDOR = [
   'functions/src/content/index.ts', 'functions/src/content/materializador.ts',
   'functions/src/core/backup.ts', 'functions/src/core/brain.ts', 'functions/src/core/errors.ts',
@@ -93,8 +108,11 @@ const DE_LA_LINEA_DE_SERVIDOR = [
   'functions/src/settlement/programado.ts', 'functions/src/shots/index.ts', 'functions/src/social/weetalk.ts', 'functions/src/vertexAI.ts',
   'services/creatorService.ts',
 ];
-check('A11 el Router y el registro del engine no se tocaron en esta rama (salvo lo que trae la línea de servidor, con nombre)',
-  (await import('node:child_process')).execSync(`git diff --name-only ${ANCLA_DE_INTEGRACION} -- functions/src/engine functions/src/core`, { cwd: RAIZ }).toString().trim().split('\n').filter(Boolean).every((f) => DE_LA_LINEA_DE_SERVIDOR.includes(f)));
+const motorHistorico = archivosCambiados(`${ANCLA_DE_INTEGRACION} ${BASE_DE_LA_CONSOLIDACION}`, ['functions/src/engine', 'functions/src/core']);
+const motorPosterior = archivosCambiados(BASE_DE_LA_CONSOLIDACION, ['functions/src/engine', 'functions/src/core']);
+check('A11 el Router y el registro del engine no se tocaron en esta rama: hasta la consolidación (eb588b15), solo lo que trajo la línea de servidor, con nombre; desde entonces, nada',
+  motorHistorico.every((f) => DE_LA_LINEA_DE_SERVIDOR.includes(f)) && motorPosterior.length === 0,
+  [...motorHistorico.filter((f) => !DE_LA_LINEA_DE_SERVIDOR.includes(f)), ...motorPosterior].join(','));
 
 /* ── B · contrato y adaptadores preparatorios ───────────────────────────────────────────────────────────────────────────────── */
 const base = { version: CONTRATO.MUSIC_CONTRACT_VERSION, requestId: 'r1' };
@@ -276,13 +294,16 @@ check('G17 «dejar de esperar»: botón mientras Brain responde; la respuesta ta
 /* La compra de Credits por importe (dueño, 2026-11-04) toca el catálogo, los callables de Credits, los pagos y creditsService: es Credits, no Music. */
 const DE_LA_COMPRA_POR_IMPORTE = ['functions/src/credits/creditCosts.ts', 'functions/src/credits/index.ts', 'functions/src/payments/providers/stripe.ts', 'functions/src/payments/providers/test.ts', 'functions/src/payments/purchaseValidation.ts', 'services/creditsService.ts'];
 check('G18 el reintento tras un corte reutiliza el mensaje SOLO si useBrainChat lo permitiera: no lo permite y no se tocó el hook compartido (punto de integración documentado)',
-  !/messageId/.test(compo) && !(await import('node:child_process')).execSync(`git diff --name-only ${ANCLA_DE_INTEGRACION}`, { cwd: RAIZ }).toString().split('\n').some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !DE_LA_LINEA_DE_SERVIDOR.includes(f)) && /MUSIC\.md/.test('MUSIC.md') && /messageId/.test(leer('docs/MUSIC.md')));
+  !/messageId/.test(compo)
+  && !HISTORICOS.some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !DE_LA_LINEA_DE_SERVIDOR.includes(f))
+  && !POSTERIORES.some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f))
+  && /MUSIC\.md/.test('MUSIC.md') && /messageId/.test(leer('docs/MUSIC.md')));
 
 /* ── H · integración mínima ─────────────────────────────────────────────────────────────────────────────────────────────────── */
 const spec = leer('screens/SpecialistScreen.tsx');
 /* En esta base Weë Fashion aún se pinta con BusinessScreen; FashionScreen llegará con su rama. Vale cualquiera de las dos. */
 check('H1 Specialist{id:"music"} entrega a MusicScreen y Fashion sigue entregando a su pantalla', /if \(id === 'music'\) return <MusicScreen \/>;/.test(spec) && (/if \(id === 'business'\) return <FashionScreen \/>;/.test(spec) || /if \(id === 'fashion' \|\| id === 'business'\) return <FashionScreen \/>;/.test(spec) || /if \(id === 'business'\) return <BusinessScreen \/>;/.test(spec)));
-const tocados = (await import('node:child_process')).execSync(`git diff --name-only ${ANCLA_DE_INTEGRACION}`, { cwd: RAIZ }).toString().trim().split('\n');
+/* Lo tocado se mira en dos tramos (ver BASE_DE_LA_CONSOLIDACION): HISTORICOS (ancla → eb588b15) y POSTERIORES (eb588b15 → hoy). */
 /* El rediseño de creator toca muchas pantallas a propósito: lo que Music no puede tocar es el servidor ni el cerebro. */
 /* WeëPages (2026-11-02) registra savePage/followPage en index.ts: es otra función, no Music; ese archivo se exceptúa solo por eso. */
 /* La migración de la demo YC (2026-11-03) corrige en services/firestoreService.ts la paginación de Weëls que perdía vídeos: no es Music. */
@@ -308,8 +329,24 @@ const DE_OTRAS_FUNCIONES = [
  * Music y no toca su carpeta: se exceptúa ese archivo y solo ese, con nombre; lo fija functions/test/secretos-declarados.test.mjs.
  */
 const DE_LA_DESPLEGABILIDAD = ['functions/src/secrets.ts'];
-const prohibidos = (f) => !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !I18N_DEL_SERVIDOR.includes(f) && !DE_OTRAS_FUNCIONES.includes(f) && !DE_LA_LINEA_DE_SERVIDOR.includes(f) && !DE_LA_DESPLEGABILIDAD.includes(f) && f !== 'functions/src/index.ts' && f !== 'services/firestoreService.ts' && f !== 'services/weeBizService.ts' && /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
-check('H2 ni el servidor fuera de functions/src/music, ni el cliente de Weë Brain, ni los servicios', !tocados.some(prohibidos), tocados.filter(prohibidos).join(','));
+/* Prohibido SIEMPRE: el servidor fuera de functions/src/music, lib, el hook de Weë Brain y los servicios, salvo las excepciones
+   con nombre que no son la de la consolidación. La de la consolidación (DE_LA_LINEA_DE_SERVIDOR) solo vale en el tramo histórico. */
+const prohibidoSiempre = (f) => !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !I18N_DEL_SERVIDOR.includes(f) && !DE_OTRAS_FUNCIONES.includes(f) && !DE_LA_DESPLEGABILIDAD.includes(f) && f !== 'functions/src/index.ts' && f !== 'services/firestoreService.ts' && f !== 'services/weeBizService.ts' && /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
+const prohibidoHastaLaConsolidacion = (f) => prohibidoSiempre(f) && !DE_LA_LINEA_DE_SERVIDOR.includes(f);
+check('H2 ni el servidor fuera de functions/src/music, ni el cliente de Weë Brain, ni los servicios (la línea de servidor, solo hasta eb588b15)',
+  !HISTORICOS.some(prohibidoHastaLaConsolidacion) && !POSTERIORES.some(prohibidoSiempre),
+  [...HISTORICOS.filter(prohibidoHastaLaConsolidacion), ...POSTERIORES.filter(prohibidoSiempre)].join(','));
+/* H3 · la excepción de la consolidación es HISTÓRICA y con procedencia comprobada con git, no una lista que se pueda engordar. */
+const porLasRamasDeServidor = new Set(Object.values(RAMAS_DE_LA_LINEA_DE_SERVIDOR).flatMap((r) => archivosCambiados(`${BASE_DE_LAS_RAMAS_DE_SERVIDOR} ${r}`)));
+const sinProcedencia = DE_LA_LINEA_DE_SERVIDOR.filter((f) => !porLasRamasDeServidor.has(f));
+const noCambiaronHastaLaConsolidacion = DE_LA_LINEA_DE_SERVIDOR.filter((f) => !HISTORICOS.includes(f));
+check('H3 la excepción de la consolidación es HISTÓRICA: sus 43 archivos, sin repetir, los cambió una de las tres ramas de servidor respecto a su base y cambiaron hasta eb588b15; después no cuenta',
+  DE_LA_LINEA_DE_SERVIDOR.length === 43 && new Set(DE_LA_LINEA_DE_SERVIDOR).size === 43 && !sinProcedencia.length && !noCambiaronHastaLaConsolidacion.length,
+  [...sinProcedencia.map((f) => `sin procedencia: ${f}`), ...noCambiaronHastaLaConsolidacion.map((f) => `no cambió hasta eb588b15: ${f}`)].join(' | '));
+check('H4 CONTROL: un cambio posterior a eb588b15 en uno de esos 43 archivos (engine/router.ts, credits/creditEngine.ts, creator/brain.ts) cae en H2; el de secrets.ts (B2) no, y Music sigue libre en su carpeta',
+  ['functions/src/engine/router.ts', 'functions/src/credits/creditEngine.ts', 'functions/src/creator/brain.ts'].every(prohibidoSiempre)
+  && ['functions/src/engine/router.ts', 'functions/src/credits/creditEngine.ts', 'functions/src/creator/brain.ts'].every((f) => !prohibidoHastaLaConsolidacion(f))
+  && !prohibidoSiempre('functions/src/secrets.ts') && !prohibidoSiempre('functions/src/music/index.ts'));
 
 console.log(fallo ? `\n✘ ${fallo} fallos` : '\n✔ todo bien');
 process.exit(fallo ? 1 : 0);
