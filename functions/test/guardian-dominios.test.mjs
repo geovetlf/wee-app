@@ -218,7 +218,13 @@ console.log('\n── D · Estabilidad (cazar una intermitencia sin taparla) y e
   const a = await est([true, true, true, true, true, true, true, true, true, false], 10);
   check('44) 1 fallo en 10 ejecuciones = INTERMITENTE con su tasa (1/10), con evidencia', a.estado === 'INTERMITENTE' && a.estabilidad.fallos === 1 && a.estabilidad.veces === 10 && a.evidencia.primera.cola.includes('6366'));
   check('45) 10 de 10 en verde = PASA; 10 de 10 en rojo = FALLA (no «intermitente»)', (await est([true], 10)).estado === 'PASA' && (await est([false], 10)).estado === 'FALLA');
-  const dentro = await ver.verificar({ raiz: RAIZ, modo: 'ejecutar', dominios: ['experiencia-travel'], estabilidad: 4, comprobarEntorno: false, ejecutarSuite: corre([true, false]) });
+  /*
+   * Un ejecutor falso POR SUITE: el verificador intercala las suites del dominio en cada vuelta, así que uno compartido da
+   * todo verde a una y todo rojo a la otra en cuanto el dominio tiene dos (experiencia-travel: travel y travel-workplace,
+   * B2-G 2026-11-07). Cada suite alterna por su cuenta y lo que se comprueba no cambia.
+   */
+  const correPorSuite = (patron) => { const n = {}; return async (s) => { n[s] = (n[s] ?? 0) + 1; const ok = patron[(n[s] - 1) % patron.length]; return { ms: 1, ok, codigo: ok ? 0 : 1, salida: ok ? '✔' : '✘ 163) tiempo — 6366 ms' }; }; };
+  const dentro = await ver.verificar({ raiz: RAIZ, modo: 'ejecutar', dominios: ['experiencia-travel'], estabilidad: 4, comprobarEntorno: false, ejecutarSuite: correPorSuite([true, false]) });
   check('46) con --estabilidad el informe lo dice por suite, y un solo fallo ya NO es verde (salida 4)', dentro.resultado === 'INTERMITENTE' && dentro.codigo === 4 && dentro.dominios[0].suites[0].estabilidad.fallos === 2);
   /* El bloque de clave privada se arma en ejecución: el escáner de secretos no debe ver uno en el código fuente. */
   const G5 = "-----";
