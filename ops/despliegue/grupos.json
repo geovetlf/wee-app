@@ -126,6 +126,86 @@
     {
       "funcion": "listMyCommunities",
       "porque": "Comunidades por identidad (2026-11-05): listar las comunidades de la cara activa (solo esa cara), con lecturas directas y sin collection group. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
+    },
+    {
+      "funcion": "moderationOpenCase",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Abrir un caso a mano (contenido sin denuncia o reporte anterior al Core), solo administración con moderation.review."
+    },
+    {
+      "funcion": "moderationTakeCase",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Coger un caso para revisarlo (UNDER_REVIEW), solo administración con moderation.review."
+    },
+    {
+      "funcion": "moderationReleaseCase",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Soltar un caso a su cola, que decide la política; solo administración con moderation.review."
+    },
+    {
+      "funcion": "moderationRequireAction",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Dejar un caso en ACTION_REQUIRED con la acción propuesta, sin ejecutarla; solo administración con moderation.review."
+    },
+    {
+      "funcion": "moderationRejectCase",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Rechazar un caso (sin infracción), con justificación; solo administración con moderation.review."
+    },
+    {
+      "funcion": "moderationResolveCase",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Resolver (cerrar) un caso, con justificación; solo administración con moderation.case.resolve."
+    },
+    {
+      "funcion": "moderationHideContent",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Ocultar temporalmente un contenido: sale de su colección a la custodia de moderación, entero y reversible; solo administración con moderation.content.hide."
+    },
+    {
+      "funcion": "moderationRestoreContent",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Restaurar un contenido custodiado a su sitio, idéntico y sin pisar nada; solo administración con moderation.content.restore."
+    },
+    {
+      "funcion": "moderationRemoveContent",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Retirar un contenido según la política: no borra nada, lo deja custodiado hasta que el dueño apruebe una retención; solo administración con moderation.content.remove."
+    },
+    {
+      "funcion": "moderationWarnAccount",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Advertir a una cuenta (sanción que no restringe); solo administración con moderation.account.warn."
+    },
+    {
+      "funcion": "moderationSuspendAccount",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Suspender temporalmente una cuenta (1 h a 1 año); la restricción queda registrada y ninguna puerta de la app la aplica todavía; solo administración con moderation.account.suspend."
+    },
+    {
+      "funcion": "moderationBlockAccount",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Bloquear una cuenta hasta que alguien lo levante; queda registrado y ninguna puerta de la app lo aplica todavía; solo administración con moderation.account.block."
+    },
+    {
+      "funcion": "moderationLiftSanction",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Levantar una sanción con justificación; solo administración con moderation.sanction.lift."
+    },
+    {
+      "funcion": "moderationTakeAppeal",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Coger una apelación para revisarla; solo administración con moderation.appeal.review."
+    },
+    {
+      "funcion": "moderationDecideAppeal",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Resolver una apelación; si se le da la razón, deshace lo apelado en la misma transacción; solo administración con moderation.appeal.review."
+    },
+    {
+      "funcion": "moderationConsole",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. La lectura de la Consola Administrativa (colas, casos, contenido, historial, sanciones, apelaciones, estadísticas, auditoría): SOLO lectura, con moderation.read, separada de cualquier permiso de escritura."
+    },
+    {
+      "funcion": "submitModerationAppeal",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. La persona afectada apela una acción de moderación contra su cuenta; una apelación por acción."
+    },
+    {
+      "funcion": "getMyModeration",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. La persona afectada ve sus sanciones, lo que se hizo, sus apelaciones y sus avisos, sin quién denunció ni quién revisó."
+    },
+    {
+      "funcion": "moderationIntake",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Disparador al crearse un reporte: lo adjunta a su caso (uno por contenido), idempotente; desplegarlo sin las demás deja casos que nadie puede revisar."
+    },
+    {
+      "funcion": "moderationSweep",
+      "porque": "Moderation Core (2026-11-07, docs/MODERATION-CORE.md): está en el código y NO en producción; es nueva y se despliega solo con decisión del dueño, junto con las demás del Moderation Core y en el orden de la integración (Functions → Consola → App). Sin IA ni Credits. Barrido programado (cada 15 min): cierra suspensiones vencidas, da caso a reportes huérfanos y termina desenlaces a medias; idempotente."
     }
   ]
 }

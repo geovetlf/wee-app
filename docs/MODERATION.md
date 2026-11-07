@@ -2,6 +2,10 @@
 
 > F12-A/B · Moderation Foundation. Contrato `1.0`.
 > Lo vigilan `functions/test/moderation.test.mjs` (en `npm test`) y `functions/test/moderation.emulator.mjs` (emulador).
+>
+> **Moderation Core (2026-11-07, rama `moderation/core`, sin integrar):** casos, acciones, sanciones, apelaciones,
+> auditoría y los contratos de la Consola se construyen ENCIMA de esta fundación, que no cambia de forma. Todo está en
+> [`docs/MODERATION-CORE.md`](MODERATION-CORE.md); lo que cambia aquí se marca con «Moderation Core».
 
 Hasta esta fase, el botón de denunciar de Weë era un `Alert.alert` que escribía en
 la consola y contestaba «gracias por tu reporte, lo revisaremos pronto». No había
@@ -76,12 +80,24 @@ por formato.
 
 Hoy tienen resolutor —algo detrás que leer— `POST`, `COMMENT` y `ENTITY`. Las demás
 se rechazan con `target_type_not_enabled`. Abrir una es escribir una función y
-una línea en `RESOLUTORES`; así entrarán WeeTalk, las comunidades y el material.
+una línea en `RESOLUTORES`; así entrarán las comunidades y el material.
 
-Diez motivos: `SPAM`, `HARASSMENT`, `HATE`, `SEXUAL_CONTENT`, `VIOLENCE`, `SCAM`,
-`IMPERSONATION`, `ILLEGAL_CONTENT`, `SELF_HARM`, `OTHER`. Son **categorías internas**
-para ordenar señales, no tipos legales. La lista crece con una línea en el
-contrato y su texto en `i18n`.
+**Moderation Core:** `RESOLUTORES` (la tabla de la fundación) no cambia; `reportContent`
+denuncia con `RESOLUTORES_DEL_NUCLEO`, que añade las comunidades (`COMMUNITY`) y las
+Páginas de `pages` como `ENTITY`. `PUBLICATION`, `ASSET` y `CONTENT` siguen cerrados.
+`MESSAGE` también, y por decisión definitiva del dueño (2026-11-07): las conversaciones
+privadas de WeeTalk están FUERA de la moderación —ni denuncias de mensajes, ni casos, ni
+inspección—; su herramienta es el bloqueo de contactos (`docs/MODERATION-CORE.md` § 12).
+
+Once motivos que se ofrecen, en el orden del dueño (Moderation Core, 2026-11-07):
+`HARASSMENT`, `SEXUAL_CONTENT` (desnudez y contenido sexual), `VIOLENCE`, `HATE`, `SCAM`,
+`SPAM`, `IMPERSONATION`, `ILLEGAL_CONTENT`, `INTELLECTUAL_PROPERTY`, `SELF_HARM`
+(autolesiones o suicidio, opción propia) y `OTHER`. `SELF_HARM` es una **señal de
+riesgo** (`MOTIVOS_DE_RIESGO`), no una acusación: pide revisión humana prioritaria y
+nunca sanciona ni oculta nada (`docs/MODERATION-CORE.md` § 4). `MOTIVOS_HEREDADOS` queda
+vacío: todo lo que se admite se ofrece. Son **categorías internas** para ordenar señales, no tipos
+legales. La lista crece con una línea en el contrato y su texto en `i18n`; cada motivo
+tiene una gravedad por defecto (`GRAVEDAD_POR_MOTIVO`) que solo ordena la cola.
 
 ## 4. Estados
 
@@ -130,6 +146,12 @@ cuenta: no hay ningún documento compartido entre cuentas.
   ejecutor el día que exista, y hoy ningún código los escribe. La costura en el
   contenido ya estaba: `moderationStatus` y `moderationCaseId`
   (`core/content/content.ts`).
+  **Moderation Core:** esto sigue siendo cierto para la revisión SUELTA de un reporte
+  (`moderationAdmin.review`). Las acciones de verdad —ocultar, retirar, restaurar,
+  advertir, suspender, bloquear, levantar— son del Moderation Core y se hacen sobre el
+  CASO, cada una con su callable, su permiso y su auditoría (`docs/MODERATION-CORE.md`).
+  Un reporte que ya está en un caso ya no se revisa suelto: `moderationAdmin.review`
+  contesta `managed_by_case`, para que reporte y caso no digan dos cosas distintas.
 - **No evalúa con IA.** El evaluador (`EVALUADOR_DE_REGLAS`, `wee.rules.v1`) es
   determinista y contesta `REVIEW`. Aunque un evaluador futuro diga `BLOCK`, el
   reporte nace `RECEIVED` y nada se mueve: una acción automática exige una
@@ -140,9 +162,13 @@ cuenta: no hay ningún documento compartido entre cuentas.
   `REPORT_CREATED` (`eventoDeReporteCreado`) y reserva `REPORT_REVIEWED` y
   `MODERATION_ACTION`; la comprobación de honestidad de la Fase 10 sigue en verde.
 - **No avisa.** La costura es `alCerrar`, que se llama solo cuando hay una decisión
-  de verdad. No hay nada enchufado.
+  de verdad. No hay nada enchufado. **Moderation Core:** los avisos a la persona
+  afectada se ESCRIBEN en `moderationNotices` con `delivery: 'PENDING_INTEGRATION'` y no
+  se envían; nada escribe en `notifications`.
 - **No hay pantalla de revisión.** `moderationAdmin` (solo administración) lista la
-  cola, enseña el historial y aplica transiciones. Es lo que usará el Control Center.
+  cola, enseña el historial y aplica transiciones. **Moderation Core:** la Consola usará
+  `moderationConsole` (solo lectura) y una callable por acción; `moderationAdmin` queda
+  para los reportes anteriores al Core.
 
 ## 7. Seguridad
 

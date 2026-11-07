@@ -156,6 +156,18 @@ export { espejoDelPerfilPublico } from './identity/perfilPublico';
  * (docs/MODERATION.md).
  */
 export { reportContent, moderationAdmin } from './moderation';
+/*
+ * MODERATION CORE (2026-11-07, docs/MODERATION-CORE.md): casos, acciones, sanciones, apelaciones y auditoría. Una
+ * callable por acción, una de solo lectura para la Consola, la de la persona afectada, el disparador que da caso a
+ * cada reporte y el barrido. NINGUNA está desplegada (ops/despliegue/grupos.json → no_se_despliegan).
+ */
+export {
+  moderationOpenCase, moderationTakeCase, moderationReleaseCase, moderationRequireAction, moderationRejectCase, moderationResolveCase,
+  moderationHideContent, moderationRestoreContent, moderationRemoveContent,
+  moderationWarnAccount, moderationSuspendAccount, moderationBlockAccount, moderationLiftSanction,
+  moderationTakeAppeal, moderationDecideAppeal, moderationConsole, submitModerationAppeal, getMyModeration,
+  moderationIntake, moderationSweep,
+} from './moderation/puertas';
 export { elements } from './elements/puerta';
 export { shots } from './shots/puerta';
 export { productions } from './productions/puerta';

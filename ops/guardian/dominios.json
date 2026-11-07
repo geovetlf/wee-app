@@ -318,6 +318,7 @@
       ],
       "suites": [
         "moderation",
+        "moderation-core",
         "weetalk-view-once",
         "composer",
         "muro",

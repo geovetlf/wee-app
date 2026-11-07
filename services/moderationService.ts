@@ -21,24 +21,32 @@ import { esReferenciaDeEntidad } from '../utils/identidadPublica';
 export type ObjetivoDenunciable = 'POST' | 'COMMENT' | 'ENTITY';
 
 export type MotivoDeReporte =
-  | 'SPAM' | 'HARASSMENT' | 'HATE' | 'SEXUAL_CONTENT' | 'VIOLENCE'
-  | 'SCAM' | 'IMPERSONATION' | 'ILLEGAL_CONTENT' | 'SELF_HARM' | 'OTHER';
+  | 'HARASSMENT' | 'SEXUAL_CONTENT' | 'VIOLENCE' | 'HATE' | 'SCAM'
+  | 'SPAM' | 'IMPERSONATION' | 'ILLEGAL_CONTENT' | 'INTELLECTUAL_PROPERTY' | 'SELF_HARM' | 'OTHER';
 
 /*
+ * EL CATÁLOGO ÚNICO DE MOTIVOS (Moderation Core, decisiones del dueño del
+ * 2026-11-07): su lista, en su orden, con autolesiones como opción propia antes
+ * de «otro»; la MISMA que `MOTIVOS_DE_REPORTE` del servidor
+ * (`functions/src/core/moderation.ts`), y una prueba exige que coincidan.
+ * Autolesiones es una señal de RIESGO para revisión prioritaria, no una
+ * acusación: el servidor la trata así.
+ *
  * Los motivos guardan la CLAVE de su nombre, no el nombre: esta lista se
  * construye al cargar el archivo, fuera de React, y una frase puesta aquí se
  * quedaría con el idioma del arranque. `motivo` es el identificador que viaja
  * al servidor y no se traduce nunca.
  */
 export const MOTIVOS_DE_REPORTE: readonly { motivo: MotivoDeReporte; clave: string }[] = Object.freeze([
-  { motivo: 'SPAM', clave: 'moderation.reasonSpam' },
   { motivo: 'HARASSMENT', clave: 'moderation.reasonHarassment' },
-  { motivo: 'HATE', clave: 'moderation.reasonHate' },
   { motivo: 'SEXUAL_CONTENT', clave: 'moderation.reasonSexual' },
   { motivo: 'VIOLENCE', clave: 'moderation.reasonViolence' },
+  { motivo: 'HATE', clave: 'moderation.reasonHate' },
   { motivo: 'SCAM', clave: 'moderation.reasonScam' },
+  { motivo: 'SPAM', clave: 'moderation.reasonSpam' },
   { motivo: 'IMPERSONATION', clave: 'moderation.reasonImpersonation' },
   { motivo: 'ILLEGAL_CONTENT', clave: 'moderation.reasonIllegal' },
+  { motivo: 'INTELLECTUAL_PROPERTY', clave: 'moderation.reasonIntellectualProperty' },
   { motivo: 'SELF_HARM', clave: 'moderation.reasonSelfHarm' },
   { motivo: 'OTHER', clave: 'moderation.reasonOther' },
 ] as const);

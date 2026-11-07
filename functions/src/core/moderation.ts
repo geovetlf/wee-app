@@ -89,18 +89,93 @@ export const MODALIDADES_MODERABLES: readonly ModalidadModerable[] = Object.free
  * Weë ordena lo que le cuentan. Por eso la interfaz los nombra en lenguaje
  * normal y nunca en lenguaje jurídico. La lista crece añadiendo una línea aquí
  * y su texto en `i18n`; ningún reporte ya guardado cambia de significado.
+ *
+ * ── UN SOLO CATÁLOGO (Moderation Core, decisiones del dueño del 2026-11-07) ─
+ *
+ * Lo que se OFRECE es la lista del dueño, en su orden —acoso e intimidación,
+ * desnudez y contenido sexual, violencia, odio y discriminación, estafas y
+ * fraude, spam, suplantación, contenido ilegal, propiedad intelectual— más
+ * AUTOLESIONES como opción propia, y «otro» al final. La hoja de denunciar
+ * (`services/moderationService.ts`) pinta exactamente esta lista, con la CLAVE
+ * de su texto; una prueba exige que sean la misma.
+ *
+ * AUTOLESIONES NO ES UNA INFRACCIÓN: es una SEÑAL DE RIESGO (`MOTIVOS_DE_RIESGO`).
+ * Pide revisión humana prioritaria y nada más: nunca sanciona a quien publicó,
+ * nunca oculta nada —tampoco por la ocultación preventiva, aunque algún día se
+ * active— y quien lo denuncia no acumula «rechazos» si no había infracción. Lo
+ * que Weë haga para ayudar (recursos, contacto) es una decisión pendiente del
+ * dueño; aquí no se inventa ningún procedimiento de intervención.
  */
 export type ReportReason =
-  | 'SPAM' | 'HARASSMENT' | 'HATE' | 'SEXUAL_CONTENT' | 'VIOLENCE'
-  | 'SCAM' | 'IMPERSONATION' | 'ILLEGAL_CONTENT' | 'SELF_HARM' | 'OTHER';
+  | 'HARASSMENT' | 'SEXUAL_CONTENT' | 'VIOLENCE' | 'HATE' | 'SCAM'
+  | 'SPAM' | 'IMPERSONATION' | 'ILLEGAL_CONTENT' | 'INTELLECTUAL_PROPERTY' | 'OTHER'
+  | 'SELF_HARM';
 
+/** Lo que se ofrece al denunciar: los diez del dueño, en su orden, con autolesiones como opción propia antes de «otro». */
 export const MOTIVOS_DE_REPORTE: readonly ReportReason[] = Object.freeze([
-  'SPAM', 'HARASSMENT', 'HATE', 'SEXUAL_CONTENT', 'VIOLENCE',
-  'SCAM', 'IMPERSONATION', 'ILLEGAL_CONTENT', 'SELF_HARM', 'OTHER',
+  'HARASSMENT', 'SEXUAL_CONTENT', 'VIOLENCE', 'HATE', 'SCAM',
+  'SPAM', 'IMPERSONATION', 'ILLEGAL_CONTENT', 'INTELLECTUAL_PROPERTY', 'SELF_HARM', 'OTHER',
 ] as const);
 
+/** Lo que ya no se ofrece pero se sigue admitiendo porque hay reportes guardados o apps publicadas que lo usan. Hoy, nada. */
+export const MOTIVOS_HEREDADOS: readonly ReportReason[] = Object.freeze([] as ReportReason[]);
+
+/** Todo lo que una petición puede traer como motivo: lo ofrecido y lo heredado. Nada más. */
+export const MOTIVOS_ADMITIDOS: readonly ReportReason[] = Object.freeze([...MOTIVOS_DE_REPORTE, ...MOTIVOS_HEREDADOS]);
+
 export const esMotivoDeReporte = (v: unknown): v is ReportReason =>
+  typeof v === 'string' && (MOTIVOS_ADMITIDOS as readonly string[]).includes(v);
+
+/** ¿Es uno de los que se ofrecen hoy? */
+export const esMotivoOfrecido = (v: unknown): v is ReportReason =>
   typeof v === 'string' && (MOTIVOS_DE_REPORTE as readonly string[]).includes(v);
+
+/**
+ * LAS SEÑALES DE RIESGO: motivos que no acusan a nadie de una infracción, sino
+ * que piden que una persona mire pronto. Una denuncia de autolesiones habla de
+ * alguien que puede estar sufriendo; tratarla como una falta sería castigar el
+ * sufrimiento.
+ */
+export const MOTIVOS_DE_RIESGO: readonly ReportReason[] = Object.freeze(['SELF_HARM'] as const);
+
+export const esMotivoDeRiesgo = (v: unknown): v is ReportReason =>
+  typeof v === 'string' && (MOTIVOS_DE_RIESGO as readonly string[]).includes(v);
+
+/**
+ * LA GRAVEDAD DE CADA MOTIVO, por defecto. Sirve para ORDENAR la cola, nunca
+ * para decidir nada: un motivo grave no prueba que lo denunciado lo sea.
+ *
+ *   CRITICAL  riesgo para una vida o algo que la ley persigue
+ *   HIGH      daño directo a personas
+ *   MEDIUM    engaño o derechos de otros
+ *   LOW       molestia, o sin información
+ *
+ * Para una señal de RIESGO (`MOTIVOS_DE_RIESGO`) la «gravedad» es URGENCIA de
+ * revisión humana, no gravedad de una falta: por eso no cuenta como gravedad
+ * de infracción (`gravedadDeInfraccion`, `core/moderation-case.ts`).
+ *
+ * Es la propuesta inicial; el dueño la cambia sin tocar código
+ * (`moderationPolicies/priority`, `core/moderation-case.ts`).
+ */
+export type Gravedad = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+export const GRAVEDADES: readonly Gravedad[] = Object.freeze(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const);
+
+export const esGravedad = (v: unknown): v is Gravedad => typeof v === 'string' && (GRAVEDADES as readonly string[]).includes(v);
+
+export const GRAVEDAD_POR_MOTIVO: Readonly<Record<ReportReason, Gravedad>> = Object.freeze({
+  ILLEGAL_CONTENT: 'CRITICAL',
+  SELF_HARM: 'CRITICAL',
+  VIOLENCE: 'HIGH',
+  SEXUAL_CONTENT: 'HIGH',
+  HATE: 'HIGH',
+  HARASSMENT: 'HIGH',
+  SCAM: 'MEDIUM',
+  IMPERSONATION: 'MEDIUM',
+  INTELLECTUAL_PROPERTY: 'MEDIUM',
+  SPAM: 'LOW',
+  OTHER: 'LOW',
+});
 
 /* ── En qué situación está ──────────────────────────────────────────────── */
 
@@ -212,6 +287,13 @@ export interface Report {
   historyCount: number;
   createdAt: number;
   updatedAt: number;
+  /**
+   * El caso al que se adjuntó (Moderation Core, `core/moderation-case.ts`). Lo pone el servidor
+   * DESPUÉS de crear el reporte, nunca la petición; los reportes anteriores al Core no lo llevan.
+   */
+  caseId?: string;
+  /** La gravedad de su motivo cuando se adjuntó: con ella se ordena la cola. */
+  priority?: Gravedad;
 }
 
 export const FORMA_DE_ID_DE_REPORTE = /^rep_[0-9a-f]{32}$/;
@@ -554,7 +636,9 @@ export const nuevoReporte = (n: NuevoReporte): Report | undefined => {
  */
 export type TipoDeEntrada =
   | 'REPORT_CREATED' | 'REVIEW_STARTED' | 'DECISION_MADE'
-  | 'ACTION_REQUESTED' | 'ACTION_EXECUTED' | 'REPORT_DISMISSED' | 'REPORT_ESCALATED';
+  | 'ACTION_REQUESTED' | 'ACTION_EXECUTED' | 'REPORT_DISMISSED' | 'REPORT_ESCALATED'
+  /* Moderation Core: el reporte quedó dentro de su caso. No cambia su estado: la revisión es del caso. */
+  | 'REPORT_ATTACHED_TO_CASE';
 
 export interface EntradaDeHistorial {
   seq: number;

@@ -147,13 +147,36 @@ const MAPA = [
   { id: 'financial', canonico: ['core/financial/account.js', 'core/financial/commerce.js', 'core/financial/ledger.js', 'core/financial/money.js', 'core/financial/payment.js'],
     composicion: 'financial/index.js', fabrica: null, enUso: ['credits/creditEngine.js'], cargada: false, motor: 'NOT CONNECTED', simbolos: [] },
   { id: 'identity', canonico: ['core/account-identity.js', 'core/identity.js'], composicion: 'identity/cuentas.js', fabrica: 'nacerLoQueTocaDeUnPerfilNuevo', enUso: ['identity/nacimiento.js'], cargada: true,
-    motor: 'CONNECTED', simbolos: ['asegurarCuenta', 'asegurarEntidadDeCaraWee', 'crearPagina', 'cuentaWeeValida', 'entidadDeCuentaValida', 'esIdDeCuenta', 'esIdDePrincipal', 'normalizarNumeroDeCuenta', 'resolverCuentaDelPrincipal'] },
+    /* `esTipoDeEntidad`: el Moderation Core lee la clase de una entidad guardada para decir si es un Perfil Real, uno Weë o una Página. */
+    motor: 'CONNECTED', simbolos: ['asegurarCuenta', 'asegurarEntidadDeCaraWee', 'crearPagina', 'cuentaWeeValida', 'entidadDeCuentaValida', 'esIdDeCuenta', 'esIdDePrincipal', 'esTipoDeEntidad', 'normalizarNumeroDeCuenta', 'resolverCuentaDelPrincipal'] },
   { id: 'registry', canonico: ['core/registry/capabilities.js', 'core/registry/registry.js', 'core/registry/validate.js'], composicion: 'registry/index.js', fabrica: 'registroDeWee', enUso: ['planner/index.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['CAPABILITY_CATALOG', 'crearRegistro', 'validarRegistro'] },
   /* Fase 12-A/B. Nació conectada: no hay una moderación «de antes» con la que convivir (docs/MODERATION.md). */
+  /* `esMotivoDeRiesgo` (2026-11-07): el Moderation Core no cuenta como «rechazo» la señal de quien solo avisó de un riesgo (autolesiones). */
   { id: 'moderation', canonico: ['core/moderation.js'], composicion: 'moderation/index.js', fabrica: 'crearModeracion', enUso: ['moderation/index.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['EVALUADOR_DE_REGLAS', 'ESTADOS_DE_REPORTE', 'FORMA_DE_ID_DE_REPORTE', 'POLITICA_DE_REPORTES', 'decisionValida', 'entradaDeCreacion', 'esContenidoPropio',
-      'esEstadoDeReporte', 'evaluarLimite', 'idDeEntrada', 'idDeReporte', 'nuevoReporte', 'transicionarReporte', 'validarPeticionDeReporte', 'vistaParaQuienDenuncia'] },
+      'esEstadoDeReporte', 'esMotivoDeRiesgo', 'evaluarLimite', 'idDeEntrada', 'idDeReporte', 'nuevoReporte', 'transicionarReporte', 'validarPeticionDeReporte', 'vistaParaQuienDenuncia'] },
+  /*
+   * MODERATION CORE (2026-11-07, docs/MODERATION-CORE.md). Casos, acciones, sanciones, custodia y apelaciones sobre la
+   * fundación de arriba, que no cambia de forma. Lo invocan sus puertas (`moderation/puertas.js`), que el código
+   * exporta y NO se despliegan: «cargada» es que el compilado vivo la alcanza, no que corra en producción.
+   */
+  { id: 'moderation-core', canonico: ['core/moderation-case.js', 'core/moderation-action.js', 'core/moderation-appeal.js'], composicion: 'moderation/nucleo.js', fabrica: 'crearNucleoDeModeracion',
+    enUso: ['moderation/puertas.js'], cargada: true, motor: 'CONNECTED', simbolos: [
+      /* Casos */
+      'ESTADOS_ABIERTOS', 'ESTADOS_DE_CASO', 'ESTADOS_REABRIBLES', 'FORMA_DE_ID_DE_CASO', 'MODERATION_CORE_CONTRACT_VERSION', 'anotarEnElCaso', 'casoAbiertoAMano',
+      'casoSinEfectos', 'claveDeObjetivo', 'decidirIntake', 'esEstadoDeCaso', 'idDeCaso', 'idDeEntradaDeCaso', 'leerPoliticaDePrioridad', 'moverCaso', 'pidePrioridad',
+      'rangoDeCola', 'seudonimoDeCuenta', 'vistaDeCasoParaConsola', 'vistaDeSenalParaConsola',
+      /* Acciones, sanciones, custodia, políticas, avisos y auditoría */
+      'AVISO_DE_OPERACION', 'ENTREGA_DE_AVISOS', 'ESTADOS_PARA_ACTUAR', 'LECTURAS_DE_CONSOLA', 'OPERACIONES', 'PERMISOS_DE_MODERACION', 'RANGO_DE_VENCIMIENTO_DESDE',
+      'TIPO_DE_SANCION_DE', 'accionesPrevias', 'claveDeVencimiento', 'conflictoDeInteres', 'decidirCustodia', 'entradaDeAuditoria', 'esLecturaDeConsola', 'idDeAccion',
+      'idDeAviso', 'idDeCustodia', 'idDeSancion', 'idDeApelacion', 'leerPoliticaDeAbuso', 'leerPoliticaDeApelaciones', 'leerPoliticaDeOcultacion', 'leerPoliticaDeRetirada',
+      'levantarSancion', 'nuevaSancion', 'ocultacionPreventivaAplica', 'restriccionDeCuenta', 'sancionEnVigor', 'senalesDeAbuso', 'situacionVacia',
+      'validarPeticionDeOperacion', 'vencerSancion', 'vistaDeAccionParaElAfectado', 'vistaDeAvisoParaElAfectado', 'vistaDeSancionParaElAfectado',
+      /* Apelaciones */
+      'ESTADOS_DE_APELACION', 'decidirApelacion', 'esEstadoDeApelacion', 'idDeEntradaDeApelacion', 'nuevaApelacion', 'tomarApelacion', 'validarPeticionDeApelacion',
+      'vistaDeApelacionParaElAfectado',
+    ] },
 ];
 
 /* Módulos del Core que no son ningún singular y que el código vivo también nombra. */
@@ -329,6 +352,15 @@ const FUNCTIONS = {
   './identity/perfilPublico': ['espejoDelPerfilPublico'],
   './moderation': ['reportContent', 'moderationAdmin'],
   /*
+   * MODERATION CORE (2026-11-07, docs/MODERATION-CORE.md): una callable por acción, la de solo lectura de la Consola,
+   * las dos de la persona afectada, el disparador que da caso a cada reporte y el barrido. Sin IA ni Credits. NO
+   * están desplegadas (ops/despliegue/grupos.json → no_se_despliegan); están en el mapa porque el código las exporta.
+   */
+  './moderation/puertas': ['moderationOpenCase', 'moderationTakeCase', 'moderationReleaseCase', 'moderationRequireAction', 'moderationRejectCase',
+    'moderationResolveCase', 'moderationHideContent', 'moderationRestoreContent', 'moderationRemoveContent', 'moderationWarnAccount',
+    'moderationSuspendAccount', 'moderationBlockAccount', 'moderationLiftSanction', 'moderationTakeAppeal', 'moderationDecideAppeal',
+    'moderationConsole', 'submitModerationAppeal', 'getMyModeration', 'moderationIntake', 'moderationSweep'],
+  /*
    * S5: la puerta de las cosas de una cuenta. Crea, lee, cambia, archiva y
    * resuelve contexto — y todo lo hace delegando en el runtime de S4, que
    * comprueba la propiedad material a material. Aquí solo se resuelve de qué
@@ -413,7 +445,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son cincuenta y una: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar), generateWorld (misión mundo3d, sin desplegar), savePage/followPage (WeëPages, sin desplegar), boost/boostSweep (Boost, sin desplegar), las nueve de Comunidades por identidad (sin desplegar) y espejoDelPerfilPublico (seguridad de users, sin desplegar)', reales.length === 51, `${reales.length}`);
+  check('5) y son setenta y una: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar), generateWorld (misión mundo3d, sin desplegar), savePage/followPage (WeëPages, sin desplegar), boost/boostSweep (Boost, sin desplegar), las nueve de Comunidades por identidad (sin desplegar), espejoDelPerfilPublico (seguridad de users, sin desplegar) y las veinte del Moderation Core (sin desplegar)', reales.length === 71, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *

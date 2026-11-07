@@ -34,9 +34,13 @@ import {
   FORMA_DE_ID_DE_REPORTE,
 } from '../core/moderation';
 import { actorDeLaCuenta } from '../core/social-identity';
+import type { MotivoDeOperacionRechazada, MotivoDeCustodiaRechazada, MotivoDeSancionRechazada } from '../core/moderation-action';
+import type { MotivoDeApelacionRechazada } from '../core/moderation-appeal';
+import type { MotivoDeIntakeRechazado, MotivoDeMovimientoRechazado } from '../core/moderation-case';
 import { ENTIDADES, cuentaDeWee, entidadDelPerfil } from '../identity/cuentas';
 import { identidadHeredadaEsDeLaCuenta } from '../identity/compatibilidad';
 import { assertAdmin } from '../shared/admin';
+import { ampliarResolutores } from './resolutores';
 
 /**
  * WEE MODERATION — LA COMPOSICIÓN.
@@ -107,9 +111,11 @@ const modalidadDeUnPost = (post: Record<string, unknown>): ModalidadModerable =>
   typeof post.videoUrl === 'string' && post.videoUrl ? 'VIDEO'
     : Array.isArray(post.imageUrls) && post.imageUrls.length > 0 ? 'IMAGE' : 'TEXT';
 
-type ObjetivoLeido = ObjetivoResuelto & { firmadoPor?: string };
+export type ObjetivoLeido = ObjetivoResuelto & { firmadoPor?: string };
 
-export const RESOLUTORES: Readonly<Partial<Record<ReportTargetType, (db: Firestore, id: string) => Promise<ObjetivoLeido | null>>>> = Object.freeze({
+export type TablaDeResolutores = Readonly<Partial<Record<ReportTargetType, (db: Firestore, id: string) => Promise<ObjetivoLeido | null>>>>;
+
+export const RESOLUTORES: TablaDeResolutores = Object.freeze({
   POST: async (db: Firestore, id: string) => {
     const snap = await db.collection('posts').doc(id).get();
     if (!snap.exists) return null;
@@ -130,12 +136,26 @@ export const RESOLUTORES: Readonly<Partial<Record<ReportTargetType, (db: Firesto
   },
 });
 
+/**
+ * LA TABLA CON LA QUE DENUNCIA PRODUCCIÓN (Moderation Core, 2026-11-07): la de
+ * arriba, intacta, más las comunidades y las Páginas de `pages` como entidad
+ * (`resolutores.ts`). `RESOLUTORES` sigue siendo la de la fundación, que es lo
+ * que `crearModeracion` usa si nadie le dice otra cosa.
+ */
+export const RESOLUTORES_DEL_NUCLEO: TablaDeResolutores = ampliarResolutores(RESOLUTORES);
+
 /* ── Por qué se rechaza, dicho sin contar nada de dentro ────────────────── */
 
 export type CodigoDeModeracion =
   | MotivoDeRechazo | MotivoDeRevisionRechazada
   | 'unauthenticated' | 'account_required' | 'entity_not_owned'
-  | 'target_type_not_enabled' | 'target_not_found' | 'own_content' | 'rate_limited' | 'report_not_found';
+  | 'target_type_not_enabled' | 'target_not_found' | 'own_content' | 'rate_limited' | 'report_not_found'
+  /* Moderation Core: casos, acciones, sanciones, custodia y apelaciones. Mismo patrón: un código, nunca una frase. */
+  | MotivoDeOperacionRechazada | MotivoDeCustodiaRechazada | MotivoDeSancionRechazada | MotivoDeApelacionRechazada
+  | MotivoDeIntakeRechazado | MotivoDeMovimientoRechazado
+  | 'admin_required' | 'permission_denied' | 'session_revoked' | 'unavailable' | 'conflict_of_interest'
+  | 'case_not_found' | 'appeal_not_found' | 'action_not_found' | 'sanction_not_found' | 'case_already_open'
+  | 'content_hidden_restore_first' | 'subject_unknown' | 'managed_by_case' | 'unknown_read' | 'invalid_cursor' | 'request_id_reused';
 
 export class RechazoDeModeracion extends Error {
   constructor(readonly code: CodigoDeModeracion, readonly retryAfterMs?: number) {
@@ -144,7 +164,7 @@ export class RechazoDeModeracion extends Error {
   }
 }
 
-type CodigoHttps = 'invalid-argument' | 'unauthenticated' | 'failed-precondition' | 'permission-denied' | 'not-found' | 'resource-exhausted';
+type CodigoHttps = 'invalid-argument' | 'unauthenticated' | 'failed-precondition' | 'permission-denied' | 'not-found' | 'resource-exhausted' | 'unavailable';
 
 const CODIGO_HTTPS: Readonly<Partial<Record<CodigoDeModeracion, CodigoHttps>>> = Object.freeze({
   unauthenticated: 'unauthenticated',
@@ -156,6 +176,34 @@ const CODIGO_HTTPS: Readonly<Partial<Record<CodigoDeModeracion, CodigoHttps>>> =
   own_content: 'failed-precondition',
   rate_limited: 'resource-exhausted',
   invalid_transition: 'failed-precondition',
+  /* Moderation Core. Lo que no está aquí es `invalid-argument`: una petición mal formada. */
+  admin_required: 'permission-denied',
+  permission_denied: 'permission-denied',
+  conflict_of_interest: 'permission-denied',
+  not_affected: 'permission-denied',
+  same_reviewer: 'permission-denied',
+  session_revoked: 'unauthenticated',
+  unavailable: 'unavailable',
+  case_not_found: 'not-found',
+  appeal_not_found: 'not-found',
+  action_not_found: 'not-found',
+  sanction_not_found: 'not-found',
+  content_not_custodiable: 'failed-precondition',
+  content_gone: 'failed-precondition',
+  content_already_hidden: 'failed-precondition',
+  content_already_removed: 'failed-precondition',
+  content_not_hidden: 'failed-precondition',
+  content_hidden_restore_first: 'failed-precondition',
+  restore_not_allowed: 'failed-precondition',
+  restore_conflict: 'failed-precondition',
+  sanction_not_active: 'failed-precondition',
+  sanction_not_of_case: 'failed-precondition',
+  action_not_appealable: 'failed-precondition',
+  case_already_open: 'failed-precondition',
+  subject_unknown: 'failed-precondition',
+  managed_by_case: 'failed-precondition',
+  already_attached: 'failed-precondition',
+  request_id_reused: 'failed-precondition',
 });
 
 /**
@@ -297,6 +345,11 @@ export const crearModeracion = (deps: ModeracionDeps) => {
     const final = await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       if (!snap.exists) throw new RechazoDeModeracion('report_not_found');
+      /*
+       * Un reporte que ya está dentro de un caso se revisa POR SU CASO (Moderation Core): decidirlo aquí, suelto,
+       * dejaría el reporte diciendo una cosa y su caso otra. Esta puerta queda para los reportes anteriores al Core.
+       */
+      if ((snap.data() as Report).caseId) throw new RechazoDeModeracion('managed_by_case');
       const decidida = transicionarReporte(snap.data() as Report, {
         to: p.to as ReportStatus, reviewerId, at,
         outcome: p.outcome as ModerationOutcome | undefined,
@@ -346,7 +399,8 @@ export const crearModeracion = (deps: ModeracionDeps) => {
  */
 export const reportContent = onCall(OPTS, async (request) => {
   try {
-    return await crearModeracion({ db: getFirestore() }).reportar(request.auth?.uid, request.data);
+    /* Con la tabla del Moderation Core: también comunidades y Páginas. El caso lo arma `moderationIntake` al crearse el reporte. */
+    return await crearModeracion({ db: getFirestore(), resolutores: RESOLUTORES_DEL_NUCLEO }).reportar(request.auth?.uid, request.data);
   } catch (error) {
     throw aHttpsError(error);
   }
