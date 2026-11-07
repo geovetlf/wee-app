@@ -13,6 +13,10 @@ Rama `weetalk/bloqueo-contactos`, sobre la candidata W0 `7aa01156`, que queda co
 7. Desbloquear **no restaura** conexiones ni solicitudes: para reconectar hace falta una solicitud nueva y aceptarla.
 8. No se revelan identidades alternativas ni se generan respuestas que permitan inferirlas.
 9. **Alcance:** el bloqueo NO incluye «me gusta», comentarios, publicaciones ni otras interacciones sociales de la App. No se amplía.
+10. **Tercera ronda:**
+    - límite contra intentos reiterados de contactar a cuentas que bloquearon al usuario, por cuenta y operación, con respuestas genéricas, sin suspensiones automáticas y sin que un tercero pueda provocarlo (§ 4.7);
+    - no se revelan expresamente identidades alternativas, el motivo del bloqueo ni quién lo inició;
+    - el dueño **acepta** que la desaparición simultánea de dos conexiones permita inferir que son de la misma cuenta, porque la protección contra el contacto no deseado tiene prioridad.
 
 La primera ronda confirmó la cuenta, las ocho combinaciones, los dos sentidos y ËContact. La segunda añadió eliminar las conexiones aceptadas, que antes no se tocaban, y acotó el alcance. Sustituyen a la primera versión de este documento, que protegía solo la cara desde la que se bloqueaba y dejaba ËContact fuera.
 
@@ -90,6 +94,22 @@ La suite comprueba la equivalencia en 2048 casos: `puedeEscribir(x → y).puede 
   - La comprobación va la última: lo que ya se rechazaba (`misma-persona`, `ya-existe`…) se sigue rechazando igual.
 - **Una conexión ya aceptada se elimina** (decisión 6). Antes no se tocaba.
 
+### 4.7 · Límite contra intentos reiterados (tercera ronda, 2026-11-07)
+
+El dueño pidió frenar los intentos repetidos de contactar a cuentas que han bloqueado al usuario, por **cuenta y operación**, con respuestas genéricas y sin que un tercero pueda provocar la limitación de otra cuenta.
+
+- **Qué cuenta.** Un intento de ËContact (`pedir` o `aceptar`) rechazado porque la cuenta de **destino bloqueó a la que llama** (`weetalkBloqueos/{destino}~{llamante}`).
+  - No cuentan los rechazos corrientes (un «no» o una cancelación), ni los intentos de quien bloqueó hacia quien bloqueó.
+- **Dónde se apunta.** `weetalkIntentosBloqueados/{cuenta}~{operación}`, dentro de la MISMA transacción de cada puerta.
+  - El rechazo se lanza fuera de la transacción, así que el intento queda apuntado aunque la puerta diga que no.
+  - La colección es solo del servidor.
+- **Por cuenta.** Las dos caras comparten contador: cambiar de cara no lo reinicia.
+- **El límite.** La ventana fija que ya acota los avisos (`cupoDeAvisos`, social/avisos.ts), sin un segundo mecanismo, con **5 intentos bloqueados por hora y operación**. Es un **valor inicial, a confirmar por el dueño** (`LIMITE_DE_INTENTOS_BLOQUEADOS`, bloqueosIndice.ts).
+- **Agotado el cupo,** esa operación de esa cuenta recibe, hacia CUALQUIERA y hasta que acabe la ventana, el mismo rechazo genérico (`RECHAZO_GENERICO` = `relacion-invalida`). Quien prueba perfiles deja de distinguir cuál le bloqueó.
+- **Caduca solo.** No suspende nada, no marca el perfil, no abre casos y no avisa a nadie.
+- **Nadie gasta el cupo de otro.** La clave es de quien intenta, nunca del destino, y solo cuentan sus propios intentos.
+- **Lo que no cubre.** Los mensajes y las conversaciones nuevas los escribe el cliente directamente en Firestore. Con las reglas aplicadas, un intento bloqueado se deniega ahí, sin llegar a nadie y sin trabajo en el servidor, pero ese rechazo no se puede contar: contarlo exigiría que el envío pasara por el servidor. Las llamadas directas no existen.
+
 ### 4.6 · Avisos de ËContact
 
 - **Push:** `sendPushNotification` no envía el push de `econtact_request` ni de `econtact_accepted` entre dos cuentas con un bloqueo. Usa la misma regla y falla cerrada, y la comprobación va antes de gastar el cupo.
@@ -105,6 +125,8 @@ La suite comprueba la equivalencia en 2048 casos: `puedeEscribir(x → y).puede 
 | Pedir y aceptar ËContact | servidor | **SE CUMPLE**, error genérico | igual |
 | Solicitudes pendientes al bloquear | servidor | **SE CANCELAN** | igual |
 | Conexiones aceptadas al bloquear | servidor | **SE ELIMINAN** | igual |
+| Intentos reiterados de ËContact hacia quien te bloqueó | servidor | **LIMITADOS:** 5 por hora, por cuenta y operación, con respuesta genérica | igual |
+| Intentos reiterados de mensaje o conversación | cliente | no se pueden contar | denegados uno a uno (no se pueden contar sin pasar por el servidor) |
 | «Me gusta», comentarios y publicaciones | cliente/servidor | fuera del alcance | fuera del alcance |
 | Mensaje nuevo | cliente | NO: se guarda, aunque no suena | **SE CUMPLE** |
 | Conversación nueva | cliente | NO | **SE CUMPLE** |
@@ -171,6 +193,8 @@ Las tres callables nuevas tienen dos barreras: sin sesión dan `unauthenticated`
   - Los errores son los genéricos de siempre: `weetalk.sendFailed` y la `relacion-invalida` de ËContact.
 - **Inferencia residual: las decisiones 3 y 4 la hacen inevitable, en tensión con la 8.** Quien PRUEBE a escribir o a pedir ËContact a perfiles sueltos verá que con uno no puede. Así podría deducir que ese perfil es de la cuenta con la que hay un bloqueo, y vale en los dos sentidos.
   - Las respuestas no lo dicen: son el mismo error genérico que por cualquier otra causa, sin códigos propios ni recuentos. Lo que delata es el fallo en sí.
+  - Ninguna respuesta dice tampoco **el motivo del bloqueo ni quién lo inició**: bloquear y ser bloqueado dan el mismo rechazo.
+  - **El límite de § 4.7 frena el sondeo en ËContact.** Tras 5 intentos bloqueados, todo lo que esa cuenta pida durante la hora recibe el mismo rechazo, así que probar perfiles deja de dar información.
   - Eliminarlo del todo exige que el intento bloqueado parezca un éxito. Eso solo es posible con mensajería mediada por el servidor (hoy el cliente escribe directo en Firestore) y solicitudes «fantasma» visibles solo para quien las envía, con cambios de reglas y de cliente. Es una decisión de arquitectura, no hecha.
   - Mitigaciones: el error genérico, que el índice no es legible y que no hay avisos.
   - Mejora posible, no hecha: limitar los intentos fallidos de abrir conversaciones o pedir ËContact.
@@ -199,6 +223,8 @@ Las tres callables nuevas tienen dos barreras: sin sesión dan `unauthenticated`
 | `ops/propuestas/weetalk-bloqueo/*` | Escenario de ocho pares; comentarios de `conversaciones.rules`; `avisos.rules` nuevo; `componer.mjs` con dos bloques; `reglas.prueba.mjs` con 44 comprobaciones. |
 | `functions/test/weetalk-bloqueo.test.mjs` | Especificación nueva, sección J de ËContact, cableado del push de avisos y sabotajes de la regla anterior y de la de un solo sentido. |
 | **Segunda ronda:** `functions/src/social/weetalkBloqueos.ts` | El bloqueo borra también las conexiones aceptadas (`ESTADOS_QUE_BORRA_EL_BLOQUEO = ['pending', 'accepted']`, `esRelacionDeEContactEntre`). Comentarios con la segunda ronda y el alcance. |
+| **Tercera ronda:** `functions/src/social/bloqueosIndice.ts` · `econtact.ts` · `weetalkBloqueos.ts` | Límite contra intentos reiterados: `INTENTOS_BLOQUEADOS`, `claveDeIntentos`, `LIMITE_DE_INTENTOS_BLOQUEADOS` y `RECHAZO_GENERICO`, y `leerIntentos` dentro de las dos transacciones de ËContact, con el cupo de los avisos. `BLOQUEOS` y `claveDeRelacion` pasan al módulo compartido. |
+| **Tercera ronda:** `functions/test/weetalk-bloqueo.test.mjs` | Sección K, con 16 comprobaciones del límite, y cableado del límite en la sección G. |
 | **Segunda ronda:** `functions/test/weetalk-bloqueo.test.mjs` | Se elimina la conexión aceptada entre las cuentas, no se toca la de una tercera persona, desbloquear no restaura nada, aceptar sin una solicitud nueva da `sin-relacion` y reconectar exige solicitud y aceptación. El código no toca colecciones sociales. |
 
 ## 10 · Pendientes que necesitan autorización o decisión
@@ -212,7 +238,7 @@ Las tres callables nuevas tienen dos barreras: sin sesión dan `unauthenticated`
    - «Me gusta», comentarios y publicaciones quedan fuera (decisión 9).
    - Las conexiones aceptadas se eliminan (decisión 6).
 
-   **Sigue sin decidir, y no se ha hecho:** limitar los intentos fallidos para reducir la inferencia de § 8.
+   **Decidido y hecho en la tercera ronda:** el límite contra intentos reiterados (§ 4.7). **Pendiente:** que el dueño confirme el valor inicial (5 por hora y operación).
 5. **Cercas de gobierno de W0** que esta rama no puede pasar sin tu autorización. Ya fallaban con el commit original del agente:
    - **`music` H2:** después de `eb588b15` no admite cambios de servidor fuera de `functions/src/music`.
    - **`puente-pre-f1d` 37:** fija la lista exacta de archivos de código tocados.
@@ -223,18 +249,21 @@ Las tres callables nuevas tienen dos barreras: sin sesión dan `unauthenticated`
 
 ## 11 · Pruebas (cifras reales, 2026-11-07)
 
-- **`weetalk-bloqueo`:** 115/115 tras la segunda ronda (111/111 en la primera). Cubre:
+- **`weetalk-bloqueo`:** 132/132 tras la tercera ronda (115/115 en la segunda y 111/111 en la primera). La sección K cubre el límite de intentos. Cubre además:
   - la regla contra la especificación, y su equivalencia con el índice en 2048 casos;
   - el motor real sobre una Firestore en memoria;
   - privacidad, no inspección y cableado;
   - la propuesta, con sus dos bloques;
   - sabotajes y ËContact con el motor real de `econtact`.
-- **Sabotajes sobre el compilado y el fuente:** los cinco se detectan.
+- **Sabotajes sobre el compilado y el fuente:** los ocho se detectan.
   - pedir ËContact con un bloqueo;
   - no borrar nada de ËContact;
   - borrar solo las pendientes, no las conexiones aceptadas;
   - una regla de un solo sentido;
-  - el push de avisos sin mirar el bloqueo.
+  - el push de avisos sin mirar el bloqueo;
+  - el límite contado por cara en vez de por cuenta;
+  - el límite contando los intentos de quien bloqueó;
+  - el enfriamiento sin frenar.
 - **Suites existentes, una a una:**
   - en verde: `econtact` 507, `composer-ubicacion-econtact` 114, `avisos-cupo` 11, `seguridad-11x4a` 63, `runtime-map` 163, `productions-runtime` 154, `despliegue-workflow` 76, `capacidades-conservadas` 17, `i18n-marcas-de-mensaje` 21, `logs-sin-secretos` 18, `max-instancias` 8, `app-check` 9, `i18n-servidor-fuentes` 23, `ci-workflow` 41, `weetalk-view-once` 59, `cuenta-identidad` 95, `correlacion-logs` 24, `rotacion-secretos` 22, `identidad-social` 41, `privacidad-identidad` 38, `security` 70, `moderation` 158, `tsconfig-alcance` 14, `produccion-mapa` 21, `cierre-servidor` 57, `comunidades-identidad` 35, `perfil-publico` 39, `users-fases` 44, `integracion-preparada` 13, `guardian-autocorreccion` 69, `guardian-dominios` 84, `guardian-aserciones` 58, `identidad-sin-biz` 42, `escaneo-secretos` 31, `video-asincrono` 64 y `gran-motor-e-assets` 74;
   - **en rojo:** `music` (H2) y `puente-pre-f1d` (37), por las cercas de § 10.5. En W0 limpio pasan.

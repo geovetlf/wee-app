@@ -71,12 +71,12 @@ import type { DocumentReference, Firestore, Transaction } from 'firebase-admin/f
 import { sanitizeForLog } from '../engine/sanitize';
 import { identidadesHeredadasDeLaCuenta } from '../identity/compatibilidad';
 import { CUENTA_REQUERIDA, esCuentaAutenticada } from '../identity/sesion';
-import { PARES_BLOQUEADOS, SEPARADOR_DE_PAR, claveDePar } from './bloqueosIndice';
+import { BLOQUEOS, PARES_BLOQUEADOS, SEPARADOR_DE_PAR, claveDePar, claveDeRelacion } from './bloqueosIndice';
 import { cuentaDeIdentidad, esIdentidadDePersona, idDeContacto, PerfilDeIdentidad } from './econtact';
 
 const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 
-export const BLOQUEOS = 'weetalkBloqueos';
+export { BLOQUEOS };
 export const PARES = PARES_BLOQUEADOS;
 export const CUPOS = 'weetalkBloqueosCupo';
 /** Las relaciones de ËContact (econtact.ts). Aquí solo se BORRAN, al bloquear, las que hay entre las dos cuentas. */
@@ -122,10 +122,7 @@ export interface CaraConCuenta {
   cuenta: string;
 }
 
-export const claveDeRelacion = (cuentaQueBloquea: string, cuentaBloqueada: string): string =>
-  `${cuentaQueBloquea}${SEPARADOR}${cuentaBloqueada}`;
-
-export { claveDePar };
+export { claveDePar, claveDeRelacion };
 
 const milisDe = (v: unknown): number => {
   if (typeof v === 'number' && Number.isFinite(v)) return v;

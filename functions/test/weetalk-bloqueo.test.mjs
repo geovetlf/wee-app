@@ -23,6 +23,8 @@
  *   H  la propuesta de reglas: compone, cubre los caminos del cliente y NO está aplicada
  *   I  sabotaje: con la regla rota a propósito, estas comprobaciones fallan
  *   J  ËContact: pedir y aceptar se niegan, las pendientes se anulan, desbloquear no las restaura
+ *   K  el límite contra intentos reiterados de contactar a quien te bloqueó: por cuenta y operación, genérico, sin
+ *      suspensiones y sin que un tercero pueda gastar el cupo de otro
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -267,8 +269,8 @@ console.log('\n── E · Privacidad: la lista, y lo que nadie más puede saber
   check('quitar una de esas dos filas deja la otra, y la cuenta de Beto sigue bloqueada: quitar una no abre a esa persona',
     una.length === 1 && una[0].identidad === betoWee && (await motor.permiteAviso(conCuenta(betoReal), conCuenta(anaWee))) === false);
   const reglas = leer('firestore.rules');
-  check('las tres colecciones son SOLO del servidor: firestore.rules no las nombra y no hay comodín que las abra',
-    ![B.BLOQUEOS, B.PARES, B.CUPOS].some((c) => reglas.includes(c)) && !/match \/\{document=\*\*\}/.test(reglas));
+  check('las cuatro colecciones son SOLO del servidor: firestore.rules no las nombra y no hay comodín que las abra',
+    ![B.BLOQUEOS, B.PARES, B.CUPOS, I.INTENTOS_BLOQUEADOS].some((c) => reglas.includes(c)) && !/match \/\{document=\*\*\}/.test(reglas));
 }
 
 console.log('\n── F · Sin inspección: la lógica del bloqueo no lee mensajes ni toca la moderación ──');
@@ -313,6 +315,11 @@ console.log('\n── G · El cableado ──');
     && B.esAvisoDeEContact('econtact_request') && B.esAvisoDeEContact('econtact_accepted')
     && !['like', 'comment', 'message', 'follow', undefined, null, 7].some((t) => B.esAvisoDeEContact(t)));
   const ec = sinComentarios(leer('functions/src/social/econtact.ts'));
+  check('el límite de intentos va dentro de las mismas dos transacciones, por la cuenta, con el cupo de los avisos y el rechazo fuera',
+    /leerIntentos\(tx, db, de\.accountUid, 'pedir', para\.accountUid, bloqueo\.exists\)/.test(ec)
+    && /leerIntentos\(tx, db, yo\.accountUid, 'aceptar', otro\.accountUid, bloqueo\.exists\)/.test(ec)
+    && /cupoDeAvisos\(guardado\.exists \? guardado\.data\(\) : null, ahora, LIMITE_DE_INTENTOS_BLOQUEADOS\)/.test(ec)
+    && (ec.match(/if \(resultado\.rechazo\) throw new EContactError\(resultado\.rechazo\);/g) || []).length === 2);
   check('ËContact consulta el índice DENTRO de sus dos transacciones (pedir y aceptar), sin abrir otra',
     (ec.match(/await tx\.get\(db\.collection\(PARES_BLOQUEADOS\)\.doc\(claveDePar\(/g) || []).length === 2
     && /decidirSolicitud\(\{ de, para, existente, bloqueo: bloqueo\.exists \}\)/.test(ec)
@@ -491,5 +498,72 @@ console.log('\n── J · ËContact: pedir y aceptar se niegan, solicitudes y c
     && EC.decidirSolicitud({ de, para, existente: null }).ok === true && EC.decidirSolicitud({ de, para, existente: null, bloqueo: false }).ok === true);
 }
 
-console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ weetalk-bloqueo: el bloqueo es de cuenta, cubre las dos caras, borra ËContact entre las cuentas y no delata a nadie');
+console.log('\n── K · Límite contra intentos reiterados de contactar a quien te bloqueó ──');
+{
+  const id = EC.idDeContacto;
+  let reloj = 50_000_000;
+  const conCreate = (base) => ({
+    collection: (p) => base.collection(p),
+    runTransaction: (fn) => base.runTransaction((tx) => {
+      tx.create = (ref, datos) => { if (base.leer(ref.path)) throw new Error(`ya existe ${ref.path}`); return tx.set(ref, datos); };
+      return fn(tx);
+    }),
+  });
+  const { base, motor } = nuevoMundo();
+  const ec = EC.createEContactEngine({ db: () => conCreate(base), ahora: () => reloj, sello: (ms) => ms });
+  const pedir = (cuenta, de, para) => ec.request({ cuentaDeLaSesion: cuenta, desdeIdentidad: de, haciaIdentidad: para });
+  const error = async (p) => { const e = await rechaza(p); return e instanceof EC.EContactError ? e : null; };
+  const intentosDe = (clave) => base.leer(`${I.INTENTOS_BLOQUEADOS}/${clave}`);
+  const { maximo, ventanaMs } = I.LIMITE_DE_INTENTOS_BLOQUEADOS;
+  const usuariosAntes = JSON.stringify(base.de('users'));
+
+  check(`el límite es por cuenta y operación, con la ventana fija de los avisos: ${maximo} intentos bloqueados por ${ventanaMs / 60000} min (valor inicial, a confirmar)`,
+    maximo === 5 && ventanaMs === 3_600_000 && I.claveDeIntentos(beto, 'pedir') === `${beto}~pedir` && I.claveDeIntentos(beto, 'aceptar') === `${beto}~aceptar`);
+  check('el rechazo del bloqueo y el del límite son EL MISMO objeto genérico (relacion-invalida)',
+    EC.RECHAZO_GENERICO.ok === false && EC.RECHAZO_GENERICO.motivo === 'relacion-invalida'
+    && EC.decidirSolicitud({ de: { identity: betoWee, accountUid: beto, type: 'wee' }, para: { identity: anaReal, accountUid: ana, type: 'real' }, existente: null, bloqueo: true }) === EC.RECHAZO_GENERICO);
+
+  await motor.bloquear({ cuentaDeLaSesion: ana, comoIdentidad: anaReal, identidad: betoWee });
+  const intentos = [[betoWee, anaReal], [betoReal, anaWee], [betoWee, anaWee], [betoReal, anaReal], [betoWee, anaReal]];
+  const errores = [];
+  for (const [de, para] of intentos) errores.push(await error(pedir(beto, de, para)));
+  check(`Beto intenta ${maximo} veces contactar a Ana, que lo bloqueó, cambiando de cara: las ${maximo} reciben el rechazo genérico`,
+    errores.length === maximo && errores.every((e) => e && e.motivo === 'relacion-invalida'), errores.map((e) => e && e.motivo).join(','));
+  check('cuentan para su CUENTA, no para cada cara: un solo contador con los cinco, ninguno por su cara Weë',
+    intentosDe(I.claveDeIntentos(beto, 'pedir'))?.usados === maximo && !intentosDe(I.claveDeIntentos(betoWee, 'pedir')));
+  const enfriado = await error(pedir(beto, betoReal, carlaReal));
+  check('agotado el cupo, también se rechaza su solicitud a Carla (que no lo bloqueó): quien prueba perfiles ya no distingue nada',
+    enfriado?.motivo === 'relacion-invalida' && !base.leer(`econtacts/${id(betoReal, carlaReal)}`));
+  check('y la respuesta es idéntica a la del bloqueo: mismo motivo, mismo mensaje y mismo código',
+    enfriado && errores[0] && enfriado.message === errores[0].message && enfriado.message === EC.MENSAJES['relacion-invalida']);
+  check('mientras dura el enfriamiento el contador no sube (la ventana es fija)', intentosDe(I.claveDeIntentos(beto, 'pedir'))?.usados === maximo);
+
+  const deAna = await error(pedir(ana, anaWee, betoReal));
+  check('los intentos de quien BLOQUEÓ no cuentan: Ana intenta escribir a Beto, se le rechaza, y su contador ni existe',
+    deAna?.motivo === 'relacion-invalida' && !intentosDe(I.claveDeIntentos(ana, 'pedir')));
+  check('un tercero no puede gastar el cupo de nadie: Ana (el destino) no queda limitada y pide a Carla con normalidad',
+    (await pedir(ana, anaReal, carlaReal)).status === 'pending' && !intentosDe(I.claveDeIntentos(ana, 'pedir')));
+  check('Carla, ajena a todo, tampoco: pide a Ana sin límite alguno', (await pedir(carla, carlaReal, anaWee)).status === 'pending' && !intentosDe(I.claveDeIntentos(carla, 'pedir')));
+
+  /* «aceptar» tiene su propio contador: una solicitud de Ana que se cruzó con el bloqueo y que Beto intenta aceptar. */
+  base.docs.set(`econtacts/${id(anaWee, betoWee)}`, { users: [anaWee, betoWee].sort(), status: 'pending', requestedBy: anaWee, requestedTo: betoWee });
+  const aceptar = await error(ec.accept({ cuentaDeLaSesion: beto, comoIdentidad: betoWee, otraIdentidad: anaWee }));
+  check('aceptar cuenta aparte: rechazo genérico y un intento en «aceptar», sin tocar el de «pedir»',
+    aceptar?.motivo === 'relacion-invalida' && intentosDe(I.claveDeIntentos(beto, 'aceptar'))?.usados === 1 && intentosDe(I.claveDeIntentos(beto, 'pedir'))?.usados === maximo);
+
+  check('no suspende ni marca a nadie: los perfiles de users quedan igual y no hay reportes, casos ni avisos',
+    JSON.stringify(base.de('users')) === usuariosAntes && !coleccionesDe(base).some((c) => /report|moderation|caso|sancion|notifications|suspend/i.test(c)));
+
+  reloj += ventanaMs + 1;
+  const tras = await pedir(beto, betoReal, carlaReal);
+  check('pasada la ventana caduca solo: Beto vuelve a pedir a Carla con normalidad', tras.status === 'pending');
+  base.docs.delete(`econtacts/${id(betoReal, carlaReal)}`);
+  check('un rechazo corriente (Carla borra la solicitud) no cuenta: el contador no cambia', intentosDe(I.claveDeIntentos(beto, 'pedir'))?.usados === maximo);
+  await error(pedir(beto, betoWee, anaReal));
+  const nuevo = intentosDe(I.claveDeIntentos(beto, 'pedir'));
+  check('el siguiente intento bloqueado abre una ventana nueva desde cero (1, empezando ahora)', nuevo?.usados === 1 && nuevo?.inicio === reloj);
+  check('el contador es solo del servidor: firestore.rules no nombra su colección', !leer('firestore.rules').includes(I.INTENTOS_BLOQUEADOS));
+}
+
+console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ weetalk-bloqueo: el bloqueo es de cuenta, cubre las dos caras, borra ËContact entre las cuentas, frena los intentos repetidos y no delata a nadie');
 process.exit(failures ? 1 : 0);
