@@ -16,10 +16,18 @@
  *   2 · `FAL_KEY` (y cualquier llavero dormido) se NOMBRA pero NO se declara, y `defineSecret` solo vive en `secrets.ts`;
  *   3 · lo que no cambia: el censor de registros, el adaptador de fal (lee su clave por el nombre; dormido y apagado en el
  *       registro) y lo que monta cada función;
- *   4 · CONTROL: la comparación detecta un secreto declarado que no está en la lista (no es una prueba ciega).
+ *   4 · CONTROL: la comparación detecta un secreto declarado que no está en la lista (no es una prueba ciega);
+ *   5 · NOMBRES (2026-11-07, condiciones del dueño para la excepción de `secrets.ts` en la cerca H2 de Music): los llaveros
+ *       que exporta `secrets.ts` son los tres conocidos, NOMBRAN exactamente las autorizadas más las dormidas sin repetir
+ *       ninguna, y solo dos sitios declaran. firebase-functions 7.3.2 (`registerParam`) quita el parámetro anterior con el
+ *       mismo nombre, así que un duplicado NUNCA llega al manifiesto: por eso se vigila en la fuente;
+ *   6 · MUSIC: ninguna clave musical —las que cita su matriz sin estar autorizadas, o con nombre musical— está nombrada en un
+ *       llavero ni declarada, y ningún archivo de functions/src/music lee una clave ni la nombra fuera de la ficha documental
+ *       de su matriz; con su CONTROL.
  *
- * Sin red, sin GCP y sin valores: la red está cortada antes de cargar nada, no hay credenciales ni proyecto real, y solo se
- * leen NOMBRES de parámetros (`toSpec()`), nunca un valor.
+ * Sin red, sin GCP y sin valores: la red está cortada antes de cargar nada, no hay credenciales ni proyecto real, antes de
+ * cargar nada se quitan del entorno TODOS los nombres de clave, y solo se leen NOMBRES de parámetros (`toSpec()`), nunca un
+ * valor. Ninguna comprobación imprime un valor.
  */
 import net from 'node:net';
 import { createRequire } from 'node:module';
@@ -53,6 +61,11 @@ const EXISTEN_EN_GET_WEE = Object.freeze([
   'ANTHROPIC_API_KEY', 'ARK_API_KEY', 'BFL_API_KEY', 'DEEPSEEK_API_KEY', 'ELEVENLABS_API_KEY', 'GEMINI_API_KEY',
   'MINIMAX_API_KEY', 'OPENAI_API_KEY', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'SEEDANCE_CALLBACK_TOKEN',
 ]);
+/** Los llaveros DORMIDOS: nombrados en `secrets.ts` y sin declarar (ver 2). Activar uno = pasarlo a la lista de arriba en el mismo cambio que crea el secreto. */
+const DORMIDAS = Object.freeze(['FAL_KEY']);
+/* Ningún valor de verdad al alcance de la suite (condición 6 del dueño, 2026-11-07): antes de cargar nada se quitan del
+   entorno TODOS los nombres de clave, no solo FAL_KEY; así ni la carga del código ni el censor (3b) pueden leer uno. */
+for (const k of [...EXISTEN_EN_GET_WEE, ...DORMIDAS]) delete process.env[k];
 
 /** Pura: lo declarado que no existe (lo que pararía `firebase deploy`) y lo que existe y ya no se declara. */
 const comparar = (declarados, existen) => ({
@@ -76,6 +89,8 @@ check('1b · y todo lo de la lista sigue declarado (retirar un secreto del códi
   !errorDeCarga && existentesSinDeclarar.length === 0, existentesSinDeclarar.join(', '));
 check(`1c · el manifiesto es el de TODA la base de código (${main}), leído sin red, sin GCP y sin valores`,
   !errorDeCarga && intentosDeRed.length === 0, errorDeCarga ? String(errorDeCarga.message).slice(0, 160) : intentosDeRed.slice(0, 3).join(' | '));
+check('1d · la lista autorizada tiene las 11 claves, sin repetir ninguna, y ninguna es a la vez dormida',
+  EXISTEN_EN_GET_WEE.length === 11 && new Set(EXISTEN_EN_GET_WEE).size === 11 && !DORMIDAS.some((n) => EXISTEN_EN_GET_WEE.includes(n)));
 
 /* ── fal: nombrado, sin declarar ─────────────────────────────────────────── */
 const S = require(path.join(FUNCIONES, 'lib/secrets.js'));
@@ -95,13 +110,16 @@ check('2b · en todo functions/src, defineSecret solo vive en secrets.ts, y nunc
 /* ── Lo que no cambia ────────────────────────────────────────────────────── */
 check('3 · sin declararla, leer FAL_KEY no lanza ni inventa un valor', S.secretValue('FAL_KEY') === undefined);
 {
-  /* Un valor DE MENTIRA en el entorno, solo para ver que el censor de registros lo recoge: nunca una clave de verdad. */
+  /* Un valor DE MENTIRA en el entorno, solo para ver que el censor de registros lo recoge: nunca una clave de verdad.
+     Con el entorno limpio (arriba) el censor no ve NINGÚN valor; con el de mentira, ve ese y solo ese. No se imprime nada. */
   const deMentira = 'valor-de-prueba-fal-no-real-b2-0001';
+  const antes = S.knownSecretValues();
   process.env.FAL_KEY = deMentira;
-  const censura = S.knownSecretValues().includes(deMentira);
+  const despues = S.knownSecretValues();
   delete process.env.FAL_KEY;
-  check('3b · el censor de registros sigue cubriendo los tres llaveros: un valor de FAL_KEY en el entorno se censura',
-    censura && /PROVIDER_SECRET_NAMES, \.\.\.MEDIA_SECRET_NAMES, \.\.\.FAL_SECRET_NAMES/.test(secretsTs));
+  check('3b · el censor de registros sigue cubriendo los tres llaveros: un valor de FAL_KEY en el entorno se censura (y, con el entorno limpio, no ve ninguno)',
+    antes.length === 0 && despues.length === 1 && despues[0] === deMentira
+    && /PROVIDER_SECRET_NAMES, \.\.\.MEDIA_SECRET_NAMES, \.\.\.FAL_SECRET_NAMES/.test(secretsTs));
 }
 {
   const { ADAPTERS, DEFAULT_PROVIDERS } = require(path.join(FUNCIONES, 'lib/engine/registry.js'));
@@ -130,6 +148,69 @@ check('3 · sin declararla, leer FAL_KEY no lanza ni inventa un valor', S.secret
   check('6 · CONTROL: un defineSecret que no está en la lista se detecta como «declarado sin existir», y solo él',
     JSON.stringify(control.declaradosSinExistir) === JSON.stringify(['B2_CONTROL_SECRETO_QUE_NO_EXISTE']) && control.existentesSinDeclarar.length === 0,
     control.declaradosSinExistir.join(', '));
+}
+
+/* ── 5 · NOMBRES: los llaveros, lo que nombran y los sitios que declaran ─── */
+/** Pura: de unos llaveros {nombre: [claves]}, las claves repetidas, las no autorizadas y las autorizadas que faltan. */
+const auditarNombres = (llaveros, autorizadas) => {
+  const todas = Object.values(llaveros).flat();
+  const unicas = [...new Set(todas)];
+  return {
+    duplicadas: [...new Set(todas.filter((n, i) => todas.indexOf(n) !== i))].sort(),
+    noAutorizadas: unicas.filter((n) => !autorizadas.includes(n)).sort(),
+    autorizadasSinNombrar: autorizadas.filter((n) => !unicas.includes(n)).sort(),
+  };
+};
+const LLAVEROS = ['FAL_SECRET_NAMES', 'MEDIA_SECRET_NAMES', 'PROVIDER_SECRET_NAMES'];
+const llaverosExportados = Object.keys(S).filter((k) => /_SECRET_NAMES$/.test(k)).sort();
+const llaveros = Object.fromEntries(llaverosExportados.map((k) => [k, [...S[k]]]));
+const nombresDeLlaveros = auditarNombres(llaveros, [...EXISTEN_EN_GET_WEE, ...DORMIDAS]);
+check('7 · NOMBRES: secrets.ts exporta los tres llaveros conocidos y nombra exactamente las 11 autorizadas más las dormidas, sin repetir ninguna',
+  JSON.stringify(llaverosExportados) === JSON.stringify(LLAVEROS)
+  && !nombresDeLlaveros.duplicadas.length && !nombresDeLlaveros.noAutorizadas.length && !nombresDeLlaveros.autorizadasSinNombrar.length,
+  [`llaveros: ${llaverosExportados.join(', ')}`, ...Object.entries(nombresDeLlaveros).filter(([, v]) => v.length).map(([k, v]) => `${k}: ${v.join(', ')}`)].join(' · '));
+const sitiosQueDeclaran = (secretsTs.match(/\bdefine(Json)?Secret\s*\(/g) || []).length;
+check('7b · DECLARACIONES: en secrets.ts solo declaran dos sitios —el llavero de proveedores y el de medios, recorriendo su lista de nombres—: ningún defineSecret suelto ni repetido',
+  sitiosQueDeclaran === 2
+  && /PROVIDER_SECRET_NAMES\.map\(\(name\) => \[name, defineSecret\(name\)\]/.test(secretsTs)
+  && /MEDIA_SECRET_NAMES\.map\(\(name\) => \[name, defineSecret\(name\)\]/.test(secretsTs), `${sitiosQueDeclaran} sitio(s)`);
+
+/* ── 6 · MUSIC: ninguna clave propia y ninguna lectura de claves ─────────── */
+const { PROVEEDORES_MUSICALES } = require(path.join(FUNCIONES, 'lib/music/matrix.js'));
+const PATRON_MUSICAL = /(^|_)(MUSIC|MUREKA|YINCHAO|SUNO|UDIO)(_|$)/;
+/** Pura: los nombres de clave que cita una matriz de Music (lo primero de cada `claveEnEntorno`). */
+const clavesDeLaMatriz = (fichas) => fichas.map((f) => String(f.claveEnEntorno ?? '').match(/^[A-Z][A-Z0-9_]*/)?.[0]).filter(Boolean);
+const deLaMatriz = clavesDeLaMatriz(PROVEEDORES_MUSICALES);
+const musicalesSinAutorizar = deLaMatriz.filter((n) => !EXISTEN_EN_GET_WEE.includes(n)).sort();
+/** Pura: de unos nombres, los musicales (citados por la matriz sin estar autorizados, o con nombre musical). */
+const musicalesEn = (lista, sinAutorizar) => lista.filter((n) => sinAutorizar.includes(n) || PATRON_MUSICAL.test(n)).sort();
+const musicalesEnLlaveros = musicalesEn(Object.values(llaveros).flat(), musicalesSinAutorizar);
+const musicalesDeclaradas = musicalesEn(declarados, musicalesSinAutorizar);
+check(`8 · MUSIC sin clave propia: ninguna clave musical —las de su matriz sin autorizar (${musicalesSinAutorizar.join(', ') || 'ninguna'}) o con nombre musical— está nombrada en un llavero ni declarada`,
+  deLaMatriz.length > 0 && !musicalesEnLlaveros.length && !musicalesDeclaradas.length, [...musicalesEnLlaveros, ...musicalesDeclaradas].join(', '));
+const LECTORES = /\b(env|secretValue|knownSecretValues)\s*\(|\b(SECRETS|[A-Z]+_SECRET_REFS|[A-Z]+_SECRETS)\b|from\s+['"][^'"]*secrets['"]/;
+/** Pura: las claves que nombra un texto FUERA del campo documental `claveEnEntorno` de una ficha. */
+const citasFueraDeLaFicha = (texto, claves) => {
+  const sinFichas = texto.replace(/claveEnEntorno:\s*'[^']*'/g, '');
+  return claves.filter((n) => sinFichas.includes(n));
+};
+const fuentesMusic = fuentesTs(path.join(FUNCIONES, 'src', 'music'))
+  .map((f) => [path.relative(RAIZ, f).split(path.sep).join('/'), sinComentarios(fs.readFileSync(f, 'utf8'))]);
+const musicLee = fuentesMusic.filter(([, t]) => LECTORES.test(t)).map(([f]) => f);
+const musicCita = fuentesMusic.flatMap(([f, t]) => citasFueraDeLaFicha(t, [...EXISTEN_EN_GET_WEE, ...DORMIDAS, ...musicalesSinAutorizar]).map((n) => `${f}: ${n}`));
+check('8b · MUSIC no lee claves: ningún archivo de functions/src/music usa un lector (env, secretValue, llaveros) ni nombra una clave fuera de la ficha documental de su matriz',
+  fuentesMusic.length > 0 && !musicLee.length && !musicCita.length, [...musicLee, ...musicCita].join(', '));
+
+/* ── CONTROL de 5 y 6: no son pruebas ciegas ─────────────────────────────── */
+{
+  const c1 = auditarNombres({ A: ['GEMINI_API_KEY', 'MUREKA_API_KEY'], B: ['GEMINI_API_KEY'] }, ['GEMINI_API_KEY']);
+  const c2 = musicalesEn(['GEMINI_API_KEY', 'YINCHAO_API_KEY', 'SUNO_API_KEY', 'AUDIO_API_KEY'], ['YINCHAO_API_KEY']);
+  const c3 = LECTORES.test("import { env } from '../engine/http'; const k = env('MINIMAX_API_KEY');")
+    && !LECTORES.test("import { ProviderError } from '../engine/http';");
+  const c4 = citasFueraDeLaFicha("claveEnEntorno: 'MUREKA_API_KEY (sin configurar)', otra = 'MINIMAX_API_KEY'", ['MINIMAX_API_KEY', 'MUREKA_API_KEY']);
+  check('9 · CONTROL: se detectan una clave no autorizada, una repetida, una musical (y no una que solo contiene «AUDIO»), un lector en Music y una clave citada fuera de la ficha',
+    JSON.stringify(c1) === JSON.stringify({ duplicadas: ['GEMINI_API_KEY'], noAutorizadas: ['MUREKA_API_KEY'], autorizadasSinNombrar: [] })
+    && JSON.stringify(c2) === JSON.stringify(['SUNO_API_KEY', 'YINCHAO_API_KEY']) && c3 && JSON.stringify(c4) === JSON.stringify(['MINIMAX_API_KEY']));
 }
 
 if (fallos) { console.log(`\n✘ ${fallos} fallo(s)`); process.exit(1); }
