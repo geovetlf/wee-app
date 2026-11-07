@@ -190,6 +190,126 @@ check('7n) solo entra sola en un proyecto demo y con la cuenta pasada', entrada.
 check('7o) no lleva contraseña escrita en la app', !entrada.includes(ESPECTADOR.clave) && !fuente('App.tsx').includes(ESPECTADOR.clave));
 check('7p) la cuenta solo la pasa el arranque de la demo', fuente('scripts/demo/entorno.mjs').includes('EXPO_PUBLIC_DEMO_CLAVE') && !fuente('metro.config.js').includes('EXPO_PUBLIC_DEMO'));
 
+/*
+ * 7m bis. «CERRAR SESIÓN» SE QUEDA CERRADO (B1 · P1-2 de las pruebas con sesión del 2026-11-06).
+ *
+ * Si la página arrancaba con la sesión ya guardada, el primer «Cerrar sesión» volvía a entrar solo a los 1–3 s: la
+ * entrada solo contaba cuando la hacía EntradaDemo. Aquí se EJECUTA el componente de verdad (transpilado por
+ * filmmaker-cliente.mjs) con un React mínimo que corre sus efectos como React después de pintar, y dobles de la sesión
+ * (`useAuth`) y de Firebase Auth que solo apuntan las entradas. La cuenta es inventada: la de verdad no sale de su sitio.
+ */
+{
+  const { crearCargador } = await import('./filmmaker-cliente.mjs');
+  const ENV = ['EXPO_PUBLIC_FIREBASE_PROJECT_ID', 'EXPO_PUBLIC_DEMO_CORREO', 'EXPO_PUBLIC_DEMO_CLAVE'];
+  const envAntes = Object.fromEntries(ENV.map((k) => [k, process.env[k]]));
+  const ponerEnv = (valores) => ENV.forEach((k) => { if (valores[k] === undefined) delete process.env[k]; else process.env[k] = valores[k]; });
+  const CUENTA = { correo: 'quien-mira@ejemplo.test', clave: 'clave-inventada-de-la-prueba' };
+  const AUTH = { doble: 'auth' };
+  const QUIEN = { uid: 'demoViewer' };
+  const OTRA = { uid: 'otraCuentaQueEntraAMano' };
+
+  /**
+   * Un arranque de la app (una carga de página): su propio módulo, su propia sesión y su propio registro de entradas.
+   * Lo que no se da toma el valor de la demo; lo que se da como `undefined` se queda SIN variable (no vale el de la demo).
+   */
+  const arrancar = (o = {}) => {
+    const dato = (k, porDefecto) => (Object.hasOwn(o, k) ? o[k] : porDefecto);
+    const proyecto = dato('proyecto', 'demo-wee-migracion');
+    const correo = dato('correo', CUENTA.correo);
+    const clave = dato('clave', CUENTA.clave);
+    const entradas = [];
+    let sesion = { user: null, loading: true };
+    const ranuras = [];
+    let i = 0;
+    let pendientes = [];
+    const reactMinimo = {
+      useRef: (inicial) => { const k = i++; if (!ranuras[k]) ranuras[k] = { current: inicial }; return ranuras[k]; },
+      useEffect: (efecto, deps) => {
+        const k = i++;
+        const antes = ranuras[k];
+        if (antes && deps && antes.deps.length === deps.length && deps.every((d, j) => Object.is(d, antes.deps[j]))) return;
+        pendientes.push(() => { if (typeof antes?.limpiar === 'function') antes.limpiar(); ranuras[k] = { deps: deps || [], limpiar: efecto() }; });
+      },
+    };
+    const cargar = crearCargador({ dobles: {
+      react: reactMinimo,
+      'firebase/auth': { signInWithEmailAndPassword: (auth, c, k) => { entradas.push({ auth, correo: c, clave: k }); return Promise.resolve(); } },
+      '../config/firebase': { auth: AUTH },
+      '../contexts/AuthContext': { useAuth: () => sesion },
+    } });
+    const EntradaDemo = cargar('components/EntradaDemo.tsx').default;
+    /* Pintar = React vuelve a llamar al componente con la sesión nueva y, después, corre los efectos cuyas dependencias cambiaron. */
+    const pintar = (cambio = {}) => {
+      sesion = { ...sesion, ...cambio };
+      ponerEnv({ EXPO_PUBLIC_FIREBASE_PROJECT_ID: proyecto, EXPO_PUBLIC_DEMO_CORREO: correo, EXPO_PUBLIC_DEMO_CLAVE: clave });
+      i = 0;
+      pendientes = [];
+      const salida = EntradaDemo();
+      pendientes.forEach((p) => p());
+      return salida;
+    };
+    return { pintar, entradas };
+  };
+
+  try {
+    {
+      const d = arrancar();
+      d.pintar({ loading: true, user: null });
+      d.pintar({ loading: false, user: QUIEN }); // la sesión venía guardada
+      d.pintar({ user: null }); // «Cerrar sesión»
+      d.pintar({}); // y la app sigue pintando
+      check('7m1) con la sesión guardada al arrancar, «Cerrar sesión» se queda cerrado: la demo no vuelve a entrar sola', d.entradas.length === 0, `${d.entradas.length} entrada(s)`);
+    }
+    {
+      const d = arrancar();
+      d.pintar({ loading: true, user: null });
+      d.pintar({ loading: false, user: null });
+      const alArrancar = d.entradas.length;
+      d.pintar({ user: QUIEN });
+      d.pintar({ user: null });
+      const [e] = d.entradas;
+      check('7m2) sin sesión al arrancar entra UNA vez, con la cuenta que pasó el arranque, y tras salir no repite',
+        alArrancar === 1 && d.entradas.length === 1 && e.correo === CUENTA.correo && e.clave === CUENTA.clave && e.auth === AUTH, `${d.entradas.length} entrada(s)`);
+    }
+    {
+      const d = arrancar(); // recargar la página después de salir: Firebase ya no tiene la sesión guardada
+      d.pintar({ loading: true, user: null });
+      const salida = d.pintar({ loading: false, user: null });
+      check('7m3) recargar después de salir vuelve a abrir la demo con la sesión iniciada (arranque nuevo, una entrada)', d.entradas.length === 1);
+      check('7m4) y sigue sin pintar nada', salida === null);
+    }
+    {
+      const d = arrancar();
+      d.pintar({ loading: false, user: QUIEN });
+      d.pintar({ user: null });
+      d.pintar({ user: OTRA }); // alguien entra a mano con el formulario
+      d.pintar({ user: null }); // y vuelve a salir
+      check('7m5) si después alguien entra a mano y vuelve a salir, tampoco entra sola', d.entradas.length === 0, `${d.entradas.length} entrada(s)`);
+    }
+    {
+      const d = arrancar();
+      d.pintar({ loading: true, user: null });
+      d.pintar({ loading: true, user: null });
+      check('7m6) mientras Auth no ha dicho si hay sesión, no entra', d.entradas.length === 0);
+    }
+    {
+      const entradasCon = (proyecto, extra = {}) => {
+        const a = arrancar({ proyecto, ...extra });
+        a.pintar({ loading: true, user: null }); a.pintar({ loading: false, user: null }); a.pintar({ user: QUIEN }); a.pintar({ user: null });
+        const b = arrancar({ proyecto, ...extra });
+        b.pintar({ loading: false, user: QUIEN }); b.pintar({ user: null });
+        return a.entradas.length + b.entradas.length;
+      };
+      check('7m7) fuera de la demo no entra nunca, aunque llegaran sus variables: producción (get-wee), wee-dev-geovet y sin proyecto',
+        entradasCon('get-wee') === 0 && entradasCon('wee-dev-geovet') === 0 && entradasCon(undefined) === 0);
+      check('7m8) y en un proyecto demo sin la cuenta del arranque, tampoco',
+        entradasCon('demo-wee-migracion', { correo: undefined, clave: undefined }) === 0 && entradasCon('demo-wee-migracion', { clave: '' }) === 0);
+    }
+  } finally {
+    ponerEnv(envAntes);
+  }
+}
+
 /* 8. La app */
 const contenido = fuente('utils/contenidoDemo.ts');
 check('8a) la marca que decide es isDemo', contenido.includes('doc.isDemo === true') && !contenido.includes('doc.demo'));

@@ -13,14 +13,23 @@ import { debeEntrarSolaLaDemo } from '../utils/contenidoDemo';
  */
 export default function EntradaDemo() {
   const { user, loading } = useAuth();
+  /*
+   * ¿Ya está decidida la entrada de ESTE arranque?
+   *
+   * Se decide una sola vez, la primera vez que Auth dice si hay sesión: si la página arrancó con la sesión guardada,
+   * esa es la entrada de este arranque; si no, entra la demo. Antes solo contaba la entrada que hacía este componente,
+   * así que con la sesión restaurada —la web al recargar, y el teléfono siempre— el primer «Cerrar sesión» volvía a
+   * entrar solo a los 1–3 s. Ahora un cierre de sesión se queda cerrado hasta recargar o hasta entrar a mano.
+   */
   const yaEntro = useRef(false);
 
   useEffect(() => {
     const correo = process.env.EXPO_PUBLIC_DEMO_CORREO;
     const clave = process.env.EXPO_PUBLIC_DEMO_CLAVE;
-    if (loading || user || yaEntro.current) return;
     if (!debeEntrarSolaLaDemo(process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID, correo, clave)) return;
+    if (loading || yaEntro.current) return;
     yaEntro.current = true;
+    if (user) return;
     signInWithEmailAndPassword(auth, correo as string, clave as string).catch((error) => {
       console.warn('La demo no pudo iniciar sesión sola:', error?.code);
     });
