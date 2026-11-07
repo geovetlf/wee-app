@@ -319,6 +319,7 @@
       "suites": [
         "moderation",
         "weetalk-view-once",
+        "weetalk-bloqueo",
         "composer",
         "muro",
         "composer-entry",

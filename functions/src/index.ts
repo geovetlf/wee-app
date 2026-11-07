@@ -4,6 +4,7 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { cuentaDeIdentidad, PerfilDeIdentidad } from './social/econtact';
 import { avisoPush, cuerpoDelMensaje, cupoDeAvisos, datosDelAviso, nombreDeRespaldo, nombreVisible, resumenDeRespuestaDeExpo } from './social/avisos';
+import { bloqueosEngine } from './social/weetalkBloqueos';
 
 // Inicializar Firebase Admin solo si no está inicializado
 if (admin.apps.length === 0) {
@@ -120,6 +121,12 @@ export { deleteAsset } from './content';
 // Encuestas: la única puerta para votar. Función social, sin IA ni Credits.
 export { votePoll } from './social/polls';
 export { burnViewOnce } from './social/weetalk';
+/*
+ * WeeTalk · BLOQUEO DE CONTACTOS (docs/WEETALK-BLOQUEO.md): bloquear, desbloquear y la lista de bloqueados, por CUENTA
+ * y para las dos caras. Es una decisión personal de privacidad: no denuncia, no abre casos y no toca el Moderation
+ * Core. Sin IA ni Credits. NO desplegadas: ops/despliegue/grupos.json → no_se_despliegan.
+ */
+export { blockWeeTalkContact, unblockWeeTalkContact, listWeeTalkBlocks } from './social/weetalkBloqueos';
 
 /*
  * ËContact: las dos puertas de una conexión entre identidades de
@@ -345,11 +352,24 @@ export const sendMessagePushNotification = onDocumentCreated(
       /* El nombre que se enseña es el de la cara que escribió; el token, el de la cuenta que recibe. */
       const senderDoc = await perfilDeIdentidad(senderId);
       const senderName = nombreVisible(senderDoc?.data());
+      /*
+       * BLOQUEO DE CONTACTOS (docs/WEETALK-BLOQUEO.md): de la cara que escribió a su CUENTA, con el resolutor canónico
+       * sobre el perfil ya leído (se lee `linkedAccountId`, nunca se quita un prefijo).
+       */
+      const cuentaQueEscribe = senderDoc ? cuentaDeIdentidad(senderId, senderDoc.data() as PerfilDeIdentidad) : null;
 
       for (const participantId of participants) {
         if (participantId === senderId) continue;
 
         const cuenta = await cuentaDeLaIdentidad(participantId);
+        /*
+         * La regla común «¿puede X escribir a Y?», por CUENTAS: si quien recibe bloqueó a quien escribe (o al revés),
+         * no suena. Solo mira quién y a quién —el mensaje no entra— y falla cerrada: sin las dos cuentas, no suena.
+         */
+        if (!(await bloqueosEngine.permiteAviso({ identidad: senderId, cuenta: cuentaQueEscribe }, { identidad: participantId, cuenta }))) {
+          console.log('Push de mensaje sin enviar: hay un bloqueo entre las cuentas o no se pudo comprobar');
+          continue;
+        }
         const destino = await destinoDelPush(cuenta);
 
         if (destino) {

@@ -1,0 +1,139 @@
+    match /conversations/{conversationId} {
+      function misIdentidadesDeChat() {
+        return misIdentidadesHeredadas();
+      }
+      function participo() {
+        return resource.data.participants.hasAny(misIdentidadesDeChat());
+      }
+
+      // ── BLOQUEO DE CONTACTOS (docs/WEETALK-BLOQUEO.md) ────────────────────
+      // `weetalkBloqueosPorPar/{de}~{para}` existe cuando la cara `de` NO
+      // puede escribir a la cara `para`. Lo escriben solo las callables
+      // `blockWeeTalkContact` y `unblockWeeTalkContact`
+      // (functions/src/social/weetalkBloqueos.ts), desde la MISMA regla pura
+      // que decide el aviso push; ningún cliente lo lee ni lo escribe (la
+      // colección no tiene regla). Aquí solo se pregunta si existe: no se lee
+      // ningún mensaje ni se deduce de quién es ninguna cara.
+      function bloqueado(de, para) {
+        return exists(/databases/$(database)/documents/weetalkBloqueosPorPar/$(de + '~' + para));
+      }
+      // En una conversación de dos: mi cara y la otra.
+      function miCaraEn(participantes) {
+        return participantes[0] in misIdentidadesDeChat() ? participantes[0] : participantes[1];
+      }
+      function laOtraEn(participantes, mia) {
+        return participantes[0] == mia ? participantes[1] : participantes[0];
+      }
+      function chatBloqueadoPara(participantes) {
+        let mia = miCaraEn(participantes);
+        return bloqueado(mia, laOtraEn(participantes, mia));
+      }
+
+      // Solo participantes pueden leer
+      allow read: if isAuthenticated() &&
+        (request.auth.uid in resource.data.participants ||
+         ("hidi_" + request.auth.uid) in resource.data.participants);
+
+      // Una conversación es entre DOS identidades, una de ellas mía, y su ficha
+      // de participantes habla exactamente de esas dos. Es lo que la app crea.
+      // Y no se abre con una cara a la que no puedo escribir: ni con quien me
+      // bloqueó (desde esa cara), ni con la cara que yo bloqueé.
+      allow create: if isAuthenticated() &&
+        request.resource.data.keys().hasOnly(['participants', 'participantsData', 'createdAt', 'updatedAt']) &&
+        request.resource.data.participants is list &&
+        request.resource.data.participants.size() == 2 &&
+        request.resource.data.participants[0] != request.resource.data.participants[1] &&
+        request.resource.data.participants.hasAny(misIdentidadesDeChat()) &&
+        request.resource.data.participantsData is map &&
+        request.resource.data.participantsData.keys().toSet() == request.resource.data.participants.toSet() &&
+        !chatBloqueadoPara(request.resource.data.participants);
+
+      // `lastMessage` cambia de tres maneras, y solo de esas tres: lo firma una
+      // identidad MÍA que participa (acabo de escribir); se marca como leído
+      // sin tocar nada más; o lo vacía el modo efímero, que no firma nadie.
+      function ultimoMensajeLegitimo() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastMessage']) ||
+          (request.resource.data.lastMessage is map && (
+            (request.resource.data.lastMessage.get('senderId', '') in misIdentidadesDeChat() &&
+             request.resource.data.lastMessage.get('senderId', '') in resource.data.participants) ||
+            (resource.data.get('lastMessage', null) is map &&
+             request.resource.data.lastMessage.diff(resource.data.lastMessage).affectedKeys().hasOnly(['read']) &&
+             request.resource.data.lastMessage.get('read', false) == true) ||
+            (resource.data.get('ephemeral', false) == true &&
+             request.resource.data.lastMessage.get('senderId', null) == '')));
+      }
+      // Quién está mirando el chat: cada uno entra y sale él mismo, no mueve al otro.
+      function presenciaPropia() {
+        let antes = resource.data.get('activeInChat', []).toSet();
+        let despues = request.resource.data.get('activeInChat', []).toSet();
+        return despues.difference(antes).union(antes.difference(despues)).hasOnly(misIdentidadesDeChat());
+      }
+      // El color de burbuja es de cada uno: solo el suyo.
+      function colorPropio() {
+        return request.resource.data.get('bubbleColors', {}).diff(resource.data.get('bubbleColors', {}))
+          .affectedKeys().hasOnly(misIdentidadesDeChat());
+      }
+      // Con un bloqueo entre las dos caras, la conversación se queda como está
+      // para las dos: solo se entra y se sale (presencia propia), se marca como
+      // leído y se vacía el modo efímero. Nada que firme un mensaje nuevo ni que
+      // la otra cara vea cambiar (tema, fondo, modo efímero, colores).
+      function cambioPermitidoConBloqueo() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeInChat', 'lastMessage']) &&
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastMessage']) ||
+           !(request.resource.data.lastMessage.get('senderId', '') in misIdentidadesDeChat()));
+      }
+
+      allow update: if isAuthenticated() && participo() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['lastMessage', 'updatedAt', 'activeInChat', 'bubbleColors', 'chatTheme', 'chatWallpaper', 'ephemeral']) &&
+        ultimoMensajeLegitimo() && presenciaPropia() && colorPropio() &&
+        (!chatBloqueadoPara(resource.data.participants) || cambioPermitidoConBloqueo());
+
+      allow delete: if false;
+
+      // Mensajes dentro de conversaciones — solo participantes de la conversación padre
+      match /messages/{messageId} {
+        function participantesDelChat() {
+          return get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        }
+        function participoEnElChat() {
+          return participantesDelChat().hasAny(misIdentidadesDeChat());
+        }
+        // El remitente es una identidad MÍA y además una de las que participan:
+        // no se escribe con la cara que no está en la conversación.
+        function remitenteLegitimo() {
+          let remitente = request.resource.data.get('senderId', '');
+          return remitente in misIdentidadesDeChat() && remitente in participantesDelChat();
+        }
+        // El modo efímero vacía un mensaje efímero; no reescribe ninguno.
+        function vaciadoEfimero() {
+          return resource.data.get('ephemeral', false) == true &&
+            request.resource.data.get('ephemeral', false) == true &&
+            request.resource.data.get('deleted', false) == true &&
+            request.resource.data.get('content', '') == '' &&
+            request.resource.data.get('imageUrl', null) == null;
+        }
+
+        allow read: if isAuthenticated() && participoEnElChat();
+
+        // Y el remitente no escribe a la otra cara si le está prohibido: ninguna
+        // cara de quien fue bloqueado escribe a la cara que lo bloqueó, y quien
+        // bloqueó no escribe a la cara que bloqueó hasta que la desbloquee.
+        allow create: if isAuthenticated() && remitenteLegitimo() &&
+          request.resource.data.get('conversationId', conversationId) == conversationId &&
+          !bloqueado(request.resource.data.senderId, laOtraEn(participantesDelChat(), request.resource.data.senderId));
+
+        // Lo único que un participante cambia de un mensaje: marcarlo como
+        // leído, o vaciarlo en el modo efímero. El remitente, el texto de un
+        // mensaje normal, sus archivos y su fecha no los reescribe nadie.
+        allow update: if isAuthenticated() && participoEnElChat() &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['read', 'content', 'deleted', 'imageUrl', 'ephemeral']) &&
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['read']) ||
+           request.resource.data.read == true) &&
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['content', 'deleted', 'imageUrl', 'ephemeral']) ||
+           vaciadoEfimero());
+
+        allow delete: if false;
+      }
+    }
