@@ -186,9 +186,31 @@ check('7z) no costaron Credits', proyectos.every((d) => d.datos.creditsCharged =
 /* 7m. Entrada automática */
 const entrada = fuente('components/EntradaDemo.tsx');
 const modeloDemo = fuente('utils/contenidoDemo.ts');
-check('7n) solo entra sola en un proyecto demo y con la cuenta pasada', entrada.includes('debeEntrarSolaLaDemo(process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID') && /esProyectoDemo\(projectId\) && !!correo && !!clave/.test(modeloDemo));
-check('7o) no lleva contraseña escrita en la app', !entrada.includes(ESPECTADOR.clave) && !fuente('App.tsx').includes(ESPECTADOR.clave));
-check('7p) la cuenta solo la pasa el arranque de la demo', fuente('scripts/demo/entorno.mjs').includes('EXPO_PUBLIC_DEMO_CLAVE') && !fuente('metro.config.js').includes('EXPO_PUBLIC_DEMO'));
+/*
+ * Decisión del dueño (2026-11-07, B2-G): una variable EXPO_PUBLIC no es un secreto. La demo ya no recibe la contraseña de la
+ * cuenta de prueba (antes, EXPO_PUBLIC_DEMO_CLAVE): recibe su UID y entra con el token de PRUEBA del emulador de Auth, que el
+ * Auth de producción rechaza.
+ */
+check('7n) solo entra sola en un proyecto demo, contra el emulador de Auth y con el UID que pasó el arranque',
+  entrada.includes('debeEntrarSolaLaDemo(process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID, uid, process.env.EXPO_PUBLIC_AUTH_EMULATOR_HOST)')
+  && /esProyectoDemo\(projectId\) && esUidDeDemo\(uid\) && typeof hostDelEmuladorDeAuth === 'string'/.test(modeloDemo));
+check('7o) no lleva contraseña en la app: ni escrita, ni en una variable EXPO_PUBLIC, ni entra con correo y contraseña',
+  !entrada.includes(ESPECTADOR.clave) && !fuente('App.tsx').includes(ESPECTADOR.clave) && !modeloDemo.includes(ESPECTADOR.clave)
+  && !/EXPO_PUBLIC_DEMO_(CLAVE|CORREO)/.test(entrada + modeloDemo) && !/signInWithEmailAndPassword/.test(entrada) && /signInWithCustomToken/.test(entrada));
+check('7p) el arranque de la demo solo pasa el UID de la cuenta (EXPO_PUBLIC_DEMO_UID), nunca su correo ni su contraseña, y Metro no la toca',
+  fuente('scripts/demo/entorno.mjs').includes('EXPO_PUBLIC_DEMO_UID: ESPECTADOR.uid') && !/EXPO_PUBLIC_DEMO_(CLAVE|CORREO)/.test(fuente('scripts/demo/entorno.mjs'))
+  && !fuente('metro.config.js').includes('EXPO_PUBLIC_DEMO'));
+{
+  const { crearCargador } = await import('./filmmaker-cliente.mjs');
+  const M = crearCargador({ dobles: {} })('utils/contenidoDemo.ts');
+  const token = M.tokenDeLaDemoParaElEmulador('demoViewer');
+  check('7q) el token de la demo es el de PRUEBA del emulador ({"uid":…}): sin contraseña, sin firma y sin forma de JWT, así que el Auth de producción no lo acepta; y la puerta exige proyecto demo, UID y emulador',
+    token === '{"uid":"demoViewer"}' && !token.includes('.') && Object.keys(JSON.parse(token)).length === 1 && !token.includes(ESPECTADOR.clave)
+    && M.debeEntrarSolaLaDemo('demo-wee-migracion', 'demoViewer', '127.0.0.1')
+    && !M.debeEntrarSolaLaDemo('get-wee', 'demoViewer', '127.0.0.1') && !M.debeEntrarSolaLaDemo('wee-dev-geovet', 'demoViewer', '127.0.0.1')
+    && !M.debeEntrarSolaLaDemo('demo-wee-migracion', 'demoViewer', undefined) && !M.debeEntrarSolaLaDemo('demo-wee-migracion', 'demoViewer', ' ')
+    && !M.debeEntrarSolaLaDemo('demo-wee-migracion', undefined, '127.0.0.1') && !M.debeEntrarSolaLaDemo('demo-wee-migracion', ESPECTADOR.correo, '127.0.0.1'));
+}
 
 /*
  * 7m bis. «CERRAR SESIÓN» SE QUEDA CERRADO (B1 · P1-2 de las pruebas con sesión del 2026-11-06).
@@ -200,10 +222,10 @@ check('7p) la cuenta solo la pasa el arranque de la demo', fuente('scripts/demo/
  */
 {
   const { crearCargador } = await import('./filmmaker-cliente.mjs');
-  const ENV = ['EXPO_PUBLIC_FIREBASE_PROJECT_ID', 'EXPO_PUBLIC_DEMO_CORREO', 'EXPO_PUBLIC_DEMO_CLAVE'];
+  const ENV = ['EXPO_PUBLIC_FIREBASE_PROJECT_ID', 'EXPO_PUBLIC_DEMO_UID', 'EXPO_PUBLIC_AUTH_EMULATOR_HOST'];
   const envAntes = Object.fromEntries(ENV.map((k) => [k, process.env[k]]));
   const ponerEnv = (valores) => ENV.forEach((k) => { if (valores[k] === undefined) delete process.env[k]; else process.env[k] = valores[k]; });
-  const CUENTA = { correo: 'quien-mira@ejemplo.test', clave: 'clave-inventada-de-la-prueba' };
+  const CUENTA = { uid: 'quienMiraLaDemoInventada' };
   const AUTH = { doble: 'auth' };
   const QUIEN = { uid: 'demoViewer' };
   const OTRA = { uid: 'otraCuentaQueEntraAMano' };
@@ -215,8 +237,8 @@ check('7p) la cuenta solo la pasa el arranque de la demo', fuente('scripts/demo/
   const arrancar = (o = {}) => {
     const dato = (k, porDefecto) => (Object.hasOwn(o, k) ? o[k] : porDefecto);
     const proyecto = dato('proyecto', 'demo-wee-migracion');
-    const correo = dato('correo', CUENTA.correo);
-    const clave = dato('clave', CUENTA.clave);
+    const uid = dato('uid', CUENTA.uid);
+    const emulador = dato('emulador', '127.0.0.1');
     const entradas = [];
     let sesion = { user: null, loading: true };
     const ranuras = [];
@@ -233,7 +255,7 @@ check('7p) la cuenta solo la pasa el arranque de la demo', fuente('scripts/demo/
     };
     const cargar = crearCargador({ dobles: {
       react: reactMinimo,
-      'firebase/auth': { signInWithEmailAndPassword: (auth, c, k) => { entradas.push({ auth, correo: c, clave: k }); return Promise.resolve(); } },
+      'firebase/auth': { signInWithCustomToken: (auth, token) => { entradas.push({ auth, token }); return Promise.resolve(); } },
       '../config/firebase': { auth: AUTH },
       '../contexts/AuthContext': { useAuth: () => sesion },
     } });
@@ -241,7 +263,7 @@ check('7p) la cuenta solo la pasa el arranque de la demo', fuente('scripts/demo/
     /* Pintar = React vuelve a llamar al componente con la sesión nueva y, después, corre los efectos cuyas dependencias cambiaron. */
     const pintar = (cambio = {}) => {
       sesion = { ...sesion, ...cambio };
-      ponerEnv({ EXPO_PUBLIC_FIREBASE_PROJECT_ID: proyecto, EXPO_PUBLIC_DEMO_CORREO: correo, EXPO_PUBLIC_DEMO_CLAVE: clave });
+      ponerEnv({ EXPO_PUBLIC_FIREBASE_PROJECT_ID: proyecto, EXPO_PUBLIC_DEMO_UID: uid, EXPO_PUBLIC_AUTH_EMULATOR_HOST: emulador });
       i = 0;
       pendientes = [];
       const salida = EntradaDemo();
@@ -268,8 +290,8 @@ check('7p) la cuenta solo la pasa el arranque de la demo', fuente('scripts/demo/
       d.pintar({ user: QUIEN });
       d.pintar({ user: null });
       const [e] = d.entradas;
-      check('7m2) sin sesión al arrancar entra UNA vez, con la cuenta que pasó el arranque, y tras salir no repite',
-        alArrancar === 1 && d.entradas.length === 1 && e.correo === CUENTA.correo && e.clave === CUENTA.clave && e.auth === AUTH, `${d.entradas.length} entrada(s)`);
+      check('7m2) sin sesión al arrancar entra UNA vez, con el token de prueba del UID que pasó el arranque (sin contraseña), y tras salir no repite',
+        alArrancar === 1 && d.entradas.length === 1 && e.token === JSON.stringify({ uid: CUENTA.uid }) && e.auth === AUTH, `${d.entradas.length} entrada(s)`);
     }
     {
       const d = arrancar(); // recargar la página después de salir: Firebase ya no tiene la sesión guardada
@@ -302,8 +324,9 @@ check('7p) la cuenta solo la pasa el arranque de la demo', fuente('scripts/demo/
       };
       check('7m7) fuera de la demo no entra nunca, aunque llegaran sus variables: producción (get-wee), wee-dev-geovet y sin proyecto',
         entradasCon('get-wee') === 0 && entradasCon('wee-dev-geovet') === 0 && entradasCon(undefined) === 0);
-      check('7m8) y en un proyecto demo sin la cuenta del arranque, tampoco',
-        entradasCon('demo-wee-migracion', { correo: undefined, clave: undefined }) === 0 && entradasCon('demo-wee-migracion', { clave: '' }) === 0);
+      check('7m8) y en un proyecto demo sin el UID del arranque, con un UID que no lo es, o sin el emulador de Auth, tampoco',
+        entradasCon('demo-wee-migracion', { uid: undefined }) === 0 && entradasCon('demo-wee-migracion', { uid: '' }) === 0
+        && entradasCon('demo-wee-migracion', { uid: 'quien@ejemplo.test' }) === 0 && entradasCon('demo-wee-migracion', { emulador: undefined }) === 0);
     }
   } finally {
     ponerEnv(envAntes);

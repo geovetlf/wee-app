@@ -43,10 +43,11 @@ const entornoApp = {
   EXPO_PUBLIC_FIRESTORE_EMULATOR_HOST: HOST,
   EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST: HOST,
   EXPO_PUBLIC_STORAGE_EMULATOR_HOST: HOST,
-  /* La demo entra sola con la cuenta de prueba del emulador (components/EntradaDemo.tsx). */
+  /* La demo entra sola con la cuenta de prueba del emulador (components/EntradaDemo.tsx): solo su UID, un identificador, y
+     el token de prueba del emulador. Ni su correo ni su contraseña van al cliente: una variable EXPO_PUBLIC no es un
+     secreto (decisión del dueño, 2026-11-07). */
   EXPO_PUBLIC_DEMO_MEDIOS: `http://${HOST}:8096`,
-  EXPO_PUBLIC_DEMO_CORREO: ESPECTADOR.correo,
-  EXPO_PUBLIC_DEMO_CLAVE: ESPECTADOR.clave,
+  EXPO_PUBLIC_DEMO_UID: ESPECTADOR.uid,
   BROWSER: 'none',
 };
 

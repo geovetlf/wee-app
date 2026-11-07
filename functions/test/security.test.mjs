@@ -67,13 +67,18 @@ check('ninguna clave de proveedor aparece en el código del cliente', leaked.len
  * App Check en la web (config/appCheck.web.ts): pública por diseño, va en la página.
  * Se admite ese nombre exacto, no un patrón: un «…APP_CHECK_SECRET» no pasaría.
  *
- * EXPO_PUBLIC_DEMO_MEDIOS/CORREO/CLAVE: la dirección de los medios y la cuenta de prueba del EMULADOR, que solo pone
- * scripts/demo/entorno.mjs. La app solo las usa en un proyecto `demo-*`; también por nombre exacto.
+ * EXPO_PUBLIC_DEMO_MEDIOS y EXPO_PUBLIC_DEMO_UID: la dirección de los medios del EMULADOR y el UID —un identificador— de
+ * su cuenta de prueba, que solo pone scripts/demo/entorno.mjs. La app solo las usa en un proyecto `demo-*` contra el
+ * emulador; también por nombre exacto. La CONTRASEÑA de esa cuenta ya no viaja (antes, EXPO_PUBLIC_DEMO_CLAVE, y su
+ * correo, EXPO_PUBLIC_DEMO_CORREO): una variable EXPO_PUBLIC no es un secreto (decisión del dueño, 2026-11-07, B2-G).
  *
  * EXPO_PUBLIC_PRUEBA_RTL: el modo de prueba de dirección (solo `ar`), que contexts/IdiomaContext.tsx lee solo con
  * __DEV__; no es un secreto ni cambia nada en una compilación de producción. Por nombre exacto.
  */
-check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview, la clave de sitio de App Check)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v) || ['EXPO_PUBLIC_APP_CHECK_SITE_KEY', 'EXPO_PUBLIC_DEMO_MEDIOS', 'EXPO_PUBLIC_DEMO_CORREO', 'EXPO_PUBLIC_DEMO_CLAVE', 'EXPO_PUBLIC_PRUEBA_RTL'].includes(v))));
+check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview, la clave de sitio de App Check)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v) || ['EXPO_PUBLIC_APP_CHECK_SITE_KEY', 'EXPO_PUBLIC_DEMO_MEDIOS', 'EXPO_PUBLIC_DEMO_UID', 'EXPO_PUBLIC_PRUEBA_RTL'].includes(v))));
+/* Ningún nombre de credencial entra en el cliente, aunque alguien lo añada a la lista de arriba: «…_SITE_KEY» es pública por diseño. */
+const credencialesEnElCliente = clientFiles.flatMap((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).filter((v) => /(CLAVE|PASSWORD|CONTRASE|SECRET|TOKEN|PRIVATE)/.test(v)).map((v) => `${f.file}: ${v}`));
+check('ninguna variable EXPO_PUBLIC del cliente lleva nombre de credencial (CLAVE, PASSWORD, SECRET, TOKEN, PRIVATE): una variable EXPO_PUBLIC no es un secreto', credencialesEnElCliente.length === 0, credencialesEnElCliente.join(', '));
 
 // 2) Nada de claves con valor en el código fuente
 const serverFiles = readDir('functions/src');
