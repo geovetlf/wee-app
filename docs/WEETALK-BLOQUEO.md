@@ -136,7 +136,16 @@ El dueño pidió frenar los intentos repetidos de contactar a cuentas que han bl
 | Llamadas directas | — | no existen | — |
 | `burnViewOnce` | servidor | no se condiciona | igual: no es escritura de B hacia A |
 
-## 6 · La propuesta de reglas (revisada, NO aplicada)
+## 6 · La propuesta de reglas (APLICADA en la rama `weetalk/reglas-bloqueo`, sin desplegar)
+
+> **En esta rama**, autorizada por el dueño el 2026-11-07, la propuesta está **aplicada** en `firestore.rules`, byte a byte como se compone sobre las reglas de W0. **No se ha desplegado.** Lo verificado:
+> - la suite `weetalk-bloqueo` § H: aplicada exactamente; fuera de los dos bloques, idéntico a W0; ningún `allow` se afloja; las cuatro condiciones nuevas son las aprobadas;
+> - las 44 pruebas de emulador contra las reglas aplicadas: 44/44;
+> - `integridad-11x4a`, `fronteras-rules` y `comunidades-identidad`: el mismo resultado con las reglas de W0 y con las aplicadas.
+>
+> **Pendiente de autorización:** la suite `security` (con huella, invariante I-06) fija el texto exacto del `allow create` de los avisos, que debe acabar en `avisoConLaFormaDeLaApp();`. Con la condición nueva ya no casa, aunque el permiso se estreche. Adaptar esa expresión y volver a anclar la huella de `security` no se hace sin autorización.
+>
+> El resto de esta sección describe la propuesta tal como se revisó.
 
 Texto exacto en `ops/propuestas/weetalk-bloqueo/`:
 
@@ -229,9 +238,9 @@ Las tres callables nuevas tienen dos barreras: sin sesión dan `unauthenticated`
 
 ## 10 · Pendientes que necesitan autorización o decisión
 
-1. **Aplicar la propuesta de reglas** en `firestore.rules`. Toca bloques que W0 fija, así que necesita autorización.
-   - Las 44 pruebas, la regresión de tres suites y el análisis de permisos ya están hechos (§ 6).
-   - No se aplica ni se despliega sin autorización expresa.
+1. **Las reglas** están aplicadas en la rama `weetalk/reglas-bloqueo`, que va en su propia PR en borrador. **No están desplegadas** y no se despliegan sin autorización expresa. Falta además autorizar el ajuste de `security` y de su huella (§ 6).
+   - Las 44 pruebas contra las reglas aplicadas, la regresión de tres suites y el análisis de permisos ya están hechos (§ 6).
+   - Fusionarla y desplegar las reglas exige autorización expresa.
 2. **Desplegar** las tres callables y las versiones de `requestEContact`, `acceptEContact`, `sendPushNotification` y `sendMessagePushNotification` con el bloqueo, después de integrar W0.
 3. **Interfaz:** «Bloquear», «Bloqueados» en Configuración y el aviso a quien bloqueó. No está hecha. Exige claves en los 42 diccionarios y la puerta visual.
 4. **Decidido en la segunda ronda:**

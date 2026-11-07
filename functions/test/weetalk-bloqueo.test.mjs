@@ -269,8 +269,12 @@ console.log('\n── E · Privacidad: la lista, y lo que nadie más puede saber
   check('quitar una de esas dos filas deja la otra, y la cuenta de Beto sigue bloqueada: quitar una no abre a esa persona',
     una.length === 1 && una[0].identidad === betoWee && (await motor.permiteAviso(conCuenta(betoReal), conCuenta(anaWee))) === false);
   const reglas = leer('firestore.rules');
-  check('las cuatro colecciones son SOLO del servidor: firestore.rules no las nombra y no hay comodín que las abra',
-    ![B.BLOQUEOS, B.PARES, B.CUPOS, I.INTENTOS_BLOQUEADOS].some((c) => reglas.includes(c)) && !/match \/\{document=\*\*\}/.test(reglas));
+  /* Con las reglas aplicadas, el índice aparece en ellas, pero solo dentro de un exists(): leer no da permiso sobre él. */
+  const reglasSinComentarios = sinComentarios(reglas);
+  check('las cuatro colecciones son SOLO del servidor: ninguna regla las abre (sin `match` propio ni comodín) y el índice solo se consulta con exists()',
+    !/match \/(weetalkBloqueos|weetalkBloqueosPorPar|weetalkBloqueosCupo|weetalkIntentosBloqueados)\b/.test(reglas) && !/match \/\{document=\*\*\}/.test(reglas)
+    && (reglasSinComentarios.match(/weetalkBloqueosPorPar/g) || []).length === (reglasSinComentarios.match(/exists\(\/databases\/\$\(database\)\/documents\/weetalkBloqueosPorPar\//g) || []).length
+    && !reglas.includes(B.CUPOS) && !reglas.includes(I.INTENTOS_BLOQUEADOS));
 }
 
 console.log('\n── F · Sin inspección: la lógica del bloqueo no lee mensajes ni toca la moderación ──');
@@ -344,36 +348,84 @@ console.log('\n── G · El cableado ──');
   check('y no tiene textos de interfaz: los errores viajan como código', !/notify\(|Alert\.|t\('/.test(sinComentarios(cliente)) && /motivoDeBloqueo/.test(cliente));
 }
 
-console.log('\n── H · La propuesta de reglas: compone, cubre los caminos del cliente y NO está aplicada ──');
+console.log('\n── H · Las reglas: la propuesta está APLICADA en esta rama, tal cual se revisó y sin aflojar nada ──');
 {
   const reglas = leer('firestore.rules');
+  const { execFileSync } = await import('node:child_process');
+  /* Las reglas de W0 (7aa01156), de la historia publicada de esta rama: el punto de partida de la propuesta. */
+  const reglasDeW0 = execFileSync('git', ['show', '7aa01156:firestore.rules'], { cwd: RAIZ, encoding: 'utf8' });
   const propuesta = fs.readFileSync(P.RUTA_DE_LA_PROPUESTA, 'utf8');
   const propuestaDeAvisos = fs.readFileSync(P.RUTA_DE_LA_PROPUESTA_DE_AVISOS, 'utf8');
   let compuesta = null;
   let motivo = '';
-  try { compuesta = P.componerPropuesta(reglas, propuesta, propuestaDeAvisos); } catch (e) { motivo = e.message; }
-  check('compone sobre las reglas de hoy (los bloques de conversaciones y de avisos siguen siendo los de W0)', !!compuesta, motivo);
-  const actual = P.bloqueDeConversaciones(reglas);
-  const actualAvisos = P.bloqueDeAvisos(reglas);
-  const nueva = compuesta ? P.bloqueDeConversaciones(compuesta) : null;
-  const nuevaAvisos = compuesta ? P.bloqueDeAvisos(compuesta) : null;
+  try { compuesta = P.componerPropuesta(reglasDeW0, propuesta, propuestaDeAvisos); } catch (e) { motivo = e.message; }
+  check('firestore.rules ES la propuesta compuesta sobre las reglas de W0, byte a byte: aplicada tal cual se revisó', !!compuesta && reglas === compuesta, motivo);
+  const w0 = P.bloqueDeConversaciones(reglasDeW0);
+  const w0Avisos = P.bloqueDeAvisos(reglasDeW0);
+  const hoy = P.bloqueDeConversaciones(reglas);
+  const hoyAvisos = P.bloqueDeAvisos(reglas);
   const tramos = (b1, b2) => [b1.texto.slice(0, b1.inicio), b1.texto.slice(b1.fin, b2.inicio), b2.texto.slice(b2.fin)];
-  check('fuera de esos dos bloques, las reglas compuestas son idénticas byte a byte (y con los mismos finales de línea)',
-    !!nueva && !!nuevaAvisos && actual.inicio < actualAvisos.inicio
-    && JSON.stringify(tramos(nueva, nuevaAvisos)) === JSON.stringify(tramos(actual, actualAvisos))
-    && compuesta.includes('\r\n') === reglas.includes('\r\n'));
-  const b = nueva ? nueva.bloque : '';
+  check('fuera de los bloques de conversaciones y de avisos, firestore.rules es idéntico al de W0 (con sus mismos finales de línea)',
+    JSON.stringify(tramos(hoy, hoyAvisos)) === JSON.stringify(tramos(w0, w0Avisos)) && reglas.includes('\r\n') === reglasDeW0.includes('\r\n'));
+  check('los bloques de W0 son aquellos sobre los que se escribió la propuesta (sus huellas)',
+    P.huellaDe(w0.bloque) === P.HUELLA_DEL_BLOQUE_DE_W0 && P.huellaDe(w0Avisos.bloque) === P.HUELLA_DEL_BLOQUE_DE_AVISOS_DE_W0);
+
+  /* NINGÚN PERMISO SE AFLOJA: cada `allow` de los dos bloques es el de W0, o «el de W0 && algo más». */
+  const normal = (s) => s.replace(/\s+/g, ' ').trim();
+  const sentencias = (bloque) => {
+    const t = bloque.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+    const out = [];
+    const pila = [];
+    let i = 0;
+    while (i < t.length) {
+      const resto = t.slice(i);
+      let m;
+      if ((m = resto.match(/^match\s+(\S+)\s*\{/))) { pila.push({ ruta: m[1], d: 1 }); i += m[0].length; continue; }
+      if ((m = resto.match(/^function\s+\w+\s*\([^)]*\)\s*\{/))) {
+        let d = 1; let j = m[0].length;
+        while (j < resto.length && d > 0) { if (resto[j] === '{') d++; else if (resto[j] === '}') d--; j++; }
+        i += j; continue;
+      }
+      if ((m = resto.match(/^allow\s+([a-z, ]+?)\s*:\s*if\s+/))) {
+        const fin = resto.indexOf(';');
+        out.push({ donde: `${pila.map((p) => p.ruta).join(' ')} · ${normal(m[1])}`, cond: normal(resto.slice(m[0].length, fin)) });
+        i += fin + 1; continue;
+      }
+      if (t[i] === '{' && pila.length) pila[pila.length - 1].d++;
+      if (t[i] === '}' && pila.length) { pila[pila.length - 1].d--; if (pila[pila.length - 1].d === 0) pila.pop(); }
+      i++;
+    }
+    return out;
+  };
+  const comparar = (antes, despues) => {
+    const a = sentencias(antes); const d = sentencias(despues);
+    if (a.length !== d.length) return { ok: false, detalle: `${a.length} → ${d.length} sentencias` };
+    let estrictas = 0;
+    for (let k = 0; k < a.length; k++) {
+      if (a[k].donde !== d[k].donde) return { ok: false, detalle: `${a[k].donde} ≠ ${d[k].donde}` };
+      if (a[k].cond === d[k].cond) continue;
+      if (!d[k].cond.startsWith(`${a[k].cond} && `)) return { ok: false, detalle: `${a[k].donde} cambia de otra forma` };
+      estrictas++;
+    }
+    return { ok: true, estrictas, total: a.length };
+  };
+  const cc = comparar(w0.bloque, hoy.bloque);
+  const ca = comparar(w0Avisos.bloque, hoyAvisos.bloque);
+  check('ningún permiso se afloja: cada allow es el de W0 o «el de W0 && …» (conversaciones: 3 más estrictas de 8; avisos: 1 de 4)',
+    cc.ok && ca.ok && cc.estrictas === 3 && cc.total === 8 && ca.estrictas === 1 && ca.total === 4, `${JSON.stringify(cc)} ${JSON.stringify(ca)}`);
+
+  const b = hoy.bloque;
   check('las conversaciones preguntan al índice del servidor con la misma clave', b.includes(`exists(/databases/$(database)/documents/${P.COLECCION_DEL_INDICE}/$(de + '~' + para))`));
-  check('cubre los tres caminos que escribe el cliente en WeeTalk: crear conversación, actualizarla y crear un mensaje',
+  check('las cuatro condiciones nuevas son exactamente las aprobadas: crear conversación, actualizarla, crear un mensaje y crear un aviso de ËContact',
     /allow create:[\s\S]*?!chatBloqueadoPara\(request\.resource\.data\.participants\);/.test(b)
     && /allow update:[\s\S]*?\(!chatBloqueadoPara\(resource\.data\.participants\) \|\| cambioPermitidoConBloqueo\(\)\);/.test(b)
-    && /match \/messages\/\{messageId\}[\s\S]*allow create:[\s\S]*?!bloqueado\(request\.resource\.data\.senderId, laOtraEn\(participantesDelChat\(\), request\.resource\.data\.senderId\)\);/.test(b));
+    && /match \/messages\/\{messageId\}[\s\S]*allow create:[\s\S]*?!bloqueado\(request\.resource\.data\.senderId, laOtraEn\(participantesDelChat\(\), request\.resource\.data\.senderId\)\);/.test(b)
+    && /avisoConLaFormaDeLaApp\(\) &&\s*!avisoDeEContactBloqueado\(\);/.test(hoyAvisos.bloque));
   check('y no cambia quién LEE: el historial sigue siendo de los dos participantes',
-    b.slice(b.indexOf('allow read:'), b.indexOf(';', b.indexOf('allow read:'))) === actual.bloque.slice(actual.bloque.indexOf('allow read:'), actual.bloque.indexOf(';', actual.bloque.indexOf('allow read:'))));
-  const ba = nuevaAvisos ? nuevaAvisos.bloque : '';
-  check('los avisos de ËContact (pedir y aceptar) entre cuentas con un bloqueo no se crean, con la misma clave del índice',
-    /allow create: if isAuthenticated\(\) &&[\s\S]*?avisoConLaFormaDeLaApp\(\) &&\s*!avisoDeEContactBloqueado\(\);/.test(ba)
-    && ba.includes("request.resource.data.type in ['econtact_request', 'econtact_accepted'] &&")
+    b.slice(b.indexOf('allow read:'), b.indexOf(';', b.indexOf('allow read:'))) === w0.bloque.slice(w0.bloque.indexOf('allow read:'), w0.bloque.indexOf(';', w0.bloque.indexOf('allow read:'))));
+  const ba = hoyAvisos.bloque;
+  check('los avisos de ËContact entre cuentas con un bloqueo no se crean, con la misma clave del índice; «me gusta» y comentarios no leen nada más',
+    ba.includes("request.resource.data.type in ['econtact_request', 'econtact_accepted'] &&")
     && ba.includes(`exists(/databases/$(database)/documents/${P.COLECCION_DEL_INDICE}/$(request.resource.data.senderId + '~' + request.resource.data.recipientId))`));
   const sinLoNuevo = (txt) => {
     const lf = txt.replace(/\r\n/g, '\n');
@@ -382,19 +434,17 @@ console.log('\n── H · La propuesta de reglas: compone, cubre los caminos de
     return (i < 0 || f < 0 ? lf : lf.slice(0, i) + lf.slice(f))
       .replace('avisoConLaFormaDeLaApp() &&\n        !avisoDeEContactBloqueado();', 'avisoConLaFormaDeLaApp();');
   };
-  check('el bloque de avisos propuesto es el de W0 con UNA función y UNA condición más, y nada más cambia (ni quién lee)',
-    !!nuevaAvisos && sinLoNuevo(ba) === actualAvisos.bloque && ba !== actualAvisos.bloque);
-  check('la propuesta NO está aplicada: firestore.rules no conoce el índice (aplicarla exige la autorización del dueño y actualizar esta comprobación)',
-    !reglas.includes(P.COLECCION_DEL_INDICE) && P.huellaDe(actual.bloque) === P.HUELLA_DEL_BLOQUE_DE_W0 && P.huellaDe(actualAvisos.bloque) === P.HUELLA_DEL_BLOQUE_DE_AVISOS_DE_W0);
+  check('el bloque de avisos aplicado es el de W0 con UNA función y UNA condición más, y nada más cambia (ni quién lee)',
+    sinLoNuevo(ba) === w0Avisos.bloque && ba !== w0Avisos.bloque);
   const seNiega = (alteradas) => { try { P.componerPropuesta(alteradas, propuesta, propuestaDeAvisos); return false; } catch { return true; } };
-  check('si el bloque de conversaciones cambia, la propuesta se niega a componer (hay que revisarla)',
-    seNiega(reglas.replace('allow delete: if false;\n\n      // Mensajes', 'allow delete: if false;\n\n      // Mensajes (cambiado)')));
-  check('y si cambia el de avisos, también', seNiega(reglas.replace("return ['like', 'comment', 'econtact_request', 'econtact_accepted'];", "return ['like', 'comment', 'econtact_request', 'econtact_accepted', 'otro'];")));
+  check('el compositor sigue negándose si el bloque de conversaciones de W0 cambia',
+    seNiega(reglasDeW0.replace('allow delete: if false;\n\n      // Mensajes', 'allow delete: if false;\n\n      // Mensajes (cambiado)')));
+  check('y si cambia el de avisos, también', seNiega(reglasDeW0.replace("return ['like', 'comment', 'econtact_request', 'econtact_accepted'];", "return ['like', 'comment', 'econtact_request', 'econtact_accepted', 'otro'];")));
   const prueba = leer('ops/propuestas/weetalk-bloqueo/reglas.prueba.mjs');
   const corredor = await import(pathToFileURL(path.join(RAIZ, 'ops/propuestas/weetalk-bloqueo/correr-reglas.mjs')).href);
-  check('las pruebas de reglas están preparadas fuera de la CI (no son `*.emulator.mjs`), con los avisos y con su sabotaje',
-    !fs.readdirSync(aqui).some((f) => /bloqueo/i.test(f) && f.endsWith('.emulator.mjs')) && /Sabotaje/.test(prueba) && /componerPropuesta\(reglasActuales\)/.test(prueba)
-    && /econtact_request/.test(prueba));
+  check('las 44 pruebas de reglas se lanzan contra las reglas APLICADAS y su sabotaje contra las de W0 (fuera de la CI: no son *.emulator.mjs)',
+    !fs.readdirSync(aqui).some((f) => /bloqueo/i.test(f) && f.endsWith('.emulator.mjs')) && /Sabotaje/.test(prueba) && /componerPropuesta\(reglasDeW0\)/.test(prueba)
+    && /reglasActuales !== propuestas/.test(prueba) && /econtact_request/.test(prueba));
   const cfg = corredor.configuracionAislada('firestore.rules');
   check('y se lanzan en un emulador aislado: demo-wee-bloqueo, puertos propios, ninguno de la demo viva, sin interfaz',
     corredor.puertosEnConflicto(cfg).length === 0 && cfg.emulators.firestore.port === 38080 && cfg.emulators.firestore.websocketPort === 39150
