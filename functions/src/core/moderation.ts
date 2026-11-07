@@ -89,18 +89,76 @@ export const MODALIDADES_MODERABLES: readonly ModalidadModerable[] = Object.free
  * Weë ordena lo que le cuentan. Por eso la interfaz los nombra en lenguaje
  * normal y nunca en lenguaje jurídico. La lista crece añadiendo una línea aquí
  * y su texto en `i18n`; ningún reporte ya guardado cambia de significado.
+ *
+ * ── UN SOLO CATÁLOGO (Moderation Core, 2026-11-07) ─────────────────────────
+ *
+ * Lo que se OFRECE es la lista del dueño, en su orden: acoso e intimidación,
+ * desnudez y contenido sexual, violencia, odio y discriminación, estafas y
+ * fraude, spam, suplantación, contenido ilegal, propiedad intelectual y otro.
+ * La hoja de denunciar (`services/moderationService.ts`) pinta exactamente
+ * esta lista, con la CLAVE de su texto; una prueba exige que sean la misma.
+ *
+ * Lo que se ADMITE es eso y `SELF_HARM`. No está en la lista del dueño, pero
+ * los reportes ya guardados lo llevan y las apps publicadas lo siguen enviando:
+ * rechazarlo convertiría una denuncia de autolesión en un error genérico. Se
+ * admite, se prioriza como CRÍTICO y ya no se ofrece. Si vuelve a ofrecerse es
+ * una decisión del dueño (docs/MODERATION-CORE.md § Decisiones).
  */
 export type ReportReason =
-  | 'SPAM' | 'HARASSMENT' | 'HATE' | 'SEXUAL_CONTENT' | 'VIOLENCE'
-  | 'SCAM' | 'IMPERSONATION' | 'ILLEGAL_CONTENT' | 'SELF_HARM' | 'OTHER';
+  | 'HARASSMENT' | 'SEXUAL_CONTENT' | 'VIOLENCE' | 'HATE' | 'SCAM'
+  | 'SPAM' | 'IMPERSONATION' | 'ILLEGAL_CONTENT' | 'INTELLECTUAL_PROPERTY' | 'OTHER'
+  | 'SELF_HARM';
 
+/** Lo que se ofrece al denunciar: diez, en el orden del dueño. */
 export const MOTIVOS_DE_REPORTE: readonly ReportReason[] = Object.freeze([
-  'SPAM', 'HARASSMENT', 'HATE', 'SEXUAL_CONTENT', 'VIOLENCE',
-  'SCAM', 'IMPERSONATION', 'ILLEGAL_CONTENT', 'SELF_HARM', 'OTHER',
+  'HARASSMENT', 'SEXUAL_CONTENT', 'VIOLENCE', 'HATE', 'SCAM',
+  'SPAM', 'IMPERSONATION', 'ILLEGAL_CONTENT', 'INTELLECTUAL_PROPERTY', 'OTHER',
 ] as const);
 
+/** Lo que ya no se ofrece pero se sigue admitiendo, porque hay reportes guardados y apps publicadas que lo usan. */
+export const MOTIVOS_HEREDADOS: readonly ReportReason[] = Object.freeze(['SELF_HARM'] as const);
+
+/** Todo lo que una petición puede traer como motivo: lo ofrecido y lo heredado. Nada más. */
+export const MOTIVOS_ADMITIDOS: readonly ReportReason[] = Object.freeze([...MOTIVOS_DE_REPORTE, ...MOTIVOS_HEREDADOS]);
+
 export const esMotivoDeReporte = (v: unknown): v is ReportReason =>
+  typeof v === 'string' && (MOTIVOS_ADMITIDOS as readonly string[]).includes(v);
+
+/** ¿Es uno de los diez que se ofrecen hoy? */
+export const esMotivoOfrecido = (v: unknown): v is ReportReason =>
   typeof v === 'string' && (MOTIVOS_DE_REPORTE as readonly string[]).includes(v);
+
+/**
+ * LA GRAVEDAD DE CADA MOTIVO, por defecto. Sirve para ORDENAR la cola, nunca
+ * para decidir nada: un motivo grave no prueba que lo denunciado lo sea.
+ *
+ *   CRITICAL  riesgo para una vida o algo que la ley persigue
+ *   HIGH      daño directo a personas
+ *   MEDIUM    engaño o derechos de otros
+ *   LOW       molestia, o sin información
+ *
+ * Es la propuesta inicial; el dueño la cambia sin tocar código
+ * (`moderationPolicies/priority`, `core/moderation-case.ts`).
+ */
+export type Gravedad = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+export const GRAVEDADES: readonly Gravedad[] = Object.freeze(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const);
+
+export const esGravedad = (v: unknown): v is Gravedad => typeof v === 'string' && (GRAVEDADES as readonly string[]).includes(v);
+
+export const GRAVEDAD_POR_MOTIVO: Readonly<Record<ReportReason, Gravedad>> = Object.freeze({
+  ILLEGAL_CONTENT: 'CRITICAL',
+  SELF_HARM: 'CRITICAL',
+  VIOLENCE: 'HIGH',
+  SEXUAL_CONTENT: 'HIGH',
+  HATE: 'HIGH',
+  HARASSMENT: 'HIGH',
+  SCAM: 'MEDIUM',
+  IMPERSONATION: 'MEDIUM',
+  INTELLECTUAL_PROPERTY: 'MEDIUM',
+  SPAM: 'LOW',
+  OTHER: 'LOW',
+});
 
 /* ── En qué situación está ──────────────────────────────────────────────── */
 
@@ -212,6 +270,13 @@ export interface Report {
   historyCount: number;
   createdAt: number;
   updatedAt: number;
+  /**
+   * El caso al que se adjuntó (Moderation Core, `core/moderation-case.ts`). Lo pone el servidor
+   * DESPUÉS de crear el reporte, nunca la petición; los reportes anteriores al Core no lo llevan.
+   */
+  caseId?: string;
+  /** La gravedad de su motivo cuando se adjuntó: con ella se ordena la cola. */
+  priority?: Gravedad;
 }
 
 export const FORMA_DE_ID_DE_REPORTE = /^rep_[0-9a-f]{32}$/;
@@ -554,7 +619,9 @@ export const nuevoReporte = (n: NuevoReporte): Report | undefined => {
  */
 export type TipoDeEntrada =
   | 'REPORT_CREATED' | 'REVIEW_STARTED' | 'DECISION_MADE'
-  | 'ACTION_REQUESTED' | 'ACTION_EXECUTED' | 'REPORT_DISMISSED' | 'REPORT_ESCALATED';
+  | 'ACTION_REQUESTED' | 'ACTION_EXECUTED' | 'REPORT_DISMISSED' | 'REPORT_ESCALATED'
+  /* Moderation Core: el reporte quedó dentro de su caso. No cambia su estado: la revisión es del caso. */
+  | 'REPORT_ATTACHED_TO_CASE';
 
 export interface EntradaDeHistorial {
   seq: number;

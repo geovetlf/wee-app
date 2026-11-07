@@ -30844,7 +30844,11 @@
     "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
     "tipo": "agente",
     "fecha": "2026-10-30",
-    "nota": ""
+    "nota": "",
+    "obsoleta": {
+      "fecha": "2026-11-07",
+      "motivo": "La clave dejó de existir: el catálogo único de motivos del Moderation Core sigue la lista del dueño (propiedad intelectual entra; autolesiones deja de ofrecerse en la hoja de denunciar, aunque el servidor lo sigue admitiendo por compatibilidad). Se conserva como historia de la revisión; no cuenta en el estado de ningún texto vigente."
+    }
   },
   {
     "clave": "moderation.reasonOther",

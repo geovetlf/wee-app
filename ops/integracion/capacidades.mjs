@@ -109,6 +109,16 @@ export const RETIRADAS = {
     pantallas: [],
     claves: ['composer.publicVisibility', 'composer.visibilityIs', 'composer.publicExplain'],
   },
+  motivoAutolesiones: {
+    fecha: '2026-11-07',
+    decidio: 'el dueño (encargo del Moderation Core)',
+    motivo: 'el catálogo único de motivos sigue la lista de diez del dueño, que no incluye autolesiones',
+    decision: 'dueño, 2026-11-07: encargo del Moderation Core; el catálogo único de motivos sigue la lista de diez del dueño, que no incluye autolesiones (entra propiedad intelectual). El servidor SIGUE ADMITIENDO SELF_HARM —reportes guardados y apps publicadas— y lo prioriza como crítico; volver a ofrecerlo en la hoja es una decisión pendiente del dueño (docs/MODERATION-CORE.md § Decisiones)',
+    reemplazo: 'en la hoja de denunciar ocupa su lugar «propiedad intelectual» (moderation.reasonIntellectualProperty); no es un sustituto del mismo motivo',
+    produccion: 'NO deprecado todavía en las webs publicadas: wee.zone y wee-app.web.app siguen ofreciendo el motivo hasta que se publique esta versión, y publicarla exige su propia autorización (decisión explícita de deprecación al desplegar). El servidor no rechaza el motivo: ninguna función, regla ni dato cambia por esto.',
+    pantallas: [],
+    claves: ['moderation.reasonSelfHarm'],
+  },
 };
 const retiradaDe = (clase, x) => Object.entries(RETIRADAS).find(([, r]) => (/^Pantallas/.test(clase) && (r.pantallas || []).includes(x))
   || (/^Textos/.test(clase) && ((r.modulo && x.startsWith(`${r.modulo}.`)) || (r.claves || []).includes(x))))?.[0];
