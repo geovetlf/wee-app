@@ -643,7 +643,11 @@
     "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
     "tipo": "agente",
     "fecha": "2026-10-30",
-    "nota": "[alta] «боломж … боломжгүй» repite la raíz; ES dice «función» y el diccionario ya usa «функц»."
+    "nota": "[alta] «боломж … боломжгүй» repite la raíz; ES dice «función» y el diccionario ya usa «функц».",
+    "obsoleta": {
+      "fecha": "2026-11-06",
+      "motivo": "La clave dejó de existir: integracion/p0-edad-fase1 (2026-10-07) la retiró del español —la ruta se decide antes del dinero y los motivos territoriales salen como el genérico— y la consolidación W0 (2026-11-06, rama candidato/desplegable) la retiró de este diccionario. Se conserva como historia de la revisión; no cuenta en el estado de ningún texto vigente."
+    }
   },
   {
     "clave": "weeai.errNotAvailableCountry",
@@ -654,7 +658,11 @@
     "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
     "tipo": "agente",
     "fecha": "2026-10-30",
-    "nota": "[alta] «боломж … боломжгүй» repite la raíz; ES dice «función» y el diccionario ya usa «функц»."
+    "nota": "[alta] «боломж … боломжгүй» repite la raíz; ES dice «función» y el diccionario ya usa «функц».",
+    "obsoleta": {
+      "fecha": "2026-11-06",
+      "motivo": "La clave dejó de existir: integracion/p0-edad-fase1 (2026-10-07) la retiró del español —la ruta se decide antes del dinero y los motivos territoriales salen como el genérico— y la consolidación W0 (2026-11-06, rama candidato/desplegable) la retiró de este diccionario. Se conserva como historia de la revisión; no cuenta en el estado de ningún texto vigente."
+    }
   },
   {
     "clave": "weeai.errNotAvailableOptions",
