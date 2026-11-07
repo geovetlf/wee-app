@@ -96,13 +96,13 @@ console.log('── A · Muchas señales a la vez: un caso ──');
   check('A2) y cada reporte sabe su caso, con su entrada de historial y una sola', reportes.every((d) => d.data().caseId === cid && d.data().historyCount === 2));
   const h = (await db.collection(`moderationCases/${cid}/history`).orderBy('seq').get()).docs.map((d) => d.data().seq);
   check('A3) el historial del caso no tiene huecos ni repetidos', igual(h, Array.from({ length: caso.historyCount }, (_, i) => i + 1)));
-  /* Una persona con dos caras y diez motivos, todo a la vez. */
+  /* Una persona con sus dos caras y todos los motivos del catálogo, todo a la vez. */
   const motivos = M.MOTIVOS_DE_REPORTE;
   await Promise.all(motivos.map((m, i) => denunciador().reportar(ANA, { targetType: 'POST', targetId: 'emuPost1', reason: m, ...(i % 2 ? { actingEntityId: ENT(12) } : {}) })));
   await Promise.allSettled(motivos.map((m) => nucleo().adjuntarReporte(idRep(ANA, 'POST', 'emuPost1', m))));
   await nucleo().barrer(reloj);
   const c1 = (await db.doc(`moderationCases/${idCaso('POST', 'emuPost1')}`).get()).data();
-  check('A4) una persona con sus dos caras y diez motivos a la vez: diez señales, UN denunciante', c1.counters.reports === 10 && c1.counters.reporters === 1);
+  check('A4) una persona con sus dos caras y todos los motivos a la vez: una señal por motivo, UN denunciante', c1.counters.reports === motivos.length && motivos.length === 11 && c1.counters.reporters === 1);
   check('A5) y nada de eso tocó la publicación', igual((await db.doc('posts/emuPost0').get()).data(), { userId: BEA, content: 'publicación 0', imageUrls: [], createdAt: T0 }));
 }
 

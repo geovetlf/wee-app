@@ -26,6 +26,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Identitetsstöld',
   reasonIllegal: 'Olagligt innehåll',
   reasonIntellectualProperty: 'Immateriella rättigheter',
+  reasonSelfHarm: 'Självskada eller självmord',
   reasonOther: 'Annan anledning',
   successTitle: 'Anmälan har tagits emot',
   successBody: 'Tack för att du hjälper oss att göra Weë till en trygg plats.',

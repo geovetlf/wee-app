@@ -20,6 +20,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Identitätsdiebstahl',
   reasonIllegal: 'Illegale Inhalte',
   reasonIntellectualProperty: 'Geistiges Eigentum',
+  reasonSelfHarm: 'Selbstverletzung oder Suizid',
   reasonOther: 'Anderer Grund',
   successTitle: 'Meldung erhalten',
   successBody: 'Danke, dass du hilfst, Weë sicher zu halten.',

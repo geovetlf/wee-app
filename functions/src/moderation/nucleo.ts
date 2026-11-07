@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import type { DocumentReference, Firestore, Transaction } from 'firebase-admin/firestore';
-import { EntradaDeHistorial, FORMA_DE_ID_DE_REPORTE, Huella, Report, idDeEntrada } from '../core/moderation';
+import { EntradaDeHistorial, FORMA_DE_ID_DE_REPORTE, Huella, Report, esMotivoDeRiesgo, idDeEntrada } from '../core/moderation';
 import {
   CasoDeModeracion, EntradaDeCaso, ESTADOS_ABIERTOS, ESTADOS_REABRIBLES, EstadoDeCaso, MarcaDeDenunciante,
   MODERATION_CORE_CONTRACT_VERSION, ObjetivoDelCaso, SujetoDelCaso, anotarEnElCaso, casoAbiertoAMano, casoSinEfectos,
@@ -298,7 +298,7 @@ export const crearNucleoDeModeracion = (deps: NucleoDeps) => {
 
     if (resultado.tipo === 'ignorado') return { estado: 'ignorado', motivo: resultado.motivo };
     if (resultado.tipo === 'ya') return { estado: 'ya_adjuntado', caseId: resultado.caseId };
-    if (ocultacionPreventivaAplica(politicas.ocultacion, resultado.caso)) {
+    if (ocultacionPreventivaAplica(politicas.ocultacion, resultado.caso, politicas.prioridad)) {
       try { await ocultarPorPolitica(caseId, politicas); } catch (e) { console.error('MODERATION: la ocultación preventiva falló', caseId, e instanceof RechazoDeModeracion ? e.code : 'interno'); }
     }
     return { estado: 'adjuntado', caseId, abierto: resultado.abierto, reabierto: resultado.reabierto };
@@ -315,7 +315,7 @@ export const crearNucleoDeModeracion = (deps: NucleoDeps) => {
       const casoSnap = await tx.get(casoRef(caseId));
       if (!casoSnap.exists) return;
       const caso = casoSnap.data() as CasoDeModeracion;
-      if (!ocultacionPreventivaAplica(politicas.ocultacion, caso) || !caso.target.path) return;
+      if (!ocultacionPreventivaAplica(politicas.ocultacion, caso, politicas.prioridad) || !caso.target.path) return;
       const vaultId = idDeCustodia(huella, caso.targetKey) as string;
       const actionId = idDeAccion(huella, { kind: 'SYSTEM', id: POLITICA_PREVENTIVA }, 'PREVENTIVE_HIDE', `${caseId}:${caso.historyCount}`) as string;
       const [vaultSnap, fuenteSnap, accionSnap] = await Promise.all([tx.get(custodiaRef(vaultId)), tx.get(db.doc(caso.target.path)), tx.get(accionRef(actionId))]);
@@ -376,6 +376,8 @@ export const crearNucleoDeModeracion = (deps: NucleoDeps) => {
   const registrarAccion = (tx: Transaction, a: {
     actionId: string; operacion: OperacionDeModeracion; actor: ActorDeModeracion; p: PeticionDeOperacion; at: number; correlationId: string;
     caso?: CasoDeModeracion; casoDespues?: CasoDeModeracion; extra?: Partial<AccionDeModeracion>; appealable?: boolean;
+    /** La marca de «mismo revisor» de una apelación: va a la acción (en `result`) y a su entrada de auditoría. */
+    mismoRevisor?: boolean;
   }): void => {
     const def = OPERACIONES[a.operacion];
     const { result: resultadoExtra, ...resto } = a.extra ?? {};
@@ -393,14 +395,17 @@ export const crearNucleoDeModeracion = (deps: NucleoDeps) => {
       at: a.at,
       appealable: a.appealable ?? false,
       ...resto,
-      result: { ...(a.caso ? { caseFrom: a.caso.status } : {}), ...(a.casoDespues ? { caseTo: a.casoDespues.status } : {}), ...(resultadoExtra ?? {}) },
+      result: {
+        ...(a.caso ? { caseFrom: a.caso.status } : {}), ...(a.casoDespues ? { caseTo: a.casoDespues.status } : {}), ...(resultadoExtra ?? {}),
+        ...(a.mismoRevisor ? { sameReviewer: true } : {}),
+      },
     };
     tx.create(accionRef(a.actionId), plano(accion));
     auditarEn(tx, {
       at: a.at, actor: { kind: 'ADMIN', id: a.actor.uid, rol: a.actor.rol }, operation: a.operacion, permission: def.permiso, result: 'OK',
       ...(accion.caseId ? { caseId: accion.caseId } : {}), actionId: a.actionId, ...(accion.appealId ? { appealId: accion.appealId } : {}),
       ...(accion.sanctionId ? { sanctionId: accion.sanctionId } : {}), ...(accion.targetKey ? { targetKey: accion.targetKey } : {}),
-      requestId: a.p.requestId, correlationId: a.correlationId, justification: a.p.justification,
+      requestId: a.p.requestId, correlationId: a.correlationId, justification: a.p.justification, ...(a.mismoRevisor ? { sameReviewer: true } : {}),
     });
   };
 
@@ -699,7 +704,8 @@ export const crearNucleoDeModeracion = (deps: NucleoDeps) => {
     if (!t.ok) throw new RechazoDeModeracion(t.code === 'not_affected' ? 'conflict_of_interest' : t.code);
     tx.set(apelacionRef(ap.appealId), plano(t.apelacion));
     tx.create(apelacionRef(ap.appealId).collection(HISTORIAL_DE_APELACION).doc(idDeEntradaDeApelacion(t.entrada.seq)), plano(t.entrada));
-    registrarAccion(tx, { actionId, operacion: p.operacion, actor, p, at, correlationId, caso, extra: { appealId: ap.appealId, result: { appealStatus: 'UNDER_REVIEW' } } });
+    /* Quien decidió lo apelado PUEDE revisarla (no hay matriz aprobada): se anota en la apelación, la acción y la auditoría. */
+    registrarAccion(tx, { actionId, operacion: p.operacion, actor, p, at, correlationId, caso, extra: { appealId: ap.appealId, result: { appealStatus: 'UNDER_REVIEW' } }, mismoRevisor: t.apelacion.review?.sameReviewer === true });
     return { tipo: 'hecho' as const, resultado: { caseId: caso.caseId, caseStatus: caso.status, appealId: ap.appealId, appealStatus: 'UNDER_REVIEW' } };
   });
 
@@ -775,6 +781,7 @@ export const crearNucleoDeModeracion = (deps: NucleoDeps) => {
         ...(original.vaultId ? { vaultId: original.vaultId } : {}), ...(original.sanctionId ? { sanctionId: original.sanctionId } : {}),
         result: { appealStatus: r.apelacion.status, ...(vaultState ? { vaultState: vaultState as CustodiaDeContenido['state'] } : {}), ...(sanctionStatus ? { sanctionStatus: sanctionStatus as SancionDeModeracion['status'] } : {}) },
       },
+      mismoRevisor: original.actor.id === actor.uid,
     });
     crearAvisoEn(tx, { recipientAccountId: ap.accountId, kind: upheld ? 'APPEAL_UPHELD' : 'APPEAL_DENIED', origenId: actionId, actionId, appealId: ap.appealId, at });
     return { tipo: 'hecho' as const, resultado: { caseId: caso.caseId, caseStatus: casoDespues.status, appealId: ap.appealId, appealStatus: r.apelacion.status, ...(vaultState ? { vaultState } : {}), ...(sanctionStatus ? { sanctionStatus } : {}) } };
@@ -879,6 +886,11 @@ export const crearNucleoDeModeracion = (deps: NucleoDeps) => {
           const marca = m.data() as MarcaDeDenunciante;
           const s = situacionDe(situaciones[i], marca.accountId, at);
           tx.set(m.ref, plano({ ...marca, outcome: desenlace }));
+          /*
+           * Quien SOLO señaló un riesgo (autolesiones) no acusó a nadie de nada: si no había infracción, su señal no se
+           * le cuenta como «rechazada» —ni como confirmada—. Avisar de que alguien puede estar sufriendo no es abusar.
+           */
+          if (marca.reasons.every((motivo) => esMotivoDeRiesgo(motivo))) return;
           tx.set(situacionRef(marca.accountId), plano({
             ...s, reporter: { ...s.reporter, ...(desenlace === 'UPHELD' ? { upheld: s.reporter.upheld + 1 } : { rejected: s.reporter.rejected + 1 }) }, updatedAt: at,
           }));

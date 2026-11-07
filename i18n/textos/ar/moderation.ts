@@ -22,6 +22,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'انتحال شخصية',
   reasonIllegal: 'محتوى غير قانوني',
   reasonIntellectualProperty: 'الملكية الفكرية',
+  reasonSelfHarm: 'إيذاء النفس أو الانتحار',
   reasonOther: 'سبب آخر',
   successTitle: 'تم استلام البلاغ',
   successBody: 'شكرًا لمساعدتنا في الحفاظ على أمان Weë.',

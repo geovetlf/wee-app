@@ -21,6 +21,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Toisena henkilönä esiintyminen',
   reasonIllegal: 'Laiton sisältö',
   reasonIntellectualProperty: 'Immateriaalioikeudet',
+  reasonSelfHarm: 'Itsensä vahingoittaminen tai itsemurha',
   reasonOther: 'Muu syy',
   successTitle: 'Ilmoitus vastaanotettu',
   successBody: 'Kiitos, että autat pitämään Weë-yhteisön turvallisena.',

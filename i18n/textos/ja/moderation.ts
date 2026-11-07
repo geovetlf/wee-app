@@ -22,6 +22,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'なりすまし',
   reasonIllegal: '違法なコンテンツ',
   reasonIntellectualProperty: '知的財産権',
+  reasonSelfHarm: '自傷行為や自殺',
   reasonOther: 'その他の理由',
   successTitle: '報告を受け付けました',
   successBody: 'Weëの安全を守るためのご協力、ありがとうございます。',

@@ -4,6 +4,7 @@ import {
 } from './moderation';
 import {
   CasoDeModeracion, ClaseDeContenido, EstadoDeCaso, FORMA_DE_ID_DE_CASO, MODERATION_CORE_CONTRACT_VERSION, ObjetivoDelCaso,
+  POLITICA_DE_PRIORIDAD, PoliticaDePrioridad, gravedadDeInfraccion, tieneSenalDeRiesgo,
 } from './moderation-case';
 
 /**
@@ -591,11 +592,18 @@ export const leerPoliticaDeOcultacion = (guardada: unknown): PoliticaDeOcultacio
   return Object.freeze({ version, habilitada: pedida && completa, minimoDeDenunciantes: minimo, gravedades, ...(pedida && !completa ? { incompleta: true } : {}) });
 };
 
-/** ¿Toca ocultar preventivamente este caso? Solo con la política completa, contenido visible y sin decisión. */
-export const ocultacionPreventivaAplica = (p: PoliticaDeOcultacionPreventiva, caso: CasoDeModeracion): boolean =>
-  p.habilitada === true && p.minimoDeDenunciantes !== null && p.gravedades !== null
-  && caso.counters.reporters >= p.minimoDeDenunciantes && p.gravedades.includes(caso.priority.gravity)
-  && !!caso.target.path && caso.effects.content === null && (caso.status === 'PENDING' || caso.status === 'PRIORITY_REVIEW');
+/**
+ * ¿Toca ocultar preventivamente este caso? Solo con la política completa, contenido visible y sin decisión. Y NUNCA
+ * si en el caso hay una señal de riesgo (autolesiones): esa denuncia pide que alguien mire, no que se esconda nada
+ * (decisión del dueño, 2026-11-07). La gravedad que cuenta es la de INFRACCIÓN, sin las señales de riesgo.
+ */
+export const ocultacionPreventivaAplica = (p: PoliticaDeOcultacionPreventiva, caso: CasoDeModeracion, prioridad: PoliticaDePrioridad = POLITICA_DE_PRIORIDAD): boolean => {
+  if (p.habilitada !== true || p.minimoDeDenunciantes === null || p.gravedades === null) return false;
+  if (tieneSenalDeRiesgo(caso)) return false;
+  const gravedad = gravedadDeInfraccion(caso, prioridad);
+  return gravedad !== undefined && p.gravedades.includes(gravedad) && caso.counters.reporters >= p.minimoDeDenunciantes
+    && !!caso.target.path && caso.effects.content === null && (caso.status === 'PENDING' || caso.status === 'PRIORITY_REVIEW');
+};
 
 /**
  * RETIRAR. Hoy no se borra nada: lo retirado queda custodiado y es reversible
@@ -694,6 +702,8 @@ export interface AccionDeModeracion {
     vaultState?: EstadoDeCustodia;
     sanctionStatus?: EstadoDeSancion;
     appealStatus?: string;
+    /** Al revisar o resolver una apelación: si quien la revisa es quien tomó la decisión apelada. Se anota, no se impide. */
+    sameReviewer?: boolean;
   };
   /** La acción que esta deshace. */
   reverses?: string;
@@ -766,6 +776,12 @@ export interface EntradaDeAuditoriaDeModeracion {
   requestId?: string;
   correlationId: string;
   justification?: string;
+  /**
+   * La marca de «mismo revisor» (decisión del dueño, 2026-11-07): quien revisa o resuelve una apelación es quien tomó
+   * la decisión apelada. Criterio aprobado: cuando sea posible, que revise otra persona; mientras la matriz de permisos
+   * no esté aprobada se ANOTA aquí —y en la apelación y en su acción— y no se impide.
+   */
+  sameReviewer?: boolean;
 }
 
 const corto = (v: unknown, max: number): string | undefined => {
@@ -797,6 +813,7 @@ export const entradaDeAuditoria = (e: Omit<EntradaDeAuditoriaDeModeracion, 'cont
     ...opcional('targetKey', e.targetKey, 160),
     ...opcional('requestId', e.requestId, 64),
     ...opcional('justification', e.justification, LIMITES_DE_JUSTIFICACION.maximo),
+    ...(e.sameReviewer === true ? { sameReviewer: true } : {}),
   }) as EntradaDeAuditoriaDeModeracion;
 };
 

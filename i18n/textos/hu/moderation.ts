@@ -16,6 +16,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Más személy megszemélyesítése',
   reasonIllegal: 'Illegális tartalom',
   reasonIntellectualProperty: 'Szellemi tulajdon',
+  reasonSelfHarm: 'Önsértés vagy öngyilkosság',
   reasonOther: 'Egyéb ok',
   successTitle: 'A jelentés megérkezett',
   successBody: 'Köszönjük, hogy segítesz megőrizni a Weë biztonságát.',

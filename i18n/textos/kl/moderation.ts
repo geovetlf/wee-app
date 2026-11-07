@@ -26,6 +26,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Inuup allap atianik atuineq',
   reasonIllegal: 'Inatsisinik unioqqutitsisoq',
   reasonIntellectualProperty: 'Isumassarsianut pisinnaatitaaffiit',
+  reasonSelfHarm: 'Imminut ajoqusersorneq imminornerluunniit',
   reasonOther: 'Pissut alla',
   successTitle: 'Naammagittaalliuut tigusaavoq',
   successBody: 'Qujanaq ikiuinerit pillugu. Taamaalilluni Weë isumannaatsuujuarsinnaavoq.',

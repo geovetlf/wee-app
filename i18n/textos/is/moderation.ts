@@ -24,6 +24,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Að villa á sér heimildir',
   reasonIllegal: 'Ólöglegt efni',
   reasonIntellectualProperty: 'Hugverkaréttindi',
+  reasonSelfHarm: 'Sjálfsskaði eða sjálfsvíg',
   reasonOther: 'Önnur ástæða',
   successTitle: 'Tilkynning móttekin',
   successBody: 'Takk fyrir að hjálpa okkur að halda forritinu Weë öruggu.',

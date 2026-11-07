@@ -18,6 +18,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Mạo danh',
   reasonIllegal: 'Nội dung bất hợp pháp',
   reasonIntellectualProperty: 'Sở hữu trí tuệ',
+  reasonSelfHarm: 'Tự gây thương tích hoặc tự tử',
   reasonOther: 'Lý do khác',
   successTitle: 'Đã nhận báo cáo',
   successBody: 'Cảm ơn bạn đã giúp giữ cho Weë an toàn.',

@@ -17,6 +17,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Lažno predstavljanje',
   reasonIllegal: 'Nezakonit sadržaj',
   reasonIntellectualProperty: 'Intelektualna svojina',
+  reasonSelfHarm: 'Samopovređivanje ili samoubistvo',
   reasonOther: 'Drugi razlog',
   successTitle: 'Prijava je primljena',
   successBody: 'Hvala što nam pomažeš da Weë ostane bezbjedan.',

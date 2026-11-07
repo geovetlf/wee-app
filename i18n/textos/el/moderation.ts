@@ -17,6 +17,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Πλαστοπροσωπία',
   reasonIllegal: 'Παράνομο περιεχόμενο',
   reasonIntellectualProperty: 'Πνευματική ιδιοκτησία',
+  reasonSelfHarm: 'Αυτοτραυματισμός ή αυτοκτονία',
   reasonOther: 'Άλλος λόγος',
   successTitle: 'Λάβαμε την αναφορά σου',
   successBody: 'Ευχαριστούμε που μας βοηθάς να κρατάμε το Weë ασφαλές.',

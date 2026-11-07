@@ -13,6 +13,8 @@
  *   C · Seguridad: autorización en el servidor, identidad protegida, Real y Weë separados, nadie modera lo suyo.
  *   D · Estructura: puro donde tiene que serlo, sin IA, sin Credits, sin avisos de verdad, sin índices compuestos,
  *       sin reglas nuevas, una función por acción, decidido en el despliegue, documentado, con i18n.
+ *   M · Las decisiones del dueño del 2026-11-07: autolesiones como señal de riesgo (nunca oculta ni sanciona), la marca
+ *       de «mismo revisor», el abuso de reportes solo como señal y WeeTalk fuera del Moderation Core.
  *
  * Usa el compilado (`functions/lib`): `npm run build` antes. Las transacciones de verdad, la concurrencia y las
  * reglas, en `moderation-core.emulator.mjs`.
@@ -20,7 +22,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -199,10 +201,12 @@ const auditoria = (f) => f.de('moderationAudit').map((k) => f.leer(k));
 // ════════════════════════════════════════════════════════════════════════════
 console.log('\n── A · El contrato, ejecutado ──');
 {
-  const DUENO = ['HARASSMENT', 'SEXUAL_CONTENT', 'VIOLENCE', 'HATE', 'SCAM', 'SPAM', 'IMPERSONATION', 'ILLEGAL_CONTENT', 'INTELLECTUAL_PROPERTY', 'OTHER'];
-  check('1) UN catálogo: los diez motivos que se ofrecen son la lista del dueño, en su orden', igual([...M.MOTIVOS_DE_REPORTE], DUENO));
-  check('2) autolesiones ya no se ofrece pero se ADMITE (reportes guardados y apps publicadas), y se prioriza como crítico',
-    !M.MOTIVOS_DE_REPORTE.includes('SELF_HARM') && M.esMotivoDeReporte('SELF_HARM') && !M.esMotivoOfrecido('SELF_HARM') && M.GRAVEDAD_POR_MOTIVO.SELF_HARM === 'CRITICAL'
+  /* La lista del dueño, en su orden, con autolesiones como opción propia antes de «otro» (decisiones del 2026-11-07). */
+  const DUENO = ['HARASSMENT', 'SEXUAL_CONTENT', 'VIOLENCE', 'HATE', 'SCAM', 'SPAM', 'IMPERSONATION', 'ILLEGAL_CONTENT', 'INTELLECTUAL_PROPERTY', 'SELF_HARM', 'OTHER'];
+  check('1) UN catálogo: los motivos que se ofrecen son la lista del dueño, en su orden, con autolesiones como opción propia', igual([...M.MOTIVOS_DE_REPORTE], DUENO));
+  check('2) autolesiones se OFRECE de nuevo como SEÑAL DE RIESGO (no como infracción), y lo antiguo que la envía sigue valiendo',
+    M.esMotivoOfrecido('SELF_HARM') && M.esMotivoDeRiesgo('SELF_HARM') && igual([...M.MOTIVOS_DE_RIESGO], ['SELF_HARM']) && M.MOTIVOS_HEREDADOS.length === 0
+    && M.GRAVEDAD_POR_MOTIVO.SELF_HARM === 'CRITICAL' && DUENO.filter((m) => m !== 'SELF_HARM').every((m) => !M.esMotivoDeRiesgo(m))
     && M.validarPeticionDeReporte({ targetType: 'POST', targetId: 'p1', reason: 'SELF_HARM' }).ok && M.validarPeticionDeReporte({ targetType: 'POST', targetId: 'p1', reason: 'INTELLECTUAL_PROPERTY' }).ok);
   check('3) toda gravedad está definida para todo motivo admitido, y solo hay cuatro', M.MOTIVOS_ADMITIDOS.every((m) => M.GRAVEDADES.includes(M.GRAVEDAD_POR_MOTIVO[m])) && M.GRAVEDADES.length === 4);
   const ts = require('typescript');
@@ -211,7 +215,8 @@ console.log('\n── A · El contrato, ejecutado ──');
   new Function('exports', 'require', 'module', js)(mod.exports, () => new Proxy({}, { get: () => () => ({}) }), mod);
   check('4) la hoja de denunciar pinta EXACTAMENTE el catálogo del servidor, con la CLAVE de cada texto',
     igual(mod.exports.MOTIVOS_DE_REPORTE.map((x) => x.motivo), DUENO) && mod.exports.MOTIVOS_DE_REPORTE.every((x) => /^moderation\.reason[A-Z]\w+$/.test(x.clave))
-    && mod.exports.MOTIVOS_DE_REPORTE.find((x) => x.motivo === 'INTELLECTUAL_PROPERTY').clave === 'moderation.reasonIntellectualProperty');
+    && mod.exports.MOTIVOS_DE_REPORTE.find((x) => x.motivo === 'INTELLECTUAL_PROPERTY').clave === 'moderation.reasonIntellectualProperty'
+    && mod.exports.MOTIVOS_DE_REPORTE.find((x) => x.motivo === 'SELF_HARM').clave === 'moderation.reasonSelfHarm');
 
   check('5) los ocho estados del encargo, y ni uno más', igual([...C.ESTADOS_DE_CASO], ['PENDING', 'PRIORITY_REVIEW', 'UNDER_REVIEW', 'ACTION_REQUIRED', 'ACTION_TAKEN', 'REJECTED', 'RESTORED', 'CLOSED']));
   const permitida = C.transicionDeCasoPermitida;
@@ -832,6 +837,97 @@ console.log('\n── K · La puerta antigua de revisión, sin dos verdades ─�
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+console.log('\n── M · Las decisiones del dueño del 2026-11-07 ──');
+{
+  /* Autolesiones: SEÑAL DE RIESGO para revisión humana prioritaria. Nunca sanciona, nunca oculta, no es una infracción. */
+  reloj = T0;
+  const f = mundo();
+  const r = await denunciaYCaso(f, ANA, { targetType: 'POST', targetId: 'postBea', reason: 'SELF_HARM' });
+  const caso = f.leer(`moderationCases/${r.intake.caseId}`);
+  check('M1) una denuncia de autolesiones pide revisión HUMANA prioritaria, y nada más: ni oculta, ni sanciona, ni decide',
+    caso.status === 'PRIORITY_REVIEW' && caso.counters.byReason.SELF_HARM === 1 && !('decision' in caso) && caso.effects.content === null
+    && igual(f.leer('posts/postBea'), POST_BEA) && f.de('moderationVault').length === 0 && f.de('moderationSanctions').length === 0 && f.de('moderationActions').length === 0);
+  check('M2) no es una infracción: la gravedad de INFRACCIÓN de un caso sin otra cosa es ninguna, y con un spam es la del spam',
+    C.tieneSenalDeRiesgo(caso) && C.gravedadDeInfraccion(caso) === undefined && C.gravedadDeInfraccion({ counters: { byReason: { SELF_HARM: 3, SPAM: 1 } } }) === 'LOW'
+    && C.gravedadDeInfraccion({ counters: { byReason: { ILLEGAL_CONTENT: 1 } } }) === 'CRITICAL');
+  /* Ni con una ocultación preventiva encendida (aquí, de prueba y en un almacén de mentira) se oculta por autolesiones. */
+  const f2 = mundo();
+  f2.poner('moderationPolicies/preventiveHiding', { habilitada: true, minimoDeDenunciantes: 1, gravedades: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'], version: 9 });
+  await denunciaYCaso(f2, ANA, { targetType: 'POST', targetId: 'postBea', reason: 'SELF_HARM' });
+  await denunciaYCaso(f2, CAI, { targetType: 'POST', targetId: 'postBea', reason: 'SPAM' });
+  await denunciaYCaso(f2, CAI, { targetType: 'POST', targetId: 'postBea2', reason: 'ILLEGAL_CONTENT' });
+  check('M3) la ocultación preventiva NUNCA actúa sobre un caso con una señal de riesgo, ni sumándole otro motivo; sobre otro caso, sí (control)',
+    igual(f2.leer('posts/postBea'), POST_BEA) && !f2.leer('posts/postBea2') && f2.de('moderationActions').map((k) => f2.leer(k)).filter((a) => a.operation === 'PREVENTIVE_HIDE').length === 1
+    && !A.ocultacionPreventivaAplica(A.leerPoliticaDeOcultacion({ habilitada: true, minimoDeDenunciantes: 1, gravedades: ['CRITICAL'] }), { ...caso, status: 'PENDING' }));
+  /* Quien solo avisó de un riesgo no acumula «rechazos» si no había infracción; quien acusó de spam, sí (control). */
+  const f3 = mundo();
+  const n3 = nucleo(f3);
+  await denunciaYCaso(f3, ANA, { targetType: 'POST', targetId: 'postBea', reason: 'SELF_HARM' });
+  await denunciaYCaso(f3, CAI, { targetType: 'POST', targetId: 'postBea', reason: 'SPAM' });
+  const cid = idCaso('POST', 'postBea');
+  await n3.ejecutar('TAKE_CASE', sesion(ADM), pet({ caseId: cid }));
+  await n3.ejecutar('REJECT_CASE', sesion(ADM), pet({ caseId: cid }));
+  check('M4) avisar de que alguien puede estar sufriendo no cuenta como denuncia rechazada; acusar sin razón, sí',
+    f3.leer(`moderationStanding/${ANA}`).reporter.rejected === 0 && f3.leer(`moderationStanding/${ANA}`).reporter.upheld === 0 && f3.leer(`moderationStanding/${CAI}`).reporter.rejected === 1
+    && f3.leer(`moderationCases/${cid}/reporters/${ANA}`).outcome === 'REJECTED' && f3.leer(`moderationCases/${cid}`).reporterOutcomes === 'DONE');
+
+  /* 5.6 · La marca de «mismo revisor»: se anota en la apelación, en su acción y en la auditoría, y NO se impide. */
+  const f4 = mundo();
+  const n4 = nucleo(f4);
+  await denunciaYCaso(f4, ANA, { targetType: 'POST', targetId: 'postBea', reason: 'HATE' });
+  await n4.ejecutar('TAKE_CASE', sesion(ADM), pet({ caseId: cid }));
+  const o = await n4.ejecutar('HIDE_CONTENT', sesion(ADM), pet({ caseId: cid }));
+  const ap = await n4.apelar(usuario(BEA), { actionId: o.actionId, reason: 'No era odio' });
+  const tomada = await n4.ejecutar('TAKE_APPEAL', sesion(ADM), pet({ appealId: ap.appealId }));
+  const decidida = await n4.ejecutar('DECIDE_APPEAL', sesion(ADM), pet({ appealId: ap.appealId, outcome: 'DENIED' }));
+  const audTomada = auditoria(f4).find((x) => x.actionId === tomada.actionId && x.result === 'OK');
+  const audDecidida = auditoria(f4).find((x) => x.actionId === decidida.actionId && x.result === 'OK');
+  check('M5) quien tomó la decisión apelada PUEDE revisarla (la matriz no está aprobada), pero queda marcado: en la apelación, en sus acciones y en la auditoría',
+    tomada.appealStatus === 'UNDER_REVIEW' && decidida.appealStatus === 'DENIED' && f4.leer(`moderationAppeals/${ap.appealId}`).review.sameReviewer === true
+    && f4.leer(`moderationActions/${tomada.actionId}`).result.sameReviewer === true && f4.leer(`moderationActions/${decidida.actionId}`).result.sameReviewer === true
+    && audTomada?.sameReviewer === true && audDecidida?.sameReviewer === true);
+  const vistaAp = await K.crearConsolaDeModeracion(nucleo(f4), { db: f4.db }).leer(sesion(ADM2), { view: 'appeals', status: 'DENIED' });
+  const vistaAud = await K.crearConsolaDeModeracion(nucleo(f4), { db: f4.db }).leer(sesion(ADM2), { view: 'audit' });
+  check('M6) y la Consola lo ve: en la apelación y en la auditoría', vistaAp.appeals[0].review.sameReviewer === true && vistaAud.entries.some((e) => e.sameReviewer === true && e.operation === 'TAKE_APPEAL'));
+  const f5 = mundo();
+  const n5 = nucleo(f5);
+  await denunciaYCaso(f5, ANA, { targetType: 'POST', targetId: 'postBea', reason: 'HATE' });
+  await n5.ejecutar('TAKE_CASE', sesion(ADM), pet({ caseId: cid }));
+  const o5 = await n5.ejecutar('HIDE_CONTENT', sesion(ADM), pet({ caseId: cid }));
+  const ap5 = await n5.apelar(usuario(BEA), { actionId: o5.actionId, reason: 'No era odio' });
+  const t5 = await n5.ejecutar('TAKE_APPEAL', sesion(ADM2), pet({ appealId: ap5.appealId }));
+  check('M7) con otra persona revisando, no hay marca (control)', f5.leer(`moderationAppeals/${ap5.appealId}`).review.sameReviewer === false
+    && !('sameReviewer' in f5.leer(`moderationActions/${t5.actionId}`).result) && !auditoria(f5).some((x) => x.sameReviewer === true));
+
+  /* 5.7 · Nunca se sanciona a nadie por denunciar mucho o por que le rechacen denuncias: solo hay señales. */
+  const f6 = mundo();
+  const n6 = nucleo(f6);
+  for (const objetivo of ['postBea', 'postBea2', 'postBea3']) {
+    await denunciaYCaso(f6, CAI, { targetType: 'POST', targetId: objetivo, reason: 'SPAM' });
+    await n6.ejecutar('TAKE_CASE', sesion(ADM), pet({ caseId: idCaso('POST', objetivo) }));
+    await n6.ejecutar('REJECT_CASE', sesion(ADM), pet({ caseId: idCaso('POST', objetivo) }));
+  }
+  f6.poner('moderationPolicies/abuse', { minimoDeReportes: 1, ratioDeRechazo: 0.5 });
+  const quien = await K.crearConsolaDeModeracion(nucleo(f6), { db: f6.db }).leer(sesion(ADM), { view: 'reporter', caseId: idCaso('POST', 'postBea'), reportId: idRep(CAI, 'POST', 'postBea', 'SPAM') });
+  const compo = ['functions/src/moderation/nucleo.ts', 'functions/src/moderation/consola.ts', 'functions/src/moderation/puertas.ts', 'functions/src/moderation/autorizacion.ts', 'functions/src/moderation/resolutores.ts']
+    .map((p) => [p, sinComentarios(leer(p))]);
+  check('M8) tres denuncias rechazadas, y con una política que SEÑALA: la señal sale, pero ninguna sanción ni restricción',
+    f6.leer(`moderationStanding/${CAI}`).reporter.rejected === 3 && quien.abuse.flagged === true && f6.de('moderationSanctions').length === 0 && f6.leer(`moderationStanding/${CAI}`).restriction.level === 'NONE');
+  check('M9) estructura: las señales de abuso solo las LEE la Consola, y una sanción solo la crea la operación de una persona',
+    compo.filter(([, s]) => /senalesDeAbuso\(/.test(s)).map(([p]) => p).join() === 'functions/src/moderation/consola.ts'
+    && compo.filter(([, s]) => /nuevaSancion\(/.test(s)).map(([p]) => p).join() === 'functions/src/moderation/nucleo.ts'
+    && (sinComentarios(leer('functions/src/moderation/nucleo.ts')).match(/nuevaSancion\(/g) || []).length === 1
+    && /const sobreLaCuenta = async \(actor: ActorDeModeracion/.test(leer('functions/src/moderation/nucleo.ts')));
+
+  /* 3 · WeeTalk queda FUERA, como decisión definitiva: ni denuncias de mensajes, ni casos, ni inspección, ni acceso. */
+  const fuera = compo.filter(([, s]) => /['"`]conversations['"`]|collection\(['"`]messages['"`]\)|\/messages\//.test(s)).map(([p]) => p);
+  check('M10) WeeTalk está fuera del Moderation Core: ningún módulo nombra conversaciones ni mensajes, y MESSAGE sigue cerrado en producción',
+    fuera.length === 0 && comp.RESOLUTORES_DEL_NUCLEO.MESSAGE === undefined
+    && (await lib('moderation/resolutores.js').localizarContenido(mundo().db, 'MESSAGE', 'm1')) === null
+    && !Object.keys(A.LECTURAS_DE_CONSOLA).some((v) => /message|conversation|chat|talk/i.test(v)), fuera.join(', '));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 console.log('\n── L · Estructura: lo que hay, y lo que a propósito no hay ──');
 {
   const CORE = ['functions/src/core/moderation-case.ts', 'functions/src/core/moderation-action.ts', 'functions/src/core/moderation-appeal.ts'];
@@ -891,17 +987,22 @@ console.log('\n── L · Estructura: lo que hay, y lo que a propósito no hay 
     [...N.COLECCIONES_DEL_NUCLEO, 'moderationCases/{caseId}/signals', 'moderationCases/{caseId}/reporters', 'moderationCases/{caseId}/history', 'moderationAppeals/{appealId}/history'].every((c) => backup.clasificarColeccion(c).ok)
     && ['moderationCases', 'moderationActions', 'moderationAudit', 'moderationVault', 'moderationSanctions', 'moderationAppeals'].every((c) => backup.clasificarColeccion(c).clase.criticidad === 'CRITICAL'));
   const doc = existe('docs/MODERATION-CORE.md') ? leer('docs/MODERATION-CORE.md') : '';
-  check('176) la documentación existe y cubre lo que pide el encargo', ['Arquitectura', 'Modelo de datos', 'Contratos', 'Matriz de permisos', 'Consola', 'Decisiones', 'Integración'].every((s) => doc.includes(s))
-    && /MODERATION-CORE\.md/.test(leer('docs/MODERATION.md')));
+  const integracion = existe('docs/MODERATION-CORE-INTEGRACION.md') ? leer('docs/MODERATION-CORE-INTEGRACION.md') : '';
+  check('176) la documentación existe y cubre lo que pide el encargo, con las decisiones aprobadas, WeeTalk fuera y el enlace a la revisión de traducciones',
+    ['Arquitectura', 'Modelo de datos', 'Contratos', 'Matriz de permisos', 'Consola', 'Decisiones aprobadas', 'Integración', 'WeeTalk', 'REVISION-TRADUCCIONES-MODERACION.md'].every((s) => doc.includes(s))
+    && ['5.1', '5.3', '5.4', '5.5', '5.6', '5.7'].every((d) => doc.includes(`**${d}**`)) && /MODERATION-CORE\.md/.test(leer('docs/MODERATION.md'))
+    && ['803b6bdc', 'e02dbc9b', '323d3c6c', 'guardian-dominios', 'firestore.rules', 'Condiciones de aceptación'].every((s) => integracion.includes(s)));
 
-  /* i18n: el catálogo único en todos los idiomas. */
+  /* i18n: el catálogo único en todos los idiomas, con autolesiones RECUPERADA tal como estaba en d9abcf0c. */
   const DIR = 'i18n/textos';
   const locales = fs.readdirSync(path.resolve(RAIZ, DIR), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
-  const malos = locales.filter((l) => { const s = leer(`${DIR}/${l}/moderation.ts`); return !/^ {2}reasonIntellectualProperty: '[^']+',$/m.test(s) || /reasonSelfHarm/.test(s); });
-  check(`177) los ${locales.length} diccionarios dicen «propiedad intelectual» y ya no ofrecen la clave retirada`, malos.length === 0 && locales.length >= 42, malos.join(', '));
+  const malos = locales.filter((l) => { const s = leer(`${DIR}/${l}/moderation.ts`); return !/^ {2}reasonIntellectualProperty: '[^']+',$/m.test(s) || !/^ {2}reasonSelfHarm: '[^']+',$/m.test(s); });
+  check(`177) los ${locales.length} diccionarios dicen «propiedad intelectual» y «autolesiones», cada uno en su idioma`, malos.length === 0 && locales.length >= 42, malos.join(', '));
   const registros = fs.readdirSync(path.resolve(RAIZ, 'i18n/revision')).filter((l) => existe(`i18n/revision/${l}/registro.json`));
-  const sinMarca = registros.filter((l) => JSON.parse(leer(`i18n/revision/${l}/registro.json`)).some((e) => e.clave === 'moderation.reasonSelfHarm' && !e.obsoleta));
-  check('178) la revisión de la clave retirada no se borra: queda como historia, marcada obsoleta con fecha y motivo', sinMarca.length === 0, sinMarca.join(', '));
+  const marcadas = registros.filter((l) => JSON.parse(leer(`i18n/revision/${l}/registro.json`)).some((e) => e.clave === 'moderation.reasonSelfHarm' && e.obsoleta));
+  check('178) la clave recuperada vuelve a estar viva en los registros de revisión: ninguna entrada suya queda marcada obsoleta', marcadas.length === 0, marcadas.join(', '));
+  const C2 = await import(pathToFileURL(path.resolve(RAIZ, 'ops/integracion/capacidades.mjs')).href);
+  check('178b) y su retirada ya no está registrada: no se retira nada', !Object.values(C2.RETIRADAS).some((r) => (r.claves || []).includes('moderation.reasonSelfHarm')) && !('motivoAutolesiones' in C2.RETIRADAS));
 }
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');

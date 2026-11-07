@@ -19,6 +19,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'جعل هویت',
   reasonIllegal: 'محتوای غیرقانونی',
   reasonIntellectualProperty: 'مالکیت فکری',
+  reasonSelfHarm: 'خودآزاری یا خودکشی',
   reasonOther: 'دلیل دیگر',
   successTitle: 'گزارش دریافت شد',
   successBody: 'ممنون که کمک می‌کنید Weë امن بماند.',

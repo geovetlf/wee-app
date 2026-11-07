@@ -139,8 +139,9 @@ const pet = (extra = {}) => ({ targetType: 'POST', targetId: 'postDeBea', reason
 // ════════════════════════════════════════════════════════════════════════════
 console.log('\n── A · El contrato, ejecutado ──');
 {
-  check('1) ocho clases de objetivo, diez motivos, cinco estados, tres conclusiones',
-    M.TIPOS_DE_OBJETIVO.length === 8 && M.MOTIVOS_DE_REPORTE.length === 10 && M.ESTADOS_DE_REPORTE.length === 5 && M.RESULTADOS_DE_MODERACION.length === 3
+  /* Once motivos desde las decisiones del dueño del 2026-11-07: sus diez y autolesiones como opción propia (docs/MODERATION-CORE.md). */
+  check('1) ocho clases de objetivo, once motivos, cinco estados, tres conclusiones',
+    M.TIPOS_DE_OBJETIVO.length === 8 && M.MOTIVOS_DE_REPORTE.length === 11 && M.ESTADOS_DE_REPORTE.length === 5 && M.RESULTADOS_DE_MODERACION.length === 3
     && M.MODERATION_CONTRACT_VERSION === '1.0');
   check('2) un perfil, un Perfil Weë y una Página son ENTITY: no hay clase de objetivo para un «perfil de negocio»',
     M.TIPOS_DE_OBJETIVO.includes('ENTITY') && !M.TIPOS_DE_OBJETIVO.some((t) => /BIZ|BUSINESS|PROFILE|PAGE/.test(t)));
@@ -530,7 +531,7 @@ console.log('\n── F · La interfaz: el botón de siempre, ahora de verdad �
     fallo({ code: 'functions/resource-exhausted' }) === 'rate_limited' && fallo({ code: 'functions/invalid-argument', details: { reason: 'rate_limited' } }) === 'rate_limited'
     && fallo({ code: 'functions/not-found', details: { reason: 'target_not_found' } }) === 'unavailable' && fallo({ code: 'functions/not-found' }) === 'unknown' && fallo({ code: 'functions/unavailable' }) === 'offline'
     && fallo({ code: 'functions/deadline-exceeded' }) === 'offline' && fallo({}, false) === 'offline' && fallo(new Error('boom')) === 'unknown' && fallo(null) === 'unknown' && fallo({ code: 'functions/internal' }) === 'unknown');
-  check('126) diez motivos, los mismos que el servidor, y guardan la CLAVE, no la frase',
+  check('126) once motivos, los mismos que el servidor, y guardan la CLAVE, no la frase',
     igual(mod.exports.MOTIVOS_DE_REPORTE.map((x) => x.motivo), [...M.MOTIVOS_DE_REPORTE]) && mod.exports.MOTIVOS_DE_REPORTE.every((x) => /^moderation\.reason[A-Z]\w+$/.test(x.clave)));
 
   check('127) estados de la hoja: elegir, enviando, recibido, duplicado y fallo', /type Paso = 'elegir' \| 'enviando' \| 'recibido' \| 'duplicado' \| 'fallo';/.test(hoja));
@@ -560,7 +561,7 @@ console.log('\n── G · Idiomas: los que haya, y sin dar por hecho que se lee
   const locales = fs.readdirSync(path.resolve(RAIZ, DIR), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
   const clavesDe = (loc) => [...leer(`${DIR}/${loc}/moderation.ts`).matchAll(/^ {2}([A-Za-z][A-Za-z0-9_]*): '(.*)',$/gm)].map(([, k, v]) => [k, v]);
   const es = clavesDe('es');
-  check('137) el español define veinticuatro claves, y todas con texto', es.length === 24 && es.every(([, v]) => v.trim().length > 0));
+  check('137) el español define veinticinco claves, y todas con texto', es.length === 25 && es.every(([, v]) => v.trim().length > 0));
   const sinModulo = locales.filter((l) => !existe(`${DIR}/${l}/moderation.ts`));
   check(`138) los ${locales.length} diccionarios que existen tienen el módulo`, sinModulo.length === 0 && locales.length >= 11, sinModulo.join(', '));
   const desparejos = locales.filter((l) => !igual(clavesDe(l).map(([k]) => k), es.map(([k]) => k)) || clavesDe(l).some(([, v]) => !v.trim()));

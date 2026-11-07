@@ -80,18 +80,22 @@ por formato.
 
 Hoy tienen resolutor —algo detrás que leer— `POST`, `COMMENT` y `ENTITY`. Las demás
 se rechazan con `target_type_not_enabled`. Abrir una es escribir una función y
-una línea en `RESOLUTORES`; así entrarán WeeTalk, las comunidades y el material.
+una línea en `RESOLUTORES`; así entrarán las comunidades y el material.
 
 **Moderation Core:** `RESOLUTORES` (la tabla de la fundación) no cambia; `reportContent`
 denuncia con `RESOLUTORES_DEL_NUCLEO`, que añade las comunidades (`COMMUNITY`) y las
-Páginas de `pages` como `ENTITY`. `MESSAGE` (WeeTalk), `PUBLICATION`, `ASSET` y `CONTENT`
-siguen cerrados.
+Páginas de `pages` como `ENTITY`. `PUBLICATION`, `ASSET` y `CONTENT` siguen cerrados.
+`MESSAGE` también, y por decisión definitiva del dueño (2026-11-07): las conversaciones
+privadas de WeeTalk están FUERA de la moderación —ni denuncias de mensajes, ni casos, ni
+inspección—; su herramienta es el bloqueo de contactos (`docs/MODERATION-CORE.md` § 12).
 
-Diez motivos que se ofrecen, en el orden del dueño (Moderation Core, 2026-11-07):
+Once motivos que se ofrecen, en el orden del dueño (Moderation Core, 2026-11-07):
 `HARASSMENT`, `SEXUAL_CONTENT` (desnudez y contenido sexual), `VIOLENCE`, `HATE`, `SCAM`,
-`SPAM`, `IMPERSONATION`, `ILLEGAL_CONTENT`, `INTELLECTUAL_PROPERTY`, `OTHER`. `SELF_HARM` ya
-no se ofrece pero se sigue **admitiendo** (reportes guardados y apps publicadas)
-(`MOTIVOS_HEREDADOS`). Son **categorías internas** para ordenar señales, no tipos
+`SPAM`, `IMPERSONATION`, `ILLEGAL_CONTENT`, `INTELLECTUAL_PROPERTY`, `SELF_HARM`
+(autolesiones o suicidio, opción propia) y `OTHER`. `SELF_HARM` es una **señal de
+riesgo** (`MOTIVOS_DE_RIESGO`), no una acusación: pide revisión humana prioritaria y
+nunca sanciona ni oculta nada (`docs/MODERATION-CORE.md` § 4). `MOTIVOS_HEREDADOS` queda
+vacío: todo lo que se admite se ofrece. Son **categorías internas** para ordenar señales, no tipos
 legales. La lista crece con una línea en el contrato y su texto en `i18n`; cada motivo
 tiene una gravedad por defecto (`GRAVEDAD_POR_MOTIVO`) que solo ordena la cola.
 

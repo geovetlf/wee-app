@@ -2,7 +2,7 @@ import { EntityType, esIdDeCuenta, esTipoDeEntidad } from './identity';
 import { esIdDeEntidad } from './account-identity';
 import {
   FORMA_DE_ID_DE_OBJETIVO, FORMA_DE_ID_DE_REPORTE, GRAVEDAD_POR_MOTIVO, Gravedad, Huella, ModalidadModerable,
-  MOTIVOS_ADMITIDOS, Report, ReportReason, ReportTargetType, esGravedad, esMotivoDeReporte, esTipoDeObjetivo,
+  MOTIVOS_ADMITIDOS, MOTIVOS_DE_RIESGO, Report, ReportReason, ReportTargetType, esGravedad, esMotivoDeReporte, esMotivoDeRiesgo, esTipoDeObjetivo,
 } from './moderation';
 
 /**
@@ -104,6 +104,26 @@ export const leerPoliticaDePrioridad = (guardada: unknown): PoliticaDePrioridad 
 
 export const gravedadDelMotivo = (motivo: ReportReason, politica: PoliticaDePrioridad = POLITICA_DE_PRIORIDAD): Gravedad =>
   politica.gravedadPorMotivo[motivo] ?? GRAVEDAD_POR_MOTIVO[motivo] ?? 'LOW';
+
+/** ¿Alguien ha señalado un RIESGO (autolesiones) en este caso? */
+export const tieneSenalDeRiesgo = (caso: Pick<CasoDeModeracion, 'counters'>): boolean =>
+  MOTIVOS_DE_RIESGO.some((m) => (caso.counters?.byReason?.[m] ?? 0) > 0);
+
+/**
+ * LA GRAVEDAD DE INFRACCIÓN de un caso: la mayor de los motivos que acusan de
+ * algo, SIN las señales de riesgo. `undefined` si solo hay señales de riesgo.
+ * Una denuncia de autolesiones sube el caso a revisión prioritaria, pero no lo
+ * convierte en una infracción grave: lo automático que dependa de la gravedad
+ * (la ocultación preventiva) mira esta, no la de la cola.
+ */
+export const gravedadDeInfraccion = (caso: Pick<CasoDeModeracion, 'counters'>, politica: PoliticaDePrioridad = POLITICA_DE_PRIORIDAD): Gravedad | undefined => {
+  let mayor: Gravedad | undefined;
+  for (const [motivo, n] of Object.entries(caso.counters?.byReason ?? {})) {
+    if (!n || !esMotivoDeReporte(motivo) || esMotivoDeRiesgo(motivo)) continue;
+    mayor = gravedadMayor(mayor, gravedadDelMotivo(motivo, politica));
+  }
+  return mayor;
+};
 
 /** Cuántos denunciantes distintos cuentan para la puntuación. Pasado esto, el caso ya está arriba del todo de su gravedad. */
 export const TOPE_DE_DENUNCIANTES_EN_LA_PUNTUACION = 999;

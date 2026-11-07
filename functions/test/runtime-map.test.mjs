@@ -152,9 +152,10 @@ const MAPA = [
   { id: 'registry', canonico: ['core/registry/capabilities.js', 'core/registry/registry.js', 'core/registry/validate.js'], composicion: 'registry/index.js', fabrica: 'registroDeWee', enUso: ['planner/index.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['CAPABILITY_CATALOG', 'crearRegistro', 'validarRegistro'] },
   /* Fase 12-A/B. Nació conectada: no hay una moderación «de antes» con la que convivir (docs/MODERATION.md). */
+  /* `esMotivoDeRiesgo` (2026-11-07): el Moderation Core no cuenta como «rechazo» la señal de quien solo avisó de un riesgo (autolesiones). */
   { id: 'moderation', canonico: ['core/moderation.js'], composicion: 'moderation/index.js', fabrica: 'crearModeracion', enUso: ['moderation/index.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['EVALUADOR_DE_REGLAS', 'ESTADOS_DE_REPORTE', 'FORMA_DE_ID_DE_REPORTE', 'POLITICA_DE_REPORTES', 'decisionValida', 'entradaDeCreacion', 'esContenidoPropio',
-      'esEstadoDeReporte', 'evaluarLimite', 'idDeEntrada', 'idDeReporte', 'nuevoReporte', 'transicionarReporte', 'validarPeticionDeReporte', 'vistaParaQuienDenuncia'] },
+      'esEstadoDeReporte', 'esMotivoDeRiesgo', 'evaluarLimite', 'idDeEntrada', 'idDeReporte', 'nuevoReporte', 'transicionarReporte', 'validarPeticionDeReporte', 'vistaParaQuienDenuncia'] },
   /*
    * MODERATION CORE (2026-11-07, docs/MODERATION-CORE.md). Casos, acciones, sanciones, custodia y apelaciones sobre la
    * fundación de arriba, que no cambia de forma. Lo invocan sus puertas (`moderation/puertas.js`), que el código

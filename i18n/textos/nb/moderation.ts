@@ -20,6 +20,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Utgir seg for å være noen andre',
   reasonIllegal: 'Ulovlig innhold',
   reasonIntellectualProperty: 'Immaterielle rettigheter',
+  reasonSelfHarm: 'Selvskading eller selvmord',
   reasonOther: 'Annen årsak',
   successTitle: 'Rapport mottatt',
   successBody: 'Takk for at du hjelper oss å holde Weë trygt.',

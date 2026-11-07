@@ -21,6 +21,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Pearsanú duine eile',
   reasonIllegal: 'Ábhar neamhdhleathach',
   reasonIntellectualProperty: 'Maoin intleachtúil',
+  reasonSelfHarm: 'Féindochar nó féinmharú',
   reasonOther: 'Cúis eile',
   successTitle: 'Tuairisc faighte',
   successBody: 'Go raibh maith agat as cabhrú linn Weë a choinneáil sábháilte.',

@@ -6,9 +6,10 @@
  * lenguaje normal: no son términos legales. Y la confirmación dice solo lo que
  * es verdad: que el reporte se RECIBIÓ. Ni que se revisó, ni que se quitó nada.
  *
- * Los diez motivos son la lista del dueño (Moderation Core, 2026-11-07): el
- * catálogo único vive en `functions/src/core/moderation.ts` y la hoja lo pinta
- * en ese orden desde `services/moderationService.ts`.
+ * Los motivos son la lista del dueño (Moderation Core, 2026-11-07) más
+ * «autolesiones o suicidio» como opción propia, que es una señal de riesgo y no
+ * una acusación: el catálogo único vive en `functions/src/core/moderation.ts` y
+ * la hoja lo pinta en ese orden desde `services/moderationService.ts`.
  *
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
@@ -28,6 +29,7 @@ export const moderation = {
   reasonImpersonation: 'Suplantación de identidad',
   reasonIllegal: 'Contenido ilegal',
   reasonIntellectualProperty: 'Propiedad intelectual',
+  reasonSelfHarm: 'Autolesiones o suicidio',
   reasonOther: 'Otro motivo',
   successTitle: 'Reporte recibido',
   successBody: 'Gracias por ayudarnos a mantener Weë seguro.',

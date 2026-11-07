@@ -28,6 +28,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Pagpapanggap bilang ibang tao',
   reasonIllegal: 'Ilegal na content',
   reasonIntellectualProperty: 'Intelektuwal na pag-aari',
+  reasonSelfHarm: 'Pananakit sa sarili o pagpapakamatay',
   reasonOther: 'Iba pang dahilan',
   successTitle: 'Natanggap ang report',
   successBody: 'Salamat sa pagtulong na panatilihing ligtas ang Weë.',

@@ -113,7 +113,7 @@ console.log('\n── C · El ritmo, bajo concurrencia ──');
   check('C1) con veinticinco a la vez, el límite NUNCA deja pasar más de los que caben', pasaron <= P.maximoPorVentana && lim.windowCount <= P.maximoPorVentana,
     `pasaron=${pasaron} · frenados=${frenados} · por contención=${otros.length} · contador=${lim.windowCount}`);
   check('C2) y el contador es exacto: tantos intentos contados como pasaron', lim.windowCount === pasaron && lim.dayCount === pasaron);
-  check('C3) lo creado no supera ni lo que pasó ni los diez motivos que existen', (await contar('reports')) - antes <= Math.min(pasaron, 10));
+  check('C3) lo creado no supera ni lo que pasó ni los diez motivos distintos que se intentan', (await contar('reports')) - antes <= Math.min(pasaron, 10));
   const siguiente = await rechazo(motor().reportar(BEA, pet({ targetType: 'ENTITY', targetId: E_ANA_WEE, reason: 'SPAM' })));
   check('C4) con la ventana llena, la siguiente se frena y dice cuánto falta', pasaron < P.maximoPorVentana || (siguiente?.code === 'rate_limited' && siguiente.retryAfterMs > 0));
   reloj = T0;

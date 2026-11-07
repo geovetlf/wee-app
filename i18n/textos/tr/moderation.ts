@@ -25,6 +25,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Kimliğe bürünme',
   reasonIllegal: 'Yasa dışı içerik',
   reasonIntellectualProperty: 'Fikri mülkiyet',
+  reasonSelfHarm: 'Kendine zarar verme veya intihar',
   reasonOther: 'Başka bir neden',
   successTitle: 'Şikâyetin alındı',
   successBody: 'Weë\'yi güvenli tutmamıza yardım ettiğin için teşekkürler.',

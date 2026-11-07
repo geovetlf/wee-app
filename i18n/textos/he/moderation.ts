@@ -23,6 +23,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'התחזות',
   reasonIllegal: 'תוכן לא חוקי',
   reasonIntellectualProperty: 'קניין רוחני',
+  reasonSelfHarm: 'פגיעה עצמית או התאבדות',
   reasonOther: 'סיבה אחרת',
   successTitle: 'הדיווח התקבל',
   successBody: 'תודה שעזרת לנו לשמור על Weë בטוח.',

@@ -17,6 +17,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Бусдын нэрийг хуурамчаар ашиглах',
   reasonIllegal: 'Хууль бус контент',
   reasonIntellectualProperty: 'Оюуны өмч',
+  reasonSelfHarm: 'Өөрийгөө гэмтээх эсвэл амиа хорлох',
   reasonOther: 'Өөр шалтгаан',
   successTitle: 'Мэдээллийг хүлээн авлаа',
   successBody: 'Weë-г аюулгүй байлгахад тусалсанд баярлалаа.',

@@ -21,6 +21,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'Выдача себя за другого',
   reasonIllegal: 'Незаконный контент',
   reasonIntellectualProperty: 'Интеллектуальная собственность',
+  reasonSelfHarm: 'Самоповреждение или суицид',
   reasonOther: 'Другая причина',
   successTitle: 'Жалоба получена',
   successBody: 'Спасибо, что помогаете делать Weë безопаснее.',

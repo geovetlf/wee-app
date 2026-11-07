@@ -21,6 +21,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'ការក្លែងបន្លំ​អត្តសញ្ញាណ',
   reasonIllegal: 'មាតិកា​ខុសច្បាប់',
   reasonIntellectualProperty: 'កម្មសិទ្ធិ​បញ្ញា',
+  reasonSelfHarm: 'ការធ្វើបាប​ខ្លួនឯង ឬ​ការធ្វើអត្តឃាត',
   reasonOther: 'ហេតុផល​ផ្សេងទៀត',
   successTitle: 'បាន​ទទួល​របាយការណ៍',
   successBody: 'អរគុណ​ដែល​ជួយ​យើង​រក្សា Weë ឱ្យ​មាន​សុវត្ថិភាព។',

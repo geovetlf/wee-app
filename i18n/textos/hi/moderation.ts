@@ -29,6 +29,7 @@ export const moderation: typeof import('../es/moderation').moderation = {
   reasonImpersonation: 'किसी और होने का दिखावा',
   reasonIllegal: 'गैर-कानूनी कॉन्टेंट',
   reasonIntellectualProperty: 'बौद्धिक संपदा',
+  reasonSelfHarm: 'खुद को नुकसान पहुँचाना या आत्महत्या',
   reasonOther: 'कोई और वजह',
   successTitle: 'रिपोर्ट मिल गई',
   successBody: 'Weë को सुरक्षित रखने में मदद करने के लिए धन्यवाद.',
