@@ -403,7 +403,19 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="Boost" component={BoostScreen} />
       <Stack.Screen name="BoostCampaigns" component={BoostCampaignsScreen} />
       <Stack.Screen name="BoostCampaign" component={BoostCampaignScreen} />
-      <Stack.Screen name="Wall" component={WallScreen} options={{ cardStyle: { backgroundColor: '#000' } }} />
+      {/*
+        EL WÄLL CONSERVA EL `flex: 1` DE LA TARJETA.
+
+        El `cardStyle` de una pantalla SUSTITUYE al de `screenOptions` —React
+        Navigation los junta con `Object.assign`, no los suma—, y con solo el
+        fondo negro el Wäll perdía el `flex: 1`. En la web, una pantalla no modal
+        que ocupa la ventana entera se pinta en «modo página» (`minHeight: 100%`),
+        así que la tarjeta crecía con la lista entera: la lista ya no se
+        desplazaba, el Wäll se abría siempre en la primera publicación y ni la
+        rueda ni las flechas lo movían. Los Weëls no lo sufren porque son modal.
+        Lo vigila functions/test/wall-inmersivo.test.mjs (sección F).
+      */}
+      <Stack.Screen name="Wall" component={WallScreen} options={{ cardStyle: { flex: 1, backgroundColor: '#000' } }} />
       <Stack.Screen
         name="Reels"
         component={ReelsScreen}
