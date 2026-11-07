@@ -302,7 +302,13 @@ const DE_OTRAS_FUNCIONES = [
   'functions/src/social/pages.ts', 'services/pagesService.ts',
   'services/travelDemoStore.ts',
 ];
-const prohibidos = (f) => !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !I18N_DEL_SERVIDOR.includes(f) && !DE_OTRAS_FUNCIONES.includes(f) && !DE_LA_LINEA_DE_SERVIDOR.includes(f) && f !== 'functions/src/index.ts' && f !== 'services/firestoreService.ts' && f !== 'services/weeBizService.ts' && /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
+/*
+ * Bloque B2 · desplegabilidad (2026-11-06, W5 D-01): `secrets.ts` deja de DECLARAR la clave dormida de fal (`FAL_KEY` no existe
+ * en get-wee y firebase-tools exige en `prepare` todo secreto declarado, así que paraba cualquier despliegue de Functions). No es
+ * Music y no toca su carpeta: se exceptúa ese archivo y solo ese, con nombre; lo fija functions/test/secretos-declarados.test.mjs.
+ */
+const DE_LA_DESPLEGABILIDAD = ['functions/src/secrets.ts'];
+const prohibidos = (f) => !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !I18N_DEL_SERVIDOR.includes(f) && !DE_OTRAS_FUNCIONES.includes(f) && !DE_LA_LINEA_DE_SERVIDOR.includes(f) && !DE_LA_DESPLEGABILIDAD.includes(f) && f !== 'functions/src/index.ts' && f !== 'services/firestoreService.ts' && f !== 'services/weeBizService.ts' && /^(functions\/src\/(?!music\/)|functions\/lib\/|hooks\/useBrainChat|services\/)/.test(f);
 check('H2 ni el servidor fuera de functions/src/music, ni el cliente de Weë Brain, ni los servicios', !tocados.some(prohibidos), tocados.filter(prohibidos).join(','));
 
 console.log(fallo ? `\n✘ ${fallo} fallos` : '\n✔ todo bien');

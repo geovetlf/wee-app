@@ -140,21 +140,28 @@ export const MEDIA_SECRETS = declaradosDeMedios.map(([, secret]) => secret);
 /* ── fal.ai: su propio llavero, DORMIDO ─────────────────────────────────────── */
 
 /**
- * LA CLAVE DE fal.ai, DECLARADA APARTE Y SIN MONTAR EN NINGUNA FUNCIÓN (2026-10-05).
+ * LA CLAVE DE fal.ai: NOMBRADA APARTE, SIN DECLARAR Y SIN MONTAR EN NINGUNA FUNCIÓN (2026-10-05; sin declarar desde
+ * el 2026-11-06, W5 D-01 / B2).
  *
  * Mismo motivo que el llavero de Media Cloud: si fuera en `PROVIDER_SECRET_NAMES`, todas las funciones que montan
  * `AI_SECRETS` o `MODEL_SECRETS` exigirían en su próximo despliegue un secreto que no existe en Secret Manager, y no
  * se desplegarían. Aquí no la monta nadie: el adaptador de fal (`engine/providers/fal.ts`) lee `FAL_KEY` por el
- * `env()` de siempre y, sin ella, `isConfigured()` es falso y el Router ni lo considera. Crear el secreto y montarlo
- * en la función que lo use es la ACTIVACIÓN, y es una decisión del dueño. Nunca va al cliente.
+ * `env()` de siempre y, sin ella, `isConfigured()` es falso y el Router ni lo considera. Nunca va al cliente.
+ *
+ * DORMIDA DE VERDAD = SIN `defineSecret`. Cada `defineSecret` entra en el manifiesto de TODA la base de código
+ * (`declaredParams`), y `firebase deploy` (firebase-tools 15.29, `ensureSecret`) exige que el secreto exista en Secret
+ * Manager aunque ninguna función lo monte y aunque se despliegue con `--only`: en modo no interactivo —el workflow de
+ * despliegue— el despliegue FALLA en `prepare`; en una terminal, ofrece crearlo pidiendo un valor. `FAL_KEY` no existe en
+ * get-wee, así que declararla bloqueaba el despliegue de cualquier función. ACTIVAR fal (decisión del dueño) = crear el
+ * secreto en Secret Manager, declararlo aquí con `defineSecret`, montarlo en la función que lo use y añadirlo a la lista
+ * de `functions/test/secretos-declarados.test.mjs`, todo en el mismo cambio. Nunca un `FAL_KEY` de relleno.
  */
 export const FAL_SECRET_NAMES = ['FAL_KEY'] as const;
 export type FalSecretName = (typeof FAL_SECRET_NAMES)[number];
-const declaradosDeFal = FAL_SECRET_NAMES.map((name) => [name, defineSecret(name)] as const);
-export const FAL_SECRET_REFS: Record<FalSecretName, ReturnType<typeof defineSecret>> =
-  Object.fromEntries(declaradosDeFal) as Record<FalSecretName, ReturnType<typeof defineSecret>>;
+/** Vacío a propósito mientras fal esté dormido (ver arriba): por su nombre, el día que se declare. */
+export const FAL_SECRET_REFS: Partial<Record<FalSecretName, ReturnType<typeof defineSecret>>> = {};
 /** Para la opción `secrets` de la función que, el día que se active, llame a fal. Hoy no la usa ninguna. */
-export const FAL_SECRETS = declaradosDeFal.map(([, secret]) => secret);
+export const FAL_SECRETS: ReturnType<typeof defineSecret>[] = [];
 
 /**
  * Valor de un secreto desde Secret Manager. Solo funciona dentro de una función
