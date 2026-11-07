@@ -16,6 +16,12 @@
  * los datos de verdad no cambian —Hunyuan World sigue DISABLED y en revisión, lo comprueba el final—. No está en
  * `npm test`: necesita los emuladores y Java 21.
  *
+ * Los ENLACES DEL MUNDO Y DE SU VISTA PREVIA son https y con nombre de dominio (Bloque B2, 2026-11-06): desde el paquete E
+ * del Gran Motor el materializador solo descarga de un destino así (`destinoDeResultadoPermitido`: nada de http, IP ni
+ * nombres internos) y un `http://127.0.0.1` se rechazaba sin traer nada. La puerta no se toca: fal de mentira da enlaces
+ * `https://…invalid` —un dominio que no existe en ningún DNS— y el `fetch` de esta prueba desvía SOLO ese nombre al mismo
+ * servidor local (hace de CDN). La API de la cola sigue en 127.0.0.1, como siempre.
+ *
  *   firebase emulators:exec --only firestore,storage --project demo-wee-mundo \
  *     "node functions/test/mundo3d.emulator.mjs"
  */
@@ -24,6 +30,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { instalarCdnDePrueba } from './_cdn-de-prueba.mjs';
 
 const PROY = process.env.GCLOUD_PROJECT || '';
 if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_STORAGE_EMULATOR_HOST) {
@@ -32,6 +39,8 @@ if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_STORAGE_EMULAT
 if (!PROY.startsWith('demo-')) { console.log('✘ solo contra un proyecto de demostración'); process.exit(1); }
 
 /* ── fal de mentira, en esta máquina ───────────────────────────────────── */
+/* El CDN de los archivos: un nombre https que pasa la puerta del materializador y que el `fetch` de abajo sirve desde 127.0.0.1. */
+const CDN_DE_PRUEBA = 'https://cdn.prueba-mundo.invalid';
 const MODELO = 'fal-ai/hunyuan_world/image-to-world';
 const CLAVE = 'clave-de-prueba-que-no-es-real';
 const tareas = new Map(); /* id → { status, falla?, cancelada? } */
@@ -79,8 +88,8 @@ const servidor = http.createServer((req, res) => {
   if (tarea.cancelada) return enviar(400, { detail: 'Request was cancelled' });
   if (tarea.falla) return enviar(422, { detail: 'la generación falló' });
   return enviar(200, {
-    world_file: { url: `${base}/files/${m[1]}/world.bin`, content_type: 'application/octet-stream', file_name: 'world.bin', file_size: MUNDO.length },
-    preview_image: { url: `${base}/files/${m[1]}/vista.png`, content_type: 'image/png', file_name: 'vista.png', file_size: PNG.length },
+    world_file: { url: `${CDN_DE_PRUEBA}/files/${m[1]}/world.bin`, content_type: 'application/octet-stream', file_name: 'world.bin', file_size: MUNDO.length },
+    preview_image: { url: `${CDN_DE_PRUEBA}/files/${m[1]}/vista.png`, content_type: 'image/png', file_name: 'vista.png', file_size: PNG.length },
   });
 });
 await new Promise((ok) => servidor.listen(0, '127.0.0.1', ok));
@@ -88,6 +97,8 @@ process.env.FAL_QUEUE_URL = `http://127.0.0.1:${servidor.address().port}`;
 process.env.FAL_KEY = CLAVE;
 if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(process.env.FAL_QUEUE_URL)) { console.log('✘ la cola de fal no apunta a esta máquina'); process.exit(1); }
 const pasar = (id, status, extra = {}) => tareas.set(id, { ...tareas.get(id), ...extra, status });
+/* El CDN de prueba (_cdn-de-prueba.mjs): SOLO `CDN_DE_PRUEBA` se desvía a este servidor; nada más cambia. */
+instalarCdnDePrueba(CDN_DE_PRUEBA, servidor);
 
 /* ── Weë, de verdad ───────────────────────────────────────────────────── */
 const require = createRequire(import.meta.url);

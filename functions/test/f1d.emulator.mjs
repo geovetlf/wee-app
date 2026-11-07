@@ -19,6 +19,13 @@
  * y la prueba se niega a correr si no. La clave es de mentira y no se imprime.
  * No está en `npm test`: necesita los emuladores y Java 21.
  *
+ * El ENLACE DEL VÍDEO es https y con nombre de dominio (Bloque B2, 2026-11-06):
+ * desde el paquete E del Gran Motor el materializador solo descarga de un
+ * destino así (`destinoDeResultadoPermitido`), y un `http://127.0.0.1` se
+ * rechazaba sin traer nada. La puerta no se toca: el enlace es `https://…invalid`
+ * —un dominio que no existe en ningún DNS— y el `fetch` de esta prueba desvía
+ * SOLO ese nombre al mismo servidor local (hace de CDN).
+ *
  *   firebase emulators:exec --only firestore,storage --project demo-wee-filmmaker \
  *     "node functions/test/f1d.emulator.mjs"
  */
@@ -26,6 +33,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { instalarCdnDePrueba } from './_cdn-de-prueba.mjs';
 
 const PROY = process.env.GCLOUD_PROJECT || '';
 if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_STORAGE_EMULATOR_HOST || !PROY.startsWith('demo-')) {
@@ -34,6 +42,8 @@ if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_STORAGE_EMULAT
 }
 
 /* ── ModelArk, de mentira y en esta máquina ─────────────────────────────── */
+/* El CDN del vídeo: un nombre https que pasa la puerta del materializador y que el `fetch` de abajo sirve desde 127.0.0.1. */
+const CDN_DE_PRUEBA = 'https://cdn.prueba-modelark.invalid';
 const tareas = new Map();
 const cuerpos = [];
 const cuenta = { post: 0, video: 0 };
@@ -57,10 +67,9 @@ const servidor = http.createServer((req, res) => {
   if (req.method === 'GET' && t) {
     const tarea = tareas.get(t[1]);
     if (!tarea) return enviar(404, { error: { message: 'task not found' } });
-    const puerto = servidor.address().port;
     return enviar(200, {
       id: t[1], status: tarea.status, updated_at: Math.floor(Date.now() / 1000) + tarea.version,
-      ...(tarea.status === 'succeeded' ? { content: { video_url: `http://127.0.0.1:${puerto}/videos/${t[1]}.mp4` } } : {}),
+      ...(tarea.status === 'succeeded' ? { content: { video_url: `${CDN_DE_PRUEBA}/videos/${t[1]}.mp4` } } : {}),
       ...(tarea.status === 'expired' ? { error: { code: 'TaskExpired', message: 'the task expired' } } : {}),
     });
   }
@@ -73,6 +82,8 @@ process.env.ARK_BASE_URL = `http://127.0.0.1:${servidor.address().port}/api/v3`;
 process.env.ARK_API_KEY = 'clave-de-prueba-que-no-es-real';
 if (!/^http:\/\/127\.0\.0\.1:\d+\/api\/v3$/.test(process.env.ARK_BASE_URL)) { console.log('✘ ModelArk no apunta a esta máquina'); process.exit(1); }
 const pasar = (id, status) => { const t = tareas.get(id); tareas.set(id, { ...t, status, version: (t?.version ?? 0) + 1 }); };
+/* El CDN de prueba (_cdn-de-prueba.mjs): SOLO `CDN_DE_PRUEBA` se desvía a este servidor; nada más cambia. */
+const { desvios: desviosAlCdn } = instalarCdnDePrueba(CDN_DE_PRUEBA, servidor);
 
 /* ── Weë, de verdad ──────────────────────────────────────────────────────── */
 const require = createRequire(import.meta.url);
@@ -193,12 +204,11 @@ check('y otra vez: ya estaba, sin otra versión', otraVez.ok && otraVez.valor.re
 
 /* ═══ 3 · UN VÍDEO EN STORAGE SIN SU FICHA ═══════════════════════════════ */
 console.log('\n── Un vídeo en Storage sin su ficha: se adopta el suyo, sin descargar; el de otro, no ──');
-const puerto = servidor.address().port;
 const adoptable = identidadDelMaterial(`job-adopcion-${marca}`, `job-adopcion-${marca}#1`);
 const ruta = `users/${A}/ai-generations/${adoptable}.mp4`;
 await admin.storage().bucket().file(ruta).save(BYTES, { resumable: false, metadata: { contentType: 'video/mp4', metadata: { firebaseStorageDownloadTokens: 'tok-emu-1', [MARCA_DE_MATERIAL]: adoptable } } });
 const bajadas0 = cuenta.video;
-const adoptado = await materializadorDeWee.guardar({ assetId: adoptable, userId: A, kind: 'video', recurso: `http://127.0.0.1:${puerto}/videos/nunca-descargado.mp4`, provenance: { createdAt: Date.now(), jobId: `job-adopcion-${marca}` } });
+const adoptado = await materializadorDeWee.guardar({ assetId: adoptable, userId: A, kind: 'video', recurso: `${CDN_DE_PRUEBA}/videos/nunca-descargado.mp4`, provenance: { createdAt: Date.now(), jobId: `job-adopcion-${marca}` } });
 const fichaAdoptada = await contenido.leerMaterial(adoptable);
 check('el objeto que ya está, con SU marca: una ficha, el mismo objeto, CERO descargas',
   adoptado.ok && adoptado.assetId === adoptable && cuenta.video === bajadas0 && fichaAdoptada?.status === 'ready' && fichaAdoptada?.storageRef?.objectKey === ruta, JSON.stringify(adoptado));
@@ -216,7 +226,7 @@ const ajeno = identidadDelMaterial(`job-ajeno-${marca}`, `job-ajeno-${marca}#1`)
 const rutaAjena = `users/${A}/ai-generations/${ajeno}.mp4`;
 await admin.storage().bucket().file(rutaAjena).save(BYTES, { resumable: false, metadata: { contentType: 'video/mp4', metadata: { firebaseStorageDownloadTokens: 'tok-emu-2', [MARCA_DE_MATERIAL]: 'asset_de_otro' } } });
 const bajadas1 = cuenta.video;
-const noAdoptado = await materializadorDeWee.guardar({ assetId: ajeno, userId: A, kind: 'video', recurso: `http://127.0.0.1:${puerto}/videos/ajeno.mp4`, provenance: { createdAt: Date.now(), jobId: `job-ajeno-${marca}` } });
+const noAdoptado = await materializadorDeWee.guardar({ assetId: ajeno, userId: A, kind: 'video', recurso: `${CDN_DE_PRUEBA}/videos/ajeno.mp4`, provenance: { createdAt: Date.now(), jobId: `job-ajeno-${marca}` } });
 const [metaAjena] = await admin.storage().bucket().file(rutaAjena).getMetadata();
 if (aplicaPrecondicion) {
   check('CONTROL · con la marca de otro material no se adopta, y el 412 no deja inventar la ficha', !noAdoptado.ok && !(await contenido.leerMaterial(ajeno)), JSON.stringify(noAdoptado));
@@ -241,7 +251,8 @@ const enlace2 = await intento(() => shotsPuerta.shots.run({ auth: { token: { fir
 check('vencida: FAILED, la reserva vuelve EXACTA y una sola vez', r2.ok && (await uso(rid2))?.status === 'REFUNDED' && reembolso.length === 1 && reembolso[0].amount === q2.valor.credits, codigo(r2));
 check('y no hay nada que enlazar', enlace2.ok && enlace2.valor.result.status === 'failed' && !(await db.collection('shots').doc(toma.idDeNodoDePlano(A, pid(2), 'sh-0101')).get()).exists);
 
-check('ninguna petición salió de esta máquina', /^http:\/\/127\.0\.0\.1:/.test(process.env.ARK_BASE_URL) && cuenta.post === 2);
+check('ninguna petición salió de esta máquina (el vídeo, por el CDN de prueba, servido aquí)', /^http:\/\/127\.0\.0\.1:/.test(process.env.ARK_BASE_URL) && cuenta.post === 2
+  && desviosAlCdn.total >= 1 && desviosAlCdn.total === cuenta.video, `vídeo pedido ${desviosAlCdn.total} · servido ${cuenta.video}`);
 
 servidor.close();
 console.log(failures ? `\n✘ ${failures} fallos · ${n} comprobaciones` : `\n✔ F1-D contra los emuladores: ${n} comprobaciones`);
