@@ -76,11 +76,31 @@ const corre = (suite, carga) => new Promise((resolve) => {
   h.stdout.on('data', (d) => { salida += d; }); h.stderr.on('data', (d) => { salida += d; });
   h.on('close', (codigo) => { fs.rmSync(path.join(aqui, copia), { force: true }); resolve({ suite, codigo, salida }); });
 });
+/*
+ * CUÁNTAS COPIAS A LA VEZ. Antes iban las 12 juntas (6 controles + 6 lentas): cada copia ronda 2 GB y en la cadena del
+ * 2026-10-29 eso llevó la memoria comprometida a 25,48 GB (docs del incidente). Ahora un grupo de `GUARDIAN_COTAS_CONCURRENCIA`
+ * (2 por defecto; se puede pedir 1, 4 u otro número) las ejecuta; los resultados se guardan POR POSICIÓN, así que las
+ * comprobaciones, su orden y lo que exigen no cambian. Las cotas miden CPU del proceso (`_cpu.mjs`), no reloj de pared:
+ * ejecutar menos a la vez no las afloja. Medido bajo el vigilante (2026-10-29): con 2, 113 s y +4,4 GiB; con 4, 109 s y
+ * +8,3 GiB; con 1, 167 s y +2,5 GiB — las tres con las mismas 22 comprobaciones en verde. Solo afecta a esta prueba.
+ */
+export const CONCURRENCIA_DE_COTAS_POR_DEFECTO = 2;
+export const concurrenciaDeCotas = (valor = process.env.GUARDIAN_COTAS_CONCURRENCIA) => {
+  const n = Number.parseInt(String(valor ?? ''), 10);
+  return Number.isInteger(n) && n >= 1 ? n : CONCURRENCIA_DE_COTAS_POR_DEFECTO;
+};
+const enGrupo = async (tareas, limite) => {
+  const resultados = new Array(tareas.length);
+  let siguiente = 0;
+  const trabajador = async () => { while (siguiente < tareas.length) { const i = siguiente++; resultados[i] = await tareas[i](); } };
+  await Promise.all(Array.from({ length: Math.min(limite, tareas.length) }, trabajador));
+  return resultados;
+};
 try {
-  const [controles, lentas] = await Promise.all([
-    Promise.all(SUITES.map(([s]) => corre(s, 0))),
-    Promise.all(SUITES.map(([s, cota]) => corre(s, cota + 400))),
-  ]);
+  const limite = concurrenciaDeCotas();
+  console.log(`(copias a la vez: ${limite})`);
+  const todas = await enGrupo([...SUITES.map(([s]) => () => corre(s, 0)), ...SUITES.map(([s, cota]) => () => corre(s, cota + 400))], limite);
+  const controles = todas.slice(0, SUITES.length), lentas = todas.slice(SUITES.length);
   SUITES.forEach(([s, cota, patron], i) => {
     check(`4.${s}) control: con carga 0 la copia pasa (el mutante solo falla por la carga)`, controles[i].codigo === 0, `salida ${controles[i].codigo}`);
     check(`5.${s}) con ${cota + 400} ms de CPU añadidos (más que su cota de ${cota} ms) la copia FALLA, y en la comprobación de tiempo`, lentas[i].codigo === 1 && patron.test(lentas[i].salida), `salida ${lentas[i].codigo}${patron.test(lentas[i].salida) ? '' : ': ' + lentas[i].salida.split('\n').filter((l) => /^✘/.test(l)).slice(0, 2).join(' | ')}`);
