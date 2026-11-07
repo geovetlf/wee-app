@@ -56,6 +56,9 @@ import { WEE_EXPERIENCES } from '../constants/weeExperiences';
 import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
 import { useIdentidadActiva } from '../hooks/useEContact';
 import { RellenoDeMarca } from './GradienteDeMarca';
+import { ALTO_BARRA } from './BarraInferior';
+import { useResponsive } from '../hooks/useResponsive';
+import { confirmAction } from '../utils/notify';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 320);
@@ -112,6 +115,18 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
    */
   const enHome = rutaActual === 'Home' || rutaActual === 'Landing';
   const insets = useSafeAreaInsets();
+  /*
+   * LO ÚLTIMO DEL CAJÓN, POR ENCIMA DE LA BARRA DE ABAJO.
+   *
+   * El cajón se abre dentro de las pestañas —Home, WeeTalk, Perfil— y la barra
+   * global de Weë se pinta ENCIMA de ellas (navigation/NavegacionGlobal.tsx).
+   * Sin guardarle su alto, al bajar del todo el final del menú, «Cerrar sesión»
+   * incluido, quedaba debajo de la barra y no se podía tocar. Es la misma regla
+   * que decide si hay barra: en escritorio manda la barra lateral y no se
+   * guarda nada. La zona segura ya va sumada aparte (`insets.bottom`).
+   */
+  const { isDesktop } = useResponsive();
+  const huecoDeLaBarra = isDesktop ? 0 : ALTO_BARRA;
 
   const [creatorExpanded, setCreatorExpanded] = useState(true);
 
@@ -166,7 +181,17 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     navigation.navigate(screen, params);
   };
 
-  const handleLogout = () => {
+  /*
+   * SALIR SE CONFIRMA, COMO EN EL RESTO DE WEË.
+   *
+   * La barra lateral, Configuración y los Ajustes de Creator preguntan antes
+   * con este mismo diálogo y las mismas palabras (`confirmAction`, que también
+   * funciona en la web); el ☰ salía sin preguntar. Si se cancela, nada cambia:
+   * ni se sale ni se cierra el cajón.
+   */
+  const handleLogout = async () => {
+    const ok = await confirmAction(t('menu.signOut'), t('menu.signOutConfirm'), t('menu.signOut'), true, t);
+    if (!ok) return;
     after(async () => {
       try {
         await logout();
@@ -398,7 +423,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
         ]}
       >
         <ScrollView
-          contentContainerStyle={[styles.drawerContent, { paddingTop: insets.top + SPACING.md, paddingBottom: insets.bottom + SPACING.xl }]}
+          contentContainerStyle={[styles.drawerContent, { paddingTop: insets.top + SPACING.md, paddingBottom: insets.bottom + SPACING.xl + huecoDeLaBarra }]}
           showsVerticalScrollIndicator={false}
         >
           {/* Cabecera: quién soy */}
