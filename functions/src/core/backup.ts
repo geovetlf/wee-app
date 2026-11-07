@@ -105,6 +105,20 @@ export const CLASIFICACION_DE_DATOS: Readonly<Record<string, ClaseDeDatos>> = Ob
   reports: { criticidad: 'CRITICAL', porque: 'una denuncia es una señal de alguien sobre algo, y no se puede volver a pedir' },
   'reports/{reportId}/history': { criticidad: 'CRITICAL', porque: 'la auditoría de una decisión de moderación' },
   moderationLimits: { criticidad: 'IMPORTANT', porque: 'el ritmo por cuenta; perderlo solo regala intentos' },
+  /* Moderation Core (2026-11-07): casos, decisiones, custodia, sanciones, apelaciones y su auditoría. */
+  moderationCases: { criticidad: 'CRITICAL', porque: 'el caso de cada contenido denunciado: su estado, su prioridad y lo que tiene hecho' },
+  'moderationCases/{caseId}/signals': { criticidad: 'CRITICAL', porque: 'la procedencia de cada reporte dentro de su caso' },
+  'moderationCases/{caseId}/reporters': { criticidad: 'CRITICAL', porque: 'qué dijo cada cuenta de un caso y cómo acabó su señal' },
+  'moderationCases/{caseId}/history': { criticidad: 'CRITICAL', porque: 'el historial de un caso: solo se añade, es la auditoría de su revisión' },
+  moderationActions: { criticidad: 'CRITICAL', porque: 'cada acción de moderación, una vez y para siempre; es su idempotencia' },
+  moderationAudit: { criticidad: 'CRITICAL', porque: 'quién hizo o intentó qué en moderación: auditoría inmutable' },
+  moderationVault: { criticidad: 'CRITICAL', porque: 'el contenido ocultado o retirado, entero: sin esto no se puede restaurar' },
+  moderationSanctions: { criticidad: 'CRITICAL', porque: 'advertencias, suspensiones y bloqueos de cada cuenta' },
+  moderationAppeals: { criticidad: 'CRITICAL', porque: 'las apelaciones con la decisión original y su resolución' },
+  'moderationAppeals/{appealId}/history': { criticidad: 'CRITICAL', porque: 'el historial de una apelación: solo se añade' },
+  moderationStanding: { criticidad: 'DERIVED', porque: 'reincidencia, abuso de reportes y restricción de cada cuenta', seReconstruyeDesde: 'moderationActions, moderationSanctions y las marcas de reporters de cada caso' },
+  moderationNotices: { criticidad: 'IMPORTANT', porque: 'los avisos de moderación escritos y todavía sin enviar' },
+  moderationPolicies: { criticidad: 'CRITICAL', porque: 'las políticas de moderación que fija el dueño' },
 
   /* ── Lo que la gente hizo ────────────────────────────────────────────── */
   comments: { criticidad: 'IMPORTANT', porque: 'lo que alguien escribió' },
