@@ -97,7 +97,15 @@ for (const id of ['deepseek', 'gemini']) {
   ADAPTERS[id].run = async (r) => ADAPTERS.mock.run.call(ADAPTERS.mock, r);
 }
 
-const enviar = (uid, data) => brain.brainChat.run({ auth: { uid }, data: { locale: 'es', ...data } });
+/*
+ * Bloque B2 (2026-11-06): desde p0-edad, Weë Brain exige una CUENTA WEË VÁLIDA antes de la IA y del dinero
+ * (functions/src/identity/sesion.ts): la sesión firmada con una credencial de verdad —no la anónima del invitado— y el
+ * registro terminado (Perfil Real con país del catálogo y `private/account` con una fecha de 18+, lo que deja el alta de la
+ * app; ver `alta`). Esta suite mide la concurrencia del reclamo y del cobro, no esas puertas (las prueban edad-minima y
+ * guest-sin-ia), así que llama como una cuenta así. La misma forma que `sesionDe` de _firestore-en-memoria.mjs.
+ */
+const sesionDe = (uid) => ({ uid, token: { firebase: { sign_in_provider: 'password' } } });
+const enviar = (uid, data) => brain.brainChat.run({ auth: sesionDe(uid), data: { locale: 'es', ...data } });
 const intento = async (fn) => { try { return { ok: true, v: await fn() }; } catch (e) { return { ok: false, e: { code: e.code, motivo: e.details?.code ?? e.code, message: String(e.message).slice(0, 120) } }; } };
 
 /* ══ MODO WORKER: una petición, soltada a una hora común ══════════════════════ */
@@ -116,16 +124,25 @@ let n = 0;
 const nuevaCuenta = () => `E${RUN}u${++n}`;
 const saldoInicial = new Map();
 
-const alta = async (uid, saldo) => {
-  await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: uid });
+/*
+ * Bloque B2: la cuenta de prueba es una cuenta Weë VÁLIDA —Perfil Real con país del catálogo y `private/account` con una
+ * fecha de 18+, lo que deja el registro de la app— y nace con los 240 Credits con los que se escribió la suite. Antes los
+ * daba la bienvenida; desde el 2026-11-04 no hay bienvenida (WELCOME_CREDITS = 0, decisión del dueño) y la cuenta nacería en
+ * 0, así que el saldo de partida se FIJA siempre (240 o el que pida el escenario) y es la base de los invariantes.
+ */
+const PAIS_DE_PRUEBA = 'ES';
+const FECHA_DE_NACIMIENTO_ADULTA = '1990-01-01';
+const SALDO_DE_PARTIDA = 240;
+const alta = async (uid, saldo = SALDO_DE_PARTIDA) => {
+  const perfil = db.collection('users').doc(`doc_${uid}`);
+  await perfil.set({ uid, displayName: uid, country: PAIS_DE_PRUEBA });
+  await perfil.collection('private').doc('account').set({ birthDate: FECHA_DE_NACIMIENTO_ADULTA });
   await creditEngine.ensureAccount(uid);
-  if (saldo !== undefined) {
-    await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: saldo });
-    /* F-06: el saldo que manda vive en `creditAccounts/{uid}` (el perfil solo lo espeja): un saldo de prueba que solo toca el perfil no se aplicaría. */
-    const privado = db.collection('creditAccounts').doc(uid);
-    if ((await privado.get()).exists) await privado.update({ creditsBalance: saldo });
-  }
-  saldoInicial.set(uid, saldo ?? 240);
+  await perfil.update({ creditsBalance: saldo });
+  /* F-06: el saldo que manda vive en `creditAccounts/{uid}` (el perfil solo lo espeja): un saldo de prueba que solo toca el perfil no se aplicaría. */
+  const privado = db.collection('creditAccounts').doc(uid);
+  if ((await privado.get()).exists) await privado.update({ creditsBalance: saldo });
+  saldoInicial.set(uid, saldo);
   return uid;
 };
 /* F-06: primero la cuenta privada (la que manda); el perfil solo si todavía no existe. */

@@ -17,16 +17,24 @@
  *       «sin saldo» o ABORTED (contención agotada: 5 intentos del SDK). Un ABORTED no es doble cobro, es disponibilidad: se informa.
  *   R3  N operaciones autorizadas y, a la vez, para cada una: completar ×1 y reembolsar ×2 → cada operación acaba COMPLETED o
  *       REFUNDED (nunca las dos), ≤ 1 reembolso por operación, saldo = inicial − completadas.
- *   R4  primera apertura del saldo N veces a la vez (getCreditsBalance) → 1 sola bienvenida, saldo 240.
+ *   R4  primera apertura del saldo N veces a la vez (getCreditsBalance, cuenta con credencial) → la cuenta se abre UNA vez y SIN
+ *       bienvenida (WELCOME_CREDITS = 0, decisión del dueño 2026-11-04): ningún asiento, saldo 0 y todas las respuestas dicen 0.
+ *       Hasta entonces era «1 sola bienvenida, saldo 240»: la carrera que se vigila es la misma (nadie recibe Credits de más por
+ *       abrir el saldo a la vez), con la cifra de hoy.
  *   R5  el mismo mensaje de Weë Brain N veces a la vez → contador +1 (una respuesta contada) y 0 cobros. Y, si el código trae la
  *       identidad de operación de Brain (A-02), UNA sola llamada al modelo (R5-coste): sin ella se informa, no se exige.
  *   R6  la cuenta entera: saldo = inicial + Σ movimientos para todas las cuentas tocadas, y 0 transacciones AUTHORIZED.
+ *
+ * Bloque B2 (2026-11-06): desde p0-edad las callables de IA y de saldo miran la SESIÓN (credencial de verdad, no la anónima del
+ * invitado) y Weë Brain además el registro (país y fecha de 18+): las cuentas de `alta` ya son cuentas Weë válidas y se llama
+ * con `sesionDe`. Las puertas en sí tienen sus suites (edad-minima, guest-sin-ia); aquí se mide el dinero bajo ráfaga.
  *
  * N = RAFAGA_N (16 por defecto): lo bastante para que las transacciones se crucen de verdad, y no tanto como para que la
  * contención del emulador de un ordenador de CI agote los intentos y haga la suite intermitente.
  */
 import {
-  alta, avisos, contarErrores, creditEngine, cronometrar, db, decir, intentosDeRed, lib, medidor, mock, movimientosDe, nuevaCuenta, RUN, saldoDe,
+  alta, avisos, contarErrores, creditEngine, cronometrar, db, decir, FECHA_DE_NACIMIENTO_ADULTA, intentosDeRed, lib, medidor, mock, movimientosDe,
+  nuevaCuenta, PAIS_DE_PRUEBA, RUN, saldoDe, sesionDe,
 } from '../../scripts/carga/_entorno.mjs';
 
 const N = Number(process.env.RAFAGA_N || 16);
@@ -92,18 +100,26 @@ decir(`Ráfaga de dinero (funcional) · ejecución ${RUN} · N=${N}`);
     { completadas, reembolsadas, saldo: s, errores: contarErrores(rs), tx: medidor.foto() });
 }
 
-/* R4 */
+/* R4 · la primera apertura, sin bienvenida (ver la cabecera) */
 {
   const cred = lib('credits/index.js');
   const u = nuevaCuenta();
-  await db.collection('users').doc(`doc_${u}`).set({ uid: u, displayName: u });
+  /*
+   * Una cuenta que terminó el registro (Perfil Real con país y `private/account`) y abre su saldo por primera vez, con la
+   * sesión de su credencial: para el invitado `getCreditsBalance` solo LEE y no abriría nada (Guest AI Gate, guest-sin-ia).
+   */
+  await db.collection('users').doc(`doc_${u}`).set({ uid: u, displayName: u, country: PAIS_DE_PRUEBA });
+  await db.collection('users').doc(`doc_${u}`).collection('private').doc('account').set({ birthDate: FECHA_DE_NACIMIENTO_ADULTA });
   tocadas.set(u, 0);
   medidor.reiniciar();
-  const rs = await Promise.all(Array.from({ length: N }, () => cronometrar(() => cred.getCreditsBalance.run({ auth: { uid: u }, data: {} }))));
-  const bienvenidas = (await movimientosDe(u)).filter((m) => m.source === 'welcome').length;
+  const rs = await Promise.all(Array.from({ length: N }, () => cronometrar(() => cred.getCreditsBalance.run({ auth: sesionDe(u), data: {} }))));
+  const asientos = await movimientosDe(u);
+  const bienvenidas = asientos.filter((m) => m.source === 'welcome').length;
   const s = await saldoDe(u);
-  check('R4', `primera apertura del saldo ×${N} a la vez → 1 bienvenida`, bienvenidas === 1 && s === 240 && rs.every((r) => sinContencion(r) && (!r.ok || r.v.balance === 240)),
-    { bienvenidas, saldo: s, errores: contarErrores(rs), tx: medidor.foto() });
+  /* `s === 0` (y no `undefined`): la cuenta quedó abierta; sin un solo asiento: nadie recibió Credits por abrirla, ni una vez ni N. */
+  check('R4', `primera apertura del saldo ×${N} a la vez → la cuenta se abre, sin bienvenida: 0 asientos y saldo 0`,
+    s === 0 && bienvenidas === 0 && asientos.length === 0 && rs.every((r) => sinContencion(r) && (!r.ok || r.v.balance === 0)),
+    { bienvenidas, asientos: asientos.length, saldo: s, errores: contarErrores(rs), tx: medidor.foto() });
 }
 
 /* R5 */
@@ -111,11 +127,11 @@ decir(`Ráfaga de dinero (funcional) · ejecución ${RUN} · N=${N}`);
   const brain = lib('creator/brain.js');
   const uso = lib('creator/brainUsage.js');
   const u = await cuenta();
-  const abre = await brain.brainChat.run({ auth: { uid: u }, data: { locale: 'es', message: 'abre', messageId: `r5_${RUN}_abre` } });
+  const abre = await brain.brainChat.run({ auth: sesionDe(u), data: { locale: 'es', message: 'abre', messageId: `r5_${RUN}_abre` } });
   const antes = mock.llamadas;
   medidor.reiniciar();
   const iguales = Math.min(N, 20);
-  const rs = await Promise.all(Array.from({ length: iguales }, () => cronometrar(() => brain.brainChat.run({ auth: { uid: u }, data: { locale: 'es', message: 'a la vez', messageId: `r5_${RUN}_igual`, chatId: abre.chatId } }))));
+  const rs = await Promise.all(Array.from({ length: iguales }, () => cronometrar(() => brain.brainChat.run({ auth: sesionDe(u), data: { locale: 'es', message: 'a la vez', messageId: `r5_${RUN}_igual`, chatId: abre.chatId } }))));
   const llamadas = mock.llamadas - antes;
   const c = (await db.collection('brainUsage').doc(u).get()).data() || {};
   /* Rechazos admitidos: duplicado, o contención agotada (ABORTED, que brainChat devuelve como TIMEOUT). */

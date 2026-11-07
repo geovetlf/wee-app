@@ -135,17 +135,28 @@ export const nuevaCuenta = () => `C${RUN}u${++contadorCuentas}`;
 const { creditEngine } = lib('credits/creditEngine.js');
 export { creditEngine };
 const { welcomeTransactionId } = lib('credits/creditTransactions.js');
+/*
+ * LA CUENTA DE PRUEBA ES UNA CUENTA WEË VÁLIDA (Bloque B2, 2026-11-06). Desde p0-edad, Weë Brain, `creatorRun`, el vídeo, el
+ * mundo y el avatar exigen, antes de la IA y del dinero, una sesión firmada con una credencial de verdad —no la anónima del
+ * invitado— y el registro terminado: Perfil Real con país del catálogo y `private/account` con una fecha de 18+
+ * (functions/src/identity/sesion.ts). `alta` deja esa forma —la que deja el registro de la app— y `sesionDe` es la sesión con
+ * la que llama esa persona. Las puertas en sí (edad, invitado) tienen sus suites: edad-minima y guest-sin-ia.
+ */
+export const PAIS_DE_PRUEBA = 'ES';
+export const FECHA_DE_NACIMIENTO_ADULTA = '1990-01-01';
+export const sesionDe = (uid) => ({ uid, token: { firebase: { sign_in_provider: 'password' } } });
 /**
  * Perfil Real + cuenta de Credits YA inicializada (saldo 240 o el dado), escrita directamente y fuera del reloj: la
- * misma forma que deja `ensureAccount` (campos de Credits + el asiento de bienvenida, para que nadie la vuelva a dar).
- * No pasa por el Credit Engine A PROPÓSITO: la primera tanda demostró que dar de alta 25 cuentas a la vez por
- * `ensureAccount` choca en creditStats/global y aborta (ver estado-lineas.md § Frente I). La bienvenida por el motor
- * se mide aparte (R4 y getCreditsBalance «primera vez»).
+ * misma forma que dejaba `ensureAccount` (campos de Credits + el asiento de partida, con la forma de la antigua bienvenida),
+ * con el registro terminado (país y `private/account`, ver arriba). No pasa por el Credit Engine A PROPÓSITO: la primera
+ * tanda demostró que dar de alta 25 cuentas a la vez por `ensureAccount` choca en creditStats/global y aborta (ver
+ * estado-lineas.md § Frente I). La primera apertura por el motor se mide aparte (R4: sin bienvenida desde el 2026-11-04).
  */
 export const alta = async (uid, saldo) => {
   const b = db.batch();
   const ahora = Timestamp.now();
-  b.set(db.collection('users').doc(`doc_${uid}`), { uid, displayName: uid, creditsBalance: saldo ?? 240, creditsLifetimeEarned: 240, creditsLifetimeSpent: 0, creditsInitializedAt: ahora });
+  b.set(db.collection('users').doc(`doc_${uid}`), { uid, displayName: uid, country: PAIS_DE_PRUEBA, creditsBalance: saldo ?? 240, creditsLifetimeEarned: 240, creditsLifetimeSpent: 0, creditsInitializedAt: ahora });
+  b.set(db.collection('users').doc(`doc_${uid}`).collection('private').doc('account'), { birthDate: FECHA_DE_NACIMIENTO_ADULTA });
   b.set(db.collection('creditTransactions').doc(welcomeTransactionId(uid)), { id: welcomeTransactionId(uid), userId: uid, type: 'grant', amount: 240, balanceBefore: 0, balanceAfter: 240,
     reason: 'Credits de bienvenida', source: 'welcome', status: 'COMPLETED', requestId: welcomeTransactionId(uid), createdAt: ahora, updatedAt: ahora });
   await b.commit();

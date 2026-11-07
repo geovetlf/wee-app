@@ -51,6 +51,12 @@ console.log('\n── A · L-5 con transacciones reales de Firestore ──');
   const uid = `gmdA${marca}`;
   await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: 'A' });
   await motorDeCredits.ensureAccount(uid);
+  /*
+   * Bloque B2 (2026-11-06, CI del PR #40): la suite se escribió con la bienvenida de 240; desde el 2026-11-04 no hay
+   * bienvenida (WELCOME_CREDITS = 0, decisión del dueño), la cuenta nacía en 0 y el primer gasto de 30 caía con
+   * INSUFFICIENT_CREDITS antes de medir nada. El saldo de partida se da explícitamente, por el motor y con su asiento.
+   */
+  await motorDeCredits.grantCredits({ userId: uid, amount: 240, requestId: `regalo_${uid}`, reason: 'saldo de prueba', source: 'test' });
   const antes = (await motorDeCredits.getBalance(uid)).balance;
   await motorDeCredits.spendCredits({ userId: uid, service: 'ai_image', requestId: `job_a_${marca}`, amount: 30, source: 'test' });
   const r = await Promise.all(Array.from({ length: 6 }, () => motorDeCredits.completeCredits({ userId: uid, requestId: `job_a_${marca}`, finalAmount: 30 })));

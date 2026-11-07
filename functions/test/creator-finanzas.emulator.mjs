@@ -74,9 +74,18 @@ const reiniciarProveedor = () => Object.assign(proveedor, { llamadas: 0, porPaso
 /* ── Personas y trabajos ────────────────────────────────────────────────── */
 const marca = Date.now().toString(36);
 const personas = [];
+/*
+ * Bloque B2 (2026-11-06): desde p0-edad, `creatorRun` exige una CUENTA WEË VÁLIDA antes del trabajo, del cupo y del dinero
+ * (functions/src/identity/sesion.ts): sesión firmada con una credencial de verdad —no la anónima del invitado— y registro
+ * terminado (Perfil Real con país del catálogo y `private/account` con una fecha de 18+, lo que deja el alta de la app). Esta
+ * suite mide el dinero de `creatorRun`, no esas puertas (las prueban edad-minima y guest-sin-ia): cada persona es una cuenta
+ * así y llama con esa sesión. Sin bienvenida (WELCOME_CREDITS = 0) la cuenta nace en 0 y el saldo lo da `grantCredits`.
+ */
+const sesionDe = (uid) => ({ uid, token: { firebase: { sign_in_provider: 'password' } } });
 const persona = async (nombre, saldo = 1000) => {
   const uid = `emuFin${nombre}${marca}`.slice(0, 40);
-  await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: nombre });
+  await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: nombre, country: 'ES' });
+  await db.collection('users').doc(`doc_${uid}`).collection('private').doc('account').set({ birthDate: '1990-01-01' });
   await creditEngine.ensureAccount(uid);
   const inicial = (await creditEngine.getBalance(uid)).balance;
   if (saldo > inicial) await creditEngine.grantCredits({ userId: uid, amount: saldo - inicial, requestId: `regalo_${uid}`, reason: 'saldo de prueba' });
@@ -99,7 +108,7 @@ const DOS_PASOS = [
   { id: 'idea', capability: 'text.generate', purpose: 'idea', input: { prompt: 'una idea' } },
   { id: 'texto', capability: 'text.generate', purpose: 'texto', input: { prompt: 'el texto' }, dependsOn: ['idea'] },
 ];
-const correr = (uid, jobId) => intento(() => creatorMod.creatorRun.run({ auth: { uid }, data: { jobId } }));
+const correr = (uid, jobId) => intento(() => creatorMod.creatorRun.run({ auth: sesionDe(uid), data: { jobId } }));
 const estado = async (id) => (await db.collection('creatorJobs').doc(id).get()).data();
 const reembolsos = async (rid) => (await db.collection('creditTransactions').where('requestId', '==', rid).where('type', '==', 'refund').get()).docs.map((d) => d.data());
 
@@ -267,9 +276,10 @@ console.log('\n── S7 · reservó y murió antes de arrancar ──');
 console.log('\n── S8 · no alcanza ──');
 {
   reiniciarProveedor();
-  const u = await persona('S8', 0);
+  /* Bloque B2: sin bienvenida (WELCOME_CREDITS = 0) una cuenta en 0 se quedaba en 0, no en los 5 que mide S8a: se le dan 5. */
+  const u = await persona('S8', 5);
   const id = `s8_${marca}`;
-  /* La bienvenida pudo dar saldo: se gasta hasta dejar 5. */
+  /* Si alguna vez volviera la bienvenida y diera saldo: se gasta hasta dejar 5. */
   const s0 = await saldo(u);
   if (s0 > 5) await creditEngine.spendCredits({ userId: u, service: 'ai_text', amount: s0 - 5, requestId: `gasto_${marca}`, source: 'prueba' }).then(() => creditEngine.completeCredits({ userId: u, requestId: `gasto_${marca}` }));
   await trabajo(u, id, DOS_PASOS);
