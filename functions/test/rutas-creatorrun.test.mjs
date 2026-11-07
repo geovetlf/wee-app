@@ -12,12 +12,13 @@
  *
  *   A. respaldo: el primero falla, atiende el segundo y se cobra UNA vez;
  *   B. todos fallan: se devuelve exactamente lo reservado, sin otro cobro;
- *   C. `iaDetenida`: ningún proveedor se llama y lo reservado se devuelve;
+ *   C. `iaDetenida`: ningún proveedor se llama y no se toca el dinero (con p0 la ruta se decide antes del dinero);
  *   D. reintento de un trabajo ya fallido o ya hecho: ni otra reserva ni otra llamada;
  *   E. idempotencia de la liquidación y del respaldo (una fila COMPLETED, las demás FAILED con 0);
  *   F. DEFECTOS CONOCIDOS (no paran la cadena; se informan y fallan si cambian sin aviso):
  *      K1 (M-01 / X1) si escribir el uso tras un éxito falla, el router paga a OTRO proveedor;
- *      K2 con `iaDetenida` el cupo diario de la persona se consume y se reserva/devuelve igual.
+ *      K2 CORREGIDO en la consolidación W0 (2026-11-06): con `iaDetenida` ya no se consume el cupo
+ *         ni se reserva/devuelve, porque p0-edad pregunta la ruta antes del dinero; queda como comprobación (C).
  *
  * Sin claves, sin red (fetch y sockets cortados), sin emuladores. < 5 s.
  */
@@ -118,6 +119,14 @@ let health = memoryHealth();
 const routerDePrueba = () => createRouter({ adapters, loadConfig: async () => config(), ledger, health });
 const generateOriginal = engineMod.engine.generate;
 engineMod.engine.generate = (request) => routerDePrueba().execute(request);
+/*
+ * Consolidación W0 (2026-11-06): con p0-edad, creatorRun exige una cuenta Weë válida y pregunta la ruta ANTES del dinero. Esta suite
+ * usa una Firestore de mentira y proveedores falsos, así que hace lo que esas puertas prevén para las suites así: la cuenta se da por
+ * enrolada (identity/sesion.ts) y la ruta previa la decide el MISMO router de prueba que ejecuta (creator/rutaPrevia.ts); cada
+ * llamada va con una sesión de credencial. La cuenta, el invitado y la ruta tienen sus suites (edad-minima, guest-sin-ia, jurisdiccion-seedance).
+ */
+lib('identity/sesion.js').enrolamiento.leer = async () => true;
+lib('creator/rutaPrevia.js').rutaPrevia.decidir = (peticion) => routerDePrueba().route(peticion);
 
 const originales = { hold: creditosMod.holdCredits, settle: creditosMod.settleCredits, modo: creditosMod.pricingMode, reserve: limitesMod.limiter.reserve, config: configMod.loadConfig };
 let eventos = [];
@@ -139,7 +148,7 @@ const reiniciar = (id, extra) => {
   eventos = []; llamadas.length = 0; ledger = memoryLedger(); health = memoryHealth();
   fallaAlfa = () => false; fallaBeta = () => false; ajustes = {}; fallarEscrituraEn = null;
 };
-const correr = (jobId) => creatorMod.creatorRun.run({ auth: { uid: UID }, data: { jobId } }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
+const correr = (jobId) => creatorMod.creatorRun.run({ auth: { uid: UID, token: { firebase: { sign_in_provider: 'password' } } }, data: { jobId } }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
 const filas = () => Object.values(ledger.records);
 const liquidaciones = () => eventos.filter((e) => e.startsWith('liquida'));
 
@@ -172,10 +181,15 @@ ajustes = { iaDetenida: true };
 const c = await correr('detenida');
 check('C1) con iaDetenida no se llama a NINGÚN proveedor (ni real ni demo)', llamadas.length === 0, llamadas.join(','));
 check('C2) ni se abre una fila en el libro de costes', filas().length === 0);
-check('C3) lo reservado se devuelve entero (liquida con 0)', liquidaciones().join(',') === 'liquida:7:0', eventos.join(','));
+/*
+ * Consolidación W0 (2026-11-06): con p0-edad, creatorRun pregunta la ruta ANTES del dinero (creator/rutaPrevia.ts). Con
+ * iaDetenida el router no da ninguna ruta, así que ya no se toca el cupo ni se reserva: el defecto conocido K2 dejó de
+ * reproducirse y, como pedía esta suite, pasa a ser una comprobación (y C3 exige lo nuevo, más estricto que «se devuelve»).
+ */
+check('C3) no se reserva nada, así que no hay nada que devolver (ni reserva ni liquidación)', !eventos.some((e) => e.startsWith('reserva')) && liquidaciones().length === 0, eventos.join(','));
 check('C4) el error llega como «no disponible», no como un fallo genérico', !c.ok && /unavailable|failed-precondition|resource-exhausted/.test(String(c.e?.code)), String(c.e?.code));
-conocido('K2', 'con iaDetenida el callable consume el cupo diario de la persona y hace reserva+devolución antes de saber que la IA está parada (creator/index.ts:610-611; el interruptor solo se mira dentro del router, engine/router.ts:230)',
-  eventos[0] === 'cupo' && eventos[1] === 'reserva:7', eventos.join(','));
+check('K2 corregido (p0, ruta antes del dinero): con iaDetenida no se consume el cupo diario ni se hace reserva+devolución',
+  !eventos.includes('cupo') && !eventos.some((e) => e.startsWith('reserva')), eventos.join(','));
 
 /* ── D. Recuperación: reintentar un trabajo fallido o hecho no cobra ni llama ── */
 const antes = { reservas: 0 };
@@ -210,7 +224,8 @@ for (const id of ['cc5', 'cc6', 'cc7']) { docs.set(`creatorJobs/${id}`, trabajo(
 llamadas.length = 0; eventos = [];
 docs.set('creatorJobs/cc8', trabajo()); ledger = memoryLedger(); health = healthCompartido;
 const e8 = await correr('cc8');
-check('E2) con los dos en pausa: «no disponible», sin demo y con reembolso íntegro', !e8.ok && llamadas.length === 0 && liquidaciones().join(',') === 'liquida:7:0', `${llamadas.join(',')} ${eventos.join(',')}`);
+/* W0 (p0, ruta antes del dinero): con los dos en pausa el router no da ruta, así que ni se reserva ni hay nada que devolver. */
+check('E2) con los dos en pausa: «no disponible», sin demo y sin tocar el dinero (ni reserva ni liquidación)', !e8.ok && llamadas.length === 0 && !eventos.some((e) => e.startsWith('reserva')) && liquidaciones().length === 0, `${llamadas.join(',')} ${eventos.join(',')}`);
 
 /* ── F. Defecto conocido M-01: escribir el uso tras un éxito ─────────────── */
 reiniciar('m01');

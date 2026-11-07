@@ -67,7 +67,14 @@ const montar = (settings, health = memoryHealth()) => {
   const ledger = memoryLedger();
   return { ledger, health, router: createRouter({ adapters: ADAPTERS, loadConfig: async () => config(settings), ledger, health }) };
 };
-const pedir = (capability, extra = {}) => ({ capability, input: { prompt: 'un gato en un tejado', text: 'hola' }, userId: 'frente-e', jobId: 'j', stepId: 's', ...extra });
+/*
+ * Consolidación W0 (2026-11-06): con p0-edad (Fase 1, jurisdicción) Seedance tiene reglas territoriales y sin país falla
+ * cerrado. Esta suite mide los RESPALDOS reales de cada capacidad, no la jurisdicción: se pide como una cuenta de un país
+ * permitido (ES), igual que `router-equivalencia` y `runtime-paridad`. La jurisdicción la prueban `elegibilidad-jurisdiccion`
+ * y `jurisdiccion-seedance`.
+ */
+const JURISDICCION_PERMITIDA = Object.freeze(['ES']);
+const pedir = (capability, extra = {}) => ({ capability, input: { prompt: 'un gato en un tejado', text: 'hola' }, userId: 'frente-e', jobId: 'j', stepId: 's', jurisdicciones: JURISDICCION_PERMITIDA, ...extra });
 const HOST = {
   gemini: 'generativelanguage.googleapis.com', claude: 'api.anthropic.com', openai: 'api.openai.com', deepseek: 'api.deepseek.com',
   seedance: 'ark.ap-southeast.bytepluses.com', seedream: 'ark.ap-southeast.bytepluses.com', flux: 'api.bfl.ai', elevenlabs: 'api.elevenlabs.io', minimax: 'api.minimax.io',
