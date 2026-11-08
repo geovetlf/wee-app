@@ -324,6 +324,12 @@ const FUNCTIONS = {
   './content': ['deleteAsset'],
   './social/polls': ['votePoll'],
   './social/weetalk': ['burnViewOnce'],
+  /*
+   * WeeTalk · bloqueo de contactos (2026-11-07, docs/WEETALK-BLOQUEO.md): bloquear, desbloquear y listar, por cuenta y
+   * para las dos caras. Sin IA ni Credits y sin tocar el Moderation Core. NO están desplegadas
+   * (ops/despliegue/grupos.json → no_se_despliegan); están en el mapa porque el código las exporta.
+   */
+  './social/weetalkBloqueos': ['blockWeeTalkContact', 'unblockWeeTalkContact', 'listWeeTalkBlocks'],
   './social/econtact': ['requestEContact', 'acceptEContact'],
   './identity/nacimiento': ['nacimientoDeCuenta'],
   './identity/perfilPublico': ['espejoDelPerfilPublico'],
@@ -413,7 +419,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son cincuenta y una: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar), generateWorld (misión mundo3d, sin desplegar), savePage/followPage (WeëPages, sin desplegar), boost/boostSweep (Boost, sin desplegar), las nueve de Comunidades por identidad (sin desplegar) y espejoDelPerfilPublico (seguridad de users, sin desplegar)', reales.length === 51, `${reales.length}`);
+  check('5) y son cincuenta y cuatro: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar), generateWorld (misión mundo3d, sin desplegar), savePage/followPage (WeëPages, sin desplegar), boost/boostSweep (Boost, sin desplegar), las nueve de Comunidades por identidad (sin desplegar), espejoDelPerfilPublico (seguridad de users, sin desplegar) y las tres del bloqueo de contactos de WeeTalk (sin desplegar)', reales.length === 54, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *

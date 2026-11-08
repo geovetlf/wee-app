@@ -34,6 +34,12 @@
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import {
+  BLOQUEOS, INTENTOS_BLOQUEADOS, LIMITE_DE_INTENTOS_BLOQUEADOS, PARES_BLOQUEADOS, claveDeIntentos, claveDePar, claveDeRelacion,
+} from './bloqueosIndice';
+import type { OperacionDeContacto } from './bloqueosIndice';
+/* La ventana fija que ya acota los avisos, reutilizada para el límite de intentos bloqueados (un solo mecanismo). */
+import { cupoDeAvisos } from './avisos';
 
 const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 
@@ -164,6 +170,13 @@ const CODIGOS: Record<MotivoRechazo, 'not-found' | 'failed-precondition' | 'perm
 
 export type Decision = { ok: true } | { ok: false; motivo: MotivoRechazo };
 
+/**
+ * EL RECHAZO GENÉRICO: el que recibe una solicitud entre dos cuentas con un bloqueo y, también, cualquier solicitud de
+ * una cuenta que agotó el límite de intentos bloqueados. Es el mismo en los dos casos, a propósito: no dice que hay un
+ * bloqueo, ni quién lo puso, ni de qué cuenta es ninguna cara (docs/WEETALK-BLOQUEO.md § 4.7).
+ */
+export const RECHAZO_GENERICO: Decision = Object.freeze({ ok: false as const, motivo: 'relacion-invalida' as const });
+
 export class EContactError extends Error {
   constructor(public motivo: MotivoRechazo) {
     super(MENSAJES[motivo]);
@@ -214,11 +227,19 @@ export const decidirSolicitud = (args: {
   de: IdentidadResuelta;
   para: IdentidadResuelta;
   existente: EContactDoc | null | undefined;
+  /** Si hay un bloqueo de contactos entre las dos cuentas, en cualquier sentido (docs/WEETALK-BLOQUEO.md). */
+  bloqueo?: boolean;
 }): Decision => {
   const { de, para, existente } = args;
   if (de.identity === para.identity) return { ok: false, motivo: 'misma-persona' };
   if (de.accountUid === para.accountUid) return { ok: false, motivo: 'misma-persona' };
   if (existente) return { ok: false, motivo: 'ya-existe' };
+  /*
+   * BLOQUEO DE CONTACTOS: entre dos cuentas con un bloqueo no se abre ninguna solicitud, desde ninguna de sus caras ni
+   * hacia ninguna. El motivo es el genérico de «no válida»: no le dice a nadie que hay un bloqueo, ni de qué cuenta es
+   * ninguna cara. Va el último, así que todo lo que ya se rechazaba se sigue rechazando igual.
+   */
+  if (args.bloqueo) return RECHAZO_GENERICO;
   return { ok: true };
 };
 
@@ -230,7 +251,13 @@ export const decidirSolicitud = (args: {
  * sea de tu cuenta no basta: una solicitud dirigida a tu Perfil Weë no la acepta
  * tu Perfil Real.
  */
-export const decidirAceptacion = (args: { doc: EContactDoc | null | undefined; yo: string; otro: string }): Decision => {
+export const decidirAceptacion = (args: {
+  doc: EContactDoc | null | undefined;
+  yo: string;
+  otro: string;
+  /** Si hay un bloqueo de contactos entre las dos cuentas, en cualquier sentido (docs/WEETALK-BLOQUEO.md). */
+  bloqueo?: boolean;
+}): Decision => {
   const { doc, yo, otro } = args;
 
   if (!doc || typeof doc !== 'object') return { ok: false, motivo: 'sin-relacion' };
@@ -255,6 +282,12 @@ export const decidirAceptacion = (args: { doc: EContactDoc | null | undefined; y
   if (doc.status !== 'pending') return { ok: false, motivo: 'relacion-invalida' };
 
   if (doc.requestedTo !== yo) return { ok: false, motivo: 'no-la-recibiste' };
+
+  /*
+   * BLOQUEO DE CONTACTOS: una solicitud que siga en pie entre dos cuentas con un bloqueo no se acepta (al bloquear se
+   * anulan, pero una que se cruzara con el bloqueo quedaría inutilizada igual). Mismo motivo genérico que al pedir.
+   */
+  if (args.bloqueo) return RECHAZO_GENERICO;
 
   return { ok: true };
 };
@@ -299,6 +332,54 @@ export const createEContactEngine = (deps: EContactDeps) => {
     };
   };
 
+  /** Lo que devuelve cada transacción: la relación, o el motivo del rechazo (que se lanza fuera de ella). */
+  type Resultado = { relacion?: ResultadoRelacion; rechazo?: MotivoRechazo };
+  /** Lo mínimo que el límite usa de la transacción y de la base (sin `any`). */
+  type TransaccionDeContactos = {
+    get: (ref: unknown) => Promise<{ exists: boolean; data: () => unknown }>;
+    set: (ref: unknown, datos: Record<string, unknown>) => unknown;
+  };
+  type BaseDeContactos = { collection: (ruta: string) => { doc: (id: string) => unknown } };
+
+  /*
+   * EL LÍMITE CONTRA INTENTOS REITERADOS (docs/WEETALK-BLOQUEO.md § 4.7; decisión del dueño del 2026-11-07, «A»), dentro de
+   * la MISMA transacción de cada puerta.
+   *
+   * Solo cuenta un intento rechazado porque la cuenta de DESTINO bloqueó a la que llama, y se cuenta por CUENTA y por
+   * operación (`pedir` o `aceptar`): las dos caras comparten cupo, así que cambiar de cara no lo reinicia. Máximo 5 por hora.
+   *
+   * El cupo NO cambia ninguna respuesta —el rechazo a quien te bloqueó es el genérico de siempre— y NO limita nada más: las
+   * solicitudes a otras personas, los mensajes y las conversaciones siguen igual aunque esté agotado. Lo que hace es acotar
+   * el trabajo: pasado el quinto intento de la ventana ya no se escribe nada, así que nadie puede inflar el contador ni
+   * usarlo para escribir sin fin. Caduca solo, no suspende, no avisa a nadie y no guarda quién es el destino. La clave es de
+   * quien intenta: nadie puede gastar el cupo de otro. Sin bloqueo hacia quien llama, ni se lee.
+   */
+  const leerIntentos = async (
+    tx: TransaccionDeContactos,
+    db: BaseDeContactos,
+    cuenta: string,
+    operacion: OperacionDeContacto,
+    cuentaDestino: string,
+    hayBloqueo: boolean
+  ): Promise<{ apuntar: () => void }> => {
+    const elDestinoLaBloqueo = hayBloqueo
+      ? (await tx.get(db.collection(BLOQUEOS).doc(claveDeRelacion(cuentaDestino, cuenta)))).exists
+      : false;
+    if (!elDestinoLaBloqueo) return { apuntar: () => undefined };
+    const refIntentos = db.collection(INTENTOS_BLOQUEADOS).doc(claveDeIntentos(cuenta, operacion));
+    const guardado = await tx.get(refIntentos);
+    const ahora = deps.ahora();
+    const cupo = cupoDeAvisos(guardado.exists ? guardado.data() : null, ahora, LIMITE_DE_INTENTOS_BLOQUEADOS);
+    return {
+      /* Se llama solo cuando la puerta rechaza: apunta el intento mientras quede cupo; agotado, no escribe nada. */
+      apuntar: () => {
+        if (cupo.permitido) {
+          tx.set(refIntentos, { cuenta, operacion, inicio: cupo.estado.inicio, usados: cupo.estado.usados, actualizadoEn: deps.sello(ahora) });
+        }
+      },
+    };
+  };
+
   return {
     resolver,
 
@@ -324,12 +405,18 @@ export const createEContactEngine = (deps: EContactDeps) => {
       const db = deps.db();
       const ref = db.collection(COLECCION).doc(contactId);
 
-      return db.runTransaction(async (tx: any) => {
+      const resultado: Resultado = await db.runTransaction(async (tx: any) => {
         const snap = await tx.get(ref);
         const existente = snap.exists ? ((snap.data() || {}) as EContactDoc) : null;
+        /* El índice del bloqueo de contactos (bloqueosIndice.ts): existe si `de` no puede contactar con `para`. */
+        const bloqueo = await tx.get(db.collection(PARES_BLOQUEADOS).doc(claveDePar(de.identity, para.identity)));
+        const intentos = await leerIntentos(tx, db, de.accountUid, 'pedir', para.accountUid, bloqueo.exists);
 
-        const decision = decidirSolicitud({ de, para, existente });
-        if (!decision.ok) throw new EContactError(decision.motivo);
+        const decision = decidirSolicitud({ de, para, existente, bloqueo: bloqueo.exists });
+        if (!decision.ok) {
+          intentos.apuntar();
+          return { rechazo: decision.motivo };
+        }
 
         const users = de.identity < para.identity ? [de.identity, para.identity] : [para.identity, de.identity];
         tx.create(ref, {
@@ -340,8 +427,11 @@ export const createEContactEngine = (deps: EContactDeps) => {
           createdAt: deps.sello(deps.ahora()),
         });
 
-        return { contactId, status: 'pending' as const, users, from: de, to: para };
+        return { relacion: { contactId, status: 'pending' as const, users, from: de, to: para } };
       });
+      /* El rechazo se lanza FUERA de la transacción: así el intento que cuenta para el límite queda apuntado. */
+      if (resultado.rechazo) throw new EContactError(resultado.rechazo);
+      return resultado.relacion as ResultadoRelacion;
     },
 
     /**
@@ -367,25 +457,34 @@ export const createEContactEngine = (deps: EContactDeps) => {
       const db = deps.db();
       const ref = db.collection(COLECCION).doc(contactId);
 
-      return db.runTransaction(async (tx: any) => {
+      const resultado: Resultado = await db.runTransaction(async (tx: any) => {
         const snap = await tx.get(ref);
         if (!snap.exists) throw new EContactError('sin-relacion');
 
         const doc = (snap.data() || {}) as EContactDoc;
-        const decision = decidirAceptacion({ doc, yo: yo.identity, otro: otro.identity });
-        if (!decision.ok) throw new EContactError(decision.motivo);
+        const bloqueo = await tx.get(db.collection(PARES_BLOQUEADOS).doc(claveDePar(yo.identity, otro.identity)));
+        const intentos = await leerIntentos(tx, db, yo.accountUid, 'aceptar', otro.accountUid, bloqueo.exists);
+        const decision = decidirAceptacion({ doc, yo: yo.identity, otro: otro.identity, bloqueo: bloqueo.exists });
+        if (!decision.ok) {
+          intentos.apuntar();
+          return { rechazo: decision.motivo };
+        }
 
         tx.update(ref, { status: 'accepted', respondedAt: deps.sello(deps.ahora()) });
 
         return {
-          contactId,
-          status: 'accepted' as const,
-          users: doc.users as string[],
-          // Quien acepta es `yo`; la solicitud la había abierto `otro`.
-          from: otro,
-          to: yo,
+          relacion: {
+            contactId,
+            status: 'accepted' as const,
+            users: doc.users as string[],
+            // Quien acepta es `yo`; la solicitud la había abierto `otro`.
+            from: otro,
+            to: yo,
+          },
         };
       });
+      if (resultado.rechazo) throw new EContactError(resultado.rechazo);
+      return resultado.relacion as ResultadoRelacion;
     },
   };
 };

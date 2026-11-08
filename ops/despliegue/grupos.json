@@ -126,6 +126,18 @@
     {
       "funcion": "listMyCommunities",
       "porque": "Comunidades por identidad (2026-11-05): listar las comunidades de la cara activa (solo esa cara), con lecturas directas y sin collection group. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con las otras ocho y en el orden de docs/COMUNIDADES-IDENTIDAD.md §9 (Functions → reglas de transición, aún por escribir → app → reglas finales); desplegar las reglas de este árbol antes rompería la app publicada."
+    },
+    {
+      "funcion": "blockWeeTalkContact",
+      "porque": "WeeTalk · bloqueo de contactos (2026-11-07, rama weetalk/bloqueo-contactos sobre la candidata W0): la cuenta de la sesión bloquea a otra cuenta desde una de sus caras, y quedan cubiertas las dos caras de la otra (Real y Weë). Escribe solo en colecciones del servidor (weetalkBloqueos, weetalkBloqueosPorPar, weetalkBloqueosCupo) que firestore.rules no abre. Decisión personal de privacidad: no denuncia, no abre casos, no toca el Moderation Core y no lee mensajes. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, después de validar W0 y junto con unblockWeeTalkContact, listWeeTalkBlocks y la propuesta de reglas de ops/propuestas/weetalk-bloqueo (docs/WEETALK-BLOQUEO.md)."
+    },
+    {
+      "funcion": "unblockWeeTalkContact",
+      "porque": "WeeTalk · bloqueo de contactos (2026-11-07): quita una cara de la lista de bloqueados de la cuenta de la sesión y recompone el índice del servidor; no restaura conversaciones ni genera mensajes retroactivos. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con blockWeeTalkContact y listWeeTalkBlocks (docs/WEETALK-BLOQUEO.md)."
+    },
+    {
+      "funcion": "listWeeTalkBlocks",
+      "porque": "WeeTalk · bloqueo de contactos (2026-11-07): la lista de bloqueados de la cuenta de la sesión, y solo la suya; devuelve la cara que se bloqueó, nunca la cuenta ni la otra cara de esa persona. Sin IA ni Credits. Está en el código y NO en producción: es nueva y de producto, y se despliega solo con decisión del dueño, junto con blockWeeTalkContact y unblockWeeTalkContact (docs/WEETALK-BLOQUEO.md)."
     }
   ]
 }
