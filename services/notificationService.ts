@@ -40,7 +40,10 @@ export interface Notification {
    */
   recipientId: string;      // Identidad de perfil que recibe la notificación
   senderId: string;         // Identidad de perfil que generó la acción
-  /** La cuenta de quien recibe. La escribe el servidor; hace falta para un push. */
+  /**
+   * La cuenta de quien recibe: HEREDADO. Los avisos antiguos pueden traerlo y se siguen leyendo, pero la app ya no lo
+   * escribe (privacidad STRICT, 2026-11-07): quien avisa no conoce la cuenta de nadie y el push la resuelve el servidor.
+   */
   recipientAccountId?: string;
   /** 'real' | 'wee': con qué cara está escribiendo quien la genera. */
   senderProfileType?: string;
@@ -178,10 +181,9 @@ export const notificationService = {
    * aviso: `NotificationsScreen` ya consulta por el uid del perfil activo, así
    * que dirigirlo a la identidad lo deja en la bandeja correcta sin tocar nada.
    *
-   * `recipientAccountId` es la cuenta de quien recibe. No se puede deducir del
-   * uid del perfil —hay que leerlo—, así que lo trae el servidor, que ya lo
-   * comprobó al abrir o aceptar la relación. Es lo que haría falta para un push,
-   * que se manda al aparato de una cuenta y no al de un perfil.
+   * La CUENTA de quien recibe ya no se escribe (privacidad STRICT, 2026-11-07):
+   * quien avisa no tiene por qué conocerla —las callables de ËContact dejaron de
+   * devolverla— y el push la resuelve el servidor desde la identidad.
    *
    * `senderProfileType` dice si quien escribe es un Perfil Real o un Perfil Weë,
    * para que el texto pueda distinguirlos sin ir a buscar el perfil otra vez.
@@ -191,7 +193,7 @@ export const notificationService = {
     senderId: string,
     senderName: string,
     senderAvatar: { type?: string; id?: string; url?: string },
-    identidad?: { recipientAccountId?: string; senderProfileType?: string }
+    identidad?: { senderProfileType?: string }
   ): Promise<string | null> => {
     return createNotification({
       type: 'econtact_request',
@@ -201,7 +203,6 @@ export const notificationService = {
       senderAvatar: senderAvatar.url,
       senderAvatarType: senderAvatar.type as 'predefined' | 'custom',
       senderAvatarId: senderAvatar.id,
-      recipientAccountId: identidad?.recipientAccountId,
       senderProfileType: identidad?.senderProfileType,
     });
   },
@@ -212,7 +213,7 @@ export const notificationService = {
     senderId: string,
     senderName: string,
     senderAvatar: { type?: string; id?: string; url?: string },
-    identidad?: { recipientAccountId?: string; senderProfileType?: string }
+    identidad?: { senderProfileType?: string }
   ): Promise<string | null> => {
     return createNotification({
       type: 'econtact_accepted',
@@ -222,7 +223,6 @@ export const notificationService = {
       senderAvatar: senderAvatar.url,
       senderAvatarType: senderAvatar.type as 'predefined' | 'custom',
       senderAvatarId: senderAvatar.id,
-      recipientAccountId: identidad?.recipientAccountId,
       senderProfileType: identidad?.senderProfileType,
     });
   },

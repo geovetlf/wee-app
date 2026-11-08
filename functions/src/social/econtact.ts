@@ -308,6 +308,27 @@ export interface ResultadoRelacion {
   to: IdentidadResuelta;
 }
 
+/*
+ * LO QUE UNA CALLABLE DE ËCONTACT DEVUELVE AL CLIENTE (privacidad STRICT, decisión del dueño del 2026-11-07).
+ *
+ * El motor trabaja con la CUENTA de cada identidad (la necesita para el bloqueo, el límite y saber que no es la misma
+ * persona), pero eso NO sale del servidor: devolver `accountUid` le daba a quien pide la cuenta de la otra persona,
+ * que es justo el vínculo entre sus dos caras. Al cliente le basta la relación con las identidades que ya conoce
+ * (la suya y la que eligió). Sin cuentas, sin tipos ajenos, sin nada que no tuviera ya.
+ */
+export interface RelacionPublica {
+  contactId: string;
+  status: 'pending' | 'accepted';
+  from: { identity: string };
+  to: { identity: string };
+}
+export const relacionPublica = (r: ResultadoRelacion): RelacionPublica => ({
+  contactId: r.contactId,
+  status: r.status,
+  from: { identity: r.from.identity },
+  to: { identity: r.to.identity },
+});
+
 export const createEContactEngine = (deps: EContactDeps) => {
   /** El documento de `users` de una identidad. Se busca por el campo, no por el id. */
   const leerPerfil = async (identidad: string): Promise<PerfilDeIdentidad | null> => {
@@ -534,7 +555,7 @@ export const requestEContact = onCall(OPTS, async (request) => {
   if (!haciaIdentidad) throw new HttpsError('invalid-argument', 'Falta el perfil con el que conectar.');
 
   try {
-    return await econtactEngine.request({ cuentaDeLaSesion, desdeIdentidad, haciaIdentidad });
+    return relacionPublica(await econtactEngine.request({ cuentaDeLaSesion, desdeIdentidad, haciaIdentidad }));
   } catch (error) {
     return traducir(error, 'requestEContact');
   }
@@ -558,7 +579,7 @@ export const acceptEContact = onCall(OPTS, async (request) => {
   if (!otraIdentidad) throw new HttpsError('invalid-argument', 'Falta el perfil de quien te la envió.');
 
   try {
-    return await econtactEngine.accept({ cuentaDeLaSesion, comoIdentidad, otraIdentidad });
+    return relacionPublica(await econtactEngine.accept({ cuentaDeLaSesion, comoIdentidad, otraIdentidad }));
   } catch (error) {
     return traducir(error, 'acceptEContact');
   }

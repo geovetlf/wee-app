@@ -185,9 +185,9 @@ const perfilDe = async (identidad: string): Promise<PerfilLeido | null> => {
  * EL AVISO A LA OTRA PERSONA, por el sistema de notificaciones de siempre.
  *
  * Va dirigido a la IDENTIDAD que recibe, no a su cuenta: quien te escribe al
- * Perfil Weë te escribe a ese perfil, y ahí es donde tiene que aparecer. Se
- * guarda también la cuenta, que es lo que hace falta para un push y no se puede
- * deducir del uid del perfil.
+ * Perfil Weë te escribe a ese perfil, y ahí es donde tiene que aparecer. La
+ * cuenta de quien recibe NO viaja (privacidad STRICT, 2026-11-07): el servidor
+ * ya no la devuelve, y el push la resuelve él solo desde la identidad.
  *
  * Nunca hace fallar la operación: si la conexión se hizo y el aviso no sale, la
  * conexión sigue hecha. Al revés sería peor.
@@ -195,7 +195,6 @@ const perfilDe = async (identidad: string): Promise<PerfilLeido | null> => {
 const avisar = async (
   tipo: 'solicitud' | 'aceptada',
   paraIdentidad: string,
-  paraCuenta: string | undefined,
   desdeIdentidad: string
 ): Promise<void> => {
   try {
@@ -203,7 +202,6 @@ const avisar = async (
     const nombre = mio?.displayName || 'Alguien';
     const avatar = { type: mio?.avatarType, id: mio?.avatarId, url: mio?.photoURL };
     const extra = {
-      recipientAccountId: paraCuenta,
       senderProfileType: tipoDeIdentidad(desdeIdentidad),
     };
     if (tipo === 'solicitud') {
@@ -216,13 +214,12 @@ const avisar = async (
   }
 };
 
-/** Lo que devuelven las dos callables del servidor. */
+/** Lo que devuelven las dos callables del servidor: la relación con las identidades que ya conoces, y nada más. */
 interface RespuestaRelacion {
   contactId: string;
   status: 'pending' | 'accepted';
-  users: string[];
-  from: { identity: string; accountUid: string; type: string };
-  to: { identity: string; accountUid: string; type: string };
+  from: { identity: string };
+  to: { identity: string };
 }
 
 const llamar = async (nombre: 'requestEContact' | 'acceptEContact', datos: Record<string, string>) => {
@@ -253,7 +250,7 @@ export const econtactService = {
     const yo = exigirIdentidadPropia(comoIdentidad);
     const otra = exigirIdentidadAjena(otraIdentidad);
     const hecho = await llamar('requestEContact', { fromIdentity: yo, toIdentity: otra });
-    await avisar('solicitud', hecho.to.identity, hecho.to.accountUid, hecho.from.identity);
+    await avisar('solicitud', hecho.to.identity, hecho.from.identity);
   },
 
   /**
@@ -268,7 +265,7 @@ export const econtactService = {
     const otra = exigirIdentidadAjena(otraIdentidad);
     const hecho = await llamar('acceptEContact', { asIdentity: yo, otherIdentity: otra });
     // Quien la pidió se entera de que ya estáis conectados.
-    await avisar('aceptada', hecho.from.identity, hecho.from.accountUid, hecho.to.identity);
+    await avisar('aceptada', hecho.from.identity, hecho.to.identity);
   },
 
   /** Decir que no a una solicitud recibida: la relación deja de existir. */

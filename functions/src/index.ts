@@ -85,7 +85,8 @@ async function gastarCupoDeAvisos(cuenta: string): Promise<boolean> {
       return permitido;
     });
   } catch (error) {
-    console.error('Avisos: no se pudo comprobar el cupo', cuenta, error);
+    /* Sin la cuenta: junto al aviso que lo disparó casaría su remitente (una identidad) con su cuenta (privacidad STRICT). */
+    console.error('Avisos: no se pudo comprobar el cupo', error);
     return false;
   }
 }
