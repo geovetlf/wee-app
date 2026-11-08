@@ -239,6 +239,38 @@ Revisado el 2026-10-01 sobre `i18n/da-dk` (`d306a58` + cambios sin commit).
 - **Sería defecto si:** las dos copias se comportan distinto, o aparece una tercera.
 - **Estado:** DECIDIDA.
 
+## Producto y economía
+
+### DD-26 · WeeTalk es gratuito: la mensajería nunca usa Credits
+
+- **Decisión (del dueño, 2026-11-07, permanente):** WeeTalk es una función social **gratuita e incluida** en Weë. Son gratis:
+  - enviar y recibir mensajes;
+  - crear y mantener conversaciones;
+  - pedir, aceptar o rechazar ËContact y ẄContact;
+  - bloquear y desbloquear;
+  - las llamadas directas, si llegan a existir.
+- **Lo que nunca hace WeeTalk:**
+  - llamar al Credit Engine;
+  - reservar, cobrar, reembolsar ni acreditar Credits, ni dejar transacciones en su historial;
+  - generar Credits ni recompensas, tampoco indirectas, por conversar o por recibir mensajes.
+- **Razón:** es la parte social básica. Cobrar o premiar la conversación cambiaría el producto y abriría incentivos de spam. El coste de su infraestructura es coste operativo de Weë, no saldo del usuario, y la monetización de otras funciones no lo altera.
+- **Única excepción, decidida el mismo día:** el **traductor** de WeeTalk y Weë Travel.
+  - Es una función **opcional** de pago, en su propio módulo, nunca dentro de la mensajería.
+  - Se cobra solo al completar una traducción que la persona pidió: coste real de DeepSeek × 2, con 1 USD = 100 Credits.
+  - Activar el traductor, elegir idioma o ver el original es gratis.
+- **Evidencia:** `functions/test/weetalk-gratuidad.test.mjs` comprueba:
+  - que el servidor y el cliente de WeeTalk no nombran ni llaman al Credit Engine;
+  - que lo que cargan de Credits al arrancar es solo la validación y el catálogo;
+  - que pedir y aceptar ËContact en las cuatro combinaciones de caras, bloquear, listar y desbloquear no cambian ni el saldo ni el historial, y que no llaman al motor.
+
+  Y `functions/test/weetalk-identidades.emulator.mjs` § F comprueba que, en el emulador, conversaciones, mensajes, avisos y bloqueo dejan el saldo intacto, sin transacciones, y que un cliente no puede escribir saldos.
+- **Sería defecto si:**
+  - un módulo de mensajería importa o llama al Credit Engine;
+  - una operación de WeeTalk escribe en `creditAccounts`, `creditTransactions`, `creditStats`, `wallets` o `users.creditsBalance`;
+  - aparece un premio por actividad de mensajería;
+  - el traductor entra en el código de la mensajería en vez de en su módulo.
+- **Estado:** DECIDIDA.
+
 ---
 
 ## No son decisiones deliberadas
