@@ -143,7 +143,13 @@ El dueño pidió frenar los intentos repetidos de contactar a cuentas que han bl
 > - las 44 pruebas de emulador contra las reglas aplicadas: 44/44;
 > - `integridad-11x4a`, `fronteras-rules` y `comunidades-identidad`: el mismo resultado con las reglas de W0 y con las aplicadas.
 >
-> **Pendiente de autorización:** la suite `security` (con huella, invariante I-06) fija el texto exacto del `allow create` de los avisos, que debe acabar en `avisoConLaFormaDeLaApp();`. Con la condición nueva ya no casa, aunque el permiso se estreche. Adaptar esa expresión y volver a anclar la huella de `security` no se hace sin autorización.
+> **Resuelto con autorización del dueño (ronda de implementación, 2026-11-07):** la suite `security` (con huella, invariante I-06) fijaba solo el final del `allow create` de los avisos (`avisoConLaFormaDeLaApp();`), y con la condición nueva ya no casaba, aunque el permiso se estreche.
+> - **Ahora fija la sentencia entera y exige que sea la única `allow create` del bloque.** Admite la terminación de W0 y la del bloqueo, y ninguna otra.
+> - **Diez controles:** la sentencia aprobada y la de W0 pasan; nueve formas más permisivas no pasan, entre ellas `|| true`, `isAuthenticated() ||` y una segunda `allow create: if true;`.
+> - **Huella re-anclada con `huellas.mjs --registrar --autoriza`:** sustituye solo la aserción `bf8ff1324d8e` y añade diez; los 70 títulos anteriores siguen todos.
+> - **La regla de Firestore no se reordenó.**
+>
+> Análisis: `_cierre-2026-11-07/SECURITY-AVISOS-ANALISIS.md`.
 >
 > El resto de esta sección describe la propuesta tal como se revisó.
 
