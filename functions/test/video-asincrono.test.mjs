@@ -350,10 +350,19 @@ const VIDEO = sinComentarios(VIDEO_SRC);
    *   (credits/index +26 → 51/6) + la corrección P0 de Seedance (aiPricing 69/20, aparte). Cada bloque exacto, en job-queue.
    */
   const CREDITS_CON_LA_COMPRA_POR_IMPORTE = '2\t2\tfunctions/src/core/router.ts\n18\t26\tfunctions/src/credits/creditCosts.ts\n252\t59\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n51\t6\tfunctions/src/credits/index.ts';
+  /*
+   * + µCREDITS (autorización formal del dueño, 2026-11-07, rama credits/microcreditos): creditEngine 252/59 → 553/61 (la
+   *   fracción del MISMO saldo y reservar/liquidar/devolver en µCredits, solo para la traducción), creditTransactions
+   *   +20 −3 (campos del asiento en µCredits y estadísticas aparte) y microCreditos.ts (nuevo, 72: la unidad y la
+   *   aritmética entera). Ni precios, ni márgenes, ni catálogo, ni otra operación entera. Byte a byte en la 63p de
+   *   job-queue (REVISION_MICROCREDITOS y HUELLA_MICROCREDITOS); el comportamiento, en credits-microcreditos.test.mjs.
+   */
+  const CREDITS_DE_LOS_MICROCREDITOS = '20\t3\tfunctions/src/credits/creditTransactions.ts\n72\t0\tfunctions/src/credits/microCreditos.ts';
+  const conLosMicrocreditos = (lista) => lista.replace('252\t59\tfunctions/src/credits/creditEngine.ts', '553\t61\tfunctions/src/credits/creditEngine.ts');
   const ordenadas = (s) => s.split('\n').sort().join('\n');
   check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068), el servicio ai_world de la misión fal, la compra por importe (2026-11-04), F-06 y Gran Motor, el Guest AI Gate y el precio de vídeo de la corrección P0 de Seedance, del tamaño exacto',
     ordenadas(git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r/g, ''))
-      === ordenadas(`${CREDITS_CON_LA_COMPRA_POR_IMPORTE}\n${DE_LA_CORRECCION_P0}`));
+      === ordenadas(`${conLosMicrocreditos(CREDITS_CON_LA_COMPRA_POR_IMPORTE)}\n${DE_LA_CORRECCION_P0}\n${CREDITS_DE_LOS_MICROCREDITOS}`));
   const medios = sinComentarios(leer('functions/src/runtime/medios.ts'));
   const ayudante = medios.slice(medios.indexOf('export const trabajoDelMedio'), medios.indexOf('const sinNada'));
   check('A14) la pregunta nueva de la puerta es de SOLO lectura: `porIdempotencia`, y nada más',

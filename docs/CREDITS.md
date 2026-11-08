@@ -234,3 +234,69 @@ Errores: `HttpsError` con `details.code` (`INSUFFICIENT_CREDITS` trae `required`
 `functions/test/idempotencia-de-cobro.test.mjs` (PRE-F1-D) fija que un `requestId` es una operación. En el motor: el mismo servicio siempre, y con huella la misma huella y el mismo importe; la cuenta ajena y la clave reembolsada, como antes. Y en la callable `generateVideo` ejecutada de verdad —Firestore en memoria, el motor de vídeo espiado, sin proveedor—: el `requestId` de una respuesta de Weë Brain ya COMPLETED se rechaza sin generar, sin crear ningún trabajo, sin reservar ni un Credit de vídeo y sin tocar el cobro de Brain; repetir el mismo vídeo devuelve el mismo sin cobrar; uno COMPLETED cuyo resultado no aparece no se vuelve a generar; otra cuenta, otro servicio, otro importe u otra descripción con la misma clave se rechazan; un fallo definitivo o recuperable reembolsa exactamente y deja la clave devuelta; y dos peticiones a la vez con la misma clave hacen una sola generación y un solo cobro.
 
 La imposibilidad de modificar el saldo desde el cliente la garantizan las reglas de Firestore (§3), verificadas en dev con una escritura directa a `users/{doc}.creditsBalance` desde una sesión de la app: `PERMISSION_DENIED`.
+
+## 12. µCredits: precisión fraccionaria del mismo saldo (autorización formal del dueño, 2026-11-07)
+
+**No es un segundo saldo ni una cartera aparte.** Es la parte baja del mismo saldo, en el mismo documento, en la misma transacción y con el mismo libro.
+
+| Campo (en `creditAccounts/{uid}` y su espejo por fases) | Qué es |
+|---|---|
+| `creditsBalance` | Credits **enteros**, como siempre. Es lo que gastan y ven las operaciones enteras |
+| `creditsFraccionMicro` | 0…999.999 µCredits. Solo existe si la cuenta movió alguna vez una fracción |
+| `creditsLifetimeSpentMicro` | Lo consumido en µCredits, neto de devoluciones |
+
+- **Fórmula:** total en µCredits = `creditsBalance × 1.000.000 + creditsFraccionMicro`. 1 Credit = 1.000.000 µC; todo entero, sin coma flotante (`functions/src/credits/microCreditos.ts`).
+- **Escala:**
+  - el importe más pequeño previsto, una traducción mínima en horas valle, es de unos 30 µC;
+  - el máximo por operación es de 10⁹ µC (1.000 Credits);
+  - un saldo de hasta unos 9·10⁹ Credits cabe en un entero seguro, y cada operación lo comprueba.
+
+**Solo la traducción usa esta precisión.** `SERVICIOS_MICRO = ['ai_translate']`, y `ai_translate` no está en el catálogo entero, así que `spendCredits` no lo acepta.
+
+| Operación (`creditEngine`) | Qué hace |
+|---|---|
+| `reservarMicro({ userId, service, requestId, amountMicro, fingerprint, source })` | Descuenta YA lo autorizado (`usage_<requestId>`, `unidad: 'micro'`, `amount: 0`, `amountMicro` negativo). La huella es obligatoria: la cotización que la persona autorizó |
+| `liquidarMicro({ userId, requestId, finalAmountMicro })` | Cobra el real (≤ lo autorizado) y devuelve la diferencia con `adjust_<requestId>`. **Por encima de lo autorizado se rechaza**: no se recorta ni se cobra el exceso |
+| `devolverMicro({ userId, requestId })` | Devuelve todo lo reservado (`refund_<requestId>`), una sola vez |
+
+La misma idempotencia que las operaciones enteras:
+- un `requestId` es de una sola operación (mismo servicio, huella e importe), y si no lo es, `idempotency_conflict`;
+- un `requestId` devuelto no se reutiliza;
+- las transacciones van en fila, así que nunca hay saldo negativo, doble cobro ni doble devolución.
+
+**Compatibilidad histórica:**
+- Una cuenta que nunca movió una fracción **no recibe ningún campo nuevo**: las escrituras enteras no los añaden. `getBalance` devuelve exactamente los cuatro campos de siempre.
+- Las operaciones enteras gastan Credits enteros y conservan la fracción: 0,5 Credits no pagan una operación de 1.
+- Las compras siguen acreditando su importe entero, y los asientos históricos no se reinterpretan.
+- `completeCredits` y `refundCredits` reconocen un asiento en µCredits y lo cierran en µCredits. Con importes enteros lo dejarían en 0: es el remedio que recomiendan los runbooks para las reservas colgadas.
+- La ruta de duplicado de `spendCredits` nunca toma un asiento en µCredits.
+
+**Estadísticas:**
+- Los µCredits van en contadores aparte: `totalSpentMicro`, `totalRefundedMicro`, `circulatingMicro` y `byService.ai_translate.{spentMicro, refundedMicro}`. Los contadores enteros no se mezclan con ellos.
+- Invariante: Σ(saldo total en µC) = `circulating` × 10⁶ + `circulatingMicro`. Es lo que comprueba ahora `scripts/saldo-privado.mjs verificar`, en BigInt.
+
+**Seguridad:**
+- `firestore.rules` protege `creditsFraccionMicro` y `creditsLifetimeSpentMicro` en el perfil público igual que `creditsBalance` (`creditFields()`). Solo el Credit Engine los escribe.
+- Despliegue: **las reglas antes que las funciones**.
+
+**Migración:** ninguna de datos. Los campos aparecen en la primera operación en µCredits de cada cuenta.
+- La herramienta de la F-06 (`scripts/saldo-privado.mjs`) copia, contrae, repone y compara la fracción con el saldo, así que ningún paso de la F-06 la pierde.
+
+**Vuelta atrás:**
+- Cerrar la puerta del traductor (`aiSettings/traduccion`) y no se crean fracciones nuevas.
+- La fracción que ya exista sigue siendo de la persona: el código anterior conserva los campos (`merge`/`update`) aunque no los lea.
+- Para retirar el código: primero devolver las reservas en µCredits abiertas (`refundCredits` las devuelve en µCredits) y después desplegar el motor anterior.
+- Nada se borra ni se reinterpreta.
+
+**Pruebas:**
+- `functions/test/credits-microcreditos.test.mjs`:
+  - unidad y borde del entero seguro;
+  - reservar, liquidar y devolver;
+  - compatibilidad histórica;
+  - las tres fases y el espejo;
+  - concurrencia y fallo de red;
+  - 300 operaciones aleatorias con semilla, en las que, tras cada paso, saldo = suma exacta del libro.
+- Las cercas del motor siguen exactas:
+  - la 63p de `job-queue`: `REVISION_MICROCREDITOS` y `HUELLA_MICROCREDITOS`, byte a byte;
+  - F2, AI y A13: tamaño exacto;
+  - G18 de `music`: excepción exacta, fijada por H6.

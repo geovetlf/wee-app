@@ -51,6 +51,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: 'Gerð þrívíddarheims',
   servicioAiBrain: 'Svar frá Weë Brain',
   servicioAiText: 'Textagerð',
+  servicioAiTranslate: 'Þýðing',
   servicioAiTextPro: 'Langur texti í hámarksgæðum',
   servicioAiSearch: 'Leit með gervigreind',
   servicioAiBook: 'Bókargerð',

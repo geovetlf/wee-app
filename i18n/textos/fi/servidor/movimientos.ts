@@ -46,6 +46,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: '3D-maailman luonti',
   servicioAiBrain: 'Weë Brain -vastaus',
   servicioAiText: 'Tekstin luonti',
+  servicioAiTranslate: 'Käännös',
   servicioAiTextPro: 'Pitkä teksti parhaalla laadulla',
   servicioAiSearch: 'Tekoälyhaku',
   servicioAiBook: 'Kirjan luonti',

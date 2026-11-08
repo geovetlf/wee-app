@@ -1,4 +1,5 @@
 import { CreditService } from './creditCosts';
+import { ServicioMicro } from './microCreditos';
 
 /**
  * Transacciones de Credits: creditTransactions/{transactionId} (docs/CREDITS.md §2).
@@ -19,7 +20,7 @@ export interface CreditTransaction {
   reason: string;
   /** Quién originó el movimiento: weë-creator, wee-avatar, store:test, apple, google, stripe, welcome, migration, admin. */
   source: string;
-  service?: CreditService;
+  service?: CreditService | ServicioMicro;
   generationId?: string;
   purchaseId?: string;
   status: TransactionStatus;
@@ -32,6 +33,18 @@ export interface CreditTransaction {
   fingerprint?: string;
   finalAmount?: number;
   refundOf?: string;
+  /*
+   * µCREDITS (autorización del dueño, 2026-11-07). Solo en los asientos de los servicios con precisión fraccionaria
+   * (`SERVICIOS_MICRO`: la traducción). En ellos `amount` vale 0 y lo que cuenta va en µCredits (1 Credit = 10⁶):
+   * `amountMicro` con signo como `amount`, lo autorizado y lo final, y el saldo total antes y después. `balanceBefore` y
+   * `balanceAfter` siguen siendo los Credits ENTEROS del saldo. Los asientos enteros no llevan ninguno de estos campos.
+   */
+  unidad?: 'micro';
+  amountMicro?: number;
+  authorizedAmountMicro?: number;
+  finalAmountMicro?: number;
+  balanceBeforeMicro?: number;
+  balanceAfterMicro?: number;
   meta?: Record<string, unknown>;
   createdAt: unknown;
   updatedAt: unknown;
@@ -55,6 +68,7 @@ export const dailyStatsId = (date = new Date()) => `daily_${date.toISOString().s
  * Acumulados para el panel de administración (creditStats/global y creditStats/daily_YYYY-MM-DD):
  * totalPurchased · totalGranted · totalSpent · totalRefunded · circulating · revenueUsd ·
  * byService.{servicio}.{spent, count, refunded} · transactions.{type} · failed
+ * y, de los servicios en µCredits, totalSpentMicro · totalRefundedMicro · circulatingMicro · byService.{servicio}.{spentMicro, refundedMicro}
  */
 export interface StatsDelta {
   totalPurchased?: number;
@@ -64,14 +78,17 @@ export interface StatsDelta {
   circulating?: number;
   revenueUsd?: number;
   failed?: number;
-  byService?: Partial<Record<CreditService, { spent?: number; count?: number; refunded?: number }>>;
+  totalSpentMicro?: number;
+  totalRefundedMicro?: number;
+  circulatingMicro?: number;
+  byService?: Partial<Record<CreditService | ServicioMicro, { spent?: number; count?: number; refunded?: number; spentMicro?: number; refundedMicro?: number }>>;
   transactions?: Partial<Record<TransactionType, number>>;
 }
 
 /** Convierte un delta en un objeto de incrementos anidados (se escribe con merge). */
 export function statsUpdate(delta: StatsDelta, inc: (n: number) => unknown, now: () => unknown): Record<string, unknown> {
   const out: Record<string, unknown> = { updatedAt: now() };
-  for (const key of ['totalPurchased', 'totalGranted', 'totalSpent', 'totalRefunded', 'circulating', 'revenueUsd', 'failed'] as const) {
+  for (const key of ['totalPurchased', 'totalGranted', 'totalSpent', 'totalRefunded', 'circulating', 'revenueUsd', 'failed', 'totalSpentMicro', 'totalRefundedMicro', 'circulatingMicro'] as const) {
     const value = delta[key];
     if (value) out[key] = inc(value);
   }

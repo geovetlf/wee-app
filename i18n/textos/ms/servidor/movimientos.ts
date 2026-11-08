@@ -50,6 +50,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: 'Penjanaan dunia 3D',
   servicioAiBrain: 'Jawapan Weë Brain',
   servicioAiText: 'Penjanaan teks',
+  servicioAiTranslate: 'Terjemahan',
   servicioAiTextPro: 'Teks panjang kualiti maksimum',
   servicioAiSearch: 'Carian dengan AI',
   servicioAiBook: 'Penciptaan buku',

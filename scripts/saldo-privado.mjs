@@ -49,13 +49,22 @@ const require = createRequire(new URL('../functions/package.json', import.meta.u
 const motor = require('./lib/credits/creditEngine.js');
 
 export const COLECCION_SALDO = motor.COLECCION_SALDO;
-export const CAMPOS_DE_SALDO = Object.freeze(['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent', 'creditsInitializedAt']);
-const NUMERICOS = CAMPOS_DE_SALDO.slice(0, 3);
+/*
+ * µCredits (2026-11-07): la parte fraccionaria del MISMO saldo (`creditsFraccionMicro`, 0…999.999) y su consumo
+ * (`creditsLifetimeSpentMicro`) viajan con él: se copian, se contraen, se reponen y se comparan igual. Una cuenta que
+ * nunca movió una fracción no los tiene, y para comparar su ausencia vale 0.
+ */
+export const CAMPOS_MICRO = Object.freeze(['creditsFraccionMicro', 'creditsLifetimeSpentMicro']);
+export const CAMPOS_DE_SALDO = Object.freeze(['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent', 'creditsInitializedAt', ...CAMPOS_MICRO]);
+const NUMERICOS = ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent'];
+const MICRO_POR_CREDIT = 1_000_000n;
 export const TAM_PAGINA = 300;
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 const inicializado = (d) => typeof (d || {}).creditsBalance === 'number';
-const mismoSaldo = (a, b) => NUMERICOS.every((c) => (a || {})[c] === (b || {})[c]);
+const mismoSaldo = (a, b) => NUMERICOS.every((c) => (a || {})[c] === (b || {})[c]) && CAMPOS_MICRO.every((c) => ((a || {})[c] ?? 0) === ((b || {})[c] ?? 0));
+/** El saldo total en µCredits, en BigInt (la suma de todas las cuentas no tiene por qué caber en un entero seguro). */
+const totalMicroDe = (d) => BigInt(Math.trunc(num((d || {}).creditsBalance))) * MICRO_POR_CREDIT + BigInt(Math.trunc(num((d || {}).creditsFraccionMicro)));
 const camposDe = (d) => Object.fromEntries(CAMPOS_DE_SALDO.filter((c) => (d || {})[c] !== undefined).map((c) => [c, d[c]]));
 
 /** Recorre una colección por páginas, en orden de id, sin leerla entera de una vez. */
@@ -140,9 +149,10 @@ export async function migrar(db, admin, { ejecutar = false, limite = Infinity, i
 /** Verificación: espejo (P3/P4) o contraído (P6). Solo conteos. */
 export async function verificar(db, admin, { modo = 'espejo', tam = TAM_PAGINA } = {}) {
   const { uids, perfiles } = await cuentasConSaldoEnPerfil(db, admin, tam);
-  const r = { modo, perfiles, cuentasConSaldoEnPerfil: uids.size, faltan: 0, difieren: 0, privados: 0, sumaPrivados: 0, circulante: null, cuadraCirculante: false, ok: false };
+  const r = { modo, perfiles, cuentasConSaldoEnPerfil: uids.size, faltan: 0, difieren: 0, privados: 0, sumaPrivados: 0, sumaPrivadosMicro: '0', circulante: null, circulanteMicro: null, cuadraCirculante: false, ok: false };
+  let sumaMicro = 0n;
   for await (const docs of paginas(db, admin, COLECCION_SALDO, tam)) {
-    for (const d of docs) { r.privados++; r.sumaPrivados += num((d.data() || {}).creditsBalance); }
+    for (const d of docs) { r.privados++; r.sumaPrivados += num((d.data() || {}).creditsBalance); sumaMicro += totalMicroDe(d.data()); }
   }
   if (modo === 'espejo') {
     for (const uid of uids) {
@@ -154,7 +164,16 @@ export async function verificar(db, admin, { modo = 'espejo', tam = TAM_PAGINA }
   }
   const global = await db.collection('creditStats').doc('global').get();
   r.circulante = global.exists && typeof global.data().circulating === 'number' ? global.data().circulating : null;
-  r.cuadraCirculante = r.circulante === null ? r.sumaPrivados === 0 : r.circulante === r.sumaPrivados;
+  /*
+   * Cuadra en µCredits: Σ(creditsBalance × 10⁶ + creditsFraccionMicro) = circulating × 10⁶ + circulatingMicro. Las
+   * operaciones enteras mueven `circulating` y las de µCredits `circulatingMicro`; una reserva en µCredits que pasa un
+   * entero mueve `creditsBalance` sin mover `circulating`, así que comparar solo los enteros ya no vale. Sin µCredits en
+   * ninguna parte, es exactamente la comparación de antes.
+   */
+  r.circulanteMicro = global.exists && typeof global.data().circulatingMicro === 'number' ? global.data().circulatingMicro : null;
+  r.sumaPrivadosMicro = String(sumaMicro);
+  const esperadoMicro = BigInt(Math.trunc(r.circulante ?? 0)) * MICRO_POR_CREDIT + BigInt(Math.trunc(r.circulanteMicro ?? 0));
+  r.cuadraCirculante = r.circulante === null && r.circulanteMicro === null ? sumaMicro === 0n : sumaMicro === esperadoMicro;
   r.ok = r.faltan === 0 && r.difieren === 0 && r.cuadraCirculante && (modo !== 'contraido' || r.cuentasConSaldoEnPerfil === 0);
   return r;
 }

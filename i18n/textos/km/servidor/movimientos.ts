@@ -49,6 +49,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: 'ការបង្កើត​ពិភព 3D',
   servicioAiBrain: 'ចម្លើយ​ពី Weë Brain',
   servicioAiText: 'ការបង្កើត​អត្ថបទ',
+  servicioAiTranslate: 'ការបកប្រែ',
   servicioAiTextPro: 'អត្ថបទ​វែង​គុណភាព​ខ្ពស់​បំផុត',
   servicioAiSearch: 'ការស្វែងរក​ជាមួយ AI',
   servicioAiBook: 'ការបង្កើត​សៀវភៅ',

@@ -45,6 +45,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: '3D ертөнц үүсгэх',
   servicioAiBrain: 'Weë Brain-ий хариулт',
   servicioAiText: 'Бичвэр үүсгэх',
+  servicioAiTranslate: 'Орчуулга',
   servicioAiTextPro: 'Хамгийн өндөр чанартай урт бичвэр',
   servicioAiSearch: 'Хиймэл оюунтай хайлт',
   servicioAiBook: 'Ном бүтээх',
