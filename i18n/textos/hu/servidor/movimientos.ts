@@ -47,6 +47,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: '3D-világ generálása',
   servicioAiBrain: 'Weë Brain-válasz',
   servicioAiText: 'Szöveggenerálás',
+  servicioAiTranslate: 'Fordítás',
   servicioAiTextPro: 'Maximális minőségű hosszú szöveg',
   servicioAiSearch: 'Keresés AI-jal',
   servicioAiBook: 'Könyv létrehozása',

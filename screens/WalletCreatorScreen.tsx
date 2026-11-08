@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useDireccion } from '../hooks/useDireccion';
 import useWallet from '../hooks/useWallet';
 import { textoDelServidorLegible } from '../i18n/servidor';
-import { creditsService, describeTransaction, CreditTransaction } from '../services/creditsService';
+import { creditsService, describeTransaction, CreditTransaction, gastadoVisible, saldoVisible } from '../services/creditsService';
 import { RADIO_DE_CREATOR, TituloDeCreator, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
 
 /** Los mismos que enseña la billetera de la versión app. */
@@ -91,9 +91,9 @@ const WalletCreatorScreen: React.FC = () => {
         <View style={styles.bloque}>
           <TituloDeCreator titulo={t('credits.myWallet')} />
           <View style={[styles.tarjeta, styles.cifras, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            {cifra(account ? formato.numero(account.balance) : '—', 'credits.currentBalance')}
+            {cifra(account ? formato.numero(saldoVisible(account)) : '—', 'credits.currentBalance')}
             {cifra(account ? formato.numero(account.lifetimeEarned ?? 0) : '—', 'credits.earned', theme.colors.success)}
-            {cifra(account ? formato.numero(account.lifetimeSpent ?? 0) : '—', 'credits.spent')}
+            {cifra(account ? formato.numero(gastadoVisible(account)) : '—', 'credits.spent')}
           </View>
         </View>
 
@@ -121,7 +121,7 @@ const WalletCreatorScreen: React.FC = () => {
                       )}
                     </View>
                     <View style={styles.importe}>
-                      <Text style={[styles.movimientoTitulo, { color }]}>{view.positive ? '+' : ''}{formato.numero(view.amount)}</Text>
+                      <Text style={[styles.movimientoTitulo, { color }]}>{view.positive ? '+' : ''}{formato.numero(view.amount, view.opciones)}</Text>
                       <Text style={[styles.detalle, dir.texto, { color: theme.colors.textSecondary }]}>{t('credits.balanceAfter', { saldo: formato.numero(view.balanceAfter) })}</Text>
                     </View>
                   </View>

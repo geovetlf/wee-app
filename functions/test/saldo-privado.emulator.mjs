@@ -296,12 +296,57 @@ await vaciar();
   await L.limpiar(db, { ejecutar: true, copia: path.join(dir, 'pii.jsonl') });
   fs.rmSync(dir, { recursive: true, force: true });
   const tras = await sinSesion('users/doc_ana');
-  const PRIV = ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent', 'creditsInitializedAt', 'email', 'realName', 'birthDate', 'gender', 'pushToken'];
+  /* µCredits (2026-11-07): la fracción del saldo y su consumo tampoco pueden quedarse en el perfil público. */
+  const PRIV = ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent', 'creditsInitializedAt', 'creditsFraccionMicro', 'creditsLifetimeSpentMicro', 'email', 'realName', 'birthDate', 'gender', 'pushToken'];
   check('C2) sin sesión, el muro sigue leyendo nombre y foto', tras.status === 200 && tras.campos.includes('displayName') && tras.campos.includes('photoURL'));
   check('C3) …y ya no hay saldo ni datos de cuenta en el perfil público', !PRIV.some((c) => tras.campos.includes(c)), tras.campos.join(','));
   const privado = await sinSesion(`${COLECCION_SALDO}/ana`);
   check('C4) el saldo privado no lo lee nadie sin sesión', privado.status === 403, `HTTP ${privado.status}`);
   check('C5) y el saldo sigue vivo donde debe (238)', (await leer(`${COLECCION_SALDO}/ana`)).creditsBalance === 238);
+}
+
+console.log('\n── D · µCredits: la herramienta de la F-06 conserva la fracción del saldo (2026-11-07) ──');
+{
+  await vaciar();
+  const ahora = admin.firestore.Timestamp.now();
+  const MICRO = ['creditsFraccionMicro', 'creditsLifetimeSpentMicro'];
+  /* Una cuenta con fracción en el perfil (como la dejaría la fase sombra) y otra histórica, sin fracción.
+     Ganó 3, gastó 1 entero y 0,545 en µCredits: le quedan 1 + 455.000 µC. La otra, 7. Circulante: 9 enteros − 545.000 µC. */
+  await perfil('micro', { creditsBalance: 1, creditsLifetimeEarned: 3, creditsLifetimeSpent: 1, creditsInitializedAt: ahora, creditsFraccionMicro: 455_000, creditsLifetimeSpentMicro: 545_000 });
+  await perfil('entera', { creditsBalance: 7, creditsLifetimeEarned: 7, creditsLifetimeSpent: 0, creditsInitializedAt: ahora });
+  await db.doc('creditStats/global').set({ circulating: 9, circulatingMicro: -545_000 });
+  const m = await S.migrar(db, admin, { ejecutar: true, tam: 7 });
+  const privMicro = await leer(COLECCION_SALDO + '/micro');
+  const privEntera = await leer(COLECCION_SALDO + '/entera');
+  check('D1) migrar copia la fracción y su consumo a la cuenta privada; la cuenta histórica no recibe campos nuevos',
+    m.creadas === 2 && privMicro.creditsBalance === 1 && privMicro.creditsFraccionMicro === 455_000 && privMicro.creditsLifetimeSpentMicro === 545_000 && MICRO.every((c) => !(c in privEntera)), JSON.stringify(m));
+  const v = await S.verificar(db, admin, { tam: 7 });
+  check('D2) verificar cuadra en µCredits: Σ(saldo × 10⁶ + fracción) = circulating × 10⁶ + circulatingMicro', v.ok && v.cuadraCirculante && v.sumaPrivadosMicro === '8455000' && v.difieren === 0, JSON.stringify(v));
+  await db.doc('creditStats/global').set({ circulating: 9 });
+  const sinMicro = await S.verificar(db, admin, { tam: 7 });
+  check('D3) CONTROL: sin circulatingMicro la misma suma NO cuadra (la verificación mira de verdad los µCredits)', !sinMicro.cuadraCirculante && !sinMicro.ok, JSON.stringify(sinMicro));
+  await db.doc('creditStats/global').set({ circulating: 9, circulatingMicro: -545_000 });
+  const motorCuenta = motor('cuenta');
+  await motorCuenta.reservarMicro({ userId: 'micro', service: 'ai_translate', requestId: 'f06-micro-1', amountMicro: 100_000, fingerprint: 'a'.repeat(64), source: 'prueba' });
+  await motorCuenta.liquidarMicro({ userId: 'micro', requestId: 'f06-micro-1', finalAmountMicro: 30_000 });
+  const tras = await leer(COLECCION_SALDO + '/micro');
+  const espejo = await leer('users/doc_micro');
+  const v2 = await S.verificar(db, admin, { tam: 7 });
+  check('D4) el motor (fase cuenta) mueve la fracción en la cuenta y en el espejo, y la verificación sigue cuadrando',
+    tras.creditsBalance === 1 && tras.creditsFraccionMicro === 425_000 && espejo.creditsFraccionMicro === 425_000 && espejo.creditsLifetimeSpentMicro === 575_000 && v2.ok, JSON.stringify({ tras: [tras.creditsBalance, tras.creditsFraccionMicro], v2 }));
+  const c = await S.contraer(db, admin, { ejecutar: true, tam: 7 });
+  const perfilContraido = await leer('users/doc_micro');
+  const privContraido = await leer(COLECCION_SALDO + '/micro');
+  check('D5) contraer quita la fracción del perfil público y la cuenta privada la conserva intacta',
+    MICRO.every((x) => !(x in perfilContraido)) && privContraido.creditsFraccionMicro === 425_000 && privContraido.creditsLifetimeSpentMicro === 575_000, JSON.stringify(c));
+  const rep = await S.reponerEspejo(db, admin, { ejecutar: true, tam: 7 });
+  const repuesto = await leer('users/doc_micro');
+  check('D6) reponer el espejo devuelve la fracción exacta al perfil (vuelta atrás de P6 sin perder µCredits)',
+    repuesto.creditsBalance === 1 && repuesto.creditsFraccionMicro === 425_000 && repuesto.creditsLifetimeSpentMicro === 575_000, JSON.stringify(rep));
+  await db.doc('users/doc_micro').update({ creditsFraccionMicro: admin.firestore.FieldValue.delete(), creditsLifetimeSpentMicro: admin.firestore.FieldValue.delete() });
+  const ma = await S.marchaAtras(db, admin, { ejecutar: true, tam: 7 });
+  check('D7) marcha atrás NO borra la cuenta privada cuya fracción el perfil no tiene: no es una copia exacta',
+    !!(await leer(COLECCION_SALDO + '/micro')) && (await leer(COLECCION_SALDO + '/micro')).creditsFraccionMicro === 425_000 && ma.conservadosPorDiferir >= 1, JSON.stringify(ma));
 }
 
 const segundos = Math.round((Date.now() - inicio) / 1000);

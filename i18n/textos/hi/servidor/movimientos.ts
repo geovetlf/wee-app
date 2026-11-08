@@ -50,6 +50,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: '3D वर्ल्ड जनरेशन',
   servicioAiBrain: 'Weë Brain का जवाब',
   servicioAiText: 'टेक्स्ट जनरेशन',
+  servicioAiTranslate: 'अनुवाद',
   servicioAiTextPro: 'सबसे अच्छी क्वालिटी का लंबा टेक्स्ट',
   servicioAiSearch: 'AI खोज',
   servicioAiBook: 'किताब बनाना',

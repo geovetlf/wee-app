@@ -47,6 +47,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: 'Generierung einer 3D-Welt',
   servicioAiBrain: 'Antwort von Weë Brain',
   servicioAiText: 'Textgenerierung',
+  servicioAiTranslate: 'Übersetzung',
   servicioAiTextPro: 'Langer Text in höchster Qualität',
   servicioAiSearch: 'Suche mit KI',
   servicioAiBook: 'Bucherstellung',

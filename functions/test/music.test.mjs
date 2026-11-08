@@ -305,10 +305,17 @@ check('G17 «dejar de esperar»: botón mientras Brain responde; la respuesta ta
   && /dejoDeEsperar && <Nota fuerte>\{t\('music\.stopWaitingNote'\)\}/.test(compo) && IDIOMAS.every((l) => claves(l).get('stopWaiting') && claves(l).get('stopWaitingNote')));
 /* La compra de Credits por importe (dueño, 2026-11-04) toca el catálogo, los callables de Credits, los pagos y creditsService: es Credits, no Music. */
 const DE_LA_COMPRA_POR_IMPORTE = ['functions/src/credits/creditCosts.ts', 'functions/src/credits/index.ts', 'functions/src/payments/providers/stripe.ts', 'functions/src/payments/providers/test.ts', 'functions/src/payments/purchaseValidation.ts', 'services/creditsService.ts'];
+/*
+ * Los µCredits (autorización formal del dueño, 2026-11-07) amplían el Credit Engine: es Credits, no Music. Estos tres
+ * archivos salen de G18, y NO quedan sueltos: su contenido es el autorizado byte a byte (63p de job-queue:
+ * REVISION_MICROCREDITOS y HUELLA_MICROCREDITOS) y su tamaño exacto lo fijan F2 de puente-pre-f1d, AI de f1d-generacion
+ * y A13 de video-asincrono. Cualquier otro cambio en ellos sigue cayendo.
+ */
+const DE_LOS_MICROCREDITOS = ['functions/src/credits/creditEngine.ts', 'functions/src/credits/creditTransactions.ts', 'functions/src/credits/microCreditos.ts'];
 check('G18 el reintento tras un corte reutiliza el mensaje SOLO si useBrainChat lo permitiera: no lo permite y no se tocó el hook compartido (punto de integración documentado)',
   !/messageId/.test(compo)
   && !HISTORICOS.some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !DE_LA_LINEA_DE_SERVIDOR.includes(f))
-  && !POSTERIORES.some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f))
+  && !POSTERIORES.some((f) => /^(hooks\/useBrainChat|services\/brainService|functions\/src\/(creator|credits))/.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !DE_LOS_MICROCREDITOS.includes(f))
   && /MUSIC\.md/.test('MUSIC.md') && /messageId/.test(leer('docs/MUSIC.md')));
 
 /* ── H · integración mínima ─────────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -482,7 +489,9 @@ const lineasQueEmpiezan = (inicio) => estaSuite.filter((l) => l.startsWith(inici
 check('H6 CONTROL: la protección GLOBAL del engine, de Weë Brain y de Credits no depende de Music — A11 sigue exigiendo cero cambios posteriores en el engine y el Core, y G18 en useBrainChat, brainService, creator y credits, vengan de donde vengan',
   igual(lineasQueEmpiezan('const motorPosterior = '), [`const motorPosterior = archivosCambiados(BASE_DE_LA_CONSOLIDACION, [${ALCANCE_DE_A11.map((d) => `'${d}'`).join(', ')}]);`])
   && igual(lineasQueEmpiezan('  motorHistorico.every('), ['  motorHistorico.every((f) => DE_LA_LINEA_DE_SERVIDOR.includes(f)) && motorPosterior.length === 0,'])
-  && igual(lineasQueEmpiezan('  && !POSTERIORES.some('), [`  && !POSTERIORES.some((f) => ${ALCANCE_DE_G18}.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f))`])
+  /* µCredits (2026-11-07): la única excepción nueva de G18 son los tres archivos de DE_LOS_MICROCREDITOS, y esta línea la fija exacta. */
+  && igual(lineasQueEmpiezan('  && !POSTERIORES.some('), [`  && !POSTERIORES.some((f) => ${ALCANCE_DE_G18}.test(f) && !DE_LA_COMPRA_POR_IMPORTE.includes(f) && !DE_LOS_MICROCREDITOS.includes(f))`])
+  && igual(DE_LOS_MICROCREDITOS, ['functions/src/credits/creditEngine.ts', 'functions/src/credits/creditTransactions.ts', 'functions/src/credits/microCreditos.ts'])
   && ['functions/src/engine/router.ts', 'functions/src/core/brain.ts', 'functions/src/creator/brain.ts', 'functions/src/credits/creditEngine.ts', 'hooks/useBrainChat.ts', 'services/brainService.ts'].every(enElAlcanceGlobal)
   && !enElAlcanceGlobal('functions/src/social/econtact.ts') && !enElAlcanceGlobal('functions/src/music/index.ts'));
 const lineaDelLog = lineasQueEmpiezan('const commitsPosteriores = ');

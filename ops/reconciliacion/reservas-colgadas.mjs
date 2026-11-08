@@ -38,17 +38,19 @@ export const clasificar = (transacciones, ahoraMs, horas = HORAS_POR_DEFECTO) =>
   const corte = ahoraMs - horas * 3600_000;
   const colgadas = transacciones
     .filter((t) => t && t.type === 'usage' && t.status === 'AUTHORIZED')
-    .map((t) => ({ id: t.id, servicio: t.service || t.source || 'desconocido', credits: Math.abs(Number(t.authorizedAmount ?? t.amount) || 0), desdeMs: enMs(t.createdAt), requestId: t.requestId }))
+    /* µCredits (2026-11-07): una reserva en µCredits lleva `amount: 0`; lo retenido está en `authorizedAmountMicro` y se cuenta aparte. */
+    .map((t) => ({ id: t.id, servicio: t.service || t.source || 'desconocido', credits: t.unidad === 'micro' ? 0 : Math.abs(Number(t.authorizedAmount ?? t.amount) || 0), micro: t.unidad === 'micro' ? Math.abs(Number(t.authorizedAmountMicro) || 0) : 0, desdeMs: enMs(t.createdAt), requestId: t.requestId }))
     .filter((t) => Number.isFinite(t.desdeMs) && t.desdeMs < corte)
     .sort((a, b) => a.desdeMs - b.desdeMs);
   const porServicio = {};
   for (const t of colgadas) {
-    const s = (porServicio[t.servicio] ||= { reservas: 0, credits: 0, masAntiguaHoras: 0 });
+    const s = (porServicio[t.servicio] ||= { reservas: 0, credits: 0, micro: 0, masAntiguaHoras: 0 });
     s.reservas++;
     s.credits += t.credits;
+    s.micro += t.micro;
     s.masAntiguaHoras = Math.max(s.masAntiguaHoras, Math.floor((ahoraMs - t.desdeMs) / 3600_000));
   }
-  return { colgadas, porServicio, total: { reservas: colgadas.length, credits: colgadas.reduce((n, t) => n + t.credits, 0) } };
+  return { colgadas, porServicio, total: { reservas: colgadas.length, credits: colgadas.reduce((n, t) => n + t.credits, 0), micro: colgadas.reduce((n, t) => n + t.micro, 0) } };
 };
 
 const arg = (nombre, defecto) => { const i = process.argv.indexOf(nombre); return i >= 0 ? process.argv[i + 1] : defecto; };
@@ -67,10 +69,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     .where('status', '==', 'AUTHORIZED').where('createdAt', '<', corte).orderBy('createdAt', 'desc').limit(limite).get();
   const { colgadas, porServicio, total } = clasificar(snap.docs.map((d) => ({ id: d.id, ...d.data() })), ahora, horas);
   if (!total.reservas) { console.log('✔ Ninguna reserva colgada.'); process.exit(0); }
-  console.log(`✘ ${total.reservas} reserva(s), ${total.credits} Credits retenidos${snap.size === limite ? ` (al menos: se leyeron ${limite}; sube --limite)` : ''}\n`);
+  console.log(`✘ ${total.reservas} reserva(s), ${total.credits} Credits retenidos${total.micro ? ` y ${total.micro} µCredits (${total.micro / 1e6} Credits) en reservas fraccionarias` : ''}${snap.size === limite ? ` (al menos: se leyeron ${limite}; sube --limite)` : ''}\n`);
   for (const [s, r] of Object.entries(porServicio)) console.log(`  · ${s}: ${r.reservas} reserva(s), ${r.credits} Credits, la más antigua de ${r.masAntiguaHoras} h`);
   console.log('\nLas 20 más antiguas (id de la transacción, servicio, Credits, horas):');
   for (const t of colgadas.slice(0, 20)) console.log(`  ${t.id}  ${t.servicio}  ${t.credits}  ${Math.floor((ahora - t.desdeMs) / 3600_000)} h`);
-  console.log('\nDevolverlas es decisión del dueño, por refundCredits (idempotente). Este informe no cambia nada.');
+  console.log('\nDevolverlas es decisión del dueño, por refundCredits (idempotente; una reserva en µCredits la devuelve en µCredits). Este informe no cambia nada.');
   process.exit(1);
 }

@@ -53,6 +53,7 @@ export const movimientos: ConPlurales<typeof import('../../es/servidor/movimient
   servicioAiWorld: 'Giniúint domhain 3D',
   servicioAiBrain: 'Freagra ó Weë Brain',
   servicioAiText: 'Giniúint téacs',
+  servicioAiTranslate: 'Aistriúchán',
   servicioAiTextPro: 'Téacs fada den cháilíocht is airde',
   servicioAiSearch: 'Cuardach le IS',
   servicioAiBook: 'Leabhar a chruthú',

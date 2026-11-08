@@ -47,6 +47,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: 'Δημιουργία τρισδιάστατου κόσμου',
   servicioAiBrain: 'Απάντηση του Weë Brain',
   servicioAiText: 'Δημιουργία κειμένου',
+  servicioAiTranslate: 'Μετάφραση',
   servicioAiTextPro: 'Μεγάλο κείμενο μέγιστης ποιότητας',
   servicioAiSearch: 'Αναζήτηση με AI',
   servicioAiBook: 'Δημιουργία βιβλίου',

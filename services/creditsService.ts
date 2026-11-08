@@ -37,7 +37,24 @@ export interface CreditsBalance {
   lifetimeSpent: number;
   /** false mientras el servidor no haya creado la cuenta (bienvenida / migración). */
   initialized: boolean;
+  /*
+   * µCredits (2026-11-07): la parte fraccionaria del MISMO saldo (0…999.999 µC; 1 Credit = 10⁶) y lo consumido en
+   * µCredits. Solo existen si la cuenta movió alguna vez una fracción. `balance` sigue siendo los Credits enteros.
+   */
+  fraccionMicro?: number;
+  lifetimeSpentMicro?: number;
 }
+
+/** Credits con su fracción, a la baja en centésimas: lo que se enseña nunca es más de lo que hay. Sin fracción, el entero. */
+export const conFraccion = (enteros: number, micro: number | undefined): number =>
+  micro && micro > 0 ? enteros + Math.floor(micro / 10_000) / 100 : enteros;
+
+/** El saldo que se enseña (con su fracción, a la baja) y lo gastado en total. */
+export const saldoVisible = (cuenta: CreditsBalance): number => conFraccion(cuenta.balance, cuenta.fraccionMicro);
+export const gastadoVisible = (cuenta: CreditsBalance): number => {
+  const micro = cuenta.lifetimeSpentMicro ?? 0;
+  return cuenta.lifetimeSpent + Math.floor(micro / 1_000_000) + Math.floor((micro % 1_000_000) / 10_000) / 100;
+};
 
 export interface CreditTransaction {
   id: string;
@@ -57,6 +74,10 @@ export interface CreditTransaction {
   authorizedAmount?: number;
   finalAmount?: number;
   refundOf?: string;
+  /** µCredits: solo en los asientos de la traducción (`amount` vale 0 y el importe va aquí, con signo). */
+  unidad?: 'micro';
+  amountMicro?: number;
+  balanceAfterMicro?: number;
   createdAt: Timestamp | null;
   completedAt?: Timestamp | null;
   refundedAt?: Timestamp | null;
@@ -224,6 +245,8 @@ class CreditsService {
           lifetimeEarned: typeof data!.creditsLifetimeEarned === 'number' ? (data!.creditsLifetimeEarned as number) : 0,
           lifetimeSpent: typeof data!.creditsLifetimeSpent === 'number' ? (data!.creditsLifetimeSpent as number) : 0,
           initialized: true,
+          ...(typeof data!.creditsFraccionMicro === 'number' ? { fraccionMicro: data!.creditsFraccionMicro as number } : {}),
+          ...(typeof data!.creditsLifetimeSpentMicro === 'number' ? { lifetimeSpentMicro: data!.creditsLifetimeSpentMicro as number } : {}),
         });
       },
       () => {
@@ -327,6 +350,9 @@ export interface TransactionView {
   positive: boolean;
   /** Saldo resultante tras el movimiento. */
   balanceAfter: number;
+  /** µCredits: cómo formatear el importe y el saldo de después (sin ellas, como siempre). */
+  opciones?: Intl.NumberFormatOptions;
+  opcionesSaldo?: Intl.NumberFormatOptions;
 }
 
 /*
@@ -347,8 +373,13 @@ export interface TransactionView {
  * antes. Lo único que cambia es que el texto deja de estar en español fijo.
  */
 export const describeTransaction = (tx: CreditTransaction): TransactionView => {
-  const amount = typeof tx.amount === 'number' ? tx.amount : 0;
-  const positive = amount >= 0;
+  /*
+   * µCredits: un asiento de la traducción lleva `amount: 0` y el importe en `amountMicro`. Se enseña en Credits con
+   * dos cifras significativas (0,0096 · 0,045 · 0,30), con su signo, y el saldo de después con su fracción a la baja.
+   */
+  const esMicro = tx.unidad === 'micro' && typeof tx.amountMicro === 'number';
+  const amount = esMicro ? tx.amountMicro! / 1_000_000 : typeof tx.amount === 'number' ? tx.amount : 0;
+  const positive = esMicro ? tx.amountMicro! >= 0 : amount >= 0;
   let detalleClave: string | undefined;
   if (tx.type === 'usage') {
     if (tx.status === 'REFUNDED' || tx.status === 'FAILED') detalleClave = 'credits.txRefunded';
@@ -366,7 +397,13 @@ export const describeTransaction = (tx: CreditTransaction): TransactionView => {
     detalleClave,
     amount,
     positive,
-    balanceAfter: typeof tx.balanceAfter === 'number' ? tx.balanceAfter : 0,
+    balanceAfter: esMicro && typeof tx.balanceAfterMicro === 'number'
+      ? conFraccion(Math.floor(tx.balanceAfterMicro / 1_000_000), tx.balanceAfterMicro % 1_000_000)
+      : typeof tx.balanceAfter === 'number' ? tx.balanceAfter : 0,
+    ...(esMicro ? {
+      opciones: Math.abs(amount) < 1 ? { minimumSignificantDigits: 2, maximumSignificantDigits: 2 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+      opcionesSaldo: { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+    } : {}),
   };
 };
 

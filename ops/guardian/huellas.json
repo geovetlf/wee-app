@@ -2868,6 +2868,7 @@
         "997d9007cf02",
         "99f7d60796c4",
         "9acc54ac259c",
+        "a04a36a32231",
         "a18d7a8fab7f",
         "a2595674ab44",
         "a3483736aef2",
@@ -2883,7 +2884,6 @@
         "bb39bf7f1c5f",
         "be711df8c2bd",
         "bf1d34ed9504",
-        "c391023fb64e",
         "c695804c6cbe",
         "c6ed4d6c6617",
         "c8a71c241520",
@@ -7331,12 +7331,12 @@
         "2493eb000bf6",
         "251ab14f3f63",
         "265ddf99c420",
-        "2e092bce6d50",
         "3623d1d4f311",
         "37d854b7b2dd",
         "37f23684591d",
         "38a2ee3413b6",
         "3eccb4c79d31",
+        "45807cd3d8e4",
         "4c912e315da7",
         "4cb6ba9b6de6",
         "52dac5a42862",
@@ -7468,6 +7468,13 @@
       "quitado": [
         "security: 1 comprobación(es) con título guardado ya no están (borradas o con otro título): de74e1a6c7",
         "security: 4 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): 15c8f2cb5939, 86c508d8c021, edc34db1e92e, f0d5e13362ca"
+      ]
+    },
+    {
+      "motivo": "µCredits (autorización formal del dueño, 2026-11-07, rama credits/microcreditos): AI de f1d-generacion y A13 de video-asincrono amplían su numstat exacto con el bloque de los µCredits (creditEngine 252/59 → 553/61, creditTransactions 20/3, microCreditos.ts 72/0); los títulos no cambian y ninguna comprobación se quita",
+      "quitado": [
+        "f1d-generacion: 1 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): c391023fb64e",
+        "video-asincrono: 1 aserción(es) guardadas ya no están EXACTAS (condición cambiada, debilitada, comentada o movida bajo una condición): 2e092bce6d50"
       ]
     }
   ]

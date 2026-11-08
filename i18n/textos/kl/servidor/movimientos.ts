@@ -52,6 +52,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: 'Silarsuarmik 3D-mik pilersitsineq',
   servicioAiBrain: 'Akissut: Weë Brain',
   servicioAiText: 'Allagamik pilersitsineq',
+  servicioAiTranslate: 'Nutserineq',
   servicioAiTextPro: 'Allagaq takisoq pitsaanerpaaq',
   servicioAiSearch: 'AI atorlugu ujarlerneq',
   servicioAiBook: 'Atuagaliorneq',

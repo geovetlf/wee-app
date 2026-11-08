@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { creditsService, CreditsBalance } from '../services/creditsService';
+import { creditsService, CreditsBalance, saldoVisible } from '../services/creditsService';
 
 /**
  * Saldo de Credits de la cuenta, en tiempo real (docs/CREDITS.md).
@@ -29,7 +29,8 @@ export const useWallet = () => {
     /** Nombre heredado: la cuenta de Credits (saldo y acumulados). */
     wallet: account,
     account,
-    balance: account ? account.balance : null,
+    /* Con su fracción en µCredits a la baja (nunca más de lo que hay); una cuenta sin fracción, el entero de siempre. */
+    balance: account ? saldoVisible(account) : null,
   };
 };
 

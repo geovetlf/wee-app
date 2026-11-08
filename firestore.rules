@@ -80,8 +80,9 @@ service cloud.firestore {
     // solo lee su dueño; mientras dure la transición el perfil lleva una copia
     // (el espejo de las apps viejas). Ninguna escritura del cliente puede crear,
     // cambiar ni borrar estos campos en el perfil.
+    // µCredits (2026-11-07): creditsFraccionMicro y creditsLifetimeSpentMicro son la parte fraccionaria del MISMO saldo y su consumo; los escribe solo el Credit Engine.
     function creditFields() {
-      return ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent', 'creditsInitializedAt'];
+      return ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent', 'creditsInitializedAt', 'creditsFraccionMicro', 'creditsLifetimeSpentMicro'];
     }
     function createsCreditFields() {
       return request.resource.data.keys().hasAny(creditFields());

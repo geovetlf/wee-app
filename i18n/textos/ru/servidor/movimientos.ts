@@ -53,6 +53,7 @@ export const movimientos: ConPlurales<typeof import('../../es/servidor/movimient
   servicioAiWorld: 'Генерация 3D-мира',
   servicioAiBrain: 'Ответ Weë Brain',
   servicioAiText: 'Генерация текста',
+  servicioAiTranslate: 'Перевод',
   servicioAiTextPro: 'Длинный текст максимального качества',
   servicioAiSearch: 'Поиск с помощью ИИ',
   servicioAiBook: 'Создание книги',

@@ -28,10 +28,11 @@
  */
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { REVISION_POSTAUDITORIA, REVISION_CIERRE, REVISION_F06, REVISION_GRAN_MOTOR } from './_bloques-autorizados.mjs';
+import { REVISION_POSTAUDITORIA, REVISION_CIERRE, REVISION_F06, REVISION_GRAN_MOTOR, REVISION_MICROCREDITOS, HUELLA_MICROCREDITOS } from './_bloques-autorizados.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(here, '../../');
@@ -426,8 +427,17 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   const DE_LA_MISION_FAL = ['functions/src/core/router.ts', 'functions/src/credits/creditCosts.ts'];
   /* Un archivo nuevo también es tocar lo cerrado, aunque aún no esté en git: `git diff` no lo ve y esto sí. */
   const sinSeguir = execSync('git ls-files --others --exclude-standard -- functions/src/core/router.ts functions/src/core/financial functions/src/credits', { cwd: RAIZ, encoding: 'utf8' }).trim();
+  /* µCredits (2026-11-07): el archivo nuevo de la unidad entra SOLO si es exactamente el autorizado (su huella). */
+  const MICROCREDITOS = 'functions/src/credits/microCreditos.ts';
+  const microAutorizado = (() => {
+    try {
+      return createHash('sha256').update(fs.readFileSync(path.join(RAIZ, MICROCREDITOS), 'utf8').replace(/\r\n/g, '\n')).digest('hex') === HUELLA_MICROCREDITOS;
+    } catch {
+      return false;
+    }
+  })();
   const fueraDelPermiso = [...tocados.split('\n'), ...sinSeguir.split('\n')].map((l) => l.trim())
-    .filter((l) => l && l !== AI_PRICING && l !== CALLABLES_DE_CREDITS && !DE_LA_IDENTIDAD.includes(l) && !DE_LA_MISION_FAL.includes(l));
+    .filter((l) => l && l !== AI_PRICING && l !== CALLABLES_DE_CREDITS && !DE_LA_IDENTIDAD.includes(l) && !DE_LA_MISION_FAL.includes(l) && !(l === MICROCREDITOS && microAutorizado));
   check('63) CONTRATOS CERRADOS SIN TOCAR: Router, Financial y el resto de Credits son los del commit desplegado', fueraDelPermiso.length === 0, fueraDelPermiso.join(' '));
   {
     const lineas = (archivo) => {
@@ -688,7 +698,7 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
   const conLaRevision = (p, { anclas, texto }) => {
     let t = texto;
     let ok = anclas;
-    for (const b of [...(REVISION_POSTAUDITORIA[p] ?? []), ...(REVISION_CIERRE[p] ?? []), ...(REVISION_F06[p] ?? []), ...(REVISION_GRAN_MOTOR[p] ?? [])]) {
+    for (const b of [...(REVISION_POSTAUDITORIA[p] ?? []), ...(REVISION_CIERRE[p] ?? []), ...(REVISION_F06[p] ?? []), ...(REVISION_GRAN_MOTOR[p] ?? []), ...(REVISION_MICROCREDITOS[p] ?? [])]) {
       const era = b.eran.join('\n');
       const veces = t.split(era).length - 1;
       ok = ok && veces === 1;

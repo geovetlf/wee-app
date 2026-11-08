@@ -49,6 +49,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiWorld: '3Dワールド生成',
   servicioAiBrain: 'Weë Brainの回答',
   servicioAiText: 'テキスト生成',
+  servicioAiTranslate: '翻訳',
   servicioAiTextPro: '最高品質の長文',
   servicioAiSearch: 'AI検索',
   servicioAiBook: '本の作成',

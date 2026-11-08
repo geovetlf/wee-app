@@ -15,7 +15,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { textoDelServidorLegible } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
-import { creditsService, describeTransaction, CreditsBalance, CreditTransaction } from '../services/creditsService';
+import { creditsService, describeTransaction, CreditsBalance, CreditTransaction, gastadoVisible, saldoVisible } from '../services/creditsService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { MARCA } from '../constants/marca';
 import { RellenoDeMarca } from '../components/GradienteDeMarca';
@@ -112,9 +112,9 @@ const WalletScreen = () => {
         </View>
         <View style={styles.txnRight}>
           <Text style={[styles.txnAmount, { color }]}>
-            {view.positive ? '+' : ''}{formato.numero(view.amount)}
+            {view.positive ? '+' : ''}{formato.numero(view.amount, view.opciones)}
           </Text>
-          <Text style={[styles.txnBalance, { color: theme.colors.textSecondary }]}>{t('credits.balanceAfter', { saldo: formato.numero(view.balanceAfter) })}</Text>
+          <Text style={[styles.txnBalance, { color: theme.colors.textSecondary }]}>{t('credits.balanceAfter', { saldo: formato.numero(view.balanceAfter, view.opcionesSaldo) })}</Text>
         </View>
       </View>
     );
@@ -150,7 +150,7 @@ const WalletScreen = () => {
             <Text style={[styles.balanceLabel, { color: theme.colors.textSecondary }]}>{t('credits.currentBalance')}</Text>
             <View style={styles.balanceRow}>
               <Ionicons name="diamond" size={24} color={MARCA.primario} />
-              <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>{formato.numero(account?.balance ?? 0)}</Text>
+              <Text style={[styles.balanceAmount, { color: theme.colors.text }]}>{formato.numero(account ? saldoVisible(account) : 0)}</Text>
             </View>
           </View>
           <TouchableOpacity
@@ -171,7 +171,7 @@ const WalletScreen = () => {
           </View>
           <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: '#EF4444' }]}>{formato.numero(account?.lifetimeSpent ?? 0)}</Text>
+            <Text style={[styles.statValue, { color: '#EF4444' }]}>{formato.numero(account ? gastadoVisible(account) : 0)}</Text>
             <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>{t('credits.spent')}</Text>
           </View>
         </View>

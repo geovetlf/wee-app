@@ -52,6 +52,7 @@ export const movimientos = {
   servicioAiWorld: 'Generación de mundo 3D',
   servicioAiBrain: 'Respuesta de Weë Brain',
   servicioAiText: 'Generación de texto',
+  servicioAiTranslate: 'Traducción',
   servicioAiTextPro: 'Texto largo de máxima calidad',
   servicioAiSearch: 'Búsqueda con IA',
   servicioAiBook: 'Creación de libro',
