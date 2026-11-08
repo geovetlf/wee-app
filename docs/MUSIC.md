@@ -179,3 +179,51 @@ distintos (`askBrain` / `helpMeButton`), aviso previo honesto sin precio (`brain
 tardía; NO cancela el envío en el servidor y lo dice). **Siguen abiertos** (punto de integración, requieren tocar `useBrainChat` o
 `brainChat`, fuera de esta rama): el reintento tras un corte de red genera un `messageId` nuevo en `useBrainChat.send` (no se puede
 reutilizar desde fuera), y no existe cancelación real en el servidor.
+
+## 11. La cerca de servidor: H2 acotada a Music (decisión del dueño, 2026-11-07)
+
+`functions/test/music.test.mjs` H2 vigila que Music no toque el servidor. Hasta ahora, desde `eb588b15` (el final de la
+consolidación W0), prohibía **cualquier** cambio en `functions/src` (salvo `music/`), `functions/lib`, el cliente de Weë Brain y
+`services/`, viniera de donde viniera. Eso la convertía en una cerca global de servidor: paraba trabajo ajeno a Music —el bloqueo
+de contactos de WeeTalk, por ejemplo— y obligaba a engordar sus listas de excepciones con cada función nueva.
+
+**Decisión:** H2 se acota al ámbito de Music sin perder capacidad de detección.
+
+- **Tramo histórico** (ancla `a77ea340` → `eb588b15`): no cambia. Solo vale la línea de servidor con procedencia comprobada (H3).
+- **Tramo posterior** (`eb588b15` → hoy): falla lo que **acopla** Music al servidor, con tres pruebas:
+  1. **co-cambio**: un commit —o el árbol de trabajo— que toca algo de Music (cualquier ruta que la nombre) y, a la vez, un
+     archivo prohibido. Un renombrado cuenta por sus dos rutas (`--no-renames`), y un merge por los cambios que hace él mismo
+     (`--cc`: un merge limpio no lista nada; uno que mete cambios propios en Music y en el servidor, sí);
+  2. **nombre**: en un archivo prohibido, una línea **añadida** desde `eb588b15` que nombra Music o sus proveedores exclusivos
+     (`music`, `mureka`, `yinchao`, `suno`, `udio`; ElevenLabs y MiniMax también hacen voz y nombrarlos no acopla a Music);
+  3. **importaciones**: `functions/src/music` no importa **nada** de fuera de su carpeta salvo `../engine/types` y
+     `../engine/http` (ni otro módulo del servidor, ni un paquete, ni `import()`, ni `require()`). Tampoco puede cargar código con
+     una ruta que no se pueda comprobar: `require`/`import()` con ruta calculada, `require` usado como valor, `createRequire`,
+     `eval`, `Function` o `process.mainModule`.
+- **La protección global no depende de Music y sigue igual:** A11 (engine y Core) y G18 (`useBrainChat`, `brainService`,
+  `creator` y `credits`) fallan con **cualquier** cambio posterior a `eb588b15`, venga de donde venga.
+- **Las excepciones con nombre no se amplían:** la lista de archivos que H2 considera servidor prohibido es la misma de antes.
+
+**Controles.**
+- H4: los 43 archivos de la consolidación no tienen excepción después de `eb588b15`: acoplados a Music caen en H2, y A11 o G18 los
+  paran en todo caso.
+- H5: cada prueba detecta su caso, incluidas las cargas de código con ruta calculada, y no da falsos positivos («audio»,
+  «Áudio», ElevenLabs, el mismo cambio repartido en dos commits, «eval» escrito en un texto).
+- H6: A11 y G18 siguen exigiendo cero cambios posteriores, con el mismo alcance; lo comprueba en el código de la propia suite.
+- H7: la historia del co-cambio incluye los merges (`--cc`) y los renombrados (`--no-renames`).
+
+**Aviso de re-anclaje (revisión humana).** El mismo cambio re-ancla la cerca `puente-pre-f1d` F1, que admite por nombre los tres
+archivos del bloqueo de WeeTalk. El Build Guardian lo marca como CRITICAL `cerca-propia:functions/test/puente-pre-f1d.test.mjs`
+(«este archivo ES una cerca»). Fuera de su política, ese aviso no bloquea, pero **una persona tiene que revisarlo antes de
+integrar**. `music.test.mjs` no tiene huella del Guardian ni lo detecta como cerca: un cambio que debilite H2 a H7 no levanta
+ningún aviso automático, y registrar su huella es una decisión pendiente del dueño.
+
+**Lo que H2 no ve, y queda para la revisión humana o para una decisión del dueño:**
+- el acoplamiento indirecto por el **cliente**: un servicio o un hook nuevo, añadido en otro commit sin nombrar Music, que la
+  interfaz de Music importa después. G11 solo prohíbe `httpsCallable` en los archivos de la interfaz;
+- los archivos con excepción con nombre (por ejemplo `functions/src/index.ts`, que A4 vigila por su cuenta);
+- el nombre ofuscado a propósito (`'mu' + 'sic'`).
+
+Lo que H2 ya no para por sí sola es un cambio de servidor **ajeno** a Music. Fuera del engine, el Core, Weë Brain y Credits,
+ese cambio lo siguen vigilando las cercas de su propio dominio, por ejemplo la lista exacta de `puente-pre-f1d` F1. Si un
+cambio así lo usa Music después, cae por la prueba 3.
