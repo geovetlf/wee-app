@@ -165,7 +165,9 @@ console.log('\n── D · Las correcciones de riesgo ALTO fuera del motor (por 
   check('D6) planner: un JSON roto no vuelca su trozo de respuesta; lo demás, saneado', /error instanceof SyntaxError \? 'la respuesta no es JSON' : sanitizeForLog\(error, 300\)/.test(planner)
     && !/console\.warn\('Weë Brain: no pude interpretar el texto; pregunto normalmente\.', error\);/.test(planner));
   const weetalk = leer('functions/src/social/weetalk.ts');
-  check('D7) weetalk: el borrado fallido, saneado', /console\.error\('WeeTalk: no se pudo borrar la foto única', ref\.objectKey, sanitizeForLog\(error, 300\)\);/.test(weetalk));
+  /* Privacidad STRICT (2026-11-07): la ruta de la foto lleva la cuenta (users/<cuenta>/weetalk/…); el registro ya no la imprime, y el error sigue saneado. */
+  check('D7) weetalk: el borrado fallido, saneado (y sin la ruta con la cuenta)', /console\.error\('WeeTalk: no se pudo borrar la foto única', \{ conversationId, messageId \}, sanitizeForLog\(error, 300\)\);/.test(weetalk)
+    && !/console\.(error|warn|log)\([^;]*(objectKey|ref\.path)/.test(weetalk));
 }
 
 check('esta suite está en la cadena de `npm test`', /logs-sin-secretos\.test\.mjs/.test(leer('functions/package.json')));

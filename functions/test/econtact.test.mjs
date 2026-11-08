@@ -1325,7 +1325,8 @@ check('305) ningún negocio entra en econtacts', !/businessFollows/.test(codigoS
 {
   const avisos = read('services/notificationService.ts');
   check('306) el aviso va dirigido a la identidad, no a la cuenta', /Identidad de perfil que recibe/.test(avisos));
-  check('307) y guarda la cuenta de quien recibe', /recipientAccountId\?: string;/.test(avisos));
+  /* Privacidad STRICT (dueño, 2026-11-07): la cuenta de quien recibe es un campo HEREDADO; se lee en los avisos antiguos, ya no se escribe. */
+  check('307) la cuenta de quien recibe queda solo como campo heredado de lectura (los avisos antiguos)', /recipientAccountId\?: string;/.test(avisos) && /HEREDADO/.test(avisos));
   check('308) y con qué cara escribe quien lo genera', /senderProfileType\?: string;/.test(avisos));
   /*
    * Los dos tipos son propios. `follow` sigue existiendo para las notificaciones
@@ -1335,7 +1336,14 @@ check('305) ningún negocio entra en econtacts', !/businessFollows/.test(codigoS
   const creadoresEContact = avisos.slice(avisos.indexOf('createEContactRequestNotification'));
   check('309) los dos tipos de ËContact son propios y no reutilizan follow', /'econtact_request'/.test(creadoresEContact) && /'econtact_accepted'/.test(creadoresEContact) && !/type: 'follow'/.test(creadoresEContact));
   check('309b) y el tipo follow histórico sigue en pie', /type: 'follow'/.test(avisos));
-  check('310) el servicio los rellena con lo que devolvió el servidor', /recipientAccountId: paraCuenta/.test(codigoServicio) && /hecho\.to\.accountUid/.test(codigoServicio));
+  /*
+   * 310 decía «el servicio los rellena con lo que devolvió el servidor», incluida la CUENTA de quien recibe (`hecho.to.accountUid`
+   * → `recipientAccountId`). Eso le daba a quien pide la cuenta de la otra persona: el vínculo entre sus dos caras. Con la decisión
+   * STRICT del dueño (2026-11-07) el servidor ya no la devuelve y el servicio ya no la escribe; el push la resuelve el servidor.
+   */
+  check('310) el servicio rellena el aviso con las identidades que devolvió el servidor, y NUNCA con la cuenta de nadie',
+    /await avisar\('solicitud', hecho\.to\.identity, hecho\.from\.identity\)/.test(codigoServicio) && /await avisar\('aceptada', hecho\.from\.identity, hecho\.to\.identity\)/.test(codigoServicio)
+    && !/accountUid/.test(codigoServicio) && !/recipientAccountId/.test(codigoServicio));
   check('311) y no se manda un aviso por cada cara: uno por transición', (codigoServicio.match(/await avisar\(/g) || []).length === 2);
 }
 

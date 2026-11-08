@@ -57,7 +57,8 @@ console.log('\n── B · El disparador lo usa, y lee el destino una vez ──
     /const cuentaQueAvisa = await cuentaDeLaIdentidad\(senderId\);/.test(disparador)
     && disparador.indexOf('gastarCupoDeAvisos(cuentaQueAvisa)') > 0 && disparador.indexOf('gastarCupoDeAvisos(cuentaQueAvisa)') < disparador.indexOf('sendExpoPush('));
   check('7) el cupo vive en `pushLimits/{cuenta}`, dentro de una transacción', /db\.collection\('pushLimits'\)\.doc\(cuenta\)/.test(sinComentarios) && /db\.runTransaction\(async \(tx\) => \{\s*const \{ permitido, estado \} = cupoDeAvisos\(/.test(sinComentarios));
-  check('8) si el cupo no se puede comprobar, no suena (falla cerrado)', /console\.error\('Avisos: no se pudo comprobar el cupo', cuenta, error\);\s*return false;/.test(indice));
+  /* El registro ya no imprime la cuenta (privacidad STRICT, 2026-11-07); lo que se fija —fallar cerrado— no cambia. */
+  check('8) si el cupo no se puede comprobar, no suena (falla cerrado), y el registro no imprime la cuenta', /console\.error\('Avisos: no se pudo comprobar el cupo', error\);\s*return false;/.test(indice));
   check('9) `pushTokens/{cuenta}` se lee UNA vez por destinatario (token y locale juntos)',
     (sinComentarios.match(/collection\('pushTokens'\)\.doc\(cuenta\)\.get\(\)/g) || []).length === 1, String((sinComentarios.match(/collection\('pushTokens'\)\.doc\(cuenta\)\.get\(\)/g) || []).length));
   check('10) ningún cliente puede leer ni escribir `pushLimits` (sin regla = cerrada)', !/match \/pushLimits/.test(leer('firestore.rules')) && !/document=\*\*/.test(leer('firestore.rules')));

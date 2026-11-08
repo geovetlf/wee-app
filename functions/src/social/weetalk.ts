@@ -206,9 +206,12 @@ export const crearQuemador = (p: PuertosDelQuemador) => ({
       && claveDeFotoUnica(ref.objectKey, cuenta, conversationId);
     const insegura = !enSuSitio && referenciaDesdeUrlDeWee(url) !== null;
     if (insegura) {
-      /* Se deja constancia, sin la URL entera: lo que importa es a dónde quería llegar. */
+      /*
+       * Se deja constancia SIN la ruta: la ruta física lleva la CUENTA (`users/<cuenta>/weetalk/…`) y, junto al mensaje,
+       * casaría la cara del remitente con su cuenta (privacidad STRICT, 2026-11-07). Basta saber que estaba fuera de su sitio.
+       */
       console.warn('WeeTalk: la dirección del mensaje no es la foto única de su remitente; no se borra ningún objeto', {
-        conversationId, messageId, objectKey: referenciaDesdeUrlDeWee(url)?.objectKey, bucket: referenciaDesdeUrlDeWee(url)?.bucket,
+        conversationId, messageId, mismoBucket: referenciaDesdeUrlDeWee(url)?.bucket === p.bucketDeWee(),
       });
     }
     let pendiente = !enSuSitio;
@@ -221,7 +224,8 @@ export const crearQuemador = (p: PuertosDelQuemador) => ({
       try {
         await p.borrarObjeto(ref.objectKey);
       } catch (error) {
-        console.error('WeeTalk: no se pudo borrar la foto única', ref.objectKey, sanitizeForLog(error, 300));
+        /* Sin la ruta (lleva la cuenta): la conversación y el mensaje bastan para reintentarlo desde `anotarPendiente`. */
+        console.error('WeeTalk: no se pudo borrar la foto única', { conversationId, messageId }, sanitizeForLog(error, 300));
         pendiente = true;
         await p.anotarPendiente(conversationId, messageId);
       }
