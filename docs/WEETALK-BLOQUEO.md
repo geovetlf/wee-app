@@ -136,7 +136,22 @@ El dueño pidió frenar los intentos repetidos de contactar a cuentas que han bl
 | Llamadas directas | — | no existen | — |
 | `burnViewOnce` | servidor | no se condiciona | igual: no es escritura de B hacia A |
 
-## 6 · La propuesta de reglas (revisada, NO aplicada)
+## 6 · La propuesta de reglas (APLICADA en la rama `weetalk/reglas-bloqueo`, sin desplegar)
+
+> **En esta rama**, autorizada por el dueño el 2026-11-07, la propuesta está **aplicada** en `firestore.rules`, byte a byte como se compone sobre las reglas de W0. **No se ha desplegado.** Lo verificado:
+> - la suite `weetalk-bloqueo` § H: aplicada exactamente; fuera de los dos bloques, idéntico a W0; ningún `allow` se afloja; las cuatro condiciones nuevas son las aprobadas;
+> - las 44 pruebas de emulador contra las reglas aplicadas: 44/44;
+> - `integridad-11x4a`, `fronteras-rules` y `comunidades-identidad`: el mismo resultado con las reglas de W0 y con las aplicadas.
+>
+> **Resuelto con autorización del dueño (ronda de implementación, 2026-11-07):** la suite `security` (con huella, invariante I-06) fijaba solo el final del `allow create` de los avisos (`avisoConLaFormaDeLaApp();`), y con la condición nueva ya no casaba, aunque el permiso se estreche.
+> - **Ahora fija la sentencia entera y exige que sea la única `allow create` del bloque.** Admite la terminación de W0 y la del bloqueo, y ninguna otra.
+> - **Diez controles:** la sentencia aprobada y la de W0 pasan; nueve formas más permisivas no pasan, entre ellas `|| true`, `isAuthenticated() ||` y una segunda `allow create: if true;`.
+> - **Huella re-anclada con `huellas.mjs --registrar --autoriza`:** sustituye solo la aserción `bf8ff1324d8e` y añade diez; los 70 títulos anteriores siguen todos.
+> - **La regla de Firestore no se reordenó.**
+>
+> Análisis: `_cierre-2026-11-07/SECURITY-AVISOS-ANALISIS.md`.
+>
+> El resto de esta sección describe la propuesta tal como se revisó.
 
 Texto exacto en `ops/propuestas/weetalk-bloqueo/`:
 
@@ -229,9 +244,9 @@ Las tres callables nuevas tienen dos barreras: sin sesión dan `unauthenticated`
 
 ## 10 · Pendientes que necesitan autorización o decisión
 
-1. **Aplicar la propuesta de reglas** en `firestore.rules`. Toca bloques que W0 fija, así que necesita autorización.
-   - Las 44 pruebas, la regresión de tres suites y el análisis de permisos ya están hechos (§ 6).
-   - No se aplica ni se despliega sin autorización expresa.
+1. **Las reglas** están aplicadas en la rama `weetalk/reglas-bloqueo`, que va en su propia PR en borrador. **No están desplegadas** y no se despliegan sin autorización expresa. Falta además autorizar el ajuste de `security` y de su huella (§ 6).
+   - Las 44 pruebas contra las reglas aplicadas, la regresión de tres suites y el análisis de permisos ya están hechos (§ 6).
+   - Fusionarla y desplegar las reglas exige autorización expresa.
 2. **Desplegar** las tres callables y las versiones de `requestEContact`, `acceptEContact`, `sendPushNotification` y `sendMessagePushNotification` con el bloqueo, después de integrar W0.
 3. **Interfaz:** «Bloquear», «Bloqueados» en Configuración y el aviso a quien bloqueó. No está hecha. Exige claves en los 42 diccionarios y la puerta visual.
 4. **Decidido en la segunda ronda:**

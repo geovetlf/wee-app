@@ -178,8 +178,16 @@ console.log('\n── Fronteras de autorización ──');
    */
   {
     const avisos = reglas.slice(reglas.indexOf('match /notifications/{notificationId}'), reglas.indexOf('match /creatorInterests/'));
+    /*
+     * LA SENTENCIA `allow create` SE FIJA ENTERA, Y ES LA ÚNICA DEL BLOQUE (varias `allow create` se suman con OR).
+     * Admite la terminación de W0 y la del bloqueo de WeeTalk (`&& !avisoDeEContactBloqueado()`, que solo estrecha), y
+     * ninguna otra. Antes solo se fijaba el final: con W0 pasaban `|| true` en el remitente, `isAuthenticated() ||` y una
+     * segunda `allow create: if true;`. Análisis y autorización del dueño: _cierre-2026-11-07/SECURITY-AVISOS-ANALISIS.md.
+     */
+    const CREATE_DE_AVISOS = /allow create: if isAuthenticated\(\) &&\s*\n\s*\(request\.resource\.data\.senderId == request\.auth\.uid \|\|\s*\n\s*request\.resource\.data\.senderId == \("hidi_" \+ request\.auth\.uid\)\) &&\s*\n\s*avisoConLaFormaDeLaApp\(\)(?: &&\s*\n\s*!avisoDeEContactBloqueado\(\))?;/;
+    const createDeAvisosFijada = (bloque) => CREATE_DE_AVISOS.test(bloque) && (bloque.match(/allow create\b/g) || []).length === 1;
     check('un aviso tiene la forma de los que manda la app, y ninguna otra (cada uno es un push)',
-      /request\.resource\.data\.senderId == \("hidi_" \+ request\.auth\.uid\)\) &&\s*\n\s*avisoConLaFormaDeLaApp\(\);/.test(avisos)
+      createDeAvisosFijada(avisos)
       && /return \['like', 'comment', 'econtact_request', 'econtact_accepted'\];/.test(avisos)
       && /aviso\.keys\(\)\.hasOnly\(camposDeAvisoDeLaApp\(\)\)/.test(avisos)
       && /!\(aviso\.recipientId in misIdentidadesHeredadas\(\)\)/.test(avisos)
@@ -187,6 +195,22 @@ console.log('\n── Fronteras de autorización ──');
       && /textoDeAviso\('postContent', 400\) && textoDeAviso\('commentContent', 400\)/.test(avisos));
     check('y el destinatario solo la marca como leída',
       /allow update: if isAuthenticated\(\) &&[\s\S]{0,200}?request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasOnly\(\['read'\]\) &&\s*\n\s*request\.resource\.data\.read == true;/.test(avisos));
+    /* Controles de la fijación: la sentencia aprobada y la de W0 pasan; nueve formas MÁS PERMISIVAS, no. Cada una es su propia comprobación (y su huella). */
+    const SENTENCIA = 'allow create: if isAuthenticated() &&\n        (request.resource.data.senderId == request.auth.uid ||\n         request.resource.data.senderId == ("hidi_" + request.auth.uid)) &&\n        avisoConLaFormaDeLaApp() &&\n        !avisoDeEContactBloqueado();';
+    const enBloque = (sentencia) => `match /notifications/{notificationId} {\n      ${sentencia}\n    }`;
+    const cambiada = (de, a) => (SENTENCIA.includes(de) ? SENTENCIA.replace(de, a) : null);
+    const rechaza = (sentencia) => sentencia !== null && sentencia !== SENTENCIA && !createDeAvisosFijada(enBloque(sentencia));
+    check('CONTROL: la sentencia aprobada (con !avisoDeEContactBloqueado) y la de W0 (sin ella) pasan la fijación',
+      createDeAvisosFijada(enBloque(SENTENCIA)) && createDeAvisosFijada(enBloque(cambiada('avisoConLaFormaDeLaApp() &&\n        !avisoDeEContactBloqueado();', 'avisoConLaFormaDeLaApp();'))));
+    check('CONTROL N1: con «||» en vez de «&&» antes del bloqueo, la regla NO pasa', rechaza(cambiada('avisoConLaFormaDeLaApp() &&\n', 'avisoConLaFormaDeLaApp() ||\n')));
+    check('CONTROL N2: con «|| true» al final, la regla NO pasa', rechaza(cambiada('!avisoDeEContactBloqueado();', '!avisoDeEContactBloqueado() || true;')));
+    check('CONTROL N3: sin la forma de la app, la regla NO pasa', rechaza(cambiada('avisoConLaFormaDeLaApp() &&\n        ', '')));
+    check('CONTROL N4: con la forma de la app «|| true», la regla NO pasa', rechaza(cambiada('avisoConLaFormaDeLaApp() &&\n        !avisoDeEContactBloqueado();', 'avisoConLaFormaDeLaApp() || true;')));
+    check('CONTROL N5: sin la negación del bloqueo, la regla NO pasa', rechaza(cambiada('!avisoDeEContactBloqueado();', 'avisoDeEContactBloqueado();')));
+    check('CONTROL N6: con «|| true» en el primer término del remitente, la regla NO pasa', rechaza(cambiada('(request.resource.data.senderId == request.auth.uid ||', '(request.resource.data.senderId == request.auth.uid || true ||')));
+    check('CONTROL N7: con «isAuthenticated() ||» en vez de «&&», la regla NO pasa', rechaza(cambiada('allow create: if isAuthenticated() &&', 'allow create: if isAuthenticated() ||')));
+    check('CONTROL N8: con una segunda «allow create: if true;» en el bloque, la regla NO pasa', rechaza(`${SENTENCIA}\n      allow create: if true;`));
+    check('CONTROL N9: con «|| isAuthenticated()» tras el bloqueo, la regla NO pasa', rechaza(cambiada('!avisoDeEContactBloqueado();', '!avisoDeEContactBloqueado() || isAuthenticated();')));
   }
 
   /*

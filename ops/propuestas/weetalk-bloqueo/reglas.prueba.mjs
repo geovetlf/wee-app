@@ -1,14 +1,14 @@
 /*
- * WEETALK · BLOQUEO DE CONTACTOS — LA PROPUESTA DE REGLAS, EJECUTADA EN UN EMULADOR (PREPARADA, NO APLICADA).
+ * WEETALK · BLOQUEO DE CONTACTOS — LAS REGLAS, EJECUTADAS EN UN EMULADOR (en la rama weetalk/reglas-bloqueo: APLICADAS).
  *
- * No está en la CI ni en `functions/test/_emuladores.mjs` (que solo recorre `functions/test/*.emulator.mjs`) A
- * PROPÓSITO: estas pruebas exigen las reglas PROPUESTAS, que no están en `firestore.rules`; contra las reglas de hoy los
- * casos del bloqueo fallan, y eso es justo lo que demuestra el sabotaje del final.
+ * No está en la CI ni en `functions/test/_emuladores.mjs` (que solo recorre `functions/test/*.emulator.mjs`): llevarla a
+ * la CI exige registrar una suite nueva, y eso es una decisión aparte. El sabotaje del final demuestra que, con las
+ * reglas de W0 (sin la propuesta), los casos del bloqueo pasarían.
  *
- * Carga en el emulador las reglas de `firestore.rules` con los bloques de conversaciones y de avisos sustituidos por
- * `conversaciones.rules` y `avisos.rules` (componer.mjs; `firestore.rules` no se toca), siembra como administrador las
- * conversaciones y el índice del bloqueo del escenario (escenario.mjs) y prueba cada escritura con la sesión de cada
- * cuenta.
+ * En esta rama la propuesta YA está en `firestore.rules`. Antes de probar nada se comprueba que `firestore.rules` es,
+ * byte a byte, la propuesta compuesta sobre las reglas de W0 (componer.mjs sobre `git show 7aa01156:firestore.rules`);
+ * si no lo es, no se prueba. Luego se cargan esas reglas, se siembran como administrador las conversaciones y el índice
+ * del bloqueo del escenario (escenario.mjs) y se prueba cada escritura con la sesión de cada cuenta.
  *
  * El bloqueo es de CUENTA y en los dos sentidos (decisiones definitivas del dueño, 2026-11-07): con el bloqueo de Ana,
  * ninguna cara de Beto contacta con ninguna de Ana, ni al revés.
@@ -18,6 +18,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { componerPropuesta } from './componer.mjs';
 import { CARAS, CUENTA_DE_LA_CARA, PARES_DEL_BLOQUEO_DE_ANA } from './escenario.mjs';
@@ -134,7 +135,13 @@ const aviso = (id, tipo, de, para) => crear('notifications', id, {
 }, cuentaDe(de));
 
 const reglasActuales = fs.readFileSync(path.join(RAIZ, 'firestore.rules'), 'utf8');
-const propuestas = componerPropuesta(reglasActuales);
+/* Las reglas de W0, de la historia publicada de esta rama: sobre ellas se compuso la propuesta. */
+const reglasDeW0 = execFileSync('git', ['show', '7aa01156:firestore.rules'], { cwd: RAIZ, encoding: 'utf8' });
+const propuestas = componerPropuesta(reglasDeW0);
+if (reglasActuales !== propuestas) {
+  console.error('✘ firestore.rules no es, byte a byte, la propuesta compuesta sobre las reglas de W0: no se prueba nada');
+  process.exit(2);
+}
 
 /* ═══ CON LAS REGLAS PROPUESTAS ═══════════════════════════════════════════════════════════════════════════ */
 await cargarReglas(propuestas);
@@ -197,8 +204,8 @@ await espera('y se puede abrir una conversación nueva', 'PERMITE', nuevaConvers
 await espera('y volver a avisar de una solicitud de ËContact (reglas normales)', 'PERMITE', aviso('f5', 'econtact_request', betoWee, anaReal));
 
 /* ═══ SABOTAJE: con las reglas de HOY, los casos del bloqueo pasan — la prueba muerde ═════════════════════════ */
-console.log('\n── G · Sabotaje: con las reglas de hoy (sin la propuesta) el bloqueo no existe ──');
-await cargarReglas(reglasActuales);
+console.log('\n── G · Sabotaje: con las reglas de W0 (sin la propuesta) el bloqueo no existe ──');
+await cargarReglas(reglasDeW0);
 await sembrarMundo({ conBloqueo: true });
 const sab = [
   await mensaje('c1', 's1', betoWee),
@@ -207,7 +214,7 @@ const sab = [
   await cambiar('conversations/c1', { chatTheme: 'midnight' }, ['chatTheme'], cuentaDe(betoWee)),
   await aviso('s4', 'econtact_request', betoWee, anaReal),
 ];
-check('las reglas de hoy DEJAN escribir lo que la propuesta niega (si no, estas pruebas no probarían nada)', sab.every((s) => s < 400), sab.join(', '));
+check('las reglas de W0 DEJAN escribir lo que las aplicadas niegan (si no, estas pruebas no probarían nada)', sab.every((s) => s < 400), sab.join(', '));
 
 console.log(fallos ? `\n✘ ${fallos} fallo(s)` : '\n✔ la propuesta de reglas hace lo que dice el documento');
 process.exit(fallos ? 1 : 0);
