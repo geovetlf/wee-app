@@ -334,36 +334,46 @@ export const createEContactEngine = (deps: EContactDeps) => {
 
   /** Lo que devuelve cada transacción: la relación, o el motivo del rechazo (que se lanza fuera de ella). */
   type Resultado = { relacion?: ResultadoRelacion; rechazo?: MotivoRechazo };
+  /** Lo mínimo que el límite usa de la transacción y de la base (sin `any`). */
+  type TransaccionDeContactos = {
+    get: (ref: unknown) => Promise<{ exists: boolean; data: () => unknown }>;
+    set: (ref: unknown, datos: Record<string, unknown>) => unknown;
+  };
+  type BaseDeContactos = { collection: (ruta: string) => { doc: (id: string) => unknown } };
 
   /*
-   * EL LÍMITE CONTRA INTENTOS REITERADOS (docs/WEETALK-BLOQUEO.md § 4.7), dentro de la MISMA transacción de cada puerta.
+   * EL LÍMITE CONTRA INTENTOS REITERADOS (docs/WEETALK-BLOQUEO.md § 4.7; decisión del dueño del 2026-11-07, «A»), dentro de
+   * la MISMA transacción de cada puerta.
    *
-   * Lee el cupo de la CUENTA que llama para esa operación (`pedir` o `aceptar`): las dos caras de una persona comparten
-   * uno, así que cambiar de cara no lo reinicia. Solo cuenta un intento rechazado porque la cuenta de DESTINO bloqueó a
-   * la que llama: ni los rechazos corrientes, ni los de quien bloqueó. Agotado el cupo, la cuenta queda «enfriada» para
-   * esa operación hasta que acabe la ventana, y entonces todo lo que pida recibe el mismo rechazo genérico.
-   * No suspende nada, no avisa a nadie y caduca solo. La clave es de quien intenta: nadie puede gastar el cupo de otro.
+   * Solo cuenta un intento rechazado porque la cuenta de DESTINO bloqueó a la que llama, y se cuenta por CUENTA y por
+   * operación (`pedir` o `aceptar`): las dos caras comparten cupo, así que cambiar de cara no lo reinicia. Máximo 5 por hora.
+   *
+   * El cupo NO cambia ninguna respuesta —el rechazo a quien te bloqueó es el genérico de siempre— y NO limita nada más: las
+   * solicitudes a otras personas, los mensajes y las conversaciones siguen igual aunque esté agotado. Lo que hace es acotar
+   * el trabajo: pasado el quinto intento de la ventana ya no se escribe nada, así que nadie puede inflar el contador ni
+   * usarlo para escribir sin fin. Caduca solo, no suspende, no avisa a nadie y no guarda quién es el destino. La clave es de
+   * quien intenta: nadie puede gastar el cupo de otro. Sin bloqueo hacia quien llama, ni se lee.
    */
   const leerIntentos = async (
-    tx: any,
-    db: any,
+    tx: TransaccionDeContactos,
+    db: BaseDeContactos,
     cuenta: string,
     operacion: OperacionDeContacto,
     cuentaDestino: string,
     hayBloqueo: boolean
-  ): Promise<{ enfriada: boolean; apuntar: () => void }> => {
-    const refIntentos = db.collection(INTENTOS_BLOQUEADOS).doc(claveDeIntentos(cuenta, operacion));
-    const guardado = await tx.get(refIntentos);
+  ): Promise<{ apuntar: () => void }> => {
     const elDestinoLaBloqueo = hayBloqueo
       ? (await tx.get(db.collection(BLOQUEOS).doc(claveDeRelacion(cuentaDestino, cuenta)))).exists
       : false;
+    if (!elDestinoLaBloqueo) return { apuntar: () => undefined };
+    const refIntentos = db.collection(INTENTOS_BLOQUEADOS).doc(claveDeIntentos(cuenta, operacion));
+    const guardado = await tx.get(refIntentos);
     const ahora = deps.ahora();
     const cupo = cupoDeAvisos(guardado.exists ? guardado.data() : null, ahora, LIMITE_DE_INTENTOS_BLOQUEADOS);
     return {
-      enfriada: !cupo.permitido,
-      /* Se llama solo cuando la puerta rechaza: apunta el intento si es de los que cuentan. */
+      /* Se llama solo cuando la puerta rechaza: apunta el intento mientras quede cupo; agotado, no escribe nada. */
       apuntar: () => {
-        if (cupo.permitido && elDestinoLaBloqueo) {
+        if (cupo.permitido) {
           tx.set(refIntentos, { cuenta, operacion, inicio: cupo.estado.inicio, usados: cupo.estado.usados, actualizadoEn: deps.sello(ahora) });
         }
       },
@@ -402,7 +412,7 @@ export const createEContactEngine = (deps: EContactDeps) => {
         const bloqueo = await tx.get(db.collection(PARES_BLOQUEADOS).doc(claveDePar(de.identity, para.identity)));
         const intentos = await leerIntentos(tx, db, de.accountUid, 'pedir', para.accountUid, bloqueo.exists);
 
-        const decision = intentos.enfriada ? RECHAZO_GENERICO : decidirSolicitud({ de, para, existente, bloqueo: bloqueo.exists });
+        const decision = decidirSolicitud({ de, para, existente, bloqueo: bloqueo.exists });
         if (!decision.ok) {
           intentos.apuntar();
           return { rechazo: decision.motivo };
@@ -454,7 +464,7 @@ export const createEContactEngine = (deps: EContactDeps) => {
         const doc = (snap.data() || {}) as EContactDoc;
         const bloqueo = await tx.get(db.collection(PARES_BLOQUEADOS).doc(claveDePar(yo.identity, otro.identity)));
         const intentos = await leerIntentos(tx, db, yo.accountUid, 'aceptar', otro.accountUid, bloqueo.exists);
-        const decision = intentos.enfriada ? RECHAZO_GENERICO : decidirAceptacion({ doc, yo: yo.identity, otro: otro.identity, bloqueo: bloqueo.exists });
+        const decision = decidirAceptacion({ doc, yo: yo.identity, otro: otro.identity, bloqueo: bloqueo.exists });
         if (!decision.ok) {
           intentos.apuntar();
           return { rechazo: decision.motivo };

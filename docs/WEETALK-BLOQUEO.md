@@ -94,9 +94,16 @@ La suite comprueba la equivalencia en 2048 casos: `puedeEscribir(x → y).puede 
   - La comprobación va la última: lo que ya se rechazaba (`misma-persona`, `ya-existe`…) se sigue rechazando igual.
 - **Una conexión ya aceptada se elimina** (decisión 6). Antes no se tocaba.
 
-### 4.7 · Límite contra intentos reiterados (tercera ronda, 2026-11-07)
+### 4.7 · Límite contra intentos reiterados (tercera ronda; decisión definitiva «A», 2026-11-07)
 
 El dueño pidió frenar los intentos repetidos de contactar a cuentas que han bloqueado al usuario, por **cuenta y operación**, con respuestas genéricas y sin que un tercero pueda provocar la limitación de otra cuenta.
+
+**Decisión definitiva (ronda de implementación, «A»):**
+- máximo **5 por hora**;
+- solo para solicitudes de ËContact rechazadas porque la cuenta de destino bloqueó a quien llama;
+- **no limita** los mensajes normales **ni las solicitudes a otras cuentas**.
+
+La versión anterior frenaba, con el cupo agotado, las solicitudes hacia CUALQUIERA; eso se ha retirado (abajo).
 
 - **Qué cuenta.** Un intento de ËContact (`pedir` o `aceptar`) rechazado porque la cuenta de **destino bloqueó a la que llama** (`weetalkBloqueos/{destino}~{llamante}`).
   - No cuentan los rechazos corrientes (un «no» o una cancelación), ni los intentos de quien bloqueó hacia quien bloqueó.
@@ -104,8 +111,14 @@ El dueño pidió frenar los intentos repetidos de contactar a cuentas que han bl
   - El rechazo se lanza fuera de la transacción, así que el intento queda apuntado aunque la puerta diga que no.
   - La colección es solo del servidor.
 - **Por cuenta.** Las dos caras comparten contador: cambiar de cara no lo reinicia.
-- **El límite.** La ventana fija que ya acota los avisos (`cupoDeAvisos`, social/avisos.ts), sin un segundo mecanismo, con **5 intentos bloqueados por hora y operación**. Es un **valor inicial, a confirmar por el dueño** (`LIMITE_DE_INTENTOS_BLOQUEADOS`, bloqueosIndice.ts).
-- **Agotado el cupo,** esa operación de esa cuenta recibe, hacia CUALQUIERA y hasta que acabe la ventana, el mismo rechazo genérico (`RECHAZO_GENERICO` = `relacion-invalida`). Quien prueba perfiles deja de distinguir cuál le bloqueó.
+- **El límite.** La ventana fija que ya acota los avisos (`cupoDeAvisos`, social/avisos.ts), sin un segundo mecanismo, con **5 intentos bloqueados por hora y operación**. Es **valor confirmado por el dueño** (`LIMITE_DE_INTENTOS_BLOQUEADOS`, bloqueosIndice.ts).
+- **Agotado el cupo:**
+  - el sexto intento y los siguientes hacia quien te bloqueó reciben **el mismo rechazo genérico de siempre** (`RECHAZO_GENERICO` = `relacion-invalida`);
+  - **ya no se escribe nada**, así que el contador no se puede inflar ni usar para escribir sin fin;
+  - **las solicitudes a otras personas siguen funcionando con normalidad**, y los mensajes y las conversaciones no pasan por el límite.
+  - Pasada la ventana, se vuelve a contar desde 1.
+- **No guarda quién es el destino.** El contador tiene solo la cuenta que intenta, la operación, el inicio, los usados y la hora. Sin bloqueo hacia quien llama, ni siquiera se lee.
+- **Concurrencia.** Todo ocurre dentro de la transacción de cada puerta: diez intentos a la vez dejan el contador exactamente en 5 (`weetalk-bloqueo` K).
 - **Caduca solo.** No suspende nada, no marca el perfil, no abre casos y no avisa a nadie.
 - **Nadie gasta el cupo de otro.** La clave es de quien intenta, nunca del destino, y solo cuentan sus propios intentos.
 - **Lo que no cubre.** Los mensajes y las conversaciones nuevas los escribe el cliente directamente en Firestore. Con las reglas aplicadas, un intento bloqueado se deniega ahí, sin llegar a nadie y sin trabajo en el servidor, pero ese rechazo no se puede contar: contarlo exigiría que el envío pasara por el servidor. Las llamadas directas no existen.
