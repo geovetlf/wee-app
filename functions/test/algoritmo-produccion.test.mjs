@@ -14,6 +14,10 @@
  * El día que `creatorChat` se despliegue desde main, los dos números coincidirán: la suite lo dirá, y
  * la documentación tendrá que decirlo también (MAIN = PRODUCCIÓN). Lee la historia de git (la CI la trae:
  * `fetch-depth: 0`); nunca toca producción.
+ *
+ * Y el número no basta (revisión de arquitectura de la misión de cierre): dos «1.12» pueden ser motores
+ * distintos, porque la misión cambió lo que el motor decide sin subir el número (decisión del dueño, DD-26
+ * punto 4). Por eso se compara también el CÓDIGO del motor entre el commit desplegado y este árbol.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -78,6 +82,22 @@ check('7 · CONTROL · la regla de arriba ve una afirmación falsa: «el Algorit
   MAIN === PROD || (deProduccion.test(`el Algorithm Engine corre en producción con el contrato ${MAIN}`)
     && delMotor.test(`el Algorithm Engine corre en producción con el contrato ${MAIN}`)
     && numero(MAIN).test(`contrato ${MAIN}`) && !numero(PROD).test(`contrato ${MAIN}`)));
+
+/* ── 4 · El número no esconde el código ── */
+/* `git diff --quiet <commit> -- rutas` compara ese commit con este árbol: 0 igual, 1 distinto, otra cosa es un error. */
+const RUTAS_DEL_MOTOR = ['functions/src/core/algorithm', 'functions/src/core/contracts.ts', 'functions/src/creator/sombra.ts'];
+let CODIGO;
+if (commitValido) {
+  try {
+    execFileSync('git', ['diff', '--quiet', creatorChat.commit, '--', ...RUTAS_DEL_MOTOR], { cwd: RAIZ, stdio: 'ignore' });
+    CODIGO = 'igual';
+  } catch (e) { CODIGO = e.status === 1 ? 'distinto' : undefined; }
+}
+console.log(`   el código del motor (core/algorithm, core/contracts.ts, la sombra) en producción frente a este árbol: ${CODIGO ?? 'sin leer'}`);
+check('8 · el código del motor del commit desplegado se compara con el de este árbol', CODIGO !== undefined, CODIGO ?? errorDeGit);
+check('9 · el número no esconde el código: con números distintos, el código también lo es; con el mismo número y otro código, RUNTIME.md § 3 lo dice («mismo número, código distinto»)',
+  MAIN !== PROD ? CODIGO === 'distinto' : (CODIGO !== 'distinto' || fila.includes('mismo número, código distinto')),
+  `${MAIN} frente a ${PROD} · código ${CODIGO}`);
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : `\nProducción ≠ main en el Algorithm Engine, dicho donde hay que decirlo: MAIN = ${MAIN} · PRODUCCIÓN = ${PROD}`);
 process.exit(failures ? 1 : 0);

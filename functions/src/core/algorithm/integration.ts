@@ -150,9 +150,9 @@ export type MotivoDeParada =
   | 'composition_emptied'
   /* (1.12) El plan existe pero ninguna disposición cabe en `maxDepth`: el ciclo se para antes de A1. El mismo nombre que en A2. */
   | 'max_depth_exceeded'
-  /* (1.12) El presupuesto de pensar no dejó evaluar ninguna alternativa —`maxCandidates: 0`, `maxAlgorithmCalls: 0`…—: por opciones, A1 falla con `budget_exceeded`; con tarea, la composición se vacía por él. El mismo nombre que el fallo de A1. */
+  /* (1.12) El presupuesto de pensar no dejó evaluar ninguna alternativa —`maxCandidates: 0`, `maxAlgorithmCalls: 0`…—: por opciones, A1 falla con `budget_exceeded`; con tarea, la composición se vacía por él. El mismo nombre que el fallo de A1. Y un TERCER caso desde la misión de cierre, solo con el cronómetro del ciclo: se acabó el tiempo de pensar ENTRE dos etapas —puede llegar sin `decision`, con el recorrido a medias y sin marca de presupuesto en ningún motor—, y se reconoce por su porqué («Se acabó el tiempo de pensar … antes de …»). Un motivo propio o un dato estructurado serían otra forma del contrato: decisión pendiente. */
   | 'budget_exceeded'
-  /* La petición —su objetivo, sus restricciones o el ámbito de lo aprendido (S2-A)— o la entrega nombraban una implementación: eso es del Router. */
+  /* La petición —su objetivo, sus restricciones o el ámbito de lo aprendido (S2-A)— o la entrega cruzaban la frontera de `authority.ts`: nombraban una implementación —eso es del Router— o, desde la misión de cierre, otra responsabilidad ajena (Credits, un secreto, una API, un material, un trabajo). El porqué dice cada clave y su dueño. */
   | 'authority_violation';
 
 /**

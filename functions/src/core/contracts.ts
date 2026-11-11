@@ -575,7 +575,18 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * versión del contrato salvo necesidad real—: nada guardado ni ningún consumidor depende de
  * lo que cambia, y producción sigue en 1.9 (`creatorChat`). Por la regla de versionado y el
  * precedente de 1.10 —que subió el número al extender la frontera al ámbito—, la FRONTERA
- * justificaría 1.13: subirlo es una decisión del dueño, aislada.
+ * justificaría 1.13: subirlo es una decisión del dueño, aislada, y queda registrada como tal
+ * (DD-26 punto 4 y DECISIONES-PENDIENTES). Mientras sea 1.12, dos «1.12» pueden no ser el
+ * mismo motor —el de main antes de esta misión y el de después—, así que
+ * `algoritmo-produccion` compara también el CÓDIGO del motor entre main y producción.
+ *
+ * Los DESCRIPTORES siguen su propia regla («sube cuando cambia lo que el algoritmo
+ * DECIDE»), leída así en esta misión: sube el motor cuyo veredicto cambia con entradas
+ * VÁLIDAS —A6, por CORTE y SEÑAL: `motor-de-verificacion@3`—; no sube el que solo rechaza
+ * más de lo que el contrato ya prohibía —FRONTERA, REQUISITOS—, como en S2-C (la regla de
+ * B.1 en A3, A4, A5 y A8, «sin subir contrato ni motores»). La lectura contraria —que A1, A3,
+ * A5 y A7 suban también por FRONTERA, como `motor-de-decision@2` en 1.10— va con la
+ * decisión del 1.13.
  */
 export const ALGORITHM_CONTRACT_VERSION = '1.12' as const;
 

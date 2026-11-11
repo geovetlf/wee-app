@@ -109,8 +109,11 @@ Lo que no cabe es una instrucción: una estrategia que diga «usa X» se rechaza
 Lo hace `core/algorithm/authority.ts`: primero con `claveDeImplementacion` del
 Planner —**el mismo predicado** que rechazó ese intento en B3.15.2— y, desde la misión de
 cierre, también **por responsabilidad**: cada clave se lee en palabras y se pregunta de quién es
-lo que nombra (§ 21). No hay una segunda lista de nombres: hay los efectos de
-`EFECTOS_PROHIBIDOS`, cada uno con su dueño.
+lo que nombra (§ 21). Eso sí es una segunda definición de qué clave es de otro dueño —más
+estricta que la del Planner, local a esta capa y distinta a propósito (`algorithm-foundation`
+K2.4)—, pero no una segunda lista de nombres: pregunta por los efectos de `EFECTOS_PROHIBIDOS`,
+cada uno con su dueño. Si debe subir al Core como el predicado de todos (Planner, Workflow,
+Skills) es una decisión pendiente ([`DECISIONES-PENDIENTES.md`](DECISIONES-PENDIENTES.md)).
 
 ## 6 · Los motores especializados están FUERA
 
@@ -2757,6 +2760,7 @@ documentada, gobernada y probada**, sin darle más que hacer. La decisión forma
 | la frontera solo veía diez nombres: `vendor`, `apiKey`, `credits`, `proveedor`… pasaban | gobernanza | lectura por responsabilidad; la violación dice efecto y dueño, y el rechazo también | `algorithm-foundation` K2, `algorithm-cycle` CM20–CM21 |
 | catorce exportaciones sin ningún consumidor | deuda | ocho fuera, seis documentadas (abajo) | `tsc` y la batería entera |
 | comentarios y documentos que decían lo contrario del código —«no lo consume nadie», «no está conectado», «el Orchestrator ejecuta `ParallelGroup`», «PENDIENTE», que producción tenía la versión de main— | documentación | corregidos sin borrar la historia: lo de entonces se queda como foto de entonces | `algoritmo-produccion`, `runtime-map`, `algorithm-quality` |
+| lo que dejó la revisión de la fase —seguridad, código y arquitectura ([informe](../ops/revision/informes/2026-10-07-algoritmo.md))— | varias | la frontera lee también `$vendor`, `api/key`, `provider2`, `textmodel`, `authorization`, `authHeader` y `retryJob`, y sus palabras de secreto son las de `CAMPOS_PROHIBIDOS`; A6 no repite lo no mirado y nombra el tope que se acabó (`maxLatencyMs`); el inicio del cronómetro se lee fresco; unos requisitos que no son un objeto están mal formados; `algoritmo-produccion` valida el commit antes de dárselo a git y compara también el código; y los textos que decían «el mismo predicado del Planner» | `algorithm-foundation` K2.8, K2.18–K2.19; `algorithm-verification` CM23–CM24; `algorithm-cycle` CM22; `algorithm-context` CM6; `algoritmo-produccion` 8–9 |
 
 ### La frontera, por responsabilidad
 
@@ -2768,8 +2772,10 @@ lo que alguien escribió: de los trece sinónimos que pidió el dueño —`prove
 
 Ahora, **después** de la lista del Planner —que sigue yendo primero— y **solo para rechazar
 más**, cada clave se lee: se normaliza (acentos y caracteres invisibles fuera), se parte en
-palabras (camelCase, `_`, `-`, `.`, espacios, palabras pegadas que se leen enteras) y se
-pregunta **de quién es lo que nombra**. Cada concepto pertenece a uno de los efectos de
+palabras (camelCase y cualquier signo que no sea `|`, `=` o `:`; palabras pegadas que se leen
+enteras) y se pregunta **de quién es lo que nombra**; las raíces largas de cada concepto (cinco
+letras o más: `provider`, `model`, `vendor`, `secret`…) se buscan también DENTRO de una palabra
+que no se deja leer (`textmodel`, `aiprovider`, `provider2`). Cada concepto pertenece a uno de los efectos de
 `EFECTOS_PROHIBIDOS` y la violación lleva `efecto` y `dueno`. Decide el **papel** de la palabra:
 
 - **siempre cruzan**: implementación (proveedor, modelo, adaptador, motor de ejecución), acceso
@@ -2791,18 +2797,38 @@ lo que le impide HACERLO es que es pura y entrega datos a su dueño.
 
 Con entradas legítimas no cambia nada: las huellas doradas de S2 salen idénticas byte a byte y
 ninguna de las 168 claves que llegan a la frontera en ellas se marca. Lo que sigue sin ver, y se
-sabe: los VALORES (una señal puede describir un proveedor en su valor: es evidencia), letras de
-otro alfabeto que imitan las latinas, y `enqueue` (la prueba 53 de `algorithm-agnostic` prohíbe
-esa palabra en las fuentes; `encolar` y `runJob` sí se ven). Y una clave `credits` que algún día
-signifique «créditos de una película» se rechazaría: un fallo que se ve, no uno callado.
+sabe (`algorithm-foundation` K2.8 y K2.18 fijan lo que sí ve):
+
+- los VALORES (una señal puede describir un proveedor en su valor: es evidencia);
+- una clave con `|`, `=` o `:` —se toma por un dato—, aunque sea `providerId:x`; la lista del
+  Planner tampoco la ve;
+- una raíz CORTA (`api`, `pay`) pegada a una palabra desconocida (`xapikey`), y una palabra
+  pegada de más de 64 letras sin una raíz larga dentro: `despegar` no la intenta;
+- letras de otro alfabeto que imitan las latinas (NFKD no las convierte);
+- `enqueue` (la prueba 53 de `algorithm-agnostic` prohíbe esa palabra en las fuentes; `encolar`
+  y `runJob` sí se ven);
+- más allá de los primeros 1024 caracteres de una clave.
+
+Y una clave `credits` que algún día signifique «créditos de una película» se rechazaría: en una
+petición o una estrategia, un fallo que se ve, no uno callado. En lo que se DESCRIBE —el
+resultado observado de A6, la metadata de A7 y la de las capacidades— no es tan inocente: un
+resultado legítimo con `storagePath` o `creditsCharged` sería un `fail` duro, y A7 lo aprendería
+como una verificación suspendida. Hoy no rompe nada —nadie llama a `cerrar`, A7 no guarda nada y
+no hay descriptores registrados—, pero es lo primero que decidir antes de conectar el cierre
+(DECISIONES-PENDIENTES; `algorithm-verification` CM25 lo fija como BLOCKED — HUMAN DECISION).
 
 ### El tope de pensar, mientras se piensa
 
 `OpcionesDelCiclo.cronometro`: milisegundos **monotónicos**, solo para `maxLatencyMs`. Con él,
 cada etapa (A2, A4, A3, A5) recibe el tiempo que queda como su propio tope y se recorta como
 siempre —lo mejor que tenga—, y entre etapas, sin tiempo, el ciclo se para con
-`budget_exceeded` y dice antes de qué etapa. **A1 no lo recibe**: su `ahora` es un reloj de
-PARED, el de `deadlineAt`; el ciclo comprueba el tiempo antes de A1. No es el plazo de nadie
+`budget_exceeded` y dice antes de qué etapa (el tercer caso de esa parada: sin `decision` y
+reconocible solo por el porqué; darle un dato propio es una decisión pendiente). El inicio de
+cada llamada se lee FRESCO: si esa lectura falla, la llamada va sin reloj, en vez de medir como
+«pensar» el hueco desde la anterior (`algorithm-cycle` CM22). En `cerrar`, A6 y A6r reciben el
+reloj y miden cada una su propio tope, sin uno común; A8 va antes de la primera comprobación y
+sin cronómetro. **A1 no lo recibe**: su `ahora` es un reloj de PARED, el de `deadlineAt`; el
+ciclo comprueba el tiempo antes de A1. No es el plazo de nadie
 más: ni del proveedor, ni del Gateway, ni de un trabajo, ni del dinero. Un reloj roto ni tumba
 ni corta: deja de avanzar. Sin cronómetro, el motor es byte a byte el de antes y sigue puro
 (`algorithm-cycle` CM15: ningún archivo de la capa lee un reloj ni el azar). La sombra le pasa
@@ -2835,9 +2861,9 @@ A7—, A8 con lo aprendido y `paraRouter` no los llama nadie fuera de las prueba
 
 | Pieza | Lo que ya cumple | Lo que falta antes de usarla |
 |---|---|---|
-| **A6** | pura, no lanza, topes propios, autoridad sobre el resultado entero, D3, lo mal formado es `inconclusive` y, desde esta misión, un corte cuenta lo no mirado como `unknown` | quien produzca la observación —estado en su vocabulario (`succeeded`, `cancelled`, `rejected`), salidas con su `ref`, medidas `result.*` con el sujeto del resultado—; quien declare lo esperado; evaluadores (el Quality Engine); y quien actúe con el veredicto |
+| **A6** | pura, no lanza, topes propios, autoridad sobre el resultado entero, D3, lo mal formado es `inconclusive` y, desde esta misión, un corte cuenta lo no mirado como `unknown` | quien produzca la observación —estado en su vocabulario (`succeeded`, `cancelled`, `rejected`), salidas con su `ref`, medidas `result.*` con el sujeto del resultado—; quien declare lo esperado; evaluadores (el Quality Engine); quien actúe con el veredicto; y decidir si la frontera por responsabilidad mira lo OBSERVADO —hoy un `storagePath` o un `creditsCharged` legítimos serían un `fail` duro que A7 aprendería (CM25)— |
 | **A6r** | pura, no lanza, tope de candidatos, huella contra el bucle, clase del fallo desde `core/errors` | que `cerrar` le pase el código del error del Core (`metadata.errorCode`): sin él, un `RATE_LIMIT` o un `TIMEOUT` nunca proponen `retry`; los intentos previos y la `RetryPolicy`; y alternativas por `id`: `idDe` compara por identidad de objeto y una decisión guardada y vuelta a leer las pierde sin decirlo |
-| **A7** | pura, reloj obligatorio, puertas de privacidad, agregados de tamaño fijo sin cuenta | las cinco deudas de § 13; deduplicar también los resultados de una misma llamada; un almacén por clave con escritura transaccional e ingesta exactamente-una-vez; decidir dónde vive, porque no es un `increment`; quien produzca resultados y eventos; y, solo para aprender por cuenta, un contrato de consentimiento |
+| **A7** | pura, reloj obligatorio, puertas de privacidad, agregados de tamaño fijo sin cuenta | las cinco deudas de § 13; deduplicar también los resultados de una misma llamada; un almacén por clave con escritura transaccional e ingesta exactamente-una-vez; decidir dónde vive, porque no es un `increment`; quien produzca resultados y eventos; la misma decisión de la frontera para la metadata de sus eventos; y, solo para aprender por cuenta, un contrato de consentimiento |
 | **A8** | pura, reloj obligatorio, no contesta por cuenta, requisitos con la regla de B.1 | lo aprendido persistido y una lectura por ámbito con la MISMA política con que aprendió A7 |
 | **`cerrar`** | pura, no lanza, `not_decided` y `malformed_observation` | guardar el resultado de la decisión entre `decidir` y `cerrar` —la sombra solo guarda un resumen— y volver a validarlo al cerrar: contrato, ámbito y entrega |
 
@@ -2888,12 +2914,22 @@ presupuesto del PLAN frente al de un PASO; un solo dueño de los Credits; la esc
   real: nada guardado ni ningún consumidor depende de lo que cambió. Lo que la misión hace dentro
   de 1.12 está escrito junto al número (`core/contracts.ts`): FRONTERA, SEÑAL, REQUISITOS,
   PARADA, CORTE y el cronómetro. Por la regla de versionado y el precedente de 1.10, la FRONTERA
-  justificaría 1.13: es una decisión del dueño, aislada.
-- **Descriptores**: `motor-de-verificacion` sube a 3 (CORTE: cambia lo que A6 decide al
-  cortarse, la regla de `AlgorithmDescriptor.version`). Los demás no cambian.
+  justificaría 1.13 —el revisor de arquitectura lo pide—: es una decisión del dueño, aislada, y
+  queda registrada como tal (DD-26 punto 4, [`DECISIONES-PENDIENTES.md`](DECISIONES-PENDIENTES.md)).
+  Mientras sea 1.12, el número no distingue el motor de main de antes de esta misión del de
+  después: por eso `algoritmo-produccion` compara también el CÓDIGO del motor (`core/algorithm`,
+  `core/contracts.ts` y la sombra) entre el commit desplegado y main.
+- **Descriptores**: `motor-de-verificacion` sube a 3: con entradas VÁLIDAS, A6 decide otra cosa
+  al cortarse (CORTE) y publica otra clave (SEÑAL), la regla de `AlgorithmDescriptor.version`. Los
+  demás no cambian: FRONTERA y REQUISITOS solo rechazan más de lo que el contrato ya prohibía,
+  como la regla de B.1 en S2-C, que no subió ningún motor. Que A1, A3, A5 y A7 suban también
+  por FRONTERA —la lectura del revisor, con `motor-de-decision@2` en 1.10 de precedente— va con
+  la decisión del 1.13.
 - **Producción en 1.9**: `creatorChat` se desplegó desde `05ab31b`. La sombra
-  (`creator/sombra.ts`) es idéntica entre ese commit y main; el motor, no (S2 entero y esta
-  misión). Redesplegar `creatorChat` traería 1.12: no se ha hecho y no es de esta misión.
+  (`creator/sombra.ts`) era idéntica entre ese commit y `origin/main` (`5efbc0a`); esta misión
+  la cambia —le pasa al ciclo su cronómetro y aclara comentarios—, y el motor cambió con S2
+  entero y con esta misión. Redesplegar `creatorChat` desde aquí traería todo eso con 1.12: no
+  se ha hecho y no es de esta misión.
 - **Vocabulario reservado** que hoy no se produce —avisos `signals_missing`, `malformed_option` y
   `fallback_used`; motivos `unknown_algorithm` y `algorithm_disabled`; la parada `loop_detected`
   de A5; el estado `inferred`; `change_too_large`; el riesgo `high_uncertainty`; los modos de
@@ -2946,13 +2982,14 @@ sin entrega, un desenlace atribuido a otra estrategia y un presupuesto pasado en
   espera en línea al motor dentro de `creatorChat`. Una regresión ahí sí afecta a la ejecución.
 - `core/algorithm/**` **no** es zona roja: es pura, sin autoridad y su salida se tira; marcarla
   sería ruido. Sigue en su zona `algoritmo`, con el revisor de arquitectura, y su paquete añade
-  § 17 (la sombra) y § 21 (esto).
+  § 17 (la sombra) y § 21 (esto). La frontera, `core/algorithm/authority.ts`, va además al
+  revisor de seguridad (zona `seguridad` de los paquetes de contexto), sin ser zona roja.
 
 ### Seguridad
 
 La capa sigue pura: sin red, Firestore, secretos, claves, Credits, Financial Core ni
-proveedores (CM15, y los imports que salen de la carpeta: `contracts`, `planner`,
-`observability`, `errors` y el catálogo de capacidades, todos puros). La misión no añade
+proveedores (CM15, y los imports que salen de la carpeta: `contracts`, `planner`, `cost`,
+`workflow`, `observability`, `errors` y el catálogo de capacidades, todos puros). La misión no añade
 ninguna dependencia, y la frontera ahora rechaza por responsabilidad lo que antes pasaba por
 nombre.
 
@@ -3006,5 +3043,15 @@ La sombra; el cierre del ciclo (A6, A6r, A7); A8 con lo aprendido y `paraRouter`
 - **Los puntuadores**: los cinco choques de arriba, si alguien conecta la entrega sin resolverlos.
 - **El camino `brain` de la sombra** sin plazo propio (arriba).
 - **El arranque en frío**: el import estático cuesta el 5–6 % de la carga de módulos.
-- **La frontera** no lee valores ni letras de otro alfabeto que imitan las latinas.
+- **La frontera** no lee valores, claves con `|`, `=` o `:`, raíces cortas pegadas ni letras de otro
+  alfabeto que imitan las latinas (arriba).
+- **La frontera sobre lo que se describe** —el resultado observado de A6, la metadata de A7 y la
+  de las capacidades—: pendiente de decisión antes de conectar el cierre (CM25).
+- **El corte por tiempo** solo se distingue por su porqué: un motivo o un dato propio serían otra
+  forma del contrato (pendiente).
+- **El contrato** sigue en 1.12 por decisión del dueño (DD-26 punto 4): 1.13 y los descriptores,
+  pendientes.
+- **La sombra, si falla por dentro**, guarda el `name: message` del error, recortado a 240
+  caracteres: el mensaje de un tercero podría traer más de lo que debe (pregunta de la revisión
+  de seguridad; hoy la sombra está cerrada).
 

@@ -21,7 +21,8 @@
  * Una estrategia RECOMIENDA; el Workflow Engine y el Orchestrator ejecutan.
  *
  * No nombra a nadie. Ni proveedor, ni modelo, ni adaptador. Lo comprueba
- * `authority.ts` con el mismo predicado que usa el Planner.
+ * `authority.ts`: la lista del Planner (`claveDeImplementacion`) primero y,
+ * desde la misión de cierre, la lectura por responsabilidad, que rechaza más.
  *
  * ── Los números que trae ────────────────────────────────────────────────────
  *
