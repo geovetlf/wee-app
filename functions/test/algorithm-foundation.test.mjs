@@ -504,6 +504,10 @@ const LEGITIMAS = [
   'feedback', 'payload', 'capital', 'tokens', 'maxTokens', 'model3d', 'baseline',
   /* verbos que solos no cruzan (misión de cierre): `retry`, `generate`, `render`, `call`, `process` son acciones; sin objeto, nada */
   'retryPolicy', 'generatedAt', 'renderMode', 'callCount', 'processingMs',
+  /* lo que la segunda pasada vio cruzar sin serlo: vocabulario de Weë, verbos que contienen una raíz, permisos, frases nominales */
+  'remodel', 'remodelacion', 'apagar', 'puedeApagar', 'propagar', 'modeling', 'modelado3d', 'modelo3d', 'model3D', 'Model3D', 'model_3d',
+  '3dModel', 'outputModel3dUrl', 'promptEngineering', 'requiereAutorizacion', 'authorizationRequired', 'autorizacionDelDueno',
+  'bucketlist', 'transactional', 'secretary', 'jobRetryPolicy', 'materialRender',
   ...Object.keys(A.TOPES_POR_DEFECTO),
 ];
 const marcadas = LEGITIMAS.filter((k) => cruzaComo(k));
@@ -623,6 +627,26 @@ const noVistas = VISTAS_EN_LA_REVISION.filter(([clave, efecto]) => {
 });
 check(`K2.18 · REGRESIÓN · lo que la revisión vio pasar cruza ahora, y como lo que es (${VISTAS_EN_LA_REVISION.length})`,
   noVistas.length === 0, noVistas.map(([c]) => `${c.slice(0, 24)} → ${JSON.stringify(cruzaComo(c)?.efecto ?? null)}`).join(' · ') || 'todas');
+/*
+ * Lo que la SEGUNDA pasada vio pasar: una raíz de cantidad, de par o de objeto pegada a un dígito,
+ * la pasarela por su nombre, y una clave que la normalización alarga más allá del tope de lectura.
+ */
+const VISTAS_EN_LA_SEGUNDA_PASADA = [
+  ['credits2', DINERO], ['price2', DINERO], ['accessToken2', SECRETO], ['privateKey1', SECRETO], ['refreshToken2', SECRETO],
+  ['authToken2', SECRETO], ['runJob2', TRABAJOS], ['createAsset2', MATERIALES], ['gateway', GATEWAY], ['gatewayId', GATEWAY],
+  ['authorizationHeader', SECRETO], [`${'\uFDFA'.repeat(60)}provider`, ROUTER],
+];
+const noVistas2 = VISTAS_EN_LA_SEGUNDA_PASADA.filter(([clave, efecto]) => cruzaComo(clave)?.efecto !== efecto);
+check(`K2.20 · REGRESIÓN · lo que la segunda pasada vio pasar cruza ahora, y como lo que es (${VISTAS_EN_LA_SEGUNDA_PASADA.length})`,
+  noVistas2.length === 0, noVistas2.map(([c]) => `${c.slice(-24)} → ${JSON.stringify(cruzaComo(c)?.efecto ?? null)}`).join(' · ') || 'todas');
+/* El peor caso de tiempo: 4096 claves distintas de 1019 mayúsculas (antes, una expresión cuadrática y palabras × raíces: segundos). */
+const enMayusculas = {};
+for (let i = 0; i < 4096; i++) enMayusculas[`${'A'.repeat(1018)}B${i.toString(36).toUpperCase().padStart(5, 'Q')}`] = 1;
+const t0K221 = process.hrtime.bigint();
+const vEnMayusculas = A.violacionesEn(enMayusculas, 'k2');
+const msK221 = Number(process.hrtime.bigint() - t0K221) / 1e6;
+check('K2.21 · el peor caso de tiempo está acotado: 4096 claves de 1019 mayúsculas se leen en menos de 2 s, y no se inventa nada',
+  msK221 < 2000 && vEnMayusculas.length === 0, `${msK221.toFixed(0)} ms · ${vEnMayusculas.length} cruces`);
 const { CAMPOS_PROHIBIDOS } = lib('core/observability.js');
 const NO_NOMBRAN_UN_SECRETO = ['token', 'prompt', 'message', 'content'];
 const deSecreto = CAMPOS_PROHIBIDOS.filter((c) => !NO_NOMBRAN_UN_SECRETO.includes(c.toLowerCase()));
