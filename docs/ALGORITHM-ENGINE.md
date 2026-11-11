@@ -2715,7 +2715,7 @@ eso la entrada 1.10 habla de «la composición» y no de «A2–A5».
 | `algorithm-quality.test.mjs` §S (190–201) · `equivalencia-s2b.mjs` · `equivalencia-s2b.json` | S2-B.5: los nueve topes de pensar con la regla de B.1 y sin tocar lo válido, el porqué del ciclo cuando la composición se vacía y los seis «no hay decisión» distintos, el hueco estructurado fijado, los grupos de duplicados sin truncar, la propiedad central de `maxEvidence` y `maxDepth`, la equivalencia campo a campo con f30079c, dacf18d y 0df8be2 con los sellos aparte, el versionado, pendiente hasta autorizarlo y resuelto después en 1.11 y `motor-de-decision@3` (200 y 201), y este documento con lo cerrado, lo parcialmente cerrado y lo aplazado |
 | `algorithm-quality.test.mjs` §R (163–189) | S2-B.4: `maxEvidence` sobre la evidencia de lo que se evalúa —las fronteras 64/65 y 512/513, las señales ajenas fuera, los turnos, permutaciones, lo mismo que antes sin llegar al tope, «sin evidencia» frente a «evidencia acotada», el tope antes del desempate caro—, `budget_exceeded` cuando el presupuesto no deja mirar ninguna, los topes mal formados con la regla de B.1, `maxDepth` con planes de 6, 7 y 8 pasos, vacíos, con ramas y permutados, y el presupuesto de pensar fuera de la entrega |
 | `algorithm-quality.test.mjs` §U (223–231) | S2-C.1, las decisiones humanas: D1 y D2b como semántica y no como deuda; D11 (`noRealChoice`) y el vocabulario de 1.12 —`evidence_capped`, `counter_exhausted` y las tres paradas— por propiedad sobre entradas al azar; ALC en A2, A6 y A7; D3, el sujeto; y este documento con lo decidido —D4, D8, D9 y D10— y lo que se queda como está —REN, A9, DV y DUP— |
-| Misión de cierre: `algorithm-verification` CM1–CM3b y CM16–CM19 · `algorithm-context` CM4–CM6 · `algorithm-cycle` CM7–CM15 y CM20–CM21 · `algorithm-foundation` K2 · `sombra-experiencia` S1-8c · `sombra-creatorchat` (+ `.emulator`) · `algoritmo-produccion` · `evals-algoritmo` (el dominio `algoritmo`) | § 21: la clave de A6, los requisitos de A8, `context_rejected`, el corte de A6 que no da por bueno lo no mirado, el tope de pensar mientras se piensa, la frontera por responsabilidad con su dueño, la integración de punta a punta sin tocar la respuesta, y que la documentación no confunda producción con main |
+| Misión de cierre: `algorithm-verification` CM1–CM3b y CM16–CM19 · `algorithm-context` CM4–CM6 · `algorithm-cycle-cierre` CM7–CM15 y CM20–CM22 · `algorithm-foundation` K2 · `sombra-experiencia` S1-8c · `sombra-creatorchat` (+ `.emulator`) · `algoritmo-produccion` · `evals-algoritmo` (el dominio `algoritmo`) | § 21: la clave de A6, los requisitos de A8, `context_rejected`, el corte de A6 que no da por bueno lo no mirado, el tope de pensar mientras se piensa, la frontera por responsabilidad con su dueño, la integración de punta a punta sin tocar la respuesta, y que la documentación no confunda producción con main |
 | `algorithm-quality.test.mjs` §T (202–222) · `equivalencia-s2c.mjs` · `equivalencia-s2c.json` | S2-C, la fase técnica: los nueve topes de pensar —y en A4 también las restricciones— mal formados en A3, A4, A5 y A8 llamados sueltos, con la regla de B.1 y la forma que cada uno ya tenía; una regla por todas las puertas; A2, A6 y A7 fijados como BLOCKED — HUMAN DECISION; los huecos de la auditoría (A6 con dos sujetos y con `maxLatencyMs`, A1 frente a A3 y A5, el `maxParallel` de A1, la cobertura aislada, D11 A–E, `maxCandidates: 0` según la vía, `budget_exhausted` y `maxReplans`); la equivalencia con e3a9e94 con entradas válidas; lo ya resuelto devuelto tal cual; y este documento |
 
 El **guard de arquitectura** compara por *token*, no por subcadena —buscar
@@ -2754,13 +2754,13 @@ documentada, gobernada y probada**, sin darle más que hacer. La decisión forma
 |---|---|---|---|
 | A6 publicaba `verification.pass_with_uncertainty`, que su propia regla de nombres de señal rechaza | bug de contrato | `claveDeEstado` → `verification.passWithUncertainty`; los otros cinco estados no cambian | `algorithm-verification` CM1–CM3b |
 | A8 no validaba `minSampleSize` ni `maxAgeMs`: un `NaN` o un texto apagaban esos suelos | bug (encontrado en la misión) | `problemasDeLosRequisitos`: la regla de B.1 en los tres números, una vez, para A8 y el ciclo | `algorithm-context` CM4–CM6 |
-| el ciclo llamaba «ámbito sin respuesta» (`context_refused`) a unos requisitos mal formados | bug | se para antes de A8 con `context_rejected` y el campo | `algorithm-cycle` CM7–CM9 |
+| el ciclo llamaba «ámbito sin respuesta» (`context_refused`) a unos requisitos mal formados | bug | se para antes de A8 con `context_rejected` y el campo | `algorithm-cycle-cierre` CM7–CM9 |
 | A6, al acabársele el presupuesto, dejaba fuera lo que no miró y podía dar `pass` sin haber mirado un duro | bug (encontrado en la misión) | lo no mirado entra como `unknown` con su dureza; `motor-de-verificacion@3` | `algorithm-verification` CM16–CM19 |
-| el tope de pensar (250 ms) solo se medía al terminar | deuda | `OpcionesDelCiclo.cronometro`, y la sombra pasa el suyo | `algorithm-cycle` CM10–CM15, `sombra-experiencia` S1-8c |
-| la frontera solo veía diez nombres: `vendor`, `apiKey`, `credits`, `proveedor`… pasaban | gobernanza | lectura por responsabilidad; la violación dice efecto y dueño, y el rechazo también | `algorithm-foundation` K2, `algorithm-cycle` CM20–CM21 |
+| el tope de pensar (250 ms) solo se medía al terminar | deuda | `OpcionesDelCiclo.cronometro`, y la sombra pasa el suyo | `algorithm-cycle-cierre` CM10–CM15, `sombra-experiencia` S1-8c |
+| la frontera solo veía diez nombres: `vendor`, `apiKey`, `credits`, `proveedor`… pasaban | gobernanza | lectura por responsabilidad; la violación dice efecto y dueño, y el rechazo también | `algorithm-foundation` K2, `algorithm-cycle-cierre` CM20–CM21 |
 | catorce exportaciones sin ningún consumidor | deuda | ocho fuera, seis documentadas (abajo) | `tsc` y la batería entera |
 | comentarios y documentos que decían lo contrario del código —«no lo consume nadie», «no está conectado», «el Orchestrator ejecuta `ParallelGroup`», «PENDIENTE», que producción tenía la versión de main— | documentación | corregidos sin borrar la historia: lo de entonces se queda como foto de entonces | `algoritmo-produccion`, `runtime-map`, `algorithm-quality` |
-| lo que dejó la revisión de la fase —seguridad, código y arquitectura ([informe](../ops/revision/informes/2026-10-07-algoritmo.md))— | varias | la frontera lee también `$vendor`, `api/key`, `provider2`, `textmodel`, `authorization`, `authHeader` y `retryJob`, y sus palabras de secreto son las de `CAMPOS_PROHIBIDOS`; A6 no repite lo no mirado y nombra el tope que se acabó (`maxLatencyMs`); el inicio del cronómetro se lee fresco; unos requisitos que no son un objeto están mal formados; `algoritmo-produccion` valida el commit antes de dárselo a git y compara también el código; y los textos que decían «el mismo predicado del Planner» | `algorithm-foundation` K2.8, K2.18–K2.19; `algorithm-verification` CM23–CM24; `algorithm-cycle` CM22; `algorithm-context` CM6; `algoritmo-produccion` 8–9 |
+| lo que dejó la revisión de la fase —seguridad, código y arquitectura ([informe](../ops/revision/informes/2026-10-07-algoritmo.md))— | varias | la frontera lee también `$vendor`, `api/key`, `provider2`, `textmodel`, `authorization`, `authHeader` y `retryJob`, y sus palabras de secreto son las de `CAMPOS_PROHIBIDOS`; A6 no repite lo no mirado y nombra el tope que se acabó (`maxLatencyMs`); el inicio del cronómetro se lee fresco; unos requisitos que no son un objeto están mal formados; `algoritmo-produccion` valida el commit antes de dárselo a git y compara también el código; y los textos que decían «el mismo predicado del Planner» | `algorithm-foundation` K2.8, K2.18–K2.19; `algorithm-verification` CM23–CM24; `algorithm-cycle-cierre` CM22; `algorithm-context` CM6; `algoritmo-produccion` 8–9 |
 
 ### La frontera, por responsabilidad
 
@@ -2825,13 +2825,13 @@ siempre —lo mejor que tenga—, y entre etapas, sin tiempo, el ciclo se para c
 `budget_exceeded` y dice antes de qué etapa (el tercer caso de esa parada: sin `decision` y
 reconocible solo por el porqué; darle un dato propio es una decisión pendiente). El inicio de
 cada llamada se lee FRESCO: si esa lectura falla, la llamada va sin reloj, en vez de medir como
-«pensar» el hueco desde la anterior (`algorithm-cycle` CM22). En `cerrar`, A6 y A6r reciben el
+«pensar» el hueco desde la anterior (`algorithm-cycle-cierre` CM22). En `cerrar`, A6 y A6r reciben el
 reloj y miden cada una su propio tope, sin uno común; A8 va antes de la primera comprobación y
 sin cronómetro. **A1 no lo recibe**: su `ahora` es un reloj de PARED, el de `deadlineAt`; el
 ciclo comprueba el tiempo antes de A1. No es el plazo de nadie
 más: ni del proveedor, ni del Gateway, ni de un trabajo, ni del dinero. Un reloj roto ni tumba
 ni corta: deja de avanzar. Sin cronómetro, el motor es byte a byte el de antes y sigue puro
-(`algorithm-cycle` CM15: ningún archivo de la capa lee un reloj ni el azar). La sombra le pasa
+(`algorithm-cycle-cierre` CM15: ningún archivo de la capa lee un reloj ni el azar). La sombra le pasa
 el mismo cronómetro con que mide la sección: el motor corta su razonamiento al tope, y la
 sombra sigue diciendo `fuera_de_presupuesto` si la sección entera se pasa.
 
@@ -2990,6 +2990,10 @@ por tiempo sin cronómetro (o que entrega) y una billetera en un paso dada por d
   sería ruido. Sigue en su zona `algoritmo`, con el revisor de arquitectura, y su paquete añade
   § 17 (la sombra) y § 21 (esto). La frontera, `core/algorithm/authority.ts`, va además al
   revisor de seguridad (zona `seguridad` de los paquetes de contexto), sin ser zona roja.
+- La puerta G3 de esta misión dio dos hallazgos NUEVOS, arreglados en su raíz y no aceptados como
+  deuda: el catch del cronómetro dice lo que decide (devolver «sin lectura»), y las comprobaciones de
+  la misión sobre el ciclo tienen su propia suite, `algorithm-cycle-cierre`, para que
+  `algorithm-cycle` siga por debajo de las 1000 líneas.
 
 ### Seguridad
 
