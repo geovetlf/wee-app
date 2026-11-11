@@ -7,7 +7,7 @@ autoridad) · **AUSENTE** (no llega) · **BLOQUEADO** · **NO APLICA** (no debe 
 > no un olvido. «PARCIAL» significa «llega al motor por la sombra de `creatorChat`, observa y se tira». El «punto
 > real» está comprobado siguiendo el flujo de ejecución; el motor lo importa UN solo archivo
 > (`creator/sombra.ts`) y lo llama UN solo sitio (`creator/index.ts`, `creatorChat`, tras `ref.set(clean(job))`).
-> Evidencia automatizada: `functions/test/algoritmo-cobertura.test.mjs`.
+> Evidencia automatizada: `functions/test/gran-motor-b-algoritmo.test.mjs` (en la candidata, la suite `algoritmo-cobertura` de la rama de origen ya vive adaptada y endurecida ahí; la copia se retiró en `ejec/motor` por duplicada).
 
 ## A · Núcleo
 
