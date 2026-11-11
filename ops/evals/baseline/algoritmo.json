@@ -2,8 +2,8 @@
   "version": 1,
   "dominio": "algoritmo",
   "datasetVersion": 1,
-  "datasetHash": "138716ca9fb1f3769b176751581339101e834bee259e07f83edd71ace24588da",
-  "generado": "2026-10-07T02:34:35.482Z",
+  "datasetHash": "9bcb24125e1c5188cedee30ebf3048686da1e9de9d0467436b7c75d19852e6ef",
+  "generado": "2026-10-07T04:31:57.576Z",
   "scores": {
     "overall": 1,
     "perDimension": {
@@ -423,9 +423,74 @@
           "COST": 1
         },
         "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-crono-corte",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-crono-holgado",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-frontera-sinonimo-en-restriccion",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-frontera-compuesta-en-paso",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-frontera-billetera-en-paso",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-frontera-tope-de-dinero-pasa",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
       }
     ],
-    "n": 38,
-    "aprobados": 38
+    "n": 44,
+    "aprobados": 44
   }
 }

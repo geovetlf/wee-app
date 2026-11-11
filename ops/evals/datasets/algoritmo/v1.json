@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dominio": "algoritmo",
-  "descripcion": "El Algorithm Engine EN OBSERVACIÓN (crearCicloAlgoritmico().decidir y cerrar sin aprender). Peticiones sintéticas: las seis de la sombra del plan (creator/sombra.ts) y cinco del corpus golden (functions/test/equivalencia-s2b.mjs), más restricciones, frontera de autoridad, forma, presupuesto de pensar, opciones, enfoques y cierre. Sin datos de personas (ni goal, ni brief, ni cuentas: la traza la pone el escenario con la identidad eval), sin proveedores ni modelos reales. Coste $0: el motor no ejecuta nada.",
+  "descripcion": "El Algorithm Engine EN OBSERVACIÓN (crearCicloAlgoritmico().decidir y cerrar sin aprender). Peticiones sintéticas: las seis de la sombra del plan (creator/sombra.ts) y cinco del corpus golden (functions/test/equivalencia-s2b.mjs), más restricciones, frontera de autoridad (también por responsabilidad: un sinónimo, una clave compuesta, una billetera y un tope de dinero que pasa), forma, presupuesto de pensar (también con un cronómetro determinista), opciones, enfoques y cierre. Sin datos de personas (ni goal, ni brief, ni cuentas: la traza la pone el escenario con la identidad eval), sin proveedores ni modelos reales. Coste $0: el motor no ejecuta nada.",
   "casos": [
     {
       "evalCaseId": "algoritmo-sombra-itinerario",
@@ -310,6 +310,56 @@
       "cierre": {"observacion":{"kind":"success","actual":{"id":"resultado-4","status":"succeeded","outputs":[{"kind":"image","ref":"salida-resultado-4"}]},"at":1700000000000,"signals":[{"key":"result.latencyMs","subject":"resultado-4","value":1000,"source":"measured"}]}},
       "expected": {"status":"undecided","parada":"composition_emptied","elegida":null,"incertidumbre":"unknown","cierre":{"status":"invalid","parada":"not_decided"}},
       "tags": ["cierre"]
+    },
+    {
+      "evalCaseId": "algoritmo-crono-corte",
+      "name": "Cronómetro · el tiempo de pensar se acaba entre etapas",
+      "description": "Con un cronómetro que avanza 300 ms en cada lectura y el tope de 250 ms, el ciclo se para antes de estructurar la tarea: budget_exceeded, sin entrega y dicho en el porqué (el tercer caso de esa parada).",
+      "cronometro": {"paso":300},
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"a","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"b","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"c","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"d","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"e","value":0.01,"source":"measured","sampleSize":20}]},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"undecided","parada":"budget_exceeded","elegida":null},
+      "tags": ["presupuesto","cronometro"]
+    },
+    {
+      "evalCaseId": "algoritmo-crono-holgado",
+      "name": "Cronómetro · un reloj que avanza y deja tiempo de sobra",
+      "description": "El mismo diamante con un cronómetro que apenas avanza: decide y entrega lo mismo que sin reloj.",
+      "cronometro": {"paso":0.001},
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"a","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"b","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"c","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"d","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"e","value":0.01,"source":"measured","sampleSize":20}]},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"diamante:par3:estrategia","grupos":[["b","c","e"]],"incertidumbre":"uncertain"},
+      "tags": ["presupuesto","cronometro"]
+    },
+    {
+      "evalCaseId": "algoritmo-frontera-sinonimo-en-restriccion",
+      "name": "Frontera · un sinónimo de proveedor en una restricción",
+      "description": "La lista del Planner no conoce «vendor»; la lectura por responsabilidad sí: elegir con qué es del Router, y se para antes de pensar.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"a","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"b","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"c","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"d","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"e","value":0.01,"source":"measured","sampleSize":20}],"constraints":{"vendor":"v-sintetico"}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"invalid","parada":"authority_violation","elegida":null},
+      "tags": ["frontera","responsabilidad"]
+    },
+    {
+      "evalCaseId": "algoritmo-frontera-compuesta-en-paso",
+      "name": "Frontera · una clave compuesta en un paso del Planner",
+      "description": "«textModel» elige modelo con otro nombre: A3 rechaza la estrategia y nada cruza.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"frontera-compuesta:puente","steps":[{"id":"a","capability":"text.generate","purpose":"p-a","input":{"textModel":"m-sintetico"}}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"undecided","parada":"composition_emptied","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["frontera","responsabilidad"]
+    },
+    {
+      "evalCaseId": "algoritmo-frontera-billetera-en-paso",
+      "name": "Frontera · una billetera en un paso del Planner",
+      "description": "Mover dinero es del Financial Core: la estrategia que lleva «walletId» no se entrega.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"frontera-billetera:puente","steps":[{"id":"a","capability":"text.generate","purpose":"p-a","input":{"walletId":"w-sintetico"}}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"undecided","parada":"composition_emptied","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["frontera","responsabilidad","dinero"]
+    },
+    {
+      "evalCaseId": "algoritmo-frontera-tope-de-dinero-pasa",
+      "name": "Frontera · un TOPE de dinero no es cobrar",
+      "description": "maxCredits y maxUsd son límites que esta capa solo lee: no cruzan, se decide y se entregan tal cual.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"a","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"b","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"c","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"d","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"e","value":0.01,"source":"measured","sampleSize":20}],"constraints":{"budget":{"maxCredits":3,"maxUsd":0.05}}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"diamante:par3:estrategia"},
+      "tags": ["frontera","responsabilidad","dinero"]
     }
   ]
 }

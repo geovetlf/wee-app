@@ -84,6 +84,9 @@ const TOPE_DE_CREDITS_PARA_EL_ROUTER = /(^|\.)constraints\.budget\.maxCredits$/;
 const ARTEFACTOS_DE_EJECUCION = new Set(['jobid', 'workflowid', 'runid', 'executionid', 'dispatchid', 'assetid', 'materialid',
   'generationid', 'providerref', 'credittransactionid', 'outputurl', 'downloadurl']);
 
+/* El porqué con que el ciclo dice que cortó entre etapas por tiempo (integration-cycle.ts, `sinTiempo`). */
+const CORTE_POR_TIEMPO = /^Se acabó el tiempo de pensar\b/;
+
 /* Los requisitos que acotan por arriba (el más estrecho es el menor) y por abajo (el mayor). */
 const TOPES_POR_ARRIBA = ['maxSteps', 'maxParallel', 'maxRisk', 'maxLatencyMs', 'deadlineAt'];
 const CLAVES_ESPERADAS = ['status', 'parada', 'elegida', 'grupos', 'incertidumbre', 'cierre'];
@@ -280,22 +283,26 @@ const CATALOGO = {
 
   /*
    * LA FRONTERA DE AUTORIDAD, con la lista del Planner (`claveDeImplementacion`), recorrida entera: nada que cruza
-   * (la entrega) ni nada elegido o elegible nombra una implementación; si la petición no nombraba ninguna, el motor no
-   * introduce ninguna en ninguna parte —lo mismo que mira la sombra con `violacionesEn`—; y si la nombraba, se niega a
-   * entregar.
+   * (la entrega) ni nada elegido o elegible nombra una implementación; si la petición no cruzaba la frontera, el motor
+   * no introduce ninguna implementación en ninguna parte —lo mismo que mira la sombra con `violacionesEn`—; y si la
+   * cruzaba, se niega a entregar. «Cruzaba» es por la lista del Planner o por la lectura por responsabilidad del motor
+   * (misión de cierre: una billetera o un sinónimo en un paso); el desenlace exacto lo fija `expected`.
    */
   'algoritmo/frontera': (d, _e, caso) => {
     const r = resultadoDe(d);
     if (!r) return { ok: false, detail: 'sin resultado del ciclo' };
     const f = [];
     const entrada = rutasDe({ peticion: caso.peticion ?? null, observacion: caso.cierre?.observacion ?? null }, esImplementacion);
+    const porResponsabilidad = MOTOR_ALGORITMICO.violacionesEn({ peticion: caso.peticion ?? null, observacion: caso.cierre?.observacion ?? null }, 'entrada')
+      .map((v) => `${v.donde}.${v.clave}`);
+    const cruzaba = [...new Set([...entrada.rutas, ...porResponsabilidad])];
     const entrega = rutasDe(r.entrega ?? null, esImplementacion);
     const elegido = rutasDe([r.decision?.selected ?? null, ...lista(r.decision?.alternatives), r.approach?.selected ?? null,
       ...lista(r.decision?.candidates).filter((c) => c?.eligible).map((c) => c.value)], esImplementacion);
     if (entrega.rutas.length) f.push(`la entrega nombra una implementación: ${entrega.rutas.join(', ')}`);
     if (elegido.rutas.length) f.push(`lo elegido o elegible nombra una implementación: ${elegido.rutas.join(', ')}`);
-    if (entrada.rutas.length) {
-      if (r.status === 'decided' || r.entrega) f.push(`la petición nombraba una implementación (${entrada.rutas.join(', ')}) y aun así se entregó`);
+    if (cruzaba.length) {
+      if (r.status === 'decided' || r.entrega) f.push(`la petición cruzaba la frontera (${cruzaba.join(', ')}) y aun así se entregó`);
     } else {
       const todo = rutasDe({ resultado: r, cierre: d.cierre ?? null }, esImplementacion);
       if (todo.rutas.length) f.push(`el motor introdujo una implementación: ${todo.rutas.join(', ')}`);
@@ -525,7 +532,10 @@ const CATALOGO = {
   /*
    * EL PRESUPUESTO DE PENSAR NUNCA SE PASA EN SILENCIO: si un contador supera el tope que rige, la decisión lo dice
    * (un aviso de presupuesto o `budget_exceeded`); y el ciclo llama `budget_exceeded` solo a lo que de verdad se quedó
-   * sin presupuesto. Contadores deterministas —el motor no lee relojes—, no milisegundos medidos.
+   * sin presupuesto. Sin cronómetro, el motor no lee relojes: contadores deterministas, no milisegundos medidos. Con el
+   * cronómetro del caso —de mentira y determinista— el ciclo puede además CORTAR ENTRE ETAPAS (el tercer caso de
+   * `budget_exceeded`, misión de cierre): sin entrega, sin marca en ningún motor y dicho en el porqué. Ese corte solo
+   * es legítimo con cronómetro; sin él, decirlo es mentir.
    */
   'algoritmo/presupuesto-de-pensar': (d, _e, caso) => {
     const r = resultadoDe(d);
@@ -545,10 +555,15 @@ const CATALOGO = {
       const loDice = lista(dec.warnings).some((w) => VOCABULARIO.avisosDePresupuesto.includes(w)) || dec.failure === 'budget_exceeded';
       if (pasados.length && !loDice) f.push(`se pasó sin decirlo: ${pasados.join(', ')}`);
     }
+    const corteDeTiempo = lista(r?.because).some((b) => CORTE_POR_TIEMPO.test(String(b)));
+    const conCronometro = esObjeto(caso.cronometro);
+    if (corteDeTiempo && !conCronometro) f.push('dice que se acabó el tiempo de pensar sin cronómetro: sin reloj, el motor no mide tiempo');
+    if (corteDeTiempo && (r?.parada !== 'budget_exceeded' || r?.entrega)) f.push('un corte por tiempo que no para con budget_exceeded, o que entrega');
     if (r?.decision?.failure === 'budget_exceeded' && r.parada !== 'budget_exceeded') f.push('A1 se quedó sin presupuesto y el ciclo lo llama de otra forma');
     if (r?.parada === 'budget_exceeded' && r.decision?.failure !== 'budget_exceeded'
-      && !(r.strategies?.metricas?.budgetExhausted || r.parallelization?.metricas?.budgetExhausted || r.decomposition?.metricas?.optionLimitReached)) {
-      f.push('dice budget_exceeded sin que ningún motor marcara el presupuesto agotado');
+      && !(r.strategies?.metricas?.budgetExhausted || r.parallelization?.metricas?.budgetExhausted || r.decomposition?.metricas?.optionLimitReached)
+      && !(corteDeTiempo && conCronometro)) {
+      f.push('dice budget_exceeded sin que ningún motor marcara el presupuesto agotado ni se cortara el tiempo');
     }
     return veredicto(f);
   },
