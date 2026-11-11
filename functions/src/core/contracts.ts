@@ -584,8 +584,8 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  * DECIDE»), leída así en esta misión: sube el motor cuyo veredicto cambia con entradas
  * VÁLIDAS —A6, por CORTE y SEÑAL: `motor-de-verificacion@3`—; no sube el que solo rechaza
  * más de lo que el contrato ya prohibía —FRONTERA, REQUISITOS—, como en S2-C (la regla de
- * B.1 en A3, A4, A5 y A8, «sin subir contrato ni motores»). La lectura contraria —que A1, A3,
- * A5 y A7 suban también por FRONTERA, como `motor-de-decision@2` en 1.10— va con la
+ * B.1 en A3, A4, A8 y el motor de optimización, «sin subir contrato ni motores»). La lectura contraria —que A1, A3,
+ * A7 y el motor de optimización suban también por FRONTERA, como `motor-de-decision@2` en 1.10— va con la
  * decisión del 1.13.
  */
 export const ALGORITHM_CONTRACT_VERSION = '1.12' as const;
