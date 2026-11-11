@@ -451,10 +451,11 @@ const COMPUESTAS = [
 const GRAFIAS = [
   ['proveedores', ROUTER], ['nombreDelProveedor', ROUTER], ['provider-name', ROUTER], ['provider name', ROUTER],
   ['provider.name', ROUTER], ['PROVIDER_NAME', ROUTER], ['providername', ROUTER],
-  ['Proveëdor', ROUTER], ['ｐｒｏｖｉｄｅｒ', ROUTER], ['pro​vider', ROUTER],
-  ['x-api-key', SECRETO], ['apikey', SECRETO], ['claveDeApi', SECRETO], ['contraseña', SECRETO],
+  ['Prove\u00ebdor', ROUTER], ['Prove\u0065\u0308dor', ROUTER], ['\uff50\uff52\uff4f\uff56\uff49\uff44\uff45\uff52', ROUTER],
+  ['pro\u200bvider', ROUTER], ['pro\u00advider', ROUTER],
+  ['x-api-key', SECRETO], ['apikey', SECRETO], ['claveDeApi', SECRETO], ['contrase\u00f1a', SECRETO],
   ['accessToken', SECRETO], ['client_secret', SECRETO],
-  ['créditos', DINERO], ['facturación', DINERO], ['walletid', DINERO], ['estimatedCredits', DINERO],
+  ['cr\u00e9ditos', DINERO], ['facturaci\u00f3n', DINERO], ['walletid', DINERO], ['estimatedCredits', DINERO],
   ['maxChargeCredits', DINERO], ['creditBudgetId', DINERO],
   ['baseurl', GATEWAY], ['callbackUrl', GATEWAY],
   ['storagePath', MATERIALES], ['createAsset', MATERIALES], ['subirMaterial', MATERIALES],
@@ -501,6 +502,8 @@ const LEGITIMAS = [
   'clavesDeImplementacion', 'AUTHORITY_VIOLATION', 'CORE_ADDS_INFORMATION', 'pasosIgualesAlPlanDelCore',
   /* palabras que CONTIENEN una raíz y no la nombran */
   'feedback', 'payload', 'capital', 'tokens', 'maxTokens', 'model3d', 'baseline',
+  /* verbos que solos no cruzan (misión de cierre): `retry`, `generate`, `render`, `call`, `process` son acciones; sin objeto, nada */
+  'retryPolicy', 'generatedAt', 'renderMode', 'callCount', 'processingMs',
   ...Object.keys(A.TOPES_POR_DEFECTO),
 ];
 const marcadas = LEGITIMAS.filter((k) => cruzaComo(k));
@@ -510,8 +513,23 @@ check('K2.7 · una clave que es un DATO —la de un agregado de A7— describe y
   A.violacionesEn({ 'result.latencyMs|capability=x.y|providerId=p-a|modelId=m-p-a': { sampleSize: 40 } }, 'historia').length === 0
   && A.violacionesEn({ 'JOB:puente': 1 }, 'ids').length === 0
   && A.violacionesEn({ providerId: 'p' }, 'control').length === 1);
-check('K2.8 · una clave patológica no tumba la frontera: se lee en tiempo acotado y no se inventa nada',
-  A.cruceDeClave('a'.repeat(100000)) === undefined && A.palabrasDeClave('ab'.repeat(2000)).length >= 1);
+/*
+ * `despegar` parte una palabra pegada si la puede leer ENTERA con el léxico, hasta 64 letras: se prueba con una raíz
+ * CORTA (el par `api` + `key`), que solo se ve despegando. De 65 en adelante no lo intenta —tiempo acotado—, y una
+ * raíz corta pegada ya no se ve: un límite declarado (ALGORITHM-ENGINE.md § 21). Una raíz LARGA, sí, a cualquier
+ * longitud. Y una clave enorme se lee hasta su tope sin colgarse (revisión de código: la K2.8 de antes no despegaba).
+ */
+const pegada64 = `apikey${'name'.repeat(14)}de`;
+const pegada65 = `apikey${'name'.repeat(14)}del`;
+const largaK28 = `${'q'.repeat(200)}provider`;
+const t0K28 = process.hrtime.bigint();
+for (let i = 0; i < 300; i++) { A.cruceDeClave(pegada64); A.cruceDeClave(pegada65); A.cruceDeClave('ab'.repeat(5000)); }
+const msK28 = Number(process.hrtime.bigint() - t0K28) / 1e6;
+check('K2.8 · una palabra pegada de 64 letras se despega y se lee (`apikey…` → secreto); de 65 no se intenta —tiempo acotado— salvo por una raíz larga; y una clave patológica no tumba la frontera',
+  pegada64.length === 64 && pegada65.length === 65
+  && cruzaComo(pegada64)?.efecto === SECRETO && cruzaComo(pegada65) === undefined && cruzaComo(largaK28)?.efecto === ROUTER
+  && A.cruceDeClave('a'.repeat(100000)) === undefined && A.palabrasDeClave('ab'.repeat(2000)).length >= 1 && msK28 < 5000,
+  `64: ${cruzaComo(pegada64)?.efecto} · 65: ${cruzaComo(pegada65)?.efecto} · larga: ${cruzaComo(largaK28)?.efecto} · ${msK28.toFixed(0)} ms`);
 
 /* En una decisión de verdad: un TOPE de dinero se lee y se decide; un requisito que COBRA, no. */
 const TRAZA_K2 = { traceId: 't', requestId: 'r', userId: 'u' };
@@ -586,6 +604,32 @@ check('K2.16 · una cuenta de facturación en lo que se pide para el ciclo antes
 
 check('K2.17 · la lectura por responsabilidad vive en authority.ts y va DESPUÉS de la lista del Planner, nunca en su lugar',
   /claveDeImplementacion\(clave\) \? POR_EL_PLANNER : responsabilidadDeClave\(clave\)/.test(leer('functions/src/core/algorithm/authority.ts')));
+
+/*
+ * Lo que la revisión de la fase vio pasar (seguridad y código): raíces pegadas a palabras que no se dejan leer, un
+ * dígito pegado, signos que antes apagaban la lectura (`$`, `/`, `@`, `+`), una clave de más de 128 caracteres, y
+ * verbos que piden lo que es de otro (`generateAsset`, `dispatchJob`, `retryJob`). Y el secreto de las cabeceras.
+ */
+const VISTAS_EN_LA_REVISION = [
+  ['aiprovider', ROUTER], ['textmodel', ROUTER], ['llmvendor', ROUTER], ['defaultmodel', ROUTER], ['provider2', ROUTER],
+  ['model2', ROUTER], ['vendorx', ROUTER], ['$vendor', ROUTER], ['provider/name', ROUTER], ['@model', ROUTER],
+  ['api+key', SECRETO], [`${'x'.repeat(121)}Provider`, ROUTER],
+  ['generateAsset', MATERIALES], ['dispatchJob', TRABAJOS], ['retryJob', TRABAJOS],
+  ['authorization', SECRETO], ['Authorization', SECRETO], ['authHeader', SECRETO],
+];
+const noVistas = VISTAS_EN_LA_REVISION.filter(([clave, efecto]) => {
+  const v = cruzaComo(clave);
+  return !v || v.clave !== clave || v.efecto !== efecto || v.dueno !== EFECTO[efecto].dueno;
+});
+check(`K2.18 · REGRESIÓN · lo que la revisión vio pasar cruza ahora, y como lo que es (${VISTAS_EN_LA_REVISION.length})`,
+  noVistas.length === 0, noVistas.map(([c]) => `${c.slice(0, 24)} → ${JSON.stringify(cruzaComo(c)?.efecto ?? null)}`).join(' · ') || 'todas');
+const { CAMPOS_PROHIBIDOS } = lib('core/observability.js');
+const NO_NOMBRAN_UN_SECRETO = ['token', 'prompt', 'message', 'content'];
+const deSecreto = CAMPOS_PROHIBIDOS.filter((c) => !NO_NOMBRAN_UN_SECRETO.includes(c.toLowerCase()));
+check('K2.19 · una lista de secretos, no dos que divergen: cada campo de `CAMPOS_PROHIBIDOS` (core/observability.ts) que nombra un secreto cruza aquí como «leer un secreto»; los que no —token, prompt, message, content— están dichos',
+  deSecreto.length >= 5 && deSecreto.every((c) => cruzaComo(c)?.efecto === SECRETO)
+  && CAMPOS_PROHIBIDOS.every((c) => deSecreto.includes(c) || NO_NOMBRAN_UN_SECRETO.includes(c.toLowerCase())),
+  deSecreto.filter((c) => cruzaComo(c)?.efecto !== SECRETO).join(', ') || deSecreto.join(', '));
 
 /* 5, 6, 7: presupuesto, iteraciones y bucles. Ejecutados. */
 const cIgnora = A.crearContador(A.presupuestoEfectivo({ maxCandidates: 2 }));

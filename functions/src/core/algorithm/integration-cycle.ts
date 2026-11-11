@@ -59,10 +59,11 @@ export interface OpcionesDelCiclo {
    * (`performance.now`), solo para el tope de pensar `maxLatencyMs`.
    *
    * Sin él, el motor es el de siempre —puro, sin reloj— y el tope de tiempo no se
-   * mide. Con él, el ciclo lo aplica MIENTRAS razona: cada etapa (A2–A6r) recibe
-   * el tiempo que queda como su propio `maxLatencyMs` y se recorta como siempre
-   * —lo mejor que tenga—, y entre etapas, si no queda tiempo, el ciclo se para con
-   * `budget_exceeded` y dice antes de qué etapa.
+   * mide. Con él, el ciclo lo aplica MIENTRAS razona: en `decidir`, cada etapa (A2,
+   * A4, A3, A5) recibe el tiempo que queda como su propio `maxLatencyMs` y se recorta
+   * como siempre —lo mejor que tenga—, y entre etapas, si no queda tiempo, el ciclo
+   * se para con `budget_exceeded` y dice antes de qué etapa. En `cerrar`, A6 y A6r
+   * reciben el reloj y miden su PROPIO tope (el del presupuesto que les llegue).
    *
    * NO es un reloj de pared: no sirve para `deadlineAt`, que es una fecha. Por eso
    * A1 no lo recibe —su `ahora` es justamente ese reloj de pared—, y el ciclo
@@ -73,21 +74,25 @@ export interface OpcionesDelCiclo {
 }
 
 /**
- * UN CRONÓMETRO A PRUEBA DE RELOJES ROTOS: lo que lanza, o no es un número finito,
- * no cuenta, y se devuelve la última lectura buena. Así un reloj roto no tumba el
- * razonamiento ni lo corta por error: deja de avanzar, y lo que acota entonces es
- * el resto de topes —candidatas, iteraciones, profundidad—, como sin reloj.
+ * UN CRONÓMETRO A PRUEBA DE RELOJES ROTOS. `fresca` es la lectura de AHORA, o nada si
+ * el reloj lanza o no da un número finito; `leer`, la de ahora o, si falla, la última
+ * buena. El inicio de cada `decidir` se toma FRESCO: una lectura vieja como inicio
+ * mediría como «pensar» el hueco desde la llamada anterior y cortaría por error
+ * (revisión de la misión). Con un inicio fallido la llamada va sin reloj; después,
+ * un reloj que falla deja de avanzar. Así no tumba el razonamiento ni lo corta por
+ * error, y lo que acota entonces es el resto de topes, como sin reloj.
  */
-const cronometroSeguro = (c: (() => number) | undefined): (() => number | undefined) | undefined => {
+const cronometroSeguro = (c: (() => number) | undefined): { fresca: () => number | undefined; leer: () => number | undefined } | undefined => {
   if (typeof c !== 'function') return undefined;
   let ultima: number | undefined;
-  return () => {
+  const fresca = (): number | undefined => {
     try {
       const v = c();
-      if (typeof v === 'number' && Number.isFinite(v)) ultima = v;
-    } catch { /* el reloj no tumba el razonamiento: se queda la última lectura buena */ }
-    return ultima;
+      if (typeof v === 'number' && Number.isFinite(v)) { ultima = v; return v; }
+    } catch { /* el reloj no tumba el razonamiento: esta lectura no cuenta */ }
+    return undefined;
   };
+  return { fresca, leer: () => fresca() ?? ultima };
 };
 
 /** La alternativa elegida, por su id: A1 devuelve el valor, y el id está en sus candidatos. */
@@ -153,9 +158,9 @@ const porElPresupuesto = (paralelizar: boolean, r: Pick<AlgorithmDecisionResult,
   || (!!r.strategies?.metricas.budgetExhausted && !r.strategies.estrategias.length);
 
 export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
-  const leerCronometro = cronometroSeguro(opciones.cronometro);
+  const cronometro = cronometroSeguro(opciones.cronometro);
   /* El de las etapas: sin ninguna lectura buena todavía, 0 —lo que no avanza no corta—. */
-  const ahora = leerCronometro ? { ahora: (): number => leerCronometro() ?? 0 } : {};
+  const ahora = cronometro ? { ahora: (): number => cronometro.leer() ?? 0 } : {};
   const a1 = crearMotorDeDecision<unknown>();
   const a2 = crearMotorDeDescomposicion({ ...(opciones.capacidades ? { capacidades: opciones.capacidades } : {}), ...ahora });
   const a3 = crearMotorDeEstrategias({ ...ahora });
@@ -170,7 +175,7 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
 
   const decidir = <T = unknown>(peticion: PeticionAlgoritmica<T>): AlgorithmDecisionResult<T> => {
     /* Lo primero, para que cuente todo: con cronómetro, el tope de pensar cubre el ciclo entero. */
-    const inicio = leerCronometro?.();
+    const inicio = cronometro?.fresca();
     const recorrido: PasoDelCiclo[] = [];
     const porque: string[] = [];
     let salida: Omit<AlgorithmDecisionResult<T>, 'contract' | 'status' | 'recorrido' | 'because'> = {};
@@ -187,7 +192,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
      * implementación. Lo que NINGUNA autoridad mira antes de este punto es lo
      * que la petición trae en `constraints` y en `expected`, y eso también
      * cruza la frontera. Por eso la comprobación va aquí, sobre la entrega
-     * ENTERA, con el mismo predicado del Planner.
+     * ENTERA, con la frontera de `authority.ts`: la lista del Planner primero y,
+     * después, la lectura por responsabilidad.
      */
     const entregar = (parte: Pick<EntregaDeEjecucion, 'plan' | 'elegida'>): AlgorithmDecisionResult<T> => {
       /*
@@ -313,7 +319,7 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
      */
     const topeDeTiempo = presupuestoEfectivo(d.budget).maxLatencyMs;
     const queda = (): number | undefined => {
-      const ya = leerCronometro?.();
+      const ya = cronometro?.leer();
       return inicio === undefined || ya === undefined ? undefined : topeDeTiempo - (ya - inicio);
     };
     /* Nunca 0 ni negativo —un tope así sería un presupuesto mal formado—: si el tiempo se acaba

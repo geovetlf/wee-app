@@ -31,7 +31,8 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const CORE = path.join(RAIZ, 'functions/lib/core');
 const A = require(path.join(CORE, 'algorithm/index.js'));
 const { ALGORITHM_CONTRACT_VERSION } = require(path.join(CORE, 'contracts.js'));
-/* La frontera de autoridad del Core es UNA lista, la del Planner: aquí no se escribe otra. */
+/* La lista de implementación del Planner, para el grader de la frontera; la frontera ENTERA —esa lista y la lectura por
+   responsabilidad de authority.ts— la aplica `violacionesEn`. Aquí no se escribe otra. */
 const { claveDeImplementacion } = require(path.join(CORE, 'planner.js'));
 
 /** La identidad de las evaluaciones (`IDENTIDAD_EVAL` del motor de evals): firma la traza; nunca es una cuenta. */

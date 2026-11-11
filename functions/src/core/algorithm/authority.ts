@@ -112,7 +112,15 @@ export interface ViolacionDeAutoridad extends CruceDeAutoridad {
  * tokens), `cost` y `usd` (un eje, y lo medido del proveedor: describir), `url` (una
  * referencia no es una llamada), `account`, `budget`, `spend`, `amount`,
  * `capability`, `retry`, `checkpoint` y `motor` (así se llaman los motores de esta
- * capa). Ni un nombre de proveedor: describirlo es de las señales.
+ * capa). Ni un nombre de proveedor: describirlo es de las señales. `retry` no es un
+ * concepto —proponer reintentos es de esta capa—, pero como VERBO sobre un trabajo
+ * (`retryJob`) cruza: reintentar un trabajo es del Job Engine.
+ *
+ * Las palabras de secreto son las de `CAMPOS_PROHIBIDOS` (core/observability.ts) que
+ * nombran un secreto —`apiKey`, `authorization`, `secret`, `password`, `credential`—,
+ * más sus parientes; `token`, `prompt`, `message` y `content` no, porque no nombran un
+ * secreto en una clave de esta capa. Una lista de secretos, no dos que divergen: lo fija
+ * `algorithm-foundation` K2.19.
  *
  * El orden es de precedencia —el más específico primero: `apiKey` es un secreto
  * antes que una dirección—, no el de `EFECTOS_PROHIBIDOS`.
@@ -128,8 +136,8 @@ export interface ConceptoDeAutoridad {
 const conceptos: readonly ConceptoDeAutoridad[] = [
   {
     efecto: 'leer un secreto',
-    nombres: ['secret', 'secreto', 'credential', 'credencial', 'password', 'contrasena', 'bearer'],
-    pares: [['api', 'key'], ['private', 'key'], ['access', 'key'], ['access', 'token'], ['auth', 'token'],
+    nombres: ['secret', 'secreto', 'credential', 'credencial', 'password', 'contrasena', 'bearer', 'authorization', 'autorizacion'],
+    pares: [['api', 'key'], ['private', 'key'], ['access', 'key'], ['access', 'token'], ['auth', 'token'], ['auth', 'header'],
       ['refresh', 'token'], ['id', 'token'], ['clave', 'api'], ['clave', 'privada'], ['token', 'acceso']],
   },
   {
@@ -165,7 +173,9 @@ const IDENTIFICADORES: ReadonlySet<string> = new Set(['id', 'ids', 'ref', 'uid',
 const ACCIONES: ReadonlySet<string> = new Set(['create', 'crear', 'write', 'escribir', 'update', 'actualizar',
   'modify', 'modificar', 'delete', 'borrar', 'eliminar', 'remove', 'upload', 'subir', 'save', 'guardar',
   'overwrite', 'sobrescribir', 'publish', 'publicar', 'store', 'almacenar', 'run', 'execute', 'ejecutar',
-  'encolar', 'schedule', 'programar', 'submit', 'launch', 'lanzar', 'start', 'iniciar', 'cancel', 'cancelar']);
+  'encolar', 'schedule', 'programar', 'submit', 'launch', 'lanzar', 'start', 'iniciar', 'cancel', 'cancelar',
+  'generate', 'generar', 'dispatch', 'despachar', 'trigger', 'disparar', 'invoke', 'invocar', 'call', 'llamar',
+  'send', 'enviar', 'process', 'procesar', 'materialize', 'materializar', 'render', 'renderizar', 'retry', 'reintentar']);
 /** Lo que une palabras sin nombrar nada: `nombreDelProveedor`, `claveDeApi`. */
 const CONECTORES: ReadonlySet<string> = new Set(['de', 'del', 'la', 'el', 'en', 'para', 'por', 'of', 'the', 'for', 'to']);
 /** Solo para despegar compuestos (`providerid`, `baseurl`). Solas no cruzan. */
@@ -184,12 +194,16 @@ const INVISIBLES = /\p{Cf}/gu;
 const limpiar = (clave: string): string => clave.normalize('NFKD').replace(MARCAS, '').replace(INVISIBLES, '');
 
 /**
- * ¿Es el NOMBRE de un campo? Letras y dígitos, con `_`, `-`, `.` o espacios. Lo que
- * lleva otra puntuación —`metrica|providerId=p` (la clave de un agregado de A7),
- * `JOB:puente`— es un dato hecho clave: describe lo que pasó. Ése solo lo lee la
- * lista del Planner, exactamente como hasta ahora.
+ * ¿Es un DATO hecho clave? Lo que lleva `|`, `=` o `:` —`metrica|providerId=p`, la clave
+ * con que A7 agrega; `JOB:puente`, un id— describe lo que pasó: solo lo lee la lista del
+ * Planner, exactamente como hasta ahora. Cualquier otra puntuación (`$`, `/`, `@`, `+`…)
+ * separa palabras: `provider/name` y `api+key` se leen. (Revisión de la misión: la regla de
+ * antes —solo letras, dígitos, `_`, `-`, `.` y espacios— dejaba sin leer `$vendor` o
+ * `@model`.)
  */
-const NOMBRE_DE_CAMPO = /^[A-Za-z0-9_. -]{1,128}$/;
+const ES_UN_DATO = /[|=:]/;
+/** Lo que se lee de una clave, como mucho: más allá, una clave no es un nombre sino un abuso. */
+const MAX_LECTURA = 1024;
 
 /** La palabra del léxico que es, sin su plural: `proveedores` → `proveedor`. */
 const delLexico = (w: string): string | undefined => {
@@ -239,8 +253,22 @@ const DUENO_DE: ReadonlyMap<string, string> = new Map(EFECTOS_PROHIBIDOS.map((e)
 const cruceDe = (efecto: string): CruceDeAutoridad =>
   Object.freeze({ efecto, dueno: DUENO_DE.get(efecto) ?? 'sin dueño declarado: falta en EFECTOS_PROHIBIDOS' });
 
+/**
+ * LAS RAÍCES LARGAS, dentro de una palabra que no se deja leer. `despegar` solo parte una
+ * palabra pegada si la puede leer ENTERA con el léxico, así que `textmodel`, `aiprovider` o
+ * `provider2` quedaban enteras y sin dueño. Para eso, los nombres de cinco letras o más de
+ * cada concepto se buscan DENTRO de las palabras ajenas al léxico. Los cortos (`api`, `pay`,
+ * `pago`, `http`) no: dentro de `capital` o de `payload` no nombran nada.
+ *
+ * `EXCEPCIONES` es lo legítimo que contiene una raíz larga sin nombrarla: `model3d` es un TIPO
+ * de material, no un modelo. Corta a propósito, y cada una con su porqué.
+ */
+const LARGA = 5;
+const EXCEPCIONES: ReadonlySet<string> = new Set(['model3d']);
+
 interface Compilado {
   cruce: CruceDeAutoridad;
+  raicesLargas: readonly string[];
   nombres: ReadonlySet<string>;
   pares: readonly (readonly [string, string])[];
   cantidades: ReadonlySet<string>;
@@ -248,6 +276,7 @@ interface Compilado {
 }
 const COMPILADOS: readonly Compilado[] = conceptos.map((c) => ({
   cruce: cruceDe(c.efecto),
+  raicesLargas: (c.nombres ?? []).filter((w) => w.length >= LARGA),
   nombres: new Set(c.nombres ?? []),
   pares: c.pares ?? [],
   cantidades: new Set(c.cantidades ?? []),
@@ -262,14 +291,16 @@ const alguna = (palabras: readonly string[], de: ReadonlySet<string>): boolean =
  */
 export const responsabilidadDeClave = (clave: string): CruceDeAutoridad | undefined => {
   if (typeof clave !== 'string') return undefined;
-  const limpia = limpiar(clave);
-  if (!NOMBRE_DE_CAMPO.test(limpia)) return undefined;
+  const limpia = limpiar(clave).slice(0, MAX_LECTURA);
+  if (ES_UN_DATO.test(limpia)) return undefined;
   const palabras = palabrasDe(limpia);
+  const ajenas = palabras.filter((p) => !LEXICO.has(p) && !EXCEPCIONES.has(p));
   const seguidas = palabras.filter((p) => !CONECTORES.has(p));
   const actua = alguna(palabras, ACCIONES);
   const esTope = alguna(palabras, TOPES) && !alguna(palabras, IDENTIFICADORES) && !actua;
   for (const c of COMPILADOS) {
     if (alguna(palabras, c.nombres)) return c.cruce;
+    if (ajenas.some((p) => c.raicesLargas.some((r) => p.includes(r)))) return c.cruce;
     if (c.pares.some(([a, b]) => seguidas.some((p, i) => p === a && seguidas[i + 1] === b))) return c.cruce;
     if (!esTope && alguna(palabras, c.cantidades)) return c.cruce;
     if (actua && alguna(palabras, c.objetos)) return c.cruce;

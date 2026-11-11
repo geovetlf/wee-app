@@ -196,8 +196,9 @@ export type MotivoDeMetadataInvalida =
  * serializar —una función, un símbolo— y, la que más importa aquí, metadata que
  * intenta elegir proveedor.
  *
- * Lo último se comprueba con `violacionesEn`, el mismo predicado del Planner.
- * No hay una segunda lista de claves prohibidas y no puede haberla: una puerta
+ * Lo último se comprueba con `violacionesEn`: la lista del Planner primero y la
+ * lectura por responsabilidad de `authority.ts` después. No hay una segunda lista de
+ * claves prohibidas y no puede haberla: una puerta
  * de extensión con su propia idea de lo que está prohibido es la puerta por la
  * que se cuela lo que se prohibió en la otra.
  */

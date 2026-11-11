@@ -41,10 +41,13 @@ const check = (name, cond, detail = '') => {
 const falla = async (f) => { try { await f(); return null; } catch (e) { return e.message; } };
 const sinComentarios = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
 
-const { DOMINIOS, crearRegistroDeDominios, validarDominio, resolverDominio } = await imp('dominios.mjs');
-/* Hoy se corre con un registro común; el día que esté en DOMINIOS (y su archivo en dominios/), se corre el registrado. */
-const dominioAlgoritmo = DOMINIOS.algoritmo ?? (await imp('dominio-algoritmo.mjs')).dominioAlgoritmo;
-const REGISTRO = DOMINIOS.algoritmo ? DOMINIOS : crearRegistroDeDominios([...Object.values(DOMINIOS), dominioAlgoritmo]);
+const { DOMINIOS, validarDominio, resolverDominio } = await imp('dominios.mjs');
+/* Registrado en el registro de desarrollo (misión de cierre): se corre el registrado, y si dejara de estarlo, A0 lo dice. */
+const dominioAlgoritmo = DOMINIOS.algoritmo;
+const REGISTRO = DOMINIOS;
+check('A0) el dominio `algoritmo` está en el registro de desarrollo, después del Router',
+  !!dominioAlgoritmo && Object.keys(DOMINIOS).join() === 'router,algoritmo', Object.keys(DOMINIOS).join());
+if (!dominioAlgoritmo) { console.log('\nsin el dominio registrado no hay nada más que comprobar'); process.exit(1); }
 const { calificar, GRADERS_ALGORITMO, DIMENSION_DE_GRADER_ALGORITMO, VOCABULARIO } = await imp('graders-algoritmo.mjs');
 const { decidirEscenario, peticionDelCaso, MOTOR_ALGORITMICO, IDENTIDAD_DEL_ESCENARIO } = await imp('escenario-algoritmo.mjs');
 const { ejecutarDataset } = await imp('runner.mjs');
@@ -61,8 +64,7 @@ const DATASET = leerJson('ops/evals/datasets/algoritmo/v1.json');
 const HOLDOUT = leerJson('ops/evals/datasets/algoritmo/holdout-v1.json');
 const BASELINE = leerJson('ops/evals/baseline/algoritmo.json');
 const caso = (id) => DATASET.casos.find((c) => c.evalCaseId === id);
-const ARCHIVOS = ['ops/evals/escenario-algoritmo.mjs', 'ops/evals/graders-algoritmo.mjs',
-  ...(fs.existsSync(path.join(dir, 'dominio-algoritmo.mjs')) ? ['ops/evals/dominio-algoritmo.mjs'] : ['ops/evals/dominios/algoritmo.mjs'])];
+const ARCHIVOS = ['ops/evals/escenario-algoritmo.mjs', 'ops/evals/graders-algoritmo.mjs', 'ops/evals/dominios/algoritmo.mjs'];
 
 /* ── A · El contrato de dominio, el registro y lo que el dominio NO es ──────── */
 check('A1) el dominio cumple el contrato común (id, descripción, decidir, calificar, validarCaso, claveDeCaso) y entra por el registro común',

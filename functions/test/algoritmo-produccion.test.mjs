@@ -32,22 +32,22 @@ const check = (nombre, ok, detalle = '') => {
 const versionEn = (texto) => texto.match(/ALGORITHM_CONTRACT_VERSION = '([0-9]+\.[0-9]+)'/)?.[1];
 
 /* ── 1 · Los dos números, de sus fuentes ── */
-const buscarFuncion = (o, nombre) => {
-  if (!o || typeof o !== 'object') return undefined;
-  if (o.funcion === nombre && typeof o.commit === 'string') return o;
-  for (const v of Object.values(o)) { const r = buscarFuncion(v, nombre); if (r) return r; }
-  return undefined;
-};
-const creatorChat = buscarFuncion(JSON.parse(leer('ops/produccion.json')), 'creatorChat');
+/* Solo de `funciones`, la lista que `produccion-mapa` valida; y el commit, con su forma de siempre —40 hexadecimales—
+ * ANTES de dárselo a git: nada que empiece por `-` llega a `git show` como una opción (revisión de seguridad). */
+const COMMIT = /^[0-9a-f]{40}$/;
+const creatorChat = (JSON.parse(leer('ops/produccion.json')).funciones ?? []).find((f) => f?.funcion === 'creatorChat');
+const commitValido = typeof creatorChat?.commit === 'string' && COMMIT.test(creatorChat.commit);
 const MAIN = versionEn(leer('functions/src/core/contracts.ts'));
 let PROD;
 let errorDeGit = '';
-try {
-  PROD = versionEn(execFileSync('git', ['show', `${creatorChat?.commit}:functions/src/core/contracts.ts`], { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
-} catch (e) { errorDeGit = String(e.message).split('\n')[0]; }
+if (commitValido) {
+  try {
+    PROD = versionEn(execFileSync('git', ['show', `${creatorChat.commit}:functions/src/core/contracts.ts`], { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+  } catch (e) { errorDeGit = String(e.message).split('\n')[0]; }
+} else errorDeGit = 'el commit de creatorChat en ops/produccion.json no tiene la forma de un commit (40 hexadecimales)';
 const CORTO = creatorChat?.commit?.slice(0, 7);
 
-check('1 · el mapa de producción tiene `creatorChat` con su commit, y main tiene su contrato', !!creatorChat && !!MAIN, `${CORTO} · main ${MAIN}`);
+check('1 · el mapa de producción tiene `creatorChat` con un commit bien formado, y main tiene su contrato', commitValido && !!MAIN, `${CORTO} · main ${MAIN}`);
 check('2 · el contrato del motor en el commit desplegado de `creatorChat` se lee de git', !!PROD, PROD ? `producción ${PROD}` : errorDeGit);
 console.log(`   MAIN = ${MAIN} · PRODUCCIÓN = ${PROD} (creatorChat, ${CORTO})${MAIN === PROD ? ' — coinciden' : ' — distintos'}`);
 
