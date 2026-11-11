@@ -1,0 +1,315 @@
+{
+  "version": 1,
+  "dominio": "algoritmo",
+  "descripcion": "El Algorithm Engine EN OBSERVACIÓN (crearCicloAlgoritmico().decidir y cerrar sin aprender). Peticiones sintéticas: las seis de la sombra del plan (creator/sombra.ts) y cinco del corpus golden (functions/test/equivalencia-s2b.mjs), más restricciones, frontera de autoridad, forma, presupuesto de pensar, opciones, enfoques y cierre. Sin datos de personas (ni goal, ni brief, ni cuentas: la traza la pone el escenario con la identidad eval), sin proveedores ni modelos reales. Coste $0: el motor no ejecuta nada.",
+  "casos": [
+    {
+      "evalCaseId": "algoritmo-sombra-itinerario",
+      "name": "Sombra · un paso de itinerario",
+      "description": "La petición de la sombra con un solo paso (text.search/itinerary): se decide en fila, sin grupos y diciendo que no sabe (sin señales).",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"sombra-1:puente","steps":[{"id":"itinerary","capability":"text.search","purpose":"p-itinerary","input":{"kind":"itinerary","days":10}}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"sombra-1:puente:par1:estrategia","grupos":[],"incertidumbre":"unknown"},
+      "tags": ["sombra","en-fila"]
+    },
+    {
+      "evalCaseId": "algoritmo-sombra-destinos",
+      "name": "Sombra · un paso de destinos",
+      "description": "Un paso text.search/destinations con la forma de la sombra.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"sombra-2:puente","steps":[{"id":"destinations","capability":"text.search","purpose":"p-destinations","input":{"kind":"destinations"}}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"sombra-2:puente:par1:estrategia","grupos":[],"incertidumbre":"unknown"},
+      "tags": ["sombra","en-fila"]
+    },
+    {
+      "evalCaseId": "algoritmo-sombra-receta-foto",
+      "name": "Sombra · receta y foto",
+      "description": "Dos pasos en cadena (texto → imagen): nada puede ir a la vez.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"sombra-3:puente","steps":[{"id":"receta","capability":"text.generate","purpose":"p-receta"},{"id":"foto","capability":"image.generate","purpose":"p-foto","dependsOn":["receta"]}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"sombra-3:puente:par1:estrategia","grupos":[],"incertidumbre":"unknown"},
+      "tags": ["sombra","cadena"]
+    },
+    {
+      "evalCaseId": "algoritmo-sombra-guion-clip-voz",
+      "name": "Sombra · guion, referencia, clip y voz",
+      "description": "Cuatro pasos con una rama (guion → ref → clip; guion → voz), sin señales: sin evidencia no se paraleliza a ciegas.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"sombra-4:puente","steps":[{"id":"guion","capability":"text.generate","purpose":"p-guion"},{"id":"ref","capability":"image.generate","purpose":"p-ref","dependsOn":["guion"]},{"id":"clip","capability":"video.generate","purpose":"p-clip","dependsOn":["ref"]},{"id":"voz","capability":"voice.tts","purpose":"p-voz","dependsOn":["guion"]}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"sombra-4:puente:par1:estrategia","grupos":[],"incertidumbre":"unknown"},
+      "tags": ["sombra","ramas"]
+    },
+    {
+      "evalCaseId": "algoritmo-sombra-diamante",
+      "name": "Sombra · diamante de cinco pasos",
+      "description": "a → b, c, e; d ← b, c. Con la forma de la sombra y sin señales.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"sombra-5:puente","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"sombra-5:puente:par1:estrategia","grupos":[],"incertidumbre":"unknown"},
+      "tags": ["sombra","diamante"]
+    },
+    {
+      "evalCaseId": "algoritmo-sombra-pistas-y-usos",
+      "name": "Sombra · pistas y usos del paso",
+      "description": "Un paso con hints y uses (datos del Planner) que el motor tiene que conservar tal cual.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"sombra-6:puente","steps":[{"id":"x","capability":"text.generate","purpose":"p-x","hints":{"tone":"warm"},"uses":[0]},{"id":"y","capability":"image.generate","purpose":"p-y","dependsOn":["x"]}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"sombra-6:puente:par1:estrategia","grupos":[],"incertidumbre":"unknown"},
+      "tags": ["sombra","pasos-del-planner"]
+    },
+    {
+      "evalCaseId": "algoritmo-sintetico-por-niveles",
+      "name": "Golden · dos ramas medidas por niveles",
+      "description": "Corpus golden #0: dos ramas medidas; A3 propone una forma por niveles con dos tandas a la vez.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"signals":[{"key":"step.latencyMs","subject":"s1","value":900,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s2","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s3","value":100,"source":"model","sampleSize":20},{"key":"step.latencyMs","subject":"s4","value":900,"source":"measured","sampleSize":20}]},"tarea":{"id":"sintetico-0","steps":[{"id":"s0","capability":"text.generate","purpose":"p-s0"},{"id":"s1","capability":"image.generate","purpose":"p-s1","dependsOn":["s0"]},{"id":"s2","capability":"image.generate","purpose":"p-s2","dependsOn":["s1"]},{"id":"s3","capability":"image.generate","purpose":"p-s3","dependsOn":["s0"]},{"id":"s4","capability":"image.generate","purpose":"p-s4","dependsOn":["s3"]}]}},
+      "expected": {"status":"decided","parada":null,"elegida":"sintetico-0:por-niveles:estrategia","grupos":[["s1","s3"],["s2","s4"]],"incertidumbre":"unknown"},
+      "tags": ["golden","paralelismo"]
+    },
+    {
+      "evalCaseId": "algoritmo-sintetico-paralelizar-y-optimizar",
+      "name": "Golden · paralelizar y optimizar con señales de modelo",
+      "description": "Corpus golden #2: señales estimadas por modelo; la decisión no puede decir que sabe.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"signals":[{"key":"step.latencyMs","subject":"s0","value":100,"source":"model","sampleSize":20},{"key":"step.latencyMs","subject":"s2","value":900,"source":"model","sampleSize":20},{"key":"step.latencyMs","subject":"s3","value":100,"source":"model","sampleSize":20}]},"tarea":{"id":"sintetico-2","steps":[{"id":"s0","capability":"image.generate","purpose":"p-s0"},{"id":"s1","capability":"image.generate","purpose":"p-s1","dependsOn":["s0"]},{"id":"s2","capability":"text.generate","purpose":"p-s2","dependsOn":["s1"]},{"id":"s3","capability":"image.generate","purpose":"p-s3","dependsOn":["s2"]},{"id":"s4","capability":"text.generate","purpose":"p-s4","dependsOn":["s2"]}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"sintetico-2:par1:estrategia","grupos":[],"incertidumbre":"unknown"},
+      "tags": ["golden","incertidumbre"]
+    },
+    {
+      "evalCaseId": "algoritmo-sintetico-tres-a-la-vez",
+      "name": "Golden · tres tandas, hasta tres a la vez",
+      "description": "Corpus golden #9: seis pasos y señales mixtas.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"signals":[{"key":"step.latencyMs","subject":"s0","value":900,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s1","value":100,"source":"model","sampleSize":20},{"key":"step.latencyMs","subject":"s2","value":900,"source":"model","sampleSize":20},{"key":"step.latencyMs","subject":"s3","value":300,"source":"model","sampleSize":20},{"key":"step.latencyMs","subject":"s4","value":100,"source":"model","sampleSize":20},{"key":"step.latencyMs","subject":"s5","value":300,"source":"model","sampleSize":20}]},"tarea":{"id":"sintetico-9","steps":[{"id":"s0","capability":"text.generate","purpose":"p-s0"},{"id":"s1","capability":"image.generate","purpose":"p-s1","dependsOn":["s0"]},{"id":"s2","capability":"image.generate","purpose":"p-s2","dependsOn":["s0"]},{"id":"s3","capability":"image.generate","purpose":"p-s3","dependsOn":["s1"]},{"id":"s4","capability":"text.generate","purpose":"p-s4","dependsOn":["s0"]},{"id":"s5","capability":"text.generate","purpose":"p-s5","dependsOn":["s2"]}]}},
+      "expected": {"status":"decided","parada":null,"elegida":"sintetico-9:por-niveles:estrategia","grupos":[["s1","s2","s4"],["s3","s5"]],"incertidumbre":"uncertain"},
+      "tags": ["golden","paralelismo"]
+    },
+    {
+      "evalCaseId": "algoritmo-sintetico-medido",
+      "name": "Golden · seis pasos medidos",
+      "description": "Corpus golden #12: casi todo medido.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"signals":[{"key":"step.latencyMs","subject":"s0","value":100,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s1","value":100,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s3","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s4","value":100,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s5","value":300,"source":"measured","sampleSize":20}]},"tarea":{"id":"sintetico-12","steps":[{"id":"s0","capability":"image.generate","purpose":"p-s0"},{"id":"s1","capability":"image.generate","purpose":"p-s1","dependsOn":["s0"]},{"id":"s2","capability":"text.generate","purpose":"p-s2","dependsOn":["s1"]},{"id":"s3","capability":"image.generate","purpose":"p-s3","dependsOn":["s0"]},{"id":"s4","capability":"image.generate","purpose":"p-s4","dependsOn":["s0"]},{"id":"s5","capability":"image.generate","purpose":"p-s5","dependsOn":["s4"]}]}},
+      "expected": {"status":"decided","parada":null,"elegida":"sintetico-12:por-niveles:estrategia","grupos":[["s1","s3","s4"],["s2","s5"]],"incertidumbre":"uncertain"},
+      "tags": ["golden","paralelismo"]
+    },
+    {
+      "evalCaseId": "algoritmo-sintetico-cadena-medida",
+      "name": "Golden · cadena medida de dos pasos",
+      "description": "Corpus golden #15: una cadena: no hay nada que paralelizar.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"signals":[{"key":"step.latencyMs","subject":"s0","value":100,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"s1","value":300,"source":"measured","sampleSize":20}]},"tarea":{"id":"sintetico-15","steps":[{"id":"s0","capability":"text.generate","purpose":"p-s0"},{"id":"s1","capability":"text.generate","purpose":"p-s1","dependsOn":["s0"]}]}},
+      "expected": {"status":"decided","parada":null,"elegida":"sintetico-15:secuencial:estrategia","grupos":[],"incertidumbre":"uncertain"},
+      "tags": ["golden","cadena"]
+    },
+    {
+      "evalCaseId": "algoritmo-restriccion-hasta-dos-a-la-vez",
+      "name": "Restricción · maxParallel 2",
+      "description": "Con latencias medidas el diamante iría tres a la vez; maxParallel 2 lo acota.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxParallel":2}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"diamante:par2:estrategia","grupos":[["b","c"]],"incertidumbre":"uncertain"},
+      "tags": ["restricciones","paralelismo"]
+    },
+    {
+      "evalCaseId": "algoritmo-restriccion-en-fila",
+      "name": "Restricción · maxParallel 1",
+      "description": "Uno cada vez: el plan va en fila, sin grupos.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxParallel":1}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"diamante:par1:estrategia","grupos":[],"incertidumbre":"uncertain"},
+      "tags": ["restricciones","paralelismo"]
+    },
+    {
+      "evalCaseId": "algoritmo-restriccion-dos-lados",
+      "name": "Restricción · petición y objetivo, manda la más estrecha",
+      "description": "maxSteps 5 en la petición y 8 en el objetivo, maxParallel 2 en el objetivo: la entrega lleva lo más estrecho de los dos lados.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1},"constraints":{"maxSteps":8,"maxParallel":2}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxSteps":5}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"diamante:par2:estrategia","grupos":[["b","c"]],"incertidumbre":"uncertain"},
+      "tags": ["restricciones","dos-lados"]
+    },
+    {
+      "evalCaseId": "algoritmo-restriccion-pasos-imposible",
+      "name": "Restricción · maxSteps por debajo de los pasos del Planner",
+      "description": "Cinco pasos con maxSteps 3: no hay plan que cumpla y no se inventa uno quitando pasos.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxSteps":3}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"undecided","parada":"composition_emptied","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["restricciones","no-decide"]
+    },
+    {
+      "evalCaseId": "algoritmo-restriccion-capacidad-prohibida",
+      "name": "Restricción · capacidad prohibida en el plan",
+      "description": "image.edit prohibida y el diamante la necesita: nada que entregar.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"forbiddenCapabilities":["image.edit"]}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"undecided","parada":"composition_emptied","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["restricciones","no-decide"]
+    },
+    {
+      "evalCaseId": "algoritmo-restriccion-latencia-que-cabe",
+      "name": "Restricción · maxLatencyMs que cabe",
+      "description": "El camino crítico (900 ms) cabe en 1000 ms.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxLatencyMs":1000}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"diamante:par3:estrategia","grupos":[["b","c","e"]],"incertidumbre":"uncertain"},
+      "tags": ["restricciones","latencia"]
+    },
+    {
+      "evalCaseId": "algoritmo-restriccion-latencia-que-no-cabe",
+      "name": "Restricción · maxLatencyMs que no cabe",
+      "description": "El camino crítico (900 ms) no cabe en 500 ms.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxLatencyMs":500}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"undecided","parada":"composition_emptied","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["restricciones","no-decide"]
+    },
+    {
+      "evalCaseId": "algoritmo-restriccion-riesgo-incomprobable",
+      "name": "Restricción · maxRisk sin dato de riesgo",
+      "description": "Lo que no se puede comprobar no compite: sin riesgo previsto, maxRisk deja fuera a todas.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxRisk":0.1}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"undecided","parada":"undecided","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["restricciones","incomprobable"]
+    },
+    {
+      "evalCaseId": "algoritmo-restriccion-tope-de-credits-al-router",
+      "name": "Restricción · un tope de Credits viaja al Router",
+      "description": "maxCredits es un requisito del Router: el motor no sabe de Credits, lo avisa como no comprobable y lo entrega tal cual, sin cobrar ni calcular nada.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"a","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"b","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"c","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"d","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"e","value":0.01,"source":"measured","sampleSize":20}],"constraints":{"budget":{"maxCredits":50}}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"diamante:par3:estrategia","grupos":[["b","c","e"]],"incertidumbre":"uncertain"},
+      "tags": ["restricciones","dinero"]
+    },
+    {
+      "evalCaseId": "algoritmo-frontera-objetivo-nombra-proveedor",
+      "name": "Frontera · el objetivo nombra un proveedor",
+      "description": "Elegir con qué es del Router: se para antes de pensar nada.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1},"providerId":"p-sintetico"},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}]},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"invalid","parada":"authority_violation","elegida":null},
+      "tags": ["frontera"]
+    },
+    {
+      "evalCaseId": "algoritmo-frontera-restriccion-nombra-modelo",
+      "name": "Frontera · una restricción nombra un modelo",
+      "description": "Un requisito que elige modelo no se puede entregar a nadie.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"model":"m-sintetico"}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"invalid","parada":"authority_violation","elegida":null},
+      "tags": ["frontera"]
+    },
+    {
+      "evalCaseId": "algoritmo-frontera-paso-con-proveedor",
+      "name": "Frontera · un paso del Planner trae un proveedor",
+      "description": "A3 rechaza la estrategia que nombra una implementación: nada cruza.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"frontera-paso:puente","steps":[{"id":"a","capability":"text.generate","purpose":"p-a","input":{"providerId":"p-sintetico"}}]},"componer":{"paralelizar":true,"optimizar":true}},
+      "expected": {"status":"undecided","parada":"composition_emptied","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["frontera"]
+    },
+    {
+      "evalCaseId": "algoritmo-forma-sin-decision",
+      "name": "Forma · la petición no trae la decisión",
+      "description": "Sin objetivo no hay nada que perseguir.",
+      "peticion": {"tarea":{"id":"sin-decision","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]}]}},
+      "expected": {"status":"invalid","parada":"malformed_request","elegida":null},
+      "tags": ["forma"]
+    },
+    {
+      "evalCaseId": "algoritmo-forma-dos-caminos",
+      "name": "Forma · alternativas por dos caminos",
+      "description": "Opciones y tarea a la vez: elegir cuál vale sería decidir por quien pide.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"options":[{"id":"x","value":{"nombre":"x"},"values":{"latency":100}},{"id":"y","value":{"nombre":"y"},"values":{"latency":300}}]},"tarea":{"id":"dos-caminos","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]}]}},
+      "expected": {"status":"invalid","parada":"ambiguous_alternatives","elegida":null},
+      "tags": ["forma"]
+    },
+    {
+      "evalCaseId": "algoritmo-tarea-con-ciclo",
+      "name": "Tarea · dependencias en ciclo",
+      "description": "A2 es la autoridad sobre la tarea y la rechaza.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"tarea":{"id":"ciclo","steps":[{"id":"a","capability":"text.generate","purpose":"p-a","dependsOn":["b"]},{"id":"b","capability":"text.generate","purpose":"p-b","dependsOn":["a"]}]}},
+      "expected": {"status":"invalid","parada":"invalid_task","elegida":null},
+      "tags": ["forma"]
+    },
+    {
+      "evalCaseId": "algoritmo-presupuesto-profundidad",
+      "name": "Presupuesto · el plan no cabe en maxDepth",
+      "description": "Tres niveles de dependencia con maxDepth 2: el plan existe y no cabe; ni se inventa una alternativa ni se pide a A1 que elija entre nada.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":2,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}]},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"undecided","parada":"max_depth_exceeded","elegida":null},
+      "tags": ["presupuesto"]
+    },
+    {
+      "evalCaseId": "algoritmo-presupuesto-sin-candidatas",
+      "name": "Presupuesto · maxCandidates 0",
+      "description": "El presupuesto de pensar no deja evaluar ninguna: la parada lo dice con su nombre.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":0,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}]},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"undecided","parada":"budget_exceeded","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["presupuesto"]
+    },
+    {
+      "evalCaseId": "algoritmo-restriccion-mal-formada",
+      "name": "Restricción mal formada",
+      "description": "maxParallel no es un número: se para antes de componer y A1 lo dice como conflicto de restricciones.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxParallel":"dos"}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "expected": {"status":"undecided","parada":"undecided","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["forma","restricciones"]
+    },
+    {
+      "evalCaseId": "algoritmo-historial-dos-fuentes",
+      "name": "Historial por dos fuentes",
+      "description": "Un historial declarado y lo aprendido a la vez: no se elige una.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"history":{"sampleSize":30,"succeeded":27}},"tarea":{"id":"historial","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]}]},"aprendido":{"scope":{"capability":"text.generate"},"learned":[]}},
+      "expected": {"status":"invalid","parada":"history_twice","elegida":null},
+      "tags": ["forma"]
+    },
+    {
+      "evalCaseId": "algoritmo-opciones-decide",
+      "name": "Opciones · decide entre dos dadas",
+      "description": "Corpus golden (camino de opciones): dos opciones con una señal cada una.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1}},"options":[{"id":"x","value":{"nombre":"x"},"values":{"latency":100}},{"id":"y","value":{"nombre":"y"},"values":{"latency":300}}],"signals":[{"key":"option.k1","subject":"x","value":1,"source":"model"},{"key":"option.k1","subject":"y","value":1,"source":"measured"}]}},
+      "expected": {"status":"decided","parada":null,"elegida":"x","incertidumbre":"uncertain"},
+      "tags": ["opciones"]
+    },
+    {
+      "evalCaseId": "algoritmo-opciones-sin-confianza",
+      "name": "Opciones · no llega a la confianza mínima",
+      "description": "Corpus golden (camino de opciones): con minConfidence 0,99 y solo estimaciones de modelo, no se recomienda nada.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1}},"options":[{"id":"x","value":{"nombre":"x"},"values":{"latency":100}},{"id":"y","value":{"nombre":"y"},"values":{"latency":300}}],"constraints":{"minConfidence":0.99},"signals":[{"key":"option.k1","subject":"x","value":1,"source":"model"},{"key":"option.k1","subject":"y","value":1,"source":"model"}]}},
+      "expected": {"status":"undecided","parada":"undecided","elegida":null,"incertidumbre":"unknown"},
+      "tags": ["opciones","incertidumbre"]
+    },
+    {
+      "evalCaseId": "algoritmo-opciones-medidas",
+      "name": "Opciones · latencias medidas",
+      "description": "Con lo medido de las dos, la decisión puede decir que sabe.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1}},"options":[{"id":"x","value":{"nombre":"x"},"values":{"latency":100}},{"id":"y","value":{"nombre":"y"},"values":{"latency":300}}],"signals":[{"key":"option.latency","subject":"x","value":100,"source":"measured","sampleSize":50},{"key":"option.latency","subject":"y","value":300,"source":"measured","sampleSize":50}]}},
+      "expected": {"status":"decided","parada":null,"elegida":"x","incertidumbre":"known"},
+      "tags": ["opciones","incertidumbre"]
+    },
+    {
+      "evalCaseId": "algoritmo-enfoques",
+      "name": "Enfoques · primero qué tarea",
+      "description": "A1 elige el enfoque, A2 lo estructura y A1 vuelve a decidir entre sus estrategias.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16}},"enfoques":[{"id":"corto","value":{"id":"enfoque-corto","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"}]},"values":{"latency":100,"reliability":0.9}},{"id":"largo","value":{"id":"enfoque-largo","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"values":{"latency":900,"reliability":0.9}}],"componer":{"paralelizar":true}},
+      "expected": {"status":"decided","parada":null,"elegida":"enfoque-corto:par1:estrategia","grupos":[],"incertidumbre":"unknown"},
+      "tags": ["enfoques"]
+    },
+    {
+      "evalCaseId": "algoritmo-cierre-cumple",
+      "name": "Cierre · lo observado cumple",
+      "description": "Se cierra sin aprender: A6 verifica, no hay nada que recuperar, y el resultado se atribuye a lo entregado.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxLatencyMs":2000}},"tarea":{"id":"rombo","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]}]},"componer":{"paralelizar":true},"expected":[{"kind":"image"}]},
+      "cierre": {"observacion":{"kind":"success","actual":{"id":"resultado-1","status":"succeeded","outputs":[{"kind":"image","ref":"salida-resultado-1"}]},"at":1700000000000,"signals":[{"key":"result.latencyMs","subject":"resultado-1","value":1200,"source":"measured"}]}},
+      "expected": {"status":"decided","parada":null,"elegida":"rombo:par2:estrategia","grupos":[["b","c"]],"incertidumbre":"uncertain","cierre":{"status":"closed","verificacion":"pass","propone":false}},
+      "tags": ["cierre"]
+    },
+    {
+      "evalCaseId": "algoritmo-cierre-incumple-propone",
+      "name": "Cierre · lo observado se pasa de la latencia",
+      "description": "Lo observado tarda 5000 ms con maxLatencyMs 2000: A6 dice fail y la recuperación solo PROPONE.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxLatencyMs":2000}},"tarea":{"id":"rombo","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]}]},"componer":{"paralelizar":true},"expected":[{"kind":"image"}]},
+      "cierre": {"observacion":{"kind":"success","actual":{"id":"resultado-2","status":"succeeded","outputs":[{"kind":"image","ref":"salida-resultado-2"}]},"at":1700000000000,"signals":[{"key":"result.latencyMs","subject":"resultado-2","value":5000,"source":"measured"}]}},
+      "expected": {"status":"decided","parada":null,"elegida":"rombo:par2:estrategia","grupos":[["b","c"]],"incertidumbre":"uncertain","cierre":{"status":"closed","verificacion":"fail","propone":true}},
+      "tags": ["cierre","recuperacion"]
+    },
+    {
+      "evalCaseId": "algoritmo-cierre-no-se-atribuye-a-otra",
+      "name": "Cierre · quien ejecuta no elige a quién se atribuye",
+      "description": "La observación dice ser de otra estrategia y trae una medida de otro sujeto: el resultado es de lo entregado y solo con sus medidas.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxLatencyMs":2000}},"tarea":{"id":"rombo","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]}]},"componer":{"paralelizar":true},"expected":[{"kind":"image"}]},
+      "cierre": {"observacion":{"kind":"success","actual":{"id":"resultado-3","status":"succeeded","outputs":[{"kind":"image","ref":"salida-resultado-3"}]},"at":1700000000000,"signals":[{"key":"result.latencyMs","subject":"resultado-3","value":1000,"source":"measured"},{"key":"result.latencyMs","subject":"otro-resultado","value":99999,"source":"measured"}],"scope":{"strategyId":"otra"},"strategyId":"otra"}},
+      "expected": {"status":"decided","parada":null,"elegida":"rombo:par2:estrategia","grupos":[["b","c"]],"incertidumbre":"uncertain","cierre":{"status":"closed","verificacion":"pass","propone":false}},
+      "tags": ["cierre","atribucion"]
+    },
+    {
+      "evalCaseId": "algoritmo-cierre-sin-decision",
+      "name": "Cierre · no hubo nada que entregar",
+      "description": "Sin decisión no hay nada que cerrar.",
+      "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20}],"constraints":{"maxSteps":3}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
+      "cierre": {"observacion":{"kind":"success","actual":{"id":"resultado-4","status":"succeeded","outputs":[{"kind":"image","ref":"salida-resultado-4"}]},"at":1700000000000,"signals":[{"key":"result.latencyMs","subject":"resultado-4","value":1000,"source":"measured"}]}},
+      "expected": {"status":"undecided","parada":"composition_emptied","elegida":null,"incertidumbre":"unknown","cierre":{"status":"invalid","parada":"not_decided"}},
+      "tags": ["cierre"]
+    }
+  ]
+}

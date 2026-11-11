@@ -1,0 +1,431 @@
+{
+  "version": 1,
+  "dominio": "algoritmo",
+  "datasetVersion": 1,
+  "datasetHash": "138716ca9fb1f3769b176751581339101e834bee259e07f83edd71ace24588da",
+  "generado": "2026-10-07T02:34:35.482Z",
+  "scores": {
+    "overall": 1,
+    "perDimension": {
+      "QUALITY": 1,
+      "COST": 1,
+      "LATENCY": 1,
+      "RELIABILITY": 1
+    },
+    "porCaso": [
+      {
+        "evalCaseId": "algoritmo-sombra-itinerario",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-sombra-destinos",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-sombra-receta-foto",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-sombra-guion-clip-voz",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-sombra-diamante",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-sombra-pistas-y-usos",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-sintetico-por-niveles",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-sintetico-paralelizar-y-optimizar",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-sintetico-tres-a-la-vez",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-sintetico-medido",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-sintetico-cadena-medida",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-restriccion-hasta-dos-a-la-vez",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-restriccion-en-fila",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-restriccion-dos-lados",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-restriccion-pasos-imposible",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-restriccion-capacidad-prohibida",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-restriccion-latencia-que-cabe",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-restriccion-latencia-que-no-cabe",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-restriccion-riesgo-incomprobable",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-restriccion-tope-de-credits-al-router",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-frontera-objetivo-nombra-proveedor",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-frontera-restriccion-nombra-modelo",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-frontera-paso-con-proveedor",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-forma-sin-decision",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-forma-dos-caminos",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-tarea-con-ciclo",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-presupuesto-profundidad",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-presupuesto-sin-candidatas",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-restriccion-mal-formada",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-historial-dos-fuentes",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-opciones-decide",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-opciones-sin-confianza",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-opciones-medidas",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-enfoques",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-cierre-cumple",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-cierre-incumple-propone",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-cierre-no-se-atribuye-a-otra",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-cierre-sin-decision",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
+      }
+    ],
+    "n": 38,
+    "aprobados": 38
+  }
+}
