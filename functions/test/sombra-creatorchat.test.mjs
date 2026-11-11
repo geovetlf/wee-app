@@ -222,6 +222,7 @@ const engineMod = lib('engine/index.js');
 const { invalidateConfig } = lib('engine/config.js');
 const { invalidateCostOverrides } = lib('credits/creditCosts.js');
 const { olvidarRegistro } = lib('registry/index.js');
+const { olvidarLimitesDelChat } = lib('creator/chatLimite.js');
 const { welcomeTransactionId } = lib('credits/creditTransactions.js');
 const { ALGORITHM_CONTRACT_VERSION } = lib('core/contracts.js');
 const { PROVIDER_SECRET_NAMES, MEDIA_SECRET_NAMES, FAL_SECRET_NAMES } = lib('secrets.js');
@@ -307,9 +308,32 @@ const GOAL = `Qué hacer y dónde comer en Lisboa, sin prisas ${MARCA}`;
 const PETICION = Object.freeze({ experienceId: 'travel', goal: GOAL, presetAnswers: [{ questionId: 'what', optionId: 'doing' }], locale: 'es-ES' });
 
 /* Una cuenta con su billetera ya hecha (como las cuentas de prueba de la canary): `ensureAccount` no tiene nada que escribir. */
+/*
+ * (ejec/motor · adaptación a la candidata) creatorChat exige hoy una CUENTA WEË VÁLIDA (identity/sesion.ts:
+ * registro 18+ en private/account y país del catálogo en el Perfil Real) y reserva un turno del TOPE DEL CHAT
+ * (creator/chatLimite.ts, aiRateLimits/chat:<cuenta>:<día>) ANTES de crear el trabajo. La cuenta de la prueba se
+ * enrola de verdad —nada se dobla— y el tope corre de verdad. Lo que la puerta de Legacy lee y escribe va PRIMERO;
+ * se aparta en `r.base.opsDeLaPuerta` / `escriturasDeLaPuerta` y se comprueba aparte (sección T de cada par:
+ * idéntico con la puerta de la sombra abierta y cerrada, un turno por llamada), de modo que todas las comprobaciones
+ * de la sombra siguen exigiendo exactamente lo mismo que antes sobre todo lo demás.
+ */
+const RUTA_DE_LA_CUENTA = `users/${UID}/private/account`;
+const esDeLaPuertaDeLegacy = (op) => {
+  const ruta = op.slice(op.indexOf(' ') + 1);
+  return ruta === `users uid==${UID}` || ruta === RUTA_DE_LA_CUENTA || ruta === 'aiSettings/chat'
+    || ruta.startsWith(`aiRateLimits/chat:${UID}:`);
+};
+const esDelTope = (ruta) => ruta.startsWith(`aiRateLimits/chat:${UID}:`);
 const sembrar = (base, puerta) => {
+  base.docs.set(RUTA_DE_LA_CUENTA, { birthDate: '1990-01-01' });
   base.docs.set(`users/${UID}`, {
-    uid: UID, profileType: 'real', displayName: 'Cuenta de prueba de la sombra',
+    uid: UID, profileType: 'real', displayName: 'Cuenta de prueba de la sombra', country: 'ES',
+    creditsBalance: 240, creditsLifetimeEarned: 240, creditsLifetimeSpent: 0, creditsInitializedAt: fa.Timestamp.fromMillis(RELOJ - 86_400_000),
+  });
+  /* (adaptación a la candidata) El saldo vive hoy en creditAccounts/{cuenta} (F-06, fase «cuenta»), espejado en el Perfil
+   * Real: se siembra ya al día para que, como antes, ensureAccount no tenga nada que escribir. */
+  base.docs.set(`creditAccounts/${UID}`, {
+    uid: UID, profileRef: UID,
     creditsBalance: 240, creditsLifetimeEarned: 240, creditsLifetimeSpent: 0, creditsInitializedAt: fa.Timestamp.fromMillis(RELOJ - 86_400_000),
   });
   base.docs.set(`creditTransactions/${welcomeTransactionId(UID)}`, {
@@ -332,7 +356,7 @@ const correr = async ({ puerta, peticiones, disponibilidad = 'registro', ciclo =
   baseActual = base;
   Object.assign(modo, { disponibilidad, ciclo, puente });
   espia = nuevoEspia();
-  olvidarLaSombra(); invalidateConfig(); invalidateCostOverrides();
+  olvidarLaSombra(); invalidateConfig(); invalidateCostOverrides(); olvidarLimitesDelChat();
   const lineas = [];
   const consola = { log: console.log, warn: console.warn, error: console.error };
   const anotar = (...a) => lineas.push(a.map((x) => (x instanceof Error ? `${x.name}: ${x.message}` : String(x))).join(' '));
@@ -342,12 +366,19 @@ const correr = async ({ puerta, peticiones, disponibilidad = 'registro', ciclo =
   const redAntes = red;
   let salidas = [];
   try {
-    salidas = await Promise.all(peticiones.map((data) => creatorMod.creatorChat.run({ auth: { uid }, data: copia(data) })
+    salidas = await Promise.all(peticiones.map((data) => creatorMod.creatorChat.run({ auth: { uid, token: { firebase: { sign_in_provider: 'password' } } }, data: copia(data) })
       .then((respuesta) => ({ respuesta }), (error) => ({ error }))));
   } finally {
     Date.now = ahoraDeVerdad;
     Object.assign(console, consola);
   }
+  /* La puerta de Legacy (cuenta + tope), que va delante de todo: se aparta y se comprueba en la sección T. */
+  let corte = 0;
+  while (corte < base.ops.length && esDeLaPuertaDeLegacy(base.ops[corte])) corte++;
+  base.opsDeLaPuerta = base.ops.slice(0, corte);
+  base.ops = base.ops.slice(corte);
+  base.escriturasDeLaPuerta = base.escrituras.filter((w) => esDeLaPuertaDeLegacy(w));
+  base.escrituras = base.escrituras.filter((w) => !esDeLaPuertaDeLegacy(w));
   const primera = salidas[0] ?? {};
   return { base, salidas, respuesta: primera.respuesta, error: primera.error, jobId: primera.respuesta?.jobId, lineas, red: red - redAntes, espia };
 };
@@ -356,7 +387,7 @@ const correr = async ({ puerta, peticiones, disponibilidad = 'registro', ciclo =
 const rutaDelTrabajo = (r) => `creatorJobs/${r.jobId}`;
 const rutaDeLaSombra = (r) => `creatorJobs/${r.jobId}/private/${CLAVE_DE_LA_SOMBRA}`;
 const trabajo = (r) => serial(r.base.docs.get(rutaDelTrabajo(r)));
-const privadas = (r) => [...r.base.docs.keys()].filter((p) => p.includes('/private/'));
+const privadas = (r) => [...r.base.docs.keys()].filter((p) => p.includes('/private/') && p !== RUTA_DE_LA_CUENTA);
 const estado = (base) => new Map([...base.docs.entries()].map(([p, d]) => [p, serial(d)]));
 const diferencia = (a, b, ignorar = []) => {
   const fuera = (p) => ignorar.includes(p);
@@ -366,7 +397,8 @@ const diferencia = (a, b, ignorar = []) => {
     distintos: [...a.keys()].filter((p) => !fuera(p) && b.has(p) && a.get(p) !== b.get(p)),
   };
 };
-const contar = (base, coleccion) => [...base.docs.keys()].filter((p) => p.startsWith(`${coleccion}/`)).length;
+/* El documento del tope del chat es de la puerta de Legacy (sección T), no un efecto de la sombra: no cuenta aquí. */
+const contar = (base, coleccion) => [...base.docs.keys()].filter((p) => p.startsWith(`${coleccion}/`) && !esDelTope(p)).length;
 const huella = (s) => createHash('sha256').update(String(s)).digest('hex').slice(0, 12);
 const clavesDe = (v, out = new Set()) => { if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) { out.add(k); clavesDe(x, out); } return out; };
 const primeraDiferencia = (a, b, ruta = 'respuesta') => {
@@ -450,6 +482,14 @@ const comprobarPar = (et, cerrada, abierta, { algoritmo, puente, motivoCerrada, 
     abierta.espia.puente === 1 && abierta.espia.planners === 1 && isDeepStrictEqual(abierta.espia.planificar, [`${abierta.jobId}:sombra-puente`])
     && abierta.espia.ciclos === ciclos && abierta.espia.decisiones === ciclos,
     `puente=${abierta.espia.puente} planner=${abierta.espia.planners} planificar=[${abierta.espia.planificar.join(',')}] ciclo=${abierta.espia.ciclos}`);
+
+  /* T · (adaptación a la candidata) la puerta de Legacy: cuenta Weë válida y tope del chat, de verdad e iguales */
+  const turnos = (r) => r.base.escriturasDeLaPuerta.filter((w) => esDelTope(w.slice(w.indexOf(' ') + 1))).length;
+  check(`${et} · T) la puerta de Legacy corre de verdad y primero: la cuenta enrolada se lee y el tope del chat reserva UN turno por llamada, IGUAL con la sombra abierta y cerrada (la sombra no gasta turnos)`,
+    cerrada.base.opsDeLaPuerta.includes(`get ${RUTA_DE_LA_CUENTA}`) && isDeepStrictEqual(abierta.base.opsDeLaPuerta, cerrada.base.opsDeLaPuerta)
+    && isDeepStrictEqual(abierta.base.escriturasDeLaPuerta, cerrada.base.escriturasDeLaPuerta)
+    && turnos(cerrada) === cerrada.salidas.length && turnos(abierta) === abierta.salidas.length,
+    `puerta cerrada=[${cerrada.base.opsDeLaPuerta.join(', ')}] · turnos ${turnos(cerrada)}/${turnos(abierta)}`);
 
   /* D · ningún efecto */
   const d = diferencia(estado(cerrada.base), estado(abierta.base), [RUTA_DE_LA_PUERTA]);
