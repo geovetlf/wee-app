@@ -2761,6 +2761,7 @@ documentada, gobernada y probada**, sin darle más que hacer. La decisión forma
 | catorce exportaciones sin ningún consumidor | deuda | ocho fuera, seis documentadas (abajo) | `tsc` y la batería entera |
 | comentarios y documentos que decían lo contrario del código —«no lo consume nadie», «no está conectado», «el Orchestrator ejecuta `ParallelGroup`», «PENDIENTE», que producción tenía la versión de main— | documentación | corregidos sin borrar la historia: lo de entonces se queda como foto de entonces | `algoritmo-produccion`, `runtime-map`, `algorithm-quality` |
 | lo que dejó la revisión de la fase —seguridad, código y arquitectura ([informe](../ops/revision/informes/2026-10-07-algoritmo.md))— | varias | la frontera lee también `$vendor`, `api/key`, `provider2`, `textmodel`, `authorization`, `authHeader` y `retryJob`, y sus palabras de secreto son las de `CAMPOS_PROHIBIDOS`; A6 no repite lo no mirado y nombra el tope que se acabó (`maxLatencyMs`); el inicio del cronómetro se lee fresco; unos requisitos que no son un objeto están mal formados; `algoritmo-produccion` valida el commit antes de dárselo a git y compara también el código; y los textos que decían «el mismo predicado del Planner» | `algorithm-foundation` K2.8, K2.18–K2.19; `algorithm-verification` CM23–CM24; `algorithm-cycle-cierre` CM22; `algorithm-context` CM6; `algoritmo-produccion` 8–9 |
+| la segunda pasada sobre esos arreglos (siete hallazgos bajos) | varias | el cronómetro se ancla a CADA llamada —también `cerrar`—; la frontera separa letras y dígitos (`credits2`, `accessToken2`), recorta antes de normalizar, lee `gateway`, toma `authorization` solo como la cabecera, exige el verbo delante del objeto y tiene excepciones con su porqué (`remodel`, `apagar`, `model3D`…); el peor caso de tiempo, lineal (de ~5 s a ~0,3 s); `algoritmo-produccion` compara el cierre de imports de la capa (con la lista del Planner); la sombra, fijada por tamaño en las cercas; y el grader de la frontera, con el alcance del ciclo | `algorithm-cycle-cierre` CM22b–CM22d; `algorithm-foundation` K2.6, K2.20–K2.21; `algoritmo-produccion` 8b; `puente-pre-f1d` F3; `evals-algoritmo` D19 |
 
 ### La frontera, por responsabilidad
 
@@ -2779,14 +2780,15 @@ que no se deja leer (`textmodel`, `aiprovider`, `provider2`). Cada concepto pert
 `EFECTOS_PROHIBIDOS` y la violación lleva `efecto` y `dueno`. Decide el **papel** de la palabra:
 
 - **siempre cruzan**: implementación (proveedor, modelo, adaptador, motor de ejecución), acceso
-  a una API (`endpoint`, `webhook`, `callback`, `baseUrl`), un secreto (`secret`, `credential`,
-  `password`, `apiKey`, `accessToken`), el dinero como cuenta o como acto (`charge`, `refund`,
+  a una API (`endpoint`, `webhook`, `callback`, `baseUrl`, `gateway`), un secreto (`secret`,
+  `credential`, `password`, `apiKey`, `accessToken`; `authorization` solo como la cabecera —la
+  clave entera o junto a `header`—, porque suelta suele ser un permiso), el dinero como cuenta o como acto (`charge`, `refund`,
   `wallet`, `billing`, `transaction`, `ledger`, `financial`) y el almacenamiento de materiales;
 - **el dinero como cantidad** (`credits`, `price`, `fee`) cruza salvo en un TOPE que esta capa
   solo lee: `maxCredits`, `creditLimit` y `budget.maxUsd` pasan; `estimatedCredits` y
   `creditBudgetId` no;
-- **materiales y trabajos** solo cruzan con una ACCIÓN: `jobId` dice dónde pasó algo; `runJob`,
-  `createAsset` o `crearTrabajo`, que se haga;
+- **materiales y trabajos** solo cruzan con una ACCIÓN, y con el verbo DELANTE: `jobId` dice dónde
+  pasó algo y `jobRetryPolicy` describe; `runJob`, `createAsset` o `crearTrabajo`, que se haga;
 - **una clave que es un dato** —con `|`, `=` o `:`, como la clave con que A7 agrega
   (`metrica|providerId=p`)— describe, y solo la mira la lista del Planner: describir no es elegir.
 
@@ -2796,8 +2798,14 @@ capa ES ése —`capability`, `parallelGroups`, `retry`— porque PROPONER sobre
 lo que le impide HACERLO es que es pura y entrega datos a su dueño.
 
 Con entradas legítimas no cambia nada: las huellas doradas de S2 salen idénticas byte a byte y
-ninguna de las 168 claves que llegan a la frontera en ellas se marca. Lo que sigue sin ver, y se
-sabe (`algorithm-foundation` K2.8 y K2.18 fijan lo que sí ve):
+ninguna de las 168 claves que llegan a la frontera en ellas se marca.
+
+**Es un detector de errores honrados, no un filtro contra quien quiere colarse**: una clave con `|`,
+`=` o `:` ya la salta, a propósito, y su vocabulario NO es exhaustivo. Lee las palabras de cada
+clave —separando letras y dígitos (`credits2`, `accessToken2`), con los primeros 1024 caracteres
+tal como llegan, antes de normalizar— y protege lo legítimo que, partido, nombraría a otro
+(`model3D` es un tipo de material). Lo que sigue sin ver, y se sabe (`algorithm-foundation` K2.8,
+K2.18 y K2.20 fijan lo que sí ve):
 
 - los VALORES (una señal puede describir un proveedor en su valor: es evidencia);
 - una clave con `|`, `=` o `:` —se toma por un dato—, aunque sea `providerId:x`; la lista del
@@ -2807,7 +2815,18 @@ sabe (`algorithm-foundation` K2.8 y K2.18 fijan lo que sí ve):
 - letras de otro alfabeto que imitan las latinas (NFKD no las convierte);
 - `enqueue` (la prueba 53 de `algorithm-agnostic` prohíbe esa palabra en las fuentes; `encolar`
   y `runJob` sí se ven);
-- más allá de los primeros 1024 caracteres de una clave.
+- más allá de los primeros 1024 caracteres de una clave (los de antes de normalizar);
+- las flexiones que no contienen el nombre entero (`pagado`, `cobrado`, `reembolsado`,
+  `financiera`) y una cantidad pegada a una palabra desconocida (`totalcredits`);
+- vocabulario de los dueños que choca con el de Weë y se deja fuera A PROPÓSITO: `reserva`,
+  `reservar` y `hold` (las reservas de Weë Travel), `currency`, `moneda` y `balance` (las monedas
+  de un viaje, el balance de blancos de una foto), y `implementacion` (la sombra guarda sus claves en
+  `clavesDeImplementacion` y pasa su propia sección por la frontera).
+
+Y al revés, lo legítimo que contenía una raíz se rechazaba: `remodel` (una intención de Weë Home),
+`apagar`, `modeling`, `promptEngineering`, `requiereAutorizacion`, `jobRetryPolicy`… La segunda
+pasada lo vio, y quedó con su porqué en `EXCEPCIONES` y en `verboAntesDe` (K2.6). Una que falte se
+rechaza: un fallo que se ve, y se añade allí.
 
 Y una clave `credits` que algún día signifique «créditos de una película» se rechazaría: en una
 petición o una estrategia, un fallo que se ve, no uno callado. En lo que se DESCRIBE —el
@@ -2823,11 +2842,13 @@ no hay descriptores registrados—, pero es lo primero que decidir antes de cone
 cada etapa (A2, A4, A3, A5) recibe el tiempo que queda como su propio tope y se recorta como
 siempre —lo mejor que tenga—, y entre etapas, sin tiempo, el ciclo se para con
 `budget_exceeded` y dice antes de qué etapa (el tercer caso de esa parada: sin `decision` y
-reconocible solo por el porqué; darle un dato propio es una decisión pendiente). El inicio de
-cada llamada se lee FRESCO: si esa lectura falla, la llamada va sin reloj, en vez de medir como
-«pensar» el hueco desde la anterior (`algorithm-cycle-cierre` CM22). En `cerrar`, A6 y A6r reciben el
-reloj y miden cada una su propio tope, sin uno común; A8 va antes de la primera comprobación y
-sin cronómetro. **A1 no lo recibe**: su `ahora` es un reloj de PARED, el de `deadlineAt`; el
+reconocible solo por el porqué; darle un dato propio es una decisión pendiente). Cada llamada
+—`decidir` y `cerrar`— se ABRE con una lectura fresca: si falla, la llamada entera va sin reloj,
+también sus etapas; si no, una lectura que falla después vale la última buena de ESA llamada, nunca
+una de la anterior ni 0. Así ni el hueco entre dos llamadas ni la ejecución entre `decidir` y
+`cerrar` cuentan como pensar (`algorithm-cycle-cierre` CM22–CM22d). En `cerrar`, A6 y A6r miden
+cada una su propio tope desde el inicio de `cerrar`, sin uno común; A8 va antes de la primera
+comprobación y sin cronómetro. **A1 no lo recibe**: su `ahora` es un reloj de PARED, el de `deadlineAt`; el
 ciclo comprueba el tiempo antes de A1. No es el plazo de nadie
 más: ni del proveedor, ni del Gateway, ni de un trabajo, ni del dinero. Un reloj roto ni tumba
 ni corta: deja de avanzar. Sin cronómetro, el motor es byte a byte el de antes y sigue puro
@@ -2917,8 +2938,9 @@ presupuesto del PLAN frente al de un PASO; un solo dueño de los Credits; la esc
   justificaría 1.13 —el revisor de arquitectura lo pide—: es una decisión del dueño, aislada, y
   queda registrada como tal (DD-26 punto 4, [`DECISIONES-PENDIENTES.md`](DECISIONES-PENDIENTES.md)).
   Mientras sea 1.12, el número no distingue el motor de main de antes de esta misión del de
-  después: por eso `algoritmo-produccion` compara también el CÓDIGO del motor (`core/algorithm`,
-  `core/contracts.ts` y la sombra) entre el commit desplegado y main.
+  después: por eso `algoritmo-produccion` compara también el CÓDIGO del motor —el cierre de imports
+  de `core/algorithm`, con la lista del Planner, `contracts`, `cost`, `workflow`…, y la sombra— entre
+  el commit desplegado y main.
 - **Descriptores**: `motor-de-verificacion` sube a 3: con entradas VÁLIDAS, A6 decide otra cosa
   al cortarse (CORTE) y publica otra clave (SEÑAL), la regla de `AlgorithmDescriptor.version`. Los
   demás no cambian: FRONTERA y REQUISITOS solo rechazan más de lo que el contrato ya prohibía,
@@ -2956,9 +2978,9 @@ plazo; hoy está cerrada, y `algoritmo` y `puente` no llaman a nadie.
 
 El motor tiene su dominio en el Eval Engine: `algoritmo`, el segundo del registro de
 DESARROLLO (`ops/evals/dominios/algoritmo.mjs`), a $0 y sin LLM juez. Corre el motor de verdad
-—`decidir`, y `cerrar` sin aprender, como mucho— sobre 44 casos (los planes de la sombra y del
+—`decidir`, y `cerrar` sin aprender, como mucho— sobre 45 casos (los planes de la sombra y del
 corpus dorado de S2, restricciones, frontera —también por responsabilidad: un sinónimo, una clave
-compuesta, una billetera y un tope de dinero que pasa—, entradas rotas, presupuesto de pensar
+compuesta, una billetera, un tope de dinero que pasa y una opción que A1 deja fuera—, entradas rotas, presupuesto de pensar
 —también con un cronómetro determinista por caso, `cronometro: { paso }`, el puerto que usa la
 sombra—, opciones, enfoques y cierre) y 8 sellados en holdout, con quince graders deterministas: la elección, la
 estrategia, el paralelismo (también el transitivo, que `problemasDeEstrategia` no mira), las
@@ -2971,15 +2993,19 @@ desarrollo —nunca en `DOMINIOS_REALES`—, no declara superficie (Hillclimb se
 no hay nada de producción que mejorar ni promover), exige el aviso `experimental_algorithm` en cada
 decisión y ninguna huella de ejecución en lo que devuelve, y su presupuesto es el de evals, aparte
 de los Credits. El grader del presupuesto de pensar reconoce el corte entre etapas solo con
-cronómetro —por su porqué: no hay un dato propio (pendiente)—, y el de la frontera cuenta como «la
-petición cruzaba» también lo que ve la lectura por responsabilidad. Hoy: 44/44, todas las
-dimensiones a 1, 0 ejecuciones. Lo fija `functions/test/evals-algoritmo.test.mjs` (48, también en
-el Nivel 3), con dieciocho sabotajes:
+cronómetro —por su porqué: no hay un dato propio (pendiente)—, y el de la frontera juzga con el
+alcance del ciclo —lo que vale para todas las alternativas para la petición entera; una opción que
+cruza, A1 la deja fuera— y con la lectura por responsabilidad, y mira siempre que el motor no
+introduzca nada que la petición no trajera. Hoy: 45/45, todas las dimensiones a 1, 0 ejecuciones.
+Lo fija `functions/test/evals-algoritmo.test.mjs` (50, también en el Nivel 3), con veinte
+sabotajes:
 un proveedor en el plan —también a doce niveles de profundidad, donde `violacionesEn` deja de
 mirar—, grupos paralelos que contradicen `dependsOn`, un campo oculto, Credits cobrados, `known`
 sin evidencia, una ejecución, un `jobId`, aprendizaje, un paso del Planner perdido, una decisión
 sin entrega, un desenlace atribuido a otra estrategia, un presupuesto pasado en silencio, un corte
-por tiempo sin cronómetro (o que entrega) y una billetera en un paso dada por decidida.
+por tiempo sin cronómetro (o que entrega), una billetera en un paso dada por decidida, una opción
+que A1 deja fuera tomada por elegida y una clave de otro dueño que el motor añade cuando la petición
+ya cruzaba.
 
 ### G3
 
@@ -3053,8 +3079,11 @@ La sombra; el cierre del ciclo (A6, A6r, A7); A8 con lo aprendido y `paraRouter`
 - **Los puntuadores**: los cinco choques de arriba, si alguien conecta la entrega sin resolverlos.
 - **El camino `brain` de la sombra** sin plazo propio (arriba).
 - **El arranque en frío**: el import estático cuesta el 5–6 % de la carga de módulos.
-- **La frontera** no lee valores, claves con `|`, `=` o `:`, raíces cortas pegadas ni letras de otro
-  alfabeto que imitan las latinas (arriba).
+- **La frontera** es un detector de errores honrados con un vocabulario que no es exhaustivo: no lee
+  valores, claves con `|`, `=` o `:`, raíces cortas pegadas, flexiones sin el nombre entero, el
+  vocabulario de los dueños que choca con el de Weë ni letras de otro alfabeto que imitan las
+  latinas (arriba). Si debe ser un filtro adversarial es otra decisión, y empieza por quitar el
+  salto por `|`, `=` y `:`.
 - **La frontera sobre lo que se describe** —el resultado observado de A6, la metadata de A7 y la
   de las capacidades—: pendiente de decisión antes de conectar el cierre (CM25).
 - **El corte por tiempo** solo se distingue por su porqué: un motivo o un dato propio serían otra
