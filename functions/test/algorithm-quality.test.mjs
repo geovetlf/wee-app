@@ -2584,7 +2584,9 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
   const filaDelMotor = leer('docs/RUNTIME.md').split('\n').find((l) => l.startsWith('| **Algorithm Engine** |')) ?? '';
   const numeroFuera = [
     [DOC.includes(`\`${ALGORITHM_CONTRACT_VERSION}\` desde S2-`), 'la fila `contract` de la sombra no dice el contrato vigente'],
-    [filaDelMotor.includes(`contrato ${ALGORITHM_CONTRACT_VERSION})`), 'docs/RUNTIME.md no dice el contrato vigente'],
+    /* (Misión de cierre) La fila separa main de producción —`contrato **1.12 en main**, **1.9 en producción**`—; el par lo
+     * vigila `algoritmo-produccion`, y aquí basta con que el número vigente sea el de main. */
+    [filaDelMotor.includes(`contrato **${ALGORITHM_CONTRACT_VERSION} en main**`), 'docs/RUNTIME.md no dice el contrato vigente'],
   ].filter(([ok]) => !ok).map(([, m]) => m);
   /* Ninguna fila que deje algo APLAZADO se llama «cerrado» a secas. */
   const cerradasConParteAbierta = B5_LINEAS.filter((l) => l.startsWith('| ')).map((l) => l.split(' | '))

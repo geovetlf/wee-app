@@ -146,6 +146,30 @@ Revisado el 2026-10-01 sobre `i18n/da-dk` (`d306a58` + cambios sin commit).
 - **Sería defecto si:** se le añaden usos nuevos o diverge más del contrato de `core/brain.ts`.
 - **Estado:** DEUDA DECLARADA (no aceptada como correcta).
 
+### DD-26 · Algorithm Engine: PREPARED, en sombra y sin autoridad —no selecciona proveedores ni modelos—
+
+- **Decisión (misión de cierre y maduración, 2026-10-07):**
+  1. **Propósito.** Comparar FORMAS de hacer un trabajo de varios pasos —hoy el Planner produce un solo plan y nadie compara dos maneras de conseguir lo mismo—.
+  2. **Responsabilidad.** Razonar sobre la forma: disposiciones (A2), paralelismo (A4), estrategias, riesgos y expectativas (A3), mejoras justificadas (A5) y la elección explicada (A1); y, cuando se conecte, verificar (A6), proponer una recuperación (A6r) y aprender de forma agregada (A7, A8).
+  3. **No-responsabilidades.** **El Algorithm Engine NO selecciona proveedores ni modelos.** Tampoco llama a APIs, ejecuta o crea trabajos, cobra Credits ni toca el Financial Core, crea o modifica materiales en el Asset Layer, lee secretos, decide la intención ni qué capacidades hacen falta, ni sustituye al Planner, al Router, al Orchestrator ni al Gateway. `authority.ts` lo comprueba con `EFECTOS_PROHIBIDOS` y `violacionesEn`.
+  4. **Estado.** PREPARED: construido, puro (sin red, Firestore, reloj ni azar) y probado. **MAIN = 1.12 · PRODUCCIÓN = 1.9** (`creatorChat`, desplegada desde `05ab31b`).
+  5. **Sombra.** Su único camino vivo es la sombra de `creatorChat` (`creator/sombra.ts`): solo `decidir`, tras `aiSettings/sombra` —cerrada por defecto, por cuentas, sin comodín (DD-08)—. Lo que decide se guarda en `creatorJobs/{id}/private/sombra` y no lo lee nadie.
+  6. **Autoridad.** Ninguna: Legacy sigue siendo la autoridad de ejecución, y la respuesta, el plan y la ejecución no cambian con la sombra abierta (`sombra-creatorchat`).
+  7. **Planner.** Usa su predicado de frontera (`claveDeImplementacion`) y decide sobre su plan; nunca añade, quita ni elige capacidades.
+  8. **Orchestrator.** El motor RECOMIENDA paralelismo (`parallelGroups`); el Orchestrator lo deduce de `dependsOn` y lo acota con `maxConcurrent`. No lo consume, y no debe depender de esta capa.
+  9. **Router.** El Router decide CON QUÉ; el motor, DE QUÉ FORMA. `RouterPorts` no tiene puerto para el motor, a propósito: `paraRouter` y `repartirRequisitos` están PREPARADOS y sin conectar, y conectarlos es una decisión del Router —y de cuál (DD-02)—.
+  10. **Gateway.** Ninguna relación: el motor no ejecuta.
+  11. **Job Engine.** Ninguna: A6r PROPONE recuperaciones; reintentar es del Job Engine y el respaldo entre proveedores, del Router.
+  12. **Credits.** Ninguna: su presupuesto es de PENSAR (`AlgorithmBudgetLimits`), no dinero; un `budget.maxUsd` en sus restricciones es un límite que lee, nunca una autoridad para cobrar.
+  13. **Asset Layer.** Ninguna: no crea ni modifica materiales.
+  14. **3D.** No forma parte de World 3D, Design 3D, Filmmaker ni de la integración de Tripo, Meshy o fal.ai. Podría entrar más adelante, en sombra, si llega un flujo 3D de VARIOS pasos.
+  15. **Activación.** Pasar de PREPARED a ACTIVE exige autorización explícita y las condiciones de [`ALGORITHM-ENGINE.md`](ALGORITHM-ENGINE.md) § 21: versión alineada, punta a punta, emulador, Evals, G3, seguridad, medición con señales reales, A6/A6r si hacen falta, política de autoridad, canary, marcha atrás y observabilidad.
+- **Razón:** el motor solo aporta algo cuando hay que comparar formas de un trabajo de varios pasos y señales medidas con que hacerlo. Hasta entonces, darle autoridad sería decidir sin evidencia —en la canary de Travel eligió siempre «en fila», con confianza 0— y abriría una segunda fuente de verdad frente al Router, el Orchestrator y el Job Engine.
+- **Evidencia:** [`ALGORITHM-ENGINE.md`](ALGORITHM-ENGINE.md) §§ 17, 18 y 21; `CLAUDE.md` § 11; [`RUNTIME.md`](RUNTIME.md) § 3; `functions/test/algorithm-*.test.mjs` (12 suites), `sombra-experiencia`, `sombra-sin-texto`, `sombra-creatorchat` (+ `.emulator`), `algoritmo-produccion`, `evals-algoritmo` (dominio de evals `algoritmo`, experimental), `runtime-map`; `algorithm-cycle` 91 y 91b; `algorithm-context` V8 y V8b.
+- **Alcance:** `functions/src/core/algorithm/` y `functions/src/creator/sombra.ts`.
+- **Sería defecto si:** algo fuera de la sombra crea el ciclo; la sombra deja de solo decidir o su salida cambia la respuesta, el plan o la ejecución; el motor elige o recibe como autoridad un proveedor o un modelo —con esa palabra o con otra—; `RouterPorts` gana un puerto para el motor sin decisión del Router; se conecta el cierre del ciclo, `paraRouter` o `repartirRequisitos` sin autorización; lo aprendido se persiste sin idempotencia o por cuenta sin consentimiento; o un documento presenta como conectado, en producción o «pendiente» lo que aquí queda preparado.
+- **Estado:** DECIDIDA (PREPARED, sin autoridad) + DEUDA DECLARADA ([`ALGORITHM-ENGINE.md`](ALGORITHM-ENGINE.md) §§ 13 y 21).
+
 ## Datos y seguridad
 
 ### DD-15 · `users` y `posts` se leen sin sesión

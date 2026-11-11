@@ -96,7 +96,7 @@ nuevos justificados. El resto ya existe o es composición.
 | **Job Engine** | ejecución durable, reintentos, liquidación | no decide |
 | **Content/Asset Core** | propiedad y ciclo de vida del material | no procesa |
 | **Credit / Financial Core** | dinero | nada más |
-| **Algorithm Engine** (A0–A4) | decidir, descomponer, prever, paralelizar | no ejecuta, no elige implementación |
+| **Algorithm Engine** (A0–A9 + S2, contrato 1.12 en main; PREPARED, en sombra y sin autoridad: DD-26) | decidir, descomponer, prever, paralelizar, optimizar; verificar, recuperar y aprender, preparados sin conectar | no ejecuta, no elige implementación, no toca dinero ni materiales |
 
 ### Nuevos, y solo estos cinco
 
@@ -244,7 +244,8 @@ Algorithm Engine → decisión genérica → Router → Provider Adapter → Mod
 
 Nunca `Algorithm Engine → provider`. Si un Engine especializado necesita
 metadata de proveedor, la recibe por contrato/registro. Esto ya está hecho
-cumplir por `claveDeImplementacion` y verificado en cada fase de A0–A4.
+cumplir por `claveDeImplementacion` —y, desde la misión de cierre, por responsabilidad (DD-26)— y
+verificado en cada fase desde A0.
 
 ---
 
@@ -257,7 +258,7 @@ evaluadores, y la distinción importa:
 > Algorithm Engine. Es una **capability de evaluación** que expone señales,
 > evidencia y métricas al sistema general.
 
-Y encaja exactamente con lo que A0–A4 ya consumen: `Signal` con procedencia,
+Y encaja exactamente con lo que el motor ya consume desde A0: `Signal` con procedencia,
 `Evidence`, `Confidence`. Un evaluador de calidad es un productor de señales; el
 Algorithm Engine ya sabe leerlas y pesarlas sin saber qué miden.
 
@@ -321,7 +322,7 @@ Persona → Experience → WEË BRAIN
                           ↓  entiende
                        PLANNER              ← qué capacidades hacen falta
                           ↓
-                    ALGORITHM ENGINE        ← A0–A4: cómo conviene hacerlo
+                    ALGORITHM ENGINE        ← A0–A9 + S2: cómo conviene hacerlo (PREPARED, sin autoridad)
                           ↓  recomienda
                     WORKFLOW ENGINE         ← composición declarativa
                           ↓
