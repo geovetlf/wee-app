@@ -318,6 +318,24 @@ const falsa = (cambiar, d = base) => { const x = structuredClone(d); cambiar(x);
     calificar(rechazada, BILLETERA).filter((g) => !g.ok).map((g) => `${g.id}: ${g.detail}`).join(' | ') || 'todo aprueba');
 }
 
+{
+  /* La frontera del grader, con el alcance del ciclo (segunda pasada de la revisión). */
+  const OPCION = caso('algoritmo-frontera-opcion-con-billetera');
+  const decidida = real(OPCION.evalCaseId);
+  const eligeLaQueCruza = falsa((x) => { x.resultado.decision.selected = { nombre: 'b', walletId: 'w-sintetico' }; }, decidida);
+  check('D19) FRONTERA CON EL ALCANCE DEL CICLO: una opción con una billetera que A1 deja fuera no hace fallar el caso —se decide con la otra—; si se diera por elegida la que cruza, `algoritmo/frontera` falla',
+    todos(decidida, OPCION) && decidida.elegida === 'o1' && veredictos(eligeLaQueCruza, OPCION)['algoritmo/frontera'] === false,
+    calificar(decidida, OPCION).filter((g) => !g.ok).map((g) => `${g.id}: ${g.detail}`).join(' | ') || 'todo aprueba');
+}
+{
+  /* Lo introducido se mira SIEMPRE, también cuando la petición ya cruzaba (segunda pasada de la revisión). */
+  const BILLETERA = caso('algoritmo-frontera-billetera-en-paso');
+  const rechazada = real(BILLETERA.evalCaseId);
+  const conClaveNueva = falsa((x) => { x.resultado.decomposition = { ...(x.resultado.decomposition ?? {}), apiKey: 'x' }; }, rechazada);
+  check('D20) LO INTRODUCIDO, SIEMPRE: aunque la petición ya cruzara la frontera (una billetera en un paso), una clave de otro dueño que el motor añada en lo que devuelve hace fallar `algoritmo/frontera`',
+    todos(rechazada, BILLETERA) && veredictos(conClaveNueva, BILLETERA)['algoritmo/frontera'] === false);
+}
+
 /* ── E · La gobernanza común: corrida, presupuesto, holdout ──────────────── */
 const reloj = () => '2026-10-06T12:00:00.000Z';
 const spec = { target: 'algoritmo', datasetVersion: 1, datasetHash: hashCanonico(DATASET.casos), graderVersion: 'algoritmo@1', candidateVersion: 1 };

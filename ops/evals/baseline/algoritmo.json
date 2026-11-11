@@ -2,8 +2,8 @@
   "version": 1,
   "dominio": "algoritmo",
   "datasetVersion": 1,
-  "datasetHash": "9bcb24125e1c5188cedee30ebf3048686da1e9de9d0467436b7c75d19852e6ef",
-  "generado": "2026-10-07T04:31:57.576Z",
+  "datasetHash": "3f9811cf8356c7904e4f53512a3022e7e9e42c279db024ece0651f96a6492754",
+  "generado": "2026-10-07T06:35:11.544Z",
   "scores": {
     "overall": 1,
     "perDimension": {
@@ -488,9 +488,20 @@
           "COST": 1
         },
         "aprobado": true
+      },
+      {
+        "evalCaseId": "algoritmo-frontera-opcion-con-billetera",
+        "score": 1,
+        "dims": {
+          "RELIABILITY": 1,
+          "QUALITY": 1,
+          "LATENCY": 1,
+          "COST": 1
+        },
+        "aprobado": true
       }
     ],
-    "n": 44,
-    "aprobados": 44
+    "n": 45,
+    "aprobados": 45
   }
 }

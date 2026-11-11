@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dominio": "algoritmo",
-  "descripcion": "El Algorithm Engine EN OBSERVACIÓN (crearCicloAlgoritmico().decidir y cerrar sin aprender). Peticiones sintéticas: las seis de la sombra del plan (creator/sombra.ts) y cinco del corpus golden (functions/test/equivalencia-s2b.mjs), más restricciones, frontera de autoridad (también por responsabilidad: un sinónimo, una clave compuesta, una billetera y un tope de dinero que pasa), forma, presupuesto de pensar (también con un cronómetro determinista), opciones, enfoques y cierre. Sin datos de personas (ni goal, ni brief, ni cuentas: la traza la pone el escenario con la identidad eval), sin proveedores ni modelos reales. Coste $0: el motor no ejecuta nada.",
+  "descripcion": "El Algorithm Engine EN OBSERVACIÓN (crearCicloAlgoritmico().decidir y cerrar sin aprender). Peticiones sintéticas: las seis de la sombra del plan (creator/sombra.ts) y cinco del corpus golden (functions/test/equivalencia-s2b.mjs), más restricciones, frontera de autoridad (también por responsabilidad: un sinónimo, una clave compuesta, una billetera, un tope de dinero que pasa y una opción que A1 deja fuera), forma, presupuesto de pensar (también con un cronómetro determinista), opciones, enfoques y cierre. Sin datos de personas (ni goal, ni brief, ni cuentas: la traza la pone el escenario con la identidad eval), sin proveedores ni modelos reales. Coste $0: el motor no ejecuta nada.",
   "casos": [
     {
       "evalCaseId": "algoritmo-sombra-itinerario",
@@ -360,6 +360,14 @@
       "peticion": {"decision":{"objective":{"weights":{"latency":1,"reliability":1}},"budget":{"maxLatencyMs":250,"maxCandidates":32,"maxIterations":8,"maxDepth":6,"maxReplans":2,"maxEvidence":64,"maxAlgorithmCalls":16,"maxChecks":64,"maxEvaluators":16},"signals":[{"key":"step.latencyMs","subject":"a","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"b","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"c","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"d","value":300,"source":"measured","sampleSize":20},{"key":"step.latencyMs","subject":"e","value":300,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"a","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"b","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"c","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"d","value":0.01,"source":"measured","sampleSize":20},{"key":"step.costUsd","subject":"e","value":0.01,"source":"measured","sampleSize":20}],"constraints":{"budget":{"maxCredits":3,"maxUsd":0.05}}},"tarea":{"id":"diamante","steps":[{"id":"a","capability":"text.generate","purpose":"p-a"},{"id":"b","capability":"image.generate","purpose":"p-b","dependsOn":["a"]},{"id":"c","capability":"image.generate","purpose":"p-c","dependsOn":["a"]},{"id":"d","capability":"image.edit","purpose":"p-d","dependsOn":["b","c"]},{"id":"e","capability":"text.generate","purpose":"p-e","dependsOn":["a"]}]},"componer":{"paralelizar":true}},
       "expected": {"status":"decided","parada":null,"elegida":"diamante:par3:estrategia"},
       "tags": ["frontera","responsabilidad","dinero"]
+    },
+    {
+      "evalCaseId": "algoritmo-frontera-opcion-con-billetera",
+      "name": "Frontera · una OPCIÓN con una billetera, que A1 deja fuera",
+      "description": "Una alternativa que cruza no tumba la decisión: A1 la descarta con su motivo y decide con la otra. El grader juzga con el alcance del ciclo.",
+      "peticion": {"decision":{"objective":{"weights":{"quality":1}},"options":[{"id":"o1","value":{"nombre":"a"},"values":{"quality":0.5}},{"id":"o2","value":{"nombre":"b","walletId":"w-sintetico"},"values":{"quality":0.9}}]}},
+      "expected": {"status":"decided","parada":null,"elegida":"o1"},
+      "tags": ["frontera","responsabilidad","opciones"]
     }
   ]
 }
