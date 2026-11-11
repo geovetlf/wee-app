@@ -143,6 +143,45 @@ const segundaCM22 = cicloCM22.decidir(PET_CRONO);
 check('CM22 · REGRESIÓN · si la lectura del inicio falla, la llamada va sin reloj —no mide como «pensar» el hueco desde la anterior— y decide como sin cronómetro',
   comoTexto(primeraCM22) === comoTexto(sinCrono) && comoTexto(segundaCM22) === comoTexto(sinCrono),
   `${segundaCM22.status}/${segundaCM22.parada ?? '-'} · ${String(segundaCM22.because.slice(-1)[0]).slice(0, 90)}`);
+/*
+ * La segunda pasada de la revisión: el inicio fresco solo cubría el arranque de `decidir`. Las etapas —y A6/A6r en
+ * `cerrar`— arrancaban su contador con la última lectura buena (de la llamada anterior) o con 0.
+ */
+let tCM22b = 0;
+let fallosCM22b = 0;
+const relojCM22b = () => { if (fallosCM22b > 0) { fallosCM22b--; throw new Error('lectura perdida'); } return tCM22b; };
+const PET_SIN_PARALELO = peticion({ aprendido: undefined, componer: { paralelizar: false } });
+const sinRelojCM22b = A.crearCicloAlgoritmico().decidir(PET_SIN_PARALELO);
+const cicloCM22b = A.crearCicloAlgoritmico({ cronometro: relojCM22b });
+cicloCM22b.decidir(PET_SIN_PARALELO);
+tCM22b = 1e9;
+fallosCM22b = 4;
+const segundaCM22b = cicloCM22b.decidir(PET_SIN_PARALELO);
+check('CM22b · REGRESIÓN · un ciclo reutilizado que pierde varias lecturas seguidas tras un salto del reloj decide como sin cronómetro: ni el ciclo ni sus etapas miden el hueco',
+  sinRelojCM22b.status === 'decided' && comoTexto(segundaCM22b) === comoTexto(sinRelojCM22b),
+  `${segundaCM22b.status}/${segundaCM22b.parada ?? '-'}`);
+let tCM22c = 0;
+let fallosCM22c = 0;
+const relojCM22c = () => { if (fallosCM22c > 0) { fallosCM22c--; throw new Error('lectura perdida'); } return tCM22c; };
+const PET_CON_TEXTO = peticion({ aprendido: undefined, expected: [{ kind: 'text' }] });
+const OBS_CM22c = { kind: 'success', actual: { id: 'res-1', status: 'succeeded', outputs: [{ kind: 'text', ref: 'x' }] }, at: T1 };
+const cicloSinRelojCM22c = A.crearCicloAlgoritmico();
+const cierreSinRelojCM22c = cicloSinRelojCM22c.cerrar(cicloSinRelojCM22c.decidir(PET_CON_TEXTO), OBS_CM22c);
+const cicloCM22c = A.crearCicloAlgoritmico({ cronometro: relojCM22c });
+const decididaCM22c = cicloCM22c.decidir(PET_CON_TEXTO);
+tCM22c = 60_000;
+fallosCM22c = 1;
+const cierreCM22c = cicloCM22c.cerrar(decididaCM22c, OBS_CM22c);
+check('CM22c · REGRESIÓN · el cierre después de ejecutar no mide la ejecución como «pensar»: con una lectura perdida, A6 verifica igual que sin reloj',
+  cierreSinRelojCM22c.verification?.status === 'pass' && cierreCM22c.verification?.status === cierreSinRelojCM22c.verification?.status,
+  `${cierreCM22c.verification?.status} frente a ${cierreSinRelojCM22c.verification?.status}`);
+let tCM22d = 0;
+const cicloCM22d = A.crearCicloAlgoritmico({ cronometro: () => tCM22d });
+const decididaCM22d = cicloCM22d.decidir(PET_CON_TEXTO);
+tCM22d = 60_000;
+const cierreCM22d = cicloCM22d.cerrar(decididaCM22d, OBS_CM22c);
+check('CM22d · CONTROL · y sin lecturas perdidas, el cierre mide desde SU inicio: 60 s de ejecución entre las dos llamadas no son pensar',
+  cierreCM22d.verification?.status === 'pass', String(cierreCM22d.verification?.status));
 
 console.log('\n─── Misión de cierre · un rechazo de la frontera dice de quién era lo que cruzó ───');
 
