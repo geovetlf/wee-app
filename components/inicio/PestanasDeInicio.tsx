@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, Text, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, Text, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { IconoWee } from '../icons/IconoWee';
 import { NombreDeIcono } from '../icons/trazosDeWee';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -47,7 +47,8 @@ const PestanasDeInicio: React.FC<Props> = ({ puesto = 'wall', onSelect }) => {
   return (
     <View
       style={[styles.banda, dir.contenedor, { borderBottomColor: theme.colors.border, backgroundColor: theme.colors.background }]}
-      accessibilityRole={'navigation' as never}
+      /* `navigation` es un rol de la web; Android no lo conoce y falla al crear la vista. Mismo patrón que BarraInferior. */
+      accessibilityRole={Platform.OS === 'web' ? ('navigation' as never) : undefined}
       accessibilityLabel={t('home.sectionsNav')}
     >
       {/* Se desliza de lado por dentro si no caben —un teléfono de 320, un idioma de palabras largas—; el Home no se mueve. */}
