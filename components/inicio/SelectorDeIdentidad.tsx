@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { IconoWee } from '../icons/IconoWee';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useDireccion } from '../../hooks/useDireccion';
 import { MENU_ITEM } from '../../constants/weeMenu';
-import { FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SPACING } from '../../constants/design';
+import { FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
 /**
@@ -66,7 +66,7 @@ const SelectorDeIdentidad: React.FC<Props> = ({ activa, tieneWee, onElegir }) =>
             ]}
           >
             <IconoWee name={lado.icono} size={scale(16)} color={color} />
-            <Text style={[styles.texto, dir.texto, { color, fontWeight: puesta ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium }]} numberOfLines={1}>
+            <Text style={[styles.texto, dir.texto, { color, fontWeight: puesta ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
               {t(lado.clave)}
             </Text>
           </Pressable>
@@ -91,15 +91,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: scale(6),
+    gap: scale(4),
     minHeight: scale(38),
-    paddingHorizontal: SPACING.sm,
+    /* Poco relleno a los lados: un nombre largo («リアルプロフィール», «Echtes Profil») cabe sin cortarse. */
+    paddingHorizontal: scale(4),
     borderRadius: BORDER_RADIUS.full,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'transparent',
   },
   pulsado: { opacity: 0.7 },
-  texto: { fontSize: FONT_SIZE.sm, flexShrink: 1 },
+  /* El texto se reduce (en nativo, hasta el 75 %) antes de cortarse; en la web, a 11 (nueve caracteres de katakana a 11 caben en el hueco de 390; a 12 no). */
+  texto: { fontSize: Platform.OS === 'web' ? scale(11) : FONT_SIZE.sm, flexShrink: 1 },
 });
 
 export default SelectorDeIdentidad;
