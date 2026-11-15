@@ -345,7 +345,7 @@ const ProjectsScreen: React.FC = () => {
 
         {/*
           Mis creaciones: la biblioteca de material de la cuenta. Ya no tiene fila en el menú ☰ (rediseño del
-          2026-11-15): Proyectos es su puerta principal, junto con el centro creativo de WeëAI. Es la pantalla de siempre.
+          2026-11-15) ni en la portada de WeëAI: Proyectos es su puerta, junto con el acceso que se añada en MyWeës. Es la pantalla de siempre.
         */}
         <BotonSecundario texto={t(MENU_ITEM.creations.clave)} icono="images-outline" onPress={() => navigation.navigate('MisCreaciones')} />
 
