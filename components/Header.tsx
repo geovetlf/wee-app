@@ -18,6 +18,7 @@ import { SPACING, ICON_SIZE, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../co
 import { scale } from '../utils/scale';
 import { DireccionDelGesto, maquinaDeLaPildora } from '../utils/gestoHorizontal';
 import { RellenoDeMarca } from './GradienteDeMarca';
+import AvatarDisplay from './avatars/AvatarDisplay';
 
 const isWeb = Platform.OS === 'web';
 
@@ -94,13 +95,34 @@ interface HeaderProps {
    * correrlo, que es lo que pasaría si compartieran línea.
    */
   conMarca?: boolean;
+  /**
+   * LA CABECERA DE LA PORTADA (rediseño del 2026-11-15): ☰ · logo · buscar ·
+   * notificaciones · avatar.
+   *
+   * Solo la pide el Home. Es una VARIANTE: el resto de pantallas que montan
+   * este encabezado no la piden y siguen exactamente igual. Con ella:
+   *
+   *  · el logo va a la izquierda, junto al ☰, y sin eslogan (el eslogan se
+   *    queda en la landing y en el título de la pestaña);
+   *  · a la derecha van la lupa, la campana y el avatar, que abren las mismas
+   *    pantallas de siempre —Buscar, Notificaciones y el perfil—. Navegar lo
+   *    hace quien monta la cabecera, que es quien conoce su pila;
+   *  · el selector Real/Weë no se pinta aquí: vive en el menú ☰ y en la barra
+   *    lateral, con la misma lógica de cambio de perfil y de tema;
+   *  · la campana no lleva punto de no leídas (decisión del dueño);
+   *  · sin sesión no hay campana ni avatar: queda la lupa y el botón de entrar.
+   */
+  portada?: boolean;
+  onSearchPress?: () => void;
+  onNotificationsPress?: () => void;
+  onProfilePress?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, conMarca }) => {
+const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, conMarca, portada, onSearchPress, onNotificationsPress, onProfilePress }) => {
   const { theme, setThemeMode } = useTheme();
   const t = useT();
   const { user } = useAuth();
-  const { hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
+  const { userProfile, hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
   /* El ancho manda sobre cuánto puede ocupar la marca: se recalcula al girar. */
   const { width: anchoDePantalla } = useWindowDimensions();
   const conSelectorDeIdentidad = !!user && hasWeeProfile;
@@ -361,7 +383,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
       */}
       <View style={conMarca ? styles.banda : undefined}>
         <View style={[styles.content, conMarca && styles.contentConMarca]} pointerEvents="box-none">
-          <View style={styles.leftSection}>
+          <View style={[styles.leftSection, portada && styles.izquierdaDePortada]}>
             {/* Back or hamburger menu */}
             {onBackPress ? (
               <TouchableOpacity onPress={onBackPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
@@ -386,7 +408,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
 
             {/* Logo, cuando comparte línea con los controles (todo menos el Home) */}
             {!conMarca && (
-              <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.7} style={styles.logoContainer}>
+              <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.7} style={[styles.logoContainer, portada && styles.logoDePortada]} accessibilityRole="button" accessibilityLabel={t('home.logoHome')}>
                 <Image
                   source={(transparent || activeProfileType === 'hidi') ? require('../assets/images/weelogo-dark.png') : require('../assets/images/weelogo.png')}
                   style={styles.weeLogo}
@@ -399,7 +421,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
           </View>
 
           {/* Actions */}
-          <View style={styles.actions}>
+          <View style={[styles.actions, portada && styles.derechaDePortada]}>
             {/*
               Los Credits ya no viven aquí: se mudaron al menú ☰, debajo de los
               dos perfiles, que es donde está el resto de lo que es "tu cuenta".
@@ -409,7 +431,36 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
               campana.
             */}
             {/* Cambiar de identidad: visible si tiene Perfil Weë. */}
-            {user && hasWeeProfile && (
+            {/*
+              LA PORTADA: buscar, notificaciones y tú. Tres botones del mismo
+              tamaño, con sitio para el dedo, y ninguno relleno: el único color
+              de la cabecera es el del logo.
+            */}
+            {portada && (
+              <>
+                <TouchableOpacity onPress={onSearchPress} activeOpacity={0.7} style={styles.botonDePortada} accessibilityRole="button" accessibilityLabel={t('home.search')}>
+                  <Ionicons name="search-outline" size={scale(22)} color={textColor} />
+                </TouchableOpacity>
+                {user && (
+                  <TouchableOpacity onPress={onNotificationsPress} activeOpacity={0.7} style={styles.botonDePortada} accessibilityRole="button" accessibilityLabel={t('nav.notifications')}>
+                    <Ionicons name="notifications-outline" size={scale(22)} color={textColor} />
+                  </TouchableOpacity>
+                )}
+                {user && (
+                  <TouchableOpacity onPress={onProfilePress} activeOpacity={0.7} style={styles.botonDePortada} accessibilityRole="button" accessibilityLabel={t('nav.myProfile')}>
+                    <AvatarDisplay
+                      size={scale(30)}
+                      avatarType={userProfile?.avatarType || 'predefined'}
+                      avatarId={userProfile?.avatarId || 'male'}
+                      photoURL={typeof userProfile?.photoURL === 'string' ? userProfile.photoURL : undefined}
+                      photoURLThumbnail={typeof userProfile?.photoURLThumbnail === 'string' ? userProfile.photoURLThumbnail : undefined}
+                      backgroundColor={theme.colors.accent}
+                    />
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+            {user && hasWeeProfile && !portada && (
               (
                 /* El deslizamiento se reconoce aquí, en código nativo; el toque sigue siendo de cada mitad. */
                 <GestureDetector gesture={gestoDeLaPildora}>
@@ -608,6 +659,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: scale(0),
   },
+  /* Solo en la portada: deja encoger el logo antes que empujar los controles de la derecha fuera de la pantalla. */
+  izquierdaDePortada: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  derechaDePortada: {
+    flexShrink: 0,
+    gap: scale(2),
+  },
   menuButton: {
     padding: SPACING.xs,
     marginRight: scale(2),
@@ -616,6 +676,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
+  },
+  /* En la portada el logo comparte fila con tres botones: se deja encoger en un teléfono estrecho (`contain` conserva la proporción). */
+  logoDePortada: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  /* Lupa, campana y avatar: 40 de lado, que con la separación de la fila da sitio de sobra al dedo. */
+  botonDePortada: {
+    width: scale(40),
+    height: scale(40),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: scale(20),
   },
   logo: {
     height: scale(32),

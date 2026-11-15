@@ -38,11 +38,11 @@ import DrawerMenu from '../components/DrawerMenu';
 import { formatNumber } from '../utils/formatoCorto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-import WeelsRow from '../components/WeelsRow';
 import { sembrarMuro } from '../utils/semillaDelMuro';
-import HomeGreeting from '../components/HomeGreeting';
-import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
-import { HOME_SECTION_FILTERS, SeccionesElegidas, alternarSeccion, estaActiva, filterBySections } from '../utils/feedFilters';
+import PestanasDeInicio, { AtajoDeInicio } from '../components/inicio/PestanasDeInicio';
+import TarjetaWeeAi from '../components/inicio/TarjetaWeeAi';
+import PastillasDelFeed from '../components/inicio/PastillasDelFeed';
+import { HomeFeedId, filterBySections, seccionesDelFeed } from '../utils/feedFilters';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
 import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
@@ -73,14 +73,12 @@ const LandingScreen: React.FC = () => {
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
   /*
-   * El filtro del Wäll: Todo · WeeStudio · WeeTravel · WeeMusic · WeeChef ·
-   * WeeDesign · WEEBusiness. Son SECCIONES de Weë —de dónde viene cada
-   * publicación—, no tipos de archivo, y solo acotan el muro: no cambian de
-   * página ni abren Weëls. Se pueden poner una o varias a la vez; la lista
-   * vacía es "Todo", que es como se entra. La lógica vive en `feedFilters`,
-   * compartida con la web.
+   * El filtro del Wäll: «Para ti» (el muro entero, que es como se entra) o
+   * «Creatividad» (lo que viene de las secciones creativas de Weë). Solo acota
+   * el muro: no cambia de página ni abre Weëls. La lógica vive en
+   * `feedFilters`, compartida con la web.
    */
-  const [feedFilter, setFeedFilter] = useState<SeccionesElegidas>([]);
+  const [feedFilter, setFeedFilter] = useState<HomeFeedId>('paraTi');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [visiblePostIds, setVisiblePostIds] = useState<Set<string>>(new Set());
@@ -109,15 +107,13 @@ const LandingScreen: React.FC = () => {
   /*
    * EL HOME ES UNA SOLA LISTA.
    *
-   * Arriba, el saludo, el compositor y la fila de Weëls; después el carrusel
-   * de secciones, y debajo el Wäll con sus publicaciones. No hay páginas, ni
-   * gesto de lado, ni selector de página: lo que hubo aquí —un pager
-   * Wäll ↔ Weëls con su píldora y un bloque flotante que subía con la lista
-   * activa— se fue con esa decisión y no vuelve. A los Weëls se entra desde su
-   * fila, y esa fila abre WeëlsScreen, la experiencia de siempre.
+   * Arriba, quietos, la cabecera y los atajos Wall · Weëls · Explorar ·
+   * Comunidades; en la lista, la tarjeta de WeëAI, las pastillas y debajo el
+   * Wäll con sus publicaciones. No hay páginas ni gesto de lado: los atajos
+   * NAVEGAN a pantallas que ya existían (rediseño del 2026-11-15).
    */
 
-  // Los Weëls de la fila (se cargan aparte del muro)
+  // Los Weëls con los que se abre el visor (se cargan aparte del muro)
   const [videoPosts, setVideoPosts] = useState<Post[]>([]);
   const [videoLastDoc, setVideoLastDoc] = useState<DocumentSnapshot | null>(null);
   const [videosLoading, setVideosLoading] = useState(false);
@@ -307,8 +303,8 @@ const LandingScreen: React.FC = () => {
   }, [navigation]);
 
   /*
-   * La lupa del saludo. Abre la pantalla de Buscar que ya existe —la misma de la
-   * barra de abajo, con sus personas, hashtags y publicaciones—: aquí no hay un
+   * La lupa de la cabecera y el atajo «Explorar». Abren la pantalla de Buscar que
+   * ya existe, con sus personas, hashtags y publicaciones: aquí no hay un
    * buscador nuevo, solo otra puerta al de siempre.
    * Buscar es una pestaña, así que se sube un nivel: HomeStack → TabNavigator.
    */
@@ -340,20 +336,15 @@ const LandingScreen: React.FC = () => {
    * ─── EL VISOR, QUE ES OTRA COSA ───────────────────────────────────────────
    *
    * A pantalla completa, uno detrás de otro y con el dedo: eso es WeëlsScreen,
-   * y se entra a ella a propósito: tocando una tarjeta de la fila de Weëls,
-   * "Ver todos →", un vídeo del muro o "Explora → Weëls" en el menú.
+   * y se entra a ella a propósito: con el atajo «Weëls» de arriba, tocando un
+   * vídeo del muro o desde «Weëls» en el menú.
    *
    * Es la pantalla de siempre; se le pasa por dónde empezar y la lista que ya
    * está cargada, igual que hacen el perfil y la comunidad. Sin Weëls cargados
    * se abre IGUAL: el feed pide los suyos y dice si carga, si falló o si no hay
    * ninguno. Ver Weëls nunca lleva al compositor; crear un Weël es otra acción
-   * (`crearWeel`, la tarjeta «Tu primer Weël» y el + del propio feed).
+   * (el + de la barra y el + del propio feed).
    */
-  const crearWeel = useCallback(() => {
-    const mainNavigation = navigation.getParent()?.getParent();
-    (mainNavigation as any)?.navigate(user ? 'Create' : 'Login', user ? { kind: 'weel' } : undefined);
-  }, [navigation, user]);
-
   const abrirElVisor = useCallback((desde?: Post) => {
     const raiz = navigation.getParent()?.getParent();
     (raiz as any)?.navigate('Reels', videoPosts.length > 0
@@ -399,39 +390,34 @@ const LandingScreen: React.FC = () => {
     });
   }, [user, navigation, handleRegister]);
 
-  // Lo primero del Home: tu cara, tu nombre y la lupa. Nada encima del muro.
-  const renderHero = () => <HomeGreeting onSearch={irABuscar} />;
+  /*
+   * LOS ATAJOS DE ARRIBA. «Wall» es esta pantalla: tocarlo sube al principio.
+   * Los otros tres abren lo de siempre: el visor de Weëls, la búsqueda —que se
+   * llama Explorar— y el explorador de comunidades, que vive en esta pila.
+   */
+  const handleAtajo = (atajo: AtajoDeInicio) => {
+    if (atajo === 'wall') return flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    if (atajo === 'weels') return abrirElVisor();
+    if (atajo === 'explore') return irABuscar();
+    (navigation as any).navigate('ExploreCommunities');
+  };
+
+  /* Weë Brain y el centro creativo son rutas de la pila principal: HomeStack → TabNavigator → MainStack. */
+  const irAlPrincipal = (pantalla: string, params?: object) => {
+    const mainNavigation = navigation.getParent()?.getParent();
+    if (mainNavigation) (mainNavigation as any).navigate(pantalla, params);
+    else (navigation as any).navigate(pantalla, params);
+  };
 
   /*
-   * La puerta de publicar, la misma que los muros de sección.
-   *
-   * Es `ComposerEntry`, el componente que ya usaban Weë Chef, Design, Studio y
-   * Travel. No publica aquí —ninguno de sus controles lo hace—: abre el
-   * compositor global, que es donde están Cámara, Foto o vídeo, ËContact,
-   * Ubicación y Encuesta.
-   *
-   * Y en el Home es DIRECTA: la barra no se despliega ni lleva chevron. Tocar
-   * la pregunta o el "+" lleva a "Crear publicación" sin pasos intermedios; el
-   * Home se queda como muro y el compositor vive entero en su pantalla.
-   *
-   * Sin `sourceSection`: quien publica desde el Home no viene de ninguna sección,
-   * así que el compositor preselecciona el muro general y nada más.
+   * WeëAI en el Home: el nombre, el lema, el chip de Weë Brain y la puerta
+   * «¿Qué quieres crear hoy?». La puerta ABRE Weë Brain —que no tiene ruta
+   * propia: se entra por `Specialist { id: 'brain' }`— y no lleva texto ni
+   * adjuntos (components/inicio/TarjetaWeeAi.tsx).
    */
-  const handleCompose = (kind: ComposerKind) => {
-    if (!user) return handleRegister();
-    const tabNavigation = navigation.getParent();
-    const mainNavigation = tabNavigation?.getParent();
-    if (mainNavigation) (mainNavigation as any).navigate('Create', { kind });
-    else (navigation as any).navigate('Create', { kind });
-  };
-  /*
-   * El margen lo pone el Home, no el componente: en los muros de sección la
-   * tarjeta ya viene dentro de un contenedor con su padding, y aquí lo traía el
-   * bloque de comunidades que ocupaba este sitio. Mismo aire que tenía antes.
-   */
-  const renderComposer = () => (
-    <View style={styles.composerSlot}>
-      <ComposerEntry placeholder={t('home.composerPlaceholder')} onCompose={handleCompose} variante="home" directo />
+  const renderWeeAi = () => (
+    <View style={styles.weeAiSlot}>
+      <TarjetaWeeAi variante="portada" onOpenWeeAi={() => irAlPrincipal('WeeCreator')} onOpenBrain={() => irAlPrincipal('Specialist', { id: 'brain' })} />
     </View>
   );
 
@@ -663,85 +649,11 @@ const LandingScreen: React.FC = () => {
     );
   };
 
-  /*
-   * Fila de Weëls: videos cortos de la comunidad. Cualquier tarjeta y
-   * "Ver todos →" abren WeëlsScreen, la experiencia de vídeos de siempre; el
-   * botón de la izquierda lleva a crear el primero.
-   *
-   * Va sobre el fondo de la pantalla, sin franja gris propia. Saludo, compositor
-   * y Weëls son tres pasos de una misma bienvenida, y pintar uno de otro color
-   * los partía en bloques pegados. Lo único que se despega del fondo en todo el
-   * Home es la tarjeta de publicar, que es donde se actúa.
-   */
-  const renderWeelsRow = () => (
-    <View style={{ backgroundColor: theme.colors.background }}>
-      <WeelsRow
-        posts={videoPosts}
-        compacta
-        onOpenWeels={() => abrirElVisor()}
-        onCreateWeel={crearWeel}
-      />
-    </View>
-  );
+  /* Las pastillas del muro: Para ti · Creatividad. Un filtro; no navegan (components/inicio/PastillasDelFeed.tsx). */
+  const renderFeedFilters = () => <PastillasDelFeed puesto={feedFilter} onSelect={setFeedFilter} />;
 
-  /*
-   * EL CARRUSEL DE SECCIONES: UN FILTRO DEL WÄLL, Y NADA MÁS.
-   *
-   * Una fila de pastillas que se desliza de lado por dentro —solo ella: el Home
-   * sigue siendo vertical— con las siete secciones. Tocar una la pone o la
-   * quita, y el muro se acota en el acto a la unión de las puestas; no navega,
-   * no abre Weëls, no cambia de página. No es la antigua píldora
-   * Wäll ↔ Weëls: aquella elegía qué página ver; esta elige de dónde vienen
-   * las publicaciones que se ven.
-   *
-   * Pastillas bajas porque son un filtro, no una acción principal; cómodas de
-   * tocar porque el `hitSlop` les añade por fuera lo que no se les da por
-   * dentro. La apagada lleva borde: sobre el blanco del Home, un gris tan
-   * claro sin borde no se lee como algo que se pueda tocar.
-   */
-  const renderFeedFilters = () => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.feedFiltersRow}
-      style={{ backgroundColor: theme.colors.background }}
-      directionalLockEnabled
-      nestedScrollEnabled
-    >
-      {HOME_SECTION_FILTERS.map((f) => {
-        const active = estaActiva(feedFilter, f.id);
-        /* "Todo" se traduce; los nombres de las secciones son marca y no. */
-        const etiqueta = f.clave ? t(f.clave) : f.label;
-        return (
-          <TouchableOpacity
-            key={f.id}
-            style={[
-              styles.feedFilterChip,
-              {
-                backgroundColor: active ? theme.colors.accent : theme.colors.surface,
-                borderColor: active ? theme.colors.accent : theme.colors.border,
-              },
-            ]}
-            onPress={() => setFeedFilter((elegidas) => alternarSeccion(elegidas, f.id))}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            accessibilityLabel={t('home.filterBy', { nombre: etiqueta })}
-          >
-            {/* La pastilla elegida, con el degradado de marca (2026-11-05). */}
-            {active && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
-            <Text style={[styles.feedFilterText, { color: active ? '#1F2937' : theme.colors.text }, active && styles.feedFilterTextActive]}>
-              {etiqueta}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
-  );
-
-  /* El muro, acotado por las secciones puestas: la unión de todas ellas. Con "Todo", entero. */
-  const filteredFeedPosts = useMemo(() => filterBySections(feedPosts, feedFilter), [feedPosts, feedFilter]);
+  /* El muro, acotado por la pastilla puesta. Con «Para ti», entero. */
+  const filteredFeedPosts = useMemo(() => filterBySections(feedPosts, seccionesDelFeed(feedFilter)), [feedPosts, feedFilter]);
   /* Lo que el Wäll inmersivo recibe al tocar una publicación: el muro tal como se ve, y por dónde seguir. */
   const filteredFeedPostsRef = useRef(filteredFeedPosts);
   filteredFeedPostsRef.current = filteredFeedPosts;
@@ -750,13 +662,10 @@ const LandingScreen: React.FC = () => {
   const hasMoreRef = useRef(hasMore);
   hasMoreRef.current = hasMore;
 
-  // Home = solo lo esencial: hero → publicar → Weëls → secciones → creado por la comunidad.
-  // Comunidades se alcanza por Buscar, en la barra inferior.
+  // Home = solo lo esencial: WeëAI → pastillas → creado por la comunidad. Los atajos van fijos arriba, con la cabecera.
   const listHeader = useMemo(() => (
     <>
-      {renderHero()}
-      {renderComposer()}
-      {renderWeelsRow()}
+      {renderWeeAi()}
       {feedPosts.length > 0 && renderFeedFilters()}
       {/* Boost: UNA publicación promocionada de otra cuenta, si el servidor tiene alguna para ti (docs/BOOST.md). */}
       <PromotedSlot pintar={(p, abrir) => <PostCard post={p} onPress={abrir} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible variante="muro" />} />
@@ -780,7 +689,7 @@ const LandingScreen: React.FC = () => {
 
   /*
    * LA PORTADA NO ESPERA AL MURO. Antes, mientras llegaba la primera tanda, la
-   * pantalla entera era una rueda: ni cabecera, ni saludo, ni fila de Weëls.
+   * pantalla entera era una rueda: ni cabecera, ni atajos, ni tarjeta de WeëAI.
    * Ahora la cáscara se pinta al instante y la rueda gira solo donde va a
    * aparecer el muro, que es lo único que de verdad está viajando.
    */
@@ -804,7 +713,14 @@ const LandingScreen: React.FC = () => {
         style={[styles.headerOverlay, { pointerEvents: 'box-none' }]}
         onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
       >
-        <Header onMenuPress={() => setDrawerVisible(true)} conMarca />
+        <Header
+          onMenuPress={() => setDrawerVisible(true)}
+          portada
+          onSearchPress={irABuscar}
+          onNotificationsPress={() => (navigation as any).navigate('Notifications')}
+          onProfilePress={() => (navigation as any).navigate('Profile')}
+        />
+        <PestanasDeInicio puesto="wall" onSelect={handleAtajo} />
       </View>
       {/* StatusBar — after Headers so it takes precedence */}
       <StatusBar
@@ -851,10 +767,9 @@ const LandingScreen: React.FC = () => {
         /*
           UNA SOLA LISTA, EL WÄLL, CON LA BIENVENIDA COMO CABECERA.
 
-          Saludo, compositor, fila de Weëls y carrusel de secciones van como
-          cabecera de la lista y suben con ella; debajo, las publicaciones de
-          la sección puesta, con sus WeeTags. El Home no se mueve de lado: lo
-          único horizontal es el carrusel, por dentro. Al bajar, la lista le
+          La tarjeta de WeëAI y las pastillas van como cabecera de la lista y
+          suben con ella; debajo, las publicaciones del muro, con sus WeeTags.
+          El Home no se mueve de lado. Al bajar, la lista le
           cuenta a la barra de abajo hacia dónde va el dedo.
         */
         <FlatList
@@ -906,10 +821,10 @@ const LandingScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  /* El sitio del compositor en el Home: el mismo aire que tenía el bloque anterior. */
-  composerSlot: {
+  /* El sitio de la tarjeta de WeëAI en el Home. */
+  weeAiSlot: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xs,
+    paddingTop: SPACING.md,
     paddingBottom: SPACING.xs,
   },
   weelsSection: {

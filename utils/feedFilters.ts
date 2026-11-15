@@ -141,3 +141,30 @@ export const filterBySections = (posts: Post[], elegidas: SeccionesElegidas): Po
   }
   return posts.filter((post) => dentro.has(post));
 };
+
+/*
+ * ─── LAS PASTILLAS DEL HOME (rediseño del 2026-11-15) ────────────────────────
+ *
+ * Dos, y de una en una: «Para ti» es el muro entero, tal como lo da el paginador;
+ * «Creatividad» son las publicaciones que vienen de las secciones creativas de
+ * Weë —las seis experiencias—, con el MISMO reparto que ya usaba el carrusel de
+ * secciones (`filterBySections` → `postsDeLaSeccion`). No hay criterio nuevo ni
+ * consulta nueva: es una selección fija de las secciones de siempre.
+ *
+ * «Siguiendo» no existe: la app no tiene un muro por contactos, y no se pinta
+ * una pastilla que no haría nada.
+ *
+ * Guardan CLAVES: este archivo se importa fuera de React.
+ */
+export type HomeFeedId = 'paraTi' | 'creatividad';
+
+export const SECCIONES_CREATIVAS: SeccionesElegidas = ['studio', 'travel', 'music', 'chef', 'design', 'business'];
+
+export const HOME_FEED_TABS: { id: HomeFeedId; clave: string; secciones: SeccionesElegidas }[] = [
+  { id: 'paraTi', clave: 'home.feedForYou', secciones: [] },
+  { id: 'creatividad', clave: 'home.feedCreativity', secciones: SECCIONES_CREATIVAS },
+];
+
+/** Las secciones que acotan el muro con esa pastilla puesta. Vacío = el muro entero. */
+export const seccionesDelFeed = (id: HomeFeedId): SeccionesElegidas =>
+  HOME_FEED_TABS.find((f) => f.id === id)?.secciones ?? [];

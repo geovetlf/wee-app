@@ -1,17 +1,18 @@
 /**
  * WebLandingScreen — Home de Weë en web (escritorio y móvil web).
  *
- * Estructura: Header → saludo y buscar → publicar → fila de Weëls → Wäll con
- * sus publicaciones y sus WeeTags. Solo lo esencial: nada de catálogos,
- * categorías, selectores ni herramientas en el Home. A los Weëls se entra
- * desde su fila, que abre WeëlsScreen.
+ * Estructura (rediseño del 2026-11-15): cabecera (☰ · logo · buscar ·
+ * notificaciones · avatar) → atajos Wall · Weëls · Explorar · Comunidades →
+ * tarjeta de WeëAI con la puerta a Weë Brain → pastillas del muro → Wäll con
+ * sus publicaciones. El muro es el centro; lo de arriba ocupa poco.
  *
- * Donde estaba el bloque de Comunidades va ahora la puerta de publicar, la misma
- * que usan los muros de sección. A Comunidades se llega por Buscar, en la barra
- * inferior, así que no se pierde ningún acceso.
+ * Lo que salió de aquí sigue existiendo y se alcanza por otro sitio: publicar,
+ * desde el + de la barra (los mismos seis tipos); los Weëls, desde su atajo y
+ * desde el menú; buscar, desde la lupa y desde Explorar. Una publicación que es
+ * un Weël sigue saliendo en el muro: el muro no filtra por tipo.
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
@@ -21,11 +22,11 @@ import { postsService, Post } from '../services/firestoreService';
 import PostCard from '../components/PostCard';
 import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
-import WeelsRow from '../components/WeelsRow';
 import PromotedSlot from '../components/boost/PromotedSlot';
-import HomeGreeting from '../components/HomeGreeting';
-import ComposerEntry, { ComposerKind } from '../components/creator/ComposerEntry';
-import { HOME_SECTION_FILTERS, SeccionesElegidas, alternarSeccion, estaActiva, filterBySections } from '../utils/feedFilters';
+import PestanasDeInicio, { AtajoDeInicio } from '../components/inicio/PestanasDeInicio';
+import TarjetaWeeAi from '../components/inicio/TarjetaWeeAi';
+import PastillasDelFeed from '../components/inicio/PastillasDelFeed';
+import { HomeFeedId, filterBySections, seccionesDelFeed } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
@@ -46,11 +47,12 @@ const WebLandingScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
   /*
-   * El filtro del Wäll: las siete secciones de Weë, una o varias a la vez; la
-   * lista vacía es "Todo", que es como se entra. Solo acota el muro: no navega
-   * ni abre Weëls. La lógica vive en `feedFilters`, compartida con el móvil.
+   * El filtro del Wäll: «Para ti» (el muro entero, que es como se entra) o
+   * «Creatividad» (lo que viene de las secciones creativas). Solo acota el muro:
+   * no navega ni abre Weëls. La lógica vive en `feedFilters`, compartida con el
+   * móvil.
    */
-  const [feedFilter, setFeedFilter] = useState<SeccionesElegidas>([]);
+  const [feedFilter, setFeedFilter] = useState<HomeFeedId>('paraTi');
   /*
    * La portada web no paginaba: enseñaba la primera tanda y ahí se acababa. Con
    * el filtro de secciones eso puede dejar fuera publicaciones perfectamente
@@ -64,11 +66,10 @@ const WebLandingScreen: React.FC = () => {
   /*
    * EL HOME ES UN SOLO MURO.
    *
-   * Arriba, el saludo, el compositor y la fila de Weëls; después el carrusel
-   * de secciones, y debajo el Wäll con sus publicaciones y sus WeeTags. No hay
-   * páginas, ni gesto de lado, ni selector de página: lo que hubo aquí —un
-   * pager Wäll ↔ Weëls con su píldora— se fue y no vuelve. A los Weëls se entra
-   * desde su fila, y esa fila abre WeëlsScreen.
+   * Arriba, los atajos y la tarjeta de WeëAI; después las pastillas, y debajo
+   * el Wäll con sus publicaciones y sus WeeTags. No hay páginas, ni gesto de
+   * lado: los atajos de arriba NAVEGAN a pantallas que ya existían, no cambian
+   * de página dentro del Home.
    */
   const VISIBLES_POR_TANDA = 20;
 
@@ -119,7 +120,7 @@ const WebLandingScreen: React.FC = () => {
     if (!loading && !loadingMore && hayMas && lastDoc && posts.length === 0) cargarMas();
   }, [loading, loadingMore, hayMas, lastDoc, posts.length, cargarMas]);
 
-  /* Los Weëls de la fila: la primera tanda, con la consulta de siempre. */
+  /* Los Weëls con los que se abre el feed desde el atajo y desde el menú: la primera tanda, con la consulta de siempre. */
   useEffect(() => {
     postsService
       .getVideoPostsPaginated(10)
@@ -127,8 +128,8 @@ const WebLandingScreen: React.FC = () => {
       .catch((error) => console.error('Error loading Weëls:', error));
   }, []);
 
-  /* El muro, acotado por las secciones puestas: la unión de todas ellas. Con "Todo", entero. */
-  const filteredPosts = useMemo(() => filterBySections(posts, feedFilter), [posts, feedFilter]);
+  /* El muro, acotado por la pastilla puesta. Con «Para ti», entero. */
+  const filteredPosts = useMemo(() => filterBySections(posts, seccionesDelFeed(feedFilter)), [posts, feedFilter]);
 
   /*
    * ABRIR EL COMPOSITOR, SUBIENDO DOS NIVELES.
@@ -149,17 +150,8 @@ const WebLandingScreen: React.FC = () => {
     else (navigation as any).navigate('Create', params);
   };
 
-  const handleCompose = (kind: ComposerKind) => {
-    if (!user) return navigation.navigate('Register');
-    irAlCompositor({ kind });
-  };
-
   // ── Weëls ──
-  const handleCreateWeel = () => {
-    if (!user) return navigation.navigate('Login');
-    irAlCompositor({ kind: 'weel' });
-  };
-  /* Ver Weëls abre siempre el feed; sin Weëls cargados, el feed pide los suyos y dice si no hay. Crear es `handleCreateWeel`. */
+  /* Ver Weëls abre siempre el feed; sin Weëls cargados, el feed pide los suyos y dice si no hay. Crear un Weël se hace desde el + de la barra. */
   const handleOpenWeels = () => {
     navigation.navigate('Reels', weels.length > 0 ? { initialPost: weels[0], initialVideoPosts: weels } : undefined);
   };
@@ -169,6 +161,21 @@ const WebLandingScreen: React.FC = () => {
     handleOpenWeels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params?.openWeels]);
+
+  /*
+   * LOS ATAJOS DE ARRIBA. «Wall» es esta pantalla: tocarlo estando aquí no
+   * navega. Los otros tres abren lo de siempre: el feed de Weëls, la búsqueda
+   * —que se llama Explorar— y el explorador de comunidades, que vive en la
+   * pila del Home.
+   */
+  const handleAtajo = (atajo: AtajoDeInicio) => {
+    if (atajo === 'weels') return handleOpenWeels();
+    if (atajo === 'explore') return navigation.navigate('Search');
+    if (atajo === 'communities') return navigation.navigate('ExploreCommunities');
+  };
+
+  /* Weë Brain no tiene ruta propia: se entra por `Specialist { id: 'brain' }`, como desde el centro creativo. Sin texto ni adjuntos. */
+  const abrirBrain = () => navigation.navigate('Specialist', { id: 'brain' });
 
   // ── Feed ──
   /* Tocar una publicación abre el Wäll inmersivo en ella, con lo que el muro ya tiene cargado (utils/semillaDelMuro.ts). */
@@ -188,87 +195,40 @@ const WebLandingScreen: React.FC = () => {
 
   /*
    * LA PORTADA NO ESPERA AL MURO. Antes, mientras llegaba la primera tanda, la
-   * pantalla entera era una rueda: ni cabecera, ni saludo, ni fila de Weëls.
+   * pantalla entera era una rueda: ni cabecera, ni atajos, ni tarjeta de WeëAI.
    * Ahora la cáscara se pinta al instante y la rueda gira solo donde va a
    * aparecer el muro, que es lo único que de verdad está viajando.
    */
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: theme.colors.background, overflow: 'hidden' }}>
-      {/* Header fijo: ☰ · Weë · Real/Weë. Los Credits viven en el ☰ y las notificaciones, en la barra inferior. */}
+      {/* Cabecera fija: ☰ · logo · buscar · notificaciones · avatar. Los Credits y el selector Real/Weë viven en el ☰. */}
       <div style={{ flexShrink: 0, zIndex: 100 }}>
-        <Header onMenuPress={() => setDrawerVisible(true)} conMarca />
+        <Header
+          onMenuPress={() => setDrawerVisible(true)}
+          portada
+          onSearchPress={() => navigation.navigate('Search')}
+          onNotificationsPress={() => navigation.navigate('Notifications')}
+          onProfilePress={() => navigation.navigate('Profile')}
+        />
+        <PestanasDeInicio puesto="wall" onSelect={handleAtajo} />
       </div>
 
       {/* Al bajar, la barra de navegación se aparta; al subir, vuelve. */}
       <div onScroll={reportarScroll} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-        {/* Quién eres y dónde buscar. Poco alto: el muro empieza enseguida. */}
-        <HomeGreeting onSearch={() => navigation.navigate('Search')} />
-
         {/*
-          La puerta de publicar, la misma de los muros de sección. No publica aquí:
-          abre el compositor global, donde están Cámara, Foto o vídeo, ËContact,
-          Ubicación y Encuesta. Sin sección de origen, así que el compositor
-          preselecciona el muro general.
+          WeëAI, a la vista y sin comerse el muro: el nombre, el lema, el chip de
+          Weë Brain y la puerta «¿Qué quieres crear hoy?». La puerta ABRE Weë
+          Brain; no es un campo, no lleva texto ni adjuntos (TarjetaWeeAi).
         */}
-        <div style={{ padding: '4px 16px' }}>
-          <ComposerEntry placeholder={t('home.composerPlaceholder')} onCompose={handleCompose} variante="home" directo />
+        <div style={{ padding: '12px 16px 4px' }}>
+          <TarjetaWeeAi variante="portada" onOpenWeeAi={() => navigation.navigate('WeeCreator')} onOpenBrain={abrirBrain} />
         </div>
 
-        {/* Weëls */}
-        <WeelsRow compacta posts={weels} onOpenWeels={handleOpenWeels} onCreateWeel={handleCreateWeel} />
+        {/* Las pastillas del muro: Para ti · Creatividad. Un filtro; no navegan. */}
+        <PastillasDelFeed puesto={feedFilter} onSelect={setFeedFilter} />
 
-        {/* Creado por la comunidad: el Wäll, protagonista bajo la fila de Weëls. */}
-        <div style={{ padding: '8px 16px 100px' }}>
-          {/*
-            EL CARRUSEL DE SECCIONES: UN FILTRO DEL WÄLL, Y NADA MÁS.
-
-            Una fila de pastillas que se desliza de lado por dentro —solo ella;
-            la portada recorta de lado y no se mueve— con las siete secciones.
-            Tocar una la pone o la quita, y el muro se acota en el acto a la
-            unión de las puestas; no navega, no abre Weëls. No es la antigua
-            píldora Wäll ↔ Weëls: aquella elegía qué página ver; esta elige de
-            dónde vienen las publicaciones que se ven.
-
-            `aria-pressed` va escrito a mano a propósito: React Native Web no
-            traduce `accessibilityState` a ningún atributo del navegador, y sin
-            él un lector de pantalla no sabría qué sección está puesta.
-          */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} style={styles.filtersScroll}>
-            {HOME_SECTION_FILTERS.map((f) => {
-              const active = estaActiva(feedFilter, f.id);
-              /* "Todo" se traduce; los nombres de las secciones son marca y no. */
-              const etiqueta = f.clave ? t(f.clave) : f.label;
-              return (
-                <TouchableOpacity
-                  key={f.id}
-                  onPress={() => setFeedFilter((elegidas) => alternarSeccion(elegidas, f.id))}
-                  style={[styles.chip, {
-                    backgroundColor: active ? theme.colors.accent : theme.colors.surface,
-                    borderColor: active ? theme.colors.accent : theme.colors.border,
-                  }]}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  aria-pressed={active}
-                  accessibilityLabel={t('home.filterBy', { nombre: etiqueta })}
-                >
-                  {/* La pastilla elegida, con el degradado de marca (2026-11-05). */}
-                  {active && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
-                  {/*
-                    El texto de la pastilla apagada toma el color del tema, no un
-                    gris fijo. Con el Perfil Weë el fondo de la pastilla es casi
-                    negro, y un gris oscuro fijo desaparecía encima.
-                  */}
-                  <Text style={[styles.chipText, {
-                    color: active ? '#1F2937' : theme.colors.text,
-                    fontWeight: active ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium,
-                  }]}>{etiqueta}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
+        {/* Creado por la comunidad: el Wäll, el centro del Home. */}
+        <div style={{ padding: '4px 16px 100px' }}>
           {/* Boost: UNA publicación promocionada de otra cuenta, si el servidor tiene alguna para ti (docs/BOOST.md). */}
           <PromotedSlot pintar={(p, abrir) => <PostCard post={p} onPress={abrir} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible={true} variante="muro" />} />
 
@@ -358,25 +318,6 @@ const styles = StyleSheet.create({
     fontSize: scale(18),
     fontWeight: FONT_WEIGHT.bold,
     marginBottom: SPACING.sm,
-  },
-  /* El carrusel de secciones: pastillas bajas, cómodas de tocar por el hitSlop, con borde en reposo. */
-  filtersScroll: {
-    marginBottom: SPACING.md,
-  },
-  filters: {
-    gap: SPACING.sm,
-    paddingRight: SPACING.lg,
-  },
-  chip: {
-    height: scale(34),
-    paddingHorizontal: SPACING.lg,
-    borderRadius: BORDER_RADIUS.full,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipText: {
-    fontSize: FONT_SIZE.xs,
   },
   emptyState: {
     alignItems: 'center',
