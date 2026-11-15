@@ -1929,8 +1929,8 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
    * aquí se vigila el cableado del Home: que las dos pantallas lo pidan, a
    * dónde llevan y que el compositor sea uno.
    */
-  check('164) el Home nativo pide la tarjeta de WeëAI con su puerta a Weë Brain', /<TarjetaWeeAi variante="portada" [^>]*onOpenBrain=/.test(nativo));
-  check('165) y la portada web también', /<TarjetaWeeAi variante="portada" [^>]*onOpenBrain=\{abrirBrain\}/.test(web));
+  check('164) el Home nativo pide la tarjeta de WeëAI con su puerta a Weë Brain', /<TarjetaWeeAi variante="portada" onOpenWeeAi=\{[^}]*\} onOpenBrain=\{\(\) => irAlPrincipal\('Specialist', \{ id: 'brain' \}\)\} \/>/.test(nativo));
+  check('165) y la portada web también', /<TarjetaWeeAi variante="portada" onOpenWeeAi=\{[^}]*\} onOpenBrain=\{abrirBrain\} \/>/.test(web));
 
   /* 3 y 4: la pregunta y el "+" acaban en el MISMO handler, y ese handler navega. */
   const handlerNativo = nativo.slice(nativo.indexOf('const handleCompose ='), nativo.indexOf('const handleCompose =') + 400);

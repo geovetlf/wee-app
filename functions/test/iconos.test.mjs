@@ -182,7 +182,7 @@ console.log('\n── D · Enchufados en el Burger ──');
    * los nombres, ni las rutas: esto solo cambió los dibujos.
    */
   check('17) control: el menú pinta el orden del catálogo (rediseño del 2026-11-15: doce entradas, sin rótulos de grupo)',
-    /WEE_MENU\.map\(/.test(cajon) && /WEE_MENU\.map\(/.test(barra)
+    /WEE_MENU\.map\(/.test(cajon) && /WEE_MENU\.map\(/.test(leer('components/Sidebar.tsx'))
     && /items: \['home', 'weels', 'explore', 'communities', 'projects', 'pages'\] \},\s*\{ items: \['mywees'\], destacado: true \},\s*\{ items: \['saved', 'history', 'credits', 'settings'\], divisor: true \},\s*\{ items: \['help'\], divisor: true \}/.test(menu));
   /*
    * Las opciones siguen llamándose igual, pero el texto vive ya en el
