@@ -10,6 +10,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useIdentidadActiva } from '../hooks/useEContact';
+import { useMyWees } from '../hooks/useMyWees';
+import { crearAcceso, idDeAcceso } from '../utils/myWees';
 import { tipoDePagina } from '../constants/pageTypes';
 import { pagesService, WeePage, claveDelError } from '../services/pagesService';
 import { notify } from '../utils/notify';
@@ -57,6 +59,18 @@ const WeePageScreen: React.FC = () => {
   }, [pageId, identidad]));
 
   const esMia = !!pagina && pagina.ownerAccountId === user?.uid;
+  /*
+   * MYWEËS. Quien tiene sesión puede guardar un acceso directo a esta página en su MyWeës —la del perfil activo—, sea
+   * suya o de otra persona. Solo se guarda su identificador, en el dispositivo: no se copia la página, no cambia nada
+   * de ella ni de sus permisos, y el acceso la abrirá aquí mismo, como la abre cualquiera.
+   */
+  const myWees = useMyWees();
+  const enMyWees = !!pagina && myWees.tiene(idDeAcceso('pagina', pagina.id));
+  const alternarMyWees = () => {
+    if (!pagina) return;
+    if (enMyWees) return myWees.quitar(idDeAcceso('pagina', pagina.id));
+    myWees.anadir(crearAcceso('pagina', pagina.id, pagina.name || pagina.handle, Date.now()));
+  };
 
   const alternarSeguir = async () => {
     if (!pagina || !identidad) return;
@@ -132,6 +146,21 @@ const WeePageScreen: React.FC = () => {
               </View>
             )}
           />
+
+          {myWees.disponible && !myWees.cargando && (
+            <TouchableOpacity
+              onPress={alternarMyWees}
+              style={[s.myWees, { borderColor: theme.colors.interactionBorder, backgroundColor: enMyWees ? theme.colors.interactionSoft : 'transparent' }]}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityState={{ selected: enMyWees }}
+              aria-pressed={enMyWees}
+            >
+              <Ionicons name={enMyWees ? 'checkmark-circle' : 'add-circle-outline'} size={scale(18)} color={theme.colors.interaction} />
+              {/* «MyWeës» es marca; puesta, basta su nombre con el visto. Sin poner, «MyWeës · Añadir». */}
+              <Text style={[s.myWeesTexto, { color: theme.colors.interaction }]} numberOfLines={2}>{enMyWees ? t('menu.myWees') : `${t('menu.myWees')} · ${t('mywees.add')}`}</Text>
+            </TouchableOpacity>
+          )}
 
           {(!!pagina.scenes?.length || esMia) && (
             <View style={s.seccion}>
@@ -235,6 +264,9 @@ const s = StyleSheet.create({
   acciones: { flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.md },
   boton: { flex: 1, minHeight: scale(42), borderRadius: BORDER_RADIUS.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   botonTexto: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.semibold },
+  /* «Añadir a MyWeës»: discreto, debajo de las acciones de la página, con el acento de interacción y sitio para el dedo. */
+  myWees: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, maxWidth: '100%', paddingHorizontal: SPACING.md, marginHorizontal: SPACING.lg, marginTop: SPACING.sm, borderRadius: BORDER_RADIUS.full, borderWidth: 1 },
+  myWeesTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, flexShrink: 1 },
   bloque: { marginHorizontal: SPACING.lg, borderWidth: StyleSheet.hairlineWidth, borderRadius: BORDER_RADIUS.lg, padding: SPACING.md, gap: SPACING.sm },
   bloqueTitulo: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.bold },
   parrafo: { fontSize: FONT_SIZE.sm, lineHeight: scale(20) },
