@@ -252,27 +252,44 @@ const Sidebar: React.FC = () => {
           {WEE_MENU.map((grupo) => (
             <View key={grupo.items.join('-')} style={styles.nav}>
               {grupo.divisor && <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />}
-              {grupo.items.map((id) => (
-                <Opcion
-                  key={id}
-                  id={id}
-                  active={FILA[id]?.active}
-                  onPress={FILA[id]?.onPress ?? (() => {})}
-                  right={
-                    id === 'credits' && user ? (
-                      <View style={[styles.saldo, { backgroundColor: theme.colors.accent }]}>
-                        <RellenoDeMarca radio={BORDER_RADIUS.full} />
-                        <Text style={styles.saldoTexto}>{balance === null ? '…' : `${formato.numero(balance)} Credits`}</Text>
-                      </View>
-                    ) : id === 'mywees' ? (
-                      /* «Personalizar» abre MyWeës lista para organizar. Sus accesos no se despliegan aquí. */
-                      <TouchableOpacity onPress={conCuenta('MyWees', { personalizar: true })} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('menu.customize')}>
-                        <Ionicons name="options-outline" size={16} color={theme.colors.interaction} />
-                      </TouchableOpacity>
-                    ) : undefined
-                  }
-                />
-              ))}
+              {grupo.items.map((id) => {
+                const opcion = (
+                  <Opcion
+                    key={id}
+                    id={id}
+                    active={FILA[id]?.active}
+                    onPress={FILA[id]?.onPress ?? (() => {})}
+                    right={
+                      id === 'credits' && user ? (
+                        <View style={[styles.saldo, { backgroundColor: theme.colors.accent }]}>
+                          <RellenoDeMarca radio={BORDER_RADIUS.full} />
+                          <Text style={styles.saldoTexto}>{balance === null ? '…' : `${formato.numero(balance)} Credits`}</Text>
+                        </View>
+                      ) : undefined
+                    }
+                  />
+                );
+                if (id !== 'mywees') return opcion;
+                /*
+                  MYWEËS LLEVA SU «PERSONALIZAR» AL LADO, NO DENTRO. Son dos botones hermanos en la misma fila: uno
+                  dentro de otro no es HTML válido en la web y un lector de pantalla no sabría cuál de los dos tiene.
+                  «Personalizar» abre MyWeës lista para organizar; sus accesos no se despliegan aquí.
+                */
+                return (
+                  <View key={id} style={styles.filaConAccion}>
+                    <View style={styles.filaConAccionOpcion}>{opcion}</View>
+                    <TouchableOpacity
+                      onPress={conCuenta('MyWees', { personalizar: true })}
+                      style={[styles.accionDeFila, isWeb && ({ cursor: 'pointer' } as any)]}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('menu.customize')}
+                    >
+                      <Ionicons name="options-outline" size={16} color={theme.colors.interaction} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </View>
           ))}
 
@@ -404,6 +421,22 @@ const styles = StyleSheet.create({
   },
   nav: {
     gap: 2,
+  },
+  /* Una opción con un botón al lado (MyWeës y su «Personalizar»): hermanos, nunca uno dentro de otro. */
+  filaConAccion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filaConAccionOpcion: {
+    flex: 1,
+    minWidth: 0,
+  },
+  accionDeFila: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
   },
   item: {
     flexDirection: 'row',

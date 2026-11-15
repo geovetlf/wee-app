@@ -282,7 +282,8 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  filaMarca: { width: scale(20), textAlign: 'center' },
+  /* La marca «ẄC» ocupa el hueco de un icono; con un ancho fijo estrecho se partía en dos líneas. */
+  filaMarca: { minWidth: scale(20), textAlign: 'center' },
   filaTextos: { flex: 1, minWidth: 0 },
   filaNombre: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.medium },
   filaDetalle: { fontSize: FONT_SIZE.xs },
