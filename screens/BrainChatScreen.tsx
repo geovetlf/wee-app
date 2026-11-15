@@ -108,8 +108,8 @@ const horaDelMensaje = (marca: any): Date | null => {
  * Al entrar, el TALLER: el cerebro en el centro, las seis secciones de Weë AI
  * a su alrededor recibiendo energía, los atajos y la caja donde se escribe. No
  * es un adorno: es el mapa de cómo funciona Weë, y dice de un vistazo lo que
- * costaría un párrafo —que WeëStudio, WeëMusic, WeëDesign, Weë Business, Weë
- * Chef y WeëTravel salen del mismo cerebro—.
+ * costaría un párrafo —que Weë Studio, Weë Music, Weë Design, Weë Business, Weë
+ * Chef y Weë Travel salen del mismo cerebro—.
  *
  * En cuanto se escribe algo, el taller deja sitio a la CONVERSACIÓN, que es lo
  * mismo de siempre: burbujas, fuentes cuando busca en internet, derivación al
@@ -323,7 +323,7 @@ const BrainChatScreen: React.FC = () => {
   /*
    * LA CAJA VA ANCLADA, NO AL FINAL DE LA PÁGINA (decisión del usuario, 2026-09-16).
    *
-   * En WeëStudio la caja está arriba del todo, así que al salir el teclado casi
+   * En Weë Studio la caja está arriba del todo, así que al salir el teclado casi
    * no hay nada que desplazar y se queda quieta. Aquí está abajo, detrás del
    * cerebro y de los seis satélites, y con la caja DENTRO de la página pasaba
    * esto: Android desplazaba la página para enseñar el cursor, el teclado
@@ -419,7 +419,7 @@ const BrainChatScreen: React.FC = () => {
       )}
 
       {/*
-        Los ajustes de Weë Brain: la misma hoja que usan WeëStudio y WeëChef,
+        Los ajustes de Weë Brain: la misma hoja que usan Weë Studio y Weë Chef,
         con un solo grupo. No hay pantalla nueva ni sistema nuevo.
       */}
       <AjustesContextuales
