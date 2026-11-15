@@ -416,6 +416,16 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                   priority="high"
                   cachePolicy="memory-disk"
                 />
+                {/* En la portada, el eslogan va debajo del logo, en la lengua de la interfaz (decisión del dueño, 2026-11-15). Una línea: si no cabe, se corta limpio. */}
+                {portada ? (
+                  <Text
+                    style={[styles.lema, { color: transparent ? 'rgba(255,255,255,0.65)' : theme.colors.textSecondary }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={!isWeb}
+                  >
+                    {t('nav.brandSlogan')}
+                  </Text>
+                ) : null}
               </TouchableOpacity>
             )}
           </View>
@@ -681,6 +691,10 @@ const styles = StyleSheet.create({
   logoDePortada: {
     flexShrink: 1,
     minWidth: 0,
+    /* El logo arriba y el eslogan debajo, alineados por el principio de la línea. */
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 0,
   },
   /* Lupa, campana y avatar: 40 de lado, que con la separación de la fila da sitio de sobra al dedo. */
   botonDePortada: {

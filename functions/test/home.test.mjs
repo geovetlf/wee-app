@@ -1505,10 +1505,16 @@ console.log('\n── M · La marca en el centro del Home ──');
    * los Weëls a pantalla completa—; desde que Ẅells es una página más de la
    * portada, con su fondo, esa segunda capa se fue. Un solo encabezado.
    */
-  check('109) las dos pantallas del Home piden la cabecera de portada, una vez cada una, y ya no la marca centrada con el eslogan',
+  check('109) las dos pantallas del Home piden la cabecera de portada, una vez cada una',
     (nativo.match(/\n\s*portada\n/g) || []).length === 1
     && (web.match(/\n\s*portada\n/g) || []).length === 1
     && !/conMarca/.test(nativo) && !/conMarca/.test(web));
+  /* Decisión del dueño (2026-11-15): el eslogan vuelve, debajo del logo de la portada y del logo del cajón, de la misma clave. */
+  check('109b) y la portada pinta el eslogan debajo del logo, en una línea y de la clave de siempre',
+    /\{portada \? \(\s*<Text\s+style=\{\[styles\.lema,[^\]]*\]\}\s+numberOfLines=\{1\}[\s\S]{0,200}\{t\('nav\.brandSlogan'\)\}/.test(cabecera)
+    && /logoDePortada: \{[^}]*flexDirection: 'column'/.test(cabecera));
+  check('109c) y el cajón también, bajo su logo',
+    /styles\.eslogan[^>]*numberOfLines=\{1\}>\{t\('nav\.brandSlogan'\)\}/.test(leer('components/DrawerMenu.tsx')));
   /*
    * Control: las otras pantallas que usan este mismo encabezado —Notificaciones,
    * WeeTalk y HomeScreen— NO la piden, así que siguen con el logo a la izquierda

@@ -466,12 +466,16 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
         >
           {/* La marca y el cierre. El ✕ cierra el cajón igual que tocar fuera. */}
           <View style={styles.marcaFila}>
-            <Image
-              source={isWee ? require('../assets/images/weelogo-dark.png') : require('../assets/images/weelogo.png')}
-              style={styles.logo}
-              contentFit="contain"
-              accessible={false}
-            />
+            <View style={styles.marcaConEslogan}>
+              <Image
+                source={isWee ? require('../assets/images/weelogo-dark.png') : require('../assets/images/weelogo.png')}
+                style={styles.logo}
+                contentFit="contain"
+                accessible={false}
+              />
+              {/* El eslogan, debajo del logo, en la lengua de la interfaz: la misma clave que la cabecera del Home. */}
+              <Text style={[styles.eslogan, { color: theme.colors.textSecondary }]} numberOfLines={1}>{t('nav.brandSlogan')}</Text>
+            </View>
             <TouchableOpacity onPress={closeDrawer} activeOpacity={0.7} style={styles.cerrar} accessibilityRole="button" accessibilityLabel={t('common.close')}>
               <Ionicons name="close" size={scale(22)} color={theme.colors.text} />
             </TouchableOpacity>
@@ -664,6 +668,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.sm,
     marginBottom: SPACING.sm,
+  },
+  /* El logo y, debajo, el eslogan: se encogen antes que empujar el botón de cierre. */
+  marcaConEslogan: {
+    flexShrink: 1,
+    minWidth: 0,
+    alignItems: 'flex-start',
+  },
+  eslogan: {
+    fontSize: scale(10),
+    fontWeight: FONT_WEIGHT.regular,
   },
   logo: {
     height: scale(30),
