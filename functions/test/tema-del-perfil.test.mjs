@@ -42,5 +42,12 @@ check('5) nadie pide el tema del sistema: el modo oscuro del teléfono no cambia
 check('6) en la web la página declara su esquema de color: clara = «only light», para que el navegador no la oscurezca por su cuenta',
   tema.includes("document.documentElement.style.colorScheme = theme.dark ? 'dark' : 'only light'"));
 
+const html = leer('public/index.html');
+check('7) el HTML inicial declara el esquema de color antes de que arranque nada de JavaScript',
+  html.includes('<meta name="color-scheme" content="light dark" />') && html.includes('color-scheme: only light;') && html.includes('%WEB_TITLE%') && html.includes('<div id="root"></div>'));
+const selector = leer('components/inicio/SelectorDeIdentidad.tsx');
+check('8) el selector de identidad reduce el texto antes de cortarlo: un nombre largo (japonés, alemán, ruso) cabe en un lado',
+  selector.includes('numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}') && selector.includes('paddingHorizontal: scale(4)'));
+
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);
