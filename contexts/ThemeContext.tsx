@@ -37,6 +37,8 @@ export interface Theme {
     interaction: string;
     /** Velo del acento de interacción para fondos suaves. */
     interactionSoft: string;
+    /** Velo fuerte: el lado puesto del selector de identidad. */
+    interactionStrong: string;
     /** Contorno de una tarjeta destacada con el acento de interacción. */
     interactionBorder: string;
     /** Texto encima de un relleno del acento de interacción. */
@@ -72,6 +74,7 @@ const lightTheme: Theme = {
     primaryGradientEnd: MARCA.degradado.colores[2],
     interaction: ACENTO.claro.interaccion,
     interactionSoft: ACENTO.claro.velo,
+    interactionStrong: ACENTO.claro.veloFuerte,
     interactionBorder: ACENTO.claro.borde,
     onInteraction: ACENTO.claro.sobre,
     like: '#EF4444',
@@ -105,6 +108,7 @@ const darkTheme: Theme = {
     primaryGradientEnd: MARCA.degradado.colores[2],
     interaction: ACENTO.oscuro.interaccion,
     interactionSoft: ACENTO.oscuro.velo,
+    interactionStrong: ACENTO.oscuro.veloFuerte,
     interactionBorder: ACENTO.oscuro.borde,
     onInteraction: ACENTO.oscuro.sobre,
     like: '#FF6B6B',
@@ -271,7 +275,7 @@ export const TemaClaro: React.FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
-/** Lo contrario, para Weë Music: la sección va siempre en negro, con el perfil que sea. */
+/** Lo contrario, para WeëMusic: la sección va siempre en negro, con el perfil que sea. */
 export const TemaOscuro: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { themeMode, setThemeMode } = useTheme();
   return (

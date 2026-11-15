@@ -44,6 +44,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { useDireccion } from '../hooks/useDireccion';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
@@ -54,7 +55,8 @@ import { Image } from 'expo-image';
 import { MENU_ITEM, MenuItemId, WEE_MENU } from '../constants/weeMenu';
 import SelectorDeIdentidad, { Identidad } from './inicio/SelectorDeIdentidad';
 import TarjetaWeeAi from './inicio/TarjetaWeeAi';
-import { RellenoDeMarca } from './GradienteDeMarca';
+import { RellenoDeMarca, RellenoDeDegradado } from './GradienteDeMarca';
+import { ARTE_WEEAI } from '../constants/marca';
 import { ALTO_BARRA } from './BarraInferior';
 import { useResponsive } from '../hooks/useResponsive';
 import { confirmAction } from '../utils/notify';
@@ -74,7 +76,7 @@ interface DrawerMenuProps {
  *   quién soy  ›
  *   [ Real | Weë ]                       ← el selector de identidad
  *   ┌ WeëAI · lema                    → ┐ ← abre el centro creativo
- *   Inicio / Wäll · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
+ *   Inicio / Ẅall · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
  *   ┌ MyWeës · descripción · [Personalizar] ┐
  *   Guardados · Historial · Credits · Configuración
  *   Ayuda y soporte
@@ -94,6 +96,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const t = useT();
   const { theme, setThemeMode } = useTheme();
   const { formato } = useIdioma();
+  const dir = useDireccion();
   const { user, logout } = useAuth();
   const { userProfile, activeProfileType, hasWeeProfile, switchIdentity } = useUserProfile();
   const navigation = useNavigation<any>();
@@ -544,6 +547,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                   organizar.
                 */
                 <View style={[styles.myWees, { backgroundColor: theme.colors.interactionSoft, borderColor: theme.colors.interactionBorder }]}>
+                  {/* El lavado de la referencia: dorado al inicio, lila al final. Sale de un token (ARTE_WEEAI). */}
+                  <RellenoDeDegradado colores={(theme.dark ? ARTE_WEEAI.oscuro : ARTE_WEEAI.claro).lavadoMyWees} espejo={dir.esRTL} />
                   <View style={styles.myWeesFila}>
                     <IconoWee name={MENU_ITEM.mywees.icono} size={scale(20)} color={colorDeLosIconos} style={styles.rowIcono} />
                     <View style={styles.rowHueco}>
@@ -697,6 +702,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   myWeesFila: {
     flexDirection: 'row',

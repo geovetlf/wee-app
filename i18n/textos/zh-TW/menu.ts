@@ -70,7 +70,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: '查看專家',
   signOutConfirm: '要登出 Weë 嗎？',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: '首頁 / Wäll',
+  homeWall: '首頁 / Ẅall',
   explore: '探索',
   projectsTitle: '專案',
   myWees: 'MyWeës',
@@ -78,4 +78,5 @@ export const menu: typeof import('../es/menu').menu = {
   customize: '自訂',
   history: '紀錄',
   helpSupport: '說明與支援',
+  weeAiTagline: '用 AI 創作、想像，讓你的創意成真',
 };

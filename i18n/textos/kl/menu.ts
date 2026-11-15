@@ -43,7 +43,7 @@ export const menu: typeof import('../es/menu').menu = {
   /* Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa. */
   pages: 'Weë Pages',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: 'Aallarnerfik / Wäll',
+  homeWall: 'Aallarnerfik / Ẅall',
   explore: 'Misissuigit',
   projectsTitle: 'Suliniutit',
   myWees: 'MyWeës',
@@ -51,4 +51,5 @@ export const menu: typeof import('../es/menu').menu = {
   customize: 'Nammineq aaqqissuguk',
   history: 'Pisimasut',
   helpSupport: 'Ikiuineq tapersersuinerlu',
+  weeAiTagline: 'Pilersitsigit, takorluukkit isumassarsiatillu AI atorlugu piviusunngortikkit',
 };

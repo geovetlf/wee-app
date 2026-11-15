@@ -61,7 +61,7 @@ const SelectorDeIdentidad: React.FC<Props> = ({ activa, tieneWee, onElegir }) =>
             accessibilityLabel={porCrear ? t('menu.createWeeProfile') : t(puesta ? 'menu.profileActive' : 'menu.switchToProfile', { perfil: t(lado.clave) })}
             style={({ pressed }) => [
               styles.lado,
-              puesta && { backgroundColor: theme.colors.interactionSoft, borderColor: theme.colors.interactionBorder },
+              puesta && { backgroundColor: theme.colors.interactionStrong, borderColor: theme.colors.interactionBorder },
               pressed && !puesta && styles.pulsado,
             ]}
           >

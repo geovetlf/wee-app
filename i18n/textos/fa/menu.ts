@@ -36,7 +36,7 @@ export const menu: typeof import('../es/menu').menu = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   pages: 'Weë Pages',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: 'خانه / Wäll',
+  homeWall: 'خانه / Ẅall',
   explore: 'کاوش',
   projectsTitle: 'پروژه‌ها',
   myWees: 'MyWeës',
@@ -44,4 +44,5 @@ export const menu: typeof import('../es/menu').menu = {
   customize: 'شخصی‌سازی',
   history: 'تاریخچه',
   helpSupport: 'راهنما و پشتیبانی',
+  weeAiTagline: 'با هوش مصنوعی بسازید، تصور کنید و ایده‌هایتان را محقق کنید',
 };

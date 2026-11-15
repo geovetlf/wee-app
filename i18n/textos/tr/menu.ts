@@ -45,7 +45,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Uzmanları göster',
   signOutConfirm: 'Weë\'den çıkış yapmak istiyor musun?',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: 'Ana sayfa / Wäll',
+  homeWall: 'Ana sayfa / Ẅall',
   explore: 'Keşfet',
   projectsTitle: 'Projeler',
   myWees: 'MyWeës',
@@ -53,4 +53,5 @@ export const menu: typeof import('../es/menu').menu = {
   customize: 'Özelleştir',
   history: 'İşlem geçmişi',
   helpSupport: 'Yardım ve destek',
+  weeAiTagline: 'Yapay zekâ ile oluştur, hayal et ve fikirlerini gerçeğe dönüştür',
 };

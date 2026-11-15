@@ -54,4 +54,21 @@ export const RellenoDeMarca: React.FC<{ radio?: number | string; apagada?: boole
   />
 );
 
+/**
+ * UN RELLENO EN DEGRADADO, DE UNA LISTA DE COLORES CON NOMBRE.
+ *
+ * Para los degradados del arte de WeëAI (`ARTE_WEEAI` en constants/marca.ts): el botón de enviar (dorado → violeta), el
+ * borde en degradado y el lavado de la tarjeta de MyWeës. Los colores llegan SIEMPRE de un token; este componente no
+ * tiene ninguno propio. `diagonal` lo inclina de abajo a la izquierda a arriba a la derecha, como en la referencia.
+ */
+export const RellenoDeDegradado: React.FC<{ colores: readonly string[]; radio?: number; diagonal?: boolean; espejo?: boolean }> = ({ colores, radio, diagonal, espejo }) => (
+  <LinearGradient
+    pointerEvents="none"
+    colors={colores as unknown as [string, string, ...string[]]}
+    start={diagonal ? { x: espejo ? 1 : 0, y: 1 } : { x: espejo ? 1 : 0, y: 0.5 }}
+    end={diagonal ? { x: espejo ? 0 : 1, y: 0 } : { x: espejo ? 0 : 1, y: 0.5 }}
+    style={[StyleSheet.absoluteFill, typeof radio === 'number' ? { borderRadius: radio } : null]}
+  />
+);
+
 export default GradienteDeMarca;

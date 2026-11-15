@@ -49,7 +49,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'एक्सपर्ट दिखाएँ',
   signOutConfirm: 'क्या आपको Weë से साइन आउट करना है?',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: 'होम / Wäll',
+  homeWall: 'होम / Ẅall',
   explore: 'एक्सप्लोर',
   projectsTitle: 'प्रोजेक्ट',
   myWees: 'MyWeës',
@@ -57,4 +57,5 @@ export const menu: typeof import('../es/menu').menu = {
   customize: 'अनुकूलित करें',
   history: 'लेन-देन का इतिहास',
   helpSupport: 'सहायता और समर्थन',
+  weeAiTagline: 'AI के साथ बनाएँ, कल्पना करें और अपने विचारों को साकार करें',
 };

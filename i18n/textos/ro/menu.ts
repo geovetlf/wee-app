@@ -37,7 +37,7 @@ export const menu: typeof import('../es/menu').menu = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   pages: 'Weë Pages',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: 'Acasă / Wäll',
+  homeWall: 'Acasă / Ẅall',
   explore: 'Explorează',
   projectsTitle: 'Proiecte',
   myWees: 'MyWeës',
@@ -45,4 +45,5 @@ export const menu: typeof import('../es/menu').menu = {
   customize: 'Personalizează',
   history: 'Istoric',
   helpSupport: 'Ajutor și asistență',
+  weeAiTagline: 'Creează, imaginează și dă viață ideilor tale cu IA',
 };

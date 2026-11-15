@@ -33,6 +33,9 @@ export const NOMBRE_VISIBLE_DE_EXPERIENCIA: Record<ExperienciaDeMyWees, string> 
   brain: 'Weë Brain',
 };
 
+/** El nombre corto del chip de Weë Brain en la tarjeta de WeëAI. Marca: igual en todos los idiomas. */
+export const NOMBRE_CORTO_DE_BRAIN = 'Brain';
+
 /** El nombre visible de una experiencia por su id; si no es una de las de arriba, el que traiga el catálogo. */
 export const nombreVisibleDeExperiencia = (id: string, respaldo: string): string =>
   (NOMBRE_VISIBLE_DE_EXPERIENCIA as Record<string, string>)[id] ?? respaldo;
