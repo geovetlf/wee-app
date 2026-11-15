@@ -40,9 +40,35 @@ const SIN_BARRA = new Set([
 /* Y una pantalla anidada: una conversación abierta ocupa todo (ya era así antes). */
 const ANIDADAS_SIN_BARRA = new Set(['Conversation']);
 
-/** Qué destino corresponde a cada ruta suelta de la pila. */
+/**
+ * Qué destino corresponde a cada ruta suelta de la pila.
+ *
+ * Todo lo que es Weë AI enciende WeëAI: el centro creativo, cada experiencia,
+ * el flujo guiado, los proyectos, las creaciones y el historial de trabajos.
+ * Lo demás —una publicación, una comunidad, la búsqueda— se alcanza desde el
+ * Home y enciende Inicio, como siempre.
+ */
 const DESTINO_DE_RUTA: Record<string, DestinoId> = {
-  Search: 'Search',
+  WeeCreator: 'WeeAI',
+  Specialist: 'WeeAI',
+  CreatorFlow: 'WeeAI',
+  Studio: 'WeeAI',
+  Design: 'WeeAI',
+  Travel: 'WeeAI',
+  Production: 'WeeAI',
+  Mundo3D: 'WeeAI',
+  WriterEditor: 'WeeAI',
+  Projects: 'WeeAI',
+  Project: 'WeeAI',
+  MisCreaciones: 'WeeAI',
+  Historial: 'WeeAI',
+};
+
+/** Las pestañas que la barra dibuja. `Search` y `Create` siguen siendo pestañas, pero ya no tienen destino propio. */
+const DESTINO_DE_PESTANA: Record<string, DestinoId> = {
+  Home: 'Home',
+  Inbox: 'Inbox',
+  Profile: 'Profile',
 };
 
 /** El nombre de la ruta más profunda, sea cual sea la anidación. */
@@ -53,13 +79,13 @@ const rutaHonda = (estado: any): string | null => {
   return ruta.state ? rutaHonda(ruta.state) || ruta.name : ruta.name;
 };
 
-/** El nombre de la pestaña puesta, si es que estamos dentro de las pestañas. */
+/** El destino de la pestaña puesta, si es que estamos dentro de las pestañas. Sin estado todavía, Inicio. */
 const pestanaPuesta = (estado: any): DestinoId | null => {
   const principal = estado?.routes?.[estado.index];
   if (!principal || principal.name !== 'Main') return null;
   const pestanas = principal.state;
   const nombre = pestanas?.routes?.[pestanas.index]?.name;
-  return (nombre as DestinoId) || 'Home';
+  return nombre ? DESTINO_DE_PESTANA[nombre] ?? 'Home' : 'Home';
 };
 
 /**
@@ -183,7 +209,7 @@ const NavegacionGlobal: React.FC = () => {
   }, [rutaRaiz]);
 
   /*
-   * Los no leídos de WeeTalk salen de la MISMA suscripción que la bandeja
+   * Los no leídos de Mensajes (WeeTalk) salen de la MISMA suscripción que la bandeja
    * (Fase 11.x-6). Antes había dos oyentes sobre la misma consulta, y además
    * miraban identidades distintas: este contaba las de la cuenta y la bandeja
    * enseñaba las de la cara activa, así que con el Perfil Weë puesto el número
@@ -206,15 +232,11 @@ const NavegacionGlobal: React.FC = () => {
    * comunidad, una experiencia de Weë— se alcanza desde ahí.
    */
   /*
-   * Notificaciones no es una pestaña: es una pantalla DENTRO de la pila del
-   * Home, así que la pestaña puesta ahí sigue siendo Inicio. Por eso se mira
-   * primero la ruta más honda: si estás en Notificaciones, es Notificaciones lo
-   * que va encendido, no Inicio.
+   * Notificaciones y Buscar ya no son destinos de la barra (2026-11-15): se
+   * abren desde la campana y la lupa de la cabecera del Home. Notificaciones
+   * vive dentro de la pila del Home, así que allí sigue encendido Inicio.
    */
-  const enNotificaciones = rutaHonda(estado) === 'Notifications';
-  const puesto: DestinoId | null = enNotificaciones
-    ? 'Notifications'
-    : pestanaPuesta(estado) || DESTINO_DE_RUTA[rutaRaiz] || 'Home';
+  const puesto: DestinoId | null = pestanaPuesta(estado) || DESTINO_DE_RUTA[rutaRaiz] || 'Home';
 
   /* Siempre a la pila principal: ver `navegarEnLaRaiz` (la pestaña «Create» se quedaba el compositor). */
   const irARaiz = (pantalla: string, params?: object) => {
@@ -225,8 +247,15 @@ const NavegacionGlobal: React.FC = () => {
     /* Crear no es una pantalla: abre la hoja de siempre. */
     if (destino === 'Create') return setHoja(true);
 
-    /* Buscar es público. WeeTalk y Notificaciones son de una persona: esos piden cuenta. */
-    if (destino !== 'Home' && destino !== 'Search' && !user) return irARaiz('Register');
+    /*
+     * WeëAI abre el centro creativo de siempre (`WeeCreator`), que es público
+     * igual que lo era desde el atajo de la hoja Crear: mirar es libre y crear
+     * pide cuenta dentro, donde ya se pedía.
+     */
+    if (destino === 'WeeAI') return irARaiz('WeeCreator');
+
+    /* Mensajes y Mi Weë son de una persona: esos piden cuenta. */
+    if (destino !== 'Home' && !user) return irARaiz('Register');
 
     /* Tocar Inicio estando ya en Inicio sube al principio, como siempre. */
     if (destino === 'Home' && puesto === 'Home' && rutaRaiz === 'Main') {
@@ -234,15 +263,7 @@ const NavegacionGlobal: React.FC = () => {
       return;
     }
 
-    /*
-     * Notificaciones vive dentro de la pila del Home, no es una pestaña: se
-     * abre la pantalla QUE YA EXISTÍA, por el mismo camino que usan el menú ☰ y
-     * la barra lateral. Ni ruta nueva, ni pantalla nueva.
-     */
-    if (destino === 'Notifications') {
-      return irARaiz('Main', { screen: 'Home', params: { screen: 'Notifications' } });
-    }
-
+    /* Inicio, Mensajes (`Inbox`) y Mi Weë (`Profile`) son pestañas: las de siempre. */
     irARaiz('Main', { screen: destino });
   };
 

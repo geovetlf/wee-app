@@ -57,3 +57,36 @@ export const MARCA = {
     fin: { x: 1, y: 0.68 },
   },
 } as const;
+
+/**
+ * EL ACENTO DE INTERACCIÓN — violeta eléctrico (decisión del dueño, 2026-11-15).
+ *
+ * No es el color de marca: la marca y las acciones primarias siguen en el dorado
+ * de arriba. El violeta dice «esto está activo», «aquí está el foco», «esto es
+ * un enlace»: la pestaña puesta, el lado elegido del selector de identidad, el
+ * chip de Weë Brain. Nunca rellena un botón principal ni domina una pantalla.
+ *
+ * `ThemeContext` lo copia en `theme.colors.interaction…`, que es lo que leen los
+ * componentes: ningún componente escribe este color a mano.
+ *
+ *   - claro: #7200FF sobre blanco, contraste 6,7:1 (texto e iconos);
+ *   - oscuro: #B79CFF sobre #0A0A0A, contraste 8,9:1. El violeta de la app
+ *     clara se apaga sobre negro, así que el tema oscuro usa su versión clara.
+ */
+export const ACENTO = {
+  claro: {
+    interaccion: '#7200FF',
+    /** Velo para fondos suaves: la pestaña o la pastilla puesta, el chip. */
+    velo: 'rgba(114, 0, 255, 0.08)',
+    /** Contorno de una tarjeta destacada. */
+    borde: 'rgba(114, 0, 255, 0.28)',
+    /** Texto encima de un relleno violeta. */
+    sobre: '#FFFFFF',
+  },
+  oscuro: {
+    interaccion: '#B79CFF',
+    velo: 'rgba(183, 156, 255, 0.14)',
+    borde: 'rgba(183, 156, 255, 0.38)',
+    sobre: '#14082E',
+  },
+} as const;

@@ -7,12 +7,13 @@ import { useT } from '../contexts/IdiomaContext';
 import { useTabBar } from '../contexts/TabBarContext';
 import { FONT_WEIGHT } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from './GradienteDeMarca';
 
 /**
  * LA NAVEGACIÓN DE WEË. UNA SOLA, PARA TODA LA APLICACIÓN.
  *
- * Cinco destinos y ni uno más: Inicio, Buscar, Crear, WeeTalk y Notificaciones.
- * Los mismos de siempre, con las mismas rutas; lo que cambia es que ahora existe
+ * Cinco destinos y ni uno más: Inicio, WeëAI, Crear, Mensajes y Mi Weë
+ * (rediseño del 2026-11-15). Todos llevan a rutas que ya existían; lo que hay es
  * UNA instancia para toda la experiencia —el Home, las experiencias de Weë, los
  * perfiles, las búsquedas— en vez de una barra que solo vivía dentro de las
  * pestañas y desaparecía en cuanto entrabas en Weë Travel o en una publicación.
@@ -40,13 +41,11 @@ import { scale } from '../utils/scale';
  * mismo que antes aunque el dibujo mida dos puntos menos.
  */
 
-export type DestinoId = 'Home' | 'Search' | 'Create' | 'Inbox' | 'Notifications';
+export type DestinoId = 'Home' | 'WeeAI' | 'Create' | 'Inbox' | 'Profile';
 
 interface Destino {
   id: DestinoId;
-  /** El texto en español, que es además la clave de respaldo si faltara la traducción. */
-  etiqueta: string;
-  /** La clave de i18n. La etiqueta que se pinta sale de aquí, no de `etiqueta`. */
+  /** La clave de i18n: la etiqueta que se pinta sale de aquí. El catálogo guarda claves, no frases. */
   clave: string;
   icono: keyof typeof Ionicons.glyphMap;
   iconoPuesto: keyof typeof Ionicons.glyphMap;
@@ -55,20 +54,25 @@ interface Destino {
 /**
  * El orden es el de la barra y no cambia.
  *
- * El quinto dejó de ser Perfil y pasó a ser Notificaciones (fase 2E-77): la
- * campana estaba arriba, en el encabezado, y bajó aquí. El Perfil no se ha ido
- * a ninguna parte —su pantalla, su pila y sus rutas están intactas— y se sigue
- * abriendo desde donde vive tu cuenta: el menú ☰ y la barra lateral, que ya
- * ofrecían los dos perfiles.
+ * Rediseño del 2026-11-15 (decisión del dueño): Inicio · WeëAI · Crear ·
+ * Mensajes · Mi Weë. Buscar y Notificaciones subieron a la cabecera del Home
+ * (la lupa y la campana) y sus pantallas y rutas siguen donde estaban. WeëAI
+ * abre el centro creativo que ya existía; «Mensajes» es WeeTalk —la pestaña
+ * `Inbox` de siempre, con otro rótulo— y «Mi Weë» es la pestaña `Profile`.
+ *
+ * WeëAI es marca y se escribe igual en todos los idiomas; aun así sale de su
+ * clave, como todo lo que se pinta.
  */
 export const DESTINOS: Destino[] = [
-  { id: 'Home', etiqueta: 'Inicio', clave: 'nav.home', icono: 'home-outline', iconoPuesto: 'home' },
-  { id: 'Search', etiqueta: 'Buscar', clave: 'nav.search', icono: 'search-outline', iconoPuesto: 'search' },
-  { id: 'Create', etiqueta: 'Crear', clave: 'nav.create', icono: 'add-circle-outline', iconoPuesto: 'add-circle' },
-  /* WeeTalk no se traduce: es el nombre del producto, como Instagram o WhatsApp. */
-  { id: 'Inbox', etiqueta: 'WeeTalk', clave: 'nav.talk', icono: 'chatbubble-outline', iconoPuesto: 'chatbubble' },
-  { id: 'Notifications', etiqueta: 'Notificaciones', clave: 'nav.notifications', icono: 'notifications-outline', iconoPuesto: 'notifications' },
+  { id: 'Home', clave: 'nav.home', icono: 'home-outline', iconoPuesto: 'home' },
+  { id: 'WeeAI', clave: 'nav.weeAi', icono: 'sparkles-outline', iconoPuesto: 'sparkles' },
+  { id: 'Create', clave: 'nav.create', icono: 'add', iconoPuesto: 'add' },
+  { id: 'Inbox', clave: 'nav.messages', icono: 'chatbubble-ellipses-outline', iconoPuesto: 'chatbubble-ellipses' },
+  { id: 'Profile', clave: 'nav.myWee', icono: 'person-outline', iconoPuesto: 'person' },
 ];
+
+/** El lado del círculo dorado de Crear. Sobresale un poco de la barra, sin cambiarle el alto. */
+const LADO_DE_CREAR = scale(46);
 
 /** Lo que ocupa la barra por encima de la zona segura. Lo necesita quien reserve sitio. */
 export const ALTO_BARRA = scale(52);
@@ -77,7 +81,7 @@ interface BarraInferiorProps {
   /** Cuál de los cinco está puesto. `null` si ninguno —una pantalla suelta—. */
   puesto: DestinoId | null;
   onSelect: (destino: DestinoId) => void;
-  /** Mensajes sin leer de WeeTalk. 0 o menos, no se dibuja nada. */
+  /** Mensajes sin leer (WeeTalk). 0 o menos, no se dibuja nada. */
   sinLeer?: number;
 }
 
@@ -103,8 +107,8 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
   });
   const colorTexto = (activo: boolean) => {
     if (isTransparent) return activo ? '#FFFFFF' : 'rgba(255,255,255,0.6)';
-    /* Lo activo, en el ámbar-naranja de la navegación (2026-11-05). */
-    return activo ? theme.colors.activeColor : theme.colors.textSecondary;
+    /* Lo activo, en el acento de interacción (violeta, 2026-11-15); el dorado se queda en Crear, que es la acción. */
+    return activo ? theme.colors.interaction : theme.colors.textSecondary;
   };
 
   return (
@@ -140,26 +144,37 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
             aria-selected={activo}
             accessibilityLabel={activo ? `${t(destino.clave)}, ${t('nav.current')}` : t(destino.clave)}
           >
-            <View style={styles.icono}>
-              {/*
-                Los cinco, con el mismo dibujo: contorno en reposo y relleno
-                cuando es el puesto. Aquí vivía el avatar del Perfil, que
-                enseñaba tu cara en vez de un icono; se fue con él cuando el
-                quinto destino pasó a ser Notificaciones.
-              */}
-              <Ionicons name={activo ? destino.iconoPuesto : destino.icono} size={scale(26)} color={color} />
+            {destino.id === 'Create' ? (
+              /*
+                CREAR ES LA ACCIÓN, Y LO DICE EL DORADO. Un círculo con el
+                degradado de marca, algo más grande que los demás dibujos y
+                subido unos puntos: es el único relleno dorado de la barra. Lo
+                que hace no cambia —abre la hoja Crear de siempre—.
+              */
+              <View style={[styles.crear, { backgroundColor: theme.colors.accent }]}>
+                <RellenoDeMarca radio={LADO_DE_CREAR / 2} />
+                <Ionicons name="add" size={scale(28)} color={theme.colors.onPrimary} />
+              </View>
+            ) : (
+              <View style={styles.icono}>
+                {/* Contorno en reposo y relleno cuando es el puesto: los cuatro, con el mismo criterio. */}
+                <Ionicons name={activo ? destino.iconoPuesto : destino.icono} size={scale(24)} color={color} />
 
-              {destino.id === 'Inbox' && sinLeer > 0 && (
-                <View style={[styles.aviso, { backgroundColor: theme.colors.accent }]}>
-                  <Text style={styles.avisoTexto} numberOfLines={1}>
-                    {sinLeer > 99 ? '99+' : sinLeer}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <Text style={[styles.etiqueta, { color }]} numberOfLines={1}>
-              {t(destino.clave)}
-            </Text>
+                {destino.id === 'Inbox' && sinLeer > 0 && (
+                  <View style={[styles.aviso, { backgroundColor: theme.colors.accent }]}>
+                    <Text style={styles.avisoTexto} numberOfLines={1}>
+                      {sinLeer > 99 ? '99+' : sinLeer}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+            {/* Crear no lleva rótulo debajo: el círculo ya lo dice, y su nombre lo oye el lector de pantalla. */}
+            {destino.id !== 'Create' && (
+              <Text style={[styles.etiqueta, { color }]} numberOfLines={1}>
+                {t(destino.clave)}
+              </Text>
+            )}
           </TouchableOpacity>
         );
       })}
@@ -193,6 +208,16 @@ const styles = StyleSheet.create({
   etiqueta: {
     fontSize: scale(10),
     fontWeight: FONT_WEIGHT.medium,
+  },
+  /* El círculo de Crear: sube unos puntos sobre la línea de la barra; el destino sigue midiendo lo mismo. */
+  crear: {
+    width: LADO_DE_CREAR,
+    height: LADO_DE_CREAR,
+    borderRadius: LADO_DE_CREAR / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginTop: -scale(10),
   },
   aviso: {
     position: 'absolute',

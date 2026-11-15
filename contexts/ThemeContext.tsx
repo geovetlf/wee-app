@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { Appearance, ColorSchemeName, Animated, Easing, StyleSheet, Platform, StatusBar } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
-import { MARCA } from '../constants/marca';
+import { MARCA, ACENTO } from '../constants/marca';
 
 /*
  * Dos temas y el del sistema. Hubo un tercero —morado— que se encendía con el
@@ -33,6 +33,14 @@ export interface Theme {
     /** Extremos del degradado de marca (el degradado completo lo pinta components/GradienteDeMarca.tsx). */
     primaryGradientStart: string;
     primaryGradientEnd: string;
+    /** Acento de interacción (violeta): estados activos, foco, enlaces. Nunca una acción primaria: esa es `accent`. Sale de constants/marca.ts (ACENTO). */
+    interaction: string;
+    /** Velo del acento de interacción para fondos suaves. */
+    interactionSoft: string;
+    /** Contorno de una tarjeta destacada con el acento de interacción. */
+    interactionBorder: string;
+    /** Texto encima de un relleno del acento de interacción. */
+    onInteraction: string;
     like: string;
     error: string;
     glow: string;
@@ -62,6 +70,10 @@ const lightTheme: Theme = {
     onPrimary: MARCA.sobrePrimario,
     primaryGradientStart: MARCA.degradado.colores[0],
     primaryGradientEnd: MARCA.degradado.colores[2],
+    interaction: ACENTO.claro.interaccion,
+    interactionSoft: ACENTO.claro.velo,
+    interactionBorder: ACENTO.claro.borde,
+    onInteraction: ACENTO.claro.sobre,
     like: '#EF4444',
     error: '#EF4444',
     glow: MARCA.velo(0.15),
@@ -91,6 +103,10 @@ const darkTheme: Theme = {
     onPrimary: MARCA.sobrePrimario,
     primaryGradientStart: MARCA.degradado.colores[0],
     primaryGradientEnd: MARCA.degradado.colores[2],
+    interaction: ACENTO.oscuro.interaccion,
+    interactionSoft: ACENTO.oscuro.velo,
+    interactionBorder: ACENTO.oscuro.borde,
+    onInteraction: ACENTO.oscuro.sobre,
     like: '#FF6B6B',
     error: '#FF6B6B',
     glow: MARCA.velo(0.25),

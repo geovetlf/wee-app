@@ -63,7 +63,11 @@ export type NombreDeIcono =
   | 'gorro'
   | 'maletin'
   | 'vestido'
-  | 'avion';
+  | 'avion'
+  /* Rediseño del menú (2026-11-15): Explorar, Historial y MyWeës. */
+  | 'brujula'
+  | 'reloj'
+  | 'capas';
 
 /*
  * El color se escribe como `%C%` y se sustituye al generar. Un icono que quiera
@@ -235,6 +239,22 @@ export const TRAZOS: Record<NombreDeIcono, string> = {
   /* Un avión visto desde arriba, subiendo hacia la derecha. */
   avion:
     '<path d="M20.7 3.3a1.9 1.9 0 0 0-2.7 0l-3.3 3.3-9.4-2.3-1.7 1.7 7.6 4.7-3.1 3.1-3.5-.6-1.3 1.3 4 2.2 2.2 4 1.3-1.3-.6-3.5 3.1-3.1 4.7 7.6 1.7-1.7-2.3-9.4 3.3-3.3a1.9 1.9 0 0 0 0-2.7z"/>',
+
+  /* Una brújula: el círculo y la aguja en rombo, apuntando arriba a la derecha. Explorar. */
+  brujula:
+    '<circle cx="12" cy="12" r="9.1"/>'
+    + '<path d="M15.9 8.1l-2.2 5.6-5.6 2.2 2.2-5.6z"/>',
+
+  /* Un reloj: la esfera y las dos agujas. Historial. */
+  reloj:
+    '<circle cx="12" cy="12" r="9.1"/>'
+    + '<path d="M12 6.9V12l3.4 2.1"/>',
+
+  /* Tres láminas apiladas: lo que cada persona va poniendo, una cosa encima de otra. MyWeës. */
+  capas:
+    '<path d="M12 3.5 20.9 8 12 12.5 3.1 8z"/>'
+    + '<path d="M3.6 12.1 12 16.4l8.4-4.3"/>'
+    + '<path d="M3.6 16.1 12 20.4l8.4-4.3"/>',
 };
 
 /** Cuánto pesa el trazo. Uno solo para los veintidós: es lo que los hermana. */

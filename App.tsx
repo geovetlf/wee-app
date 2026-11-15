@@ -295,6 +295,12 @@ const linking: any = {
       WeePages: { path: 'pages', alias: ['WeePages'] },
       WeePage: { path: 'page/:pageId', alias: ['WeePage'] },
       /*
+       * MYWEËS E HISTORIAL (rediseño del 2026-11-15). Dos direcciones, sin nada privado en ellas: la organización de
+       * MyWeës vive en el dispositivo y el historial se lee con la sesión. `personalizar` es solo cómo se abre la pantalla.
+       */
+      MyWees: { path: 'mywees', alias: ['MyWees'], parse: { personalizar: (v: string) => v === 'true' || v === '1' } },
+      Historial: { path: 'historial', alias: ['Historial'] },
+      /*
        * LO QUE UN INVITADO PUEDE ABRIR POR ENLACE Y RECARGAR. Sin dirección propia, React Navigation escribía el nombre
        * interno (`/Reels`, `/WeeCreator`) y luego no sabía leerlo: recargar llevaba al Inicio. El alias mantiene vivos
        * los enlaces que ya circulan. Ninguna publicación viaja en la dirección: el feed de Weëls carga las suyas.

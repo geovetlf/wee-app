@@ -49,6 +49,8 @@ import DesignScreen from '../screens/DesignScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
 import MisCreacionesScreen from '../screens/MisCreacionesScreen';
+import MyWeesScreen from '../screens/MyWeesScreen';
+import HistorialScreen from '../screens/HistorialScreen';
 import ProjectScreen from '../screens/ProjectScreen';
 import AuthStackNavigator from './AuthStackNavigator';
 import Sidebar from '../components/Sidebar';
@@ -139,6 +141,10 @@ export type MainStackParamList = {
   Project: { id: string };
   /* Mis creaciones: la biblioteca de material de la cuenta (Fase 11). */
   MisCreaciones: undefined;
+  /* MyWeës: el organizador personal de accesos directos, guardado en el dispositivo por cuenta y perfil. `personalizar` lo abre ya en modo de organizar. */
+  MyWees: { personalizar?: boolean } | undefined;
+  /* Historial: la cronología de los trabajos de WeëAI de la cuenta (los que la app ya lee). Sin Credits. */
+  Historial: undefined;
   /*
    * La dirección es /post/<postId>: el id va siempre. La publicación entera, si ya se tiene, viaja en memoria para no
    * volver a leerla, pero no sale a la URL (navigation/enlaces.ts); al recargar se lee por su id.
@@ -395,6 +401,8 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />
       <Stack.Screen name="MisCreaciones" component={MisCreacionesScreen} />
+      <Stack.Screen name="MyWees" component={MyWeesScreen} />
+      <Stack.Screen name="Historial" component={HistorialScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="Idioma" component={IdiomaScreen} />
       <Stack.Screen name="EngineAdmin" component={EngineAdminScreen} />
